@@ -1,5 +1,5 @@
 // 이 파일은 scripts/generate-zone-history.mjs 가 생성합니다. 직접 수정하지 마세요.
-// 출처: IANA tz database 2025b (Asia/Seoul), 1900~2100
+// 출처: IANA tz database 2025b (Asia/Seoul), 1900-01-01 ~ 2100-12-31
 // 생성: Node 24.12.0 · ICU 77.1 · 2026-08-15
 // 재생성: node scripts/generate-zone-history.mjs
 //

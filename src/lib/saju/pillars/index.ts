@@ -112,10 +112,20 @@ function collectWarnings(
   nextTerm: SolarTerm,
   lateNightRule: LateNightRule,
   hourKnown: boolean,
-  /** `civil` 을 읽을 때 쓴 오프셋 — 절입 시각을 같은 시계로 읽어야 날짜가 맞다 */
-  civilOffsetMinutes: number,
+  /**
+   * 표준시 오프셋(분) — 지방시 보정을 **뺀** 값.
+   *
+   * "몇 월 며칠에 태어났는가"는 달력이 답하는 질문이고, 달력은 표준시로 돈다.
+   * 경도 보정까지 섞어 읽으면 자정 부근 절입이 하루 어긋난다. 예를 들어
+   * 1984년 입춘은 2월 5일 00:18 KST 인데, 서울 보정(-32분)으로 읽으면
+   * 2월 4일 23:46 이 되어 엉뚱한 날에 경고가 붙는다.
+   */
+  zoneOffsetMinutes: number,
 ): string[] {
   const warnings: string[] = [];
+
+  // 절입일 비교에 쓸 민간시 날짜 — 지방시 보정을 걷어낸 시계로 읽는다.
+  const civilDay = civilDayNumber(toCivil(instant, zoneOffsetMinutes));
 
   for (const term of [monthTerm, nextTerm]) {
     // 입춘만 연주까지 가른다. 다른 절기는 월주만 바뀐다.
@@ -124,8 +134,7 @@ function collectWarnings(
     if (!hourKnown) {
       // 시각을 모르면 "몇 분 차이"를 말할 수 없다. 대신 절입일에 태어났는지만
       // 본다 — 그 날이라면 시각에 따라 월주가 통째로 갈린다.
-      const sameDay =
-        civilDayNumber(toCivil(term.date, civilOffsetMinutes)) === civilDayNumber(civil);
+      const sameDay = civilDayNumber(toCivil(term.date, zoneOffsetMinutes)) === civilDay;
       if (sameDay) {
         warnings.push(
           `출생일이 ${term.name} 절입일입니다. 시각을 모르면 ${affected}를 확정할 수 없습니다.`,
@@ -224,7 +233,7 @@ export function getFourPillars(instant: Date, options: PillarOptions = {}): Four
         nextTerm,
         lateNightRule,
         hourKnown,
-        zoneOffsetMinutes + solarTimeOffsetMinutes,
+        zoneOffsetMinutes,
       ),
     },
   };

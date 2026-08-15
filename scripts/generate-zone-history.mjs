@@ -12,8 +12,11 @@
 import { writeFileSync } from 'node:fs';
 
 const ZONE = 'Asia/Seoul';
+/** 훑는 구간 — 양 끝 해를 모두 **포함**한다 (1900-01-01 ~ 2100-12-31) */
 const FROM_YEAR = 1900;
 const TO_YEAR = 2100;
+/** 마지막 해까지 덮으려면 그 다음 해 1월 1일 직전까지 가야 한다 */
+const SCAN_END = Date.UTC(TO_YEAR + 1, 0, 1);
 const DAY_MS = 86_400_000;
 
 const formatter = new Intl.DateTimeFormat('en-US', {
@@ -36,7 +39,7 @@ function findTransitions() {
   const transitions = [];
   let previous = offsetAt(Date.UTC(FROM_YEAR, 0, 1));
 
-  for (let t = Date.UTC(FROM_YEAR, 0, 2); t < Date.UTC(TO_YEAR, 0, 1); t += DAY_MS) {
+  for (let t = Date.UTC(FROM_YEAR, 0, 2); t < SCAN_END; t += DAY_MS) {
     const current = offsetAt(t);
     if (current === previous) continue;
 
@@ -121,7 +124,7 @@ const provenance = {
 };
 
 const output = `// 이 파일은 scripts/generate-zone-history.mjs 가 생성합니다. 직접 수정하지 마세요.
-// 출처: IANA tz database ${provenance.tzdb} (${ZONE}), ${FROM_YEAR}~${TO_YEAR}
+// 출처: IANA tz database ${provenance.tzdb} (${ZONE}), ${FROM_YEAR}-01-01 ~ ${TO_YEAR}-12-31
 // 생성: Node ${provenance.node} · ICU ${provenance.icu} · ${provenance.generatedAt}
 // 재생성: node scripts/generate-zone-history.mjs
 //

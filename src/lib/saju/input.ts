@@ -128,7 +128,18 @@ export function assertValidSajuInput(input: SajuInput): void {
   }
 
   if (input.hour === null) {
-    // 시간 미상 — 분·초는 애초에 의미가 없으므로 검사할 것이 없다.
+    // 시간 미상인데 분·초가 딸려 오면 둘 중 하나가 거짓말이다. 조용히 버리면
+    // "14시 30분인데 시간을 모른다"는 입력이 통과한다. 타입만 믿을 수 없는
+    // 이유는 JSON·`as any` 로 들어오는 값에는 타입이 없기 때문이다.
+    for (const field of ['minute', 'second'] as const) {
+      if (input[field] !== undefined) {
+        throw new InvalidSajuInputError(
+          field,
+          input[field],
+          `시간 미상(hour: null)에는 함께 넘길 수 없습니다: ${String(input[field])}`,
+        );
+      }
+    }
     return;
   }
 

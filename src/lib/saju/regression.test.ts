@@ -74,6 +74,44 @@ describe('절입 경계 — 12절 전부', () => {
   });
 });
 
+describe('시간 미상 절입일 경고 — 자정 부근', () => {
+  /** 그 날 하루가 절입일이라는 경고를 받았는가 */
+  const warnsTermDay = (year: number, month: number, day: number) =>
+    computeSaju({ year, month, day, hour: null }).meta.warnings.some((warning) =>
+      warning.includes('절입일'),
+    );
+
+  it('절입이 자정 직후여도 그 날에 경고가 붙는다', () => {
+    // 1984년 입춘 = 1984-02-05 00:18 KST.
+    // 경도 보정(-32분)까지 섞어 날짜를 읽으면 2월 4일 23:46 으로 보여
+    // 경고가 하루 앞 날짜에 붙는다. 달력 날짜는 표준시로 읽어야 한다.
+    expect(warnsTermDay(1984, 2, 5), '1984-02-05 (입춘 당일)').toBe(true);
+    expect(warnsTermDay(1984, 2, 4), '1984-02-04 (입춘 전날)').toBe(false);
+    expect(warnsTermDay(1984, 2, 6), '1984-02-06 (입춘 다음날)').toBe(false);
+  });
+
+  it('1900~2100 전 구간에서 경고 날짜가 절입의 한국 표준시 날짜와 같다', () => {
+    // 자정 부근 절입은 드물지 않다. 한 해라도 어긋나면 여기서 드러난다.
+    for (let sajuYear = 1900; sajuYear <= 2100; sajuYear += 1) {
+      for (const term of getSolarTerms(sajuYear)) {
+        // 그 시절 한국이 실제로 쓰던 표준시로 읽는다. 1908년 이전은 UTC+8:27,
+        // 1954~61년은 UTC+8:30 이라 +9 로 고정하면 날짜가 어긋난다.
+        const offsetMinutes = zoneIntervalAt(term.date).standardOffsetMinutes;
+        const local = new Date(term.date.getTime() + offsetMinutes * 60_000);
+        const [year, month, day] = [
+          local.getUTCFullYear(),
+          local.getUTCMonth() + 1,
+          local.getUTCDate(),
+        ];
+        if (year > 2100) continue; // 2101년 소한은 지원 범위 밖이다
+
+        const label = `${sajuYear} ${term.name} → ${year}-${month}-${day}`;
+        expect(warnsTermDay(year, month, day), label).toBe(true);
+      }
+    }
+  });
+});
+
 describe('윤년 규칙 — 1900년과 2000년', () => {
   it('1900년 2월은 28일까지다 (100의 배수, 400의 배수가 아님)', () => {
     expect(daysInMonth(1900, 2)).toBe(28);

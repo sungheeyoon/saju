@@ -245,6 +245,18 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
     options: SEOUL,
   },
   {
+    id: 'unknown-hour-midnight-term',
+    note: '시각 미상 + 자정 직후 절입(1984 입춘 02-05 00:18) — 경고가 절입일 당일에 붙어야 한다',
+    input: onDay(1984, 2, 5),
+    options: SEOUL,
+  },
+  {
+    id: 'unknown-hour-midnight-term-eve',
+    note: '그 전날 — 경도 보정으로 날짜를 읽으면 여기에 잘못 붙던 경고가 없어야 한다',
+    input: onDay(1984, 2, 4),
+    options: SEOUL,
+  },
+  {
     id: 'unknown-hour-dst-day',
     note: '시각 미상 + 서머타임 기간 — 시주가 없어도 보정 기록은 남는다',
     input: onDay(1988, 7, 15),

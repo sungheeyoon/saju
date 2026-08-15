@@ -19,6 +19,7 @@ export type RawZoneInterval = {
  */
 export type ZoneHistoryProvenance = {
   zone: string;
+  /** 훑은 구간 — 양 끝 해를 모두 포함한다 (`toYear` 12월 31일까지) */
   fromYear: number;
   toYear: number;
   /** IANA tz database 판본 (예: '2025b') */

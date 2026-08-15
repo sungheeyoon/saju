@@ -77,8 +77,9 @@ describe('생성된 표 ↔ 실행 환경 tzdb 대조', () => {
 
   it.skipIf(!sameTzdb)('빠뜨린 전환이 없다 — 1900~2100 하루 단위 대조', () => {
     // 전환을 하나 통째로 빠뜨리면 위 테스트는 통과한다. 그래서 훑는다.
+    // toYear 는 포함이다 — 그 해 12월 31일까지 훑어야 선언한 범위를 다 덮는다.
     const from = Date.UTC(ZONE_HISTORY_PROVENANCE.fromYear, 0, 1);
-    const to = Date.UTC(ZONE_HISTORY_PROVENANCE.toYear, 0, 1);
+    const to = Date.UTC(ZONE_HISTORY_PROVENANCE.toYear + 1, 0, 1);
 
     // 비교 지점은 절대 시각이므로 전환 당일이라고 봐줄 것이 없다. 정확히 같아야 한다.
     for (let time = from; time < to; time += DAY_MS / 2) {

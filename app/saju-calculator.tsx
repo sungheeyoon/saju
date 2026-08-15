@@ -629,8 +629,9 @@ function TimeCorrections({ saju }: { saju: Saju }) {
 
       {meta.inputTime.hour === null ? (
         <p className="mt-2 mb-3 text-sm text-secondary">
-          시각 미상이라 시주에 영향을 주는 보정은 쓰이지 않았습니다. 아래는 연·월주
-          판정에 쓰인 보정입니다.
+          시각 미상이라 정오를 기준으로 계산했습니다. 아래는 그 시각에 적용된 보정
+          기록일 뿐입니다 — 시주는 뽑지 않았고, 연·월주는 절대 시각으로 판정하며,
+          일주는 정오라 이 보정으로는 넘어가지 않습니다.
         </p>
       ) : (
         <p className="mt-2 mb-3 text-sm">

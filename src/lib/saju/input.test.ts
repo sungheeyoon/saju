@@ -135,7 +135,7 @@ describe('입력 검증(assertValidSajuInput)', () => {
     }
   });
 
-  it('시간 미상 입력에서는 분·초를 따지지 않는다', () => {
+  it('시간 미상 입력은 날짜만 요구한다', () => {
     expect(() =>
       assertValidSajuInput({ year: 2025, month: 6, day: 15, hour: null }),
     ).not.toThrow();
@@ -143,6 +143,30 @@ describe('입력 검증(assertValidSajuInput)', () => {
     expect(() =>
       assertValidSajuInput({ year: 2025, month: 2, day: 30, hour: null }),
     ).toThrow(InvalidSajuInputError);
+  });
+
+  it('시간 미상인데 분·초가 딸려 오면 거부한다', () => {
+    // 타입은 막지만 JSON·as any 로 들어오는 값에는 타입이 없다.
+    // 조용히 버리면 "14시 30분인데 시간을 모른다"는 입력이 통과한다.
+    expect(() => assertValidSajuInput(broken({ hour: null, minute: 30 }))).toThrow(
+      InvalidSajuInputError,
+    );
+    expect(() => assertValidSajuInput(broken({ hour: null, minute: 99 }))).toThrow(
+      InvalidSajuInputError,
+    );
+    expect(() => assertValidSajuInput(broken({ hour: null, second: 'x' }))).toThrow(
+      InvalidSajuInputError,
+    );
+    expect(() => computeSaju(broken({ hour: null, minute: 99, second: 'x' }))).toThrow(
+      InvalidSajuInputError,
+    );
+
+    try {
+      assertValidSajuInput(broken({ hour: null, minute: 99 }));
+      expect.unreachable();
+    } catch (error) {
+      expect((error as InvalidSajuInputError).field).toBe('minute');
+    }
   });
 });
 
