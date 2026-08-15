@@ -393,6 +393,7 @@ function SajuView({ saju }: { saju: Saju }) {
       <PillarChart saju={saju} />
       <StarTable saju={saju} />
       <SaeunTable saju={saju} />
+      <WolunTable saju={saju} />
       <RelationTable saju={saju} />
       <DaeunTable saju={saju} />
       <div className="grid gap-6 lg:grid-cols-2">
@@ -692,6 +693,86 @@ function SaeunTable({ saju }: { saju: Saju }) {
         칸 안은 위에서부터 천간 십성 · 간지 · 지지 십성 · 12운성(일간 기준) ·
         12신살(년지 기준)입니다. 아래 목록은 그 해가 원국과 맺는 관계로, 원국
         안에서만 성립하는 관계는 뺐습니다.
+      </p>
+    </section>
+  );
+}
+
+/**
+ * 월운 — 한 해의 열두 달.
+ *
+ * 세운 표와 같은 모양이되 경계가 다르다. 달력 월이 아니라 절입이라, 각 칸에
+ * 그 달이 시작되는 절과 날짜를 적는다 — 3월 3일이 아직 인월이라는 것이
+ * 월운에서 가장 자주 어긋나는 지점이다.
+ */
+function WolunTable({ saju }: { saju: Saju }) {
+  const { year, entries } = saju.wolun;
+  const monthDay = (date: Date) => `${date.getMonth() + 1}/${date.getDate()}`;
+
+  return (
+    <section className={CARD}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-xs uppercase tracking-wide text-muted">월운</h2>
+        <p className="text-sm text-secondary">{year}년 (사주년)</p>
+      </div>
+
+      <p className="mt-1.5 text-xs text-secondary">
+        경계는 절입입니다. 달력 월이 아니라 절기가 달을 가릅니다 — 3월 초 경칩
+        전까지는 아직 인월(寅月)입니다.
+      </p>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[60rem] border-collapse text-center">
+          <caption className="sr-only">한 해 열두 달의 간지와 원국·세운과의 관계</caption>
+          <thead>
+            <tr>
+              {entries.map((entry) => (
+                <th
+                  key={entry.chartId}
+                  className="px-1 pb-2 text-xs font-normal text-secondary"
+                >
+                  {entry.startTerm.name}
+                  <span className="block text-[11px] text-muted">
+                    {monthDay(entry.startTerm.date)}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {entries.map((entry) => (
+                <td key={entry.chartId} className="px-1 align-top">
+                  <div className="mx-auto flex w-full max-w-20 flex-col items-center gap-0.5 rounded-lg border border-border bg-surface-sunken py-2.5">
+                    <span className="text-[10px] text-muted">
+                      {TEN_GOD_KO[entry.tenGods.stem]}
+                    </span>
+                    <span className="glyph text-xl leading-none">{entry.pillar.stem}</span>
+                    <span className="glyph text-xl leading-none">{entry.pillar.branch}</span>
+                    <span className="text-[10px] text-muted">
+                      {TEN_GOD_KO[entry.tenGods.branch]}
+                    </span>
+                    <span className="mt-1 text-[11px] text-secondary">
+                      {TWELVE_STAGE_KO[entry.stage]}
+                    </span>
+                  </div>
+
+                  <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
+                    {entry.relations.map((relation) => (
+                      <li key={`${relation.kind}:${relation.ko}`}>{relation.ko}</li>
+                    ))}
+                  </ul>
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
+        아래 목록은 그 달이 <strong className="font-medium">원국과 세운</strong>에 대해
+        맺는 관계입니다. 그 달이 끼지 않은 관계는 빼두었습니다 — 원국 안에서
+        닫힌 것도, 원국과 세운 사이의 것도 여기 적을 이유가 없습니다.
       </p>
     </section>
   );

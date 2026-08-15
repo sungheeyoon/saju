@@ -144,9 +144,9 @@ export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Sae
         year: twelveSpiritOf(pillars.year.branch, pillar.branch),
         day: twelveSpiritOf(pillars.day.branch, pillar.branch),
       },
-      // 원국 안에서만 닫힌 관계는 해마다 같으므로 뺀다.
-      relations: findRelationsAmong([natal, annual]).filter(
-        (relation) => relation.scope !== 'withinChart',
+      // 세운이 낀 것만. 원국 안에서만 닫힌 관계는 해마다 같으므로 뺀다.
+      relations: findRelationsAmong([natal, annual]).filter((relation) =>
+        relation.participants.some((participant) => participant.chartId === chartId),
       ),
     } satisfies SaeunEntry;
   });

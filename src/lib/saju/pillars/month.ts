@@ -20,17 +20,8 @@ import { getSolarTerms, type SolarTerm } from '../solarTerms';
 // 절기 구간 판정
 // ─────────────────────────────────────────────────────────────
 
-/** 절기 계산은 천문 탐색이라 비싸다. 사주년 단위로 결과를 재사용한다. */
-const solarTermCache = new Map<number, SolarTerm[]>();
-
-function solarTermsOf(sajuYear: number): SolarTerm[] {
-  const cached = solarTermCache.get(sajuYear);
-  if (cached) return cached;
-
-  const terms = getSolarTerms(sajuYear);
-  solarTermCache.set(sajuYear, terms);
-  return terms;
-}
+// 절기 탐색은 `getSolarTerms` 가 스스로 캐시한다. 여기 또 두면 같은 것을
+// 두 겹으로 들고 있게 된다.
 
 export type MonthTerm = {
   /** 이 시각이 속한 절기 구간의 시작 절기 */
@@ -50,7 +41,7 @@ export type MonthTerm = {
  */
 export function findMonthTerm(instant: Date, civilYear: number): MonthTerm {
   const candidates = [civilYear - 1, civilYear].flatMap((sajuYear) =>
-    solarTermsOf(sajuYear).map((term) => ({ term, sajuYear })),
+    getSolarTerms(sajuYear).map((term) => ({ term, sajuYear })),
   );
 
   const time = instant.getTime();

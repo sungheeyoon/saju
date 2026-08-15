@@ -143,6 +143,17 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     );
   }
 
+  // 월운은 열두 달 중 첫 세 달만. 전부 찍으면 스냅샷이 월운으로 뒤덮인다.
+  for (const entry of saju.wolun.entries.slice(0, 3)) {
+    const crossed = entry.relations.map((r) => r.ko).join(' ');
+    lines.push(
+      `  월운   ${entry.year}-${String(entry.monthOrder).padStart(2, '0')} ${entry.pillar.name}` +
+        ` ${entry.startTerm.name}` +
+        `  ${TEN_GOD_KO[entry.tenGods.stem]}/${TEN_GOD_KO[entry.tenGods.branch]}` +
+        ` ${TWELVE_STAGE_KO[entry.stage]}${crossed ? `  ${crossed}` : ''}`,
+    );
+  }
+
   for (const correction of meta.corrections) {
     const minutes = Math.round(correction.minutes * 10) / 10;
     lines.push(
@@ -250,6 +261,9 @@ describe('골든 테스트', () => {
       '  세운  해의 경계는 입춘이다. 간지는 연주 도출과 같은 함수에서 나온다.',
       '        원국과의 관계는 세운이 낀 것만 — 원국 안에서 닫힌 관계는 해마다 같다.',
       '        계산판이 섞이면 기둥 사이의 거리라는 것이 없어 distance 가 null 이다.',
+      '',
+      '  월운  경계는 절입이다. 월간은 오호둔, 월지는 절기 — 월주 도출과 같은 함수다.',
+      '        관계는 원국·세운을 함께 놓고 보되 그 달이 낀 것만 남긴다.',
       '',
       '  시간 미상  채택: 시주를 뽑지 않는다 (unknown-hour-* 케이스)',
       '',

@@ -11,6 +11,7 @@ import {
 } from './pillars';
 import { findRelations, type Relation } from './relations';
 import { computeSaeun, type Saeun, type SaeunOptions } from './saeun';
+import { computeWolun, type Wolun, type WolunOptions } from './wolun';
 import { analyzeSinsal, type Sinsal, type SinsalOptions } from './sinsal';
 import { twelveStagesOf, type Stages, type TwelveStageOptions } from './stages';
 import {
@@ -28,6 +29,7 @@ export * from './input';
 export * from './position';
 export * from './relations';
 export * from './saeun';
+export * from './wolun';
 export * from './sinsal';
 export * from './solarTerms';
 export * from './stages';
@@ -74,6 +76,7 @@ export type SajuOptions = TimeCorrectionOptions & {
   stages?: TwelveStageOptions;
   sinsal?: SinsalOptions;
   saeun?: SaeunOptions;
+  wolun?: WolunOptions;
 };
 
 export type Saju = {
@@ -102,6 +105,12 @@ export type Saju = {
    * 기본은 출생한 사주년부터 열 해다. `saeun.fromYear`·`saeun.count` 로 옮긴다.
    */
   saeun: Saeun;
+  /**
+   * 월운 — 한 해의 열두 달.
+   *
+   * 경계는 절입이다. 기본은 세운이 시작하는 해이고 `wolun.year` 로 옮긴다.
+   */
+  wolun: Wolun;
   /**
    * 10년 단위 대운.
    *
@@ -145,6 +154,7 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     stages: stageOptions,
     sinsal: sinsalOptions,
     saeun: saeunOptions,
+    wolun: wolunOptions,
     ...correctionOptions
   } = options;
 
@@ -172,6 +182,11 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     0,
   );
 
+  const saeun = computeSaeun(
+    { pillars, birthSajuYear: pillars.meta.sajuYear },
+    { stages: stageOptions, ...saeunOptions },
+  );
+
   const daeun = computeDaeun(
     {
       yearStem: pillars.year.stem,
@@ -192,9 +207,10 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     relations: findRelations(pillars),
     stages: twelveStagesOf(pillars, stageOptions),
     sinsal: analyzeSinsal(pillars, sinsalOptions),
-    saeun: computeSaeun(
-      { pillars, birthSajuYear: pillars.meta.sajuYear },
-      { stages: stageOptions, ...saeunOptions },
+    saeun,
+    wolun: computeWolun(
+      { pillars, year: wolunOptions?.year ?? saeun.entries[0].year },
+      { stages: stageOptions, ...wolunOptions },
     ),
     daeun,
     meta: {
