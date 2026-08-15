@@ -1,26 +1,79 @@
 @import "tailwindcss";
 
+/*
+ * 색은 역할로만 쓴다. 라이트/다크 값을 각각 고르고(자동 반전 아님),
+ * 컴포넌트는 원시 hex 를 모른다.
+ *
+ * accent 는 검증된 blue 스텝이다 (light #2a78d6 / dark #3987e5).
+ * 오행 분포 막대는 단일 색조 + 길이로 크기를 나타내므로 색이 정체성을
+ * 지지 않는다. 오행별 색을 쓰지 않은 이유는 `saju-calculator.tsx` 참고.
+ */
 :root {
+  color-scheme: light;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #16161a;
+
+  --surface: #ffffff;
+  --surface-sunken: #f7f7f6;
+  --border: rgba(22, 22, 26, 0.12);
+  --border-strong: rgba(22, 22, 26, 0.22);
+
+  --text-secondary: #55555f;
+  --text-muted: #7c7c86;
+
+  --accent: #2a78d6;
+  --accent-wash: rgba(42, 120, 214, 0.1);
+
+  /* 메터·막대의 미충전 구간 */
+  --track: rgba(22, 22, 26, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #0b0b0c;
+    --foreground: #ededf0;
+
+    --surface: #141416;
+    --surface-sunken: #1b1b1e;
+    --border: rgba(237, 237, 240, 0.14);
+    --border-strong: rgba(237, 237, 240, 0.26);
+
+    --text-secondary: #a9a9b4;
+    --text-muted: #85858f;
+
+    --accent: #3987e5;
+    --accent-wash: rgba(57, 135, 229, 0.18);
+
+    --track: rgba(237, 237, 240, 0.12);
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-wash: var(--accent-wash);
+  --color-track: var(--track);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* 한자는 본문 폰트로 두면 자간이 흔들린다 — 시스템 명조/고딕에 맡긴다 */
+.glyph {
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-feature-settings: normal;
 }

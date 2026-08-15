@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 만세력 (Saju Engine)
 
-## Getting Started
+생년월일시로 사주 8자를 도출하는 만세력 엔진. 천문 계산과 시간대 보정을 순수 함수
+패키지로 분리해, 서버 없이 브라우저에서 실행된다.
 
-First, run the development server:
+## 왜 이렇게 만들었나
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+사주 계산은 "정답이 하나"가 아니다. 경도를 보정할지, 23시 출생자를 어느 날로 볼지는
+학파마다 갈린다. 그래서 **갈리는 지점을 옵션으로 설계하고, 계산 결과에 적용된 규칙을
+함께 반환**한다. 다른 서비스와 결과가 다를 때 왜 다른지 설명할 수 있다.
+
+```ts
+const saju = computeSaju(
+  { year: 1990, month: 5, day: 15, hour: 14, minute: 30, second: 0 },
+  { longitude: CITY_LONGITUDES.서울, useLongitude: true },
+);
+
+saju.pillars.day.name;              // '庚辰'
+saju.analysis.strength.verdict;     // 'strong'
+saju.meta.corrections;              // 적용된 보정 내역 (표준자오선·경도·…)
+saju.meta.warnings;                 // 절기 경계 등 결과가 뒤집힐 수 있는 지점
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 구조
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/lib/saju/
+  constants/        천간·지지·60갑자·지장간·합충형해
+  solarTerms.ts     절기 (태양 황경 도달 시각)
+  civilTime.ts      절대 시각 ↔ 달력 시각
+  timeCorrection/   표준자오선 이력·서머타임·경도·균시차
+  pillars/          4주 도출 (연월일시)
+  analysis/         오행 분포·십성·신강신약
+  golden/           경계 케이스 골든 스냅샷
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+React/Next 의존성은 `app/` 에만 있다. `src/lib/saju` 는 순수 TypeScript다.
 
-## Learn More
+## 설계에서 핵심이었던 세 가지
 
-To learn more about Next.js, take a look at the following resources:
+### 1. 사주는 서로 다른 두 시계를 쓴다
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+절기(연주·월주)는 태양 황경 도달이라는 **천문 사건**이므로 절대 시각으로 판정한다.
+시주·일주는 그 자리의 태양 높이가 정하므로 **보정된 지방시**로 판정한다.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+경도 보정을 절대 시각에 적용하면 절입 판정이 30분씩 밀려 입춘 근처에서 연주가 통째로
+뒤집힌다. 그래서 절대 시각은 건드리지 않고, 지방시 보정은 "달력 시각을 읽을 때 더할
+오프셋"으로 표현한다.
 
-## Deploy on Vercel
+```
+2025-02-03 23:11 (입춘 23:10:29 직후)
+  경도 보정 X   甲子 甲辰 戊寅 乙巳
+  경도 보정 O   癸亥 癸卯 戊寅 乙巳
+                 ↑    ↑    └────┴── 연주·월주 그대로
+               시주·일주만 바뀜
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 2. 표준시 이력은 손으로 짜면 틀린다
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+서머타임과 표준자오선을 따로 관리하면 1955~60년에서 반드시 어긋난다. 이 시기 서머타임은
+UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
+
+그래서 IANA tz 데이터(`Asia/Seoul`)에서 29개 구간을 생성해 커밋한다
+(`scripts/generate-zone-history.mjs`). 런타임에 `Intl` 을 쓰지 않는 이유는 브라우저마다
+탑재된 tzdata 버전이 달라 같은 입력에 다른 답이 나올 수 있어서다.
+
+부수 효과로 1954~61년에는 표준자오선이 127.5°가 되어 서울 경도 보정이 -32분에서
+-2.1분으로 자동으로 줄어든다.
+
+### 3. 판정이 아니라 근거를 반환한다
+
+`verdict: 'strong'` 만 주지 않고 득령·득지·득세 각각의 충족 여부와 사유를 함께 낸다.
+자연어 해석은 이 구조화된 결과를 조회해서 조립하는 별도 층의 몫이다.
+
+## 학파에 따라 갈리는 지점
+
+전부 옵션이고, 선택한 값이 `meta` 에 기록된다.
+
+| 항목 | 기본값 | 비고 |
+|---|---|---|
+| 경도 보정 | 켬 | 지방평균태양시 |
+| 균시차 | 끔 | 진태양시. ±16분이라 시지를 넘길 수 있다 |
+| 서머타임 되돌리기 | 켬 | |
+| 자시 규칙 | 조자시 (경계 23:00) | 야자시는 자정 경계 |
+| 신강 판정 | 3기준 중 2개 | 임계·가중치 조정 가능 |
+
+`午` 지장간 중기 일수, `午未` 합화 오행, 지지의 체/용 음양처럼 코드에 주석으로만 남긴
+이설도 있다.
+
+## 검증
+
+```bash
+npm test          # 143 tests
+npm run dev
+```
+
+- **절기** — 한국천문연구원 2025 달력자료와 일치 (망종 6/5 18:57, 소서 7/7 05:05)
+- **일주 앵커** — 2000-01-01 = 戊午 기준. 1900-01-01 甲戌, 2024-01-01 甲子,
+  2024-02-29 癸亥, 1988-07-15 辛未 로 교차 확인
+- **골든 스냅샷** — 절기·자시·서머타임·자오선 전환·윤년 등 경계 31건을 고정
+  (`src/lib/saju/golden/golden.snapshot.txt`)
+- **자체 검증** — 절기 반환 시각에서 태양 황경을 되짚어 목표와 대조 (오차 1e-4° 이내)
+
+상수 테이블은 도메인 불변식으로 검증한다. 예를 들어 지장간은 "정기의 오행 = 그 지지의
+오행", "생지·묘지의 중기 = 그 지지가 속한 삼합국의 오행" 을 만족해야 하므로, 표에서 한
+글자만 틀려도 테스트가 잡는다.
+
+## 알려진 한계
+
+- 국내 출생만 지원한다 (`Asia/Seoul` 표준시 이력, 주요 도시 10곳 경도)
+- 1908년 이전은 tzdata 의 지방평균시로 처리되며 실용 범위 밖이다
+- 용신은 억부(抑扶) 기준만 낸다. 격국·조후는 다루지 않는다
+
+## 스택
+
+Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Vitest ·
+[astronomy-engine](https://github.com/cosinekitty/astronomy)
