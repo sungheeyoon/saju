@@ -19,8 +19,8 @@ import {
   type RelationKind,
   type Stem,
 } from '@/src/lib/saju/constants';
+import { PILLAR_POSITIONS } from '@/src/lib/saju/position';
 import {
-  PILLAR_POSITIONS,
   RELATION_KIND_KO,
   RELATION_POLICY,
   findRelations,

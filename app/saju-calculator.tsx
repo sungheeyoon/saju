@@ -10,16 +10,23 @@ import {
   ELEMENT_KO,
   GENDERS,
   GENDER_KO,
+  EMPTINESS_BASIS_KO,
   PILLAR_POSITION_KO,
   RELATION_KIND_KO,
+  SPIRIT_BASIS_KO,
   STEM_INFO,
   TEN_GOD_KO,
+  TWELVE_SPIRIT_ALIAS,
+  TWELVE_SPIRIT_KO,
+  TWELVE_STAGE_KO,
   computeSaju,
   type CityName,
   type Gender,
   type LateNightRule,
+  type PillarPosition,
   type Relation,
   type Saju,
+  type Star,
 } from '@/src/lib/saju';
 
 /**
@@ -364,6 +371,7 @@ function SajuView({ saju }: { saju: Saju }) {
   return (
     <div className="flex flex-col gap-6">
       <PillarChart saju={saju} />
+      <StarTable saju={saju} />
       <RelationTable saju={saju} />
       <DaeunTable saju={saju} />
       <div className="grid gap-6 lg:grid-cols-2">
@@ -372,6 +380,111 @@ function SajuView({ saju }: { saju: Saju }) {
       </div>
       <TimeCorrections saju={saju} />
       <Warnings saju={saju} />
+    </div>
+  );
+}
+
+/**
+ * 기둥마다 한 칸씩 붙는 표식 — 12운성·12신살·공망이 같은 모양이다.
+ *
+ * 셋 다 "이 자리에 무엇이 붙는가"라서 행 하나로 충분하다. 기준이 갈리는
+ * 것(년지/일지, 일주/년주)은 행을 나누고 무엇을 기준으로 삼았는지 왼쪽에
+ * 적는다 — 기준을 안 적으면 두 줄이 왜 다른지 알 수 없다.
+ */
+function MarkRow({
+  label,
+  hint,
+  value,
+}: {
+  label: string;
+  hint: string;
+  value: (position: PillarPosition) => string | null;
+}) {
+  return (
+    <tr>
+      <td className="py-1.5 pr-2 text-right align-middle text-xs whitespace-nowrap text-muted">
+        {label}
+        <span className="block text-[10px] opacity-70">{hint}</span>
+      </td>
+      {PILLAR_COLUMNS.map(({ key }) => {
+        const mark = value(key);
+        return (
+          <td
+            key={key}
+            className={`px-2 py-1.5 text-xs ${key === 'day' ? 'font-medium' : 'text-secondary'}`}
+          >
+            {mark ?? <span className="text-muted opacity-40">·</span>}
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
+
+/**
+ * 신살 — 걸린 것만 적는다.
+ *
+ * 열두 개를 늘어놓고 대부분에 '없음'을 적는 것보다 걸린 것만 세는 편이 읽힌다.
+ * 무엇을 기준으로 뽑았는지(일간·월지)를 함께 적어야 왜 걸렸는지 되짚을 수 있다.
+ *
+ * 역마·도화·화개는 여기 없다 — 12신살 행에 이미 나와 있다.
+ */
+function StarTable({ saju }: { saju: Saju }) {
+  const { stars } = saju.sinsal;
+  const auspicious = stars.filter((s) => s.auspicious);
+  const inauspicious = stars.filter((s) => !s.auspicious);
+
+  return (
+    <section className={CARD}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-xs uppercase tracking-wide text-muted">신살</h2>
+        <p className="text-sm text-secondary">
+          {stars.length === 0 ? '걸린 신살이 없습니다' : `${stars.length}개`}
+        </p>
+      </div>
+
+      {stars.length > 0 && (
+        <div className="mt-4 grid gap-6 sm:grid-cols-2">
+          <StarGroup title="길신" stars={auspicious} />
+          <StarGroup title="흉신" stars={inauspicious} />
+        </div>
+      )}
+
+      <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
+        산출 근거가 분명한 여덟만 뽑습니다. 역마·도화·화개는 12신살에 이미 있어
+        따로 세지 않습니다. 길신·흉신은 전통적 분류일 뿐 좋고 나쁨의 판정이 아닙니다.
+        {!saju.meta.hourKnown && ' 시주를 몰라 시주에 걸린 신살은 빠져 있습니다.'}
+      </p>
+    </section>
+  );
+}
+
+function StarGroup({ title, stars }: { title: string; stars: readonly Star[] }) {
+  return (
+    <div>
+      <h3 className="text-xs text-muted">{title}</h3>
+      {stars.length === 0 ? (
+        <p className="mt-2 text-sm text-muted opacity-60">없음</p>
+      ) : (
+        <ul className="mt-2 flex flex-col gap-2">
+          {stars.map((star) => (
+            <li key={star.kind} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="text-sm font-medium">{star.ko}</span>
+              <span className="glyph text-sm text-secondary">
+                {star.hits.map((hit) => hit.char).join(' ')}
+              </span>
+              <span className="text-xs text-muted">
+                {star.hits.map((hit) => PILLAR_POSITION_KO[hit.position].charAt(0)).join('·')}
+              </span>
+              {star.basis && (
+                <span className="text-xs text-muted opacity-70">
+                  {star.basis.label} {star.basis.char}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -617,6 +730,37 @@ function PillarChart({ saju }: { saju: Saju }) {
                 </td>
               ))}
             </tr>
+
+            <MarkRow
+              label="12운성"
+              hint="일간 기준"
+              value={(key) => {
+                const stage = saju.stages.byDayMaster[key];
+                return stage ? TWELVE_STAGE_KO[stage] : null;
+              }}
+            />
+
+            {saju.sinsal.twelveSpirits.map((chart) => (
+              <MarkRow
+                key={chart.basis}
+                label="12신살"
+                hint={`${SPIRIT_BASIS_KO[chart.basis]} 기준`}
+                value={(key) => {
+                  const spirit = chart.byPosition[key];
+                  if (!spirit) return null;
+                  return TWELVE_SPIRIT_ALIAS[spirit] ?? TWELVE_SPIRIT_KO[spirit];
+                }}
+              />
+            ))}
+
+            {saju.sinsal.emptiness.map((emptiness) => (
+              <MarkRow
+                key={emptiness.basis}
+                label="공망"
+                hint={`${EMPTINESS_BASIS_KO[emptiness.basis]} 기준 ${emptiness.branches.join('')}`}
+                value={(key) => (emptiness.positions.includes(key) ? '공망' : null)}
+              />
+            ))}
           </tbody>
         </table>
       </div>

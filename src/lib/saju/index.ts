@@ -10,6 +10,8 @@ import {
   type Pillars,
 } from './pillars';
 import { findRelations, type Relation } from './relations';
+import { analyzeSinsal, type Sinsal, type SinsalOptions } from './sinsal';
+import { twelveStagesOf, type Stages, type TwelveStageOptions } from './stages';
 import {
   correctTime,
   type Correction,
@@ -22,8 +24,11 @@ export * from './civilTime';
 export * from './constants';
 export * from './daeun';
 export * from './input';
+export * from './position';
 export * from './relations';
+export * from './sinsal';
 export * from './solarTerms';
+export * from './stages';
 export * from './timeCorrection';
 
 // 간지 도출 원시 함수들은 그대로 열어둔다 — 계약이랄 것이 없는 순수 표 조회다.
@@ -64,6 +69,8 @@ export type SajuOptions = TimeCorrectionOptions & {
   lateNightRule?: LateNightRule;
   analysis?: AnalysisOptions;
   daeun?: DaeunOptions;
+  stages?: TwelveStageOptions;
+  sinsal?: SinsalOptions;
 };
 
 export type Saju = {
@@ -78,6 +85,14 @@ export type Saju = {
    * 시간 미상이면 시주가 빠진 채로 계산되므로 실제보다 적게 나온다.
    */
   relations: Relation[];
+  /**
+   * 12운성 — 일간 기준과 좌하 기준.
+   *
+   * 음간을 역행시킬지가 계통 선택이라 `stages.yinReverse` 를 함께 남긴다.
+   */
+  stages: Stages;
+  /** 공망 · 12신살 · 핵심 신살 여덟 */
+  sinsal: Sinsal;
   /**
    * 10년 단위 대운.
    *
@@ -118,6 +133,8 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     lateNightRule,
     analysis: analysisOptions,
     daeun: daeunOptions,
+    stages: stageOptions,
+    sinsal: sinsalOptions,
     ...correctionOptions
   } = options;
 
@@ -163,6 +180,8 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     pillars,
     analysis: analyzePillars(pillars, analysisOptions),
     relations: findRelations(pillars),
+    stages: twelveStagesOf(pillars, stageOptions),
+    sinsal: analyzeSinsal(pillars, sinsalOptions),
     daeun,
     meta: {
       inputTime,

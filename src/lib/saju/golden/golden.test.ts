@@ -5,7 +5,13 @@ import { pillarIndexOf } from '@/src/lib/saju/constants';
 import { GOLDEN_CASES, type GoldenCase } from '@/src/lib/saju/golden/cases';
 import {
   DAEUN_DIRECTION_KO,
+  EMPTINESS_BASIS_KO,
+  PILLAR_POSITION_KO,
   RELATION_POLICY,
+  SINSAL_POLICY,
+  SPIRIT_BASIS_KO,
+  TWELVE_SPIRIT_KO,
+  TWELVE_STAGE_KO,
   computeSaju,
   formatPillars,
   formatRelation,
@@ -65,6 +71,49 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     lines.push(
       `  관계   ${formatRelation(relation)}${notes.length > 0 ? `  ${notes.join(' · ')}` : ''}`,
     );
+  }
+
+  // 표기 순서는 4주와 같은 시 일 월 년이다.
+  const marksOrder = ['hour', 'day', 'month', 'year'] as const;
+  const mark = (value: string | null) => (value ?? '—').padEnd(4);
+
+  lines.push(
+    `  운성   ${marksOrder
+      .map((position) => {
+        const stage = saju.stages.byDayMaster[position];
+        return mark(stage && TWELVE_STAGE_KO[stage]);
+      })
+      .join(' ')}  (일간 기준)`,
+  );
+
+  for (const chart of saju.sinsal.twelveSpirits) {
+    lines.push(
+      `  신살   ${marksOrder
+        .map((position) => {
+          const spirit = chart.byPosition[position];
+          return mark(spirit && TWELVE_SPIRIT_KO[spirit]);
+        })
+        .join(' ')}  (${SPIRIT_BASIS_KO[chart.basis]} ${chart.basisBranch} 기준)`,
+    );
+  }
+
+  for (const emptiness of saju.sinsal.emptiness) {
+    const where =
+      emptiness.positions.length === 0
+        ? '걸린 자리 없음'
+        : emptiness.positions.map((p) => PILLAR_POSITION_KO[p]).join('·');
+    lines.push(
+      `  공망   ${emptiness.branches.join('')}  (${EMPTINESS_BASIS_KO[emptiness.basis]}` +
+        ` ${emptiness.basisPillar} 기준) — ${where}`,
+    );
+  }
+
+  for (const star of saju.sinsal.stars) {
+    const where = star.hits
+      .map((hit) => `${hit.char}(${PILLAR_POSITION_KO[hit.position].charAt(0)})`)
+      .join(' ');
+    const basis = star.basis ? `  ← ${star.basis.label} ${star.basis.char}` : '';
+    lines.push(`  ${star.auspicious ? '길신' : '흉신'}   ${star.ko.padEnd(6)} ${where}${basis}`);
   }
 
   for (const correction of meta.corrections) {
@@ -143,6 +192,14 @@ describe('골든 테스트', () => {
       '',
       // 규칙이 바뀌면 스냅샷 맨 위에서 먼저 드러난다.
       ...Object.entries(RELATION_POLICY).map(
+        ([key, value]) => `          ${key.padEnd(22)} ${value}`,
+      ),
+      '',
+      '  운성·신살  12운성은 음간을 역행시킨다(음양순역). 뒤집는 계통은 양포태다.',
+      '        공망은 일주·년주 기준을, 12신살은 년지·일지 기준을 모두 낸다.',
+      '        신살은 산출 근거가 분명한 여덟만 — 역마·도화·화개는 12신살에서 온다.',
+      '',
+      ...Object.entries(SINSAL_POLICY).map(
         ([key, value]) => `          ${key.padEnd(22)} ${value}`,
       ),
       '',

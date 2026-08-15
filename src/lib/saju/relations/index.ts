@@ -18,6 +18,11 @@ import {
   type Stem,
 } from '../constants';
 import type { Pillars } from '../pillars';
+import {
+  PILLAR_POSITION_INDEX as POSITION_INDEX,
+  PILLAR_POSITION_KO,
+  type PillarPosition,
+} from '../position';
 
 /**
  * 원국(原局) 관계 연산 — 여덟 글자 안에서 성립하는 형충회합을 열거한다.
@@ -48,26 +53,6 @@ import type { Pillars } from '../pillars';
  *
  * 대운·세운은 원국이 아니므로 포함하지 않는다.
  */
-
-/** 관계가 놓인 자리 — 네 기둥 */
-export type PillarPosition = 'year' | 'month' | 'day' | 'hour';
-
-/** 년 → 시 순서. `distance` 와 `adjacent` 가 이 순서를 기준으로 한다. */
-export const PILLAR_POSITIONS = ['year', 'month', 'day', 'hour'] as const satisfies readonly PillarPosition[];
-
-export const PILLAR_POSITION_KO: Record<PillarPosition, string> = {
-  year: '년주',
-  month: '월주',
-  day: '일주',
-  hour: '시주',
-};
-
-const POSITION_INDEX: Record<PillarPosition, number> = {
-  year: 0,
-  month: 1,
-  day: 2,
-  hour: 3,
-};
 
 /** 천간끼리의 관계인가, 지지끼리의 관계인가 */
 export type RelationTier = 'stem' | 'branch';
