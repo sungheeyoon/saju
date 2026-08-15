@@ -280,8 +280,8 @@ describe('통합(computeSaju) — 보정이 절기를 흔들지 않는다', () =
     const on = computeSaju(justAfterIpchun, { useLongitude: true });
 
     // 23:15 → 子시, 보정 후 22:43 → 亥시
-    expect(off.pillars.hour.branch).toBe('子');
-    expect(on.pillars.hour.branch).toBe('亥');
+    expect(off.pillars.hour!.branch).toBe('子');
+    expect(on.pillars.hour!.branch).toBe('亥');
   });
 
   it('보정 총합과 내역을 meta 에 남긴다', () => {
@@ -307,8 +307,8 @@ describe('통합(computeSaju) — 보정이 절기를 흔들지 않는다', () =
 
     expect(corrected.pillars.meta.civilTime.hour).toBe(13);
     expect(raw.pillars.meta.civilTime.hour).toBe(14);
-    expect(corrected.pillars.hour.branch).toBe('未'); // 13~15시
-    expect(raw.pillars.hour.branch).toBe('未');
+    expect(corrected.pillars.hour!.branch).toBe('未'); // 13~15시
+    expect(raw.pillars.hour!.branch).toBe('未');
 
     // 같은 시지라도 일주는 동일해야 한다
     expect(corrected.pillars.day.name).toBe(raw.pillars.day.name);

@@ -13,6 +13,9 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
   const { pillars, meta } = saju;
   const civil = pillars.meta.civilTime;
 
+  const inputClock =
+    input.hour === null ? '시각미상' : `${pad(input.hour)}:${pad(input.minute)}`;
+
   const flags = [
     `경도 ${options.useLongitude ? 'O' : 'X'}`,
     `균시차 ${options.useEquationOfTime ? 'O' : 'X'}`,
@@ -24,12 +27,12 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
 
   const lines = [
     `[${golden.id}] ${golden.note}`,
-    `  입력   ${input.year}-${pad(input.month)}-${pad(input.day)} ${pad(input.hour)}:${pad(input.minute)}  (${flags})`,
+    `  입력   ${input.year}-${pad(input.month)}-${pad(input.day)} ${inputClock}  (${flags})`,
     `  4주    ${formatPillars(pillars)}   시 일 월 년`,
-    `         ${[pillars.hour, pillars.day, pillars.month, pillars.year].map((p) => p.ko).join(' ')}`,
+    `         ${[pillars.hour, pillars.day, pillars.month, pillars.year].map((p) => p?.ko ?? '미상').join(' ')}`,
     `  일간   ${pillars.dayMaster}`,
     `  사주년 ${pillars.meta.sajuYear}   절기 ${pillars.meta.monthTerm.name} ~ ${pillars.meta.nextTerm.name}`,
-    `  시각   ${pad(input.hour)}:${pad(input.minute)} → ${pad(civil.hour)}:${pad(civil.minute)}  (${total >= 0 ? '+' : ''}${total}분)`,
+    `  시각   ${inputClock} → ${pad(civil.hour)}:${pad(civil.minute)}  (${total >= 0 ? '+' : ''}${total}분)`,
   ];
 
   for (const correction of meta.corrections) {
@@ -86,9 +89,15 @@ describe('골든 테스트', () => {
       '    바꾸려면 DEFAULT_LATE_NIGHT_RULE 한 줄이고, 호출부에서',
       '    lateNightRule 로 케이스별 재정의도 가능하다.',
       '',
-      '    영향 범위(측정값): 기본값을 ya 로 뒤집으면 이 스냅샷 31건 중',
+      '    영향 범위(측정값): 기본값을 ya 로 뒤집어도 이 스냅샷에서',
       '    2건만 변한다 — ipchun-before, ipchun-after. 둘 다 23시대 입력이다.',
       '    23:00~24:00 바깥은 두 설이 항상 일치한다.',
+      '',
+      '  시간 미상  채택: 시주를 뽑지 않는다 (unknown-hour-* 케이스)',
+      '',
+      '    정오를 넣으면 시주가 午시로 나와 "모름"이 "낮 12시"로 둔갑한다.',
+      '    연·월·일주는 정오 기준으로 뽑되 시주는 null 로 비우고, 절입일에',
+      '    걸린 경우에는 월주를 확정할 수 없다고 경고한다.',
       '',
       `케이스 ${GOLDEN_CASES.length}건`,
       '='.repeat(78),
@@ -105,10 +114,16 @@ describe('골든 테스트', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('모든 케이스가 성립하는 간지 4개를 낸다', () => {
+  it('모든 케이스가 성립하는 간지를 낸다', () => {
     for (const { golden, saju } of results) {
       for (const key of ['year', 'month', 'day', 'hour'] as const) {
         const pillar = saju.pillars[key];
+        if (pillar === null) {
+          // 비어도 되는 자리는 시주뿐이고, 그것도 시간 미상일 때만이다.
+          expect(key, golden.id).toBe('hour');
+          expect(saju.meta.hourKnown, golden.id).toBe(false);
+          continue;
+        }
         expect(pillarIndexOf(pillar.stem, pillar.branch), `${golden.id} ${key}`).toBe(
           pillar.index,
         );
@@ -164,8 +179,8 @@ describe('골든 테스트 — 규칙별 기대', () => {
   it('조자시와 야자시가 23시대에만 갈린다', () => {
     const jo = find('jasi-2300-jo');
     const ya = find('jasi-2300-ya');
-    expect(jo.pillars.hour.branch).toBe('子');
-    expect(ya.pillars.hour.branch).toBe('子');
+    expect(jo.pillars.hour!.branch).toBe('子');
+    expect(ya.pillars.hour!.branch).toBe('子');
     expect(jo.pillars.day.name).not.toBe(ya.pillars.day.name);
 
     // 자정을 넘으면 두 설이 일치한다
@@ -175,10 +190,10 @@ describe('골든 테스트 — 규칙별 기대', () => {
   });
 
   it('시지 경계는 정각에 새 시지로 넘어간다', () => {
-    expect(find('hour-0859').pillars.hour.branch).toBe('辰');
-    expect(find('hour-0900').pillars.hour.branch).toBe('巳');
-    expect(find('jasi-2259-jo').pillars.hour.branch).toBe('亥');
-    expect(find('jasi-0100').pillars.hour.branch).toBe('丑');
+    expect(find('hour-0859').pillars.hour!.branch).toBe('辰');
+    expect(find('hour-0900').pillars.hour!.branch).toBe('巳');
+    expect(find('jasi-2259-jo').pillars.hour!.branch).toBe('亥');
+    expect(find('jasi-0100').pillars.hour!.branch).toBe('丑');
   });
 
   it('표준자오선 시기에 따라 경도 보정량이 달라진다', () => {
@@ -198,6 +213,32 @@ describe('골든 테스트 — 규칙별 기대', () => {
 
   it('일주 앵커가 2024-01-01 = 갑자일과 맞는다', () => {
     expect(find('gapja-day').pillars.day.name).toBe('甲子');
+  });
+
+  it('시간 미상은 시주만 비우고 나머지 세 주는 그대로 낸다', () => {
+    const unknown = find('unknown-hour-plain');
+    const noon = computeSaju(
+      { year: 2025, month: 6, day: 15, hour: 12, minute: 0, second: 0 },
+      { useLongitude: true, useEquationOfTime: false, useDst: true },
+    );
+
+    expect(unknown.pillars.hour).toBeNull();
+    expect(unknown.meta.hourKnown).toBe(false);
+    expect(unknown.analysis.tenGods.hour).toBeNull();
+
+    expect(unknown.pillars.year.name).toBe(noon.pillars.year.name);
+    expect(unknown.pillars.month.name).toBe(noon.pillars.month.name);
+    expect(unknown.pillars.day.name).toBe(noon.pillars.day.name);
+  });
+
+  it('시간 미상이 절입일에 걸리면 월주를 확정할 수 없다고 알린다', () => {
+    const onTermDay = find('unknown-hour-on-term-day');
+    expect(onTermDay.meta.warnings.some((w) => w.includes('입춘 절입일'))).toBe(true);
+
+    // 절입일이 아니면 그 경고는 없고, 시주 없음 경고만 남는다.
+    const plain = find('unknown-hour-plain');
+    expect(plain.meta.warnings.some((w) => w.includes('절입일'))).toBe(false);
+    expect(plain.meta.warnings.some((w) => w.includes('시주를 뽑지 않았습니다'))).toBe(true);
   });
 });
 

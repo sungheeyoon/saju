@@ -13,7 +13,8 @@ import { PILLAR_KEYS, type PillarKey } from './tenGods';
  * 오행 분포 — 여덟 글자가 어느 오행에 얼마나 몰려 있는가.
  *
  * 두 가지로 센다.
- * - `counts` 는 눈에 보이는 여덟 글자만 센다. "팔자에 없는 오행"은 이 기준이다.
+ * - `counts` 는 눈에 보이는 글자만 센다. "팔자에 없는 오행"은 이 기준이다.
+ *   시간 미상이면 시주가 빠져 여섯 글자가 되므로, 없는 오행이 늘어날 수 있다.
  * - `scores` 는 지지를 지장간으로 펼쳐 사령 일수로 나눠 담는다. 예를 들어 寅은
  *   戊 7일·丙 7일·甲 16일이므로 목에 16/30, 화에 7/30, 토에 7/30이 간다.
  */
@@ -39,7 +40,9 @@ export const DEFAULT_ELEMENT_WEIGHTS: ElementWeights = {
 };
 
 export type ElementDistribution = {
-  /** 여덟 글자의 단순 개수 (지지는 본기 오행) — 합 8 */
+  /** 센 글자 수 — 여덟 글자, 시간 미상이면 여섯 글자 */
+  glyphCount: number;
+  /** 글자의 단순 개수 (지지는 본기 오행) — 합은 `glyphCount` */
   counts: Record<Element, number>;
   /** 지장간 일수로 가중한 점수 */
   scores: Record<Element, number>;
@@ -65,9 +68,14 @@ export function elementDistributionOf(
 
   const counts = emptyTally();
   const scores = emptyTally();
+  let glyphCount = 0;
 
   for (const key of PILLAR_KEYS as readonly PillarKey[]) {
     const pillar = pillars[key];
+    // 시간 미상이면 시주가 없다. 정오로 메운 글자를 세면 없는 오행이 생긴다.
+    if (pillar === null) continue;
+
+    glyphCount += 2;
     const branchWeight = branch * (key === 'month' ? monthBranchMultiplier : 1);
 
     // 천간은 그대로 한 글자
@@ -91,6 +99,7 @@ export function elementDistributionOf(
   const ranked = [...ELEMENTS].sort((a, b) => scores[b] - scores[a]);
 
   return {
+    glyphCount,
     counts,
     scores,
     ratios,

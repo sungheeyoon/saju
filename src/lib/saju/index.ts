@@ -1,5 +1,6 @@
 import { analyzePillars, type Analysis, type AnalysisOptions } from './analysis';
 import type { CivilDateTime } from './civilTime';
+import { normalizeSajuInput, type SajuInput } from './input';
 import {
   getFourPillars,
   type FourPillars,
@@ -16,18 +17,20 @@ import {
 export * from './analysis';
 export * from './civilTime';
 export * from './constants';
+export * from './input';
 export * from './pillars';
 export * from './solarTerms';
 export * from './timeCorrection';
 
 /**
- * 만세력 엔진의 입구 — 시간 보정과 4주 도출을 이어 붙인다.
+ * 만세력 엔진의 입구 — 입력 검증, 시간 보정, 4주 도출을 이어 붙인다.
  *
- * 파이프라인은 두 단계다.
- *   1. 벽시계 + 출생지 → 절대 시각 + 지방시 보정  (timeCorrection)
- *   2. 절대 시각 + 보정 → 4주                      (pillars)
+ * 파이프라인은 세 단계다.
+ *   0. 입력 검증 → 존재하는 날짜·지원 범위인가        (input)
+ *   1. 벽시계 + 출생지 → 절대 시각 + 지방시 보정      (timeCorrection)
+ *   2. 절대 시각 + 보정 → 4주                        (pillars)
  *
- * 두 단계 모두 순수 함수라 서버 없이 브라우저에서 그대로 돈다.
+ * 세 단계 모두 순수 함수라 서버 없이 브라우저에서 그대로 돈다.
  */
 
 export type SajuOptions = TimeCorrectionOptions & {
@@ -40,8 +43,12 @@ export type Saju = {
   /** 오행 분포·십성·신강신약 — L2 관계 연산이 먹고 들어가는 재료 */
   analysis: Analysis;
   meta: {
-    /** 입력한 벽시계 시각 그대로 */
-    inputTime: CivilDateTime;
+    /** 입력한 벽시계 시각 그대로. `hour: null` 이면 시간 미상 입력이다 */
+    inputTime: SajuInput;
+    /** 계산에 실제로 쓴 시각 — 시간 미상이면 정오로 채워진다 */
+    resolvedTime: CivilDateTime;
+    /** 시각을 알고 계산했는가 — `false` 면 `pillars.hour` 가 `null` 이다 */
+    hourKnown: boolean;
     /** 그 벽시계가 가리키는 실제 절대 시각 */
     instant: Date;
     /** 적용된 보정 내역 — 다른 만세력과 결과가 다른 이유가 여기 남는다 */
@@ -52,15 +59,24 @@ export type Saju = {
   };
 };
 
-export function computeSaju(inputTime: CivilDateTime, options: SajuOptions = {}): Saju {
+/**
+ * @throws {InvalidSajuInputError} 존재하지 않는 날짜이거나 지원 범위(1900~2100) 밖일 때
+ * @throws {InvalidLocalTimeError} `dstTransitionPolicy: 'throw'` 이고 서머타임 전환에 걸릴 때
+ */
+export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Saju {
   const { lateNightRule, analysis: analysisOptions, ...correctionOptions } = options;
 
-  const corrected: CorrectedTime = correctTime(inputTime, correctionOptions);
+  // 계산 코어는 아무 숫자나 받으면 아무 답이나 낸다. 2월 30일이 3월 2일로
+  // 조용히 흘러가기 전에 여기서 막는다.
+  const { civil: resolvedTime, hourKnown } = normalizeSajuInput(inputTime);
+
+  const corrected: CorrectedTime = correctTime(resolvedTime, correctionOptions);
 
   const pillarOptions: PillarOptions = {
     lateNightRule,
     zoneOffsetMinutes: corrected.zoneOffsetMinutes,
     solarTimeOffsetMinutes: corrected.solarTimeOffsetMinutes,
+    hourKnown,
   };
 
   const pillars = getFourPillars(corrected.instant, pillarOptions);
@@ -75,6 +91,8 @@ export function computeSaju(inputTime: CivilDateTime, options: SajuOptions = {})
     analysis: analyzePillars(pillars, analysisOptions),
     meta: {
       inputTime,
+      resolvedTime,
+      hourKnown,
       instant: corrected.instant,
       corrections: corrected.corrections,
       totalCorrectionMinutes,

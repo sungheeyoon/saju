@@ -1,5 +1,6 @@
 import type { CivilDateTime } from '../civilTime';
 import type { SajuOptions } from '../index';
+import type { SajuInput } from '../input';
 
 /**
  * 골든 테스트 경계 케이스.
@@ -15,7 +16,7 @@ export type GoldenCase = {
   id: string;
   /** 이 케이스가 고정하려는 것 */
   note: string;
-  input: CivilDateTime;
+  input: SajuInput;
   options: SajuOptions;
 };
 
@@ -26,6 +27,14 @@ const at = (
   hour: number,
   minute: number,
 ): CivilDateTime => ({ year, month, day, hour, minute, second: 0 });
+
+/** 시간 미상 입력 */
+const onDay = (year: number, month: number, day: number): SajuInput => ({
+  year,
+  month,
+  day,
+  hour: null,
+});
 
 /** 자시·시지 경계를 볼 때는 경도 보정을 꺼야 의도한 시각이 유지된다. */
 const RAW: SajuOptions = { useLongitude: false, useEquationOfTime: false, useDst: true };
@@ -220,6 +229,26 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
     note: '2024-01-01 — 일주가 갑자(甲子)인 날, 일주 앵커 검증용',
     input: at(2024, 1, 1, 12, 0),
     options: RAW,
+  },
+
+  // ── 시간 미상 ────────────────────────────────────────────
+  {
+    id: 'unknown-hour-plain',
+    note: '시각 미상 — 시주만 비고 연·월·일주는 시각 있는 계산과 같아야 한다',
+    input: onDay(2025, 6, 15),
+    options: SEOUL,
+  },
+  {
+    id: 'unknown-hour-on-term-day',
+    note: '시각 미상 + 입춘 절입일(23:10) — 월주를 확정할 수 없다고 경고해야 한다',
+    input: onDay(2025, 2, 3),
+    options: SEOUL,
+  },
+  {
+    id: 'unknown-hour-dst-day',
+    note: '시각 미상 + 서머타임 기간 — 시주가 없어도 보정 기록은 남는다',
+    input: onDay(1988, 7, 15),
+    options: SEOUL,
   },
 
   // ── 균시차 극값 ──────────────────────────────────────────

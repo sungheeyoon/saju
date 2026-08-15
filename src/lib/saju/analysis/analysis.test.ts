@@ -129,19 +129,19 @@ describe('십성(tenGods) — 사주 배치', () => {
     expect(chart.day.stem).toBeNull();
     expect(chart.year.stem).not.toBeNull();
     expect(chart.month.stem).not.toBeNull();
-    expect(chart.hour.stem).not.toBeNull();
+    expect(chart.hour!.stem).not.toBeNull();
   });
 
   it('네 기둥 모두 지장간의 십성을 갖는다', () => {
     for (const key of ['year', 'month', 'day', 'hour'] as const) {
-      const hidden = chart[key].hiddenStems;
+      const hidden = chart[key]!.hiddenStems;
       expect(hidden.length).toBeGreaterThanOrEqual(2);
       for (const h of hidden) {
         expect(h.tenGod).toBe(tenGodOf(pillars.dayMaster, h.stem));
       }
       // 지지의 십성은 정기의 십성과 같아야 한다
       const principal = hidden.find((h) => h.role === '正氣')!;
-      expect(chart[key].branch).toBe(principal.tenGod);
+      expect(chart[key]!.branch).toBe(principal.tenGod);
     }
   });
 });

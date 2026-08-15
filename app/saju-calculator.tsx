@@ -39,6 +39,8 @@ const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 type Query = {
   date: string;
   time: string;
+  /** 출생 시각을 모름 — 시주를 뽑지 않는다 */
+  hourUnknown: boolean;
   city: CityName;
   rule: LateNightRule;
   useLongitude: boolean;
@@ -50,6 +52,7 @@ const DEFAULT_QUERY: Query = {
   // 고정 기본값 — 서버·클라이언트 렌더가 어긋나지 않도록 현재 시각을 쓰지 않는다.
   date: '1990-05-15',
   time: '14:30',
+  hourUnknown: false,
   city: '서울',
   rule: 'jo',
   useLongitude: true,
@@ -63,13 +66,20 @@ function calculate(query: Query): Result {
   const [year, month, day] = query.date.split('-').map(Number);
   const [hour, minute] = query.time.split(':').map(Number);
 
-  if ([year, month, day, hour, minute].some((n) => !Number.isFinite(n))) {
-    return { ok: false, message: '생년월일과 시각을 모두 입력해 주세요.' };
+  if ([year, month, day].some((n) => !Number.isFinite(n))) {
+    return { ok: false, message: '생년월일을 입력해 주세요.' };
+  }
+  if (!query.hourUnknown && ![hour, minute].every(Number.isFinite)) {
+    return { ok: false, message: '출생시각을 입력하거나 시간 모름을 선택해 주세요.' };
   }
 
+  // 엔진이 던지는 메시지를 그대로 보여준다. 검증 규칙을 UI에 복제하면
+  // 두 곳이 어긋나는 순간 사용자만 헷갈린다.
   try {
     const saju = computeSaju(
-      { year, month, day, hour, minute, second: 0 },
+      query.hourUnknown
+        ? { year, month, day, hour: null }
+        : { year, month, day, hour, minute, second: 0 },
       {
         lateNightRule: query.rule,
         longitude: CITY_LONGITUDES[query.city],
@@ -130,9 +140,21 @@ export function SajuCalculator() {
               type="time"
               value={form.time}
               onChange={(e) => set('time', e.target.value)}
-              className={FIELD}
+              disabled={form.hourUnknown}
+              className={`${FIELD} disabled:opacity-40`}
             />
           </Field>
+
+          {/* Field 안에 넣으면 label 이 중첩된다 — 옆에 나란히 둔다 */}
+          <label className="flex h-9 cursor-pointer items-center gap-1.5 text-sm whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={form.hourUnknown}
+              onChange={(e) => set('hourUnknown', e.target.checked)}
+              className="accent-accent"
+            />
+            시간 모름
+          </label>
 
           <Field label="출생지">
             <select
@@ -287,13 +309,17 @@ function PillarChart({ saju }: { saju: Saju }) {
             <tr>
               <RowLabel>천간</RowLabel>
               {PILLAR_COLUMNS.map(({ key }) => {
-                const stem = pillars[key].stem;
+                const pillar = pillars[key];
                 return (
                   <GlyphCell
                     key={key}
                     emphasis={key === 'day'}
-                    glyph={stem}
-                    caption={`${STEM_INFO[stem].ko} · ${ELEMENT_KO[STEM_INFO[stem].element]}`}
+                    glyph={pillar && pillar.stem}
+                    caption={
+                      pillar
+                        ? `${STEM_INFO[pillar.stem].ko} · ${ELEMENT_KO[STEM_INFO[pillar.stem].element]}`
+                        : '시각 미상'
+                    }
                   />
                 );
               })}
@@ -302,13 +328,17 @@ function PillarChart({ saju }: { saju: Saju }) {
             <tr>
               <RowLabel>지지</RowLabel>
               {PILLAR_COLUMNS.map(({ key }) => {
-                const branch = pillars[key].branch;
+                const pillar = pillars[key];
                 return (
                   <GlyphCell
                     key={key}
                     emphasis={key === 'day'}
-                    glyph={branch}
-                    caption={`${BRANCH_INFO[branch].ko} · ${ELEMENT_KO[BRANCH_INFO[branch].element]}`}
+                    glyph={pillar && pillar.branch}
+                    caption={
+                      pillar
+                        ? `${BRANCH_INFO[pillar.branch].ko} · ${ELEMENT_KO[BRANCH_INFO[pillar.branch].element]}`
+                        : '시각 미상'
+                    }
                   />
                 );
               })}
@@ -321,7 +351,7 @@ function PillarChart({ saju }: { saju: Saju }) {
               {PILLAR_COLUMNS.map(({ key }) => (
                 <td key={key} className="px-2 pt-2 align-top">
                   <ul className="flex flex-col gap-0.5 text-[11px] text-muted">
-                    {analysis.tenGods[key].hiddenStems.map((hidden) => (
+                    {analysis.tenGods[key]?.hiddenStems.map((hidden) => (
                       <li key={hidden.stem + hidden.role}>
                         <span className="glyph">{hidden.stem}</span> {TEN_GOD_KO[hidden.tenGod]}
                       </li>
@@ -354,13 +384,24 @@ function PillarChart({ saju }: { saju: Saju }) {
           {pillars.meta.monthTerm.name} ~ {pillars.meta.nextTerm.name}
         </dd>
 
-        <Term>자시 규칙</Term>
-        <dd>
-          {pillars.meta.lateNightRule === 'jo' ? '조자시' : '야자시'}
-          {pillars.meta.lateNightShiftApplied && (
-            <span className="text-muted"> · 일주를 다음 날로 넘겼습니다</span>
-          )}
-        </dd>
+        {pillars.meta.hourKnown ? (
+          <>
+            <Term>자시 규칙</Term>
+            <dd>
+              {pillars.meta.lateNightRule === 'jo' ? '조자시' : '야자시'}
+              {pillars.meta.lateNightShiftApplied && (
+                <span className="text-muted"> · 일주를 다음 날로 넘겼습니다</span>
+              )}
+            </dd>
+          </>
+        ) : (
+          <>
+            <Term>출생시각</Term>
+            <dd>
+              미상 <span className="text-muted">· 시주를 뽑지 않았습니다</span>
+            </dd>
+          </>
+        )}
       </dl>
     </section>
   );
@@ -391,7 +432,16 @@ function TenGodRow({
     <tr>
       <RowLabel>{label}</RowLabel>
       {PILLAR_COLUMNS.map(({ key }) => {
-        const god = saju.analysis.tenGods[key][position];
+        const chart = saju.analysis.tenGods[key];
+        // 시주가 없으면 십성도 없다. 일간 자리의 null 과 구분해야 한다.
+        if (chart === null) {
+          return (
+            <td key={key} className="px-2 py-1 text-xs text-muted">
+              —
+            </td>
+          );
+        }
+        const god = chart[position];
         return (
           <td key={key} className="px-2 py-1 text-xs text-secondary">
             {god ? TEN_GOD_KO[god] : <span className="text-accent">일간</span>}
@@ -407,7 +457,8 @@ function GlyphCell({
   caption,
   emphasis,
 }: {
-  glyph: string;
+  /** `null` 이면 빈 자리 — 시각을 모르는 시주 */
+  glyph: string | null;
   caption: string;
   emphasis: boolean;
 }) {
@@ -415,10 +466,18 @@ function GlyphCell({
     <td className="px-2 py-1">
       <div
         className={`mx-auto flex w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-3 ${
-          emphasis ? 'border-accent bg-accent-wash' : 'border-border bg-surface-sunken'
+          emphasis
+            ? 'border-accent bg-accent-wash'
+            : glyph === null
+              ? 'border-dashed border-border'
+              : 'border-border bg-surface-sunken'
         }`}
       >
-        <span className="glyph text-4xl leading-none">{glyph}</span>
+        <span
+          className={`glyph text-4xl leading-none ${glyph === null ? 'text-muted' : ''}`}
+        >
+          {glyph ?? '?'}
+        </span>
         <span className="text-[11px] text-secondary">{caption}</span>
       </div>
     </td>
@@ -430,7 +489,7 @@ function GlyphCell({
  * 값을 전부 옆에 적으므로 표 역할도 겸한다(툴팁 불필요).
  */
 function ElementChart({ saju }: { saju: Saju }) {
-  const { counts, scores, ratios, missing, strongest } = saju.analysis.elements;
+  const { counts, scores, ratios, missing, strongest, glyphCount } = saju.analysis.elements;
   const needed = new Set(saju.analysis.strength.neededElements);
   const max = Math.max(...ELEMENTS.map((e) => ratios[e]), 0.0001);
 
@@ -438,7 +497,8 @@ function ElementChart({ saju }: { saju: Saju }) {
     <section className={CARD}>
       <h2 className="text-xs uppercase tracking-wide text-muted">오행 분포</h2>
       <p className="mt-1 mb-4 text-xs text-secondary">
-        개수는 여덟 글자, 점수는 지장간을 사령 일수로 펼친 값
+        개수는 {glyphCount === 8 ? '여덟' : '여섯'} 글자, 점수는 지장간을 사령 일수로 펼친 값
+        {glyphCount !== 8 && <span className="text-muted"> · 시주 제외</span>}
       </p>
 
       <table className="w-full border-collapse text-sm">
@@ -567,18 +627,25 @@ function TimeCorrections({ saju }: { saju: Saju }) {
     <section className={CARD}>
       <h2 className="text-xs uppercase tracking-wide text-muted">적용된 보정</h2>
 
-      <p className="mt-2 mb-3 text-sm">
-        <span className="tabular-nums">
-          {pad(meta.inputTime.hour)}:{pad(meta.inputTime.minute)}
-        </span>
-        <span className="mx-2 text-muted">→</span>
-        <span className="tabular-nums font-medium">
-          {pad(civil.hour)}:{pad(civil.minute)}
-        </span>
-        <span className="ml-2 text-secondary">
-          총 {signedMinutes(meta.totalCorrectionMinutes)}
-        </span>
-      </p>
+      {meta.inputTime.hour === null ? (
+        <p className="mt-2 mb-3 text-sm text-secondary">
+          시각 미상이라 시주에 영향을 주는 보정은 쓰이지 않았습니다. 아래는 연·월주
+          판정에 쓰인 보정입니다.
+        </p>
+      ) : (
+        <p className="mt-2 mb-3 text-sm">
+          <span className="tabular-nums">
+            {pad(meta.inputTime.hour)}:{pad(meta.inputTime.minute)}
+          </span>
+          <span className="mx-2 text-muted">→</span>
+          <span className="tabular-nums font-medium">
+            {pad(civil.hour)}:{pad(civil.minute)}
+          </span>
+          <span className="ml-2 text-secondary">
+            총 {signedMinutes(meta.totalCorrectionMinutes)}
+          </span>
+        </p>
+      )}
 
       <table className="w-full border-collapse text-sm">
         <tbody>

@@ -106,11 +106,31 @@ const rows = classified
   })
   .join('\n');
 
-const output = `// 이 파일은 scripts/generate-zone-history.mjs 가 생성합니다. 직접 수정하지 마세요.
-// 출처: IANA tz database (${ZONE}), ${FROM_YEAR}~${TO_YEAR}
-// 재생성: node scripts/generate-zone-history.mjs
+/**
+ * 출처 기록 — tzdb 판본이 다르면 같은 스크립트가 다른 표를 낸다.
+ * Node 가 어느 판본을 탑재했는지 `process.versions.tz` 로 확인할 수 있다.
+ */
+const provenance = {
+  zone: ZONE,
+  fromYear: FROM_YEAR,
+  toYear: TO_YEAR,
+  tzdb: process.versions.tz ?? 'unknown',
+  node: process.versions.node,
+  icu: process.versions.icu ?? 'unknown',
+  generatedAt: new Date().toISOString().slice(0, 10),
+};
 
-import type { RawZoneInterval } from './zoneTypes';
+const output = `// 이 파일은 scripts/generate-zone-history.mjs 가 생성합니다. 직접 수정하지 마세요.
+// 출처: IANA tz database ${provenance.tzdb} (${ZONE}), ${FROM_YEAR}~${TO_YEAR}
+// 생성: Node ${provenance.node} · ICU ${provenance.icu} · ${provenance.generatedAt}
+// 재생성: node scripts/generate-zone-history.mjs
+//
+// tzdb 판본이 바뀌면 과거 구간까지 달라질 수 있다. 재생성 후에는 골든 스냅샷
+// 차이를 반드시 확인할 것.
+
+import type { RawZoneInterval, ZoneHistoryProvenance } from './zoneTypes';
+
+export const ZONE_HISTORY_PROVENANCE: ZoneHistoryProvenance = ${JSON.stringify(provenance, null, 2)};
 
 export const KOREA_ZONE_HISTORY_RAW: readonly RawZoneInterval[] = [
 ${rows}

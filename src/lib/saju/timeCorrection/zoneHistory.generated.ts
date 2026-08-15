@@ -1,8 +1,22 @@
 // 이 파일은 scripts/generate-zone-history.mjs 가 생성합니다. 직접 수정하지 마세요.
-// 출처: IANA tz database (Asia/Seoul), 1900~2100
+// 출처: IANA tz database 2025b (Asia/Seoul), 1900~2100
+// 생성: Node 24.12.0 · ICU 77.1 · 2026-08-15
 // 재생성: node scripts/generate-zone-history.mjs
+//
+// tzdb 판본이 바뀌면 과거 구간까지 달라질 수 있다. 재생성 후에는 골든 스냅샷
+// 차이를 반드시 확인할 것.
 
-import type { RawZoneInterval } from './zoneTypes';
+import type { RawZoneInterval, ZoneHistoryProvenance } from './zoneTypes';
+
+export const ZONE_HISTORY_PROVENANCE: ZoneHistoryProvenance = {
+  "zone": "Asia/Seoul",
+  "fromYear": 1900,
+  "toYear": 2100,
+  "tzdb": "2025b",
+  "node": "24.12.0",
+  "icu": "77.1",
+  "generatedAt": "2026-08-15"
+};
 
 export const KOREA_ZONE_HISTORY_RAW: readonly RawZoneInterval[] = [
   // 기록 이전 (지방평균시)

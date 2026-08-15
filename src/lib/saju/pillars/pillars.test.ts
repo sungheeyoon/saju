@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BRANCHES, STEMS, pillarIndexOf, type Stem } from '@/src/lib/saju/constants';
+import { daysInMonth } from '@/src/lib/saju/input';
 import {
   DAY_ANCHOR,
   KST_OFFSET_MINUTES,
@@ -15,8 +16,16 @@ import {
   tigerMonthStem,
   toCivil,
   yearPillarOf,
+  type CivilDate,
   type FourPillars,
 } from '@/src/lib/saju/pillars';
+
+/** 실제로 존재하는 다음 날짜. `Date` 정규화(2월 30일 → 3월 2일)를 쓰지 않는다. */
+function nextDay(date: CivilDate): CivilDate {
+  if (date.day < daysInMonth(date.year, date.month)!) return { ...date, day: date.day + 1 };
+  if (date.month < 12) return { year: date.year, month: date.month + 1, day: 1 };
+  return { year: date.year + 1, month: 1, day: 1 };
+}
 
 /** 한국 표준시 벽시계 시각을 절대 시각으로 만든다. */
 function kst(year: number, month: number, day: number, hour = 0, minute = 0): Date {
@@ -30,7 +39,7 @@ function names(pillars: FourPillars) {
     year: pillars.year.name,
     month: pillars.month.name,
     day: pillars.day.name,
-    hour: pillars.hour.name,
+    hour: pillars.hour?.name ?? null,
   };
 }
 
@@ -172,15 +181,25 @@ describe('일주(day)', () => {
   });
 
   it('하루에 한 칸씩 전진하고 60일마다 돌아온다', () => {
-    const start = { year: 2025, month: 3, day: 1 };
-    const first = dayPillarOf(start);
+    // 3월 32일·61일 같은 날짜로 세면 Date 정규화에 기대게 된다. 그러면
+    // 정규화가 사라지는 날 이 테스트가 먼저 깨지는 게 아니라 조용히 통과한다.
+    // 실제로 존재하는 날짜만 밟는다 — 월·연 넘김도 함께 검증된다.
+    for (const start of [
+      { year: 2025, month: 3, day: 1 },
+      { year: 2024, month: 12, day: 15 }, // 연 넘김
+      { year: 2024, month: 2, day: 20 }, // 윤달 넘김
+    ]) {
+      const first = dayPillarOf(start);
+      let date = start;
 
-    for (let offset = 1; offset <= 60; offset += 1) {
-      const at = dayPillarOf({ ...start, day: 1 + offset });
-      const expected = (first.index + offset) % 60;
-      expect(at.index, `+${offset}일`).toBe(expected);
+      for (let offset = 1; offset <= 60; offset += 1) {
+        date = nextDay(date);
+        const expected = (first.index + offset) % 60;
+        expect(dayPillarOf(date).index, `${JSON.stringify(start)} +${offset}일`).toBe(expected);
+      }
+      // 60일 뒤에 같은 간지로 돌아온다
+      expect(dayPillarOf(date).name).toBe(first.name);
     }
-    expect(dayPillarOf({ ...start, day: 61 }).name).toBe(first.name);
   });
 
   it('윤년 2월 29일을 건너뛰지 않는다', () => {
@@ -217,7 +236,7 @@ describe('4주 통합 — 절기 경계', () => {
   });
 
   it('1월 초는 아직 지난 사주년의 자월·축월이다', () => {
-    // 2025년 소한 = 2025-01-05 17:23 KST
+    // 2025년 1월 소한 = 2025-01-05 11:32 KST (사주년으로는 2024년의 마지막 절)
     const beforeSohan = getFourPillars(kst(2025, 1, 3, 12));
     const afterSohan = getFourPillars(kst(2025, 1, 10, 12));
 
@@ -246,7 +265,7 @@ describe('4주 통합 — 조자시/야자시', () => {
     );
     expect(jo.meta.lateNightShiftApplied).toBe(true);
     expect(jo.day.name).toBe(dayPillarOf({ year: 2025, month: 6, day: 16 }).name);
-    expect(jo.hour.branch).toBe('子');
+    expect(jo.hour!.branch).toBe('子');
   });
 
   it('야자시는 일주를 자정에 넘긴다', () => {
@@ -256,7 +275,7 @@ describe('4주 통합 — 조자시/야자시', () => {
     );
     expect(ya.meta.lateNightShiftApplied).toBe(false);
     expect(ya.day.name).toBe(dayPillarOf({ year: 2025, month: 6, day: 15 }).name);
-    expect(ya.hour.branch).toBe('子');
+    expect(ya.hour!.branch).toBe('子');
   });
 
   it('두 규칙이 23시대에만 갈린다', () => {
@@ -316,10 +335,12 @@ describe('4주 통합 — 구조 불변식', () => {
       const pillars = getFourPillars(instant);
       for (const key of ['year', 'month', 'day', 'hour'] as const) {
         const pillar = pillars[key];
+        // 시각을 넘겼으므로 네 자리가 모두 차 있어야 한다.
+        expect(pillar, `${instant.toISOString()} ${key}`).not.toBeNull();
         expect(
-          pillarIndexOf(pillar.stem, pillar.branch),
-          `${instant.toISOString()} ${key}=${pillar.name}`,
-        ).toBe(pillar.index);
+          pillarIndexOf(pillar!.stem, pillar!.branch),
+          `${instant.toISOString()} ${key}=${pillar!.name}`,
+        ).toBe(pillar!.index);
       }
       expect(pillars.dayMaster).toBe(pillars.day.stem);
     }
@@ -327,7 +348,7 @@ describe('4주 통합 — 구조 불변식', () => {
 
   it('하루 24시간이 12개 시지를 두 번씩 돈다', () => {
     const branches = Array.from({ length: 24 }, (_, h) =>
-      getFourPillars(kst(2025, 6, 15, h), { lateNightRule: 'ya' }).hour.branch,
+      getFourPillars(kst(2025, 6, 15, h), { lateNightRule: 'ya' }).hour!.branch,
     );
     expect(new Set(branches).size).toBe(12);
   });

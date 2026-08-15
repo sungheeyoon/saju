@@ -16,25 +16,35 @@ function toKST(date: Date): string {
 }
 
 /**
- * 절기별 기대 시각 — KST(UTC+9) 기준 'YYYY-MM-DD HH:mm:ss'.
+ * 절기별 외부 기대 시각 — KST(UTC+9) 기준 'YYYY-MM-DD HH:mm'.
  *
- * 빈 문자열인 항목은 테스트가 skip 된다. 만세력 등에서 확인한 값을
- * 채워 넣으면 해당 절기부터 검증이 활성화된다.
+ * 출처는 한국천문연구원(KASI) 역서의 2025년 절기 절입시각이고, 두 번째
+ * 자료(uncle.tools 만세력, NASA DE441 기반)로 교차 확인했다. 두 자료는
+ * 초 단위 처리(반올림 ↔ 버림)만 달라 최대 1분 차이로 일치한다.
+ *
+ * 사주년 2025는 입춘(2025-02-03)에서 시작해 소한(**2026**-01-05)으로 끝난다.
+ * 마지막 줄의 연도가 2026인 것은 오타가 아니다.
+ *
+ * 발표값이 분 단위이므로 허용 오차도 1분이다. 그보다 크게 어긋나면 역법
+ * 계산이 실제로 밀린 것이다 — 그것이 이 테스트가 잡으려는 회귀다.
  */
 const EXPECTED_KST: Record<string, string> = {
-  입춘: '',
-  경칩: '',
-  청명: '',
-  입하: '',
-  망종: '',
-  소서: '',
-  입추: '',
-  백로: '',
-  한로: '',
-  입동: '',
-  대설: '',
-  소한: '',
+  입춘: '2025-02-03 23:10',
+  경칩: '2025-03-05 17:07',
+  청명: '2025-04-04 21:49',
+  입하: '2025-05-05 14:57',
+  망종: '2025-06-05 18:57',
+  소서: '2025-07-07 05:05',
+  입추: '2025-08-07 14:52',
+  백로: '2025-09-07 17:52',
+  한로: '2025-10-08 09:41',
+  입동: '2025-11-07 13:04',
+  대설: '2025-12-07 06:05',
+  소한: '2026-01-05 17:23',
 };
+
+/** 발표값이 분 단위라 이보다 좁게 요구할 수 없다. */
+const TOLERANCE_SECONDS = 60;
 
 describe(`getSolarTerms(${SAJU_YEAR})`, () => {
   const terms = getSolarTerms(SAJU_YEAR);
@@ -76,12 +86,31 @@ describe(`getSolarTerms(${SAJU_YEAR})`, () => {
     expect(sohan.getUTCMonth() + 1).toBe(1);
   });
 
-  describe('절기별 시각 (KST)', () => {
-    for (const term of terms) {
-      const expected = EXPECTED_KST[term.name];
+  describe('절기별 시각 — 외부 발표값 대조 (KST)', () => {
+    it('12절 모두 기대값이 채워져 있다', () => {
+      // 값을 비우면 테스트가 조용히 사라진다. 그 구멍을 막는다.
+      for (const term of terms) {
+        expect(EXPECTED_KST[term.name], term.name).toMatch(
+          /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/,
+        );
+      }
+    });
 
-      it.skipIf(!expected)(`${term.name} (황경 ${term.longitude}°)`, () => {
-        expect(toKST(term.date)).toBe(expected);
+    for (const term of terms) {
+      it(`${term.name} (황경 ${term.longitude}°)`, () => {
+        const expected = EXPECTED_KST[term.name];
+        const actual = toKST(term.date);
+
+        // 날짜와 분까지 같거나, 최대 1분 차이여야 한다.
+        const gapSeconds =
+          Math.abs(
+            new Date(`${actual.replace(' ', 'T')}Z`).getTime() -
+              new Date(`${expected.replace(' ', 'T')}:00Z`).getTime(),
+          ) / 1000;
+
+        expect(gapSeconds, `발표 ${expected} ↔ 엔진 ${actual}`).toBeLessThanOrEqual(
+          TOLERANCE_SECONDS,
+        );
       });
     }
   });

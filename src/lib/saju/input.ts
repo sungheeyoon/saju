@@ -1,0 +1,171 @@
+import type { CivilDate, CivilDateTime } from './civilTime';
+
+/**
+ * 엔진 입력의 계약 — 무엇을 받고 무엇을 거부하는가.
+ *
+ * 계산 코어는 순수 함수라 아무 숫자나 받으면 아무 답이나 낸다. 2월 30일은
+ * JavaScript `Date` 규칙대로 3월 2일로 조용히 흘러가고, 1899년은 표준시 표의
+ * 첫 구간이 무한히 과거로 열려 있어 그럴듯한 사주가 나온다.
+ *
+ * 조용히 틀린 답보다 거부가 낫다. 그 경계를 여기 한 곳에 모은다.
+ */
+
+/**
+ * 지원 연도 범위.
+ *
+ * 상한과 하한 모두 자료의 한계다. 표준시 이력표(`zoneHistory.generated.ts`)가
+ * IANA tz 데이터의 1900~2100 구간에서 생성되었고, 절기 계산이 쓰는
+ * astronomy-engine 도 이 바깥에서는 정밀도를 보장하지 않는다.
+ */
+export const SUPPORTED_YEAR_RANGE = { min: 1900, max: 2100 } as const;
+
+/**
+ * 시각을 모르는 출생 입력 — `hour: null`.
+ *
+ * 관례대로 정오를 넣어 계산하면 시주가 午시로 **나와 버린다**. 모르는 값을
+ * 아는 값처럼 보여주는 셈이라, 아예 시주를 뽑지 않는 경로를 따로 둔다.
+ */
+export type UnknownHourInput = CivilDate & {
+  hour: null;
+  minute?: undefined;
+  second?: undefined;
+};
+
+/** `computeSaju` 의 입력 — `hour: null` 이면 시간 미상 */
+export type SajuInput = CivilDateTime | UnknownHourInput;
+
+export type SajuInputField =
+  | 'year'
+  | 'month'
+  | 'day'
+  | 'hour'
+  | 'minute'
+  | 'second';
+
+const FIELD_KO: Record<SajuInputField, string> = {
+  year: '연도',
+  month: '월',
+  day: '일',
+  hour: '시',
+  minute: '분',
+  second: '초',
+};
+
+/**
+ * 계산을 시작하기 전에 거부한 입력.
+ *
+ * `InvalidLocalTimeError`(서머타임 전환의 모호·부재 시각)와는 층이 다르다.
+ * 저쪽은 실재하는 시계를 어떻게 해석할지의 문제고, 이쪽은 애초에 존재하지
+ * 않는 날짜·시각이다.
+ */
+export class InvalidSajuInputError extends Error {
+  readonly field: SajuInputField;
+  readonly value: unknown;
+
+  constructor(field: SajuInputField, value: unknown, reason: string) {
+    super(`${FIELD_KO[field]} 입력이 올바르지 않습니다 — ${reason}`);
+    this.name = 'InvalidSajuInputError';
+    this.field = field;
+    this.value = value;
+  }
+}
+
+/** 그레고리력 윤년 — 지원 범위 안에서는 율리우스력을 고려하지 않는다. */
+export function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+
+const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+/** 그 해 그 달의 마지막 날. 월이 1~12 밖이면 `null`. */
+export function daysInMonth(year: number, month: number): number | null {
+  if (!Number.isInteger(month) || month < 1 || month > 12) return null;
+  if (month === 2 && isLeapYear(year)) return 29;
+  return MONTH_DAYS[month - 1];
+}
+
+function assertInteger(field: SajuInputField, value: unknown): asserts value is number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new InvalidSajuInputError(field, value, `숫자가 아닙니다: ${String(value)}`);
+  }
+  if (!Number.isInteger(value)) {
+    throw new InvalidSajuInputError(field, value, `정수가 아닙니다: ${value}`);
+  }
+}
+
+function assertRange(
+  field: SajuInputField,
+  value: number,
+  min: number,
+  max: number,
+): void {
+  if (value < min || value > max) {
+    throw new InvalidSajuInputError(field, value, `${min}~${max} 범위를 벗어났습니다: ${value}`);
+  }
+}
+
+/**
+ * 입력을 검증한다. 통과하지 못하면 `InvalidSajuInputError` 를 던진다.
+ *
+ * 검사 순서는 큰 단위부터다 — 연도가 틀렸는데 "2월 30일" 을 먼저 지적하면
+ * 사용자가 고칠 곳을 두 번 찾는다.
+ */
+export function assertValidSajuInput(input: SajuInput): void {
+  assertInteger('year', input.year);
+  assertRange('year', input.year, SUPPORTED_YEAR_RANGE.min, SUPPORTED_YEAR_RANGE.max);
+
+  assertInteger('month', input.month);
+  assertRange('month', input.month, 1, 12);
+
+  assertInteger('day', input.day);
+  const lastDay = daysInMonth(input.year, input.month) as number;
+  if (input.day < 1 || input.day > lastDay) {
+    throw new InvalidSajuInputError(
+      'day',
+      input.day,
+      `${input.year}년 ${input.month}월은 ${lastDay}일까지입니다: ${input.day}`,
+    );
+  }
+
+  if (input.hour === null) {
+    // 시간 미상 — 분·초는 애초에 의미가 없으므로 검사할 것이 없다.
+    return;
+  }
+
+  assertInteger('hour', input.hour);
+  assertRange('hour', input.hour, 0, 23);
+
+  assertInteger('minute', input.minute);
+  assertRange('minute', input.minute, 0, 59);
+
+  assertInteger('second', input.second);
+  assertRange('second', input.second, 0, 59);
+}
+
+/** 시간 미상일 때 계산 기준으로 삼는 시각 — 하루의 한가운데 */
+export const UNKNOWN_HOUR_PROXY = { hour: 12, minute: 0, second: 0 } as const;
+
+export type NormalizedInput = {
+  /** 검증을 통과한 계산 기준 시각. 시간 미상이면 정오로 채워진다 */
+  civil: CivilDateTime;
+  /** 시각을 알고 입력했는가 — `false` 면 시주를 뽑지 않는다 */
+  hourKnown: boolean;
+};
+
+/**
+ * 입력을 검증하고 계산이 쓸 형태로 편다.
+ *
+ * 시간 미상이면 정오를 채우되 `hourKnown: false` 를 함께 넘긴다. 정오는
+ * 일주가 자시 경계에 걸리지 않는 안전한 대표값일 뿐, 시주를 뽑는 근거가
+ * 아니다. 그 구분을 잃으면 "모름"이 "낮 12시"로 둔갑한다.
+ */
+export function normalizeSajuInput(input: SajuInput): NormalizedInput {
+  assertValidSajuInput(input);
+
+  if (input.hour === null) {
+    const { year, month, day } = input;
+    return { civil: { year, month, day, ...UNKNOWN_HOUR_PROXY }, hourKnown: false };
+  }
+
+  return { civil: input, hourKnown: true };
+}

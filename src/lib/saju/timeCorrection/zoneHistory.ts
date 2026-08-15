@@ -1,5 +1,8 @@
 import { fromCivil, type CivilDateTime } from '../civilTime';
-import { KOREA_ZONE_HISTORY_RAW } from './zoneHistory.generated';
+import { KOREA_ZONE_HISTORY_RAW, ZONE_HISTORY_PROVENANCE } from './zoneHistory.generated';
+
+/** 이 표를 어느 tzdb 판본에서 뽑았는지 — `zoneHistory.generated.ts` 헤더와 같은 내용 */
+export { ZONE_HISTORY_PROVENANCE };
 
 /**
  * 한국 표준시 이력 — 표준자오선 변경과 서머타임을 하나의 표로 다룬다.

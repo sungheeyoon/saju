@@ -110,7 +110,8 @@ export type TenGodChart = {
   year: PillarTenGods;
   month: PillarTenGods;
   day: PillarTenGods;
-  hour: PillarTenGods;
+  /** 출생 시각을 모르면 `null` — 시주가 없으니 십성도 없다 */
+  hour: PillarTenGods | null;
 };
 
 export const PILLAR_KEYS = ['year', 'month', 'day', 'hour'] as const;
@@ -119,8 +120,9 @@ export type PillarKey = (typeof PILLAR_KEYS)[number];
 export function tenGodChartOf(pillars: FourPillars): TenGodChart {
   const dayMaster = pillars.dayMaster;
 
-  const forPillar = (key: PillarKey): PillarTenGods => {
+  const forPillar = (key: PillarKey): PillarTenGods | null => {
     const pillar = pillars[key];
+    if (pillar === null) return null;
     return {
       // 일간은 '나' 자신이라 십성을 매기지 않는다.
       stem: key === 'day' ? null : tenGodOf(dayMaster, pillar.stem),
@@ -135,14 +137,18 @@ export function tenGodChartOf(pillars: FourPillars): TenGodChart {
   };
 
   return {
-    year: forPillar('year'),
-    month: forPillar('month'),
-    day: forPillar('day'),
+    // 연·월·일주는 언제나 나오므로 널이 아님을 단언한다.
+    year: forPillar('year')!,
+    month: forPillar('month')!,
+    day: forPillar('day')!,
     hour: forPillar('hour'),
   };
 }
 
-/** 십성별 등장 횟수 — 천간 3자(일간 제외) + 지지 4자 기준 */
+/**
+ * 십성별 등장 횟수 — 천간 3자(일간 제외) + 지지 4자 기준.
+ * 시간 미상이면 시주가 빠져 천간 2자 + 지지 3자가 된다.
+ */
 export function tenGodCountsOf(chart: TenGodChart): Record<TenGod, number> {
   const counts = Object.fromEntries(
     Object.keys(TEN_GOD_KO).map((god) => [god, 0]),
@@ -150,6 +156,7 @@ export function tenGodCountsOf(chart: TenGodChart): Record<TenGod, number> {
 
   for (const key of PILLAR_KEYS) {
     const pillar = chart[key];
+    if (pillar === null) continue;
     if (pillar.stem) counts[pillar.stem] += 1;
     counts[pillar.branch] += 1;
   }
