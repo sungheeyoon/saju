@@ -68,7 +68,8 @@ export type SajuInputField =
   | 'minute'
   | 'second'
   | 'gender'
-  | 'longitude';
+  | 'longitude'
+  | 'daeun';
 
 const FIELD_KO: Record<SajuInputField, string> = {
   input: '생년월일시',
@@ -80,6 +81,7 @@ const FIELD_KO: Record<SajuInputField, string> = {
   second: '초',
   gender: '성별',
   longitude: '경도',
+  daeun: '대운 옵션',
 };
 
 /**

@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import { InvalidSajuInputError, computeSaju, type SajuInput } from '@/src/lib/saju';
-import { STEMS, STEM_INFO, pillarIndexOf } from '@/src/lib/saju/constants';
+import { SEXAGENARY, STEMS, STEM_INFO, pillarIndexOf } from '@/src/lib/saju/constants';
 import {
   DAYS_PER_YEAR,
   YEARS_PER_DAEUN,
+  computeDaeun,
   daeunAtAge,
   daeunDirectionOf,
   type Daeun,
 } from '@/src/lib/saju/daeun';
+import type { SolarTerm } from '@/src/lib/saju/solarTerms';
 import { daysInMonth } from '@/src/lib/saju/input';
 
 /**
@@ -229,6 +231,161 @@ describe('대운 간지 — 월주에서 한 칸씩', () => {
     expect(daeunAtAge(daeun, 16)!.pillar.name).toBe('壬午');
     expect(daeunAtAge(daeun, 17)!.pillar.name).toBe('癸未');
     expect(daeunAtAge(daeun, 200)).toBeNull(); // 마지막 대운 밖
+  });
+
+  it('해를 반쯤 지난 나이도 대운 안에 있다', () => {
+    // 만 16.5세는 7세 대운의 한가운데다. 구간을 endAge 로 닫으면 여기가
+    // 어느 대운에도 속하지 않는 구멍이 된다.
+    const daeun = daeunOf(at(1990, 5, 15, 14, 30, 'male'));
+
+    expect(daeunAtAge(daeun, 7.1)!.pillar.name).toBe('壬午');
+    expect(daeunAtAge(daeun, 16.5)!.pillar.name).toBe('壬午');
+    expect(daeunAtAge(daeun, 16.999)!.pillar.name).toBe('壬午');
+    expect(daeunAtAge(daeun, 17.0)!.pillar.name).toBe('癸未');
+    expect(daeunAtAge(daeun, 6.9)).toBeNull();
+  });
+
+  it('60갑자 끝에서 되감는다', () => {
+    // 월주가 甲子(0)면 역행 첫 대운은 癸亥(59)로 넘어가야 한다.
+    // 실제 출생으로는 드물게 걸리는 자리라 직접 만들어 확인한다.
+    const term = (name: string, iso: string): SolarTerm => ({
+      name,
+      longitude: 315,
+      branch: '寅',
+      date: new Date(iso),
+    });
+
+    const base = {
+      monthTerm: term('입춘', '1904-02-05T00:00:00Z'),
+      nextTerm: term('경칩', '1904-03-06T00:00:00Z'),
+      instant: new Date('1904-02-20T00:00:00Z'),
+      birthYear: 1904,
+    };
+
+    const backward = computeDaeun({
+      ...base,
+      yearStem: '甲', // 양간 + 여자 = 역행
+      monthPillar: SEXAGENARY[0], // 甲子
+      gender: 'female',
+    });
+    expect(backward.direction).toBe('backward');
+    expect(backward.entries.map((entry) => entry.pillar.name).slice(0, 3)).toEqual([
+      '癸亥',
+      '壬戌',
+      '辛酉',
+    ]);
+
+    const forward = computeDaeun({
+      ...base,
+      yearStem: '甲',
+      monthPillar: SEXAGENARY[59], // 癸亥
+      gender: 'male',
+    });
+    expect(forward.direction).toBe('forward');
+    expect(forward.entries.map((entry) => entry.pillar.name).slice(0, 3)).toEqual([
+      '甲子',
+      '乙丑',
+      '丙寅',
+    ]);
+  });
+
+  it('자시 규칙은 대운을 흔들지 않는다', () => {
+    // 조자시는 일주만 다음 날로 넘긴다. 대운은 연간·월주·절대 시각으로만
+    // 정해지므로 그대로여야 한다.
+    const input = at(2025, 6, 15, 23, 30, 'male');
+    const jo = computeSaju(input, { lateNightRule: 'jo', useLongitude: false });
+    const ya = computeSaju(input, { lateNightRule: 'ya', useLongitude: false });
+
+    expect(jo.pillars.day.name).not.toBe(ya.pillars.day.name); // 일주는 갈린다
+    expect(jo.daeun).toEqual(ya.daeun); // 대운은 같다
+  });
+});
+
+describe('대운 — 외부 대조', () => {
+  /**
+   * 위키백과 '대운(사주팔자)' 문서의 예시 두 건.
+   *
+   * 규칙 설명이 아니라 **완성된 결과**를 대조하는 것이 목적이다. 방향·출발
+   * 간지·대운수가 한꺼번에 맞아야 통과한다. 출생 시각이 적혀 있지 않아
+   * 하루 안의 모든 시각에서 같은 답이 나오는지도 함께 본다.
+   */
+  it('1945-08-15 남자 — 을유년(음간) 남자라 역행, 갑신월 → 계미', () => {
+    for (const hour of [0, 6, 12, 18, 23]) {
+      const saju = computeSaju(at(1945, 8, 15, hour, 0, 'male'));
+
+      expect(saju.pillars.year.name, `${hour}시`).toBe('乙酉');
+      expect(saju.pillars.month.name, `${hour}시`).toBe('甲申');
+      expect(saju.daeun.direction, `${hour}시`).toBe('backward');
+      expect(saju.daeun.entries[0].pillar.name, `${hour}시`).toBe('癸未');
+    }
+  });
+
+  it('1950-06-25 남자 — 경인년(양간) 남자라 순행, 임오월 → 계미, 대운수 4', () => {
+    for (const hour of [0, 6, 12, 18, 23]) {
+      const saju = computeSaju(at(1950, 6, 25, hour, 0, 'male'));
+
+      expect(saju.pillars.year.name, `${hour}시`).toBe('庚寅');
+      expect(saju.pillars.month.name, `${hour}시`).toBe('壬午');
+      expect(saju.daeun.direction, `${hour}시`).toBe('forward');
+      expect(saju.daeun.entries[0].pillar.name, `${hour}시`).toBe('癸未');
+      // 출생 시각이 하루 안에서 달라져도 대운수는 4로 유지된다
+      expect(saju.daeun.startAge, `${hour}시`).toBe(4);
+    }
+  });
+});
+
+describe('대운수 0 — 만 나이라 성립한다', () => {
+  // 2025 망종 = 06-05 18:56:40. 그 직전 출생 + 순행이면 절입이 코앞이다.
+  const justBeforeTerm = at(2025, 6, 5, 18, 55, 'female'); // 음간 여자 = 순행
+
+  it('기본값은 0을 그대로 둔다', () => {
+    const daeun = daeunOf(justBeforeTerm);
+    expect(daeun.direction).toBe('forward');
+    expect(daeun.startAge).toBe(0);
+    expect(daeun.entries[0].startAge).toBe(0);
+  });
+
+  it('세는나이 표기에 맞추려면 1로 올릴 수 있다', () => {
+    // "0이라는 나이는 없다"며 1로 적는 표가 흔하다. 그것은 0세가 없는
+    // 세는나이의 관행이라 기본값으로 삼지 않았다.
+    const raised = computeSaju(justBeforeTerm, {
+      daeun: { zeroStartAge: 'raiseToOne' },
+    }).daeun;
+
+    expect(raised.startAge).toBe(1);
+    expect(raised.entries[0].startAge).toBe(1);
+    expect(raised.entries[1].startAge).toBe(11);
+    // 정확한 값은 그대로 남는다
+    expect(raised.startAgeExact).toBeCloseTo(daeunOf(justBeforeTerm).startAgeExact, 10);
+  });
+
+  it('0이 아닌 대운수는 올림 정책에 흔들리지 않는다', () => {
+    const input = at(1990, 5, 15, 14, 30, 'male'); // 대운수 7
+    expect(computeSaju(input, { daeun: { zeroStartAge: 'raiseToOne' } }).daeun.startAge).toBe(7);
+  });
+});
+
+describe('대운 옵션 — 잘못된 값은 거부한다', () => {
+  const input = at(1990, 5, 15, 14, 30, 'male');
+
+  it('개수는 1 이상의 정수여야 한다', () => {
+    // 0·음수를 넘기면 빈 표가 조용히 나오고, 소수는 반내림되어 사라진다.
+    for (const count of [0, -3, 2.5, NaN, Infinity, '9']) {
+      expect(
+        () => computeSaju(input, { daeun: { count: count as number } }),
+        String(count),
+      ).toThrow(InvalidSajuInputError);
+    }
+    expect(computeSaju(input, { daeun: { count: 1 } }).daeun.entries).toHaveLength(1);
+  });
+
+  it('반올림·0 처리 방식의 오타를 거부한다', () => {
+    expect(() =>
+      computeSaju(input, { daeun: { rounding: 'ROUND' as never } }),
+    ).toThrow(InvalidSajuInputError);
+    expect(() =>
+      computeSaju(input, { daeun: { zeroStartAge: 'raise' as never } }),
+    ).toThrow(InvalidSajuInputError);
   });
 });
 

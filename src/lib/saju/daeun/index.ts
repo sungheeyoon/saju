@@ -1,5 +1,5 @@
 import { STEM_INFO, pillarAt, type Pillar, type Stem } from '../constants';
-import type { Gender } from '../input';
+import { InvalidSajuInputError, type Gender } from '../input';
 import type { SolarTerm } from '../solarTerms';
 
 /**
@@ -48,16 +48,61 @@ const DAY_MS = 86_400_000;
  */
 export type DaeunRounding = 'round' | 'floor';
 
+/**
+ * 대운수가 0으로 떨어질 때의 처리.
+ *
+ * - `'keep'` 0을 그대로 둔다. 이 프로젝트의 나이는 **만 나이(경과 연수)**라
+ *   0이 성립한다 — 절입 직전에 태어나면 첫 대운이 사실상 출생과 함께 온다.
+ * - `'raiseToOne'` 1로 올린다. "0이라는 나이는 없다"며 1로 적는 표가 흔한데,
+ *   그것은 0세가 없는 세는나이 표기의 관행이다.
+ *
+ * 기본이 `'keep'` 인 이유: 우리가 만 나이로 적는다고 밝힌 이상, 0을 1로 올리면
+ * 첫 대운을 한 해 늦게 말하는 셈이 된다. 세는나이 표기의 만세력과 맞춰볼 때만
+ * 바꾸면 된다.
+ */
+export type DaeunZeroPolicy = 'keep' | 'raiseToOne';
+
 export type DaeunOptions = {
   rounding?: DaeunRounding;
+  zeroStartAge?: DaeunZeroPolicy;
   /** 뽑을 대운 개수 (기본 9 — 90년치) */
   count?: number;
 };
 
 export const DEFAULT_DAEUN_OPTIONS = {
   rounding: 'round',
+  zeroStartAge: 'keep',
   count: 9,
 } as const satisfies Required<DaeunOptions>;
+
+const ROUNDINGS: readonly DaeunRounding[] = ['round', 'floor'];
+const ZERO_POLICIES: readonly DaeunZeroPolicy[] = ['keep', 'raiseToOne'];
+
+/** 대운 옵션도 조용히 흘려보내지 않는다 — 오타 하나로 다른 표가 나온다. */
+function assertValidDaeunOptions(options: Required<DaeunOptions>): void {
+  if (!ROUNDINGS.includes(options.rounding)) {
+    throw new InvalidSajuInputError(
+      'daeun',
+      options.rounding,
+      `rounding 은 'round' 또는 'floor' 여야 합니다: ${String(options.rounding)}`,
+    );
+  }
+  if (!ZERO_POLICIES.includes(options.zeroStartAge)) {
+    throw new InvalidSajuInputError(
+      'daeun',
+      options.zeroStartAge,
+      `zeroStartAge 는 'keep' 또는 'raiseToOne' 이어야 합니다: ${String(options.zeroStartAge)}`,
+    );
+  }
+  if (!Number.isInteger(options.count) || options.count < 1) {
+    // 0이나 음수를 넘기면 빈 표가 조용히 나온다.
+    throw new InvalidSajuInputError(
+      'daeun',
+      options.count,
+      `count 는 1 이상의 정수여야 합니다: ${String(options.count)}`,
+    );
+  }
+}
 
 export type DaeunEntry = {
   /** 몇 번째 대운인가 (1부터) */
@@ -79,7 +124,7 @@ export type Daeun = {
   boundaryTerm: SolarTerm;
   /** 그 절입까지의 거리(일). 소수점 그대로 */
   daysToBoundary: number;
-  /** 대운수 — 첫 대운이 시작되는 나이(정수) */
+  /** 대운수 — 첫 대운이 시작되는 나이(정수, 만 나이) */
   startAge: number;
   /** 반올림하기 전의 값(년). 계통이 다르면 여기서 다시 만들면 된다 */
   startAgeExact: number;
@@ -87,8 +132,12 @@ export type Daeun = {
   /**
    * 출생 시각을 몰라 정오로 계산했는가.
    *
-   * `true` 면 대운수가 최대 ±0.5일 ÷ 3 ≈ ±2개월 흔들린다. 경계에 걸리면
-   * 한 살 차이로 나타난다.
+   * `true` 면 대운수가 최대 ±0.5일 ÷ 3 ≈ ±2개월 흔들리고, 반올림 경계에
+   * 걸리면 한 살 차이로 나타난다.
+   *
+   * 출생일이 절입일이기까지 하면 흔들리는 것이 대운수만이 아니다. 월주 자체가
+   * 갈리므로 첫 대운의 간지와 거리를 재는 절기가 통째로 달라진다. 그 경우는
+   * `Saju.meta.warnings` 가 "월주를 확정할 수 없다"고 따로 알린다.
    */
   approximate: boolean;
 };
@@ -136,11 +185,10 @@ function directionReasonOf(yearStem: Stem, gender: Gender, direction: DaeunDirec
  * 읽는 시계만 옮길 뿐 절대 시각을 옮기지 않으므로, 여기에는 영향이 없다.
  */
 export function computeDaeun(input: DaeunInput, options: DaeunOptions = {}): Daeun {
-  const {
-    rounding = DEFAULT_DAEUN_OPTIONS.rounding,
-    count = DEFAULT_DAEUN_OPTIONS.count,
-  } = options;
+  const resolved = { ...DEFAULT_DAEUN_OPTIONS, ...options };
+  assertValidDaeunOptions(resolved);
 
+  const { rounding, zeroStartAge, count } = resolved;
   const { yearStem, monthPillar, monthTerm, nextTerm, instant, birthYear, gender } = input;
 
   const direction = daeunDirectionOf(yearStem, gender);
@@ -151,7 +199,8 @@ export function computeDaeun(input: DaeunInput, options: DaeunOptions = {}): Dae
     Math.abs(boundaryTerm.date.getTime() - instant.getTime()) / DAY_MS;
 
   const startAgeExact = daysToBoundary / DAYS_PER_YEAR;
-  const startAge = rounding === 'floor' ? Math.floor(startAgeExact) : Math.round(startAgeExact);
+  const rounded = rounding === 'floor' ? Math.floor(startAgeExact) : Math.round(startAgeExact);
+  const startAge = rounded === 0 && zeroStartAge === 'raiseToOne' ? 1 : rounded;
 
   const step = direction === 'forward' ? 1 : -1;
 
@@ -179,7 +228,17 @@ export function computeDaeun(input: DaeunInput, options: DaeunOptions = {}): Dae
   };
 }
 
-/** 주어진 나이에 해당하는 대운. 첫 대운 이전이면 `null` */
+/**
+ * 주어진 나이에 해당하는 대운. 첫 대운 이전이거나 마지막 대운 이후면 `null`.
+ *
+ * 구간은 반열림(`startAge` 이상, 다음 대운 시작 미만)이다. `endAge` 로 닫으면
+ * 만 16.5세처럼 해를 반쯤 지난 나이가 어느 대운에도 속하지 않게 된다 —
+ * `endAge` 는 "마지막으로 온전히 지나는 해"를 적어 보여주기 위한 값이다.
+ */
 export function daeunAtAge(daeun: Daeun, age: number): DaeunEntry | null {
-  return daeun.entries.find((entry) => age >= entry.startAge && age <= entry.endAge) ?? null;
+  return (
+    daeun.entries.find(
+      (entry) => age >= entry.startAge && age < entry.startAge + YEARS_PER_DAEUN,
+    ) ?? null
+  );
 }
