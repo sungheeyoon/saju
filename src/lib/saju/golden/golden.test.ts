@@ -3,7 +3,13 @@ import { describe, expect, it } from 'vitest';
 
 import { pillarIndexOf } from '@/src/lib/saju/constants';
 import { GOLDEN_CASES, type GoldenCase } from '@/src/lib/saju/golden/cases';
-import { DAEUN_DIRECTION_KO, computeSaju, formatPillars, type Saju } from '@/src/lib/saju';
+import {
+  DAEUN_DIRECTION_KO,
+  computeSaju,
+  formatPillars,
+  formatRelation,
+  type Saju,
+} from '@/src/lib/saju';
 import { getSolarTerms } from '@/src/lib/saju/solarTerms';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -45,6 +51,19 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
       .map((entry) => `${entry.startAge} ${entry.pillar.name}`)
       .join(' / ')} …`,
   );
+
+  for (const relation of saju.relations) {
+    const notes = [
+      relation.result ? `합화 ${relation.result}` : null,
+      relation.full ? null : '반쪽',
+      relation.adjacent ? null : `${relation.distance}칸`,
+      relation.contested.length > 0 ? '쟁합' : null,
+    ].filter((note): note is string => note !== null);
+
+    lines.push(
+      `  관계   ${formatRelation(relation)}${notes.length > 0 ? `  ${notes.join(' · ')}` : ''}`,
+    );
+  }
 
   for (const correction of meta.corrections) {
     const minutes = Math.round(correction.minutes * 10) / 10;
@@ -112,6 +131,11 @@ describe('골든 테스트', () => {
       '  대운  방향은 양남음녀 순행·음남양녀 역행, 대운수는 절입까지 ÷ 3.',
       '        나이는 만 나이(경과 연수)다. 세는나이로 적는 만세력과 한 살 차이가 난다.',
       '        성별이 필수 입력이라 모든 케이스에 대운이 붙는다(기본 남자).',
+      '',
+      '  관계  성립하는 형충회합을 열거만 한다 — 길흉도, 합의 성사 여부도 판정하지 않는다.',
+      '        거리를 조건으로 걸지 않고 밝히기만 한다(붙은 것만 보는 학파는 걸러 쓰면 된다).',
+      '        반합·부분 삼형·반방합은 반쪽으로 표시해 함께 낸다. 지장간은 보지 않는다.',
+      '        쟁합·투합은 사실만 표시하고 그래서 합이 깨지는지는 말하지 않는다.',
       '',
       '  시간 미상  채택: 시주를 뽑지 않는다 (unknown-hour-* 케이스)',
       '',

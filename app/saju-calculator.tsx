@@ -10,12 +10,15 @@ import {
   ELEMENT_KO,
   GENDERS,
   GENDER_KO,
+  PILLAR_POSITION_KO,
+  RELATION_KIND_KO,
   STEM_INFO,
   TEN_GOD_KO,
   computeSaju,
   type CityName,
   type Gender,
   type LateNightRule,
+  type Relation,
   type Saju,
 } from '@/src/lib/saju';
 
@@ -361,6 +364,7 @@ function SajuView({ saju }: { saju: Saju }) {
   return (
     <div className="flex flex-col gap-6">
       <PillarChart saju={saju} />
+      <RelationTable saju={saju} />
       <DaeunTable saju={saju} />
       <div className="grid gap-6 lg:grid-cols-2">
         <ElementChart saju={saju} />
@@ -370,6 +374,96 @@ function SajuView({ saju }: { saju: Saju }) {
       <Warnings saju={saju} />
     </div>
   );
+}
+
+/**
+ * 원국의 관계 — 여덟 글자 안에서 성립하는 형충회합.
+ *
+ * 길흉을 말하지 않는다. 무엇이 무엇과 어떤 관계인지, 어느 자리에서인지만 적는다.
+ * 붙어 있어야 성립한다고 보는 학파를 위해 떨어진 것은 거리를 밝히고, 반쪽만
+ * 모인 것은 반쪽이라고 밝힌다. 걸러내는 것은 읽는 사람의 몫이다.
+ */
+function RelationTable({ saju }: { saju: Saju }) {
+  const { relations } = saju;
+
+  return (
+    <section className={CARD}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-xs uppercase tracking-wide text-muted">원국의 관계</h2>
+        <p className="text-sm text-secondary">
+          {relations.length === 0 ? '성립하는 관계가 없습니다' : `${relations.length}개`}
+        </p>
+      </div>
+
+      {relations.length > 0 && (
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[30rem] border-collapse text-sm">
+            <caption className="sr-only">여덟 글자 사이에 성립하는 합·충·형·해·파·원진</caption>
+            <thead className="text-xs text-muted">
+              <tr>
+                <th className="pb-1.5 text-left font-normal whitespace-nowrap">종류</th>
+                <th className="pb-1.5 pl-3 text-left font-normal whitespace-nowrap">글자</th>
+                <th className="pb-1.5 pl-3 text-left font-normal whitespace-nowrap">이름</th>
+                <th className="pb-1.5 pl-3 text-left font-normal whitespace-nowrap">자리</th>
+                <th className="w-full pb-1.5 pl-3 text-left font-normal whitespace-nowrap">비고</th>
+              </tr>
+            </thead>
+            <tbody>
+              {relations.map((relation) => (
+                <tr key={relationKey(relation)} className="border-t border-border">
+                  <td className="py-1.5 whitespace-nowrap text-secondary">
+                    {RELATION_KIND_KO[relation.kind]}
+                  </td>
+                  <td className="glyph py-1.5 pl-3 text-base whitespace-nowrap">
+                    {relation.participants.map((p) => p.char).join('')}
+                  </td>
+                  <td className="py-1.5 pl-3 whitespace-nowrap">
+                    {relation.ko}
+                    {relation.name && (
+                      <span className="ml-1.5 text-xs text-muted">{relation.name}</span>
+                    )}
+                  </td>
+                  <td className="py-1.5 pl-3 whitespace-nowrap text-secondary">
+                    {relation.participants
+                      .map((p) => PILLAR_POSITION_KO[p.position].charAt(0))
+                      .join('·')}
+                  </td>
+                  <td className="py-1.5 pl-3 text-xs text-muted">
+                    <span className="flex flex-wrap gap-x-2.5 gap-y-0.5">
+                      {relation.result && (
+                        <span className="text-secondary">
+                          합화 {ELEMENT_KO[relation.result]}
+                        </span>
+                      )}
+                      {!relation.full && <span>반쪽</span>}
+                      {!relation.adjacent && <span>{relation.distance}칸 떨어짐</span>}
+                      {relation.contested.length > 0 && (
+                        <span className="text-accent">
+                          쟁합 · {relation.contested[0].over.char}를 두고 다툼
+                        </span>
+                      )}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
+        성립 여부만 적습니다. 합이 이뤄지는지, 충이 합을 깨는지는 학파마다 갈려 판정하지 않습니다.
+        {!saju.meta.hourKnown && ' 시주를 몰라 시주가 걸린 관계는 빠져 있습니다.'}
+      </p>
+    </section>
+  );
+}
+
+/** 같은 관계가 자리만 달리해 여러 번 나오므로 자리까지 키에 넣는다 */
+function relationKey(relation: Relation): string {
+  return `${relation.kind}:${relation.ko}:${relation.participants
+    .map((p) => p.position)
+    .join('-')}`;
 }
 
 /**

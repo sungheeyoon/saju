@@ -9,6 +9,7 @@ import {
   type PillarOptions,
   type Pillars,
 } from './pillars';
+import { findRelations, type Relation } from './relations';
 import {
   correctTime,
   type Correction,
@@ -21,6 +22,7 @@ export * from './civilTime';
 export * from './constants';
 export * from './daeun';
 export * from './input';
+export * from './relations';
 export * from './solarTerms';
 export * from './timeCorrection';
 
@@ -69,6 +71,13 @@ export type Saju = {
   pillars: Pillars;
   /** 오행 분포·십성·신강신약 — L2 관계 연산이 먹고 들어가는 재료 */
   analysis: Analysis;
+  /**
+   * 원국 안에서 성립하는 형충회합.
+   *
+   * 사실만 담는다 — 길흉도, 합의 성사 여부도 판정하지 않는다.
+   * 시간 미상이면 시주가 빠진 채로 계산되므로 실제보다 적게 나온다.
+   */
+  relations: Relation[];
   /**
    * 10년 단위 대운.
    *
@@ -153,6 +162,7 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
   return {
     pillars,
     analysis: analyzePillars(pillars, analysisOptions),
+    relations: findRelations(pillars),
     daeun,
     meta: {
       inputTime,
