@@ -19,7 +19,7 @@ const at = (
   day: number,
   hour = 0,
   minute = 0,
-) => ({ year, month, day, hour, minute, second: 0 });
+) => ({ year, month, day, hour, minute, second: 0, gender: 'male' as const });
 
 describe('표준시 이력(zoneHistory)', () => {
   it('구간이 시간순이고 빈틈 없이 이어진다', () => {

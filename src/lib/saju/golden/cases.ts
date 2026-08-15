@@ -1,6 +1,5 @@
-import type { CivilDateTime } from '../civilTime';
 import type { SajuOptions } from '../index';
-import type { SajuInput } from '../input';
+import type { Gender, SajuInput } from '../input';
 
 /**
  * 골든 테스트 경계 케이스.
@@ -20,21 +19,28 @@ export type GoldenCase = {
   options: SajuOptions;
 };
 
+/**
+ * 성별은 필수 입력이지만 여덟 글자를 바꾸지 않는다. 케이스마다 적으면
+ * 노이즈만 늘어나므로 기본값을 두고, 대운 방향을 보는 케이스에서만 넘긴다.
+ */
+const DEFAULT_GENDER: Gender = 'male';
+
 const at = (
   year: number,
   month: number,
   day: number,
   hour: number,
   minute: number,
-): CivilDateTime => ({ year, month, day, hour, minute, second: 0 });
+  gender: Gender = DEFAULT_GENDER,
+): SajuInput => ({ year, month, day, hour, minute, second: 0, gender });
 
 /** 시간 미상 입력 */
-const onDay = (year: number, month: number, day: number): SajuInput => ({
-  year,
-  month,
-  day,
-  hour: null,
-});
+const onDay = (
+  year: number,
+  month: number,
+  day: number,
+  gender: Gender = DEFAULT_GENDER,
+): SajuInput => ({ year, month, day, hour: null, gender });
 
 /** 자시·시지 경계를 볼 때는 경도 보정을 꺼야 의도한 시각이 유지된다. */
 const RAW: SajuOptions = { useLongitude: false, useEquationOfTime: false, useDst: true };
@@ -260,6 +266,26 @@ export const GOLDEN_CASES: readonly GoldenCase[] = [
     id: 'unknown-hour-dst-day',
     note: '시각 미상 + 서머타임 기간 — 시주가 없어도 보정 기록은 남는다',
     input: onDay(1988, 7, 15),
+    options: SEOUL,
+  },
+
+  // ── 대운 ─────────────────────────────────────────────────
+  {
+    id: 'daeun-yang-male',
+    note: '양간(庚)년 남자 — 순행, 다음 절입까지로 대운수를 잰다',
+    input: at(1990, 5, 15, 14, 30, 'male'),
+    options: SEOUL,
+  },
+  {
+    id: 'daeun-yang-female',
+    note: '같은 출생, 여자 — 역행으로 뒤집히고 대운수도 달라진다',
+    input: at(1990, 5, 15, 14, 30, 'female'),
+    options: SEOUL,
+  },
+  {
+    id: 'daeun-eum-female',
+    note: '음간(乙)년 여자 — 다시 순행',
+    input: at(2025, 6, 15, 12, 0, 'female'),
     options: SEOUL,
   },
 

@@ -81,7 +81,7 @@ describe('절입 경계 — 12절 전부', () => {
 describe('시간 미상 절입일 경고 — 자정 부근', () => {
   /** 그 날 하루가 절입일이라는 경고를 받았는가 */
   const warnsTermDay = (year: number, month: number, day: number) =>
-    computeSaju({ year, month, day, hour: null }).meta.warnings.some((warning) =>
+    computeSaju({ year, month, day, hour: null, gender: 'male' }).meta.warnings.some((warning) =>
       warning.includes('절입일'),
     );
 
@@ -163,8 +163,9 @@ describe('표준자오선 전환 — 분 단위 시각', () => {
         (c) => c.kind === 'longitude',
       )!.minutes;
 
-    const before = longitudeOf({ year: 1954, month: 3, day: 20, hour: 12, minute: 0, second: 0 });
-    const after = longitudeOf({ year: 1954, month: 3, day: 22, hour: 12, minute: 0, second: 0 });
+    const g = { gender: 'male' } as const;
+    const before = longitudeOf({ year: 1954, month: 3, day: 20, hour: 12, minute: 0, second: 0, ...g });
+    const after = longitudeOf({ year: 1954, month: 3, day: 22, hour: 12, minute: 0, second: 0, ...g });
 
     expect(before).toBeCloseTo(-32.09, 1); // 표준자오선 135°
     expect(after).toBeCloseTo(-2.09, 1); // 표준자오선 127.5°
@@ -211,7 +212,9 @@ describe('서머타임 전환 — 1958년과 1988년', () => {
   });
 
   it('서머타임 기간 출생은 보정을 켜면 시계가 한 시간 당겨진다', () => {
-    const input: SajuInput = { year: 1988, month: 7, day: 15, hour: 14, minute: 0, second: 0 };
+    const input: SajuInput = {
+      year: 1988, month: 7, day: 15, hour: 14, minute: 0, second: 0, gender: 'male',
+    };
     const on = computeSaju(input, { useDst: true, useLongitude: false });
     const off = computeSaju(input, { useDst: false, useLongitude: false });
 
@@ -254,6 +257,7 @@ describe('속성 테스트 — 무작위 1,000건', () => {
       hour: pick(0, 23),
       minute: pick(0, 59),
       second: 0,
+      gender: random() < 0.5 ? ('female' as const) : ('male' as const),
     };
   });
 
@@ -329,7 +333,9 @@ describe('속성 테스트 — 무작위 1,000건', () => {
       const label = `#${index} ${JSON.stringify(options)}`;
 
       const saju = computeSaju(
-        unknownHour ? { year: input.year, month: input.month, day: input.day, hour: null } : input,
+        unknownHour
+          ? { year: input.year, month: input.month, day: input.day, hour: null, gender: 'male' as const }
+          : input,
         options,
       );
 
@@ -347,8 +353,8 @@ describe('속성 테스트 — 무작위 1,000건', () => {
       const label = `${input.year}-${input.month}-${input.day}`;
       const { year, month, day } = input;
 
-      const unknown = computeSaju({ year, month, day, hour: null });
-      const noon = computeSaju({ year, month, day, hour: 12, minute: 0, second: 0 });
+      const unknown = computeSaju({ year, month, day, hour: null, gender: 'male' });
+      const noon = computeSaju({ year, month, day, hour: 12, minute: 0, second: 0, gender: 'male' });
 
       expect(unknown.pillars.hour, label).toBeNull();
       expect(unknown.pillars.year.name, label).toBe(noon.pillars.year.name);
@@ -380,7 +386,7 @@ describe('일주 연속성 — 표준시가 바뀌어도 끊기지 않는다', (
 
       for (let offset = 0; offset < 6; offset += 1) {
         // 표준시 이력·경도 보정을 전부 켜고 정오로 계산한다.
-        const saju = computeSaju({ ...date, hour: 12, minute: 0, second: 0 });
+        const saju = computeSaju({ ...date, hour: 12, minute: 0, second: 0, gender: 'male' });
 
         if (previous !== null) {
           const label = `${date.year}-${date.month}-${date.day}`;

@@ -1,0 +1,317 @@
+import { describe, expect, it } from 'vitest';
+
+import { InvalidSajuInputError, computeSaju, type SajuInput } from '@/src/lib/saju';
+import { STEMS, STEM_INFO, pillarIndexOf } from '@/src/lib/saju/constants';
+import {
+  DAYS_PER_YEAR,
+  YEARS_PER_DAEUN,
+  daeunAtAge,
+  daeunDirectionOf,
+  type Daeun,
+} from '@/src/lib/saju/daeun';
+import { daysInMonth } from '@/src/lib/saju/input';
+
+/**
+ * 대운 테스트.
+ *
+ * 대운은 세 결정의 곱이라 어긋나는 방식도 세 가지다 — 방향이 뒤집히거나,
+ * 대운수가 한 살 밀리거나, 출발점이 월주가 아니게 되거나. 셋을 따로 못박는다.
+ */
+
+const DAY_MS = 86_400_000;
+
+const at = (
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  gender: 'male' | 'female',
+): SajuInput => ({ year, month, day, hour, minute, second: 0, gender });
+
+const daeunOf = (input: SajuInput): Daeun => {
+  const daeun = computeSaju(input).daeun;
+  if (!daeun) throw new Error('대운이 없다');
+  return daeun;
+};
+
+describe('대운 방향 — 양남음녀 순행, 음남양녀 역행', () => {
+  it('연간의 음양과 성별이 같은 편이면 순행이다', () => {
+    for (const stem of STEMS) {
+      const yang = STEM_INFO[stem].yinYang === '陽';
+
+      expect(daeunDirectionOf(stem, 'male'), `${stem} 남자`).toBe(
+        yang ? 'forward' : 'backward',
+      );
+      expect(daeunDirectionOf(stem, 'female'), `${stem} 여자`).toBe(
+        yang ? 'backward' : 'forward',
+      );
+    }
+  });
+
+  it('같은 사주라도 성별로 방향이 갈린다', () => {
+    // 1990-05-15 은 庚午년 — 연간 庚은 양간이다.
+    const male = daeunOf(at(1990, 5, 15, 14, 30, 'male'));
+    const female = daeunOf(at(1990, 5, 15, 14, 30, 'female'));
+
+    expect(male.direction).toBe('forward');
+    expect(female.direction).toBe('backward');
+    expect(male.directionReason).toContain('양간');
+    expect(male.directionReason).toContain('순행');
+  });
+
+  it('음간 해에는 반대가 된다', () => {
+    // 2025 은 乙巳년 — 연간 乙은 음간이다.
+    expect(daeunOf(at(2025, 6, 15, 12, 0, 'male')).direction).toBe('backward');
+    expect(daeunOf(at(2025, 6, 15, 12, 0, 'female')).direction).toBe('forward');
+  });
+
+  it('사주년으로 판정한다 — 입춘 전 출생은 전년의 연간을 쓴다', () => {
+    // 2025-02-03 23:10 이 입춘. 그 직전은 아직 甲辰년(甲=양간)이다.
+    const before = computeSaju(at(2025, 2, 3, 12, 0, 'male'));
+    const after = computeSaju(at(2025, 2, 5, 12, 0, 'male'));
+
+    expect(before.pillars.year.stem).toBe('甲');
+    expect(after.pillars.year.stem).toBe('乙');
+    expect(before.daeun!.direction).toBe('forward'); // 양간 남자
+    expect(after.daeun!.direction).toBe('backward'); // 음간 남자
+  });
+});
+
+describe('대운수 — 절입까지의 거리 ÷ 3', () => {
+  it('순행은 다음 절입까지, 역행은 직전 절입까지를 잰다', () => {
+    const forward = daeunOf(at(1990, 5, 15, 14, 30, 'male'));
+    const backward = daeunOf(at(1990, 5, 15, 14, 30, 'female'));
+
+    expect(forward.boundaryTerm.name).toBe('망종'); // 다음 절입
+    expect(backward.boundaryTerm.name).toBe('입하'); // 직전 절입
+
+    // 두 거리를 합치면 그 절기 구간의 길이(약 30일)가 된다
+    expect(forward.daysToBoundary + backward.daysToBoundary).toBeGreaterThan(29);
+    expect(forward.daysToBoundary + backward.daysToBoundary).toBeLessThan(32);
+  });
+
+  it('거리를 3으로 나눈 값이 대운수다', () => {
+    const daeun = daeunOf(at(1990, 5, 15, 14, 30, 'male'));
+
+    expect(daeun.startAgeExact).toBeCloseTo(daeun.daysToBoundary / DAYS_PER_YEAR, 10);
+    expect(daeun.startAge).toBe(Math.round(daeun.startAgeExact));
+    expect(daeun.startAge).toBe(7); // 망종까지 21.7일 → 7.24년
+  });
+
+  it('반올림 방식을 고를 수 있다', () => {
+    const input = at(1990, 5, 15, 14, 30, 'male');
+    const rounded = computeSaju(input, { daeun: { rounding: 'round' } }).daeun!;
+    const floored = computeSaju(input, { daeun: { rounding: 'floor' } }).daeun!;
+
+    expect(rounded.startAge).toBe(7);
+    expect(floored.startAge).toBe(7); // 7.24 라 둘이 같다
+
+    // 소수부가 0.5를 넘는 날을 찾아 두 방식이 실제로 갈리는지 본다.
+    // 날짜를 손으로 고르면 소수부가 어디에 떨어질지 알 수 없어 훑는다.
+    const split = [...Array(31).keys()]
+      .map((offset) => at(1990, 5, offset + 1, 14, 30, 'male'))
+      .find((candidate) => {
+        const exact = computeSaju(candidate).daeun.startAgeExact;
+        return exact - Math.floor(exact) >= 0.5;
+      });
+    expect(split, '소수부 0.5 이상인 날이 한 달 안에 있어야 한다').toBeDefined();
+
+    const a = computeSaju(split!, { daeun: { rounding: 'round' } }).daeun;
+    const b = computeSaju(split!, { daeun: { rounding: 'floor' } }).daeun;
+    expect(a.startAge).toBe(b.startAge + 1);
+    expect(b.startAge).toBe(Math.floor(a.startAgeExact));
+  });
+
+  it('절입 직후 출생은 순행 대운수가 10에 가깝다', () => {
+    // 2025 망종 = 06-05 18:56. 그 1분 뒤에 태어나면 다음 절입(소서)까지 한 달.
+    const daeun = daeunOf(at(2025, 6, 5, 18, 57, 'female')); // 음간 여자 = 순행
+    expect(daeun.direction).toBe('forward');
+    expect(daeun.startAge).toBeGreaterThanOrEqual(10);
+
+    // 반대로 절입 직전은 순행 대운수가 0에 가깝다
+    const justBefore = daeunOf(at(2025, 6, 5, 18, 55, 'female'));
+    expect(justBefore.boundaryTerm.name).toBe('망종');
+    expect(justBefore.startAge).toBe(0);
+  });
+
+  it('시간 보정 옵션은 대운수를 흔들지 않는다', () => {
+    // 대운수는 절대 시각으로 재므로, 시계를 어떻게 읽든 같아야 한다.
+    const input = at(1988, 7, 15, 14, 0, 'male');
+    const bases = [
+      { useLongitude: false, useEquationOfTime: false },
+      { useLongitude: true, useEquationOfTime: false },
+      { useLongitude: true, useEquationOfTime: true },
+    ];
+
+    const values = bases.map((options) => computeSaju(input, options).daeun!);
+    for (const daeun of values) {
+      expect(daeun.daysToBoundary).toBeCloseTo(values[0].daysToBoundary, 10);
+      expect(daeun.startAge).toBe(values[0].startAge);
+      expect(daeun.entries[0].pillar.name).toBe(values[0].entries[0].pillar.name);
+    }
+  });
+
+  it('시간 미상이면 근사임을 밝힌다', () => {
+    const unknown = computeSaju({ year: 1990, month: 5, day: 15, hour: null, gender: 'male' });
+    expect(unknown.daeun!.approximate).toBe(true);
+
+    const known = computeSaju(at(1990, 5, 15, 12, 0, 'male'));
+    expect(known.daeun!.approximate).toBe(false);
+
+    // 정오로 계산하므로 실제 시각과 최대 반나절(≈0.17년) 차이다
+    expect(
+      Math.abs(unknown.daeun!.startAgeExact - known.daeun!.startAgeExact),
+    ).toBeLessThan(0.5 / DAYS_PER_YEAR + 1e-9);
+  });
+});
+
+describe('대운 간지 — 월주에서 한 칸씩', () => {
+  it('첫 대운은 월주의 바로 다음(순행)·바로 앞(역행) 칸이다', () => {
+    const saju = computeSaju(at(1990, 5, 15, 14, 30, 'male'));
+    const monthIndex = saju.pillars.month.index;
+
+    expect(saju.pillars.month.name).toBe('辛巳');
+    expect(saju.daeun!.entries[0].pillar.index).toBe((monthIndex + 1) % 60);
+    expect(saju.daeun!.entries[0].pillar.name).toBe('壬午');
+
+    const backward = computeSaju(at(1990, 5, 15, 14, 30, 'female'));
+    expect(backward.daeun!.entries[0].pillar.index).toBe((monthIndex - 1 + 60) % 60);
+    expect(backward.daeun!.entries[0].pillar.name).toBe('庚辰');
+  });
+
+  it('한 칸이 10년을 맡고 나이가 끊기지 않는다', () => {
+    const daeun = daeunOf(at(1990, 5, 15, 14, 30, 'male'));
+
+    for (const [i, entry] of daeun.entries.entries()) {
+      expect(entry.index).toBe(i + 1);
+      expect(entry.startAge).toBe(daeun.startAge + i * YEARS_PER_DAEUN);
+      expect(entry.endAge - entry.startAge).toBe(YEARS_PER_DAEUN - 1);
+      expect(entry.startYear).toBe(1990 + entry.startAge);
+
+      if (i > 0) {
+        // 앞 대운이 끝난 바로 다음 해에 시작한다
+        expect(entry.startAge).toBe(daeun.entries[i - 1].endAge + 1);
+      }
+    }
+  });
+
+  it('간지가 방향대로 한 칸씩 움직이고 60갑자로 성립한다', () => {
+    for (const gender of ['male', 'female'] as const) {
+      const daeun = daeunOf(at(1990, 5, 15, 14, 30, gender));
+      const step = daeun.direction === 'forward' ? 1 : -1;
+
+      for (const [i, entry] of daeun.entries.entries()) {
+        expect(
+          pillarIndexOf(entry.pillar.stem, entry.pillar.branch),
+          `${gender} ${i}`,
+        ).toBe(entry.pillar.index);
+
+        if (i > 0) {
+          const previous = daeun.entries[i - 1].pillar.index;
+          expect(entry.pillar.index).toBe((previous + step + 60) % 60);
+        }
+      }
+    }
+  });
+
+  it('개수를 고를 수 있다', () => {
+    const input = at(1990, 5, 15, 14, 30, 'male');
+    expect(computeSaju(input).daeun!.entries).toHaveLength(9);
+    expect(computeSaju(input, { daeun: { count: 12 } }).daeun!.entries).toHaveLength(12);
+  });
+
+  it('나이로 대운을 찾는다', () => {
+    const daeun = daeunOf(at(1990, 5, 15, 14, 30, 'male')); // 대운수 7
+
+    expect(daeunAtAge(daeun, 6)).toBeNull(); // 첫 대운 전
+    expect(daeunAtAge(daeun, 7)!.pillar.name).toBe('壬午');
+    expect(daeunAtAge(daeun, 16)!.pillar.name).toBe('壬午');
+    expect(daeunAtAge(daeun, 17)!.pillar.name).toBe('癸未');
+    expect(daeunAtAge(daeun, 200)).toBeNull(); // 마지막 대운 밖
+  });
+});
+
+describe('대운 — 성별은 필수다', () => {
+  it('성별이 빠지면 계산 자체를 거부한다', () => {
+    // 성별 없는 대운은 존재하지 않는다. null 을 돌려주는 대신 입구에서 막아
+    // 계산·타입·화면 세 곳의 분기를 없앴다.
+    const noGender = { year: 1990, month: 5, day: 15, hour: 14, minute: 30, second: 0 };
+    expect(() => computeSaju(noGender as never)).toThrow(InvalidSajuInputError);
+    expect(() => computeSaju({ ...noGender, gender: null } as never)).toThrow(
+      InvalidSajuInputError,
+    );
+  });
+
+  it('성별은 대운만 바꾸고 여덟 글자는 건드리지 않는다', () => {
+    const male = computeSaju(at(1990, 5, 15, 14, 30, 'male'));
+    const female = computeSaju(at(1990, 5, 15, 14, 30, 'female'));
+
+    expect(male.pillars).toEqual(female.pillars);
+    expect(male.analysis).toEqual(female.analysis);
+    expect(male.daeun!.direction).not.toBe(female.daeun!.direction);
+  });
+});
+
+describe('대운 — 무작위 500건 속성', () => {
+  function mulberry32(seed: number): () => number {
+    let state = seed >>> 0;
+    return () => {
+      state = (state + 0x6d2b79f5) >>> 0;
+      let t = state;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const random = mulberry32(20260815);
+  const pick = (min: number, max: number) => min + Math.floor(random() * (max - min + 1));
+
+  it('언제나 방향·대운수·간지가 서로 맞는다', () => {
+    for (let i = 0; i < 500; i += 1) {
+      const year = pick(1900, 2090);
+      const month = pick(1, 12);
+      const gender = random() < 0.5 ? ('male' as const) : ('female' as const);
+      const input = at(year, month, pick(1, daysInMonth(year, month)!), pick(0, 23), pick(0, 59), gender);
+
+      const saju = computeSaju(input);
+      const daeun = saju.daeun!;
+      const label = `${year}-${month} ${gender}`;
+
+      // 방향은 사주년 연간과 성별이 정한다
+      expect(daeun.direction, label).toBe(daeunDirectionOf(saju.pillars.year.stem, gender));
+
+      // 기준 절기는 방향에 따라 갈리고, 출생은 언제나 두 절입 사이에 있다
+      const expectedTerm =
+        daeun.direction === 'forward'
+          ? saju.pillars.meta.nextTerm
+          : saju.pillars.meta.monthTerm;
+      expect(daeun.boundaryTerm.name, label).toBe(expectedTerm.name);
+
+      // 절기 구간은 약 30일이므로 거리는 그 안에 든다
+      expect(daeun.daysToBoundary, label).toBeGreaterThanOrEqual(0);
+      expect(daeun.daysToBoundary, label).toBeLessThan(32);
+      expect(daeun.startAge, label).toBeLessThanOrEqual(11);
+
+      // 대운수는 거리에서 곧장 나온다
+      expect(daeun.startAgeExact, label).toBeCloseTo(daeun.daysToBoundary / DAYS_PER_YEAR, 9);
+
+      // 첫 대운은 월주에서 한 칸, 이후 방향대로 이어진다
+      const step = daeun.direction === 'forward' ? 1 : -1;
+      expect(daeun.entries[0].pillar.index, label).toBe(
+        (saju.pillars.month.index + step + 60) % 60,
+      );
+      for (const entry of daeun.entries) {
+        expect(pillarIndexOf(entry.pillar.stem, entry.pillar.branch), label).toBe(
+          entry.pillar.index,
+        );
+      }
+
+      // 기준 절기와 출생 사이에 다른 절입이 끼어들지 않는다
+      const gapDays =
+        Math.abs(daeun.boundaryTerm.date.getTime() - saju.meta.instant.getTime()) / DAY_MS;
+      expect(gapDays, label).toBeCloseTo(daeun.daysToBoundary, 9);
+    }
+  });
+});

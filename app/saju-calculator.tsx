@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import {
   BRANCH_INFO,
   CITY_LONGITUDES,
+  DAEUN_DIRECTION_KO,
   ELEMENTS,
   ELEMENT_KO,
   GENDERS,
@@ -56,8 +57,6 @@ const PILLAR_COLUMNS = [
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
-/** 성별 선택 — 빈 문자열은 '선택 안 함' */
-type GenderChoice = Gender | '';
 
 /**
  * 시간 기준 — 시주·일주를 어느 시계로 읽을 것인가.
@@ -106,11 +105,8 @@ type Query = {
   time: string;
   /** 출생 시각을 모름 — 시주를 뽑지 않는다 */
   hourUnknown: boolean;
-  /**
-   * 성별. 여덟 글자를 바꾸지 않는다 — 대운(순행·역행)을 붙일 때 쓰려고 받아둔다.
-   * 그래서 안 고르면 안 고른 대로 넘긴다.
-   */
-  gender: GenderChoice;
+  /** 성별. 여덟 글자는 바꾸지 않고 대운의 방향만 정한다 */
+  gender: Gender;
   city: CityName;
   rule: LateNightRule;
   /** 시간 기준 — 경도·균시차를 함께 정한다 */
@@ -122,7 +118,7 @@ const DEFAULT_QUERY: Query = {
   date: '1990-05-15',
   time: '14:30',
   hourUnknown: false,
-  gender: '',
+  gender: 'female',
   city: '서울',
   rule: 'jo',
   basis: 'localMean',
@@ -144,13 +140,12 @@ function calculate(query: Query): Result {
   // 엔진이 던지는 메시지를 그대로 보여준다. 검증 규칙을 UI에 복제하면
   // 두 곳이 어긋나는 순간 사용자만 헷갈린다.
   try {
-    const gender = query.gender === '' ? null : query.gender;
     const { useLongitude, useEquationOfTime } = TIME_BASIS[query.basis];
 
     const saju = computeSaju(
       query.hourUnknown
-        ? { year, month, day, hour: null, gender }
-        : { year, month, day, hour, minute, second: 0, gender },
+        ? { year, month, day, hour: null, gender: query.gender }
+        : { year, month, day, hour, minute, second: 0, gender: query.gender },
       {
         lateNightRule: query.rule,
         longitude: CITY_LONGITUDES[query.city],
@@ -231,10 +226,9 @@ export function SajuCalculator() {
           <Field label="성별">
             <select
               value={form.gender}
-              onChange={(e) => set('gender', e.target.value as GenderChoice)}
+              onChange={(e) => set('gender', e.target.value as Gender)}
               className={FIELD}
             >
-              <option value="">선택 안 함</option>
               {GENDERS.map((gender) => (
                 <option key={gender} value={gender}>
                   {GENDER_KO[gender]}
@@ -367,6 +361,7 @@ function SajuView({ saju }: { saju: Saju }) {
   return (
     <div className="flex flex-col gap-6">
       <PillarChart saju={saju} />
+      <DaeunTable saju={saju} />
       <div className="grid gap-6 lg:grid-cols-2">
         <ElementChart saju={saju} />
         <StrengthMeter saju={saju} />
@@ -374,6 +369,69 @@ function SajuView({ saju }: { saju: Saju }) {
       <TimeCorrections saju={saju} />
       <Warnings saju={saju} />
     </div>
+  );
+}
+
+/**
+ * 대운 — 10년마다 갈아입는 간지. 시간 순서가 있으므로 가로로 늘어놓는다.
+ *
+ * 나이는 만 나이(출생일로부터의 경과 연수)다. 세는나이로 적는 만세력과는
+ * 한 살 차이가 나므로 화면에 밝혀 둔다.
+ */
+function DaeunTable({ saju }: { saju: Saju }) {
+  const { daeun } = saju;
+
+  return (
+    <section className={CARD}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-xs uppercase tracking-wide text-muted">대운</h2>
+        <p className="text-sm">
+          <span className="font-medium">{DAEUN_DIRECTION_KO[daeun.direction]}</span>
+          <span className="mx-1.5 text-muted">·</span>
+          대운수 <span className="tabular-nums font-medium">{daeun.startAge}</span>
+          {daeun.approximate && <span className="ml-1.5 text-xs text-muted">근사</span>}
+        </p>
+      </div>
+
+      <p className="mt-1.5 text-xs text-secondary">
+        {daeun.directionReason} {daeun.boundaryTerm.name} 절입까지{' '}
+        {round1(daeun.daysToBoundary)}일이라 3으로 나눠 {round1(daeun.startAgeExact)}년입니다.
+      </p>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[36rem] border-collapse text-center">
+          <caption className="sr-only">10년 단위 대운</caption>
+          <thead>
+            <tr>
+              {daeun.entries.map((entry) => (
+                <th key={entry.index} className="px-1 pb-2 text-xs font-normal text-secondary">
+                  {entry.startAge}세
+                  <span className="block text-[11px] text-muted">{entry.startYear}년</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {daeun.entries.map((entry) => (
+                <td key={entry.index} className="px-1">
+                  <div className="mx-auto flex w-full max-w-20 flex-col items-center gap-0.5 rounded-lg border border-border bg-surface-sunken py-2.5">
+                    <span className="glyph text-2xl leading-none">{entry.pillar.stem}</span>
+                    <span className="glyph text-2xl leading-none">{entry.pillar.branch}</span>
+                    <span className="mt-0.5 text-[11px] text-secondary">{entry.pillar.ko}</span>
+                  </div>
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
+        나이는 만 나이입니다. 세는나이로 적는 만세력과 한 살 차이가 날 수 있습니다.
+        {daeun.approximate && ' 출생 시각을 몰라 정오 기준으로 계산해 대운수가 두어 달 흔들립니다.'}
+      </p>
+    </section>
   );
 }
 

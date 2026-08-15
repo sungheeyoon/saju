@@ -21,7 +21,15 @@ import {
  * "던져야 할 때 던지는가"를 값별로 못박는다.
  */
 
-const valid: SajuInput = { year: 2025, month: 6, day: 15, hour: 12, minute: 30, second: 0 };
+const valid: SajuInput = {
+  year: 2025,
+  month: 6,
+  day: 15,
+  hour: 12,
+  minute: 30,
+  second: 0,
+  gender: 'male',
+};
 
 /** 유효 입력 하나를 특정 필드만 바꿔 망가뜨린다. */
 const broken = (patch: Partial<Record<string, unknown>>) =>
@@ -139,11 +147,11 @@ describe('입력 검증(assertValidSajuInput)', () => {
 
   it('시간 미상 입력은 날짜만 요구한다', () => {
     expect(() =>
-      assertValidSajuInput({ year: 2025, month: 6, day: 15, hour: null }),
+      assertValidSajuInput({ year: 2025, month: 6, day: 15, hour: null, gender: 'male' }),
     ).not.toThrow();
     // 날짜 검증은 그대로 걸린다
     expect(() =>
-      assertValidSajuInput({ year: 2025, month: 2, day: 30, hour: null }),
+      assertValidSajuInput({ year: 2025, month: 2, day: 30, hour: null, gender: 'male' }),
     ).toThrow(InvalidSajuInputError);
   });
 
@@ -218,41 +226,40 @@ describe('경도 검증(assertValidLongitude)', () => {
 });
 
 describe('입력 정규화(normalizeSajuInput)', () => {
-  it('시각을 알면 그대로 쓴다', () => {
-    expect(normalizeSajuInput(valid)).toEqual({
-      civil: valid,
-      hourKnown: true,
-      gender: null,
-    });
+  it('시각을 알면 그대로 쓴다 — 시각과 성별은 갈라서 담는다', () => {
+    const { gender, ...time } = valid;
+    expect(normalizeSajuInput(valid)).toEqual({ civil: time, hourKnown: true, gender });
   });
 
   it('시간 미상은 정오로 채우고 표시를 남긴다', () => {
-    expect(normalizeSajuInput({ year: 2025, month: 6, day: 15, hour: null })).toEqual({
+    expect(
+      normalizeSajuInput({ year: 2025, month: 6, day: 15, hour: null, gender: 'male' }),
+    ).toEqual({
       civil: { year: 2025, month: 6, day: 15, hour: 12, minute: 0, second: 0 },
       hourKnown: false,
-      gender: null,
+      gender: 'male',
     });
   });
 
-  it('성별은 받은 그대로 넘기고, 없으면 null 이다', () => {
+  it('성별을 받은 그대로 넘긴다', () => {
     expect(normalizeSajuInput({ ...valid, gender: 'female' }).gender).toBe('female');
     expect(normalizeSajuInput({ ...valid, gender: 'male' }).gender).toBe('male');
-    expect(normalizeSajuInput({ ...valid, gender: null }).gender).toBeNull();
 
     // 계산 기준 시각에는 성별이 섞여 들어가지 않는다
-    expect(normalizeSajuInput({ ...valid, gender: 'female' }).civil).toEqual(valid);
+    const time = { ...valid, gender: undefined };
+    delete time.gender;
+    expect(normalizeSajuInput({ ...valid, gender: 'female' }).civil).toEqual(time);
   });
 });
 
 describe('성별(gender)', () => {
-  it('없어도 되고, 있으면 female·male 만 받는다', () => {
-    expect(() => assertValidSajuInput(valid)).not.toThrow();
+  it('필수다 — female·male 만 받는다', () => {
     expect(() => assertValidSajuInput({ ...valid, gender: 'female' })).not.toThrow();
     expect(() => assertValidSajuInput({ ...valid, gender: 'male' })).not.toThrow();
-    expect(() => assertValidSajuInput({ ...valid, gender: null })).not.toThrow();
 
-    // 'M'·'남'·true 를 조용히 무시하면 대운을 붙이는 날 방향이 뒤집힌다.
-    for (const bad of ['M', '남', '여자', true, 0, {}]) {
+    // 빠뜨리거나 'M'·'남'·true 를 넘기면 거부한다. 조용히 무시하면 대운의
+    // 방향이 뒤집힌 채로 그럴듯한 결과가 나온다.
+    for (const bad of [undefined, null, 'M', '남', '여자', true, 0, {}]) {
       expect(() => assertValidSajuInput(broken({ gender: bad })), String(bad)).toThrow(
         InvalidSajuInputError,
       );
@@ -270,23 +277,19 @@ describe('성별(gender)', () => {
   it('입력한 성별을 meta 로 그대로 돌려준다', () => {
     expect(computeSaju({ ...valid, gender: 'female' }).meta.gender).toBe('female');
     expect(computeSaju({ ...valid, gender: 'male' }).meta.gender).toBe('male');
-    expect(computeSaju(valid).meta.gender).toBeNull();
     expect(
       computeSaju({ year: 2025, month: 6, day: 15, hour: null, gender: 'male' }).meta.gender,
     ).toBe('male');
   });
 
-  it('여덟 글자는 성별로 달라지지 않는다', () => {
-    // L1 에서 성별이 결과를 바꾸면 그것이 버그다. 대운(L2)에서만 쓰인다.
+  it('여덟 글자는 성별로 달라지지 않는다 — 갈리는 것은 대운뿐이다', () => {
     const female = computeSaju({ ...valid, gender: 'female' });
     const male = computeSaju({ ...valid, gender: 'male' });
-    const unset = computeSaju(valid);
 
-    for (const other of [male, unset]) {
-      expect(other.pillars).toEqual(female.pillars);
-      expect(other.analysis).toEqual(female.analysis);
-      expect(other.meta.warnings).toEqual(female.meta.warnings);
-    }
+    expect(male.pillars).toEqual(female.pillars);
+    expect(male.analysis).toEqual(female.analysis);
+    expect(male.meta.warnings).toEqual(female.meta.warnings);
+    expect(male.daeun.direction).not.toBe(female.daeun.direction);
   });
 });
 
@@ -301,7 +304,7 @@ describe('공개 표면 — 배럴이 내보내는 것', () => {
 
   it('시간 미상의 공식 경로는 computeSaju 하나다', () => {
     expect(typeof saju.computeSaju).toBe('function');
-    expect(saju.computeSaju({ year: 2025, month: 6, day: 15, hour: null }).pillars.hour).toBeNull();
+    expect(saju.computeSaju({ year: 2025, month: 6, day: 15, hour: null, gender: 'male' }).pillars.hour).toBeNull();
   });
 });
 
@@ -316,13 +319,13 @@ describe('엔진 입구(computeSaju) — 계약', () => {
 
   it('경계 연도는 계산해 준다', () => {
     for (const year of [SUPPORTED_YEAR_RANGE.min, SUPPORTED_YEAR_RANGE.max]) {
-      const saju = computeSaju({ year, month: 6, day: 15, hour: 12, minute: 0, second: 0 });
+      const saju = computeSaju({ year, month: 6, day: 15, hour: 12, minute: 0, second: 0, gender: 'male' });
       expect(saju.pillars.day.name, `${year}년`).toHaveLength(2);
     }
   });
 
   it('시간 미상이면 시주와 시주 십성만 빈다', () => {
-    const saju = computeSaju({ year: 2025, month: 6, day: 15, hour: null });
+    const saju = computeSaju({ year: 2025, month: 6, day: 15, hour: null, gender: 'male' });
 
     expect(saju.pillars.hour).toBeNull();
     expect(saju.pillars.meta.hourKnown).toBe(false);
@@ -337,7 +340,7 @@ describe('엔진 입구(computeSaju) — 계약', () => {
   });
 
   it('시간 미상이면 여섯 글자로 센다', () => {
-    const saju = computeSaju({ year: 2025, month: 6, day: 15, hour: null });
+    const saju = computeSaju({ year: 2025, month: 6, day: 15, hour: null, gender: 'male' });
     const { counts, glyphCount } = saju.analysis.elements;
 
     expect(glyphCount).toBe(6);
@@ -354,7 +357,7 @@ describe('엔진 입구(computeSaju) — 계약', () => {
   });
 
   it('시간 미상은 자시 규칙에 흔들리지 않는다', () => {
-    const input: SajuInput = { year: 2025, month: 6, day: 15, hour: null };
+    const input: SajuInput = { year: 2025, month: 6, day: 15, hour: null, gender: 'male' };
     const jo = computeSaju(input, { lateNightRule: 'jo' });
     const ya = computeSaju(input, { lateNightRule: 'ya' });
 
@@ -364,11 +367,13 @@ describe('엔진 입구(computeSaju) — 계약', () => {
   });
 
   it('입력한 시각과 계산에 쓴 시각을 함께 남긴다', () => {
+    const time = { ...valid, gender: undefined };
+    delete time.gender;
     const known = computeSaju(valid);
     expect(known.meta.inputTime).toEqual(valid);
-    expect(known.meta.resolvedTime).toEqual(valid);
+    expect(known.meta.resolvedTime).toEqual(time);
 
-    const unknown = computeSaju({ year: 2025, month: 6, day: 15, hour: null });
+    const unknown = computeSaju({ year: 2025, month: 6, day: 15, hour: null, gender: 'male' });
     expect(unknown.meta.inputTime.hour).toBeNull();
     expect(unknown.meta.resolvedTime.hour).toBe(12);
   });

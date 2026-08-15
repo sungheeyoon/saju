@@ -28,7 +28,7 @@ const at = (
   day: number,
   hour = 12,
   minute = 0,
-) => ({ year, month, day, hour, minute, second: 0 });
+) => ({ year, month, day, hour, minute, second: 0, gender: 'male' as const });
 
 /** 보정 없이 순수 4주만 얻는다 — 분석 테스트는 보정과 무관해야 한다 */
 function pillarsOf(year: number, month: number, day: number, hour = 12): FourPillars {

@@ -1,5 +1,6 @@
 import { analyzePillars, type Analysis, type AnalysisOptions } from './analysis';
 import type { CivilDateTime } from './civilTime';
+import { computeDaeun, type Daeun, type DaeunOptions } from './daeun';
 import { normalizeSajuInput, type Gender, type SajuInput } from './input';
 import {
   getFourPillars,
@@ -18,6 +19,7 @@ import {
 export * from './analysis';
 export * from './civilTime';
 export * from './constants';
+export * from './daeun';
 export * from './input';
 export * from './solarTerms';
 export * from './timeCorrection';
@@ -59,6 +61,7 @@ export {
 export type SajuOptions = TimeCorrectionOptions & {
   lateNightRule?: LateNightRule;
   analysis?: AnalysisOptions;
+  daeun?: DaeunOptions;
 };
 
 export type Saju = {
@@ -66,18 +69,25 @@ export type Saju = {
   pillars: Pillars;
   /** 오행 분포·십성·신강신약 — L2 관계 연산이 먹고 들어가는 재료 */
   analysis: Analysis;
+  /**
+   * 10년 단위 대운.
+   *
+   * 성별이 필수 입력이라 언제나 나온다. 여덟 글자와 달리 이것만은 성별에
+   * 따라 방향이 갈린다.
+   */
+  daeun: Daeun;
   meta: {
     /** 입력한 벽시계 시각 그대로. `hour: null` 이면 시간 미상 입력이다 */
     inputTime: SajuInput;
     /** 계산에 실제로 쓴 시각 — 시간 미상이면 정오로 채워진다 */
     resolvedTime: CivilDateTime;
     /**
-     * 입력받은 성별. 안 받았으면 `null`.
+     * 입력받은 성별.
      *
-     * **여덟 글자는 성별로 달라지지 않는다.** 받아둔 값을 그대로 돌려줄 뿐이고,
-     * 실제로 쓰이는 곳은 대운 방향(양남음녀 순행 / 음남양녀 역행)인 L2다.
+     * **여덟 글자는 성별로 달라지지 않는다.** 갈리는 것은 대운의 방향뿐이다
+     * (양남음녀 순행 / 음남양녀 역행).
      */
-    gender: Gender | null;
+    gender: Gender;
     /** 시각을 알고 계산했는가 — `false` 면 `pillars.hour` 가 `null` 이다 */
     hourKnown: boolean;
     /** 그 벽시계가 가리키는 실제 절대 시각 */
@@ -95,7 +105,12 @@ export type Saju = {
  * @throws {InvalidLocalTimeError} `dstTransitionPolicy: 'throw'` 이고 서머타임 전환에 걸릴 때
  */
 export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Saju {
-  const { lateNightRule, analysis: analysisOptions, ...correctionOptions } = options;
+  const {
+    lateNightRule,
+    analysis: analysisOptions,
+    daeun: daeunOptions,
+    ...correctionOptions
+  } = options;
 
   // 계산 코어는 아무 숫자나 받으면 아무 답이나 낸다. 2월 30일이 3월 2일로
   // 조용히 흘러가기 전에 여기서 막는다.
@@ -121,9 +136,24 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     0,
   );
 
+  const daeun = computeDaeun(
+    {
+      yearStem: pillars.year.stem,
+      monthPillar: pillars.month,
+      monthTerm: pillars.meta.monthTerm,
+      nextTerm: pillars.meta.nextTerm,
+      instant: corrected.instant,
+      birthYear: resolvedTime.year,
+      gender,
+      approximate: !hourKnown,
+    },
+    daeunOptions,
+  );
+
   return {
     pillars,
     analysis: analyzePillars(pillars, analysisOptions),
+    daeun,
     meta: {
       inputTime,
       resolvedTime,

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { pillarIndexOf } from '@/src/lib/saju/constants';
 import { GOLDEN_CASES, type GoldenCase } from '@/src/lib/saju/golden/cases';
-import { computeSaju, formatPillars, type Saju } from '@/src/lib/saju';
+import { DAEUN_DIRECTION_KO, computeSaju, formatPillars, type Saju } from '@/src/lib/saju';
 import { getSolarTerms } from '@/src/lib/saju/solarTerms';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -34,6 +34,17 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     `  사주년 ${pillars.meta.sajuYear}   절기 ${pillars.meta.monthTerm.name} ~ ${pillars.meta.nextTerm.name}`,
     `  시각   ${inputClock} → ${pad(civil.hour)}:${pad(civil.minute)}  (${total >= 0 ? '+' : ''}${total}분)`,
   ];
+
+  const { daeun } = saju;
+  const distance = Math.round(daeun.daysToBoundary * 10) / 10;
+  lines.push(
+    `  대운   ${DAEUN_DIRECTION_KO[daeun.direction]} · 대운수 ${daeun.startAge}` +
+      ` (${daeun.boundaryTerm.name}까지 ${distance}일)${daeun.approximate ? ' · 근사' : ''}`,
+    `         ${daeun.entries
+      .slice(0, 5)
+      .map((entry) => `${entry.startAge} ${entry.pillar.name}`)
+      .join(' / ')} …`,
+  );
 
   for (const correction of meta.corrections) {
     const minutes = Math.round(correction.minutes * 10) / 10;
@@ -92,6 +103,10 @@ describe('골든 테스트', () => {
       '    영향 범위(측정값): 기본값을 ya 로 뒤집어도 이 스냅샷에서',
       '    2건만 변한다 — ipchun-before, ipchun-after. 둘 다 23시대 입력이다.',
       '    23:00~24:00 바깥은 두 설이 항상 일치한다.',
+      '',
+      '  대운  방향은 양남음녀 순행·음남양녀 역행, 대운수는 절입까지 ÷ 3.',
+      '        나이는 만 나이(경과 연수)다. 세는나이로 적는 만세력과 한 살 차이가 난다.',
+      '        성별이 필수 입력이라 모든 케이스에 대운이 붙는다(기본 남자).',
       '',
       '  시간 미상  채택: 시주를 뽑지 않는다 (unknown-hour-* 케이스)',
       '',
@@ -221,7 +236,7 @@ describe('골든 테스트 — 규칙별 기대', () => {
   it('시간 미상은 시주만 비우고 나머지 세 주는 그대로 낸다', () => {
     const unknown = find('unknown-hour-plain');
     const noon = computeSaju(
-      { year: 2025, month: 6, day: 15, hour: 12, minute: 0, second: 0 },
+      { year: 2025, month: 6, day: 15, hour: 12, minute: 0, second: 0, gender: 'male' },
       { useLongitude: true, useEquationOfTime: false, useDst: true },
     );
 
