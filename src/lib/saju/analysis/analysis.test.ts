@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  CONTROLLED_BY,
   ELEMENTS,
   HIDDEN_STEMS,
   STEMS,
@@ -17,8 +18,13 @@ import {
   TEN_GOD_KO,
   analyzePillars,
   elementDistributionOf,
+  STRENGTH_GRADE_KO,
   STRENGTH_POLICY,
+  YONGSIN_POLICY,
+  elementRolesOf,
+  strengthGradeOf,
   strengthOf,
+  yongsinOf,
   tenGodChartOf,
   tenGodOf,
   tenGodOfBranch,
@@ -399,5 +405,104 @@ describe('12운성은 신강·신약 점수에 들어가지 않는다', () => {
   it('채택한 계산법을 결과 곁에 남긴다', () => {
     expect(STRENGTH_POLICY.twelveStageContribution).toBe('none');
     expect(STRENGTH_POLICY.ruleSet).toBe('seasonal-roots-v1');
+  });
+});
+
+const chartOf = (year: string, month: string, day: string, hour: string) => {
+  const parse = (name: string) => {
+    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
+    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
+    return pillar;
+  };
+  const day_ = parse(day);
+  return {
+    year: parse(year),
+    month: parse(month),
+    day: day_,
+    hour: parse(hour),
+    dayMaster: day_.stem,
+  };
+};
+
+describe('억부용신', () => {
+  const yongsin = (year: string, month: string, day: string, hour: string) => {
+    const pillars = chartOf(year, month, day, hour);
+    return yongsinOf(pillars, strengthOf(pillars));
+  };
+
+  it('신약에 관성이 무거우면 인성을 쓴다 — 관인상생', () => {
+    // 1992-11-17 05:20 남 · 壬申 辛亥 丁酉 壬寅.
+    // 丁火 일간에 水(관성)가 가장 무겁다. 외부 만세력의 억부용신도 木이다.
+    const found = yongsin('壬申', '辛亥', '丁酉', '壬寅');
+
+    expect(found.element).toBe('木');
+    expect(found.role).toBe('印星');
+    expect(found.avoid).toBe('金');
+    expect(found.reason).toContain('관성');
+  });
+
+  it('신약에 재성이 무거우면 비겁을 쓴다 — 인성이 극당하기 때문', () => {
+    // 甲木 일간에 土(재성)가 사방에 깔린 사주.
+    const found = yongsin('戊辰', '戊辰', '甲戌', '甲戌');
+
+    expect(found.role).toBe('比劫');
+    expect(found.element).toBe('木');
+    expect(found.reason).toContain('재성');
+  });
+
+  it('신강에 인성이 무거우면 재성을 쓴다 — 재극인', () => {
+    // 甲木 일간에 水(인성)가 넘친다.
+    const found = yongsin('壬子', '壬子', '甲子', '壬申');
+
+    expect(found.role).toBe('財星');
+    expect(found.element).toBe('土');
+  });
+
+  it('용신은 언제나 자기를 극하는 오행을 꺼린다', () => {
+    for (const [y, m, d, h] of [
+      ['壬申', '辛亥', '丁酉', '壬寅'],
+      ['戊辰', '戊辰', '甲戌', '甲戌'],
+      ['壬子', '壬子', '甲子', '壬申'],
+    ] as const) {
+      const found = yongsin(y, m, d, h);
+      expect(found.avoid).toBe(CONTROLLED_BY[found.element]);
+      expect(found.avoid).not.toBe(found.element);
+    }
+  });
+
+  it('용신은 일간에서 본 다섯 자리 중 하나다', () => {
+    const found = yongsin('壬申', '辛亥', '丁酉', '壬寅');
+    const roles = elementRolesOf('火');
+
+    expect(roles[found.role]).toBe(found.element);
+  });
+
+  it('억부만 낸다는 사실을 정책에 남긴다', () => {
+    expect(YONGSIN_POLICY.methods).toBe('eokbu');
+    expect(YONGSIN_POLICY.johu).toBe('not-implemented-needs-table');
+  });
+});
+
+describe('강약 등급', () => {
+  it.each([
+    [0.0, '태약'],
+    [0.15, '태약'],
+    [0.3, '신약'],
+    [0.5, '중화'],
+    [0.7, '신강'],
+    [0.95, '태왕'],
+    [1.0, '태왕'],
+  ] as const)('세력비 %s → %s', (ratio, ko) => {
+    expect(STRENGTH_GRADE_KO[strengthGradeOf(ratio)]).toBe(ko);
+  });
+
+  it('등급과 verdict 는 서로 다른 축이다', () => {
+    // 1992-11-17 남: 세 기준을 하나도 못 채워 신약이고, 세력비도 태약 구간이다.
+    const pillars = chartOf('壬申', '辛亥', '丁酉', '壬寅');
+    const strength = strengthOf(pillars);
+
+    expect(strength.verdict).toBe('weak');
+    expect(STRENGTH_GRADE_KO[strength.grade]).toBe('태약');
+    expect(strength.criteria.every((c) => !c.met)).toBe(true);
   });
 });

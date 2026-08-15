@@ -1,10 +1,12 @@
 import type { Pillars } from '../pillars';
 import { elementDistributionOf, type ElementDistribution, type ElementWeights } from './fiveElements';
 import { strengthOf, type Strength, type StrengthOptions } from './strength';
+import { yongsinOf, type Yongsin } from './yongsin';
 import { tenGodChartOf, tenGodCountsOf, type TenGod, type TenGodChart } from './tenGods';
 
 export * from './fiveElements';
 export * from './strength';
+export * from './yongsin';
 export * from './tenGods';
 
 /**
@@ -19,6 +21,8 @@ export type Analysis = {
   tenGods: TenGodChart;
   tenGodCounts: Record<TenGod, number>;
   strength: Strength;
+  /** 억부용신 — 이 사주에 가장 필요한 오행 */
+  yongsin: Yongsin;
 };
 
 export type AnalysisOptions = {
@@ -31,12 +35,14 @@ export function analyzePillars(
   options: AnalysisOptions = {},
 ): Analysis {
   const tenGods = tenGodChartOf(pillars);
+  const strength = strengthOf(pillars, { ...options.strength, weights: options.weights });
 
   return {
     elements: elementDistributionOf(pillars, options.weights),
     tenGods,
     tenGodCounts: tenGodCountsOf(tenGods),
     // 오행 분포와 같은 가중치를 써야 두 결과가 어긋나지 않는다.
-    strength: strengthOf(pillars, { ...options.strength, weights: options.weights }),
+    strength,
+    yongsin: yongsinOf(pillars, strength, options.weights),
   };
 }

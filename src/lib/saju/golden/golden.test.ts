@@ -8,8 +8,12 @@ import {
   EMPTINESS_BASIS_KO,
   PILLAR_POSITION_KO,
   RELATION_POLICY,
+  ELEMENT_KO,
+  ELEMENT_ROLE_KO,
   SINSAL_POLICY,
+  STRENGTH_GRADE_KO,
   STRENGTH_POLICY,
+  YONGSIN_POLICY,
   SPIRIT_BASIS_KO,
   TWELVE_SPIRIT_KO,
   TWELVE_STAGE_KO,
@@ -117,6 +121,14 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     lines.push(`  ${star.auspicious ? '길신' : '흉신'}   ${star.ko.padEnd(6)} ${where}${basis}`);
   }
 
+  const { strength, yongsin } = saju.analysis;
+  lines.push(
+    `  강약   ${STRENGTH_GRADE_KO[strength.grade]} ${(strength.ratio * 100).toFixed(1)}%` +
+      ` (${strength.verdict})  ${strength.criteria.map((c) => `${c.label}${c.met ? 'O' : 'X'}`).join(' ')}`,
+    `  용신   ${ELEMENT_KO[yongsin.element]}(${yongsin.element}) ${ELEMENT_ROLE_KO[yongsin.role]}` +
+      `  꺼림 ${ELEMENT_KO[yongsin.avoid]}`,
+  );
+
   for (const correction of meta.corrections) {
     const minutes = Math.round(correction.minutes * 10) / 10;
     lines.push(
@@ -209,6 +221,14 @@ describe('골든 테스트', () => {
       '        甲의 건록 寅이 강한 것은 이름이 아니라 통근이라 이미 세고 있다.',
       '',
       ...Object.entries(STRENGTH_POLICY).map(
+        ([key, value]) => `          ${key.padEnd(22)} ${value}`,
+      ),
+      '',
+      '  용신  억부만 낸다. 조후는 궁통보감의 일간×월지 120칸 표가 필요한데,',
+      '        원리로 유도되지 않아(겨울 丁火에 火가 아니라 甲木을 쓴다) 표를',
+      '        확보하기 전에는 내지 않는다. 종격도 판정하지 않는다.',
+      '',
+      ...Object.entries(YONGSIN_POLICY).map(
         ([key, value]) => `          ${key.padEnd(22)} ${value}`,
       ),
       '',

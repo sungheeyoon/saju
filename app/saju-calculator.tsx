@@ -10,11 +10,13 @@ import {
   ELEMENT_KO,
   GENDERS,
   GENDER_KO,
+  ELEMENT_ROLE_KO,
   EMPTINESS_BASIS_KO,
   PILLAR_POSITION_KO,
   RELATION_KIND_KO,
   SPIRIT_BASIS_KO,
   STEM_INFO,
+  STRENGTH_GRADE_KO,
   TEN_GOD_KO,
   TWELVE_SPIRIT_ALIAS,
   TWELVE_SPIRIT_KO,
@@ -973,7 +975,7 @@ function ElementChart({ saju }: { saju: Saju }) {
 
 /** 신강·신약 — 임계값 대비 단일 비율이므로 메터. */
 function StrengthMeter({ saju }: { saju: Saju }) {
-  const { strength } = saju.analysis;
+  const { strength, yongsin } = saju.analysis;
   const percent = strength.ratio * 100;
   const threshold = 50;
 
@@ -982,10 +984,11 @@ function StrengthMeter({ saju }: { saju: Saju }) {
       <h2 className="text-xs uppercase tracking-wide text-muted">신강 · 신약</h2>
 
       <p className="mt-2 flex items-baseline gap-2">
-        <span className="text-3xl font-semibold">
+        <span className="text-3xl font-semibold">{STRENGTH_GRADE_KO[strength.grade]}</span>
+        <span className="text-sm text-secondary">
+          세 기준 중 {strength.metCount}개 충족 ·{' '}
           {strength.verdict === 'strong' ? '신강' : '신약'}
         </span>
-        <span className="text-sm text-secondary">세 기준 중 {strength.metCount}개 충족</span>
       </p>
 
       <div className="mt-4">
@@ -1022,13 +1025,23 @@ function StrengthMeter({ saju }: { saju: Saju }) {
         ))}
       </ul>
 
-      <p className="mt-3 text-xs text-secondary">
-        억부 기준 필요 오행{' '}
-        <strong className="font-medium">
-          {strength.neededElements.map((e) => ELEMENT_KO[e]).join(', ')}
-        </strong>
-        <span className="text-muted"> · 격국·조후를 함께 보면 결론이 달라질 수 있습니다</span>
-      </p>
+      <div className="mt-4 border-t border-border pt-3">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span className="text-xs text-muted">억부용신</span>
+          <span className="glyph text-lg font-medium">{yongsin.element}</span>
+          <span className="text-sm font-medium">{ELEMENT_KO[yongsin.element]}</span>
+          <span className="text-sm text-secondary">{ELEMENT_ROLE_KO[yongsin.role]}</span>
+          <span className="text-xs text-muted">
+            꺼림 {ELEMENT_KO[yongsin.avoid]}
+          </span>
+        </div>
+        <p className="mt-1.5 text-xs text-secondary">{yongsin.reason}</p>
+        <p className="mt-2 text-xs text-muted">
+          억부만 냅니다. 조후용신은 궁통보감의 일간×월지 표가 있어야 하고 원리로
+          유도되지 않아(겨울 丁火에 火가 아니라 甲木을 씁니다) 아직 내지 않습니다.
+          종격도 판정하지 않습니다.
+        </p>
+      </div>
     </section>
   );
 }

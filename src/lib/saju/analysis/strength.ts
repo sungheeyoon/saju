@@ -64,6 +64,8 @@ export const STRENGTH_POLICY = {
   useSupportingAndDrainingElements: true,
   /** 12운성은 점수에 넣지 않는다. 표시와 설명에만 쓴다 */
   twelveStageContribution: 'none',
+  /** 득시(得時)는 따로 세지 않는다 — 시주 두 글자는 득세 점수에 이미 들어 있다 */
+  criteria: 'season-branch-overall',
   /** 아직 세지 않는 것 — 지장간의 천간 투출, 합충으로 인한 뿌리 변화 */
   unaccounted: 'stem-emergence, combination-clash-effects',
 } as const;
@@ -72,6 +74,39 @@ export const STRENGTH_POLICY = {
 const SUPPORTING_GROUPS: readonly TenGodGroup[] = ['比劫', '印星'];
 
 export type StrengthVerdict = 'strong' | 'weak';
+
+/**
+ * 세력비를 다섯 구간으로 나눈 등급.
+ *
+ * `verdict` 와 **다른 축이다.** verdict 는 득령·득지·득세 셋 중 몇 개를
+ * 채웠는가(고전의 판정)이고, grade 는 아군 세력이 전체의 몇 %인가(연속량)다.
+ * 둘은 대개 같은 방향을 가리키지만 경계에서 어긋날 수 있다 — 세 기준을 둘
+ * 채워 신강인데 세력비는 중화에 걸치는 사주가 있다. 어긋난다고 어느 한쪽이
+ * 틀린 것이 아니라 서로 다른 것을 재고 있다.
+ *
+ * 구간 경계는 자료가 아니라 표기 편의다. 20%씩 다섯으로 끊었다.
+ */
+export type StrengthGrade = 'veryWeak' | 'weak' | 'balanced' | 'strong' | 'veryStrong';
+
+export const STRENGTH_GRADE_KO: Record<StrengthGrade, string> = {
+  veryWeak: '태약',
+  weak: '신약',
+  balanced: '중화',
+  strong: '신강',
+  veryStrong: '태왕',
+};
+
+/** 세력비 구간의 위쪽 경계 — 마지막 구간은 열려 있다 */
+export const STRENGTH_GRADE_BOUNDS: readonly (readonly [StrengthGrade, number])[] = [
+  ['veryWeak', 0.2],
+  ['weak', 0.4],
+  ['balanced', 0.6],
+  ['strong', 0.8],
+];
+
+export function strengthGradeOf(ratio: number): StrengthGrade {
+  return STRENGTH_GRADE_BOUNDS.find(([, upper]) => ratio < upper)?.[0] ?? 'veryStrong';
+}
 
 export type StrengthCriterion = {
   key: 'seasonal' | 'branch' | 'overall';
@@ -82,6 +117,8 @@ export type StrengthCriterion = {
 
 export type Strength = {
   verdict: StrengthVerdict;
+  /** 세력비를 다섯 구간으로 끊은 등급. `verdict` 와 다른 축이다 */
+  grade: StrengthGrade;
   /** 일간을 돕는 세력 (비겁 + 인성) */
   supportScore: number;
   /** 일간을 빼는 세력 (식상 + 재성 + 관성) */
@@ -196,6 +233,7 @@ export function strengthOf(pillars: StrengthInput, options: StrengthOptions = {}
 
   return {
     verdict,
+    grade: strengthGradeOf(ratio),
     supportScore,
     opposeScore,
     ratio,
