@@ -4,6 +4,7 @@ import { computeSaju } from '@/src/lib/saju';
 import {
   InvalidSajuInputError,
   SUPPORTED_YEAR_RANGE,
+  assertValidLongitude,
   assertValidSajuInput,
   daysInMonth,
   isLeapYear,
@@ -167,6 +168,51 @@ describe('입력 검증(assertValidSajuInput)', () => {
     } catch (error) {
       expect((error as InvalidSajuInputError).field).toBe('minute');
     }
+  });
+});
+
+describe('입력 검증 — 객체가 아닌 입력', () => {
+  it('null·undefined·문자열을 우리 에러로 거부한다', () => {
+    // TypeError 로 새어 나가면 호출부가 "계산 실패"와 구분할 수 없다.
+    for (const bad of [null, undefined, '2025-06-15', 42]) {
+      expect(() => assertValidSajuInput(bad as never), String(bad)).toThrow(
+        InvalidSajuInputError,
+      );
+      expect(() => computeSaju(bad as never), String(bad)).toThrow(InvalidSajuInputError);
+    }
+  });
+});
+
+describe('경도 검증(assertValidLongitude)', () => {
+  it('실제 경도는 통과시킨다 — 소수를 요구한다', () => {
+    for (const longitude of [126.978, 0, -180, 180, 135]) {
+      expect(() => assertValidLongitude(longitude), String(longitude)).not.toThrow();
+    }
+  });
+
+  it('숫자가 아니거나 범위 밖이면 거부한다', () => {
+    for (const bad of [NaN, Infinity, -Infinity, '127', null, undefined]) {
+      expect(() => assertValidLongitude(bad as never), String(bad)).toThrow(
+        InvalidSajuInputError,
+      );
+    }
+    expect(() => assertValidLongitude(181)).toThrow(InvalidSajuInputError);
+    expect(() => assertValidLongitude(-999)).toThrow(InvalidSajuInputError);
+  });
+
+  it('엔진이 엉뚱한 경도로 사주를 내주지 않는다', () => {
+    // 999°는 달력 시각을 이틀 가까이 밀어 일주까지 바꾼다. 조용히 통과하면
+    // 그럴듯하지만 틀린 사주가 나온다 — 가장 위험한 실패 유형이다.
+    expect(() => computeSaju(valid, { longitude: 999 })).toThrow(InvalidSajuInputError);
+    expect(() => computeSaju(valid, { longitude: NaN })).toThrow(InvalidSajuInputError);
+    expect(() => computeSaju(valid, { longitude: -200 })).toThrow(InvalidSajuInputError);
+  });
+
+  it('경도 보정을 끄면 경도를 따지지 않는다', () => {
+    // 쓰이지 않는 값 때문에 계산을 거부할 이유는 없다.
+    expect(() =>
+      computeSaju(valid, { useLongitude: false, longitude: NaN }),
+    ).not.toThrow();
   });
 });
 

@@ -1,4 +1,5 @@
 import type { CivilDateTime } from '../civilTime';
+import { assertValidLongitude } from '../input';
 import { equationOfTimeMinutes } from './equationOfTime';
 import { DEFAULT_LONGITUDE, longitudeCorrectionMinutes, standardMeridian } from './longitude';
 import { resolveWallClock, type ZoneInterval } from './zoneHistory';
@@ -117,6 +118,9 @@ export function correctTime(
     longitude = DEFAULT_TIME_CORRECTION_OPTIONS.longitude,
     dstTransitionPolicy = DEFAULT_TIME_CORRECTION_OPTIONS.dstTransitionPolicy,
   } = options;
+
+  // 경도는 보정을 켰을 때만 결과에 들어간다. 꺼져 있으면 따지지 않는다.
+  if (useLongitude) assertValidLongitude(longitude);
 
   const { instant, interval, ambiguous, nonexistent } = resolveWallClock(civil);
 

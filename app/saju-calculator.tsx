@@ -171,10 +171,12 @@ export function SajuCalculator() {
           </Field>
 
           <Field label="자시 규칙">
+            {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
             <select
               value={form.rule}
               onChange={(e) => set('rule', e.target.value as LateNightRule)}
-              className={FIELD}
+              disabled={form.hourUnknown}
+              className={`${FIELD} disabled:opacity-40`}
             >
               <option value="jo">조자시 · 경계 23:00</option>
               <option value="ya">야자시 · 경계 자정</option>
@@ -551,6 +553,9 @@ function ElementChart({ saju }: { saju: Saju }) {
       {missing.length > 0 && (
         <p className="mt-3 border-t border-border pt-3 text-xs text-secondary">
           없는 오행 {missing.map((e) => ELEMENT_KO[e]).join(', ')}
+          {glyphCount !== 8 && (
+            <span className="text-muted"> · 시주에 있었을지는 알 수 없습니다</span>
+          )}
         </p>
       )}
     </section>

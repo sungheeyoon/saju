@@ -10,7 +10,11 @@ import {
   yearPillarOf,
 } from '@/src/lib/saju/pillars';
 import { getSolarTerms } from '@/src/lib/saju/solarTerms';
-import { resolveWallClock, zoneIntervalAt } from '@/src/lib/saju/timeCorrection';
+import {
+  CITY_LONGITUDES,
+  resolveWallClock,
+  zoneIntervalAt,
+} from '@/src/lib/saju/timeCorrection';
 
 /**
  * 감사 회귀 테스트 — 2026-08-15 외부 대조 감사에서 손으로 확인했던 항목을
@@ -303,6 +307,38 @@ describe('속성 테스트 — 무작위 1,000건', () => {
       const first = computeSaju(input);
       const second = computeSaju(input);
       expect(JSON.stringify(second), JSON.stringify(input)).toBe(JSON.stringify(first));
+    }
+  });
+
+  it('옵션을 뒤섞어도 던지지 않고 메타가 서로 어긋나지 않는다', () => {
+    // 보정 조합·자시 규칙·시간 미상을 섞는다. 조합이 늘어나면 "이 옵션에서만
+    // 터진다"가 생기기 쉬운데, 그런 것은 사용자가 먼저 밟게 된다.
+    const fuzz = mulberry32(SEED + 1);
+    const flip = () => fuzz() < 0.5;
+    const longitudes = Object.values(CITY_LONGITUDES);
+
+    for (const [index, input] of inputs.entries()) {
+      const unknownHour = fuzz() < 0.2;
+      const options = {
+        useLongitude: flip(),
+        useEquationOfTime: flip(),
+        useDst: flip(),
+        longitude: longitudes[Math.floor(fuzz() * longitudes.length)],
+        lateNightRule: flip() ? ('jo' as const) : ('ya' as const),
+      };
+      const label = `#${index} ${JSON.stringify(options)}`;
+
+      const saju = computeSaju(
+        unknownHour ? { year: input.year, month: input.month, day: input.day, hour: null } : input,
+        options,
+      );
+
+      // hour · hourKnown · glyphCount 는 한 사실의 세 표현이다. 갈리면 안 된다.
+      expect(saju.meta.hourKnown, label).toBe(!unknownHour);
+      expect(saju.pillars.hour === null, label).toBe(unknownHour);
+      expect(saju.analysis.tenGods.hour === null, label).toBe(unknownHour);
+      expect(saju.analysis.elements.glyphCount, label).toBe(unknownHour ? 6 : 8);
+      expect(saju.pillars.meta.hourKnown, label).toBe(saju.meta.hourKnown);
     }
   });
 

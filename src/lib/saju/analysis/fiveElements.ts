@@ -10,7 +10,7 @@ import type { FourPillars } from '../pillars';
 import { PILLAR_KEYS, type PillarKey } from './tenGods';
 
 /**
- * 오행 분포 — 여덟 글자가 어느 오행에 얼마나 몰려 있는가.
+ * 오행 분포 — 여덟 글자(시간 미상이면 여섯)가 어느 오행에 얼마나 몰려 있는가.
  *
  * 두 가지로 센다.
  * - `counts` 는 눈에 보이는 글자만 센다. "팔자에 없는 오행"은 이 기준이다.
@@ -52,7 +52,7 @@ export type ElementDistribution = {
   strongest: Element;
   /** 점수가 가장 낮은 오행 */
   weakest: Element;
-  /** 여덟 글자에 아예 없는 오행 */
+  /** 센 글자에 아예 없는 오행 — 시간 미상이면 시주에 있었을지 알 수 없다 */
   missing: Element[];
 };
 

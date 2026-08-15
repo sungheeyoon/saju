@@ -35,20 +35,24 @@ export type UnknownHourInput = CivilDate & {
 export type SajuInput = CivilDateTime | UnknownHourInput;
 
 export type SajuInputField =
+  | 'input'
   | 'year'
   | 'month'
   | 'day'
   | 'hour'
   | 'minute'
-  | 'second';
+  | 'second'
+  | 'longitude';
 
 const FIELD_KO: Record<SajuInputField, string> = {
+  input: '생년월일시',
   year: '연도',
   month: '월',
   day: '일',
   hour: '시',
   minute: '분',
   second: '초',
+  longitude: '경도',
 };
 
 /**
@@ -111,6 +115,11 @@ function assertRange(
  * 사용자가 고칠 곳을 두 번 찾는다.
  */
 export function assertValidSajuInput(input: SajuInput): void {
+  // 객체가 아니면 필드를 읽는 순간 TypeError 가 난다. 그 전에 우리 말로 거부한다.
+  if (typeof input !== 'object' || input === null) {
+    throw new InvalidSajuInputError('input', input, `객체가 아닙니다: ${String(input)}`);
+  }
+
   assertInteger('year', input.year);
   assertRange('year', input.year, SUPPORTED_YEAR_RANGE.min, SUPPORTED_YEAR_RANGE.max);
 
@@ -151,6 +160,32 @@ export function assertValidSajuInput(input: SajuInput): void {
 
   assertInteger('second', input.second);
   assertRange('second', input.second, 0, 59);
+}
+
+/**
+ * 출생지 경도를 검증한다. 동경이 양수, 서경이 음수다.
+ *
+ * 범위를 열어두면 조용히 틀린다. 경도 보정은 표준자오선과의 차이를 그대로
+ * 시간으로 환산하므로(1° = 4분), 999° 같은 값이 들어오면 달력 시각이 이틀치
+ * 밀려 **일주까지** 바뀐 사주가 아무 경고 없이 나온다.
+ *
+ * 정수를 요구하지 않는 것은 경도가 애초에 소수이기 때문이다(서울 126.98°).
+ */
+export function assertValidLongitude(longitude: number): void {
+  if (typeof longitude !== 'number' || !Number.isFinite(longitude)) {
+    throw new InvalidSajuInputError(
+      'longitude',
+      longitude,
+      `숫자가 아닙니다: ${String(longitude)}`,
+    );
+  }
+  if (longitude < -180 || longitude > 180) {
+    throw new InvalidSajuInputError(
+      'longitude',
+      longitude,
+      `-180~180 범위를 벗어났습니다: ${longitude}`,
+    );
+  }
 }
 
 /** 시간 미상일 때 계산 기준으로 삼는 시각 — 하루의 한가운데 */
