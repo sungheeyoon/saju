@@ -219,14 +219,74 @@ describe('경도 검증(assertValidLongitude)', () => {
 
 describe('입력 정규화(normalizeSajuInput)', () => {
   it('시각을 알면 그대로 쓴다', () => {
-    expect(normalizeSajuInput(valid)).toEqual({ civil: valid, hourKnown: true });
+    expect(normalizeSajuInput(valid)).toEqual({
+      civil: valid,
+      hourKnown: true,
+      gender: null,
+    });
   });
 
   it('시간 미상은 정오로 채우고 표시를 남긴다', () => {
     expect(normalizeSajuInput({ year: 2025, month: 6, day: 15, hour: null })).toEqual({
       civil: { year: 2025, month: 6, day: 15, hour: 12, minute: 0, second: 0 },
       hourKnown: false,
+      gender: null,
     });
+  });
+
+  it('성별은 받은 그대로 넘기고, 없으면 null 이다', () => {
+    expect(normalizeSajuInput({ ...valid, gender: 'female' }).gender).toBe('female');
+    expect(normalizeSajuInput({ ...valid, gender: 'male' }).gender).toBe('male');
+    expect(normalizeSajuInput({ ...valid, gender: null }).gender).toBeNull();
+
+    // 계산 기준 시각에는 성별이 섞여 들어가지 않는다
+    expect(normalizeSajuInput({ ...valid, gender: 'female' }).civil).toEqual(valid);
+  });
+});
+
+describe('성별(gender)', () => {
+  it('없어도 되고, 있으면 female·male 만 받는다', () => {
+    expect(() => assertValidSajuInput(valid)).not.toThrow();
+    expect(() => assertValidSajuInput({ ...valid, gender: 'female' })).not.toThrow();
+    expect(() => assertValidSajuInput({ ...valid, gender: 'male' })).not.toThrow();
+    expect(() => assertValidSajuInput({ ...valid, gender: null })).not.toThrow();
+
+    // 'M'·'남'·true 를 조용히 무시하면 대운을 붙이는 날 방향이 뒤집힌다.
+    for (const bad of ['M', '남', '여자', true, 0, {}]) {
+      expect(() => assertValidSajuInput(broken({ gender: bad })), String(bad)).toThrow(
+        InvalidSajuInputError,
+      );
+    }
+
+    try {
+      assertValidSajuInput(broken({ gender: 'M' }));
+      expect.unreachable();
+    } catch (error) {
+      expect((error as InvalidSajuInputError).field).toBe('gender');
+      expect((error as InvalidSajuInputError).message).toContain('성별');
+    }
+  });
+
+  it('입력한 성별을 meta 로 그대로 돌려준다', () => {
+    expect(computeSaju({ ...valid, gender: 'female' }).meta.gender).toBe('female');
+    expect(computeSaju({ ...valid, gender: 'male' }).meta.gender).toBe('male');
+    expect(computeSaju(valid).meta.gender).toBeNull();
+    expect(
+      computeSaju({ year: 2025, month: 6, day: 15, hour: null, gender: 'male' }).meta.gender,
+    ).toBe('male');
+  });
+
+  it('여덟 글자는 성별로 달라지지 않는다', () => {
+    // L1 에서 성별이 결과를 바꾸면 그것이 버그다. 대운(L2)에서만 쓰인다.
+    const female = computeSaju({ ...valid, gender: 'female' });
+    const male = computeSaju({ ...valid, gender: 'male' });
+    const unset = computeSaju(valid);
+
+    for (const other of [male, unset]) {
+      expect(other.pillars).toEqual(female.pillars);
+      expect(other.analysis).toEqual(female.analysis);
+      expect(other.meta.warnings).toEqual(female.meta.warnings);
+    }
   });
 });
 

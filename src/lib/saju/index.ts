@@ -1,6 +1,6 @@
 import { analyzePillars, type Analysis, type AnalysisOptions } from './analysis';
 import type { CivilDateTime } from './civilTime';
-import { normalizeSajuInput, type SajuInput } from './input';
+import { normalizeSajuInput, type Gender, type SajuInput } from './input';
 import {
   getFourPillars,
   getPillarsWithoutHour,
@@ -71,6 +71,13 @@ export type Saju = {
     inputTime: SajuInput;
     /** 계산에 실제로 쓴 시각 — 시간 미상이면 정오로 채워진다 */
     resolvedTime: CivilDateTime;
+    /**
+     * 입력받은 성별. 안 받았으면 `null`.
+     *
+     * **여덟 글자는 성별로 달라지지 않는다.** 받아둔 값을 그대로 돌려줄 뿐이고,
+     * 실제로 쓰이는 곳은 대운 방향(양남음녀 순행 / 음남양녀 역행)인 L2다.
+     */
+    gender: Gender | null;
     /** 시각을 알고 계산했는가 — `false` 면 `pillars.hour` 가 `null` 이다 */
     hourKnown: boolean;
     /** 그 벽시계가 가리키는 실제 절대 시각 */
@@ -92,7 +99,7 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
 
   // 계산 코어는 아무 숫자나 받으면 아무 답이나 낸다. 2월 30일이 3월 2일로
   // 조용히 흘러가기 전에 여기서 막는다.
-  const { civil: resolvedTime, hourKnown } = normalizeSajuInput(inputTime);
+  const { civil: resolvedTime, hourKnown, gender } = normalizeSajuInput(inputTime);
 
   const corrected: CorrectedTime = correctTime(resolvedTime, correctionOptions);
 
@@ -121,6 +128,7 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
       inputTime,
       resolvedTime,
       hourKnown,
+      gender,
       instant: corrected.instant,
       corrections: corrected.corrections,
       totalCorrectionMinutes,

@@ -7,10 +7,13 @@ import {
   CITY_LONGITUDES,
   ELEMENTS,
   ELEMENT_KO,
+  GENDERS,
+  GENDER_KO,
   STEM_INFO,
   TEN_GOD_KO,
   computeSaju,
   type CityName,
+  type Gender,
   type LateNightRule,
   type Saju,
 } from '@/src/lib/saju';
@@ -36,11 +39,19 @@ const PILLAR_COLUMNS = [
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
+/** 성별 선택 — 빈 문자열은 '선택 안 함' */
+type GenderChoice = Gender | '';
+
 type Query = {
   date: string;
   time: string;
   /** 출생 시각을 모름 — 시주를 뽑지 않는다 */
   hourUnknown: boolean;
+  /**
+   * 성별. 여덟 글자를 바꾸지 않는다 — 대운(순행·역행)을 붙일 때 쓰려고 받아둔다.
+   * 그래서 안 고르면 안 고른 대로 넘긴다.
+   */
+  gender: GenderChoice;
   city: CityName;
   rule: LateNightRule;
   useLongitude: boolean;
@@ -53,6 +64,7 @@ const DEFAULT_QUERY: Query = {
   date: '1990-05-15',
   time: '14:30',
   hourUnknown: false,
+  gender: '',
   city: '서울',
   rule: 'jo',
   useLongitude: true,
@@ -76,10 +88,12 @@ function calculate(query: Query): Result {
   // 엔진이 던지는 메시지를 그대로 보여준다. 검증 규칙을 UI에 복제하면
   // 두 곳이 어긋나는 순간 사용자만 헷갈린다.
   try {
+    const gender = query.gender === '' ? null : query.gender;
+
     const saju = computeSaju(
       query.hourUnknown
-        ? { year, month, day, hour: null }
-        : { year, month, day, hour, minute, second: 0 },
+        ? { year, month, day, hour: null, gender }
+        : { year, month, day, hour, minute, second: 0, gender },
       {
         lateNightRule: query.rule,
         longitude: CITY_LONGITUDES[query.city],
@@ -155,6 +169,21 @@ export function SajuCalculator() {
             />
             시간 모름
           </label>
+
+          <Field label="성별">
+            <select
+              value={form.gender}
+              onChange={(e) => set('gender', e.target.value as GenderChoice)}
+              className={FIELD}
+            >
+              <option value="">선택 안 함</option>
+              {GENDERS.map((gender) => (
+                <option key={gender} value={gender}>
+                  {GENDER_KO[gender]}
+                </option>
+              ))}
+            </select>
+          </Field>
 
           <Field label="출생지">
             <select
@@ -372,6 +401,16 @@ function PillarChart({ saju }: { saju: Saju }) {
           <span className="glyph">{pillars.dayMaster}</span> {STEM_INFO[pillars.dayMaster].ko} ·{' '}
           {ELEMENT_KO[STEM_INFO[pillars.dayMaster].element]}
         </dd>
+
+        {saju.meta.gender && (
+          <>
+            <Term>성별</Term>
+            <dd>
+              {GENDER_KO[saju.meta.gender]}
+              <span className="text-muted"> · 여덟 글자는 성별로 달라지지 않습니다</span>
+            </dd>
+          </>
+        )}
 
         <Term>사주년</Term>
         <dd>

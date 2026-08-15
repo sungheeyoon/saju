@@ -31,8 +31,33 @@ export type UnknownHourInput = CivilDate & {
   second?: undefined;
 };
 
-/** `computeSaju` 의 입력 — `hour: null` 이면 시간 미상 */
-export type SajuInput = CivilDateTime | UnknownHourInput;
+/**
+ * 성별.
+ *
+ * **L1(만세력) 결과는 성별로 달라지지 않는다.** 여덟 글자는 태어난 시각만으로
+ * 정해진다. 성별이 필요해지는 곳은 대운(大運)으로, 연간의 음양과 성별을 함께
+ * 봐서 순행·역행을 정한다(양남음녀 순행, 음남양녀 역행). 그 계산은 L2다.
+ *
+ * 지금 받아두는 이유는 입력 시점에만 알 수 있는 값이기 때문이다. 계산에
+ * 쓰이지 않아도 `meta.gender` 로 그대로 돌려준다.
+ */
+export type Gender = 'male' | 'female';
+
+export const GENDERS: readonly Gender[] = ['female', 'male'];
+
+export const GENDER_KO: Record<Gender, string> = {
+  female: '여자',
+  male: '남자',
+};
+
+/**
+ * `computeSaju` 의 입력 — 출생 기록 한 건.
+ *
+ * `hour: null` 이면 시간 미상이고, `gender` 는 없어도 된다(미상 허용).
+ */
+export type SajuInput = (CivilDateTime | UnknownHourInput) & {
+  gender?: Gender | null;
+};
 
 export type SajuInputField =
   | 'input'
@@ -42,6 +67,7 @@ export type SajuInputField =
   | 'hour'
   | 'minute'
   | 'second'
+  | 'gender'
   | 'longitude';
 
 const FIELD_KO: Record<SajuInputField, string> = {
@@ -52,6 +78,7 @@ const FIELD_KO: Record<SajuInputField, string> = {
   hour: '시',
   minute: '분',
   second: '초',
+  gender: '성별',
   longitude: '경도',
 };
 
@@ -118,6 +145,18 @@ export function assertValidSajuInput(input: SajuInput): void {
   // 객체가 아니면 필드를 읽는 순간 TypeError 가 난다. 그 전에 우리 말로 거부한다.
   if (typeof input !== 'object' || input === null) {
     throw new InvalidSajuInputError('input', input, `객체가 아닙니다: ${String(input)}`);
+  }
+
+  // 성별은 없어도 되지만, 있다면 아는 값이어야 한다. 'M'·'남' 같은 표기를
+  // 받아 주면 조용히 무시되고, 대운을 붙이는 날 방향이 뒤집힌다.
+  if (input.gender !== undefined && input.gender !== null) {
+    if (!GENDERS.includes(input.gender)) {
+      throw new InvalidSajuInputError(
+        'gender',
+        input.gender,
+        `'female' 또는 'male' 이어야 합니다: ${String(input.gender)}`,
+      );
+    }
   }
 
   assertInteger('year', input.year);
@@ -196,6 +235,8 @@ export type NormalizedInput = {
   civil: CivilDateTime;
   /** 시각을 알고 입력했는가 — `false` 면 시주를 뽑지 않는다 */
   hourKnown: boolean;
+  /** 입력받은 성별. 안 받았으면 `null` — `undefined` 와 구분하지 않는다 */
+  gender: Gender | null;
 };
 
 /**
@@ -208,10 +249,17 @@ export type NormalizedInput = {
 export function normalizeSajuInput(input: SajuInput): NormalizedInput {
   assertValidSajuInput(input);
 
+  const gender = input.gender ?? null;
+
   if (input.hour === null) {
     const { year, month, day } = input;
-    return { civil: { year, month, day, ...UNKNOWN_HOUR_PROXY }, hourKnown: false };
+    return {
+      civil: { year, month, day, ...UNKNOWN_HOUR_PROXY },
+      hourKnown: false,
+      gender,
+    };
   }
 
-  return { civil: input, hourKnown: true };
+  const { year, month, day, hour, minute, second } = input;
+  return { civil: { year, month, day, hour, minute, second }, hourKnown: true, gender };
 }
