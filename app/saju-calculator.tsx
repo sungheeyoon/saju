@@ -22,11 +22,22 @@ import {
  * 만세력 엔진은 순수 함수라 서버 없이 브라우저에서 그대로 돈다.
  * 제출한 입력만 계산하므로, 타이핑 도중의 반쪽 날짜로 계산하지 않는다.
  *
- * 화면에 토글로 여는 것은 **학파가 갈리는 선택**뿐이다(경도·균시차).
+ * 화면이 묻는 것은 **무엇을 기준 시각으로 볼 것인가** 하나뿐이다.
+ * 경도·균시차의 보정값 자체는 천문학적으로 정해지므로 선택지가 아니다.
+ * 갈리는 것은 명리 계산에 출생기록 시각·지방평균태양시·진태양시 중 무엇을
+ * 쓰느냐이고, 그것은 계통의 선택이다. 그래서 세 단계 하나로 묶었다.
+ *
+ * 두 값을 따로 켜게 두면 "경도 끔 + 균시차 켬" 같은 조합이 생긴다.
+ * 그것은 출생지의 진태양시가 아니라 아무 곳의 시각도 아닌 값이다.
+ *
  * 서머타임은 선택이 아니라 사실이라 묻지 않는다 — 1988년 7월 14시에
  * 태어난 사람의 시계는 실제로 UTC+10이었고, 되돌리는 것이 옳은 계산이다.
  * 시행 기간이 아닌 절대다수에게는 애초에 물어볼 것도 없는 질문이다.
  * 대신 되돌린 사실은 '적용된 보정' 표에 그대로 남는다.
+ *
+ * 예외가 하나 있다. 서머타임이 해제되던 날의 겹친 한 시간은 역사적 사실만으로
+ * 어느 쪽인지 정할 수 없다. 이때는 전역 옵션이 아니라 그 계산에만 붙는
+ * 경고로 알린다(앞선 쪽으로 해석했다고 밝힌다).
  *
  * 오행별 전통색(청·적·황·백·흑)을 쓰지 않은 이유:
  * 白(금)은 채움색으로 성립하지 않고, 대체색을 넣으면 접근성 게이트를 넘지
@@ -48,6 +59,48 @@ const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 /** 성별 선택 — 빈 문자열은 '선택 안 함' */
 type GenderChoice = Gender | '';
 
+/**
+ * 시간 기준 — 시주·일주를 어느 시계로 읽을 것인가.
+ *
+ * 세 값이 경도·균시차 두 스위치를 대신한다. 성립하지 않는 조합(경도 없이
+ * 균시차만)을 애초에 만들 수 없게 하려는 것이다.
+ */
+type TimeBasis = 'localMean' | 'record' | 'trueSolar';
+
+const TIME_BASES = ['localMean', 'record', 'trueSolar'] as const satisfies readonly TimeBasis[];
+
+const TIME_BASIS: Record<
+  TimeBasis,
+  {
+    label: string;
+    hint: string;
+    useLongitude: boolean;
+    useEquationOfTime: boolean;
+    /** 고급 — 기본 화면에서는 접어둔다 */
+    advanced?: boolean;
+  }
+> = {
+  localMean: {
+    label: '지방평균태양시',
+    hint: '경도 보정 · 기본값',
+    useLongitude: true,
+    useEquationOfTime: false,
+  },
+  record: {
+    label: '출생기록 시각',
+    hint: '보정 없음',
+    useLongitude: false,
+    useEquationOfTime: false,
+  },
+  trueSolar: {
+    label: '진태양시',
+    hint: '경도 + 균시차 (±16분)',
+    useLongitude: true,
+    useEquationOfTime: true,
+    advanced: true,
+  },
+};
+
 type Query = {
   date: string;
   time: string;
@@ -60,8 +113,8 @@ type Query = {
   gender: GenderChoice;
   city: CityName;
   rule: LateNightRule;
-  useLongitude: boolean;
-  useEquationOfTime: boolean;
+  /** 시간 기준 — 경도·균시차를 함께 정한다 */
+  basis: TimeBasis;
 };
 
 const DEFAULT_QUERY: Query = {
@@ -72,8 +125,7 @@ const DEFAULT_QUERY: Query = {
   gender: '',
   city: '서울',
   rule: 'jo',
-  useLongitude: true,
-  useEquationOfTime: false,
+  basis: 'localMean',
 };
 
 type Result = { ok: true; saju: Saju } | { ok: false; message: string };
@@ -93,6 +145,7 @@ function calculate(query: Query): Result {
   // 두 곳이 어긋나는 순간 사용자만 헷갈린다.
   try {
     const gender = query.gender === '' ? null : query.gender;
+    const { useLongitude, useEquationOfTime } = TIME_BASIS[query.basis];
 
     const saju = computeSaju(
       query.hourUnknown
@@ -101,8 +154,8 @@ function calculate(query: Query): Result {
       {
         lateNightRule: query.rule,
         longitude: CITY_LONGITUDES[query.city],
-        useLongitude: query.useLongitude,
-        useEquationOfTime: query.useEquationOfTime,
+        useLongitude,
+        useEquationOfTime,
         // useDst 는 넘기지 않는다 — 엔진 기본값이 '되돌린다'이고,
         // 그것이 물어볼 일 없는 사실이기 때문이다.
       },
@@ -225,21 +278,35 @@ export function SajuCalculator() {
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-3 text-sm">
-          <span className="text-xs uppercase tracking-wide text-muted">시간 보정</span>
-          <Toggle
-            checked={form.useLongitude}
-            onChange={(v) => set('useLongitude', v)}
-            label="경도"
-            hint="지방평균태양시"
-          />
-          <Toggle
-            checked={form.useEquationOfTime}
-            onChange={(v) => set('useEquationOfTime', v)}
-            label="균시차"
-            hint="진태양시 ±16분"
-          />
-        </div>
+        <fieldset className="border-t border-border pt-3">
+          <legend className="text-xs uppercase tracking-wide text-muted">시간 기준</legend>
+
+          <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            {TIME_BASES.filter((basis) => !TIME_BASIS[basis].advanced).map((basis) => (
+              <BasisRadio
+                key={basis}
+                basis={basis}
+                checked={form.basis === basis}
+                onChange={() => set('basis', basis)}
+              />
+            ))}
+          </div>
+
+          {/* 진태양시는 쓰는 계통이 드물어 접어둔다. 고른 상태면 펼쳐 보인다. */}
+          <details className="mt-2" open={TIME_BASIS[form.basis].advanced}>
+            <summary className="cursor-pointer text-xs text-muted">고급</summary>
+            <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+              {TIME_BASES.filter((basis) => TIME_BASIS[basis].advanced).map((basis) => (
+                <BasisRadio
+                  key={basis}
+                  basis={basis}
+                  checked={form.basis === basis}
+                  onChange={() => set('basis', basis)}
+                />
+              ))}
+            </div>
+          </details>
+        </fieldset>
 
         {dirty && (
           <p className="text-sm text-secondary">
@@ -268,23 +335,26 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Toggle({
+/** 시간 기준 하나를 고르는 라디오. 세 개가 한 그룹이라 조합이 생기지 않는다. */
+function BasisRadio({
+  basis,
   checked,
   onChange,
-  label,
-  hint,
 }: {
+  basis: TimeBasis;
   checked: boolean;
-  onChange: (value: boolean) => void;
-  label: string;
-  hint: string;
+  onChange: () => void;
 }) {
+  const { label, hint } = TIME_BASIS[basis];
+
   return (
     <label className="flex cursor-pointer items-center gap-1.5">
       <input
-        type="checkbox"
+        type="radio"
+        name="time-basis"
+        value={basis}
         checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
+        onChange={onChange}
         className="accent-accent"
       />
       <span>{label}</span>
@@ -666,9 +736,20 @@ function TimeCorrections({ saju }: { saju: Saju }) {
   const { meta, pillars } = saju;
   const civil = pillars.meta.civilTime;
 
+  // 요청한 값이 아니라 실제로 적용된 보정에서 읽는다.
+  const applied = new Set(meta.corrections.map((correction) => correction.kind));
+  const basis = applied.has('equationOfTime')
+    ? 'trueSolar'
+    : applied.has('longitude')
+      ? 'localMean'
+      : 'record';
+
   return (
     <section className={CARD}>
-      <h2 className="text-xs uppercase tracking-wide text-muted">적용된 보정</h2>
+      <h2 className="text-xs uppercase tracking-wide text-muted">
+        적용된 보정
+        <span className="ml-2 text-secondary normal-case">{TIME_BASIS[basis].label}</span>
+      </h2>
 
       {meta.inputTime.hour === null ? (
         <p className="mt-2 mb-3 text-sm text-secondary">
