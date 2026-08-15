@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import * as saju from '@/src/lib/saju';
 import { computeSaju } from '@/src/lib/saju';
 import {
   InvalidSajuInputError,
@@ -226,6 +227,21 @@ describe('입력 정규화(normalizeSajuInput)', () => {
       civil: { year: 2025, month: 6, day: 15, hour: 12, minute: 0, second: 0 },
       hourKnown: false,
     });
+  });
+});
+
+describe('공개 표면 — 배럴이 내보내는 것', () => {
+  it('저수준 4주 도출 함수는 배럴에 없다', () => {
+    // `export * from './pillars'` 로 되돌리면 여기서 걸린다.
+    // 저 함수들은 "이미 보정된 절대 시각"을 요구하는데, 그 보정이 엔진의
+    // 절반이라 밖에서 부르면 조용히 다른 사주가 나온다.
+    expect('getFourPillars' in saju).toBe(false);
+    expect('getPillarsWithoutHour' in saju).toBe(false);
+  });
+
+  it('시간 미상의 공식 경로는 computeSaju 하나다', () => {
+    expect(typeof saju.computeSaju).toBe('function');
+    expect(saju.computeSaju({ year: 2025, month: 6, day: 15, hour: null }).pillars.hour).toBeNull();
   });
 });
 

@@ -3,9 +3,10 @@ import type { CivilDateTime } from './civilTime';
 import { normalizeSajuInput, type SajuInput } from './input';
 import {
   getFourPillars,
-  type FourPillars,
+  getPillarsWithoutHour,
   type LateNightRule,
   type PillarOptions,
+  type Pillars,
 } from './pillars';
 import {
   correctTime,
@@ -18,9 +19,31 @@ export * from './analysis';
 export * from './civilTime';
 export * from './constants';
 export * from './input';
-export * from './pillars';
 export * from './solarTerms';
 export * from './timeCorrection';
+
+// 간지 도출 원시 함수들은 그대로 열어둔다 — 계약이랄 것이 없는 순수 표 조회다.
+export * from './pillars/day';
+export * from './pillars/hour';
+export * from './pillars/month';
+export * from './pillars/year';
+
+/**
+ * 4주 도출 함수(`getFourPillars`·`getPillarsWithoutHour`)는 **일부러 빼둔다.**
+ *
+ * 둘 다 "이미 보정된 절대 시각"을 요구하는데, 그 시각을 만드는 일이 이 엔진의
+ * 절반이다(표준시 이력·서머타임·경도). 보정 없이 부르면 조용히 다른 사주가
+ * 나오므로, 밖으로는 `computeSaju` 하나만 낸다.
+ */
+export {
+  DEFAULT_LATE_NIGHT_RULE,
+  UNKNOWN_PILLAR_MARK,
+  formatPillars,
+  type FourPillars,
+  type LateNightRule,
+  type PillarOptions,
+  type Pillars,
+} from './pillars';
 
 /**
  * 만세력 엔진의 입구 — 입력 검증, 시간 보정, 4주 도출을 이어 붙인다.
@@ -39,7 +62,8 @@ export type SajuOptions = TimeCorrectionOptions & {
 };
 
 export type Saju = {
-  pillars: FourPillars;
+  /** 시간 미상 입력이면 `pillars.hour` 가 `null` 이다 */
+  pillars: Pillars;
   /** 오행 분포·십성·신강신약 — L2 관계 연산이 먹고 들어가는 재료 */
   analysis: Analysis;
   meta: {
@@ -76,10 +100,14 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     lateNightRule,
     zoneOffsetMinutes: corrected.zoneOffsetMinutes,
     solarTimeOffsetMinutes: corrected.solarTimeOffsetMinutes,
-    hourKnown,
   };
 
-  const pillars = getFourPillars(corrected.instant, pillarOptions);
+  // 시간 미상이면 `resolvedTime` 이 정오로 채워져 있고, 그 시각을 보정한
+  // `instant` 가 그대로 넘어간다 — 시주 없는 계산이 요구하는 조건이 여기서
+  // 지켜진다. 두 줄이 나란히 있어야 하는 이유이기도 하다.
+  const pillars: Pillars = hourKnown
+    ? getFourPillars(corrected.instant, pillarOptions)
+    : getPillarsWithoutHour(corrected.instant, pillarOptions);
 
   const totalCorrectionMinutes = corrected.corrections.reduce(
     (sum, correction) => sum + correction.minutes,

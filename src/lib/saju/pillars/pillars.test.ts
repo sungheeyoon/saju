@@ -39,7 +39,7 @@ function names(pillars: FourPillars) {
     year: pillars.year.name,
     month: pillars.month.name,
     day: pillars.day.name,
-    hour: pillars.hour?.name ?? null,
+    hour: pillars.hour.name,
   };
 }
 
@@ -265,7 +265,7 @@ describe('4주 통합 — 조자시/야자시', () => {
     );
     expect(jo.meta.lateNightShiftApplied).toBe(true);
     expect(jo.day.name).toBe(dayPillarOf({ year: 2025, month: 6, day: 16 }).name);
-    expect(jo.hour!.branch).toBe('子');
+    expect(jo.hour.branch).toBe('子');
   });
 
   it('야자시는 일주를 자정에 넘긴다', () => {
@@ -275,7 +275,7 @@ describe('4주 통합 — 조자시/야자시', () => {
     );
     expect(ya.meta.lateNightShiftApplied).toBe(false);
     expect(ya.day.name).toBe(dayPillarOf({ year: 2025, month: 6, day: 15 }).name);
-    expect(ya.hour!.branch).toBe('子');
+    expect(ya.hour.branch).toBe('子');
   });
 
   it('두 규칙이 23시대에만 갈린다', () => {
@@ -335,12 +335,10 @@ describe('4주 통합 — 구조 불변식', () => {
       const pillars = getFourPillars(instant);
       for (const key of ['year', 'month', 'day', 'hour'] as const) {
         const pillar = pillars[key];
-        // 시각을 넘겼으므로 네 자리가 모두 차 있어야 한다.
-        expect(pillar, `${instant.toISOString()} ${key}`).not.toBeNull();
         expect(
-          pillarIndexOf(pillar!.stem, pillar!.branch),
-          `${instant.toISOString()} ${key}=${pillar!.name}`,
-        ).toBe(pillar!.index);
+          pillarIndexOf(pillar.stem, pillar.branch),
+          `${instant.toISOString()} ${key}=${pillar.name}`,
+        ).toBe(pillar.index);
       }
       expect(pillars.dayMaster).toBe(pillars.day.stem);
     }
@@ -348,7 +346,7 @@ describe('4주 통합 — 구조 불변식', () => {
 
   it('하루 24시간이 12개 시지를 두 번씩 돈다', () => {
     const branches = Array.from({ length: 24 }, (_, h) =>
-      getFourPillars(kst(2025, 6, 15, h), { lateNightRule: 'ya' }).hour!.branch,
+      getFourPillars(kst(2025, 6, 15, h), { lateNightRule: 'ya' }).hour.branch,
     );
     expect(new Set(branches).size).toBe(12);
   });

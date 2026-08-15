@@ -51,25 +51,18 @@ export type PillarOptions = {
    * 절입 시각을 30분씩 밀어버리는 일이 없다.
    */
   solarTimeOffsetMinutes?: number;
-  /**
-   * 출생 시각을 아는가. `false` 면 시주를 뽑지 않는다.
-   *
-   * 이때 `instant` 는 정오를 대표값으로 만든 시각이어야 한다 — 일주가
-   * 자시 경계에 걸리지 않는 자리이기 때문이다.
-   */
-  hourKnown?: boolean;
 };
 
-export type FourPillars = {
+/**
+ * 4주 도출 결과. **시주는 출생 시각을 알 때만 나온다.**
+ *
+ * 모르는 시각을 정오로 메워 午시를 내놓는 것보다, 없는 것을 없다고 말하는
+ * 편이 쓰는 쪽에서 안전하다. 시주가 반드시 있는 결과는 `FourPillars` 다.
+ */
+export type Pillars = {
   year: Pillar;
   month: Pillar;
   day: Pillar;
-  /**
-   * 시주. **출생 시각을 모르면 `null`** 이다.
-   *
-   * 이름은 넷이지만 셋만 나올 수 있다. 모르는 시각을 정오로 메워 午시를
-   * 내놓는 것보다, 없는 것을 없다고 말하는 편이 쓰는 쪽에서 안전하다.
-   */
   hour: Pillar | null;
   /** 일간 — 사주에서 '나'에 해당한다 */
   dayMaster: Stem;
@@ -92,6 +85,13 @@ export type FourPillars = {
     warnings: string[];
   };
 };
+
+/**
+ * 시주까지 확정된 4주 — `getFourPillars` 가 내는 결과.
+ *
+ * 타입이 곧 약속이다. 이 값을 받은 쪽은 `hour` 의 널 검사를 하지 않아도 된다.
+ */
+export type FourPillars = Pillars & { hour: Pillar };
 
 /** 절기 경계에 이만큼 가까우면 경고한다 — 시간 보정만으로도 월주가 뒤집히는 폭 */
 const TERM_BOUNDARY_WARNING_MINUTES = 60;
@@ -181,17 +181,22 @@ function collectWarnings(
 }
 
 /**
- * 절대 시각으로부터 사주 4주를 도출한다.
+ * 4주 도출의 공통 구현. 모듈 밖으로 내보내지 않는다.
  *
- * 보정값 계산은 이 함수의 책임이 아니다. `timeCorrection`이 산출한
- * `zoneOffsetMinutes`·`solarTimeOffsetMinutes`를 받아 쓰기만 한다.
+ * `hourKnown` 이 옵션이 아니라 인자인 이유: 옵션으로 열어두면 호출자가
+ * `false` 를 넘길 수 있고, 그러면 "그럴 때 `instant` 는 정오여야 한다"는
+ * 숨은 계약이 공개 API에 남는다. 그 계약을 지킬 수 있는 자리는 벽시계를
+ * 정오로 채우는 `computeSaju` 뿐이므로, 통로를 그쪽으로만 낸다.
  */
-export function getFourPillars(instant: Date, options: PillarOptions = {}): FourPillars {
+function derivePillars(
+  instant: Date,
+  options: PillarOptions,
+  hourKnown: boolean,
+): Pillars {
   const {
     lateNightRule = DEFAULT_LATE_NIGHT_RULE,
     zoneOffsetMinutes = KST_OFFSET_MINUTES,
     solarTimeOffsetMinutes = 0,
-    hourKnown = true,
   } = options;
 
   // 시주·일주가 볼 시계 — 지방시 보정이 여기에만 반영된다.
@@ -239,6 +244,36 @@ export function getFourPillars(instant: Date, options: PillarOptions = {}): Four
   };
 }
 
+/**
+ * 절대 시각으로부터 사주 4주를 도출한다 — **시각을 아는 계산만** 맡는다.
+ *
+ * 보정값 계산은 이 함수의 책임이 아니다. `timeCorrection`이 산출한
+ * `zoneOffsetMinutes`·`solarTimeOffsetMinutes`를 받아 쓰기만 한다.
+ *
+ * 시간 미상 계산의 공식 경로는 `computeSaju({ hour: null })` 하나뿐이다.
+ * 저수준 시간 미상 API가 실제로 필요해지면 그때 전용 함수를 만든다 —
+ * 지금 옵션으로 열어두면 "정오 instant를 넘겨라"는 계약만 남는다.
+ */
+export function getFourPillars(instant: Date, options: PillarOptions = {}): FourPillars {
+  // 시각을 아는 계산이므로 시주가 비지 않는다. 타입으로 그것을 약속한다.
+  return derivePillars(instant, options, true) as FourPillars;
+}
+
+/**
+ * 시간 미상 계산 — `computeSaju` 전용 통로다. 배럴(`src/lib/saju/index.ts`)에서
+ * 내보내지 않는다.
+ *
+ * `instant` 는 **정오 벽시계를 보정한 시각**이어야 한다. 정오여야 하는 이유는
+ * 경도·서머타임 보정이 최대 한 시간 남짓 시계를 밀기 때문이다. 자정 부근을
+ * 넘기면 그 보정만으로 달력 날짜가 하루 어긋나 일주가 바뀐다.
+ *
+ * 이 계약을 지킬 수 있는 자리는 벽시계를 정오로 채우는 쪽(`normalizeSajuInput`)
+ * 뿐이고, 그 값이 이 함수까지 그대로 이어진다.
+ */
+export function getPillarsWithoutHour(instant: Date, options: PillarOptions = {}): Pillars {
+  return derivePillars(instant, options, false);
+}
+
 /** 시주가 비었을 때 자리를 지키는 표기 */
 export const UNKNOWN_PILLAR_MARK = '시미상';
 
@@ -248,7 +283,7 @@ export const UNKNOWN_PILLAR_MARK = '시미상';
  * 세로쓰기를 오른쪽에서 왼쪽으로 읽던 관례가 남은 것이라, 년주가 아니라
  * 시주가 맨 앞에 온다. 시각을 모르면 첫 자리가 `시미상`이 된다.
  */
-export function formatPillars(pillars: FourPillars): string {
+export function formatPillars(pillars: Pillars): string {
   return [pillars.hour, pillars.day, pillars.month, pillars.year]
     .map((p) => p?.name ?? UNKNOWN_PILLAR_MARK)
     .join(' ');

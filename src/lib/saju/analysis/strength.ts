@@ -8,7 +8,7 @@ import {
   STEM_INFO,
   type Element,
 } from '../constants';
-import type { FourPillars } from '../pillars';
+import type { Pillars } from '../pillars';
 import { elementDistributionOf, type ElementWeights } from './fiveElements';
 import { TEN_GOD_GROUP, TEN_GOD_KO, tenGodOfBranch, type TenGodGroup } from './tenGods';
 
@@ -85,7 +85,7 @@ function supports(dayMasterElement: Element, element: Element): boolean {
   return element === dayMasterElement || element === GENERATED_BY[dayMasterElement];
 }
 
-export function strengthOf(pillars: FourPillars, options: StrengthOptions = {}): Strength {
+export function strengthOf(pillars: Pillars, options: StrengthOptions = {}): Strength {
   const {
     weights,
     overallThreshold = DEFAULT_STRENGTH_OPTIONS.overallThreshold,

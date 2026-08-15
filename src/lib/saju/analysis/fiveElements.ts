@@ -6,7 +6,7 @@ import {
   STEM_INFO,
   type Element,
 } from '../constants';
-import type { FourPillars } from '../pillars';
+import type { Pillars } from '../pillars';
 import { PILLAR_KEYS, type PillarKey } from './tenGods';
 
 /**
@@ -61,7 +61,7 @@ function emptyTally(): Record<Element, number> {
 }
 
 export function elementDistributionOf(
-  pillars: FourPillars,
+  pillars: Pillars,
   weights: Partial<ElementWeights> = {},
 ): ElementDistribution {
   const { stem, branch, monthBranchMultiplier } = { ...DEFAULT_ELEMENT_WEIGHTS, ...weights };

@@ -1,4 +1,4 @@
-import type { FourPillars } from '../pillars';
+import type { Pillars } from '../pillars';
 import { elementDistributionOf, type ElementDistribution, type ElementWeights } from './fiveElements';
 import { strengthOf, type Strength, type StrengthOptions } from './strength';
 import { tenGodChartOf, tenGodCountsOf, type TenGod, type TenGodChart } from './tenGods';
@@ -27,7 +27,7 @@ export type AnalysisOptions = {
 };
 
 export function analyzePillars(
-  pillars: FourPillars,
+  pillars: Pillars,
   options: AnalysisOptions = {},
 ): Analysis {
   const tenGods = tenGodChartOf(pillars);

@@ -8,7 +8,7 @@ import {
   type HiddenStemRole,
   type Stem,
 } from '../constants';
-import type { FourPillars } from '../pillars';
+import type { Pillars } from '../pillars';
 
 /**
  * 십성(十星) — 일간에서 본 다른 간지의 역할.
@@ -117,7 +117,7 @@ export type TenGodChart = {
 export const PILLAR_KEYS = ['year', 'month', 'day', 'hour'] as const;
 export type PillarKey = (typeof PILLAR_KEYS)[number];
 
-export function tenGodChartOf(pillars: FourPillars): TenGodChart {
+export function tenGodChartOf(pillars: Pillars): TenGodChart {
   const dayMaster = pillars.dayMaster;
 
   const forPillar = (key: PillarKey): PillarTenGods | null => {
