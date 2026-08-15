@@ -34,6 +34,11 @@ import type { Pillars } from '../pillars';
  *    내고 `adjacent`·`distance` 를 남긴다. 인접만 보고 싶으면 걸러 쓰면 된다.
  * 2. **반쪽만 모인 것도 낸다.** 왕지를 낀 반합, 두 글자만 모인 삼형·방합을
  *    `full: false` 로 표시해 함께 낸다. 실제 감명에서 가장 자주 쓰는 정보다.
+ *    다만 왕지 없는 두 글자(申辰, 寅辰)는 내지 않는다 — 어느 계통에서도
+ *    관계로 치지 않아서, 낸 다음 기본값으로 숨기는 항목이 될 뿐이다.
+ *    `full` 은 글자를 다 세었는가일 뿐 유효성 판정이 아니다. 두 글자 삼형을
+ *    그 자체로 온전한 형으로 보는 계통은 `full: false` + `direction` 을 읽으면
+ *    된다 — 계통을 하나 골라 kind 를 나누는 대신 사실만 남긴다.
  * 3. **쟁합·투합은 검출하되 성사 여부는 판정하지 않는다.** 한 글자를 둘이
  *    다투는 것은 관찰 가능한 사실이라 `contested` 에 남긴다. 그러나 "그래서
  *    합이 깨진다"는 결론은 내지 않는다 — 충이 합을 깨는지, 합이 충을 푸는지는
@@ -80,6 +85,25 @@ export const RELATION_KIND_KO: Record<RelationKind, string> = {
   branchResentment: '원진',
 };
 
+/**
+ * 이 엔진이 채택한 규칙 묶음.
+ *
+ * 넷 다 학파 갈림이라 언젠가 바뀐다. 바뀐 뒤에 "결과가 왜 달라졌나"를
+ * 되짚으려면 어느 규칙으로 뽑은 값인지가 결과 곁에 남아 있어야 한다.
+ * 골든 스냅샷이 이 값을 찍으므로, 정책이 바뀌면 diff 맨 위에 드러난다.
+ */
+export const RELATION_POLICY = {
+  ruleSet: 'visible-relations-v1',
+  /** 떨어진 기둥끼리도 전부 검출하고 거리만 기록한다 */
+  distantRelations: 'detect-all',
+  /** 반쪽은 왕지를 낀 것만 — 삼합·방합 공통. 삼형에는 왕지가 없어 조건이 없다 */
+  partialStructures: 'peak-required',
+  /** 쟁합·투합만 검출하고 승패는 가리지 않는다 */
+  interactionResolution: 'contest-only',
+  /** 지장간은 관계 검출에 쓰지 않는다 (데이터는 그대로 있다) */
+  hiddenStemRelations: 'disabled',
+} as const;
+
 /** 정렬 기준 — 합을 먼저, 그다음 충·형·해·파·원진 */
 const KIND_ORDER: readonly RelationKind[] = [
   'stemCombination',
@@ -112,22 +136,47 @@ export type Contest = {
   rivals: readonly Participant[];
 };
 
+/**
+ * 형(刑)의 방향 — 삼형은 순환한다. 寅刑巳, 巳刑申, 申刑寅.
+ *
+ * 두 글자만 모이면 그 순환에서 어느 쪽이 어느 쪽을 형하는지가 정해진다.
+ * 세 글자가 다 모인 삼형은 순환이라 시작도 끝도 없고, 상형(子卯)은 서로
+ * 형하며, 자형은 자기 자신이므로 셋 다 방향이 없다.
+ */
+export type PunishmentDirection = {
+  from: Participant;
+  to: Participant;
+};
+
 export type Relation = {
   kind: RelationKind;
   tier: RelationTier;
-  /** 관계의 한글 이름 (예: '자오충', '신자 반합'). 표기 순서는 표의 순서다 */
+  /** 관계의 한글 이름 (예: '자오충', '신자 반합') */
   ko: string;
   /** 형(刑)의 이름 — 무은지형·지세지형·무례지형·자형. 그 외에는 null */
   name: string | null;
   /** 참여한 글자들 — 년 → 시 순서 */
   participants: readonly Participant[];
-  /** 합화(合化)한 오행 — 합 계열만 채워진다 */
-  result: Element | null;
   /**
-   * 세 글자짜리 관계(삼합·방합·삼형)가 온전히 모였는가.
+   * 합(合) 계열이 지향하는 오행.
+   *
+   * `result` 가 아니라 `targetElement` 인 이유가 있다. 글자가 모였다는 사실이
+   * 곧 합화(合化)를 뜻하지는 않는다 — 화(化)하려면 월령과 세력이 받쳐줘야
+   * 한다는 것이 통설이고, 그 판정은 여기서 하지 않는다. 이 값은 "성사되면
+   * 무엇이 되는가"이지 "무엇이 되었다"가 아니다.
+   */
+  targetElement: Element | null;
+  /**
+   * 세 글자짜리 관계(삼합·방합·삼형)의 글자가 다 모였는가.
    * 두 글자짜리 관계는 언제나 `true` 다.
+   *
+   * 이것은 세었다는 사실일 뿐 유효성 판정이 아니다. 두 글자만 모인 삼형을
+   * 그 자체로 온전한 형으로 보는 계통도 있는데, 그 해석은 `full: false` 와
+   * `direction` 을 함께 읽어 쓰는 쪽에서 하면 된다.
    */
   full: boolean;
+  /** 형의 방향. 방향이 없는 관계는 null */
+  direction: PunishmentDirection | null;
   /** 참여한 기둥들이 연달아 붙어 있는가 */
   adjacent: boolean;
   /** 가장 멀리 떨어진 두 기둥 사이의 칸 수 — 이웃이면 1, 년주와 시주면 3 */
@@ -203,13 +252,19 @@ function orderedKo(slots: readonly Slot[], order: readonly Branch[]): string {
     .join('');
 }
 
+const participantOf = (slot: Slot, tier: RelationTier): Participant => ({
+  position: slot.position,
+  char: tier === 'stem' ? slot.stem : slot.branch,
+});
+
 function makeRelation(args: {
   kind: RelationKind;
   tier: RelationTier;
   ko: string;
   name?: string;
-  result?: Element;
+  targetElement?: Element;
   full?: boolean;
+  direction?: { from: Slot; to: Slot };
   slots: readonly Slot[];
 }): Relation {
   const ordered = [...args.slots].sort(
@@ -223,12 +278,15 @@ function makeRelation(args: {
     tier: args.tier,
     ko: args.ko,
     name: args.name ?? null,
-    participants: ordered.map((s) => ({
-      position: s.position,
-      char: args.tier === 'stem' ? s.stem : s.branch,
-    })),
-    result: args.result ?? null,
+    participants: ordered.map((s) => participantOf(s, args.tier)),
+    targetElement: args.targetElement ?? null,
     full: args.full ?? true,
+    direction: args.direction
+      ? {
+          from: participantOf(args.direction.from, args.tier),
+          to: participantOf(args.direction.to, args.tier),
+        }
+      : null,
     // 세 기둥짜리 관계는 세 자리가 연달아야 붙은 것이다 (거리 2).
     adjacent: distance === ordered.length - 1,
     distance,
@@ -251,7 +309,7 @@ function stemRelations(slots: readonly Slot[]): Relation[] {
           kind: 'stemCombination',
           tier: 'stem',
           ko: combination.ko,
-          result: combination.result,
+          targetElement: combination.result,
           slots: [a, b],
         }),
       );
@@ -284,7 +342,7 @@ function branchPairRelations(slots: readonly Slot[]): Relation[] {
           kind: 'branchSixCombination',
           tier: 'branch',
           ko: six.ko,
-          result: six.result,
+          targetElement: six.result,
           slots: pair,
         }),
       );
@@ -416,7 +474,7 @@ function tripleCombinationRelations(slots: readonly Slot[]): Relation[] {
           kind: 'branchTripleCombination',
           tier: 'branch',
           ko: c.ko,
-          result: c.result,
+          targetElement: c.result,
           slots: group,
         }),
       ),
@@ -425,7 +483,7 @@ function tripleCombinationRelations(slots: readonly Slot[]): Relation[] {
           kind: 'branchTripleCombination',
           tier: 'branch',
           ko: `${orderedKo(group, c.branches)} 반합`,
-          result: c.result,
+          targetElement: c.result,
           full: false,
           slots: group,
         }),
@@ -444,7 +502,7 @@ function directionalCombinationRelations(slots: readonly Slot[]): Relation[] {
           kind: 'branchDirectionalCombination',
           tier: 'branch',
           ko: c.ko,
-          result: c.result,
+          targetElement: c.result,
           slots: group,
         }),
       ),
@@ -453,7 +511,7 @@ function directionalCombinationRelations(slots: readonly Slot[]): Relation[] {
           kind: 'branchDirectionalCombination',
           tier: 'branch',
           ko: `${orderedKo(group, c.branches)} 반방합`,
-          result: c.result,
+          targetElement: c.result,
           full: false,
           slots: group,
         }),
@@ -462,11 +520,28 @@ function directionalCombinationRelations(slots: readonly Slot[]): Relation[] {
   });
 }
 
+/**
+ * 삼형의 순환에서 두 글자의 방향을 읽는다 — 寅刑巳, 巳刑申, 申刑寅.
+ *
+ * 표의 배열 순서가 곧 순환 순서라, 뒤 글자가 앞 글자를 형하는 것은
+ * 한 바퀴 돌아온 마지막 짝(申→寅) 하나뿐이다. 표 순서대로만 이름을 지으면
+ * 그 짝이 '인신형'으로 뒤집혀 나온다.
+ */
+function punishmentDirectionOf(
+  cycle: readonly [Branch, Branch, Branch],
+  a: Slot,
+  b: Slot,
+): { from: Slot; to: Slot } {
+  const next = (branch: Branch) => cycle[(cycle.indexOf(branch) + 1) % cycle.length];
+  return next(a.branch) === b.branch ? { from: a, to: b } : { from: b, to: a };
+}
+
 function triplePunishmentRelations(slots: readonly Slot[]): Relation[] {
   return TRIPLE_PUNISHMENTS.flatMap((p) => {
     const { full, partial } = matchGroups(slots, p.branches, null);
 
     return [
+      // 세 글자가 다 모인 삼형은 순환이라 시작도 끝도 없다 — 방향이 없다.
       ...full.map((group) =>
         makeRelation({
           kind: 'branchPunishment',
@@ -477,16 +552,19 @@ function triplePunishmentRelations(slots: readonly Slot[]): Relation[] {
         }),
       ),
       // 두 글자만 모인 삼형. 이름은 어느 삼형에서 온 조각인지 알려주려고 남긴다.
-      ...partial.map((group) =>
-        makeRelation({
+      ...partial.map((group) => {
+        const direction = punishmentDirectionOf(p.branches, group[0], group[1]);
+
+        return makeRelation({
           kind: 'branchPunishment',
           tier: 'branch',
-          ko: `${orderedKo(group, p.branches)}형`,
+          ko: `${branchKo(direction.from.branch)}${branchKo(direction.to.branch)}형`,
           name: p.name,
           full: false,
+          direction,
           slots: group,
-        }),
-      ),
+        });
+      }),
     ];
   });
 }

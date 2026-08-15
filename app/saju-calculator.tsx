@@ -430,9 +430,14 @@ function RelationTable({ saju }: { saju: Saju }) {
                   </td>
                   <td className="py-1.5 pl-3 text-xs text-muted">
                     <span className="flex flex-wrap gap-x-2.5 gap-y-0.5">
-                      {relation.result && (
+                      {relation.targetElement && (
                         <span className="text-secondary">
-                          합화 {ELEMENT_KO[relation.result]}
+                          합화 오행 {ELEMENT_KO[relation.targetElement]}
+                        </span>
+                      )}
+                      {relation.direction && (
+                        <span>
+                          {relation.direction.from.char}이 {relation.direction.to.char}를 형
                         </span>
                       )}
                       {!relation.full && <span>반쪽</span>}

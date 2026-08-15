@@ -134,7 +134,14 @@ export const BRANCH_CLASHES: readonly BranchPair[] = [
   { branches: ['巳', '亥'], ko: '사해충' },
 ];
 
-/** 형(刑)은 세 지지가 모이는 삼형, 두 지지의 상형, 같은 지지가 겹치는 자형으로 나뉜다. */
+/**
+ * 형(刑)은 세 지지가 모이는 삼형, 두 지지의 상형, 같은 지지가 겹치는 자형으로 나뉜다.
+ *
+ * **삼형의 `branches` 배열 순서는 형하는 순환 순서다** — 寅刑巳, 巳刑申, 申刑寅.
+ * 두 글자만 모였을 때 어느 쪽이 어느 쪽을 형하는지가 이 순서에서 나오므로
+ * 임의로 정렬하면 안 된다. 상형(子卯)은 서로 형하고 자형은 자기 자신이라
+ * 둘 다 방향이 없다.
+ */
 export type BranchPunishment =
   | { kind: 'triple'; branches: readonly [Branch, Branch, Branch]; ko: string; name: string }
   | { kind: 'mutual'; branches: readonly [Branch, Branch]; ko: string; name: string }

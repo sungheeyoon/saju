@@ -22,6 +22,7 @@ import {
 import {
   PILLAR_POSITIONS,
   RELATION_KIND_KO,
+  RELATION_POLICY,
   findRelations,
   formatRelation,
   type Relation,
@@ -94,7 +95,7 @@ describe('표 전수 검사 — 상수 표의 모든 항목이 검출된다', ()
     expect(found).toBeDefined();
     expect(found?.kind).toBe('stemCombination');
     expect(found?.tier).toBe('stem');
-    expect(found?.result).toBe(result);
+    expect(found?.targetElement).toBe(result);
   });
 
   it.each(STEM_CLASHES)('천간충 $ko', ({ stems, ko }) => {
@@ -103,7 +104,7 @@ describe('표 전수 검사 — 상수 표의 모든 항목이 검출된다', ()
 
     expect(found).toBeDefined();
     expect(found?.kind).toBe('stemClash');
-    expect(found?.result).toBeNull();
+    expect(found?.targetElement).toBeNull();
   });
 
   it.each(BRANCH_SIX_COMBINATIONS)('지지육합 $ko', ({ branches, ko, result }) => {
@@ -112,7 +113,7 @@ describe('표 전수 검사 — 상수 표의 모든 항목이 검출된다', ()
 
     expect(found).toBeDefined();
     expect(found?.kind).toBe('branchSixCombination');
-    expect(found?.result).toBe(result);
+    expect(found?.targetElement).toBe(result);
   });
 
   it.each(BRANCH_CLASHES)('지지충 $ko', ({ branches, ko }) => {
@@ -142,7 +143,7 @@ describe('표 전수 검사 — 상수 표의 모든 항목이 검출된다', ()
     expect(found).toBeDefined();
     expect(found?.kind).toBe('branchTripleCombination');
     expect(found?.full).toBe(true);
-    expect(found?.result).toBe(result);
+    expect(found?.targetElement).toBe(result);
   });
 
   it.each(BRANCH_DIRECTIONAL_COMBINATIONS)('방합 $ko', ({ branches, ko, result }) => {
@@ -152,7 +153,7 @@ describe('표 전수 검사 — 상수 표의 모든 항목이 검출된다', ()
     expect(found).toBeDefined();
     expect(found?.kind).toBe('branchDirectionalCombination');
     expect(found?.full).toBe(true);
-    expect(found?.result).toBe(result);
+    expect(found?.targetElement).toBe(result);
   });
 
   it.each(BRANCH_PUNISHMENTS)('형 $ko', (punishment) => {
@@ -259,7 +260,7 @@ describe('반쪽만 모인 것 — full: false', () => {
     expect(withPeak.find((r) => r.ko === '자진 반합')).toMatchObject({
       kind: 'branchTripleCombination',
       full: false,
-      result: '水',
+      targetElement: '水',
     });
     expect(
       withoutPeak.filter((r) => r.kind === 'branchTripleCombination'),
@@ -273,7 +274,7 @@ describe('반쪽만 모인 것 — full: false', () => {
     expect(withPeak.find((r) => r.kind === 'branchDirectionalCombination')).toMatchObject({
       ko: '묘진 반방합',
       full: false,
-      result: '木',
+      targetElement: '木',
     });
     expect(
       withoutPeak.filter((r) => r.kind === 'branchDirectionalCombination'),
@@ -306,6 +307,78 @@ describe('반쪽만 모인 것 — full: false', () => {
     expect(halves).toHaveLength(2);
     expect(halves.every((r) => !r.full && r.ko === '신자 반합')).toBe(true);
     expect(halves.map((r) => r.participants[1].position)).toEqual(['month', 'hour']);
+  });
+});
+
+describe('형의 방향 — 삼형은 순환한다', () => {
+  const punishmentOf = (a: Branch, b: Branch) =>
+    findRelations(branchChart(a, b, '子', null)).find((r) => r.kind === 'branchPunishment');
+
+  /** 寅刑巳, 巳刑申, 申刑寅 — 마지막 짝만 표 순서와 반대다 */
+  it.each([
+    ['寅', '巳', '인사형', '寅', '巳'],
+    ['巳', '申', '사신형', '巳', '申'],
+    ['寅', '申', '신인형', '申', '寅'],
+  ] as const)('%s %s → %s', (a, b, ko, from, to) => {
+    const found = punishmentOf(a, b);
+
+    expect(found?.ko).toBe(ko);
+    expect(found?.direction?.from.char).toBe(from);
+    expect(found?.direction?.to.char).toBe(to);
+  });
+
+  /** 丑刑戌, 戌刑未, 未刑丑 */
+  it.each([
+    ['丑', '戌', '축술형', '丑', '戌'],
+    ['戌', '未', '술미형', '戌', '未'],
+    ['丑', '未', '미축형', '未', '丑'],
+  ] as const)('%s %s → %s', (a, b, ko, from, to) => {
+    const found = punishmentOf(a, b);
+
+    expect(found?.ko).toBe(ko);
+    expect(found?.direction?.from.char).toBe(from);
+    expect(found?.direction?.to.char).toBe(to);
+  });
+
+  it('방향은 자리도 함께 가리킨다', () => {
+    // 시지 申이 년지 寅을 형한다 — 자리가 뒤바뀌면 뜻이 달라진다.
+    const found = findRelations(branchChart('寅', '子', '子', '申')).find(
+      (r) => r.kind === 'branchPunishment',
+    );
+
+    expect(found?.direction).toEqual({
+      from: { position: 'hour', char: '申' },
+      to: { position: 'year', char: '寅' },
+    });
+  });
+
+  it('세 글자가 다 모인 삼형은 순환이라 방향이 없다', () => {
+    const found = findRelations(branchChart('寅', '巳', '申', null)).find(
+      (r) => r.kind === 'branchPunishment',
+    );
+
+    expect(found?.full).toBe(true);
+    expect(found?.direction).toBeNull();
+  });
+
+  it('상형과 자형에는 방향이 없다', () => {
+    const mutual = findRelations(branchChart('子', '卯', '寅', null)).find(
+      (r) => r.ko === '자묘형',
+    );
+    const self = findRelations(branchChart('辰', '辰', '寅', null)).find(
+      (r) => r.ko === '진진형',
+    );
+
+    expect(mutual?.direction).toBeNull();
+    expect(self?.direction).toBeNull();
+  });
+
+  it('형이 아닌 관계에는 방향이 없다', () => {
+    const relations = findRelations(chart('甲子', '己丑', '甲午', '庚午'));
+
+    expect(
+      relations.filter((r) => r.kind !== 'branchPunishment').every((r) => r.direction === null),
+    ).toBe(true);
   });
 });
 
@@ -394,6 +467,33 @@ describe('출력 계약', () => {
     expect(firstIndex('stemCombination')).toBeLessThan(firstIndex('stemClash'));
     expect(firstIndex('branchClash')).toBeLessThan(firstIndex('branchHarm'));
     expect(firstIndex('branchHarm')).toBeLessThan(firstIndex('branchResentment'));
+  });
+
+  it('두 글자의 자리를 맞바꿔도 같은 관계다', () => {
+    const forward = findRelations(branchChart('子', '午', '寅', null));
+    const swapped = findRelations(branchChart('午', '子', '寅', null));
+
+    expect(kosOf(swapped)).toEqual(kosOf(forward));
+  });
+
+  it('같은 종류·이름·자리 조합이 두 번 나오지 않는다', () => {
+    // 같은 글자가 겹쳐도 자리가 다르면 다른 관계다. 자리까지 같으면 중복이다.
+    const relations = findRelations(chart('甲子', '己丑', '甲午', '庚午'));
+    const keys = relations.map(
+      (r) => `${r.kind}:${r.ko}:${r.participants.map((p) => p.position).join('-')}`,
+    );
+
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('채택한 규칙 묶음을 결과 곁에 남긴다', () => {
+    expect(RELATION_POLICY).toEqual({
+      ruleSet: 'visible-relations-v1',
+      distantRelations: 'detect-all',
+      partialStructures: 'peak-required',
+      interactionResolution: 'contest-only',
+      hiddenStemRelations: 'disabled',
+    });
   });
 
   it('모든 관계 종류에 한글 이름이 있다', () => {

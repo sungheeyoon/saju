@@ -5,6 +5,7 @@ import { pillarIndexOf } from '@/src/lib/saju/constants';
 import { GOLDEN_CASES, type GoldenCase } from '@/src/lib/saju/golden/cases';
 import {
   DAEUN_DIRECTION_KO,
+  RELATION_POLICY,
   computeSaju,
   formatPillars,
   formatRelation,
@@ -54,9 +55,10 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
 
   for (const relation of saju.relations) {
     const notes = [
-      relation.result ? `합화 ${relation.result}` : null,
+      relation.targetElement ? `→ ${relation.targetElement}` : null,
       relation.full ? null : '반쪽',
       relation.adjacent ? null : `${relation.distance}칸`,
+      relation.direction ? `${relation.direction.from.char}→${relation.direction.to.char}` : null,
       relation.contested.length > 0 ? '쟁합' : null,
     ].filter((note): note is string => note !== null);
 
@@ -136,6 +138,13 @@ describe('골든 테스트', () => {
       '        거리를 조건으로 걸지 않고 밝히기만 한다(붙은 것만 보는 학파는 걸러 쓰면 된다).',
       '        반합·부분 삼형·반방합은 반쪽으로 표시해 함께 낸다. 지장간은 보지 않는다.',
       '        쟁합·투합은 사실만 표시하고 그래서 합이 깨지는지는 말하지 않는다.',
+      '        →X 는 합화 오행(성사되면 무엇이 되는가)이지 합화했다는 뜻이 아니다.',
+      '        寅→巳 는 형의 방향이다. 삼형의 순환에서 나오며 세 글자가 다 모이면 없다.',
+      '',
+      // 규칙이 바뀌면 스냅샷 맨 위에서 먼저 드러난다.
+      ...Object.entries(RELATION_POLICY).map(
+        ([key, value]) => `          ${key.padEnd(22)} ${value}`,
+      ),
       '',
       '  시간 미상  채택: 시주를 뽑지 않는다 (unknown-hour-* 케이스)',
       '',
