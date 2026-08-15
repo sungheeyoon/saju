@@ -10,6 +10,7 @@ import {
   type Pillars,
 } from './pillars';
 import { findRelations, type Relation } from './relations';
+import { computeSaeun, type Saeun, type SaeunOptions } from './saeun';
 import { analyzeSinsal, type Sinsal, type SinsalOptions } from './sinsal';
 import { twelveStagesOf, type Stages, type TwelveStageOptions } from './stages';
 import {
@@ -26,6 +27,7 @@ export * from './daeun';
 export * from './input';
 export * from './position';
 export * from './relations';
+export * from './saeun';
 export * from './sinsal';
 export * from './solarTerms';
 export * from './stages';
@@ -71,6 +73,7 @@ export type SajuOptions = TimeCorrectionOptions & {
   daeun?: DaeunOptions;
   stages?: TwelveStageOptions;
   sinsal?: SinsalOptions;
+  saeun?: SaeunOptions;
 };
 
 export type Saju = {
@@ -93,6 +96,12 @@ export type Saju = {
   stages: Stages;
   /** 공망 · 12신살 · 핵심 신살 여덟 */
   sinsal: Sinsal;
+  /**
+   * 세운 — 해마다의 간지와 그것이 원국과 무엇을 하는지.
+   *
+   * 기본은 출생한 사주년부터 열 해다. `saeun.fromYear`·`saeun.count` 로 옮긴다.
+   */
+  saeun: Saeun;
   /**
    * 10년 단위 대운.
    *
@@ -135,6 +144,7 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     daeun: daeunOptions,
     stages: stageOptions,
     sinsal: sinsalOptions,
+    saeun: saeunOptions,
     ...correctionOptions
   } = options;
 
@@ -182,6 +192,10 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     relations: findRelations(pillars),
     stages: twelveStagesOf(pillars, stageOptions),
     sinsal: analyzeSinsal(pillars, sinsalOptions),
+    saeun: computeSaeun(
+      { pillars, birthSajuYear: pillars.meta.sajuYear },
+      { stages: stageOptions, ...saeunOptions },
+    ),
     daeun,
     meta: {
       inputTime,

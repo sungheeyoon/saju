@@ -23,6 +23,7 @@ import { PILLAR_POSITIONS } from '@/src/lib/saju/position';
 import {
   RELATION_KIND_KO,
   RELATION_POLICY,
+  directionParticipantsOf,
   findRelations,
   formatRelation,
   type Relation,
@@ -214,8 +215,8 @@ describe('자리와 거리', () => {
     );
 
     expect(clash.participants).toEqual([
-      { position: 'day', char: '午' },
-      { position: 'hour', char: '子' },
+      { chartId: 'natal', position: 'day', char: '午' },
+      { chartId: 'natal', position: 'hour', char: '子' },
     ]);
     // 이름은 자리가 아니라 표의 순서를 따른다.
     expect(clash.ko).toBe('자오충');
@@ -322,9 +323,11 @@ describe('형의 방향 — 삼형은 순환한다', () => {
   ] as const)('%s %s → %s', (a, b, ko, from, to) => {
     const found = punishmentOf(a, b);
 
+    const arrow = found && directionParticipantsOf(found);
+
     expect(found?.ko).toBe(ko);
-    expect(found?.direction?.from.char).toBe(from);
-    expect(found?.direction?.to.char).toBe(to);
+    expect(arrow?.from.char).toBe(from);
+    expect(arrow?.to.char).toBe(to);
   });
 
   /** 丑刑戌, 戌刑未, 未刑丑 */
@@ -335,9 +338,11 @@ describe('형의 방향 — 삼형은 순환한다', () => {
   ] as const)('%s %s → %s', (a, b, ko, from, to) => {
     const found = punishmentOf(a, b);
 
+    const arrow = found && directionParticipantsOf(found);
+
     expect(found?.ko).toBe(ko);
-    expect(found?.direction?.from.char).toBe(from);
-    expect(found?.direction?.to.char).toBe(to);
+    expect(arrow?.from.char).toBe(from);
+    expect(arrow?.to.char).toBe(to);
   });
 
   it('방향은 자리도 함께 가리킨다', () => {
@@ -346,9 +351,9 @@ describe('형의 방향 — 삼형은 순환한다', () => {
       (r) => r.kind === 'branchPunishment',
     );
 
-    expect(found?.direction).toEqual({
-      from: { position: 'hour', char: '申' },
-      to: { position: 'year', char: '寅' },
+    expect(found && directionParticipantsOf(found)).toEqual({
+      from: { chartId: 'natal', position: 'hour', char: '申' },
+      to: { chartId: 'natal', position: 'year', char: '寅' },
     });
   });
 
@@ -407,11 +412,13 @@ describe('쟁합·투합', () => {
     );
 
     expect(combinations).toHaveLength(2);
+    const at = (position: string, char: string) => ({ chartId: 'natal', position, char });
+
     expect(combinations[0].contested).toEqual([
-      { over: { position: 'month', char: '己' }, rivals: [{ position: 'day', char: '甲' }] },
+      { over: at('month', '己'), rivals: [at('day', '甲')] },
     ]);
     expect(combinations[1].contested).toEqual([
-      { over: { position: 'month', char: '己' }, rivals: [{ position: 'year', char: '甲' }] },
+      { over: at('month', '己'), rivals: [at('year', '甲')] },
     ]);
   });
 

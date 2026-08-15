@@ -22,6 +22,7 @@ import {
   TWELVE_SPIRIT_KO,
   TWELVE_STAGE_KO,
   computeSaju,
+  directionParticipantsOf,
   type CityName,
   type Gender,
   type LateNightRule,
@@ -121,6 +122,8 @@ type Query = {
   gender: Gender;
   city: CityName;
   rule: LateNightRule;
+  /** 세운을 어느 해부터 볼지 */
+  saeunFrom: number;
   /** 시간 기준 — 경도·균시차를 함께 정한다 */
   basis: TimeBasis;
 };
@@ -134,6 +137,9 @@ const DEFAULT_QUERY: Query = {
   city: '서울',
   rule: 'jo',
   basis: 'localMean',
+  // 현재 연도를 쓰지 않는다. 이 페이지는 빌드 때 미리 그려지므로 브라우저에서
+  // 계산한 '올해'와 어긋나 하이드레이션이 깨진다. 고정값을 두고 사용자가 옮긴다.
+  saeunFrom: 2026,
 };
 
 type Result = { ok: true; saju: Saju } | { ok: false; message: string };
@@ -163,6 +169,7 @@ function calculate(query: Query): Result {
         longitude: CITY_LONGITUDES[query.city],
         useLongitude,
         useEquationOfTime,
+        saeun: { fromYear: query.saeunFrom, count: 10 },
         // useDst 는 넘기지 않는다 — 엔진 기본값이 '되돌린다'이고,
         // 그것이 물어볼 일 없는 사실이기 때문이다.
       },
@@ -276,6 +283,17 @@ export function SajuCalculator() {
             </select>
           </Field>
 
+          <Field label="세운 시작">
+            <input
+              type="number"
+              value={form.saeunFrom}
+              min={1900}
+              max={2100}
+              onChange={(e) => set('saeunFrom', Number(e.target.value))}
+              className={`${FIELD} w-24`}
+            />
+          </Field>
+
           <button
             type="submit"
             className="h-9 rounded-md bg-accent px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
@@ -374,6 +392,7 @@ function SajuView({ saju }: { saju: Saju }) {
     <div className="flex flex-col gap-6">
       <PillarChart saju={saju} />
       <StarTable saju={saju} />
+      <SaeunTable saju={saju} />
       <RelationTable saju={saju} />
       <DaeunTable saju={saju} />
       <div className="grid gap-6 lg:grid-cols-2">
@@ -550,11 +569,16 @@ function RelationTable({ saju }: { saju: Saju }) {
                           합화 오행 {ELEMENT_KO[relation.targetElement]}
                         </span>
                       )}
-                      {relation.direction && (
-                        <span>
-                          {relation.direction.from.char}이 {relation.direction.to.char}를 형
-                        </span>
-                      )}
+                      {(() => {
+                        const arrow = directionParticipantsOf(relation);
+                        return (
+                          arrow && (
+                            <span>
+                              {arrow.from.char}이 {arrow.to.char}를 형
+                            </span>
+                          )
+                        );
+                      })()}
                       {!relation.full && <span>반쪽</span>}
                       {!relation.adjacent && <span>{relation.distance}칸 떨어짐</span>}
                       {relation.contested.length > 0 && (
@@ -584,6 +608,93 @@ function relationKey(relation: Relation): string {
   return `${relation.kind}:${relation.ko}:${relation.participants
     .map((p) => p.position)
     .join('-')}`;
+}
+
+/**
+ * 세운 — 해마다의 간지.
+ *
+ * 대운 표와 같은 모양으로 늘어놓되, 세운은 **원국과 무엇을 하는가**가 본론이라
+ * 관계를 칸 아래에 함께 적는다. 그 관계는 원국 안에서 닫힌 것을 뺀 것이다 —
+ * 그건 해마다 같아서 세운 칸에 적을 이유가 없다.
+ *
+ * 해의 경계는 입춘이다. 1월에 일어난 일은 아직 전 해의 세운이라, 각 칸에
+ * 입춘 날짜를 적어 둔다.
+ */
+function SaeunTable({ saju }: { saju: Saju }) {
+  const { entries } = saju.saeun;
+
+  return (
+    <section className={CARD}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 className="text-xs uppercase tracking-wide text-muted">세운</h2>
+        <p className="text-sm text-secondary">
+          {entries[0].year}년 ~ {entries[entries.length - 1].year}년
+        </p>
+      </div>
+
+      <p className="mt-1.5 text-xs text-secondary">
+        해의 경계는 입춘입니다. 양력 1월에 일어난 일은 아직 전 해의 세운입니다.
+      </p>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[52rem] border-collapse text-center">
+          <caption className="sr-only">해마다의 간지와 원국과의 관계</caption>
+          <thead>
+            <tr>
+              {entries.map((entry) => (
+                <th key={entry.year} className="px-1 pb-2 text-xs font-normal text-secondary">
+                  {entry.year}
+                  <span className="block text-[11px] text-muted">{entry.age}세</span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {entries.map((entry) => (
+                <td key={entry.year} className="px-1 align-top">
+                  <div className="mx-auto flex w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border border-border bg-surface-sunken py-2.5">
+                    <span className="text-[10px] text-muted">
+                      {TEN_GOD_KO[entry.tenGods.stem]}
+                    </span>
+                    <span className="glyph text-2xl leading-none">{entry.pillar.stem}</span>
+                    <span className="glyph text-2xl leading-none">{entry.pillar.branch}</span>
+                    <span className="text-[10px] text-muted">
+                      {TEN_GOD_KO[entry.tenGods.branch]}
+                    </span>
+                    <span className="mt-1 text-[11px] text-secondary">
+                      {TWELVE_STAGE_KO[entry.stage]}
+                    </span>
+                    <span className="text-[10px] text-muted">
+                      {TWELVE_SPIRIT_ALIAS[entry.spirits.year] ??
+                        TWELVE_SPIRIT_KO[entry.spirits.year]}
+                    </span>
+                  </div>
+
+                  <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
+                    {entry.relations.map((relation) => (
+                      <li key={`${relation.kind}:${relation.ko}`}>
+                        {relation.ko}
+                        {relation.scope === 'combinedFormation' && (
+                          <span className="text-muted"> 합쳐서</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
+        칸 안은 위에서부터 천간 십성 · 간지 · 지지 십성 · 12운성(일간 기준) ·
+        12신살(년지 기준)입니다. 아래 목록은 그 해가 원국과 맺는 관계로, 원국
+        안에서만 성립하는 관계는 뺐습니다.
+      </p>
+    </section>
+  );
 }
 
 /**

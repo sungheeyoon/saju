@@ -103,10 +103,45 @@ const KIND_ORDER: readonly RelationKind[] = [
   'branchResentment',
 ];
 
-/** 관계에 참여한 글자 하나 — 어느 기둥의 무슨 글자인가 */
+/**
+ * 원국의 식별자. 계산판을 하나만 볼 때는 이 값 하나뿐이다.
+ *
+ * 대운·세운은 `'daeun:3'`·`'annual:2027'` 처럼 자기 이름을 쓴다.
+ */
+export const NATAL_CHART_ID = 'natal';
+
+/**
+ * 관계에 참여한 글자 하나 — **어느 계산판의** 어느 기둥의 무슨 글자인가.
+ *
+ * `chartId` 없이 `position` 만으로는 글자를 가리킬 수 없다. 원국과 세운을
+ * 함께 보면 `position: 'year'` 인 글자가 둘이 되고, `positions: ['year','day']`
+ * 가 원국 년주인지 세운 년주인지 알 수 없게 된다.
+ *
+ * 세운·대운처럼 기둥이 하나뿐인 계산판도 자리는 `'year'` 로 적는다 — 연간지라서다.
+ */
 export type Participant = {
+  chartId: string;
   position: PillarPosition;
   char: Stem | Branch;
+};
+
+/** 관계가 몇 개의 계산판에 걸쳐 있는가 */
+export type RelationScope =
+  /** 한 계산판 안에서 성립한다 */
+  | 'withinChart'
+  /** 두 계산판의 글자 하나씩이 짝지었다 */
+  | 'betweenCharts'
+  /**
+   * 여러 계산판의 글자가 합쳐져 세 글자 구조(삼합·방합·삼형)를 이뤘다.
+   *
+   * 이것을 인정할지가 계통 선택이라 쌍 관계와 섞지 않고 따로 표시한다.
+   */
+  | 'combinedFormation';
+
+export const RELATION_SCOPE_KO: Record<RelationScope, string> = {
+  withinChart: '원국 안',
+  betweenCharts: '계산판 사이',
+  combinedFormation: '합쳐서 이룸',
 };
 
 /**
@@ -134,8 +169,9 @@ export type Contest = {
  *   의 배열 순서에서 그대로 유도된다 — 그래서 따로 저장하지 않는다.
  */
 export type PunishmentDirection = {
-  from: Participant;
-  to: Participant;
+  /** `participants` 의 인덱스 — 글자를 복사하지 않아 어긋날 수 없다 */
+  from: number;
+  to: number;
 };
 
 export type Relation = {
@@ -167,10 +203,18 @@ export type Relation = {
   full: boolean;
   /** 형의 방향. 방향이 없는 관계는 null */
   direction: PunishmentDirection | null;
-  /** 참여한 기둥들이 연달아 붙어 있는가 */
-  adjacent: boolean;
-  /** 가장 멀리 떨어진 두 기둥 사이의 칸 수 — 이웃이면 1, 년주와 시주면 3 */
-  distance: number;
+  /** 몇 개의 계산판에 걸쳐 있는가 */
+  scope: RelationScope;
+  /**
+   * 참여한 기둥들이 연달아 붙어 있는가.
+   *
+   * **한 계산판 안에서만 뜻이 있다.** 원국의 년주와 세운의 년주 사이에는
+   * 기둥의 선형 거리라는 것이 없으므로 `scope` 가 `'withinChart'` 가 아니면
+   * `null` 이다. 0 이나 큰 수로 채우면 없는 사실을 지어내는 것이 된다.
+   */
+  adjacent: boolean | null;
+  /** 가장 멀리 떨어진 두 기둥 사이의 칸 수. 계산판이 섞이면 null */
+  distance: number | null;
   /** 쟁합·투합. 다툼이 없으면 빈 배열이다 */
   contested: readonly Contest[];
 };
@@ -180,13 +224,28 @@ export type Relation = {
  *
  * `Pillars` 를 통째로 받지 않는 이유는 절기·보정 메타가 관계와 무관하기
  * 때문이다. 덕분에 테스트에서 간지 넷만으로 원국을 세울 수 있다.
+ *
+ * 네 자리가 모두 비어 있을 수 있다. 세운·대운처럼 기둥이 하나뿐인 계산판을
+ * 같은 연산에 태우기 위해서다 — 없는 자리는 그냥 빠지고, 그만큼 관계도 덜
+ * 나온다. 시간 미상 시주와 같은 규칙이다.
  */
-export type RelationInput = Pick<Pillars, 'year' | 'month' | 'day' | 'hour'>;
+export type RelationInput = {
+  [K in 'year' | 'month' | 'day' | 'hour']: Pillars[K] | null;
+};
 
 type Slot = {
+  chartId: string;
   position: PillarPosition;
   stem: Stem;
   branch: Branch;
+  /** 여러 계산판을 늘어놓았을 때의 전역 순서 — 결정적 정렬에만 쓴다 */
+  order: number;
+};
+
+/** 계산판 하나 — 식별자와 기둥들 */
+export type LabeledPillars = {
+  chartId: string;
+  pillars: RelationInput;
 };
 
 const SELF_PUNISHMENTS = BRANCH_PUNISHMENTS.filter(
@@ -204,19 +263,25 @@ function directionalPeak(branches: readonly [Branch, Branch, Branch]): Branch {
   return branches[1];
 }
 
-function slotsOf(pillars: RelationInput): Slot[] {
-  const entries: readonly (readonly [PillarPosition, Pillar | null])[] = [
-    ['year', pillars.year],
-    ['month', pillars.month],
-    ['day', pillars.day],
-    ['hour', pillars.hour],
-  ];
+function slotsOf(charts: readonly LabeledPillars[]): Slot[] {
+  let order = 0;
 
-  // 시간 미상이면 시주가 없다. 없는 글자로 관계를 만들 수는 없으므로 그냥
-  // 빠지고, 그만큼 관계도 덜 나온다 — 시주를 정오로 메우지 않는 것과 같은 이유다.
-  return entries.flatMap(([position, pillar]) =>
-    pillar ? [{ position, stem: pillar.stem, branch: pillar.branch }] : [],
-  );
+  return charts.flatMap(({ chartId, pillars }) => {
+    const entries: readonly (readonly [PillarPosition, Pillar | null])[] = [
+      ['year', pillars.year],
+      ['month', pillars.month],
+      ['day', pillars.day],
+      ['hour', pillars.hour],
+    ];
+
+    // 시간 미상이면 시주가 없다. 없는 글자로 관계를 만들 수는 없으므로 그냥
+    // 빠지고, 그만큼 관계도 덜 나온다 — 시주를 정오로 메우지 않는 것과 같은 이유다.
+    return entries.flatMap(([position, pillar]) =>
+      pillar
+        ? [{ chartId, position, stem: pillar.stem, branch: pillar.branch, order: order++ }]
+        : [],
+    );
+  });
 }
 
 function combinationsOf<T>(items: readonly T[], size: number): T[][] {
@@ -243,9 +308,16 @@ function orderedKo(slots: readonly Slot[], order: readonly Branch[]): string {
 }
 
 const participantOf = (slot: Slot, tier: RelationTier): Participant => ({
+  chartId: slot.chartId,
   position: slot.position,
   char: tier === 'stem' ? slot.stem : slot.branch,
 });
+
+function scopeOf(slots: readonly Slot[]): RelationScope {
+  const charts = new Set(slots.map((s) => s.chartId));
+  if (charts.size === 1) return 'withinChart';
+  return slots.length > 2 ? 'combinedFormation' : 'betweenCharts';
+}
 
 function makeRelation(args: {
   kind: RelationKind;
@@ -257,11 +329,13 @@ function makeRelation(args: {
   direction?: { from: Slot; to: Slot };
   slots: readonly Slot[];
 }): Relation {
-  const ordered = [...args.slots].sort(
-    (a, b) => POSITION_INDEX[a.position] - POSITION_INDEX[b.position],
-  );
+  const ordered = [...args.slots].sort((a, b) => a.order - b.order);
+  const scope = scopeOf(ordered);
+
+  // 계산판이 섞이면 기둥 사이의 선형 거리라는 것이 없다.
   const indexes = ordered.map((s) => POSITION_INDEX[s.position]);
-  const distance = Math.max(...indexes) - Math.min(...indexes);
+  const distance =
+    scope === 'withinChart' ? Math.max(...indexes) - Math.min(...indexes) : null;
 
   return {
     kind: args.kind,
@@ -272,13 +346,11 @@ function makeRelation(args: {
     targetElement: args.targetElement ?? null,
     full: args.full ?? true,
     direction: args.direction
-      ? {
-          from: participantOf(args.direction.from, args.tier),
-          to: participantOf(args.direction.to, args.tier),
-        }
+      ? { from: ordered.indexOf(args.direction.from), to: ordered.indexOf(args.direction.to) }
       : null,
+    scope,
     // 세 기둥짜리 관계는 세 자리가 연달아야 붙은 것이다 (거리 2).
-    adjacent: distance === ordered.length - 1,
+    adjacent: distance === null ? null : distance === ordered.length - 1,
     distance,
     contested: [],
   };
@@ -573,7 +645,8 @@ const CONTESTABLE_KINDS: readonly RelationKind[] = ['stemCombination', 'branchSi
  * 깨지는지는 판정하지 않는다.
  */
 function markContests(relations: readonly Relation[]): Relation[] {
-  const key = (kind: RelationKind, p: Participant): string => `${kind}:${p.position}`;
+  const key = (kind: RelationKind, p: Participant): string =>
+    `${kind}:${p.chartId}:${p.position}`;
 
   const byParticipant = new Map<string, Relation[]>();
   for (const relation of relations) {
@@ -594,7 +667,9 @@ function markContests(relations: readonly Relation[]): Relation[] {
       if (others.length === 0) return [];
 
       const rivals = others.flatMap((other) =>
-        other.participants.filter((p) => p.position !== shared.position),
+        other.participants.filter(
+          (p) => p.chartId !== shared.chartId || p.position !== shared.position,
+        ),
       );
 
       return [{ over: shared, rivals }];
@@ -615,11 +690,11 @@ function compareRelations(a: Relation, b: Relation): number {
   // 온전히 모인 것을 반쪽보다 앞에 둔다.
   if (a.full !== b.full) return a.full ? -1 : 1;
 
-  const first = (r: Relation): number => POSITION_INDEX[r.participants[0].position];
-  const last = (r: Relation): number =>
-    POSITION_INDEX[r.participants[r.participants.length - 1].position];
+  // participants 는 전역 순서로 정렬돼 있으므로 첫 글자와 끝 글자로 견준다.
+  const key = (r: Relation) =>
+    r.participants.map((p) => `${p.chartId}:${POSITION_INDEX[p.position]}`).join('|');
 
-  return first(a) - first(b) || last(a) - last(b) || a.ko.localeCompare(b.ko);
+  return key(a).localeCompare(key(b)) || a.ko.localeCompare(b.ko);
 }
 
 /**
@@ -630,8 +705,8 @@ function compareRelations(a: Relation, b: Relation): number {
  * **시간 미상이면 시주가 빠진 채로 계산된다.** 실제보다 관계가 적게 나오므로,
  * 없는 관계가 아니라 알 수 없는 관계라는 점을 쓰는 쪽에서 밝혀야 한다.
  */
-export function findRelations(pillars: RelationInput): Relation[] {
-  const slots = slotsOf(pillars);
+export function findRelationsAmong(charts: readonly LabeledPillars[]): Relation[] {
+  const slots = slotsOf(charts);
 
   const found = [
     ...stemRelations(slots),
@@ -644,10 +719,44 @@ export function findRelations(pillars: RelationInput): Relation[] {
   return markContests(found).sort(compareRelations);
 }
 
-/** 관계 하나를 한 줄로 — '자오충 (월주·일주)' */
+/**
+ * 원국 안에서 성립하는 관계 — 계산판 하나짜리 입구.
+ *
+ * 대운·세운까지 함께 보려면 `findRelationsAmong` 을 쓴다.
+ */
+export function findRelations(
+  pillars: RelationInput,
+  chartId: string = NATAL_CHART_ID,
+): Relation[] {
+  return findRelationsAmong([{ chartId, pillars }]);
+}
+
+/**
+ * 형의 방향을 참가자로 풀어 준다.
+ *
+ * 저장은 인덱스로 하고(글자를 복사하지 않아 어긋날 수 없다) 읽을 때만 푼다.
+ */
+export function directionParticipantsOf(
+  relation: Relation,
+): { from: Participant; to: Participant } | null {
+  const { direction, participants } = relation;
+  if (!direction) return null;
+
+  return { from: participants[direction.from], to: participants[direction.to] };
+}
+
+/**
+ * 관계 하나를 한 줄로 — '자오충 (월주·일주)'.
+ *
+ * 계산판이 섞이면 어느 판의 자리인지 함께 적는다.
+ */
 export function formatRelation(relation: Relation): string {
   const where = relation.participants
-    .map((p) => PILLAR_POSITION_KO[p.position])
+    .map((p) =>
+      relation.scope === 'withinChart'
+        ? PILLAR_POSITION_KO[p.position]
+        : `${p.chartId} ${PILLAR_POSITION_KO[p.position]}`,
+    )
     .join('·');
 
   return `${relation.ko} (${where})`;

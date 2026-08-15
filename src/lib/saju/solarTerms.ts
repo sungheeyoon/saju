@@ -53,7 +53,27 @@ const SEARCH_WINDOW_DAYS = 40;
  * @param sajuYear 입춘이 속한 양력 연도
  * @throws 절기 탐색에 실패한 경우
  */
+/**
+ * 사주년 → 12절 캐시.
+ *
+ * `getSolarTerms` 는 같은 해에 언제나 같은 답을 내는 순수 함수인데, 한 번에
+ * 태양 황경 탐색을 열두 번 돌린다. 대운·월주·세운이 같은 해를 거듭 물으므로
+ * 캐시가 없으면 세운 열 해를 뽑는 데만 백스무 번을 돈다(실측: 테스트 전체가
+ * 1.3초에서 14초로 늘었다). 지원 범위가 1900~2100 이라 항목은 최대 201개다.
+ *
+ * 반환 배열을 호출부가 고치면 캐시가 오염되므로 복사해서 낸다.
+ */
+const SOLAR_TERM_CACHE = new Map<number, readonly SolarTerm[]>();
+
 export function getSolarTerms(sajuYear: number): SolarTerm[] {
+  const cached = SOLAR_TERM_CACHE.get(sajuYear) ?? searchSolarTerms(sajuYear);
+  SOLAR_TERM_CACHE.set(sajuYear, cached);
+
+  // Date 는 값이 아니라 객체다. 얕게 복사하면 호출부가 시각을 밀어 캐시를 오염시킬 수 있다.
+  return cached.map((term) => ({ ...term, date: new Date(term.date) }));
+}
+
+function searchSolarTerms(sajuYear: number): SolarTerm[] {
   // 연초부터 순차 탐색: 직전 절 시각 이후로 다음 절을 찾는다.
   let cursor = new Date(Date.UTC(sajuYear, 0, 1));
 

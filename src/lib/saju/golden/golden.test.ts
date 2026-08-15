@@ -14,9 +14,11 @@ import {
   STRENGTH_POLICY,
   YONGSIN_POLICY,
   SPIRIT_BASIS_KO,
+  TEN_GOD_KO,
   TWELVE_SPIRIT_KO,
   TWELVE_STAGE_KO,
   computeSaju,
+  directionParticipantsOf,
   formatPillars,
   formatRelation,
   type Saju,
@@ -64,11 +66,12 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
   );
 
   for (const relation of saju.relations) {
+    const arrow = directionParticipantsOf(relation);
     const notes = [
       relation.targetElement ? `→ ${relation.targetElement}` : null,
       relation.full ? null : '반쪽',
       relation.adjacent ? null : `${relation.distance}칸`,
-      relation.direction ? `${relation.direction.from.char}→${relation.direction.to.char}` : null,
+      arrow ? `${arrow.from.char}→${arrow.to.char}` : null,
       relation.contested.length > 0 ? '쟁합' : null,
     ].filter((note): note is string => note !== null);
 
@@ -128,6 +131,17 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
       ` ${ELEMENT_ROLE_KO[eokbu.role]} · ${eokbu.status}/${eokbu.confidence}` +
       ` · 원국에 ${eokbu.presentInChart ? '있음' : '없음'}`,
   );
+
+  // 세운은 골든 케이스마다 출생년부터 세 해만 찍는다 — 열 해를 다 찍으면
+  // 스냅샷이 세운으로 뒤덮여 나머지 회귀가 묻힌다.
+  for (const entry of saju.saeun.entries.slice(0, 3)) {
+    const crossed = entry.relations.map((r) => r.ko).join(' ');
+    lines.push(
+      `  세운   ${entry.year} ${entry.pillar.name} ${entry.age}세` +
+        `  ${TEN_GOD_KO[entry.tenGods.stem]}/${TEN_GOD_KO[entry.tenGods.branch]}` +
+        ` ${TWELVE_STAGE_KO[entry.stage]}${crossed ? `  원국과 ${crossed}` : ''}`,
+    );
+  }
 
   for (const correction of meta.corrections) {
     const minutes = Math.round(correction.minutes * 10) / 10;
@@ -232,6 +246,10 @@ describe('골든 테스트', () => {
       ...Object.entries(YONGSIN_POLICY).map(
         ([key, value]) => `          ${key.padEnd(22)} ${value}`,
       ),
+      '',
+      '  세운  해의 경계는 입춘이다. 간지는 연주 도출과 같은 함수에서 나온다.',
+      '        원국과의 관계는 세운이 낀 것만 — 원국 안에서 닫힌 관계는 해마다 같다.',
+      '        계산판이 섞이면 기둥 사이의 거리라는 것이 없어 distance 가 null 이다.',
       '',
       '  시간 미상  채택: 시주를 뽑지 않는다 (unknown-hour-* 케이스)',
       '',
