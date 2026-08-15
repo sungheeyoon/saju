@@ -22,6 +22,12 @@ import {
  * 만세력 엔진은 순수 함수라 서버 없이 브라우저에서 그대로 돈다.
  * 제출한 입력만 계산하므로, 타이핑 도중의 반쪽 날짜로 계산하지 않는다.
  *
+ * 화면에 토글로 여는 것은 **학파가 갈리는 선택**뿐이다(경도·균시차).
+ * 서머타임은 선택이 아니라 사실이라 묻지 않는다 — 1988년 7월 14시에
+ * 태어난 사람의 시계는 실제로 UTC+10이었고, 되돌리는 것이 옳은 계산이다.
+ * 시행 기간이 아닌 절대다수에게는 애초에 물어볼 것도 없는 질문이다.
+ * 대신 되돌린 사실은 '적용된 보정' 표에 그대로 남는다.
+ *
  * 오행별 전통색(청·적·황·백·흑)을 쓰지 않은 이유:
  * 白(금)은 채움색으로 성립하지 않고, 대체색을 넣으면 접근성 게이트를 넘지
  * 못한다 — 토=갈색/금=금색은 적↔갈 ΔE 2.5(deutan)로 사실상 같은 색이고,
@@ -56,7 +62,6 @@ type Query = {
   rule: LateNightRule;
   useLongitude: boolean;
   useEquationOfTime: boolean;
-  useDst: boolean;
 };
 
 const DEFAULT_QUERY: Query = {
@@ -69,7 +74,6 @@ const DEFAULT_QUERY: Query = {
   rule: 'jo',
   useLongitude: true,
   useEquationOfTime: false,
-  useDst: true,
 };
 
 type Result = { ok: true; saju: Saju } | { ok: false; message: string };
@@ -99,7 +103,8 @@ function calculate(query: Query): Result {
         longitude: CITY_LONGITUDES[query.city],
         useLongitude: query.useLongitude,
         useEquationOfTime: query.useEquationOfTime,
-        useDst: query.useDst,
+        // useDst 는 넘기지 않는다 — 엔진 기본값이 '되돌린다'이고,
+        // 그것이 물어볼 일 없는 사실이기 때문이다.
       },
     );
     return { ok: true, saju };
@@ -233,12 +238,6 @@ export function SajuCalculator() {
             onChange={(v) => set('useEquationOfTime', v)}
             label="균시차"
             hint="진태양시 ±16분"
-          />
-          <Toggle
-            checked={form.useDst}
-            onChange={(v) => set('useDst', v)}
-            label="서머타임"
-            hint="1948~51 · 55~60 · 87~88"
           />
         </div>
 
