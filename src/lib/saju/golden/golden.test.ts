@@ -10,6 +10,7 @@ import {
   RELATION_POLICY,
   ELEMENT_KO,
   ELEMENT_ROLE_KO,
+  JOHU_POLICY,
   SINSAL_POLICY,
   STRENGTH_POLICY,
   YONGSIN_POLICY,
@@ -120,16 +121,22 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
       .map((hit) => `${hit.char}(${PILLAR_POSITION_KO[hit.position].charAt(0)})`)
       .join(' ');
     const basis = star.basis ? `  ← ${star.basis.label} ${star.basis.char}` : '';
-    lines.push(`  ${star.auspicious ? '길신' : '흉신'}   ${star.ko.padEnd(6)} ${where}${basis}`);
+    const nature = {
+      auspicious: '길신',
+      inauspicious: '흉신',
+      neutral: '특수',
+    }[star.nature];
+    lines.push(`  ${nature}   ${star.ko.padEnd(6)} ${where}${basis}`);
   }
 
-  const { strength, eokbu } = saju.analysis;
+  const { strength, eokbu, johu } = saju.analysis;
   lines.push(
     `  강약   ${strength.verdict} · 보조세력 ${(strength.ratio * 100).toFixed(1)}%` +
       `  ${strength.criteria.map((c) => `${c.label}${c.met ? 'O' : 'X'}`).join(' ')}`,
     `  억부   후보 ${ELEMENT_KO[eokbu.suggestedElement]}(${eokbu.suggestedElement})` +
       ` ${ELEMENT_ROLE_KO[eokbu.role]} · ${eokbu.status}/${eokbu.confidence}` +
       ` · 원국에 ${eokbu.presentInChart ? '있음' : '없음'}`,
+    `  조후   후보 ${johu.stems.join('·')} · ${johu.status}  ${johu.note}`,
   );
 
   // 세운은 골든 케이스마다 출생년부터 세 해만 찍는다 — 열 해를 다 찍으면
@@ -137,7 +144,8 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
   for (const entry of saju.saeun.entries.slice(0, 3)) {
     const crossed = entry.relations.map((r) => r.ko).join(' ');
     lines.push(
-      `  세운   ${entry.year} ${entry.pillar.name} ${entry.age}세` +
+      `  세운   ${entry.year} ${entry.pillar.name}` +
+        ` 만 ${entry.ageAtStart}→${entry.ageAtEnd}세` +
         `  ${TEN_GOD_KO[entry.tenGods.stem]}/${TEN_GOD_KO[entry.tenGods.branch]}` +
         ` ${TWELVE_STAGE_KO[entry.stage]}${crossed ? `  원국과 ${crossed}` : ''}`,
     );
@@ -235,7 +243,7 @@ describe('골든 테스트', () => {
       '',
       '  운성·신살  12운성은 음간을 역행시킨다(음양순역). 뒤집는 계통은 양포태다.',
       '        공망은 일주·년주 기준을, 12신살은 년지·일지 기준을 모두 낸다.',
-      '        신살은 산출 근거가 분명한 여덟만 — 역마·도화·화개는 12신살에서 온다.',
+      '        신살은 채택한 고전 기준을 정책에 밝힌다 — 역마·도화·화개는 12신살에서 온다.',
       '',
       ...Object.entries(SINSAL_POLICY).map(
         ([key, value]) => `          ${key.padEnd(22)} ${value}`,
@@ -249,13 +257,17 @@ describe('골든 테스트', () => {
         ([key, value]) => `          ${key.padEnd(22)} ${value}`,
       ),
       '',
-      '  억부  용신 확정값이 아니라 시험값이다(experimental/low). 조후·종격·격국·',
-      '        합충·투간과 통근의 질을 보지 않은 결과라 후보로만 읽어야 한다.',
+      '  용신  억부는 시험값(experimental/low), 조후는 궁통보감 120칸 참고표(reference)다.',
+      '        조후도 원국·상하순 조건을 자동 판정하지 않았으므로 후보와 조건을 함께 읽는다.',
+      '        종격·격국·합충·투간과 통근의 질을 보지 않아 어느 쪽도 확정 용신이 아니다.',
       '        기신도 내지 않는다 — 오행 상극표 한 줄로 정해지는 것이 아니다.',
       '        세력비에 태약·중화·태왕 같은 등급 이름도 붙이지 않는다(경계 출처 없음).',
       '',
       ...Object.entries(YONGSIN_POLICY).map(
         ([key, value]) => `          ${key.padEnd(22)} ${value}`,
+      ),
+      ...Object.entries(JOHU_POLICY).map(
+        ([key, value]) => `          johu.${key.padEnd(17)} ${value}`,
       ),
       '',
       '  세운  해의 경계는 입춘이다. 간지는 연주 도출과 같은 함수에서 나온다.',

@@ -90,8 +90,9 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 143 tests
-npm run dev
+npm test          # 579 tests
+npm run test:e2e  # desktop + mobile Chromium
+npm run verify    # test + typecheck + lint + production build
 ```
 
 - **절기** — 한국천문연구원 2025 달력자료와 일치 (망종 6/5 18:57, 소서 7/7 05:05)
@@ -100,6 +101,15 @@ npm run dev
 - **골든 스냅샷** — 절기·자시·서머타임·자오선 전환·윤년 등 경계 31건을 고정
   (`src/lib/saju/golden/golden.snapshot.txt`)
 - **자체 검증** — 절기 반환 시각에서 태양 황경을 되짚어 목표와 대조 (오차 1e-4° 이내)
+- **조후 120조합** — [《궁통보감》 원문](https://zh.wikisource.org/wiki/%E7%A9%B7%E9%80%9A%E5%AE%9D%E9%89%B4)과
+  [일간×월지 정리표](https://www.douban.com/note/204554812/)를 대조하고 열 일간×열두 월지를 전수 고정
+- **신살 채택 계통** — 관귀학관은 [《삼명통회》 학당사관](https://xiaozhiliaoo.github.io/reading-note/guoxue/materials/zhcscs/zha11j.pdf),
+  현침은 [《오행정기》의 다섯 글자·3자 이상](https://www.suanzhun.net/book/2676.html),
+  태극귀인은 [《연해자평》의 년간 기준](https://www.luckclub.cn/bazi/001/026/)을 따른다.
+  천문성은 당사주 `天文=辰`과 구분해
+  [`天門=戌亥`](https://www.guoxuezhijia.com/gxbk/34841.html)의 방위 근거와
+  [현대 명리의 `戌亥=天門星`](https://www.doilmun.co.kr/bbs/board.php?bo_table=sub06_04&me_code=6040&wr_id=124)를
+  대조해 두 글자의 동시 성립으로 고정했다.
 
 상수 테이블은 도메인 불변식으로 검증한다. 예를 들어 지장간은 "정기의 오행 = 그 지지의
 오행", "생지·묘지의 중기 = 그 지지가 속한 삼합국의 오행" 을 만족해야 하므로, 표에서 한
@@ -109,9 +119,10 @@ npm run dev
 
 - 국내 출생만 지원한다 (`Asia/Seoul` 표준시 이력, 주요 도시 10곳 경도)
 - 1908년 이전은 tzdata 의 지방평균시로 처리되며 실용 범위 밖이다
-- 용신은 억부(抑扶) 기준만 낸다. 격국·조후는 다루지 않는다
+- 억부용신은 시험 후보만 내고, 조후용신은 《궁통보감》 120칸의 후보 천간과
+  조건 요약을 참고값으로 낸다. 종격·격국 및 조후의 원국별 조건 판정은 아직 하지 않는다
 
 ## 스택
 
-Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Vitest ·
+Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Vitest · Playwright ·
 [astronomy-engine](https://github.com/cosinekitty/astronomy)

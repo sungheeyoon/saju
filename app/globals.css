@@ -19,9 +19,11 @@
   --border-strong: rgba(22, 22, 26, 0.22);
 
   --text-secondary: #55555f;
-  --text-muted: #7c7c86;
+  --text-muted: #6f6f78;
 
-  --accent: #2a78d6;
+  --accent: #246fca;
+  --accent-strong: #1764b5;
+  --on-accent: #ffffff;
   --accent-wash: rgba(42, 120, 214, 0.1);
 
   /* 메터·막대의 미충전 구간 */
@@ -42,7 +44,9 @@
     --text-secondary: #a9a9b4;
     --text-muted: #85858f;
 
-    --accent: #3987e5;
+    --accent: #6aa8f0;
+    --accent-strong: #246fca;
+    --on-accent: #ffffff;
     --accent-wash: rgba(57, 135, 229, 0.18);
 
     --track: rgba(237, 237, 240, 0.12);
@@ -59,6 +63,8 @@
   --color-secondary: var(--text-secondary);
   --color-muted: var(--text-muted);
   --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-on-accent: var(--on-accent);
   --color-accent-wash: var(--accent-wash);
   --color-track: var(--track);
 

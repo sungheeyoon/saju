@@ -1,10 +1,12 @@
 import type { Pillar, Stem } from '../constants';
+import { toCivil, type CivilDate } from '../civilTime';
 import type { Pillars } from '../pillars';
 import { yearPillarOf } from '../pillars/year';
 import { findRelationsAmong, type LabeledPillars, type Relation } from '../relations';
 import { getSolarTerms, type SolarTerm } from '../solarTerms';
 import { twelveSpiritOf, type SpiritBasis, type TwelveSpirit } from '../sinsal';
 import { tenGodOf, tenGodOfBranch, type TenGod } from '../analysis/tenGods';
+import { zoneIntervalAt } from '../timeCorrection/zoneHistory';
 import {
   DEFAULT_YIN_REVERSE,
   twelveStageOf,
@@ -35,10 +37,16 @@ export type SaeunEntry = {
   /** 관계 연산에서 이 해를 가리키는 이름 — 'annual:2027' */
   chartId: string;
   pillar: Pillar;
-  /** 그 해에 몇 살인가 (만 나이). 출생 전 해라면 음수다 */
+  /** @deprecated 세운 전체의 나이는 하나가 아니다. `ageAtStart`를 쓴다 */
   age: number;
+  /** 이 세운이 시작되는 입춘 당일의 만 나이 */
+  ageAtStart: number;
+  /** 다음 입춘 직전의 만 나이 */
+  ageAtEnd: number;
   /** 이 해가 시작되는 입춘 */
   startTerm: SolarTerm;
+  /** 다음 세운이 시작되는 입춘 */
+  nextStartTerm: SolarTerm;
   /** 일간에서 본 세운 천간·지지의 십성 */
   tenGods: { stem: TenGod; branch: TenGod };
   /** 일간이 세운 지지에서 어떤 상태인가 */
@@ -82,8 +90,10 @@ export class InvalidSaeunRangeError extends Error {
 
 type SaeunInput = {
   pillars: Pick<Pillars, 'year' | 'month' | 'day' | 'hour' | 'dayMaster'>;
-  /** 출생한 사주년 — 나이를 세는 기준 */
+  /** 출생 시각이 속한 사주년 — 기본 세운 시작 */
   birthSajuYear: number;
+  /** 세운 구간 안에서 생일 전후의 실제 만 나이를 계산한다 */
+  birthDate: CivilDate;
 };
 
 /**
@@ -101,8 +111,20 @@ function startTermOf(year: number): SolarTerm {
   return found;
 }
 
+/** 그 절대 시각에 한국에서 보이던 달력 날짜. 과거 표준시·서머타임도 따른다. */
+function koreaDateOf(instant: Date): CivilDate {
+  const offset = zoneIntervalAt(instant).totalOffsetMinutes;
+  return toCivil(instant, offset);
+}
+
+function ageOnDate(birth: CivilDate, date: CivilDate): number {
+  const birthdayPassed =
+    date.month > birth.month || (date.month === birth.month && date.day >= birth.day);
+  return date.year - birth.year - (birthdayPassed ? 0 : 1);
+}
+
 export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Saeun {
-  const { pillars, birthSajuYear } = input;
+  const { pillars, birthSajuYear, birthDate } = input;
   const from = options.fromYear ?? birthSajuYear;
   const count = options.count ?? DEFAULT_SAEUN_COUNT;
 
@@ -120,7 +142,13 @@ export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Sae
     const year = from + index;
     const pillar = yearPillarOf(year);
     const startTerm = startTermOf(year);
+    const nextStartTerm = startTermOf(year + 1);
     const chartId = saeunChartId(year);
+    const ageAtStart = ageOnDate(birthDate, koreaDateOf(startTerm.date));
+    const ageAtEnd = ageOnDate(
+      birthDate,
+      koreaDateOf(new Date(nextStartTerm.date.getTime() - 1)),
+    );
 
     // 세운은 기둥이 하나뿐이다. 나머지 세 자리는 비워 둔다 — 없는 글자로
     // 관계를 만들지 않는 것은 시간 미상 시주와 같은 규칙이다.
@@ -133,8 +161,11 @@ export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Sae
       year,
       chartId,
       pillar,
-      age: year - birthSajuYear,
+      age: ageAtStart,
+      ageAtStart,
+      ageAtEnd,
       startTerm,
+      nextStartTerm,
       tenGods: {
         stem: tenGodOf(dayMaster, pillar.stem),
         branch: tenGodOfBranch(dayMaster, pillar.branch),

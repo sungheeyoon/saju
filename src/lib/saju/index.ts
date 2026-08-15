@@ -97,7 +97,7 @@ export type Saju = {
    * 음간을 역행시킬지가 계통 선택이라 `stages.yinReverse` 를 함께 남긴다.
    */
   stages: Stages;
-  /** 공망 · 12신살 · 핵심 신살 여덟 */
+  /** 공망 · 12신살 · 출처와 산출법을 고정한 핵심 신살 */
   sinsal: Sinsal;
   /**
    * 세운 — 해마다의 간지와 그것이 원국과 무엇을 하는지.
@@ -183,7 +183,15 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
   );
 
   const saeun = computeSaeun(
-    { pillars, birthSajuYear: pillars.meta.sajuYear },
+    {
+      pillars,
+      birthSajuYear: pillars.meta.sajuYear,
+      birthDate: {
+        year: resolvedTime.year,
+        month: resolvedTime.month,
+        day: resolvedTime.day,
+      },
+    },
     { stages: stageOptions, ...saeunOptions },
   );
 

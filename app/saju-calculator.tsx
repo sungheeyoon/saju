@@ -23,6 +23,8 @@ import {
   TWELVE_STAGE_KO,
   computeSaju,
   directionParticipantsOf,
+  toCivil,
+  zoneIntervalAt,
   type CityName,
   type Gender,
   type LateNightRule,
@@ -145,9 +147,9 @@ type Query = {
 };
 
 const DEFAULT_QUERY: Query = {
-  // 고정 기본값 — 서버·클라이언트 렌더가 어긋나지 않도록 현재 시각을 쓰지 않는다.
-  date: '1990-05-15',
-  time: '14:30',
+  // 결과를 예시 명식으로 채우지 않는다. 사용자가 입력하기 전에는 빈 상태다.
+  date: '',
+  time: '',
   hourUnknown: false,
   gender: 'female',
   city: '서울',
@@ -202,21 +204,28 @@ function calculate(query: Query): Result {
 const pad = (n: number) => String(n).padStart(2, '0');
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const signedMinutes = (n: number) => `${round1(n) >= 0 ? '+' : ''}${round1(n)}분`;
+const ageRangeLabel = (from: number, to: number) =>
+  from === to ? `만 ${from}세` : `만 ${from}→${to}세`;
+const koreaMonthDay = (date: Date) => {
+  const local = toCivil(date, zoneIntervalAt(date).totalOffsetMinutes);
+  return `${local.month}/${local.day}`;
+};
 
 const CARD =
   'rounded-xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]';
 const FIELD =
-  'h-9 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash';
+  'h-11 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash sm:h-10';
 
 export function SajuCalculator() {
   const [form, setForm] = useState<Query>(DEFAULT_QUERY);
-  const [query, setQuery] = useState<Query>(DEFAULT_QUERY);
+  const [query, setQuery] = useState<Query | null>(null);
 
-  const result = useMemo(() => calculate(query), [query]);
-  const dirty = (Object.keys(form) as (keyof Query)[]).some((k) => form[k] !== query[k]);
+  const result = useMemo(() => (query === null ? null : calculate(query)), [query]);
+  const dirty =
+    query !== null && (Object.keys(form) as (keyof Query)[]).some((k) => form[k] !== query[k]);
 
   const set = <K extends keyof Query>(key: K, value: Query[K]) =>
-    setForm({ ...form, [key]: value });
+    setForm((current) => ({ ...current, [key]: value }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -233,6 +242,9 @@ export function SajuCalculator() {
               type="date"
               value={form.date}
               onChange={(e) => set('date', e.target.value)}
+              min="1900-01-01"
+              max="2100-12-31"
+              required
               className={FIELD}
             />
           </Field>
@@ -243,12 +255,13 @@ export function SajuCalculator() {
               value={form.time}
               onChange={(e) => set('time', e.target.value)}
               disabled={form.hourUnknown}
+              required={!form.hourUnknown}
               className={`${FIELD} disabled:opacity-40`}
             />
           </Field>
 
           {/* Field 안에 넣으면 label 이 중첩된다 — 옆에 나란히 둔다 */}
-          <label className="flex h-9 cursor-pointer items-center gap-1.5 text-sm whitespace-nowrap">
+          <label className="flex h-11 cursor-pointer items-center gap-2 text-sm whitespace-nowrap sm:h-10">
             <input
               type="checkbox"
               checked={form.hourUnknown}
@@ -286,57 +299,50 @@ export function SajuCalculator() {
             </select>
           </Field>
 
-          <Field label="자시 규칙">
-            {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
-            <select
-              value={form.rule}
-              onChange={(e) => set('rule', e.target.value as LateNightRule)}
-              disabled={form.hourUnknown}
-              className={`${FIELD} disabled:opacity-40`}
-            >
-              <option value="jo">조자시 · 경계 23:00</option>
-              <option value="ya">야자시 · 경계 자정</option>
-            </select>
-          </Field>
-
-          <Field label="세운 시작">
-            <input
-              type="number"
-              value={form.saeunFrom}
-              min={1900}
-              max={2100}
-              onChange={(e) => set('saeunFrom', Number(e.target.value))}
-              className={`${FIELD} w-24`}
-            />
-          </Field>
-
           <button
             type="submit"
-            className="h-9 rounded-md bg-accent px-4 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 sm:h-10 sm:w-auto"
           >
-            사주 뽑기
+            {query === null ? '사주 보기' : '결과 업데이트'}
           </button>
         </div>
 
-        <fieldset className="border-t border-border pt-3">
-          <legend className="text-xs uppercase tracking-wide text-muted">시간 기준</legend>
+        <details className="border-t border-border pt-3" open={TIME_BASIS[form.basis].advanced}>
+          <summary className="flex min-h-10 cursor-pointer items-center text-sm font-medium text-secondary">
+            고급 설정
+            <span className="ml-2 text-xs font-normal text-muted">자시 · 시간 기준 · 세운 연도</span>
+          </summary>
 
-          <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-            {TIME_BASES.filter((basis) => !TIME_BASIS[basis].advanced).map((basis) => (
-              <BasisRadio
-                key={basis}
-                basis={basis}
-                checked={form.basis === basis}
-                onChange={() => set('basis', basis)}
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <Field label="자시 규칙">
+              {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
+              <select
+                value={form.rule}
+                onChange={(e) => set('rule', e.target.value as LateNightRule)}
+                disabled={form.hourUnknown}
+                className={`${FIELD} disabled:opacity-40`}
+              >
+                <option value="jo">조자시 · 경계 23:00</option>
+                <option value="ya">야자시 · 경계 자정</option>
+              </select>
+            </Field>
+
+            <Field label="세운 시작">
+              <input
+                type="number"
+                value={form.saeunFrom}
+                min={1900}
+                max={2100}
+                onChange={(e) => set('saeunFrom', Number(e.target.value))}
+                className={`${FIELD} w-28`}
               />
-            ))}
+            </Field>
           </div>
 
-          {/* 진태양시는 쓰는 계통이 드물어 접어둔다. 고른 상태면 펼쳐 보인다. */}
-          <details className="mt-2" open={TIME_BASIS[form.basis].advanced}>
-            <summary className="cursor-pointer text-xs text-muted">고급</summary>
-            <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
-              {TIME_BASES.filter((basis) => TIME_BASIS[basis].advanced).map((basis) => (
+          <fieldset className="mt-4">
+            <legend className="text-xs uppercase tracking-wide text-muted">시간 기준</legend>
+            <div className="mt-2 flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:gap-x-5">
+              {TIME_BASES.map((basis) => (
                 <BasisRadio
                   key={basis}
                   basis={basis}
@@ -345,17 +351,27 @@ export function SajuCalculator() {
                 />
               ))}
             </div>
-          </details>
-        </fieldset>
+          </fieldset>
+        </details>
 
         {dirty && (
           <p className="text-sm text-secondary">
-            입력이 바뀌었습니다. &lsquo;사주 뽑기&rsquo;를 누르면 결과가 갱신됩니다.
+            입력이 바뀌었습니다. &lsquo;결과 업데이트&rsquo;를 누르면 반영됩니다.
           </p>
         )}
       </form>
 
-      {result.ok ? (
+      {result === null ? (
+        <section className={`${CARD} bg-surface-sunken`} aria-labelledby="empty-title">
+          <h2 id="empty-title" className="text-base font-semibold">
+            생년월일시를 입력해 주세요
+          </h2>
+          <p className="mt-1.5 text-sm text-secondary">
+            입력 전에는 예시 명식을 보여주지 않습니다. 계산은 서버 전송 없이 이 브라우저에서
+            처리됩니다.
+          </p>
+        </section>
+      ) : result.ok ? (
         <SajuView saju={result.saju} />
       ) : (
         <p role="alert" className={`${CARD} text-sm`}>
@@ -404,21 +420,146 @@ function BasisRadio({
 }
 
 function SajuView({ saju }: { saju: Saju }) {
+  const [fortuneView, setFortuneView] = useState<'daeun' | 'saeun' | 'wolun'>('saeun');
+  const [viewedAt] = useState(() => Date.now());
+
   return (
     <div className="flex flex-col gap-6">
+      <ResultNav />
       <PillarChart saju={saju} />
-      <StarTable saju={saju} />
-      <SaeunTable saju={saju} />
-      <WolunTable saju={saju} />
-      <RelationTable saju={saju} />
-      <DaeunTable saju={saju} />
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div id="analysis" className="scroll-mt-20 grid gap-6 lg:grid-cols-2">
         <ElementChart saju={saju} />
         <StrengthMeter saju={saju} />
       </div>
+      <RelationTable saju={saju} />
+      <FortuneTabs view={fortuneView} onChange={setFortuneView} saju={saju} viewedAt={viewedAt} />
+      <StarTable saju={saju} />
       <TimeCorrections saju={saju} />
       <Warnings saju={saju} />
     </div>
+  );
+}
+
+const RESULT_LINKS = [
+  ['chart', '명식'],
+  ['analysis', '분석'],
+  ['relations', '관계'],
+  ['fortune', '운'],
+  ['stars', '신살'],
+  ['corrections', '보정'],
+] as const;
+
+function ResultNav() {
+  return (
+    <nav
+      aria-label="결과 바로가기"
+      className="sticky top-2 z-20 -my-2 overflow-x-auto rounded-xl border border-border bg-surface/95 px-2 py-2 shadow-sm backdrop-blur"
+    >
+      <ul className="flex min-w-max items-center gap-1">
+        {RESULT_LINKS.map(([target, label]) => (
+          <li key={target}>
+            <a
+              href={`#${target}`}
+              className="flex min-h-10 items-center rounded-lg px-3 text-sm text-secondary hover:bg-surface-sunken hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              {label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+function FortuneTabs({
+  view,
+  onChange,
+  saju,
+  viewedAt,
+}: {
+  view: 'daeun' | 'saeun' | 'wolun';
+  onChange: (view: 'daeun' | 'saeun' | 'wolun') => void;
+  saju: Saju;
+  viewedAt: number;
+}) {
+  const tabs = [
+    { key: 'daeun', label: '대운' },
+    { key: 'saeun', label: '세운' },
+    { key: 'wolun', label: '월운' },
+  ] as const;
+
+  const selectByKeyboard = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex = index;
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = tabs.length - 1;
+    else return;
+
+    event.preventDefault();
+    onChange(tabs[nextIndex].key);
+    event.currentTarget
+      .closest('[role="tablist"]')
+      ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+      [nextIndex]?.focus();
+  };
+
+  return (
+    <div id="fortune" className="scroll-mt-20 flex flex-col gap-3">
+      <div className={`${CARD} flex flex-wrap items-center justify-between gap-3 py-3`}>
+        <div>
+          <h2 className="text-base font-semibold">운 흐름</h2>
+          <p className="mt-0.5 text-xs text-secondary">기간을 골라 한 표씩 집중해서 봅니다.</p>
+        </div>
+        <div
+          role="tablist"
+          aria-label="운 종류"
+          className="grid min-h-11 grid-cols-3 rounded-lg bg-surface-sunken p-1"
+        >
+          {tabs.map((tab, index) => {
+            const selected = view === tab.key;
+            return (
+              <button
+                key={tab.key}
+                id={`fortune-tab-${tab.key}`}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                aria-controls="fortune-panel"
+                tabIndex={selected ? 0 : -1}
+                onClick={() => onChange(tab.key)}
+                onKeyDown={(event) => selectByKeyboard(event, index)}
+                className={`min-h-9 rounded-md px-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                  selected
+                    ? 'bg-surface text-foreground shadow-sm'
+                    : 'text-secondary hover:text-foreground'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div
+        id="fortune-panel"
+        role="tabpanel"
+        aria-labelledby={`fortune-tab-${view}`}
+      >
+        {view === 'daeun' && <DaeunTable saju={saju} />}
+        {view === 'saeun' && <SaeunTable saju={saju} viewedAt={viewedAt} />}
+        {view === 'wolun' && <WolunTable saju={saju} viewedAt={viewedAt} />}
+      </div>
+    </div>
+  );
+}
+
+function HorizontalScrollHint() {
+  return (
+    <p className="mt-2 text-right text-xs text-muted sm:hidden" aria-hidden="true">
+      ← 좌우로 넘겨 전체 보기 →
+    </p>
   );
 }
 
@@ -469,27 +610,30 @@ function MarkRow({
  */
 function StarTable({ saju }: { saju: Saju }) {
   const { stars } = saju.sinsal;
-  const auspicious = stars.filter((s) => s.auspicious);
-  const inauspicious = stars.filter((s) => !s.auspicious);
+  const auspicious = stars.filter((s) => s.nature === 'auspicious');
+  const inauspicious = stars.filter((s) => s.nature === 'inauspicious');
+  const neutral = stars.filter((s) => s.nature === 'neutral');
 
   return (
-    <section className={CARD}>
+    <section id="stars" className={`${CARD} scroll-mt-20`}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-xs uppercase tracking-wide text-muted">신살</h2>
+        <h2 className="text-base font-semibold">신살</h2>
         <p className="text-sm text-secondary">
           {stars.length === 0 ? '걸린 신살이 없습니다' : `${stars.length}개`}
         </p>
       </div>
 
       {stars.length > 0 && (
-        <div className="mt-4 grid gap-6 sm:grid-cols-2">
+        <div className="mt-4 grid gap-6 sm:grid-cols-3">
           <StarGroup title="길신" stars={auspicious} />
           <StarGroup title="흉신" stars={inauspicious} />
+          <StarGroup title="특수" stars={neutral} />
         </div>
       )}
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-        산출 근거가 분명한 여덟만 뽑습니다. 역마·도화·화개는 12신살에 이미 있어
+        채택한 고전 기준으로만 뽑습니다. 현침은 甲辛卯午申 중 3자 이상,
+        천문은 戌亥가 함께 있어야 성립합니다. 역마·도화·화개는 12신살에 이미 있어
         따로 세지 않습니다. 길신·흉신은 전통적 분류일 뿐 좋고 나쁨의 판정이 아닙니다.
         {!saju.meta.hourKnown && ' 시주를 몰라 시주에 걸린 신살은 빠져 있습니다.'}
       </p>
@@ -538,16 +682,17 @@ function RelationTable({ saju }: { saju: Saju }) {
   const { relations } = saju;
 
   return (
-    <section className={CARD}>
+    <section id="relations" className={`${CARD} scroll-mt-20`}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-xs uppercase tracking-wide text-muted">원국의 관계</h2>
+        <h2 className="text-base font-semibold">원국의 관계</h2>
         <p className="text-sm text-secondary">
           {relations.length === 0 ? '성립하는 관계가 없습니다' : `${relations.length}개`}
         </p>
       </div>
 
       {relations.length > 0 && (
-        <div className="mt-4 overflow-x-auto">
+        <>
+          <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[30rem] border-collapse text-sm">
             <caption className="sr-only">여덟 글자 사이에 성립하는 합·충·형·해·파·원진</caption>
             <thead className="text-xs text-muted">
@@ -609,7 +754,9 @@ function RelationTable({ saju }: { saju: Saju }) {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+          <HorizontalScrollHint />
+        </>
       )}
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
@@ -644,13 +791,18 @@ function relationKey(relation: Relation): string {
  * 해의 경계는 입춘이다. 1월에 일어난 일은 아직 전 해의 세운이라, 각 칸에
  * 입춘 날짜를 적어 둔다.
  */
-function SaeunTable({ saju }: { saju: Saju }) {
+function SaeunTable({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
   const { entries } = saju.saeun;
+  const currentChartId = entries.find(
+    (entry) =>
+      viewedAt >= entry.startTerm.date.getTime() &&
+      viewedAt < entry.nextStartTerm.date.getTime(),
+  )?.chartId;
 
   return (
     <section className={CARD}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-xs uppercase tracking-wide text-muted">세운</h2>
+        <h2 className="text-base font-semibold">세운</h2>
         <p className="text-sm text-secondary">
           {entries[0].year}년 ~ {entries[entries.length - 1].year}년
         </p>
@@ -660,24 +812,41 @@ function SaeunTable({ saju }: { saju: Saju }) {
         해의 경계는 입춘입니다. 양력 1월에 일어난 일은 아직 전 해의 세운입니다.
       </p>
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 snap-x snap-proximity overflow-x-auto">
         <table className="w-full min-w-[52rem] border-collapse text-center">
           <caption className="sr-only">해마다의 간지와 원국과의 관계</caption>
           <thead>
             <tr>
-              {entries.map((entry) => (
-                <th key={entry.year} className="px-1 pb-2 text-xs font-normal text-secondary">
-                  {entry.year}
-                  <span className="block text-[11px] text-muted">{entry.age}세</span>
-                </th>
-              ))}
+              {entries.map((entry) => {
+                const current = entry.chartId === currentChartId;
+                return (
+                  <th
+                    key={entry.year}
+                    className={`px-1 pb-2 text-xs font-normal ${current ? 'text-accent' : 'text-secondary'}`}
+                  >
+                    {entry.year}
+                    {current && <span className="ml-1 text-[10px] font-medium">현재</span>}
+                    <span className="block text-[11px] text-muted">
+                      {ageRangeLabel(entry.ageAtStart, entry.ageAtEnd)}
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
             <tr>
-              {entries.map((entry) => (
-                <td key={entry.year} className="px-1 align-top">
-                  <div className="mx-auto flex w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border border-border bg-surface-sunken py-2.5">
+              {entries.map((entry) => {
+                const current = entry.chartId === currentChartId;
+                return (
+                  <td key={entry.year} className="snap-start px-1 align-top">
+                    <div
+                      className={`mx-auto flex w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
+                        current
+                          ? 'border-accent bg-accent-wash'
+                          : 'border-border bg-surface-sunken'
+                      }`}
+                    >
                     <span className="text-[10px] text-muted">
                       {TEN_GOD_KO[entry.tenGods.stem]}
                     </span>
@@ -693,24 +862,26 @@ function SaeunTable({ saju }: { saju: Saju }) {
                       {TWELVE_SPIRIT_ALIAS[entry.spirits.year] ??
                         TWELVE_SPIRIT_KO[entry.spirits.year]}
                     </span>
-                  </div>
+                    </div>
 
-                  <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
-                    {entry.relations.map((relation) => (
-                      <li key={relationKey(relation)}>
-                        {relation.ko}
-                        {relation.scope === 'combinedFormation' && (
-                          <span className="text-muted"> 합쳐서</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </td>
-              ))}
+                    <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
+                      {entry.relations.map((relation) => (
+                        <li key={relationKey(relation)}>
+                          {relation.ko}
+                          {relation.scope === 'combinedFormation' && (
+                            <span className="text-muted"> 합쳐서</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                );
+              })}
             </tr>
           </tbody>
         </table>
       </div>
+      <HorizontalScrollHint />
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
         칸 안은 위에서부터 천간 십성 · 간지 · 지지 십성 · 12운성(일간 기준) ·
@@ -728,14 +899,17 @@ function SaeunTable({ saju }: { saju: Saju }) {
  * 그 달이 시작되는 절과 날짜를 적는다 — 3월 3일이 아직 인월이라는 것이
  * 월운에서 가장 자주 어긋나는 지점이다.
  */
-function WolunTable({ saju }: { saju: Saju }) {
+function WolunTable({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
   const { year, entries } = saju.wolun;
-  const monthDay = (date: Date) => `${date.getMonth() + 1}/${date.getDate()}`;
+  const currentChartId = entries.find(
+    (entry) =>
+      viewedAt >= entry.startTerm.date.getTime() && viewedAt < entry.nextTerm.date.getTime(),
+  )?.chartId;
 
   return (
     <section className={CARD}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-xs uppercase tracking-wide text-muted">월운</h2>
+        <h2 className="text-base font-semibold">월운</h2>
         <p className="text-sm text-secondary">{year}년 (사주년)</p>
       </div>
 
@@ -744,7 +918,7 @@ function WolunTable({ saju }: { saju: Saju }) {
         전까지는 아직 인월(寅月)입니다.
       </p>
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 snap-x snap-proximity overflow-x-auto">
         <table className="w-full min-w-[60rem] border-collapse text-center">
           <caption className="sr-only">한 해 열두 달의 간지와 원국·세운과의 관계</caption>
           <thead>
@@ -752,11 +926,16 @@ function WolunTable({ saju }: { saju: Saju }) {
               {entries.map((entry) => (
                 <th
                   key={entry.chartId}
-                  className="px-1 pb-2 text-xs font-normal text-secondary"
+                  className={`px-1 pb-2 text-xs font-normal ${
+                    entry.chartId === currentChartId ? 'text-accent' : 'text-secondary'
+                  }`}
                 >
                   {entry.startTerm.name}
+                  {entry.chartId === currentChartId && (
+                    <span className="ml-1 text-[10px] font-medium">현재</span>
+                  )}
                   <span className="block text-[11px] text-muted">
-                    {monthDay(entry.startTerm.date)}
+                    {koreaMonthDay(entry.startTerm.date)}
                   </span>
                 </th>
               ))}
@@ -765,8 +944,14 @@ function WolunTable({ saju }: { saju: Saju }) {
           <tbody>
             <tr>
               {entries.map((entry) => (
-                <td key={entry.chartId} className="px-1 align-top">
-                  <div className="mx-auto flex w-full max-w-20 flex-col items-center gap-0.5 rounded-lg border border-border bg-surface-sunken py-2.5">
+                <td key={entry.chartId} className="snap-start px-1 align-top">
+                  <div
+                    className={`mx-auto flex w-full max-w-20 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
+                      entry.chartId === currentChartId
+                        ? 'border-accent bg-accent-wash'
+                        : 'border-border bg-surface-sunken'
+                    }`}
+                  >
                     <span className="text-[10px] text-muted">
                       {TEN_GOD_KO[entry.tenGods.stem]}
                     </span>
@@ -791,6 +976,7 @@ function WolunTable({ saju }: { saju: Saju }) {
           </tbody>
         </table>
       </div>
+      <HorizontalScrollHint />
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
         아래 목록은 그 달이 <strong className="font-medium">원국과 세운</strong>에 대해
@@ -813,7 +999,7 @@ function DaeunTable({ saju }: { saju: Saju }) {
   return (
     <section className={CARD}>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-xs uppercase tracking-wide text-muted">대운</h2>
+        <h2 className="text-base font-semibold">대운</h2>
         <p className="text-sm">
           <span className="font-medium">{DAEUN_DIRECTION_KO[daeun.direction]}</span>
           <span className="mx-1.5 text-muted">·</span>
@@ -827,7 +1013,7 @@ function DaeunTable({ saju }: { saju: Saju }) {
         {round1(daeun.daysToBoundary)}일이라 3으로 나눠 {round1(daeun.startAgeExact)}년입니다.
       </p>
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 snap-x snap-proximity overflow-x-auto">
         <table className="w-full min-w-[36rem] border-collapse text-center">
           <caption className="sr-only">10년 단위 대운</caption>
           <thead>
@@ -843,7 +1029,7 @@ function DaeunTable({ saju }: { saju: Saju }) {
           <tbody>
             <tr>
               {daeun.entries.map((entry) => (
-                <td key={entry.index} className="px-1">
+                <td key={entry.index} className="snap-start px-1">
                   <div className="mx-auto flex w-full max-w-20 flex-col items-center gap-0.5 rounded-lg border border-border bg-surface-sunken py-2.5">
                     <span className="glyph text-2xl leading-none">{entry.pillar.stem}</span>
                     <span className="glyph text-2xl leading-none">{entry.pillar.branch}</span>
@@ -855,6 +1041,7 @@ function DaeunTable({ saju }: { saju: Saju }) {
           </tbody>
         </table>
       </div>
+      <HorizontalScrollHint />
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
         나이는 만 나이입니다. 세는나이로 적는 만세력과 한 살 차이가 날 수 있습니다.
@@ -869,8 +1056,8 @@ function PillarChart({ saju }: { saju: Saju }) {
   const { pillars, analysis } = saju;
 
   return (
-    <section className={CARD}>
-      <h2 className="mb-4 text-xs uppercase tracking-wide text-muted">사주팔자</h2>
+    <section id="chart" className={`${CARD} scroll-mt-20`}>
+      <h2 className="mb-4 text-base font-semibold">사주팔자</h2>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[30rem] border-collapse text-center">
@@ -987,6 +1174,7 @@ function PillarChart({ saju }: { saju: Saju }) {
           </tbody>
         </table>
       </div>
+      <HorizontalScrollHint />
 
       <p className="mt-3 text-xs text-muted">
         궁(宮)은 계산 결과가 아니라 자리에 붙은 관습적 의미입니다. 육친을 성별로
@@ -1135,7 +1323,7 @@ function ElementChart({ saju }: { saju: Saju }) {
 
   return (
     <section className={CARD}>
-      <h2 className="text-xs uppercase tracking-wide text-muted">오행 분포</h2>
+      <h2 className="text-base font-semibold">오행 분포</h2>
       <p className="mt-1 mb-4 text-xs text-secondary">
         개수는 {glyphCount === 8 ? '여덟' : '여섯'} 글자를 그대로 센 것(옆의 %는 그
         비중), 점수는 지장간을 사령 일수로 펼친 값입니다. 다른 만세력은 대개
@@ -1207,13 +1395,13 @@ function ElementChart({ saju }: { saju: Saju }) {
 
 /** 신강·신약 — 임계값 대비 단일 비율이므로 메터. */
 function StrengthMeter({ saju }: { saju: Saju }) {
-  const { strength, eokbu } = saju.analysis;
+  const { strength, eokbu, johu } = saju.analysis;
   const percent = strength.ratio * 100;
   const threshold = 50;
 
   return (
     <section className={`${CARD} flex flex-col`}>
-      <h2 className="text-xs uppercase tracking-wide text-muted">신강 · 신약</h2>
+      <h2 className="text-base font-semibold">신강 · 신약</h2>
 
       <p className="mt-2 flex items-baseline gap-2">
         <span className="text-3xl font-semibold">
@@ -1266,6 +1454,24 @@ function StrengthMeter({ saju }: { saju: Saju }) {
       <div className="mt-4 border-t border-border pt-3">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+            참고표
+          </span>
+          <span className="text-xs text-muted">조후 후보 천간</span>
+          <span className="glyph text-lg font-medium">{johu.stems.join(' · ')}</span>
+          <span className="text-xs text-secondary">
+            {johu.dayMaster}일간 · {johu.monthBranch}월
+          </span>
+        </div>
+        <p className="mt-1.5 text-xs text-secondary">{johu.note}</p>
+        <p className="mt-2 text-xs text-muted">
+          《궁통보감》 120조합의 조건 요약입니다. 원국 구성과 월의 상·하순 조건을
+          모두 자동 판정한 확정 용신이 아니므로 후보와 조건을 함께 읽어야 합니다.
+        </p>
+      </div>
+
+      <div className="mt-4 border-t border-border pt-3">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
             시험
           </span>
           <span className="text-xs text-muted">억부 관점의 후보</span>
@@ -1281,8 +1487,7 @@ function StrengthMeter({ saju }: { saju: Saju }) {
           <strong className="font-medium">용신 확정값이 아닙니다.</strong> 억부는 용신을
           잡는 네 길 중 하나일 뿐이고, 아직 판정하지 않은 것이 남아 있습니다 —{' '}
           {eokbu.unresolved.map((factor) => UNRESOLVED_FACTOR_KO[factor]).join(', ')}.
-          조후용신은 궁통보감의 일간×월지 표가 있어야 하고 원리로 유도되지
-          않아(겨울 丁火에 火가 아니라 甲木을 씁니다) 아직 내지 않습니다.
+          위 조후표도 조건을 전부 자동 판정하지 않은 참고값입니다.
           꺼리는 오행(기신)도 내지 않습니다 — 오행 상극표 한 줄로 정해지는 것이
           아니기 때문입니다.
         </p>
@@ -1304,8 +1509,8 @@ function TimeCorrections({ saju }: { saju: Saju }) {
       : 'record';
 
   return (
-    <section className={CARD}>
-      <h2 className="text-xs uppercase tracking-wide text-muted">
+    <section id="corrections" className={`${CARD} scroll-mt-20`}>
+      <h2 className="text-base font-semibold">
         적용된 보정
         <span className="ml-2 text-secondary normal-case">{TIME_BASIS[basis].label}</span>
       </h2>
@@ -1357,7 +1562,7 @@ function Warnings({ saju }: { saju: Saju }) {
 
   return (
     <section className={`${CARD} bg-surface-sunken`}>
-      <h2 className="text-xs uppercase tracking-wide text-muted">경계 주의</h2>
+      <h2 className="text-base font-semibold">경계 주의</h2>
       <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-4 text-sm text-secondary">
         {saju.meta.warnings.map((warning) => (
           <li key={warning}>{warning}</li>

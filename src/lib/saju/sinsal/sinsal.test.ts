@@ -13,7 +13,11 @@ import {
   BAEKHO_PILLARS,
   CHEONEUL_BRANCHES,
   GOEGANG_PILLARS,
+  GWANGWI_HAKGWAN_BRANCH,
+  HYEONCHIM_GLYPHS,
+  HYEONCHIM_MIN_HITS,
   SINSAL_POLICY,
+  TAEGEUK_BRANCHES,
   TWELVE_SPIRITS,
   analyzeSinsal,
   emptyBranchesOf,
@@ -21,6 +25,7 @@ import {
   findStars,
   findTwelveSpirits,
   geumyeoBranchOf,
+  gwangwiHakgwanBranchOf,
   hakdangBranchOf,
   lonelinessBranchesOf,
   munchangBranchOf,
@@ -33,7 +38,7 @@ import {
 } from '@/src/lib/saju/sinsal';
 
 /**
- * 공망 · 12신살 · 신살 여덟 테스트.
+ * 공망 · 12신살 · 출처를 고정한 핵심 신살 테스트.
  *
  * 문창·금여·양인은 록지에서 셌으므로 통설 표와의 대조가 본론이다.
  * 공망과 12신살은 유도가 단순한 대신 시작점이 틀리면 열두 자리가 통째로
@@ -204,7 +209,7 @@ describe('12신살 — 국마다 열두 자리', () => {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 신살 여덟 — 통설 표와의 대조
+// 핵심 신살 — 통설 표와의 대조
 // ─────────────────────────────────────────────────────────────
 
 describe('록지에서 유도한 세 신살이 통설 표와 맞는가', () => {
@@ -294,6 +299,62 @@ describe('록지에서 유도한 세 신살이 통설 표와 맞는가', () => {
   });
 });
 
+describe('고전 기준을 고정한 신살 넷', () => {
+  it.each([
+    ['甲', '巳'], ['乙', '巳'], ['丙', '申'], ['丁', '申'], ['戊', '亥'],
+    ['己', '亥'], ['庚', '寅'], ['辛', '寅'], ['壬', '申'], ['癸', '申'],
+  ] as const)('%s 일간의 관귀학관은 %s', (stem, branch) => {
+    expect(gwangwiHakgwanBranchOf(stem)).toBe(branch);
+    expect(GWANGWI_HAKGWAN_BRANCH[stem]).toBe(branch);
+  });
+
+  it('관귀학관의 壬癸→申은 음양순역 12운성이 아니라 水土同生申에서 온다', () => {
+    expect(gwangwiHakgwanBranchOf('壬')).toBe('申');
+    expect(gwangwiHakgwanBranchOf('癸')).toBe('申');
+  });
+
+  it('현침은 甲辛卯午申 중 세 글자 이상일 때만 성립한다', () => {
+    const fourHits = findStars(chart('甲午', '辛卯', '丙戌', '丁亥'));
+    const twoHits = findStars(chart('甲子', '丙午', '戊辰', '庚戌'));
+
+    expect(HYEONCHIM_GLYPHS).toEqual(['甲', '辛', '卯', '午', '申']);
+    expect(HYEONCHIM_GLYPHS).not.toContain('未');
+    expect(HYEONCHIM_MIN_HITS).toBe(3);
+    expect(starOf(fourHits, 'hyeonchim')?.hits.map((hit) => hit.char)).toEqual([
+      '甲', '午', '辛', '卯',
+    ]);
+    expect(starOf(twoHits, 'hyeonchim')).toBeUndefined();
+  });
+
+  it('천문성(天門)은 戌亥가 함께 있어야 성립한다', () => {
+    const pair = findStars(chart('甲戌', '乙亥', '丙子', '丁酉'));
+    const single = findStars(chart('甲戌', '丙寅', '戊辰', '庚午'));
+
+    expect(starOf(pair, 'cheonmun')).toMatchObject({
+      nature: 'neutral',
+      hits: [
+        { position: 'year', target: 'branch', char: '戌' },
+        { position: 'month', target: 'branch', char: '亥' },
+      ],
+    });
+    expect(starOf(single, 'cheonmun')).toBeUndefined();
+  });
+
+  it('태극귀인은 《연해자평》 표 전체와 년간 기준을 따른다', () => {
+    expect(TAEGEUK_BRANCHES).toEqual({
+      甲: ['子', '午'], 乙: ['子', '午'], 丙: ['卯', '酉'], 丁: ['卯', '酉'],
+      戊: ['辰', '戌', '丑', '未'], 己: ['辰', '戌', '丑', '未'],
+      庚: ['寅', '亥'], 辛: ['寅', '亥'], 壬: ['巳', '申'], 癸: ['巳', '申'],
+    });
+
+    const found = starOf(findStars(chart('甲子', '戊辰', '丙寅', '戊戌')), 'taegeukGwiin');
+    expect(found).toMatchObject({
+      basis: { label: '년간', char: '甲' },
+      hits: [{ position: 'year', target: 'branch', char: '子' }],
+    });
+  });
+});
+
 describe('원국에서 신살 찾기', () => {
   it('걸린 신살만 낸다', () => {
     // 일간 甲 → 천을귀인 丑未, 월지 丑이 걸린다.
@@ -306,9 +367,10 @@ describe('원국에서 신살 찾기', () => {
       'cheondeokGwiin',
       'woldeokGwiin',
       'baekho',
+      'taegeukGwiin',
     ]);
     expect(starOf(stars, 'cheoneulGwiin')).toMatchObject({
-      auspicious: true,
+      nature: 'auspicious',
       basis: { label: '일간', char: '甲' },
       hits: [{ position: 'month', target: 'branch', char: '丑' }],
     });
@@ -317,7 +379,7 @@ describe('원국에서 신살 찾기', () => {
       hits: [{ position: 'year', target: 'stem', char: '庚' }],
     });
     expect(starOf(stars, 'baekho')).toMatchObject({
-      auspicious: false,
+      nature: 'inauspicious',
       basis: null,
       hits: [{ position: 'month', target: 'pillar', char: '丁丑' }],
     });
@@ -350,11 +412,6 @@ describe('원국에서 신살 찾기', () => {
     expect(starOf(stars, 'gwasuk')?.hits).toEqual([
       { position: 'hour', target: 'branch', char: '未' },
     ]);
-  });
-
-  it('아무것도 안 걸리면 빈 배열이다', () => {
-    const stars = findStars(chart('甲子', '甲子', '甲子', '甲子'));
-    expect(stars).toEqual([]);
   });
 
   it('시간 미상이면 시주에서 신살을 찾지 않는다', () => {
@@ -394,11 +451,14 @@ describe('묶음과 정책', () => {
 
   it('채택한 규칙 묶음을 결과 곁에 남긴다', () => {
     expect(SINSAL_POLICY).toEqual({
-      ruleSet: 'core-sinsal-v1',
+      ruleSet: 'sourced-sinsal-v2',
       stemBasis: 'day-master',
       hakdang: 'from-twelve-stages',
       loneliness: 'year-branch-both-genders',
-      omitted: 'gwangwi-hakgwan, hyeonchim, cheonmun, taegeuk',
+      gwangwiHakgwan: 'day-master-classic-five-element-growth',
+      hyeonchim: 'wuxing-jingji-five-glyphs-minimum-three',
+      cheonmun: 'xu-hai-pair-heavenly-gate',
+      taegeuk: 'year-stem-yuanhai-ziping',
       emptinessBasis: 'day-and-year',
       spiritBasis: 'year-and-day',
       travelPeachCanopy: 'from-twelve-spirits',
@@ -408,8 +468,11 @@ describe('묶음과 정책', () => {
     });
   });
 
-  it('산출법이 갈리는 신살은 넣지 않았다고 밝힌다', () => {
-    expect(SINSAL_POLICY.omitted).toContain('gwangwi-hakgwan');
+  it('산출법이 갈리는 신살은 채택 계통을 밝힌다', () => {
+    expect(SINSAL_POLICY.gwangwiHakgwan).toContain('classic-five-element');
+    expect(SINSAL_POLICY.hyeonchim).toContain('minimum-three');
+    expect(SINSAL_POLICY.cheonmun).toContain('pair');
+    expect(SINSAL_POLICY.taegeuk).toContain('year-stem');
     expect(SINSAL_POLICY.hakdang).toBe('from-twelve-stages');
     expect(SINSAL_POLICY.loneliness).toBe('year-branch-both-genders');
   });

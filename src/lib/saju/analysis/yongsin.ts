@@ -20,13 +20,12 @@ import type { Strength, StrengthInput } from './strength';
  *   통관(通關)  맞선 두 세력 사이를 잇는다.
  *   병약(病藥)  사주의 병이 된 글자를 치는 약을 쓴다.
  *
- * **여기서는 억부만 낸다.** 나머지 셋을 빼둔 이유가 각각 다르므로 적어둔다.
+ * **여기서는 억부 판정과 조후 참고표를 낸다.** 둘의 검증 수준은 다르다.
  *
- * - **조후**는 궁통보감의 120칸(일간 10 × 월지 12) 표를 그대로 옮겨야 한다.
- *   원리로 유도할 수 없다 — 겨울 丁火에 단순히 火를 쓰지 않고 甲木을 쓰는 것이
- *   그 예다. 기억으로 채우면 조용히 틀리고, 그 틀림은 화면에서 드러나지도
- *   않는다. 이 저장소가 가장 경계해온 종류의 오류라 표를 확보하기 전에는
- *   내지 않는다.
+ * - **조후**는 궁통보감의 120칸(일간 10 × 월지 12) 원문과 정리표를 대조해
+ *   `johu.ts`에 담았다. 다만 같은 칸에서도 원국의 구성과 월의 상·하순에 따라
+ *   우선순위가 바뀐다. 그 조건을 전부 자동 판정하지 않았으므로 확정 용신이
+ *   아니라 `status: 'reference'` 인 후보 천간과 조건 요약으로만 낸다.
  * - **통관·병약**은 억부·조후로 잡히지 않는 사주에 쓰는 예외 규칙이라,
  *   "언제 통관으로 갈아타는가"의 판정이 먼저다. 그 판정이 계통마다 갈린다.
  * - **종격(從格)**은 신강·신약의 극단에서 대세를 따르는 것인데, 종이 성립하는
@@ -63,13 +62,13 @@ export type UnresolvedFactor =
 
 export const UNRESOLVED_FACTOR_KO: Record<UnresolvedFactor, string> = {
   followingPattern: '종격 여부',
-  climate: '조후·한습조열',
+  climate: '조후 조건 판정',
   structure: '격국의 성패',
   combinationEffects: '합충으로 인한 뿌리 변화',
   rootQuality: '투간·통근의 질',
 };
 
-/** 억부 하나만 보고는 확정할 수 없는 것들 — 전부 미해결로 둔다 */
+/** 억부 하나만 보고는 확정할 수 없는 것들 — 조후도 조건 판정 전이라 남는다 */
 const UNRESOLVED: readonly UnresolvedFactor[] = [
   'followingPattern',
   'climate',
@@ -132,15 +131,15 @@ export function elementRolesOf(dayMasterElement: Element): Record<ElementRole, E
  * 채택한 규칙. `STRENGTH_POLICY` 와 짝이다 — 골든 스냅샷이 함께 찍는다.
  */
 export const YONGSIN_POLICY = {
-  ruleSet: 'eokbu-only-v1',
+  ruleSet: 'eokbu-with-johu-reference-v2',
   /** 확정값이 아니라 시험값으로 낸다 */
   status: 'experimental',
-  /** 억부만 본다 */
-  methods: 'eokbu',
+  /** 억부는 시험 판정, 조후는 원문 참고표로 함께 낸다 */
+  methods: 'eokbu-and-johu-reference',
   /** 기신은 판정하지 않는다 — 오행 상극표로 정해지는 것이 아니다 */
   unfavorable: 'not-judged',
-  /** 조후는 궁통보감 표를 확보하기 전에는 내지 않는다 */
-  johu: 'not-implemented-needs-table',
+  /** 조후 조건은 자동 판정하지 않는다 */
+  johu: 'qiongtong-baojian-120-reference',
   /** 종격 판정을 하지 않으므로 극단적으로 치우친 사주도 억부로 답한다 */
   followingPattern: 'not-judged',
 } as const;

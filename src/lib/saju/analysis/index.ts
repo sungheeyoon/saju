@@ -1,10 +1,12 @@
 import type { Pillars } from '../pillars';
 import { elementDistributionOf, type ElementDistribution, type ElementWeights } from './fiveElements';
+import { johuAssessmentOf, type JohuAssessment } from './johu';
 import { strengthOf, type Strength, type StrengthOptions } from './strength';
 import { eokbuAssessmentOf, type EokbuAssessment } from './yongsin';
 import { tenGodChartOf, tenGodCountsOf, type TenGod, type TenGodChart } from './tenGods';
 
 export * from './fiveElements';
+export * from './johu';
 export * from './strength';
 export * from './yongsin';
 export * from './tenGods';
@@ -28,6 +30,8 @@ export type Analysis = {
    * `status: 'experimental'` 과 `unresolved` 를 함께 읽어야 한다.
    */
   eokbu: EokbuAssessment;
+  /** 《궁통보감》 일간×월지 조후 후보. 원국 조건 판정 전의 참고표다 */
+  johu: JohuAssessment;
 };
 
 export type AnalysisOptions = {
@@ -49,5 +53,6 @@ export function analyzePillars(
     // 오행 분포와 같은 가중치를 써야 두 결과가 어긋나지 않는다.
     strength,
     eokbu: eokbuAssessmentOf(pillars, strength, options.weights),
+    johu: johuAssessmentOf(pillars),
   };
 }

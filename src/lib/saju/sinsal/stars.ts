@@ -12,19 +12,14 @@ import { PILLAR_POSITIONS, type PillarPosition } from '../position';
 import { STEM_PROSPERITY, twelveStageBranchesOf } from '../stages';
 
 /**
- * 신살(神殺) — 핵심 여덟.
+ * 신살(神殺) — 출처와 산출법을 고정한 핵심 신살.
  *
  * 신살은 자료마다 수십 개씩 늘어나고 산출법도 갈린다. 여기서는 산출 근거가
- * 분명하고 대부분의 만세력이 공통으로 내는 여덟만 고정한다.
+ * 분명하고 채택 계통을 설명할 수 있는 것만 고정한다.
  *
- *   길신 여섯 — 천을귀인 · 천덕귀인 · 월덕귀인 · 문창귀인 · 학당귀인 · 금여
- *   흉신 다섯 — 양인 · 괴강 · 백호대살 · 고신살 · 과숙살
- *
- * **더 넣지 않는 것들이 있다.** 관귀학관·현침살·천문성·태극귀인은 자료마다
- * 산출법이나 대상 글자가 갈리고, 유도해서 검산할 축도 없다. 예를 들어
- * 관귀학관은 "관성의 장생지"로 유도되다가 壬癸에서 통설 표와 어긋난다.
- * 표를 확보하기 전에는 넣지 않는다 — 기능 수를 채우려고 조용히 틀린 값을
- * 내는 것이 이 저장소가 가장 피해온 일이다.
+ * 자료마다 갈리는 관귀학관·현침살·천문성·태극귀인은 고전 근거가 있는 한
+ * 계통으로 좁혀 넣는다. 현대식 확장표와 섞지 않고 `SINSAL_POLICY`에 선택을
+ * 명시한다.
  *
  * **역마·도화(연살)·화개는 여기서 뽑지 않는다.** 셋 다 12신살에 이미 들어
  * 있으므로 `twelveSpirits` 의 결과를 그대로 쓴다. 같은 것을 두 곳에서 계산하면
@@ -50,7 +45,14 @@ export type StarKind =
   | 'goegang'
   | 'baekho'
   | 'gosin'
-  | 'gwasuk';
+  | 'gwasuk'
+  | 'gwangwiHakgwan'
+  | 'hyeonchim'
+  | 'cheonmun'
+  | 'taegeukGwiin';
+
+/** 전통적 분류. 천문처럼 길흉 어느 한쪽으로 놓기 어려운 별은 중립이다 */
+export type StarNature = 'auspicious' | 'inauspicious' | 'neutral';
 
 /** 신살이 어디에 걸렸는가 — 천간, 지지, 아니면 간지 전체 */
 export type StarTarget = 'stem' | 'branch' | 'pillar';
@@ -66,8 +68,8 @@ export type Star = {
   kind: StarKind;
   ko: string;
   hanja: string;
-  /** 길신인가. 흉신이라고 나쁘다는 뜻은 아니고 전통적 분류다 */
-  auspicious: boolean;
+  /** 길신·흉신·중립의 전통적 분류. 이것만으로 좋고 나쁨을 판정하지 않는다 */
+  nature: StarNature;
   /** 무엇을 기준으로 뽑았는가. 간지 자체로 정해지는 괴강·백호는 null */
   basis: { label: string; char: Stem | Branch } | null;
   /** 걸린 자리들. 한 신살이 여러 자리에 걸릴 수 있다 */
@@ -91,7 +93,7 @@ export const DEFAULT_YIN_YANGIN = false;
  * 정책이 바뀌면 골든 스냅샷 맨 위에서 먼저 드러난다.
  */
 export const SINSAL_POLICY = {
-  ruleSet: 'core-sinsal-v1',
+  ruleSet: 'sourced-sinsal-v2',
   /** 천을·문창·금여·양인은 일간 기준 (년간 기준 계통은 채택하지 않는다) */
   stemBasis: 'day-master',
   /** 공망은 일주·년주 기준을 모두 낸다 */
@@ -110,8 +112,14 @@ export const SINSAL_POLICY = {
   hakdang: 'from-twelve-stages',
   /** 고신·과숙은 년지 기준이고 성별로 가르지 않는다 */
   loneliness: 'year-branch-both-genders',
-  /** 산출법이 갈려 넣지 않은 것들 */
-  omitted: 'gwangwi-hakgwan, hyeonchim, cheonmun, taegeuk',
+  /** 관귀학관은 《삼명통회》의 오행 장생표 — 水土가 함께 申에서 장생한다 */
+  gwangwiHakgwan: 'day-master-classic-five-element-growth',
+  /** 현침은 《오행정기》의 다섯 글자 가운데 세 글자 이상 */
+  hyeonchim: 'wuxing-jingji-five-glyphs-minimum-three',
+  /** 천문은 당사주 天文이나 천의성 별칭이 아니라 戌亥가 함께 이루는 天門 */
+  cheonmun: 'xu-hai-pair-heavenly-gate',
+  /** 태극귀인은 《연해자평》 원문대로 년간만 기준으로 삼는다 */
+  taegeuk: 'year-stem-yuanhai-ziping',
 } as const;
 
 const branchIndexOf = (branch: Branch): number => BRANCHES.indexOf(branch);
@@ -137,6 +145,64 @@ export const munchangBranchOf = (stem: Stem): Branch => fromProsperity(stem, 3);
  * 계통을 따르므로 乙은 午, 辛은 子가 된다.
  */
 export const hakdangBranchOf = (stem: Stem): Branch => twelveStageBranchesOf(stem).長生;
+
+/**
+ * 관귀학관(官貴學館) — 일간의 관성 오행이 장생하는 지지.
+ *
+ * 《三命通會》 「論學堂詞館」은 金長生巳, 水土長生申, 木長生亥,
+ * 火長生寅이라 적고 이를 官貴學堂이라 부른다. 여기서의 장생은 음간을
+ * 역행시키는 열 천간 12운성이 아니라 **오행 단위 고전 장생**이다. 그래서
+ * 壬癸의 관성인 土도 水와 같이 申에서 장생한다.
+ */
+export const GWANGWI_HAKGWAN_BRANCH: Record<Stem, Branch> = {
+  甲: '巳',
+  乙: '巳',
+  丙: '申',
+  丁: '申',
+  戊: '亥',
+  己: '亥',
+  庚: '寅',
+  辛: '寅',
+  壬: '申',
+  癸: '申',
+};
+
+export const gwangwiHakgwanBranchOf = (stem: Stem): Branch =>
+  GWANGWI_HAKGWAN_BRANCH[stem];
+
+/**
+ * 태극귀인(太極貴人) — 년간이 만나는 지지.
+ *
+ * 《淵海子平》은 표 뒤에 "其法以生年爲主，取別干則非也"라고 못박는다.
+ * 현대의 일간 기준표를 기본값에 섞지 않고 년간만 쓴다.
+ */
+export const TAEGEUK_BRANCHES: Record<Stem, readonly Branch[]> = {
+  甲: ['子', '午'],
+  乙: ['子', '午'],
+  丙: ['卯', '酉'],
+  丁: ['卯', '酉'],
+  戊: ['辰', '戌', '丑', '未'],
+  己: ['辰', '戌', '丑', '未'],
+  庚: ['寅', '亥'],
+  辛: ['寅', '亥'],
+  壬: ['巳', '申'],
+  癸: ['巳', '申'],
+};
+
+/** 《五行精紀》가 현침으로 꼽은 다섯 글자. 현대 확장표의 未는 넣지 않는다 */
+export const HYEONCHIM_GLYPHS = ['甲', '辛', '卯', '午', '申'] as const;
+
+/** 고전은 다섯 글자 중 三四字라 하므로 한두 글자만으로 현침살이라 하지 않는다 */
+export const HYEONCHIM_MIN_HITS = 3;
+
+/**
+ * 천문(天門) — 서북 乾방의 戌亥 사이.
+ *
+ * 한국 자료에서 같은 음으로 부르는 당사주 天文=辰, 천의성의 별칭과는 다른
+ * 항목이다. 天門은 두 지지 사이의 문이므로 한 글자만으로 완성됐다고 하지 않고
+ * 원국에 戌亥가 함께 있을 때만 성립시킨다.
+ */
+export const CHEONMUN_BRANCHES = ['戌', '亥'] as const satisfies readonly Branch[];
 
 /**
  * 고신살(孤辰殺)·과숙살(寡宿殺) — 년지의 계절에서 나온다.
@@ -273,6 +339,22 @@ const pillarHits = (pillars: StarInput, names: readonly string[]): StarHit[] =>
     names.includes(pillar.name) ? { position, target: 'pillar', char: pillar.name } : null,
   );
 
+/** 천간과 지지의 글자꼴 자체를 세는 신살 — 한 기둥에서 둘 다 걸릴 수 있다 */
+const glyphHits = (pillars: StarInput, targets: readonly string[]): StarHit[] =>
+  PILLAR_POSITIONS.flatMap((position) => {
+    const pillar = pillars[position];
+    if (!pillar) return [];
+
+    const hits: StarHit[] = [];
+    if (targets.includes(pillar.stem)) {
+      hits.push({ position, target: 'stem', char: pillar.stem });
+    }
+    if (targets.includes(pillar.branch)) {
+      hits.push({ position, target: 'branch', char: pillar.branch });
+    }
+    return hits;
+  });
+
 /**
  * 원국에서 성립하는 신살을 찾는다.
  *
@@ -285,18 +367,22 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
   const yinYangin = options.yinYangin ?? DEFAULT_YIN_YANGIN;
 
   const yearBranch = pillars.year.branch;
+  const yearStem = pillars.year.stem;
   const loneliness = lonelinessBranchesOf(yearBranch);
   const cheondeokTarget = CHEONDEOK_TARGET[monthBranch];
   const woldeokStem = woldeokStemOf(monthBranch);
 
   const yanginAllowed = yinYangin || STEM_INFO[dayMaster].yinYang === '陽';
+  const hyeonchimHits = glyphHits(pillars, HYEONCHIM_GLYPHS);
+  const cheonmunHits = branchHits(pillars, CHEONMUN_BRANCHES);
+  const cheonmunComplete = new Set(cheonmunHits.map((hit) => hit.char)).size === 2;
 
   const candidates: Star[] = [
     {
       kind: 'cheoneulGwiin',
       ko: '천을귀인',
       hanja: '天乙貴人',
-      auspicious: true,
+      nature: 'auspicious',
       basis: { label: '일간', char: dayMaster },
       hits: branchHits(pillars, CHEONEUL_BRANCHES[dayMaster]),
     },
@@ -304,7 +390,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       kind: 'cheondeokGwiin',
       ko: '천덕귀인',
       hanja: '天德貴人',
-      auspicious: true,
+      nature: 'auspicious',
       basis: { label: '월지', char: monthBranch },
       hits: charHits(pillars, cheondeokTarget),
     },
@@ -312,7 +398,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       kind: 'woldeokGwiin',
       ko: '월덕귀인',
       hanja: '月德貴人',
-      auspicious: true,
+      nature: 'auspicious',
       basis: { label: '월지', char: monthBranch },
       hits: charHits(pillars, woldeokStem),
     },
@@ -320,7 +406,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       kind: 'munchangGwiin',
       ko: '문창귀인',
       hanja: '文昌貴人',
-      auspicious: true,
+      nature: 'auspicious',
       basis: { label: '일간', char: dayMaster },
       hits: branchHits(pillars, [munchangBranchOf(dayMaster)]),
     },
@@ -328,7 +414,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       kind: 'hakdangGwiin',
       ko: '학당귀인',
       hanja: '學堂貴人',
-      auspicious: true,
+      nature: 'auspicious',
       basis: { label: '일간', char: dayMaster },
       hits: branchHits(pillars, [hakdangBranchOf(dayMaster)]),
     },
@@ -336,7 +422,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       kind: 'geumyeo',
       ko: '금여',
       hanja: '金輿',
-      auspicious: true,
+      nature: 'auspicious',
       basis: { label: '일간', char: dayMaster },
       hits: branchHits(pillars, [geumyeoBranchOf(dayMaster)]),
     },
@@ -344,7 +430,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       kind: 'yangin',
       ko: '양인',
       hanja: '羊刃',
-      auspicious: false,
+      nature: 'inauspicious',
       basis: { label: '일간', char: dayMaster },
       hits: yanginAllowed ? branchHits(pillars, [yanginBranchOf(dayMaster)]) : [],
     },
@@ -352,7 +438,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       kind: 'goegang',
       ko: '괴강',
       hanja: '魁罡',
-      auspicious: false,
+      nature: 'inauspicious',
       basis: null,
       hits: pillarHits(pillars, GOEGANG_PILLARS),
     },
@@ -360,7 +446,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       kind: 'baekho',
       ko: '백호대살',
       hanja: '白虎大殺',
-      auspicious: false,
+      nature: 'inauspicious',
       basis: null,
       hits: pillarHits(pillars, BAEKHO_PILLARS),
     },
@@ -368,7 +454,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       kind: 'gosin',
       ko: '고신살',
       hanja: '孤辰殺',
-      auspicious: false,
+      nature: 'inauspicious',
       basis: { label: '년지', char: yearBranch },
       hits: branchHits(pillars, [loneliness.gosin]),
     },
@@ -376,9 +462,41 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       kind: 'gwasuk',
       ko: '과숙살',
       hanja: '寡宿殺',
-      auspicious: false,
+      nature: 'inauspicious',
       basis: { label: '년지', char: yearBranch },
       hits: branchHits(pillars, [loneliness.gwasuk]),
+    },
+    {
+      kind: 'gwangwiHakgwan',
+      ko: '관귀학관',
+      hanja: '官貴學館',
+      nature: 'auspicious',
+      basis: { label: '일간', char: dayMaster },
+      hits: branchHits(pillars, [gwangwiHakgwanBranchOf(dayMaster)]),
+    },
+    {
+      kind: 'hyeonchim',
+      ko: '현침살',
+      hanja: '懸針殺',
+      nature: 'inauspicious',
+      basis: null,
+      hits: hyeonchimHits.length >= HYEONCHIM_MIN_HITS ? hyeonchimHits : [],
+    },
+    {
+      kind: 'cheonmun',
+      ko: '천문성',
+      hanja: '天門星',
+      nature: 'neutral',
+      basis: null,
+      hits: cheonmunComplete ? cheonmunHits : [],
+    },
+    {
+      kind: 'taegeukGwiin',
+      ko: '태극귀인',
+      hanja: '太極貴人',
+      nature: 'auspicious',
+      basis: { label: '년간', char: yearStem },
+      hits: branchHits(pillars, TAEGEUK_BRANCHES[yearStem]),
     },
   ];
 

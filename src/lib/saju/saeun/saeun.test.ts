@@ -36,9 +36,13 @@ const chart = (year: string, month: string, day: string, hour: string) => {
 /** 1992-11-17 05:20 남 — 壬申 辛亥 丁酉 壬寅 */
 const NATAL = chart('壬申', '辛亥', '丁酉', '壬寅');
 const BIRTH_YEAR = 1992;
+const BIRTH_DATE = { year: 1992, month: 11, day: 17 };
 
 const saeun = (options = {}) =>
-  computeSaeun({ pillars: NATAL, birthSajuYear: BIRTH_YEAR }, options);
+  computeSaeun(
+    { pillars: NATAL, birthSajuYear: BIRTH_YEAR, birthDate: BIRTH_DATE },
+    options,
+  );
 
 describe('간지는 연주 도출과 같은 함수에서 나온다', () => {
   it('세운 간지가 그 해의 연주와 언제나 같다', () => {
@@ -72,7 +76,9 @@ describe('해의 경계는 입춘이다', () => {
   it('시작 절기가 입춘이고 2월 초에 있다', () => {
     for (const entry of saeun({ fromYear: 2024, count: 3 }).entries) {
       expect(entry.startTerm.name).toBe('입춘');
+      expect(entry.nextStartTerm.name).toBe('입춘');
       expect(entry.startTerm.date.getUTCMonth()).toBe(1); // 2월
+      expect(entry.nextStartTerm.date.getTime()).toBeGreaterThan(entry.startTerm.date.getTime());
     }
   });
 
@@ -106,13 +112,33 @@ describe('원국에서 본 세운', () => {
     expect(entry.spirits.year).toBe('天殺');
   });
 
-  it('나이는 만 나이로 센다', () => {
+  it('세운 시작과 끝의 실제 만 나이를 생일 기준으로 센다', () => {
     const entries = saeun({ fromYear: BIRTH_YEAR, count: 3 }).entries;
-    expect(entries.map((e) => e.age)).toEqual([0, 1, 2]);
+    expect(entries.map((e) => [e.ageAtStart, e.ageAtEnd])).toEqual([
+      [-1, 0],
+      [0, 1],
+      [1, 2],
+    ]);
   });
 
   it('출생 전 해는 나이가 음수다', () => {
-    expect(saeun({ fromYear: 1990, count: 1 }).entries[0].age).toBe(-2);
+    expect(saeun({ fromYear: 1990, count: 1 }).entries[0]).toMatchObject({
+      ageAtStart: -3,
+      ageAtEnd: -2,
+    });
+  });
+
+  it('1990-05-15 출생자의 2026 세운은 만 35세에서 36세 사이를 지난다', () => {
+    const [entry] = computeSaeun(
+      {
+        pillars: NATAL,
+        birthSajuYear: 1990,
+        birthDate: { year: 1990, month: 5, day: 15 },
+      },
+      { fromYear: 2026, count: 1 },
+    ).entries;
+
+    expect(entry).toMatchObject({ ageAtStart: 35, ageAtEnd: 36 });
   });
 });
 

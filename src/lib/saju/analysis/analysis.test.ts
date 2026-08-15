@@ -287,6 +287,7 @@ describe('통합(analyzePillars)', () => {
     expect(saju.analysis.strength.verdict).toMatch(/strong|weak/);
     expect(saju.analysis.elements.counts).toBeDefined();
     expect(saju.analysis.tenGods.day.stem).toBeNull();
+    expect(saju.analysis.johu.status).toBe('reference');
   });
 
   it('십성 개수 합이 7이다 (여덟 글자에서 일간 제외)', () => {
@@ -499,8 +500,8 @@ describe('억부 후보 (시험값)', () => {
 
   it('시험값이라는 사실을 정책에 남긴다', () => {
     expect(YONGSIN_POLICY.status).toBe('experimental');
-    expect(YONGSIN_POLICY.methods).toBe('eokbu');
-    expect(YONGSIN_POLICY.johu).toBe('not-implemented-needs-table');
+    expect(YONGSIN_POLICY.methods).toBe('eokbu-and-johu-reference');
+    expect(YONGSIN_POLICY.johu).toBe('qiongtong-baojian-120-reference');
     expect(YONGSIN_POLICY.unfavorable).toBe('not-judged');
   });
 });
