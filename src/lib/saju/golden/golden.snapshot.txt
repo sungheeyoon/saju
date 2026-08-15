@@ -69,6 +69,17 @@
           goegang                classic-four
           pillarStarScope        all-pillars
 
+  신강·신약  득령(월지)·득지(일지)·득세(지장간 사령 일수 가중)로 잰다.
+        12운성은 점수에 넣지 않는다 — 乙의 장생 午에는 木의 뿌리가 없고,
+        甲의 건록 寅이 강한 것은 이름이 아니라 통근이라 이미 세고 있다.
+
+          ruleSet                seasonal-roots-v1
+          useMonthCommand        true
+          useHiddenStemRoots     true
+          useSupportingAndDrainingElements true
+          twelveStageContribution none
+          unaccounted            stem-emergence, combination-clash-effects
+
   시간 미상  채택: 시주를 뽑지 않는다 (unknown-hour-* 케이스)
 
     정오를 넣으면 시주가 午시로 나와 "모름"이 "낮 12시"로 둔갑한다.

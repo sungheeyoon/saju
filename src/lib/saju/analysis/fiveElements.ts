@@ -60,8 +60,14 @@ function emptyTally(): Record<Element, number> {
   return Object.fromEntries(ELEMENTS.map((e) => [e, 0])) as Record<Element, number>;
 }
 
+/**
+ * 오행 분포에 필요한 것은 네 기둥뿐이다 — 절기·보정 메타는 쓰지 않는다.
+ * 좁혀 두면 테스트에서 간지 넷만으로 부를 수 있다.
+ */
+export type DistributionInput = Pick<Pillars, 'year' | 'month' | 'day' | 'hour'>;
+
 export function elementDistributionOf(
-  pillars: Pillars,
+  pillars: DistributionInput,
   weights: Partial<ElementWeights> = {},
 ): ElementDistribution {
   const { stem, branch, monthBranchMultiplier } = { ...DEFAULT_ELEMENT_WEIGHTS, ...weights };

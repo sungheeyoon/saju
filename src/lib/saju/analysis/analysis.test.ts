@@ -2,17 +2,22 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ELEMENTS,
+  HIDDEN_STEMS,
   STEMS,
   STEM_INFO,
   elementRelation,
+  pillarOf,
   principalStem,
+  type Branch,
   type Stem,
 } from '@/src/lib/saju/constants';
+import { twelveStageOf } from '@/src/lib/saju/stages';
 import {
   TEN_GOD_GROUP,
   TEN_GOD_KO,
   analyzePillars,
   elementDistributionOf,
+  STRENGTH_POLICY,
   strengthOf,
   tenGodChartOf,
   tenGodOf,
@@ -309,5 +314,90 @@ describe('통합(analyzePillars)', () => {
       expect(strength.ratio).toBeGreaterThanOrEqual(0);
       expect(strength.ratio).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+describe('12운성은 신강·신약 점수에 들어가지 않는다', () => {
+  /**
+   * 되돌리기 쉬운 결정이라 못박는다. 12운성 이름이 강해 보인다고 점수를 주면
+   * 통근·계절 판단과 충돌하고, 통근한 자리는 이미 오행 점수가 세고 있어
+   * 같은 사실을 두 번 세게 된다.
+   */
+  const chart = (year: string, month: string, day: string, hour: string) => {
+    const parse = (name: string) => {
+      const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
+      if (!pillar) throw new Error(`간지가 아니다: ${name}`);
+      return pillar;
+    };
+    const day_ = parse(day);
+    return {
+      year: parse(year),
+      month: parse(month),
+      day: day_,
+      hour: parse(hour),
+      dayMaster: day_.stem,
+    };
+  };
+
+  it('乙의 장생 午는 木의 뿌리가 없어 득령이 되지 않는다', () => {
+    // 음양순역에서 乙은 午에서 장생한다. 그러나 午의 지장간은 丙己丁이라
+    // 木이 하나도 없다 — 장생이라는 이름이 통근을 뜻하지 않는다.
+    //
+    // 乙午는 실재하지 않는 간지(乙은 음, 午는 양)라 이 장생은 일주로는
+    // 나올 수 없다. 월지·년지·시지에서만 만난다.
+    expect(twelveStageOf('乙', '午')).toBe('長生');
+    expect(HIDDEN_STEMS['午'].some((h) => STEM_INFO[h.stem].element === '木')).toBe(false);
+    expect(pillarOf('乙', '午')).toBeNull();
+
+    const strength = strengthOf(chart('丙午', '甲午', '乙巳', '壬午'));
+    const seasonal = strength.criteria.find((c) => c.key === 'seasonal');
+
+    expect(seasonal?.met).toBe(false);
+    // 여름 화기가 오히려 목을 설기하므로 아군 세력이 우세할 수 없다.
+    expect(strength.ratio).toBeLessThan(0.5);
+    expect(strength.verdict).toBe('weak');
+  });
+
+  it('甲의 건록 寅이 강한 것은 이름이 아니라 통근이다', () => {
+    expect(twelveStageOf('甲', '寅')).toBe('建祿');
+    expect(HIDDEN_STEMS['寅'].some((h) => h.stem === '甲')).toBe(true);
+
+    const strength = strengthOf(chart('丙寅', '庚寅', '甲寅', '丙寅'));
+    expect(strength.criteria.find((c) => c.key === 'branch')?.met).toBe(true);
+  });
+
+  it('판정 근거는 득령·득지·득세 셋뿐이다', () => {
+    const strength = strengthOf(chart('丙午', '甲午', '乙巳', '壬午'));
+
+    expect(strength.criteria.map((c) => c.key)).toEqual(['seasonal', 'branch', 'overall']);
+    expect(strength.criteria.map((c) => c.label)).toEqual(['득령', '득지', '득세']);
+  });
+
+  it('운성 계통을 바꿔도 신강·신약은 한 자리도 움직이지 않는다', () => {
+    // 양포태로 보면 乙의 午는 장생이 아니라 사(死)가 된다. 12운성이 통째로
+    // 뒤집혀도 강약 판정이 그대로여야 둘이 섞이지 않았다는 뜻이다.
+    expect(twelveStageOf('乙', '午')).toBe('長生');
+    expect(twelveStageOf('乙', '午', { yinReverse: false })).toBe('死');
+
+    const input = {
+      year: 1988,
+      month: 7,
+      day: 15,
+      hour: 14,
+      minute: 30,
+      second: 0,
+      gender: 'male',
+    } as const;
+
+    const yinReversed = computeSaju(input);
+    const yangOnly = computeSaju(input, { stages: { yinReverse: false } });
+
+    expect(yangOnly.stages).not.toEqual(yinReversed.stages);
+    expect(yangOnly.analysis.strength).toEqual(yinReversed.analysis.strength);
+  });
+
+  it('채택한 계산법을 결과 곁에 남긴다', () => {
+    expect(STRENGTH_POLICY.twelveStageContribution).toBe('none');
+    expect(STRENGTH_POLICY.ruleSet).toBe('seasonal-roots-v1');
   });
 });

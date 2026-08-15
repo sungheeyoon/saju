@@ -9,6 +9,7 @@ import {
   PILLAR_POSITION_KO,
   RELATION_POLICY,
   SINSAL_POLICY,
+  STRENGTH_POLICY,
   SPIRIT_BASIS_KO,
   TWELVE_SPIRIT_KO,
   TWELVE_STAGE_KO,
@@ -200,6 +201,14 @@ describe('골든 테스트', () => {
       '        신살은 산출 근거가 분명한 여덟만 — 역마·도화·화개는 12신살에서 온다.',
       '',
       ...Object.entries(SINSAL_POLICY).map(
+        ([key, value]) => `          ${key.padEnd(22)} ${value}`,
+      ),
+      '',
+      '  신강·신약  득령(월지)·득지(일지)·득세(지장간 사령 일수 가중)로 잰다.',
+      '        12운성은 점수에 넣지 않는다 — 乙의 장생 午에는 木의 뿌리가 없고,',
+      '        甲의 건록 寅이 강한 것은 이름이 아니라 통근이라 이미 세고 있다.',
+      '',
+      ...Object.entries(STRENGTH_POLICY).map(
         ([key, value]) => `          ${key.padEnd(22)} ${value}`,
       ),
       '',
