@@ -21,6 +21,8 @@ import {
   findStars,
   findTwelveSpirits,
   geumyeoBranchOf,
+  hakdangBranchOf,
+  lonelinessBranchesOf,
   munchangBranchOf,
   twelveSpiritBranchesOf,
   twelveSpiritOf,
@@ -259,6 +261,29 @@ describe('록지에서 유도한 세 신살이 통설 표와 맞는가', () => {
     expect(woldeokStemOf(month)).toBe(stem);
   });
 
+  it.each([
+    ['甲', '亥'], ['乙', '午'], ['丙', '寅'], ['丁', '酉'], ['戊', '寅'],
+    ['己', '酉'], ['庚', '巳'], ['辛', '子'], ['壬', '申'], ['癸', '卯'],
+  ] as const)('%s 의 학당귀인은 장생지 %s', (stem, branch) => {
+    expect(hakdangBranchOf(stem)).toBe(branch);
+  });
+
+  it.each([
+    ['亥', '寅', '戌'], ['子', '寅', '戌'], ['丑', '寅', '戌'],
+    ['寅', '巳', '丑'], ['卯', '巳', '丑'], ['辰', '巳', '丑'],
+    ['巳', '申', '辰'], ['午', '申', '辰'], ['未', '申', '辰'],
+    ['申', '亥', '未'], ['酉', '亥', '未'], ['戌', '亥', '未'],
+  ] as const)('%s년의 고신은 %s, 과숙은 %s', (year, gosin, gwasuk) => {
+    expect(lonelinessBranchesOf(year)).toEqual({ gosin, gwasuk });
+  });
+
+  it('고신과 과숙은 언제나 다른 글자다', () => {
+    for (const branch of BRANCHES) {
+      const { gosin, gwasuk } = lonelinessBranchesOf(branch);
+      expect(gosin).not.toBe(gwasuk);
+    }
+  });
+
   it('괴강은 좁은 넷, 백호는 일곱이다', () => {
     expect(GOEGANG_PILLARS).toEqual(['壬辰', '庚辰', '庚戌', '戊戌']);
     expect(BAEKHO_PILLARS).toHaveLength(7);
@@ -314,6 +339,19 @@ describe('원국에서 신살 찾기', () => {
     ]);
   });
 
+  it('고신·과숙은 년지 기준으로 붙는다', () => {
+    // 년지 申(가을) → 고신 亥, 과숙 未.
+    const stars = findStars(chart('庚申', '丁亥', '甲子', '辛未'));
+
+    expect(starOf(stars, 'gosin')).toMatchObject({
+      basis: { label: '년지', char: '申' },
+      hits: [{ position: 'month', target: 'branch', char: '亥' }],
+    });
+    expect(starOf(stars, 'gwasuk')?.hits).toEqual([
+      { position: 'hour', target: 'branch', char: '未' },
+    ]);
+  });
+
   it('아무것도 안 걸리면 빈 배열이다', () => {
     const stars = findStars(chart('甲子', '甲子', '甲子', '甲子'));
     expect(stars).toEqual([]);
@@ -358,6 +396,9 @@ describe('묶음과 정책', () => {
     expect(SINSAL_POLICY).toEqual({
       ruleSet: 'core-sinsal-v1',
       stemBasis: 'day-master',
+      hakdang: 'from-twelve-stages',
+      loneliness: 'year-branch-both-genders',
+      omitted: 'gwangwi-hakgwan, hyeonchim, cheonmun, taegeuk',
       emptinessBasis: 'day-and-year',
       spiritBasis: 'year-and-day',
       travelPeachCanopy: 'from-twelve-spirits',
@@ -365,6 +406,12 @@ describe('묶음과 정책', () => {
       goegang: 'classic-four',
       pillarStarScope: 'all-pillars',
     });
+  });
+
+  it('산출법이 갈리는 신살은 넣지 않았다고 밝힌다', () => {
+    expect(SINSAL_POLICY.omitted).toContain('gwangwi-hakgwan');
+    expect(SINSAL_POLICY.hakdang).toBe('from-twelve-stages');
+    expect(SINSAL_POLICY.loneliness).toBe('year-branch-both-genders');
   });
 
   it('역마·도화·화개를 신살에서 따로 뽑지 않는다', () => {

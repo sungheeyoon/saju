@@ -60,6 +60,22 @@ import {
  * 막대마다 이름이 붙어 색이 정체성을 지지 않으므로 단일 색조로 크기만 나타낸다.
  */
 
+/**
+ * 궁성(宮星) — 각 기둥이 상징하는 자리와 시기.
+ *
+ * 계산이 아니라 **표시 규칙**이다. 여덟 글자에서 나오는 값이 아니라 자리에
+ * 붙은 관습적 의미라서, 엔진이 아니라 화면이 들고 있는다.
+ *
+ * 육친을 성별로 단정하지 않는다 — "월간은 부친" 같은 배정은 계통과 성별에
+ * 따라 갈리므로 관계(부모·형제) 수준까지만 적는다. 연령 구간도 대략이다.
+ */
+const PALACE: Record<'year' | 'month' | 'day' | 'hour', { role: string; period: string }> = {
+  year: { role: '조상·뿌리', period: '초년' },
+  month: { role: '부모·형제', period: '청년' },
+  day: { role: '나·배우자', period: '중년' },
+  hour: { role: '자녀·결실', period: '말년' },
+};
+
 /** 전통 표기 순서 — 시주가 왼쪽, 년주가 오른쪽 */
 const PILLAR_COLUMNS = [
   { key: 'hour', label: '시주' },
@@ -604,10 +620,17 @@ function RelationTable({ saju }: { saju: Saju }) {
   );
 }
 
-/** 같은 관계가 자리만 달리해 여러 번 나오므로 자리까지 키에 넣는다 */
+/**
+ * 관계 하나를 가리키는 키.
+ *
+ * 이름만으로는 모자란다. 같은 관계가 **자리만 달리해** 여러 번 나오고
+ * (원국에 辰이 둘이면 월운 卯와 묘진해가 둘 성립한다), 계산판이 섞이면
+ * 자리 이름마저 겹친다(원국 년주와 세운 년주가 둘 다 'year'). 글자가 아니라
+ * 계산판+자리가 관계의 정체성이다.
+ */
 function relationKey(relation: Relation): string {
   return `${relation.kind}:${relation.ko}:${relation.participants
-    .map((p) => p.position)
+    .map((p) => `${p.chartId}.${p.position}`)
     .join('-')}`;
 }
 
@@ -674,7 +697,7 @@ function SaeunTable({ saju }: { saju: Saju }) {
 
                   <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
                     {entry.relations.map((relation) => (
-                      <li key={`${relation.kind}:${relation.ko}`}>
+                      <li key={relationKey(relation)}>
                         {relation.ko}
                         {relation.scope === 'combinedFormation' && (
                           <span className="text-muted"> 합쳐서</span>
@@ -759,7 +782,7 @@ function WolunTable({ saju }: { saju: Saju }) {
 
                   <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
                     {entry.relations.map((relation) => (
-                      <li key={`${relation.kind}:${relation.ko}`}>{relation.ko}</li>
+                      <li key={relationKey(relation)}>{relation.ko}</li>
                     ))}
                   </ul>
                 </td>
@@ -926,6 +949,12 @@ function PillarChart({ saju }: { saju: Saju }) {
             </tr>
 
             <MarkRow
+              label="궁"
+              hint="자리의 상징"
+              value={(key) => `${PALACE[key].role} · ${PALACE[key].period}`}
+            />
+
+            <MarkRow
               label="12운성"
               hint="일간 기준"
               value={(key) => {
@@ -959,7 +988,13 @@ function PillarChart({ saju }: { saju: Saju }) {
         </table>
       </div>
 
-      <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-border pt-4 text-sm">
+      <p className="mt-3 text-xs text-muted">
+        궁(宮)은 계산 결과가 아니라 자리에 붙은 관습적 의미입니다. 육친을 성별로
+        단정하지 않았고(월간=부친 같은 배정은 계통마다 갈립니다), 연령 구간도
+        대략입니다.
+      </p>
+
+      <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-border pt-4 text-sm">
         <Term>일간</Term>
         <dd>
           <span className="glyph">{pillars.dayMaster}</span> {STEM_INFO[pillars.dayMaster].ko} ·{' '}
@@ -1102,7 +1137,9 @@ function ElementChart({ saju }: { saju: Saju }) {
     <section className={CARD}>
       <h2 className="text-xs uppercase tracking-wide text-muted">오행 분포</h2>
       <p className="mt-1 mb-4 text-xs text-secondary">
-        개수는 {glyphCount === 8 ? '여덟' : '여섯'} 글자, 점수는 지장간을 사령 일수로 펼친 값
+        개수는 {glyphCount === 8 ? '여덟' : '여섯'} 글자를 그대로 센 것(옆의 %는 그
+        비중), 점수는 지장간을 사령 일수로 펼친 값입니다. 다른 만세력은 대개
+        앞쪽 기준으로 %를 냅니다
         {glyphCount !== 8 && <span className="text-muted"> · 시주 제외</span>}
       </p>
 
@@ -1126,11 +1163,14 @@ function ElementChart({ saju }: { saju: Saju }) {
                 {needed.has(element) && <span className="ml-1.5 text-xs text-accent">필요</span>}
               </td>
               <td
-                className={`py-1 pl-3 text-right tabular-nums ${
+                className={`py-1 pl-3 text-right tabular-nums whitespace-nowrap ${
                   counts[element] === 0 ? 'text-muted' : ''
                 }`}
               >
                 {counts[element]}
+                <span className="ml-1 text-xs text-muted">
+                  {Math.round((counts[element] / glyphCount) * 100)}%
+                </span>
               </td>
               <td className="py-1 pl-3 text-right tabular-nums text-secondary">
                 {scores[element].toFixed(2)}

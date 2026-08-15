@@ -1,5 +1,6 @@
 import {
   BRANCHES,
+  BRANCH_DIRECTIONAL_COMBINATIONS,
   BRANCH_TRIPLE_COMBINATIONS,
   STEM_INFO,
   type Branch,
@@ -8,7 +9,7 @@ import {
 } from '../constants';
 import type { Pillars } from '../pillars';
 import { PILLAR_POSITIONS, type PillarPosition } from '../position';
-import { STEM_PROSPERITY } from '../stages';
+import { STEM_PROSPERITY, twelveStageBranchesOf } from '../stages';
 
 /**
  * 신살(神殺) — 핵심 여덟.
@@ -16,8 +17,14 @@ import { STEM_PROSPERITY } from '../stages';
  * 신살은 자료마다 수십 개씩 늘어나고 산출법도 갈린다. 여기서는 산출 근거가
  * 분명하고 대부분의 만세력이 공통으로 내는 여덟만 고정한다.
  *
- *   길신 다섯 — 천을귀인 · 천덕귀인 · 월덕귀인 · 문창귀인 · 금여
- *   흉신 셋   — 양인 · 괴강 · 백호대살
+ *   길신 여섯 — 천을귀인 · 천덕귀인 · 월덕귀인 · 문창귀인 · 학당귀인 · 금여
+ *   흉신 다섯 — 양인 · 괴강 · 백호대살 · 고신살 · 과숙살
+ *
+ * **더 넣지 않는 것들이 있다.** 관귀학관·현침살·천문성·태극귀인은 자료마다
+ * 산출법이나 대상 글자가 갈리고, 유도해서 검산할 축도 없다. 예를 들어
+ * 관귀학관은 "관성의 장생지"로 유도되다가 壬癸에서 통설 표와 어긋난다.
+ * 표를 확보하기 전에는 넣지 않는다 — 기능 수를 채우려고 조용히 틀린 값을
+ * 내는 것이 이 저장소가 가장 피해온 일이다.
  *
  * **역마·도화(연살)·화개는 여기서 뽑지 않는다.** 셋 다 12신살에 이미 들어
  * 있으므로 `twelveSpirits` 의 결과를 그대로 쓴다. 같은 것을 두 곳에서 계산하면
@@ -37,10 +44,13 @@ export type StarKind =
   | 'cheondeokGwiin'
   | 'woldeokGwiin'
   | 'munchangGwiin'
+  | 'hakdangGwiin'
   | 'geumyeo'
   | 'yangin'
   | 'goegang'
-  | 'baekho';
+  | 'baekho'
+  | 'gosin'
+  | 'gwasuk';
 
 /** 신살이 어디에 걸렸는가 — 천간, 지지, 아니면 간지 전체 */
 export type StarTarget = 'stem' | 'branch' | 'pillar';
@@ -96,6 +106,12 @@ export const SINSAL_POLICY = {
   goegang: 'classic-four',
   /** 괴강·백호를 일주에 가두지 않고 네 기둥에서 찾는다 */
   pillarStarScope: 'all-pillars',
+  /** 학당귀인은 12운성 장생지에서 가져온다 — 표를 따로 두지 않는다 */
+  hakdang: 'from-twelve-stages',
+  /** 고신·과숙은 년지 기준이고 성별로 가르지 않는다 */
+  loneliness: 'year-branch-both-genders',
+  /** 산출법이 갈려 넣지 않은 것들 */
+  omitted: 'gwangwi-hakgwan, hyeonchim, cheonmun, taegeuk',
 } as const;
 
 const branchIndexOf = (branch: Branch): number => BRANCHES.indexOf(branch);
@@ -112,6 +128,38 @@ export const geumyeoBranchOf = (stem: Stem): Branch => fromProsperity(stem, 2);
 
 /** 문창귀인(文昌貴人) — 록에서 세 칸. 글재주로 본다 */
 export const munchangBranchOf = (stem: Stem): Branch => fromProsperity(stem, 3);
+
+/**
+ * 학당귀인(學堂貴人) — 일간의 장생지 그 자리.
+ *
+ * 표가 따로 있는 것이 아니라 12운성의 장생지와 같은 값이다. 그래서 표를
+ * 옮기지 않고 `twelveStageBranchesOf` 에서 가져온다. 음간을 역행시키는 기본
+ * 계통을 따르므로 乙은 午, 辛은 子가 된다.
+ */
+export const hakdangBranchOf = (stem: Stem): Branch => twelveStageBranchesOf(stem).長生;
+
+/**
+ * 고신살(孤辰殺)·과숙살(寡宿殺) — 년지의 계절에서 나온다.
+ *
+ * 년지가 속한 방합(계절)을 찾아, **다음 계절의 첫 글자**가 고신이고 **앞
+ * 계절의 끝 글자**가 과숙이다. 亥子丑(겨울)년이면 봄의 寅이 고신, 가을의
+ * 戌이 과숙이다. 통설 표와 열두 지지 모두에서 일치한다.
+ *
+ * 고신을 남자에게, 과숙을 여자에게 무겁게 보는 계통이 있으나 그것은 해석이라
+ * 여기서 가르지 않는다. 둘 다 검출하고 판단은 쓰는 쪽에 맡긴다.
+ */
+export function lonelinessBranchesOf(yearBranch: Branch): { gosin: Branch; gwasuk: Branch } {
+  const index = BRANCH_DIRECTIONAL_COMBINATIONS.findIndex((c) =>
+    c.branches.includes(yearBranch),
+  );
+  if (index === -1) throw new Error(`방합에 속하지 않는 지지: ${yearBranch}`);
+
+  const seasons = BRANCH_DIRECTIONAL_COMBINATIONS;
+  return {
+    gosin: seasons[(index + 1) % seasons.length].branches[0],
+    gwasuk: seasons[(index + seasons.length - 1) % seasons.length].branches[2],
+  };
+}
 
 /**
  * 천을귀인(天乙貴人) — 일간이 만나는 두 지지.
@@ -236,6 +284,8 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
   const monthBranch = pillars.month.branch;
   const yinYangin = options.yinYangin ?? DEFAULT_YIN_YANGIN;
 
+  const yearBranch = pillars.year.branch;
+  const loneliness = lonelinessBranchesOf(yearBranch);
   const cheondeokTarget = CHEONDEOK_TARGET[monthBranch];
   const woldeokStem = woldeokStemOf(monthBranch);
 
@@ -275,6 +325,14 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: branchHits(pillars, [munchangBranchOf(dayMaster)]),
     },
     {
+      kind: 'hakdangGwiin',
+      ko: '학당귀인',
+      hanja: '學堂貴人',
+      auspicious: true,
+      basis: { label: '일간', char: dayMaster },
+      hits: branchHits(pillars, [hakdangBranchOf(dayMaster)]),
+    },
+    {
       kind: 'geumyeo',
       ko: '금여',
       hanja: '金輿',
@@ -305,6 +363,22 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       auspicious: false,
       basis: null,
       hits: pillarHits(pillars, BAEKHO_PILLARS),
+    },
+    {
+      kind: 'gosin',
+      ko: '고신살',
+      hanja: '孤辰殺',
+      auspicious: false,
+      basis: { label: '년지', char: yearBranch },
+      hits: branchHits(pillars, [loneliness.gosin]),
+    },
+    {
+      kind: 'gwasuk',
+      ko: '과숙살',
+      hanja: '寡宿殺',
+      auspicious: false,
+      basis: { label: '년지', char: yearBranch },
+      hits: branchHits(pillars, [loneliness.gwasuk]),
     },
   ];
 
