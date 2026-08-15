@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CONTROLLED_BY,
   ELEMENTS,
   HIDDEN_STEMS,
   STEMS,
@@ -18,13 +17,11 @@ import {
   TEN_GOD_KO,
   analyzePillars,
   elementDistributionOf,
-  STRENGTH_GRADE_KO,
   STRENGTH_POLICY,
   YONGSIN_POLICY,
+  eokbuAssessmentOf,
   elementRolesOf,
-  strengthGradeOf,
   strengthOf,
-  yongsinOf,
   tenGodChartOf,
   tenGodOf,
   tenGodOfBranch,
@@ -424,85 +421,106 @@ const chartOf = (year: string, month: string, day: string, hour: string) => {
   };
 };
 
-describe('억부용신', () => {
-  const yongsin = (year: string, month: string, day: string, hour: string) => {
+describe('억부 후보 (시험값)', () => {
+  const eokbu = (year: string, month: string, day: string, hour: string) => {
     const pillars = chartOf(year, month, day, hour);
-    return yongsinOf(pillars, strengthOf(pillars));
+    return eokbuAssessmentOf(pillars, strengthOf(pillars));
   };
 
   it('신약에 관성이 무거우면 인성을 쓴다 — 관인상생', () => {
     // 1992-11-17 05:20 남 · 壬申 辛亥 丁酉 壬寅.
     // 丁火 일간에 水(관성)가 가장 무겁다. 외부 만세력의 억부용신도 木이다.
-    const found = yongsin('壬申', '辛亥', '丁酉', '壬寅');
+    const found = eokbu('壬申', '辛亥', '丁酉', '壬寅');
 
-    expect(found.element).toBe('木');
+    expect(found.suggestedElement).toBe('木');
     expect(found.role).toBe('印星');
-    expect(found.avoid).toBe('金');
     expect(found.reason).toContain('관성');
+    // 확정값이 아님을 값으로 못박는다.
+    expect(found.status).toBe('experimental');
+    expect(found.confidence).toBe('low');
   });
 
   it('신약에 재성이 무거우면 비겁을 쓴다 — 인성이 극당하기 때문', () => {
     // 甲木 일간에 土(재성)가 사방에 깔린 사주.
-    const found = yongsin('戊辰', '戊辰', '甲戌', '甲戌');
+    const found = eokbu('戊辰', '戊辰', '甲戌', '甲戌');
 
     expect(found.role).toBe('比劫');
-    expect(found.element).toBe('木');
+    expect(found.suggestedElement).toBe('木');
     expect(found.reason).toContain('재성');
   });
 
   it('신강에 인성이 무거우면 재성을 쓴다 — 재극인', () => {
     // 甲木 일간에 水(인성)가 넘친다.
-    const found = yongsin('壬子', '壬子', '甲子', '壬申');
+    const found = eokbu('壬子', '壬子', '甲子', '壬申');
 
     expect(found.role).toBe('財星');
-    expect(found.element).toBe('土');
+    expect(found.suggestedElement).toBe('土');
   });
 
-  it('용신은 언제나 자기를 극하는 오행을 꺼린다', () => {
-    for (const [y, m, d, h] of [
-      ['壬申', '辛亥', '丁酉', '壬寅'],
-      ['戊辰', '戊辰', '甲戌', '甲戌'],
-      ['壬子', '壬子', '甲子', '壬申'],
-    ] as const) {
-      const found = yongsin(y, m, d, h);
-      expect(found.avoid).toBe(CONTROLLED_BY[found.element]);
-      expect(found.avoid).not.toBe(found.element);
-    }
+  it('기신은 내지 않는다 — 결과 어디에도 꺼리는 오행이 없다', () => {
+    // 오행 상극표 한 줄로 정해지는 것이 아니라, 명식 전체를 봐야 하는 판정이다.
+    const found = eokbu('壬申', '辛亥', '丁酉', '壬寅');
+
+    expect(found).not.toHaveProperty('avoid');
+    expect(Object.keys(found).sort()).toEqual([
+      'confidence',
+      'presentInChart',
+      'reason',
+      'role',
+      'status',
+      'suggestedElement',
+      'unresolved',
+    ]);
+  });
+
+  it('아직 판정하지 않은 것들을 함께 낸다', () => {
+    const found = eokbu('壬申', '辛亥', '丁酉', '壬寅');
+
+    expect([...found.unresolved].sort()).toEqual([
+      'climate',
+      'combinationEffects',
+      'followingPattern',
+      'rootQuality',
+      'structure',
+    ]);
+  });
+
+  it('후보 오행이 원국에 있는지는 사실로 낸다', () => {
+    // 丁酉일주 사주에 木은 시지 寅으로 들어 있다.
+    expect(eokbu('壬申', '辛亥', '丁酉', '壬寅').presentInChart).toBe(true);
   });
 
   it('용신은 일간에서 본 다섯 자리 중 하나다', () => {
-    const found = yongsin('壬申', '辛亥', '丁酉', '壬寅');
+    const found = eokbu('壬申', '辛亥', '丁酉', '壬寅');
     const roles = elementRolesOf('火');
 
-    expect(roles[found.role]).toBe(found.element);
+    expect(roles[found.role]).toBe(found.suggestedElement);
   });
 
-  it('억부만 낸다는 사실을 정책에 남긴다', () => {
+  it('시험값이라는 사실을 정책에 남긴다', () => {
+    expect(YONGSIN_POLICY.status).toBe('experimental');
     expect(YONGSIN_POLICY.methods).toBe('eokbu');
     expect(YONGSIN_POLICY.johu).toBe('not-implemented-needs-table');
+    expect(YONGSIN_POLICY.unfavorable).toBe('not-judged');
   });
 });
 
-describe('강약 등급', () => {
-  it.each([
-    [0.0, '태약'],
-    [0.15, '태약'],
-    [0.3, '신약'],
-    [0.5, '중화'],
-    [0.7, '신강'],
-    [0.95, '태왕'],
-    [1.0, '태왕'],
-  ] as const)('세력비 %s → %s', (ratio, ko) => {
-    expect(STRENGTH_GRADE_KO[strengthGradeOf(ratio)]).toBe(ko);
+describe('강약에 등급 이름을 붙이지 않는다', () => {
+  it('결과에 등급 필드가 없다', () => {
+    // 20%씩 끊은 임의 구간에 태약·중화·태왕 같은 전통 판정 이름을 붙이면
+    // 없는 근거를 있는 것처럼 만든다. 세력비를 숫자 그대로 낸다.
+    const strength = strengthOf(chartOf('壬申', '辛亥', '丁酉', '壬寅'));
+
+    expect(strength).not.toHaveProperty('grade');
+    expect(STRENGTH_POLICY.gradeBands).toBe('none');
   });
 
-  it('등급과 verdict 는 서로 다른 축이다', () => {
-    // 1992-11-17 남: 세 기준을 하나도 못 채워 신약이고, 세력비도 태약 구간이다.
-    const pillars = chartOf('壬申', '辛亥', '丁酉', '壬寅');
-    const strength = strengthOf(pillars);
+  it('세력비와 근거는 그대로 낸다', () => {
+    const strength = strengthOf(chartOf('壬申', '辛亥', '丁酉', '壬寅'));
 
     expect(strength.verdict).toBe('weak');
-    expect(STRENGTH_GRADE_KO[strength.grade]).toBe('태약');
+    expect(strength.ratio).toBeGreaterThan(0);
+    expect(strength.ratio).toBeLessThan(0.2);
     expect(strength.criteria.every((c) => !c.met)).toBe(true);
   });
 });

@@ -11,7 +11,6 @@ import {
   ELEMENT_KO,
   ELEMENT_ROLE_KO,
   SINSAL_POLICY,
-  STRENGTH_GRADE_KO,
   STRENGTH_POLICY,
   YONGSIN_POLICY,
   SPIRIT_BASIS_KO,
@@ -121,12 +120,13 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     lines.push(`  ${star.auspicious ? '길신' : '흉신'}   ${star.ko.padEnd(6)} ${where}${basis}`);
   }
 
-  const { strength, yongsin } = saju.analysis;
+  const { strength, eokbu } = saju.analysis;
   lines.push(
-    `  강약   ${STRENGTH_GRADE_KO[strength.grade]} ${(strength.ratio * 100).toFixed(1)}%` +
-      ` (${strength.verdict})  ${strength.criteria.map((c) => `${c.label}${c.met ? 'O' : 'X'}`).join(' ')}`,
-    `  용신   ${ELEMENT_KO[yongsin.element]}(${yongsin.element}) ${ELEMENT_ROLE_KO[yongsin.role]}` +
-      `  꺼림 ${ELEMENT_KO[yongsin.avoid]}`,
+    `  강약   ${strength.verdict} · 보조세력 ${(strength.ratio * 100).toFixed(1)}%` +
+      `  ${strength.criteria.map((c) => `${c.label}${c.met ? 'O' : 'X'}`).join(' ')}`,
+    `  억부   후보 ${ELEMENT_KO[eokbu.suggestedElement]}(${eokbu.suggestedElement})` +
+      ` ${ELEMENT_ROLE_KO[eokbu.role]} · ${eokbu.status}/${eokbu.confidence}` +
+      ` · 원국에 ${eokbu.presentInChart ? '있음' : '없음'}`,
   );
 
   for (const correction of meta.corrections) {
@@ -224,9 +224,10 @@ describe('골든 테스트', () => {
         ([key, value]) => `          ${key.padEnd(22)} ${value}`,
       ),
       '',
-      '  용신  억부만 낸다. 조후는 궁통보감의 일간×월지 120칸 표가 필요한데,',
-      '        원리로 유도되지 않아(겨울 丁火에 火가 아니라 甲木을 쓴다) 표를',
-      '        확보하기 전에는 내지 않는다. 종격도 판정하지 않는다.',
+      '  억부  용신 확정값이 아니라 시험값이다(experimental/low). 조후·종격·격국·',
+      '        합충·투간과 통근의 질을 보지 않은 결과라 후보로만 읽어야 한다.',
+      '        기신도 내지 않는다 — 오행 상극표 한 줄로 정해지는 것이 아니다.',
+      '        세력비에 태약·중화·태왕 같은 등급 이름도 붙이지 않는다(경계 출처 없음).',
       '',
       ...Object.entries(YONGSIN_POLICY).map(
         ([key, value]) => `          ${key.padEnd(22)} ${value}`,

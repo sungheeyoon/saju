@@ -12,11 +12,11 @@ import {
   GENDER_KO,
   ELEMENT_ROLE_KO,
   EMPTINESS_BASIS_KO,
+  UNRESOLVED_FACTOR_KO,
   PILLAR_POSITION_KO,
   RELATION_KIND_KO,
   SPIRIT_BASIS_KO,
   STEM_INFO,
-  STRENGTH_GRADE_KO,
   TEN_GOD_KO,
   TWELVE_SPIRIT_ALIAS,
   TWELVE_SPIRIT_KO,
@@ -975,7 +975,7 @@ function ElementChart({ saju }: { saju: Saju }) {
 
 /** 신강·신약 — 임계값 대비 단일 비율이므로 메터. */
 function StrengthMeter({ saju }: { saju: Saju }) {
-  const { strength, yongsin } = saju.analysis;
+  const { strength, eokbu } = saju.analysis;
   const percent = strength.ratio * 100;
   const threshold = 50;
 
@@ -984,11 +984,10 @@ function StrengthMeter({ saju }: { saju: Saju }) {
       <h2 className="text-xs uppercase tracking-wide text-muted">신강 · 신약</h2>
 
       <p className="mt-2 flex items-baseline gap-2">
-        <span className="text-3xl font-semibold">{STRENGTH_GRADE_KO[strength.grade]}</span>
-        <span className="text-sm text-secondary">
-          세 기준 중 {strength.metCount}개 충족 ·{' '}
+        <span className="text-3xl font-semibold">
           {strength.verdict === 'strong' ? '신강' : '신약'}
         </span>
+        <span className="text-sm text-secondary">세 기준 중 {strength.metCount}개 충족</span>
       </p>
 
       <div className="mt-4">
@@ -1005,15 +1004,22 @@ function StrengthMeter({ saju }: { saju: Saju }) {
         </div>
         <div className="mt-1.5 flex justify-between text-xs text-secondary">
           <span>
-            아군 {strength.supportScore.toFixed(2)} · 적군 {strength.opposeScore.toFixed(2)}
+            보조 {strength.supportScore.toFixed(2)} · 소모 {strength.opposeScore.toFixed(2)}
           </span>
           <span className="tabular-nums">
-            {percent.toFixed(1)}% <span className="text-muted">(기준 {threshold}%)</span>
+            보조세력 {percent.toFixed(1)}%{' '}
+            <span className="text-muted">(기준 {threshold}%)</span>
           </span>
         </div>
       </div>
 
-      <ul className="mt-4 flex flex-col gap-1 border-t border-border pt-3 text-sm">
+      <p className="mt-3 text-xs text-muted">
+        세력비에 태약·중화·태왕 같은 등급 이름은 붙이지 않습니다. 근거 있는 구간
+        경계를 아직 확보하지 못했습니다. 아래 세 기준도 서로 겹칩니다 — 득세
+        점수에 월지·일지가 이미 들어 있습니다.
+      </p>
+
+      <ul className="mt-3 flex flex-col gap-1 border-t border-border pt-3 text-sm">
         {strength.criteria.map((criterion) => (
           <li key={criterion.key} className="flex gap-2">
             <span className={criterion.met ? 'text-accent' : 'text-muted'}>
@@ -1027,19 +1033,26 @@ function StrengthMeter({ saju }: { saju: Saju }) {
 
       <div className="mt-4 border-t border-border pt-3">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="text-xs text-muted">억부용신</span>
-          <span className="glyph text-lg font-medium">{yongsin.element}</span>
-          <span className="text-sm font-medium">{ELEMENT_KO[yongsin.element]}</span>
-          <span className="text-sm text-secondary">{ELEMENT_ROLE_KO[yongsin.role]}</span>
-          <span className="text-xs text-muted">
-            꺼림 {ELEMENT_KO[yongsin.avoid]}
+          <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+            시험
           </span>
+          <span className="text-xs text-muted">억부 관점의 후보</span>
+          <span className="glyph text-lg font-medium">{eokbu.suggestedElement}</span>
+          <span className="text-sm font-medium">{ELEMENT_KO[eokbu.suggestedElement]}</span>
+          <span className="text-sm text-secondary">{ELEMENT_ROLE_KO[eokbu.role]}</span>
+          {!eokbu.presentInChart && (
+            <span className="text-xs text-muted">원국에 없는 오행</span>
+          )}
         </div>
-        <p className="mt-1.5 text-xs text-secondary">{yongsin.reason}</p>
+        <p className="mt-1.5 text-xs text-secondary">{eokbu.reason}</p>
         <p className="mt-2 text-xs text-muted">
-          억부만 냅니다. 조후용신은 궁통보감의 일간×월지 표가 있어야 하고 원리로
-          유도되지 않아(겨울 丁火에 火가 아니라 甲木을 씁니다) 아직 내지 않습니다.
-          종격도 판정하지 않습니다.
+          <strong className="font-medium">용신 확정값이 아닙니다.</strong> 억부는 용신을
+          잡는 네 길 중 하나일 뿐이고, 아직 판정하지 않은 것이 남아 있습니다 —{' '}
+          {eokbu.unresolved.map((factor) => UNRESOLVED_FACTOR_KO[factor]).join(', ')}.
+          조후용신은 궁통보감의 일간×월지 표가 있어야 하고 원리로 유도되지
+          않아(겨울 丁火에 火가 아니라 甲木을 씁니다) 아직 내지 않습니다.
+          꺼리는 오행(기신)도 내지 않습니다 — 오행 상극표 한 줄로 정해지는 것이
+          아니기 때문입니다.
         </p>
       </div>
     </section>

@@ -27,6 +27,16 @@ import { TEN_GOD_GROUP, TEN_GOD_KO, tenGodOfBranch, type TenGodGroup } from './t
  * 이 중 몇 개를 채워야 신강인지, 세력을 어떻게 셀지는 계통마다 다르다.
  * 여기서는 기본값을 두되 전부 옵션으로 열어두고, 판정 근거를 함께 반환한다.
  *
+ * **이것은 휴리스틱이지 확정된 고전 판정이 아니다.** 세 기준이 서로 겹친다 —
+ * 득세 점수에 월지·일지가 이미 들어 있으므로 그 둘은 사실상 두 번 투표한다.
+ * 고전의 삼자 판정 자체가 겹쳐 보는 방식이라 그대로 두었지만, "2개 이상이면
+ * 신강"이라는 문턱은 우리가 고른 값이다(`requiredCriteria` 로 열려 있다).
+ *
+ * **세력비에 등급 이름을 붙이지 않는다.** 태약·중화·태왕 같은 이름은 근거
+ * 있는 경계가 있어야 붙일 수 있는데, 우리에게는 그 경계의 출처가 없다.
+ * 20%씩 다섯으로 끊는 것은 표기 편의일 뿐이고, 그렇게 끊은 값을 전통 판정처럼
+ * 내보이면 없는 근거를 있는 것처럼 만든다. `ratio` 를 숫자 그대로 낸다.
+ *
  * 시간 미상이면 여섯 글자로 판정한다. 득령·득지는 월지·일지만 보므로 그대로지만,
  * 득세는 시주 두 글자가 빠진 세력비다. 시주가 어느 편이었는지에 따라 결론이
  * 뒤집힐 수 있다 — 그래서 `hourKnown: false` 일 때 경고를 남긴다.
@@ -66,6 +76,8 @@ export const STRENGTH_POLICY = {
   twelveStageContribution: 'none',
   /** 득시(得時)는 따로 세지 않는다 — 시주 두 글자는 득세 점수에 이미 들어 있다 */
   criteria: 'season-branch-overall',
+  /** 세력비를 구간으로 끊어 등급(태약·중화·태왕)을 붙이지 않는다 */
+  gradeBands: 'none',
   /** 아직 세지 않는 것 — 지장간의 천간 투출, 합충으로 인한 뿌리 변화 */
   unaccounted: 'stem-emergence, combination-clash-effects',
 } as const;
@@ -74,39 +86,6 @@ export const STRENGTH_POLICY = {
 const SUPPORTING_GROUPS: readonly TenGodGroup[] = ['比劫', '印星'];
 
 export type StrengthVerdict = 'strong' | 'weak';
-
-/**
- * 세력비를 다섯 구간으로 나눈 등급.
- *
- * `verdict` 와 **다른 축이다.** verdict 는 득령·득지·득세 셋 중 몇 개를
- * 채웠는가(고전의 판정)이고, grade 는 아군 세력이 전체의 몇 %인가(연속량)다.
- * 둘은 대개 같은 방향을 가리키지만 경계에서 어긋날 수 있다 — 세 기준을 둘
- * 채워 신강인데 세력비는 중화에 걸치는 사주가 있다. 어긋난다고 어느 한쪽이
- * 틀린 것이 아니라 서로 다른 것을 재고 있다.
- *
- * 구간 경계는 자료가 아니라 표기 편의다. 20%씩 다섯으로 끊었다.
- */
-export type StrengthGrade = 'veryWeak' | 'weak' | 'balanced' | 'strong' | 'veryStrong';
-
-export const STRENGTH_GRADE_KO: Record<StrengthGrade, string> = {
-  veryWeak: '태약',
-  weak: '신약',
-  balanced: '중화',
-  strong: '신강',
-  veryStrong: '태왕',
-};
-
-/** 세력비 구간의 위쪽 경계 — 마지막 구간은 열려 있다 */
-export const STRENGTH_GRADE_BOUNDS: readonly (readonly [StrengthGrade, number])[] = [
-  ['veryWeak', 0.2],
-  ['weak', 0.4],
-  ['balanced', 0.6],
-  ['strong', 0.8],
-];
-
-export function strengthGradeOf(ratio: number): StrengthGrade {
-  return STRENGTH_GRADE_BOUNDS.find(([, upper]) => ratio < upper)?.[0] ?? 'veryStrong';
-}
 
 export type StrengthCriterion = {
   key: 'seasonal' | 'branch' | 'overall';
@@ -117,11 +96,9 @@ export type StrengthCriterion = {
 
 export type Strength = {
   verdict: StrengthVerdict;
-  /** 세력비를 다섯 구간으로 끊은 등급. `verdict` 와 다른 축이다 */
-  grade: StrengthGrade;
   /** 일간을 돕는 세력 (비겁 + 인성) */
   supportScore: number;
-  /** 일간을 빼는 세력 (식상 + 재성 + 관성) */
+  /** 일간을 소모시키는 세력 (식상 + 재성 + 관성) */
   opposeScore: number;
   /** supportScore / (supportScore + opposeScore) */
   ratio: number;
@@ -217,7 +194,7 @@ export function strengthOf(pillars: StrengthInput, options: StrengthOptions = {}
       key: 'overall',
       label: '득세',
       met: overallMet,
-      detail: `아군 세력이 전체의 ${(ratio * 100).toFixed(1)}% (기준 ${(overallThreshold * 100).toFixed(0)}%)`,
+      detail: `보조 세력이 전체의 ${(ratio * 100).toFixed(1)}% (기준 ${(overallThreshold * 100).toFixed(0)}%)`,
     },
   ];
 
@@ -233,7 +210,6 @@ export function strengthOf(pillars: StrengthInput, options: StrengthOptions = {}
 
   return {
     verdict,
-    grade: strengthGradeOf(ratio),
     supportScore,
     opposeScore,
     ratio,

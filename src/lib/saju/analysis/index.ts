@@ -1,7 +1,7 @@
 import type { Pillars } from '../pillars';
 import { elementDistributionOf, type ElementDistribution, type ElementWeights } from './fiveElements';
 import { strengthOf, type Strength, type StrengthOptions } from './strength';
-import { yongsinOf, type Yongsin } from './yongsin';
+import { eokbuAssessmentOf, type EokbuAssessment } from './yongsin';
 import { tenGodChartOf, tenGodCountsOf, type TenGod, type TenGodChart } from './tenGods';
 
 export * from './fiveElements';
@@ -21,8 +21,13 @@ export type Analysis = {
   tenGods: TenGodChart;
   tenGodCounts: Record<TenGod, number>;
   strength: Strength;
-  /** 억부용신 — 이 사주에 가장 필요한 오행 */
-  yongsin: Yongsin;
+  /**
+   * 억부 관점의 후보 오행 — **시험값이다.**
+   *
+   * 용신 확정값이 아니다. 조후·종격·격국·합충을 보지 않은 결과라
+   * `status: 'experimental'` 과 `unresolved` 를 함께 읽어야 한다.
+   */
+  eokbu: EokbuAssessment;
 };
 
 export type AnalysisOptions = {
@@ -43,6 +48,6 @@ export function analyzePillars(
     tenGodCounts: tenGodCountsOf(tenGods),
     // 오행 분포와 같은 가중치를 써야 두 결과가 어긋나지 않는다.
     strength,
-    yongsin: yongsinOf(pillars, strength, options.weights),
+    eokbu: eokbuAssessmentOf(pillars, strength, options.weights),
   };
 }
