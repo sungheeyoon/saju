@@ -18,6 +18,7 @@ import {
   keyOf,
   producibleStrengths,
   renderFragment,
+  sampleSentence,
   skeletonOf,
   type Fragment,
   type FragmentRequest,
@@ -162,6 +163,62 @@ describe('조각 스키마', () => {
       for (const fragment of SEED_FRAGMENTS) {
         expect(rulesOf(fragment), keyOf(fragment)).toHaveLength(0);
       }
+    });
+  });
+
+  /**
+   * `slots: ['positions']` 는 "positions 라는 값이 있다"까지만 말한다. 그 값이
+   * `'월주·일주'` 인지 모르면 생성기가 문장 틀을 쓸 수 없다.
+   */
+  describe('슬롯 표본은 계약이지 근거가 아니다', () => {
+    it('주제가 선언한 슬롯마다 표본이 있다', () => {
+      for (const topic of FRAGMENT_TOPIC_IDS) {
+        const spec = FRAGMENT_TOPICS[topic];
+
+        for (const slot of spec.slots) {
+          expect(Object.keys(spec.samples), `${topic}.${slot}`).toContain(slot);
+        }
+      }
+    });
+
+    it('표본으로 렌더하면 읽을 수 있는 문장이 된다', () => {
+      for (const fragment of SEED_FRAGMENTS) {
+        const sample = sampleSentence(fragment);
+
+        expect(sample, keyOf(fragment)).not.toMatch(/\{|\s{2}/);
+        expect(sample.endsWith('.'), keyOf(fragment)).toBe(true);
+      }
+    });
+
+    it('표본을 빠뜨리면 걸린다', () => {
+      const noSample: Fragment = {
+        topic: 'strength.verdict',
+        variant: 'strong',
+        strength: 'derived',
+        // `ratio` 는 표본이 있지만 `tenGod` 은 선언도 표본도 없다.
+        template: '{ratio} 이고 {tenGod} 이라 신강 쪽으로 봅니다.',
+      };
+
+      expect(rulesOf(noSample)).toContain('missing-sample');
+    });
+
+    /**
+     * 표본을 근거로 흘려보내면 꽂은 값이 스스로를 근거로 삼는 셈이라
+     * "없는 관계를 말하면 걸린다"가 통째로 무력해진다. 표본에 일부러 명리
+     * 용어를 넣어 두고, 그것이 근거 없이 렌더되면 걸린다는 것을 잠근다.
+     */
+    it('표본 값을 그대로 꽂아도 근거가 없으면 걸린다', () => {
+      const { samples } = FRAGMENT_TOPICS['relation.present'];
+
+      const rendered = render({
+        topic: 'relation.present',
+        variant: 'branchClash',
+        slots: samples,
+        grounded: [],
+      });
+
+      expect(rendered.text).toContain(samples.name);
+      expect(rendered.violations.map((violation) => violation.rule)).toContain('ungrounded-term');
     });
   });
 

@@ -56,6 +56,19 @@ export type TopicSpec = {
   variants: readonly string[];
   /** 데이터가 꽂히는 자리 — 값은 무한해도 된다. 여기 오는 것만이 명리 용어다 */
   slots: readonly string[];
+  /**
+   * 슬롯 값의 **모양**을 보이는 표본 — 생성기 계약의 나머지 절반이다.
+   *
+   * `slots: ['positions']` 는 "positions 라는 값이 있다"까지만 말한다. 그 값이
+   * `'월주·일주'` 인지 `'子, 午'` 인지 모르면 생성기가 문장 틀을 쓸 수 없고,
+   * 뼈대 검사는 슬롯을 비우고 보므로 띄어쓰기도 조사도 못 본다.
+   *
+   * **표본은 검사용 fixture 이지 근거가 아니다.** 절대 `grounded` 로 흘려보내지
+   * 않는다 — 흘리면 꽂은 값이 스스로를 근거로 삼아 "없는 관계를 말하면 걸린다"가
+   * 통째로 무력해진다. 그래서 표본에는 일부러 명리 용어를 넣어 뒀고, 그것이
+   * 근거 없이 렌더되면 걸린다는 것을 테스트가 잠근다.
+   */
+  samples: Record<string, string>;
   note: string;
 };
 
@@ -70,7 +83,8 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     // 같은 글자에 둔 뿌리와 같은 오행에만 둔 뿌리는 계통이 갈리는 자리라
     // 문장도 갈린다(`ROOTEDNESS_POLICY.rootKind: 'same-element-marked'`).
     variants: ['same-stem', 'same-element'],
-    slots: ['dayMaster', 'branches'],
+    slots: ['dayMaster', 'positions'],
+    samples: { dayMaster: '갑', positions: '월주·일주' },
     note: '일간이 어느 지지에 뿌리를 두는가',
   },
 
@@ -84,6 +98,7 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     polarity: 'absence',
     variants: ['day-master'],
     slots: ['dayMaster'],
+    samples: { dayMaster: '갑' },
     note: '일간이 어디에도 뿌리를 두지 못한다',
   },
 
@@ -94,6 +109,7 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     // 등급 이름은 붙이지 않는다(`STRENGTH_POLICY.gradeBands: 'none'`).
     // 숫자를 그대로 꽂는 슬롯 하나뿐인 것이 그 결정의 결과다.
     slots: ['ratio'],
+    samples: { ratio: '38%' },
     note: '신강·신약을 어느 쪽으로 보는가',
   },
 
@@ -106,6 +122,7 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     polarity: 'presence',
     variants: Object.keys(ELEMENT_ROLE_KO) as ElementRole[],
     slots: ['role', 'element'],
+    samples: { role: '재성', element: '화' },
     note: '억부 관점에서 어느 자리의 오행을 후보로 보는가',
   },
 
@@ -118,6 +135,7 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     polarity: 'presence',
     variants: Object.keys(RELATION_KIND_KO),
     slots: ['name', 'positions'],
+    samples: { name: '자오충', positions: '년주·일주' },
     note: '어느 자리에서 어떤 관계가 성립하는가',
   },
 };
@@ -193,6 +211,10 @@ export type FragmentViolationRule =
   | 'undeclared-slot'
   /** 조사를 슬롯 뒤에 붙였다 — 받침에 따라 갈린다 */
   | 'slot-particle'
+  /** 주제가 이 슬롯의 표본 값을 적지 않았다 */
+  | 'missing-sample'
+  /** 표본으로 렌더하면 문장의 형태가 어긋난다 */
+  | 'malformed-sample'
   /** 채우지 않은 슬롯이 남았다 */
   | 'unfilled-slot';
 
@@ -222,6 +244,17 @@ export function slotsUsedBy(template: string): string[] {
 /** 슬롯을 비운 문장 — 정적 검사는 이 뼈대를 본다 */
 export function skeletonOf(template: string): string {
   return template.replace(SLOT_PATTERN, '');
+}
+
+/**
+ * 표본 값으로 렌더한 문장 — **읽어 볼 수 있는 예문이자 형태 검사의 입력이다.**
+ *
+ * 이 문장을 계약 검사기에 다시 넣지 않는다. 표본은 근거가 아니라서 넣으면
+ * 명리 용어가 전부 `ungrounded-term` 으로 걸린다 — 그것을 피하려고 표본을
+ * 근거로 넘기는 순간 검사가 통째로 무력해진다. 여기서 보는 것은 **형태**다.
+ */
+export function sampleSentence(fragment: Fragment): string {
+  return fillTemplate(fragment.template, FRAGMENT_TOPICS[fragment.topic].samples);
 }
 
 function fillTemplate(template: string, slots: Record<string, string>): string {
@@ -275,6 +308,24 @@ export function checkFragment(fragment: Fragment): FragmentViolation[] {
       slot: match[1],
       term: particle,
       detail: `조사 '${particle}' 는 앞 글자의 받침을 따르는데 슬롯 값은 런타임에 정해진다.`,
+    });
+  }
+
+  const sample = sampleSentence(fragment);
+
+  for (const slot of slotsUsedBy(sample)) {
+    violations.push({
+      rule: 'missing-sample',
+      slot,
+      detail: `${fragment.topic} 이 ${slot} 의 표본 값을 적지 않았다 — 생성기가 값의 모양을 모른다.`,
+    });
+  }
+
+  // 뼈대 검사는 슬롯을 비우고 보므로 띄어쓰기도 문장 끝도 못 본다.
+  if (sample !== sample.trim() || /\s{2}/.test(sample) || / \.$/.test(sample) || !sample.endsWith('.')) {
+    violations.push({
+      rule: 'malformed-sample',
+      detail: `표본으로 렌더하면 형태가 어긋난다: "${sample}"`,
     });
   }
 
@@ -383,7 +434,7 @@ export const SEED_FRAGMENTS: readonly Fragment[] = [
     topic: 'rootedness.rooted',
     variant: 'same-stem',
     strength: 'fact',
-    template: '{dayMaster} 일간은 {branches} 자리에 같은 글자로 뿌리를 둡니다.',
+    template: '{dayMaster} 일간은 {positions} 자리에 같은 글자로 뿌리를 둡니다.',
   },
   {
     // 시간 미상에서는 이 주제가 통째로 입을 닫으므로 `fact` 한 벌뿐이다.
@@ -454,6 +505,8 @@ export const FRAGMENT_POLICY = {
   slots: 'runtime-values-from-l2',
   /** 슬롯 값은 스스로를 근거로 삼지 못한다 */
   grounding: 'evidence-supplied-by-caller',
+  /** 슬롯 표본은 값의 모양을 보이는 fixture 다 — 근거로 흘려보내지 않는다 */
+  samples: 'fixture-not-evidence',
   /** 받침에 따라 갈리는 조사를 슬롯 뒤에 붙이지 않는다 */
   particles: 'no-variable-particle-after-slot',
   /** 슬롯을 비운 뼈대가 근거 없이 계약을 통과해야 한다 */

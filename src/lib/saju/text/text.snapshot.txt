@@ -1,0 +1,110 @@
+==============================================================================
+L3 문장 골든 — 발화 판정과 조립
+==============================================================================
+
+  ✓ 문장이 됐다   · 발화는 있으나 조각이 없다   × 말하지 않기로 했다
+
+  씨앗 조각 6 / 지시서 41 칸
+
+    ruleSet          utterance-discovery-v1
+    selection        all-facts-speak
+    discovery        corpus-independent
+    grounding        one-pass-with-slots
+    groundedScope    chart-produced-only
+    coverage         uncovered-facts-listed
+    order            topic-table-then-relation-order
+
+  주제가 없어 아직 발화하지 않는 사실 — 고른 것이 아니라 주제가 없는 것이다.
+    analysis.elements
+    analysis.tenGodCounts
+    analysis.johu
+    analysis.following
+    analysis.rootedness (일간 밖의 천간·투출)
+    stages
+    sinsal
+    daeun
+    saeun
+    wolun
+
+==============================================================================
+── relations-rich
+   관계가 여럿 걸린다 — 씨앗이 덮지 못한 종류가 그대로 보인다
+   사주  癸未 乙酉 辛巳 庚午
+   발화 8 · 문장 2 · 조각 없음 6 · 말하지 않음 0
+
+    ✓ rootedness.rooted/same-stem@fact
+        사실     을 일간은 시주 자리에 같은 글자로 뿌리를 둡니다.
+    ✓ strength.verdict/weak@derived
+        유도     일간을 돕는 세력이 16% 정도라 신약 쪽으로 봅니다.
+    · eokbu.candidate/印星@candidate
+        후보     (조각 없음)
+    · relation.present/stemCombination@fact
+        사실     (조각 없음)
+    · relation.present/branchSixCombination@fact
+        사실     (조각 없음)
+    · relation.present/branchTripleCombination@fact
+        사실     (조각 없음)
+    · relation.present/branchDirectionalCombination@fact
+        사실     (조각 없음)
+    · relation.present/stemClash@fact
+        사실     (조각 없음)
+
+── branch-clash
+   지지충 — 씨앗 조각이 덮는 유일한 관계 종류
+   사주  己未 戊午 丙子 己卯
+   발화 11 · 문장 2 · 조각 없음 9 · 말하지 않음 0
+
+    · rootedness.rooted/same-element@fact
+        사실     (조각 없음)
+    ✓ strength.verdict/strong@derived
+        유도     일간을 돕는 세력이 70% 정도라 신강 쪽으로 봅니다.
+    · eokbu.candidate/官星@candidate
+        후보     (조각 없음)
+    · relation.present/branchSixCombination@fact
+        사실     (조각 없음)
+    · relation.present/branchTripleCombination@fact
+        사실     (조각 없음)
+    · relation.present/branchDirectionalCombination@fact
+        사실     (조각 없음)
+    ✓ relation.present/branchClash@fact
+        사실     월주·일주 자리에서 자오충 관계가 성립합니다.
+    · relation.present/branchPunishment@fact
+        사실     (조각 없음)
+    · relation.present/branchHarm@fact
+        사실     (조각 없음)
+    · relation.present/branchDestruction@fact
+        사실     (조각 없음)
+    · relation.present/branchResentment@fact
+        사실     (조각 없음)
+
+── no-relations
+   관계가 하나도 없다 — 사실이 없으면 발화도 없다
+   사주  壬辰 辛未 己巳 己巳
+   발화 3 · 문장 2 · 조각 없음 1 · 말하지 않음 0
+
+    · rootedness.rooted/same-element@fact
+        사실     (조각 없음)
+    ✓ strength.verdict/strong@derived
+        유도     일간을 돕는 세력이 59% 정도라 신강 쪽으로 봅니다.
+    ✓ eokbu.candidate/財星@candidate
+        후보     억부 관점에서는 재성 자리의 목 쪽을 후보로 봅니다.
+
+── hour-unknown
+   시간 미상 — 강도가 한 칸 내려가고 "없다"는 발화는 입을 닫는다
+   사주  시미상 乙酉 辛巳 庚午
+   발화 7 · 문장 0 · 조각 없음 6 · 말하지 않음 1
+
+    × rootedness.rootless/day-master
+        말하지 않음 (말하지 않는다)
+    · strength.verdict/weak@candidate
+        후보     (조각 없음)
+    · eokbu.candidate/印星@reference
+        참고     (조각 없음)
+    · relation.present/stemCombination@derived
+        유도     (조각 없음)
+    · relation.present/branchTripleCombination@derived
+        유도     (조각 없음)
+    · relation.present/branchDirectionalCombination@derived
+        유도     (조각 없음)
+    · relation.present/stemClash@derived
+        유도     (조각 없음)

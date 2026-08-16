@@ -1,8 +1,10 @@
 /**
  * L3 해석 문장.
  *
- * 계약(`policy.ts`)과 조각 스키마(`fragment.ts`)까지 있다. 조립기와 생성기는
- * 그 위에 순서대로 올라간다 — 뒤집으면 되돌리기 어렵다.
+ * 계약(`policy.ts`) → 조각 스키마(`fragment.ts`) → 조립기(`assemble.ts`) 까지다.
+ * 생성기는 그 위가 아니라 **옆**이다 — 빌드 타임에 조각을 만들어 넣는 놈이라
+ * 런타임 흐름에는 끼지 않는다(`runtimeAi: 'none'`).
  */
 export * from './policy';
 export * from './fragment';
+export * from './assemble';
