@@ -32,7 +32,7 @@ type TextCase = {
 const CASES: TextCase[] = [
   {
     id: 'relations-rich',
-    note: '관계가 여럿 걸린다 — 말뭉치가 덮지 못한 종류가 그대로 보인다',
+    note: '관계가 여럿 걸린다 — 종류마다 술어가 갈리는 것이 보인다',
     saju: computeSaju(
       { year: 1990, month: 5, day: 20, hour: 14, minute: 30, second: 0, gender: 'male' },
       {},
@@ -40,7 +40,7 @@ const CASES: TextCase[] = [
   },
   {
     id: 'branch-clash',
-    note: '지지충 — 말뭉치가 덮는 유일한 관계 종류',
+    note: '지지충·형·해·파·원진 — 넷이 한 문장을 나눠 쓰는 자리',
     saju: computeSaju(
       { year: 2000, month: 1, day: 1, hour: 14, minute: 30, second: 0, gender: 'male' },
       {},

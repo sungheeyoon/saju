@@ -264,16 +264,20 @@ describe('조각 스키마', () => {
 
     /**
      * 비어 있는 자리를 다른 강도의 조각으로 메우면 강도는 장식이 된다.
-     * 말뭉치가 덮지 못한 관계 종류가 지금 그 자리다.
+     * 지금 말뭉치에는 빈칸이 없으므로 **말뭉치를 비워서** 시험한다 — 주제를
+     * 더하면 다시 생기는 상황이다.
      */
     it('조각이 없으면 다른 강도로 메우지 않고 말하지 않는다', () => {
-      const rendered = render({
+      const request: FragmentRequest = {
         topic: 'relation.present',
         variant: 'branchHarm',
         slots: { name: '자미해', positions: '년주·일주' },
-        grounded: [],
-      });
+        grounded: ['자미해'],
+      };
 
+      expect(render(request).text).toContain('자미해');
+
+      const rendered = renderFragment(request, indexFragments([]));
       expect(rendered.key).toBe(fragmentKey('relation.present', 'branchHarm', 'fact'));
       expect(rendered.text).toBeNull();
       expect(rendered.violations).toHaveLength(0);
@@ -372,8 +376,12 @@ describe('조각 스키마', () => {
       const coverage = fragmentCoverage(FRAGMENT_INDEX);
 
       expect(coverage.filled).toBe(FRAGMENTS.length);
-      expect(coverage.expected).toBeGreaterThan(coverage.filled);
       expect(coverage.missing).toHaveLength(coverage.expected - coverage.filled);
+
+      // 세는 장치는 말뭉치가 무엇이든 같은 답을 내야 한다.
+      const empty = fragmentCoverage(indexFragments([]));
+      expect(empty.filled).toBe(0);
+      expect(empty.missing).toHaveLength(coverage.expected);
     });
 
     it('말뭉치는 전부 지시서 안의 자리다', () => {

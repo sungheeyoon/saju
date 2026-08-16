@@ -5,13 +5,15 @@ import {
   CORPUS_POLICY,
   FRAGMENTS,
   FRAGMENT_INDEX,
+  FRAGMENT_TOPICS,
+  FRAGMENT_TOPIC_IDS,
   HOUR_UNKNOWN_MARK,
+  RELATION_WORDINGS,
   STRENGTH_WORDING,
   assembleText,
   ceilingFor,
   checkFragment,
   fragmentCoverage,
-  FRAGMENT_TOPICS,
   keyOf,
   skeletonOf,
   type ClaimStrength,
@@ -104,35 +106,58 @@ describe('말뭉치', () => {
     }
   });
 
-  /**
-   * 변종이 문장을 가르지 못하면 변종 축은 장식이고, 그럴 바에는 슬롯 하나로
-   * 충분하다. 억부 다섯 자리가 같은 문장을 다섯 벌 갖는 것을 여기서 막는다.
-   */
-  it('같은 주제·강도 안에서 뼈대가 겹치지 않는다', () => {
-    const seen = new Map<string, string>();
+  describe('변종은 갈릴 근거가 있을 때만 가른다', () => {
+    /**
+     * 변종이 문장을 하나도 가르지 못하면 변종 축은 장식이고, 그럴 바에는 슬롯
+     * 하나로 충분하다. 억부 다섯 자리가 같은 문장을 다섯 벌 갖는 것을 막는다.
+     */
+    it('변종이 여럿인 주제는 문장도 여럿이다', () => {
+      for (const topic of FRAGMENT_TOPIC_IDS) {
+        if (FRAGMENT_TOPICS[topic].variants.length < 2) continue;
 
-    for (const fragment of FRAGMENTS) {
-      const skeleton = `${fragment.topic}@${fragment.strength}: ${skeletonOf(fragment.template)}`;
-      const clash = seen.get(skeleton);
+        const skeletons = FRAGMENTS.filter(
+          (fragment) => fragment.topic === topic && fragment.strength === 'fact',
+        ).map((fragment) => skeletonOf(fragment.template));
 
-      expect(clash, `${keyOf(fragment)} 가 ${clash} 와 같은 문장이다`).toBeUndefined();
-      seen.set(skeleton, keyOf(fragment));
-    }
+        if (skeletons.length < 2) continue;
+        expect(new Set(skeletons).size, topic).toBeGreaterThan(1);
+      }
+    });
+
+    /**
+     * 거꾸로, 나눌 근거가 없는데 나누면 **없는 구별을 지어내는 것**이다.
+     * 해·파·원진·귀문에 대해 이 엔진이 아는 것은 짝이 성립한다는 것뿐이라 넷이
+     * 한 문장을 나눠 쓴다. 겹친 문장의 수가 선언한 벌 수와 같은지로 잠근다 —
+     * 복붙으로 늘어난 겹침은 여기서 드러난다.
+     */
+    it('관계의 문장 수는 선언한 벌 수와 같다', () => {
+      const skeletons = FRAGMENTS.filter(
+        (fragment) => fragment.topic === 'relation.present' && fragment.strength === 'fact',
+      ).map((fragment) => skeletonOf(fragment.template));
+
+      expect(skeletons).toHaveLength(FRAGMENT_TOPICS['relation.present'].variants.length);
+      expect(new Set(skeletons).size).toBe(RELATION_WORDINGS.length);
+    });
+
+    it('한 종류는 한 벌에만 적혀 있다', () => {
+      const kinds = RELATION_WORDINGS.flatMap((wording) => wording.kinds);
+
+      expect(new Set(kinds).size).toBe(kinds.length);
+      expect(new Set(kinds)).toEqual(new Set(FRAGMENT_TOPICS['relation.present'].variants));
+    });
   });
 
-  describe('무엇이 남았는가', () => {
-    it('세 주제는 빈칸이 없다', () => {
-      const { missing } = fragmentCoverage(FRAGMENT_INDEX);
+  /**
+   * 지시서를 다 채운 것이 **할 말을 다 했다는 뜻은 아니다.** 조후·종격·신살·
+   * 대운은 여전히 침묵하고, 그것은 조각이 없어서가 아니라 주제가 없어서다.
+   * 두 공백은 다른 자리에 적힌다 — 섞으면 "안 중요해서 뺐다"가 조용히 들어온다.
+   */
+  it('지시서에 빈칸이 없다', () => {
+    const coverage = fragmentCoverage(FRAGMENT_INDEX);
 
-      for (const key of missing) expect(key.startsWith('relation.present/')).toBe(true);
-    });
-
-    it('남은 것은 관계뿐이고 그 수를 셀 수 있다', () => {
-      const coverage = fragmentCoverage(FRAGMENT_INDEX);
-
-      expect(coverage.filled).toBe(FRAGMENTS.length);
-      expect(coverage.missing).toHaveLength(coverage.expected - coverage.filled);
-    });
+    expect(coverage.missing).toEqual([]);
+    expect(coverage.filled).toBe(coverage.expected);
+    expect(coverage.filled).toBe(FRAGMENTS.length);
   });
 
   /**

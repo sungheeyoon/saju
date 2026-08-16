@@ -1,4 +1,5 @@
 import type { ElementRole } from '../analysis';
+import type { RelationKind } from '../constants';
 import type { ClaimStrength } from './policy';
 import { indexFragments, type Fragment, type FragmentIndex } from './fragment';
 
@@ -13,8 +14,13 @@ import { indexFragments, type Fragment, type FragmentIndex } from './fragment';
  *
  * 지금은 손으로 썼다. 세 주제(`rootedness`·`strength`·`eokbu`)를 먼저 채운 것은
  * 그 셋이 **강도 사다리 네 칸을 전부 지나가는 가장 작은 묶음**이기 때문이다 —
- * 사실·유도·후보·참고가 한 번씩 나온다. 관계 21칸은 표현 규칙이 확정된 뒤에
- * 대량으로 돈다.
+ * 사실·유도·후보·참고가 한 번씩 나온다. 표현 규칙이 그 셋에서 확정된 뒤에
+ * 관계 22칸을 돌았고, 그것으로 지시서에 빈칸이 없다(41/41).
+ *
+ * 빈칸이 없다는 것이 **할 말을 다 했다는 뜻은 아니다.** 조후·종격·신살·대운은
+ * 여전히 침묵하는데 그것은 조각이 없어서가 아니라 주제가 없어서다
+ * (`UNCOVERED_FACTS`). 다음 일은 칸을 채우는 것이 아니라 주제를 더하는 것이고,
+ * 그때 분모가 늘어난다.
  */
 
 /**
@@ -80,6 +86,88 @@ const eokbuFragments = (Object.entries(EOKBU_GLOSS) as [ElementRole, string][]).
       template: `시주를 빼고 세면 억부 관점에서는 ${gloss} {role} 자리의 {element} 쪽을 참고할 수 있습니다.`,
     },
   ],
+);
+
+/**
+ * 관계 종류마다 문장이 갈리는 자리 — **갈릴 근거가 있을 때만 가른다.**
+ *
+ * 열한 종류에 같은 문장을 열한 벌 넣으면 `{name}` 슬롯 하나로 충분했다는 뜻이다.
+ * 합은 묶이고 충은 마주 서며 삼합은 무리를 이루고 방합은 계절로 모인다 — 이것은
+ * 해석이 아니라 그 관계가 **어떤 모양으로 놓였는가**이고, 엔진이 표에서 읽어 온
+ * 그대로다.
+ *
+ * 그런데 나눌 근거가 없는 자리도 있다. 해·파·원진·귀문에 대해 이 엔진이 아는
+ * 것은 **두 지지의 짝이 성립한다**는 것뿐이다. 길흉도 기전도 판정하지 않으므로
+ * (`RELATION_POLICY`), 문장을 넷으로 갈라 쓰면 없는 구별을 지어내는 것이 된다.
+ * 그래서 넷이 한 문장을 나눠 쓰고, **나눠 쓴다는 사실이 여기 한 줄로 보인다.**
+ *
+ * 합에서 오행을 말하지 않는 것도 같은 규율이다 — 글자가 모인 것과 합화한 것은
+ * 다르고 화(化) 판정은 하지 않는다(`targetElement` 이지 `result` 가 아니다).
+ * 주제가 선언한 슬롯이 `name`·`positions` 뿐이라 애초에 말할 길도 없다.
+ */
+type RelationWording = {
+  /** 이 문장을 나눠 쓰는 관계 종류들 */
+  kinds: readonly RelationKind[];
+  /** 여덟 글자를 다 보고 하는 말 */
+  fact: string;
+  /** 시주를 빼고 여섯 글자만 보고 하는 말 */
+  derived: string;
+};
+
+export const RELATION_WORDINGS: readonly RelationWording[] = [
+  {
+    kinds: ['stemCombination'],
+    fact: '{positions} 자리의 두 천간이 {name} 관계로 짝을 짓습니다.',
+    derived: '시주를 빼고 보면 {positions} 자리의 두 천간이 {name} 관계로 짝을 짓는 것으로 봅니다.',
+  },
+  {
+    kinds: ['stemClash'],
+    fact: '{positions} 자리의 두 천간이 {name} 관계로 서로 맞섭니다.',
+    derived: '시주를 빼고 보면 {positions} 자리의 두 천간이 {name} 관계로 서로 맞서는 것으로 봅니다.',
+  },
+  {
+    kinds: ['branchSixCombination'],
+    fact: '{positions} 자리의 두 지지가 {name} 관계로 짝을 짓습니다.',
+    derived: '시주를 빼고 보면 {positions} 자리의 두 지지가 {name} 관계로 짝을 짓는 것으로 봅니다.',
+  },
+  {
+    kinds: ['branchClash'],
+    fact: '{positions} 자리의 두 지지가 {name} 관계로 서로 맞섭니다.',
+    derived: '시주를 빼고 보면 {positions} 자리의 두 지지가 {name} 관계로 서로 맞서는 것으로 봅니다.',
+  },
+  // 반합도 이 문장을 쓴다 — 몇 글자가 모였는지는 `full` 이 들고 있고 문장이
+  // 세지 않는다. 세려면 슬롯이 하나 더 있어야 하고, 그건 주제의 일이다.
+  {
+    kinds: ['branchTripleCombination'],
+    fact: '{positions} 자리의 지지가 {name} 관계로 한 무리를 이룹니다.',
+    derived: '시주를 빼고 보면 {positions} 자리의 지지가 {name} 관계로 한 무리를 이루는 것으로 봅니다.',
+  },
+  {
+    kinds: ['branchDirectionalCombination'],
+    fact: '{positions} 자리의 지지가 {name} 관계로 한 계절에 모입니다.',
+    derived: '시주를 빼고 보면 {positions} 자리의 지지가 {name} 관계로 한 계절에 모이는 것으로 봅니다.',
+  },
+  // 형은 순환한다(寅刑巳·巳刑申·申刑寅). 두 글자만 모여도 그 고리의 한 마디라
+  // 다른 쌍 관계와 모양이 다르고, 그래서 문장도 다르다.
+  {
+    kinds: ['branchPunishment'],
+    fact: '{positions} 자리의 지지가 {name} 관계로 서로 물립니다.',
+    derived: '시주를 빼고 보면 {positions} 자리의 지지가 {name} 관계로 서로 물리는 것으로 봅니다.',
+  },
+  // 넷이 한 문장을 나눠 쓴다. 이 엔진이 아는 것이 "짝이 성립한다"뿐이라 넷으로
+  // 갈라 쓰면 없는 구별을 지어내는 것이 된다.
+  {
+    kinds: ['branchHarm', 'branchDestruction', 'branchResentment', 'branchGhostGate'],
+    fact: '{positions} 자리에서 {name} 관계가 성립합니다.',
+    derived: '시주를 빼고 보면 {positions} 자리에서 {name} 관계가 성립하는 것으로 봅니다.',
+  },
+];
+
+const relationFragments = RELATION_WORDINGS.flatMap(({ kinds, fact, derived }) =>
+  kinds.flatMap((kind): Fragment[] => [
+    { topic: 'relation.present', variant: kind, strength: 'fact', template: fact },
+    { topic: 'relation.present', variant: kind, strength: 'derived', template: derived },
+  ]),
 );
 
 /**
@@ -160,15 +248,9 @@ export const FRAGMENTS: readonly Fragment[] = [
   ...eokbuFragments,
 
   // ── 관계 ─────────────────────────────────────────────────────────────
-  // 스키마를 세울 때 쓴 조각 하나가 그대로 남아 있다. 관계는 변종 열하나 ×
-  // 두 벌이라 이 주제만 21칸이고, 종류마다 술어가 갈려야 변종 축이 값을 낸다
-  // (충은 부딪히고 합은 묶인다). 그 21칸은 다음 묶음이다.
-  {
-    topic: 'relation.present',
-    variant: 'branchClash',
-    strength: 'fact',
-    template: '{positions} 자리에서 {name} 관계가 성립합니다.',
-  },
+  // 변종 열하나 × 두 벌 = 22칸으로 지시서의 절반이다. 문장은 여덟 벌뿐이고
+  // 넷이 하나를 나눠 쓴다 — 위 `RELATION_WORDINGS` 참조.
+  ...relationFragments,
 ];
 
 export const FRAGMENT_INDEX: FragmentIndex = indexFragments(FRAGMENTS);
@@ -180,14 +262,16 @@ export const CORPUS_POLICY = {
   ruleSet: 'text-corpus-v1',
   /** 아직 손으로 썼다. 생성기가 붙으면 이 값만 바뀐다 */
   producedBy: 'hand-written',
-  /** 채운 주제 — 관계는 스키마를 세울 때 쓴 조각 하나뿐이라 21칸이 남았다 */
-  covered: 'rootedness, strength, eokbu — relation 1/22',
+  /** 지시서에 빈칸이 없다. 다음은 칸을 채우는 것이 아니라 주제를 더하는 일이다 */
+  covered: 'every-key-in-the-schema',
   /** 강도마다 표지를 하나로 고정한다. 완충 표현 목록은 하한일 뿐이다 */
   wording: 'one-mark-per-strength',
   /** 사실은 표지가 없는 것이 표지다 — 아래 칸의 말투를 쓰지 않는다 */
   fact: 'no-hedge-mark',
   /** 한 칸 내려앉은 벌은 시주를 빼고 셌다는 것을 문장이 밝힌다 */
   hourUnknownRung: 'names-the-missing-hour',
-  /** 변종이 문장을 가르지 못하면 변종 축은 장식이다 */
-  variants: 'must-change-the-sentence',
+  /** 변종이 문장을 하나도 가르지 못하면 변종 축은 장식이다 */
+  variants: 'must-change-some-sentence',
+  /** 갈릴 근거가 없으면 여러 변종이 한 문장을 나눠 쓴다 — 나눠 쓴 자리가 보인다 */
+  sharedWording: 'declared-not-copied',
 } as const;

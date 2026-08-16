@@ -81,12 +81,18 @@ describe('조립기', () => {
       expect(sentencesOf(assembleText(RICH, empty))).toHaveLength(0);
     });
 
+    /**
+     * 지금 말뭉치에는 빈칸이 없어서 이 수가 0이다. 그래서 세는 장치는 **말뭉치를
+     * 비워서** 시험한다 — 주제가 늘면 다시 0이 아니게 되고, 그때 이 목록이
+     * 생성기의 작업 지시서가 된다.
+     */
     it('조각이 없어 침묵한 자리를 셀 수 있다', () => {
-      const missing = missingFragmentsOf(assembleText(RICH));
+      expect(missingFragmentsOf(assembleText(RICH))).toEqual([]);
 
-      // 발화는 있는데 문장이 없는 자리 — 생성기의 다음 작업 목록이다.
+      const missing = missingFragmentsOf(assembleText(RICH, indexFragments([])));
+
       expect(missing.length).toBeGreaterThan(0);
-      for (const key of missing) expect(FRAGMENT_INDEX.has(key)).toBe(false);
+      for (const key of missing) expect(FRAGMENT_INDEX.has(key)).toBe(true);
     });
   });
 
@@ -177,8 +183,12 @@ describe('조립기', () => {
       );
 
       expect(sentence, `${clash.ko} 문장이 있어야 한다`).toBeDefined();
-      // 말뭉치가 덮지 못한 관계 종류는 발화하되 침묵한다 — 지어내지 않는다.
-      expect(spoken(assembleText(CLASH)).length).toBeLessThan(CLASH.relations.length);
+
+      // 관계는 이제 전부 문장이 된다 — 발화한 수와 사실의 수가 같다.
+      const relationSentences = spoken(assembleText(CLASH)).filter(
+        ({ request }) => request.topic === 'relation.present',
+      );
+      expect(relationSentences).toHaveLength(CLASH.relations.length);
     });
 
     it('요청이 쓰는 슬롯은 주제가 선언한 것뿐이다', () => {
