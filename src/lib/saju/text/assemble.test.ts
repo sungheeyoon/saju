@@ -5,7 +5,7 @@ import {
   ASSEMBLE_POLICY,
   FRAGMENT_TOPICS,
   MYEONGRI_LEXICON,
-  SEED_INDEX,
+  FRAGMENT_INDEX,
   assembleText,
   findUtterances,
   groundedTermsOf,
@@ -25,7 +25,7 @@ const male = (year: number, month: number, day: number, hour: number | null) =>
 
 /** 관계가 다섯 걸리는 명식 */
 const RICH = male(1990, 5, 20, 14);
-/** 지지충이 걸리는 명식 — 씨앗 조각이 덮는 유일한 관계 종류다 */
+/** 지지충이 걸리는 명식 — 말뭉치가 덮는 유일한 관계 종류다 */
 const CLASH = male(2000, 1, 1, 14);
 /** 관계가 하나도 없는 명식 — 사실 없음이 어떻게 보이는지 */
 const BARE = male(1989, 5, 11, 9);
@@ -86,7 +86,7 @@ describe('조립기', () => {
 
       // 발화는 있는데 문장이 없는 자리 — 생성기의 다음 작업 목록이다.
       expect(missing.length).toBeGreaterThan(0);
-      for (const key of missing) expect(SEED_INDEX.has(key)).toBe(false);
+      for (const key of missing) expect(FRAGMENT_INDEX.has(key)).toBe(false);
     });
   });
 
@@ -177,7 +177,7 @@ describe('조립기', () => {
       );
 
       expect(sentence, `${clash.ko} 문장이 있어야 한다`).toBeDefined();
-      // 씨앗이 덮지 못한 관계 종류는 발화하되 침묵한다 — 지어내지 않는다.
+      // 말뭉치가 덮지 못한 관계 종류는 발화하되 침묵한다 — 지어내지 않는다.
       expect(spoken(assembleText(CLASH)).length).toBeLessThan(CLASH.relations.length);
     });
 

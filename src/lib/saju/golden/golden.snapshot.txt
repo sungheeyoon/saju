@@ -130,14 +130,14 @@
     절입일 판정은 경도 보정을 뺀 표준시 날짜로 한다. 섞어 읽으면
     자정 부근 절입(1984 입춘 02-05 00:18)이 하루 앞으로 밀린다.
 
-  해석 문장  L3 는 계약·조각 스키마·조립기까지다 — 생성기는 없다(문장은 text.snapshot.txt).
+  해석 문장  L3 는 계약·스키마·말뭉치·조립기까지다 — 생성기는 없다(문장은 text.snapshot.txt).
         문장의 강도는 조각이 적지 않고 읽은 근거에서 나온다(여럿이면 가장 낮은 것).
         사실 → 유도 → 후보 → 참고 순으로 약해지고, 사실이 아니면 완충 표현이 필요하다.
         종격 문장의 상한은 외부 대조 게이트를 따라간다 — 게이트가 닫혀 있으면 후보까지다.
         시간 미상이면 한 칸 내리고, "없다"는 주장은 시주가 뒤집을 수 있어 아예 막는다.
 
           ruleSet                text-claim-contract-v1
-          status                 contract-and-fragment-schema
+          status                 contract-schema-corpus-assembler
           runtimeAi              none
           claimStrength          derived-from-sources-min
           vocabulary             data-only
@@ -156,7 +156,7 @@
         변종은 빌드 타임에 전수로 도는 유한 목록이고, 명리 용어는 슬롯으로만 들어온다.
 
           ruleSet                text-fragment-schema-v1
-          status                 schema-and-seeds
+          status                 schema-only
           key                    topic/variant@strength
           claimStrength          selects-wording-never-declared
           evidence               declared-by-topic

@@ -8,8 +8,8 @@ import {
   FRAGMENT_TOPICS,
   FRAGMENT_TOPIC_IDS,
   MYEONGRI_LEXICON,
-  SEED_FRAGMENTS,
-  SEED_INDEX,
+  FRAGMENTS,
+  FRAGMENT_INDEX,
   checkFragment,
   expectedFragmentKeys,
   fragmentCoverage,
@@ -35,7 +35,7 @@ const relationNames = CHART.relations.map((relation) => relation.ko);
 
 const clash = CHART.relations.find((relation) => relation.kind === 'branchClash');
 
-const render = (request: FragmentRequest) => renderFragment(request, SEED_INDEX);
+const render = (request: FragmentRequest) => renderFragment(request, FRAGMENT_INDEX);
 
 const rulesOf = (fragment: Fragment) => checkFragment(fragment).map((violation) => violation.rule);
 
@@ -47,7 +47,8 @@ describe('조각 스키마', () => {
      * 위로 옮겨 온 것뿐이다. 조각의 필드를 세어 그것을 막는다.
      */
     it('조각은 근거도 방향도 들고 있지 않다', () => {
-      for (const fragment of SEED_FRAGMENTS) {
+      for (const fragment of FRAGMENTS) {
+        // 필드가 넷뿐이라 조각이 손댈 수 있는 것은 좌표와 문장 틀이 전부다.
         expect(Object.keys(fragment).sort(), keyOf(fragment)).toEqual([
           'strength',
           'template',
@@ -118,16 +119,14 @@ describe('조각 스키마', () => {
 
       expect(rulesOf(typed)).toContain('ungrounded-term');
       // 이름을 슬롯으로 빼면 통과한다 — 조각 안에 관계 이름이 없어야 한다.
-      expect(rulesOf(SEED_FRAGMENTS.find((f) => f.topic === 'relation.present')!)).toHaveLength(0);
+      expect(rulesOf(FRAGMENTS.find((f) => f.topic === 'relation.present')!)).toHaveLength(0);
     });
 
-    it('씨앗 조각의 뼈대에는 명리 용어가 없다', () => {
-      for (const fragment of SEED_FRAGMENTS) {
-        const skeleton = skeletonOf(fragment.template);
+    it('뼈대에 남는 것은 명리 용어가 아닌 말뿐이다', () => {
+      const skeleton = skeletonOf('{positions} 자리에서 {name} 관계가 성립합니다.');
 
-        for (const term of MYEONGRI_LEXICON) {
-          expect(skeleton.includes(term), `${keyOf(fragment)} 에 ${term}`).toBe(false);
-        }
+      for (const term of MYEONGRI_LEXICON) {
+        expect(skeleton.includes(term), `뼈대에 ${term}`).toBe(false);
       }
     });
 
@@ -159,10 +158,15 @@ describe('조각 스키마', () => {
       expect(rulesOf(bad)).toContain('slot-particle');
     });
 
-    it('씨앗 조각은 전부 조사를 피해 쓴다', () => {
-      for (const fragment of SEED_FRAGMENTS) {
-        expect(rulesOf(fragment), keyOf(fragment)).toHaveLength(0);
-      }
+    it('슬롯 뒤에 다른 낱말을 한 번 놓으면 조사를 붙일 수 있다', () => {
+      const detour: Fragment = {
+        topic: 'eokbu.candidate',
+        variant: '財星',
+        strength: 'candidate',
+        template: '억부 관점에서는 {role} 자리의 {element} 쪽을 후보로 봅니다.',
+      };
+
+      expect(rulesOf(detour)).toHaveLength(0);
     });
   });
 
@@ -182,12 +186,26 @@ describe('조각 스키마', () => {
     });
 
     it('표본으로 렌더하면 읽을 수 있는 문장이 된다', () => {
-      for (const fragment of SEED_FRAGMENTS) {
-        const sample = sampleSentence(fragment);
+      const sample = sampleSentence({
+        topic: 'relation.present',
+        variant: 'branchClash',
+        strength: 'fact',
+        template: '{positions} 자리에서 {name} 관계가 성립합니다.',
+      });
 
-        expect(sample, keyOf(fragment)).not.toMatch(/\{|\s{2}/);
-        expect(sample.endsWith('.'), keyOf(fragment)).toBe(true);
-      }
+      expect(sample).toBe('년주·일주 자리에서 자오충 관계가 성립합니다.');
+    });
+
+    it('형태가 어긋난 표본은 걸린다', () => {
+      const spaced: Fragment = {
+        topic: 'strength.verdict',
+        variant: 'strong',
+        strength: 'derived',
+        template: '일간을 돕는 세력이  {ratio} 정도라 신강 쪽으로 봅니다',
+      };
+
+      // 뼈대 검사는 슬롯을 비우고 보므로 겹친 공백도 빠진 마침표도 못 본다.
+      expect(rulesOf(spaced)).toContain('malformed-sample');
     });
 
     it('표본을 빠뜨리면 걸린다', () => {
@@ -234,11 +252,31 @@ describe('조각 스키마', () => {
       expect(render(request).strength).toBe('derived');
       expect(render(request).text).toBe('일간을 돕는 세력이 38% 정도라 신약 쪽으로 봅니다.');
 
-      // 시간 미상이면 한 칸 내려가고, 그 칸의 조각이 아직 없어서 말하지 않는다.
+      // 시간 미상이면 한 칸 내려가고 **다른 문장**이 나온다. 조각이 하나뿐이면
+      // 이 자리에서 같은 문장이 나오고, 그 순간 강도는 조회 좌표가 아니게 된다.
       const hourless = render({ ...request, hourKnown: false });
       expect(hourless.strength).toBe('candidate');
       expect(hourless.key).toBe(fragmentKey('strength.verdict', 'weak', 'candidate'));
-      expect(hourless.text).toBeNull();
+      expect(hourless.text).toBe(
+        '시주를 빼고 세면 일간을 돕는 세력이 38% 정도라 신약 쪽을 후보로 봅니다.',
+      );
+    });
+
+    /**
+     * 비어 있는 자리를 다른 강도의 조각으로 메우면 강도는 장식이 된다.
+     * 말뭉치가 덮지 못한 관계 종류가 지금 그 자리다.
+     */
+    it('조각이 없으면 다른 강도로 메우지 않고 말하지 않는다', () => {
+      const rendered = render({
+        topic: 'relation.present',
+        variant: 'branchHarm',
+        slots: { name: '자미해', positions: '년주·일주' },
+        grounded: [],
+      });
+
+      expect(rendered.key).toBe(fragmentKey('relation.present', 'branchHarm', 'fact'));
+      expect(rendered.text).toBeNull();
+      expect(rendered.violations).toHaveLength(0);
     });
 
     it('말하지 않기로 한 자리는 조회조차 하지 않는다', () => {
@@ -267,7 +305,7 @@ describe('조각 스키마', () => {
     });
 
     it('같은 키가 둘이면 세우는 자리에서 막는다', () => {
-      expect(() => indexFragments([...SEED_FRAGMENTS, SEED_FRAGMENTS[0]])).toThrow();
+      expect(() => indexFragments([...FRAGMENTS, FRAGMENTS[0]])).toThrow();
     });
   });
 
@@ -331,17 +369,17 @@ describe('조각 스키마', () => {
 
   describe('생성기의 작업 지시서', () => {
     it('채워야 할 자리를 셀 수 있다', () => {
-      const coverage = fragmentCoverage();
+      const coverage = fragmentCoverage(FRAGMENT_INDEX);
 
-      expect(coverage.filled).toBe(SEED_FRAGMENTS.length);
+      expect(coverage.filled).toBe(FRAGMENTS.length);
       expect(coverage.expected).toBeGreaterThan(coverage.filled);
       expect(coverage.missing).toHaveLength(coverage.expected - coverage.filled);
     });
 
-    it('씨앗은 전부 지시서 안의 자리다', () => {
+    it('말뭉치는 전부 지시서 안의 자리다', () => {
       const expected = new Set<string>(expectedFragmentKeys());
 
-      for (const fragment of SEED_FRAGMENTS) {
+      for (const fragment of FRAGMENTS) {
         expect(expected.has(keyOf(fragment)), keyOf(fragment)).toBe(true);
       }
     });

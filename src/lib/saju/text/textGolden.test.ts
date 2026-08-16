@@ -4,6 +4,8 @@ import { computeSaju, formatPillars, type Saju } from '@/src/lib/saju';
 import {
   ASSEMBLE_POLICY,
   CLAIM_STRENGTH_KO,
+  CORPUS_POLICY,
+  FRAGMENT_INDEX,
   UNCOVERED_FACTS,
   assembleText,
   fragmentCoverage,
@@ -30,7 +32,7 @@ type TextCase = {
 const CASES: TextCase[] = [
   {
     id: 'relations-rich',
-    note: '관계가 여럿 걸린다 — 씨앗이 덮지 못한 종류가 그대로 보인다',
+    note: '관계가 여럿 걸린다 — 말뭉치가 덮지 못한 종류가 그대로 보인다',
     saju: computeSaju(
       { year: 1990, month: 5, day: 20, hour: 14, minute: 30, second: 0, gender: 'male' },
       {},
@@ -38,7 +40,7 @@ const CASES: TextCase[] = [
   },
   {
     id: 'branch-clash',
-    note: '지지충 — 씨앗 조각이 덮는 유일한 관계 종류',
+    note: '지지충 — 말뭉치가 덮는 유일한 관계 종류',
     saju: computeSaju(
       { year: 2000, month: 1, day: 1, hour: 14, minute: 30, second: 0, gender: 'male' },
       {},
@@ -96,7 +98,7 @@ const formatCase = ({ id, note, saju }: TextCase): string => {
 
 describe('문장 골든', () => {
   it('명식마다 어떤 발화가 서고 무엇이 침묵하는지', async () => {
-    const coverage = fragmentCoverage();
+    const coverage = fragmentCoverage(FRAGMENT_INDEX);
 
     const header = [
       '='.repeat(78),
@@ -105,9 +107,11 @@ describe('문장 골든', () => {
       '',
       '  ✓ 문장이 됐다   · 발화는 있으나 조각이 없다   × 말하지 않기로 했다',
       '',
-      `  씨앗 조각 ${coverage.filled} / 지시서 ${coverage.expected} 칸`,
+      `  말뭉치 ${coverage.filled} / 지시서 ${coverage.expected} 칸`,
       '',
       ...Object.entries(ASSEMBLE_POLICY).map(([key, value]) => `    ${key.padEnd(16)} ${value}`),
+      '',
+      ...Object.entries(CORPUS_POLICY).map(([key, value]) => `    ${key.padEnd(16)} ${value}`),
       '',
       '  주제가 없어 아직 발화하지 않는 사실 — 고른 것이 아니라 주제가 없는 것이다.',
       ...UNCOVERED_FACTS.map((fact) => `    ${fact}`),

@@ -15,8 +15,8 @@ import {
  *
  * 계약(`policy.ts`)이 "얼마나 세게 말해도 되는가"를 정했다면 여기는 그 계약을
  * 지키는 문장이 실제로 어떤 모양이어야 하는지를 정한다. 아직 생성기는 없다 —
- * 이 파일은 생성기에게 **무엇을 몇 개 만들어야 하는지 적어 주는 작업 지시서**이고,
- * 씨앗 조각 여섯 개는 스키마가 실제로 문장을 받아 내는지 보이는 자리다.
+ * 이 파일은 생성기에게 **무엇을 몇 개 만들어야 하는지 적어 주는 작업 지시서**다.
+ * 그 지시서를 채운 문장들은 `corpus.ts` 에 따로 있다. 스키마는 내용물을 모른다.
  *
  * 정한 넷:
  *
@@ -422,59 +422,13 @@ export function renderFragment(request: FragmentRequest, index: FragmentIndex): 
 }
 
 /**
- * 씨앗 조각 — **스키마를 고정하는 여섯 개이지 말뭉치가 아니다.**
+ * 채운 자리 / 채워야 할 자리.
  *
- * 생성기가 채워야 할 자리는 `expectedFragmentKeys()` 가 세고, 이 여섯은 그중
- * 강도 사다리의 각 칸이 실제로 문장을 받아 내는지 보이는 표본이다. 조후는
- * 출처를 문장에 넣는 규칙이 하나 더 붙어 뒤로 미뤘고, 종격은 게이트가 닫혀
- * 있어 `candidate` 한 칸뿐이라 씨앗에서 얻을 것이 적다.
+ * 말뭉치를 인자로 **받는다**. 기본값으로 `corpus.ts` 를 끌어오면 스키마가
+ * 내용물을 알게 되고, 그러면 "몇 칸이 비었는가"를 세는 쪽과 그 칸을 채우는 쪽이
+ * 서로를 부르게 된다. 세는 도구는 무엇을 세는지 몰라야 한다.
  */
-export const SEED_FRAGMENTS: readonly Fragment[] = [
-  {
-    topic: 'rootedness.rooted',
-    variant: 'same-stem',
-    strength: 'fact',
-    template: '{dayMaster} 일간은 {positions} 자리에 같은 글자로 뿌리를 둡니다.',
-  },
-  {
-    // 시간 미상에서는 이 주제가 통째로 입을 닫으므로 `fact` 한 벌뿐이다.
-    topic: 'rootedness.rootless',
-    variant: 'day-master',
-    strength: 'fact',
-    template: '{dayMaster} 일간은 네 지지 어디에도 뿌리를 두지 못합니다.',
-  },
-  {
-    topic: 'strength.verdict',
-    variant: 'strong',
-    strength: 'derived',
-    template: '일간을 돕는 세력이 {ratio} 정도라 신강 쪽으로 봅니다.',
-  },
-  {
-    topic: 'strength.verdict',
-    variant: 'weak',
-    strength: 'derived',
-    template: '일간을 돕는 세력이 {ratio} 정도라 신약 쪽으로 봅니다.',
-  },
-  {
-    // 변종이 자리를 고르고 그 자리의 이름은 슬롯으로 꽂힌다 — 문장 틀에는
-    // '재성' 이 없다.
-    topic: 'eokbu.candidate',
-    variant: '財星',
-    strength: 'candidate',
-    template: '억부 관점에서는 {role} 자리의 {element} 쪽을 후보로 봅니다.',
-  },
-  {
-    topic: 'relation.present',
-    variant: 'branchClash',
-    strength: 'fact',
-    template: '{positions} 자리에서 {name} 관계가 성립합니다.',
-  },
-];
-
-export const SEED_INDEX: FragmentIndex = indexFragments(SEED_FRAGMENTS);
-
-/** 채운 자리 / 채워야 할 자리 */
-export function fragmentCoverage(index: FragmentIndex = SEED_INDEX) {
+export function fragmentCoverage(index: FragmentIndex) {
   const expected = expectedFragmentKeys();
 
   return {
@@ -489,8 +443,8 @@ export function fragmentCoverage(index: FragmentIndex = SEED_INDEX) {
  */
 export const FRAGMENT_POLICY = {
   ruleSet: 'text-fragment-schema-v1',
-  /** 스키마와 씨앗뿐이다. 조립기도 생성기도 아직 없다 */
-  status: 'schema-and-seeds',
+  /** 스키마와 검사기뿐이다 — 문장은 `corpus.ts`, 생성기는 아직 없다 */
+  status: 'schema-only',
   /** 조회 좌표 */
   key: 'topic/variant@strength',
   /** 강도는 표현을 고르는 좌표이지 조각이 선언하는 속성이 아니다 */

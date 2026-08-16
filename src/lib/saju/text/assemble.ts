@@ -10,8 +10,8 @@ import { TWELVE_SPIRIT_KO } from '../sinsal/twelveSpirits';
 import { TWELVE_STAGE_KO } from '../stages';
 import type { Saju } from '../index';
 import { FOLLOWING_SILENT_VERDICTS, type ClaimStrength } from './policy';
+import { FRAGMENT_INDEX } from './corpus';
 import {
-  SEED_INDEX,
   renderFragment,
   type FragmentIndex,
   type FragmentKey,
@@ -197,7 +197,7 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
 }
 
 /** 발화를 찾아 조각에 물린다 */
-export function assembleText(saju: Saju, index: FragmentIndex = SEED_INDEX): Utterance[] {
+export function assembleText(saju: Saju, index: FragmentIndex = FRAGMENT_INDEX): Utterance[] {
   return findUtterances(saju).map((request) => ({ request, ...renderFragment(request, index) }));
 }
 

@@ -145,8 +145,9 @@ L2에 새 결과가 생기면 `CLAIM_PATHS`에도 줄이 늘어야 한다. 테�
 
 ## 다음
 
-조각 스키마는 [`fragment-schema.md`](./fragment-schema.md), 조립기와 문장 골든은
-[`assembly.md`](./assembly.md)로 옮겼다. 런타임 쪽은 여기까지다.
+조각 스키마는 [`fragment-schema.md`](./fragment-schema.md), 문장은
+[`corpus.md`](./corpus.md), 조립기와 문장 골든은 [`assembly.md`](./assembly.md)로
+옮겼다. 런타임 쪽은 여기까지다.
 
 남은 것은 **생성기** 하나인데, 그것은 이 줄의 다음이 아니라 **옆**이다. 빌드 타임에
 주제 × 변종 × 강도를 받아 조각을 만들어 넣는 놈이라 런타임 흐름에 끼지 않는다
