@@ -26,6 +26,7 @@ import {
   STEM_INFO,
   branchAt,
   elementRelation,
+  findBranchGhostGate,
   findPunishments,
   findTripleCombinations,
   pillarAt,
@@ -349,6 +350,42 @@ describe('관계(relations) — 지지', () => {
     ]) {
       expect(pairs).toHaveLength(6);
       coversAllBranchesOnce(pairs);
+    }
+  });
+
+  /**
+   * 여섯 쌍을 **손으로 적어** 고정한다.
+   *
+   * `BRANCH_GHOST_GATES` 를 순회하는 테스트는 표가 통째로 바뀌어도 같은 표를
+   * 읽으므로 통과한다. 자료(《다능비사》 귀문관)에서 옮긴 값을 여기에 한 번 더
+   * 적어 두어야 표가 흔들릴 때 걸린다. 조회는 순서 무관이라 역순도 함께 본다.
+   */
+  it.each([
+    ['子', '酉'],
+    ['丑', '午'],
+    ['寅', '未'],
+    ['卯', '申'],
+    ['辰', '亥'],
+    ['巳', '戌'],
+  ] as const)('귀문 %s%s 는 양쪽 순서로 다 찾힌다', (first, second) => {
+    expect(findBranchGhostGate(first, second)).not.toBeNull();
+    expect(findBranchGhostGate(second, first)).not.toBeNull();
+    expect(findBranchGhostGate(first, second)).toBe(findBranchGhostGate(second, first));
+  });
+
+  it('적어 둔 여섯 쌍 말고는 귀문이 아니다', () => {
+    const expected = new Set(['子酉', '丑午', '寅未', '卯申', '辰亥', '巳戌']);
+    const found = BRANCHES.flatMap((a) =>
+      BRANCHES.filter((b) => findBranchGhostGate(a, b) !== null).map((b) =>
+        [a, b].sort().join(''),
+      ),
+    );
+
+    expect(new Set(found).size).toBe(6);
+    for (const pair of new Set(found)) {
+      // 정렬된 표기가 서로 다를 수 있어 두 방향 모두 확인한다.
+      const [x, y] = [...pair];
+      expect(expected.has(`${x}${y}`) || expected.has(`${y}${x}`), pair).toBe(true);
     }
   });
 

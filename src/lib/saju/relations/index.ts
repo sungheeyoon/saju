@@ -91,6 +91,16 @@ export const RELATION_POLICY = {
   hiddenStemRelations: 'disabled',
   /** 귀문은 원진과 합치지 않는다 — 겹치는 네 쌍에서 두 줄이 함께 나온다 */
   ghostGate: 'separate-from-resentment',
+  /**
+   * 귀문은 네 지지의 **모든 쌍**에서 찾는다 — 자리를 제한하는 계통은 안 쓴다.
+   *
+   * 일지를 기준으로 나머지 셋만 보거나(현대 일부), 년지와 시지만 보는(소아관살
+   * 계통) 읽기가 따로 있다. 그렇게 좁히면 다른 만세력보다 귀문이 적게 나오는데,
+   * 거른 것은 되살릴 수 없고 이 엔진은 거르는 대신 자리를 밝히는 쪽을 택했다
+   * (`distantRelations: 'detect-all'` 과 같은 판단이다). 좁혀 읽고 싶으면
+   * `participants` 의 자리로 걸러 쓰면 된다.
+   */
+  ghostGateBasis: 'all-branch-pairs',
 } as const;
 
 /** 정렬 기준 — 합을 먼저, 그다음 충·형·해·파·원진·귀문 */

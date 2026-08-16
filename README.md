@@ -98,7 +98,7 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 650 tests
+npm test          # 657 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 ```
@@ -140,6 +140,8 @@ npm run verify    # test + typecheck + lint + production build
 - **귀문관살은 원진과 합치지 않는다** — 두 표는 네 쌍이 겹치고 두 쌍이 다르다
   (귀문 `子酉`·`寅未` ↔ 원진 `子未`·`寅酉`). 합치면 어느 표에서 나온 사실인지
   되짚을 수 없고 다른 두 쌍이 조용히 사라지므로, 겹치는 자리에서는 두 줄이 함께 나온다.
+  자리는 **네 지지의 모든 쌍**을 본다(`ghostGateBasis: 'all-branch-pairs'`) — 일지 기준으로
+  좁히는 계통은 채택하지 않았고, 좁혀 읽고 싶으면 `participants` 의 자리로 거르면 된다.
   둘 다 신살 표에도 이름이 오르지만 규칙은 관계 쪽 하나뿐이다 — 값을 옮겨 담기만 하고
   자리가 갈릴 수 없음을 60갑자 전수 테스트가 잠근다
 

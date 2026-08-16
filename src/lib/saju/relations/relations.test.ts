@@ -523,6 +523,7 @@ describe('출력 계약', () => {
       interactionResolution: 'contest-only',
       hiddenStemRelations: 'disabled',
       ghostGate: 'separate-from-resentment',
+      ghostGateBasis: 'all-branch-pairs',
     });
   });
 
