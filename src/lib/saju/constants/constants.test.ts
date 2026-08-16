@@ -26,7 +26,11 @@ import {
   STEM_INFO,
   branchAt,
   elementRelation,
+  findBranchClash,
+  findBranchDestruction,
   findBranchGhostGate,
+  findBranchHarm,
+  findBranchResentment,
   findPunishments,
   findTripleCombinations,
   pillarAt,
@@ -354,39 +358,57 @@ describe('관계(relations) — 지지', () => {
   });
 
   /**
-   * 여섯 쌍을 **손으로 적어** 고정한다.
+   * 여섯 쌍씩을 **손으로 적어** 고정한다.
    *
-   * `BRANCH_GHOST_GATES` 를 순회하는 테스트는 표가 통째로 바뀌어도 같은 표를
-   * 읽으므로 통과한다. 자료(《다능비사》 귀문관)에서 옮긴 값을 여기에 한 번 더
-   * 적어 두어야 표가 흔들릴 때 걸린다. 조회는 순서 무관이라 역순도 함께 본다.
+   * 상수를 순회하는 테스트는 표가 통째로 바뀌어도 같은 표를 읽으므로 통과한다.
+   * 자료에서 옮긴 값을 여기에 한 번 더 적어 두어야 표가 흔들릴 때 걸린다.
+   * 조회는 순서 무관이므로 역순과 "이것 말고는 아니다"까지 함께 본다.
    */
-  it.each([
-    ['子', '酉'],
-    ['丑', '午'],
-    ['寅', '未'],
-    ['卯', '申'],
-    ['辰', '亥'],
-    ['巳', '戌'],
-  ] as const)('귀문 %s%s 는 양쪽 순서로 다 찾힌다', (first, second) => {
-    expect(findBranchGhostGate(first, second)).not.toBeNull();
-    expect(findBranchGhostGate(second, first)).not.toBeNull();
-    expect(findBranchGhostGate(first, second)).toBe(findBranchGhostGate(second, first));
-  });
+  describe.each([
+    {
+      name: '충',
+      find: findBranchClash,
+      pairs: ['子午', '丑未', '寅申', '卯酉', '辰戌', '巳亥'],
+    },
+    {
+      name: '해',
+      find: findBranchHarm,
+      pairs: ['子未', '丑午', '寅巳', '卯辰', '申亥', '酉戌'],
+    },
+    {
+      name: '파',
+      find: findBranchDestruction,
+      pairs: ['子酉', '丑辰', '寅亥', '卯午', '巳申', '戌未'],
+    },
+    {
+      name: '원진',
+      find: findBranchResentment,
+      pairs: ['子未', '丑午', '寅酉', '卯申', '辰亥', '巳戌'],
+    },
+    {
+      name: '귀문',
+      find: findBranchGhostGate,
+      pairs: ['子酉', '丑午', '寅未', '卯申', '辰亥', '巳戌'],
+    },
+  ])('$name 의 여섯 쌍', ({ find, pairs }) => {
+    it.each(pairs)('%s 는 양쪽 순서로 다 찾힌다', (pair) => {
+      const [first, second] = [...pair] as [Branch, Branch];
 
-  it('적어 둔 여섯 쌍 말고는 귀문이 아니다', () => {
-    const expected = new Set(['子酉', '丑午', '寅未', '卯申', '辰亥', '巳戌']);
-    const found = BRANCHES.flatMap((a) =>
-      BRANCHES.filter((b) => findBranchGhostGate(a, b) !== null).map((b) =>
-        [a, b].sort().join(''),
-      ),
-    );
+      expect(find(first, second)).not.toBeNull();
+      expect(find(second, first)).not.toBeNull();
+      expect(find(first, second)).toBe(find(second, first));
+    });
 
-    expect(new Set(found).size).toBe(6);
-    for (const pair of new Set(found)) {
-      // 정렬된 표기가 서로 다를 수 있어 두 방향 모두 확인한다.
-      const [x, y] = [...pair];
-      expect(expected.has(`${x}${y}`) || expected.has(`${y}${x}`), pair).toBe(true);
-    }
+    it('적어 둔 여섯 쌍 말고는 성립하지 않는다', () => {
+      const expected = new Set(pairs.map((pair) => [...pair].sort().join('')));
+      const found = new Set(
+        BRANCHES.flatMap((a) =>
+          BRANCHES.filter((b) => find(a, b) !== null).map((b) => [a, b].sort().join('')),
+        ),
+      );
+
+      expect(found).toEqual(expected);
+    });
   });
 
   /**

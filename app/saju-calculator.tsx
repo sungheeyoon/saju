@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { BirthFields } from './birth-form';
+import { CopyLinkButton } from './copy-link';
 import {
   DEFAULT_QUERY,
   TIME_BASIS,
@@ -246,6 +247,7 @@ function SajuView({ saju }: { saju: Saju }) {
   return (
     <div className="flex flex-col gap-6">
       <ResultNav />
+      <CopyLinkButton />
       <PillarChart saju={saju} />
       <div id="analysis" className="scroll-mt-20 grid gap-6 lg:grid-cols-2">
         <ElementChart saju={saju} />

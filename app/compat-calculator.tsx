@@ -22,6 +22,7 @@ import {
 } from '@/src/lib/saju';
 
 import { BirthFields } from './birth-form';
+import { CopyLinkButton } from './copy-link';
 import { CARD, PILLAR_COLUMNS } from './saju-calculator';
 import {
   DEFAULT_QUERY,
@@ -195,6 +196,7 @@ function CompatView({
 }) {
   return (
     <div className="flex flex-col gap-6">
+      <CopyLinkButton />
       <ChartPair charts={charts} />
       <BetweenRelations charts={charts} compat={compat} />
       <SupportCards charts={charts} compat={compat} />

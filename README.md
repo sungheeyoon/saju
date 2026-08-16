@@ -101,7 +101,7 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 673 tests
+npm test          # 701 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 ```

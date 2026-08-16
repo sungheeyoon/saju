@@ -159,6 +159,29 @@ test('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그대로
   expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
 });
 
+/**
+ * 주소가 곧 결과라는 것을 화면이 말해 주지 않으면 아무도 링크를 공유하지 않는다.
+ * 버튼이 실제로 지금 주소를 클립보드에 넣는지까지 본다.
+ */
+test('결과 링크 복사 버튼이 지금 주소를 클립보드에 넣는다', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+
+  await page.goto('/');
+  // 입력 전에는 복사할 결과가 없다.
+  await expect(page.getByRole('button', { name: '결과 링크 복사' })).toHaveCount(0);
+
+  await enterKnownBirth(page);
+  await page.getByRole('button', { name: '사주 보기' }).click();
+  await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+
+  await page.getByRole('button', { name: '결과 링크 복사' }).click();
+  await expect(page.getByRole('button', { name: '복사했습니다' })).toBeVisible();
+
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toBe(page.url());
+  expect(copied).toContain('date=1990-05-15');
+});
+
 test('한 사람만 적힌 궁합 주소는 빈 폼으로 연다', async ({ page }) => {
   // 반쪽 링크로 남의 사주가 섞여 보이면 안 된다.
   await page.goto('/compat?a.date=1990-05-15&a.hour=14:30');
