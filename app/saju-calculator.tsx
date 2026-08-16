@@ -1,7 +1,17 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
+import {
+  DEFAULT_QUERY,
+  TIME_BASES,
+  TIME_BASIS,
+  queryFromSearchParams,
+  toSearchParams,
+  type Query,
+  type TimeBasis,
+} from './query';
 import {
   BRANCH_INFO,
   CITY_LONGITUDES,
@@ -90,77 +100,6 @@ const PILLAR_COLUMNS = [
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
 
-/**
- * 시간 기준 — 시주·일주를 어느 시계로 읽을 것인가.
- *
- * 세 값이 경도·균시차 두 스위치를 대신한다. 성립하지 않는 조합(경도 없이
- * 균시차만)을 애초에 만들 수 없게 하려는 것이다.
- */
-type TimeBasis = 'localMean' | 'record' | 'trueSolar';
-
-const TIME_BASES = ['localMean', 'record', 'trueSolar'] as const satisfies readonly TimeBasis[];
-
-const TIME_BASIS: Record<
-  TimeBasis,
-  {
-    label: string;
-    hint: string;
-    useLongitude: boolean;
-    useEquationOfTime: boolean;
-    /** 고급 — 기본 화면에서는 접어둔다 */
-    advanced?: boolean;
-  }
-> = {
-  localMean: {
-    label: '지방평균태양시',
-    hint: '경도 보정 · 기본값',
-    useLongitude: true,
-    useEquationOfTime: false,
-  },
-  record: {
-    label: '출생기록 시각',
-    hint: '보정 없음',
-    useLongitude: false,
-    useEquationOfTime: false,
-  },
-  trueSolar: {
-    label: '진태양시',
-    hint: '경도 + 균시차 (±16분)',
-    useLongitude: true,
-    useEquationOfTime: true,
-    advanced: true,
-  },
-};
-
-type Query = {
-  date: string;
-  time: string;
-  /** 출생 시각을 모름 — 시주를 뽑지 않는다 */
-  hourUnknown: boolean;
-  /** 성별. 여덟 글자는 바꾸지 않고 대운의 방향만 정한다 */
-  gender: Gender;
-  city: CityName;
-  rule: LateNightRule;
-  /** 세운을 어느 해부터 볼지 */
-  saeunFrom: number;
-  /** 시간 기준 — 경도·균시차를 함께 정한다 */
-  basis: TimeBasis;
-};
-
-const DEFAULT_QUERY: Query = {
-  // 결과를 예시 명식으로 채우지 않는다. 사용자가 입력하기 전에는 빈 상태다.
-  date: '',
-  time: '',
-  hourUnknown: false,
-  gender: 'female',
-  city: '서울',
-  rule: 'jo',
-  basis: 'localMean',
-  // 현재 연도를 쓰지 않는다. 이 페이지는 빌드 때 미리 그려지므로 브라우저에서
-  // 계산한 '올해'와 어긋나 하이드레이션이 깨진다. 고정값을 두고 사용자가 옮긴다.
-  saeunFrom: 2026,
-};
-
 type Result = { ok: true; saju: Saju } | { ok: false; message: string };
 
 function calculate(query: Query): Result {
@@ -217,9 +156,36 @@ const CARD =
 const FIELD =
   'h-11 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash sm:h-10';
 
+/**
+ * 제출된 입력은 주소창이 들고, 폼은 타이핑 중인 값만 들고 있다.
+ *
+ * 그래서 결과 화면을 그대로 링크로 줄 수 있고, 새로고침·뒤로가기에도 같은
+ * 명식이 나온다. 계산은 여전히 브라우저 안에서만 일어난다 — 주소창은 서버로
+ * 가는 통로가 아니라 이 페이지가 스스로 읽는 상태 저장소다.
+ *
+ * 주소는 `history` API 로 직접 바꾼다. Next 라우터가 이 호출을 함께 보므로
+ * `useSearchParams` 가 따라 갱신되고, 라우트 전환 없이 주소만 바뀐다.
+ *
+ * 첫 계산은 `push`, 이후 수정은 `replace` 다. 첫 계산에는 "빈 화면으로
+ * 되돌아간다"는 뒤로가기가 있어야 하지만, 세운 연도를 몇 번 옮겼다고 뒤로가기를
+ * 그만큼 눌러야 하는 것은 아니다.
+ */
 export function SajuCalculator() {
-  const [form, setForm] = useState<Query>(DEFAULT_QUERY);
-  const [query, setQuery] = useState<Query | null>(null);
+  const searchParams = useSearchParams();
+  const query = useMemo(() => queryFromSearchParams(searchParams), [searchParams]);
+
+  const [form, setForm] = useState<Query>(query ?? DEFAULT_QUERY);
+
+  // 주소가 밖에서 바뀌면(뒤로가기·앞으로가기·링크로 들어옴) 폼도 그 값으로 되돌린다.
+  // 화면은 주소가 가리키는 명식을 보여주는데 폼만 옛 입력을 들고 있으면,
+  // '입력이 바뀌었습니다' 가 사용자가 바꾼 적 없는데도 떠 있게 된다.
+  const shown = useRef(searchParams.toString());
+  useEffect(() => {
+    const current = searchParams.toString();
+    if (current === shown.current) return;
+    shown.current = current;
+    setForm(queryFromSearchParams(searchParams) ?? DEFAULT_QUERY);
+  }, [searchParams]);
 
   const result = useMemo(() => (query === null ? null : calculate(query)), [query]);
   const dirty =
@@ -228,12 +194,19 @@ export function SajuCalculator() {
   const set = <K extends keyof Query>(key: K, value: Query[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
 
+  const submit = (next: Query) => {
+    const params = toSearchParams(next).toString();
+    shown.current = params;
+    if (query === null) window.history.pushState(null, '', `?${params}`);
+    else window.history.replaceState(null, '', `?${params}`);
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          setQuery(form);
+          submit(form);
         }}
         className={`${CARD} flex flex-col gap-4`}
       >

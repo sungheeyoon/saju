@@ -36,6 +36,12 @@ src/lib/saju/
 
 React/Next 의존성은 `app/` 에만 있다. `src/lib/saju` 는 순수 TypeScript다.
 
+제출한 입력은 컴포넌트가 아니라 **주소창**이 들고 있다(`app/query.ts`). 그래서 결과
+화면을 그대로 링크로 줄 수 있고 새로고침·뒤로가기에도 같은 명식이 나온다. 자시 규칙
+하나로 일주가 바뀌므로 기본값도 빼지 않고 전부 적는다 — 나중에 기본값을 옮겨도 이미
+나눠 준 링크가 그때 본 것을 그대로 보여줘야 하기 때문이다. 계산은 여전히 브라우저
+안에서만 일어난다.
+
 ## 설계에서 핵심이었던 세 가지
 
 ### 1. 사주는 서로 다른 두 시계를 쓴다
@@ -90,7 +96,7 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 584 tests
+npm test          # 590 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 ```

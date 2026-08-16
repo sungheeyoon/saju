@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+
 import { SajuCalculator } from './saju-calculator';
 
 export default function Home() {
@@ -12,7 +14,14 @@ export default function Home() {
         </p>
       </header>
 
-      <SajuCalculator />
+      {/*
+        계산기는 주소창의 검색 문자열을 읽는다. 이 페이지는 빌드 때 미리 그려지므로
+        그 값을 아직 알 수 없고, 그래서 Suspense 경계 아래에서 브라우저가 그린다.
+        폴백은 폼 자리를 차지할 만큼의 빈 상자다 — 결과가 들어오며 화면이 튀지 않게.
+      */}
+      <Suspense fallback={<div className="h-56 rounded-xl border border-border bg-surface" />}>
+        <SajuCalculator />
+      </Suspense>
 
       <footer className="mt-2 text-xs text-muted">
         절기는 천문 계산(태양 황경), 표준시 이력은 IANA tz 데이터에서 생성했습니다. 계산은
