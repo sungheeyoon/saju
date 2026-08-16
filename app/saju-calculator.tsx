@@ -31,7 +31,8 @@ import {
   type PillarPosition,
   type Relation,
   type Saju,
-  type Star,
+  type StarNature,
+  type StarTarget,
 } from '@/src/lib/saju';
 
 /**
@@ -601,18 +602,46 @@ function MarkRow({
 }
 
 /**
- * 신살 — 걸린 것만 적는다.
+ * 신살 — 어느 자리에 걸렸는지가 본론이므로 기둥별 표로 놓는다.
  *
- * 열두 개를 늘어놓고 대부분에 '없음'을 적는 것보다 걸린 것만 세는 편이 읽힌다.
- * 무엇을 기준으로 뽑았는지(일간·월지)를 함께 적어야 왜 걸렸는지 되짚을 수 있다.
+ * 목록으로 늘어놓으면 "천을귀인이 있다"까지는 알아도 그게 월지인지 일지인지
+ * 표에서 눈으로 못 찾는다. 원국 표와 같은 네 열을 쓰고, 천간에 걸린 것과
+ * 지지에 걸린 것을 행으로 가른다 — 만세력이 관습적으로 그렇게 보여준다.
  *
- * 역마·도화·화개는 여기 없다 — 12신살 행에 이미 나와 있다.
+ * 칸마다 무엇을 기준으로 뽑았는지(일간·년지 따위)를 작게 붙인다. 특히
+ * 역마·도화는 년지 기준과 일지 기준이 서로 다른 자리를 가리키므로, 기준을
+ * 안 적으면 같은 이름이 왜 두 자리에 있는지 알 수 없다.
+ *
+ * 길흉 분류는 표에 섞지 않고 아래 한 줄로 뺀다. 자리를 읽는 것과 좋고 나쁨을
+ * 재는 것은 다른 일이고, 표 안에 색이나 기호로 섞으면 판정처럼 읽힌다.
  */
+const STAR_ROWS = [
+  { target: 'stem', label: '천간' },
+  { target: 'branch', label: '지지' },
+  { target: 'pillar', label: '간지' },
+] as const satisfies readonly { target: StarTarget; label: string }[];
+
+const STAR_NATURE_KO: Record<StarNature, string> = {
+  auspicious: '길신',
+  inauspicious: '흉신',
+  neutral: '특수',
+};
+
 function StarTable({ saju }: { saju: Saju }) {
   const { stars } = saju.sinsal;
-  const auspicious = stars.filter((s) => s.nature === 'auspicious');
-  const inauspicious = stars.filter((s) => s.nature === 'inauspicious');
-  const neutral = stars.filter((s) => s.nature === 'neutral');
+
+  /** 자리·대상별로 나눠 담는다 — 한 신살이 여러 칸에 걸릴 수 있다 */
+  const at = (target: StarTarget, position: PillarPosition) =>
+    stars.flatMap((star) =>
+      star.hits
+        .filter((hit) => hit.target === target && hit.position === position)
+        .map((hit) => ({ star, hit })),
+    );
+
+  // 괴강·백호가 없으면 간지 행은 통째로 비므로 아예 내지 않는다.
+  const rows = STAR_ROWS.filter(
+    ({ target }) => target !== 'pillar' || stars.some((s) => s.hits.some((h) => h.target === target)),
+  );
 
   return (
     <section id="stars" className={`${CARD} scroll-mt-20`}>
@@ -624,50 +653,84 @@ function StarTable({ saju }: { saju: Saju }) {
       </div>
 
       {stars.length > 0 && (
-        <div className="mt-4 grid gap-6 sm:grid-cols-3">
-          <StarGroup title="길신" stars={auspicious} />
-          <StarGroup title="흉신" stars={inauspicious} />
-          <StarGroup title="특수" stars={neutral} />
-        </div>
+        <>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[30rem] border-collapse text-left">
+              <thead>
+                <tr>
+                  <th className="w-14 pb-2" />
+                  {PILLAR_COLUMNS.map(({ key, label }) => (
+                    <th
+                      key={key}
+                      className={`px-2 pb-2 text-xs font-normal ${
+                        key === 'day' ? 'text-foreground' : 'text-muted'
+                      }`}
+                    >
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(({ target, label }) => (
+                  <tr key={target} className="border-t border-border align-top">
+                    <td className="py-2 pr-2 text-right text-xs whitespace-nowrap text-muted">
+                      {label}
+                    </td>
+                    {PILLAR_COLUMNS.map(({ key }) => {
+                      const found = at(target, key);
+                      return (
+                        <td key={key} className="px-2 py-2">
+                          {found.length === 0 ? (
+                            <span className="text-xs text-muted opacity-40">·</span>
+                          ) : (
+                            <ul className="flex flex-col gap-1.5">
+                              {found.map(({ star, hit }) => (
+                                <li key={`${star.id}:${hit.char}`}>
+                                  <span className="text-sm">{star.ko}</span>
+                                  {star.basis && (
+                                    <span className="block text-[10px] text-muted">
+                                      {star.basis.label} {star.basis.char}
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <dl className="mt-4 flex flex-col gap-1 border-t border-border pt-3 text-xs">
+            {(Object.keys(STAR_NATURE_KO) as StarNature[]).map((nature) => {
+              const named = [
+                ...new Set(stars.filter((s) => s.nature === nature).map((s) => s.ko)),
+              ];
+              if (named.length === 0) return null;
+              return (
+                <div key={nature} className="flex gap-2">
+                  <dt className="w-8 shrink-0 text-muted">{STAR_NATURE_KO[nature]}</dt>
+                  <dd className="text-secondary">{named.join(' · ')}</dd>
+                </div>
+              );
+            })}
+          </dl>
+        </>
       )}
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
         채택한 고전 기준으로만 뽑습니다. 현침은 甲辛卯午申 중 3자 이상,
-        천문은 戌亥가 함께 있어야 성립합니다. 역마·도화·화개는 12신살에 이미 있어
-        따로 세지 않습니다. 길신·흉신은 전통적 분류일 뿐 좋고 나쁨의 판정이 아닙니다.
+        천문은 戌亥가 함께 있어야 성립합니다. 역마·도화·화개는 12신살에서 가져온
+        값이라 아래 12신살 행과 언제나 일치합니다. 길신·흉신은 전통적 분류일 뿐
+        좋고 나쁨의 판정이 아닙니다.
         {!saju.meta.hourKnown && ' 시주를 몰라 시주에 걸린 신살은 빠져 있습니다.'}
       </p>
     </section>
-  );
-}
-
-function StarGroup({ title, stars }: { title: string; stars: readonly Star[] }) {
-  return (
-    <div>
-      <h3 className="text-xs text-muted">{title}</h3>
-      {stars.length === 0 ? (
-        <p className="mt-2 text-sm text-muted opacity-60">없음</p>
-      ) : (
-        <ul className="mt-2 flex flex-col gap-2">
-          {stars.map((star) => (
-            <li key={star.kind} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-              <span className="text-sm font-medium">{star.ko}</span>
-              <span className="glyph text-sm text-secondary">
-                {star.hits.map((hit) => hit.char).join(' ')}
-              </span>
-              <span className="text-xs text-muted">
-                {star.hits.map((hit) => PILLAR_POSITION_KO[hit.position].charAt(0)).join('·')}
-              </span>
-              {star.basis && (
-                <span className="text-xs text-muted opacity-70">
-                  {star.basis.label} {star.basis.char}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }
 

@@ -9,6 +9,7 @@ import {
   type Branch,
   type Stem,
 } from '@/src/lib/saju/constants';
+import { PILLAR_POSITIONS } from '@/src/lib/saju/position';
 import {
   BAEKHO_PILLARS,
   CHEONEUL_BRANCHES,
@@ -360,9 +361,11 @@ describe('원국에서 신살 찾기', () => {
     // 일간 甲 → 천을귀인 丑未, 월지 丑이 걸린다.
     // 월지 丑 → 천덕도 월덕도 庚인데, 년간이 庚이라 둘 다 년주에서 걸린다.
     // 월주 丁丑은 그 자체로 백호다.
+    // 일지 子(申子辰) 기준으로 시지 寅이 역마라 그것도 함께 나온다.
     const stars = findStars(chart('庚午', '丁丑', '甲子', '丙寅'));
 
     expect(stars.map((s) => s.kind)).toEqual([
+      'yeokma',
       'cheoneulGwiin',
       'cheondeokGwiin',
       'woldeokGwiin',
@@ -383,6 +386,35 @@ describe('원국에서 신살 찾기', () => {
       basis: null,
       hits: [{ position: 'month', target: 'pillar', char: '丁丑' }],
     });
+  });
+
+  /**
+   * 역마·도화·화개는 신살 목록에 적히지만 규칙은 12신살 하나뿐이다.
+   * 옮겨 담기만 하므로 두 곳의 값이 갈라질 수 없어야 한다 — 갈라지면
+   * 화면에서 같은 사주에 역마가 있다고도 없다고도 적히게 된다.
+   */
+  it('역마·도화·화개는 12신살과 언제나 같은 자리를 가리킨다', () => {
+    const restated = { 驛馬殺: 'yeokma', 年殺: 'dohwa', 華蓋殺: 'hwagae' } as const;
+
+    for (const { name: year } of SEXAGENARY) {
+      const input = chart(year, '丁丑', '甲子', '丙寅');
+      const stars = findStars(input);
+
+      for (const spiritChart of findTwelveSpirits(input)) {
+        for (const [spirit, kind] of Object.entries(restated)) {
+          const expected = PILLAR_POSITIONS.filter(
+            (position) => spiritChart.byPosition[position] === spirit,
+          );
+          const star = stars.find((s) => s.id === `${kind}:${spiritChart.basis}`);
+
+          expect(star?.hits.map((hit) => hit.position) ?? [], `${year} ${spirit}`).toEqual(
+            expected,
+          );
+          // 걸린 자리가 없으면 항목 자체가 나오지 않는다 — 다른 신살과 같은 규칙이다.
+          if (expected.length === 0) expect(star).toBeUndefined();
+        }
+      }
+    }
   });
 
   it('한 신살이 여러 자리에 걸린다', () => {
@@ -461,7 +493,7 @@ describe('묶음과 정책', () => {
       taegeuk: 'year-stem-yuanhai-ziping',
       emptinessBasis: 'day-and-year',
       spiritBasis: 'year-and-day',
-      travelPeachCanopy: 'from-twelve-spirits',
+      travelPeachCanopy: 'restated-from-twelve-spirits',
       yangin: 'yang-stems-only',
       goegang: 'classic-four',
       pillarStarScope: 'all-pillars',

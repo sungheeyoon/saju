@@ -10,6 +10,14 @@ import {
 import type { Pillars } from '../pillars';
 import { PILLAR_POSITIONS, type PillarPosition } from '../position';
 import { STEM_PROSPERITY, twelveStageBranchesOf } from '../stages';
+import {
+  SPIRIT_BASIS_KO,
+  TWELVE_SPIRIT_ALIAS,
+  TWELVE_SPIRIT_KO,
+  findTwelveSpirits,
+  type SpiritChart,
+  type TwelveSpirit,
+} from './twelveSpirits';
 
 /**
  * 신살(神殺) — 출처와 산출법을 고정한 핵심 신살.
@@ -21,9 +29,11 @@ import { STEM_PROSPERITY, twelveStageBranchesOf } from '../stages';
  * 계통으로 좁혀 넣는다. 현대식 확장표와 섞지 않고 `SINSAL_POLICY`에 선택을
  * 명시한다.
  *
- * **역마·도화(연살)·화개는 여기서 뽑지 않는다.** 셋 다 12신살에 이미 들어
- * 있으므로 `twelveSpirits` 의 결과를 그대로 쓴다. 같은 것을 두 곳에서 계산하면
- * 언젠가 어긋나고, 어긋난 쪽이 어느 쪽인지 알 수 없게 된다.
+ * **역마·도화(연살)·화개는 여기에 함께 적되 규칙을 새로 두지 않는다.** 셋 다
+ * 다른 만세력이 신살 자리에 적어 주므로 여기 없으면 빠진 것처럼 보인다. 다만
+ * 산출은 `twelveSpirits` 의 결과를 옮겨 담기만 한다 — 같은 것을 두 곳에서
+ * 계산하면 언젠가 어긋나고, 어긋난 쪽이 어느 쪽인지 알 수 없게 된다.
+ * 기준이 갈리므로 년지 기준과 일지 기준을 각각 한 항목으로 낸다.
  *
  * **문창·금여·양인은 표를 두지 않고 록지(建祿)에서 센다.** 셋 다 록지를 축으로
  * 한 칸·두 칸·세 칸 떨어진 자리다.
@@ -49,7 +59,10 @@ export type StarKind =
   | 'gwangwiHakgwan'
   | 'hyeonchim'
   | 'cheonmun'
-  | 'taegeukGwiin';
+  | 'taegeukGwiin'
+  | 'yeokma'
+  | 'dohwa'
+  | 'hwagae';
 
 /** 전통적 분류. 천문처럼 길흉 어느 한쪽으로 놓기 어려운 별은 중립이다 */
 export type StarNature = 'auspicious' | 'inauspicious' | 'neutral';
@@ -65,6 +78,13 @@ export type StarHit = {
 };
 
 export type Star = {
+  /**
+   * 목록에서 이 항목을 가리키는 키.
+   *
+   * 대개는 `kind` 와 같지만, 역마·도화·화개는 년지 기준과 일지 기준이 각각
+   * 한 항목으로 나오므로 `yeokma:year` 처럼 기준이 뒤에 붙는다.
+   */
+  id: string;
   kind: StarKind;
   ko: string;
   hanja: string;
@@ -100,8 +120,8 @@ export const SINSAL_POLICY = {
   emptinessBasis: 'day-and-year',
   /** 12신살은 년지·일지 기준을 모두 낸다 */
   spiritBasis: 'year-and-day',
-  /** 역마·도화·화개는 12신살 결과를 그대로 쓴다 */
-  travelPeachCanopy: 'from-twelve-spirits',
+  /** 역마·도화·화개는 신살 목록에도 적되 값은 12신살에서 옮겨 담는다 */
+  travelPeachCanopy: 'restated-from-twelve-spirits',
   /** 양인은 양간만 */
   yangin: 'yang-stems-only',
   /** 괴강은 좁은 넷 — 壬辰·庚辰·庚戌·戊戌 */
@@ -303,6 +323,18 @@ export const BAEKHO_PILLARS: readonly string[] = [
   '癸丑',
 ];
 
+/**
+ * 12신살에서 신살 목록으로 옮겨 담는 셋 — 역마·도화(연살)·화개.
+ *
+ * 값은 만들지 않고 `findTwelveSpirits` 가 이미 낸 것을 가져다 쓴다. 이름도
+ * 12신살 쪽 표를 그대로 쓰되 연살은 널리 부르는 도화살로 적는다.
+ */
+const RESTATED_SPIRITS = [
+  { kind: 'yeokma', spirit: '驛馬殺' },
+  { kind: 'dohwa', spirit: '年殺' },
+  { kind: 'hwagae', spirit: '華蓋殺' },
+] as const satisfies readonly { kind: StarKind; spirit: TwelveSpirit }[];
+
 type StarInput = Pick<Pillars, 'year' | 'month' | 'day' | 'hour' | 'dayMaster'>;
 
 function eachPillar(
@@ -356,6 +388,35 @@ const glyphHits = (pillars: StarInput, targets: readonly string[]): StarHit[] =>
   });
 
 /**
+ * 12신살 결과를 신살 항목으로 옮긴다.
+ *
+ * 년지 기준과 일지 기준이 서로 다른 자리를 가리키므로 기준마다 한 항목씩
+ * 낸다. 기준을 안 적으면 왜 역마가 두 자리에 걸렸는지 알 수 없다.
+ *
+ * 길흉은 매기지 않는다(`neutral`). 12신살 전체를 길흉으로 가르지 않는 것과
+ * 같은 이유다 — 셋 다 계통마다 읽는 방향이 갈린다.
+ */
+function restatedSpiritStars(pillars: StarInput, charts: readonly SpiritChart[]): Star[] {
+  return charts.flatMap((chart) =>
+    RESTATED_SPIRITS.map(
+      ({ kind, spirit }): Star => ({
+        id: `${kind}:${chart.basis}`,
+        kind,
+        ko: TWELVE_SPIRIT_ALIAS[spirit] ?? TWELVE_SPIRIT_KO[spirit],
+        hanja: spirit,
+        nature: 'neutral',
+        basis: { label: SPIRIT_BASIS_KO[chart.basis], char: chart.basisBranch },
+        hits: eachPillar(pillars, (pillar, position) =>
+          chart.byPosition[position] === spirit
+            ? { position, target: 'branch', char: pillar.branch }
+            : null,
+        ),
+      }),
+    ),
+  );
+}
+
+/**
  * 원국에서 성립하는 신살을 찾는다.
  *
  * 하나도 걸리지 않은 신살은 결과에 넣지 않는다 — 관계 연산과 같은 규칙이다.
@@ -378,7 +439,9 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
   const cheonmunComplete = new Set(cheonmunHits.map((hit) => hit.char)).size === 2;
 
   const candidates: Star[] = [
+    ...restatedSpiritStars(pillars, findTwelveSpirits(pillars)),
     {
+      id: 'cheoneulGwiin',
       kind: 'cheoneulGwiin',
       ko: '천을귀인',
       hanja: '天乙貴人',
@@ -387,6 +450,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: branchHits(pillars, CHEONEUL_BRANCHES[dayMaster]),
     },
     {
+      id: 'cheondeokGwiin',
       kind: 'cheondeokGwiin',
       ko: '천덕귀인',
       hanja: '天德貴人',
@@ -395,6 +459,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: charHits(pillars, cheondeokTarget),
     },
     {
+      id: 'woldeokGwiin',
       kind: 'woldeokGwiin',
       ko: '월덕귀인',
       hanja: '月德貴人',
@@ -403,6 +468,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: charHits(pillars, woldeokStem),
     },
     {
+      id: 'munchangGwiin',
       kind: 'munchangGwiin',
       ko: '문창귀인',
       hanja: '文昌貴人',
@@ -411,6 +477,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: branchHits(pillars, [munchangBranchOf(dayMaster)]),
     },
     {
+      id: 'hakdangGwiin',
       kind: 'hakdangGwiin',
       ko: '학당귀인',
       hanja: '學堂貴人',
@@ -419,6 +486,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: branchHits(pillars, [hakdangBranchOf(dayMaster)]),
     },
     {
+      id: 'geumyeo',
       kind: 'geumyeo',
       ko: '금여',
       hanja: '金輿',
@@ -427,6 +495,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: branchHits(pillars, [geumyeoBranchOf(dayMaster)]),
     },
     {
+      id: 'yangin',
       kind: 'yangin',
       ko: '양인',
       hanja: '羊刃',
@@ -435,6 +504,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: yanginAllowed ? branchHits(pillars, [yanginBranchOf(dayMaster)]) : [],
     },
     {
+      id: 'goegang',
       kind: 'goegang',
       ko: '괴강',
       hanja: '魁罡',
@@ -443,6 +513,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: pillarHits(pillars, GOEGANG_PILLARS),
     },
     {
+      id: 'baekho',
       kind: 'baekho',
       ko: '백호대살',
       hanja: '白虎大殺',
@@ -451,6 +522,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: pillarHits(pillars, BAEKHO_PILLARS),
     },
     {
+      id: 'gosin',
       kind: 'gosin',
       ko: '고신살',
       hanja: '孤辰殺',
@@ -459,6 +531,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: branchHits(pillars, [loneliness.gosin]),
     },
     {
+      id: 'gwasuk',
       kind: 'gwasuk',
       ko: '과숙살',
       hanja: '寡宿殺',
@@ -467,6 +540,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: branchHits(pillars, [loneliness.gwasuk]),
     },
     {
+      id: 'gwangwiHakgwan',
       kind: 'gwangwiHakgwan',
       ko: '관귀학관',
       hanja: '官貴學館',
@@ -475,6 +549,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: branchHits(pillars, [gwangwiHakgwanBranchOf(dayMaster)]),
     },
     {
+      id: 'hyeonchim',
       kind: 'hyeonchim',
       ko: '현침살',
       hanja: '懸針殺',
@@ -483,6 +558,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: hyeonchimHits.length >= HYEONCHIM_MIN_HITS ? hyeonchimHits : [],
     },
     {
+      id: 'cheonmun',
       kind: 'cheonmun',
       ko: '천문성',
       hanja: '天門星',
@@ -491,6 +567,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       hits: cheonmunComplete ? cheonmunHits : [],
     },
     {
+      id: 'taegeukGwiin',
       kind: 'taegeukGwiin',
       ko: '태극귀인',
       hanja: '太極貴人',
