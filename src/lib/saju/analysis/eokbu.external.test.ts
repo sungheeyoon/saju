@@ -163,8 +163,14 @@ describe('억부용신 외부 대조 데이터셋', () => {
     expect(scored.map(({ elementAgrees }) => elementAgrees)).toEqual([true, false]);
   });
 
-  it('종격은 계통을 채택하기 전까지 억부를 덮어쓰지 않는다', () => {
-    expect(FOLLOWING_PATTERN_POLICY.status).toBe('documented-not-evaluated');
+  /**
+   * 종격은 판정을 시작했지만(experimental v1) 억부의 답을 뒤집지는 않는다.
+   * 문턱이 고전이 아니라 분포 측정에서 나온 값이고 외부 대조가 0건이기 때문이다.
+   * 외부 종격 명조를 모아 대조하기 전에 이 스위치를 켜면 안 된다.
+   */
+  it('종격은 외부 대조 전까지 억부를 덮어쓰지 않는다', () => {
+    expect(FOLLOWING_PATTERN_POLICY.status).toBe('experimental');
+    expect(FOLLOWING_PATTERN_POLICY.dominance.calibration.note).toBe('not-a-classical-number');
     expect(FOLLOWING_PATTERN_POLICY.selectedLineage).toBeNull();
     expect(FOLLOWING_PATTERN_POLICY.eokbuOverride).toBe('disabled');
     expect(FOLLOWING_PATTERN_POLICY.blockingDecisions).toContain('hiddenSupport');

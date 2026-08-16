@@ -10,6 +10,7 @@ import {
   RELATION_POLICY,
   ELEMENT_KO,
   ELEMENT_ROLE_KO,
+  FOLLOWING_PATTERN_STATUS_KO,
   JOHU_POLICY,
   SINSAL_POLICY,
   STRENGTH_POLICY,
@@ -129,7 +130,7 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     lines.push(`  ${nature}   ${star.ko.padEnd(6)} ${where}${basis}`);
   }
 
-  const { strength, eokbu, johu, rootedness, followingCandidacy } = saju.analysis;
+  const { strength, eokbu, johu, rootedness, followingCandidacy, following } = saju.analysis;
   const { dayMaster: rooting } = rootedness;
   lines.push(
     `  강약   ${strength.verdict} · 보조세력 ${(strength.ratio * 100).toFixed(1)}%` +
@@ -151,6 +152,9 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
       ` ${(followingCandidacy.dominant.ratio * 100).toFixed(1)}%` +
       ` · 월령 ${followingCandidacy.monthCommandsDominant ? '장악' : '아님'}` +
       ` · 투간 생부 ${followingCandidacy.supportStems.map((s) => s.stem).join('') || '없음'}`,
+    `  종격   ${FOLLOWING_PATTERN_STATUS_KO[following.verdict]} · ${following.status}` +
+      ` · 압도 ${(following.dominanceRatio * 100).toFixed(1)}%` +
+      ` · 뿌리점수 ${following.rootScore}`,
   );
 
   // 세운은 골든 케이스마다 출생년부터 세 해만 찍는다 — 열 해를 다 찍으면

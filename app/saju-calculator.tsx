@@ -21,6 +21,7 @@ import {
   GENDER_KO,
   HIDDEN_STEM_ROLE_KO,
   ELEMENT_ROLE_KO,
+  FOLLOWING_PATTERN_STATUS_KO,
   EMPTINESS_BASIS_KO,
   UNRESOLVED_FACTOR_KO,
   PILLAR_POSITION_KO,
@@ -1501,16 +1502,31 @@ function RootingNote({ saju }: { saju: Saju }) {
  * 선을 긋느냐가 계통 선택이라는 것까지 적는다.
  */
 function FollowingCandidacyNote({ saju }: { saju: Saju }) {
-  const { followingCandidacy: candidacy } = saju.analysis;
+  const { followingCandidacy: candidacy, following } = saju.analysis;
   const percent = (ratio: number) => `${(ratio * 100).toFixed(1)}%`;
 
   return (
     <div className="mt-3 border-t border-border pt-3">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+          시험
+        </span>
+        <span className="text-xs text-muted">종격</span>
+        <span className="text-lg font-medium">
+          {FOLLOWING_PATTERN_STATUS_KO[following.verdict]}
+        </span>
+        <span className="text-sm text-secondary">
+          일간 편과 견준 지배 세력{' '}
+          <span className="tabular-nums">{percent(following.dominanceRatio)}</span>
+          <span className="text-muted"> (문턱 65%)</span>
+        </span>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
           사실
         </span>
-        <span className="text-xs text-muted">종격 후보 조건</span>
+        <span className="text-xs text-muted">판정의 재료</span>
         <span className="text-sm">
           일간 {candidacy.dayMasterRootless ? '무근' : '유근'}
           <span className="mx-1.5 text-muted">·</span>
@@ -1531,10 +1547,12 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
       </div>
 
       <p className="mt-2 text-xs text-muted">
-        종격을 판정하지 않습니다. 어느 계통이든 이 넷을 먼저 보지만,{' '}
-        <strong className="font-medium">여기에 어디서 선을 긋느냐</strong>가 계통 선택입니다
-        — 무근의 기준, 왕성하다고 할 비중, 월령이 필수인지, 생부를 몇 자까지 봐주는지가
-        모두 갈립니다. 문턱을 채택하면 이 값들 위에서 바로 나옵니다.
+        <strong className="font-medium">65%는 고전이 정한 숫자가 아닙니다.</strong> 무작위
+        3000건의 세력 분포를 재고 정한 이 엔진의 실험값이고, 분모는 다섯 오행 점유율이
+        아니라 <strong className="font-medium">지배 세력 ÷ (지배 세력 + 비겁 + 인성)</strong>
+        입니다. 그래서 이 판정은 억부 후보를 뒤집지 않습니다 — 종격이라고 명시된 외부
+        명조와 대조하기 전까지는 억부보다 위에 두지 않습니다. 진종·가종 어느 쪽으로도
+        밀기 어려운 명식은 &lsquo;종격 후보&rsquo;로 남겨 둡니다.
       </p>
     </div>
   );

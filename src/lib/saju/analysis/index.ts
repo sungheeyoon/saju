@@ -1,6 +1,11 @@
 import type { Pillars } from '../pillars';
 import { elementDistributionOf, type ElementDistribution, type ElementWeights } from './fiveElements';
-import { followingCandidacyOf, type FollowingCandidacy } from './followingPatterns';
+import {
+  followingAssessmentOf,
+  followingCandidacyOf,
+  type FollowingAssessment,
+  type FollowingCandidacy,
+} from './followingPatterns';
 import { johuAssessmentOf, type JohuAssessment } from './johu';
 import { rootednessOf, type Rootedness } from './rootedness';
 import { strengthOf, type Strength, type StrengthOptions } from './strength';
@@ -50,6 +55,13 @@ export type Analysis = {
    * 선택이고 그것은 아직 하지 않았다(`FOLLOWING_PATTERN_POLICY`).
    */
   followingCandidacy: FollowingCandidacy;
+  /**
+   * 종격 판정 — **실험 규칙 v1.**
+   *
+   * 문턱은 고전이 아니라 이 엔진의 세력 분포를 재고 정한 값이라
+   * `status: 'experimental'` 이고, 억부 후보를 뒤집지 않는다.
+   */
+  following: FollowingAssessment;
 };
 
 export type AnalysisOptions = {
@@ -76,5 +88,6 @@ export function analyzePillars(
     johu: johuAssessmentOf(pillars),
     rootedness,
     followingCandidacy: followingCandidacyOf(pillars, elements, rootedness),
+    following: followingAssessmentOf(pillars, elements, rootedness),
   };
 }
