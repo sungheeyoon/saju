@@ -113,6 +113,60 @@ test('수정은 히스토리를 쌓지 않아 뒤로가기 한 번에 빈 화면
   await expect(page).toHaveURL(/\/$/);
 });
 
+/**
+ * 궁합 화면은 한 주소에 입력 두 벌을 싣는다. 접두사가 섞이면 상대의 생일로 내
+ * 사주가 나오므로, 링크로 다시 열었을 때 두 명식이 그대로인지가 본론이다.
+ */
+test('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그대로 열린다', async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+
+  await page.goto('/compat');
+  await expect(
+    page.getByRole('heading', { name: '두 사람의 생년월일시를 입력해 주세요' }),
+  ).toBeVisible();
+
+  const first = page.getByRole('group', { name: '첫 번째 사람' });
+  const second = page.getByRole('group', { name: '두 번째 사람' });
+  await first.getByLabel('생년월일', { exact: true }).fill('1990-05-15');
+  await first.getByLabel('출생시각', { exact: true }).fill('14:30');
+  await second.getByLabel('생년월일', { exact: true }).fill('1992-08-20');
+  await second.getByLabel('출생시각', { exact: true }).fill('09:00');
+  await page.getByRole('button', { name: '궁합 보기' }).click();
+
+  await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
+
+  const shared = new URL(page.url());
+  expect(shared.searchParams.get('a.date')).toBe('1990-05-15');
+  expect(shared.searchParams.get('b.date')).toBe('1992-08-20');
+  expect(shared.searchParams.get('a.hour')).toBe('14:30');
+
+  const chart = await page.locator('main').innerText();
+
+  await page.goto(shared.toString());
+  await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
+  expect(await page.locator('main').innerText()).toBe(chart);
+  await expect(first.getByLabel('생년월일', { exact: true })).toHaveValue('1990-05-15');
+  expect(consoleErrors).toEqual([]);
+
+  // 관계 표가 넓어 가로로 흐르기 쉽다 — 표 안에서만 스크롤되어야 한다.
+  const overflow = await page.evaluate(() => ({
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
+  }));
+  expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
+});
+
+test('한 사람만 적힌 궁합 주소는 빈 폼으로 연다', async ({ page }) => {
+  // 반쪽 링크로 남의 사주가 섞여 보이면 안 된다.
+  await page.goto('/compat?a.date=1990-05-15&a.hour=14:30');
+  await expect(
+    page.getByRole('heading', { name: '두 사람의 생년월일시를 입력해 주세요' }),
+  ).toBeVisible();
+});
+
 test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44px 이상이다', async ({
   page,
 }, testInfo) => {

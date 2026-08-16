@@ -98,22 +98,42 @@ const SAEUN_MIN = 1900;
 const SAEUN_MAX = 2100;
 
 /**
+ * 접두사 — 한 주소에 입력 두 벌을 싣기 위한 것.
+ *
+ * 궁합은 두 사람을 함께 보므로 `a.date`·`b.date` 처럼 앞에 누구인지를 붙인다.
+ * 원국 한 사람짜리 화면은 접두사가 없다(`date`) — 이미 나눠 준 링크가 그대로
+ * 열려야 하기 때문이다.
+ */
+export type QueryPrefix = '' | 'a.' | 'b.';
+
+/**
  * 입력 한 벌을 주소창에 싣는다.
  *
  * **기본값이라고 빼지 않는다.** 자시 규칙 하나로 일주가 바뀌고 시간 기준으로
  * 시주가 바뀌므로, 빼고 나서 나중에 기본값을 옮기면 이미 나눠 준 링크가 조용히
  * 다른 사주를 가리키게 된다. 링크는 그때 본 것을 그대로 다시 보여줘야 한다.
  */
-export function toSearchParams(query: Query): URLSearchParams {
+export function toSearchParams(query: Query, prefix: QueryPrefix = ''): URLSearchParams {
   return new URLSearchParams({
-    date: query.date,
-    hour: query.hourUnknown ? HOUR_UNKNOWN : query.time,
-    gender: query.gender,
-    city: query.city,
-    rule: query.rule,
-    basis: query.basis,
-    saeun: String(query.saeunFrom),
+    [`${prefix}date`]: query.date,
+    [`${prefix}hour`]: query.hourUnknown ? HOUR_UNKNOWN : query.time,
+    [`${prefix}gender`]: query.gender,
+    [`${prefix}city`]: query.city,
+    [`${prefix}rule`]: query.rule,
+    [`${prefix}basis`]: query.basis,
+    [`${prefix}saeun`]: String(query.saeunFrom),
   });
+}
+
+/** 여러 벌을 한 주소에 싣는다 — 순서는 준 순서 그대로다 */
+export function mergeSearchParams(
+  ...parts: readonly URLSearchParams[]
+): URLSearchParams {
+  const merged = new URLSearchParams();
+  for (const part of parts) {
+    for (const [key, value] of part) merged.set(key, value);
+  }
+  return merged;
 }
 
 const oneOf = <T extends string>(values: readonly T[], raw: string | null, fallback: T): T =>
@@ -128,21 +148,26 @@ const oneOf = <T extends string>(values: readonly T[], raw: string | null, fallb
  * 반대로 열거값과 연도는 여기서 정상 범위로 되돌린다. 링크를 잘못 편집했다고
  * 빈 화면을 주는 것보다 무엇으로 계산했는지 화면에 그대로 보여주는 편이 낫다.
  */
-export function queryFromSearchParams(params: URLSearchParams): Query | null {
-  const date = params.get('date');
+export function queryFromSearchParams(
+  params: URLSearchParams,
+  prefix: QueryPrefix = '',
+): Query | null {
+  const at = (key: string) => params.get(`${prefix}${key}`);
+
+  const date = at('date');
   if (date === null || date === '') return null;
 
-  const hour = params.get('hour');
-  const saeun = Number(params.get('saeun'));
+  const hour = at('hour');
+  const saeun = Number(at('saeun'));
 
   return {
     date,
     time: hour === null || hour === HOUR_UNKNOWN ? '' : hour,
     hourUnknown: hour === HOUR_UNKNOWN,
-    gender: oneOf(GENDERS, params.get('gender'), DEFAULT_QUERY.gender),
-    city: oneOf(CITY_NAMES, params.get('city'), DEFAULT_QUERY.city),
-    rule: oneOf(LATE_NIGHT_RULES, params.get('rule'), DEFAULT_QUERY.rule),
-    basis: oneOf(TIME_BASES, params.get('basis'), DEFAULT_QUERY.basis),
+    gender: oneOf(GENDERS, at('gender'), DEFAULT_QUERY.gender),
+    city: oneOf(CITY_NAMES, at('city'), DEFAULT_QUERY.city),
+    rule: oneOf(LATE_NIGHT_RULES, at('rule'), DEFAULT_QUERY.rule),
+    basis: oneOf(TIME_BASES, at('basis'), DEFAULT_QUERY.basis),
     saeunFrom: Number.isInteger(saeun)
       ? Math.min(Math.max(saeun, SAEUN_MIN), SAEUN_MAX)
       : DEFAULT_QUERY.saeunFrom,

@@ -37,6 +37,9 @@ src/lib/saju/
 ```
 
 React/Next 의존성은 `app/` 에만 있다. `src/lib/saju` 는 순수 TypeScript다.
+화면은 둘이다 — `/` 는 한 사람 명식, `/compat` 은 두 사람 궁합. 입력 폼과 주소 코덱은
+같은 것을 쓴다(`app/birth-form.tsx`·`app/query.ts`). 같은 값을 넣었는데 화면마다 다른
+사주가 나오는 일을 막기 위해서다.
 
 제출한 입력은 컴포넌트가 아니라 **주소창**이 들고 있다(`app/query.ts`). 그래서 결과
 화면을 그대로 링크로 줄 수 있고 새로고침·뒤로가기에도 같은 명식이 나온다. 자시 규칙
@@ -98,7 +101,7 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 670 tests
+npm test          # 673 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 ```

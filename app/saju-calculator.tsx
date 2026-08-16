@@ -3,14 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
+import { BirthFields } from './birth-form';
 import {
   DEFAULT_QUERY,
-  TIME_BASES,
   TIME_BASIS,
   queryFromSearchParams,
   toSearchParams,
   type Query,
-  type TimeBasis,
 } from './query';
 import {
   BRANCH_INFO,
@@ -18,7 +17,6 @@ import {
   DAEUN_DIRECTION_KO,
   ELEMENTS,
   ELEMENT_KO,
-  GENDERS,
   GENDER_KO,
   HIDDEN_STEM_ROLE_KO,
   ELEMENT_ROLE_KO,
@@ -36,9 +34,6 @@ import {
   directionParticipantsOf,
   toCivil,
   zoneIntervalAt,
-  type CityName,
-  type Gender,
-  type LateNightRule,
   type PillarPosition,
   type Relation,
   type Saju,
@@ -91,14 +86,12 @@ const PALACE: Record<'year' | 'month' | 'day' | 'hour', { role: string; period: 
 };
 
 /** 전통 표기 순서 — 시주가 왼쪽, 년주가 오른쪽 */
-const PILLAR_COLUMNS = [
+export const PILLAR_COLUMNS = [
   { key: 'hour', label: '시주' },
   { key: 'day', label: '일주' },
   { key: 'month', label: '월주' },
   { key: 'year', label: '년주' },
 ] as const;
-
-const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
 
 type Result = { ok: true; saju: Saju } | { ok: false; message: string };
@@ -152,10 +145,8 @@ const koreaMonthDay = (date: Date) => {
   return `${local.month}/${local.day}`;
 };
 
-const CARD =
+export const CARD =
   'rounded-xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]';
-const FIELD =
-  'h-11 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash sm:h-10';
 
 /**
  * 제출된 입력은 주소창이 들고, 폼은 타이핑 중인 값만 들고 있다.
@@ -192,8 +183,6 @@ export function SajuCalculator() {
   const dirty =
     query !== null && (Object.keys(form) as (keyof Query)[]).some((k) => form[k] !== query[k]);
 
-  const set = <K extends keyof Query>(key: K, value: Query[K]) =>
-    setForm((current) => ({ ...current, [key]: value }));
 
   const submit = (next: Query) => {
     const params = toSearchParams(next).toString();
@@ -211,69 +200,9 @@ export function SajuCalculator() {
         }}
         className={`${CARD} flex flex-col gap-4`}
       >
-        <div className="flex flex-wrap items-end gap-3">
-          <Field label="생년월일">
-            <input
-              type="date"
-              value={form.date}
-              onChange={(e) => set('date', e.target.value)}
-              min="1900-01-01"
-              max="2100-12-31"
-              required
-              className={FIELD}
-            />
-          </Field>
+        <BirthFields value={form} onChange={setForm} idPrefix="natal" />
 
-          <Field label="출생시각">
-            <input
-              type="time"
-              value={form.time}
-              onChange={(e) => set('time', e.target.value)}
-              disabled={form.hourUnknown}
-              required={!form.hourUnknown}
-              className={`${FIELD} disabled:opacity-40`}
-            />
-          </Field>
-
-          {/* Field 안에 넣으면 label 이 중첩된다 — 옆에 나란히 둔다 */}
-          <label className="flex h-11 cursor-pointer items-center gap-2 text-sm whitespace-nowrap sm:h-10">
-            <input
-              type="checkbox"
-              checked={form.hourUnknown}
-              onChange={(e) => set('hourUnknown', e.target.checked)}
-              className="accent-accent"
-            />
-            시간 모름
-          </label>
-
-          <Field label="성별">
-            <select
-              value={form.gender}
-              onChange={(e) => set('gender', e.target.value as Gender)}
-              className={FIELD}
-            >
-              {GENDERS.map((gender) => (
-                <option key={gender} value={gender}>
-                  {GENDER_KO[gender]}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="출생지">
-            <select
-              value={form.city}
-              onChange={(e) => set('city', e.target.value as CityName)}
-              className={FIELD}
-            >
-              {CITIES.map((city) => (
-                <option key={city} value={city}>
-                  {city} ({CITY_LONGITUDES[city].toFixed(2)}°E)
-                </option>
-              ))}
-            </select>
-          </Field>
-
+        <div>
           <button
             type="submit"
             className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 sm:h-10 sm:w-auto"
@@ -281,53 +210,6 @@ export function SajuCalculator() {
             {query === null ? '사주 보기' : '결과 업데이트'}
           </button>
         </div>
-
-        <details className="border-t border-border pt-3" open={TIME_BASIS[form.basis].advanced}>
-          <summary className="flex min-h-10 cursor-pointer items-center text-sm font-medium text-secondary">
-            고급 설정
-            <span className="ml-2 text-xs font-normal text-muted">자시 · 시간 기준 · 세운 연도</span>
-          </summary>
-
-          <div className="mt-3 flex flex-wrap items-end gap-3">
-            <Field label="자시 규칙">
-              {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
-              <select
-                value={form.rule}
-                onChange={(e) => set('rule', e.target.value as LateNightRule)}
-                disabled={form.hourUnknown}
-                className={`${FIELD} disabled:opacity-40`}
-              >
-                <option value="jo">조자시 · 경계 23:00</option>
-                <option value="ya">야자시 · 경계 자정</option>
-              </select>
-            </Field>
-
-            <Field label="세운 시작">
-              <input
-                type="number"
-                value={form.saeunFrom}
-                min={1900}
-                max={2100}
-                onChange={(e) => set('saeunFrom', Number(e.target.value))}
-                className={`${FIELD} w-28`}
-              />
-            </Field>
-          </div>
-
-          <fieldset className="mt-4">
-            <legend className="text-xs uppercase tracking-wide text-muted">시간 기준</legend>
-            <div className="mt-2 flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:gap-x-5">
-              {TIME_BASES.map((basis) => (
-                <BasisRadio
-                  key={basis}
-                  basis={basis}
-                  checked={form.basis === basis}
-                  onChange={() => set('basis', basis)}
-                />
-              ))}
-            </div>
-          </fieldset>
-        </details>
 
         {dirty && (
           <p className="text-sm text-secondary">
@@ -354,43 +236,6 @@ export function SajuCalculator() {
         </p>
       )}
     </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-xs text-secondary">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-/** 시간 기준 하나를 고르는 라디오. 세 개가 한 그룹이라 조합이 생기지 않는다. */
-function BasisRadio({
-  basis,
-  checked,
-  onChange,
-}: {
-  basis: TimeBasis;
-  checked: boolean;
-  onChange: () => void;
-}) {
-  const { label, hint } = TIME_BASIS[basis];
-
-  return (
-    <label className="flex cursor-pointer items-center gap-1.5">
-      <input
-        type="radio"
-        name="time-basis"
-        value={basis}
-        checked={checked}
-        onChange={onChange}
-        className="accent-accent"
-      />
-      <span>{label}</span>
-      <span className="text-xs text-muted">{hint}</span>
-    </label>
   );
 }
 

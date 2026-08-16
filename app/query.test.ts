@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_QUERY, queryFromSearchParams, toSearchParams, type Query } from './query';
+import {
+  DEFAULT_QUERY,
+  mergeSearchParams,
+  queryFromSearchParams,
+  toSearchParams,
+  type Query,
+} from './query';
 
 const query: Query = {
   date: '1990-05-15',
@@ -74,6 +80,39 @@ describe('주소창에 실은 입력', () => {
     expect(read('date=1990-02-30&hour=25:99')).toMatchObject({
       date: '1990-02-30',
       time: '25:99',
+    });
+  });
+
+  /**
+   * 궁합은 한 주소에 입력 두 벌을 싣는다. 접두사가 서로 섞이면 상대의 생일로
+   * 내 사주가 나오므로, 한쪽만 있을 때 다른 쪽이 null 인 것까지 못박는다.
+   */
+  it('접두사를 붙이면 한 주소에 두 벌이 섞이지 않고 들어간다', () => {
+    const a: Query = { ...query, date: '1990-05-15', city: '서울' };
+    const b: Query = { ...query, date: '2000-01-02', city: '부산' };
+    const params = mergeSearchParams(toSearchParams(a, 'a.'), toSearchParams(b, 'b.'));
+
+    expect(params.get('a.date')).toBe('1990-05-15');
+    expect(params.get('b.date')).toBe('2000-01-02');
+    expect(queryFromSearchParams(params, 'a.')).toEqual(a);
+    expect(queryFromSearchParams(params, 'b.')).toEqual(b);
+    // 접두사 없는 자리는 비어 있다 — 원국 화면이 궁합 주소를 잘못 읽지 않는다.
+    expect(queryFromSearchParams(params)).toBeNull();
+  });
+
+  it('한 사람만 적힌 주소는 나머지 한 사람이 null 이다', () => {
+    const params = toSearchParams({ ...query, date: '1990-05-15' }, 'a.');
+
+    expect(queryFromSearchParams(params, 'a.')).not.toBeNull();
+    expect(queryFromSearchParams(params, 'b.')).toBeNull();
+  });
+
+  it('접두사 없는 기존 주소는 그대로 읽힌다', () => {
+    // 이미 나눠 준 링크가 깨지면 안 된다.
+    expect(read('date=1990-05-15&hour=14:30&gender=male')).toMatchObject({
+      date: '1990-05-15',
+      time: '14:30',
+      gender: 'male',
     });
   });
 });

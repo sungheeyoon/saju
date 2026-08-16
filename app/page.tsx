@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Suspense } from 'react';
 
 import { SajuCalculator } from './saju-calculator';
@@ -11,6 +12,11 @@ export default function Home() {
           생년월일시로 사주 8자를 도출합니다. 표준자오선 이력과 서머타임은 실제 기록대로
           자동 보정하고, 시간 기준(출생기록 시각·지방평균태양시·진태양시)만 골라 쓰도록
           했습니다. 적용한 규칙과 경계 케이스를 함께 표시합니다.
+        </p>
+        <p className="text-sm">
+          <Link href="/compat" className="text-accent underline underline-offset-2">
+            두 사람 궁합 보기
+          </Link>
         </p>
       </header>
 
