@@ -32,8 +32,8 @@ import type { Strength, StrengthInput } from './strength';
  *   조건 자체가 갈린다. 억부용신과 정반대 답을 내므로 조건을 확정하기 전에
  *   섞으면 안 된다.
  *
- * 억부는 다르다. 신강·신약과 세력 분포에서 규칙으로 나오고, 그 규칙이 고전에
- * 일관된다. 그래서 이것만 먼저 낸다.
+ * 억부는 이 프로젝트가 채택한 신강·신약과 세력 분포에서 규칙으로 나온다.
+ * 다만 외부 사례와도 추천 오행이 갈리므로 이것만 시험 후보로 먼저 낸다.
  *
  * **그렇다고 억부 하나로 용신이 확정되지는 않는다.** 아래 규칙은 방향을
  * 설명하는 입문 수준이고, 월령의 실제 세력 차이·투간과 통근의 질·합충으로
@@ -131,7 +131,7 @@ export function elementRolesOf(dayMasterElement: Element): Record<ElementRole, E
  * 채택한 규칙. `STRENGTH_POLICY` 와 짝이다 — 골든 스냅샷이 함께 찍는다.
  */
 export const YONGSIN_POLICY = {
-  ruleSet: 'eokbu-with-johu-reference-v2',
+  ruleSet: 'eokbu-with-johu-reference-v3',
   /** 확정값이 아니라 시험값으로 낸다 */
   status: 'experimental',
   /** 억부는 시험 판정, 조후는 원문 참고표로 함께 낸다 */
@@ -140,8 +140,8 @@ export const YONGSIN_POLICY = {
   unfavorable: 'not-judged',
   /** 조후 조건은 자동 판정하지 않는다 */
   johu: 'qiongtong-baojian-120-reference',
-  /** 종격 판정을 하지 않으므로 극단적으로 치우친 사주도 억부로 답한다 */
-  followingPattern: 'not-judged',
+  /** 조건과 갈림은 문서화했지만 판정 계통을 아직 채택하지 않았다 */
+  followingPattern: 'documented-not-judged',
 } as const;
 
 type YongsinInput = StrengthInput & DistributionInput;

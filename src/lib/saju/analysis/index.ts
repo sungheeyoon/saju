@@ -6,10 +6,12 @@ import { eokbuAssessmentOf, type EokbuAssessment } from './yongsin';
 import { tenGodChartOf, tenGodCountsOf, type TenGod, type TenGodChart } from './tenGods';
 
 export * from './fiveElements';
+export * from './followingPatterns';
 export * from './johu';
 export * from './strength';
 export * from './yongsin';
 export * from './tenGods';
+export * from './validation/eokbuExternalCases';
 
 /**
  * 4주에서 해석의 재료를 뽑는다 — 오행 분포·십성·신강신약.

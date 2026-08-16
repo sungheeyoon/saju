@@ -94,12 +94,12 @@
         기신도 내지 않는다 — 오행 상극표 한 줄로 정해지는 것이 아니다.
         세력비에 태약·중화·태왕 같은 등급 이름도 붙이지 않는다(경계 출처 없음).
 
-          ruleSet                eokbu-with-johu-reference-v2
+          ruleSet                eokbu-with-johu-reference-v3
           status                 experimental
           methods                eokbu-and-johu-reference
           unfavorable            not-judged
           johu                   qiongtong-baojian-120-reference
-          followingPattern       not-judged
+          followingPattern       documented-not-judged
           johu.ruleSet           qiongtong-baojian-120-v1
           johu.status            reference
           johu.basis             day-master-and-month-branch

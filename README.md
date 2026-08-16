@@ -90,7 +90,7 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 579 tests
+npm test          # 584 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 ```
@@ -103,6 +103,14 @@ npm run verify    # test + typecheck + lint + production build
 - **자체 검증** — 절기 반환 시각에서 태양 황경을 되짚어 목표와 대조 (오차 1e-4° 이내)
 - **조후 120조합** — [《궁통보감》 원문](https://zh.wikisource.org/wiki/%E7%A9%B7%E9%80%9A%E5%AE%9D%E9%89%B4)과
   [일간×월지 정리표](https://www.douban.com/note/204554812/)를 대조하고 열 일간×열두 월지를 전수 고정
+- **억부 외부 대조** — 서로 다른 두 출처의 명조 5건을 옮겨 출처 주장과 현재 엔진의
+  일치·불일치를 함께 회귀 고정한다. 외부 글의 십성 오기는 오행 주장과 분리해 정답으로
+  승격하지 않는다. 그중 3건은 월간이 연간과, 시간이 일간과 어긋나 **실재할 수 없는
+  명조**라(오호둔·오자둔을 다시 세어 테스트로 표시) 채점에서 뺀다. 실재 가능한 2건은
+  강약이 모두 일치하고 추천 오행은 1건만 일치한다 — 이 규모로는 검증이라 할 수 없어
+  억부는 실험 상태를 유지한다
+- **종격 도입 정책** — [엄격한 원문과 후대의 확장·가종을 분리해 문서화](docs/analysis/following-patterns.md)했고,
+  계통과 경계 조건을 채택하기 전에는 억부 후보를 뒤집지 않는다
 - **신살 채택 계통** — 관귀학관은 [《삼명통회》 학당사관](https://xiaozhiliaoo.github.io/reading-note/guoxue/materials/zhcscs/zha11j.pdf),
   현침은 [《오행정기》의 다섯 글자·3자 이상](https://www.suanzhun.net/book/2676.html),
   태극귀인은 [《연해자평》의 년간 기준](https://www.luckclub.cn/bazi/001/026/)을 따른다.
@@ -119,8 +127,11 @@ npm run verify    # test + typecheck + lint + production build
 
 - 국내 출생만 지원한다 (`Asia/Seoul` 표준시 이력, 주요 도시 10곳 경도)
 - 1908년 이전은 tzdata 의 지방평균시로 처리되며 실용 범위 밖이다
-- 억부용신은 시험 후보만 내고, 조후용신은 《궁통보감》 120칸의 후보 천간과
-  조건 요약을 참고값으로 낸다. 종격·격국 및 조후의 원국별 조건 판정은 아직 하지 않는다
+- 억부용신은 외부 2개 출처를 대조했지만 실재 가능한 사례가 2건뿐이라 여전히
+  시험 후보만 낸다. 조후용신은
+  《궁통보감》 120칸의 후보 천간과 조건 요약을 참고값으로 낸다
+- 종격은 계통별 조건과 도입 문턱만 문서화했다. 지장간의 생부 인정 범위·가종 문턱 등
+  정책을 채택하기 전에는 자동 판정하지 않는다. 격국과 조후의 원국별 조건 판정도 아직 하지 않는다
 
 ## 스택
 
