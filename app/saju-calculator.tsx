@@ -1418,9 +1418,10 @@ function StrengthMeter({ saju }: { saju: Saju }) {
           잡는 네 길 중 하나일 뿐이고, 아직 판정하지 않은 것이 남아 있습니다 —{' '}
           {eokbu.unresolved.map((factor) => UNRESOLVED_FACTOR_KO[factor]).join(', ')}.
           이 가운데 통근·투출은 <strong className="font-medium">사실만 위에 적어 두었고</strong>,
-          그것이 쓸 만한 뿌리인지를 재는 판정만 아직 없습니다. 종격도 조건과 도입 문턱을
-          문서로 정해 두었을 뿐 판정하지 않습니다 — 계통을 고르는 순간 억부와 정반대
-          답이 나오기 때문입니다. 위 조후표도 조건을 전부 자동 판정하지 않은 참고값입니다.
+          그것이 쓸 만한 뿌리인지를 재는 판정만 아직 없습니다. 종격도 조건이 되는 사실은
+          위에 적어 두었고, 어디서 선을 긋느냐만 정하지 않았습니다 — 계통을 고르는 순간
+          억부와 정반대 답이 나오기 때문입니다. 위 조후표도 조건을 전부 자동 판정하지
+          않은 참고값입니다.
           꺼리는 오행(기신)도 내지 않습니다 — 오행 상극표 한 줄로 정해지는 것이
           아니기 때문입니다.
         </p>
@@ -1485,6 +1486,55 @@ function RootingNote({ saju }: { saju: Saju }) {
         뿌리의 강약은 매기지 않습니다. 음양이 다른 뿌리(甲이 卯의 乙에 두는 것)와
         고지(辰戌丑未)의 중기도 거르지 않고 그대로 셉니다 — 어디까지 통근으로 볼지가
         계통마다 갈리기 때문입니다. 합충으로 뿌리가 상했는지도 보지 않습니다.
+      </p>
+
+      <FollowingCandidacyNote saju={saju} />
+    </div>
+  );
+}
+
+/**
+ * 종격 후보의 조건 — 판정이 아니라 재료다.
+ *
+ * "종격 여부를 아직 판정하지 않는다"고만 적어 두면 무엇이 막혔는지 알 수 없다.
+ * 어느 계통이든 종을 말하려면 먼저 보는 넷을 그대로 보여주고, 여기에 어디서
+ * 선을 긋느냐가 계통 선택이라는 것까지 적는다.
+ */
+function FollowingCandidacyNote({ saju }: { saju: Saju }) {
+  const { followingCandidacy: candidacy } = saju.analysis;
+  const percent = (ratio: number) => `${(ratio * 100).toFixed(1)}%`;
+
+  return (
+    <div className="mt-3 border-t border-border pt-3">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+          사실
+        </span>
+        <span className="text-xs text-muted">종격 후보 조건</span>
+        <span className="text-sm">
+          일간 {candidacy.dayMasterRootless ? '무근' : '유근'}
+          <span className="mx-1.5 text-muted">·</span>
+          가장 무거운 세력 {ELEMENT_ROLE_KO[candidacy.dominant.role]}{' '}
+          <span className="tabular-nums">{percent(candidacy.dominant.ratio)}</span>
+          <span className="mx-1.5 text-muted">·</span>
+          월령 {candidacy.monthCommandsDominant ? '그 세력이 잡음' : '다른 세력'}
+          <span className="mx-1.5 text-muted">·</span>
+          투간한 생부{' '}
+          {candidacy.supportStems.length === 0 ? (
+            '없음'
+          ) : (
+            <span className="glyph">
+              {candidacy.supportStems.map((support) => support.stem).join(' ')}
+            </span>
+          )}
+        </span>
+      </div>
+
+      <p className="mt-2 text-xs text-muted">
+        종격을 판정하지 않습니다. 어느 계통이든 이 넷을 먼저 보지만,{' '}
+        <strong className="font-medium">여기에 어디서 선을 긋느냐</strong>가 계통 선택입니다
+        — 무근의 기준, 왕성하다고 할 비중, 월령이 필수인지, 생부를 몇 자까지 봐주는지가
+        모두 갈립니다. 문턱을 채택하면 이 값들 위에서 바로 나옵니다.
       </p>
     </div>
   );

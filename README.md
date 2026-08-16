@@ -101,7 +101,7 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 701 tests
+npm test          # 707 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 ```
@@ -121,7 +121,10 @@ npm run verify    # test + typecheck + lint + production build
   강약이 모두 일치하고 추천 오행은 1건만 일치한다 — 이 규모로는 검증이라 할 수 없어
   억부는 실험 상태를 유지한다
 - **종격 도입 정책** — [엄격한 원문과 후대의 확장·가종을 분리해 문서화](docs/analysis/following-patterns.md)했고,
-  계통과 경계 조건을 채택하기 전에는 억부 후보를 뒤집지 않는다
+  계통과 경계 조건을 채택하기 전에는 억부 후보를 뒤집지 않는다. 다만 **조건이 되는
+  사실은 낸다**(`followingCandidacyOf`) — 일간이 무근인가, 어느 세력이 몇 %인가, 월령을
+  그 세력이 잡았는가, 생부가 몇 자 투간했는가. 계통마다 갈리는 것은 여기에 어디서
+  선을 긋느냐지 이 값들이 아니다
 - **통근·투출은 사실만 낸다**(`analysis/rootedness.ts`) — 억부·종격·격국이 모두 먹고
   들어가는 재료다. 음양이 다른 뿌리(甲이 卯의 乙에 두는 것)와 고지의 중기를 거르지 않고
   `kind`·`role`·`days` 로 구분해 남긴다. 어디까지 통근으로 볼지가 계통 갈림이라 거르는

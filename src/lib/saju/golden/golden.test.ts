@@ -129,7 +129,7 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     lines.push(`  ${nature}   ${star.ko.padEnd(6)} ${where}${basis}`);
   }
 
-  const { strength, eokbu, johu, rootedness } = saju.analysis;
+  const { strength, eokbu, johu, rootedness, followingCandidacy } = saju.analysis;
   const { dayMaster: rooting } = rootedness;
   lines.push(
     `  강약   ${strength.verdict} · 보조세력 ${(strength.ratio * 100).toFixed(1)}%` +
@@ -145,6 +145,12 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
             .map((root) => `${root.branch}${root.stem}${root.days}일`)
             .join(' ')} · 합 ${rooting.totalDays}일`
         : '무근'),
+    // 종격 후보의 조건 — 판정이 아니라 사실이라 값이 흔들리면 여기서 보인다.
+    `  종후보  ${followingCandidacy.dayMasterRootless ? '무근' : '유근'}` +
+      ` · ${ELEMENT_ROLE_KO[followingCandidacy.dominant.role]}` +
+      ` ${(followingCandidacy.dominant.ratio * 100).toFixed(1)}%` +
+      ` · 월령 ${followingCandidacy.monthCommandsDominant ? '장악' : '아님'}` +
+      ` · 투간 생부 ${followingCandidacy.supportStems.map((s) => s.stem).join('') || '없음'}`,
   );
 
   // 세운은 골든 케이스마다 출생년부터 세 해만 찍는다 — 열 해를 다 찍으면

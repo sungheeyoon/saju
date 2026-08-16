@@ -1,5 +1,6 @@
 import type { Pillars } from '../pillars';
 import { elementDistributionOf, type ElementDistribution, type ElementWeights } from './fiveElements';
+import { followingCandidacyOf, type FollowingCandidacy } from './followingPatterns';
 import { johuAssessmentOf, type JohuAssessment } from './johu';
 import { rootednessOf, type Rootedness } from './rootedness';
 import { strengthOf, type Strength, type StrengthOptions } from './strength';
@@ -42,6 +43,13 @@ export type Analysis = {
    * 사실만 낸다. "이 뿌리는 쓸 만한가"는 판정이라 여기 없다.
    */
   rootedness: Rootedness;
+  /**
+   * 종격 후보의 조건이 되는 사실 — **판정이 아니다.**
+   *
+   * 문턱을 고르지 않고도 셀 수 있는 것들만 낸다. 어디서 선을 긋는지가 계통
+   * 선택이고 그것은 아직 하지 않았다(`FOLLOWING_PATTERN_POLICY`).
+   */
+  followingCandidacy: FollowingCandidacy;
 };
 
 export type AnalysisOptions = {
@@ -55,15 +63,18 @@ export function analyzePillars(
 ): Analysis {
   const tenGods = tenGodChartOf(pillars);
   const strength = strengthOf(pillars, { ...options.strength, weights: options.weights });
+  const elements = elementDistributionOf(pillars, options.weights);
+  const rootedness = rootednessOf(pillars);
 
   return {
-    elements: elementDistributionOf(pillars, options.weights),
+    elements,
     tenGods,
     tenGodCounts: tenGodCountsOf(tenGods),
     // 오행 분포와 같은 가중치를 써야 두 결과가 어긋나지 않는다.
     strength,
     eokbu: eokbuAssessmentOf(pillars, strength, options.weights),
     johu: johuAssessmentOf(pillars),
-    rootedness: rootednessOf(pillars),
+    rootedness,
+    followingCandidacy: followingCandidacyOf(pillars, elements, rootedness),
   };
 }
