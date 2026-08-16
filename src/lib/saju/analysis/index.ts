@@ -1,6 +1,7 @@
 import type { Pillars } from '../pillars';
 import { elementDistributionOf, type ElementDistribution, type ElementWeights } from './fiveElements';
 import { johuAssessmentOf, type JohuAssessment } from './johu';
+import { rootednessOf, type Rootedness } from './rootedness';
 import { strengthOf, type Strength, type StrengthOptions } from './strength';
 import { eokbuAssessmentOf, type EokbuAssessment } from './yongsin';
 import { tenGodChartOf, tenGodCountsOf, type TenGod, type TenGodChart } from './tenGods';
@@ -8,6 +9,7 @@ import { tenGodChartOf, tenGodCountsOf, type TenGod, type TenGodChart } from './
 export * from './fiveElements';
 export * from './followingPatterns';
 export * from './johu';
+export * from './rootedness';
 export * from './strength';
 export * from './yongsin';
 export * from './tenGods';
@@ -34,6 +36,12 @@ export type Analysis = {
   eokbu: EokbuAssessment;
   /** 《궁통보감》 일간×월지 조후 후보. 원국 조건 판정 전의 참고표다 */
   johu: JohuAssessment;
+  /**
+   * 통근·투출 — 억부·종격·격국이 먹고 들어가는 재료다.
+   *
+   * 사실만 낸다. "이 뿌리는 쓸 만한가"는 판정이라 여기 없다.
+   */
+  rootedness: Rootedness;
 };
 
 export type AnalysisOptions = {
@@ -56,5 +64,6 @@ export function analyzePillars(
     strength,
     eokbu: eokbuAssessmentOf(pillars, strength, options.weights),
     johu: johuAssessmentOf(pillars),
+    rootedness: rootednessOf(pillars),
   };
 }

@@ -20,6 +20,7 @@ import {
   ELEMENT_KO,
   GENDERS,
   GENDER_KO,
+  HIDDEN_STEM_ROLE_KO,
   ELEMENT_ROLE_KO,
   EMPTINESS_BASIS_KO,
   UNRESOLVED_FACTOR_KO,
@@ -1531,6 +1532,8 @@ function StrengthMeter({ saju }: { saju: Saju }) {
         ))}
       </ul>
 
+      <RootingNote saju={saju} />
+
       <div className="mt-4 border-t border-border pt-3">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
@@ -1567,12 +1570,76 @@ function StrengthMeter({ saju }: { saju: Saju }) {
           <strong className="font-medium">용신 확정값이 아닙니다.</strong> 억부는 용신을
           잡는 네 길 중 하나일 뿐이고, 아직 판정하지 않은 것이 남아 있습니다 —{' '}
           {eokbu.unresolved.map((factor) => UNRESOLVED_FACTOR_KO[factor]).join(', ')}.
-          위 조후표도 조건을 전부 자동 판정하지 않은 참고값입니다.
+          이 가운데 통근·투출은 <strong className="font-medium">사실만 위에 적어 두었고</strong>,
+          그것이 쓸 만한 뿌리인지를 재는 판정만 아직 없습니다. 종격도 조건과 도입 문턱을
+          문서로 정해 두었을 뿐 판정하지 않습니다 — 계통을 고르는 순간 억부와 정반대
+          답이 나오기 때문입니다. 위 조후표도 조건을 전부 자동 판정하지 않은 참고값입니다.
           꺼리는 오행(기신)도 내지 않습니다 — 오행 상극표 한 줄로 정해지는 것이
           아니기 때문입니다.
         </p>
       </div>
     </section>
+  );
+}
+
+/**
+ * 통근·투출 — 판정이 아니라 그 재료다.
+ *
+ * 억부가 "아직 판정하지 않았다"고 적는 것들(종격 여부·투간과 통근의 질)이
+ * 모두 이 두 사실 위에서 갈린다. 판정을 못 하더라도 재료는 보여줄 수 있고,
+ * 보여주면 왜 판정을 미뤘는지도 눈에 보인다.
+ *
+ * 뿌리의 강약은 매기지 않는다. 어느 자리의 어느 지장간에 며칠치인지까지가
+ * 사실이고, "이 정도면 통근으로 친다"는 선이 계통마다 다르다.
+ */
+function RootingNote({ saju }: { saju: Saju }) {
+  const { dayMaster, emergences } = saju.analysis.rootedness;
+  const seat = (position: PillarPosition) => PILLAR_POSITION_KO[position].charAt(0);
+
+  return (
+    <div className="mt-4 border-t border-border pt-3">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+          사실
+        </span>
+        <span className="text-xs text-muted">일간 {dayMaster.stem} 의 뿌리</span>
+        {dayMaster.rooted ? (
+          <>
+            <span className="text-sm text-secondary">
+              {dayMaster.roots
+                .map(
+                  (root) =>
+                    `${seat(root.position)}지 ${root.branch}의 ${root.stem}` +
+                    `(${HIDDEN_STEM_ROLE_KO[root.role]} ${root.days}일)`,
+                )
+                .join(' · ')}
+            </span>
+            <span className="text-sm font-medium tabular-nums">합 {dayMaster.totalDays}일</span>
+          </>
+        ) : (
+          <span className="text-sm font-medium">없음 — 지지 어디에도 통근하지 않았습니다</span>
+        )}
+      </div>
+
+      {emergences.length > 0 && (
+        <p className="mt-1.5 text-xs text-secondary">
+          투출{' '}
+          {emergences
+            .map(
+              (emergence) =>
+                `${seat(emergence.position)}지 ${emergence.branch}의 ${emergence.stem} → ` +
+                emergence.revealedAt.map((position) => `${seat(position)}간`).join('·'),
+            )
+            .join(' / ')}
+        </p>
+      )}
+
+      <p className="mt-2 text-xs text-muted">
+        뿌리의 강약은 매기지 않습니다. 음양이 다른 뿌리(甲이 卯의 乙에 두는 것)와
+        고지(辰戌丑未)의 중기도 거르지 않고 그대로 셉니다 — 어디까지 통근으로 볼지가
+        계통마다 갈리기 때문입니다. 합충으로 뿌리가 상했는지도 보지 않습니다.
+      </p>
+    </div>
   );
 }
 

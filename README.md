@@ -98,7 +98,7 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 657 tests
+npm test          # 670 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 ```
@@ -119,6 +119,10 @@ npm run verify    # test + typecheck + lint + production build
   억부는 실험 상태를 유지한다
 - **종격 도입 정책** — [엄격한 원문과 후대의 확장·가종을 분리해 문서화](docs/analysis/following-patterns.md)했고,
   계통과 경계 조건을 채택하기 전에는 억부 후보를 뒤집지 않는다
+- **통근·투출은 사실만 낸다**(`analysis/rootedness.ts`) — 억부·종격·격국이 모두 먹고
+  들어가는 재료다. 음양이 다른 뿌리(甲이 卯의 乙에 두는 것)와 고지의 중기를 거르지 않고
+  `kind`·`role`·`days` 로 구분해 남긴다. 어디까지 통근으로 볼지가 계통 갈림이라 거르는
+  쪽을 기본값으로 삼으면 좁게 읽는 쪽이 되살릴 수 없다. 뿌리의 강약은 매기지 않는다
 - **궁합은 점수를 내지 않는다**(`COMPAT_POLICY.scoring: 'not-scored'`) — 맞춰볼 외부
   정답이 없다. 두 원국 사이에 무엇이 어떻게 걸렸는지만 내고, 각자의 원국 안에서 닫힌
   관계는 뺀다. 계산판이 다르므로 거리·인접은 언제나 `null` 이라 자리로 말한다

@@ -78,7 +78,12 @@ export const STRENGTH_POLICY = {
   criteria: 'season-branch-overall',
   /** 세력비를 구간으로 끊어 등급(태약·중화·태왕)을 붙이지 않는다 */
   gradeBands: 'none',
-  /** 아직 세지 않는 것 — 지장간의 천간 투출, 합충으로 인한 뿌리 변화 */
+  /**
+   * 아직 **점수에 세지 않는** 것 — 지장간의 천간 투출, 합충으로 인한 뿌리 변화.
+   *
+   * 투출과 통근의 사실 자체는 `Analysis.rootedness` 에 있다. 여기서 안 센다는
+   * 뜻은 강약 점수에 가중치로 넣지 않았다는 것이지, 모른다는 뜻이 아니다.
+   */
   unaccounted: 'stem-emergence, combination-clash-effects',
 } as const;
 
