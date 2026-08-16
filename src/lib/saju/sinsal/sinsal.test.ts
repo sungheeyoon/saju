@@ -11,6 +11,7 @@ import {
   type Stem,
 } from '@/src/lib/saju/constants';
 import { PILLAR_POSITIONS } from '@/src/lib/saju/position';
+import { findRelations } from '@/src/lib/saju/relations';
 import { STEM_PROSPERITY } from '@/src/lib/saju/stages';
 import {
   BAEKHO_PILLARS,
@@ -396,10 +397,13 @@ describe('원국에서 신살 찾기', () => {
     // 월주 丁丑은 그 자체로 백호다.
     // 일지 子(申子辰) 기준으로 시지 寅이 역마라 그것도 함께 나온다.
     // 일간 甲 → 홍염 午, 년지가 午다. 암록 亥는 없어서 안 나온다.
+    // 년지 午 · 월지 丑이 축오라 귀문·원진이 둘 다 걸린다(관계 표에서 옮겨 온 값).
     const stars = findStars(chart('庚午', '丁丑', '甲子', '丙寅'));
 
     expect(stars.map((s) => s.kind)).toEqual([
       'yeokma',
+      'gwimun',
+      'wonjin',
       'cheoneulGwiin',
       'cheondeokGwiin',
       'woldeokGwiin',
@@ -448,6 +452,39 @@ describe('원국에서 신살 찾기', () => {
           // 걸린 자리가 없으면 항목 자체가 나오지 않는다 — 다른 신살과 같은 규칙이다.
           if (expected.length === 0) expect(star).toBeUndefined();
         }
+      }
+    }
+  });
+
+  /**
+   * 귀문·원진도 신살 목록에 적히지만 규칙은 관계 표 하나뿐이다. 옮겨 담기만
+   * 하므로 두 카드의 값이 갈라질 수 없어야 한다 — 갈라지면 같은 사주에
+   * 귀문이 있다고도 없다고도 적히게 된다.
+   */
+  it('귀문·원진은 관계 표와 언제나 같은 자리를 가리킨다', () => {
+    const restated = [
+      ['gwimun', 'branchGhostGate'],
+      ['wonjin', 'branchResentment'],
+    ] as const;
+
+    for (const { name: day } of SEXAGENARY) {
+      const input = chart('庚午', '丁丑', day, '丙寅');
+      const stars = findStars(input);
+      const relations = findRelations(input);
+
+      for (const [kind, relationKind] of restated) {
+        const expected = PILLAR_POSITIONS.filter((position) =>
+          relations.some(
+            (relation) =>
+              relation.kind === relationKind &&
+              relation.participants.some((participant) => participant.position === position),
+          ),
+        );
+        const star = starOf(stars, kind);
+
+        expect(star?.hits.map((hit) => hit.position) ?? [], `${day} ${kind}`).toEqual(expected);
+        // 걸린 자리가 없으면 항목 자체가 나오지 않는다 — 다른 신살과 같은 규칙이다.
+        if (expected.length === 0) expect(star).toBeUndefined();
       }
     }
   });
@@ -518,7 +555,7 @@ describe('묶음과 정책', () => {
 
   it('채택한 규칙 묶음을 결과 곁에 남긴다', () => {
     expect(SINSAL_POLICY).toEqual({
-      ruleSet: 'sourced-sinsal-v3',
+      ruleSet: 'sourced-sinsal-v4',
       stemBasis: 'day-master',
       hakdang: 'from-twelve-stages',
       amrok: 'six-combination-of-prosperity',
@@ -531,6 +568,7 @@ describe('묶음과 정책', () => {
       emptinessBasis: 'day-and-year',
       spiritBasis: 'year-and-day',
       travelPeachCanopy: 'restated-from-twelve-spirits',
+      ghostGateResentment: 'restated-from-relations',
       yangin: 'yang-stems-only',
       goegang: 'classic-four',
       pillarStarScope: 'all-pillars',

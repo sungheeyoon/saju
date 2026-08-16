@@ -6,10 +6,12 @@ import {
   STEM_INFO,
   type Branch,
   type Pillar,
+  type RelationKind,
   type Stem,
 } from '../constants';
 import type { Pillars } from '../pillars';
 import { PILLAR_POSITIONS, type PillarPosition } from '../position';
+import { findRelations, type Relation } from '../relations';
 import { STEM_PROSPERITY, twelveStageBranchesOf } from '../stages';
 import {
   SPIRIT_BASIS_KO,
@@ -29,6 +31,9 @@ import {
  * 자료마다 갈리는 관귀학관·현침살·천문성·태극귀인은 고전 근거가 있는 한
  * 계통으로 좁혀 넣는다. 현대식 확장표와 섞지 않고 `SINSAL_POLICY`에 선택을
  * 명시한다.
+ *
+ * **귀문관살·원진살도 여기에 함께 적되 규칙은 관계 쪽 하나뿐이다.** 둘 다 두
+ * 지지의 쌍이라 계산은 `relations/` 에 있고, 여기서는 걸린 자리만 옮겨 담는다.
  *
  * **역마·도화(연살)·화개는 여기에 함께 적되 규칙을 새로 두지 않는다.** 셋 다
  * 다른 만세력이 신살 자리에 적어 주므로 여기 없으면 빠진 것처럼 보인다. 다만
@@ -65,7 +70,9 @@ export type StarKind =
   | 'taegeukGwiin'
   | 'yeokma'
   | 'dohwa'
-  | 'hwagae';
+  | 'hwagae'
+  | 'gwimun'
+  | 'wonjin';
 
 /** 전통적 분류. 천문처럼 길흉 어느 한쪽으로 놓기 어려운 별은 중립이다 */
 export type StarNature = 'auspicious' | 'inauspicious' | 'neutral';
@@ -116,7 +123,7 @@ export const DEFAULT_YIN_YANGIN = false;
  * 정책이 바뀌면 골든 스냅샷 맨 위에서 먼저 드러난다.
  */
 export const SINSAL_POLICY = {
-  ruleSet: 'sourced-sinsal-v3',
+  ruleSet: 'sourced-sinsal-v4',
   /** 천을·문창·금여·양인은 일간 기준 (년간 기준 계통은 채택하지 않는다) */
   stemBasis: 'day-master',
   /** 공망은 일주·년주 기준을 모두 낸다 */
@@ -125,6 +132,8 @@ export const SINSAL_POLICY = {
   spiritBasis: 'year-and-day',
   /** 역마·도화·화개는 신살 목록에도 적되 값은 12신살에서 옮겨 담는다 */
   travelPeachCanopy: 'restated-from-twelve-spirits',
+  /** 귀문·원진도 신살 목록에 적되 값은 관계 표에서 옮겨 담는다 */
+  ghostGateResentment: 'restated-from-relations',
   /** 양인은 양간만 */
   yangin: 'yang-stems-only',
   /** 괴강은 좁은 넷 — 壬辰·庚辰·庚戌·戊戌 */
@@ -387,6 +396,28 @@ const RESTATED_SPIRITS = [
   { kind: 'hwagae', spirit: '華蓋殺' },
 ] as const satisfies readonly { kind: StarKind; spirit: TwelveSpirit }[];
 
+/**
+ * 관계 표에서 신살 목록으로 옮겨 담는 둘 — 귀문관살·원진살.
+ *
+ * 둘 다 두 지지의 **쌍**이라 계산은 관계 쪽(`relations/`)에 있다. 다만 다른
+ * 만세력이 신살 자리에 적어 주므로 신살 표만 보는 사람에게는 빠진 것처럼
+ * 보인다. 그래서 여기에도 적되 값은 `findRelations` 가 낸 것을 옮기기만 한다 —
+ * 표를 두 곳에 두면 언젠가 어긋나고 어긋난 쪽을 알 수 없다.
+ *
+ * 신살 표는 자리별 표라 쌍의 상대나 거리를 담지 못한다. 어느 글자와 어느
+ * 글자가 걸렸는지는 관계 표가 그대로 들고 있고, 여기서는 **걸린 자리만**
+ * 적는다. 卯申이 두 쌍이면 자리는 월·일·시 셋이 되고 항목은 하나다.
+ */
+const RESTATED_RELATIONS = [
+  { kind: 'gwimun', relation: 'branchGhostGate', ko: '귀문관살', hanja: '鬼門關殺' },
+  { kind: 'wonjin', relation: 'branchResentment', ko: '원진살', hanja: '怨嗔殺' },
+] as const satisfies readonly {
+  kind: StarKind;
+  relation: RelationKind;
+  ko: string;
+  hanja: string;
+}[];
+
 type StarInput = Pick<Pillars, 'year' | 'month' | 'day' | 'hour' | 'dayMaster'>;
 
 function eachPillar(
@@ -469,6 +500,39 @@ function restatedSpiritStars(pillars: StarInput, charts: readonly SpiritChart[])
 }
 
 /**
+ * 관계 표의 귀문·원진을 신살 항목으로 옮긴다.
+ *
+ * 값을 만들지 않고 `findRelations` 의 결과를 읽기만 한다. 자리는 관계에 참여한
+ * 기둥 그대로이고, 같은 자리가 두 쌍에 걸리면 한 번만 적는다.
+ *
+ * 길흉은 전통적 분류를 따라 흉신에 둔다 — 고신·과숙·백호와 같은 기준이다.
+ * 관계 표가 길흉을 말하지 않는 것은 "합이 성사되는가"를 판정하지 않는다는
+ * 뜻이지, 전통이 이 살을 어디로 분류했는지를 감추자는 뜻이 아니다.
+ */
+function restatedRelationStars(pillars: StarInput, relations: readonly Relation[]): Star[] {
+  return RESTATED_RELATIONS.map(({ kind, relation, ko, hanja }): Star => {
+    const positions = new Set(
+      relations
+        .filter((found) => found.kind === relation)
+        .flatMap((found) => found.participants.map((participant) => participant.position)),
+    );
+
+    return {
+      id: kind,
+      kind,
+      ko,
+      hanja,
+      nature: 'inauspicious',
+      // 두 글자가 서로를 성립시키므로 기준 글자가 따로 없다 — 괴강·백호와 같다.
+      basis: null,
+      hits: eachPillar(pillars, (pillar, position) =>
+        positions.has(position) ? { position, target: 'branch', char: pillar.branch } : null,
+      ),
+    };
+  });
+}
+
+/**
  * 원국에서 성립하는 신살을 찾는다.
  *
  * 하나도 걸리지 않은 신살은 결과에 넣지 않는다 — 관계 연산과 같은 규칙이다.
@@ -492,6 +556,7 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
 
   const candidates: Star[] = [
     ...restatedSpiritStars(pillars, findTwelveSpirits(pillars)),
+    ...restatedRelationStars(pillars, findRelations(pillars)),
     {
       id: 'cheoneulGwiin',
       kind: 'cheoneulGwiin',
