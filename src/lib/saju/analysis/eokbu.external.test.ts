@@ -59,10 +59,21 @@ describe('억부용신 외부 대조 데이터셋', () => {
       );
     }
 
-    // 실재 가능한 사례가 둘뿐이라는 것이 이 데이터셋의 실제 크기다.
+    // 실재 가능한 사례의 수가 이 데이터셋의 실제 크기다 — 셋은 지어낸 조합이라 빠진다.
     expect(
       EOKBU_EXTERNAL_CASES.filter((c) => c.chartConstruction === 'consistent').map((c) => c.id),
-    ).toEqual(['8ja-145-weak-muto', '8ja-146-wealth-heavy-byeonghwa']);
+    ).toEqual([
+      '8ja-145-weak-muto',
+      '8ja-146-wealth-heavy-byeonghwa',
+      '8ja-136-wealth-heavy-gapmok',
+      '8ja-149-stagnant-muto',
+      '8ja-157-drain-muto',
+      '8ja-160-weak-jeonghwa',
+    ]);
+    // 실재 불가능한 셋은 전부 같은 출처다.
+    expect(
+      EOKBU_EXTERNAL_CASES.filter((c) => c.chartConstruction === 'unrealizable').map((c) => c.id),
+    ).toEqual(['tasko-strong-gapja', 'tasko-weak-byeonghwa', 'tasko-borderline-muto']);
   });
 
   it('출처 주장과 현재 엔진의 일치·불일치 행렬을 회귀 고정한다', () => {
@@ -76,7 +87,8 @@ describe('억부용신 외부 대조 데이터셋', () => {
         sourceStrength: testCase.claim.strength,
         engineStrength: strength.verdict,
         strengthAgrees:
-          testCase.claim.strength === 'borderline'
+          // 중강·미명시는 이 엔진의 strong/weak 이분 판정과 맞댈 값이 아니다.
+          testCase.claim.strength === 'borderline' || testCase.claim.strength === 'unstated'
             ? null
             : strength.verdict === testCase.claim.strength,
         sourceElement: testCase.claim.suggestedElement,
@@ -149,18 +161,72 @@ describe('억부용신 외부 대조 데이터셋', () => {
         engineRole: '比劫',
         roleAgrees: false,
       },
+      {
+        id: '8ja-136-wealth-heavy-gapmok',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '水',
+        engineElement: '木',
+        elementAgrees: false,
+        sourceRole: '印星',
+        engineRole: '比劫',
+        roleAgrees: false,
+      },
+      {
+        id: '8ja-149-stagnant-muto',
+        sourceStrength: 'unstated',
+        engineStrength: 'strong',
+        strengthAgrees: null,
+        sourceElement: '水',
+        engineElement: '木',
+        elementAgrees: false,
+        sourceRole: '財星',
+        engineRole: '官星',
+        roleAgrees: false,
+      },
+      {
+        // 출처가 "약하지 않다"고 본 명식을 엔진은 신약으로 본다 — 첫 강약 불일치다.
+        id: '8ja-157-drain-muto',
+        sourceStrength: 'strong',
+        engineStrength: 'weak',
+        strengthAgrees: false,
+        sourceElement: '金',
+        engineElement: '土',
+        elementAgrees: false,
+        sourceRole: '食傷',
+        engineRole: '比劫',
+        roleAgrees: false,
+      },
+      {
+        id: '8ja-160-weak-jeonghwa',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '木',
+        engineElement: '木',
+        elementAgrees: true,
+        sourceRole: '印星',
+        engineRole: '印星',
+        roleAgrees: true,
+      },
     ]);
 
-    // 어긋난 셋이 전부 실재할 수 없는 명조라, 다섯 건을 한 줄로 세면 엔진이
-    // 실제보다 나빠 보인다. 채점은 실재 가능한 둘로만 한다 — 강약 2/2, 오행 1/2.
+    // 채점은 실재 가능한 여섯 건으로만 한다 — 지어낸 조합으로 엔진을 채점할 수 없다.
     const scored = comparison.filter(({ id }) =>
       EOKBU_EXTERNAL_CASES.some(
         (testCase) => testCase.id === id && testCase.chartConstruction === 'consistent',
       ),
     );
 
-    expect(scored.map(({ strengthAgrees }) => strengthAgrees)).toEqual([true, true]);
-    expect(scored.map(({ elementAgrees }) => elementAgrees)).toEqual([true, false]);
+    expect(scored).toHaveLength(6);
+    // 강약은 다섯 건에서 비교 가능하고 그중 넷이 맞는다(157 이 어긋난다).
+    const strengths = scored.map(({ strengthAgrees }) => strengthAgrees);
+    expect(strengths.filter((agrees) => agrees === true)).toHaveLength(4);
+    expect(strengths.filter((agrees) => agrees === false)).toHaveLength(1);
+    expect(strengths.filter((agrees) => agrees === null)).toHaveLength(1);
+    // 추천 오행은 여섯 중 둘만 맞는다.
+    expect(scored.filter(({ elementAgrees }) => elementAgrees)).toHaveLength(2);
   });
 
   /**

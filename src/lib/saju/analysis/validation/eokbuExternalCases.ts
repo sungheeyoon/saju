@@ -1,7 +1,12 @@
 import type { Element } from '../../constants';
 import type { ElementRole } from '../yongsin';
 
-export type ExternalStrengthClaim = 'strong' | 'weak' | 'borderline';
+export type ExternalStrengthClaim =
+  | 'strong'
+  | 'weak'
+  | 'borderline'
+  /** 출처가 강약을 말하지 않은 경우 — 용신만 대조한다 */
+  | 'unstated';
 
 export type ExternalEokbuCase = {
   id: string;
@@ -49,12 +54,15 @@ export type ExternalEokbuCase = {
  * 현재 엔진과의 일치/불일치를 함께 고정해, 규칙 변경이 어떤 사례를 움직였는지
  * 드러내는 용도로 쓴다.
  *
- * **다섯 중 셋은 실재할 수 없는 명조다**(`chartConstruction: 'unrealizable'`).
+ * **`tasko-*` 셋은 실재할 수 없는 명조다**(`chartConstruction: 'unrealizable'`).
  * 글에 적힌 간지를 그대로 옮겼지만 월간이 연간과, 시간이 일간과 어긋나 어떤
  * 생년월일시로도 나오지 않는다. 설명하려고 지은 조합이므로 남겨는 두되 엔진의
  * 일치율을 셀 때는 빼야 한다 — 그러지 않으면 있지도 않은 사주로 엔진을 채점하게
- * 된다. 실재 가능한 사례는 `8ja-*` 둘뿐이고, 그래서 이 데이터셋 하나로는 억부를
- * `experimental` 에서 올릴 수 없다.
+ * 된다.
+ *
+ * 실재 가능한 사례는 `8ja-*` 여섯이다(2026-08-16 에 넷을 더했다). 같은 출처의 같은
+ * 상담 목록이라 **출처가 하나뿐이라는 사실은 그대로다** — 여섯 건으로도 억부를
+ * `experimental` 에서 올릴 수는 없고, 서로 다른 계통의 자료가 더 필요하다.
  */
 export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
@@ -161,5 +169,86 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
     chartConstruction: 'consistent',
     caveats: [],
   },
+  {
+    id: '8ja-136-wealth-heavy-gapmok',
+    pillars: { year: '戊辰', month: '壬戌', day: '甲辰', hour: '庚午' },
+    source: {
+      title: '팔자연구소 용신분석상담 사례 136',
+      url: 'https://8ja.co.kr/sub1_08_6.html',
+      locator: '136번 명조 (1988-10-16 午시 여명)',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '水',
+      role: '印星',
+      summary: '늦가을 甲木이 4土에 둘러싸인 재다신약이라 월간 壬水를 용신으로 삼는다고 설명한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: [],
+  },
+  {
+    id: '8ja-149-stagnant-muto',
+    pillars: { year: '己未', month: '丙子', day: '戊辰', hour: '丙辰' },
+    source: {
+      title: '팔자연구소 용신분석상담 사례 149',
+      url: 'https://8ja.co.kr/sub1_08_6.html',
+      locator: '149번 명조',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'unstated',
+      suggestedElement: '水',
+      role: '財星',
+      summary: '5土로 울체되어 발산이 필요한데 金이 없으므로 월지 子水를 차선으로 용신 삼는다고 설명한다.',
+    },
+    comparisonLevel: 'element-only',
+    chartConstruction: 'consistent',
+    caveats: [
+      '출처가 신강·신약을 밝히지 않아 강약은 대조하지 않는다.',
+      '金이 사실상의 용신이나 원국에 없어 水를 차선으로 골랐다고 밝힌 자리다.',
+    ],
+  },
+  {
+    id: '8ja-157-drain-muto',
+    pillars: { year: '壬子', month: '庚戌', day: '戊寅', hour: '丙辰' },
+    source: {
+      title: '팔자연구소 용신분석상담 사례 157',
+      url: 'https://8ja.co.kr/sub1_08_6.html',
+      locator: '157번 명조 (남)',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'strong',
+      suggestedElement: '金',
+      role: '食傷',
+      summary: '적어도 약하지는 않으므로 극보다 설이 순리라며 식신생재의 흐름을 택한다고 설명한다.',
+    },
+    comparisonLevel: 'element-only',
+    chartConstruction: 'consistent',
+    caveats: [
+      '출처가 "신약일 가능성은 희박하다"로 에둘러 말해 강약 주장이 단정적이지 않다.',
+      '용신을 한 오행으로 못박지 않고 火土金水의 흐름으로 설명해 방향만 대조한다.',
+    ],
+  },
+  {
+    id: '8ja-160-weak-jeonghwa',
+    pillars: { year: '己未', month: '乙亥', day: '丁酉', hour: '甲辰' },
+    source: {
+      title: '팔자연구소 용신분석상담 사례 160',
+      url: 'https://8ja.co.kr/sub1_08_6.html',
+      locator: '160번 명조',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '木',
+      role: '印星',
+      summary: '실령·실지·실세로 신약이라 일간 좌우의 2木을 용신으로 삼는다고 설명한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: [],
+  },
 ] as const;
-
