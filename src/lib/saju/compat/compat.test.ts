@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '@/src/lib/saju';
+import { tenGodOf } from '@/src/lib/saju/analysis';
 import {
   COMPAT_CHART_ID,
   COMPAT_POLICY,
@@ -120,10 +121,85 @@ describe('궁합 결과의 계약', () => {
     const unknown = computeSajuOf(1988, 7, 15, null);
 
     expect(analyzeCompatibility(known, known).warnings).toEqual([]);
-    expect(analyzeCompatibility(known, unknown).warnings).toHaveLength(1);
     expect(analyzeCompatibility(known, unknown).warnings[0]).toContain('두 번째 사람');
     expect(analyzeCompatibility(unknown, known).warnings[0]).toContain('첫 번째 사람');
     expect(analyzeCompatibility(unknown, unknown).warnings[0]).toContain('두 사람 모두');
+  });
+
+  /**
+   * 甲이 본 辛은 정관이지만 辛이 본 甲은 정재다. 한 방향만 내면 누구 눈으로 본
+   * 것인지 잃어버리므로 양쪽을 다 내고, 두 값이 실제로 다르다는 것을 못박는다.
+   */
+  it('십성은 양방향을 모두 내고 서로 다를 수 있다', () => {
+    // 1990-05-15 일간 庚 · 1992-08-20 일간 己 (엔진이 뽑은 값)
+    const a = computeSajuOf(1990, 5, 15, 14);
+    const b = computeSajuOf(1992, 8, 20, 9);
+    const compat = analyzeCompatibility(a, b);
+
+    expect(compat.tenGods.aSeesB).toBe(tenGodOf(a.pillars.dayMaster, b.pillars.dayMaster));
+    expect(compat.tenGods.bSeesA).toBe(tenGodOf(b.pillars.dayMaster, a.pillars.dayMaster));
+    // 뒤집어 넣으면 값도 뒤집힌다 — 방향이 붙어 있다는 뜻이다.
+    expect(analyzeCompatibility(b, a).tenGods.aSeesB).toBe(compat.tenGods.bSeesA);
+  });
+
+  it('오행 보완은 있고 없음만 세고 점수로 환산하지 않는다', () => {
+    const a = computeSajuOf(1990, 5, 15, 14);
+    const b = computeSajuOf(1992, 8, 20, 9);
+    const { elementSupport } = analyzeCompatibility(a, b);
+
+    for (const [side, mine, partner] of [
+      ['a', a, b],
+      ['b', b, a],
+    ] as const) {
+      const support = elementSupport[side];
+
+      expect(support.missing).toEqual(mine.analysis.elements.missing);
+      // 채워지는 것과 못 채우는 것이 합치면 없는 오행 전체다 — 빠뜨리는 칸이 없다.
+      expect([...support.supplied, ...support.stillMissing].sort()).toEqual(
+        [...support.missing].sort(),
+      );
+      for (const element of support.supplied) {
+        expect(partner.analysis.elements.counts[element]).toBeGreaterThan(0);
+      }
+      for (const element of support.stillMissing) {
+        expect(partner.analysis.elements.counts[element]).toBe(0);
+      }
+      expect(support.weakest.element).toBe(mine.analysis.elements.weakest);
+      expect(support.weakest.partnerRatio).toBe(
+        partner.analysis.elements.ratios[mine.analysis.elements.weakest],
+      );
+    }
+  });
+
+  /**
+   * 궁합으로 넘어오면서 시험값 딱지가 떨어지면 근거 없는 확신이 결론으로 샌다.
+   * 억부가 아직 못 본 것들까지 그대로 물려받는지 본다.
+   */
+  it('억부 부합은 각자의 억부 판정을 딱지째 물려받는다', () => {
+    const a = computeSajuOf(1990, 5, 15, 14);
+    const b = computeSajuOf(1992, 8, 20, 9);
+    const { eokbuMatch } = analyzeCompatibility(a, b);
+
+    expect(eokbuMatch.a.status).toBe('experimental');
+    expect(eokbuMatch.a.element).toBe(a.analysis.eokbu.suggestedElement);
+    expect(eokbuMatch.a.role).toBe(a.analysis.eokbu.role);
+    expect(eokbuMatch.a.unresolved).toEqual(a.analysis.eokbu.unresolved);
+    expect(eokbuMatch.a.unresolved.length).toBeGreaterThan(0);
+
+    // 상대에게 그 오행이 있는지는 상대 원국에서 센다.
+    expect(eokbuMatch.a.presentInPartner).toBe(
+      b.analysis.elements.counts[a.analysis.eokbu.suggestedElement] > 0,
+    );
+    expect(eokbuMatch.b.element).toBe(b.analysis.eokbu.suggestedElement);
+  });
+
+  it('시간 미상이면 없는 오행이 부풀 수 있다는 것도 함께 경고한다', () => {
+    const known = computeSajuOf(1990, 5, 15, 14);
+    const unknown = computeSajuOf(1988, 7, 15, null);
+    const { warnings } = analyzeCompatibility(known, unknown);
+
+    expect(warnings).toHaveLength(2);
+    expect(warnings[1]).toContain('없는 오행');
   });
 
   it('두 사람을 서로 다른 이름으로 가리킨다', () => {
@@ -140,6 +216,10 @@ describe('궁합 결과의 계약', () => {
       scoring: 'not-scored',
       combinedFormation: 'included-and-marked',
       detection: 'shared-with-natal-relations',
+      elementSupport: 'facts-only',
+      tenGods: 'both-directions',
+      eokbu: 'inherits-experimental',
+      spouseSeat: 'display-only',
     });
   });
 });

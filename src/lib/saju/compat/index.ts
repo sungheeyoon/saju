@@ -1,3 +1,10 @@
+import {
+  tenGodOf,
+  type ElementRole,
+  type TenGod,
+  type UnresolvedFactor,
+} from '../analysis';
+import type { Element } from '../constants';
 import type { Saju } from '../index';
 import type { Pillars } from '../pillars';
 import {
@@ -54,7 +61,60 @@ export const COMPAT_POLICY = {
   combinedFormation: 'included-and-marked',
   /** 관계 검출 규칙 자체는 원국과 같은 것을 쓴다 — RELATION_POLICY 참조 */
   detection: 'shared-with-natal-relations',
+  /** 오행 보완은 있고 없음만 센다 — 얼마나 좋은 궁합인지로 환산하지 않는다 */
+  elementSupport: 'facts-only',
+  /** 십성은 양방향을 모두 낸다 — A가 본 B와 B가 본 A는 다른 값이다 */
+  tenGods: 'both-directions',
+  /** 억부 부합은 각자의 억부 판정을 그대로 물려받는다 — 시험값이라는 딱지까지 */
+  eokbu: 'inherits-experimental',
+  /**
+   * 일지↔일지(배우자 궁)는 엔진이 따로 내지 않는다.
+   *
+   * 여덟 글자에서 나오는 값이 아니라 자리에 붙은 관습적 의미라 궁성과 같은
+   * 취급이다. 화면이 `relations` 를 자리로 거르면 된다 — 엔진이 `spouseSeat`
+   * 를 만들면 "일지가 배우자"라는 해석을 계산 결과인 척 담게 된다.
+   */
+  spouseSeat: 'display-only',
 } as const;
+
+/**
+ * 상대가 내 부족한 오행을 채우는가 — **있고 없음만 센다.**
+ *
+ * "얼마나 잘 맞는가"로 환산하지 않는다. 보완이 좋은 것인지부터가 계통 갈림이고
+ * (부족을 채우는 쪽이 좋다는 읽기와, 용신에 맞는 오행이라야 한다는 읽기가 다르다)
+ * 환산하는 순간 근거 없는 점수가 된다.
+ */
+export type ElementSupport = {
+  /** 내 원국에 아예 없는 오행 */
+  missing: Element[];
+  /** 그중 상대가 가진 것 */
+  supplied: Element[];
+  /** 둘 다 없는 것 — 서로 채워 주지 못한다 */
+  stillMissing: Element[];
+  /** 내 최약 오행과, 그것이 상대 원국에서 차지하는 비중(0~1) */
+  weakest: { element: Element; partnerRatio: number };
+};
+
+/**
+ * 내 억부 후보를 상대가 갖고 있는가.
+ *
+ * **각자의 억부 판정을 그대로 물려받는다** — `status: 'experimental'` 도,
+ * 아직 못 본 것들(`unresolved`)도 함께 옮긴다. 궁합으로 넘어오면서 딱지가
+ * 떨어지면 근거 없는 확신이 결론으로 새어 나간다.
+ */
+export type EokbuMatch = {
+  status: 'experimental';
+  /** 내 억부 관점의 후보 오행 */
+  element: Element;
+  /** 그 오행이 내 일간에게 무엇인가 */
+  role: ElementRole;
+  /** 상대 원국에 그 오행이 있는가 */
+  presentInPartner: boolean;
+  /** 상대 원국에서 그 오행의 비중(0~1) */
+  partnerRatio: number;
+  /** 내 쪽 억부가 아직 판정하지 않은 것들 */
+  unresolved: readonly UnresolvedFactor[];
+};
 
 export type Compatibility = {
   /**
@@ -72,6 +132,17 @@ export type Compatibility = {
    * 다르고, 이것을 인정할지 자체가 계통 선택이라 화면에서 섞이면 안 된다.
    */
   combinedFormations: Relation[];
+  /** 서로가 서로의 부족한 오행을 채우는가 — 사람마다 한 벌씩 */
+  elementSupport: Record<CompatSide, ElementSupport>;
+  /**
+   * 서로를 십성으로 무엇이라 보는가.
+   *
+   * **비대칭이라 양방향을 다 낸다.** 甲이 본 辛은 정관이지만 辛이 본 甲은
+   * 정재다. 한 방향만 내면 누구 눈으로 본 것인지 잃어버린다.
+   */
+  tenGods: { aSeesB: TenGod; bSeesA: TenGod };
+  /** 내 억부 후보를 상대가 갖고 있는가 — 사람마다 한 벌씩 */
+  eokbuMatch: Record<CompatSide, EokbuMatch>;
   /** 결과를 좁게 읽어야 하는 사정 — 시간 미상처럼 관계가 덜 나오는 경우 */
   warnings: string[];
 };
@@ -104,7 +175,38 @@ function warningsOf(a: CompatInput, b: CompatInput): string[] {
 
   return [
     `${who} 출생 시각을 몰라 시주가 빠졌습니다. 시주가 걸린 관계는 나오지 않으므로 실제보다 적게 보입니다.`,
+    // 없는 오행은 "시주를 몰라 못 센 것"일 수 있다. 보완을 읽기 전에 알아야 한다.
+    `${who} 여섯 글자로만 세었으므로 없는 오행이 실제보다 많아 보일 수 있습니다.`,
   ];
+}
+
+/** 상대가 내 부족을 채우는지 — 두 사람의 오행 분포를 맞대 본다 */
+function elementSupportOf(mine: Saju['analysis'], partner: Saju['analysis']): ElementSupport {
+  const partnerHas = (element: Element) => partner.elements.counts[element] > 0;
+
+  return {
+    missing: [...mine.elements.missing],
+    supplied: mine.elements.missing.filter(partnerHas),
+    stillMissing: mine.elements.missing.filter((element) => !partnerHas(element)),
+    weakest: {
+      element: mine.elements.weakest,
+      partnerRatio: partner.elements.ratios[mine.elements.weakest],
+    },
+  };
+}
+
+/** 내 억부 후보를 상대가 갖고 있는지 — 판정은 각자의 것을 그대로 옮긴다 */
+function eokbuMatchOf(mine: Saju['analysis'], partner: Saju['analysis']): EokbuMatch {
+  const { suggestedElement, role, status, unresolved } = mine.eokbu;
+
+  return {
+    status,
+    element: suggestedElement,
+    role,
+    presentInPartner: partner.elements.counts[suggestedElement] > 0,
+    partnerRatio: partner.elements.ratios[suggestedElement],
+    unresolved,
+  };
 }
 
 /**
@@ -125,6 +227,18 @@ export function analyzeCompatibility(a: Saju, b: Saju): Compatibility {
     combinedFormations: relations.filter(
       (relation) => relation.scope === 'combinedFormation',
     ),
+    elementSupport: {
+      a: elementSupportOf(a.analysis, b.analysis),
+      b: elementSupportOf(b.analysis, a.analysis),
+    },
+    tenGods: {
+      aSeesB: tenGodOf(a.pillars.dayMaster, b.pillars.dayMaster),
+      bSeesA: tenGodOf(b.pillars.dayMaster, a.pillars.dayMaster),
+    },
+    eokbuMatch: {
+      a: eokbuMatchOf(a.analysis, b.analysis),
+      b: eokbuMatchOf(b.analysis, a.analysis),
+    },
     warnings: warningsOf(sides.a, sides.b),
   };
 }
