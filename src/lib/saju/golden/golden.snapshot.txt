@@ -130,6 +130,28 @@
     절입일 판정은 경도 보정을 뺀 표준시 날짜로 한다. 섞어 읽으면
     자정 부근 절입(1984 입춘 02-05 00:18)이 하루 앞으로 밀린다.
 
+  해석 문장  L3 는 아직 계약뿐이다 — 조각도 조립기도 생성기도 없다.
+        문장의 강도는 조각이 적지 않고 읽은 근거에서 나온다(여럿이면 가장 낮은 것).
+        사실 → 유도 → 후보 → 참고 순으로 약해지고, 사실이 아니면 완충 표현이 필요하다.
+        종격 문장의 상한은 외부 대조 게이트를 따라간다 — 게이트가 닫혀 있으면 후보까지다.
+        시간 미상이면 한 칸 내리고, "없다"는 주장은 시주가 뒤집을 수 있어 아예 막는다.
+
+          ruleSet                text-claim-contract-v1
+          status                 contract-only
+          runtimeAi              none
+          claimStrength          derived-from-sources-min
+          vocabulary             data-only
+          grounding              terms-must-appear-in-evidence
+          hedge                  required-below-fact
+          attribution            required-for-reference
+          disclosure             allowed-for-not-evaluated
+          followingPattern       gated-by-external-check
+          followingNegative      silent
+          hourUnknown            downgrade-and-silence-absence
+          precedence             eokbu-before-following-while-gate-closed
+          inheritedBans          grade-bands, unfavorable-element, compat-score
+          lexiconCoverage        ten-gods, roles, stages, spirits, relations, following — stars pending
+
 케이스 39건
 ==============================================================================
 [ipchun-before] 입춘 절입 직전 — 연주가 아직 전년(甲辰)이어야 한다

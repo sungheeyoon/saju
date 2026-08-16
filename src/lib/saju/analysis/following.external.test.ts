@@ -178,6 +178,40 @@ describe('종격 외부 명조 대조', () => {
   });
 
   /**
+   * **정책에 적힌 성적을 손으로 믿지 않는다.**
+   *
+   * 이 값들은 한 번 낡은 적이 있다. 축을 자당 몫으로 갈아엎고 자료를 서른다섯으로
+   * 넓힌 뒤에도 `cases: 20 · caught: 4 · cannot-detect-following-the-strong` 이
+   * 그대로 남아, 이미 해결된 간극을 미해결이라고 적고 있었다. 외부 사례의
+   * `chartConstruction` 을 손으로 적지 않고 오호둔으로 다시 세는 것과 같은 이유다.
+   */
+  it('정책에 적힌 대조 성적을 테스트가 다시 센다', () => {
+    const check = FOLLOWING_PATTERN_POLICY.dominance.externalCheck;
+    const caught = (cases: typeof SCORED) =>
+      cases.filter((testCase) => engineFollows(assess(testCase.pillars).verdict)).length;
+
+    const claimed = SCORED.filter((testCase) => claimsFollowing(testCase.claim.verdict));
+    const rejected = SCORED.filter((testCase) => !claimsFollowing(testCase.claim.verdict));
+
+    expect(check.cases).toBe(FOLLOWING_EXTERNAL_CASES.length);
+    expect(check.scored).toBe(SCORED.length);
+    expect(check.lineages).toBe(new Set(FOLLOWING_EXTERNAL_CASES.map((c) => c.lineage)).size);
+    expect(check.claimedFollowing).toBe(claimed.length);
+    expect(check.caught).toBe(caught(claimed));
+    expect(check.falsePositives).toBe(caught(rejected));
+
+    for (const [lineage, recall] of Object.entries(check.recallByLineage)) {
+      const ofLineage = claimed.filter((testCase) => testCase.lineage === lineage);
+      expect(`${caught(ofLineage)}/${ofLineage.length}`, lineage).toBe(recall);
+    }
+
+    // 해결됐다고 적은 간극은 실제로 해결돼 있어야 한다 — 안으로 종을 잡는가.
+    expect(
+      SCORED.some((testCase) => assess(testCase.pillars).direction === 'inward'),
+    ).toBe(true);
+  });
+
+  /**
    * 계통별로 나눠 보면 어디가 약한지 한눈에 보인다. 현대 정리(fatew)는 從財·從殺만
    * 실어 문턱이 맞춰진 자리이고, 고전은 從旺·從强부터 假從까지 넓어 성적이 낮다.
    * **한쪽 계통만으로 문턱을 고르면 이 차이가 안 보인다** — 그래서 섞는다.

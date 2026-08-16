@@ -34,6 +34,7 @@ export * from './wolun';
 export * from './sinsal';
 export * from './solarTerms';
 export * from './stages';
+export * from './text';
 export * from './timeCorrection';
 
 // 간지 도출 원시 함수들은 그대로 열어둔다 — 계약이랄 것이 없는 순수 표 조회다.
