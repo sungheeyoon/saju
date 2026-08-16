@@ -57,7 +57,7 @@ import { TWELVE_STAGE_KO } from '../stages';
  *    근거의 **종류**이지 주장의 세기가 아니다. 사다리에서 같은 칸에 앉았다고
  *    같은 의무를 지지 않는다 — `ATTRIBUTION_PATHS` 참조.
  *
- * 아직 없는 것: 조각 스키마, 조립기, 생성기. 이 파일이 그 셋의 입력 조건이다.
+ * 조각 스키마는 `fragment.ts` 가 이 위에 올라앉았다. 아직 없는 것: 조립기, 생성기.
  */
 
 /**
@@ -630,8 +630,8 @@ export const KNOWN_UNCONTRACTED_TEXT = [
  */
 export const TEXT_POLICY = {
   ruleSet: 'text-claim-contract-v1',
-  /** 계약만 있다. 조각도 조립기도 생성기도 아직 없다 */
-  status: 'contract-only',
+  /** 계약과 조각 스키마까지 있다. 조립기도 생성기도 아직 없다 */
+  status: 'contract-and-fragment-schema',
   /** 런타임에 AI 를 부르지 않는다. 생성은 빌드 타임에 한 번뿐이다 */
   runtimeAi: 'none',
   /** 강도는 조각이 적는 것이 아니라 읽은 출처에서 나온다. 여럿이면 가장 낮은 것 */
