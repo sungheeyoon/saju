@@ -212,7 +212,7 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
 
   return {
     pillars,
-    analysis: analyzePillars(pillars, analysisOptions),
+    analysis: analyzePillars(pillars, { ...analysisOptions, instant: corrected.instant }),
     relations: findRelations(pillars),
     stages: twelveStagesOf(pillars, stageOptions),
     sinsal: analyzeSinsal(pillars, sinsalOptions),

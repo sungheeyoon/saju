@@ -1388,15 +1388,37 @@ function StrengthMeter({ saju }: { saju: Saju }) {
             참고표
           </span>
           <span className="text-xs text-muted">조후 후보 천간</span>
-          <span className="glyph text-lg font-medium">{johu.stems.join(' · ')}</span>
+          <span className="glyph text-lg font-medium">
+            {(johu.halfStems ?? johu.stems).join(' · ')}
+          </span>
           <span className="text-xs text-secondary">
             {johu.dayMaster}일간 · {johu.monthBranch}월
+            {johu.half && (
+              <>
+                {' · '}
+                {johu.half === 'first' ? '상반월' : '하반월'}
+                {johu.midTerm && (
+                  <span className="text-muted">
+                    {' '}
+                    ({johu.midTerm.name} {johu.half === 'first' ? '전' : '후'})
+                  </span>
+                )}
+              </>
+            )}
           </span>
         </div>
         <p className="mt-1.5 text-xs text-secondary">{johu.note}</p>
+        {johu.halfStems && (
+          <p className="mt-1 text-xs text-secondary">
+            이 칸은 상·하반월로 갈려서 그 절반의 후보만 위에 적었습니다. 전체 후보는{' '}
+            <span className="glyph">{johu.stems.join(' · ')}</span> 입니다.
+          </p>
+        )}
         <p className="mt-2 text-xs text-muted">
-          《궁통보감》 120조합의 조건 요약입니다. 원국 구성과 월의 상·하순 조건을
-          모두 자동 판정한 확정 용신이 아니므로 후보와 조건을 함께 읽어야 합니다.
+          《궁통보감》 120조합의 조건 요약입니다. 상·하반월만 판정합니다 — 경계가
+          중기(절기 +15°)라 천문으로 정해지기 때문입니다. &lsquo;수가 왕하면 戊&rsquo;
+          같은 세력 조건은 문턱을 지어내야 해서 판정하지 않으므로, 확정 용신이 아니라
+          후보와 조건을 함께 읽어야 합니다.
         </p>
       </div>
 

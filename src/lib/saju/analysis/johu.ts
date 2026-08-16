@@ -1,5 +1,6 @@
 import { type Branch, type Stem } from '../constants';
 import type { Pillars } from '../pillars';
+import { midTermOf } from '../solarTerms';
 
 /**
  * 조후용신(調候用神) 참고표.
@@ -24,9 +25,21 @@ export type JohuRule = {
   stems: readonly Stem[];
   /** 원문의 조건을 계산기가 단정하지 않도록 남긴 짧은 요약 */
   note: string;
+  /**
+   * 원문이 상반월·하반월을 갈라 말하는 칸에만 있다(120칸 중 여섯).
+   *
+   * 이것만은 자동으로 판정할 수 있다. 중기가 절의 정확히 +15° 지점이라
+   * 경계가 천문으로 정해지기 때문이다. "수가 왕하면 戊" 같은 세력 조건은
+   * 문턱을 지어내야 하므로 여기 없고 `note` 에 그대로 남는다.
+   */
+  halfMonth?: { first: readonly Stem[]; second: readonly Stem[] };
 };
 
-const rule = (stems: readonly Stem[], note: string): JohuRule => ({ stems, note });
+const rule = (
+  stems: readonly Stem[],
+  note: string,
+  halfMonth?: JohuRule['halfMonth'],
+): JohuRule => (halfMonth ? { stems, note, halfMonth } : { stems, note });
 
 export const JOHU_TABLE: Record<Stem, Record<Branch, JohuRule>> = {
   甲: {
@@ -35,7 +48,10 @@ export const JOHU_TABLE: Record<Stem, Record<Branch, JohuRule>> = {
     辰: rule(['庚', '丁', '壬'], '庚을 쓰면 丁으로 제련하고, 庚이 없으면 壬을 본다.'),
     巳: rule(['癸', '庚', '丁'], '조열을 푸는 癸가 우선이며 이미 윤택하면 庚丁을 본다.'),
     午: rule(['癸', '庚', '丁'], '허조한 목이라 癸가 우선이다. 목이 많으면 庚, 庚이 많으면 丁을 본다.'),
-    未: rule(['癸', '庚', '丁'], '상반월은 癸, 하반월은 庚丁을 중심으로 본다.'),
+    未: rule(['癸', '庚', '丁'], '상반월은 癸, 하반월은 庚丁을 중심으로 본다.', {
+      first: ['癸'],
+      second: ['庚', '丁'],
+    }),
     申: rule(['庚', '丁', '壬'], '丁으로 왕한 庚을 제련하되 庚이 빠질 수 없고 壬은 조건부로 쓴다.'),
     酉: rule(['庚', '丁', '丙'], '丁으로 금을 제련하고 丙으로 조후한다.'),
     戌: rule(['庚', '甲', '丁', '壬', '癸'], '토가 많으면 甲, 목이 많으면 庚을 쓰며 丁壬癸는 보조다.'),
@@ -48,10 +64,16 @@ export const JOHU_TABLE: Record<Stem, Record<Branch, JohuRule>> = {
     卯: rule(['丙', '癸'], '丙으로 설기하고 癸로 기르며 강한 금을 꺼린다.'),
     辰: rule(['癸', '丙', '戊'], '癸丙을 보되 수국이면 戊로 물을 제어한다.'),
     巳: rule(['癸'], '월령의 丙火가 왕하므로 癸로 조후하는 것이 급하다.'),
-    午: rule(['癸', '丙'], '상반월은 癸, 하반월은 丙癸를 함께 본다.'),
+    午: rule(['癸', '丙'], '상반월은 癸, 하반월은 丙癸를 함께 본다.', {
+      first: ['癸'],
+      second: ['丙', '癸'],
+    }),
     未: rule(['癸', '丙'], '癸로 토와 목을 적시되 금수가 많으면 丙을 먼저 본다.'),
     申: rule(['丙', '癸', '己'], '庚을 丙으로 제하거나 癸로 설하고 己를 보조로 본다.'),
-    酉: rule(['癸', '丙', '丁'], '상반월은 癸先, 하반월은 丙先이며 금국이면 丁도 필요하다.'),
+    酉: rule(['癸', '丙', '丁'], '상반월은 癸先, 하반월은 丙先이며 금국이면 丁도 필요하다.', {
+      first: ['癸', '丙'],
+      second: ['丙', '癸'],
+    }),
     戌: rule(['癸', '辛'], '辛으로 癸의 근원을 내며 甲이 있으면 등라계갑으로 본다.'),
     亥: rule(['丙', '戊'], '丙으로 향양하고 물이 많으면 戊로 돕는다.'),
     子: rule(['丙'], '한목향양이라 丙을 전용하고 癸가 丙을 가리는 것을 꺼린다.'),
@@ -153,15 +175,24 @@ export const JOHU_TABLE: Record<Stem, Record<Branch, JohuRule>> = {
     戌: rule(['甲', '丙'], '甲으로 戌중 戊를 제하고 丙이 돕는다.'),
     亥: rule(['戊', '丙', '庚'], '戊丙을 중심으로 보며 甲이 戊를 제하면 庚으로 구한다.'),
     子: rule(['戊', '丙'], '왕수에는 戊, 조후에는 丙이며 둘 다 필요하다.'),
-    丑: rule(['丙', '丁', '甲'], '상반월은 丙, 하반월은 丁甲을 함께 본다.'),
+    丑: rule(['丙', '丁', '甲'], '상반월은 丙, 하반월은 丁甲을 함께 본다.', {
+      first: ['丙'],
+      second: ['丁', '甲'],
+    }),
   },
   癸: {
     寅: rule(['辛', '丙'], '辛으로 수원을 내고 丙으로 덥힌다. 辛이 없으면 庚을 참작한다.'),
     卯: rule(['庚', '辛'], '乙이 설기하므로 庚을 전용하고 辛을 다음으로 본다.'),
-    辰: rule(['丙', '辛', '甲'], '상반월은 丙, 하반월은 辛甲을 함께 보며 丁은 쓰지 않는다.'),
+    辰: rule(['丙', '辛', '甲'], '상반월은 丙, 하반월은 辛甲을 함께 보며 丁은 쓰지 않는다.', {
+      first: ['丙'],
+      second: ['辛', '甲'],
+    }),
     巳: rule(['辛'], '辛을 전용하고 없으면 庚을 대신 본다.'),
     午: rule(['庚', '辛', '壬', '癸'], '庚辛을 생신의 근원으로 삼고 壬癸 비겁이 금을 돕는지 본다.'),
-    未: rule(['庚', '辛', '壬', '癸'], '상반월은 午월과 같고 하반월은 비겁 없이도 금을 쓸 수 있다.'),
+    未: rule(['庚', '辛', '壬', '癸'], '상반월은 午월과 같고 하반월은 비겁 없이도 금을 쓸 수 있다.', {
+      first: ['庚', '辛', '壬', '癸'],
+      second: ['庚', '辛'],
+    }),
     申: rule(['丁'], '왕한 庚을 丁으로 제하며 丁이 午戌未에 통근해야 좋다.'),
     酉: rule(['辛', '丙'], '辛과 丙을 떨어져 투출시켜 수난금온을 이룬다.'),
     戌: rule(['辛', '甲', '壬', '癸'], '辛을 전용하고 비겁으로 甲을 도와 戊를 제하는 조건을 본다.'),
@@ -172,10 +203,18 @@ export const JOHU_TABLE: Record<Stem, Record<Branch, JohuRule>> = {
 };
 
 export const JOHU_POLICY = {
-  ruleSet: 'qiongtong-baojian-120-v1',
+  ruleSet: 'qiongtong-baojian-120-v2',
   status: 'reference',
   basis: 'day-master-and-month-branch',
-  conditionEvaluation: 'not-automated',
+  /**
+   * 상·하반월만 판정하고 나머지 조건은 그대로 남긴다.
+   *
+   * 경계가 중기(절 +15°)라 천문으로 정해지기 때문이다. "수가 왕하면 戊",
+   * "화국이면 壬" 같은 세력 조건은 문턱을 지어내야 해서 판정하지 않는다.
+   */
+  conditionEvaluation: 'half-month-only',
+  /** 상반월은 절입~중기, 하반월은 중기~다음 절입 */
+  halfMonthBoundary: 'mid-term-longitude-plus-15',
   source: 'qiongtong-baojian-cross-checked-summary',
 } as const;
 
@@ -184,15 +223,47 @@ export type JohuAssessment = JohuRule & {
   status: 'reference';
   dayMaster: Stem;
   monthBranch: Branch;
+  /**
+   * 절기 달의 앞 절반인가 뒤 절반인가.
+   *
+   * 경계는 중기(절 +15°)다. 절대 시각을 모르고 부르면 `null` 이다 — 모르는 것을
+   * 앞 절반으로 채우면 여섯 칸에서 다른 천간을 권하게 된다.
+   */
+  half: 'first' | 'second' | null;
+  /** 중기의 이름과 시각. 상·하반월을 가른 근거라 함께 낸다 */
+  midTerm: { name: string; date: Date } | null;
+  /**
+   * 이 칸이 상·하반월로 갈리는가, 갈린다면 그 절반의 후보는 무엇인가.
+   *
+   * 갈리지 않는 칸이거나 절반을 모르면 `null` 이고, 그때는 `stems` 를 그대로 읽는다.
+   */
+  halfStems: readonly Stem[] | null;
 };
 
-type JohuInput = Pick<Pillars, 'month' | 'dayMaster'>;
+/**
+ * 조후표 조회에 필요한 것은 일간과 월지뿐이다. 상·하반월까지 보려면 그 달을
+ * 연 절기가 더 필요하지만, 없으면 절반을 `null` 로 둘 뿐 조회는 그대로 된다 —
+ * 간지 둘만으로 부르는 테스트를 막지 않는다.
+ */
+type JohuInput = Pick<Pillars, 'month' | 'dayMaster'> & {
+  meta?: Pick<Pillars['meta'], 'monthTerm'>;
+};
 
-/** 일간과 월지에 해당하는 《궁통보감》 조후 후보를 찾는다. */
-export function johuAssessmentOf(pillars: JohuInput): JohuAssessment {
+/**
+ * 일간과 월지에 해당하는 《궁통보감》 조후 후보를 찾는다.
+ *
+ * `instant` 를 주면 상·하반월까지 판정한다. **절기와 같은 시계를 쓴다** — 절입을
+ * 절대 시각으로 판정하는 것과 같은 이유로, 경도 보정된 지방시로 중기를 재면
+ * 경계 근처에서 절반이 뒤집힌다.
+ */
+export function johuAssessmentOf(pillars: JohuInput, instant?: Date): JohuAssessment {
   const dayMaster = pillars.dayMaster;
   const monthBranch = pillars.month.branch;
   const found = JOHU_TABLE[dayMaster][monthBranch];
+
+  const monthTerm = pillars.meta?.monthTerm;
+  const mid = instant && monthTerm ? midTermOf(monthTerm) : null;
+  const half = mid && instant ? (instant < mid.date ? 'first' : 'second') : null;
 
   return {
     status: 'reference',
@@ -200,5 +271,9 @@ export function johuAssessmentOf(pillars: JohuInput): JohuAssessment {
     monthBranch,
     stems: found.stems,
     note: found.note,
+    ...(found.halfMonth ? { halfMonth: found.halfMonth } : {}),
+    half,
+    midTerm: mid ? { name: mid.name, date: mid.date } : null,
+    halfStems: found.halfMonth && half ? found.halfMonth[half] : null,
   };
 }

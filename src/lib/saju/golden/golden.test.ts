@@ -138,7 +138,9 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     `  억부   후보 ${ELEMENT_KO[eokbu.suggestedElement]}(${eokbu.suggestedElement})` +
       ` ${ELEMENT_ROLE_KO[eokbu.role]} · ${eokbu.status}/${eokbu.confidence}` +
       ` · 원국에 ${eokbu.presentInChart ? '있음' : '없음'}`,
-    `  조후   후보 ${johu.stems.join('·')} · ${johu.status}  ${johu.note}`,
+    `  조후   후보 ${johu.stems.join('·')} · ${johu.status}` +
+      `${johu.half ? ` · ${johu.half === 'first' ? '상반월' : '하반월'}(${johu.midTerm?.name})` : ''}` +
+      `${johu.halfStems ? ` → ${johu.halfStems.join('·')}` : ''}  ${johu.note}`,
     // 뿌리는 억부·종격이 먹고 들어가는 사실이라 값이 흔들리면 여기서 먼저 보인다.
     `  뿌리   일간 ${rooting.stem} ` +
       (rooting.rooted

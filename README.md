@@ -101,7 +101,7 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 713 tests
+npm test          # 718 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 ```
@@ -113,7 +113,10 @@ npm run verify    # test + typecheck + lint + production build
   (`src/lib/saju/golden/golden.snapshot.txt`)
 - **자체 검증** — 절기 반환 시각에서 태양 황경을 되짚어 목표와 대조 (오차 1e-4° 이내)
 - **조후 120조합** — [《궁통보감》 원문](https://zh.wikisource.org/wiki/%E7%A9%B7%E9%80%9A%E5%AE%9D%E9%89%B4)과
-  [일간×월지 정리표](https://www.douban.com/note/204554812/)를 대조하고 열 일간×열두 월지를 전수 고정
+  [일간×월지 정리표](https://www.douban.com/note/204554812/)를 대조하고 열 일간×열두 월지를 전수 고정.
+  **상·하반월만 자동 판정한다** — 경계가 중기(절기 +15°)라 천문으로 정해지기 때문이다.
+  120칸 중 여섯이 이 조건으로 갈리고, 그 칸에서만 절반의 후보를 따로 낸다.
+  "수가 왕하면 戊" 같은 세력 조건은 문턱을 지어내야 해서 판정하지 않는다
 - **억부 외부 대조** — 서로 다른 두 출처의 명조 5건을 옮겨 출처 주장과 현재 엔진의
   일치·불일치를 함께 회귀 고정한다. 외부 글의 십성 오기는 오행 주장과 분리해 정답으로
   승격하지 않는다. 그중 3건은 월간이 연간과, 시간이 일간과 어긋나 **실재할 수 없는

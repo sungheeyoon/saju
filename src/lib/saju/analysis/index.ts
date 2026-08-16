@@ -65,6 +65,13 @@ export type Analysis = {
 };
 
 export type AnalysisOptions = {
+  /**
+   * 출생의 절대 시각. 주면 조후의 상·하반월까지 판정한다.
+   *
+   * 절기와 같은 시계다 — 경도 보정된 지방시로 중기를 재면 경계 근처에서 절반이
+   * 뒤집힌다. 없으면 절반을 `null` 로 두고 조후표만 낸다.
+   */
+  instant?: Date;
   weights?: Partial<ElementWeights>;
   strength?: Omit<StrengthOptions, 'weights'>;
 };
@@ -85,7 +92,7 @@ export function analyzePillars(
     // 오행 분포와 같은 가중치를 써야 두 결과가 어긋나지 않는다.
     strength,
     eokbu: eokbuAssessmentOf(pillars, strength, options.weights),
-    johu: johuAssessmentOf(pillars),
+    johu: johuAssessmentOf(pillars, options.instant),
     rootedness,
     followingCandidacy: followingCandidacyOf(pillars, elements, rootedness),
     following: followingAssessmentOf(pillars, elements, rootedness),

@@ -89,3 +89,44 @@ function searchSolarTerms(sajuYear: number): SolarTerm[] {
     return { name, longitude, branch, date: found.date };
   });
 }
+
+/**
+ * 12중기(中氣) — 절과 절 사이 한가운데.
+ *
+ * 절이 30° 간격이고 중기는 그 **정확히 +15°** 지점이다. 그래서 "상반월·하반월"의
+ * 경계는 관습이 아니라 천문으로 정해진다 — 날짜를 반으로 가르는 것이 아니라
+ * 태양이 15° 를 더 간 순간이다(지구 궤도가 타원이라 둘은 며칠 어긋난다).
+ *
+ * 절과 짝지어 이름을 붙인다: 입춘의 중기는 우수, 소서의 중기는 대서다.
+ */
+const JUNG_NAME: Record<string, string> = {
+  입춘: '우수',
+  경칩: '춘분',
+  청명: '곡우',
+  입하: '소만',
+  망종: '하지',
+  소서: '대서',
+  입추: '처서',
+  백로: '추분',
+  한로: '상강',
+  입동: '소설',
+  대설: '동지',
+  소한: '대한',
+};
+
+/**
+ * 한 절의 중기를 찾는다 — 그 절의 황경 +15° 에 태양이 닿는 시각.
+ *
+ * 절 전체를 미리 뽑지 않고 필요한 하나만 센다. 조후의 상·하반월 판정에만 쓰이고
+ * 월주·연주는 절만으로 정해지므로, 24절기를 통째로 캐시할 이유가 없다.
+ */
+export function midTermOf(term: SolarTerm): SolarTerm {
+  const name = JUNG_NAME[term.name];
+  if (!name) throw new Error(`중기를 모르는 절: ${term.name}`);
+
+  const longitude = (term.longitude + 15) % 360;
+  const found = SearchSunLongitude(longitude, term.date, SEARCH_WINDOW_DAYS);
+  if (!found) throw new Error(`${name}(황경 ${longitude}°) 탐색 실패`);
+
+  return { name, longitude, branch: term.branch, date: found.date };
+}
