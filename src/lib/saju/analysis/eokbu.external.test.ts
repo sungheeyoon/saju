@@ -25,14 +25,16 @@ function chartOf(pillars: (typeof EOKBU_EXTERNAL_CASES)[number]['pillars']) {
 }
 
 describe('억부용신 외부 대조 데이터셋', () => {
-  it('독립된 두 출처의 완전한 사주 네 기둥만 싣는다', () => {
+  it('계통이 다른 세 자료의 완전한 사주 네 기둥만 싣는다', () => {
     expect(new Set(EOKBU_EXTERNAL_CASES.map(({ id }) => id)).size).toBe(
       EOKBU_EXTERNAL_CASES.length,
     );
     // 계통이 다른 자료를 섞는다 — 한쪽 계통에만 맞는 규칙을 만들지 않기 위해서다.
-    expect(
-      new Set(EOKBU_EXTERNAL_CASES.map(({ source }) => new URL(source.url).hostname)).size,
-    ).toBe(3);
+    // 호스트 이름으로 세면 안 된다: 《적천수천미》와 《천리명고》가 같은 사이트에 있어
+    // 셋이 둘로 줄어든다.
+    expect(new Set(EOKBU_EXTERNAL_CASES.map(({ lineage }) => lineage))).toEqual(
+      new Set(['korean-modern', 'classical-chinese', 'republican-chinese']),
+    );
 
     for (const testCase of EOKBU_EXTERNAL_CASES) {
       expect(Object.values(testCase.pillars)).toHaveLength(4);
@@ -62,22 +64,18 @@ describe('억부용신 외부 대조 데이터셋', () => {
 
     // 실재 가능한 사례의 수가 이 데이터셋의 실제 크기다 — 셋은 지어낸 조합이라 빠진다.
     expect(
-      EOKBU_EXTERNAL_CASES.filter((c) => c.chartConstruction === 'consistent').map((c) => c.id),
-    ).toEqual([
-      '8ja-145-weak-muto',
-      '8ja-146-wealth-heavy-byeonghwa',
-      '8ja-136-wealth-heavy-gapmok',
-      '8ja-149-stagnant-muto',
-      '8ja-157-drain-muto',
-      '8ja-160-weak-jeonghwa',
-      'dtsm-8gyeok-inbu-1',
-      'dtsm-8gyeok-inbu-2',
-      'dtsm-8gyeok-sanggwan',
-    ]);
+      EOKBU_EXTERNAL_CASES.filter((c) => c.chartConstruction === 'consistent'),
+    ).toHaveLength(20);
     // 실재 불가능한 셋은 전부 같은 출처다.
     expect(
       EOKBU_EXTERNAL_CASES.filter((c) => c.chartConstruction === 'unrealizable').map((c) => c.id),
     ).toEqual(['tasko-strong-gapja', 'tasko-weak-byeonghwa', 'tasko-borderline-muto']);
+    // 그 셋은 모두 한국 현대 자료다. 중국 계통 열넷은 하나도 걸리지 않는다.
+    expect(
+      EOKBU_EXTERNAL_CASES.filter(
+        (c) => c.lineage !== 'korean-modern' && c.chartConstruction === 'unrealizable',
+      ),
+    ).toHaveLength(0);
   });
 
   it('출처 주장과 현재 엔진의 일치·불일치 행렬을 회귀 고정한다', () => {
@@ -251,6 +249,143 @@ describe('억부용신 외부 대조 데이터셋', () => {
         engineRole: '食傷',
         roleAgrees: true,
       },
+      // 세 번째 계통 — 《천리명고》 위천리. 강약을 먼저 정하고 그 반대편에서 용신을
+      // 고르는 절차가 이 엔진과 같아서, 강약은 비교 가능한 일곱 건이 전부 일치한다.
+      {
+        id: 'qlmg-lu-weak-byeonghwa',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '木',
+        engineElement: '木',
+        elementAgrees: true,
+        sourceRole: '印星',
+        engineRole: '印星',
+        roleAgrees: true,
+      },
+      {
+        // 신약에 재성을 쓰는 드문 처방이라 엔진과 갈린다 — 출처도 그 약점을 적는다.
+        id: 'qlmg-pan-weak-geumgeum',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '木',
+        engineElement: '土',
+        elementAgrees: false,
+        sourceRole: '財星',
+        engineRole: '印星',
+        roleAgrees: false,
+      },
+      {
+        id: 'qlmg-wang-borderline-gapmok',
+        sourceStrength: 'borderline',
+        engineStrength: 'weak',
+        strengthAgrees: null,
+        sourceElement: '金',
+        engineElement: '木',
+        elementAgrees: false,
+        sourceRole: '官星',
+        engineRole: '比劫',
+        roleAgrees: false,
+      },
+      {
+        id: 'qlmg-zhan-borderline-gapmok',
+        sourceStrength: 'borderline',
+        engineStrength: 'weak',
+        strengthAgrees: null,
+        sourceElement: '水',
+        engineElement: '木',
+        elementAgrees: false,
+        sourceRole: '印星',
+        engineRole: '比劫',
+        roleAgrees: false,
+      },
+      {
+        id: 'qlmg-chen-weak-gyesu',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '水',
+        engineElement: '水',
+        elementAgrees: true,
+        sourceRole: '比劫',
+        engineRole: '比劫',
+        roleAgrees: true,
+      },
+      {
+        id: 'qlmg-yu-weak-geumgeum',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '土',
+        engineElement: '土',
+        elementAgrees: true,
+        sourceRole: '印星',
+        engineRole: '印星',
+        roleAgrees: true,
+      },
+      {
+        id: 'qlmg-xian-weak-geumgeum',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '土',
+        engineElement: '土',
+        elementAgrees: true,
+        sourceRole: '印星',
+        engineRole: '印星',
+        roleAgrees: true,
+      },
+      {
+        id: 'qlmg-yan-weak-eulmok',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '水',
+        engineElement: '水',
+        elementAgrees: true,
+        sourceRole: '印星',
+        engineRole: '印星',
+        roleAgrees: true,
+      },
+      {
+        id: 'qlmg-song-weak-geumgeum',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '土',
+        engineElement: '金',
+        elementAgrees: false,
+        sourceRole: '印星',
+        engineRole: '比劫',
+        roleAgrees: false,
+      },
+      {
+        // 상관패인은 강약이 아니라 구조를 보고 고르는 자리다 — 억부와 엇갈린다.
+        id: 'qlmg-jiang-unstated-gito',
+        sourceStrength: 'unstated',
+        engineStrength: 'strong',
+        strengthAgrees: null,
+        sourceElement: '火',
+        engineElement: '木',
+        elementAgrees: false,
+        sourceRole: '印星',
+        engineRole: '官星',
+        roleAgrees: false,
+      },
+      {
+        // 한습을 병으로 본 조후 논리인데 억부와 답이 같아진 자리다.
+        id: 'qlmg-ma-unstated-gito',
+        sourceStrength: 'unstated',
+        engineStrength: 'weak',
+        strengthAgrees: null,
+        sourceElement: '火',
+        engineElement: '火',
+        elementAgrees: true,
+        sourceRole: '印星',
+        engineRole: '印星',
+        roleAgrees: true,
+      },
     ]);
 
     // 채점은 실재 가능한 여섯 건으로만 한다 — 지어낸 조합으로 엔진을 채점할 수 없다.
@@ -260,22 +395,45 @@ describe('억부용신 외부 대조 데이터셋', () => {
       ),
     );
 
-    expect(scored).toHaveLength(9);
-    // 강약은 다섯 건에서 비교 가능하고 그중 넷이 맞는다(157 이 어긋난다).
+    expect(scored).toHaveLength(20);
+    // 강약은 열두 건에서 비교 가능하고 그중 열하나가 맞는다(8ja-157 하나만 어긋난다).
     const strengths = scored.map(({ strengthAgrees }) => strengthAgrees);
-    expect(strengths.filter((agrees) => agrees === true)).toHaveLength(4);
+    expect(strengths.filter((agrees) => agrees === true)).toHaveLength(11);
     expect(strengths.filter((agrees) => agrees === false)).toHaveLength(1);
-    expect(strengths.filter((agrees) => agrees === null)).toHaveLength(4);
+    expect(strengths.filter((agrees) => agrees === null)).toHaveLength(8);
 
-    // 추천 오행은 아홉 중 다섯이 맞는다. 계통별로 갈리는 것이 이 데이터셋의 요점이다 —
-    // 현대 상담 사례는 여섯 중 둘, 《적천수천미》 명례는 셋 중 셋이 맞는다.
-    expect(scored.filter(({ elementAgrees }) => elementAgrees)).toHaveLength(5);
-    expect(
-      scored.filter(({ id, elementAgrees }) => id.startsWith('dtsm-') && elementAgrees),
-    ).toHaveLength(3);
-    expect(
-      scored.filter(({ id, elementAgrees }) => id.startsWith('8ja-') && elementAgrees),
-    ).toHaveLength(2);
+    // 추천 오행은 스물 중 열하나가 맞는다.
+    expect(scored.filter(({ elementAgrees }) => elementAgrees)).toHaveLength(11);
+  });
+
+  /**
+   * **계통별로 성적이 갈리는 것이 이 데이터셋의 요점이다.** 중국 계통 열넷 중
+   * 아홉이 맞고 한국 현대 상담 사례는 여섯 중 둘이다. 자료를 넓혀도 이 차이는
+   * 그대로였다 — 우리 억부가 "강약을 먼저 정하고 그 반대편을 고른다"는 자평
+   * 절차에 가깝고, 한국 상담 글은 조후·격국·물상을 함께 섞기 때문이다.
+   *
+   * 그러니 **성적이 낮은 쪽에 맞춰 규칙을 흔들면 안 된다.** 어긋난 자리마다 왜
+   * 갈렸는지가 `caveats` 에 적혀 있고, 대부분 우리가 일부러 안 보기로 한 것
+   * (합화·공협·조후·격국)에 기대고 있다.
+   */
+  it('계통별 오행 일치를 따로 센다', () => {
+    const agreementBy = (lineage: string) => {
+      const cases = EOKBU_EXTERNAL_CASES.filter(
+        (c) => c.lineage === lineage && c.chartConstruction === 'consistent',
+      );
+      const agreed = cases.filter((testCase) => {
+        const chart = chartOf(testCase.pillars);
+        return (
+          eokbuAssessmentOf(chart, strengthOf(chart)).suggestedElement ===
+          testCase.claim.suggestedElement
+        );
+      });
+      return [agreed.length, cases.length];
+    };
+
+    expect(agreementBy('korean-modern')).toEqual([2, 6]);
+    expect(agreementBy('classical-chinese')).toEqual([3, 3]);
+    expect(agreementBy('republican-chinese')).toEqual([6, 11]);
   });
 
   /**

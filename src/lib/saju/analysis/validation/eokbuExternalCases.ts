@@ -8,6 +8,19 @@ export type ExternalStrengthClaim =
   /** 출처가 강약을 말하지 않은 경우 — 용신만 대조한다 */
   | 'unstated';
 
+/**
+ * 자료의 계통. **호스트 이름으로는 계통을 셀 수 없다** — 서로 다른 시대의 책이
+ * 같은 사이트에 올라 있기도 하다(《적천수천미》와 《천리명고》가 그렇다). 계통이
+ * 갈리는 자리에서 성적이 갈리는 것이 이 데이터셋의 요점이므로 손으로 적어 둔다.
+ */
+export type EokbuLineage =
+  /** 현대 한국 상담·강의 글 */
+  | 'korean-modern'
+  /** 청대 고전 주석 (《적천수천미》 임철초) */
+  | 'classical-chinese'
+  /** 민국 시대 실전 명리 (《천리명고》 위천리) */
+  | 'republican-chinese';
+
 export type ExternalEokbuCase = {
   id: string;
   pillars: {
@@ -16,6 +29,7 @@ export type ExternalEokbuCase = {
     day: string;
     hour: string;
   };
+  lineage: EokbuLineage;
   source: {
     title: string;
     url: string;
@@ -60,14 +74,20 @@ export type ExternalEokbuCase = {
  * 일치율을 셀 때는 빼야 한다 — 그러지 않으면 있지도 않은 사주로 엔진을 채점하게
  * 된다.
  *
- * 실재 가능한 사례는 아홉이다. `8ja-*` 여섯은 현대 한국 상담 사례이고,
- * `dtsm-*` 셋은 《적천수천미》의 임철초 주석 명례다 — **계통이 다른 자료를 섞어야**
+ * 실재 가능한 사례는 스물이고 계통은 셋이다 — **계통이 다른 자료를 섞어야**
  * 한쪽 계통에만 맞는 규칙을 만들지 않는다.
+ * - `8ja-*` 여섯: 현대 한국 상담 사례(`korean-modern`)
+ * - `dtsm-*` 셋: 《적천수천미》 임철초 주석(`classical-chinese`)
+ * - `qlmg-*` 열하나: 《천리명고》 위천리(`republican-chinese`)
+ *
+ * 계통을 셀 때 호스트 이름을 쓰면 안 된다 — 《적천수천미》와 《천리명고》가 같은
+ * 사이트에 올라 있어 셋이 둘로 줄어든다. `lineage` 를 직접 적고 그것으로 센다.
  */
 export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: 'tasko-strong-gapja',
     pillars: { year: '甲寅', month: '甲寅', day: '甲子', hour: '丙寅' },
+    lineage: 'korean-modern',
     source: {
       title: '억부용신 찾는 법 — 실전 3케이스',
       url: 'https://saju.tasko.kr/saju-eokbu-yongsin/',
@@ -90,6 +110,7 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: 'tasko-weak-byeonghwa',
     pillars: { year: '庚辰', month: '辛酉', day: '丙申', hour: '壬子' },
+    lineage: 'korean-modern',
     source: {
       title: '억부용신 찾는 법 — 실전 3케이스',
       url: 'https://saju.tasko.kr/saju-eokbu-yongsin/',
@@ -112,6 +133,7 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: 'tasko-borderline-muto',
     pillars: { year: '甲子', month: '丙午', day: '戊午', hour: '己丑' },
+    lineage: 'korean-modern',
     source: {
       title: '억부용신 찾는 법 — 실전 3케이스',
       url: 'https://saju.tasko.kr/saju-eokbu-yongsin/',
@@ -134,6 +156,7 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: '8ja-145-weak-muto',
     pillars: { year: '癸卯', month: '丙辰', day: '戊申', hour: '甲寅' },
+    lineage: 'korean-modern',
     source: {
       title: '팔자연구소 용신분석상담 사례 145',
       url: 'https://8ja.co.kr/sub1_08_6.html',
@@ -153,6 +176,7 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: '8ja-146-wealth-heavy-byeonghwa',
     pillars: { year: '庚申', month: '乙酉', day: '丙申', hour: '丁酉' },
+    lineage: 'korean-modern',
     source: {
       title: '팔자연구소 용신분석상담 사례 146',
       url: 'https://8ja.co.kr/sub1_08_6.html',
@@ -172,6 +196,7 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: '8ja-136-wealth-heavy-gapmok',
     pillars: { year: '戊辰', month: '壬戌', day: '甲辰', hour: '庚午' },
+    lineage: 'korean-modern',
     source: {
       title: '팔자연구소 용신분석상담 사례 136',
       url: 'https://8ja.co.kr/sub1_08_6.html',
@@ -191,6 +216,7 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: '8ja-149-stagnant-muto',
     pillars: { year: '己未', month: '丙子', day: '戊辰', hour: '丙辰' },
+    lineage: 'korean-modern',
     source: {
       title: '팔자연구소 용신분석상담 사례 149',
       url: 'https://8ja.co.kr/sub1_08_6.html',
@@ -213,6 +239,7 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: '8ja-157-drain-muto',
     pillars: { year: '壬子', month: '庚戌', day: '戊寅', hour: '丙辰' },
+    lineage: 'korean-modern',
     source: {
       title: '팔자연구소 용신분석상담 사례 157',
       url: 'https://8ja.co.kr/sub1_08_6.html',
@@ -235,6 +262,7 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: '8ja-160-weak-jeonghwa',
     pillars: { year: '己未', month: '乙亥', day: '丁酉', hour: '甲辰' },
+    lineage: 'korean-modern',
     source: {
       title: '팔자연구소 용신분석상담 사례 160',
       url: 'https://8ja.co.kr/sub1_08_6.html',
@@ -254,6 +282,7 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: 'dtsm-8gyeok-inbu-1',
     pillars: { year: '辛卯', month: '丙申', day: '癸卯', hour: '壬戌' },
+    lineage: 'classical-chinese',
     source: {
       title: '《滴天髓闡微》 八格 — 任鐵樵 주석',
       url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/12',
@@ -273,6 +302,7 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: 'dtsm-8gyeok-inbu-2',
     pillars: { year: '辛卯', month: '丙申', day: '癸卯', hour: '甲寅' },
+    lineage: 'classical-chinese',
     source: {
       title: '《滴天髓闡微》 八格 — 任鐵樵 주석',
       url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/12',
@@ -295,6 +325,7 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
     id: 'dtsm-8gyeok-sanggwan',
     pillars: { year: '己巳', month: '庚午', day: '丙午', hour: '甲午' },
+    lineage: 'classical-chinese',
     source: {
       title: '《滴天髓闡微》 八格 — 任鐵樵 주석',
       url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/12',
@@ -312,6 +343,248 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
     caveats: [
       '원문이 희용을 土金 두 오행으로 말한다 — 앞의 土 만 대조 대상으로 둔다.',
       '원문이 신강·신약을 따로 말하지 않아 강약은 대조하지 않는다.',
+    ],
+  },
+  // ── 《千里命稿》 위천리 (민국) — 세 번째 계통 ──────────────────────────────
+  // 이 책의 「評斷篇」은 명조마다 强弱·格局·用神·喜忌를 항목으로 나눠 적는다.
+  // 강약을 먼저 정하고 그 반대편을 용신으로 고르는 절차가 이 엔진과 같은 순서라
+  // 대조에 가장 적합한 자료다. 뒤쪽 인물 명조는 항목이 아니라 산문이라 주장을
+  // 읽어 옮겼고 그만큼 caveats 가 길다.
+  {
+    id: 'qlmg-lu-weak-byeonghwa',
+    pillars: { year: '癸未', month: '甲子', day: '丙戌', hour: '己亥' },
+    lineage: 'republican-chinese',
+    source: {
+      title: '《千里命稿》 評斷篇 — 韋千里',
+      url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
+      locator: '評斷之舉例 (一) 陸姓乾命 — 抑者太多，扶者太少，故丙干以弱論',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '木',
+      role: '印星',
+      summary: '겨울 丙火가 亥子癸 水에 눌린 신약이라 월간 甲木 인성을 용신으로 삼는다(官格用印).',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: [],
+  },
+  {
+    id: 'qlmg-pan-weak-geumgeum',
+    pillars: { year: '壬子', month: '癸丑', day: '庚子', hour: '丁亥' },
+    lineage: 'republican-chinese',
+    source: {
+      title: '《千里命稿》 評斷篇 — 韋千里',
+      url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
+      locator: '評斷之舉例 (二) 潘姓坤命 — 是誠弱不堪言矣 … 不如亥中甲木以為用',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '木',
+      role: '財星',
+      summary: '한겨울 庚金이 水에 설기되어 극도로 약한데, 己土로 막으면 물을 성나게 하므로 亥 중 甲木으로 설기를 돌린다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: [
+      '신약에 재성을 쓰는 드문 처방이다 — 억부의 정석이 아니라 "財能救官" 이라는 흐름 논리로 고른 자리다.',
+      '출처 스스로 "身弱無助之弊在所不免" 이라며 이 선택의 약점을 적는다.',
+    ],
+  },
+  {
+    id: 'qlmg-wang-borderline-gapmok',
+    pillars: { year: '己亥', month: '癸酉', day: '甲辰', hour: '丙寅' },
+    lineage: 'republican-chinese',
+    source: {
+      title: '《千里命稿》 評斷篇 — 韋千里',
+      url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
+      locator: '評斷之舉例 (三) 王姓坤命 — 本當以弱論 … 尚非至弱者也',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'borderline',
+      suggestedElement: '金',
+      role: '官星',
+      summary: '甲木이 酉월에 실령했으나 亥에 장생·寅에 득록해 지지에 기가 있다며, 酉 중 辛金 정관을 용신으로 삼는다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: [
+      '출처가 "약하다고 봐야 하나 지극히 약하지는 않다"로 적어 강약을 이분으로 못박지 않았다.',
+    ],
+  },
+  {
+    id: 'qlmg-zhan-borderline-gapmok',
+    pillars: { year: '庚子', month: '庚辰', day: '甲子', hour: '戊辰' },
+    lineage: 'republican-chinese',
+    source: {
+      title: '《千里命稿》 評斷篇 — 韋千里',
+      url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
+      locator: '評斷之舉例 (四) 詹姓乾命 — 子辰成水局 … 故轉弱為強矣',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'borderline',
+      suggestedElement: '水',
+      role: '印星',
+      summary: '재살이 태왕하나 子辰 수국이 살을 인성으로 돌려 일간을 살리므로 약함이 강함으로 바뀌었다며, 년지 子 인성을 용신으로 삼는다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: [
+      '출처가 "轉弱為強"이라 적어 경계에 놓인 명식이므로 강약은 대조하지 않는다 — 강해졌다면서 처방은 생부(印)라 출처 안에서도 방향이 갈린다.',
+    ],
+  },
+  {
+    id: 'qlmg-chen-weak-gyesu',
+    pillars: { year: '壬子', month: '丙午', day: '癸亥', hour: '戊午' },
+    lineage: 'republican-chinese',
+    source: {
+      title: '《千里命稿》 評斷篇 — 韋千里',
+      url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
+      locator: '評斷之舉例 (五) 陳姓乾命 — 日元稍弱，宜取壬水，劫財幫身為用',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '水',
+      role: '比劫',
+      summary: '한여름 癸水가 三火一土에 눌렸으나 亥 제왕지와 년간 壬水가 도와 조금 약한 정도라며, 壬水 겁재로 방신한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: ['출처가 "弱而有助，得中和之妙" 라고도 적어 신약의 정도를 약하게 말한다.'],
+  },
+  {
+    id: 'qlmg-yu-weak-geumgeum',
+    pillars: { year: '丁卯', month: '丙午', day: '庚午', hour: '己卯' },
+    lineage: 'republican-chinese',
+    source: {
+      title: '《千里命稿》 評斷篇 — 韋千里 (虞洽卿 명조)',
+      url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
+      locator: '評斷篇 — 弱中有氣，全得力於時上正印',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '土',
+      role: '印星',
+      summary: '木火가 성한 가운데 己土가 화를 설하고 일간을 생해 약한 중에 기가 있다며, 시상 정인을 힘의 근거로 든다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: [],
+  },
+  {
+    id: 'qlmg-xian-weak-geumgeum',
+    pillars: { year: '戊子', month: '癸亥', day: '庚寅', hour: '戊寅' },
+    lineage: 'republican-chinese',
+    source: {
+      title: '《千里命稿》 評斷篇 — 韋千里 (冼冠生 명조)',
+      url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
+      locator: '評斷篇 — 財重身輕，得力於時上戊土之偏印，制水幫身',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '土',
+      role: '印星',
+      summary: '초겨울 庚金이 지지의 水木에 눌린 재중신경이라 시상 戊土 편인으로 물을 막고 몸을 돕는다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: ['출처가 "四十九歲交進戊運。幫助用神" 이라 적어 戊土가 용신임을 다시 확인한다.'],
+  },
+  {
+    id: 'qlmg-yan-weak-eulmok',
+    pillars: { year: '癸未', month: '辛酉', day: '乙酉', hour: '丁亥' },
+    lineage: 'republican-chinese',
+    source: {
+      title: '《千里命稿》 評斷篇 — 韋千里 (閻錫山 명조)',
+      url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
+      locator: '評斷篇 — 殺重身輕 … 幸有癸印生身，並化殺，又有丁火食神以制殺',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '水',
+      role: '印星',
+      summary: '가을 乙木이 득시·득록한 金 칠살에 눌린 살중신경이라 癸水 인성으로 살을 돌리고 丁火 식신으로 제한다.',
+    },
+    comparisonLevel: 'element-only',
+    chartConstruction: 'consistent',
+    caveats: [
+      '출처가 화살(癸水)과 제살(丁火)을 함께 들어 용신이 하나로 못박히지 않는다 — 앞의 水만 대조한다.',
+    ],
+  },
+  {
+    id: 'qlmg-song-weak-geumgeum',
+    pillars: { year: '甲午', month: '乙亥', day: '庚申', hour: '己卯' },
+    lineage: 'republican-chinese',
+    source: {
+      title: '《千里命稿》 評斷篇 — 韋千里 (宋子文 명조)',
+      url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
+      locator: '評斷篇 — 財旺身弱，幸日主坐祿 … 戊寅己三運。偏重於幫身之故',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '土',
+      role: '印星',
+      summary: '재왕신약이나 일지 록에 앉아 버틴다며, 방신하는 戊己 土 운에서 발복했다고 설명한다.',
+    },
+    comparisonLevel: 'element-only',
+    chartConstruction: 'consistent',
+    caveats: [
+      '출처가 용신을 항목으로 못박지 않고 "幫身" 하는 운으로만 말한다 — 庚金에게 戊己는 인성이라 그 오행만 대조한다.',
+    ],
+  },
+  {
+    id: 'qlmg-jiang-unstated-gito',
+    pillars: { year: '丁亥', month: '庚戌', day: '己巳', hour: '庚午' },
+    lineage: 'republican-chinese',
+    source: {
+      title: '《千里命稿》 評斷篇 — 韋千里 (蔣介石 명조)',
+      url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
+      locator: '評斷篇 — 妙有火印制傷 … 夫以傷官佩印為用。運喜逢印',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'unstated',
+      suggestedElement: '火',
+      role: '印星',
+      summary: '두 庚金 상관이 투간했으나 火 인성이 그것을 제어한다며 상관패인을 용신으로 든다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: [
+      '출처가 "天生康壯之體" 라고만 적고 신강·신약을 못박지 않아 강약은 대조하지 않는다.',
+      '상관패인은 강약이 아니라 상관을 다스리는 구조를 보고 고르는 격국 논리다.',
+    ],
+  },
+  {
+    id: 'qlmg-ma-unstated-gito',
+    pillars: { year: '乙酉', month: '丁亥', day: '己丑', hour: '甲子' },
+    lineage: 'republican-chinese',
+    source: {
+      title: '《千里命稿》 評斷篇 — 韋千里 (馬占山 명조)',
+      url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
+      locator: '評斷篇 — 己見亥子丑。病於水盛，助成寒濕。妙有丁火煦融',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'unstated',
+      suggestedElement: '火',
+      role: '印星',
+      summary: '己土가 亥子丑 水에 둘러싸여 한습한 것이 병이라며 丁火로 데우는 것을 용신으로 든다.',
+    },
+    comparisonLevel: 'element-only',
+    chartConstruction: 'consistent',
+    caveats: [
+      '한습을 병으로 보는 조후 논리다 — 억부와 답이 같아도 근거가 다르다.',
+      '출처가 신강·신약을 못박지 않아 강약은 대조하지 않는다.',
     ],
   },
 ] as const;

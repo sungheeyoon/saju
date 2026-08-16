@@ -5,16 +5,22 @@
  * 한다는 것이 애초의 게이트였다. **지금은 통과하지 못한다.** 그 사실을 지우지
  * 않고 행렬로 고정한다 — 문턱을 만지면 어느 칸이 움직이는지 여기서 보인다.
  *
- * 출처는 둘이다 — `fatew.com` 의 從殺格·從財格 쪽(현대 정리)과 《적천수천미》의
- * 임철초 주석(고전). 계통이 다른 자료를 섞어야 한쪽에만 맞는 규칙을 만들지 않는다.
+ * 계통은 둘이다 — `fatew.com` 의 從殺格·從財格 쪽(현대 중화권 정리) 열여덟과
+ * 《적천수천미》 임철초 주석(청대 고전) 열일곱. 계통이 다른 자료를 섞어야
+ * 한쪽에만 맞는 규칙을 만들지 않는다.
  *
- * 《적천수천미》 명례 둘은 **이 규칙의 구조적 한계**를 드러낸다. 從强(일간 편이
- * 극왕해 그쪽을 따름)은 지배 세력이 곧 일간 편이라, 압도 비율을
- * `지배 ÷ (지배 + 일간편)` 으로 재는 한 0.5 를 넘을 수 없다. 문턱을 아무리
- * 낮춰도 從强·從旺 계열은 잡히지 않는다 — 분모를 다시 설계해야 하는 문제다.
+ * 고전 쪽은 세 장에서 나눠 왔고 각각 다른 것을 시험한다.
+ * - 體用 둘(`dtsm-following-*`): 극단으로 왕한 것과 극단으로 약한 것의 짝
+ * - 從象 열(`dtsm-congxiang-*`): 저자가 真從이라 못박은 것. 從財·從殺뿐 아니라
+ *   從旺·從强·從氣·從勢까지 있어 **안으로 종하는 쪽**을 채운다. fatew 열여덟이
+ *   전부 밖으로 종하는 계열이라 이쪽이 비어 있었다.
+ * - 假從 다섯(`dtsm-jiacong-*`): 저자가 假從이라 못박은 것. 정의상 비겁·인성이
+ *   남아 있어 자당 몫이 밖으로 종하는 문턱보다 높게 나온다.
  *
- * 스무 건 모두 오호둔·오자둔에 맞는 실재 가능한 명조다(테스트가 다시 센다).
- * 억부 데이터셋에서 다섯 중 셋이 지어낸 조합이었던 것과 대비된다.
+ * 서른다섯 중 하나(`dtsm-jiacong-4-misprint`)는 실재할 수 없는 명조다 —
+ * 六丁년에 丙寅월은 없다. 고전 판본의 오배로, **고전 자료라고 이 검사에서
+ * 면제되지 않는다**는 증거라 지우지 않고 표시만 한다. 나머지 서른넷은 오호둔·
+ * 오자둔에 맞고, 테스트가 손으로 적은 값을 믿지 않고 다시 센다.
  */
 
 export type FollowingClaim =
@@ -25,12 +31,27 @@ export type FollowingClaim =
   /** 저자가 종격이 아니라고 판정 */
   | 'not-following';
 
+/** 자료의 계통 — 억부 데이터셋의 `EokbuLineage` 와 같은 이유로 손으로 적는다. */
+export type FollowingLineage =
+  /** 현대 중화권 격국 정리 사이트 */
+  | 'modern-chinese'
+  /** 청대 고전 주석 (《적천수천미》 임철초) */
+  | 'classical-chinese';
+
 export type FollowingExternalCase = {
   id: string;
   pillars: { year: string; month: string; day: string; hour: string };
+  lineage: FollowingLineage;
   source: { title: string; url: string; locator: string; retrievedAt: '2026-08-16' };
   /** 저자의 판정과 그 원문 표기 */
   claim: { verdict: FollowingClaim; label: string };
+  /**
+   * 네 기둥이 오호둔·오자둔과 맞는지. 억부 데이터셋과 같은 뜻이고 같은 방식으로
+   * 다시 센다(`following.external.test.ts`). 고전이라고 예외가 아니다 —
+   * 판본이 옮겨지며 글자가 어긋난 자리가 실제로 하나 있다.
+   */
+  chartConstruction: 'consistent' | 'unrealizable';
+  caveats?: readonly string[];
 };
 
 const KILL_SOURCE = {
@@ -49,114 +70,151 @@ export const FOLLOWING_EXTERNAL_CASES: readonly FollowingExternalCase[] = [
   {
     id: 'kill-1',
     pillars: { year: '壬寅', month: '丁未', day: '己卯', hour: '乙亥' },
+    lineage: 'modern-chinese',
     source: { ...KILL_SOURCE, locator: '從殺格 例1' },
     claim: { verdict: 'following', label: '從殺格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'kill-2',
     pillars: { year: '戊午', month: '己未', day: '癸未', hour: '己未' },
+    lineage: 'modern-chinese',
     source: { ...KILL_SOURCE, locator: '從殺格 例2' },
     claim: { verdict: 'following', label: '從殺格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'kill-3',
     pillars: { year: '戊辰', month: '戊午', day: '癸丑', hour: '己未' },
+    lineage: 'modern-chinese',
     source: { ...KILL_SOURCE, locator: '從殺格 例3' },
     claim: { verdict: 'following', label: '從殺格(貧)' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'kill-4',
     pillars: { year: '戊戌', month: '辛酉', day: '乙酉', hour: '乙酉' },
+    lineage: 'modern-chinese',
     source: { ...KILL_SOURCE, locator: '從殺格 例4' },
     claim: { verdict: 'following', label: '從殺格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'kill-5',
     pillars: { year: '庚戌', month: '己丑', day: '乙巳', hour: '乙酉' },
+    lineage: 'modern-chinese',
     source: { ...KILL_SOURCE, locator: '從殺格 例5' },
     claim: { verdict: 'following', label: '從殺格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'kill-6',
     pillars: { year: '辛亥', month: '丙申', day: '丙申', hour: '壬辰' },
+    lineage: 'modern-chinese',
     source: { ...KILL_SOURCE, locator: '從殺格 例6' },
     claim: { verdict: 'following', label: '從殺格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'kill-7',
     pillars: { year: '辛亥', month: '己亥', day: '丁丑', hour: '庚子' },
+    lineage: 'modern-chinese',
     source: { ...KILL_SOURCE, locator: '從殺格 例7' },
     claim: { verdict: 'following', label: '從殺格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'kill-8-broken',
     pillars: { year: '辛酉', month: '丁酉', day: '乙卯', hour: '乙酉' },
+    lineage: 'modern-chinese',
     source: { ...KILL_SOURCE, locator: '從殺格 例8' },
     claim: { verdict: 'not-following', label: '格破' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'kill-9-similar',
     pillars: { year: '戊午', month: '丙辰', day: '庚寅', hour: '丙戌' },
+    lineage: 'modern-chinese',
     source: { ...KILL_SOURCE, locator: '從殺格 例9' },
     claim: { verdict: 'not-following', label: '유사격' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'money-1',
     pillars: { year: '壬寅', month: '壬寅', day: '辛卯', hour: '壬辰' },
+    lineage: 'modern-chinese',
     source: { ...MONEY_SOURCE, locator: '從財格 例1' },
     claim: { verdict: 'following', label: '從財格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'money-2',
     pillars: { year: '庚戌', month: '乙酉', day: '丙申', hour: '己丑' },
+    lineage: 'modern-chinese',
     source: { ...MONEY_SOURCE, locator: '從財格 例2' },
     claim: { verdict: 'following', label: '格破再成(真從財格)' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'money-3',
     pillars: { year: '丙戌', month: '辛丑', day: '甲辰', hour: '辛未' },
+    lineage: 'modern-chinese',
     source: { ...MONEY_SOURCE, locator: '從財格 例3' },
     claim: { verdict: 'pseudo-following', label: '假從財格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'money-4',
     pillars: { year: '壬寅', month: '乙巳', day: '壬午', hour: '丙午' },
+    lineage: 'modern-chinese',
     source: { ...MONEY_SOURCE, locator: '從財格 例4' },
     claim: { verdict: 'pseudo-following', label: '假從財格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'money-5-excluded',
     pillars: { year: '戊午', month: '丙辰', day: '甲辰', hour: '壬申' },
+    lineage: 'modern-chinese',
     source: { ...MONEY_SOURCE, locator: '從財格 例5' },
     claim: { verdict: 'not-following', label: '不入從財格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'money-6',
     pillars: { year: '乙亥', month: '己丑', day: '戊子', hour: '壬子' },
+    lineage: 'modern-chinese',
     source: { ...MONEY_SOURCE, locator: '從財格 例6' },
     claim: { verdict: 'following', label: '從財格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'money-7',
     pillars: { year: '丁卯', month: '乙巳', day: '壬午', hour: '丙午' },
+    lineage: 'modern-chinese',
     source: { ...MONEY_SOURCE, locator: '從財格 例7' },
     claim: { verdict: 'following', label: '從財格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'money-8',
     pillars: { year: '癸亥', month: '乙卯', day: '辛卯', hour: '乙未' },
+    lineage: 'modern-chinese',
     source: { ...MONEY_SOURCE, locator: '從財格 例8' },
     claim: { verdict: 'following', label: '從財格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'money-9-excluded',
     pillars: { year: '癸丑', month: '辛酉', day: '丁巳', hour: '辛亥' },
+    lineage: 'modern-chinese',
     source: { ...MONEY_SOURCE, locator: '從財格 例9' },
     claim: { verdict: 'not-following', label: '不入從財格' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'dtsm-following-strong',
     pillars: { year: '丙寅', month: '甲午', day: '丙午', hour: '癸巳' },
+    lineage: 'classical-chinese',
     source: {
       title: '《滴天髓闡微》 體用 — 任鐵樵 주석',
       url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/13',
@@ -164,10 +222,12 @@ export const FOLLOWING_EXTERNAL_CASES: readonly FollowingExternalCase[] = [
       retrievedAt: '2026-08-16',
     },
     claim: { verdict: 'following', label: '從强(旺之極)' },
+    chartConstruction: 'consistent',
   },
   {
     id: 'dtsm-following-weak',
     pillars: { year: '戊寅', month: '庚申', day: '丙申', hour: '丙申' },
+    lineage: 'classical-chinese',
     source: {
       title: '《滴天髓闡微》 體用 — 任鐵樵 주석',
       url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/13',
@@ -175,5 +235,219 @@ export const FOLLOWING_EXTERNAL_CASES: readonly FollowingExternalCase[] = [
       retrievedAt: '2026-08-16',
     },
     claim: { verdict: 'following', label: '從弱(順財)' },
+    chartConstruction: 'consistent',
+  },
+  // ── 《滴天髓闡微》 從象 편 — 임철초가 真從이라 못박은 열 건 ──────────────────
+  // 이 열 건이 이 데이터셋의 축이다. 앞의 fatew 열여덟은 從財·從殺(밖으로 종)에
+  // 몰려 있는데, 從象 편은 從旺·從强·從氣·從勢까지 함께 실어 **안으로 종하는 쪽**을
+  // 채운다. 축을 자당 몫 하나로 다시 세운 판단이 여기서 채점된다.
+  {
+    id: 'dtsm-congxiang-1',
+    pillars: { year: '戊戌', month: '丙辰', day: '乙未', hour: '丙戌' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 從象 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/46',
+      locator: '從象 — 四柱皆財，其勢必從',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從財' },
+    chartConstruction: 'consistent',
+  },
+  {
+    id: 'dtsm-congxiang-2',
+    pillars: { year: '壬寅', month: '壬寅', day: '庚寅', hour: '戊寅' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 從象 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/46',
+      locator: '從象 — 四支皆寅 … 生扶嫩木而從財也',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從財' },
+    chartConstruction: 'consistent',
+  },
+  {
+    id: 'dtsm-congxiang-3',
+    pillars: { year: '丙寅', month: '庚寅', day: '壬午', hour: '乙巳' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 從象 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/46',
+      locator: '從象 — 一點庚金臨絕，丙火力能鍛之，從財格真',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從財格真' },
+    chartConstruction: 'consistent',
+  },
+  {
+    id: 'dtsm-congxiang-4',
+    pillars: { year: '丁卯', month: '壬寅', day: '庚午', hour: '丙戌' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 從象 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/46',
+      locator: '從象 — 支全火局，財生殺旺 … 皆成殺黨，從象斯真',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從殺(從象斯真)' },
+    chartConstruction: 'consistent',
+    caveats: ['저자는 丁壬 합화 木이 火勢를 따른다고 보는데 이 엔진은 화(化)를 판정하지 않는다.'],
+  },
+  {
+    id: 'dtsm-congxiang-5',
+    pillars: { year: '辛巳', month: '辛丑', day: '乙酉', hour: '乙酉' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 從象 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/46',
+      locator: '從象 — 支全金局，干透兩辛，從殺斯真',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從殺斯真' },
+    chartConstruction: 'consistent',
+    caveats: ['巳酉丑 삼합 금국을 근거로 든다 — 이 엔진의 오행 점유율은 합국을 세지 않는다.'],
+  },
+  {
+    id: 'dtsm-congxiang-6-wang',
+    pillars: { year: '癸卯', month: '乙卯', day: '甲寅', hour: '乙亥' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 從象 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/46',
+      locator: '從象 — 癸之印旺之極矣，從其旺神',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從旺' },
+    chartConstruction: 'consistent',
+  },
+  {
+    id: 'dtsm-congxiang-7-qiang',
+    pillars: { year: '丙午', month: '甲午', day: '丙午', hour: '甲午' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 從象 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/46',
+      locator: '從象 — 四柱皆刃，天干並透甲丙，強旺極矣，可順而不可逆也',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從强' },
+    chartConstruction: 'consistent',
+  },
+  {
+    id: 'dtsm-congxiang-8-qi',
+    pillars: { year: '癸酉', month: '癸亥', day: '庚申', hour: '丁亥' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 從象 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/46',
+      locator: '從象 — 局中氣勢金水，亦是從金水而論，丁反為病',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從氣(金水)' },
+    chartConstruction: 'consistent',
+    caveats: [
+      '從氣는 일간 편·이당의 구분이 아니라 두 오행에 몰린 기세를 따르는 것이라, 자당 몫 하나를 축으로 삼는 이 규칙이 겨눈 형태가 아니다.',
+    ],
+  },
+  {
+    id: 'dtsm-congxiang-9-shi',
+    pillars: { year: '丙戌', month: '壬辰', day: '癸巳', hour: '甲寅' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 從象 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/46',
+      locator: '從象 — 財官傷三者並旺 … 惟官星當令，須從官星之勢',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從勢(從官)' },
+    chartConstruction: 'consistent',
+  },
+  {
+    id: 'dtsm-congxiang-10',
+    pillars: { year: '癸酉', month: '乙丑', day: '丙申', hour: '丙申' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 從象 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/46',
+      locator: '從象 — 衰絕無氣，酉丑拱金 … 從化金水之勢',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從化金水' },
+    chartConstruction: 'consistent',
+    caveats: ['酉丑 공협으로 金을 세는 논리다 — 이 엔진은 드러난 여덟 글자만 센다.'],
+  },
+  // ── 《滴天髓闡微》 假從 편 — 저자가 假從이라 못박은 다섯 건 ──────────────────
+  // 假從은 정의상 비겁·인성이 남아 있는 형태라(「局中雖有劫印，亦自顧不暇」)
+  // 자당 몫이 밖으로 종하는 문턱(≤30%)보다 높게 나온다. 이 다섯은 규칙이
+  // 놓치는 자리를 통째로 보여 준다.
+  {
+    id: 'dtsm-jiacong-1',
+    pillars: { year: '癸巳', month: '乙卯', day: '己亥', hour: '癸酉' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 假從 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/48',
+      locator: '假從 — 格成棄命從殺 … 不作真從而論',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'pseudo-following', label: '假從殺' },
+    chartConstruction: 'consistent',
+  },
+  {
+    id: 'dtsm-jiacong-2',
+    pillars: { year: '丁丑', month: '壬寅', day: '丙申', hour: '壬辰' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 假從 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/48',
+      locator: '假從 — 嫩木逢金，緊貼相沖，運根拔盡 … 格成從殺，用財更妙',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'pseudo-following', label: '假從殺' },
+    chartConstruction: 'consistent',
+  },
+  {
+    id: 'dtsm-jiacong-3',
+    pillars: { year: '乙卯', month: '己卯', day: '戊辰', hour: '癸亥' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 假從 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/48',
+      locator: '假從 — 四柱絕無金氣 … 格取從官，非身衰論也',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'pseudo-following', label: '假從官' },
+    chartConstruction: 'consistent',
+  },
+  {
+    id: 'dtsm-jiacong-4-misprint',
+    pillars: { year: '丁卯', month: '丙寅', day: '辛亥', hour: '庚寅' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 假從 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/48',
+      locator: '假從 — 天干丙丁庚辛陰陽相克 … 日時寅亥化木，格取從殺',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'pseudo-following', label: '假從殺' },
+    chartConstruction: 'unrealizable',
+    caveats: [
+      '六丁년에 丙寅월은 없다(오호둔으로 壬寅) — 판본의 오배로 알려진 자리이고 바른 월주는 壬寅이다.',
+      '적어 둔 그대로 싣고 실재 불가로 표시한다. 고전 자료라고 이 검사에서 면제되지 않는다는 증거라 지우지 않는다.',
+    ],
+  },
+  {
+    id: 'dtsm-jiacong-5',
+    pillars: { year: '癸亥', month: '乙卯', day: '己未', hour: '丁卯' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 假從 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/48',
+      locator: '假從 — 春木當令會局 … 不得不從殺矣',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'pseudo-following', label: '假從殺' },
+    chartConstruction: 'consistent',
   },
 ] as const;
