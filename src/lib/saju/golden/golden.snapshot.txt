@@ -143,7 +143,7 @@
           vocabulary             data-only
           grounding              terms-must-appear-in-evidence
           hedge                  required-below-fact
-          attribution            required-for-reference
+          attribution            required-for-copied-tables
           disclosure             allowed-for-not-evaluated
           followingPattern       gated-by-external-check
           followingNegative      silent

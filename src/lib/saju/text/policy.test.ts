@@ -8,6 +8,7 @@ import {
   type FollowingPatternStatus,
 } from '@/src/lib/saju/analysis';
 import {
+  ATTRIBUTION_PATHS,
   CLAIM_CEILING,
   CLAIM_PATHS,
   CLAIM_STRENGTH_ORDER,
@@ -34,8 +35,17 @@ const HOURLESS = computeSaju({ year: 1990, month: 5, day: 20, hour: null, gender
 /** 이 명식에서 실제로 나온 관계 이름 */
 const relationNames = (saju: Saju) => saju.relations.map((relation) => relation.ko);
 
-const rules = (text: string, strength: Parameters<typeof checkSentence>[0]['strength'], grounded?: string[]) =>
-  checkSentence({ text, strength, grounded }).map((violation) => violation.rule);
+/**
+ * 근거를 안 적은 테스트는 사실 근거 하나로 둔다 — 금지 표현·완충 표현을 보는
+ * 자리는 무엇을 읽었는지가 답을 바꾸지 않는다. 바뀌는 것은 출처 의무뿐이라
+ * 그 테스트만 `paths` 를 직접 적는다.
+ */
+const rules = (
+  text: string,
+  strength: Parameters<typeof checkSentence>[0]['strength'],
+  grounded?: string[],
+  paths: readonly ClaimPath[] = ['pillars'],
+) => checkSentence({ text, paths, strength, grounded }).map((violation) => violation.rule);
 
 describe('문장 계약', () => {
   describe('강도는 근거에서 나온다', () => {
@@ -125,11 +135,47 @@ describe('문장 계약', () => {
     });
 
     it('옮겨 적은 표는 출처를 밝혀야 한다', () => {
-      const strength = ceilingFor({ paths: ['analysis.johu'] });
+      const johu: readonly ClaimPath[] = ['analysis.johu'];
+      const strength = ceilingFor({ paths: johu });
 
       expect(strength).toBe('reference');
-      expect(rules('조후로는 병화를 참고합니다.', strength)).toContain('missing-attribution');
-      expect(rules('《궁통보감》 표는 병화를 참고로 듭니다.', strength)).toHaveLength(0);
+      expect(rules('조후로는 병화를 참고합니다.', strength, [], johu)).toContain('missing-attribution');
+      expect(rules('《궁통보감》 표는 병화를 참고로 듭니다.', strength, [], johu)).toHaveLength(0);
+    });
+
+    /**
+     * 출처 의무를 강도로 걸었다가 걸린 자리다. **시간 미상이면 억부가 한 칸
+     * 내려와 조후와 같은 칸에 앉는다** — 그때 출처를 요구하면 억부 문장은 인용할
+     * 표가 없어서 통째로 막히고, "시간을 모르면 억부를 말하지 않는다"는 결정을
+     * 내린 적이 없는데 그렇게 굳는다. 사다리는 주장의 세기고 출처 의무는 읽은
+     * 근거라 두 축이다.
+     */
+    it('같은 칸에 앉아도 옮겨 적은 표가 아니면 출처를 요구하지 않는다', () => {
+      const eokbu: readonly ClaimPath[] = ['analysis.eokbu'];
+      const strength = ceilingFor({ paths: eokbu, hourKnown: false });
+
+      expect(strength).toBe(ceilingFor({ paths: ['analysis.johu'] }));
+      expect(rules('억부 관점의 후보로 참고만 합니다.', strength, [], eokbu)).toHaveLength(0);
+
+      // 같은 문장·같은 강도라도 조후를 읽었다면 출처를 대야 한다.
+      expect(
+        rules('억부 관점의 후보로 참고만 합니다.', strength, [], ['analysis.johu']),
+      ).toContain('missing-attribution');
+    });
+
+    it('종격도 시간 미상에서 출처를 요구받지 않는다', () => {
+      const following: readonly ClaimPath[] = ['analysis.following'];
+
+      expect(
+        rules('종격은 후보로 참고만 합니다.', ceilingFor({ paths: following, hourKnown: false }), [], following),
+      ).toHaveLength(0);
+    });
+
+    it('출처를 요구하는 근거는 상한 표에 있는 것뿐이다', () => {
+      // 근거 이름이 바뀌면 여기서 걸린다 — 조용히 아무도 요구받지 않게 되는 것을 막는다.
+      for (const path of ATTRIBUTION_PATHS) {
+        expect(CLAIM_PATHS as readonly string[], path).toContain(path);
+      }
     });
 
     it('사실 문장은 완충 표현을 요구하지 않는다', () => {
@@ -260,7 +306,7 @@ describe('문장 계약', () => {
       expect(known).toBeDefined();
 
       const strength = ceilingFor({ paths: known!.paths });
-      const violated: TextViolationRule[] = rules(CHART.analysis.eokbu.reason, strength);
+      const violated: TextViolationRule[] = rules(CHART.analysis.eokbu.reason, strength, [], known!.paths);
 
       expect(violated).toContain(known!.violates);
     });

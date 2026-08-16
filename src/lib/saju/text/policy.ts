@@ -38,7 +38,7 @@ import { TWELVE_STAGE_KO } from '../stages';
  * 무시한다고 코드에 적어야 한다. **자연어에는 그 장치가 없다.** 문장은 아무거나
  * 말할 수 있고, 틀리게 말해도 타입이 빨개지지 않는다. 그래서 계약이 먼저다.
  *
- * 여기서 정한 넷:
+ * 여기서 정한 다섯:
  *
  * 1. **강도는 손으로 적지 않는다.** 조각이 `strength: 'fact'` 를 직접 타이핑하면
  *    막을 방법이 없다. 조각은 **어느 출처를 읽었는지**만 밝히고, 강도는
@@ -53,6 +53,9 @@ import { TWELVE_STAGE_KO } from '../stages';
  *    않습니다" 같은 미판정 고지 문형 안에서는 허용한다. 귀문·원진을 신살 표에
  *    다시 적은 것과 같은 이유다 — 다른 만세력에 있는 항목이 통째로 없으면
  *    빠뜨린 것처럼 보이고, 실제로 그 질문을 받았다.
+ * 5. **출처 의무는 강도가 아니라 근거에서 나온다.** 옮겨 적은 표를 읽었다는 것은
+ *    근거의 **종류**이지 주장의 세기가 아니다. 사다리에서 같은 칸에 앉았다고
+ *    같은 의무를 지지 않는다 — `ATTRIBUTION_PATHS` 참조.
  *
  * 아직 없는 것: 조각 스키마, 조립기, 생성기. 이 파일이 그 셋의 입력 조건이다.
  */
@@ -181,8 +184,21 @@ export const CLAIM_CEILING: Record<ClaimPath, ClaimStrength> = {
   'analysis.johu': 'reference',
 };
 
-/** 출처를 문장 안에 밝혀야 하는 강도 */
-export const ATTRIBUTION_REQUIRED: readonly ClaimStrength[] = ['reference'];
+/**
+ * 출처를 문장 안에 밝혀야 하는 **근거**.
+ *
+ * 전에는 강도로 걸었다(`reference` 면 출처 요구). 조각 스키마를 짜다가 그것이
+ * 틀렸다는 것이 드러났다 — **시간 미상이면 억부(`candidate`)가 한 칸 내려와
+ * `reference` 가 된다.** 그러면 궁통보감을 인용하지 않은 억부 문장이 통째로
+ * 막히고, 억부는 조후표에서 나온 값이 아니므로 인용할 출처 자체가 없다.
+ * 실질적으로 "시간을 모르면 억부를 말하지 않는다"가 되는데 그런 결정을 내린 적이
+ * 없다. 종격도 같은 자리에 걸린다.
+ *
+ * 사다리는 **이 명식에 대한 주장의 세기**를 재는 줄이고, 출처 의무는 **무엇을
+ * 읽었는가**에서 나온다. 두 축이라 한 축으로 겸해 쓸 수 없다. 같은 칸에
+ * 앉았다고 같은 의무를 지지 않는다.
+ */
+export const ATTRIBUTION_PATHS: readonly ClaimPath[] = ['analysis.johu'];
 
 /**
  * 종격 판정 넷 중 문장을 만들지 않는 것.
@@ -277,7 +293,7 @@ export const REQUIRED_HEDGES: Record<Exclude<ClaimStrength, 'fact' | 'silent'>, 
   reference: ['참고', '고전', '표는', '원문', '출처'],
 };
 
-/** `reference` 문장이 밝혀야 하는 출처의 이름 */
+/** 표를 옮겨 적은 문장이 밝혀야 하는 출처의 이름 */
 export const ATTRIBUTION_TERMS: readonly string[] = ['궁통보감', '적천수', '자평진전', '삼명통회', '천리명고'];
 
 export type ForbiddenClaim = {
@@ -458,7 +474,16 @@ export type TextViolation = {
 
 export type SentenceCheck = {
   text: string;
-  /** `ceilingFor` 가 낸 값을 그대로 넣는다 */
+  /**
+   * 이 문장이 읽은 근거들 — **옵셔널이 아니다.**
+   *
+   * 무엇을 읽고 한 말인지 모르면 자격을 따질 수 없다. 강도만 받으면 검사기가
+   * 근거를 강도에서 되짚어야 하는데 그 되짚기가 불가능하다는 것이
+   * `ATTRIBUTION_PATHS` 에 적힌 사고다 — 같은 `reference` 가 조후에서도 오고
+   * 시간 미상의 억부에서도 온다.
+   */
+  paths: readonly ClaimPath[];
+  /** `ceilingFor`(종격이면 `ceilingForFollowing`)가 낸 값을 그대로 넣는다 */
   strength: ClaimStrength;
   /**
    * 이 문장이 근거로 쥔 용어들 — `relation.ko`, `TEN_GOD_KO[...]` 처럼
@@ -516,7 +541,7 @@ function insideGroundedTerm(text: string, at: number, length: number, evidence: 
  * 명리적으로 맞는지는 L2 가 이미 답했거나 아직 답하지 않은 것이고, 그 둘의
  * 구분이 곧 `strength` 다.
  */
-export function checkSentence({ text, strength, grounded = [] }: SentenceCheck): TextViolation[] {
+export function checkSentence({ text, paths, strength, grounded = [] }: SentenceCheck): TextViolation[] {
   const violations: TextViolation[] = [];
 
   if (strength === 'silent') {
@@ -555,7 +580,8 @@ export function checkSentence({ text, strength, grounded = [] }: SentenceCheck):
     }
   }
 
-  if (ATTRIBUTION_REQUIRED.includes(strength) && !ATTRIBUTION_TERMS.some((s) => text.includes(s))) {
+  const copiesTable = paths.some((path) => ATTRIBUTION_PATHS.includes(path));
+  if (copiesTable && !ATTRIBUTION_TERMS.some((s) => text.includes(s))) {
     violations.push({
       rule: 'missing-attribution',
       detail: `옮겨 적은 표는 출처를 밝혀야 한다 — ${ATTRIBUTION_TERMS.join('·')}.`,
@@ -616,8 +642,8 @@ export const TEXT_POLICY = {
   grounding: 'terms-must-appear-in-evidence',
   /** 사실이 아닌 강도는 완충 표현 없이 통과하지 못한다 */
   hedge: 'required-below-fact',
-  /** 옮겨 적은 표는 출처를 밝힌다 */
-  attribution: 'required-for-reference',
+  /** 옮겨 적은 표는 출처를 밝힌다 — 강도가 아니라 읽은 근거로 건다 */
+  attribution: 'required-for-copied-tables',
   /** 판정하지 않는 것은 "판정하지 않는다"고 말할 수 있다 */
   disclosure: 'allowed-for-not-evaluated',
   /** 종격 문장의 상한은 외부 대조 게이트를 따라간다 */
