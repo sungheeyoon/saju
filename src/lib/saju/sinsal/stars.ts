@@ -67,6 +67,7 @@ export type StarKind =
   | 'gwangwiHakgwan'
   | 'hyeonchim'
   | 'cheonmun'
+  | 'cheonui'
   | 'taegeukGwiin'
   | 'yeokma'
   | 'dohwa'
@@ -123,7 +124,7 @@ export const DEFAULT_YIN_YANGIN = false;
  * 정책이 바뀌면 골든 스냅샷 맨 위에서 먼저 드러난다.
  */
 export const SINSAL_POLICY = {
-  ruleSet: 'sourced-sinsal-v4',
+  ruleSet: 'sourced-sinsal-v5',
   /** 천을·문창·금여·양인은 일간 기준 (년간 기준 계통은 채택하지 않는다) */
   stemBasis: 'day-master',
   /** 공망은 일주·년주 기준을 모두 낸다 */
@@ -154,6 +155,8 @@ export const SINSAL_POLICY = {
   hyeonchim: 'wuxing-jingji-five-glyphs-minimum-three',
   /** 천문은 당사주 天文이나 천의성 별칭이 아니라 戌亥가 함께 이루는 天門 */
   cheonmun: 'xu-hai-pair-heavenly-gate',
+  /** 천의성은 월지의 앞 지지. 지지에 없을 때 천간으로 대신 보는 변형은 안 쓴다 */
+  cheonui: 'month-branch-previous-branch-only',
   /** 태극귀인은 《연해자평》 원문대로 년간만 기준으로 삼는다 */
   taegeuk: 'year-stem-yuanhai-ziping',
 } as const;
@@ -217,6 +220,24 @@ export const HONGYEOM_BRANCH: Record<Stem, Branch> = {
 };
 
 export const hongyeomBranchOf = (stem: Stem): Branch => HONGYEOM_BRANCH[stem];
+
+/**
+ * 천의성(天醫星) — 월지의 바로 앞 지지.
+ *
+ * 이 저장소의 신살 가운데 **월지를 기준으로 삼는 유일한 항목**이다(천덕·월덕도
+ * 월지에서 나오지만 그쪽은 표를 조회한다). 규칙이 "한 칸 뒤로"뿐이라 표를
+ * 두지 않는다.
+ *
+ * 이름이 비슷한 천문성(天門星 = 戌亥)과 다른 별이다. 한국 자료가 둘을 섞어
+ * 쓰는 일이 잦아 `SINSAL_POLICY` 에 둘의 근거를 따로 적어 둔다.
+ *
+ * **지지에 없으면 천간으로 대신 본다는 변형은 쓰지 않는다**
+ * (`SINSAL_POLICY.cheonui`). 월지 亥의 천의는 子인데 子가 없으면 천간 癸를
+ * 천의로 본다는 계통이 있다. 그 변형을 켜면 같은 신살이 지지 신살인지 천간
+ * 신살인지 흐려지고, 오행이 같다는 이유로 글자를 갈아 끼우는 셈이 된다.
+ */
+export const cheonuiBranchOf = (monthBranch: Branch): Branch =>
+  BRANCHES[(branchIndexOf(monthBranch) + BRANCHES.length - 1) % BRANCHES.length];
 
 /**
  * 학당귀인(學堂貴人) — 일간의 장생지 그 자리.
@@ -700,6 +721,15 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       nature: 'neutral',
       basis: null,
       hits: cheonmunComplete ? cheonmunHits : [],
+    },
+    {
+      id: 'cheonui',
+      kind: 'cheonui',
+      ko: '천의성',
+      hanja: '天醫星',
+      nature: 'auspicious',
+      basis: { label: '월지', char: pillars.month.branch },
+      hits: branchHits(pillars, [cheonuiBranchOf(pillars.month.branch)]),
     },
     {
       id: 'taegeukGwiin',

@@ -25,6 +25,7 @@ import {
   TWELVE_SPIRITS,
   amrokBranchOf,
   analyzeSinsal,
+  cheonuiBranchOf,
   emptyBranchesOf,
   findEmptiness,
   findStars,
@@ -272,6 +273,37 @@ describe('록지에서 유도한 네 신살이 통설 표와 맞는가', () => {
     expect(hongyeomBranchOf(stem)).toBe(HONGYEOM[stem]);
   });
 
+  /**
+   * 천의성은 월지의 바로 앞 지지다. 표가 아니라 한 칸 뒤로이므로 열두 월지를
+   * 전수로 돌려 어긋난 칸이 없는지 본다.
+   */
+  it.each(BRANCHES)('월지 %s 의 천의성은 바로 앞 지지다', (branch) => {
+    const expected = BRANCHES[(BRANCHES.indexOf(branch) + 11) % 12];
+
+    expect(cheonuiBranchOf(branch)).toBe(expected);
+    // 자기 자신이 천의가 되는 월지는 없다 — 열두 자리가 한 칸씩 밀린 순환이다.
+    expect(cheonuiBranchOf(branch)).not.toBe(branch);
+  });
+
+  it('천의성은 이름이 비슷한 천문성과 다른 항목이다', () => {
+    // 월지 亥의 천의는 戌이지만, 천문성은 戌亥가 함께 있어야 성립한다.
+    expect(cheonuiBranchOf('亥')).toBe('戌');
+    expect(SINSAL_POLICY.cheonui).toContain('month-branch');
+    expect(SINSAL_POLICY.cheonmun).toContain('xu-hai-pair');
+
+    // 월지 申 → 천의 未. 원국에 未가 없으면 항목 자체가 나오지 않는다.
+    const stars = findStars(chart('丙子', '丙申', '癸卯', '庚申'));
+    expect(starOf(stars, 'cheonui')).toBeUndefined();
+
+    // 시지를 未로 바꾸면 그 자리에 걸린다.
+    const withCheonui = findStars(chart('丙子', '丙申', '癸卯', '己未'));
+    expect(starOf(withCheonui, 'cheonui')).toMatchObject({
+      nature: 'auspicious',
+      basis: { label: '월지', char: '申' },
+      hits: [{ position: 'hour', target: 'branch', char: '未' }],
+    });
+  });
+
   it('천을귀인은 열 천간 모두 두 지지씩이다', () => {
     for (const stem of STEMS) {
       expect(CHEONEUL_BRANCHES[stem]).toHaveLength(2);
@@ -398,6 +430,7 @@ describe('원국에서 신살 찾기', () => {
     // 일지 子(申子辰) 기준으로 시지 寅이 역마라 그것도 함께 나온다.
     // 일간 甲 → 홍염 午, 년지가 午다. 암록 亥는 없어서 안 나온다.
     // 년지 午 · 월지 丑이 축오라 귀문·원진이 둘 다 걸린다(관계 표에서 옮겨 온 값).
+    // 월지 丑의 앞 지지는 子 — 일지가 子라 천의성도 걸린다.
     const stars = findStars(chart('庚午', '丁丑', '甲子', '丙寅'));
 
     expect(stars.map((s) => s.kind)).toEqual([
@@ -409,6 +442,7 @@ describe('원국에서 신살 찾기', () => {
       'woldeokGwiin',
       'hongyeom',
       'baekho',
+      'cheonui',
       'taegeukGwiin',
     ]);
     expect(starOf(stars, 'cheoneulGwiin')).toMatchObject({
@@ -555,7 +589,7 @@ describe('묶음과 정책', () => {
 
   it('채택한 규칙 묶음을 결과 곁에 남긴다', () => {
     expect(SINSAL_POLICY).toEqual({
-      ruleSet: 'sourced-sinsal-v4',
+      ruleSet: 'sourced-sinsal-v5',
       stemBasis: 'day-master',
       hakdang: 'from-twelve-stages',
       amrok: 'six-combination-of-prosperity',
@@ -564,6 +598,7 @@ describe('묶음과 정책', () => {
       gwangwiHakgwan: 'day-master-classic-five-element-growth',
       hyeonchim: 'wuxing-jingji-five-glyphs-minimum-three',
       cheonmun: 'xu-hai-pair-heavenly-gate',
+      cheonui: 'month-branch-previous-branch-only',
       taegeuk: 'year-stem-yuanhai-ziping',
       emptinessBasis: 'day-and-year',
       spiritBasis: 'year-and-day',

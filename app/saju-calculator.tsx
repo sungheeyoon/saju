@@ -600,8 +600,37 @@ const STAR_NATURE_KO: Record<StarNature, string> = {
   neutral: '특수',
 };
 
+/**
+ * 12신살에서 옮겨 온 셋 — 기준마다 걸린 자리가 없을 수 있다.
+ *
+ * 걸린 자리가 없으면 항목이 아예 안 나오는데, 그러면 "계산했는데 없다"와
+ * "여기서는 안 본다"가 화면에서 같아 보인다. 도화를 년지 기준으로만 보는
+ * 만세력과 결과를 맞춰볼 때 바로 이 구분이 필요하다. 그래서 없는 기준을
+ * 따로 적어 준다. 값은 12신살 결과에서 그대로 읽으므로 신살 표와 갈릴 수 없다.
+ */
+const RESTATED_SPIRIT_KO: Record<string, string> = {
+  驛馬殺: '역마',
+  年殺: '도화',
+  華蓋殺: '화개',
+};
+
+function missingSpiritNotes(saju: Saju): string[] {
+  return saju.sinsal.twelveSpirits.flatMap((chart) => {
+    const present = new Set(PILLAR_COLUMNS.map(({ key }) => chart.byPosition[key]));
+    const missing = Object.entries(RESTATED_SPIRIT_KO)
+      .filter(([spirit]) => !present.has(spirit as never))
+      .map(([, ko]) => ko);
+
+    if (missing.length === 0) return [];
+    return [
+      `${SPIRIT_BASIS_KO[chart.basis]} ${chart.basisBranch} 기준으로는 ${missing.join('·')}가 걸린 자리가 없습니다.`,
+    ];
+  });
+}
+
 function StarTable({ saju }: { saju: Saju }) {
   const { stars } = saju.sinsal;
+  const missingSpirits = missingSpiritNotes(saju);
 
   /** 자리·대상별로 나눠 담는다 — 한 신살이 여러 칸에 걸릴 수 있다 */
   const at = (target: StarTarget, position: PillarPosition) =>
@@ -694,6 +723,14 @@ function StarTable({ saju }: { saju: Saju }) {
             })}
           </dl>
         </>
+      )}
+
+      {missingSpirits.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-0.5 border-t border-border pt-3 text-xs text-secondary">
+          {missingSpirits.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
       )}
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
