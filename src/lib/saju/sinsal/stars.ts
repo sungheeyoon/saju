@@ -1,6 +1,7 @@
 import {
   BRANCHES,
   BRANCH_DIRECTIONAL_COMBINATIONS,
+  BRANCH_SIX_COMBINATIONS,
   BRANCH_TRIPLE_COMBINATIONS,
   STEM_INFO,
   type Branch,
@@ -35,10 +36,10 @@ import {
  * 계산하면 언젠가 어긋나고, 어긋난 쪽이 어느 쪽인지 알 수 없게 된다.
  * 기준이 갈리므로 년지 기준과 일지 기준을 각각 한 항목으로 낸다.
  *
- * **문창·금여·양인은 표를 두지 않고 록지(建祿)에서 센다.** 셋 다 록지를 축으로
- * 한 칸·두 칸·세 칸 떨어진 자리다.
+ * **문창·금여·양인·암록은 표를 두지 않고 록지(建祿)에서 센다.** 넷 다 록지를
+ * 축으로 정해진다.
  *
- *   양인 = 록 + 1   금여 = 록 + 2   문창 = 록 + 3
+ *   양인 = 록 + 1   금여 = 록 + 2   문창 = 록 + 3   암록 = 록의 육합
  *
  * 열 천간 모두에서 통설 표와 일치하며, 테스트가 표 전체를 대조한다. 표를
  * 따로 옮겨 적으면 록지 표와 어긋날 수 있어 유도하는 편을 택했다.
@@ -51,6 +52,8 @@ export type StarKind =
   | 'munchangGwiin'
   | 'hakdangGwiin'
   | 'geumyeo'
+  | 'amrok'
+  | 'hongyeom'
   | 'yangin'
   | 'goegang'
   | 'baekho'
@@ -113,7 +116,7 @@ export const DEFAULT_YIN_YANGIN = false;
  * 정책이 바뀌면 골든 스냅샷 맨 위에서 먼저 드러난다.
  */
 export const SINSAL_POLICY = {
-  ruleSet: 'sourced-sinsal-v2',
+  ruleSet: 'sourced-sinsal-v3',
   /** 천을·문창·금여·양인은 일간 기준 (년간 기준 계통은 채택하지 않는다) */
   stemBasis: 'day-master',
   /** 공망은 일주·년주 기준을 모두 낸다 */
@@ -130,6 +133,10 @@ export const SINSAL_POLICY = {
   pillarStarScope: 'all-pillars',
   /** 학당귀인은 12운성 장생지에서 가져온다 — 표를 따로 두지 않는다 */
   hakdang: 'from-twelve-stages',
+  /** 암록은 건록의 육합 — 표를 따로 두지 않는다 */
+  amrok: 'six-combination-of-prosperity',
+  /** 홍염은 정통표 한 벌만. 甲乙庚壬에 申을 더하는 계통은 넣지 않는다 */
+  hongyeom: 'day-master-classic-table',
   /** 고신·과숙은 년지 기준이고 성별로 가르지 않는다 */
   loneliness: 'year-branch-both-genders',
   /** 관귀학관은 《삼명통회》의 오행 장생표 — 水土가 함께 申에서 장생한다 */
@@ -156,6 +163,51 @@ export const geumyeoBranchOf = (stem: Stem): Branch => fromProsperity(stem, 2);
 
 /** 문창귀인(文昌貴人) — 록에서 세 칸. 글재주로 본다 */
 export const munchangBranchOf = (stem: Stem): Branch => fromProsperity(stem, 3);
+
+/**
+ * 암록(暗祿) — 건록의 육합 상대. 드러나지 않는 도움으로 본다.
+ *
+ * 여기서도 표를 옮기지 않는다. 정의 자체가 "록지와 육합하는 자리"라서
+ * 록지 표와 육합 표에서 곧장 나오고, 유도값이 통설표(甲亥·乙戌·丙申·丁未·
+ * 戊申·己未·庚巳·辛辰·壬寅·癸丑)와 열 천간 모두 일치한다.
+ */
+export const amrokBranchOf = (stem: Stem): Branch => {
+  const prosperity = STEM_PROSPERITY[stem];
+  const combination = BRANCH_SIX_COMBINATIONS.find((c) => c.branches.includes(prosperity));
+  // 육합 여섯 쌍이 열두 지지를 남김없이 덮으므로 여기에 걸릴 록지는 없다.
+  if (!combination) throw new Error(`육합 상대가 없는 록지: ${prosperity}`);
+
+  return combination.branches[0] === prosperity
+    ? combination.branches[1]
+    : combination.branches[0];
+};
+
+/**
+ * 홍염살(紅艶殺) — 일간이 만나는 지지. 사람을 끌어당기는 매력으로 본다.
+ *
+ * 도화(연살)와 달리 삼합국에서 유도되지 않아 표를 옮겨 적을 수밖에 없다.
+ * 甲乙庚壬에 申을 더하는 계통이 따로 있으나(`SINSAL_POLICY.hongyeom`),
+ * 여기서는 널리 쓰이는 정통표 한 벌만 둔다 — 두 계통을 합치면 같은 이름으로
+ * 두 자리가 걸려 어느 표에서 나왔는지 알 수 없게 된다.
+ *
+ * 이름에 살(殺)이 붙지만 길흉으로 가르지 않는다(`neutral`). 도화를 12신살에서
+ * 중립으로 두는 것과 같은 이유로, 매력을 복으로 읽을지 화로 읽을지가 계통마다
+ * 갈린다.
+ */
+export const HONGYEOM_BRANCH: Record<Stem, Branch> = {
+  甲: '午',
+  乙: '午',
+  丙: '寅',
+  丁: '未',
+  戊: '辰',
+  己: '辰',
+  庚: '戌',
+  辛: '酉',
+  壬: '子',
+  癸: '申',
+};
+
+export const hongyeomBranchOf = (stem: Stem): Branch => HONGYEOM_BRANCH[stem];
 
 /**
  * 학당귀인(學堂貴人) — 일간의 장생지 그 자리.
@@ -493,6 +545,24 @@ export function findStars(pillars: StarInput, options: StarOptions = {}): Star[]
       nature: 'auspicious',
       basis: { label: '일간', char: dayMaster },
       hits: branchHits(pillars, [geumyeoBranchOf(dayMaster)]),
+    },
+    {
+      id: 'amrok',
+      kind: 'amrok',
+      ko: '암록',
+      hanja: '暗祿',
+      nature: 'auspicious',
+      basis: { label: '일간', char: dayMaster },
+      hits: branchHits(pillars, [amrokBranchOf(dayMaster)]),
+    },
+    {
+      id: 'hongyeom',
+      kind: 'hongyeom',
+      ko: '홍염살',
+      hanja: '紅艶殺',
+      nature: 'neutral',
+      basis: { label: '일간', char: dayMaster },
+      hits: branchHits(pillars, [hongyeomBranchOf(dayMaster)]),
     },
     {
       id: 'yangin',

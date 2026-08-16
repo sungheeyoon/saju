@@ -5,11 +5,13 @@ import {
   BRANCHES,
   SEXAGENARY,
   STEMS,
+  findBranchSixCombination,
   pillarOf,
   type Branch,
   type Stem,
 } from '@/src/lib/saju/constants';
 import { PILLAR_POSITIONS } from '@/src/lib/saju/position';
+import { STEM_PROSPERITY } from '@/src/lib/saju/stages';
 import {
   BAEKHO_PILLARS,
   CHEONEUL_BRANCHES,
@@ -20,6 +22,7 @@ import {
   SINSAL_POLICY,
   TAEGEUK_BRANCHES,
   TWELVE_SPIRITS,
+  amrokBranchOf,
   analyzeSinsal,
   emptyBranchesOf,
   findEmptiness,
@@ -28,6 +31,7 @@ import {
   geumyeoBranchOf,
   gwangwiHakgwanBranchOf,
   hakdangBranchOf,
+  hongyeomBranchOf,
   lonelinessBranchesOf,
   munchangBranchOf,
   twelveSpiritBranchesOf,
@@ -41,7 +45,7 @@ import {
 /**
  * 공망 · 12신살 · 출처를 고정한 핵심 신살 테스트.
  *
- * 문창·금여·양인은 록지에서 셌으므로 통설 표와의 대조가 본론이다.
+ * 문창·금여·양인·암록은 록지에서 셌으므로 통설 표와의 대조가 본론이다.
  * 공망과 12신살은 유도가 단순한 대신 시작점이 틀리면 열두 자리가 통째로
  * 한 칸씩 밀리므로, 각 국의 전체 배치를 못박는다.
  */
@@ -213,7 +217,7 @@ describe('12신살 — 국마다 열두 자리', () => {
 // 핵심 신살 — 통설 표와의 대조
 // ─────────────────────────────────────────────────────────────
 
-describe('록지에서 유도한 세 신살이 통설 표와 맞는가', () => {
+describe('록지에서 유도한 네 신살이 통설 표와 맞는가', () => {
   const MUNCHANG: Record<Stem, Branch> = {
     甲: '巳', 乙: '午', 丙: '申', 丁: '酉', 戊: '申',
     己: '酉', 庚: '亥', 辛: '子', 壬: '寅', 癸: '卯',
@@ -224,6 +228,10 @@ describe('록지에서 유도한 세 신살이 통설 표와 맞는가', () => {
   };
   const YANGIN: Partial<Record<Stem, Branch>> = {
     甲: '卯', 丙: '午', 戊: '午', 庚: '酉', 壬: '子',
+  };
+  const AMROK: Record<Stem, Branch> = {
+    甲: '亥', 乙: '戌', 丙: '申', 丁: '未', 戊: '申',
+    己: '未', 庚: '巳', 辛: '辰', 壬: '寅', 癸: '丑',
   };
 
   it.each(STEMS)('%s 의 문창귀인', (stem) => {
@@ -236,6 +244,31 @@ describe('록지에서 유도한 세 신살이 통설 표와 맞는가', () => {
 
   it.each(Object.keys(YANGIN) as Stem[])('%s 의 양인', (stem) => {
     expect(yanginBranchOf(stem)).toBe(YANGIN[stem]);
+  });
+
+  it.each(STEMS)('%s 의 암록', (stem) => {
+    expect(amrokBranchOf(stem)).toBe(AMROK[stem]);
+  });
+
+  /**
+   * 암록의 정의 자체가 "건록과 육합하는 자리"다. 표를 옮겨 적은 것이 아니라
+   * 그 정의로 계산한다는 사실을 못박아 둔다 — 육합 표가 바뀌면 여기서 걸린다.
+   */
+  it.each(STEMS)('%s 의 암록은 건록과 육합한다', (stem) => {
+    expect(findBranchSixCombination(STEM_PROSPERITY[stem], amrokBranchOf(stem))).not.toBeNull();
+  });
+
+  /**
+   * 홍염은 삼합국에서 유도되지 않아 표를 옮길 수밖에 없다. 옮긴 표가 맞는지와
+   * 도화(연살)와 다른 자리를 가리키는지를 함께 본다 — 둘 다 매력으로 읽는
+   * 신살이라 같은 것으로 뭉뚱그리기 쉽다.
+   */
+  it.each(STEMS)('%s 의 홍염살', (stem) => {
+    const HONGYEOM: Record<Stem, Branch> = {
+      甲: '午', 乙: '午', 丙: '寅', 丁: '未', 戊: '辰',
+      己: '辰', 庚: '戌', 辛: '酉', 壬: '子', 癸: '申',
+    };
+    expect(hongyeomBranchOf(stem)).toBe(HONGYEOM[stem]);
   });
 
   it('천을귀인은 열 천간 모두 두 지지씩이다', () => {
@@ -362,6 +395,7 @@ describe('원국에서 신살 찾기', () => {
     // 월지 丑 → 천덕도 월덕도 庚인데, 년간이 庚이라 둘 다 년주에서 걸린다.
     // 월주 丁丑은 그 자체로 백호다.
     // 일지 子(申子辰) 기준으로 시지 寅이 역마라 그것도 함께 나온다.
+    // 일간 甲 → 홍염 午, 년지가 午다. 암록 亥는 없어서 안 나온다.
     const stars = findStars(chart('庚午', '丁丑', '甲子', '丙寅'));
 
     expect(stars.map((s) => s.kind)).toEqual([
@@ -369,6 +403,7 @@ describe('원국에서 신살 찾기', () => {
       'cheoneulGwiin',
       'cheondeokGwiin',
       'woldeokGwiin',
+      'hongyeom',
       'baekho',
       'taegeukGwiin',
     ]);
@@ -483,9 +518,11 @@ describe('묶음과 정책', () => {
 
   it('채택한 규칙 묶음을 결과 곁에 남긴다', () => {
     expect(SINSAL_POLICY).toEqual({
-      ruleSet: 'sourced-sinsal-v2',
+      ruleSet: 'sourced-sinsal-v3',
       stemBasis: 'day-master',
       hakdang: 'from-twelve-stages',
+      amrok: 'six-combination-of-prosperity',
+      hongyeom: 'day-master-classic-table',
       loneliness: 'year-branch-both-genders',
       gwangwiHakgwan: 'day-master-classic-five-element-growth',
       hyeonchim: 'wuxing-jingji-five-glyphs-minimum-three',

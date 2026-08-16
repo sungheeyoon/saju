@@ -5,6 +5,7 @@ import {
   BRANCH_TRIPLE_COMBINATIONS,
   findBranchClash,
   findBranchDestruction,
+  findBranchGhostGate,
   findBranchHarm,
   findBranchResentment,
   findBranchSixCombination,
@@ -68,6 +69,7 @@ export const RELATION_KIND_KO: Record<RelationKind, string> = {
   branchHarm: '해',
   branchDestruction: '파',
   branchResentment: '원진',
+  branchGhostGate: '귀문',
 };
 
 /**
@@ -78,7 +80,7 @@ export const RELATION_KIND_KO: Record<RelationKind, string> = {
  * 골든 스냅샷이 이 값을 찍으므로, 정책이 바뀌면 diff 맨 위에 드러난다.
  */
 export const RELATION_POLICY = {
-  ruleSet: 'visible-relations-v1',
+  ruleSet: 'visible-relations-v2',
   /** 떨어진 기둥끼리도 전부 검출하고 거리만 기록한다 */
   distantRelations: 'detect-all',
   /** 반쪽은 왕지를 낀 것만 — 삼합·방합 공통. 삼형에는 왕지가 없어 조건이 없다 */
@@ -87,9 +89,11 @@ export const RELATION_POLICY = {
   interactionResolution: 'contest-only',
   /** 지장간은 관계 검출에 쓰지 않는다 (데이터는 그대로 있다) */
   hiddenStemRelations: 'disabled',
+  /** 귀문은 원진과 합치지 않는다 — 겹치는 네 쌍에서 두 줄이 함께 나온다 */
+  ghostGate: 'separate-from-resentment',
 } as const;
 
-/** 정렬 기준 — 합을 먼저, 그다음 충·형·해·파·원진 */
+/** 정렬 기준 — 합을 먼저, 그다음 충·형·해·파·원진·귀문 */
 const KIND_ORDER: readonly RelationKind[] = [
   'stemCombination',
   'branchSixCombination',
@@ -101,6 +105,7 @@ const KIND_ORDER: readonly RelationKind[] = [
   'branchHarm',
   'branchDestruction',
   'branchResentment',
+  'branchGhostGate',
 ];
 
 /**
@@ -481,6 +486,20 @@ function branchPairRelations(slots: readonly Slot[]): Relation[] {
       );
     }
 
+    // 귀문은 원진과 네 쌍이 겹친다. 겹치는 자리에서는 두 줄이 함께 나온다 —
+    // 어느 표에서 나온 사실인지 목록에서 지워지면 안 되기 때문이다.
+    const ghostGate = findBranchGhostGate(a.branch, b.branch);
+    if (ghostGate) {
+      found.push(
+        makeRelation({
+          kind: 'branchGhostGate',
+          tier: 'branch',
+          ko: ghostGate.ko,
+          slots: pair,
+        }),
+      );
+    }
+
     return found;
   });
 }
@@ -700,7 +719,7 @@ function compareRelations(a: Relation, b: Relation): number {
 /**
  * 원국 안에서 성립하는 모든 관계를 찾는다.
  *
- * 순서는 결정적이다 — 종류(합 → 충 → 형 → 해 → 파 → 원진), 온전함, 자리 순.
+ * 순서는 결정적이다 — 종류(합 → 충 → 형 → 해 → 파 → 원진 → 귀문), 온전함, 자리 순.
  *
  * **시간 미상이면 시주가 빠진 채로 계산된다.** 실제보다 관계가 적게 나오므로,
  * 없는 관계가 아니라 알 수 없는 관계라는 점을 쓰는 쪽에서 밝혀야 한다.

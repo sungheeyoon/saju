@@ -3,7 +3,7 @@ import type { Element } from './elements';
 import type { Stem } from './stems';
 
 /**
- * 간지 간의 관계 — 합(合)·충(沖)·형(刑)·해(害)·파(破)·원진(怨嗔).
+ * 간지 간의 관계 — 합(合)·충(沖)·형(刑)·해(害)·파(破)·원진(怨嗔)·귀문(鬼門).
  *
  * L2 관계 연산이 이 테이블을 조회해 근거 목록을 만든다.
  * 모든 쌍은 순서 무관(무향)으로 취급하며, 조회 헬퍼가 양방향을 처리한다.
@@ -20,7 +20,8 @@ export type RelationKind =
   | 'branchPunishment'
   | 'branchHarm'
   | 'branchDestruction'
-  | 'branchResentment';
+  | 'branchResentment'
+  | 'branchGhostGate';
 
 // ─────────────────────────────────────────────────────────────
 // 천간
@@ -116,7 +117,7 @@ export const BRANCH_DIRECTIONAL_COMBINATIONS: readonly BranchDirectionalCombinat
 ];
 
 // ─────────────────────────────────────────────────────────────
-// 지지 — 충·형·해·파·원진
+// 지지 — 충·형·해·파·원진·귀문
 // ─────────────────────────────────────────────────────────────
 
 export type BranchPair = {
@@ -187,6 +188,28 @@ export const BRANCH_RESENTMENTS: readonly BranchPair[] = [
   { branches: ['巳', '戌'], ko: '사술원진' },
 ];
 
+/**
+ * 귀문관살(鬼門關殺) 6 — 원진과 **네 쌍이 같고 두 쌍이 다르다**.
+ *
+ *   귀문  子酉 · 寅未        원진  子未 · 寅酉
+ *   같은 넷  丑午 · 卯申 · 辰亥 · 巳戌
+ *
+ * 이름이 비슷하고 겹치는 쌍이 많아 한쪽으로 합치자는 말이 나오지만 합치지
+ * 않는다. 두 글자만 보고 어느 표에서 나왔는지 되짚을 수 없게 되고, 다른 두
+ * 쌍(子酉·寅未)이 조용히 사라지거나 없던 쌍이 생긴다. 자미해와 자미원진을
+ * 따로 세는 것과 같은 규칙이다 — 겹치는 자리는 겹친 채로 둘 다 적는다.
+ *
+ * 자유(子酉)는 파(破)와도 겹친다.
+ */
+export const BRANCH_GHOST_GATES: readonly BranchPair[] = [
+  { branches: ['子', '酉'], ko: '자유귀문' },
+  { branches: ['丑', '午'], ko: '축오귀문' },
+  { branches: ['寅', '未'], ko: '인미귀문' },
+  { branches: ['卯', '申'], ko: '묘신귀문' },
+  { branches: ['辰', '亥'], ko: '진해귀문' },
+  { branches: ['巳', '戌'], ko: '사술귀문' },
+];
+
 // ─────────────────────────────────────────────────────────────
 // 조회 헬퍼 — 모두 순서 무관
 // ─────────────────────────────────────────────────────────────
@@ -221,6 +244,10 @@ export function findBranchDestruction(a: Branch, b: Branch): BranchPair | null {
 
 export function findBranchResentment(a: Branch, b: Branch): BranchPair | null {
   return BRANCH_RESENTMENTS.find((c) => matchesPair(c.branches, a, b)) ?? null;
+}
+
+export function findBranchGhostGate(a: Branch, b: Branch): BranchPair | null {
+  return BRANCH_GHOST_GATES.find((c) => matchesPair(c.branches, a, b)) ?? null;
 }
 
 export type TripleCombinationMatch = {

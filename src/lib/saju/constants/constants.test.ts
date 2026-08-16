@@ -8,6 +8,7 @@ import {
   BRANCH_HARMS,
   BRANCH_INFO,
   BRANCH_PUNISHMENTS,
+  BRANCH_GHOST_GATES,
   BRANCH_RESENTMENTS,
   BRANCH_SIX_COMBINATIONS,
   BRANCH_TRIPLE_COMBINATIONS,
@@ -339,11 +340,38 @@ describe('관계(relations) — 지지', () => {
     }
   });
 
-  it('해·파·원진이 각각 6쌍이고 12지지를 한 번씩 덮는다', () => {
-    for (const pairs of [BRANCH_HARMS, BRANCH_DESTRUCTIONS, BRANCH_RESENTMENTS]) {
+  it('해·파·원진·귀문이 각각 6쌍이고 12지지를 한 번씩 덮는다', () => {
+    for (const pairs of [
+      BRANCH_HARMS,
+      BRANCH_DESTRUCTIONS,
+      BRANCH_RESENTMENTS,
+      BRANCH_GHOST_GATES,
+    ]) {
       expect(pairs).toHaveLength(6);
       coversAllBranchesOnce(pairs);
     }
+  });
+
+  /**
+   * 귀문과 원진은 이름도 쓰임도 비슷하고 네 쌍이 겹쳐서 한쪽으로 합치자는 말이
+   * 나온다. 합치면 子酉·寅未가 사라지거나 없던 쌍이 생기므로 다르다는 사실
+   * 자체를 못박는다.
+   */
+  it('귀문은 원진과 네 쌍이 겹치고 두 쌍이 다르다', () => {
+    const key = ({ branches }: { branches: readonly [Branch, Branch] }) =>
+      [...branches].sort().join('');
+
+    const resentments = new Set(BRANCH_RESENTMENTS.map(key));
+    const ghostGates = new Set(BRANCH_GHOST_GATES.map(key));
+    const shared = [...ghostGates].filter((pair) => resentments.has(pair));
+
+    expect(shared).toHaveLength(4);
+    expect([...ghostGates].filter((pair) => !resentments.has(pair)).sort()).toEqual(
+      [['子', '酉'], ['寅', '未']].map((b) => b.sort().join('')).sort(),
+    );
+    expect([...resentments].filter((pair) => !ghostGates.has(pair)).sort()).toEqual(
+      [['子', '未'], ['寅', '酉']].map((b) => b.sort().join('')).sort(),
+    );
   });
 
   it('형은 삼형 2조 · 상형 1조 · 자형 4개다', () => {

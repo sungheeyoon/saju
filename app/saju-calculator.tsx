@@ -730,7 +730,9 @@ function RelationTable({ saju }: { saju: Saju }) {
         <>
           <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[30rem] border-collapse text-sm">
-            <caption className="sr-only">여덟 글자 사이에 성립하는 합·충·형·해·파·원진</caption>
+            <caption className="sr-only">
+              여덟 글자 사이에 성립하는 합·충·형·해·파·원진·귀문
+            </caption>
             <thead className="text-xs text-muted">
               <tr>
                 <th className="pb-1.5 text-left font-normal whitespace-nowrap">종류</th>
@@ -797,6 +799,7 @@ function RelationTable({ saju }: { saju: Saju }) {
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
         성립 여부만 적습니다. 합이 이뤄지는지, 충이 합을 깨는지는 학파마다 갈려 판정하지 않습니다.
+        원진과 귀문은 네 쌍이 겹치므로 같은 두 글자에 두 줄이 함께 나올 수 있습니다.
         {!saju.meta.hourKnown && ' 시주를 몰라 시주가 걸린 관계는 빠져 있습니다.'}
       </p>
     </section>

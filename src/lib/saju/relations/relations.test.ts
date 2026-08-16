@@ -8,6 +8,7 @@ import {
   BRANCH_HARMS,
   BRANCH_INFO,
   BRANCH_PUNISHMENTS,
+  BRANCH_GHOST_GATES,
   BRANCH_RESENTMENTS,
   BRANCH_SIX_COMBINATIONS,
   BRANCH_TRIPLE_COMBINATIONS,
@@ -137,6 +138,25 @@ describe('표 전수 검사 — 상수 표의 모든 항목이 검출된다', ()
     expect(kosOf(relations)).toContain(ko);
   });
 
+  it.each(BRANCH_GHOST_GATES)('귀문 $ko', ({ branches, ko }) => {
+    const relations = findRelations(branchChart(branches[0], branches[1], '子', '子'));
+    expect(kosOf(relations)).toContain(ko);
+  });
+
+  /**
+   * 귀문과 원진이 겹치는 네 쌍에서는 두 줄이 함께 나와야 한다. 한쪽을 지우면
+   * 목록만 보고 어느 표에서 나온 사실인지 되짚을 수 없다.
+   */
+  it('겹치는 쌍은 원진과 귀문이 함께 나온다', () => {
+    const relations = findRelations(branchChart('丑', '午', '子', '子'));
+    const kos = kosOf(relations);
+
+    expect(kos).toContain('축오원진');
+    expect(kos).toContain('축오귀문');
+    // 축오는 해(害)이기도 하다 — 셋이 같은 두 글자를 가리킨다.
+    expect(kos).toContain('축오해');
+  });
+
   it.each(BRANCH_TRIPLE_COMBINATIONS)('삼합 $ko', ({ branches, ko, result }) => {
     const relations = findRelations(branchChart(branches[0], branches[1], branches[2], '子'));
     const found = relations.find((r) => r.ko === ko);
@@ -182,7 +202,7 @@ describe('정확 일치 — 없는 관계를 만들어내지 않는다', () => {
    *
    * 손으로 세어 열셋이다. 하나라도 늘거나 줄면 구현이 표를 벗어난 것이다.
    */
-  it('열세 개를 순서까지 그대로 낸다', () => {
+  it('열다섯 개를 순서까지 그대로 낸다', () => {
     const relations = findRelations(chart('甲子', '己丑', '甲午', '庚午'));
 
     expect(linesOf(relations)).toEqual([
@@ -199,6 +219,8 @@ describe('정확 일치 — 없는 관계를 만들어내지 않는다', () => {
       '축오해 (월주·시주)',
       '축오원진 (월주·일주)',
       '축오원진 (월주·시주)',
+      '축오귀문 (월주·일주)',
+      '축오귀문 (월주·시주)',
     ]);
   });
 
@@ -495,16 +517,17 @@ describe('출력 계약', () => {
 
   it('채택한 규칙 묶음을 결과 곁에 남긴다', () => {
     expect(RELATION_POLICY).toEqual({
-      ruleSet: 'visible-relations-v1',
+      ruleSet: 'visible-relations-v2',
       distantRelations: 'detect-all',
       partialStructures: 'peak-required',
       interactionResolution: 'contest-only',
       hiddenStemRelations: 'disabled',
+      ghostGate: 'separate-from-resentment',
     });
   });
 
   it('모든 관계 종류에 한글 이름이 있다', () => {
-    expect(Object.keys(RELATION_KIND_KO)).toHaveLength(10);
+    expect(Object.keys(RELATION_KIND_KO)).toHaveLength(11);
     expect(PILLAR_POSITIONS).toEqual(['year', 'month', 'day', 'hour']);
   });
 });

@@ -96,7 +96,7 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 590 tests
+npm test          # 628 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 ```
@@ -124,6 +124,12 @@ npm run verify    # test + typecheck + lint + production build
   [`天門=戌亥`](https://www.guoxuezhijia.com/gxbk/34841.html)의 방위 근거와
   [현대 명리의 `戌亥=天門星`](https://www.doilmun.co.kr/bbs/board.php?bo_table=sub06_04&me_code=6040&wr_id=124)를
   대조해 두 글자의 동시 성립으로 고정했다.
+  홍염살은 [정통표](https://sajuabc.com/%ED%99%8D%EC%97%BC%EC%82%B4/) 한 벌만 쓰고
+  甲乙庚壬에 申을 더하는 계통은 넣지 않는다. 암록은 표를 옮기지 않고 **건록의 육합**
+  으로 센다 — 양인·금여·문창과 같은 축이다
+- **귀문관살은 원진과 합치지 않는다** — 두 표는 네 쌍이 겹치고 두 쌍이 다르다
+  (귀문 `子酉`·`寅未` ↔ 원진 `子未`·`寅酉`). 합치면 어느 표에서 나온 사실인지
+  되짚을 수 없고 다른 두 쌍이 조용히 사라지므로, 겹치는 자리에서는 두 줄이 함께 나온다
 
 상수 테이블은 도메인 불변식으로 검증한다. 예를 들어 지장간은 "정기의 오행 = 그 지지의
 오행", "생지·묘지의 중기 = 그 지지가 속한 삼합국의 오행" 을 만족해야 하므로, 표에서 한
