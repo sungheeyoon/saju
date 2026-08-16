@@ -31,6 +31,8 @@ src/lib/saju/
   timeCorrection/   표준자오선 이력·서머타임·경도·균시차
   pillars/          4주 도출 (연월일시)
   analysis/         오행 분포·십성·신강신약
+  relations/        원국 안의 형충회합
+  compat/           두 원국 사이의 관계 (궁합)
   golden/           경계 케이스 골든 스냅샷
 ```
 
@@ -96,7 +98,7 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 629 tests
+npm test          # 637 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 ```
@@ -117,6 +119,9 @@ npm run verify    # test + typecheck + lint + production build
   억부는 실험 상태를 유지한다
 - **종격 도입 정책** — [엄격한 원문과 후대의 확장·가종을 분리해 문서화](docs/analysis/following-patterns.md)했고,
   계통과 경계 조건을 채택하기 전에는 억부 후보를 뒤집지 않는다
+- **궁합은 점수를 내지 않는다**(`COMPAT_POLICY.scoring: 'not-scored'`) — 맞춰볼 외부
+  정답이 없다. 두 원국 사이에 무엇이 어떻게 걸렸는지만 내고, 각자의 원국 안에서 닫힌
+  관계는 뺀다. 계산판이 다르므로 거리·인접은 언제나 `null` 이라 자리로 말한다
 - **신살 채택 계통** — 관귀학관은 [《삼명통회》 학당사관](https://xiaozhiliaoo.github.io/reading-note/guoxue/materials/zhcscs/zha11j.pdf),
   현침은 [《오행정기》의 다섯 글자·3자 이상](https://www.suanzhun.net/book/2676.html),
   태극귀인은 [《연해자평》의 년간 기준](https://www.luckclub.cn/bazi/001/026/)을 따른다.

@@ -23,6 +23,7 @@ import {
 
 export * from './analysis';
 export * from './civilTime';
+export * from './compat';
 export * from './constants';
 export * from './daeun';
 export * from './input';
