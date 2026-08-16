@@ -58,6 +58,13 @@ export type FollowingCandidacy = {
    * 공통분모지만, "몇 자까지 봐주는가"가 가종(假從) 문턱이라 세기만 한다.
    */
   supportStems: { position: PillarPosition; stem: Stem; role: ElementRole }[];
+  /**
+   * 천간에 드러난 이당 — 식상·재성·관성이 투간해 있는가.
+   *
+   * 안으로 종(從强·從旺)에서 생부와 같은 구실을 한다. 일간이 극왕해도 천간에
+   * 관살이 버티고 있으면 따를 것이 아니라 싸울 것이 있다는 뜻이다.
+   */
+  opposingStems: { position: PillarPosition; stem: Stem; role: ElementRole }[];
 };
 
 export type FollowingPatternDecision =
@@ -104,25 +111,50 @@ export const FOLLOWING_PATTERN_POLICY = {
   /** 월령은 필수가 아니고 점수도 아니다 — 진종의 구조적 증거 둘 중 하나다 */
   month: { required: false, supportIsEvidence: true },
   dominance: {
-    candidateRatio: 0.65,
     /**
-     * 이 숫자가 어느 스케일에서 나왔는지 값으로 남긴다.
+     * 축은 **자당(비겁+인성) 몫 하나**다. 두 비율이 아니라 한 축의 양끝이다.
      *
-     * 분모가 바뀌면 0.65 는 뜻을 잃는다. 실제로 다섯 오행 정규화 비율에
-     * 그대로 걸면 무근과 함께 한 번도 발화하지 않았다(3000건 중 0건).
+     * 종(從)에는 방향이 둘 있다. 從財·從殺은 일간을 도울 것이 없어 **밖으로**
+     * 따르고, 從强·從旺은 일간 편이 극왕해 **안으로** 따른다. 앞서 쓰던
+     * `지배 ÷ (지배 + 일간편)` 은 밖으로 종만 잴 수 있었다 — 안으로 종은 지배
+     * 세력이 곧 일간 편이라 그 비율이 0.5 를 넘을 수 없기 때문이다(고전 명례로
+     * 확인했다). 자당과 이당은 합이 1 이므로 축 하나로 양쪽을 다 잰다.
+     *
+     * 지배 역할(종재냐 종살이냐)은 이름을 붙이는 데만 쓰고 문턱에는 쓰지 않는다.
+     * 이당이 식상·재성·관성으로 쪼개져 있어도 일간에게는 다 같이 이당이다.
+     */
+    axis: 'self-camp-share',
+    /** 자당이 이 아래면 밖으로 종(從財·從殺) 후보 */
+    outwardMaxSelfShare: 0.3,
+    /** 자당이 이 위면 안으로 종(從强·從旺) 후보 */
+    inwardMinSelfShare: 0.7,
+    /**
+     * 이 숫자들이 어디서 나왔는지 값으로 남긴다.
+     *
+     * 축이 바뀌면 문턱은 뜻을 잃는다 — 실제로 앞선 축에서 쓰던 0.65 는 지금
+     * 축에서 아무 뜻이 없다.
      */
     calibration: {
       sample: 3000,
       method: 'random-charts-1930-2019',
-      denominator: 'dominant / (dominant + day-master-side)',
+      axis: 'self-camp share = (比劫 + 印星) / all',
       dayMasterSide: ['比劫', '印星'],
       measuredAt: '2026-08-16',
       note: 'not-a-classical-number',
-      /** 같은 표본에서 이 규칙이 실제로 낸 판정 비율 — 문턱을 바꾸면 함께 갱신한다 */
+      /**
+       * 이 문턱으로 실제로 나온 판정 비율(같은 3000건 표본).
+       *
+       * **고전이 말하는 희소성보다 크게 높다.** 《적천수천미》는 격국이 진실하고
+       * 순수한 것이 "百無一二"라 했는데 여기서는 종격 판정이 7.6% 다. 문턱을 더
+       * 조여도 6% 아래로는 잘 안 내려간다 — 자당 몫이 낮은 명식 자체가 그만큼
+       * 있고, 고전은 그것들을 합충과 여기의 질로 걸러내는데 우리는 그 둘을 보지
+       * 않기 때문이다. 그래서 이 판정은 억부를 뒤집지 않는다.
+       */
       observedRates: {
-        'true-following': 0.0087,
-        'pseudo-following': 0.0107,
-        candidate: 0.0163,
+        'true-following': 0.0457,
+        'pseudo-following': 0.057,
+        candidate: 0.073,
+        note: 'looser-than-classical-rarity',
       },
     },
     /**
@@ -228,6 +260,17 @@ export function followingCandidacyOf(
 
       return role === '比劫' || role === '印星' ? [{ position, stem: pillar.stem, role }] : [];
     }),
+    opposingStems: PILLAR_POSITIONS.flatMap((position) => {
+      const pillar = position === 'day' ? null : pillars[position];
+      if (!pillar) return [];
+
+      const element = STEM_INFO[pillar.stem].element;
+      const role = (Object.keys(roles) as ElementRole[]).find((key) => roles[key] === element);
+
+      return role && role !== '比劫' && role !== '印星'
+        ? [{ position, stem: pillar.stem, role }]
+        : [];
+    }),
   };
 }
 
@@ -255,20 +298,28 @@ export const FOLLOWING_PATTERN_STATUS_KO: Record<FollowingPatternStatus, string>
   'true-following': '진종',
 };
 
+/** 종의 방향 — 밖으로 따르는가(從財·從殺), 안으로 따르는가(從强·從旺) */
+export type FollowingDirection = 'outward' | 'inward';
+
+export const FOLLOWING_DIRECTION_KO: Record<FollowingDirection, string> = {
+  outward: '밖으로 종',
+  inward: '안으로 종',
+};
+
 export type FollowingAssessment = {
   /** 고전이 정한 값이 아니라 이 엔진의 실험 규칙이라는 것을 값으로 못박는다 */
   status: 'experimental';
   verdict: FollowingPatternStatus;
   /**
-   * 지배 세력이 **일간 편과 견줘** 차지하는 몫.
+   * 자당(비겁 + 인성)이 여덟 글자에서 차지하는 몫.
    *
-   * 다섯 오행 정규화 비율(`candidacy.dominant.ratio`)이 아니다. 그 스케일에서는
-   * 65%가 3000건 표본에서 무근과 함께 한 번도 나오지 않는다 — 여덟 글자를
-   * 지장간까지 펴면 한 오행이 전체의 2/3을 갖는 일이 사실상 없기 때문이다.
-   * 고전이 말하는 "압도"는 5분할 점유율이 아니라 "일간을 도울 것이 없고
-   * 반대편이 다 가져갔다"이므로 분모를 2분으로 잡는다.
+   * 이 하나가 축이다. 낮으면 일간을 도울 것이 없어 밖으로 종하고, 높으면
+   * 일간 편이 극왕해 안으로 종한다. 자당과 이당은 합이 1 이라 두 방향을
+   * 같은 축의 양끝으로 잰다.
    */
-  dominanceRatio: number;
+  selfShare: number;
+  /** 어느 쪽으로 종할 자리인가. 문턱 사이에 있으면 `null` 이고 종격이 아니다 */
+  direction: FollowingDirection | null;
   /**
    * 일간 뿌리의 가중 합 — 같은 글자 1, 같은 오행 0.5.
    *
@@ -301,10 +352,8 @@ export function followingAssessmentOf(
   const facts = followingCandidacyOf(pillars, elements, rootedness);
   const roles = elementRolesOf(STEM_INFO[pillars.dayMaster].element);
 
-  const mine = elements.ratios[roles['比劫']] + elements.ratios[roles['印星']];
-  const dominant = facts.dominant.ratio;
-  // 둘 다 0 이 되는 원국은 없다(합이 1 이다) — 그래도 0 나눗셈을 열어두지 않는다.
-  const dominanceRatio = dominant + mine === 0 ? 0 : dominant / (dominant + mine);
+  // 오행 비율의 합이 1 이므로 자당 몫이 곧 축이다.
+  const selfShare = elements.ratios[roles['比劫']] + elements.ratios[roles['印星']];
 
   const { sameStemWeight, sameElementWeight } = FOLLOWING_PATTERN_POLICY.roots;
   const rootScore = rootedness.dayMaster.roots.reduce(
@@ -320,17 +369,36 @@ export function followingAssessmentOf(
   });
   const structuralEvidence = facts.monthCommandsDominant || dominantRevealed;
 
-  const { candidateRatio } = FOLLOWING_PATTERN_POLICY.dominance;
+  const { outwardMaxSelfShare, inwardMinSelfShare } = FOLLOWING_PATTERN_POLICY.dominance;
   const { pseudoMaxRootScore, pseudoMaxSupportStems } = FOLLOWING_PATTERN_POLICY.classification;
 
-  const verdict: FollowingPatternStatus =
-    dominanceRatio < candidateRatio
-      ? 'not-following'
-      : facts.dayMasterRootless && facts.supportStems.length === 0 && structuralEvidence
-        ? 'true-following'
-        : rootScore <= pseudoMaxRootScore && facts.supportStems.length <= pseudoMaxSupportStems
-          ? 'pseudo-following'
-          : 'candidate';
+  const direction: FollowingDirection | null =
+    selfShare <= outwardMaxSelfShare ? 'outward' : selfShare >= inwardMinSelfShare ? 'inward' : null;
 
-  return { status: 'experimental', verdict, dominanceRatio, rootScore, structuralEvidence, facts };
+  // 두 방향은 조건이 거울처럼 뒤집힌다. 밖으로 종은 일간이 뿌리가 없어야 하고,
+  // 안으로 종은 뿌리가 있어야 한다 — 따를 것이 자기 자신이기 때문이다.
+  const verdict: FollowingPatternStatus =
+    direction === null
+      ? 'not-following'
+      : direction === 'outward'
+        ? facts.dayMasterRootless && facts.supportStems.length === 0 && structuralEvidence
+          ? 'true-following'
+          : rootScore <= pseudoMaxRootScore && facts.supportStems.length <= pseudoMaxSupportStems
+            ? 'pseudo-following'
+            : 'candidate'
+        : !facts.dayMasterRootless && facts.opposingStems.length === 0
+          ? 'true-following'
+          : !facts.dayMasterRootless && facts.opposingStems.length <= pseudoMaxSupportStems
+            ? 'pseudo-following'
+            : 'candidate';
+
+  return {
+    status: 'experimental',
+    verdict,
+    selfShare,
+    direction,
+    rootScore,
+    structuralEvidence,
+    facts,
+  };
 }

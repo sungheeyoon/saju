@@ -10,6 +10,7 @@ import {
   RELATION_POLICY,
   ELEMENT_KO,
   ELEMENT_ROLE_KO,
+  FOLLOWING_DIRECTION_KO,
   FOLLOWING_PATTERN_STATUS_KO,
   JOHU_POLICY,
   SINSAL_POLICY,
@@ -155,7 +156,8 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
       ` · 월령 ${followingCandidacy.monthCommandsDominant ? '장악' : '아님'}` +
       ` · 투간 생부 ${followingCandidacy.supportStems.map((s) => s.stem).join('') || '없음'}`,
     `  종격   ${FOLLOWING_PATTERN_STATUS_KO[following.verdict]} · ${following.status}` +
-      ` · 압도 ${(following.dominanceRatio * 100).toFixed(1)}%` +
+      ` · 자당 ${(following.selfShare * 100).toFixed(1)}%` +
+      `${following.direction ? ` ${FOLLOWING_DIRECTION_KO[following.direction]}` : ''}` +
       ` · 뿌리점수 ${following.rootScore}`,
   );
 

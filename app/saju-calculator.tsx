@@ -21,6 +21,7 @@ import {
   GENDER_KO,
   HIDDEN_STEM_ROLE_KO,
   ELEMENT_ROLE_KO,
+  FOLLOWING_DIRECTION_KO,
   FOLLOWING_PATTERN_STATUS_KO,
   EMPTINESS_BASIS_KO,
   UNRESOLVED_FACTOR_KO,
@@ -1538,9 +1539,12 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
           {FOLLOWING_PATTERN_STATUS_KO[following.verdict]}
         </span>
         <span className="text-sm text-secondary">
-          일간 편과 견준 지배 세력{' '}
-          <span className="tabular-nums">{percent(following.dominanceRatio)}</span>
-          <span className="text-muted"> (문턱 65%)</span>
+          자당(비겁·인성) 몫{' '}
+          <span className="tabular-nums">{percent(following.selfShare)}</span>
+          <span className="text-muted"> (밖으로 종 ≤30% · 안으로 종 ≥70%)</span>
+          {following.direction && (
+            <span className="ml-1.5">{FOLLOWING_DIRECTION_KO[following.direction]}</span>
+          )}
         </span>
       </div>
 
@@ -1569,10 +1573,10 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
       </div>
 
       <p className="mt-2 text-xs text-muted">
-        <strong className="font-medium">65%는 고전이 정한 숫자가 아닙니다.</strong> 무작위
-        3000건의 세력 분포를 재고 정한 이 엔진의 실험값이고, 분모는 다섯 오행 점유율이
-        아니라 <strong className="font-medium">지배 세력 ÷ (지배 세력 + 비겁 + 인성)</strong>
-        입니다. 외부 자료에서 종격이라고 밝힌 명조 14건과 대조해 보니{' '}
+        <strong className="font-medium">문턱은 고전이 정한 숫자가 아닙니다.</strong> 무작위
+        3000건의 세력 분포를 재고 정한 이 엔진의 실험값입니다. 종에는 방향이 둘이라
+        축 하나의 양끝으로 잽니다 — 일간을 도울 것이 없으면 <strong className="font-medium">밖으로</strong>
+        (종재·종살), 일간 편이 극왕하면 <strong className="font-medium">안으로</strong> 따릅니다. 외부 자료에서 종격이라고 밝힌 명조 14건과 대조해 보니{' '}
         <strong className="font-medium">4건만 잡았습니다</strong> — 덜 잡는 쪽으로 틀립니다.
         그래서 이 판정은 억부 후보를 뒤집지 않습니다. 진종·가종 어느 쪽으로도 밀기 어려운
         명식은 &lsquo;종격 후보&rsquo;로 남겨 둡니다.

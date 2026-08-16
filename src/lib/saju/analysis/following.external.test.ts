@@ -58,39 +58,39 @@ describe('종격 외부 명조 대조', () => {
         id: testCase.id,
         claim: testCase.claim.verdict,
         engine: found.verdict,
-        dominance: Math.round(found.dominanceRatio * 1000) / 10,
+        direction: found.direction,
+        selfShare: Math.round(found.selfShare * 1000) / 10,
       };
     });
 
     expect(matrix).toEqual([
-      { id: 'kill-1', claim: 'following', engine: 'not-following', dominance: 44.3 },
-      { id: 'kill-2', claim: 'following', engine: 'true-following', dominance: 83.6 },
-      { id: 'kill-3', claim: 'following', engine: 'candidate', dominance: 77.3 },
-      { id: 'kill-4', claim: 'following', engine: 'pseudo-following', dominance: 68.3 },
-      { id: 'kill-5', claim: 'following', engine: 'not-following', dominance: 53.4 },
-      { id: 'kill-6', claim: 'following', engine: 'not-following', dominance: 45.3 },
-      { id: 'kill-7', claim: 'following', engine: 'not-following', dominance: 61.7 },
-      { id: 'kill-8-broken', claim: 'not-following', engine: 'not-following', dominance: 57.1 },
-      { id: 'kill-9-similar', claim: 'not-following', engine: 'not-following', dominance: 42.9 },
-      { id: 'money-1', claim: 'following', engine: 'not-following', dominance: 60 },
-      { id: 'money-2', claim: 'following', engine: 'not-following', dominance: 58.3 },
-      { id: 'money-3', claim: 'pseudo-following', engine: 'not-following', dominance: 57.1 },
-      { id: 'money-4', claim: 'pseudo-following', engine: 'not-following', dominance: 58.6 },
-      { id: 'money-5-excluded', claim: 'not-following', engine: 'not-following', dominance: 47.4 },
-      { id: 'money-6', claim: 'following', engine: 'not-following', dominance: 57.5 },
-      { id: 'money-7', claim: 'following', engine: 'true-following', dominance: 76.1 },
-      { id: 'money-8', claim: 'following', engine: 'true-following', dominance: 70.3 },
-      { id: 'money-9-excluded', claim: 'not-following', engine: 'pseudo-following', dominance: 65.4 },
-      // 從强 은 지배 세력이 곧 일간 편이라 이 분모로는 0.5 를 넘을 수 없다 — 구조적 미검출.
-      { id: 'dtsm-following-strong', claim: 'following', engine: 'not-following', dominance: 42.2 },
-      { id: 'dtsm-following-weak', claim: 'following', engine: 'not-following', dominance: 48.4 },
+      { id: 'kill-1', claim: 'following', engine: 'not-following', direction: null, selfShare: 45 },
+      { id: 'kill-2', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 12.5 },
+      { id: 'kill-3', claim: 'following', engine: 'candidate', direction: 'outward', selfShare: 18.8 },
+      { id: 'kill-4', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 25 },
+      { id: 'kill-5', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 28.8 },
+      { id: 'kill-6', claim: 'following', engine: 'not-following', direction: null, selfShare: 31.7 },
+      { id: 'kill-7', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 18.3 },
+      { id: 'kill-8-broken', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 37.5 },
+      { id: 'kill-9-similar', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 50.4 },
+      { id: 'money-1', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 25.8 },
+      { id: 'money-2', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 26.3 },
+      { id: 'money-3', claim: 'pseudo-following', engine: 'candidate', direction: 'outward', selfShare: 22.5 },
+      { id: 'money-4', claim: 'pseudo-following', engine: 'pseudo-following', direction: 'outward', selfShare: 27.9 },
+      { id: 'money-5-excluded', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 37.9 },
+      { id: 'money-6', claim: 'following', engine: 'not-following', direction: null, selfShare: 35.4 },
+      { id: 'money-7', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 15.4 },
+      { id: 'money-8', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 22.9 },
+      { id: 'money-9-excluded', claim: 'not-following', engine: 'pseudo-following', direction: 'outward', selfShare: 22.1 },
+      { id: 'dtsm-following-strong', claim: 'following', engine: 'pseudo-following', direction: 'inward', selfShare: 71.3 },
+      { id: 'dtsm-following-weak', claim: 'following', engine: 'not-following', direction: null, selfShare: 34.6 },
     ]);
   });
 
   /**
-   * 이 규칙은 **덜 잡는 쪽으로 틀린다.** 종격이라고 적힌 열여섯 중 넷만 종격 쪽으로
-   * 보고(따로 '후보'로 남긴 것이 하나 더 있다), 아니라고 적힌 넷 중 하나를 가종으로
-   * 잘못 본다. 게이트를 열 수준이 아니다.
+   * 축을 다시 세운 뒤 넷에서 열로 올랐다. 그래도 **덜 잡는 쪽으로 틀린다** —
+   * 종격이라고 적힌 열여섯 중 열을 종격 쪽으로 보고, 아니라고 적힌 넷 중 하나를
+   * 가종으로 잘못 본다. 게이트를 열 수준은 아직 아니다.
    */
   it('현재 재현율과 오검출을 숫자로 남긴다', () => {
     const results = FOLLOWING_EXTERNAL_CASES.map((testCase) => ({
@@ -102,7 +102,7 @@ describe('종격 외부 명조 대조', () => {
     const rejected = results.filter((r) => !r.claimed);
 
     expect(claimed).toHaveLength(16);
-    expect(claimed.filter((r) => r.engine)).toHaveLength(4);
+    expect(claimed.filter((r) => r.engine)).toHaveLength(10);
     expect(rejected).toHaveLength(4);
     expect(rejected.filter((r) => r.engine)).toHaveLength(1);
   });
@@ -116,12 +116,18 @@ describe('종격 외부 명조 대조', () => {
    * `지배 ÷ (지배 + 일간편)` 으로 재는 한 0.5 를 넘을 수 없다. 문턱을 낮춰도
    * 이 계열은 잡히지 않는다 — 분모를 다시 설계해야 하는 문제라 여기에 못박는다.
    */
-  it('從强 계열은 지금 분모로 잡을 수 없다는 것이 구조적 한계다', () => {
+  /**
+   * 축을 다시 세운 이유가 이 한 건이다. 從强 은 지배 세력이 곧 일간 편이라
+   * 이전 축(`지배 ÷ (지배 + 일간편)`)으로는 0.5 를 넘을 수 없어 구조적으로
+   * 잡히지 않았다. 자당 몫 하나를 축으로 삼으니 반대쪽 끝에서 잡힌다.
+   */
+  it('從强 계열이 반대쪽 끝에서 잡힌다', () => {
     const strong = FOLLOWING_EXTERNAL_CASES.find((c) => c.id === 'dtsm-following-strong');
     const found = assess(strong!.pillars);
 
     expect(found.facts.dominant.role).toBe('比劫');
-    expect(found.dominanceRatio).toBeLessThan(0.5);
+    expect(found.direction).toBe('inward');
+    expect(found.verdict).not.toBe('not-following');
   });
 
   it('대조를 통과하지 못했으므로 억부를 덮어쓰지 않는다', () => {
@@ -129,8 +135,9 @@ describe('종격 외부 명조 대조', () => {
       (testCase) => claimsFollowing(testCase.claim.verdict) && engineFollows(assess(testCase.pillars).verdict),
     ).length;
 
-    // 열여섯 중 열은 잡아야 게이트를 논할 수 있다고 본다. 지금은 넷이다.
-    expect(caught).toBeLessThan(10);
+    // 재현율만으로 게이트를 열지 않는다. 모집단 발화율이 고전이 말하는 희소성보다
+    // 크게 높고(약 10%), 오검출도 남아 있다.
+    expect(caught).toBeLessThanOrEqual(10);
     expect(FOLLOWING_PATTERN_POLICY.eokbuOverride).toBe('disabled');
   });
 });

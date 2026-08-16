@@ -96,6 +96,7 @@ describe('종격 후보 — 조건이 되는 사실', () => {
       'dayMasterRootless',
       'dominant',
       'monthCommandsDominant',
+      'opposingStems',
       'status',
       'supportRatio',
       'supportStems',
@@ -125,25 +126,41 @@ describe('종격 판정 — 실험 규칙 v1', () => {
   };
 
   /**
-   * 분모가 다섯 오행 정규화 비율이 아니라 일간 편과의 2분 비율이라는 것이 이
-   * 규칙의 핵심이다. 5분할로 재면 3000건 표본에서 무근과 함께 65%가 한 번도
-   * 나오지 않았다 — 규칙이 영원히 발화하지 않는다.
+   * 축은 자당(비겁+인성) 몫 하나다. 종에는 방향이 둘이라 두 비율이 아니라 한
+   * 축의 양끝으로 잰다 — 자당과 이당은 합이 1 이기 때문이다.
    */
-  it('압도 비율은 일간 편과 견준 2분 비율이다', () => {
+  it('축은 자당 몫 하나이고 그것이 곧 supportRatio 다', () => {
     const found = assess('庚申', '乙酉', '甲申', '丁丑');
+    expect(found.selfShare).toBeCloseTo(found.facts.supportRatio);
 
-    expect(found.dominanceRatio).toBeGreaterThan(found.facts.dominant.ratio);
-    expect(found.dominanceRatio).toBeCloseTo(
-      found.facts.dominant.ratio / (found.facts.dominant.ratio + found.facts.supportRatio),
-    );
+    // 자당이 바닥이면 밖으로, 천장이면 안으로 — 같은 축의 양끝이다.
+    expect(assess('戊午', '己未', '癸未', '己未').direction).toBe('outward');
+    expect(assess('丙寅', '甲午', '丙午', '癸巳').direction).toBe('inward');
   });
 
-  it('문턱에 못 미치면 종격이 아니다', () => {
-    // 木이 뿌리를 여럿 두어 일간 편이 두텁다.
+  it('두 문턱 사이에 있으면 방향이 없고 종격도 아니다', () => {
+    // 일간 편도 이당도 압도하지 못하는 흔한 명식.
     const found = assess('丙子', '庚寅', '甲午', '丙寅');
 
-    expect(found.dominanceRatio).toBeLessThan(0.65);
+    expect(found.selfShare).toBeGreaterThan(0.3);
+    expect(found.selfShare).toBeLessThan(0.7);
+    expect(found.direction).toBeNull();
     expect(found.verdict).toBe('not-following');
+  });
+
+  /**
+   * 안으로 종(從强·從旺)은 조건이 거울처럼 뒤집힌다 — 일간이 뿌리가 **있어야**
+   * 하고, 막아서는 것은 생부가 아니라 천간에 드러난 이당이다.
+   */
+  it('안으로 종은 조건이 뒤집힌다', () => {
+    // 《적천수천미》 體用 의 從强 명례.
+    const found = assess('丙寅', '甲午', '丙午', '癸巳');
+
+    expect(found.direction).toBe('inward');
+    expect(found.facts.dayMasterRootless).toBe(false);
+    // 천간 癸水 하나가 이당으로 남아 진종이 아니라 가종 쪽이다.
+    expect(found.facts.opposingStems.map((s) => s.stem)).toEqual(['癸']);
+    expect(found.verdict).toBe('pseudo-following');
   });
 
   /**
@@ -157,7 +174,7 @@ describe('종격 판정 — 실험 규칙 v1', () => {
     expect(found.facts.dayMasterRootless).toBe(true);
     expect(found.facts.supportStems).toEqual([]);
     expect(found.structuralEvidence).toBe(true);
-    expect(found.dominanceRatio).toBeGreaterThanOrEqual(0.65);
+    expect(found.selfShare).toBeLessThanOrEqual(0.3);
     expect(found.verdict).toBe('true-following');
   });
 
