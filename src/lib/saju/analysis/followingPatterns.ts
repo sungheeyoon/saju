@@ -125,6 +125,23 @@ export const FOLLOWING_PATTERN_POLICY = {
         candidate: 0.0163,
       },
     },
+    /**
+     * 외부 명조와의 대조 결과 — **아직 통과하지 못했다.**
+     *
+     * 종격이라고 적힌 열넷 중 넷만 종격 쪽으로 본다. 문턱을 낮추면 재현율은
+     * 오르지만, 저자의 판정이 우리가 보지 않는 것(합화, 지장간 여기의 질)에
+     * 기대고 있어 압도 비율만 내리면 일반 명식까지 쓸려 들어온다. 그래서
+     * 숫자를 자료에 맞추지 않고 못 잡는다는 사실을 남긴다.
+     * 자세한 행렬은 `following.external.test.ts`.
+     */
+    externalCheck: {
+      dataset: 'followingExternalCases',
+      cases: 18,
+      claimedFollowing: 14,
+      caught: 4,
+      falsePositives: 1,
+      passed: false,
+    },
   },
   /** 합충으로 인한 뿌리 손상·파격은 판정하지 않는다 */
   relationships: { rootDamageByCombination: false, breakPatternByClash: false },

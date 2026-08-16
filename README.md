@@ -101,7 +101,7 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
 ## 검증
 
 ```bash
-npm test          # 718 tests
+npm test          # 722 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 ```
@@ -132,6 +132,12 @@ npm run verify    # test + typecheck + lint + production build
   대조하고도 시험값인데, 그 답을 정반대로 뒤집는 판정이 외부 대조 0건으로 위에 설 수 없다.
   진종·가종 어느 쪽으로도 밀기 어려운 명식은 `후보`로 남긴다 — 억지로 밀어 넣으면 판정이
   아니라 반올림이 된다
+- **종격 외부 대조 — 아직 통과하지 못했다.** [출처가 종격이라 밝힌 명조 18건](https://fatew.com/mode/kill.htm)을
+  옮겨(열여덟 건 모두 오호둔·오자둔에 맞는 실재 가능한 명조다) 대조하니 종격이라 적힌
+  14건 중 **4건만** 잡았고, 아니라고 적힌 4건 중 1건을 가종으로 잘못 봤다. 문턱을 자료에
+  맞춰 낮추지 않았다 — 저자의 판정이 우리가 보지 않는 것(합화, 지장간 여기의 질)에
+  기대고 있어 압도 비율만 내리면 일반 명식까지 쓸려 들어온다. 못 잡는다는 사실을 행렬로
+  고정하고 `eokbuOverride` 게이트는 닫아 둔다
 - **통근·투출은 사실만 낸다**(`analysis/rootedness.ts`) — 억부·종격·격국이 모두 먹고
   들어가는 재료다. 음양이 다른 뿌리(甲이 卯의 乙에 두는 것)와 고지의 중기를 거르지 않고
   `kind`·`role`·`days` 로 구분해 남긴다. 어디까지 통근으로 볼지가 계통 갈림이라 거르는

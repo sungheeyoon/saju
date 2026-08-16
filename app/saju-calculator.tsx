@@ -1572,9 +1572,10 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
         <strong className="font-medium">65%는 고전이 정한 숫자가 아닙니다.</strong> 무작위
         3000건의 세력 분포를 재고 정한 이 엔진의 실험값이고, 분모는 다섯 오행 점유율이
         아니라 <strong className="font-medium">지배 세력 ÷ (지배 세력 + 비겁 + 인성)</strong>
-        입니다. 그래서 이 판정은 억부 후보를 뒤집지 않습니다 — 종격이라고 명시된 외부
-        명조와 대조하기 전까지는 억부보다 위에 두지 않습니다. 진종·가종 어느 쪽으로도
-        밀기 어려운 명식은 &lsquo;종격 후보&rsquo;로 남겨 둡니다.
+        입니다. 외부 자료에서 종격이라고 밝힌 명조 14건과 대조해 보니{' '}
+        <strong className="font-medium">4건만 잡았습니다</strong> — 덜 잡는 쪽으로 틀립니다.
+        그래서 이 판정은 억부 후보를 뒤집지 않습니다. 진종·가종 어느 쪽으로도 밀기 어려운
+        명식은 &lsquo;종격 후보&rsquo;로 남겨 둡니다.
       </p>
     </div>
   );
