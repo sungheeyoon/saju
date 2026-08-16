@@ -5,11 +5,15 @@
  * 한다는 것이 애초의 게이트였다. **지금은 통과하지 못한다.** 그 사실을 지우지
  * 않고 행렬로 고정한다 — 문턱을 만지면 어느 칸이 움직이는지 여기서 보인다.
  *
- * 출처는 한 곳(`fatew.com`)의 두 쪽이다. 서로 다른 두 출처를 대는 것이 더
- * 좋지만, 성립 조건을 조목별로 적고 명조마다 판정을 붙인 자료가 드물어 우선
- * 이것부터 고정한다. **한 출처라는 사실도 결과와 함께 읽어야 한다.**
+ * 출처는 둘이다 — `fatew.com` 의 從殺格·從財格 쪽(현대 정리)과 《적천수천미》의
+ * 임철초 주석(고전). 계통이 다른 자료를 섞어야 한쪽에만 맞는 규칙을 만들지 않는다.
  *
- * 열여덟 건 모두 오호둔·오자둔에 맞는 실재 가능한 명조다(테스트가 다시 센다).
+ * 《적천수천미》 명례 둘은 **이 규칙의 구조적 한계**를 드러낸다. 從强(일간 편이
+ * 극왕해 그쪽을 따름)은 지배 세력이 곧 일간 편이라, 압도 비율을
+ * `지배 ÷ (지배 + 일간편)` 으로 재는 한 0.5 를 넘을 수 없다. 문턱을 아무리
+ * 낮춰도 從强·從旺 계열은 잡히지 않는다 — 분모를 다시 설계해야 하는 문제다.
+ *
+ * 스무 건 모두 오호둔·오자둔에 맞는 실재 가능한 명조다(테스트가 다시 센다).
  * 억부 데이터셋에서 다섯 중 셋이 지어낸 조합이었던 것과 대비된다.
  */
 
@@ -149,5 +153,27 @@ export const FOLLOWING_EXTERNAL_CASES: readonly FollowingExternalCase[] = [
     pillars: { year: '癸丑', month: '辛酉', day: '丁巳', hour: '辛亥' },
     source: { ...MONEY_SOURCE, locator: '從財格 例9' },
     claim: { verdict: 'not-following', label: '不入從財格' },
+  },
+  {
+    id: 'dtsm-following-strong',
+    pillars: { year: '丙寅', month: '甲午', day: '丙午', hour: '癸巳' },
+    source: {
+      title: '《滴天髓闡微》 體用 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/13',
+      locator: '體用 — 烈火焚木，旺之極矣 … 只得從其強勢',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從强(旺之極)' },
+  },
+  {
+    id: 'dtsm-following-weak',
+    pillars: { year: '戊寅', month: '庚申', day: '丙申', hour: '丙申' },
+    source: {
+      title: '《滴天髓闡微》 體用 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/13',
+      locator: '體用 — 丙火之根已拔 … 只得從其弱勢，順財之性',
+      retrievedAt: '2026-08-16',
+    },
+    claim: { verdict: 'following', label: '從弱(順財)' },
   },
 ] as const;

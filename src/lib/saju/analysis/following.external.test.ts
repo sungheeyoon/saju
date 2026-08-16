@@ -33,7 +33,7 @@ const claimsFollowing = (verdict: string) => verdict !== 'not-following';
 const engineFollows = (verdict: string) => verdict === 'true-following' || verdict === 'pseudo-following';
 
 describe('종격 외부 명조 대조', () => {
-  it('열여덟 건 모두 실재할 수 있는 명조다', () => {
+  it('스무 건 모두 실재할 수 있는 명조다', () => {
     for (const { id, pillars } of FOLLOWING_EXTERNAL_CASES) {
       const derivedMonth = monthPillarOf(pillars.year[0] as Stem, pillars.month[1] as Branch);
       const derivedHour = hourPillarOf(pillars.day[0] as Stem, pillars.hour[1] as Branch);
@@ -81,11 +81,14 @@ describe('종격 외부 명조 대조', () => {
       { id: 'money-7', claim: 'following', engine: 'true-following', dominance: 76.1 },
       { id: 'money-8', claim: 'following', engine: 'true-following', dominance: 70.3 },
       { id: 'money-9-excluded', claim: 'not-following', engine: 'pseudo-following', dominance: 65.4 },
+      // 從强 은 지배 세력이 곧 일간 편이라 이 분모로는 0.5 를 넘을 수 없다 — 구조적 미검출.
+      { id: 'dtsm-following-strong', claim: 'following', engine: 'not-following', dominance: 42.2 },
+      { id: 'dtsm-following-weak', claim: 'following', engine: 'not-following', dominance: 48.4 },
     ]);
   });
 
   /**
-   * 이 규칙은 **덜 잡는 쪽으로 틀린다.** 종격이라고 적힌 열넷 중 넷만 종격 쪽으로
+   * 이 규칙은 **덜 잡는 쪽으로 틀린다.** 종격이라고 적힌 열여섯 중 넷만 종격 쪽으로
    * 보고(따로 '후보'로 남긴 것이 하나 더 있다), 아니라고 적힌 넷 중 하나를 가종으로
    * 잘못 본다. 게이트를 열 수준이 아니다.
    */
@@ -98,7 +101,7 @@ describe('종격 외부 명조 대조', () => {
     const claimed = results.filter((r) => r.claimed);
     const rejected = results.filter((r) => !r.claimed);
 
-    expect(claimed).toHaveLength(14);
+    expect(claimed).toHaveLength(16);
     expect(claimed.filter((r) => r.engine)).toHaveLength(4);
     expect(rejected).toHaveLength(4);
     expect(rejected.filter((r) => r.engine)).toHaveLength(1);
@@ -108,12 +111,25 @@ describe('종격 외부 명조 대조', () => {
    * 그래서 게이트는 닫아 둔다. 이 테스트가 그 약속이다 — 재현율이 이 상태인 채로
    * `eokbuOverride` 를 켜면 여기서 걸린다.
    */
+  /**
+   * 從强(일간 편이 극왕해 그쪽을 따름)은 지배 세력이 곧 일간 편이라, 압도 비율을
+   * `지배 ÷ (지배 + 일간편)` 으로 재는 한 0.5 를 넘을 수 없다. 문턱을 낮춰도
+   * 이 계열은 잡히지 않는다 — 분모를 다시 설계해야 하는 문제라 여기에 못박는다.
+   */
+  it('從强 계열은 지금 분모로 잡을 수 없다는 것이 구조적 한계다', () => {
+    const strong = FOLLOWING_EXTERNAL_CASES.find((c) => c.id === 'dtsm-following-strong');
+    const found = assess(strong!.pillars);
+
+    expect(found.facts.dominant.role).toBe('比劫');
+    expect(found.dominanceRatio).toBeLessThan(0.5);
+  });
+
   it('대조를 통과하지 못했으므로 억부를 덮어쓰지 않는다', () => {
     const caught = FOLLOWING_EXTERNAL_CASES.filter(
       (testCase) => claimsFollowing(testCase.claim.verdict) && engineFollows(assess(testCase.pillars).verdict),
     ).length;
 
-    // 열넷 중 열은 잡아야 게이트를 논할 수 있다고 본다. 지금은 넷이다.
+    // 열여섯 중 열은 잡아야 게이트를 논할 수 있다고 본다. 지금은 넷이다.
     expect(caught).toBeLessThan(10);
     expect(FOLLOWING_PATTERN_POLICY.eokbuOverride).toBe('disabled');
   });

@@ -60,9 +60,9 @@ export type ExternalEokbuCase = {
  * 일치율을 셀 때는 빼야 한다 — 그러지 않으면 있지도 않은 사주로 엔진을 채점하게
  * 된다.
  *
- * 실재 가능한 사례는 `8ja-*` 여섯이다(2026-08-16 에 넷을 더했다). 같은 출처의 같은
- * 상담 목록이라 **출처가 하나뿐이라는 사실은 그대로다** — 여섯 건으로도 억부를
- * `experimental` 에서 올릴 수는 없고, 서로 다른 계통의 자료가 더 필요하다.
+ * 실재 가능한 사례는 아홉이다. `8ja-*` 여섯은 현대 한국 상담 사례이고,
+ * `dtsm-*` 셋은 《적천수천미》의 임철초 주석 명례다 — **계통이 다른 자료를 섞어야**
+ * 한쪽 계통에만 맞는 규칙을 만들지 않는다.
  */
 export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
   {
@@ -250,5 +250,68 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
     comparisonLevel: 'exact',
     chartConstruction: 'consistent',
     caveats: [],
+  },
+  {
+    id: 'dtsm-8gyeok-inbu-1',
+    pillars: { year: '辛卯', month: '丙申', day: '癸卯', hour: '壬戌' },
+    source: {
+      title: '《滴天髓闡微》 八格 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/12',
+      locator: '八格 — 此印綬格，以申金為用，以丙火為病，以壬水為藥',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'unstated',
+      suggestedElement: '金',
+      role: '印星',
+      summary: '인수격으로 보아 申金을 용신, 丙火를 병, 壬水를 약이라 한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: ['원문이 신강·신약을 따로 말하지 않아 강약은 대조하지 않는다.'],
+  },
+  {
+    id: 'dtsm-8gyeok-inbu-2',
+    pillars: { year: '辛卯', month: '丙申', day: '癸卯', hour: '甲寅' },
+    source: {
+      title: '《滴天髓闡微》 八格 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/12',
+      locator: '八格 — 此亦以申金為用，以丙火為病 (앞 명조와 시주 한 글자만 다르다)',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'unstated',
+      suggestedElement: '金',
+      role: '印星',
+      summary: '앞 명조와 시주만 다른데 병은 있고 약이 없어 결과가 갈린다며 같은 申金을 용신으로 든다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    caveats: [
+      '원문이 신강·신약을 따로 말하지 않아 강약은 대조하지 않는다.',
+      '앞 명조와 한 글자만 다른 짝이라 같은 용신이 나오는지 보는 데 쓴다.',
+    ],
+  },
+  {
+    id: 'dtsm-8gyeok-sanggwan',
+    pillars: { year: '己巳', month: '庚午', day: '丙午', hour: '甲午' },
+    source: {
+      title: '《滴天髓闡微》 八格 — 任鐵樵 주석',
+      url: 'https://shuyuan.zhiming.life/read/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%98%90%E5%BE%AE/12',
+      locator: '八格 — 真火土傷官生財格, 土金喜用皆傷',
+      retrievedAt: '2026-08-16',
+    },
+    claim: {
+      strength: 'unstated',
+      suggestedElement: '土',
+      role: '食傷',
+      summary: '화토상관생재격으로 보고 土金을 희용으로 든다.',
+    },
+    comparisonLevel: 'element-only',
+    chartConstruction: 'consistent',
+    caveats: [
+      '원문이 희용을 土金 두 오행으로 말한다 — 앞의 土 만 대조 대상으로 둔다.',
+      '원문이 신강·신약을 따로 말하지 않아 강약은 대조하지 않는다.',
+    ],
   },
 ] as const;

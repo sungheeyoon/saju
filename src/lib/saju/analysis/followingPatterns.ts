@@ -136,11 +136,18 @@ export const FOLLOWING_PATTERN_POLICY = {
      */
     externalCheck: {
       dataset: 'followingExternalCases',
-      cases: 18,
-      claimedFollowing: 14,
+      cases: 20,
+      sources: 2,
+      claimedFollowing: 16,
       caught: 4,
       falsePositives: 1,
       passed: false,
+      /**
+       * 從强·從旺 계열은 **문턱 문제가 아니라 분모 문제**다. 지배 세력이 곧
+       * 일간 편이라 `지배 ÷ (지배 + 일간편)` 이 0.5 를 넘을 수 없다. 이 계열을
+       * 잡으려면 분모를 다시 설계해야 한다.
+       */
+      structuralGap: 'cannot-detect-following-the-strong',
     },
   },
   /** 합충으로 인한 뿌리 손상·파격은 판정하지 않는다 */

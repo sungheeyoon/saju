@@ -29,9 +29,10 @@ describe('억부용신 외부 대조 데이터셋', () => {
     expect(new Set(EOKBU_EXTERNAL_CASES.map(({ id }) => id)).size).toBe(
       EOKBU_EXTERNAL_CASES.length,
     );
-    expect(new Set(EOKBU_EXTERNAL_CASES.map(({ source }) => new URL(source.url).hostname)).size).toBe(
-      2,
-    );
+    // 계통이 다른 자료를 섞는다 — 한쪽 계통에만 맞는 규칙을 만들지 않기 위해서다.
+    expect(
+      new Set(EOKBU_EXTERNAL_CASES.map(({ source }) => new URL(source.url).hostname)).size,
+    ).toBe(3);
 
     for (const testCase of EOKBU_EXTERNAL_CASES) {
       expect(Object.values(testCase.pillars)).toHaveLength(4);
@@ -69,6 +70,9 @@ describe('억부용신 외부 대조 데이터셋', () => {
       '8ja-149-stagnant-muto',
       '8ja-157-drain-muto',
       '8ja-160-weak-jeonghwa',
+      'dtsm-8gyeok-inbu-1',
+      'dtsm-8gyeok-inbu-2',
+      'dtsm-8gyeok-sanggwan',
     ]);
     // 실재 불가능한 셋은 전부 같은 출처다.
     expect(
@@ -210,6 +214,43 @@ describe('억부용신 외부 대조 데이터셋', () => {
         engineRole: '印星',
         roleAgrees: true,
       },
+      // 계통이 다른 자료 — 《적천수천미》 임철초 주석 명례 셋은 모두 맞는다.
+      {
+        id: 'dtsm-8gyeok-inbu-1',
+        sourceStrength: 'unstated',
+        engineStrength: 'weak',
+        strengthAgrees: null,
+        sourceElement: '金',
+        engineElement: '金',
+        elementAgrees: true,
+        sourceRole: '印星',
+        engineRole: '印星',
+        roleAgrees: true,
+      },
+      {
+        id: 'dtsm-8gyeok-inbu-2',
+        sourceStrength: 'unstated',
+        engineStrength: 'weak',
+        strengthAgrees: null,
+        sourceElement: '金',
+        engineElement: '金',
+        elementAgrees: true,
+        sourceRole: '印星',
+        engineRole: '印星',
+        roleAgrees: true,
+      },
+      {
+        id: 'dtsm-8gyeok-sanggwan',
+        sourceStrength: 'unstated',
+        engineStrength: 'strong',
+        strengthAgrees: null,
+        sourceElement: '土',
+        engineElement: '土',
+        elementAgrees: true,
+        sourceRole: '食傷',
+        engineRole: '食傷',
+        roleAgrees: true,
+      },
     ]);
 
     // 채점은 실재 가능한 여섯 건으로만 한다 — 지어낸 조합으로 엔진을 채점할 수 없다.
@@ -219,14 +260,22 @@ describe('억부용신 외부 대조 데이터셋', () => {
       ),
     );
 
-    expect(scored).toHaveLength(6);
+    expect(scored).toHaveLength(9);
     // 강약은 다섯 건에서 비교 가능하고 그중 넷이 맞는다(157 이 어긋난다).
     const strengths = scored.map(({ strengthAgrees }) => strengthAgrees);
     expect(strengths.filter((agrees) => agrees === true)).toHaveLength(4);
     expect(strengths.filter((agrees) => agrees === false)).toHaveLength(1);
-    expect(strengths.filter((agrees) => agrees === null)).toHaveLength(1);
-    // 추천 오행은 여섯 중 둘만 맞는다.
-    expect(scored.filter(({ elementAgrees }) => elementAgrees)).toHaveLength(2);
+    expect(strengths.filter((agrees) => agrees === null)).toHaveLength(4);
+
+    // 추천 오행은 아홉 중 다섯이 맞는다. 계통별로 갈리는 것이 이 데이터셋의 요점이다 —
+    // 현대 상담 사례는 여섯 중 둘, 《적천수천미》 명례는 셋 중 셋이 맞는다.
+    expect(scored.filter(({ elementAgrees }) => elementAgrees)).toHaveLength(5);
+    expect(
+      scored.filter(({ id, elementAgrees }) => id.startsWith('dtsm-') && elementAgrees),
+    ).toHaveLength(3);
+    expect(
+      scored.filter(({ id, elementAgrees }) => id.startsWith('8ja-') && elementAgrees),
+    ).toHaveLength(2);
   });
 
   /**
