@@ -123,6 +123,20 @@
   월운  경계는 절입이다. 월간은 오호둔, 월지는 절기 — 월주 도출과 같은 함수다.
         관계는 원국·세운을 함께 놓고 보되 그 달이 낀 것만 남긴다.
 
+  현재운  "그중 어느 칸이 지금인가"는 여덟 글자에서 나오지 않고 보는 시각에서 나온다.
+        엔진은 그 시각을 스스로 묻지 않고 넘겨받는다 — Date.now() 를 부르면 순수 함수가
+        아니게 되고 미리 그려진 페이지의 하이드레이션도 깨진다.
+        경계를 재는 방법이 갈린다: 세운·월운은 절대 시각, 대운은 만 나이다.
+        간지·절입·관계를 새로 세지 않는다. 관계는 세운·월운 칸에서 옮겨 담기만 한다.
+
+          ruleSet                current-fortune-v1
+          viewingInstant         passed-in-never-read-from-the-clock
+          boundaries             terms-by-instant-daeun-by-age
+          counting               reuses-saeun-wolun-daeun
+          relations              restated-from-saeun-and-wolun
+          daeunAbsence           before-first-vs-beyond-table
+          daeunIsChosen          rounding-is-a-lineage-choice
+
   시간 미상  채택: 시주를 뽑지 않는다 (unknown-hour-* 케이스)
 
     정오를 넣으면 시주가 午시로 나와 "모름"이 "낮 12시"로 둔갑한다.

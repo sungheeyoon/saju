@@ -21,12 +21,15 @@ import {
   type TimeCorrectionOptions,
 } from './timeCorrection';
 
+export * from './age';
 export * from './analysis';
 export * from './civilTime';
 export * from './compat';
 export * from './constants';
 export * from './daeun';
 export * from './input';
+// 현재운. `Saju` 에 얹지 않고 따로 부른다 — 보는 시각은 명식의 일부가 아니다.
+export * from './now';
 export * from './position';
 export * from './relations';
 export * from './saeun';

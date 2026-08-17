@@ -1,12 +1,12 @@
 import type { Pillar, Stem } from '../constants';
-import { toCivil, type CivilDate } from '../civilTime';
+import { ageOnDate, koreaDateOf } from '../age';
+import type { CivilDate } from '../civilTime';
 import type { Pillars } from '../pillars';
 import { yearPillarOf } from '../pillars/year';
 import { findRelationsAmong, type LabeledPillars, type Relation } from '../relations';
 import { getSolarTerms, type SolarTerm } from '../solarTerms';
 import { twelveSpiritOf, type SpiritBasis, type TwelveSpirit } from '../sinsal';
 import { tenGodOf, tenGodOfBranch, type TenGod } from '../analysis/tenGods';
-import { zoneIntervalAt } from '../timeCorrection/zoneHistory';
 import {
   DEFAULT_YIN_REVERSE,
   twelveStageOf,
@@ -109,18 +109,6 @@ function startTermOf(year: number): SolarTerm {
     throw new InvalidSaeunRangeError(`${year}년의 입춘을 구할 수 없습니다`);
   }
   return found;
-}
-
-/** 그 절대 시각에 한국에서 보이던 달력 날짜. 과거 표준시·서머타임도 따른다. */
-function koreaDateOf(instant: Date): CivilDate {
-  const offset = zoneIntervalAt(instant).totalOffsetMinutes;
-  return toCivil(instant, offset);
-}
-
-function ageOnDate(birth: CivilDate, date: CivilDate): number {
-  const birthdayPassed =
-    date.month > birth.month || (date.month === birth.month && date.day >= birth.day);
-  return date.year - birth.year - (birthdayPassed ? 0 : 1);
 }
 
 export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Saeun {
