@@ -4,7 +4,7 @@ L3 문장 골든 — 발화 판정과 조립
 
   ✓ 문장이 됐다   · 발화는 있으나 조각이 없다   × 말하지 않기로 했다
 
-  말뭉치 50 / 지시서 50 칸
+  말뭉치 30 / 지시서 30 칸
 
     ruleSet          utterance-discovery-v1
     selection        all-facts-speak
@@ -21,7 +21,8 @@ L3 문장 골든 — 발화 판정과 조립
     fact             no-hedge-mark
     hourUnknownRung  names-the-missing-hour
     variants         must-change-some-sentence
-    sharedWording    declared-not-copied
+    sharedWording    collapses-to-a-slot
+    countedFacts     rows-not-prose
     attribution      named-in-the-sentence
     copiedTable      names-what-it-did-not-judge
     precedence       names-what-it-does-not-overturn
@@ -52,19 +53,19 @@ L3 문장 골든 — 발화 판정과 조립
         참고     궁통보감 조후표에서 을 일간 사월은 계 쪽을 참고할 수 있습니다. 나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.
     ✓ following.verdict/candidate-outward@candidate
         후보     자당 몫 26% 정도에 관성 쪽이 가장 무거운데 어느 쪽으로도 가를 만큼은 아니어서 밖으로 종하는 자리를 후보로 봅니다. 실험 규칙이라 억부 후보를 뒤집지 않습니다.
-    ✓ relation.present/stemCombination@fact
-        사실     년주·일주 자리의 두 천간이 을경합금 관계로 짝을 짓습니다.
-    ✓ relation.present/branchSixCombination@fact
-        사실     년주·시주 자리의 두 지지가 오미합화 관계로 짝을 짓습니다.
-    ✓ relation.present/branchTripleCombination@fact
-        사실     월주·일주 자리의 지지가 사유 반합 관계로 한 무리를 이룹니다.
-    ✓ relation.present/branchDirectionalCombination@fact
-        사실     년주·월주·시주 자리의 지지가 사오미 화방 관계로 한 계절에 모입니다.
-    ✓ relation.present/stemClash@fact
-        사실     월주·일주 자리의 두 천간이 을신충 관계로 서로 맞섭니다.
+    ✓ relation.present/row@fact
+        사실     년간 庚 · 일간 乙 — 을경합금
+    ✓ relation.present/row@fact
+        사실     년지 午 · 시지 未 — 오미합화
+    ✓ relation.present/row@fact
+        사실     월지 巳 · 일지 酉 — 사유 반합
+    ✓ relation.present/row@fact
+        사실     년지 午 · 월지 巳 · 시지 未 — 사오미 화방
+    ✓ relation.present/row@fact
+        사실     월간 辛 · 일간 乙 — 을신충
 
 ── branch-clash
-   지지충·형·해·파·원진 — 넷이 한 문장을 나눠 쓰는 자리
+   지지충·형·해·파·원진이 한꺼번에 — 종류가 달라도 행의 모양은 같다
    사주  己未 戊午 丙子 己卯
    발화 13 · 문장 13 · 조각 없음 0 · 말하지 않음 0
 
@@ -78,22 +79,22 @@ L3 문장 골든 — 발화 판정과 조립
         참고     궁통보감 조후표에서 무 일간 자월은 병·갑 쪽을 참고할 수 있습니다. 나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.
     ✓ following.verdict/true-following-inward@candidate
         후보     자당 몫 74% 정도에 비겁 쪽이 가장 무거운데 일간에 뿌리가 있고 맞서는 천간이 없어 안으로 종하는 진종 자리를 후보로 봅니다. 실험 규칙이라 억부 후보를 뒤집지 않습니다.
-    ✓ relation.present/branchSixCombination@fact
-        사실     일주·시주 자리의 두 지지가 오미합화 관계로 짝을 짓습니다.
-    ✓ relation.present/branchTripleCombination@fact
-        사실     년주·시주 자리의 지지가 묘미 반합 관계로 한 무리를 이룹니다.
-    ✓ relation.present/branchDirectionalCombination@fact
-        사실     일주·시주 자리의 지지가 오미 반방합 관계로 한 계절에 모입니다.
-    ✓ relation.present/branchClash@fact
-        사실     월주·일주 자리의 두 지지가 자오충 관계로 서로 맞섭니다.
-    ✓ relation.present/branchPunishment@fact
-        사실     년주·월주 자리의 지지가 자묘형 관계로 서로 물립니다.
-    ✓ relation.present/branchHarm@fact
-        사실     월주·시주 자리에서 자미해 관계가 성립합니다.
-    ✓ relation.present/branchDestruction@fact
-        사실     년주·일주 자리에서 묘오파 관계가 성립합니다.
-    ✓ relation.present/branchResentment@fact
-        사실     월주·시주 자리에서 자미원진 관계가 성립합니다.
+    ✓ relation.present/row@fact
+        사실     일지 午 · 시지 未 — 오미합화
+    ✓ relation.present/row@fact
+        사실     년지 卯 · 시지 未 — 묘미 반합
+    ✓ relation.present/row@fact
+        사실     일지 午 · 시지 未 — 오미 반방합
+    ✓ relation.present/row@fact
+        사실     월지 子 · 일지 午 — 자오충
+    ✓ relation.present/row@fact
+        사실     년지 卯 · 월지 子 — 자묘형
+    ✓ relation.present/row@fact
+        사실     월지 子 · 시지 未 — 자미해
+    ✓ relation.present/row@fact
+        사실     년지 卯 · 일지 午 — 묘오파
+    ✓ relation.present/row@fact
+        사실     월지 子 · 시지 未 — 자미원진
 
 ── no-relations
    관계가 하나도 없다 — 사실이 없으면 발화도 없다
@@ -126,14 +127,14 @@ L3 문장 골든 — 발화 판정과 조립
         참고     궁통보감 조후표에서 을 일간 사월은 계 쪽을 참고할 수 있습니다. 나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.
     × following.verdict/true-following-outward
         말하지 않음 (말하지 않는다)
-    ✓ relation.present/stemCombination@derived
-        유도     시주를 빼고 보면 년주·일주 자리의 두 천간이 을경합금 관계로 짝을 짓는 것으로 봅니다.
-    ✓ relation.present/branchTripleCombination@derived
-        유도     시주를 빼고 보면 월주·일주 자리의 지지가 사유 반합 관계로 한 무리를 이루는 것으로 봅니다.
-    ✓ relation.present/branchDirectionalCombination@derived
-        유도     시주를 빼고 보면 년주·월주 자리의 지지가 사오 반방합 관계로 한 계절에 모이는 것으로 봅니다.
-    ✓ relation.present/stemClash@derived
-        유도     시주를 빼고 보면 월주·일주 자리의 두 천간이 을신충 관계로 서로 맞서는 것으로 봅니다.
+    ✓ relation.present/row@derived
+        유도     년간 庚 · 일간 乙 — 을경합금 (시주 없이 여섯 글자에서)
+    ✓ relation.present/row@derived
+        유도     월지 巳 · 일지 酉 — 사유 반합 (시주 없이 여섯 글자에서)
+    ✓ relation.present/row@derived
+        유도     년지 午 · 월지 巳 — 사오 반방합 (시주 없이 여섯 글자에서)
+    ✓ relation.present/row@derived
+        유도     월간 辛 · 일간 乙 — 을신충 (시주 없이 여섯 글자에서)
 
 ── johu-half-month
    조후표가 상·하반월을 가르는 칸 — 절반을 판정해 한쪽만 든다
@@ -150,30 +151,30 @@ L3 문장 골든 — 발화 판정과 조립
         참고     궁통보감 조후표는 임 일간 축월을 상·하반월로 갈라 말하고, 이 명식은 상반월에 들어 병 쪽을 참고할 수 있습니다. 나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.
     × following.verdict/not-following
         말하지 않음 (말하지 않는다)
-    ✓ relation.present/stemCombination@fact
-        사실     월주·일주 자리의 두 천간이 정임합목 관계로 짝을 짓습니다.
-    ✓ relation.present/stemCombination@fact
-        사실     일주·시주 자리의 두 천간이 정임합목 관계로 짝을 짓습니다.
-    ✓ relation.present/branchSixCombination@fact
-        사실     년주·월주 자리의 두 지지가 자축합토 관계로 짝을 짓습니다.
-    ✓ relation.present/branchSixCombination@fact
-        사실     월주·일주 자리의 두 지지가 자축합토 관계로 짝을 짓습니다.
-    ✓ relation.present/branchDirectionalCombination@fact
-        사실     년주·월주 자리의 지지가 자축 반방합 관계로 한 계절에 모입니다.
-    ✓ relation.present/branchDirectionalCombination@fact
-        사실     월주·일주 자리의 지지가 자축 반방합 관계로 한 계절에 모입니다.
-    ✓ relation.present/branchClash@fact
-        사실     월주·시주 자리의 두 지지가 축미충 관계로 서로 맞섭니다.
-    ✓ relation.present/branchPunishment@fact
-        사실     월주·시주 자리의 지지가 미축형 관계로 서로 물립니다.
-    ✓ relation.present/branchHarm@fact
-        사실     년주·시주 자리에서 자미해 관계가 성립합니다.
-    ✓ relation.present/branchHarm@fact
-        사실     일주·시주 자리에서 자미해 관계가 성립합니다.
-    ✓ relation.present/branchResentment@fact
-        사실     년주·시주 자리에서 자미원진 관계가 성립합니다.
-    ✓ relation.present/branchResentment@fact
-        사실     일주·시주 자리에서 자미원진 관계가 성립합니다.
+    ✓ relation.present/row@fact
+        사실     월간 丁 · 일간 壬 — 정임합목
+    ✓ relation.present/row@fact
+        사실     일간 壬 · 시간 丁 — 정임합목
+    ✓ relation.present/row@fact
+        사실     년지 子 · 월지 丑 — 자축합토
+    ✓ relation.present/row@fact
+        사실     월지 丑 · 일지 子 — 자축합토
+    ✓ relation.present/row@fact
+        사실     년지 子 · 월지 丑 — 자축 반방합
+    ✓ relation.present/row@fact
+        사실     월지 丑 · 일지 子 — 자축 반방합
+    ✓ relation.present/row@fact
+        사실     월지 丑 · 시지 未 — 축미충
+    ✓ relation.present/row@fact
+        사실     월지 丑 · 시지 未 — 미축형
+    ✓ relation.present/row@fact
+        사실     년지 子 · 시지 未 — 자미해
+    ✓ relation.present/row@fact
+        사실     일지 子 · 시지 未 — 자미해
+    ✓ relation.present/row@fact
+        사실     년지 子 · 시지 未 — 자미원진
+    ✓ relation.present/row@fact
+        사실     일지 子 · 시지 未 — 자미원진
 
 ── johu-half-unjudged
    같은 칸인데 시간 미상이고 중기가 그날 안에 있다 — 절반을 고르지 않는다
@@ -190,7 +191,7 @@ L3 문장 골든 — 발화 판정과 조립
         참고     궁통보감 조후표는 계 일간 미월을 상·하반월로 갈라 말하는데, 시각을 몰라 어느 절반인지 가리지 않았습니다. 상반월은 경·신·임·계 쪽, 하반월은 경·신 쪽을 참고할 수 있습니다. 나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.
     × following.verdict/not-following
         말하지 않음 (말하지 않는다)
-    ✓ relation.present/branchClash@derived
-        유도     시주를 빼고 보면 년주·월주 자리의 두 지지가 축미충 관계로 서로 맞서는 것으로 봅니다.
-    ✓ relation.present/branchPunishment@derived
-        유도     시주를 빼고 보면 년주·월주 자리의 지지가 미축형 관계로 서로 물리는 것으로 봅니다.
+    ✓ relation.present/row@derived
+        유도     년지 丑 · 월지 未 — 축미충 (시주 없이 여섯 글자에서)
+    ✓ relation.present/row@derived
+        유도     년지 丑 · 월지 未 — 미축형 (시주 없이 여섯 글자에서)

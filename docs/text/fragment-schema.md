@@ -31,7 +31,7 @@ type Fragment = {
 | `eokbu.candidate` | `analysis.strength`, `analysis.eokbu` | presence | 다섯 자리 | 자리 이름, 오행 |
 | `johu.table` | `analysis.johu` | presence | 갈리지 않는 칸 / 상·하반월 / 절반 미판정 | 일간, 월지, 천간 |
 | `following.verdict` | `analysis.following`, `analysis.rootedness` | absence | 판정 셋 × 방향 둘 (+ 침묵 하나) | 판정, 방향, 자당 몫, 지배 세력 |
-| `relation.present` | `relations` | presence | 관계 열한 종류 | 관계 이름, 자리 |
+| `relation.present` | `relations` | presence | **하나** (행) | 자리와 글자, 관계 이름 |
 
 방향이 주제의 필드인 것은 **있다와 없다의 안전도가 다르기 때문이다.** 뿌리가 있다와
 무근이다는 같은 근거를 읽지만 시간 미상에서 갈린다 — 그래서 애초에 다른 주제다.
@@ -88,11 +88,15 @@ strength.verdict/weak@candidate  → 시간 미상일 때 고를 문장 (아직 
 데이터가 꽂히는 자리다. 관계 이름 `자축합토`는 변종이 아니라 **슬롯**이다.
 
 ```ts
-{ topic: 'relation.present', variant: 'branchClash', strength: 'fact',
-  template: '{positions} 자리에서 {name} 관계가 성립합니다.' }
+{ topic: 'relation.present', variant: 'row', strength: 'fact',
+  template: '{participants} — {name}' }
 ```
 
 조각 안에 관계 이름이 없다. 없는 관계를 말하려면 없는 데이터가 먼저 있어야 한다.
+
+관계의 변종이 **하나뿐**인 것이 이 규칙의 끝이다. 한동안 열한 종류가 변종이었는데
+종류가 행을 하나도 가르지 못한다는 것이 드러났다 — 갈리지 못하는 변종은 슬롯이다
+([`corpus.md`](./corpus.md)의 "세어지기만 하는 사실은 행이다").
 
 `expectedFragmentKeys()`가 채워야 할 자리를 전부 센다 — 생성기의 작업 지시서다.
 조합이 유한하다는 것이 L3를 런타임 AI 없이 하겠다는 결정의 전제였고, 이 함수가 그
@@ -100,8 +104,8 @@ strength.verdict/weak@candidate  → 시간 미상일 때 고를 문장 (아직 
 
 ## 슬롯 표본은 계약이지 근거가 아니다
 
-`slots: ['positions']`는 "positions라는 값이 있다"까지만 말한다. 그 값이 `'월주·일주'`인지
-`'子, 午'`인지 모르면 생성기가 문장 틀을 쓸 수 없다. 그래서 주제 표가 `samples`를 함께
+`slots: ['participants']`는 "participants라는 값이 있다"까지만 말한다. 그 값이
+`'년지 子 · 일지 午'`인지 `'월주·일주'`인지 모르면 생성기가 문장 틀을 쓸 수 없다. 그래서 주제 표가 `samples`를 함께
 든다 — **생성기 계약의 나머지 절반**이다.
 
 표본은 **검사용 fixture이지 근거가 아니다.** 절대 `grounded`로 흘려보내지 않는다.

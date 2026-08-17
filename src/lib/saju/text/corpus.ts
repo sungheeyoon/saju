@@ -14,14 +14,17 @@ import { followingVariant, indexFragments, type Fragment, type FragmentIndex } f
  *
  * 지금은 손으로 썼다. 세 주제(`rootedness`·`strength`·`eokbu`)를 먼저 채운 것은
  * 그 셋이 **강도 사다리 네 칸을 전부 지나가는 가장 작은 묶음**이기 때문이다 —
- * 사실·유도·후보·참고가 한 번씩 나온다. 표현 규칙이 그 셋에서 확정된 뒤에
- * 관계 22칸을 돌았고, 그것으로 지시서에 빈칸이 없었다(41/41).
+ * 사실·유도·후보·참고가 한 번씩 나온다.
  *
- * 그 다음은 칸을 채우는 일이 아니라 **주제를 더하는 일**이었다. 조후 셋과 종격
- * 여섯이 들어와 분모가 50이다. 조후를 먼저 고른 것은 **가장 작으면서 아직 한 번도
- * 돌지 않은 규칙을 지나가기** 때문이었고(출처 의무), 종격은 반대로 가장 깊었다 —
- * 판정값 하나만 침묵한다는 것을 스키마가 표현하지 못해 강도가 나오는 축이
- * (주제, 시각)에서 (주제, 변종, 시각)으로 넓어졌다.
+ * 그 다음은 칸을 채우는 일이 아니라 **주제를 더하는 일**이었다. 조후를 먼저 고른
+ * 것은 **가장 작으면서 아직 한 번도 돌지 않은 규칙을 지나가기** 때문이었고
+ * (출처 의무), 종격은 반대로 가장 깊었다 — 판정값 하나만 침묵한다는 것을 스키마가
+ * 표현하지 못해 강도가 나오는 축이 (주제, 시각)에서 (주제, 변종, 시각)으로 넓어졌다.
+ *
+ * 그리고 관계가 22칸에서 **2칸으로 줄었다.** 종류마다 서술어를 달던 것이
+ * 동어반복이었다는 것이 드러났고, 세어지기만 하는 사실은 문장이 아니라 **행**이라는
+ * 구분이 계약에 들어왔다(`ClaimForm`). 줄이면서 정보는 늘었다 — 행은 자리뿐 아니라
+ * 글자를 든다. 분모가 30이다.
  *
  * 빈칸이 없다는 것은 여전히 **할 말을 다 했다는 뜻이 아니다.** 12운성·신살·대운은
  * 아직 침묵하고 그것은 조각이 없어서가 아니라 주제가 없어서다
@@ -238,86 +241,46 @@ const followingFragments = FOLLOWING_WORDINGS.map(
 );
 
 /**
- * 관계 종류마다 문장이 갈리는 자리 — **갈릴 근거가 있을 때만 가른다.**
+ * 관계 두 벌 — **열한 종류가 한 행을 쓴다.**
  *
- * 열한 종류에 같은 문장을 열한 벌 넣으면 `{name}` 슬롯 하나로 충분했다는 뜻이다.
- * 합은 묶이고 충은 마주 서며 삼합은 무리를 이루고 방합은 계절로 모인다 — 이것은
- * 해석이 아니라 그 관계가 **어떤 모양으로 놓였는가**이고, 엔진이 표에서 읽어 온
- * 그대로다.
+ * 한동안 종류마다 서술어를 달았다: 합은 짝을 짓고, 충은 맞서고, 삼합은 무리를
+ * 이루고, 방합은 계절에 모이고, 형은 서로 물린다. 여덟 벌이었다. 그것을 두 벌로
+ * 줄인 것은 규칙이 바뀌어서가 아니라 **같은 규칙을 끝까지 밀었기** 때문이다.
  *
- * 그런데 나눌 근거가 없는 자리도 있다. 해·파·원진·귀문에 대해 이 엔진이 아는
- * 것은 **두 지지의 짝이 성립한다**는 것뿐이다. 길흉도 기전도 판정하지 않으므로
- * (`RELATION_POLICY`), 문장을 넷으로 갈라 쓰면 없는 구별을 지어내는 것이 된다.
- * 그래서 넷이 한 문장을 나눠 쓰고, **나눠 쓴다는 사실이 여기 한 줄로 보인다.**
+ * 해·파·원진·귀문 넷이 한 문장을 나눠 쓴 이유는 "엔진이 아는 것이 짝의 성립뿐"
+ * 이어서였다. 그 잣대를 나머지에 대 보면 서술어가 전부 **동어반복**이다 —
+ * '충(沖)' 이라는 글자에 이미 "맞선다"가 들어 있어서 `{name}` 슬롯이 이미 그
+ * 말을 하고 있었다. 열한 종류가 행을 하나도 가르지 못하면 종류는 변종이 아니라
+ * 슬롯이다.
  *
- * 합에서 오행을 말하지 않는 것도 같은 규율이다 — 글자가 모인 것과 합화한 것은
- * 다르고 화(化) 판정은 하지 않는다(`targetElement` 이지 `result` 가 아니다).
- * 주제가 선언한 슬롯이 `name`·`positions` 뿐이라 애초에 말할 길도 없다.
+ * 줄이면서 정보가 **늘었다.** 옛 문장은 자리만 말하느라 `participant.char` 를
+ * 통째로 버렸다 — "년주·일주 자리의 두 지지가 자오충"에는 어느 글자가 子고
+ * 어느 것이 午인지 없다. 행은 글자를 그대로 든다.
+ *
+ * 그리고 위험이 하나 사라졌다. 합에 붙인 "짝을 짓습니다"는 합이 **성사됐다**는
+ * 뉘앙스를 실어 합화(化) 판정처럼 읽혔는데, 그 판정은 하지 않기로 한 것이다
+ * (`targetElement` 이지 `result` 가 아니다). 행에는 실을 서술어가 없다.
+ *
+ * 두 벌인 것은 시간 미상 때문이고, 갈리는 것은 **시주를 뺐다는 사실 하나**다.
  */
-type RelationWording = {
-  /** 이 문장을 나눠 쓰는 관계 종류들 */
-  kinds: readonly RelationKind[];
-  /** 여덟 글자를 다 보고 하는 말 */
-  fact: string;
-  /** 시주를 빼고 여섯 글자만 보고 하는 말 */
-  derived: string;
-};
+export const RELATION_ROW = '{participants} — {name}';
 
-export const RELATION_WORDINGS: readonly RelationWording[] = [
+/**
+ * 관계 이름의 한자를 그대로 쓰는 이유.
+ *
+ * 산문은 한국어로 읽어야 하니 '을 일간'·'사월'로 쓰지만, 행은 바로 위에 있는
+ * 사주 표기(`癸未 乙酉 辛巳 庚午`)와 **눈으로 이어져야** 한다. 행이 '자'라고
+ * 쓰면 표의 `子` 를 찾아 짚을 수가 없다.
+ */
+const relationFragments: Fragment[] = [
+  { topic: 'relation.present', variant: 'row', strength: 'fact', template: RELATION_ROW },
   {
-    kinds: ['stemCombination'],
-    fact: '{positions} 자리의 두 천간이 {name} 관계로 짝을 짓습니다.',
-    derived: '시주를 빼고 보면 {positions} 자리의 두 천간이 {name} 관계로 짝을 짓는 것으로 봅니다.',
-  },
-  {
-    kinds: ['stemClash'],
-    fact: '{positions} 자리의 두 천간이 {name} 관계로 서로 맞섭니다.',
-    derived: '시주를 빼고 보면 {positions} 자리의 두 천간이 {name} 관계로 서로 맞서는 것으로 봅니다.',
-  },
-  {
-    kinds: ['branchSixCombination'],
-    fact: '{positions} 자리의 두 지지가 {name} 관계로 짝을 짓습니다.',
-    derived: '시주를 빼고 보면 {positions} 자리의 두 지지가 {name} 관계로 짝을 짓는 것으로 봅니다.',
-  },
-  {
-    kinds: ['branchClash'],
-    fact: '{positions} 자리의 두 지지가 {name} 관계로 서로 맞섭니다.',
-    derived: '시주를 빼고 보면 {positions} 자리의 두 지지가 {name} 관계로 서로 맞서는 것으로 봅니다.',
-  },
-  // 반합도 이 문장을 쓴다 — 몇 글자가 모였는지는 `full` 이 들고 있고 문장이
-  // 세지 않는다. 세려면 슬롯이 하나 더 있어야 하고, 그건 주제의 일이다.
-  {
-    kinds: ['branchTripleCombination'],
-    fact: '{positions} 자리의 지지가 {name} 관계로 한 무리를 이룹니다.',
-    derived: '시주를 빼고 보면 {positions} 자리의 지지가 {name} 관계로 한 무리를 이루는 것으로 봅니다.',
-  },
-  {
-    kinds: ['branchDirectionalCombination'],
-    fact: '{positions} 자리의 지지가 {name} 관계로 한 계절에 모입니다.',
-    derived: '시주를 빼고 보면 {positions} 자리의 지지가 {name} 관계로 한 계절에 모이는 것으로 봅니다.',
-  },
-  // 형은 순환한다(寅刑巳·巳刑申·申刑寅). 두 글자만 모여도 그 고리의 한 마디라
-  // 다른 쌍 관계와 모양이 다르고, 그래서 문장도 다르다.
-  {
-    kinds: ['branchPunishment'],
-    fact: '{positions} 자리의 지지가 {name} 관계로 서로 물립니다.',
-    derived: '시주를 빼고 보면 {positions} 자리의 지지가 {name} 관계로 서로 물리는 것으로 봅니다.',
-  },
-  // 넷이 한 문장을 나눠 쓴다. 이 엔진이 아는 것이 "짝이 성립한다"뿐이라 넷으로
-  // 갈라 쓰면 없는 구별을 지어내는 것이 된다.
-  {
-    kinds: ['branchHarm', 'branchDestruction', 'branchResentment', 'branchGhostGate'],
-    fact: '{positions} 자리에서 {name} 관계가 성립합니다.',
-    derived: '시주를 빼고 보면 {positions} 자리에서 {name} 관계가 성립하는 것으로 봅니다.',
+    topic: 'relation.present',
+    variant: 'row',
+    strength: 'derived',
+    template: `${RELATION_ROW} (시주 없이 여섯 글자에서)`,
   },
 ];
-
-const relationFragments = RELATION_WORDINGS.flatMap(({ kinds, fact, derived }) =>
-  kinds.flatMap((kind): Fragment[] => [
-    { topic: 'relation.present', variant: kind, strength: 'fact', template: fact },
-    { topic: 'relation.present', variant: kind, strength: 'derived', template: derived },
-  ]),
-);
 
 /**
  * 조각 전부. 키가 겹치면 `indexFragments` 가 세우는 자리에서 막는다.
@@ -406,8 +369,8 @@ export const FRAGMENTS: readonly Fragment[] = [
   ...followingFragments,
 
   // ── 관계 ─────────────────────────────────────────────────────────────
-  // 변종 열하나 × 두 벌 = 22칸으로 지시서의 절반이다. 문장은 여덟 벌뿐이고
-  // 넷이 하나를 나눠 쓴다 — 위 `RELATION_WORDINGS` 참조.
+  // 한때 22칸으로 지시서의 절반이었다. 종류가 행을 가르지 못한다는 것을 인정하고
+  // 두 칸이 됐다 — 위 `RELATION_ROW` 참조.
   ...relationFragments,
 ];
 
@@ -430,8 +393,10 @@ export const CORPUS_POLICY = {
   hourUnknownRung: 'names-the-missing-hour',
   /** 변종이 문장을 하나도 가르지 못하면 변종 축은 장식이다 */
   variants: 'must-change-some-sentence',
-  /** 갈릴 근거가 없으면 여러 변종이 한 문장을 나눠 쓴다 — 나눠 쓴 자리가 보인다 */
-  sharedWording: 'declared-not-copied',
+  /** 갈릴 근거가 없으면 여러 변종이 한 문장을 나눠 쓰고, 끝까지 밀면 변종이 사라진다 */
+  sharedWording: 'collapses-to-a-slot',
+  /** 세어지기만 하는 사실은 행이다 — 서술어는 동어반복이거나 없는 무게다 */
+  countedFacts: 'rows-not-prose',
   /** 옮겨 적은 표는 문장 안에서 출처를 부른다 — 조후가 그 규칙을 처음 돌린다 */
   attribution: 'named-in-the-sentence',
   /** 판정하지 않은 조건은 문장이 스스로 밝힌다 — 천간만 옮기면 그것은 요약이다 */

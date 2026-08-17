@@ -40,7 +40,7 @@ const CASES: TextCase[] = [
   },
   {
     id: 'branch-clash',
-    note: '지지충·형·해·파·원진 — 넷이 한 문장을 나눠 쓰는 자리',
+    note: '지지충·형·해·파·원진이 한꺼번에 — 종류가 달라도 행의 모양은 같다',
     saju: computeSaju(
       { year: 2000, month: 1, day: 1, hour: 14, minute: 30, second: 0, gender: 'male' },
       {},

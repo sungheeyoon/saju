@@ -6,11 +6,11 @@ import {
   type FollowingDirection,
   type FollowingPatternStatus,
 } from '../analysis';
-import { RELATION_KIND_KO } from '../relations';
 import {
   FOLLOWING_SILENT_VERDICTS,
   ceilingFor,
   checkSentence,
+  type ClaimForm,
   type ClaimPath,
   type ClaimPolarity,
   type ClaimStrength,
@@ -88,6 +88,15 @@ export type TopicSpec = {
   paths: readonly ClaimPath[];
   /** 있다고 하는가, 없다고 하는가. 안전도가 다르므로 방향이 다르면 다른 주제다 */
   polarity: ClaimPolarity;
+  /**
+   * 산문인가 표의 한 줄인가. 기본은 산문이다(`ClaimForm`).
+   *
+   * **강도 사다리와 나란히 간다.** `fact` 로만 서는 주제는 여덟 글자에서 곧장
+   * 세어지는 것이라 셀 수는 있어도 해석할 것이 없다 — 그런 자리에 서술어를
+   * 붙이면 없는 무게가 실린다. 판정을 거친 주제(`derived` 아래)만 완충 표현이
+   * 필요하고, 필요하다는 것이 곧 산문이어야 한다는 뜻이다.
+   */
+  form?: ClaimForm;
   /** 문장이 갈리는 자리 — 유한해야 한다. 생성기가 이 목록을 전수로 돈다 */
   variants: readonly string[];
   /**
@@ -251,16 +260,28 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
   },
 
   /**
-   * 원국에서 성립한 관계 하나. **변종은 관계의 종류이고 이름은 슬롯이다** —
-   * 조각 안에 `자오충` 이 없어야 없는 관계를 말할 길이 없다.
+   * 원국에서 성립한 관계 하나 — **표의 한 줄이다.**
+   *
+   * 한동안 종류마다 서술어를 달았다(합은 짝을 짓고 충은 맞선다…). 그것이
+   * **동어반복**이었다. '충(沖)' 이라는 글자에 이미 "맞선다"가 들어 있어서
+   * 서술어가 정보를 하나도 더하지 않았고, 그러면서 나쁜 일을 둘 했다 —
+   * 합에 붙인 "짝을 짓습니다"는 합화(化)를 판정한 것처럼 읽혔고(하지 않기로 한
+   * 판정이다), 산문이 자리만 말하느라 **`participant.char` 를 통째로 버렸다.**
+   * 어느 글자가 子고 어느 것이 午인지 문장에 없었다.
+   *
+   * 그래서 변종이 **하나뿐이다.** 열한 종류가 행을 하나도 가르지 못하면 종류는
+   * 변종이 아니라 슬롯이다 — 관계 넷이 한 문장을 나눠 쓰던 규칙
+   * (`sharedWording`)을 끝까지 밀면 여기로 온다. 종류는 `{name}` 으로 들어오고
+   * 글자와 자리는 `{participants}` 로 들어온다.
    */
   'relation.present': {
     paths: ['relations'],
     polarity: 'presence',
-    variants: Object.keys(RELATION_KIND_KO),
-    slots: ['name', 'positions'],
-    samples: { name: '자오충', positions: '년주·일주' },
-    note: '어느 자리에서 어떤 관계가 성립하는가',
+    form: 'row',
+    variants: ['row'],
+    slots: ['participants', 'name'],
+    samples: { participants: '년지 子 · 일지 午', name: '자오충' },
+    note: '어느 자리의 어느 글자끼리 어떤 관계가 성립하는가',
   },
 };
 
@@ -471,7 +492,10 @@ export function checkFragment(fragment: Fragment): FragmentViolation[] {
   }
 
   // 뼈대 검사는 슬롯을 비우고 보므로 띄어쓰기도 문장 끝도 못 본다.
-  if (sample !== sample.trim() || /\s{2}/.test(sample) || / \.$/.test(sample) || !sample.endsWith('.')) {
+  // 행은 마침표로 끝나지 않는다 — 문장이 아니라 표의 한 줄이다.
+  const closed = spec.form === 'row' ? !/[.\s]$/.test(sample) : sample.endsWith('.') && !/ \.$/.test(sample);
+
+  if (sample !== sample.trim() || /\s{2}/.test(sample) || !closed) {
     violations.push({
       rule: 'malformed-sample',
       detail: `표본으로 렌더하면 형태가 어긋난다: "${sample}"`,
@@ -484,6 +508,7 @@ export function checkFragment(fragment: Fragment): FragmentViolation[] {
       text: skeletonOf(fragment.template),
       paths: spec.paths,
       strength: fragment.strength,
+      form: spec.form,
       grounded: [],
     }),
   );
@@ -568,6 +593,7 @@ export function renderFragment(request: FragmentRequest, index: FragmentIndex): 
     text,
     paths: spec.paths,
     strength,
+    form: spec.form,
     grounded,
   });
 
@@ -622,4 +648,6 @@ export const FRAGMENT_POLICY = {
   missingFragment: 'silent',
   /** 판정값별 침묵은 변종에 걸린다 — 강도를 내는 길은 그래도 하나다 */
   silentVariants: 'declared-by-topic',
+  /** 세어지기만 하는 사실은 행이다 — 서술어가 없고 강도는 옆 칸이 든다 */
+  form: 'declared-by-topic',
 } as const;

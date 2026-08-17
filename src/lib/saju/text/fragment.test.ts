@@ -122,9 +122,9 @@ describe('조각 스키마', () => {
     it('문장 틀에 명리 용어를 타이핑하면 걸린다', () => {
       const typed: Fragment = {
         topic: 'relation.present',
-        variant: 'branchClash',
+        variant: 'row',
         strength: 'fact',
-        template: '{positions} 자리에서 자오충 관계가 성립합니다.',
+        template: '{participants} — 자오충',
       };
 
       expect(rulesOf(typed)).toContain('ungrounded-term');
@@ -195,15 +195,15 @@ describe('조각 스키마', () => {
       }
     });
 
-    it('표본으로 렌더하면 읽을 수 있는 문장이 된다', () => {
+    it('표본으로 렌더하면 읽을 수 있는 행이 된다', () => {
       const sample = sampleSentence({
         topic: 'relation.present',
-        variant: 'branchClash',
+        variant: 'row',
         strength: 'fact',
-        template: '{positions} 자리에서 {name} 관계가 성립합니다.',
+        template: '{participants} — {name}',
       });
 
-      expect(sample).toBe('년주·일주 자리에서 자오충 관계가 성립합니다.');
+      expect(sample).toBe('년지 子 · 일지 午 — 자오충');
     });
 
     it('형태가 어긋난 표본은 걸린다', () => {
@@ -240,7 +240,7 @@ describe('조각 스키마', () => {
 
       const rendered = render({
         topic: 'relation.present',
-        variant: 'branchClash',
+        variant: 'row',
         slots: samples,
         grounded: [],
       });
@@ -280,15 +280,15 @@ describe('조각 스키마', () => {
     it('조각이 없으면 다른 강도로 메우지 않고 말하지 않는다', () => {
       const request: FragmentRequest = {
         topic: 'relation.present',
-        variant: 'branchHarm',
-        slots: { name: '자미해', positions: '년주·일주' },
+        variant: 'row',
+        slots: { name: '자미해', participants: '년지 子 · 시지 未' },
         grounded: ['자미해'],
       };
 
       expect(render(request).text).toContain('자미해');
 
       const rendered = renderFragment(request, indexFragments([]));
-      expect(rendered.key).toBe(fragmentKey('relation.present', 'branchHarm', 'fact'));
+      expect(rendered.key).toBe(fragmentKey('relation.present', 'row', 'fact'));
       expect(rendered.text).toBeNull();
       expect(rendered.violations).toHaveLength(0);
     });
@@ -376,10 +376,12 @@ describe('조각 스키마', () => {
 
       const rendered = render({
         topic: 'relation.present',
-        variant: 'branchClash',
+        variant: 'row',
         slots: {
           name: clash!.ko,
-          positions: clash!.participants.map((p) => PILLAR_POSITION_KO[p.position]).join('·'),
+          participants: clash!.participants
+            .map((p) => `${PILLAR_POSITION_KO[p.position]} ${p.char}`)
+            .join(' · '),
         },
         grounded: relationNames,
       });
@@ -397,8 +399,8 @@ describe('조각 스키마', () => {
 
       const rendered = render({
         topic: 'relation.present',
-        variant: 'branchClash',
-        slots: { name: absent!, positions: '년·일' },
+        variant: 'row',
+        slots: { name: absent!, participants: '년지 子 · 일지 午' },
         grounded: relationNames,
       });
 

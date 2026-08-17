@@ -9,6 +9,7 @@ import {
 import { PILLAR_POSITION_KO, type PillarPosition } from '../position';
 import { TWELVE_SPIRIT_KO } from '../sinsal/twelveSpirits';
 import { TWELVE_STAGE_KO } from '../stages';
+import type { Relation } from '../relations';
 import type { Saju } from '../index';
 import { FOLLOWING_SILENT_VERDICTS, type ClaimStrength } from './policy';
 import { FRAGMENT_INDEX } from './corpus';
@@ -53,6 +54,30 @@ export type Utterance = {
 
 const positionsKo = (positions: readonly PillarPosition[]): string =>
   positions.map((position) => PILLAR_POSITION_KO[position]).join('·');
+
+/**
+ * 관계 행의 첫 칸 — **어느 자리의 어느 글자인가.**
+ *
+ * 자리만 적던 때는 `participant.char` 를 통째로 버렸다. "년주·일주 자리의 두
+ * 지지"로는 어느 글자가 子고 어느 것이 午인지 알 수 없는데, 그 값은 처음부터
+ * 관계 안에 들어 있었다.
+ *
+ * 간(干)·지(支)를 자리 이름에 붙이는 것은 `char` 가 둘 중 무엇인지가 곧 그
+ * 글자가 어디 앉았는지이기 때문이다 — 천간합과 지지합은 같은 기둥에서도 다른
+ * 층에서 일어난다.
+ *
+ * `chartId` 는 아직 안 쓴다. 원국 한 판뿐이라 누구인지 물을 필요가 없다 —
+ * 두 명식을 함께 놓는 궁합에서 이 자리에 이름이 들어온다.
+ */
+const participantsOf = (relation: Relation): string =>
+  relation.participants
+    .map((participant) => {
+      const layer = participant.char in STEM_INFO ? '간' : '지';
+      const position = PILLAR_POSITION_KO[participant.position].replace('주', layer);
+
+      return `${position} ${participant.char}`;
+    })
+    .join(' · ');
 
 const tenGodTerms = (pillar: PillarTenGods | null): string[] => {
   if (!pillar) return [];
@@ -270,11 +295,8 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
     requests.push({
       ...base,
       topic: 'relation.present',
-      variant: relation.kind,
-      slots: {
-        name: relation.ko,
-        positions: positionsKo(relation.participants.map((participant) => participant.position)),
-      },
+      variant: 'row',
+      slots: { participants: participantsOf(relation), name: relation.ko },
     });
   }
 

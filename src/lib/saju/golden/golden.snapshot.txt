@@ -142,7 +142,8 @@
           claimStrength          derived-from-sources-min
           vocabulary             data-only
           grounding              terms-must-appear-in-evidence
-          hedge                  required-below-fact
+          hedge                  required-below-fact-in-prose
+          form                   rows-for-counted-facts
           attribution            required-for-copied-tables
           disclosure             allowed-for-not-evaluated
           followingPattern       gated-by-external-check
@@ -169,6 +170,7 @@
           staticCheck            skeleton-passes-contract-with-no-evidence
           missingFragment        silent
           silentVariants         declared-by-topic
+          form                   declared-by-topic
 
 케이스 39건
 ==============================================================================

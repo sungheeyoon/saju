@@ -475,6 +475,28 @@ export type TextViolation = {
   detail: string;
 };
 
+/**
+ * 이 글이 **문장인가 행인가.**
+ *
+ * 완충 표현은 산문이 근거보다 세게 말하는 것을 막는 장치다. 그런데 세어지기만
+ * 하는 사실(관계 목록·십성 개수·12운성)에 산문을 입히면 서술어가 **없는 무게를
+ * 싣는다.** "자오충 관계로 서로 맞섭니다"의 '맞섭니다'는 충(沖)이라는 글자를
+ * 한국어로 풀어 쓴 것뿐이라 정보를 하나도 더하지 않는데, 합에 "짝을 짓습니다"를
+ * 붙이면 합화(化)를 판정한 것처럼 읽힌다 — 우리가 하지 않기로 한 판정이다.
+ *
+ * 행에는 단정할 서술어가 아예 없다. 그래서 완충 표현을 요구하지 않고, 대신
+ * **강도가 행 옆의 칸으로 선다**(`Utterance.strength`). 사다리가 문장 속 어휘가
+ * 아니라 표의 한 열로 보이므로 오히려 더 잘 읽힌다.
+ *
+ * 면제이지 예외가 아니다 — 금지 표현도 근거 대조도 행에 그대로 적용된다.
+ * 행이 행으로 남는지는 말뭉치가 지킨다(강도 표지를 품으면 그건 행이 아니다).
+ */
+export type ClaimForm =
+  /** 산문. 강도에 맞는 완충 표현을 품어야 한다 */
+  | 'sentence'
+  /** 표의 한 줄. 서술어가 없고 강도는 옆 칸이 든다 */
+  | 'row';
+
 export type SentenceCheck = {
   text: string;
   /**
@@ -488,6 +510,8 @@ export type SentenceCheck = {
   paths: readonly ClaimPath[];
   /** `ceilingFor`(주제를 거치면 `renderFragment`)가 낸 값을 그대로 넣는다 */
   strength: ClaimStrength;
+  /** 산문인가 표의 한 줄인가. 주제가 적는다 — 위 `ClaimForm` 참조 */
+  form?: ClaimForm;
   /**
    * 이 문장이 근거로 쥔 용어들 — `relation.ko`, `TEN_GOD_KO[...]` 처럼
    * 데이터에서 나온 값만. 여기 없는 명리 용어가 문장에 있으면 걸린다.
@@ -544,7 +568,13 @@ function insideGroundedTerm(text: string, at: number, length: number, evidence: 
  * 명리적으로 맞는지는 L2 가 이미 답했거나 아직 답하지 않은 것이고, 그 둘의
  * 구분이 곧 `strength` 다.
  */
-export function checkSentence({ text, paths, strength, grounded = [] }: SentenceCheck): TextViolation[] {
+export function checkSentence({
+  text,
+  paths,
+  strength,
+  form = 'sentence',
+  grounded = [],
+}: SentenceCheck): TextViolation[] {
   const violations: TextViolation[] = [];
 
   if (strength === 'silent') {
@@ -573,7 +603,8 @@ export function checkSentence({ text, paths, strength, grounded = [] }: Sentence
     }
   }
 
-  if (strength !== 'fact') {
+  // 행은 서술어가 없어 세게 말할 수단 자체가 없다 — 강도는 옆 칸이 든다.
+  if (strength !== 'fact' && form === 'sentence') {
     const hedges = REQUIRED_HEDGES[strength];
     if (!hedges.some((hedge) => text.includes(hedge))) {
       violations.push({
@@ -643,8 +674,10 @@ export const TEXT_POLICY = {
   vocabulary: 'data-only',
   /** 문장에 나온 용어는 근거 목록에 있어야 한다 */
   grounding: 'terms-must-appear-in-evidence',
-  /** 사실이 아닌 강도는 완충 표현 없이 통과하지 못한다 */
-  hedge: 'required-below-fact',
+  /** 사실이 아닌 강도는 완충 표현 없이 통과하지 못한다 — 산문일 때만 */
+  hedge: 'required-below-fact-in-prose',
+  /** 세어지기만 하는 사실은 행으로 적는다. 서술어가 없고 강도는 옆 칸이 든다 */
+  form: 'rows-for-counted-facts',
   /** 옮겨 적은 표는 출처를 밝힌다 — 강도가 아니라 읽은 근거로 건다 */
   attribution: 'required-for-copied-tables',
   /** 판정하지 않는 것은 "판정하지 않는다"고 말할 수 있다 */

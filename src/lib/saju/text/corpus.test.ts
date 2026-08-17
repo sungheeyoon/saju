@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { computeSaju, type Saju } from '@/src/lib/saju';
 import { FOLLOWING_PATTERN_POLICY, FOLLOWING_PATTERN_STATUS_KO } from '@/src/lib/saju/analysis';
+import { RELATION_KIND_KO } from '@/src/lib/saju/relations';
 import {
   CORPUS_POLICY,
   FOLLOWING_WORDINGS,
@@ -10,7 +11,6 @@ import {
   FRAGMENT_TOPICS,
   FRAGMENT_TOPIC_IDS,
   HOUR_UNKNOWN_MARK,
-  RELATION_WORDINGS,
   STRENGTH_WORDING,
   assembleText,
   ceilingFor,
@@ -81,7 +81,12 @@ describe('말뭉치', () => {
           .filter(([, mark]) => fragment.template.includes(mark))
           .map(([strength]) => strength);
 
-        expect(worn, keyOf(fragment)).toEqual(fragment.strength === 'fact' ? [] : [fragment.strength]);
+        // 행에는 서술어가 없다 — 표지를 품는 순간 그것은 행이 아니라 문장이고,
+        // 계약이 행에 완충 표현을 면제해 준 근거가 사라진다.
+        const bare =
+          fragment.strength === 'fact' || FRAGMENT_TOPICS[fragment.topic].form === 'row';
+
+        expect(worn, keyOf(fragment)).toEqual(bare ? [] : [fragment.strength]);
       }
     });
 
@@ -140,25 +145,78 @@ describe('말뭉치', () => {
     });
 
     /**
-     * 거꾸로, 나눌 근거가 없는데 나누면 **없는 구별을 지어내는 것**이다.
-     * 해·파·원진·귀문에 대해 이 엔진이 아는 것은 짝이 성립한다는 것뿐이라 넷이
-     * 한 문장을 나눠 쓴다. 겹친 문장의 수가 선언한 벌 수와 같은지로 잠근다 —
-     * 복붙으로 늘어난 겹침은 여기서 드러난다.
+     * 거꾸로, 나눌 근거가 없는데 나누면 **없는 구별을 지어내는 것**이다. 한동안
+     * 해·파·원진·귀문 넷만 한 문장을 나눠 썼는데, 같은 잣대를 나머지에 대 보니
+     * 서술어가 전부 동어반복이었다 — '충(沖)'에 이미 "맞선다"가 들어 있다.
+     * 그래서 열한 종류가 **변종 하나**로 줄고 종류는 슬롯이 됐다.
      */
-    it('관계의 문장 수는 선언한 벌 수와 같다', () => {
-      const skeletons = FRAGMENTS.filter(
-        (fragment) => fragment.topic === 'relation.present' && fragment.strength === 'fact',
-      ).map((fragment) => skeletonOf(fragment.template));
+    it('관계 종류는 변종이 아니라 슬롯이다', () => {
+      expect(FRAGMENT_TOPICS['relation.present'].variants).toEqual(['row']);
+      expect(FRAGMENT_TOPICS['relation.present'].slots).toContain('name');
 
-      expect(skeletons).toHaveLength(FRAGMENT_TOPICS['relation.present'].variants.length);
-      expect(new Set(skeletons).size).toBe(RELATION_WORDINGS.length);
+      // 종류가 열하나인 것은 그대로다 — 줄어든 것은 문장 수이지 표가 아니다.
+      expect(Object.keys(RELATION_KIND_KO).length).toBe(11);
     });
 
-    it('한 종류는 한 벌에만 적혀 있다', () => {
-      const kinds = RELATION_WORDINGS.flatMap((wording) => wording.kinds);
+    /**
+     * 종류 이름이 조각 안에 있으면 없는 관계를 말할 길이 생긴다. 열한 종류를
+     * 전부 대 본다 — `ungrounded-term` 이 잡아 주지만 왜 잡는지를 남겨 둔다.
+     */
+    it('종류 이름이 문장 틀에 없다', () => {
+      const rows = FRAGMENTS.filter((fragment) => fragment.topic === 'relation.present');
 
-      expect(new Set(kinds).size).toBe(kinds.length);
-      expect(new Set(kinds)).toEqual(new Set(FRAGMENT_TOPICS['relation.present'].variants));
+      expect(rows).toHaveLength(2);
+      for (const fragment of rows) {
+        for (const ko of Object.values(RELATION_KIND_KO)) {
+          expect(fragment.template.includes(ko), `${keyOf(fragment)} 에 ${ko}`).toBe(false);
+        }
+      }
+    });
+  });
+
+  /**
+   * 세어지기만 하는 사실에 산문을 입히면 서술어가 **없는 무게**를 싣는다.
+   * 합에 붙인 "짝을 짓습니다"는 합화(化)를 판정한 것처럼 읽혔는데 그 판정은
+   * 하지 않기로 한 것이다. 행에는 실을 서술어가 없다.
+   */
+  describe('사실은 행이고 판정은 문장이다', () => {
+    it('행으로 서는 주제는 사실만 낸다', () => {
+      for (const topic of FRAGMENT_TOPIC_IDS) {
+        if (FRAGMENT_TOPICS[topic].form !== 'row') continue;
+
+        // 판정을 거친 주제는 완충 표현이 필요하고, 필요하다는 것이 곧 산문이어야
+        // 한다는 뜻이다. 행은 사실에서 시작하는 주제에만 허락된다.
+        expect(producibleStrengths(topic)[0], topic).toBe('fact');
+      }
+    });
+
+    it('행은 마침표로 끝나지 않는다', () => {
+      const rows = FRAGMENTS.filter((fragment) => FRAGMENT_TOPICS[fragment.topic].form === 'row');
+
+      expect(rows.length).toBeGreaterThan(0);
+      for (const fragment of rows) {
+        expect(fragment.template.endsWith('.'), keyOf(fragment)).toBe(false);
+      }
+    });
+
+    /**
+     * 옛 문장은 자리만 말하느라 `participant.char` 를 통째로 버렸다 — "년주·일주
+     * 자리의 두 지지가 자오충"에는 어느 글자가 子고 어느 것이 午인지 없다.
+     * 줄이면서 정보가 늘었다는 것이 이 자리에서 보인다.
+     */
+    it('행이 자리와 글자를 함께 든다', () => {
+      const relation = CHART.relations[0];
+      expect(relation, '관계가 하나는 있는 명식이어야 한다').toBeDefined();
+
+      const row = assembleText(CHART).find(
+        ({ request }) => request.topic === 'relation.present' && request.slots.name === relation.ko,
+      );
+
+      expect(row?.text).toContain(relation.ko);
+      for (const participant of relation.participants) {
+        expect(row?.text, participant.char).toContain(participant.char);
+      }
+      expect(row?.violations).toEqual([]);
     });
   });
 
