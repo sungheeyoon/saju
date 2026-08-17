@@ -2,9 +2,11 @@ import {
   ELEMENT_ROLE_KO,
   FOLLOWING_DIRECTION_KO,
   FOLLOWING_PATTERN_STATUS_KO,
+  TEN_GOD_GROUP_KO,
   type ElementRole,
   type FollowingDirection,
   type FollowingPatternStatus,
+  type TenGodGroup,
 } from '../analysis';
 import {
   FOLLOWING_SILENT_VERDICTS,
@@ -55,6 +57,7 @@ export type FragmentTopic =
   | 'eokbu.candidate'
   | 'johu.table'
   | 'following.verdict'
+  | 'tenGods.between'
   | 'relation.present'
   | 'relation.coverage';
 
@@ -258,6 +261,41 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     slots: ['verdict', 'direction', 'selfShare', 'dominant'],
     samples: { verdict: '가종', direction: '밖으로 종', selfShare: '12%', dominant: '재성' },
     note: '종격을 어느 쪽으로 얼마나 세게 보는가',
+  },
+
+  /**
+   * 두 사람이 서로를 십성으로 무엇이라 보는가 — **궁합에서만 선다.**
+   *
+   * 원국의 십성은 이미 사주팔자 표에 여덟 자리 전부 적혀 있다. 표에 없던 것은
+   * **일간과 일간 사이** 하나뿐이고, 그것이 궁합에서 처음 생기는 값이다.
+   *
+   * 행인 것은 강도가 정했다. 십성은 두 일간의 오행 관계와 음양을 표에서 읽은
+   * 값이라 문턱도 계통 선택도 없다(`CLAIM_CEILING['analysis.tenGods'] = 'fact'`).
+   * 완충 표현이 필요 없으면 산문일 이유가 없고, 그 자리에 서술어를 붙이면 없는
+   * 무게가 실린다 — 관계 22칸이 2칸이 된 것과 같은 판단이다(`ClaimForm`).
+   *
+   * **조각이 한 벌뿐인 세 번째 자리이고 이유는 조후와 같다.** 십성을 여는 열쇠가
+   * 두 일간뿐인데 일주는 시각을 몰라도 나오므로 시주 두 글자가 값을 바꾸지
+   * 않는다. `HOUR_SENSITIVE_PATHS` 에 `analysis.tenGods` 가 없는 것이 그것이다.
+   *
+   * **방향은 변종이 아니라 슬롯이다.** 甲이 본 辛은 정관이고 辛이 본 甲은 정재라
+   * 양방향이 다른데, 다른 것은 값이지 문장이 아니다 — 같은 틀에 이름과 십성만
+   * 바꿔 두 번 세우면 비대칭은 두 행이 나란히 선 것으로 보인다. 방향을 변종으로
+   * 가르면 `{viewer}` 를 틀에 굳히는 셈이라 누가 a 이고 b 인지를 문장이 알게 된다.
+   *
+   * **변종은 십성 열이 아니라 다섯 무리다.** 갈리는 것은 아래 한 마디(`ROLE_GLOSS`)
+   * 이고 그것은 무리가 정한다 — 정재와 편재는 같은 말을 듣는다. 정·편의 차이는
+   * `{tenGod}` 이름이 이미 들고 있으므로 변종이 아니라 슬롯이다.
+   */
+  'tenGods.between': {
+    paths: ['analysis.tenGods'],
+    polarity: 'presence',
+    form: 'row',
+    variants: Object.keys(TEN_GOD_GROUP_KO) as TenGodGroup[],
+    slots: ['viewer', 'viewed', 'tenGod'],
+    // 십성 이름은 일부러 표본에 둔다 — 근거 없이 렌더되면 걸려야 한다.
+    samples: { viewer: '민수', viewed: '지영', tenGod: '정관' },
+    note: '상대의 일간이 내 일간에게 어느 자리인가',
   },
 
   /**

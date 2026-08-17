@@ -166,6 +166,57 @@ const COMPAT_CASES: CompatCase[] = [
       },
     },
   },
+  /**
+   * 십성 변종 다섯 중 골든이 밟는 것은 위 두 케이스에서 둘(인성·식상)뿐이다.
+   * 아래 둘이 나머지 셋을 밟는다 — 조후표에서 갈리는 칸을 일부러 골라 둔 것과
+   * 같은 이유로, 흔한 칸만 두면 변종을 왜 갈랐는지가 골든에 안 보인다.
+   */
+  {
+    id: 'compat-officer-wealth',
+    note: '십성이 비대칭인 자리 — 한쪽은 관성으로 보고 다른 쪽은 재성으로 본다',
+    people: {
+      a: {
+        label: '민수',
+        saju: computeSaju(
+          { year: 1990, month: 5, day: 20, hour: 14, minute: 30, second: 0, gender: 'male' },
+          {},
+        ),
+      },
+      b: {
+        label: '지영',
+        saju: computeSaju(
+          { year: 1992, month: 1, day: 5, hour: 9, minute: 0, second: 0, gender: 'female' },
+          {},
+        ),
+      },
+    },
+  },
+  /**
+   * 두 일간이 같은 오행이면 양방향이 같은 값이 된다 — **비겁만 그렇다.**
+   * 두 행이 같은 말을 하고 그것을 겹친 채로 둔다. 방향을 변종으로 갈라 "서로를
+   * 같게 본다" 한 줄로 접을 수도 있었지만, 그러면 엔진이 양방향으로 들고 있는
+   * 값을 문장이 하나로 접는 것이라 접었다는 사실이 어디에도 안 남는다.
+   */
+  {
+    id: 'compat-mutual',
+    note: '두 일간이 같은 오행 — 양방향이 같은 십성이라 두 행이 겹친다',
+    people: {
+      a: {
+        label: '민수',
+        saju: computeSaju(
+          { year: 1990, month: 5, day: 20, hour: 14, minute: 30, second: 0, gender: 'male' },
+          {},
+        ),
+      },
+      b: {
+        label: '지영',
+        saju: computeSaju(
+          { year: 1992, month: 1, day: 9, hour: 9, minute: 0, second: 0, gender: 'female' },
+          {},
+        ),
+      },
+    },
+  },
 ];
 
 const formatCompatCase = ({ id, note, people }: CompatCase): string => {

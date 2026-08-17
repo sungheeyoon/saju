@@ -1,5 +1,4 @@
 import type { ElementRole, FollowingDirection, FollowingPatternStatus } from '../analysis';
-import type { RelationKind } from '../constants';
 import type { ClaimStrength } from './policy';
 import { followingVariant, indexFragments, type Fragment, type FragmentIndex } from './fragment';
 
@@ -69,14 +68,20 @@ export const STRENGTH_WORDING: Record<Exclude<ClaimStrength, 'fact' | 'silent'>,
 export const HOUR_UNKNOWN_MARK = '시주';
 
 /**
- * 억부 후보의 자리마다 붙는 한 마디 — **변종 축이 값을 내는 자리다.**
+ * 다섯 자리가 일간과 맺는 방향 — **변종 축이 값을 내는 자리다.**
  *
- * 다섯 변종에 같은 문장을 다섯 벌 넣으면 변종은 장식이 된다. `{role}` 슬롯이
- * 이름을 꽂아 주므로 조각이 더할 것은 **그 자리가 일간과 맺는 방향**뿐이고,
+ * 다섯 변종에 같은 문장을 다섯 벌 넣으면 변종은 장식이 된다. `{role}`·`{tenGod}`
+ * 슬롯이 이름을 꽂아 주므로 조각이 더할 것은 **그 자리가 일간과 맺는 방향**뿐이고,
  * 그것은 십성의 정의라서 명식마다 달라지지 않는다(그래서 슬롯이 아니라 변종에
  * 얹힌다). 새 역할이 생기면 여기서 컴파일이 깨진다.
+ *
+ * **두 주제가 나눠 쓴다**(억부 후보 · 궁합 십성). 원래 억부의 것이었는데 궁합
+ * 십성이 같은 뜻풀이를 필요로 했고, 같은 정의를 두 벌 적으면 언젠가 한쪽만
+ * 고쳐진다 — 역마·도화·화개를 신살 표에 옮겨 적되 값은 12신살에서 가져오기만
+ * 한 것과 같은 판단이다. 열쇠 타입이 둘로 갈려 있는 것(`ElementRole` ·
+ * `TenGodGroup`)은 L2 에 남아 있는 이름 중복이지 여기서 갈린 것이 아니다.
  */
-const EOKBU_GLOSS: Record<ElementRole, string> = {
+export const ROLE_GLOSS: Record<ElementRole, string> = {
   比劫: '일간과 한편에 서는',
   印星: '일간을 받쳐 주는',
   食傷: '일간이 기운을 내보내는',
@@ -84,7 +89,7 @@ const EOKBU_GLOSS: Record<ElementRole, string> = {
   官星: '일간을 누르는',
 };
 
-const eokbuFragments = (Object.entries(EOKBU_GLOSS) as [ElementRole, string][]).flatMap(
+const eokbuFragments = (Object.entries(ROLE_GLOSS) as [ElementRole, string][]).flatMap(
   ([role, gloss]): Fragment[] => [
     {
       topic: 'eokbu.candidate',
@@ -242,6 +247,38 @@ const followingFragments = FOLLOWING_WORDINGS.map(
     variant: followingVariant(wording.verdict, wording.direction),
     strength: 'candidate',
     template: followingBody(wording, '후보로 봅니다'),
+  }),
+);
+
+/**
+ * 궁합 십성 다섯 벌 — **누구 눈으로 본 것인지가 행의 첫 칸이다.**
+ *
+ * 십성은 원국에서 이미 사주팔자 표에 다 적혀 있다. 여기서 처음 생기는 값은
+ * **일간과 일간 사이** 하나이고, 그것이 양방향으로 다르다 — 甲이 본 辛은 정관인데
+ * 辛이 본 甲은 정재다. 방향을 적지 않으면 두 값 중 어느 쪽인지 잃어버린다.
+ *
+ * 그런데 방향은 **변종이 아니라 슬롯**이다. 두 방향의 문장이 갈리지 않고 이름만
+ * 바뀌므로, 같은 틀을 두 번 세우면 비대칭은 두 행이 나란히 선 것으로 보인다.
+ * 같은 오행이면 양쪽이 같은 십성이 되는데(비겁) 그때도 두 행이 그대로 선다 —
+ * 겹치는 것을 겹친 채로 두는 것이 종격 후보 두 칸과 같은 판단이다.
+ *
+ * **`(...)` 안의 한 마디는 서술어가 아니라 뜻풀이다.** 관계 행에서 서술어를 뗀
+ * 이유는 그것이 동어반복이어서였다 — '충(沖)' 에 이미 "맞선다"가 들어 있다.
+ * 십성은 그렇지 않다. '정관' 이라는 한글 두 글자에 "일간을 누른다"는 뜻이 보이지
+ * 않으므로 뜻풀이는 정보를 더한다. 그리고 그 뜻풀이는 십성의 **정의**라 명식마다
+ * 달라지지 않고 판정을 담지도 않는다(`ROLE_GLOSS`).
+ *
+ * 한 벌뿐인 것은 조후와 같은 이유다 — 십성을 여는 열쇠가 두 일간뿐이고 일주는
+ * 시각을 몰라도 나오므로 시주가 값을 바꾸지 않는다.
+ */
+const tenGodsFragments = (Object.entries(ROLE_GLOSS) as [ElementRole, string][]).map(
+  ([role, gloss]): Fragment => ({
+    topic: 'tenGods.between',
+    variant: role,
+    strength: 'fact',
+    // 조사가 슬롯 뒤에 붙지 않는다. '의' 는 받침을 따르지 않고, 뜻풀이의 '을·이'
+    // 는 슬롯이 아니라 '일간' 뒤에 붙는다.
+    template: `{viewer}의 눈으로 본 {viewed} — {tenGod} (${gloss} 자리)`,
   }),
 );
 
@@ -418,6 +455,11 @@ export const FRAGMENTS: readonly Fragment[] = [
   // 여섯 변종 × 한 벌. 일곱 번째 변종(`not-following`)은 말하지 않기로 했으므로
   // 지시서에 오르지 않는다 — 조각이 없는 것이 아니라 조회되지 않는 자리다.
   ...followingFragments,
+
+  // ── 궁합 십성 ────────────────────────────────────────────────────────
+  // 원국 표에 없던 자리 하나 — 일간과 일간 사이. 양방향이라 같은 틀이 이름만
+  // 바꿔 두 번 선다.
+  ...tenGodsFragments,
 
   // ── 관계 ─────────────────────────────────────────────────────────────
   // 한때 22칸으로 지시서의 절반이었다. 종류가 행을 가르지 못한다는 것을 인정하고

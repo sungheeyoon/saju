@@ -3,8 +3,10 @@ import {
   ELEMENT_ROLE_KO,
   FOLLOWING_DIRECTION_KO,
   FOLLOWING_PATTERN_STATUS_KO,
+  TEN_GOD_GROUP,
   TEN_GOD_KO,
   type PillarTenGods,
+  type TenGod,
 } from '../analysis';
 import { PILLAR_POSITION_KO, type PillarPosition } from '../position';
 import { TWELVE_SPIRIT_KO } from '../sinsal/twelveSpirits';
@@ -350,6 +352,26 @@ export type CompatPerson = {
 };
 
 /**
+ * 이 궁합이 **실제로 낸** 용어들 — 원국의 `groundedTermsOf` 와 같은 구실이다.
+ *
+ * 목록을 나눈 것은 세는 대상이 `Saju` 가 아니라 `Compatibility` 이기 때문이다.
+ * 두 사람의 원국이 각자 낸 용어는 여기 오지 않는다 — 궁합 문장이 읽는 것은
+ * 사이에서 생긴 값뿐이고, 넉넉히 담으면 대조가 통과할 뿐 아무것도 잡지 못한다.
+ *
+ * 슬롯 값을 그대로 옮겨 담는 것이 아니라 **엔진이 낸 것을 다시 훑는다.** 꽂은
+ * 값을 근거로 흘려보내면 그 값이 스스로를 근거로 삼아 "없는 것을 말하면 걸린다"가
+ * 통째로 무력해진다.
+ */
+export function groundedCompatTermsOf(compat: Compatibility): string[] {
+  const terms = new Set<string>();
+
+  for (const relation of compat.relations) terms.add(relation.ko);
+  for (const tenGod of Object.values(compat.tenGods)) terms.add(TEN_GOD_KO[tenGod]);
+
+  return [...terms];
+}
+
+/**
  * 궁합 관계를 행으로 — **원국과 같은 주제, 같은 조각을 쓴다.**
  *
  * 갈리는 것은 `{participants}` 슬롯에 이름이 들어온다는 것뿐이다. 궁합용 문장을
@@ -374,11 +396,31 @@ export function findCompatUtterances(
   const labelOf = (chartId: string): string => labels[chartId] ?? chartId;
 
   const base = {
-    grounded: compat.relations.map((relation) => relation.ko),
+    grounded: groundedCompatTermsOf(compat),
     hourKnown: people.a.hourKnown && people.b.hourKnown,
   };
 
   const requests: FragmentRequest[] = [];
+
+  // 두 방향을 같은 틀로 두 번 세운다. 비대칭은 두 행이 나란히 선 것으로 보이고,
+  // 같은 오행이라 양쪽이 같은 십성일 때도(비겁) 두 행이 그대로 선다.
+  const views: { viewer: CompatSide; viewed: CompatSide; tenGod: TenGod }[] = [
+    { viewer: 'a', viewed: 'b', tenGod: compat.tenGods.aSeesB },
+    { viewer: 'b', viewed: 'a', tenGod: compat.tenGods.bSeesA },
+  ];
+
+  for (const { viewer, viewed, tenGod } of views) {
+    requests.push({
+      ...base,
+      topic: 'tenGods.between',
+      variant: TEN_GOD_GROUP[tenGod],
+      slots: {
+        viewer: people[viewer].label,
+        viewed: people[viewed].label,
+        tenGod: TEN_GOD_KO[tenGod],
+      },
+    });
+  }
 
   // 행에는 **누구의** 시주가 빠졌는지 적을 자리가 없었다. 목록은 이름을 부른다 —
   // 한쪽만 모르는 것과 둘 다 모르는 것은 같은 칸이지만 같은 문장은 아니다.
@@ -419,13 +461,17 @@ export function assembleCompatText(
 /**
  * 궁합에서 아직 주제가 없는 사실.
  *
- * 관계만 행이 됐다. 나머지 넷은 사실이 없어서가 아니라 주제가 없어서 침묵한다 —
- * `UNCOVERED_FACTS` 와 같은 구실이고, 목록을 나눈 것은 세는 대상이 `Saju` 가
- * 아니라 `Compatibility` 이기 때문이다.
+ * 관계와 십성이 행이 됐다. 나머지는 사실이 없어서가 아니라 주제가 없어서
+ * 침묵한다 — `UNCOVERED_FACTS` 와 같은 구실이고, 목록을 나눈 것은 세는 대상이
+ * `Saju` 가 아니라 `Compatibility` 이기 때문이다.
+ *
+ * 남은 둘은 **행이 아니라 문장이어야 한다.** 십성이 행이 된 것은 표를 읽은
+ * 값이라 판정이 없어서였는데(`fact`), 이 둘은 그렇지 않다 — 억부 부합은 후보를
+ * 물려받고, 오행 보완은 "채우는 것이 좋은가" 자체가 계통 갈림이라 세어 놓은
+ * 것에 완충 표현이 필요하다.
  */
 export const UNCOVERED_COMPAT_FACTS: readonly string[] = [
   'elementSupport (서로의 부족한 오행을 채우는가)',
-  'tenGods (서로를 십성으로 무엇이라 보는가 — 양방향)',
   'eokbuMatch (내 억부 후보를 상대가 갖고 있는가)',
   'combinedFormations (관계 행에는 들어가지만 따로 모은 목록은 아직)',
 ];

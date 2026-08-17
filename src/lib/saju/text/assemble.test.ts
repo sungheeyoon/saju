@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju, type Saju } from '@/src/lib/saju';
+import { TEN_GOD_KO } from '@/src/lib/saju/analysis';
+import { analyzeCompatibility } from '@/src/lib/saju/compat';
 import {
   ASSEMBLE_POLICY,
   FRAGMENT_TOPICS,
   MYEONGRI_LEXICON,
   FRAGMENT_INDEX,
+  STRENGTH_WORDING,
+  assembleCompatText,
   assembleText,
   findUtterances,
+  groundedCompatTermsOf,
   groundedTermsOf,
   indexFragments,
   missingFragmentsOf,
@@ -22,6 +27,9 @@ const male = (year: number, month: number, day: number, hour: number | null) =>
       : { year, month, day, hour, minute: 30, second: 0, gender: 'male' },
     {},
   );
+
+const female = (year: number, month: number, day: number) =>
+  computeSaju({ year, month, day, hour: 9, minute: 0, second: 0, gender: 'female' }, {});
 
 /** 관계가 다섯 걸리는 명식 */
 const RICH = male(1990, 5, 20, 14);
@@ -259,6 +267,97 @@ describe('조립기', () => {
 
           for (const slot of Object.keys(request.slots)) {
             expect(declared, `${request.topic}.${slot}`).toContain(slot);
+          }
+        }
+      }
+    });
+  });
+
+  /**
+   * 궁합에서 처음 생기는 값은 **일간과 일간 사이** 하나다. 원국의 십성은 이미
+   * 사주팔자 표에 여덟 자리 전부 있고, 표에 없던 자리가 이것뿐이다.
+   */
+  describe('궁합 십성', () => {
+    const compatOf = (a: Saju, b: Saju) => analyzeCompatibility(a, b);
+
+    const peopleOf = (a: Saju, b: Saju) => ({
+      a: { label: '민수', hourKnown: a.meta.hourKnown },
+      b: { label: '지영', hourKnown: b.meta.hourKnown },
+    });
+
+    const rowsOf = (a: Saju, b: Saju) =>
+      assembleCompatText(compatOf(a, b), peopleOf(a, b)).filter(
+        ({ request }) => request.topic === 'tenGods.between',
+      );
+
+    /** 두 일간이 같은 오행이라 양방향이 같은 십성이 되는 짝 */
+    const MUTUAL = female(1992, 1, 9);
+    /** 한쪽이 관성이면 다른 쪽은 재성이다 — 비대칭이 가장 잘 보이는 짝 */
+    const OFFICER = female(1992, 1, 5);
+
+    /**
+     * 방향이 변종이 아니라 슬롯이라는 것의 결과다. 값이 같으면 두 행이 같은 말을
+     * 하는데 **접지 않는다** — 접으면 엔진이 양방향으로 들고 있는 값을 문장이
+     * 하나로 만드는 것이고, 접었다는 사실이 어디에도 남지 않는다.
+     */
+    it('양방향이 같은 값이어도 두 행이 선다', () => {
+      const rows = rowsOf(RICH, MUTUAL);
+
+      expect(rows).toHaveLength(2);
+      expect(rows[0].key).toBe(rows[1].key);
+      expect(rows[0].text).not.toBe(rows[1].text);
+    });
+
+    it('누구 눈으로 본 것인지가 행에 있다', () => {
+      const [aSeesB, bSeesA] = rowsOf(RICH, OFFICER);
+
+      expect(aSeesB.text).toContain('민수의 눈으로 본 지영');
+      expect(bSeesA.text).toContain('지영의 눈으로 본 민수');
+
+      // 비대칭이므로 변종도 갈린다 — 한쪽이 관성이면 다른 쪽은 재성이다.
+      expect(aSeesB.key).not.toBe(bSeesA.key);
+    });
+
+    /**
+     * 십성을 여는 열쇠는 두 일간뿐이고 일주는 시각을 몰라도 나온다. 시주 두
+     * 글자가 값을 바꾸지 않으므로 강도가 내려갈 이유가 없다 — 조후와 같다.
+     */
+    it('시간 미상에도 사실 그대로다', () => {
+      for (const row of rowsOf(HOURLESS, OFFICER)) {
+        expect(row.strength).toBe('fact');
+        expect(row.text).not.toBeNull();
+      }
+    });
+
+    it('행에는 강도 표지가 없다', () => {
+      for (const row of rowsOf(RICH, OFFICER)) {
+        for (const mark of Object.values(STRENGTH_WORDING)) {
+          expect(row.text!.includes(mark), `${row.key} 에 ${mark}`).toBe(false);
+        }
+      }
+    });
+
+    /**
+     * 십성 이름은 명리 용어라 근거 목록에 없으면 걸려야 한다. 슬롯에 꽂은 값을
+     * 근거로 흘려보내면 꽂은 값이 스스로를 근거로 삼아 대조가 언제나 통과한다.
+     */
+    it('근거는 엔진이 낸 십성만 담는다', () => {
+      const compat = compatOf(RICH, OFFICER);
+      const grounded = new Set(groundedCompatTermsOf(compat));
+
+      for (const tenGod of Object.values(compat.tenGods)) {
+        expect(grounded.has(TEN_GOD_KO[tenGod])).toBe(true);
+      }
+
+      const absent = Object.values(TEN_GOD_KO).find((ko) => !grounded.has(ko));
+      expect(absent, '담기지 않은 십성이 있어야 대조가 무엇이라도 잡는다').toBeDefined();
+    });
+
+    it('나온 행은 계약을 지킨다', () => {
+      for (const partner of [MUTUAL, OFFICER]) {
+        for (const a of [RICH, HOURLESS]) {
+          for (const utterance of assembleCompatText(compatOf(a, partner), peopleOf(a, partner))) {
+            expect(utterance.violations, utterance.key ?? '(silent)').toHaveLength(0);
           }
         }
       }
