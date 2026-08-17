@@ -662,6 +662,27 @@ function StarTable({ saju }: { saju: Saju }) {
  * 붙어 있어야 성립한다고 보는 학파를 위해 떨어진 것은 거리를 밝히고, 반쪽만
  * 모인 것은 반쪽이라고 밝힌다. 걸러내는 것은 읽는 사람의 몫이다.
  */
+/**
+ * 한자 글자 뒤의 조사 — **읽는 소리의 받침을 따른다.**
+ *
+ * `未이 丑를 형` 이라고 적고 있었다. L3 계약이 문장 틀에서 슬롯 뒤 조사를 아예
+ * 금지한 이유가 이것인데(`VARIABLE_PARTICLES`), 화면은 그 검사를 받지 않아 그대로
+ * 새어 있었다. 삼형마다 두 글자 행이 셋씩 붙으면서 눈에 띄었다.
+ *
+ * 글자는 한자로 보이지만 읽는 사람은 '미'·'축' 으로 읽으므로 받침은 그 소리에서
+ * 나온다. 계약이 막은 것은 **틀이 미리 고르는 것**이지, 값을 아는 쪽이 고르는 것은
+ * 아니다 — 조립기가 이름을 이어 붙일 때 쓰는 판단과 같다(`joinNames`).
+ */
+const hasFinalConsonant = (char: string): boolean => {
+  const ko = BRANCH_INFO[char as keyof typeof BRANCH_INFO]?.ko ?? char;
+  const code = ko.charCodeAt(ko.length - 1) - 0xac00;
+
+  return code >= 0 && code <= 11171 && code % 28 !== 0;
+};
+
+const subjectParticle = (char: string) => (hasFinalConsonant(char) ? '이' : '가');
+const objectParticle = (char: string) => (hasFinalConsonant(char) ? '을' : '를');
+
 function RelationTable({ saju, coverage }: { saju: Saju; coverage: Utterance[] }) {
   const { relations } = saju;
 
@@ -724,7 +745,9 @@ function RelationTable({ saju, coverage }: { saju: Saju; coverage: Utterance[] }
                         return (
                           arrow && (
                             <span>
-                              {arrow.from.char}이 {arrow.to.char}를 형
+                              {arrow.from.char}
+                              {subjectParticle(arrow.from.char)} {arrow.to.char}
+                              {objectParticle(arrow.to.char)} 형
                             </span>
                           )
                         );

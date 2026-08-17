@@ -87,6 +87,13 @@ export const RELATION_POLICY = {
   partialStructures: 'peak-required',
   /** 완전 삼형은 도는 순서를 낸다. 시작점은 고전이 부르는 차례일 뿐 우리가 고른 것이 아니다 */
   triplePunishmentCycle: 'ordered-by-classical-table',
+  /**
+   * 세 글자가 다 모인 자리 안의 두 글자 조합 — **형만 남기고 합은 버린다.**
+   *
+   * 합은 모여서 하나를 이루는 것이라 온전한 삼합 위에 반합을 얹으면 틀린 말이
+   * 되고, 형은 쌍마다 물림을 따로 세는 계통이 있어 우리가 대신 고르지 않는다.
+   */
+  absorbedPairs: 'kept-for-punishments-only',
   /** 쟁합·투합만 검출하고 승패는 가리지 않는다 */
   interactionResolution: 'contest-only',
   /** 지장간은 관계 검출에 쓰지 않는다 (데이터는 그대로 있다) */
@@ -551,15 +558,18 @@ type GroupMatches = {
  * (申辰은 반합이 아니고 子辰은 반합이다). 방합에도 같은 기준을 적용해 계절
  * 한가운데 글자를 요구한다. 삼형에는 왕지 개념이 없으므로 `null` 을 준다.
  *
- * 세 글자가 다 모인 자리에서 나오는 두 글자 조합은 반쪽으로 세지 않는다.
- * 같은 사실을 두 번 말하는 것이기 때문이다. 다만 **자리가 다르면** 다른
- * 사실이다 — 申子辰 이 서 있는데 시지에 子 가 하나 더 있으면, 그 子 와 申 의
- * 반합은 따로 성립한다.
+ * **자리가 다르면 다른 사실이다** — 申子辰 이 서 있는데 시지에 子 가 하나 더
+ * 있으면, 그 子 와 申 의 반합은 따로 성립한다.
+ *
+ * 세 글자가 다 모인 자리 **안에서** 나오는 두 글자 조합을 어떻게 할지는
+ * `absorbed` 가 정한다. 합과 형이 갈리는 자리라 호출부가 고른다 — 아래
+ * `AbsorbedPairs` 참조.
  */
 function matchGroups(
   slots: readonly Slot[],
   branches: readonly [Branch, Branch, Branch],
   peak: Branch | null,
+  absorbed: AbsorbedPairs = 'drop',
 ): GroupMatches {
   const members = slots.filter((s) => branches.includes(s.branch));
 
@@ -570,11 +580,32 @@ function matchGroups(
   const partial = combinationsOf(members, 2).filter(([a, b]) => {
     if (a.branch === b.branch) return false;
     if (peak !== null && a.branch !== peak && b.branch !== peak) return false;
+    if (absorbed === 'keep') return true;
     return !full.some((trio) => trio.includes(a) && trio.includes(b));
   });
 
   return { full, partial };
 }
+
+/**
+ * 세 글자가 다 모인 자리 안의 두 글자 조합을 낼 것인가 — **합과 형이 갈린다.**
+ *
+ * - **합은 버린다**(`drop`). 합은 모여서 하나를 이루는 것이라, 巳酉丑 이 다 선
+ *   자리에서 "巳酉 반합도 있습니다"는 대부분의 계통에서 **틀린 말**이다. 반합은
+ *   온전한 삼합이 없을 때 부르는 이름이다.
+ * - **형은 남긴다**(`keep`). 형은 서로 물리는 것이라 쌍마다 물림이 따로 있다고
+ *   보는 계통이 있다. 丑戌未 가 다 서 있어도 丑戌 이 직접 형한다는 읽기가 살아
+ *   있고, **그 갈림을 우리가 대신 고르지 않는다.**
+ *
+ * 삼형 행에 참가자 셋과 `cycle` 이 있으니 두 글자 형은 거기서 유도되기는 한다.
+ * 그래도 내는 것은 정보 복원의 문제가 아니라 **어느 층이 계통을 고르는가**의
+ * 문제여서다 — 유도할 수 있다는 이유로 버리면, 두 글자 형을 따로 세는 계통에서는
+ * 우리가 이미 한 번 판정한 결과를 받게 된다.
+ *
+ * 한 표 안에서만 하는 이야기다. 같은 두 글자가 **다른 표**에서 각각 나오는 것은
+ * 원래 그대로다 — 子丑 은 육합과 방합에서 두 줄이 함께 선다.
+ */
+type AbsorbedPairs = 'drop' | 'keep';
 
 function tripleCombinationRelations(slots: readonly Slot[]): Relation[] {
   return BRANCH_TRIPLE_COMBINATIONS.flatMap((c) => {
@@ -650,7 +681,8 @@ function punishmentDirectionOf(
 
 function triplePunishmentRelations(slots: readonly Slot[]): Relation[] {
   return TRIPLE_PUNISHMENTS.flatMap((p) => {
-    const { full, partial } = matchGroups(slots, p.branches, null);
+    // 삼형이 다 서 있어도 두 글자 형을 따로 낸다 — 위 `AbsorbedPairs` 참조.
+    const { full, partial } = matchGroups(slots, p.branches, null, 'keep');
 
     return [
       // 세 글자가 다 모인 삼형은 순환이라 화살표 하나로 못 적는다. 대신 **도는
@@ -801,15 +833,25 @@ export function directionParticipantsOf(
 }
 
 /**
- * 참가자를 **읽는 순서**로 — 완전 삼형만 자리 순서가 아니라 도는 순서다.
+ * 참가자를 **읽는 순서**로 — 형만 자리 순서가 아니라 형하는 순서다.
  *
- * 부르는 곳이 셋이다(원국 표 · 궁합 표 · L3 행). 셋이 각자 `cycle` 을 풀면 언젠가
- * 한 곳만 고쳐지고, 그때 어긋난 쪽을 알 수 없다. `directionParticipantsOf` 와 같은
- * 자리에 같은 모양으로 둔다 — 저장은 인덱스로, 푸는 것은 읽을 때 한 번.
+ * 저장은 자리 순서(년→시)로 하고 순서는 인덱스로만 든다(`cycle`·`direction`).
+ * 읽을 때 그것을 푸는 곳이 여기 하나다 — 부르는 곳이 셋인데(원국 표 · 궁합 표 ·
+ * L3 행) 셋이 각자 풀면 언젠가 한 곳만 고쳐지고 그때 어긋난 쪽을 알 수 없다.
+ *
+ * **글자 순서가 이름과 맞아야 한다.** '축술형'인데 행이 `戌 · 丑` 으로 서면 읽는
+ * 사람이 둘 중 어느 것이 맞는지를 고르게 되고, 그것은 우리가 내리지 않은 판정을
+ * 떠넘기는 것이다. 완전 삼형에서 먼저 드러났고 두 글자 형도 같은 자리였다.
+ *
+ * 방향이 없는 형(상형·자형)과 형이 아닌 관계는 자리 순서 그대로다.
  */
 export function orderedParticipants(relation: Relation): readonly Participant[] {
-  const { cycle, participants } = relation;
-  return cycle ? cycle.map((index) => participants[index]) : participants;
+  const { cycle, direction, participants } = relation;
+
+  if (cycle) return cycle.map((index) => participants[index]);
+  if (direction) return [participants[direction.from], participants[direction.to]];
+
+  return participants;
 }
 
 /**

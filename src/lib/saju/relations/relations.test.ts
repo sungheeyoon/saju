@@ -27,6 +27,7 @@ import {
   directionParticipantsOf,
   findRelations,
   formatRelation,
+  orderedParticipants,
   type Relation,
   type RelationInput,
 } from '@/src/lib/saju/relations';
@@ -432,6 +433,64 @@ describe('형의 방향 — 삼형은 순환한다', () => {
       expect(partial?.direction).not.toBeNull();
     });
 
+    /**
+     * 삼형이 다 서 있어도 두 글자 형을 따로 낸다. 삼형 행에서 유도되기는 하지만,
+     * 내는 이유는 정보 복원이 아니라 **어느 층이 계통을 고르는가**다 — 두 글자
+     * 형을 따로 세는 계통에서는 버리는 순간 우리가 이미 판정한 결과를 받는다.
+     */
+    it('삼형이 다 서 있어도 두 글자 형을 따로 낸다', () => {
+      const punishments = findRelations(branchChart('丑', '戌', '未', null)).filter(
+        (r) => r.kind === 'branchPunishment',
+      );
+
+      expect(punishments.filter((r) => r.full)).toHaveLength(1);
+
+      const pairs = punishments
+        .filter((r) => !r.full)
+        .map((r) => r.ko)
+        .sort();
+      expect(pairs).toEqual(['미축형', '술미형', '축술형']);
+    });
+
+    /**
+     * **합은 정반대다.** 모여서 하나를 이루는 것이라 온전한 삼합 위에 반합을
+     * 얹으면 틀린 말이 된다. 형과 합을 가르는 근거가 있어서 가른 것이고, 그
+     * 비대칭이 여기서 눈에 보인다(`RELATION_POLICY.absorbedPairs`).
+     */
+    it('삼합·방합은 반대로 흡수한 반쪽을 내지 않는다', () => {
+      const triple = findRelations(branchChart('巳', '酉', '丑', null)).filter(
+        (r) => r.kind === 'branchTripleCombination',
+      );
+      const directional = findRelations(branchChart('寅', '卯', '辰', null)).filter(
+        (r) => r.kind === 'branchDirectionalCombination',
+      );
+
+      expect(triple.map((r) => r.ko)).toEqual(['사유축 금국']);
+      expect(directional.map((r) => r.ko)).toEqual(['인묘진 목방']);
+    });
+
+    /**
+     * 저장은 자리 순서, 읽기는 형하는 순서다. 행에 `戌 · 丑` 이라 적고 이름을
+     * '축술형' 이라 달면 읽는 사람이 둘 중 어느 것이 맞는지를 고르게 된다.
+     */
+    it('읽는 순서는 이름과 맞는다 — 두 글자 형도', () => {
+      const charsOf = (relation: Relation) =>
+        orderedParticipants(relation).map((participant) => participant.char);
+
+      // 일지 戌 · 시지 丑 — 자리 순서로는 戌 이 먼저지만 형하는 것은 丑 이다.
+      const pair = findRelations(branchChart('子', '子', '戌', '丑')).find(
+        (r) => r.ko === '축술형',
+      );
+      expect(pair && charsOf(pair)).toEqual(['丑', '戌']);
+      expect(pair?.participants.map((p) => p.char)).toEqual(['戌', '丑']);
+
+      // 방향이 없는 형은 자리 순서 그대로다.
+      const mutual = findRelations(branchChart('卯', '子', '寅', null)).find(
+        (r) => r.ko === '자묘형',
+      );
+      expect(mutual && charsOf(mutual)).toEqual(['卯', '子']);
+    });
+
     it('순환 아닌 형에는 순서가 없다', () => {
       const mutual = findRelations(branchChart('子', '卯', '寅', null)).find(
         (r) => r.ko === '자묘형',
@@ -578,6 +637,7 @@ describe('출력 계약', () => {
       distantRelations: 'detect-all',
       partialStructures: 'peak-required',
       triplePunishmentCycle: 'ordered-by-classical-table',
+      absorbedPairs: 'kept-for-punishments-only',
       interactionResolution: 'contest-only',
       hiddenStemRelations: 'disabled',
       ghostGate: 'separate-from-resentment',

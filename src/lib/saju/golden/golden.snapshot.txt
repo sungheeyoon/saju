@@ -54,6 +54,7 @@
           distantRelations       detect-all
           partialStructures      peak-required
           triplePunishmentCycle  ordered-by-classical-table
+          absorbedPairs          kept-for-punishments-only
           interactionResolution  contest-only
           hiddenStemRelations    disabled
           ghostGate              separate-from-resentment
