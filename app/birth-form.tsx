@@ -35,6 +35,22 @@ export function Field({ label, children }: { label: string; children: React.Reac
   );
 }
 
+/**
+ * `Field` 와 같아 보이지만 **label 이 아니다.**
+ *
+ * 라디오는 저마다 제 label 을 달아야 하는데 `Field` 안에 넣으면 label 이
+ * 중첩돼 클릭이 엉뚱한 곳으로 간다. 묶음 제목이 필요하지만 클릭 대상은 아닌
+ * 자리에 쓴다.
+ */
+function Group({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-xs text-secondary">{label}</span>
+      {children}
+    </div>
+  );
+}
+
 /** 시간 기준 하나를 고르는 라디오. 세 개가 한 그룹이라 조합이 생기지 않는다. */
 export function BasisRadio({
   name,
@@ -76,32 +92,32 @@ export function BirthFields({
   onChange: (next: Query) => void;
   /** 한 화면에 폼이 둘일 때 라디오 그룹이 섞이지 않게 하는 이름 */
   idPrefix: string;
-  /**
-   * 이름 칸을 띄우고 빈칸일 때 대신 보일 말.
-   *
-   * 원국 화면에는 없다 — 한 사람뿐이라 누구의 일지인지 물을 일이 없고, 쓰지도
-   * 않을 이름을 받아 주소에 실을 이유도 없다. 궁합에서만 필요한 칸이다.
-   */
+  /** 이름 칸이 비었을 때 대신 보일 말 */
   namePlaceholder?: string;
 }) {
   const set = <K extends keyof Query>(key: K, next: Query[K]) =>
     onChange({ ...value, [key]: next });
 
+  // 시각 선택은 두 칸을 함께 옮긴다 — '모름'을 고르면 적어 둔 시각도 지운다.
+  // 남겨 두면 "모름인데 14:30" 이 상태로 남고, 다시 '시각'을 고르는 순간
+  // 사용자가 지웠다고 생각한 값으로 계산된다.
+  const chooseHour = (known: boolean) =>
+    onChange({ ...value, hourKnown: known, time: known ? value.time : '' });
+
   return (
     <>
       <div className="flex flex-wrap items-end gap-3">
-        {namePlaceholder !== undefined && (
-          <Field label="이름">
-            <input
-              type="text"
-              value={value.name}
-              onChange={(e) => set('name', e.target.value.slice(0, NAME_MAX))}
-              placeholder={namePlaceholder}
-              maxLength={NAME_MAX}
-              className={`${FIELD} w-28`}
-            />
-          </Field>
-        )}
+        <Field label="이름">
+          <input
+            type="text"
+            value={value.name}
+            onChange={(e) => set('name', e.target.value.slice(0, NAME_MAX))}
+            placeholder={namePlaceholder}
+            maxLength={NAME_MAX}
+            required
+            className={`${FIELD} w-28`}
+          />
+        </Field>
 
         <Field label="생년월일">
           <input
@@ -115,27 +131,46 @@ export function BirthFields({
           />
         </Field>
 
-        <Field label="출생시각">
-          <input
-            type="time"
-            value={value.time}
-            onChange={(e) => set('time', e.target.value)}
-            disabled={value.hourUnknown}
-            required={!value.hourUnknown}
-            className={`${FIELD} disabled:opacity-40`}
-          />
-        </Field>
+        {/*
+          체크박스가 아니라 라디오 둘이다. 체크박스는 **꺼진 상태가 답처럼
+          보이지 않아서**, 시각을 안 넣고 체크도 안 한 사람이 자기가 아직
+          아무것도 고르지 않았다는 것을 모른다. 라디오 둘은 하나를 고르기
+          전까지 비어 있는 것이 눈에 보인다.
+        */}
+        <Group label="출생시각">
+          <div className="flex h-11 items-center gap-3 sm:h-10">
+            <label className="flex cursor-pointer items-center gap-1.5 text-sm whitespace-nowrap">
+              <input
+                type="radio"
+                name={`${idPrefix}-hour`}
+                checked={value.hourKnown === true}
+                onChange={() => chooseHour(true)}
+                className="accent-accent"
+              />
+              시각
+            </label>
 
-        {/* Field 안에 넣으면 label 이 중첩된다 — 옆에 나란히 둔다 */}
-        <label className="flex h-11 cursor-pointer items-center gap-2 text-sm whitespace-nowrap sm:h-10">
-          <input
-            type="checkbox"
-            checked={value.hourUnknown}
-            onChange={(e) => set('hourUnknown', e.target.checked)}
-            className="accent-accent"
-          />
-          시간 모름
-        </label>
+            <input
+              type="time"
+              value={value.time}
+              onChange={(e) => set('time', e.target.value)}
+              disabled={value.hourKnown !== true}
+              required={value.hourKnown === true}
+              className={`${FIELD} disabled:opacity-40`}
+            />
+
+            <label className="flex cursor-pointer items-center gap-1.5 text-sm whitespace-nowrap">
+              <input
+                type="radio"
+                name={`${idPrefix}-hour`}
+                checked={value.hourKnown === false}
+                onChange={() => chooseHour(false)}
+                className="accent-accent"
+              />
+              모름
+            </label>
+          </div>
+        </Group>
 
         <Field label="성별">
           <select
@@ -178,7 +213,7 @@ export function BirthFields({
             <select
               value={value.rule}
               onChange={(e) => set('rule', e.target.value as LateNightRule)}
-              disabled={value.hourUnknown}
+              disabled={value.hourKnown === false}
               className={`${FIELD} disabled:opacity-40`}
             >
               <option value="jo">조자시 · 경계 23:00</option>

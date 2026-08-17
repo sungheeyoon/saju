@@ -4,6 +4,8 @@ import {
   DEFAULT_QUERY,
   NAME_MAX,
   mergeSearchParams,
+  missingAnswer,
+  missingForCalculation,
   queryFromSearchParams,
   toSearchParams,
   type Query,
@@ -13,7 +15,7 @@ const query: Query = {
   name: '',
   date: '1990-05-15',
   time: '14:30',
-  hourUnknown: false,
+  hourKnown: true,
   gender: 'male',
   city: '부산',
   rule: 'ya',
@@ -87,10 +89,75 @@ describe('주소창에 실은 입력', () => {
   });
 
   it('시각 미상은 시각과 같은 칸을 쓴다 — 둘이 동시에 켜질 수 없다', () => {
-    const params = toSearchParams({ ...query, hourUnknown: true });
+    const params = toSearchParams({ ...query, hourKnown: false, time: '' });
 
     expect(params.get('hour')).toBe('unknown');
-    expect(read(params.toString())).toMatchObject({ hourUnknown: true, time: '' });
+    expect(read(params.toString())).toMatchObject({ hourKnown: false, time: '' });
+  });
+
+  /**
+   * 고르지 않은 것과 "모른다"고 답한 것은 다르다. 하나로 묶으면 아무것도 고르지
+   * 않은 사람에게 "시각을 안다"를 기본값으로 씌우게 되는데, 그것은 엔진이 정오를
+   * 채워 넣을 때 경계한 것과 같은 실수다 — 모르는 것을 아는 것처럼 만들지 않는다.
+   */
+  describe('시각은 세 가지 상태다', () => {
+    it('고르지 않은 채로 시작한다', () => {
+      expect(DEFAULT_QUERY.hourKnown).toBeNull();
+      expect(missingAnswer({ ...DEFAULT_QUERY, name: '민수', date: '1990-05-15' })).toContain(
+        '시간 모름',
+      );
+    });
+
+    it('주소에 시각 칸이 없으면 고르지 않은 것으로 읽는다', () => {
+      expect(read('date=1990-05-15')?.hourKnown).toBeNull();
+      expect(read('date=1990-05-15&hour=unknown')?.hourKnown).toBe(false);
+      expect(read('date=1990-05-15&hour=14:30')?.hourKnown).toBe(true);
+    });
+  });
+
+  /**
+   * 버튼을 잠그는 쪽과 계산하는 쪽이 **같은 답**을 본다. 조건을 화면에 따로
+   * 적으면 두 곳이 어긋나는 순간 눌리는데 거절하거나 잠겼는데 계산은 되는
+   * 상태가 만들어진다.
+   */
+  describe('답하지 않은 칸이 있으면 계산을 시작하지 않는다', () => {
+    const filled: Query = { ...query, name: '민수' };
+
+    it('전부 답하면 없다', () => {
+      expect(missingAnswer(filled)).toBeNull();
+      expect(missingAnswer({ ...filled, hourKnown: false, time: '' })).toBeNull();
+    });
+
+    it('아무도 대신 답할 수 없는 셋을 묻는다', () => {
+      expect(missingAnswer({ ...filled, name: '  ' })).toContain('이름');
+      expect(missingAnswer({ ...filled, date: '' })).toContain('생년월일');
+      expect(missingAnswer({ ...filled, hourKnown: null })).toContain('출생시각');
+      expect(missingAnswer({ ...filled, time: '' })).toContain('출생시각');
+    });
+
+    /** 기본값이 있는 칸은 이미 답이 있다 — 다시 묻지 않는다 */
+    it('기본값이 있는 칸은 묻지 않는다', () => {
+      expect(missingAnswer({ ...filled, gender: 'female', city: '부산', rule: 'ya' })).toBeNull();
+    });
+
+    /**
+     * 폼은 이름까지 묻지만 **계산은 이름 없이도 된다.** 이름은 계산에 들어가지
+     * 않으므로, 이름 칸이 생기기 전에 나눠 준 링크가 여기서 막히면 안 된다.
+     */
+    it('이름 없는 옛 링크는 그대로 열린다', () => {
+      const old = read('date=1990-05-15&hour=14:30&gender=male');
+
+      expect(old?.name).toBe('');
+      expect(missingForCalculation(old!)).toBeNull();
+      expect(missingAnswer(old!)).toContain('이름');
+    });
+
+    /** 둘이 어긋날 수 없다 — 폼 쪽이 계산 쪽을 그대로 부르고 이름만 얹는다 */
+    it('이름을 넣으면 두 답이 같아진다', () => {
+      for (const query of [filled, { ...filled, date: '' }, { ...filled, hourKnown: null }]) {
+        expect(missingAnswer(query), JSON.stringify(query.date)).toBe(missingForCalculation(query));
+      }
+    });
   });
 
   it('날짜가 없으면 아직 아무것도 계산하지 않은 상태다', () => {

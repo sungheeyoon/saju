@@ -74,8 +74,19 @@ export type Query = {
   name: string;
   date: string;
   time: string;
-  /** 출생 시각을 모름 — 시주를 뽑지 않는다 */
-  hourUnknown: boolean;
+  /**
+   * 출생 시각을 아는가 — **고르지 않은 상태가 있다.**
+   *
+   * `null` 은 "아직 답하지 않았다"이고 `false` 는 "모른다고 답했다"다. 둘을
+   * 하나로 묶으면 아무것도 고르지 않은 사람에게 "시각을 안다"를 기본값으로
+   * 씌우게 되는데, 그것은 엔진이 정오를 채워 넣을 때 경계한 것과 같은 실수다 —
+   * **모르는 것을 아는 것처럼 만들지 않는다**(`UNKNOWN_HOUR_PROXY`). 폼에서는
+   * 고르지 않은 것을 골랐다고 치지 않는 것이 그 규율의 같은 얼굴이다.
+   *
+   * `false` 여야만 엔진에 `hour: null` 이 간다. `null` 로는 계산을 시작하지
+   * 않는다(`missingAnswer`).
+   */
+  hourKnown: boolean | null;
   /** 성별. 여덟 글자는 바꾸지 않고 대운의 방향만 정한다 */
   gender: Gender;
   city: CityName;
@@ -91,7 +102,7 @@ export const DEFAULT_QUERY: Query = {
   // 결과를 예시 명식으로 채우지 않는다. 사용자가 입력하기 전에는 빈 상태다.
   date: '',
   time: '',
-  hourUnknown: false,
+  hourKnown: null,
   gender: 'female',
   city: '서울',
   rule: 'jo',
@@ -112,6 +123,47 @@ const SAEUN_MAX = 2100;
 
 /** 이름 길이 상한 — 관계 한 줄에 두 사람이 들어가므로 행이 감당할 만큼만 */
 export const NAME_MAX = 12;
+
+/**
+ * 아직 답하지 않은 칸 — **버튼을 잠그는 쪽과 계산하는 쪽이 같은 답을 본다.**
+ *
+ * 버튼의 `disabled` 조건을 화면에 따로 적으면 두 곳이 어긋나는 순간, 눌리는데
+ * 계산은 거절하거나 반대로 잠겼는데 사실은 계산할 수 있는 상태가 만들어진다.
+ * 검증을 엔진 한 곳에만 둔 것과 같은 이유다 — 판정하는 자리는 하나여야 한다.
+ *
+ * 기본값이 있는 칸(성별·출생지·자시 규칙·시간 기준·세운)은 여기 없다. 답이
+ * 이미 있는 것을 다시 묻지 않는다. 여기 오는 것은 **아무도 대신 답할 수 없는
+ * 셋**뿐이다 — 이름, 생년월일, 그리고 시각을 아는가.
+ *
+ * 돌려주는 것은 문장 꼬리라 궁합 화면이 앞에 이름을 붙일 수 있다
+ * (`민수의 생년월일을 입력해 주세요`).
+ */
+export function missingForCalculation(query: Query): string | null {
+  if (query.date === '') return '생년월일을 입력해 주세요.';
+  // 고르지 않은 것과 "모른다"고 답한 것은 다르다 — 위 `hourKnown` 참조.
+  if (query.hourKnown === null) return '출생시각을 입력하거나 시간 모름을 골라 주세요.';
+  if (query.hourKnown && query.time === '') return '출생시각을 입력해 주세요.';
+
+  return null;
+}
+
+/**
+ * 폼이 아직 답을 못 받은 칸 — **계산 조건에 이름이 하나 더 붙는다.**
+ *
+ * 두 질문이 진짜로 다르다. "이 입력으로 계산할 수 있는가"와 "이 폼을 제출해도
+ * 되는가"는 **이름 하나만큼 다르다** — 이름은 계산에 들어가지 않으므로
+ * (`Query.name`), 이름 없이 만들어진 옛 링크는 그대로 열려야 한다. 여기서 막으면
+ * 이름 칸을 만든 날 이전에 나눠 준 링크가 전부 에러 화면이 된다.
+ *
+ * 대신 **둘이 서로 어긋날 수는 없다.** 위 함수를 그대로 부르고 이름 한 줄만
+ * 얹기 때문이다 — 두 곳에 조건을 따로 적었을 때 생기는, 눌리는데 거절하거나
+ * 잠겼는데 계산은 되는 상태가 여기서는 만들어지지 않는다.
+ */
+export function missingAnswer(query: Query): string | null {
+  if (query.name.trim() === '') return '이름을 입력해 주세요.';
+
+  return missingForCalculation(query);
+}
 
 /**
  * 접두사 — 한 주소에 입력 두 벌을 싣기 위한 것.
@@ -145,7 +197,7 @@ export function toSearchParams(query: Query, prefix: QueryPrefix = ''): URLSearc
   return new URLSearchParams({
     ...named,
     [`${prefix}date`]: query.date,
-    [`${prefix}hour`]: query.hourUnknown ? HOUR_UNKNOWN : query.time,
+    [`${prefix}hour`]: query.hourKnown === false ? HOUR_UNKNOWN : query.time,
     [`${prefix}gender`]: query.gender,
     [`${prefix}city`]: query.city,
     [`${prefix}rule`]: query.rule,
@@ -195,7 +247,9 @@ export function queryFromSearchParams(
     name: (at('name') ?? '').slice(0, NAME_MAX),
     date,
     time: hour === null || hour === HOUR_UNKNOWN ? '' : hour,
-    hourUnknown: hour === HOUR_UNKNOWN,
+    // 주소에 시각 칸이 아예 없으면 **고르지 않은 것**으로 읽는다. 손으로 고친
+    // 링크에 정오를 채워 주는 것보다 무엇이 빠졌는지 묻는 편이 낫다.
+    hourKnown: hour === HOUR_UNKNOWN ? false : hour === null || hour === '' ? null : true,
     gender: oneOf(GENDERS, at('gender'), DEFAULT_QUERY.gender),
     city: oneOf(CITY_NAMES, at('city'), DEFAULT_QUERY.city),
     rule: oneOf(LATE_NIGHT_RULES, at('rule'), DEFAULT_QUERY.rule),

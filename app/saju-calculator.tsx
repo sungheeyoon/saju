@@ -8,6 +8,8 @@ import { CopyLinkButton } from './copy-link';
 import {
   DEFAULT_QUERY,
   TIME_BASIS,
+  missingAnswer,
+  missingForCalculation,
   queryFromSearchParams,
   toSearchParams,
   type Query,
@@ -103,11 +105,16 @@ function calculate(query: Query): Result {
   const [year, month, day] = query.date.split('-').map(Number);
   const [hour, minute] = query.time.split(':').map(Number);
 
+  // 버튼을 잠그는 쪽과 같은 함수를 본다. 여기서 조건을 다시 적으면 두 곳이
+  // 어긋나는 순간 눌리는데 거절하거나 잠겼는데 계산은 되는 상태가 생긴다.
+  //
+  // 이름은 빼고 본다 — 계산에 들어가지 않으므로 이름 칸이 생기기 전에 나눠 준
+  // 링크가 그대로 열려야 한다(`missingAnswer` ↔ `missingForCalculation`).
+  const missing = missingForCalculation(query);
+  if (missing !== null) return { ok: false, message: missing };
+
   if ([year, month, day].some((n) => !Number.isFinite(n))) {
     return { ok: false, message: '생년월일을 입력해 주세요.' };
-  }
-  if (!query.hourUnknown && ![hour, minute].every(Number.isFinite)) {
-    return { ok: false, message: '출생시각을 입력하거나 시간 모름을 선택해 주세요.' };
   }
 
   // 엔진이 던지는 메시지를 그대로 보여준다. 검증 규칙을 UI에 복제하면
@@ -116,7 +123,7 @@ function calculate(query: Query): Result {
     const { useLongitude, useEquationOfTime } = TIME_BASIS[query.basis];
 
     const saju = computeSaju(
-      query.hourUnknown
+      query.hourKnown === false
         ? { year, month, day, hour: null, gender: query.gender }
         : { year, month, day, hour, minute, second: 0, gender: query.gender },
       {
@@ -171,6 +178,8 @@ export function SajuCalculator() {
 
   const [form, setForm] = useState<Query>(query ?? DEFAULT_QUERY);
 
+  const missing = missingAnswer(form);
+
   // 주소가 밖에서 바뀌면(뒤로가기·앞으로가기·링크로 들어옴) 폼도 그 값으로 되돌린다.
   // 화면은 주소가 가리키는 명식을 보여주는데 폼만 옛 입력을 들고 있으면,
   // '입력이 바뀌었습니다' 가 사용자가 바꾼 적 없는데도 떠 있게 된다.
@@ -205,13 +214,17 @@ export function SajuCalculator() {
       >
         <BirthFields value={form} onChange={setForm} idPrefix="natal" />
 
-        <div>
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
-            className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 sm:h-10 sm:w-auto"
+            disabled={missing !== null}
+            className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-auto"
           >
             {query === null ? '사주 보기' : '결과 업데이트'}
           </button>
+
+          {/* 왜 눌리지 않는지 버튼 옆에서 말한다 — 잠긴 버튼만 두면 이유를 찾아야 한다 */}
+          {missing !== null && <p className="text-sm text-secondary">{missing}</p>}
         </div>
 
         {dirty && (

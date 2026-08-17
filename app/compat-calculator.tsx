@@ -28,6 +28,8 @@ import {
   DEFAULT_QUERY,
   TIME_BASIS,
   mergeSearchParams,
+  missingAnswer,
+  missingForCalculation,
   queryFromSearchParams,
   toSearchParams,
   type Query,
@@ -60,6 +62,24 @@ const SIDE_LABEL: Record<CompatSide, string> = { a: '첫 번째', b: '두 번째
 /** 입력한 이름, 없으면 자리 이름 — 화면에서 사람을 부르는 유일한 통로다 */
 const nameOf = (pair: Pair, side: CompatSide): string =>
   pair[side].name.trim() === '' ? `${SIDE_LABEL[side]} 사람` : pair[side].name.trim();
+
+/**
+ * 두 사람 중 **먼저 비어 있는 칸** 하나.
+ *
+ * 둘을 한꺼번에 늘어놓지 않는다. 고칠 곳을 하나씩 가리키는 편이 낫고, 앞사람
+ * 이름이 비어 있으면 그 사람을 부를 이름도 아직 없다.
+ */
+const missingInPair = (
+  pair: Pair,
+  /** 폼은 이름까지 묻고, 이미 나눠 준 링크는 이름 없이도 열려야 한다 */
+  check: (query: Query) => string | null = missingAnswer,
+): string | null => {
+  for (const side of SIDES) {
+    const missing = check(pair[side]);
+    if (missing !== null) return `${nameOf(pair, side)}의 ${missing}`;
+  }
+  return null;
+};
 const PREFIX: Record<CompatSide, QueryPrefix> = { a: 'a.', b: 'b.' };
 const SIDES: readonly CompatSide[] = ['a', 'b'];
 
@@ -86,7 +106,7 @@ function computeOne(query: Query): Saju {
   const { useLongitude, useEquationOfTime } = TIME_BASIS[query.basis];
 
   return computeSaju(
-    query.hourUnknown
+    query.hourKnown === false
       ? { year, month, day, hour: null, gender: query.gender }
       : { year, month, day, hour, minute, second: 0, gender: query.gender },
     {
@@ -100,18 +120,9 @@ function computeOne(query: Query): Saju {
 }
 
 function calculate(pair: Pair): Result {
-  for (const side of SIDES) {
-    const query = pair[side];
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(query.date)) {
-      return { ok: false, message: `${nameOf(pair, side)}의 생년월일을 입력해 주세요.` };
-    }
-    if (!query.hourUnknown && !/^\d{2}:\d{2}$/.test(query.time)) {
-      return {
-        ok: false,
-        message: `${nameOf(pair, side)}의 출생시각을 입력하거나 시간 모름을 선택해 주세요.`,
-      };
-    }
-  }
+  // 버튼을 잠그는 쪽과 같은 답을 본다 — 판정은 `missingAnswer` 한 곳뿐이다.
+  const missing = missingInPair(pair, missingForCalculation);
+  if (missing !== null) return { ok: false, message: missing };
 
   // 엔진이 던지는 메시지를 그대로 보여준다. 검증 규칙을 화면에 복제하면
   // 두 곳이 어긋나는 순간 사용자만 헷갈린다.
@@ -155,6 +166,8 @@ export function CompatCalculator() {
 
   const result = useMemo(() => (submitted === null ? null : calculate(submitted)), [submitted]);
 
+  const missing = missingInPair(form);
+
 
   const submit = (next: Pair) => {
     const params = mergeSearchParams(
@@ -184,18 +197,24 @@ export function CompatCalculator() {
                 value={form[side]}
                 onChange={(next) => setForm((current) => ({ ...current, [side]: next }))}
                 idPrefix={side}
-                namePlaceholder={`${SIDE_LABEL[side]} 사람`}
+                namePlaceholder={SIDE_LABEL[side]}
               />
             </fieldset>
           ))}
         </div>
 
-        <button
-          type="submit"
-          className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 sm:h-10 sm:w-auto sm:self-start"
-        >
-          {submitted === null ? '궁합 보기' : '결과 업데이트'}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={missing !== null}
+            className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-auto"
+          >
+            {submitted === null ? '궁합 보기' : '결과 업데이트'}
+          </button>
+
+          {/* 왜 눌리지 않는지 버튼 옆에서 말한다 — 잠긴 버튼만 두면 이유를 찾아야 한다 */}
+          {missing !== null && <p className="text-sm text-secondary">{missing}</p>}
+        </div>
       </form>
 
       {result === null ? (
