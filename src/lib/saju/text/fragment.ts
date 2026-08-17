@@ -45,6 +45,7 @@ export type FragmentTopic =
   | 'rootedness.rootless'
   | 'strength.verdict'
   | 'eokbu.candidate'
+  | 'johu.table'
   | 'relation.present';
 
 export type TopicSpec = {
@@ -124,6 +125,41 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     slots: ['role', 'element'],
     samples: { role: '재성', element: '화' },
     note: '억부 관점에서 어느 자리의 오행을 후보로 보는가',
+  },
+
+  /**
+   * 궁통보감 조후표에서 읽어 온 것. **출처 의무가 처음으로 문장에 걸리는 주제다**
+   * (`ATTRIBUTION_PATHS` 의 유일한 원소가 `analysis.johu` 다).
+   *
+   * 변종 셋은 **원문이 이 칸을 어떻게 말하는가**로 갈린다. 120칸 중 여섯만
+   * 상·하반월을 갈라 말하고, 그 여섯에서만 절반을 판정한다
+   * (`JOHU_POLICY.conditionEvaluation: 'half-month-only'`). 갈리는 칸을
+   * `whole-month` 문장으로 덮으면 원문이 갈랐다는 사실 자체가 사라지므로 —
+   * 덜 말하는 것이 아니라 **원문을 요약해 버리는 것**이라 — 문장이 갈린다.
+   *
+   * `half-unjudged` 는 시간 미상이 만드는 칸이다. 절반은 우리가 채워 넣은
+   * 정오에서 나온 값이라 그날 안에 중기가 들어 있으면 실제 시각이 뒤집을 수
+   * 있다(`assemble.ts` 의 `FILLED_NOON_SPAN_MS`). 그때는 절반을 말하지 않고
+   * 양쪽을 나란히 든다.
+   *
+   * 강도를 한 칸 내리지 않는다. 조후표를 여는 열쇠는 일간과 월지뿐이고
+   * (`JOHU_POLICY.basis`) 시주 두 글자는 둘 중 어느 것도 바꾸지 않는다 —
+   * 그래서 `HOUR_SENSITIVE_PATHS` 에 없고 조각도 한 벌이다.
+   */
+  'johu.table': {
+    paths: ['analysis.johu'],
+    polarity: 'presence',
+    variants: ['whole-month', 'half-month', 'half-unjudged'],
+    slots: ['dayMaster', 'monthBranch', 'stems', 'half', 'firstStems', 'secondStems'],
+    samples: {
+      dayMaster: '계',
+      monthBranch: '미',
+      stems: '경·신',
+      half: '하반월',
+      firstStems: '경·신·임·계',
+      secondStems: '경·신',
+    },
+    note: '조후표가 이 일간·월지 칸에서 어느 천간을 드는가',
   },
 
   /**

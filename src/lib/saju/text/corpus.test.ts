@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeSaju } from '@/src/lib/saju';
+import { computeSaju, type Saju } from '@/src/lib/saju';
 import {
   CORPUS_POLICY,
   FRAGMENTS,
@@ -13,12 +13,20 @@ import {
   assembleText,
   ceilingFor,
   checkFragment,
+  checkSentence,
   fragmentCoverage,
   keyOf,
+  producibleStrengths,
   skeletonOf,
   type ClaimStrength,
   type Fragment,
 } from '@/src/lib/saju/text';
+
+/** 조후표가 상·하반월을 가르지 않는 흔한 칸(乙巳) — 조후 문장의 기본 자리다 */
+const CHART = computeSaju(
+  { year: 1990, month: 5, day: 20, hour: 14, minute: 30, second: 0, gender: 'male' },
+  {},
+);
 
 /**
  * 말뭉치 — **조각이 실제로 문장을 받아 내는가.**
@@ -115,8 +123,13 @@ describe('말뭉치', () => {
       for (const topic of FRAGMENT_TOPIC_IDS) {
         if (FRAGMENT_TOPICS[topic].variants.length < 2) continue;
 
+        // 한 벌 안에서 비교해야 강도 차이가 아니라 변종 차이가 보인다. `fact` 로
+        // 못박아 두면 사실을 내지 않는 주제(조후)가 조용히 빠져나간다 — 주제가
+        // 낼 수 있는 가장 센 벌을 물어서 그 구멍을 막는다.
+        const [strongest] = producibleStrengths(topic);
+
         const skeletons = FRAGMENTS.filter(
-          (fragment) => fragment.topic === topic && fragment.strength === 'fact',
+          (fragment) => fragment.topic === topic && fragment.strength === strongest,
         ).map((fragment) => skeletonOf(fragment.template));
 
         if (skeletons.length < 2) continue;
@@ -174,6 +187,96 @@ describe('말뭉치', () => {
     expect(eokbu?.text).toContain(STRENGTH_WORDING.reference);
     expect(eokbu?.text).toContain(HOUR_UNKNOWN_MARK);
     expect(eokbu?.violations).toEqual([]);
+  });
+
+  /**
+   * 조후를 첫 주제로 고른 이유가 값을 내는 자리. 출처 의무는 계약을 세울 때부터
+   * 있었지만 `analysis.johu` 를 읽는 주제가 없어 **프로덕션에서 한 번도 돌지
+   * 않은 분기**였다. 조각이 아니라 실제 명식에서 확인한다 — 조각 검사는 슬롯을
+   * 비운 뼈대를 보므로 조립까지 갔을 때도 출처가 남는지는 여기서만 보인다.
+   */
+  describe('옮겨 적은 표는 문장 안에서 출처를 부른다', () => {
+    const johuOf = (saju: Saju) =>
+      assembleText(saju).find(({ request }) => request.topic === 'johu.table');
+
+    it('조후 문장이 궁통보감을 부르고 통과한다', () => {
+      const johu = johuOf(CHART);
+
+      expect(johu?.strength).toBe('reference');
+      expect(johu?.text).toContain('궁통보감');
+      expect(johu?.violations).toEqual([]);
+    });
+
+    it('출처를 지우면 걸린다', () => {
+      const { paths } = FRAGMENT_TOPICS['johu.table'];
+      const text = johuOf(CHART)?.text?.replace('궁통보감', '옛 표') ?? '';
+
+      expect(text).not.toBe('');
+      expect(checkSentence({ text, paths, strength: 'reference' }).map((v) => v.rule)).toEqual([
+        'missing-attribution',
+      ]);
+    });
+
+    /**
+     * 시주 두 글자는 일간도 월지도 바꾸지 않는다(`JOHU_POLICY.basis`). 그래서
+     * 조후는 시간 미상에 한 칸 내려가지 않는 유일한 주제이고, 억부가 같은 명식에서
+     * `reference` 로 **내려앉아** 있는 것과 나란히 놓여야 그 차이가 보인다.
+     */
+    it('시간 미상에도 강도가 그대로다', () => {
+      const hourless = computeSaju({ year: 1990, month: 5, day: 20, hour: null, gender: 'male' }, {});
+
+      expect(producibleStrengths('johu.table')).toEqual(['reference']);
+      expect(johuOf(hourless)?.strength).toBe('reference');
+      expect(johuOf(hourless)?.text).not.toContain(HOUR_UNKNOWN_MARK);
+    });
+  });
+
+  /**
+   * 120칸 중 여섯만 상·하반월을 갈라 말한다. 갈리는 칸을 `whole-month` 문장으로
+   * 덮으면 원문이 갈랐다는 사실 자체가 사라지므로 — 덜 말하는 것이 아니라 원문을
+   * 요약해 버리는 것이라 — 변종이 갈린다.
+   */
+  describe('상·하반월', () => {
+    const variantOf = (saju: Saju) =>
+      assembleText(saju).find(({ request }) => request.topic === 'johu.table')?.request.variant;
+
+    it('갈리지 않는 칸은 표의 천간을 그대로 든다', () => {
+      expect(variantOf(CHART)).toBe('whole-month');
+    });
+
+    it('갈리는 칸에서 절반을 판정하면 한쪽만 든다', () => {
+      const half = computeSaju(
+        { year: 1985, month: 1, day: 13, hour: 14, minute: 30, second: 0, gender: 'male' },
+        {},
+      );
+
+      expect(half.analysis.johu.halfMonth, '상·하반월이 갈리는 칸이어야 한다').toBeDefined();
+      expect(variantOf(half)).toBe('half-month');
+    });
+
+    /**
+     * 이 커밋에서 새로 내린 판단. 시간을 모르면 `resolvedTime` 이 정오로 채워지고
+     * 절반은 그 정오가 정한다 — 중기가 그날 안에 있으면 진짜 시각이 뒤집는다.
+     * 지어낸 문턱이 아니라 채워 넣은 값에서 그대로 유도되는 폭이다.
+     */
+    it('채워 넣은 정오가 절반을 정했을 수 있으면 고르지 않는다', () => {
+      const unjudged = computeSaju({ year: 1985, month: 7, day: 23, hour: null, gender: 'male' }, {});
+      const { johu } = unjudged.analysis;
+
+      // 절반 자체는 L2 가 이미 냈다. 그것을 말하지 않기로 하는 것이 L3 의 몫이다.
+      expect(johu.half).not.toBeNull();
+      expect(variantOf(unjudged)).toBe('half-unjudged');
+
+      // 같은 날 같은 칸인데 시각만 알면 절반을 말한다. 갈리는 것은 명식이
+      // 아니라 **그 절반이 채워 넣은 값에서 나왔는가**뿐이다.
+      const known = computeSaju(
+        { year: 1985, month: 7, day: 23, hour: 14, minute: 30, second: 0, gender: 'male' },
+        {},
+      );
+
+      expect(known.analysis.johu.monthBranch).toBe(johu.monthBranch);
+      expect(variantOf(known)).toBe('half-month');
+    });
   });
 
   it('정책은 납작한 문자열이라 스냅샷이 그대로 찍는다', () => {

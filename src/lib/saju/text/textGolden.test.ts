@@ -59,6 +59,21 @@ const CASES: TextCase[] = [
     note: '시간 미상 — 강도가 한 칸 내려가고 "없다"는 발화는 입을 닫는다',
     saju: computeSaju({ year: 1990, month: 5, day: 20, hour: null, gender: 'male' }, {}),
   },
+  // 조후표 120칸 중 여섯만 상·하반월을 갈라 말한다. 흔한 칸만 골라 두면 나머지
+  // 두 변종은 골든에 한 번도 나오지 않고, 그러면 갈라 쓴 이유도 보이지 않는다.
+  {
+    id: 'johu-half-month',
+    note: '조후표가 상·하반월을 가르는 칸 — 절반을 판정해 한쪽만 든다',
+    saju: computeSaju(
+      { year: 1985, month: 1, day: 13, hour: 14, minute: 30, second: 0, gender: 'male' },
+      {},
+    ),
+  },
+  {
+    id: 'johu-half-unjudged',
+    note: '같은 칸인데 시간 미상이고 중기가 그날 안에 있다 — 절반을 고르지 않는다',
+    saju: computeSaju({ year: 1985, month: 7, day: 23, hour: null, gender: 'male' }, {}),
+  },
 ];
 
 /** 문장이 됐는가, 조각이 없는가, 말하지 않기로 했는가 */

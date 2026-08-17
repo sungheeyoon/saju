@@ -15,12 +15,17 @@ import { indexFragments, type Fragment, type FragmentIndex } from './fragment';
  * 지금은 손으로 썼다. 세 주제(`rootedness`·`strength`·`eokbu`)를 먼저 채운 것은
  * 그 셋이 **강도 사다리 네 칸을 전부 지나가는 가장 작은 묶음**이기 때문이다 —
  * 사실·유도·후보·참고가 한 번씩 나온다. 표현 규칙이 그 셋에서 확정된 뒤에
- * 관계 22칸을 돌았고, 그것으로 지시서에 빈칸이 없다(41/41).
+ * 관계 22칸을 돌았고, 그것으로 지시서에 빈칸이 없었다(41/41).
  *
- * 빈칸이 없다는 것이 **할 말을 다 했다는 뜻은 아니다.** 조후·종격·신살·대운은
- * 여전히 침묵하는데 그것은 조각이 없어서가 아니라 주제가 없어서다
- * (`UNCOVERED_FACTS`). 다음 일은 칸을 채우는 것이 아니라 주제를 더하는 것이고,
- * 그때 분모가 늘어난다.
+ * 그 다음은 칸을 채우는 일이 아니라 **주제를 더하는 일**이었고, 조후 셋이
+ * 그렇게 들어와 분모가 44로 늘었다. 조후를 첫 주제로 고른 것도 같은 종류의
+ * 판단이다 — **가장 작으면서 아직 한 번도 돌지 않은 규칙을 지나간다.**
+ * 출처 의무(`ATTRIBUTION_PATHS`)는 계약을 세울 때부터 있었는데 그 표를 읽는
+ * 주제가 없어 프로덕션에서 죽어 있던 분기였다.
+ *
+ * 빈칸이 없다는 것은 여전히 **할 말을 다 했다는 뜻이 아니다.** 종격·신살·대운은
+ * 아직 침묵하고 그것은 조각이 없어서가 아니라 주제가 없어서다
+ * (`UNCOVERED_FACTS`).
  */
 
 /**
@@ -87,6 +92,52 @@ const eokbuFragments = (Object.entries(EOKBU_GLOSS) as [ElementRole, string][]).
     },
   ],
 );
+
+/**
+ * 조후 문장이 반드시 적는 것 둘 — **출처와, 판정하지 않은 나머지.**
+ *
+ * 출처는 계약이 요구한다. `analysis.johu` 는 `ATTRIBUTION_PATHS` 의 유일한
+ * 원소라 이 근거를 읽은 문장은 `ATTRIBUTION_TERMS` 중 하나를 품지 않으면
+ * `missing-attribution` 으로 걸린다. 계약을 세울 때부터 있던 규칙인데 이 표를
+ * 읽는 주제가 없어서 프로덕션에서 한 번도 돈 적이 없던 분기다.
+ *
+ * 미판정 고지는 계약이 요구하지 않는다 — **조후표 쪽에서 온 의무다.** 원문은
+ * 칸마다 "수가 왕하면 戊", "화국이면 壬" 같은 조건을 달아 두었고 우리는 그중
+ * 상·하반월 하나만 판정한다(`JOHU_POLICY.conditionEvaluation`). 천간만 옮기고
+ * 조건을 떼면 그것은 옮겨 적기가 아니라 **요약**이고, 요약은 우리가 고른 것이다.
+ * 조건이 붙은 칸과 아닌 칸을 표가 구분하지 않으므로 갈라 쓸 근거도 없다 —
+ * 그래서 세 문장이 모두 이 한 마디를 달고 나간다.
+ */
+const JOHU_SOURCE = '궁통보감 조후표';
+const JOHU_UNJUDGED = '나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.';
+
+/**
+ * 조후 세 벌. 강도는 `reference` 하나뿐이라 **한 주제가 조각 한 벌만 갖는 두
+ * 번째 자리**이고, 앞선 하나(`rootedness.rootless`)와 이유가 정반대다 — 저쪽은
+ * 시간 미상에서 입을 닫아서 한 벌이고 이쪽은 시주가 아무것도 바꾸지 않아서다.
+ */
+const johuFragments: Fragment[] = [
+  {
+    topic: 'johu.table',
+    variant: 'whole-month',
+    strength: 'reference',
+    template: `${JOHU_SOURCE}에서 {dayMaster} 일간 {monthBranch}월은 {stems} 쪽을 참고할 수 있습니다. ${JOHU_UNJUDGED}`,
+  },
+  {
+    topic: 'johu.table',
+    variant: 'half-month',
+    strength: 'reference',
+    template: `${JOHU_SOURCE}는 {dayMaster} 일간 {monthBranch}월을 상·하반월로 갈라 말하고, 이 명식은 {half}에 들어 {stems} 쪽을 참고할 수 있습니다. ${JOHU_UNJUDGED}`,
+  },
+  // 절반을 채워 넣은 정오가 정했을 수 있는 자리. 한쪽을 골라 말하지 않고 양쪽을
+  // 나란히 든다 — 고르면 뒤집힐 수 있고, 덮으면 원문이 갈랐다는 사실이 사라진다.
+  {
+    topic: 'johu.table',
+    variant: 'half-unjudged',
+    strength: 'reference',
+    template: `${JOHU_SOURCE}는 {dayMaster} 일간 {monthBranch}월을 상·하반월로 갈라 말하는데, 시각을 몰라 어느 절반인지 가리지 않았습니다. 상반월은 {firstStems} 쪽, 하반월은 {secondStems} 쪽을 참고할 수 있습니다. ${JOHU_UNJUDGED}`,
+  },
+];
 
 /**
  * 관계 종류마다 문장이 갈리는 자리 — **갈릴 근거가 있을 때만 가른다.**
@@ -247,6 +298,10 @@ export const FRAGMENTS: readonly Fragment[] = [
   // ── 억부 후보 ────────────────────────────────────────────────────────
   ...eokbuFragments,
 
+  // ── 조후 ─────────────────────────────────────────────────────────────
+  // 출처 의무가 처음으로 문장에 걸리는 자리다 — 위 `JOHU_SOURCE` 참조.
+  ...johuFragments,
+
   // ── 관계 ─────────────────────────────────────────────────────────────
   // 변종 열하나 × 두 벌 = 22칸으로 지시서의 절반이다. 문장은 여덟 벌뿐이고
   // 넷이 하나를 나눠 쓴다 — 위 `RELATION_WORDINGS` 참조.
@@ -274,4 +329,8 @@ export const CORPUS_POLICY = {
   variants: 'must-change-some-sentence',
   /** 갈릴 근거가 없으면 여러 변종이 한 문장을 나눠 쓴다 — 나눠 쓴 자리가 보인다 */
   sharedWording: 'declared-not-copied',
+  /** 옮겨 적은 표는 문장 안에서 출처를 부른다 — 조후가 그 규칙을 처음 돌린다 */
+  attribution: 'named-in-the-sentence',
+  /** 판정하지 않은 조건은 문장이 스스로 밝힌다 — 천간만 옮기면 그것은 요약이다 */
+  copiedTable: 'names-what-it-did-not-judge',
 } as const;

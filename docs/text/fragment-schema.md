@@ -29,6 +29,7 @@ type Fragment = {
 | `rootedness.rootless` | `analysis.rootedness` | absence | 일간 | 일간 |
 | `strength.verdict` | `analysis.strength` | presence | 신강 / 신약 | 비율 |
 | `eokbu.candidate` | `analysis.strength`, `analysis.eokbu` | presence | 다섯 자리 | 자리 이름, 오행 |
+| `johu.table` | `analysis.johu` | presence | 갈리지 않는 칸 / 상·하반월 / 절반 미판정 | 일간, 월지, 천간 |
 | `relation.present` | `relations` | presence | 관계 열한 종류 | 관계 이름, 자리 |
 
 방향이 주제의 필드인 것은 **있다와 없다의 안전도가 다르기 때문이다.** 뿌리가 있다와
@@ -48,9 +49,13 @@ strength.verdict/weak@candidate  → 시간 미상일 때 고를 문장 (아직 
 **가장 약한 표현으로 써야 하고**, 그러면 시각을 아는 흔한 경우까지 눌려 상한 체계가
 통째로 바닥으로 무너진다.
 
-`producibleStrengths(topic)`가 주제마다 몇 벌이 필요한지 센다. 보통 둘이고,
-`rootedness.rootless`만 하나다 — 시간 미상에서 `absence`는 `silent`이라 그 벌이 아예
-없다. 계약의 한 줄이 여기서 값으로 나온다.
+`producibleStrengths(topic)`가 주제마다 몇 벌이 필요한지 센다. 보통 둘이고, 한 벌인
+주제가 둘 있는데 **이유가 정반대다.**
+
+- `rootedness.rootless` — 시간 미상에서 `absence`는 `silent`이라 그 벌이 아예 없다.
+  계약의 한 줄이 여기서 값으로 나온다.
+- `johu.table` — 조후표를 여는 열쇠는 일간과 월지뿐이고(`JOHU_POLICY.basis`) 시주
+  두 글자는 둘 중 어느 것도 바꾸지 않는다. 내려갈 칸이 아니라 **내려갈 이유가 없다.**
 
 조각이 없으면 **말하지 않는다.** 다른 강도의 조각으로 메우지 않는다 — 그 순간 강도는
 조회 좌표가 아니라 장식이 된다.

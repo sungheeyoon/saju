@@ -1,4 +1,4 @@
-import { ELEMENT_KO, STEM_INFO } from '../constants';
+import { BRANCH_INFO, ELEMENT_KO, STEM_INFO, type Stem } from '../constants';
 import {
   ELEMENT_ROLE_KO,
   FOLLOWING_PATTERN_STATUS_KO,
@@ -112,7 +112,6 @@ export function groundedTermsOf(saju: Saju): string[] {
 export const UNCOVERED_FACTS: readonly string[] = [
   'analysis.elements',
   'analysis.tenGodCounts',
-  'analysis.johu',
   'analysis.following',
   'analysis.rootedness (일간 밖의 천간·투출)',
   'stages',
@@ -121,6 +120,69 @@ export const UNCOVERED_FACTS: readonly string[] = [
   'saeun',
   'wolun',
 ];
+
+const HALF_KO = { first: '상반월', second: '하반월' } as const;
+
+const stemsKo = (stems: readonly Stem[]): string => stems.map((stem) => STEM_INFO[stem].ko).join('·');
+
+/**
+ * 시간 미상일 때 채워 넣은 정오가 절반을 정했을 수 있는 폭 — **문턱이 아니라
+ * 그날 하루다.**
+ *
+ * 시간을 모르면 `resolvedTime` 이 정오로 채워지고(`computeSaju`), 조후의
+ * 상·하반월은 그 시각을 중기와 견주어 나온다. 실제 태어난 시각은 그날 자정에서
+ * 자정 사이 어디든이므로 **정오에서 ±12시간이 곧 그날의 폭**이고, 중기가 그
+ * 안에 들어 있으면 진짜 시각이 절반을 뒤집는다.
+ *
+ * 이 값은 우리가 고른 숫자가 아니라 채워 넣은 값에서 그대로 유도된다. 지어낸
+ * 문턱이었다면 여기 있으면 안 됐다 — 조후가 세력 조건을 판정하지 않는 이유가
+ * 정확히 그것이다(`JOHU_POLICY.conditionEvaluation`).
+ */
+const FILLED_NOON_SPAN_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * 조후표에서 읽어 온 것 — **어느 변종으로 서는지가 여기서 정해진다.**
+ *
+ * 갈리지 않는 칸이면 표의 천간을 그대로 들고, 갈리는 칸이면 절반을 말한다.
+ * 절반이 채워 넣은 정오에서 나온 값이면 한쪽을 고르지 않고 양쪽을 나란히 든다.
+ */
+function johuRequest(saju: Saju): Pick<FragmentRequest, 'topic' | 'variant' | 'slots'> {
+  const { johu } = saju.analysis;
+
+  const shared = {
+    dayMaster: STEM_INFO[johu.dayMaster].ko,
+    monthBranch: BRANCH_INFO[johu.monthBranch].ko,
+  };
+
+  if (!johu.halfMonth) {
+    return { topic: 'johu.table', variant: 'whole-month', slots: { ...shared, stems: stemsKo(johu.stems) } };
+  }
+
+  const filledNoonCouldFlip =
+    !saju.meta.hourKnown &&
+    johu.midTerm !== null &&
+    Math.abs(saju.meta.instant.getTime() - johu.midTerm.date.getTime()) <= FILLED_NOON_SPAN_MS;
+
+  // 셋을 함께 본다 — `halfStems` 는 절반을 판정했을 때만 차므로 사실상 한 조건이고,
+  // 타입이 그것을 모르기 때문에 `half` 도 나란히 놓는다.
+  if (johu.half === null || johu.halfStems === null || filledNoonCouldFlip) {
+    return {
+      topic: 'johu.table',
+      variant: 'half-unjudged',
+      slots: {
+        ...shared,
+        firstStems: stemsKo(johu.halfMonth.first),
+        secondStems: stemsKo(johu.halfMonth.second),
+      },
+    };
+  }
+
+  return {
+    topic: 'johu.table',
+    variant: 'half-month',
+    slots: { ...shared, half: HALF_KO[johu.half], stems: stemsKo(johu.halfStems) },
+  };
+}
 
 /**
  * 명식에서 발화를 찾는다 — **조각을 모른다.**
@@ -179,6 +241,8 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
       element: ELEMENT_KO[eokbu.suggestedElement],
     },
   });
+
+  requests.push({ ...base, ...johuRequest(saju) });
 
   // 전부 낸다. 어느 것이 무거운지는 판정이라 여기서 하지 않는다.
   for (const relation of saju.relations) {
