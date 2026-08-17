@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju, type Saju } from '@/src/lib/saju';
+import { FOLLOWING_PATTERN_POLICY, FOLLOWING_PATTERN_STATUS_KO } from '@/src/lib/saju/analysis';
 import {
   CORPUS_POLICY,
+  FOLLOWING_WORDINGS,
   FRAGMENTS,
   FRAGMENT_INDEX,
   FRAGMENT_TOPICS,
@@ -276,6 +278,62 @@ describe('말뭉치', () => {
 
       expect(known.analysis.johu.monthBranch).toBe(johu.monthBranch);
       expect(variantOf(known)).toBe('half-month');
+    });
+  });
+
+  /**
+   * 문턱이 고전의 숫자가 아니라 이 엔진의 실험값이라 억부를 뒤집지 않기로 했다
+   * (`eokbuOverride: 'disabled'`). 그런데 화면에서는 두 문장이 나란히 서고 서로
+   * 다른 오행을 가리킬 수 있다 — 문장이 순위를 밝히지 않으면 **독자가 둘 중
+   * 하나를 고르게 되고**, 그것은 우리가 내리지 않은 판정을 떠넘기는 것이다.
+   */
+  describe('종격은 억부를 반박하지 않는다', () => {
+    const followings = FRAGMENTS.filter((fragment) => fragment.topic === 'following.verdict');
+
+    it('종격 문장은 전부 억부보다 뒤라는 것을 밝힌다', () => {
+      expect(followings.length).toBe(FOLLOWING_WORDINGS.length);
+      for (const fragment of followings) {
+        expect(fragment.template, keyOf(fragment)).toContain('억부 후보를 뒤집지 않습니다');
+      }
+    });
+
+    it('게이트가 닫혀 있는 동안은 억부와 같은 칸까지다', () => {
+      expect(FOLLOWING_PATTERN_POLICY.eokbuOverride).toBe('disabled');
+      for (const fragment of followings) {
+        expect(fragment.strength, keyOf(fragment)).toBe('candidate');
+      }
+    });
+
+    /**
+     * 진종·가종은 명리 용어라 문장 틀에 적으면 근거 없는 용어로 걸린다. 이름은
+     * `{verdict}` 슬롯으로 들어오고 조각은 **갈린 까닭**만 적는다 — 종격 후보
+     * 두 칸이 이름을 부르지 않는 것도 강도 표지가 이미 '후보'를 말하기 때문이다.
+     */
+    it('판정 이름을 문장 틀에 타이핑하지 않는다', () => {
+      for (const fragment of followings) {
+        for (const name of Object.values(FOLLOWING_PATTERN_STATUS_KO)) {
+          expect(fragment.template.includes(name), `${keyOf(fragment)} 에 ${name}`).toBe(false);
+        }
+      }
+    });
+
+    /**
+     * 진종의 조건이 방향마다 거울처럼 뒤집힌다 — 밖으로 종은 일간이 무근이어야
+     * 하고 안으로 종은 뿌리가 있어야 한다. 같은 판정에 같은 이유를 달면 둘 중
+     * 하나는 거짓말이 되므로, 판정과 방향을 곱한 만큼 까닭도 갈려야 한다.
+     */
+    it('같은 판정이라도 방향이 다르면 까닭이 다르다', () => {
+      const speakable = [...new Set(FOLLOWING_WORDINGS.map((wording) => wording.verdict))];
+
+      for (const verdict of speakable) {
+        const reasons = FOLLOWING_WORDINGS.filter((wording) => wording.verdict === verdict).map(
+          (wording) => wording.because,
+        );
+
+        // 종격 후보만 겹친다 — 진종·가종 어느 가지에도 걸리지 않은 나머지라
+        // 방향과 무관하고, 겹치는 것은 겹친 채로 둔다.
+        expect(new Set(reasons).size, verdict).toBe(verdict === 'candidate' ? 1 : reasons.length);
+      }
     });
   });
 

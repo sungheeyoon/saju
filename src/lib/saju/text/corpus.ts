@@ -1,7 +1,7 @@
-import type { ElementRole } from '../analysis';
+import type { ElementRole, FollowingDirection, FollowingPatternStatus } from '../analysis';
 import type { RelationKind } from '../constants';
 import type { ClaimStrength } from './policy';
-import { indexFragments, type Fragment, type FragmentIndex } from './fragment';
+import { followingVariant, indexFragments, type Fragment, type FragmentIndex } from './fragment';
 
 /**
  * L3 말뭉치 — **조각이 실제로 들어앉는 곳.**
@@ -17,13 +17,13 @@ import { indexFragments, type Fragment, type FragmentIndex } from './fragment';
  * 사실·유도·후보·참고가 한 번씩 나온다. 표현 규칙이 그 셋에서 확정된 뒤에
  * 관계 22칸을 돌았고, 그것으로 지시서에 빈칸이 없었다(41/41).
  *
- * 그 다음은 칸을 채우는 일이 아니라 **주제를 더하는 일**이었고, 조후 셋이
- * 그렇게 들어와 분모가 44로 늘었다. 조후를 첫 주제로 고른 것도 같은 종류의
- * 판단이다 — **가장 작으면서 아직 한 번도 돌지 않은 규칙을 지나간다.**
- * 출처 의무(`ATTRIBUTION_PATHS`)는 계약을 세울 때부터 있었는데 그 표를 읽는
- * 주제가 없어 프로덕션에서 죽어 있던 분기였다.
+ * 그 다음은 칸을 채우는 일이 아니라 **주제를 더하는 일**이었다. 조후 셋과 종격
+ * 여섯이 들어와 분모가 50이다. 조후를 먼저 고른 것은 **가장 작으면서 아직 한 번도
+ * 돌지 않은 규칙을 지나가기** 때문이었고(출처 의무), 종격은 반대로 가장 깊었다 —
+ * 판정값 하나만 침묵한다는 것을 스키마가 표현하지 못해 강도가 나오는 축이
+ * (주제, 시각)에서 (주제, 변종, 시각)으로 넓어졌다.
  *
- * 빈칸이 없다는 것은 여전히 **할 말을 다 했다는 뜻이 아니다.** 종격·신살·대운은
+ * 빈칸이 없다는 것은 여전히 **할 말을 다 했다는 뜻이 아니다.** 12운성·신살·대운은
  * 아직 침묵하고 그것은 조각이 없어서가 아니라 주제가 없어서다
  * (`UNCOVERED_FACTS`).
  */
@@ -138,6 +138,104 @@ const johuFragments: Fragment[] = [
     template: `${JOHU_SOURCE}는 {dayMaster} 일간 {monthBranch}월을 상·하반월로 갈라 말하는데, 시각을 몰라 어느 절반인지 가리지 않았습니다. 상반월은 {firstStems} 쪽, 하반월은 {secondStems} 쪽을 참고할 수 있습니다. ${JOHU_UNJUDGED}`,
   },
 ];
+
+/**
+ * 종격 여섯 벌 — **판정과 방향이 곱해지는데 곱한 만큼 이유가 다르다.**
+ *
+ * 방향 축만으로도 문장이 갈리고(밖으로 종은 일간을 도울 것이 없어 따르고,
+ * 안으로 종은 일간 편이 극왕해 따른다), 판정 축은 **그 방향에서 무엇을 보고
+ * 갈렸는가**를 적는다. 둘을 곱해야 하는 이유가 여기 있다 — 진종의 조건이
+ * 방향마다 거울처럼 뒤집힌다. 밖으로 종은 일간이 무근이어야 하고 안으로 종은
+ * 뿌리가 있어야 한다(`followingAssessmentOf`). 같은 판정 이름에 같은 이유를 달면
+ * 둘 중 하나는 거짓말이 된다.
+ *
+ * `candidate` 두 칸은 이유가 겹친다 — 코드에서도 진종·가종 어느 가지에도 걸리지
+ * 않은 나머지라 방향과 무관하다. 겹치는 것을 겹친 채로 두는 것이 관계 넷이 한
+ * 문장을 나눠 쓰는 것과 같은 판단이다.
+ *
+ * **판정 이름을 문장 틀에 타이핑하지 않는다.** '진종'·'가종'은 명리 용어라
+ * (`MYEONGRI_LEXICON`) 틀에 적으면 근거 없는 용어로 걸린다 — 이름은 `{verdict}`
+ * 슬롯으로 들어오고 이유만 여기 적힌다. 종격 후보 두 칸이 `{verdict}` 를 쓰지
+ * 않는 것도 그래서다. 그 칸의 이름은 '종격 후보'인데 강도 표지가 이미 '후보로
+ * 봅니다'라 "종격 후보 자리를 후보로 봅니다"가 된다.
+ */
+type FollowingWording = {
+  verdict: FollowingPatternStatus;
+  direction: FollowingDirection;
+  /** 이 방향에서 이 판정으로 갈린 까닭 */
+  because: string;
+  /** 판정 이름을 문장이 부르는가 — 종격 후보만 부르지 않는다 */
+  namesVerdict: boolean;
+};
+
+export const FOLLOWING_WORDINGS: readonly FollowingWording[] = [
+  {
+    verdict: 'true-following',
+    direction: 'outward',
+    because: '일간에 뿌리도 천간의 생부도 남아 있지 않아',
+    namesVerdict: true,
+  },
+  {
+    verdict: 'true-following',
+    direction: 'inward',
+    because: '일간에 뿌리가 있고 맞서는 천간이 없어',
+    namesVerdict: true,
+  },
+  {
+    verdict: 'pseudo-following',
+    direction: 'outward',
+    because: '약한 뿌리나 생부가 조금 남아 있어',
+    namesVerdict: true,
+  },
+  {
+    verdict: 'pseudo-following',
+    direction: 'inward',
+    because: '맞서는 천간이 조금 남아 있어',
+    namesVerdict: true,
+  },
+  {
+    verdict: 'candidate',
+    direction: 'outward',
+    because: '어느 쪽으로도 가를 만큼은 아니어서',
+    namesVerdict: false,
+  },
+  {
+    verdict: 'candidate',
+    direction: 'inward',
+    because: '어느 쪽으로도 가를 만큼은 아니어서',
+    namesVerdict: false,
+  },
+];
+
+/**
+ * 종격 문장이 반드시 다는 마디 — **이 판정은 억부를 반박하지 않는다.**
+ *
+ * 문턱이 고전에서 온 숫자가 아니라 이 엔진의 실험값이라 억부를 뒤집지 않기로
+ * 했다(`FOLLOWING_PATTERN_POLICY.eokbuOverride: 'disabled'`). 그런데 화면에서는
+ * 억부 문장과 종격 문장이 나란히 서고, 둘이 서로 다른 오행을 가리킬 수 있다.
+ * 문장이 순위를 밝히지 않으면 **독자가 둘 중 하나를 고르게 된다** — 그것은 우리가
+ * 내리지 않은 판정을 독자에게 떠넘기는 것이다.
+ */
+const FOLLOWING_DEFERS = '실험 규칙이라 억부 후보를 뒤집지 않습니다.';
+
+const followingBody = (wording: FollowingWording, mark: string): string =>
+  [
+    '자당 몫 {selfShare} 정도에 {dominant} 쪽이 가장 무거운데',
+    wording.because,
+    `{direction}하는${wording.namesVerdict ? ' {verdict}' : ''} 자리를 ${mark}.`,
+    FOLLOWING_DEFERS,
+  ].join(' ');
+
+// 한 벌뿐이다. 시간 미상에서 내려앉는 것이 아니라 **입을 닫는다** — 주제가
+// `absence` 라 계약이 통째로 잠근다(`FRAGMENT_TOPICS['following.verdict']`).
+const followingFragments = FOLLOWING_WORDINGS.map(
+  (wording): Fragment => ({
+    topic: 'following.verdict',
+    variant: followingVariant(wording.verdict, wording.direction),
+    strength: 'candidate',
+    template: followingBody(wording, '후보로 봅니다'),
+  }),
+);
 
 /**
  * 관계 종류마다 문장이 갈리는 자리 — **갈릴 근거가 있을 때만 가른다.**
@@ -302,6 +400,11 @@ export const FRAGMENTS: readonly Fragment[] = [
   // 출처 의무가 처음으로 문장에 걸리는 자리다 — 위 `JOHU_SOURCE` 참조.
   ...johuFragments,
 
+  // ── 종격 ─────────────────────────────────────────────────────────────
+  // 여섯 변종 × 한 벌. 일곱 번째 변종(`not-following`)은 말하지 않기로 했으므로
+  // 지시서에 오르지 않는다 — 조각이 없는 것이 아니라 조회되지 않는 자리다.
+  ...followingFragments,
+
   // ── 관계 ─────────────────────────────────────────────────────────────
   // 변종 열하나 × 두 벌 = 22칸으로 지시서의 절반이다. 문장은 여덟 벌뿐이고
   // 넷이 하나를 나눠 쓴다 — 위 `RELATION_WORDINGS` 참조.
@@ -333,4 +436,6 @@ export const CORPUS_POLICY = {
   attribution: 'named-in-the-sentence',
   /** 판정하지 않은 조건은 문장이 스스로 밝힌다 — 천간만 옮기면 그것은 요약이다 */
   copiedTable: 'names-what-it-did-not-judge',
+  /** 실험 규칙은 자기가 몇 번째인지 밝힌다 — 순위를 감추면 독자가 고르게 된다 */
+  precedence: 'names-what-it-does-not-overturn',
 } as const;

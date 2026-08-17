@@ -18,7 +18,7 @@ import {
   MYEONGRI_LEXICON,
   TEXT_POLICY,
   ceilingFor,
-  ceilingForFollowing,
+  FOLLOWING_SILENT_VERDICTS,
   checkSentence,
   weakerClaim,
   type ClaimPath,
@@ -104,17 +104,26 @@ describe('문장 계약', () => {
       );
     });
 
-    it('종격 아님은 문장을 만들지 않는다', () => {
-      expect(ceilingForFollowing('not-following')).toBe('silent');
+    /**
+     * 계약은 **어느 판정이 침묵하는지**까지만 적는다. 그것을 강도로 바꾸는 일은
+     * 여기 없다 — 한동안 `ceilingForFollowing` 이 있었지만 부르는 곳이 이 테스트
+     * 뿐이었다. 판정값별 침묵은 근거와 시각만으로는 낼 수 없는 값이라, 지금은
+     * 주제가 이 목록을 읽어 스키마에서 값이 난다(`fragment.test.ts`).
+     */
+    it('종격 아님만 문장을 만들지 않는다', () => {
+      expect(FOLLOWING_SILENT_VERDICTS).toEqual(['not-following']);
 
       const speakable: FollowingPatternStatus[] = ['candidate', 'pseudo-following', 'true-following'];
       for (const verdict of speakable) {
-        expect(ceilingForFollowing(verdict), FOLLOWING_PATTERN_STATUS_KO[verdict]).toBe('candidate');
+        expect(
+          FOLLOWING_SILENT_VERDICTS.includes(verdict),
+          FOLLOWING_PATTERN_STATUS_KO[verdict],
+        ).toBe(false);
       }
     });
 
     it('말하지 않기로 한 근거로 문장을 만들면 걸린다', () => {
-      expect(rules('종격은 아닙니다.', ceilingForFollowing('not-following'))).toContain('must-be-silent');
+      expect(rules('종격은 아닙니다.', 'silent')).toContain('must-be-silent');
     });
   });
 

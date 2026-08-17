@@ -20,6 +20,7 @@ import {
   renderFragment,
   sampleSentence,
   skeletonOf,
+  speaks,
   type Fragment,
   type FragmentRequest,
 } from '@/src/lib/saju/text';
@@ -90,6 +91,15 @@ describe('조각 스키마', () => {
     it('없다고 하는 주제는 시간 미상에서 한 벌뿐이다', () => {
       expect(producibleStrengths('rootedness.rootless')).toEqual(['fact']);
       expect(producibleStrengths('rootedness.rooted')).toEqual(['fact', 'derived']);
+    });
+
+    /**
+     * 종격의 앞 조건이 무근이고 문장이 그것을 이유로 든다. 계약이 `absence` 를
+     * 시간 미상에서 통째로 막아 둔 줄이 여기서 두 번째로 값을 낸다 — 골든에서
+     * 같은 명식의 시주만 지웠더니 판정이 범주째 뒤집히는 것이 보였다.
+     */
+    it('종격도 시간 미상에서 한 벌뿐이다', () => {
+      expect(producibleStrengths('following.verdict')).toEqual(['candidate']);
     });
 
     it('낼 수 없는 강도의 조각은 아무도 조회하지 못한다', () => {
@@ -281,6 +291,49 @@ describe('조각 스키마', () => {
       expect(rendered.key).toBe(fragmentKey('relation.present', 'branchHarm', 'fact'));
       expect(rendered.text).toBeNull();
       expect(rendered.violations).toHaveLength(0);
+    });
+
+    /**
+     * 판정값별 침묵은 **변종에 걸린 강도**라 근거와 시각만으로는 낼 수 없었다.
+     * 그동안 계약에 함수만 있고 부르는 곳이 없던 이유가 그것이고, 여기가 그
+     * 함수가 있어야 했던 자리다. 강도를 내는 길은 여전히 하나다 —
+     * `renderFragment` 는 강도를 인자로 받지 않는다.
+     */
+    describe('말하지 않기로 한 변종', () => {
+      const NOT_FOLLOWING = 'not-following';
+
+      it('지시서에 오르지 않는다', () => {
+        expect(FRAGMENT_TOPICS['following.verdict'].variants).toContain(NOT_FOLLOWING);
+        expect(speaks('following.verdict', NOT_FOLLOWING)).toBe(false);
+
+        // 올려 두면 아무도 조회하지 못하는 칸이 영원히 빈칸으로 남아
+        // "채워야 할 자리"를 세는 숫자가 거짓말을 한다.
+        expect(expectedFragmentKeys().filter((key) => key.includes(NOT_FOLLOWING))).toEqual([]);
+      });
+
+      it('발화는 서고 문장만 없다', () => {
+        const rendered = render({
+          topic: 'following.verdict',
+          variant: NOT_FOLLOWING,
+          slots: {},
+          grounded: [],
+        });
+
+        expect(rendered.strength).toBe('silent');
+        expect(rendered.key).toBeNull();
+        expect(rendered.text).toBeNull();
+      });
+
+      it('그 자리에 조각을 쓰면 걸린다', () => {
+        const orphan: Fragment = {
+          topic: 'following.verdict',
+          variant: NOT_FOLLOWING,
+          strength: 'candidate',
+          template: '자당 몫 {selfShare} 정도라 종하지 않는 자리를 후보로 봅니다.',
+        };
+
+        expect(rulesOf(orphan)).toContain('silent-variant');
+      });
     });
 
     it('말하지 않기로 한 자리는 조회조차 하지 않는다', () => {

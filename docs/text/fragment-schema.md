@@ -30,6 +30,7 @@ type Fragment = {
 | `strength.verdict` | `analysis.strength` | presence | 신강 / 신약 | 비율 |
 | `eokbu.candidate` | `analysis.strength`, `analysis.eokbu` | presence | 다섯 자리 | 자리 이름, 오행 |
 | `johu.table` | `analysis.johu` | presence | 갈리지 않는 칸 / 상·하반월 / 절반 미판정 | 일간, 월지, 천간 |
+| `following.verdict` | `analysis.following`, `analysis.rootedness` | absence | 판정 셋 × 방향 둘 (+ 침묵 하나) | 판정, 방향, 자당 몫, 지배 세력 |
 | `relation.present` | `relations` | presence | 관계 열한 종류 | 관계 이름, 자리 |
 
 방향이 주제의 필드인 것은 **있다와 없다의 안전도가 다르기 때문이다.** 뿌리가 있다와
@@ -54,11 +55,32 @@ strength.verdict/weak@candidate  → 시간 미상일 때 고를 문장 (아직 
 
 - `rootedness.rootless` — 시간 미상에서 `absence`는 `silent`이라 그 벌이 아예 없다.
   계약의 한 줄이 여기서 값으로 나온다.
+- `following.verdict` — 같은 이유다. 문장이 "뿌리도 생부도 없어"라고 이유를 대므로
+  근거가 둘이고 방향이 `absence`다. 골든에서 같은 명식의 시주만 지웠더니 판정이
+  범주째 뒤집히는 것이 보였다.
 - `johu.table` — 조후표를 여는 열쇠는 일간과 월지뿐이고(`JOHU_POLICY.basis`) 시주
   두 글자는 둘 중 어느 것도 바꾸지 않는다. 내려갈 칸이 아니라 **내려갈 이유가 없다.**
 
 조각이 없으면 **말하지 않는다.** 다른 강도의 조각으로 메우지 않는다 — 그 순간 강도는
 조회 좌표가 아니라 장식이 된다.
+
+## 말하지 않기로 한 변종
+
+강도는 오래도록 (주제, 시각) 둘에서 나왔다. 그런데 종격의 `not-following`은 **판정값
+하나만 침묵하는** 자리라 그 둘로는 표현할 길이 없었고, 그래서 계약에 함수만 있고
+부르는 곳이 없었다(`ceilingForFollowing`). 주제가 `silentVariants`를 선언하는 것이
+그 함수가 있어야 했던 자리다.
+
+호출부가 강도를 건네게 두면 `paths`를 주제로 옮겨 막은 구멍이 그대로 다시 열리므로,
+`renderFragment`는 여전히 강도를 인자로 받지 않는다 — **강도를 내는 길은 하나다.**
+
+세 가지 침묵이 서로 다른 것도 그대로 남는다.
+
+| 무엇 | 어디서 세는가 | 골든 표시 |
+| --- | --- | --- |
+| 사실이 없다 | 발화가 서지 않는다 | (줄이 없다) |
+| 말하지 않기로 했다 | `silentVariants` · `absence` | `×` |
+| 조각이 없다 | `missingFragmentsOf` | `·` |
 
 ## 변종은 유한하고 슬롯은 무한하다
 

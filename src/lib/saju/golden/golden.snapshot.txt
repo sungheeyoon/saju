@@ -168,6 +168,7 @@
           particles              no-variable-particle-after-slot
           staticCheck            skeleton-passes-contract-with-no-evidence
           missingFragment        silent
+          silentVariants         declared-by-topic
 
 케이스 39건
 ==============================================================================

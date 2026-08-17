@@ -208,13 +208,15 @@ export const ATTRIBUTION_PATHS: readonly ClaimPath[] = ['analysis.johu'];
  * 고른 문턱 밖**이라는 뜻이다. 게이트가 닫혀 있는 동안 그것을 결론처럼 말하면
  * 실험값을 절대 기준으로 쓰는 것이 된다. 대신 억부 문장이 이미 "종격 여부는
  * 아직 보지 않았다"를 각주로 달고 나간다(`UNRESOLVED_FACTOR_KO.followingPattern`).
+ *
+ * **이 목록을 강도로 옮기는 함수는 여기 없다.** 한동안 `ceilingForFollowing` 이
+ * 있었는데 부르는 곳이 테스트뿐이었다 — `renderFragment` 는 강도를 인자로 받지
+ * 않기로 했고(그래야 `paths` 를 주제로 옮겨 막은 구멍이 호출부에서 다시 열리지
+ * 않는다), 그래서 판정값별 침묵은 계약이 혼자 낼 수 없는 값이었다. 지금은 주제가
+ * 이 목록을 `silentVariants` 로 읽어 스키마에서 값이 난다(`fragment.ts` 의
+ * `speaks`). 규칙은 여기 한 번만 적혀 있고 강도를 내는 길은 하나다.
  */
 export const FOLLOWING_SILENT_VERDICTS: readonly FollowingPatternStatus[] = ['not-following'];
-
-/** 종격 판정 하나가 허용하는 강도 */
-export function ceilingForFollowing(verdict: FollowingPatternStatus): ClaimStrength {
-  return FOLLOWING_SILENT_VERDICTS.includes(verdict) ? 'silent' : CLAIM_CEILING['analysis.following'];
-}
 
 /**
  * 문장이 무엇을 주장하는가 — 있다고 하는가, 없다고 하는가.
@@ -484,7 +486,7 @@ export type SentenceCheck = {
    * 시간 미상의 억부에서도 온다.
    */
   paths: readonly ClaimPath[];
-  /** `ceilingFor`(종격이면 `ceilingForFollowing`)가 낸 값을 그대로 넣는다 */
+  /** `ceilingFor`(주제를 거치면 `renderFragment`)가 낸 값을 그대로 넣는다 */
   strength: ClaimStrength;
   /**
    * 이 문장이 근거로 쥔 용어들 — `relation.ko`, `TEN_GOD_KO[...]` 처럼

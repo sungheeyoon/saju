@@ -1,6 +1,7 @@
 import { BRANCH_INFO, ELEMENT_KO, STEM_INFO, type Stem } from '../constants';
 import {
   ELEMENT_ROLE_KO,
+  FOLLOWING_DIRECTION_KO,
   FOLLOWING_PATTERN_STATUS_KO,
   TEN_GOD_KO,
   type PillarTenGods,
@@ -12,6 +13,7 @@ import type { Saju } from '../index';
 import { FOLLOWING_SILENT_VERDICTS, type ClaimStrength } from './policy';
 import { FRAGMENT_INDEX } from './corpus';
 import {
+  followingVariant,
   renderFragment,
   type FragmentIndex,
   type FragmentKey,
@@ -97,6 +99,10 @@ export function groundedTermsOf(saju: Saju): string[] {
 
   terms.add(ELEMENT_ROLE_KO[saju.analysis.eokbu.role]);
 
+  // 가장 무거운 세력은 판정과 상관없이 세어진 사실이다(`candidacy: 'facts-only'`).
+  // 종격이 말하지 않기로 한 명식에서도 이 자리는 명식이 낸 값이다.
+  terms.add(ELEMENT_ROLE_KO[saju.analysis.following.facts.dominant.role]);
+
   const { verdict } = saju.analysis.following;
   if (!FOLLOWING_SILENT_VERDICTS.includes(verdict)) terms.add(FOLLOWING_PATTERN_STATUS_KO[verdict]);
 
@@ -112,7 +118,6 @@ export function groundedTermsOf(saju: Saju): string[] {
 export const UNCOVERED_FACTS: readonly string[] = [
   'analysis.elements',
   'analysis.tenGodCounts',
-  'analysis.following',
   'analysis.rootedness (일간 밖의 천간·투출)',
   'stages',
   'sinsal',
@@ -243,6 +248,22 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
   });
 
   requests.push({ ...base, ...johuRequest(saju) });
+
+  // 말하지 않기로 한 판정도 요청은 낸다. 여기서 걸러 버리면 "사실이 없다"와
+  // "말하지 않기로 했다"가 한 덩어리가 되고, 골든에서 침묵이 보이지 않는다.
+  const { following } = saju.analysis;
+
+  requests.push({
+    ...base,
+    topic: 'following.verdict',
+    variant: followingVariant(following.verdict, following.direction),
+    slots: {
+      verdict: FOLLOWING_PATTERN_STATUS_KO[following.verdict],
+      direction: following.direction === null ? '' : FOLLOWING_DIRECTION_KO[following.direction],
+      selfShare: `${Math.round(following.selfShare * 100)}%`,
+      dominant: ELEMENT_ROLE_KO[following.facts.dominant.role],
+    },
+  });
 
   // 전부 낸다. 어느 것이 무거운지는 판정이라 여기서 하지 않는다.
   for (const relation of saju.relations) {

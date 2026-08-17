@@ -1,6 +1,14 @@
-import { ELEMENT_ROLE_KO, type ElementRole } from '../analysis';
+import {
+  ELEMENT_ROLE_KO,
+  FOLLOWING_DIRECTION_KO,
+  FOLLOWING_PATTERN_STATUS_KO,
+  type ElementRole,
+  type FollowingDirection,
+  type FollowingPatternStatus,
+} from '../analysis';
 import { RELATION_KIND_KO } from '../relations';
 import {
+  FOLLOWING_SILENT_VERDICTS,
   ceilingFor,
   checkSentence,
   type ClaimPath,
@@ -46,7 +54,34 @@ export type FragmentTopic =
   | 'strength.verdict'
   | 'eokbu.candidate'
   | 'johu.table'
+  | 'following.verdict'
   | 'relation.present';
+
+/**
+ * 종격 변종의 좌표 — **판정 하나와 방향 하나.**
+ *
+ * 둘을 곱하는 것은 각각이 문장을 가르기 때문이다. 판정은 이 명식을 얼마나
+ * 확신하는가이고(진종·가종·후보), 방향은 **무엇을 따르는가**다 — 밖으로 종은
+ * 일간을 도울 것이 없어 따르고 안으로 종은 일간 편이 극왕해 따른다. 이름만
+ * 다른 것이 아니라 일어난 일이 다르다.
+ *
+ * `not-following` 만 방향이 없다. 문턱 사이에 놓여 어느 쪽도 아니라는 뜻이라
+ * (`direction === null`) 좌표가 판정 하나로 끝나고, 그 하나가 곧 침묵하는 변종이다.
+ */
+export const followingVariant = (
+  verdict: FollowingPatternStatus,
+  direction: FollowingDirection | null,
+): string => (direction === null ? verdict : `${verdict}-${direction}`);
+
+const FOLLOWING_VARIANTS: readonly string[] = (
+  Object.keys(FOLLOWING_PATTERN_STATUS_KO) as FollowingPatternStatus[]
+).flatMap((verdict) =>
+  FOLLOWING_SILENT_VERDICTS.includes(verdict)
+    ? [followingVariant(verdict, null)]
+    : (Object.keys(FOLLOWING_DIRECTION_KO) as FollowingDirection[]).map((direction) =>
+        followingVariant(verdict, direction),
+      ),
+);
 
 export type TopicSpec = {
   /** 이 주제의 문장이 읽는 근거. **조각이 아니라 주제가 적는다** */
@@ -55,6 +90,19 @@ export type TopicSpec = {
   polarity: ClaimPolarity;
   /** 문장이 갈리는 자리 — 유한해야 한다. 생성기가 이 목록을 전수로 돈다 */
   variants: readonly string[];
+  /**
+   * 그중 **말하지 않기로 한** 변종.
+   *
+   * 사실이 없는 것도 아니고 조각이 없는 것도 아니다 — 값은 나왔는데 그것을
+   * 결론처럼 말하지 않기로 한 자리다(`FOLLOWING_SILENT_VERDICTS`). 그래서
+   * 발화는 그대로 서고 문장만 없다. 조립기가 요청을 안 내는 것으로 처리하면
+   * "사실이 없다"와 구분이 사라지고, 골든에서 침묵이 침묵으로 보이지 않는다.
+   *
+   * 이 축이 생기기 전까지 강도는 (주제, 시각) 둘에서만 나왔다. 판정값별 침묵은
+   * **변종에 걸린 강도**라 그 둘로는 표현할 길이 없었고, 그래서 계약에 함수만
+   * 있고 부르는 곳이 없었다. 여기가 그 함수가 있어야 했던 자리다.
+   */
+  silentVariants?: readonly string[];
   /** 데이터가 꽂히는 자리 — 값은 무한해도 된다. 여기 오는 것만이 명리 용어다 */
   slots: readonly string[];
   /**
@@ -163,6 +211,46 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
   },
 
   /**
+   * 종격 판정. **말하지 않는 변종을 처음으로 가진 주제다.**
+   *
+   * 상한이 게이트에 묶여 있다(`CLAIM_CEILING['analysis.following']`). 지금은
+   * 닫혀 있어 `candidate` 이고, 열리면 `derived` 로 올라가면서 이 주제의 조각
+   * 키가 통째로 바뀌어 지시서에 빈칸이 생긴다 — **그 빈칸이 곧 "게이트를 열
+   * 때 문장도 같이 고쳐라"는 알림이다.** 잊으면 테스트가 먼저 말한다.
+   *
+   * 격 이름(종재·종살…)은 슬롯에도 없다. `FOLLOWING_PATTERN_KIND_KO` 는
+   * 정책이 이름을 적어 둔 분류표일 뿐 판정이 그 값을 내지 않는다
+   * (`recognizedKinds` 는 목록이고 `FollowingAssessment` 에는 그 필드가 없다).
+   * 없는 값을 말할 슬롯을 파 두면 언젠가 채워진다.
+   */
+  'following.verdict': {
+    /**
+     * 근거가 둘인 것은 문장이 뿌리를 말하기 때문이다. 종의 앞 조건이 무근이고
+     * (`facts.dayMasterRootless`) 그것을 문장이 이유로 든다 — 읽은 것을 적지
+     * 않으면 근거를 주제가 적는다는 규율이 껍데기가 된다.
+     *
+     * **방향이 `absence` 인 것이 이 주제의 값이다.** 계약이 `ClaimPolarity` 를
+     * 만들 때부터 "종격의 앞 조건이 무근이라 이 한 줄이 종격 문장까지 함께
+     * 잠근다"고 적어 두었는데, 잠글 자리가 없어 적혀만 있던 줄이다. 시지가
+     * 뿌리였다면 "뿌리도 생부도 없어 밖으로 종한다"는 그냥 틀린 문장이다.
+     *
+     * 골든이 그것을 실제로 보였다. 같은 명식에서 시주만 지우자 판정이 `종격
+     * 후보` 에서 `진종` 으로 **범주째 뒤집혔다.** 한 칸 내려 말할 일이 아니라
+     * 입을 닫을 일이다. 안으로 종은 뿌리가 있어야 성립하므로 이 잠금이 조금
+     * 과하지만, 뒤집히는 판정을 여섯 글자에서 말하는 것보다 과한 쪽이 낫다.
+     */
+    paths: ['analysis.following', 'analysis.rootedness'],
+    polarity: 'absence',
+    variants: FOLLOWING_VARIANTS,
+    // "종격이 아니다"는 판정이 아니라 **우리가 고른 문턱 밖**이라는 뜻이다.
+    // 게이트가 닫힌 채 그것을 결론처럼 말하면 실험값을 절대 기준으로 쓰게 된다.
+    silentVariants: FOLLOWING_SILENT_VERDICTS,
+    slots: ['verdict', 'direction', 'selfShare', 'dominant'],
+    samples: { verdict: '가종', direction: '밖으로 종', selfShare: '12%', dominant: '재성' },
+    note: '종격을 어느 쪽으로 얼마나 세게 보는가',
+  },
+
+  /**
    * 원국에서 성립한 관계 하나. **변종은 관계의 종류이고 이름은 슬롯이다** —
    * 조각 안에 `자오충` 이 없어야 없는 관계를 말할 길이 없다.
    */
@@ -224,16 +312,31 @@ export function producibleStrengths(topic: FragmentTopic): readonly ClaimStrengt
 }
 
 /**
+ * 이 주제가 이 변종으로 **문장을 만드는가.**
+ *
+ * 강도를 내는 길은 하나여야 하므로(`renderFragment` 는 강도를 인자로 받지
+ * 않는다) 판정값별 침묵도 스키마에서 나와야 한다. 이 술어가 그 자리다.
+ */
+export function speaks(topic: FragmentTopic, variant: string): boolean {
+  return !FRAGMENT_TOPICS[topic].silentVariants?.includes(variant);
+}
+
+/**
  * 채워져야 하는 키 전부 — 생성기의 작업 지시서다.
  *
  * 조합이 유한하다는 것이 L3 를 런타임 AI 없이 하겠다는 결정의 전제였다.
  * 그 전제를 값으로 셀 수 있게 만드는 것이 이 함수의 몫이다.
+ *
+ * 말하지 않기로 한 변종은 지시서에 오르지 않는다. 올려 두면 **아무도 조회하지
+ * 못하는 칸**이 영원히 빈칸으로 남아 "채워야 할 자리"를 세는 숫자가 거짓말을 한다.
  */
 export function expectedFragmentKeys(): FragmentKey[] {
   return FRAGMENT_TOPIC_IDS.flatMap((topic) =>
-    FRAGMENT_TOPICS[topic].variants.flatMap((variant) =>
-      producibleStrengths(topic).map((strength) => fragmentKey(topic, variant, strength)),
-    ),
+    FRAGMENT_TOPICS[topic].variants
+      .filter((variant) => speaks(topic, variant))
+      .flatMap((variant) =>
+        producibleStrengths(topic).map((strength) => fragmentKey(topic, variant, strength)),
+      ),
   );
 }
 
@@ -243,6 +346,8 @@ export type FragmentViolationRule =
   | 'unknown-variant'
   /** 이 주제가 낼 수 없는 강도다 */
   | 'unproducible-strength'
+  /** 말하지 않기로 한 변종에 문장을 썼다 */
+  | 'silent-variant'
   /** 주제가 선언하지 않은 슬롯을 썼다 */
   | 'undeclared-slot'
   /** 조사를 슬롯 뒤에 붙였다 — 받침에 따라 갈린다 */
@@ -314,6 +419,14 @@ export function checkFragment(fragment: Fragment): FragmentViolation[] {
       rule: 'unknown-variant',
       term: fragment.variant,
       detail: `${fragment.topic} 에 없는 변종이다. 변종은 유한해야 생성기가 전수로 돈다.`,
+    });
+  }
+
+  if (!speaks(fragment.topic, fragment.variant)) {
+    violations.push({
+      rule: 'silent-variant',
+      term: fragment.variant,
+      detail: `${fragment.topic} 은 ${fragment.variant} 를 말하지 않기로 했다 — 아무도 조회하지 못하는 조각이다.`,
     });
   }
 
@@ -433,6 +546,10 @@ export function renderFragment(request: FragmentRequest, index: FragmentIndex): 
   const { topic, variant, slots, grounded, hourKnown = true } = request;
   const spec = FRAGMENT_TOPICS[topic];
 
+  // 판정값별 침묵이 먼저다. 근거가 허용하는 강도와 무관하게 말하지 않기로 한
+  // 자리라, 근거에서 강도를 내고 나서 지우면 순서가 거꾸로다.
+  if (!speaks(topic, variant)) return { key: null, strength: 'silent', text: null, violations: [] };
+
   const strength = ceilingFor({ paths: spec.paths, polarity: spec.polarity, hourKnown });
   if (strength === 'silent') return { key: null, strength, text: null, violations: [] };
 
@@ -503,4 +620,6 @@ export const FRAGMENT_POLICY = {
   staticCheck: 'skeleton-passes-contract-with-no-evidence',
   /** 조각이 없으면 말하지 않는다 — 다른 강도의 조각으로 메우지 않는다 */
   missingFragment: 'silent',
+  /** 판정값별 침묵은 변종에 걸린다 — 강도를 내는 길은 그래도 하나다 */
+  silentVariants: 'declared-by-topic',
 } as const;
