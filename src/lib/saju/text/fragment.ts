@@ -57,6 +57,8 @@ export type FragmentTopic =
   | 'eokbu.candidate'
   | 'eokbuMatch.supplied'
   | 'eokbuMatch.missing'
+  | 'elementSupport.absent'
+  | 'elementSupport.weakest'
   | 'johu.table'
   | 'following.verdict'
   | 'tenGods.between'
@@ -252,6 +254,66 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     slots: ['viewer', 'partner', 'role', 'element'],
     samples: { viewer: '민수', partner: '지영', role: '인성', element: '수' },
     note: '내 억부 후보 오행이 상대 원국에 아예 없다',
+  },
+
+  /**
+   * 내게 없는 오행이 상대에게 있는가 — **행이다.**
+   *
+   * 궁합에서 "보완"이라 불리는 자리인데, 엔진이 아는 것은 **개수 둘**이다. 내
+   * 원국에 그 오행이 0개이고 상대 원국에 0개가 아니다. 문턱도 계통 선택도 없다.
+   *
+   * 타입이 그것을 먼저 말한다 — `EokbuMatch` 에는 `status: 'experimental'` 이
+   * 있는데 `ElementSupport` 에는 없다. 물려받을 판정이 없으니 상한이 `fact` 이고,
+   * 완충 표현이 필요 없으면 산문일 이유가 없다(`ClaimForm`).
+   *
+   * **보완이라 부르지 않는다.** 없는 것을 채우는 쪽이 좋다는 읽기와 용신에 맞는
+   * 오행이라야 한다는 읽기가 갈리고(`COMPAT_POLICY.elementSupport: 'facts-only'`),
+   * 행에는 그 판정을 실을 서술어가 아예 없다 — 관계 행에서 "짝을 짓습니다"를 뗀
+   * 것과 같은 자리다.
+   *
+   * **방향은 `absence` 다.** 주장의 앞머리가 "내게 그 오행이 없다"라서, 시지가 그
+   * 오행이었다면 행 전체가 그냥 틀린다. 시간 미상에서는 내리는 것이 아니라 입을
+   * 닫는다 — 무근·억부 부합과 같다.
+   *
+   * 변종 둘은 **상대가 가졌는가**로 갈린다. 그리고 둘의 낱수가 다르다 — 없는 것은
+   * 사람마다지만 **둘 다 없는 것은 짝의 성질이라 한 번만 선다**(집합이 같다).
+   */
+  'elementSupport.absent': {
+    paths: ['analysis.elements'],
+    polarity: 'absence',
+    form: 'row',
+    variants: ['supplied', 'still-missing'],
+    slots: ['viewer', 'partner', 'who', 'elements'],
+    samples: { viewer: '민수', partner: '지영', who: '민수와 지영', elements: '화·토' },
+    note: '내 원국에 없는 오행을 상대가 가졌는가',
+  },
+
+  /**
+   * 가장 약한 오행이 상대 원국에서 얼마를 차지하는가.
+   *
+   * 없지는 않은 자리를 든다. 위 주제는 개수가 0일 때만 서므로 다섯 오행이 다 있는
+   * 명식에서는 아무 말도 못 하는데, 그때도 **가장 얇은 자리**는 있다.
+   *
+   * **방향이 위와 갈린다.** "가장 약하다"는 없다는 주장이 아니라 다섯을 세어 고른
+   * 값이라, 시주가 빠지면 다른 오행이 그 자리에 올 뿐 문장이 틀리지는 않는다.
+   * 그래서 침묵이 아니라 한 칸 내려간다 — **행이 `fact` 아닌 강도로 서는 첫
+   * 자리**이고, 계약이 "행은 강도가 옆 칸으로 선다"고 적어 둔 것이 여기서 값을
+   * 낸다(면제는 완충 표현이지 강도가 아니다).
+   */
+  'elementSupport.weakest': {
+    paths: ['analysis.elements'],
+    polarity: 'presence',
+    form: 'row',
+    variants: ['pair'],
+    slots: ['viewer', 'partner', 'element', 'ratio', 'who'],
+    samples: {
+      viewer: '민수',
+      partner: '지영',
+      element: '수',
+      ratio: '12%',
+      who: '지영',
+    },
+    note: '내 최약 오행이 상대 원국에서 차지하는 비중',
   },
 
   /**

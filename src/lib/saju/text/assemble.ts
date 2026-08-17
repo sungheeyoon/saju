@@ -1,4 +1,4 @@
-import { BRANCH_INFO, ELEMENT_KO, STEM_INFO, type Stem } from '../constants';
+import { BRANCH_INFO, ELEMENT_KO, STEM_INFO, type Element, type Stem } from '../constants';
 import {
   ELEMENT_ROLE_KO,
   FOLLOWING_DIRECTION_KO,
@@ -449,6 +449,59 @@ export function findCompatUtterances(
     });
   }
 
+  // 오행 보완 — 행이다. 엔진이 아는 것은 개수 둘이라 물려받을 판정이 없다.
+  const elementsKo = (elements: readonly Element[]) => elements.map((e) => ELEMENT_KO[e]).join('·');
+
+  for (const side of COMPAT_SIDES) {
+    const support = compat.elementSupport[side];
+    const partner = side === 'a' ? 'b' : 'a';
+    const names = { viewer: people[side].label, partner: people[partner].label };
+
+    if (support.supplied.length > 0) {
+      requests.push({
+        ...base,
+        topic: 'elementSupport.absent',
+        variant: 'supplied',
+        slots: { ...names, elements: elementsKo(support.supplied) },
+      });
+    }
+
+    // **없는 오행이 하나도 없을 때만 선다.** `weakest` 는 argmin 이라 없는 오행이
+    // 있으면 그것을 가리키는데, 0 인 자리를 "가장 얇다"고 부르면 있는 것처럼
+    // 읽힌다. 그 자리는 위 행이 이미 없다고 말했다 — 두 주제가 공간을 나눠 갖고
+    // 각 낱말이 참인 자리에서만 선다.
+    if (support.missing.length === 0) {
+      requests.push({
+        ...base,
+        topic: 'elementSupport.weakest',
+        variant: 'pair',
+        slots: {
+          ...names,
+          element: ELEMENT_KO[support.weakest.element],
+          ratio: `${Math.round(support.weakest.partnerRatio * 100)}%`,
+          who,
+        },
+      });
+    }
+  }
+
+  // **한 번만 선다.** 둘 다 없는 것은 사람마다가 아니라 짝의 성질이고, 두 쪽의
+  // 집합이 정의상 같다(내게 없다 ∩ 상대에게 없다). 사람마다 내면 같은 행이 두 벌
+  // 찍히고, 그러면 읽는 사람은 다른 값인 줄 알고 두 번 읽는다.
+  const stillMissing = compat.elementSupport.a.stillMissing;
+
+  if (stillMissing.length > 0) {
+    requests.push({
+      ...base,
+      topic: 'elementSupport.absent',
+      variant: 'still-missing',
+      slots: {
+        who: joinNames(COMPAT_SIDES.map((side) => people[side].label)),
+        elements: elementsKo(stillMissing),
+      },
+    });
+  }
+
   if (unknown.length > 0) {
     requests.push({
       ...base,
@@ -485,16 +538,16 @@ export function assembleCompatText(
 /**
  * 궁합에서 아직 주제가 없는 사실.
  *
- * 관계·십성이 행이 됐고 억부 부합이 문장이 됐다. 나머지는 사실이 없어서가 아니라
- * 주제가 없어서 침묵한다 — `UNCOVERED_FACTS` 와 같은 구실이고, 목록을 나눈 것은
- * 세는 대상이 `Saju` 가 아니라 `Compatibility` 이기 때문이다.
+ * 남은 하나뿐이다. 사실이 없어서가 아니라 주제가 없어서 침묵한다 —
+ * `UNCOVERED_FACTS` 와 같은 구실이고, 목록을 나눈 것은 세는 대상이 `Saju` 가
+ * 아니라 `Compatibility` 이기 때문이다.
  *
- * 남은 `elementSupport` 는 **문장이어야 한다.** 십성이 행이 된 것은 표를 읽은
- * 값이라 판정이 없어서였는데(`fact`), 이쪽은 그렇지 않다 — 보완을 좋은 것으로
- * 읽을지 자체가 계통 갈림이라 세어 놓은 것에도 완충 표현이 필요하다.
+ * `combinedFormations` 는 **사실이 이미 발화한다** — 같은 관계가 `relations` 안에
+ * 있고 행이 `(두 사람 글자가 합쳐 이룬 것)` 로 그렇다는 것을 적는다. 여기 남은
+ * 것은 그것들만 따로 모은 목록인데, 목록이 따로 서야 하는지가 화면의 질문이라
+ * 문장 층에서 먼저 정할 일이 아니다.
  */
 export const UNCOVERED_COMPAT_FACTS: readonly string[] = [
-  'elementSupport (서로의 부족한 오행을 채우는가)',
   'combinedFormations (관계 행에는 들어가지만 따로 모은 목록은 아직)',
 ];
 

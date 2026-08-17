@@ -240,6 +240,31 @@ const COMPAT_CASES: CompatCase[] = [
       },
     },
   },
+  /**
+   * 둘 다 금이 없는 짝. 보완이 **안 되는** 자리가 골든에 없으면 오행 보완이 언제나
+   * 채워 주는 것처럼 읽힌다 — `still-missing` 변종이 서는 유일한 케이스다.
+   * 그리고 두 사람 다 없는 오행이 있으므로 `weakest` 는 양쪽 다 서지 않는다.
+   */
+  {
+    id: 'compat-both-missing',
+    note: '둘 다 없는 오행이 있다 — 보완이 안 되는 자리는 한 번만 선다',
+    people: {
+      a: {
+        label: '민수',
+        saju: computeSaju(
+          { year: 1988, month: 1, day: 3, hour: 10, minute: 0, second: 0, gender: 'male' },
+          {},
+        ),
+      },
+      b: {
+        label: '지영',
+        saju: computeSaju(
+          { year: 1988, month: 2, day: 19, hour: 10, minute: 0, second: 0, gender: 'female' },
+          {},
+        ),
+      },
+    },
+  },
 ];
 
 const formatCompatCase = ({ id, note, people }: CompatCase): string => {

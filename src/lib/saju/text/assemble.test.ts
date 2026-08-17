@@ -468,6 +468,93 @@ describe('조립기', () => {
     });
   });
 
+  /**
+   * 타입이 먼저 말한다 — `EokbuMatch` 에는 `status: 'experimental'` 이 있는데
+   * `ElementSupport` 에는 없다. 물려받을 판정이 없으니 행이다.
+   */
+  describe('궁합 오행 보완', () => {
+    /** 둘 다 금이 없는 짝 */
+    const BOTH_A = male(1988, 1, 3, 10);
+    const BOTH_B = female(1988, 2, 19, 10);
+
+    const supportOf = (a: Saju, b: Saju) =>
+      compatText(a, b).filter(({ request }) => request.topic.startsWith('elementSupport.'));
+
+    it('행이라 강도 표지를 품지 않는다', () => {
+      for (const row of supportOf(BOTH_A, BOTH_B)) {
+        for (const mark of Object.values(STRENGTH_WORDING)) {
+          expect(row.text!.includes(mark), `${row.key} 에 ${mark}`).toBe(false);
+        }
+      }
+    });
+
+    /**
+     * `weakest` 는 argmin 이라 없는 오행이 있으면 그것을 가리킨다. 0 인 자리를
+     * "가장 얇다"고 부르면 있는 것처럼 읽히고, 그 자리는 위 행이 이미 없다고 말했다.
+     */
+    it('없는 오행이 있으면 최약 행은 서지 않는다', () => {
+      const compat = compatOf(BOTH_A, BOTH_B);
+
+      expect(compat.elementSupport.a.missing.length).toBeGreaterThan(0);
+      expect(supportOf(BOTH_A, BOTH_B).map(({ request }) => request.topic)).not.toContain(
+        'elementSupport.weakest',
+      );
+
+      // 다섯이 다 있는 쪽에서는 선다 — 그때가 이 주제의 자리다.
+      const rich = compatOf(RICH, OFFICER);
+      expect(rich.elementSupport.a.missing).toEqual([]);
+      expect(supportOf(RICH, OFFICER).map(({ request }) => request.variant)).toContain('pair');
+    });
+
+    /**
+     * 둘 다 없는 것은 사람마다가 아니라 짝의 성질이고 두 쪽의 집합이 정의상 같다.
+     * 사람마다 내면 같은 행이 두 벌 찍혀 다른 값인 줄 알고 두 번 읽게 된다.
+     */
+    it('둘 다 없는 오행은 한 번만 선다', () => {
+      const compat = compatOf(BOTH_A, BOTH_B);
+
+      expect(new Set(compat.elementSupport.a.stillMissing)).toEqual(
+        new Set(compat.elementSupport.b.stillMissing),
+      );
+
+      const rows = supportOf(BOTH_A, BOTH_B).filter(
+        ({ request }) => request.variant === 'still-missing',
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0].text).toContain('민수와 지영');
+    });
+
+    /**
+     * 주장의 앞머리가 "내게 그 오행이 없다"라서 시지가 그 오행이었다면 행 전체가
+     * 틀린다. 최약은 그렇지 않다 — 다른 오행이 그 자리에 올 뿐이라 한 칸 내려간다.
+     */
+    it('없다는 행은 침묵하고 최약 행은 내려앉는다', () => {
+      const absent = supportOf(BOTH_A, female(1988, 2, 19, null)).filter(
+        ({ request }) => request.topic === 'elementSupport.absent',
+      );
+      expect(absent.length).toBeGreaterThan(0);
+      for (const row of absent) expect(row.strength).toBe('silent');
+
+      const weakest = supportOf(RICH, OFFICER_HOURLESS).filter(
+        ({ request }) => request.topic === 'elementSupport.weakest',
+      );
+      expect(weakest.length).toBeGreaterThan(0);
+      for (const row of weakest) {
+        expect(row.strength).toBe('derived');
+        expect(row.text).toContain('지영의 시주');
+      }
+    });
+
+    /** 채우는 쪽이 좋다는 읽기는 계통 갈림이다 — 행에는 실을 서술어가 없다 */
+    it('보완이라 부르지 않는다', () => {
+      for (const row of supportOf(BOTH_A, BOTH_B)) {
+        for (const word of ['보완', '채워', '도움', '잘 맞', '좋']) {
+          expect(row.text!.includes(word), `${row.key} 에 ${word}`).toBe(false);
+        }
+      }
+    });
+  });
+
   it('궁합 발화는 전부 계약을 지킨다', () => {
     for (const partner of [MUTUAL, MUTUAL_HOURLESS, OFFICER]) {
       for (const a of [RICH, HOURLESS]) {

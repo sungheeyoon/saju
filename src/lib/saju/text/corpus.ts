@@ -157,6 +157,54 @@ const eokbuMatchFragments: Fragment[] = [
 ];
 
 /**
+ * 오행 보완 네 벌 — **행이고, "보완"이라는 말은 쓰지 않는다.**
+ *
+ * 궁합에서 보완이라 불리는 자리인데 엔진이 아는 것은 개수 둘이다. 내 원국에 그
+ * 오행이 0개이고 상대 원국에 0개가 아니다. 채우는 쪽이 좋다는 읽기와 용신에 맞는
+ * 오행이라야 한다는 읽기가 갈리므로(`COMPAT_POLICY.elementSupport: 'facts-only'`)
+ * 행에는 그 판정을 실을 서술어를 두지 않는다.
+ *
+ * **행이 `fact` 아닌 강도로 서는 첫 자리가 여기 있다**(`weakest` 의 강등된 벌).
+ * 계약이 "행은 완충 표현을 요구받지 않고 강도는 옆 칸이 든다"고 적어 둔 것이 그제야
+ * 값을 낸다 — 면제된 것은 완충 표현이지 강도가 아니다. 그래서 이 벌은 표지를 품지
+ * 않은 채 '유도' 칸에 선다.
+ */
+const ELEMENT_SUPPORT_ROWS = {
+  supplied: '{viewer}에게 없고 {partner}에게 있는 오행 — {elements}',
+  stillMissing: '{who} 둘 다에게 없는 오행 — {elements}',
+  weakest: '{viewer}의 가장 얇은 {element} — {partner} 원국에서 {ratio}',
+} as const;
+
+const elementSupportFragments: Fragment[] = [
+  // 없다는 주장이라 시간 미상에서는 입을 닫는다 — 한 벌씩이다.
+  {
+    topic: 'elementSupport.absent',
+    variant: 'supplied',
+    strength: 'fact',
+    template: ELEMENT_SUPPORT_ROWS.supplied,
+  },
+  {
+    topic: 'elementSupport.absent',
+    variant: 'still-missing',
+    strength: 'fact',
+    template: ELEMENT_SUPPORT_ROWS.stillMissing,
+  },
+  {
+    topic: 'elementSupport.weakest',
+    variant: 'pair',
+    strength: 'fact',
+    template: ELEMENT_SUPPORT_ROWS.weakest,
+  },
+  // 강등된 행. 표지는 없고(행이다) 시주를 뺐다는 것만 적는다 — 강도는 옆 칸이 든다.
+  {
+    topic: 'elementSupport.weakest',
+    variant: 'pair',
+    strength: 'derived',
+    template: `${ELEMENT_SUPPORT_ROWS.weakest} ({who}의 ${HOUR_UNKNOWN_MARK}를 빼고 셈)`,
+  },
+];
+
+/**
  * 조후 문장이 반드시 적는 것 둘 — **출처와, 판정하지 않은 나머지.**
  *
  * 출처는 계약이 요구한다. `analysis.johu` 는 `ATTRIBUTION_PATHS` 의 유일한
@@ -501,6 +549,10 @@ export const FRAGMENTS: readonly Fragment[] = [
   // 궁합의 첫 산문. 강등된 벌이 누구의 시주를 뺐는지 밝힌다.
   ...eokbuMatchFragments,
 
+  // ── 궁합 오행 보완 ───────────────────────────────────────────────────
+  // 행이다. 개수 둘을 세는 것뿐이라 물려받을 판정이 없다.
+  ...elementSupportFragments,
+
   // ── 조후 ─────────────────────────────────────────────────────────────
   // 출처 의무가 처음으로 문장에 걸리는 자리다 — 위 `JOHU_SOURCE` 참조.
   ...johuFragments,
@@ -545,6 +597,8 @@ export const CORPUS_POLICY = {
   sharedWording: 'collapses-to-a-slot',
   /** 세어지기만 하는 사실은 행이다 — 서술어는 동어반복이거나 없는 무게다 */
   countedFacts: 'rows-not-prose',
+  /** 면제된 것은 완충 표현이지 강도가 아니다 — 행도 한 칸 내려앉는다 */
+  rowStrength: 'not-pinned-to-fact',
   /** 옮겨 적은 표는 문장 안에서 출처를 부른다 — 조후가 그 규칙을 처음 돌린다 */
   attribution: 'named-in-the-sentence',
   /** 판정하지 않은 조건은 문장이 스스로 밝힌다 — 천간만 옮기면 그것은 요약이다 */
