@@ -151,7 +151,7 @@ const COMPAT_CASES: CompatCase[] = [
   },
   {
     id: 'compat-hour-unknown',
-    note: '한쪽이 시간 미상 — 목록이 전부라고 말할 수 없어 행이 한 칸 내려간다',
+    note: '한쪽이 시간 미상 — 행은 사실 그대로이고 목록이 누구의 시주가 빠졌는지 든다',
     people: {
       a: {
         label: '민수',

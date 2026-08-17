@@ -9,7 +9,7 @@ import {
 import { PILLAR_POSITION_KO, type PillarPosition } from '../position';
 import { TWELVE_SPIRIT_KO } from '../sinsal/twelveSpirits';
 import { TWELVE_STAGE_KO } from '../stages';
-import { COMPAT_CHART_ID, type Compatibility, type CompatSide } from '../compat';
+import { COMPAT_CHART_ID, COMPAT_SIDES, type Compatibility, type CompatSide } from '../compat';
 import type { Relation } from '../relations';
 import type { Saju } from '../index';
 import { FOLLOWING_SILENT_VERDICTS, type ClaimStrength } from './policy';
@@ -159,6 +159,21 @@ export const UNCOVERED_FACTS: readonly string[] = [
 
 const HALF_KO = { first: '상반월', second: '하반월' } as const;
 
+/**
+ * 이름 둘을 잇는다 — **조사는 앞 글자의 받침을 따른다.**
+ *
+ * 문장 틀은 슬롯 뒤에 조사를 붙이지 못한다(`VARIABLE_PARTICLES`). 그 규칙이 막는
+ * 것은 **틀이 미리 고르는 것**이지 값을 만드는 쪽이 고르는 것이 아니다 — 여기는
+ * 이름을 이미 알고 있으므로 맞는 조사를 고를 수 있다.
+ */
+const joinNames = (names: readonly string[]): string =>
+  names.reduce((joined, name) => {
+    const last = joined.charCodeAt(joined.length - 1) - 0xac00;
+    const closed = last >= 0 && last <= 11171 && last % 28 !== 0;
+
+    return `${joined}${closed ? '과' : '와'} ${name}`;
+  });
+
 const stemsKo = (stems: readonly Stem[]): string => stems.map((stem) => STEM_INFO[stem].ko).join('·');
 
 /**
@@ -296,6 +311,12 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
     },
   });
 
+  // 목록의 한계가 목록 앞에 선다. 행은 그대로 사실이고, 못 본 것은 여기서 말한다.
+  // 관계가 0개일 때도 낸다 — 그때가 오히려 필요하다(없는 것이 시주 때문일 수 있다).
+  if (!saju.meta.hourKnown) {
+    requests.push({ ...base, topic: 'relation.coverage', variant: 'natal', slots: {} });
+  }
+
   // 전부 낸다. 어느 것이 무거운지는 판정이라 여기서 하지 않는다.
   for (const relation of saju.relations) {
     requests.push({
@@ -357,12 +378,30 @@ export function findCompatUtterances(
     hourKnown: people.a.hourKnown && people.b.hourKnown,
   };
 
-  return compat.relations.map((relation) => ({
-    ...base,
-    topic: 'relation.present' as const,
-    variant: relationVariant(relation),
-    slots: { participants: participantsOf(relation, labelOf), name: relation.ko },
-  }));
+  const requests: FragmentRequest[] = [];
+
+  // 행에는 **누구의** 시주가 빠졌는지 적을 자리가 없었다. 목록은 이름을 부른다 —
+  // 한쪽만 모르는 것과 둘 다 모르는 것은 같은 칸이지만 같은 문장은 아니다.
+  const unknown = COMPAT_SIDES.filter((side) => !people[side].hourKnown);
+  if (unknown.length > 0) {
+    requests.push({
+      ...base,
+      topic: 'relation.coverage',
+      variant: 'compat',
+      slots: { who: joinNames(unknown.map((side) => people[side].label)) },
+    });
+  }
+
+  for (const relation of compat.relations) {
+    requests.push({
+      ...base,
+      topic: 'relation.present',
+      variant: relationVariant(relation),
+      slots: { participants: participantsOf(relation, labelOf), name: relation.ko },
+    });
+  }
+
+  return requests;
 }
 
 /** 궁합 발화를 찾아 조각에 물린다 */

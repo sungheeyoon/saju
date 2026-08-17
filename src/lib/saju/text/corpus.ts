@@ -21,10 +21,15 @@ import { followingVariant, indexFragments, type Fragment, type FragmentIndex } f
  * (출처 의무), 종격은 반대로 가장 깊었다 — 판정값 하나만 침묵한다는 것을 스키마가
  * 표현하지 못해 강도가 나오는 축이 (주제, 시각)에서 (주제, 변종, 시각)으로 넓어졌다.
  *
- * 그리고 관계가 22칸에서 **4칸으로 줄었다.** 종류마다 서술어를 달던 것이
+ * 그리고 관계가 22칸에서 **2칸으로 줄었다.** 종류마다 서술어를 달던 것이
  * 동어반복이었다는 것이 드러났고, 세어지기만 하는 사실은 문장이 아니라 **행**이라는
  * 구분이 계약에 들어왔다(`ClaimForm`). 줄이면서 정보는 늘었다 — 행은 자리뿐 아니라
- * 글자를 들고, 궁합에서는 이름까지 든다. 분모가 32다.
+ * 글자를 들고, 궁합에서는 이름까지 든다.
+ *
+ * 행이 시간 미상에 내려가지 않게 된 것도 그 뒤의 일이다. 목록의 한계를 항목마다
+ * 나눠 지우고 있었는데, 그것을 **목록이 스스로 들도록** 떼어 냈다
+ * (`relation.coverage`, `INCOMPLETE_INPUT_RULE`). 분모는 32 그대로다 — 행이 두 벌
+ * 줄고 목록이 두 벌 늘었다.
  *
  * 빈칸이 없다는 것은 여전히 **할 말을 다 했다는 뜻이 아니다.** 12운성·신살·대운은
  * 아직 침묵하고 그것은 조각이 없어서가 아니라 주제가 없어서다
@@ -266,23 +271,20 @@ const followingFragments = FOLLOWING_WORDINGS.map(
 export const RELATION_ROW = '{participants} — {name}';
 
 /**
- * 행 뒤에 괄호로 붙는 단서들.
+ * 행 뒤에 괄호로 붙는 단서.
  *
- * 서술어가 아니라 **행이 어떤 조건에서 읽힌 것인지**를 적는다. 둘 다 붙으면
- * 한 괄호 안에 쉼표로 이어진다 — 괄호가 둘이면 어느 쪽이 관계에 걸린 단서이고
- * 어느 쪽이 계산에 걸린 단서인지 읽는 사람이 다시 물어야 한다.
+ * 서술어가 아니라 **그 관계가 어떻게 성립했는지**를 적는다. 두 사람의 글자가
+ * 합쳐 세 글자를 이룬 것은 쌍 관계와 무게가 다르고 **인정 여부 자체가 계통
+ * 선택**이라, 같은 표에 놓되 그렇다는 것이 행에 남아야 한다.
  *
- * `combined` 는 두 사람의 글자가 합쳐 세 글자를 이룬 자리다. 쌍 관계와 무게가
- * 다르고 **인정 여부 자체가 계통 선택**이라, 같은 표에 놓되 그렇다는 것이 행에
- * 남아야 한다.
+ * 한동안 `시주 없이 본 것` 이 여기 함께 있었다. **뺐다** — 그것은 이 관계가
+ * 어떻게 성립했는지가 아니라 **목록을 어떻게 셌는지**라, 항목이 아니라 목록이
+ * 질 몫이다(`relation.coverage`).
  */
-export const RELATION_MARKS = {
-  combined: '두 사람 글자가 합쳐 이룬 것',
-  hourUnknown: '시주 없이 본 것',
-} as const;
+export const RELATION_MARKS = { combined: '두 사람 글자가 합쳐 이룬 것' } as const;
 
-const relationRow = (...marks: readonly string[]): string =>
-  marks.length === 0 ? RELATION_ROW : `${RELATION_ROW} (${marks.join(', ')})`;
+const relationRow = (mark?: string): string =>
+  mark === undefined ? RELATION_ROW : `${RELATION_ROW} (${mark})`;
 
 /**
  * 관계 이름의 한자를 그대로 쓰는 이유.
@@ -291,25 +293,43 @@ const relationRow = (...marks: readonly string[]): string =>
  * 사주 표기(`癸未 乙酉 辛巳 庚午`)와 **눈으로 이어져야** 한다. 행이 '자'라고
  * 쓰면 표의 `子` 를 찾아 짚을 수가 없다.
  */
+// 한 벌씩이다. 시간 미상에 내려가지 않는다 — 시주가 빠져도 **그 합이 성립한다는
+// 것은 그대로 참이고**, 흔들리는 것은 목록의 전체성이라 목록이 따로 든다.
 const relationFragments: Fragment[] = [
   { topic: 'relation.present', variant: 'row', strength: 'fact', template: relationRow() },
-  {
-    topic: 'relation.present',
-    variant: 'row',
-    strength: 'derived',
-    template: relationRow(RELATION_MARKS.hourUnknown),
-  },
   {
     topic: 'relation.present',
     variant: 'combined',
     strength: 'fact',
     template: relationRow(RELATION_MARKS.combined),
   },
+];
+
+/**
+ * 목록이 스스로 드는 한계 — **행이 못 하던 말을 한다.**
+ *
+ * 행에는 누구의 시주가 빠졌는지 적을 자리가 없었다. 궁합에서 `(시주 없이 본 것)`
+ * 만 보고는 민수 쪽인지 지영 쪽인지 알 수 없었는데, 목록은 이름을 부른다.
+ *
+ * `사실` 강도인데 완충 표현이 없는 것이 맞다. 이 문장이 주장하는 것은 관계에
+ * 대한 무엇이 아니라 **우리가 무엇을 보고 셌는가**이고, 그것은 시주가 없어도
+ * 확실히 아는 사실이다.
+ */
+const COVERAGE_TAIL = '시주를 빼고 센 목록이라 그 자리가 낄 관계는 여기 없습니다.';
+
+const coverageFragments: Fragment[] = [
   {
-    topic: 'relation.present',
-    variant: 'combined',
-    strength: 'derived',
-    template: relationRow(RELATION_MARKS.combined, RELATION_MARKS.hourUnknown),
+    topic: 'relation.coverage',
+    variant: 'natal',
+    strength: 'fact',
+    template: COVERAGE_TAIL,
+  },
+  // 한 판이면 누구인지 물을 일이 없고, 두 판이면 그것부터 밝혀야 한다.
+  {
+    topic: 'relation.coverage',
+    variant: 'compat',
+    strength: 'fact',
+    template: `{who}의 ${COVERAGE_TAIL}`,
   },
 ];
 
@@ -403,6 +423,7 @@ export const FRAGMENTS: readonly Fragment[] = [
   // 한때 22칸으로 지시서의 절반이었다. 종류가 행을 가르지 못한다는 것을 인정하고
   // 두 칸이 됐다 — 위 `RELATION_ROW` 참조.
   ...relationFragments,
+  ...coverageFragments,
 ];
 
 export const FRAGMENT_INDEX: FragmentIndex = indexFragments(FRAGMENTS);

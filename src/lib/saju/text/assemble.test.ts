@@ -133,6 +133,67 @@ describe('조립기', () => {
       );
       expect(HOURLESS.relations.length).toBeLessThan(RICH.relations.length);
     });
+
+    /**
+     * **관계 행이 `fact` 로 남는 근거다.**
+     *
+     * 시주가 빠져도 여섯 글자에서 난 관계는 그대로 성립한다 — 흔들리는 것은
+     * 항목이 아니라 목록의 전체성이고, 그것을 항목마다 나눠 지우면 관측된 사실을
+     * 의심하는 것처럼 읽힌다(`INCOMPLETE_INPUT_RULE`).
+     *
+     * 그 전제를 480 쌍으로 세어 확인한다. 사라지는 것은 **절입일 명식뿐**인데
+     * 그때는 월주가 통째로 바뀐 다른 명식이고, 그 불확실성은 관계만의 것이 아니라
+     * 강약·조후까지 걸리므로 `meta.warnings` 가 든다.
+     */
+    it('시주가 붙어도 여섯 글자에서 난 관계는 사라지지 않는다', () => {
+      const keysOf = (saju: Saju) =>
+        saju.relations.map((r) => `${r.ko}@${r.participants.map((p) => p.position).join(',')}`);
+
+      let checked = 0;
+      const lost: string[] = [];
+
+      for (let year = 1985; year <= 1994; year += 1) {
+        for (let month = 1; month <= 12; month += 1) {
+          const day = 3 + ((year + month) % 25);
+          const hourless = male(year, month, day, null);
+
+          // 절입일이면 시각에 따라 월주가 통째로 갈린다 — 다른 명식이 되는 것이라
+          // "관계가 사라졌다"고 셀 수 없다. 그 경우는 경고가 이미 든다.
+          if (hourless.meta.warnings.some((warning) => warning.includes('절입일'))) continue;
+
+          const six = new Set(keysOf(hourless));
+
+          for (const hour of [1, 7, 13, 19]) {
+            const eight = new Set(keysOf(male(year, month, day, hour)));
+            checked += 1;
+
+            for (const key of six) {
+              if (!eight.has(key)) lost.push(`${year}-${month}-${day} ${hour}시 · ${key}`);
+            }
+          }
+        }
+      }
+
+      expect(checked).toBeGreaterThan(400);
+      expect(lost).toEqual([]);
+    });
+
+    /**
+     * 목록의 한계는 목록이 든다. **행이 못 하던 말을 여기서 한다** — 궁합에서
+     * 행의 단서만 보고는 민수 쪽인지 지영 쪽인지 알 수 없었다.
+     */
+    it('목록이 스스로 무엇을 빼고 셌는지 말한다', () => {
+      const coverage = assembleText(HOURLESS).find(
+        ({ request }) => request.topic === 'relation.coverage',
+      );
+
+      expect(coverage?.strength).toBe('fact');
+      expect(coverage?.text).toContain('시주');
+      expect(coverage?.violations).toEqual([]);
+
+      // 시각을 알면 뺀 것이 없으므로 이 발화 자체가 서지 않는다.
+      expect(topicsOf(RICH)).not.toContain('relation.coverage');
+    });
   });
 
   describe('근거는 명식 순회 한 번에서 나온다', () => {

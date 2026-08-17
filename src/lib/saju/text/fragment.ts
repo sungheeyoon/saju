@@ -55,7 +55,8 @@ export type FragmentTopic =
   | 'eokbu.candidate'
   | 'johu.table'
   | 'following.verdict'
-  | 'relation.present';
+  | 'relation.present'
+  | 'relation.coverage';
 
 /**
  * 종격 변종의 좌표 — **판정 하나와 방향 하나.**
@@ -287,6 +288,34 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     slots: ['participants', 'name'],
     samples: { participants: '년지 子 · 일지 午', name: '자오충' },
     note: '어느 자리의 어느 글자끼리 어떤 관계가 성립하는가',
+  },
+
+  /**
+   * 관계 목록이 **어떤 조건에서 세어졌는가** — 항목이 아니라 목록의 몫이다.
+   *
+   * 이 주제가 생기기 전에는 목록의 한계를 행 하나하나가 나눠 졌다. 시간 미상이면
+   * 관계 행이 한 칸 내려가 `유도`가 됐는데, 그러면 **관측된 사실을 의심하는
+   * 것처럼 읽힌다** — "을경합금(유도)"은 합인지 아닌지가 우리 해석이라는 뜻이
+   * 아니었다. 규칙대로면 행은 `fact` 로 남아야 하고 못 본 것은 목록이 말해야
+   * 한다(`INCOMPLETE_INPUT_RULE`).
+   *
+   * 근거가 `meta` 인 것이 요점이다. 이 문장이 주장하는 것은 관계에 대한 무엇이
+   * 아니라 **우리가 무엇을 보고 셌는가**이고, 그것은 시주가 없어도 확실히 아는
+   * 사실이다. 그래서 `fact` 이고 시간 미상에 내려가지도 않는다 — "시주를 못 봤다"는
+   * 진술이 시주를 못 봐서 약해질 수는 없다.
+   *
+   * **목록이 말하니 행이 못 하던 말도 한다.** 행에는 누구의 시주가 빠졌는지 적을
+   * 자리가 없었는데, 여기서는 `{who}` 가 이름을 부른다.
+   */
+  'relation.coverage': {
+    paths: ['meta', 'relations'],
+    // 없다는 주장이 아니다 — **빠뜨린 것이 있다**는 사실을 든다. `absence` 로 적으면
+    // 시간 미상에서 통째로 잠겨, 정작 말해야 할 때 입을 닫는다.
+    polarity: 'presence',
+    variants: ['natal', 'compat'],
+    slots: ['who'],
+    samples: { who: '지영' },
+    note: '이 관계 목록을 어떤 조건에서 셌는가',
   },
 };
 

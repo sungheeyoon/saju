@@ -80,8 +80,17 @@ describe('조각 스키마', () => {
      */
     it('한 주제가 강도 두 벌을 요구한다', () => {
       expect(producibleStrengths('strength.verdict')).toEqual(['derived', 'candidate']);
-      expect(producibleStrengths('relation.present')).toEqual(['fact', 'derived']);
       expect(producibleStrengths('eokbu.candidate')).toEqual(['candidate', 'reference']);
+    });
+
+    /**
+     * 관계 행은 **한 벌뿐이다.** 시주가 빠져도 적힌 합이 성립한다는 것은 그대로
+     * 참이라 내려갈 이유가 없다 — 흔들리는 것은 항목이 아니라 목록의 전체성이고,
+     * 그것은 `relation.coverage` 가 따로 든다(`INCOMPLETE_INPUT_RULE`).
+     */
+    it('관계 행과 목록은 시간 미상에 내려가지 않는다', () => {
+      expect(producibleStrengths('relation.present')).toEqual(['fact']);
+      expect(producibleStrengths('relation.coverage')).toEqual(['fact']);
     });
 
     /**

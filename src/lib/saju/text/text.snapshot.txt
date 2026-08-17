@@ -115,7 +115,7 @@ L3 문장 골든 — 발화 판정과 조립
 ── hour-unknown
    시간 미상 — 강도가 한 칸 내려가고 "없다"는 발화는 입을 닫는다
    사주  시미상 乙酉 辛巳 庚午
-   발화 9 · 문장 7 · 조각 없음 0 · 말하지 않음 2
+   발화 10 · 문장 8 · 조각 없음 0 · 말하지 않음 2
 
     × rootedness.rootless/day-master
         말하지 않음 (말하지 않는다)
@@ -127,14 +127,16 @@ L3 문장 골든 — 발화 판정과 조립
         참고     궁통보감 조후표에서 을 일간 사월은 계 쪽을 참고할 수 있습니다. 나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.
     × following.verdict/true-following-outward
         말하지 않음 (말하지 않는다)
-    ✓ relation.present/row@derived
-        유도     년간 庚 · 일간 乙 — 을경합금 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     월지 巳 · 일지 酉 — 사유 반합 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     년지 午 · 월지 巳 — 사오 반방합 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     월간 辛 · 일간 乙 — 을신충 (시주 없이 본 것)
+    ✓ relation.coverage/natal@fact
+        사실     시주를 빼고 센 목록이라 그 자리가 낄 관계는 여기 없습니다.
+    ✓ relation.present/row@fact
+        사실     년간 庚 · 일간 乙 — 을경합금
+    ✓ relation.present/row@fact
+        사실     월지 巳 · 일지 酉 — 사유 반합
+    ✓ relation.present/row@fact
+        사실     년지 午 · 월지 巳 — 사오 반방합
+    ✓ relation.present/row@fact
+        사실     월간 辛 · 일간 乙 — 을신충
 
 ── johu-half-month
    조후표가 상·하반월을 가르는 칸 — 절반을 판정해 한쪽만 든다
@@ -179,7 +181,7 @@ L3 문장 골든 — 발화 판정과 조립
 ── johu-half-unjudged
    같은 칸인데 시간 미상이고 중기가 그날 안에 있다 — 절반을 고르지 않는다
    사주  시미상 癸亥 癸未 乙丑
-   발화 7 · 문장 6 · 조각 없음 0 · 말하지 않음 1
+   발화 8 · 문장 7 · 조각 없음 0 · 말하지 않음 1
 
     ✓ rootedness.rooted/same-stem@derived
         유도     시주를 빼고 세면 계 일간은 년주 자리에 같은 글자로 뿌리를 둔 것으로 봅니다.
@@ -191,10 +193,12 @@ L3 문장 골든 — 발화 판정과 조립
         참고     궁통보감 조후표는 계 일간 미월을 상·하반월로 갈라 말하는데, 시각을 몰라 어느 절반인지 가리지 않았습니다. 상반월은 경·신·임·계 쪽, 하반월은 경·신 쪽을 참고할 수 있습니다. 나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.
     × following.verdict/not-following
         말하지 않음 (말하지 않는다)
-    ✓ relation.present/row@derived
-        유도     년지 丑 · 월지 未 — 축미충 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     년지 丑 · 월지 未 — 미축형 (시주 없이 본 것)
+    ✓ relation.coverage/natal@fact
+        사실     시주를 빼고 센 목록이라 그 자리가 낄 관계는 여기 없습니다.
+    ✓ relation.present/row@fact
+        사실     년지 丑 · 월지 未 — 축미충
+    ✓ relation.present/row@fact
+        사실     년지 丑 · 월지 未 — 미축형
 
 
 ==============================================================================
@@ -246,34 +250,36 @@ L3 문장 골든 — 발화 판정과 조립
         사실     민수 월지 巳 · 지영 월지 戌 — 사술귀문
 
 ── compat-hour-unknown
-   한쪽이 시간 미상 — 목록이 전부라고 말할 수 없어 행이 한 칸 내려간다
+   한쪽이 시간 미상 — 행은 사실 그대로이고 목록이 누구의 시주가 빠졌는지 든다
    민수  癸未 乙酉 辛巳 庚午
    지영  시미상 癸未 庚戌 壬申
-   사이 관계 13 · 문장 13
+   사이 관계 13 · 문장 14
 
-    ✓ relation.present/row@derived
-        유도     민수 일간 乙 · 지영 월간 庚 — 을경합금 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     민수 년지 午 · 지영 일지 未 — 오미합화 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     민수 월지 巳 · 지영 년지 申 — 사신합수 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     민수 년지 午 · 지영 월지 戌 — 오술 반합 (시주 없이 본 것)
-    ✓ relation.present/combined@derived
-        유도     민수 년지 午 · 민수 월지 巳 · 지영 일지 未 — 사오미 화방 (두 사람 글자가 합쳐 이룬 것, 시주 없이 본 것)
-    ✓ relation.present/combined@derived
-        유도     민수 일지 酉 · 지영 년지 申 · 지영 월지 戌 — 신유술 금방 (두 사람 글자가 합쳐 이룬 것, 시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     민수 월지 巳 · 지영 년지 申 — 사신형 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     민수 시지 未 · 지영 월지 戌 — 술미형 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     민수 일지 酉 · 지영 월지 戌 — 유술해 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     민수 월지 巳 · 지영 년지 申 — 사신파 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     민수 시지 未 · 지영 월지 戌 — 술미파 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     민수 월지 巳 · 지영 월지 戌 — 사술원진 (시주 없이 본 것)
-    ✓ relation.present/row@derived
-        유도     민수 월지 巳 · 지영 월지 戌 — 사술귀문 (시주 없이 본 것)
+    ✓ relation.coverage/compat@fact
+        사실     지영의 시주를 빼고 센 목록이라 그 자리가 낄 관계는 여기 없습니다.
+    ✓ relation.present/row@fact
+        사실     민수 일간 乙 · 지영 월간 庚 — 을경합금
+    ✓ relation.present/row@fact
+        사실     민수 년지 午 · 지영 일지 未 — 오미합화
+    ✓ relation.present/row@fact
+        사실     민수 월지 巳 · 지영 년지 申 — 사신합수
+    ✓ relation.present/row@fact
+        사실     민수 년지 午 · 지영 월지 戌 — 오술 반합
+    ✓ relation.present/combined@fact
+        사실     민수 년지 午 · 민수 월지 巳 · 지영 일지 未 — 사오미 화방 (두 사람 글자가 합쳐 이룬 것)
+    ✓ relation.present/combined@fact
+        사실     민수 일지 酉 · 지영 년지 申 · 지영 월지 戌 — 신유술 금방 (두 사람 글자가 합쳐 이룬 것)
+    ✓ relation.present/row@fact
+        사실     민수 월지 巳 · 지영 년지 申 — 사신형
+    ✓ relation.present/row@fact
+        사실     민수 시지 未 · 지영 월지 戌 — 술미형
+    ✓ relation.present/row@fact
+        사실     민수 일지 酉 · 지영 월지 戌 — 유술해
+    ✓ relation.present/row@fact
+        사실     민수 월지 巳 · 지영 년지 申 — 사신파
+    ✓ relation.present/row@fact
+        사실     민수 시지 未 · 지영 월지 戌 — 술미파
+    ✓ relation.present/row@fact
+        사실     민수 월지 巳 · 지영 월지 戌 — 사술원진
+    ✓ relation.present/row@fact
+        사실     민수 월지 巳 · 지영 월지 戌 — 사술귀문

@@ -168,7 +168,7 @@ describe('말뭉치', () => {
     it('종류 이름이 문장 틀에 없다', () => {
       const rows = FRAGMENTS.filter((fragment) => fragment.topic === 'relation.present');
 
-      expect(rows).toHaveLength(4);
+      expect(rows).toHaveLength(2);
       for (const fragment of rows) {
         for (const ko of Object.values(RELATION_KIND_KO)) {
           expect(fragment.template.includes(ko), `${keyOf(fragment)} 에 ${ko}`).toBe(false);
