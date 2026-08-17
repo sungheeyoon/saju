@@ -144,7 +144,32 @@ export type Compatibility = {
   /** 내 억부 후보를 상대가 갖고 있는가 — 사람마다 한 벌씩 */
   eokbuMatch: Record<CompatSide, EokbuMatch>;
   /** 결과를 좁게 읽어야 하는 사정 — 시간 미상처럼 관계가 덜 나오는 경우 */
-  warnings: string[];
+  warnings: CompatWarning[];
+};
+
+/** 무엇 때문에 좁게 읽어야 하는가 */
+export type CompatWarningKind =
+  /** 시주가 빠져 사이 관계가 실제보다 적게 나온다 */
+  | 'hour-unknown-relations'
+  /** 여섯 글자로 세어 없는 오행이 실제보다 많아 보인다 */
+  | 'hour-unknown-elements';
+
+/**
+ * 좁게 읽어야 하는 사정 하나 — **종류를 값으로 든다.**
+ *
+ * 문장만 들면 이것을 걸러 쓰는 쪽이 문자열로 알아내야 한다. 실제로 그런 곳이
+ * 생겼다 — 화면이 L3 발화를 함께 놓으면서 같은 말이 두 번 나오게 됐고, 지우자니
+ * **나중에 생길 다른 경고까지 조용히 사라진다.** 종류가 있으면 아는 것만 빼고
+ * 모르는 것은 그대로 나온다.
+ *
+ * **이 문장들은 사람을 이름으로 못 부른다.** 이름은 계산에 들어가지 않기로 했고
+ * (`SajuInput` 에 필드가 없다) 그래서 여기서 부를 수 있는 말이 '첫 번째 사람'
+ * 까지다. 이름을 아는 것은 L3 뿐이고(`CompatPerson.label`), 그것이 화면에서
+ * 이 경고 대신 발화를 놓게 된 이유다.
+ */
+export type CompatWarning = {
+  kind: CompatWarningKind;
+  text: string;
 };
 
 /** 궁합 계산에 필요한 것은 네 기둥과 "시각을 알았는가" 뿐이다 */
@@ -167,16 +192,22 @@ export function findCompatRelations(a: RelationInput, b: RelationInput): Relatio
   ]).filter((relation) => BETWEEN_SCOPES.includes(relation.scope));
 }
 
-function warningsOf(a: CompatInput, b: CompatInput): string[] {
+function warningsOf(a: CompatInput, b: CompatInput): CompatWarning[] {
   const unknown = COMPAT_SIDES.filter((side) => !(side === 'a' ? a : b).hourKnown);
   if (unknown.length === 0) return [];
 
   const who = unknown.length === 2 ? '두 사람 모두' : `${unknown[0] === 'a' ? '첫' : '두'} 번째 사람의`;
 
   return [
-    `${who} 출생 시각을 몰라 시주가 빠졌습니다. 시주가 걸린 관계는 나오지 않으므로 실제보다 적게 보입니다.`,
+    {
+      kind: 'hour-unknown-relations',
+      text: `${who} 출생 시각을 몰라 시주가 빠졌습니다. 시주가 걸린 관계는 나오지 않으므로 실제보다 적게 보입니다.`,
+    },
     // 없는 오행은 "시주를 몰라 못 센 것"일 수 있다. 보완을 읽기 전에 알아야 한다.
-    `${who} 여섯 글자로만 세었으므로 없는 오행이 실제보다 많아 보일 수 있습니다.`,
+    {
+      kind: 'hour-unknown-elements',
+      text: `${who} 여섯 글자로만 세었으므로 없는 오행이 실제보다 많아 보일 수 있습니다.`,
+    },
   ];
 }
 

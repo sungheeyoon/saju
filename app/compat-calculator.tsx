@@ -24,7 +24,13 @@ import {
 import { BirthFields } from './birth-form';
 import { CopyLinkButton } from './copy-link';
 import { CARD, PILLAR_COLUMNS } from './saju-calculator';
-import { TOPICS_THE_TABLE_HOLDS, TOPIC_TABLE_FOOTNOTE, UtteranceList, said } from './utterances';
+import {
+  TOPICS_THE_TABLE_HOLDS,
+  TOPIC_TABLE_FOOTNOTE,
+  UtteranceList,
+  said,
+  warningsToShow,
+} from './utterances';
 import {
   DEFAULT_QUERY,
   TIME_BASIS,
@@ -267,12 +273,19 @@ function CompatView({
         utterances={said(utterances, (topic) => !TOPICS_THE_TABLE_HOLDS.includes(topic))}
       />
 
-      {compat.warnings.length > 0 && (
+      {/*
+        엔진 경고 중 **발화가 대신 말하지 않는 것만** 여기 선다. 시간 미상 둘은
+        L3 가 이름을 부르며 제자리에서 말하므로 빠진다 — 엔진은 사람을 이름으로
+        부를 수 없고('두 번째 사람의'), 그것은 이름을 계산에 넣지 않기로 한
+        결정의 대가다. 카드째 걷어내지 않은 것은 나중에 생길 경고를 조용히 지우지
+        않기 위해서다(`WARNINGS_SAID_BY_UTTERANCES`).
+      */}
+      {warningsToShow(compat.warnings).length > 0 && (
         <section className={CARD}>
           <h2 className="text-base font-semibold">주의</h2>
           <ul className="mt-2 flex flex-col gap-1 text-sm text-secondary">
-            {compat.warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
+            {warningsToShow(compat.warnings).map((warning) => (
+              <li key={warning.kind}>{warning.text}</li>
             ))}
           </ul>
         </section>

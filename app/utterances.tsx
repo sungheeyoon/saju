@@ -2,6 +2,8 @@ import {
   CLAIM_STRENGTH_KO,
   FRAGMENT_TOPICS,
   type ClaimStrength,
+  type CompatWarning,
+  type CompatWarningKind,
   type Utterance,
 } from '@/src/lib/saju';
 
@@ -42,6 +44,30 @@ export const TOPICS_THE_TABLE_HOLDS: readonly string[] = [
  * 두 번 놓는 것은 화면의 일이라서다. 브라우저로 눌러 보고 잡았다.
  */
 export const TOPIC_TABLE_FOOTNOTE = 'relation.coverage';
+
+/**
+ * 발화가 **이미, 그리고 더 낫게** 말하는 궁합 경고.
+ *
+ * 엔진 경고는 사람을 이름으로 못 부른다 — 이름이 계산에 안 들어가기로 했으므로
+ * '두 번째 사람의' 까지다. L3 는 `CompatPerson.label` 을 받아 '지영의' 라고 부르고,
+ * 관계 표 각주와 문장 옆이라는 **제자리**에서 말한다.
+ *
+ * - `hour-unknown-relations` → `relation.coverage` 가 표 각주에서 이름을 부른다.
+ * - `hour-unknown-elements` → 없는 오행을 **아예 말하지 않는다**(`absence` 가 잠근다).
+ *   경고의 전제("없는 오행이 부풀어 보인다")가 성립하려면 화면이 그것을 보여 주고
+ *   있어야 하는데, 이제 보여 주지 않는다.
+ *
+ * **지우지 않고 걸러 낸다.** 카드째 걷어내면 나중에 생길 다른 경고까지 조용히
+ * 사라진다 — 아는 종류만 빼고 모르는 것은 그대로 선다.
+ */
+export const WARNINGS_SAID_BY_UTTERANCES: readonly CompatWarningKind[] = [
+  'hour-unknown-relations',
+  'hour-unknown-elements',
+];
+
+/** 발화가 대신 말하지 않는 경고만 — 화면이 그대로 든다 */
+export const warningsToShow = (warnings: readonly CompatWarning[]): CompatWarning[] =>
+  warnings.filter((warning) => !WARNINGS_SAID_BY_UTTERANCES.includes(warning.kind));
 
 /** 어느 주제의 발화인가 — 표가 든 것은 빼고 목록에 넘긴다 */
 export const said = (

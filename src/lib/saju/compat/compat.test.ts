@@ -121,9 +121,24 @@ describe('궁합 결과의 계약', () => {
     const unknown = computeSajuOf(1988, 7, 15, null);
 
     expect(analyzeCompatibility(known, known).warnings).toEqual([]);
-    expect(analyzeCompatibility(known, unknown).warnings[0]).toContain('두 번째 사람');
-    expect(analyzeCompatibility(unknown, known).warnings[0]).toContain('첫 번째 사람');
-    expect(analyzeCompatibility(unknown, unknown).warnings[0]).toContain('두 사람 모두');
+    expect(analyzeCompatibility(known, unknown).warnings[0].text).toContain('두 번째 사람');
+    expect(analyzeCompatibility(unknown, known).warnings[0].text).toContain('첫 번째 사람');
+    expect(analyzeCompatibility(unknown, unknown).warnings[0].text).toContain('두 사람 모두');
+  });
+
+  /**
+   * 종류를 값으로 드는 이유는 **걸러 쓰는 곳이 생겼기** 때문이다. 화면이 L3 발화를
+   * 함께 놓으면서 같은 말이 두 번 나오게 됐는데, 문장으로 걸러내면 새 경고가 생겼을
+   * 때 조용히 지워지거나 조용히 두 번 나온다.
+   */
+  it('경고마다 종류가 붙는다', () => {
+    const known = computeSajuOf(1990, 5, 15, 14);
+    const unknown = computeSajuOf(1988, 7, 15, null);
+
+    expect(analyzeCompatibility(known, unknown).warnings.map((w) => w.kind)).toEqual([
+      'hour-unknown-relations',
+      'hour-unknown-elements',
+    ]);
   });
 
   /**
@@ -199,7 +214,7 @@ describe('궁합 결과의 계약', () => {
     const { warnings } = analyzeCompatibility(known, unknown);
 
     expect(warnings).toHaveLength(2);
-    expect(warnings[1]).toContain('없는 오행');
+    expect(warnings[1].text).toContain('없는 오행');
   });
 
   it('두 사람을 서로 다른 이름으로 가리킨다', () => {
