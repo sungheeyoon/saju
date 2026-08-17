@@ -46,6 +46,7 @@ import {
   assembleText,
   computeSaju,
   currentFortuneOf,
+  type CurrentFortune,
   directionParticipantsOf,
   orderedParticipants,
   toCivil,
@@ -273,6 +274,16 @@ function SajuView({ saju }: { saju: Saju }) {
 
   const utterances = useMemo(() => assembleText(saju), [saju]);
 
+  /**
+   * **지금을 한 번만 짚는다.**
+   *
+   * 세운 표와 월운 표가 각자 `viewedAt` 을 절입 시각과 견주어 '현재' 줄을 찾고
+   * 있었고, 여기에 현재운 카드가 세 번째로 같은 판정을 하려던 자리다. 엔진이
+   * "따로 세면 어긋난다"로 세운 규율은 화면에서도 같다 — `CurrentFortune` 이 세 칸의
+   * `chartId` 를 이미 들고 있으므로 표는 그것과 견주기만 한다.
+   */
+  const now = useMemo(() => currentFortuneOf(saju, new Date(viewedAt)), [saju, viewedAt]);
+
   return (
     <div className="flex flex-col gap-6">
       <ResultNav />
@@ -289,8 +300,8 @@ function SajuView({ saju }: { saju: Saju }) {
         saju={saju}
         coverage={said(utterances, (topic) => topic === TOPIC_TABLE_FOOTNOTE)}
       />
-      <NowFortune saju={saju} viewedAt={viewedAt} />
-      <FortuneTabs view={fortuneView} onChange={setFortuneView} saju={saju} viewedAt={viewedAt} />
+      <NowFortune now={now} />
+      <FortuneTabs view={fortuneView} onChange={setFortuneView} saju={saju} now={now} />
       <StarTable saju={saju} />
       <TimeCorrections saju={saju} />
       <Warnings saju={saju} />
@@ -342,14 +353,14 @@ function SaidAbout({ utterances }: { utterances: Utterance[] }) {
  * 그것을 문장이 스스로 밝힌다. 같은 카드에 나란히 서지 않으면 왜 하나만 딱지가 다른지
  * 보이지 않는다 — 억부와 종격을 한 카드에 모은 것과 같은 이유다.
  *
- * `viewedAt` 은 밖에서 받는다. 여기서 `Date.now()` 를 부르면 표의 '지금' 강조와 이
- * 카드가 다른 시각을 볼 수 있고, 무엇보다 엔진이 시각을 스스로 묻지 않기로 한 결정
+ * 현재운을 **밖에서 받는다.** 여기서 짚으면 아래 표들이 각자 짚는 '지금' 과 어긋날
+ * 수 있고, 무엇보다 엔진이 시각을 스스로 묻지 않기로 한 결정
  * (`NOW_POLICY.viewingInstant`)이 화면에서 되돌아온다.
  */
-function NowFortune({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
+function NowFortune({ now }: { now: CurrentFortune }) {
   const { header, body, relations, footnote } = useMemo(
-    () => placeNowUtterances(assembleNowText(currentFortuneOf(saju, new Date(viewedAt)))),
-    [saju, viewedAt],
+    () => placeNowUtterances(assembleNowText(now)),
+    [now],
   );
 
   return (
@@ -427,12 +438,12 @@ function FortuneTabs({
   view,
   onChange,
   saju,
-  viewedAt,
+  now,
 }: {
   view: 'daeun' | 'saeun' | 'wolun';
   onChange: (view: 'daeun' | 'saeun' | 'wolun') => void;
   saju: Saju;
-  viewedAt: number;
+  now: CurrentFortune;
 }) {
   const tabs = [
     { key: 'daeun', label: '대운' },
@@ -503,9 +514,9 @@ function FortuneTabs({
         role="tabpanel"
         aria-labelledby={`fortune-tab-${view}`}
       >
-        {view === 'daeun' && <DaeunTable saju={saju} />}
-        {view === 'saeun' && <SaeunTable saju={saju} viewedAt={viewedAt} />}
-        {view === 'wolun' && <WolunTable saju={saju} viewedAt={viewedAt} />}
+        {view === 'daeun' && <DaeunTable saju={saju} now={now} />}
+        {view === 'saeun' && <SaeunTable saju={saju} now={now} />}
+        {view === 'wolun' && <WolunTable saju={saju} now={now} />}
       </div>
     </div>
   );
@@ -913,13 +924,11 @@ function relationKey(relation: Relation): string {
  * 해의 경계는 입춘이다. 1월에 일어난 일은 아직 전 해의 세운이라, 각 칸에
  * 입춘 날짜를 적어 둔다.
  */
-function SaeunTable({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
+function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
   const { entries } = saju.saeun;
-  const currentChartId = entries.find(
-    (entry) =>
-      viewedAt >= entry.startTerm.date.getTime() &&
-      viewedAt < entry.nextStartTerm.date.getTime(),
-  )?.chartId;
+  // 절입 시각을 여기서 다시 견주지 않는다 — 지금이 어느 해인지는 현재운이 이미 짚었다.
+  // 그 해가 이 표 밖이면 어느 줄도 강조되지 않고, 그것이 맞는 답이다.
+  const currentChartId = now.saeun.chartId;
 
   return (
     <section className={CARD}>
@@ -1021,12 +1030,9 @@ function SaeunTable({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
  * 그 달이 시작되는 절과 날짜를 적는다 — 3월 3일이 아직 인월이라는 것이
  * 월운에서 가장 자주 어긋나는 지점이다.
  */
-function WolunTable({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
+function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
   const { year, entries } = saju.wolun;
-  const currentChartId = entries.find(
-    (entry) =>
-      viewedAt >= entry.startTerm.date.getTime() && viewedAt < entry.nextTerm.date.getTime(),
-  )?.chartId;
+  const currentChartId = now.wolun.chartId;
 
   return (
     <section className={CARD}>
@@ -1115,8 +1121,9 @@ function WolunTable({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
  * 나이는 만 나이(출생일로부터의 경과 연수)다. 세는나이로 적는 만세력과는
  * 한 살 차이가 나므로 화면에 밝혀 둔다.
  */
-function DaeunTable({ saju }: { saju: Saju }) {
+function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
   const { daeun } = saju;
+  const currentChartId = now.daeun?.chartId;
 
   return (
     <section className={CARD}>
@@ -1136,29 +1143,66 @@ function DaeunTable({ saju }: { saju: Saju }) {
       </p>
 
       <div className="mt-4 snap-x snap-proximity overflow-x-auto">
-        <table className="w-full min-w-[36rem] border-collapse text-center">
-          <caption className="sr-only">10년 단위 대운</caption>
+        <table className="w-full min-w-[52rem] border-collapse text-center">
+          <caption className="sr-only">10년 단위 대운의 간지와 원국과의 관계</caption>
           <thead>
             <tr>
-              {daeun.entries.map((entry) => (
-                <th key={entry.index} className="px-1 pb-2 text-xs font-normal text-secondary">
-                  {entry.startAge}세
-                  <span className="block text-[11px] text-muted">{entry.startYear}년</span>
-                </th>
-              ))}
+              {daeun.entries.map((entry) => {
+                const current = entry.chartId === currentChartId;
+                return (
+                  <th
+                    key={entry.chartId}
+                    className={`px-1 pb-2 text-xs font-normal ${current ? 'text-accent' : 'text-secondary'}`}
+                  >
+                    {entry.startAge}세
+                    {current && <span className="ml-1 text-[10px] font-medium">현재</span>}
+                    <span className="block text-[11px] text-muted">{entry.startYear}년</span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
             <tr>
-              {daeun.entries.map((entry) => (
-                <td key={entry.index} className="snap-start px-1">
-                  <div className="mx-auto flex w-full max-w-20 flex-col items-center gap-0.5 rounded-lg border border-border bg-surface-sunken py-2.5">
-                    <span className="glyph text-2xl leading-none">{entry.pillar.stem}</span>
-                    <span className="glyph text-2xl leading-none">{entry.pillar.branch}</span>
-                    <span className="mt-0.5 text-[11px] text-secondary">{entry.pillar.ko}</span>
-                  </div>
-                </td>
-              ))}
+              {daeun.entries.map((entry) => {
+                const current = entry.chartId === currentChartId;
+                return (
+                  <td key={entry.chartId} className="snap-start px-1 align-top">
+                    <div
+                      className={`mx-auto flex w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
+                        current ? 'border-accent bg-accent-wash' : 'border-border bg-surface-sunken'
+                      }`}
+                    >
+                      <span className="text-[10px] text-muted">
+                        {TEN_GOD_KO[entry.tenGods.stem]}
+                      </span>
+                      <span className="glyph text-2xl leading-none">{entry.pillar.stem}</span>
+                      <span className="glyph text-2xl leading-none">{entry.pillar.branch}</span>
+                      <span className="text-[10px] text-muted">
+                        {TEN_GOD_KO[entry.tenGods.branch]}
+                      </span>
+                      <span className="mt-1 text-[11px] text-secondary">
+                        {TWELVE_STAGE_KO[entry.stage]}
+                      </span>
+                      <span className="text-[10px] text-muted">
+                        {TWELVE_SPIRIT_ALIAS[entry.spirits.year] ??
+                          TWELVE_SPIRIT_KO[entry.spirits.year]}
+                      </span>
+                    </div>
+
+                    <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
+                      {entry.relations.map((relation) => (
+                        <li key={relationKey(relation)}>
+                          {relation.ko}
+                          {relation.scope === 'combinedFormation' && (
+                            <span className="text-muted"> 합쳐서</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                );
+              })}
             </tr>
           </tbody>
         </table>
@@ -1166,7 +1210,10 @@ function DaeunTable({ saju }: { saju: Saju }) {
       <HorizontalScrollHint />
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-        나이는 만 나이입니다. 세는나이로 적는 만세력과 한 살 차이가 날 수 있습니다.
+        칸 안은 위에서부터 천간 십성 · 간지 · 지지 십성 · 12운성(일간 기준) ·
+        12신살(년지 기준)입니다. 아래 목록은 그 대운이 원국과 맺는 관계로,{' '}
+        <strong className="font-medium">세운·월운은 함께 놓지 않았습니다</strong> — 한 칸이
+        열 해라 함께 놓을 세운이 하나가 아닙니다. 나이는 만 나이입니다.
         {daeun.approximate && ' 출생 시각을 몰라 정오 기준으로 계산해 대운수가 두어 달 흔들립니다.'}
       </p>
     </section>

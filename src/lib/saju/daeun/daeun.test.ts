@@ -2,15 +2,19 @@ import { describe, expect, it } from 'vitest';
 
 import { InvalidSajuInputError, computeSaju, type SajuInput } from '@/src/lib/saju';
 import { SEXAGENARY, STEMS, STEM_INFO, pillarIndexOf } from '@/src/lib/saju/constants';
+import { tenGodOf, tenGodOfBranch } from '@/src/lib/saju/analysis/tenGods';
+import { twelveSpiritOf } from '@/src/lib/saju/sinsal';
+import { twelveStageOf } from '@/src/lib/saju/stages';
 import {
   DAYS_PER_YEAR,
   YEARS_PER_DAEUN,
-  computeDaeun,
   daeunAtAge,
+  daeunChartId,
   daeunDirectionOf,
+  daeunPillarAt,
   type Daeun,
+  type DaeunDirection,
 } from '@/src/lib/saju/daeun';
-import type { SolarTerm } from '@/src/lib/saju/solarTerms';
 import { daysInMonth } from '@/src/lib/saju/input';
 
 /**
@@ -245,59 +249,188 @@ describe('대운 간지 — 월주에서 한 칸씩', () => {
     expect(daeunAtAge(daeun, 6.9)).toBeNull();
   });
 
+  /**
+   * 월주를 甲子 로 못박아야 보이는 자리다. 그런데 **甲子월은 오호둔에서 나오지
+   * 않으므로** 실재하는 명식으로는 만들 수 없다 — `computeDaeun` 이 명식 전체를
+   * 요구하게 된 뒤로는 지어낸 명식을 넘겨야 하고, 그러면 그 명식이 실재하지 않는다는
+   * 사실이 테스트에 남는다(`chartConstruction: 'unrealizable'` 과 같은 문제다).
+   *
+   * 그래서 간지 순서만 따로 뽑아 쓴다. 지어낼 것이 없다.
+   */
   it('60갑자 끝에서 되감는다', () => {
+    const sequence = (monthPillar: (typeof SEXAGENARY)[number], direction: DaeunDirection) =>
+      [1, 2, 3].map((index) => daeunPillarAt(monthPillar, direction, index).name);
+
     // 월주가 甲子(0)면 역행 첫 대운은 癸亥(59)로 넘어가야 한다.
-    // 실제 출생으로는 드물게 걸리는 자리라 직접 만들어 확인한다.
-    const term = (name: string, iso: string): SolarTerm => ({
-      name,
-      longitude: 315,
-      branch: '寅',
-      date: new Date(iso),
-    });
-
-    const base = {
-      monthTerm: term('입춘', '1904-02-05T00:00:00Z'),
-      nextTerm: term('경칩', '1904-03-06T00:00:00Z'),
-      instant: new Date('1904-02-20T00:00:00Z'),
-      birthYear: 1904,
-    };
-
-    const backward = computeDaeun({
-      ...base,
-      yearStem: '甲', // 양간 + 여자 = 역행
-      monthPillar: SEXAGENARY[0], // 甲子
-      gender: 'female',
-    });
-    expect(backward.direction).toBe('backward');
-    expect(backward.entries.map((entry) => entry.pillar.name).slice(0, 3)).toEqual([
-      '癸亥',
-      '壬戌',
-      '辛酉',
-    ]);
-
-    const forward = computeDaeun({
-      ...base,
-      yearStem: '甲',
-      monthPillar: SEXAGENARY[59], // 癸亥
-      gender: 'male',
-    });
-    expect(forward.direction).toBe('forward');
-    expect(forward.entries.map((entry) => entry.pillar.name).slice(0, 3)).toEqual([
-      '甲子',
-      '乙丑',
-      '丙寅',
-    ]);
+    expect(sequence(SEXAGENARY[0], 'backward')).toEqual(['癸亥', '壬戌', '辛酉']);
+    expect(sequence(SEXAGENARY[59], 'forward')).toEqual(['甲子', '乙丑', '丙寅']);
   });
 
-  it('자시 규칙은 대운을 흔들지 않는다', () => {
-    // 조자시는 일주만 다음 날로 넘긴다. 대운은 연간·월주·절대 시각으로만
-    // 정해지므로 그대로여야 한다.
+  /** 월주 자신은 대운이 아니다 — 한 칸 옮긴 자리가 첫 대운이다 */
+  it('첫 대운은 월주에서 한 칸 옮긴 자리다', () => {
+    expect(daeunPillarAt(SEXAGENARY[10], 'forward', 1).index).toBe(11);
+    expect(daeunPillarAt(SEXAGENARY[10], 'backward', 1).index).toBe(9);
+  });
+
+  /**
+   * 표가 쓰는 순서와 이 함수가 내는 순서가 같아야 한다. 갈리면 화면의 간지와
+   * 테스트가 보는 간지가 다른 것을 아무도 모른다.
+   */
+  it('대운 표가 그 순서를 그대로 쓴다', () => {
+    const daeun = daeunOf(at(1990, 5, 15, 14, 30, 'male'));
+    const monthPillar = computeSaju(at(1990, 5, 15, 14, 30, 'male'), {}).pillars.month;
+
+    for (const entry of daeun.entries) {
+      expect(entry.pillar).toEqual(daeunPillarAt(monthPillar, daeun.direction, entry.index));
+    }
+  });
+
+  /**
+   * **자시 규칙은 대운의 간지를 흔들지 않되 칸 안은 흔든다.**
+   *
+   * 한동안 `expect(jo.daeun).toEqual(ya.daeun)` 한 줄이었고 그때는 맞았다 — 대운이
+   * 간지와 나이만 들고 있었으니까. 칸이 십성·운성·신살·관계를 들게 되면서 그 넷이
+   * **일주에서 나오는 값**이 됐고, 조자시는 일주를 다음 날로 넘긴다. 그래서 같아야
+   * 하는 것과 갈려야 하는 것을 갈라 적는다.
+   *
+   * 뭉뚱그려 `toEqual` 로 두면 다음에 칸에 무엇이 붙어도 그저 통과하거나 그저
+   * 실패한다. 무엇이 왜 흔들리는지는 그때 다시 생각해야 하는 일이 아니다.
+   */
+  it('자시 규칙은 대운의 간지를 흔들지 않는다', () => {
     const input = at(2025, 6, 15, 23, 30, 'male');
     const jo = computeSaju(input, { lateNightRule: 'jo', useLongitude: false });
     const ya = computeSaju(input, { lateNightRule: 'ya', useLongitude: false });
 
     expect(jo.pillars.day.name).not.toBe(ya.pillars.day.name); // 일주는 갈린다
-    expect(jo.daeun).toEqual(ya.daeun); // 대운은 같다
+
+    // 간지·방향·대운수는 연간·월주·절대 시각에서만 나온다.
+    expect(jo.daeun.direction).toBe(ya.daeun.direction);
+    expect(jo.daeun.startAge).toBe(ya.daeun.startAge);
+    expect(jo.daeun.daysToBoundary).toBeCloseTo(ya.daeun.daysToBoundary, 10);
+    expect(jo.daeun.entries.map((entry) => entry.pillar.name)).toEqual(
+      ya.daeun.entries.map((entry) => entry.pillar.name),
+    );
+    expect(jo.daeun.entries.map((entry) => entry.startAge)).toEqual(
+      ya.daeun.entries.map((entry) => entry.startAge),
+    );
+  });
+
+  /**
+   * 대운 칸이 세운·월운 칸과 **같은 모양**이 됐다. 한동안 간지와 나이만 들고
+   * 있었는데 그것은 근거 있는 차이가 아니라 먼저 만든 쪽이 뒤에 만든 쪽을 못
+   * 따라간 것이었고, 현재운이 "대운이 낀 관계는 아직 세지 않아 이 목록에
+   * 없습니다"를 산문으로 고지하게 만들었다.
+   */
+  describe('칸 안 — 세운·월운 칸과 같은 모양이다', () => {
+    const saju = computeSaju(at(1990, 5, 15, 14, 30, 'male'));
+
+    it('일간에서 본 십성과 12운성·12신살을 든다', () => {
+      const [first] = saju.daeun.entries;
+      const dayMaster = saju.pillars.dayMaster;
+
+      expect(first.tenGods.stem).toBe(tenGodOf(dayMaster, first.pillar.stem));
+      expect(first.tenGods.branch).toBe(tenGodOfBranch(dayMaster, first.pillar.branch));
+      expect(first.stage).toBe(twelveStageOf(dayMaster, first.pillar.branch));
+      expect(first.spirits.year).toBe(
+        twelveSpiritOf(saju.pillars.year.branch, first.pillar.branch),
+      );
+      expect(first.spirits.day).toBe(twelveSpiritOf(saju.pillars.day.branch, first.pillar.branch));
+    });
+
+    /**
+     * 12운성 계통을 세운·월운과 같은 값으로 받는다 — 화면 안에서 갈리면 안 된다.
+     *
+     * **일간이 음간인 명식으로 본다.** 계통이 갈리는 것은 음간을 역행시킬지 여부라
+     * 양간 일간(1990-05-15 은 庚)에서는 아홉 칸이 전부 같은 값이고, 그러면 계통을
+     * 넘기는 줄을 지워도 테스트가 통과한다.
+     */
+    it('12운성 계통이 세운·월운과 같다', () => {
+      const yangPoTae = computeSaju(at(1990, 5, 20, 14, 30, 'male'), {
+        stages: { yinReverse: false },
+      });
+      expect(yangPoTae.pillars.dayMaster).toBe('乙');
+
+      expect(yangPoTae.daeun.yinReverse).toBe(false);
+      expect(yangPoTae.daeun.yinReverse).toBe(yangPoTae.saeun.yinReverse);
+      expect(yangPoTae.daeun.yinReverse).toBe(yangPoTae.wolun.yinReverse);
+
+      const dayMaster = yangPoTae.pillars.dayMaster;
+
+      for (const entry of yangPoTae.daeun.entries) {
+        expect(entry.stage, entry.chartId).toBe(
+          twelveStageOf(dayMaster, entry.pillar.branch, { yinReverse: false }),
+        );
+      }
+
+      // 일간이 음간이라 계통이 갈리는 칸이 있어야 한다 — 한 칸도 안 갈리면 위
+      // 단정이 빈 말이고, 계통을 넘기는 줄을 지워도 테스트가 통과한다.
+      // 열두 지지 중 갈리지 않는 자리도 있으므로 칸마다 보지 않고 아홉 칸에서 센다.
+      const split = yangPoTae.daeun.entries.filter(
+        (entry) => twelveStageOf(dayMaster, entry.pillar.branch) !== entry.stage,
+      );
+      expect(split.length).toBeGreaterThan(0);
+    });
+
+    /**
+     * **원국만 놓고 본다.** 월운이 원국·세운을 함께 놓고 보는 것과 갈리는데 이유는
+     * 규칙이 아니라 산술이다 — 대운 한 칸은 열 해라 함께 놓을 세운이 하나가 아니다.
+     */
+    it('원국과 맺는 관계를 들고, 원국 안에서 닫힌 것은 빼놓는다', () => {
+      const withRelations = saju.daeun.entries.filter((entry) => entry.relations.length > 0);
+      expect(withRelations.length, '아홉 칸 중 관계가 걸리는 칸이 있어야 한다').toBeGreaterThan(0);
+
+      for (const entry of saju.daeun.entries) {
+        for (const relation of entry.relations) {
+          // 그 대운이 끼지 않은 관계는 여기 오지 않는다.
+          expect(
+            relation.participants.some((participant) => participant.chartId === entry.chartId),
+            `${entry.chartId} · ${relation.ko}`,
+          ).toBe(true);
+        }
+      }
+
+      // 원국 안에서 닫힌 관계는 칸마다 같으므로 한 번도 안 나온다.
+      const natalOnly = saju.daeun.entries.flatMap((entry) =>
+        entry.relations.filter((relation) =>
+          relation.participants.every((participant) => participant.chartId === 'natal'),
+        ),
+      );
+      expect(natalOnly).toEqual([]);
+    });
+
+    it('계산판 이름이 칸마다 다르다', () => {
+      const ids = saju.daeun.entries.map((entry) => entry.chartId);
+
+      expect(new Set(ids).size).toBe(ids.length);
+      expect(ids[3]).toBe(daeunChartId(4));
+      // 세운·월운과도 겹치지 않는다 — 겹치면 누구의 기둥인지 못 가린다.
+      expect(ids.some((id) => id.startsWith('annual:') || id.startsWith('monthly:'))).toBe(false);
+    });
+
+    /**
+     * 대운은 기둥이 하나뿐이라 원국과 섞이면 기둥 사이의 선형 거리가 없다.
+     * 세운·월운이 그렇게 하고 있고, 대운도 같은 규칙을 따라야 화면이 한 표에 담는다.
+     */
+    it('계산판이 섞이면 거리가 없다', () => {
+      const crossing = saju.daeun.entries.flatMap((entry) => entry.relations);
+      expect(crossing.length).toBeGreaterThan(0);
+
+      for (const relation of crossing) {
+        expect(relation.distance, relation.ko).toBeNull();
+        expect(relation.adjacent, relation.ko).toBeNull();
+      }
+    });
+  });
+
+  it('칸 안의 십성·신살은 일주에서 나오므로 자시 규칙이 흔든다', () => {
+    const input = at(2025, 6, 15, 23, 30, 'male');
+    const jo = computeSaju(input, { lateNightRule: 'jo', useLongitude: false }).daeun;
+    const ya = computeSaju(input, { lateNightRule: 'ya', useLongitude: false }).daeun;
+
+    // 같은 간지인데 읽는 기준이 달라 값이 갈린다 — 그것이 정상이다.
+    expect(jo.entries[0].pillar.name).toBe(ya.entries[0].pillar.name);
+    expect(jo.entries[0].tenGods).not.toEqual(ya.entries[0].tenGods);
+    expect(jo.entries[0].spirits.day).not.toBe(ya.entries[0].spirits.day);
   });
 });
 

@@ -124,11 +124,15 @@ export type CurrentFortune = {
   saeun: SaeunEntry;
   wolun: WolunEntry;
   /**
-   * 지금의 세운·월운이 원국과 맺는 관계 — **두 칸에서 옮겨 담기만 한다.**
+   * 지금의 대운·세운·월운이 원국과 맺는 관계 — **세 칸에서 옮겨 담기만 한다.**
    *
-   * 세운 칸은 원국과의 관계를, 월운 칸은 원국·세운과의 관계를 이미 낸다. 여기서
-   * `findRelationsAmong` 을 다시 부르면 같은 형충회합을 두 곳에서 세는 것이 되고,
-   * 표의 관계 칸과 현재운 카드가 어긋나는 날 어느 쪽이 맞는지 알 수 없다.
+   * 대운 칸은 원국과의 관계를, 세운 칸도 원국과의 관계를, 월운 칸은 원국·세운과의
+   * 관계를 이미 낸다. 여기서 `findRelationsAmong` 을 다시 부르면 같은 형충회합을 두
+   * 곳에서 세는 것이 되고, 표의 관계 칸과 현재운 카드가 어긋나는 날 어느 쪽이
+   * 맞는지 알 수 없다.
+   *
+   * **아직 없는 것은 운끼리의 관계다** — 대운↔세운, 대운↔월운. 어느 칸도 그것을
+   * 세지 않으므로 여기에도 없고, `UNCOVERED_NOW_FACTS` 가 그것을 값으로 든다.
    */
   relations: Relation[];
   /** 원국을 시주까지 보고 셌는가 — 문장의 강도가 여기에 걸린다 */
@@ -142,7 +146,7 @@ export type CurrentFortune = {
  * 표시다(`SINSAL_POLICY.travelPeachCanopy`). 나중에 여기서 직접 세고 싶어지면
  * 이 값이 먼저 걸린다.
  */
-export const RESTATED_RELATIONS = 'restated-from-saeun-and-wolun' as const;
+export const RESTATED_RELATIONS = 'restated-from-daeun-saeun-and-wolun' as const;
 
 /**
  * 현재운이 아직 내지 않는 사실.
@@ -150,16 +154,19 @@ export const RESTATED_RELATIONS = 'restated-from-saeun-and-wolun' as const;
  * `UNCOVERED_FACTS` 와 같은 구실이다 — 발화하지 않는 이유가 **고른 것이 아니라
  * 아무도 세지 않은 것**임을 값으로 남긴다.
  *
- * 대운 관계가 여기 있는 것이 요점이다. 세운·월운 칸은 관계를 들고 있는데
- * (`SaeunEntry.relations`·`WolunEntry.relations`) `DaeunEntry` 는 들고 있지 않다.
- * 그래서 현재운도 못 낸다 — **여기서 세면 아무도 안 세던 것을 우리만 세게 되고,
- * 나중에 대운 표가 관계를 갖게 되는 날 두 답이 생긴다.** 대운 관계는 대운 표의
- * 일이고, 그때 이 줄이 지워진다.
+ * **한 줄이 지워졌고 좁아진 줄이 남았다.** 대운 칸이 관계·십성·운성·신살을 들게 되면서
+ * 두 줄이 사라졌는데(`DaeunEntry`), 그 자리에서 더 좁은 공백이 드러났다 — 세 칸이 저마다
+ * **원국과의** 관계를 낼 뿐 **운끼리는** 아무도 안 본다. 월운만 세운을 함께 놓고 보므로
+ * 대운↔세운·대운↔월운이 비어 있다.
+ *
+ * 그것을 여기서 세지 않는 이유는 규칙이 아니라 산술이다. 대운 한 칸은 열 해라 함께 놓을
+ * 세운이 하나가 아니므로 **대운 칸이 들 수 없고**, 세운 칸이 자기를 감싼 대운을 함께 놓는
+ * 것이 맞는 모양이다(월운이 세운을 놓는 것과 같은 방향). 그것은 세운의 일이다.
  */
 export const UNCOVERED_NOW_FACTS: readonly string[] = [
-  'daeun.relations (대운이 원국과 맺는 관계 — DaeunEntry 가 아직 들지 않는다)',
-  'daeun.tenGods · daeun.stage · daeun.spirits (세운·월운 칸에는 있고 대운 칸에는 없다)',
-  'stages · sinsal (세운·월운 칸이 이미 계산해 두었으나 주제가 없다)',
+  'saeun × daeun (그 해를 감싼 대운과의 관계 — 월운이 세운을 놓는 것과 같은 방향인데 비어 있다)',
+  'wolun × daeun (그 달을 감싼 대운과의 관계)',
+  'stages · sinsal (세 칸이 이미 계산해 두었으나 주제가 없다)',
 ];
 
 /**
@@ -208,9 +215,14 @@ export function currentFortuneOf(saju: Saju, viewedAt: Date): CurrentFortune {
     daeunApproximate: saju.daeun.approximate,
     saeun,
     wolun,
-    // 겹치지 않는다. 세운 칸은 원국과 세운 두 판만 놓고 세었으므로 월운 글자가 낀
-    // 관계를 담을 수 없고, 월운 칸은 자기가 낀 것만 남긴다. 순서는 넓은 것부터다.
-    relations: [...saeun.relations, ...wolun.relations],
+    // 겹치지 않는다. 세 칸이 저마다 **자기가 낀 것만** 남기고, 대운 칸은 원국만,
+    // 세운 칸은 원국만, 월운 칸은 원국·세운을 놓고 세었기 때문이다. 순서는 넓은
+    // 것부터 — 대운이 열 해, 세운이 한 해, 월운이 한 달을 맡는다.
+    relations: [
+      ...(daeun?.relations ?? []),
+      ...saeun.relations,
+      ...wolun.relations,
+    ],
     hourKnown,
   };
 }

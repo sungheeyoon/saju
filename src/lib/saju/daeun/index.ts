@@ -1,6 +1,16 @@
 import { STEM_INFO, pillarAt, type Pillar, type Stem } from '../constants';
 import { InvalidSajuInputError, type Gender } from '../input';
+import { tenGodOf, tenGodOfBranch, type TenGod } from '../analysis/tenGods';
+import type { Pillars } from '../pillars';
+import { findRelationsAmong, type LabeledPillars, type Relation } from '../relations';
+import { twelveSpiritOf, type SpiritBasis, type TwelveSpirit } from '../sinsal';
 import type { SolarTerm } from '../solarTerms';
+import {
+  DEFAULT_YIN_REVERSE,
+  twelveStageOf,
+  type TwelveStage,
+  type TwelveStageOptions,
+} from '../stages';
 
 /**
  * 대운(大運) — 10년씩 갈아입는 운의 간지.
@@ -67,19 +77,48 @@ export type DaeunOptions = {
   zeroStartAge?: DaeunZeroPolicy;
   /** 뽑을 대운 개수 (기본 9 — 90년치) */
   count?: number;
+  /** 12운성 계통 — 세운·월운과 같은 값을 받아야 화면 안에서 갈리지 않는다 */
+  stages?: TwelveStageOptions;
 };
 
 export const DEFAULT_DAEUN_OPTIONS = {
   rounding: 'round',
   zeroStartAge: 'keep',
   count: 9,
-} as const satisfies Required<DaeunOptions>;
+} as const satisfies Required<Omit<DaeunOptions, 'stages'>>;
+
+/** 대운 한 칸의 계산판 이름 — 몇 번째인가로 가른다 */
+export const daeunChartId = (index: number): string => `decade:${index}`;
+
+/**
+ * `index` 번째 대운의 간지 — **월주 자신은 대운이 아니다.**
+ *
+ * 순행은 한 칸 뒤, 역행은 한 칸 앞부터 시작한다. 60갑자 끝에서는 `pillarAt` 이
+ * 되감으므로(甲子 역행 → 癸亥) 여기서 따로 나머지를 세지 않는다.
+ *
+ * `computeDaeun` 안에 두지 않고 꺼낸 이유가 있다. 대운 칸이 십성·운성·신살·관계를
+ * 들게 되면서 `computeDaeun` 이 **명식 전체**를 요구하는데, 되감김을 보려면 월주를
+ * 甲子 로 못박아야 하고 甲子월은 오호둔에서 나오지 않는 조합이다. 명식을 지어내
+ * 확인하면 그 명식이 실재하지 않는다는 사실이 테스트에 남는다 —
+ * `chartConstruction: 'unrealizable'` 로 세어 온 것과 같은 문제다. 간지 순서만
+ * 따로 뽑아 쓰면 지어낼 것이 없다.
+ *
+ * @param index 몇 번째 대운인가 (1부터)
+ */
+export function daeunPillarAt(
+  monthPillar: Pillar,
+  direction: DaeunDirection,
+  index: number,
+): Pillar {
+  const step = direction === 'forward' ? 1 : -1;
+  return pillarAt(monthPillar.index + step * index);
+}
 
 const ROUNDINGS: readonly DaeunRounding[] = ['round', 'floor'];
 const ZERO_POLICIES: readonly DaeunZeroPolicy[] = ['keep', 'raiseToOne'];
 
 /** 대운 옵션도 조용히 흘려보내지 않는다 — 오타 하나로 다른 표가 나온다. */
-function assertValidDaeunOptions(options: Required<DaeunOptions>): void {
+function assertValidDaeunOptions(options: Required<Omit<DaeunOptions, 'stages'>>): void {
   if (!ROUNDINGS.includes(options.rounding)) {
     throw new InvalidSajuInputError(
       'daeun',
@@ -104,9 +143,19 @@ function assertValidDaeunOptions(options: Required<DaeunOptions>): void {
   }
 }
 
+/**
+ * 대운 한 칸 — **세운·월운 칸과 같은 모양이다.**
+ *
+ * 한동안 간지와 나이만 들고 있었다. 세운 칸이 십성·운성·신살·관계를 다 드는데
+ * 대운 칸이 안 드는 것은 근거 있는 차이가 아니라 **먼저 만든 쪽이 뒤에 만든 쪽을
+ * 못 따라간 것**이었고, 현재운이 "대운이 낀 관계는 아직 세지 않아 이 목록에
+ * 없습니다"를 산문으로 고지하게 만들었다. 이제 셋이 같은 모양이다.
+ */
 export type DaeunEntry = {
   /** 몇 번째 대운인가 (1부터) */
   index: number;
+  /** 관계 연산에서 이 칸을 가리키는 이름 — 'decade:4' */
+  chartId: string;
   /** 이 대운이 시작되는 나이 — 출생일로부터의 경과 연수(만 나이) */
   startAge: number;
   /** 이 대운이 끝나는 나이 (다음 대운 시작 직전) */
@@ -114,6 +163,21 @@ export type DaeunEntry = {
   /** 시작 양력 연도 — 출생 연도 + `startAge` (생일 기준 근사) */
   startYear: number;
   pillar: Pillar;
+  /** 일간에서 본 대운 천간·지지의 십성 */
+  tenGods: { stem: TenGod; branch: TenGod };
+  /** 일간이 대운 지지에서 어떤 상태인가 */
+  stage: TwelveStage;
+  /** 12신살 — 원국의 년지·일지 기준 각각 */
+  spirits: Record<SpiritBasis, TwelveSpirit>;
+  /**
+   * 이 대운이 원국과 맺는 관계.
+   *
+   * **원국만 놓고 본다.** 월운이 원국·세운을 함께 놓고 보는 것과 갈리는데, 이유는
+   * 규칙이 아니라 산술이다 — 대운 한 칸은 열 해라 **함께 놓을 세운이 하나가 아니다.**
+   * 대운과 세운 사이의 관계는 그래서 여기가 아니라 세운 칸이 들 몫이고, 아직
+   * 아무도 세지 않는다(`UNCOVERED_NOW_FACTS`).
+   */
+  relations: Relation[];
 };
 
 export type Daeun = {
@@ -129,6 +193,8 @@ export type Daeun = {
   /** 반올림하기 전의 값(년). 계통이 다르면 여기서 다시 만들면 된다 */
   startAgeExact: number;
   entries: DaeunEntry[];
+  /** 음간을 역행시켰는가 — 12운성이 어느 계통으로 나왔는지 */
+  yinReverse: boolean;
   /**
    * 출생 시각을 몰라 정오로 계산했는가.
    *
@@ -142,14 +208,16 @@ export type Daeun = {
   approximate: boolean;
 };
 
+/**
+ * 대운을 뽑는 데 필요한 것.
+ *
+ * **명식 전체를 받는다.** 한동안 `yearStem`·`monthPillar`·`monthTerm`·`nextTerm` 네
+ * 값을 따로 받았는데 넷 모두 `Pillars` 안에 이미 있었다 — 따로 받으면 서로 어긋난
+ * 조합을 넘길 수 있고(연간과 월간이 오호둔에 맞지 않는 조합은 실재하지 않는다),
+ * 칸마다 십성·신살·관계를 내려면 어차피 여덟 글자가 다 필요하다.
+ */
 export type DaeunInput = {
-  /** 사주년의 천간 — 방향을 정한다 */
-  yearStem: Stem;
-  /** 대운의 출발점 */
-  monthPillar: Pillar;
-  /** 출생이 속한 절기 구간 */
-  monthTerm: SolarTerm;
-  nextTerm: SolarTerm;
+  pillars: Pillars;
   /** 출생의 절대 시각 */
   instant: Date;
   /** 출생 양력 연도 — 대운 시작 연도를 셀 기준 */
@@ -189,12 +257,15 @@ export function computeDaeun(input: DaeunInput, options: DaeunOptions = {}): Dae
   assertValidDaeunOptions(resolved);
 
   const { rounding, zeroStartAge, count } = resolved;
-  const { yearStem, monthPillar, monthTerm, nextTerm, instant, birthYear, gender } = input;
+  const { pillars, instant, birthYear, gender } = input;
 
+  const yearStem: Stem = pillars.year.stem;
+  const dayMaster: Stem = pillars.dayMaster;
   const direction = daeunDirectionOf(yearStem, gender);
 
   // 순행은 앞으로 올 절입까지, 역행은 지나온 절입까지의 거리를 잰다.
-  const boundaryTerm = direction === 'forward' ? nextTerm : monthTerm;
+  const boundaryTerm =
+    direction === 'forward' ? pillars.meta.nextTerm : pillars.meta.monthTerm;
   const daysToBoundary =
     Math.abs(boundaryTerm.date.getTime() - instant.getTime()) / DAY_MS;
 
@@ -202,18 +273,43 @@ export function computeDaeun(input: DaeunInput, options: DaeunOptions = {}): Dae
   const rounded = rounding === 'floor' ? Math.floor(startAgeExact) : Math.round(startAgeExact);
   const startAge = rounded === 0 && zeroStartAge === 'raiseToOne' ? 1 : rounded;
 
-  const step = direction === 'forward' ? 1 : -1;
+  const natal: LabeledPillars = { chartId: 'natal', pillars };
 
   const entries: DaeunEntry[] = Array.from({ length: count }, (_, i) => {
     const from = startAge + i * YEARS_PER_DAEUN;
+    const index = i + 1;
+    const pillar = daeunPillarAt(pillars.month, direction, index);
+    const chartId = daeunChartId(index);
+
+    // 대운도 기둥이 하나뿐이다. 자리는 월주에서 옮긴 것이라 'month' 로 적는다 —
+    // 자리 이름은 판 안에서만 뜻이 있고 판을 가르는 것은 `chartId` 다(원국 년주와
+    // 세운 년주가 둘 다 'year' 인 것과 같다).
+    const decade: LabeledPillars = {
+      chartId,
+      pillars: { year: null, month: pillar, day: null, hour: null },
+    };
+
     return {
-      index: i + 1,
+      index,
+      chartId,
       startAge: from,
       endAge: from + YEARS_PER_DAEUN - 1,
       startYear: birthYear + from,
-      // 월주 자신은 대운이 아니다. 한 칸 옮긴 자리가 첫 대운이다.
-      pillar: pillarAt(monthPillar.index + step * (i + 1)),
-    };
+      pillar,
+      tenGods: {
+        stem: tenGodOf(dayMaster, pillar.stem),
+        branch: tenGodOfBranch(dayMaster, pillar.branch),
+      },
+      stage: twelveStageOf(dayMaster, pillar.branch, options.stages),
+      spirits: {
+        year: twelveSpiritOf(pillars.year.branch, pillar.branch),
+        day: twelveSpiritOf(pillars.day.branch, pillar.branch),
+      },
+      // 이 대운이 낀 것만. 원국 안에서 닫힌 관계는 칸마다 같으므로 뺀다.
+      relations: findRelationsAmong([natal, decade]).filter((relation) =>
+        relation.participants.some((participant) => participant.chartId === chartId),
+      ),
+    } satisfies DaeunEntry;
   });
 
   return {
@@ -224,6 +320,7 @@ export function computeDaeun(input: DaeunInput, options: DaeunOptions = {}): Dae
     startAge,
     startAgeExact,
     entries,
+    yinReverse: options.stages?.yinReverse ?? DEFAULT_YIN_REVERSE,
     approximate: input.approximate ?? false,
   };
 }

@@ -551,11 +551,16 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
   },
 
   /**
-   * 현재운 관계 목록이 **대운을 빼고 세어졌다.**
+   * 현재운 관계 목록이 **운끼리는 보지 않았다.**
    *
-   * 시주 때문이 아니다. 시각을 다 알아도 이 목록에는 대운이 낀 관계가 없다 —
-   * `DaeunEntry` 가 관계를 들지 않아서 아무도 세지 않기 때문이다
+   * 시주 때문이 아니다. 시각을 다 알아도 이 목록에는 대운↔세운·대운↔월운이 없다 —
+   * 세 칸이 저마다 **원국과의** 관계만 내고 월운만 세운을 함께 놓기 때문이다
    * (`UNCOVERED_NOW_FACTS`). 그래서 **언제나 선다.**
+   *
+   * 한동안 이 문장이 "대운이 낀 관계는 아직 세지 않았다"였다. 대운 칸이 관계를 들게
+   * 되면서 **그 말이 거짓이 됐고 더 좁은 공백이 드러났다** — 대운은 원국과 걸리는
+   * 것을 이제 다 내는데, 세운·월운과 걸리는 것은 여전히 아무도 안 본다. 고지가
+   * 좁아지는 것이 채워졌다는 증거다.
    *
    * `relation.coverage` 와 주제를 나눈 것이 요점이다. 저쪽은 시주가 빠졌을 때만
    * 서고 빠진 것이 **입력**이며, 이쪽은 늘 서고 빠진 것이 **우리 구현**이다. 한
@@ -569,7 +574,7 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     paths: ['now', 'relations'],
     // 없다는 주장이 아니라 **빠뜨린 것이 있다**는 사실이다 — `relation.coverage` 와 같다.
     polarity: 'presence',
-    variants: ['daeun-not-counted'],
+    variants: ['fortunes-not-crossed'],
     slots: [],
     samples: {},
     note: '현재운 관계 목록을 어디까지 세었는가',

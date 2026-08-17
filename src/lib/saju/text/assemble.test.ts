@@ -668,13 +668,24 @@ describe('조립기', () => {
      * 다 알아도 서고, 시주는 **입력**이 빠진 것이라 모를 때만 선다. 한 문장으로 묶으면
      * "시각을 알면 목록이 온전하다"가 조용히 들어온다.
      */
-    it('대운 관계를 세지 않았다는 고지는 시각과 무관하게 선다', () => {
+    it('운끼리는 보지 않았다는 고지가 시각과 무관하게 선다', () => {
       for (const saju of [RICH, HOURLESS]) {
         const coverage = topicOf(nowTextOf(saju), 'now.coverage');
 
         expect(coverage?.strength).toBe('fact');
-        expect(coverage?.text).toContain('대운');
+        expect(coverage?.text).toContain('원국과 걸리는 것만');
+        expect(coverage?.text).toContain('아직 보지 않습니다');
       }
+    });
+
+    /**
+     * **고지가 좁아진 것이 채워졌다는 증거다.** 대운 칸이 관계를 들게 되면서 "대운이
+     * 낀 관계는 아직 세지 않았다"가 거짓이 됐다 — 지금은 대운 행이 실제로 선다.
+     */
+    it('대운 관계가 행으로 선다', () => {
+      const rows = nowTextOf(RICH).filter(({ request }) => request.topic === 'relation.present');
+
+      expect(rows.some(({ text }) => text?.includes('대운'))).toBe(true);
     });
 
     it('관계 행은 원국과 같은 주제·같은 조각이고 어느 판인지만 더 든다', () => {

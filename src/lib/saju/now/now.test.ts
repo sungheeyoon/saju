@@ -178,12 +178,45 @@ describe('현재운 — 아무것도 새로 세지 않는다', () => {
     expect(twelveStageOf(dayMaster, branch, { yinReverse: true })).not.toBe(now.saeun.stage);
   });
 
-  it('관계는 세운·월운 칸에서 옮겨 담기만 한다', () => {
+  it('관계는 대운·세운·월운 칸에서 옮겨 담기만 한다', () => {
     const saju = chart();
     const now = currentFortuneOf(saju, at('2026-08-17T12:00:00+09:00'));
 
+    expect(now.relations).toEqual([
+      ...(now.daeun?.relations ?? []),
+      ...now.saeun.relations,
+      ...now.wolun.relations,
+    ]);
+    expect(RESTATED_RELATIONS).toBe('restated-from-daeun-saeun-and-wolun');
+  });
+
+  /**
+   * 대운 칸이 관계를 들게 된 것이 이 자리에서 값을 낸다 — 그 전에는 대운이 원국과
+   * 무엇을 하는지가 현재운 어디에도 없었고, 문장이 그것을 고지로 대신 말했다.
+   */
+  it('대운이 낀 관계가 목록에 있다', () => {
+    const saju = chart();
+    const now = currentFortuneOf(saju, at('2026-08-17T12:00:00+09:00'));
+
+    expect(now.daeun).not.toBeNull();
+    expect(now.daeun!.relations.length).toBeGreaterThan(0);
+
+    const fromDaeun = now.relations.filter((relation) =>
+      relation.participants.some((participant) => participant.chartId === now.daeun!.chartId),
+    );
+    expect(fromDaeun).toEqual(now.daeun!.relations);
+  });
+
+  /** 첫 대운 전이면 담을 대운 칸이 없다 — 없는 판의 관계를 지어내지 않는다 */
+  it('대운을 못 짚으면 대운 관계도 없다', () => {
+    const baby = computeSaju(
+      { year: 2024, month: 3, day: 15, hour: 10, minute: 0, second: 0, gender: 'female' },
+      {},
+    );
+    const now = currentFortuneOf(baby, at('2026-08-17T12:00:00+09:00'));
+
+    expect(now.daeun).toBeNull();
     expect(now.relations).toEqual([...now.saeun.relations, ...now.wolun.relations]);
-    expect(RESTATED_RELATIONS).toBe('restated-from-saeun-and-wolun');
   });
 
   /**
@@ -277,7 +310,14 @@ describe('현재운 정책', () => {
     expect(NOW_POLICY.counting).toBe('reuses-saeun-wolun-daeun');
   });
 
+  /**
+   * **고지가 좁아지는 것이 채워졌다는 증거다.** 대운 관계가 들어오면서 그 줄이
+   * 사라지고, 그 자리에서 더 좁은 공백이 드러났다 — 세 칸이 저마다 원국과의 관계만
+   * 내고 운끼리는 아무도 안 본다.
+   */
   it('아직 내지 않는 사실을 목록으로 남긴다', () => {
-    expect(UNCOVERED_NOW_FACTS.some((fact) => fact.startsWith('daeun.relations'))).toBe(true);
+    expect(UNCOVERED_NOW_FACTS.some((fact) => fact.startsWith('daeun.relations'))).toBe(false);
+    expect(UNCOVERED_NOW_FACTS.some((fact) => fact.startsWith('saeun × daeun'))).toBe(true);
+    expect(UNCOVERED_NOW_FACTS.some((fact) => fact.startsWith('wolun × daeun'))).toBe(true);
   });
 });

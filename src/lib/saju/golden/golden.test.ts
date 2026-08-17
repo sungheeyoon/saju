@@ -71,6 +71,25 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
       .join(' / ')} …`,
   );
 
+  /**
+   * 대운 칸도 세운·월운 칸과 **같은 줄로** 찍는다.
+   *
+   * 위 두 줄은 방향·대운수·간지 순서만 든다. 칸이 십성·운성·신살·관계를 들게 됐는데
+   * 그것을 찍지 않으면 **새로 생긴 값 넷이 골든 밖에 있게 되고**, 이 저장소에서
+   * 규칙이 지켜지는 방법이 골든이다. 세 해·세 달만 찍는 것과 같은 이유로 셋만 찍는다.
+   */
+  for (const entry of daeun.entries.slice(0, 3)) {
+    const crossed = entry.relations.map((r) => r.ko).join(' ');
+    lines.push(
+      `  대운칸 ${entry.index} ${entry.pillar.name}` +
+        ` 만 ${entry.startAge}→${entry.endAge}세` +
+        `  ${TEN_GOD_KO[entry.tenGods.stem]}/${TEN_GOD_KO[entry.tenGods.branch]}` +
+        ` ${TWELVE_STAGE_KO[entry.stage]}` +
+        ` ${TWELVE_SPIRIT_KO[entry.spirits.year]}` +
+        `${crossed ? `  원국과 ${crossed}` : ''}`,
+    );
+  }
+
   for (const relation of saju.relations) {
     const arrow = directionParticipantsOf(relation);
     const notes = [
@@ -253,6 +272,8 @@ describe('골든 테스트', () => {
       '  대운  방향은 양남음녀 순행·음남양녀 역행, 대운수는 절입까지 ÷ 3.',
       '        나이는 만 나이(경과 연수)다. 세는나이로 적는 만세력과 한 살 차이가 난다.',
       '        성별이 필수 입력이라 모든 케이스에 대운이 붙는다(기본 남자).',
+      '        칸 안은 세운·월운 칸과 같은 모양이다 — 십성·12운성·12신살·관계.',
+      '        관계는 원국만 놓고 본다: 한 칸이 열 해라 함께 놓을 세운이 하나가 아니다.',
       '',
       '  관계  성립하는 형충회합을 열거만 한다 — 길흉도, 합의 성사 여부도 판정하지 않는다.',
       '        거리를 조건으로 걸지 않고 밝히기만 한다(붙은 것만 보는 학파는 걸러 쓰면 된다).',
@@ -307,7 +328,7 @@ describe('골든 테스트', () => {
       '        엔진은 그 시각을 스스로 묻지 않고 넘겨받는다 — Date.now() 를 부르면 순수 함수가',
       '        아니게 되고 미리 그려진 페이지의 하이드레이션도 깨진다.',
       '        경계를 재는 방법이 갈린다: 세운·월운은 절대 시각, 대운은 만 나이다.',
-      '        간지·절입·관계를 새로 세지 않는다. 관계는 세운·월운 칸에서 옮겨 담기만 한다.',
+      '        간지·절입·관계를 새로 세지 않는다. 관계는 대운·세운·월운 칸에서 옮겨 담기만 한다.',
       '',
       ...Object.entries(NOW_POLICY).map(
         ([key, value]) => `          ${key.padEnd(22)} ${value}`,

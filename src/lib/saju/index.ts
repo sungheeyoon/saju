@@ -202,16 +202,15 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
 
   const daeun = computeDaeun(
     {
-      yearStem: pillars.year.stem,
-      monthPillar: pillars.month,
-      monthTerm: pillars.meta.monthTerm,
-      nextTerm: pillars.meta.nextTerm,
+      pillars,
       instant: corrected.instant,
       birthYear: resolvedTime.year,
       gender,
       approximate: !hourKnown,
     },
-    daeunOptions,
+    // 12운성 계통을 세운·월운과 같은 값으로 넘긴다 — 세 표가 한 화면에 나란히
+    // 서는데 계통이 갈리면 어느 것이 어느 계통인지 아무 데도 안 적힌다.
+    { stages: stageOptions, ...daeunOptions },
   );
 
   return {

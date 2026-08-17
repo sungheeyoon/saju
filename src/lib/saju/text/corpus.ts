@@ -428,16 +428,21 @@ const AS_OF = [
 ].join(' ');
 
 /**
- * 현재운 관계 목록이 대운을 빼고 세어졌다는 고지.
+ * 현재운 관계 목록이 운끼리는 보지 않았다는 고지.
  *
  * `relation.coverage` 와 문장을 나눠 쓰지 않는다. 저쪽에서 빠진 것은 **입력**
- * (시주)이고 여기서 빠진 것은 **우리 구현**이다(`DaeunEntry` 가 관계를 들지 않는다).
- * 한 문장으로 묶으면 시각을 다 아는 사람에게 "목록이 온전하다"가 되어 버린다.
+ * (시주)이고 여기서 빠진 것은 **우리 구현**이다. 한 문장으로 묶으면 시각을 다 아는
+ * 사람에게 "목록이 온전하다"가 되어 버린다.
  *
- * "판정하지 않는다"가 아니라 "세지 않았다"라고 적는다 — 판정을 미룬 것이 아니라
+ * **한동안 "대운이 낀 관계는 아직 세지 않아"였다.** 대운 칸이 관계를 들게 되면서 그
+ * 말이 거짓이 됐고, 그 자리에서 더 좁은 공백이 드러났다 — 세 칸이 저마다 원국과의
+ * 관계만 낸다. 고지가 좁아지는 것이 채워졌다는 증거다.
+ *
+ * "판정하지 않는다"가 아니라 "보지 않았다"라고 적는다 — 판정을 미룬 것이 아니라
  * 아직 만들지 않은 것이고, 그 구분이 `UNCOVERED_NOW_FACTS` 가 하는 일이다.
  */
-const NOW_COVERAGE = '대운이 낀 관계는 아직 세지 않아 이 목록에 없습니다.';
+const NOW_COVERAGE =
+  '세 칸이 저마다 원국과 걸리는 것만 셌습니다. 대운과 세운·월운이 서로 걸리는 것은 아직 보지 않습니다.';
 
 const nowFragments: Fragment[] = [
   { topic: 'now.asOf', variant: 'instant', strength: 'fact', template: AS_OF },
@@ -487,7 +492,7 @@ const nowFragments: Fragment[] = [
 
   {
     topic: 'now.coverage',
-    variant: 'daeun-not-counted',
+    variant: 'fortunes-not-crossed',
     strength: 'fact',
     template: NOW_COVERAGE,
   },

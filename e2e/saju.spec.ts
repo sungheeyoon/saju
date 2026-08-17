@@ -97,7 +97,9 @@ test('지금의 운이 기준 시각과 세 칸을 한 번씩 보인다', async 
   expect(text.match(/년 세운 /g)).toHaveLength(1);
   expect(text.match(/월 월운 /g)).toHaveLength(1);
   expect(text.match(/기준으로 짚은 운입니다/g)).toHaveLength(1);
-  expect(text.match(/대운이 낀 관계는 아직 세지 않아/g)).toHaveLength(1);
+  expect(text.match(/원국과 걸리는 것만 셌습니다/g)).toHaveLength(1);
+  // 대운 관계가 실제로 행으로 선다 — 고지가 좁아진 것이 채워졌다는 증거다.
+  expect(text).toMatch(/대운 월[간지] /);
 
   // 강도 딱지가 한 카드 안에서 갈린다 — 세운·월운은 사실, 대운은 유도다.
   expect(text).toContain('사실');
@@ -126,8 +128,48 @@ test('시간 미상이면 지금의 운에서 대운만 후보로 내려앉는�
   expect(text).toContain('후보로 봅니다');
   expect(text).toContain('시각을 몰라 대운수가 두 달쯤 흔들리므로');
   // 목록의 한계 둘이 나란히 선다 — 하나는 우리 구현, 하나는 빠진 입력이다.
-  expect(text).toContain('대운이 낀 관계는 아직 세지 않아');
+  expect(text).toContain('원국과 걸리는 것만 셌습니다');
   expect(text).toContain('시주를 빼고 센 목록이라');
+});
+
+/**
+ * 대운 표가 **세운 표와 같은 모양**이 됐다 — 십성·12운성·12신살·관계.
+ *
+ * 그리고 '현재' 강조가 세 표에서 **한 곳**에서 나온다(`CurrentFortune`). 세운·월운 표가
+ * 각자 절입 시각을 견주고 있었는데, 표마다 따로 짚으면 어긋나는 날 어느 쪽이 맞는지
+ * 알 수 없다 — 그 어긋남은 브라우저로 눌러야만 보인다.
+ */
+test('대운 표가 칸 안을 채우고 지금 도는 칸을 짚는다', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+
+  await page.goto('/');
+  await enterKnownBirth(page);
+  await page.getByRole('button', { name: '사주 보기' }).click();
+
+  await page.getByRole('tab', { name: '대운' }).click();
+  const panel = page.getByRole('tabpanel');
+  const text = await panel.innerText();
+
+  // 칸 안이 세운 표와 같은 모양이다 — 십성·12운성·12신살이 함께 선다.
+  expect(text).toContain('천간 십성');
+  expect(text).toContain('12운성(일간 기준)');
+  // 대운이 원국과 맺는 관계가 실제로 찍힌다.
+  expect(text).toMatch(/[가-힣]+(합|충|형|파|해|원진|귀문)/);
+  // 세운·월운을 함께 놓지 않았다는 것을 표가 밝힌다.
+  expect(text).toContain('세운·월운은 함께 놓지 않았습니다');
+
+  // 지금 도는 칸이 짚혀 있다. 어느 칸인지는 브라우저의 '지금' 이 정하므로
+  // 몇 번째인지 대신 **한 칸만** 짚혔는지를 본다.
+  expect(text.match(/현재/g)).toHaveLength(1);
+
+  // 같은 판정이 세운 표에도 서고, 그 값은 한 곳에서 나온다.
+  await page.getByRole('tab', { name: '세운' }).click();
+  expect((await panel.innerText()).match(/현재/g)?.length ?? 0).toBeLessThanOrEqual(1);
+
+  expect(errors).toEqual([]);
 });
 
 /**

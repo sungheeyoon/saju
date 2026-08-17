@@ -389,6 +389,7 @@ const asOfLabel = (viewedOn: CivilDateTime): string =>
 /** 현재운 관계 행에서 그 글자가 어느 판의 것인지 */
 const NOW_CHART_LABELS: Record<string, string> = {
   natal: '',
+  decade: '대운',
   annual: '세운',
   monthly: '월운',
 };
@@ -505,7 +506,7 @@ export function findNowUtterances(now: CurrentFortune): FragmentRequest[] {
 
   // 목록의 한계 둘이 나란히 선다. 앞은 **우리 구현**이 못 센 것이라 늘 서고,
   // 뒤는 **입력**이 빠진 것이라 시각을 모를 때만 선다.
-  requests.push({ ...base, topic: 'now.coverage', variant: 'daeun-not-counted', slots: {} });
+  requests.push({ ...base, topic: 'now.coverage', variant: 'fortunes-not-crossed', slots: {} });
 
   if (!now.hourKnown) {
     requests.push({ ...base, topic: 'relation.coverage', variant: 'natal', slots: {} });
