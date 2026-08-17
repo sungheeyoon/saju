@@ -150,8 +150,14 @@ export function BirthFields({
               시각
             </label>
 
+            {/*
+              `Group` 은 label 이 아니라 div 라서(라디오 둘이 저마다 label 을 달아야
+              한다) **이 칸만 이름을 잃는다.** 라디오는 '시각'·'모름' 이라고 스스로
+              말하는데 시각 입력은 스크린리더에 그냥 time 필드로 읽힌다.
+            */}
             <input
               type="time"
+              aria-label="출생시각"
               value={value.time}
               onChange={(e) => set('time', e.target.value)}
               disabled={value.hourKnown !== true}

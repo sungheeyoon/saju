@@ -1,7 +1,17 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const enterKnownBirth = async (page: Page) => {
+/**
+ * 시각을 아는 입력 한 벌.
+ *
+ * **라디오를 고르는 줄이 요점이다.** 시간 모름이 체크박스에서 라디오 둘로 바뀌면서
+ * (`hourKnown: boolean | null`) 아무것도 고르지 않은 상태가 생겼고, 그 상태에서는
+ * 시각 칸이 잠긴다 — 고르지 않은 것을 골랐다고 치지 않기로 한 결정의 결과다.
+ * 이름도 필수라 여기서 함께 채운다(계산에는 안 들어가고 제출 조건에만 든다).
+ */
+const enterKnownBirth = async (page: Page, name = '민수') => {
+  await page.getByLabel('이름', { exact: true }).fill(name);
   await page.getByLabel('생년월일', { exact: true }).fill('1990-05-15');
+  await page.getByRole('radio', { name: '시각', exact: true }).check();
   await page.getByLabel('출생시각', { exact: true }).fill('14:30');
 };
 
@@ -33,12 +43,13 @@ test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한�
   await page.goto('/');
   await enterKnownBirth(page);
 
-  await page.getByLabel('시간 모름').check();
+  await page.getByRole('radio', { name: '모름', exact: true }).check();
   await expect(page.getByLabel('출생시각', { exact: true })).toBeDisabled();
   await page.getByRole('button', { name: '사주 보기' }).click();
   await expect(page.getByText('미상 · 시주를 뽑지 않았습니다')).toBeVisible();
 
-  await page.getByLabel('시간 모름').uncheck();
+  // 라디오는 끌 수 없다 — 반대쪽을 고른다. 그것이 라디오로 바꾼 이유이기도 하다.
+  await page.getByRole('radio', { name: '시각', exact: true }).check();
   await page.getByLabel('출생시각', { exact: true }).fill('14:30');
   await page.locator('summary').filter({ hasText: '고급 설정' }).click();
   await page.getByRole('radio', { name: '진태양시' }).check();
@@ -73,6 +84,8 @@ test('제출한 입력이 주소에 실려 링크와 새로고침에서 같은 �
 
   const shared = new URL(page.url());
   expect(Object.fromEntries(shared.searchParams)).toEqual({
+    // 이름은 계산에 안 들어가지만 주소에는 실린다 — 링크를 나누면 이름도 나눠진다.
+    name: '민수',
     date: '1990-05-15',
     hour: '14:30',
     gender: 'female',
@@ -128,12 +141,21 @@ test('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그대로
     page.getByRole('heading', { name: '두 사람의 생년월일시를 입력해 주세요' }),
   ).toBeVisible();
 
-  const first = page.getByRole('group', { name: '첫 번째 사람' });
-  const second = page.getByRole('group', { name: '두 번째 사람' });
-  await first.getByLabel('생년월일', { exact: true }).fill('1990-05-15');
-  await first.getByLabel('출생시각', { exact: true }).fill('14:30');
-  await second.getByLabel('생년월일', { exact: true }).fill('1992-08-20');
-  await second.getByLabel('출생시각', { exact: true }).fill('09:00');
+  // **묶음의 이름이 입력한 이름으로 바뀐다**(`legend` 가 `nameOf(form, side)`다).
+  // 그래서 이름을 마지막에 채우고, 그 뒤로는 사람 이름으로 가리킨다.
+  for (const [placeholder, name, date, time] of [
+    ['첫 번째 사람', '민수', '1990-05-15', '14:30'],
+    ['두 번째 사람', '지영', '1992-08-20', '09:00'],
+  ] as const) {
+    const group = page.getByRole('group', { name: placeholder });
+
+    await group.getByLabel('생년월일', { exact: true }).fill(date);
+    await group.getByRole('radio', { name: '시각', exact: true }).check();
+    await group.getByLabel('출생시각', { exact: true }).fill(time);
+    await group.getByLabel('이름', { exact: true }).fill(name);
+  }
+
+  const first = page.getByRole('group', { name: '민수' });
   await page.getByRole('button', { name: '궁합 보기' }).click();
 
   await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
