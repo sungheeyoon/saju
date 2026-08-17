@@ -17,6 +17,38 @@ import {
  * 것이 된다. 이 파일이 아는 것은 **어디에 놓을지**뿐이다.
  */
 
+/**
+ * L3 발화 중 **표가 이미 든 것.**
+ *
+ * 조립기는 고르지 않는다(`ASSEMBLE_POLICY.selection: 'all-facts-speak'`). 줄이는
+ * 것은 화면의 몫인데, 계약이 "줄인다면 그것도 정책 값으로 적는다"고 못박아 두었다.
+ * 여기가 그 값이다 — 관계는 종류·글자·자리를 열로 가르는 표가 원국·궁합 양쪽에 이미
+ * 있고, 같은 값을 문장 목록에 한 번 더 내면 읽는 사람은 다른 값인 줄 알고 두 번 읽는다.
+ *
+ * `relation.coverage` 는 버리지 않는다. 두 표의 각주가 각각 손으로 "시주를 몰라
+ * 시주가 걸린 관계는 빠져 있습니다"라고 적고 있었는데, 궁합 쪽은 **누구인지를 못
+ * 적었다.** 그 자리에 발화를 그대로 놓는다.
+ */
+export const TOPICS_THE_TABLE_HOLDS: readonly string[] = [
+  'relation.present',
+  'relation.coverage',
+];
+
+/**
+ * 그중 표의 **각주 자리**에 놓는 것.
+ *
+ * 목록에서 빼는 것과 아예 버리는 것은 다르다. 이 한 줄을 목록에도 두면 같은 문장이
+ * 화면에 두 번 찍히는데, 테스트는 그것을 못 본다 — 조립기는 발화를 한 번만 내고
+ * 두 번 놓는 것은 화면의 일이라서다. 브라우저로 눌러 보고 잡았다.
+ */
+export const TOPIC_TABLE_FOOTNOTE = 'relation.coverage';
+
+/** 어느 주제의 발화인가 — 표가 든 것은 빼고 목록에 넘긴다 */
+export const said = (
+  utterances: readonly Utterance[],
+  pick: (topic: string) => boolean,
+): Utterance[] => utterances.filter((utterance) => pick(utterance.request.topic));
+
 /** 강도 칸의 모양 — 사다리가 위에서 아래로 옅어진다 */
 const STRENGTH_TONE: Record<Exclude<ClaimStrength, 'silent'>, string> = {
   fact: 'border-border text-secondary',

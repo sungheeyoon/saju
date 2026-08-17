@@ -24,7 +24,7 @@ import {
 import { BirthFields } from './birth-form';
 import { CopyLinkButton } from './copy-link';
 import { CARD, PILLAR_COLUMNS } from './saju-calculator';
-import { UtteranceList } from './utterances';
+import { TOPICS_THE_TABLE_HOLDS, TOPIC_TABLE_FOOTNOTE, UtteranceList, said } from './utterances';
 import {
   DEFAULT_QUERY,
   TIME_BASIS,
@@ -237,23 +237,6 @@ export function CompatCalculator() {
   );
 }
 
-/**
- * L3 발화 중 **표가 이미 든 것.**
- *
- * 조립기는 고르지 않는다(`ASSEMBLE_POLICY.selection: 'all-facts-speak'`). 줄이는
- * 것은 화면의 몫인데, 계약이 "줄인다면 그것도 정책 값으로 적는다"고 못박아 두었다.
- * 여기가 그 값이다 — 관계는 종류·글자·자리를 열로 가르는 표가 이미 있고, 같은 값을
- * 문장 목록에 한 번 더 내면 읽는 사람은 다른 값인 줄 알고 두 번 읽는다.
- *
- * `relation.coverage` 는 버리지 않는다. 관계 표의 각주가 손으로 "시주를 모르는 쪽이
- * 있어 실제보다 적게 나옵니다"라고 적고 있었는데 **누구인지를 못 적었다** — 그 자리에
- * 발화를 그대로 놓는다.
- */
-const TOPICS_THE_TABLE_HOLDS = ['relation.present', 'relation.coverage'] as const;
-
-const isHeldByTable = (utterance: Utterance) =>
-  (TOPICS_THE_TABLE_HOLDS as readonly string[]).includes(utterance.request.topic);
-
 function CompatView({
   charts,
   compat,
@@ -271,16 +254,18 @@ function CompatView({
     b: { label: names.b, hourKnown: charts.b.meta.hourKnown },
   });
 
-  const coverage = utterances.filter(
-    (utterance) => utterance.request.topic === 'relation.coverage',
-  );
-
   return (
     <div className="flex flex-col gap-6">
       <CopyLinkButton />
       <ChartPair charts={charts} names={names} />
-      <BetweenRelations compat={compat} names={names} coverage={coverage} />
-      <SaidBetween utterances={utterances.filter((utterance) => !isHeldByTable(utterance))} />
+      <BetweenRelations
+        compat={compat}
+        names={names}
+        coverage={said(utterances, (topic) => topic === TOPIC_TABLE_FOOTNOTE)}
+      />
+      <SaidBetween
+        utterances={said(utterances, (topic) => !TOPICS_THE_TABLE_HOLDS.includes(topic))}
+      />
 
       {compat.warnings.length > 0 && (
         <section className={CARD}>

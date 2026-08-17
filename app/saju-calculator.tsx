@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 
 import { BirthFields } from './birth-form';
 import { CopyLinkButton } from './copy-link';
+import { TOPICS_THE_TABLE_HOLDS, TOPIC_TABLE_FOOTNOTE, UtteranceList, said } from './utterances';
 import {
   DEFAULT_QUERY,
   TIME_BASIS,
@@ -35,6 +36,7 @@ import {
   TWELVE_SPIRIT_ALIAS,
   TWELVE_SPIRIT_KO,
   TWELVE_STAGE_KO,
+  assembleText,
   computeSaju,
   directionParticipantsOf,
   orderedParticipants,
@@ -45,6 +47,7 @@ import {
   type Saju,
   type StarNature,
   type StarTarget,
+  type Utterance,
 } from '@/src/lib/saju';
 
 /**
@@ -260,21 +263,61 @@ function SajuView({ saju }: { saju: Saju }) {
   const [fortuneView, setFortuneView] = useState<'daeun' | 'saeun' | 'wolun'>('saeun');
   const [viewedAt] = useState(() => Date.now());
 
+  const utterances = useMemo(() => assembleText(saju), [saju]);
+
   return (
     <div className="flex flex-col gap-6">
       <ResultNav />
       <CopyLinkButton />
       <PillarChart saju={saju} />
+      <SaidAbout
+        utterances={said(utterances, (topic) => !TOPICS_THE_TABLE_HOLDS.includes(topic))}
+      />
       <div id="analysis" className="scroll-mt-20 grid gap-6 lg:grid-cols-2">
         <ElementChart saju={saju} />
         <StrengthMeter saju={saju} />
       </div>
-      <RelationTable saju={saju} />
+      <RelationTable
+        saju={saju}
+        coverage={said(utterances, (topic) => topic === TOPIC_TABLE_FOOTNOTE)}
+      />
       <FortuneTabs view={fortuneView} onChange={setFortuneView} saju={saju} viewedAt={viewedAt} />
       <StarTable saju={saju} />
       <TimeCorrections saju={saju} />
       <Warnings saju={saju} />
     </div>
+  );
+}
+
+/**
+ * 이 명식에 대해 **말할 수 있는 것** — 문장은 요약, 아래 카드가 근거다.
+ *
+ * 궁합에서는 손으로 쓴 카드를 발화로 갈아 끼웠다. 여기서는 그러지 않는다 —
+ * **원국 카드가 발화보다 자세하기** 때문이다. 세력 막대와 세 기준, 지장간 며칠치,
+ * 조후 원문의 조건, 종격 판정의 재료 넷은 한 문장으로 접을 수 없고 접어서도 안 된다.
+ * 그래서 역할을 나눈다: 이 카드는 **얼마나 세게 말할 수 있는가**를 들고, 아래 카드들은
+ * 그렇게 말하게 해 준 숫자를 든다.
+ *
+ * **나란히 서는 것이 요점이다.** 억부 문장과 종격 문장이 서로 다른 오행을 가리킬 수
+ * 있어서, 종격 여섯 벌이 전부 "억부 후보를 뒤집지 않습니다"를 달고 나간다. 두 문장을
+ * 서로 다른 카드에 흩어 두면 그 마디가 무엇을 향한 말인지 보이지 않는다.
+ */
+function SaidAbout({ utterances }: { utterances: Utterance[] }) {
+  return (
+    <section className={CARD}>
+      <h2 className="text-base font-semibold">이 명식에 대해 말할 수 있는 것</h2>
+
+      <div className="mt-3">
+        <UtteranceList utterances={utterances} />
+      </div>
+
+      <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
+        왼쪽 딱지는 <strong className="font-medium">얼마나 세게 말할 수 있는가</strong>입니다.
+        여덟 글자에서 곧장 세어진 것은 사실, 우리가 고른 문턱을 거친 것은 유도, 아직 시험
+        중인 규칙은 후보, 조건을 자동 판정하지 않고 옮겨 적은 표는 참고입니다. 근거보다
+        세게 말하지 않는지는 계약이 검사하고, 아래 카드들이 그 근거를 숫자로 폅니다.
+      </p>
+    </section>
   );
 }
 
@@ -619,7 +662,7 @@ function StarTable({ saju }: { saju: Saju }) {
  * 붙어 있어야 성립한다고 보는 학파를 위해 떨어진 것은 거리를 밝히고, 반쪽만
  * 모인 것은 반쪽이라고 밝힌다. 걸러내는 것은 읽는 사람의 몫이다.
  */
-function RelationTable({ saju }: { saju: Saju }) {
+function RelationTable({ saju, coverage }: { saju: Saju; coverage: Utterance[] }) {
   const { relations } = saju;
 
   return (
@@ -718,10 +761,20 @@ function RelationTable({ saju }: { saju: Saju }) {
         </>
       )}
 
+      {/*
+        손으로 적던 자리다: "시주를 몰라 시주가 걸린 관계는 빠져 있습니다."
+        같은 말인데 **목록의 한계는 목록이 든다**는 규칙에서 나온 문장이 따로 있고,
+        그 문장은 강도까지 달고 나온다(`relation.coverage`). 두 벌 적을 이유가 없다.
+      */}
+      {coverage.length > 0 && (
+        <div className="mt-3 border-t border-border pt-3">
+          <UtteranceList utterances={coverage} />
+        </div>
+      )}
+
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
         성립 여부만 적습니다. 합이 이뤄지는지, 충이 합을 깨는지는 학파마다 갈려 판정하지 않습니다.
         원진과 귀문은 네 쌍이 겹치므로 같은 두 글자에 두 줄이 함께 나올 수 있습니다.
-        {!saju.meta.hourKnown && ' 시주를 몰라 시주가 걸린 관계는 빠져 있습니다.'}
       </p>
     </section>
   );
