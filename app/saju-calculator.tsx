@@ -191,6 +191,23 @@ export function SajuCalculator() {
 
   const [form, setForm] = useState<Query>(query ?? DEFAULT_QUERY);
 
+  /**
+   * 운을 짚을 기준 시각 — **제출할 때마다 새로 잡는다.**
+   *
+   * 한동안 결과 화면 안에서 `useState(() => Date.now())` 로 잡았고, 그래서 **첫 계산
+   * 때 한 번 얼었다.** '결과 업데이트' 를 눌러도 갱신되지 않아, 탭을 열어 둔 채
+   * 입춘·절입·생일을 넘기면 지난 운을 지금이라고 보여 줬다 — 문장이 "이 화면을 다시
+   * 열면 그때의 시각으로 다시 셉니다"라고 적고 있는데 그 절반이 거짓이었다.
+   *
+   * 폼 위쪽에 두는 이유는 **제출이 여기서 일어나기** 때문이다. 결과 화면 안에서는
+   * 자기가 왜 다시 그려지는지 알 수 없어서 "다시 제출됐다"를 알아낼 방법이 없다.
+   *
+   * 링크로 바로 들어온 경우에는 제출이 없으므로 첫 렌더 시각이 그 값이다. 어느
+   * 쪽이든 `Date.now()` 를 부르는 곳은 여기 한 곳이고, 엔진은 시각을 스스로 묻지
+   * 않는다(`NOW_POLICY.viewingInstant`).
+   */
+  const [viewedAt, setViewedAt] = useState(() => Date.now());
+
   const missing = missingAnswer(form);
 
   // 주소가 밖에서 바뀌면(뒤로가기·앞으로가기·링크로 들어옴) 폼도 그 값으로 되돌린다.
@@ -212,6 +229,8 @@ export function SajuCalculator() {
   const submit = (next: Query) => {
     const params = toSearchParams(next).toString();
     shown.current = params;
+    // 제출은 "지금 다시 봐 달라"는 뜻이기도 하다.
+    setViewedAt(Date.now());
     if (query === null) window.history.pushState(null, '', `?${params}`);
     else window.history.replaceState(null, '', `?${params}`);
   };
@@ -258,7 +277,7 @@ export function SajuCalculator() {
           </p>
         </section>
       ) : result.ok ? (
-        <SajuView saju={result.saju} />
+        <SajuView saju={result.saju} viewedAt={viewedAt} />
       ) : (
         <p role="alert" className={`${CARD} text-sm`}>
           {result.message}
@@ -268,9 +287,8 @@ export function SajuCalculator() {
   );
 }
 
-function SajuView({ saju }: { saju: Saju }) {
+function SajuView({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
   const [fortuneView, setFortuneView] = useState<'daeun' | 'saeun' | 'wolun'>('saeun');
-  const [viewedAt] = useState(() => Date.now());
 
   const utterances = useMemo(() => assembleText(saju), [saju]);
 

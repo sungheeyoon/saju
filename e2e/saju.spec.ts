@@ -133,6 +133,42 @@ test('시간 미상이면 지금의 운에서 대운만 후보로 내려앉는�
 });
 
 /**
+ * 기준 시각이 **제출할 때마다** 새로 잡히는가.
+ *
+ * 한동안 결과 화면 안에서 `useState(() => Date.now())` 로 잡아 **첫 계산 때 한 번
+ * 얼었다.** 탭을 열어 둔 채 입춘·절입·생일을 넘기면 지난 운을 지금이라고 보여 주는데,
+ * 문장은 "이 화면을 다시 열면 그때의 시각으로 다시 셉니다"라고 적고 있었다.
+ *
+ * **유닛 테스트가 못 보는 종류다** — 조립기는 넘겨받은 시각으로 정확히 셈하고 있었고,
+ * 틀린 것은 화면이 무엇을 넘기는지였다. 그래서 시계를 손으로 돌려 브라우저에서 본다.
+ */
+test('기준 시각은 제출할 때마다 새로 잡힌다', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-08-17T10:00:00+09:00') });
+  await page.goto('/');
+
+  await enterKnownBirth(page);
+  await page.getByRole('button', { name: '사주 보기' }).click();
+
+  const asOf = async () =>
+    (await page.locator('#fortune').innerText()).match(/(\d+년 \d+월 \d+일 \d+시 \d+분) 기준/)?.[1];
+
+  expect(await asOf()).toBe('2026년 8월 17일 10시 0분');
+
+  await page.clock.fastForward('05:00:00');
+
+  // 아직 제출하지 않았으므로 그대로다 — 초마다 다시 그리지는 않는다.
+  expect(await asOf()).toBe('2026년 8월 17일 10시 0분');
+
+  await page.locator('summary').filter({ hasText: '고급 설정' }).click();
+  await page.getByLabel('세운 시작').fill('2030');
+  await page.getByRole('button', { name: '결과 업데이트' }).click();
+  await expect(page).toHaveURL(/saeun=2030/);
+
+  // 제출은 "지금 다시 봐 달라"는 뜻이기도 하다.
+  expect(await asOf()).toBe('2026년 8월 17일 15시 0분');
+});
+
+/**
  * 대운 표가 **세운 표와 같은 모양**이 됐다 — 십성·12운성·12신살·관계.
  *
  * 그리고 '현재' 강조가 세 표에서 **한 곳**에서 나온다(`CurrentFortune`). 세운·월운 표가
