@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju, type Saju } from '@/src/lib/saju';
-import { TEN_GOD_KO } from '@/src/lib/saju/analysis';
+import { ELEMENT_ROLE_KO, TEN_GOD_KO } from '@/src/lib/saju/analysis';
 import { analyzeCompatibility } from '@/src/lib/saju/compat';
 import {
   ASSEMBLE_POLICY,
@@ -28,8 +28,34 @@ const male = (year: number, month: number, day: number, hour: number | null) =>
     {},
   );
 
-const female = (year: number, month: number, day: number) =>
-  computeSaju({ year, month, day, hour: 9, minute: 0, second: 0, gender: 'female' }, {});
+const female = (year: number, month: number, day: number, hour: number | null = 9) =>
+  computeSaju(
+    hour === null
+      ? { year, month, day, hour: null, gender: 'female' }
+      : { year, month, day, hour, minute: 0, second: 0, gender: 'female' },
+    {},
+  );
+
+/** 두 일간이 같은 오행이라 양방향이 같은 십성이 되는 짝 */
+const MUTUAL = female(1992, 1, 9);
+/** 같은 짝인데 시각만 지웠다 — "없다"는 주장이 어디서 입을 닫는지 */
+const MUTUAL_HOURLESS = female(1992, 1, 9, null);
+/** 한쪽이 관성이면 다른 쪽은 재성이다 — 비대칭이 가장 잘 보이는 짝 */
+const OFFICER = female(1992, 1, 5);
+/** 같은 짝의 시간 미상 판 — 양쪽 억부 문장이 함께 내려앉는 것을 본다 */
+const OFFICER_HOURLESS = female(1992, 1, 5, null);
+
+const compatOf = (a: Saju, b: Saju) => analyzeCompatibility(a, b);
+
+const peopleOf = (a: Saju, b: Saju) => ({
+  a: { label: '민수', hourKnown: a.meta.hourKnown },
+  b: { label: '지영', hourKnown: b.meta.hourKnown },
+});
+
+const compatText = (a: Saju, b: Saju) => assembleCompatText(compatOf(a, b), peopleOf(a, b));
+
+const compatOn = (a: Saju, b: Saju, topic: string) =>
+  compatText(a, b).filter(({ request }) => request.topic === topic);
 
 /** 관계가 다섯 걸리는 명식 */
 const RICH = male(1990, 5, 20, 14);
@@ -278,22 +304,7 @@ describe('조립기', () => {
    * 사주팔자 표에 여덟 자리 전부 있고, 표에 없던 자리가 이것뿐이다.
    */
   describe('궁합 십성', () => {
-    const compatOf = (a: Saju, b: Saju) => analyzeCompatibility(a, b);
-
-    const peopleOf = (a: Saju, b: Saju) => ({
-      a: { label: '민수', hourKnown: a.meta.hourKnown },
-      b: { label: '지영', hourKnown: b.meta.hourKnown },
-    });
-
-    const rowsOf = (a: Saju, b: Saju) =>
-      assembleCompatText(compatOf(a, b), peopleOf(a, b)).filter(
-        ({ request }) => request.topic === 'tenGods.between',
-      );
-
-    /** 두 일간이 같은 오행이라 양방향이 같은 십성이 되는 짝 */
-    const MUTUAL = female(1992, 1, 9);
-    /** 한쪽이 관성이면 다른 쪽은 재성이다 — 비대칭이 가장 잘 보이는 짝 */
-    const OFFICER = female(1992, 1, 5);
+    const rowsOf = (a: Saju, b: Saju) => compatOn(a, b, 'tenGods.between');
 
     /**
      * 방향이 변종이 아니라 슬롯이라는 것의 결과다. 값이 같으면 두 행이 같은 말을
@@ -353,15 +364,118 @@ describe('조립기', () => {
       expect(absent, '담기지 않은 십성이 있어야 대조가 무엇이라도 잡는다').toBeDefined();
     });
 
-    it('나온 행은 계약을 지킨다', () => {
-      for (const partner of [MUTUAL, OFFICER]) {
-        for (const a of [RICH, HOURLESS]) {
-          for (const utterance of assembleCompatText(compatOf(a, partner), peopleOf(a, partner))) {
-            expect(utterance.violations, utterance.key ?? '(silent)').toHaveLength(0);
-          }
+  });
+
+  /**
+   * 궁합의 **첫 산문**이다. 그 전까지 궁합이 낸 발화는 전부 `fact` 였고(관계 행 ·
+   * 목록 · 십성), 그래서 `hourKnown` 도 궁합에서는 아무 일도 하지 않는 값이었다.
+   */
+  describe('궁합 억부 부합', () => {
+    const matchesOf = (a: Saju, b: Saju) =>
+      compatText(a, b).filter(({ request }) => request.topic.startsWith('eokbuMatch.'));
+
+    it('궁합에서 처음으로 사실이 아닌 강도가 선다', () => {
+      const strengths = new Set(compatText(RICH, OFFICER).map((utterance) => utterance.strength));
+
+      expect(strengths.has('candidate')).toBe(true);
+
+      // 나머지는 전부 행이다 — 이 주제가 붙기 전에는 사실 하나뿐이었다.
+      expect([...strengths].sort()).toEqual(['candidate', 'fact']);
+    });
+
+    /**
+     * 억부는 각자의 원국에서 이미 시험값이고, 궁합으로 넘어오며 딱지가 떨어지면
+     * 근거 없는 확신이 결론으로 새어 나간다(`COMPAT_POLICY.eokbu`).
+     */
+    it('시험값 딱지를 물려받는다', () => {
+      for (const utterance of matchesOf(RICH, OFFICER)) {
+        expect(utterance.strength).toBe('candidate');
+        expect(utterance.text).toContain('후보');
+      }
+    });
+
+    /**
+     * 상대의 시지가 그 오행이었을 수 있으므로 "없습니다"는 그냥 틀린 문장이 된다.
+     * 내리는 것이 아니라 입을 닫는다 — 무근과 같은 자리다.
+     */
+    it('없다는 주장은 상대의 시주가 빠지면 입을 닫는다', () => {
+      const spoke = matchesOf(RICH, MUTUAL).find(
+        ({ request }) => request.topic === 'eokbuMatch.missing',
+      );
+      expect(spoke?.text, '시각을 알면 말한다').not.toBeNull();
+
+      const silent = matchesOf(RICH, MUTUAL_HOURLESS).find(
+        ({ request }) => request.topic === 'eokbuMatch.missing',
+      );
+
+      // 발화 자체는 선다. 걸러 버리면 "사실이 없다"와 한 덩어리가 된다.
+      expect(silent, '요청은 그대로 있어야 한다').toBeDefined();
+      expect(silent!.strength).toBe('silent');
+      expect(silent!.key).toBeNull();
+    });
+
+    /**
+     * 원국에서는 '시주' 한 마디로 충분했다 — 명식이 하나뿐이라 누구 것인지 물을
+     * 일이 없었다. 궁합에서는 그것으로 못 가린다.
+     */
+    it('강등된 문장이 누구의 시주를 뺐는지 부른다', () => {
+      const downgraded = matchesOf(RICH, OFFICER_HOURLESS);
+
+      expect(downgraded.length).toBeGreaterThan(0);
+      for (const utterance of downgraded) {
+        expect(utterance.strength).toBe('reference');
+        expect(utterance.text).toContain('지영의 시주');
+      }
+    });
+
+    /**
+     * 한쪽 시주만 빠져도 두 문장이 함께 내려간다. 비중은 **상대의** 여덟 글자에서
+     * 나오므로 내 억부 문장도 상대의 시주에 걸린다 — 관계 행이 시주와 무관하게
+     * 사실로 남는 것과 갈리는 자리다.
+     */
+    it('한쪽만 몰라도 양쪽 문장이 함께 내려간다', () => {
+      const rungs = matchesOf(RICH, OFFICER_HOURLESS).map((utterance) => utterance.strength);
+
+      expect(rungs).toEqual(['reference', 'reference']);
+
+      // 같은 짝인데 시각을 알면 둘 다 후보다.
+      expect(matchesOf(RICH, OFFICER).map((utterance) => utterance.strength)).toEqual([
+        'candidate',
+        'candidate',
+      ]);
+    });
+
+    /**
+     * 자리 이름은 명리 용어라 근거 목록에 없으면 걸린다. 오행 이름은 한 글자라
+     * 그물에서 빠져 있고(`MYEONGRI_LEXICON`) 그것을 막는 것은 `vocabulary` 쪽이다.
+     */
+    it('근거에 억부 자리 이름이 담긴다', () => {
+      const compat = compatOf(RICH, OFFICER);
+      const grounded = new Set(groundedCompatTermsOf(compat));
+
+      for (const match of Object.values(compat.eokbuMatch)) {
+        expect(grounded.has(ELEMENT_ROLE_KO[match.role])).toBe(true);
+      }
+    });
+
+    /** 궁합 점수를 내지 않기로 한 결정이 산문에서 풀리는지 보는 자리다 */
+    it('채워 준다고 말하지 않는다', () => {
+      for (const utterance of matchesOf(RICH, OFFICER)) {
+        for (const word of ['채워', '보완', '도움', '잘 맞']) {
+          expect(utterance.text!.includes(word), `${utterance.key} 에 ${word}`).toBe(false);
         }
       }
     });
+  });
+
+  it('궁합 발화는 전부 계약을 지킨다', () => {
+    for (const partner of [MUTUAL, MUTUAL_HOURLESS, OFFICER]) {
+      for (const a of [RICH, HOURLESS]) {
+        for (const utterance of compatText(a, partner)) {
+          expect(utterance.violations, utterance.key ?? '(silent)').toHaveLength(0);
+        }
+      }
+    }
   });
 
   it('정책은 납작한 문자열이라 스냅샷이 그대로 찍는다', () => {

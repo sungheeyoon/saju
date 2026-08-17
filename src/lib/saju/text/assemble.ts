@@ -367,6 +367,7 @@ export function groundedCompatTermsOf(compat: Compatibility): string[] {
 
   for (const relation of compat.relations) terms.add(relation.ko);
   for (const tenGod of Object.values(compat.tenGods)) terms.add(TEN_GOD_KO[tenGod]);
+  for (const match of Object.values(compat.eokbuMatch)) terms.add(ELEMENT_ROLE_KO[match.role]);
 
   return [...terms];
 }
@@ -425,12 +426,35 @@ export function findCompatUtterances(
   // 행에는 **누구의** 시주가 빠졌는지 적을 자리가 없었다. 목록은 이름을 부른다 —
   // 한쪽만 모르는 것과 둘 다 모르는 것은 같은 칸이지만 같은 문장은 아니다.
   const unknown = COMPAT_SIDES.filter((side) => !people[side].hourKnown);
+  const who = unknown.length > 0 ? joinNames(unknown.map((side) => people[side].label)) : '';
+
+  // 억부 부합 — 궁합의 첫 산문. 방향이 갈리면 주제가 갈린다: 상대가 가졌다는 것은
+  // 시주가 빠져도 참이지만 "없다"는 시주가 뒤집을 수 있다.
+  for (const side of COMPAT_SIDES) {
+    const match = compat.eokbuMatch[side];
+    const partner = side === 'a' ? 'b' : 'a';
+
+    requests.push({
+      ...base,
+      topic: match.presentInPartner ? 'eokbuMatch.supplied' : 'eokbuMatch.missing',
+      variant: 'partner',
+      slots: {
+        viewer: people[side].label,
+        partner: people[partner].label,
+        role: ELEMENT_ROLE_KO[match.role],
+        element: ELEMENT_KO[match.element],
+        ratio: `${Math.round(match.partnerRatio * 100)}%`,
+        who,
+      },
+    });
+  }
+
   if (unknown.length > 0) {
     requests.push({
       ...base,
       topic: 'relation.coverage',
       variant: 'compat',
-      slots: { who: joinNames(unknown.map((side) => people[side].label)) },
+      slots: { who },
     });
   }
 
@@ -461,18 +485,16 @@ export function assembleCompatText(
 /**
  * 궁합에서 아직 주제가 없는 사실.
  *
- * 관계와 십성이 행이 됐다. 나머지는 사실이 없어서가 아니라 주제가 없어서
- * 침묵한다 — `UNCOVERED_FACTS` 와 같은 구실이고, 목록을 나눈 것은 세는 대상이
- * `Saju` 가 아니라 `Compatibility` 이기 때문이다.
+ * 관계·십성이 행이 됐고 억부 부합이 문장이 됐다. 나머지는 사실이 없어서가 아니라
+ * 주제가 없어서 침묵한다 — `UNCOVERED_FACTS` 와 같은 구실이고, 목록을 나눈 것은
+ * 세는 대상이 `Saju` 가 아니라 `Compatibility` 이기 때문이다.
  *
- * 남은 둘은 **행이 아니라 문장이어야 한다.** 십성이 행이 된 것은 표를 읽은
- * 값이라 판정이 없어서였는데(`fact`), 이 둘은 그렇지 않다 — 억부 부합은 후보를
- * 물려받고, 오행 보완은 "채우는 것이 좋은가" 자체가 계통 갈림이라 세어 놓은
- * 것에 완충 표현이 필요하다.
+ * 남은 `elementSupport` 는 **문장이어야 한다.** 십성이 행이 된 것은 표를 읽은
+ * 값이라 판정이 없어서였는데(`fact`), 이쪽은 그렇지 않다 — 보완을 좋은 것으로
+ * 읽을지 자체가 계통 갈림이라 세어 놓은 것에도 완충 표현이 필요하다.
  */
 export const UNCOVERED_COMPAT_FACTS: readonly string[] = [
   'elementSupport (서로의 부족한 오행을 채우는가)',
-  'eokbuMatch (내 억부 후보를 상대가 갖고 있는가)',
   'combinedFormations (관계 행에는 들어가지만 따로 모은 목록은 아직)',
 ];
 

@@ -217,6 +217,29 @@ const COMPAT_CASES: CompatCase[] = [
       },
     },
   },
+  /**
+   * 같은 짝인데 지영의 시각만 지운다. 위 케이스에서 "지영 원국에 그 오행이
+   * 없습니다" 로 서던 문장이 **입을 닫는다** — 시지가 그 오행이었을 수 있어서
+   * "없습니다"가 그냥 틀린 문장이 되기 때문이다. 궁합에서 침묵이 처음 보이는
+   * 자리이고, 계약의 `absence → silent` 가 두 사람 판에서도 도는 것을 확인한다.
+   */
+  {
+    id: 'compat-absence-silent',
+    note: '없다는 주장은 상대의 시주가 빠지면 입을 닫는다 — 같은 짝, 시각만 지웠다',
+    people: {
+      a: {
+        label: '민수',
+        saju: computeSaju(
+          { year: 1990, month: 5, day: 20, hour: 14, minute: 30, second: 0, gender: 'male' },
+          {},
+        ),
+      },
+      b: {
+        label: '지영',
+        saju: computeSaju({ year: 1992, month: 1, day: 9, hour: null, gender: 'female' }, {}),
+      },
+    },
+  },
 ];
 
 const formatCompatCase = ({ id, note, people }: CompatCase): string => {

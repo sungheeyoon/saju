@@ -107,6 +107,56 @@ const eokbuFragments = (Object.entries(ROLE_GLOSS) as [ElementRole, string][]).f
 );
 
 /**
+ * 궁합 억부 부합 세 벌 — **궁합에서 처음 서는 산문이다.**
+ *
+ * 그 전까지 궁합이 낸 발화는 전부 `fact` 였다(관계 행 · 목록 · 십성). 완충 표현이
+ * 한 번도 필요하지 않았고, 그래서 `hourKnown` 도 궁합에서는 아무 일도 하지 않는
+ * 죽은 값이었다. 여기서 강등과 침묵이 궁합에 처음 들어온다.
+ *
+ * **`{who}` 가 문장 안으로 들어온 것이 이번의 새 규칙이다.** 원국에서는 강등된 벌이
+ * '시주' 한 마디만 적으면 됐다 — 명식이 하나뿐이라 누구 것인지 물을 일이 없었다.
+ * 궁합에서는 그것으로 못 가린다. 행이 못 하던 말을 목록이 한 것과 같은 문제가
+ * **문장 안에서** 다시 나오고(`relation.coverage`), 같은 방법으로 푼다.
+ *
+ * **비중은 상대의 여덟 글자에서 나온다.** 그래서 두 사람의 시주가 모두 걸린다 —
+ * 내 억부 후보가 무엇인지도, 상대가 그것을 얼마나 가졌는지도 시주가 바꾼다.
+ *
+ * 뜻풀이를 달지 않는다. 그 자리가 일간과 무엇을 맺는지는 **원국의 억부 문장이 이미
+ * 말했고**, 궁합이 얹는 것은 "상대가 갖고 있는가" 하나다. 십성이 뜻풀이를 다는 것과
+ * 정반대인데 이유도 정반대다 — 일간↔일간은 원국 표에 없어 혼자 서야 한다.
+ *
+ * **채워 준다고 말하지 않는다.** 상대가 내 억부 후보를 가졌다는 것과 그것이 좋은
+ * 궁합이라는 것은 다르고, 보완을 좋은 것으로 읽을지부터가 계통 갈림이다
+ * (`COMPAT_POLICY.elementSupport: 'facts-only'`). 문장은 무엇이 얼마나 있는지까지만
+ * 적는다 — 궁합 점수를 내지 않기로 한 결정이 산문에서 풀리는 자리가 여기다.
+ */
+const EOKBU_MATCH_BODY = '{viewer}의 억부 후보는 {role} 자리의 {element} 쪽이고';
+
+const eokbuMatchFragments: Fragment[] = [
+  {
+    topic: 'eokbuMatch.supplied',
+    variant: 'partner',
+    strength: 'candidate',
+    template: `${EOKBU_MATCH_BODY}, {partner} 원국에서 그 오행이 {ratio} 정도입니다. 억부 관점의 후보로 봅니다.`,
+  },
+  // 강등된 벌. 원국과 달리 **누구의** 시주인지를 밝힌다.
+  {
+    topic: 'eokbuMatch.supplied',
+    variant: 'partner',
+    strength: 'reference',
+    template: `{who}의 시주를 빼고 세면 ${EOKBU_MATCH_BODY}, {partner} 원국에서 그 오행이 {ratio} 정도입니다. 억부 관점에서 참고할 수 있습니다.`,
+  },
+  // 한 벌뿐이다. 상대의 시주가 빠지면 그 자리에 그 오행이 있었을 수 있어 "없습니다"
+  // 가 그냥 틀린 문장이 된다 — 내리는 것이 아니라 입을 닫는다.
+  {
+    topic: 'eokbuMatch.missing',
+    variant: 'partner',
+    strength: 'candidate',
+    template: `${EOKBU_MATCH_BODY}, {partner} 원국에는 그 오행이 없습니다. 억부 관점의 후보로 봅니다.`,
+  },
+];
+
+/**
  * 조후 문장이 반드시 적는 것 둘 — **출처와, 판정하지 않은 나머지.**
  *
  * 출처는 계약이 요구한다. `analysis.johu` 는 `ATTRIBUTION_PATHS` 의 유일한
@@ -446,6 +496,10 @@ export const FRAGMENTS: readonly Fragment[] = [
 
   // ── 억부 후보 ────────────────────────────────────────────────────────
   ...eokbuFragments,
+
+  // ── 궁합 억부 부합 ───────────────────────────────────────────────────
+  // 궁합의 첫 산문. 강등된 벌이 누구의 시주를 뺐는지 밝힌다.
+  ...eokbuMatchFragments,
 
   // ── 조후 ─────────────────────────────────────────────────────────────
   // 출처 의무가 처음으로 문장에 걸리는 자리다 — 위 `JOHU_SOURCE` 참조.

@@ -4,7 +4,7 @@ L3 문장 골든 — 발화 판정과 조립
 
   ✓ 문장이 됐다   · 발화는 있으나 조각이 없다   × 말하지 않기로 했다
 
-  말뭉치 37 / 지시서 37 칸
+  말뭉치 40 / 지시서 40 칸
 
     ruleSet          utterance-discovery-v1
     selection        all-facts-speak
@@ -207,7 +207,6 @@ L3 문장 골든 — 발화 판정과 조립
 
   주제가 없어 아직 발화하지 않는 사실.
     elementSupport (서로의 부족한 오행을 채우는가)
-    eokbuMatch (내 억부 후보를 상대가 갖고 있는가)
     combinedFormations (관계 행에는 들어가지만 따로 모은 목록은 아직)
 
 ==============================================================================
@@ -215,12 +214,16 @@ L3 문장 골든 — 발화 판정과 조립
    두 사람 — 누구의 어느 자리 어느 글자인지가 행에 그대로 있다
    민수  癸未 乙酉 辛巳 庚午
    지영  丙辰 癸未 庚戌 壬申
-   사이 관계 15 · 문장 17
+   사이 관계 15 · 문장 19
 
     ✓ tenGods.between/印星@fact
         사실     민수의 눈으로 본 지영 — 편인 (일간을 받쳐 주는 자리)
     ✓ tenGods.between/食傷@fact
         사실     지영의 눈으로 본 민수 — 식신 (일간이 기운을 내보내는 자리)
+    ✓ eokbuMatch.supplied/partner@candidate
+        후보     민수의 억부 후보는 인성 자리의 수 쪽이고, 지영 원국에서 그 오행이 29% 정도입니다. 억부 관점의 후보로 봅니다.
+    ✓ eokbuMatch.supplied/partner@candidate
+        후보     지영의 억부 후보는 인성 자리의 금 쪽이고, 민수 원국에서 그 오행이 40% 정도입니다. 억부 관점의 후보로 봅니다.
     ✓ relation.present/row@fact
         사실     민수 월간 辛 · 지영 시간 丙 — 병신합수
     ✓ relation.present/row@fact
@@ -256,12 +259,16 @@ L3 문장 골든 — 발화 판정과 조립
    한쪽이 시간 미상 — 행은 사실 그대로이고 목록이 누구의 시주가 빠졌는지 든다
    민수  癸未 乙酉 辛巳 庚午
    지영  시미상 癸未 庚戌 壬申
-   사이 관계 13 · 문장 16
+   사이 관계 13 · 문장 18
 
     ✓ tenGods.between/印星@fact
         사실     민수의 눈으로 본 지영 — 편인 (일간을 받쳐 주는 자리)
     ✓ tenGods.between/食傷@fact
         사실     지영의 눈으로 본 민수 — 식신 (일간이 기운을 내보내는 자리)
+    ✓ eokbuMatch.supplied/partner@reference
+        참고     지영의 시주를 빼고 세면 민수의 억부 후보는 인성 자리의 수 쪽이고, 지영 원국에서 그 오행이 37% 정도입니다. 억부 관점에서 참고할 수 있습니다.
+    ✓ eokbuMatch.supplied/partner@reference
+        참고     지영의 시주를 빼고 세면 지영의 억부 후보는 인성 자리의 금 쪽이고, 민수 원국에서 그 오행이 40% 정도입니다. 억부 관점에서 참고할 수 있습니다.
     ✓ relation.coverage/compat@fact
         사실     지영의 시주를 빼고 센 목록이라 그 자리가 낄 관계는 여기 없습니다.
     ✓ relation.present/row@fact
@@ -295,12 +302,16 @@ L3 문장 골든 — 발화 판정과 조립
    십성이 비대칭인 자리 — 한쪽은 관성으로 보고 다른 쪽은 재성으로 본다
    민수  癸未 乙酉 辛巳 庚午
    지영  庚辰 庚辰 庚子 辛未
-   사이 관계 13 · 문장 15
+   사이 관계 13 · 문장 17
 
     ✓ tenGods.between/官星@fact
         사실     민수의 눈으로 본 지영 — 정관 (일간을 누르는 자리)
     ✓ tenGods.between/財星@fact
         사실     지영의 눈으로 본 민수 — 정재 (일간이 기운을 쓰는 자리)
+    ✓ eokbuMatch.supplied/partner@candidate
+        후보     민수의 억부 후보는 인성 자리의 수 쪽이고, 지영 원국에서 그 오행이 15% 정도입니다. 억부 관점의 후보로 봅니다.
+    ✓ eokbuMatch.supplied/partner@candidate
+        후보     지영의 억부 후보는 관성 자리의 화 쪽이고, 민수 원국에서 그 오행이 19% 정도입니다. 억부 관점의 후보로 봅니다.
     ✓ relation.present/row@fact
         사실     민수 일간 乙 · 지영 월간 庚 — 을경합금
     ✓ relation.present/row@fact
@@ -332,12 +343,16 @@ L3 문장 골든 — 발화 판정과 조립
    두 일간이 같은 오행 — 양방향이 같은 십성이라 두 행이 겹친다
    민수  癸未 乙酉 辛巳 庚午
    지영  戊辰 甲申 辛丑 辛未
-   사이 관계 17 · 문장 19
+   사이 관계 17 · 문장 21
 
     ✓ tenGods.between/比劫@fact
         사실     민수의 눈으로 본 지영 — 겁재 (일간과 한편에 서는 자리)
     ✓ tenGods.between/比劫@fact
         사실     지영의 눈으로 본 민수 — 겁재 (일간과 한편에 서는 자리)
+    ✓ eokbuMatch.missing/partner@candidate
+        후보     민수의 억부 후보는 인성 자리의 수 쪽이고, 지영 원국에는 그 오행이 없습니다. 억부 관점의 후보로 봅니다.
+    ✓ eokbuMatch.supplied/partner@candidate
+        후보     지영의 억부 후보는 비겁 자리의 목 쪽이고, 민수 원국에서 그 오행이 14% 정도입니다. 억부 관점의 후보로 봅니다.
     ✓ relation.present/row@fact
         사실     민수 시간 癸 · 지영 시간 戊 — 무계합화
     ✓ relation.present/row@fact
@@ -346,6 +361,53 @@ L3 문장 골든 — 발화 판정과 조립
         사실     민수 월지 巳 · 지영 일지 申 — 사신합수
     ✓ relation.present/row@fact
         사실     민수 일지 酉 · 지영 시지 辰 — 진유합금
+    ✓ relation.present/combined@fact
+        사실     민수 월지 巳 · 민수 일지 酉 · 지영 월지 丑 — 사유축 금국 (두 사람 글자가 합쳐 이룬 것)
+    ✓ relation.present/combined@fact
+        사실     민수 년지 午 · 민수 월지 巳 · 지영 년지 未 — 사오미 화방 (두 사람 글자가 합쳐 이룬 것)
+    ✓ relation.present/row@fact
+        사실     민수 일지 酉 · 지영 일지 申 — 신유 반방합
+    ✓ relation.present/row@fact
+        사실     민수 년간 庚 · 지영 일간 甲 — 갑경충
+    ✓ relation.present/row@fact
+        사실     민수 일간 乙 · 지영 년간 辛 — 을신충
+    ✓ relation.present/row@fact
+        사실     민수 일간 乙 · 지영 월간 辛 — 을신충
+    ✓ relation.present/row@fact
+        사실     민수 시지 未 · 지영 월지 丑 — 축미충
+    ✓ relation.present/row@fact
+        사실     민수 월지 巳 · 지영 일지 申 — 사신형
+    ✓ relation.present/row@fact
+        사실     민수 시지 未 · 지영 월지 丑 — 미축형
+    ✓ relation.present/row@fact
+        사실     민수 년지 午 · 지영 월지 丑 — 축오해
+    ✓ relation.present/row@fact
+        사실     민수 월지 巳 · 지영 일지 申 — 사신파
+    ✓ relation.present/row@fact
+        사실     민수 년지 午 · 지영 월지 丑 — 축오원진
+    ✓ relation.present/row@fact
+        사실     민수 년지 午 · 지영 월지 丑 — 축오귀문
+
+── compat-absence-silent
+   없다는 주장은 상대의 시주가 빠지면 입을 닫는다 — 같은 짝, 시각만 지웠다
+   민수  癸未 乙酉 辛巳 庚午
+   지영  시미상 甲申 辛丑 辛未
+   사이 관계 15 · 문장 19
+
+    ✓ tenGods.between/比劫@fact
+        사실     민수의 눈으로 본 지영 — 겁재 (일간과 한편에 서는 자리)
+    ✓ tenGods.between/比劫@fact
+        사실     지영의 눈으로 본 민수 — 겁재 (일간과 한편에 서는 자리)
+    × eokbuMatch.missing/partner
+        말하지 않음 (말하지 않는다)
+    ✓ eokbuMatch.supplied/partner@reference
+        참고     지영의 시주를 빼고 세면 지영의 억부 후보는 인성 자리의 수 쪽이고, 민수 원국에서 그 오행이 13% 정도입니다. 억부 관점에서 참고할 수 있습니다.
+    ✓ relation.coverage/compat@fact
+        사실     지영의 시주를 빼고 센 목록이라 그 자리가 낄 관계는 여기 없습니다.
+    ✓ relation.present/row@fact
+        사실     민수 년지 午 · 지영 년지 未 — 오미합화
+    ✓ relation.present/row@fact
+        사실     민수 월지 巳 · 지영 일지 申 — 사신합수
     ✓ relation.present/combined@fact
         사실     민수 월지 巳 · 민수 일지 酉 · 지영 월지 丑 — 사유축 금국 (두 사람 글자가 합쳐 이룬 것)
     ✓ relation.present/combined@fact

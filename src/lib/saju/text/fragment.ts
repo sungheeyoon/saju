@@ -55,6 +55,8 @@ export type FragmentTopic =
   | 'rootedness.rootless'
   | 'strength.verdict'
   | 'eokbu.candidate'
+  | 'eokbuMatch.supplied'
+  | 'eokbuMatch.missing'
   | 'johu.table'
   | 'following.verdict'
   | 'tenGods.between'
@@ -186,6 +188,70 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     slots: ['role', 'element'],
     samples: { role: '재성', element: '화' },
     note: '억부 관점에서 어느 자리의 오행을 후보로 보는가',
+  },
+
+  /**
+   * 내 억부 후보를 상대가 갖고 있다 — **궁합에서 처음 서는 산문이다.**
+   *
+   * 그 전까지 궁합이 낸 발화는 전부 `fact` 였다(관계 행 · 목록 · 십성). 완충
+   * 표현이 궁합에서 한 번도 필요하지 않았다는 뜻이고, 그래서 `hourKnown` 도
+   * 궁합에서는 아무 일도 하지 않는 죽은 값이었다 — 사이 관계도 십성도
+   * `HOUR_SENSITIVE_PATHS` 에 없다. 이 주제가 그 분기를 처음 켠다.
+   *
+   * **딱지는 물려받은 것이다.** 억부는 각자의 원국에서 이미 시험값이고
+   * (`COMPAT_POLICY.eokbu: 'inherits-experimental'`) 궁합으로 넘어오면서 떨어지면
+   * 근거 없는 확신이 결론으로 새어 나간다. 상한이 `candidate` 인 것이 그 딱지다.
+   *
+   * **두 사람의 시주가 모두 걸린다.** 내 억부 후보는 내 여덟 글자에서 나오고
+   * (`analysis.strength`·`analysis.eokbu`), 상대 원국에서 그 오행이 차지하는
+   * 비중은 상대의 여덟 글자에서 나온다(`analysis.elements`). 셋 다 시주에 걸리는
+   * 근거라 한쪽만 몰라도 문장이 드는 값이 달라진다.
+   *
+   * 그래서 강등된 벌은 **누구의** 시주를 뺐는지 말해야 한다. `HOUR_UNKNOWN_MARK`
+   * 는 원국에서 '시주' 한 마디로 충분했지만 여기서는 그것으로 못 가린다 — 행이
+   * 못 하던 말을 목록이 한 것과 같은 문제가 **문장 안에서** 다시 나오고, 같은
+   * 방법으로 푼다(`{who}`).
+   *
+   * 뜻풀이(`ROLE_GLOSS`)를 달지 않는다. 그 자리가 일간과 무엇을 맺는지는 **원국의
+   * 억부 문장이 이미 말했고**, 궁합 문장이 그 위에 얹는 것은 "상대가 갖고 있는가"
+   * 하나다. 같은 뜻풀이를 두 번 하면 그것이 동어반복이다 — 십성이 뜻풀이를 다는
+   * 이유가 정반대인 것에 주의할 것(일간↔일간은 원국 표에 없어 혼자 서야 한다).
+   */
+  'eokbuMatch.supplied': {
+    paths: ['analysis.strength', 'analysis.eokbu', 'analysis.elements'],
+    polarity: 'presence',
+    variants: ['partner'],
+    slots: ['viewer', 'partner', 'role', 'element', 'ratio', 'who'],
+    samples: {
+      viewer: '민수',
+      partner: '지영',
+      role: '인성',
+      element: '수',
+      ratio: '32%',
+      who: '지영',
+    },
+    note: '내 억부 후보 오행을 상대가 얼마나 갖고 있는가',
+  },
+
+  /**
+   * 상대에게 그 오행이 **없다** — 같은 근거를 읽는데 방향이 반대다.
+   *
+   * 위와 한 주제로 묶고 변종으로 가를 수 없다. 방향이 주제의 필드인 이유가 정확히
+   * 이것이고(`ClaimPolarity`), 뿌리 있다 ↔ 무근이 두 주제인 것과 같은 자리다 —
+   * 상대의 시주가 빠지면 그 자리에 그 오행이 있었을 수 있어서 "없습니다"가 그냥
+   * 틀린 문장이 된다. 그래서 시간 미상에서는 한 칸 내리는 것이 아니라 입을 닫고,
+   * 조각도 한 벌뿐이다.
+   *
+   * **궁합에서 처음으로 침묵하는 주제다.** 그 침묵은 골든에 `×` 로 찍힌다 —
+   * 조립기가 요청을 걸러 버리면 "사실이 없다"와 한 덩어리가 되어 안 보인다.
+   */
+  'eokbuMatch.missing': {
+    paths: ['analysis.strength', 'analysis.eokbu', 'analysis.elements'],
+    polarity: 'absence',
+    variants: ['partner'],
+    slots: ['viewer', 'partner', 'role', 'element'],
+    samples: { viewer: '민수', partner: '지영', role: '인성', element: '수' },
+    note: '내 억부 후보 오행이 상대 원국에 아예 없다',
   },
 
   /**
