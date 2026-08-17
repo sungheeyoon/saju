@@ -21,10 +21,10 @@ import { followingVariant, indexFragments, type Fragment, type FragmentIndex } f
  * (출처 의무), 종격은 반대로 가장 깊었다 — 판정값 하나만 침묵한다는 것을 스키마가
  * 표현하지 못해 강도가 나오는 축이 (주제, 시각)에서 (주제, 변종, 시각)으로 넓어졌다.
  *
- * 그리고 관계가 22칸에서 **2칸으로 줄었다.** 종류마다 서술어를 달던 것이
+ * 그리고 관계가 22칸에서 **4칸으로 줄었다.** 종류마다 서술어를 달던 것이
  * 동어반복이었다는 것이 드러났고, 세어지기만 하는 사실은 문장이 아니라 **행**이라는
  * 구분이 계약에 들어왔다(`ClaimForm`). 줄이면서 정보는 늘었다 — 행은 자리뿐 아니라
- * 글자를 든다. 분모가 30이다.
+ * 글자를 들고, 궁합에서는 이름까지 든다. 분모가 32다.
  *
  * 빈칸이 없다는 것은 여전히 **할 말을 다 했다는 뜻이 아니다.** 12운성·신살·대운은
  * 아직 침묵하고 그것은 조각이 없어서가 아니라 주제가 없어서다
@@ -266,6 +266,25 @@ const followingFragments = FOLLOWING_WORDINGS.map(
 export const RELATION_ROW = '{participants} — {name}';
 
 /**
+ * 행 뒤에 괄호로 붙는 단서들.
+ *
+ * 서술어가 아니라 **행이 어떤 조건에서 읽힌 것인지**를 적는다. 둘 다 붙으면
+ * 한 괄호 안에 쉼표로 이어진다 — 괄호가 둘이면 어느 쪽이 관계에 걸린 단서이고
+ * 어느 쪽이 계산에 걸린 단서인지 읽는 사람이 다시 물어야 한다.
+ *
+ * `combined` 는 두 사람의 글자가 합쳐 세 글자를 이룬 자리다. 쌍 관계와 무게가
+ * 다르고 **인정 여부 자체가 계통 선택**이라, 같은 표에 놓되 그렇다는 것이 행에
+ * 남아야 한다.
+ */
+export const RELATION_MARKS = {
+  combined: '두 사람 글자가 합쳐 이룬 것',
+  hourUnknown: '시주 없이 본 것',
+} as const;
+
+const relationRow = (...marks: readonly string[]): string =>
+  marks.length === 0 ? RELATION_ROW : `${RELATION_ROW} (${marks.join(', ')})`;
+
+/**
  * 관계 이름의 한자를 그대로 쓰는 이유.
  *
  * 산문은 한국어로 읽어야 하니 '을 일간'·'사월'로 쓰지만, 행은 바로 위에 있는
@@ -273,12 +292,24 @@ export const RELATION_ROW = '{participants} — {name}';
  * 쓰면 표의 `子` 를 찾아 짚을 수가 없다.
  */
 const relationFragments: Fragment[] = [
-  { topic: 'relation.present', variant: 'row', strength: 'fact', template: RELATION_ROW },
+  { topic: 'relation.present', variant: 'row', strength: 'fact', template: relationRow() },
   {
     topic: 'relation.present',
     variant: 'row',
     strength: 'derived',
-    template: `${RELATION_ROW} (시주 없이 여섯 글자에서)`,
+    template: relationRow(RELATION_MARKS.hourUnknown),
+  },
+  {
+    topic: 'relation.present',
+    variant: 'combined',
+    strength: 'fact',
+    template: relationRow(RELATION_MARKS.combined),
+  },
+  {
+    topic: 'relation.present',
+    variant: 'combined',
+    strength: 'derived',
+    template: relationRow(RELATION_MARKS.combined, RELATION_MARKS.hourUnknown),
   },
 ];
 

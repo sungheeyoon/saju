@@ -9,6 +9,7 @@ import {
 import { PILLAR_POSITION_KO, type PillarPosition } from '../position';
 import { TWELVE_SPIRIT_KO } from '../sinsal/twelveSpirits';
 import { TWELVE_STAGE_KO } from '../stages';
+import { COMPAT_CHART_ID, type Compatibility, type CompatSide } from '../compat';
 import type { Relation } from '../relations';
 import type { Saju } from '../index';
 import { FOLLOWING_SILENT_VERDICTS, type ClaimStrength } from './policy';
@@ -69,15 +70,20 @@ const positionsKo = (positions: readonly PillarPosition[]): string =>
  * `chartId` 는 아직 안 쓴다. 원국 한 판뿐이라 누구인지 물을 필요가 없다 —
  * 두 명식을 함께 놓는 궁합에서 이 자리에 이름이 들어온다.
  */
-const participantsOf = (relation: Relation): string =>
+const participantsOf = (relation: Relation, labelOf?: (chartId: string) => string): string =>
   relation.participants
     .map((participant) => {
       const layer = participant.char in STEM_INFO ? '간' : '지';
       const position = PILLAR_POSITION_KO[participant.position].replace('주', layer);
+      const who = labelOf?.(participant.chartId);
 
-      return `${position} ${participant.char}`;
+      return `${who ? `${who} ` : ''}${position} ${participant.char}`;
     })
     .join(' · ');
+
+/** 쌍 관계인가, 두 사람 글자가 합쳐 이룬 것인가 */
+const relationVariant = (relation: Relation): string =>
+  relation.scope === 'combinedFormation' ? 'combined' : 'row';
 
 const tenGodTerms = (pillar: PillarTenGods | null): string[] => {
   if (!pillar) return [];
@@ -295,7 +301,7 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
     requests.push({
       ...base,
       topic: 'relation.present',
-      variant: 'row',
+      variant: relationVariant(relation),
       slots: { participants: participantsOf(relation), name: relation.ko },
     });
   }
@@ -307,6 +313,83 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
 export function assembleText(saju: Saju, index: FragmentIndex = FRAGMENT_INDEX): Utterance[] {
   return findUtterances(saju).map((request) => ({ request, ...renderFragment(request, index) }));
 }
+
+/**
+ * 궁합 한 사람 — **L3 가 알아야 하는 것은 이 둘뿐이다.**
+ *
+ * 명식 전체를 받지 않는 것이 규율이다. 관계는 `Compatibility` 가 이미 다 냈고,
+ * 여기서 더 필요한 것은 그 글자를 **누구라고 부를지**와 시각을 알았는지뿐이다.
+ * `Saju` 를 통째로 받으면 L3 가 다시 계산할 길이 생기고, 그러면 화면의 궁합과
+ * 문장의 궁합이 언젠가 어긋난다.
+ */
+export type CompatPerson = {
+  /** 행에서 이 사람의 글자 앞에 붙는 이름. 계산에는 들어가지 않는다 */
+  label: string;
+  hourKnown: boolean;
+};
+
+/**
+ * 궁합 관계를 행으로 — **원국과 같은 주제, 같은 조각을 쓴다.**
+ *
+ * 갈리는 것은 `{participants}` 슬롯에 이름이 들어온다는 것뿐이다. 궁합용 문장을
+ * 따로 두면 같은 관계가 화면 두 곳에서 다르게 읽히고, 그것은 궁합 관계를
+ * `findRelationsAmong` 하나로 모은 이유를 문장 층에서 되돌리는 것이 된다.
+ *
+ * **시각은 둘 다 알아야 안다.** 한쪽이라도 시주가 없으면 그 사람 두 글자가 낼
+ * 관계를 통째로 못 본 것이라, 목록이 이 두 사람 사이의 전부라고 말할 수 없다.
+ * 적힌 관계 하나하나는 여전히 성립하지만 강도는 목록에도 걸린다.
+ */
+export function findCompatUtterances(
+  compat: Compatibility,
+  people: Record<CompatSide, CompatPerson>,
+): FragmentRequest[] {
+  const labels: Record<string, string> = {
+    [COMPAT_CHART_ID.a]: people.a.label,
+    [COMPAT_CHART_ID.b]: people.b.label,
+  };
+
+  // 모르는 계산판이면 이름 대신 그 이름표를 그대로 보인다. 한쪽으로 기본값을
+  // 주면 남의 기둥이 조용히 내 것으로 적히는데, 그것이 가장 나쁜 실패다.
+  const labelOf = (chartId: string): string => labels[chartId] ?? chartId;
+
+  const base = {
+    grounded: compat.relations.map((relation) => relation.ko),
+    hourKnown: people.a.hourKnown && people.b.hourKnown,
+  };
+
+  return compat.relations.map((relation) => ({
+    ...base,
+    topic: 'relation.present' as const,
+    variant: relationVariant(relation),
+    slots: { participants: participantsOf(relation, labelOf), name: relation.ko },
+  }));
+}
+
+/** 궁합 발화를 찾아 조각에 물린다 */
+export function assembleCompatText(
+  compat: Compatibility,
+  people: Record<CompatSide, CompatPerson>,
+  index: FragmentIndex = FRAGMENT_INDEX,
+): Utterance[] {
+  return findCompatUtterances(compat, people).map((request) => ({
+    request,
+    ...renderFragment(request, index),
+  }));
+}
+
+/**
+ * 궁합에서 아직 주제가 없는 사실.
+ *
+ * 관계만 행이 됐다. 나머지 넷은 사실이 없어서가 아니라 주제가 없어서 침묵한다 —
+ * `UNCOVERED_FACTS` 와 같은 구실이고, 목록을 나눈 것은 세는 대상이 `Saju` 가
+ * 아니라 `Compatibility` 이기 때문이다.
+ */
+export const UNCOVERED_COMPAT_FACTS: readonly string[] = [
+  'elementSupport (서로의 부족한 오행을 채우는가)',
+  'tenGods (서로를 십성으로 무엇이라 보는가 — 양방향)',
+  'eokbuMatch (내 억부 후보를 상대가 갖고 있는가)',
+  'combinedFormations (관계 행에는 들어가지만 따로 모은 목록은 아직)',
+];
 
 /** 문장이 된 것만 */
 export const sentencesOf = (utterances: readonly Utterance[]): string[] =>

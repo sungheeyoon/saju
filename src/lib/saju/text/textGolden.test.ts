@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju, formatPillars, type Saju } from '@/src/lib/saju';
+import { COMPAT_SIDES, analyzeCompatibility, type CompatSide } from '@/src/lib/saju/compat';
 import {
   ASSEMBLE_POLICY,
   CLAIM_STRENGTH_KO,
   CORPUS_POLICY,
   FRAGMENT_INDEX,
+  UNCOVERED_COMPAT_FACTS,
   UNCOVERED_FACTS,
+  assembleCompatText,
   assembleText,
   fragmentCoverage,
+  sentencesOf,
   type Utterance,
 } from '@/src/lib/saju/text';
 
@@ -111,6 +115,79 @@ const formatCase = ({ id, note, saju }: TextCase): string => {
   ].join('\n');
 };
 
+/**
+ * 궁합 케이스 — **같은 주제, 같은 조각인데 행에 이름이 붙는다.**
+ *
+ * 원국 케이스와 나란히 찍혀야 그것이 보인다. 궁합용 문장을 따로 뒀다면 같은
+ * 관계가 화면 두 곳에서 다르게 읽혔을 텐데, 여기서 두 절을 붙여 놓으면 그런
+ * 일이 생기는 순간 diff 가 한눈에 보인다.
+ */
+type CompatCase = {
+  id: string;
+  note: string;
+  people: Record<CompatSide, { label: string; saju: Saju }>;
+};
+
+const COMPAT_CASES: CompatCase[] = [
+  {
+    id: 'compat-named',
+    note: '두 사람 — 누구의 어느 자리 어느 글자인지가 행에 그대로 있다',
+    people: {
+      a: {
+        label: '민수',
+        saju: computeSaju(
+          { year: 1990, month: 5, day: 20, hour: 14, minute: 30, second: 0, gender: 'male' },
+          {},
+        ),
+      },
+      b: {
+        label: '지영',
+        saju: computeSaju(
+          { year: 1992, month: 11, day: 3, hour: 9, minute: 0, second: 0, gender: 'female' },
+          {},
+        ),
+      },
+    },
+  },
+  {
+    id: 'compat-hour-unknown',
+    note: '한쪽이 시간 미상 — 목록이 전부라고 말할 수 없어 행이 한 칸 내려간다',
+    people: {
+      a: {
+        label: '민수',
+        saju: computeSaju(
+          { year: 1990, month: 5, day: 20, hour: 14, minute: 30, second: 0, gender: 'male' },
+          {},
+        ),
+      },
+      b: {
+        label: '지영',
+        saju: computeSaju({ year: 1992, month: 11, day: 3, hour: null, gender: 'female' }, {}),
+      },
+    },
+  },
+];
+
+const formatCompatCase = ({ id, note, people }: CompatCase): string => {
+  const compat = analyzeCompatibility(people.a.saju, people.b.saju);
+
+  const utterances = assembleCompatText(compat, {
+    a: { label: people.a.label, hourKnown: people.a.saju.meta.hourKnown },
+    b: { label: people.b.label, hourKnown: people.b.saju.meta.hourKnown },
+  });
+
+  return [
+    `── ${id}`,
+    `   ${note}`,
+    ...COMPAT_SIDES.map(
+      (side) => `   ${people[side].label}  ${formatPillars(people[side].saju.pillars)}`,
+    ),
+    `   사이 관계 ${compat.relations.length} · 문장 ${sentencesOf(utterances).length}`,
+    '',
+    ...utterances.map(formatUtterance),
+  ].join('\n');
+};
+
 describe('문장 골든', () => {
   it('명식마다 어떤 발화가 서고 무엇이 침묵하는지', async () => {
     const coverage = fragmentCoverage(FRAGMENT_INDEX);
@@ -135,9 +212,26 @@ describe('문장 골든', () => {
       '',
     ].join('\n');
 
-    const body = CASES.map(formatCase).join('\n\n');
+    const compatHeader = [
+      '',
+      '',
+      '='.repeat(78),
+      '궁합 — 같은 주제, 같은 조각. 행에 이름이 붙을 뿐이다',
+      '='.repeat(78),
+      '',
+      '  주제가 없어 아직 발화하지 않는 사실.',
+      ...UNCOVERED_COMPAT_FACTS.map((fact) => `    ${fact}`),
+      '',
+      '='.repeat(78),
+      '',
+    ].join('\n');
 
-    await expect(`${header}${body}\n`).toMatchFileSnapshot('./text.snapshot.txt');
+    const body = CASES.map(formatCase).join('\n\n');
+    const compatBody = COMPAT_CASES.map(formatCompatCase).join('\n\n');
+
+    await expect(`${header}${body}\n${compatHeader}${compatBody}\n`).toMatchFileSnapshot(
+      './text.snapshot.txt',
+    );
   });
 
   it('케이스 id 가 중복되지 않는다', () => {

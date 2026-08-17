@@ -269,16 +269,21 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
    * 판정이다), 산문이 자리만 말하느라 **`participant.char` 를 통째로 버렸다.**
    * 어느 글자가 子고 어느 것이 午인지 문장에 없었다.
    *
-   * 그래서 변종이 **하나뿐이다.** 열한 종류가 행을 하나도 가르지 못하면 종류는
-   * 변종이 아니라 슬롯이다 — 관계 넷이 한 문장을 나눠 쓰던 규칙
+   * 그래서 **열한 종류가 행을 가르지 못한다.** 종류가 행을 하나도 가르지 못하면
+   * 종류는 변종이 아니라 슬롯이다 — 관계 넷이 한 문장을 나눠 쓰던 규칙
    * (`sharedWording`)을 끝까지 밀면 여기로 온다. 종류는 `{name}` 으로 들어오고
    * 글자와 자리는 `{participants}` 로 들어온다.
+   *
+   * 남은 변종 둘은 **종류가 아니라 성립한 방식**이 가른다. 두 사람의 글자가
+   * 합쳐서 세 글자 구조를 이룬 것은 쌍 관계와 무게가 다르고, **그것을 인정할지
+   * 자체가 계통 선택**이라 화면에서 섞으면 안 된다(`RelationScope`). 종류로는
+   * 갈리지 않던 것이 여기서는 갈린다 — 엔진이 실제로 구분해 들고 있는 차이다.
    */
   'relation.present': {
     paths: ['relations'],
     polarity: 'presence',
     form: 'row',
-    variants: ['row'],
+    variants: ['row', 'combined'],
     slots: ['participants', 'name'],
     samples: { participants: '년지 子 · 일지 午', name: '자오충' },
     note: '어느 자리의 어느 글자끼리 어떤 관계가 성립하는가',

@@ -9,7 +9,7 @@ import {
   type LateNightRule,
 } from '@/src/lib/saju';
 
-import { TIME_BASES, TIME_BASIS, type Query, type TimeBasis } from './query';
+import { NAME_MAX, TIME_BASES, TIME_BASIS, type Query, type TimeBasis } from './query';
 
 /**
  * 생년월일시 입력 한 벌.
@@ -70,11 +70,19 @@ export function BirthFields({
   value,
   onChange,
   idPrefix,
+  namePlaceholder,
 }: {
   value: Query;
   onChange: (next: Query) => void;
   /** 한 화면에 폼이 둘일 때 라디오 그룹이 섞이지 않게 하는 이름 */
   idPrefix: string;
+  /**
+   * 이름 칸을 띄우고 빈칸일 때 대신 보일 말.
+   *
+   * 원국 화면에는 없다 — 한 사람뿐이라 누구의 일지인지 물을 일이 없고, 쓰지도
+   * 않을 이름을 받아 주소에 실을 이유도 없다. 궁합에서만 필요한 칸이다.
+   */
+  namePlaceholder?: string;
 }) {
   const set = <K extends keyof Query>(key: K, next: Query[K]) =>
     onChange({ ...value, [key]: next });
@@ -82,6 +90,19 @@ export function BirthFields({
   return (
     <>
       <div className="flex flex-wrap items-end gap-3">
+        {namePlaceholder !== undefined && (
+          <Field label="이름">
+            <input
+              type="text"
+              value={value.name}
+              onChange={(e) => set('name', e.target.value.slice(0, NAME_MAX))}
+              placeholder={namePlaceholder}
+              maxLength={NAME_MAX}
+              className={`${FIELD} w-28`}
+            />
+          </Field>
+        )}
+
         <Field label="생년월일">
           <input
             type="date"

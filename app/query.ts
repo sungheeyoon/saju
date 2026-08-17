@@ -60,6 +60,18 @@ export const TIME_BASIS: Record<
 };
 
 export type Query = {
+  /**
+   * 부를 이름 — **계산에 들어가지 않는다.**
+   *
+   * 궁합에서 관계 한 줄이 "민수 일지 卯 · 지영 년지 辰"처럼 적히려면 두 계산판을
+   * 사람 이름으로 불러야 한다. `chartId` 는 `natal:a`·`natal:b` 라 화면에 그대로
+   * 내놓을 수 없고, "첫 번째 사람"은 각자 자기 기준으로 읽을 수가 없다.
+   *
+   * 엔진에는 넘기지 않는다(`SajuInput` 에 이 필드가 없다). 여덟 글자를 바꾸지
+   * 않는 값이 계산 입력에 섞이면 "이름을 고쳤더니 사주가 달라지나" 하는 의심을
+   * 코드로 반박할 수 없게 된다 — 성별이 대운 방향을 바꾸는 것과 정반대다.
+   */
+  name: string;
   date: string;
   time: string;
   /** 출생 시각을 모름 — 시주를 뽑지 않는다 */
@@ -75,6 +87,7 @@ export type Query = {
 };
 
 export const DEFAULT_QUERY: Query = {
+  name: '',
   // 결과를 예시 명식으로 채우지 않는다. 사용자가 입력하기 전에는 빈 상태다.
   date: '',
   time: '',
@@ -97,6 +110,9 @@ const HOUR_UNKNOWN = 'unknown';
 const SAEUN_MIN = 1900;
 const SAEUN_MAX = 2100;
 
+/** 이름 길이 상한 — 관계 한 줄에 두 사람이 들어가므로 행이 감당할 만큼만 */
+export const NAME_MAX = 12;
+
 /**
  * 접두사 — 한 주소에 입력 두 벌을 싣기 위한 것.
  *
@@ -114,7 +130,20 @@ export type QueryPrefix = '' | 'a.' | 'b.';
  * 다른 사주를 가리키게 된다. 링크는 그때 본 것을 그대로 다시 보여줘야 한다.
  */
 export function toSearchParams(query: Query, prefix: QueryPrefix = ''): URLSearchParams {
+  /**
+   * 이름만은 비어 있으면 뺀다 — **위 규칙의 예외가 아니라 다른 종류의 값이라서다.**
+   *
+   * 기본값을 빼지 않는 이유는 나중에 기본값을 옮기면 이미 나눠 준 링크가 조용히
+   * 다른 사주를 가리키기 때문인데, 이름은 여덟 글자를 바꾸지 않는다. 빈 이름을
+   * 실어 두면 이름을 쓰지 않는 원국 링크마다 `name=` 이 붙는다.
+   *
+   * 반대로 **이름을 넣으면 주소에 그대로 실린다.** 링크를 나누면 이름도 함께
+   * 나눠지므로, 그것이 곧 이 값을 주소에 두기로 한 대가다.
+   */
+  const named = query.name === '' ? {} : { [`${prefix}name`]: query.name };
+
   return new URLSearchParams({
+    ...named,
     [`${prefix}date`]: query.date,
     [`${prefix}hour`]: query.hourUnknown ? HOUR_UNKNOWN : query.time,
     [`${prefix}gender`]: query.gender,
@@ -161,6 +190,9 @@ export function queryFromSearchParams(
   const saeun = Number(at('saeun'));
 
   return {
+    // 길이만 자른다. 이름은 계산에 안 쓰이므로 정상값으로 되돌릴 대상이 없고,
+    // 대신 주소로 들어온 값이라 화면을 밀어내지 못할 만큼만 남긴다.
+    name: (at('name') ?? '').slice(0, NAME_MAX),
     date,
     time: hour === null || hour === HOUR_UNKNOWN ? '' : hour,
     hourUnknown: hour === HOUR_UNKNOWN,

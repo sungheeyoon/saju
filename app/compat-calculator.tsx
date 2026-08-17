@@ -48,14 +48,36 @@ import {
  * 것을 쓴다 — 같은 값을 넣었는데 다른 사주가 나오는 일을 막는다.
  */
 
+/**
+ * 이름을 안 넣었을 때 쓰는 말. 넣으면 이름이 이 자리를 대신한다.
+ *
+ * "첫 번째 사람의 일지"는 **읽는 사람이 자기를 어디에 놓아야 할지 모른다.**
+ * 궁합은 두 사람이 각자 자기 기준으로 읽는 것이라, 관계 한 줄에서 어느 글자가
+ * 누구 것인지가 이름으로 붙어야 그 읽기가 가능해진다.
+ */
 const SIDE_LABEL: Record<CompatSide, string> = { a: '첫 번째', b: '두 번째' };
+
+/** 입력한 이름, 없으면 자리 이름 — 화면에서 사람을 부르는 유일한 통로다 */
+const nameOf = (pair: Pair, side: CompatSide): string =>
+  pair[side].name.trim() === '' ? `${SIDE_LABEL[side]} 사람` : pair[side].name.trim();
 const PREFIX: Record<CompatSide, QueryPrefix> = { a: 'a.', b: 'b.' };
 const SIDES: readonly CompatSide[] = ['a', 'b'];
 
 type Pair = Record<CompatSide, Query>;
 
 type Result =
-  | { ok: true; charts: Record<CompatSide, Saju>; compat: Compatibility }
+  | {
+      ok: true;
+      charts: Record<CompatSide, Saju>;
+      compat: Compatibility;
+      /**
+       * 두 사람을 부르는 말 — **계산 결과와 한 값에 들어 있다.**
+       *
+       * 폼에서 따로 읽으면 이름만 고치는 동안 화면이 가리키는 사람과 계산된
+       * 명식이 어긋난다. 같은 `pair` 에서 나와야 그 틈이 없다.
+       */
+      names: Record<CompatSide, string>;
+    }
   | { ok: false; message: string };
 
 function computeOne(query: Query): Saju {
@@ -81,12 +103,12 @@ function calculate(pair: Pair): Result {
   for (const side of SIDES) {
     const query = pair[side];
     if (!/^\d{4}-\d{2}-\d{2}$/.test(query.date)) {
-      return { ok: false, message: `${SIDE_LABEL[side]} 사람의 생년월일을 입력해 주세요.` };
+      return { ok: false, message: `${nameOf(pair, side)}의 생년월일을 입력해 주세요.` };
     }
     if (!query.hourUnknown && !/^\d{2}:\d{2}$/.test(query.time)) {
       return {
         ok: false,
-        message: `${SIDE_LABEL[side]} 사람의 출생시각을 입력하거나 시간 모름을 선택해 주세요.`,
+        message: `${nameOf(pair, side)}의 출생시각을 입력하거나 시간 모름을 선택해 주세요.`,
       };
     }
   }
@@ -95,7 +117,13 @@ function calculate(pair: Pair): Result {
   // 두 곳이 어긋나는 순간 사용자만 헷갈린다.
   try {
     const charts = { a: computeOne(pair.a), b: computeOne(pair.b) };
-    return { ok: true, charts, compat: analyzeCompatibility(charts.a, charts.b) };
+
+    return {
+      ok: true,
+      charts,
+      compat: analyzeCompatibility(charts.a, charts.b),
+      names: { a: nameOf(pair, 'a'), b: nameOf(pair, 'b') },
+    };
   } catch (error) {
     return {
       ok: false,
@@ -127,6 +155,7 @@ export function CompatCalculator() {
 
   const result = useMemo(() => (submitted === null ? null : calculate(submitted)), [submitted]);
 
+
   const submit = (next: Pair) => {
     const params = mergeSearchParams(
       toSearchParams(next.a, PREFIX.a),
@@ -150,11 +179,12 @@ export function CompatCalculator() {
         <div className="grid gap-4 lg:grid-cols-2">
           {SIDES.map((side) => (
             <fieldset key={side} className={`${CARD} flex flex-col gap-4`}>
-              <legend className="px-1 text-sm font-medium">{SIDE_LABEL[side]} 사람</legend>
+              <legend className="px-1 text-sm font-medium">{nameOf(form, side)}</legend>
               <BirthFields
                 value={form[side]}
                 onChange={(next) => setForm((current) => ({ ...current, [side]: next }))}
                 idPrefix={side}
+                namePlaceholder={`${SIDE_LABEL[side]} 사람`}
               />
             </fieldset>
           ))}
@@ -177,7 +207,7 @@ export function CompatCalculator() {
           </p>
         </section>
       ) : result.ok ? (
-        <CompatView charts={result.charts} compat={result.compat} />
+        <CompatView charts={result.charts} compat={result.compat} names={result.names} />
       ) : (
         <p role="alert" className={`${CARD} text-sm`}>
           {result.message}
@@ -190,16 +220,19 @@ export function CompatCalculator() {
 function CompatView({
   charts,
   compat,
+  names,
 }: {
   charts: Record<CompatSide, Saju>;
   compat: Compatibility;
+  /** 두 사람을 부르는 말 — 입력한 이름이거나 '첫 번째 사람' */
+  names: Record<CompatSide, string>;
 }) {
   return (
     <div className="flex flex-col gap-6">
       <CopyLinkButton />
-      <ChartPair charts={charts} />
-      <BetweenRelations charts={charts} compat={compat} />
-      <SupportCards charts={charts} compat={compat} />
+      <ChartPair charts={charts} names={names} />
+      <BetweenRelations charts={charts} compat={compat} names={names} />
+      <SupportCards charts={charts} compat={compat} names={names} />
 
       {compat.warnings.length > 0 && (
         <section className={CARD}>
@@ -222,7 +255,13 @@ function CompatView({
 }
 
 /** 두 명식을 나란히 — 여덟 글자만. 자세한 것은 각자의 원국 화면이 보여준다 */
-function ChartPair({ charts }: { charts: Record<CompatSide, Saju> }) {
+function ChartPair({
+  charts,
+  names,
+}: {
+  charts: Record<CompatSide, Saju>;
+  names: Record<CompatSide, string>;
+}) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {SIDES.map((side) => {
@@ -230,7 +269,7 @@ function ChartPair({ charts }: { charts: Record<CompatSide, Saju> }) {
         return (
           <section key={side} className={CARD}>
             <div className="flex flex-wrap items-baseline gap-x-2">
-              <h2 className="text-base font-semibold">{SIDE_LABEL[side]} 사람</h2>
+              <h2 className="text-base font-semibold">{names[side]}</h2>
               <span className="text-sm text-secondary">
                 일간 {saju.pillars.dayMaster} · {GENDER_KO[saju.meta.gender]}
               </span>
@@ -283,9 +322,11 @@ function ChartPair({ charts }: { charts: Record<CompatSide, Saju> }) {
 function BetweenRelations({
   charts,
   compat,
+  names,
 }: {
   charts: Record<CompatSide, Saju>;
   compat: Compatibility;
+  names: Record<CompatSide, string>;
 }) {
   const dayToDay = compat.relations.filter(
     (relation) =>
@@ -341,11 +382,14 @@ function BetweenRelations({
                   <td className="py-1.5 pl-3 whitespace-nowrap">{relation.ko}</td>
                   <td className="py-1.5 pl-3 text-xs text-secondary">
                     {relation.participants
-                      .map(
-                        (participant) =>
-                          `${SIDE_LABEL[compatSideOf(participant.chartId) ?? 'a']} ` +
-                          PILLAR_POSITION_KO[participant.position],
-                      )
+                      .map((participant) => {
+                        const side = compatSideOf(participant.chartId);
+                        // 계산판을 못 알아보면 이름 대신 그 이름표를 보인다 —
+                        // 한쪽으로 기본값을 주면 남의 기둥이 조용히 내 것으로 적힌다.
+                        const who = side === null ? participant.chartId : names[side];
+
+                        return `${who} ${PILLAR_POSITION_KO[participant.position]}`;
+                      })
                       .join(' ↔ ')}
                     {relation.scope === 'combinedFormation' && (
                       <span className="ml-1.5 text-accent">
@@ -379,9 +423,11 @@ const relationKey = (relation: Relation) =>
 function SupportCards({
   charts,
   compat,
+  names,
 }: {
   charts: Record<CompatSide, Saju>;
   compat: Compatibility;
+  names: Record<CompatSide, string>;
 }) {
   const percent = (ratio: number) => `${(ratio * 100).toFixed(1)}%`;
 
@@ -413,7 +459,7 @@ function SupportCards({
             return (
               <li key={side}>
                 <p className="text-secondary">
-                  {SIDE_LABEL[side]} 사람에게 없는 오행{' '}
+                  {names[side]}에게 없는 오행{' '}
                   {support.missing.length === 0 ? (
                     <span className="text-foreground">없음 — 다섯 오행이 다 있습니다</span>
                   ) : (
@@ -456,7 +502,7 @@ function SupportCards({
             const match = compat.eokbuMatch[side];
             return (
               <li key={side} className="flex flex-wrap items-baseline gap-x-2">
-                <span className="text-secondary">{SIDE_LABEL[side]} 사람</span>
+                <span className="text-secondary">{names[side]}</span>
                 <span className="glyph text-lg font-medium">{match.element}</span>
                 <span>{ELEMENT_KO[match.element]}</span>
                 <span className="text-secondary">{ELEMENT_ROLE_KO[match.role]}</span>

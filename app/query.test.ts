@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_QUERY,
+  NAME_MAX,
   mergeSearchParams,
   queryFromSearchParams,
   toSearchParams,
@@ -9,6 +10,7 @@ import {
 } from './query';
 
 const query: Query = {
+  name: '',
   date: '1990-05-15',
   time: '14:30',
   hourUnknown: false,
@@ -42,6 +44,46 @@ describe('주소창에 실은 입력', () => {
       'rule',
       'saeun',
     ]);
+  });
+
+  /**
+   * 이름만은 비어 있으면 뺀다. 위 규칙의 예외가 아니라 **다른 종류의 값**이라서다
+   * — 기본값을 빼지 않는 이유는 그것이 여덟 글자를 바꾸기 때문인데, 이름은 바꾸지
+   * 않는다. 빈 이름을 실으면 이름을 쓰지 않는 원국 링크마다 `name=` 이 붙는다.
+   */
+  describe('이름은 계산이 아니라 이름표다', () => {
+    it('비어 있으면 주소에 싣지 않는다', () => {
+      expect(toSearchParams(query).has('name')).toBe(false);
+      expect(read(toSearchParams(query).toString())?.name).toBe('');
+    });
+
+    it('넣으면 그대로 실리고 그대로 돌아온다', () => {
+      const named = { ...query, name: '민수' };
+
+      expect(toSearchParams(named).get('name')).toBe('민수');
+      expect(queryFromSearchParams(toSearchParams(named))).toEqual(named);
+    });
+
+    it('접두사를 따라간다 — 한 주소에 두 사람이 실린다', () => {
+      const params = mergeSearchParams(
+        toSearchParams({ ...query, name: '민수' }, 'a.'),
+        toSearchParams({ ...query, name: '지영' }, 'b.'),
+      );
+
+      expect(params.get('a.name')).toBe('민수');
+      expect(params.get('b.name')).toBe('지영');
+      expect(queryFromSearchParams(params, 'b.')?.name).toBe('지영');
+    });
+
+    /**
+     * 주소로 들어온 값이라 길이만 자른다. 정상값으로 되돌릴 대상이 없는 대신
+     * 화면을 밀어내지 못할 만큼만 남긴다 — 관계 한 줄에 두 사람이 들어간다.
+     */
+    it('너무 길면 자른다', () => {
+      const long = read(`date=2000-01-01&name=${'가'.repeat(50)}`);
+
+      expect(long?.name).toHaveLength(NAME_MAX);
+    });
   });
 
   it('시각 미상은 시각과 같은 칸을 쓴다 — 둘이 동시에 켜질 수 없다', () => {
