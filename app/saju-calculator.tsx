@@ -659,8 +659,8 @@ function StarTable({ saju }: { saju: Saju }) {
  * 원국의 관계 — 여덟 글자 안에서 성립하는 형충회합.
  *
  * 길흉을 말하지 않는다. 무엇이 무엇과 어떤 관계인지, 어느 자리에서인지만 적는다.
- * 붙어 있어야 성립한다고 보는 학파를 위해 떨어진 것은 거리를 밝히고, 반쪽만
- * 모인 것은 반쪽이라고 밝힌다. 걸러내는 것은 읽는 사람의 몫이다.
+ * 붙어 있어야 성립한다고 보는 학파를 위해 떨어진 것은 거리를 밝히고, 세 글자
+ * 구조에서 둘만 담은 것은 그렇다고 밝힌다. 걸러내는 것은 읽는 사람의 몫이다.
  */
 /**
  * 한자 글자 뒤의 조사 — **읽는 소리의 받침을 따른다.**
@@ -766,7 +766,18 @@ function RelationTable({ saju, coverage }: { saju: Saju; coverage: Utterance[] }
                           <span className="font-sans">순환</span>
                         </span>
                       )}
-                      {!relation.full && <span>반쪽</span>}
+                      {/*
+                        '반쪽' 이라고 적던 자리다. `full: false` 의 뜻은 그대로이고
+                        (이 관계가 세 글자 구조에서 둘만 담았다) 낱말만 낡았다 —
+                        삼형 안의 두 글자 형을 따로 내기로 하면서, 바로 위에 未 가
+                        서 있는데도 "반쪽" 이 붙는 자리가 생겼다. 그때 '반쪽' 은
+                        "나머지 글자가 명식에 없다" 로 읽힌다.
+
+                        합에서는 지금도 참이다(흡수된 반합은 버리므로 진짜 반쪽이다).
+                        그래도 한 낱말로 둔다 — '두 글자' 는 양쪽에서 다 참이고,
+                        반합·반방합은 이름에 이미 반(半) 이 들어 있어 잃는 것이 없다.
+                      */}
+                      {!relation.full && <span>두 글자</span>}
                       {!relation.adjacent && <span>{relation.distance}칸 떨어짐</span>}
                       {relation.contested.length > 0 && (
                         <span className="text-accent">
