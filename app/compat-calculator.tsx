@@ -5,25 +5,25 @@ import { useSearchParams } from 'next/navigation';
 
 import {
   CITY_LONGITUDES,
-  ELEMENT_KO,
-  ELEMENT_ROLE_KO,
   GENDER_KO,
   PILLAR_POSITION_KO,
   RELATION_KIND_KO,
   RELATION_SCOPE_KO,
-  TEN_GOD_KO,
   analyzeCompatibility,
+  assembleCompatText,
   compatSideOf,
   computeSaju,
   type Compatibility,
   type CompatSide,
   type Relation,
   type Saju,
+  type Utterance,
 } from '@/src/lib/saju';
 
 import { BirthFields } from './birth-form';
 import { CopyLinkButton } from './copy-link';
 import { CARD, PILLAR_COLUMNS } from './saju-calculator';
+import { UtteranceList } from './utterances';
 import {
   DEFAULT_QUERY,
   TIME_BASIS,
@@ -236,6 +236,23 @@ export function CompatCalculator() {
   );
 }
 
+/**
+ * L3 발화 중 **표가 이미 든 것.**
+ *
+ * 조립기는 고르지 않는다(`ASSEMBLE_POLICY.selection: 'all-facts-speak'`). 줄이는
+ * 것은 화면의 몫인데, 계약이 "줄인다면 그것도 정책 값으로 적는다"고 못박아 두었다.
+ * 여기가 그 값이다 — 관계는 종류·글자·자리를 열로 가르는 표가 이미 있고, 같은 값을
+ * 문장 목록에 한 번 더 내면 읽는 사람은 다른 값인 줄 알고 두 번 읽는다.
+ *
+ * `relation.coverage` 는 버리지 않는다. 관계 표의 각주가 손으로 "시주를 모르는 쪽이
+ * 있어 실제보다 적게 나옵니다"라고 적고 있었는데 **누구인지를 못 적었다** — 그 자리에
+ * 발화를 그대로 놓는다.
+ */
+const TOPICS_THE_TABLE_HOLDS = ['relation.present', 'relation.coverage'] as const;
+
+const isHeldByTable = (utterance: Utterance) =>
+  (TOPICS_THE_TABLE_HOLDS as readonly string[]).includes(utterance.request.topic);
+
 function CompatView({
   charts,
   compat,
@@ -246,12 +263,23 @@ function CompatView({
   /** 두 사람을 부르는 말 — 입력한 이름이거나 '첫 번째 사람' */
   names: Record<CompatSide, string>;
 }) {
+  // L3 는 `Compatibility` 와 사람마다 이름·시각 여부 둘만 받는다. `Saju` 를 통째로
+  // 넘기면 문장이 다시 계산할 길이 생기고, 화면의 궁합과 문장의 궁합이 언젠가 어긋난다.
+  const utterances = assembleCompatText(compat, {
+    a: { label: names.a, hourKnown: charts.a.meta.hourKnown },
+    b: { label: names.b, hourKnown: charts.b.meta.hourKnown },
+  });
+
+  const coverage = utterances.filter(
+    (utterance) => utterance.request.topic === 'relation.coverage',
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <CopyLinkButton />
       <ChartPair charts={charts} names={names} />
-      <BetweenRelations charts={charts} compat={compat} names={names} />
-      <SupportCards charts={charts} compat={compat} names={names} />
+      <BetweenRelations compat={compat} names={names} coverage={coverage} />
+      <SaidBetween utterances={utterances.filter((utterance) => !isHeldByTable(utterance))} />
 
       {compat.warnings.length > 0 && (
         <section className={CARD}>
@@ -339,13 +367,14 @@ function ChartPair({
  * 계산이 아니라 자리에 붙은 관습적 의미라 화면의 몫이다.
  */
 function BetweenRelations({
-  charts,
   compat,
   names,
+  coverage,
 }: {
-  charts: Record<CompatSide, Saju>;
   compat: Compatibility;
   names: Record<CompatSide, string>;
+  /** 목록의 한계는 목록이 든다 — 시각을 둘 다 알면 비어 있다 */
+  coverage: Utterance[];
 }) {
   const dayToDay = compat.relations.filter(
     (relation) =>
@@ -423,11 +452,21 @@ function BetweenRelations({
         </div>
       )}
 
+      {/*
+        손으로 적던 자리다: "시주를 모르는 쪽이 있어 실제보다 적게 나옵니다."
+        **누구인지를 못 적었다** — 한쪽만 모르는 것과 둘 다 모르는 것은 같은 칸이지만
+        같은 문장이 아니고, 그것을 아는 것은 발화 쪽이다(`relation.coverage`).
+      */}
+      {coverage.length > 0 && (
+        <div className="mt-3 border-t border-border pt-3">
+          <UtteranceList utterances={coverage} />
+        </div>
+      )}
+
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
         각자의 원국 안에서 닫힌 관계는 빠져 있습니다 — 그건 각자의 명식이 이미 보여준
         사실입니다. 두 사람의 기둥 사이에는 거리라는 것이 없어 몇 칸 떨어졌는지는 적지
         않습니다. 성립 여부만 적고 좋고 나쁨은 판정하지 않습니다.
-        {charts.a.meta.hourKnown && charts.b.meta.hourKnown ? '' : ' 시주를 모르는 쪽이 있어 실제보다 적게 나옵니다.'}
       </p>
     </section>
   );
@@ -438,111 +477,45 @@ const relationKey = (relation: Relation) =>
     .map((participant) => `${participant.chartId}${participant.position}${participant.char}`)
     .join('-')}`;
 
-/** 오행 보완 · 십성 · 억부 부합 — 사실 세 벌 */
-function SupportCards({
-  charts,
-  compat,
-  names,
-}: {
-  charts: Record<CompatSide, Saju>;
-  compat: Compatibility;
-  names: Record<CompatSide, string>;
-}) {
-  const percent = (ratio: number) => `${(ratio * 100).toFixed(1)}%`;
-
+/**
+ * 두 사람 사이에 대해 **말할 수 있는 것** — L3 가 낸 발화를 그대로 놓는다.
+ *
+ * 여기 있던 카드 셋(십성 · 오행 보완 · 억부 부합)은 같은 값을 손으로 쓴 산문과
+ * 각주로 냈다. 문제는 **같은 문제를 다른 규율로 다뤘다**는 것이다 — 화면은 시간
+ * 미상을 아래쪽 경고 카드로 알렸고, 계약은 강도를 내리거나 입을 닫기로 했다.
+ * 둘을 나란히 두면 시각을 모르는 명식에서 카드는 "없습니다"라고 말하고 문장은
+ * 침묵한다. 그래서 카드를 걷어내고 발화를 그대로 놓는다.
+ *
+ * **정책 고지는 화면이 든다.** 점수를 내지 않는다거나 억부가 확정 용신이 아니라는
+ * 말은 이 명식에 대한 주장이 아니라 저장소가 무엇을 하지 않기로 했는가라서,
+ * 명식마다 나오는 발화에 얹을 것이 아니다.
+ */
+function SaidBetween({ utterances }: { utterances: Utterance[] }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <section className={CARD}>
-        <h2 className="text-base font-semibold">서로를 무엇으로 보는가</h2>
-        <ul className="mt-3 flex flex-col gap-2 text-sm">
-          <li>
-            <span className="text-secondary">첫 번째가 본 두 번째</span>{' '}
-            <span className="font-medium">{TEN_GOD_KO[compat.tenGods.aSeesB]}</span>
-          </li>
-          <li>
-            <span className="text-secondary">두 번째가 본 첫 번째</span>{' '}
-            <span className="font-medium">{TEN_GOD_KO[compat.tenGods.bSeesA]}</span>
-          </li>
-        </ul>
-        <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-          일간끼리만 본 값이고 서로 다를 수 있습니다 — 甲이 본 辛은 정관이지만 辛이 본
-          甲은 정재입니다. 육친(누가 누구의 무엇인가)으로 단정하지 않습니다.
+    <section className={CARD}>
+      <h2 className="text-base font-semibold">두 사람 사이에 대해 말할 수 있는 것</h2>
+
+      <div className="mt-3">
+        <UtteranceList utterances={utterances} />
+      </div>
+
+      <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3 text-xs text-muted">
+        <p>
+          왼쪽 딱지는 <strong className="font-medium">얼마나 세게 말할 수 있는가</strong>입니다.
+          여덟 글자에서 곧장 세어진 것은 사실, 우리가 고른 문턱을 거친 것은 유도, 아직
+          시험 중인 규칙은 후보입니다. 근거보다 세게 말하지 않는지는 계약이 검사합니다.
         </p>
-      </section>
-
-      <section className={CARD}>
-        <h2 className="text-base font-semibold">모자란 오행을 채우는가</h2>
-        <ul className="mt-3 flex flex-col gap-3 text-sm">
-          {SIDES.map((side) => {
-            const support = compat.elementSupport[side];
-            return (
-              <li key={side}>
-                <p className="text-secondary">
-                  {names[side]}에게 없는 오행{' '}
-                  {support.missing.length === 0 ? (
-                    <span className="text-foreground">없음 — 다섯 오행이 다 있습니다</span>
-                  ) : (
-                    <span className="glyph text-foreground">{support.missing.join(' ')}</span>
-                  )}
-                </p>
-                {support.missing.length > 0 && (
-                  <p className="mt-0.5 text-xs">
-                    <span className="text-muted">상대가 채움</span>{' '}
-                    <span className="glyph">{support.supplied.join(' ') || '없음'}</span>
-                    <span className="mx-1.5 text-muted">·</span>
-                    <span className="text-muted">둘 다 없음</span>{' '}
-                    <span className="glyph">{support.stillMissing.join(' ') || '없음'}</span>
-                  </p>
-                )}
-                <p className="mt-0.5 text-xs text-muted">
-                  가장 약한 오행 {ELEMENT_KO[support.weakest.element]} 는 상대 원국에서{' '}
-                  {percent(support.weakest.partnerRatio)} 입니다
-                </p>
-              </li>
-            );
-          })}
-        </ul>
-        <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-          있고 없음만 셉니다. 부족을 채우는 쪽이 좋다는 읽기와 용신에 맞아야 한다는 읽기가
-          갈려서, 좋고 나쁨으로 환산하지 않습니다.
+        <p>
+          십성은 일간끼리만 본 값이라 양쪽이 서로 다를 수 있고, 육친(누가 누구의 무엇인가)
+          으로 단정하지 않습니다. 오행은 있고 없음만 셉니다 — 부족을 채우는 쪽이 좋다는
+          읽기와 용신에 맞아야 한다는 읽기가 갈려서 좋고 나쁨으로 환산하지 않습니다.
         </p>
-      </section>
-
-      <section className={`${CARD} lg:col-span-2`}>
-        <div className="flex flex-wrap items-baseline gap-x-2">
-          <h2 className="text-base font-semibold">억부 후보를 상대가 갖고 있는가</h2>
-          <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
-            시험
-          </span>
-        </div>
-
-        <ul className="mt-3 flex flex-col gap-2 text-sm">
-          {SIDES.map((side) => {
-            const match = compat.eokbuMatch[side];
-            return (
-              <li key={side} className="flex flex-wrap items-baseline gap-x-2">
-                <span className="text-secondary">{names[side]}</span>
-                <span className="glyph text-lg font-medium">{match.element}</span>
-                <span>{ELEMENT_KO[match.element]}</span>
-                <span className="text-secondary">{ELEMENT_ROLE_KO[match.role]}</span>
-                <span className={match.presentInPartner ? '' : 'text-muted'}>
-                  → 상대 원국에 {match.presentInPartner ? '있음' : '없음'}
-                </span>
-                <span className="text-xs text-muted tabular-nums">
-                  {percent(match.partnerRatio)}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-
-        <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-          <strong className="font-medium">각자의 억부 판정을 그대로 물려받은 값입니다.</strong>{' '}
-          억부는 용신을 잡는 네 길 중 하나일 뿐이고, 아직 판정하지 않은 것이 남아 있습니다 —{' '}
-          {charts.a.analysis.eokbu.unresolved.length}가지. 확정 용신이 아니므로 &lsquo;상대가 내
-          용신을 갖고 있다&rsquo;로 읽으면 안 됩니다.
+        <p>
+          억부 부합은 <strong className="font-medium">각자의 억부 판정을 그대로 물려받은
+          값</strong>입니다. 억부는 용신을 잡는 네 길 중 하나일 뿐이라 확정 용신이 아니고,
+          &lsquo;상대가 내 용신을 갖고 있다&rsquo;로 읽으면 안 됩니다.
         </p>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
