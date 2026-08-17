@@ -37,6 +37,7 @@ import {
   TWELVE_STAGE_KO,
   computeSaju,
   directionParticipantsOf,
+  orderedParticipants,
   toCivil,
   zoneIntervalAt,
   type PillarPosition,
@@ -653,7 +654,9 @@ function RelationTable({ saju }: { saju: Saju }) {
                     {RELATION_KIND_KO[relation.kind]}
                   </td>
                   <td className="glyph py-1.5 pl-3 text-base whitespace-nowrap">
-                    {relation.participants.map((p) => p.char).join('')}
+                    {orderedParticipants(relation)
+                      .map((p) => p.char)
+                      .join('')}
                   </td>
                   <td className="py-1.5 pl-3 whitespace-nowrap">
                     {relation.ko}
@@ -662,7 +665,7 @@ function RelationTable({ saju }: { saju: Saju }) {
                     )}
                   </td>
                   <td className="py-1.5 pl-3 whitespace-nowrap text-secondary">
-                    {relation.participants
+                    {orderedParticipants(relation)
                       .map((p) => PILLAR_POSITION_KO[p.position].charAt(0))
                       .join('·')}
                   </td>
@@ -683,6 +686,20 @@ function RelationTable({ saju }: { saju: Saju }) {
                           )
                         );
                       })()}
+                      {/*
+                        세 글자가 다 모인 삼형은 화살표 하나로 못 적는다 — 고리로
+                        적고 첫 글자로 되돌아오는 것까지 보인다. 시작점은 고전이
+                        부르는 차례일 뿐이라 "丑이 먼저"라는 뜻이 아니다.
+                      */}
+                      {relation.cycle && (
+                        <span className="glyph">
+                          {orderedParticipants(relation)
+                            .map((p) => p.char)
+                            .concat(orderedParticipants(relation)[0].char)
+                            .join('→')}{' '}
+                          <span className="font-sans">순환</span>
+                        </span>
+                      )}
                       {!relation.full && <span>반쪽</span>}
                       {!relation.adjacent && <span>{relation.distance}칸 떨어짐</span>}
                       {relation.contested.length > 0 && (

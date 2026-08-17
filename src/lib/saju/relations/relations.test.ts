@@ -379,13 +379,70 @@ describe('형의 방향 — 삼형은 순환한다', () => {
     });
   });
 
-  it('세 글자가 다 모인 삼형은 순환이라 방향이 없다', () => {
+  it('세 글자가 다 모인 삼형은 순환이라 화살표가 없다', () => {
     const found = findRelations(branchChart('寅', '巳', '申', null)).find(
       (r) => r.kind === 'branchPunishment',
     );
 
     expect(found?.full).toBe(true);
     expect(found?.direction).toBeNull();
+  });
+
+  /**
+   * 화살표는 없어도 **도는 순서**는 있다. 한동안 저장하지 않고 표에서 유도하기로
+   * 했는데, 부르는 곳이 둘(관계 표 · L3 행) 생기자 각자 유도하면 어긋난 쪽을 알
+   * 수 없는 모양이 됐다.
+   */
+  describe('완전 삼형은 도는 순서를 낸다', () => {
+    const cycleCharsOf = (a: Branch, b: Branch, c: Branch) => {
+      const found = findRelations(branchChart(a, b, c, null)).find(
+        (r) => r.kind === 'branchPunishment' && r.full,
+      );
+
+      return found?.cycle?.map((index) => found.participants[index].char);
+    };
+
+    // 자리 순서(년→월→일)가 아니라 고전이 부르는 차례로 늘어선다.
+    it.each([
+      ['寅', '巳', '申', ['寅', '巳', '申']],
+      ['巳', '申', '寅', ['寅', '巳', '申']],
+      ['申', '寅', '巳', ['寅', '巳', '申']],
+      ['未', '丑', '戌', ['丑', '戌', '未']],
+      ['戌', '未', '丑', ['丑', '戌', '未']],
+    ] as const)('%s %s %s → %j', (a, b, c, expected) => {
+      expect(cycleCharsOf(a, b, c)).toEqual([...expected]);
+    });
+
+    it('표의 배열 순서가 곧 그 순서다 — 정렬하면 안 된다', () => {
+      for (const punishment of BRANCH_PUNISHMENTS) {
+        if (punishment.kind !== 'triple') continue;
+
+        const [x, y, z] = punishment.branches;
+        expect(cycleCharsOf(x, y, z), punishment.ko).toEqual([x, y, z]);
+      }
+    });
+
+    it('두 글자만 모인 삼형은 고리가 아니라 화살표 하나다', () => {
+      const partial = findRelations(branchChart('丑', '戌', '子', null)).find(
+        (r) => r.kind === 'branchPunishment',
+      );
+
+      expect(partial?.full).toBe(false);
+      expect(partial?.cycle).toBeNull();
+      expect(partial?.direction).not.toBeNull();
+    });
+
+    it('순환 아닌 형에는 순서가 없다', () => {
+      const mutual = findRelations(branchChart('子', '卯', '寅', null)).find(
+        (r) => r.ko === '자묘형',
+      );
+      const self = findRelations(branchChart('辰', '辰', '寅', null)).find(
+        (r) => r.kind === 'branchPunishment',
+      );
+
+      expect(mutual?.cycle).toBeNull();
+      expect(self?.cycle).toBeNull();
+    });
   });
 
   it('상형과 자형에는 방향이 없다', () => {
@@ -520,6 +577,7 @@ describe('출력 계약', () => {
       ruleSet: 'visible-relations-v2',
       distantRelations: 'detect-all',
       partialStructures: 'peak-required',
+      triplePunishmentCycle: 'ordered-by-classical-table',
       interactionResolution: 'contest-only',
       hiddenStemRelations: 'disabled',
       ghostGate: 'separate-from-resentment',

@@ -12,7 +12,7 @@ import { PILLAR_POSITION_KO, type PillarPosition } from '../position';
 import { TWELVE_SPIRIT_KO } from '../sinsal/twelveSpirits';
 import { TWELVE_STAGE_KO } from '../stages';
 import { COMPAT_CHART_ID, COMPAT_SIDES, type Compatibility, type CompatSide } from '../compat';
-import type { Relation } from '../relations';
+import { orderedParticipants, type Relation } from '../relations';
 import type { Saju } from '../index';
 import { FOLLOWING_SILENT_VERDICTS, type ClaimStrength } from './policy';
 import { FRAGMENT_INDEX } from './corpus';
@@ -73,7 +73,10 @@ const positionsKo = (positions: readonly PillarPosition[]): string =>
  * 두 명식을 함께 놓는 궁합에서 이 자리에 이름이 들어온다.
  */
 const participantsOf = (relation: Relation, labelOf?: (chartId: string) => string): string =>
-  relation.participants
+  // 완전 삼형은 자리 순서가 아니라 **도는 순서**로 늘어선다. 그러지 않으면 행이
+  // "년지 未 · 일지 丑 · 월지 戌 — 축술미 삼형" 처럼 서서, 글자 순서와 이름이
+  // 어긋난 채로 읽는 사람에게 둘 중 어느 것이 맞는지를 고르게 한다.
+  orderedParticipants(relation)
     .map((participant) => {
       const layer = participant.char in STEM_INFO ? '간' : '지';
       const position = PILLAR_POSITION_KO[participant.position].replace('주', layer);

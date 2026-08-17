@@ -13,6 +13,7 @@ import {
   assembleCompatText,
   compatSideOf,
   computeSaju,
+  orderedParticipants,
   type Compatibility,
   type CompatSide,
   type Relation,
@@ -425,11 +426,13 @@ function BetweenRelations({
                     {RELATION_KIND_KO[relation.kind]}
                   </td>
                   <td className="glyph py-1.5 pl-3 whitespace-nowrap">
-                    {relation.participants.map((participant) => participant.char).join(' ')}
+                    {orderedParticipants(relation)
+                      .map((participant) => participant.char)
+                      .join(' ')}
                   </td>
                   <td className="py-1.5 pl-3 whitespace-nowrap">{relation.ko}</td>
                   <td className="py-1.5 pl-3 text-xs text-secondary">
-                    {relation.participants
+                    {orderedParticipants(relation)
                       .map((participant) => {
                         const side = compatSideOf(participant.chartId);
                         // 계산판을 못 알아보면 이름 대신 그 이름표를 보인다 —
@@ -438,7 +441,9 @@ function BetweenRelations({
 
                         return `${who} ${PILLAR_POSITION_KO[participant.position]}`;
                       })
-                      .join(' ↔ ')}
+                      // 완전 삼형은 고리라 `↔`(짝) 가 아니라 `→`(도는 순서) 로 잇는다.
+                      .join(relation.cycle ? ' → ' : ' ↔ ')}
+                    {relation.cycle && <span className="text-muted"> → 처음으로</span>}
                     {relation.scope === 'combinedFormation' && (
                       <span className="ml-1.5 text-accent">
                         {RELATION_SCOPE_KO.combinedFormation}

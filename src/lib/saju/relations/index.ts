@@ -85,6 +85,8 @@ export const RELATION_POLICY = {
   distantRelations: 'detect-all',
   /** 반쪽은 왕지를 낀 것만 — 삼합·방합 공통. 삼형에는 왕지가 없어 조건이 없다 */
   partialStructures: 'peak-required',
+  /** 완전 삼형은 도는 순서를 낸다. 시작점은 고전이 부르는 차례일 뿐 우리가 고른 것이 아니다 */
+  triplePunishmentCycle: 'ordered-by-classical-table',
   /** 쟁합·투합만 검출하고 승패는 가리지 않는다 */
   interactionResolution: 'contest-only',
   /** 지장간은 관계 검출에 쓰지 않는다 (데이터는 그대로 있다) */
@@ -180,8 +182,7 @@ export type Contest = {
  * - **상형(子卯)·자형**: 방향이라는 것이 애초에 없다. 서로 형하거나 자기
  *   자신을 형한다.
  * - **세 글자가 다 모인 삼형**: 방향이 없는 것이 아니라 순환 전체라서
- *   화살표 하나로 적을 수 없다. 순환 방향이 필요하면 `BRANCH_PUNISHMENTS`
- *   의 배열 순서에서 그대로 유도된다 — 그래서 따로 저장하지 않는다.
+ *   화살표 **하나**로 적을 수 없다. 그쪽은 `cycle` 이 든다.
  */
 export type PunishmentDirection = {
   /** `participants` 의 인덱스 — 글자를 복사하지 않아 어긋날 수 없다 */
@@ -218,6 +219,23 @@ export type Relation = {
   full: boolean;
   /** 형의 방향. 방향이 없는 관계는 null */
   direction: PunishmentDirection | null;
+  /**
+   * 세 글자가 다 모인 삼형이 도는 **순서** — `participants` 의 인덱스다.
+   *
+   * 한동안 저장하지 않았다. `BRANCH_PUNISHMENTS` 의 배열 순서에서 그대로
+   * 유도되니 값을 두 벌 들 이유가 없다고 적어 두었는데, **부르는 곳이 없는
+   * 동안만 맞는 말이었다.** 이제 관계 표와 L3 행이 둘 다 이 순서를 필요로 하고,
+   * 두 곳에서 각자 유도하면 어긋난 쪽을 알 수 없다 — 역마·도화·화개를 두 곳에서
+   * 계산하지 않고 옮겨 담기만 한 것과 같은 판단이다.
+   *
+   * **시작점은 우리가 고른 것이 아니다.** 순환에는 시작이 없고, 여기 적히는
+   * 첫 글자는 고전이 그 형을 부르는 차례(丑刑戌·戌刑未·未刑丑)의 첫 글자일 뿐이다.
+   * 읽는 쪽은 마지막에서 첫 글자로 되돌아오는 고리로 읽어야 한다.
+   *
+   * 두 글자만 모인 삼형은 `direction` 이 들고 여기는 `null` 이다. 순환의 한 도막은
+   * 고리가 아니라 화살표 하나다.
+   */
+  cycle: readonly number[] | null;
   /** 몇 개의 계산판에 걸쳐 있는가 */
   scope: RelationScope;
   /**
@@ -342,6 +360,8 @@ function makeRelation(args: {
   targetElement?: Element;
   full?: boolean;
   direction?: { from: Slot; to: Slot };
+  /** 완전 삼형이 도는 순서대로 놓은 참가자들 — 인덱스로 바꿔 담는다 */
+  cycle?: readonly Slot[];
   slots: readonly Slot[];
 }): Relation {
   const ordered = [...args.slots].sort((a, b) => a.order - b.order);
@@ -363,6 +383,7 @@ function makeRelation(args: {
     direction: args.direction
       ? { from: ordered.indexOf(args.direction.from), to: ordered.indexOf(args.direction.to) }
       : null,
+    cycle: args.cycle ? args.cycle.map((slot) => ordered.indexOf(slot)) : null,
     scope,
     // 세 기둥짜리 관계는 세 자리가 연달아야 붙은 것이다 (거리 2).
     adjacent: distance === null ? null : distance === ordered.length - 1,
@@ -632,13 +653,18 @@ function triplePunishmentRelations(slots: readonly Slot[]): Relation[] {
     const { full, partial } = matchGroups(slots, p.branches, null);
 
     return [
-      // 세 글자가 다 모인 삼형은 순환이라 시작도 끝도 없다 — 방향이 없다.
+      // 세 글자가 다 모인 삼형은 순환이라 화살표 하나로 못 적는다. 대신 **도는
+      // 순서**를 낸다 — 표의 배열 순서가 곧 그 순서이므로 정렬하면 안 되고,
+      // 여기서 그 순서대로 참가자를 늘어놓기만 한다.
       ...full.map((group) =>
         makeRelation({
           kind: 'branchPunishment',
           tier: 'branch',
           ko: p.ko,
           name: p.name,
+          cycle: [...group].sort(
+            (a, b) => p.branches.indexOf(a.branch) - p.branches.indexOf(b.branch),
+          ),
           slots: group,
         }),
       ),
@@ -772,6 +798,18 @@ export function directionParticipantsOf(
   if (!direction) return null;
 
   return { from: participants[direction.from], to: participants[direction.to] };
+}
+
+/**
+ * 참가자를 **읽는 순서**로 — 완전 삼형만 자리 순서가 아니라 도는 순서다.
+ *
+ * 부르는 곳이 셋이다(원국 표 · 궁합 표 · L3 행). 셋이 각자 `cycle` 을 풀면 언젠가
+ * 한 곳만 고쳐지고, 그때 어긋난 쪽을 알 수 없다. `directionParticipantsOf` 와 같은
+ * 자리에 같은 모양으로 둔다 — 저장은 인덱스로, 푸는 것은 읽을 때 한 번.
+ */
+export function orderedParticipants(relation: Relation): readonly Participant[] {
+  const { cycle, participants } = relation;
+  return cycle ? cycle.map((index) => participants[index]) : participants;
 }
 
 /**

@@ -53,6 +53,7 @@
           ruleSet                visible-relations-v2
           distantRelations       detect-all
           partialStructures      peak-required
+          triplePunishmentCycle  ordered-by-classical-table
           interactionResolution  contest-only
           hiddenStemRelations    disabled
           ghostGate              separate-from-resentment

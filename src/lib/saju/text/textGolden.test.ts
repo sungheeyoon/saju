@@ -50,6 +50,18 @@ const CASES: TextCase[] = [
       {},
     ),
   },
+  /**
+   * 세 글자가 다 모인 삼형. 행이 **도는 순서**로 서는 유일한 자리다 — 자리 순서로
+   * 늘어놓으면 글자 순서와 이름('축술미')이 어긋난 채로 나간다.
+   */
+  {
+    id: 'triple-punishment',
+    note: '완전 삼형 — 행의 글자가 자리 순서가 아니라 형이 도는 순서로 선다',
+    saju: computeSaju(
+      { year: 1980, month: 1, day: 2, hour: 3, minute: 0, second: 0, gender: 'male' },
+      {},
+    ),
+  },
   {
     id: 'no-relations',
     note: '관계가 하나도 없다 — 사실이 없으면 발화도 없다',
