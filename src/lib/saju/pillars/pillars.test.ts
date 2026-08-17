@@ -4,11 +4,13 @@ import { daysInMonth } from '@/src/lib/saju/input';
 import {
   DAY_ANCHOR,
   KST_OFFSET_MINUTES,
+  LATE_NIGHT_UNKNOWN_HOUR,
   YEAR_ANCHOR,
   dayPillarOf,
   formatPillars,
   fromCivil,
   getFourPillars,
+  getPillarsWithoutHour,
   hourBranchOf,
   hourStemOf,
   monthStemOf,
@@ -296,6 +298,24 @@ describe('4주 통합 — 조자시/야자시', () => {
   it('23시대 출생에 경고를 남긴다', () => {
     const pillars = getFourPillars(kst(2025, 6, 15, 23, 30));
     expect(pillars.meta.warnings.some((w) => w.includes('자시'))).toBe(true);
+  });
+
+  /**
+   * **알리지 않기로 한 것**이지 빠뜨린 것이 아니다.
+   *
+   * 조자시는 일주 경계가 23:00 이라, 늦은 23시대에 태어난 사람은 시각을 모르면
+   * 일주가 하루 어긋난다. 일간이 바뀌면 그 위가 전부 바뀐다. 그런데도 알리지
+   * 않는 이유와 되돌릴 조건은 `LATE_NIGHT_UNKNOWN_HOUR` 에 적혀 있다 — 값을
+   * 여기서 함께 잠가, 나중에 경고를 붙이려면 그 판단을 먼저 읽게 한다.
+   */
+  it('시간 미상의 조자시 경계는 알리지 않는다', () => {
+    expect(LATE_NIGHT_UNKNOWN_HOUR).toBe('not-warned');
+
+    const pillars = getPillarsWithoutHour(kst(2025, 6, 15, 12, 0));
+
+    expect(pillars.meta.warnings.some((w) => w.includes('자시'))).toBe(false);
+    // 시주가 없다는 것 자체는 알린다 — 침묵하는 것은 일주가 밀릴 가능성뿐이다.
+    expect(pillars.meta.warnings.some((w) => w.includes('시주'))).toBe(true);
   });
 });
 
