@@ -5,7 +5,13 @@ import { useSearchParams } from 'next/navigation';
 
 import { BirthFields } from './birth-form';
 import { CopyLinkButton } from './copy-link';
-import { TOPICS_THE_TABLE_HOLDS, TOPIC_TABLE_FOOTNOTE, UtteranceList, said } from './utterances';
+import {
+  TOPICS_THE_TABLE_HOLDS,
+  TOPIC_TABLE_FOOTNOTE,
+  UtteranceList,
+  placeNowUtterances,
+  said,
+} from './utterances';
 import {
   DEFAULT_QUERY,
   TIME_BASIS,
@@ -36,8 +42,10 @@ import {
   TWELVE_SPIRIT_ALIAS,
   TWELVE_SPIRIT_KO,
   TWELVE_STAGE_KO,
+  assembleNowText,
   assembleText,
   computeSaju,
+  currentFortuneOf,
   directionParticipantsOf,
   orderedParticipants,
   toCivil,
@@ -281,6 +289,7 @@ function SajuView({ saju }: { saju: Saju }) {
         saju={saju}
         coverage={said(utterances, (topic) => topic === TOPIC_TABLE_FOOTNOTE)}
       />
+      <NowFortune saju={saju} viewedAt={viewedAt} />
       <FortuneTabs view={fortuneView} onChange={setFortuneView} saju={saju} viewedAt={viewedAt} />
       <StarTable saju={saju} />
       <TimeCorrections saju={saju} />
@@ -316,6 +325,68 @@ function SaidAbout({ utterances }: { utterances: Utterance[] }) {
         여덟 글자에서 곧장 세어진 것은 사실, 우리가 고른 문턱을 거친 것은 유도, 아직 시험
         중인 규칙은 후보, 조건을 자동 판정하지 않고 옮겨 적은 표는 참고입니다. 근거보다
         세게 말하지 않는지는 계약이 검사하고, 아래 카드들이 그 근거를 숫자로 폅니다.
+      </p>
+    </section>
+  );
+}
+
+/**
+ * 지금의 운 — **버튼을 누른 시각을 기준으로 짚은 세 칸.**
+ *
+ * 아래 표들과 역할이 갈린다. 표는 **둘러보기** 도구다(세운 시작 연도를 옮겨 아홉 칸·
+ * 열두 칸을 훑는다). 이 카드는 고르지 않고 **지금 하나**를 짚는다 — 사용자가 원한 것이
+ * "몇 년 몇 월을 볼까"가 아니라 "지금 어떤가"였다.
+ *
+ * **강도 딱지가 여기서 처음 한 카드 안에서 갈린다.** 세운·월운 행은 사실이고 대운
+ * 문장만 유도다. 갈리는 까닭은 대운수를 우리가 골랐기 때문이고(반올림이냐 버림이냐),
+ * 그것을 문장이 스스로 밝힌다. 같은 카드에 나란히 서지 않으면 왜 하나만 딱지가 다른지
+ * 보이지 않는다 — 억부와 종격을 한 카드에 모은 것과 같은 이유다.
+ *
+ * `viewedAt` 은 밖에서 받는다. 여기서 `Date.now()` 를 부르면 표의 '지금' 강조와 이
+ * 카드가 다른 시각을 볼 수 있고, 무엇보다 엔진이 시각을 스스로 묻지 않기로 한 결정
+ * (`NOW_POLICY.viewingInstant`)이 화면에서 되돌아온다.
+ */
+function NowFortune({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
+  const { header, body, relations, footnote } = useMemo(
+    () => placeNowUtterances(assembleNowText(currentFortuneOf(saju, new Date(viewedAt)))),
+    [saju, viewedAt],
+  );
+
+  return (
+    <section id="fortune" className={`${CARD} scroll-mt-20`}>
+      <h2 className="text-base font-semibold">지금의 운</h2>
+
+      <div className="mt-3">
+        <UtteranceList utterances={header} />
+      </div>
+
+      <div className="mt-3 border-t border-border pt-3">
+        <UtteranceList utterances={body} />
+      </div>
+
+      {/*
+        관계를 갈라 세운다. 섞어 두면 아홉 줄이 본론인 세 칸을 묻는다 — 버리는 것이
+        아니라 자리를 주는 것이고, 원국 화면에서 이 주제를 뺀 것과 이유가 다르다
+        (저쪽은 표가 든다).
+      */}
+      {relations.length > 0 && (
+        <div className="mt-4 border-t border-border pt-3">
+          <h3 className="text-sm font-medium">지금이 원국과 맺는 관계</h3>
+          <div className="mt-2">
+            <UtteranceList utterances={relations} />
+          </div>
+        </div>
+      )}
+
+      {footnote.length > 0 && (
+        <div className="mt-3 border-t border-border pt-3">
+          <UtteranceList utterances={footnote} />
+        </div>
+      )}
+
+      <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
+        지금 하나만 짚습니다. 다른 시점은 아래 <strong className="font-medium">운 흐름</strong>{' '}
+        표에서 골라 봅니다.
       </p>
     </section>
   );
@@ -386,11 +457,15 @@ function FortuneTabs({
   };
 
   return (
-    <div id="fortune" className="scroll-mt-20 flex flex-col gap-3">
+    // `id="fortune"` 은 위의 `NowFortune` 이 든다 — 바로가기가 '운' 을 가리킬 때
+    // 먼저 보여야 하는 것은 지금이고, 표는 그 아래에서 둘러보는 것이다.
+    <div className="flex flex-col gap-3">
       <div className={`${CARD} flex flex-wrap items-center justify-between gap-3 py-3`}>
         <div>
           <h2 className="text-base font-semibold">운 흐름</h2>
-          <p className="mt-0.5 text-xs text-secondary">기간을 골라 한 표씩 집중해서 봅니다.</p>
+          <p className="mt-0.5 text-xs text-secondary">
+            다른 시점을 골라 한 표씩 집중해서 봅니다.
+          </p>
         </div>
         <div
           role="tablist"

@@ -46,6 +46,57 @@ export const TOPICS_THE_TABLE_HOLDS: readonly string[] = [
 export const TOPIC_TABLE_FOOTNOTE = 'relation.coverage';
 
 /**
+ * 현재운 발화를 카드 안에서 어디에 놓을지 — **나눠 갖되 겹칠 수는 없다.**
+ *
+ * 세 자리로 나누는 이유가 각각 다르다.
+ *
+ * - `header` 기준 시각. 나머지 발화가 '지금'·'이번'을 쓰므로 그 좌표가 맨 위에 없으면
+ *   전부 기준점 없는 문장이 된다. **빼면 나머지가 거짓이 되고 테스트는 그것을 못
+ *   본다**(`ASSEMBLE_POLICY.viewingInstant`).
+ * - `relations` 지금이 원국과 맺는 관계. **버리지 않고 갈라 세운다** — 아홉 줄까지 나오는데
+ *   섞어 두면 본론인 세 칸(대운·세운·월운)이 그 아래 묻힌다. 원국 화면에서는 이 주제를
+ *   표가 들어서 빼지만(`TOPICS_THE_TABLE_HOLDS`) 여기서는 들어 줄 표가 없다 — 월운 표는
+ *   `wolun.year` 가 가리키는 해를 보이므로 이번 달이 그 안에 없을 수 있다.
+ * - `footnote` 목록의 한계 둘. 대운 관계를 못 센 것과 시주를 빼고 센 것 — 둘 다 항목이
+ *   아니라 목록에 대한 말이라 항목들 사이에 끼면 한 줄로 읽힌다.
+ * - 나머지가 본문.
+ *
+ * **본문을 빼기로 세운다.** `body` 를 따로 열거하면 새 주제가 생긴 날 네 목록 어디에도
+ * 없어 조용히 사라지거나, 손이 미끄러져 두 목록에 들어 같은 문장이 화면에 두 번 찍힌다.
+ * 뒤쪽은 실제로 한 번 당했다 — 조립기는 한 번 내고 **두 번 놓는 것은 화면의 일이라
+ * 테스트가 못 본다**(`TOPIC_TABLE_FOOTNOTE`). 여기서는 그 실수가 표현 불가능하다.
+ */
+export const NOW_TOPIC_PLACEMENT = {
+  header: ['now.asOf'] as readonly string[],
+  relations: ['relation.present'] as readonly string[],
+  footnote: ['now.coverage', 'relation.coverage'] as readonly string[],
+} as const;
+
+const NOW_PLACED_TOPICS: readonly string[] = Object.values(NOW_TOPIC_PLACEMENT).flat();
+
+export type NowPlacement = {
+  header: Utterance[];
+  body: Utterance[];
+  relations: Utterance[];
+  footnote: Utterance[];
+};
+
+/** 현재운 발화를 네 자리로 가른다 — 어디에도 없거나 두 곳에 있는 발화는 만들 수 없다 */
+export const placeNowUtterances = (utterances: readonly Utterance[]): NowPlacement => {
+  const at = (topics: readonly string[]) =>
+    utterances.filter((utterance) => topics.includes(utterance.request.topic));
+
+  return {
+    header: at(NOW_TOPIC_PLACEMENT.header),
+    relations: at(NOW_TOPIC_PLACEMENT.relations),
+    footnote: at(NOW_TOPIC_PLACEMENT.footnote),
+    body: utterances.filter(
+      (utterance) => !NOW_PLACED_TOPICS.includes(utterance.request.topic),
+    ),
+  };
+};
+
+/**
  * 발화가 **이미, 그리고 더 낫게** 말하는 궁합 경고.
  *
  * 엔진 경고는 사람을 이름으로 못 부른다 — 이름이 계산에 안 들어가기로 했으므로

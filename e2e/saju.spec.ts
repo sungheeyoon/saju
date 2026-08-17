@@ -65,6 +65,72 @@ test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한�
 });
 
 /**
+ * 지금의 운 — **브라우저로 눌러야 보이는 것이 있는 카드다.**
+ *
+ * 기준 시각은 `Date.now()` 에서 오므로 골든이 못 잡는다. 그리고 이 카드는 조립기가 낸
+ * 발화를 네 자리로 나눠 놓는데(`placeNowUtterances`) **두 번 놓거나 빼먹는 것은 화면의
+ * 일이라 유닛 테스트가 못 본다** — 실제로 `relation.coverage` 가 두 곳에 찍힌 적이 있다.
+ *
+ * 기준 시각 줄이 없으면 나머지가 전부 기준점 없는 문장이 되므로 그것부터 본다.
+ */
+test('지금의 운이 기준 시각과 세 칸을 한 번씩 보인다', async ({ page }) => {
+  const consoleErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+
+  await page.goto('/');
+  await enterKnownBirth(page);
+  await page.getByRole('button', { name: '사주 보기' }).click();
+
+  const now = page.locator('#fortune');
+  await expect(now.getByRole('heading', { name: '지금의 운' })).toBeVisible();
+
+  const text = await now.innerText();
+
+  // 기준 시각. 지금이 언제인지는 브라우저가 정하므로 모양만 본다.
+  expect(text).toMatch(/\d{4}년 \d{1,2}월 \d{1,2}일 \d{1,2}시 \d{1,2}분 기준으로 짚은 운입니다/);
+  expect(text).toContain('해는 입춘에서, 달은 절입에서 갈립니다');
+
+  // 세 칸이 각각 한 번씩. 두 번 놓으면 여기서 걸린다.
+  expect(text.match(/대운/g)?.length).toBeGreaterThan(0);
+  expect(text.match(/년 세운 /g)).toHaveLength(1);
+  expect(text.match(/월 월운 /g)).toHaveLength(1);
+  expect(text.match(/기준으로 짚은 운입니다/g)).toHaveLength(1);
+  expect(text.match(/대운이 낀 관계는 아직 세지 않아/g)).toHaveLength(1);
+
+  // 강도 딱지가 한 카드 안에서 갈린다 — 세운·월운은 사실, 대운은 유도다.
+  expect(text).toContain('사실');
+  expect(text).toContain('유도');
+
+  // 표는 그대로 아래에 있다. 이 카드가 표를 대신하는 것이 아니다.
+  await expect(page.getByRole('heading', { name: '운 흐름' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: '세운' })).toBeVisible();
+
+  expect(consoleErrors).toEqual([]);
+});
+
+/**
+ * 시간을 모르면 대운만 한 칸 내려앉는다. 세운의 해와 월운의 달은 시주 두 글자가
+ * 바꾸지 않으므로 사실로 남고, 흔들리는 것은 관계 목록의 전체성이라 목록이 따로 든다.
+ */
+test('시간 미상이면 지금의 운에서 대운만 후보로 내려앉는다', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('이름', { exact: true }).fill('민수');
+  await page.getByLabel('생년월일', { exact: true }).fill('1990-05-15');
+  await page.getByRole('radio', { name: '모름', exact: true }).check();
+  await page.getByRole('button', { name: '사주 보기' }).click();
+
+  const text = await page.locator('#fortune').innerText();
+
+  expect(text).toContain('후보로 봅니다');
+  expect(text).toContain('시각을 몰라 대운수가 두 달쯤 흔들리므로');
+  // 목록의 한계 둘이 나란히 선다 — 하나는 우리 구현, 하나는 빠진 입력이다.
+  expect(text).toContain('대운이 낀 관계는 아직 세지 않아');
+  expect(text).toContain('시주를 빼고 센 목록이라');
+});
+
+/**
  * 결과 화면을 링크로 줄 수 있어야 한다. 상태가 컴포넌트 안에만 있으면 주소를
  * 복사해 줘도 상대는 빈 폼을 본다 — 그것이 이 동기화의 이유이므로, 주소에
  * 실렸는지가 아니라 **그 주소로 다시 열었을 때 같은 명식이 나오는지**를 본다.
