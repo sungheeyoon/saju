@@ -145,6 +145,7 @@
           hedge                  required-below-fact-in-prose
           form                   rows-for-counted-facts
           attribution            required-for-copied-tables
+          incompleteInput        observable-facts-survive · completeness-and-absence-do-not
           disclosure             allowed-for-not-evaluated
           followingPattern       gated-by-external-check
           followingNegative      silent
