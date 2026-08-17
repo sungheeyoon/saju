@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { computeSaju, type Saju } from '@/src/lib/saju';
 import { ELEMENT_ROLE_KO, TEN_GOD_KO } from '@/src/lib/saju/analysis';
 import { analyzeCompatibility } from '@/src/lib/saju/compat';
+import { currentFortuneOf } from '@/src/lib/saju/now';
+import { TWELVE_STAGE_KO } from '@/src/lib/saju/stages';
 import {
   ASSEMBLE_POLICY,
   FRAGMENT_TOPICS,
@@ -10,9 +12,11 @@ import {
   FRAGMENT_INDEX,
   STRENGTH_WORDING,
   assembleCompatText,
+  assembleNowText,
   assembleText,
   findUtterances,
   groundedCompatTermsOf,
+  groundedNowTermsOf,
   groundedTermsOf,
   indexFragments,
   missingFragmentsOf,
@@ -563,6 +567,197 @@ describe('조립기', () => {
         }
       }
     }
+  });
+
+  /**
+   * 현재운 — **강도가 행과 산문을 한 묶음 안에서 가른다.**
+   *
+   * 세운·월운은 해와 달에서 나온 사실이라 행이고, 대운은 우리가 고른 대운수 위에
+   * 서 있어 산문이다. `ClaimForm` 이 "완충 표현이 필요하다는 것이 곧 산문이어야
+   * 한다는 뜻"이라고 적어 둔 것을 한 카드에서 확인하는 자리다.
+   */
+  describe('현재운', () => {
+    const VIEWED_AT = new Date('2026-08-17T21:06:00+09:00');
+
+    const nowTextOf = (saju: Saju, viewedAt: Date = VIEWED_AT) =>
+      assembleNowText(currentFortuneOf(saju, viewedAt));
+
+    const topicOf = (utterances: Utterance[], topic: string) =>
+      utterances.find(({ request }) => request.topic === topic);
+
+    it('기준 시각 발화가 조건 없이 맨 앞에 선다', () => {
+      for (const saju of [RICH, HOURLESS]) {
+        const [first] = nowTextOf(saju);
+
+        expect(first.request.topic).toBe('now.asOf');
+        expect(first.strength).toBe('fact');
+        // 슬롯에 꽂힌 값이 그대로 문장에 있어야 스크린샷이 거짓말하지 않는다.
+        expect(first.text).toContain('2026년 8월 17일 21시 6분');
+      }
+    });
+
+    /**
+     * 나머지 발화가 '지금'·'이번'을 쓰므로 좌표 없이는 전부 기준점 없는 문장이 된다.
+     * **화면이 이 발화를 빼면 나머지가 거짓이 되고 그것을 테스트가 못 본다** — 여기서
+     * 잠글 수 있는 것은 조립기가 언제나 낸다는 것까지다.
+     */
+    it('상대 표현을 쓰는 발화가 실제로 있다', () => {
+      const texts = sentencesOf(nowTextOf(RICH));
+
+      expect(texts.some((text) => text.includes('지금'))).toBe(true);
+      expect(ASSEMBLE_POLICY.viewingInstant).toBe('as-of-line-always-first');
+    });
+
+    it('세운·월운은 행이고 대운은 산문이다', () => {
+      const utterances = nowTextOf(RICH);
+
+      for (const topic of ['now.saeun', 'now.wolun'] as const) {
+        const row = topicOf(utterances, topic);
+
+        expect(FRAGMENT_TOPICS[topic].form, topic).toBe('row');
+        expect(row?.strength, topic).toBe('fact');
+        // 행은 마침표로 끝나지 않고 강도 표지도 품지 않는다 — 강도는 옆 칸이 든다.
+        expect(row?.text?.endsWith('.'), topic).toBe(false);
+        for (const mark of Object.values(STRENGTH_WORDING)) {
+          expect(row?.text?.includes(mark), `${topic} 에 ${mark}`).toBe(false);
+        }
+      }
+
+      const daeun = topicOf(utterances, 'now.daeun');
+      expect(FRAGMENT_TOPICS['now.daeun'].form).toBeUndefined();
+      expect(daeun?.strength).toBe('derived');
+      expect(daeun?.text).toContain(STRENGTH_WORDING.derived);
+    });
+
+    /**
+     * 대운수는 절입까지의 거리를 사흘에 한 살로 셈한 뒤 정수로 만드는데 그 정수화가
+     * 계통마다 다르다. 우리가 고른 것을 밝히지 않으면 독자는 답이 하나뿐인 줄 안다 —
+     * 조후가 판정하지 않은 조건을 밝히는 것과 같은 의무이고 방향만 반대다.
+     */
+    it('대운 문장이 고른 계통을 밝힌다', () => {
+      for (const saju of [RICH, HOURLESS]) {
+        const daeun = topicOf(nowTextOf(saju), 'now.daeun');
+
+        expect(daeun?.text).toContain('반올림');
+        expect(daeun?.text).toContain('버림');
+      }
+    });
+
+    /**
+     * 대운만 내려앉는다. 세운의 해와 월운의 달은 시주 두 글자가 바꾸지 않고,
+     * 흔들리는 것은 그것들이 원국과 맺는 관계 목록의 전체성이라 목록이 따로 든다.
+     */
+    it('시간 미상이면 대운만 한 칸 내려앉는다', () => {
+      const utterances = nowTextOf(HOURLESS);
+      const daeun = topicOf(utterances, 'now.daeun');
+
+      expect(daeun?.strength).toBe('candidate');
+      expect(daeun?.text).toContain('시주');
+
+      for (const topic of ['now.saeun', 'now.wolun'] as const) {
+        expect(topicOf(utterances, topic)?.strength, topic).toBe('fact');
+      }
+
+      // 목록의 한계는 목록이 든다 — 행이 아니라 이 발화가 시주를 부른다.
+      expect(topicOf(utterances, 'relation.coverage')?.request.variant).toBe('natal');
+      expect(topicOf(nowTextOf(RICH), 'relation.coverage')).toBeUndefined();
+    });
+
+    /**
+     * 목록의 한계 둘이 성질이 다르다. 대운 관계는 **우리 구현**이 못 센 것이라 시각을
+     * 다 알아도 서고, 시주는 **입력**이 빠진 것이라 모를 때만 선다. 한 문장으로 묶으면
+     * "시각을 알면 목록이 온전하다"가 조용히 들어온다.
+     */
+    it('대운 관계를 세지 않았다는 고지는 시각과 무관하게 선다', () => {
+      for (const saju of [RICH, HOURLESS]) {
+        const coverage = topicOf(nowTextOf(saju), 'now.coverage');
+
+        expect(coverage?.strength).toBe('fact');
+        expect(coverage?.text).toContain('대운');
+      }
+    });
+
+    it('관계 행은 원국과 같은 주제·같은 조각이고 어느 판인지만 더 든다', () => {
+      const rows = nowTextOf(RICH).filter(({ request }) => request.topic === 'relation.present');
+
+      expect(rows.length).toBeGreaterThan(0);
+      expect(rows.some(({ text }) => text?.includes('세운'))).toBe(true);
+      expect(rows.some(({ text }) => text?.includes('월운'))).toBe(true);
+
+      // 같은 조각을 쓴다 — 원국 화면의 행과 키가 같아야 한다.
+      const natal = assembleText(RICH).find(({ request }) => request.topic === 'relation.present');
+      expect(rows[0].key).toBe(natal?.key);
+    });
+
+    /**
+     * 첫 대운 전은 **이 사람에 대한 사실**이라 말한다. 표 밖은 우리가 뽑은 칸 수의
+     * 한계라 발화 자체가 없다 — 침묵이 아니다. 침묵은 값이 있는데 말하지 않기로 한
+     * 것이고, 이쪽은 남의 한계를 사실처럼 말하지 않는 것이다.
+     */
+    describe('대운을 못 짚을 때', () => {
+      const BABY = computeSaju(
+        { year: 2024, month: 3, day: 15, hour: 10, minute: 0, second: 0, gender: 'female' },
+        {},
+      );
+      const OLD = computeSaju(
+        { year: 1925, month: 3, day: 15, hour: 10, minute: 0, second: 0, gender: 'female' },
+        {},
+      );
+
+      it('첫 대운 전이면 그렇다고 말한다', () => {
+        const pending = topicOf(nowTextOf(BABY), 'now.daeunPending');
+
+        expect(pending?.strength).toBe('derived');
+        expect(pending?.text).toContain('아직');
+        expect(topicOf(nowTextOf(BABY), 'now.daeun')).toBeUndefined();
+      });
+
+      /** "아직 없다"는 대운수가 한 살 어긋나면 그냥 틀린 문장이 된다 */
+      it('시간 미상이면 첫 대운 전이라는 말도 입을 닫는다', () => {
+        const hourless = computeSaju(
+          { year: 2024, month: 3, day: 15, hour: null, gender: 'female' },
+          {},
+        );
+        const pending = topicOf(nowTextOf(hourless), 'now.daeunPending');
+
+        expect(pending?.strength).toBe('silent');
+        expect(pending?.text).toBeNull();
+      });
+
+      it('표 밖이면 발화 자체가 없다', () => {
+        const utterances = nowTextOf(OLD);
+
+        expect(topicOf(utterances, 'now.daeun')).toBeUndefined();
+        expect(topicOf(utterances, 'now.daeunPending')).toBeUndefined();
+        expect(ASSEMBLE_POLICY.daeunBeyondTable).toBe('no-utterance-not-silence');
+      });
+    });
+
+    /**
+     * 근거 목록은 이 현재운이 낸 것만 담는다. 12운성·12신살은 세운·월운 칸이 계산해
+     * 두었지만 주제가 없어 문장이 되지 않으므로 넣지 않는다 — 넉넉히 담으면 대조가
+     * 통과할 뿐 아무것도 잡지 못한다.
+     */
+    it('근거 목록에 말하지 않는 용어를 담지 않는다', () => {
+      const now = currentFortuneOf(RICH, VIEWED_AT);
+      const grounded = groundedNowTermsOf(now);
+
+      for (const relation of now.relations) expect(grounded).toContain(relation.ko);
+      expect(grounded).toContain(TEN_GOD_KO[now.saeun.tenGods.stem]);
+
+      // 12운성 이름은 담지 않는다 — 그것을 말하는 주제가 아직 없다.
+      expect(grounded).not.toContain(TWELVE_STAGE_KO[now.saeun.stage]);
+    });
+
+    it('현재운 발화는 전부 계약을 지킨다', () => {
+      for (const saju of [RICH, HOURLESS, MUTUAL, OFFICER_HOURLESS]) {
+        for (const viewedAt of [VIEWED_AT, new Date('2026-01-20T12:00:00+09:00')]) {
+          for (const utterance of nowTextOf(saju, viewedAt)) {
+            expect(utterance.violations, utterance.key ?? '(silent)').toHaveLength(0);
+          }
+        }
+      }
+    });
   });
 
   it('정책은 납작한 문자열이라 스냅샷이 그대로 찍는다', () => {

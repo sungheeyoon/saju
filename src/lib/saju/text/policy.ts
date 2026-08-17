@@ -151,10 +151,12 @@ export function weakerClaim(a: ClaimStrength, b: ClaimStrength): ClaimStrength {
 }
 
 /**
- * 문장이 근거로 삼을 수 있는 자리. `Saju` 의 키를 그대로 쓴다.
+ * 문장이 근거로 삼을 수 있는 자리. 대개 `Saju` 의 키를 그대로 쓴다.
  *
  * 새 필드가 L2 에 생기면 여기에도 줄이 하나 늘어야 한다 — 테스트가 그것을
  * 강제한다. 상한을 정하지 않은 결과는 L3 가 아예 읽을 수 없다.
+ *
+ * **`now` 만 `Saju` 의 키가 아니다** — 아래 `OFF_CHART_PATHS` 참조.
  */
 export const CLAIM_PATHS = [
   'pillars',
@@ -165,6 +167,7 @@ export const CLAIM_PATHS = [
   'saeun',
   'wolun',
   'meta',
+  'now',
   'analysis.elements',
   'analysis.tenGods',
   'analysis.tenGodCounts',
@@ -177,6 +180,25 @@ export const CLAIM_PATHS = [
 ] as const;
 
 export type ClaimPath = (typeof CLAIM_PATHS)[number];
+
+/**
+ * 명식 밖에서 오는 근거 — **계약이 여태 없다고 전제하던 것.**
+ *
+ * `CLAIM_PATHS` 는 `Saju` 의 키를 그대로 쓴다고 적혀 있었고 테스트가 양방향으로
+ * 그것을 잠갔다(없어진 필드를 가리키는 상한도, 상한 없는 필드도 걸린다). 궁합이
+ * 그 전제를 깨지 않은 것은 **남의 근거를 빌려 썼기** 때문이다 — 궁합 문장이 읽는
+ * 억부·오행·십성은 전부 각자의 원국에서 나온 값이라 `analysis.*` 로 적힌다.
+ *
+ * 현재운이 처음으로 명식 밖의 것을 근거로 든다. "지금은 네 번째 대운 안에 있다"는
+ * 대운 표만으로 나오지 않는다 — **보는 시각**이 있어야 한다. 그것을 `daeun` 하나로
+ * 적으면 문장이 명식 밖의 무엇에 기대고 있다는 사실이 근거 목록에서 사라지고,
+ * 이 저장소에서 그것은 강도를 손으로 적는 것과 같은 종류의 구멍이다.
+ *
+ * 상한은 `fact` 다. 보는 시각은 흔들리지 않는다 — 브라우저가 알려 준 값이고,
+ * 엔진이 스스로 묻지 않기로 한 이유가 오히려 그 확실성을 지킨다
+ * (`NOW_POLICY.viewingInstant`).
+ */
+export const OFF_CHART_PATHS: readonly ClaimPath[] = ['now'];
 
 /**
  * 종격 문장의 상한은 **외부 대조 게이트에 묶여 있다.**
@@ -204,10 +226,29 @@ export const CLAIM_CEILING: Record<ClaimPath, ClaimStrength> = {
   relations: 'fact',
   stages: 'fact',
   sinsal: 'fact',
-  daeun: 'fact',
   saeun: 'fact',
   wolun: 'fact',
   meta: 'fact',
+  /** 보는 시각. 브라우저가 알려 준 값이라 흔들리지 않는다 — 위 `OFF_CHART_PATHS` */
+  now: 'fact',
+
+  /**
+   * 대운은 여덟 글자에서 곧장 세어지지 **않는다.**
+   *
+   * 간지 순서는 사실이다(월주에서 한 칸씩, 양남음녀 순역). 사실이 아닌 것은
+   * **대운수**다 — 절입까지의 거리를 사흘에 한 살로 셈한 뒤 정수로 만드는데,
+   * 그 정수화가 반올림인지 버림인지는 "어느 쪽도 표준이 아니라서 옵션으로 둔다"고
+   * 대운 모듈이 스스로 적어 두었다(`DaeunRounding`). 0 을 1 로 올리는 관행도 그렇다.
+   *
+   * 상한은 그 근거가 **받쳐 줄 수 있는 가장 약한 주장**을 따른다. 대운수 없이는
+   * 어느 칸이 몇 살부터인지 말할 수 없으므로 이 자리는 `derived` 다 — 강약이
+   * 문턱을 우리가 골랐다는 이유로 `derived` 인 것과 같은 종류다.
+   *
+   * 한동안 `fact` 로 적혀 있었고 **아무도 이 근거를 읽지 않아서 아무도 안 봤다.**
+   * 계약이 죽은 값을 들고 있으면 그 값은 검증되지 않는다(`ceilingForFollowing` ·
+   * `ATTRIBUTION_PATHS` 와 같은 자리다).
+   */
+  daeun: 'derived',
   'analysis.elements': 'fact',
   'analysis.tenGods': 'fact',
   'analysis.tenGodCounts': 'fact',
@@ -298,6 +339,22 @@ export type ClaimPolarity = 'presence' | 'absence';
  * 아니라 `meta.warnings` 가 든다.
  */
 export const HOUR_SENSITIVE_PATHS: readonly ClaimPath[] = [
+  /**
+   * 대운수는 절입까지의 거리에서 나오고, 시각을 모르면 그 거리가 **채워 넣은
+   * 정오에서** 재어진다. ±0.5일 ÷ 3 ≈ ±2개월이 흔들리므로 반올림 경계에 걸리면
+   * 한 살 차이로 나타나고, 그러면 **지금이 어느 대운인지가 한 칸 어긋난다.**
+   * 위 1번(값이 달라진다)의 자리다.
+   *
+   * 계약은 한동안 대운을 "시주와 무관한 근거"로 적고 테스트까지 그렇게 단정했다.
+   * 대운 모듈은 처음부터 `approximate` 로 흔들린다고 말하고 있었는데 — 그 값이
+   * `!hourKnown` 과 정확히 같다 — 계약이 그 근거를 읽는 주제가 없어서 어긋난
+   * 채로 남아 있었다.
+   *
+   * **세운·월운은 여기 없다.** 그 간지는 해와 달에서 나오므로 시주 두 글자가
+   * 아무것도 바꾸지 않는다. 흔들리는 것은 그것들이 원국과 맺는 **관계 목록의
+   * 전체성**이고, 그 몫은 목록이 따로 든다(`relation.coverage`).
+   */
+  'daeun',
   'analysis.elements',
   'analysis.tenGodCounts',
   'analysis.strength',

@@ -1,4 +1,13 @@
-import { BRANCH_INFO, ELEMENT_KO, STEM_INFO, type Element, type Stem } from '../constants';
+import {
+  BRANCH_INFO,
+  ELEMENT_KO,
+  STEM_INFO,
+  type Element,
+  type Pillar,
+  type Stem,
+} from '../constants';
+import type { CivilDateTime } from '../civilTime';
+import type { CurrentFortune } from '../now';
 import {
   ELEMENT_ROLE_KO,
   FOLLOWING_DIRECTION_KO,
@@ -86,7 +95,7 @@ const participantsOf = (relation: Relation, labelOf?: (chartId: string) => strin
     })
     .join(' · ');
 
-/** 쌍 관계인가, 두 사람 글자가 합쳐 이룬 것인가 */
+/** 쌍 관계인가, 따로 있던 글자들이 합쳐 이룬 것인가 */
 const relationVariant = (relation: Relation): string =>
   relation.scope === 'combinedFormation' ? 'combined' : 'row';
 
@@ -157,9 +166,10 @@ export const UNCOVERED_FACTS: readonly string[] = [
   'analysis.rootedness (일간 밖의 천간·투출)',
   'stages',
   'sinsal',
-  'daeun',
-  'saeun',
-  'wolun',
+  // 대운·세운·월운은 **표 전체로는** 아직 침묵한다. 지금 도는 한 칸만
+  // 현재운이 말한다(`findNowUtterances`) — 아홉 칸과 열두 칸을 다 말하는 것은
+  // "고르지 않는다"가 화면을 덮어 버리는 자리라 따로 정할 일이다.
+  'daeun · saeun · wolun (표 전체 — 지금 도는 칸만 현재운이 말한다)',
 ];
 
 const HALF_KO = { first: '상반월', second: '하반월' } as const;
@@ -338,6 +348,199 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
 /** 발화를 찾아 조각에 물린다 */
 export function assembleText(saju: Saju, index: FragmentIndex = FRAGMENT_INDEX): Utterance[] {
   return findUtterances(saju).map((request) => ({ request, ...renderFragment(request, index) }));
+}
+
+/**
+ * 대운 순번을 부르는 말 — **`4번째` 로 적지 않는다.**
+ *
+ * 행이 아니라 산문이라서다. 숫자 슬롯이 그대로 문장에 박히면 읽는 리듬이 끊기고,
+ * 무엇보다 첫 칸을 '1번째'라고 부르게 된다. 표를 넘어가는 순번은 숫자로 돌아온다 —
+ * 열두 번째까지 세면 그다음은 사람이 말로 세지 않는다.
+ */
+const DAEUN_ORDINALS = [
+  '첫',
+  '두 번째',
+  '세 번째',
+  '네 번째',
+  '다섯 번째',
+  '여섯 번째',
+  '일곱 번째',
+  '여덟 번째',
+  '아홉 번째',
+  '열 번째',
+  '열한 번째',
+  '열두 번째',
+] as const;
+
+const daeunOrdinal = (index: number): string => DAEUN_ORDINALS[index - 1] ?? `${index}번째`;
+
+const ganji = (pillar: Pillar): string => `${pillar.stem}${pillar.branch}`;
+
+/**
+ * 기준 시각을 문장에 적는 말 — **분까지 적는다.**
+ *
+ * 날짜만 적으면 절입일에 거짓이 된다. 2026 년 경칩은 3월 5일 22:58(KST)이라
+ * 같은 날짜 안에서 인월과 묘월이 갈리는데, "3월 5일 기준"은 둘 중 어느 쪽을
+ * 보고 한 말인지 가리키지 못한다.
+ */
+const asOfLabel = (viewedOn: CivilDateTime): string =>
+  `${viewedOn.year}년 ${viewedOn.month}월 ${viewedOn.day}일 ${viewedOn.hour}시 ${viewedOn.minute}분`;
+
+/** 현재운 관계 행에서 그 글자가 어느 판의 것인지 */
+const NOW_CHART_LABELS: Record<string, string> = {
+  natal: '',
+  annual: '세운',
+  monthly: '월운',
+};
+
+/**
+ * 이 현재운이 **실제로 낸** 용어들 — 원국·궁합의 같은 함수와 같은 구실이다.
+ *
+ * 12운성·12신살은 담지 않는다. 세운·월운 칸이 그것들을 계산해 두었지만
+ * (`SaeunEntry.stage`·`spirits`) **주제가 없어 문장이 되지 않으므로**, 근거 목록에
+ * 넣으면 그물만 넓어지고 잡는 것은 없다 — "넉넉히 담으면 대조가 통과할 뿐 아무것도
+ * 잡지 못한다"가 이 목록의 규율이다.
+ */
+export function groundedNowTermsOf(now: CurrentFortune): string[] {
+  const terms = new Set<string>();
+
+  for (const relation of now.relations) terms.add(relation.ko);
+
+  for (const entry of [now.saeun, now.wolun]) {
+    terms.add(TEN_GOD_KO[entry.tenGods.stem]);
+    terms.add(TEN_GOD_KO[entry.tenGods.branch]);
+  }
+
+  return [...terms];
+}
+
+/**
+ * 현재운에서 아직 주제가 없는 사실.
+ *
+ * `UNCOVERED_FACTS`·`UNCOVERED_COMPAT_FACTS` 와 같은 구실이고, 목록을 나눈 것은
+ * 세는 대상이 `Saju` 도 `Compatibility` 도 아니기 때문이다. 여기 적힌 것들은
+ * `UNCOVERED_NOW_FACTS`(엔진이 아직 세지 않는 것)와 다르다 — **이쪽은 값이 있는데
+ * 주제가 없는 것**이다. 대운 관계는 그래서 이 목록에 없고 저쪽에 있다.
+ */
+export const UNCOVERED_NOW_TOPICS: readonly string[] = [
+  'saeun.stage · wolun.stage (일간이 그 지지에서 어떤 상태인가)',
+  'saeun.spirits · wolun.spirits (12신살 — 년지·일지 기준)',
+  'saeun.startTerm · wolun.startTerm (그 칸이 언제부터 언제까지인가)',
+];
+
+/**
+ * 현재운에서 발화를 찾는다 — **`Saju` 를 받지 않는다.**
+ *
+ * 궁합이 `Compatibility` 와 이름 두 개만 받는 것과 같은 규율이다. `Saju` 를 통째로
+ * 받으면 L3 가 "지금이 어느 칸인가"를 다시 셀 길이 생기고, 그러면 화면의 운과
+ * 문장의 운이 언젠가 어긋난다.
+ *
+ * **기준 시각이 맨 앞에 선다.** 나머지 발화가 '지금'·'이번'이라는 상대 표현을
+ * 쓰므로 그 좌표 없이는 전부 기준점 없는 문장이 된다. 조건에 따라 서는 것이 아니라
+ * **언제나** 서는 유일한 발화다.
+ */
+export function findNowUtterances(now: CurrentFortune): FragmentRequest[] {
+  const base = { grounded: groundedNowTermsOf(now), hourKnown: now.hourKnown };
+  const requests: FragmentRequest[] = [];
+
+  requests.push({
+    ...base,
+    topic: 'now.asOf',
+    variant: 'instant',
+    slots: { at: asOfLabel(now.viewedOn) },
+  });
+
+  // 대운은 셋 중 유일하게 우리가 고른 값 위에 서 있다 — 그래서 산문이고 계통을 밝힌다.
+  if (now.daeun !== null) {
+    requests.push({
+      ...base,
+      topic: 'now.daeun',
+      variant: 'within',
+      slots: {
+        age: String(now.age),
+        index: daeunOrdinal(now.daeun.index),
+        pillar: ganji(now.daeun.pillar),
+        ageRange: `만 ${now.daeun.startAge}→${now.daeun.endAge}세`,
+      },
+    });
+  } else if (now.daeunAbsence === 'before-first') {
+    // 표 밖으로 나간 쪽(`beyond-table`)은 발화하지 않는다. 그것은 이 사람에 대한
+    // 사실이 아니라 우리가 뽑은 칸 수의 한계라, 문장이 들면 남의 한계를 사실처럼
+    // 말하게 된다.
+    requests.push({
+      ...base,
+      topic: 'now.daeunPending',
+      variant: 'first',
+      slots: {
+        age: String(now.age),
+        startAge: String(now.firstDaeun.startAge),
+        pillar: ganji(now.firstDaeun.pillar),
+      },
+    });
+  }
+
+  requests.push({
+    ...base,
+    topic: 'now.saeun',
+    variant: 'year',
+    slots: {
+      year: String(now.saeun.year),
+      pillar: ganji(now.saeun.pillar),
+      stemTenGod: TEN_GOD_KO[now.saeun.tenGods.stem],
+      branchTenGod: TEN_GOD_KO[now.saeun.tenGods.branch],
+    },
+  });
+
+  requests.push({
+    ...base,
+    topic: 'now.wolun',
+    variant: 'month',
+    slots: {
+      month: `${BRANCH_INFO[now.wolun.pillar.branch].ko}월`,
+      pillar: ganji(now.wolun.pillar),
+      stemTenGod: TEN_GOD_KO[now.wolun.tenGods.stem],
+      branchTenGod: TEN_GOD_KO[now.wolun.tenGods.branch],
+    },
+  });
+
+  // 목록의 한계 둘이 나란히 선다. 앞은 **우리 구현**이 못 센 것이라 늘 서고,
+  // 뒤는 **입력**이 빠진 것이라 시각을 모를 때만 선다.
+  requests.push({ ...base, topic: 'now.coverage', variant: 'daeun-not-counted', slots: {} });
+
+  if (!now.hourKnown) {
+    requests.push({ ...base, topic: 'relation.coverage', variant: 'natal', slots: {} });
+  }
+
+  // 원국과 같은 주제·같은 조각이다. 갈리는 것은 슬롯에 어느 판인지가 들어온다는 것뿐 —
+  // 궁합에서 이름이 들어온 그 자리다.
+  for (const relation of now.relations) {
+    requests.push({
+      ...base,
+      topic: 'relation.present',
+      variant: relationVariant(relation),
+      slots: { participants: participantsOf(relation, nowChartLabel), name: relation.ko },
+    });
+  }
+
+  return requests;
+}
+
+/**
+ * 계산판 이름을 사람이 읽는 말로 — `annual:2026` → `세운`.
+ *
+ * 해와 달을 이름에 넣지 않는다. 기준 시각 문장이 이미 언제인지 말했고, 행마다
+ * 연도를 붙이면 같은 값이 목록 내내 되풀이된다. 모르는 판이면 `chartId` 를 그대로
+ * 보인다 — 궁합에서 남의 기둥이 조용히 내 것으로 적히는 것을 막은 것과 같다.
+ */
+const nowChartLabel = (chartId: string): string =>
+  NOW_CHART_LABELS[chartId.split(':')[0]] ?? chartId;
+
+/** 현재운 발화를 찾아 조각에 물린다 */
+export function assembleNowText(
+  now: CurrentFortune,
+  index: FragmentIndex = FRAGMENT_INDEX,
+): Utterance[] {
+  return findNowUtterances(now).map((request) => ({ request, ...renderFragment(request, index) }));
 }
 
 /**
@@ -546,7 +749,7 @@ export function assembleCompatText(
  * 아니라 `Compatibility` 이기 때문이다.
  *
  * `combinedFormations` 는 **사실이 이미 발화한다** — 같은 관계가 `relations` 안에
- * 있고 행이 `(두 사람 글자가 합쳐 이룬 것)` 로 그렇다는 것을 적는다. 여기 남은
+ * 있고 행이 `(따로 있는 글자들이 합쳐 이룬 것)` 로 그렇다는 것을 적는다. 여기 남은
  * 것은 그것들만 따로 모은 목록인데, 목록이 따로 서야 하는지가 화면의 질문이라
  * 문장 층에서 먼저 정할 일이 아니다.
  */
@@ -581,4 +784,21 @@ export const ASSEMBLE_POLICY = {
   coverage: 'uncovered-facts-listed',
   /** 순서는 주제 표 순서이고 관계는 관계 목록 순서다 */
   order: 'topic-table-then-relation-order',
+  /**
+   * 현재운은 기준 시각 발화를 **조건 없이 맨 앞에** 낸다.
+   *
+   * 나머지 발화가 '지금'·'이번'이라는 상대 표현을 쓰므로 그 좌표 없이는 전부 기준점
+   * 없는 문장이 된다. **화면이 이 발화를 빼면 나머지가 거짓이 되고, 그것을 테스트가
+   * 못 본다** — 조립기는 한 번 내고 어디에 놓을지는 화면의 일이라는 것을 이미
+   * `relation.coverage` 에서 배웠다.
+   */
+  viewingInstant: 'as-of-line-always-first',
+  /**
+   * 대운 표 밖은 **발화하지 않는다.**
+   *
+   * 침묵과 다르다. 침묵은 값이 있는데 말하지 않기로 한 것이고, 이쪽은 우리가 뽑은
+   * 칸 수(`DaeunOptions.count`)의 한계라 이 사람에 대한 사실이 아니다 — 문장이 들면
+   * 남의 한계를 사실처럼 말하게 된다.
+   */
+  daeunBeyondTable: 'no-utterance-not-silence',
 } as const;

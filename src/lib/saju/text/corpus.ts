@@ -381,6 +381,119 @@ const tenGodsFragments = (Object.entries(ROLE_GLOSS) as [ElementRole, string][])
 );
 
 /**
+ * 현재운 일곱 벌 — **강도가 행과 산문을 한 묶음 안에서 가른다.**
+ *
+ * 세운·월운은 `fact` 라 행이고 대운은 `derived` 라 산문이다. 같은 카드에 나란히
+ * 서면서 갈리는 것이 이 묶음의 값이다 — `ClaimForm` 이 "완충 표현이 필요하다는
+ * 것이 곧 산문이어야 한다는 뜻"이라고 적어 둔 것을 한눈에 보여 준다.
+ *
+ * 갈리는 까닭은 하나다. **대운수는 우리가 고른 값이다.** 절입까지의 거리를 사흘에
+ * 한 살로 셈한 뒤 정수로 만드는데 그 정수화가 계통마다 다르고(`DaeunRounding`),
+ * 그 정수 없이는 어느 칸이 몇 살부터인지 말할 수 없다. 세운의 해는 입춘에서,
+ * 월운의 달은 절입에서 갈리는데 그 둘은 천문이라 고를 것이 없다.
+ */
+const DAEUN_LINEAGE =
+  '대운수는 절입까지를 사흘에 한 살로 세어 반올림한 값이라, 버림으로 세는 계통에서는 한 해 이릅니다.';
+
+/**
+ * 나이와 대운 칸을 갈라 둔다 — **강등된 벌이 무엇에 걸리는지 때문이다.**
+ *
+ * 한 덩어리로 두면 "시주를 빼고 세면 만 36세인 지금은…" 이 되어 **나이가 시주 없이
+ * 세어진 것처럼 읽힌다.** 나이는 생년월일에서 나오므로 시각과 무관하다. 흔들리는
+ * 것은 그 나이가 몇 번째 칸에 떨어지는가뿐이라, 완충 표현이 그 자리에 붙어야 한다.
+ */
+const daeunHead = '만 {age}세인 지금은';
+const daeunSpan = '{index} 대운 {pillar}({ageRange})';
+
+/**
+ * 기준 시각을 목록 앞에 세우는 한 줄.
+ *
+ * 행마다 날짜를 적지 않는다 — 다섯 줄에 같은 날짜가 다섯 번 찍히면 배경으로
+ * 흘려 읽히고, 그러면 적어 둔 값을 잃는다. 목록의 조건을 목록이 드는 것이고
+ * (`relation.coverage`), 다른 것은 이쪽이 **조건이 아니라 좌표**라서 언제나
+ * 선다는 점이다.
+ *
+ * 둘째 문장이 링크를 위한 것이다. 결과 화면은 주소로 나눠 줄 수 있으므로
+ * (`app/query.ts`) 받은 사람의 '지금'은 다른 지금이다. 기준 시각만 적고 그것이
+ * 다시 셈된다는 것을 적지 않으면, 어제 찍은 스크린샷이 오늘의 운으로 읽힌다.
+ *
+ * 경계를 여기서 밝히는 것도 같은 이유다. 해가 입춘에서, 달이 절입에서 갈린다는
+ * 것은 **이 달에 대한 사실이 아니라 우리가 어떻게 짚었는가**라서 행이 아니라
+ * 목록의 몫이다 — 양력 1월에 열면 세운이 전 해로 나오는 것이 여기서 설명된다.
+ */
+const AS_OF = [
+  '{at} 기준으로 짚은 운입니다.',
+  '해는 입춘에서, 달은 절입에서 갈립니다.',
+  '이 화면을 다시 열면 그때의 시각으로 다시 셉니다.',
+].join(' ');
+
+/**
+ * 현재운 관계 목록이 대운을 빼고 세어졌다는 고지.
+ *
+ * `relation.coverage` 와 문장을 나눠 쓰지 않는다. 저쪽에서 빠진 것은 **입력**
+ * (시주)이고 여기서 빠진 것은 **우리 구현**이다(`DaeunEntry` 가 관계를 들지 않는다).
+ * 한 문장으로 묶으면 시각을 다 아는 사람에게 "목록이 온전하다"가 되어 버린다.
+ *
+ * "판정하지 않는다"가 아니라 "세지 않았다"라고 적는다 — 판정을 미룬 것이 아니라
+ * 아직 만들지 않은 것이고, 그 구분이 `UNCOVERED_NOW_FACTS` 가 하는 일이다.
+ */
+const NOW_COVERAGE = '대운이 낀 관계는 아직 세지 않아 이 목록에 없습니다.';
+
+const nowFragments: Fragment[] = [
+  { topic: 'now.asOf', variant: 'instant', strength: 'fact', template: AS_OF },
+
+  // 산문 두 벌. 시간 미상이면 대운수가 정오에서 재어져 칸이 하나 어긋날 수 있다 —
+  // 값이 달라지는 쪽이라 입을 닫는 것이 아니라 한 칸 내려간다.
+  {
+    topic: 'now.daeun',
+    variant: 'within',
+    strength: 'derived',
+    template: `${daeunHead} ${daeunSpan} 안에 있는 것으로 봅니다. ${DAEUN_LINEAGE}`,
+  },
+  {
+    topic: 'now.daeun',
+    variant: 'within',
+    strength: 'candidate',
+    template: `${daeunHead} ${HOUR_UNKNOWN_MARK}를 빼고 세면 ${daeunSpan} 안에 있는 쪽을 후보로 봅니다. ${DAEUN_LINEAGE} 시각을 몰라 대운수가 두 달쯤 흔들리므로 칸이 하나 어긋날 수 있습니다.`,
+  },
+
+  // 한 벌뿐이다. "아직 없다"는 대운수가 한 살 어긋나면 그냥 틀린 문장이 되므로
+  // 시간 미상에서는 내리는 것이 아니라 입을 닫는다(`polarity: 'absence'`).
+  {
+    topic: 'now.daeunPending',
+    variant: 'first',
+    strength: 'derived',
+    // `{startAge}이고` 로 쓸 수 없다 — '이' 는 받침을 따르는 조사라 정적으로 막힌다.
+    // 슬롯 뒤에 낱말('세')을 한 번 놓고 그 낱말에 붙인다.
+    template:
+      '만 {age}세인 지금은 첫 대운 {pillar} 앞이라 아직 대운이 들어오지 않은 것으로 봅니다. 첫 대운은 만 {startAge}세부터이고, ' +
+      DAEUN_LINEAGE,
+  },
+
+  // 행 두 벌. 시주에 걸리지 않으므로 한 벌씩이다 — 세운의 해와 월운의 달은
+  // 시주 두 글자가 바꾸지 않는다.
+  {
+    topic: 'now.saeun',
+    variant: 'year',
+    strength: 'fact',
+    template: '{year}년 세운 {pillar} — 천간 {stemTenGod} · 지지 {branchTenGod}',
+  },
+  {
+    topic: 'now.wolun',
+    variant: 'month',
+    strength: 'fact',
+    template: '{month} 월운 {pillar} — 천간 {stemTenGod} · 지지 {branchTenGod}',
+  },
+
+  {
+    topic: 'now.coverage',
+    variant: 'daeun-not-counted',
+    strength: 'fact',
+    template: NOW_COVERAGE,
+  },
+];
+
+/**
  * 관계 두 벌 — **열한 종류가 한 행을 쓴다.**
  *
  * 한동안 종류마다 서술어를 달았다: 합은 짝을 짓고, 충은 맞서고, 삼합은 무리를
@@ -416,7 +529,15 @@ export const RELATION_ROW = '{participants} — {name}';
  * 어떻게 성립했는지가 아니라 **목록을 어떻게 셌는지**라, 항목이 아니라 목록이
  * 질 몫이다(`relation.coverage`).
  */
-export const RELATION_MARKS = { combined: '두 사람 글자가 합쳐 이룬 것' } as const;
+/**
+ * 한동안 `두 사람 글자가 합쳐 이룬 것` 이었다. **현재운이 그 낱말을 낡게 만들었다** —
+ * 원국 巳 · 원국 未 · 세운 午 가 사오미 화방을 이루는 것은 두 사람이 아니라 한 사람의
+ * 원국과 그해 세운이다. `RelationScope` 가 재는 것은 사람 수가 아니라 **글자들이 한 판
+ * 안에서 만났는가**였고, 궁합밖에 없던 동안에는 그 둘이 같아 보였다.
+ *
+ * '반쪽'을 '두 글자'로 고친 것과 같은 종류다 — 규칙은 그대로고 낱말만 낡았다.
+ */
+export const RELATION_MARKS = { combined: '따로 있는 글자들이 합쳐 이룬 것' } as const;
 
 const relationRow = (mark?: string): string =>
   mark === undefined ? RELATION_ROW : `${RELATION_ROW} (${mark})`;
@@ -567,6 +688,11 @@ export const FRAGMENTS: readonly Fragment[] = [
   // 바꿔 두 번 선다.
   ...tenGodsFragments,
 
+  // ── 현재운 ───────────────────────────────────────────────────────────
+  // 강도가 행과 산문을 한 묶음 안에서 가른다. 세운·월운은 해와 달에서 나온 사실이고
+  // 대운은 우리가 고른 대운수 위에 서 있다 — 그래서 그 계통을 문장이 밝힌다.
+  ...nowFragments,
+
   // ── 관계 ─────────────────────────────────────────────────────────────
   // 한때 22칸으로 지시서의 절반이었다. 종류가 행을 가르지 못한다는 것을 인정하고
   // 두 칸이 됐다 — 위 `RELATION_ROW` 참조.
@@ -605,4 +731,21 @@ export const CORPUS_POLICY = {
   copiedTable: 'names-what-it-did-not-judge',
   /** 실험 규칙은 자기가 몇 번째인지 밝힌다 — 순위를 감추면 독자가 고르게 된다 */
   precedence: 'names-what-it-does-not-overturn',
+  /**
+   * 계통을 고른 값은 **어느 쪽을 골랐는지** 문장이 밝힌다.
+   *
+   * 대운수가 그 첫 자리다(반올림이냐 버림이냐). 조후가 "나머지 조건은 원문에 있고
+   * 판정하지 않습니다"를 다는 것과 같은 의무인데 방향이 반대다 — 저쪽은 **하지 않은
+   * 것**을 밝히고 이쪽은 **한 것**을 밝힌다. 둘 다 밝히지 않으면 독자는 답이
+   * 하나뿐인 줄 안다.
+   */
+  lineageChoice: 'names-which-lineage-it-took',
+  /**
+   * 상대 표현('지금'·'이번')을 쓰는 묶음은 좌표를 **목록 앞에 한 번** 적는다.
+   *
+   * 행마다 적으면 같은 값이 되풀이되어 배경으로 흘려 읽힌다 — 목록의 한계를 목록이
+   * 드는 것과 같은 자리이고, 다른 것은 이쪽이 조건이 아니라 좌표라서 **언제나
+   * 선다**는 점이다(`ASSEMBLE_POLICY.viewingInstant`).
+   */
+  relativeTime: 'coordinate-stated-once-up-front',
 } as const;

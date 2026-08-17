@@ -105,6 +105,15 @@ export type CurrentFortune = {
   daeun: DaeunEntry | null;
   daeunAbsence: DaeunAbsence | null;
   /**
+   * 첫 대운 — **아직 오지 않았을 때 무엇이 오는지 말하기 위한 것.**
+   *
+   * `saju.daeun.entries[0]` 을 옮겨 담기만 한다. L3 가 `Saju` 를 받지 않기로 했으니
+   * (`findNowUtterances`) 이 한 칸이 여기 있어야 "만 2세인 지금은 첫 대운 丁巳
+   * 앞이다" 를 말할 수 있다. 넘겨주지 않으면 문장 층이 `Saju` 를 다시 받게 되고,
+   * 그 순간 화면의 운과 문장의 운이 갈릴 길이 열린다.
+   */
+  firstDaeun: DaeunEntry;
+  /**
    * 대운수가 채워 넣은 정오에서 나왔는가.
    *
    * `Daeun.approximate` 를 그대로 옮긴다. `true` 면 대운수가 ±2개월쯤 흔들리고,
@@ -195,6 +204,7 @@ export function currentFortuneOf(saju: Saju, viewedAt: Date): CurrentFortune {
     // 못 짚은 이유가 둘이고 성질이 다르다 — 앞은 이 사람의 사실이고 뒤는 우리가
     // 뽑은 칸 수의 한계다. 하나로 묶으면 문장이 남의 한계를 사실처럼 말한다.
     daeunAbsence: daeun !== null ? null : age < first.startAge ? 'before-first' : 'beyond-table',
+    firstDaeun: first,
     daeunApproximate: saju.daeun.approximate,
     saeun,
     wolun,

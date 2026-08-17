@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeSaju, type Saju } from '@/src/lib/saju';
+import { computeSaju, currentFortuneOf, type Saju } from '@/src/lib/saju';
 import {
   FOLLOWING_PATTERN_POLICY,
   FOLLOWING_PATTERN_STATUS_KO,
@@ -16,6 +16,7 @@ import {
   FORBIDDEN_CLAIMS,
   KNOWN_UNCONTRACTED_TEXT,
   MYEONGRI_LEXICON,
+  OFF_CHART_PATHS,
   TEXT_POLICY,
   ceilingFor,
   FOLLOWING_SILENT_VERDICTS,
@@ -67,10 +68,33 @@ describe('문장 계약', () => {
 
       // 반대 방향도 본다 — 없어진 필드를 가리키는 상한이 남아 있으면 안 된다.
       for (const path of CLAIM_PATHS) {
+        if (OFF_CHART_PATHS.includes(path)) continue;
+
         const [head, tail] = path.split('.');
         const target = tail ? (CHART.analysis as Record<string, unknown>) : (CHART as Record<string, unknown>);
         expect(Object.hasOwn(target, tail ?? head), `${path} 이 가리키는 결과가 없다`).toBe(true);
       }
+    });
+
+    /**
+     * **계약은 근거가 전부 `Saju` 의 필드라고 전제하고 있었다.** 궁합이 그 전제를
+     * 깨지 않은 것은 남의 근거를 빌려 썼기 때문이다 — 궁합 문장이 읽는 억부·오행·
+     * 십성은 전부 각자의 원국에서 나온 값이라 `analysis.*` 로 적힌다.
+     *
+     * 현재운이 처음으로 명식 밖의 것을 근거로 든다. 위 반대 방향 검사를 그냥
+     * 건너뛰면 **아무것도 가리키지 않는 상한**이 조용히 남을 수 있으므로, 예외로
+     * 뺀 근거는 여기서 실재하는 L2 결과를 가리키는지 따로 확인한다.
+     */
+    it('명식 밖의 근거도 실재하는 L2 결과를 가리킨다', () => {
+      expect(OFF_CHART_PATHS).toEqual(['now']);
+
+      const now = currentFortuneOf(CHART, new Date('2026-08-17T21:00:00+09:00'));
+      expect(now.viewedAt).toBeInstanceOf(Date);
+      expect(now.sajuYear).toBe(2026);
+
+      // 보는 시각은 흔들리지 않는다 — 브라우저가 알려 준 값이다.
+      expect(CLAIM_CEILING.now).toBe('fact');
+      expect(ceilingFor({ paths: ['now'], hourKnown: false })).toBe('fact');
     });
 
     it('여럿을 읽으면 가장 낮은 강도를 따른다', () => {
@@ -299,8 +323,30 @@ describe('문장 계약', () => {
     });
 
     it('시주와 무관한 근거는 내리지 않는다', () => {
+      // 조후표를 여는 열쇠는 일간과 월지뿐이다.
       expect(ceilingFor({ paths: ['analysis.johu'], hourKnown: false })).toBe('reference');
-      expect(ceilingFor({ paths: ['daeun'], hourKnown: false })).toBe('fact');
+      // 세운의 해와 월운의 달은 시주 두 글자가 바꾸지 않는다.
+      expect(ceilingFor({ paths: ['saeun'], hourKnown: false })).toBe('fact');
+      expect(ceilingFor({ paths: ['wolun'], hourKnown: false })).toBe('fact');
+    });
+
+    /**
+     * 이 자리에 한동안 **틀린 단정이 있었다** — `daeun` 을 "시주와 무관한 근거"의
+     * 예로 들고 `fact` 를 기대했다. 대운수는 절입까지의 거리에서 나오고 시각을
+     * 모르면 그 거리가 채워 넣은 정오에서 재어진다. 대운 모듈은 처음부터 그것을
+     * `approximate` 로 말하고 있었고 그 값이 `!hourKnown` 과 정확히 같다.
+     *
+     * **아무도 이 근거를 읽지 않아서 아무도 안 봤다.** 계약이 죽은 값을 들고 있으면
+     * 그 값은 검증되지 않는다 — `ceilingForFollowing`(부르는 곳이 테스트뿐이었다)과
+     * `ATTRIBUTION_PATHS`(읽는 주제가 없어 프로덕션에서 죽어 있었다)와 같은 자리다.
+     */
+    it('대운은 시주에 걸린다 — 대운수가 정오에서 재어진다', () => {
+      expect(CLAIM_CEILING.daeun).toBe('derived');
+      expect(ceilingFor({ paths: ['daeun'], hourKnown: false })).toBe('candidate');
+
+      // 대운 모듈이 흔들린다고 말하는 조건이 곧 시각을 모르는 것이다.
+      expect(HOURLESS.daeun.approximate).toBe(!HOURLESS.meta.hourKnown);
+      expect(CHART.daeun.approximate).toBe(false);
     });
   });
 

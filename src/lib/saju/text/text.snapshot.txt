@@ -4,7 +4,7 @@ L3 문장 골든 — 발화 판정과 조립
 
   ✓ 문장이 됐다   · 발화는 있으나 조각이 없다   × 말하지 않기로 했다
 
-  말뭉치 44 / 지시서 44 칸
+  말뭉치 51 / 지시서 51 칸
 
     ruleSet          utterance-discovery-v1
     selection        all-facts-speak
@@ -13,6 +13,8 @@ L3 문장 골든 — 발화 판정과 조립
     groundedScope    chart-produced-only
     coverage         uncovered-facts-listed
     order            topic-table-then-relation-order
+    viewingInstant   as-of-line-always-first
+    daeunBeyondTable no-utterance-not-silence
 
     ruleSet          text-corpus-v1
     producedBy       hand-written
@@ -27,6 +29,8 @@ L3 문장 골든 — 발화 판정과 조립
     attribution      named-in-the-sentence
     copiedTable      names-what-it-did-not-judge
     precedence       names-what-it-does-not-overturn
+    lineageChoice    names-which-lineage-it-took
+    relativeTime     coordinate-stated-once-up-front
 
   주제가 없어 아직 발화하지 않는 사실 — 고른 것이 아니라 주제가 없는 것이다.
     analysis.elements
@@ -34,9 +38,7 @@ L3 문장 골든 — 발화 판정과 조립
     analysis.rootedness (일간 밖의 천간·투출)
     stages
     sinsal
-    daeun
-    saeun
-    wolun
+    daeun · saeun · wolun (표 전체 — 지금 도는 칸만 현재운이 말한다)
 
 ==============================================================================
 ── relations-rich
@@ -241,6 +243,215 @@ L3 문장 골든 — 발화 판정과 조립
 
 
 ==============================================================================
+현재운 — 강도가 행과 산문을 한 카드 안에서 가른다
+==============================================================================
+
+  기준 시각은 고정값이다. 엔진이 보는 시각을 스스로 묻지 않기로 했으므로
+  (NOW_POLICY.viewingInstant) 골든이 그것을 못박을 수 있다.
+
+  값이 있는데 주제가 없어 발화하지 않는 사실.
+    saeun.stage · wolun.stage (일간이 그 지지에서 어떤 상태인가)
+    saeun.spirits · wolun.spirits (12신살 — 년지·일지 기준)
+    saeun.startTerm · wolun.startTerm (그 칸이 언제부터 언제까지인가)
+
+  엔진이 아직 세지 않아 문장이 될 수 없는 것 — 위와 다른 공백이다.
+    daeun.relations (대운이 원국과 맺는 관계 — DaeunEntry 가 아직 들지 않는다)
+    daeun.tenGods · daeun.stage · daeun.spirits (세운·월운 칸에는 있고 대운 칸에는 없다)
+    stages · sinsal (세운·월운 칸이 이미 계산해 두었으나 주제가 없다)
+
+==============================================================================
+── now-basic
+   지금 도는 세 칸 — 세운·월운은 행이고 대운만 산문이다
+   사주  癸未 乙酉 辛巳 庚午
+   기준  2026-08-17T21:06:00+09:00  만 36세
+   대운 4번째 乙酉 · 세운 2026 · 사주월 7
+   발화 14 · 문장 14
+
+    ✓ now.asOf/instant@fact
+        사실     2026년 8월 17일 21시 6분 기준으로 짚은 운입니다. 해는 입춘에서, 달은 절입에서 갈립니다. 이 화면을 다시 열면 그때의 시각으로 다시 셉니다.
+    ✓ now.daeun/within@derived
+        유도     만 36세인 지금은 네 번째 대운 乙酉(만 36→45세) 안에 있는 것으로 봅니다. 대운수는 절입까지를 사흘에 한 살로 세어 반올림한 값이라, 버림으로 세는 계통에서는 한 해 이릅니다.
+    ✓ now.saeun/year@fact
+        사실     2026년 세운 丙午 — 천간 상관 · 지지 식신
+    ✓ now.wolun/month@fact
+        사실     신월 월운 丙申 — 천간 상관 · 지지 정관
+    ✓ now.coverage/daeun-not-counted@fact
+        사실     대운이 낀 관계는 아직 세지 않아 이 목록에 없습니다.
+    ✓ relation.present/row@fact
+        사실     월간 辛 · 세운 년간 丙 — 병신합수
+    ✓ relation.present/row@fact
+        사실     시지 未 · 세운 년지 午 — 오미합화
+    ✓ relation.present/combined@fact
+        사실     월지 巳 · 시지 未 · 세운 년지 午 — 사오미 화방 (따로 있는 글자들이 합쳐 이룬 것)
+    ✓ relation.present/row@fact
+        사실     년지 午 · 세운 년지 午 — 오오형
+    ✓ relation.present/row@fact
+        사실     월간 辛 · 월운 월간 丙 — 병신합수
+    ✓ relation.present/row@fact
+        사실     월지 巳 · 월운 월지 申 — 사신합수
+    ✓ relation.present/row@fact
+        사실     일지 酉 · 월운 월지 申 — 신유 반방합
+    ✓ relation.present/row@fact
+        사실     월지 巳 · 월운 월지 申 — 사신형
+    ✓ relation.present/row@fact
+        사실     월지 巳 · 월운 월지 申 — 사신파
+
+── now-before-ipchun
+   입춘 전의 1월 — 세운은 아직 전 해이고 월운은 열두 번째 달이다
+   사주  癸未 乙酉 辛巳 庚午
+   기준  2026-01-20T12:00:00+09:00  만 35세
+   대운 3번째 甲申 · 세운 2025 · 사주월 12
+   발화 16 · 문장 16
+
+    ✓ now.asOf/instant@fact
+        사실     2026년 1월 20일 12시 0분 기준으로 짚은 운입니다. 해는 입춘에서, 달은 절입에서 갈립니다. 이 화면을 다시 열면 그때의 시각으로 다시 셉니다.
+    ✓ now.daeun/within@derived
+        유도     만 35세인 지금은 세 번째 대운 甲申(만 26→35세) 안에 있는 것으로 봅니다. 대운수는 절입까지를 사흘에 한 살로 세어 반올림한 값이라, 버림으로 세는 계통에서는 한 해 이릅니다.
+    ✓ now.saeun/year@fact
+        사실     2025년 세운 乙巳 — 천간 비견 · 지지 상관
+    ✓ now.wolun/month@fact
+        사실     축월 월운 己丑 — 천간 편재 · 지지 편재
+    ✓ now.coverage/daeun-not-counted@fact
+        사실     대운이 낀 관계는 아직 세지 않아 이 목록에 없습니다.
+    ✓ relation.present/row@fact
+        사실     년간 庚 · 세운 년간 乙 — 을경합금
+    ✓ relation.present/row@fact
+        사실     일지 酉 · 세운 년지 巳 — 사유 반합
+    ✓ relation.present/combined@fact
+        사실     년지 午 · 시지 未 · 세운 년지 巳 — 사오미 화방 (따로 있는 글자들이 합쳐 이룬 것)
+    ✓ relation.present/row@fact
+        사실     월간 辛 · 세운 년간 乙 — 을신충
+    ✓ relation.present/combined@fact
+        사실     월지 巳 · 일지 酉 · 월운 월지 丑 — 사유축 금국 (따로 있는 글자들이 합쳐 이룬 것)
+    ✓ relation.present/combined@fact
+        사실     일지 酉 · 세운 년지 巳 · 월운 월지 丑 — 사유축 금국 (따로 있는 글자들이 합쳐 이룬 것)
+    ✓ relation.present/row@fact
+        사실     시지 未 · 월운 월지 丑 — 축미충
+    ✓ relation.present/row@fact
+        사실     시지 未 · 월운 월지 丑 — 미축형
+    ✓ relation.present/row@fact
+        사실     년지 午 · 월운 월지 丑 — 축오해
+    ✓ relation.present/row@fact
+        사실     년지 午 · 월운 월지 丑 — 축오원진
+    ✓ relation.present/row@fact
+        사실     년지 午 · 월운 월지 丑 — 축오귀문
+
+── now-hour-unknown
+   시간 미상 — 대운만 내려앉고 세운·월운 행은 사실 그대로다
+   사주  시미상 乙酉 辛巳 庚午
+   기준  2026-08-17T21:06:00+09:00  만 36세
+   대운 4번째 乙酉 · 세운 2026 · 사주월 7
+   발화 14 · 문장 14
+
+    ✓ now.asOf/instant@fact
+        사실     2026년 8월 17일 21시 6분 기준으로 짚은 운입니다. 해는 입춘에서, 달은 절입에서 갈립니다. 이 화면을 다시 열면 그때의 시각으로 다시 셉니다.
+    ✓ now.daeun/within@candidate
+        후보     만 36세인 지금은 시주를 빼고 세면 네 번째 대운 乙酉(만 36→45세) 안에 있는 쪽을 후보로 봅니다. 대운수는 절입까지를 사흘에 한 살로 세어 반올림한 값이라, 버림으로 세는 계통에서는 한 해 이릅니다. 시각을 몰라 대운수가 두 달쯤 흔들리므로 칸이 하나 어긋날 수 있습니다.
+    ✓ now.saeun/year@fact
+        사실     2026년 세운 丙午 — 천간 상관 · 지지 식신
+    ✓ now.wolun/month@fact
+        사실     신월 월운 丙申 — 천간 상관 · 지지 정관
+    ✓ now.coverage/daeun-not-counted@fact
+        사실     대운이 낀 관계는 아직 세지 않아 이 목록에 없습니다.
+    ✓ relation.coverage/natal@fact
+        사실     시주를 빼고 센 목록이라 그 자리가 낄 관계는 여기 없습니다.
+    ✓ relation.present/row@fact
+        사실     월간 辛 · 세운 년간 丙 — 병신합수
+    ✓ relation.present/row@fact
+        사실     월지 巳 · 세운 년지 午 — 사오 반방합
+    ✓ relation.present/row@fact
+        사실     년지 午 · 세운 년지 午 — 오오형
+    ✓ relation.present/row@fact
+        사실     월간 辛 · 월운 월간 丙 — 병신합수
+    ✓ relation.present/row@fact
+        사실     월지 巳 · 월운 월지 申 — 사신합수
+    ✓ relation.present/row@fact
+        사실     일지 酉 · 월운 월지 申 — 신유 반방합
+    ✓ relation.present/row@fact
+        사실     월지 巳 · 월운 월지 申 — 사신형
+    ✓ relation.present/row@fact
+        사실     월지 巳 · 월운 월지 申 — 사신파
+
+── now-before-first-daeun
+   첫 대운 전 — 아직 없다는 것은 이 사람의 사실이라 말한다
+   사주  丁巳 戊寅 丁卯 甲辰
+   기준  2026-08-17T21:06:00+09:00  만 2세
+   대운 없음(before-first) · 세운 2026 · 사주월 7
+   발화 16 · 문장 16
+
+    ✓ now.asOf/instant@fact
+        사실     2026년 8월 17일 21시 6분 기준으로 짚은 운입니다. 해는 입춘에서, 달은 절입에서 갈립니다. 이 화면을 다시 열면 그때의 시각으로 다시 셉니다.
+    ✓ now.daeunPending/first@derived
+        유도     만 2세인 지금은 첫 대운 丙寅 앞이라 아직 대운이 들어오지 않은 것으로 봅니다. 첫 대운은 만 3세부터이고, 대운수는 절입까지를 사흘에 한 살로 세어 반올림한 값이라, 버림으로 세는 계통에서는 한 해 이릅니다.
+    ✓ now.saeun/year@fact
+        사실     2026년 세운 丙午 — 천간 편인 · 지지 정인
+    ✓ now.wolun/month@fact
+        사실     신월 월운 丙申 — 천간 편인 · 지지 식신
+    ✓ now.coverage/daeun-not-counted@fact
+        사실     대운이 낀 관계는 아직 세지 않아 이 목록에 없습니다.
+    ✓ relation.present/row@fact
+        사실     일지 寅 · 세운 년지 午 — 인오 반합
+    ✓ relation.present/row@fact
+        사실     시지 巳 · 세운 년지 午 — 사오 반방합
+    ✓ relation.present/row@fact
+        사실     월지 卯 · 세운 년지 午 — 묘오파
+    ✓ relation.present/row@fact
+        사실     시지 巳 · 월운 월지 申 — 사신합수
+    ✓ relation.present/row@fact
+        사실     일지 寅 · 월운 월지 申 — 인신충
+    ✓ relation.present/combined@fact
+        사실     일지 寅 · 시지 巳 · 월운 월지 申 — 인사신 삼형 (따로 있는 글자들이 합쳐 이룬 것)
+    ✓ relation.present/row@fact
+        사실     월운 월지 申 · 일지 寅 — 신인형
+    ✓ relation.present/row@fact
+        사실     시지 巳 · 월운 월지 申 — 사신형
+    ✓ relation.present/row@fact
+        사실     시지 巳 · 월운 월지 申 — 사신파
+    ✓ relation.present/row@fact
+        사실     월지 卯 · 월운 월지 申 — 묘신원진
+    ✓ relation.present/row@fact
+        사실     월지 卯 · 월운 월지 申 — 묘신귀문
+
+── now-beyond-table
+   대운 표 밖 — 우리 표의 한계라 발화하지 않는다
+   사주  丁巳 戊戌 己卯 乙丑
+   기준  2026-08-17T21:06:00+09:00  만 101세
+   대운 없음(beyond-table) · 세운 2026 · 사주월 7
+   발화 15 · 문장 15
+
+    ✓ now.asOf/instant@fact
+        사실     2026년 8월 17일 21시 6분 기준으로 짚은 운입니다. 해는 입춘에서, 달은 절입에서 갈립니다. 이 화면을 다시 열면 그때의 시각으로 다시 셉니다.
+    ✓ now.saeun/year@fact
+        사실     2026년 세운 丙午 — 천간 편인 · 지지 정인
+    ✓ now.wolun/month@fact
+        사실     신월 월운 丙申 — 천간 편인 · 지지 식신
+    ✓ now.coverage/daeun-not-counted@fact
+        사실     대운이 낀 관계는 아직 세지 않아 이 목록에 없습니다.
+    ✓ relation.present/row@fact
+        사실     일지 戌 · 세운 년지 午 — 오술 반합
+    ✓ relation.present/row@fact
+        사실     시지 巳 · 세운 년지 午 — 사오 반방합
+    ✓ relation.present/row@fact
+        사실     년지 丑 · 세운 년지 午 — 축오해
+    ✓ relation.present/row@fact
+        사실     월지 卯 · 세운 년지 午 — 묘오파
+    ✓ relation.present/row@fact
+        사실     년지 丑 · 세운 년지 午 — 축오원진
+    ✓ relation.present/row@fact
+        사실     년지 丑 · 세운 년지 午 — 축오귀문
+    ✓ relation.present/row@fact
+        사실     시지 巳 · 월운 월지 申 — 사신합수
+    ✓ relation.present/row@fact
+        사실     시지 巳 · 월운 월지 申 — 사신형
+    ✓ relation.present/row@fact
+        사실     시지 巳 · 월운 월지 申 — 사신파
+    ✓ relation.present/row@fact
+        사실     월지 卯 · 월운 월지 申 — 묘신원진
+    ✓ relation.present/row@fact
+        사실     월지 卯 · 월운 월지 申 — 묘신귀문
+
+
+==============================================================================
 궁합 — 같은 주제, 같은 조각. 행에 이름이 붙을 뿐이다
 ==============================================================================
 
@@ -279,9 +490,9 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ relation.present/row@fact
         사실     민수 년지 午 · 지영 월지 戌 — 오술 반합
     ✓ relation.present/combined@fact
-        사실     민수 년지 午 · 민수 월지 巳 · 지영 일지 未 — 사오미 화방 (두 사람 글자가 합쳐 이룬 것)
+        사실     민수 년지 午 · 민수 월지 巳 · 지영 일지 未 — 사오미 화방 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/combined@fact
-        사실     민수 일지 酉 · 지영 년지 申 · 지영 월지 戌 — 신유술 금방 (두 사람 글자가 합쳐 이룬 것)
+        사실     민수 일지 酉 · 지영 년지 申 · 지영 월지 戌 — 신유술 금방 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/row@fact
         사실     민수 월지 巳 · 지영 년지 申 — 사신형
     ✓ relation.present/row@fact
@@ -326,9 +537,9 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ relation.present/row@fact
         사실     민수 년지 午 · 지영 월지 戌 — 오술 반합
     ✓ relation.present/combined@fact
-        사실     민수 년지 午 · 민수 월지 巳 · 지영 일지 未 — 사오미 화방 (두 사람 글자가 합쳐 이룬 것)
+        사실     민수 년지 午 · 민수 월지 巳 · 지영 일지 未 — 사오미 화방 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/combined@fact
-        사실     민수 일지 酉 · 지영 년지 申 · 지영 월지 戌 — 신유술 금방 (두 사람 글자가 합쳐 이룬 것)
+        사실     민수 일지 酉 · 지영 년지 申 · 지영 월지 戌 — 신유술 금방 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/row@fact
         사실     민수 월지 巳 · 지영 년지 申 — 사신형
     ✓ relation.present/row@fact
@@ -375,7 +586,7 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ relation.present/row@fact
         사실     민수 일지 酉 · 지영 시지 辰 — 진유합금
     ✓ relation.present/combined@fact
-        사실     민수 년지 午 · 민수 월지 巳 · 지영 년지 未 — 사오미 화방 (두 사람 글자가 합쳐 이룬 것)
+        사실     민수 년지 午 · 민수 월지 巳 · 지영 년지 未 — 사오미 화방 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/row@fact
         사실     민수 일간 乙 · 지영 년간 辛 — 을신충
     ✓ relation.present/row@fact
@@ -416,9 +627,9 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ relation.present/row@fact
         사실     민수 일지 酉 · 지영 시지 辰 — 진유합금
     ✓ relation.present/combined@fact
-        사실     민수 월지 巳 · 민수 일지 酉 · 지영 월지 丑 — 사유축 금국 (두 사람 글자가 합쳐 이룬 것)
+        사실     민수 월지 巳 · 민수 일지 酉 · 지영 월지 丑 — 사유축 금국 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/combined@fact
-        사실     민수 년지 午 · 민수 월지 巳 · 지영 년지 未 — 사오미 화방 (두 사람 글자가 합쳐 이룬 것)
+        사실     민수 년지 午 · 민수 월지 巳 · 지영 년지 未 — 사오미 화방 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/row@fact
         사실     민수 일지 酉 · 지영 일지 申 — 신유 반방합
     ✓ relation.present/row@fact
@@ -467,9 +678,9 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ relation.present/row@fact
         사실     민수 월지 巳 · 지영 일지 申 — 사신합수
     ✓ relation.present/combined@fact
-        사실     민수 월지 巳 · 민수 일지 酉 · 지영 월지 丑 — 사유축 금국 (두 사람 글자가 합쳐 이룬 것)
+        사실     민수 월지 巳 · 민수 일지 酉 · 지영 월지 丑 — 사유축 금국 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/combined@fact
-        사실     민수 년지 午 · 민수 월지 巳 · 지영 년지 未 — 사오미 화방 (두 사람 글자가 합쳐 이룬 것)
+        사실     민수 년지 午 · 민수 월지 巳 · 지영 년지 未 — 사오미 화방 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/row@fact
         사실     민수 일지 酉 · 지영 일지 申 — 신유 반방합
     ✓ relation.present/row@fact
@@ -518,9 +729,9 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ relation.present/row@fact
         사실     민수 월지 子 · 지영 일지 辰 — 자진 반합
     ✓ relation.present/combined@fact
-        사실     민수 년지 卯 · 지영 년지 辰 · 지영 월지 寅 — 인묘진 목방 (두 사람 글자가 합쳐 이룬 것)
+        사실     민수 년지 卯 · 지영 년지 辰 · 지영 월지 寅 — 인묘진 목방 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/combined@fact
-        사실     민수 년지 卯 · 지영 월지 寅 · 지영 일지 辰 — 인묘진 목방 (두 사람 글자가 합쳐 이룬 것)
+        사실     민수 년지 卯 · 지영 월지 寅 · 지영 일지 辰 — 인묘진 목방 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/row@fact
         사실     지영 월지 寅 · 민수 일지 巳 — 인사형
     ✓ relation.present/row@fact

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { computeSaju, formatPillars, type Saju } from '@/src/lib/saju';
 import { COMPAT_SIDES, analyzeCompatibility, type CompatSide } from '@/src/lib/saju/compat';
+import { UNCOVERED_NOW_FACTS, currentFortuneOf } from '@/src/lib/saju/now';
 import {
   ASSEMBLE_POLICY,
   CLAIM_STRENGTH_KO,
@@ -9,7 +10,9 @@ import {
   FRAGMENT_INDEX,
   UNCOVERED_COMPAT_FACTS,
   UNCOVERED_FACTS,
+  UNCOVERED_NOW_TOPICS,
   assembleCompatText,
+  assembleNowText,
   assembleText,
   fragmentCoverage,
   sentencesOf,
@@ -279,6 +282,108 @@ const COMPAT_CASES: CompatCase[] = [
   },
 ];
 
+/**
+ * 현재운 케이스 — **기준 시각이 고정값이어야 한다.**
+ *
+ * `Date.now()` 를 쓰면 골든이 매일 썩는다. 엔진이 보는 시각을 스스로 묻지 않기로
+ * 한 결정(`NOW_POLICY.viewingInstant`)이 여기서 값을 낸다 — 넘겨받는 값이니 골든이
+ * 못박을 수 있다.
+ *
+ * 강도가 **행과 산문을 한 카드 안에서 가르는 것**이 여기서 처음 눈에 보인다.
+ * 세운·월운은 표지 없는 행이고 대운만 '으로 봅니다'를 단다.
+ */
+type NowCase = {
+  id: string;
+  note: string;
+  saju: Saju;
+  /** 결과를 보는 시각. 고정값이다 */
+  viewedAt: string;
+};
+
+const NOW_CASES: NowCase[] = [
+  {
+    id: 'now-basic',
+    note: '지금 도는 세 칸 — 세운·월운은 행이고 대운만 산문이다',
+    saju: computeSaju(
+      { year: 1990, month: 5, day: 20, hour: 14, minute: 30, second: 0, gender: 'male' },
+      {},
+    ),
+    viewedAt: '2026-08-17T21:06:00+09:00',
+  },
+  /**
+   * 양력 1월. **세운이 전 해로 나온다** — 해의 경계가 1월 1일이 아니라 입춘이라서다.
+   * 기준 시각 문장이 그 경계를 밝히지 않으면 이 칸이 버그처럼 읽힌다.
+   */
+  {
+    id: 'now-before-ipchun',
+    note: '입춘 전의 1월 — 세운은 아직 전 해이고 월운은 열두 번째 달이다',
+    saju: computeSaju(
+      { year: 1990, month: 5, day: 20, hour: 14, minute: 30, second: 0, gender: 'male' },
+      {},
+    ),
+    viewedAt: '2026-01-20T12:00:00+09:00',
+  },
+  /**
+   * 시간 미상. 대운만 한 칸 내려앉는다 — 대운수가 채워 넣은 정오에서 재어져
+   * 반올림 경계에 걸리면 칸이 하나 어긋난다. 세운·월운 행은 그대로 사실이고,
+   * 흔들리는 것은 관계 목록의 전체성이라 목록이 따로 든다.
+   */
+  {
+    id: 'now-hour-unknown',
+    note: '시간 미상 — 대운만 내려앉고 세운·월운 행은 사실 그대로다',
+    saju: computeSaju({ year: 1990, month: 5, day: 20, hour: null, gender: 'male' }, {}),
+    viewedAt: '2026-08-17T21:06:00+09:00',
+  },
+  /**
+   * 첫 대운 전. **이 사람에 대한 사실이라 말한다** — 대운수가 3이면 만 2세는 아직
+   * 대운 밖이다. 아래 케이스와 나란히 놓여야 그 구분이 보인다.
+   */
+  {
+    id: 'now-before-first-daeun',
+    note: '첫 대운 전 — 아직 없다는 것은 이 사람의 사실이라 말한다',
+    saju: computeSaju(
+      { year: 2024, month: 3, day: 15, hour: 10, minute: 0, second: 0, gender: 'female' },
+      {},
+    ),
+    viewedAt: '2026-08-17T21:06:00+09:00',
+  },
+  /**
+   * 대운 표 밖. **발화 자체가 없다** — 우리가 뽑은 칸 수(기본 9칸 = 90년)의 한계라
+   * 이 사람에 대한 사실이 아니고, 문장이 들면 남의 한계를 사실처럼 말하게 된다.
+   * 위 케이스의 침묵과 성질이 다르다는 것이 이 두 줄 사이에서 보인다.
+   */
+  {
+    id: 'now-beyond-table',
+    note: '대운 표 밖 — 우리 표의 한계라 발화하지 않는다',
+    saju: computeSaju(
+      { year: 1925, month: 3, day: 15, hour: 10, minute: 0, second: 0, gender: 'female' },
+      {},
+    ),
+    viewedAt: '2026-08-17T21:06:00+09:00',
+  },
+];
+
+const formatNowCase = ({ id, note, saju, viewedAt }: NowCase): string => {
+  const now = currentFortuneOf(saju, new Date(viewedAt));
+  const utterances = assembleNowText(now);
+
+  const daeun =
+    now.daeun !== null
+      ? `${now.daeun.index}번째 ${now.daeun.pillar.stem}${now.daeun.pillar.branch}`
+      : `없음(${now.daeunAbsence})`;
+
+  return [
+    `── ${id}`,
+    `   ${note}`,
+    `   사주  ${formatPillars(saju.pillars)}`,
+    `   기준  ${viewedAt}  만 ${now.age}세`,
+    `   대운 ${daeun} · 세운 ${now.saeun.year} · 사주월 ${now.wolun.monthOrder}`,
+    `   발화 ${utterances.length} · 문장 ${sentencesOf(utterances).length}`,
+    '',
+    ...utterances.map(formatUtterance),
+  ].join('\n');
+};
+
 const formatCompatCase = ({ id, note, people }: CompatCase): string => {
   const compat = analyzeCompatibility(people.a.saju, people.b.saju);
 
@@ -337,12 +442,49 @@ describe('문장 골든', () => {
       '',
     ].join('\n');
 
+    const nowHeader = [
+      '',
+      '',
+      '='.repeat(78),
+      '현재운 — 강도가 행과 산문을 한 카드 안에서 가른다',
+      '='.repeat(78),
+      '',
+      '  기준 시각은 고정값이다. 엔진이 보는 시각을 스스로 묻지 않기로 했으므로',
+      '  (NOW_POLICY.viewingInstant) 골든이 그것을 못박을 수 있다.',
+      '',
+      '  값이 있는데 주제가 없어 발화하지 않는 사실.',
+      ...UNCOVERED_NOW_TOPICS.map((fact) => `    ${fact}`),
+      '',
+      '  엔진이 아직 세지 않아 문장이 될 수 없는 것 — 위와 다른 공백이다.',
+      ...UNCOVERED_NOW_FACTS.map((fact) => `    ${fact}`),
+      '',
+      '='.repeat(78),
+      '',
+    ].join('\n');
+
     const body = CASES.map(formatCase).join('\n\n');
+    const nowBody = NOW_CASES.map(formatNowCase).join('\n\n');
     const compatBody = COMPAT_CASES.map(formatCompatCase).join('\n\n');
 
-    await expect(`${header}${body}\n${compatHeader}${compatBody}\n`).toMatchFileSnapshot(
-      './text.snapshot.txt',
-    );
+    await expect(
+      `${header}${body}\n${nowHeader}${nowBody}\n${compatHeader}${compatBody}\n`,
+    ).toMatchFileSnapshot('./text.snapshot.txt');
+  });
+
+  it('현재운 케이스 id 가 중복되지 않는다', () => {
+    const ids = NOW_CASES.map((nowCase) => nowCase.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  /**
+   * 골든이 `Date.now()` 를 쓰면 매일 diff 가 난다. 그런 골든은 며칠 안에 `-u` 로
+   * 갱신하는 습관을 만들고, 그러면 정말 바뀐 날에도 아무도 안 읽는다.
+   */
+  it('현재운 케이스의 기준 시각이 고정값이다', () => {
+    for (const { id, viewedAt } of NOW_CASES) {
+      expect(Number.isNaN(Date.parse(viewedAt)), id).toBe(false);
+      expect(viewedAt, id).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    }
   });
 
   it('케이스 id 가 중복되지 않는다', () => {
