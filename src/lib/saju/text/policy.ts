@@ -178,8 +178,11 @@ export const CLAIM_PATHS = [
   'analysis.johu',
   'analysis.rootedness',
   'analysis.rootQuality',
+  'analysis.hiddenCombinations',
   'analysis.followingCandidacy',
   'analysis.following',
+  'analysis.structure',
+  'analysis.favorability',
 ] as const;
 
 export type ClaimPath = (typeof CLAIM_PATHS)[number];
@@ -223,6 +226,12 @@ function followingCeiling(): ClaimStrength {
  *
  * 조각은 이 표를 읽기만 한다. `strength` 를 스스로 정하는 조각은 없다.
  */
+/**
+ * 억부의 상한. 오신 배정이 이 값을 그대로 물려받으므로 이름을 준다 —
+ * 두 곳에 `'candidate'` 를 손으로 적으면 한쪽만 고치는 날이 온다.
+ */
+const CLAIM_CEILING_EOKBU: ClaimStrength = 'candidate';
+
 export const CLAIM_CEILING: Record<ClaimPath, ClaimStrength> = {
   // 계통을 고르지 않고 세어지는 것들 — 표를 소비하기만 한다.
   pillars: 'fact',
@@ -278,6 +287,13 @@ export const CLAIM_CEILING: Record<ClaimPath, ClaimStrength> = {
   'analysis.rootQuality': 'derived',
 
   /**
+   * 암합은 **사실이다.** 지장간 표와 천간합 표를 겹쳐 세기만 한다 — 계통을
+   * 고르는 자리가 없다. 성립 여부를 말하지 않기 때문에 그렇게 설 수 있다.
+   * 「그래서 합이 되었다」는 순간 이 칸은 내려가야 한다.
+   */
+  'analysis.hiddenCombinations': 'fact',
+
+  /**
    * 신강·신약은 사실이 아니다. 세 기준이 서로 겹치고(득세 점수에 월지·일지가
    * 이미 들어 있다), "둘 이상이면 신강"이라는 문턱도 우리가 고른 값이다.
    * 그래서 "신약이다"가 아니라 "신약 쪽으로 본다"까지다.
@@ -285,10 +301,27 @@ export const CLAIM_CEILING: Record<ClaimPath, ClaimStrength> = {
   'analysis.strength': 'derived',
 
   /** 보지 않은 것이 다섯 남아 있다(`EokbuAssessment.unresolved`) */
-  'analysis.eokbu': 'candidate',
+  'analysis.eokbu': CLAIM_CEILING_EOKBU,
 
   /** 게이트에 묶인다 — 위 `followingCeiling` 참조 */
   'analysis.following': followingCeiling(),
+
+  /**
+   * 격국은 **종격보다 한 칸 아래도 아니고 같은 칸이다.** 다만 이유가 다르다.
+   *
+   * 종격은 외부 대조 서른다섯 건을 놓고 게이트를 못 열었고, 격국은 **대조가
+   * 아직 0건**이다. 사다리에는 「재어 봤는데 모자란다」와 「아직 안 재 봤다」를
+   * 가르는 칸이 없다. 그래서 같은 `candidate` 에 앉히고, 왜 앉았는지는
+   * `STRUCTURE_POLICY.externalCheck.cases` 가 값으로 든다.
+   */
+  'analysis.structure': 'candidate',
+
+  /**
+   * 오신 배정은 **용신보다 셀 수 없다.** 표 조회라 그 자체는 갈리지 않지만,
+   * 무엇을 용신으로 놓았는가가 갈리면 다섯 자리가 통째로 갈린다. 그래서 억부와
+   * 같은 칸에 둔다 — 근거를 물려받은 결론이 근거보다 세게 말할 수는 없다.
+   */
+  'analysis.favorability': CLAIM_CEILING_EOKBU,
 
   /** 조건을 자동 판정하지 않은 참고표다. 출처를 함께 밝힌다 */
   'analysis.johu': 'reference',

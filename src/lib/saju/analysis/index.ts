@@ -8,10 +8,13 @@ import {
   type FollowingAssessment,
   type FollowingCandidacy,
 } from './followingPatterns';
+import { favorabilityOf, type Favorability } from './favorability';
+import { hiddenCombinationsOf, type HiddenCombination } from './hiddenRelations';
 import { johuAssessmentOf, type JohuAssessment } from './johu';
 import { rootednessOf, type Rootedness } from './rootedness';
 import { rootQualityOf, type RootQualityChart } from './rootQuality';
 import { strengthOf, type Strength, type StrengthOptions } from './strength';
+import { structureOf, type Structure } from './structure';
 import { eokbuAssessmentOf, type EokbuAssessment } from './yongsin';
 import { tenGodChartOf, tenGodCountsOf, type TenGod, type TenGodChart } from './tenGods';
 
@@ -20,8 +23,11 @@ export * from './effectiveElements';
 export * from './fiveElements';
 export * from './followingPatterns';
 export * from './johu';
+export * from './favorability';
+export * from './hiddenRelations';
 export * from './rootedness';
 export * from './rootQuality';
+export * from './structure';
 export * from './strength';
 export * from './transformation';
 export * from './yongsin';
@@ -58,8 +64,27 @@ export type Analysis = {
    * `status: 'experimental'` 과 `unresolved` 를 함께 읽어야 한다.
    */
   eokbu: EokbuAssessment;
-  /** 《궁통보감》 일간×월지 조후 후보. 원국 조건 판정 전의 참고표다 */
+  /**
+   * 《궁통보감》 일간×월지 조후 후보.
+   *
+   * 후보가 원국 어디에 있는지까지는 센다(`candidates`) — 「丙이 없으면」은
+   * 사실이라 셀 수 있다. 「그러면 庚을 참작한다」는 여전히 판정이라 안 한다.
+   */
   johu: JohuAssessment;
+  /**
+   * 격국(格局) — **월령에서 무엇을 쓰는가.**
+   *
+   * 억부와 답이 다를 수 있고, 뒤집지 않는다. 종격과 같은 자리인데 근거는 더
+   * 얕다 — 종격에는 외부 명조 서른다섯 건의 대조가 있고 이쪽은 0 건이다.
+   */
+  structure: Structure;
+  /**
+   * 희용기구한 — **기신이 아니라 오신 배정이다.**
+   *
+   * 억부 후보를 용신 자리에 놓았을 때 나머지 넷이 어디에 오는가. 표 조회라
+   * 계통이 갈리지 않고, 갈리는 것은 그 앞(용신을 무엇으로 잡았는가)이다.
+   */
+  favorability: Favorability;
   /**
    * 통근·투출 — 억부·종격·격국이 먹고 들어가는 재료다.
    *
@@ -73,6 +98,14 @@ export type Analysis = {
    * `rootedness` 에 그대로 세어지지만 여기서는 얕아진다.
    */
   rootQuality: RootQualityChart;
+  /**
+   * 암합 — 지장간이 낀 합. **관계 표에 섞지 않는다.**
+   *
+   * 여덟 글자의 형충회합은 한 명식에 서넛이라 화면이 다 읽지만, 지장간까지
+   * 펼치면 쌍이 수십으로 는다. 한 목록에 담으면 드러난 관계가 숨은 관계에
+   * 파묻힌다.
+   */
+  hiddenCombinations: readonly HiddenCombination[];
   /**
    * 종격 후보의 조건이 되는 사실 — **판정이 아니다.**
    *
@@ -113,6 +146,7 @@ export function analyzePillars(
   const rootedness = rootednessOf(pillars);
   const effective = effectiveElementsOf(pillars, options.weights);
   const rootQuality = rootQualityOf(rootedness, pillars, effective.bureaus);
+  const eokbu = eokbuAssessmentOf(pillars, strength, options.weights, effective.distribution);
 
   return {
     elements,
@@ -124,10 +158,14 @@ export function analyzePillars(
     strength,
     // 강약이 실효 분포에서 세력을 쟀으므로 억부도 같은 분포에서 「무엇이 가장
     // 무거운가」를 골라야 한다. 다르면 한 문장 안에서 같은 세력을 두 번 다르게 센다.
-    eokbu: eokbuAssessmentOf(pillars, strength, options.weights, effective.distribution),
+    eokbu,
     johu: johuAssessmentOf(pillars, options.instant),
+    // 격국도 강약·억부·종격과 같은 분포에서 세력을 잰다.
+    structure: structureOf(pillars, effective.distribution),
+    favorability: favorabilityOf(eokbu, effective.distribution),
     rootedness,
     rootQuality,
+    hiddenCombinations: hiddenCombinationsOf(pillars),
     // 종격은 국과 합화를 반영한 실효 분포로 잰다 — 亥卯未가 木局을 이루면
     // 未를 土로 논하지 않는다는 말이 여기서 값을 낸다.
     followingCandidacy: followingCandidacyOf(pillars, effective.distribution, rootedness),

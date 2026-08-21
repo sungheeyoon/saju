@@ -11,12 +11,17 @@ import {
   ELEMENT_KO,
   ELEMENT_ROLE_KO,
   FOLLOWING_DIRECTION_KO,
+  FAVOR_ROLE_KO,
   FOLLOWING_PATTERN_STATUS_KO,
+  HIDDEN_COMBINATION_KIND_KO,
   FRAGMENT_POLICY,
+  HIDDEN_STEM_ROLE_KO,
   JOHU_POLICY,
   NOW_POLICY,
   SINSAL_POLICY,
   STRENGTH_POLICY,
+  STRUCTURE_OUTCOME_KO,
+  STRUCTURE_POLICY,
   YONGSIN_POLICY,
   SPIRIT_BASIS_KO,
   TEN_GOD_KO,
@@ -155,6 +160,7 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
 
   const { strength, eokbu, johu, rootedness, rootQuality, followingCandidacy, following } =
     saju.analysis;
+  const { structure, favorability, hiddenCombinations } = saju.analysis;
   const { bureaus, effectiveElements } = saju.analysis;
   const { dayMaster: rooting } = rootedness;
   const round = (value: number) => Math.round(value * 1000) / 1000;
@@ -188,6 +194,20 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     `  국·합화 ${bureaus.map((b) => `${b.ko}(${b.element} ${round(b.pull)})`).join(' ') || '국 없음'}` +
       ` · ${effectiveElements.transformations.map((t) => `${t.ko}:${t.verdict}`).join(' ') || '천간합 없음'}` +
       ` · 이동 ${round(effectiveElements.shifts.reduce((sum, shift) => sum + shift.amount, 0))}`,
+    // 격국 — 월령에서 무엇을 잡았고 성패의 조건이 무엇인가.
+    `  격국   ${structure.ko} · ${STRUCTURE_OUTCOME_KO[structure.outcome]} · ${structure.status}` +
+      ` · ${structure.source.stem}(${HIDDEN_STEM_ROLE_KO[structure.source.role]})` +
+      `${structure.revealed ? ' 투출' : ' 미투출'}` +
+      `${structure.monthClashed ? ' · 월령충' : ''}` +
+      `  성 ${structure.formingFactors.map((f) => f.name).join('·') || '없음'}` +
+      ` / 패 ${structure.breakingFactors.map((f) => f.name).join('·') || '없음'}`,
+    // 오신 — 억부 후보를 용신 자리에 놓으면 나머지 넷이 어디에 오는가.
+    `  오신   ${favorability.seats.map((seat) => `${FAVOR_ROLE_KO[seat.role]} ${ELEMENT_KO[seat.element]}(${seat.count})`).join(' · ')}`,
+    // 조후 후보가 원국 어디에 있는가 — 「丙이 없으면」의 앞부분만 센다.
+    `  조후후보 ${johu.candidates.map((c) => `${c.stem}=${c.presence}`).join(' ')}`,
+    // 암합 — 관계 표에 섞지 않으므로 여기서 따로 센다.
+    `  암합   ${hiddenCombinations.length}건` +
+      `${hiddenCombinations.length > 0 ? `  ${hiddenCombinations.map((c) => `${c.ko}(${HIDDEN_COMBINATION_KIND_KO[c.kind]})`).join(' ')}` : ''}`,
     `  종격   ${FOLLOWING_PATTERN_STATUS_KO[following.verdict]} · ${following.status}` +
       ` · 자당 ${(following.selfShare * 100).toFixed(1)}%` +
       `${following.direction ? ` ${FOLLOWING_DIRECTION_KO[following.direction]}` : ''}` +
@@ -317,8 +337,9 @@ describe('골든 테스트', () => {
       '',
       '  용신  억부는 시험값(experimental/low), 조후는 궁통보감 120칸 참고표(reference)다.',
       '        조후도 원국·상하순 조건을 자동 판정하지 않았으므로 후보와 조건을 함께 읽는다.',
-      '        종격·격국·합충·투간과 통근의 질을 보지 않아 어느 쪽도 확정 용신이 아니다.',
-      '        기신도 내지 않는다 — 오행 상극표 한 줄로 정해지는 것이 아니다.',
+      '        종격·격국은 따로 판정하되 억부를 뒤집지 않는다. 투간과 통근의 질은 아직 안 본다.',
+      '        기신은 여전히 판정하지 않는다 — 대신 고른 용신에서 오신 자리를 배정한다.',
+      '        그 배정은 표 조회라 갈리지 않고, 갈리는 것은 그 앞(용신을 무엇으로 잡았는가)이다.',
       '        세력비에 태약·중화·태왕 같은 등급 이름도 붙이지 않는다(경계 출처 없음).',
       '',
       ...Object.entries(YONGSIN_POLICY).map(
@@ -326,6 +347,14 @@ describe('골든 테스트', () => {
       ),
       ...Object.entries(JOHU_POLICY).map(
         ([key, value]) => `          johu.${key.padEnd(17)} ${value}`,
+      ),
+      '',
+      '  격국  월령의 지장간 중 투출한 것으로 격을 잡는다 — 없으면 정기다(잡기격이 여기서 나온다).',
+      '        성패는 참·거짓 하나가 아니라 조건의 목록이다. 이루는 것과 깨는 것이 섞이면 미정이다.',
+      '        억부도 조후도 뒤집지 않는다 — 종격과 같은 자리인데 외부 대조는 아직 0건이다.',
+      '',
+      ...Object.entries(STRUCTURE_POLICY).map(
+        ([key, value]) => `          ${key.padEnd(22)} ${typeof value === 'object' ? JSON.stringify(value) : value}`,
       ),
       '',
       '  세운  해의 경계는 입춘이다. 간지는 연주 도출과 같은 함수에서 나온다.',

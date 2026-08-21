@@ -71,7 +71,38 @@ describe('조후용신 — 《궁통보감》 120조합 참고표', () => {
       monthBranch: '子',
       stems: ['甲', '庚'],
     });
-    expect(JOHU_POLICY.conditionEvaluation).toBe('half-month-only');
+    // 월주만 주고 부르면 나머지 세 기둥을 못 본 채로 센 것이다.
+    expect(found.countedWholeChart).toBe(false);
+    expect(JOHU_POLICY.conditionEvaluation).toBe('half-month-and-candidate-presence');
+  });
+
+  /**
+   * 「丙이 없으면 庚을 참작한다」의 앞부분은 세어서 답할 수 있는 사실이다.
+   * 뒤의 「참작한다」만 판정이라 여전히 남긴다.
+   */
+  it('후보 천간이 원국 어디에 있는지 센다', () => {
+    const found = computeSaju({
+      year: 1990,
+      month: 5,
+      day: 20,
+      hour: 14,
+      minute: 30,
+      second: 0,
+      gender: 'male',
+    }).analysis.johu;
+
+    expect(found.countedWholeChart).toBe(true);
+    expect(found.candidates.map((c) => c.stem)).toEqual([...(found.halfStems ?? found.stems)]);
+
+    for (const candidate of found.candidates) {
+      expect(candidate.presence).toBe(
+        candidate.revealedAt.length > 0
+          ? 'revealed'
+          : candidate.hiddenAt.length > 0
+            ? 'hidden'
+            : 'absent',
+      );
+    }
   });
 });
 
@@ -137,7 +168,8 @@ describe('상·하반월 판정', () => {
   });
 
   it('세력 조건은 여전히 판정하지 않는다', () => {
-    expect(JOHU_POLICY.conditionEvaluation).toBe('half-month-only');
+    // 「수가 왕하면 戊」 는 문턱을 지어내야 하므로 note 에 그대로 남는다.
+    expect(JOHU_POLICY.conditionEvaluation).toBe('half-month-and-candidate-presence');
     expect(JOHU_POLICY.halfMonthBoundary).toBe('mid-term-longitude-plus-15');
     expect(JOHU_POLICY.status).toBe('reference');
   });

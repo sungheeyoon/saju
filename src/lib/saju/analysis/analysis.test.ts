@@ -508,7 +508,11 @@ describe('억부 후보 (시험값)', () => {
     expect(YONGSIN_POLICY.status).toBe('experimental');
     expect(YONGSIN_POLICY.methods).toBe('eokbu-and-johu-reference');
     expect(YONGSIN_POLICY.johu).toBe('qiongtong-baojian-120-reference');
-    expect(YONGSIN_POLICY.unfavorable).toBe('not-judged');
+    // 기신(병)은 여전히 판정하지 않는다. 오신 배정은 그것과 다른 물음이다.
+    expect(YONGSIN_POLICY.unfavorable).toBe('five-role-seating-not-disease');
+    // 종격·격국은 따로 판정하되 억부를 뒤집지 않는다.
+    expect(YONGSIN_POLICY.followingPattern).toBe('judged-but-does-not-override');
+    expect(YONGSIN_POLICY.structure).toBe('judged-but-does-not-override');
   });
 });
 

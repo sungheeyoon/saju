@@ -50,6 +50,11 @@ import type { Strength, StrengthInput } from './strength';
  * **기신도 내지 않는다.** 용신을 극하는 오행이 곧 기신인 것이 아니다. 기신은
  * 명식 전체에서 용신 작용을 방해하고 병을 키우는 요소를 봐야 정해지지,
  * 오행 상극표 한 줄로 결정되지 않는다.
+ *
+ * 다만 **오신 배정(喜用忌仇閑)은 따로 낸다**(`favorability.ts`). 「이 명식의 병이
+ * 무엇인가」와 「고른 용신을 기준으로 다섯 오행이 어디에 오는가」는 다른 물음이고,
+ * 뒤엣것은 상생상극 표에서 곧장 나와 계통이 갈리지 않는다. 갈리는 것은 그 앞
+ * — 용신을 무엇으로 잡았는가 — 이고, 그 불확실성은 그대로 물려받는다.
  */
 
 /**
@@ -145,12 +150,25 @@ export const YONGSIN_POLICY = {
   status: 'experimental',
   /** 억부는 시험 판정, 조후는 원문 참고표로 함께 낸다 */
   methods: 'eokbu-and-johu-reference',
-  /** 기신은 판정하지 않는다 — 오행 상극표로 정해지는 것이 아니다 */
-  unfavorable: 'not-judged',
+  /**
+   * 기신은 여전히 판정하지 않는다 — 오행 상극표로 정해지는 것이 아니다.
+   *
+   * 대신 **오신 배정**은 낸다(`favorability.ts`). 「이 명식의 병이 무엇인가」와
+   * 「고른 용신을 기준으로 다섯 오행이 어디에 오는가」는 다른 물음이고, 뒤엣것만
+   * 표 조회로 답할 수 있다.
+   */
+  unfavorable: 'five-role-seating-not-disease',
+  /**
+   * 격국은 판정하되(`structure.ts`) 억부를 뒤집지 않는다.
+   *
+   * `followingPattern` 과 같은 자리인데 근거가 더 얕다 — 종격에는 외부 명조
+   * 서른다섯 건의 대조가 있고 격국은 0 건이다.
+   */
+  structure: 'judged-but-does-not-override',
   /** 조후 조건은 자동 판정하지 않는다 */
   johu: 'qiongtong-baojian-120-reference',
-  /** 조건과 갈림은 문서화했지만 판정 계통을 아직 채택하지 않았다 */
-  followingPattern: 'documented-not-judged',
+  /** 판정은 하되(실험 규칙 v2) 억부를 뒤집지 않는다 */
+  followingPattern: 'judged-but-does-not-override',
   /**
    * 세력은 강약과 같은 분포에서 잰다 — 국과 합화를 반영한 실효 분포다.
    *

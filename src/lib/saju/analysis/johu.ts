@@ -1,5 +1,6 @@
-import { type Branch, type Stem } from '../constants';
+import { HIDDEN_STEMS, type Branch, type Stem } from '../constants';
 import type { Pillars } from '../pillars';
+import { PILLAR_POSITIONS, type PillarPosition } from '../position';
 import { midTermOf } from '../solarTerms';
 
 /**
@@ -212,11 +213,40 @@ export const JOHU_POLICY = {
    * 경계가 중기(절 +15°)라 천문으로 정해지기 때문이다. "수가 왕하면 戊",
    * "화국이면 壬" 같은 세력 조건은 문턱을 지어내야 해서 판정하지 않는다.
    */
-  conditionEvaluation: 'half-month-only',
+  /**
+   * 상·하반월과 **후보의 실재 여부**까지 판정한다.
+   *
+   * 「丙이 없으면 庚을 참작한다」 같은 조건은 앞뒤가 성질이 다르다. 앞의
+   * 「丙이 없으면」은 세어서 답할 수 있는 사실이고, 뒤의 「참작한다」는 판정이다.
+   * 여태 둘을 한 덩어리로 두어 앞쪽까지 안 보고 있었다 — 그래서 화면이
+   * 「丙·庚을 참고할 수 있습니다」라고만 말하고, 원국에 丙이 아예 없다는 것을
+   * 옆에 두고도 말하지 못했다.
+   *
+   * 지금은 후보마다 어디에 있는지를 낸다(`candidates`). 「수가 왕하면 戊」 같은
+   * 세력 조건은 여전히 판정하지 않는다 — 그쪽은 문턱을 지어내야 한다.
+   */
+  conditionEvaluation: 'half-month-and-candidate-presence',
   /** 상반월은 절입~중기, 하반월은 중기~다음 절입 */
   halfMonthBoundary: 'mid-term-longitude-plus-15',
   source: 'qiongtong-baojian-cross-checked-summary',
 } as const;
+
+/** 조후 후보 천간 하나가 원국의 어디에 있는가 — **사실만 낸다** */
+export type JohuCandidate = {
+  stem: Stem;
+  /** 그 글자가 그대로 천간에 있는 자리들 */
+  revealedAt: readonly PillarPosition[];
+  /** 그 글자가 지장간으로 숨어 있는 자리들 */
+  hiddenAt: readonly PillarPosition[];
+  /**
+   * 천간에 드러났는가, 지지에 숨어만 있는가, 아예 없는가.
+   *
+   * 조후는 「어느 천간이 필요한가」를 말하는 표라서 같은 오행 아무 글자나
+   * 대신 서지 못한다 — 丙이 필요한 자리에 丁이 있는 것은 다른 사정이다.
+   * 그래서 오행이 아니라 **글자**로 센다.
+   */
+  presence: 'revealed' | 'hidden' | 'absent';
+};
 
 export type JohuAssessment = JohuRule & {
   /** 조건부 원문을 전부 자동 판정하지 않았으므로 확정값이 아니라 참고표다 */
@@ -238,6 +268,16 @@ export type JohuAssessment = JohuRule & {
    * 갈리지 않는 칸이거나 절반을 모르면 `null` 이고, 그때는 `stems` 를 그대로 읽는다.
    */
   halfStems: readonly Stem[] | null;
+  /**
+   * 후보 천간이 원국의 어디에 있는가.
+   *
+   * 상·하반월로 갈리는 칸이면 그 절반의 후보를, 아니면 `stems` 를 그대로 센다 —
+   * 화면이 읽는 목록과 같은 목록이어야 「권한 글자가 원국에 없다」가 어긋나지
+   * 않는다.
+   */
+  candidates: readonly JohuCandidate[];
+  /** 네 기둥을 다 보고 세었는가. 월주만 주고 부르면 `false` 다 */
+  countedWholeChart: boolean;
 };
 
 /**
@@ -245,9 +285,33 @@ export type JohuAssessment = JohuRule & {
  * 연 절기가 더 필요하지만, 없으면 절반을 `null` 로 둘 뿐 조회는 그대로 된다 —
  * 간지 둘만으로 부르는 테스트를 막지 않는다.
  */
-type JohuInput = Pick<Pillars, 'month' | 'dayMaster'> & {
-  meta?: Pick<Pillars['meta'], 'monthTerm'>;
-};
+type JohuInput = Pick<Pillars, 'month' | 'dayMaster'> &
+  Partial<Pick<Pillars, 'year' | 'day' | 'hour'>> & {
+    meta?: Pick<Pillars['meta'], 'monthTerm'>;
+  };
+
+/** 후보 천간 하나가 원국 어디에 있는지 센다 */
+function locate(pillars: JohuInput, stem: Stem): JohuCandidate {
+  const revealedAt: PillarPosition[] = [];
+  const hiddenAt: PillarPosition[] = [];
+
+  for (const position of PILLAR_POSITIONS) {
+    const pillar = pillars[position];
+    if (!pillar) continue;
+
+    if (pillar.stem === stem) revealedAt.push(position);
+    if (HIDDEN_STEMS[pillar.branch].some((hidden) => hidden.stem === stem)) {
+      hiddenAt.push(position);
+    }
+  }
+
+  return {
+    stem,
+    revealedAt,
+    hiddenAt,
+    presence: revealedAt.length > 0 ? 'revealed' : hiddenAt.length > 0 ? 'hidden' : 'absent',
+  };
+}
 
 /**
  * 일간과 월지에 해당하는 《궁통보감》 조후 후보를 찾는다.
@@ -264,6 +328,7 @@ export function johuAssessmentOf(pillars: JohuInput, instant?: Date): JohuAssess
   const monthTerm = pillars.meta?.monthTerm;
   const mid = instant && monthTerm ? midTermOf(monthTerm) : null;
   const half = mid && instant ? (instant < mid.date ? 'first' : 'second') : null;
+  const halfStems = found.halfMonth && half ? found.halfMonth[half] : null;
 
   return {
     status: 'reference',
@@ -274,6 +339,9 @@ export function johuAssessmentOf(pillars: JohuInput, instant?: Date): JohuAssess
     ...(found.halfMonth ? { halfMonth: found.halfMonth } : {}),
     half,
     midTerm: mid ? { name: mid.name, date: mid.date } : null,
-    halfStems: found.halfMonth && half ? found.halfMonth[half] : null,
+    halfStems,
+    // 화면이 읽는 목록과 같은 목록을 센다 — 절반이 정해졌으면 그 절반이다.
+    candidates: (halfStems ?? found.stems).map((stem) => locate(pillars, stem)),
+    countedWholeChart: pillars.year !== undefined && pillars.day !== undefined,
   };
 }
