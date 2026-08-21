@@ -417,6 +417,27 @@ export const HOUR_SENSITIVE_PATHS: readonly ClaimPath[] = [
   'analysis.followingCandidacy',
   'analysis.following',
   'analysis.rootedness',
+
+  /**
+   * 2026-08-21 에 들어온 판정들 — **재고 넣었다.**
+   *
+   * 이 목록이 손으로 적는 것이라 엔진이 자랄 때 따라오지 않았다. 일곱이 들어오는
+   * 동안 목록은 그대로였고, 아무 주제도 이 자리들을 읽지 않아서 아무도 안 봤다
+   * (`daeun` 이 `fact` 로 잘못 앉아 있던 것과 같은 자리다).
+   *
+   * 세 기둥이 같은 표본에서 시주 두 글자만 지우고 재면 — 뿌리의 질 64.6%,
+   * 국 39.7%, 실효 분포 31.4%, 격국 성패 26.5%, 오신 배정 25.4%, 격국 종류 8.7%
+   * 가 뒤집힌다. `analysis/hourSensitivity.test.ts` 가 그 값을 잠근다.
+   *
+   * **암합은 여기 없다.** 같은 표본에서 짝이 뒤집힌 것은 0건이고 98.9% 는 짝이
+   * 줄기만 한다 — 흔들리는 것은 「이것이 전부다」이지 「이것이 있다」가 아니라,
+   * 인식 규칙의 셋째 줄로 간다(`INCOMPLETE_INPUT_RULE`).
+   */
+  'analysis.structure',
+  'analysis.favorability',
+  'analysis.rootQuality',
+  'analysis.bureaus',
+  'analysis.effectiveElements',
 ];
 
 /** 강도를 한 칸 내린다. `silent` 아래는 없다 */
