@@ -22,6 +22,7 @@ import {
 } from '@/src/lib/saju';
 
 import { BirthFields } from './birth-form';
+import { MatchResult } from './compat-match';
 import { CopyLinkButton } from './copy-link';
 import { CARD, PILLAR_COLUMNS } from './saju-calculator';
 import {
@@ -229,7 +230,8 @@ export function CompatCalculator() {
           <h2 className="text-base font-semibold">두 사람의 생년월일시를 입력해 주세요</h2>
           <p className="mt-1.5 text-sm text-secondary">
             두 원국 <strong className="font-medium">사이에</strong> 성립하는 관계와, 서로의 오행을
-            어떻게 채우는지를 보여줍니다. 점수는 내지 않습니다.
+            어떻게 채우는지를 보여줍니다. 그 사실 아래에, 사실만 입력으로 쓰는 베타
+            매칭 지표가 함께 섭니다.
           </p>
         </section>
       ) : result.ok ? (
@@ -291,10 +293,12 @@ function CompatView({
         </section>
       )}
 
+      <MatchResult charts={charts} compat={compat} names={names} />
+
       <p className="text-xs text-muted">
-        <strong className="font-medium">점수를 내지 않습니다.</strong> 궁합 점수는 맞춰볼 외부
-        기준이 없어 이 저장소의 다른 판정들(억부는 시험값, 강약은 등급 없음)보다도 근거가
-        약합니다. 무엇과 무엇이 어떻게 걸렸는지만 내고, 무게는 읽는 사람이 정합니다.
+        <strong className="font-medium">사주 엔진은 점수를 내지 않습니다.</strong> 위 베타 지표는
+        엔진이 낸 사실에 공개된 가중치를 얹은 제품용 비교값입니다. 맞춰볼 외부 기준이 아직
+        없으므로 궁합의 정답이나 관계의 좋고 나쁨으로 읽지 않습니다.
       </p>
     </div>
   );

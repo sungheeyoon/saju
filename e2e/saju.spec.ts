@@ -358,6 +358,26 @@ test('한 사람만 적힌 궁합 주소는 빈 폼으로 연다', async ({ page
   ).toBeVisible();
 });
 
+/**
+ * 검증된 사실이 검증 중인 수치보다 먼저 읽혀야 한다 — `docs/product/matching-beta.md`
+ * 가 적어 둔 결정이고, 화면에서는 순서가 그 결정의 전부다. 지표 카드를 위로 올리는
+ * 변경은 여기서 걸린다. 관심 버튼도 함께 본다: 받지 않는 신청을 받는 것처럼
+ * 보이지 않기로 했으므로, 눌렀을 때 그렇게 말하는지가 계약이다.
+ */
+test('베타 매칭 지표는 사실 아래에 서고, 관심 버튼은 받지 않는다고 말한다', async ({ page }) => {
+  await page.goto('/compat?a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+
+  const facts = page.getByRole('heading', { name: '두 원국 사이의 관계' });
+  await expect(facts).toBeVisible();
+  await expect(page.getByText('궁합 베타 · match-v0')).toBeVisible();
+
+  const shown = await page.locator('main').innerText();
+  expect(shown.indexOf('두 원국 사이의 관계')).toBeLessThan(shown.indexOf('먼저 보이는 신호'));
+
+  await page.getByRole('button', { name: '관심 있어요' }).click();
+  await expect(page.getByRole('status')).toContainText('신청을 받지 않고');
+});
+
 test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44px 이상이다', async ({
   page,
 }, testInfo) => {

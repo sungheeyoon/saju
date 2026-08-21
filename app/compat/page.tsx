@@ -16,7 +16,8 @@ export default function CompatPage() {
         <p className="max-w-2xl text-sm text-secondary">
           두 사람의 원국을 나란히 놓고 <strong className="font-medium">사이에</strong> 성립하는
           형충회합만 셉니다. 각자의 원국 안에서 닫힌 관계는 각자의 명식이 이미 보여주므로
-          여기서 또 세지 않습니다. 점수는 내지 않습니다.
+          여기서 또 세지 않습니다. 사주 엔진은 점수를 내지 않고, 센 사실 아래에 그 사실만
+          입력으로 쓰는 베타 매칭 지표를 따로 붙입니다.
         </p>
         <p className="text-sm">
           <Link href="/" className="text-accent underline underline-offset-2">
