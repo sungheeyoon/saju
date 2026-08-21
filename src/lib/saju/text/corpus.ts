@@ -338,6 +338,87 @@ const followingBody = (wording: FollowingWording, mark: string): string =>
   ].join(' ');
 
 // 한 벌뿐이다. 시간 미상에서 내려앉는 것이 아니라 **입을 닫는다** — 주제가
+/**
+ * 격국 여섯 벌 — **잡은 방식이 문장을 가른다.**
+ *
+ * 격국은 이 저장소에서 **외부 대조가 0건인 유일한 판정**이다. 종격은 서른다섯
+ * 건을 놓고 게이트를 못 열었고 이쪽은 아직 아무것도 안 재 봤는데, 사다리에는
+ * 「재어 봤는데 모자란다」와 「아직 안 재 봤다」를 가르는 칸이 없다. 그래서 같은
+ * `candidate` 에 앉고, 문장은 **잡은 방식을 말해서** 그 차이를 대신 낸다 —
+ * 투출한 글자를 보고 잡았는지, 아무것도 안 나와 정기로 잡았는지는 읽는 사람이
+ * 무게를 정하는 데 쓸 수 있는 유일한 재료다.
+ *
+ * `self-seat` 만 격 이름을 「격으로 잡는다」고 말하지 않는다. 건록·양인·월겁은
+ * 격을 못 잡은 것이 아니라 월령이 일간 편이라 쓸 수 없는 자리이고, 그것을
+ * 「무슨 격이다」로 적으면 고전이 따로 이름 붙인 이유가 사라진다.
+ *
+ * **성패는 한 마디도 하지 않는다.** 이룸과 깨짐은 조건의 목록이라 문장 하나로
+ * 접으면 반올림이 된다(`STRUCTURE_POLICY.outcome: 'conditions-listed'`).
+ */
+const structureFragments: Fragment[] = [
+  {
+    topic: 'structure.kind',
+    variant: 'revealed',
+    strength: 'candidate',
+    template:
+      '월지 {monthBranch} 자리의 {sourceStem} 쪽이 {revealedAt} 자리의 천간에 드러나 있어 {kind} 쪽을 후보로 봅니다.',
+  },
+  {
+    topic: 'structure.kind',
+    variant: 'revealed',
+    strength: 'reference',
+    template:
+      '시주를 빼고 세면 월지 {monthBranch} 자리의 {sourceStem} 쪽이 {revealedAt} 자리의 천간에 드러나 있어 {kind} 쪽을 참고할 수 있습니다.',
+  },
+  // 아무것도 투출하지 않아 정기로 잡은 자리. 고전이 정기를 기본값으로 두었기
+  // 때문에 나온 값이지 그 글자가 드러나서 나온 값이 아니라는 것을 문장이 적는다.
+  {
+    topic: 'structure.kind',
+    variant: 'principal-only',
+    strength: 'candidate',
+    template:
+      '월지 {monthBranch} 자리의 지장간 가운데 천간에 드러난 것이 없어 정기인 {sourceStem} 쪽으로 {kind} 쪽을 후보로 봅니다.',
+  },
+  {
+    topic: 'structure.kind',
+    variant: 'principal-only',
+    strength: 'reference',
+    template:
+      '시주를 빼고 세면 월지 {monthBranch} 자리의 지장간 가운데 천간에 드러난 것이 없어 정기인 {sourceStem} 쪽으로 {kind} 쪽을 참고할 수 있습니다.',
+  },
+  // 투출한 것이 비겁뿐이라 격으로 못 쓰고 정기로 물러난 자리. 「드러난 것이
+  // 없다」로 묶으면 그냥 거짓이 된다 — 드러나 있었고 쓸 수 없었을 뿐이다.
+  {
+    topic: 'structure.kind',
+    variant: 'self-revealed-only',
+    strength: 'candidate',
+    template:
+      '월지 {monthBranch} 자리에서 천간에 드러난 것이 일간 편뿐이라 격으로 쓰지 않고 정기인 {sourceStem} 쪽으로 {kind} 쪽을 후보로 봅니다.',
+  },
+  {
+    topic: 'structure.kind',
+    variant: 'self-revealed-only',
+    strength: 'reference',
+    template:
+      '시주를 빼고 세면 월지 {monthBranch} 자리에서 천간에 드러난 것이 일간 편뿐이라 격으로 쓰지 않고 정기인 {sourceStem} 쪽으로 {kind} 쪽을 참고할 수 있습니다.',
+  },
+  // 격이 아니라 자리 이름이다. 「무슨 격이다」로 적지 않는다.
+  {
+    topic: 'structure.kind',
+    variant: 'self-seat',
+    strength: 'candidate',
+    template:
+      '월지 {monthBranch} 자리가 일간 편이라 격으로 쓰지 않고 {kind} 쪽을 후보로 봅니다.',
+  },
+  {
+    topic: 'structure.kind',
+    variant: 'self-seat',
+    strength: 'reference',
+    template:
+      '시주를 빼고 세면 월지 {monthBranch} 자리가 일간 편이라 격으로 쓰지 않고 {kind} 쪽을 참고할 수 있습니다.',
+  },
+];
+
 // `absence` 라 계약이 통째로 잠근다(`FRAGMENT_TOPICS['following.verdict']`).
 const followingFragments = FOLLOWING_WORDINGS.map(
   (wording): Fragment => ({
@@ -687,6 +768,10 @@ export const FRAGMENTS: readonly Fragment[] = [
   // ── 조후 ─────────────────────────────────────────────────────────────
   // 출처 의무가 처음으로 문장에 걸리는 자리다 — 위 `JOHU_SOURCE` 참조.
   ...johuFragments,
+
+  // ── 격국 ─────────────────────────────────────────────────────────────
+  // 세 변종 × 두 벌. 격을 **잡은 방식**이 곧 근거라 변종이 거기서 갈린다.
+  ...structureFragments,
 
   // ── 종격 ─────────────────────────────────────────────────────────────
   // 여섯 변종 × 한 벌. 일곱 번째 변종(`not-following`)은 말하지 않기로 했으므로

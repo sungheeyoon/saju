@@ -4,6 +4,7 @@ import { computeSaju, type Saju } from '@/src/lib/saju';
 import { ELEMENT_ROLE_KO, TEN_GOD_KO } from '@/src/lib/saju/analysis';
 import { analyzeCompatibility } from '@/src/lib/saju/compat';
 import { currentFortuneOf } from '@/src/lib/saju/now';
+import { randomInputs, withoutHour } from '@/src/lib/saju/population';
 import { TWELVE_STAGE_KO } from '@/src/lib/saju/stages';
 import {
   ASSEMBLE_POLICY,
@@ -790,6 +791,28 @@ describe('조립기', () => {
    * 이제 자리마다 둘 중 하나여야 한다 — 읽는 주제가 있거나, 없다고 고지되거나.
    * 새 판정을 화면에 붙이는 일의 진도도 이 목록이 줄어드는 것으로 잰다.
    */
+  /**
+   * **모집단에서도 계약을 지키는가.**
+   *
+   * 위 시험들은 손으로 고른 명식 몇 벌만 본다. 그 표본이 안 닿는 자리가 있고,
+   * 실제로 격국 문장이 거기서 샜다 — 巳월 庚 일간처럼 투출한 것이 비겁뿐인
+   * 자리에서 `{kind}` 슬롯이 안 채워진 채 화면까지 갔다(무작위 3000건의 3.8%).
+   * 계약은 그것을 `unfilled-slot` 으로 잡을 줄 알았는데 **아무도 모집단에
+   * 물어보지 않았다.**
+   *
+   * 시간 미상 벌도 함께 돈다. 강등된 조각은 명식이 갖춰졌을 때 한 번도 조회되지
+   * 않으므로, 시각 있는 쪽만 돌리면 절반이 그대로 안 보인다.
+   */
+  it('무작위 모집단의 발화가 모두 계약을 지킨다', () => {
+    for (const input of randomInputs(400)) {
+      for (const saju of [computeSaju(input), computeSaju(withoutHour(input))]) {
+        for (const utterance of assembleText(saju)) {
+          expect(utterance.violations, `${JSON.stringify(input)} ${utterance.key}`).toHaveLength(0);
+        }
+      }
+    }
+  });
+
   it('주제가 없는 근거 자리는 빠짐없이 고지된다', () => {
     const read = new Set(Object.values(FRAGMENT_TOPICS).flatMap((topic) => topic.paths));
     const declared = new Set(UNCOVERED_FACTS_BY_PATH.flatMap((entry) => entry.paths));

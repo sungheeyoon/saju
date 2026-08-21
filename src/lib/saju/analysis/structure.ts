@@ -98,6 +98,39 @@ export type StructureKind =
   /** 월령이 비겁인데 건록도 양인도 아닌 자리 */
   | '月劫格';
 
+/**
+ * 월령이 일간 편이라 **격으로 쓸 수 없는 세 자리.**
+ *
+ * `selfSeatOf` 가 내는 값의 목록이고 타입이 둘을 맞물려 둔다. 격 이름 여덟과
+ * 이 셋은 같은 유니온에 있지만 종류가 다르다 — 앞은 「무엇으로 서 있는가」이고
+ * 뒤는 「월령을 격으로 쓰지 못한다」라서, 문장도 그 자리에서 갈린다.
+ */
+export const SELF_SEAT_KINDS = ['建祿格', '陽刃格', '月劫格'] as const;
+
+export type SelfSeatKind = (typeof SELF_SEAT_KINDS)[number];
+
+/** 격으로 쓸 수 있는 십성 — 비겁은 빠진다 */
+export type UsableTenGod = Exclude<TenGod, '比肩' | '劫財'>;
+
+/**
+ * 십성 하나에서 격 이름 하나 — **표로 적어 캐스트를 없앤다.**
+ *
+ * 여기는 한동안 `` `${tenGod}格` as StructureKind `` 였고, 그 캐스트가 거짓말을
+ * 하고 있었다. 비겁이 새어 들어오면 유니온에 없는 `比肩格` 이 만들어지고
+ * `STRUCTURE_KIND_KO` 조회가 `undefined` 를 낸다. **아무도 `ko` 를 읽지 않아서
+ * 아무도 못 봤다** — 격국 문장을 세우자 슬롯이 안 채워지며 드러났다.
+ */
+const KIND_OF_TEN_GOD: Record<UsableTenGod, StructureKind> = {
+  正官: '正官格',
+  偏官: '偏官格',
+  正財: '正財格',
+  偏財: '偏財格',
+  食神: '食神格',
+  傷官: '傷官格',
+  正印: '正印格',
+  偏印: '偏印格',
+};
+
 export const STRUCTURE_KIND_KO: Record<StructureKind, string> = {
   正官格: '정관격',
   偏官格: '편관격',
@@ -186,6 +219,14 @@ export type Structure = {
   }[];
   /** 투출한 글자로 잡았는가, 아무것도 안 나와 정기로 잡았는가 */
   revealed: boolean;
+  /**
+   * 정기로 물러난 이유 — **「없었다」와 「있었지만 못 쓴다」는 다르다.**
+   *
+   * 투출한 것이 비겁뿐이면 격으로 쓸 수 없어 정기로 잡는데(`selectSource`),
+   * 그것을 「천간에 드러난 것이 없다」와 한 값으로 묶으면 화면이 거짓을 말한다 —
+   * 무작위 3000건에서 3.8% 가 이 자리다. 투출로 잡았으면 `null` 이다.
+   */
+  principalFallback: 'none-revealed' | 'revealed-unusable' | null;
   /** 월지가 충을 맞고 있는가 — 「月令冲破」 */
   monthClashed: boolean;
   formingFactors: readonly StructureFactor[];
@@ -242,11 +283,24 @@ function selectSource(pillars: StructureInput) {
   }));
 
   // 정기가 투출했으면 정기, 아니면 다른 투출, 그것도 없으면 정기.
+  //
+  // **비겁은 투출했어도 격으로 잡지 않는다.** 「월령이 일간 편이면 격으로 쓸 수
+  // 없다」가 이 모듈의 규칙인데(`selfSeatOf`), 그 규칙이 월령에만 걸려 있고
+  // 투출한 글자에는 안 걸려 있었다. 巳월 庚 일간이 그 구멍이다 — 정기 丙은 내
+  // 편이 아니라 건록도 월겁도 아닌데 중기 庚이 나 자신이라, 그 자리가 격으로
+  // 잡히면 「나로 나를 쓴다」가 된다.
+  //
+  // 정기가 비겁인 경우는 여기 오지 않는다. 그것은 `selfSeatOf` 가 건록·양인·
+  // 월겁으로 먼저 집어 간다.
+  const usable = (candidate: (typeof candidates)[number]) =>
+    TEN_GOD_GROUP[candidate.tenGod] !== '比劫';
+
   const principal = candidates.find((candidate) => candidate.role === '正氣')!;
   const chosen =
     principal.revealedAt.length > 0
       ? principal
-      : (candidates.find((candidate) => candidate.revealedAt.length > 0) ?? principal);
+      : (candidates.find((candidate) => candidate.revealedAt.length > 0 && usable(candidate)) ??
+        principal);
 
   return { candidates, chosen };
 }
@@ -258,7 +312,7 @@ function selectSource(pillars: StructureInput) {
  * 천간에서 쓸 것을 찾는데, 그 순서를 뒤집으면 건록격 명식이 투출한 글자를 따라
  * 정관격·재격으로 잡혀 버린다.
  */
-function selfSeatOf(pillars: StructureInput): StructureKind | null {
+function selfSeatOf(pillars: StructureInput): SelfSeatKind | null {
   const dayMaster = pillars.dayMaster;
   const monthBranch = pillars.month.branch;
 
@@ -272,6 +326,21 @@ function selfSeatOf(pillars: StructureInput): StructureKind | null {
 }
 
 /**
+ * 투출한 십성에서 격 이름 하나.
+ *
+ * 비겁은 `selectSource` 가 걸러 냈고, 정기가 비겁인 자리는 `selfSeatOf` 가
+ * 건록·양인·월겁으로 먼저 집어 갔다. 그래서 여기 남는 십성은 여덟 중 하나이고,
+ * 아니라면 두 함수 중 하나가 규칙을 어긴 것이라 **조용히 `undefined` 를 흘리는
+ * 대신 멈춘다.** 한동안 흘리고 있었고 아무도 못 봤다.
+ */
+function regularKindOf(tenGod: TenGod): StructureKind {
+  const kind = KIND_OF_TEN_GOD[tenGod as UsableTenGod];
+  if (kind === undefined) throw new Error(`격으로 쓸 수 없는 십성이 격에 왔다: ${tenGod}`);
+
+  return kind;
+}
+
+/**
  * 격국을 잡고 성패의 조건을 센다.
  *
  * 세력은 실효 분포(`effectiveElements`)를 받는다 — 강약·억부·종격이 다 같은
@@ -282,8 +351,15 @@ export function structureOf(
   elements: ElementDistribution,
 ): Structure {
   const { candidates, chosen: revealedChoice } = selectSource(pillars);
+
+  const fallbackReason =
+    revealedChoice.revealedAt.length > 0
+      ? null
+      : candidates.some((candidate) => candidate.revealedAt.length > 0)
+        ? ('revealed-unusable' as const)
+        : ('none-revealed' as const);
   const selfSeat = selfSeatOf(pillars);
-  const kind = selfSeat ?? (`${revealedChoice.tenGod}格` as StructureKind);
+  const kind = selfSeat ?? regularKindOf(revealedChoice.tenGod);
 
   // 건록·양인·월겁은 격이 월령 그 자체다. 투출한 글자는 격이 아니라 쓸 것이라
   // `candidates` 에 남고, `source` 는 월령의 정기를 가리킨다.
@@ -458,6 +534,7 @@ export function structureOf(
       revealed: candidate.revealedAt.length > 0,
     })),
     revealed: chosen.revealedAt.length > 0,
+    principalFallback: fallbackReason,
     monthClashed,
     formingFactors: forming,
     breakingFactors: breaking,

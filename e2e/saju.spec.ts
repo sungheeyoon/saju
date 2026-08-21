@@ -37,6 +37,15 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
   await expect(page.getByRole('heading', { name: '신강 · 신약' })).toBeVisible();
   await expect(page.getByRole('tabpanel')).toContainText('세운');
   await expect(consoleErrors).toEqual([]);
+
+  /*
+    **채워지지 않은 슬롯이 화면까지 간 적이 있다.** 격국 문장의 `{kind}` 가
+    엔진 쪽 버그로 비어 있었는데, 계약은 그것을 잡을 줄 알면서도 손으로 고른
+    명식만 보고 있어서 놓쳤고 브라우저에서야 보였다. 조립기 쪽은 모집단
+    시험이 잠갔고(`assemble.test.ts`), 여기서는 **화면에 중괄호가 남는 일이
+    없다**만 본다 — 무엇이 새든 이 모양으로 나타난다.
+  */
+  expect(await page.locator('main').innerText()).not.toMatch(/\{[a-zA-Z]+\}/);
 });
 
 test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한다', async ({ page }) => {

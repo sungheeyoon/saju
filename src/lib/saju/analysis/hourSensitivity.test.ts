@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju, type Saju } from '..';
+import { randomInputs, withoutHour } from '../population';
 import { HOUR_SENSITIVE_PATHS, type ClaimPath } from '../text/policy';
 
 /**
@@ -30,31 +31,13 @@ import { HOUR_SENSITIVE_PATHS, type ClaimPath } from '../text/policy';
  * | `analysis.hiddenCombinations` | 암합 짝 | **0%** |
  */
 
-function mulberry32(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 /** 시주만 지운 짝. 세 기둥이 갈린 표본은 시주의 몫이 아니라 빼고 낸다 */
 function pairsWithSameThreePillars(count: number): { withHour: Saju; hourless: Saju }[] {
-  const random = mulberry32(20260821);
-  const pick = (min: number, max: number) => min + Math.floor(random() * (max - min + 1));
   const pairs: { withHour: Saju; hourless: Saju }[] = [];
 
-  for (let i = 0; i < count; i += 1) {
-    const year = pick(1900, 2100);
-    const month = pick(1, 12);
-    const gender = random() < 0.5 ? ('female' as const) : ('male' as const);
-    const input = { year, month, day: pick(1, 28), gender };
-
-    const withHour = computeSaju({ ...input, hour: pick(0, 23), minute: 0, second: 0 });
-    const hourless = computeSaju({ ...input, hour: null });
+  for (const input of randomInputs(count)) {
+    const withHour = computeSaju(input);
+    const hourless = computeSaju(withoutHour(input));
 
     const three = (saju: Saju) =>
       (['year', 'month', 'day'] as const)

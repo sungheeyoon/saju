@@ -12,6 +12,7 @@ import {
   ELEMENT_ROLE_KO,
   FOLLOWING_DIRECTION_KO,
   FOLLOWING_PATTERN_STATUS_KO,
+  SELF_SEAT_KINDS,
   TEN_GOD_GROUP,
   TEN_GOD_KO,
   type PillarTenGods,
@@ -181,7 +182,7 @@ export const UNCOVERED_FACTS_BY_PATH: readonly {
   { paths: ['analysis.rootedness'], note: '일간 밖의 천간·투출' },
   // 2026-08-21 에 들어온 판정들. 엔진에는 값이 있고 주제가 없다 — 여기 이름이
   // 서 있는 동안은 화면도 문장도 이것들을 모른다.
-  { paths: ['analysis.structure'], note: '격국 — 외부 대조 0건이라는 것부터 문장이 들어야 한다' },
+  { paths: ['analysis.structure'], note: '성패(成敗) — 무슨 격인가만 말한다. 이룸과 깨짐은 조건의 목록이라 한 문장으로 접으면 반올림이 된다' },
   { paths: ['analysis.favorability'], note: '희용기구한 — 억부의 상한을 그대로 물려받는다' },
   { paths: ['analysis.hiddenCombinations'], note: '암합 — 관계 표에 섞지 않기로 한 자리' },
   { paths: ['analysis.bureaus', 'analysis.effectiveElements'], note: '국(局)과 합화로 옮겨 간 무게' },
@@ -282,6 +283,43 @@ function johuRequest(saju: Saju): Pick<FragmentRequest, 'topic' | 'variant' | 's
 }
 
 /**
+ * 격국 — **격을 잡은 방식이 변종을 고른다.**
+ *
+ * 월령이 일간 편이면 격이 아니라 자리 이름이고(건록·양인·월겁), 그 셋은
+ * `STRUCTURE_KIND_KO` 에서 이름이 갈리는 것이 아니라 `SELF_SEAT_KINDS` 로
+ * 갈린다 — 십성으로 읽으면 戊土의 巳월이 편인격이 되어 버린다는 것을
+ * `STRUCTURE_POLICY.selfSeat` 가 이미 적어 두었다.
+ */
+function structureRequest(saju: Saju): Pick<FragmentRequest, 'topic' | 'variant' | 'slots'> {
+  const { structure } = saju.analysis;
+
+  const shared = {
+    kind: structure.ko,
+    monthBranch: BRANCH_INFO[saju.pillars.month.branch].ko,
+    sourceStem: STEM_INFO[structure.source.stem].ko,
+  };
+
+  if ((SELF_SEAT_KINDS as readonly string[]).includes(structure.kind)) {
+    return { topic: 'structure.kind', variant: 'self-seat', slots: shared };
+  }
+
+  if (!structure.revealed) {
+    return {
+      topic: 'structure.kind',
+      variant:
+        structure.principalFallback === 'revealed-unusable' ? 'self-revealed-only' : 'principal-only',
+      slots: shared,
+    };
+  }
+
+  return {
+    topic: 'structure.kind',
+    variant: 'revealed',
+    slots: { ...shared, revealedAt: positionsKo(structure.source.revealedAt) },
+  };
+}
+
+/**
  * 명식에서 발화를 찾는다 — **조각을 모른다.**
  *
  * 말뭉치가 비어 있어도 같은 목록이 나온다. 발화의 수는 명식이 정하고,
@@ -340,6 +378,8 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
   });
 
   requests.push({ ...base, ...johuRequest(saju) });
+
+  requests.push({ ...base, ...structureRequest(saju) });
 
   // 말하지 않기로 한 판정도 요청은 낸다. 여기서 걸러 버리면 "사실이 없다"와
   // "말하지 않기로 했다"가 한 덩어리가 되고, 골든에서 침묵이 보이지 않는다.

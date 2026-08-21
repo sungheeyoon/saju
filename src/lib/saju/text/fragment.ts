@@ -54,6 +54,7 @@ export type FragmentTopic =
   | 'rootedness.rooted'
   | 'rootedness.rootless'
   | 'strength.verdict'
+  | 'structure.kind'
   | 'eokbu.candidate'
   | 'eokbuMatch.supplied'
   | 'eokbuMatch.missing'
@@ -172,6 +173,45 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     slots: ['dayMaster'],
     samples: { dayMaster: '갑' },
     note: '일간이 어디에도 뿌리를 두지 못한다',
+  },
+
+  /**
+   * 격국 — **월령에서 무엇을 격으로 잡는가.**
+   *
+   * 변종 넷은 격을 **잡은 방식**으로 갈린다. 잡은 방식이 곧 근거라서, 하나로
+   * 접으면 「투출한 글자를 보고 잡았다」와 「아무것도 안 나와 정기로 잡았다」가
+   * 같은 세기로 읽힌다 — 뒤쪽은 고전이 정기를 기본값으로 두었기 때문에 나온
+   * 값이지 그 글자가 드러나서 나온 값이 아니다.
+   *
+   * `self-revealed-only` 는 **문장이 거짓이 되는 것을 막으려고 갈랐다.** 투출한
+   * 것이 비겁뿐이면 격으로 쓸 수 없어 정기로 물러나는데, 그것을 `principal-only`
+   * 로 묶으면 화면이 「천간에 드러난 것이 없다」고 말한다 — 드러나 있었다.
+   * 무작위 3000건에서 3.8% 가 이 자리다(`Structure.principalFallback`).
+   *
+   * `self-seat` 는 **다른 종류의 문장이다.** 건록·양인·월겁은 격을 못 잡은 것이
+   * 아니라 월령이 일간 편이라 격으로 쓸 수 없는 자리이고, 고전이 따로 이름을
+   * 붙여 두었다. 「무슨 격이다」가 아니라 「격이 아니라 녹이다」라고 말해야 한다.
+   *
+   * **성패는 여기서 말하지 않는다.** 이룸과 깨짐은 조건의 목록이라 한 문장으로
+   * 접으면 판정이 아니라 반올림이 되고(`STRUCTURE_POLICY.outcome`), 근거도 다르다
+   * — 격은 월령과 투출에서 나오고 성패는 여덟 글자 전체에서 나온다. 아직 주제가
+   * 없다는 것은 `UNCOVERED_FACTS_BY_PATH` 가 적는다.
+   *
+   * 상한은 `candidate` 이고 그 이유가 종격과 다르다. 종격은 외부 대조 서른다섯
+   * 건을 놓고 게이트를 못 열었고, 격국은 **아직 0건**이다(`CLAIM_CEILING`).
+   */
+  'structure.kind': {
+    paths: ['analysis.structure'],
+    polarity: 'presence',
+    variants: ['revealed', 'principal-only', 'self-revealed-only', 'self-seat'],
+    slots: ['kind', 'monthBranch', 'sourceStem', 'revealedAt'],
+    samples: {
+      kind: '정관격',
+      monthBranch: '유',
+      sourceStem: '신',
+      revealedAt: '연간·시간',
+    },
+    note: '월령에서 무엇을 격으로 잡는가',
   },
 
   'strength.verdict': {
