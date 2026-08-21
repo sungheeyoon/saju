@@ -367,24 +367,34 @@ describe('억부용신 외부 대조 데이터셋', () => {
         engineStrength: 'strong',
         strengthAgrees: null,
         sourceElement: '火',
-        engineElement: '木',
+        engineElement: '水',
         elementAgrees: false,
         sourceRole: '印星',
-        engineRole: '官星',
+        engineRole: '財星',
         roleAgrees: false,
       },
       {
-        // 한습을 병으로 본 조후 논리인데 억부와 답이 같아진 자리다.
+        /**
+         * **강약이 국(局)을 보게 되면서 어긋난 자리다.** 전에는 억부가 조후와
+         * 우연히 같은 답을 냈다.
+         *
+         * 출처가 든 근거는 「己見亥子丑」 — 亥子丑이 모여 水가 되었다는 것이다.
+         * 우리 강약이 여태 그것을 안 보고 있었고, 이제 본다. 세력을 저자와 같이
+         * 읽게 되자 억부 규칙이 「재성이 가장 무거우니 비겁으로 나눈다」로 가고,
+         * 저자는 거기서 한습을 병으로 보아 火로 간다. **어긋난 것은 세력 읽기가
+         * 아니라 그다음 규칙이다** — 억부와 조후의 갈림이고, `caveats` 가 처음부터
+         * 그렇게 적어 두었다.
+         */
         id: 'qlmg-ma-unstated-gito',
         sourceStrength: 'unstated',
         engineStrength: 'weak',
         strengthAgrees: null,
         sourceElement: '火',
-        engineElement: '火',
-        elementAgrees: true,
+        engineElement: '土',
+        elementAgrees: false,
         sourceRole: '印星',
-        engineRole: '印星',
-        roleAgrees: true,
+        engineRole: '比劫',
+        roleAgrees: false,
       },
     ]);
 
@@ -403,12 +413,14 @@ describe('억부용신 외부 대조 데이터셋', () => {
     expect(strengths.filter((agrees) => agrees === null)).toHaveLength(8);
 
     // 추천 오행은 스물 중 열하나가 맞는다.
-    expect(scored.filter(({ elementAgrees }) => elementAgrees)).toHaveLength(11);
+    // 11 → 10. 잃은 한 칸은 조후로 용신을 고른 명조이고, 그 명조에서 세력을
+    // 읽는 방식은 오히려 저자와 같아졌다(「己見亥子丑」).
+    expect(scored.filter(({ elementAgrees }) => elementAgrees)).toHaveLength(10);
   });
 
   /**
    * **계통별로 성적이 갈리는 것이 이 데이터셋의 요점이다.** 중국 계통 열넷 중
-   * 아홉이 맞고 한국 현대 상담 사례는 여섯 중 둘이다. 자료를 넓혀도 이 차이는
+   * 여덟이 맞고 한국 현대 상담 사례는 여섯 중 둘이다. 자료를 넓혀도 이 차이는
    * 그대로였다 — 우리 억부가 "강약을 먼저 정하고 그 반대편을 고른다"는 자평
    * 절차에 가깝고, 한국 상담 글은 조후·격국·물상을 함께 섞기 때문이다.
    *
@@ -433,13 +445,14 @@ describe('억부용신 외부 대조 데이터셋', () => {
 
     expect(agreementBy('korean-modern')).toEqual([2, 6]);
     expect(agreementBy('classical-chinese')).toEqual([3, 3]);
-    expect(agreementBy('republican-chinese')).toEqual([6, 11]);
+    expect(agreementBy('republican-chinese')).toEqual([5, 11]);
   });
 
   /**
-   * 종격은 판정을 시작했지만(experimental v1) 억부의 답을 뒤집지는 않는다.
-   * 문턱이 고전이 아니라 분포 측정에서 나온 값이고 외부 대조가 0건이기 때문이다.
-   * 외부 종격 명조를 모아 대조하기 전에 이 스위치를 켜면 안 된다.
+   * 종격은 판정을 시작했지만(experimental v2) 억부의 답을 뒤집지는 않는다.
+   * 외부 대조는 이제 서른다섯 건이고 재현율도 절반을 넘었지만, 모집단 발화율이
+   * 고전이 말하는 희소성과 자릿수가 다르고 오검출이 남아 있다
+   * (`following.external.test.ts`).
    */
   it('종격은 외부 대조 전까지 억부를 덮어쓰지 않는다', () => {
     expect(FOLLOWING_PATTERN_POLICY.status).toBe('experimental');

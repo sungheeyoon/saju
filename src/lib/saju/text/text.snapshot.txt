@@ -49,7 +49,7 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ rootedness.rooted/same-stem@fact
         사실     을 일간은 시주 자리에 같은 글자로 뿌리를 둡니다.
     ✓ strength.verdict/weak@derived
-        유도     일간을 돕는 세력이 16% 정도라 신약 쪽으로 봅니다.
+        유도     일간을 돕는 세력이 15% 정도라 신약 쪽으로 봅니다.
     ✓ eokbu.candidate/印星@candidate
         후보     억부 관점에서는 일간을 받쳐 주는 인성 자리의 수 쪽을 후보로 봅니다.
     ✓ johu.table/whole-month@reference
@@ -75,7 +75,7 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ rootedness.rooted/same-element@fact
         사실     무 일간은 일주·시주 자리에 같은 오행으로 뿌리를 둡니다.
     ✓ strength.verdict/strong@derived
-        유도     일간을 돕는 세력이 70% 정도라 신강 쪽으로 봅니다.
+        유도     일간을 돕는 세력이 68% 정도라 신강 쪽으로 봅니다.
     ✓ eokbu.candidate/官星@candidate
         후보     억부 관점에서는 일간을 누르는 관성 자리의 목 쪽을 후보로 봅니다.
     ✓ johu.table/whole-month@reference
@@ -107,7 +107,7 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ rootedness.rooted/same-element@fact
         사실     갑 일간은 년주 자리에 같은 오행으로 뿌리를 둡니다.
     ✓ strength.verdict/weak@derived
-        유도     일간을 돕는 세력이 34% 정도라 신약 쪽으로 봅니다.
+        유도     일간을 돕는 세력이 37% 정도라 신약 쪽으로 봅니다.
     ✓ eokbu.candidate/比劫@candidate
         후보     억부 관점에서는 일간과 한편에 서는 비겁 자리의 목 쪽을 후보로 봅니다.
     ✓ johu.table/whole-month@reference
@@ -187,7 +187,7 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ rootedness.rooted/same-stem@fact
         사실     임 일간은 년주·일주 자리에 같은 글자로 뿌리를 둡니다.
     ✓ strength.verdict/weak@derived
-        유도     일간을 돕는 세력이 34% 정도라 신약 쪽으로 봅니다.
+        유도     일간을 돕는 세력이 36% 정도라 신약 쪽으로 봅니다.
     ✓ eokbu.candidate/比劫@candidate
         후보     억부 관점에서는 일간과 한편에 서는 비겁 자리의 수 쪽을 후보로 봅니다.
     ✓ johu.table/half-month@reference
@@ -227,7 +227,7 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ rootedness.rooted/same-stem@derived
         유도     시주를 빼고 세면 계 일간은 년주 자리에 같은 글자로 뿌리를 둔 것으로 봅니다.
     ✓ strength.verdict/weak@candidate
-        후보     시주를 빼고 세면 일간을 돕는 세력이 39% 정도라 신약 쪽을 후보로 봅니다.
+        후보     시주를 빼고 세면 일간을 돕는 세력이 37% 정도라 신약 쪽을 후보로 봅니다.
     ✓ eokbu.candidate/印星@reference
         참고     시주를 빼고 세면 억부 관점에서는 일간을 받쳐 주는 인성 자리의 금 쪽을 참고할 수 있습니다.
     ✓ johu.table/half-unjudged@reference

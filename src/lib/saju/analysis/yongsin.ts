@@ -7,7 +7,12 @@ import {
   STEM_INFO,
   type Element,
 } from '../constants';
-import { elementDistributionOf, type DistributionInput } from './fiveElements';
+import { effectiveElementsOf } from './effectiveElements';
+import {
+  elementDistributionOf,
+  type DistributionInput,
+  type ElementDistribution,
+} from './fiveElements';
 import type { Strength, StrengthInput } from './strength';
 
 /**
@@ -36,9 +41,9 @@ import type { Strength, StrengthInput } from './strength';
  * 다만 외부 사례와도 추천 오행이 갈리므로 이것만 시험 후보로 먼저 낸다.
  *
  * **그렇다고 억부 하나로 용신이 확정되지는 않는다.** 아래 규칙은 방향을
- * 설명하는 입문 수준이고, 월령의 실제 세력 차이·투간과 통근의 질·합충으로
- * 뿌리가 바뀌는 경우·한습조열·후보 오행을 실제로 쓸 수 있는지·종격 가능성·
- * 격국의 성패·같은 오행 안에서 어느 천간이 필요한지를 전부 보지 않는다.
+ * 설명하는 입문 수준이다. 세력은 이제 국(局)과 합화를 반영한 실효 분포에서
+ * 재지만, 투간과 통근의 **질**·한습조열·후보 오행을 실제로 쓸 수 있는지·종격
+ * 가능성·격국의 성패·같은 오행 안에서 어느 천간이 필요한지는 여전히 보지 않는다.
  * 그래서 결과를 `EokbuAssessment` 로 내고 `status: 'experimental'` 을 값으로
  * 박는다. "용신은 木이다"가 아니라 "억부 관점의 후보는 木이다"이다.
  *
@@ -64,6 +69,10 @@ export const UNRESOLVED_FACTOR_KO: Record<UnresolvedFactor, string> = {
   followingPattern: '종격 여부',
   climate: '조후 조건 판정',
   structure: '격국의 성패',
+  /**
+   * 국(局)과 합화는 이제 **세력에** 반영한다. 남은 것은 **뿌리에** 미치는
+   * 영향이다 — 충에 뽑히거나 국에 끌려간 뿌리를 강약 점수는 아직 안 센다.
+   */
   combinationEffects: '합충으로 인한 뿌리 변화',
   rootQuality: '투간·통근의 질',
 };
@@ -131,7 +140,7 @@ export function elementRolesOf(dayMasterElement: Element): Record<ElementRole, E
  * 채택한 규칙. `STRENGTH_POLICY` 와 짝이다 — 골든 스냅샷이 함께 찍는다.
  */
 export const YONGSIN_POLICY = {
-  ruleSet: 'eokbu-with-johu-reference-v3',
+  ruleSet: 'eokbu-with-johu-reference-v4',
   /** 확정값이 아니라 시험값으로 낸다 */
   status: 'experimental',
   /** 억부는 시험 판정, 조후는 원문 참고표로 함께 낸다 */
@@ -142,6 +151,13 @@ export const YONGSIN_POLICY = {
   johu: 'qiongtong-baojian-120-reference',
   /** 조건과 갈림은 문서화했지만 판정 계통을 아직 채택하지 않았다 */
   followingPattern: 'documented-not-judged',
+  /**
+   * 세력은 강약과 같은 분포에서 잰다 — 국과 합화를 반영한 실효 분포다.
+   *
+   * 「신약한데 무엇이 가장 무거운가」의 답이 강약이 본 세력과 다르면, 그 문장은
+   * 자기 근거와 어긋난 문장이 된다.
+   */
+  basis: 'effective-distribution',
 } as const;
 
 type YongsinInput = StrengthInput & DistributionInput;
@@ -167,10 +183,21 @@ export function eokbuAssessmentOf(
   pillars: YongsinInput,
   strength: Strength,
   weights?: Parameters<typeof elementDistributionOf>[1],
+  /**
+   * 세력을 잴 분포. **주지 않으면 강약과 같은 것을 쓴다** — 국과 합화를 반영한
+   * 실효 분포다.
+   *
+   * 기본값을 글자 그대로의 분포로 두었다가 곧바로 함정에 걸렸다. 강약은 실효
+   * 분포에서 신약을 내는데 억부는 반영하지 않은 분포에서 「무엇이 가장
+   * 무거운가」를 골라, 한 문장 안에서 같은 세력을 두 번 다르게 세고 있었다.
+   * 호출부가 잊지 않아야 맞는 기본값은 틀린 기본값이다.
+   */
+  distribution?: ElementDistribution,
 ): EokbuAssessment {
   const dayMasterElement = STEM_INFO[pillars.dayMaster].element;
   const roles = elementRolesOf(dayMasterElement);
-  const { scores, counts } = elementDistributionOf(pillars, weights);
+  const { scores, counts } =
+    distribution ?? effectiveElementsOf(pillars, weights).distribution;
 
   const heaviestOf = (candidates: readonly ElementRole[]): ElementRole =>
     [...candidates].sort((a, b) => scores[roles[b]] - scores[roles[a]])[0];

@@ -16,6 +16,7 @@ import {
   TEN_GOD_GROUP,
   TEN_GOD_KO,
   analyzePillars,
+  effectiveElementsOf,
   elementDistributionOf,
   STRENGTH_POLICY,
   YONGSIN_POLICY,
@@ -402,7 +403,12 @@ describe('12운성은 신강·신약 점수에 들어가지 않는다', () => {
 
   it('채택한 계산법을 결과 곁에 남긴다', () => {
     expect(STRENGTH_POLICY.twelveStageContribution).toBe('none');
-    expect(STRENGTH_POLICY.ruleSet).toBe('seasonal-roots-v1');
+    expect(STRENGTH_POLICY.ruleSet).toBe('seasonal-roots-v2');
+    // v2 에서 바뀐 것은 세력의 바탕 하나다 — 국과 합화를 반영한 분포로 잰다.
+    expect(STRENGTH_POLICY.basis).toBe('effective-distribution');
+    // 재어 보고 켜지 않은 것들은 값으로 남는다.
+    expect(STRENGTH_POLICY.emergenceBonus).toBe(0);
+    expect(STRENGTH_POLICY.unaccounted).toContain('stem-emergence-bonus');
   });
 });
 
@@ -523,5 +529,61 @@ describe('강약에 등급 이름을 붙이지 않는다', () => {
     expect(strength.ratio).toBeGreaterThan(0);
     expect(strength.ratio).toBeLessThan(0.2);
     expect(strength.criteria.every((c) => !c.met)).toBe(true);
+  });
+});
+
+describe('강약 v2 — 세력의 바탕', () => {
+  /**
+   * 종격이 「亥卯未가 木局이라 未를 土로 논하지 않는다」고 세는데 강약이 「未는
+   * 土다」로 세면, 한 명식 안에서 같은 세력을 두 번 다르게 세게 된다.
+   */
+  it('득세 점수를 국·합화를 반영한 분포에서 잰다', () => {
+    // 亥卯未 목국. 己土 일간에게 木은 관성이라 자당 몫이 줄어든다.
+    const pillars = chartOf('壬寅', '丁未', '己卯', '乙亥');
+
+    const literal = strengthOf(pillars, { basis: 'literal' });
+    const effective = strengthOf(pillars);
+
+    expect(effective.ratio).toBeLessThan(literal.ratio);
+    expect(STRENGTH_POLICY.basis).toBe('effective-distribution');
+  });
+
+  it('바탕을 글자 그대로로 되돌리는 문이 열려 있다', () => {
+    const pillars = chartOf('壬寅', '丁未', '己卯', '乙亥');
+    expect(strengthOf(pillars, { basis: 'literal' }).ratio).not.toBe(
+      strengthOf(pillars).ratio,
+    );
+  });
+
+  /**
+   * 투출 가산은 구현했지만 켜지 않았다 — 억부 외부 대조 스무 건이 갈리지 않아서다.
+   * 옵션이 살아 있다는 것과 기본이 0 이라는 것을 둘 다 잠근다.
+   */
+  it('투출 가산은 열려 있으나 기본값이 0 이다', () => {
+    const pillars = chartOf('壬寅', '丁未', '己卯', '乙亥');
+
+    expect(STRENGTH_POLICY.emergenceBonus).toBe(0);
+    expect(strengthOf(pillars, { emergenceBonus: 0.5 }).ratio).not.toBe(
+      strengthOf(pillars).ratio,
+    );
+  });
+
+  /**
+   * 억부는 강약이 본 것과 **같은 세력**을 보아야 한다. 호출부가 분포를 넘기는
+   * 것을 잊어도 어긋나지 않도록 기본값이 같은 쪽을 가리킨다.
+   */
+  it('억부의 기본 분포가 강약의 바탕과 같다', () => {
+    const pillars = chartOf('壬寅', '丁未', '己卯', '乙亥');
+    const strength = strengthOf(pillars);
+
+    const implicit = eokbuAssessmentOf(pillars, strength);
+    const explicit = eokbuAssessmentOf(
+      pillars,
+      strength,
+      undefined,
+      effectiveElementsOf(pillars).distribution,
+    );
+
+    expect(implicit.suggestedElement).toBe(explicit.suggestedElement);
   });
 });

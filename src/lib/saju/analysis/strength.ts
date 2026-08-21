@@ -5,15 +5,21 @@ import {
   ELEMENTS,
   GENERATED_BY,
   GENERATES,
+  HIDDEN_STEM_TOTAL_DAYS,
   STEM_INFO,
   type Element,
 } from '../constants';
 import type { Pillars } from '../pillars';
+import { bureausOf } from './bureau';
+import { effectiveElementsOf } from './effectiveElements';
 import {
   elementDistributionOf,
   type DistributionInput,
+  type ElementDistribution,
   type ElementWeights,
 } from './fiveElements';
+import { rootednessOf } from './rootedness';
+import { gradeRooting, EFFECTIVE_ROOT_FLOOR } from './rootQuality';
 import { TEN_GOD_GROUP, TEN_GOD_KO, tenGodOfBranch, type TenGodGroup } from './tenGods';
 
 /**
@@ -65,7 +71,7 @@ import { TEN_GOD_GROUP, TEN_GOD_KO, tenGodOfBranch, type TenGodGroup } from './t
  * 골든 스냅샷이 찍으므로 계산법이 바뀌면 diff 맨 위에서 먼저 드러난다.
  */
 export const STRENGTH_POLICY = {
-  ruleSet: 'seasonal-roots-v1',
+  ruleSet: 'seasonal-roots-v2',
   /** 월지가 일간 편인가 — 득령 */
   useMonthCommand: true,
   /** 지장간을 사령 일수로 펼쳐 뿌리를 센다 — 득세 점수의 바탕 */
@@ -79,12 +85,56 @@ export const STRENGTH_POLICY = {
   /** 세력비를 구간으로 끊어 등급(태약·중화·태왕)을 붙이지 않는다 */
   gradeBands: 'none',
   /**
-   * 아직 **점수에 세지 않는** 것 — 지장간의 천간 투출, 합충으로 인한 뿌리 변화.
+   * 득세 점수의 바탕 — **국(局)과 합화를 반영한 실효 분포다.**
    *
-   * 투출과 통근의 사실 자체는 `Analysis.rootedness` 에 있다. 여기서 안 센다는
-   * 뜻은 강약 점수에 가중치로 넣지 않았다는 것이지, 모른다는 뜻이 아니다.
+   * 종격이 실효 분포로 자당 몫을 재는데 강약이 글자 그대로의 분포로 세력을 재면,
+   * 같은 명식에서 「亥卯未가 木局이라 未를 土로 논하지 않는다」와 「未는 土다」가
+   * 나란히 서게 된다. 두 판정이 같은 세력을 다르게 세면 어느 쪽이 맞는지 알 수 없다.
    */
-  unaccounted: 'stem-emergence, combination-clash-effects',
+  basis: 'effective-distribution',
+  /**
+   * 투출(透出) 가산 — **구현했고 쟀는데 켜지 않았다.**
+   *
+   * 숨은 채로 있는 글자와 천간에 나와 있는 글자가 같은 무게일 수 없다는 것은
+   * 계통 공통분모다(「透出者為用」). 그래서 `emergenceBonus` 로 열어 두었다.
+   *
+   * 켜지 않은 이유는 근거가 갈리지 않아서다. 억부 외부 대조 스무 건에서 가산을
+   * 0.3·0.5·1.0 으로 올려도 강약 11/12 · 오행 11/20 이 **한 칸도 움직이지
+   * 않았다.** 대신 무작위 3000건에서는 1.9% 의 강약 판정을 뒤집는다 — 아무 일도
+   * 안 하는 것이 아니라, **어느 쪽이 맞는지 가릴 자료가 없는 채로 백에 둘의
+   * 판정을 바꾸는 것**이다.
+   *
+   * 게다가 이 가산은 두 번 셀 위험이 있다. 투출한 천간 글자는 이미 무게 1 로
+   * 세어져 있어서, 지지 쪽 몫을 또 올리는 것이 "드러나서 두껍다"인지 "같은
+   * 글자를 두 번 센다"인지 자료 없이는 갈리지 않는다.
+   *
+   * 가릴 자료가 생기면 이 값을 올린다. 그전까지는 사실만 남긴다 —
+   * 투출 자체는 `Analysis.rootedness.emergences` 가 이미 세고 있다.
+   */
+  emergenceBonus: 0,
+  /**
+   * 득령·득지를 무엇으로 보는가 — **십성 그대로다.**
+   *
+   * 「월지가 일간을 돕는가」를 통근의 질로 바꿔 재는 계통도 있어 옵션으로 열어
+   * 두었다(`seat`). 기본을 바꾸지 않은 이유는 둘이다. 甲 일간의 子월처럼 인성이
+   * 월령을 잡았으나 통근은 아닌 자리를 고전은 득령으로 읽고, 무엇보다 바꾸면
+   * 모집단의 17.6% 가 뒤집히는데 그것을 받쳐 줄 자료가 한 칸뿐이다.
+   */
+  seat: 'ten-god',
+  /**
+   * 아직 **점수에 세지 않는** 것 — 투출 가산과 뿌리의 질.
+   *
+   * 둘 다 사실은 이미 세고 있다(`Analysis.rootedness.emergences` ·
+   * `Analysis.rootQuality`). 여기서 안 센다는 뜻은 강약 **점수**에 가중치로
+   * 넣지 않았다는 것이지 모른다는 뜻이 아니다.
+   *
+   * 뿌리의 질은 종격이 무근을 판정하는 데 쓴다. 강약 점수에 또 넣으면 득세
+   * 점수에 이미 들어 있는 지장간 무게를 두 번 세게 된다 — 12운성을 넣지 않는
+   * 것과 같은 이유다. 득령·득지를 통근의 질로 바꿔 보는 계통도 재어 보았는데
+   * (`seat: 'root-quality'`), 억부 외부 대조에서 강약 한 칸이 좋아지는 대신
+   * 모집단의 **17.6%** 가 뒤집혔다. 한 칸으로 살 수 있는 변화가 아니다.
+   */
+  unaccounted: 'stem-emergence-bonus, root-quality-weighting',
 } as const;
 
 /** 일간을 돕는 십성 계열 — 나와 같거나(비겁) 나를 낳는 것(인성) */
@@ -120,6 +170,16 @@ export type Strength = {
 
 export type StrengthOptions = {
   weights?: Partial<ElementWeights>;
+  /**
+   * 득세 점수를 무엇으로 잴 것인가.
+   *
+   * `literal` 은 글자를 있는 그대로 센 분포다 — 예전 셈으로 돌아가는 문이다.
+   */
+  basis?: 'literal' | 'effective';
+  /** 투출 가산. 0 이면 투출을 안 보던 셈이다 */
+  emergenceBonus?: number;
+  /** 득령·득지를 십성으로 볼지 통근의 질로 볼지 */
+  seat?: 'ten-god' | 'root-quality';
   /** 득세 판정 임계 비율 */
   overallThreshold?: number;
   /** 세 기준 중 몇 개를 채우면 신강으로 볼지 */
@@ -137,7 +197,10 @@ export const DEFAULT_STRENGTH_OPTIONS = {
   overallThreshold: 0.5,
   requiredCriteria: 2,
   includeDayMaster: false,
-} as const;
+  basis: 'effective',
+  emergenceBonus: STRENGTH_POLICY.emergenceBonus,
+  seat: 'ten-god',
+} as const satisfies Required<Omit<StrengthOptions, 'weights'>>;
 
 /** 일간에서 본 오행이 아군인가 — 같은 오행(비겁)이거나 나를 낳는 오행(인성) */
 function supports(dayMasterElement: Element, element: Element): boolean {
@@ -147,18 +210,71 @@ function supports(dayMasterElement: Element, element: Element): boolean {
 /** 강약 판정에 필요한 것은 네 기둥과 일간뿐이다 */
 export type StrengthInput = DistributionInput & Pick<Pillars, 'dayMaster'>;
 
+/**
+ * 투출 가산을 얹은 분포.
+ *
+ * 지장간이 천간에 드러나 있으면 그 지장간의 몫을 `bonus` 만큼 더 센다. 천간
+ * 글자 자체는 이미 세어져 있으므로 여기서 더 세는 것은 **지지 쪽 몫**이다 —
+ * 드러난 뿌리가 숨은 뿌리보다 두껍다는 말을 무게로 옮긴 것이지, 같은 천간을
+ * 두 번 세는 것이 아니다.
+ */
+function withEmergence(
+  pillars: StrengthInput,
+  distribution: ElementDistribution,
+  weights: Partial<ElementWeights> | undefined,
+  bonus: number,
+): ElementDistribution {
+  if (bonus === 0) return distribution;
+
+  const { emergences } = rootednessOf(pillars);
+  if (emergences.length === 0) return distribution;
+
+  const branchWeight = weights?.branch ?? 1;
+  const scores = { ...distribution.scores };
+
+  for (const emergence of emergences) {
+    const element = STEM_INFO[emergence.stem].element;
+    const share = emergence.days / HIDDEN_STEM_TOTAL_DAYS;
+    scores[element] += branchWeight * share * bonus;
+  }
+
+  const total = ELEMENTS.reduce((sum, element) => sum + scores[element], 0);
+  const ratios = Object.fromEntries(
+    ELEMENTS.map((element) => [element, total === 0 ? 0 : scores[element] / total]),
+  ) as Record<Element, number>;
+  const ranked = [...ELEMENTS].sort((a, b) => scores[b] - scores[a]);
+
+  return {
+    ...distribution,
+    scores,
+    ratios,
+    strongest: ranked[0],
+    weakest: ranked[ranked.length - 1],
+  };
+}
+
 export function strengthOf(pillars: StrengthInput, options: StrengthOptions = {}): Strength {
   const {
     weights,
     overallThreshold = DEFAULT_STRENGTH_OPTIONS.overallThreshold,
     requiredCriteria = DEFAULT_STRENGTH_OPTIONS.requiredCriteria,
     includeDayMaster = DEFAULT_STRENGTH_OPTIONS.includeDayMaster,
+    basis = DEFAULT_STRENGTH_OPTIONS.basis,
+    emergenceBonus = DEFAULT_STRENGTH_OPTIONS.emergenceBonus,
+    seat = DEFAULT_STRENGTH_OPTIONS.seat,
   } = options;
 
   const dayMaster = pillars.dayMaster;
   const dayMasterElement = STEM_INFO[dayMaster].element;
 
-  const distribution = elementDistributionOf(pillars, weights);
+  const distribution = withEmergence(
+    pillars,
+    basis === 'effective'
+      ? effectiveElementsOf(pillars, weights).distribution
+      : elementDistributionOf(pillars, weights),
+    weights,
+    emergenceBonus,
+  );
 
   let supportScore = 0;
   let opposeScore = 0;
@@ -178,8 +294,22 @@ export function strengthOf(pillars: StrengthInput, options: StrengthOptions = {}
   const seasonalGod = tenGodOfBranch(dayMaster, pillars.month.branch);
   const branchGod = tenGodOfBranch(dayMaster, pillars.day.branch);
 
-  const seasonalMet = SUPPORTING_GROUPS.includes(TEN_GOD_GROUP[seasonalGod]);
-  const branchMet = SUPPORTING_GROUPS.includes(TEN_GOD_GROUP[branchGod]);
+  // 득령·득지를 통근의 질로 보는 계통을 옵션으로 열어 둔다 — 기본은 십성이다.
+  const seatByRoot = (position: 'month' | 'day') => {
+    const rooted = gradeRooting(
+      rootednessOf(pillars).dayMaster,
+      pillars,
+      bureausOf(pillars),
+    );
+    return rooted.roots
+      .filter((graded) => graded.root.position === position)
+      .reduce((sum, graded) => sum + graded.strength, 0) >= EFFECTIVE_ROOT_FLOOR;
+  };
+
+  const seasonalMet =
+    seat === 'ten-god' ? SUPPORTING_GROUPS.includes(TEN_GOD_GROUP[seasonalGod]) : seatByRoot('month');
+  const branchMet =
+    seat === 'ten-god' ? SUPPORTING_GROUPS.includes(TEN_GOD_GROUP[branchGod]) : seatByRoot('day');
   const overallMet = ratio > overallThreshold;
 
   const criteria: StrengthCriterion[] = [

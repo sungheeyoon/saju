@@ -122,7 +122,9 @@ export function analyzePillars(
     tenGodCounts: tenGodCountsOf(tenGods),
     // 오행 분포와 같은 가중치를 써야 두 결과가 어긋나지 않는다.
     strength,
-    eokbu: eokbuAssessmentOf(pillars, strength, options.weights),
+    // 강약이 실효 분포에서 세력을 쟀으므로 억부도 같은 분포에서 「무엇이 가장
+    // 무거운가」를 골라야 한다. 다르면 한 문장 안에서 같은 세력을 두 번 다르게 센다.
+    eokbu: eokbuAssessmentOf(pillars, strength, options.weights, effective.distribution),
     johu: johuAssessmentOf(pillars, options.instant),
     rootedness,
     rootQuality,
