@@ -7,6 +7,7 @@ import { currentFortuneOf } from '@/src/lib/saju/now';
 import { TWELVE_STAGE_KO } from '@/src/lib/saju/stages';
 import {
   ASSEMBLE_POLICY,
+  CLAIM_PATHS,
   FRAGMENT_TOPICS,
   MYEONGRI_LEXICON,
   FRAGMENT_INDEX,
@@ -21,6 +22,7 @@ import {
   indexFragments,
   missingFragmentsOf,
   sentencesOf,
+  UNCOVERED_FACTS_BY_PATH,
   type Utterance,
 } from '@/src/lib/saju/text';
 
@@ -774,6 +776,38 @@ describe('조립기', () => {
   it('정책은 납작한 문자열이라 스냅샷이 그대로 찍는다', () => {
     for (const [key, value] of Object.entries(ASSEMBLE_POLICY)) {
       expect(typeof value, key).toBe('string');
+    }
+  });
+
+  /**
+   * **고지가 엔진을 따라오게 만드는 자물쇠.**
+   *
+   * `CLAIM_PATHS` 는 이미 `Saju` 의 키에 양방향으로 묶여 있다 — L2 에 필드가
+   * 생기면 상한을 정하지 않고는 못 지나간다. 그런데 상한만 정하고 주제를 안
+   * 만들면 그 자리는 **아무 데도 안 적힌 채 조용히 침묵했다.** 실제로 격국·오신·
+   * 암합·국·합화가 그렇게 지나갔다.
+   *
+   * 이제 자리마다 둘 중 하나여야 한다 — 읽는 주제가 있거나, 없다고 고지되거나.
+   * 새 판정을 화면에 붙이는 일의 진도도 이 목록이 줄어드는 것으로 잰다.
+   */
+  it('주제가 없는 근거 자리는 빠짐없이 고지된다', () => {
+    const read = new Set(Object.values(FRAGMENT_TOPICS).flatMap((topic) => topic.paths));
+    const declared = new Set(UNCOVERED_FACTS_BY_PATH.flatMap((entry) => entry.paths));
+
+    expect(CLAIM_PATHS.filter((path) => !read.has(path) && !declared.has(path))).toEqual([]);
+  });
+
+  /**
+   * 반대 방향. 주제가 생겨 자리를 덮었는데 고지가 남아 있으면 화면이 없는 공백을
+   * 계속 말한다 — 그것은 좁아지지 않는 고지의 다른 얼굴이다. 통째로 덮은 자리만
+   * 걸리고, 일부만 말하는 자리는 `note` 가 어디까지가 공백인지 적으므로 남는다.
+   */
+  it('고지된 자리는 실제로 비어 있거나 어디까지가 공백인지 적는다', () => {
+    const read = new Set(Object.values(FRAGMENT_TOPICS).flatMap((topic) => topic.paths));
+
+    for (const { paths, note } of UNCOVERED_FACTS_BY_PATH) {
+      if (paths.every((path) => !read.has(path))) continue;
+      expect(note, paths.join(' · ')).toBeDefined();
     }
   });
 });

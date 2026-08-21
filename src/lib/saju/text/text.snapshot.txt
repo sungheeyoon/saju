@@ -33,9 +33,16 @@ L3 문장 골든 — 발화 판정과 조립
     relativeTime     coordinate-stated-once-up-front
 
   주제가 없어 아직 발화하지 않는 사실 — 고른 것이 아니라 주제가 없는 것이다.
-    analysis.elements
+    pillars (여덟 글자 자체 — 사주팔자 표가 그대로 든다)
+    analysis.elements (다섯 오행이 몇인가 — 억부·궁합 문장이 근거로 쓰기만 하고 분포 자체는 표가 든다)
     analysis.tenGodCounts
     analysis.rootedness (일간 밖의 천간·투출)
+    analysis.structure (격국 — 외부 대조 0건이라는 것부터 문장이 들어야 한다)
+    analysis.favorability (희용기구한 — 억부의 상한을 그대로 물려받는다)
+    analysis.hiddenCombinations (암합 — 관계 표에 섞지 않기로 한 자리)
+    analysis.bureaus · analysis.effectiveElements (국(局)과 합화로 옮겨 간 무게)
+    analysis.rootQuality (뿌리의 질 — `analysis.rootedness` 가 센 뿌리에 등급을 매긴 것)
+    analysis.followingCandidacy (종격 후보 자격 — 판정(`analysis.following`)만 말한다)
     stages
     sinsal
     daeun · saeun · wolun (표 전체 — 지금 도는 칸만 현재운이 말한다)

@@ -23,7 +23,7 @@ import { TWELVE_STAGE_KO } from '../stages';
 import { COMPAT_CHART_ID, COMPAT_SIDES, type Compatibility, type CompatSide } from '../compat';
 import { orderedParticipants, type Relation } from '../relations';
 import type { Saju } from '../index';
-import { FOLLOWING_SILENT_VERDICTS, type ClaimStrength } from './policy';
+import { FOLLOWING_SILENT_VERDICTS, type ClaimPath, type ClaimStrength } from './policy';
 import { FRAGMENT_INDEX } from './corpus';
 import {
   followingVariant,
@@ -155,22 +155,53 @@ export function groundedTermsOf(saju: Saju): string[] {
 }
 
 /**
- * 주제 표가 아직 덮지 못한 사실.
+ * 주제 표가 아직 덮지 못한 사실 — **근거 자리(`ClaimPath`)로 적는다.**
  *
  * 발화하지 않는 이유가 **고른 것이 아니라 주제가 없는 것**임을 값으로 남긴다.
  * 둘을 구분하지 않으면 "이건 안 중요해서 뺐다"가 조용히 섞인다.
+ *
+ * **산문으로 적어 두었더니 목록이 엔진을 따라오지 않았다.** 2026-08-21 에 격국·
+ * 오신·암합·국·합화가 엔진에 들어오는 동안 이 목록은 여섯 줄 그대로였다. 고지가
+ * 좁아지는 것이 채워졌다는 증거라고 적어 두었는데, 그 사이 고지는 좁아진 것이
+ * 아니라 **늘어야 할 때 안 늘었다** — 읽는 사람에게는 둘이 똑같이 보인다.
+ * 이제 자리를 `ClaimPath` 로 적고, 주제가 하나도 읽지 않는 자리가 여기 없으면
+ * 테스트가 걸린다(`assemble.test.ts` 의 "주제가 없는 근거 자리는 빠짐없이 고지된다").
+ *
+ * 자리가 목록에 있다고 통째로 침묵한다는 뜻은 아니다 — `analysis.rootedness` 는
+ * 일간의 뿌리를 말하면서 그 밖은 말하지 않는다. 그래서 `note` 가 어디까지가
+ * 공백인지 적고, 적을 것이 없으면 자리 이름만 선다.
  */
-export const UNCOVERED_FACTS: readonly string[] = [
-  'analysis.elements',
-  'analysis.tenGodCounts',
-  'analysis.rootedness (일간 밖의 천간·투출)',
-  'stages',
-  'sinsal',
+export const UNCOVERED_FACTS_BY_PATH: readonly {
+  paths: readonly ClaimPath[];
+  note?: string;
+}[] = [
+  { paths: ['pillars'], note: '여덟 글자 자체 — 사주팔자 표가 그대로 든다' },
+  { paths: ['analysis.elements'], note: '다섯 오행이 몇인가 — 억부·궁합 문장이 근거로 쓰기만 하고 분포 자체는 표가 든다' },
+  { paths: ['analysis.tenGodCounts'] },
+  { paths: ['analysis.rootedness'], note: '일간 밖의 천간·투출' },
+  // 2026-08-21 에 들어온 판정들. 엔진에는 값이 있고 주제가 없다 — 여기 이름이
+  // 서 있는 동안은 화면도 문장도 이것들을 모른다.
+  { paths: ['analysis.structure'], note: '격국 — 외부 대조 0건이라는 것부터 문장이 들어야 한다' },
+  { paths: ['analysis.favorability'], note: '희용기구한 — 억부의 상한을 그대로 물려받는다' },
+  { paths: ['analysis.hiddenCombinations'], note: '암합 — 관계 표에 섞지 않기로 한 자리' },
+  { paths: ['analysis.bureaus', 'analysis.effectiveElements'], note: '국(局)과 합화로 옮겨 간 무게' },
+  { paths: ['analysis.rootQuality'], note: '뿌리의 질 — `analysis.rootedness` 가 센 뿌리에 등급을 매긴 것' },
+  { paths: ['analysis.followingCandidacy'], note: '종격 후보 자격 — 판정(`analysis.following`)만 말한다' },
+  { paths: ['stages'] },
+  { paths: ['sinsal'] },
   // 대운·세운·월운은 **표 전체로는** 아직 침묵한다. 지금 도는 한 칸만
   // 현재운이 말한다(`findNowUtterances`) — 아홉 칸과 열두 칸을 다 말하는 것은
   // "고르지 않는다"가 화면을 덮어 버리는 자리라 따로 정할 일이다.
-  'daeun · saeun · wolun (표 전체 — 지금 도는 칸만 현재운이 말한다)',
+  {
+    paths: ['daeun', 'saeun', 'wolun'],
+    note: '표 전체 — 지금 도는 칸만 현재운이 말한다',
+  },
 ];
+
+/** 골든이 읽는 줄. 위 목록이 원본이고 이쪽은 그것을 적어 낸 것이다 */
+export const UNCOVERED_FACTS: readonly string[] = UNCOVERED_FACTS_BY_PATH.map(
+  ({ paths, note }) => `${paths.join(' · ')}${note === undefined ? '' : ` (${note})`}`,
+);
 
 const HALF_KO = { first: '상반월', second: '하반월' } as const;
 
