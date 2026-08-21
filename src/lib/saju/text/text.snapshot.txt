@@ -54,8 +54,8 @@ L3 문장 골든 — 발화 판정과 조립
         후보     억부 관점에서는 일간을 받쳐 주는 인성 자리의 수 쪽을 후보로 봅니다.
     ✓ johu.table/whole-month@reference
         참고     궁통보감 조후표에서 을 일간 사월은 계 쪽을 참고할 수 있습니다. 나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.
-    ✓ following.verdict/candidate-outward@candidate
-        후보     자당 몫 26% 정도에 관성 쪽이 가장 무거운데 어느 쪽으로도 가를 만큼은 아니어서 밖으로 종하는 자리를 후보로 봅니다. 실험 규칙이라 억부 후보를 뒤집지 않습니다.
+    ✓ following.verdict/pseudo-following-outward@candidate
+        후보     자당 몫 26% 정도에 관성 쪽이 가장 무거운데 약한 뿌리나 생부가 조금 남아 있어 밖으로 종하는 가종 자리를 후보로 봅니다. 실험 규칙이라 억부 후보를 뒤집지 않습니다.
     ✓ relation.present/row@fact
         사실     년간 庚 · 일간 乙 — 을경합금
     ✓ relation.present/row@fact
@@ -81,7 +81,7 @@ L3 문장 골든 — 발화 판정과 조립
     ✓ johu.table/whole-month@reference
         참고     궁통보감 조후표에서 무 일간 자월은 병·갑 쪽을 참고할 수 있습니다. 나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.
     ✓ following.verdict/true-following-inward@candidate
-        후보     자당 몫 74% 정도에 비겁 쪽이 가장 무거운데 일간에 뿌리가 있고 맞서는 천간이 없어 안으로 종하는 진종 자리를 후보로 봅니다. 실험 규칙이라 억부 후보를 뒤집지 않습니다.
+        후보     자당 몫 72% 정도에 비겁 쪽이 가장 무거운데 일간에 뿌리가 있고 맞서는 천간이 없어 안으로 종하는 진종 자리를 후보로 봅니다. 실험 규칙이라 억부 후보를 뒤집지 않습니다.
     ✓ relation.present/row@fact
         사실     일지 午 · 시지 未 — 오미합화
     ✓ relation.present/row@fact

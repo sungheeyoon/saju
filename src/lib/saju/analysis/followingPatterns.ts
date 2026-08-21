@@ -3,6 +3,7 @@ import type { Pillars } from '../pillars';
 import { PILLAR_POSITIONS, type PillarPosition } from '../position';
 import type { ElementDistribution } from './fiveElements';
 import type { Rootedness } from './rootedness';
+import { EFFECTIVE_ROOT_FLOOR, type RootQuality } from './rootQuality';
 import { elementRolesOf, type ElementRole } from './yongsin';
 
 /**
@@ -81,7 +82,7 @@ export type FollowingPatternDecision =
  * 종격 성립값처럼 쓰지 못하도록 상태를 명시한다.
  */
 export const FOLLOWING_PATTERN_POLICY = {
-  ruleSet: 'following-patterns-experimental-v1',
+  ruleSet: 'following-patterns-experimental-v2',
   /**
    * 판정을 시작한다. 다만 **고전이 정한 문턱이 아니라 이 엔진의 실험값**이다 —
    * 아래 `dominance.calibration` 이 그 숫자가 어디서 나왔는지 적는다.
@@ -104,10 +105,25 @@ export const FOLLOWING_PATTERN_POLICY = {
    * 설 수는 없다.
    */
   eokbuOverride: 'disabled',
-  /** 무근은 뿌리 개수가 0인가 — 가중치를 들이지 않는다 */
-  rootless: { requiredForTrueFollowing: true, byWeightedScore: false },
-  /** 뿌리 가중치. 진종·가종을 가르는 데만 쓴다 */
-  roots: { sameStemWeight: 1, sameElementWeight: 0.5, tombStorageSpecialCase: false },
+  /**
+   * 무근은 **남은 것이 있는가**로 본다 — 개수가 아니다.
+   *
+   * 예전에는 뿌리 개수가 0인가만 물었다. 그러면 《적천수천미》가 「丙火之根已拔」
+   * 이라 적은 명조를 「寅에 통근함」으로 세게 된다 — 寅이 申 셋에게 충을 맞아
+   * 뽑힌 것을 안 보았기 때문이다. 세어진 뿌리와 남은 뿌리는 다르다.
+   */
+  rootless: { requiredForTrueFollowing: true, by: 'root-quality-strength' },
+  /**
+   * 뿌리의 무게는 `ROOT_QUALITY_POLICY` 가 매긴다 — 여기서 다시 정하지 않는다.
+   *
+   * 같은 글자 1 · 같은 오행 0.5 로 세던 표를 걷어냈다. 그 표는 뿌리가 **어디에**
+   * 걸렸는지를 보지 않아, 월지 정기에 걸린 뿌리와 시지 고지의 여기에 걸린 뿌리를
+   * 같은 무게로 세었다. 假從 명조가 여기(餘氣) 뿌리 둘로 「뿌리 1.0」이 되어
+   * 가종 문턱 밖으로 밀려나던 것이 그 때문이다.
+   */
+  roots: 'graded-by-root-quality',
+  /** 세력은 국(局)과 합화를 반영한 실효 분포로 잰다 */
+  distribution: 'effective-elements',
   /** 월령은 필수가 아니고 점수도 아니다 — 진종의 구조적 증거 둘 중 하나다 */
   month: { required: false, supportIsEvidence: true },
   dominance: {
@@ -140,31 +156,39 @@ export const FOLLOWING_PATTERN_POLICY = {
       axis: 'self-camp share = (比劫 + 印星) / all',
       dayMasterSide: ['比劫', '印星'],
       measuredAt: '2026-08-16',
+      remeasuredAt: '2026-08-21',
       note: 'not-a-classical-number',
       /**
        * 이 문턱으로 실제로 나온 판정 비율(같은 3000건 표본).
        *
        * **고전이 말하는 희소성보다 크게 높다.** 《적천수천미》는 격국이 진실하고
-       * 순수한 것이 "百無一二"라 했는데 여기서는 진종·가종을 합쳐 약 10% 다.
-       * 문턱을 더 조여도 6% 아래로는 잘 안 내려간다 — 자당 몫이 낮은 명식 자체가
-       * 그만큼 있고, 고전은 그것들을 합충과 여기의 질로 걸러내는데 우리는 그 둘을
-       * 보지 않기 때문이다. 그래서 이 판정은 억부를 뒤집지 않는다.
+       * 순수한 것이 "百無一二"라 했는데 여기서는 진종·가종을 합쳐 10% 대다.
+       *
+       * v2 에서 입력을 셋 고쳤는데도 이 값은 10.9% 에서 10.6% 로 거의 그대로다.
+       * 그것이 오히려 v2 의 근거다 — 재현율이 14/30 에서 17/30 으로 오른 것이
+       * 문턱을 헐겁게 해서가 아니라는 뜻이기 때문이다. 발화율을 함께 재지 않으면
+       * 두 가지를 구별할 수 없다.
+       *
+       * 그래도 자릿수가 고전과 다르므로 이 판정은 억부를 뒤집지 않는다.
        */
       observedRates: {
-        'true-following': 0.0457,
-        'pseudo-following': 0.057,
-        candidate: 0.073,
+        'true-following': 0.052,
+        'pseudo-following': 0.0543,
+        candidate: 0.077,
         note: 'looser-than-classical-rarity',
       },
     },
     /**
      * 외부 명조와의 대조 결과 — **아직 통과하지 못했다.**
      *
-     * 종격이라고 적힌 서른 중 열넷만 종격 쪽으로 본다. 문턱을 낮추면 재현율은
-     * 오르지만, 저자의 판정이 우리가 보지 않는 것(합화, 지장간 여기의 질)에
-     * 기대고 있어 압도 비율만 내리면 일반 명식까지 쓸려 들어온다. 그래서
-     * 숫자를 자료에 맞추지 않고 못 잡는다는 사실을 남긴다.
-     * 자세한 행렬은 `following.external.test.ts`.
+     * 종격이라고 적힌 서른 중 열일곱을 종격 쪽으로 본다(v1 은 열넷이었다).
+     * 올라간 셋은 문턱을 내려서 얻은 것이 아니다 — 문턱은 그대로 두고 세는 법을
+     * 고쳤다. 같은 3000건 표본의 발화율이 10.9% 에서 10.6% 로 오히려 내려간 것이
+     * 그 증거다.
+     *
+     * 그런데도 `passed` 는 여전히 `false` 다. 재현율은 절반을 넘었지만 발화율이
+     * 고전이 말하는 희소성과 자릿수가 다르고, 아니라고 적힌 넷 중 하나를 아직
+     * 종격으로 본다. 자세한 행렬은 `following.external.test.ts`.
      */
     externalCheck: {
       dataset: 'followingExternalCases',
@@ -177,34 +201,53 @@ export const FOLLOWING_PATTERN_POLICY = {
        */
       lineages: 2,
       claimedFollowing: 30,
-      caught: 14,
+      caught: 17,
       falsePositives: 1,
       /**
-       * 계통별로 성적이 갈린다 — 한쪽만 보면 문턱이 맞아 보인다. 앞서 열여덟
-       * 건이 밖으로 종하는 계열에 몰려 있어 10/16 이던 것이, 고전을 섞자
-       * 14/30 으로 내려갔다.
+       * 계통별로 성적이 갈린다 — 한쪽만 보면 문턱이 맞아 보인다. 고전 쪽이
+       * 5/16 에서 7/16 으로 오른 것이 v2 에서 가장 크게 달라진 자리다. 삼합국과
+       * 뿌리의 질은 고전 주석이 판정의 근거로 대놓고 쓰는 것들이라, 그것을 안
+       * 보는 동안 고전 쪽 성적만 낮게 나오고 있었다.
        */
-      recallByLineage: { 'modern-chinese': '9/14', 'classical-chinese': '5/16' },
+      recallByLineage: { 'modern-chinese': '10/14', 'classical-chinese': '7/16' },
       passed: false,
       /**
-       * 여기 있던 `cannot-detect-following-the-strong` 은 **해결됐다.** 축을
-       * 자당 몫 하나로 다시 세우면서 從旺·從强 을 85%·91% 로 잡는다(문턱 70%).
+       * `skippedInputs` 도 **해결됐다** — 합화·삼합국·공협을 이제 본다
+       * (`transformation.ts` · `bureau.ts` · `effectiveElements.ts`). 그 셋에
+       * 기대고 있던 명조 중 `dtsm-congxiang-4` 가 진종으로 올라왔다.
        *
-       * 지금 남은 둘은 성질이 다르다. 假從 은 정의상 비겁·인성이 남아 자당 몫이
-       * 25~39% 로 밖으로 종하는 문턱 바로 위에 얹힌다 — 계열의 성질이라 문턱을
-       * 넓히면 모집단 발화율이 함께 오른다. 나머지는 합화·삼합국·공협처럼
-       * 우리가 일부러 안 보기로 한 입력에 기대고 있어 문턱 문제가 아니다.
+       * 남은 것 둘.
+       *
+       * `falseFollowing` 은 다섯 중 하나까지 좁혔다. 잡힌 하나는 여기(餘氣)에
+       * 걸린 뿌리 둘을 정기 둘처럼 세던 것을 고쳐서 들어왔고, 남은 넷은 자당
+       * 몫이 32~38% 라 문턱 자체가 막는다 — 계열의 성질이라(「局中雖有劫印，
+       * 亦自顧不暇」) 문턱을 넓히면 발화율이 함께 오른다.
+       *
+       * `qiAndMomentum` 은 새로 이름을 붙인 것이다. 從氣·從勢는 자당 몫 하나를
+       * 축으로 삼는 이 규칙이 겨눈 형태가 아니다 — 자당과 이당의 갈림이 아니라
+       * 두세 오행에 몰린 기세를 따르는 것이라, 문턱이 아니라 축이 다르다.
        */
       remainingGaps: {
-        falseFollowing: 'self-camp-share-25-to-39-sits-above-outward-threshold',
-        skippedInputs: 'transformation, triple-combination, hidden-span',
+        falseFollowing: 'four-of-five-sit-above-outward-threshold-by-nature',
+        qiAndMomentum: 'self-camp-share-is-the-wrong-axis-for-cong-qi-and-cong-shi',
       },
     },
   },
-  /** 합충으로 인한 뿌리 손상·파격은 판정하지 않는다 */
-  relationships: { rootDamageByCombination: false, breakPatternByClash: false },
-  /** 약한 뿌리 하나까지는 가종 쪽으로 본다 */
-  classification: { pseudoMaxRootScore: 0.5, pseudoMaxSupportStems: 1 },
+  /**
+   * 합충이 뿌리에 미치는 영향은 **뿌리 질에서** 본다(`ROOT_QUALITY_POLICY`).
+   *
+   * 파격(破格)은 여전히 판정하지 않는다 — 「충이 격을 깬다」는 결론과 「충을 맞은
+   * 지지는 뿌리 노릇을 덜 한다」는 감쇠는 다른 주장이다. 뒤엣것만 채택했다.
+   */
+  relationships: { rootDamageByCombination: 'via-root-quality', breakPatternByClash: false },
+  /**
+   * 약한 뿌리 하나까지는 가종 쪽으로 본다.
+   *
+   * 「약한 뿌리 하나」가 뿌리 질 눈금으로 얼마인지가 이 숫자다. 여기(餘氣)에
+   * 음양만 같은 오행으로 걸린 뿌리 하나가 0.10~0.15 이므로 0.15 로 둔다.
+   * 중기에 걸리면 0.3 을 넘어 여기서 빠진다 — 그 선이 가종과 후보를 가른다.
+   */
+  classification: { pseudoMaxRootScore: 0.15, pseudoMaxSupportStems: 1 },
   classicalSources: {
     strictFollowing: 'https://zh.wikisource.org/zh/滴天髓/07',
     expandedAndFalseFollowing: 'https://zh.wikisource.org/zh-hant/滴天髓闡微',
@@ -335,18 +378,30 @@ export type FollowingAssessment = {
    * 이 하나가 축이다. 낮으면 일간을 도울 것이 없어 밖으로 종하고, 높으면
    * 일간 편이 극왕해 안으로 종한다. 자당과 이당은 합이 1 이라 두 방향을
    * 같은 축의 양끝으로 잰다.
+   *
+   * 국(局)과 합화를 반영한 실효 분포에서 잰다 — 亥卯未가 木局을 이루면 未는
+   * 土로 논하지 않는다는 말을 세력에 반영한 값이다.
    */
   selfShare: number;
   /** 어느 쪽으로 종할 자리인가. 문턱 사이에 있으면 `null` 이고 종격이 아니다 */
   direction: FollowingDirection | null;
   /**
-   * 일간 뿌리의 가중 합 — 같은 글자 1, 같은 오행 0.5.
+   * 일간 뿌리의 **질** 합 — `ROOT_QUALITY_POLICY` 가 매긴다.
    *
-   * **무근 판정에는 쓰지 않는다.** 무근은 뿌리 개수가 0인가라는 사실이고,
-   * 가중치를 거기까지 들이면 "0.5짜리 뿌리 하나는 무근인가"라는 문턱이 하나
-   * 더 생긴다. 이 값은 진종과 가종을 가르는 데만 쓴다.
+   * 예전에는 같은 글자 1 · 같은 오행 0.5 로 세었다. 그 셈은 뿌리가 어디에
+   * 걸렸는지를 보지 않아, 여기(餘氣)에 걸린 뿌리 둘을 정기 둘과 같이 세었다.
+   * 지금은 자리·역할·지지의 갈래·충·국까지 곱한 값이라 눈금 자체가 다르다 —
+   * 옛 문턱 0.5 를 그대로 두면 뜻이 달라진다.
    */
   rootScore: number;
+  /**
+   * 세어진 뿌리가 아니라 **남은 뿌리**로 본 무근.
+   *
+   * `facts.dayMasterRootless` 는 「지장간에 같은 오행이 하나도 없는가」라는
+   * 사실이고 이쪽은 「그래서 쓸 것이 남았는가」라는 판정이다. 충에 뽑히거나
+   * 국에 끌려가면 둘이 갈리고, 고전이 「根已拔」이라 적은 자리가 바로 거기다.
+   */
+  effectivelyRootless: boolean;
   /** 지배 세력이 월령을 잡았거나 천간에 드러났는가 — 진종의 구조적 증거 */
   structuralEvidence: boolean;
   /** 판정의 재료가 된 사실들 */
@@ -354,19 +409,28 @@ export type FollowingAssessment = {
 };
 
 /**
- * 종격을 판정한다 — **실험 규칙 v1.**
+ * 종격을 판정한다 — **실험 규칙 v2.**
  *
- * 문턱은 고전에서 온 숫자가 아니라 이 엔진의 세력 분포를 재고 정한 값이다
- * (`FOLLOWING_PATTERN_POLICY.dominance.calibration`). 그래서 억부를 뒤집지
- * 않는다(`eokbuOverride: 'disabled'`) — 억부는 외부 사례를 대조하고도 시험값에
- * 머물러 있는데, 그 답을 정반대로 뒤집는 판정이 외부 대조 0건으로 상위에 설 수는
- * 없다. 종격이라고 명시된 외부 명조를 모아 이 규칙이 그것을 잡는지 확인한 뒤에야
- * 그 스위치를 켠다.
+ * v1 에서 달라진 것은 문턱이 아니라 **입력**이다. 자당 몫의 문턱(30% · 70%)은
+ * 그대로 두고, 그 몫을 재는 분포와 뿌리를 바꿨다.
+ *
+ *   세력  국(局)과 합화를 반영한 실효 분포로 잰다
+ *   뿌리  개수가 아니라 질로 잰다 — 자리·역할·지지의 갈래·충·국
+ *
+ * 문턱을 자료에 맞춰 내리지 않은 것이 요점이다. 못 잡던 명조들이 「문턱 바로
+ * 위」에 있었던 것이 아니라 **우리가 잘못 세고 있었다**는 쪽이었고, 세는 법을
+ * 고치자 문턱을 그대로 둔 채로 재현율이 14/30 에서 17/30 으로 올랐다. 같은
+ * 3000건 표본의 발화율은 10.9% 에서 10.6% 로 오히려 내려갔다.
+ *
+ * 그래도 **억부를 뒤집지 않는다**(`eokbuOverride: 'disabled'`). 재현율은 절반을
+ * 넘었지만 발화율이 고전이 말하는 희소성(百無一二)보다 여전히 크게 높고,
+ * 아니라고 적힌 넷 중 하나를 아직 종격으로 본다.
  */
 export function followingAssessmentOf(
   pillars: CandidacyInput,
   elements: ElementDistribution,
   rootedness: Rootedness,
+  dayMasterRootQuality: RootQuality,
 ): FollowingAssessment {
   const facts = followingCandidacyOf(pillars, elements, rootedness);
   const roles = elementRolesOf(STEM_INFO[pillars.dayMaster].element);
@@ -374,11 +438,8 @@ export function followingAssessmentOf(
   // 오행 비율의 합이 1 이므로 자당 몫이 곧 축이다.
   const selfShare = elements.ratios[roles['比劫']] + elements.ratios[roles['印星']];
 
-  const { sameStemWeight, sameElementWeight } = FOLLOWING_PATTERN_POLICY.roots;
-  const rootScore = rootedness.dayMaster.roots.reduce(
-    (sum, root) => sum + (root.kind === 'same-stem' ? sameStemWeight : sameElementWeight),
-    0,
-  );
+  const rootScore = dayMasterRootQuality.strength;
+  const effectivelyRootless = rootScore < EFFECTIVE_ROOT_FLOOR;
 
   // 지배 세력이 월령을 잡았거나 천간에 드러났는가. 월령을 필수로 걸지 않는 대신
   // 둘 중 하나는 있어야 진종으로 본다 — 점수를 매기지 않고도 같은 구실을 한다.
@@ -400,14 +461,14 @@ export function followingAssessmentOf(
     direction === null
       ? 'not-following'
       : direction === 'outward'
-        ? facts.dayMasterRootless && facts.supportStems.length === 0 && structuralEvidence
+        ? effectivelyRootless && facts.supportStems.length === 0 && structuralEvidence
           ? 'true-following'
           : rootScore <= pseudoMaxRootScore && facts.supportStems.length <= pseudoMaxSupportStems
             ? 'pseudo-following'
             : 'candidate'
-        : !facts.dayMasterRootless && facts.opposingStems.length === 0
+        : !effectivelyRootless && facts.opposingStems.length === 0
           ? 'true-following'
-          : !facts.dayMasterRootless && facts.opposingStems.length <= pseudoMaxSupportStems
+          : !effectivelyRootless && facts.opposingStems.length <= pseudoMaxSupportStems
             ? 'pseudo-following'
             : 'candidate';
 
@@ -417,6 +478,7 @@ export function followingAssessmentOf(
     selfShare,
     direction,
     rootScore,
+    effectivelyRootless,
     structuralEvidence,
     facts,
   };

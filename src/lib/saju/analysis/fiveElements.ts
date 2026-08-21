@@ -5,6 +5,8 @@ import {
   HIDDEN_STEM_TOTAL_DAYS,
   STEM_INFO,
   type Element,
+  type HiddenStem,
+  type HiddenStemRole,
 } from '../constants';
 import type { Pillars } from '../pillars';
 import { PILLAR_KEYS, type PillarKey } from './tenGods';
@@ -31,13 +33,62 @@ export type ElementWeights = {
    * 배수를 얼마로 할지는 정해진 값이 없어 기본은 1(가중 없음)로 둔다.
    */
   monthBranchMultiplier: number;
+  /**
+   * 지지 한 글자의 무게를 지장간에 어떻게 나눌 것인가.
+   *
+   * `days` 는 사령 일수 그대로다 — 寅이면 戊 7 · 丙 7 · 甲 16 이라 여기(戊)와
+   * 중기(丙)가 같은 무게를 받는다. 일수가 「얼마나 오래 사령하는가」만 재기
+   * 때문이다.
+   *
+   * `principal-weighted` 는 거기에 역할 배수를 곱한다(`HIDDEN_STEM_ROLE_FACTOR`).
+   * 정기가 그 지지의 본래 기운이고 여기는 앞 계절에서 넘어온 자락이라는 것을
+   * 무게에 반영한 것이다. 寅의 戊 7일과 丙 7일이 같은 몫을 받는 것은 일수만
+   * 보았기 때문이지 둘이 같은 자리여서가 아니다.
+   *
+   * 기본은 `days` 다 — 이 저장소가 여태 세어 온 방식이고, 골든과 외부 대조가
+   * 전부 그 위에 찍혀 있다. 바꿀 때는 두 대조를 함께 다시 재고 근거를 남긴다.
+   */
+  hiddenStemWeighting: 'days' | 'principal-weighted';
+};
+
+/**
+ * 지장간 역할 배수 — 정기 : 중기 : 여기 = 1 : 0.5 : 0.25.
+ *
+ * `ROOT_QUALITY_POLICY.role` 과 같은 값이다. 뿌리의 질을 매길 때와 세력을
+ * 나눌 때 다른 배수를 쓰면, 같은 여기(餘氣)가 한쪽에서는 얕고 다른 쪽에서는
+ * 두껍다고 말하게 된다.
+ */
+export const HIDDEN_STEM_ROLE_FACTOR: Record<HiddenStemRole, number> = {
+  正氣: 1,
+  中氣: 0.5,
+  餘氣: 0.25,
 };
 
 export const DEFAULT_ELEMENT_WEIGHTS: ElementWeights = {
   stem: 1,
   branch: 1,
   monthBranchMultiplier: 1,
+  hiddenStemWeighting: 'days',
 };
+
+/**
+ * 한 지지의 지장간 몫 — 합이 언제나 1 이다.
+ *
+ * 방식이 무엇이든 지지 한 글자의 무게 총량은 달라지지 않는다. 달라지는 것은
+ * 그 무게가 세 글자에 어떻게 나뉘는가뿐이다.
+ */
+export function hiddenStemShares(
+  hiddens: readonly HiddenStem[],
+  weighting: ElementWeights['hiddenStemWeighting'],
+): number[] {
+  if (weighting === 'days') {
+    return hiddens.map((hidden) => hidden.days / HIDDEN_STEM_TOTAL_DAYS);
+  }
+
+  const weighted = hiddens.map((hidden) => hidden.days * HIDDEN_STEM_ROLE_FACTOR[hidden.role]);
+  const total = weighted.reduce((sum, value) => sum + value, 0);
+  return weighted.map((value) => (total === 0 ? 0 : value / total));
+}
 
 export type ElementDistribution = {
   /** 센 글자 수 — 여덟 글자, 시간 미상이면 여섯 글자 */
@@ -70,7 +121,10 @@ export function elementDistributionOf(
   pillars: DistributionInput,
   weights: Partial<ElementWeights> = {},
 ): ElementDistribution {
-  const { stem, branch, monthBranchMultiplier } = { ...DEFAULT_ELEMENT_WEIGHTS, ...weights };
+  const { stem, branch, monthBranchMultiplier, hiddenStemWeighting } = {
+    ...DEFAULT_ELEMENT_WEIGHTS,
+    ...weights,
+  };
 
   const counts = emptyTally();
   const scores = emptyTally();
@@ -90,10 +144,11 @@ export function elementDistributionOf(
 
     // 지지는 본기로 세되, 점수는 지장간에 일수 비율로 나눠 담는다
     counts[BRANCH_INFO[pillar.branch].element] += 1;
-    for (const hidden of HIDDEN_STEMS[pillar.branch]) {
-      const share = hidden.days / HIDDEN_STEM_TOTAL_DAYS;
-      scores[STEM_INFO[hidden.stem].element] += branchWeight * share;
-    }
+    const hiddens = HIDDEN_STEMS[pillar.branch];
+    const shares = hiddenStemShares(hiddens, hiddenStemWeighting);
+    hiddens.forEach((hidden, index) => {
+      scores[STEM_INFO[hidden.stem].element] += branchWeight * shares[index];
+    });
   }
 
   const total = ELEMENTS.reduce((sum, e) => sum + scores[e], 0);

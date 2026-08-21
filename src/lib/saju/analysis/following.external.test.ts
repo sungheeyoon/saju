@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { pillarOf, type Branch, type Stem } from '../constants';
 import { hourPillarOf } from '../pillars/hour';
 import { monthPillarOf } from '../pillars/month';
-import { elementDistributionOf } from './fiveElements';
+import { bureausOf } from './bureau';
+import { effectiveElementsOf } from './effectiveElements';
 import { FOLLOWING_PATTERN_POLICY, followingAssessmentOf } from './followingPatterns';
 import { rootednessOf } from './rootedness';
+import { rootQualityOf } from './rootQuality';
 import { FOLLOWING_EXTERNAL_CASES } from './validation/followingExternalCases';
 
 function assess(pillars: (typeof FOLLOWING_EXTERNAL_CASES)[number]['pillars']) {
@@ -24,7 +26,11 @@ function assess(pillars: (typeof FOLLOWING_EXTERNAL_CASES)[number]['pillars']) {
     dayMaster: day.stem,
   };
 
-  return followingAssessmentOf(input, elementDistributionOf(input), rootednessOf(input));
+  const rootedness = rootednessOf(input);
+  const effective = effectiveElementsOf(input);
+  const quality = rootQualityOf(rootedness, input, bureausOf(input));
+
+  return followingAssessmentOf(input, effective.distribution, rootedness, quality.dayMaster);
 }
 
 /** 저자가 종격이라고 본 것 — 진종·가종을 함께 센다 */
@@ -71,12 +77,13 @@ describe('종격 외부 명조 대조', () => {
   });
 
   /**
-   * 실험 규칙 v1 이 이 자료를 얼마나 잡는지 그대로 고정한다.
+   * 실험 규칙 v2 가 이 자료를 얼마나 잡는지 그대로 고정한다.
    *
-   * **지금은 잘 못 잡는다.** 문턱을 만지면 어느 칸이 움직이는지 여기서 보이고,
-   * 그것이 이 데이터셋을 만든 이유다. 숫자를 자료에 맞춰 내리는 것은 다른 문제다
-   * — 저자의 판정이 우리가 안 보는 것(합화, 지장간 여기의 질)에 기대고 있어서,
-   * 압도 비율만 낮추면 일반 명식까지 종격으로 쓸려 들어온다.
+   * **문턱은 v1 과 같다**(자당 ≤30% · ≥70%). 달라진 것은 세는 법이다 — 세력을
+   * 국(局)과 합화를 반영한 실효 분포로 재고, 뿌리를 개수가 아니라 질로 잰다.
+   * 그 둘만으로 열넷에서 열일곱이 되었다. 문턱을 자료에 맞춰 내리는 것과는
+   * 다른 일이고, 그 차이가 이 행렬에서 보인다 — `selfShare` 칸이 움직인 자리가
+   * 세는 법이 바뀐 자리다.
    */
   it('출처 판정과 엔진 판정의 행렬을 회귀 고정한다', () => {
     const matrix = FOLLOWING_EXTERNAL_CASES.map((testCase) => {
@@ -91,50 +98,50 @@ describe('종격 외부 명조 대조', () => {
     });
 
     expect(matrix).toEqual([
-      { id: 'kill-1', claim: 'following', engine: 'not-following', direction: null, selfShare: 45 },
+      { id: 'kill-1', claim: 'following', engine: 'not-following', direction: null, selfShare: 31.7 },
       { id: 'kill-2', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 12.5 },
       { id: 'kill-3', claim: 'following', engine: 'candidate', direction: 'outward', selfShare: 18.8 },
       { id: 'kill-4', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 25 },
-      { id: 'kill-5', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 28.8 },
-      { id: 'kill-6', claim: 'following', engine: 'not-following', direction: null, selfShare: 31.7 },
-      { id: 'kill-7', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 18.3 },
+      { id: 'kill-5', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 26.9 },
+      { id: 'kill-6', claim: 'following', engine: 'not-following', direction: null, selfShare: 31.2 },
+      { id: 'kill-7', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 16.9 },
       { id: 'kill-8-broken', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 37.5 },
-      { id: 'kill-9-similar', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 50.4 },
-      { id: 'money-1', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 25.8 },
-      { id: 'money-2', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 26.3 },
-      { id: 'money-3', claim: 'pseudo-following', engine: 'candidate', direction: 'outward', selfShare: 22.5 },
+      { id: 'kill-9-similar', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 41.5 },
+      { id: 'money-1', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 20.6 },
+      { id: 'money-2', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 25.6 },
+      { id: 'money-3', claim: 'pseudo-following', engine: 'pseudo-following', direction: 'outward', selfShare: 22.5 },
       { id: 'money-4', claim: 'pseudo-following', engine: 'pseudo-following', direction: 'outward', selfShare: 27.9 },
-      { id: 'money-5-excluded', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 37.9 },
-      { id: 'money-6', claim: 'following', engine: 'not-following', direction: null, selfShare: 35.4 },
-      { id: 'money-7', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 15.4 },
-      { id: 'money-8', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 22.9 },
-      { id: 'money-9-excluded', claim: 'not-following', engine: 'pseudo-following', direction: 'outward', selfShare: 22.1 },
-      { id: 'dtsm-following-strong', claim: 'following', engine: 'pseudo-following', direction: 'inward', selfShare: 71.3 },
+      { id: 'money-5-excluded', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 40.1 },
+      { id: 'money-6', claim: 'following', engine: 'not-following', direction: null, selfShare: 30.2 },
+      { id: 'money-7', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 14.7 },
+      { id: 'money-8', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 17.7 },
+      { id: 'money-9-excluded', claim: 'not-following', engine: 'pseudo-following', direction: 'outward', selfShare: 18.8 },
+      { id: 'dtsm-following-strong', claim: 'following', engine: 'pseudo-following', direction: 'inward', selfShare: 72.9 },
       { id: 'dtsm-following-weak', claim: 'following', engine: 'not-following', direction: null, selfShare: 34.6 },
-      // 從象 열 — 안으로 종하는 두 건(從旺·從强)만 진종으로 잡힌다.
+      // 從象 열 — 안으로 종하는 둘에 더해, 삼합국을 반영하자 넷째가 진종으로 올라온다.
       { id: 'dtsm-congxiang-1', claim: 'following', engine: 'candidate', direction: 'outward', selfShare: 18.8 },
       { id: 'dtsm-congxiang-2', claim: 'following', engine: 'not-following', direction: null, selfShare: 36.7 },
       { id: 'dtsm-congxiang-3', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 27.9 },
-      { id: 'dtsm-congxiang-4', claim: 'following', engine: 'not-following', direction: null, selfShare: 30.4 },
-      { id: 'dtsm-congxiang-5', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 28.8 },
-      { id: 'dtsm-congxiang-6-wang', claim: 'following', engine: 'true-following', direction: 'inward', selfShare: 91.3 },
+      { id: 'dtsm-congxiang-4', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 20.7 },
+      { id: 'dtsm-congxiang-5', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 26.9 },
+      { id: 'dtsm-congxiang-6-wang', claim: 'following', engine: 'true-following', direction: 'inward', selfShare: 92 },
       { id: 'dtsm-congxiang-7-qiang', claim: 'following', engine: 'true-following', direction: 'inward', selfShare: 85 },
-      { id: 'dtsm-congxiang-8-qi', claim: 'following', engine: 'not-following', direction: null, selfShare: 40.4 },
+      { id: 'dtsm-congxiang-8-qi', claim: 'following', engine: 'not-following', direction: null, selfShare: 41.1 },
       { id: 'dtsm-congxiang-9-shi', claim: 'following', engine: 'not-following', direction: null, selfShare: 32.9 },
       { id: 'dtsm-congxiang-10', claim: 'following', engine: 'not-following', direction: null, selfShare: 37.5 },
-      // 假從 다섯 — 하나도 잡지 못한다. 자당 몫이 25~39% 라 밖으로 종하는 문턱 위에 있다.
-      { id: 'dtsm-jiacong-1', claim: 'pseudo-following', engine: 'candidate', direction: 'outward', selfShare: 25 },
-      { id: 'dtsm-jiacong-2', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 38.3 },
-      { id: 'dtsm-jiacong-3', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 35.4 },
-      { id: 'dtsm-jiacong-4-misprint', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 33.8 },
-      { id: 'dtsm-jiacong-5', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 39.2 },
+      // 假從 다섯 — 하나가 잡힌다. 여기(餘氣) 뿌리 둘을 정기 둘처럼 세던 것을 고친 몫이다.
+      { id: 'dtsm-jiacong-1', claim: 'pseudo-following', engine: 'pseudo-following', direction: 'outward', selfShare: 23.9 },
+      { id: 'dtsm-jiacong-2', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 37.9 },
+      { id: 'dtsm-jiacong-3', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 34.7 },
+      { id: 'dtsm-jiacong-4-misprint', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 33 },
+      { id: 'dtsm-jiacong-5', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 32.1 },
     ]);
   });
 
   /**
    * 자료를 열다섯 건 넓히자 계통별로 성적이 갈리는 것이 드러난다. 밖으로 종하는
    * 계열은 자당 몫이 문턱 근처(25~40%)에 촘촘히 몰려 있어 ≤30% 한 줄로는 절반쯤만
-   * 걸린다. 반대로 **안으로 종하는 계열은 85~91% 로 문턱에서 멀찍이 떨어져 있다** —
+   * 걸린다. 반대로 **안으로 종하는 계열은 85~92% 로 문턱에서 멀찍이 떨어져 있다** —
    * 축을 자당 몫 하나로 다시 세운 판단이 여기서 값을 낸다.
    */
   it('안으로 종하는 계열은 문턱에서 멀고 밖으로 종하는 계열은 붙어 있다', () => {
@@ -147,20 +154,47 @@ describe('종격 외부 명조 대조', () => {
       expect(found.direction, id).toBe('inward');
       expect(found.selfShare, id).toBeGreaterThan(0.7);
     }
+  });
 
-    // 假從 다섯은 정의상 비겁·인성이 남아 있어 밖으로 종하는 문턱 위에 얹힌다.
+  /**
+   * **假從 다섯 중 하나가 잡힌다.** 넷은 여전히 못 잡는다.
+   *
+   * 잡힌 하나(`dtsm-jiacong-1`)가 무엇 때문에 잡혔는지가 요점이다. 문턱을
+   * 내려서가 아니다 — 이 명조의 己土는 巳와 亥의 **여기(餘氣) 戊** 둘에 걸려
+   * 있는데, 예전 셈은 그것을 「같은 오행 뿌리 0.5 짜리 둘 = 1.0」으로 세어
+   * 가종 문턱(0.5) 밖으로 밀어냈다. 뿌리의 질로 다시 재면 0.33 이라 문턱 안이다.
+   * 자당 몫은 25% 로 예전과 거의 같다 — 움직인 것은 뿌리 쪽이다.
+   *
+   * 남은 넷은 자당 몫이 32~38% 로 밖으로 종하는 문턱 위에 있다. 이것은 假從
+   * 계열의 성질이라(「局中雖有劫印，亦自顧不暇」) 문턱을 그쪽으로 넓히면 모집단
+   * 발화율이 함께 오른다. 여기서 잃는 것을 받아들인다.
+   */
+  it('가종은 다섯 중 하나만 잡고 나머지 넷이 어디에 걸리는지 남긴다', () => {
     const jiacong = FOLLOWING_EXTERNAL_CASES.filter((c) => c.id.startsWith('dtsm-jiacong-'));
     expect(jiacong).toHaveLength(5);
-    for (const testCase of jiacong) {
-      expect(engineFollows(assess(testCase.pillars).verdict), testCase.id).toBe(false);
+
+    const caught = jiacong.filter((c) => engineFollows(assess(c.pillars).verdict));
+    expect(caught.map((c) => c.id)).toEqual(['dtsm-jiacong-1']);
+
+    // 뿌리를 개수로 세면 문턱 밖, 질로 세면 문턱 안이다.
+    const one = assess(jiacong[0].pillars);
+    expect(one.rootScore).toBeLessThan(FOLLOWING_PATTERN_POLICY.classification.pseudoMaxRootScore * 3);
+    expect(one.facts.dayMasterRootless).toBe(false);
+
+    // 못 잡는 넷은 전부 자당 몫이 문턱 위에 있다 — 뿌리 문제가 아니다.
+    for (const testCase of jiacong.slice(1)) {
+      expect(assess(testCase.pillars).selfShare, testCase.id).toBeGreaterThan(
+        FOLLOWING_PATTERN_POLICY.dominance.outwardMaxSelfShare,
+      );
     }
   });
 
   /**
-   * 자료를 스물에서 서른다섯으로 넓히자 재현율이 10/16 에서 **14/30 으로 내려갔다.**
-   * 새 자료가 어려워서가 아니라 앞의 열여덟이 밖으로 종하는 계열에 몰려 있어
-   * 성적이 좋아 보였던 것이다. 덜 잡는 쪽으로 틀리는 성향은 그대로다 —
-   * 아니라고 적힌 넷 중 하나만 가종으로 잘못 본다.
+   * 재현율 **14/30 → 17/30.** 오검출은 그대로 1/4 이다.
+   *
+   * 문턱을 만지지 않고 얻은 값이다. 세는 법을 셋 고쳤다 — 국(局)과 합화를
+   * 세력에 반영했고, 뿌리를 개수가 아니라 질로 재고, 충에 뽑히거나 국에 끌려간
+   * 뿌리를 얕게 본다. 덜 잡는 쪽으로 틀리는 성향은 그대로다.
    */
   it('현재 재현율과 오검출을 숫자로 남긴다', () => {
     const results = SCORED.map((testCase) => ({
@@ -172,7 +206,7 @@ describe('종격 외부 명조 대조', () => {
     const rejected = results.filter((r) => !r.claimed);
 
     expect(claimed).toHaveLength(30);
-    expect(claimed.filter((r) => r.engine)).toHaveLength(14);
+    expect(claimed.filter((r) => r.engine)).toHaveLength(17);
     expect(rejected).toHaveLength(4);
     expect(rejected.filter((r) => r.engine)).toHaveLength(1);
   });
@@ -224,21 +258,38 @@ describe('종격 외부 명조 대조', () => {
       return [claimed.filter((c) => engineFollows(assess(c.pillars).verdict)).length, claimed.length];
     };
 
-    expect(recall('modern-chinese')).toEqual([9, 14]);
-    expect(recall('classical-chinese')).toEqual([5, 16]);
+    expect(recall('modern-chinese')).toEqual([10, 14]);
+    expect(recall('classical-chinese')).toEqual([7, 16]);
   });
 
   /**
-   * 그래서 게이트는 닫아 둔다. 이 테스트가 그 약속이다 — 재현율이 이 상태인 채로
-   * `eokbuOverride` 를 켜면 여기서 걸린다.
+   * **재현율은 이제 절반을 넘는다. 그래도 게이트는 닫아 둔다.**
+   *
+   * 여태 이 테스트는 「재현율이 절반 아래니 못 연다」고 적어 두었다. 그 조건이
+   * 풀렸으므로 이유를 다시 적는다 — 게이트를 막고 있는 것은 재현율이 아니라
+   * 남은 둘이다.
+   *
+   * 1. **모집단 발화율이 고전이 말하는 희소성과 자릿수가 다르다.** 《적천수천미》는
+   *    격국이 진실하고 순수한 것을 「百無一二」라 했는데 여기서는 진종·가종을
+   *    합쳐 10% 대다. 억부를 뒤집는 판정이 백에 열이면, 뒤집힌 쪽이 맞는지
+   *    확인할 길 없이 열 명 중 한 명의 용신이 반대로 나온다.
+   * 2. **오검출이 남아 있다.** 출처가 종격이 아니라고 못박은 넷 중 하나를
+   *    아직 가종으로 본다.
+   *
+   * 재현율이 오른 것을 게이트 통과로 읽지 못하게 이 테스트가 조건을 값으로 든다.
    */
-  it('대조를 통과하지 못했으므로 억부를 덮어쓰지 않는다', () => {
+  it('재현율은 절반을 넘었지만 발화율과 오검출 때문에 억부를 덮어쓰지 않는다', () => {
     const claimed = SCORED.filter((testCase) => claimsFollowing(testCase.claim.verdict));
     const caught = claimed.filter((testCase) => engineFollows(assess(testCase.pillars).verdict));
+    const rates = FOLLOWING_PATTERN_POLICY.dominance.calibration.observedRates;
 
-    // 재현율만으로 게이트를 열지 않는다. 모집단 발화율이 고전이 말하는 희소성보다
-    // 크게 높고(약 10%), 오검출도 남아 있다.
-    expect(caught.length / claimed.length).toBeLessThan(0.5);
+    expect(caught.length / claimed.length).toBeGreaterThan(0.5);
+
+    // 남은 조건 둘. 이 둘이 풀리기 전에는 열지 않는다.
+    expect(rates['true-following'] + rates['pseudo-following']).toBeGreaterThan(0.02);
+    expect(FOLLOWING_PATTERN_POLICY.dominance.externalCheck.falsePositives).toBeGreaterThan(0);
+
     expect(FOLLOWING_PATTERN_POLICY.eokbuOverride).toBe('disabled');
+    expect(FOLLOWING_PATTERN_POLICY.dominance.externalCheck.passed).toBe(false);
   });
 });

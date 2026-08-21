@@ -1,4 +1,6 @@
 import type { Pillars } from '../pillars';
+import type { Bureau } from './bureau';
+import { effectiveElementsOf, type EffectiveElements } from './effectiveElements';
 import { elementDistributionOf, type ElementDistribution, type ElementWeights } from './fiveElements';
 import {
   followingAssessmentOf,
@@ -8,15 +10,20 @@ import {
 } from './followingPatterns';
 import { johuAssessmentOf, type JohuAssessment } from './johu';
 import { rootednessOf, type Rootedness } from './rootedness';
+import { rootQualityOf, type RootQualityChart } from './rootQuality';
 import { strengthOf, type Strength, type StrengthOptions } from './strength';
 import { eokbuAssessmentOf, type EokbuAssessment } from './yongsin';
 import { tenGodChartOf, tenGodCountsOf, type TenGod, type TenGodChart } from './tenGods';
 
+export * from './bureau';
+export * from './effectiveElements';
 export * from './fiveElements';
 export * from './followingPatterns';
 export * from './johu';
 export * from './rootedness';
+export * from './rootQuality';
 export * from './strength';
+export * from './transformation';
 export * from './yongsin';
 export * from './tenGods';
 export * from './validation/eokbuExternalCases';
@@ -29,7 +36,18 @@ export * from './validation/eokbuExternalCases';
  */
 
 export type Analysis = {
+  /** 글자를 있는 그대로 센 오행 분포 */
   elements: ElementDistribution;
+  /**
+   * 국(局)과 합화를 반영한 실효 분포 — **바탕과 함께 낸다.**
+   *
+   * `elements` 를 갈아치우지 않는 이유가 있다. 무엇을 반영했는지 견주려면
+   * 반영하지 않은 값이 남아 있어야 한다. 어느 글자의 무게가 어디로 얼마나
+   * 갔는지는 `effectiveElements.shifts` 가 한 건씩 적는다.
+   */
+  effectiveElements: EffectiveElements;
+  /** 원국에 선 국(局) — `effectiveElements.bureaus` 와 같은 값이다 */
+  bureaus: readonly Bureau[];
   tenGods: TenGodChart;
   tenGodCounts: Record<TenGod, number>;
   strength: Strength;
@@ -49,6 +67,13 @@ export type Analysis = {
    */
   rootedness: Rootedness;
   /**
+   * 뿌리의 질 — **판정이다.** `rootedness` 가 사실을 내고 이쪽이 등급을 매긴다.
+   *
+   * 세어진 뿌리와 남은 뿌리는 다르다. 충에 뽑히거나 국에 끌려간 뿌리는
+   * `rootedness` 에 그대로 세어지지만 여기서는 얕아진다.
+   */
+  rootQuality: RootQualityChart;
+  /**
    * 종격 후보의 조건이 되는 사실 — **판정이 아니다.**
    *
    * 문턱을 고르지 않고도 셀 수 있는 것들만 낸다. 어디서 선을 긋는지가 계통
@@ -56,10 +81,12 @@ export type Analysis = {
    */
   followingCandidacy: FollowingCandidacy;
   /**
-   * 종격 판정 — **실험 규칙 v1.**
+   * 종격 판정 — **실험 규칙 v2.**
    *
    * 문턱은 고전이 아니라 이 엔진의 세력 분포를 재고 정한 값이라
-   * `status: 'experimental'` 이고, 억부 후보를 뒤집지 않는다.
+   * `status: 'experimental'` 이고, 억부 후보를 뒤집지 않는다. v2 에서 바뀐 것은
+   * 문턱이 아니라 입력이다 — 세력은 국과 합화를 반영한 실효 분포로, 뿌리는
+   * 개수가 아니라 질로 잰다.
    */
   following: FollowingAssessment;
 };
@@ -84,9 +111,13 @@ export function analyzePillars(
   const strength = strengthOf(pillars, { ...options.strength, weights: options.weights });
   const elements = elementDistributionOf(pillars, options.weights);
   const rootedness = rootednessOf(pillars);
+  const effective = effectiveElementsOf(pillars, options.weights);
+  const rootQuality = rootQualityOf(rootedness, pillars, effective.bureaus);
 
   return {
     elements,
+    effectiveElements: effective,
+    bureaus: effective.bureaus,
     tenGods,
     tenGodCounts: tenGodCountsOf(tenGods),
     // 오행 분포와 같은 가중치를 써야 두 결과가 어긋나지 않는다.
@@ -94,7 +125,15 @@ export function analyzePillars(
     eokbu: eokbuAssessmentOf(pillars, strength, options.weights),
     johu: johuAssessmentOf(pillars, options.instant),
     rootedness,
-    followingCandidacy: followingCandidacyOf(pillars, elements, rootedness),
-    following: followingAssessmentOf(pillars, elements, rootedness),
+    rootQuality,
+    // 종격은 국과 합화를 반영한 실효 분포로 잰다 — 亥卯未가 木局을 이루면
+    // 未를 土로 논하지 않는다는 말이 여기서 값을 낸다.
+    followingCandidacy: followingCandidacyOf(pillars, effective.distribution, rootedness),
+    following: followingAssessmentOf(
+      pillars,
+      effective.distribution,
+      rootedness,
+      rootQuality.dayMaster,
+    ),
   };
 }

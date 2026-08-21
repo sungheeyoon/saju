@@ -5,8 +5,11 @@ import {
   followingAssessmentOf,
   followingCandidacyOf,
 } from '@/src/lib/saju/analysis/followingPatterns';
+import { bureausOf } from '@/src/lib/saju/analysis/bureau';
+import { effectiveElementsOf } from '@/src/lib/saju/analysis/effectiveElements';
 import { elementDistributionOf } from '@/src/lib/saju/analysis/fiveElements';
 import { rootednessOf } from '@/src/lib/saju/analysis/rootedness';
+import { rootQualityOf } from '@/src/lib/saju/analysis/rootQuality';
 import { pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
 
 function candidacy(year: string, month: string, day: string, hour: string | null) {
@@ -107,7 +110,7 @@ describe('종격 후보 — 조건이 되는 사실', () => {
   });
 });
 
-describe('종격 판정 — 실험 규칙 v1', () => {
+describe('종격 판정 — 실험 규칙 v2', () => {
   const assess = (year: string, month: string, day: string, hour: string | null) => {
     const parse = (name: string) => {
       const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
@@ -122,7 +125,17 @@ describe('종격 판정 — 실험 규칙 v1', () => {
       hour: hour === null ? null : parse(hour),
       dayMaster: parsedDay.stem,
     };
-    return followingAssessmentOf(pillars, elementDistributionOf(pillars), rootednessOf(pillars));
+    const rootedness = rootednessOf(pillars);
+    const bureaus = bureausOf(pillars);
+    const quality = rootQualityOf(rootedness, pillars, bureaus);
+
+    // 판정은 국·합화를 반영한 실효 분포와 뿌리의 질 위에서 나온다.
+    return followingAssessmentOf(
+      pillars,
+      effectiveElementsOf(pillars).distribution,
+      rootedness,
+      quality.dayMaster,
+    );
   };
 
   /**
@@ -178,26 +191,61 @@ describe('종격 판정 — 실험 규칙 v1', () => {
     expect(found.verdict).toBe('true-following');
   });
 
+  /**
+   * 《적천수천미》 假從 편의 첫 명례 — 저자도 假從이라 못박은 자리다.
+   *
+   * 己土의 뿌리는 巳와 亥의 **여기(餘氣) 戊** 둘뿐이고, 그 둘은 서로 충하며
+   * 목국에 조금씩 끌려간다. 개수로 세면 뿌리 둘이지만 남은 것은 0.12 다.
+   */
   it('약한 뿌리가 남아 있으면 가종 쪽이다', () => {
-    // 위 명식의 년지를 未로 바꾸면 未의 乙(같은 오행)에 약한 뿌리가 하나 생긴다.
-    const found = assess('己未', '己丑', '甲申', '丙戌');
+    const found = assess('癸巳', '乙卯', '己亥', '癸酉');
 
     expect(found.facts.dayMasterRootless).toBe(false);
-    expect(found.rootScore).toBe(0.5);
+    expect(found.effectivelyRootless).toBe(false);
+    expect(found.rootScore).toBeLessThanOrEqual(
+      FOLLOWING_PATTERN_POLICY.classification.pseudoMaxRootScore,
+    );
     expect(found.verdict).toBe('pseudo-following');
   });
 
   /**
-   * 무근 판정에는 가중치를 쓰지 않는다. 가중치를 거기까지 들이면 "0.5짜리 뿌리
-   * 하나는 무근인가"라는 문턱이 하나 더 생긴다.
+   * **뿌리는 개수가 아니라 질로 잰다.**
+   *
+   * 같은 「뿌리 하나」라도 월지 정기에 걸린 것과 시지 고지의 여기에 걸린 것이
+   * 같을 수 없다. v1 은 같은 글자 1 · 같은 오행 0.5 로만 갈라, 여기(餘氣)에
+   * 걸린 뿌리 둘을 정기 둘과 같은 무게로 세었다 — 假從 명조가 문턱 밖으로
+   * 밀려나던 것이 그 때문이다.
    */
-  it('가중치는 진종·가종을 가를 때만 쓰고 무근 판정에는 안 쓴다', () => {
-    const found = assess('己未', '己丑', '甲申', '丙戌');
+  it('같은 개수의 뿌리라도 걸린 자리에 따라 무게가 다르다', () => {
+    // 년지만 다르다. 未에는 중기 乙 하나(고지), 卯에는 여기 甲·정기 乙(왕지).
+    const shallow = assess('己未', '丙寅', '甲申', '丙戌');
+    const deep = assess('己卯', '丙寅', '甲申', '丙戌');
 
-    expect(found.rootScore).toBeLessThan(1);
-    // 가중치가 0.5 라고 무근이 되지는 않는다.
-    expect(found.facts.dayMasterRootless).toBe(false);
-    expect(FOLLOWING_PATTERN_POLICY.rootless.byWeightedScore).toBe(false);
+    const shallowYear = shallow.facts;
+    const deepYear = deep.facts;
+    expect(shallowYear.dayMasterRootless).toBe(false);
+    expect(deepYear.dayMasterRootless).toBe(false);
+
+    // 둘 다 월지 寅에 같은 뿌리를 두고 있으므로 차이는 년지에서만 온다.
+    expect(deep.rootScore - shallow.rootScore).toBeGreaterThan(0.5);
+  });
+
+  /**
+   * 무근은 **세어진 뿌리가 아니라 남은 뿌리**로 본다.
+   *
+   * 《적천수천미》가 「丙火之根已拔」이라 적은 명조 — 丙의 뿌리는 년지 寅의
+   * 丙 하나뿐인데, 그 寅이 申 셋에게 충을 맞고 있다. 사실 층은 「통근함」이라
+   * 세고 판정 층은 「남은 것이 없다」고 본다. 둘이 갈리는 자리다.
+   */
+  it('충을 맞은 뿌리는 세어지되 얕아진다', () => {
+    // 丙의 뿌리는 년지 寅의 丙 하나뿐인데, 그 寅이 申 셋에게 충을 맞고 있다.
+    const clashed = assess('戊寅', '庚申', '丙申', '丙申');
+    // 충하는 申을 뺀 짝. 뿌리는 같은 자리에 같은 글자로 하나다.
+    const intact = assess('戊寅', '己未', '丙申', '丙申');
+
+    expect(clashed.facts.dayMasterRootless).toBe(false);
+    expect(clashed.rootScore).toBeLessThan(intact.rootScore);
+    expect(FOLLOWING_PATTERN_POLICY.rootless.by).toBe('root-quality-strength');
   });
 
   it('사실 층은 판정 아래에 그대로 남는다', () => {

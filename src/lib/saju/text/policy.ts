@@ -169,12 +169,15 @@ export const CLAIM_PATHS = [
   'meta',
   'now',
   'analysis.elements',
+  'analysis.effectiveElements',
+  'analysis.bureaus',
   'analysis.tenGods',
   'analysis.tenGodCounts',
   'analysis.strength',
   'analysis.eokbu',
   'analysis.johu',
   'analysis.rootedness',
+  'analysis.rootQuality',
   'analysis.followingCandidacy',
   'analysis.following',
 ] as const;
@@ -254,6 +257,25 @@ export const CLAIM_CEILING: Record<ClaimPath, ClaimStrength> = {
   'analysis.tenGodCounts': 'fact',
   'analysis.rootedness': 'fact',
   'analysis.followingCandidacy': 'fact',
+
+  /**
+   * 국(局)과 합화를 반영한 실효 분포는 **사실이 아니다.**
+   *
+   * 바탕 분포(`analysis.elements`)는 글자를 세기만 하므로 사실이다. 여기서
+   * 달라지는 것은 「亥卯未가 모였으니 未의 무게 절반이 木으로 간다」인데, 절반은
+   * 우리가 고른 값이고 「모였으니 간다」도 계통이 갈리는 판정이다. 옮긴 몫을
+   * 0 으로 두면 바탕으로 정확히 돌아간다는 것이 그 증거다.
+   */
+  'analysis.effectiveElements': 'derived',
+  /** 국이 섰다는 판정과 그 무게 — 위와 같은 이유다 */
+  'analysis.bureaus': 'derived',
+
+  /**
+   * 뿌리의 질은 배수 다섯을 곱해 나온다 — 자리·역할·글자·지지의 갈래·충.
+   * 다섯 다 우리가 고른 값이라 사실 층인 `analysis.rootedness` 와 강도가 다르다.
+   * 같은 뿌리를 한쪽은 세고 다른 쪽은 재는데, 재는 쪽이 더 세게 말할 수는 없다.
+   */
+  'analysis.rootQuality': 'derived',
 
   /**
    * 신강·신약은 사실이 아니다. 세 기준이 서로 겹치고(득세 점수에 월지·일지가
