@@ -34,7 +34,7 @@ export type ExternalEokbuCase = {
     title: string;
     url: string;
     locator: string;
-    retrievedAt: '2026-08-16';
+    retrievedAt: '2026-08-16' | '2026-08-21';
   };
   claim: {
     strength: ExternalStrengthClaim;
@@ -58,6 +58,22 @@ export type ExternalEokbuCase = {
    * `monthPillarOf`·`hourPillarOf` 로 직접 다시 센다.
    */
   chartConstruction: 'consistent' | 'unrealizable';
+  /**
+   * 출처가 용신을 고른 **논리**.
+   *
+   * 이 필드가 없던 동안 데이터셋은 한 가지를 전제하고 있었다 — 실려 있는 용신은
+   * 다 억부로 고른 것이라고. 《적천수천미》 衰旺편을 열넷 실으면서 그 전제가
+   * 깨졌다. 그 장은 「旺之極者不可損，衰之極者不可益」이라는 **다른 규칙**으로
+   * 용신을 고르고, 실제로 극왕·극쇠 자리에서 억부와 정반대 답을 낸다.
+   *
+   * 다른 논리로 고른 답을 억부의 정답으로 쓰면 규칙이 아니라 **계통을 채점하게**
+   * 된다. 그래서 오행 일치는 이 값으로 나눠 세고, 강약은 나누지 않는다 — 「신강인가
+   * 신약인가」는 어느 논리로 보든 같은 물음이기 때문이다.
+   *
+   * 적지 않으면 억부다. 앞서 실은 스물은 대부분 억부 절차를 따르고, 그렇지 않은
+   * 자리는 `caveats` 가 적어 왔다.
+   */
+  yongsinDoctrine?: 'eokbu' | 'strength-extremity';
   caveats: readonly string[];
 };
 
@@ -74,11 +90,25 @@ export type ExternalEokbuCase = {
  * 일치율을 셀 때는 빼야 한다 — 그러지 않으면 있지도 않은 사주로 엔진을 채점하게
  * 된다.
  *
- * 실재 가능한 사례는 스물이고 계통은 셋이다 — **계통이 다른 자료를 섞어야**
+ * 실재 가능한 사례는 서른넷이고 계통은 셋이다 — **계통이 다른 자료를 섞어야**
  * 한쪽 계통에만 맞는 규칙을 만들지 않는다.
  * - `8ja-*` 여섯: 현대 한국 상담 사례(`korean-modern`)
- * - `dtsm-*` 셋: 《적천수천미》 임철초 주석(`classical-chinese`)
+ * - `dtsm-8gyeok-*` 셋: 《적천수천미》 八格편(`classical-chinese`)
+ * - `dtsm-shuaiwang-*` 열넷: 《적천수천미》 衰旺편(`classical-chinese`)
  * - `qlmg-*` 열하나: 《천리명고》 위천리(`republican-chinese`)
+ *
+ * **衰旺편 열넷은 강약을 대조하려고 실었다.** 그 장은 열다섯 명조를 오행 다섯 ×
+ * 旺·旺極·衰·衰極 으로 짜 놓고 각각에 旺/衰를 못박는다 — 강약 판정을 정면으로
+ * 겨눈 자료가 이 데이터셋에 처음 들어온 것이다. 앞서 강약을 비교할 수 있는
+ * 사례는 열둘뿐이었다.
+ *
+ * 대신 그 장의 **용신은 억부가 아니다.** 「旺之極者不可損，衰之極者不可益」이라
+ * 극왕에는 印을, 극쇠에는 食傷을 쓴다 — 억부와 정반대다. 그래서
+ * `yongsinDoctrine: 'strength-extremity'` 로 표시하고 오행 일치를 셀 때 나눈다.
+ *
+ * 열다섯 중 하나(木衰 자리)는 옮긴 간지가 서로 어긋나 뺐다. 같은 장을 두 번
+ * 읽었는데 시주가 丙寅과 丁亥로 갈렸고, 丁亥는 甲 일간에서 나올 수 없는 시주다.
+ * 어느 쪽이 원문인지 가릴 수 없으면 싣지 않는다 — 지어내는 것보다 비는 편이 낫다.
  *
  * 계통을 셀 때 호스트 이름을 쓰면 안 된다 — 《적천수천미》와 《천리명고》가 같은
  * 사이트에 올라 있어 셋이 둘로 줄어든다. `lineage` 를 직접 적고 그것으로 센다.
@@ -585,6 +615,335 @@ export const EOKBU_EXTERNAL_CASES: readonly ExternalEokbuCase[] = [
     caveats: [
       '한습을 병으로 보는 조후 논리다 — 억부와 답이 같아도 근거가 다르다.',
       '출처가 신강·신약을 못박지 않아 강약은 대조하지 않는다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-mok-wang',
+    pillars: { year: '甲辰', month: '丁卯', day: '甲子', hour: '戊辰' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 木太旺者似金也，以丁火為用',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'strong',
+      suggestedElement: '火',
+      role: '食傷',
+      summary: '甲子 일간이 卯월에 나고 지지의 두 辰이 木의 여기라 木이 태왕하니 丁火로 단련한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-mok-wang-geuk',
+    pillars: { year: '癸卯', month: '乙卯', day: '甲寅', hour: '乙亥' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 木旺極者，似火也',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'strong',
+      suggestedElement: '水',
+      role: '印星',
+      summary: '여섯 木에 두 水뿐이라 木이 극왕하니 덜지 않고 印인 水의 기세를 따른다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+      '극단 자리라 억부와 정반대로 간다 — 극왕에 印, 극쇠에 食傷을 쓴다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-mok-soe-geuk',
+    pillars: { year: '己巳', month: '己巳', day: '乙酉', hour: '丙戌' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 木衰極者，似土也，宜火生',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '火',
+      role: '食傷',
+      summary: '木이 극쇠해 土에 가까우니 보태지 않고 火로 그 土를 생한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+      '극단 자리라 억부와 정반대로 간다 — 극왕에 印, 극쇠에 食傷을 쓴다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-hwa-wang',
+    pillars: { year: '乙丑', month: '壬午', day: '丙戌', hour: '甲午' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 火旺者似水也，喜土止之',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'strong',
+      suggestedElement: '土',
+      role: '食傷',
+      summary: '火가 왕해 水에 가까우니 土로 멈춘다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-hwa-wang-geuk',
+    pillars: { year: '戊寅', month: '丁巳', day: '丙寅', hour: '甲午' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 火旺極者，似土也，喜木克之',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'strong',
+      suggestedElement: '木',
+      role: '印星',
+      summary: '火가 극왕해 土에 가까우니 印인 木으로 그 土를 극한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+      '극단 자리라 억부와 정반대로 간다 — 극왕에 印, 극쇠에 食傷을 쓴다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-hwa-soe',
+    pillars: { year: '辛巳', month: '丁酉', day: '丁酉', hour: '辛丑' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 火衰者似木也，宜水生之',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '水',
+      role: '官星',
+      summary: '火가 쇠해 木에 가까우니 水로 그 木을 생한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-hwa-soe-geuk',
+    pillars: { year: '辛亥', month: '壬辰', day: '丙申', hour: '己亥' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 火衰極者，似金也，宜土生之',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '土',
+      role: '食傷',
+      summary: '火가 극쇠해 金에 가까우니 보태지 않고 土로 그 金을 생한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+      '극단 자리라 억부와 정반대로 간다 — 극왕에 印, 극쇠에 食傷을 쓴다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-to-wang',
+    pillars: { year: '戊辰', month: '戊午', day: '戊申', hour: '己未' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 土旺者似木也，喜金克之',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'strong',
+      suggestedElement: '金',
+      role: '食傷',
+      summary: '土가 왕해 木에 가까우니 金으로 극한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-to-wang-geuk',
+    pillars: { year: '戊戌', month: '丙辰', day: '己巳', hour: '己巳' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 土旺極者，似金也，宜火煉之',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'strong',
+      suggestedElement: '火',
+      role: '印星',
+      summary: '土가 극왕해 金에 가까우니 印인 火로 단련한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+      '극단 자리라 억부와 정반대로 간다 — 극왕에 印, 극쇠에 食傷을 쓴다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-to-soe',
+    pillars: { year: '壬辰', month: '辛亥', day: '戊子', hour: '癸丑' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 土衰者似火也，宜木生之',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '木',
+      role: '官星',
+      summary: '土가 쇠해 火에 가까우니 木으로 그 火를 생한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-geum-wang',
+    pillars: { year: '壬申', month: '己酉', day: '庚子', hour: '庚辰' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 金旺者似火也，喜水濟之',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'strong',
+      suggestedElement: '水',
+      role: '食傷',
+      summary: '金이 왕해 火에 가까우니 水로 건넨다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-geum-wang-geuk',
+    pillars: { year: '庚申', month: '乙酉', day: '庚戌', hour: '庚辰' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 金旺極者，似水也，宜土止之',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'strong',
+      suggestedElement: '土',
+      role: '印星',
+      summary: '金이 극왕해 水에 가까우니 印인 土로 멈춘다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+      '극단 자리라 억부와 정반대로 간다 — 극왕에 印, 극쇠에 食傷을 쓴다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-geum-soe',
+    pillars: { year: '己卯', month: '庚午', day: '辛卯', hour: '甲午' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 金衰者似土也，宜火生之',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '火',
+      role: '官星',
+      summary: '金이 쇠해 土에 가까우니 火로 그 土를 생한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+    ],
+  },
+  {
+    id: 'dtsm-shuaiwang-geum-soe-geuk',
+    pillars: { year: '己亥', month: '丁卯', day: '庚寅', hour: '丙子' },
+    lineage: 'classical-chinese',
+    source: {
+      title: '《滴天髓闡微》 衰旺 — 任鐵樵 주석',
+      url: 'https://zh.wikisource.org/wiki/%E6%BB%B4%E5%A4%A9%E9%AB%93%E9%97%A1%E5%BE%AE',
+      locator: '十七、衰旺 — 金衰極者，似木也，宜水生之',
+      retrievedAt: '2026-08-21',
+    },
+    claim: {
+      strength: 'weak',
+      suggestedElement: '水',
+      role: '食傷',
+      summary: '金이 극쇠해 木에 가까우니 보태지 않고 水로 그 木을 생한다.',
+    },
+    comparisonLevel: 'exact',
+    chartConstruction: 'consistent',
+    yongsinDoctrine: 'strength-extremity',
+    caveats: [
+      '衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.',
+      '극단 자리라 억부와 정반대로 간다 — 극왕에 印, 극쇠에 食傷을 쓴다.',
     ],
   },
 ] as const;

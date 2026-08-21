@@ -65,7 +65,7 @@ describe('억부용신 외부 대조 데이터셋', () => {
     // 실재 가능한 사례의 수가 이 데이터셋의 실제 크기다 — 셋은 지어낸 조합이라 빠진다.
     expect(
       EOKBU_EXTERNAL_CASES.filter((c) => c.chartConstruction === 'consistent'),
-    ).toHaveLength(20);
+    ).toHaveLength(34);
     // 실재 불가능한 셋은 전부 같은 출처다.
     expect(
       EOKBU_EXTERNAL_CASES.filter((c) => c.chartConstruction === 'unrealizable').map((c) => c.id),
@@ -396,42 +396,243 @@ describe('억부용신 외부 대조 데이터셋', () => {
         engineRole: '比劫',
         roleAgrees: false,
       },
+      // 《적천수천미》 衰旺편 열넷 — **강약을 겨눈 자료다.**
+      //
+      // 그 장은 명조 열다섯을 오행 다섯 × 旺·旺極·衰·衰極 으로 짜 놓고 각각에
+      // 旺/衰를 못박는다. 우리 강약이 **열넷 다 맞는다** — 앞서 강약을 비교할 수
+      // 있는 사례가 열둘뿐이었으니 대조가 두 배 넘게 넓어졌고 성적은 유지됐다.
+      //
+      // 오행은 열넷 중 둘만 맞는데 그것이 틀린 것이 아니다. 이 장은 억부가 아니라
+      // 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다 — 극왕에 印을, 극쇠에
+      // 食傷을 쓰므로 억부와 **정반대로 가는 것이 정상이다.**
+      {
+        id: 'dtsm-shuaiwang-mok-wang',
+        sourceStrength: 'strong',
+        engineStrength: 'strong',
+        strengthAgrees: true,
+        sourceElement: '火',
+        engineElement: '火',
+        elementAgrees: true,
+        sourceRole: '食傷',
+        engineRole: '食傷',
+        roleAgrees: true,
+      },
+      {
+        id: 'dtsm-shuaiwang-mok-wang-geuk',
+        sourceStrength: 'strong',
+        engineStrength: 'strong',
+        strengthAgrees: true,
+        sourceElement: '水',
+        engineElement: '火',
+        elementAgrees: false,
+        sourceRole: '印星',
+        engineRole: '食傷',
+        roleAgrees: false,
+      },
+      {
+        id: 'dtsm-shuaiwang-mok-soe-geuk',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '火',
+        engineElement: '木',
+        elementAgrees: false,
+        sourceRole: '食傷',
+        engineRole: '比劫',
+        roleAgrees: false,
+      },
+      {
+        id: 'dtsm-shuaiwang-hwa-wang',
+        sourceStrength: 'strong',
+        engineStrength: 'strong',
+        strengthAgrees: true,
+        sourceElement: '土',
+        engineElement: '水',
+        elementAgrees: false,
+        sourceRole: '食傷',
+        engineRole: '官星',
+        roleAgrees: false,
+      },
+      {
+        id: 'dtsm-shuaiwang-hwa-wang-geuk',
+        sourceStrength: 'strong',
+        engineStrength: 'strong',
+        strengthAgrees: true,
+        sourceElement: '木',
+        engineElement: '土',
+        elementAgrees: false,
+        sourceRole: '印星',
+        engineRole: '食傷',
+        roleAgrees: false,
+      },
+      {
+        id: 'dtsm-shuaiwang-hwa-soe',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '水',
+        engineElement: '火',
+        elementAgrees: false,
+        sourceRole: '官星',
+        engineRole: '比劫',
+        roleAgrees: false,
+      },
+      {
+        id: 'dtsm-shuaiwang-hwa-soe-geuk',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '土',
+        engineElement: '木',
+        elementAgrees: false,
+        sourceRole: '食傷',
+        engineRole: '印星',
+        roleAgrees: false,
+      },
+      {
+        id: 'dtsm-shuaiwang-to-wang',
+        sourceStrength: 'strong',
+        engineStrength: 'strong',
+        strengthAgrees: true,
+        sourceElement: '金',
+        engineElement: '木',
+        elementAgrees: false,
+        sourceRole: '食傷',
+        engineRole: '官星',
+        roleAgrees: false,
+      },
+      {
+        id: 'dtsm-shuaiwang-to-wang-geuk',
+        sourceStrength: 'strong',
+        engineStrength: 'strong',
+        strengthAgrees: true,
+        sourceElement: '火',
+        engineElement: '木',
+        elementAgrees: false,
+        sourceRole: '印星',
+        engineRole: '官星',
+        roleAgrees: false,
+      },
+      {
+        id: 'dtsm-shuaiwang-to-soe',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '木',
+        engineElement: '土',
+        elementAgrees: false,
+        sourceRole: '官星',
+        engineRole: '比劫',
+        roleAgrees: false,
+      },
+      {
+        id: 'dtsm-shuaiwang-geum-wang',
+        sourceStrength: 'strong',
+        engineStrength: 'strong',
+        strengthAgrees: true,
+        sourceElement: '水',
+        engineElement: '水',
+        elementAgrees: true,
+        sourceRole: '食傷',
+        engineRole: '食傷',
+        roleAgrees: true,
+      },
+      {
+        id: 'dtsm-shuaiwang-geum-wang-geuk',
+        sourceStrength: 'strong',
+        engineStrength: 'strong',
+        strengthAgrees: true,
+        sourceElement: '土',
+        engineElement: '火',
+        elementAgrees: false,
+        sourceRole: '印星',
+        engineRole: '官星',
+        roleAgrees: false,
+      },
+      {
+        id: 'dtsm-shuaiwang-geum-soe',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '火',
+        engineElement: '金',
+        elementAgrees: false,
+        sourceRole: '官星',
+        engineRole: '比劫',
+        roleAgrees: false,
+      },
+      {
+        id: 'dtsm-shuaiwang-geum-soe-geuk',
+        sourceStrength: 'weak',
+        engineStrength: 'weak',
+        strengthAgrees: true,
+        sourceElement: '水',
+        engineElement: '土',
+        elementAgrees: false,
+        sourceRole: '食傷',
+        engineRole: '印星',
+        roleAgrees: false,
+      },
     ]);
 
-    // 채점은 실재 가능한 여섯 건으로만 한다 — 지어낸 조합으로 엔진을 채점할 수 없다.
+    // 채점은 실재 가능한 것으로만 한다 — 지어낸 조합으로 엔진을 채점할 수 없다.
+    const consistent = EOKBU_EXTERNAL_CASES.filter(
+      (testCase) => testCase.chartConstruction === 'consistent',
+    );
     const scored = comparison.filter(({ id }) =>
-      EOKBU_EXTERNAL_CASES.some(
-        (testCase) => testCase.id === id && testCase.chartConstruction === 'consistent',
-      ),
+      consistent.some((testCase) => testCase.id === id),
     );
 
-    expect(scored).toHaveLength(20);
-    // 강약은 열두 건에서 비교 가능하고 그중 열하나가 맞는다(8ja-157 하나만 어긋난다).
+    expect(scored).toHaveLength(34);
+
+    /**
+     * **강약 대조가 열둘에서 스물여섯으로 넓어졌고 성적이 유지됐다.**
+     *
+     * 衰旺편 열넷은 강약 판정을 정면으로 겨눈 자료다 — 오행 다섯 × 旺·旺極·衰·衰極
+     * 로 짜여 각각에 旺/衰가 못박혀 있다. **열넷 다 맞는다.** 어긋나는 하나는
+     * 여전히 `8ja-157` 뿐이다.
+     */
     const strengths = scored.map(({ strengthAgrees }) => strengthAgrees);
-    expect(strengths.filter((agrees) => agrees === true)).toHaveLength(11);
+    expect(strengths.filter((agrees) => agrees === true)).toHaveLength(25);
     expect(strengths.filter((agrees) => agrees === false)).toHaveLength(1);
     expect(strengths.filter((agrees) => agrees === null)).toHaveLength(8);
 
-    // 추천 오행은 스물 중 열하나가 맞는다.
-    // 11 → 10. 잃은 한 칸은 조후로 용신을 고른 명조이고, 그 명조에서 세력을
-    // 읽는 방식은 오히려 저자와 같아졌다(「己見亥子丑」).
-    expect(scored.filter(({ elementAgrees }) => elementAgrees)).toHaveLength(10);
+    /**
+     * **오행 일치는 논리를 나눠 센다.**
+     *
+     * 衰旺편은 억부가 아니라 「旺之極者不可損，衰之極者不可益」으로 용신을 고른다.
+     * 다른 논리로 고른 답을 억부의 정답으로 쓰면 규칙이 아니라 계통을 채점하게
+     * 된다 — 실제로 열넷 중 둘만 맞는데, 그것이 이 규칙이 나빠졌다는 뜻이 아니다.
+     */
+    const agreedOf = (doctrine: string) =>
+      scored.filter((row) => {
+        const testCase = consistent.find((entry) => entry.id === row.id)!;
+        return (testCase.yongsinDoctrine ?? 'eokbu') === doctrine && row.elementAgrees;
+      }).length;
+
+    expect(agreedOf('eokbu')).toBe(10);
+    expect(agreedOf('strength-extremity')).toBe(2);
   });
 
   /**
-   * **계통별로 성적이 갈리는 것이 이 데이터셋의 요점이다.** 중국 계통 열넷 중
-   * 여덟이 맞고 한국 현대 상담 사례는 여섯 중 둘이다. 자료를 넓혀도 이 차이는
-   * 그대로였다 — 우리 억부가 "강약을 먼저 정하고 그 반대편을 고른다"는 자평
-   * 절차에 가깝고, 한국 상담 글은 조후·격국·물상을 함께 섞기 때문이다.
+   * **계통별로 성적이 갈리는 것이 이 데이터셋의 요점이다.** 우리 억부가 "강약을
+   * 먼저 정하고 그 반대편을 고른다"는 자평 절차에 가깝고, 한국 상담 글은 조후·
+   * 격국·물상을 함께 섞기 때문이다.
    *
    * 그러니 **성적이 낮은 쪽에 맞춰 규칙을 흔들면 안 된다.** 어긋난 자리마다 왜
    * 갈렸는지가 `caveats` 에 적혀 있고, 대부분 우리가 일부러 안 보기로 한 것
-   * (합화·공협·조후·격국)에 기대고 있다.
+   * (조후·격국)에 기대고 있다.
+   *
+   * 억부 논리로 고른 답만 센다. 衰旺편 열넷은 계통이 같아도(`classical-chinese`)
+   * 논리가 다르므로 여기 섞으면 계통 차이가 아니라 논리 차이를 보게 된다.
    */
-  it('계통별 오행 일치를 따로 센다', () => {
+  it('계통별 오행 일치를 따로 센다 — 억부 논리로 고른 것만', () => {
     const agreementBy = (lineage: string) => {
       const cases = EOKBU_EXTERNAL_CASES.filter(
-        (c) => c.lineage === lineage && c.chartConstruction === 'consistent',
+        (c) =>
+          c.lineage === lineage &&
+          c.chartConstruction === 'consistent' &&
+          (c.yongsinDoctrine ?? 'eokbu') === 'eokbu',
       );
       const agreed = cases.filter((testCase) => {
         const chart = chartOf(testCase.pillars);
@@ -446,6 +647,13 @@ describe('억부용신 외부 대조 데이터셋', () => {
     expect(agreementBy('korean-modern')).toEqual([2, 6]);
     expect(agreementBy('classical-chinese')).toEqual([3, 3]);
     expect(agreementBy('republican-chinese')).toEqual([5, 11]);
+
+    // 논리가 다른 열넷은 따로 센다 — 억부와 정반대로 가는 것이 정상인 자료다.
+    const extremity = EOKBU_EXTERNAL_CASES.filter(
+      (c) => c.yongsinDoctrine === 'strength-extremity',
+    );
+    expect(extremity).toHaveLength(14);
+    expect(extremity.every((c) => c.lineage === 'classical-chinese')).toBe(true);
   });
 
   /**
