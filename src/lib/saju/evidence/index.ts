@@ -222,6 +222,19 @@ export const EVIDENCE_CONTRACT = {
    * 안 하기로 한 판정을 떠넘기는 것이다. 기준은 `Evidence.viewedAt` 이다.
    */
   fortune: 'current-only',
+  /**
+   * 운끼리 걸리는 것은 **좁은 쪽 칸에 실린다.**
+   *
+   * 대운 한 칸은 열 해라 함께 놓을 세운이 하나가 아니어서, 대운이 세운·월운과
+   * 걸리는 것을 대운 칸이 들 수 없다. 그래서 `now.saeun.relations` 와
+   * `now.wolun.relations` 가 그것을 들고, `now.daeun.relations` 는 원국과 걸리는
+   * 것만 든다. 어느 판의 글자인지는 참여자마다 `chartId` 가 든다.
+   *
+   * **두 자리의 틀이 다르다.** `now.saeun` 은 한 해라 대운 경계를 넘으면 두 대운을
+   * 다 견주고, `now.relations` 는 한 순간이라 지금 도는 대운만 남긴다. 견주려면
+   * `chartId` 를 보고 견준다.
+   */
+  crossedFortunes: 'narrower-chart-holds-the-wider',
   /** `Date` 는 ISO 8601 문자열로 실린다 */
   serialization: 'dates-as-iso-8601',
   /** 낮은 쪽이 먼저 — `claims` 의 값들이 이 사다리 위에 앉는다 */

@@ -32,7 +32,14 @@ const chart = (year: string, month: string, day: string, hour: string) => {
 /** 1992-11-17 05:20 남 — 壬申 辛亥 丁酉 壬寅 */
 const NATAL = chart('壬申', '辛亥', '丁酉', '壬寅');
 
-const wolun = (year: number) => computeWolun({ pillars: NATAL, year });
+/** 같은 사람의 대운 표 — 월운 칸이 자기를 감싼 대운과 견준다 */
+const DAEUN = computeSaju({
+  year: 1992, month: 11, day: 17, hour: 5, minute: 20, second: 0, gender: 'male',
+}).daeun;
+const BIRTH_DATE = { year: 1992, month: 11, day: 17 };
+
+const wolun = (year: number) =>
+  computeWolun({ pillars: NATAL, year, daeun: DAEUN, birthDate: BIRTH_DATE });
 
 describe('열두 달이 절입으로 갈린다', () => {
   it('입춘부터 소한까지 열둘이다', () => {

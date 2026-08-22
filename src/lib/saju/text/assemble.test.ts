@@ -1005,17 +1005,18 @@ describe('조립기', () => {
     });
 
     /**
-     * 목록의 한계 둘이 성질이 다르다. 대운 관계는 **우리 구현**이 못 센 것이라 시각을
-     * 다 알아도 서고, 시주는 **입력**이 빠진 것이라 모를 때만 선다. 한 문장으로 묶으면
-     * "시각을 알면 목록이 온전하다"가 조용히 들어온다.
+     * 목록의 한계 둘이 성질이 다르다. 어느 대운을 기준으로 골랐는지는 **우리가 고른
+     * 것**이라 시각을 다 알아도 서고, 시주는 **입력**이 빠진 것이라 모를 때만 선다.
+     * 한 문장으로 묶으면 "시각을 알면 목록이 온전하다"가 조용히 들어온다.
      */
-    it('운끼리는 보지 않았다는 고지가 시각과 무관하게 선다', () => {
+    it('어느 대운을 기준으로 셌는지가 시각과 무관하게 선다', () => {
       for (const saju of [RICH, HOURLESS]) {
         const coverage = topicOf(nowTextOf(saju), 'now.coverage');
 
         expect(coverage?.strength).toBe('fact');
-        expect(coverage?.text).toContain('원국과 걸리는 것만');
-        expect(coverage?.text).toContain('아직 보지 않습니다');
+        expect(coverage?.text).toContain('지금 도는 대운을 기준으로만');
+        // 덜어 낸 것이 어디 있는지까지 적는다 — 세지 않은 것과 성질이 다르다.
+        expect(coverage?.text).toContain('세운·월운 표에 있습니다');
       }
     });
 

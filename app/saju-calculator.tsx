@@ -49,6 +49,8 @@ import {
   computeSaju,
   currentFortuneOf,
   type CurrentFortune,
+  type DaeunAbsence,
+  type DaeunSpan,
   directionParticipantsOf,
   orderedParticipants,
   toCivil,
@@ -934,9 +936,52 @@ function relationKey(relation: Relation): string {
 }
 
 /**
+ * 이 관계가 **어느 판과 걸렸는가** — 자기 판과 원국은 적지 않는다.
+ *
+ * 세운·월운 칸은 이제 원국만 놓고 보지 않는다. 세운은 자기를 감싼 대운을, 월운은
+ * 그 위에 세운까지 놓고 본다. 종류(`ko`)만 찍으면 **원국과 걸린 것과 대운과 걸린
+ * 것이 한 줄로 읽히고**, 그 둘은 같은 무게가 아니다 — 하나는 타고난 판과 걸린
+ * 것이고 하나는 십 년만 서는 글자와 걸린 것이다.
+ *
+ * 원국을 안 적는 것은 그것이 바탕이기 때문이다. 관계 대부분이 원국과 걸리므로
+ * 다 적으면 딱지가 배경이 되어 아무것도 가르지 못한다. 여기 딱지가 붙은 줄만
+ * 원국 밖의 글자가 낀 것이다.
+ */
+function crossedChartsKo(relation: Relation, selfChartId: string): string | null {
+  const names = new Set<string>();
+
+  for (const participant of relation.participants) {
+    const { chartId } = participant;
+    if (chartId === selfChartId || chartId === 'natal') continue;
+    names.add(
+      chartId.startsWith('decade:') ? '대운' : chartId.startsWith('annual:') ? '세운' : '월운',
+    );
+  }
+
+  return names.size > 0 ? [...names].join('·') : null;
+}
+
+/** 걸친 대운을 한 줄로 — 경계를 넘으면 둘이다 */
+function daeunSpanLabel(spans: readonly DaeunSpan[]): string | null {
+  if (spans.length === 0) return null;
+  return spans.map((span) => `${span.index}대운`).join('·');
+}
+
+/**
+ * 걸친 대운이 없는 까닭 — **둘을 가른다.**
+ *
+ * 앞은 이 사람에 대한 사실이라 그대로 적고, 뒤는 우리가 뽑은 칸 수의 한계라
+ * 그렇게 적는다. 하나로 묶으면 우리 표의 한계가 그 사람의 사실처럼 읽힌다.
+ */
+const DAEUN_ABSENCE_KO: Record<DaeunAbsence, string> = {
+  'before-first': '대운 전',
+  'beyond-table': '표 밖',
+};
+
+/**
  * 세운 — 해마다의 간지.
  *
- * 대운 표와 같은 모양으로 늘어놓되, 세운은 **원국과 무엇을 하는가**가 본론이라
+ * 대운 표와 같은 모양으로 늘어놓되, 세운은 **원국·대운과 무엇을 하는가**가 본론이라
  * 관계를 칸 아래에 함께 적는다. 그 관계는 원국 안에서 닫힌 것을 뺀 것이다 —
  * 그건 해마다 같아서 세운 칸에 적을 이유가 없다.
  *
@@ -964,7 +1009,7 @@ function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
 
       <div className="mt-4 snap-x snap-proximity overflow-x-auto">
         <table className="w-full min-w-[52rem] border-collapse text-center">
-          <caption className="sr-only">해마다의 간지와 원국과의 관계</caption>
+          <caption className="sr-only">해마다의 간지와 원국·대운과의 관계</caption>
           <thead>
             <tr>
               {entries.map((entry) => {
@@ -978,6 +1023,15 @@ function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                     {current && <span className="ml-1 text-[10px] font-medium">현재</span>}
                     <span className="block text-[11px] text-muted">
                       {ageRangeLabel(entry.ageAtStart, entry.ageAtEnd)}
+                    </span>
+                    {/*
+                      그 해가 어느 대운 안에 있는가. 아래 관계 목록이 대운과 걸린 것을
+                      함께 내므로, 어느 대운인지가 여기 없으면 딱지만 있고 대상이 없다.
+                      한 해가 대운 경계를 넘으면 둘이 적힌다 — 실제로 두 대운이 지난다.
+                    */}
+                    <span className="block text-[10px] text-muted">
+                      {daeunSpanLabel(entry.daeunSpans) ??
+                        (entry.daeunAbsence ? DAEUN_ABSENCE_KO[entry.daeunAbsence] : '')}
                     </span>
                   </th>
                 );
@@ -1015,14 +1069,22 @@ function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                     </div>
 
                     <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
-                      {entry.relations.map((relation) => (
-                        <li key={relationKey(relation)}>
-                          {relation.ko}
-                          {relation.scope === 'combinedFormation' && (
-                            <span className="text-muted"> 합쳐서</span>
-                          )}
-                        </li>
-                      ))}
+                      {entry.relations.map((relation) => {
+                        const crossed = crossedChartsKo(relation, entry.chartId);
+                        return (
+                          <li key={relationKey(relation)}>
+                            {relation.ko}
+                            {/*
+                              딱지가 둘 붙을 수 있다 — '사유축 금국 대운 합쳐서' 는 어디까지가
+                              관계 이름인지 읽히지 않는다. 가운뎃점이 그것을 가른다.
+                            */}
+                            {crossed !== null && <span className="text-muted"> · {crossed}</span>}
+                            {relation.scope === 'combinedFormation' && (
+                              <span className="text-muted"> · 합쳐서</span>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </td>
                 );
@@ -1035,8 +1097,12 @@ function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
         칸 안은 위에서부터 천간 십성 · 간지 · 지지 십성 · 12운성(일간 기준) ·
-        12신살(년지 기준)입니다. 아래 목록은 그 해가 원국과 맺는 관계로, 원국
-        안에서만 성립하는 관계는 뺐습니다.
+        12신살(년지 기준)입니다. 아래 목록은 그 해가{' '}
+        <strong className="font-medium">원국과 그 해를 감싼 대운</strong>에 대해 맺는
+        관계로, 원국 안에서만 성립하는 관계와 원국·대운 사이의 관계는 뺐습니다.
+        대운과 걸린 줄에는 <span className="text-secondary">대운</span> 딱지가 붙습니다.
+        머리의 <span className="text-secondary">N대운</span>은 그 해가 지나는
+        대운이고, 대운 경계를 넘는 해에는 둘이 적힙니다.
       </p>
     </section>
   );
@@ -1113,9 +1179,15 @@ function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                   </div>
 
                   <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
-                    {entry.relations.map((relation) => (
-                      <li key={relationKey(relation)}>{relation.ko}</li>
-                    ))}
+                    {entry.relations.map((relation) => {
+                      const crossed = crossedChartsKo(relation, entry.chartId);
+                      return (
+                        <li key={relationKey(relation)}>
+                          {relation.ko}
+                          {crossed !== null && <span className="text-muted"> · {crossed}</span>}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </td>
               ))}
@@ -1126,9 +1198,11 @@ function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
       <HorizontalScrollHint />
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-        아래 목록은 그 달이 <strong className="font-medium">원국과 세운</strong>에 대해
-        맺는 관계입니다. 그 달이 끼지 않은 관계는 빼두었습니다 — 원국 안에서
-        닫힌 것도, 원국과 세운 사이의 것도 여기 적을 이유가 없습니다.
+        아래 목록은 그 달이 <strong className="font-medium">원국과 세운과 대운</strong>에
+        대해 맺는 관계입니다. 그 달이 끼지 않은 관계는 빼두었습니다 — 원국 안에서
+        닫힌 것도, 원국·세운·대운끼리의 것도 여기 적을 이유가 없습니다. 원국 밖의
+        글자가 낀 줄에는 <span className="text-secondary">세운</span>·
+        <span className="text-secondary">대운</span> 딱지가 붙습니다.
       </p>
     </section>
   );
@@ -1230,9 +1304,10 @@ function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
 
       <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
         칸 안은 위에서부터 천간 십성 · 간지 · 지지 십성 · 12운성(일간 기준) ·
-        12신살(년지 기준)입니다. 아래 목록은 그 대운이 원국과 맺는 관계로,{' '}
-        <strong className="font-medium">세운·월운은 함께 놓지 않았습니다</strong> — 한 칸이
-        열 해라 함께 놓을 세운이 하나가 아닙니다. 나이는 만 나이입니다.
+        12신살(년지 기준)입니다. 아래 목록은 그 대운이 원국과 맺는 관계입니다.{' '}
+        <strong className="font-medium">세운·월운과 걸리는 것은 세운·월운 표에 있습니다</strong>{' '}
+        — 한 칸이 열 해라 함께 놓을 세운이 하나가 아니어서, 좁은 쪽이 자기를 감싼 대운을
+        듭니다. 나이는 만 나이입니다.
         {daeun.approximate && ' 출생 시각을 몰라 정오 기준으로 계산해 대운수가 두어 달 흔들립니다.'}
       </p>
     </section>

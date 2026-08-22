@@ -722,7 +722,8 @@ export function groundedNowTermsOf(now: CurrentFortune): string[] {
  * `UNCOVERED_FACTS`·`UNCOVERED_COMPAT_FACTS` 와 같은 구실이고, 목록을 나눈 것은
  * 세는 대상이 `Saju` 도 `Compatibility` 도 아니기 때문이다. 여기 적힌 것들은
  * `UNCOVERED_NOW_FACTS`(엔진이 아직 세지 않는 것)와 다르다 — **이쪽은 값이 있는데
- * 주제가 없는 것**이다. 대운 관계는 그래서 이 목록에 없고 저쪽에 있다.
+ * 주제가 없는 것**이다. 운끼리의 관계는 이제 둘 중 어느 목록에도 없다 — 세어지고
+ * 발화한다.
  */
 export const UNCOVERED_NOW_TOPICS: readonly string[] = [
   'saeun.stage · wolun.stage (일간이 그 지지에서 어떤 상태인가)',
@@ -807,7 +808,7 @@ export function findNowUtterances(now: CurrentFortune): FragmentRequest[] {
 
   // 목록의 한계 둘이 나란히 선다. 앞은 **우리 구현**이 못 센 것이라 늘 서고,
   // 뒤는 **입력**이 빠진 것이라 시각을 모를 때만 선다.
-  requests.push({ ...base, topic: 'now.coverage', variant: 'fortunes-not-crossed', slots: {} });
+  requests.push({ ...base, topic: 'now.coverage', variant: 'other-daeun-omitted', slots: {} });
 
   if (!now.hourKnown) {
     requests.push({ ...base, topic: 'relation.coverage', variant: 'natal', slots: {} });

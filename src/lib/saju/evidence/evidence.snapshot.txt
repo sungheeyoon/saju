@@ -6,6 +6,7 @@
   "strength": "derived-from-claim-ceiling",
   "relations": "index-free",
   "fortune": "current-only",
+  "crossedFortunes": "narrower-chart-holds-the-wider",
   "serialization": "dates-as-iso-8601",
   "strengthLadder": [
     "silent",
@@ -191,6 +192,8 @@
     stage: string
     spirits: {2}
     relations: [7]
+    daeunSpans: [1]
+    daeunAbsence: object
   wolun:
     year: number
     monthOrder: number
@@ -202,6 +205,8 @@
     stage: string
     spirits: {2}
     relations: [4]
+    daeunSpans: [1]
+    daeunAbsence: object
   relations: [15]
   hourKnown: boolean
 
@@ -235,5 +240,5 @@
 }
 
 ── 크기
-  한 사람  28KB
-  두 사람  91KB
+  한 사람  31KB
+  두 사람  95KB

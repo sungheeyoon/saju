@@ -191,8 +191,11 @@ describe('현재운 — 아무것도 새로 세지 않는다', () => {
   });
 
   /**
-   * 대운 칸이 관계를 들게 된 것이 이 자리에서 값을 낸다 — 그 전에는 대운이 원국과
-   * 무엇을 하는지가 현재운 어디에도 없었고, 문장이 그것을 고지로 대신 말했다.
+   * 대운이 낀 관계가 **두 갈래로** 있다.
+   *
+   * 대운 칸이 내는 것은 원국과 걸리는 것뿐이다 — 한 칸이 열 해라 함께 놓을 세운이
+   * 하나가 아니어서다. 대운이 세운·월운과 걸리는 것은 그 좁은 칸이 들고 오므로,
+   * 이 목록에는 대운 칸이 낸 것보다 많은 대운 관계가 있어야 한다.
    */
   it('대운이 낀 관계가 목록에 있다', () => {
     const saju = chart();
@@ -204,7 +207,17 @@ describe('현재운 — 아무것도 새로 세지 않는다', () => {
     const fromDaeun = now.relations.filter((relation) =>
       relation.participants.some((participant) => participant.chartId === now.daeun!.chartId),
     );
-    expect(fromDaeun).toEqual(now.daeun!.relations);
+
+    // 대운 칸이 낸 것은 하나도 빠지지 않는다.
+    expect(fromDaeun).toEqual(expect.arrayContaining(now.daeun!.relations));
+
+    // 그 위에 얹힌 것은 전부 세운·월운이 함께 낀 것이다 — 대운 칸이 못 내는 것들이다.
+    const crossed = fromDaeun.filter((relation) => !now.daeun!.relations.includes(relation));
+    expect(crossed.length).toBeGreaterThan(0);
+    for (const relation of crossed) {
+      const charts = relation.participants.map((participant) => participant.chartId);
+      expect(charts.includes(now.saeun.chartId) || charts.includes(now.wolun.chartId)).toBe(true);
+    }
   });
 
   /** 첫 대운 전이면 담을 대운 칸이 없다 — 없는 판의 관계를 지어내지 않는다 */
@@ -311,13 +324,37 @@ describe('현재운 정책', () => {
   });
 
   /**
-   * **고지가 좁아지는 것이 채워졌다는 증거다.** 대운 관계가 들어오면서 그 줄이
-   * 사라지고, 그 자리에서 더 좁은 공백이 드러났다 — 세 칸이 저마다 원국과의 관계만
-   * 내고 운끼리는 아무도 안 본다.
+   * **고지가 좁아지는 것이 채워졌다는 증거다.** 대운 관계가 들어오며 한 줄이 사라졌고,
+   * 세운·월운이 자기를 감싼 대운까지 견주게 되면서 두 줄이 더 사라졌다. 남은 것은
+   * 값이 없는 것이 아니라 값은 있는데 주제가 없는 것뿐이다.
    */
   it('아직 내지 않는 사실을 목록으로 남긴다', () => {
     expect(UNCOVERED_NOW_FACTS.some((fact) => fact.startsWith('daeun.relations'))).toBe(false);
-    expect(UNCOVERED_NOW_FACTS.some((fact) => fact.startsWith('saeun × daeun'))).toBe(true);
-    expect(UNCOVERED_NOW_FACTS.some((fact) => fact.startsWith('wolun × daeun'))).toBe(true);
+    expect(UNCOVERED_NOW_FACTS.some((fact) => fact.startsWith('saeun × daeun'))).toBe(false);
+    expect(UNCOVERED_NOW_FACTS.some((fact) => fact.startsWith('wolun × daeun'))).toBe(false);
+    expect(UNCOVERED_NOW_FACTS.some((fact) => fact.startsWith('stages · sinsal'))).toBe(true);
+  });
+
+  /**
+   * 지금은 한 순간이라 대운도 하나다.
+   *
+   * 세운 칸은 그 해에 걸친 대운을 다 견주므로, 대운 경계를 넘는 해에는 지금 돌지
+   * 않는 대운과 걸린 관계가 섞여 있다. 현재운은 그것을 덜어 낸다 — 표에서는 맞고
+   * 여기서는 아닌 값이다.
+   */
+  it('지금 도는 대운이 아닌 칸과 걸린 관계는 현재운 목록에 없다', () => {
+    const saju = computeSaju({
+      year: 1992, month: 11, day: 17, hour: 5, minute: 20, second: 0, gender: 'male',
+    });
+    const now = currentFortuneOf(saju, new Date('2026-08-17T12:06:00Z'));
+
+    const decades = now.relations.flatMap((relation) =>
+      relation.participants
+        .map((participant) => participant.chartId)
+        .filter((chartId) => chartId.startsWith('decade:')),
+    );
+
+    expect(new Set(decades).size).toBeLessThanOrEqual(1);
+    for (const chartId of decades) expect(chartId).toBe(now.daeun?.chartId);
   });
 });

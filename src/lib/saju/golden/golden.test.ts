@@ -33,11 +33,47 @@ import {
   directionParticipantsOf,
   formatPillars,
   formatRelation,
+  type Relation,
   type Saju,
 } from '@/src/lib/saju';
 import { getSolarTerms } from '@/src/lib/saju/solarTerms';
 
 const pad = (n: number) => String(n).padStart(2, '0');
+
+/** 계산판 이름을 사람이 읽는 낱말로 — 'decade:4' → '대운' */
+function chartKo(chartId: string): string {
+  if (chartId === 'natal') return '원국';
+  if (chartId.startsWith('decade:')) return '대운';
+  if (chartId.startsWith('annual:')) return '세운';
+  if (chartId.startsWith('monthly:')) return '월운';
+  return chartId;
+}
+
+/**
+ * 걸린 관계를 **어느 판과 걸렸는지로 묶어** 적는다.
+ *
+ * 한동안 전부 '원국과' 로 적었다. 세운 칸이 원국만 놓고 보던 동안은 맞는 말이었지만,
+ * 월운이 세운을 함께 놓게 되고 이제 셋이 대운까지 놓게 되면서 **거짓이 됐다** —
+ * 대운과 걸린 것과 원국과 걸린 것이 한 낱말 아래 섞이면 골든이 새 축을 못 지킨다.
+ *
+ * 자기 판은 이름에서 뺀다. 세운 줄에 '세운과' 라고 적힐 자리는 없다.
+ */
+function crossedLabel(selfChartId: string, relations: readonly Relation[]): string {
+  const groups = new Map<string, string[]>();
+
+  for (const relation of relations) {
+    const others = [
+      ...new Set(
+        relation.participants.map((p) => p.chartId).filter((id) => id !== selfChartId),
+      ),
+    ]
+      .map(chartKo)
+      .join('·');
+    groups.set(others, [...(groups.get(others) ?? []), relation.ko]);
+  }
+
+  return [...groups].map(([where, kos]) => `  ${where}과 ${kos.join(' ')}`).join('');
+}
 
 function formatCase(golden: GoldenCase, saju: Saju): string {
   const { input, options } = golden;
@@ -85,14 +121,13 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
    * 규칙이 지켜지는 방법이 골든이다. 세 해·세 달만 찍는 것과 같은 이유로 셋만 찍는다.
    */
   for (const entry of daeun.entries.slice(0, 3)) {
-    const crossed = entry.relations.map((r) => r.ko).join(' ');
     lines.push(
       `  대운칸 ${entry.index} ${entry.pillar.name}` +
         ` 만 ${entry.startAge}→${entry.endAge}세` +
         `  ${TEN_GOD_KO[entry.tenGods.stem]}/${TEN_GOD_KO[entry.tenGods.branch]}` +
         ` ${TWELVE_STAGE_KO[entry.stage]}` +
         ` ${TWELVE_SPIRIT_KO[entry.spirits.year]}` +
-        `${crossed ? `  원국과 ${crossed}` : ''}`,
+        crossedLabel(entry.chartId, entry.relations),
     );
   }
 
@@ -218,23 +253,23 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
   // 세운은 골든 케이스마다 출생년부터 세 해만 찍는다 — 열 해를 다 찍으면
   // 스냅샷이 세운으로 뒤덮여 나머지 회귀가 묻힌다.
   for (const entry of saju.saeun.entries.slice(0, 3)) {
-    const crossed = entry.relations.map((r) => r.ko).join(' ');
     lines.push(
       `  세운   ${entry.year} ${entry.pillar.name}` +
         ` 만 ${entry.ageAtStart}→${entry.ageAtEnd}세` +
         `  ${TEN_GOD_KO[entry.tenGods.stem]}/${TEN_GOD_KO[entry.tenGods.branch]}` +
-        ` ${TWELVE_STAGE_KO[entry.stage]}${crossed ? `  원국과 ${crossed}` : ''}`,
+        ` ${TWELVE_STAGE_KO[entry.stage]}` +
+        crossedLabel(entry.chartId, entry.relations),
     );
   }
 
   // 월운은 열두 달 중 첫 세 달만. 전부 찍으면 스냅샷이 월운으로 뒤덮인다.
   for (const entry of saju.wolun.entries.slice(0, 3)) {
-    const crossed = entry.relations.map((r) => r.ko).join(' ');
     lines.push(
       `  월운   ${entry.year}-${String(entry.monthOrder).padStart(2, '0')} ${entry.pillar.name}` +
         ` ${entry.startTerm.name}` +
         `  ${TEN_GOD_KO[entry.tenGods.stem]}/${TEN_GOD_KO[entry.tenGods.branch]}` +
-        ` ${TWELVE_STAGE_KO[entry.stage]}${crossed ? `  ${crossed}` : ''}`,
+        ` ${TWELVE_STAGE_KO[entry.stage]}` +
+        crossedLabel(entry.chartId, entry.relations),
     );
   }
 
@@ -365,11 +400,11 @@ describe('골든 테스트', () => {
       ),
       '',
       '  세운  해의 경계는 입춘이다. 간지는 연주 도출과 같은 함수에서 나온다.',
-      '        원국과의 관계는 세운이 낀 것만 — 원국 안에서 닫힌 관계는 해마다 같다.',
+      '        관계는 원국과 그 해를 감싼 대운을 함께 놓고 보되 그 해가 낀 것만 남긴다.',
       '        계산판이 섞이면 기둥 사이의 거리라는 것이 없어 distance 가 null 이다.',
       '',
       '  월운  경계는 절입이다. 월간은 오호둔, 월지는 절기 — 월주 도출과 같은 함수다.',
-      '        관계는 원국·세운을 함께 놓고 보되 그 달이 낀 것만 남긴다.',
+      '        관계는 원국·세운·대운을 함께 놓고 보되 그 달이 낀 것만 남긴다.',
       '',
       '  현재운  "그중 어느 칸이 지금인가"는 여덟 글자에서 나오지 않고 보는 시각에서 나온다.',
       '        엔진은 그 시각을 스스로 묻지 않고 넘겨받는다 — Date.now() 를 부르면 순수 함수가',

@@ -174,8 +174,9 @@ export type DaeunEntry = {
    *
    * **원국만 놓고 본다.** 월운이 원국·세운을 함께 놓고 보는 것과 갈리는데, 이유는
    * 규칙이 아니라 산술이다 — 대운 한 칸은 열 해라 **함께 놓을 세운이 하나가 아니다.**
-   * 대운과 세운 사이의 관계는 그래서 여기가 아니라 세운 칸이 들 몫이고, 아직
-   * 아무도 세지 않는다(`UNCOVERED_NOW_FACTS`).
+   * 그래서 대운과 세운·월운 사이의 관계는 여기가 아니라 **좁은 쪽이 든다**
+   * (`SaeunEntry.relations`·`WolunEntry.relations`). 한 해는 자기를 감싼 대운을
+   * 가리킬 수 있고, 대운 한 칸은 자기가 감싼 열 해를 하나로 가리킬 수 없다.
    */
   relations: Relation[];
 };
@@ -338,4 +339,109 @@ export function daeunAtAge(daeun: Daeun, age: number): DaeunEntry | null {
       (entry) => age >= entry.startAge && age < entry.startAge + YEARS_PER_DAEUN,
     ) ?? null
   );
+}
+
+/**
+ * 대운을 못 짚는 두 가지 이유 — **성질이 다르다.**
+ *
+ * 앞은 이 사람에 대한 사실이고 뒤는 우리가 뽑은 칸 수의 한계다. 하나로 묶으면
+ * 우리 표의 한계를 그 사람의 사실인 것처럼 말하게 된다.
+ */
+export type DaeunAbsence =
+  /** 첫 대운이 아직 오지 않았다. 대운수가 7이면 만 6세까지는 대운이 없다 */
+  | 'before-first'
+  /** 대운 표가 짧아 그 나이가 표 밖이다 — `DaeunOptions.count`(기본 9칸)의 한계다 */
+  | 'beyond-table';
+
+/**
+ * 나이 구간에 걸친 대운 칸들 — **하나가 아닐 수 있다.**
+ *
+ * `daeunAtAge` 는 한 순간을 묻고 이쪽은 한 구간을 묻는다. 세운 한 해는 입춘에서
+ * 입춘까지라 생일을 반드시 한 번 넘고, 그래서 **언제나 두 나이에 걸친다**
+ * (`ageAtStart`·`ageAtEnd`). 그 두 나이가 대운 경계를 사이에 두면 한 해가 두
+ * 대운에 걸린다 — 열 해에 한 번꼴이라 드물지 않다.
+ *
+ * 걸친 것을 하나로 반올림하지 않는다. 어느 쪽을 고르든 그 해의 절반은 틀린
+ * 대운과 견주게 되고, 틀렸다는 사실이 값 어디에도 남지 않는다.
+ */
+export function daeunSpanningAges(
+  daeun: Daeun,
+  fromAge: number,
+  toAge: number,
+): DaeunEntry[] {
+  return daeun.entries.filter(
+    (entry) => entry.startAge <= toAge && fromAge < entry.startAge + YEARS_PER_DAEUN,
+  );
+}
+
+/**
+ * 어느 대운이 이 구간을 덮는가 — **칸을 통째로 싣지 않는다.**
+ *
+ * `DaeunEntry` 를 그대로 끼워 넣으면 그 안의 관계·십성·신살이 세운 칸마다 한 벌씩
+ * 복사되어 밖으로 나가는 자료가 부풀고, 같은 값이 두 곳에 있어 언젠가 어긋난다.
+ * 가리키는 이름(`chartId`)과 덮는 구간만 남기고 나머지는 대운 표에서 찾는다.
+ */
+export type DaeunSpan = {
+  /** 관계 연산에서 이 칸을 가리키는 이름 — 'decade:4' */
+  chartId: string;
+  index: number;
+  /** 이 구간 안에서 이 대운이 덮는 만 나이 */
+  fromAge: number;
+  toAge: number;
+};
+
+/**
+ * 세운·월운 칸이 자기를 감싼 대운과 맺는 관계.
+ *
+ * **좁은 쪽이 넓은 쪽을 든다.** 월운이 세운을 함께 놓고 보는 것과 같은 방향이고,
+ * 대운 칸이 이것을 들 수 없는 이유는 위(`DaeunEntry.relations`)에 적었다.
+ *
+ * 이미 놓인 판(`context` — 세운이면 원국, 월운이면 원국·세운)을 함께 넘겨받아
+ * **세 글자 구조까지 본다.** 원국의 亥와 대운의 卯와 세운의 未가 만나 木局이 서는
+ * 것은 두 판만 놓고는 영영 안 보인다.
+ *
+ * 걸린 대운이 둘이면 판마다 따로 센다. 둘을 한 번에 놓으면 **동시에 있지 않은 두
+ * 대운 사이의 관계**가 생겨 버린다 — 3대운과 4대운은 서로 만나는 일이 없다.
+ */
+export function daeunCrossingsOf(
+  daeun: Daeun,
+  ages: { fromAge: number; toAge: number },
+  context: readonly LabeledPillars[],
+  own: LabeledPillars,
+): { spans: DaeunSpan[]; relations: Relation[]; absence: DaeunAbsence | null } {
+  const entries = daeunSpanningAges(daeun, ages.fromAge, ages.toAge);
+
+  const spans = entries.map((entry) => ({
+    chartId: entry.chartId,
+    index: entry.index,
+    fromAge: Math.max(entry.startAge, ages.fromAge),
+    toAge: Math.min(entry.endAge, ages.toAge),
+  }));
+
+  const relations = entries.flatMap((entry) => {
+    // 대운도 기둥이 하나뿐이다 — 대운 표를 뽑을 때와 같은 자리('month')를 쓴다.
+    const decade: LabeledPillars = {
+      chartId: entry.chartId,
+      pillars: { year: null, month: entry.pillar, day: null, hour: null },
+    };
+
+    // 이 칸과 그 대운이 **둘 다** 낀 것만. 한쪽만 낀 것은 이미 다른 곳에 있다 —
+    // 원국↔대운은 대운 칸이, 원국↔세운은 세운 칸이 벌써 들고 있다.
+    return findRelationsAmong([...context, decade, own]).filter(
+      (relation) =>
+        relation.participants.some((p) => p.chartId === own.chartId) &&
+        relation.participants.some((p) => p.chartId === entry.chartId),
+    );
+  });
+
+  return {
+    spans,
+    relations,
+    absence:
+      spans.length > 0
+        ? null
+        : ages.toAge < daeun.entries[0].startAge
+          ? 'before-first'
+          : 'beyond-table',
+  };
 }

@@ -434,8 +434,6 @@ L3 문장 골든 — 발화 판정과 조립
     saeun.startTerm · wolun.startTerm (그 칸이 언제부터 언제까지인가)
 
   엔진이 아직 세지 않아 문장이 될 수 없는 것 — 위와 다른 공백이다.
-    saeun × daeun (그 해를 감싼 대운과의 관계 — 월운이 세운을 놓는 것과 같은 방향인데 비어 있다)
-    wolun × daeun (그 달을 감싼 대운과의 관계)
     stages · sinsal (세 칸이 이미 계산해 두었으나 주제가 없다)
 
 ==============================================================================
@@ -444,7 +442,7 @@ L3 문장 골든 — 발화 판정과 조립
    사주  癸未 乙酉 辛巳 庚午
    기준  2026-08-17T21:06:00+09:00  만 36세
    대운 4번째 乙酉 · 세운 2026 · 사주월 7
-   발화 18 · 문장 18
+   발화 19 · 문장 19
 
     ✓ now.asOf/instant@fact
         사실     2026년 8월 17일 21시 6분 기준으로 짚은 운입니다. 해는 입춘에서, 달은 절입에서 갈립니다. 다시 제출하기 전까지는 이 기준 시각이 바뀌지 않습니다.
@@ -454,8 +452,8 @@ L3 문장 골든 — 발화 판정과 조립
         사실     2026년 세운 丙午 — 천간 상관 · 지지 식신
     ✓ now.wolun/month@fact
         사실     신월 월운 丙申 — 천간 상관 · 지지 정관
-    ✓ now.coverage/fortunes-not-crossed@fact
-        사실     세 칸이 저마다 원국과 걸리는 것만 셌습니다. 대운과 세운·월운이 서로 걸리는 것은 아직 보지 않습니다.
+    ✓ now.coverage/other-daeun-omitted@fact
+        사실     운끼리 걸리는 것은 지금 도는 대운을 기준으로만 셌습니다. 한 해나 한 달이 대운 경계를 넘으면 다른 쪽 대운과 걸리는 것은 이 목록에 없고, 세운·월운 표에 있습니다.
     ✓ relation.present/row@fact
         사실     년간 庚 · 대운 월간 乙 — 을경합금
     ✓ relation.present/row@fact
@@ -482,13 +480,15 @@ L3 문장 골든 — 발화 판정과 조립
         사실     월지 巳 · 월운 월지 申 — 사신형
     ✓ relation.present/row@fact
         사실     월지 巳 · 월운 월지 申 — 사신파
+    ✓ relation.present/row@fact
+        사실     대운 월지 酉 · 월운 월지 申 — 신유 반방합
 
 ── now-before-ipchun
    입춘 전의 1월 — 세운은 아직 전 해이고 월운은 열두 번째 달이다
    사주  癸未 乙酉 辛巳 庚午
    기준  2026-01-20T12:00:00+09:00  만 35세
    대운 3번째 甲申 · 세운 2025 · 사주월 12
-   발화 21 · 문장 21
+   발화 25 · 문장 25
 
     ✓ now.asOf/instant@fact
         사실     2026년 1월 20일 12시 0분 기준으로 짚은 운입니다. 해는 입춘에서, 달은 절입에서 갈립니다. 다시 제출하기 전까지는 이 기준 시각이 바뀌지 않습니다.
@@ -498,8 +498,8 @@ L3 문장 골든 — 발화 판정과 조립
         사실     2025년 세운 乙巳 — 천간 비견 · 지지 상관
     ✓ now.wolun/month@fact
         사실     축월 월운 己丑 — 천간 편재 · 지지 편재
-    ✓ now.coverage/fortunes-not-crossed@fact
-        사실     세 칸이 저마다 원국과 걸리는 것만 셌습니다. 대운과 세운·월운이 서로 걸리는 것은 아직 보지 않습니다.
+    ✓ now.coverage/other-daeun-omitted@fact
+        사실     운끼리 걸리는 것은 지금 도는 대운을 기준으로만 셌습니다. 한 해나 한 달이 대운 경계를 넘으면 다른 쪽 대운과 걸리는 것은 이 목록에 없고, 세운·월운 표에 있습니다.
     ✓ relation.present/row@fact
         사실     월지 巳 · 대운 월지 申 — 사신합수
     ✓ relation.present/row@fact
@@ -518,6 +518,12 @@ L3 문장 골든 — 발화 판정과 조립
         사실     년지 午 · 시지 未 · 세운 년지 巳 — 사오미 화방 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/row@fact
         사실     월간 辛 · 세운 년간 乙 — 을신충
+    ✓ relation.present/row@fact
+        사실     대운 월지 申 · 세운 년지 巳 — 사신합수
+    ✓ relation.present/row@fact
+        사실     세운 년지 巳 · 대운 월지 申 — 사신형
+    ✓ relation.present/row@fact
+        사실     대운 월지 申 · 세운 년지 巳 — 사신파
     ✓ relation.present/combined@fact
         사실     월지 巳 · 일지 酉 · 월운 월지 丑 — 사유축 금국 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/combined@fact
@@ -532,13 +538,15 @@ L3 문장 골든 — 발화 판정과 조립
         사실     년지 午 · 월운 월지 丑 — 축오원진
     ✓ relation.present/row@fact
         사실     년지 午 · 월운 월지 丑 — 축오귀문
+    ✓ relation.present/row@fact
+        사실     대운 월간 甲 · 월운 월간 己 — 갑기합토
 
 ── now-hour-unknown
    시간 미상 — 대운만 내려앉고 세운·월운 행은 사실 그대로다
    사주  시미상 乙酉 辛巳 庚午
    기준  2026-08-17T21:06:00+09:00  만 36세
    대운 4번째 乙酉 · 세운 2026 · 사주월 7
-   발화 18 · 문장 18
+   발화 19 · 문장 19
 
     ✓ now.asOf/instant@fact
         사실     2026년 8월 17일 21시 6분 기준으로 짚은 운입니다. 해는 입춘에서, 달은 절입에서 갈립니다. 다시 제출하기 전까지는 이 기준 시각이 바뀌지 않습니다.
@@ -548,8 +556,8 @@ L3 문장 골든 — 발화 판정과 조립
         사실     2026년 세운 丙午 — 천간 상관 · 지지 식신
     ✓ now.wolun/month@fact
         사실     신월 월운 丙申 — 천간 상관 · 지지 정관
-    ✓ now.coverage/fortunes-not-crossed@fact
-        사실     세 칸이 저마다 원국과 걸리는 것만 셌습니다. 대운과 세운·월운이 서로 걸리는 것은 아직 보지 않습니다.
+    ✓ now.coverage/other-daeun-omitted@fact
+        사실     운끼리 걸리는 것은 지금 도는 대운을 기준으로만 셌습니다. 한 해나 한 달이 대운 경계를 넘으면 다른 쪽 대운과 걸리는 것은 이 목록에 없고, 세운·월운 표에 있습니다.
     ✓ relation.coverage/natal@fact
         사실     시주를 빼고 센 목록이라 그 자리가 낄 관계는 여기 없습니다.
     ✓ relation.present/row@fact
@@ -576,6 +584,8 @@ L3 문장 골든 — 발화 판정과 조립
         사실     월지 巳 · 월운 월지 申 — 사신형
     ✓ relation.present/row@fact
         사실     월지 巳 · 월운 월지 申 — 사신파
+    ✓ relation.present/row@fact
+        사실     대운 월지 酉 · 월운 월지 申 — 신유 반방합
 
 ── now-before-first-daeun
    첫 대운 전 — 아직 없다는 것은 이 사람의 사실이라 말한다
@@ -592,8 +602,8 @@ L3 문장 골든 — 발화 판정과 조립
         사실     2026년 세운 丙午 — 천간 편인 · 지지 정인
     ✓ now.wolun/month@fact
         사실     신월 월운 丙申 — 천간 편인 · 지지 식신
-    ✓ now.coverage/fortunes-not-crossed@fact
-        사실     세 칸이 저마다 원국과 걸리는 것만 셌습니다. 대운과 세운·월운이 서로 걸리는 것은 아직 보지 않습니다.
+    ✓ now.coverage/other-daeun-omitted@fact
+        사실     운끼리 걸리는 것은 지금 도는 대운을 기준으로만 셌습니다. 한 해나 한 달이 대운 경계를 넘으면 다른 쪽 대운과 걸리는 것은 이 목록에 없고, 세운·월운 표에 있습니다.
     ✓ relation.present/row@fact
         사실     일지 寅 · 세운 년지 午 — 인오 반합
     ✓ relation.present/row@fact
@@ -630,8 +640,8 @@ L3 문장 골든 — 발화 판정과 조립
         사실     2026년 세운 丙午 — 천간 편인 · 지지 정인
     ✓ now.wolun/month@fact
         사실     신월 월운 丙申 — 천간 편인 · 지지 식신
-    ✓ now.coverage/fortunes-not-crossed@fact
-        사실     세 칸이 저마다 원국과 걸리는 것만 셌습니다. 대운과 세운·월운이 서로 걸리는 것은 아직 보지 않습니다.
+    ✓ now.coverage/other-daeun-omitted@fact
+        사실     운끼리 걸리는 것은 지금 도는 대운을 기준으로만 셌습니다. 한 해나 한 달이 대운 경계를 넘으면 다른 쪽 대운과 걸리는 것은 이 목록에 없고, 세운·월운 표에 있습니다.
     ✓ relation.present/row@fact
         사실     일지 戌 · 세운 년지 午 — 오술 반합
     ✓ relation.present/row@fact

@@ -171,9 +171,11 @@ test('지금의 운이 기준 시각과 세 칸을 한 번씩 보인다', async 
   expect(text.match(/년 세운 /g)).toHaveLength(1);
   expect(text.match(/월 월운 /g)).toHaveLength(1);
   expect(text.match(/기준으로 짚은 운입니다/g)).toHaveLength(1);
-  expect(text.match(/원국과 걸리는 것만 셌습니다/g)).toHaveLength(1);
+  expect(text.match(/지금 도는 대운을 기준으로만 셌습니다/g)).toHaveLength(1);
   // 대운 관계가 실제로 행으로 선다 — 고지가 좁아진 것이 채워졌다는 증거다.
   expect(text).toMatch(/대운 월[간지] /);
+  // 대운이 **세운·월운과** 걸리는 행까지 선다. 원국과만 걸리던 것이 채워진 자리다.
+  expect(text).toMatch(/대운 월[간지] .*(세운|월운) [년월][간지]/);
 
   // 강도 딱지가 한 카드 안에서 갈린다 — 세운·월운은 사실, 대운은 유도다.
   expect(text).toContain('사실');
@@ -201,8 +203,8 @@ test('시간 미상이면 지금의 운에서 대운만 후보로 내려앉는�
 
   expect(text).toContain('후보로 봅니다');
   expect(text).toContain('시각을 몰라 대운수가 두 달쯤 흔들리므로');
-  // 목록의 한계 둘이 나란히 선다 — 하나는 우리 구현, 하나는 빠진 입력이다.
-  expect(text).toContain('원국과 걸리는 것만 셌습니다');
+  // 목록의 한계 둘이 나란히 선다 — 하나는 우리가 고른 기준, 하나는 빠진 입력이다.
+  expect(text).toContain('지금 도는 대운을 기준으로만 셌습니다');
   expect(text).toContain('시주를 빼고 센 목록이라');
 });
 
@@ -268,8 +270,8 @@ test('대운 표가 칸 안을 채우고 지금 도는 칸을 짚는다', async 
   expect(text).toContain('12운성(일간 기준)');
   // 대운이 원국과 맺는 관계가 실제로 찍힌다.
   expect(text).toMatch(/[가-힣]+(합|충|형|파|해|원진|귀문)/);
-  // 세운·월운을 함께 놓지 않았다는 것을 표가 밝힌다.
-  expect(text).toContain('세운·월운은 함께 놓지 않았습니다');
+  // 세운·월운과 걸리는 것을 어디서 보는지 표가 밝힌다.
+  expect(text).toContain('세운·월운과 걸리는 것은 세운·월운 표에 있습니다');
 
   // 지금 도는 칸이 짚혀 있다. 어느 칸인지는 브라우저의 '지금' 이 정하므로
   // 몇 번째인지 대신 **한 칸만** 짚혔는지를 본다.
@@ -278,6 +280,43 @@ test('대운 표가 칸 안을 채우고 지금 도는 칸을 짚는다', async 
   // 같은 판정이 세운 표에도 서고, 그 값은 한 곳에서 나온다.
   await page.getByRole('tab', { name: '세운' }).click();
   expect((await panel.innerText()).match(/현재/g)?.length ?? 0).toBeLessThanOrEqual(1);
+
+  expect(errors).toEqual([]);
+});
+
+/**
+ * 세운·월운 표가 **자기를 감싼 대운과 걸리는 것**까지 낸다.
+ *
+ * 값이 있어도 화면에 안 서면 검증되지 않은 것과 같다. 그리고 여기서만 드러나는 것이
+ * 하나 더 있다 — 대운과 걸린 줄이 원국과 걸린 줄과 **같은 모양으로 서면** 읽는 사람은
+ * 둘을 구별할 길이 없다. 딱지가 실제로 붙는지는 브라우저로 눌러야 보인다.
+ */
+test('세운·월운 표가 대운과 걸리는 것을 딱지와 함께 낸다', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+
+  await page.goto('/');
+  await enterKnownBirth(page);
+  await page.getByRole('button', { name: '사주 보기' }).click();
+
+  const panel = page.getByRole('tabpanel');
+
+  // 세운 — 머리에 몇 대운을 지나는지가 서고, 대운과 걸린 줄에 딱지가 붙는다.
+  await page.getByRole('tab', { name: '세운' }).click();
+  const saeun = await panel.innerText();
+
+  expect(saeun).toMatch(/\d대운/);
+  expect(saeun).toMatch(/[가-힣]+(합|충|형|파|해|원진|귀문) · 대운/);
+  expect(saeun).toContain('원국과 그 해를 감싼 대운');
+
+  // 월운 — 세운과 대운 두 딱지가 다 설 수 있다. 적어도 대운 쪽은 선다.
+  await page.getByRole('tab', { name: '월운' }).click();
+  const wolun = await panel.innerText();
+
+  expect(wolun).toContain('원국과 세운과 대운');
+  expect(wolun).toMatch(/[가-힣]+(합|충|형|파|해|원진|귀문) · (세운|대운)/);
 
   expect(errors).toEqual([]);
 });

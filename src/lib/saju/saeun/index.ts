@@ -3,6 +3,12 @@ import { ageOnDate, koreaDateOf } from '../age';
 import type { CivilDate } from '../civilTime';
 import type { Pillars } from '../pillars';
 import { yearPillarOf } from '../pillars/year';
+import {
+  daeunCrossingsOf,
+  type Daeun,
+  type DaeunAbsence,
+  type DaeunSpan,
+} from '../daeun';
 import { findRelationsAmong, type LabeledPillars, type Relation } from '../relations';
 import { getSolarTerms, type SolarTerm } from '../solarTerms';
 import { twelveSpiritOf, type SpiritBasis, type TwelveSpirit } from '../sinsal';
@@ -28,6 +34,10 @@ import {
  *
  * 세운은 기둥이 하나뿐이라 자리를 `'year'` 로 적는다 — 연간지라서다.
  * 원국의 년주와 구별되는 것은 `chartId`(`'annual:2027'`)다.
+ *
+ * 관계는 **원국과 그 해를 감싼 대운을 함께** 놓고 본다. 월운이 원국·세운을 함께
+ * 놓는 것과 같은 방향이다 — 좁은 쪽이 넓은 쪽을 든다. 대운 칸이 반대로 못 드는
+ * 이유는 산술이다(`DaeunEntry.relations`).
  */
 
 /** 세운 한 해 */
@@ -54,12 +64,31 @@ export type SaeunEntry = {
   /** 12신살 — 원국의 년지·일지 기준 각각 */
   spirits: Record<SpiritBasis, TwelveSpirit>;
   /**
-   * 세운과 원국 사이에 성립하는 관계.
+   * 이 해가 원국·대운과 맺는 관계.
    *
    * 원국 안에서만 성립하는 관계는 빼고, 세운이 실제로 끼어든 것만 담는다 —
-   * 원국 내부 관계는 `Saju.relations` 에 이미 있고 해마다 같다.
+   * 원국 내부 관계는 `Saju.relations` 에 이미 있고 해마다 같다. 원국과 대운
+   * 사이의 관계도 뺀다. 그쪽은 그 해가 없어도 성립하므로 대운 칸의 몫이다.
+   *
+   * 어느 판의 글자인지는 `participants[].chartId` 가 든다 — `'natal'`·`'annual:2027'`·
+   * `'decade:4'`.
    */
   relations: Relation[];
+  /**
+   * 이 해에 걸친 대운 — **하나가 아닐 수 있다.**
+   *
+   * 한 해는 입춘에서 입춘까지라 생일을 반드시 한 번 넘고, 그 두 나이가 대운
+   * 경계를 사이에 두면 한 해가 두 대운에 걸린다. 위 `relations` 는 걸린 대운
+   * **전부**와 견준 결과라, 어느 대운과 걸린 것인지는 이 목록과 맞춰 읽는다.
+   */
+  daeunSpans: readonly DaeunSpan[];
+  /**
+   * 걸친 대운이 없으면 그 이유 — **둘을 가른다.**
+   *
+   * `before-first` 는 이 사람에 대한 사실이고 `beyond-table` 은 우리가 뽑은 칸
+   * 수의 한계다. 비었다는 것만 남기면 남의 한계가 그 사람의 사실처럼 읽힌다.
+   */
+  daeunAbsence: DaeunAbsence | null;
 };
 
 export type Saeun = {
@@ -94,6 +123,13 @@ type SaeunInput = {
   birthSajuYear: number;
   /** 세운 구간 안에서 생일 전후의 실제 만 나이를 계산한다 */
   birthDate: CivilDate;
+  /**
+   * 그 해를 감싼 대운을 찾을 표.
+   *
+   * **선택값으로 두지 않는다.** 잊으면 대운과 걸리는 관계가 조용히 사라지는데,
+   * 사라진 자리에 아무 표시도 남지 않아 「없다」와 구별되지 않는다.
+   */
+  daeun: Daeun;
 };
 
 /**
@@ -125,6 +161,7 @@ export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Sae
 
   const dayMaster: Stem = pillars.dayMaster;
   const natal: LabeledPillars = { chartId: 'natal', pillars };
+  const { daeun } = input;
 
   const entries = Array.from({ length: count }, (_, index) => {
     const year = from + index;
@@ -145,6 +182,15 @@ export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Sae
       pillars: { year: pillar, month: null, day: null, hour: null },
     };
 
+    // 이 해를 감싼 대운과 견준다. 원국을 함께 넘기므로 원국·대운·세운 세 판에
+    // 걸쳐 서는 삼합·방합까지 잡힌다 — 두 판만 놓고는 안 보이는 것들이다.
+    const crossing = daeunCrossingsOf(
+      daeun,
+      { fromAge: ageAtStart, toAge: ageAtEnd },
+      [natal],
+      annual,
+    );
+
     return {
       year,
       chartId,
@@ -164,9 +210,15 @@ export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Sae
         day: twelveSpiritOf(pillars.day.branch, pillar.branch),
       },
       // 세운이 낀 것만. 원국 안에서만 닫힌 관계는 해마다 같으므로 뺀다.
-      relations: findRelationsAmong([natal, annual]).filter((relation) =>
-        relation.participants.some((participant) => participant.chartId === chartId),
-      ),
+      // 대운과 걸리는 것은 따로 세어 뒤에 붙인다 — 넓은 것부터 좁은 것 순서다.
+      relations: [
+        ...findRelationsAmong([natal, annual]).filter((relation) =>
+          relation.participants.some((participant) => participant.chartId === chartId),
+        ),
+        ...crossing.relations,
+      ],
+      daeunSpans: crossing.spans,
+      daeunAbsence: crossing.absence,
     } satisfies SaeunEntry;
   });
 

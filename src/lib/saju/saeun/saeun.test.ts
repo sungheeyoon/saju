@@ -38,9 +38,20 @@ const NATAL = chart('壬申', '辛亥', '丁酉', '壬寅');
 const BIRTH_YEAR = 1992;
 const BIRTH_DATE = { year: 1992, month: 11, day: 17 };
 
+/**
+ * 같은 사람의 대운 표.
+ *
+ * 세운 칸이 자기를 감싼 대운과 견주므로 이 표가 있어야 한다. 손으로 짓지 않고
+ * 엔진에서 뽑는 것은 `NATAL` 이 그 사람의 여덟 글자라서다 — 따로 지으면 세운이
+ * 자기 것이 아닌 대운과 견주게 된다.
+ */
+const DAEUN = computeSaju({
+  year: 1992, month: 11, day: 17, hour: 5, minute: 20, second: 0, gender: 'male',
+}).daeun;
+
 const saeun = (options = {}) =>
   computeSaeun(
-    { pillars: NATAL, birthSajuYear: BIRTH_YEAR, birthDate: BIRTH_DATE },
+    { pillars: NATAL, birthSajuYear: BIRTH_YEAR, birthDate: BIRTH_DATE, daeun: DAEUN },
     options,
   );
 
@@ -134,6 +145,7 @@ describe('원국에서 본 세운', () => {
         pillars: NATAL,
         birthSajuYear: 1990,
         birthDate: { year: 1990, month: 5, day: 15 },
+        daeun: DAEUN,
       },
       { fromYear: 2026, count: 1 },
     ).entries;

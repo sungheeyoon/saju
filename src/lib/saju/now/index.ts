@@ -1,7 +1,7 @@
 import { ageOnDate, koreaDateOf } from '../age';
 import { BRANCH_INFO } from '../constants';
 import type { CivilDate, CivilDateTime } from '../civilTime';
-import { daeunAtAge, type DaeunEntry } from '../daeun';
+import { daeunAtAge, type DaeunAbsence, type DaeunEntry } from '../daeun';
 import type { Saju } from '../index';
 import { findMonthTerm } from '../pillars/month';
 import type { Relation } from '../relations';
@@ -53,24 +53,18 @@ import { computeWolun, type WolunEntry } from '../wolun';
  * `daeunAtAge` 가 이미 하는 일을 부르기만 한다. 따로 세면 표의 칸과 현재운 카드가
  * 어긋나고, 어긋난 날 어느 쪽이 맞는지 알 방법이 없다.
  *
- * 그래서 관계도 **옮겨 담기만 한다**(`RESTATED_RELATIONS`). 세운 칸이 원국과의
- * 관계를, 월운 칸이 원국·세운과의 관계를 이미 낸다. **대운의 관계는 아무도 세지
- * 않으므로 여기에도 없다** — `UNCOVERED_NOW_FACTS` 가 그것을 값으로 든다.
+ * 그래서 관계도 **옮겨 담기만 한다**(`RESTATED_RELATIONS`). 대운 칸이 원국과의
+ * 관계를, 세운 칸이 원국·대운과의 관계를, 월운 칸이 원국·세운·대운과의 관계를
+ * 이미 낸다. 셋을 이어 붙이면 겹치지 않고 한 벌이 된다.
  */
 
-/** 지금 대운을 못 짚는 두 가지 이유 — 성질이 다르다 */
-export type DaeunAbsence =
-  /**
-   * 첫 대운이 아직 오지 않았다. **이 사람에 대한 사실이다** — 대운수가 7이면
-   * 만 6세까지는 대운이 없다.
-   */
-  | 'before-first'
-  /**
-   * 대운 표가 짧아 지금이 그 밖이다. **이 사람에 대한 사실이 아니라 우리가 뽑은
-   * 칸 수(`DaeunOptions.count`, 기본 9칸 = 90년)의 한계다.** 그래서 문장이 아니라
-   * 화면·정책이 들 몫이고, 발화하지 않는다.
-   */
-  | 'beyond-table';
+/**
+ * 지금 대운을 못 짚는 두 가지 이유 — 성질이 다르다.
+ *
+ * 세운·월운 칸도 같은 구분을 쓰게 되어 `daeun/` 으로 옮겼다. 여기서 다시 내보내는
+ * 것은 이 이름을 부르던 곳이 그대로 부르게 하기 위해서다.
+ */
+export type { DaeunAbsence };
 
 export type CurrentFortune = {
   /**
@@ -154,18 +148,15 @@ export const RESTATED_RELATIONS = 'restated-from-daeun-saeun-and-wolun' as const
  * `UNCOVERED_FACTS` 와 같은 구실이다 — 발화하지 않는 이유가 **고른 것이 아니라
  * 아무도 세지 않은 것**임을 값으로 남긴다.
  *
- * **한 줄이 지워졌고 좁아진 줄이 남았다.** 대운 칸이 관계·십성·운성·신살을 들게 되면서
- * 두 줄이 사라졌는데(`DaeunEntry`), 그 자리에서 더 좁은 공백이 드러났다 — 세 칸이 저마다
- * **원국과의** 관계를 낼 뿐 **운끼리는** 아무도 안 본다. 월운만 세운을 함께 놓고 보므로
- * 대운↔세운·대운↔월운이 비어 있다.
+ * **두 줄이 또 지워졌다.** 세운 칸이 자기를 감싼 대운을, 월운 칸이 그 위에 대운까지
+ * 놓고 보게 되면서 대운↔세운·대운↔월운이 채워졌다(`daeunCrossingsOf`). 방향은 예고한
+ * 그대로다 — 대운 한 칸은 열 해라 함께 놓을 세운이 하나가 아니므로 **좁은 쪽이 넓은
+ * 쪽을 든다.**
  *
- * 그것을 여기서 세지 않는 이유는 규칙이 아니라 산술이다. 대운 한 칸은 열 해라 함께 놓을
- * 세운이 하나가 아니므로 **대운 칸이 들 수 없고**, 세운 칸이 자기를 감싼 대운을 함께 놓는
- * 것이 맞는 모양이다(월운이 세운을 놓는 것과 같은 방향). 그것은 세운의 일이다.
+ * 남은 한 줄은 성질이 다르다. 값이 없는 것이 아니라 **값은 있는데 말할 주제가 없다** —
+ * 그쪽은 `UNCOVERED_NOW_TOPICS` 와 이웃한 공백이다.
  */
 export const UNCOVERED_NOW_FACTS: readonly string[] = [
-  'saeun × daeun (그 해를 감싼 대운과의 관계 — 월운이 세운을 놓는 것과 같은 방향인데 비어 있다)',
-  'wolun × daeun (그 달을 감싼 대운과의 관계)',
   'stages · sinsal (세 칸이 이미 계산해 두었으나 주제가 없다)',
 ];
 
@@ -199,7 +190,7 @@ export function currentFortuneOf(saju: Saju, viewedAt: Date): CurrentFortune {
   const first = saju.daeun.entries[0];
 
   const saeun = saeunEntryOf(saju, sajuYear, birthDate);
-  const wolun = wolunEntryOf(saju, sajuYear, monthTerm);
+  const wolun = wolunEntryOf(saju, sajuYear, monthTerm, birthDate);
 
   return {
     viewedAt,
@@ -216,16 +207,41 @@ export function currentFortuneOf(saju: Saju, viewedAt: Date): CurrentFortune {
     saeun,
     wolun,
     // 겹치지 않는다. 세 칸이 저마다 **자기가 낀 것만** 남기고, 대운 칸은 원국만,
-    // 세운 칸은 원국만, 월운 칸은 원국·세운을 놓고 세었기 때문이다. 순서는 넓은
-    // 것부터 — 대운이 열 해, 세운이 한 해, 월운이 한 달을 맡는다.
+    // 세운 칸은 원국·대운을, 월운 칸은 원국·세운·대운을 놓고 세었기 때문이다.
+    // 좁은 쪽이 넓은 쪽을 들므로 같은 관계가 두 칸에 실릴 자리가 없다. 순서는
+    // 넓은 것부터 — 대운이 열 해, 세운이 한 해, 월운이 한 달을 맡는다.
+    //
+    // **지금 도는 대운과 걸리는 것만 남긴다.** 세운 칸은 그 해에 걸친 대운을 다
+    // 견주는데(한 해가 대운 경계를 넘으면 둘이다), 그중 하나는 지금 돌고 있지
+    // 않다. 표에서는 그것이 맞고 여기서는 아니다 — 이 카드가 말하는 것은 한
+    // 해가 아니라 **지금**이다.
     relations: [
       ...(daeun?.relations ?? []),
-      ...saeun.relations,
-      ...wolun.relations,
+      ...saeun.relations.filter(inDaeun(daeun)),
+      ...wolun.relations.filter(inDaeun(daeun)),
     ],
     hourKnown,
   };
 }
+
+/**
+ * 지금 도는 대운이 아닌 칸과 걸린 관계를 걸러 낸다.
+ *
+ * 세운·월운 칸은 자기 구간에 걸친 대운을 **전부** 견준다. 한 해가 대운 경계를
+ * 넘으면 그것이 둘이고, 표에서는 두 벌을 다 보여 주는 것이 맞다 — 그 해에 실제로
+ * 두 대운이 지나가기 때문이다. 그러나 '지금'은 한 순간이라 대운도 하나다.
+ *
+ * 지금 대운이 없으면(`daeunAbsence`) 대운이 낀 관계는 하나도 남지 않는다. 첫 대운
+ * 앞이거나 표 밖인 시점에 대운과 걸린다고 말할 수는 없다.
+ */
+const inDaeun =
+  (current: DaeunEntry | null) =>
+  (relation: Relation): boolean =>
+    relation.participants.every(
+      (participant) =>
+        !participant.chartId.startsWith('decade:') ||
+        participant.chartId === current?.chartId,
+    );
 
 /**
  * 그 사주년의 세운 칸.
@@ -239,20 +255,32 @@ function saeunEntryOf(saju: Saju, sajuYear: number, birthDate: CivilDate): Saeun
   if (found) return found;
 
   return computeSaeun(
-    { pillars: saju.pillars, birthSajuYear: saju.pillars.meta.sajuYear, birthDate },
+    {
+      pillars: saju.pillars,
+      birthSajuYear: saju.pillars.meta.sajuYear,
+      birthDate,
+      // 표를 만든 그 대운을 그대로 넘긴다. 여기서 다시 뽑으면 대운수 계통이
+      // 갈릴 수 있고, 그러면 표 밖의 한 해만 다른 대운과 견주게 된다.
+      daeun: saju.daeun,
+    },
     { fromYear: sajuYear, count: 1, stages: { yinReverse: saju.saeun.yinReverse } },
   ).entries[0];
 }
 
 /** 그 절기 구간의 월운 칸. 위와 같은 규율이다 */
-function wolunEntryOf(saju: Saju, sajuYear: number, monthTerm: SolarTerm): WolunEntry {
+function wolunEntryOf(
+  saju: Saju,
+  sajuYear: number,
+  monthTerm: SolarTerm,
+  birthDate: CivilDate,
+): WolunEntry {
   const monthOrder = BRANCH_INFO[monthTerm.branch].monthOrder;
 
   const wolun =
     saju.wolun.year === sajuYear
       ? saju.wolun
       : computeWolun(
-          { pillars: saju.pillars, year: sajuYear },
+          { pillars: saju.pillars, year: sajuYear, daeun: saju.daeun, birthDate },
           { stages: { yinReverse: saju.wolun.yinReverse } },
         );
 
@@ -275,8 +303,10 @@ export const NOW_POLICY = {
   boundaries: 'terms-by-instant-daeun-by-age',
   /** 간지·절입·관계를 새로 세지 않는다. 표를 내는 함수를 그대로 부른다 */
   counting: 'reuses-saeun-wolun-daeun',
-  /** 관계는 세운·월운 칸에서 옮겨 담기만 한다 */
+  /** 관계는 대운·세운·월운 칸에서 옮겨 담기만 한다 */
   relations: RESTATED_RELATIONS,
+  /** 운끼리의 관계는 좁은 쪽이 넓은 쪽을 든다 — 대운 한 칸이 열 해를 하나로 못 가리킨다 */
+  fortunesCrossed: 'narrower-holds-the-wider',
   /** 대운을 못 짚는 두 이유를 구분한다 — 이 사람의 사실과 우리 표의 한계 */
   daeunAbsence: 'before-first-vs-beyond-table',
   /** 대운수는 정수화 계통을 우리가 골랐다 — 세운·월운과 상한이 갈리는 까닭 */

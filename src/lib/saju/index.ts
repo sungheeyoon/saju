@@ -189,19 +189,14 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     0,
   );
 
-  const saeun = computeSaeun(
-    {
-      pillars,
-      birthSajuYear: pillars.meta.sajuYear,
-      birthDate: {
-        year: resolvedTime.year,
-        month: resolvedTime.month,
-        day: resolvedTime.day,
-      },
-    },
-    { stages: stageOptions, ...saeunOptions },
-  );
+  const birthDate = {
+    year: resolvedTime.year,
+    month: resolvedTime.month,
+    day: resolvedTime.day,
+  };
 
+  // **대운을 먼저 뽑는다.** 세운·월운 칸이 자기를 감싼 대운과 견주므로 그 표가
+  // 먼저 있어야 한다. 반대 방향은 없다 — 대운은 세운을 보지 않는다.
   const daeun = computeDaeun(
     {
       pillars,
@@ -215,6 +210,16 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     { stages: stageOptions, ...daeunOptions },
   );
 
+  const saeun = computeSaeun(
+    {
+      pillars,
+      birthSajuYear: pillars.meta.sajuYear,
+      birthDate,
+      daeun,
+    },
+    { stages: stageOptions, ...saeunOptions },
+  );
+
   return {
     pillars,
     analysis: analyzePillars(pillars, { ...analysisOptions, instant: corrected.instant }),
@@ -223,7 +228,7 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     sinsal: analyzeSinsal(pillars, sinsalOptions),
     saeun,
     wolun: computeWolun(
-      { pillars, year: wolunOptions?.year ?? saeun.entries[0].year },
+      { pillars, year: wolunOptions?.year ?? saeun.entries[0].year, daeun, birthDate },
       { stages: stageOptions, ...wolunOptions },
     ),
     daeun,
