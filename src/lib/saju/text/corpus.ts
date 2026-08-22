@@ -278,6 +278,54 @@ const JOHU_SOURCE = '궁통보감 조후표';
 const JOHU_UNJUDGED = '나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.';
 
 /**
+ * 합화 넷 × 두 벌 — **판정 이름이 슬롯으로만 들어온다.**
+ *
+ * '합화'는 금지 표현이다(`FORBIDDEN_CLAIMS` 의 `transformation`). 문장 틀에
+ * 타이핑하면 뼈대 검사에서 걸리고, 걸리는 것이 맞다 — 그 낱말을 쓸 자격은
+ * **이 명식이 化를 판정했는가**에서 나오지 말뭉치가 정하는 것이 아니다.
+ * `{verdict}` 에 `TRANSFORMATION_VERDICT_KO` 가 꽂히고, 그 이름이 근거 목록에
+ * 담긴 명식에서만 통과한다.
+ *
+ * 그래서 이 조각들은 **금지를 우회하지 않는다.** 말뭉치를 아무리 고쳐도 化하지
+ * 않은 명식에서 '합화'라고 쓸 방법이 없다.
+ *
+ * 옮기는 몫은 문장마다 다르다 — 化는 통째로, 조건부는 절반
+ * (`EFFECTIVE_ELEMENTS_POLICY.conditionalStemShift`), 합이불화는 안 옮기고,
+ * 일간이 물리면 판정과 무관하게 안 옮긴다.
+ */
+const TRANSFORMATION_BODIES: Record<string, string> = {
+  transformed: '{name} 하나가 {verdict} 자리라 두 천간의 무게를 통째로 {element} 쪽으로 옮긴 것',
+  conditional:
+    '{name} 하나가 {verdict} 자리라 월령이 운에서 채워질 자리로 보고 두 천간의 무게를 절반만 {element} 쪽으로 옮긴 것',
+  bound: '{name} 하나가 걸려 있는데 {verdict} 자리라 {element} 쪽 무게로는 세지 않은 것',
+  'day-master': '{name} 하나가 {verdict} 자리인데 일간이 물려 있어 무게를 옮기지 않은 것',
+};
+
+/** 일간까지 걸린 합에만 붙는다 — 화격은 이 저장소가 아직 판정하지 않는다 */
+const DAY_MASTER_TAIL = '일간까지 걸린 합은 화격(化格) 자리이고 그 판정은 하지 않습니다.';
+
+const transformationFragments: Fragment[] = Object.entries(TRANSFORMATION_BODIES).flatMap(
+  ([variant, body]): Fragment[] => {
+    const tail = variant === 'day-master' ? ` ${DAY_MASTER_TAIL}` : '';
+
+    return [
+      {
+        topic: 'transformation.verdict',
+        variant,
+        strength: 'derived',
+        template: `${body}${STRENGTH_WORDING.derived}.${tail}`,
+      },
+      {
+        topic: 'transformation.verdict',
+        variant,
+        strength: 'candidate',
+        template: `${HOUR_UNKNOWN_MARK}를 빼고 세면 ${body}을 ${STRENGTH_WORDING.candidate}.${tail}`,
+      },
+    ];
+  },
+);
+
+/**
  * 국 두 벌 × 두 변종 — **관계 표에 실렸는가가 문장을 가른다.**
  *
  * 삼합·방합·반합·반방합은 관계 표가 이미 행으로 낸다. 그래서 이 문장이 얹는 것은
@@ -899,8 +947,10 @@ export const FRAGMENTS: readonly Fragment[] = [
   // ── 억부 후보 ────────────────────────────────────────────────────────
   ...eokbuFragments,
 
-  // ── 국(局) · 옮겨 간 무게 ──────────────────────────────────────────────
+  // ── 합화 · 국(局) · 옮겨 간 무게 ───────────────────────────────────────
   // 세력을 재는 문장들이 전부 옮긴 뒤의 분포를 보는데 그 옮김을 아무도 안 말했다.
+  // 순서는 무게가 실제로 움직이는 순서다 — 천간합화가 먼저고 지지국이 나중이다.
+  ...transformationFragments,
   ...bureauFragments,
   ...heaviestFragments,
 

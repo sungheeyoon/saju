@@ -73,6 +73,35 @@ const CASES: TextCase[] = [
       {},
     ),
   },
+  /**
+   * 化가 실제로 난 자리 — **골든에서 '합화'라는 낱말이 처음 선다.**
+   *
+   * 그 낱말은 금지 표현이고(`FORBIDDEN_CLAIMS` 의 `transformation`), 化를 판정한
+   * 명식에서만 근거가 되어 열린다. 무작위 3000건에서 합 1774건 중 34건뿐이라
+   * 손으로 고른 명식에 없으면 **그 통로가 열리는지 아무도 안 본다.**
+   */
+  {
+    id: 'transformation-true',
+    note: '천간합이 정말 化했다 — 판정한 자리에서만 그 이름을 쓴다',
+    saju: computeSaju(
+      { year: 1999, month: 10, day: 23, hour: 22, minute: 0, second: 0, gender: 'male' },
+      {},
+    ),
+  },
+  /**
+   * 일간이 물린 합 — **판정만 보고 문장을 고르면 거짓이 되는 자리다.**
+   *
+   * 化 등급이 났는데도 무게는 안 옮긴다(화격을 판정하지 않기로 했으므로).
+   * 합 1774건에 10건이라 무작위 400건짜리 모집단 시험이 못 밟고 지나갈 수 있다.
+   */
+  {
+    id: 'transformation-day-master',
+    note: '일간이 물린 합 — 등급은 났는데 무게는 옮기지 않는다',
+    saju: computeSaju(
+      { year: 1990, month: 3, day: 9, hour: 13, minute: 0, second: 0, gender: 'male' },
+      {},
+    ),
+  },
   {
     id: 'hour-unknown',
     note: '시간 미상 — 강도가 한 칸 내려가고 "없다"는 발화는 입을 닫는다',

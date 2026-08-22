@@ -572,11 +572,28 @@ export const FORBIDDEN_CLAIMS: readonly ForbiddenClaim[] = [
     why: '격국의 성패를 판정하지 않는다. 억부 후보가 나왔다고 격국 이름이 따라 나오지 않는다.',
     source: 'EokbuAssessment.unresolved = structure',
   },
+  /**
+   * **판정한 자리만 그 이름을 쓴다 — 통로는 이미 있었다.**
+   *
+   * `unfavorable-element` 와 겉모습이 같다. 엔진이 자라서 化를 실제로 판정하게
+   * 됐는데(`transformation.ts`, 세 등급) 금지는 그 전에 적힌 것이다. 그런데 여는
+   * 방법이 다르다 — 저쪽은 자리 이름이 **언제나** 나오므로 근거로 열면 금지가 죽어
+   * `onlyBefore` 로 문형을 좁혔다. 이쪽은 판정 이름이 **化한 명식에서만** 근거가
+   * 되므로(무작위 3000건의 1.1%) `insideGroundedTerm` 이 제 몫을 한다.
+   *
+   * 그래서 새로 낸 통로가 없다. `groundedTermsOf` 가 그 명식이 실제로 낸
+   * `TRANSFORMATION_VERDICT_KO` 를 담고, 담기지 않은 명식에서 '합화'라고 쓰면
+   * 그대로 걸린다. 「합했다」와 「化했다」를 가르라는 원래의 요구가 오히려
+   * **판정을 통해 지켜진다.**
+   *
+   * '합이불화'는 금지에 안 걸린다 — '합화'가 이어져 있지 않다. 고전이 이름으로
+   * 이미 갈라 둔 것이 여기서 값을 낸다.
+   */
   {
     id: 'transformation',
     terms: ['합화', '化하여', '로 변한다', '로 바뀐다', '목으로 화', '화(化)한'],
-    why: '글자가 모인 것과 합화한 것은 다르다. 합의 오행은 `result` 가 아니라 `targetElement` 다.',
-    source: 'RELATION_POLICY (targetElement)',
+    why: '글자가 모인 것과 합화한 것은 다르다. 합의 오행은 `result` 가 아니라 `targetElement` 이고, 化를 판정한 자리(`StemTransformation.verdict`)만 그 이름을 쓸 수 있다.',
+    source: 'Relation.targetElement · TRANSFORMATION_POLICY',
   },
   {
     id: 'combination-resolved',

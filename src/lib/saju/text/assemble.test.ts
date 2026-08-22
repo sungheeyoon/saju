@@ -16,6 +16,7 @@ import {
   assembleCompatText,
   assembleNowText,
   assembleText,
+  checkSentence,
   findUtterances,
   groundedCompatTermsOf,
   groundedNowTermsOf,
@@ -234,6 +235,69 @@ describe('조립기', () => {
 
       // 시각을 알면 뺀 것이 없으므로 이 발화 자체가 서지 않는다.
       expect(topicsOf(RICH)).not.toContain('relation.coverage');
+    });
+  });
+
+  /**
+   * 합화 — **금지 표현을 판정이 연다.**
+   */
+  describe('합화는 판정한 자리에서만 그 이름을 쓴다', () => {
+    /** 갑기합토가 化한다(己卯 甲戌 戊申 癸亥). 문장 골든의 `transformation-true` 와 같은 명식 */
+    const TRANSFORMED = male(1999, 10, 23, 22);
+    /** 무계합화가 조건부인데 일간이 물려 있다(戊午 癸酉 己卯 庚午) */
+    const DAY_MASTER = male(1990, 3, 9, 13);
+
+    /**
+     * **담는 것이 금지를 푸는 것이 아니다.** `unfavorable-element` 는 자리 이름이
+     * 언제나 나오므로 근거로 열면 금지가 죽어 문형을 좁혀야 했는데(`onlyBefore`),
+     * 이쪽은 판정 이름이 **化한 명식에서만** 근거가 된다. 무작위 3000건의 합
+     * 1774건 중 化는 34건뿐이라 대부분의 명식에서 '합화'는 그대로 막혀 있다.
+     */
+    it('化한 명식에서만 판정 이름이 근거에 담긴다', () => {
+      expect(groundedTermsOf(TRANSFORMED)).toContain('합화');
+
+      // 化가 없으면 담기지 않고, 그래서 그 낱말을 쓰면 계약이 잡는다.
+      expect(groundedTermsOf(BARE)).not.toContain('합화');
+      expect(
+        checkSentence({
+          text: '천간 둘을 합화 자리로 봅니다.',
+          paths: ['analysis.effectiveElements'],
+          strength: 'derived',
+          grounded: groundedTermsOf(BARE),
+        }).map((violation) => violation.rule),
+      ).toContain('forbidden-claim');
+    });
+
+    /**
+     * 일간이 물린 합은 등급이 나도 무게를 안 옮긴다
+     * (`EFFECTIVE_ELEMENTS_POLICY.dayMasterCombination`). 판정만 보고 변종을
+     * 고르면 **옮기지도 않은 무게를 옮겼다고 적는다.**
+     */
+    it('일간이 물리면 등급이 나도 옮겼다고 말하지 않는다', () => {
+      const said = spoken(assembleText(DAY_MASTER)).map((utterance) => utterance.text ?? '');
+      const line = said.find((text) => text.includes('무계합화'));
+
+      expect(line).toBeDefined();
+      expect(line).toContain('무게를 옮기지 않은');
+      expect(line).toContain('화격');
+
+      // 그 명식에서 실제로 옮긴 것이 없어야 이 문장이 참이다.
+      expect(DAY_MASTER.analysis.effectiveElements.shifts).toHaveLength(0);
+    });
+
+    it('네 변종이 모두 실제로 조회된다', () => {
+      const variantsOf = (saju: Saju) =>
+        findUtterances(saju)
+          .filter((request) => request.topic === 'transformation.verdict')
+          .map((request) => request.variant);
+
+      const seen = new Set([
+        ...variantsOf(TRANSFORMED),
+        ...variantsOf(DAY_MASTER),
+        ...randomInputs(200).flatMap((input) => variantsOf(computeSaju(input))),
+      ]);
+
+      expect([...seen].sort()).toEqual(['bound', 'conditional', 'day-master', 'transformed']);
     });
   });
 

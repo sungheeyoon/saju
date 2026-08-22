@@ -15,7 +15,9 @@ import {
   SELF_SEAT_KINDS,
   TEN_GOD_GROUP,
   TEN_GOD_KO,
+  TRANSFORMATION_VERDICT_KO,
   type Bureau,
+  type StemTransformation,
   type FavorRole,
   type PillarTenGods,
   type TenGod,
@@ -131,6 +133,14 @@ export function groundedTermsOf(saju: Saju): string[] {
   // 관계 목록에 없어서 여기서 처음 들어온다. 명식이 낸 이름이 맞으므로 담는다.
   for (const bureau of saju.analysis.bureaus) terms.add(bureau.ko);
 
+  // **판정 이름이 '합화'라 금지 표현이다.** 담는 것이 금지를 푸는 것이 아니라,
+  // 化를 판정한 명식에서만 담기므로 금지가 그때만 열린다 — 그것이 원래 요구였다
+  // (`FORBIDDEN_CLAIMS` 의 `transformation`). 합 이름(`ko`)은 관계 목록이 이미
+  // 담았고 여기 오는 것은 등급 이름이다.
+  for (const transformation of saju.analysis.effectiveElements.transformations) {
+    terms.add(TRANSFORMATION_VERDICT_KO[transformation.verdict]);
+  }
+
   for (const key of ['year', 'month', 'day', 'hour'] as const) {
     for (const term of tenGodTerms(saju.analysis.tenGods[key])) terms.add(term);
   }
@@ -196,7 +206,7 @@ export const UNCOVERED_FACTS_BY_PATH: readonly {
   { paths: ['analysis.hiddenCombinations'], note: '암합 — 관계 표에 섞지 않기로 한 자리' },
   {
     paths: ['analysis.bureaus', 'analysis.effectiveElements'],
-    note: '합화로 옮겨 간 무게 — 국만 말한다. 몫을 정한 조건(등급·받침·왕지의 충)도 접으면 반올림이라 결과인 몫만 든다',
+    note: '몫과 등급을 정한 조건들 — 국의 받침·왕지의 충, 化를 막은 것. 조건의 목록이라 한 문장으로 접으면 반올림이 되므로 결과만 든다',
   },
   { paths: ['analysis.rootQuality'], note: '뿌리의 질 — `analysis.rootedness` 가 센 뿌리에 등급을 매긴 것' },
   { paths: ['analysis.followingCandidacy'], note: '종격 후보 자격 — 판정(`analysis.following`)만 말한다' },
@@ -249,6 +259,33 @@ const stemsKo = (stems: readonly Stem[]): string => stems.map((stem) => STEM_INF
  * 정확히 그것이다(`JOHU_POLICY.conditionEvaluation`).
  */
 const FILLED_NOON_SPAN_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * 천간합 하나 — **판정이 변종이고, 일간이 그 위에 얹힌다.**
+ *
+ * 일간이 물린 합은 판정이 무엇이든 무게를 안 옮긴다
+ * (`EFFECTIVE_ELEMENTS_POLICY.dayMasterCombination`). 판정만 보고 고르면 옮기지도
+ * 않은 무게를 옮겼다고 적게 되므로 `day-master` 가 그 자리에서 먼저 집는다.
+ *
+ * 합이불화는 일간이 물려 있어도 판정 그대로다 — 어차피 옮길 무게가 없어 문장이
+ * 거짓이 되지 않고, 화격은 化해야 서는 것이라 꺼낼 자리도 아니다.
+ */
+function transformationRequest(
+  transformation: StemTransformation,
+): Pick<FragmentRequest, 'topic' | 'variant' | 'slots'> {
+  const moved = transformation.verdict !== 'bound';
+
+  return {
+    topic: 'transformation.verdict',
+    variant:
+      transformation.involvesDayMaster && moved ? 'day-master' : transformation.verdict,
+    slots: {
+      name: transformation.ko,
+      verdict: TRANSFORMATION_VERDICT_KO[transformation.verdict],
+      element: ELEMENT_KO[transformation.target],
+    },
+  };
+}
 
 /**
  * 국 하나 — **관계 표에 실렸는가가 변종을 고른다.**
@@ -437,6 +474,13 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
   // **세력 앞에 선다.** 강약·억부·격국·종격이 전부 옮긴 뒤의 분포에서 세력을
   // 재므로(`STRENGTH_POLICY.basis`), 무엇이 옮겼는지가 그 문장들보다 뒤에 오면
   // 근거가 결론 뒤에 서게 된다.
+  // 무게가 실제로 움직이는 순서다 — 천간합화가 먼저고 지지국이 나중이다
+  // (`effectiveElementsOf`). 문장 순서를 그것에 맞춰 두면 `shifts` 를 되짚는
+  // 사람이 목록과 문장을 나란히 읽을 수 있다.
+  for (const transformation of saju.analysis.effectiveElements.transformations) {
+    requests.push({ ...base, ...transformationRequest(transformation) });
+  }
+
   for (const bureau of saju.analysis.bureaus) {
     requests.push({ ...base, ...bureauRequest(bureau) });
   }

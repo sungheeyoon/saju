@@ -54,6 +54,7 @@ export type FragmentTopic =
   | 'rootedness.rooted'
   | 'rootedness.rootless'
   | 'strength.verdict'
+  | 'transformation.verdict'
   | 'bureau.standing'
   | 'elements.heaviest'
   | 'structure.kind'
@@ -215,6 +216,40 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
       revealedAt: '연간·시간',
     },
     note: '월령에서 무엇을 격으로 잡는가',
+  },
+
+  /**
+   * 합화(合化) — **묶인 것과 변한 것은 다르다.**
+   *
+   * 관계 표는 이 합을 「을경합금」이라고 부른다. 그 이름이 「합해서 금이 됐다」로
+   * 읽히는 것이 문장 계약이 '합화'를 금지한 이유였고(`FORBIDDEN_CLAIMS`의
+   * `transformation`), 관계 열거는 그것을 바로잡을 말을 갖고 있지 않다 — 성립
+   * 여부를 판정하지 않기로 한 자리라서다. **판정은 다른 모듈이 한다.**
+   * 그러니 바로잡는 문장도 거기서 나와야 한다.
+   *
+   * 무작위 3000건에서 천간합이 있는 명식이 **45.7%**, 그 합 1774건 중 化한 것은
+   * **1.9%** 뿐이다. 나머지는 묶이기만 한다 — 표가 부르는 이름과 실제 판정이
+   * 거의 언제나 어긋난다는 뜻이라, 말하지 않으면 표가 혼자 말한다.
+   *
+   * **변종 넷 중 셋은 판정 그대로이고 하나는 일간이다.** 일간이 물린 합은 화격
+   * (化格) 자리라 무게를 옮기지 않기로 했는데(`EFFECTIVE_ELEMENTS_POLICY.
+   * dayMasterCombination: 'facts-only'`), 판정만 보고 문장을 고르면 **옮기지도
+   * 않은 무게를 옮겼다고 적는다.** 격국의 `self-revealed-only` 와 같은 자리다 —
+   * 안 가르면 문장이 거짓이 된다. 드물다(합 1774건에 10건). 드문 것이 가르지
+   * 않을 이유가 되면, 드문 자리에서만 거짓말하는 화면이 된다.
+   *
+   * **化를 막은 이유는 말하지 않는다.** `blockers` 는 여섯 종류이고 합이불화 한
+   * 건에 평균 두셋이 걸린다(하나뿐인 것은 101/1679). 조건의 목록이라 한 문장으로
+   * 접으면 격국 성패와 같은 반올림이 된다. 등급만 든다.
+   */
+  'transformation.verdict': {
+    paths: ['analysis.effectiveElements'],
+    polarity: 'presence',
+    variants: ['transformed', 'conditional', 'bound', 'day-master'],
+    slots: ['name', 'verdict', 'element'],
+    // 판정 이름을 표본에 둔다 — 근거 없이 렌더되면 금지 표현으로 걸려야 한다.
+    samples: { name: '정임합목', verdict: '합이불화', element: '목' },
+    note: '천간합이 정말 화신으로 변했는가',
   },
 
   /**

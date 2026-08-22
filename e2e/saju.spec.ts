@@ -62,10 +62,33 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
     보이는데(외부 만세력과 바로 대조하려고 그렇게 뒀다), 세력을 재는 문장들은 국으로
     옮긴 뒤의 분포를 본다. 무작위 3000건의 78.3% 에서 무게가 움직이고 그중 11.2% 는
     가장 무거운 오행이 아예 갈리는데, 화면은 그 사실을 한 번도 말하지 않았다.
-    이 명식(1990-05-20 14:00)에는 사유 반합이 서 있다.
+    이 명식(1990-05-15 14:30)에는 사유 반합이 서 있다.
   */
   expect(said).toMatch(/무게의 \d+% 정도가/);
   expect(said).toContain('세력을 말하는 문장들은 옮긴 뒤를 봅니다');
+});
+
+/*
+  **금지 표현이 화면까지 나가는 유일한 자리.**
+
+  '합화'는 어느 강도로도 못 쓰는 낱말인데(`FORBIDDEN_CLAIMS` 의 `transformation`),
+  化를 판정한 명식에서만 근거가 되어 열린다. 무작위 3000건의 합 1774건 중 34건뿐이라
+  기본 e2e 명식에는 천간합조차 없다. 통로가 실제로 열리는 것과, 그 옆에서 **묶이기만
+  한 합은 여전히 그렇게 불리는 것**을 한 화면에서 본다 — 관계 표가 '무계합화'라고
+  적어 둔 것을 문장이 '합이불화'로 바로잡는 자리다.
+*/
+test('化를 판정한 명식에서만 합화라고 부른다', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('이름', { exact: true }).fill('민수');
+  await page.getByLabel('생년월일', { exact: true }).fill('1999-10-23');
+  await page.getByRole('radio', { name: '시각', exact: true }).check();
+  await page.getByLabel('출생시각', { exact: true }).fill('22:00');
+  await page.getByRole('button', { name: '사주 보기' }).click();
+
+  const said = await page.locator('main').innerText();
+
+  expect(said).toContain('합화 자리라 두 천간의 무게를 통째로');
+  expect(said).toContain('합이불화 자리라');
 });
 
 test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한다', async ({ page }) => {
