@@ -450,6 +450,47 @@ test('베타 매칭 지표는 사실 아래에 서고, 관심 버튼은 받지 �
   await expect(page.getByRole('status')).toContainText('신청을 받지 않고');
 });
 
+/**
+ * 넘길 자료는 **열기 전에는 만들지 않는다.** 두 사람짜리가 들여쓴 JSON 으로
+ * 460KB 라 방문마다 만들면 비싸고, 대부분의 방문은 이 칸을 안 연다.
+ *
+ * 그래서 여기서 보는 것은 「칸이 있다」가 아니라 **「열면 실제로 나온다」**이다.
+ * 상한 표가 서고 시각을 아는 명식과 모르는 명식에서 다르게 서는 것까지 본다 —
+ * 그 표가 이 자료의 요점이고, 값이 아니라 계약이라 화면 어디에도 없던 것이다.
+ */
+test('넘길 자료는 열었을 때 상한 표와 함께 선다', async ({ page }) => {
+  await page.goto('/compat?a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+
+  const panel = page.getByRole('group').filter({ hasText: 'AI 에 넘길 자료' });
+  await expect(panel).toBeVisible();
+
+  // 닫혀 있는 동안에는 자료를 안 만든다 — 표도 버튼도 없다.
+  await expect(page.getByRole('button', { name: 'JSON 내려받기' })).toBeHidden();
+
+  await panel.getByText('AI 에 넘길 자료').click();
+
+  await expect(page.getByRole('button', { name: 'JSON 내려받기' })).toBeVisible();
+  await expect(panel).toContainText('analysis.eokbu');
+  await expect(panel).toContainText('evidence-v0');
+  // 안 싣는 것도 이유와 함께 적힌다.
+  await expect(panel).toContainText('now');
+});
+
+test('시각을 모르면 상한 표가 내려앉고 없다는 쪽이 잠긴다', async ({ page }) => {
+  await page.goto('/?date=1988-07-15&hour=unknown');
+
+  const panel = page.getByRole('group').filter({ hasText: 'AI 에 넘길 자료' });
+  await panel.getByText('AI 에 넘길 자료').click();
+
+  const row = panel.locator('tr').filter({ hasText: 'analysis.elements' });
+  await expect(row).toContainText('유도');
+  await expect(row).toContainText('말하지 않음');
+
+  // 흔들리지 않는 근거는 두 방향이 같다.
+  const pillars = panel.locator('tr').filter({ hasText: /^pillars/ });
+  await expect(pillars).toContainText('사실');
+});
+
 test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44px 이상이다', async ({
   page,
 }, testInfo) => {

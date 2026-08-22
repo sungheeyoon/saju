@@ -24,7 +24,9 @@ import {
 import { BirthFields } from './birth-form';
 import { MatchResult } from './compat-match';
 import { CopyLinkButton } from './copy-link';
-import { CARD, PILLAR_COLUMNS } from './saju-calculator';
+import { EvidencePanel } from './evidence-panel';
+import { CARD } from './card';
+import { PILLAR_COLUMNS } from './saju-calculator';
 import {
   TOPICS_THE_TABLE_HOLDS,
   TOPIC_TABLE_FOOTNOTE,
@@ -295,6 +297,8 @@ function CompatView({
       )}
 
       <MatchResult charts={charts} compat={compat} names={names} />
+
+      <EvidencePanel a={charts.a} b={charts.b} />
 
       <p className="text-xs text-muted">
         <strong className="font-medium">사주 엔진은 점수를 내지 않습니다.</strong> 위 베타 지표는

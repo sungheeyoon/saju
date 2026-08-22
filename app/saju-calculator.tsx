@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { BirthFields } from './birth-form';
+import { CARD } from './card';
 import { CopyLinkButton } from './copy-link';
+import { EvidencePanel } from './evidence-panel';
 import {
   TOPICS_THE_TABLE_HOLDS,
   TOPIC_TABLE_FOOTNOTE,
@@ -168,8 +170,6 @@ const koreaMonthDay = (date: Date) => {
   return `${local.month}/${local.day}`;
 };
 
-export const CARD =
-  'rounded-xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]';
 
 /**
  * 제출된 입력은 주소창이 들고, 폼은 타이핑 중인 값만 들고 있다.
@@ -323,6 +323,7 @@ function SajuView({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
       <StarTable saju={saju} />
       <TimeCorrections saju={saju} />
       <Warnings saju={saju} />
+      <EvidencePanel a={saju} />
     </div>
   );
 }

@@ -328,7 +328,11 @@ describe('자료의 모양', () => {
           `  ${path.padEnd(30)} 있다 ${chart.claims[path].presence.padEnd(10)} 없다 ${chart.claims[path].absence}`,
       );
 
-    const sizeOf = (evidence: Evidence) => `${Math.round(JSON.stringify(evidence).length / 1024)}KB`;
+    // **바이트로 센다.** `String.length` 는 UTF-16 칸 수라 한자·한글을 하나로 세는데,
+    // 넘어가는 것은 UTF-8 이라 그 글자들이 세 배다. 두 자리에서 다르게 세면 화면이
+    // 말하는 크기와 골든이 적는 크기가 갈린다.
+    const sizeOf = (evidence: Evidence) =>
+      `${Math.round(new TextEncoder().encode(JSON.stringify(evidence)).length / 1024)}KB`;
 
     const body = [
       '── 계약',

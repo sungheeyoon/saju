@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { buildMatchPreview } from '@/src/lib/matching';
 import type { Compatibility, Saju } from '@/src/lib/saju';
 
-import { CARD } from './saju-calculator';
+import { CARD } from './card';
 
 /**
  * `match-v0` 를 화면에 세우는 자리.
