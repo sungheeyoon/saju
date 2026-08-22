@@ -18,6 +18,7 @@ import {
   assembleText,
   checkSentence,
   findUtterances,
+  producibleStrengths,
   groundedCompatTermsOf,
   groundedNowTermsOf,
   groundedTermsOf,
@@ -235,6 +236,108 @@ describe('조립기', () => {
 
       // 시각을 알면 뺀 것이 없으므로 이 발화 자체가 서지 않는다.
       expect(topicsOf(RICH)).not.toContain('relation.coverage');
+    });
+  });
+
+  /**
+   * 뿌리의 질 — **사실 문장과 판정 문장이 같은 뿌리를 두고 갈린다.**
+   */
+  describe('뿌리에서 덜어 본 몫', () => {
+    /**
+     * `effectivelyRootless` 는 「질의 합이 문턱 아래」라는 뜻이라 **뿌리가 0개일
+     * 때도 참**이다. 그 자리는 뽑힌 것이 아니라 애초에 없는 것이고
+     * `rootedness.rootless` 가 이미 말한다 — 안 가르면 무근 명식이 「세어지기는
+     * 해도 남지 않았다」는 거짓말을 듣는다.
+     *
+     * 조립기에 그것을 막는 줄을 따로 세웠다가 지웠다. 뿌리가 없으면 깎일 것도
+     * 없어서 「깎인 것이 하나라도 있는가」가 이미 막고 있었고, 떼어 봐도 아무
+     * 시험이 안 깨졌다. **막는 줄이 바뀌어도 막힌다는 것은 여기가 잠근다.**
+     */
+    it('무근이면 뽑혔다고 말하지 않는다', () => {
+      let rootless = 0;
+
+      for (const input of randomInputs(400)) {
+        const saju = computeSaju(input);
+        if (saju.analysis.rootedness.dayMaster.rooted) continue;
+
+        rootless += 1;
+        expect(saju.analysis.rootQuality.dayMaster.effectivelyRootless).toBe(true);
+        expect(topicsOf(saju)).not.toContain('rootQuality.pulled');
+        expect(topicsOf(saju)).not.toContain('rootQuality.damaged');
+      }
+
+      expect(rootless).toBeGreaterThan(0);
+    });
+
+    /**
+     * **문턱이 혼자 발화하는 일이 없다.** `EFFECTIVE_ROOT_FLOOR` 아래로 내려간
+     * 명식은 무작위 3000건에서 전부 충이나 국에 깎인 자리였다 — 가장 얕은 뿌리
+     * (여기 · 같은 오행 · 고지 · 시지)가 0.105 로 문턱 바로 위이기 때문이다.
+     *
+     * 변종이 원인으로 갈리는 것이 이 사실에 기대고 있다. 깎이지 않고 뽑히는
+     * 명식이 하나라도 생기면 조립기가 고를 변종이 없어진다.
+     */
+    it('뽑힌 뿌리는 언제나 충이나 국에 깎여 있다', () => {
+      let pulled = 0;
+
+      for (const input of randomInputs(600)) {
+        const saju = computeSaju(input);
+        const quality = saju.analysis.rootQuality.dayMaster;
+        if (!saju.analysis.rootedness.dayMaster.rooted || !quality.effectivelyRootless) continue;
+
+        pulled += 1;
+        expect(
+          quality.roots.some((graded) => graded.clashed || graded.defected > 0),
+          JSON.stringify(input),
+        ).toBe(true);
+      }
+
+      expect(pulled).toBeGreaterThan(0);
+    });
+
+    /**
+     * 「없다」는 주장이라 시주가 뒤집는다 — 세 기둥이 같은 표본에서 8.7% 가
+     * 실제로 뒤집힌다. `rootedness.rootless` 와 같은 자리다.
+     */
+    it('뽑혔다는 말은 시각을 모르면 입을 닫는다', () => {
+      const pulled = randomInputs(600)
+        .map((input) => computeSaju(input))
+        .find(
+          (saju) =>
+            saju.analysis.rootedness.dayMaster.rooted &&
+            saju.analysis.rootQuality.dayMaster.effectivelyRootless,
+        );
+
+      expect(pulled).toBeDefined();
+      expect(producibleStrengths('rootQuality.pulled')).toEqual(['derived']);
+      // 깎였지만 남은 쪽은 있다는 주장이라 한 칸 내려가기만 한다.
+      expect(producibleStrengths('rootQuality.damaged')).toEqual(['derived', 'candidate']);
+    });
+
+    /**
+     * 뽑힘은 3000건의 3.8% 이고 그것이 다시 원인 셋으로 갈린다. 400건짜리 표본은
+     * 그중 하나를 통째로 못 밟고 지나가서, 아무도 조회하지 않는 조각이 지시서에
+     * 빈칸 없이 앉아 있어도 보이지 않는다 — 표본을 그 자리가 나올 만큼 늘렸다.
+     */
+    it('여섯 좌표가 모두 실제로 조회된다', () => {
+      const seen = new Set(
+        randomInputs(900)
+          .map((input) => computeSaju(input))
+          .flatMap((saju) =>
+            findUtterances(saju)
+              .filter((request) => request.topic.startsWith('rootQuality.'))
+              .map((request) => `${request.topic}/${request.variant}`),
+          ),
+      );
+
+      expect([...seen].sort()).toEqual([
+        'rootQuality.damaged/both',
+        'rootQuality.damaged/clashed',
+        'rootQuality.damaged/defected',
+        'rootQuality.pulled/both',
+        'rootQuality.pulled/clashed',
+        'rootQuality.pulled/defected',
+      ]);
     });
   });
 

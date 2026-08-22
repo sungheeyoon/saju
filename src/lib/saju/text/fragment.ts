@@ -53,6 +53,8 @@ import {
 export type FragmentTopic =
   | 'rootedness.rooted'
   | 'rootedness.rootless'
+  | 'rootQuality.damaged'
+  | 'rootQuality.pulled'
   | 'strength.verdict'
   | 'transformation.verdict'
   | 'bureau.standing'
@@ -311,6 +313,66 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     slots: ['literal', 'effective'],
     samples: { literal: '토', effective: '수' },
     note: '글자를 그대로 셀 때와 옮긴 무게까지 셀 때 가장 무거운 오행이 갈리는가',
+  },
+
+  /**
+   * 깎인 뿌리 — **뿌리 표가 그대로 세는 것을 여기서 덜어 본다.**
+   *
+   * `rootedness.ts` 는 「질은 매기지 않는다」를 정책으로 못박고 있고
+   * (`ROOTEDNESS_POLICY.quality`), 그래서 뿌리 문장은 자리만 늘어놓는다 —
+   * 「무 일간은 일주·시주 자리에 같은 오행으로 뿌리를 둡니다」. 그 문장은 참인데,
+   * 그 뿌리가 충을 맞고 있거나 다른 오행의 국에 끌려간 것을 말하지 않는다.
+   * 무작위 3000건에서 **충 32.4% · 국 36.6%** 가 그 자리다.
+   *
+   * **변종은 무엇이 깎았는가로 갈린다.** 충과 국은 다른 일이라 배수도 따로다 —
+   * 충은 곱하기 0.4이고(`ROOT_QUALITY_POLICY.clashed`) 국은 가져간 몫만큼
+   * 빼는 것이라(`bureauDefection: 'by-bureau-pull'`) 문턱조차 없다. 한 낱말로
+   * 접으면 「깎였다」만 남고 무엇이 깎았는지가 사라진다.
+   *
+   * **얼마나 깎였는지는 말하지 않는다.** `strength` 는 배수 다섯을 곱한 값이라
+   * 단위가 없다 — 「1.85」를 화면에 적으면 읽는 사람이 무엇과 견줄 수 없는
+   * 숫자를 얻는다. 국의 몫(`{pull}`)이 「그 자리가 지고 있던 무게의 몇 %」라는
+   * 뜻을 갖는 것과 정반대다.
+   *
+   * 아무것도 깎이지 않았으면 발화가 없다(27.9%). 「깎인 것이 없다」는 없다는
+   * 주장이고, 뿌리가 있다는 것은 뿌리 문장이 이미 말했다.
+   */
+  'rootQuality.damaged': {
+    paths: ['analysis.rootQuality'],
+    polarity: 'presence',
+    variants: ['clashed', 'defected', 'both'],
+    slots: ['dayMaster', 'clashedAt', 'defectedAt'],
+    samples: { dayMaster: '병', clashedAt: '월주', defectedAt: '년주·시주' },
+    note: '일간의 뿌리 가운데 충이나 국에 깎인 것이 있는가',
+  },
+
+  /**
+   * 뽑힌 뿌리 — **세어지기는 하는데 쓸 것이 남지 않았다.**
+   *
+   * 이 파일이 쓰인 까닭이 여기 있다. 《적천수천미》가 「丙火之根已拔」이라 적은
+   * 명조를 이 엔진은 「寅에 통근함」으로 세고 있었다 — 寅이 申 셋에게 충을 맞아
+   * 뽑힌 것을 안 보았기 때문이다(`rootQuality.ts` 의 첫 주석).
+   *
+   * 그 판정이 값으로는 있었는데(`RootQuality.effectivelyRootless`) 화면은
+   * 여전히 「뿌리를 둡니다」만 말하고 있었다. 무작위 3000건의 **3.8%** 다.
+   *
+   * **방향이 반대라 주제가 갈린다.** 「깎였지만 남았다」는 있다는 주장이고 이쪽은
+   * 없다는 주장이라, 시주가 빠지면 시지가 뿌리일 수 있어 통째로 뒤집힌다 —
+   * `rootedness.rooted` ↔ `rootless` 와 같은 자리이고 실제로 세 기둥이 같은
+   * 표본에서 **8.7%** 가 뒤집힌다. 그래서 시간 미상에서는 입을 닫는다.
+   *
+   * **문턱이 혼자 발화하는 일은 없다.** `EFFECTIVE_ROOT_FLOOR` 는 「얕으면 쓸 것이
+   * 없다」는 값인데, 3000건에서 깎이지 않고 그 아래로 내려간 명식은 **0건**이다 —
+   * 가장 얕은 뿌리(여기·같은 오행·고지·시지)가 0.105 로 문턱 바로 위에 있다.
+   * 뽑힘은 언제나 충이나 국에서 온다는 뜻이고, 그래서 변종이 원인으로 갈린다.
+   */
+  'rootQuality.pulled': {
+    paths: ['analysis.rootQuality'],
+    polarity: 'absence',
+    variants: ['clashed', 'defected', 'both'],
+    slots: ['dayMaster', 'clashedAt', 'defectedAt'],
+    samples: { dayMaster: '병', clashedAt: '월주', defectedAt: '년주' },
+    note: '뿌리로 세어졌지만 충·국에 깎여 쓸 것이 남지 않았는가',
   },
 
   'strength.verdict': {

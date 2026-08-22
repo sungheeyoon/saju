@@ -208,7 +208,10 @@ export const UNCOVERED_FACTS_BY_PATH: readonly {
     paths: ['analysis.bureaus', 'analysis.effectiveElements'],
     note: '몫과 등급을 정한 조건들 — 국의 받침·왕지의 충, 化를 막은 것. 조건의 목록이라 한 문장으로 접으면 반올림이 되므로 결과만 든다',
   },
-  { paths: ['analysis.rootQuality'], note: '뿌리의 질 — `analysis.rootedness` 가 센 뿌리에 등급을 매긴 것' },
+  {
+    paths: ['analysis.rootQuality'],
+    note: '일간 밖의 천간 — 일간의 뿌리만 말한다. 질의 수치는 배수를 곱한 값이라 단위가 없어 들지 않는다',
+  },
   { paths: ['analysis.followingCandidacy'], note: '종격 후보 자격 — 판정(`analysis.following`)만 말한다' },
   { paths: ['stages'] },
   { paths: ['sinsal'] },
@@ -259,6 +262,47 @@ const stemsKo = (stems: readonly Stem[]): string => stems.map((stem) => STEM_INF
  * 정확히 그것이다(`JOHU_POLICY.conditionEvaluation`).
  */
 const FILLED_NOON_SPAN_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * 일간의 뿌리에서 깎인 것 — **무엇이 깎았는가가 변종이고, 얼마나 남았는가가
+ * 주제를 가른다.**
+ *
+ * 깎인 것이 하나도 없으면 아무것도 안 낸다 — 「깎인 것이 없다」는 없다는 주장이고,
+ * 뿌리가 있다는 것은 뿌리 문장이 이미 말했다.
+ *
+ * **무근을 따로 막지 않는다.** `effectivelyRootless` 는 「질의 합이 문턱 아래」라는
+ * 뜻이라 뿌리가 0개일 때도 참이고, 그대로 두면 무근 명식이 「세어지기는 해도 남지
+ * 않았다」는 거짓말을 듣는다. 그런데 뿌리가 없으면 깎일 것도 없어서
+ * (`rooted === roots.length > 0`) 아래 한 줄이 이미 막는다 — 게이트를 하나 더
+ * 세워 뒀다가 **떼어 보니 아무 시험도 깨지지 않았다.** 있으나 마나 한 것을
+ * 있는 것처럼 두면 다음 사람이 그것을 근거로 읽는다.
+ *
+ * **일간만 본다.** `RootQualityChart.stems` 가 나머지 천간의 질도 들고 있지만
+ * 뿌리 문장 자체가 일간의 뿌리만 말하므로(`analysis.rootedness` 고지), 여기만
+ * 앞서 나가면 화면이 한쪽 축에서만 자란다.
+ */
+function rootQualityRequest(
+  saju: Saju,
+): Pick<FragmentRequest, 'topic' | 'variant' | 'slots'> | null {
+  const quality = saju.analysis.rootQuality.dayMaster;
+  const clashed = quality.roots.filter((graded) => graded.clashed);
+  const defected = quality.roots.filter((graded) => graded.defected > 0);
+  if (clashed.length === 0 && defected.length === 0) return null;
+
+  const at = (roots: readonly (typeof quality.roots)[number][]) =>
+    positionsKo([...new Set(roots.map((graded) => graded.root.position))]);
+
+  return {
+    topic: quality.effectivelyRootless ? 'rootQuality.pulled' : 'rootQuality.damaged',
+    variant:
+      clashed.length > 0 && defected.length > 0 ? 'both' : clashed.length > 0 ? 'clashed' : 'defected',
+    slots: {
+      dayMaster: STEM_INFO[saju.pillars.dayMaster].ko,
+      clashedAt: at(clashed),
+      defectedAt: at(defected),
+    },
+  };
+}
 
 /**
  * 천간합 하나 — **판정이 변종이고, 일간이 그 위에 얹힌다.**
@@ -487,6 +531,13 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
 
   const heaviest = heaviestRequest(saju);
   if (heaviest) requests.push({ ...base, ...heaviest });
+
+  // **국 다음이다.** 뿌리 문장 바로 뒤에 붙이고 싶어지지만, 이 문장이 「국에
+  // 끌려갔다」고 말할 때 그 국이 무엇인지는 위의 국 문장만 답할 수 있다. 계산도
+  // 그 순서다 — `rootQualityOf` 가 `bureaus` 를 인자로 받는다. 뿌리 문장과는
+  // 자리 이름이 겹쳐 이어지므로 떨어져 있어도 짚을 수 있다.
+  const rootDamage = rootQualityRequest(saju);
+  if (rootDamage) requests.push({ ...base, ...rootDamage });
 
   const { strength, eokbu } = saju.analysis;
 

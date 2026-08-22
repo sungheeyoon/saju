@@ -278,6 +278,55 @@ const JOHU_SOURCE = '궁통보감 조후표';
 const JOHU_UNJUDGED = '나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.';
 
 /**
+ * 깎인 뿌리 · 뽑힌 뿌리 — **뿌리 문장 바로 뒤에서 그것을 덜어 본다.**
+ *
+ * 두 주제가 같은 축(무엇이 깎았는가)을 쓰므로 몸통을 나눠 쓴다. 갈리는 것은
+ * **얼마나 남았는가**뿐이라 꼬리에서 갈린다 — 같은 문장을 두 벌 적으면 언젠가
+ * 한쪽만 고쳐진다.
+ *
+ * 두 벌 수가 다르다. 「깎였지만 남았다」는 있다는 주장이라 시간 미상에서 한 칸
+ * 내려앉고, 「남지 않았다」는 없다는 주장이라 **입을 닫는다** — 그래서 이쪽만
+ * 한 벌이다(`producibleStrengths` 가 그 수를 낸다).
+ *
+ * 꼬리가 뿌리 표를 가리킨다. 바로 위에 「뿌리를 둡니다」가 완충 표현 없이 서 있고
+ * (사실이라 그렇게 설 수 있다), 이 문장이 그것을 부정하는 것처럼 읽히면 안 된다 —
+ * 세는 것과 쓸 몫을 재는 것은 다른 일이고 그 갈래가 `rootedness.ts` 와
+ * `rootQuality.ts` 를 두 파일로 나눈 이유다.
+ */
+const ROOT_DAMAGE_BODIES: Record<string, string> = {
+  clashed: '{dayMaster} 일간의 뿌리 가운데 {clashedAt} 자리의 것이 충을 맞고 있',
+  defected: '{dayMaster} 일간의 뿌리 가운데 {defectedAt} 자리의 것이 다른 오행의 국에 끌려가 있',
+  both: '{dayMaster} 일간의 뿌리 가운데 {clashedAt} 자리의 것은 충을 맞고 {defectedAt} 자리의 것은 다른 오행의 국에 끌려가 있',
+};
+
+/** 뿌리 표를 부정하는 것이 아니라는 것 — 세는 일과 쓸 몫을 재는 일은 다르다 */
+const ROOT_QUALITY_TAIL = '뿌리로 세는 것은 그대로이고 여기서는 쓸 몫만 덜어 봅니다.';
+
+const rootQualityFragments: Fragment[] = Object.entries(ROOT_DAMAGE_BODIES).flatMap(
+  ([variant, body]): Fragment[] => [
+    {
+      topic: 'rootQuality.damaged',
+      variant,
+      strength: 'derived',
+      template: `${body}어 그만큼 얕게 본 것${STRENGTH_WORDING.derived}. ${ROOT_QUALITY_TAIL}`,
+    },
+    {
+      topic: 'rootQuality.damaged',
+      variant,
+      strength: 'candidate',
+      template: `${HOUR_UNKNOWN_MARK}를 빼고 세면 ${body}어 그만큼 얕게 보는 것을 ${STRENGTH_WORDING.candidate}. ${ROOT_QUALITY_TAIL}`,
+    },
+    // 없다는 주장이라 시간 미상에서는 입을 닫는다 — 한 벌뿐이다.
+    {
+      topic: 'rootQuality.pulled',
+      variant,
+      strength: 'derived',
+      template: `${body}어, 뿌리로 세어지기는 해도 쓸 것이 남지 않은 것${STRENGTH_WORDING.derived}. ${ROOT_QUALITY_TAIL}`,
+    },
+  ],
+);
+
+/**
  * 합화 넷 × 두 벌 — **판정 이름이 슬롯으로만 들어온다.**
  *
  * '합화'는 금지 표현이다(`FORBIDDEN_CLAIMS` 의 `transformation`). 문장 틀에
@@ -946,6 +995,10 @@ export const FRAGMENTS: readonly Fragment[] = [
 
   // ── 억부 후보 ────────────────────────────────────────────────────────
   ...eokbuFragments,
+
+  // ── 뿌리의 질 ─────────────────────────────────────────────────────────
+  // 뿌리 표는 자리만 늘어놓는다. 충에 맞고 국에 끌려간 것은 여기서 덜어 본다.
+  ...rootQualityFragments,
 
   // ── 합화 · 국(局) · 옮겨 간 무게 ───────────────────────────────────────
   // 세력을 재는 문장들이 전부 옮긴 뒤의 분포를 보는데 그 옮김을 아무도 안 말했다.
