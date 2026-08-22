@@ -60,6 +60,7 @@ export type FragmentTopic =
   | 'bureau.standing'
   | 'elements.heaviest'
   | 'structure.kind'
+  | 'structure.outcome'
   | 'eokbu.candidate'
   | 'favorability.seating'
   | 'eokbuMatch.supplied'
@@ -373,6 +374,43 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     slots: ['dayMaster', 'clashedAt', 'defectedAt'],
     samples: { dayMaster: '병', clashedAt: '월주', defectedAt: '년주' },
     note: '뿌리로 세어졌지만 충·국에 깎여 쓸 것이 남지 않았는가',
+  },
+
+  /**
+   * 성패(成敗) — **접지 않는다. 목록을 문장 안에 그대로 둔다.**
+   *
+   * 격국이 화면에 선 커밋에서 이 자리를 비워 두며 「이룸과 깨짐은 조건의 목록이라
+   * 한 문장으로 접으면 반올림이 된다」고 적었다. 맞는 말이었는데, 그 말이 가리킨
+   * 답은 **말하지 않는 것이 아니라 접지 않는 것**이었다 — 조후가 절반을 못 고를 때
+   * 한쪽을 버리지 않고 양쪽을 나란히 드는 것과 같다(`johu.table/half-unjudged`).
+   * `{forming}`·`{breaking}` 이 확인된 조건의 이름을 그대로 든다.
+   *
+   * **`미정` 을 둘로 가른다.** 엔진의 `outcome` 은 「섞였거나 둘 다 없다」를 한 값에
+   * 담는데, 무작위 3000건에서 섞임 22.5% · 둘 다 없음 15.5% 로 **둘 다 흔하고 뜻이
+   * 정반대다** — 앞은 이룸과 깨짐이 함께 있어 못 가리는 것이고 뒤는 볼 것이 하나도
+   * 없는 것이다. 값을 갈라 달라고 할 필요는 없었다. 두 목록의 길이가 그 구분을
+   * 이미 들고 있어서, 문장이 사실을 읽으면 그대로 나온다.
+   *
+   * **방향이 `absence` 다.** 네 문장이 전부 「확인되지 않았다」에 기대고 있고
+   * (성격 쪽은 「깨는 조건이 없다」, 둘 다 없음은 그 자체가 부재다), 조건 대부분이
+   * 천간 투출을 보므로 시주 두 글자가 그것을 뒤집는다 — 같은 표본에서 성패가
+   * **26.5%** 흔들린다(`HOUR_SENSITIVE_PATHS`). 그래서 시간 미상에서는 격 이름만
+   * 말하고 성패는 입을 닫는다. 종격이 같은 이유로 잠긴 것과 같은 자리다.
+   *
+   * **뜻풀이를 달지 않는다.** 「상관견관」은 상관이 정관을 본다는 뜻이고 「식상생재」는
+   * 식상이 재를 낳는다는 뜻이라, 풀어 적으면 이름을 한국어로 옮긴 것뿐이다 —
+   * 관계 22칸이 2칸이 된 것과 같은 판단이다(`ClaimForm` 의 동어반복).
+   *
+   * 상한은 격 이름과 같다. 외부 대조가 아직 **0건**이고, 그 값은 `structure.kind`
+   * 와 한 자리에서 온다(`CLAIM_CEILING['analysis.structure']`).
+   */
+  'structure.outcome': {
+    paths: ['analysis.structure'],
+    polarity: 'absence',
+    variants: ['formed', 'broken', 'mixed', 'none'],
+    slots: ['kind', 'forming', 'breaking'],
+    samples: { kind: '정관격', forming: '관봉재인', breaking: '상관견관·관살혼잡' },
+    note: '격을 이루는 조건과 깨는 조건이 각각 무엇이 확인됐는가',
   },
 
   'strength.verdict': {

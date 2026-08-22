@@ -133,6 +133,13 @@ export function groundedTermsOf(saju: Saju): string[] {
   // 관계 목록에 없어서 여기서 처음 들어온다. 명식이 낸 이름이 맞으므로 담는다.
   for (const bureau of saju.analysis.bureaus) terms.add(bureau.ko);
 
+  // 성패의 조건 이름. 스물 중 둘(`식신제살`·`관인상생`)은 금지 표현이기도 해서,
+  // 그 조건이 실제로 걸린 명식에서만 열린다 — 합화의 판정 이름과 같은 자리다.
+  const { structure } = saju.analysis;
+  for (const factor of [...structure.formingFactors, ...structure.breakingFactors]) {
+    terms.add(factor.name);
+  }
+
   // **판정 이름이 '합화'라 금지 표현이다.** 담는 것이 금지를 푸는 것이 아니라,
   // 化를 판정한 명식에서만 담기므로 금지가 그때만 열린다 — 그것이 원래 요구였다
   // (`FORBIDDEN_CLAIMS` 의 `transformation`). 합 이름(`ko`)은 관계 목록이 이미
@@ -198,7 +205,10 @@ export const UNCOVERED_FACTS_BY_PATH: readonly {
   { paths: ['analysis.rootedness'], note: '일간 밖의 천간·투출' },
   // 2026-08-21 에 들어온 판정들. 엔진에는 값이 있고 주제가 없다 — 여기 이름이
   // 서 있는 동안은 화면도 문장도 이것들을 모른다.
-  { paths: ['analysis.structure'], note: '성패(成敗) — 무슨 격인가만 말한다. 이룸과 깨짐은 조건의 목록이라 한 문장으로 접으면 반올림이 된다' },
+  {
+    paths: ['analysis.structure'],
+    note: '조건이 어느 자리의 무슨 글자에서 나왔는가 — 조건의 이름까지 든다. 근거 글자는 `StructureFactor.detail` 에 산문으로만 있어 아직 계약 밖이다',
+  },
   {
     paths: ['analysis.favorability'],
     note: '자리마다 원국에 몇 자인가 — 배정만 말한다. 「한 자도 없다」는 없다는 주장이라 방향이 다르고, 세어진 수는 행의 몫이다',
@@ -477,6 +487,37 @@ function structureRequest(saju: Saju): Pick<FragmentRequest, 'topic' | 'variant'
 }
 
 /**
+ * 성패 — **두 목록의 길이가 변종을 고른다.**
+ *
+ * 엔진의 `outcome` 을 안 읽는다. 그 값은 「섞였거나 둘 다 없다」를 `unresolved`
+ * 한 칸에 담는데 둘은 뜻이 정반대라(3000건에서 22.5% 대 15.5%) 문장이 갈려야
+ * 하고, 갈릴 근거는 **두 배열의 길이**에 이미 있다. 값을 하나 더 만들어 달라고
+ * 하는 대신 사실을 읽는다 — `principalFallback` 은 `selectSource` 안에서만 알 수
+ * 있는 것이라 값이 필요했지만 여기는 밖에서 보인다.
+ */
+function structureOutcomeRequest(
+  saju: Saju,
+): Pick<FragmentRequest, 'topic' | 'variant' | 'slots'> {
+  const { structure } = saju.analysis;
+  const names = (factors: readonly { name: string }[]) =>
+    factors.map((factor) => factor.name).join('·');
+
+  const forming = structure.formingFactors.length > 0;
+  const breaking = structure.breakingFactors.length > 0;
+
+  return {
+    topic: 'structure.outcome',
+    variant:
+      forming && breaking ? 'mixed' : forming ? 'formed' : breaking ? 'broken' : 'none',
+    slots: {
+      kind: structure.ko,
+      forming: names(structure.formingFactors),
+      breaking: names(structure.breakingFactors),
+    },
+  };
+}
+
+/**
  * 명식에서 발화를 찾는다 — **조각을 모른다.**
  *
  * 말뭉치가 비어 있어도 같은 목록이 나온다. 발화의 수는 명식이 정하고,
@@ -565,6 +606,10 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
   requests.push({ ...base, ...johuRequest(saju) });
 
   requests.push({ ...base, ...structureRequest(saju) });
+
+  // 격 이름 바로 뒤다. 성패는 그 격에 대한 말이라 사이에 다른 주제가 끼면
+  // 무엇의 성패인지가 앞줄에서 떨어진다 — 시간 미상이면 여기만 입을 닫는다.
+  requests.push({ ...base, ...structureOutcomeRequest(saju) });
 
   // 말하지 않기로 한 판정도 요청은 낸다. 여기서 걸러 버리면 "사실이 없다"와
   // "말하지 않기로 했다"가 한 덩어리가 되고, 골든에서 침묵이 보이지 않는다.

@@ -4,6 +4,7 @@ import { computeSaju, currentFortuneOf, type Saju } from '@/src/lib/saju';
 import {
   FAVOR_ROLE_KO,
   FOLLOWING_PATTERN_POLICY,
+  STRUCTURE_FACTOR_NAMES,
   FOLLOWING_PATTERN_STATUS_KO,
   TEN_GOD_KO,
   type FollowingPatternStatus,
@@ -335,6 +336,55 @@ describe('문장 계약', () => {
         expect(MYEONGRI_LEXICON.has(name), name).toBe(true);
         expect(rules(`${name}이 있습니다.`, 'fact', []), name).toContain('ungrounded-term');
         expect(rules(`${name}이 있습니다.`, 'fact', [name]), name).toHaveLength(0);
+      }
+    });
+
+    /**
+     * **그물에도 같은 통로가 필요했다.**
+     *
+     * 오미합화를 살리려고 낸 「근거가 이긴다」가 여태 금지 목록에만 걸려 있었다.
+     * 성패 조건 이름 '식상생재' 안의 '식상'이 근거 없는 용어로 잡히면서 드러났다 —
+     * 엔진이 낸 이름 안에 있는 낱말은 따로 말한 것이 아니다.
+     *
+     * 이름 밖에 서면 여전히 걸린다. 자리를 견주므로 같은 낱말이 한 문장에서 한 번은
+     * 통과하고 한 번은 걸릴 수 있고, 그것이 맞다.
+     */
+    it('엔진이 낸 이름 안의 용어는 따로 말한 것이 아니다', () => {
+      expect(rules('식상생재 쪽이 걸립니다.', 'fact', [])).toContain('ungrounded-term');
+      expect(rules('식상생재 쪽이 걸립니다.', 'fact', ['식상생재'])).toHaveLength(0);
+
+      // 이름 밖에서 말하면 근거가 있어도 걸린다.
+      expect(rules('식상생재 쪽이 걸려 식상이 무겁습니다.', 'fact', ['식상생재'])).toContain(
+        'ungrounded-term',
+      );
+    });
+
+    /**
+     * 성패 조건 스물 중 둘이 금지 표현이다. 그 조건이 걸린 명식에서만 열린다 —
+     * 합화의 판정 이름과 같은 통로이고, 근거로 담기지 않으면 그대로 막힌다.
+     */
+    it('성패 조건 이름은 그 조건이 걸린 명식에서만 선다', () => {
+      for (const name of ['식신제살', '관인상생']) {
+        expect(rules(`${name} 쪽이 걸립니다.`, 'fact', []), name).toContain('forbidden-claim');
+        expect(rules(`${name} 쪽이 걸립니다.`, 'fact', [name]), name).toHaveLength(0);
+      }
+
+      /*
+        나머지를 지키는 것은 **금지 목록이 아니라 근거 목록의 좁음**이다. 근거로
+        들이밀면 어느 이름이든 통로가 열리므로(`insideGroundedTerm`), 실제 방벽은
+        `groundedTermsOf` 가 **그 명식이 낸 것만** 담는다는 쪽에 있다
+        (`ASSEMBLE_POLICY.groundedScope: 'chart-produced-only'`). 그래서 여기서
+        확인할 것은 「막히는가」가 아니라 「열 열쇠가 없는가」다.
+      */
+      for (const name of ['재다신약', '살중용인', '군겁쟁재']) {
+        expect(STRUCTURE_FACTOR_NAMES, name).not.toContain(name);
+        expect(rules(`${name} 사주로 봅니다.`, 'derived', []), name).toContain('forbidden-claim');
+      }
+
+      for (const saju of [CHART, HOURLESS]) {
+        for (const name of ['재다신약', '살중용인', '군겁쟁재']) {
+          expect(groundedTermsOf(saju), name).not.toContain(name);
+        }
       }
     });
 

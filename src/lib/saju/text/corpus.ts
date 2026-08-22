@@ -278,6 +278,39 @@ const JOHU_SOURCE = '궁통보감 조후표';
 const JOHU_UNJUDGED = '나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.';
 
 /**
+ * 성패 네 벌 — **한 벌씩이다. 시간 미상에서는 입을 닫는다.**
+ *
+ * 네 문장이 전부 「확인되지 않았다」에 기대고 있어 주제가 `absence` 이고
+ * (`FRAGMENT_TOPICS['structure.outcome']`), 그래서 강등된 벌이 아예 없다 —
+ * `producibleStrengths` 가 한 칸만 낸다. 종격과 같은 모양이다.
+ *
+ * **결론을 이름으로 부르지 않는다.** `STRUCTURE_OUTCOME_KO` 는 成格을 '성격'
+ * 이라 적는데, 사주 화면에서 그 낱말은 사람의 성격으로 읽힌다. 계산 골든은
+ * 표라서 그대로 두고 산문은 조건이 어느 쪽으로 걸렸는지까지만 말한다 —
+ * 「격을 이루」가 금지 표현인 것도 같은 선이다(`FORBIDDEN_CLAIMS`).
+ */
+const STRUCTURE_OUTCOME_BODIES: Record<string, string> = {
+  formed:
+    '{kind} 쪽에 {forming} 쪽이 이루는 조건으로 걸리고 깨는 조건은 확인되지 않은 것',
+  broken:
+    '{kind} 쪽에 {breaking} 쪽이 깨는 조건으로 걸리고 이루는 조건은 확인되지 않은 것',
+  // 섞였다. 어느 쪽으로도 밀어 넣지 않고 양쪽을 그대로 든다.
+  mixed:
+    '{kind} 쪽에 {forming} 쪽이 이루는 조건으로, {breaking} 쪽이 깨는 조건으로 함께 걸린 것',
+  // 볼 것이 하나도 없다 — 섞인 것과 뜻이 정반대라 같은 칸에 두지 않는다.
+  none: '{kind} 쪽에 이루는 조건도 깨는 조건도 확인되지 않은 것',
+};
+
+const structureOutcomeFragments: Fragment[] = Object.entries(STRUCTURE_OUTCOME_BODIES).map(
+  ([variant, body]): Fragment => ({
+    topic: 'structure.outcome',
+    variant,
+    strength: 'candidate',
+    template: `${body}을 ${STRENGTH_WORDING.candidate}.`,
+  }),
+);
+
+/**
  * 깎인 뿌리 · 뽑힌 뿌리 — **뿌리 문장 바로 뒤에서 그것을 덜어 본다.**
  *
  * 두 주제가 같은 축(무엇이 깎았는가)을 쓰므로 몸통을 나눠 쓴다. 갈리는 것은
@@ -995,6 +1028,10 @@ export const FRAGMENTS: readonly Fragment[] = [
 
   // ── 억부 후보 ────────────────────────────────────────────────────────
   ...eokbuFragments,
+
+  // ── 격국 성패 ─────────────────────────────────────────────────────────
+  // 조건의 목록이라 접으면 반올림이 된다 — 접지 않고 이름을 그대로 든다.
+  ...structureOutcomeFragments,
 
   // ── 뿌리의 질 ─────────────────────────────────────────────────────────
   // 뿌리 표는 자리만 늘어놓는다. 충에 맞고 국에 끌려간 것은 여기서 덜어 본다.

@@ -15,6 +15,7 @@ import {
 import {
   BUREAU_NAMES,
   ELEMENT_ROLE_KO,
+  STRUCTURE_FACTOR_NAMES,
   FOLLOWING_PATTERN_KIND_KO,
   FOLLOWING_PATTERN_POLICY,
   FOLLOWING_PATTERN_STATUS_KO,
@@ -566,11 +567,28 @@ export const FORBIDDEN_CLAIMS: readonly ForbiddenClaim[] = [
     why: '20%씩 끊은 값에 전통 판정 이름을 달면 없는 근거를 만드는 것이다. 근거 있는 구간 경계가 없다.',
     source: 'STRENGTH_POLICY.gradeBands = none',
   },
+  /**
+   * **성패는 판정한다 — 다만 조건까지다.**
+   *
+   * `why` 가 「성패를 판정하지 않는다」라고 적혀 있었는데 그 말은 이미 틀렸다.
+   * `structureOf` 는 이루는 조건과 깨는 조건을 하나씩 내고, 참·거짓으로 접지
+   * 않는 것이 오히려 그 모듈의 결정이다(`STRUCTURE_POLICY.outcome`).
+   * 세 번째 낡은 금지이고 앞의 둘과 고치는 방법도 같다.
+   *
+   * 스무 개 조건 이름 중 둘이 여기 걸려 있었다 — `식신제살` 과 `관인상생`. 그
+   * 조건이 걸린 명식에서 문장을 세우면 조각이 통째로 위반을 냈다(3000건의 13%).
+   * 합화와 같은 통로로 연다 — `groundedTermsOf` 가 **그 명식이 실제로 낸 조건
+   * 이름**을 담고, 안 담긴 명식에서 그 낱말을 쓰면 그대로 걸린다.
+   *
+   * 남는 것이 이 금지의 본론이다. `재다신약`·`살중용인`·`군겁쟁재` 는 엔진이
+   * **내지 않는 이름**이라 문장에 나오면 지어낸 것이고, `격국은 `·`격을 이루` 는
+   * 조건까지만 말하기로 한 선을 넘는 단정이다. 우리는 조건이 걸렸다고만 말한다.
+   */
   {
     id: 'structure-pattern',
     terms: ['재다신약', '財多身弱', '살중용인', '식신제살', '군겁쟁재', '관인상생', '격국은 ', '격을 이루'],
-    why: '격국의 성패를 판정하지 않는다. 억부 후보가 나왔다고 격국 이름이 따라 나오지 않는다.',
-    source: 'EokbuAssessment.unresolved = structure',
+    why: '성패는 조건의 목록으로만 낸다. 엔진이 내지 않는 격 이름을 지어내거나 조건을 결론으로 접으면 안 되고, 억부 후보가 나왔다고 격국 이름이 따라 나오지도 않는다.',
+    source: 'STRUCTURE_POLICY.outcome = conditions-listed · EokbuAssessment.unresolved = structure',
   },
   /**
    * **판정한 자리만 그 이름을 쓴다 — 통로는 이미 있었다.**
@@ -684,6 +702,9 @@ export const MYEONGRI_LEXICON: ReadonlySet<string> = new Set<string>(
   // `partialName` 이 그 자리에서 조합하는 이름이라 정적 표에 안 실린다. 그물이
   // 그냥 지나치고 있었고, 공협은 관계 목록에도 없어서 **어느 쪽으로도 안 잡혔다.**
   ...BUREAU_NAMES,
+  // 성패의 조건 이름 스물. `structureOf` 의 `switch` 안에 흩어져 있어 정적으로는
+  // 어디에도 모여 있지 않았다 — 국 이름과 같은 구멍이다.
+  ...STRUCTURE_FACTOR_NAMES,
   ...STEM_COMBINATIONS.map((c) => c.ko),
   ...STEM_CLASHES.map((c) => c.ko),
   ...BRANCH_SIX_COMBINATIONS.map((c) => c.ko),
@@ -897,13 +918,25 @@ export function checkSentence({
   }
 
   for (const term of MYEONGRI_LEXICON) {
-    if (text.includes(term) && !evidence.has(term)) {
-      violations.push({
-        rule: 'ungrounded-term',
-        term,
-        detail: `근거 목록에 없는 용어다. 이 명식에서 나오지 않은 것을 말했거나, 데이터가 아니라 문장 틀에 타이핑했다.`,
-      });
-    }
+    if (evidence.has(term)) continue;
+
+    // **금지 표현과 같은 규칙이다.** 오미합화를 살리려고 낸 통로가 여태 금지
+    // 목록에만 걸려 있었는데, 그물에도 정확히 같은 일이 일어난다 — '식상생재'
+    // 라는 조건 이름 안의 '식상'이 근거 없는 용어로 잡혔다. 근거가 이긴다:
+    // 엔진이 낸 이름 **안에** 있는 낱말은 따로 말한 것이 아니다.
+    //
+    // 이름 밖에 서면 여전히 걸린다. 자리를 견주므로 같은 낱말이 한 문장에서
+    // 한 번은 통과하고 한 번은 걸릴 수 있고, 그것이 맞다.
+    const bare = occurrencesOf(text, term).filter(
+      (at) => !insideGroundedTerm(text, at, term.length, evidence),
+    );
+    if (bare.length === 0) continue;
+
+    violations.push({
+      rule: 'ungrounded-term',
+      term,
+      detail: `근거 목록에 없는 용어다. 이 명식에서 나오지 않은 것을 말했거나, 데이터가 아니라 문장 틀에 타이핑했다.`,
+    });
   }
 
   return violations;
@@ -972,5 +1005,5 @@ export const TEXT_POLICY = {
   seatNames: 'named-only-as-a-seat',
   /** 한 글자 용어는 그물에 넣지 않는다. 신살 이름은 아직 목록이 없다 */
   lexiconCoverage:
-    'ten-gods, roles, stages, spirits, relations, following, bureaus — stars pending',
+    'ten-gods, roles, stages, spirits, relations, following, bureaus, structure — stars pending',
 } as const;

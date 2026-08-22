@@ -240,6 +240,82 @@ describe('조립기', () => {
   });
 
   /**
+   * 격국 성패 — **접지 않고 목록을 문장 안에 둔다.**
+   */
+  describe('성패는 조건을 이름으로 든다', () => {
+    /**
+     * 엔진의 `outcome` 은 「섞였거나 둘 다 없다」를 `unresolved` 한 칸에 담는데
+     * 둘은 뜻이 정반대다(3000건에서 22.5% 대 15.5%). 값을 하나 더 만들지 않고
+     * **두 목록의 길이**를 읽어 가른다 — 밖에서 보이는 사실이라 그럴 수 있다.
+     */
+    it('미정 한 칸이 섞임과 둘 다 없음으로 갈린다', () => {
+      const seen = new Map<string, number>();
+
+      for (const input of randomInputs(400)) {
+        const saju = computeSaju(input);
+        const request = findUtterances(saju).find(
+          (candidate) => candidate.topic === 'structure.outcome',
+        )!;
+        const { structure } = saju.analysis;
+
+        if (structure.outcome !== 'unresolved') continue;
+        seen.set(request.variant, (seen.get(request.variant) ?? 0) + 1);
+      }
+
+      expect([...seen.keys()].sort()).toEqual(['mixed', 'none']);
+    });
+
+    /**
+     * 네 문장이 전부 「확인되지 않았다」에 기대고 조건 대부분이 천간 투출을 보므로
+     * 시주 두 글자가 그것을 뒤집는다(같은 표본에서 26.5%). **격 이름은 그대로
+     * 말하고 성패만 입을 닫는 것**이 이 주제의 값이다.
+     */
+    it('시각을 모르면 격 이름은 말하고 성패만 입을 닫는다', () => {
+      const said = assembleText(HOURLESS);
+      const kind = said.find((utterance) => utterance.request.topic === 'structure.kind')!;
+      const outcome = said.find((utterance) => utterance.request.topic === 'structure.outcome')!;
+
+      expect(kind.text).not.toBeNull();
+      expect(outcome.strength).toBe('silent');
+      expect(outcome.text).toBeNull();
+
+      // 시각을 알면 둘 다 선다 — 잠그는 것이 시주라는 뜻이다.
+      const known = assembleText(RICH);
+      expect(
+        known.find((utterance) => utterance.request.topic === 'structure.outcome')!.text,
+      ).not.toBeNull();
+    });
+
+    /**
+     * 조건 이름 스물 중 둘이 금지 표현이다(`식신제살`·`관인상생`). 그 조건이 걸린
+     * 명식에서만 근거가 되어 열리므로, 근거에 담기지 않으면 조각이 통째로 위반을
+     * 낸다 — 무작위 3000건의 13% 가 그 자리였다.
+     */
+    it('금지 표현인 조건 이름이 그 명식의 근거로 담긴다', () => {
+      let opened = 0;
+
+      for (const input of randomInputs(400)) {
+        const saju = computeSaju(input);
+        const { structure } = saju.analysis;
+        const names = [...structure.formingFactors, ...structure.breakingFactors].map(
+          (factor) => factor.name,
+        );
+
+        for (const name of ['식신제살', '관인상생']) {
+          if (!names.includes(name)) {
+            expect(groundedTermsOf(saju), name).not.toContain(name);
+            continue;
+          }
+          opened += 1;
+          expect(groundedTermsOf(saju), name).toContain(name);
+        }
+      }
+
+      expect(opened).toBeGreaterThan(0);
+    });
+  });
+
+  /**
    * 뿌리의 질 — **사실 문장과 판정 문장이 같은 뿌리를 두고 갈린다.**
    */
   describe('뿌리에서 덜어 본 몫', () => {

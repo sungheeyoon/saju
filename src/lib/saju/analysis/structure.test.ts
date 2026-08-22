@@ -3,7 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { effectiveElementsOf } from '@/src/lib/saju/analysis/effectiveElements';
 import { favorabilityOf } from '@/src/lib/saju/analysis/favorability';
 import { strengthOf } from '@/src/lib/saju/analysis/strength';
-import { STRUCTURE_POLICY, structureOf } from '@/src/lib/saju/analysis/structure';
+import {
+  STRUCTURE_FACTOR_NAMES,
+  STRUCTURE_POLICY,
+  structureOf,
+} from '@/src/lib/saju/analysis/structure';
+import { computeSaju } from '@/src/lib/saju';
+import { randomInputs } from '@/src/lib/saju/population';
 import { eokbuAssessmentOf } from '@/src/lib/saju/analysis/yongsin';
 import { GENERATED_BY, CONTROLLED_BY, pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
 
@@ -27,6 +33,41 @@ const structure = (year: string, month: string, day: string, hour: string) => {
   const pillars = chart(year, month, day, hour);
   return structureOf(pillars, effectiveElementsOf(pillars).distribution);
 };
+
+/**
+ * 조건 이름의 정적 목록이 판정과 어긋나지 않는가.
+ *
+ * `STRUCTURE_FACTOR_NAMES` 는 문장 그물이 읽는 목록인데(`MYEONGRI_LEXICON`),
+ * 실제 이름은 `structureOf` 의 `switch` 안에 흩어져 있다. 두 곳이 갈리면 그물이
+ * 조용히 새거나 있지도 않은 이름을 지킨다 — 국 이름은 `bureau.ts` 가 조합해서
+ * 낼 수 있었지만 이쪽은 손으로 적은 목록이라 시험이 유일한 자물쇠다.
+ */
+describe('성패 조건 이름', () => {
+  it('정적 목록과 판정이 내는 이름이 같은 집합이다', () => {
+    const produced = new Set<string>();
+
+    for (const input of randomInputs(1500)) {
+      const { structure } = computeSaju(input).analysis;
+      for (const factor of [...structure.formingFactors, ...structure.breakingFactors]) {
+        produced.add(factor.name);
+      }
+    }
+
+    // 목록에 없는 이름이 나오면 그물이 그것을 못 잡는다.
+    expect([...produced].filter((name) => !STRUCTURE_FACTOR_NAMES.includes(name))).toEqual([]);
+    // 반대쪽 — 판정이 안 내는 이름이 목록에 있으면 죽은 값이다.
+    expect(STRUCTURE_FACTOR_NAMES.filter((name) => !produced.has(name))).toEqual([]);
+  });
+
+  it('이름마다 왜 그렇게 보았는지가 함께 나온다', () => {
+    for (const input of randomInputs(200)) {
+      const { structure } = computeSaju(input).analysis;
+      for (const factor of [...structure.formingFactors, ...structure.breakingFactors]) {
+        expect(factor.detail.length, factor.name).toBeGreaterThan(5);
+      }
+    }
+  });
+});
 
 describe('격국 — 격을 잡는 법', () => {
   /**
