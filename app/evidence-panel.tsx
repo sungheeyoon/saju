@@ -27,15 +27,24 @@ import { CARD } from './card';
  * **열기 전에는 만들지 않는다.** 자료를 만드는 것이 공짜가 아니고(운 셋이 절반이
  * 넘는다) 대부분의 방문은 이 칸을 안 연다.
  */
-export function EvidencePanel({ a, b }: { a: Saju; b?: Saju }) {
+export function EvidencePanel({
+  a,
+  b,
+  viewedAt,
+}: {
+  a: Saju;
+  b?: Saju;
+  /** 결과를 보는 기준 시각(ms). 운을 이 시각으로 짚는다 — 화면이 잡아서 넘긴다 */
+  viewedAt: number;
+}) {
   const [opened, setOpened] = useState(false);
   const [copy, setCopy] = useState<'idle' | 'copied' | 'failed'>('idle');
 
   // 명식을 따로 받는다 — `{ a, b }` 를 호출부가 만들면 렌더마다 새 객체라
   // 아래 `useMemo` 가 매번 자료를 다시 만든다(두 사람이면 460KB 짜리다).
   const evidence = useMemo<Evidence | null>(
-    () => (opened ? evidenceOf({ a, b }) : null),
-    [opened, a, b],
+    () => (opened ? evidenceOf({ a, b }, new Date(viewedAt)) : null),
+    [opened, a, b, viewedAt],
   );
   const json = useMemo(
     () => (evidence === null ? null : JSON.stringify(evidence, null, 2)),
@@ -83,6 +92,14 @@ export function EvidencePanel({ a, b }: { a: Saju; b?: Saju }) {
     </details>
   );
 }
+
+/** ISO 시각을 화면 말로 — 자료가 든 것과 같은 시각을 보인다 */
+const whenKo = (iso: string) =>
+  new Date(iso).toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
 
 function EvidenceBody({
   evidence,
@@ -188,6 +205,26 @@ function EvidenceBody({
             상한도 갈리므로, 자료에는 사람마다 한 벌씩 실립니다.
           </p>
         )}
+      </section>
+
+      <section>
+        <h3 className="text-sm font-medium">지금 도는 운</h3>
+        <p className="mt-1 text-xs text-muted">
+          운은 표가 아니라 지금 도는 칸으로 실립니다. 「지금」은{' '}
+          <strong className="font-medium text-secondary">{whenKo(evidence.viewedAt)}</strong> 이고,
+          자료도 그 시각을 함께 들고 나갑니다 — 내일 열어도 무엇을 기준으로 짚은 값인지
+          알 수 있어야 합니다.
+        </p>
+        <ul className="mt-1.5 flex flex-col gap-1 text-xs text-secondary">
+          <li>
+            대운{' '}
+            {charts.a.now.daeun === null
+              ? `없음 (${charts.a.now.daeunAbsence})`
+              : `${charts.a.now.daeun.pillar.name} · ${charts.a.now.daeun.startAge}세부터`}
+          </li>
+          <li>세운 {charts.a.now.saeun.pillar.name} · {charts.a.now.saeun.year}년</li>
+          <li>월운 {charts.a.now.wolun.pillar.name} · {charts.a.now.wolun.startTerm.name}</li>
+        </ul>
       </section>
 
       <section>

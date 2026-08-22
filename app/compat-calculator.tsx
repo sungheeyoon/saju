@@ -166,6 +166,15 @@ export function CompatCalculator() {
 
   const [form, setForm] = useState<Pair>(submitted ?? { a: DEFAULT_QUERY, b: DEFAULT_QUERY });
 
+  /**
+   * 결과를 **보는** 시각. 제출할 때마다 새로 잡는다.
+   *
+   * 원국 화면과 같은 규율이다(`SajuCalculator`) — 엔진은 시각을 스스로 묻지 않고
+   * (`NOW_POLICY.viewingInstant`) `Date.now()` 를 부르는 곳은 화면 한 곳이다.
+   * 링크로 바로 들어왔으면 첫 렌더 시각이 그 값이다.
+   */
+  const [viewedAt, setViewedAt] = useState(() => Date.now());
+
   const shown = useRef(searchParams.toString());
   useEffect(() => {
     const current = searchParams.toString();
@@ -186,6 +195,7 @@ export function CompatCalculator() {
     ).toString();
 
     shown.current = params;
+    setViewedAt(Date.now());
     if (submitted === null) window.history.pushState(null, '', `?${params}`);
     else window.history.replaceState(null, '', `?${params}`);
   };
@@ -237,7 +247,12 @@ export function CompatCalculator() {
           </p>
         </section>
       ) : result.ok ? (
-        <CompatView charts={result.charts} compat={result.compat} names={result.names} />
+        <CompatView
+          charts={result.charts}
+          compat={result.compat}
+          names={result.names}
+          viewedAt={viewedAt}
+        />
       ) : (
         <p role="alert" className={`${CARD} text-sm`}>
           {result.message}
@@ -251,11 +266,14 @@ function CompatView({
   charts,
   compat,
   names,
+  viewedAt,
 }: {
   charts: Record<CompatSide, Saju>;
   compat: Compatibility;
   /** 두 사람을 부르는 말 — 입력한 이름이거나 '첫 번째 사람' */
   names: Record<CompatSide, string>;
+  /** 결과를 보는 기준 시각(ms) — 넘길 자료가 지금의 운을 이 시각으로 짚는다 */
+  viewedAt: number;
 }) {
   // L3 는 `Compatibility` 와 사람마다 이름 하나만 받는다. `Saju` 를 통째로 넘기면
   // 문장이 다시 계산할 길이 생기고, 화면의 궁합과 문장의 궁합이 언젠가 어긋난다.
@@ -298,7 +316,7 @@ function CompatView({
 
       <MatchResult charts={charts} compat={compat} names={names} />
 
-      <EvidencePanel a={charts.a} b={charts.b} />
+      <EvidencePanel a={charts.a} b={charts.b} viewedAt={viewedAt} />
 
       <p className="text-xs text-muted">
         <strong className="font-medium">사주 엔진은 점수를 내지 않습니다.</strong> 위 베타 지표는

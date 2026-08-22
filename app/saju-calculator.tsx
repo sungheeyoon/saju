@@ -323,7 +323,7 @@ function SajuView({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
       <StarTable saju={saju} />
       <TimeCorrections saju={saju} />
       <Warnings saju={saju} />
-      <EvidencePanel a={saju} />
+      <EvidencePanel a={saju} viewedAt={viewedAt} />
     </div>
   );
 }

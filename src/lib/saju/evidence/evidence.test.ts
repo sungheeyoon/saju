@@ -26,6 +26,9 @@ const OTHER = computeSaju({
 });
 const HOURLESS = computeSaju({ year: 1988, month: 7, day: 15, hour: null, gender: 'female' });
 
+/** '지금' — 고정한다. 자료가 이 시각을 들고 나가는지까지 시험한다 */
+const VIEWED_AT = new Date('2026-08-22T13:00:00+09:00');
+
 /** 이 근거가 자료 안에 있는가 — `analysis.x` 는 `analysis` 밑을 본다 */
 const carries = (chart: ChartEvidence, path: IncludedPath): boolean => {
   const [head, tail] = path.split('.');
@@ -68,7 +71,7 @@ describe('넘길 자료', () => {
      * 티가 안 난다** — 받는 쪽은 그 지표가 있는 줄을 모른다.
      */
     it('모든 근거가 실리거나 이유와 함께 빠진다', () => {
-      const chart = evidenceOf({ a: KNOWN }).charts.a;
+      const chart = evidenceOf({ a: KNOWN }, VIEWED_AT).charts.a;
 
       for (const path of INCLUDED_PATHS) {
         expect(carries(chart, path), `${path} 이 자료에 없다`).toBe(true);
@@ -88,7 +91,7 @@ describe('넘길 자료', () => {
 
     /** 자료가 근거 아닌 것을 싣고 있으면 그 값의 강도를 아무도 모른다 */
     it('근거 이름이 아닌 칸은 계약이 아는 것뿐이다', () => {
-      const chart = evidenceOf({ a: KNOWN }).charts.a;
+      const chart = evidenceOf({ a: KNOWN }, VIEWED_AT).charts.a;
       const paths = new Set<string>(CLAIM_PATHS);
 
       for (const key of Object.keys(chart)) {
@@ -104,7 +107,7 @@ describe('넘길 자료', () => {
     });
 
     it('궁합 결과도 빠짐없이 실린다', () => {
-      const compat = evidenceOf({ a: KNOWN, b: OTHER }).compatibility!;
+      const compat = evidenceOf({ a: KNOWN, b: OTHER }, VIEWED_AT).compatibility!;
       const engine: Compatibility = analyzeCompatibility(KNOWN, OTHER);
 
       for (const key of Object.keys(engine)) {
@@ -117,8 +120,61 @@ describe('넘길 자료', () => {
       }
     });
 
+    /**
+     * **한동안 거꾸로 실었다.** `now` 를 빼고 대운·세운·월운 표를 통째로 실었는데,
+     * 해석에 쓰이는 것은 열 해가 아니라 지금 도는 한 해다. 표만 받은 쪽은 어느 칸이
+     * 지금인지 스스로 짚어야 하고, 그것은 우리가 안 하기로 한 판정을 떠넘기는 것이다.
+     */
+    it('운은 표가 아니라 지금 도는 칸으로 실린다', () => {
+      const chart = evidenceOf({ a: KNOWN }, VIEWED_AT).charts.a;
+
+      expect(chart.now.saeun.pillar.name).toBeTruthy();
+      expect(chart.now.wolun.pillar.name).toBeTruthy();
+      expect(chart.now.daeun?.pillar.name).toBeTruthy();
+
+      // 표는 실리지 않는다 — 안 싣는다고 적어 둔 자리다.
+      expect(Object.hasOwn(chart, 'saeun')).toBe(false);
+      expect(Object.hasOwn(chart, 'wolun')).toBe(false);
+    });
+
+    /**
+     * 대운만 반쪽이 남는다. 대운수·방향·그 방향을 정한 근거·거리를 잰 절기는
+     * **칸이 아니라 이 사람에 대한 사실**이라 표가 빠져도 그대로다.
+     */
+    it('대운은 표만 빠지고 대운수와 방향은 남는다', () => {
+      const daeun = evidenceOf({ a: KNOWN }, VIEWED_AT).charts.a.daeun;
+
+      expect(Object.hasOwn(daeun, 'entries')).toBe(false);
+      expect(daeun.startAge).toBe(KNOWN.daeun.startAge);
+      expect(daeun.direction).toBe(KNOWN.daeun.direction);
+      expect(daeun.directionReason).toBe(KNOWN.daeun.directionReason);
+      expect(daeun.boundaryTerm.name).toBe(KNOWN.daeun.boundaryTerm.name);
+    });
+
+    /**
+     * 자료가 **스스로 날짜를 든다.** 「지금은 네 번째 대운」은 언제 기준인지 없이는
+     * 하루 뒤에 틀린 말이 된다 — 그것이 한동안 `now` 를 뺀 이유였고, 답은 빼는 것이
+     * 아니라 기준을 함께 싣는 것이었다.
+     */
+    it('지금이 언제인지를 자료가 든다', () => {
+      const evidence = evidenceOf({ a: KNOWN, b: OTHER }, VIEWED_AT);
+
+      expect(evidence.viewedAt).toBe(VIEWED_AT.toISOString());
+      expect(evidence.charts.a.now.viewedAt).toBe(VIEWED_AT.toISOString());
+      expect(evidence.charts.b!.now.viewedAt).toBe(VIEWED_AT.toISOString());
+    });
+
+    it('시각이 다르면 지금 도는 칸도 다르다', () => {
+      const now = evidenceOf({ a: KNOWN }, VIEWED_AT).charts.a.now;
+      const later = evidenceOf({ a: KNOWN }, new Date('2036-08-22T13:00:00+09:00')).charts.a.now;
+
+      expect(later.sajuYear).toBe(now.sajuYear + 10);
+      expect(later.age).toBe(now.age + 10);
+      expect(later.saeun.pillar.name).not.toBe(now.saeun.pillar.name);
+    });
+
     it('한 사람이면 궁합이 없다고 말한다 — 칸을 빼지 않는다', () => {
-      const evidence = evidenceOf({ a: KNOWN });
+      const evidence = evidenceOf({ a: KNOWN }, VIEWED_AT);
 
       expect(evidence.charts.b).toBeNull();
       expect(evidence.compatibility).toBeNull();
@@ -134,7 +190,7 @@ describe('넘길 자료', () => {
      * 다른 강도로 말하게 된다. 표 하나가 계약에서 유도되고 항목은 이름으로 선다.
      */
     it('상한이 계약과 한 글자도 다르지 않다', () => {
-      const claims = evidenceOf({ a: KNOWN }).charts.a.claims;
+      const claims = evidenceOf({ a: KNOWN }, VIEWED_AT).charts.a.claims;
 
       for (const path of INCLUDED_PATHS) {
         expect(claims[path].presence, path).toBe(CLAIM_CEILING[path]);
@@ -142,8 +198,8 @@ describe('넘길 자료', () => {
     });
 
     it('시각을 모르면 흔들리는 근거만 내려간다', () => {
-      const known = evidenceOf({ a: KNOWN }).charts.a.claims;
-      const hourless = evidenceOf({ a: HOURLESS }).charts.a.claims;
+      const known = evidenceOf({ a: KNOWN }, VIEWED_AT).charts.a.claims;
+      const hourless = evidenceOf({ a: HOURLESS }, VIEWED_AT).charts.a.claims;
 
       const moved = INCLUDED_PATHS.filter(
         (path) => hourless[path].presence !== known[path].presence,
@@ -160,7 +216,7 @@ describe('넘길 자료', () => {
      * 「金이 없습니다」를 「金이 있습니다」와 같은 세기로 쓴다.
      */
     it('없다는 주장은 시각을 모르면 잠긴다', () => {
-      const hourless = evidenceOf({ a: HOURLESS }).charts.a.claims;
+      const hourless = evidenceOf({ a: HOURLESS }, VIEWED_AT).charts.a.claims;
 
       expect(hourless['analysis.elements'].presence).not.toBe('silent');
       expect(hourless['analysis.elements'].absence).toBe('silent');
@@ -169,8 +225,8 @@ describe('넘길 자료', () => {
     });
 
     it('궁합 상한은 두 사람 중 모르는 쪽이 있으면 함께 내려간다', () => {
-      const both = evidenceOf({ a: KNOWN, b: OTHER }).compatibility!.claims;
-      const half = evidenceOf({ a: KNOWN, b: HOURLESS }).compatibility!.claims;
+      const both = evidenceOf({ a: KNOWN, b: OTHER }, VIEWED_AT).compatibility!.claims;
+      const half = evidenceOf({ a: KNOWN, b: HOURLESS }, VIEWED_AT).compatibility!.claims;
 
       expect(both.elementSupport.absence).not.toBe('silent');
       expect(half.elementSupport.absence).toBe('silent');
@@ -178,7 +234,7 @@ describe('넘길 자료', () => {
   });
 
   describe('넘어간 뒤에도 같은 자료다', () => {
-    const evidence = evidenceOf({ a: KNOWN, b: HOURLESS });
+    const evidence = evidenceOf({ a: KNOWN, b: HOURLESS }, VIEWED_AT);
 
     it('JSON 을 건너도 달라지지 않는다', () => {
       expect(JSON.parse(JSON.stringify(evidence))).toEqual(evidence);
@@ -204,7 +260,7 @@ describe('넘길 자료', () => {
   });
 
   describe('인덱스를 남기지 않는다', () => {
-    const evidence = evidenceOf({ a: KNOWN, b: OTHER });
+    const evidence = evidenceOf({ a: KNOWN, b: OTHER }, VIEWED_AT);
 
     /**
      * 원국 관계만 푸는 것으로는 모자란다 — 대운·세운·월운 칸이 저마다
@@ -234,15 +290,14 @@ describe('넘길 자료', () => {
       expect(seen).toBeGreaterThan(0);
     });
 
-    it('운의 칸이 든 관계도 풀렸다', () => {
-      const chart = evidence.charts.a;
-      const entries = [
-        ...chart.daeun.entries,
-        ...chart.saeun.entries,
-        ...chart.wolun.entries,
+    it('지금 도는 칸이 든 관계도 풀렸다', () => {
+      const { now } = evidence.charts.a;
+      const relations = [
+        ...(now.daeun?.relations ?? []),
+        ...now.saeun.relations,
+        ...now.wolun.relations,
+        ...now.relations,
       ];
-
-      const relations = entries.flatMap((entry) => entry.relations);
 
       expect(relations.length).toBeGreaterThan(0);
       for (const relation of relations) {
@@ -257,8 +312,8 @@ describe('넘길 자료', () => {
    * 두 길이 갈리면 화면은 대칭인데 넘긴 자료만 안 대칭인 모양이 된다.
    */
   it('A 와 B 를 맞바꿔도 같은 자료다', () => {
-    const ab = evidenceOf({ a: KNOWN, b: HOURLESS });
-    const ba = evidenceOf({ a: HOURLESS, b: KNOWN });
+    const ab = evidenceOf({ a: KNOWN, b: HOURLESS }, VIEWED_AT);
+    const ba = evidenceOf({ a: HOURLESS, b: KNOWN }, VIEWED_AT);
 
     expect(ba.charts.a).toEqual(ab.charts.b);
     expect(ba.charts.b).toEqual(ab.charts.a);
@@ -273,7 +328,7 @@ describe('넘길 자료', () => {
   });
 
   it('좁게 읽어야 하는 사정이 어느 자리의 것인지 든다', () => {
-    const limitations = evidenceOf({ a: KNOWN, b: HOURLESS }).limitations;
+    const limitations = evidenceOf({ a: KNOWN, b: HOURLESS }, VIEWED_AT).limitations;
 
     expect(limitations.some((limit) => limit.where === 'compatibility')).toBe(true);
     for (const limit of limitations) {
@@ -284,7 +339,7 @@ describe('넘길 자료', () => {
   });
 
   it('계약을 값과 함께 싣는다', () => {
-    const contract = evidenceOf({ a: KNOWN }).contract;
+    const contract = evidenceOf({ a: KNOWN }, VIEWED_AT).contract;
 
     expect(contract).toBe(EVIDENCE_CONTRACT);
     expect(contract.interpretation).toBe('none');
@@ -319,8 +374,8 @@ describe('자료의 모양', () => {
   };
 
   it('계약·상한·뼈대가 그대로다', async () => {
-    const pair = evidenceOf({ a: KNOWN, b: OTHER });
-    const single = evidenceOf({ a: HOURLESS });
+    const pair = evidenceOf({ a: KNOWN, b: OTHER }, VIEWED_AT);
+    const single = evidenceOf({ a: HOURLESS }, VIEWED_AT);
 
     const claimTable = (chart: ChartEvidence) =>
       INCLUDED_PATHS.map(
@@ -351,9 +406,14 @@ describe('자료의 모양', () => {
       '',
       // 계약은 위에서 통째로 찍었으므로 뼈대에서는 뺀다.
       '── 뼈대 · 두 사람',
+      `  viewedAt: ${pair.viewedAt}`,
       ...shapeOf({ charts: pair.charts, compatibility: pair.compatibility, limitations: pair.limitations }).map(
         (line) => `  ${line}`,
       ),
+      '',
+      // 운은 표가 아니라 이 칸으로 실린다 — 바뀌면 여기가 먼저 드러나야 한다.
+      '── 지금 도는 운',
+      ...shapeOf(pair.charts.a.now, 1).map((line) => `  ${line}`),
       '',
       '── 관계 하나의 모습',
       JSON.stringify(pair.compatibility!.relations[0], null, 2),

@@ -7,8 +7,9 @@ import {
 } from '../compat';
 import type { Daeun, DaeunEntry } from '../daeun';
 import type { Saju } from '../index';
+import { currentFortuneOf, type CurrentFortune } from '../now';
 import { RELATION_POLICY, resolveRelation, type Relation, type ResolvedRelation } from '../relations';
-import type { Saeun, SaeunEntry } from '../saeun';
+import type { SaeunEntry } from '../saeun';
 import {
   CLAIM_PATHS,
   CLAIM_STRENGTH_KO,
@@ -19,7 +20,7 @@ import {
   type ClaimPath,
   type ClaimStrength,
 } from '../text';
-import type { Wolun, WolunEntry } from '../wolun';
+import type { WolunEntry } from '../wolun';
 
 /**
  * L2 가 낸 것을 **밖으로 넘길 꼴로** 모은다 — 해석 이전까지.
@@ -56,12 +57,22 @@ import type { Wolun, WolunEntry } from '../wolun';
  */
 export const EXCLUDED_PATHS = {
   /**
-   * 현재운은 **보는 시각**이 있어야 나온다(`OFF_CHART_PATHS`). 명식의 일부가
-   * 아니라 명식을 언제 보았는가이고, 이 자료를 만든 시각과 받는 쪽이 읽는 시각이
-   * 같다는 보장이 없다. 「지금은 네 번째 대운」이 하루 뒤에도 참일지는 우리가
-   * 모른다 — 대운 칸은 그대로 실리므로 받는 쪽이 자기 시각으로 짚으면 된다.
+   * 해마다의 표는 안 싣는다.
+   *
+   * **한동안 `now` 를 빼고 이 표를 통째로 실었다.** 이유는 「보는 시각이 있어야
+   * 나오는 값이라 만든 시각과 읽는 시각이 다르면 틀린다」였고, 그 말 자체는 맞다.
+   * 틀린 것은 **그래서 표를 대신 실으면 된다**는 쪽이었다 — 해석에 쓰이는 것은
+   * 열 해가 아니라 **지금 도는 한 해**이고, 표만 받은 쪽은 어느 칸이 지금인지
+   * 알 수 없어 자기가 짚어야 한다. 그러면 우리가 안 하기로 한 판정을 받는 쪽에
+   * 떠넘기는 것이 된다.
+   *
+   * 답은 표를 싣는 것이 아니라 **'지금'이 언제인지를 자료가 들고 나가는 것**이다
+   * (`Evidence.viewedAt`). 그러면 하루 뒤에 읽어도 무엇을 기준으로 짚은 값인지
+   * 알 수 있다.
    */
-  now: '보는 시각이 있어야 나오는 값이라, 만든 시각과 읽는 시각이 다르면 틀린다',
+  saeun: '해마다의 표는 싣지 않는다 — 지금 도는 해는 `now.saeun` 이 든다',
+  /** 위와 같다. 열두 달 중 해석에 쓰이는 것은 지금 도는 달이다 */
+  wolun: '달마다의 표는 싣지 않는다 — 지금 도는 달은 `now.wolun` 이 든다',
 } as const satisfies Partial<Record<ClaimPath, string>>;
 
 export type ExcludedPath = keyof typeof EXCLUDED_PATHS;
@@ -121,25 +132,44 @@ type WithResolvedRelations<T> = Omit<T, 'relations'> & {
   relations: readonly ResolvedRelation[];
 };
 
-const resolveIn = <T extends { relations: readonly Relation[] }>(
-  entries: readonly T[],
-): WithResolvedRelations<T>[] =>
-  entries.map((entry) => ({ ...entry, relations: entry.relations.map(resolveRelation) }));
-
 /**
  * 명식 한 벌 — `Saju` 그대로이되 관계는 풀렸고 `Date` 는 문자열이다.
  *
  * `Omit` 으로 덮어쓸 것만 덮어쓴다. L2 에 필드가 늘면 **자동으로 따라 들어오고**,
  * 근거를 안 정한 필드는 계약 쪽 시험이 먼저 잡는다.
  */
+/**
+ * 지금 도는 운 — 관계가 풀린 꼴.
+ *
+ * 세 칸(`daeun`·`saeun`·`wolun`)이 저마다 관계를 들고 있고 그것도 인덱스다.
+ */
+export type FortuneNow = Omit<
+  CurrentFortune,
+  'relations' | 'daeun' | 'firstDaeun' | 'saeun' | 'wolun'
+> & {
+  relations: readonly ResolvedRelation[];
+  /** 못 짚으면 `null` 이고 이유는 `daeunAbsence` 가 든다 */
+  daeun: WithResolvedRelations<DaeunEntry> | null;
+  firstDaeun: WithResolvedRelations<DaeunEntry>;
+  saeun: WithResolvedRelations<SaeunEntry>;
+  wolun: WithResolvedRelations<WolunEntry>;
+};
+
 export type ChartEvidence = Jsonified<
   Omit<Saju, 'relations' | 'daeun' | 'saeun' | 'wolun'> & {
     /** 이 명식의 근거별 상한 — 아래 값들은 자기 이름으로 여기를 가리킨다 */
     claims: Record<IncludedPath, ClaimNote>;
     relations: readonly ResolvedRelation[];
-    daeun: Omit<Daeun, 'entries'> & { entries: readonly WithResolvedRelations<DaeunEntry>[] };
-    saeun: Omit<Saeun, 'entries'> & { entries: readonly WithResolvedRelations<SaeunEntry>[] };
-    wolun: Omit<Wolun, 'entries'> & { entries: readonly WithResolvedRelations<WolunEntry>[] };
+    /**
+     * 대운 — **표는 빼고 그 밖의 것만.**
+     *
+     * 대운수·방향·그 방향을 정한 근거·거리를 잰 절기는 칸이 아니라 이 사람에
+     * 대한 사실이라 그대로 남는다. 열 칸의 목록은 빠진다 — 지금 도는 칸과 첫
+     * 칸은 `now` 가 들고, 나머지 여덟 칸은 해석에 쓰이지 않는다.
+     */
+    daeun: Omit<Daeun, 'entries'>;
+    /** 지금 도는 대운·세운·월운. `Evidence.viewedAt` 으로 짚었다 */
+    now: FortuneNow;
   }
 >;
 
@@ -185,6 +215,13 @@ export const EVIDENCE_CONTRACT = {
   strength: 'derived-from-claim-ceiling',
   /** 관계는 참여자 배열의 인덱스를 남기지 않는다 */
   relations: 'index-free',
+  /**
+   * 운은 표가 아니라 **지금 도는 칸**으로 싣는다.
+   *
+   * 표를 통째로 실으면 어느 칸이 지금인지 받는 쪽이 짚어야 하고, 그것은 우리가
+   * 안 하기로 한 판정을 떠넘기는 것이다. 기준은 `Evidence.viewedAt` 이다.
+   */
+  fortune: 'current-only',
   /** `Date` 는 ISO 8601 문자열로 실린다 */
   serialization: 'dates-as-iso-8601',
   /** 낮은 쪽이 먼저 — `claims` 의 값들이 이 사다리 위에 앉는다 */
@@ -202,6 +239,14 @@ export const EVIDENCE_CONTRACT = {
 
 export type Evidence = {
   contract: typeof EVIDENCE_CONTRACT;
+  /**
+   * 이 자료에서 **'지금'이 언제인가** — 운은 이 시각으로 짚었다.
+   *
+   * 자료가 스스로 날짜를 들고 나가야 하루 뒤에 읽어도 무엇을 기준으로 짚은
+   * 값인지 알 수 있다. 엔진은 이 시각을 스스로 묻지 않는다
+   * (`NOW_POLICY.viewingInstant`) — 넘겨받아서 그대로 적는다.
+   */
+  viewedAt: string;
   /** 한 사람이면 `b` 가 `null` 이다 — 키를 빼지 않는다 */
   charts: { a: ChartEvidence; b: ChartEvidence | null };
   /** 한 사람이면 `null` */
@@ -242,28 +287,50 @@ const compatClaimsFor = (
   ) as Record<keyof Compatibility, ClaimNote>;
 };
 
-function chartEvidenceOf(saju: Saju): ChartEvidence {
-  const { relations, daeun, saeun, wolun, ...rest } = saju;
+const resolveEntry = <T extends { relations: readonly Relation[] }>(
+  entry: T,
+): WithResolvedRelations<T> => ({ ...entry, relations: entry.relations.map(resolveRelation) });
+
+/**
+ * 키 몇을 뺀 사본 — **뺀 것이 이름으로 남는다.**
+ *
+ * 구조 분해로 버리면(`const { saeun: _saeun, ...rest }`) 쓰지 않는 이름이 남고,
+ * 무엇을 왜 뺐는지는 그 이름이 말해 주지 않는다. 여기서는 부르는 자리에 뺀 키가
+ * 그대로 적힌다.
+ */
+function without<T extends object, K extends keyof T>(value: T, ...keys: readonly K[]): Omit<T, K> {
+  const copy = { ...value } as Record<string, unknown>;
+  for (const key of keys) delete copy[key as string];
+  return copy as Omit<T, K>;
+}
+
+function chartEvidenceOf(saju: Saju, viewedAt: Date): ChartEvidence {
+  const now = currentFortuneOf(saju, viewedAt);
 
   return jsonify({
     // 상한을 맨 앞에 둔다 — 아래 값들이 이 표를 가리킨다.
     claims: claimsFor(saju.meta.hourKnown),
-    ...rest,
-    relations: relations.map(resolveRelation),
-    daeun: { ...daeun, entries: resolveIn(daeun.entries) },
-    saeun: { ...saeun, entries: resolveIn(saeun.entries) },
-    wolun: { ...wolun, entries: resolveIn(wolun.entries) },
+    // 표 셋은 여기서 빠지고 지금 도는 칸이 `now` 로 간다(`EXCLUDED_PATHS`).
+    ...without(saju, 'relations', 'daeun', 'saeun', 'wolun'),
+    relations: saju.relations.map(resolveRelation),
+    daeun: without(saju.daeun, 'entries'),
+    now: {
+      ...now,
+      relations: now.relations.map(resolveRelation),
+      daeun: now.daeun === null ? null : resolveEntry(now.daeun),
+      firstDaeun: resolveEntry(now.firstDaeun),
+      saeun: resolveEntry(now.saeun),
+      wolun: resolveEntry(now.wolun),
+    },
   });
 }
 
 function compatEvidenceOf(compat: Compatibility): CompatEvidence {
-  const { relations, combinedFormations, ...rest } = compat;
-
   return jsonify({
     claims: compatClaimsFor(compat.hourKnown),
-    ...rest,
-    relations: relations.map(resolveRelation),
-    combinedFormations: combinedFormations.map(resolveRelation),
+    ...without(compat, 'relations', 'combinedFormations'),
+    relations: compat.relations.map(resolveRelation),
+    combinedFormations: compat.combinedFormations.map(resolveRelation),
   });
 }
 
@@ -274,7 +341,7 @@ function compatEvidenceOf(compat: Compatibility): CompatEvidence {
  * 넘기면 그것이 이 두 명식의 궁합인지 아무도 안 본다. 같은 이유로 `Saju` 는
  * 받는다 — 시간 보정 옵션은 호출부만 아는 것이라 여기서 다시 계산할 수 없다.
  */
-export function evidenceOf({ a, b }: { a: Saju; b?: Saju }): Evidence {
+export function evidenceOf({ a, b }: { a: Saju; b?: Saju }, viewedAt: Date): Evidence {
   const compat = b ? analyzeCompatibility(a, b) : null;
 
   const limitations: Limitation[] = [
@@ -287,7 +354,11 @@ export function evidenceOf({ a, b }: { a: Saju; b?: Saju }): Evidence {
 
   return {
     contract: EVIDENCE_CONTRACT,
-    charts: { a: chartEvidenceOf(a), b: b ? chartEvidenceOf(b) : null },
+    viewedAt: viewedAt.toISOString(),
+    charts: {
+      a: chartEvidenceOf(a, viewedAt),
+      b: b ? chartEvidenceOf(b, viewedAt) : null,
+    },
     compatibility: compat ? compatEvidenceOf(compat) : null,
     limitations,
   };
