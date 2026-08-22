@@ -903,6 +903,12 @@ export type ResolvedRelation = {
   contested: readonly Contest[];
 };
 
+/**
+ * 참여자 하나를 이름 안에 적는 꼴.
+ *
+ * 구분자가 `/` 인 것은 `chartId` 가 `:` 를 쓰기 때문이다(`natal:a`·`daeun:3`).
+ * 같은 글자를 두 층에서 쓰면 이름을 되읽을 수 없다.
+ */
 const participantToken = (participant: Participant): string =>
   `${participant.chartId}/${participant.position}/${participant.char}`;
 
@@ -917,8 +923,8 @@ export function resolveRelation(relation: Relation): ResolvedRelation {
       relation.kind,
       relation.ko,
       relation.full ? 'full' : 'partial',
-      ...participants.map(participantToken).sort(),
-    ].join(':'),
+      participants.map(participantToken).sort().join('+'),
+    ].join('|'),
     kind: relation.kind,
     tier: relation.tier,
     ko: relation.ko,

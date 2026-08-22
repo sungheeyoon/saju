@@ -27,6 +27,8 @@ export * from './civilTime';
 export * from './compat';
 export * from './constants';
 export * from './daeun';
+// AI 에 넘길 객관 지표 — 해석 이전까지. 계약을 값과 함께 싣는다.
+export * from './evidence';
 export * from './input';
 // 현재운. `Saju` 에 얹지 않고 따로 부른다 — 보는 시각은 명식의 일부가 아니다.
 export * from './now';

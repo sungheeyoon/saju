@@ -1,0 +1,173 @@
+── 계약
+{
+  "version": "evidence-v0",
+  "interpretation": "none",
+  "scoring": "not-scored",
+  "strength": "derived-from-claim-ceiling",
+  "relations": "index-free",
+  "serialization": "dates-as-iso-8601",
+  "strengthLadder": [
+    "silent",
+    "reference",
+    "candidate",
+    "derived",
+    "fact"
+  ],
+  "strengthKo": {
+    "fact": "사실",
+    "derived": "유도",
+    "candidate": "후보",
+    "reference": "참고",
+    "silent": "말하지 않음"
+  },
+  "incompleteInput": "observable-facts-survive · completeness-and-absence-do-not",
+  "ruleSets": {
+    "relations": "visible-relations-v2",
+    "compatibility": "compat-facts-v1"
+  },
+  "excluded": {
+    "now": "보는 시각이 있어야 나오는 값이라, 만든 시각과 읽는 시각이 다르면 틀린다"
+  }
+}
+
+── 상한 · 시각을 아는 명식
+  pillars                        있다 fact       없다 fact
+  relations                      있다 fact       없다 fact
+  stages                         있다 fact       없다 fact
+  sinsal                         있다 fact       없다 fact
+  daeun                          있다 derived    없다 derived
+  saeun                          있다 fact       없다 fact
+  wolun                          있다 fact       없다 fact
+  meta                           있다 fact       없다 fact
+  analysis.elements              있다 fact       없다 fact
+  analysis.effectiveElements     있다 derived    없다 derived
+  analysis.bureaus               있다 derived    없다 derived
+  analysis.tenGods               있다 fact       없다 fact
+  analysis.tenGodCounts          있다 fact       없다 fact
+  analysis.strength              있다 derived    없다 derived
+  analysis.eokbu                 있다 candidate  없다 candidate
+  analysis.johu                  있다 reference  없다 reference
+  analysis.rootedness            있다 fact       없다 fact
+  analysis.rootQuality           있다 derived    없다 derived
+  analysis.hiddenCombinations    있다 fact       없다 fact
+  analysis.followingCandidacy    있다 fact       없다 fact
+  analysis.following             있다 candidate  없다 candidate
+  analysis.structure             있다 candidate  없다 candidate
+  analysis.favorability          있다 candidate  없다 candidate
+
+── 상한 · 시간 미상
+  pillars                        있다 fact       없다 fact
+  relations                      있다 fact       없다 fact
+  stages                         있다 fact       없다 fact
+  sinsal                         있다 fact       없다 fact
+  daeun                          있다 candidate  없다 silent
+  saeun                          있다 fact       없다 fact
+  wolun                          있다 fact       없다 fact
+  meta                           있다 fact       없다 fact
+  analysis.elements              있다 derived    없다 silent
+  analysis.effectiveElements     있다 candidate  없다 silent
+  analysis.bureaus               있다 candidate  없다 silent
+  analysis.tenGods               있다 fact       없다 fact
+  analysis.tenGodCounts          있다 derived    없다 silent
+  analysis.strength              있다 candidate  없다 silent
+  analysis.eokbu                 있다 reference  없다 silent
+  analysis.johu                  있다 reference  없다 reference
+  analysis.rootedness            있다 derived    없다 silent
+  analysis.rootQuality           있다 candidate  없다 silent
+  analysis.hiddenCombinations    있다 fact       없다 fact
+  analysis.followingCandidacy    있다 derived    없다 silent
+  analysis.following             있다 reference  없다 silent
+  analysis.structure             있다 reference  없다 silent
+  analysis.favorability          있다 reference  없다 silent
+
+── 궁합 상한 (두 사람 다 시각을 안다)
+  relations            있다 fact       없다 fact
+  combinedFormations   있다 fact       없다 fact
+  elementSupport       있다 fact       없다 fact
+  tenGods              있다 fact       없다 fact
+  eokbuMatch           있다 candidate  없다 candidate
+  hourKnown            있다 fact       없다 fact
+  warnings             있다 fact       없다 fact
+
+── 뼈대 · 두 사람
+  charts:
+    a:
+      claims: {23}
+      pillars: {6}
+      analysis: {15}
+      stages: {3}
+      sinsal: {3}
+      meta: {8}
+      relations: [7]
+      daeun: {9}
+      saeun: {2}
+      wolun: {3}
+    b:
+      claims: {23}
+      pillars: {6}
+      analysis: {15}
+      stages: {3}
+      sinsal: {3}
+      meta: {8}
+      relations: [9]
+      daeun: {9}
+      saeun: {2}
+      wolun: {3}
+  compatibility:
+    claims:
+      relations: {2}
+      combinedFormations: {2}
+      elementSupport: {2}
+      tenGods: {2}
+      eokbuMatch: {2}
+      hourKnown: {2}
+      warnings: {2}
+    elementSupport:
+      a: {4}
+      b: {4}
+    tenGods:
+      aSeesB: string
+      bSeesA: string
+    eokbuMatch:
+      a: {6}
+      b: {6}
+    hourKnown:
+      a: boolean
+      b: boolean
+    warnings: [0]
+    relations: [19]
+    combinedFormations: [2]
+  limitations: [0]
+
+── 관계 하나의 모습
+{
+  "id": "stemCombination|병신합수|full|natal:a/month/辛+natal:b/hour/丙",
+  "kind": "stemCombination",
+  "tier": "stem",
+  "ko": "병신합수",
+  "name": null,
+  "scope": "betweenCharts",
+  "targetElement": "水",
+  "full": true,
+  "participants": [
+    {
+      "chartId": "natal:a",
+      "position": "month",
+      "char": "辛"
+    },
+    {
+      "chartId": "natal:b",
+      "position": "hour",
+      "char": "丙"
+    }
+  ],
+  "direction": null,
+  "cycle": null,
+  "adjacent": null,
+  "distance": null,
+  "contested": []
+}
+
+── 크기
+  한 사람  67KB
+  두 사람  198KB
