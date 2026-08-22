@@ -855,6 +855,87 @@ export function orderedParticipants(relation: Relation): readonly Participant[] 
 }
 
 /**
+ * 관계 하나를 **인덱스 없이** 읽는 꼴로.
+ *
+ * `direction`·`cycle` 은 `participants` 의 인덱스다. 한 계산판만 볼 때는 그 배열이
+ * 언제나 년→시 순서라 인덱스가 곧 자리였다. **계산판이 둘이면 아니다** — 배열은
+ * 넣은 순서를 따라가므로 같은 두 사람을 A·B 로 넣었을 때와 B·A 로 넣었을 때
+ * 같은 형이 `0→1` 과 `1→0` 으로 갈린다. 사실은 그대로인데 숫자만 뒤집힌다.
+ *
+ * 화면은 인덱스를 읽지 않아서(`orderedParticipants` 를 거친다) 여태 드러나지
+ * 않았다. 드러나는 곳은 **이 구조를 그대로 밖으로 내보내는 자리**다 — 받는 쪽은
+ * 배열이 어떤 순서로 담겼는지 알 도리가 없으므로, 인덱스를 실은 채로 내보내면
+ * 입력 순서가 사실인 척 따라 나간다.
+ *
+ * 그래서 경계에서는 이 꼴로 바꾼다. 인덱스를 지우고 글자를 놓는다.
+ * 저장은 여전히 인덱스다(글자를 복사하지 않아 어긋날 수 없다) — 푸는 곳이
+ * `orderedParticipants` 하나인 규칙도 그대로다.
+ */
+export type ResolvedRelation = {
+  /**
+   * **이 배치 안에서** 관계를 가리키는 이름.
+   *
+   * 참여자를 정렬해 만들므로 저장 순서가 바뀌어도 같다. 계산판 이름은 들어간다 —
+   * A·B 를 맞바꾸면 이 이름도 맞바뀌고, 그게 맞다. 같은 사실인지 견주려면 견주는
+   * 쪽이 계산판 이름을 함께 맞바꿔야 한다.
+   */
+  id: string;
+  kind: RelationKind;
+  tier: RelationTier;
+  ko: string;
+  name: string | null;
+  scope: RelationScope;
+  targetElement: Element | null;
+  full: boolean;
+  /** 읽는 순서로 — 형만 자리 순서가 아니라 형하는 순서다 */
+  participants: readonly Participant[];
+  /** 형의 방향 — 인덱스 대신 글자다. 방향이 없으면 `null` */
+  direction: { from: Participant; to: Participant } | null;
+  /**
+   * 완전 삼형이 도는 순서 — 인덱스 대신 글자다.
+   *
+   * 고리이므로 마지막에서 첫 글자로 되돌아온다. 첫 글자는 고전이 그 형을 부르는
+   * 차례일 뿐 우리가 고른 시작점이 아니다.
+   */
+  cycle: readonly Participant[] | null;
+  adjacent: boolean | null;
+  distance: number | null;
+  contested: readonly Contest[];
+};
+
+const participantToken = (participant: Participant): string =>
+  `${participant.chartId}/${participant.position}/${participant.char}`;
+
+/** 관계를 밖으로 낼 꼴로 바꾼다 — 인덱스를 글자로 푼다 */
+export function resolveRelation(relation: Relation): ResolvedRelation {
+  const { cycle, participants } = relation;
+
+  return {
+    // 저장 순서가 아니라 정렬된 참여자로 짓는다. `full` 을 넣는 것은 세 글자
+    // 구조에서 둘만 담긴 것과 다 담긴 것이 같은 자리를 쓸 수 있어서다.
+    id: [
+      relation.kind,
+      relation.ko,
+      relation.full ? 'full' : 'partial',
+      ...participants.map(participantToken).sort(),
+    ].join(':'),
+    kind: relation.kind,
+    tier: relation.tier,
+    ko: relation.ko,
+    name: relation.name,
+    scope: relation.scope,
+    targetElement: relation.targetElement,
+    full: relation.full,
+    participants: orderedParticipants(relation),
+    direction: directionParticipantsOf(relation),
+    cycle: cycle ? cycle.map((index) => participants[index]) : null,
+    adjacent: relation.adjacent,
+    distance: relation.distance,
+    contested: relation.contested,
+  };
+}
+
+/**
  * 관계 하나를 한 줄로 — '자오충 (월주·일주)'.
  *
  * 계산판이 섞이면 어느 판의 자리인지 함께 적는다.

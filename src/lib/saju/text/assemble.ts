@@ -846,17 +846,22 @@ export function assembleNowText(
 }
 
 /**
- * 궁합 한 사람 — **L3 가 알아야 하는 것은 이 둘뿐이다.**
+ * 궁합 한 사람 — **L3 가 알아야 하는 것은 이름뿐이다.**
  *
  * 명식 전체를 받지 않는 것이 규율이다. 관계는 `Compatibility` 가 이미 다 냈고,
- * 여기서 더 필요한 것은 그 글자를 **누구라고 부를지**와 시각을 알았는지뿐이다.
- * `Saju` 를 통째로 받으면 L3 가 다시 계산할 길이 생기고, 그러면 화면의 궁합과
- * 문장의 궁합이 언젠가 어긋난다.
+ * 여기서 더 필요한 것은 그 글자를 **누구라고 부를지**뿐이다. `Saju` 를 통째로
+ * 받으면 L3 가 다시 계산할 길이 생기고, 그러면 화면의 궁합과 문장의 궁합이
+ * 언젠가 어긋난다.
+ *
+ * `hourKnown` 이 여기 있었다. 이름과 나란히 있으니 같은 종류로 보였지만 아니다 —
+ * 이름은 계산 밖에서 오는 것이라 호출부밖에 알 수 없고, 시각을 알았는가는
+ * **궁합이 이미 아는 값**이다(`Compatibility.hourKnown`). 호출부가 다른 명식의
+ * 값을 적어도 아무것도 걸리지 않았고, 걸렸다면 문장이 엉뚱한 사람의 시주를
+ * 빠졌다고 부르는 모양이었다.
  */
 export type CompatPerson = {
   /** 행에서 이 사람의 글자 앞에 붙는 이름. 계산에는 들어가지 않는다 */
   label: string;
-  hourKnown: boolean;
 };
 
 /**
@@ -904,9 +909,11 @@ export function findCompatUtterances(
   // 주면 남의 기둥이 조용히 내 것으로 적히는데, 그것이 가장 나쁜 실패다.
   const labelOf = (chartId: string): string => labels[chartId] ?? chartId;
 
+  // **시각은 둘 다 알아야 안다** — 한쪽만 알아도 목록은 이 두 사람 사이의 전부가
+  // 아니다. 그 사실은 궁합이 값으로 든다.
   const base = {
     grounded: groundedCompatTermsOf(compat),
-    hourKnown: people.a.hourKnown && people.b.hourKnown,
+    hourKnown: COMPAT_SIDES.every((side) => compat.hourKnown[side]),
   };
 
   const requests: FragmentRequest[] = [];
@@ -933,7 +940,7 @@ export function findCompatUtterances(
 
   // 행에는 **누구의** 시주가 빠졌는지 적을 자리가 없었다. 목록은 이름을 부른다 —
   // 한쪽만 모르는 것과 둘 다 모르는 것은 같은 칸이지만 같은 문장은 아니다.
-  const unknown = COMPAT_SIDES.filter((side) => !people[side].hourKnown);
+  const unknown = COMPAT_SIDES.filter((side) => !compat.hourKnown[side]);
   const who = unknown.length > 0 ? joinNames(unknown.map((side) => people[side].label)) : '';
 
   // 억부 부합 — 궁합의 첫 산문. 방향이 갈리면 주제가 갈린다: 상대가 가졌다는 것은

@@ -417,8 +417,8 @@ const formatCompatCase = ({ id, note, people }: CompatCase): string => {
   const compat = analyzeCompatibility(people.a.saju, people.b.saju);
 
   const utterances = assembleCompatText(compat, {
-    a: { label: people.a.label, hourKnown: people.a.saju.meta.hourKnown },
-    b: { label: people.b.label, hourKnown: people.b.saju.meta.hourKnown },
+    a: { label: people.a.label },
+    b: { label: people.b.label },
   });
 
   return [

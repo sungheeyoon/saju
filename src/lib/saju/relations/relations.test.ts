@@ -28,6 +28,7 @@ import {
   findRelations,
   formatRelation,
   orderedParticipants,
+  resolveRelation,
   type Relation,
   type RelationInput,
 } from '@/src/lib/saju/relations';
@@ -679,5 +680,97 @@ describe('computeSaju 와의 연결', () => {
     expect(
       saju.relations.every((r) => r.participants.every((p) => p.position !== 'hour')),
     ).toBe(true);
+  });
+});
+
+/**
+ * 밖으로 낼 꼴 — **인덱스가 남으면 안 된다.**
+ *
+ * `direction`·`cycle` 은 `participants` 의 인덱스라 그 배열의 순서와 짝이다.
+ * 한 계산판만 볼 때는 배열이 언제나 년→시라 인덱스가 곧 자리였지만, 계산판이
+ * 둘이면 배열이 넣은 순서를 따라간다. 받는 쪽은 그 순서를 알 도리가 없다.
+ */
+describe('관계를 밖으로 낼 꼴로 푼다', () => {
+  const punishmentOf = (input: RelationInput) =>
+    findRelations(input).find((r) => r.kind === 'branchPunishment')!;
+
+  it('형의 방향을 인덱스가 아니라 글자로 낸다', () => {
+    const relation = punishmentOf(branchChart('寅', '子', '子', '申'));
+
+    expect(relation.direction).toEqual({ from: 1, to: 0 });
+    expect(resolveRelation(relation).direction).toEqual({
+      from: { chartId: 'natal', position: 'hour', char: '申' },
+      to: { chartId: 'natal', position: 'year', char: '寅' },
+    });
+  });
+
+  it('완전 삼형의 순환도 글자로 낸다', () => {
+    const resolved = resolveRelation(punishmentOf(branchChart('寅', '巳', '申', null)));
+
+    expect(resolved.direction).toBeNull();
+    expect(resolved.cycle?.map((p) => p.char)).toEqual(['寅', '巳', '申']);
+  });
+
+  it('방향이 없는 관계는 순환도 방향도 비어 있다', () => {
+    const resolved = resolveRelation(
+      findRelations(branchChart('子', '午', '辰', null)).find((r) => r.kind === 'branchClash')!,
+    );
+
+    expect(resolved.direction).toBeNull();
+    expect(resolved.cycle).toBeNull();
+  });
+
+  /**
+   * `participants` 는 **읽는 순서**다 — 형만 자리 순서가 아니라 형하는 순서다.
+   * 화면이 그때그때 풀던 것(`orderedParticipants`)과 같은 값이어야 한다. 두
+   * 곳에서 각자 풀면 언젠가 한 곳만 고쳐진다.
+   */
+  it('참여자는 화면이 읽던 것과 같은 순서다', () => {
+    const relation = punishmentOf(branchChart('寅', '子', '子', '申'));
+
+    expect(resolveRelation(relation).participants).toEqual(orderedParticipants(relation));
+  });
+
+  /**
+   * `id` 는 참여자를 **정렬해서** 짓는다. 저장 순서는 배치에 딸린 값이라 이름에
+   * 들어가면 같은 사실이 두 이름을 갖는다.
+   */
+  it('참여자 저장 순서가 뒤바뀌어도 같은 이름이다', () => {
+    const relation = punishmentOf(branchChart('寅', '子', '子', '申'));
+    const reversed: Relation = {
+      ...relation,
+      participants: [...relation.participants].reverse(),
+      // 인덱스도 뒤집어야 같은 관계다 — 방향은 자리를 가리키지 순번을 가리키지 않는다.
+      direction: { from: 0, to: 1 },
+    };
+
+    expect(resolveRelation(reversed).id).toBe(resolveRelation(relation).id);
+    expect(resolveRelation(reversed).direction).toEqual(resolveRelation(relation).direction);
+  });
+
+  /**
+   * 세 글자가 다 모인 자리에서는 두 글자짜리 형도 함께 나온다
+   * (`RELATION_POLICY.absorbedPairs`). 같은 글자쌍을 물고 있으므로 `full` 이
+   * 이름에 들어가지 않으면 둘이 한 이름을 쓴다.
+   */
+  it('다 모인 것과 둘만 모인 것은 다른 이름이다', () => {
+    const relations = findRelations(branchChart('丑', '戌', '未', null)).filter(
+      (r) => r.kind === 'branchPunishment',
+    );
+    const ids = relations.map((r) => resolveRelation(r).id);
+
+    expect(relations.length).toBeGreaterThan(1);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('이름은 계산판이 다르면 달라진다', () => {
+    const [a, b] = ['natal:a', 'natal:b'].map(
+      (chartId) =>
+        findRelations(branchChart('子', '午', '辰', null), chartId).find(
+          (r) => r.kind === 'branchClash',
+        )!,
+    );
+
+    expect(resolveRelation(a).id).not.toBe(resolveRelation(b).id);
   });
 });

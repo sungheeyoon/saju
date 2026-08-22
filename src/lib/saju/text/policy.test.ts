@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju, currentFortuneOf, type Saju } from '@/src/lib/saju';
+import { analyzeCompatibility } from '@/src/lib/saju/compat';
 import {
   FAVOR_ROLE_KO,
   FOLLOWING_PATTERN_POLICY,
@@ -13,6 +14,9 @@ import {
   ATTRIBUTION_PATHS,
   CLAIM_CEILING,
   CLAIM_PATHS,
+  COMPAT_CLAIM_PATHS,
+  FRAGMENT_TOPICS,
+  findCompatUtterances,
   CLAIM_STRENGTH_ORDER,
   DISCLOSABLE,
   FORBIDDEN_CLAIMS,
@@ -76,6 +80,57 @@ describe('문장 계약', () => {
         const [head, tail] = path.split('.');
         const target = tail ? (CHART.analysis as Record<string, unknown>) : (CHART as Record<string, unknown>);
         expect(Object.hasOwn(target, tail ?? head), `${path} 이 가리키는 결과가 없다`).toBe(true);
+      }
+    });
+
+    /**
+     * **주석이 잠그던 자리다.**
+     *
+     * 계약은 "궁합은 남의 근거를 빌려 쓰므로 새 칸이 필요 없다"고 적어 두었고
+     * 그것은 지금도 맞는 말이다. 맞는 말이 **아무것도 강제하지 않았다는 것**이
+     * 문제였다 — `Compatibility` 에 필드가 하나 늘어도 위의 양방향 검사는 `Saju`
+     * 만 훑으므로 걸리지 않는다. 근거를 안 정한 값이 조용히 밖으로 나갈 수 있었다.
+     */
+    it('궁합이 내는 모든 결과도 근거를 가리킨다', () => {
+      const compat = analyzeCompatibility(CHART, HOURLESS);
+
+      for (const key of Object.keys(compat)) {
+        expect(Object.hasOwn(COMPAT_CLAIM_PATHS, key), `Compatibility.${key} 에 근거가 없다`).toBe(
+          true,
+        );
+      }
+
+      // 반대 방향 — 없어진 필드를 가리키는 줄이 남아 있으면 안 된다.
+      for (const [key, paths] of Object.entries(COMPAT_CLAIM_PATHS)) {
+        expect(Object.hasOwn(compat, key), `${key} 이 가리키는 결과가 없다`).toBe(true);
+        expect(paths.length, `${key} 이 근거를 하나도 안 든다`).toBeGreaterThan(0);
+
+        for (const path of paths) {
+          expect(CLAIM_PATHS as readonly string[], `${key} → ${path}`).toContain(path);
+        }
+      }
+    });
+
+    /**
+     * 궁합 문장이 드는 근거와 궁합 결과가 가진 근거가 **같은 집합이어야 한다.**
+     *
+     * 한쪽이 넓으면 결과에 없는 것을 근거라고 말하는 문장이 생기고, 좁으면
+     * 근거를 가진 값을 아무도 말하지 않는다. 둘 다 조용히 일어난다 — 문장은
+     * 나오고 검사는 통과한다.
+     */
+    it('궁합 문장은 궁합 결과가 가진 근거만 든다', () => {
+      const compat = analyzeCompatibility(CHART, HOURLESS);
+      const declared = new Set(Object.values(COMPAT_CLAIM_PATHS).flat());
+
+      const spoken = new Set(
+        findCompatUtterances(compat, { a: { label: '첫' }, b: { label: '둘' } }).flatMap(
+          (request) => FRAGMENT_TOPICS[request.topic].paths,
+        ),
+      );
+
+      expect(spoken.size).toBeGreaterThan(0);
+      for (const path of spoken) {
+        expect([...declared], `문장이 드는 ${path} 을 궁합 결과가 안 든다`).toContain(path);
       }
     });
 

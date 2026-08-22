@@ -13,10 +13,10 @@ import {
   assembleCompatText,
   compatSideOf,
   computeSaju,
-  orderedParticipants,
+  resolveRelation,
   type Compatibility,
   type CompatSide,
-  type Relation,
+  type ResolvedRelation,
   type Saju,
   type Utterance,
 } from '@/src/lib/saju';
@@ -255,11 +255,12 @@ function CompatView({
   /** 두 사람을 부르는 말 — 입력한 이름이거나 '첫 번째 사람' */
   names: Record<CompatSide, string>;
 }) {
-  // L3 는 `Compatibility` 와 사람마다 이름·시각 여부 둘만 받는다. `Saju` 를 통째로
-  // 넘기면 문장이 다시 계산할 길이 생기고, 화면의 궁합과 문장의 궁합이 언젠가 어긋난다.
+  // L3 는 `Compatibility` 와 사람마다 이름 하나만 받는다. `Saju` 를 통째로 넘기면
+  // 문장이 다시 계산할 길이 생기고, 화면의 궁합과 문장의 궁합이 언젠가 어긋난다.
+  // 시각을 알았는가는 넘기지 않는다 — 궁합이 이미 값으로 든다.
   const utterances = assembleCompatText(compat, {
-    a: { label: names.a, hourKnown: charts.a.meta.hourKnown },
-    b: { label: names.b, hourKnown: charts.b.meta.hourKnown },
+    a: { label: names.a },
+    b: { label: names.b },
   });
 
   return (
@@ -379,7 +380,17 @@ function BetweenRelations({
   /** 목록의 한계는 목록이 든다 — 시각을 둘 다 알면 비어 있다 */
   coverage: Utterance[];
 }) {
-  const dayToDay = compat.relations.filter(
+  /**
+   * 인덱스를 푼 꼴로 한 번만 바꾸고 그것만 읽는다.
+   *
+   * 화면은 여태 `orderedParticipants` 로 그때그때 풀었고 그것으로 충분했다.
+   * 부족해진 것은 `relation.cycle` 을 인덱스인 채로 읽는 자리가 남아 있어서다 —
+   * 같은 관계를 한 줄에서는 글자로, 다른 줄에서는 인덱스로 읽으면 어느 쪽이
+   * 배치에 딸린 값인지 화면만 보고는 알 수 없다.
+   */
+  const relations: ResolvedRelation[] = compat.relations.map(resolveRelation);
+
+  const dayToDay = relations.filter(
     (relation) =>
       relation.participants.length === 2 &&
       relation.participants.every((participant) => participant.position === 'day'),
@@ -390,7 +401,7 @@ function BetweenRelations({
       <div className="flex flex-wrap items-baseline gap-x-3">
         <h2 className="text-base font-semibold">두 원국 사이의 관계</h2>
         <p className="text-sm text-secondary">
-          {compat.relations.length === 0 ? '걸리는 것이 없습니다' : `${compat.relations.length}개`}
+          {relations.length === 0 ? '걸리는 것이 없습니다' : `${relations.length}개`}
         </p>
       </div>
 
@@ -399,7 +410,7 @@ function BetweenRelations({
           <p className="text-xs text-muted">일지끼리 — 부부 자리로 읽는 자리입니다</p>
           <ul className="mt-1.5 flex flex-col gap-1 text-sm">
             {dayToDay.map((relation) => (
-              <li key={relationKey(relation)}>
+              <li key={relation.id}>
                 <span className="glyph">
                   {relation.participants.map((participant) => participant.char).join(' ')}
                 </span>{' '}
@@ -410,7 +421,7 @@ function BetweenRelations({
         </div>
       )}
 
-      {compat.relations.length > 0 && (
+      {relations.length > 0 && (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[34rem] border-collapse text-left text-sm">
             <thead className="text-xs text-muted">
@@ -422,19 +433,17 @@ function BetweenRelations({
               </tr>
             </thead>
             <tbody>
-              {compat.relations.map((relation) => (
-                <tr key={relationKey(relation)} className="border-t border-border align-top">
+              {relations.map((relation) => (
+                <tr key={relation.id} className="border-t border-border align-top">
                   <td className="py-1.5 whitespace-nowrap text-secondary">
                     {RELATION_KIND_KO[relation.kind]}
                   </td>
                   <td className="glyph py-1.5 pl-3 whitespace-nowrap">
-                    {orderedParticipants(relation)
-                      .map((participant) => participant.char)
-                      .join(' ')}
+                    {relation.participants.map((participant) => participant.char).join(' ')}
                   </td>
                   <td className="py-1.5 pl-3 whitespace-nowrap">{relation.ko}</td>
                   <td className="py-1.5 pl-3 text-xs text-secondary">
-                    {orderedParticipants(relation)
+                    {relation.participants
                       .map((participant) => {
                         const side = compatSideOf(participant.chartId);
                         // 계산판을 못 알아보면 이름 대신 그 이름표를 보인다 —
@@ -478,11 +487,6 @@ function BetweenRelations({
     </section>
   );
 }
-
-const relationKey = (relation: Relation) =>
-  `${relation.kind}:${relation.ko}:${relation.participants
-    .map((participant) => `${participant.chartId}${participant.position}${participant.char}`)
-    .join('-')}`;
 
 /**
  * 두 사람 사이에 대해 **말할 수 있는 것** — L3 가 낸 발화를 그대로 놓는다.

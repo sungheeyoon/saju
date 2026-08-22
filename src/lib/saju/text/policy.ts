@@ -23,6 +23,7 @@ import {
   UNRESOLVED_FACTOR_KO,
   type FollowingPatternStatus,
 } from '../analysis';
+import type { Compatibility } from '../compat';
 import { TWELVE_SPIRIT_KO } from '../sinsal/twelveSpirits';
 import { TWELVE_STAGE_KO } from '../stages';
 
@@ -327,6 +328,46 @@ export const CLAIM_CEILING: Record<ClaimPath, ClaimStrength> = {
 
   /** 조건을 자동 판정하지 않은 참고표다. 출처를 함께 밝힌다 */
   'analysis.johu': 'reference',
+};
+
+/**
+ * 궁합 결과 하나하나가 **누구의 근거를 읽는가.**
+ *
+ * `CLAIM_PATHS` 는 `Saju` 의 키를 그대로 쓴다고 적혀 있고 테스트가 양방향으로
+ * 그것을 잠근다 — 상한 없는 결과도, 아무것도 가리키지 않는 상한도 걸린다.
+ * **궁합은 그 잠금 밖에 있었다.** 계약이 그 사정을 문장으로 적어 두기는 했다:
+ * 궁합은 남의 근거를 빌려 쓰므로 새 칸이 필요 없다고. 맞는 말이었지만 **주석이라
+ * 아무것도 강제하지 않았다.** `Compatibility` 에 필드가 하나 늘어도 걸리는 곳이
+ * 없고, 그러면 근거를 안 정한 값이 조용히 밖으로 나간다.
+ *
+ * 이 표가 그 문장을 값으로 만든다. `Record<keyof Compatibility, ...>` 라 필드가
+ * 늘면 타입이 먼저 걸리고, 없어진 필드를 가리키는 줄은 테스트가 걸린다.
+ *
+ * **여기서 새 `ClaimPath` 를 만들지 않는다.** 궁합이 내는 값은 전부 두 원국에서
+ * 온 것이라 가리킬 자리가 이미 있다. 새 칸이 필요해지는 날은 궁합이 **자기만의
+ * 판정**을 내기 시작하는 날이고, 그때는 이 표가 아니라 `CLAIM_CEILING` 에 줄이
+ * 늘어야 한다 — 그것이 지금 `COMPAT_POLICY.scoring: 'not-scored'` 로 막혀 있는 것이다.
+ */
+export const COMPAT_CLAIM_PATHS: Record<keyof Compatibility, readonly ClaimPath[]> = {
+  /** 두 원국 사이의 형충회합 — 원국 관계와 같은 규칙, 같은 표에서 나온다 */
+  relations: ['relations'],
+  /** 같은 목록에서 골라낸 것이라 근거도 같다 */
+  combinedFormations: ['relations'],
+  /** 두 사람의 오행 분포를 맞대 본 것 */
+  elementSupport: ['analysis.elements'],
+  /** 두 일간을 맞대 본 것 */
+  tenGods: ['analysis.tenGods'],
+  /** 억부 판정을 딱지째 물려받고, 상대에게 있는지는 분포에서 센다 */
+  eokbuMatch: ['analysis.strength', 'analysis.eokbu', 'analysis.elements'],
+  /**
+   * 시각을 알았는가 — 명식이 아니라 **입력**에 대한 사실이라 `meta` 다.
+   *
+   * 이 줄이 이 표의 첫 소득이다. 필드를 늘리자마자 "그래서 이건 무엇을 근거로
+   * 하는가"를 묻게 됐고, 물어 보니 답이 `analysis.*` 가 아니었다.
+   */
+  hourKnown: ['meta'],
+  /** 좁게 읽어야 하는 사정 — 입력이 무엇을 못 채웠는가 */
+  warnings: ['meta'],
 };
 
 /**

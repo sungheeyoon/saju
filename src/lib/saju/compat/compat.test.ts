@@ -10,6 +10,8 @@ import {
   findCompatRelations,
 } from '@/src/lib/saju/compat';
 import { pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
+import { resolveRelation, type Participant, type Relation } from '@/src/lib/saju/relations';
+import { findCompatUtterances } from '@/src/lib/saju/text';
 
 function chart(year: string, month: string, day: string, hour: string | null) {
   const parse = (name: string) => {
@@ -217,6 +219,60 @@ describe('궁합 결과의 계약', () => {
     expect(warnings[1].text).toContain('없는 오행');
   });
 
+  /**
+   * **「없다」와 「못 셌다」는 값만 보아서 구별되지 않는다.**
+   *
+   * 이 결과에서 없다고 말하는 자리가 넷인데(`missing`·`stillMissing`·
+   * `presentInPartner: false`·관계 목록의 전체성) 여섯 글자로 세었으면 넷 다
+   * 「못 셌다」다. 여태 그 사정은 `warnings` 의 **문장 안에만** 있었다 — 화면은
+   * 사람이 읽으니 충분했지만, 값을 그대로 받는 쪽은 문장을 파싱해야 뜻을 알게 된다.
+   */
+  it('시각을 알았는가를 값으로 든다', () => {
+    const known = computeSajuOf(1990, 5, 15, 14);
+    const unknown = computeSajuOf(1988, 7, 15, null);
+
+    expect(analyzeCompatibility(known, unknown).hourKnown).toEqual({ a: true, b: false });
+    expect(analyzeCompatibility(unknown, known).hourKnown).toEqual({ a: false, b: true });
+    expect(analyzeCompatibility(known, known).hourKnown).toEqual({ a: true, b: true });
+  });
+
+  /** 값과 문장이 같은 사정을 말해야 한다 — 갈리면 어느 쪽이 맞는지 알 수 없다 */
+  it('경고는 값이 말하는 것과 같은 사정만 든다', () => {
+    for (const pair of [
+      [1990, 5, 15, 14, 1988, 7, 15, null],
+      [1988, 7, 15, null, 1990, 5, 15, 14],
+      [1988, 7, 15, null, 1991, 3, 2, null],
+      [1990, 5, 15, 14, 1991, 3, 2, 9],
+    ] as const) {
+      const compat = analyzeCompatibility(
+        computeSajuOf(pair[0], pair[1], pair[2], pair[3]),
+        computeSajuOf(pair[4], pair[5], pair[6], pair[7]),
+      );
+      const allKnown = compat.hourKnown.a && compat.hourKnown.b;
+
+      expect(compat.warnings.length === 0).toBe(allKnown);
+    }
+  });
+
+  /**
+   * L3 가 이 값을 읽는다. 전에는 호출부가 손으로 넘겼고(`CompatPerson.hourKnown`)
+   * 다른 명식의 값을 적어도 아무것도 걸리지 않았다 — 걸렸다면 문장이 엉뚱한
+   * 사람의 시주를 빠졌다고 부르는 모양이었다.
+   */
+  it('궁합 문장이 이름 말고 더 받을 것이 없다', () => {
+    const compat = analyzeCompatibility(
+      computeSajuOf(1990, 5, 15, 14),
+      computeSajuOf(1988, 7, 15, null),
+    );
+
+    const said = findCompatUtterances(compat, { a: { label: '가온' }, b: { label: '나린' } });
+    const coverage = said.find((request) => request.topic === 'relation.coverage');
+
+    // 시주가 빠진 쪽만 부른다 — 이름은 호출부가 주고, 누구인지는 궁합이 안다.
+    expect(coverage?.slots.who).toBe('나린');
+    expect(coverage?.slots.who).not.toContain('가온');
+  });
+
   it('두 사람을 서로 다른 이름으로 가리킨다', () => {
     expect(COMPAT_CHART_ID.a).not.toBe(COMPAT_CHART_ID.b);
     expect(compatSideOf(COMPAT_CHART_ID.a)).toBe('a');
@@ -236,5 +292,153 @@ describe('궁합 결과의 계약', () => {
       eokbu: 'inherits-experimental',
       spouseSeat: 'display-only',
     });
+  });
+});
+
+/**
+ * A·B 를 **맞바꿔 넣어도 같은 사실이 나오는가.**
+ *
+ * 궁합은 두 사람을 받는데 누가 먼저인지는 사실이 아니다 — 폼에 먼저 적은 쪽일
+ * 뿐이다. 그런데 이 엔진 안에서 그 순서는 여러 곳에 남는다. `chartId` 가 갈리고,
+ * 관계의 참여자 배열이 넣은 순서로 담기고, `direction`·`cycle` 이 그 배열의
+ * 인덱스다. 어느 하나라도 순서를 사실인 척 들고 나가면 같은 두 사람이 폼을 어떻게
+ * 채웠는가에 따라 다른 답을 받는다.
+ *
+ * 화면만 볼 때는 드러나지 않던 자리다. 화면은 인덱스를 읽지 않고 이름을 붙여
+ * 보여주므로 뒤집혀도 뒤집힌 대로 맞게 읽힌다. **밖으로 내보내는 순간 달라진다** —
+ * 받는 쪽은 배열이 어떤 순서로 담겼는지 알 도리가 없다.
+ *
+ * 그래서 여기서 두 가지를 함께 잠근다. 뒤집혀야 하는 것이 정확히 뒤집히는가,
+ * 그리고 **뒤집히지 않는 것이 무엇인가**(`resolveRelation` 이 있는 이유다).
+ */
+describe('A 와 B 를 맞바꿔 넣으면', () => {
+  const one = computeSaju({
+    year: 1990, month: 5, day: 12, hour: 14, minute: 30, second: 0, gender: 'male',
+  });
+  const other = computeSaju({
+    year: 1993, month: 11, day: 3, hour: 8, minute: 10, second: 0, gender: 'female',
+  });
+
+  const ab = analyzeCompatibility(one, other);
+  const ba = analyzeCompatibility(other, one);
+
+  const MIRRORED: Record<string, string> = {
+    [COMPAT_CHART_ID.a]: COMPAT_CHART_ID.b,
+    [COMPAT_CHART_ID.b]: COMPAT_CHART_ID.a,
+  };
+
+  /** 계산판 이름만 맞바꾼다 — 맞바꿔 넣었으면 이것 말고 달라질 것이 없어야 한다 */
+  const mirror = (relation: Relation): Relation => ({
+    ...relation,
+    participants: relation.participants.map(
+      (participant): Participant => ({
+        ...participant,
+        chartId: MIRRORED[participant.chartId] ?? participant.chartId,
+      }),
+    ),
+  });
+
+  const idsOf = (relations: readonly Relation[]) =>
+    relations.map((relation) => resolveRelation(relation).id).sort();
+
+  const tokenOf = (participant: Participant) =>
+    `${participant.chartId}/${participant.position}/${participant.char}`;
+
+  it('두 원국 사이의 관계는 계산판 이름만 맞바뀐다', () => {
+    expect(ba.relations).not.toHaveLength(0);
+    expect(idsOf(ba.relations.map(mirror))).toEqual(idsOf(ab.relations));
+  });
+
+  it('합쳐서 이룬 것도 그대로 맞바뀐다', () => {
+    expect(idsOf(ba.combinedFormations.map(mirror))).toEqual(idsOf(ab.combinedFormations));
+  });
+
+  it('십성은 보는 쪽이 바뀌므로 양방향이 서로 자리를 바꾼다', () => {
+    expect(ba.tenGods.aSeesB).toBe(ab.tenGods.bSeesA);
+    expect(ba.tenGods.bSeesA).toBe(ab.tenGods.aSeesB);
+  });
+
+  it('오행 보완은 사람마다 한 벌이므로 통째로 자리를 바꾼다', () => {
+    expect(ba.elementSupport.a).toEqual(ab.elementSupport.b);
+    expect(ba.elementSupport.b).toEqual(ab.elementSupport.a);
+  });
+
+  it('억부 부합도 딱지째 자리를 바꾼다', () => {
+    expect(ba.eokbuMatch.a).toEqual(ab.eokbuMatch.b);
+    expect(ba.eokbuMatch.b).toEqual(ab.eokbuMatch.a);
+  });
+
+  /** 경고는 사람을 순서로 부른다 — 순서가 바뀌면 부르는 이름도 바뀌어야 한다 */
+  it('시각을 알았는가도 자리를 바꾼다', () => {
+    const unknown = computeSaju({ year: 1988, month: 7, day: 15, hour: null, gender: 'female' });
+
+    expect(analyzeCompatibility(one, unknown).hourKnown).toEqual({ a: true, b: false });
+    expect(analyzeCompatibility(unknown, one).hourKnown).toEqual({ a: false, b: true });
+  });
+
+  it('경고가 가리키는 사람도 바뀐다', () => {
+    const unknown = computeSaju({ year: 1988, month: 7, day: 15, hour: null, gender: 'female' });
+
+    const [known, unknownFirst] = [
+      analyzeCompatibility(one, unknown),
+      analyzeCompatibility(unknown, one),
+    ];
+
+    expect(known.warnings.map((w) => w.kind)).toEqual(unknownFirst.warnings.map((w) => w.kind));
+    expect(known.warnings[0].text).toContain('두 번째 사람');
+    expect(unknownFirst.warnings[0].text).toContain('첫 번째 사람');
+  });
+
+  /**
+   * 형의 방향은 **사실이다.** 戌이 未를 형한다는 것은 누구를 먼저 적었는지와
+   * 무관하다. 글자로 읽으면 그 사실이 그대로 남아야 한다.
+   */
+  it('형의 방향은 글자로 읽으면 같은 사실이다', () => {
+    const arrowsOf = (relations: readonly Relation[]) =>
+      relations
+        .map(resolveRelation)
+        .flatMap((relation) =>
+          relation.direction
+            ? [`${tokenOf(relation.direction.from)}→${tokenOf(relation.direction.to)}`]
+            : [],
+        )
+        .sort();
+
+    expect(arrowsOf(ab.relations)).not.toHaveLength(0);
+    expect(arrowsOf(ba.relations.map(mirror))).toEqual(arrowsOf(ab.relations));
+  });
+
+  it('완전 삼형이 도는 순서도 같은 사실이다', () => {
+    const cyclesOf = (relations: readonly Relation[]) =>
+      relations
+        .map(resolveRelation)
+        .flatMap((relation) => (relation.cycle ? [relation.cycle.map(tokenOf).join('→')] : []))
+        .sort();
+
+    expect(cyclesOf(ab.relations)).not.toHaveLength(0);
+    expect(cyclesOf(ba.relations.map(mirror))).toEqual(cyclesOf(ab.relations));
+  });
+
+  /**
+   * **여기가 이 묶음의 요점이다.**
+   *
+   * 위 두 시험이 통과하는 것은 `resolveRelation` 이 인덱스를 풀어 주기 때문이지
+   * 인덱스 자체가 대칭이어서가 아니다. 날것 그대로는 같은 형이 한 배치에서
+   * `0→1`, 맞바꾼 배치에서 `1→0` 이다 — 사실은 그대로인데 숫자만 뒤집힌다.
+   *
+   * 이 줄이 빨개지면 인덱스가 대칭이 됐다는 뜻이고, 그때는 `resolveRelation` 이
+   * 왜 있는지부터 다시 읽어야 한다. 지우기 전에 확인할 것: 관계 참여자를 넣은
+   * 순서가 아니라 **정해진 순서**로 담게 됐는가.
+   */
+  it('그러나 direction 인덱스는 배치에 딸린 값이다', () => {
+    const indicesOf = (relations: readonly Relation[]) =>
+      relations
+        .flatMap((relation) =>
+          relation.direction ? [`${relation.ko}:${relation.direction.from}→${relation.direction.to}`] : [],
+        )
+        .sort();
+
+    expect(indicesOf(ab.relations)).not.toHaveLength(0);
+    expect(indicesOf(ba.relations)).not.toEqual(indicesOf(ab.relations));
   });
 });

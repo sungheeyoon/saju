@@ -6,7 +6,6 @@ import {
 } from '../analysis';
 import type { Element } from '../constants';
 import type { Saju } from '../index';
-import type { Pillars } from '../pillars';
 import {
   findRelationsAmong,
   type Relation,
@@ -143,6 +142,25 @@ export type Compatibility = {
   tenGods: { aSeesB: TenGod; bSeesA: TenGod };
   /** 내 억부 후보를 상대가 갖고 있는가 — 사람마다 한 벌씩 */
   eokbuMatch: Record<CompatSide, EokbuMatch>;
+  /**
+   * 각자의 여덟 글자를 다 세었는가 — **'없다'를 읽기 전에 읽어야 하는 값.**
+   *
+   * 이 결과에는 「없다」고 말하는 자리가 넷이다: `elementSupport.missing` ·
+   * `stillMissing` · `eokbuMatch.presentInPartner: false` · 그리고 관계 목록의
+   * 전체성. 넷 다 여섯 글자로 세었으면 「없다」가 아니라 **「못 셌다」**이고,
+   * 값만 보아서는 둘이 구별되지 않는다.
+   *
+   * 여태 이 사실은 `warnings` 의 문장 안에만 있었다. 화면은 그것으로 충분했다 —
+   * 사람이 읽는다. **밖으로 내보내면 아니다**: 받는 쪽이 문장을 파싱해야 값의
+   * 뜻을 알게 되고, 그러면 경고를 못 읽은 쪽은 「없다」를 그대로 믿는다.
+   *
+   * `Saju.meta.hourKnown` 과 같은 값이지만 여기 한 번 더 든다. 궁합 결과를 받는
+   * 쪽은 원국을 받지 않기로 했고(L3 가 `Saju` 를 안 받는 규율이 그것이다),
+   * 그 규율을 지키려면 이 값이 결과 안에 있어야 한다. **손으로 넘기던 자리였다** —
+   * `CompatPerson.hourKnown` 이 그것이고, 호출부가 다른 명식의 값을 적어도
+   * 아무것도 걸리지 않았다.
+   */
+  hourKnown: Record<CompatSide, boolean>;
   /** 결과를 좁게 읽어야 하는 사정 — 시간 미상처럼 관계가 덜 나오는 경우 */
   warnings: CompatWarning[];
 };
@@ -172,12 +190,6 @@ export type CompatWarning = {
   text: string;
 };
 
-/** 궁합 계산에 필요한 것은 네 기둥과 "시각을 알았는가" 뿐이다 */
-type CompatInput = {
-  pillars: Pick<Pillars, 'year' | 'month' | 'day' | 'hour'>;
-  hourKnown: boolean;
-};
-
 const BETWEEN_SCOPES: readonly RelationScope[] = ['betweenCharts', 'combinedFormation'];
 
 /**
@@ -192,8 +204,8 @@ export function findCompatRelations(a: RelationInput, b: RelationInput): Relatio
   ]).filter((relation) => BETWEEN_SCOPES.includes(relation.scope));
 }
 
-function warningsOf(a: CompatInput, b: CompatInput): CompatWarning[] {
-  const unknown = COMPAT_SIDES.filter((side) => !(side === 'a' ? a : b).hourKnown);
+function warningsOf(hourKnown: Record<CompatSide, boolean>): CompatWarning[] {
+  const unknown = COMPAT_SIDES.filter((side) => !hourKnown[side]);
   if (unknown.length === 0) return [];
 
   const who = unknown.length === 2 ? '두 사람 모두' : `${unknown[0] === 'a' ? '첫' : '두'} 번째 사람의`;
@@ -246,12 +258,12 @@ function eokbuMatchOf(mine: Saju['analysis'], partner: Saju['analysis']): EokbuM
  * 오행 보완·십성 관계·용신 부합은 다음 단계에서 이 결과에 얹는다.
  */
 export function analyzeCompatibility(a: Saju, b: Saju): Compatibility {
-  const sides: Record<CompatSide, CompatInput> = {
-    a: { pillars: a.pillars, hourKnown: a.meta.hourKnown },
-    b: { pillars: b.pillars, hourKnown: b.meta.hourKnown },
+  const hourKnown: Record<CompatSide, boolean> = {
+    a: a.meta.hourKnown,
+    b: b.meta.hourKnown,
   };
 
-  const relations = findCompatRelations(sides.a.pillars, sides.b.pillars);
+  const relations = findCompatRelations(a.pillars, b.pillars);
 
   return {
     relations,
@@ -270,6 +282,7 @@ export function analyzeCompatibility(a: Saju, b: Saju): Compatibility {
       a: eokbuMatchOf(a.analysis, b.analysis),
       b: eokbuMatchOf(b.analysis, a.analysis),
     },
-    warnings: warningsOf(sides.a, sides.b),
+    hourKnown,
+    warnings: warningsOf(hourKnown),
   };
 }
