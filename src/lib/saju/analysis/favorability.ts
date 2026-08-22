@@ -62,7 +62,14 @@ export type FavorRole =
   | 'adversary'
   /** 구신(仇神) — 기신을 낳아 키운다 */
   | 'accomplice'
-  /** 한신(閑神) — 어느 쪽도 아닌 나머지 하나 */
+  /**
+   * 한신(閑神) — 넷을 뺀 나머지 하나.
+   *
+   * **무해한 나머지가 아니다.** 상생상극으로 풀면 이 자리는 언제나 용신이 생하는
+   * 오행이라(전수 확인) 용신에서 기운이 빠져나가는 쪽이다. 고전이 「나머지」라고
+   * 부르는 것은 희·기·구 어디에도 **이름이 붙지 않는다**는 뜻이지 용신과 무관하다는
+   * 뜻이 아니다.
+   */
   | 'neutral';
 
 export const FAVOR_ROLE_KO: Record<FavorRole, string> = {
@@ -115,6 +122,11 @@ export function favorabilityOf(
 
   const assigned = [yongsin, helper, adversary, accomplice];
   // 다섯에서 넷을 빼면 하나가 남는다. 오행이 다섯이라 언제나 정확히 하나다.
+  //
+  // **그 하나는 언제나 용신이 생하는 오행이다.** 다섯 칸을 전수로 돌아 확인했다
+  // (`analysis.test.ts` 의 "한신은 나머지가 아니라 용신이 기운을 내보내는 자리다").
+  // 계산은 고전의 정의 그대로 두되 — 한신은 넷을 뺀 나머지다 — 그것을 「어느 쪽에도
+  // 걸리지 않는다」로 풀어 적으면 틀린 말이 된다. 용신에서 곧장 뻗어 나가는 자리다.
   const neutral = ELEMENTS.find((element) => !assigned.includes(element))!;
 
   const byRole: Record<FavorRole, Element> = {
@@ -130,7 +142,7 @@ export function favorabilityOf(
     helper: `${ELEMENT_KO[helper]}이(가) ${ELEMENT_KO[yongsin]}을(를) 낳아 돕습니다.`,
     adversary: `${ELEMENT_KO[adversary]}이(가) ${ELEMENT_KO[yongsin]}을(를) 극합니다.`,
     accomplice: `${ELEMENT_KO[accomplice]}이(가) ${ELEMENT_KO[adversary]}을(를) 낳아 키웁니다.`,
-    neutral: '용신에도 기신에도 직접 걸리지 않는 나머지입니다.',
+    neutral: `${ELEMENT_KO[neutral]}이(가) ${ELEMENT_KO[yongsin]}에서 기운을 받아 갑니다.`,
   };
 
   const seats = (Object.keys(byRole) as FavorRole[]).map((role): FavorSeat => {

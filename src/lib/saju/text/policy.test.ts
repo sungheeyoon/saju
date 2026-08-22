@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { computeSaju, currentFortuneOf, type Saju } from '@/src/lib/saju';
 import {
+  FAVOR_ROLE_KO,
   FOLLOWING_PATTERN_POLICY,
   FOLLOWING_PATTERN_STATUS_KO,
   TEN_GOD_KO,
@@ -21,6 +22,7 @@ import {
   ceilingFor,
   FOLLOWING_SILENT_VERDICTS,
   checkSentence,
+  groundedTermsOf,
   weakerClaim,
   type ClaimPath,
   type TextViolationRule,
@@ -269,6 +271,37 @@ describe('문장 계약', () => {
       expect(rules('격국은 판정하지 않습니다.', 'fact', [])).toHaveLength(0);
       expect(rules('합화 여부는 보지 않습니다.', 'fact', [])).toHaveLength(0);
       expect(rules(`${DISCLOSABLE.compatScore}는 내지 않습니다.`, 'fact', [])).toHaveLength(0);
+    });
+
+    /**
+     * **자리 이름은 판정이 아니다.**
+     *
+     * 오신 배정은 고른 용신 하나에서 상생상극으로 곧장 나오는 표 조회이고
+     * (`FAVORABILITY_POLICY.derivation`), 막아야 하는 것은 그 자리에 온 오행을
+     * 이 명식의 병과 **동일시**하는 말이다. 낱말째 막던 동안은 그 둘이 한
+     * 덩어리라 오신을 화면에 세우는 길이 통째로 닫혀 있었다.
+     */
+    it('오신 이름은 자리로 부를 때만 선다', () => {
+      expect(rules('토 쪽이 기신 자리에 옵니다.', 'fact', [])).toHaveLength(0);
+      expect(rules('금 쪽이 희신 자리에 옵니다.', 'fact', [])).toHaveLength(0);
+
+      // 동일시는 그대로 막힌다 — 한 낱말 차이다.
+      expect(rules('토가 기신입니다.', 'fact', [])).toContain('forbidden-claim');
+      expect(rules('기신 쪽이 무겁습니다.', 'fact', [])).toContain('forbidden-claim');
+      expect(rules('희신은 금입니다.', 'fact', [])).toContain('forbidden-claim');
+    });
+
+    /**
+     * 통로를 여는 것은 근거가 아니라 **문형**이다.
+     *
+     * `insideGroundedTerm` 은 오미합화 같은 이름을 살리려고 낸 길인데, 오신
+     * 이름을 근거 목록에 올리면 그 길이 '기신' 을 통째로 풀어 버린다. 그래서
+     * `FAVOR_ROLE_KO` 는 `MYEONGRI_LEXICON` 에도 `groundedTermsOf` 에도 없다 —
+     * 근거로 들이밀어도 동일시는 여전히 걸려야 한다.
+     */
+    it('근거 목록에 올려도 동일시는 풀리지 않는다', () => {
+      expect(groundedTermsOf(CHART)).not.toContain(FAVOR_ROLE_KO.adversary);
+      expect(MYEONGRI_LEXICON.has(FAVOR_ROLE_KO.adversary)).toBe(false);
     });
 
     it('고지 문형을 흉내만 내면 통과하지 못한다', () => {

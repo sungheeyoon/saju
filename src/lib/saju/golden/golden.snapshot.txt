@@ -123,6 +123,11 @@
           johu.conditionEvaluation half-month-and-candidate-presence
           johu.halfMonthBoundary mid-term-longitude-plus-15
           johu.source            qiongtong-baojian-cross-checked-summary
+          favor.ruleSet          five-role-from-yongsin-v1
+          favor.status           experimental
+          favor.derivation       table-from-chosen-yongsin
+          favor.basis            eokbu-candidate
+          favor.disease          not-judged
 
   격국  월령의 지장간 중 투출한 것으로 격을 잡는다 — 없으면 정기다(잡기격이 여기서 나온다).
         성패는 참·거짓 하나가 아니라 조건의 목록이다. 이루는 것과 깨는 것이 섞이면 미정이다.
@@ -191,6 +196,7 @@
           hourUnknown            downgrade-and-silence-absence
           precedence             eokbu-before-following-while-gate-closed
           inheritedBans          grade-bands, unfavorable-element, compat-score
+          seatNames              named-only-as-a-seat
           lexiconCoverage        ten-gods, roles, stages, spirits, relations, following — stars pending
 
         조각은 근거도 방향도 적지 않는다 — 주제가 적고 조각은 표현만 고른다.

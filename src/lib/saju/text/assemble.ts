@@ -15,6 +15,7 @@ import {
   SELF_SEAT_KINDS,
   TEN_GOD_GROUP,
   TEN_GOD_KO,
+  type FavorRole,
   type PillarTenGods,
   type TenGod,
 } from '../analysis';
@@ -183,7 +184,10 @@ export const UNCOVERED_FACTS_BY_PATH: readonly {
   // 2026-08-21 에 들어온 판정들. 엔진에는 값이 있고 주제가 없다 — 여기 이름이
   // 서 있는 동안은 화면도 문장도 이것들을 모른다.
   { paths: ['analysis.structure'], note: '성패(成敗) — 무슨 격인가만 말한다. 이룸과 깨짐은 조건의 목록이라 한 문장으로 접으면 반올림이 된다' },
-  { paths: ['analysis.favorability'], note: '희용기구한 — 억부의 상한을 그대로 물려받는다' },
+  {
+    paths: ['analysis.favorability'],
+    note: '자리마다 원국에 몇 자인가 — 배정만 말한다. 「한 자도 없다」는 없다는 주장이라 방향이 다르고, 세어진 수는 행의 몫이다',
+  },
   { paths: ['analysis.hiddenCombinations'], note: '암합 — 관계 표에 섞지 않기로 한 자리' },
   { paths: ['analysis.bureaus', 'analysis.effectiveElements'], note: '국(局)과 합화로 옮겨 간 무게' },
   { paths: ['analysis.rootQuality'], note: '뿌리의 질 — `analysis.rootedness` 가 센 뿌리에 등급을 매긴 것' },
@@ -237,6 +241,26 @@ const stemsKo = (stems: readonly Stem[]): string => stems.map((stem) => STEM_INF
  * 정확히 그것이다(`JOHU_POLICY.conditionEvaluation`).
  */
 const FILLED_NOON_SPAN_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * 오신 배정 — **다섯 자리를 엔진의 표에서 그대로 옮긴다.**
+ *
+ * 고를 것이 없다. `byRole` 이 이미 자리→오행 표라, 여기가 하는 일은 오행 이름을
+ * 한글로 바꿔 슬롯에 꽂는 것뿐이다. 자리를 손으로 늘어놓지 않는 것은 말뭉치와
+ * 같은 이유다 — 자리가 하나 늘면 슬롯도 함께 늘어야 하고, 늘지 않으면 조각이
+ * 채우지 못한 슬롯을 들고 `unfilled-slot` 으로 걸린다.
+ */
+function favorabilityRequest(saju: Saju): Pick<FragmentRequest, 'topic' | 'variant' | 'slots'> {
+  const { byRole } = saju.analysis.favorability;
+
+  return {
+    topic: 'favorability.seating',
+    variant: 'seating',
+    slots: Object.fromEntries(
+      (Object.keys(byRole) as FavorRole[]).map((role) => [role, ELEMENT_KO[byRole[role]]]),
+    ),
+  };
+}
 
 /**
  * 조후표에서 읽어 온 것 — **어느 변종으로 서는지가 여기서 정해진다.**
@@ -376,6 +400,10 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
       element: ELEMENT_KO[eokbu.suggestedElement],
     },
   });
+
+  // 억부 바로 다음이다. 이 문장은 억부가 낸 후보를 용신 자리에 놓고 시작하므로,
+  // 사이에 다른 주제가 끼면 「무엇을 놓았는가」가 앞줄에서 떨어진다.
+  requests.push({ ...base, ...favorabilityRequest(saju) });
 
   requests.push({ ...base, ...johuRequest(saju) });
 

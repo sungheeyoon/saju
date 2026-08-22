@@ -1,4 +1,10 @@
-import type { ElementRole, FollowingDirection, FollowingPatternStatus } from '../analysis';
+import { FAVOR_ROLE_KO } from '../analysis';
+import type {
+  ElementRole,
+  FavorRole,
+  FollowingDirection,
+  FollowingPatternStatus,
+} from '../analysis';
 import type { ClaimStrength } from './policy';
 import { followingVariant, indexFragments, type Fragment, type FragmentIndex } from './fragment';
 
@@ -105,6 +111,55 @@ const eokbuFragments = (Object.entries(ROLE_GLOSS) as [ElementRole, string][]).f
     },
   ],
 );
+
+/**
+ * 용신을 뺀 네 자리 — **엔진의 표를 그대로 돈다.**
+ *
+ * 넷을 손으로 늘어놓지 않는 것은 자리가 하나 늘어난 날 문장이 조용히 넷만 읽는
+ * 것을 막기 위해서다. 여기서 자란 슬롯을 주제가 선언하지 않으면 `undeclared-slot`
+ * 이 걸리므로, 말뭉치가 자라면 지시서도 함께 자라야 한다.
+ *
+ * 용신만 빠지는 것은 문장 앞머리에서 「무엇을 놓았는가」로 따로 서기 때문이다.
+ */
+const favorabilitySeats = (Object.keys(FAVOR_ROLE_KO) as FavorRole[])
+  .filter((role) => role !== 'yongsin')
+  .map((role) => `{${role}} 쪽이 ${FAVOR_ROLE_KO[role]} 자리`)
+  .join(', ');
+
+/** 배정이 표에서 나왔다는 것과 병을 판정하지 않는다는 것 — 한 줄에 함께 든다 */
+const FAVORABILITY_DISCLOSURE =
+  '상생상극에서 곧장 나오는 자리이고, 그중 무엇이 이 명식의 병인지는 판정하지 않습니다.';
+
+/**
+ * 오신 배정 두 벌 — **자리 이름은 말뭉치가 타이핑하지 않는다.**
+ *
+ * `FAVOR_ROLE_KO` 에서 읽어 온다. 오행은 슬롯으로 꽂히고 자리 이름은 틀에 박히는데,
+ * 그것이 규율을 어기는 것이 아닌 이유는 자리 이름이 **명식마다 달라지지 않기**
+ * 때문이다 — 희·용·기·구·한은 다섯 칸의 이름이고 명식이 정하는 것은 거기 앉는
+ * 오행뿐이다. `ROLE_GLOSS` 가 변종에 얹힌 것과 같은 자리다.
+ *
+ * 그래도 상수에서 읽는 것은, 이 이름들이 **금지 표현이기 때문이다.** 손으로 적으면
+ * 언젠가 한 글자가 어긋나 `unfavorable-element` 의 `onlyBefore` 통로를 비껴가고,
+ * 그러면 조각이 통째로 막히는 것이 아니라 **한 벌만 조용히 막힌다.**
+ *
+ * **끝에 미판정 고지를 단다.** 조후가 "나머지 조건은 원문에 그대로 있고 여기서
+ * 판정하지 않습니다"를 다는 것과 같은 의무인데, 여기서는 그것이 자리 이름을 부를
+ * 자격이기도 하다 — 「기신 자리에 온다」와 「기신이다」를 가르는 것이 저 한 줄이다.
+ */
+const favorabilityFragments: Fragment[] = [
+  {
+    topic: 'favorability.seating',
+    variant: 'seating',
+    strength: 'candidate',
+    template: `억부가 낸 {yongsin} 쪽을 ${FAVOR_ROLE_KO.yongsin} 자리에 놓으면 ${favorabilitySeats}에 오는 배정을 ${STRENGTH_WORDING.candidate}. ${FAVORABILITY_DISCLOSURE}`,
+  },
+  {
+    topic: 'favorability.seating',
+    variant: 'seating',
+    strength: 'reference',
+    template: `${HOUR_UNKNOWN_MARK}를 빼고 세면 억부가 낸 {yongsin} 쪽을 ${FAVOR_ROLE_KO.yongsin} 자리에 놓았을 때 ${favorabilitySeats}에 오는 배정을 ${STRENGTH_WORDING.reference}. ${FAVORABILITY_DISCLOSURE}`,
+  },
+];
 
 /**
  * 궁합 억부 부합 세 벌 — **궁합에서 처음 서는 산문이다.**
@@ -756,6 +811,10 @@ export const FRAGMENTS: readonly Fragment[] = [
 
   // ── 억부 후보 ────────────────────────────────────────────────────────
   ...eokbuFragments,
+
+  // ── 오신 배정 ─────────────────────────────────────────────────────────
+  // 한 변종 × 두 벌. 표 조회라 갈릴 자리가 없고, 달라지는 것은 앉는 오행뿐이다.
+  ...favorabilityFragments,
 
   // ── 궁합 억부 부합 ───────────────────────────────────────────────────
   // 궁합의 첫 산문. 강등된 벌이 누구의 시주를 뺐는지 밝힌다.

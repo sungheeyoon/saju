@@ -16,6 +16,7 @@ import {
   HIDDEN_COMBINATION_KIND_KO,
   FRAGMENT_POLICY,
   HIDDEN_STEM_ROLE_KO,
+  FAVORABILITY_POLICY,
   JOHU_POLICY,
   NOW_POLICY,
   SINSAL_POLICY,
@@ -347,6 +348,12 @@ describe('골든 테스트', () => {
       ),
       ...Object.entries(JOHU_POLICY).map(
         ([key, value]) => `          johu.${key.padEnd(17)} ${value}`,
+      ),
+      // 오신 배정은 억부 아래에 딸린 판정이라 같은 묶음에 찍는다. 여태 아무
+      // 골든도 이 정책을 안 찍고 있었는데, 문장 계약이 '기신' 금지의 근거로
+      // 이것을 가리키게 되면서 diff 에 안 보이는 값이면 곤란해졌다.
+      ...Object.entries(FAVORABILITY_POLICY).map(
+        ([key, value]) => `          favor.${key.padEnd(16)} ${value}`,
       ),
       '',
       '  격국  월령의 지장간 중 투출한 것으로 격을 잡는다 — 없으면 정기다(잡기격이 여기서 나온다).',

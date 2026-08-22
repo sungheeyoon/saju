@@ -498,6 +498,18 @@ export type ForbiddenClaim = {
   id: string;
   /** 문장에 나오면 걸리는 표현 */
   terms: readonly string[];
+  /**
+   * 이 표현이 서도 되는 **유일한 모양** — 바로 뒤에 이 낱말이 오면 통과한다.
+   *
+   * `DISCLOSURE_PATTERNS` 와 같은 종류의 통로인데 반대편에서 연다. 저쪽은 그
+   * 표현을 **부인하는** 문형을 열고("기신은 내지 않습니다"), 이쪽은 그 표현이
+   * **판정이 아닌 뜻으로** 쓰이는 문형을 연다("금이 기신 자리에 옵니다").
+   *
+   * 창이 한 낱말인 것이 요점이다. 넓히면 "기신 쪽이 무겁습니다"가 그대로
+   * 통과하는데, 자리 이름을 부르는 것과 그 자리에 온 오행을 이 명식의 병이라고
+   * 말하는 것 사이가 정확히 그 한 낱말이다.
+   */
+  onlyBefore?: readonly string[];
   /** 왜 못 쓰는가 */
   why: string;
   /** 그 결정이 어느 정책에 이미 적혀 있는가 */
@@ -516,11 +528,30 @@ export type ForbiddenClaim = {
  * 조용히 풀리지 않게 하는 것뿐이다.
  */
 export const FORBIDDEN_CLAIMS: readonly ForbiddenClaim[] = [
+  /**
+   * **자리 이름으로는 부를 수 있다.**
+   *
+   * `source` 가 한동안 `YONGSIN_POLICY.unfavorable = not-judged` 를 가리키고
+   * 있었는데 그 값은 이미 없어졌다 — 오신 배정이 들어오면서
+   * `five-role-seating-not-disease` 로 바뀌었고, 계약은 따라오지 않았다. 엔진이
+   * 자란 자리를 계약이 모르면 그 금지는 **무엇을 막는 것인지를 스스로 모르는**
+   * 채로 서 있게 된다.
+   *
+   * 막는 것은 여전히 **동일시**다. 「기신은 금이다」는 명식 전체에서 용신 작용을
+   * 방해하는 것이 무엇인지 봐야 나오는 말이고 우리는 그것을 판정하지 않는다
+   * (`FAVORABILITY_POLICY.disease`). 「금이 기신 자리에 온다」는 다른 말이다 —
+   * 고른 용신 하나에서 상생상극으로 곧장 나오는 배정이라 계통이 갈리지 않는다.
+   *
+   * 낱말째 막던 동안은 그 둘이 한 덩어리였고, 그래서 오신을 화면에 세우는 길이
+   * 통째로 닫혀 있었다. `yongsin-fixed` 는 처음부터 이 모양이다 — '용신' 을
+   * 막는 것이 아니라 '용신은'·'용신이다' 를 막는다.
+   */
   {
     id: 'unfavorable-element',
     terms: ['기신', '忌神', '희신', '喜神'],
-    why: '용신을 극하는 오행이 곧 기신이 아니다. 명식 전체에서 용신 작용을 방해하는 것을 봐야 정해진다.',
-    source: 'YONGSIN_POLICY.unfavorable = not-judged',
+    onlyBefore: ['자리'],
+    why: '용신을 극하는 오행이 곧 기신이 아니다. 명식 전체에서 용신 작용을 방해하는 것을 봐야 정해진다 — 자리 이름을 부르는 것까지다.',
+    source: 'FAVORABILITY_POLICY.disease = not-judged',
   },
   {
     id: 'yongsin-fixed',
@@ -616,6 +647,12 @@ export const DISCLOSABLE = {
  *
  * 신살 이름도 아직 빠져 있다(`TEXT_POLICY.lexiconCoverage`). `stars.ts` 가
  * 이름을 함수 안에서 만들어 정적 목록이 없다.
+ *
+ * **오신 이름(`FAVOR_ROLE_KO`)은 일부러 없다.** 넣으면 근거 목록에도 넣어야
+ * 하는데(`groundedTermsOf`), 그 순간 `insideGroundedTerm` 이 '기신'을 엔진이 낸
+ * 이름으로 보고 `unfavorable-element` 를 통째로 풀어 버린다 — 오미합화를 살리려고
+ * 낸 통로가 정작 막아야 할 것을 여는 셈이다. 자리 이름을 지키는 것은 그물이 아니라
+ * 금지 목록이고, 그쪽이 「자리로만 부른다」를 이미 값으로 들고 있다(`onlyBefore`).
  */
 export const MYEONGRI_LEXICON: ReadonlySet<string> = new Set<string>(
   [
@@ -737,6 +774,24 @@ function withinDisclosure(text: string, term: string, at: number): boolean {
 }
 
 /**
+ * 금지 표현이 **판정이 아닌 뜻으로** 서 있는가 — 바로 뒤 한 낱말만 본다.
+ *
+ * `withinDisclosure` 가 창을 열두 글자로 잡은 것과 달리 여기는 붙어 있는 것만
+ * 본다. 저쪽은 부인하는 절이 뒤따르는 것이라 사이에 조사와 서술어가 들어오지만,
+ * 이쪽은 **한 낱말짜리 어구**라 띄어쓰기 하나 말고는 낄 것이 없다.
+ */
+function withinAllowedForm(
+  text: string,
+  term: string,
+  at: number,
+  forms: readonly string[],
+): boolean {
+  const after = text.slice(at + term.length).trimStart();
+
+  return forms.some((form) => after.startsWith(form));
+}
+
+/**
  * 금지 표현이 **데이터에서 온 이름 안에** 들어 있는가.
  *
  * 육합 午未合火 의 이름이 '오미합화'다. 화(化) 판정을 금지하려고 '합화'를
@@ -786,7 +841,9 @@ export function checkSentence({
     for (const term of forbidden.terms) {
       const bare = occurrencesOf(text, term).filter(
         (at) =>
-          !withinDisclosure(text, term, at) && !insideGroundedTerm(text, at, term.length, evidence),
+          !withinDisclosure(text, term, at) &&
+          !insideGroundedTerm(text, at, term.length, evidence) &&
+          !(forbidden.onlyBefore && withinAllowedForm(text, term, at, forbidden.onlyBefore)),
       );
       if (bare.length === 0) continue;
 
@@ -889,6 +946,8 @@ export const TEXT_POLICY = {
   precedence: 'eokbu-before-following-while-gate-closed',
   /** 등급 이름·기신·궁합 점수는 여기서도 그대로 금지다 */
   inheritedBans: 'grade-bands, unfavorable-element, compat-score',
+  /** 오신 이름은 자리로만 부른다 — 「기신은 X다」는 여전히 막힌다 */
+  seatNames: 'named-only-as-a-seat',
   /** 한 글자 용어는 그물에 넣지 않는다. 신살 이름은 아직 목록이 없다 */
   lexiconCoverage: 'ten-gods, roles, stages, spirits, relations, following — stars pending',
 } as const;

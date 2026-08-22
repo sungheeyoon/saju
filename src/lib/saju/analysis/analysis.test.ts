@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ELEMENTS,
+  GENERATES,
   HIDDEN_STEMS,
   STEMS,
   STEM_INFO,
@@ -9,13 +10,16 @@ import {
   pillarOf,
   principalStem,
   type Branch,
+  type Element,
   type Stem,
 } from '@/src/lib/saju/constants';
 import { twelveStageOf } from '@/src/lib/saju/stages';
 import {
+  FAVORABILITY_POLICY,
   TEN_GOD_GROUP,
   TEN_GOD_KO,
   analyzePillars,
+  favorabilityOf,
   effectiveElementsOf,
   elementDistributionOf,
   STRENGTH_POLICY,
@@ -513,6 +517,45 @@ describe('억부 후보 (시험값)', () => {
     // 종격·격국은 따로 판정하되 억부를 뒤집지 않는다.
     expect(YONGSIN_POLICY.followingPattern).toBe('judged-but-does-not-override');
     expect(YONGSIN_POLICY.structure).toBe('judged-but-does-not-override');
+  });
+});
+
+/**
+ * 오신 배정 — **표 조회라 갈릴 자리가 없다.** 갈리는 것은 그 앞(용신)이다.
+ */
+describe('오신 배정', () => {
+  const PILLARS = chartOf('壬申', '辛亥', '丁酉', '壬寅');
+  const seatsFor = (yongsin: Element) =>
+    favorabilityOf(
+      { ...eokbuAssessmentOf(PILLARS, strengthOf(PILLARS)), suggestedElement: yongsin },
+      elementDistributionOf(PILLARS),
+    );
+
+  it('한신은 나머지가 아니라 용신이 기운을 내보내는 자리다', () => {
+    // 다섯 칸을 전수로 돈다. 「용신에도 기신에도 직접 걸리지 않는 나머지」라고
+    // 적혀 있었는데 그런 자리는 하나도 없다 — 넷을 빼고 남는 하나는 언제나
+    // 용신이 생하는 오행이라, 용신에서 기운이 빠져나가는 쪽이다.
+    for (const yongsin of ELEMENTS) {
+      expect(seatsFor(yongsin).byRole.neutral, yongsin).toBe(GENERATES[yongsin]);
+    }
+  });
+
+  it('다섯 자리에 오행이 하나씩 앉는다', () => {
+    for (const yongsin of ELEMENTS) {
+      const seats = seatsFor(yongsin).seats;
+
+      expect(new Set(seats.map((seat) => seat.element)).size, yongsin).toBe(ELEMENTS.length);
+    }
+  });
+
+  /**
+   * 「이 명식의 병이 무엇인가」는 여전히 판정하지 않는다. 그 한 줄이 문장 계약에서
+   * '기신' 을 자리 이름으로만 부를 수 있게 하는 근거다(`unfavorable-element`).
+   */
+  it('병은 판정하지 않는다는 것을 정책이 값으로 든다', () => {
+    expect(FAVORABILITY_POLICY.disease).toBe('not-judged');
+    expect(FAVORABILITY_POLICY.derivation).toBe('table-from-chosen-yongsin');
+    expect(FAVORABILITY_POLICY.basis).toBe('eokbu-candidate');
   });
 });
 

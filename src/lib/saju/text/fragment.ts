@@ -56,6 +56,7 @@ export type FragmentTopic =
   | 'strength.verdict'
   | 'structure.kind'
   | 'eokbu.candidate'
+  | 'favorability.seating'
   | 'eokbuMatch.supplied'
   | 'eokbuMatch.missing'
   | 'elementSupport.absent'
@@ -236,6 +237,53 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     slots: ['role', 'element'],
     samples: { role: '재성', element: '화' },
     note: '억부 관점에서 어느 자리의 오행을 후보로 보는가',
+  },
+
+  /**
+   * 오신 배정(喜用忌仇閑) — **억부 후보를 용신 자리에 놓았을 때 나머지 넷.**
+   *
+   * 억부 문장 바로 옆에 선다. 새 규칙이 하나도 없어서다 — 다섯 자리는 고른 용신
+   * 하나에서 상생상극으로 곧장 나오고, 그 표에는 문턱도 계통 선택도 없다
+   * (`FAVORABILITY_POLICY.derivation`). 갈리는 것은 그 앞이라 상한도 억부에서
+   * 그대로 물려받는다(`CLAIM_CEILING_EOKBU` 를 두 자리가 나눠 읽는다).
+   *
+   * **이 주제가 서려면 계약이 먼저 움직여야 했다.** '기신'·'희신' 은 낱말째
+   * 금지돼 있었고(`unfavorable-element`), 그 금지의 `source` 는 이미 없어진
+   * 정책 값을 가리키고 있었다. 막는 것은 동일시(「기신은 금이다」)이지 자리
+   * 이름이 아니라는 것을 계약이 값으로 적고 나서야 문장이 설 수 있었다.
+   *
+   * **변종이 하나인 것은 갈릴 근거가 없어서다.** 표 조회는 명식을 보지 않는다 —
+   * 용신이 무엇이든 희·기·구·한이 앉는 **방식**은 같고, 달라지는 것은 앉는 오행뿐이라
+   * 슬롯의 몫이다. 다섯 자리 중 누가 비었는지로 가르고 싶어지지만 그것은 아래
+   * 참조 — 방향이 다른 주장이라 같은 주제에 앉을 수 없다.
+   *
+   * **자리마다 원국에 몇 자인지는 말하지 않는다.** 재어 봤다 — 무작위 3000건에서
+   * 기신 자리 24.7% · 용신 자리 21.6% · 희신 자리 23.5% 가 원국에 한 자도 없다.
+   * 그런데 「한 자도 없다」는 **없다는 주장**이라 시주가 뒤집을 수 있고
+   * (`INCOMPLETE_INPUT_RULE`), 배정 문장은 있다는 주장이다. 방향이 다르면 다른
+   * 주제다(`rootedness.rooted` ↔ `rootless` 와 같은 자리). 게다가 세어진 수는
+   * 행의 몫이라(`TEXT_POLICY.form`) 후보 강도의 산문에 섞으면 사실에 완충 표현이
+   * 얹힌다. 계산 골든이 이미 다섯 자리의 글자 수를 행으로 찍고 있다.
+   */
+  'favorability.seating': {
+    /**
+     * 근거가 둘이다. 배정은 `analysis.favorability` 에서 나오지만 문장이 「억부
+     * 후보인 무엇을 용신 자리에 놓았는가」를 이유로 드는데, 그 후보는 억부의
+     * 값이다 — 읽은 것을 적지 않으면 근거를 주제가 적는다는 규율이 껍데기가 된다.
+     * 둘 다 `candidate` 이고 시간 미상에서 함께 한 칸 내려간다.
+     */
+    paths: ['analysis.eokbu', 'analysis.favorability'],
+    polarity: 'presence',
+    variants: ['seating'],
+    slots: ['yongsin', 'helper', 'adversary', 'accomplice', 'neutral'],
+    samples: {
+      yongsin: '수',
+      helper: '금',
+      adversary: '토',
+      accomplice: '화',
+      neutral: '목',
+    },
+    note: '고른 용신을 기준으로 다섯 오행이 어느 자리에 오는가',
   },
 
   /**

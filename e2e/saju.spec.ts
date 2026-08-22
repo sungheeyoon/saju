@@ -46,6 +46,16 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
     없다**만 본다 — 무엇이 새든 이 모양으로 나타난다.
   */
   expect(await page.locator('main').innerText()).not.toMatch(/\{[a-zA-Z]+\}/);
+
+  /*
+    **오신은 자리로만 부른다.** 「기신은 X다」와 「X가 기신 자리에 온다」를 가르는
+    것이 계약의 `onlyBefore` 한 낱말인데, 그 규칙이 지키는 것은 결국 화면에 찍히는
+    글자다. 자리 이름이 실제로 서 있는지와, 동일시가 새어 나오지 않았는지를 함께
+    본다 — 조각 쪽은 말뭉치 시험이 잠그지만 여기가 사람이 읽는 문자열이다.
+  */
+  const said = await page.locator('main').innerText();
+  expect(said).toContain('기신 자리');
+  expect(said).not.toMatch(/기신은|기신이다|기신입니다/);
 });
 
 test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한다', async ({ page }) => {
