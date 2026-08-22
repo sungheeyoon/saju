@@ -197,7 +197,7 @@
           precedence             eokbu-before-following-while-gate-closed
           inheritedBans          grade-bands, unfavorable-element, compat-score
           seatNames              named-only-as-a-seat
-          lexiconCoverage        ten-gods, roles, stages, spirits, relations, following — stars pending
+          lexiconCoverage        ten-gods, roles, stages, spirits, relations, following, bureaus — stars pending
 
         조각은 근거도 방향도 적지 않는다 — 주제가 적고 조각은 표현만 고른다.
         변종은 빌드 타임에 전수로 도는 유한 목록이고, 명리 용어는 슬롯으로만 들어온다.

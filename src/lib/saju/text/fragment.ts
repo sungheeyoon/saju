@@ -54,6 +54,8 @@ export type FragmentTopic =
   | 'rootedness.rooted'
   | 'rootedness.rootless'
   | 'strength.verdict'
+  | 'bureau.standing'
+  | 'elements.heaviest'
   | 'structure.kind'
   | 'eokbu.candidate'
   | 'favorability.seating'
@@ -213,6 +215,67 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
       revealedAt: '연간·시간',
     },
     note: '월령에서 무엇을 격으로 잡는가',
+  },
+
+  /**
+   * 국(局) — **지지 여럿이 한 오행의 세력으로 서서 무게가 기운다.**
+   *
+   * 강약·억부·격국·종격이 전부 **옮긴 뒤의 분포**에서 세력을 잰다
+   * (`STRENGTH_POLICY.basis: 'effective-distribution'`). 그런데 그 옮김을 화면이
+   * 한 번도 말하지 않아, 「가장 무겁다」고 하는 문장들이 근거를 안 보인 채 서
+   * 있었다. 무작위 3000건의 **77.7%** 에 국이 하나라도 선다.
+   *
+   * **변종은 관계 표에 실렸는가로 갈린다.** 삼합·방합·반합·반방합은 관계 표가
+   * 이미 행으로 내고 있어(측정: 2570건 전부) 문장은 무게 이야기만 얹으면 된다.
+   * 공협은 **관계 표가 일부러 안 내는 것**이라(측정: 406건 전부 없음) 이름을
+   * 처음 보는 사람이 표에서 찾다가 못 찾는다. 그 한계는 문장이 스스로 들어야
+   * 한다 — `relation.coverage` 가 목록의 한계를 드는 것과 같은 자리다.
+   *
+   * **몫을 정한 조건은 말하지 않는다.** `pull` 은 등급(0.5·0.25·0.125)에 받침
+   * (월령을 잡았는가·화신이 투간했는가)과 왕지의 충을 곱한 값이라 조합이 여섯이고,
+   * 한 문장으로 접으면 격국 성패와 같은 반올림이 된다
+   * (`STRUCTURE_POLICY.outcome`). 대신 결과인 `{pull}` 을 정확히 든다 — 이 숫자
+   * 하나를 0 으로 두면 국을 보지 않던 분포로 정확히 돌아간다는 것이 `bureau.ts`
+   * 가 스스로 적어 둔 되돌림 조건이다. 안 말하는 것은 고지가 든다.
+   *
+   * **파국(破局)은 말하지 않는다.** 왕지가 충을 맞으면 몫을 절반으로 깎지만
+   * 국이 깨졌다고 판정하지는 않는다(`BUREAU_POLICY.peakClashedFactor`).
+   */
+  'bureau.standing': {
+    paths: ['analysis.bureaus'],
+    polarity: 'presence',
+    variants: ['in-table', 'span'],
+    slots: ['positions', 'name', 'element', 'pull'],
+    samples: { positions: '년주·월주·일주', name: '신자진 수국', element: '수', pull: '50%' },
+    note: '지지 여럿이 한 오행으로 서서 무게가 얼마나 기우는가',
+  },
+
+  /**
+   * 가장 무거운 오행 — **두 번 세면 답이 갈릴 수 있다.**
+   *
+   * 이 저장소는 분포를 둘 낸다. 글자를 그대로 센 것(`analysis.elements`)과 국·
+   * 합화로 무게를 옮긴 것(`analysis.effectiveElements`)이고, 옮긴 몫을 0 으로
+   * 두면 앞엣것으로 정확히 돌아간다는 뜻에서 **바탕을 지우지 않는다.**
+   *
+   * 그런데 세력을 말하는 문장들은 뒤엣것만 본다. 무작위 3000건에서 무게가 움직인
+   * 명식이 **78.3%**, 그중 **11.2%** 는 두 셈의 가장 무거운 오행이 아예 다르다.
+   * 화면은 두 분포를 나란히 보여 주지 않으므로, 이 문장이 없으면 읽는 사람이 보는
+   * 것은 **한쪽 분포와 다른 쪽 분포에서 나온 문장**이다.
+   *
+   * **화면을 가리키지 않는다.** 「오행 분포 표는…」이라고 쓰면 문장이 어느 카드
+   * 옆에 서는지를 알게 되고, 그것은 문구를 화면이 쓰지 않기로 한 것의 뒤집힌
+   * 얼굴이다. 문장은 **우리가 두 번 셌다**는 것만 말한다.
+   *
+   * 움직이지 않은 명식에서는 발화 자체가 없다 — 두 분포가 같은 값이라 견줄 것이
+   * 없다. 고른 것이 아니라 사실이 없는 것이다.
+   */
+  'elements.heaviest': {
+    paths: ['analysis.elements', 'analysis.effectiveElements'],
+    polarity: 'presence',
+    variants: ['same', 'differs'],
+    slots: ['literal', 'effective'],
+    samples: { literal: '토', effective: '수' },
+    note: '글자를 그대로 셀 때와 옮긴 무게까지 셀 때 가장 무거운 오행이 갈리는가',
   },
 
   'strength.verdict': {

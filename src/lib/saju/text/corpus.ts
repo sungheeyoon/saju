@@ -278,6 +278,93 @@ const JOHU_SOURCE = '궁통보감 조후표';
 const JOHU_UNJUDGED = '나머지 조건은 원문에 그대로 있고 여기서 판정하지 않습니다.';
 
 /**
+ * 국 두 벌 × 두 변종 — **관계 표에 실렸는가가 문장을 가른다.**
+ *
+ * 삼합·방합·반합·반방합은 관계 표가 이미 행으로 낸다. 그래서 이 문장이 얹는 것은
+ * **무게**뿐이다 — 같은 사실을 두 번 적지 않는다.
+ *
+ * 공협은 다르다. 관계 표가 일부러 안 내는 자리라(왕지가 빠진 두 글자를 관계라고
+ * 부르는 계통이 없다) 이름을 표에서 찾을 수 없고, 그러면 읽는 사람은 우리가 빠뜨린
+ * 줄 안다. **관계로는 안 세고 세력으로만 센다**는 결정을 문장이 스스로 든다.
+ *
+ * 산문이라 이름은 한글로 읽는다(`{name}` 이 '신자진 수국'을 든다). 관계 행이
+ * 한자를 그대로 쓰는 것과 어긋나지 않는다 — 저쪽은 위의 사주 표기와 눈으로
+ * 이어져야 하고 이쪽은 문장 안에서 읽힌다.
+ */
+const BUREAU_BODY =
+  '{positions} 자리의 지지가 {name} 하나로 서서, 그 자리들이 지고 있던 무게의 {pull} 정도가 {element} 쪽으로 기우';
+
+/** 공협이 스스로 드는 한계 — 표에서 찾아도 없다 */
+const SPAN_TAIL = '왕지가 빠진 짝이라 관계 표에는 싣지 않고 세력으로만 셉니다.';
+
+const bureauFragments: Fragment[] = [
+  {
+    topic: 'bureau.standing',
+    variant: 'in-table',
+    strength: 'derived',
+    template: `${BUREAU_BODY}는 것${STRENGTH_WORDING.derived}.`,
+  },
+  {
+    topic: 'bureau.standing',
+    variant: 'in-table',
+    strength: 'candidate',
+    template: `${HOUR_UNKNOWN_MARK}를 빼고 세면 ${BUREAU_BODY}는 것을 ${STRENGTH_WORDING.candidate}.`,
+  },
+  {
+    topic: 'bureau.standing',
+    variant: 'span',
+    strength: 'derived',
+    template: `${BUREAU_BODY}는 것${STRENGTH_WORDING.derived}. ${SPAN_TAIL}`,
+  },
+  {
+    topic: 'bureau.standing',
+    variant: 'span',
+    strength: 'candidate',
+    template: `${HOUR_UNKNOWN_MARK}를 빼고 세면 ${BUREAU_BODY}는 것을 ${STRENGTH_WORDING.candidate}. ${SPAN_TAIL}`,
+  },
+];
+
+/**
+ * 가장 무거운 오행 두 벌 × 두 변종 — **두 번 센 것을 문장이 밝힌다.**
+ *
+ * `differs` 가 이 주제를 만든 이유다. 움직인 명식의 11.2% 에서 두 셈의 답이 아예
+ * 갈리는데, 그것을 아무도 말하지 않으면 읽는 사람은 한쪽 분포를 보면서 다른 쪽
+ * 분포에서 나온 문장을 읽는다.
+ *
+ * `same` 도 말한다. 「갈리지 않았다」는 갈릴 수 있다는 것을 아는 사람에게만 뜻이
+ * 있는 말이지만, 옮긴 것이 있는데 이 줄이 없으면 **옮김 자체가 안 보인다** —
+ * 국 문장들이 자리마다 몫을 드는데 그 합이 분포를 어떻게 바꿨는지는 여기서만 선다.
+ */
+const HEAVIEST_TAIL = '세력을 말하는 문장들은 옮긴 뒤를 봅니다.';
+
+const heaviestFragments: Fragment[] = [
+  {
+    topic: 'elements.heaviest',
+    variant: 'same',
+    strength: 'derived',
+    template: `무게가 옮겨 가긴 했지만 가장 무거운 오행은 {literal} 쪽으로 그대로인 것${STRENGTH_WORDING.derived}. ${HEAVIEST_TAIL}`,
+  },
+  {
+    topic: 'elements.heaviest',
+    variant: 'same',
+    strength: 'candidate',
+    template: `${HOUR_UNKNOWN_MARK}를 빼고 세면 무게가 옮겨 가긴 했지만 가장 무거운 오행은 {literal} 쪽으로 그대로인 것을 ${STRENGTH_WORDING.candidate}. ${HEAVIEST_TAIL}`,
+  },
+  {
+    topic: 'elements.heaviest',
+    variant: 'differs',
+    strength: 'derived',
+    template: `글자를 그대로 세면 {literal} 쪽이 가장 무거운데 옮긴 무게까지 세면 {effective} 쪽이 가장 무거운 것${STRENGTH_WORDING.derived}. ${HEAVIEST_TAIL}`,
+  },
+  {
+    topic: 'elements.heaviest',
+    variant: 'differs',
+    strength: 'candidate',
+    template: `${HOUR_UNKNOWN_MARK}를 빼고 세면 글자를 그대로 셀 때는 {literal} 쪽이, 옮긴 무게까지 셀 때는 {effective} 쪽이 가장 무거운 것을 ${STRENGTH_WORDING.candidate}. ${HEAVIEST_TAIL}`,
+  },
+];
+
+/**
  * 조후 세 벌. 강도는 `reference` 하나뿐이라 **한 주제가 조각 한 벌만 갖는 두
  * 번째 자리**이고, 앞선 하나(`rootedness.rootless`)와 이유가 정반대다 — 저쪽은
  * 시간 미상에서 입을 닫아서 한 벌이고 이쪽은 시주가 아무것도 바꾸지 않아서다.
@@ -811,6 +898,11 @@ export const FRAGMENTS: readonly Fragment[] = [
 
   // ── 억부 후보 ────────────────────────────────────────────────────────
   ...eokbuFragments,
+
+  // ── 국(局) · 옮겨 간 무게 ──────────────────────────────────────────────
+  // 세력을 재는 문장들이 전부 옮긴 뒤의 분포를 보는데 그 옮김을 아무도 안 말했다.
+  ...bureauFragments,
+  ...heaviestFragments,
 
   // ── 오신 배정 ─────────────────────────────────────────────────────────
   // 한 변종 × 두 벌. 표 조회라 갈릴 자리가 없고, 달라지는 것은 앉는 오행뿐이다.

@@ -15,6 +15,7 @@ import {
   SELF_SEAT_KINDS,
   TEN_GOD_GROUP,
   TEN_GOD_KO,
+  type Bureau,
   type FavorRole,
   type PillarTenGods,
   type TenGod,
@@ -126,6 +127,10 @@ export function groundedTermsOf(saju: Saju): string[] {
 
   for (const relation of saju.relations) terms.add(relation.ko);
 
+  // 국 이름은 관계 이름과 겹치기도 하고(삼합·방합·반합) 아니기도 하다 — 공협은
+  // 관계 목록에 없어서 여기서 처음 들어온다. 명식이 낸 이름이 맞으므로 담는다.
+  for (const bureau of saju.analysis.bureaus) terms.add(bureau.ko);
+
   for (const key of ['year', 'month', 'day', 'hour'] as const) {
     for (const term of tenGodTerms(saju.analysis.tenGods[key])) terms.add(term);
   }
@@ -189,7 +194,10 @@ export const UNCOVERED_FACTS_BY_PATH: readonly {
     note: '자리마다 원국에 몇 자인가 — 배정만 말한다. 「한 자도 없다」는 없다는 주장이라 방향이 다르고, 세어진 수는 행의 몫이다',
   },
   { paths: ['analysis.hiddenCombinations'], note: '암합 — 관계 표에 섞지 않기로 한 자리' },
-  { paths: ['analysis.bureaus', 'analysis.effectiveElements'], note: '국(局)과 합화로 옮겨 간 무게' },
+  {
+    paths: ['analysis.bureaus', 'analysis.effectiveElements'],
+    note: '합화로 옮겨 간 무게 — 국만 말한다. 몫을 정한 조건(등급·받침·왕지의 충)도 접으면 반올림이라 결과인 몫만 든다',
+  },
   { paths: ['analysis.rootQuality'], note: '뿌리의 질 — `analysis.rootedness` 가 센 뿌리에 등급을 매긴 것' },
   { paths: ['analysis.followingCandidacy'], note: '종격 후보 자격 — 판정(`analysis.following`)만 말한다' },
   { paths: ['stages'] },
@@ -241,6 +249,50 @@ const stemsKo = (stems: readonly Stem[]): string => stems.map((stem) => STEM_INF
  * 정확히 그것이다(`JOHU_POLICY.conditionEvaluation`).
  */
 const FILLED_NOON_SPAN_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * 국 하나 — **관계 표에 실렸는가가 변종을 고른다.**
+ *
+ * `spanTriple` 만 관계 열거가 내지 않는다. 그것은 우연이 아니라 `bureau.ts` 가
+ * 적어 둔 결정이고(왕지가 빠진 두 글자를 관계로 부르는 계통이 없다), 모집단에서도
+ * 정확히 그렇게 갈린다 — 공협 406건은 전부 관계 목록에 없고 나머지 2570건은
+ * 전부 있다.
+ *
+ * 기운 몫은 반올림해서 든다. `pull` 이 낼 수 있는 값은 여섯뿐이라(0.075 · 0.125 ·
+ * 0.15 · 0.25 · 0.3 · 0.5) 소수점이 생기지 않는다.
+ */
+function bureauRequest(bureau: Bureau): Pick<FragmentRequest, 'topic' | 'variant' | 'slots'> {
+  return {
+    topic: 'bureau.standing',
+    variant: bureau.kind === 'spanTriple' ? 'span' : 'in-table',
+    slots: {
+      positions: positionsKo(bureau.members.map((member) => member.position)),
+      name: bureau.ko,
+      element: ELEMENT_KO[bureau.element],
+      pull: `${Math.round(bureau.pull * 100)}%`,
+    },
+  };
+}
+
+/**
+ * 두 셈의 가장 무거운 오행 — **갈렸는가가 변종이다.**
+ *
+ * 옮긴 것이 없으면 두 분포가 같은 값이라 견줄 것이 없다. 요청을 안 내는 것이
+ * 맞다 — 말하지 않기로 한 것이 아니라 **사실이 없는** 자리다.
+ */
+function heaviestRequest(saju: Saju): Pick<FragmentRequest, 'topic' | 'variant' | 'slots'> | null {
+  const { elements, effectiveElements } = saju.analysis;
+  if (!effectiveElements.adjusted) return null;
+
+  const literal = elements.strongest;
+  const effective = effectiveElements.distribution.strongest;
+
+  return {
+    topic: 'elements.heaviest',
+    variant: literal === effective ? 'same' : 'differs',
+    slots: { literal: ELEMENT_KO[literal], effective: ELEMENT_KO[effective] },
+  };
+}
 
 /**
  * 오신 배정 — **다섯 자리를 엔진의 표에서 그대로 옮긴다.**
@@ -381,6 +433,16 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
       slots: { dayMaster },
     });
   }
+
+  // **세력 앞에 선다.** 강약·억부·격국·종격이 전부 옮긴 뒤의 분포에서 세력을
+  // 재므로(`STRENGTH_POLICY.basis`), 무엇이 옮겼는지가 그 문장들보다 뒤에 오면
+  // 근거가 결론 뒤에 서게 된다.
+  for (const bureau of saju.analysis.bureaus) {
+    requests.push({ ...base, ...bureauRequest(bureau) });
+  }
+
+  const heaviest = heaviestRequest(saju);
+  if (heaviest) requests.push({ ...base, ...heaviest });
 
   const { strength, eokbu } = saju.analysis;
 

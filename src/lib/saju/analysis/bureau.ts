@@ -170,6 +170,10 @@ function membersFor(slots: readonly BranchSlot[], branches: readonly Branch[]): 
 
 const adjacent = (members: readonly BranchSlot[]): boolean => spread(members) === members.length - 1;
 
+/** 이름만 뽑을 때 쓰는 껍데기 — `partialName` 은 글자만 보고 자리는 안 본다 */
+const slotsOf = (branches: readonly Branch[]): BranchSlot[] =>
+  branches.map((branch) => ({ position: 'year' as PillarPosition, branch }));
+
 /**
  * 덜 모인 국의 이름 — **자리 순서가 아니라 표의 순서로 읽는다.**
  *
@@ -186,6 +190,40 @@ const partialName = (
     .filter((branch) => members.some((member) => member.branch === branch))
     .map((branch) => BRANCH_INFO[branch].ko)
     .join('')} ${suffix}`;
+
+/**
+ * 국이 낼 수 있는 이름 전부 — **문장 그물이 읽는 정적 목록.**
+ *
+ * 완성된 삼합·방합의 이름은 관계 표에 있지만 **반합·반방합·공협의 이름은 여기서
+ * 조합된다**(`partialName`). 표에 없는 이름이라 `MYEONGRI_LEXICON` 이 그냥
+ * 지나쳤고, 그러면 "신진 공협이 있습니다" 같은 문장이 근거 대조를 통과한다 —
+ * 두 글자만 모인 형(申刑寅 → '신인형')에서 이미 겪은 자리다.
+ *
+ * 조합 규칙을 그물 쪽에 한 벌 더 적지 않고 여기서 낸다. 두 벌 적으면 언젠가
+ * 한쪽만 고쳐지고, 그때 조용히 새는 것은 그물이다.
+ */
+export const BUREAU_NAMES: readonly string[] = [
+  ...BRANCH_TRIPLE_COMBINATIONS.flatMap((triple) => {
+    const outer = triple.branches.filter((branch) => branch !== triple.peak);
+
+    return [
+      triple.ko,
+      ...outer.map((branch) => partialName(triple.branches, slotsOf([triple.peak, branch]), '반합')),
+      partialName(triple.branches, slotsOf(outer), '공협'),
+    ];
+  }),
+  ...BRANCH_DIRECTIONAL_COMBINATIONS.flatMap((directional) => {
+    const peak = directional.branches.find((branch) => PEAK_BRANCHES.includes(branch));
+    if (!peak) return [directional.ko];
+
+    return [
+      directional.ko,
+      ...directional.branches
+        .filter((branch) => branch !== peak)
+        .map((branch) => partialName(directional.branches, slotsOf([peak, branch]), '반방합')),
+    ];
+  }),
+];
 
 /**
  * 원국에 선 국을 모두 낸다.

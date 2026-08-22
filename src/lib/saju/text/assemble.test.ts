@@ -237,6 +237,101 @@ describe('조립기', () => {
     });
   });
 
+  /**
+   * 국 — **변종이 기대는 사실을 모집단에 물어본다.**
+   */
+  describe('국이 무게를 기울인다', () => {
+    /**
+     * `span` 변종의 문장은 「관계 표에는 싣지 않는다」고 말한다. 그 말이 참인지는
+     * 말뭉치가 아니라 **관계 열거**가 정하고, 두 모듈은 서로를 모른다 —
+     * `bureau.ts` 가 주석으로 적어 둔 약속일 뿐이라 관계 표에 공협이 하나 들어오는
+     * 날 문장이 조용히 거짓이 된다. 모집단이 그것을 지킨다.
+     *
+     * 무작위 3000건에서 공협 406건은 **전부** 관계 목록에 없고, 나머지 국 2570건은
+     * **전부** 있다. 축이 정확히 갈린다는 뜻이라 변종 둘이 여기서 값을 얻는다.
+     */
+    it('공협만 관계 목록에 없다 — 변종이 갈리는 자리다', () => {
+      let span = 0;
+      let inTable = 0;
+
+      for (const input of randomInputs(400)) {
+        const saju = computeSaju(input);
+        const names = new Set(saju.relations.map((relation) => relation.ko));
+
+        for (const bureau of saju.analysis.bureaus) {
+          if (bureau.kind === 'spanTriple') {
+            span += 1;
+            expect(names.has(bureau.ko), `공협이 관계 표에 있다: ${bureau.ko}`).toBe(false);
+          } else {
+            inTable += 1;
+            expect(names.has(bureau.ko), `국이 관계 표에 없다: ${bureau.ko}`).toBe(true);
+          }
+        }
+      }
+
+      // 둘 다 실제로 돌았는지 본다 — 표본이 한쪽만 스치면 위 단언이 공짜로 통과한다.
+      expect(span).toBeGreaterThan(0);
+      expect(inTable).toBeGreaterThan(0);
+    });
+
+    /**
+     * 공협 이름은 관계 목록에 없으므로 근거 목록에도 없었다. 슬롯에 꽂기만 하고
+     * 근거에 안 담으면 `ungrounded-term` 으로 걸린다 — 걸리는 것이 맞고, 담아야
+     * 걸리지 않는다. 담는 것이 규율을 푸는 것이 아닌 이유는 **명식이 실제로 낸
+     * 이름**이기 때문이다(`groundedScope: 'chart-produced-only'`).
+     */
+    it('국 이름이 근거 목록에 담긴다', () => {
+      for (const input of randomInputs(200)) {
+        const saju = computeSaju(input);
+        const grounded = groundedTermsOf(saju);
+
+        for (const bureau of saju.analysis.bureaus) {
+          expect(grounded, bureau.ko).toContain(bureau.ko);
+        }
+      }
+    });
+
+    /**
+     * 옮긴 것이 없으면 두 분포가 같은 값이라 견줄 것이 없다. **말하지 않기로 한
+     * 것이 아니라 사실이 없는 것**이라, 요청 자체가 나오지 않아야 한다.
+     */
+    it('무게가 안 움직인 명식은 두 셈을 견주지 않는다', () => {
+      let moved = 0;
+      let still = 0;
+
+      for (const input of randomInputs(200)) {
+        const saju = computeSaju(input);
+        const said = topicsOf(saju).includes('elements.heaviest');
+
+        expect(said, JSON.stringify(input)).toBe(saju.analysis.effectiveElements.adjusted);
+        if (saju.analysis.effectiveElements.adjusted) moved += 1;
+        else still += 1;
+      }
+
+      expect(moved).toBeGreaterThan(0);
+      expect(still).toBeGreaterThan(0);
+    });
+
+    /**
+     * 두 셈의 답이 갈리는 것이 이 주제를 만든 이유다(움직인 명식의 11.2%).
+     * 표본이 그 자리를 한 번도 안 밟으면 `differs` 조각은 아무도 조회하지 않는
+     * 칸이 되고, 골든의 손으로 고른 명식만으로는 밟는지 알 수 없다.
+     */
+    it('모집단이 갈리는 쪽도 밟는다', () => {
+      const variants = new Set(
+        randomInputs(400)
+          .map((input) => computeSaju(input))
+          .flatMap((saju) =>
+            findUtterances(saju)
+              .filter((request) => request.topic === 'elements.heaviest')
+              .map((request) => request.variant),
+          ),
+      );
+
+      expect([...variants].sort()).toEqual(['differs', 'same']);
+    });
+  });
+
   describe('근거는 명식 순회 한 번에서 나온다', () => {
     it('이 명식이 낸 것만 담는다', () => {
       const grounded = new Set(groundedTermsOf(RICH));

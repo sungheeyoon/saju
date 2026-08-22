@@ -13,6 +13,7 @@ import {
   STEM_COMBINATIONS,
 } from '../constants';
 import {
+  BUREAU_NAMES,
   ELEMENT_ROLE_KO,
   FOLLOWING_PATTERN_KIND_KO,
   FOLLOWING_PATTERN_POLICY,
@@ -662,6 +663,10 @@ export const MYEONGRI_LEXICON: ReadonlySet<string> = new Set<string>(
   ...Object.values(TWELVE_SPIRIT_KO),
   ...Object.values(FOLLOWING_PATTERN_KIND_KO),
   ...Object.values(FOLLOWING_PATTERN_STATUS_KO),
+  // 완성된 삼합·방합 이름은 아래 관계 표에도 있지만 **반합·반방합·공협은 없다** —
+  // `partialName` 이 그 자리에서 조합하는 이름이라 정적 표에 안 실린다. 그물이
+  // 그냥 지나치고 있었고, 공협은 관계 목록에도 없어서 **어느 쪽으로도 안 잡혔다.**
+  ...BUREAU_NAMES,
   ...STEM_COMBINATIONS.map((c) => c.ko),
   ...STEM_CLASHES.map((c) => c.ko),
   ...BRANCH_SIX_COMBINATIONS.map((c) => c.ko),
@@ -949,5 +954,6 @@ export const TEXT_POLICY = {
   /** 오신 이름은 자리로만 부른다 — 「기신은 X다」는 여전히 막힌다 */
   seatNames: 'named-only-as-a-seat',
   /** 한 글자 용어는 그물에 넣지 않는다. 신살 이름은 아직 목록이 없다 */
-  lexiconCoverage: 'ten-gods, roles, stages, spirits, relations, following — stars pending',
+  lexiconCoverage:
+    'ten-gods, roles, stages, spirits, relations, following, bureaus — stars pending',
 } as const;

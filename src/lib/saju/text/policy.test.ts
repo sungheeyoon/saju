@@ -323,6 +323,21 @@ describe('문장 계약', () => {
       expect(rules('오미합화가 있어 합화합니다.', 'fact', ['오미합화'])).toContain('forbidden-claim');
     });
 
+    /**
+     * **공협은 어느 쪽으로도 안 잡히고 있었다.**
+     *
+     * 관계 목록에 없으니 근거 대조에 안 걸리고, 이름이 `partialName` 으로 그 자리에
+     * 조합되니 그물에도 없었다. 두 글자만 모인 형(申刑寅 → '신인형')에서 이미 겪은
+     * 자리인데 국은 빠져 있었다 — 이제 `BUREAU_NAMES` 가 정적 목록을 낸다.
+     */
+    it('국 이름을 근거 없이 말하면 걸린다', () => {
+      for (const name of ['신자진 수국', '자진 반합', '신진 공협', '인묘 반방합']) {
+        expect(MYEONGRI_LEXICON.has(name), name).toBe(true);
+        expect(rules(`${name}이 있습니다.`, 'fact', []), name).toContain('ungrounded-term');
+        expect(rules(`${name}이 있습니다.`, 'fact', [name]), name).toHaveLength(0);
+      }
+    });
+
     it('이 명식의 관계 이름이 금지 표현에 걸리지 않는다', () => {
       const grounded = relationNames(CHART);
 
