@@ -5,8 +5,12 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   EXCLUDED_PATHS,
   INCLUDED_PATHS,
+  PROMPTS,
   evidenceOf,
+  promptBodyOf,
+  promptWithEvidence,
   type Evidence,
+  type PromptKind,
   type Saju,
 } from '@/src/lib/saju';
 
@@ -26,6 +30,11 @@ import { CARD } from './card';
  *
  * **열기 전에는 만들지 않는다.** 자료를 만드는 것이 공짜가 아니고(운 셋이 절반이
  * 넘는다) 대부분의 방문은 이 칸을 안 연다.
+ *
+ * **자료만 복사하면 계약이 지켜지지 않는다.** 계약은 자료 안에 있지만, 받는 쪽이
+ * 모델이면 값으로 실려 있다는 것만으로는 읽히지 않는다. 그래서 프롬프트를 함께
+ * 복사한다 — 문구는 `evidence/prompt.ts` 가 계약에서 지어 내고 이 화면은 **어느
+ * 것을 고를지와 어디에 놓을지**만 안다.
  */
 export function EvidencePanel({
   a,
@@ -39,6 +48,7 @@ export function EvidencePanel({
 }) {
   const [opened, setOpened] = useState(false);
   const [copy, setCopy] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [kind, setKind] = useState<PromptKind>('reading');
 
   // 명식을 따로 받는다 — `{ a, b }` 를 호출부가 만들면 렌더마다 새 객체라
   // 아래 `useMemo` 가 매번 자료를 다시 만든다(두 사람이면 460KB 짜리다).
@@ -78,10 +88,12 @@ export function EvidencePanel({
         <EvidenceBody
           evidence={evidence}
           json={json}
+          kind={kind}
+          onPick={setKind}
           copy={copy}
-          onCopy={async () => {
+          onCopy={async (text) => {
             try {
-              await navigator.clipboard.writeText(json);
+              await navigator.clipboard.writeText(text);
               setCopy('copied');
             } catch {
               setCopy('failed');
@@ -104,16 +116,30 @@ const whenKo = (iso: string) =>
 function EvidenceBody({
   evidence,
   json,
+  kind,
+  onPick,
   copy,
   onCopy,
 }: {
   evidence: Evidence;
   json: string;
+  kind: PromptKind;
+  onPick: (kind: PromptKind) => void;
   copy: 'idle' | 'copied' | 'failed';
-  onCopy: () => void;
+  onCopy: (text: string) => void;
 }) {
   const { contract, charts, compatibility } = evidence;
   const people = charts.b === null ? 1 : 2;
+
+  /**
+   * 두 사람이 있어야 뜻이 있는 프롬프트는 한 사람일 때 아예 안 보인다.
+   *
+   * 흐리게 두고 누르면 아무 일도 안 일어나게 하는 쪽이 더 나쁘다 — 누른 사람은
+   * 자기가 뭘 잘못했는지 모른다. 고를 수 없는 것은 자리를 차지하지 않는다.
+   */
+  const choices = PROMPTS.filter((prompt) => people === 2 || !prompt.needsTwo);
+  const picked = choices.find((prompt) => prompt.kind === kind) ?? choices[0];
+  const promptText = promptWithEvidence(picked.kind, evidence);
 
   /**
    * 넘어가는 것은 **들여쓰지 않은 쪽**이고, 세는 단위는 **바이트**다.
@@ -122,6 +148,8 @@ function EvidenceBody({
    * 세 배다. 이 자료는 거의 다 한자·한글이라 차이가 5% 가 아니라 두 배 가까이 난다.
    */
   const bytes = new TextEncoder().encode(JSON.stringify(evidence)).length;
+  /** 붙여 넣는 것은 프롬프트까지다 — 자료만 재면 실제로 보내는 것보다 작게 적힌다 */
+  const promptBytes = new TextEncoder().encode(promptText).length;
 
   const download = () => {
     const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
@@ -134,29 +162,90 @@ function EvidenceBody({
 
   return (
     <div className="mt-4 flex flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={download}
-          className="h-9 rounded-md border border-border px-3 text-xs text-secondary transition-colors hover:border-border-strong hover:text-foreground"
-        >
-          JSON 내려받기
-        </button>
-        <button
-          type="button"
-          onClick={onCopy}
-          className="h-9 rounded-md border border-border px-3 text-xs text-secondary transition-colors hover:border-border-strong hover:text-foreground"
-        >
-          {copy === 'copied' ? '복사했습니다' : '클립보드로 복사'}
-        </button>
-        <span className="text-xs text-muted">
-          {copy === 'failed'
-            ? '복사에 실패했습니다. 내려받기를 쓰세요.'
-            : `${people}인 · ${Math.round(bytes / 1024)}KB · 관계 ${
-                compatibility === null ? charts.a.relations.length : compatibility.relations.length
-              }건`}
-        </span>
-      </div>
+      <section>
+        <h3 className="text-sm font-medium">무엇을 시킬 것인가</h3>
+        <p className="mt-1 text-xs text-muted">
+          자료만 넘기면 계약은 값으로만 실려 있고, 받는 쪽이 모델이면 값은 읽히지 않은 채
+          지나갑니다. 프롬프트가 그 계약을 <strong className="font-medium">문장으로</strong>{' '}
+          한 번 더 못박습니다 — 상한 사다리도 「점수를 내지 않는다」도 여기서 옵니다.
+        </p>
+
+        <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="프롬프트 고르기">
+          {choices.map((choice) => {
+            const on = choice.kind === picked.kind;
+            return (
+              <button
+                key={choice.kind}
+                type="button"
+                aria-pressed={on}
+                onClick={() => onPick(choice.kind)}
+                className={`h-9 rounded-md border px-3 text-xs transition-colors ${
+                  on
+                    ? 'border-accent bg-accent-wash text-foreground'
+                    : 'border-border text-secondary hover:border-border-strong hover:text-foreground'
+                }`}
+              >
+                {choice.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-xs text-muted">{picked.hint}</p>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onCopy(promptText)}
+            className="h-9 rounded-md border border-accent bg-accent-wash px-3 text-xs font-medium transition-colors hover:border-border-strong"
+          >
+            프롬프트 + 자료 복사
+          </button>
+          <button
+            type="button"
+            onClick={() => onCopy(json)}
+            className="h-9 rounded-md border border-border px-3 text-xs text-secondary transition-colors hover:border-border-strong hover:text-foreground"
+          >
+            자료만 복사
+          </button>
+          <button
+            type="button"
+            onClick={download}
+            className="h-9 rounded-md border border-border px-3 text-xs text-secondary transition-colors hover:border-border-strong hover:text-foreground"
+          >
+            JSON 내려받기
+          </button>
+          <span className="text-xs text-muted">
+            {copy === 'copied'
+              ? '복사했습니다.'
+              : copy === 'failed'
+                ? '복사에 실패했습니다. 내려받기를 쓰세요.'
+                : `붙여 넣을 분량 ${Math.round(promptBytes / 1024)}KB · 자료만 ${Math.round(
+                    bytes / 1024,
+                  )}KB · ${people}인 · 관계 ${
+                    compatibility === null
+                      ? charts.a.relations.length
+                      : compatibility.relations.length
+                  }건`}
+          </span>
+        </div>
+
+        {/*
+          접어 둔다. 보내기 전에 무엇을 보내는지 볼 수 있어야 하지만, 펼쳐 두면 이
+          칸이 자료 설명보다 길어져 본론을 밀어낸다.
+        */}
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs text-secondary">
+            프롬프트 미리 보기
+          </summary>
+          <pre className="mt-2 max-h-80 overflow-auto rounded-md border border-border bg-surface-sunken p-3 text-[11px] leading-relaxed whitespace-pre-wrap text-secondary">
+            {promptBodyOf(picked.kind)}
+          </pre>
+          <p className="mt-1.5 text-xs text-muted">
+            복사하면 이 아래에 자료가 <code>json</code> 블록으로 붙습니다.
+            {picked.kind === 'audit' && ' 검사할 해설은 표시된 자리에 직접 넣으세요.'}
+          </p>
+        </details>
+      </section>
 
       <section>
         <h3 className="text-sm font-medium">무엇까지 말해도 되는가</h3>

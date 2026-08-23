@@ -29,6 +29,9 @@ export * from './constants';
 export * from './daeun';
 // AI 에 넘길 객관 지표 — 해석 이전까지. 계약을 값과 함께 싣는다.
 export * from './evidence';
+// 자료와 함께 넘길 프롬프트. **`./evidence` 뒤에 서야 한다** — 프롬프트가 계약을
+// 읽어서 지어지므로, 앞에 두면 계약이 아직 없는 채로 평가된다.
+export * from './evidence/prompt';
 export * from './input';
 // 현재운. `Saju` 에 얹지 않고 따로 부른다 — 보는 시각은 명식의 일부가 아니다.
 export * from './now';

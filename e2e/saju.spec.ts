@@ -515,6 +515,40 @@ test('넘길 자료는 열었을 때 상한 표와 함께 선다', async ({ page
   await expect(panel).toContainText('now');
 });
 
+/**
+ * 자료만 넘기면 계약은 값으로만 실려 있고, 받는 쪽이 모델이면 **읽히지 않은 채**
+ * 지나간다. 그래서 프롬프트를 함께 복사한다.
+ *
+ * 여기서 보는 것은 문구가 아니라 **경계**다 — 클립보드에 실제로 규칙이 먼저 들어가고
+ * 자료가 뒤에 붙는지, 그리고 한 사람일 때 두 사람용 프롬프트가 자리를 차지하지 않는지.
+ * 둘 다 브라우저로 눌러야만 보인다.
+ */
+test('프롬프트를 골라 자료와 함께 복사한다', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+
+  await page.goto('/?date=1990-05-15&hour=14:30');
+
+  const panel = page.getByRole('group').filter({ hasText: 'AI 에 넘길 자료' });
+  await panel.getByText('AI 에 넘길 자료').click();
+
+  // 한 사람이면 궁합 프롬프트는 아예 없다 — 흐리게 두고 안 먹히는 것보다 낫다.
+  await expect(panel.getByRole('button', { name: '궁합' })).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: '원국 읽기' })).toBeVisible();
+
+  await panel.getByRole('button', { name: '지금 도는 운' }).click();
+  await panel.getByRole('button', { name: '프롬프트 + 자료 복사' }).click();
+
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+
+  // 규칙이 먼저, 자료가 뒤. 순서가 뒤집히면 긴 JSON 을 다 읽고 나서야 규칙을 만난다.
+  expect(copied.indexOf('## 반드시 지킬 것')).toBeLessThan(copied.indexOf('## 자료'));
+  expect(copied).toContain('evidence-v0');
+  expect(copied).toContain('not-scored');
+  // 고른 프롬프트가 실제로 실린다.
+  expect(copied).toContain('current-only');
+  expect(copied).toContain('"viewedAt"');
+});
+
 test('시각을 모르면 상한 표가 내려앉고 없다는 쪽이 잠긴다', async ({ page }) => {
   await page.goto('/?date=1988-07-15&hour=unknown');
 
