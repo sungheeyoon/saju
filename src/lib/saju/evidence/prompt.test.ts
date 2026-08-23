@@ -113,18 +113,88 @@ describe('해석용은 막지 않고 딱지만 붙인다', () => {
   it('궁합은 점수를 내되 배점의 출처를 밝히게 한다', () => {
     const body = promptBodyOf('compat');
 
-    expect(body).toContain('점수를 내 봐라');
+    expect(body).toContain('**내 봐라.**');
     expect(body).toContain('한 덩어리 숫자로 내지 마라');
     expect(body).toContain('네가 만든 것이다');
   });
 
-  /** 층은 사라지지 않는다 — 말하지 말라는 눈금에서 어디서 온 말인지 딱지로 바뀐다 */
-  it('층을 문장마다 달게 한다', () => {
+  /**
+   * **딱지는 사라지지 않고 자리를 옮긴다.**
+   *
+   * 문장마다 `[사실 · charts.a.pillars]` 가 붙은 글은 읽히지 않는다 — 처음 나온 결과가
+   * 그랬고 「테스터한테 못 보여주겠다」가 그 말이었다. 그렇다고 없애면 어디서 온
+   * 말인지 알 수 없어 실험의 절반이 날아간다. 본문에서 빼고 맨 끝에 모은다.
+   */
+  it('딱지를 본문에서 빼고 맨 끝에 모은다', () => {
     for (const kind of READING_KINDS) {
-      expect(promptBodyOf(kind)).toContain('[층 · 근거경로]');
+      const body = promptBodyOf(kind);
+
+      expect(body).toContain('본문에 달지 말고');
+      expect(body).toContain('### 근거 (검사용)');
     }
-    // 조이는 쪽은 여전히 강도로 부른다 — 두 프롬프트가 같은 말을 하면 견줄 것이 없다.
+
+    // 조이는 쪽은 여전히 문장마다 단다 — 두 프롬프트가 같으면 견줄 것이 없다.
     expect(promptBodyOf('strict')).toContain('[강도 · 근거경로]');
+  });
+});
+
+/**
+ * 말투와 뼈대.
+ *
+ * 처음 나온 결과는 딱지도 층도 다 맞았는데 **읽고 나면 「그래서 뭔데?」가 남았다.**
+ * 자료를 우리말로 옮겨 적은 것이지 해석이 아니었기 때문이다. 여기서 잠그는 것은
+ * 그 두 가지 — 용어를 풀게 하는가, 「그래서」를 요구하는가.
+ */
+describe('사주를 모르는 사람이 읽는다', () => {
+  it('용어를 그 자리에서 풀게 한다', () => {
+    for (const kind of READING_KINDS) {
+      const body = promptBodyOf(kind);
+
+      expect(body).toContain('읽는 사람은 **사주를 모른다.**');
+      expect(body).toContain('용어는 그 자리에서 풀어라');
+      // 한자 괄호로 때우는 것을 막는다 — 가장 흔한 빠져나갈 구멍이다.
+      expect(body).toContain('한자를 괄호에 넣는 것은 푼 것이 아니다');
+    }
+  });
+
+  it('문단마다 「그래서」를 요구한다', () => {
+    for (const kind of READING_KINDS) {
+      const body = promptBodyOf(kind);
+
+      expect(body).toContain('그래서 뭔데?');
+      expect(body).toContain('그래서 무엇을 하면 되는가');
+    }
+  });
+
+  /** 「유연함이 핵심입니다」는 아무 말도 아니다 — 그 자리를 이름으로 막는다 */
+  it('빈말을 이름으로 막는다', () => {
+    for (const kind of READING_KINDS) {
+      const body = promptBodyOf(kind);
+
+      expect(body).toContain('조율이 필요합니다');
+      expect(body).toContain('언제, 어떤 상황에서, 무엇을 하라');
+    }
+  });
+
+  /** 「金이 33.12%」는 읽는 사람에게 아무 뜻이 없다 */
+  it('숫자를 셀 수 있는 말로 바꾸게 한다', () => {
+    for (const kind of READING_KINDS) {
+      expect(promptBodyOf(kind)).toContain('셀 수 있는 말로 바꿔라');
+    }
+  });
+
+  /** 뼈대가 없으면 모델이 절 이름부터 지어내고, 그러면 견줄 수가 없다 */
+  it('세 프롬프트가 저마다 절 이름을 못박는다', () => {
+    expect(promptBodyOf('reading')).toContain('**3. 잘하는 것 셋**');
+    expect(promptBodyOf('reading')).toContain('**4. 걸리는 것 셋**');
+    expect(promptBodyOf('now')).toContain('**4. 이번 달**');
+    expect(promptBodyOf('now')).toContain('밀어붙일 것 하나, 미룰 것 하나');
+    expect(promptBodyOf('compat')).toContain('**4. 부딪히는 지점 셋**');
+  });
+
+  /** 직업 이름을 못박으면 틀렸을 때 통째로 틀린다 — 조건으로 말하게 한다 */
+  it('직업을 이름이 아니라 조건으로 말하게 한다', () => {
+    expect(promptBodyOf('reading')).toContain('직업 이름을 못박지 말고 조건으로');
   });
 });
 
