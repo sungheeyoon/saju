@@ -244,6 +244,61 @@ describe('사주를 모르는 사람이 읽는다', () => {
   });
 
   /**
+   * **신살이 성격을 정하지 않는다.**
+   *
+   * 처음 나온 글의 「천을귀인·문창귀인을 깔고 앉아 두뇌 회전이 빠르고」가 그 자리다.
+   * 딱지는 제대로 달려 있었는데 그 문장을 쓴 것은 자료가 아니라 신살 이름이었고,
+   * 같은 신살을 가진 사람이 수천만이라 누구에게 붙여도 맞는 말이 된다.
+   *
+   * 성격을 다루는 둘(`reading`·`compat`)에만 붙인다 — `now` 는 성격을 안 읽는다.
+   */
+  it('성격은 신살보다 원국 구조를 먼저 보게 한다', () => {
+    for (const kind of ['reading', 'compat'] as const) {
+      const body = promptBodyOf(kind);
+
+      expect(body).toContain('**신살이 성격을 정하지 않는다.**');
+      expect(body).toContain('신살 하나로 성격을 단정하지 않는다');
+      // 개수로 세기는 관계에서 막은 것과 같은 잘못이다.
+      expect(body).toContain('여러 자리에 걸렸다고 그 성향이 몇 배가 되지 않는다');
+      // 순서의 처음과 끝이 뒤집히면 이 절이 아무것도 안 한다.
+      expect(body.indexOf('일간과 월령')).toBeLessThan(body.indexOf('신살과 길성'));
+    }
+
+    expect(promptBodyOf('now')).not.toContain('**신살이 성격을 정하지 않는다.**');
+  });
+
+  /**
+   * 어긋나는 자리를 **긴장**으로 읽게 하는 것이 이 규칙에서 값을 내는 대목이다.
+   * 신살로 앞을 뒤집으면 아무 말이나 되고, 신살을 버리면 밋밋해진다.
+   */
+  it('신살이 구조와 어긋나면 긴장으로 읽게 한다', () => {
+    for (const kind of ['reading', 'compat'] as const) {
+      const body = promptBodyOf(kind);
+
+      expect(body).toContain('신살로 앞을 뒤집지 말고');
+      expect(body).toContain('긴장');
+    }
+  });
+
+  /**
+   * **완충이 애매함의 허가가 되면 글이 물러진다.** 근거 하나면 「~경향이 있다」로
+   * 쓰라는 규칙이 그렇게 읽히기 쉬워서, 구체성은 그대로라는 줄을 함께 단다.
+   */
+  it('완충한 문장도 구체적이어야 한다고 못박는다', () => {
+    for (const kind of ['reading', 'compat'] as const) {
+      const body = promptBodyOf(kind);
+
+      expect(body).toContain('불확실함의 표시이지 애매하게 말해도 된다는 허가가 아니다');
+      expect(body).toContain('그 하나가 무엇인지 밝혀라');
+    }
+  });
+
+  /** 상한과 성격 순서는 다른 축이다 — 섞이면 둘 다 흐려진다 */
+  it('성격 순서가 상한과 다른 축임을 밝힌다', () => {
+    expect(promptBodyOf('reading')).toContain('`claims` 의 상한과 **다른 축**이다');
+  });
+
+  /**
    * 오행의 시간대·방위·색 대응은 자료에 없다. 가져다 쓰는 것은 되고, 자료가
    * 준 것처럼 말하는 것은 안 된다.
    */
