@@ -185,11 +185,75 @@ describe('사주를 모르는 사람이 읽는다', () => {
 
   /** 뼈대가 없으면 모델이 절 이름부터 지어내고, 그러면 견줄 수가 없다 */
   it('세 프롬프트가 저마다 절 이름을 못박는다', () => {
-    expect(promptBodyOf('reading')).toContain('**3. 잘하는 것 셋**');
-    expect(promptBodyOf('reading')).toContain('**4. 걸리는 것 셋**');
+    expect(promptBodyOf('reading')).toContain('**3. 잘하는 것 다섯**');
+    expect(promptBodyOf('reading')).toContain('**4. 걸리는 것 넷**');
     expect(promptBodyOf('now')).toContain('**4. 이번 달**');
     expect(promptBodyOf('now')).toContain('밀어붙일 것 하나, 미룰 것 하나');
     expect(promptBodyOf('compat')).toContain('**4. 부딪히는 지점 셋**');
+  });
+
+  /**
+   * **셋에서 멈추면 뻔한 것만 남는다.** 처음 나온 글이 강점 셋·약점 셋이었고,
+   * 그 여섯 줄은 어느 명식에 갖다 붙여도 크게 안 틀릴 말이었다. 개수를 늘리면
+   * 모델이 자료를 더 깊이 뒤져야 한다.
+   */
+  it('강점과 약점을 셋에서 멈추지 않게 한다', () => {
+    const body = promptBodyOf('reading');
+
+    expect(body).toContain('다섯을 채워라');
+    expect(body).toContain('셋에서 멈추면 뻔한 것만 남는다');
+  });
+
+  /**
+   * **살림법이 이 글에서 가장 손에 잡히는 자리다.**
+   *
+   * 「목이 용신이다」로 끝나면 읽는 사람은 무엇을 해야 할지 모른다. 신살과 없는
+   * 오행과 조후를 함께 보고 **오늘부터 할 수 있는 것**까지 가야 한다.
+   */
+  it('살림법 절이 신살과 부족한 오행을 함께 읽게 한다', () => {
+    const body = promptBodyOf('reading');
+
+    expect(body).toContain('**8. 살림법 — 무엇을 늘리고 무엇을 줄일까**');
+    expect(body).toContain('오늘부터 할 수 있는 것');
+    expect(body).toContain('charts.a.sinsal.stars');
+    expect(body).toContain('analysis.elements.missing');
+    // 걸리지도 않은 신살을 끌어오는 것이 이 절에서 가장 쉬운 거짓말이다.
+    expect(body).toContain('없는 신살을 끌어오지 마라');
+    // 지금 도는 운 쪽에도 그 달의 살림법이 있다.
+    expect(promptBodyOf('now')).toContain('**7. 이번 달 살림법**');
+  });
+
+  /** 사람들이 실제로 들고 오는 물음을 자료가 닿는 데까지 다룬다 */
+  it('자주 묻는 것을 다루되 못 가는 곳은 못 간다고 말하게 한다', () => {
+    const body = promptBodyOf('reading');
+
+    expect(body).toContain('**10. 자주 묻는 것**');
+    expect(body).toContain('이 자료로는 거기까지 못 간다');
+    // 날짜 점치기가 이 자리에서 가장 흔한 미끄러짐이다.
+    expect(body).toContain('특정 사건의 날짜는 이 자료로 못 짚는다');
+  });
+
+  /**
+   * 살(殺) 이름으로 겁주는 것과 귀인 이름으로 안심시키는 것은 같은 잘못이다 —
+   * 둘 다 이름을 판정으로 바꾼다.
+   */
+  it('신살 이름으로 겁주지 않게 한다', () => {
+    for (const kind of READING_KINDS) {
+      expect(promptBodyOf(kind)).toContain('살(殺)은 저주가 아니라 조건이다');
+    }
+  });
+
+  /**
+   * 오행의 시간대·방위·색 대응은 자료에 없다. 가져다 쓰는 것은 되고, 자료가
+   * 준 것처럼 말하는 것은 안 된다.
+   */
+  it('자료에 없는 대응표는 자료 밖이라고 적게 한다', () => {
+    for (const kind of READING_KINDS) {
+      const body = promptBodyOf(kind);
+
+      expect(body).toContain('어느 시간대·방위·색·계절에 붙는지는 이 자료에 없다');
+      expect(body).toContain('자료가 준 것처럼 말하는 것은 안 된다');
+    }
   });
 
   /** 직업 이름을 못박으면 틀렸을 때 통째로 틀린다 — 조건으로 말하게 한다 */
