@@ -533,7 +533,7 @@ test('프롬프트를 골라 자료와 함께 복사한다', async ({ page, cont
 
   // 한 사람이면 궁합 프롬프트는 아예 없다 — 흐리게 두고 안 먹히는 것보다 낫다.
   await expect(panel.getByRole('button', { name: '궁합' })).toHaveCount(0);
-  await expect(panel.getByRole('button', { name: '원국 읽기' })).toBeVisible();
+  await expect(panel.getByRole('button', { name: '전부 해석' })).toBeVisible();
 
   await panel.getByRole('button', { name: '지금 도는 운' }).click();
   await panel.getByRole('button', { name: '프롬프트 + 자료 복사' }).click();
@@ -541,12 +541,21 @@ test('프롬프트를 골라 자료와 함께 복사한다', async ({ page, cont
   const copied = await page.evaluate(() => navigator.clipboard.readText());
 
   // 규칙이 먼저, 자료가 뒤. 순서가 뒤집히면 긴 JSON 을 다 읽고 나서야 규칙을 만난다.
-  expect(copied.indexOf('## 반드시 지킬 것')).toBeLessThan(copied.indexOf('## 자료'));
+  expect(copied.indexOf('## 딱 하나 금지')).toBeLessThan(copied.indexOf('## 자료'));
   expect(copied).toContain('evidence-v0');
-  expect(copied).toContain('not-scored');
-  // 고른 프롬프트가 실제로 실린다.
-  expect(copied).toContain('current-only');
+  // 고른 프롬프트가 실제로 실린다 — 지금 도는 운에만 있는 줄이다.
+  expect(copied).toContain('crossedFortunes');
   expect(copied).toContain('"viewedAt"');
+
+  // **해석용은 막지 않는다.** 이 줄이 사라지면 모델이 입을 닫고 넘길 이유가 없어진다.
+  expect(copied).toContain('막지 않는다');
+
+  // 조인 쪽은 견줄 짝으로 따로 있다.
+  await panel.getByRole('button', { name: '상한 지키기' }).click();
+  await panel.getByRole('button', { name: '프롬프트 + 자료 복사' }).click();
+
+  const strict = await page.evaluate(() => navigator.clipboard.readText());
+  expect(strict).toContain('길흉을 말하지 않는다');
 });
 
 test('시각을 모르면 상한 표가 내려앉고 없다는 쪽이 잠긴다', async ({ page }) => {
