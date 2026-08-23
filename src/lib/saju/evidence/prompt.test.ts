@@ -151,12 +151,68 @@ describe('견줄 짝과 되짚는 자리', () => {
 });
 
 describe('자료와 한 덩어리로 나간다', () => {
-  it('규칙이 먼저 오고 자료가 뒤에 온다', () => {
+  it('역할 · 한눈에 · 규칙 · 자료 순서로 선다', () => {
     const evidence = evidenceOf({ a: saju() }, new Date('2026-08-23T04:00:00Z'));
     const text = promptWithEvidence('reading', evidence);
 
-    expect(text.indexOf('## 반드시 지킬 것')).toBeLessThan(text.indexOf('## 자료'));
-    expect(text.indexOf('## 자료')).toBeLessThan(text.indexOf('```json'));
+    const order = ['# 역할', '## 한눈에', '## 딱 하나 금지', '## 자료', '```json'];
+    const at = order.map((mark) => text.indexOf(mark));
+
+    for (const index of at) expect(index).toBeGreaterThan(-1);
+    expect([...at].sort((x, y) => x - y)).toEqual(at);
+  });
+
+  /**
+   * 머리를 끼우는 자리가 **암묵**이다 — 역할 문단과 첫 절 사이. 프롬프트를 새로
+   * 쓰면서 `# 역할` 로 안 열면 머리가 엉뚱한 데 들어가는데, 그것은 눈으로만 보인다.
+   */
+  it('다섯 프롬프트가 모두 역할 문단으로 열고 그다음이 절이다', () => {
+    for (const kind of KINDS) {
+      const [role, ...rest] = promptBodyOf(kind).split(/\n\n(?=## )/);
+
+      expect(role.startsWith('# 역할')).toBe(true);
+      expect(rest.length).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * 머리는 **다시 세지 않는다.** 여기서 간지를 새로 구하면 머리와 자료가 언젠가
+   * 어긋나고, 어긋난 날 어느 쪽이 맞는지 알 수 없다.
+   */
+  it('한눈에가 자료의 값을 그대로 옮긴다', () => {
+    const evidence = evidenceOf({ a: saju() }, new Date('2026-08-23T04:00:00Z'));
+    const text = promptWithEvidence('reading', evidence);
+    const { pillars, now } = evidence.charts.a;
+
+    for (const pillar of [pillars.year, pillars.month, pillars.day, pillars.hour]) {
+      expect(text).toContain(pillar!.name);
+    }
+    expect(text).toContain(`일간 ${pillars.dayMaster}`);
+    expect(text).toContain(pillars.meta.monthTerm.name);
+    expect(text).toContain(now.saeun.pillar.name);
+    expect(text).toContain(evidence.viewedAt);
+    // 사람을 이름으로 부르지 않는다 — 모델이 아래 JSON 에서 찾아갈 이름을 적는다.
+    expect(text).toContain('`charts.a`');
+  });
+
+  /** 두 사람이면 두 벌이 서고, 한 사람이면 한 벌이다 */
+  it('한눈에가 사람 수를 따라간다', () => {
+    const at = new Date('2026-08-23T04:00:00Z');
+
+    expect(promptWithEvidence('reading', evidenceOf({ a: saju() }, at))).not.toContain(
+      '`charts.b`',
+    );
+    expect(
+      promptWithEvidence('compat', evidenceOf({ a: saju(), b: other() }, at)),
+    ).toContain('`charts.b`');
+  });
+
+  /** 시각을 모르면 시주 자리가 비었다고 적힌다 — 빈칸으로 두면 안 적은 것과 같다 */
+  it('시간 미상이면 시주 자리가 그렇다고 말한다', () => {
+    const hourless = computeSaju({ year: 1990, month: 5, day: 15, hour: null, gender: 'male' });
+    const text = promptWithEvidence('reading', evidenceOf({ a: hourless }, new Date()));
+
+    expect(text).toContain('시간 미상');
   });
 
   /**

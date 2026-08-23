@@ -7,7 +7,7 @@ import {
   INCLUDED_PATHS,
   PROMPTS,
   evidenceOf,
-  promptBodyOf,
+  promptHeadOf,
   promptWithEvidence,
   type Evidence,
   type PromptKind,
@@ -246,7 +246,7 @@ function EvidenceBody({
             프롬프트 미리 보기
           </summary>
           <pre className="mt-2 max-h-80 overflow-auto rounded-md border border-border bg-surface-sunken p-3 text-[11px] leading-relaxed whitespace-pre-wrap text-secondary">
-            {promptBodyOf(picked.kind)}
+            {promptHeadOf(picked.kind, evidence)}
           </pre>
           <p className="mt-1.5 text-xs text-muted">
             복사하면 이 아래에 자료가 <code>json</code> 블록으로 붙습니다.

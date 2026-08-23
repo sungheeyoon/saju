@@ -1,9 +1,10 @@
+import { BRANCH_INFO, SEASON_KO, STEM_INFO, type Branch, type Stem } from '../constants';
 import {
   CLAIM_STRENGTH_KO,
   CLAIM_STRENGTH_ORDER,
   type ClaimStrength,
 } from '../text/policy';
-import { EVIDENCE_CONTRACT, type Evidence } from '.';
+import { EVIDENCE_CONTRACT, type ChartEvidence, type Evidence } from '.';
 
 /**
  * 자료와 함께 넘길 **프롬프트.**
@@ -319,20 +320,96 @@ export const PROMPTS: readonly {
 export const promptBodyOf = (kind: PromptKind): string => BODY[kind];
 
 /**
+ * 한눈에 보이는 머리 — **새 값이 아니라 아래 자료에서 뽑은 것.**
+ *
+ * 여덟 글자를 읽으려고 36KB 짜리 JSON 을 뒤지게 하지 않는다. 사람이 붙여 넣기 전에
+ * 「이 사람 맞나」를 눈으로 확인하는 자리이기도 하고, 모델에게는 긴 자료를 읽기 전에
+ * 좌표를 주는 자리다.
+ *
+ * **다시 세지 않는다.** 전부 `evidence` 의 필드를 읽어서 적는다 — 여기서 간지나 절기를
+ * 새로 구하면 머리와 자료가 언젠가 어긋나고, 어긋난 날 어느 쪽이 맞는지 알 수 없다.
+ * 화면의 운과 문장의 운을 한 곳에서 낸 것과 같은 규율이다.
+ *
+ * **사람을 이름으로 부르지 않는다.** `charts.a`·`charts.b` 라고 적는 것은 무뚝뚝해서가
+ * 아니라, 이 머리가 하는 말이 사람에 대한 것이 아니라 **자료의 어느 자리**에 대한
+ * 것이기 때문이다. 모델이 아래 JSON 에서 찾아갈 이름도 그것이다.
+ */
+function chartSummary(key: 'charts.a' | 'charts.b', chart: ChartEvidence): string {
+  const { pillars, now } = chart;
+  const { year, month, day, hour, dayMaster, meta } = pillars;
+
+  const stem = STEM_INFO[dayMaster as Stem];
+  const monthBranch = BRANCH_INFO[month.branch as Branch];
+
+  const eight = [
+    `년 ${year.name}`,
+    `월 ${month.name}`,
+    `일 ${day.name}`,
+    hour === null ? '시 —(시간 미상)' : `시 ${hour.name}`,
+  ].join(' · ');
+
+  const daeun =
+    now.daeun === null
+      ? `대운 없음(${now.daeunAbsence})`
+      : `대운 ${now.daeun.index} ${now.daeun.pillar.name}(만 ${now.daeun.startAge}→${now.daeun.endAge}세)`;
+
+  return [
+    `\`${key}\``,
+    `- 여덟 글자  ${eight}`,
+    `- 일간 ${dayMaster}(${stem.yinYang === '陽' ? '양' : '음'}·${stem.element}) · 월지 ${month.branch}(${SEASON_KO[monthBranch.season]}) · 절입 ${meta.monthTerm.name} · 사주년 ${meta.sajuYear}`,
+    `- 지금 만 ${now.age}세 — ${daeun} · 세운 ${now.saeun.pillar.name}(${now.saeun.year}) · 월운 ${now.wolun.pillar.name}(${now.wolun.startTerm.name})`,
+  ].join('\n');
+}
+
+/** 자료 앞에 놓는 머리 전체 */
+function summaryOf(evidence: Evidence): string {
+  const lines = [chartSummary('charts.a', evidence.charts.a)];
+  if (evidence.charts.b !== null) lines.push(chartSummary('charts.b', evidence.charts.b));
+
+  return `## 한눈에
+
+아래 자료에서 뽑은 것이다 — **새로 더한 값이 아니다.** 어긋나 보이면 자료 쪽이 맞다.
+
+${lines.join('\n\n')}
+
+기준 시각 \`viewedAt\` = ${evidence.viewedAt}`;
+}
+
+/**
  * 프롬프트와 자료를 한 덩어리로 — **이대로 붙여 넣으면 된다.**
  *
  * 자료를 뒤에 놓는다. 앞에 놓으면 긴 JSON 을 다 읽고 나서야 규칙을 만나고, 그때는
  * 이미 읽는 방식이 정해져 있다. 규칙이 먼저다.
  *
+ * **한눈에 보이는 머리는 역할 바로 뒤에 선다.** 규칙보다도 앞이다 — 무엇을 읽는지
+ * 모르는 채 어떻게 읽을지부터 듣게 하지 않는다. 붙여 넣는 사람도 첫 줄에서 「이 사람
+ * 맞나」를 확인한다.
+ *
+ * 자리를 찾는 법이 암묵이라 테스트가 잠근다. 프롬프트는 전부 `# 역할` 문단으로 열고
+ * 그다음이 `## ` 로 시작하는 절이다 — 그 경계에 끼운다.
+ *
  * 들여쓰지 않는다. 붙여 넣는 자리에서 들여쓰기는 읽기 좋음이 아니라 **무게**다 —
- * 두 사람짜리가 들여쓰면 460KB 이고 안 들여쓰면 95KB 다.
+ * 두 사람짜리가 들여쓰면 460KB 이고 안 들여쓰면 76KB 다.
  */
 export function promptWithEvidence(kind: PromptKind, evidence: Evidence): string {
-  return `${BODY[kind]}
+  return `${promptHeadOf(kind, evidence)}
 
 ## 자료 (${EVIDENCE_CONTRACT.version})
 
 \`\`\`json
 ${JSON.stringify(evidence)}
 \`\`\``;
+}
+
+/**
+ * 자료를 뺀 나머지 — **화면 미리 보기가 실제로 보낼 것을 보이게 한다.**
+ *
+ * 미리 보기가 `promptBodyOf` 를 보이면 머리가 빠진 글을 보여 주게 되고, 그러면
+ * 「보내기 전에 무엇을 보내는지 본다」는 그 칸의 구실이 절반만 지켜진다. 자료만
+ * 잘라 낸다 — 잘린 자리가 어디인지는 화면이 한 줄로 적는다.
+ */
+export function promptHeadOf(kind: PromptKind, evidence: Evidence): string {
+  const [role, ...rest] = BODY[kind].split(/\n\n(?=## )/);
+
+  return [role, summaryOf(evidence), ...rest].join('\n\n');
 }
