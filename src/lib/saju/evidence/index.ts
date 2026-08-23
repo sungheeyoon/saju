@@ -113,7 +113,34 @@ export type Jsonified<T> = T extends Date
       ? { [K in keyof T]: Jsonified<T[K]> }
       : T;
 
-/** `Date` 를 ISO 문자열로 바꾸며 그대로 옮긴다 */
+/**
+ * 소수를 몇 자리에서 끊는가 — **크기 때문이 아니라 정직 때문이다.**
+ *
+ * 재어 보면 크기는 안 준다. 자르기 전 36,234 바이트가 4자리에서 35,719 바이트로,
+ * **1.4% 다.** 이 자료는 거의 다 한자·한글이고 UTF-8 에서 그것들은 글자당 3바이트라,
+ * 소수점 꼬리는 애초에 자료의 2% 도 안 된다. 소수가 아닌 수는 70 개뿐이다.
+ *
+ * 그런데 자를 이유가 따로 있다. `0.043750000000000004` 는 계산이 그만큼 정밀해서
+ * 나온 값이 아니라 **IEEE 부동소수의 찌꺼기**다. 이 저장소의 가장 센 규율은 검증
+ * 수준보다 세게 말하지 않는 것이고, 이 숫자들은 `status: 'experimental'` 인 규칙이
+ * 손으로 고른 배수를 곱해 나온 것이다. 거기에 유효숫자 열일곱을 붙여 내보내는 것은
+ * 등급 이름을 붙이는 것과 같은 종류의 과장이다.
+ *
+ * **두 자리가 아니라 네 자리다.** 두 자리로 끊으면 골든 서른 명식에서 오행 비율이
+ * 두 건 더 동점이 된다(다섯 건 → 일곱 건). 없는 동점을 만드는 것은 긴 숫자보다
+ * 나쁘다 — 받는 쪽은 「土와 火가 같다」고 읽는데 실제로는 다르다. 네 자리에서는
+ * 동점이 늘지 않고 찌꺼기는 다 사라진다.
+ *
+ * 정수는 건드리지 않는다. 절기의 황경도 12운성의 순서도 자를 소수가 없다.
+ */
+export const EVIDENCE_DECIMALS = 4;
+
+/**
+ * `Date` 를 ISO 문자열로, 소수를 정해진 자리로 — **경계에서 한 번에 한다.**
+ *
+ * 두 가지가 한 함수에 있는 것이 맞다. 둘 다 「값을 바꾸는 것」이 아니라 「밖으로 낼
+ * 꼴로 적는 것」이고, 자리가 갈리면 한쪽만 거친 값이 생긴다.
+ */
 function jsonify<T>(value: T): Jsonified<T> {
   if (value instanceof Date) return value.toISOString() as Jsonified<T>;
   if (Array.isArray(value)) return value.map(jsonify) as Jsonified<T>;
@@ -122,6 +149,10 @@ function jsonify<T>(value: T): Jsonified<T> {
     return Object.fromEntries(
       Object.entries(value).map(([key, inner]) => [key, jsonify(inner)]),
     ) as Jsonified<T>;
+  }
+
+  if (typeof value === 'number' && !Number.isInteger(value)) {
+    return Number(value.toFixed(EVIDENCE_DECIMALS)) as Jsonified<T>;
   }
 
   return value as Jsonified<T>;
@@ -237,6 +268,14 @@ export const EVIDENCE_CONTRACT = {
   crossedFortunes: 'narrower-chart-holds-the-wider',
   /** `Date` 는 ISO 8601 문자열로 실린다 */
   serialization: 'dates-as-iso-8601',
+  /**
+   * 소수는 잘려서 실린다 — **받는 쪽이 이것을 모르면 자료가 제 정밀도를 속인다.**
+   *
+   * 자른 까닭은 크기가 아니라(1.4% 밖에 안 준다) 부동소수 찌꺼기에 유효숫자
+   * 열일곱을 붙여 내보내지 않으려는 것이다. 그래도 **잘랐다는 사실은 값으로 실어야**
+   * 한다 — 0.0438 을 정확한 값으로 읽고 다시 곱해 나가는 쪽이 있을 수 있다.
+   */
+  precision: `non-integers-rounded-to-${EVIDENCE_DECIMALS}-decimals`,
   /** 낮은 쪽이 먼저 — `claims` 의 값들이 이 사다리 위에 앉는다 */
   strengthLadder: CLAIM_STRENGTH_ORDER,
   strengthKo: CLAIM_STRENGTH_KO,

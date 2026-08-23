@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '@/src/lib/saju';
 import { analyzeCompatibility, type Compatibility } from '@/src/lib/saju/compat';
+import { GOLDEN_CASES } from '@/src/lib/saju/golden/cases';
 import {
   EVIDENCE_CONTRACT,
+  EVIDENCE_DECIMALS,
   EXCLUDED_PATHS,
   INCLUDED_PATHS,
   evidenceOf,
@@ -424,5 +426,76 @@ describe('자료의 모양', () => {
     ].join('\n');
 
     await expect(`${body}\n`).toMatchFileSnapshot('./evidence.snapshot.txt');
+  });
+});
+
+/**
+ * 소수 자르기.
+ *
+ * **크기 때문에 자른 것이 아니다.** 재어 보면 1.4% 다. 자른 까닭은 이 자료가 제
+ * 정밀도를 과장하지 않게 하려는 것이고, 그래서 잠글 것도 크기가 아니라 **두 가지**다 —
+ * 찌꺼기가 정말 사라졌는가, 그리고 자르느라 없던 동점을 만들지 않았는가.
+ */
+describe('소수는 경계에서 잘린다', () => {
+  const numbersIn = (value: unknown, path = ''): [string, number][] => {
+    if (typeof value === 'number') return [[path, value]];
+    if (Array.isArray(value)) return value.flatMap((item, i) => numbersIn(item, `${path}[${i}]`));
+    if (value !== null && typeof value === 'object') {
+      return Object.entries(value).flatMap(([key, inner]) =>
+        numbersIn(inner, path ? `${path}.${key}` : key),
+      );
+    }
+    return [];
+  };
+
+  it('자료 어디에도 정해진 자리보다 긴 소수가 없다', () => {
+    const evidence = evidenceOf({ a: KNOWN, b: OTHER }, VIEWED_AT);
+
+    for (const [path, value] of numbersIn(evidence)) {
+      const decimals = String(value).split('.')[1]?.length ?? 0;
+      expect(decimals, `${path} = ${value}`).toBeLessThanOrEqual(EVIDENCE_DECIMALS);
+    }
+  });
+
+  /**
+   * **없는 동점을 만들면 긴 숫자보다 나쁘다.** 받는 쪽은 「土와 火가 같다」고 읽는데
+   * 실제로는 다르다. 두 자리로 끊으면 골든에서 실제로 그 일이 일어난다.
+   *
+   * 그런데 「자르기 전에 달랐으니 자른 뒤에도 달라야 한다」로 시험할 수는 없다.
+   * `dst-gap` 명식에서 火 는 `0.22916666666666666` 이고 土 는 `0.22916666666666669`
+   * 인데, **둘 다 11/48 이고 더한 순서만 다르다.** 열일곱째 자리의 차이는 실재하는
+   * 차이가 아니라 부동소수의 찌꺼기이고, 그것을 「구별」로 지키면 받는 쪽이 土 가
+   * 火 보다 3e-17 만큼 세다고 읽게 된다. 자르기가 없애는 것이 아니라 드러낸다.
+   *
+   * 그래서 묻는 것을 바꾼다 — **합쳐진 짝이 원래 찌꺼기만큼만 달랐는가.**
+   */
+  it('잘라서 같아진 값은 원래 찌꺼기만큼만 달랐다', () => {
+    /** 이보다 큰 차이가 합쳐지면 자리를 잘못 고른 것이다 */
+    const NOISE = 1e-9;
+
+    for (const golden of GOLDEN_CASES) {
+      const saju = computeSaju(golden.input, golden.options);
+      const evidence = evidenceOf({ a: saju }, VIEWED_AT);
+
+      const before = Object.values(saju.analysis.elements.ratios);
+      const after = Object.values(evidence.charts.a.analysis.elements.ratios);
+
+      for (let i = 0; i < before.length; i += 1) {
+        for (let j = i + 1; j < before.length; j += 1) {
+          if (after[i] !== after[j]) continue;
+          expect(
+            Math.abs(before[i] - before[j]),
+            `${golden.id}: ${before[i]} 와 ${before[j]} 가 합쳐졌다`,
+          ).toBeLessThan(NOISE);
+        }
+      }
+    }
+  });
+
+  it('정수는 건드리지 않는다', () => {
+    const evidence = evidenceOf({ a: KNOWN }, VIEWED_AT);
+
+    expect(evidence.charts.a.pillars.year.index).toBe(KNOWN.pillars.year.index);
+    expect(EVIDENCE_CONTRACT.precision).toBe('non-integers-rounded-to-4-decimals');
   });
 });

@@ -8,6 +8,7 @@
   "fortune": "current-only",
   "crossedFortunes": "narrower-chart-holds-the-wider",
   "serialization": "dates-as-iso-8601",
+  "precision": "non-integers-rounded-to-4-decimals",
   "strengthLadder": [
     "silent",
     "reference",
@@ -241,4 +242,4 @@
 
 ── 크기
   한 사람  31KB
-  두 사람  95KB
+  두 사람  94KB
