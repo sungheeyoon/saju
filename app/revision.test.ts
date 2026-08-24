@@ -5,6 +5,8 @@ import { DEFAULT_QUERY, type Query } from './query';
 import {
   UnreadableRevisionError,
   queryFromRevision,
+  revisionArgs,
+  samePillarInput,
   selfPersonArgs,
   unsupportedForSaving,
   type StoredRevision,
@@ -131,5 +133,31 @@ describe('저장 전에 거절하는 것', () => {
     ['시간 기준', { basis: 'sundial' as Query['basis'] }],
   ])('모르는 %s 은 기본값으로 고쳐 넣지 않고 거절한다', (_label, patch) => {
     expect(unsupportedForSaving({ ...submitted, ...patch })).not.toBeNull();
+  });
+});
+
+describe('무엇이 새 판본을 만드는가', () => {
+  it('이름만 고치면 같은 판본이다 — 이름은 여덟 글자를 바꾸지 않는다', () => {
+    expect(samePillarInput(submitted, { ...submitted, name: '아빠' })).toBe(true);
+  });
+
+  it('세운을 어느 해부터 보는지도 판본을 가르지 않는다', () => {
+    expect(samePillarInput(submitted, { ...submitted, saeunFrom: 2000 })).toBe(true);
+  });
+
+  it.each([
+    ['생년월일', { date: '1990-05-16' }],
+    ['출생시각', { time: '14:31' }],
+    ['시각 모름', { hourKnown: false, time: '' }],
+    ['성별', { gender: 'female' as const }],
+    ['출생지', { city: '부산' as const }],
+    ['자시 규칙', { rule: 'ya' as const }],
+    ['시간 기준', { basis: 'record' as const }],
+  ])('%s 이 달라지면 다른 판본이다', (_label, patch) => {
+    expect(samePillarInput(submitted, { ...submitted, ...patch })).toBe(false);
+  });
+
+  it('수정 인자에는 부를 이름이 없다', () => {
+    expect(Object.keys(revisionArgs('p-1', submitted))).not.toContain('p_local_label');
   });
 });

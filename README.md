@@ -117,6 +117,11 @@ UTC+9:00이 아니라 **UTC+8:30 위에 얹혀 +9:30**이었기 때문이다.
   대상으로 만들어졌는지 나중에 되짚을 수 있다
 - **claim 이 편집권을 옮긴다.** 어떤 Person 을 자기 자신이라고 지정하면 그 Person 의
   기존 편집자는 트리거가 `viewer` 로 내린다
+- **「고쳐도 되는가」는 한 자리에만 있다**(`may_add_revision`). RLS 정책과 RPC 가 같은
+  함수에 묻는다 — `security definer` 함수는 RLS 를 지나가므로, 정책에만 적어 두면 RPC 로
+  들어오는 길이 아무 검사 없이 열린다
+- **아무것도 안 바뀌었으면 판본을 쌓지 않는다.** 판본 이력은 무엇이 달라졌는가의 기록이지
+  저장 버튼을 몇 번 눌렀는가의 기록이 아니다. 지문으로 판정한다
 - **명식은 저장하지 않는다.** 저장되는 것은 입력이고 명식은 거기서 계산되는 파생 뷰다.
   엔진을 고쳐도 과거 기록의 뜻이 바뀌지 않는다
 
@@ -147,13 +152,13 @@ TypeScript 라 브라우저에서도 서버에서도 그대로 돈다.
 ## 검증
 
 ```bash
-npm test          # 1100 tests
+npm test          # 1110 tests
 npm run test:e2e  # desktop + mobile Chromium
 npm run verify    # test + typecheck + lint + production build
 
 npm run db:start  # 로컬 Supabase (Docker)
-npm run test:db   # 33 pgTAP tests — 정책이 실제로 막는지
-npm run test:flow # 18 checks — 가입부터 되읽기까지 한 바퀴
+npm run test:db   # 44 pgTAP tests — 정책이 실제로 막는지
+npm run test:flow # 28 checks — 가입부터 수정까지 한 바퀴
 ```
 
 - **절기** — 한국천문연구원 2025 달력자료와 일치 (망종 6/5 18:57, 소서 7/7 05:05)

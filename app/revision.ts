@@ -127,9 +127,8 @@ export function queryFromRevision(revision: StoredRevision, localLabel: string):
   };
 }
 
-/** `create_self_person` 이 받는 인자 한 벌 */
-export type SelfPersonArgs = {
-  p_local_label: string;
+/** 판본을 이루는 값 — **여덟 글자를 가르는 것 전부이고, 그 밖은 없다.** */
+export type ChartFields = {
   p_calendar: 'solar';
   p_original_date: string;
   p_solar_date: string;
@@ -141,15 +140,14 @@ export type SelfPersonArgs = {
 };
 
 /**
- * 폼이 든 입력을 저장 인자로 바꾼다.
+ * 폼이 든 입력에서 판본이 될 부분만 꺼낸다.
  *
  * `original_date` 와 `solar_date` 가 같다. 지금은 양력만 받기 때문이고, 그래서
  * DB 검사식도 「양력이면 둘이 같아야 한다」로 걸려 있다. 음력을 켜는 날 갈리는
  * 것은 이 함수 하나다.
  */
-export function selfPersonArgs(query: Query): SelfPersonArgs {
+function chartFields(query: Query): ChartFields {
   return {
-    p_local_label: query.name.trim(),
     p_calendar: 'solar',
     p_original_date: query.date,
     p_solar_date: query.date,
@@ -160,6 +158,39 @@ export function selfPersonArgs(query: Query): SelfPersonArgs {
     p_late_night_rule: query.rule,
     p_time_basis: query.basis,
   };
+}
+
+/** `create_self_person` 이 받는 인자 한 벌 — 처음 등록할 때는 부를 이름도 함께 간다 */
+export type SelfPersonArgs = ChartFields & { p_local_label: string };
+
+export function selfPersonArgs(query: Query): SelfPersonArgs {
+  return { p_local_label: query.name.trim(), ...chartFields(query) };
+}
+
+/** `add_person_revision` 이 받는 인자 한 벌 */
+export type RevisionArgs = ChartFields & { p_person_id: string };
+
+/**
+ * **부를 이름이 없다.**
+ *
+ * 이름은 판본이 아니라 엣지가 들고, 여덟 글자를 바꾸지 않는다. 이름을 고쳤다고
+ * 새 판본이 생기면 「이 판본은 무엇이 달라진 것인가」에 답할 수 없게 된다.
+ */
+export function revisionArgs(personId: string, query: Query): RevisionArgs {
+  return { p_person_id: personId, ...chartFields(query) };
+}
+
+/**
+ * 두 입력이 **같은 판본인가.**
+ *
+ * 이름과 세운 시작 연도는 빼고 본다 — 둘 다 여덟 글자를 바꾸지 않는다. DB 도 지문으로
+ * 같은 것을 묻고 있으므로(`revision_fingerprint`), 화면이 「이름만 고쳤다」를 미리
+ * 말해 줄 수 있는 것은 여기가 그 답을 알기 때문이다.
+ */
+export function samePillarInput(a: Query, b: Query): boolean {
+  const fields = chartFields(a);
+  const other = chartFields(b);
+  return (Object.keys(fields) as (keyof ChartFields)[]).every((key) => fields[key] === other[key]);
 }
 
 /**

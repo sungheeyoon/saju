@@ -102,11 +102,12 @@ const client = anon();
 }
 
 // ── 5. 화면이 읽는 그대로 읽는다 (app/me/page.tsx 와 같은 질의) ───────────────
+let personId;
 {
   const { data: account } = await client.from('app_user').select('status, self_person_id').maybeSingle();
   check('selfPerson 이 지정됐다', typeof account?.self_person_id === 'string');
 
-  const personId = account.self_person_id;
+  personId = account.self_person_id;
   const [{ data: person }, { data: edge }] = await Promise.all([
     client.from('person').select('current_revision_id').eq('id', personId).maybeSingle(),
     client.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
@@ -129,10 +130,10 @@ const client = anon();
 }
 
 // ── 6. 남에게는 안 보인다 ─────────────────────────────────────────────────────
+const other = anon();
 {
   const otherEmail = `other-${stamp}@example.com`;
   sql(`insert into public.invite (email, note) values ('${otherEmail}', '검사')`);
-  const other = anon();
   await other.auth.signUp({ email: otherEmail, password });
 
   const { data: people } = await other.from('person').select('id');
@@ -141,6 +142,68 @@ const client = anon();
 
   const { data: revisions } = await other.from('person_chart_revision').select('id');
   check('남의 판본도 안 보인다', Array.isArray(revisions) && revisions.length === 0);
+}
+
+// ── 7. 고치면 쌓인다 ─────────────────────────────────────────────────────────
+{
+  const revise = (patch) =>
+    client.rpc('add_person_revision', {
+      p_person_id: personId,
+      p_calendar: 'solar',
+      p_original_date: '1990-05-15',
+      p_solar_date: '1990-05-15',
+      p_birth_time: '14:30',
+      p_gender: 'male',
+      p_city: '서울',
+      p_late_night_rule: 'jo',
+      p_time_basis: 'localMean',
+      ...patch,
+    });
+
+  const countRevisions = async () => {
+    const { data } = await client.from('person_chart_revision').select('id').eq('person_id', personId);
+    return data?.length ?? -1;
+  };
+  const currentRevision = async () => {
+    const { data } = await client.from('person').select('current_revision_id').eq('id', personId).maybeSingle();
+    return data?.current_revision_id;
+  };
+
+  const before = await currentRevision();
+
+  const { data: unchanged } = await revise({});
+  check('같은 값으로 저장하면 판본을 쌓지 않는다', unchanged === before, `${unchanged} vs ${before}`);
+  check('그래서 판본 수도 그대로다', (await countRevisions()) === 1);
+
+  const { data: next, error } = await revise({ p_city: '부산' });
+  check('고치면 새 판본이 쌓인다', typeof next === 'string' && next !== before, error?.message);
+  check('현재 판본이 새것으로 옮겨간다', (await currentRevision()) === next);
+  check('옛 판본은 남는다', (await countRevisions()) === 2);
+
+  const { data: old } = await client
+    .from('person_chart_revision').select('city').eq('id', before).maybeSingle();
+  check('옛 판본의 값은 덮어써지지 않았다', old?.city === '서울', old?.city);
+
+  // 이름은 판본이 아니라 엣지가 든다 — 고쳐도 판본이 늘지 않는다.
+  const { error: labelError } = await client
+    .from('user_person_access').update({ local_label: '아빠' }).eq('person_id', personId);
+  check('부를 이름을 고친다', labelError === null, labelError?.message);
+  check('이름을 고쳐도 판본은 늘지 않는다', (await countRevisions()) === 2);
+
+  const { data: edge } = await client
+    .from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle();
+  check('고친 이름이 되읽힌다', edge?.local_label === '아빠', edge?.local_label);
+}
+
+// ── 8. 남은 못 고친다 — RPC 는 정책을 지나가므로 스스로 물어야 한다 ───────────
+{
+  const { error } = await other.rpc('add_person_revision', {
+    p_person_id: personId,
+    p_calendar: 'solar', p_original_date: '1980-01-01', p_solar_date: '1980-01-01',
+    p_birth_time: '01:00', p_gender: 'male', p_city: '서울',
+    p_late_night_rule: 'jo', p_time_basis: 'localMean',
+  });
+  check('claim 된 Person 의 출생정보는 남이 못 고친다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
 }
 
 const failed = checks.filter((c) => !c.pass);

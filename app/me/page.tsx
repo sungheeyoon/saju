@@ -6,6 +6,7 @@ import { chartOf } from '../chart';
 import { toSearchParams } from '../query';
 import { UnreadableRevisionError, queryFromRevision } from '../revision';
 import { Onboarding } from './onboarding';
+import { ReviseChart } from './revise';
 import { GENDER_KO, STEM_INFO, ELEMENT_KO } from '@/src/lib/saju';
 
 /**
@@ -54,22 +55,28 @@ export default async function MePage() {
 async function SelfChart({ personId }: { personId: string }) {
   const supabase = await supabaseOnServer();
 
-  const [{ data: person }, { data: edge }] = await Promise.all([
+  const [{ data: person }, { data: edge }, { data: revisions }] = await Promise.all([
     supabase.from('person').select('current_revision_id').eq('id', personId).maybeSingle(),
     supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
+    /**
+     * 판본을 **전부** 가져온다. 한 줄만 가져오면 이력이 있다는 사실이 화면에서
+     * 사라지고, 「고친 기록은 덮어쓰지 않고 쌓입니다」는 아무도 확인할 수 없는 말이 된다.
+     */
+    supabase
+      .from('person_chart_revision')
+      .select(
+        'id, calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis, created_at, fingerprint',
+      )
+      .eq('person_id', personId)
+      .order('created_at', { ascending: false }),
   ]);
 
-  if (!person?.current_revision_id || !edge) {
+  if (!person?.current_revision_id || !edge || !revisions) {
     return <p className="text-sm text-muted">저장된 사주를 읽지 못했습니다.</p>;
   }
 
-  const { data: revision } = await supabase
-    .from('person_chart_revision')
-    .select('calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis, created_at, fingerprint')
-    .eq('id', person.current_revision_id)
-    .maybeSingle();
-
-  if (!revision) return <p className="text-sm text-muted">저장된 판본을 읽지 못했습니다.</p>;
+  const current = revisions.find((revision) => revision.id === person.current_revision_id);
+  if (!current) return <p className="text-sm text-muted">현재 판본을 찾지 못했습니다.</p>;
 
   /**
    * 못 읽는 판본은 **메우지 않는다.**
@@ -79,7 +86,7 @@ async function SelfChart({ personId }: { personId: string }) {
    */
   let query;
   try {
-    query = queryFromRevision(revision, edge.local_label);
+    query = queryFromRevision(current, edge.local_label);
   } catch (error) {
     if (error instanceof UnreadableRevisionError) {
       return (
@@ -94,8 +101,7 @@ async function SelfChart({ personId }: { personId: string }) {
     throw error;
   }
 
-  const saju = chartOf(query);
-  const { pillars } = saju;
+  const { pillars } = chartOf(query);
   const columns = [
     ['시', pillars.hour],
     ['일', pillars.day],
@@ -140,21 +146,20 @@ async function SelfChart({ personId }: { personId: string }) {
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-xl border border-border bg-surface-sunken p-4 text-sm">
         <dt className="text-muted">생년월일</dt>
         <dd>
-          {revision.solar_date}
-          {revision.birth_time === null ? ' · 시각 모름' : ` ${query.time}`}
+          {current.solar_date}
+          {current.birth_time === null ? ' · 시각 모름' : ` ${query.time}`}
         </dd>
         <dt className="text-muted">성별</dt>
         <dd>{GENDER_KO[query.gender]}</dd>
         <dt className="text-muted">출생지</dt>
         <dd>{query.city}</dd>
-        <dt className="text-muted">판본</dt>
-        <dd className="font-mono text-xs">
-          {revision.fingerprint.slice(0, 12)}
-          <span className="ml-2 font-sans text-muted">
-            {new Date(revision.created_at).toLocaleDateString('ko-KR')} 저장
-          </span>
-        </dd>
+        <dt className="text-muted">자시 규칙</dt>
+        <dd>{query.rule === 'jo' ? '조자시 (23:00 경계)' : '야자시 (자정 경계)'}</dd>
       </dl>
+
+      <ReviseChart personId={personId} current={query} />
+
+      <RevisionHistory revisions={revisions} currentId={current.id} />
 
       {/*
         전체 명식은 익명 화면이 그린다. 입력은 `#` 뒤에 실리므로 서버로 가지 않는다.
@@ -169,6 +174,47 @@ async function SelfChart({ personId }: { personId: string }) {
         </Link>
       </p>
     </section>
+  );
+}
+
+/**
+ * 판본 이력 — **지워지지 않았다는 것을 보이는 자리.**
+ *
+ * 지문 앞자리를 함께 적는다. 「무엇이 달라졌는가」를 문장으로 만들려면 두 판본을
+ * 비교해 말을 지어내야 하는데, 지어낸 말은 틀릴 수 있다. 지문은 다르면 다르다고만
+ * 말하고 그 이상을 주장하지 않는다.
+ */
+function RevisionHistory({
+  revisions,
+  currentId,
+}: {
+  revisions: { id: string; created_at: string; fingerprint: string }[];
+  currentId: string;
+}) {
+  if (revisions.length < 2) return null;
+
+  return (
+    <details className="rounded-xl border border-border bg-surface p-4">
+      <summary className="cursor-pointer text-sm">판본 {revisions.length}개</summary>
+      <ul className="mt-3 flex flex-col gap-1.5 text-xs">
+        {revisions.map((revision) => (
+          <li key={revision.id} className="flex items-center gap-2">
+            <span className="text-muted">
+              {new Date(revision.created_at).toLocaleString('ko-KR', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}
+            </span>
+            <span className="font-mono text-muted">{revision.fingerprint.slice(0, 12)}</span>
+            {revision.id === currentId && <span className="text-accent">지금 보는 것</span>}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-muted">
+        옛 판본은 지우지 않습니다. 어떤 기록이 어느 사주를 대상으로 만들어졌는지 되짚기
+        위해서입니다.
+      </p>
+    </details>
   );
 }
 

@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { missingAnswer, type Query } from '../query';
-import { selfPersonArgs, unsupportedForSaving } from '../revision';
+import { revisionArgs, selfPersonArgs, unsupportedForSaving } from '../revision';
 
 export type SaveResult = { ok: true } | { ok: false; message: string };
 
@@ -43,6 +43,41 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
     }
     return { ok: false, message: error.message };
   }
+
+  revalidatePath('/me');
+  return { ok: true };
+}
+
+/**
+ * 고친 출생정보를 새 판본으로 쌓는다.
+ *
+ * 두 가지가 함께 일어나지만 **같은 종류가 아니다.**
+ *
+ * - 부를 이름은 엣지를 고친다. 여덟 글자를 바꾸지 않으므로 판본이 되지 않는다.
+ * - 나머지는 판본을 쌓는다. 하나라도 다르면 새것이고, 다 같으면 아무것도 안 쌓인다.
+ *
+ * 아무것도 안 쌓였는지는 DB 가 정한다(`add_person_revision` 이 지문으로 판정한다).
+ * 여기서 미리 걸러 보내지 않는 이유는, 화면이 든 「지금 값」이 그 사이에 다른 기기에서
+ * 바뀌었을 수 있기 때문이다 — 판정은 값을 들고 있는 쪽이 한다.
+ */
+export async function reviseSelfPerson(personId: string, query: Query): Promise<SaveResult> {
+  const missing = missingAnswer(query);
+  if (missing !== null) return { ok: false, message: missing };
+
+  const unsupported = unsupportedForSaving(query);
+  if (unsupported !== null) return { ok: false, message: unsupported };
+
+  const supabase = await supabaseOnServer();
+
+  // 정책이 자기 행만 열어 주므로 `user_id` 를 적지 않는다.
+  const { error: labelError } = await supabase
+    .from('user_person_access')
+    .update({ local_label: query.name.trim() })
+    .eq('person_id', personId);
+  if (labelError) return { ok: false, message: labelError.message };
+
+  const { error } = await supabase.rpc('add_person_revision', revisionArgs(personId, query));
+  if (error) return { ok: false, message: error.message };
 
   revalidatePath('/me');
   return { ok: true };
