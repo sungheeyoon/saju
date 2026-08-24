@@ -2,7 +2,8 @@
 --
 -- ADR 0003 이 정한 것: `discovery-v0` 는 오행 두 축으로 **정렬만** 하고, 하드 제외는
 -- 사주와 무관하고 근거가 또렷한 것뿐이다. 여기서 거는 것은 그 하드 제외와, 두 축이
--- 기대는 자료다. 가중치·섞기·문장은 `src/lib/discovery` 가 든다.
+-- 기대는 자료다. 축·가중치·섞기·기록은 `discovery_board()` 가 한 번에 하고,
+-- `src/lib/discovery` 는 같은 정책의 선언과 사용자에게 보일 문장을 든다.
 
 -- ---------------------------------------------------------------------------
 -- 오행 요약 — **참여할 때 매칭 풀에 내놓는 것**
@@ -20,7 +21,7 @@
  *
  * 그래서 **참여자가 자기 요약을 풀에 내놓는다.** 명식을 저장하는 것이 아니다
  * (ADR 0001) — 다섯 오행의 개수와 비중뿐이고, **어느 판본에서 나온 것인지**를 함께
- * 든다. 지금 판본의 것이 아니면 후보가 아니다(아래 `discovery_candidates`).
+ * 든다. 지금 판본의 것이 아니면 후보가 아니다(아래 `discovery_board`).
  * 그래서 이 값은 조용히 낡을 수 없다.
  *
  * 참여를 끄면 요약도 거둔다. 「참여 중단」과 「자료 보관」이 갈리면 사용자가 무엇을
@@ -125,7 +126,7 @@ for each row execute function public.touch_discovery_profile();
  *
  * 차단은 양방향으로 접촉을 막는 별개의 일이고(용어집), 막을 접촉이 아직 없다 —
  * 요청도 Match 도 6단계에 온다. 두 말을 한 표에 담으면 한 낱말이 두 뜻을 갖는다.
- * **차단 표가 생기면 `discovery_candidates` 의 제외 목록에 한 줄이 는다.**
+ * **차단 표가 생기면 `discovery_board` 의 제외 목록에 한 줄이 는다.**
  */
 create table public.discovery_hidden (
   user_id uuid not null default auth.uid() references public.app_user (id) on delete cascade,
@@ -144,8 +145,8 @@ create table public.discovery_hidden (
  * 무엇을, 어떤 정책으로, 몇 번째 자리에, 탐색으로 보여줬는가(PRD).
  *
  * **사용자는 이 표를 읽지 못한다.** 후보의 오행 요약이 여기 함께 남는데, 그것을
- * 읽게 열어 주면 후보 카드에서 개수로만 말한 것이 이 표로 통째로 새어 나간다.
- * 쓰기만 열고(자기 것만), 읽기는 운영자가 SQL 로 한다.
+ * 읽게 열어 주면 후보 카드가 말하지 않는 전체 오행 개수표가 통째로 새어 나간다.
+ * 쓰기와 읽기 모두 닫고, `discovery_board()` 와 운영자 SQL 만 이 표를 다룬다.
  *
  * 요약 두 벌은 **DB 가 채운다** — 앱이 실어 보내면 그 값은 손으로 적은 값이 되고,
  * 노출 기록이 「그때 무엇이었나」가 아니라 「앱이 무엇이라고 했나」의 기록이 된다.
@@ -168,7 +169,7 @@ create table public.discovery_impression (
    * 그때의 추천 이유와 두 축 — **전부 DB 가 그 자리에서 계산한다.**
    *
    * 앱이 만든 문장을 실어 보내면 기록이 「그때 무엇이었나」가 아니라 「앱이 무엇이라고
-   * 했나」가 된다. 자리와 탐색 여부만 앱이 정한 것이라 앱이 준다.
+   * 했나」가 된다. 후보·자리·탐색 여부까지 `discovery_board()` 가 정한 값을 그대로 남긴다.
    */
   supplied_elements text[] not null,
   complement numeric not null,
@@ -586,10 +587,14 @@ begin
   ),
   explorers as (
     -- 상위 밖에서만 뽑는다. 상위 안에서 뽑으면 어차피 보일 사람을 탐색이라 부르는 것이라
-    -- 아무것도 탐색하지 않는다.
-    select ranked.*, row_number() over (order by md5(seed_text || ranked.user_id::text)) as ei
+    -- 아무것도 탐색하지 않는다. 윈도 함수의 `order by` 는 번호를 매길 뿐 결과 행의
+    -- 순서를 보장하지 않으므로, `limit` 앞에도 같은 정렬을 명시한다.
+    select ranked.*, row_number() over (
+      order by md5(seed_text || ranked.user_id::text), ranked.user_id
+    ) as ei
     from ranked, sizes
     where ranked.rank > sizes.tops
+    order by md5(seed_text || ranked.user_id::text), ranked.user_id
     limit (select explorers from sizes)
   ),
   slots as (

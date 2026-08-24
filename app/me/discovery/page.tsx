@@ -18,13 +18,13 @@ export const metadata = {
 /**
  * 후보 화면 — **정렬만 하고 아무도 지우지 않는다.**
  *
- * 하드 제외는 전부 DB 가 한다(`discovery_candidates`): 미참여·중지된 계정·다시 보지
+ * 하드 제외는 전부 DB 가 한다(`discovery_board`): 미참여·중지된 계정·다시 보지
  * 않기·양쪽이 직접 설정한 성별 조건·낡은 요약. 사주 값으로 자르는 자리는 어디에도
  * 없다(ADR 0003) — 안 보여준 사람은 사용자가 존재조차 모르므로 틀렸다는 피드백이
  * 영영 오지 않는다.
  *
- * 이 화면이 후보에 대해 아는 것은 별명·소개·한 줄 설명뿐이다. 오행 요약도, 두 축의
- * 값도, 점수도 서버에 오지 않거나 서버에서 멈춘다(`candidatesForViewer`).
+ * 이 화면이 후보에 대해 아는 것은 별명·소개·자리·탐색 여부·채우는 오행·균형 구간뿐이다.
+ * 전체 오행 개수표와 두 축의 값·점수는 DB 에서 멈춘다(`candidatesForViewer`).
  */
 export default async function DiscoveryPage() {
   const supabase = await supabaseOnServer();
