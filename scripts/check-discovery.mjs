@@ -66,7 +66,7 @@ await other.rpc('create_self_person', {
 
 // ── 2. 참여하지 않으면 후보도 없다 ────────────────────────────────────────────
 {
-  const { error } = await me.rpc('discovery_candidates', { p_limit: 200 });
+  const { error } = await me.rpc('discovery_board');
   check('참여하기 전에는 후보를 볼 수 없다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
 
   const { data: profiles } = await me.from('discovery_profile').select('user_id');
@@ -108,7 +108,14 @@ try {
     check('후보 화면이 열린다', response.status === 200, String(response.status));
     check('참여를 켜기 전에는 무엇이 나가는지 먼저 적는다',
       body.includes('상대에게 보이는 것') && body.includes('보이지 않는 것'));
-    check('오행 요약이 순서를 정한다고 미리 말한다', body.includes('오행 요약'));
+    /**
+     * **켜기 전에 알린다.** 후보 카드가 내 오행을 이름과 뜻으로 말하게 되므로, 그
+     * 사실이 참여 버튼 위에 있어야 한다.
+     */
+    check('오행 이름과 뜻이 상대 카드에 나타난다고 미리 말한다',
+      body.includes('오행의 이름과 그 뜻'));
+    check('보이지 않는 것에 개수표와 숫자 점수를 적는다',
+      body.includes('전체 오행 개수표') && body.includes('숫자 점수'));
   }
 
   // ── 5. 둘 다 참여한다 ───────────────────────────────────────────────────────
@@ -206,31 +213,98 @@ try {
   }
 
   /**
-   * **앱이 준 후보 id 를 그대로 믿지 않는다.**
+   * **손으로 적을 자리가 아예 없다.**
    *
-   * 이 RPC 는 로그인한 사람이 직접 부를 수 있으므로, 아무 사람이나 적어 넣으면 남의
-   * 노출 기록이 지어진다. 화면에 무엇이 설 수 있는지를 정하는 같은 함수에 다시 묻는다.
+   * 예전에는 인증 사용자가 후보 id·자리·탐색 여부를 적어 넣는 RPC 가 따로 있었다. 같은
+   * 후보 백 번, 자리 999 같은 위조가 그 자리에서 나왔다. 고르는 일과 남기는 일을 한
+   * 함수에 넣었으므로 그 함수 자체가 없다.
    */
   {
-    const before = Number(sql('select count(*) from public.discovery_impression'));
-    const stranger = sql(`select id from auth.users where email = '${mine}'`);
-
-    const { data: written } = await me.rpc('log_discovery_impressions', {
-      p_rows: [{ candidateUserId: stranger, position: 0, exploration: false }],
+    const forged = await me.rpc('log_discovery_impressions', {
+      p_rows: Array.from({ length: 100 }, () => ({
+        candidateUserId: sql(`select id from auth.users where email = '${mine}'`),
+        position: 999,
+        exploration: true,
+      })),
     });
-    check('내 후보가 아닌 사람은 기록에 남지 않는다', Number(written) === 0, String(written));
-    check('그래서 기록도 늘지 않는다',
-      Number(sql('select count(*) from public.discovery_impression')) === before);
+    check('노출 기록을 손으로 적는 함수가 없다', forged.error !== null,
+      forged.error?.message ?? '남아 있다');
+
+    const direct = await me.from('discovery_impression').insert({
+      viewer_user_id: sql(`select id from auth.users where email = '${mine}'`),
+      candidate_user_id: sql(`select id from auth.users where email = '${theirs}'`),
+      policy_version: 'discovery-v0',
+      position: 999,
+      exploration: true,
+      viewer_summary: {},
+      candidate_summary: {},
+      supplied_elements: ['木'],
+      complement: 100,
+      combined_balance: 100,
+    });
+    check('노출 기록 표에 직접 쓰지도 못한다', direct.error !== null,
+      direct.error?.message ?? '써졌다');
   }
 
   /**
-   * `p_limit` 은 부르는 쪽이 못 늘리고 못 없앤다. 위 상한(200)은 이만한 풀에서
-   * 재지지 않으므로 아래쪽만 잰다.
+   * **로그인한 브라우저가 숫자를 직접 받을 수 없다.**
+   *
+   * 반환형에서 뺀 것이 뜻을 가지려면 같은 값을 다른 문으로 받아 갈 수 없어야 한다.
+   * 그래서 카드에 없는 것과, 그 값을 세는 함수가 안 열려 있는 것을 함께 잰다.
    */
   {
-    const { data: rows, error } = await me.rpc('discovery_candidates', { p_limit: 0 });
-    check('상한을 0 으로 줘도 목록이 사라지지 않는다', !error && (rows ?? []).length === 1,
-      error?.message ?? `${(rows ?? []).length}줄`);
+    const { data: rows, error } = await me.rpc('discovery_board');
+    check('후보 목록을 직접 불러도 돈다', !error && Array.isArray(rows), error?.message);
+
+    const keys = Object.keys(rows?.[0] ?? {}).sort();
+    check('반환에 두 축의 값도 점수도 없다',
+      !keys.includes('complement') && !keys.includes('combined_balance') && !keys.includes('score'),
+      keys.join(','));
+    check('반환은 카드에 설 값뿐이다',
+      keys.join(',') === 'balance_band,candidate_user_id,exploration,intro,nickname,seat,supplied_elements',
+      keys.join(','));
+
+    const axis = await me.rpc('discovery_complement', { a: {}, b: {} });
+    check('두 축을 세는 함수는 직접 못 부른다', axis.error !== null, axis.error?.message ?? '불렸다');
+
+    const active = await me.rpc('is_active_account');
+    check('내 계정 상태는 인자 없이만 물을 수 있다', !active.error && active.data === true,
+      active.error?.message ?? String(active.data));
+
+    const others = await me.rpc('is_active_account', {
+      actor: sql(`select id from auth.users where email = '${theirs}'`),
+    });
+    check('남의 상태를 묻는 길은 없다', others.error !== null, others.error?.message ?? '답했다');
+
+    // 로그인하지 않은 쪽은 아예 못 묻는다.
+    const stranger = await anon().rpc('is_active_account');
+    check('로그인하지 않으면 계정 상태를 물을 수 없다', stranger.error !== null,
+      stranger.error?.message ?? '답했다');
+  }
+
+  /**
+   * **보여준 그 목록이 그대로 기록된다.**
+   *
+   * 한 함수가 둘 다 하므로 어긋날 자리가 없다 — 그래도 재는 것은, 그 사실이 이 제품의
+   * 노출 기록을 믿을 수 있게 하는 유일한 근거이기 때문이다.
+   */
+  {
+    sql(`delete from public.discovery_impression i using auth.users u
+         where u.id = i.viewer_user_id and u.email = '${mine}'`);
+
+    const { data: rows } = await me.rpc('discovery_board');
+    const logged = sql(`select coalesce(string_agg(
+        i.candidate_user_id::text || ':' || i.position || ':' || i.exploration, ',' order by i.position), '')
+      from public.discovery_impression i
+      join auth.users u on u.id = i.viewer_user_id
+      where u.email = '${mine}'`);
+
+    const shown = (rows ?? [])
+      .map((row) => `${row.candidate_user_id}:${row.seat}:${row.exploration}`)
+      .join(',');
+
+    check('노출 기록의 수·후보·자리·탐색이 목록과 정확히 같다', logged === shown,
+      `${logged} vs ${shown}`);
   }
 
   // ── 7. 다시 보지 않기 ───────────────────────────────────────────────────────

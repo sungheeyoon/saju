@@ -44,7 +44,7 @@ export default async function DiscoveryPage() {
   ]);
 
   const optedIn = profile?.opted_in_at != null;
-  const board = optedIn ? await openBoard(user.id) : null;
+  const board = optedIn ? await openBoard() : null;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-12 sm:px-6 sm:py-16">
@@ -100,15 +100,15 @@ export default async function DiscoveryPage() {
 }
 
 /**
- * 화면을 그리기 전에 후보를 다 읽는다 — **`Date.now()` 도 여기서 부른다.**
+ * 화면을 그리기 전에 후보를 다 읽는다.
  *
- * 씨앗이 오늘 날짜에서 나므로 그리는 도중에 시각을 물으면 같은 요청 안에서도 목록이
- * 달라질 수 있다. 엔진이 지금을 넘겨받는 것과 같은 규율이다.
+ * **씨앗은 DB 가 정한다** — 나와 오늘 날짜다. 여기서 넘겨주면 씨앗을 바꿔 가며 탐색
+ * 자리를 다시 뽑을 수 있고, 그러면 노출 기록이 무엇을 잰 것인지 말할 수 없게 된다.
  *
  * **낡은 요약을 여기서 고친다.** 판본을 고친 뒤 `refresh_discovery_summary` 가 실패한
  * 채로 남아 있으면 나는 참여 중인데 아무에게도 안 보인다. 그 상태를 스스로 벗어나게 한다.
  */
-async function openBoard(viewerUserId: string): Promise<CandidateBoard | null> {
+async function openBoard(): Promise<CandidateBoard | null> {
   const self = await selfElementSummary();
   if (self === null) return null;
 
@@ -118,7 +118,7 @@ async function openBoard(viewerUserId: string): Promise<CandidateBoard | null> {
     p_summary: self.summary,
   });
 
-  return candidatesForViewer(viewerUserId, self.summary, Date.now());
+  return candidatesForViewer(self.summary);
 }
 
 function profileInput(

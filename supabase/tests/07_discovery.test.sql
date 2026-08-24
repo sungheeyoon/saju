@@ -1,6 +1,6 @@
 -- discovery — 참여한 사람만 보고, 사주로는 아무도 지우지 않는다.
 begin;
-select plan(32);
+select plan(40);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim,
@@ -141,7 +141,7 @@ select throws_ok(
 
 -- ── 후보 ──────────────────────────────────────────────────────────────────────
 /**
- * **`discovery_candidates` 는 `security definer` 라 RLS 가 안 걸린다.**
+ * **`discovery_board` 는 `security definer` 라 RLS 가 안 걸린다.**
  *
  * 그래서 이 시험이 세는 수는 스스로 좁혀지지 않는다 — 다른 검사가 남긴 참여자까지
  * 함께 세면 「DB 가 비어 있는가」를 재게 된다. 이 시험이 만든 사람으로 좁혀서 센다.
@@ -150,7 +150,7 @@ create or replace function pg_temp.candidates_among(target uuid)
 returns integer
 language sql
 as $$
-  select count(*)::int from public.discovery_candidates() c where c.candidate_user_id = target;
+  select count(*)::int from public.discovery_board() c where c.candidate_user_id = target;
 $$;
 
 select is(
@@ -179,7 +179,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select park from who)), true);
 
 select throws_ok(
-  $$select * from public.discovery_candidates()$$,
+  $$select * from public.discovery_board()$$,
   '42501', null,
   '참여하지 않으면 후보를 볼 수 없다');
 
@@ -193,21 +193,56 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 select results_eq(
-  format($$select nickname, supplied_for_viewer from public.discovery_candidates()
+  format($$select nickname, supplied_elements, balance_band from public.discovery_board()
            where candidate_user_id = %L$$, (select lee from who)),
-  $$values ('지영'::text, array[]::text[])$$,
-  '참여한 상대가 후보로 선다 — 채우는 오행과 함께');
+  -- 함께 놓은 균형 56.25 → 가운데 칸. 숫자는 안 나가고 이 이름만 나간다.
+  $$values ('지영'::text, array[]::text[], 'mixed'::text)$$,
+  '참여한 상대가 후보로 선다 — 채우는 오행과 균형 칸과 함께');
 
 /**
- * `p_limit` 은 **부르는 쪽이 못 늘리고 못 없앤다.**
+ * **부르는 쪽이 넣을 인자가 하나도 없다.**
  *
- * 0 을 주면 1 로 올라간다. 위쪽 상한(200)은 이만한 풀에서는 재지지 않으므로 여기서
- * 재는 것은 아래쪽뿐이다 — 그래도 「부르는 값이 그대로 쓰이지 않는다」는 사실은 선다.
+ * 자리·탐색 여부·상한·후보 목록을 손으로 적을 수 있으면 그것이 곧 위조할 자리다.
+ * 인자가 없으면 그런 자리 자체가 없다.
  */
 select is(
-  (select count(*)::int from public.discovery_candidates(0)),
+  (select count(*)::int from pg_catalog.pg_proc
+   where proname = 'discovery_board' and pronamespace = 'public'::regnamespace and pronargs = 0),
   1,
-  '상한을 0 으로 줘도 부르는 쪽이 목록을 없애지 못한다');
+  '후보 목록 함수는 인자를 받지 않는다');
+
+select hasnt_function('public', 'discovery_candidates',
+  '후보를 고르기만 하는 함수는 따로 없다 — 고르는 일과 남기는 일이 한 자리다');
+
+select hasnt_function('public', 'log_discovery_impressions',
+  '노출 기록을 손으로 적는 함수도 없다');
+
+/**
+ * **두 축과 점수는 반환형에 없다.**
+ *
+ * 82점과 79점은 절대적인 궁합 차이로 읽힌다. 「순서는 좋고 나쁨이 아니다」라고 적어
+ * 놓고 숫자를 함께 내보내면 그 말은 아무도 안 믿는다.
+ */
+select is(
+  (select count(*)::int from unnest(
+     (select proargnames from pg_catalog.pg_proc
+      where proname = 'discovery_board' and pronamespace = 'public'::regnamespace)) as name
+   where name in ('complement', 'combined_balance', 'score')),
+  0,
+  '반환형에 두 축의 값도 점수도 없다');
+
+/**
+ * 두 축을 세는 함수는 **아무도 직접 못 부른다.**
+ *
+ * 반환형에서 뺀 것이 뜻을 가지려면, 같은 값을 다른 문으로 받아 갈 수 없어야 한다.
+ */
+select function_privs_are('public', 'discovery_complement', array['jsonb', 'jsonb'],
+  'authenticated', array[]::text[],
+  '두 축을 로그인한 사람이 직접 부를 수 없다');
+
+select function_privs_are('public', 'discovery_supplied_elements', array['jsonb', 'jsonb'],
+  'authenticated', array[]::text[],
+  '추천 이유를 세는 함수도 직접 부를 수 없다');
 
 -- ── 하드 제외 ─────────────────────────────────────────────────────────────────
 insert into public.discovery_hidden (hidden_user_id) values ((select lee from who));
@@ -271,60 +306,77 @@ select set_config('request.jwt.claims', tests.claims((select lee from who)), tru
 select public.set_discovery_participation(true, (select 토금뿐 from summaries));
 reset role;
 
+/**
+ * 여기서부터는 **수**를 재므로 두 가지를 정리한다.
+ *
+ * 앞선 시험들이 목록을 여러 번 열었으니 기록을 비우고, 다른 검사가 남긴 참여자는
+ * 목록에서 빼 둔다 — `discovery_board` 는 `definer` 라 RLS 로 스스로 좁혀지지 않아서,
+ * 안 좁히면 이 대목이 「DB 가 비어 있는가」를 재게 된다.
+ */
+delete from public.discovery_impression where viewer_user_id = (select kim from who);
+
+insert into public.discovery_hidden (user_id, hidden_user_id)
+select (select kim from who), p.user_id
+from public.discovery_profile p
+where p.user_id not in (select kim from who union select lee from who union select park from who);
+
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 select is(
-  public.log_discovery_impressions(
-    format('[{"candidateUserId":"%s","position":0,"exploration":false}]',
-      (select lee from who))::jsonb),
+  (select count(*)::int from public.discovery_board()),
   1,
-  '노출을 기록한다');
-
-/**
- * 후보를 다시 참여시켜 놓고 기록을 잰다 — 바로 위에서 요약을 낡게 했기 때문이다.
- */
-select is(
-  public.log_discovery_impressions(
-    format('[{"candidateUserId":"%s","position":0,"exploration":false}]',
-      (select park from who))::jsonb),
-  0,
-  '내 후보가 아닌 사람은 기록에 남지 않는다 — 앱이 준 id 를 그대로 믿지 않는다');
+  '목록을 연다');
 
 select throws_ok(
   $$select count(*) from public.discovery_impression$$,
   '42501', null,
-  '기록한 사람도 그 표를 읽지는 못한다 — 후보의 오행 요약이 거기 있다');
+  '연 사람도 그 표를 읽지는 못한다 — 후보의 오행 요약이 거기 있다');
 
 reset role;
 
 /**
- * 요약 두 벌은 **DB 가 채운다.** 앱이 실어 보내면 노출 기록이 「그때 무엇이었나」가
- * 아니라 「앱이 무엇이라고 했나」의 기록이 된다.
+ * 요약도 추천 이유도 두 축도 **DB 가 그 자리에서 계산한다.**
+ *
+ * 앱이 실어 보내면 기록이 「그때 무엇이었나」가 아니라 「앱이 무엇이라고 했나」가 된다.
+ * 이제 앱은 아무것도 실어 보내지 않는다 — 부를 때 넣을 인자가 없다.
  */
-select is(
-  (select count(*)::int from public.discovery_impression
-   where viewer_user_id = (select kim from who)),
-  1,
-  '내 후보인 사람만 기록에 남는다');
-
 select is(
   (select viewer_summary -> 'counts' ->> '木' from public.discovery_impression
    where viewer_user_id = (select kim from who)),
   '2',
-  '노출 기록의 오행 요약은 앱이 아니라 DB 가 채운다');
+  '노출 기록의 오행 요약은 DB 가 채운다');
 
-/**
- * 추천 이유와 두 축도 **DB 가 그 자리에서 계산한다.**
- *
- * 앱이 문장을 실어 보내면 기록이 「그때 무엇이었나」가 아니라 「앱이 무엇이라고 했나」가
- * 된다. 앱이 주는 것은 자리와 탐색 여부 둘뿐이다.
- */
 select is(
   (select supplied_elements from public.discovery_impression
    where viewer_user_id = (select kim from who)),
   array[]::text[],
-  '노출 기록의 추천 이유도 DB 가 계산한다');
+  '추천 이유도 DB 가 계산한다');
+
+select isnt(
+  (select complement from public.discovery_impression
+   where viewer_user_id = (select kim from who)),
+  null,
+  '두 축의 값은 기록에만 남는다 — 밖으로는 안 나간다');
+
+-- ── 계정 상태를 묻는 함수 ─────────────────────────────────────────────────────
+--
+-- 인자를 받으면 **남의 상태를 묻는 문**이 된다. `definer` 라 RLS 를 지나가므로 그 답이
+-- 그대로 나간다.
+
+select has_function('public', 'is_active_account', array[]::text[],
+  '계정 상태는 인자 없이 묻는다');
+
+select hasnt_function('public', 'is_active_account', array['uuid'],
+  '남의 uuid 를 넣어 묻는 길은 없다');
+
+select function_privs_are('public', 'is_active_account', array[]::text[],
+  'anon', array[]::text[],
+  '로그인하지 않은 쪽은 계정 상태를 물을 수 없다');
+
+select function_privs_are('public', 'is_active_account', array[]::text[],
+  'authenticated', array['EXECUTE'],
+  '로그인한 사람은 자기 상태만 묻는다');
 
 select * from finish();
 rollback;

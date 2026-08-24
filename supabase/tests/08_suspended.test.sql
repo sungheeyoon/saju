@@ -1,6 +1,6 @@
 -- 중지된 계정 — **읽지도 쓰지도 못한다.** 판정은 앱이 아니라 정책이 든다.
 begin;
-select plan(11);
+select plan(12);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -72,7 +72,7 @@ select throws_ok(
 
 -- ── RPC ───────────────────────────────────────────────────────────────────────
 select throws_ok(
-  $$select * from public.discovery_candidates()$$,
+  $$select * from public.discovery_board()$$,
   '42501', null,
   '후보를 볼 수 없다');
 
@@ -82,11 +82,23 @@ select throws_ok(
   '42501', null,
   '매칭 풀의 요약도 못 갱신한다');
 
+/**
+ * 노출 기록은 **손으로 적을 자리가 없다.**
+ *
+ * 예전에는 인증 사용자가 후보 id·자리·탐색 여부를 적어 넣는 RPC 가 있었다. 그 함수를
+ * 없애고 `discovery_board` 안으로 넣었으므로, 중지된 계정이 기록을 남길 길도 함께 사라졌다.
+ */
+select hasnt_function('public', 'log_discovery_impressions',
+  '노출 기록을 손으로 적는 함수는 없다');
+
 select throws_ok(
-  format($$select public.log_discovery_impressions(
-    '[{"candidateUserId":"%s","position":0,"exploration":false}]')$$, (select lee from who)),
+  $$insert into public.discovery_impression
+      (viewer_user_id, candidate_user_id, policy_version, position, exploration,
+       viewer_summary, candidate_summary, supplied_elements, complement, combined_balance)
+    values (gen_random_uuid(), gen_random_uuid(), 'discovery-v0', 999, false,
+            '{}'::jsonb, '{}'::jsonb, array['木'], 100, 100)$$,
   '42501', null,
-  '노출 기록도 못 남긴다');
+  '노출 기록 표에 직접 쓰지도 못한다');
 
 reset role;
 select * from finish();

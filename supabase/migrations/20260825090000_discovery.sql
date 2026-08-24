@@ -248,8 +248,16 @@ language sql
 immutable
 set search_path = ''
 as $$
-  select coalesce(array_agg(e order by e), array[]::text[])
-  from unnest(array['木', '火', '土', '金', '水']) as e
+  /**
+   * **순서를 문자열 정렬에 맡기지 않는다.**
+   *
+   * `order by e` 는 데이터베이스의 collation 이 정하는 차례라 서버마다 다르게 나온다
+   * (실제로 土→木→水→火→金 으로 나오는 자리가 있다). 오행에는 정해진 차례가 있고
+   * (木→火→土→金→水) 화면이 그 차례로 읽으므로, `with ordinality` 로 **적어 둔 차례**
+   * 를 그대로 붙들어 정렬한다.
+   */
+  select coalesce(array_agg(e order by ord), array[]::text[])
+  from unnest(array['木', '火', '土', '金', '水']) with ordinality as t(e, ord)
   where (mine -> 'counts' ->> e)::numeric = 0
     and (partner -> 'counts' ->> e)::numeric > 0;
 $$;
@@ -277,28 +285,28 @@ alter table public.discovery_impression enable row level security;
 
 create policy "내 프로필만 보인다"
 on public.discovery_profile for select to authenticated
-using (user_id = (select auth.uid()));
+using (user_id = (select auth.uid()) and public.is_active_account());
 
 create policy "내 프로필만 만든다"
 on public.discovery_profile for insert to authenticated
-with check (user_id = (select auth.uid()));
+with check (user_id = (select auth.uid()) and public.is_active_account());
 
 create policy "내 프로필만 고친다"
 on public.discovery_profile for update to authenticated
-using (user_id = (select auth.uid()))
+using (user_id = (select auth.uid()) and public.is_active_account())
 with check (user_id = (select auth.uid()));
 
 create policy "내가 감춘 사람만 보인다"
 on public.discovery_hidden for select to authenticated
-using (user_id = (select auth.uid()));
+using (user_id = (select auth.uid()) and public.is_active_account());
 
 create policy "내 목록에만 감춘다"
 on public.discovery_hidden for insert to authenticated
-with check (user_id = (select auth.uid()));
+with check (user_id = (select auth.uid()) and public.is_active_account());
 
 create policy "내가 감춘 것만 되돌린다"
 on public.discovery_hidden for delete to authenticated
-using (user_id = (select auth.uid()));
+using (user_id = (select auth.uid()) and public.is_active_account());
 
 -- ---------------------------------------------------------------------------
 -- 참여를 켜고 끈다
@@ -396,7 +404,7 @@ begin
     raise exception '로그인이 필요합니다.' using errcode = '28000';
   end if;
 
-  if (select status from public.app_user where id = actor) <> 'active' then
+  if not public.is_active_account() then
     raise exception '중지된 계정입니다.' using errcode = '42501';
   end if;
 
@@ -428,56 +436,88 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 후보 — 하드 제외는 여기서 끝난다
+-- 후보 — **고르는 일과 남기는 일이 한 함수 안에서 끝난다**
 -- ---------------------------------------------------------------------------
 
+/** 균형 값을 세 칸으로 — 숫자를 내보내지 않으므로 이 경계가 곧 사용자가 보는 차이다 */
+create or replace function public.discovery_balance_band(combined_balance numeric)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select case
+    when combined_balance >= 70 then 'even'
+    when combined_balance >= 50 then 'mixed'
+    else 'skewed'
+  end;
+$$;
+
 /**
- * 내가 볼 수 있는 후보와, 두 축의 값.
+ * 지금 내 후보와, 그 후보를 보여줬다는 기록.
+ *
+ * **고르는 일과 남기는 일을 나누지 않는다.** 나눠 두면 「무엇을 보여줄까」와 「무엇을
+ * 보여줬다고 적을까」가 서로 다른 신뢰 경계에 놓인다 — 앞의 것은 DB 가 정하는데 뒤의
+ * 것은 앱이 적게 되고, 그 앱은 브라우저에서 그대로 부를 수 있다. 자리·탐색 여부·후보
+ * 목록을 손으로 적을 자리가 **아예 없어야** 위조가 불가능하다.
+ *
+ * 그래서 이 함수 하나가 다 한다: 하드 제외 → 두 축 → 줄 세우기 → 탐색 배치 → 기록 →
+ * 안전한 카드. 부르는 쪽이 넣을 인자는 **하나도 없다.**
  *
  * **참여하지 않으면 아무도 못 본다.** 풀은 서로 내놓은 사람들의 자리다 — 내놓지 않고
- * 보기만 하는 길을 열면, 참여가 뜻하는 것이 사람마다 달라진다.
+ * 보기만 하는 길을 열면 참여가 뜻하는 것이 사람마다 달라진다.
  *
  * 하드 제외는 **사주와 무관한 것뿐**이다(ADR 0003): 자기 자신, 미참여, 중지된 계정,
  * 낡은 요약, 다시 보지 않기로 한 상대, 양쪽이 직접 설정한 성별 조건.
  * **차단 표가 생기면 여기 한 줄이 는다**(6단계).
  *
- * 점수로 자르는 자리는 없다. `p_limit` 은 정렬이 아니라 **한 번에 읽을 양의 상한**이고
- * 200 을 넘기지 못한다(아래).
+ * 나가는 것은 카드에 설 값뿐이다 — 두 축의 숫자도 가중합도 반환형에 없다.
+ * 82점과 79점은 절대적인 궁합 차이로 읽히고, 그러면서 「순서는 좋고 나쁨이 아니다」라고
+ * 적어 봐야 아무도 안 믿는다.
  */
-create or replace function public.discovery_candidates(p_limit integer default 200)
+create or replace function public.discovery_board()
 returns table (
   candidate_user_id uuid,
   nickname text,
   intro text,
-  complement numeric,
-  combined_balance numeric,
-  supplied_for_viewer text[]
+  seat integer,
+  exploration boolean,
+  supplied_elements text[],
+  balance_band text
 )
 language plpgsql
+volatile
 security definer
 set search_path = ''
 as $$
+#variable_conflict use_column
 declare
   actor uuid := (select auth.uid());
-  me public.discovery_profile;
+  my_summary jsonb;
+  my_prefer text;
+  my_revision uuid;
   my_gender text;
+  opted timestamptz;
+  seed_text text;
 begin
   if actor is null then
     raise exception '로그인이 필요합니다.' using errcode = '28000';
   end if;
 
-  if (select status from public.app_user where id = actor) <> 'active' then
+  if not public.is_active_account() then
     raise exception '중지된 계정입니다.' using errcode = '42501';
   end if;
 
-  select * into me from public.discovery_profile where user_id = actor;
+  select p.element_summary, p.prefer_gender, p.element_revision_id, p.opted_in_at
+    into my_summary, my_prefer, my_revision, opted
+  from public.discovery_profile p where p.user_id = actor;
 
-  if me.opted_in_at is null then
+  if opted is null then
     raise exception '매칭 참여를 먼저 켜 주세요.' using errcode = '42501';
   end if;
 
   -- 낡은 요약으로는 남을 줄 세우지 않는다. 내 쪽이 낡았으면 내 목록도 성립하지 않는다.
-  if me.element_revision_id is distinct from (
+  if my_revision is distinct from (
     select p.current_revision_id from public.app_user u
     join public.person p on p.id = u.self_person_id
     where u.id = actor
@@ -486,123 +526,133 @@ begin
   end if;
 
   select r.gender into my_gender
-  from public.person_chart_revision r where r.id = me.element_revision_id;
+  from public.person_chart_revision r where r.id = my_revision;
+
+  /**
+   * 씨앗은 **나와 오늘**이고, 둘 다 DB 가 정한다.
+   *
+   * 부르는 쪽에서 받으면 씨앗을 바꿔 가며 탐색 자리를 다시 뽑을 수 있고, 그러면 노출
+   * 기록이 무엇을 잰 것인지 말할 수 없게 된다. 날짜가 바뀌면 새로 섞인다.
+   */
+  seed_text := actor::text || ':' || to_char((now() at time zone 'Asia/Seoul')::date, 'YYYY-MM-DD');
 
   return query
-  select
-    other.user_id,
-    other.nickname,
-    other.intro,
-    public.discovery_complement(me.element_summary, other.element_summary),
-    public.discovery_combined_balance(me.element_summary, other.element_summary),
-    public.discovery_supplied_elements(me.element_summary, other.element_summary)
-  from public.discovery_profile other
-  join public.app_user u on u.id = other.user_id
-  join public.person p on p.id = u.self_person_id
-  join public.person_chart_revision r on r.id = other.element_revision_id
-  where other.user_id <> actor
-    and other.opted_in_at is not null
-    and u.status = 'active'
-    -- 요약이 지금 판본의 것인가. 아니면 후보가 아니다 — 조용히 낡은 값으로 세우지 않는다.
-    and other.element_revision_id = p.current_revision_id
-    and not exists (
-      select 1 from public.discovery_hidden h
-      where h.user_id = actor and h.hidden_user_id = other.user_id
-    )
-    -- 양쪽이 직접 설정한 조건을 **둘 다** 본다. 내 조건 밖의 사람을 안 보는 것과,
-    -- 나를 조건 밖으로 둔 사람에게 안 보이는 것은 같은 규칙의 두 얼굴이다.
-    and (me.prefer_gender = 'any' or r.gender = me.prefer_gender)
-    and (other.prefer_gender = 'any' or other.prefer_gender = my_gender)
-  /**
-   * **상한은 부르는 쪽이 못 늘린다.**
-   *
-   * `p_limit` 은 정렬이 아니라 한 번에 읽을 양의 상한이다. 클라이언트가 그대로 부를 수
-   * 있으므로 위를 잠근다 — 안 잠그면 한 번의 호출로 풀 전체를 긁어 갈 수 있다.
-   * 풀이 이 수에 닿기 시작하면 그때는 줄 세우기를 SQL 로 내리거나 재현 가능한 쪽수를
-   * 만들어야 한다. 지금 잘리는 차례는 아무 뜻이 없기 때문이다.
-   */
-  limit least(greatest(p_limit, 1), 200);
-end;
-$$;
-
-/**
- * 무엇을 보여줬는지 남긴다.
- *
- * 앱이 주는 것은 **자리와 탐색 여부 둘**뿐이다. 그 둘은 정렬이 앱에서 일어나므로 앱만
- * 아는 값이고, 나머지(오행 요약 두 벌·채우는 오행·두 축)는 **DB 가 그 자리에서
- * 계산한다.** 앱이 실어 보내면 기록이 「그때 무엇이었나」가 아니라 「앱이 무엇이라고
- * 했나」가 되고, 애초에 앱은 후보의 요약을 받지도 않는다.
- *
- * **후보 id 를 그대로 믿지 않는다.** 이 함수는 로그인한 사람이 직접 부를 수 있으므로,
- * 아무 사람이나 적어 넣으면 남의 노출 기록이 지어진다. 그래서 `discovery_candidates` —
- * 화면에 무엇이 설 수 있는지를 정하는 **같은 함수** — 에 다시 물어서, 지금 내 후보인
- * 사람만 남긴다. 자격을 두 곳에 적으면 언젠가 한쪽만 고쳐진다.
- */
-create or replace function public.log_discovery_impressions(p_rows jsonb)
-returns integer
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  actor uuid := (select auth.uid());
-  written integer;
-begin
-  if actor is null then
-    raise exception '로그인이 필요합니다.' using errcode = '28000';
-  end if;
-
-  if (select status from public.app_user where id = actor) <> 'active' then
-    raise exception '중지된 계정입니다.' using errcode = '42501';
-  end if;
-
-  if not exists (
-    select 1 from public.discovery_profile where user_id = actor and opted_in_at is not null
-  ) then
-    raise exception '매칭 참여를 먼저 켜 주세요.' using errcode = '42501';
-  end if;
-
-  if jsonb_typeof(p_rows) <> 'array' then
-    raise exception '노출 기록의 모양이 맞지 않습니다.' using errcode = '22023';
-  end if;
-
-  with shown as (
+  with pool as (
     select
-      (row ->> 'candidateUserId')::uuid as candidate_user_id,
-      (row ->> 'position')::int as position,
-      (row ->> 'exploration')::boolean as exploration
-    from jsonb_array_elements(p_rows) as row
-    -- 한 번에 남길 수 있는 양의 상한. 한 화면이 이보다 길 수 없다.
-    limit 100
+      other.user_id,
+      other.nickname,
+      other.intro,
+      public.discovery_complement(my_summary, other.element_summary) as complement,
+      public.discovery_combined_balance(my_summary, other.element_summary) as balance,
+      public.discovery_supplied_elements(my_summary, other.element_summary) as supplied
+    from public.discovery_profile other
+    join public.app_user u on u.id = other.user_id
+    join public.person p on p.id = u.self_person_id
+    join public.person_chart_revision r on r.id = other.element_revision_id
+    where other.user_id <> actor
+      and other.opted_in_at is not null
+      and u.status = 'active'
+      -- 요약이 지금 판본의 것인가. 아니면 후보가 아니다 — 낡은 값으로 줄 세우지 않는다.
+      and other.element_revision_id = p.current_revision_id
+      and not exists (
+        select 1 from public.discovery_hidden h
+        where h.user_id = actor and h.hidden_user_id = other.user_id
+      )
+      -- 양쪽이 직접 설정한 조건을 **둘 다** 본다. 내 조건 밖의 사람을 안 보는 것과,
+      -- 나를 조건 밖으로 둔 사람에게 안 보이는 것은 같은 규칙의 두 얼굴이다.
+      and (my_prefer = 'any' or r.gender = my_prefer)
+      and (other.prefer_gender = 'any' or other.prefer_gender = my_gender)
   ),
-  eligible as (
-    -- **화면이 묻는 것과 같은 함수에 묻는다.** 지금 내 후보가 아닌 사람은 안 남는다.
-    select candidate_user_id from public.discovery_candidates(200)
-  )
-  insert into public.discovery_impression (
-    viewer_user_id, candidate_user_id, policy_version, position, exploration,
-    viewer_summary, candidate_summary, supplied_elements, complement, combined_balance
+  ranked as (
+    -- 가중치는 `discovery-v0` 의 값이다(`src/lib/discovery` 가 같은 수를 선언하고
+    -- 시험이 양쪽을 잰다). 동점이면 id 로 가른다 — 안 그러면 읽어 온 차례가 순위인
+    -- 척 따라 나간다.
+    select
+      pool.*,
+      complement * 0.54 + balance * 0.46 as score,
+      row_number() over (
+        order by complement * 0.54 + balance * 0.46 desc, pool.user_id
+      ) as rank
+    from pool
+  ),
+  sizes as (
+    -- 한 번에 열 명. 탐색은 **실제로 채워지는 자리**의 20% 다 — `10` 에 걸면 후보가
+    -- 둘뿐인 날 목록이 통째로 탐색이 되고, 「정렬했다」는 말이 화면에서 거짓이 된다.
+    select
+      least(count(*), 10)::int as wanted,
+      floor(least(count(*), 10)::int * 0.2)::int as explorers,
+      least(count(*), 10)::int - floor(least(count(*), 10)::int * 0.2)::int as tops
+    from ranked
+  ),
+  explorers as (
+    -- 상위 밖에서만 뽑는다. 상위 안에서 뽑으면 어차피 보일 사람을 탐색이라 부르는 것이라
+    -- 아무것도 탐색하지 않는다.
+    select ranked.*, row_number() over (order by md5(seed_text || ranked.user_id::text)) as ei
+    from ranked, sizes
+    where ranked.rank > sizes.tops
+    limit (select explorers from sizes)
+  ),
+  slots as (
+    -- 섞는 자리는 고르게 벌린다. 뒤에 붙이면 아무도 거기까지 안 내려가고, 앞에 몰면
+    -- 목록의 첫인상이 탐색이 된다.
+    select
+      i as ei,
+      (floor((i * sizes.wanted)::numeric / (sizes.explorers + 1))::int - 1) as at
+    from sizes, generate_series(1, sizes.explorers) as i
+  ),
+  seats as (
+    select
+      s.idx,
+      slots.ei,
+      (slots.ei is not null) as is_exploration,
+      sum(case when slots.ei is null then 1 else 0 end)
+        over (order by s.idx rows between unbounded preceding and current row) as top_index
+    from sizes, generate_series(0, sizes.wanted - 1) as s(idx)
+    left join slots on slots.at = s.idx
+  ),
+  placed as (
+    select
+      seats.idx,
+      seats.is_exploration,
+      case when seats.is_exploration then e.user_id else t.user_id end as user_id,
+      case when seats.is_exploration then e.nickname else t.nickname end as nickname,
+      case when seats.is_exploration then e.intro else t.intro end as intro,
+      case when seats.is_exploration then e.supplied else t.supplied end as supplied,
+      case when seats.is_exploration then e.complement else t.complement end as complement,
+      case when seats.is_exploration then e.balance else t.balance end as balance
+    from seats
+    left join explorers e on seats.is_exploration and e.ei = seats.ei
+    left join ranked t on not seats.is_exploration and t.rank = seats.top_index
+  ),
+  /**
+   * **보여준 그 목록을 그대로 남긴다.**
+   *
+   * 자리도 탐색 여부도 위에서 방금 정해진 값이라 손으로 적을 자리가 없다. 오행 요약
+   * 두 벌과 추천 이유·두 축도 여기서 계산된 것을 그대로 쓴다. 자료를 바꾸는 CTE 는
+   * 바깥 질의가 읽지 않아도 언제나 끝까지 실행된다.
+   */
+  logged as (
+    insert into public.discovery_impression (
+      viewer_user_id, candidate_user_id, policy_version, position, exploration,
+      viewer_summary, candidate_summary, supplied_elements, complement, combined_balance
+    )
+    select
+      actor, placed.user_id, 'discovery-v0', placed.idx, placed.is_exploration,
+      my_summary, theirs.element_summary, placed.supplied, placed.complement, placed.balance
+    from placed
+    join public.discovery_profile theirs on theirs.user_id = placed.user_id
+    returning 1
   )
   select
-    actor,
-    shown.candidate_user_id,
-    'discovery-v0',
-    shown.position,
-    shown.exploration,
-    mine.element_summary,
-    theirs.element_summary,
-    public.discovery_supplied_elements(mine.element_summary, theirs.element_summary),
-    public.discovery_complement(mine.element_summary, theirs.element_summary),
-    public.discovery_combined_balance(mine.element_summary, theirs.element_summary)
-  from shown
-  join eligible on eligible.candidate_user_id = shown.candidate_user_id
-  join public.discovery_profile mine on mine.user_id = actor
-  join public.discovery_profile theirs on theirs.user_id = shown.candidate_user_id
-  where shown.position between 0 and 999
-    and shown.exploration is not null;
-
-  get diagnostics written = row_count;
-  return written;
+    placed.user_id,
+    placed.nickname,
+    placed.intro,
+    placed.idx,
+    placed.is_exploration,
+    placed.supplied,
+    public.discovery_balance_band(placed.balance)
+  from placed
+  order by placed.idx;
 end;
 $$;
 
@@ -612,10 +662,30 @@ grant execute on function public.set_discovery_participation(boolean, jsonb) to 
 revoke execute on function public.refresh_discovery_summary(uuid, jsonb) from anon, public;
 grant execute on function public.refresh_discovery_summary(uuid, jsonb) to authenticated;
 
-revoke execute on function public.discovery_candidates(integer) from anon, public;
-grant execute on function public.discovery_candidates(integer) to authenticated;
+revoke execute on function public.discovery_board() from anon, public;
+grant execute on function public.discovery_board() to authenticated;
 
-revoke execute on function public.log_discovery_impressions(jsonb) from anon, public;
-grant execute on function public.log_discovery_impressions(jsonb) to authenticated;
+/**
+ * **내부 계산 함수는 아무도 직접 부르지 못한다.**
+ *
+ * 두 축과 추천 이유는 `discovery_board` 가 자기 안에서 쓰는 셈이다. 밖으로 열어 두면
+ * 「반환형에 숫자를 안 넣었다」가 아무 뜻이 없어진다 — 로그인한 사람이 요약 두 벌을
+ * 넣어 직접 부르면 되기 때문이다. 요약 자체는 자기 것 말고는 읽을 수 없지만, 열어 둘
+ * 이유가 없는 문은 닫는다.
+ *
+ * `definer` 함수 안에서는 함수 소유자로 돌므로 `discovery_board` 는 이들을 그대로 부른다.
+ */
+revoke execute on function public.discovery_complement_one_way(jsonb, jsonb) from anon, public, authenticated;
+revoke execute on function public.discovery_complement(jsonb, jsonb) from anon, public, authenticated;
+revoke execute on function public.discovery_combined_balance(jsonb, jsonb) from anon, public, authenticated;
+revoke execute on function public.discovery_supplied_elements(jsonb, jsonb) from anon, public, authenticated;
+revoke execute on function public.discovery_balance_band(numeric) from anon, public, authenticated;
 
+/**
+ * **`is_element_summary` 만은 예외다** — 계산이 아니라 표가 스스로 거는 검사식이라서다.
+ *
+ * 검사식 안의 함수는 **넣는 사람의 권한으로** 실행된다. 닫아 두면 프로필을 만드는
+ * 평범한 insert 가 「permission denied for function」으로 죽는다(재어 봤다). 여는 것이
+ * 새로 드러내는 것도 없다 — 이미 손에 든 값의 모양을 되묻는 함수다.
+ */
 grant execute on function public.is_element_summary(jsonb) to authenticated;

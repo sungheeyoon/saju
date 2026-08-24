@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
+import { DISCOVERY_DISCLOSURE } from '@/src/lib/discovery';
+
 import { CARD } from '../../card';
 import {
   hideCandidate,
@@ -167,8 +169,13 @@ export function ParticipationToggle({
       <section className={`${CARD} flex flex-col gap-3`}>
         <h2 className="text-base font-semibold">매칭 참여 중</h2>
         <p className="text-sm text-secondary">
-          다른 참여자의 후보 목록에 설 수 있습니다. 언제든 끌 수 있고, 끄면 매칭 풀에
-          내놓은 오행 요약도 거둡니다. 내 사주와 저장한 사람들은 그대로 남습니다.
+          다른 참여자의 후보 목록에 설 수 있습니다. 상대에게 보이는 것은 별명·소개와,
+          그 사람에게 부족한 오행 중 내가 채우는 오행의 이름과 뜻입니다. 생년월일시·
+          출생지·전체 명식·전체 오행 개수표·숫자 점수는 보이지 않습니다.
+        </p>
+        <p className="text-sm text-secondary">
+          언제든 끌 수 있고, 끄면 매칭 풀에 내놓은 오행 요약도 거둡니다. 내 사주와 저장한
+          사람들은 그대로 남습니다.
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -193,22 +200,23 @@ export function ParticipationToggle({
         목록에 설 수 있습니다. 내가 대신 등록한 가족·친구는 후보가 되지 않습니다.
       </p>
 
-      <dl className="flex flex-col gap-2 rounded-md border border-border bg-surface-sunken p-3 text-sm">
-        <div className="flex flex-col gap-0.5">
+      {/*
+        **화면이 문장을 짓지 않는다.** 무엇이 나가고 무엇이 안 나가는지는 정책이 값으로
+        들고(`DISCOVERY_DISCLOSURE`), ADR 0003 과 PRD 가 같은 문장을 든다. 세 곳에 따로
+        적으면 한 곳만 고쳐지고, 그때 사용자가 읽은 약속과 실제 동작이 갈린다.
+      */}
+      <dl className="flex flex-col gap-3 rounded-md border border-border bg-surface-sunken p-3 text-sm">
+        <div className="flex flex-col gap-1">
           <dt className="text-xs text-muted">상대에게 보이는 것</dt>
-          <dd>공개용 별명과 소개, 그리고 왜 그 자리에 섰는지 한 줄.</dd>
+          {DISCOVERY_DISCLOSURE.shown.map((line) => (
+            <dd key={line}>{line}</dd>
+          ))}
         </div>
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-xs text-muted">순서를 정하는 데 쓰이는 것</dt>
-          <dd>
-            저장된 사주에서 뽑은 <strong className="font-medium">오행 요약</strong>(다섯
-            오행의 개수와 비중). 참여를 켜는 순간 매칭 풀에 올라가고, 상대의 순서도 같은
-            방식으로 정해집니다.
-          </dd>
-        </div>
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-1">
           <dt className="text-xs text-muted">보이지 않는 것</dt>
-          <dd>생년월일시·출생지·전체 명식, 그리고 내가 저장한 사람들과 그 메모.</dd>
+          {DISCOVERY_DISCLOSURE.hidden.map((line) => (
+            <dd key={line}>{line}</dd>
+          ))}
         </div>
       </dl>
 
