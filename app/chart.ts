@@ -1,0 +1,64 @@
+import { CITY_LONGITUDES, computeSaju, type Saju } from '@/src/lib/saju';
+
+import { TIME_BASIS, missingForCalculation, type Query } from './query';
+
+/**
+ * 입력 한 벌을 명식으로 바꾸는 **한 자리.**
+ *
+ * 원국 화면과 궁합 화면이 각자 들고 있었다. 그러면 한쪽만 고쳐져서 「같은 값을
+ * 넣었는데 다른 사주가 나오는」 상태가 만들어진다 — 폼을 한 자리에 둔 것과 같은
+ * 이유다(`birth-form.tsx`).
+ *
+ * 이제 서버도 여기를 부른다. 저장된 판본으로 계산할 때 브라우저와 다른 코드를 쓰면,
+ * 「저장하기 전에 본 사주」와 「저장한 뒤에 보는 사주」가 달라질 자리가 생긴다.
+ * 엔진이 순수 TypeScript 라(React·Next 의존성이 없다) 양쪽에서 그대로 돈다.
+ */
+export function chartOf(query: Query): Saju {
+  const [year, month, day] = query.date.split('-').map(Number);
+  const [hour, minute] = query.time.split(':').map(Number);
+  const { useLongitude, useEquationOfTime } = TIME_BASIS[query.basis];
+
+  return computeSaju(
+    query.hourKnown === false
+      ? { year, month, day, hour: null, gender: query.gender }
+      : { year, month, day, hour, minute, second: 0, gender: query.gender },
+    {
+      lateNightRule: query.rule,
+      longitude: CITY_LONGITUDES[query.city],
+      useLongitude,
+      useEquationOfTime,
+      saeun: { fromYear: query.saeunFrom, count: 10 },
+      // useDst 는 넘기지 않는다 — 엔진 기본값이 '되돌린다'이고,
+      // 그것이 물어볼 일 없는 사실이기 때문이다.
+    },
+  );
+}
+
+export type ChartResult = { ok: true; saju: Saju } | { ok: false; message: string };
+
+/** 못 계산할 입력을 문장으로 돌려준다 — 던지지 않는다. 화면이 그대로 보여준다. */
+export function calculateChart(query: Query): ChartResult {
+  // 버튼을 잠그는 쪽과 같은 함수를 본다. 여기서 조건을 다시 적으면 두 곳이
+  // 어긋나는 순간 눌리는데 거절하거나 잠겼는데 계산은 되는 상태가 생긴다.
+  //
+  // 이름은 빼고 본다 — 계산에 들어가지 않으므로 이름 칸이 생기기 전에 나눠 준
+  // 링크가 그대로 열려야 한다(`missingAnswer` ↔ `missingForCalculation`).
+  const missing = missingForCalculation(query);
+  if (missing !== null) return { ok: false, message: missing };
+
+  const [year, month, day] = query.date.split('-').map(Number);
+  if ([year, month, day].some((n) => !Number.isFinite(n))) {
+    return { ok: false, message: '생년월일을 입력해 주세요.' };
+  }
+
+  // 엔진이 던지는 메시지를 그대로 보여준다. 검증 규칙을 UI에 복제하면
+  // 두 곳이 어긋나는 순간 사용자만 헷갈린다.
+  try {
+    return { ok: true, saju: chartOf(query) };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : '계산에 실패했습니다.',
+    };
+  }
+}

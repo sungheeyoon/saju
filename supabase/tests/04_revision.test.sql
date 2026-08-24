@@ -16,7 +16,9 @@ select public.create_self_person(
 reset role;
 
 -- 지문은 호출부가 적지 않는다. 트리거가 든다.
-select matches((select fingerprint from public.person_chart_revision), '^[0-9a-f]{64}$',
+select matches(
+  (select fingerprint from public.person_chart_revision where person_id = (select person_id from target)),
+  '^[0-9a-f]{64}$',
   '지문이 자동으로 붙는다');
 
 insert into public.person_chart_revision
@@ -28,12 +30,13 @@ values
 
 select is(
   (select count(distinct fingerprint)::int from public.person_chart_revision
-   where late_night_rule = 'jo'),
+   where person_id = (select person_id from target) and late_night_rule = 'jo'),
   1,
   '같은 입력은 같은 지문이다');
 
 select is(
-  (select count(distinct fingerprint)::int from public.person_chart_revision),
+  (select count(distinct fingerprint)::int from public.person_chart_revision
+   where person_id = (select person_id from target)),
   2,
   '자시 규칙 하나만 달라도 다른 판본이다 — 그 하나로 일주가 바뀐다');
 

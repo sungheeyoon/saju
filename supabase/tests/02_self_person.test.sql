@@ -7,7 +7,16 @@ select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') a
 -- 역할을 바꾼 뒤에도 읽어야 한다 — 임시 표는 만든 역할만 볼 수 있다.
 grant select on who to authenticated;
 
-select is((select count(*)::int from public.app_user), 2,
+/**
+ * **우리가 만든 두 사람만 센다.**
+ *
+ * 전역 개수를 세면 이 DB 에 다른 행이 하나라도 있는 순간 무너진다 — 시험이 잰 것이
+ * 「트리거가 도는가」가 아니라 「DB 가 비어 있는가」가 돼 버린다. 실제로 흐름 검사
+ * (`npm run test:flow`)를 한 번 돌린 뒤에 이 시험이 깨져서 알았다.
+ */
+select is(
+  (select count(*)::int from public.app_user where id in (select kim from who union all select lee from who)),
+  2,
   '가입하면 계정 행이 따라 생긴다 — 앱이 만들지 않는다');
 
 select is((select self_person_id from public.app_user where id = (select kim from who)), null,
@@ -33,7 +42,10 @@ select is((select local_label from public.user_person_access where user_id = (se
 select isnt((select current_revision_id from public.person where id = (select person_id from target)), null,
   'Person 이 현재 판본을 가리킨다');
 
-select is((select count(*)::int from public.person_chart_revision), 1,
+select is(
+  (select count(*)::int from public.person_chart_revision
+   where person_id = (select self_person_id from public.app_user where id = (select kim from who))),
+  1,
   '판본이 정확히 하나 쌓인다');
 
 select throws_ok(

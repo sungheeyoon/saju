@@ -3,8 +3,19 @@
 -- ADR 0004: 서비스 코드의 관례로 두지 않고 DB 불변식으로 건다. 앱에 조건을 적으면
 -- 그 조건을 안 부르는 경로가 언젠가 하나 생기고, 그 경로는 조용히 열려 있다.
 
--- 기본 권한부터 좁힌다. Supabase 는 `public` 의 표에 넉넉한 기본 권한을 주므로,
--- 열어 줄 것만 다시 준다.
+-- 기본 권한부터 좁히고, 열어 줄 것만 다시 준다.
+--
+-- 재어 보니 `postgres` 가 만든 표의 기본 권한은 API 역할(`anon`·`authenticated`·
+-- `service_role`)에 **DML 을 하나도 주지 않는다**(`Dxtm` — TRUNCATE·REFERENCES·
+-- TRIGGER·MAINTAIN 뿐). 그러니 아래 `revoke` 는 오늘 아무것도 지우지 않는다.
+--
+-- 그래도 두는 것은 두 가지 때문이다. 기본 권한이 프로젝트마다 같다는 보장이 없고,
+-- 「`grant all on all tables in schema public to authenticated`」 는 Supabase 예제에
+-- 흔히 나오는 한 줄이라 누군가 앞에서 실행해 놓았을 수 있다. **이 파일이 여는 것이
+-- 곧 열린 것의 전부**라는 말이 참이려면, 여기서 한 번 닫고 시작해야 한다.
+--
+-- `service_role` 에는 아무것도 주지 않는다. 그 키는 RLS 를 지나가므로, 새면 이
+-- 표들이 통째로 열린다. 운영자가 초대를 넣는 일은 SQL(`postgres`)로 한다.
 revoke all on public.app_user, public.person, public.person_chart_revision,
   public.user_person_access from anon, authenticated;
 

@@ -113,7 +113,7 @@ export const DEFAULT_QUERY: Query = {
 };
 
 const CITY_NAMES = Object.keys(CITY_LONGITUDES) as CityName[];
-const LATE_NIGHT_RULES: readonly LateNightRule[] = ['jo', 'ya'];
+export const LATE_NIGHT_RULES: readonly LateNightRule[] = ['jo', 'ya'];
 
 /** 시각을 모른다는 표시. 시각과 같은 칸을 쓰므로 "모름인데 14:30" 이 만들어지지 않는다 */
 const HOUR_UNKNOWN = 'unknown';

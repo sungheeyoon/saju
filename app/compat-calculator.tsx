@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
-  CITY_LONGITUDES,
   GENDER_KO,
   PILLAR_POSITION_KO,
   RELATION_KIND_KO,
@@ -11,7 +10,6 @@ import {
   analyzeCompatibility,
   assembleCompatText,
   compatSideOf,
-  computeSaju,
   resolveRelation,
   type Compatibility,
   type CompatSide,
@@ -20,6 +18,7 @@ import {
   type Utterance,
 } from '@/src/lib/saju';
 
+import { chartOf } from './chart';
 import { BirthFields } from './birth-form';
 import { MatchResult } from './compat-match';
 import { CopyLinkButton } from './copy-link';
@@ -36,7 +35,6 @@ import {
 } from './utterances';
 import {
   DEFAULT_QUERY,
-  TIME_BASIS,
   mergeSearchParams,
   missingAnswer,
   missingForCalculation,
@@ -110,25 +108,6 @@ type Result =
     }
   | { ok: false; message: string };
 
-function computeOne(query: Query): Saju {
-  const [year, month, day] = query.date.split('-').map(Number);
-  const [hour, minute] = query.time.split(':').map(Number);
-  const { useLongitude, useEquationOfTime } = TIME_BASIS[query.basis];
-
-  return computeSaju(
-    query.hourKnown === false
-      ? { year, month, day, hour: null, gender: query.gender }
-      : { year, month, day, hour, minute, second: 0, gender: query.gender },
-    {
-      lateNightRule: query.rule,
-      longitude: CITY_LONGITUDES[query.city],
-      useLongitude,
-      useEquationOfTime,
-      saeun: { fromYear: query.saeunFrom, count: 10 },
-    },
-  );
-}
-
 function calculate(pair: Pair): Result {
   // 버튼을 잠그는 쪽과 같은 답을 본다 — 판정은 `missingAnswer` 한 곳뿐이다.
   const missing = missingInPair(pair, missingForCalculation);
@@ -137,7 +116,7 @@ function calculate(pair: Pair): Result {
   // 엔진이 던지는 메시지를 그대로 보여준다. 검증 규칙을 화면에 복제하면
   // 두 곳이 어긋나는 순간 사용자만 헷갈린다.
   try {
-    const charts = { a: computeOne(pair.a), b: computeOne(pair.b) };
+    const charts = { a: chartOf(pair.a), b: chartOf(pair.b) };
 
     return {
       ok: true,

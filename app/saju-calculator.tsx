@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { BirthFields } from './birth-form';
 import { CARD } from './card';
+import { calculateChart } from './chart';
 import { useHashParams, writeParams } from './hash-query';
 import { CopyLinkButton } from './copy-link';
 import { EvidencePanel } from './evidence-panel';
@@ -18,14 +19,12 @@ import {
   DEFAULT_QUERY,
   TIME_BASIS,
   missingAnswer,
-  missingForCalculation,
   queryFromSearchParams,
   toSearchParams,
   type Query,
 } from './query';
 import {
   BRANCH_INFO,
-  CITY_LONGITUDES,
   DAEUN_DIRECTION_KO,
   ELEMENTS,
   ELEMENT_KO,
@@ -46,7 +45,6 @@ import {
   TWELVE_STAGE_KO,
   assembleNowText,
   assembleText,
-  computeSaju,
   currentFortuneOf,
   type CurrentFortune,
   type DaeunAbsence,
@@ -116,52 +114,6 @@ export const PILLAR_COLUMNS = [
 ] as const;
 
 
-type Result = { ok: true; saju: Saju } | { ok: false; message: string };
-
-function calculate(query: Query): Result {
-  const [year, month, day] = query.date.split('-').map(Number);
-  const [hour, minute] = query.time.split(':').map(Number);
-
-  // 버튼을 잠그는 쪽과 같은 함수를 본다. 여기서 조건을 다시 적으면 두 곳이
-  // 어긋나는 순간 눌리는데 거절하거나 잠겼는데 계산은 되는 상태가 생긴다.
-  //
-  // 이름은 빼고 본다 — 계산에 들어가지 않으므로 이름 칸이 생기기 전에 나눠 준
-  // 링크가 그대로 열려야 한다(`missingAnswer` ↔ `missingForCalculation`).
-  const missing = missingForCalculation(query);
-  if (missing !== null) return { ok: false, message: missing };
-
-  if ([year, month, day].some((n) => !Number.isFinite(n))) {
-    return { ok: false, message: '생년월일을 입력해 주세요.' };
-  }
-
-  // 엔진이 던지는 메시지를 그대로 보여준다. 검증 규칙을 UI에 복제하면
-  // 두 곳이 어긋나는 순간 사용자만 헷갈린다.
-  try {
-    const { useLongitude, useEquationOfTime } = TIME_BASIS[query.basis];
-
-    const saju = computeSaju(
-      query.hourKnown === false
-        ? { year, month, day, hour: null, gender: query.gender }
-        : { year, month, day, hour, minute, second: 0, gender: query.gender },
-      {
-        lateNightRule: query.rule,
-        longitude: CITY_LONGITUDES[query.city],
-        useLongitude,
-        useEquationOfTime,
-        saeun: { fromYear: query.saeunFrom, count: 10 },
-        // useDst 는 넘기지 않는다 — 엔진 기본값이 '되돌린다'이고,
-        // 그것이 물어볼 일 없는 사실이기 때문이다.
-      },
-    );
-    return { ok: true, saju };
-  } catch (error) {
-    return {
-      ok: false,
-      message: error instanceof Error ? error.message : '계산에 실패했습니다.',
-    };
-  }
-}
-
 const pad = (n: number) => String(n).padStart(2, '0');
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const signedMinutes = (n: number) => `${round1(n) >= 0 ? '+' : ''}${round1(n)}분`;
@@ -224,7 +176,7 @@ export function SajuCalculator() {
     setForm(queryFromSearchParams(searchParams) ?? DEFAULT_QUERY);
   }, [searchParams]);
 
-  const result = useMemo(() => (query === null ? null : calculate(query)), [query]);
+  const result = useMemo(() => (query === null ? null : calculateChart(query)), [query]);
   const dirty =
     query !== null && (Object.keys(form) as (keyof Query)[]).some((k) => form[k] !== query[k]);
 
