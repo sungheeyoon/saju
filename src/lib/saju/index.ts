@@ -33,6 +33,9 @@ export * from './evidence';
 // 읽어서 지어지므로, 앞에 두면 계약이 아직 없는 채로 평가된다.
 export * from './evidence/prompt';
 export * from './input';
+// 음력 변환. `computeSaju` 앞에 서는 경계라 엔진은 이것을 모른다 — 여기서 나온
+// 양력만 넘어간다(ADR 0002).
+export * from './lunar';
 // 현재운. `Saju` 에 얹지 않고 따로 부른다 — 보는 시각은 명식의 일부가 아니다.
 export * from './now';
 export * from './position';
