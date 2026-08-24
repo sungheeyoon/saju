@@ -87,7 +87,7 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 16. As an User, I want to 출생 시각 유무에 따른 한계를 확인한다, so that 불완전한 입력을 확정적 결과로 오해하지 않는다.
 17. As an User, I want to 가족·친구 Person을 추가한다, so that 여러 사람의 명식을 한 계정에서 관리할 수 있다.
 18. As an User, I want to 관리 Person을 최대 20명까지 둔다, so that 일반적인 가족·지인 관리 범위 안에서 데이터를 통제할 수 있다.
-19. As an User, I want to 각 Person에 나만의 localLabel과 관계 유형·메모를 붙인다, so that 같은 사람을 내 관계 맥락에 맞게 구분할 수 있다.
+19. As an User, I want to 각 Person에 나만의 localLabel과 메모를 붙인다, so that 같은 사람을 내 관계 맥락에 맞게 구분할 수 있다.
 20. As an User, I want to Person의 명식과 localLabel을 별개로 다룬다, so that 다른 User가 같은 Person을 다른 호칭으로 부를 수 있다.
 21. As an User, I want to 내가 접근 가능한 두 Person을 골라 수동 궁합을 본다, so that 나 중심이 아닌 엄마×아빠나 친구×친구 조합도 계산할 수 있다.
 22. As an User, I want to 수동 궁합 결과를 중립적인 문체로 본다, so that 누가 읽는지에 따라 관계 사실이 바뀌지 않는다.
@@ -203,7 +203,12 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 - Person은 사람의 안정적인 식별자다. 이름·사진·소개 같은 공개 매칭 정보는 Person 입력이나
   localLabel과 분리된 DiscoveryProfile에 둔다.
 - UserPersonAccess는 User가 직접 등록하거나 관리하는 Person과의 엣지다. localLabel,
-  관계 유형, 개인 메모, 접근 역할을 들며 후보와 Match 상대는 이 목록에 넣지 않는다.
+  개인 메모, 접근 역할을 들며 후보와 Match 상대는 이 목록에 넣지 않는다.
+- **별도의 관계 유형 필드를 두지 않는다(2026-08-24 수정).** 이 PRD의 첫 판은 US 19와 위
+  항목에 `관계 유형`을 적었으나, 루트 용어집이 「엄마」 같은 관계 맥락을 이미 localLabel로
+  해소했고 localLabel의 `_Avoid_`에 `relationship`을 명시했다(`CONTEXT.md`). 두 벌로 두면
+  「엄마」가 라벨에도 유형에도 적히고 둘이 어긋난다. 스키마도 처음부터 localLabel·note·role
+  셋만 들고 있었으므로, 어긋나 있던 것은 PRD 쪽이다.
 - Person 한도 20은 UserPersonAccess로 직접 관리하는 가족·친구 Person에만 적용한다.
 - PersonChartRevision은 원본 생일 형식, 변환된 양력, 시간 또는 시간 미상, 국내 출생지,
   성별과 모든 계산 옵션을 불변값으로 저장한다. Person은 현재 revision을 가리킨다.
