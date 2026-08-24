@@ -11,6 +11,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "db:start": "supabase start -x realtime,storage-api,imgproxy,edge-runtime,logflare,vector,supavisor,studio",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "test:db": "supabase test db",
     "verify": "npm test && npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
@@ -27,6 +31,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
+    "supabase": "^2.115.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.10"

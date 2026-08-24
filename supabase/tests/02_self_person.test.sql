@@ -1,0 +1,66 @@
+-- 온보딩 — Person·판본·엣지·claim 이 한 사건으로 일어난다.
+begin;
+select plan(10);
+
+create temporary table who as
+select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
+-- 역할을 바꾼 뒤에도 읽어야 한다 — 임시 표는 만든 역할만 볼 수 있다.
+grant select on who to authenticated;
+
+select is((select count(*)::int from public.app_user), 2,
+  '가입하면 계정 행이 따라 생긴다 — 앱이 만들지 않는다');
+
+select is((select self_person_id from public.app_user where id = (select kim from who)), null,
+  '온보딩 전에는 selfPerson 이 비어 있다');
+
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
+
+create temporary table target as
+select public.create_self_person(
+  '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean'
+) as person_id;
+
+select isnt((select self_person_id from public.app_user where id = (select kim from who)), null,
+  'selfPerson 이 지정된다');
+
+select is((select role from public.user_person_access where user_id = (select kim from who)), 'owner',
+  '만든 사람은 owner 로 들어간다');
+
+select is((select local_label from public.user_person_access where user_id = (select kim from who)), '민수',
+  '부를 이름은 Person 이 아니라 엣지가 든다');
+
+select isnt((select current_revision_id from public.person where id = (select person_id from target)), null,
+  'Person 이 현재 판본을 가리킨다');
+
+select is((select count(*)::int from public.person_chart_revision), 1,
+  '판본이 정확히 하나 쌓인다');
+
+select throws_ok(
+  $$select public.create_self_person('민수2','solar','1991-01-01','1991-01-01','09:00','male','서울','jo','localMean')$$,
+  '23505', null,
+  '두 번째 selfPerson 은 조용히 덮어쓰지 않고 거절한다');
+
+reset role;
+
+-- 여기부터는 아직 등록하지 않은 사람이다. 음력 관문은 계정 상태와 무관하게
+-- 재야 하므로 등록을 마친 사람으로 재면 앞의 관문에 먼저 걸린다.
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select lee from who)), true);
+
+select throws_ok(
+  $$select public.create_self_person('지영','lunar','1992-02-28','1992-03-02','09:00','female','부산','jo','localMean')$$,
+  '0A000', null,
+  '음력은 변환표를 대조하기 전에는 받지 않는다');
+
+-- 시각 미상은 정오로 메우지 않는다 — 빈 칸으로 남는다.
+select public.create_self_person(
+  '지영', 'solar', '1992-03-02', '1992-03-02', null, 'female', '부산', 'ya', 'record');
+select is((select birth_time from public.person_chart_revision r
+           join public.app_user u on u.self_person_id = r.person_id
+           where u.id = (select lee from who)), null,
+  '시각을 모르면 빈 칸으로 남는다');
+reset role;
+
+select * from finish();
+rollback;
