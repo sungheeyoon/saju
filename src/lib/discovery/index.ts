@@ -1,3 +1,5 @@
+import { ELEMENT_KO, type Element } from '../saju';
+
 /**
  * `discovery-v0` — 아직 선택되지 않은 후보의 **노출 순서**.
  *
@@ -16,8 +18,16 @@
  * 후보가 왜 후보인지 모른다).
  *
  * 축의 값(`complement` · `combinedBalance`)도 여기서 계산하지 않는다. 후보의 오행
- * 요약은 브라우저로 내려가지 않아야 하므로 두 축은 DB 안에서 나고(`discovery_complement`
- * · `discovery_combined_balance`), 이 모듈은 **가중치·섞기·문장**만 든다.
+ * 요약 전체는 브라우저로 내려가지 않아야 하므로 두 축은 DB 안에서 나고
+ * (`discovery_complement` · `discovery_combined_balance`), 이 모듈은 **가중치·섞기·문장**만 든다.
+ *
+ * ## 후보 카드는 **맛보기**다
+ *
+ * 추천 이유는 적극적으로 말한다 — 어느 오행이 무엇을 채우는지까지. 그것을 감추면
+ * 「왜 이 사람인가」에 답하지 못하고, 답하지 못하는 추천은 궁금해지지도 않는다.
+ * 감추는 것은 **상세 궁합과 원문**이다: 여덟 글자, 천간·지지, 십성·신살·형충회합,
+ * 운, 그리고 생년월일시·출생지. 그 둘 사이의 경계가 이 정책의 `discloses` ·
+ * `withholds` 이고, 형충회합과 상세 근거는 **서로 동의한 뒤**에 열린다.
  */
 
 /**
@@ -51,16 +61,61 @@ export const DISCOVERY_POLICY_V0 = {
   explorationRatio: 0.2,
   /** 한 번에 보여주는 후보 수 */
   pageSize: 10,
+
+  /**
+   * 균형 값을 말로 바꾸는 문턱.
+   *
+   * **숫자를 보여주지 않으므로 이 두 수가 곧 사용자가 보는 차이다.** 82점과 79점은
+   * 절대적인 궁합 차이로 읽히지만 「고른 편」과 「대체로 고른 편」은 그렇지 않다.
+   * 그래서 숫자 대신 이 경계를 값으로 적어 둔다.
+   */
+  balanceBands: { even: 70, mixed: 50 },
+
+  /**
+   * 후보 카드가 **말해도 되는 것**과 **말하지 않는 것**.
+   *
+   * 경계를 값으로 든다. 주석으로 적으면 아무것도 잠그지 않고, 화면마다 조금씩
+   * 넓어진다. 오른쪽은 서로 동의한 뒤에 열리는 것들이고, 생년월일시와 출생지는
+   * 그때도 열리지 않는다(ADR 0008).
+   */
+  discloses: ['supplied-elements', 'element-meaning', 'balance-label'] as const,
+  withholds: [
+    'birth-input',
+    'birth-place',
+    'pillars',
+    'stems-and-branches',
+    'ten-gods',
+    'sinsal',
+    'relations',
+    'luck',
+    'evidence',
+    'element-counts',
+    'score',
+  ] as const,
 } as const;
+
+/**
+ * 오행 한 글자가 사람에게 무엇으로 읽히는가 — **관습적 의미이지 계산 결과가 아니다.**
+ *
+ * 엔진이 낸 사실이 아니므로 강도 딱지가 붙지 않는다. 후보 카드가 「왜 이 사람인가」를
+ * 사람 말로 옮길 때만 쓰고, 사실을 말하는 자리에서는 쓰지 않는다.
+ */
+export const ELEMENT_MEANING: Record<Element, string> = {
+  木: '성장과 확장',
+  火: '열정과 표현',
+  土: '중심과 포용',
+  金: '안정감과 결단력',
+  水: '유연함과 통찰',
+};
 
 export type DiscoveryAxisKey = keyof typeof DISCOVERY_POLICY_V0.weights;
 
 /**
- * DB 가 내주는 후보 한 줄 — **오행 요약 자체는 오지 않는다.**
+ * DB 가 내주는 후보 한 줄 — **오행 요약 전체는 오지 않는다.**
  *
- * 두 축은 이미 값으로 계산돼 있고, 여기 오는 것은 그 결과와 문장에 필요한 개수뿐이다.
- * 벡터를 받아 왔다면 그것을 화면에서 접어 봐야 소용없다 — 개발자 도구 한 번에 다
- * 보인다(ADR 0008).
+ * 두 축은 이미 값으로 계산돼 있고, 함께 오는 것은 **추천 이유에 직접 쓰이는 오행들**
+ * 뿐이다. 상대의 전체 구성(오행별 개수표)은 오지 않는다 — 그것까지 받아 오면 화면에서
+ * 접어 봐야 소용없고(개발자 도구 한 번에 다 보인다), 카드가 말해야 하는 것도 아니다.
  */
 export type CandidateFacts = {
   /** 후보를 가리키는 불투명 식별자. 정책은 이것이 누구인지 모른다 */
@@ -69,8 +124,15 @@ export type CandidateFacts = {
   complement: number;
   /** 함께 놓은 오행 균형 0~100 */
   combinedBalance: number;
-  /** 내게 없는 오행 중 이 후보가 가진 개수 — 문장이 쓸 수 */
-  suppliedForViewer: number;
+  /** 내게 없는 오행 중 **이 후보가 가진 것** — 카드가 이름을 부르고 뜻을 붙인다 */
+  suppliedForViewer: readonly Element[];
+};
+
+/** 이 후보가 내게 채우는 오행 하나와 그 뜻, 그리고 그것을 사람 말로 옮긴 한 줄 */
+export type CandidateHighlight = {
+  element: Element;
+  meaning: string;
+  text: string;
 };
 
 export type RankedCandidate = {
@@ -79,11 +141,13 @@ export type RankedCandidate = {
   position: number;
   /** 상위가 아닌데 일부러 섞은 자리인가 */
   exploration: boolean;
-  /** 정렬에만 쓰는 값 — 궁합의 좋고 나쁨이 아니다 */
+  /** 정렬에만 쓰는 값 — 궁합의 좋고 나쁨이 아니다. **경계가 여기서 잘라 낸다** */
   score: number;
   axes: Record<DiscoveryAxisKey, number>;
-  /** 제한된 설명 한 줄 — 상대의 명식을 적지 않는다 */
-  reason: string;
+  /** 추천 이유 — 없을 수도 있다(채우는 오행이 없으면 균형만 말한다) */
+  highlights: CandidateHighlight[];
+  /** 함께 놓았을 때의 균형을 숫자 대신 말로 */
+  balanceLabel: string;
 };
 
 export type DiscoveryPage = {
@@ -92,6 +156,12 @@ export type DiscoveryPage = {
   entries: RankedCandidate[];
   /** 화면이 반드시 함께 세우는 말 — 상위가 정답이 아니라는 것 */
   caveat: string;
+  /** 여기서 멈추고 무엇이 다음인지 — 상세 궁합은 서로 동의한 뒤다 */
+  teaser: string;
+  /** 탐색 후보가 목록에 있을 때만 서는 말 */
+  explorationNote: string | null;
+  /** 빠진 오행이 없는 사람에게 하는 말 — 보완으로 견줄 것이 없다 */
+  notice: string | null;
 };
 
 export type RankOptions = {
@@ -110,6 +180,16 @@ export type RankOptions = {
 
 const CAVEAT =
   '노출 순서는 궁합의 좋고 나쁨이 아닙니다. 오행 보완과 함께 놓은 균형 두 축으로 줄을 세울 뿐이고, 사주 점수가 낮다는 이유로 사라지는 후보는 없습니다.';
+
+/** 여기서 멈추는 이유와 다음 — **상세 궁합은 서로 동의한 뒤에 열린다** */
+const TEASER =
+  '서로 동의하면 형충회합과 상세 궁합을 확인할 수 있습니다. 지금 보이는 것은 오행으로 본 맛보기이고, 여덟 글자와 구체적인 근거는 아직 열리지 않습니다.';
+
+const EXPLORATION_NOTE =
+  '탐색 후보는 상위가 아닌 자리에서 일부러 섞은 사람입니다. 한 정책이 같은 유형만 되풀이해 보여주면, 그 정책이 틀렸을 때 신호가 오지 않습니다.';
+
+const NO_MISSING_NOTICE =
+  '당신의 원국에는 빠진 오행이 없어 보완으로 견줄 것이 없습니다. 아래 순서는 함께 놓았을 때의 오행 균형으로 섰습니다.';
 
 const round = (value: number): number => Math.round(value * 10) / 10;
 
@@ -150,30 +230,33 @@ const scoreOf = (candidate: CandidateFacts): number =>
   candidate.combinedBalance * DISCOVERY_POLICY_V0.weights.combinedBalance;
 
 /**
- * 제한된 설명 — **상대의 명식을 적지 않는다.**
+ * 추천 이유 — **어느 오행이 무엇을 채우는지까지 말한다.**
  *
- * 무엇이 채워지는지는 「내게 없는 오행 몇 개 중 몇 개」로만 말한다. 어느 오행인지
- * 이름을 부르면 동의하지 않은 사람의 오행 구성이 후보 카드에 적히는 셈이다
- * (ADR 0008 이 그 공개를 동의 화면에 묶어 뒀다). 개수는 참여할 때 고지한 요약의
- * 범위 안이다.
+ * 이름을 감추면 「왜 이 사람인가」에 답할 수 없고, 답 못 하는 추천은 궁금해지지도
+ * 않는다. 여기서 부르는 것은 **내게 없는 오행 중 상대가 가진 것**뿐이다 — 상대의
+ * 전체 구성도, 개수표도, 여덟 글자도 아니다. 그 경계가 정책의 `discloses`·`withholds`
+ * 이고, 참여를 켜는 화면이 켜기 전에 같은 말을 적는다.
  */
-function reasonFor(
-  candidate: CandidateFacts,
-  { exploration, viewerMissingCount }: { exploration: boolean; viewerMissingCount: number },
-): string {
-  if (exploration) {
-    return '탐색 후보입니다 — 상위가 아닌 자리에서 일부러 섞었습니다. 한 정책이 같은 유형만 되풀이해 보여주지 않게 하려는 것입니다.';
-  }
+function highlightsFor(candidate: CandidateFacts): CandidateHighlight[] {
+  return candidate.suppliedForViewer.map((element) => ({
+    element,
+    meaning: ELEMENT_MEANING[element],
+    text: `당신에게 부족한 ${ELEMENT_KO[element]}(${element}) 기운을 채워 ${ELEMENT_MEANING[element]}을 돕는 조합입니다.`,
+  }));
+}
 
-  if (viewerMissingCount === 0) {
-    return '당신의 원국에는 빠진 오행이 없어 보완으로 견줄 것이 없습니다. 함께 놓았을 때의 오행 균형으로 섰습니다.';
-  }
+/**
+ * 함께 놓은 균형을 **숫자 대신 말로.**
+ *
+ * 82점과 79점은 절대적인 궁합 차이로 읽히지만 「고른 편」과 「대체로 고른 편」은
+ * 그렇지 않다. 경계는 정책이 값으로 든다(`balanceBands`).
+ */
+function balanceLabelFor(combinedBalance: number): string {
+  const { even, mixed } = DISCOVERY_POLICY_V0.balanceBands;
 
-  if (candidate.suppliedForViewer === 0) {
-    return `당신에게 없는 오행 ${viewerMissingCount}개를 채우지는 않습니다. 함께 놓았을 때의 오행 균형으로 섰습니다.`;
-  }
-
-  return `당신에게 없는 오행 ${viewerMissingCount}개 중 ${candidate.suppliedForViewer}개를 채웁니다.`;
+  if (combinedBalance >= even) return '함께 놓으면 오행 균형이 고르게 잡히는 편입니다.';
+  if (combinedBalance >= mixed) return '함께 놓으면 오행이 대체로 고른 편입니다.';
+  return '함께 놓아도 오행이 한쪽으로 기우는 편입니다.';
 }
 
 /**
@@ -243,7 +326,8 @@ export function rankCandidates(
         complement: round(candidate.complement),
         combinedBalance: round(candidate.combinedBalance),
       },
-      reason: reasonFor(candidate, { exploration, viewerMissingCount }),
+      highlights: highlightsFor(candidate),
+      balanceLabel: balanceLabelFor(candidate.combinedBalance),
     });
   }
 
@@ -252,5 +336,9 @@ export function rankCandidates(
     status: DISCOVERY_POLICY_V0.status,
     entries,
     caveat: CAVEAT,
+    teaser: TEASER,
+    // 없는 것을 설명하지 않는다 — 탐색 후보가 목록에 있을 때만 그 말이 선다.
+    explorationNote: entries.some((entry) => entry.exploration) ? EXPLORATION_NOTE : null,
+    notice: viewerMissingCount === 0 ? NO_MISSING_NOTICE : null,
   };
 }

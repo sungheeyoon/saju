@@ -45,18 +45,8 @@ export default async function ManagedCompatPage({
   const a = firstOf(params.a);
   const b = firstOf(params.b);
 
-  /**
-   * **그릴 것을 정하기 전에 다 읽는다.**
-   *
-   * 거절을 화면 안쪽의 컴포넌트에 두면 그 컴포넌트가 그려질 때는 응답이 이미
-   * 흘러나가기 시작했을 수 있고, 그러면 404 를 부르고도 200 이 나간다. 없는 사람과
-   * 못 보는 사람이 **같은 상태 코드**로 거절되는 것이 이 화면의 약속이라, 그 약속이
-   * 렌더 순서에 기대지 않게 여기서 먼저 답을 낸다.
-   */
-  const outcome = await pairOutcome(a, b);
-
   const [{ data: account }, { data: edges }] = await Promise.all([
-    supabase.from('app_user').select('self_person_id').maybeSingle(),
+    supabase.from('app_user').select('status, self_person_id').maybeSingle(),
     // 정책이 자기 목록만 내준다. 여기서 `user_id` 를 또 적지 않는다.
     supabase
       .from('user_person_access')
@@ -69,6 +59,22 @@ export default async function ManagedCompatPage({
     label: edge.local_label as string,
     isSelf: edge.person_id === account?.self_person_id,
   }));
+
+  /**
+   * 중지된 계정에는 아무것도 안 보인다(정책이 막는다). 그대로 두면 404 로 떨어지는데,
+   * 그건 「없는 사람」에게 하는 말이라 여기서는 틀린 말이다.
+   */
+  const suspended = account !== null && account.status !== 'active';
+
+  /**
+   * **그릴 것을 정하기 전에 다 읽는다.**
+   *
+   * 거절을 화면 안쪽의 컴포넌트에 두면 그 컴포넌트가 그려질 때는 응답이 이미
+   * 흘러나가기 시작했을 수 있고, 그러면 404 를 부르고도 200 이 나간다. 없는 사람과
+   * 못 보는 사람이 **같은 상태 코드**로 거절되는 것이 이 화면의 약속이라, 그 약속이
+   * 렌더 순서에 기대지 않게 여기서 먼저 답을 낸다.
+   */
+  const outcome = suspended ? null : await pairOutcome(a, b);
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 py-10 sm:px-6 sm:py-14">
@@ -91,9 +97,16 @@ export default async function ManagedCompatPage({
         </p>
       </header>
 
-      <PairPicker people={people} a={a} b={b} />
-
-      <Result outcome={outcome} />
+      {suspended ? (
+        <p className="text-sm text-muted">
+          중지된 계정입니다. 저장된 자료는 그대로 있고, 지금은 열어 볼 수 없습니다.
+        </p>
+      ) : (
+        <>
+          <PairPicker people={people} a={a} b={b} />
+          {outcome !== null && <Result outcome={outcome} />}
+        </>
+      )}
     </main>
   );
 }

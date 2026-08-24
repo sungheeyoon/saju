@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import { DISCOVERY_POLICY_V0, rankCandidates, type CandidateFacts } from './index';
+import type { Element } from '../saju';
+
+import { DISCOVERY_POLICY_V0, ELEMENT_MEANING, rankCandidates, type CandidateFacts } from './index';
 
 /**
  * 후보 열둘 — 점수가 겹치지 않게 벌려 둔다. 순서를 재는 시험이라 동점은 따로 본다.
  */
+const SUPPLIED: Element[][] = [[], ['木'], ['木', '金']];
+
 const pool = (count: number): CandidateFacts[] =>
   Array.from({ length: count }, (_, index) => ({
     id: `c${String(index).padStart(2, '0')}`,
     complement: 100 - index * 5,
     combinedBalance: 100 - index * 5,
-    suppliedForViewer: index % 3,
+    suppliedForViewer: SUPPLIED[index % 3],
   }));
 
 const rank = (candidates: CandidateFacts[], seed = 'seed', viewerMissingCount = 2) =>
@@ -40,8 +44,8 @@ describe('discovery-v0 는 축과 가중치를 값으로 든다', () => {
   /** 사주 점수가 낮다는 이유로 사라지는 후보는 없다(US 33) */
   it('점수가 0이어도 목록에서 빠지지 않는다', () => {
     const page = rank([
-      { id: 'zero', complement: 0, combinedBalance: 0, suppliedForViewer: 0 },
-      { id: 'high', complement: 100, combinedBalance: 100, suppliedForViewer: 2 },
+      { id: 'zero', complement: 0, combinedBalance: 0, suppliedForViewer: [] },
+      { id: 'high', complement: 100, combinedBalance: 100, suppliedForViewer: ['木', '金'] },
     ]);
 
     expect(page.entries.map((entry) => entry.id).sort()).toEqual(['high', 'zero']);
@@ -51,9 +55,9 @@ describe('discovery-v0 는 축과 가중치를 값으로 든다', () => {
 describe('줄 세우기', () => {
   it('두 축의 가중합으로 내림차순이다', () => {
     const page = rank([
-      { id: 'b', complement: 50, combinedBalance: 50, suppliedForViewer: 1 },
-      { id: 'a', complement: 90, combinedBalance: 10, suppliedForViewer: 2 },
-      { id: 'c', complement: 10, combinedBalance: 90, suppliedForViewer: 0 },
+      { id: 'b', complement: 50, combinedBalance: 50, suppliedForViewer: ['木'] },
+      { id: 'a', complement: 90, combinedBalance: 10, suppliedForViewer: ['木', '金'] },
+      { id: 'c', complement: 10, combinedBalance: 90, suppliedForViewer: [] },
     ]);
 
     // a = 90*0.54 + 10*0.46 = 53.2 · b = 50 · c = 10*0.54 + 90*0.46 = 46.8
@@ -73,7 +77,7 @@ describe('줄 세우기', () => {
       id,
       complement: 60,
       combinedBalance: 60,
-      suppliedForViewer: 1,
+      suppliedForViewer: ['木'],
     });
 
     const forward = rank([same('b'), same('a'), same('c')]);
@@ -146,31 +150,66 @@ describe('탐색 후보', () => {
   });
 });
 
-describe('제한된 설명', () => {
-  it('상대의 오행을 이름으로 적지 않는다 — 개수로만 말한다', () => {
-    const page = rank([{ id: 'a', complement: 80, combinedBalance: 60, suppliedForViewer: 2 }], 's', 3);
+describe('추천 이유 — 맛보기는 적극적으로 말한다', () => {
+  it('어느 오행을 채우는지 이름과 뜻을 말한다', () => {
+    const page = rank(
+      [{ id: 'a', complement: 80, combinedBalance: 60, suppliedForViewer: ['木', '金'] }],
+      's',
+      3,
+    );
 
-    expect(page.entries[0].reason).toBe('당신에게 없는 오행 3개 중 2개를 채웁니다.');
-    expect(page.entries[0].reason).not.toMatch(/[木火土金水]/);
+    expect(page.entries[0].highlights).toEqual([
+      {
+        element: '木',
+        meaning: ELEMENT_MEANING.木,
+        text: '당신에게 부족한 목(木) 기운을 채워 성장과 확장을 돕는 조합입니다.',
+      },
+      {
+        element: '金',
+        meaning: ELEMENT_MEANING.金,
+        text: '당신에게 부족한 금(金) 기운을 채워 안정감과 결단력을 돕는 조합입니다.',
+      },
+    ]);
   });
 
-  it('채우는 것이 없으면 없다고 말한다 — 균형으로 섰다고 적는다', () => {
-    const page = rank([{ id: 'a', complement: 20, combinedBalance: 90, suppliedForViewer: 0 }], 's', 2);
+  it('채우는 오행이 없으면 이유가 비고 균형만 남는다', () => {
+    const page = rank([{ id: 'a', complement: 20, combinedBalance: 90, suppliedForViewer: [] }], 's', 2);
 
-    expect(page.entries[0].reason).toContain('채우지는 않습니다');
-    expect(page.entries[0].reason).toContain('균형');
+    expect(page.entries[0].highlights).toEqual([]);
+    expect(page.entries[0].balanceLabel).toContain('고르게 잡히는 편');
   });
 
-  it('빠진 오행이 없는 사람에게는 보완으로 견줄 것이 없다고 말한다', () => {
-    const page = rank([{ id: 'a', complement: 70, combinedBalance: 70, suppliedForViewer: 0 }], 's', 0);
+  /**
+   * 82점과 79점은 절대적인 궁합 차이로 읽히지만 「고른 편」과 「대체로 고른 편」은
+   * 그렇지 않다. 그래서 밖으로 나가는 것은 말이고, 경계는 정책이 값으로 든다.
+   */
+  it('균형은 숫자가 아니라 말로 나간다', () => {
+    const at = (combinedBalance: number) =>
+      rank([{ id: 'a', complement: 50, combinedBalance, suppliedForViewer: [] }]).entries[0]
+        .balanceLabel;
 
-    expect(page.entries[0].reason).toContain('빠진 오행이 없어');
+    expect(at(DISCOVERY_POLICY_V0.balanceBands.even)).toContain('고르게 잡히는 편');
+    expect(at(DISCOVERY_POLICY_V0.balanceBands.mixed)).toContain('대체로 고른 편');
+    expect(at(DISCOVERY_POLICY_V0.balanceBands.mixed - 1)).toContain('한쪽으로 기우는 편');
   });
 
-  it('탐색 후보는 왜 거기 있는지를 말한다', () => {
-    const explorer = rank(pool(30)).entries.find((entry) => entry.exploration);
+  it('빠진 오행이 없는 사람에게는 목록이 그렇게 말한다', () => {
+    expect(rank(pool(3), 's', 0).notice).toContain('빠진 오행이 없어');
+    expect(rank(pool(3), 's', 2).notice).toBeNull();
+  });
 
-    expect(explorer?.reason).toContain('탐색 후보');
+  it('탐색 후보가 실제로 섰을 때만 그 말이 붙는다', () => {
+    expect(rank(pool(30)).explorationNote).toContain('탐색 후보');
+    // 후보가 둘뿐이면 탐색 자리가 없다 — 없는 것을 설명하지 않는다.
+    expect(rank(pool(2)).explorationNote).toBeNull();
+  });
+
+  /** 여기서 멈추는 이유와 다음 — 상세 궁합은 서로 동의한 뒤다(US 36) */
+  it('상세 궁합은 서로 동의한 뒤라고 목록이 말한다', () => {
+    const page = rank(pool(3));
+
+    expect(page.teaser).toContain('서로 동의하면');
+    expect(page.teaser).toContain('형충회합');
   });
 
   /** 상위가 정답이 아니라는 말은 목록이 든다(US 31) */
@@ -180,5 +219,17 @@ describe('제한된 설명', () => {
     expect(page.caveat).toContain('궁합의 좋고 나쁨이 아닙니다');
     expect(page.policyVersion).toBe('discovery-v0');
     expect(page.status).toBe('beta');
+  });
+
+  /**
+   * 무엇을 열고 무엇을 닫는지 **값으로** 든다. 주석으로 적으면 화면마다 조금씩 넓어진다.
+   */
+  it('공개 범위를 값으로 선언한다', () => {
+    expect(DISCOVERY_POLICY_V0.discloses).toContain('supplied-elements');
+    expect(DISCOVERY_POLICY_V0.discloses).toContain('element-meaning');
+
+    for (const closed of ['birth-input', 'pillars', 'relations', 'element-counts', 'score']) {
+      expect(DISCOVERY_POLICY_V0.withholds).toContain(closed);
+    }
   });
 });

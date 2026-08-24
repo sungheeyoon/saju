@@ -161,31 +161,76 @@ try {
     const body = await response.text();
 
     check('참여하면 상대가 후보로 선다', body.includes('지영'), String(response.status));
-    check('왜 그 자리에 섰는지 한 줄이 붙는다', /오행|균형|탐색 후보/.test(body));
+
+    /**
+     * **추천 이유는 적극적으로 나간다.** 어느 오행이 무엇을 채우는지까지 —
+     * 감추면 「왜 이 사람인가」에 답하지 못한다.
+     */
+    check('어느 오행을 채우는지 이름으로 말한다', /부족한 [목화토금수]\([木火土金水]\) 기운/.test(body),
+      (/당신에게 부족한[^<]{0,60}/.exec(body) ?? ['(없다)'])[0]);
+    check('그 오행이 무엇인지 뜻을 붙인다',
+      /성장과 확장|열정과 표현|중심과 포용|안정감과 결단력|유연함과 통찰/.test(body));
+    check('함께 놓았을 때의 균형을 말로 낸다', /오행 균형이 고르게|대체로 고른 편|한쪽으로 기우는 편/.test(body));
+    check('상세 궁합은 서로 동의한 뒤라고 말한다',
+      body.includes('서로 동의하면') && body.includes('형충회합'));
     check('순서가 좋고 나쁨이 아니라는 말이 함께 선다',
       body.includes('궁합의 좋고 나쁨이 아닙니다'));
 
     /**
-     * **후보의 오행 요약도, 두 축의 값도, 점수도 나가지 않는다.**
-     *
-     * 상대의 생년월일시는 애초에 이 서버에도 오지 않는다. 그래도 함께 재는 것은,
-     * 나가지 않아야 하는 것의 목록이 하나이기 때문이다.
+     * **여기서 멈추는 것들.** 맛보기가 열리는 만큼 닫히는 자리도 또렷해야 한다 —
+     * 정책의 `withholds` 가 화면에서 실제로 지켜지는지는 본문을 봐야 안다.
      */
     check('상대의 생년월일시가 응답에 없다', !body.includes('1992-03-03'));
     check('상대의 출생지가 응답에 없다', !body.includes('부산'));
-    check('오행 요약이 응답에 없다', !body.includes('glyphCount') && !body.includes('"counts"'));
+    check('상대의 오행 구성(개수표)이 응답에 없다',
+      !body.includes('glyphCount') && !body.includes('"counts"') && !body.includes('"ratios"'));
     check('두 축의 값과 점수가 응답에 없다',
       !body.includes('combinedBalance') && !body.includes('combined_balance') &&
       !/"complement"/.test(body) && !/"score"/.test(body));
+    /**
+     * 「세운」은 평범한 말과 겹치므로(「줄 세운」) 빼고, 명식을 가리키는 말만 본다.
+     * 「형충회합」은 **여기 없어야 할 것이 아니라 다음에 열리는 것**이라 위에서 따로 쟀다.
+     */
+    check('여덟 글자·십성·신살·대운은 후보 화면에 없다',
+      !/일간|십성|신살|천간|지장간|대운/.test(body));
 
     check('노출 기록이 쌓인다', impressionsFor(mine) > before, `${before} → ${impressionsFor(mine)}`);
   }
 
-  // 노출 기록의 요약 두 벌은 DB 가 채운다 — 앱은 후보의 요약을 받지도 않는다.
+  // 노출 기록의 요약·이유·두 축은 전부 DB 가 채운다 — 앱은 자리와 탐색 여부만 준다.
   {
     const filled = sql(`select count(*) from public.discovery_impression
-                        where candidate_summary ? 'counts' and viewer_summary ? 'counts'`);
-    check('노출 기록의 오행 요약은 DB 가 채운다', Number(filled) > 0, `${filled}줄`);
+                        where candidate_summary ? 'counts' and viewer_summary ? 'counts'
+                          and complement is not null and combined_balance is not null`);
+    check('노출 기록의 요약·이유·두 축을 DB 가 채운다', Number(filled) > 0, `${filled}줄`);
+  }
+
+  /**
+   * **앱이 준 후보 id 를 그대로 믿지 않는다.**
+   *
+   * 이 RPC 는 로그인한 사람이 직접 부를 수 있으므로, 아무 사람이나 적어 넣으면 남의
+   * 노출 기록이 지어진다. 화면에 무엇이 설 수 있는지를 정하는 같은 함수에 다시 묻는다.
+   */
+  {
+    const before = Number(sql('select count(*) from public.discovery_impression'));
+    const stranger = sql(`select id from auth.users where email = '${mine}'`);
+
+    const { data: written } = await me.rpc('log_discovery_impressions', {
+      p_rows: [{ candidateUserId: stranger, position: 0, exploration: false }],
+    });
+    check('내 후보가 아닌 사람은 기록에 남지 않는다', Number(written) === 0, String(written));
+    check('그래서 기록도 늘지 않는다',
+      Number(sql('select count(*) from public.discovery_impression')) === before);
+  }
+
+  /**
+   * `p_limit` 은 부르는 쪽이 못 늘리고 못 없앤다. 위 상한(200)은 이만한 풀에서
+   * 재지지 않으므로 아래쪽만 잰다.
+   */
+  {
+    const { data: rows, error } = await me.rpc('discovery_candidates', { p_limit: 0 });
+    check('상한을 0 으로 줘도 목록이 사라지지 않는다', !error && (rows ?? []).length === 1,
+      error?.message ?? `${(rows ?? []).length}줄`);
   }
 
   // ── 7. 다시 보지 않기 ───────────────────────────────────────────────────────

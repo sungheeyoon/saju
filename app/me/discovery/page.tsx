@@ -143,10 +143,18 @@ function Candidates({ board, hiddenCount }: { board: CandidateBoard; hiddenCount
         </p>
       </div>
 
-      {/* 순서가 정답이 아니라는 말은 **목록이 든다** — 정책이 낸 문장 그대로다 */}
-      <p className="rounded-md border border-border bg-surface-sunken p-3 text-xs text-muted">
-        {board.caveat}
+      {/*
+        여기서 멈추는 이유와 다음을 먼저 말한다 — **상세 궁합은 서로 동의한 뒤**다.
+        문장은 정책이 든다.
+      */}
+      <p className="rounded-md border border-border bg-surface-sunken p-3 text-sm">
+        {board.teaser}
       </p>
+
+      {board.notice !== null && <p className="text-sm text-secondary">{board.notice}</p>}
+
+      {/* 순서가 정답이 아니라는 말은 **목록이 든다** — 정책이 낸 문장 그대로다 */}
+      <p className="text-xs text-muted">{board.caveat}</p>
 
       {board.cards.length === 0 ? (
         <p className="text-sm text-muted">
@@ -168,7 +176,25 @@ function Candidates({ board, hiddenCount }: { board: CandidateBoard; hiddenCount
 
               {card.intro !== null && <p className="text-sm text-secondary">{card.intro}</p>}
 
-              <p className="text-sm">{card.reason}</p>
+              {/*
+                **추천 이유는 적극적으로 말한다.** 어느 오행이 무엇을 채우는지까지 —
+                감추면 「왜 이 사람인가」에 답하지 못한다. 문장은 정책이 지어 오고
+                (`ELEMENT_MEANING`), 화면은 글자를 앞에 세우기만 한다.
+              */}
+              {card.highlights.length > 0 && (
+                <ul className="flex flex-col gap-1.5">
+                  {card.highlights.map((highlight) => (
+                    <li key={highlight.element} className="flex items-baseline gap-2 text-sm">
+                      <span className="glyph rounded-md bg-accent-wash px-1.5 py-0.5 text-accent">
+                        {highlight.element}
+                      </span>
+                      <span>{highlight.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <p className="text-sm text-secondary">{card.balanceLabel}</p>
 
               <div className="flex flex-wrap items-center gap-4 border-t border-border pt-2">
                 <HideButton candidateUserId={card.candidateUserId} />
@@ -183,6 +209,11 @@ function Candidates({ board, hiddenCount }: { board: CandidateBoard; hiddenCount
             </li>
           ))}
         </ul>
+      )}
+
+      {/* 없는 것을 설명하지 않는다 — 탐색 후보가 실제로 섰을 때만 이 말이 붙는다 */}
+      {board.explorationNote !== null && (
+        <p className="text-xs text-muted">{board.explorationNote}</p>
       )}
 
       <UnhideAll count={hiddenCount} />

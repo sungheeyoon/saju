@@ -1,6 +1,6 @@
 -- discovery — 참여한 사람만 보고, 사주로는 아무도 지우지 않는다.
 begin;
-select plan(27);
+select plan(32);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim,
@@ -56,10 +56,22 @@ select is(
   56.2500::numeric,
   '함께 놓은 균형은 56.25 다');
 
+/**
+ * **개수가 아니라 이름을 낸다.**
+ *
+ * 후보 카드는 「무엇을 채우는지」를 말해야 하는 맛보기다. 개수만 내면 그 말을 할 수
+ * 없다. 여기서 나가는 것은 내게 없는 오행 중 상대가 가진 것뿐이고, 상대의 전체
+ * 구성(개수표)은 여전히 안 나간다(ADR 0003 「이행」).
+ */
 select is(
-  public.discovery_supplied_count((select 토금뿐 from summaries), (select 고른네오행 from summaries)),
-  2,
-  '채우는 개수는 따로 센다');
+  public.discovery_supplied_elements((select 토금뿐 from summaries), (select 고른네오행 from summaries)),
+  array['木', '火'],
+  '채우는 오행을 이름으로 낸다');
+
+select is(
+  public.discovery_supplied_elements((select 고른네오행 from summaries), (select 토금뿐 from summaries)),
+  array[]::text[],
+  '채우는 것이 없으면 빈 목록이다');
 
 -- ── 요약의 모양 ───────────────────────────────────────────────────────────────
 select is(public.is_element_summary((select 고른네오행 from summaries)), true,
@@ -183,8 +195,19 @@ select set_config('request.jwt.claims', tests.claims((select kim from who)), tru
 select results_eq(
   format($$select nickname, supplied_for_viewer from public.discovery_candidates()
            where candidate_user_id = %L$$, (select lee from who)),
-  $$values ('지영'::text, 0)$$,
-  '참여한 상대가 후보로 선다 — 두 축의 값과 함께');
+  $$values ('지영'::text, array[]::text[])$$,
+  '참여한 상대가 후보로 선다 — 채우는 오행과 함께');
+
+/**
+ * `p_limit` 은 **부르는 쪽이 못 늘리고 못 없앤다.**
+ *
+ * 0 을 주면 1 로 올라간다. 위쪽 상한(200)은 이만한 풀에서는 재지지 않으므로 여기서
+ * 재는 것은 아래쪽뿐이다 — 그래도 「부르는 값이 그대로 쓰이지 않는다」는 사실은 선다.
+ */
+select is(
+  (select count(*)::int from public.discovery_candidates(0)),
+  1,
+  '상한을 0 으로 줘도 부르는 쪽이 목록을 없애지 못한다');
 
 -- ── 하드 제외 ─────────────────────────────────────────────────────────────────
 insert into public.discovery_hidden (hidden_user_id) values ((select lee from who));
@@ -239,12 +262,34 @@ select is(
   '요약이 지금 판본의 것이 아니면 후보가 아니다 — 낡은 값으로 줄 세우지 않는다');
 
 -- ── 노출 기록 ─────────────────────────────────────────────────────────────────
+--
+-- 바로 위에서 상대의 요약을 낡게 했으므로 되살려 놓고 잰다. 낡은 사람은 후보가
+-- 아니고, 후보가 아니면 기록도 안 남는 것이 이 함수의 규칙이기 때문이다.
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select lee from who)), true);
+select public.set_discovery_participation(true, (select 토금뿐 from summaries));
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
+
 select is(
   public.log_discovery_impressions(
-    format('[{"candidateUserId":"%s","position":0,"exploration":false,"reason":"검사"}]',
+    format('[{"candidateUserId":"%s","position":0,"exploration":false}]',
       (select lee from who))::jsonb),
   1,
   '노출을 기록한다');
+
+/**
+ * 후보를 다시 참여시켜 놓고 기록을 잰다 — 바로 위에서 요약을 낡게 했기 때문이다.
+ */
+select is(
+  public.log_discovery_impressions(
+    format('[{"candidateUserId":"%s","position":0,"exploration":false}]',
+      (select park from who))::jsonb),
+  0,
+  '내 후보가 아닌 사람은 기록에 남지 않는다 — 앱이 준 id 를 그대로 믿지 않는다');
 
 select throws_ok(
   $$select count(*) from public.discovery_impression$$,
@@ -258,10 +303,28 @@ reset role;
  * 아니라 「앱이 무엇이라고 했나」의 기록이 된다.
  */
 select is(
+  (select count(*)::int from public.discovery_impression
+   where viewer_user_id = (select kim from who)),
+  1,
+  '내 후보인 사람만 기록에 남는다');
+
+select is(
   (select viewer_summary -> 'counts' ->> '木' from public.discovery_impression
    where viewer_user_id = (select kim from who)),
   '2',
   '노출 기록의 오행 요약은 앱이 아니라 DB 가 채운다');
+
+/**
+ * 추천 이유와 두 축도 **DB 가 그 자리에서 계산한다.**
+ *
+ * 앱이 문장을 실어 보내면 기록이 「그때 무엇이었나」가 아니라 「앱이 무엇이라고 했나」가
+ * 된다. 앱이 주는 것은 자리와 탐색 여부 둘뿐이다.
+ */
+select is(
+  (select supplied_elements from public.discovery_impression
+   where viewer_user_id = (select kim from who)),
+  array[]::text[],
+  '노출 기록의 추천 이유도 DB 가 계산한다');
 
 select * from finish();
 rollback;

@@ -38,7 +38,7 @@ export default async function PeoplePage() {
   if (!user) redirect('/auth');
 
   const [{ data: account }, { data: edges }] = await Promise.all([
-    supabase.from('app_user').select('self_person_id').maybeSingle(),
+    supabase.from('app_user').select('status, self_person_id').maybeSingle(),
     // 정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
     supabase
       .from('user_person_access')
@@ -46,8 +46,15 @@ export default async function PeoplePage() {
       .order('created_at', { ascending: true }),
   ]);
 
+  /**
+   * 중지된 계정에는 목록이 **비어서** 온다(정책이 막는다). 빈 목록과 「등록한 사람이
+   * 없다」가 같은 화면이면 사용자는 자기 자료가 지워진 줄 안다. 그래서 여기서 한 번 더
+   * 말한다 — 막는 것은 정책이고, 화면은 그 사실을 옮기기만 한다.
+   */
+  const suspended = account !== null && account.status !== 'active';
+
   const managed = (edges ?? []).filter((edge) => edge.person_id !== account?.self_person_id);
-  const people = await peopleWithCharts(managed);
+  const people = suspended ? [] : await peopleWithCharts(managed);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-12 sm:px-6 sm:py-16">
@@ -69,8 +76,23 @@ export default async function PeoplePage() {
         </p>
       </header>
 
-      <AddPerson remaining={PERSON_LIMIT - people.length} />
+      {suspended ? (
+        <p className="text-sm text-muted">
+          중지된 계정입니다. 저장된 자료는 그대로 있고, 지금은 열어 볼 수 없습니다.
+        </p>
+      ) : (
+        <>
+          <AddPerson remaining={PERSON_LIMIT - people.length} />
+          <PeopleList people={people} />
+        </>
+      )}
+    </main>
+  );
+}
 
+function PeopleList({ people }: { people: Person[] }) {
+  return (
+    <>
       {people.length === 0 ? (
         <p className="rounded-xl border border-border bg-surface-sunken p-4 text-sm text-muted">
           아직 등록한 사람이 없습니다. 부를 이름과 생년월일시를 넣으면 여기에 쌓입니다.
@@ -84,7 +106,7 @@ export default async function PeoplePage() {
           ))}
         </ul>
       )}
-    </main>
+    </>
   );
 }
 

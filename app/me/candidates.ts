@@ -1,23 +1,31 @@
-import { ELEMENTS, koreaDateOf } from '@/src/lib/saju';
+import { ELEMENTS, koreaDateOf, type Element } from '@/src/lib/saju';
 import type { ElementSummary } from '@/src/lib/matching/elementAxes';
-import { DISCOVERY_POLICY_V0, rankCandidates, type CandidateFacts } from '@/src/lib/discovery';
+import {
+  DISCOVERY_POLICY_V0,
+  rankCandidates,
+  type CandidateFacts,
+  type CandidateHighlight,
+} from '@/src/lib/discovery';
 
 import { supabaseOnServer } from '../auth/server-client';
 
 /**
  * **후보가 브라우저로 내려가는 유일한 문.**
  *
- * `payloadForViewer` 와 같은 규율이다 — 묻지 않고 답만 낸다. 다만 자를 것이 훨씬
- * 많다. 후보는 나에게 아무것도 동의하지 않은 사람이므로, 여기서 나가는 것은 그 사람이
- * **참여하면서 내놓기로 한 것**뿐이다: 별명, 소개, 그리고 왜 이 자리에 섰는지 한 줄.
+ * `payloadForViewer` 와 같은 규율이다 — 묻지 않고 답만 낸다. 다만 **자르는 자리가 다르다.**
+ * 후보 카드는 맛보기이므로 추천 이유는 적극적으로 나간다: 별명, 소개, **어느 오행을
+ * 채우는지와 그 뜻**, 함께 놓았을 때의 균형을 말로 옮긴 한 줄.
  *
- * 나가지 않는 것: 출생 원문·출생지·전체 명식(ADR 0008)은 물론이고 **오행 요약과 두
- * 축의 값, 점수까지** 나가지 않는다.
+ * 나가지 않는 것(정책의 `withholds`): 생년월일시·출생지, 여덟 글자, 천간·지지,
+ * 십성·신살·형충회합, 운, Evidence, **상대의 전체 오행 구성(개수표)**, 그리고 점수.
  *
- * - 요약과 축은 애초에 이 서버에도 오지 않는다. DB 가 두 축으로 바꿔서 내준다
- *   (`discovery_candidates`) — 벡터를 받아 와 화면에서 접는 것은 접은 척일 뿐이다.
- * - 점수는 받아 놓고 안 보낸다. 순서가 궁합의 좋고 나쁨이 아니라고 화면이 말하는데
- *   옆에 숫자가 서 있으면 그 말은 아무도 안 믿는다. 줄 세우는 데는 쓰고, 내보내지 않는다.
+ * - 원문과 요약 전체는 애초에 이 서버에도 오지 않는다. DB 가 두 축과 **채우는 오행**
+ *   으로 바꿔서 내준다(`discovery_candidates`) — 벡터를 받아 와 화면에서 접는 것은
+ *   접은 척일 뿐이다.
+ * - 점수는 받아 놓고 안 보낸다. 82점과 79점은 절대적인 궁합 차이로 읽힌다. 줄 세우는
+ *   데는 쓰고, 밖으로는 말로 바꿔 낸다.
+ * - 형충회합과 상세 근거는 **서로 동의한 뒤**에 열린다. 여기서는 그것이 다음이라는
+ *   것만 말한다.
  */
 
 /**
@@ -34,14 +42,19 @@ export type CandidateCard = {
   /** 0부터 — 화면의 차례이자 노출 기록이 든 자리 */
   readonly position: number;
   readonly exploration: boolean;
-  /** 제한된 설명 — 상대의 명식을 적지 않는다 */
-  readonly reason: string;
+  /** 추천 이유 — 채우는 오행과 그 뜻. 없을 수도 있다 */
+  readonly highlights: readonly CandidateHighlight[];
+  /** 함께 놓았을 때의 균형 — 숫자가 아니라 말 */
+  readonly balanceLabel: string;
   readonly [granted]: true;
 };
 
 export type CandidateBoard = {
   readonly policyVersion: string;
   readonly caveat: string;
+  readonly teaser: string;
+  readonly explorationNote: string | null;
+  readonly notice: string | null;
   readonly cards: CandidateCard[];
 };
 
@@ -52,7 +65,8 @@ type CandidateRow = {
   intro: string | null;
   complement: number | string;
   combined_balance: number | string;
-  supplied_for_viewer: number | string;
+  /** 내게 없는 오행 중 이 후보가 가진 것 — 상대의 전체 구성이 아니다 */
+  supplied_for_viewer: string[] | null;
 };
 
 /**
@@ -86,7 +100,9 @@ export async function candidatesForViewer(
     // `numeric` 은 자리에 따라 문자열로 오기도 한다. 숫자로 좁히는 자리를 하나 둔다.
     complement: Number(row.complement),
     combinedBalance: Number(row.combined_balance),
-    suppliedForViewer: Number(row.supplied_for_viewer),
+    suppliedForViewer: (row.supplied_for_viewer ?? []).filter((element): element is Element =>
+      (ELEMENTS as readonly string[]).includes(element),
+    ),
   }));
 
   const profiles = new Map(
@@ -116,7 +132,8 @@ export async function candidatesForViewer(
       intro: profile?.intro ?? null,
       position: entry.position,
       exploration: entry.exploration,
-      reason: entry.reason,
+      highlights: entry.highlights,
+      balanceLabel: entry.balanceLabel,
       [granted]: true as const,
     };
   });
@@ -130,11 +147,15 @@ export async function candidatesForViewer(
    */
   if (cards.length > 0) {
     const { error: logError } = await supabase.rpc('log_discovery_impressions', {
+      /**
+       * 앱이 주는 것은 **자리와 탐색 여부 둘**뿐이다. 그 둘만 정렬이 앱에서 일어나
+       * 앱만 아는 값이고, 나머지는 DB 가 그 자리에서 계산한다 — 후보 id 가 정말 지금
+       * 내 후보인지도 DB 가 같은 함수에 다시 묻는다.
+       */
       p_rows: page.entries.map((entry) => ({
         candidateUserId: entry.id,
         position: entry.position,
         exploration: entry.exploration,
-        reason: entry.reason,
       })),
     });
 
@@ -144,6 +165,9 @@ export async function candidatesForViewer(
   return {
     policyVersion: DISCOVERY_POLICY_V0.version,
     caveat: page.caveat,
+    teaser: page.teaser,
+    explorationNote: page.explorationNote,
+    notice: page.notice,
     cards,
   };
 }

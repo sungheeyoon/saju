@@ -163,7 +163,16 @@ create table public.discovery_impression (
   /** 그때의 오행 요약 — 나중에 노출 쏠림을 되짚는 유일한 근거다 */
   viewer_summary jsonb not null,
   candidate_summary jsonb not null,
-  reason text not null,
+
+  /**
+   * 그때의 추천 이유와 두 축 — **전부 DB 가 그 자리에서 계산한다.**
+   *
+   * 앱이 만든 문장을 실어 보내면 기록이 「그때 무엇이었나」가 아니라 「앱이 무엇이라고
+   * 했나」가 된다. 자리와 탐색 여부만 앱이 정한 것이라 앱이 준다.
+   */
+  supplied_elements text[] not null,
+  complement numeric not null,
+  combined_balance numeric not null,
 
   shown_at timestamptz not null default now()
 );
@@ -227,14 +236,19 @@ as $$
   from unnest(array['木', '火', '土', '金', '水']) as e;
 $$;
 
-/** 내게 없는 오행 중 상대가 가진 개수 — 후보 카드의 문장이 쓰는 수 */
-create or replace function public.discovery_supplied_count(mine jsonb, partner jsonb)
-returns integer
+/**
+ * 내게 없는 오행 중 **상대가 가진 것** — 후보 카드가 이름을 부르고 뜻을 붙인다.
+ *
+ * 개수만 내면 카드가 「무엇을 채우는지」를 말하지 못한다. 그 이름은 추천에 직접 필요한
+ * 값이라 공개하고, 상대의 **전체 구성(개수표)** 은 여전히 내주지 않는다(ADR 0003).
+ */
+create or replace function public.discovery_supplied_elements(mine jsonb, partner jsonb)
+returns text[]
 language sql
 immutable
 set search_path = ''
 as $$
-  select count(*)::int
+  select coalesce(array_agg(e order by e), array[]::text[])
   from unnest(array['木', '火', '土', '金', '水']) as e
   where (mine -> 'counts' ->> e)::numeric = 0
     and (partner -> 'counts' ->> e)::numeric > 0;
@@ -382,6 +396,10 @@ begin
     raise exception '로그인이 필요합니다.' using errcode = '28000';
   end if;
 
+  if (select status from public.app_user where id = actor) <> 'active' then
+    raise exception '중지된 계정입니다.' using errcode = '42501';
+  end if;
+
   select self_person_id into self_person from public.app_user where id = actor;
 
   -- 내 사주가 아니면 아무 일도 아니다. 가족·친구를 고쳤다고 내 노출이 바뀌지 않는다.
@@ -423,9 +441,8 @@ $$;
  * 낡은 요약, 다시 보지 않기로 한 상대, 양쪽이 직접 설정한 성별 조건.
  * **차단 표가 생기면 여기 한 줄이 는다**(6단계).
  *
- * 점수로 자르는 자리는 없다. `p_limit` 은 정렬이 아니라 **한 번에 읽을 양의 상한**이고,
- * 풀이 이 수에 닿기 시작하면 그때는 줄 세우기를 SQL 로 내리거나 재현 가능한 쪽수를
- * 만들어야 한다 — 지금 잘리는 차례는 아무 뜻이 없기 때문이다.
+ * 점수로 자르는 자리는 없다. `p_limit` 은 정렬이 아니라 **한 번에 읽을 양의 상한**이고
+ * 200 을 넘기지 못한다(아래).
  */
 create or replace function public.discovery_candidates(p_limit integer default 200)
 returns table (
@@ -434,7 +451,7 @@ returns table (
   intro text,
   complement numeric,
   combined_balance numeric,
-  supplied_for_viewer integer
+  supplied_for_viewer text[]
 )
 language plpgsql
 security definer
@@ -478,7 +495,7 @@ begin
     other.intro,
     public.discovery_complement(me.element_summary, other.element_summary),
     public.discovery_combined_balance(me.element_summary, other.element_summary),
-    public.discovery_supplied_count(me.element_summary, other.element_summary)
+    public.discovery_supplied_elements(me.element_summary, other.element_summary)
   from public.discovery_profile other
   join public.app_user u on u.id = other.user_id
   join public.person p on p.id = u.self_person_id
@@ -496,16 +513,30 @@ begin
     -- 나를 조건 밖으로 둔 사람에게 안 보이는 것은 같은 규칙의 두 얼굴이다.
     and (me.prefer_gender = 'any' or r.gender = me.prefer_gender)
     and (other.prefer_gender = 'any' or other.prefer_gender = my_gender)
-  limit greatest(p_limit, 0);
+  /**
+   * **상한은 부르는 쪽이 못 늘린다.**
+   *
+   * `p_limit` 은 정렬이 아니라 한 번에 읽을 양의 상한이다. 클라이언트가 그대로 부를 수
+   * 있으므로 위를 잠근다 — 안 잠그면 한 번의 호출로 풀 전체를 긁어 갈 수 있다.
+   * 풀이 이 수에 닿기 시작하면 그때는 줄 세우기를 SQL 로 내리거나 재현 가능한 쪽수를
+   * 만들어야 한다. 지금 잘리는 차례는 아무 뜻이 없기 때문이다.
+   */
+  limit least(greatest(p_limit, 1), 200);
 end;
 $$;
 
 /**
  * 무엇을 보여줬는지 남긴다.
  *
- * 자리와 탐색 여부는 앱이 정한 것이라 앱이 준다. **오행 요약 두 벌은 DB 가 채운다** —
- * 앱이 실어 보내면 노출 기록이 「그때 무엇이었나」가 아니라 「앱이 무엇이라고 했나」가
- * 되고, 애초에 앱은 후보의 요약을 받지도 않는다.
+ * 앱이 주는 것은 **자리와 탐색 여부 둘**뿐이다. 그 둘은 정렬이 앱에서 일어나므로 앱만
+ * 아는 값이고, 나머지(오행 요약 두 벌·채우는 오행·두 축)는 **DB 가 그 자리에서
+ * 계산한다.** 앱이 실어 보내면 기록이 「그때 무엇이었나」가 아니라 「앱이 무엇이라고
+ * 했나」가 되고, 애초에 앱은 후보의 요약을 받지도 않는다.
+ *
+ * **후보 id 를 그대로 믿지 않는다.** 이 함수는 로그인한 사람이 직접 부를 수 있으므로,
+ * 아무 사람이나 적어 넣으면 남의 노출 기록이 지어진다. 그래서 `discovery_candidates` —
+ * 화면에 무엇이 설 수 있는지를 정하는 **같은 함수** — 에 다시 물어서, 지금 내 후보인
+ * 사람만 남긴다. 자격을 두 곳에 적으면 언젠가 한쪽만 고쳐진다.
  */
 create or replace function public.log_discovery_impressions(p_rows jsonb)
 returns integer
@@ -521,36 +552,54 @@ begin
     raise exception '로그인이 필요합니다.' using errcode = '28000';
   end if;
 
+  if (select status from public.app_user where id = actor) <> 'active' then
+    raise exception '중지된 계정입니다.' using errcode = '42501';
+  end if;
+
   if not exists (
     select 1 from public.discovery_profile where user_id = actor and opted_in_at is not null
   ) then
     raise exception '매칭 참여를 먼저 켜 주세요.' using errcode = '42501';
   end if;
 
-  with rows as (
+  if jsonb_typeof(p_rows) <> 'array' then
+    raise exception '노출 기록의 모양이 맞지 않습니다.' using errcode = '22023';
+  end if;
+
+  with shown as (
     select
       (row ->> 'candidateUserId')::uuid as candidate_user_id,
       (row ->> 'position')::int as position,
-      (row ->> 'exploration')::boolean as exploration,
-      row ->> 'reason' as reason
+      (row ->> 'exploration')::boolean as exploration
     from jsonb_array_elements(p_rows) as row
+    -- 한 번에 남길 수 있는 양의 상한. 한 화면이 이보다 길 수 없다.
+    limit 100
+  ),
+  eligible as (
+    -- **화면이 묻는 것과 같은 함수에 묻는다.** 지금 내 후보가 아닌 사람은 안 남는다.
+    select candidate_user_id from public.discovery_candidates(200)
   )
   insert into public.discovery_impression (
     viewer_user_id, candidate_user_id, policy_version, position, exploration,
-    viewer_summary, candidate_summary, reason
+    viewer_summary, candidate_summary, supplied_elements, complement, combined_balance
   )
   select
     actor,
-    rows.candidate_user_id,
+    shown.candidate_user_id,
     'discovery-v0',
-    rows.position,
-    rows.exploration,
+    shown.position,
+    shown.exploration,
     mine.element_summary,
     theirs.element_summary,
-    rows.reason
-  from rows
+    public.discovery_supplied_elements(mine.element_summary, theirs.element_summary),
+    public.discovery_complement(mine.element_summary, theirs.element_summary),
+    public.discovery_combined_balance(mine.element_summary, theirs.element_summary)
+  from shown
+  join eligible on eligible.candidate_user_id = shown.candidate_user_id
   join public.discovery_profile mine on mine.user_id = actor
-  join public.discovery_profile theirs on theirs.user_id = rows.candidate_user_id;
+  join public.discovery_profile theirs on theirs.user_id = shown.candidate_user_id
+  where shown.position between 0 and 999
+    and shown.exploration is not null;
 
   get diagnostics written = row_count;
   return written;
