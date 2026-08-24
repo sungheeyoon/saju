@@ -193,6 +193,35 @@ const other = anon();
   const { data: edge } = await client
     .from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle();
   check('고친 이름이 되읽힌다', edge?.local_label === '아빠', edge?.local_label);
+
+  // ── 음력 판본 — 원본과 변환값을 둘 다 든다 ─────────────────────────────────
+  const { data: lunar, error: lunarError } = await revise({
+    p_calendar: 'lunar',
+    p_original_date: '1990-04-21',
+    p_solar_date: '1990-05-15',
+  });
+  check('음력 판본을 받는다', typeof lunar === 'string', lunarError?.message);
+
+  const { data: stored } = await client
+    .from('person_chart_revision')
+    .select('calendar, original_date, solar_date')
+    .eq('id', lunar)
+    .maybeSingle();
+  check(
+    '사용자가 적은 음력과 변환된 양력이 둘 다 남는다',
+    stored?.calendar === 'lunar' &&
+      stored?.original_date === '1990-04-21' &&
+      stored?.solar_date === '1990-05-15',
+    JSON.stringify(stored),
+  );
+
+  // 변환은 앱이 한다. DB 가 잡을 수 있는 것은 변환을 아예 건너뛴 쓰기다.
+  const { error: skipped } = await revise({
+    p_calendar: 'lunar',
+    p_original_date: '1990-04-21',
+    p_solar_date: '1990-04-21',
+  });
+  check('변환을 건너뛴 음력 쓰기는 거절된다', skipped?.code === '23514', skipped?.code);
 }
 
 // ── 8. 남은 못 고친다 — RPC 는 정책을 지나가므로 스스로 물어야 한다 ───────────

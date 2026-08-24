@@ -1,14 +1,19 @@
 'use client';
 
 import {
+  CALENDARS,
+  CALENDAR_KO,
   CITY_LONGITUDES,
   GENDERS,
   GENDER_KO,
+  LUNAR_SUPPORTED_YEAR_RANGE,
+  type Calendar,
   type CityName,
   type Gender,
   type LateNightRule,
 } from '@/src/lib/saju';
 
+import { solarDateOf } from './chart';
 import { NAME_MAX, TIME_BASES, TIME_BASIS, type Query, type TimeBasis } from './query';
 
 /**
@@ -82,6 +87,24 @@ export function BasisRadio({
   );
 }
 
+/**
+ * 음력 입력 아래에 적을 한 줄 — 바뀐 양력이거나, 못 바꾼 이유다.
+ *
+ * 못 바꾼 이유를 「변환할 수 없습니다」로 뭉개지 않는다. 표 밖·없는 윤달·없는 날은
+ * 사용자가 할 일이 서로 다르고, 그 말을 이미 변환 모듈이 들고 있다.
+ */
+function convertedLine(value: Query): { ok: boolean; text: string } | null {
+  if (value.calendar === 'solar' || value.date === '') return null;
+
+  try {
+    const { year, month, day } = solarDateOf(value);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return { ok: true, text: `양력 ${year}-${pad(month)}-${pad(day)} 로 계산합니다` };
+  } catch (error) {
+    return { ok: false, text: error instanceof Error ? error.message : '양력으로 바꾸지 못했습니다.' };
+  }
+}
+
 export function BirthFields({
   value,
   onChange,
@@ -104,6 +127,10 @@ export function BirthFields({
   const chooseHour = (known: boolean) =>
     onChange({ ...value, hourKnown: known, time: known ? value.time : '' });
 
+  // 미리보기도 계산과 **같은 함수**를 부른다. 폼이 따로 변환하면 화면에 보인
+  // 양력과 계산에 들어간 양력이 갈릴 수 있다.
+  const converted = convertedLine(value);
+
   return (
     <>
       <div className="flex flex-wrap items-end gap-3">
@@ -119,17 +146,55 @@ export function BirthFields({
           />
         </Field>
 
-        <Field label="생년월일">
-          <input
-            type="date"
-            value={value.date}
-            onChange={(e) => set('date', e.target.value)}
-            min="1900-01-01"
-            max="2100-12-31"
-            required
-            className={FIELD}
-          />
-        </Field>
+        {/*
+          달력 형식과 날짜는 **함께 읽어야 뜻이 생긴다.** 「1984-10-05」 하나로는
+          양력인지 음력인지 알 수 없고, 음력이면 평달인지 윤달인지에 따라 실제
+          날이 한 달 떨어진다. 그래서 두 칸을 붙여 두고 변환 결과를 바로 밑에 적는다.
+        */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-end gap-2">
+            <Field label="달력">
+              <select
+                value={value.calendar}
+                onChange={(e) => set('calendar', e.target.value as Calendar)}
+                className={FIELD}
+              >
+                {CALENDARS.map((calendar) => (
+                  <option key={calendar} value={calendar}>
+                    {CALENDAR_KO[calendar]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="생년월일">
+              <input
+                type="date"
+                value={value.date}
+                onChange={(e) => set('date', e.target.value)}
+                min={value.calendar === 'solar' ? '1900-01-01' : `${LUNAR_SUPPORTED_YEAR_RANGE.min}-01-01`}
+                max={`${LUNAR_SUPPORTED_YEAR_RANGE.max}-12-31`}
+                required
+                className={FIELD}
+              />
+            </Field>
+          </div>
+
+          {/*
+            변환 결과를 **저장이나 계산 전에** 보여준다. 사용자가 아는 것은 음력
+            날짜뿐인데, 우리가 무엇을 양력으로 잡았는지 못 보면 잘못 골랐다는 것을
+            결과 화면에 가서야 알게 된다.
+          */}
+          {converted !== null && (
+            <p
+              role={converted.ok ? undefined : 'alert'}
+              // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
+              className={`text-xs ${converted.ok ? 'text-secondary' : 'font-medium'}`}
+            >
+              {converted.text}
+            </p>
+          )}
+        </div>
 
         {/*
           체크박스가 아니라 라디오 둘이다. 체크박스는 **꺼진 상태가 답처럼

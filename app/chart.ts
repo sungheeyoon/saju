@@ -1,6 +1,29 @@
-import { CITY_LONGITUDES, computeSaju, type Saju } from '@/src/lib/saju';
+import {
+  CITY_LONGITUDES,
+  computeSaju,
+  solarFromLunar,
+  type CivilDate,
+  type Saju,
+} from '@/src/lib/saju';
 
 import { TIME_BASIS, missingForCalculation, type Query } from './query';
+
+/**
+ * 입력의 생년월일을 양력으로 — **음력을 양력으로 바꾸는 유일한 자리.**
+ *
+ * `computeSaju` 는 양력만 받는다(ADR 0002). 변환을 여기 하나로 모으는 이유는
+ * 폼과 계산이 서로 다른 자리에서 바꾸면 「화면에 보이는 양력」과 「계산에 들어간
+ * 양력」이 갈릴 수 있기 때문이다. 폼의 미리보기도 이 함수를 부른다.
+ *
+ * 표 밖이거나 없는 날이면 `LunarConversionError` 를 던진다 — 부르는 쪽이
+ * `calculateChart` 면 그 문장이 그대로 화면에 선다.
+ */
+export function solarDateOf(query: Query): CivilDate {
+  const [year, month, day] = query.date.split('-').map(Number);
+  if (query.calendar === 'solar') return { year, month, day };
+
+  return solarFromLunar({ year, month, day, leap: query.calendar === 'lunar_leap' });
+}
 
 /**
  * 입력 한 벌을 명식으로 바꾸는 **한 자리.**
@@ -13,8 +36,9 @@ import { TIME_BASIS, missingForCalculation, type Query } from './query';
  * 「저장하기 전에 본 사주」와 「저장한 뒤에 보는 사주」가 달라질 자리가 생긴다.
  * 엔진이 순수 TypeScript 라(React·Next 의존성이 없다) 양쪽에서 그대로 돈다.
  */
+
 export function chartOf(query: Query): Saju {
-  const [year, month, day] = query.date.split('-').map(Number);
+  const { year, month, day } = solarDateOf(query);
   const [hour, minute] = query.time.split(':').map(Number);
   const { useLongitude, useEquationOfTime } = TIME_BASIS[query.basis];
 
@@ -46,8 +70,8 @@ export function calculateChart(query: Query): ChartResult {
   const missing = missingForCalculation(query);
   if (missing !== null) return { ok: false, message: missing };
 
-  const [year, month, day] = query.date.split('-').map(Number);
-  if ([year, month, day].some((n) => !Number.isFinite(n))) {
+  const parts = query.date.split('-').map(Number);
+  if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) {
     return { ok: false, message: '생년월일을 입력해 주세요.' };
   }
 

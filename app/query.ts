@@ -1,6 +1,8 @@
 import {
+  CALENDARS,
   CITY_LONGITUDES,
   GENDERS,
+  type Calendar,
   type CityName,
   type Gender,
   type LateNightRule,
@@ -72,6 +74,25 @@ export type Query = {
    * 코드로 반박할 수 없게 된다 — 성별이 대운 방향을 바꾸는 것과 정반대다.
    */
   name: string;
+  /**
+   * 사용자가 아는 생일의 형식 — 양력인가, 음력 평달인가, 음력 윤달인가.
+   *
+   * 부모 세대는 생일을 음력으로 아는 경우가 흔한데, 폼이 양력만 받으면 음력
+   * 날짜를 양력 칸에 그대로 적고 **틀린 사주가 나오는데 화면은 아무 말도 하지
+   * 않는다**(ADR 0002). 그래서 형식을 묻는다.
+   *
+   * 평달과 윤달을 한 값으로 합치지 않는다. 「음력 1984년 10월 5일」은 두 날이
+   * 실재하고 서로 한 달 떨어져 있다.
+   */
+  calendar: Calendar;
+  /**
+   * 사용자가 적은 생년월일 — **`calendar` 형식 그대로다.**
+   *
+   * 음력 입력이면 여기 담긴 것은 음력 날짜이고, 양력 변환은 이 값을 읽는
+   * `chart.ts` 의 `solarDateOf` 한 곳에서 일어난다. 변환된 값을 함께 싣지
+   * 않는 이유는 두 벌이 어긋날 자리를 만들지 않기 위해서다 — 저장된 판본만은
+   * 그 시절의 변환을 붙들어야 해서 예외이고, 그 대조는 `revision.ts` 가 한다.
+   */
   date: string;
   time: string;
   /**
@@ -99,6 +120,7 @@ export type Query = {
 
 export const DEFAULT_QUERY: Query = {
   name: '',
+  calendar: 'solar',
   // 결과를 예시 명식으로 채우지 않는다. 사용자가 입력하기 전에는 빈 상태다.
   date: '',
   time: '',
@@ -194,8 +216,19 @@ export function toSearchParams(query: Query, prefix: QueryPrefix = ''): URLSearc
    */
   const named = query.name === '' ? {} : { [`${prefix}name`]: query.name };
 
+  /**
+   * 달력 형식은 **양력일 때 빼고 음력일 때만 싣는다.**
+   *
+   * 기본값이라고 빼지 않는다는 위 규칙의 예외로 보이지만 그렇지 않다. 여기서
+   * 두려운 것은 「나중에 기본값을 옮기면 옛 링크가 다른 사주를 가리키는 것」인데,
+   * 양력은 기본값이기 이전에 **`cal` 이 생기기 전에 나눠 준 모든 링크의 뜻**이다.
+   * 그 뜻은 옮길 수 없으므로 실어 둘 이유도 없다.
+   */
+  const calendared = query.calendar === 'solar' ? {} : { [`${prefix}cal`]: query.calendar };
+
   return new URLSearchParams({
     ...named,
+    ...calendared,
     [`${prefix}date`]: query.date,
     [`${prefix}hour`]: query.hourKnown === false ? HOUR_UNKNOWN : query.time,
     [`${prefix}gender`]: query.gender,
@@ -245,6 +278,8 @@ export function queryFromSearchParams(
     // 길이만 자른다. 이름은 계산에 안 쓰이므로 정상값으로 되돌릴 대상이 없고,
     // 대신 주소로 들어온 값이라 화면을 밀어내지 못할 만큼만 남긴다.
     name: (at('name') ?? '').slice(0, NAME_MAX),
+    // `cal` 이 없으면 양력이다 — 이 칸이 생기기 전에 나눠 준 링크가 그 뜻이다.
+    calendar: oneOf(CALENDARS, at('cal'), 'solar'),
     date,
     time: hour === null || hour === HOUR_UNKNOWN ? '' : hour,
     // 주소에 시각 칸이 아예 없으면 **고르지 않은 것**으로 읽는다. 손으로 고친

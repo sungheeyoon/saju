@@ -60,10 +60,13 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select lee from who)), true);
 
+-- 음력 자체는 이제 받는다(`20260824210000_accept_lunar_input.sql`). 변환은 앱이
+-- 하므로 DB 가 잡을 수 있는 것은 **변환을 아예 건너뛴 쓰기**다 — 원본을 두 칸에
+-- 그대로 넣으면 음력 날짜가 양력인 척 판본으로 굳는다.
 select throws_ok(
-  $$select public.create_self_person('지영','lunar','1992-02-28','1992-03-02','09:00','female','부산','jo','localMean')$$,
-  '0A000', null,
-  '음력은 변환표를 대조하기 전에는 받지 않는다');
+  $$select public.create_self_person('지영','lunar','1992-02-28','1992-02-28','09:00','female','부산','jo','localMean')$$,
+  '23514', null,
+  '음력인데 변환값이 원본과 같으면 거절한다 — 변환을 건너뛴 쓰기다');
 
 -- 시각 미상은 정오로 메우지 않는다 — 빈 칸으로 남는다.
 select public.create_self_person(

@@ -1,4 +1,16 @@
-import { CITY_LONGITUDES, GENDERS, type CityName, type Gender, type LateNightRule } from '@/src/lib/saju';
+import {
+  CALENDARS,
+  CITY_LONGITUDES,
+  GENDERS,
+  LunarConversionError,
+  type Calendar,
+  type CityName,
+  type CivilDate,
+  type Gender,
+  type LateNightRule,
+} from '@/src/lib/saju';
+
+import { solarDateOf } from './chart';
 
 import {
   DEFAULT_QUERY,
@@ -56,16 +68,45 @@ const TIME = /^(\d{2}):(\d{2})(:\d{2}(\.\d+)?)?$/;
  * 아니라 지금의 기본값이 든다.
  */
 export function queryFromRevision(revision: StoredRevision, localLabel: string): Query {
-  if (revision.calendar !== 'solar') {
+  if (!(CALENDARS as readonly string[]).includes(revision.calendar)) {
+    throw new UnreadableRevisionError('calendar', revision.calendar, '모르는 달력 형식입니다');
+  }
+
+  for (const field of ['original_date', 'solar_date'] as const) {
+    if (!DATE.test(revision[field])) {
+      throw new UnreadableRevisionError(field, revision[field], '생년월일 형식이 아닙니다');
+    }
+  }
+
+  /**
+   * **저장할 때 잡은 양력과 지금 표가 내는 양력이 같은가.**
+   *
+   * 판본은 고치지 않기로 했으므로 저장된 `solar_date` 가 그때의 사실이다. 그런데
+   * 화면은 사용자가 적은 원본(`original_date`)을 되돌려 보여줘야 하고, 계산은 그
+   * 원본을 다시 변환해서 한다 — 변환하는 자리를 하나로 두기 위해서다(`solarDateOf`).
+   *
+   * 그 둘이 갈리는 경우는 하나뿐이다: **변환표가 그 사이에 바뀐 것.** 그때 조용히
+   * 새 값으로 계산하면 저장 전후의 사주가 달라지고, 조용히 옛 값을 쓰면 표가 왜
+   * 바뀌었는지 아무도 모른다. 못 읽는 판본이라고 말하는 것이 맞다.
+   */
+  const restated = { ...DEFAULT_QUERY, calendar: revision.calendar as Calendar, date: revision.original_date };
+  let derived: string;
+  try {
+    derived = isoOf(solarDateOf(restated));
+  } catch (error) {
     throw new UnreadableRevisionError(
-      'calendar',
-      revision.calendar,
-      '음력 판본은 변환표를 대조한 뒤에 읽습니다',
+      'original_date',
+      revision.original_date,
+      error instanceof LunarConversionError ? error.message : '양력으로 바꾸지 못했습니다',
     );
   }
 
-  if (!DATE.test(revision.solar_date)) {
-    throw new UnreadableRevisionError('solar_date', revision.solar_date, '생년월일 형식이 아닙니다');
+  if (derived !== revision.solar_date) {
+    throw new UnreadableRevisionError(
+      'solar_date',
+      revision.solar_date,
+      `저장할 때 잡은 양력(${revision.solar_date})과 지금 변환표의 답(${derived})이 다릅니다`,
+    );
   }
 
   if (!(GENDERS as readonly string[]).includes(revision.gender)) {
@@ -98,7 +139,10 @@ export function queryFromRevision(revision: StoredRevision, localLabel: string):
     return {
       ...DEFAULT_QUERY,
       name: localLabel,
-      date: revision.solar_date,
+      calendar: revision.calendar as Calendar,
+      // 사용자가 적은 그대로 되돌린다. 양력 변환은 화면이 다시 한다 — 위에서
+      // 저장할 때의 답과 같다는 것을 확인했다.
+      date: revision.original_date,
       time: '',
       hourKnown: false,
       gender: revision.gender as Gender,
@@ -116,7 +160,8 @@ export function queryFromRevision(revision: StoredRevision, localLabel: string):
   return {
     ...DEFAULT_QUERY,
     name: localLabel,
-    date: revision.solar_date,
+    calendar: revision.calendar as Calendar,
+    date: revision.original_date,
     // 초는 버린다. 폼이 분까지만 받으므로 저장된 초가 있어도 되돌려 보일 자리가 없다.
     time: `${clock[1]}:${clock[2]}`,
     hourKnown: true,
@@ -129,7 +174,7 @@ export function queryFromRevision(revision: StoredRevision, localLabel: string):
 
 /** 판본을 이루는 값 — **여덟 글자를 가르는 것 전부이고, 그 밖은 없다.** */
 export type ChartFields = {
-  p_calendar: 'solar';
+  p_calendar: Calendar;
   p_original_date: string;
   p_solar_date: string;
   p_birth_time: string | null;
@@ -142,15 +187,16 @@ export type ChartFields = {
 /**
  * 폼이 든 입력에서 판본이 될 부분만 꺼낸다.
  *
- * `original_date` 와 `solar_date` 가 같다. 지금은 양력만 받기 때문이고, 그래서
- * DB 검사식도 「양력이면 둘이 같아야 한다」로 걸려 있다. 음력을 켜는 날 갈리는
- * 것은 이 함수 하나다.
+ * 원본과 변환값을 **둘 다** 넣는다(ADR 0002). 원본이 있어야 사용자가 나중에 자기
+ * 입력을 알아보고, 변환값이 있어야 표가 바뀌었을 때 무엇이 달라졌는지 되짚을 수
+ * 있다. 양력 입력이면 둘이 같고, DB 검사식이 양쪽 방향을 다 들고 있다
+ * (`solar_input_needs_no_conversion` · `lunar_input_needs_conversion`).
  */
 function chartFields(query: Query): ChartFields {
   return {
-    p_calendar: 'solar',
+    p_calendar: query.calendar,
     p_original_date: query.date,
-    p_solar_date: query.date,
+    p_solar_date: isoOf(solarDateOf(query)),
     // 모르는 것을 아는 것처럼 만들지 않는다 — 빈 칸으로 넣는다.
     p_birth_time: query.hourKnown === true ? query.time : null,
     p_gender: query.gender,
@@ -204,6 +250,14 @@ export function samePillarInput(a: Query, b: Query): boolean {
  * 문제인지 사람이 읽을 수 있게 여기서 한 번 본다.
  */
 export function unsupportedForSaving(query: Query): string | null {
+  if (!(CALENDARS as readonly string[]).includes(query.calendar)) return '달력을 다시 골라 주세요.';
+  // 변환이 안 되는 음력 날짜는 여기서 멈춘다. 그냥 두면 `chartFields` 가 던지고,
+  // 서버 액션이 500 으로 죽어서 사용자는 아무 말도 못 듣는다.
+  try {
+    solarDateOf(query);
+  } catch (error) {
+    return error instanceof LunarConversionError ? error.message : '생년월일을 다시 확인해 주세요.';
+  }
   if (!(GENDERS as readonly string[]).includes(query.gender)) return '성별을 다시 골라 주세요.';
   if (!Object.hasOwn(CITY_LONGITUDES, query.city)) return '출생지를 다시 골라 주세요.';
   if (!(LATE_NIGHT_RULES as readonly string[]).includes(query.rule)) {
@@ -213,4 +267,10 @@ export function unsupportedForSaving(query: Query): string | null {
     return '시간 기준을 다시 골라 주세요.';
   }
   return null;
+}
+
+/** `CivilDate` 를 DB 가 받는 `YYYY-MM-DD` 로 */
+function isoOf({ year, month, day }: CivilDate): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${year}-${pad(month)}-${pad(day)}`;
 }

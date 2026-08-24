@@ -120,6 +120,74 @@ test('化를 판정한 명식에서만 합화라고 부른다', async ({ page })
   expect(said).toContain('합이불화 자리라');
 });
 
+/**
+ * 음력 입력 — **부모 세대가 자기 생일을 아는 형식이다.**
+ *
+ * 폼이 양력만 받으면 상당수가 음력 날짜를 양력 칸에 그대로 적고, 그러면 틀린 사주가
+ * 나오는데 화면은 아무 말도 하지 않는다(ADR 0002). 그래서 형식을 묻고, **무엇을
+ * 양력으로 잡았는지 계산 전에 보여준다.**
+ *
+ * 여기서 잠그는 것은 화면에 뜬 그 양력이 **정말로 계산에 들어간 값**이라는 것이다.
+ * 변환을 폼과 계산이 따로 하면 둘이 갈릴 수 있는데, 그러면 사용자는 맞는 날짜를
+ * 보면서 다른 사주를 받는다.
+ */
+test('음력으로 넣으면 잡은 양력을 먼저 보여주고 그 날로 계산한다', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('이름', { exact: true }).fill('엄마');
+  await page.getByLabel('달력').selectOption('lunar');
+  await page.getByLabel('생년월일', { exact: true }).fill('1965-03-12');
+  await page.getByRole('radio', { name: '시각', exact: true }).check();
+  await page.getByLabel('출생시각', { exact: true }).fill('09:00');
+
+  await expect(page.getByText('양력 1965-04-13 로 계산합니다')).toBeVisible();
+
+  await page.getByRole('button', { name: '사주 보기' }).click();
+  const fromLunar = await page.locator('#chart').innerText();
+
+  // 링크는 음력이라는 것을 함께 든다 — 안 실으면 받은 사람이 양력으로 읽는다.
+  expect(sharedParams(page).get('cal')).toBe('lunar');
+  expect(sharedParams(page).get('date')).toBe('1965-03-12');
+
+  // 같은 사람을 양력으로 넣으면 같은 여덟 글자가 나온다.
+  await page.goto('/');
+  await page.getByLabel('이름', { exact: true }).fill('엄마');
+  await page.getByLabel('생년월일', { exact: true }).fill('1965-04-13');
+  await page.getByRole('radio', { name: '시각', exact: true }).check();
+  await page.getByLabel('출생시각', { exact: true }).fill('09:00');
+  await page.getByRole('button', { name: '사주 보기' }).click();
+
+  expect(await page.locator('#chart').innerText()).toBe(fromLunar);
+  expect(sharedParams(page).has('cal')).toBe(false);
+});
+
+/**
+ * 없는 날은 **이유를 밝히고** 멈춘다.
+ *
+ * 「변환할 수 없습니다」로 뭉개면 사용자가 무엇을 고쳐야 하는지 모른다. 윤달이 없는
+ * 해에 윤달을 고른 것과 표 밖의 해를 넣은 것은 할 일이 서로 다르다.
+ */
+test('있지도 않은 윤달은 계산하지 않고 어느 윤달이 있는지 말한다', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('이름', { exact: true }).fill('민수');
+  await page.getByLabel('달력').selectOption('lunar_leap');
+  await page.getByLabel('생년월일', { exact: true }).fill('2024-04-01');
+
+  // Next 의 라우트 안내판도 `role="alert"` 이라 폼 안으로 좁힌다.
+  const refusal = page.locator('main').getByRole('alert');
+  await expect(refusal).toContainText('2024년에는 윤달이 없습니다');
+
+  // 2023년에는 윤2월이 있다 — 어느 것이 있는지까지 말한다.
+  await page.getByLabel('생년월일', { exact: true }).fill('2023-04-01');
+  await expect(refusal).toContainText('윤2월');
+
+  // 표 밖은 다른 말을 한다.
+  await page.getByLabel('달력').selectOption('lunar');
+  await page.getByLabel('생년월일', { exact: true }).fill('1905-04-01');
+  await expect(refusal).toContainText('1912~2100');
+});
+
 test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한다', async ({ page }) => {
   await page.goto('/');
   await enterKnownBirth(page);

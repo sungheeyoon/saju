@@ -13,6 +13,7 @@ import {
 
 const query: Query = {
   name: '',
+  calendar: 'solar',
   date: '1990-05-15',
   time: '14:30',
   hourKnown: true,
@@ -46,6 +47,38 @@ describe('주소창에 실은 입력', () => {
       'rule',
       'saeun',
     ]);
+  });
+
+  /**
+   * 달력 형식은 양력일 때만 빠진다 — 위 규칙의 예외로 보이지만 아니다. 두려운
+   * 것은 「기본값을 옮기면 옛 링크가 다른 사주를 가리키는 것」인데, 양력은
+   * 기본값이기 이전에 **`cal` 이 생기기 전에 나눠 준 모든 링크의 뜻**이다.
+   */
+  describe('달력 형식', () => {
+    it('음력이면 싣고, 싣고 읽으면 그대로 돌아온다', () => {
+      const lunar: Query = { ...query, calendar: 'lunar_leap', date: '1984-10-05' };
+
+      expect(toSearchParams(lunar).get('cal')).toBe('lunar_leap');
+      expect(queryFromSearchParams(toSearchParams(lunar))).toEqual(lunar);
+    });
+
+    it('`cal` 이 없는 옛 링크는 양력으로 읽는다', () => {
+      expect(read('date=1990-05-15&hour=14:30')?.calendar).toBe('solar');
+    });
+
+    it('모르는 값은 양력으로 되돌린다 — 링크를 잘못 고쳤다고 빈 화면을 주지 않는다', () => {
+      expect(read('date=1990-05-15&hour=14:30&cal=음력')?.calendar).toBe('solar');
+    });
+
+    it('접두사를 따라간다 — 한 사람만 음력일 수 있다', () => {
+      const params = mergeSearchParams(
+        toSearchParams({ ...query, calendar: 'lunar' }, 'a.'),
+        toSearchParams(query, 'b.'),
+      );
+
+      expect(queryFromSearchParams(params, 'a.')?.calendar).toBe('lunar');
+      expect(queryFromSearchParams(params, 'b.')?.calendar).toBe('solar');
+    });
   });
 
   /**

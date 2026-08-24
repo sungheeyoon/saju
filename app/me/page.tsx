@@ -7,7 +7,7 @@ import { toSearchParams } from '../query';
 import { UnreadableRevisionError, queryFromRevision } from '../revision';
 import { Onboarding } from './onboarding';
 import { ReviseChart } from './revise';
-import { GENDER_KO, STEM_INFO, ELEMENT_KO } from '@/src/lib/saju';
+import { CALENDAR_KO, GENDER_KO, STEM_INFO, ELEMENT_KO } from '@/src/lib/saju';
 
 /**
  * 로그인한 사람이 도착하는 자리.
@@ -145,8 +145,15 @@ async function SelfChart({ personId }: { personId: string }) {
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-xl border border-border bg-surface-sunken p-4 text-sm">
         <dt className="text-muted">생년월일</dt>
+        {/*
+          음력으로 넣었으면 **적은 그대로와 바뀐 양력을 함께** 보여준다. 양력만
+          보이면 사용자가 자기 입력을 못 알아보고, 원본만 보이면 우리가 무엇으로
+          계산했는지 모른다(ADR 0002).
+        */}
         <dd>
-          {current.solar_date}
+          {query.calendar === 'solar'
+            ? current.solar_date
+            : `${CALENDAR_KO[query.calendar]} ${current.original_date} · 양력 ${current.solar_date}`}
           {current.birth_time === null ? ' · 시각 모름' : ` ${query.time}`}
         </dd>
         <dt className="text-muted">성별</dt>

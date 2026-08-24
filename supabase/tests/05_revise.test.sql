@@ -1,6 +1,6 @@
 -- 판본 수정 — 쌓이고, 현재가 옮겨가고, 옛것은 그대로 남는다.
 begin;
-select plan(11);
+select plan(12);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -64,12 +64,21 @@ select isnt(
   (select id from second_revision),
   '자시 규칙 하나만 달라도 새 판본이다 — 그 하나로 일주가 바뀐다');
 
-select throws_ok(
+-- ── 음력 판본 ────────────────────────────────────────────────────────────────
+select lives_ok(
   format($$select public.add_person_revision(%L,
     'lunar', '1990-04-21', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean')$$,
     (select person_id from target)),
-  '0A000', null,
-  '음력은 변환표를 대조하기 전에는 받지 않는다');
+  '음력 판본을 받는다 — 변환표를 KASI 자료와 대조했다');
+
+-- 원본과 변환값을 **둘 다** 든다. 원본이 있어야 사용자가 자기 입력을 알아보고,
+-- 변환값이 있어야 표가 바뀌었을 때 무엇이 달라졌는지 되짚을 수 있다(ADR 0002).
+select is(
+  (select r.calendar || ' ' || r.original_date::text || ' ' || r.solar_date::text
+   from public.person p join public.person_chart_revision r on r.id = p.current_revision_id
+   where p.id = (select person_id from target)),
+  'lunar 1990-04-21 1990-05-15',
+  '음력 판본은 원본과 변환값을 둘 다 든다');
 
 reset role;
 
