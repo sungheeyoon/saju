@@ -189,6 +189,9 @@ async function SelfChart({ personId }: { personId: string }) {
         <Link href="/me/compat" className="text-accent underline underline-offset-2">
           저장된 사람끼리 궁합
         </Link>
+        <Link href="/me/discovery" className="text-accent underline underline-offset-2">
+          후보
+        </Link>
       </p>
     </section>
   );

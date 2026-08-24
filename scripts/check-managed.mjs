@@ -15,12 +15,13 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
+
+import { startCheckServer } from './next-server.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
 const PORT = Number(process.env.CHECK_PORT ?? 3210);
-const BASE = `http://localhost:${PORT}`;
 
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 
@@ -180,42 +181,15 @@ const jar = new Map();
 
 const cookie = [...jar].map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join('; ');
 
-/**
- * 서버는 **따로 지어서 따로 세운다.**
- *
- * `next dev` 를 쓰지 않는 것은 한 폴더에 개발 서버가 하나만 뜨기 때문이다 — 켜 둔
- * 개발 서버가 있으면 이 검사가 그것을 끄라고 요구하게 된다. 산출물 자리도
- * `.next-check` 로 옮겨 평소 빌드를 건드리지 않는다.
- *
- * 접속값은 빌드할 때와 띄울 때 **둘 다** 넘긴다. `NEXT_PUBLIC_` 은 빌드 때 코드에
- * 박히고, 서버가 읽는 것은 띄울 때의 값이다.
- */
-const serverEnv = {
-  ...process.env,
-  NEXT_DIST_DIR: '.next-check',
-  // 원격이 아니라 지금 켜져 있는 로컬 스택을 보게 한다.
-  NEXT_PUBLIC_SUPABASE_URL: API,
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY,
-};
-
-console.log('\n… 검사용 서버를 짓는다 (.next-check)');
-execFileSync('npx', ['next', 'build'], { env: serverEnv, stdio: 'ignore' });
-
-const server = spawn('npx', ['next', 'start', '--hostname', 'localhost', '--port', String(PORT)], {
-  env: serverEnv,
-  stdio: 'ignore',
+const { base: BASE, stop } = await startCheckServer({
+  port: PORT,
+  supabaseUrl: API,
+  anonKey: status.ANON_KEY,
 });
-
-const stop = () => {
-  server.kill('SIGTERM');
-};
-process.on('exit', stop);
 
 const get = (path, headers = {}) => fetch(`${BASE}${path}`, { headers, redirect: 'manual' });
 
 try {
-  await waitForServer();
-
   // ── 로그인하지 않은 사람은 들어가지 못한다 ─────────────────────────────────
   {
     const response = await get('/me/compat');
@@ -316,17 +290,3 @@ try {
 const failed = checks.filter((entry) => !entry.pass);
 console.log(`\n${checks.length - failed.length}/${checks.length} 통과`);
 process.exit(failed.length === 0 ? 0 : 1);
-
-/** 뜨기 전에 두드리면 검사가 아니라 경주가 된다 */
-async function waitForServer() {
-  const deadline = Date.now() + 60_000;
-  while (Date.now() < deadline) {
-    try {
-      await fetch(BASE, { redirect: 'manual' });
-      return;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-  }
-  throw new Error(`Next 서버가 ${BASE} 에 뜨지 않았습니다.`);
-}

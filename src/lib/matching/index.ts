@@ -1,11 +1,12 @@
 import {
-  ELEMENTS,
   ELEMENT_KO,
   TEN_GOD_KO,
   type Compatibility,
   type Element,
   type Saju,
 } from '../saju';
+
+import { combinedBalanceOf, complementOf } from './elementAxes';
 
 /**
  * 테스터에게 보여 주는 첫 매칭 정책.
@@ -47,24 +48,6 @@ export type MatchPreview = {
 
 const clamp = (value: number): number => Math.max(0, Math.min(100, Math.round(value)));
 
-const coverageOf = (compat: Compatibility, side: 'a' | 'b'): number => {
-  const support = compat.elementSupport[side];
-
-  // 빠진 오행이 없다는 것은 상대가 채울 몫도 없다는 뜻이다. 완벽한 궁합으로 올리지
-  // 않고 중립값에 둔다. 이 숫자는 match-v0의 제품 선택이며 명리 규칙이 아니다.
-  if (support.missing.length === 0) return 70;
-  return (support.supplied.length / support.missing.length) * 100;
-};
-
-const combinedBalanceOf = (a: Saju, b: Saju): number => {
-  const ratios = ELEMENTS.map(
-    (element) => (a.analysis.elements.ratios[element] + b.analysis.elements.ratios[element]) / 2,
-  );
-  // 다섯 오행이 각각 20%인 상태로부터의 거리를 0~100으로 정규화한다.
-  const deviation = ratios.reduce((sum, ratio) => sum + Math.abs(ratio - 0.2), 0);
-  return (1 - deviation / 1.6) * 100;
-};
-
 const elementList = (elements: readonly Element[]): string =>
   elements.map((element) => `${ELEMENT_KO[element]}(${element})`).join('·');
 
@@ -73,8 +56,14 @@ export function buildMatchPreview(
   compat: Compatibility,
   names: Record<'a' | 'b', string>,
 ): MatchPreview {
-  const complement = (coverageOf(compat, 'a') + coverageOf(compat, 'b')) / 2;
-  const combinedBalance = combinedBalanceOf(charts.a, charts.b);
+  /**
+   * 두 축은 **`discovery-v0` 와 같은 자로 잰다**(`elementAxes.ts`).
+   *
+   * 여기서 따로 세면 같은 두 사람이 후보 화면과 궁합 화면에서 다른 보완을 갖게 되고,
+   * 그 차이는 어디에도 안 적힌다. 갈라지는 것은 축이 아니라 **가중치와 하는 일**이다.
+   */
+  const complement = complementOf(charts.a.analysis.elements, charts.b.analysis.elements);
+  const combinedBalance = combinedBalanceOf(charts.a.analysis.elements, charts.b.analysis.elements);
   const connectionDensity = clamp(
     30 + compat.relations.length * 11 + compat.combinedFormations.length * 8,
   );

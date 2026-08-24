@@ -85,6 +85,9 @@ export default async function ManagedCompatPage({
           <Link href="/me/people" className="text-accent underline underline-offset-2">
             등록한 사람
           </Link>
+          <Link href="/me/discovery" className="text-accent underline underline-offset-2">
+            후보
+          </Link>
         </p>
       </header>
 

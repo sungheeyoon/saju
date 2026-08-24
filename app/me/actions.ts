@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { missingAnswer, type Query } from '../query';
+import { selfElementSummary } from './summary';
 import {
   managedPersonArgs,
   noteOrNull,
@@ -149,7 +150,25 @@ export async function revisePerson(personId: string, query: Query): Promise<Save
   const { error } = await supabase.rpc('add_person_revision', revisionArgs(personId, query));
   if (error) return { ok: false, message: error.message };
 
+  /**
+   * 판본이 바뀌었으면 **매칭 풀에 내놓은 오행 요약도 따라간다.**
+   *
+   * 낡은 요약은 후보 질의가 이미 걸러낸다. 그래도 여기서 따라가게 하는 것은 그 탈락이
+   * **조용하기** 때문이다 — 사용자는 참여 중이라고 알고 있는데 아무에게도 안 보이게 된다.
+   * 내 사주가 아니면 RPC 가 스스로 아무 일도 하지 않는다.
+   */
+  const self = await selfElementSummary();
+  if (self !== null && self.personId === personId) {
+    const { error: summaryError } = await supabase.rpc('refresh_discovery_summary', {
+      p_person_id: personId,
+      p_summary: self.summary,
+    });
+    // 저장은 끝났다. 요약을 못 따라가게 한 것은 다음 후보 화면이 고친다.
+    if (summaryError) console.error('오행 요약을 갱신하지 못했습니다', summaryError.message);
+  }
+
   revalidatePath('/me');
   revalidatePath('/me/people');
+  revalidatePath('/me/discovery');
   return { ok: true };
 }
