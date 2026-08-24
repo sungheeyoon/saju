@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { chartOf } from './chart';
 import { DEFAULT_QUERY, type Query } from './query';
 import {
+  NOTE_MAX,
   UnreadableRevisionError,
+  managedPersonArgs,
+  noteOrNull,
   queryFromRevision,
   revisionArgs,
   samePillarInput,
@@ -243,5 +246,30 @@ describe('무엇이 새 판본을 만드는가', () => {
 
   it('수정 인자에는 부를 이름이 없다', () => {
     expect(Object.keys(revisionArgs('p-1', submitted))).not.toContain('p_local_label');
+  });
+});
+
+describe('가족·친구를 등록할 때 함께 가는 것', () => {
+  it('판본이 될 부분은 자기 사주를 저장할 때와 **같은 값**이다', () => {
+    const { p_note, ...managed } = managedPersonArgs(submitted, '음력 생일만 아신다');
+
+    expect(managed).toEqual(selfPersonArgs(submitted));
+    expect(p_note).toBe('음력 생일만 아신다');
+  });
+
+  /**
+   * 없음은 **한 값**이다.
+   *
+   * 빈 칸을 `''` 로 저장하면 「메모 없음」이 두 값이 되고, 그때부터 화면은 두 가지를
+   * 물어야 한다. DB 검사식도 같은 것을 든다(`note_is_absent_or_written`).
+   */
+  it.each(['', '   ', '\n'])('빈 메모는 %j 든 null 이다', (note) => {
+    expect(noteOrNull(note)).toBeNull();
+    expect(managedPersonArgs(submitted, note).p_note).toBeNull();
+  });
+
+  it('메모의 앞뒤 공백은 지운다 — 길이 상한이 공백을 세지 않게', () => {
+    expect(noteOrNull('  엄마는 음력  ')).toBe('엄마는 음력');
+    expect(NOTE_MAX).toBe(200);
   });
 });

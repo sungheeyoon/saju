@@ -213,6 +213,30 @@ export function selfPersonArgs(query: Query): SelfPersonArgs {
   return { p_local_label: query.name.trim(), ...chartFields(query) };
 }
 
+/** 메모 길이 상한 — DB 검사식과 같은 수. 두 곳에 적힌 값이라 한쪽만 고치면 갈린다 */
+export const NOTE_MAX = 200;
+
+/**
+ * 메모는 **있거나 없다.**
+ *
+ * 빈 칸을 `''` 로 저장하면 「메모 없음」이 두 값이 되고, 화면이 그때그때 다른 것을
+ * 묻게 된다. 없음은 `null` 하나다 — DB 검사식도 같은 것을 든다
+ * (`note_is_absent_or_written`).
+ */
+export const noteOrNull = (note: string): string | null => note.trim() || null;
+
+/**
+ * `create_managed_person` 이 받는 인자 한 벌 — 메모가 하나 더 붙는다.
+ *
+ * 메모는 판본이 아니다(여덟 글자를 바꾸지 않는다). 그런데도 여기 함께 실리는 것은,
+ * 등록이라는 **한 사건**에서 Person·엣지·판본이 한 트랜잭션에 들어가기 때문이다.
+ */
+export type ManagedPersonArgs = SelfPersonArgs & { p_note: string | null };
+
+export function managedPersonArgs(query: Query, note: string): ManagedPersonArgs {
+  return { ...selfPersonArgs(query), p_note: noteOrNull(note) };
+}
+
 /** `add_person_revision` 이 받는 인자 한 벌 */
 export type RevisionArgs = ChartFields & { p_person_id: string };
 

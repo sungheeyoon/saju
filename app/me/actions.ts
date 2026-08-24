@@ -4,7 +4,13 @@ import { revalidatePath } from 'next/cache';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { missingAnswer, type Query } from '../query';
-import { revisionArgs, selfPersonArgs, unsupportedForSaving } from '../revision';
+import {
+  managedPersonArgs,
+  noteOrNull,
+  revisionArgs,
+  selfPersonArgs,
+  unsupportedForSaving,
+} from '../revision';
 
 export type SaveResult = { ok: true } | { ok: false; message: string };
 
@@ -49,6 +55,70 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
 }
 
 /**
+ * 가족·친구 한 사람을 등록한다.
+ *
+ * 자기 사주 저장과 **모양이 같고 판정하는 자리도 같다** — 여기서 권한도 한도도 묻지
+ * 않는다. 스무 명 한도는 DB 트리거가 들고(`enforce_person_limit`), 그 판정을 여기에도
+ * 적으면 세는 규칙이 두 곳이 된다. 그러면 selfPerson 을 세느냐 마느냐가 언젠가 갈린다.
+ *
+ * 한도에 걸렸을 때 나오는 말은 DB 가 쓴 문장 그대로다 — 사람이 읽을 수 있게 써 뒀다.
+ */
+export async function addManagedPerson(query: Query, note: string): Promise<SaveResult> {
+  const missing = missingAnswer(query);
+  if (missing !== null) return { ok: false, message: missing };
+
+  const unsupported = unsupportedForSaving(query);
+  if (unsupported !== null) return { ok: false, message: unsupported };
+
+  const supabase = await supabaseOnServer();
+  const { error } = await supabase.rpc('create_managed_person', managedPersonArgs(query, note));
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/me/people');
+  return { ok: true };
+}
+
+/**
+ * 메모만 고친다.
+ *
+ * RPC 가 없다. 엣지의 `note` 는 정책이 이미 열어 준 칸이고(`"내 라벨만 고친다"`),
+ * 열려 있는 것을 다시 함수로 감싸면 판정하는 자리가 둘이 된다. 여덟 글자를 바꾸지
+ * 않으므로 판본도 되지 않는다.
+ */
+export async function updateNote(personId: string, note: string): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  // 정책이 자기 행만 열어 주므로 `user_id` 를 적지 않는다.
+  const { error } = await supabase
+    .from('user_person_access')
+    .update({ note: noteOrNull(note) })
+    .eq('person_id', personId);
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/me/people');
+  return { ok: true };
+}
+
+/**
+ * 목록에서 뺀다 — **지우는 것은 엣지이지 Person 이 아니다.**
+ *
+ * 「이 사람을 내가 관리한다」는 근거를 거두는 일이라, 그 근거가 사라지면 RLS 가 그
+ * Person 을 더는 안 보여준다. selfPerson 은 빠지지 않는다 — 그 판정도 정책이 든다
+ * (`"자기 자신은 목록에서 지울 수 없다"`). 여기서 다시 묻지 않는 이유는 늘 같다.
+ */
+export async function removeFromList(personId: string): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  const { error } = await supabase.from('user_person_access').delete().eq('person_id', personId);
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/me/people');
+  return { ok: true };
+}
+
+/**
  * 고친 출생정보를 새 판본으로 쌓는다.
  *
  * 두 가지가 함께 일어나지만 **같은 종류가 아니다.**
@@ -60,7 +130,7 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
  * 여기서 미리 걸러 보내지 않는 이유는, 화면이 든 「지금 값」이 그 사이에 다른 기기에서
  * 바뀌었을 수 있기 때문이다 — 판정은 값을 들고 있는 쪽이 한다.
  */
-export async function reviseSelfPerson(personId: string, query: Query): Promise<SaveResult> {
+export async function revisePerson(personId: string, query: Query): Promise<SaveResult> {
   const missing = missingAnswer(query);
   if (missing !== null) return { ok: false, message: missing };
 
@@ -80,5 +150,6 @@ export async function reviseSelfPerson(personId: string, query: Query): Promise<
   if (error) return { ok: false, message: error.message };
 
   revalidatePath('/me');
+  revalidatePath('/me/people');
   return { ok: true };
 }

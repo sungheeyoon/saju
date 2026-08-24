@@ -6,7 +6,7 @@ import { useState, useTransition } from 'react';
 import { BirthFields } from '../birth-form';
 import { missingAnswer, type Query } from '../query';
 import { samePillarInput } from '../revision';
-import { reviseSelfPerson } from './actions';
+import { revisePerson } from './actions';
 
 /**
  * 저장된 출생정보를 고치는 자리.
@@ -30,7 +30,7 @@ export function ReviseChart({ personId, current }: { personId: string; current: 
   const save = () => {
     setFailure(null);
     startSaving(async () => {
-      const result = await reviseSelfPerson(personId, query);
+      const result = await revisePerson(personId, query);
       if (result.ok) {
         setOpen(false);
         router.refresh();

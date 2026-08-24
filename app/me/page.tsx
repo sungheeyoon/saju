@@ -172,12 +172,22 @@ async function SelfChart({ personId }: { personId: string }) {
         전체 명식은 익명 화면이 그린다. 입력은 `#` 뒤에 실리므로 서버로 가지 않는다.
         같은 엔진·같은 함수를 쓰므로 여기 여덟 글자와 저쪽 여덟 글자는 같은 값이다.
       */}
-      <p className="text-sm">
+      <p className="flex flex-wrap gap-4 text-sm">
         <Link
           href={`/#${toSearchParams(query).toString()}`}
           className="text-accent underline underline-offset-2"
         >
           전체 명식 보기
+        </Link>
+        {/*
+          가족·친구는 이 화면에 없다. 여기는 「나」의 자리이고, 스무 명 한도가 세는
+          것도 저쪽 목록이다.
+        */}
+        <Link href="/me/people" className="text-accent underline underline-offset-2">
+          등록한 사람
+        </Link>
+        <Link href="/me/compat" className="text-accent underline underline-offset-2">
+          저장된 사람끼리 궁합
         </Link>
       </p>
     </section>
