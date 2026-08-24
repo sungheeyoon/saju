@@ -13,9 +13,13 @@ export default function Home() {
           자동 보정하고, 시간 기준(출생기록 시각·지방평균태양시·진태양시)만 골라 쓰도록
           했습니다. 적용한 규칙과 경계 케이스를 함께 표시합니다.
         </p>
-        <p className="text-sm">
+        <p className="flex gap-4 text-sm">
           <Link href="/compat" className="text-accent underline underline-offset-2">
             두 사람 궁합 보기
+          </Link>
+          {/* 초대받은 사람만 들어간다. 익명 흐름은 이 링크와 무관하게 그대로 돈다. */}
+          <Link href="/auth" className="text-accent underline underline-offset-2">
+            로그인
           </Link>
         </p>
       </header>

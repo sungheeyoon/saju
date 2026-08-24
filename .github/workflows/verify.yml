@@ -19,3 +19,9 @@ jobs:
       - run: npm run verify
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+        env:
+          # 껍데기 값이다. 로그인하지 않은 사람을 돌려보내는 데 살아 있는 Supabase 가
+          # 필요하면 그것부터 잘못이므로, CI 는 일부러 붙지 않은 채로 잰다. 실제 로그인은
+          # 남의 화면(구글)을 지나가므로 여기서 몰지 않는다.
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
