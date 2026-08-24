@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 import { BirthFields } from './birth-form';
 import { CARD } from './card';
+import { useHashParams, writeParams } from './hash-query';
 import { CopyLinkButton } from './copy-link';
 import { EvidencePanel } from './evidence-panel';
 import {
@@ -180,15 +180,16 @@ const koreaMonthDay = (date: Date) => {
  * 명식이 나온다. 계산은 여전히 브라우저 안에서만 일어난다 — 주소창은 서버로
  * 가는 통로가 아니라 이 페이지가 스스로 읽는 상태 저장소다.
  *
- * 주소는 `history` API 로 직접 바꾼다. Next 라우터가 이 호출을 함께 보므로
- * `useSearchParams` 가 따라 갱신되고, 라우트 전환 없이 주소만 바뀐다.
+ * 입력은 쿼리스트링이 아니라 **`#` 뒤**에 실린다(`app/hash-query.ts`) — 그래야 서버
+ * 로그에도, 링크 미리보기 크롤러에도, `Referer` 에도 가지 않는다. 주소는 `history`
+ * API 로 직접 바꾸고, 라우트 전환 없이 주소만 바뀐다.
  *
  * 첫 계산은 `push`, 이후 수정은 `replace` 다. 첫 계산에는 "빈 화면으로
  * 되돌아간다"는 뒤로가기가 있어야 하지만, 세운 연도를 몇 번 옮겼다고 뒤로가기를
  * 그만큼 눌러야 하는 것은 아니다.
  */
 export function SajuCalculator() {
-  const searchParams = useSearchParams();
+  const searchParams = useHashParams();
   const query = useMemo(() => queryFromSearchParams(searchParams), [searchParams]);
 
   const [form, setForm] = useState<Query>(query ?? DEFAULT_QUERY);
@@ -233,8 +234,7 @@ export function SajuCalculator() {
     shown.current = params;
     // 제출은 "지금 다시 봐 달라"는 뜻이기도 하다.
     setViewedAt(Date.now());
-    if (query === null) window.history.pushState(null, '', `?${params}`);
-    else window.history.replaceState(null, '', `?${params}`);
+    writeParams(params, query === null ? 'push' : 'replace');
   };
 
   return (

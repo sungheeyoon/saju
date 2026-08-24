@@ -27,16 +27,16 @@ export default function CompatPage() {
       </header>
 
       {/*
-        원국 화면과 같은 이유로 Suspense 아래에 둔다 — 주소창의 검색 문자열을
-        읽는데 이 페이지는 빌드 때 미리 그려진다.
+        원국 화면과 같은 이유로 Suspense 아래에 둔다 — 주소창의 `#` 뒤를 읽는데
+        이 페이지는 빌드 때 미리 그려지고, fragment 는 서버에 오지 않는다.
       */}
       <Suspense fallback={<div className="h-72 rounded-xl border border-border bg-surface" />}>
         <CompatCalculator />
       </Suspense>
 
       <footer className="mt-2 text-xs text-muted">
-        계산은 전부 브라우저에서 실행됩니다. 주소에 두 사람의 입력이 담기므로 결과 화면을
-        그대로 링크로 줄 수 있습니다.
+        계산은 전부 브라우저에서 실행됩니다. 두 사람의 입력은 주소의 <code>#</code> 뒤에
+        담기므로 결과 화면을 그대로 링크로 줄 수 있고, 그 값은 서버로 전송되지 않습니다.
       </footer>
     </main>
   );

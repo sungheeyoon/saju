@@ -14,6 +14,9 @@ import { useEffect, useState } from 'react';
  * 클립보드는 실패할 수 있다(권한 거부, 안전하지 않은 출처). 실패를 삼키지 않고
  * 주소를 그대로 보여줘서 손으로 복사할 수 있게 한다 — 아무 일도 일어나지 않는
  * 버튼이 가장 나쁘다.
+ *
+ * **링크에 무엇이 실리는지 말한다.** 입력은 주소의 `#` 뒤에 있어 서버로는 가지 않지만,
+ * 링크를 받은 사람은 당연히 다 본다. 그게 기능이므로 막지 않고 적는다 — 누르기 전에.
  */
 export function CopyLinkButton() {
   const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
@@ -51,6 +54,10 @@ export function CopyLinkButton() {
           ? '복사에 실패했습니다. 주소창의 주소를 그대로 쓰세요.'
           : '이 주소를 열면 같은 결과가 그대로 나옵니다'}
       </span>
+      <p className="w-full text-xs text-muted">
+        링크에는 입력한 생년월일시·성별·출생지가 담깁니다. 서버로는 전송되지 않지만 링크를
+        받은 사람은 볼 수 있으니, 이름 칸에는 별명을 쓰기를 권합니다.
+      </p>
       {state === 'failed' && (
         <code className="w-full overflow-x-auto rounded-sm bg-surface-sunken px-2 py-1 text-[10px] text-secondary">
           {href}

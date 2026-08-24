@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 import {
   CITY_LONGITUDES,
@@ -26,6 +25,7 @@ import { MatchResult } from './compat-match';
 import { CopyLinkButton } from './copy-link';
 import { EvidencePanel } from './evidence-panel';
 import { CARD } from './card';
+import { useHashParams, writeParams } from './hash-query';
 import { PILLAR_COLUMNS } from './saju-calculator';
 import {
   TOPICS_THE_TABLE_HOLDS,
@@ -161,7 +161,7 @@ const pairFrom = (params: URLSearchParams): Pair | null => {
 };
 
 export function CompatCalculator() {
-  const searchParams = useSearchParams();
+  const searchParams = useHashParams();
   const submitted = useMemo(() => pairFrom(searchParams), [searchParams]);
 
   const [form, setForm] = useState<Pair>(submitted ?? { a: DEFAULT_QUERY, b: DEFAULT_QUERY });
@@ -196,8 +196,7 @@ export function CompatCalculator() {
 
     shown.current = params;
     setViewedAt(Date.now());
-    if (submitted === null) window.history.pushState(null, '', `?${params}`);
-    else window.history.replaceState(null, '', `?${params}`);
+    writeParams(params, submitted === null ? 'push' : 'replace');
   };
 
   return (

@@ -21,8 +21,8 @@ export default function Home() {
       </header>
 
       {/*
-        계산기는 주소창의 검색 문자열을 읽는다. 이 페이지는 빌드 때 미리 그려지므로
-        그 값을 아직 알 수 없고, 그래서 Suspense 경계 아래에서 브라우저가 그린다.
+        계산기는 주소창의 `#` 뒤를 읽는다(`app/hash-query.ts`). 이 페이지는 빌드 때 미리
+        그려지고 fragment 는 서버에 오지도 않으므로, 그 값은 브라우저에서만 알 수 있다.
         폴백은 폼 자리를 차지할 만큼의 빈 상자다 — 결과가 들어오며 화면이 튀지 않게.
       */}
       <Suspense fallback={<div className="h-56 rounded-xl border border-border bg-surface" />}>

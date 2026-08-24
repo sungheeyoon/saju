@@ -8,6 +8,15 @@ import { expect, test, type Page } from '@playwright/test';
  * 시각 칸이 잠긴다 — 고르지 않은 것을 골랐다고 치지 않기로 한 결정의 결과다.
  * 이름도 필수라 여기서 함께 채운다(계산에는 안 들어가고 제출 조건에만 든다).
  */
+/**
+ * 공유된 주소가 든 입력 — **`#` 뒤에서 읽는다.**
+ *
+ * 쿼리스트링이 아니다. 입력이 서버 로그와 링크 미리보기 크롤러에 닿지 않게 fragment 로
+ * 옮겼으므로(`app/hash-query.ts`), 링크가 무엇을 들고 있는지 확인하는 자리도 여기다.
+ */
+const sharedParams = (page: Page): URLSearchParams =>
+  new URLSearchParams(new URL(page.url()).hash.slice(1));
+
 const enterKnownBirth = async (page: Page, name = '민수') => {
   await page.getByLabel('이름', { exact: true }).fill(name);
   await page.getByLabel('생년월일', { exact: true }).fill('1990-05-15');
@@ -339,8 +348,8 @@ test('제출한 입력이 주소에 실려 링크와 새로고침에서 같은 �
   await page.getByRole('button', { name: '사주 보기' }).click();
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 
-  const shared = new URL(page.url());
-  expect(Object.fromEntries(shared.searchParams)).toEqual({
+  const shared = page.url();
+  expect(Object.fromEntries(sharedParams(page))).toEqual({
     // 이름은 계산에 안 들어가지만 주소에는 실린다 — 링크를 나누면 이름도 나눠진다.
     name: '민수',
     date: '1990-05-15',
@@ -354,7 +363,7 @@ test('제출한 입력이 주소에 실려 링크와 새로고침에서 같은 �
 
   const chart = await page.locator('#chart').innerText();
 
-  await page.goto(shared.toString());
+  await page.goto(shared);
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
   expect(await page.locator('#chart').innerText()).toBe(chart);
   // 폼도 주소를 따라와야 한다. 안 그러면 사용자가 바꾼 적 없는데 '입력이 바뀌었습니다'가 뜬다.
@@ -381,6 +390,53 @@ test('수정은 히스토리를 쌓지 않아 뒤로가기 한 번에 빈 화면
   await page.goBack();
   await expect(page.getByRole('heading', { name: '생년월일시를 입력해 주세요' })).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
+});
+
+/**
+ * 이미 뿌려진 `?` 링크를 깨뜨리지 않는다 — 대신 열자마자 `#` 으로 갈아 놓는다.
+ *
+ * 갈아 놓는 것은 **호환을 위한 것이지 프라이버시를 위한 것이 아니다.** 그 링크가
+ * 열리는 한 번의 요청에서 값은 이미 서버에 닿았고 그건 되돌릴 수 없다. 되돌릴 수
+ * 있는 것은 이 사용자가 다음에 복사할 링크뿐이다.
+ */
+test('옛 ? 링크도 그대로 열리고, 주소는 # 으로 갈린다', async ({ page }) => {
+  await page.goto('/?name=민수&date=1990-05-15&hour=14:30&gender=female&city=서울&rule=jo&basis=localMean&saeun=2026');
+
+  await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+  await expect(page.getByLabel('생년월일', { exact: true })).toHaveValue('1990-05-15');
+  // 주소가 밖에서 바뀌었을 뿐인데 '입력이 바뀌었습니다' 가 뜨면 안 된다.
+  await expect(page.getByText('입력이 바뀌었습니다.', { exact: false })).toHaveCount(0);
+
+  // 쿼리스트링은 사라지고 같은 값이 `#` 뒤에 선다.
+  await expect(page).toHaveURL(/#/);
+  expect(new URL(page.url()).search).toBe('');
+  expect(sharedParams(page).get('date')).toBe('1990-05-15');
+  expect(sharedParams(page).get('name')).toBe('민수');
+});
+
+/**
+ * **이 파일에서 가장 중요한 한 건이다** — fragment 로 옮긴 이유가 이것뿐이기 때문이다.
+ *
+ * 주소가 `#` 을 쓴다는 것만 확인하면 반쪽이다. 확인해야 하는 것은 **제출한 생년월일이
+ * 어떤 요청에도 실리지 않는다**는 성질이다. 이게 깨지는 길은 여럿이다 — 누군가 다시
+ * 쿼리스트링으로 되돌리거나, 분석 도구가 `location.href` 를 통째로 보내거나, 무심코
+ * 서버 컴포넌트로 옮기거나. 셋 다 여기서 잡힌다.
+ */
+test('제출한 생년월일은 어떤 요청에도 실리지 않는다', async ({ page }) => {
+  const requested: string[] = [];
+  page.on('request', (request) => requested.push(request.url()));
+
+  await page.goto('/');
+  await enterKnownBirth(page);
+  await page.getByRole('button', { name: '사주 보기' }).click();
+  await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+
+  // 주소에는 있다.
+  expect(sharedParams(page).get('date')).toBe('1990-05-15');
+
+  // 그런데 서버로 간 것 중에는 없다.
+  expect(requested.filter((url) => url.includes('1990-05-15'))).toEqual([]);
+  expect(requested.filter((url) => url.includes('14%3A30') || url.includes('14:30'))).toEqual([]);
 });
 
 /**
@@ -417,14 +473,15 @@ test('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그대로
 
   await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
 
-  const shared = new URL(page.url());
-  expect(shared.searchParams.get('a.date')).toBe('1990-05-15');
-  expect(shared.searchParams.get('b.date')).toBe('1992-08-20');
-  expect(shared.searchParams.get('a.hour')).toBe('14:30');
+  const shared = page.url();
+  const params = sharedParams(page);
+  expect(params.get('a.date')).toBe('1990-05-15');
+  expect(params.get('b.date')).toBe('1992-08-20');
+  expect(params.get('a.hour')).toBe('14:30');
 
   const chart = await page.locator('main').innerText();
 
-  await page.goto(shared.toString());
+  await page.goto(shared);
   await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
   expect(await page.locator('main').innerText()).toBe(chart);
   await expect(first.getByLabel('생년월일', { exact: true })).toHaveValue('1990-05-15');
@@ -463,7 +520,7 @@ test('결과 링크 복사 버튼이 지금 주소를 클립보드에 넣는다'
 
 test('한 사람만 적힌 궁합 주소는 빈 폼으로 연다', async ({ page }) => {
   // 반쪽 링크로 남의 사주가 섞여 보이면 안 된다.
-  await page.goto('/compat?a.date=1990-05-15&a.hour=14:30');
+  await page.goto('/compat#a.date=1990-05-15&a.hour=14:30');
   await expect(
     page.getByRole('heading', { name: '두 사람의 생년월일시를 입력해 주세요' }),
   ).toBeVisible();
@@ -476,7 +533,7 @@ test('한 사람만 적힌 궁합 주소는 빈 폼으로 연다', async ({ page
  * 보이지 않기로 했으므로, 눌렀을 때 그렇게 말하는지가 계약이다.
  */
 test('베타 매칭 지표는 사실 아래에 서고, 관심 버튼은 받지 않는다고 말한다', async ({ page }) => {
-  await page.goto('/compat?a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+  await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
 
   const facts = page.getByRole('heading', { name: '두 원국 사이의 관계' });
   await expect(facts).toBeVisible();
@@ -498,7 +555,7 @@ test('베타 매칭 지표는 사실 아래에 서고, 관심 버튼은 받지 �
  * 그 표가 이 자료의 요점이고, 값이 아니라 계약이라 화면 어디에도 없던 것이다.
  */
 test('넘길 자료는 열었을 때 상한 표와 함께 선다', async ({ page }) => {
-  await page.goto('/compat?a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+  await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
 
   const panel = page.getByRole('group').filter({ hasText: 'AI 에 넘길 자료' });
   await expect(panel).toBeVisible();
@@ -526,7 +583,7 @@ test('넘길 자료는 열었을 때 상한 표와 함께 선다', async ({ page
 test('프롬프트를 골라 자료와 함께 복사한다', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 
-  await page.goto('/?date=1990-05-15&hour=14:30');
+  await page.goto('/#date=1990-05-15&hour=14:30');
 
   const panel = page.getByRole('group').filter({ hasText: 'AI 에 넘길 자료' });
   await panel.getByText('AI 에 넘길 자료').click();
@@ -564,7 +621,7 @@ test('프롬프트를 골라 자료와 함께 복사한다', async ({ page, cont
 });
 
 test('시각을 모르면 상한 표가 내려앉고 없다는 쪽이 잠긴다', async ({ page }) => {
-  await page.goto('/?date=1988-07-15&hour=unknown');
+  await page.goto('/#date=1988-07-15&hour=unknown');
 
   const panel = page.getByRole('group').filter({ hasText: 'AI 에 넘길 자료' });
   await panel.getByText('AI 에 넘길 자료').click();
