@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { CONSENT_INTRO, MATCH_RESULT_PENDING_NOTE, REQUEST_STATUS_TEXT } from '@/src/lib/consent';
+import { CONSENT_INTRO, MATCH_RESULT_LINK, REQUEST_STATUS_TEXT } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
@@ -220,8 +220,9 @@ function Notifications({ inbox }: { inbox: Inbox }) {
 /**
  * 성립한 Match.
  *
- * **없는 것을 있는 척하지 않는다.** 상세 궁합 결과는 아직 열리지 않았고, 그 사실을
- * 여기서 말한다 — 회색 버튼을 세워 두는 것보다 낫다.
+ * **여기서 나가는 것은 후보 카드가 이미 말한 것뿐이다.** 궁합과 지표는 이 목록이
+ * 아니라 결과 화면에 선다 — 목록이 결과를 미리 조금 보여주기 시작하면, 무엇이
+ * 동의로 열린 것인지가 두 자리로 갈린다.
  */
 function Matches({ matches }: { matches: InboxMatch[] }) {
   return (
@@ -243,10 +244,13 @@ function Matches({ matches }: { matches: InboxMatch[] }) {
                 <p className="text-sm text-secondary">{match.suppliedToMe}</p>
               )}
               <p className="text-sm text-secondary">{match.balanceLabel}</p>
-              <p className="border-t border-border pt-2 text-xs text-muted">
-                {MATCH_RESULT_PENDING_NOTE}
-              </p>
-              <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4 border-t border-border pt-2">
+                <Link
+                  href={`/me/match/${match.matchId}`}
+                  className="text-sm text-accent underline underline-offset-2"
+                >
+                  {MATCH_RESULT_LINK}
+                </Link>
                 <BlockButton userId={match.partnerUserId} />
               </div>
             </li>

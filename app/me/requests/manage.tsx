@@ -25,8 +25,12 @@ const QUIET =
  *
  * 두 화면에 따로 적으면 동의가 무엇에 대한 것인지 갈린다. 문장은 정책이 들고
  * (`MATCH_DISCLOSURE`), 여기서는 세우기만 한다.
+ *
+ * **결과 화면도 같은 목록을 읽는다**(ADR 0010). 갈리는 것은 아래에 붙는 한 줄뿐이라
+ * 그것만 받는다 — 동의 전에는 「이 요청은 판본에 매여 있다」이고, 결과에서는 「이
+ * 결과가 그 판본으로 났다」이다. 목록을 화면마다 따로 적는 대신 이 한 줄을 받는다.
  */
-export function MatchScope({ intro }: { intro: string }) {
+export function MatchScope({ intro, note = REVISION_BOUND_NOTE }: { intro: string; note?: string }) {
   return (
     <div className="flex flex-col gap-3 rounded-md border border-border bg-surface-sunken p-3 text-sm">
       <p>{intro}</p>
@@ -44,7 +48,7 @@ export function MatchScope({ intro }: { intro: string }) {
           ))}
         </div>
       </dl>
-      <p className="text-xs text-muted">{REVISION_BOUND_NOTE}</p>
+      <p className="text-xs text-muted">{note}</p>
     </div>
   );
 }

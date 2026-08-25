@@ -4,6 +4,10 @@ import {
   BLOCK_NOTE,
   CONSENT_INTRO,
   MATCH_DISCLOSURE,
+  MATCH_RESULT_CLOSED_NOTE,
+  MATCH_RESULT_INTRO,
+  MATCH_RESULT_NO_AI_NOTE,
+  MATCH_RESULT_PINNED_NOTE,
   NOTIFICATION_KINDS,
   REJECTION_IS_FINAL_NOTE,
   REQUEST_INTRO,
@@ -107,9 +111,48 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
     expect(hidden).toContain('따로 동의');
   });
 
-  it('두 문턱이 같은 목록 앞에 선다', () => {
+  it('세 문턱이 같은 목록 앞에 선다', () => {
     expect(REQUEST_INTRO).toContain('수락');
     expect(CONSENT_INTRO).toContain('Match');
+    // 결과 화면도 같은 목록을 읽는다(ADR 0010) — 앞에 붙는 말만 다르다.
+    expect(MATCH_RESULT_INTRO).toContain('match-v0');
+  });
+
+  /**
+   * 결과를 만들면서 실제로 무엇이 나가는지 알게 됐다 — 관계 표는 걸린 글자를 적는다.
+   * 빼면 관계가 아니라 개수가 되므로, 빼는 대신 **적는다**(ADR 0010).
+   */
+  it('관계에 걸린 글자가 보인다는 것을 적는다', () => {
+    const shown = MATCH_DISCLOSURE.shown.join(' ');
+    expect(shown).toContain('글자');
+    // 그래도 상대의 여덟 글자 전부는 열리지 않는다 — 둘을 함께 적어야 경계가 선다.
+    expect(MATCH_DISCLOSURE.hidden.join(' ')).toContain('여덟 글자 전부');
+  });
+});
+
+/**
+ * 결과 화면의 말 — **이 화면에만 있는 사실 셋.**
+ *
+ * 판본에 매여 있다는 것, 아직 AI 가 아니라는 것, 그리고 못 열 때 무엇이 그대로
+ * 남아 있는지. 셋 다 화면이 손으로 적으면 한 곳만 고쳐진다.
+ */
+describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
+  it('매인 판본으로 났고 나중 수정에 흔들리지 않는다고 말한다', () => {
+    expect(MATCH_RESULT_PINNED_NOTE).toContain('판본');
+    expect(MATCH_RESULT_PINNED_NOTE).toContain('움직이지 않습니다');
+  });
+
+  /** 없는 것을 없다고 말한다 — 조립된 문장을 AI 가 쓴 글로 읽게 두지 않는다 */
+  it('아직 AI 가 쓴 글이 아니라고 말한다', () => {
+    expect(MATCH_RESULT_NO_AI_NOTE).toContain('AI');
+    // 붙어도 점수를 새로 만들지 않는다(US 53) — 그 약속을 미리 적는다.
+    expect(MATCH_RESULT_NO_AI_NOTE).toContain('match-v0');
+  });
+
+  /** 「못 연다」와 「없다」는 다른 말이다 — Match 와 동의는 그대로 있다 */
+  it('열지 못할 때도 Match 가 그대로라고 말한다', () => {
+    expect(MATCH_RESULT_CLOSED_NOTE).toContain('Match');
+    expect(MATCH_RESULT_CLOSED_NOTE).toContain('그대로');
   });
 });
 

@@ -9,6 +9,10 @@ import { supabaseEnv } from './config';
  * 시작하면 「이 요청이 무엇을 볼 수 있는가」의 답이 정책이 아니라 앱 코드로
  * 옮겨 간다 — 정책을 DB 에 건 이유가 사라진다.
  *
+ * **공유 결과 하나가 예외이고, 그 예외도 이 client 를 지나간다**(ADR 0010). 볼 자격은
+ * 여기서 나온 client 가 `auth.uid()` 로 묻고, 열쇠는 그 답이 가리킨 판본을 읽기만
+ * 한다(`app/me/match/inputs.ts`) — 판정이 옮겨 가지 않는 것이 그 조건이다.
+ *
  * `cookies()` 는 이 버전에서 async 다.
  */
 export async function supabaseOnServer() {

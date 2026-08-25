@@ -7,17 +7,24 @@
  *
  * 접속값은 **빌드할 때와 띄울 때 둘 다** 넘긴다. `NEXT_PUBLIC_` 은 빌드 때 코드에
  * 박히고 서버가 읽는 것은 띄울 때의 값이라, 한쪽만 주면 원격을 보게 된다.
+ *
+ * `secretKey` 는 **주는 검사만 준다.** 공유 결과 화면 하나가 그것으로 매인 판본을
+ * 읽는다(ADR 0010). 안 주면 그 화면은 「지금은 열 수 없습니다」로 서므로, 열쇠가
+ * 없을 때 무슨 일이 나는지도 검사가 실제로 볼 수 있다.
  */
 import { execFileSync, spawn } from 'node:child_process';
 
 let built = false;
 
-export async function startCheckServer({ port, supabaseUrl, anonKey }) {
+export async function startCheckServer({ port, supabaseUrl, anonKey, secretKey }) {
   const env = {
     ...process.env,
     NEXT_DIST_DIR: '.next-check',
     NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: anonKey,
+    // 로컬 것만 들어간다. `next start` 는 `NODE_ENV=production` 이라
+    // `.env.development.local`(원격 값)을 읽지 않는다 — 검사가 원격을 건드릴 자리가 없다.
+    ...(secretKey ? { SUPABASE_SECRET_KEY: secretKey } : {}),
   };
 
   if (!built) {

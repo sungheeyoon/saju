@@ -267,8 +267,8 @@ try {
       const html = plain(await body('/me/requests', cookie));
       check(`${who} 화면에 성립한 Match 가 선다`,
         html.includes('성립한 Match') && html.includes(partner));
-      check(`${who} 화면이 결과가 아직 없다고 말한다`,
-        html.includes('상세 궁합 결과와 해석은 아직 열리지 않았습니다'));
+      check(`${who} 화면에서 결과로 들어가는 길이 선다`,
+        html.includes('/me/match/') && html.includes('함께 보기'));
     }
 
     /** **Match 는 내 사람 목록을 늘리지 않는다**(US 46) — 두 갈래로 남는다 */
@@ -309,17 +309,16 @@ try {
 
     /**
      * **별명만 보고는 못 잰다** — 지난 알림 문장에도 상대의 별명이 있고, 그 알림은
-     * 지우지 않는다(사건은 일어났다). Match 칸이 비었는지는 그 칸에만 서는 문장으로 잰다.
+     * 지우지 않는다(사건은 일어났다). Match 칸이 비었는지는 그 칸에만 서는 것으로 잰다 —
+     * 결과로 들어가는 길이 그것이다.
      */
     const asker = plain(await body('/me/requests', aCookie));
-    check('차단하면 Match 가 목록에서 내려간다',
-      !asker.includes('상세 궁합 결과와 해석은 아직 열리지 않았습니다'));
+    check('차단하면 Match 가 목록에서 내려간다', !asker.includes('/me/match/'));
     check('차단한 사람이 몇인지는 말하되 누구인지는 적지 않는다',
       asker.includes('차단한 사람 1명') && !asker.includes(userId(bMail)));
 
     const blocked = plain(await body('/me/requests', bCookie));
-    check('차단당한 쪽에서도 내려간다',
-      !blocked.includes('상세 궁합 결과와 해석은 아직 열리지 않았습니다'));
+    check('차단당한 쪽에서도 내려간다', !blocked.includes('/me/match/'));
 
     check('그래도 Match 행은 지우지 않는다', Number(sql('select count(*) from public.match')) > 0);
   }

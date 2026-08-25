@@ -7,6 +7,10 @@
  *
  * `SUPABASE_SECRET_KEY`(service role)는 **여기 오지 않는다.** 그건 RLS 를 통째로
  * 지나가는 키라 사용자 경로에 쓰지 않는다.
+ *
+ * 그 키를 드는 자리가 딱 하나 생겼다 — 공유 결과가 매인 판본을 읽는 문이다
+ * (`app/me/match/inputs.ts`, ADR 0010). 여기 두지 않는 것은 그대로다: 그 자리는
+ * 자기가 쓰는 값을 자기가 읽고, 없으면 화면이 「지금은 열 수 없습니다」로 선다.
  */
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;

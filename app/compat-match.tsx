@@ -5,14 +5,16 @@ import { useState } from 'react';
 import { buildMatchPreview } from '@/src/lib/matching';
 import type { Compatibility, Saju } from '@/src/lib/saju';
 
-import { CARD } from './card';
+import { MatchIndexCard } from './match-index';
 
 /**
- * `match-v0` 를 화면에 세우는 자리.
+ * 익명·저장 궁합 화면의 `match-v0` 칸.
  *
- * 여기서는 아무것도 계산하지 않는다 — 숫자와 문구는 전부 `buildMatchPreview` 가
- * 낸다. 화면이 제 손으로 가중치를 얹기 시작하면 정책 버전이 가리키는 것과
- * 사람이 본 것이 갈라진다.
+ * **셈은 여기서 부르고 그리기는 `MatchIndexCard` 가 한다.** 이 화면은 두 명식을
+ * 브라우저가 들고 있어도 되는 자리라(사용자가 스스로 넣었거나 자기 사람들이다)
+ * 지표도 브라우저에서 난다. Match 결과 화면은 그럴 수 없으므로 서버에서 같은
+ * 함수를 부르고 결과만 넘긴다(ADR 0010) — **부르는 자리가 둘이어도 부르는 함수는
+ * 하나**라, 두 화면의 숫자가 갈릴 자리가 없다.
  */
 export function MatchResult({
   charts,
@@ -27,57 +29,7 @@ export function MatchResult({
   const [asked, setAsked] = useState(false);
 
   return (
-    <section className={CARD}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="inline-flex rounded-full bg-accent-wash px-2.5 py-1 text-xs font-medium text-accent">
-          궁합 베타 · {preview.policyVersion}
-        </span>
-        <span className="text-xs text-muted">검증 중인 판정은 지표에서 제외</span>
-      </div>
-
-      <div className="mt-5 grid gap-6 lg:grid-cols-[14rem_1fr] lg:items-center">
-        <div className="rounded-xl bg-surface-sunken p-5 text-center">
-          <p className="text-sm text-secondary">
-            {names.a} × {names.b}
-          </p>
-          <p className="mt-2 text-5xl font-semibold tracking-tight tabular-nums">{preview.index}</p>
-          <p className="mt-1 text-xs text-muted">100점 만점 베타 탐색 지표</p>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          {preview.dimensions.map((dimension) => (
-            <div key={dimension.key}>
-              <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="font-medium">{dimension.label}</span>
-                <span className="tabular-nums text-secondary">{dimension.score}</span>
-              </div>
-              {/*
-                막대는 값을 다시 읽는 그림일 뿐이다. 옆의 숫자가 원본이고, 폭은
-                거기서 나온다 — 눈으로 어림한 길이를 값으로 읽지 않게 한다.
-              */}
-              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-track">
-                <div
-                  className="h-full rounded-full bg-accent"
-                  style={{ width: `${dimension.score}%` }}
-                />
-              </div>
-              <p className="mt-1.5 text-xs text-muted">{dimension.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-6 border-t border-border pt-5">
-        <h3 className="text-sm font-semibold">먼저 보이는 신호</h3>
-        <ul className="mt-2 flex flex-col gap-1.5 text-sm text-secondary">
-          {preview.highlights.map((highlight) => (
-            <li key={highlight}>· {highlight}</li>
-          ))}
-        </ul>
-      </div>
-
-      <p className="mt-4 text-xs text-muted">{preview.caveat}</p>
-
+    <MatchIndexCard preview={preview} names={names}>
       <div className="mt-5 flex flex-col gap-3 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium">상세 궁합 리포트</p>
@@ -103,6 +55,6 @@ export function MatchResult({
           아직 만들고 있습니다. 지금은 신청을 받지 않고, 누른 것도 남기지 않습니다.
         </p>
       )}
-    </section>
+    </MatchIndexCard>
   );
 }
