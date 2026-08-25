@@ -206,7 +206,7 @@ select id as match_id from public.match where request_id = (select request_id fr
 grant select on matched to authenticated, service_role;
 set local role authenticated;
 
--- ── 성립하지 않은 요청은 판본을 놓고 지문을 남긴다 ───────────────────────────
+-- ── 성립하지 않은 요청은 판본을 놓고 표를 남긴다 ────────────────────────────
 select pg_temp.acting((select kim from folks));
 
 create temporary table asked_choi as
