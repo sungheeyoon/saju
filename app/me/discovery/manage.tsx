@@ -4,10 +4,13 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { DISCOVERY_DISCLOSURE } from '@/src/lib/discovery';
+import { REQUEST_INTRO } from '@/src/lib/consent';
 
 import { CARD } from '../../card';
+import { MatchScope } from '../requests/manage';
 import {
   hideCandidate,
+  requestMatch,
   saveDiscoveryProfile,
   setDiscoveryParticipation,
   unhideAllCandidates,
@@ -175,7 +178,8 @@ export function ParticipationToggle({
         </p>
         <p className="text-sm text-secondary">
           언제든 끌 수 있고, 끄면 매칭 풀에 내놓은 오행 요약도 거둡니다. 내 사주와 저장한
-          사람들은 그대로 남습니다.
+          사람들은 그대로 남습니다. 이미 주고받은 요청과 성립한 Match 도 그대로입니다 —
+          참여를 끄는 것은 새로 보이지 않겠다는 뜻이지 지난 일을 지우는 것이 아닙니다.
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -304,5 +308,60 @@ export function UnhideAll({ count }: { count: number }) {
       </button>
       {failure !== null && <span>{failure}</span>}
     </p>
+  );
+}
+
+/**
+ * 상세 궁합 요청 — **보내기 전에 무엇이 열리는지 읽힌다.**
+ *
+ * 바로 보내지 않는다. 후보 카드만 본 것은 궁합 동의가 아니고(PRD), 무엇이 열리는지
+ * 모른 채 누른 요청은 상대에게도 설명할 수 없는 요청이다. 수락 화면과 **같은 목록**을
+ * 읽는다 — 두 곳에 따로 적으면 보내는 쪽과 받는 쪽이 다른 약속을 읽게 된다.
+ */
+export function RequestButton({ candidateUserId }: { candidateUserId: string }) {
+  const router = useRouter();
+  const [reading, setReading] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [working, startWorking] = useTransition();
+
+  const send = () => {
+    setFailure(null);
+    startWorking(async () => {
+      const result = await requestMatch(candidateUserId);
+      if (result.ok) router.refresh();
+      else setFailure(result.message);
+    });
+  };
+
+  if (!reading) {
+    return (
+      <button
+        type="button"
+        onClick={() => setReading(true)}
+        className="text-sm text-accent underline underline-offset-2"
+      >
+        상세 궁합 요청하기
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-3">
+      <MatchScope intro={REQUEST_INTRO} />
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" onClick={send} disabled={working} className={BUTTON}>
+          {working ? '보내는 중…' : '요청 보내기'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setReading(false)}
+          disabled={working}
+          className="text-sm text-secondary underline underline-offset-2"
+        >
+          그만두기
+        </button>
+      </div>
+      {failure !== null && <p className="text-sm text-muted">{failure}</p>}
+    </div>
   );
 }

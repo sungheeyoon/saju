@@ -1,0 +1,161 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  BLOCK_NOTE,
+  CONSENT_INTRO,
+  MATCH_DISCLOSURE,
+  NOTIFICATION_KINDS,
+  REJECTION_IS_FINAL_NOTE,
+  REQUEST_INTRO,
+  REQUEST_STATUSES,
+  REQUEST_STATUS_TEXT,
+  REVISION_BOUND_NOTE,
+  notificationText,
+  suppliedText,
+} from './index';
+
+/**
+ * **상태 전이는 여기서 재지 않는다.**
+ *
+ * pending 이 무엇으로 갈 수 있는지, 무엇이 무효를 부르는지는 전부 DB 안에 있고
+ * `supabase/tests/10_match_request.test.sql` 이 잰다. 여기서 재는 것은 **말**이다 —
+ * 다섯 상태와 네 사건에 빠짐없이 문장이 있는지, 그리고 그 문장이 실제 동작과 같은
+ * 약속을 하는지.
+ */
+describe('요청 상태는 다섯이고 다섯 다 말이 있다', () => {
+  it('DB 검사식과 같은 다섯을 든다', () => {
+    expect([...REQUEST_STATUSES]).toEqual([
+      'pending',
+      'accepted',
+      'rejected',
+      'invalidated',
+      'cancelled',
+    ]);
+  });
+
+  it('상태마다 보낸 쪽과 받은 쪽의 말이 다 있다', () => {
+    for (const status of REQUEST_STATUSES) {
+      const text = REQUEST_STATUS_TEXT[status];
+      expect(text.label.length).toBeGreaterThan(0);
+      expect(text.sent.length).toBeGreaterThan(0);
+      expect(text.received.length).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * 둘 다 「성립하지 않았다」지만 **누가 거뒀는지가 다르다.** 한 낱말로 합치면 사용자에게
+   * 「왜 사라졌는지」를 말해 줄 수 없다(US 43).
+   */
+  it('무효와 거둠을 갈라서 말한다', () => {
+    expect(REQUEST_STATUS_TEXT.invalidated.label).not.toBe(REQUEST_STATUS_TEXT.cancelled.label);
+    expect(REQUEST_STATUS_TEXT.invalidated.sent).toContain('출생정보');
+  });
+});
+
+describe('알림은 네 사건을 말한다', () => {
+  it('사건마다 문장이 있고 별명을 부른다', () => {
+    for (const kind of NOTIFICATION_KINDS) {
+      const text = notificationText(kind, '지영');
+      expect(text).toContain('지영');
+      expect(text.length).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * 별명을 못 읽어도 사건은 말할 수 있다. **없는 이름을 지어 부르지 않는다** —
+   * 「알 수 없는 사람이 요청했습니다」는 사용자가 아무것도 할 수 없는 문장이다.
+   */
+  it('별명이 없으면 사람을 부르지 않는 문장으로 낸다', () => {
+    for (const kind of NOTIFICATION_KINDS) {
+      const text = notificationText(kind, null);
+      expect(text.length).toBeGreaterThan(0);
+      expect(text).not.toContain('null');
+      expect(text).not.toContain('undefined');
+      expect(text).not.toContain('님');
+    }
+  });
+
+  it('빈 별명도 없는 것으로 읽는다', () => {
+    expect(notificationText('request_received', '  ')).toBe(
+      notificationText('request_received', null),
+    );
+  });
+});
+
+/**
+ * **보내는 쪽과 받는 쪽이 같은 한 벌을 읽는다.**
+ *
+ * 두 화면에 따로 적으면 동의가 무엇에 대한 것인지 갈린다. 그래서 목록은 하나이고,
+ * 앞에 붙는 말만 다르다.
+ */
+describe('Match 가 여는 범위는 한 벌이다', () => {
+  it('열리는 것에 궁합 관계·지표·일부 오행 구성이 있다', () => {
+    const shown = MATCH_DISCLOSURE.shown.join(' ');
+    expect(shown).toContain('match-v0');
+    expect(shown).toContain('오행');
+    // 누가 보든 같은 글이다 — `perspectivePersonId` 로 결론이 바뀌지 않는다(US 48).
+    expect(shown).toContain('누가 보든');
+  });
+
+  /** ADR 0008 이 「동의 전 비공개」로 정한 것이 그대로 적혀 있어야 한다 */
+  it('열리지 않는 것에 출생 원문과 전체 명식이 있다', () => {
+    const hidden = MATCH_DISCLOSURE.hidden.join(' ');
+    expect(hidden).toContain('생년월일시');
+    expect(hidden).toContain('출생지');
+    expect(hidden).toContain('전체 명식');
+    // 전체 명식 공유는 Match 수락에 묶지 않고 별도 동의로 둔다(ADR 0008).
+    expect(hidden).toContain('따로 동의');
+  });
+
+  it('두 문턱이 같은 목록 앞에 선다', () => {
+    expect(REQUEST_INTRO).toContain('수락');
+    expect(CONSENT_INTRO).toContain('Match');
+  });
+});
+
+describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
+  /**
+   * 미리 적어 두면 실제로 무효가 됐을 때 **그렇게 하기로 했던 것**이 된다. 안 적으면
+   * 사고처럼 읽힌다.
+   */
+  it('요청이 판본에 매인다는 것을 먼저 말한다', () => {
+    expect(REVISION_BOUND_NOTE).toContain('판본');
+    expect(REVISION_BOUND_NOTE).toContain('무효');
+    // 이름·메모 수정은 무효로 만들지 않는다 — 그 경계도 함께 적는다.
+    expect(REVISION_BOUND_NOTE).toContain('이름');
+  });
+
+  it('거절이 되돌아오지 않는다는 것을 먼저 말한다', () => {
+    expect(REJECTION_IS_FINAL_NOTE).toContain('다시');
+  });
+
+  it('차단이 「다시 보지 않기」보다 넓고 되돌릴 수 없다는 것을 말한다', () => {
+    expect(BLOCK_NOTE).toContain('요청');
+    expect(BLOCK_NOTE).toContain('Match');
+    // 용어집: 차단은 양방향으로 접촉을 막고 **되돌리지 않는다**. 푸는 문이 없으므로
+    // 누르기 전에 그렇게 말해야 한다.
+    expect(BLOCK_NOTE).toContain('되돌릴 수 없습니다');
+  });
+});
+
+describe('채우는 오행은 이름으로 말한다', () => {
+  it('글자와 우리말 이름을 함께 낸다', () => {
+    expect(suppliedText(['木', '水'], 'toMe')).toBe(
+      '나에게 부족한 목(木) · 수(水) 기운을 이 사람이 채웁니다.',
+    );
+  });
+
+  /**
+   * **두 방향을 정책이 짓는다.** 화면이 한 문장을 받아 낱말을 바꿔 쓰면 그때부터 문구는
+   * 화면이 쓰는 것이 되고, 고칠 자리가 둘이 된다.
+   */
+  it('반대 방향은 내가 채우는 것으로 말한다', () => {
+    expect(suppliedText(['木'], 'toThem')).toBe('이 사람에게 부족한 목(木) 기운을 내가 채웁니다.');
+  });
+
+  /** 없는 것을 설명하지 않는다 — 채우는 것이 없으면 그 줄이 서지 않는다 */
+  it('채우는 것이 없으면 문장이 없다', () => {
+    expect(suppliedText([], 'toMe')).toBeNull();
+    expect(suppliedText([], 'toThem')).toBeNull();
+  });
+});

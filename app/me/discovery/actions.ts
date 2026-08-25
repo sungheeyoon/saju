@@ -122,3 +122,28 @@ export async function unhideAllCandidates(): Promise<SaveResult> {
   revalidatePath('/me/discovery');
   return { ok: true };
 }
+
+/**
+ * 상세 궁합을 함께 보자고 청한다.
+ *
+ * **인자는 상대 하나뿐이다.** 판본도 추천 이유도 정책 버전도 RPC 가 그 자리에서 읽는다 —
+ * 앱이 실어 보내면 그 값은 손으로 적은 값이 되고, 이 서버 액션도 RPC 도 주소만 알면
+ * 부를 수 있는 자리다(`discovery_board` 와 같은 규율).
+ *
+ * 거절의 문장도 하나다. 없는 사람·참여하지 않는 사람·차단한 사람·이미 결정이 있는
+ * 사람이 모두 같은 말을 받는다 — 갈라서 말하면 「저 사람이 이 서비스를 쓰나」를 묻는
+ * 문이 된다. 그 판정은 DB 안에 있고 여기서 다시 하지 않는다.
+ */
+export async function requestMatch(candidateUserId: string): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  const { error } = await supabase.rpc('request_match', {
+    p_candidate_user_id: candidateUserId,
+  });
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/me/discovery');
+  revalidatePath('/me/requests');
+  return { ok: true };
+}

@@ -30,6 +30,11 @@ const check = (name, pass, detail = '') => {
 };
 
 const stamp = Date.now();
+// 별명에 이번 실행의 꼬리표를 붙인다 — 지난 실행이 남긴 동명이인이 후보로 서면 본문을
+// 뒤지는 검사가 헛디딘다(별명 상한이 12자라 네 자리만 붙인다).
+const tag = String(stamp).slice(-4);
+const MINE_NAME = `민수${tag}`;
+const THEIR_NAME = `지영${tag}`;
 const password = `pw-${stamp}-Aa1!`;
 const mine = `seeker-${stamp}@example.com`;
 const theirs = `sought-${stamp}@example.com`;
@@ -122,8 +127,29 @@ try {
   const profileFor = (client, nickname, intro) =>
     client.from('discovery_profile').insert({ nickname, intro, prefer_gender: 'any' });
 
-  await profileFor(me, '민수', '조용한 편입니다');
-  await profileFor(other, '지영', '주말엔 걷습니다');
+  await profileFor(me, MINE_NAME, '조용한 편입니다');
+  await profileFor(other, THEIR_NAME, '주말엔 걷습니다');
+
+
+/**
+ * **이번 실행의 사람들만 서로의 후보가 되게 한다.**
+ *
+ * 후보 목록은 한 번에 열 명까지다. 지난 실행이 쌓아 둔 참여자가 스무 명이면 이번 상대는
+ * 목록에 못 서고, 그러면 이 검사는 「후보가 뜨는가」가 아니라 「DB 가 비어 있는가」를
+ * 잰다(pgTAP 이 같은 이유로 같은 일을 한다). 검사가 DB 를 비우게 하는 대신, 이번
+ * 사람들이 나머지를 목록에서 빼 두고 시작한다.
+ */
+const isolate = (emails) => {
+  const list = emails.map((email) => `'${email}'`).join(', ');
+  sql(`insert into public.discovery_hidden (user_id, hidden_user_id)
+       select mine.id, p.user_id
+       from auth.users mine, public.discovery_profile p
+       where mine.email in (${list})
+         and p.user_id not in (select id from auth.users where email in (${list}))
+       on conflict do nothing`);
+};
+
+  isolate([mine, theirs]);
 
   const summaryOf = (email) =>
     sql(`select coalesce(p.element_summary::text, '') from public.discovery_profile p
@@ -167,7 +193,7 @@ try {
     const response = await get('/me/discovery', myCookie);
     const body = await response.text();
 
-    check('참여하면 상대가 후보로 선다', body.includes('지영'), String(response.status));
+    check('참여하면 상대가 후보로 선다', body.includes(THEIR_NAME), String(response.status));
 
     /**
      * **추천 이유는 적극적으로 나간다.** 어느 오행이 무엇을 채우는지까지 —
@@ -315,18 +341,30 @@ try {
       String(account?.self_person_id ?? '?').slice(0, 8));
 
     const theirUserId = sql(`select id from auth.users where email = '${theirs}'`);
+    /**
+     * **몇 명인지는 세어서 견준다.**
+     *
+     * 이 검사는 목록을 좁히려고 다른 참여자들을 이미 감춰 뒀다(`isolate`). 「1명」으로
+     * 못박으면 그 격리가 늘 때마다 여기가 깨진다 — 지금 감춘 수는 DB 에 물어 본다.
+     */
+    const hiddenCount = () =>
+      Number(sql(`select count(*) from public.discovery_hidden h
+                  join auth.users u on u.id = h.user_id where u.email = '${mine}'`));
+
+    const before = hiddenCount();
     await me.from('discovery_hidden').insert({ hidden_user_id: theirUserId });
 
     const body = await (await get('/me/discovery', myCookie)).text();
-    check('다시 보지 않기로 하면 후보에서 빠진다', !body.includes('지영'));
+    check('다시 보지 않기로 하면 후보에서 빠진다', !body.includes(THEIR_NAME));
     // React 는 나란한 글자 마디 사이에 `<!-- -->` 를 넣는다. 수를 견줄 때 그것을 지운다.
     const plain = body.replace(/<!--\s*-->/g, '');
     check('감춘 사람이 몇인지는 말하되 누구인지는 적지 않는다',
-      plain.includes('다시 보지 않기로 한 사람 1명') && !body.includes(theirUserId));
+      plain.includes(`다시 보지 않기로 한 사람 ${before + 1}명`) && !body.includes(theirUserId),
+      `${before + 1}명이어야 한다`);
 
     await me.from('discovery_hidden').delete().eq('hidden_user_id', theirUserId);
     const back = await (await get('/me/discovery', myCookie)).text();
-    check('되돌리면 다시 선다', back.includes('지영'));
+    check('되돌리면 다시 선다', back.includes(THEIR_NAME));
   }
 
   // ── 8. 판본을 고치면 요약이 따라간다 ────────────────────────────────────────
@@ -340,12 +378,12 @@ try {
 
     // RPC 를 직접 불렀으므로 요약은 아직 옛 판본의 것이다 — 그 사이에는 후보가 아니다.
     const stale = await (await get('/me/discovery', myCookie)).text();
-    check('요약이 낡은 사람은 후보에서 빠진다', !stale.includes('지영'));
+    check('요약이 낡은 사람은 후보에서 빠진다', !stale.includes(THEIR_NAME));
 
     // 그 사람이 화면을 한 번 열면 스스로 낫는다.
     await get('/me/discovery', theirCookie);
     const healed = await (await get('/me/discovery', myCookie)).text();
-    check('그 사람이 화면을 열면 요약이 따라와 다시 선다', healed.includes('지영'));
+    check('그 사람이 화면을 열면 요약이 따라와 다시 선다', healed.includes(THEIR_NAME));
   }
 
   // ── 9. 참여를 끄면 풀에서 사라지고 요약도 거둬진다 ──────────────────────────
@@ -353,7 +391,7 @@ try {
     await other.rpc('set_discovery_participation', { p_on: false, p_summary: null });
 
     const body = await (await get('/me/discovery', myCookie)).text();
-    check('참여를 끄면 후보에서 사라진다', !body.includes('지영'));
+    check('참여를 끄면 후보에서 사라진다', !body.includes(THEIR_NAME));
     check('내놓은 요약도 거둬진다', summaryOf(theirs) === '', summaryOf(theirs).slice(0, 40));
 
     const { data: person } = await other.from('person').select('id');

@@ -7,7 +7,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { candidatesForViewer, type CandidateBoard } from '../candidates';
 import { selfElementSummary } from '../summary';
-import { HideButton, ParticipationToggle, ProfileForm, UnhideAll } from './manage';
+import { HideButton, ParticipationToggle, ProfileForm, RequestButton, UnhideAll } from './manage';
 import { PREFER_GENDERS, type DiscoveryProfileInput, type PreferGender } from './profile';
 
 export const metadata = {
@@ -61,6 +61,9 @@ export default async function DiscoveryPage() {
           </Link>
           <Link href="/me/people" className="text-accent underline underline-offset-2">
             등록한 사람
+          </Link>
+          <Link href="/me/requests" className="text-accent underline underline-offset-2">
+            요청과 알림
           </Link>
         </p>
       </header>
@@ -196,15 +199,13 @@ function Candidates({ board, hiddenCount }: { board: CandidateBoard; hiddenCount
 
               <p className="text-sm text-secondary">{card.balanceLabel}</p>
 
+              {/*
+                요청은 **후보를 본 데서** 난다. 이 카드가 섰다는 것이 노출 기록으로 남아
+                있고, `request_match` 는 그 기록이 있는 사람에게만 요청을 만든다.
+              */}
               <div className="flex flex-wrap items-center gap-4 border-t border-border pt-2">
+                <RequestButton candidateUserId={card.candidateUserId} />
                 <HideButton candidateUserId={card.candidateUserId} />
-                {/*
-                  상세 궁합 요청은 아직 없다. 없는 버튼을 회색으로 세워 두지 않는다 —
-                  누를 수 없는 버튼은 무엇이 곧 되는지 말해 주지 않는다.
-                */}
-                <span className="text-xs text-muted">
-                  상세 궁합 요청은 아직 열리지 않았습니다.
-                </span>
               </div>
             </li>
           ))}

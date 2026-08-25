@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
+import { unreadCount } from './requests/inbox';
 import { chartOf } from '../chart';
 import { toSearchParams } from '../query';
 import { UnreadableRevisionError, queryFromRevision } from '../revision';
@@ -192,8 +193,28 @@ async function SelfChart({ personId }: { personId: string }) {
         <Link href="/me/discovery" className="text-accent underline underline-offset-2">
           후보
         </Link>
+        <Requests />
       </p>
     </section>
+  );
+}
+
+/**
+ * 요청함으로 가는 자리 — **안 읽은 것이 있으면 수를 함께 든다.**
+ *
+ * 알림은 앱 안에서만 온다(용어집). 그러니 들어왔을 때 **여기서** 눈에 띄어야 한다 —
+ * 요청 화면까지 들어가야 알 수 있으면 앱 내 알림은 아무에게도 닿지 않는다.
+ *
+ * 목록 전체를 읽지 않고 개수만 묻는다. 이 화면은 알림의 내용을 그리지 않는다.
+ */
+async function Requests() {
+  const unread = await unreadCount();
+
+  return (
+    <Link href="/me/requests" className="text-accent underline underline-offset-2">
+      요청과 알림
+      {unread > 0 && <span className="ml-1 font-medium">{unread}</span>}
+    </Link>
   );
 }
 
