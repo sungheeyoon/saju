@@ -405,7 +405,13 @@ try {
   {
     await b.rpc('mark_notifications_read');
     const mine = plain(await body('/me', bCookie));
-    check('읽고 나면 수가 서지 않는다', !/요청과 알림\s*<?[^>]*>?\s*[1-9]/.test(mine));
+    /**
+     * **배지만 본다.** 예전에는 「요청과 알림」 뒤에 아무 태그나 하나 온 뒤의 숫자를
+     * 찾았는데, 그 그물에는 화면 아래 붙는 RSC 자료까지 걸린다 — 그 안에도 같은 낱말이
+     * 있고 뒤따르는 값은 화면과 무관하다. 재려는 것은 **그려진 배지**다.
+     */
+    const badge = /요청과 알림<span[^>]*>([1-9]\d*)</.exec(mine);
+    check('읽고 나면 수가 서지 않는다', badge === null, badge?.[1] ?? '');
   }
 } finally {
   stop();

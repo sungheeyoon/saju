@@ -15,12 +15,13 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "test:db": "supabase test db",
-    "test:flow": "node scripts/check-onboarding.mjs && node scripts/check-managed.mjs && node scripts/check-discovery.mjs && node scripts/check-match.mjs && node scripts/check-result.mjs",
+    "test:flow": "node scripts/check-onboarding.mjs && node scripts/check-managed.mjs && node scripts/check-discovery.mjs && node scripts/check-match.mjs && node scripts/check-result.mjs && node scripts/check-reading.mjs",
     "verify": "npm test && npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
+    "ai": "^7.0.79",
     "astronomy-engine": "^2.1.19",
     "next": "16.3.1",
     "react": "19.2.8",

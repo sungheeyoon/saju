@@ -2,21 +2,24 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import {
+  MATCH_RESULT_ENGINE_NOTE,
   MATCH_RESULT_INTRO,
-  MATCH_RESULT_NO_AI_NOTE,
   MATCH_RESULT_PINNED_NOTE,
 } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { BetweenSections } from '../../../between-view';
 import { CARD } from '../../../card';
-import { MatchIndexCard, ScoringNote } from '../../../match-index';
 import { BlockButton, MatchScope } from '../../requests/manage';
+import { ReadingSection } from '../../reading/section';
 import { matchResultForViewer, type SharedResult } from '../result';
+
+/** 모델 240초 뒤 실패를 적을 60초를 남기되 DB 의 10분 만료보다 짧게 둔다. */
+export const maxDuration = 300;
 
 export const metadata = {
   title: '함께 보는 궁합 — 만세력',
-  description: '서로 동의한 두 사람의 궁합과 고정된 match-v0 지표를 봅니다.',
+  description: '서로 동의한 두 사람의 궁합과 그 위에 선 AI 해석을 봅니다.',
 };
 
 /**
@@ -127,12 +130,15 @@ function Result({ result }: { result: SharedResult }) {
 
       <BetweenSections compat={result.compat} names={result.names} />
 
-      <MatchIndexCard preview={result.preview} names={result.names} />
+      {/*
+        **점수는 여기 한 자리에서만 난다.** 예전에는 이 자리에 `match-v0` 대시보드가
+        섰다. 그것을 내린 것은 지표가 틀려서가 아니라 **한 화면에 점수가 둘이면 사용자가
+        무엇을 믿을지 정해야 하기 때문**이다 — 사용자에게 보이는 점수는 현재 결과의
+        일부이고(PRD), `match-v0` 는 내부 실험 자산으로 남는다(ADR 0003).
+      */}
+      <ReadingSection target={{ kind: 'match', matchId: result.matchId }} />
 
-      <div className="flex flex-col gap-2">
-        <ScoringNote />
-        <p className="text-xs text-muted">{MATCH_RESULT_NO_AI_NOTE}</p>
-      </div>
+      <p className="text-xs text-muted">{MATCH_RESULT_ENGINE_NOTE}</p>
 
       <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4">
         <BlockButton userId={result.partnerUserId} />

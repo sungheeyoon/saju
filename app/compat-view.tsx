@@ -6,9 +6,7 @@ import { GENDER_KO, type Compatibility, type CompatSide, type Saju } from '@/src
 
 import { BetweenSections } from './between-view';
 import { CARD } from './card';
-import { MatchResult } from './compat-match';
 import { EvidencePanel } from './evidence-panel';
-import { ScoringNote } from './match-index';
 import { PILLAR_COLUMNS } from './saju-calculator';
 
 /**
@@ -46,6 +44,7 @@ export function CompatView({
   names,
   viewedAt,
   notice,
+  verdict,
 }: {
   charts: Record<CompatSide, Saju>;
   /** 두 사람을 부르는 말 — 입력한 이름이거나 '첫 번째 사람' */
@@ -61,15 +60,24 @@ export function CompatView({
    * 여기서 판단하지 않고 받는다.
    */
   notice: ReactNode;
+  /**
+   * 사실 **아래에 서는 판정** — 화면마다 다른 것이 서는 자리다.
+   *
+   * 익명 화면에는 `match-v0` 카드가 서고, 로그인 화면에는 저장된 현재 결과가 선다.
+   * 둘을 함께 세우지 않는 것이 요점이다 — **한 화면에 점수가 둘이면 사용자가 무엇을
+   * 믿을지 정해야 하고**, 그 물음에 우리가 답을 갖고 있지 않다.
+   *
+   * `notice` 와 같은 규율이다. 화면마다 다른 사실은 여기서 판단하지 않고 받는다.
+   */
+  verdict: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-6">
       {notice}
       <ChartPair charts={charts} names={names} />
       <BetweenSections compat={compat} names={names} />
-      <MatchResult charts={charts} compat={compat} names={names} />
+      {verdict}
       <EvidencePanel a={charts.a} b={charts.b} viewedAt={viewedAt} />
-      <ScoringNote />
     </div>
   );
 }

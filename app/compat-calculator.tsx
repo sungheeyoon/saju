@@ -11,7 +11,9 @@ import {
 
 import { chartOf } from './chart';
 import { BirthFields } from './birth-form';
+import { MatchResult } from './compat-match';
 import { CompatView, SIDES, SIDE_LABEL } from './compat-view';
+import { ScoringNote } from './match-index';
 import { CopyLinkButton } from './copy-link';
 import { CARD } from './card';
 import { useHashParams, writeParams } from './hash-query';
@@ -203,6 +205,16 @@ export function CompatCalculator() {
           viewedAt={viewedAt}
           /* 이 화면의 링크에는 두 사람의 입력이 통째로 실린다 — 그 사실을 버튼이 말한다 */
           notice={<CopyLinkButton />}
+          /*
+            익명 화면에는 AI 가 없다(저장도 계정도 없다). 그래서 사실 아래에 서는 것은
+            결정론적 베타 지표뿐이고, 무엇을 보고 있는지는 각주가 말한다.
+          */
+          verdict={
+            <>
+              <MatchResult charts={result.charts} compat={result.compat} names={result.names} />
+              <ScoringNote />
+            </>
+          }
         />
       ) : (
         <p role="alert" className={`${CARD} text-sm`}>

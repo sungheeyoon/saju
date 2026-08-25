@@ -4,7 +4,7 @@ import {
   CLAIM_STRENGTH_ORDER,
   type ClaimStrength,
 } from '../text/policy';
-import { EVIDENCE_CONTRACT, type ChartEvidence, type Evidence } from '.';
+import { EVIDENCE_CONTRACT, type ChartEvidence } from '.';
 
 /**
  * 자료와 함께 넘길 **프롬프트.**
@@ -422,6 +422,23 @@ const AUDIT = `# 역할
 
 <<< 여기에 검사할 해설을 붙여 넣으세요 >>>`;
 
+/**
+ * 프롬프트를 이루는 **조각** — Reading 파이프라인이 같은 것을 쓴다.
+ *
+ * 9단계의 프롬프트를 따로 쓰면 말투와 규율이 두 벌이 되고, 둘은 갈린다 — 갈렸을 때
+ * 느슨한 쪽은 언제나 사용자에게 나가는 쪽이다. 조각을 내주고 **낼 것**만 각자 적는다.
+ */
+export const PROMPT_PARTS = {
+  /** 자료가 무엇이고 무엇이 금지이며 층을 어떻게 다는가 */
+  rules: readingRules(),
+  /** 말투와 뼈대 */
+  voice: VOICE,
+  /** 성격을 읽는 순서 — 신살이 성격을 정하지 않는다 */
+  personality: PERSONALITY,
+  /** 딱지가 모이는 끝자리 */
+  closing: CLOSING,
+} as const;
+
 const BODY: Record<PromptKind, string> = {
   reading: READING,
   now: NOW,
@@ -488,7 +505,28 @@ export const promptBodyOf = (kind: PromptKind): string => BODY[kind];
  * 아니라, 이 머리가 하는 말이 사람에 대한 것이 아니라 **자료의 어느 자리**에 대한
  * 것이기 때문이다. 모델이 아래 JSON 에서 찾아갈 이름도 그것이다.
  */
-function chartSummary(key: 'charts.a' | 'charts.b', chart: ChartEvidence): string {
+/**
+ * 머리가 실제로 읽는 자리만 — **잘린 자료도 같은 머리를 쓴다.**
+ *
+ * `ChartEvidence` 를 그대로 받으면 모델에 넘길 자료(`RedactedEvidence`·
+ * `SharedEvidence`)가 이 함수를 못 부른다. 그러면 머리를 짓는 자리가 둘이 되고,
+ * 둘은 언젠가 갈린다 — 갈리면 「한눈에」가 아래 자료와 다른 말을 하게 된다.
+ */
+export type SummarizedChart = {
+  pillars: Pick<ChartEvidence['pillars'], 'year' | 'month' | 'day' | 'hour' | 'dayMaster'> & {
+    meta: Pick<ChartEvidence['pillars']['meta'], 'monthTerm' | 'sajuYear'>;
+  };
+  /** 운을 아예 안 싣는 자료도 있다(Match 동의 범위 밖) — 그때는 이 키가 없다 */
+  now?: ChartEvidence['now'] | null;
+};
+
+/** 머리를 지을 수 있는 자료 — `Evidence` 도, 잘린 것도 이 모양을 만족한다 */
+export type Summarizable = {
+  viewedAt: string;
+  charts: { a: SummarizedChart; b: SummarizedChart | null };
+};
+
+function chartSummary(key: 'charts.a' | 'charts.b', chart: SummarizedChart): string {
   const { pillars, now } = chart;
   const { year, month, day, hour, dayMaster, meta } = pillars;
 
@@ -502,21 +540,29 @@ function chartSummary(key: 'charts.a' | 'charts.b', chart: ChartEvidence): strin
     hour === null ? '시 —(시간 미상)' : `시 ${hour.name}`,
   ].join(' · ');
 
-  const daeun =
-    now.daeun === null
-      ? `대운 없음(${now.daeunAbsence})`
-      : `대운 ${now.daeun.index} ${now.daeun.pillar.name}(만 ${now.daeun.startAge}→${now.daeun.endAge}세)`;
-
-  return [
+  const lines = [
     `\`${key}\``,
     `- 여덟 글자  ${eight}`,
     `- 일간 ${dayMaster}(${stem.yinYang === '陽' ? '양' : '음'}·${stem.element}) · 월지 ${month.branch}(${SEASON_KO[monthBranch.season]}) · 절입 ${meta.monthTerm.name} · 사주년 ${meta.sajuYear}`,
-    `- 지금 만 ${now.age}세 — ${daeun} · 세운 ${now.saeun.pillar.name}(${now.saeun.year}) · 월운 ${now.wolun.pillar.name}(${now.wolun.startTerm.name})`,
-  ].join('\n');
+  ];
+
+  // 운이 안 실린 자료도 있다. 없는 것을 지어 적지 않고 줄을 빼기만 한다.
+  if (now !== null && now !== undefined) {
+    const daeun =
+      now.daeun === null
+        ? `대운 없음(${now.daeunAbsence})`
+        : `대운 ${now.daeun.index} ${now.daeun.pillar.name}(만 ${now.daeun.startAge}→${now.daeun.endAge}세)`;
+
+    lines.push(
+      `- 지금 만 ${now.age}세 — ${daeun} · 세운 ${now.saeun.pillar.name}(${now.saeun.year}) · 월운 ${now.wolun.pillar.name}(${now.wolun.startTerm.name})`,
+    );
+  }
+
+  return lines.join('\n');
 }
 
 /** 자료 앞에 놓는 머리 전체 */
-function summaryOf(evidence: Evidence): string {
+function summaryOf(evidence: Summarizable): string {
   const lines = [chartSummary('charts.a', evidence.charts.a)];
   if (evidence.charts.b !== null) lines.push(chartSummary('charts.b', evidence.charts.b));
 
@@ -545,7 +591,7 @@ ${lines.join('\n\n')}
  * 들여쓰지 않는다. 붙여 넣는 자리에서 들여쓰기는 읽기 좋음이 아니라 **무게**다 —
  * 두 사람짜리가 들여쓰면 460KB 이고 안 들여쓰면 76KB 다.
  */
-export function promptWithEvidence(kind: PromptKind, evidence: Evidence): string {
+export function promptWithEvidence(kind: PromptKind, evidence: Summarizable): string {
   return `${promptHeadOf(kind, evidence)}
 
 ## 자료 (${EVIDENCE_CONTRACT.version})
@@ -562,8 +608,18 @@ ${JSON.stringify(evidence)}
  * 「보내기 전에 무엇을 보내는지 본다」는 그 칸의 구실이 절반만 지켜진다. 자료만
  * 잘라 낸다 — 잘린 자리가 어디인지는 화면이 한 줄로 적는다.
  */
-export function promptHeadOf(kind: PromptKind, evidence: Evidence): string {
-  const [role, ...rest] = BODY[kind].split(/\n\n(?=## )/);
+export function promptHeadOf(kind: PromptKind, evidence: Summarizable): string {
+  return withSummary(BODY[kind], evidence);
+}
+
+/**
+ * 아무 몸통에나 머리를 끼운다 — **9단계 프롬프트도 같은 자리에 끼운다.**
+ *
+ * 자리를 찾는 법이 암묵이라 테스트가 잠근다. 프롬프트는 전부 `# 역할` 문단으로 열고
+ * 그다음이 `## ` 로 시작하는 절이다 — 그 경계에 끼운다.
+ */
+export function withSummary(body: string, evidence: Summarizable): string {
+  const [role, ...rest] = body.split(/\n\n(?=## )/);
 
   return [role, summaryOf(evidence), ...rest].join('\n\n');
 }

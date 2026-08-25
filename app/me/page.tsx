@@ -7,8 +7,12 @@ import { chartOf } from '../chart';
 import { toSearchParams } from '../query';
 import { UnreadableRevisionError, queryFromRevision } from '../revision';
 import { Onboarding } from './onboarding';
+import { ReadingSection } from './reading/section';
 import { ReviseChart } from './revise';
 import { CALENDAR_KO, GENDER_KO, STEM_INFO, ELEMENT_KO } from '@/src/lib/saju';
+
+/** 모델 240초 상한이 먼저 끝나 실패를 기록하고, DB 600초 만료보다는 먼저 닫는다. */
+export const maxDuration = 300;
 
 /**
  * 로그인한 사람이 도착하는 자리.
@@ -171,6 +175,12 @@ async function SelfChart({ personId }: { personId: string }) {
         <dt className="text-muted">자시 규칙</dt>
         <dd>{query.rule === 'jo' ? '조자시 (23:00 경계)' : '야자시 (자정 경계)'}</dd>
       </dl>
+
+      {/*
+        **자기 풀이** — 저장된 근거를 사용자가 직접 읽지 않아도 무엇이 보이는지
+        알게 하는 자리다(US 23-1). 여는 것만으로는 만들지 않는다.
+      */}
+      <ReadingSection target={{ kind: 'self' }} />
 
       <ReviseChart personId={personId} current={query} />
 

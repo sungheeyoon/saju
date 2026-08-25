@@ -128,9 +128,23 @@ const body = async (path, jar) => (await get(path, jar)).text();
 /** React 는 나란한 글자 마디 사이에 `<!-- -->` 를 넣는다. 문장을 견줄 때 지운다 */
 const plain = (html) => html.replace(/<!--\s*-->/g, '');
 
-/** 화면에 선 `match-v0` 지표 — 지표 칸의 큰 수 하나 */
-const indexOf = (html) =>
-  (/(\d{1,3})<\/p><p[^>]*>100점 만점 베타 탐색 지표/.exec(plain(html)) ?? [null, null])[1];
+/**
+ * **`match-v0` 는 이 화면에서 내려갔다**(9단계).
+ *
+ * 사용자에게 보이는 점수는 현재 Reading 의 일부이고, 한 화면에 점수가 둘이면 무엇을
+ * 믿을지 사용자가 정해야 한다. 그래서 여기서 재는 것은 **그 지표가 없다는 것**이다 —
+ * 지표 자체는 익명 화면에 그대로 있고 그쪽은 e2e 가 잰다.
+ */
+const NO_INDEX = ['match-v0', '100점 만점 베타 탐색 지표', '입력 완성도'];
+
+/**
+ * 두 원국 **사이의 관계** 칸 전체 — 매인 판본으로 났는지 재는 자리.
+ *
+ * 판본이 바뀌면 걸린 글자와 자리가 바뀐다. 큰 수 하나 대신 칸을 통째로 견주는 것은
+ * 지표가 이 화면에서 내려갔기 때문이다.
+ */
+const betweenOf = (html) =>
+  (/두 원국 사이의 관계[\s\S]*?(?=AI 해석)/.exec(plain(html)) ?? [null])[0];
 
 try {
   // ── 1. 후보 → 요청 → 수락 ─────────────────────────────────────────────────
@@ -170,13 +184,20 @@ try {
   check('결과 화면이 열린다', opened.status === 200, String(opened.status));
   check('상대는 공개용 별명으로 불린다', mine.includes(NAME.b) && theirs.includes(NAME.a));
   check('두 원국 사이의 관계가 선다', mine.includes('두 원국 사이의 관계'));
-  check('고정된 match-v0 지표가 선다', mine.includes('match-v0') && indexOf(mine) !== null,
-    indexOf(mine) ?? '지표를 못 찾았다');
   check('중립적인 문장이 함께 선다', mine.includes('두 사람 사이에 대해 말할 수 있는 것'));
 
-  /** **두 사람이 같은 숫자를 본다**(US 47) — 자리가 뒤집혀도 지표는 안 흔들린다 */
-  check('두 사람이 같은 지표를 본다', indexOf(mine) === indexOf(theirs),
-    `${indexOf(mine)} vs ${indexOf(theirs)}`);
+  /**
+   * **점수 자리가 하나다.** 내부 지표는 사용자 화면에 서지 않는다(PRD).
+   */
+  for (const word of NO_INDEX) {
+    check(`내부 지표(${word})가 결과 화면에 없다`, !mine.includes(word));
+  }
+
+  /** AI 해석 칸은 서되, 아직 만들지 않았으면 **그렇게 말한다** */
+  check('AI 해석 칸이 선다', mine.includes('AI 해석'));
+  check('아직 만들지 않았으면 그렇게 말한다', plain(mine).includes('아직 AI 해석을 만들지 않았습니다'));
+  check('두 사람이 같은 상태를 본다',
+    plain(theirs).includes('아직 AI 해석을 만들지 않았습니다'));
 
   // ── 3. 동의할 때 읽은 목록을 결과에서도 읽는다 ────────────────────────────
   {
@@ -188,7 +209,7 @@ try {
     check('관계를 합치면 여덟 글자가 전부 보일 수 있음을 적는다',
       text.includes('여덟 글자가 전부 보일 수 있습니다'));
     check('매인 판본으로 났다고 말한다', text.includes('동의한 대상이 그 판본이기 때문'));
-    check('아직 AI 가 쓴 글이 아니라고 말한다', text.includes('AI 가 쓴 글이 아직 아닙니다'));
+    check('조립된 문장과 AI 해석을 구별해 말한다', text.includes('곧바로 조립한 것입니다'));
   }
 
   // ── 4. 출생 원문은 응답에 없다 ────────────────────────────────────────────
@@ -253,7 +274,7 @@ try {
 
   // ── 7. 매인 판본은 움직이지 않는다 ────────────────────────────────────────
   {
-    const before = indexOf(mine);
+    const before = betweenOf(mine);
 
     const { data: account } = await b.from('app_user').select('self_person_id').maybeSingle();
     const revised = await b.rpc('add_person_revision', {
@@ -269,12 +290,16 @@ try {
     check('성립한 Match 는 입력 수정으로 사라지지 않는다', reopened.status === 200,
       String(reopened.status));
     /**
-     * **이 검사가 실제로 가르는지 재어 봤다.** 같은 두 사람을 새 판본(05:20)으로 계산하면
-     * 지표가 94 에서 97 로 움직인다(`combinedBalance` 80 → 91). 그러니 값이 그대로라는
-     * 것은 「우연히 같다」가 아니라 **매인 판본을 읽었다**는 뜻이다.
+     * **무엇으로 재는가가 바뀌었다.** 전에는 `match-v0` 지표의 큰 수 하나로 쟀는데,
+     * 그 지표가 이 화면에서 내려갔다(9단계). 대신 두 원국 **사이의 관계** 칸을 통째로
+     * 견준다 — 시주가 14:30 에서 05:20 으로 옮겨 가면 상대의 시지가 바뀌므로, 지금
+     * 판본으로 다시 계산했다면 이 칸이 달라진다.
+     *
+     * 칸이 비어 있으면 이 검사는 아무것도 재지 않는다. 그래서 비어 있지 않은지도 함께 본다.
      */
-    check('**결과는 동의한 그때의 판본 그대로다**', indexOf(after) === before,
-      `${before} → ${indexOf(after)}`);
+    check('사이의 관계 칸이 비어 있지 않다', before !== null && before.length > 200,
+      `${before?.length ?? 0}자`);
+    check('**결과는 동의한 그때의 판본 그대로다**', betweenOf(after) === before);
   }
 
   // ── 8. 차단하면 결과도 내려간다 ───────────────────────────────────────────

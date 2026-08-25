@@ -1,5 +1,4 @@
 import { ELEMENTS, analyzeCompatibility, type Compatibility, type Element } from '@/src/lib/saju';
-import { buildMatchPreview, type MatchPreview } from '@/src/lib/matching';
 import { cardTextFor, type BalanceBand } from '@/src/lib/discovery';
 import { suppliedText } from '@/src/lib/consent';
 
@@ -17,7 +16,10 @@ import { ResultClosedError, pinnedInputs } from './inputs';
  * 다른 셋은 자를 것이 이미 DB 에서 잘려 왔다. 여기는 아니다: 관계 판정이
  * TypeScript 엔진에 있어서 DB 가 잘라 줄 수 없고(ADR 0010), 그래서 서버가 두 명식을
  * 실제로 들고 계산한 뒤 잘라 내보낸다. **두 `Saju` 는 이 함수 안에서 나고 이 함수
- * 안에서 죽는다** — 나가는 것은 `Compatibility` 와 `MatchPreview` 와 말뿐이다.
+ * 안에서 죽는다** — 나가는 것은 `Compatibility` 와 말뿐이다.
+ *
+ * **`match-v0` 는 여기서 나가지 않는다**(9단계). 사용자에게 보이는 점수는 현재
+ * Reading 의 일부이고, 한 화면에 점수가 둘이면 무엇을 믿을지 사용자가 정해야 한다.
  *
  * 판정은 여전히 앱에 없다. 「누가 볼 수 있는가」는 `my_match_scope` 가 `auth.uid()`
  * 로 답하고, 그 답이 없으면 여기서는 아무것도 읽지 않는다.
@@ -46,8 +48,6 @@ export type SharedResult = {
   readonly names: { readonly a: string; readonly b: string };
   /** 두 원국 **사이**의 사실 — 각자의 원국 안에서 닫힌 것은 여기 없다 */
   readonly compat: Compatibility;
-  /** 고정된 `match-v0` — 셈은 익명 화면과 **같은 함수**가 한다 */
-  readonly preview: MatchPreview;
   /** 요청이 잡아 둔 그때의 두 축 — 지금 다시 세지 않는다 */
   readonly suppliedToMe: string | null;
   readonly suppliedToThem: string | null;
@@ -166,8 +166,6 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
       partnerIntro: scope.partner_intro,
       names,
       compat,
-      // 익명 화면이 부르는 것과 **같은 함수**다. 부르는 자리가 둘이어도 정책은 하나다.
-      preview: buildMatchPreview(charts, compat, names),
       suppliedToMe: suppliedText(elementsOf(scope.supplied_to_me), 'toMe'),
       suppliedToThem: suppliedText(elementsOf(scope.supplied_to_them), 'toThem'),
       balanceLabel: cardTextFor({

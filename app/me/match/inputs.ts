@@ -1,5 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
+import { NoKeyError, keyedClient } from '../../keyed-client';
 import type { StoredRevision } from '../../revision';
 
 /**
@@ -8,8 +7,8 @@ import type { StoredRevision } from '../../revision';
  * 이 저장소는 사용자 경로에 `service_role` 을 쓰지 않는다(ADR 0003·0006). 여기가
  * ADR 0010 이 뚫은 한 구멍이고, 구멍의 모양은 DB 가 정해 뒀다:
  *
- * - 열쇠가 부를 수 있는 함수는 **`match_calculation_inputs` 하나**다. 표 권한은
- *   여전히 하나도 없다.
+ * - 이 문으로 열쇠가 부르는 함수는 **`match_calculation_inputs` 하나**다. 표 권한은
+ *   여전히 하나도 없다(열쇠가 부를 수 있는 함수 전체는 `app/keyed-client.ts` 가 든다).
  * - 그 함수는 **`match_id` 만 받는다.** 판본 id 를 손으로 댈 자리가 없으므로,
  *   어떤 Match 도 매지 않은 판본은 이 문으로 나오지 않는다.
  * - **사용자 id 를 넘기지 않는다.** 볼 자격은 여기 오기 전에 `my_match_scope` 가
@@ -46,25 +45,13 @@ type InputRow = StoredRevision & { revision_id: string };
  * @throws {ResultClosedError} 열쇠가 없거나 두 판본이 다 나오지 않을 때.
  */
 export async function pinnedInputs(matchId: string): Promise<Map<string, StoredRevision>> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  /**
-   * 이름 둘을 다 본다 — Vercel 통합이 넣어 주는 이름과 Supabase CLI 가 내주는 이름이
-   * 다르다. 없는 것을 빈 문자열로 메우지 않는다: 빈 키로 만든 client 는 조용히
-   * 「권한 없음」을 내고, 그러면 열쇠가 없는 배포와 정말 못 보는 Match 가 같은 얼굴이 된다.
-   */
-  const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    throw new ResultClosedError(
-      '서버에 계산 입력을 읽을 열쇠가 없습니다 (SUPABASE_SECRET_KEY)',
-    );
+  let keyed;
+  try {
+    keyed = keyedClient('계산 입력을 읽을');
+  } catch (failure) {
+    if (failure instanceof NoKeyError) throw new ResultClosedError(failure.message);
+    throw failure;
   }
-
-  const keyed = createClient(url, key, {
-    // 이 client 에는 사용자가 없다. 쿠키도 세션도 들지 않는다 — 들면 그 세션이
-    // 열쇠의 권한으로 도는 순간이 생긴다.
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
 
   const { data, error } = await keyed.rpc('match_calculation_inputs', { p_match_id: matchId });
   if (error) throw new ResultClosedError(error.message);
