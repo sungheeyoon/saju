@@ -2,7 +2,7 @@
 
 - 상태: 구현 준비
 - 제품 단계: 폐쇄형 초대 MVP
-- 기준 문서: 루트 도메인 용어집과 ADR 0001~0008
+- 기준 문서: 루트 도메인 용어집과 ADR 0001~0012
 - 핵심 원칙: 계산은 사실을 내고, 정책은 순서를 정하며, AI는 설명만 한다
 
 ## Problem Statement
@@ -19,8 +19,9 @@ Reading 저장과 실제 AI 호출은 없다. 지금 상태는 정확한 계산 
 관계를 만들고 다시 돌아오는 매칭 서비스는 아니다.
 
 이 제품에서 출생정보는 민감하고 변경 가능한 계산 입력이다. 계정과 Person을 합치거나,
-궁합 동의를 전체 명식 공개 동의로 간주하거나, AI에 정확한 생년월일시를 넘기면 사용자의
-기대와 다른 정보 노출이 발생한다. 후보 순서와 궁합 지표를 같은 점수로 만들면 검증되지
+Match 동의가 여는 여덟 글자와 여전히 닫힌 정확한 출생 원문·상대 원국 전체 판정을
+구분하지 않거나, AI에 정확한 생년월일시를 넘기면 사용자의 기대와 다른 정보 노출이
+발생한다. 후보 순서와 궁합 지표를 같은 점수로 만들면 검증되지
 않은 가설이 사람을 보이지 않게 만들 수 있다. AI가 계산을 다시 하거나 근거에 없는 말을
 추가하면 엔진이 쌓은 신뢰도 사라진다.
 
@@ -58,12 +59,13 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 ### MVP 성공 조건
 
 - 초대된 User만 계정을 만들 수 있고, 온보딩 후 정확히 하나의 selfPerson을 갖는다.
-- selfPerson 입력 저장·재조회·revision 생성과 권한 규칙이 DB에서 강제된다.
+- selfPerson 입력 저장·재조회·revision 생성·참조 기반 보존과 권한 규칙이 DB에서 강제된다.
 - 관리 중인 Person 두 명을 선택해 기존 궁합 계산과 `match-v0`를 다시 입력하지 않고 볼 수 있다.
 - 매칭 참여 User만 후보가 되며, 가족·친구 Person은 후보로 노출되지 않는다.
 - pending 요청은 양쪽 revision 중 하나가 바뀌면 항상 무효화된다.
-- 동의 전에는 상대의 정확한 생년월일시·출생지·전체 명식·상세 Reading을 볼 수 없다.
-- Match 이후에도 상대의 전체 명식은 내려받을 수 없으며 허용된 궁합 범위만 볼 수 있다.
+- 동의 전에는 상대의 정확한 생년월일시·출생지·여덟 글자·상세 Reading을 볼 수 없다.
+- Match 동의 후에는 관계를 통해 상대의 여덟 글자가 전부 드러날 수 있다. 그래도 정확한
+  생년월일시·출생지, 상대 원국 전체 판정·근거와 private Reading은 내려받을 수 없다.
 - AI 입력과 출력에 정확한 생년월일시·출생지가 없고, 근거 밖 주장이 품질 게이트를 통과하지 못한다.
 - 주요 흐름이 데스크톱과 모바일 브라우저의 자동화 테스트로 잠긴다.
 
@@ -83,7 +85,7 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 12. As an 신규 User, I want to 원본 생일 형식과 변환된 양력을 확인한다, so that 저장된 입력이 내가 제공한 정보와 맞는지 알 수 있다.
 13. As an User, I want to 내 selfPerson의 명식을 다시 본다, so that 매번 출생정보를 재입력하지 않는다.
 14. As an User, I want to selfPerson 입력을 수정한다, so that 새로 알게 된 출생 시각이나 잘못된 정보를 바로잡을 수 있다.
-15. As an User, I want to 입력 수정이 새 revision으로 남는다, so that 과거 요청과 Reading이 어느 입력을 사용했는지 되짚을 수 있다.
+15. As an User, I want to 실제로 달라진 입력만 새 revision으로 남고 미참조 이전 판본은 최근 두 개까지만 보존된다, so that 과거 요청과 Reading의 근거는 지키면서 불필요한 입력 이력이 무한히 쌓이지 않는다.
 16. As an User, I want to 출생 시각 유무에 따른 한계를 확인한다, so that 불완전한 입력을 확정적 결과로 오해하지 않는다.
 17. As an User, I want to 가족·친구 Person을 추가한다, so that 여러 사람의 명식을 한 계정에서 관리할 수 있다.
 18. As an User, I want to 관리 Person을 최대 20명까지 둔다, so that 일반적인 가족·지인 관리 범위 안에서 데이터를 통제할 수 있다.
@@ -107,7 +109,7 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 36. As an 매칭 참여 User, I want to 관심 있는 후보에게 상세 궁합 요청을 보낸다, so that 상대의 동의를 구할 수 있다.
 37. As an 요청자, I want to 요청이 어느 두 chart revision을 대상으로 했는지 고정된다, so that 나중에 다른 입력과 동의가 섞이지 않는다.
 38. As an 요청 수신자, I want to 앱 내 알림함에서 새 요청을 본다, so that 앱에 들어왔을 때 대응할 일을 알 수 있다.
-39. As an 요청 수신자, I want to 동의 시 공개되는 범위를 수락 전에 읽는다, so that 궁합 동의와 전체 명식 공개를 혼동하지 않는다.
+39. As an 요청 수신자, I want to 여덟 글자가 전부 드러날 수 있고 무엇은 여전히 닫혀 있는지 수락 전에 읽는다, so that 실제 공개 범위를 알고 동의한다.
 40. As an 요청 수신자, I want to 요청을 수락하거나 거절한다, so that 상세 궁합 공유 여부를 내가 결정할 수 있다.
 41. As an 요청자, I want to 요청의 pending·accepted·rejected·invalidated 상태를 본다, so that 상대의 결정을 추측하지 않는다.
 42. As an 요청 당사자, I want to 어느 한쪽의 Evidence 관련 입력이 바뀌면 pending 요청이 취소된다, so that 동의한 대상과 실제 계산 대상이 달라지지 않는다.
@@ -117,8 +119,8 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 46. As an Match 당사자, I want to 상대 Person이 내 관리 Person 목록에 추가되지 않는다, so that 합의한 접근과 내가 등록한 사람을 구분할 수 있다.
 47. As an Match 당사자, I want to 두 사람 사이의 궁합 사실과 고정된 `match-v0` 결과를 함께 본다, so that AI 문장과 무관하게 같은 지표를 공유할 수 있다.
 48. As an Match 당사자, I want to 누가 보더라도 같은 중립적 Reading을 본다, so that 독자 관점 때문에 사실이나 결론이 달라지지 않는다.
-49. As an Match 당사자, I want to 상대의 정확한 생년월일시·출생지·전체 명식을 받지 않는다, so that 궁합 동의보다 넓은 개인정보가 공개되지 않는다.
-50. As an Match 당사자, I want to 궁합 관계와 일부 오행 구성이 상대에게 보일 수 있다는 설명을 본다, so that 실제 공개 범위를 정확히 안다.
+49. As an Match 당사자, I want to 상대의 여덟 글자는 동의 범위에서 보되 정확한 생년월일시·출생지와 상대 원국 전체 판정은 받지 않는다, so that 합의한 궁합 범위와 더 넓은 개인정보·분석을 구분한다.
+50. As an Match 당사자, I want to 궁합 관계·일부 오행 구성과 관계를 합친 여덟 글자가 상대에게 보일 수 있다는 설명을 본다, so that 실제 공개 범위를 정확히 안다.
 51. As an Match 당사자, I want to AI가 어떤 근거로 글을 썼는지 확인한다, so that 근거 없는 단정과 엔진 사실을 구분할 수 있다.
 52. As an Match 당사자, I want to AI가 정확한 출생 원문을 보지 않았음을 보장받는다, so that 외부 모델 호출로 민감한 원문이 나가지 않는다.
 53. As an Match 당사자, I want to AI가 점수를 새로 만들지 않고 `match-v0`만 설명한다, so that 같은 Match에 서로 다른 점수가 생기지 않는다.
@@ -136,12 +138,12 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 65. As an 운영자, I want to 출생시간 유무에 따른 노출 차이를 본다, so that 데이터 완성도가 후보 기회를 왜곡하는지 감시할 수 있다.
 66. As an 운영자, I want to AI 호출량·실패율·지연·재시도를 본다, so that 비용과 품질 문제를 사용자보다 먼저 발견할 수 있다.
 67. As an 운영자, I want to AI 품질 평가 세트와 prompt version별 결과를 비교한다, so that 프롬프트 변경을 느낌이 아니라 동일한 기준으로 검토할 수 있다.
-68. As an 운영자, I want to 민감 정보 노출 검사 실패 결과를 사용자에게 공개하지 않는다, so that 프롬프트 실수가 개인정보 유출로 이어지지 않는다.
+68. As an 운영자, I want to 정확한 출생 원문이나 동의 범위 밖 원국 판정을 만든 결과를 사용자에게 공개하지 않는다, so that 프롬프트 실수가 개인정보 유출이나 근거 밖 해석으로 이어지지 않는다.
 69. As an 운영자, I want to 신고와 차단 기록을 확인하고 필요한 제재를 적용한다, so that 공개 범위를 넓히기 전에 안전 운영 기반을 갖출 수 있다.
 70. As an 향후 가입 User, I want to 이미 가족이 등록한 Person을 claim한다, so that 중복 Person을 만들지 않고 내 selfPerson으로 이어받을 수 있다.
 71. As an 향후 claim User, I want to claim 후 출생정보 최종 편집권을 가진다, so that 다른 User가 내 매칭 노출을 바꾸지 못한다.
 72. As an 향후 기존 관리자, I want to claim 후 viewer로 전환되고 내 localLabel·메모는 유지된다, so that 편집권은 잃어도 나의 관계 맥락은 보존된다.
-73. As an 향후 Match 당사자, I want to 별도의 명시적 동의로 전체 명식을 공유한다, so that 궁합 동의와 더 넓은 공유를 분리할 수 있다.
+73. As an 향후 Match 당사자, I want to 별도의 명시적 동의로 상대 원국 전체 판정과 근거 패널을 공유한다, so that 여덟 글자를 여는 Match 동의와 더 넓은 분석 공유를 분리할 수 있다.
 74. As an 향후 Match 당사자, I want to Match 이후 실시간 채팅을 한다, so that 궁합을 본 뒤 서비스 안에서 대화를 이어갈 수 있다.
 75. As an 향후 채팅 User, I want to 메시지 저장·읽음·재연결·차단·신고가 동작한다, so that 실시간 연결이 끊겨도 안전하고 지속적인 대화를 할 수 있다.
 
@@ -179,7 +181,9 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 - Person 모듈은 Person, UserPersonAccess, selfPerson 지정, 20명 한도와 localLabel을
   책임진다. 명식 계산 결과는 저장하지 않는다.
 - revision 모듈은 Evidence를 바꾸는 입력을 불변 판본으로 저장하고 fingerprint를 만든다.
-  변경과 pending 요청 무효화는 하나의 트랜잭션 경계에 둔다.
+  조회는 판본을 만들지 않고 같은 fingerprint의 재저장도 새 판본을 만들지 않는다. 변경과
+  pending 요청 무효화는 하나의 트랜잭션 경계에 둔다. 참조되지 않은 이전 판본은 최근
+  두 개까지만 보존한다(ADR 0011).
 - 접근 판정 모듈은 `UserPersonAccess`와 Match라는 두 접근 근거를 하나의 질문으로 감싼다.
   호출부는 상대 Person을 왜 볼 수 있는지 직접 추론하지 않는다.
 - 계산 모듈은 revision을 기존 엔진 입력으로 바꾸고 명식·궁합 사실을 계산한다. 서버와
@@ -212,11 +216,19 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 - Person 한도 20은 UserPersonAccess로 직접 관리하는 가족·친구 Person에만 적용한다.
 - PersonChartRevision은 원본 생일 형식, 변환된 양력, 시간 또는 시간 미상, 국내 출생지,
   성별과 모든 계산 옵션을 불변값으로 저장한다. Person은 현재 revision을 가리킨다.
+- 판본 수명주기는 참조를 기준으로 한다. 현재 판본과 살아 있는 pending 요청·Match·Reading이
+  참조하는 판본은 보존하고, 그 밖의 미참조 이전 판본은 Person별 최근 두 개까지만 보존한다.
+  참조분은 이 개수에서 제외하며 사용자 화면에는 판본 선택기를 만들지 않는다(ADR 0011).
+- rejected·invalidated·cancelled 요청은 사건·시각·reason snapshot·입력 fingerprint를
+  남기되, terminal 요청 하나 때문에 정확한 과거 출생 입력을 영구 보존하지 않는다. 현재
+  `MatchRequest`의 revision FK와 정리 작업은 이 수명주기를 구현하도록 수정해야 한다.
 - selfPerson으로 claim된 Person의 출생정보는 해당 User만 수정할 수 있다. 기존
   manager/editor는 viewer로 내려가며 DB 정책과 트리거로 강제한다.
 - MatchRequest는 양쪽 Person·User, 양쪽 chart revision, discovery 정책 버전,
   reason snapshot과 상태를 든다. Evidence 관련 수정은 pending 요청을 무효화한다.
-- Match는 양쪽이 수락한 관계이며 상대 Person 전체가 아니라 궁합 범위 접근권을 준다.
+- Match는 양쪽이 수락한 관계이며 상대 Person 전체가 아니라 궁합 범위 접근권을 준다. 이
+  범위에는 관계를 통해 서로의 여덟 글자가 전부 드러날 가능성이 포함되지만 정확한 출생
+  원문·출생지와 상대 원국 전체 판정·근거는 포함되지 않는다(ADR 0012).
 - Reading은 두 Person, 양쪽 chart revision, 생성 요청자 또는 Match, `viewedAt`, 정확한
   redacted Evidence 문자열, prompt version, 모델·provider·생성 파라미터, 고정
   `match-v0` snapshot, 출력과 생성 시각을 보존한다.
@@ -239,7 +251,9 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 - 전체 Evidence text는 Supabase 클라이언트에서 직접 select할 수 없다. 서버 함수나 RPC가
   현재 User와 접근 근거를 확인해 allowlist 방식으로 응답 필드를 구성한다.
 - Match 상대에게 내리는 응답은 궁합, limitations, 공유용 AI 글, 고정 지표와 현재 User
-  자신의 chart 범위다. 상대 chart, 정확한 입력, 출생지와 전체 명식은 포함하지 않는다.
+  자신의 chart 범위다. Compatibility의 관계 참가자를 합쳐 상대의 여덟 글자가 전부
+  드러날 수 있다. 그래도 상대의 전체 `ChartEvidence`, 정확한 입력·출생지와 원국 전체
+  판정은 포함하지 않는다.
 - 차단은 양방향 후보 노출·새 요청·향후 접촉을 즉시 막는다. 제재 상태는 discovery 자격과
   Match 이후 기능 자격에서 공통으로 사용한다.
 
@@ -253,8 +267,10 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
   매칭 거리와 같은 값으로 재사용하지 않는다.
 - 명식을 가르는 기본값도 revision과 익명 URL에 모두 명시한다. 나중에 제품 기본값이
   바뀌어도 과거 입력이 다른 의미가 되지 않게 한다.
-- 명식과 궁합 사실은 현재 revision에서 필요할 때 계산한다. 엔진 수정이 과거 Reading의
-  Evidence와 글을 바꾸지 않는다.
+- 자기 명식과 직접 관리하는 Person의 수동 궁합은 현재 revision에서 필요할 때 계산한다.
+  조회만으로 판본이나 과거 결과를 저장하지 않고, 입력이 바뀌면 이전에 본 결과와 달라질
+  수 있음을 알린다. Match·Reading은 매인 판본과 당시 snapshot을 사용하므로 현재 입력이나
+  엔진 수정이 과거 공유 결과를 조용히 바꾸지 않는다.
 
 ### 익명 링크와 저장 흐름
 
@@ -288,8 +304,8 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
   편」처럼 말로 바꿔 보여준다. 82점과 79점은 절대적인 궁합 차이로 읽힌다.
 - 참여 화면은 켜기 전에 다음을 그대로 알린다. 상대에게 보이는 것은 공개용 별명과 소개,
   나에게 부족한 오행 중 후보가 채우는 오행의 이름과 그 뜻, 함께 놓았을 때의 오행 균형을
-  말로 옮긴 설명이다. 보이지 않는 것은 생년월일시와 출생지, 전체 명식과 전체 오행
-  개수표, 그리고 숫자 점수다. 화면·ADR·PRD는 같은 문장을 사용한다.
+  말로 옮긴 설명이다. 보이지 않는 것은 생년월일시와 출생지, 여덟 글자·상대 원국 판정과
+  전체 오행 개수표, 그리고 숫자 점수다. 화면·ADR·PRD는 같은 문장을 사용한다.
 - 후보 선택과 노출 기록은 하나의 서버 함수 안에서 끝난다. 인증 사용자가 후보 목록·순서·
   탐색 여부를 인자로 적는 경로를 두지 않는다.
 - 정책은 사용한 축·가중치·탐색 후보 비율·버전을 값으로 선언한다. 첫 배포 전에 고정된
@@ -309,6 +325,12 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 
 - 후보 카드만 본 것은 궁합 동의가 아니다. 요청 화면은 상대에게 공개될 정보와 공개되지
   않을 정보를 제출 전에 설명한다.
+- Match 동의에는 두 사람 사이의 관계와 그 관계에 걸린 글자·자리가 포함된다. 관계를 모두
+  합치면 상대의 년주·월주·일주·시주 여덟 글자가 전부 드러날 수 있다는 사실을 보내는
+  쪽과 받는 쪽이 같은 문장으로 수락 전에 읽는다(ADR 0012).
+- 여덟 글자가 열려도 정확한 생년월일시·출생지, 상대 원국 하나의 십성·신살·신강신약·
+  억부·조후·격국·종격·원국 안의 형충회합·운, 전체 `ChartEvidence`와 private Reading은
+  열리지 않는다.
 - MatchRequest 상태는 pending, accepted, rejected, invalidated, cancelled를 최소 집합으로
   사용한다. 동일한 두 User 사이에는 동시에 유효한 pending 요청이 하나만 존재한다.
 - 요청 생성은 현재 양쪽 chart revision과 discovery reason을 snapshot으로 잡는다.
@@ -317,7 +339,8 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 - 수락은 현재 revision 비교, pending 상태 전이, Match 생성, 양쪽 알림을 한 트랜잭션에서
   수행한다. 중복 수락이나 재전송은 하나의 Match만 만든다.
 - 이미 성립한 Match와 과거 Reading은 출생정보 수정만으로 삭제하지 않는다. 변경된 입력으로
-  새 분석을 원하면 새 Reading을 만든다.
+  두 사람이 새 공유 결과를 원하면 새 요청과 새 동의를 거친다. 자기 명식과 수동 궁합은
+  현재 입력으로 다시 계산하고 이전에 본 결과와 다를 수 있음을 알린다.
 - 차단이나 계정 제재는 새 접근과 접촉을 중단한다. 과거 공유 Reading의 보존·삭제 정책은
   계정 삭제 정책과 함께 공개 출시 전에 별도 확정한다.
 
@@ -327,6 +350,9 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
   사건이다. 재생성은 기존 row 수정이 아니라 새 Reading 생성이다.
 - AI 입력 Evidence는 정확한 생년월일시 원문과 출생지를 구조적으로 제거한 뒤 만든다.
   프롬프트로만 비공개를 약속하지 않는다.
+- Match 동의로 당사자에게 여덟 글자가 열릴 수 있다는 사실이 AI 입력 범위를 자동으로
+  넓히지는 않는다. 공유 Compatibility의 관계 글자 합이 여덟 글자가 될 수는 있지만, 모델은
+  필요 없이 이를 나열하거나 그 글자로 상대 원국의 새 판정을 만들지 않는다(ADR 0012).
 - `Reading.evidence`는 실제 모델에 보낸 직렬화 문자열 그대로 `text`로 저장한다. DB가
   표현을 정규화하는 `jsonb`를 역사적 원문으로 쓰지 않는다. 무결성 확인용 digest를 함께
   둘 수 있으며 목록 질의 값은 별도 컬럼이나 summary에 둔다.
@@ -344,7 +370,8 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 - AI 품질 평가는 고정된 실제 사례 세트와 prompt별 결과를 사용한다. audit prompt는 보조
   평가자이며 최종 출시 판단은 제품 담당자의 blind review가 한다.
 - 공개 게이트의 hard fail은 근거 밖 사실 1건 이상, 정확한 출생 원문 노출 1건 이상,
-  상대 전체 명식 노출, AI 자체 점수 생성이다.
+  동의 범위 밖 상대 원국 판정 생성, AI 자체 점수 생성이다. 여덟 글자 나열 자체는 개인정보
+  hard fail로 보지 않지만, 궁합 설명에 필요 없는 나열은 정성 품질 항목에서 감점한다.
 - 정성 항목은 구체성, 비뻔함, 실용성을 각각 5점 척도로 평가한다. 고정 평가 세트에서 각
   항목 평균 4점 이상이고 개별 결과가 3점 미만이 아니어야 제한된 테스터에게 노출한다.
 - 모델·provider·temperature 등 생성 파라미터와 prompt version을 저장한다. 프롬프트 변경은
@@ -375,6 +402,11 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
   데이터가 삭제·익명화·보존되는지 공개 출시 전 정책과 화면 문구를 함께 확정한다.
 - 과거 계산 입력과 Reading 보존은 최소화 원칙을 따르되, 감사 재현에 필요한 revision 연결과
   상대방에게 이미 제공된 결과의 처리 기준을 분리한다.
+- 조회는 revision을 만들지 않는다. 현재 판본과 살아 있는 pending 요청·Match·Reading이
+  참조하는 판본은 보존하고, 그 밖의 미참조 이전 판본은 Person별 최근 두 개까지만 둔다.
+  정리 전에 FK와 참조를 검사하며 필요한 판본을 orphan으로 만들지 않는다(ADR 0011).
+- 사용자에게 무한 판본 목록을 제공하지 않는다. 기본 화면은 현재 입력 하나를 보여 주고,
+  입력이 바뀌면 현재 결과가 이전에 본 결과와 다를 수 있다는 사실만 알린다.
 
 ## Testing Decisions
 
@@ -393,12 +425,17 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
   없는지를 검증한다.
 - Person 테스트는 온보딩 완료 후 selfPerson 불변식, localLabel의 User별 차이, 관리 Person
   20명 한도, 후보·Match 상대가 한도에 포함되지 않음을 검증한다.
-- revision 테스트는 Evidence 관련 필드만 새 revision을 만들고, 표시 정보 수정은 pending
-  요청을 유지하며, 실제 입력 수정은 양쪽 pending 요청을 모두 invalidated로 전이시킴을 검증한다.
+- revision 테스트는 조회와 같은 fingerprint 재저장이 새 revision을 만들지 않고, Evidence
+  관련 필드만 새 revision을 만들며, 표시 정보 수정은 pending 요청을 유지하고, 실제 입력
+  수정은 양쪽 pending 요청을 모두 invalidated로 전이시킴을 검증한다. 미참조 이전 판본은
+  최근 두 개까지만 남고 pending 요청·Match·Reading 참조 판본은 개수 제한에서 제외되는지도
+  검증한다.
 - MatchRequest 상태 머신 테스트는 허용된 전이와 금지된 전이, 중복 요청, 동시 수락,
   수락 직전 revision 변경, idempotent 재전송과 차단 후 요청 거절을 검증한다.
-- 접근 테스트는 UserPersonAccess와 Match 두 경로를 분리하고, Match 응답에 상대 chart나
-  입력이 직렬화되지 않으며 전체 Evidence row를 클라이언트가 직접 읽을 수 없음을 검증한다.
+- 접근 테스트는 UserPersonAccess와 Match 두 경로를 분리하고, Match 응답에 정확한 출생
+  입력·출생지와 상대의 전체 `ChartEvidence`가 직렬화되지 않으며 전체 Evidence row를
+  클라이언트가 직접 읽을 수 없음을 검증한다. 관계 참가자의 합이 여덟 글자가 되는 것은
+  동의 범위 안이므로 실패 조건으로 삼지 않는다.
 - discovery 테스트는 같은 입력·정책·seed의 재현성, 사주 threshold로 후보가 제거되지 않음,
   입력 완성도와 관계 밀도가 순위에 쓰이지 않음, 탐색 후보 혼합과 하드 제외를 검증한다.
 - discovery 분포 테스트는 고정 표본에서 출생시간 미상 여부, 특정 오행 분포와 후보 집단에
@@ -410,8 +447,9 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
   연결, limitations와 양방향 궁합 사실 포함을 검증한다.
 - AI prompt 테스트는 중립 문체, 점수 생성 금지, 근거 상한, 출생 원문 금지와 prompt version
   변경을 snapshot으로 잠근다.
-- AI 출력 검사 테스트는 날짜·시간·출생지 누출, 근거에 없는 글자·관계, 자체 점수와 금지된
-  개인정보를 포함한 출력을 hard fail로 거절한다.
+- AI 출력 검사 테스트는 날짜·시간·출생지 누출, 근거에 없는 글자·관계와 상대 원국 판정,
+  자체 점수와 금지된 개인정보를 포함한 출력을 hard fail로 거절한다. 근거 안의 여덟 글자
+  나열은 privacy hard fail이 아니라 불필요한 나열을 피하는 품질 규칙으로 검사한다.
 - AI 품질 게이트는 고정 사례별 evidence consistency와 구체성·비뻔함·실용성 rubric을
   기록한다. prompt 변경 전후를 같은 모델 설정과 같은 사례로 비교한다.
 - Reading 생성 통합 테스트는 성공·provider 실패·timeout·재시도·idempotency·rate limit과
@@ -439,7 +477,7 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 - WebSocket 기반 실시간 채팅, 메시지 저장·읽음·재연결·신고 운영
 - 결제, 구독, 유료 Reading과 환불
 - Person claim·초대·merge의 사용자 화면과 자동 병합
-- Match 수락에 포함되지 않는 전체 명식 공유와 별도 공유 동의
+- Match 수락에 포함되지 않는 상대 원국 전체 판정·근거 패널 공유와 별도 공유 동의
 - AI가 궁합 점수, 길흉 등급, 승자·패자나 누구의 득실을 만드는 기능
 - `perspectivePersonId`에 따라 궁합 근거나 문장을 바꾸는 기능
 - 사주 점수를 이용한 후보 하드 제외
@@ -460,10 +498,12 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 5. DiscoveryProfile, opt-in, `discovery-v0`, 노출 기록과 후보 화면을 추가한다.
 6. MatchRequest 상태 머신, 앱 내 알림, 동의 화면과 Match 범위 접근을 추가한다.
 7. 고정 `match-v0` 공유 결과를 완성하고 AI 없이도 전체 동의 흐름을 실제로 테스트한다.
-8. redacted Evidence와 Reading 파이프라인을 만들고 내부 AI 품질 게이트를 반복한다.
-9. 게이트 통과 후 초대된 성인 테스터에게 AI Reading을 제한적으로 노출한다.
-10. 공개 전환을 검토할 때 성년인증, 외부 알림, Kakao, 계정 삭제, moderation을 먼저 해결한다.
-11. Match와 안전 운영이 검증된 뒤 채팅을 별도 단계로 연다.
+8. 판본 참조 수명주기를 신규 migration으로 구현한다. terminal 요청의 판본 FK를 정리하고,
+   현재·pending·Match·Reading 참조분을 제외한 이전 판본을 최근 두 개로 제한한다.
+9. redacted Evidence와 Reading 파이프라인을 만들고 내부 AI 품질 게이트를 반복한다.
+10. 게이트 통과 후 초대된 성인 테스터에게 AI Reading을 제한적으로 노출한다.
+11. 공개 전환을 검토할 때 성년인증, 외부 알림, Kakao, 계정 삭제, moderation을 먼저 해결한다.
+12. Match와 안전 운영이 검증된 뒤 채팅을 별도 단계로 연다.
 
 ### 제품 분석 지표
 

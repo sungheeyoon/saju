@@ -23,10 +23,15 @@
 붙으면 **여덟 글자 중 둘**이 바뀌어 오행 분포가 25% 움직이고 `elementSupport.missing`
 이 통째로 달라질 수 있다.
 
-그래서 Person 을 제자리에서 덮어쓰지 않고 **revision** 을 쌓는다
+그래서 Person 을 제자리에서 덮어쓰지 않고 **revision** 을 만든다
 (`PersonChartRevision` / `chartFingerprint`). 노출 기록과 매칭 요청은 자기가 어느
 revision 을 대상으로 만들어졌는지 값으로 든다 — ADR 0001 이 Reading 에서 푼 것과 같은
 답이되, 91KB 가 아니라 지문 하나다.
+
+사주나 궁합을 **보는 것만으로는 revision 을 만들지 않는다.** 실제로 다른 출생정보를
+저장할 때만 만들고, 같은 fingerprint 는 다시 쌓지 않는다. 모든 이전 판본을 영구 보존하는
+것도 아니다. 현재 판본과 살아 있는 pending 요청·Match·Reading 이 참조하는 판본은
+보존하고, 미참조 이전 판본은 최근 두 개까지만 둔다. 자세한 수명주기는 ADR 0011 이 정한다.
 
 ```
 MatchRequest
@@ -47,8 +52,10 @@ MatchRequest
 이름·사진·소개 변경은 해당하지 않는다. Evidence 를 바꾸는 것(생년월일시·출생지·달력
 방식·계산 옵션)만이다.
 
-이미 성립된 Match 와 과거 Reading 은 **삭제하지 않는다.** 과거 Reading 은 당시 Evidence
-를 그대로 보존하고, 변경 이후의 분석은 새 Reading 이 된다(ADR 0001).
+이미 성립된 Match 와 과거 Reading 은 출생정보 수정만으로 **삭제하지 않는다.** 과거
+Reading 은 당시 Evidence 를 그대로 보존하고, 변경 이후의 분석은 새 Reading 이 된다
+(ADR 0001). 반대로 어느 Match·Reading 도 참조하지 않는 이전 입력은 ADR 0011 의 보존
+상한에 따라 정리한다.
 
 ## Consequences
 

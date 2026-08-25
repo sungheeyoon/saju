@@ -26,10 +26,11 @@ export const metadata = {
  * 여기서도 읽는다(`MATCH_DISCLOSURE`) — 동의할 때 읽은 약속과 실제로 보이는 것이
  * 갈리면, 갈렸다는 사실을 아는 사람이 아무도 없다.
  *
- * **상대의 명식은 이 화면에 오지 않는다.** 서버가 두 판본을 읽어 계산하고 잘라
- * 내보낸다(ADR 0010). 여기 서는 것은 `Compatibility` 와 `MatchPreview` 와 문장이고,
- * 두 `Saju` 는 `matchResultForViewer` 안에서 나고 죽는다 — 궁합 화면과 달리 명식
- * 표도 근거 패널도 없는 것이 그 때문이다.
+ * **상대의 `Saju`와 `ChartEvidence`는 이 화면에 오지 않는다.** 서버가 두 판본을 읽어
+ * 계산하고 잘라 내보낸다(ADR 0010·0012). 여기 서는 것은 `Compatibility` 와
+ * `MatchPreview` 와 문장이고, 두 `Saju` 는 `matchResultForViewer` 안에서 나고 죽는다.
+ * Compatibility의 관계 참가자를 합쳐 여덟 글자가 드러날 수는 있지만, 상대 원국 전체
+ * 판정·명식 표·근거 패널은 없는 것이 그 경계다.
  */
 export default async function MatchResultPage({
   params,

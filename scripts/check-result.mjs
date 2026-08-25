@@ -185,7 +185,8 @@ try {
       mine.includes('서로에게 열리는 것') && mine.includes('열리지 않는 것'));
     check('열리지 않는 것에 출생 원문이 그대로 적혀 있다',
       mine.includes('정확한 생년월일시와 출생지'));
-    check('관계에 걸린 글자가 보인다는 것을 적는다', text.includes('상대의 글자도'));
+    check('관계를 합치면 여덟 글자가 전부 보일 수 있음을 적는다',
+      text.includes('여덟 글자가 전부 보일 수 있습니다'));
     check('매인 판본으로 났다고 말한다', text.includes('동의한 대상이 그 판본이기 때문'));
     check('아직 AI 가 쓴 글이 아니라고 말한다', text.includes('AI 가 쓴 글이 아직 아닙니다'));
   }

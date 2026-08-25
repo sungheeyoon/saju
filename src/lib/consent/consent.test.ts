@@ -101,14 +101,13 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
     expect(shown).toContain('누가 보든');
   });
 
-  /** ADR 0008 이 「동의 전 비공개」로 정한 것이 그대로 적혀 있어야 한다 */
-  it('열리지 않는 것에 출생 원문과 전체 명식이 있다', () => {
+  /** 여덟 글자는 열려도 출생 원문과 상대 원국 전체 판정은 계속 닫혀 있다 */
+  it('열리지 않는 것에 출생 원문과 상대 원국 전체 판정이 있다', () => {
     const hidden = MATCH_DISCLOSURE.hidden.join(' ');
     expect(hidden).toContain('생년월일시');
     expect(hidden).toContain('출생지');
-    expect(hidden).toContain('전체 명식');
-    // 전체 명식 공유는 Match 수락에 묶지 않고 별도 동의로 둔다(ADR 0008).
-    expect(hidden).toContain('따로 동의');
+    expect(hidden).toContain('상대 원국');
+    expect(hidden).toContain('전체 판정');
   });
 
   it('세 문턱이 같은 목록 앞에 선다', () => {
@@ -119,14 +118,15 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
   });
 
   /**
-   * 결과를 만들면서 실제로 무엇이 나가는지 알게 됐다 — 관계 표는 걸린 글자를 적는다.
-   * 빼면 관계가 아니라 개수가 되므로, 빼는 대신 **적는다**(ADR 0010).
+   * 결과를 만들면서 실제로 무엇이 나가는지 알게 됐다 — 관계 표 여러 줄을 합치면
+   * 여덟 글자가 전부 드러날 수 있다. 우연에 맡기지 않고 동의 범위에 **적는다**(ADR 0012).
    */
-  it('관계에 걸린 글자가 보인다는 것을 적는다', () => {
+  it('관계를 합치면 여덟 글자가 전부 보일 수 있음을 적는다', () => {
     const shown = MATCH_DISCLOSURE.shown.join(' ');
     expect(shown).toContain('글자');
-    // 그래도 상대의 여덟 글자 전부는 열리지 않는다 — 둘을 함께 적어야 경계가 선다.
-    expect(MATCH_DISCLOSURE.hidden.join(' ')).toContain('여덟 글자 전부');
+    expect(shown).toContain('여덟 글자');
+    expect(shown).toContain('전부');
+    expect(MATCH_DISCLOSURE.hidden.join(' ')).not.toContain('여덟 글자');
   });
 });
 
