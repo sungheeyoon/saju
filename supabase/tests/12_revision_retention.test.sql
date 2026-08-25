@@ -4,13 +4,14 @@
 --
 -- 1. 아무것도 가리키지 않는 이전 입력은 최근 두 개까지만 남는다. 전체 표에 세 행만
 --    허용하는 규칙이 아니다 — Match 가 붙들고 있으면 넷도 남는다.
--- 2. 성립하지 않은 요청은 판본을 **놓고** 지문만 남긴다. 성립한 요청은 놓지 않는다.
+-- 2. 성립하지 않은 요청은 판본을 **놓고** 아무것도 담지 않은 표만 남긴다. 성립한
+--    요청은 놓지 않는다.
 -- 3. 참조가 사라진 **그 순간에** 정리가 돈다. 다음 수정을 기다리지 않는다.
 --
 -- 그리고 이 파일이 재는 가장 중요한 하나: **매인 판본은 절대 orphan 이 되지 않는다.**
 -- 되돌릴 수 없는 삭제라 「지워졌는가」보다 「지워지지 않았는가」를 먼저 잰다.
 begin;
-select plan(26);
+select plan(28);
 
 /** 다섯 오행 개수만 주면 요약 한 벌이 된다 */
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
@@ -214,16 +215,34 @@ grant select on asked_choi to authenticated, service_role;
 
 reset role;
 create temporary table asked_choi_before as
-select r.requester_fingerprint, r.addressee_fingerprint,
+select r.requester_revision_tag, r.addressee_revision_tag,
        r.requester_revision_id, r.addressee_revision_id
 from public.match_request r where r.id = (select request_id from asked_choi);
 grant select on asked_choi_before to authenticated, service_role;
 
 select is(
-  (select requester_fingerprint from asked_choi_before),
-  (select v.fingerprint from public.person_chart_revision v
-   where v.id = (select requester_revision_id from asked_choi_before)),
-  '요청의 지문은 그 요청이 잡은 판본의 것이다 — 손으로 적지 않는다');
+  (select requester_revision_tag from asked_choi_before),
+  (select requester_revision_id from asked_choi_before),
+  '요청이 든 표는 그 요청이 잡은 판본의 id 다 — 손으로 적지 않는다');
+
+/**
+ * **표는 입력을 담지 않는다.**
+ *
+ * 김과 최는 이 시험에서 **같은 출생정보**를 쓴다. 지문이라면 두 값이 같다 — 지문은
+ * 입력에서 계산되기 때문이고, 그래서 되돌리면 입력이 나온다(재어 봤다: 다른 칸을 알면
+ * 시각 1,440 개를 1 밀리초 안에 맞힌다). 표는 무작위 uuid 라 같은 입력이어도 다르다.
+ */
+select is(
+  (select a.fingerprint from public.person_chart_revision a
+   where a.id = (select requester_revision_id from asked_choi_before)),
+  (select b.fingerprint from public.person_chart_revision b
+   where b.id = (select addressee_revision_id from asked_choi_before)),
+  '두 사람의 출생 입력이 같다 — 지문이라면 여기서 같은 값이 나온다');
+
+select isnt(
+  (select requester_revision_tag from asked_choi_before),
+  (select addressee_revision_tag from asked_choi_before),
+  '그래도 두 표는 다르다 — 표에는 입력이 담겨 있지 않다');
 set local role authenticated;
 
 select pg_temp.acting((select choi from folks));
@@ -238,10 +257,10 @@ select is(
   '거절된 요청은 두 판본을 다 놓는다 — 그 요청 하나 때문에 과거 출생 입력을 붙들지 않는다');
 
 select is(
-  (select requester_fingerprint from public.match_request
+  (select requester_revision_tag from public.match_request
    where id = (select request_id from asked_choi)),
-  (select requester_fingerprint from asked_choi_before),
-  '판본을 놓아도 무엇에 대한 요청이었는지는 지문으로 남는다');
+  (select requester_revision_tag from asked_choi_before),
+  '판본을 놓아도 무엇에 대한 요청이었는지는 표로 남는다');
 
 /**
  * 놓은 요청을 되살릴 수 없다. 판본 없이 `pending` 으로 돌아가면 「수락 순간 다시
@@ -334,7 +353,7 @@ select throws_ok(
   '정리는 브라우저가 부를 수 있는 문이 아니다');
 
 select throws_ok(
-  $$select * from public.revisions_in_use()$$,
+  $$select * from public.revisions_in_use(array[]::uuid[])$$,
   '42501', null,
   '무엇이 참조되고 있는지도 브라우저가 묻지 않는다');
 

@@ -173,6 +173,22 @@ grant select on theirs to authenticated;
 insert into public.discovery_profile (nickname, prefer_gender) values ('지영', 'any');
 select public.set_discovery_participation(true, (select 토금뿐 from summaries));
 
+reset role;
+
+/**
+ * **여기부터 후보를 보므로 다른 검사가 남긴 참여자를 먼저 뺀다.**
+ *
+ * `discovery_board` 는 `definer` 라 RLS 로 스스로 좁혀지지 않고, 자리도 열 개까지다.
+ * 안 좁히면 「지영이 후보로 서는가」가 「지영이 남들보다 위인가」를 재게 되고, 남은
+ * 참여자가 열을 넘는 순간 목표가 목록 밖으로 밀린다 — 재현했다(참여자 36 명에서
+ * 이 단언이 무너졌다). 이 정리는 **수를 재는 대목보다 앞에** 있어야 한다.
+ */
+insert into public.discovery_hidden (user_id, hidden_user_id)
+select mine.uid, p.user_id
+from (select kim as uid from who union select lee from who union select park from who) mine,
+     public.discovery_profile p
+where p.user_id not in (select kim from who union select lee from who union select park from who);
+
 -- 참여하지 않은 사람은 후보도 못 본다 — 풀은 서로 내놓은 사람들의 자리다.
 reset role;
 set local role authenticated;
@@ -307,18 +323,12 @@ select public.set_discovery_participation(true, (select 토금뿐 from summaries
 reset role;
 
 /**
- * 여기서부터는 **수**를 재므로 두 가지를 정리한다.
+ * 여기서부터는 **수**를 재므로 노출 기록을 비운다. 앞선 시험들이 목록을 여러 번 열었다.
  *
- * 앞선 시험들이 목록을 여러 번 열었으니 기록을 비우고, 다른 검사가 남긴 참여자는
- * 목록에서 빼 둔다 — `discovery_board` 는 `definer` 라 RLS 로 스스로 좁혀지지 않아서,
- * 안 좁히면 이 대목이 「DB 가 비어 있는가」를 재게 된다.
+ * 남이 목록에 서지 않게 하는 정리는 위에서 이미 했다 — 두 번 하지 않는다. 그 정리가
+ * 여기 있었을 때는 첫 후보 단언이 아직 안 좁혀진 목록을 보고 있었다.
  */
 delete from public.discovery_impression where viewer_user_id = (select kim from who);
-
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select (select kim from who), p.user_id
-from public.discovery_profile p
-where p.user_id not in (select kim from who union select lee from who union select park from who);
 
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);

@@ -249,6 +249,31 @@ const other = anon();
     cleanup !== null,
     cleanup?.message ?? '통과돼 버렸다',
   );
+
+  /**
+   * **겹쳐 저장해도 죽지 않는다.**
+   *
+   * 저장 버튼을 두 번 누르거나 두 탭에서 고치면 같은 Person 에 두 호출이 겹친다.
+   * 새 판본을 먼저 넣고 그 다음 `person.current_revision_id` 를 고치는 차례라, 잠그지
+   * 않으면 둘이 서로가 든 것을 서로 기다려 deadlock(40P01) 이 난다 — 재현했다.
+   *
+   * pgTAP 으로는 못 잰다. 한 파일이 한 세션·한 트랜잭션이라 겹칠 자리가 없다. 그래서
+   * **실제로 동시에 보내는** 이 자리에 회귀 검사를 둔다.
+   */
+  const overlapping = await Promise.all(
+    Array.from({ length: 12 }, (_, i) =>
+      revise({
+        p_birth_time: `${String(i % 24).padStart(2, '0')}:${String((i * 5) % 60).padStart(2, '0')}`,
+      }),
+    ),
+  );
+  const broke = overlapping.filter(({ error }) => error !== null);
+  check(
+    '겹쳐 저장해도 deadlock 이 나지 않는다',
+    broke.length === 0,
+    broke.map(({ error }) => `${error.code} ${error.message}`).join(' · '),
+  );
+  check('겹쳐 저장한 뒤에도 상한은 그대로다', (await countRevisions()) === 3);
 }
 
 // ── 8. 남은 못 고친다 — RPC 는 정책을 지나가므로 스스로 물어야 한다 ───────────
