@@ -222,6 +222,33 @@ const other = anon();
     p_solar_date: '1990-04-21',
   });
   check('변환을 건너뛴 음력 쓰기는 거절된다', skipped?.code === '23514', skipped?.code);
+
+  /**
+   * 미참조 이전 판본은 최근 둘까지 — **앱이 부르지 않아도 돈다**(ADR 0011).
+   *
+   * 같은 규칙을 pgTAP 이 이미 잰다. 여기서 다시 재는 것은 질문이 다르기 때문이다:
+   * **브라우저가 쓰는 그 길로** 판본을 쌓아도 정리가 함께 도는가. 앱이 정리를 따로
+   * 불러야 하는 구조라면 그 한 줄을 잊는 배포가 언젠가 나오고, 그때 지워졌어야 할
+   * 출생 입력이 조용히 남는다.
+   */
+  check('여기까지 판본은 셋이다', (await countRevisions()) === 3);
+
+  const { data: fourth } = await revise({ p_city: '대구' });
+  check('네 번째를 쌓아도 판본은 셋이다 — 정리가 함께 돈다', (await countRevisions()) === 3);
+  check('현재 판본은 방금 쌓은 것이다', (await currentRevision()) === fourth);
+
+  const { data: oldest } = await client
+    .from('person_chart_revision').select('id').eq('id', before).maybeSingle();
+  check('가장 오래된 미참조 입력은 남지 않는다', oldest === null, JSON.stringify(oldest));
+
+  const { error: cleanup } = await client.rpc('retain_person_revisions', {
+    p_person_id: personId,
+  });
+  check(
+    '정리는 브라우저가 부르는 문이 아니다',
+    cleanup !== null,
+    cleanup?.message ?? '통과돼 버렸다',
+  );
 }
 
 // ── 8. 남은 못 고친다 — RPC 는 정책을 지나가므로 스스로 물어야 한다 ───────────

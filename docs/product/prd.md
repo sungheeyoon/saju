@@ -220,8 +220,9 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
   참조하는 판본은 보존하고, 그 밖의 미참조 이전 판본은 Person별 최근 두 개까지만 보존한다.
   참조분은 이 개수에서 제외하며 사용자 화면에는 판본 선택기를 만들지 않는다(ADR 0011).
 - rejected·invalidated·cancelled 요청은 사건·시각·reason snapshot·입력 fingerprint를
-  남기되, terminal 요청 하나 때문에 정확한 과거 출생 입력을 영구 보존하지 않는다. 현재
-  `MatchRequest`의 revision FK와 정리 작업은 이 수명주기를 구현하도록 수정해야 한다.
+  남기되, terminal 요청 하나 때문에 정확한 과거 출생 입력을 영구 보존하지 않는다.
+  `MatchRequest`의 revision FK는 terminal 전이에서 놓이며, 그 상태를 검사식이 강제한다.
+  pending과 accepted만 판본을 들고, accepted가 든 판본은 Match가 이어받는다.
 - selfPerson으로 claim된 Person의 출생정보는 해당 User만 수정할 수 있다. 기존
   manager/editor는 viewer로 내려가며 DB 정책과 트리거로 강제한다.
 - MatchRequest는 양쪽 Person·User, 양쪽 chart revision, discovery 정책 버전,

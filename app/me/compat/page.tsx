@@ -6,7 +6,7 @@ import { analyzeCompatibility } from '@/src/lib/saju';
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { CompatView } from '../../compat-view';
-import { UnreadableRevisionError } from '../../revision';
+import { REVISION_REPLACED_NOTE, UnreadableRevisionError } from '../../revision';
 import { payloadForViewer, type PersonPayload } from '../payload';
 
 export const metadata = {
@@ -281,8 +281,8 @@ function Result({ outcome }: { outcome: Outcome }) {
       viewedAt={outcome.viewedAt}
       notice={
         <p className="text-xs text-muted">
-          <strong className="font-medium">현재 저장된 출생정보 기준입니다.</strong> 출생정보를
-          수정하면 이 결과도 달라질 수 있습니다.
+          <strong className="font-medium">현재 저장된 출생정보 기준입니다.</strong>{' '}
+          {REVISION_REPLACED_NOTE}
         </p>
       }
     />

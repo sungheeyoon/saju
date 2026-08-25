@@ -56,27 +56,34 @@ export default async function MePage() {
 async function SelfChart({ personId }: { personId: string }) {
   const supabase = await supabaseOnServer();
 
-  const [{ data: person }, { data: edge }, { data: revisions }] = await Promise.all([
+  const [{ data: person }, { data: edge }] = await Promise.all([
     supabase.from('person').select('current_revision_id').eq('id', personId).maybeSingle(),
     supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
-    /**
-     * 판본을 **전부** 가져온다. 한 줄만 가져오면 이력이 있다는 사실이 화면에서
-     * 사라지고, 「고친 기록은 덮어쓰지 않고 쌓입니다」는 아무도 확인할 수 없는 말이 된다.
-     */
-    supabase
-      .from('person_chart_revision')
-      .select(
-        'id, calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis, created_at, fingerprint',
-      )
-      .eq('person_id', personId)
-      .order('created_at', { ascending: false }),
   ]);
 
-  if (!person?.current_revision_id || !edge || !revisions) {
+  if (!person?.current_revision_id || !edge) {
     return <p className="text-sm text-muted">저장된 사주를 읽지 못했습니다.</p>;
   }
 
-  const current = revisions.find((revision) => revision.id === person.current_revision_id);
+  /**
+   * **현재 입력 하나만 읽는다**(ADR 0011).
+   *
+   * 전에는 이 자리가 판본을 전부 가져와 이력을 그렸다. 그것이 「고친 기록은 쌓입니다」의
+   * 증거라고 여겼는데, 판본을 남기는 이유는 이력을 보여주기 위해서가 아니라 이미
+   * 동의하고 이미 본 결과의 근거를 지키기 위해서다. 목록을 세워 두면 이제 정리되는
+   * 입력이 화면에서 하나씩 사라지고, 그때 화면은 자기가 한 약속을 어긴 것처럼 보인다.
+   *
+   * 가리키는 id 로 묻는다. 「가장 최근 것이 현재일 것」이라고 짐작하면 현재를 정하는
+   * 자리가 둘이 된다.
+   */
+  const { data: current } = await supabase
+    .from('person_chart_revision')
+    .select(
+      'id, calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis',
+    )
+    .eq('id', person.current_revision_id)
+    .maybeSingle();
+
   if (!current) return <p className="text-sm text-muted">현재 판본을 찾지 못했습니다.</p>;
 
   /**
@@ -167,8 +174,6 @@ async function SelfChart({ personId }: { personId: string }) {
 
       <ReviseChart personId={personId} current={query} />
 
-      <RevisionHistory revisions={revisions} currentId={current.id} />
-
       {/*
         전체 명식은 익명 화면이 그린다. 입력은 `#` 뒤에 실리므로 서버로 가지 않는다.
         같은 엔진·같은 함수를 쓰므로 여기 여덟 글자와 저쪽 여덟 글자는 같은 값이다.
@@ -215,47 +220,6 @@ async function Requests() {
       요청과 알림
       {unread > 0 && <span className="ml-1 font-medium">{unread}</span>}
     </Link>
-  );
-}
-
-/**
- * 판본 이력 — **지워지지 않았다는 것을 보이는 자리.**
- *
- * 지문 앞자리를 함께 적는다. 「무엇이 달라졌는가」를 문장으로 만들려면 두 판본을
- * 비교해 말을 지어내야 하는데, 지어낸 말은 틀릴 수 있다. 지문은 다르면 다르다고만
- * 말하고 그 이상을 주장하지 않는다.
- */
-function RevisionHistory({
-  revisions,
-  currentId,
-}: {
-  revisions: { id: string; created_at: string; fingerprint: string }[];
-  currentId: string;
-}) {
-  if (revisions.length < 2) return null;
-
-  return (
-    <details className="rounded-xl border border-border bg-surface p-4">
-      <summary className="cursor-pointer text-sm">판본 {revisions.length}개</summary>
-      <ul className="mt-3 flex flex-col gap-1.5 text-xs">
-        {revisions.map((revision) => (
-          <li key={revision.id} className="flex items-center gap-2">
-            <span className="text-muted">
-              {new Date(revision.created_at).toLocaleString('ko-KR', {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-              })}
-            </span>
-            <span className="font-mono text-muted">{revision.fingerprint.slice(0, 12)}</span>
-            {revision.id === currentId && <span className="text-accent">지금 보는 것</span>}
-          </li>
-        ))}
-      </ul>
-      <p className="mt-3 text-xs text-muted">
-        옛 판본은 지우지 않습니다. 어떤 기록이 어느 사주를 대상으로 만들어졌는지 되짚기
-        위해서입니다.
-      </p>
-    </details>
   );
 }
 
