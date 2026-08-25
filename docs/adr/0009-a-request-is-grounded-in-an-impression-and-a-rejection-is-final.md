@@ -119,7 +119,8 @@ PRD 는 pending 하나를 요구했다. 여기서 `accepted` 와 `rejected` 까�
 
 이 단계가 만드는 것은 **접근 근거**이지 결과가 아니다. `my_matches()` 가 내주는 것은
 상대의 별명·소개, 채우는 오행, 균형 한 줄, 성립 시각뿐이다. 상세 궁합과 `match-v0`
-공유 결과는 다음 단계에 이 Match 위에 선다.
+기반의 선행 화면은 다음 단계에 이 Match 위에 서고, 9단계에서는 현재 AI 점수·해석을 든
+공유 Reading으로 이어진다. `match-v0`가 최종 AI 입력인지 점수 공식인지는 여기서 정하지 않는다.
 
 그때도 자르는 것은 서버가 한다(ADR 0008). 표 셋(`match_request`·`match`·`notification`)은
 `authenticated` 에게 한 줄도 열려 있지 않고, 읽는 길은 `definer` 함수뿐이다 — **그
