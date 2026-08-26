@@ -2,6 +2,8 @@ import { NoOutputGeneratedError, Output, generateText, jsonSchema } from 'ai';
 
 import { READING_POLICY, type ReadingOutput } from '@/src/lib/reading';
 
+import type { ModelCall, ReadingGenerator } from './generator';
+
 /**
  * **모델을 부르는 유일한 자리.**
  *
@@ -60,10 +62,6 @@ const SCHEMA = jsonSchema<ReadingOutput>({
   additionalProperties: false,
 });
 
-export type ModelCall =
-  | { ok: true; output: ReadingOutput }
-  | { ok: false; code: string; detail: string };
-
 /**
  * 프롬프트 하나를 보내고 결과를 받는다.
  *
@@ -96,3 +94,9 @@ export async function callModel(prompt: string): Promise<ModelCall> {
     };
   }
 }
+
+/** 실제 배포에서 쓰는 구현. 파이프라인은 이 객체의 계약만 안다. */
+export const gatewayReadingGenerator: ReadingGenerator = {
+  generation: GENERATION,
+  generate: callModel,
+};

@@ -8,10 +8,6 @@ import { CARD } from '../../card';
 import { CompatView } from '../../compat-view';
 import { REVISION_REPLACED_NOTE, UnreadableRevisionError } from '../../revision';
 import { payloadForViewer, type PersonPayload } from '../payload';
-import { ReadingSection } from '../reading/section';
-
-/** 이 페이지의 Reading Server Action 이 플랫폼 기본 상한에 먼저 잘리지 않게 한다. */
-export const maxDuration = 300;
 
 export const metadata = {
   title: '저장된 사람끼리 궁합 — 만세력',
@@ -283,15 +279,8 @@ function Result({ outcome }: { outcome: Outcome }) {
       compat={analyzeCompatibility(first.saju, second.saju)}
       names={{ a: first.name, b: second.name }}
       viewedAt={outcome.viewedAt}
-      /*
-        로그인 화면에서는 사실 아래에 **현재 결과**가 선다. 익명 화면의 `match-v0`
-        카드는 여기 서지 않는다 — 점수가 둘이면 무엇을 믿을지 사용자가 정해야 한다.
-      */
-      verdict={
-        <ReadingSection
-          target={{ kind: 'private', personA: first.personId, personB: second.personId }}
-        />
-      }
+      /** 첫 세로 슬라이스는 Match만 연다. private의 결과 슬롯은 다음 슬라이스까지 비운다. */
+      verdict={null}
       notice={
         <p className="text-xs text-muted">
           <strong className="font-medium">현재 저장된 출생정보 기준입니다.</strong>{' '}

@@ -7,7 +7,7 @@
  * **화면과 RPC 가 실제로 이어져 있는가**다.
  *
  * 1. **화면 조회가 AI 를 부르지 않는가** — 없으면 없다고 말하고 버튼만 선다.
- * 2. **저장된 글이 세 화면에 서는가** — 자기 풀이·비공개 궁합·공유 궁합.
+ * 2. **저장된 글이 화면에 서는가** — 자기 풀이와 공유 궁합. 비공개 궁합은 아직 DB 계약까지다.
  * 3. **근거와 프롬프트가 사용자 화면에 없는가** — 그 둘은 내부 화면의 것이다.
  * 4. **양쪽이 같은 글을 읽는가** — 「첫 번째 분」이 누구인지는 자리마다 다르게 적힌다.
  * 5. **표를 브라우저가 직접 못 읽는가** — 근거가 그 안에 있다.
@@ -202,7 +202,7 @@ try {
     const pair = `?a=${account.self_person_id}&b=${momId}`;
 
     const before = plain(await body(`/me/compat${pair}`, cookie.a));
-    check('저장된 사람끼리 궁합에도 AI 해석 칸이 선다', before.includes('AI 해석'));
+    check('저장된 사람끼리 궁합에는 아직 AI 해석 칸이 서지 않는다', !before.includes('AI 해석'));
     for (const word of ['match-v0', '100점 만점 베타 탐색 지표']) {
       check(`내부 지표(${word})가 로그인 화면에 없다`, !before.includes(word));
     }
@@ -214,10 +214,16 @@ try {
     );
     check('비공개 궁합이 저장된다', !saved.error, saved.error?.message ?? '');
 
+    const current = await a.rpc('my_reading', {
+      p_kind: 'private', p_person_a: account.self_person_id, p_person_b: momId,
+    });
+    check('비공개 궁합이 공통 조회 계약으로 읽힌다',
+      current.data?.[0]?.output?.includes('둘은 서로 다른 속도로'));
+    check('비공개 궁합 점수가 같은 결과에 있다', current.data?.[0]?.score === 71);
+
     const after = plain(await body(`/me/compat${pair}`, cookie.a));
-    check('저장한 글이 궁합 화면에 선다', after.includes('둘은 서로 다른 속도로'));
-    check('점수가 함께 선다', after.includes('71'));
-    check('점수가 무엇인지 옆에 적힌다', after.includes('실험 중인 해석이 붙인 값'));
+    check('준비된 비공개 궁합도 아직 사용자 화면에는 서지 않는다',
+      !after.includes('둘은 서로 다른 속도로'));
   }
 
   // ── 4. 공유 궁합 — 양쪽이 같은 글을 읽는다 ───────────────────────────────

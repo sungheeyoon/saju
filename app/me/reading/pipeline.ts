@@ -2,11 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { Saju } from '@/src/lib/saju';
 import {
-  ReadingEvidenceError,
-  checkReading,
   isScored,
-  readingEvidenceOf,
-  readingPromptOf,
   READING_POLICY,
   type BirthSecret,
   type ReadingKind,
@@ -17,7 +13,8 @@ import { chartOf } from '../../chart';
 import { NoKeyError, keyedClient } from '../../keyed-client';
 import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '../../revision';
 import { ResultClosedError, pinnedInputs } from '../match/inputs';
-import { GENERATION, callModel } from './model';
+import { generateReadingArtifact, type ReadingGenerator } from './generator';
+import { gatewayReadingGenerator } from './model';
 
 /**
  * **결과 생성 요청** — 사용자가 눌렀을 때만 도는 길.
@@ -108,6 +105,7 @@ export async function requestReading(
    * 대상별 잠금뿐이다.
    */
   requestKey?: string,
+  generator: ReadingGenerator = gatewayReadingGenerator,
 ): Promise<ReadingRequest> {
   const supabase = await supabaseOnServer();
 
@@ -118,7 +116,7 @@ export async function requestReading(
     p_person_a: target.kind === 'private' ? target.personA : null,
     p_person_b: target.kind === 'private' ? target.personB : null,
     p_match_id: target.kind === 'match' ? target.matchId : null,
-    p_model: GENERATION.model,
+    p_model: generator.generation.model,
     p_prompt_version: READING_POLICY.version,
   });
 
@@ -142,7 +140,7 @@ export async function requestReading(
   }
 
   try {
-    return await generate(target.kind, started, keyed);
+    return await generate(target.kind, started, keyed, generator);
   } catch (failure) {
     /**
      * 여기까지 온 예외는 우리가 값으로 다루지 않은 것이다. 시도를 열어 둔 채 끝내면
@@ -180,6 +178,7 @@ async function generate(
   kind: ReadingKind,
   started: StartedRun,
   keyed: ReturnType<typeof keyedClient>,
+  generator: ReadingGenerator,
 ): Promise<ReadingRequest> {
   let revisions: StoredRevision[];
   try {
@@ -205,37 +204,16 @@ async function generate(
   }
 
   const viewedAt = new Date();
-
-  let evidence;
-  try {
-    evidence = readingEvidenceOf(kind, charts, viewedAt);
-  } catch (failure) {
-    if (failure instanceof ReadingEvidenceError) {
-      return fail(started.run_id, 'evidence-incomplete', failure.message);
-    }
-    throw failure;
-  }
-
-  const prompt = readingPromptOf(evidence);
-  const called = await callModel(prompt);
-  if (!called.ok) return fail(started.run_id, called.code, called.detail);
-
-  const evidenceText = JSON.stringify(evidence.evidence);
-  const verdict = checkReading({
+  const generated = await generateReadingArtifact({
     kind,
-    output: called.output,
-    evidenceText,
+    charts,
+    viewedAt,
     secrets: revisions.map(secretOf),
+    generator,
   });
+  if (!generated.ok) return fail(started.run_id, generated.code, generated.detail);
 
-  if (!verdict.ok) {
-    const [first] = verdict.failures;
-    return fail(
-      started.run_id,
-      first.code,
-      verdict.failures.map((one) => `${one.code}: ${one.detail}`).join(' · '),
-    );
-  }
+  const { evidenceText, output, prompt } = generated.artifact;
 
   /**
    * **대상을 다시 대지 않는다.** 열쇠가 여는 것은 시도 하나이고, 그 시도가 무엇에
@@ -246,13 +224,16 @@ async function generate(
     p_run_id: started.run_id,
     p_revision_a: started.revision_a,
     p_revision_b: started.revision_b,
-    p_output: called.output.markdown,
-    p_score: isScored(kind) ? called.output.score : null,
+    p_output: output.markdown,
+    p_score: isScored(kind) ? output.score : null,
     p_evidence: evidenceText,
     p_prompt: prompt,
     p_prompt_version: READING_POLICY.version,
-    p_model: GENERATION.model,
-    p_generation: { provider: GENERATION.provider, settings: GENERATION.settings },
+    p_model: generator.generation.model,
+    p_generation: {
+      provider: generator.generation.provider,
+      settings: generator.generation.settings,
+    },
     p_viewed_at: viewedAt.toISOString(),
   });
 
