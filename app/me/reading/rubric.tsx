@@ -63,19 +63,31 @@ const RATINGS = [
 ] as const;
 
 /**
+ * 근거 칸이 시작하는 자리 — `CLOSING` 이 세우는 제목이다.
+ *
+ * 프롬프트는 **「근거 칸은 분량에 넣지 않는다」**고 적는다. 그런데 세는 쪽이 통째로
+ * 세면 `length-v1` 이 재려는 바로 그 값이 오염된다 — 근거 칸이 길게 나온 글이 본문을
+ * 길게 쓴 글로 보인다. 잘라서 센다.
+ */
+const EVIDENCE_SECTION = '### 근거';
+
+/**
  * 출력 원문에서 **셀 수 있는 것**을 센다.
  *
  * 모델이 구조화 출력을 그대로 뱉으면 `{"score":…, "markdown":"…"}` 이고, 대화창에서
  * 손으로 돌리면 본문만 오기도 한다. 둘 다 받는다 — 다만 JSON 이 아니면 `score` 는
  * **모른다**고 말한다. 「안 봤다」를 「null 이 아니었다」로 적으면 그 줄은 조용히 거짓이 된다.
  */
-function readOutput(text: string): {
+function readOutput(text: string | undefined): {
   markdown: string;
+  /** 근거 칸을 뺀 길이 — 프롬프트가 계약한 것이 이것이다 */
   length: number;
+  /** 근거 칸까지 넣은 길이 — 근거 칸이 아예 없으면 둘이 같다 */
+  whole: number;
   scoreIsNull: Answered;
   headings: number;
 } {
-  const trimmed = text.trim();
+  const trimmed = (text ?? '').trim();
 
   let markdown = trimmed;
   let scoreIsNull: Answered = 'unknown';
@@ -90,16 +102,41 @@ function readOutput(text: string): {
     }
   }
 
+  const at = markdown.indexOf(EVIDENCE_SECTION);
+  const body = at === -1 ? markdown : markdown.slice(0, at);
+
   return {
     markdown,
-    length: markdown.length,
+    length: body.trim().length,
+    whole: markdown.length,
     scoreIsNull,
+    // `### 근거` 는 `##` 뒤가 `#` 이라 여기 안 걸린다 — 본문 소제목만 센다.
     headings: (markdown.match(/^##\s/gm) ?? []).length,
   };
 }
 
 type Gate = 'asking' | 'ready';
 type Storage = 'ok' | 'blocked';
+
+/**
+ * 저장 형식의 판본 — **자리 이름에 박는다.**
+ *
+ * 형식이 바뀌면 옛 기록을 되살릴 때 없는 칸이 나온다(`output` 이 없던 판이 그랬다 —
+ * 그대로 읽으면 `undefined.trim()` 으로 던진다). 자리 이름을 올리면 옛 것이 아예 안
+ * 보이고, 그래도 읽는 쪽은 **늘 `EMPTY` 와 합쳐서** 받는다. 둘 다 한다.
+ */
+const SCHEMA = 'rubric-v2';
+
+type Run = { id: string; model: string; provider: string; settings: string };
+const NO_RUN: Run = { id: '', model: '', provider: '', settings: '' };
+
+/** 「같은 모델 설정으로 비교했다」가 참이려면 이 넷이 다 있어야 한다 */
+const RUN_FIELDS = [
+  ['id', 'run id'],
+  ['model', '모델'],
+  ['provider', 'provider'],
+  ['settings', '생성 설정'],
+] as const;
 
 export function RubricSheet({
   caseId,
@@ -117,24 +154,40 @@ export function RubricSheet({
   /** 가린 차례 그대로 — **`variant` 는 여기 오지 않는다** */
   rows: readonly { blind: string; promptDigest: string }[];
 }) {
-  const key = `saju:rubric:${setVersion}:${caseId}`;
+  const key = `saju:${SCHEMA}:${setVersion}:${caseId}`;
+  /** 라운드 설정은 **세트 단위**다 — 다섯 사례가 같은 설정으로 돌아야 견줄 수 있다 */
+  const runKey = `saju:${SCHEMA}:${setVersion}:run`;
 
   const [gate, setGate] = useState<Gate>('asking');
   const [storage, setStorage] = useState<Storage>('ok');
   const [scores, setScores] = useState<Record<string, Score>>({});
-  const [run, setRun] = useState({ id: '', model: '', provider: '', settings: '' });
+  const [run, setRun] = useState<Run>(NO_RUN);
+
+  /** 없는 칸을 `EMPTY` 로 메워 받는다 — 형식이 한 번 더 바뀌어도 던지지 않는다 */
+  const normalize = (saved: string | null): Record<string, Score> => {
+    if (saved === null) return {};
+    const parsed = JSON.parse(saved) as Record<string, Partial<Score>>;
+    return Object.fromEntries(
+      Object.entries(parsed).map(([blind, score]) => [blind, { ...EMPTY, ...score }]),
+    );
+  };
 
   const open = (keepSaved: boolean) => {
-    if (!keepSaved) {
-      setScores({});
-      setGate('ready');
-      return;
-    }
     try {
-      const saved = window.localStorage.getItem(key);
-      setScores(saved === null ? {} : (JSON.parse(saved) as Record<string, Score>));
+      if (!keepSaved) {
+        /**
+         * **버린다고 했으면 실제로 지운다.** 화면만 비우면 아무것도 안 적고 나갔을 때
+         * 다음 복원에서 버렸던 기록이 되살아난다 — 사용자는 지운 줄 알고 있다.
+         */
+        window.localStorage.removeItem(key);
+        setScores({});
+      } else {
+        setScores(normalize(window.localStorage.getItem(key)));
+      }
+      setRun({ ...NO_RUN, ...(JSON.parse(window.localStorage.getItem(runKey) ?? '{}') as Partial<Run>) });
       setGate('ready');
     } catch {
+      setScores({});
       setStorage('blocked');
       setGate('ready');
     }
@@ -149,6 +202,18 @@ export function RubricSheet({
       setStorage('blocked');
     }
   };
+
+  const putRun = (patch: Partial<Run>) => {
+    const next = { ...run, ...patch };
+    setRun(next);
+    try {
+      window.localStorage.setItem(runKey, JSON.stringify(next));
+    } catch {
+      setStorage('blocked');
+    }
+  };
+
+  const missingRun = RUN_FIELDS.filter(([field]) => run[field].trim() === '').map(([, label]) => label);
 
   /** 사례별 백업 — **짝이 없다.** 남은 사례를 가린 채로 두려면 여기서 새면 안 된다 */
   const backup = JSON.stringify(
@@ -168,7 +233,10 @@ export function RubricSheet({
           blind: row.blind,
           promptDigest: row.promptDigest,
           output: score.output,
+          /** 근거 칸을 뺀 길이 — 프롬프트가 계약한 값 */
           length: read.length,
+          /** 근거 칸까지 넣은 길이 — 둘이 같으면 근거 칸이 아예 없었다는 뜻이다 */
+          wholeLength: read.whole,
           headings: read.headings,
           scoreIsNull: read.scoreIsNull,
           missingSections: score.missingSections,
@@ -216,7 +284,13 @@ export function RubricSheet({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm font-semibold">채점 — 어느 변형인지는 여기 없습니다</p>
-        <CopyText text={backup} label="이 사례 기록 복사 (JSON)" />
+        {missingRun.length > 0 ? (
+          <p className="text-xs text-danger">
+            설정을 먼저 적어 주세요 — {missingRun.join(' · ')}
+          </p>
+        ) : (
+          <CopyText text={backup} label="이 사례 기록 복사 (JSON)" />
+        )}
       </div>
 
       {storage === 'blocked' && (
@@ -232,10 +306,9 @@ export function RubricSheet({
       */}
       <fieldset className="grid gap-2 rounded-xl border border-border p-3 sm:grid-cols-4">
         <legend className="px-1 text-sm font-bold">이 라운드를 돌린 설정</legend>
-        <Text label="run id" value={run.id} onChange={(v) => setRun({ ...run, id: v })} />
-        <Text label="모델" value={run.model} onChange={(v) => setRun({ ...run, model: v })} />
-        <Text label="provider" value={run.provider} onChange={(v) => setRun({ ...run, provider: v })} />
-        <Text label="생성 설정" value={run.settings} onChange={(v) => setRun({ ...run, settings: v })} />
+        {RUN_FIELDS.map(([field, label]) => (
+          <Text key={field} label={label} value={run[field]} onChange={(v) => putRun({ [field]: v })} />
+        ))}
       </fieldset>
 
       {rows.map((row) => {
@@ -263,6 +336,10 @@ export function RubricSheet({
               <span>
                 <dt className="inline">본문</dt>{' '}
                 <dd className="inline text-foreground">{read.length}자</dd>
+              </span>
+              <span>
+                <dt className="inline">근거 포함</dt>{' '}
+                <dd className="inline text-foreground">{read.whole}자</dd>
               </span>
               <span>
                 <dt className="inline">소제목</dt>{' '}

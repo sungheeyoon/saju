@@ -130,7 +130,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('button', { name: '이 사례 기록 복사 (JSON)' })).toHaveCount(0);
 
     await page.getByRole('button', { name: '버리고 새로 시작' }).click();
-    await expect(page.getByRole('button', { name: '이 사례 기록 복사 (JSON)' })).toBeVisible();
+    await expect(page.locator('fieldset').filter({ hasText: 'Q01-A' })).toBeVisible();
 
     /*
       **짝은 사례별 기록에 없다.** 있으면 첫 사례를 끝내는 순간 남은 넷의 블라인드가
@@ -141,9 +141,51 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       await expect(sheet.getByText(variant)).toHaveCount(0);
     }
 
-    // 셀 수 있는 것은 센다 — 사람이 스무 건을 손으로 세면 몇 개는 틀린다.
-    await sheet.getByRole('textbox').first().fill('{"score": null, "markdown": "## 한 줄로"}');
+    /*
+      셀 수 있는 것은 센다. **근거 칸은 본문 길이에서 뺀다** — 프롬프트가 「근거 칸은
+      분량에 넣지 않는다」고 계약했으므로, 통째로 세면 근거를 길게 쓴 글이 본문을 길게
+      쓴 글로 보인다. 분량 변형이 재려는 값이 바로 그것이다.
+    */
+    await sheet
+      .getByRole('textbox')
+      .first()
+      .fill('{"score": null, "markdown": "본문열자입니다\\n\\n### 근거 (검사용)\\n\\n긴 근거"}');
     await expect(sheet.getByText('null', { exact: true })).toBeVisible();
+    // 본문은 일곱 자다. 근거 칸까지 세면 스무 자가 넘는다 — 그 둘이 갈려야 한다.
+    await expect(sheet.getByText('7자', { exact: true })).toHaveCount(1);
+
+    // 설정이 비어 있으면 내보내지 못한다 — 「같은 모델 설정으로 비교했다」가 거짓이 된다.
+    await expect(page.getByText('설정을 먼저 적어 주세요', { exact: false })).toBeVisible();
+    await expect(page.getByRole('button', { name: '이 사례 기록 복사 (JSON)' })).toHaveCount(0);
+
+    const round = page.locator('fieldset').filter({ hasText: '이 라운드를 돌린 설정' });
+    for (const [label, value] of [
+      ['run id', 'r1'],
+      ['모델', 'openai/gpt-5.6-luna'],
+      ['provider', 'vercel-ai-gateway'],
+      ['생성 설정', 'temperature=1'],
+    ] as const) {
+      await round.getByLabel(label, { exact: true }).fill(value);
+    }
+    await expect(page.getByRole('button', { name: '이 사례 기록 복사 (JSON)' })).toBeVisible();
+
+    /*
+      **버린다고 했으면 실제로 지운다.** 화면만 비우면 아무것도 안 적고 나갔을 때 다음
+      복원에서 버렸던 기록이 되살아난다 — 사용자는 지운 줄 알고 있다.
+    */
+    await page.reload();
+    await page.getByRole('button', { name: '저장된 채점 이어서' }).click();
+    await expect(sheet.getByText('7자', { exact: true })).toHaveCount(1);
+    // 라운드 설정은 세트 단위로 남는다 — 다섯 사례가 같은 설정으로 돌아야 견줄 수 있다.
+    await expect(round.getByLabel('모델', { exact: true })).toHaveValue('openai/gpt-5.6-luna');
+
+    await page.reload();
+    await page.getByRole('button', { name: '버리고 새로 시작' }).click();
+    await expect(sheet.getByText('7자', { exact: true })).toHaveCount(0);
+
+    await page.reload();
+    await page.getByRole('button', { name: '저장된 채점 이어서' }).click();
+    await expect(sheet.getByText('7자', { exact: true })).toHaveCount(0);
 
     // 짝은 따로, 접힌 채로 선다.
     await expect(
