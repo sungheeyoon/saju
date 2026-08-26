@@ -1,14 +1,22 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { READING_KINDS, READING_POLICY, READING_PROMPTS, type ReadingKind } from '@/src/lib/reading';
+import {
+  READING_KINDS,
+  READING_POLICY,
+  READING_PROMPTS,
+  SELF_QUALITY_CASE_SET,
+  type QualityCaseId,
+  type ReadingKind,
+} from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { CARD } from '../../../card';
 import { CopyText } from '../copy-text';
 import { readingArtifacts, currentReading, lastReadingRun } from '../current';
 import type { ReadingTarget } from '../pipeline';
-import { selfReadingPreview } from '../preview';
+import { qualityCasePreview, selfReadingPreview, type PreviewResult } from '../preview';
+import { RubricSheet } from '../rubric';
 
 export const metadata = {
   title: '해석 내부 보기 — 만세력',
@@ -30,7 +38,7 @@ export const metadata = {
 export default async function InspectPage({
   searchParams,
 }: {
-  searchParams: Promise<{ kind?: string; a?: string; b?: string; m?: string }>;
+  searchParams: Promise<{ kind?: string; a?: string; b?: string; m?: string; case?: string }>;
 }) {
   const supabase = await supabaseOnServer();
 
@@ -41,6 +49,13 @@ export default async function InspectPage({
 
   const params = await searchParams;
   const target = targetFrom(params);
+
+  /**
+   * **한 번만 짓는다.** 두 칸이 각자 부르면 근거도 기준 시각도 둘이 되고, 그때
+   * 「지금 보낼 프롬프트」와 그 아래 변형들은 **서로 다른 자료를 읽는다** — 견주려고
+   * 만든 자리가 견줄 수 없는 자리가 된다.
+   */
+  const preview = await selfReadingPreview();
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-5 py-10 sm:px-6 sm:py-14">
@@ -83,9 +98,11 @@ export default async function InspectPage({
         <Inspected target={target} />
       )}
 
-      <SelfPreview />
+      <SelfPreview preview={preview} />
 
-      <ExperimentVariants />
+      <ExperimentVariants preview={preview} />
+
+      <QualityCases chosen={qualityCaseFrom(params.case)} />
 
       <section className="flex flex-col gap-4">
         <h2 className="text-base font-semibold">프롬프트 몸통 (자료 없이)</h2>
@@ -117,9 +134,7 @@ export default async function InspectPage({
  * 자기 풀이만 있는 까닭은 `preview.ts` 가 든다 — 나머지 둘은 판본과 차례를 DB 가
  * 정하고, 그 규칙을 앱이 다시 적으면 미리보기가 「보낼 것」이 아니게 된다.
  */
-async function SelfPreview() {
-  const result = await selfReadingPreview();
-
+function SelfPreview({ preview: result }: { preview: PreviewResult }) {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-base font-semibold">지금 보낼 프롬프트 — 자기 풀이</h2>
@@ -177,8 +192,7 @@ const bytes = (text: string) => new TextEncoder().encode(text).length;
  *
  * 접어 두는 것은 46KB 짜리 넷을 한 번에 펴면 화면이 자료가 되기 때문이다.
  */
-async function ExperimentVariants() {
-  const result = await selfReadingPreview();
+function ExperimentVariants({ preview: result }: { preview: PreviewResult }) {
   if (!result.ok) return null;
 
   return (
@@ -310,4 +324,114 @@ function targetFrom(params: {
 
   if (!params.m || !UUID.test(params.m)) return null;
   return { kind, matchId: params.m };
+}
+
+/**
+ * **고정 사례 실험** — 저장된 판본이 아니라 못박아 둔 다섯으로 잰다.
+ *
+ * 내 판본 하나로는 「이 변형이 낫다」가 아니라 「나에게 낫다」만 나온다. 특히 뻔한
+ * 문장은 **여러 명식에서 표현이 얼마나 되풀이되는지**를 봐야 드러나므로, 사례가 하나면
+ * 원리적으로 못 잰다.
+ *
+ * 스무 칸(다섯 × 넷)을 한 번에 펴지 않는다. 사례 하나를 고르면 그 사례의 넷만 선다 —
+ * 46KB 짜리 스물이면 화면이 자료가 된다.
+ */
+function QualityCases({ chosen }: { chosen: QualityCaseId | null }) {
+  const set = SELF_QUALITY_CASE_SET;
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-base font-semibold">
+          고정 사례 실험 <code className="text-xs font-normal text-muted">{set.version}</code>
+        </h2>
+        <p className="text-sm text-secondary">
+          골든 케이스를 <strong className="font-medium">가리켜</strong> 씁니다 — 입력을 베끼면
+          저쪽이 고쳐졌을 때 두 벌이 조용히 갈립니다. 기준 시각은 {set.viewedAt} 으로
+          못박혀 있어, 어제 잰 것과 오늘 잰 것을 이어 붙일 수 있습니다.
+        </p>
+      </div>
+
+      <nav aria-label="고정 사례" className="flex flex-wrap gap-2">
+        {set.cases.map((one) => (
+          <Link
+            key={one.id}
+            href={`/me/reading/inspect?kind=self&case=${one.id}`}
+            aria-current={chosen === one.id ? 'page' : undefined}
+            className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${
+              chosen === one.id
+                ? 'border-accent bg-accent-wash text-accent-strong'
+                : 'border-border-strong bg-surface hover:border-accent hover:text-accent'
+            }`}
+          >
+            {one.id}
+          </Link>
+        ))}
+      </nav>
+
+      {chosen === null ? (
+        <p className={`${CARD} text-sm text-secondary`}>
+          사례를 하나 고르면 그 근거로 지은 네 벌이 섭니다.
+        </p>
+      ) : (
+        <ChosenCase caseId={chosen} />
+      )}
+    </section>
+  );
+}
+
+function ChosenCase({ caseId }: { caseId: QualityCaseId }) {
+  const built = qualityCasePreview(caseId);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className={`${CARD} flex flex-col gap-2 text-sm`}>
+        <p className="font-semibold">{built.dimension}</p>
+        <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+          <span>
+            <dt className="inline">골든</dt> <dd className="inline text-foreground">{built.golden}</dd>
+          </span>
+          <span>
+            <dt className="inline">자료</dt>{' '}
+            <dd className="inline text-foreground">
+              {built.evidenceBytes} 바이트 · {built.evidenceDigest}
+            </dd>
+          </span>
+        </dl>
+      </div>
+
+      {built.prompts.map((one) => (
+        <details key={one.blind} className={CARD}>
+          <summary className="cursor-pointer text-sm font-medium">
+            {one.blind}{' '}
+            <code className="ml-1 text-xs font-normal text-muted">{one.promptDigest}</code>
+          </summary>
+          <div className="mt-2 flex justify-end">
+            <CopyText text={one.prompt} label="이 프롬프트 복사" />
+          </div>
+          <Pre text={one.prompt} />
+        </details>
+      ))}
+
+      <div className={CARD}>
+        <RubricSheet
+          caseId={built.caseId}
+          setVersion={built.setVersion}
+          viewedAt={built.viewedAt}
+          evidenceDigest={built.evidenceDigest}
+          rows={built.prompts.map(({ blind, variant, promptDigest }) => ({
+            blind,
+            variant,
+            promptDigest,
+          }))}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** 주소로 들어온 값이라 모양부터 본다 — 틀린 것은 「고르지 않은 것」과 같다 */
+function qualityCaseFrom(value: string | undefined): QualityCaseId | null {
+  const found = SELF_QUALITY_CASE_SET.cases.find((one) => one.id === value);
+  return found?.id ?? null;
 }

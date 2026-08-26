@@ -1,9 +1,15 @@
+import { createHash } from 'node:crypto';
+
 import {
   PROMPT_VARIANTS,
   ReadingEvidenceError,
+  SELF_QUALITY_CASE_SET,
+  blindLabelsFor,
+  chartForQualityCase,
   readingEvidenceOf,
   readingPromptOf,
   type PromptVariantId,
+  type QualityCaseId,
 } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -89,9 +95,12 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
   if (!revision) return { ok: false, message: '현재 판본을 찾지 못했습니다.' };
 
   /**
-   * 이름 자리에 **파이프라인이 쓰는 말**을 넣는다(`READING_CHART_NAMES`). 별명이나
-   * localLabel 을 넣으면 미리보기와 실제로 보내는 것이 한 낱말만큼 갈린다 — 그리고
-   * 그 낱말은 자료에 실려 나간다.
+   * 이름 자리에 **파이프라인이 쓰는 말**을 넣는다(`READING_CHART_NAMES`).
+   *
+   * 실은 이 값은 자료에 닿지 않는다 — `chartOf` 는 `Query` 에서 날짜·시각·성별과
+   * 계산 옵션만 뽑아 엔진에 넘기고 이름은 두고 간다. 그래도 같은 것을 쓰는 이유는,
+   * 언젠가 이름이 계산에 닿게 되는 날 **미리보기만 조용히 다른 값을 쓰지 않게**
+   * 하려는 것이다. 지금 갈려도 아무 일도 안 일어나는 자리가 가장 늦게 발견된다.
    */
   const viewedAt = new Date();
   try {
@@ -119,4 +128,68 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
     if (failure instanceof ReadingEvidenceError) return { ok: false, message: failure.message };
     throw failure;
   }
+}
+
+/**
+ * 지문 — **같은 것을 두 번 잰 것인지 나중에 되짚는 값.**
+ *
+ * 46KB 짜리 둘을 눈으로 견줄 수는 없다. 채점 기록에 이 값이 함께 남으면, 나중에 「그때
+ * 그 프롬프트가 지금 것과 같은가」를 한 줄로 답할 수 있다. 길이는 12자면 족하다 —
+ * 우리가 가르려는 것은 남의 위조가 아니라 우리 자신의 판본이다.
+ */
+const digest = (text: string) => createHash('sha256').update(text).digest('hex').slice(0, 12);
+
+export type QualityCasePrompt = {
+  /** 채점하는 동안 보이는 이름 — 어느 변형인지 감춘다 */
+  readonly blind: string;
+  readonly variant: PromptVariantId;
+  readonly prompt: string;
+  readonly promptDigest: string;
+};
+
+export type QualityCasePreview = {
+  readonly caseId: QualityCaseId;
+  readonly golden: string;
+  readonly dimension: string;
+  readonly setVersion: string;
+  readonly viewedAt: string;
+  readonly evidenceDigest: string;
+  readonly evidenceBytes: number;
+  /** 가린 차례대로 — 화면이 이 순서로 세운다 */
+  readonly prompts: readonly QualityCasePrompt[];
+};
+
+/**
+ * 고정 사례 하나로 변형 넷을 짓는다 — **한 근거, 한 시각.**
+ *
+ * 저장된 판본을 읽지 않으므로 로그인 계정과 무관하고, 언제 눌러도 같은 값이 나온다.
+ * 그것이 이 세트의 요점이다 — 어제 잰 것과 오늘 잰 것을 이어 붙일 수 있어야 한다.
+ */
+export function qualityCasePreview(caseId: QualityCaseId): QualityCasePreview {
+  const chosen = SELF_QUALITY_CASE_SET.cases.find((one) => one.id === caseId);
+  if (chosen === undefined) throw new Error(`없는 품질 사례: ${caseId}`);
+
+  const viewedAt = new Date(SELF_QUALITY_CASE_SET.viewedAt);
+  const evidence = readingEvidenceOf('self', { a: chartForQualityCase(caseId) }, viewedAt);
+  const evidenceText = JSON.stringify(evidence.evidence);
+
+  const assemblyOf = (id: PromptVariantId) => {
+    const found = PROMPT_VARIANTS.find((variant) => variant.id === id);
+    if (found === undefined) throw new Error(`없는 변형: ${id}`);
+    return found.assembly;
+  };
+
+  return {
+    caseId,
+    golden: chosen.golden,
+    dimension: chosen.dimension,
+    setVersion: SELF_QUALITY_CASE_SET.version,
+    viewedAt: SELF_QUALITY_CASE_SET.viewedAt,
+    evidenceDigest: digest(evidenceText),
+    evidenceBytes: Buffer.byteLength(evidenceText, 'utf8'),
+    prompts: blindLabelsFor(caseId).map(({ blind, variant }) => {
+      const prompt = readingPromptOf(evidence, assemblyOf(variant));
+      return { blind, variant, prompt, promptDigest: digest(prompt) };
+    }),
+  };
 }

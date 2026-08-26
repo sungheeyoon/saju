@@ -73,6 +73,13 @@ export * from './notes';
 export { CONTROL, READING_PROMPTS, readingPromptOf, type PromptAssembly } from './prompt';
 export { PROMPT_VARIANTS, type PromptVariant, type PromptVariantId } from './variants';
 export {
+  SELF_QUALITY_CASE_SET,
+  blindLabelsFor,
+  blindOrderFor,
+  chartForQualityCase,
+  type QualityCaseId,
+} from './quality-cases';
+export {
   checkReading,
   secretForms,
   OUT_OF_SCOPE_TERMS,

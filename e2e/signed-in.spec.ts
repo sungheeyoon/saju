@@ -108,6 +108,26 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       await expect(page.getByText(id, { exact: true })).toBeVisible();
     }
 
+    /*
+      **고정 사례는 저장된 판본과 무관하다.** 내 판본 하나로는 「이 변형이 낫다」가 아니라
+      「나에게 낫다」만 나오고, 뻔한 문장은 여러 명식을 나란히 놓아야 드러난다.
+
+      그리고 **어느 변형인지는 채점하는 동안 화면에 없다.** 있으면 재는 것이 글이 아니라
+      기대가 된다 — 짝은 내보낸 JSON 에서만 열린다.
+    */
+    await page.goto('/me/reading/inspect?kind=self&case=Q01');
+    await expect(page.getByRole('heading', { name: /고정 사례 실험/ })).toBeVisible();
+
+    for (const blind of ['Q01-A', 'Q01-B', 'Q01-C', 'Q01-D']) {
+      await expect(page.getByText(blind, { exact: true }).first()).toBeVisible();
+    }
+    for (const variant of ['control', 'length-v1', 'selection-bridge-v1']) {
+      await expect(page.getByText(`Q01-${variant}`)).toHaveCount(0);
+    }
+    await expect(page.getByRole('button', { name: '채점 기록 복사 (JSON)' })).toBeVisible();
+
+    await page.goto('/me/reading/inspect?kind=self');
+
     // 세 kind 의 몸통도 복사할 수 있다 — 자료 없이 몸통만 고쳐 볼 때의 자리다.
     // 접혀 있으므로 펴고 본다. 접힌 채로 세면 「없다」와 「안 보인다」가 같은 답이 된다.
     await expect(page.locator('summary').filter({ hasText: 'private' })).toBeVisible();
