@@ -145,6 +145,75 @@ test.describe('동의로 열리는 흐름', () => {
     ).toBeVisible();
   });
 
+  test('신고는 차단과 따로 남고, 상대는 목록에서 사라지지 않는다', async ({ openAs }) => {
+    const tag = String(Date.now()).slice(-4);
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+
+    await bothParticipate(asker, receiver, tag);
+    await pendingRequest(asker, receiver);
+
+    await receiver.page.goto('/me/requests');
+    await receiver.page.getByRole('button', { name: '신고', exact: true }).click();
+
+    /*
+      **차단과 무엇이 다른지 먼저 읽힌다.** 나란한 두 버튼이 같은 무게로 읽히면
+      운영자가 봐야 할 일이 조용한 차단으로 끝나거나 그 반대가 된다.
+    */
+    await expect(receiver.page.getByText('신고는 운영자에게 기록을 남기는 것입니다', { exact: false })).toBeVisible();
+
+    await receiver.page.getByLabel('신고 사유').selectOption({ label: '괴롭힘이나 위협' });
+    await receiver.page.getByLabel('덧붙일 말 (선택)').fill('겪은 일을 적습니다.');
+    await receiver.page.getByRole('button', { name: '신고합니다' }).click();
+
+    await expect(receiver.page.getByText('신고를 접수했습니다')).toBeVisible();
+
+    /*
+      **신고가 차단이 아니다.** 답할 요청은 그대로 서 있고, 상대도 후보 목록에서
+      사라지지 않는다 — 보이지 않게 하려면 차단을 따로 눌러야 한다.
+    */
+    await expect(receiver.page.getByRole('button', { name: '수락하고 Match 만들기' })).toBeVisible();
+    await expect(receiver.page.getByText('차단한 사람', { exact: false })).toHaveCount(0);
+  });
+
+  test('삭제를 요청하면 그 자리에서 모든 화면이 닫히고 이유를 갈라서 말한다', async ({
+    openAs,
+  }) => {
+    const tag = String(Date.now()).slice(-4);
+    const leaver = await openAs({ selfPerson: true });
+    const other = await openAs({ selfPerson: true });
+
+    await bothParticipate(leaver, other, tag);
+    await pendingRequest(other, leaver);
+
+    await leaver.page.goto('/me');
+    await leaver.page.getByRole('button', { name: '계정 삭제 요청' }).click();
+
+    // **무엇이 지워지지 않는지**를 누르기 전에 말한다.
+    await expect(
+      leaver.page.getByText('저장된 자료는 그 자리에서 지워지지 않습니다', { exact: false }),
+    ).toBeVisible();
+
+    await leaver.page.getByRole('button', { name: '삭제를 요청합니다' }).click();
+
+    /*
+      **이유를 갈라서 말한다.** 자기가 요청해서 그렇게 된 사람에게 「중지되었습니다」는
+      거짓이다 — 상태 하나에 문장 하나가 매여 있다(`src/lib/account`).
+    */
+    await expect(leaver.page.getByText('삭제를 요청한 계정입니다.')).toBeVisible();
+    await expect(leaver.page.getByText('중지된 계정입니다.')).toHaveCount(0);
+
+    // 새 관문을 두지 않았으므로 다른 화면도 같은 값을 보고 같은 말을 한다.
+    for (const path of ['/me/people', '/me/discovery', '/me/requests']) {
+      await leaver.page.goto(path);
+      await expect(leaver.page.getByText('삭제를 요청한 계정입니다.')).toBeVisible();
+    }
+
+    // 답을 기다리던 요청은 정리된다 — 상대가 답할 수 없는 요청을 계속 보지 않는다.
+    await other.page.goto('/me/requests');
+    await expect(other.page.getByText('기다리는 중인 요청이 없습니다')).toBeVisible();
+  });
+
   test('차단하면 그 사람은 후보에서도 사라지고 새 요청도 서지 않는다', async ({ openAs }) => {
     const tag = String(Date.now()).slice(-4);
     const asker = await openAs({ selfPerson: true });

@@ -5,9 +5,11 @@ import { CONSENT_INTRO, MATCH_RESULT_LINK, REQUEST_STATUS_TEXT } from '@/src/lib
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
+import { Halted } from '../halted';
 import { inboxForViewer, type Inbox, type InboxMatch, type InboxRequest } from './inbox';
 import {
   BlockButton,
+  ReportButton,
   BlockedCount,
   CancelButton,
   MarkAllRead,
@@ -65,7 +67,7 @@ export default async function RequestsPage() {
       {account === null ? (
         <p className="text-sm text-muted">계정을 읽지 못했습니다. 다시 로그인해 주세요.</p>
       ) : account.status !== 'active' ? (
-        <p className="text-sm text-muted">중지된 계정입니다.</p>
+        <Halted status={account.status} />
       ) : (
         <InboxSections />
       )}
@@ -114,8 +116,13 @@ async function InboxSections() {
                 */}
                 <MatchScope intro={CONSENT_INTRO} />
                 <RespondButtons requestId={request.requestId} />
+                {/*
+                  신고는 **상대가 나에게 한 일**이 있는 자리에만 둔다 — 받은 요청과
+                  성립한 Match. 내가 보낸 요청 카드에는 두지 않는다.
+                */}
                 <div className="flex flex-wrap items-center gap-4 border-t border-border pt-2">
                   <BlockButton userId={request.counterpartUserId} />
+                  <ReportButton userId={request.counterpartUserId} />
                 </div>
               </li>
             ))}
@@ -252,6 +259,7 @@ function Matches({ matches }: { matches: InboxMatch[] }) {
                   {MATCH_RESULT_LINK}
                 </Link>
                 <BlockButton userId={match.partnerUserId} />
+                <ReportButton userId={match.partnerUserId} />
               </div>
             </li>
           ))}

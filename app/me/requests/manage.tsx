@@ -4,6 +4,12 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import {
+  REPORT_DETAIL_MAX,
+  REPORT_NOTE,
+  REPORT_REASONS,
+  type ReportReason,
+} from '@/src/lib/account';
+import {
   BLOCK_NOTE,
   MATCH_DISCLOSURE,
   REJECTION_IS_FINAL_NOTE,
@@ -12,7 +18,13 @@ import {
   type RequestStatus,
 } from '@/src/lib/consent';
 
-import { blockUser, cancelRequest, markNotificationsRead, respondToRequest } from './actions';
+import {
+  blockUser,
+  cancelRequest,
+  markNotificationsRead,
+  reportUser,
+  respondToRequest,
+} from './actions';
 
 const PRIMARY =
   'h-11 rounded-lg bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-60 sm:h-10';
@@ -186,6 +198,103 @@ export function BlockButton({ userId }: { userId: string }) {
         그만두기
       </button>
       {failure !== null && <span className="text-xs text-muted">{failure}</span>}
+    </span>
+  );
+}
+
+/**
+ * 신고 — **차단 옆에 서되 같은 무게로 읽히지 않게 한다.**
+ *
+ * 나란한 두 버튼이 같아 보이면 운영자가 봐야 할 일이 조용한 차단으로 끝나거나 그
+ * 반대가 된다. 그래서 무엇이 다른지를 사유를 고르는 자리에서 먼저 읽힌다.
+ */
+export function ReportButton({ userId }: { userId: string }) {
+  const router = useRouter();
+  const [asking, setAsking] = useState(false);
+  const [reason, setReason] = useState<ReportReason>(REPORT_REASONS[0].value);
+  const [detail, setDetail] = useState('');
+  const [done, setDone] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [working, startWorking] = useTransition();
+
+  const send = () => {
+    setFailure(null);
+    startWorking(async () => {
+      const result = await reportUser(userId, reason, detail);
+      if (result.ok) {
+        setDone(true);
+        setAsking(false);
+        router.refresh();
+      } else {
+        setFailure(result.message);
+      }
+    });
+  };
+
+  /*
+    보낸 뒤에는 **무엇이 일어나는지**를 말한다. 「신고했습니다」로 끝내면 상대에게
+    무슨 일이 났는지 모른 채 기다리게 된다 — 아무 일도 나지 않는 것이 답이다.
+  */
+  if (done) {
+    return <span className="text-xs text-muted">신고를 접수했습니다. 운영자가 확인합니다.</span>;
+  }
+
+  if (!asking) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAsking(true)}
+        className="text-sm text-secondary underline underline-offset-2"
+      >
+        신고
+      </button>
+    );
+  }
+
+  return (
+    <span className="flex w-full flex-col gap-2">
+      <span className="text-xs text-muted">{REPORT_NOTE}</span>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-xs text-secondary">신고 사유</span>
+        <select
+          value={reason}
+          onChange={(event) => setReason(event.target.value as ReportReason)}
+          className="h-11 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash sm:h-10"
+        >
+          {REPORT_REASONS.map((one) => (
+            <option key={one.value} value={one.value}>
+              {one.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-xs text-secondary">덧붙일 말 (선택)</span>
+        <textarea
+          value={detail}
+          onChange={(event) => setDetail(event.target.value.slice(0, REPORT_DETAIL_MAX))}
+          maxLength={REPORT_DETAIL_MAX}
+          rows={3}
+          className="rounded-md border border-border bg-surface px-2.5 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash"
+        />
+      </label>
+
+      <span className="flex flex-wrap items-center gap-3">
+        <button type="button" onClick={send} disabled={working} className={QUIET}>
+          {working ? '보내는 중…' : '신고합니다'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setAsking(false)}
+          disabled={working}
+          className="text-sm text-secondary underline underline-offset-2"
+        >
+          그만두기
+        </button>
+        {failure !== null && <span className="text-xs text-muted">{failure}</span>}
+      </span>
     </span>
   );
 }

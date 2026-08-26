@@ -8,6 +8,7 @@ import { chartOf, solarDateOf } from '../../chart';
 import type { Query } from '../../query';
 import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '../../revision';
 import { ReviseChart } from '../revise';
+import { Halted } from '../halted';
 import { AddPerson, NoteForm, RemoveFromList } from './manage';
 
 export const metadata = {
@@ -77,9 +78,7 @@ export default async function PeoplePage() {
       </header>
 
       {suspended ? (
-        <p className="text-sm text-muted">
-          중지된 계정입니다. 저장된 자료는 그대로 있고, 지금은 열어 볼 수 없습니다.
-        </p>
+        <Halted status={account?.status ?? 'suspended'} />
       ) : (
         <>
           <AddPerson remaining={PERSON_LIMIT - people.length} />

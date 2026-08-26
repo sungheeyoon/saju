@@ -7,6 +7,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { CompatView } from '../../compat-view';
 import { REVISION_REPLACED_NOTE, UnreadableRevisionError } from '../../revision';
+import { Halted } from '../halted';
 import { payloadForViewer, type PersonPayload } from '../payload';
 
 export const metadata = {
@@ -98,9 +99,7 @@ export default async function ManagedCompatPage({
       </header>
 
       {suspended ? (
-        <p className="text-sm text-muted">
-          중지된 계정입니다. 저장된 자료는 그대로 있고, 지금은 열어 볼 수 없습니다.
-        </p>
+        <Halted status={account?.status ?? 'suspended'} />
       ) : (
         <>
           <PairPicker people={people} a={a} b={b} />

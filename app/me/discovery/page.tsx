@@ -6,6 +6,7 @@ import { DISCOVERY_POLICY_V0 } from '@/src/lib/discovery';
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { candidatesForViewer, type CandidateBoard } from '../candidates';
+import { Halted } from '../halted';
 import { selfElementSummary } from '../summary';
 import { HideButton, ParticipationToggle, ProfileForm, RequestButton, UnhideAll } from './manage';
 import { PREFER_GENDERS, type DiscoveryProfileInput, type PreferGender } from './profile';
@@ -71,7 +72,7 @@ export default async function DiscoveryPage() {
       {account === null ? (
         <p className="text-sm text-muted">계정을 읽지 못했습니다. 다시 로그인해 주세요.</p>
       ) : account.status !== 'active' ? (
-        <p className="text-sm text-muted">중지된 계정입니다.</p>
+        <Halted status={account.status} />
       ) : account.self_person_id === null ? (
         <section className={`${CARD} bg-surface-sunken`}>
           <h2 className="text-base font-semibold">먼저 내 사주를 등록해 주세요</h2>

@@ -166,13 +166,13 @@ TypeScript 라 브라우저에서도 서버에서도 그대로 돈다.
 ## 검증
 
 ```bash
-npm test          # 1255 tests
+npm test          # 1258 tests
 npm run verify    # test + typecheck + lint + production build
 
 npm run db:start  # 로컬 Supabase (Docker) — 아래 셋이 이것을 쓴다
-npm run test:db   # 301 pgTAP tests — 정책이 실제로 막는지
+npm run test:db   # 322 pgTAP tests — 정책이 실제로 막는지
 npm run test:flow # 239 checks — 가입부터 요청·수락까지 한 바퀴
-npm run test:e2e  # 65 tests — desktop + mobile Chromium
+npm run test:e2e  # 69 tests — desktop + mobile Chromium
 ```
 
 `test:e2e` 는 개발 서버를 **로컬 스택에 붙여** 띄운다(`playwright.config.ts`). 익명 화면은
@@ -255,6 +255,13 @@ Supabase 를 두드리지 않아 그것 없이도 돌지만, 로그인 흐름(`e
 상수 테이블은 도메인 불변식으로 검증한다. 예를 들어 지장간은 "정기의 오행 = 그 지지의
 오행", "생지·묘지의 중기 = 그 지지가 속한 삼합국의 오행" 을 만족해야 하므로, 표에서 한
 글자만 틀려도 테스트가 잡는다.
+
+## 운영
+
+폐쇄 초대 MVP 를 운영하는 절차 — 초대·계정 중지·신고 조회·삭제 요청 처리·AI 호출량과
+실패 조회 — 는 [`docs/ops/runbook.md`](docs/ops/runbook.md) 에 SQL 로 적혀 있다. 화면은
+아직 없다. PRD 가 초기에는 UI 대신 **감사 가능한 절차**를 쓸 수 있다고 했고 지금이 그
+단계다.
 
 ## 알려진 한계
 

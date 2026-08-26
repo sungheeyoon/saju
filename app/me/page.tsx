@@ -6,6 +6,8 @@ import { unreadCount } from './requests/inbox';
 import { chartOf } from '../chart';
 import { toSearchParams } from '../query';
 import { UnreadableRevisionError, queryFromRevision } from '../revision';
+import { Halted } from './halted';
+import { RequestDeletion } from './leaving';
 import { Onboarding } from './onboarding';
 import { ReadingSection } from './reading/section';
 import { ReviseChart } from './revise';
@@ -45,14 +47,15 @@ export default async function MePage() {
       {account === null ? (
         <p className="text-sm text-muted">계정을 읽지 못했습니다. 다시 로그인해 주세요.</p>
       ) : account.status !== 'active' ? (
-        <p className="text-sm text-muted">중지된 계정입니다.</p>
+        <Halted status={account.status} />
       ) : account.self_person_id === null ? (
         <Onboarding />
       ) : (
         <SelfChart personId={account.self_person_id} />
       )}
 
-      <Footer />
+      {/* 살아 있는 계정에게만 떠나는 길을 보인다 — 이미 요청한 사람에게는 할 말이 없다 */}
+      <Footer canLeave={account !== null && account.status === 'active'} />
     </main>
   );
 }
@@ -233,7 +236,7 @@ async function Requests() {
   );
 }
 
-function Footer() {
+function Footer({ canLeave }: { canLeave: boolean }) {
   const signOut = async () => {
     'use server';
     const client = await supabaseOnServer();
@@ -242,15 +245,23 @@ function Footer() {
   };
 
   return (
-    <div className="flex items-center gap-4 border-t border-border pt-4 text-sm">
-      <Link href="/" className="text-accent underline underline-offset-2">
-        로그인 없이 계산하기
-      </Link>
-      <form action={signOut}>
-        <button type="submit" className="text-accent underline underline-offset-2">
-          로그아웃
-        </button>
-      </form>
+    <div className="flex flex-col gap-4 border-t border-border pt-4 text-sm">
+      <div className="flex items-center gap-4">
+        <Link href="/" className="text-accent underline underline-offset-2">
+          로그인 없이 계산하기
+        </Link>
+        <form action={signOut}>
+          <button type="submit" className="text-accent underline underline-offset-2">
+            로그아웃
+          </button>
+        </form>
+      </div>
+
+      {/*
+        **떠나는 길은 있어야 한다**(US 61). 로그아웃 옆이 아니라 아래에 두고 접어 두는
+        것은, 이 화면의 일이 내 사주를 보는 것이지 떠나는 것이 아니기 때문이다.
+      */}
+      {canLeave && <RequestDeletion />}
     </div>
   );
 }

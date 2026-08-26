@@ -85,6 +85,51 @@ export async function blockUser(userId: string): Promise<SaveResult> {
 }
 
 /**
+ * 신고한다 — **차단과 나란히 있되 같은 일이 아니다.**
+ *
+ * 차단은 「내가 안 보겠다」이고 신고는 「운영자가 봐야 한다」이다. 한 문으로 합치면
+ * 「보기 싫다」와 「규칙을 어겼다」가 같은 기록이 되어 제재의 근거가 되지 못한다.
+ *
+ * 사유가 고른 것 중 하나인지, 마주친 적 있는 사람인지는 **RPC 가 묻는다.** 여기서
+ * 다시 물으면 판정하는 자리가 둘이 된다.
+ */
+export async function reportUser(
+  userId: string,
+  reason: string,
+  detail: string,
+): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  const { error } = await supabase.rpc('report_user', {
+    p_user_id: userId,
+    p_reason: reason,
+    // 빈 칸은 「안 적었다」다. 빈 문자열로 넘기면 「없음」이 두 값이 된다.
+    p_detail: detail.trim() || null,
+  });
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/me/requests');
+  return { ok: true };
+}
+
+/**
+ * 계정 삭제를 요청한다.
+ *
+ * **지우지 않는다.** 폐쇄 MVP 에서 실제 삭제는 운영자가 처리하고, 이 문이 즉시 하는
+ * 일은 상태를 옮겨 바깥으로 나가는 길을 다 막는 것이다(`request_account_deletion`).
+ */
+export async function requestAccountDeletion(): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  const { error } = await supabase.rpc('request_account_deletion');
+  if (error) return { ok: false, message: error.message };
+
+  // 상태 하나가 모든 화면의 답을 바꾼다 — 한 자리만 다시 그리면 나머지가 낡는다.
+  revalidatePath('/', 'layout');
+  return { ok: true };
+}
+
+/**
  * 알림을 읽음으로 바꾼다.
  *
  * **시각은 DB 가 적는다.** 읽은 때는 사건이라 사용자가 적을 값이 아니다 — 참여를 켠
