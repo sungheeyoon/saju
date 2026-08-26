@@ -8,7 +8,6 @@ import {
   CITY_LONGITUDES,
   GENDERS,
   GENDER_KO,
-  LUNAR_SUPPORTED_YEAR_RANGE,
   SUPPORTED_YEAR_RANGE,
   type Calendar,
   type CityName,
@@ -17,7 +16,15 @@ import {
 } from '@/src/lib/saju';
 
 import { solarDateOf } from './chart';
-import { NAME_MAX, TIME_BASES, TIME_BASIS, type Query, type TimeBasis } from './query';
+import {
+  NAME_MAX,
+  TIME_BASES,
+  TIME_BASIS,
+  birthYearRangeOf,
+  birthYearRefusal,
+  type Query,
+  type TimeBasis,
+} from './query';
 
 /**
  * 생년월일시 입력 한 벌.
@@ -133,6 +140,16 @@ export function BasisRadio({
 function convertedLine(value: Query): { ok: boolean; text: string } | null {
   if (value.calendar === 'solar' || value.date === '') return null;
 
+  /*
+    받지 않기로 한 해는 **변환해 볼 것도 없다.**
+
+    음력 표는 2100년까지 덮지만 태어난 해로는 2020년까지만 받는다. 두 범위가 다르므로
+    범위 밖의 해에서는 두 문장이 동시에 설 수 있다 — 「음력 1912~2100년만 변환합니다」와
+    「1912~2020년에 태어난 분만 계산합니다」. 나란히 두면 사용자는 자기가 무엇을 어겼는지
+    고르게 된다. 거절의 이유는 하나여야 하고, 그 하나는 우리가 받기로 한 범위다.
+  */
+  if (birthYearRefusal(value) !== null) return null;
+
   try {
     const { year, month, day } = solarDateOf(value);
     return { ok: true, text: `양력 ${year}년 ${month}월 ${day}일로 계산합니다` };
@@ -157,12 +174,14 @@ function SelectShell({ children, className = '' }: { children: React.ReactNode; 
   );
 }
 
+/** 네 자리로 다 적힌 해인가 — 타이핑 중인 「19」로는 달 길이를 셀 수 없다 */
+const isFullYear = (year: string) => /^\d{4}$/.test(year);
+
 /**
- * 달력이 정하는 날짜의 한계 — **연도 범위도 달력마다 다르다.**
+ * 달력이 정하는 날짜의 한계.
  *
- * 절기·표준시는 1900년까지 닿지만 음력 표는 1912년부터다
- * (`LUNAR_SUPPORTED_YEAR_RANGE`). 한 범위로 합치면 어느 쪽이 자료의 한계인지
- * 말할 수 없게 되므로 고를 수 있는 것 자체를 달력에 맞춰 좁힌다.
+ * 해의 범위는 여기서 정하지 않는다 — `birthYearRangeOf` 가 든다. 폼이 자기 범위를
+ * 따로 적으면 **받는 칸과 거절하는 자리가 갈린다.**
  *
  * 일수는 양력만 실제 달 길이를 안다. 음력은 그 달이 29일인지 30일인지가 표
  * 안에 있고 윤달까지 걸려서, 여기서는 상한 30까지만 열고 **없는 날은 변환이
@@ -170,13 +189,10 @@ function SelectShell({ children, className = '' }: { children: React.ReactNode; 
  * 둘이 된다.
  */
 function limitsOf(calendar: Calendar, year: string, month: string) {
-  const years =
-    calendar === 'solar'
-      ? { min: SUPPORTED_YEAR_RANGE.min, max: SUPPORTED_YEAR_RANGE.max }
-      : { min: LUNAR_SUPPORTED_YEAR_RANGE.min, max: LUNAR_SUPPORTED_YEAR_RANGE.max };
+  const years = birthYearRangeOf(calendar);
 
   const maxDay =
-    calendar === 'solar' && year !== '' && month !== ''
+    calendar === 'solar' && isFullYear(year) && month !== ''
       ? new Date(Number(year), Number(month), 0).getDate()
       : calendar === 'solar'
         ? 31
@@ -232,11 +248,20 @@ function DateFields({
   }, [value.date]);
 
   const { years, maxDay } = limitsOf(value.calendar, parts.year, parts.month);
-  const yearOptions = range(years.min, years.max).reverse();
+
+  /**
+   * 다 적힌 해가 범위 밖인가 — **칸에 표시만 한다.**
+   *
+   * 거절하는 것은 `birthYearRefusal` 이고 버튼을 잠그는 것도 그것이다. 여기서는 같은
+   * 범위를 보고 어느 칸이 문제인지만 가리킨다 — 문장을 여기서 또 쓰면 판정이 둘이 된다.
+   */
+  const yearOutOfRange =
+    isFullYear(parts.year) && (Number(parts.year) < years.min || Number(parts.year) > years.max);
 
   const emit = (next: typeof parts) => {
     setParts(next);
-    const complete = next.year !== '' && next.month !== '' && next.day !== '';
+    // **네 자리가 다 적히기 전에는 날짜가 아니다.** 「19」를 실어 보내면 `19-05-15` 가 된다.
+    const complete = isFullYear(next.year) && next.month !== '' && next.day !== '';
     const date = complete ? `${next.year}-${next.month}-${next.day}` : '';
     lastEmitted.current = date;
     onDate(date);
@@ -259,21 +284,31 @@ function DateFields({
   return (
     <Group label="생년월일">
       <div className="grid max-w-md grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
-        <SelectShell>
-          <select
-            aria-label="출생연도"
-            value={parts.year}
-            onChange={(event) => update('year', event.target.value)}
-            className={`${FIELD} w-full appearance-none pr-8`}
-          >
-            <option value="">연도</option>
-            {yearOptions.map((year) => (
-              <option key={year} value={year}>
-                {year}년
-              </option>
-            ))}
-          </select>
-        </SelectShell>
+        {/*
+          연도만 **적는 칸**이다.
+          
+          고르는 칸으로 두면 백 줄이 넘는 목록을 스크롤해야 태어난 해에 닿는다. 그렇다고
+          흔한 해를 미리 넣어 두면 연도를 손대지 않은 사람도 그 해를 고른 것이 되고,
+          월·일만 채운 순간 **틀린 해로 계산된 사주**가 나온다 — 「고르지 않은 것을
+          골랐다고 치지 않는다」가 이 폼 전체의 규율이다(`hourKnown` 이 셋인 이유).
+          
+          네 자리를 치는 것이 그 둘을 다 피한다. 빈 칸은 빈 칸으로 남고, 스크롤은 없다.
+          숫자만 받으므로 「199O」 같은 값이 애초에 들어오지 않고, 범위 밖은
+          `birthYearRefusal` 이 이유를 붙여 거절한다.
+        */}
+        <input
+          type="text"
+          inputMode="numeric"
+          autoComplete="bday-year"
+          aria-label="출생연도"
+          aria-invalid={yearOutOfRange || undefined}
+          placeholder={`${years.min}~${years.max}`}
+          value={parts.year}
+          onChange={(event) => update('year', event.target.value.replace(/\D/g, '').slice(0, 4))}
+          // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `FIELD` 의 테두리 색과
+          // 같은 무게라 어느 쪽이 이길지 정해지지 않는다. 변종 셀렉터는 한 겹 더 무겁다.
+          className={`${FIELD} w-full tabular-nums aria-invalid:border-danger aria-invalid:focus:border-danger aria-invalid:focus:ring-danger-wash`}
+        />
         <SelectShell>
           <select
             aria-label="출생월"

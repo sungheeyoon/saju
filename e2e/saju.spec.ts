@@ -176,15 +176,15 @@ test('있지도 않은 윤달은 계산하지 않고 어느 윤달이 있는지 
 
   await page.getByLabel('이름', { exact: true }).fill('민수');
   await chooseCalendar(page, 'lunar_leap');
-  await fillBirthDate(page, '2024-04-01');
+  await fillBirthDate(page, '2019-04-01');
 
   // Next 의 라우트 안내판도 `role="alert"` 이라 폼 안으로 좁힌다.
   const refusal = page.locator('main').getByRole('alert');
-  await expect(refusal).toContainText('2024년에는 윤달이 없습니다');
+  await expect(refusal).toContainText('2019년에는 윤달이 없습니다');
 
-  // 2023년에는 윤2월이 있다 — 어느 것이 있는지까지 말한다.
-  await fillBirthDate(page, '2023-04-01');
-  await expect(refusal).toContainText('윤2월');
+  // 2017년에는 윤5월이 있다 — 어느 것이 있는지까지 말한다.
+  await fillBirthDate(page, '2017-04-01');
+  await expect(refusal).toContainText('윤5월');
 
   /*
     표 밖은 다른 말을 한다 — 그런데 **폼으로는 거기까지 못 간다.**
@@ -195,9 +195,50 @@ test('있지도 않은 윤달은 계산하지 않고 어느 윤달이 있는지 
     **링크로** 그 자리를 짚는다.
   */
   await page.goto('/#cal=lunar&date=1905-04-01&hour=unknown&gender=female&city=%EC%84%9C%EC%9A%B8&rule=jo&basis=localMean&saeun=2026');
-  // 폼 아래와 결과 자리가 **둘 다** 이유를 말한다 — 링크로 들어오면 결과 자리가 비어 있다.
-  await expect(page.locator('main').getByRole('alert')).toHaveCount(2);
-  await expect(page.locator('main').getByRole('alert').first()).toContainText('1912~2100');
+
+  /*
+    **거절은 한 번만 선다.** 음력 표는 2100년까지 덮고 태어난 해는 2020년까지만 받으니
+    범위 밖에서는 두 문장이 동시에 설 수 있었다. 무엇을 어겼는지 사용자가 고르게 두지
+    않는다 — 서는 것은 우리가 받기로 한 범위 하나다.
+  */
+  const refused = page.locator('main').getByRole('alert');
+  await expect(refused).toHaveCount(1);
+  await expect(refused).toContainText('1912~2020년에 태어난 분만 계산합니다');
+});
+
+/**
+ * 태어난 해는 **적는 칸**이고, 범위 밖은 눌리지 않는다.
+ *
+ * 목록으로 두면 백 줄을 스크롤해야 하고 흔한 해를 미리 넣어 두면 손대지 않은 사람도
+ * 그 해를 고른 것이 된다. 적는 칸은 둘 다 피하는 대신 **없는 해가 들어올 수 있다** —
+ * 그래서 막는 자리가 있어야 하고, 그 자리는 버튼을 잠그는 자리와 같아야 한다.
+ */
+test('태어난 해는 숫자로 적고 범위 밖이면 버튼이 잠긴다', async ({ page }) => {
+  await page.goto('/');
+
+  const year = page.getByLabel('출생연도');
+  await page.getByLabel('이름', { exact: true }).fill('민수');
+
+  // 숫자만 들어간다 — 「19o0」 같은 값이 애초에 만들어지지 않는다.
+  await year.fill('19o0년');
+  await expect(year).toHaveValue('190');
+
+  // 네 자리가 다 적히기 전에는 날짜가 아니다 — 아직 「생년월일을 입력해 주세요」다.
+  await page.getByLabel('출생월').selectOption('05');
+  await page.getByLabel('출생일').selectOption('15');
+  await fillBirthTime(page, '14:30');
+  await expect(page.getByText('생년월일을 입력해 주세요.')).toBeVisible();
+
+  // 아직 오지 않은 해는 거절한다. 이유를 말하고, 같은 이유로 버튼이 잠긴다.
+  await year.fill('2021');
+  await expect(page.getByText('1900~2020년에 태어난 분만 계산합니다: 2021년')).toBeVisible();
+  await expect(page.getByRole('button', { name: '사주 보기' })).toBeDisabled();
+
+  // 경계는 열려 있다.
+  await year.fill('2020');
+  await expect(page.getByRole('button', { name: '사주 보기' })).toBeEnabled();
+  await page.getByRole('button', { name: '사주 보기' }).click();
+  await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 });
 
 test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한다', async ({ page }) => {

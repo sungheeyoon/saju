@@ -4,6 +4,8 @@ import {
   DEFAULT_QUERY,
   NAME_MAX,
   mergeSearchParams,
+  BIRTH_YEAR_MAX,
+  birthYearRefusal,
   missingAnswer,
   missingForCalculation,
   queryFromSearchParams,
@@ -190,6 +192,55 @@ describe('주소창에 실은 입력', () => {
       for (const query of [filled, { ...filled, date: '' }, { ...filled, hourKnown: null }]) {
         expect(missingAnswer(query), JSON.stringify(query.date)).toBe(missingForCalculation(query));
       }
+    });
+  });
+
+  /**
+   * 태어난 해의 위 끝은 **자료가 아니라 제품이 정한다.**
+   *
+   * 엔진은 2100년까지 세지만 그 범위는 세운·대운처럼 앞으로 올 해를 짚기 위한
+   * 것이다. 두 범위를 합쳐 두면 생년 칸이 아직 오지 않은 80년을 받는다.
+   *
+   * **막는 자리는 하나여야 한다.** 폼이 못 적게 하는 것만으로는 부족하다 — 입력은
+   * 주소의 `#` 뒤에서도 들어오고, 저장은 서버 액션도 이 함수를 지난다.
+   */
+  describe('태어난 해는 범위 밖이면 거절한다', () => {
+    const filled: Query = { ...query, name: '민수' };
+    const on = (date: string, calendar: Query['calendar'] = 'solar') => ({
+      ...filled,
+      calendar,
+      date,
+    });
+
+    it('경계는 열려 있다', () => {
+      expect(birthYearRefusal(on(`${BIRTH_YEAR_MAX}-01-01`))).toBeNull();
+      expect(birthYearRefusal(on('1900-01-01'))).toBeNull();
+    });
+
+    it('아직 오지 않은 해는 거절하고 어느 범위인지 말한다', () => {
+      const refused = birthYearRefusal(on(`${BIRTH_YEAR_MAX + 1}-01-01`));
+      expect(refused).toContain(String(BIRTH_YEAR_MAX));
+      expect(refused).toContain(String(BIRTH_YEAR_MAX + 1));
+    });
+
+    /** 아래 끝은 달력마다 다르다 — 음력 표는 1912년부터다 */
+    it('아래 끝은 달력이 정한다', () => {
+      expect(birthYearRefusal(on('1905-04-01'))).toBeNull();
+      expect(birthYearRefusal(on('1905-04-01', 'lunar'))).toContain('1912');
+      expect(birthYearRefusal(on('1899-12-31'))).toContain('1900');
+    });
+
+    /** 거절은 버튼도 잠근다 — 두 자리에 따로 적혀 있지 않다는 뜻이다 */
+    it('거절한 해는 계산도 시작하지 않는다', () => {
+      const future = on(`${BIRTH_YEAR_MAX + 1}-01-01`);
+      expect(missingForCalculation(future)).toBe(birthYearRefusal(future));
+      expect(missingAnswer(future)).toBe(birthYearRefusal(future));
+    });
+
+    /** 아직 다 안 적힌 해는 날짜가 아니다 — 거절할 것도 없다 */
+    it('빈 날짜에는 할 말이 없다', () => {
+      expect(birthYearRefusal({ ...filled, date: '' })).toBeNull();
+      expect(missingForCalculation({ ...filled, date: '' })).toContain('생년월일');
     });
   });
 

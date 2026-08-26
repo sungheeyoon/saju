@@ -2,6 +2,8 @@ import {
   CALENDARS,
   CITY_LONGITUDES,
   GENDERS,
+  LUNAR_SUPPORTED_YEAR_RANGE,
+  SUPPORTED_YEAR_RANGE,
   type Calendar,
   type CityName,
   type Gender,
@@ -147,6 +149,54 @@ const SAEUN_MAX = 2100;
 export const NAME_MAX = 12;
 
 /**
+ * 태어난 해로 받는 마지막 해 — **엔진이 셀 수 있는 범위와 다르다.**
+ *
+ * 엔진은 2100년까지 센다(`SUPPORTED_YEAR_RANGE`). 그 범위는 세운·대운처럼 **앞으로
+ * 올 해**를 짚어야 해서 넓은 것이고, 태어난 해는 그럴 이유가 없다. 두 범위를 하나로
+ * 합쳐 두면 생년 칸이 아직 오지 않은 80년을 받는다.
+ *
+ * **이 값이 좁아지면 그만큼의 사람이 거절된다.** 2020으로 두면 2021년 이후에 태어난
+ * 사람은 이 폼으로 들어올 수 없다 — 자식의 사주를 보려는 부모가 실제로 걸린다.
+ * 「오늘까지」로 두면 그 자리가 해마다 저절로 열리지만, 지금은 제품이 2020을 골랐다.
+ * 바꿀 때 고칠 곳은 이 한 줄이다.
+ */
+export const BIRTH_YEAR_MAX = 2020;
+
+/**
+ * 그 달력으로 받을 수 있는 해의 범위.
+ *
+ * 아래 끝은 자료가 정한다 — 절기·표준시는 1900년까지 닿지만 음력 표는 1912년부터다
+ * (`LUNAR_SUPPORTED_YEAR_RANGE`). 위 끝은 제품이 정한다(`BIRTH_YEAR_MAX`). 둘을 한
+ * 함수가 들고 있으므로 **폼이 여는 범위와 계산이 받는 범위가 갈릴 수 없다.**
+ */
+export function birthYearRangeOf(calendar: Calendar): { min: number; max: number } {
+  return {
+    min: calendar === 'solar' ? SUPPORTED_YEAR_RANGE.min : LUNAR_SUPPORTED_YEAR_RANGE.min,
+    max: BIRTH_YEAR_MAX,
+  };
+}
+
+/**
+ * 범위 밖의 해를 거절하는 말 — 없으면 `null`.
+ *
+ * **거절은 조용하지 않다.** 폼이 그 값을 아예 못 만들게 막는 대신 받아 두고 이유를
+ * 말하는 쪽을 고른 것은, 입력이 주소의 `#` 뒤에서도 들어오기 때문이다. 폼에서만
+ * 막으면 링크로 들어온 1899년은 아무 말 없이 계산된다.
+ */
+export function birthYearRefusal(query: Query): string | null {
+  // **네 자리가 다 적히기 전에는 해가 아니다.** `Number('')` 은 0 이라, 빈 날짜가
+  // 「0년은 안 됩니다」로 거절당한다 — 아직 아무것도 어기지 않은 칸에 대고 하는 말이다.
+  const digits = query.date.slice(0, 4);
+  if (!/^\d{4}$/.test(digits)) return null;
+
+  const year = Number(digits);
+  const { min, max } = birthYearRangeOf(query.calendar);
+  if (year >= min && year <= max) return null;
+
+  return `${min}~${max}년에 태어난 분만 계산합니다: ${year}년`;
+}
+
+/**
  * 아직 답하지 않은 칸 — **버튼을 잠그는 쪽과 계산하는 쪽이 같은 답을 본다.**
  *
  * 버튼의 `disabled` 조건을 화면에 따로 적으면 두 곳이 어긋나는 순간, 눌리는데
@@ -162,6 +212,9 @@ export const NAME_MAX = 12;
  */
 export function missingForCalculation(query: Query): string | null {
   if (query.date === '') return '생년월일을 입력해 주세요.';
+  // 범위 밖의 해는 **여기서** 걸린다 — 버튼을 잠그는 자리와 계산을 막는 자리가 하나다.
+  const refused = birthYearRefusal(query);
+  if (refused !== null) return refused;
   // 고르지 않은 것과 "모른다"고 답한 것은 다르다 — 위 `hourKnown` 참조.
   if (query.hourKnown === null) return '출생시각을 입력하거나 시간 모름을 골라 주세요.';
   if (query.hourKnown && query.time === '') return '출생시각을 입력해 주세요.';

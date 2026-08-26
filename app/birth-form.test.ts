@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { fitsCalendar } from './birth-form';
+import { BIRTH_YEAR_MAX } from './query';
 
 /**
  * 달력을 바꾸면 **고를 수 있는 것 자체가 달라진다.**
@@ -18,6 +19,13 @@ describe('달력이 바뀌면 못 고르게 된 날짜는 남지 않는다', () 
     expect(fitsCalendar('1912-03-01', 'lunar')).toBe(true);
   });
 
+  /** 위 끝은 자료가 아니라 제품이 정한다 — 두 달력이 같은 해에서 끝난다 */
+  it('아직 오지 않은 해는 어느 달력으로도 들지 않는다', () => {
+    expect(fitsCalendar(`${BIRTH_YEAR_MAX}-01-01`, 'solar')).toBe(true);
+    expect(fitsCalendar(`${BIRTH_YEAR_MAX + 1}-01-01`, 'solar')).toBe(false);
+    expect(fitsCalendar(`${BIRTH_YEAR_MAX + 1}-01-01`, 'lunar')).toBe(false);
+  });
+
   it('음력에 31일은 없다', () => {
     expect(fitsCalendar('1990-01-31', 'solar')).toBe(true);
     expect(fitsCalendar('1990-01-31', 'lunar')).toBe(false);
@@ -27,8 +35,9 @@ describe('달력이 바뀌면 못 고르게 된 날짜는 남지 않는다', () 
 
   it('양력은 그 달에 없는 날을 들지 않는다', () => {
     expect(fitsCalendar('1990-02-30', 'solar')).toBe(false);
-    expect(fitsCalendar('2024-02-29', 'solar')).toBe(true);
-    expect(fitsCalendar('2023-02-29', 'solar')).toBe(false);
+    // 윤년과 평년 — 범위 안에서 고른다(2024년은 이제 생년으로 안 든다).
+    expect(fitsCalendar('2020-02-29', 'solar')).toBe(true);
+    expect(fitsCalendar('2019-02-29', 'solar')).toBe(false);
   });
 
   /** 반쪽으로 적힌 날짜는 아직 아무것도 어기지 않았다 — 지울 이유가 없다 */

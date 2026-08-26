@@ -20,13 +20,19 @@ type Scope = Page | Locator;
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME = /^(\d{2}):(\d{2})$/;
 
-/** `YYYY-MM-DD` 한 벌을 년·월·일 세 칸에 나눠 넣는다 */
+/**
+ * `YYYY-MM-DD` 한 벌을 년·월·일 세 칸에 나눠 넣는다.
+ *
+ * 연도만 **적는 칸**이고 월·일은 고르는 칸이다(`app/birth-form.tsx`). 연도를 목록으로
+ * 두면 백 줄을 스크롤해야 하고, 흔한 해를 미리 넣어 두면 손대지 않은 사람도 그 해를
+ * 고른 것이 되기 때문이다.
+ */
 export async function fillBirthDate(scope: Scope, date: string): Promise<void> {
   const match = DATE.exec(date);
   if (!match) throw new Error(`YYYY-MM-DD 가 아니다: ${date}`);
   const [, year, month, day] = match;
 
-  await scope.getByLabel('출생연도').selectOption(String(Number(year)));
+  await scope.getByLabel('출생연도').fill(year);
   await scope.getByLabel('출생월').selectOption(month);
   await scope.getByLabel('출생일').selectOption(day);
 }
@@ -37,7 +43,7 @@ export async function expectBirthDate(scope: Scope, date: string): Promise<void>
   if (!match) throw new Error(`YYYY-MM-DD 가 아니다: ${date}`);
   const [, year, month, day] = match;
 
-  await expect(scope.getByLabel('출생연도')).toHaveValue(String(Number(year)));
+  await expect(scope.getByLabel('출생연도')).toHaveValue(year);
   await expect(scope.getByLabel('출생월')).toHaveValue(month);
   await expect(scope.getByLabel('출생일')).toHaveValue(day);
 }
