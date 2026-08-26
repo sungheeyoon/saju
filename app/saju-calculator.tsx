@@ -214,7 +214,15 @@ export function SajuCalculator() {
             disabled={missing !== null}
             className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-auto"
           >
-            {query === null ? '사주 보기' : '결과 업데이트'}
+            {/*
+              **명식**이다 — 「사주」도 「만세력」도 아니다(용어집).
+
+              만세력은 절기와 간지를 찾는 책력이고 이 저장소의 이름이다. 그 표로
+              한 사람의 입력에서 뽑아 낸 여덟 글자가 **명식**이고, 이 버튼이 내는
+              것이 그것이다. 「사주」는 그 둘과 이 일 전체를 다 가리켜서, 버튼에
+              적으면 무엇이 나오는지 말해 주지 않는다.
+            */}
+            {query === null ? '내 명식 보기' : '결과 업데이트'}
           </button>
 
           {/* 왜 눌리지 않는지 버튼 옆에서 말한다 — 잠긴 버튼만 두면 이유를 찾아야 한다 */}

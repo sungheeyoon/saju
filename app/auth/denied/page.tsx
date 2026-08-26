@@ -19,7 +19,7 @@ export default function DeniedPage() {
       </header>
 
       <p className="text-sm text-secondary">
-        로그인 없이 쓰는 사주·궁합 화면은 그대로 열려 있습니다.
+        로그인 없이 쓰는 명식·궁합 화면은 그대로 열려 있습니다.
       </p>
 
       <p className="flex gap-4 text-sm">
@@ -27,7 +27,7 @@ export default function DeniedPage() {
           다시 로그인
         </Link>
         <Link href="/" className="text-accent underline underline-offset-2">
-          사주 보기
+          명식 보기
         </Link>
       </p>
     </main>

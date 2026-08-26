@@ -24,7 +24,7 @@ test('로그인 화면은 초대받은 사람만 들어온다고 미리 말한�
 
   await expect(page.getByText('초대받은 분만', { exact: false })).toBeVisible();
   // 익명 흐름으로 돌아갈 길을 막지 않는다. 로그인은 매칭을 위한 것이지 계산의 조건이 아니다.
-  await expect(page.getByRole('link', { name: '로그인 없이 사주 보기' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '로그인 없이 명식 보기' })).toBeVisible();
 });
 
 test('초대 관문에 막혀 돌아오면 계정이 만들어지지 않았다고 말한다', async ({ page }) => {

@@ -29,7 +29,7 @@ export default async function SignInPage() {
 
       <p className="text-sm">
         <Link href="/" className="text-accent underline underline-offset-2">
-          로그인 없이 사주 보기
+          로그인 없이 명식 보기
         </Link>
       </p>
       </section>

@@ -50,8 +50,9 @@ export async function expectBirthDate(scope: Scope, date: string): Promise<void>
 /**
  * 시각을 아는 쪽을 고르고 시·분을 적는다.
  *
- * 고르는 줄이 먼저다. 아무것도 고르지 않은 상태(`hourKnown: null`)에서는 두 칸이
- * 잠겨 있다 — 고르지 않은 것을 골랐다고 치지 않기로 한 결정의 결과다.
+ * 폼은 「시간 입력」에서 시작하므로 두 칸은 이미 열려 있다. 그래도 고르는 줄을 먼저
+ * 누른다 — 주소에서 온 입력은 `hourKnown` 이 `null` 이거나 `false` 일 수 있고, 그때는
+ * 두 칸이 잠겨 있다.
  */
 export async function fillBirthTime(scope: Scope, time: string): Promise<void> {
   const match = TIME.exec(time);

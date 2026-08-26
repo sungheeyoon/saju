@@ -23,7 +23,7 @@ export default function Home() {
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <a href="#calculator" className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong">
-              내 사주 보기
+              내 명식 입력하기
             </a>
             <Link href="/compat" className="rounded-full border border-border-strong bg-surface px-5 py-2.5 text-sm font-semibold hover:border-accent hover:text-accent">
               두 사람 궁합 보기

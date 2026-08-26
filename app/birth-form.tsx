@@ -521,7 +521,7 @@ function TimeFields({
       <p className="text-xs leading-5 text-muted">
         {value.hourKnown === false
           ? '시각을 모르면 시주를 뽑지 않습니다. 나머지 세 기둥은 그대로 계산합니다.'
-          : '24시간으로 적습니다 — 오후 2시 30분은 14시 30분입니다.'}
+          : '24시간으로 적습니다 — 오후 2시 30분은 14시 30분입니다. 모르면 「시간 모름」을 고르세요.'}
       </p>
     </fieldset>
   );
