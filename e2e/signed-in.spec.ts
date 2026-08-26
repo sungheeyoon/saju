@@ -97,6 +97,17 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('button', { name: '프롬프트 전체 복사' })).toBeVisible();
     await expect(page.getByRole('button', { name: '자료만 복사' })).toBeVisible();
 
+    /*
+      **실험판은 따로 선다.** 위의 「지금 보낼 프롬프트」를 토글로 갈아 끼우면 기준판이
+      무엇이었는지 화면에서 사라지고, 그러면 견주는 사람이 무엇과 무엇을 견주는지 잊는다.
+    */
+    await expect(
+      page.getByRole('heading', { name: '실험용 변형 — 실제 생성에는 쓰지 않습니다' }),
+    ).toBeVisible();
+    for (const id of ['control', 'recency-check-v1', 'length-v1', 'selection-bridge-v1']) {
+      await expect(page.getByText(id, { exact: true })).toBeVisible();
+    }
+
     // 세 kind 의 몸통도 복사할 수 있다 — 자료 없이 몸통만 고쳐 볼 때의 자리다.
     // 접혀 있으므로 펴고 본다. 접힌 채로 세면 「없다」와 「안 보인다」가 같은 답이 된다.
     await expect(page.locator('summary').filter({ hasText: 'private' })).toBeVisible();

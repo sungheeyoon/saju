@@ -85,6 +85,8 @@ export default async function InspectPage({
 
       <SelfPreview />
 
+      <ExperimentVariants />
+
       <section className="flex flex-col gap-4">
         <h2 className="text-base font-semibold">프롬프트 몸통 (자료 없이)</h2>
         <p className="text-sm text-secondary">
@@ -165,6 +167,49 @@ async function SelfPreview() {
 
 /** 자료 크기는 글자 수가 아니라 **UTF-8 바이트**로 잰다 — 모델이 받는 것이 그것이다 */
 const bytes = (text: string) => new TextEncoder().encode(text).length;
+
+/**
+ * **실험판** — 같은 근거로 지은 형제 넷.
+ *
+ * 위의 「지금 보낼 프롬프트」는 건드리지 않는다. 토글 하나로 그 자리를 갈아 끼우면
+ * 기준판이 무엇이었는지가 화면에서 사라지고, 그러면 견주는 사람이 자기가 무엇과
+ * 무엇을 견주는지 잊는다. 카드를 따로 세워 두면 기준이 늘 눈에 남는다.
+ *
+ * 접어 두는 것은 46KB 짜리 넷을 한 번에 펴면 화면이 자료가 되기 때문이다.
+ */
+async function ExperimentVariants() {
+  const result = await selfReadingPreview();
+  if (!result.ok) return null;
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-base font-semibold">실험용 변형 — 실제 생성에는 쓰지 않습니다</h2>
+        <p className="text-sm text-secondary">
+          위와 <strong className="font-medium">같은 근거·같은 기준 시각</strong>으로 지었습니다.
+          변형은 기준판에서 하나씩만 벗어나고 서로 쌓이지 않습니다 — 쌓으면 이긴 변형이
+          무엇 덕에 이겼는지 알 수 없습니다.
+        </p>
+      </div>
+
+      {result.preview.variants.map((variant) => (
+        <details key={variant.id} className={CARD}>
+          <summary className="cursor-pointer text-sm font-medium">
+            {variant.label}{' '}
+            <code className="ml-1 text-xs font-normal text-muted">{variant.id}</code>
+          </summary>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs leading-5 text-muted">
+              {variant.changes} · {bytes(variant.prompt)} 바이트
+            </p>
+            <CopyText text={variant.prompt} label="이 변형 복사" />
+          </div>
+          <Pre text={variant.prompt} />
+        </details>
+      ))}
+    </section>
+  );
+}
 
 async function Inspected({ target }: { target: ReadingTarget }) {
   const [artifacts, reading, run] = await Promise.all([

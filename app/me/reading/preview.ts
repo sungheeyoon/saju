@@ -1,4 +1,10 @@
-import { readingEvidenceOf, readingPromptOf, ReadingEvidenceError } from '@/src/lib/reading';
+import {
+  PROMPT_VARIANTS,
+  ReadingEvidenceError,
+  readingEvidenceOf,
+  readingPromptOf,
+  type PromptVariantId,
+} from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { chartOf } from '../../chart';
@@ -32,6 +38,18 @@ export type ReadingPreview = {
   readonly prompt: string;
   readonly evidence: string;
   readonly viewedAt: string;
+  /**
+   * 손으로 견줄 변형들 — **같은 근거 한 벌에서 난다.**
+   *
+   * 근거와 기준 시각을 변형마다 새로 지으면 넷이 서로 다른 자료를 읽게 되고, 그때
+   * 견주는 것은 프롬프트가 아니라 운이 짚힌 시각이다. 한 번 지어 넷이 나눠 쓴다.
+   */
+  readonly variants: readonly {
+    readonly id: PromptVariantId;
+    readonly label: string;
+    readonly changes: string;
+    readonly prompt: string;
+  }[];
 };
 
 export type PreviewResult =
@@ -83,9 +101,17 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
     return {
       ok: true,
       preview: {
+        // 기준판은 **인자 없이** 부른다 — 실제 파이프라인이 부르는 것과 같은 꼴이어야
+        // 「지금 보낼 프롬프트」가 정말 그것이 된다.
         prompt: readingPromptOf(evidence),
         evidence: JSON.stringify(evidence.evidence),
         viewedAt: viewedAt.toISOString(),
+        variants: PROMPT_VARIANTS.map(({ id, label, changes, assembly }) => ({
+          id,
+          label,
+          changes,
+          prompt: readingPromptOf(evidence, assembly),
+        })),
       },
     };
   } catch (failure) {

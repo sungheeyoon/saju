@@ -329,7 +329,10 @@ describe('사주를 모르는 사람이 읽는다', () => {
     for (const kind of READING_KINDS) {
       const body = promptBodyOf(kind);
 
-      expect(body).toContain('층은 천장이다');
+      // **사실 자체와 결론을 가른다.** 「층 vs 갈래 수」로 적으면 「일간은 庚이다」까지
+      // 흐려진다 — 흐릴 것은 그 사실이 아니라 그 위에 얹은 결론이다.
+      expect(body).toContain('적힌 사실 자체는 단정해서 써라');
+      expect(body).toContain('층은 해석 결론의 천장이다');
       expect(body).toContain('낮은 쪽');
     }
   });
@@ -348,8 +351,14 @@ describe('사주를 모르는 사람이 읽는다', () => {
       const body = promptBodyOf(kind);
 
       expect(body).toContain('어느 칸의 관계인지 섞지 마라');
-      // 운이 하는 일이 무엇인지까지 적어야 「그럼 어떻게 쓰나」가 남지 않는다.
-      expect(body).toContain('운은 없던 성질을 만들지 않는다');
+      /*
+        **시간 범위만 잠근다.** 「운은 없던 성질을 만들지 않는다」로 적으면 근거 경계가
+        아니라 명리의 한 학설을 프롬프트가 편드는 것이 되고, 바로 앞의 「그 시기에 새로
+        걸린 것」과도 부딪힌다. 잠글 것은 하나다 — 그 시기의 조건을 타고난 성향으로
+        소급하지 않는 것.
+      */
+      expect(body).toContain('운은 원국을 다시 쓰지 않는다');
+      expect(body).toContain('그 시기의 조건으로만');
     }
   });
 

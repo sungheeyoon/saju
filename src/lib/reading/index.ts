@@ -70,7 +70,8 @@ export function readingEvidenceOf(
 
 export * from './policy';
 export * from './notes';
-export { READING_PROMPTS, readingPromptOf } from './prompt';
+export { CONTROL, READING_PROMPTS, readingPromptOf, type PromptAssembly } from './prompt';
+export { PROMPT_VARIANTS, type PromptVariant, type PromptVariantId } from './variants';
 export {
   checkReading,
   secretForms,

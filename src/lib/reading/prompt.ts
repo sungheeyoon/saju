@@ -26,6 +26,34 @@ import { READING_POLICY, isScored, type ReadingKind } from './policy';
  * 모델이 알아야 얼버무리지 않기 때문이다.
  */
 
+/**
+ * **조립 옵션** — 실험 변형이 프롬프트를 뜯어고치지 않고 갈라지는 자리.
+ *
+ * 완성된 46KB 문자열에 `.replace()` 를 대는 순간 변형은 「무엇이 달라졌는가」를 스스로
+ * 말하지 못하게 된다 — 앞의 문구를 고치면 뒤의 치환이 조용히 빗나가고, 빗나간 채로도
+ * 문자열은 그럴듯하게 나온다. 갈라지는 자리를 **조립 단계**에 두면 변형 하나가
+ * 정확히 한 곳만 바꾼다는 것이 코드로 보인다.
+ *
+ * **기본값이 곧 실제로 보내는 것이다**(`CONTROL`). 변형은 이 기본값에서 하나씩만
+ * 벗어나고 서로 쌓이지 않는다 — 쌓으면 이긴 변형이 무엇 덕에 이겼는지 알 수 없다.
+ */
+export type Length = { readonly min: number; readonly max: number };
+
+export type PromptAssembly = {
+  /** 자기 풀이 본문 분량 */
+  readonly selfLength: Length;
+  /** 「낼 것」 앞에 얹는 절 — 없으면 빈 배열 */
+  readonly extraSections: readonly string[];
+  /** 자료 **뒤에** 붙는 꼬리 — 없으면 `null` */
+  readonly tail: string | null;
+};
+
+export const CONTROL: PromptAssembly = {
+  selfLength: { min: 1800, max: 2600 },
+  extraSections: [],
+  tail: null,
+};
+
 const SCORE_SECTION = `## 점수
 
 **0~100 정수 하나**를 낸다. 이 엔진은 궁합을 점수로 내지 않으므로(\`contract.scoring: "${EVIDENCE_CONTRACT.scoring}"\`) 그 숫자는 **네가 만드는 것**이다. 우리가 배점의 근거를 못 찾아서지 네가 못 하리라는 뜻이 아니다.
@@ -37,7 +65,7 @@ const SCORE_SECTION = `## 점수
 
 본문에는 **점수의 근거**를 한 문단으로 적되 숫자를 되풀이해 적지는 마라. 점수 자체는 본문이 아니라 따로 낸다.`;
 
-const SELF_SECTIONS = `## 낼 것
+const selfSections = ({ min, max }: Length): string => `## 낼 것
 
 Markdown 으로 쓴다. 소제목은 \`##\` 로 단다.
 
@@ -61,7 +89,7 @@ Markdown 으로 쓴다. 소제목은 \`##\` 로 단다.
 
 ${PROMPT_PARTS.closing}
 
-본문 1800~2600자. 근거 칸은 분량에 넣지 않는다.`;
+본문 ${min}~${max}자. 근거 칸은 분량에 넣지 않는다.`;
 
 const COMPAT_SECTIONS = `두 사람을 부를 이름이 자료에 없다. \`charts.a\` 를 「첫 번째 분」, \`charts.b\` 를 「두 번째 분」이라 부르고, **누구 이야기인지 문장마다 분명히 하라.** 한쪽 편을 들지 말고 **누가 읽어도 같은 글**을 써라 — 이 글은 두 사람이 같은 화면에서 함께 읽는다.
 
@@ -115,7 +143,7 @@ ${
 
 **표는 쓰지 마라.** 소제목(\`##\`)·문단·목록(\`-\`)·굵게(\`**\`)·인라인 코드만 쓴다. 화면이 세우는 것이 그것뿐이라, 표를 쓰면 사용자에게는 파이프 문자가 그대로 보인다.`;
 
-const bodyOf = (kind: ReadingKind): string => {
+const bodyOf = (kind: ReadingKind, assembly: PromptAssembly): string => {
   const head =
     kind === 'self'
       ? `# 역할
@@ -132,7 +160,8 @@ const bodyOf = (kind: ReadingKind): string => {
     PROMPT_PARTS.voice,
     // 성격을 읽는 순서는 원국 판정이 자료에 있을 때만 뜻이 있다.
     ...(kind === 'match' ? [] : [PROMPT_PARTS.personality]),
-    kind === 'self' ? SELF_SECTIONS : COMPAT_SECTIONS,
+    ...assembly.extraSections,
+    kind === 'self' ? selfSections(assembly.selfLength) : COMPAT_SECTIONS,
     OUTPUT_CONTRACT(kind),
   ];
 
@@ -141,9 +170,9 @@ const bodyOf = (kind: ReadingKind): string => {
 
 /** kind 마다의 프롬프트 몸통 — 자료 없이. 내부 테스트 화면이 이것을 보인다 */
 export const READING_PROMPTS: Record<ReadingKind, string> = {
-  self: bodyOf('self'),
-  private: bodyOf('private'),
-  match: bodyOf('match'),
+  self: bodyOf('self', CONTROL),
+  private: bodyOf('private', CONTROL),
+  match: bodyOf('match', CONTROL),
 };
 
 /**
@@ -155,14 +184,25 @@ export const READING_PROMPTS: Record<ReadingKind, string> = {
  * 「한눈에」 머리는 익명 화면과 **같은 함수**가 짓는다. 두 자리에서 지으면 언젠가
  * 갈리고, 갈리면 머리가 아래 자료와 다른 말을 한다.
  */
-export function readingPromptOf({ kind, evidence }: ReadingEvidence): string {
-  const head = withSummary(READING_PROMPTS[kind], evidence);
+export function readingPromptOf(
+  { kind, evidence }: ReadingEvidence,
+  /**
+   * 손으로 돌리는 실험만 이 자리를 쓴다. **파이프라인은 넘기지 않는다** — 기본값이
+   * 곧 실제로 보내는 것이고, 그래야 「지금 보낼 프롬프트」가 정말 그것이다.
+   */
+  assembly: PromptAssembly = CONTROL,
+): string {
+  const body = assembly === CONTROL ? READING_PROMPTS[kind] : bodyOf(kind, assembly);
+  const head = withSummary(body, evidence);
 
-  return `${head}
+  const prompt = `${head}
 
 ## 자료 (${EVIDENCE_CONTRACT.version})
 
 \`\`\`json
 ${JSON.stringify(evidence)}
 \`\`\``;
+
+  // 꼬리는 **자료 뒤**에 선다. 그것이 이 변형이 재려는 것이다.
+  return assembly.tail === null ? prompt : `${prompt}\n\n${assembly.tail}`;
 }
