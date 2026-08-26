@@ -104,6 +104,35 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('button', { name: '몸통 복사' })).toBeVisible();
   });
 
+  /**
+   * **익명 화면이라고 로그아웃된 것이 아니다.**
+   *
+   * 전체 명식은 익명 화면이 그린다(입력이 `#` 뒤에 실려 서버로 안 가기 때문이다).
+   * 그래서 로그인한 사람도 `/` 로 건너오는데, 그 자리에 「로그인」이 서 있으면 화면이
+   * 세션이 풀렸다고 말하는 것이 된다 — 회원 메뉴까지 사라져서 돌아갈 길도 없었다.
+   *
+   * 세션이 실제로 살아 있다는 것도 함께 잰다. 돌아온 `/me` 가 로그인 화면으로 튕기면
+   * 헤더만 고친 것이 된다.
+   */
+  test('전체 명식으로 건너가도 로그인이 풀린 것처럼 보이지 않는다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me');
+
+    await page.getByRole('link', { name: '전체 명식 자세히 보기' }).click();
+    await expect(page).toHaveURL(/\/#/);
+
+    // 익명 화면이므로 공개 메뉴가 선다 — 그렇다고 로그인을 권하지는 않는다.
+    const header = page.getByRole('banner');
+    await expect(header.getByRole('link', { name: '로그인' })).toHaveCount(0);
+
+    const back = header.getByRole('link', { name: '내 자리' });
+    await expect(back).toBeVisible();
+
+    await back.click();
+    await expect(page).toHaveURL(/\/me$/);
+    await expect(page.getByRole('heading', { name: '나의 흐름' })).toBeVisible();
+  });
+
   test('사람을 추가하면 목록에 서고 그 사람과의 수동 궁합이 열린다', async ({ page, signedIn }) => {
     await page.goto('/me/people');
 

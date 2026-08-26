@@ -39,6 +39,12 @@ test('초대 관문에 막혀 돌아오면 계정이 만들어지지 않았다�
 test('익명 흐름은 로그인과 무관하게 그대로 열려 있다', async ({ page }) => {
   await page.goto('/');
 
+  /*
+    헤더 오른쪽 끝은 **세션을 보고 정해진다**(`SiteHeader`). 로그인한 사람에게는
+    「내 자리」가 서므로, 세션이 없을 때 그 자리가 로그인을 권하는지도 함께 잰다 —
+    한쪽만 재면 둘 중 하나가 늘 틀린 채로 지나간다.
+  */
   await expect(page.getByRole('link', { name: '로그인' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '내 자리' })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: '생년월일시를 입력해 주세요' })).toBeVisible();
 });
