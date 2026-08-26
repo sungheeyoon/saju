@@ -5,8 +5,10 @@ import { READING_KINDS, READING_POLICY, READING_PROMPTS, type ReadingKind } from
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { CARD } from '../../../card';
+import { CopyText } from '../copy-text';
 import { readingArtifacts, currentReading, lastReadingRun } from '../current';
 import type { ReadingTarget } from '../pipeline';
+import { selfReadingPreview } from '../preview';
 
 export const metadata = {
   title: '해석 내부 보기 — 만세력',
@@ -46,7 +48,9 @@ export default async function InspectPage({
         <h1 className="text-2xl font-semibold tracking-tight">해석 내부 보기</h1>
         <p className="max-w-2xl text-sm text-secondary">
           실제로 모델에 보낸 프롬프트와 근거, 마지막 시도의 결과입니다. 사용자 화면에는
-          서지 않는 값들입니다.
+          서지 않는 값들입니다. 아래 <strong className="font-medium">지금 보낼 프롬프트</strong>는
+          모델을 부르지 않고 지어 본 것이라, 게이트웨이 열쇠가 없어도 복사해서 다른 곳에
+          붙여 볼 수 있습니다.
         </p>
         <p className="flex flex-wrap gap-4 text-sm">
           <Link href="/me" className="text-accent underline underline-offset-2">
@@ -79,11 +83,20 @@ export default async function InspectPage({
         <Inspected target={target} />
       )}
 
+      <SelfPreview />
+
       <section className="flex flex-col gap-4">
         <h2 className="text-base font-semibold">프롬프트 몸통 (자료 없이)</h2>
+        <p className="text-sm text-secondary">
+          세 kind 가 갈리는 곳은 여기와 자료의 범위 둘뿐입니다. 몸통만 고쳐 볼 때는 이것을
+          복사해 자료를 손으로 붙이면 됩니다.
+        </p>
         {READING_KINDS.map((kind) => (
           <details key={kind} className={CARD}>
             <summary className="cursor-pointer text-sm font-medium">{kind}</summary>
+            <div className="mt-2 flex justify-end">
+              <CopyText text={READING_PROMPTS[kind]} label="몸통 복사" />
+            </div>
             <Pre text={READING_PROMPTS[kind]} />
           </details>
         ))}
@@ -91,6 +104,67 @@ export default async function InspectPage({
     </main>
   );
 }
+
+/**
+ * **지금 누르면 갈 프롬프트** — 자기 풀이 것.
+ *
+ * 저장된 artifact 는 성공한 시도가 있어야 나오는데 게이트웨이가 붙기 전에는 그 자리가
+ * 비어 있다. 그래서 프롬프트를 고쳐 놓고도 무엇이 나가는지 볼 수가 없었다. 여기서
+ * 짓는 것은 모델을 부르지도 시도를 열지도 않는다(`selfReadingPreview`).
+ *
+ * 자기 풀이만 있는 까닭은 `preview.ts` 가 든다 — 나머지 둘은 판본과 차례를 DB 가
+ * 정하고, 그 규칙을 앱이 다시 적으면 미리보기가 「보낼 것」이 아니게 된다.
+ */
+async function SelfPreview() {
+  const result = await selfReadingPreview();
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-base font-semibold">지금 보낼 프롬프트 — 자기 풀이</h2>
+
+      {!result.ok ? (
+        <p className={`${CARD} text-sm text-secondary`}>{result.message}</p>
+      ) : (
+        <div className={`${CARD} flex flex-col gap-3`}>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+              <span>
+                <dt className="inline">판본</dt> <dd className="inline text-foreground">{READING_POLICY.version}</dd>
+              </span>
+              <span>
+                <dt className="inline">전체</dt>{' '}
+                <dd className="inline text-foreground">{bytes(result.preview.prompt)} 바이트</dd>
+              </span>
+              <span>
+                <dt className="inline">자료</dt>{' '}
+                <dd className="inline text-foreground">{bytes(result.preview.evidence)} 바이트</dd>
+              </span>
+            </dl>
+            <div className="flex gap-2">
+              <CopyText text={result.preview.prompt} label="프롬프트 전체 복사" />
+              <CopyText text={result.preview.evidence} label="자료만 복사" />
+            </div>
+          </div>
+
+          {/*
+            **기준 시각을 함께 적는다.** 운은 부르는 순간으로 짚으므로 실제 생성은 그때의
+            시각으로 자료를 다시 짓는다. 안 적어 두면 여기서 복사한 것과 나중에 저장된
+            것이 다를 때 무엇이 달라진 것인지 알 수 없다.
+          */}
+          <p className="text-xs text-muted">
+            이 화면을 연 시각({result.preview.viewedAt})으로 운을 짚었습니다. 실제로 만들 때는
+            그때의 시각으로 다시 짓습니다.
+          </p>
+
+          <Pre text={result.preview.prompt} />
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** 자료 크기는 글자 수가 아니라 **UTF-8 바이트**로 잰다 — 모델이 받는 것이 그것이다 */
+const bytes = (text: string) => new TextEncoder().encode(text).length;
 
 async function Inspected({ target }: { target: ReadingTarget }) {
   const [artifacts, reading, run] = await Promise.all([
@@ -137,12 +211,18 @@ async function Inspected({ target }: { target: ReadingTarget }) {
             <summary className="cursor-pointer text-sm font-medium">
               실제로 보낸 프롬프트 ({artifacts.promptVersion})
             </summary>
+            <div className="mt-2 flex justify-end">
+              <CopyText text={artifacts.prompt} label="프롬프트 복사" />
+            </div>
             <Pre text={artifacts.prompt} />
           </details>
           <details className={CARD}>
             <summary className="cursor-pointer text-sm font-medium">
-              보낸 근거 ({new TextEncoder().encode(artifacts.evidence).length} 바이트)
+              보낸 근거 ({bytes(artifacts.evidence)} 바이트)
             </summary>
+            <div className="mt-2 flex justify-end">
+              <CopyText text={artifacts.evidence} label="자료 복사" />
+            </div>
             <Pre text={artifacts.evidence} />
           </details>
           <div className={`${CARD} text-sm`}>

@@ -72,6 +72,38 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
   });
 
+  /**
+   * **열쇠 없이도 실험의 입력은 손에 쥘 수 있어야 한다.**
+   *
+   * 저장된 artifact 는 성공한 시도가 있어야 나오고, 게이트웨이가 붙기 전에는 그 자리가
+   * 영영 비어 있다. 그러면 프롬프트를 고쳐 놓고도 무엇이 나가는지 못 본다 — 9단계가
+   * 만든 것이 「해석」이 아니라 실험 인프라라면 그 자리가 비어 있으면 안 된다.
+   *
+   * 그리는 것만으로 모델이 불리지 않는다는 것도 함께 잰다 — 시도가 열리면 이 화면을
+   * 여는 것이 곧 요금이 된다.
+   */
+  test('해석 내부 보기는 시도 없이도 지금 보낼 프롬프트를 낸다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me/reading/inspect?kind=self');
+
+    await expect(page.getByText('아직 시도한 적이 없습니다.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '지금 보낼 프롬프트 — 자기 풀이' })).toBeVisible();
+
+    // 몸통과 실제 자료가 **함께** 서야 붙여 넣을 수 있다.
+    const preview = page.locator('pre').first();
+    await expect(preview).toContainText('# 역할');
+    await expect(preview).toContainText('## 자료 (evidence-v0)');
+
+    await expect(page.getByRole('button', { name: '프롬프트 전체 복사' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '자료만 복사' })).toBeVisible();
+
+    // 세 kind 의 몸통도 복사할 수 있다 — 자료 없이 몸통만 고쳐 볼 때의 자리다.
+    // 접혀 있으므로 펴고 본다. 접힌 채로 세면 「없다」와 「안 보인다」가 같은 답이 된다.
+    await expect(page.locator('summary').filter({ hasText: 'private' })).toBeVisible();
+    await page.locator('summary').filter({ hasText: 'match' }).click();
+    await expect(page.getByRole('button', { name: '몸통 복사' })).toBeVisible();
+  });
+
   test('사람을 추가하면 목록에 서고 그 사람과의 수동 궁합이 열린다', async ({ page, signedIn }) => {
     await page.goto('/me/people');
 

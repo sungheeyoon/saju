@@ -90,7 +90,7 @@ const secretOf = (revision: StoredRevision): BirthSecret => ({
  * 그렇게 짓는다. 별명이나 localLabel 을 넣으면 그 이름이 근거에 실려 나가고, 공유
  * 결과에서는 상대가 나를 뭐라 부르는지까지 새어 나간다.
  */
-const NAMES = ['첫 번째 분', '두 번째 분'] as const;
+export const READING_CHART_NAMES = ['첫 번째 분', '두 번째 분'] as const;
 
 export async function requestReading(
   target: ReadingTarget,
@@ -192,8 +192,8 @@ async function generate(
   try {
     const [first, second] = revisions;
     charts = {
-      a: chartOf(queryFromRevision(first, NAMES[0])),
-      b: second === undefined ? undefined : chartOf(queryFromRevision(second, NAMES[1])),
+      a: chartOf(queryFromRevision(first, READING_CHART_NAMES[0])),
+      b: second === undefined ? undefined : chartOf(queryFromRevision(second, READING_CHART_NAMES[1])),
     };
   } catch (failure) {
     /** 못 읽는 판본은 기본값으로 메우지 않는다 — 화면들과 같은 규율 */
