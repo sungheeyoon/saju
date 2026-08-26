@@ -1,0 +1,183 @@
+import { expect, hideEveryoneExcept, optIn, test, type Person } from './session';
+
+/**
+ * 둘이 있어야 성립하는 흐름 — **창을 둘 열고 잰다.**
+ *
+ * 쿠키만 갈아 끼우면 「상대에게는 무엇이 보이는가」를 한 번도 못 잰다. 그 답이 이
+ * 제품의 절반이다 — 동의 전에 닫혀 있던 것이 동의 뒤에 열리는 것이 곧 제품이다.
+ *
+ * **재려는 것만 손으로 몬다.** 요청 하나를 pending 으로 세우려고 참여 화면부터 열 번을
+ * 누르면, 무효화를 재는 시험이 참여 화면이 깨졌을 때도 빨간불이 된다. 그래서 첫
+ * 시험만 참여·요청·수락을 전부 화면으로 지나고, 나머지는 RPC 로 세운 뒤 재려는 자리만
+ * 누른다.
+ */
+
+/** 둘 다 매칭에 참여시키고 서로만 보이게 한다 */
+async function bothParticipate(a: Person, b: Person, tag: string): Promise<void> {
+  await optIn(a.api, `가${tag}`);
+  await optIn(b.api, `나${tag}`);
+  hideEveryoneExcept([a.account.email, b.account.email]);
+}
+
+/** 요청 하나를 pending 으로 세운다 — 화면으로 재는 자리가 아닐 때 */
+async function pendingRequest(from: Person, to: Person): Promise<void> {
+  // 후보 목록을 한 번 받아야 요청의 근거(reason snapshot)가 선다(ADR 0009).
+  const board = await from.api.rpc('discovery_board');
+  if (board.error) throw new Error(`후보 목록을 못 받았습니다 — ${board.error.message}`);
+
+  const partner = await to.api.from('discovery_profile').select('user_id').maybeSingle();
+  const asked = await from.api.rpc('request_match', { p_candidate_user_id: partner.data?.user_id });
+  if (asked.error) throw new Error(`요청을 못 보냈습니다 — ${asked.error.message}`);
+}
+
+test.describe('동의로 열리는 흐름', () => {
+  test('참여를 켜고 요청을 보내 수락하면 두 사람이 같은 결과 화면에 선다', async ({ openAs }) => {
+    const tag = String(Date.now()).slice(-4);
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+
+    // ── 참여를 화면에서 켠다 ────────────────────────────────────────────────
+    for (const [person, nickname] of [
+      [asker, `보내는${tag}`],
+      [receiver, `받는${tag}`],
+    ] as const) {
+      await person.page.goto('/me/discovery');
+      await expect(person.page.getByRole('heading', { name: '공개용 프로필' })).toBeVisible();
+
+      await person.page.getByLabel('별명').fill(nickname);
+      await person.page.getByRole('button', { name: '프로필 저장' }).click();
+      await expect(person.page.getByText('저장했습니다.')).toBeVisible();
+
+      /*
+        **켜기 전에 무엇이 나가고 무엇이 안 나가는지 읽힌다**(US 26 · PRD).
+        화면·ADR·PRD 가 같은 문장을 쓰기로 한 자리다.
+      */
+      await expect(person.page.getByText('상대에게 보이는 것')).toBeVisible();
+      await expect(person.page.getByText('보이지 않는 것')).toBeVisible();
+
+      await person.page.getByRole('button', { name: '매칭 참여 켜기' }).click();
+      await expect(person.page.getByRole('heading', { name: '매칭 참여 중' })).toBeVisible();
+    }
+
+    hideEveryoneExcept([asker.account.email, receiver.account.email]);
+
+    // ── 후보를 보고 요청을 보낸다 ───────────────────────────────────────────
+    await asker.page.goto('/me/discovery');
+    await expect(asker.page.getByRole('heading', { name: `받는${tag}` })).toBeVisible();
+
+    /*
+      **맛보기다.** 어느 오행을 채우는지는 말하고 원문은 닫는다(ADR 0003 · PRD).
+
+      낱말이 아니라 **값**을 센다. 「생년월일」은 참여 화면이 「보이지 않는 것」을
+      적으면서 이미 쓰고 있는 말이라, 낱말을 세면 약속을 적어 둔 문장이 그 약속을
+      깨뜨린 것으로 잡힌다.
+    */
+    await expect(asker.page.getByText('1990-05-15')).toHaveCount(0);
+
+    await asker.page.getByRole('button', { name: '상세 궁합 요청하기' }).click();
+    // 보내기 전에 공개 범위를 읽는다 — 후보 카드만 본 것은 동의가 아니다(PRD).
+    await expect(asker.page.getByText('여덟 글자', { exact: false }).first()).toBeVisible();
+    await asker.page.getByRole('button', { name: '요청 보내기' }).click();
+
+    // ── 받은 쪽이 읽고 수락한다 ─────────────────────────────────────────────
+    await receiver.page.goto('/me/requests');
+    await expect(receiver.page.getByRole('heading', { name: '요청과 알림' })).toBeVisible();
+    await expect(receiver.page.getByRole('heading', { name: `보내는${tag}` })).toBeVisible();
+
+    // 수락 전에도 상대의 정확한 출생정보는 없다(US 39).
+    await expect(receiver.page.getByText('1990-05-15')).toHaveCount(0);
+
+    await receiver.page.getByRole('button', { name: '수락하고 Match 만들기' }).click();
+    await expect(receiver.page.getByRole('heading', { name: '성립한 Match' })).toBeVisible();
+
+    // ── 양쪽이 같은 결과 화면에 선다 ────────────────────────────────────────
+    for (const person of [asker, receiver]) {
+      await person.page.goto('/me/requests');
+      await person.page.getByRole('link', { name: '함께 보기' }).click();
+
+      await expect(person.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
+      await expect(person.page.getByText('두 원국 사이의 관계')).toBeVisible();
+
+      /*
+        **동의 뒤에도 열리지 않는 것**(ADR 0012). 여덟 글자는 관계를 합쳐 드러날 수
+        있지만 정확한 출생 원문과 출생지는 그때도 열리지 않는다.
+      */
+      await expect(person.page.getByText('1990-05-15')).toHaveCount(0);
+      await expect(person.page.getByText('서울')).toHaveCount(0);
+
+      // 현재 Reading 은 아직 없다 — 화면을 여는 것으로 만들어지지 않는다(US 25).
+      await expect(person.page.getByRole('heading', { name: 'AI 해석' })).toBeVisible();
+      await expect(person.page.getByText('아직 AI 해석을 만들지 않았습니다')).toBeVisible();
+      await expect(person.page.getByRole('button', { name: 'AI 해석 만들기' })).toBeVisible();
+    }
+  });
+
+  test('한쪽이 출생정보를 고치면 pending 요청이 무효가 되고 그 사실이 알림함에 선다', async ({
+    openAs,
+  }) => {
+    const tag = String(Date.now()).slice(-4);
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+
+    await bothParticipate(asker, receiver, tag);
+    await pendingRequest(asker, receiver);
+
+    await receiver.page.goto('/me/requests');
+    await expect(receiver.page.getByRole('button', { name: '수락하고 Match 만들기' })).toBeVisible();
+
+    // 보낸 쪽이 Evidence 를 바꾼다 — 이름이 아니라 여덟 글자를 바꾸는 수정이다.
+    await asker.page.goto('/me');
+    await asker.page.getByRole('button', { name: '생년월일시 고치기' }).click();
+    await asker.page.getByLabel('생년월일').fill('1988-02-11');
+    await asker.page.getByRole('button', { name: '새 판본으로 저장' }).click();
+    await expect(asker.page.getByText('1988-02-11')).toBeVisible();
+
+    /*
+      **동의한 대상과 실제 계산 대상이 달라지지 않는다**(US 42 · 43). 받은 쪽에서 답할
+      요청이 사라지고, **왜** 사라졌는지가 알림함에 남는다 — `invalidated` 와
+      `cancelled` 를 갈라서 말하기로 한 것이 여기서 실제로 읽힌다.
+    */
+    await receiver.page.reload();
+    await expect(receiver.page.getByRole('button', { name: '수락하고 Match 만들기' })).toHaveCount(0);
+    await expect(receiver.page.getByText('답할 요청이 없습니다')).toBeVisible();
+    await expect(
+      receiver.page.getByText(`가${tag} 님과의 요청이 출생정보 수정으로 무효가 되었습니다`),
+    ).toBeVisible();
+  });
+
+  test('차단하면 그 사람은 후보에서도 사라지고 새 요청도 서지 않는다', async ({ openAs }) => {
+    const tag = String(Date.now()).slice(-4);
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+
+    await bothParticipate(asker, receiver, tag);
+    await pendingRequest(asker, receiver);
+
+    await receiver.page.goto('/me/requests');
+    await expect(receiver.page.getByRole('heading', { name: `가${tag}` })).toBeVisible();
+
+    // 차단은 한 번 더 묻는다 — 되돌리지 않기 때문이다(용어집).
+    await receiver.page.getByRole('button', { name: '차단', exact: true }).click();
+    await receiver.page.getByRole('button', { name: '차단합니다' }).click();
+
+    /*
+      **누구를 차단했는지는 적지 않는다.** 차단한 뒤에는 그 사람의 프로필을 읽을 이유가
+      없어서 별명을 붙들고 있지 않다.
+    */
+    await expect(receiver.page.getByText('차단한 사람 1명', { exact: false })).toBeVisible();
+    await expect(receiver.page.getByRole('heading', { name: `가${tag}` })).toHaveCount(0);
+
+    // 막는 것은 한쪽이 아니다 — 보낸 쪽의 후보 목록에서도 사라진다(제재는 양방향).
+    await asker.page.goto('/me/discovery');
+    await expect(asker.page.getByRole('heading', { name: `나${tag}` })).toHaveCount(0);
+
+    // 새 요청도 서지 않는다.
+    const board = await asker.api.rpc('discovery_board');
+    expect(board.error).toBeNull();
+    const partner = await receiver.api.from('discovery_profile').select('user_id').maybeSingle();
+    const again = await asker.api.rpc('request_match', {
+      p_candidate_user_id: partner.data?.user_id,
+    });
+    expect(again.error).not.toBeNull();
+  });
+});

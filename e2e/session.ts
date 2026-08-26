@@ -1,8 +1,8 @@
 import { execFileSync } from 'node:child_process';
 
 import { createServerClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
-import { test as base } from '@playwright/test';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { test as base, type Page } from '@playwright/test';
 
 /**
  * 로그인한 사람의 화면을 **진짜 브라우저로** 재는 자리.
@@ -40,11 +40,43 @@ const sql = (statement: string) =>
     { encoding: 'utf8' },
   ).trim();
 
+/**
+ * 지난 실행이 남긴 참여자를 **이 사람의 후보 목록에서 치운다.**
+ *
+ * 검사는 서로 나란히 돈다. 치우지 않으면 어제 만든 계정이 오늘의 후보 목록에 서고,
+ * 「상대가 목록에 선다」가 자리 번호에 기대는 시험이 된다.
+ */
+export function hideEveryoneExcept(emails: readonly string[]): void {
+  const quoted = emails.map((one) => `'${one}'`).join(', ');
+  for (const email of emails) {
+    sql(`insert into public.discovery_hidden (user_id, hidden_user_id)
+         select u.id, p.user_id
+         from auth.users u, public.discovery_profile p
+         where u.email = '${email}'
+           and p.user_id <> u.id
+           and p.user_id not in (select id from auth.users where email in (${quoted}))
+         on conflict do nothing`);
+  }
+}
+
 export type Account = {
   readonly email: string;
   readonly label: string;
   /** 이 계정이 등록한 가족·친구 — `people` 을 요청했을 때만 */
   readonly managed: readonly string[];
+};
+
+/**
+ * 사람 하나 — **브라우저 하나와 문 하나.**
+ *
+ * `page` 로 화면을 몰고, `api` 로 재려는 것이 아닌 부분을 빠르게 세운다. 요청 하나를
+ * pending 으로 만들려고 참여 화면부터 열 번을 누르면, 무효화를 재는 시험이 참여 화면이
+ * 깨졌을 때도 빨간불이 된다 — 무엇이 깨졌는지 못 읽는 시험이 된다.
+ */
+export type Person = {
+  readonly account: Account;
+  readonly page: Page;
+  readonly api: SupabaseClient;
 };
 
 /** 이 계정으로 무엇까지 만들어 둘 것인가 */
@@ -63,7 +95,10 @@ const BIRTH = {
   city: '서울',
 } as const;
 
-async function seed(local: Local, wanted: Seed): Promise<{ account: Account; password: string }> {
+async function seed(
+  local: Local,
+  wanted: Seed,
+): Promise<{ account: Account; password: string; api: SupabaseClient }> {
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const email = `e2e-${stamp}@example.com`;
   const password = `pw-${stamp}-Aa1!`;
@@ -74,6 +109,7 @@ async function seed(local: Local, wanted: Seed): Promise<{ account: Account; pas
   const client = createClient(local.api, local.anonKey, { auth: { persistSession: false } });
   const { error } = await client.auth.signUp({ email, password });
   if (error) throw new Error(`초대된 주소인데 가입이 막혔습니다 — ${error.message}`);
+  await awaitUsable(client);
 
   if (wanted.selfPerson) {
     const saved = await client.rpc('create_self_person', {
@@ -106,7 +142,47 @@ async function seed(local: Local, wanted: Seed): Promise<{ account: Account; pas
     if (made.error) throw new Error(`${person} 을 못 넣었습니다 — ${made.error.message}`);
   }
 
-  return { account: { email, label, managed: wanted.people ?? [] }, password };
+  return { account: { email, label, managed: wanted.people ?? [] }, password, api: client };
+}
+
+/**
+ * 매칭 참여를 **RPC 로** 켠다 — 참여 화면 자체를 재는 시험만 손으로 켠다.
+ *
+ * 요약을 손으로 적는 것이 여기서는 맞다. 이 값은 남에 대한 사실이 아니라 이 계정이
+ * 매칭 풀에 내놓는 자기 요약이고, 우리가 재려는 것은 그 숫자가 아니라 **요청·수락·
+ * 무효화가 이어지는가**다.
+ */
+export async function optIn(api: SupabaseClient, nickname: string): Promise<void> {
+  const profile = await api.from('discovery_profile').insert({ nickname, prefer_gender: 'any' });
+  if (profile.error) throw new Error(`공개용 프로필을 못 넣었습니다 — ${profile.error.message}`);
+
+  const on = await api.rpc('set_discovery_participation', {
+    p_on: true,
+    p_summary: {
+      glyphCount: 8,
+      counts: { 木: 2, 火: 2, 土: 2, 金: 1, 水: 1 },
+      ratios: { 木: 0.25, 火: 0.25, 土: 0.25, 金: 0.125, 水: 0.125 },
+    },
+  });
+  if (on.error) throw new Error(`매칭 참여를 못 켰습니다 — ${on.error.message}`);
+}
+
+/**
+ * 방금 받은 토큰이 **쓸 수 있게 될 때까지** 기다린다.
+ *
+ * 로컬 스택에서 가끔 `JWT issued at future` 가 난다. 시계가 틀어진 것이 아니라
+ * (`date` 로 재 보면 컨테이너들이 같다) `iat` 이 초 단위라 발급 순간과 검사 순간이
+ * 같은 초의 앞뒤에 걸리는 것이다. 제품의 문제가 아니므로 **재시도로 넘긴다** — 다만
+ * 다른 실패는 그대로 통과시켜 이 함수가 진짜 고장을 삼키지 않게 한다.
+ */
+async function awaitUsable(client: SupabaseClient): Promise<void> {
+  const deadline = Date.now() + 3_000;
+  for (;;) {
+    const { error } = await client.from('app_user').select('status').maybeSingle();
+    if (error === null || !error.message.includes('JWT issued at future')) return;
+    if (Date.now() > deadline) throw new Error(`토큰이 계속 미래입니다 — ${error.message}`);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
 }
 
 /**
@@ -138,6 +214,13 @@ type Fixtures = {
   signedIn: Account;
   /** 가입만 끝난 계정 — 온보딩 화면에서 시작한다 */
   newcomer: Account;
+  /**
+   * 사람을 **하나 더** 연다 — 요청·수락·차단처럼 둘이 있어야 성립하는 흐름.
+   *
+   * 창을 따로 여는 것이 핵심이다. 한 브라우저에서 쿠키만 갈아 끼우면 「상대에게는
+   * 무엇이 보이는가」를 한 번도 못 잰다 — 그 답이 이 제품의 절반이다.
+   */
+  openAs: (wanted: Seed) => Promise<Person>;
 };
 
 export const test = base.extend<Fixtures, { local: Local }>({
@@ -174,6 +257,34 @@ export const test = base.extend<Fixtures, { local: Local }>({
     const cookies = await cookiesFor(local, account.email, password);
     await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
     await use(account);
+  },
+
+  openAs: async ({ local, browser, baseURL }, use, testInfo) => {
+    /**
+     * 프로젝트가 정한 화면을 **그대로 물려준다.** 새 context 는 기본값으로 열리므로,
+     * 물려주지 않으면 모바일 프로젝트에서 상대의 창만 데스크톱이 된다.
+     */
+    const { viewport, userAgent, deviceScaleFactor, isMobile, hasTouch } = testInfo.project.use;
+    const opened: Awaited<ReturnType<typeof browser.newContext>>[] = [];
+
+    await use(async (wanted) => {
+      const { account, password, api } = await seed(local, wanted);
+      const cookies = await cookiesFor(local, account.email, password);
+
+      const context = await browser.newContext({
+        viewport,
+        userAgent,
+        deviceScaleFactor,
+        isMobile,
+        hasTouch,
+      });
+      opened.push(context);
+      await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
+
+      return { account, page: await context.newPage(), api };
+    });
+
+    for (const context of opened) await context.close();
   },
 });
 

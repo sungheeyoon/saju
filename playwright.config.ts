@@ -29,7 +29,14 @@ function localStack(): Record<string, string> {
       NEXT_PUBLIC_SUPABASE_URL: status.API_URL,
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.PUBLISHABLE_KEY ?? status.ANON_KEY,
       SUPABASE_URL: status.API_URL,
-      /** 공유 결과 화면 하나가 이 열쇠로 매인 판본을 읽는다(ADR 0010) */
+      /**
+       * 공유 결과 화면이 이 열쇠로 매인 판본을 읽는다(ADR 0010).
+       *
+       * **이름 둘을 다 덮는다.** `keyed-client.ts` 는 `SUPABASE_SECRET_KEY` 를 먼저
+       * 보므로 하나만 덮으면 원격 열쇠가 로컬 API 를 두드리다 「권한 없음」으로 끝난다 —
+       * 열쇠가 없는 배포와 똑같은 얼굴이라 무엇이 틀렸는지 화면에서 안 보인다.
+       */
+      SUPABASE_SECRET_KEY: status.SECRET_KEY,
       SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY,
     };
   } catch {
