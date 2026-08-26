@@ -166,14 +166,18 @@ TypeScript 라 브라우저에서도 서버에서도 그대로 돈다.
 ## 검증
 
 ```bash
-npm test          # 1179 tests
-npm run test:e2e  # desktop + mobile Chromium
+npm test          # 1255 tests
 npm run verify    # test + typecheck + lint + production build
 
-npm run db:start  # 로컬 Supabase (Docker)
-npm run test:db   # 199 pgTAP tests — 정책이 실제로 막는지
-npm run test:flow # 151 checks — 가입부터 요청·수락까지 한 바퀴
+npm run db:start  # 로컬 Supabase (Docker) — 아래 셋이 이것을 쓴다
+npm run test:db   # 301 pgTAP tests — 정책이 실제로 막는지
+npm run test:flow # 239 checks — 가입부터 요청·수락까지 한 바퀴
+npm run test:e2e  # desktop + mobile Chromium
 ```
+
+`test:e2e` 는 개발 서버를 **로컬 스택에 붙여** 띄운다(`playwright.config.ts`). 익명 화면은
+Supabase 를 두드리지 않아 그것 없이도 돌지만, 로그인 흐름(`e2e/signed-in.spec.ts`)은
+초대된 계정을 로컬에 만들어 그 세션으로 브라우저를 몬다 — 스택이 없으면 그렇게 말하고 죽는다.
 
 - **절기** — 한국천문연구원 2025 달력자료와 일치 (망종 6/5 18:57, 소서 7/7 05:05)
 - **일주 앵커** — 2000-01-01 = 戊午 기준. 1900-01-01 甲戌, 2024-01-01 甲子,

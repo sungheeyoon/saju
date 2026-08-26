@@ -15,6 +15,14 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    /**
+     * Playwright 의 fixture 는 `use(value)` 로 값을 넘긴다. React 의 `use` 와 이름만
+     * 같고 훅이 아니다 — 규칙이 이름으로 알아보므로 이 폴더에서만 끈다.
+     */
+    files: ["e2e/**/*.ts"],
+    rules: { "react-hooks/rules-of-hooks": "off" },
+  },
 ]);
 
 export default eslintConfig;
