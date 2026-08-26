@@ -799,6 +799,16 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
     page.getByLabel('출생 시'),
     page.getByRole('button', { name: '내 명식 보기' }),
   ]) {
+    /*
+      **재기 전에 서 있는지부터 본다.**
+
+      `boundingBox()` 는 기다려 주지 않는다 — 붙어 있어도 아직 자리를 못 잡았으면
+      `null` 을 돌려주고, 그러면 `undefined >= 44` 가 되어 검사는 「과녁이 작다」고
+      말한다. 실제로는 아직 안 그려진 것이다. 계산기는 `Suspense` 뒤에서 오므로
+      이 자리는 언제나 그 경주였고, 그동안 이겨 왔을 뿐이다.
+    */
+    await expect(control).toBeVisible();
+
     const box = await control.boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
