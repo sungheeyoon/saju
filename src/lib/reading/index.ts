@@ -74,6 +74,7 @@ export { CONTROL, READING_PROMPTS, readingPromptOf, type PromptAssembly } from '
 export { PROMPT_VARIANTS, type PromptVariant, type PromptVariantId } from './variants';
 export {
   SELF_QUALITY_CASE_SET,
+  blindKeyForAll,
   blindLabelsFor,
   blindOrderFor,
   chartForQualityCase,

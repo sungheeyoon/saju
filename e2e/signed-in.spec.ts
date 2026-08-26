@@ -119,12 +119,36 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: /고정 사례 실험/ })).toBeVisible();
 
     for (const blind of ['Q01-A', 'Q01-B', 'Q01-C', 'Q01-D']) {
-      await expect(page.getByText(blind, { exact: true }).first()).toBeVisible();
+      await expect(page.locator('summary').filter({ hasText: blind })).toBeVisible();
     }
-    for (const variant of ['control', 'length-v1', 'selection-bridge-v1']) {
-      await expect(page.getByText(`Q01-${variant}`)).toHaveCount(0);
+    /*
+      **적기 전에 고르게 한다.** 저장해 둔 사례로 돌아오면 화면은 비어 있고, 그 상태에서
+      한 칸이라도 적으면 빈 것을 바탕으로 통째로 다시 저장되어 예전 기록이 한 줄로 덮인다.
+    */
+    await expect(page.getByRole('button', { name: '저장된 채점 이어서' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '버리고 새로 시작' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '이 사례 기록 복사 (JSON)' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: '버리고 새로 시작' }).click();
+    await expect(page.getByRole('button', { name: '이 사례 기록 복사 (JSON)' })).toBeVisible();
+
+    /*
+      **짝은 사례별 기록에 없다.** 있으면 첫 사례를 끝내는 순간 남은 넷의 블라인드가
+      깨진다 — 차례가 사례마다 섞여 있어도, 정답표를 한 번 본 사람에게는 소용이 없다.
+    */
+    const sheet = page.locator('fieldset').filter({ hasText: 'Q01-A' });
+    for (const variant of ['control', 'length-v1', 'recency-check-v1', 'selection-bridge-v1']) {
+      await expect(sheet.getByText(variant)).toHaveCount(0);
     }
-    await expect(page.getByRole('button', { name: '채점 기록 복사 (JSON)' })).toBeVisible();
+
+    // 셀 수 있는 것은 센다 — 사람이 스무 건을 손으로 세면 몇 개는 틀린다.
+    await sheet.getByRole('textbox').first().fill('{"score": null, "markdown": "## 한 줄로"}');
+    await expect(sheet.getByText('null', { exact: true })).toBeVisible();
+
+    // 짝은 따로, 접힌 채로 선다.
+    await expect(
+      page.getByRole('group').filter({ hasText: '짝 공개 — 다섯 사례를 다 채점한 뒤에 여세요' }),
+    ).toBeVisible();
 
     await page.goto('/me/reading/inspect?kind=self');
 

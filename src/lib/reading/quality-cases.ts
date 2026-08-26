@@ -93,13 +93,39 @@ export function chartForQualityCase(id: QualityCaseId): Saju {
  */
 const BLIND_LETTERS = ['A', 'B', 'C', 'D'] as const;
 
-export function blindOrderFor(id: QualityCaseId): readonly PromptVariantId[] {
-  // 사례 id 의 글자를 더한 값만큼 돌린다. 사람 눈에는 순서가 없고, 같은 id 에는 늘 같다.
-  const shift = [...id].reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % PROMPT_VARIANTS.length;
+/**
+ * 사례 id 와 변형 id 를 섞어 만든 자리값 — **작지만 한결같아야 한다.**
+ *
+ * 재현되는 값이어야 어제의 `Q01-A` 와 오늘의 `Q01-A` 가 같은 것이 된다. 사람 눈에
+ * 순서가 안 보이기만 하면 되므로 암호학적일 필요는 없다(FNV-1a).
+ */
+function hashOf(text: string): number {
+  let hash = 0x811c9dc5;
+  for (const letter of text) {
+    hash ^= letter.charCodeAt(0);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash;
+}
 
-  return PROMPT_VARIANTS.map(
-    (_, index) => PROMPT_VARIANTS[(index + shift) % PROMPT_VARIANTS.length].id,
-  );
+/**
+ * 사례마다 변형이 서는 차례 — **돌리지 않고 섞는다.**
+ *
+ * 처음에는 `PROMPT_VARIANTS` 를 사례 id 만큼 **회전**시켰다. 그러면 넷의 상대 차례가
+ * 늘 같아서, 한 사례에서 짝 하나만 알아채면 **그 사례의 나머지 셋이 공짜로 따라온다.**
+ * 가린 것이 아니라 잠깐 덮어 둔 것이었다.
+ *
+ * 사례 id 와 변형 id를 함께 섞어 자리값을 짓고 그 값으로 세운다. 짝 하나가 새어도 같은
+ * 사례의 다른 셋을 알려 주지 않는다.
+ *
+ * **차례가 사례마다 달라야 하고 같은 사례에는 늘 같아야 한다.** 늘 같으면 첫 사례에서
+ * 알아챈 뒤로는 가린 것이 아니고, 무작위면 어제 채점한 기록을 오늘 것에 못 이어 붙인다.
+ */
+export function blindOrderFor(id: QualityCaseId): readonly PromptVariantId[] {
+  return [...PROMPT_VARIANTS]
+    .map((variant) => ({ id: variant.id, at: hashOf(`${id}:${variant.id}`) }))
+    .sort((one, other) => one.at - other.at)
+    .map((one) => one.id);
 }
 
 /** `Q01-A` → 그 자리에 선 변형 */
@@ -110,4 +136,20 @@ export function blindLabelsFor(
     blind: `${id}-${BLIND_LETTERS[index]}`,
     variant,
   }));
+}
+
+/**
+ * 모든 사례의 짝 — **전부 채점한 뒤에만 편다.**
+ *
+ * 채점하는 동안 이것을 보면 재는 것이 글이 아니라 기대가 된다. 그래서 사례별 백업에는
+ * 들어가지 않고, 여기서만 한 번에 열린다.
+ */
+export function blindKeyForAll(): readonly {
+  readonly caseId: QualityCaseId;
+  readonly blind: string;
+  readonly variant: PromptVariantId;
+}[] {
+  return SELF_QUALITY_CASE_SET.cases.flatMap((one) =>
+    blindLabelsFor(one.id).map((pair) => ({ caseId: one.id, ...pair })),
+  );
 }

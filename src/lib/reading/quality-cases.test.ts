@@ -4,6 +4,7 @@ import { GOLDEN_CASES } from '../saju/golden/cases';
 import {
   PROMPT_VARIANTS,
   SELF_QUALITY_CASE_SET,
+  blindKeyForAll,
   blindLabelsFor,
   blindOrderFor,
   chartForQualityCase,
@@ -87,6 +88,33 @@ describe('가린 이름', () => {
     const firsts = SELF_QUALITY_CASE_SET.cases.map((one) => blindOrderFor(one.id)[0]);
 
     expect(new Set(firsts).size).toBeGreaterThan(1);
+  });
+
+  /**
+   * **돌린 것이 아니라 섞은 것이다.**
+   *
+   * 회전이면 넷의 상대 차례가 늘 같아서, 한 사례에서 짝 하나만 알아채면 그 사례의
+   * 나머지 셋이 공짜로 따라온다. 가린 것이 아니라 잠깐 덮어 둔 것이 된다.
+   */
+  it('회전이 아니다 — 짝 하나가 나머지를 알려 주지 않는다', () => {
+    const base = PROMPT_VARIANTS.map((one) => one.id);
+    const rotations = base.map((_, shift) => base.map((__, index) => base[(index + shift) % base.length]));
+
+    const orders = SELF_QUALITY_CASE_SET.cases.map((one) => blindOrderFor(one.id));
+    const rotated = orders.filter((order) =>
+      rotations.some((rotation) => rotation.every((id, index) => id === order[index])),
+    );
+
+    // 다섯이 전부 회전이면 섞은 것이 아니다.
+    expect(rotated.length).toBeLessThan(orders.length);
+  });
+
+  /** 전체 짝은 한 번에 열리되, 사례별 기록에는 들어가지 않는다 */
+  it('전체 짝은 사례마다 넷씩 빠짐없이 낸다', () => {
+    const all = blindKeyForAll();
+
+    expect(all).toHaveLength(SELF_QUALITY_CASE_SET.cases.length * PROMPT_VARIANTS.length);
+    expect(new Set(all.map((one) => one.blind)).size).toBe(all.length);
   });
 
   it('이름이 사례를 달고 A~D 로 붙는다', () => {

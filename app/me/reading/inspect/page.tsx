@@ -6,6 +6,7 @@ import {
   READING_POLICY,
   READING_PROMPTS,
   SELF_QUALITY_CASE_SET,
+  blindKeyForAll,
   type QualityCaseId,
   type ReadingKind,
 } from '@/src/lib/reading';
@@ -376,6 +377,8 @@ function QualityCases({ chosen }: { chosen: QualityCaseId | null }) {
       ) : (
         <ChosenCase caseId={chosen} />
       )}
+
+      <BlindKey />
     </section>
   );
 }
@@ -414,19 +417,50 @@ function ChosenCase({ caseId }: { caseId: QualityCaseId }) {
       ))}
 
       <div className={CARD}>
+        {/*
+          **짝을 넘기지 않는다.** 채점표가 `variant` 를 알면 언젠가 그것이 파일로 새고,
+          첫 사례를 끝내는 순간 남은 넷의 블라인드가 깨진다. 짝은 아래 「짝 공개」가 든다.
+        */}
         <RubricSheet
           caseId={built.caseId}
           setVersion={built.setVersion}
           viewedAt={built.viewedAt}
           evidenceDigest={built.evidenceDigest}
-          rows={built.prompts.map(({ blind, variant, promptDigest }) => ({
-            blind,
-            variant,
-            promptDigest,
-          }))}
+          promptVersion={READING_POLICY.version}
+          rows={built.prompts.map(({ blind, promptDigest }) => ({ blind, promptDigest }))}
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * **짝 공개** — 다섯 사례를 다 채점한 뒤에만 편다.
+ *
+ * 접어 두는 것으로 족하다. 여기서 지키려는 것은 남이 못 보게 하는 것이 아니라
+ * **내가 채점하다 눈에 걸리지 않게** 하는 것이다. 사례별 기록에 짝이 없는 것이
+ * 진짜 방어이고(`RubricSheet`), 이 칸은 마지막에 한 번 여는 자리다.
+ */
+function BlindKey() {
+  const pairs = blindKeyForAll();
+
+  return (
+    <details className={CARD}>
+      <summary className="cursor-pointer text-sm font-medium">
+        짝 공개 — 다섯 사례를 다 채점한 뒤에 여세요
+      </summary>
+      <p className="mt-2 text-xs leading-5 text-muted">
+        채점 중에 이것을 보면 재는 것이 글이 아니라 기대가 됩니다. 사례별 기록에는 짝이
+        들어 있지 않으니, 백업을 먼저 다 모으고 마지막에 여기서 맞춰 보세요.
+      </p>
+      <Pre text={pairs.map((one) => `${one.blind}\t${one.variant}`).join('\n')} />
+      <div className="mt-2 flex justify-end">
+        <CopyText
+          text={JSON.stringify({ setVersion: SELF_QUALITY_CASE_SET.version, pairs }, null, 2)}
+          label="짝 복사 (JSON)"
+        />
+      </div>
+    </details>
   );
 }
 
