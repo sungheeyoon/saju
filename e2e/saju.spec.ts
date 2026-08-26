@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { BIRTH_YEAR_MAX } from '@/app/query';
+
 import {
   chooseCalendar,
   chooseHourUnknown,
@@ -197,13 +199,13 @@ test('있지도 않은 윤달은 계산하지 않고 어느 윤달이 있는지 
   await page.goto('/#cal=lunar&date=1905-04-01&hour=unknown&gender=female&city=%EC%84%9C%EC%9A%B8&rule=jo&basis=localMean&saeun=2026');
 
   /*
-    **거절은 한 번만 선다.** 음력 표는 2100년까지 덮고 태어난 해는 2020년까지만 받으니
+    **거절은 한 번만 선다.** 음력 표는 2100년까지 덮고 태어난 해는 그보다 좁게 받으니
     범위 밖에서는 두 문장이 동시에 설 수 있었다. 무엇을 어겼는지 사용자가 고르게 두지
     않는다 — 서는 것은 우리가 받기로 한 범위 하나다.
   */
   const refused = page.locator('main').getByRole('alert');
   await expect(refused).toHaveCount(1);
-  await expect(refused).toContainText('1912~2020년에 태어난 분만 계산합니다');
+  await expect(refused).toContainText(`1912~${BIRTH_YEAR_MAX}년에 태어난 분만 계산합니다`);
 });
 
 /**
@@ -213,7 +215,7 @@ test('있지도 않은 윤달은 계산하지 않고 어느 윤달이 있는지 
  * 그 해를 고른 것이 된다. 적는 칸은 둘 다 피하는 대신 **없는 해가 들어올 수 있다** —
  * 그래서 막는 자리가 있어야 하고, 그 자리는 버튼을 잠그는 자리와 같아야 한다.
  */
-test('태어난 해는 숫자로 적고 범위 밖이면 버튼이 잠긴다', async ({ page }) => {
+test('생년월일시는 숫자로 적고 범위 밖이면 버튼이 잠긴다', async ({ page }) => {
   await page.goto('/');
 
   const year = page.getByLabel('출생연도');
@@ -224,19 +226,48 @@ test('태어난 해는 숫자로 적고 범위 밖이면 버튼이 잠긴다', a
   await expect(year).toHaveValue('190');
 
   // 네 자리가 다 적히기 전에는 날짜가 아니다 — 아직 「생년월일을 입력해 주세요」다.
-  await page.getByLabel('출생월').selectOption('05');
-  await page.getByLabel('출생일').selectOption('15');
+  await page.getByLabel('출생월').fill('05');
+  await page.getByLabel('출생일').fill('15');
   await fillBirthTime(page, '14:30');
   await expect(page.getByText('생년월일을 입력해 주세요.')).toBeVisible();
 
   // 아직 오지 않은 해는 거절한다. 이유를 말하고, 같은 이유로 버튼이 잠긴다.
-  await year.fill('2021');
-  await expect(page.getByText('1900~2020년에 태어난 분만 계산합니다: 2021년')).toBeVisible();
+  const tooLate = BIRTH_YEAR_MAX + 1;
+  await year.fill(String(tooLate));
+  await expect(
+    page.getByText(`1900~${BIRTH_YEAR_MAX}년에 태어난 분만 계산합니다: ${tooLate}년`),
+  ).toBeVisible();
   await expect(page.getByRole('button', { name: '사주 보기' })).toBeDisabled();
 
   // 경계는 열려 있다.
-  await year.fill('2020');
+  await year.fill(String(BIRTH_YEAR_MAX));
   await expect(page.getByRole('button', { name: '사주 보기' })).toBeEnabled();
+
+  /*
+    **고르는 칸이던 동안에는 「2월 30일」이 만들어질 수가 없었다.** 적는 칸은 그 보호막을
+    내주므로 자리마다의 범위를 칸이 안다 — 벗어나면 날짜를 아예 내보내지 않고, 그래서
+    버튼이 잠긴다. 판정하는 자리를 새로 만들지 않고 이미 있는 잠금에 얹는 것이 요점이다.
+  */
+  await year.fill('1990');
+  for (const [label, bad, good] of [
+    ['출생월', '13', '02'],
+    ['출생일', '30', '15'],
+  ] as const) {
+    await page.getByLabel(label).fill(bad);
+    await expect(page.getByLabel(label)).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByRole('button', { name: '사주 보기' })).toBeDisabled();
+    await page.getByLabel(label).fill(good);
+  }
+
+  // 2월은 스물여덟까지다 — 그 달의 마지막 날을 칸이 안다.
+  await expect(page.getByLabel('출생일')).toHaveAttribute('placeholder', '1~28');
+
+  // 시각도 같다. 25시는 계산으로 흘러가지 않는다.
+  await page.getByLabel('출생 시').fill('25');
+  await expect(page.getByLabel('출생 시')).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByRole('button', { name: '사주 보기' })).toBeDisabled();
+  await page.getByLabel('출생 시').fill('14');
+
   await page.getByRole('button', { name: '사주 보기' }).click();
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 });

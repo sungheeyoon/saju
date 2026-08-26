@@ -70,9 +70,6 @@ const SEGMENT_INPUT = 'absolute inset-0 cursor-pointer appearance-none opacity-0
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
-const range = (from: number, to: number) =>
-  Array.from({ length: to - from + 1 }, (_, index) => from + index);
-
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -220,16 +217,97 @@ export function fitsCalendar(date: string, calendar: Calendar): boolean {
 }
 
 /**
- * 년·월·일 세 칸.
+ * 숫자 한 칸 — **적는 칸이면서 범위를 아는 칸.**
  *
- * 세 칸이 다 차야 `date` 가 된다. 반쪽인 동안 부모에게 빈 문자열을 주는 것은,
- * 「2월 30일」 같은 중간 상태로 계산을 시도하지 않게 하려는 것이다 —
- * 제출 가능 여부는 `missingAnswer` 하나가 판정한다.
+ * 여섯 칸(년·월·일·시·분)이 같은 일을 한다: 숫자만 받고, 자릿수를 넘기지 않고,
+ * 제 범위를 벗어나면 스스로 붉어진다. 한 벌로 두지 않으면 어느 칸 하나가
+ * 「25시」를 조용히 받아들이는 날이 온다.
+ *
+ * **판정은 여기서 끝나지 않는다.** 이 칸이 아는 것은 자기 범위뿐이라 「2월 30일」이
+ * 나 「없는 윤달」은 못 본다 — 그것은 날짜 한 벌이 다 모여야 알 수 있고, 모인 뒤에도
+ * 폼이 아니라 변환·엔진이 판정한다(`convertedLine`).
+ */
+function NumberField({
+  label,
+  suffix,
+  value,
+  onChange,
+  digits,
+  min,
+  max,
+  width,
+  placeholder,
+  disabled = false,
+  autoComplete,
+}: {
+  label: string;
+  /** 칸 뒤에 서는 우리말 — 「년」·「월」·「시」. 이것이 있어 자리 이름을 안 물어도 된다 */
+  suffix: string;
+  value: string;
+  onChange: (next: string) => void;
+  digits: number;
+  min: number;
+  max: number;
+  width: string;
+  placeholder: string;
+  disabled?: boolean;
+  autoComplete?: string;
+}) {
+  /**
+   * 다 적힌 값만 판정한다. 「1」을 치는 도중에 「1~12 아님」이라고 붉히면, 사용자는
+   * 12월을 적으려다 자기가 틀렸다는 말을 먼저 듣는다. 자릿수가 덜 찬 것은 아직
+   * 틀린 것이 아니라 **덜 적은 것**이다.
+   */
+  const settled = value !== '' && (value.length === digits || Number(value) * 10 > max);
+  const outOfRange = settled && (Number(value) < min || Number(value) > max);
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <input
+        type="text"
+        inputMode="numeric"
+        autoComplete={autoComplete}
+        aria-label={label}
+        aria-invalid={outOfRange || undefined}
+        placeholder={placeholder}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, digits))}
+        // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `FIELD` 의 테두리 색과
+        // 같은 무게라 어느 쪽이 이길지 정해지지 않는다. 변종 셀렉터는 한 겹 더 무겁다.
+        className={`${FIELD} ${width} text-center tabular-nums disabled:cursor-not-allowed disabled:opacity-40 aria-invalid:border-danger aria-invalid:focus:border-danger aria-invalid:focus:ring-danger-wash`}
+      />
+      <span className="text-sm font-medium text-secondary">{suffix}</span>
+    </div>
+  );
+}
+
+/** 다 적힌 숫자가 범위 안인가 — 반쪽인 값은 아직 날짜가 아니다 */
+const within = (value: string, min: number, max: number) =>
+  value !== '' && Number(value) >= min && Number(value) <= max;
+
+/**
+ * 년·월·일 세 칸 — **전부 적는 칸이다.**
+ *
+ * 고르는 칸으로 두면 연도는 백 줄이 넘는 목록이 되고, 그렇다고 흔한 해를 미리 넣어
+ * 두면 연도를 손대지 않은 사람도 그 해를 고른 것이 된다 — 월·일만 채운 순간 **틀린
+ * 해로 계산된 사주**가 나온다. 「고르지 않은 것을 골랐다고 치지 않는다」가 이 폼
+ * 전체의 규율이다(`hourKnown` 이 셋인 이유). 숫자를 치는 것이 그 둘을 다 피한다.
+ *
+ * ## 대신 없는 날짜가 들어올 수 있다
+ *
+ * 고르는 칸이던 동안에는 「2월 30일」이 **만들어질 수가 없었다.** 적는 칸은 그
+ * 보호막을 내주므로, 막는 자리를 대신 세워야 한다. 두 층으로 나눈다.
+ *
+ * 1. **자리마다의 범위**(월 1~12, 일 1~그 달의 마지막 날)는 여기가 안다. 벗어나면
+ *    날짜를 **내보내지 않는다** — 그래서 `date` 가 빈 문자열로 남고, 버튼은
+ *    `missingAnswer` 가 이미 잠근다. 판정하는 자리를 새로 만들지 않는다.
+ * 2. **날짜의 존재**(없는 윤달, 29일까지인 음력 달의 30일)는 여기가 모른다. 그것은
+ *    변환과 엔진이 이유를 붙여 거절하고, 화면은 그 문장을 그대로 세운다.
  *
  * 폼이 자기 조각을 따로 들고 있으므로 **밖에서 값이 바뀐 것과 자기가 방금 낸
  * 것을 구별해야 한다**(뒤로가기·링크로 들어옴). 마지막으로 올려 보낸 값을
- * 기억해 두고 그것과 다를 때만 조각을 다시 쪼갠다. 안 그러면 "년만 골랐다"가
- * 빈 문자열로 되돌아오면서 방금 고른 년이 지워진다.
+ * 기억해 두고 그것과 다를 때만 조각을 다시 쪼갠다.
  */
 function DateFields({
   value,
@@ -249,96 +327,60 @@ function DateFields({
 
   const { years, maxDay } = limitsOf(value.calendar, parts.year, parts.month);
 
-  /**
-   * 다 적힌 해가 범위 밖인가 — **칸에 표시만 한다.**
-   *
-   * 거절하는 것은 `birthYearRefusal` 이고 버튼을 잠그는 것도 그것이다. 여기서는 같은
-   * 범위를 보고 어느 칸이 문제인지만 가리킨다 — 문장을 여기서 또 쓰면 판정이 둘이 된다.
-   */
-  const yearOutOfRange =
-    isFullYear(parts.year) && (Number(parts.year) < years.min || Number(parts.year) > years.max);
+  const update = (key: keyof typeof parts, next: string) => {
+    const changed = { ...parts, [key]: next };
+    setParts(changed);
 
-  const emit = (next: typeof parts) => {
-    setParts(next);
-    // **네 자리가 다 적히기 전에는 날짜가 아니다.** 「19」를 실어 보내면 `19-05-15` 가 된다.
-    const complete = isFullYear(next.year) && next.month !== '' && next.day !== '';
-    const date = complete ? `${next.year}-${next.month}-${next.day}` : '';
+    // 자리마다의 범위를 다 지켜야 날짜가 된다. 하나라도 어긋나면 내보내지 않는다 —
+    // 「1990-13-05」를 실어 보내면 그 값을 판정하는 자리가 하나 더 생긴다.
+    const limit = limitsOf(value.calendar, changed.year, changed.month).maxDay;
+    const whole =
+      isFullYear(changed.year) && within(changed.month, 1, 12) && within(changed.day, 1, limit);
+
+    const date = whole ? `${changed.year}-${pad2(Number(changed.month))}-${pad2(Number(changed.day))}` : '';
     lastEmitted.current = date;
     onDate(date);
   };
 
-  /**
-   * 년·월을 옮기면 이미 고른 일이 그 달에 없을 수 있다(윤년 2월 29일, 31일).
-   * 남겨 두면 화면에는 「2월 30일」이 서 있는데 계산은 거절하는 상태가 된다.
-   * 그래서 넘치는 일은 그 자리에서 비운다 — 사용자가 다시 고르게.
-   */
-  const update = (key: keyof typeof parts, next: string) => {
-    const changed = { ...parts, [key]: next };
-    if (key !== 'day' && changed.day !== '') {
-      const limit = limitsOf(value.calendar, changed.year, changed.month).maxDay;
-      if (Number(changed.day) > limit) changed.day = '';
-    }
-    emit(changed);
-  };
-
   return (
     <Group label="생년월일">
-      <div className="grid max-w-md grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
-        {/*
-          연도만 **적는 칸**이다.
-          
-          고르는 칸으로 두면 백 줄이 넘는 목록을 스크롤해야 태어난 해에 닿는다. 그렇다고
-          흔한 해를 미리 넣어 두면 연도를 손대지 않은 사람도 그 해를 고른 것이 되고,
-          월·일만 채운 순간 **틀린 해로 계산된 사주**가 나온다 — 「고르지 않은 것을
-          골랐다고 치지 않는다」가 이 폼 전체의 규율이다(`hourKnown` 이 셋인 이유).
-          
-          네 자리를 치는 것이 그 둘을 다 피한다. 빈 칸은 빈 칸으로 남고, 스크롤은 없다.
-          숫자만 받으므로 「199O」 같은 값이 애초에 들어오지 않고, 범위 밖은
-          `birthYearRefusal` 이 이유를 붙여 거절한다.
-        */}
-        <input
-          type="text"
-          inputMode="numeric"
-          autoComplete="bday-year"
-          aria-label="출생연도"
-          aria-invalid={yearOutOfRange || undefined}
-          placeholder={`${years.min}~${years.max}`}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <NumberField
+          label="출생연도"
+          suffix="년"
           value={parts.year}
-          onChange={(event) => update('year', event.target.value.replace(/\D/g, '').slice(0, 4))}
-          // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `FIELD` 의 테두리 색과
-          // 같은 무게라 어느 쪽이 이길지 정해지지 않는다. 변종 셀렉터는 한 겹 더 무겁다.
-          className={`${FIELD} w-full tabular-nums aria-invalid:border-danger aria-invalid:focus:border-danger aria-invalid:focus:ring-danger-wash`}
+          onChange={(next) => update('year', next)}
+          digits={4}
+          min={years.min}
+          max={years.max}
+          width="w-24"
+          placeholder={String(years.max - 30)}
+          autoComplete="bday-year"
         />
-        <SelectShell>
-          <select
-            aria-label="출생월"
-            value={parts.month}
-            onChange={(event) => update('month', event.target.value)}
-            className={`${FIELD} w-full appearance-none pr-7`}
-          >
-            <option value="">월</option>
-            {range(1, 12).map((month) => (
-              <option key={month} value={pad2(month)}>
-                {month}월
-              </option>
-            ))}
-          </select>
-        </SelectShell>
-        <SelectShell>
-          <select
-            aria-label="출생일"
-            value={parts.day}
-            onChange={(event) => update('day', event.target.value)}
-            className={`${FIELD} w-full appearance-none pr-7`}
-          >
-            <option value="">일</option>
-            {range(1, maxDay).map((day) => (
-              <option key={day} value={pad2(day)}>
-                {day}일
-              </option>
-            ))}
-          </select>
-        </SelectShell>
+        <NumberField
+          label="출생월"
+          suffix="월"
+          value={parts.month}
+          onChange={(next) => update('month', next)}
+          digits={2}
+          min={1}
+          max={12}
+          width="w-16"
+          placeholder="1~12"
+          autoComplete="bday-month"
+        />
+        <NumberField
+          label="출생일"
+          suffix="일"
+          value={parts.day}
+          onChange={(next) => update('day', next)}
+          digits={2}
+          min={1}
+          max={maxDay}
+          width="w-16"
+          placeholder={`1~${maxDay}`}
+          autoComplete="bday-day"
+        />
       </div>
     </Group>
   );
@@ -387,10 +429,16 @@ function TimeFields({
     lastEmitted.current = value.time;
   }, [value.time]);
 
+  /** 두 칸이 다 제 범위 안이어야 시각이 된다 — 「25:70」을 실어 보내지 않는다 */
+  const timeOf = (from: typeof parts) =>
+    within(from.hour, 0, 23) && within(from.minute, 0, 59)
+      ? `${pad2(Number(from.hour))}:${pad2(Number(from.minute))}`
+      : '';
+
   const update = (key: keyof typeof parts, next: string) => {
     const changed = { ...parts, [key]: next };
     setParts(changed);
-    const time = changed.hour !== '' && changed.minute !== '' ? `${changed.hour}:${changed.minute}` : '';
+    const time = timeOf(changed);
     lastEmitted.current = time;
     onChange({ ...value, hourKnown: true, time });
   };
@@ -402,7 +450,7 @@ function TimeFields({
       onChange({ ...value, hourKnown: false, time: '' });
       return;
     }
-    const time = parts.hour !== '' && parts.minute !== '' ? `${parts.hour}:${parts.minute}` : '';
+    const time = timeOf(parts);
     lastEmitted.current = time;
     onChange({ ...value, hourKnown: true, time });
   };
@@ -438,44 +486,35 @@ function TimeFields({
         </div>
 
         {/*
-          시·분은 **두 자리씩**이라 칸이 넓어질 이유가 없다. 늘려 두면 두 글자짜리 값이
-          빈 벌판 왼쪽에 붙어, 고르는 칸이 아니라 적는 칸처럼 보인다.
+          시·분도 **적는 칸**이다. 24시간이라 시는 스물넷, 분은 예순 줄짜리 목록이
+          되는데, 두 자리를 치는 편이 어느 쪽이든 빠르다. 범위를 벗어나면 시각을
+          내보내지 않으므로 「25:70」이 계산으로 흘러가지 않는다.
         */}
-        <div className="flex items-center gap-2">
-          <SelectShell className="w-24">
-            <select
-              aria-label="출생 시"
-              value={parts.hour}
-              onChange={(event) => update('hour', event.target.value)}
-              disabled={!known}
-              className={`${FIELD} w-full appearance-none pr-7 disabled:cursor-not-allowed disabled:opacity-40`}
-            >
-              <option value="">시</option>
-              {range(0, 23).map((hour) => (
-                <option key={hour} value={pad2(hour)}>
-                  {pad2(hour)}
-                </option>
-              ))}
-            </select>
-          </SelectShell>
-          <span className="text-sm font-medium text-secondary">시</span>
-          <SelectShell className="w-24">
-            <select
-              aria-label="출생 분"
-              value={parts.minute}
-              onChange={(event) => update('minute', event.target.value)}
-              disabled={!known}
-              className={`${FIELD} w-full appearance-none pr-7 disabled:cursor-not-allowed disabled:opacity-40`}
-            >
-              <option value="">분</option>
-              {range(0, 59).map((minute) => (
-                <option key={minute} value={pad2(minute)}>
-                  {pad2(minute)}
-                </option>
-              ))}
-            </select>
-          </SelectShell>
-          <span className="text-sm font-medium text-secondary">분</span>
+        <div className="flex items-center gap-3">
+          <NumberField
+            label="출생 시"
+            suffix="시"
+            value={parts.hour}
+            onChange={(next) => update('hour', next)}
+            digits={2}
+            min={0}
+            max={23}
+            width="w-16"
+            placeholder="0~23"
+            disabled={!known}
+          />
+          <NumberField
+            label="출생 분"
+            suffix="분"
+            value={parts.minute}
+            onChange={(next) => update('minute', next)}
+            digits={2}
+            min={0}
+            max={59}
+            width="w-16"
+            placeholder="0~59"
+            disabled={!known}
+          />
         </div>
       </div>
 

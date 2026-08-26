@@ -21,11 +21,10 @@ const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME = /^(\d{2}):(\d{2})$/;
 
 /**
- * `YYYY-MM-DD` 한 벌을 년·월·일 세 칸에 나눠 넣는다.
+ * `YYYY-MM-DD` 한 벌을 년·월·일 세 칸에 나눠 **적는다.**
  *
- * 연도만 **적는 칸**이고 월·일은 고르는 칸이다(`app/birth-form.tsx`). 연도를 목록으로
- * 두면 백 줄을 스크롤해야 하고, 흔한 해를 미리 넣어 두면 손대지 않은 사람도 그 해를
- * 고른 것이 되기 때문이다.
+ * 여섯 칸이 전부 숫자를 받는 칸이다(`app/birth-form.tsx`). 고르는 칸으로 두면 연도는
+ * 백 줄이 넘고, 흔한 해를 미리 넣어 두면 손대지 않은 사람도 그 해를 고른 것이 된다.
  */
 export async function fillBirthDate(scope: Scope, date: string): Promise<void> {
   const match = DATE.exec(date);
@@ -33,8 +32,8 @@ export async function fillBirthDate(scope: Scope, date: string): Promise<void> {
   const [, year, month, day] = match;
 
   await scope.getByLabel('출생연도').fill(year);
-  await scope.getByLabel('출생월').selectOption(month);
-  await scope.getByLabel('출생일').selectOption(day);
+  await scope.getByLabel('출생월').fill(month);
+  await scope.getByLabel('출생일').fill(day);
 }
 
 /** 년·월·일 세 칸이 이 날짜를 들고 있는가 */
@@ -49,7 +48,7 @@ export async function expectBirthDate(scope: Scope, date: string): Promise<void>
 }
 
 /**
- * 시각을 아는 쪽을 고르고 시·분을 넣는다.
+ * 시각을 아는 쪽을 고르고 시·분을 적는다.
  *
  * 고르는 줄이 먼저다. 아무것도 고르지 않은 상태(`hourKnown: null`)에서는 두 칸이
  * 잠겨 있다 — 고르지 않은 것을 골랐다고 치지 않기로 한 결정의 결과다.
@@ -60,8 +59,8 @@ export async function fillBirthTime(scope: Scope, time: string): Promise<void> {
   const [, hour, minute] = match;
 
   await scope.getByRole('radio', { name: '시간 입력', exact: true }).check();
-  await scope.getByLabel('출생 시').selectOption(hour);
-  await scope.getByLabel('출생 분').selectOption(minute);
+  await scope.getByLabel('출생 시').fill(hour);
+  await scope.getByLabel('출생 분').fill(minute);
 }
 
 /** 시각을 모른다고 답한다 — 고르지 않은 것과 다르다 */

@@ -35,7 +35,7 @@ describe('달력이 바뀌면 못 고르게 된 날짜는 남지 않는다', () 
 
   it('양력은 그 달에 없는 날을 들지 않는다', () => {
     expect(fitsCalendar('1990-02-30', 'solar')).toBe(false);
-    // 윤년과 평년 — 범위 안에서 고른다(2024년은 이제 생년으로 안 든다).
+    // 윤년과 평년.
     expect(fitsCalendar('2020-02-29', 'solar')).toBe(true);
     expect(fitsCalendar('2019-02-29', 'solar')).toBe(false);
   });
