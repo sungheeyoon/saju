@@ -742,8 +742,9 @@ test('프롬프트를 골라 자료와 함께 복사한다', async ({ page, cont
 
   // 역할 · 한눈에 · 규칙 · 자료 순서. 자료가 앞에 오면 긴 JSON 을 다 읽고 나서야
   // 규칙을 만나고, 머리가 없으면 여덟 글자를 보려고 36KB 를 뒤져야 한다.
-  expect(copied.indexOf('## 한눈에')).toBeLessThan(copied.indexOf('## 딱 하나 금지'));
-  expect(copied.indexOf('## 딱 하나 금지')).toBeLessThan(copied.indexOf('## 자료'));
+  const banned = '## 사실에 관한 단 하나의 금지';
+  expect(copied.indexOf('## 한눈에')).toBeLessThan(copied.indexOf(banned));
+  expect(copied.indexOf(banned)).toBeLessThan(copied.indexOf('## 자료'));
   expect(copied).toContain('evidence-v0');
   // 머리가 여덟 글자를 그대로 든다 — 1990-05-15 14:30 남자의 일주다.
   expect(copied).toContain('여덟 글자');

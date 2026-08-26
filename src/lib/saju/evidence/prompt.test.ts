@@ -308,6 +308,8 @@ describe('사주를 모르는 사람이 읽는다', () => {
 
       expect(body).toContain('어느 시간대·방위·색·계절에 붙는지는 이 자료에 없다');
       expect(body).toContain('자료가 준 것처럼 말하는 것은 안 된다');
+      // 적는 자리는 **절**이다 — 근거 칸이 절마다 한 줄이므로 문단이라고 적으면 단위가 갈린다.
+      expect(body).toContain('절의 근거 줄에');
     }
   });
 
@@ -344,7 +346,7 @@ describe('자료와 한 덩어리로 나간다', () => {
     const evidence = evidenceOf({ a: saju() }, new Date('2026-08-23T04:00:00Z'));
     const text = promptWithEvidence('reading', evidence);
 
-    const order = ['# 역할', '## 한눈에', '## 딱 하나 금지', '## 자료', '```json'];
+    const order = ['# 역할', '## 한눈에', '## 사실에 관한 단 하나의 금지', '## 자료', '```json'];
     const at = order.map((mark) => text.indexOf(mark));
 
     for (const index of at) expect(index).toBeGreaterThan(-1);

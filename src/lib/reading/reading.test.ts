@@ -84,7 +84,13 @@ describe('프롬프트는 출생 원문을 들고 나가지 않는다', () => {
   });
 
   it('점수 계약은 궁합에만 붙는다', () => {
-    expect(READING_PROMPTS.self).toContain('`score` 는 비운다');
+    /*
+      **비운다는 말은 세 갈래로 읽힌다** — 자리를 빼거나, 빈 문자열을 넣거나, `null` 을
+      넣거나. 계약이 받는 것은 `null` 하나뿐이고 스키마도 두 자리를 다 요구한다
+      (`required: ['score','markdown']`). 프롬프트가 그 꼴을 그대로 적어야 갈릴 자리가 없다.
+    */
+    expect(READING_PROMPTS.self).toContain('"score": null');
+    expect(READING_PROMPTS.self).toContain('빼거나 빈 문자열로 내지 마라');
     for (const kind of ['private', 'match'] as const) {
       expect(READING_PROMPTS[kind]).toContain('## 점수');
       expect(isScored(kind)).toBe(true);

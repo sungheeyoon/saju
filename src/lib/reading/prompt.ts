@@ -108,7 +108,7 @@ const OUTPUT_CONTRACT = (kind: ReadingKind): string => `## 어떻게 낼 것인�
 ${
   isScored(kind)
     ? `\`score\`(${READING_POLICY.scoreRange.min}~${READING_POLICY.scoreRange.max} 정수)와 \`markdown\`(본문) 두 자리로 낸다.`
-    : '`markdown`(본문) 한 자리로 낸다. `score` 는 비운다 — 한 사람의 풀이에 궁합 점수를 붙이지 않는다.'
+    : `자기 풀이도 **두 자리를 다 낸다.** 정확히 \`{"score": null, "markdown": "…"}\` 꼴이다 — \`score\` 를 빼거나 빈 문자열로 내지 마라. 한 사람의 풀이에 궁합 점수를 붙이지 않는다는 뜻이지 자리를 없애라는 뜻이 아니다.`
 }
 
 본문에 \`\`\`json 같은 감싸개를 두르지 마라.
