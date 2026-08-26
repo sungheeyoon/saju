@@ -121,5 +121,5 @@ export function Markdown({ source }: { source: string }) {
 
   flush();
 
-  return <div className="flex flex-col gap-3 text-sm">{blocks}</div>;
+  return <div className="flex flex-col gap-4 text-[0.95rem] leading-7 text-secondary [&_h3]:text-foreground [&_strong]:text-foreground">{blocks}</div>;
 }

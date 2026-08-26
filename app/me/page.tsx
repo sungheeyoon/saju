@@ -38,10 +38,16 @@ export default async function MePage() {
     .maybeSingle();
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-12 sm:px-6 sm:py-16">
-      <header className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">내 사주</h1>
-        <p className="text-sm text-secondary">{user.email}</p>
+    <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
+      <header className="flex flex-col gap-2 border-b border-border pb-6">
+        <p className="eyebrow">My Home</p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold tracking-[-0.04em]">나의 흐름</h1>
+            <p className="mt-1 text-sm text-secondary">저장된 명식과 지금의 해석을 한곳에서 확인하세요.</p>
+          </div>
+          <p className="rounded-full bg-surface-soft px-3 py-1.5 text-xs text-muted">{user.email}</p>
+        </div>
       </header>
 
       {account === null ? (
@@ -125,11 +131,15 @@ async function SelfChart({ personId }: { personId: string }) {
   ] as const;
 
   return (
-    <section className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
+    <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
+      <div className="flex min-w-0 flex-col gap-6">
+      <div className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 className="text-base font-semibold">{edge.local_label}</h2>
-          <span className="text-xs text-muted">
+          <div>
+            <p className="eyebrow">Four Pillars</p>
+            <h2 className="mt-1 text-xl font-bold">{edge.local_label}의 명식</h2>
+          </div>
+          <span className="ml-auto rounded-full bg-accent-wash px-3 py-1 text-xs font-medium text-accent">
             일간 <span className="glyph">{pillars.dayMaster}</span>{' '}
             {STEM_INFO[pillars.dayMaster].ko} · {ELEMENT_KO[STEM_INFO[pillars.dayMaster].element]}
           </span>
@@ -148,7 +158,7 @@ async function SelfChart({ personId }: { personId: string }) {
           <tbody>
             <tr>
               {columns.map(([label, pillar]) => (
-                <td key={label} className="text-2xl">
+                <td key={label} className="glyph rounded-xl bg-surface-soft py-3 text-2xl font-semibold">
                   {/* 시각을 모르면 시주가 아예 없다. 정오로 메워 午시를 내지 않는다 */}
                   {pillar === null ? <span className="text-sm text-muted">시각 모름</span> : pillar.name}
                 </td>
@@ -158,7 +168,7 @@ async function SelfChart({ personId }: { personId: string }) {
         </table>
       </div>
 
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-xl border border-border bg-surface-sunken p-4 text-sm">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 rounded-2xl border border-border bg-surface-soft p-5 text-sm">
         <dt className="text-muted">생년월일</dt>
         {/*
           음력으로 넣었으면 **적은 그대로와 바뀐 양력을 함께** 보여준다. 양력만
@@ -187,32 +197,35 @@ async function SelfChart({ personId }: { personId: string }) {
 
       <ReviseChart personId={personId} current={query} />
 
+      </div>
+
       {/*
         전체 명식은 익명 화면이 그린다. 입력은 `#` 뒤에 실리므로 서버로 가지 않는다.
         같은 엔진·같은 함수를 쓰므로 여기 여덟 글자와 저쪽 여덟 글자는 같은 값이다.
       */}
-      <p className="flex flex-wrap gap-4 text-sm">
+      <aside className="flex h-fit flex-col gap-2 rounded-2xl border border-border bg-surface p-4 shadow-[var(--shadow-card)] lg:sticky lg:top-24">
+        <p className="px-2 pb-1 text-xs font-bold text-muted">빠른 메뉴</p>
         <Link
           href={`/#${toSearchParams(query).toString()}`}
-          className="text-accent underline underline-offset-2"
+          className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent"
         >
-          전체 명식 보기
+          전체 명식 자세히 보기 <span aria-hidden="true">→</span>
         </Link>
         {/*
           가족·친구는 이 화면에 없다. 여기는 「나」의 자리이고, 스무 명 한도가 세는
           것도 저쪽 목록이다.
         */}
-        <Link href="/me/people" className="text-accent underline underline-offset-2">
-          등록한 사람
+        <Link href="/me/people" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
+          등록한 사람 관리 <span aria-hidden="true">→</span>
         </Link>
-        <Link href="/me/compat" className="text-accent underline underline-offset-2">
-          저장된 사람끼리 궁합
+        <Link href="/me/compat" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
+          저장된 사람끼리 궁합 <span aria-hidden="true">→</span>
         </Link>
-        <Link href="/me/discovery" className="text-accent underline underline-offset-2">
-          후보
+        <Link href="/me/discovery" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
+          새로운 인연 발견 <span aria-hidden="true">→</span>
         </Link>
         <Requests />
-      </p>
+      </aside>
     </section>
   );
 }
@@ -229,9 +242,9 @@ async function Requests() {
   const unread = await unreadCount();
 
   return (
-    <Link href="/me/requests" className="text-accent underline underline-offset-2">
-      요청과 알림
-      {unread > 0 && <span className="ml-1 font-medium">{unread}</span>}
+    <Link href="/me/requests" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
+      <span>요청과 알림 <span aria-hidden="true">→</span></span>
+      {unread > 0 && <span className="grid size-5 place-items-center rounded-full bg-fire text-[10px] font-bold text-white">{unread}</span>}
     </Link>
   );
 }

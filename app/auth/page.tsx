@@ -9,10 +9,12 @@ export default async function SignInPage() {
   if (data.user) redirect('/me');
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 py-16 sm:px-6">
-      <header className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">로그인</h1>
-        <p className="text-sm text-secondary">
+    <main className="app-shell grid flex-1 place-items-center py-12 sm:py-20">
+      <section className="flex w-full max-w-lg flex-col gap-6 rounded-[2rem] border border-border bg-surface p-6 shadow-[var(--shadow-float)] sm:p-10">
+      <header className="flex flex-col gap-2">
+        <span className="grid size-11 place-items-center rounded-2xl bg-accent-wash font-bold text-accent">命</span>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight">다시 만나 반가워요</h1>
+        <p className="text-sm leading-6 text-secondary">
           지금은 초대받은 분만 들어올 수 있습니다. 초대받지 않은 주소로는 계정이 만들어지지
           않습니다.
         </p>
@@ -30,6 +32,7 @@ export default async function SignInPage() {
           로그인 없이 사주 보기
         </Link>
       </p>
+      </section>
     </main>
   );
 }

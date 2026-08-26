@@ -1,55 +1,72 @@
 @import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
-/*
- * 색은 역할로만 쓴다. 라이트/다크 값을 각각 고르고(자동 반전 아님),
- * 컴포넌트는 원시 hex 를 모른다.
- *
- * accent 는 검증된 blue 스텝이다 (light #2a78d6 / dark #3987e5).
- * 오행 분포 막대는 단일 색조 + 길이로 크기를 나타내므로 색이 정체성을
- * 지지 않는다. 오행별 색을 쓰지 않은 이유는 `saju-calculator.tsx` 참고.
- */
 :root {
   color-scheme: light;
-  --background: #ffffff;
-  --foreground: #16161a;
-
-  --surface: #ffffff;
-  --surface-sunken: #f7f7f6;
-  --border: rgba(22, 22, 26, 0.12);
-  --border-strong: rgba(22, 22, 26, 0.22);
-
-  --text-secondary: #55555f;
-  --text-muted: #6f6f78;
-
-  --accent: #246fca;
-  --accent-strong: #1764b5;
+  --background: #f7f5ef;
+  --foreground: #20221f;
+  --surface: #fffefa;
+  --surface-raised: #ffffff;
+  --surface-sunken: #efede6;
+  --surface-soft: #f3f1ea;
+  --border: rgba(45, 49, 43, 0.12);
+  --border-strong: rgba(45, 49, 43, 0.24);
+  --text-secondary: #5f645d;
+  --text-muted: #7b8079;
+  --accent: #356b57;
+  --accent-strong: #285444;
   --on-accent: #ffffff;
-  --accent-wash: rgba(42, 120, 214, 0.1);
-
-  /* 메터·막대의 미충전 구간 */
-  --track: rgba(22, 22, 26, 0.08);
+  --accent-wash: #e5eee9;
+  --accent-soft: #d6e4dc;
+  --danger: #a3473f;
+  --danger-wash: #faeae7;
+  --warning: #956c28;
+  --warning-wash: #fbf0d8;
+  --success: #356b57;
+  --track: rgba(45, 49, 43, 0.09);
+  --wood: #4f8063;
+  --wood-soft: #e4eee7;
+  --fire: #bd5d4c;
+  --fire-soft: #f7e5df;
+  --earth: #a77d3d;
+  --earth-soft: #f3ead9;
+  --metal: #69727a;
+  --metal-soft: #e8ebed;
+  --water: #4d7089;
+  --water-soft: #e1eaf0;
+  --shadow-card: 0 1px 2px rgba(34, 39, 33, 0.04), 0 12px 36px rgba(34, 39, 33, 0.05);
+  --shadow-float: 0 18px 50px rgba(34, 39, 33, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --background: #0b0b0c;
-    --foreground: #ededf0;
-
-    --surface: #141416;
-    --surface-sunken: #1b1b1e;
-    --border: rgba(237, 237, 240, 0.14);
-    --border-strong: rgba(237, 237, 240, 0.26);
-
-    --text-secondary: #a9a9b4;
-    --text-muted: #85858f;
-
-    --accent: #6aa8f0;
-    --accent-strong: #246fca;
-    --on-accent: #ffffff;
-    --accent-wash: rgba(57, 135, 229, 0.18);
-
-    --track: rgba(237, 237, 240, 0.12);
+    --background: #151815;
+    --foreground: #f2f1eb;
+    --surface: #1d211e;
+    --surface-raised: #232824;
+    --surface-sunken: #171a18;
+    --surface-soft: #202521;
+    --border: rgba(242, 241, 235, 0.12);
+    --border-strong: rgba(242, 241, 235, 0.24);
+    --text-secondary: #b5b9b2;
+    --text-muted: #939990;
+    --accent: #8db9a3;
+    --accent-strong: #4f8068;
+    --on-accent: #102019;
+    --accent-wash: #26372f;
+    --accent-soft: #30473b;
+    --danger: #ef9a8e;
+    --danger-wash: #462925;
+    --warning: #e8bf74;
+    --warning-wash: #44371f;
+    --track: rgba(242, 241, 235, 0.1);
+    --wood-soft: #24372a;
+    --fire-soft: #402925;
+    --earth-soft: #3d3322;
+    --metal-soft: #2e3337;
+    --water-soft: #24343f;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.16), 0 16px 44px rgba(0, 0, 0, 0.14);
   }
 }
 
@@ -57,7 +74,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
   --color-surface-sunken: var(--surface-sunken);
+  --color-surface-soft: var(--surface-soft);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-secondary: var(--text-secondary);
@@ -66,20 +85,79 @@
   --color-accent-strong: var(--accent-strong);
   --color-on-accent: var(--on-accent);
   --color-accent-wash: var(--accent-wash);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-danger-wash: var(--danger-wash);
+  --color-warning: var(--warning);
+  --color-warning-wash: var(--warning-wash);
+  --color-success: var(--success);
   --color-track: var(--track);
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-wood: var(--wood);
+  --color-wood-soft: var(--wood-soft);
+  --color-fire: var(--fire);
+  --color-fire-soft: var(--fire-soft);
+  --color-earth: var(--earth);
+  --color-earth-soft: var(--earth-soft);
+  --color-metal: var(--metal);
+  --color-metal-soft: var(--metal-soft);
+  --color-water: var(--water);
+  --color-water-soft: var(--water-soft);
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
+
+* { border-color: var(--border); }
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
+  background:
+    radial-gradient(circle at 12% -8%, color-mix(in srgb, var(--wood-soft) 72%, transparent) 0, transparent 27rem),
+    radial-gradient(circle at 94% 18%, color-mix(in srgb, var(--earth-soft) 62%, transparent) 0, transparent 24rem),
+    var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-feature-settings: "ss05" 1, "ss06" 1;
+  letter-spacing: -0.012em;
+  line-height: 1.65;
 }
 
-/* 한자는 본문 폰트로 두면 자간이 흔들린다 — 시스템 명조/고딕에 맡긴다 */
+button, a, input, select, textarea, summary { -webkit-tap-highlight-color: transparent; }
+button, a, summary {
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease,
+    opacity 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, summary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  outline-offset: 3px;
+}
+::selection { background: var(--accent-soft); }
+
 .glyph {
-  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  font-family: "Pretendard Variable", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   font-feature-settings: normal;
 }
+.app-shell { width: min(100% - 2.5rem, 72rem); margin-inline: auto; }
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.reading-skeleton {
+  background: linear-gradient(90deg, var(--surface-sunken) 25%, var(--surface) 48%, var(--surface-sunken) 72%);
+  background-size: 220% 100%;
+  animation: reading-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes reading-shimmer { to { background-position: -220% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+@media (max-width: 640px) { .app-shell { width: min(100% - 2rem, 72rem); } }

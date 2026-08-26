@@ -7,4 +7,4 @@
  * 종류**라, 문자열 하나를 옮겨서 그 조건을 없앤다.
  */
 export const CARD =
-  'rounded-xl border border-border bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]';
+  'rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6';
