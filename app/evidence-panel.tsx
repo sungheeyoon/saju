@@ -78,7 +78,7 @@ export function EvidencePanel({
       onToggle={(event) => setOpened(event.currentTarget.open)}
     >
       <summary className="cursor-pointer text-base font-semibold">
-        AI 에 넘길 자료
+        풀이에 넘기는 자료
         <span className="ml-2 text-xs font-normal text-muted">evidence-v0 · JSON</span>
       </summary>
 

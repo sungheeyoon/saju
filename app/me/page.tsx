@@ -9,9 +9,10 @@ import { UnreadableRevisionError, queryFromRevision } from '../revision';
 import { Halted } from './halted';
 import { RequestDeletion } from './leaving';
 import { Onboarding } from './onboarding';
+import { PillarCard } from './pillar-card';
 import { ReadingSection } from './reading/section';
 import { ReviseChart } from './revise';
-import { CALENDAR_KO, GENDER_KO, STEM_INFO, ELEMENT_KO } from '@/src/lib/saju';
+import { CALENDAR_KO, GENDER_KO } from '@/src/lib/saju';
 
 /** 모델 240초 상한이 먼저 끝나 실패를 기록하고, DB 600초 만료보다는 먼저 닫는다. */
 export const maxDuration = 300;
@@ -40,7 +41,7 @@ export default async function MePage() {
   return (
     <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
       <header className="flex flex-col gap-2 border-b border-border pb-6">
-        <p className="eyebrow">My Home</p>
+        <p className="eyebrow">내 자리</p>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-[-0.04em]">나의 흐름</h1>
@@ -122,81 +123,41 @@ async function SelfChart({ personId }: { personId: string }) {
     throw error;
   }
 
-  const { pillars } = chartOf(query);
-  const columns = [
-    ['시', pillars.hour],
-    ['일', pillars.day],
-    ['월', pillars.month],
-    ['년', pillars.year],
-  ] as const;
+  const saju = chartOf(query);
 
   return (
     <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
       <div className="flex min-w-0 flex-col gap-6">
-      <div className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <div>
-            <p className="eyebrow">Four Pillars</p>
-            <h2 className="mt-1 text-xl font-bold">{edge.local_label}의 명식</h2>
-          </div>
-          <span className="ml-auto rounded-full bg-accent-wash px-3 py-1 text-xs font-medium text-accent">
-            일간 <span className="glyph">{pillars.dayMaster}</span>{' '}
-            {STEM_INFO[pillars.dayMaster].ko} · {ELEMENT_KO[STEM_INFO[pillars.dayMaster].element]}
-          </span>
-        </div>
+        <PillarCard label={edge.local_label} saju={saju} />
 
-        <table className="w-full table-fixed text-center">
-          <thead>
-            <tr className="text-xs text-muted">
-              {columns.map(([label]) => (
-                <th key={label} className="pb-1 font-normal">
-                  {label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              {columns.map(([label, pillar]) => (
-                <td key={label} className="glyph rounded-xl bg-surface-soft py-3 text-2xl font-semibold">
-                  {/* 시각을 모르면 시주가 아예 없다. 정오로 메워 午시를 내지 않는다 */}
-                  {pillar === null ? <span className="text-sm text-muted">시각 모름</span> : pillar.name}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 rounded-2xl border border-border bg-surface-soft p-5 text-sm">
+          <dt className="text-muted">생년월일</dt>
+          {/*
+            음력으로 넣었으면 **적은 그대로와 바뀐 양력을 함께** 보여준다. 양력만
+            보이면 사용자가 자기 입력을 못 알아보고, 원본만 보이면 우리가 무엇으로
+            계산했는지 모른다(ADR 0002).
+          */}
+          <dd>
+            {query.calendar === 'solar'
+              ? current.solar_date
+              : `${CALENDAR_KO[query.calendar]} ${current.original_date} · 양력 ${current.solar_date}`}
+            {current.birth_time === null ? ' · 시각 모름' : ` ${query.time}`}
+          </dd>
+          <dt className="text-muted">성별</dt>
+          <dd>{GENDER_KO[query.gender]}</dd>
+          <dt className="text-muted">출생지</dt>
+          <dd>{query.city}</dd>
+          <dt className="text-muted">자시 규칙</dt>
+          <dd>{query.rule === 'jo' ? '조자시 (23:00 경계)' : '야자시 (자정 경계)'}</dd>
+        </dl>
 
-      <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 rounded-2xl border border-border bg-surface-soft p-5 text-sm">
-        <dt className="text-muted">생년월일</dt>
         {/*
-          음력으로 넣었으면 **적은 그대로와 바뀐 양력을 함께** 보여준다. 양력만
-          보이면 사용자가 자기 입력을 못 알아보고, 원본만 보이면 우리가 무엇으로
-          계산했는지 모른다(ADR 0002).
+          **자기 풀이** — 저장된 근거를 사용자가 직접 읽지 않아도 무엇이 보이는지
+          알게 하는 자리다(US 23-1). 여는 것만으로는 만들지 않는다.
         */}
-        <dd>
-          {query.calendar === 'solar'
-            ? current.solar_date
-            : `${CALENDAR_KO[query.calendar]} ${current.original_date} · 양력 ${current.solar_date}`}
-          {current.birth_time === null ? ' · 시각 모름' : ` ${query.time}`}
-        </dd>
-        <dt className="text-muted">성별</dt>
-        <dd>{GENDER_KO[query.gender]}</dd>
-        <dt className="text-muted">출생지</dt>
-        <dd>{query.city}</dd>
-        <dt className="text-muted">자시 규칙</dt>
-        <dd>{query.rule === 'jo' ? '조자시 (23:00 경계)' : '야자시 (자정 경계)'}</dd>
-      </dl>
+        <ReadingSection target={{ kind: 'self' }} />
 
-      {/*
-        **자기 풀이** — 저장된 근거를 사용자가 직접 읽지 않아도 무엇이 보이는지
-        알게 하는 자리다(US 23-1). 여는 것만으로는 만들지 않는다.
-      */}
-      <ReadingSection target={{ kind: 'self' }} />
-
-      <ReviseChart personId={personId} current={query} />
-
+        <ReviseChart personId={personId} current={query} />
       </div>
 
       {/*
@@ -244,7 +205,17 @@ async function Requests() {
   return (
     <Link href="/me/requests" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
       <span>요청과 알림 <span aria-hidden="true">→</span></span>
-      {unread > 0 && <span className="grid size-5 place-items-center rounded-full bg-fire text-[10px] font-bold text-white">{unread}</span>}
+      {/*
+        수만 그리면 화면 밖에서는 **아무 뜻이 없다.** 「1」을 읽어 주는 것으로는 그것이
+        무엇의 1인지 알 수 없어서, 보이지 않는 말을 붙여 배지가 스스로 무엇인지 말하게
+        한다. 밖에서 이 배지를 재는 검사도 같은 말을 짚는다(`scripts/check-match.mjs`).
+      */}
+      {unread > 0 && (
+        <span className="grid size-5 place-items-center rounded-full bg-fire text-[10px] font-bold text-white">
+          {unread}
+          <span className="sr-only">건 안 읽음</span>
+        </span>
+      )}
     </Link>
   );
 }

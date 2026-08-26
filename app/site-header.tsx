@@ -16,6 +16,12 @@ const MEMBER_LINKS = [
   { href: '/me/requests', label: '알림' },
 ] as const;
 
+export function isNavigationActive(pathname: string, href: string): boolean {
+  if (href === '/' || href === '/me') return pathname === href;
+  if (href === '/me/requests' && pathname.startsWith('/me/match/')) return true;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function SiteHeader() {
   const pathname = usePathname();
   const inMemberArea = pathname.startsWith('/me');
@@ -30,7 +36,7 @@ export function SiteHeader() {
         </Link>
         <nav aria-label={inMemberArea ? '회원 메뉴' : '주요 메뉴'} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
           {links.map((link) => {
-            const active = link.href === '/' ? pathname === '/' : pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const active = isNavigationActive(pathname, link.href);
             return (
               <Link
                 key={link.href}

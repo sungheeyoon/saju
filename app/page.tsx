@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 
+import { ELEMENTS, ELEMENT_KO } from '@/src/lib/saju';
+
+import { ELEMENT_TONE } from './element-tone';
 import { SajuCalculator } from './saju-calculator';
 
 export default function Home() {
@@ -8,8 +11,9 @@ export default function Home() {
     <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:gap-10 sm:py-14">
       <header className="relative overflow-hidden rounded-[2rem] border border-border bg-surface px-6 py-9 shadow-[var(--shadow-card)] sm:px-10 sm:py-12">
         <div className="absolute -right-12 -top-16 size-64 rounded-full bg-wood-soft blur-3xl" aria-hidden="true" />
+        <div className="absolute -bottom-16 -left-20 size-56 rounded-full bg-water-soft blur-3xl" aria-hidden="true" />
         <div className="relative max-w-3xl">
-          <p className="eyebrow">My Saju</p>
+          <p className="eyebrow">나의 사주</p>
           <h1 className="mt-3 text-[2rem] font-bold leading-[1.25] tracking-[-0.045em] sm:text-[3rem]">
             나를 이루는 흐름을<br className="hidden sm:block" /> 차분하게 읽어보세요
           </h1>
@@ -19,20 +23,36 @@ export default function Home() {
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <a href="#calculator" className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong">
-              내 명식 입력하기
+              내 사주 보기
             </a>
             <Link href="/compat" className="rounded-full border border-border-strong bg-surface px-5 py-2.5 text-sm font-semibold hover:border-accent hover:text-accent">
               두 사람 궁합 보기
             </Link>
           </div>
         </div>
-        <div className="relative mt-8 flex flex-wrap gap-2" aria-label="오행">
-          {[
-            ['목', 'bg-wood-soft text-wood'], ['화', 'bg-fire-soft text-fire'],
-            ['토', 'bg-earth-soft text-earth'], ['금', 'bg-metal-soft text-metal'],
-            ['수', 'bg-water-soft text-water'],
-          ].map(([name, tone]) => <span key={name} className={`grid size-9 place-items-center rounded-full text-xs font-bold ${tone}`}>{name}</span>)}
-        </div>
+
+        {/*
+          다섯 색은 결과 화면과 **같은 한 벌**을 쓴다(`app/element-tone.ts`). 여기서
+          손으로 적으면 히어로의 木과 여덟 글자 칸의 木이 다른 초록이 되고, 그때 색은
+          아무것도 가리키지 않는 장식이 된다. 이름을 함께 세우는 것도 같은 이유다 —
+          색만으로는 다섯을 가를 수 없는 사람이 있다.
+        */}
+        <ul className="relative mt-8 flex flex-wrap gap-2">
+          {ELEMENTS.map((element) => {
+            const tone = ELEMENT_TONE[element];
+            return (
+              <li
+                key={element}
+                className={`flex items-center gap-1.5 rounded-full border py-1.5 pl-1.5 pr-3 text-xs font-semibold ${tone.border} ${tone.surface}`}
+              >
+                <span className={`glyph grid size-6 place-items-center rounded-full bg-surface/70 ${tone.text}`}>
+                  {element}
+                </span>
+                {ELEMENT_KO[element]}
+              </li>
+            );
+          })}
+        </ul>
       </header>
 
       {/*
@@ -42,7 +62,7 @@ export default function Home() {
       */}
       <section id="calculator" className="scroll-mt-24">
         <div className="mb-5">
-          <p className="eyebrow">Birth Information</p>
+          <p className="eyebrow">생년월일시</p>
           <h2 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">출생 정보를 알려주세요</h2>
           <p className="mt-1 text-sm text-secondary">시간을 모르면 비워도 괜찮습니다. 확인 가능한 범위만 계산합니다.</p>
         </div>

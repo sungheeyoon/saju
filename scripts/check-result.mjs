@@ -144,7 +144,7 @@ const NO_INDEX = ['match-v0', '100점 만점 베타 탐색 지표', '입력 완�
  * 지표가 이 화면에서 내려갔기 때문이다.
  */
 const betweenOf = (html) =>
-  (/두 원국 사이의 관계[\s\S]*?(?=AI 해석)/.exec(plain(html)) ?? [null])[0];
+  (/두 원국 사이의 관계[\s\S]*?(?=두 사람의 사주풀이)/.exec(plain(html)) ?? [null])[0];
 
 try {
   // ── 1. 후보 → 요청 → 수락 ─────────────────────────────────────────────────
@@ -193,11 +193,11 @@ try {
     check(`내부 지표(${word})가 결과 화면에 없다`, !mine.includes(word));
   }
 
-  /** AI 해석 칸은 서되, 아직 만들지 않았으면 **그렇게 말한다** */
-  check('AI 해석 칸이 선다', mine.includes('AI 해석'));
-  check('아직 만들지 않았으면 그렇게 말한다', plain(mine).includes('아직 AI 해석을 만들지 않았습니다'));
+  /** 사주풀이 칸은 서되, 아직 만들지 않았으면 **그렇게 말한다** */
+  check('사주풀이 칸이 선다', mine.includes('두 사람의 사주풀이'));
+  check('아직 만들지 않았으면 그렇게 말한다', plain(mine).includes('아직 만들어 둔 사주풀이가 없습니다'));
   check('두 사람이 같은 상태를 본다',
-    plain(theirs).includes('아직 AI 해석을 만들지 않았습니다'));
+    plain(theirs).includes('아직 만들어 둔 사주풀이가 없습니다'));
 
   // ── 3. 동의할 때 읽은 목록을 결과에서도 읽는다 ────────────────────────────
   {
@@ -209,7 +209,8 @@ try {
     check('관계를 합치면 여덟 글자가 전부 보일 수 있음을 적는다',
       text.includes('여덟 글자가 전부 보일 수 있습니다'));
     check('매인 판본으로 났다고 말한다', text.includes('동의한 대상이 그 판본이기 때문'));
-    check('조립된 문장과 AI 해석을 구별해 말한다', text.includes('곧바로 조립한 것입니다'));
+    check('조립된 문장과 사주풀이를 구별해 말한다', text.includes('곧바로 조립한 것입니다'));
+    check('풀이를 누가 쓰는지 밝힌다', text.includes('언어 모델이 따로 써서'));
   }
 
   // ── 4. 출생 원문은 응답에 없다 ────────────────────────────────────────────
@@ -226,7 +227,7 @@ try {
      * 낱말로 재는 대신, 그 칸들에만 서는 문장이 하나도 없는지를 본다.
      */
     check('상대의 명식 표가 서지 않는다', !plain(mine).includes('일간 '));
-    check('근거 패널이 서지 않는다', !mine.includes('AI 에 넘길 자료'));
+    check('근거 패널이 서지 않는다', !mine.includes('풀이에 넘기는 자료'));
     check('지금 도는 운이 서지 않는다', !mine.includes('지금 도는 운'));
     check('오행 개수표가 응답에 없다',
       !mine.includes('glyphCount') && !mine.includes('"counts"') && !mine.includes('"ratios"'));

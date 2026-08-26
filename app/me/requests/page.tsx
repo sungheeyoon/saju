@@ -1,7 +1,13 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { CONSENT_INTRO, MATCH_RESULT_LINK, REQUEST_STATUS_TEXT } from '@/src/lib/consent';
+import {
+  CONSENT_FLOW_CAVEAT,
+  CONSENT_FLOW_STEPS,
+  CONSENT_INTRO,
+  MATCH_RESULT_LINK,
+  REQUEST_STATUS_TEXT,
+} from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
@@ -46,20 +52,42 @@ export default async function RequestsPage() {
     .maybeSingle();
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-12 sm:px-6 sm:py-16">
-      <header className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">요청과 알림</h1>
-        <p className="max-w-2xl text-sm text-secondary">
-          상세 궁합은 <strong className="font-medium">서로 동의한 뒤</strong>에 열립니다.
-          요청은 지금 두 사람의 출생정보 판본에 매여 있고, 어느 한쪽이 그 입력을 고치면
-          무효가 됩니다.
-        </p>
+    <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">
+      <header className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <p className="eyebrow">요청과 알림</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            상세 궁합은 <span className="text-accent">서로 동의한 뒤</span>에 열립니다
+          </h1>
+        </div>
+
+        {/*
+          **흐름을 화면에 세운다.** 「동의한 뒤에 열립니다」한 줄만 두면 맞는 말이지만
+          읽는 사람은 자기가 무엇을 하는 중인지 모른다 — 걸음마다 무엇이 열리고 무엇이
+          아직 안 열리는지를 함께 적는 것이 이 제품의 설명 자체다(`CONSENT_FLOW_STEPS`).
+        */}
+        <ol className="grid gap-3 sm:grid-cols-3">
+          {CONSENT_FLOW_STEPS.map((step, index) => (
+            <li key={step.title} className="flex flex-col gap-1.5 rounded-2xl border border-border bg-surface p-4">
+              <p className="flex items-center gap-2 text-sm font-bold">
+                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent-wash text-xs text-accent-strong">
+                  {index + 1}
+                </span>
+                {step.title}
+              </p>
+              <p className="text-xs leading-5 text-secondary">{step.body}</p>
+            </li>
+          ))}
+        </ol>
+
+        <p className="text-xs leading-5 text-muted">{CONSENT_FLOW_CAVEAT}</p>
+
         <p className="flex flex-wrap gap-4 text-sm">
+          <Link href="/me/discovery" className="text-accent underline underline-offset-2">
+            후보 보러 가기
+          </Link>
           <Link href="/me" className="text-accent underline underline-offset-2">
             내 사주
-          </Link>
-          <Link href="/me/discovery" className="text-accent underline underline-offset-2">
-            후보
           </Link>
         </p>
       </header>

@@ -146,11 +146,17 @@ const body = async (path, cookie) => (await get(path, cookie)).text();
 /** React 는 나란한 글자 마디 사이에 `<!-- -->` 를 넣는다. 문장을 견줄 때 지운다 */
 const plain = (html) => html.replace(/<!--\s*-->/g, '');
 
+/**
+ * 태그를 걷어 낸 본문 — **화면에 실제로 서는 글자만.**
+ *
+ * 배지를 마크업으로 찾으려 하면 태그 한 겹이 끼는 순간 소리 없이 못 찾고, 그때
+ * 검사는 「배지가 없다」가 아니라 「0 이다」라고 말한다. 배지가 자기 말을 들고 있으면
+ * (`건 안 읽음`) 겉모양이 바뀌어도 재는 것은 그대로다.
+ */
+const text = (html) => plain(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
 /** `/me` 의 「요청과 알림」 옆에 선 수 — 없으면 `'0'` */
-const badge = async (cookie) => {
-  const html = plain(await body('/me', cookie));
-  return (/요청과 알림\s*<span[^>]*>(\d+)<\/span>/.exec(html) ?? [null, '0'])[1];
-};
+const badge = async (cookie) => (/(\d+) 건 안 읽음/.exec(text(await body('/me', cookie))) ?? [null, '0'])[1];
 
 try {
   /**
@@ -404,14 +410,13 @@ try {
   // ── 11. 읽음은 사건이다 ─────────────────────────────────────────────────────
   {
     await b.rpc('mark_notifications_read');
-    const mine = plain(await body('/me', bCookie));
     /**
      * **배지만 본다.** 예전에는 「요청과 알림」 뒤에 아무 태그나 하나 온 뒤의 숫자를
      * 찾았는데, 그 그물에는 화면 아래 붙는 RSC 자료까지 걸린다 — 그 안에도 같은 낱말이
      * 있고 뒤따르는 값은 화면과 무관하다. 재려는 것은 **그려진 배지**다.
      */
-    const badge = /요청과 알림<span[^>]*>([1-9]\d*)</.exec(mine);
-    check('읽고 나면 수가 서지 않는다', badge === null, badge?.[1] ?? '');
+    const shown = /([1-9]\d*) 건 안 읽음/.exec(text(await body('/me', bCookie)));
+    check('읽고 나면 수가 서지 않는다', shown === null, shown?.[1] ?? '');
   }
 } finally {
   stop();

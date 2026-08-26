@@ -1,5 +1,5 @@
 /**
- * 현재 AI 결과를 **실제 스택에 대고** 돌린다 — 모델만 빼고.
+ * 현재 사주풀이를 **실제 스택에 대고** 돌린다 — 모델만 빼고.
  *
  * 모델을 부르지 않는다. 부르면 검사가 느려지고 값이 매번 달라지며 돈이 든다. 대신
  * **모델이 냈다고 치고** 저장 RPC 를 그대로 부른다 — 근거를 자르고 프롬프트를 짓고
@@ -172,12 +172,13 @@ const saveAs = async (client, kind, target, output, score) => {
 };
 
 try {
-  // ── 1. 조회는 AI 를 부르지 않는다 ─────────────────────────────────────────
+  // ── 1. 조회는 모델을 부르지 않는다 ───────────────────────────────────────
   {
     const mine = await body('/me', cookie.a);
-    check('내 사주에 AI 해석 칸이 선다', mine.includes('AI 해석'));
-    check('아직 없으면 없다고 말한다', plain(mine).includes('아직 AI 해석을 만들지 않았습니다'));
-    check('만드는 버튼이 선다', mine.includes('AI 해석 만들기'));
+    check('내 사주에 사주풀이 칸이 선다', mine.includes('나의 사주풀이'));
+    check('아직 없으면 없다고 말한다', plain(mine).includes('아직 만들어 둔 사주풀이가 없습니다'));
+    check('만드는 버튼이 선다', mine.includes('사주풀이 받기'));
+    check('누가 쓰는지는 버튼 옆에 남는다', plain(mine).includes('언어 모델이 씁니다'));
     check('넘기지 않는 것을 화면이 말한다', plain(mine).includes('넣지 않은 값은 나올 수 없습니다'));
   }
 
@@ -188,7 +189,7 @@ try {
 
     const mine = plain(await body('/me', cookie.a));
     check('저장한 글이 화면에 선다', mine.includes('스스로 정한 규칙 안에서'));
-    check('자기 풀이에는 점수가 서지 않는다', !mine.includes('실험 중인 해석이 붙인 값'));
+    check('자기 풀이에는 점수가 서지 않는다', !mine.includes('실험 중인 풀이가 붙인 값'));
     check('다시 열어도 그대로라고 말한다', mine.includes('화면을 다시 열어도'));
 
     /** 근거와 프롬프트는 **사용자 화면의 것이 아니다** */
@@ -202,7 +203,7 @@ try {
     const pair = `?a=${account.self_person_id}&b=${momId}`;
 
     const before = plain(await body(`/me/compat${pair}`, cookie.a));
-    check('저장된 사람끼리 궁합에는 아직 AI 해석 칸이 서지 않는다', !before.includes('AI 해석'));
+    check('저장된 사람끼리 궁합에는 아직 사주풀이 칸이 서지 않는다', !before.includes('사주풀이'));
     for (const word of ['match-v0', '100점 만점 베타 탐색 지표']) {
       check(`내부 지표(${word})가 로그인 화면에 없다`, !before.includes(word));
     }

@@ -221,8 +221,8 @@ try {
     check('결과가 무엇을 기준으로 났는지 문장으로 말한다',
       body.includes('현재 저장된 출생정보 기준입니다'));
     /** 첫 세로 슬라이스는 Match 결과만 연다. private는 공통 파이프라인 준비까지만 한다. */
-    check('비공개 궁합에는 아직 AI 결과 자리가 서지 않는다',
-      body.includes('두 원국 사이의 관계') && !body.includes('AI 해석'));
+    check('비공개 궁합에는 아직 사주풀이 자리가 서지 않는다',
+      body.includes('두 원국 사이의 관계') && !body.includes('사주풀이'));
     check('내부 지표는 로그인 화면에 없다', !body.includes('궁합 베타'));
     /**
      * 주소에는 Person id 둘뿐이다. 저장된 출생 원문이 주소로 새어 나가면 익명

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BLOCK_NOTE,
+  CONSENT_FLOW_CAVEAT,
+  CONSENT_FLOW_STEPS,
   CONSENT_INTRO,
   MATCH_DISCLOSURE,
   MATCH_RESULT_CLOSED_NOTE,
@@ -93,10 +95,10 @@ describe('알림은 네 사건을 말한다', () => {
  * 앞에 붙는 말만 다르다.
  */
 describe('Match 가 여는 범위는 한 벌이다', () => {
-  it('열리는 것에 궁합 관계·AI 해석과 점수·일부 오행 구성이 있다', () => {
+  it('열리는 것에 궁합 관계·사주풀이와 점수·일부 오행 구성이 있다', () => {
     const shown = MATCH_DISCLOSURE.shown.join(' ');
-    // 점수는 AI 해석과 같은 생성 건에서 난다. 내부 지표 이름은 여기 서지 않는다(PRD).
-    expect(shown).toContain('AI 해석과 점수');
+    // 점수는 사주풀이와 같은 생성 건에서 난다. 내부 지표 이름은 여기 서지 않는다(PRD).
+    expect(shown).toContain('사주풀이와 점수');
     expect(shown).not.toContain('match-v0');
     expect(shown).toContain('오행');
     // 누가 보든 같은 글이다 — `perspectivePersonId` 로 결론이 바뀌지 않는다(US 48).
@@ -116,7 +118,7 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
     expect(REQUEST_INTRO).toContain('수락');
     expect(CONSENT_INTRO).toContain('Match');
     // 결과 화면도 같은 목록을 읽는다(ADR 0010) — 앞에 붙는 말만 다르다.
-    expect(MATCH_RESULT_INTRO).toContain('AI 해석과 점수');
+    expect(MATCH_RESULT_INTRO).toContain('사주풀이와 점수');
   });
 
   /**
@@ -135,7 +137,7 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
 /**
  * 결과 화면의 말 — **이 화면에만 있는 사실 셋.**
  *
- * 판본에 매여 있다는 것, 어느 문장이 조립된 것이고 어느 것이 AI 가 쓴 것인지, 그리고
+ * 판본에 매여 있다는 것, 어느 문장이 조립된 것이고 어느 것이 모델이 쓴 것인지, 그리고
  * 못 열 때 무엇이 그대로 남아 있는지. 셋 다 화면이 손으로 적으면 한 곳만 고쳐진다.
  */
 describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
@@ -145,14 +147,17 @@ describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
   });
 
   /**
-   * 두 층을 구별해 말한다 — 조립된 문장과 AI 가 쓴 글이 한 화면에 함께 선다.
+   * 두 층을 구별해 말한다 — 조립된 문장과 모델이 쓴 글이 한 화면에 함께 선다.
    *
-   * 예전에는 이 자리가 「AI 가 붙어도 점수를 새로 만들지 않고 `match-v0` 를 설명한다」
+   * 예전에는 이 자리가 「모델이 붙어도 점수를 새로 만들지 않고 `match-v0` 를 설명한다」
    * 였다. 그 결정은 폐기됐다(HEAD `a9337f4`) — 점수는 해석과 **같은 생성 건**에서 나온다.
    */
-  it('조립된 문장과 저장된 AI 해석을 구별해 말한다', () => {
+  it('조립된 문장과 모델이 쓴 사주풀이를 구별해 말한다', () => {
     expect(MATCH_RESULT_ENGINE_NOTE).toContain('조립');
-    expect(MATCH_RESULT_ENGINE_NOTE).toContain('AI');
+    // 제목에는 도구 이름을 안 박지만 **두 층이 나란히 서는 이 자리에서는 밝힌다.**
+    // 「사주풀이」만 적으면 표와 같은 곳에서 나온 것처럼 읽힌다.
+    expect(MATCH_RESULT_ENGINE_NOTE).toContain('사주풀이');
+    expect(MATCH_RESULT_ENGINE_NOTE).toContain('언어 모델');
     // 내부 지표 이름은 사용자에게 보이지 않는다(PRD).
     expect(MATCH_RESULT_ENGINE_NOTE).not.toContain('match-v0');
   });
@@ -161,6 +166,47 @@ describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
   it('열지 못할 때도 Match 가 그대로라고 말한다', () => {
     expect(MATCH_RESULT_CLOSED_NOTE).toContain('Match');
     expect(MATCH_RESULT_CLOSED_NOTE).toContain('그대로');
+  });
+});
+
+/**
+ * **「동의한 뒤에 열립니다」는 설명이 아니다.**
+ *
+ * 그 한 줄은 맞는 말이지만, 읽는 사람이 모르는 것은 「동의가 필요하다」가 아니라
+ * 자기가 지금 무엇을 해야 하는가다. 그래서 흐름을 세 걸음으로 적고, 걸음마다
+ * **그 걸음에서 아직 열리지 않는 것**을 함께 적는다 — 이 제품이 파는 것이 곧
+ * 「아직 안 열렸다」라서, 그 사실이 빠지면 요청을 보내는 일 자체가 무서운 일이 된다.
+ */
+describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
+  it('보내기·답하기·함께 보기 순서로 선다', () => {
+    expect(CONSENT_FLOW_STEPS).toHaveLength(3);
+    const [send, answer, open] = CONSENT_FLOW_STEPS;
+    expect(send.title).toContain('요청');
+    expect(answer.title).toContain('답');
+    expect(open.title).toContain('봅니다');
+  });
+
+  it('걸음마다 그때 열리지 않는 것을 함께 적는다', () => {
+    const [send, answer, open] = CONSENT_FLOW_STEPS;
+    // 보내는 것만으로는 아무것도 열리지 않는다.
+    expect(send.body).toContain('열리는 것은 없고');
+    // 수락하지 않으면 지금 보이는 것에서 더 나가지 않는다.
+    expect(answer.body).toContain('수락하지 않으면');
+    // 열린 뒤에도 출생 원문은 닫혀 있다(ADR 0012).
+    expect(open.body).toContain('생년월일시와 출생지는 열리지 않습니다');
+  });
+
+  /**
+   * 개념을 **처음 만나는 자리**에서 우리 내부 낱말로 설명하지 않는다.
+   * 「판본」은 요청 카드 안의 고지가 든다(`REVISION_BOUND_NOTE`).
+   */
+  it('흐름 설명에는 판본이라는 말이 서지 않는다', () => {
+    const flow = [...CONSENT_FLOW_STEPS.map((step) => `${step.title} ${step.body}`), CONSENT_FLOW_CAVEAT].join(' ');
+    expect(flow).not.toContain('판본');
+    // 같은 사실은 그래도 말한다 — 무엇이 요청을 깨뜨리는지, 그리고 그다음에 할 일.
+    expect(CONSENT_FLOW_CAVEAT).toContain('출생정보');
+    expect(CONSENT_FLOW_CAVEAT).toContain('무효');
+    expect(CONSENT_FLOW_CAVEAT).toContain('다시 보내야');
   });
 });
 
@@ -174,6 +220,8 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
     expect(REVISION_BOUND_NOTE).toContain('무효');
     // 이름·메모 수정은 무효로 만들지 않는다 — 그 경계도 함께 적는다.
     expect(REVISION_BOUND_NOTE).toContain('이름');
+    // 무효는 막다른 길이 아니다 — 그다음에 할 일을 함께 적는다.
+    expect(REVISION_BOUND_NOTE).toContain('다시 보내면');
   });
 
   it('거절이 되돌아오지 않는다는 것을 먼저 말한다', () => {

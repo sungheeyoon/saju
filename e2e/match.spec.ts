@@ -1,5 +1,7 @@
 import { expect, hideEveryoneExcept, optIn, test, type Person } from './session';
 
+import { fillBirthDate } from './birth-form';
+
 /**
  * 둘이 있어야 성립하는 흐름 — **창을 둘 열고 잰다.**
  *
@@ -81,7 +83,16 @@ test.describe('동의로 열리는 흐름', () => {
 
     // ── 받은 쪽이 읽고 수락한다 ─────────────────────────────────────────────
     await receiver.page.goto('/me/requests');
-    await expect(receiver.page.getByRole('heading', { name: '요청과 알림' })).toBeVisible();
+    /*
+      **화면이 자기가 무엇을 하는 곳인지부터 말한다.** 제목 한 줄과 세 걸음이 함께
+      서지 않으면 「동의」라는 낱말만 남고, 받은 쪽은 자기가 무엇을 정하는 중인지
+      모른 채 버튼을 고른다(`CONSENT_FLOW_STEPS`).
+    */
+    await expect(
+      receiver.page.getByRole('heading', { name: /상세 궁합은.*서로 동의한 뒤.*열립니다/ }),
+    ).toBeVisible();
+    await expect(receiver.page.getByRole('listitem').filter({ hasText: '요청을 보냅니다' })).toBeVisible();
+    await expect(receiver.page.getByText('보내는 것만으로 상대에게 열리는 것은 없고')).toBeVisible();
     await expect(receiver.page.getByRole('heading', { name: `보내는${tag}` })).toBeVisible();
 
     // 수락 전에도 상대의 정확한 출생정보는 없다(US 39).
@@ -106,9 +117,9 @@ test.describe('동의로 열리는 흐름', () => {
       await expect(person.page.getByText('서울')).toHaveCount(0);
 
       // 현재 Reading 은 아직 없다 — 화면을 여는 것으로 만들어지지 않는다(US 25).
-      await expect(person.page.getByRole('heading', { name: 'AI 해석' })).toBeVisible();
-      await expect(person.page.getByText('아직 AI 해석을 만들지 않았습니다')).toBeVisible();
-      await expect(person.page.getByRole('button', { name: 'AI 해석 만들기' })).toBeVisible();
+      await expect(person.page.getByRole('heading', { name: '두 사람의 사주풀이' })).toBeVisible();
+      await expect(person.page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
+      await expect(person.page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
     }
   });
 
@@ -128,7 +139,7 @@ test.describe('동의로 열리는 흐름', () => {
     // 보낸 쪽이 Evidence 를 바꾼다 — 이름이 아니라 여덟 글자를 바꾸는 수정이다.
     await asker.page.goto('/me');
     await asker.page.getByRole('button', { name: '생년월일시 고치기' }).click();
-    await asker.page.getByLabel('생년월일').fill('1988-02-11');
+    await fillBirthDate(asker.page, '1988-02-11');
     await asker.page.getByRole('button', { name: '새 판본으로 저장' }).click();
     await expect(asker.page.getByText('1988-02-11')).toBeVisible();
 

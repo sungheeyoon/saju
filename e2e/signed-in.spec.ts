@@ -1,5 +1,7 @@
 import { expect, test } from './session';
 
+import { fillBirthDate, fillBirthTime } from './birth-form';
+
 /**
  * 로그인한 사람의 세로 흐름 — **브라우저에서.**
  *
@@ -27,10 +29,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '내 사주 등록' })).toBeVisible();
 
     await page.getByLabel('이름').fill(newcomer.label);
-    await page.getByLabel('생년월일').fill('1990-05-15');
-    // 라디오를 먼저 고른다 — 고르기 전에는 시각 칸이 잠겨 있다.
-    await page.getByRole('radio', { name: '시각' }).check();
-    await page.getByLabel('출생시각').fill('14:30');
+    await fillBirthDate(page, '1990-05-15');
+    await fillBirthTime(page, '14:30');
 
     const save = page.getByRole('button', { name: '내 사주로 저장' });
     await expect(save).toBeEnabled();
@@ -41,7 +41,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('1990-05-15')).toBeVisible();
   });
 
-  test('내 사주 화면은 AI 해석 칸을 세우되 여는 것만으로 만들지 않는다', async ({
+  test('내 사주 화면은 사주풀이 칸을 세우되 여는 것만으로 만들지 않는다', async ({
     page,
     signedIn,
   }) => {
@@ -53,16 +53,23 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       **US 23-1 · 25 가 걸린 자리다.** 칸은 서고, 아직 없다고 말하고, 버튼만 있다.
       화면을 여는 것으로 모델이 불리면 배포와 새로고침이 결과를 바꾼다.
     */
-    await expect(page.getByRole('heading', { name: 'AI 해석' })).toBeVisible();
-    await expect(page.getByText('아직 AI 해석을 만들지 않았습니다')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'AI 해석 만들기' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '나의 사주풀이' })).toBeVisible();
+    await expect(page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
+    await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
+
+    /*
+      **도구 이름은 제목에 서지 않지만 사라지지도 않는다.** 「AI 해석」이라는 제목을
+      내리면서 「누가 썼는가」까지 같이 내려가면, 조립된 문장과 모델이 쓴 글이 한
+      화면에서 구별되지 않는다. 그래서 만드는 버튼 옆의 한 줄을 함께 잰다.
+    */
+    await expect(page.getByText('언어 모델이 씁니다', { exact: false })).toBeVisible();
 
     // 넘기지 않는 것을 화면이 먼저 말한다(ADR 0008).
     await expect(page.getByText('넣지 않은 값은 나올 수 없습니다', { exact: false })).toBeVisible();
 
     // 다시 열어도 만들어지지 않는다 — 같은 자리에 같은 문장이 그대로 선다.
     await page.reload();
-    await expect(page.getByText('아직 AI 해석을 만들지 않았습니다')).toBeVisible();
+    await expect(page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
   });
 
   test('사람을 추가하면 목록에 서고 그 사람과의 수동 궁합이 열린다', async ({ page, signedIn }) => {
@@ -76,9 +83,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     const form = page.locator('form, section').filter({ hasText: '사람 추가' }).last();
     await form.getByLabel('이름').fill('친구');
-    await form.getByLabel('생년월일').fill('1991-08-08');
-    await form.getByRole('radio', { name: '시각' }).check();
-    await form.getByLabel('출생시각').fill('09:20');
+    await fillBirthDate(form, '1991-08-08');
+    await fillBirthTime(form, '09:20');
     await form.getByRole('button', { name: '등록', exact: true }).click();
 
     await expect(page.getByRole('heading', { name: '친구' })).toBeVisible();
@@ -109,7 +115,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('1990-05-15')).toBeVisible();
 
     await page.getByRole('button', { name: '생년월일시 고치기' }).click();
-    await page.getByLabel('생년월일').fill('1990-06-20');
+    await fillBirthDate(page, '1990-06-20');
     await page.getByRole('button', { name: '새 판본으로 저장' }).click();
 
     await expect(page.getByText('1990-06-20')).toBeVisible();

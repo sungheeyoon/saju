@@ -19,7 +19,7 @@ export const maxDuration = 300;
 
 export const metadata = {
   title: '함께 보는 궁합 — 만세력',
-  description: '서로 동의한 두 사람의 궁합과 그 위에 선 AI 해석을 봅니다.',
+  description: '서로 동의한 두 사람의 궁합과 그 위에 선 사주풀이를 봅니다.',
 };
 
 /**

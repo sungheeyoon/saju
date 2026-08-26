@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import {
+  chooseCalendar,
+  chooseHourUnknown,
+  expectBirthDate,
+  fillBirthDate,
+  fillBirthTime,
+} from './birth-form';
+
 /**
  * 시각을 아는 입력 한 벌.
  *
@@ -19,9 +27,8 @@ const sharedParams = (page: Page): URLSearchParams =>
 
 const enterKnownBirth = async (page: Page, name = '민수') => {
   await page.getByLabel('이름', { exact: true }).fill(name);
-  await page.getByLabel('생년월일', { exact: true }).fill('1990-05-15');
-  await page.getByRole('radio', { name: '시각', exact: true }).check();
-  await page.getByLabel('출생시각', { exact: true }).fill('14:30');
+  await fillBirthDate(page, '1990-05-15');
+  await fillBirthTime(page, '14:30');
 };
 
 test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 탐색을 제공한다', async ({
@@ -109,9 +116,8 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
 test('化를 판정한 명식에서만 합화라고 부른다', async ({ page }) => {
   await page.goto('/');
   await page.getByLabel('이름', { exact: true }).fill('민수');
-  await page.getByLabel('생년월일', { exact: true }).fill('1999-10-23');
-  await page.getByRole('radio', { name: '시각', exact: true }).check();
-  await page.getByLabel('출생시각', { exact: true }).fill('22:00');
+  await fillBirthDate(page, '1999-10-23');
+  await fillBirthTime(page, '22:00');
   await page.getByRole('button', { name: '사주 보기' }).click();
 
   const said = await page.locator('main').innerText();
@@ -135,12 +141,11 @@ test('음력으로 넣으면 잡은 양력을 먼저 보여주고 그 날로 계
   await page.goto('/');
 
   await page.getByLabel('이름', { exact: true }).fill('엄마');
-  await page.getByLabel('달력').selectOption('lunar');
-  await page.getByLabel('생년월일', { exact: true }).fill('1965-03-12');
-  await page.getByRole('radio', { name: '시각', exact: true }).check();
-  await page.getByLabel('출생시각', { exact: true }).fill('09:00');
+  await chooseCalendar(page, 'lunar');
+  await fillBirthDate(page, '1965-03-12');
+  await fillBirthTime(page, '09:00');
 
-  await expect(page.getByText('양력 1965-04-13 로 계산합니다')).toBeVisible();
+  await expect(page.getByText('양력 1965년 4월 13일로 계산합니다')).toBeVisible();
 
   await page.getByRole('button', { name: '사주 보기' }).click();
   const fromLunar = await page.locator('#chart').innerText();
@@ -152,9 +157,8 @@ test('음력으로 넣으면 잡은 양력을 먼저 보여주고 그 날로 계
   // 같은 사람을 양력으로 넣으면 같은 여덟 글자가 나온다.
   await page.goto('/');
   await page.getByLabel('이름', { exact: true }).fill('엄마');
-  await page.getByLabel('생년월일', { exact: true }).fill('1965-04-13');
-  await page.getByRole('radio', { name: '시각', exact: true }).check();
-  await page.getByLabel('출생시각', { exact: true }).fill('09:00');
+  await fillBirthDate(page, '1965-04-13');
+  await fillBirthTime(page, '09:00');
   await page.getByRole('button', { name: '사주 보기' }).click();
 
   expect(await page.locator('#chart').innerText()).toBe(fromLunar);
@@ -171,35 +175,43 @@ test('있지도 않은 윤달은 계산하지 않고 어느 윤달이 있는지 
   await page.goto('/');
 
   await page.getByLabel('이름', { exact: true }).fill('민수');
-  await page.getByLabel('달력').selectOption('lunar_leap');
-  await page.getByLabel('생년월일', { exact: true }).fill('2024-04-01');
+  await chooseCalendar(page, 'lunar_leap');
+  await fillBirthDate(page, '2024-04-01');
 
   // Next 의 라우트 안내판도 `role="alert"` 이라 폼 안으로 좁힌다.
   const refusal = page.locator('main').getByRole('alert');
   await expect(refusal).toContainText('2024년에는 윤달이 없습니다');
 
   // 2023년에는 윤2월이 있다 — 어느 것이 있는지까지 말한다.
-  await page.getByLabel('생년월일', { exact: true }).fill('2023-04-01');
+  await fillBirthDate(page, '2023-04-01');
   await expect(refusal).toContainText('윤2월');
 
-  // 표 밖은 다른 말을 한다.
-  await page.getByLabel('달력').selectOption('lunar');
-  await page.getByLabel('생년월일', { exact: true }).fill('1905-04-01');
-  await expect(refusal).toContainText('1912~2100');
+  /*
+    표 밖은 다른 말을 한다 — 그런데 **폼으로는 거기까지 못 간다.**
+
+    연도 목록이 달력에 맞춰 좁혀지므로(음력은 1912년부터) 1905년은 고를 수가 없다.
+    그래도 거절 문장이 필요하다: 입력은 주소의 `#` 뒤에서도 들어오고, 그 링크는
+    폼이 좁아지기 전에 나갔을 수도 남이 손으로 고쳤을 수도 있다. 그래서 폼이 아니라
+    **링크로** 그 자리를 짚는다.
+  */
+  await page.goto('/#cal=lunar&date=1905-04-01&hour=unknown&gender=female&city=%EC%84%9C%EC%9A%B8&rule=jo&basis=localMean&saeun=2026');
+  // 폼 아래와 결과 자리가 **둘 다** 이유를 말한다 — 링크로 들어오면 결과 자리가 비어 있다.
+  await expect(page.locator('main').getByRole('alert')).toHaveCount(2);
+  await expect(page.locator('main').getByRole('alert').first()).toContainText('1912~2100');
 });
 
 test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한다', async ({ page }) => {
   await page.goto('/');
   await enterKnownBirth(page);
 
-  await page.getByRole('radio', { name: '모름', exact: true }).check();
-  await expect(page.getByLabel('출생시각', { exact: true })).toBeDisabled();
+  await chooseHourUnknown(page);
+  await expect(page.getByLabel('출생 시')).toBeDisabled();
+  await expect(page.getByLabel('출생 분')).toBeDisabled();
   await page.getByRole('button', { name: '사주 보기' }).click();
   await expect(page.getByText('미상 · 시주를 뽑지 않았습니다')).toBeVisible();
 
   // 라디오는 끌 수 없다 — 반대쪽을 고른다. 그것이 라디오로 바꾼 이유이기도 하다.
-  await page.getByRole('radio', { name: '시각', exact: true }).check();
-  await page.getByLabel('출생시각', { exact: true }).fill('14:30');
+  await fillBirthTime(page, '14:30');
   await page.locator('summary').filter({ hasText: '고급 설정' }).click();
   await page.getByRole('radio', { name: '진태양시' }).check();
   await expect(page.getByText('입력이 바뀌었습니다.', { exact: false })).toBeVisible();
@@ -272,8 +284,8 @@ test('지금의 운이 기준 시각과 세 칸을 한 번씩 보인다', async 
 test('시간 미상이면 지금의 운에서 대운만 후보로 내려앉는다', async ({ page }) => {
   await page.goto('/');
   await page.getByLabel('이름', { exact: true }).fill('민수');
-  await page.getByLabel('생년월일', { exact: true }).fill('1990-05-15');
-  await page.getByRole('radio', { name: '모름', exact: true }).check();
+  await fillBirthDate(page, '1990-05-15');
+  await chooseHourUnknown(page);
   await page.getByRole('button', { name: '사주 보기' }).click();
 
   const text = await page.locator('#fortune').innerText();
@@ -435,7 +447,7 @@ test('제출한 입력이 주소에 실려 링크와 새로고침에서 같은 �
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
   expect(await page.locator('#chart').innerText()).toBe(chart);
   // 폼도 주소를 따라와야 한다. 안 그러면 사용자가 바꾼 적 없는데 '입력이 바뀌었습니다'가 뜬다.
-  await expect(page.getByLabel('생년월일', { exact: true })).toHaveValue('1990-05-15');
+  await expectBirthDate(page, '1990-05-15');
   await expect(page.getByText('입력이 바뀌었습니다.', { exact: false })).toHaveCount(0);
   expect(consoleErrors).toEqual([]);
 });
@@ -471,7 +483,7 @@ test('옛 ? 링크도 그대로 열리고, 주소는 # 으로 갈린다', async 
   await page.goto('/?name=민수&date=1990-05-15&hour=14:30&gender=female&city=서울&rule=jo&basis=localMean&saeun=2026');
 
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
-  await expect(page.getByLabel('생년월일', { exact: true })).toHaveValue('1990-05-15');
+  await expectBirthDate(page, '1990-05-15');
   // 주소가 밖에서 바뀌었을 뿐인데 '입력이 바뀌었습니다' 가 뜨면 안 된다.
   await expect(page.getByText('입력이 바뀌었습니다.', { exact: false })).toHaveCount(0);
 
@@ -530,9 +542,8 @@ test('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그대로
   ] as const) {
     const group = page.getByRole('group', { name: placeholder });
 
-    await group.getByLabel('생년월일', { exact: true }).fill(date);
-    await group.getByRole('radio', { name: '시각', exact: true }).check();
-    await group.getByLabel('출생시각', { exact: true }).fill(time);
+    await fillBirthDate(group, date);
+    await fillBirthTime(group, time);
     await group.getByLabel('이름', { exact: true }).fill(name);
   }
 
@@ -552,7 +563,7 @@ test('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그대로
   await page.goto(shared);
   await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
   expect(await page.locator('main').innerText()).toBe(chart);
-  await expect(first.getByLabel('생년월일', { exact: true })).toHaveValue('1990-05-15');
+  await expectBirthDate(first, '1990-05-15');
   expect(consoleErrors).toEqual([]);
 
   // 관계 표가 넓어 가로로 흐르기 쉽다 — 표 안에서만 스크롤되어야 한다.
@@ -625,13 +636,13 @@ test('베타 매칭 지표는 사실 아래에 서고, 관심 버튼은 받지 �
 test('넘길 자료는 열었을 때 상한 표와 함께 선다', async ({ page }) => {
   await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
 
-  const panel = page.getByRole('group').filter({ hasText: 'AI 에 넘길 자료' });
+  const panel = page.getByRole('group').filter({ hasText: '풀이에 넘기는 자료' });
   await expect(panel).toBeVisible();
 
   // 닫혀 있는 동안에는 자료를 안 만든다 — 표도 버튼도 없다.
   await expect(page.getByRole('button', { name: 'JSON 내려받기' })).toBeHidden();
 
-  await panel.getByText('AI 에 넘길 자료').click();
+  await panel.getByText('풀이에 넘기는 자료').click();
 
   await expect(page.getByRole('button', { name: 'JSON 내려받기' })).toBeVisible();
   await expect(panel).toContainText('analysis.eokbu');
@@ -653,8 +664,8 @@ test('프롬프트를 골라 자료와 함께 복사한다', async ({ page, cont
 
   await page.goto('/#date=1990-05-15&hour=14:30');
 
-  const panel = page.getByRole('group').filter({ hasText: 'AI 에 넘길 자료' });
-  await panel.getByText('AI 에 넘길 자료').click();
+  const panel = page.getByRole('group').filter({ hasText: '풀이에 넘기는 자료' });
+  await panel.getByText('풀이에 넘기는 자료').click();
 
   // 한 사람이면 궁합 프롬프트는 아예 없다 — 흐리게 두고 안 먹히는 것보다 낫다.
   await expect(panel.getByRole('button', { name: '궁합' })).toHaveCount(0);
@@ -691,8 +702,8 @@ test('프롬프트를 골라 자료와 함께 복사한다', async ({ page, cont
 test('시각을 모르면 상한 표가 내려앉고 없다는 쪽이 잠긴다', async ({ page }) => {
   await page.goto('/#date=1988-07-15&hour=unknown');
 
-  const panel = page.getByRole('group').filter({ hasText: 'AI 에 넘길 자료' });
-  await panel.getByText('AI 에 넘길 자료').click();
+  const panel = page.getByRole('group').filter({ hasText: '풀이에 넘기는 자료' });
+  await panel.getByText('풀이에 넘기는 자료').click();
 
   const row = panel.locator('tr').filter({ hasText: 'analysis.elements' });
   await expect(row).toContainText('유도');
@@ -719,8 +730,8 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
 
   for (const control of [
-    page.getByLabel('생년월일', { exact: true }),
-    page.getByLabel('출생시각', { exact: true }),
+    page.getByLabel('출생연도'),
+    page.getByLabel('출생 시'),
     page.getByRole('button', { name: '사주 보기' }),
   ]) {
     const box = await control.boundingBox();

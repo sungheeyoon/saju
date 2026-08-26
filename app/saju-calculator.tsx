@@ -8,6 +8,7 @@ import { calculateChart } from './chart';
 import { useHashParams, writeParams } from './hash-query';
 import { CopyLinkButton } from './copy-link';
 import { EvidencePanel } from './evidence-panel';
+import { ELEMENT_TONE } from './element-tone';
 import {
   TOPICS_THE_TABLE_HOLDS,
   TOPIC_TABLE_FOOTNOTE,
@@ -49,6 +50,7 @@ import {
   type CurrentFortune,
   type DaeunAbsence,
   type DaeunSpan,
+  type Element,
   directionParticipantsOf,
   orderedParticipants,
   toCivil,
@@ -82,11 +84,17 @@ import {
  * 어느 쪽인지 정할 수 없다. 이때는 전역 옵션이 아니라 그 계산에만 붙는
  * 경고로 알린다(앞선 쪽으로 해석했다고 밝힌다).
  *
- * 오행별 전통색(청·적·황·백·흑)을 쓰지 않은 이유:
- * 白(금)은 채움색으로 성립하지 않고, 대체색을 넣으면 접근성 게이트를 넘지
- * 못한다 — 토=갈색/금=금색은 적↔갈 ΔE 2.5(deutan)로 사실상 같은 색이고,
- * 은색·회색은 채도 하한에 걸린다. 통과하는 조합은 금=보라뿐인데 근거가 없다.
- * 막대마다 이름이 붙어 색이 정체성을 지지 않으므로 단일 색조로 크기만 나타낸다.
+ * 오행 색은 **정체성을 지지 않는다**(`app/element-tone.ts`).
+ *
+ * 전통색(청·적·황·백·흑)을 그대로 쓰지 않는다. 白(금)은 채움색으로 성립하지
+ * 않고, 대체색을 넣으면 접근성 게이트를 넘지 못한다 — 토=갈색/금=금색은
+ * 적↔갈 ΔE 2.5(deutan)로 사실상 같은 색이고, 은색·회색은 채도 하한에 걸린다.
+ *
+ * 그래서 오래 이 자리는 단일 색조였다. 지금 다섯 색조를 쓰는 것은 그 판단을
+ * 뒤집은 것이 아니라 **조건을 지킨 채 들어온 것**이다: 글자 칸에도 막대에도
+ * 오행 이름이 함께 붙어 있어서, 색을 못 가르는 사람에게 사라지는 정보가 없다.
+ * 색이 유일한 단서가 되는 자리(범례만 있는 그림, 색으로만 갈리는 배지)에는
+ * 여전히 쓰지 않는다 — 그 순간 위의 ΔE 문제가 그대로 돌아온다.
  */
 
 /**
@@ -1304,6 +1312,7 @@ function PillarChart({ saju }: { saju: Saju }) {
                     key={key}
                     emphasis={key === 'day'}
                     glyph={pillar && pillar.stem}
+                    element={pillar ? STEM_INFO[pillar.stem].element : null}
                     caption={
                       pillar
                         ? `${STEM_INFO[pillar.stem].ko} · ${ELEMENT_KO[STEM_INFO[pillar.stem].element]}`
@@ -1323,6 +1332,7 @@ function PillarChart({ saju }: { saju: Saju }) {
                     key={key}
                     emphasis={key === 'day'}
                     glyph={pillar && pillar.branch}
+                    element={pillar ? BRANCH_INFO[pillar.branch].element : null}
                     caption={
                       pillar
                         ? `${BRANCH_INFO[pillar.branch].ko} · ${ELEMENT_KO[BRANCH_INFO[pillar.branch].element]}`
@@ -1499,25 +1509,24 @@ function GlyphCell({
   glyph,
   caption,
   emphasis,
+  element,
 }: {
   /** `null` 이면 빈 자리 — 시각을 모르는 시주 */
   glyph: string | null;
   caption: string;
   emphasis: boolean;
+  element: Element | null;
 }) {
+  const tone = element === null ? null : ELEMENT_TONE[element];
   return (
     <td className="px-2 py-1">
       <div
-        className={`mx-auto flex w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-3 ${
-          emphasis
-            ? 'border-accent bg-accent-wash'
-            : glyph === null
-              ? 'border-dashed border-border'
-              : 'border-border bg-surface-sunken'
-        }`}
+        className={`mx-auto flex w-full max-w-24 flex-col items-center gap-1 rounded-xl border py-3 ${
+          glyph === null ? 'border-dashed border-border' : `${tone?.border} ${tone?.surface}`
+        } ${emphasis ? 'ring-2 ring-foreground/15 ring-offset-2 ring-offset-surface' : ''}`}
       >
         <span
-          className={`glyph text-4xl leading-none ${glyph === null ? 'text-muted' : ''}`}
+          className={`glyph text-4xl font-semibold leading-none ${glyph === null ? 'text-muted' : tone?.text}`}
         >
           {glyph ?? '?'}
         </span>
@@ -1560,7 +1569,7 @@ function ElementChart({ saju }: { saju: Saju }) {
           {ELEMENTS.map((element) => (
             <tr key={element}>
               <td className="py-1 whitespace-nowrap">
-                <span className="glyph">{element}</span>{' '}
+                <span className={`glyph inline-grid size-7 place-items-center rounded-lg ${ELEMENT_TONE[element].surface} ${ELEMENT_TONE[element].text}`}>{element}</span>{' '}
                 <span className="text-secondary">{ELEMENT_KO[element]}</span>
                 {element === strongest && <span className="ml-1.5 text-xs text-muted">최강</span>}
                 {needed.has(element) && <span className="ml-1.5 text-xs text-accent">필요</span>}
@@ -1582,7 +1591,7 @@ function ElementChart({ saju }: { saju: Saju }) {
                 <div className="flex items-center gap-2">
                   <div className="h-2.5 min-w-0 flex-1 rounded-sm bg-track">
                     <div
-                      className="h-full rounded-r-[4px] bg-accent"
+                      className={`h-full rounded-full ${ELEMENT_TONE[element].bar}`}
                       style={{ width: `${(ratios[element] / max) * 100}%` }}
                     />
                   </div>
