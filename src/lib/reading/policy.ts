@@ -42,7 +42,7 @@ export const READING_POLICY = {
    * 저장된 결과가 무엇으로 만들어졌는지 되짚는 유일한 값이다. 사용자에게는 보이지
    * 않는다(PRD: 내부 엔진·prompt·모델 버전은 노출하지 않는다).
    */
-  version: 'reading-prompt-v1',
+  version: 'reading-prompt-v2',
   /**
    * 엔진과 AI 의 경계 — **첫 기준선.**
    *

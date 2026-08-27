@@ -160,11 +160,37 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     expect(absent.length).toBeLessThan(6);
   });
 
-  it('자료에 있는 간지는 걸리지 않는다', () => {
-    const base = ok('self');
+  it('자료에 있는 간지는 지어낸 간지로 잡히지 않는다', () => {
+    const base = ok('private');
     const result = checkReading({
       ...base,
       output: { ...base.output, markdown: `${OK_MARKDOWN}\n일주는 ${A.pillars.day.name} 이다.` },
+    });
+
+    expect(result).toEqual({ ok: true });
+  });
+
+  it.each(['일주는 甲申입니다.', '조건이 अस्पष्ट합니다.', 'MBTI처럼 보세요.'])(
+    '개인 풀이 화면에 한글 아닌 글자를 섞으면 hard fail 이다 — %s',
+    (sentence) => {
+      const base = ok('self');
+      const result = checkReading({
+        ...base,
+        output: { ...base.output, markdown: `${OK_MARKDOWN}\n${sentence}` },
+      });
+
+      expect(codesOf(result)).toContain('non-korean-self-body');
+    },
+  );
+
+  it('검사용 근거의 원문 한자는 사용자 본문 검사에서 제외한다', () => {
+    const base = ok('self');
+    const result = checkReading({
+      ...base,
+      output: {
+        ...base.output,
+        markdown: `${OK_MARKDOWN}\n### 근거 (검사용)\n- 일주: ${A.pillars.day.name}`,
+      },
     });
 
     expect(result).toEqual({ ok: true });

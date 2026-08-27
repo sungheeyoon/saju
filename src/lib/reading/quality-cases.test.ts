@@ -109,7 +109,7 @@ describe('이번 라운드', () => {
   it('옛 뼈대가 견줄 바탕으로 함께 선다', () => {
     const shapes = roundVariants().map((one) => one.assembly.selfPresentation);
 
-    expect(shapes).toContain('human-v2');
+    expect(shapes).toContain('expert-v3');
     expect(shapes).toContain('legacy-v1');
   });
 });

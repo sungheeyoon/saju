@@ -1,5 +1,6 @@
 import { BRANCHES, STEMS } from '../saju/constants';
 
+import { readingBody } from './display';
 import { READING_POLICY, isScored, type ReadingKind, type ReadingOutput } from './policy';
 
 /**
@@ -45,6 +46,8 @@ export const READING_FAILURES = {
   'score-out-of-contract': '점수가 계약한 모양이나 범위를 벗어났습니다',
   /** 본문이 계약한 길이 밖이다 — 빈 글도 실패다 */
   'length-out-of-contract': '본문 길이가 계약을 벗어났습니다',
+  /** 개인 풀이 화면에 생한자나 외국 문자가 섞였다 */
+  'non-korean-self-body': '개인 풀이 본문에 한글이 아닌 문자가 섞였습니다',
 } as const;
 
 export type ReadingFailureCode = keyof typeof READING_FAILURES;
@@ -181,6 +184,12 @@ const charactersIn = (text: string): string[] =>
     (char) => STEM_CHARS.includes(char) || BRANCH_CHARS.includes(char),
   );
 
+/** 한글이 아닌 글자. 숫자·문장부호·기호는 글자가 아니므로 이 검사 대상이 아니다. */
+const nonKoreanLettersIn = (text: string): string[] =>
+  [...new Set(text.match(/\p{L}/gu) ?? [])].filter(
+    (char) => !/\p{Script=Hangul}/u.test(char),
+  );
+
 const pad = (value: string): string => value.padStart(2, '0');
 const bare = (value: string): string => String(Number(value));
 
@@ -270,6 +279,20 @@ export function checkReading({
       code: 'length-out-of-contract',
       detail: `${markdown.length}자 (${min}~${max})`,
     });
+  }
+
+  /**
+   * 개인 풀이 화면은 한글 이름으로 읽힌다. 계산 근거에는 원문 한자가 필요하므로
+   * `readingBody` 로 사용자에게 보이는 부분만 자르고 검사한다.
+   */
+  if (kind === 'self') {
+    const nonKoreanLetters = nonKoreanLettersIn(readingBody(markdown));
+    if (nonKoreanLetters.length > 0) {
+      failures.push({
+        code: 'non-korean-self-body',
+        detail: `한글 아닌 글자 ${nonKoreanLetters.length}종`,
+      });
+    }
   }
 
   /**

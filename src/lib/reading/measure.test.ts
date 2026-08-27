@@ -104,7 +104,7 @@ describe('조립이 시킨 대로 나왔는가', () => {
   };
 
   it('시킨 대로면 아무 말도 하지 않는다', () => {
-    expect(outputDeviations(measureMarkdown(body(4, 280)), CONTROL)).toEqual([]);
+    expect(outputDeviations(measureMarkdown(body(9, 650)), CONTROL)).toEqual([]);
     expect(outputDeviations(measureMarkdown(body(8, 280)), legacy())).toEqual([]);
   });
 
@@ -121,7 +121,7 @@ describe('조립이 시킨 대로 나왔는가', () => {
   });
 
   it('절 수는 맞고 분량만 어긋난 것을 갈라 짚는다', () => {
-    const codes = outputDeviations(measureMarkdown(body(4, 20)), CONTROL).map((one) => one.code);
+    const codes = outputDeviations(measureMarkdown(body(9, 20)), CONTROL).map((one) => one.code);
 
     expect(codes).toEqual(['length-off-target']);
   });

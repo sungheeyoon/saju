@@ -104,9 +104,9 @@ describe('변형은 기준판에서 하나씩만 벗어난다', () => {
   it('더 길게는 분량만 바꾼다', () => {
     const prompt = promptOf('longer-v1');
 
-    expect(prompt).toContain('본문은 1400~2000자');
-    expect(prompt).not.toContain('본문은 900~1400자');
-    expect(prompt).toContain('**1. 딱 나**');
+    expect(prompt).toContain('본문은 8500~11000자');
+    expect(prompt).not.toContain('본문은 5000~9000자');
+    expect(prompt).toContain('**1. 이 사주의 핵심**');
     expect(prompt).not.toContain('## 제출 전 확인');
   });
 
@@ -124,7 +124,7 @@ describe('변형은 기준판에서 하나씩만 벗어난다', () => {
     // 옛 말투 규칙이 서고 새 고객 말투는 안 선다.
     expect(prompt).toContain('**문단마다 「그래서」로 닫아라.**');
     expect(prompt).not.toContain('## 고객에게 말하는 말투');
-    expect(prompt).not.toContain('딱 나');
+    expect(prompt).not.toContain('이 사주의 핵심');
   });
 
   it('기준판은 옛 절 이름을 하나도 들고 오지 않는다', () => {
@@ -218,50 +218,108 @@ describe('고객이 읽는 글의 계약', () => {
 
   const selfPrompt = (assembly = CONTROL) => readingPromptOf(evidence(), assembly);
 
-  it('기준판은 네 절이고 옛 뼈대는 여덟 절이다', () => {
-    expect(selfSectionCount(CONTROL)).toBe(4);
+  it('기준판은 개인 사주의 핵심 물음을 빠짐없이 다룬다', () => {
+    expect(selfSectionCount(CONTROL)).toBe(9);
     expect(selfSectionCount(variant('legacy-v1').assembly)).toBe(8);
+
+    const prompt = selfPrompt();
+    for (const heading of [
+      '이 사주의 핵심',
+      '성격과 속마음',
+      '강점과 타고난 복',
+      '일과 돈',
+      '연애와 인간관계',
+      '귀인과 기회',
+      '조심할 점과 몸',
+      '지금 들어온 운',
+      '궁금한 것 세 가지',
+    ]) {
+      expect(prompt, heading).toContain(heading);
+    }
   });
 
-  it('본문에 한자를 못 쓰게 한다', () => {
-    expect(selfPrompt()).toContain('한자를 한 글자도 쓰지 않는다');
-  });
-
-  it('판정 이름을 본문에서 막는다', () => {
+  it('사주 용어를 금지하지 않고 한 번은 풀어 쓰게 한다', () => {
     const prompt = selfPrompt();
 
-    for (const term of ['정관', '용신', '억부', '격국', '신살']) {
+    expect(prompt).toContain('사주 용어를 금지어처럼 피하지 마라');
+    expect(prompt).toContain('처음 나올');
+    expect(prompt).toContain('때만 일상어로 풀어');
+  });
+
+  it('사주 용어는 한글 이름으로 쓰고 생한자나 다른 외국 문자를 섞지 않는다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('사주 용어와 간지는 한글 이름으로 쓴다');
+    expect(prompt).toContain('생한자와 한국어가 아닌 외국 문자는 사용자 본문에 쓰지 마라');
+    expect(prompt).toContain('갑신 대운');
+  });
+
+  it('귀인과 신살을 근거가 있을 때 사용자 본문에 보여 준다', () => {
+    const prompt = selfPrompt();
+
+    for (const term of ['천을귀인', '문창귀인', '역마', '도화', '화개']) {
       expect(prompt, term).toContain(term);
     }
-    expect(prompt).toContain('본문에 쓰지 않는다');
+    expect(prompt).toContain('실제로 걸린 것은 이름을 숨기지 말고');
+    expect(prompt).toContain('없는 귀인이나 신살은 만들지 마라');
   });
 
-  /**
-   * **다섯 기운은 막지 않는다.**
-   *
-   * 「나무 기운이 모자라 배우는 일이 힘이 된다」는 이 제품에서 사람들이 가장 좋아한
-   * 대목이다. 판정 이름을 막다가 이것까지 막으면, 조언과 근거를 잇는 다리가 사라져
-   * 남은 것이 근거 없는 잔소리가 된다.
-   */
-  it('다섯 기운은 예외로 열어 둔다', () => {
+  it('좋은 것은 흐리지 않고 풍성하게 말한다', () => {
     const prompt = selfPrompt();
 
-    expect(prompt).toContain('나무·불·흙·쇠·물 다섯 기운은 예외');
-    expect(prompt).toContain('다리');
+    expect(prompt).toContain('좋은 것은 아끼지 말고 분명하고 풍성하게');
+    expect(prompt).toContain('근거 여럿이 같은 장점을 가리키면');
+    expect(prompt).toContain('같은 완충 표현을 붙이지 마라');
   });
 
-  /**
-   * **완충을 통째로 막지 않는다.**
-   *
-   * 근거가 약할 때 세게 말하지 않는 것은 이 저장소의 규율이다(검증 수준보다 세게 말하지
-   * 않기). 완충 어미를 전부 금지하면 그 규율과 정면으로 부딪히고, 모델은 확신 없는 것을
-   * 확신하는 말투로 쓰게 된다. 막는 것은 **장면 없이 완충만 있는 문장**이다.
-   */
-  it('완충 어미를 통째로 금지하지 않는다', () => {
+  it('현재 운은 십 년·올해·이번 달을 나눠 충분히 푼다', () => {
     const prompt = selfPrompt();
 
-    expect(prompt).toContain('완충하는 말 자체는 괜찮다');
-    expect(prompt).toContain('장면 없이 완충만 있는 문장');
+    expect(prompt).toContain('대운·세운·월운이라는 이름을 쓴다');
+    expect(prompt).toContain('십 년짜리 큰 흐름');
+    expect(prompt).toContain('올해의 흐름');
+    expect(prompt).toContain('이번 달의 흐름');
+  });
+
+  it('생활 코칭이 해석을 덮지 않게 한다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('해석이 열이면 조언은 둘 정도');
+    expect(prompt).toContain('모든 문단을 지시나 숙제로 닫지 마라');
+  });
+
+  it('나쁜 흐름도 숨기지 않고 결과·신호·예방법·좋은 전환까지 말한다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('흉한 가능성도 숨기지 말고 허심탄회하게');
+    expect(prompt).toContain('방치하면 실제 생활에서 어디까지 번질 수 있는지');
+    expect(prompt).toContain('초기에 보이는 신호');
+    expect(prompt).toContain('미리 막는 법');
+    expect(prompt).toContain('잘 다루면 어떤 좋은 모습으로 바뀌는지');
+  });
+
+  it('좋은 흐름은 잘 탔을 때 벌어지는 결과까지 보여 준다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('잘 흘렀을 때 실제로 벌어지는 좋은 결과');
+    expect(prompt).not.toContain('겁주거나 특정 사건을 운명처럼 못박지는 않지만');
+    expect(prompt).not.toContain('겁주');
+    expect(prompt).not.toContain('못박지');
+  });
+
+  it('어색하거나 낡은 절 이름을 사용자 본문에 쓰지 않는다', () => {
+    const prompt = selfPrompt();
+
+    for (const heading of ['딱 나', '채울 것', '살림법']) {
+      expect(prompt, heading).not.toContain(heading);
+    }
+  });
+
+  it('불확실한 것만 낮추고 확실한 장점은 낮추지 않는다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('근거가 약하거나 서로 엇갈리면 그 부분만');
+    expect(prompt).toContain('확실한 장점까지 흐리지 마라');
   });
 
   /** 규칙이 이기면 글이 딱딱해진다 — 그때 무엇을 고르는지도 프롬프트가 말해야 한다 */
@@ -287,8 +345,7 @@ describe('고객이 읽는 글의 계약', () => {
     const prompt = selfPrompt();
 
     expect(prompt).toContain('지시문을\n따라 쓰지 말고 본보기를 따라 써라');
-    // 본보기 자체가 규칙을 지키고 있어야 한다 — 판정 이름 없이 장면으로.
-    expect(prompt).toContain('> 마무리에서 자꾸 걸려요.');
+    expect(prompt).toContain('> 일을 시작하는 속도보다 끝에서 시간을 더 쓰는 편이에요.');
   });
 
   /** 본문에서 뺀 것은 없앤 것이 아니라 옮긴 것이다 */
@@ -309,8 +366,8 @@ describe('고객이 읽는 글의 계약', () => {
 
   /** 실제로 보내는 것은 새 뼈대다 — 옛판이 기준판 자리로 되돌아오지 않았다 */
   it('기준판은 새 뼈대다', () => {
-    expect(CONTROL.selfPresentation).toBe('human-v2');
-    expect(selfPrompt()).toContain('딱 나');
+    expect(CONTROL.selfPresentation).toBe('expert-v3');
+    expect(selfPrompt()).toContain('이 사주의 핵심');
     expect(selfPrompt()).not.toContain('살림법');
   });
 });

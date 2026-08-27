@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '@/src/lib/saju';
 import {
+  CONTROL,
   SELF_QUALITY_CASE_SET,
   checkReading,
   measureMarkdown,
@@ -90,6 +91,9 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
     });
 
     expect(verdict.ok ? [] : verdict.failures).toEqual([]);
+
+    /** 프롬프트만 바뀌고 모델이 예전 네 절을 내면 실제 증상은 그대로다. */
+    expect(outputDeviations(measureMarkdown(called.output.markdown), CONTROL)).toEqual([]);
   });
 });
 
