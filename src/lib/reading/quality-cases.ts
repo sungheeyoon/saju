@@ -59,19 +59,12 @@ export const SELF_QUALITY_CASE_SET = {
     /** 셋만 돈다 — Q02·Q04 는 세트에 남되 이번엔 안 세운다 */
     cases: ['Q01', 'Q03', 'Q05'],
     /**
-     * 기준판 · 단일변수 셋 · 범위 하나.
+     * 새 뼈대 · 같은 뼈대에 분량만 · 옛 뼈대.
      *
-     * `length-v1` 과 `recency-check-v1`·`selection-bridge-v1` 은 이번에 안 돈다. 앞의
-     * 것은 `focus-now-v1` 이 분량을 이미 반대쪽 끝까지 밀어 보므로 같은 축을 두 번 재는
-     * 셈이고, 뒤의 둘은 출력의 단위와 무관해 이 라운드의 물음에 답하지 않는다.
+     * `recency-check-v1` 은 이번에 안 돈다. 출력이 읽히는가와 무관한 축이라, 뼈대를
+     * 갈아엎은 직후의 물음에 답하지 않는다.
      */
-    variants: [
-      'control',
-      'answer-first-v1',
-      'bounded-items-v1',
-      'now-first-v1',
-      'focus-now-v1',
-    ],
+    variants: ['control', 'longer-v1', 'legacy-v1'],
   },
   /**
    * `dimension` 은 화면이 **글자 그대로** 세운다. 마크업을 넣으면 별표가 그대로 보인다 —

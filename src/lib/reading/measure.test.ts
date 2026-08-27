@@ -96,33 +96,32 @@ describe('붙여 넣은 것을 읽는다', () => {
  * `checkReading` 의 문턱은 kind 하나에 하나뿐이라 변형마다 다른 지시를 못 잰다.
  */
 describe('조립이 시킨 대로 나왔는가', () => {
-  const focus = () => {
-    const found = PROMPT_VARIANTS.find((one) => one.id === 'focus-now-v1');
-    if (found === undefined) throw new Error('focus-now-v1 이 없다');
+  /** 기준판과 **절 수가 다른** 변형이 있어야 눈금이 하나로 못박히지 않았음을 잰다 */
+  const legacy = () => {
+    const found = PROMPT_VARIANTS.find((one) => one.id === 'legacy-v1');
+    if (found === undefined) throw new Error('legacy-v1 이 없다');
     return found.assembly;
   };
 
   it('시킨 대로면 아무 말도 하지 않는다', () => {
-    const measured = measureMarkdown(body(4, 180));
-
-    expect(measured.length).toBeGreaterThanOrEqual(focus().selfLength.min);
-    expect(outputDeviations(measured, focus())).toEqual([]);
+    expect(outputDeviations(measureMarkdown(body(4, 280)), CONTROL)).toEqual([]);
+    expect(outputDeviations(measureMarkdown(body(8, 280)), legacy())).toEqual([]);
   });
 
-  /** 좁힌 변형이 한 편을 쓰면 저장은 되지만 채점 대상이 아니다 */
-  it('좁힌 변형이 여덟 절 긴 글을 내면 둘 다 짚는다', () => {
-    const codes = outputDeviations(measureMarkdown(body(8, 190)), focus()).map((one) => one.code);
+  /** 새 뼈대가 옛 뼈대처럼 길고 많은 절을 쓰면 저장은 되지만 채점 대상이 아니다 */
+  it('기준판이 여덟 절 긴 글을 내면 둘 다 짚는다', () => {
+    const codes = outputDeviations(measureMarkdown(body(8, 280)), CONTROL).map((one) => one.code);
 
     expect(codes).toContain('length-off-target');
     expect(codes).toContain('section-count-mismatch');
   });
 
-  it('같은 글이 기준판 계약에는 맞을 수 있다', () => {
-    expect(outputDeviations(measureMarkdown(body(8, 250)), CONTROL)).toEqual([]);
+  it('같은 글이 옛 뼈대 계약에는 맞을 수 있다', () => {
+    expect(outputDeviations(measureMarkdown(body(8, 280)), legacy())).toEqual([]);
   });
 
   it('절 수는 맞고 분량만 어긋난 것을 갈라 짚는다', () => {
-    const codes = outputDeviations(measureMarkdown(body(4, 20)), focus()).map((one) => one.code);
+    const codes = outputDeviations(measureMarkdown(body(4, 20)), CONTROL).map((one) => one.code);
 
     expect(codes).toEqual(['length-off-target']);
   });
@@ -134,7 +133,7 @@ describe('조립이 시킨 대로 나왔는가', () => {
    * 한 자리에서만 분량을 막게 되는 날이 온다.
    */
   it('절 수는 계약이고 분량은 목표다', () => {
-    const both = outputDeviations(measureMarkdown(body(8, 190)), focus());
+    const both = outputDeviations(measureMarkdown(body(8, 280)), CONTROL);
     const kindOf = (code: string) => both.find((one) => one.code === code)?.kind;
 
     expect(kindOf('section-count-mismatch')).toBe('contract');
@@ -142,7 +141,7 @@ describe('조립이 시킨 대로 나왔는가', () => {
   });
 
   it('막는 것은 절 수 하나뿐이다', () => {
-    const contracts = outputDeviations(measureMarkdown(body(8, 190)), focus()).filter(
+    const contracts = outputDeviations(measureMarkdown(body(8, 280)), CONTROL).filter(
       (one) => one.kind === 'contract',
     );
 

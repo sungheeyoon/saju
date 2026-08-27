@@ -101,90 +101,54 @@ describe('변형은 기준판에서 하나씩만 벗어난다', () => {
     expect(prompt).toContain('여기서 새로 정하는 규칙은 없다');
   });
 
-  it('분량 변형은 분량만 바꾼다', () => {
-    const prompt = promptOf('length-v1');
+  it('더 길게는 분량만 바꾼다', () => {
+    const prompt = promptOf('longer-v1');
 
-    expect(prompt).toContain('본문 2200~3000자');
-    expect(prompt).not.toContain('본문 1800~2600자');
-    expect(prompt).not.toContain('## 제출 전 확인');
-    expect(prompt).not.toContain('## 무엇을 남길 것인가');
-  });
-
-  it('골라 남기기는 세 정책을 얹되 분량과 꼬리는 그대로 둔다', () => {
-    const prompt = promptOf('selection-bridge-v1');
-
-    expect(prompt).toContain('## 무엇을 남길 것인가');
-    expect(prompt).toContain('## 이 사람의 글인가');
-    expect(prompt).toContain('## 오행에서 행동으로');
-    // 세 갈래에서 다섯 갈래 — 「전부 해석하되」의 반대편에 서는 문장이다.
-    expect(prompt).toContain('가장 중요한 세 가지에서 다섯 가지 갈래');
-    expect(prompt).toContain('본문 1800~2600자');
+    expect(prompt).toContain('본문은 1400~2000자');
+    expect(prompt).not.toContain('본문은 900~1400자');
+    expect(prompt).toContain('**1. 딱 나**');
     expect(prompt).not.toContain('## 제출 전 확인');
   });
 
-  it('결론 먼저는 문단 순서만 바꾸고 판단 순서와 절 구성은 유지한다', () => {
-    const prompt = promptOf('answer-first-v1');
+  /**
+   * **옛 뼈대는 통째로 옛 뼈대여야 한다.**
+   *
+   * 절만 여덟으로 돌려놓고 말투 규칙은 새것을 쓰면, 견주는 것이 「옛 뼈대」가 아니라
+   * 「이름만 옛 뼈대인 잡종」이 된다. 그러면 어느 쪽이 나은지 물어도 답이 안 나온다.
+   */
+  it('옛 뼈대는 절도 말투도 옛것이다', () => {
+    const prompt = promptOf('legacy-v1');
 
-    expect(prompt).toContain('**절마다 첫 문장에 결론을 써라.**');
-    expect(prompt).toContain('판단은 아래 「성격을 읽는 순서」를 끝까지 거친 뒤 한다');
-    expect(prompt).toContain('신살 하나로 바로 답하지 마라');
-    expect(prompt).not.toContain('**문단마다 「그래서」로 닫아라.**');
-    expect(prompt).toContain('**2. 타고난 결**');
-    expect(prompt).toContain('**3. 잘하는 것 넷**');
-    expect(prompt).toContain('**8. 지금**');
-    expect(prompt).toContain('본문 1800~2600자');
-    expect(prompt).not.toContain('## 제출 전 확인');
-    expect(prompt).not.toContain('## 무엇을 남길 것인가');
-  });
-
-  it('근거만큼만은 강점·걸림의 개수 규칙만 바꾼다', () => {
-    const prompt = promptOf('bounded-items-v1');
-
-    expect(prompt).toContain('**3. 잘하는 것 — 최대 넷**');
-    expect(prompt).toContain('**4. 걸리는 것 — 최대 셋**');
-    expect(prompt).toContain('개수를 채우려고 일반론을 보태지 마라');
-    expect(prompt).not.toContain('**3. 잘하는 것 넷**');
-    expect(prompt).not.toContain('**4. 걸리는 것 셋**');
+    expect(prompt).toContain('**7. 살림법**');
+    expect(prompt).toContain('본문은 1800~2600자');
+    // 옛 말투 규칙이 서고 새 고객 말투는 안 선다.
     expect(prompt).toContain('**문단마다 「그래서」로 닫아라.**');
-    expect(prompt).toContain('**2. 타고난 결**');
-    expect(prompt).toContain('**8. 지금**');
-    expect(prompt).toContain('본문 1800~2600자');
+    expect(prompt).not.toContain('## 고객에게 말하는 말투');
+    expect(prompt).not.toContain('딱 나');
   });
 
-  it('지금 먼저는 절을 복제하지 않고 2번으로 옮기기만 한다', () => {
-    const prompt = promptOf('now-first-v1');
+  it('기준판은 옛 절 이름을 하나도 들고 오지 않는다', () => {
+    const prompt = readingPromptOf(evidence());
 
-    expect(prompt).toContain('**2. 지금**');
-    expect(prompt).toContain('**3. 타고난 결**');
-    expect(prompt).toContain('**4. 잘하는 것 넷**');
-    expect(prompt).toContain('**5. 걸리는 것 셋**');
-    expect(prompt).toContain('**8. 살림법**');
-    expect(prompt).not.toContain('**8. 지금**');
-    expect(prompt.match(/\*\*2\. 지금\*\*/g)).toHaveLength(1);
-    expect(prompt).toContain('**문단마다 「그래서」로 닫아라.**');
-    expect(prompt).toContain('본문 1800~2600자');
+    for (const gone of ['타고난 결', '잘하는 것 넷', '걸리는 것 셋', '살림법']) {
+      expect(prompt, gone).not.toContain(gone);
+    }
   });
 
-  it('새 변형의 조립 옵션은 기준판에서 각자 한 축만 다르다', () => {
+  it('조립 옵션이 기준판에서 각자 한 축만 다르다', () => {
     const changedKeys = (id: string) => {
       const found = PROMPT_VARIANTS.find((variant) => variant.id === id);
       if (found === undefined) throw new Error(`없는 변형: ${id}`);
 
       return (Object.keys(CONTROL) as (keyof typeof CONTROL)[]).filter(
-        (key) => found.assembly[key] !== CONTROL[key],
+        (key) => JSON.stringify(found.assembly[key]) !== JSON.stringify(CONTROL[key]),
       );
     };
 
-    expect(changedKeys('answer-first-v1')).toEqual(['paragraphOrder']);
-    expect(changedKeys('bounded-items-v1')).toEqual(['selfItemCount']);
-    expect(changedKeys('now-first-v1')).toEqual(['selfSectionOrder']);
-  });
-
-  /** 얹는 절은 「낼 것」 **앞**에 선다 — 무엇을 고를지 정한 뒤에 무엇을 쓸지 읽는다 */
-  it('얹는 절이 낼 것 앞에 선다', () => {
-    const prompt = promptOf('selection-bridge-v1');
-
-    expect(prompt.indexOf('## 무엇을 남길 것인가')).toBeLessThan(prompt.indexOf('## 낼 것'));
+    expect(changedKeys('longer-v1')).toEqual(['selfLength']);
+    expect(changedKeys('recency-check-v1')).toEqual(['tail']);
+    // 옛 뼈대만 둘을 함께 바꾼다 — 그래서 `confounded` 를 적는다.
+    expect(changedKeys('legacy-v1').sort()).toEqual(['selfLength', 'selfPresentation']);
   });
 });
 
@@ -239,55 +203,114 @@ describe('변형은 한 곳만 벗어난다', () => {
 });
 
 /**
- * **범위를 좁힌 변형은 실제로 좁아져야 한다.**
+ * **사용자에게 나가는 글의 계약** — 갈아엎으면서 정한 것들.
  *
- * 절 목록만 줄이면 모델은 남은 절 안에 나머지를 밀어 넣는다. 그러면 좁힌 것이 아니라
- * 소제목만 줄인 것이 되고, 이 변형이 재려던 「출력의 단위」는 하나도 안 달라진다.
- * 프롬프트가 **안 쓸 것을 이름으로 말하는지**를 여기서 잠근다.
+ * 앞판이 낸 글은 한자와 판정 이름으로 차 있었고, 근거를 증명하느라 지면을 썼다.
+ * 여기서 잠그는 것은 그 재발이다. 문구는 손대도 되지만 **무엇을 막고 무엇을 여는지**는
+ * 시험이 든다.
  */
-describe('지금만 — 범위를 좁힌 변형', () => {
-  const focus = () => {
-    const found = PROMPT_VARIANTS.find((one) => one.id === 'focus-now-v1');
-    if (found === undefined) throw new Error('focus-now-v1 이 없다');
+describe('고객이 읽는 글의 계약', () => {
+  const variant = (id: string) => {
+    const found = PROMPT_VARIANTS.find((one) => one.id === id);
+    if (found === undefined) throw new Error(`없는 변형: ${id}`);
     return found;
   };
 
-  const promptOf = (variant: (typeof PROMPT_VARIANTS)[number]) =>
-    readingPromptOf(evidence(), variant.assembly);
+  const selfPrompt = (assembly = CONTROL) => readingPromptOf(evidence(), assembly);
 
-  it('기준판보다 절이 적다', () => {
-    expect(selfSectionCount(focus().assembly)).toBeLessThan(selfSectionCount(CONTROL));
+  it('기준판은 네 절이고 옛 뼈대는 여덟 절이다', () => {
+    expect(selfSectionCount(CONTROL)).toBe(4);
+    expect(selfSectionCount(variant('legacy-v1').assembly)).toBe(8);
   });
 
-  it('안 쓸 것을 이름으로 말한다 — 절만 지우지 않는다', () => {
-    const prompt = promptOf(focus());
+  it('본문에 한자를 못 쓰게 한다', () => {
+    expect(selfPrompt()).toContain('한자를 한 글자도 쓰지 않는다');
+  });
 
-    for (const dropped of ['타고난 결', '일과 돈', '사람 관계', '살림법']) {
-      expect(prompt, dropped).toContain(dropped);
+  it('판정 이름을 본문에서 막는다', () => {
+    const prompt = selfPrompt();
+
+    for (const term of ['정관', '용신', '억부', '격국', '신살']) {
+      expect(prompt, term).toContain(term);
     }
-    expect(prompt).toContain('절로 세우지 마라');
+    expect(prompt).toContain('본문에 쓰지 않는다');
   });
 
-  it('빠진 것을 아쉬워하지 말라고 적는다', () => {
-    expect(promptOf(focus())).toContain('아쉬워하지 마라');
+  /**
+   * **다섯 기운은 막지 않는다.**
+   *
+   * 「나무 기운이 모자라 배우는 일이 힘이 된다」는 이 제품에서 사람들이 가장 좋아한
+   * 대목이다. 판정 이름을 막다가 이것까지 막으면, 조언과 근거를 잇는 다리가 사라져
+   * 남은 것이 근거 없는 잔소리가 된다.
+   */
+  it('다섯 기운은 예외로 열어 둔다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('나무·불·흙·쇠·물 다섯 기운은 예외');
+    expect(prompt).toContain('다리');
   });
 
-  /** 좁혔어도 근거 칸은 그대로다 — 근거 밀착성을 견주려면 같은 계약 위에 서야 한다 */
-  it('근거 칸 계약은 기준판과 같다', () => {
-    expect(promptOf(focus())).toContain('### 근거 (검사용)');
+  /**
+   * **완충을 통째로 막지 않는다.**
+   *
+   * 근거가 약할 때 세게 말하지 않는 것은 이 저장소의 규율이다(검증 수준보다 세게 말하지
+   * 않기). 완충 어미를 전부 금지하면 그 규율과 정면으로 부딪히고, 모델은 확신 없는 것을
+   * 확신하는 말투로 쓰게 된다. 막는 것은 **장면 없이 완충만 있는 문장**이다.
+   */
+  it('완충 어미를 통째로 금지하지 않는다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('완충하는 말 자체는 괜찮다');
+    expect(prompt).toContain('장면 없이 완충만 있는 문장');
   });
 
-  /** 자동 검사가 막으면 이 변형은 한 번도 채점대에 못 선다 */
-  it('요구 분량이 저장 계약 안에 있다', () => {
-    const { min, max } = focus().assembly.selfLength;
-
-    expect(min).toBeGreaterThanOrEqual(READING_POLICY.markdownLength.min);
-    expect(max).toBeLessThanOrEqual(READING_POLICY.markdownLength.max);
+  /** 규칙이 이기면 글이 딱딱해진다 — 그때 무엇을 고르는지도 프롬프트가 말해야 한다 */
+  it('규칙보다 읽히는 글을 고르라고 적는다', () => {
+    expect(selfPrompt()).toContain('규칙이 진 것이다');
   });
 
-  /** 실제로 보내는 것은 여전히 여덟 절이다 — 실험판이 기준판을 밀어내지 않았다 */
-  it('기준판은 좁아지지 않았다', () => {
-    expect(CONTROL.selfScope).toBe('whole');
-    expect(readingPromptOf(evidence())).not.toContain('이 글이 답하는 것');
+  it('고객에게 말하는 존댓말을 지정한다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('~해요');
+    expect(prompt).toContain('해라체');
+  });
+
+  /**
+   * **지시문의 말투가 곧 출력의 말투가 된다.**
+   *
+   * 이 지시문 전체가 `~한다`체인데 본문은 `~해요`로 내라고 시킨다. 금지어를 늘려도
+   * 모델은 눈앞의 문장을 따라가므로, 규칙 대신 **본보기**를 준다 — 규칙을 줄이면서
+   * 더 잘 듣는 쪽이다.
+   */
+  it('낼 글의 말투를 본보기로 보여 준다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('지시문을\n따라 쓰지 말고 본보기를 따라 써라');
+    // 본보기 자체가 규칙을 지키고 있어야 한다 — 판정 이름 없이 장면으로.
+    expect(prompt).toContain('> 마무리에서 자꾸 걸려요.');
+  });
+
+  /** 본문에서 뺀 것은 없앤 것이 아니라 옮긴 것이다 */
+  it('근거는 검사용 절로 옮겨 두고 계약은 그대로다', () => {
+    expect(selfPrompt()).toContain('### 근거 (검사용)');
+    expect(selfPrompt(variant('legacy-v1').assembly)).toContain('### 근거 (검사용)');
+  });
+
+  /** 자동 검사가 막으면 그 변형은 한 번도 채점대에 못 선다 */
+  it('모든 변형의 요구 분량이 저장 계약 안에 있다', () => {
+    for (const one of PROMPT_VARIANTS) {
+      const { min, max } = one.assembly.selfLength;
+
+      expect(min, one.id).toBeGreaterThanOrEqual(READING_POLICY.markdownLength.min);
+      expect(max, one.id).toBeLessThanOrEqual(READING_POLICY.markdownLength.max);
+    }
+  });
+
+  /** 실제로 보내는 것은 새 뼈대다 — 옛판이 기준판 자리로 되돌아오지 않았다 */
+  it('기준판은 새 뼈대다', () => {
+    expect(CONTROL.selfPresentation).toBe('human-v2');
+    expect(selfPrompt()).toContain('딱 나');
+    expect(selfPrompt()).not.toContain('살림법');
   });
 });

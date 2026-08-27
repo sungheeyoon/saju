@@ -101,15 +101,16 @@ describe('이번 라운드', () => {
   });
 
   /**
-   * **출력의 단위를 바꾸는 변형이 적어도 하나 서야 한다.**
+   * **갈아엎기 전의 뼈대가 함께 서야 한다.**
    *
-   * 여덟 절 한 편을 어떻게 세울지만 고르는 변형들로는, 아무리 돌려도 나오는 것이 한 편의
-   * 풀이다. 그 라운드는 「좁힌 출력이 품질을 지키는가」를 한 번도 못 묻는다.
+   * 새 뼈대만 돌리면 「나아졌다」를 기억으로만 말하게 된다. 옛 것이 같은 사례·같은 근거
+   * 위에 나란히 서야 「어느 쪽이 읽히는가」가 한 번이라도 갈린다.
    */
-  it('범위를 좁힌 변형이 함께 선다', () => {
-    const scopes = roundVariants().map((one) => one.assembly.selfScope);
+  it('옛 뼈대가 견줄 바탕으로 함께 선다', () => {
+    const shapes = roundVariants().map((one) => one.assembly.selfPresentation);
 
-    expect(scopes).toContain('now');
+    expect(shapes).toContain('human-v2');
+    expect(shapes).toContain('legacy-v1');
   });
 });
 
@@ -185,6 +186,6 @@ describe('가린 이름', () => {
   it('이름이 사례를 달고 A 부터 붙는다', () => {
     const labels = blindLabelsFor('Q01').map((one) => one.blind);
 
-    expect(labels).toEqual(['Q01-A', 'Q01-B', 'Q01-C', 'Q01-D', 'Q01-E']);
+    expect(labels).toEqual(['Q01-A', 'Q01-B', 'Q01-C']);
   });
 });

@@ -86,11 +86,14 @@ describe('프롬프트는 출생 원문을 들고 나가지 않는다', () => {
   it('점수 계약은 궁합에만 붙는다', () => {
     /*
       **비운다는 말은 세 갈래로 읽힌다** — 자리를 빼거나, 빈 문자열을 넣거나, `null` 을
-      넣거나. 계약이 받는 것은 `null` 하나뿐이고 스키마도 두 자리를 다 요구한다
-      (`required: ['score','markdown']`). 프롬프트가 그 꼴을 그대로 적어야 갈릴 자리가 없다.
+      넣거나. 그중 앞의 둘은 이제 **스키마가 막는다**(`required: ['score','markdown']`,
+      `type: ['integer','null']`). 그래서 프롬프트는 JSON 꼴을 되풀이하지 않고 **어느
+      값이어야 하는지**만 말한다 — 한 자리에서 막는 것을 두 자리에서 적으면 언젠가 갈린다.
+
+      자기 풀이에 점수가 붙어 나오는 것은 스키마가 못 막으므로 `checkReading` 이 든다.
     */
-    expect(READING_PROMPTS.self).toContain('"score": null');
-    expect(READING_PROMPTS.self).toContain('빼거나 빈 문자열로 내지 마라');
+    expect(READING_PROMPTS.self).toContain('`score`는 반드시 `null`');
+    expect(READING_PROMPTS.self).toContain('Structured Outputs');
     for (const kind of ['private', 'match'] as const) {
       expect(READING_PROMPTS[kind]).toContain('## 점수');
       expect(isScored(kind)).toBe(true);

@@ -76,7 +76,7 @@ export {
   readingPromptOf,
   selfSectionCount,
   type PromptAssembly,
-  type SelfScope,
+  type SelfPresentation,
 } from './prompt';
 export {
   EVIDENCE_SECTION,
