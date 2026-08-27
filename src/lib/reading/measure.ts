@@ -1,4 +1,7 @@
+import { readingBody } from './display';
 import { selfSectionCount, type PromptAssembly } from './prompt';
+
+export { EVIDENCE_SECTION } from './display';
 
 /**
  * 출력에서 **셀 수 있는 것**을 센다 — 채점 화면과 실호출 검사가 같은 자리에서 센다.
@@ -27,8 +30,6 @@ export type Answered = 'unknown' | 'yes' | 'no';
  * 세면 분량을 재려는 바로 그 값이 오염된다 — 근거 칸이 길게 나온 글이 본문을 길게 쓴
  * 글로 보인다. 잘라서 센다.
  */
-export const EVIDENCE_SECTION = '### 근거';
-
 export type Measured = {
   /** 붙여 넣은 것에서 뽑아낸 본문 */
   readonly markdown: string;
@@ -71,8 +72,7 @@ function leadLengthOf(body: string): number {
 
 /** 본문 하나를 잰다 — 모델이 계약한 모양으로 낸 뒤의 `markdown` */
 export function measureMarkdown(markdown: string, scoreIsNull: Answered = 'unknown'): Measured {
-  const at = markdown.indexOf(EVIDENCE_SECTION);
-  const body = at === -1 ? markdown : markdown.slice(0, at);
+  const body = readingBody(markdown);
 
   return {
     markdown,

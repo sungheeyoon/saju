@@ -99,9 +99,10 @@ export function Markdown({ source }: { source: string }) {
     if (heading) {
       flush();
       const depth = heading[1].length;
-      const size = depth <= 2 ? 'text-lg font-semibold' : 'text-base font-semibold';
+      const size = depth <= 2 ? 'text-lg font-bold tracking-tight' : 'text-base font-semibold';
+      const separation = blocks.length === 0 ? '' : 'mt-2 border-t border-border pt-6';
       blocks.push(
-        <h3 key={`h-${blocks.length}`} className={`${size} mt-1`}>
+        <h3 key={`h-${blocks.length}`} className={`${size} ${separation}`}>
           {inline(heading[2], `h-${blocks.length}`)}
         </h3>,
       );
@@ -121,5 +122,5 @@ export function Markdown({ source }: { source: string }) {
 
   flush();
 
-  return <div className="flex flex-col gap-4 text-[0.95rem] leading-7 text-secondary [&_h3]:text-foreground [&_strong]:text-foreground">{blocks}</div>;
+  return <div className="mx-auto flex w-full max-w-[72ch] flex-col gap-4 text-[0.95rem] leading-7 text-secondary [&_h3]:text-foreground [&_strong]:text-foreground">{blocks}</div>;
 }

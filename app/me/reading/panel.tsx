@@ -59,13 +59,14 @@ export function ReadingPanel({
   allowMockFallback: boolean;
 }) {
   const router = useRouter();
-  const [reading, setReading] = useState(initialReading);
+  const [mockReading, setMockReading] = useState<CurrentReading | null>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [failure, setFailure] = useState(initialFailed ? READING_FAILED_NOTE : null);
   const [isMock, setIsMock] = useState(false);
+  const reading = mockReading ?? initialReading;
 
   const showMock = () => {
-    setReading({
+    setMockReading({
       id: 'development-preview',
       score: target.kind === 'self' ? null : 78,
       output: MOCK_OUTPUT,
@@ -83,6 +84,8 @@ export function ReadingPanel({
   const generate = async () => {
     setPhase('loading');
     setFailure(null);
+    setMockReading(null);
+    setIsMock(false);
 
     let result: Awaited<ReturnType<typeof generateReading>>;
     try {
@@ -101,7 +104,10 @@ export function ReadingPanel({
     }
 
     if (result.ok) {
-      router.refresh();
+      setPhase('idle');
+      // 성공한 저장은 Server Action 응답에 새 RSC 화면이 함께 오고, 중복 요청은 저장을
+      // 하지 않으므로 그때만 현재 결과를 한 번 다시 읽는다.
+      if (!result.replaced) router.refresh();
       return;
     }
 
@@ -222,9 +228,9 @@ function Result({ reading, target }: { reading: CurrentReading; target: ReadingT
         <p>{READING_ON_REQUEST_NOTE}</p>
         {target.kind === 'match' ? <p>{READING_PINNED_NOTE}</p> : !reading.fromCurrentRevision && <p className="text-danger">{READING_STALE_NOTE}</p>}
       </div>
-      <div className="rounded-2xl border border-border bg-surface-raised p-5 sm:p-7">
+      <article className="rounded-2xl border border-border bg-surface-raised p-5 shadow-[var(--shadow-card)] sm:p-7 lg:p-8">
         <Markdown source={reading.output} />
-      </div>
+      </article>
     </div>
   );
 }

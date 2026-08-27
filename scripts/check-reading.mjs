@@ -129,7 +129,7 @@ const plain = (html) => html.replace(/<!--\s*-->/g, '');
 
 /** 모델이 냈다고 치는 글 — 검사 문장이 걸리지 않게 간지도 날짜도 넣지 않는다 */
 const OUTPUT = {
-  self: `## 한 줄로\n${'스스로 정한 규칙 안에서 오래 버티는 사람입니다. '.repeat(20)}`,
+  self: `## 한 줄로\n${'스스로 정한 규칙 안에서 오래 버티는 사람입니다. '.repeat(20)}\n\n### 근거 (검사용)\n한 줄로 — analysis.strength [유도]`,
   private: `## 한 줄로\n${'둘은 서로 다른 속도로 같은 방향을 봅니다. '.repeat(20)}`,
   match: `## 한 줄로\n${'첫 번째 분과 두 번째 분은 서로의 빈자리를 채웁니다. '.repeat(20)}`,
 };
@@ -189,6 +189,7 @@ try {
 
     const mine = plain(await body('/me', cookie.a));
     check('저장한 글이 화면에 선다', mine.includes('스스로 정한 규칙 안에서'));
+    check('내부 검토용 근거 절은 사용자 결과에서 숨긴다', !mine.includes('근거 (검사용)'));
     check('자기 풀이에는 점수가 서지 않는다', !mine.includes('실험 중인 풀이가 붙인 값'));
     check('다시 열어도 그대로라고 말한다', mine.includes('화면을 다시 열어도'));
 

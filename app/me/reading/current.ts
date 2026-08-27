@@ -1,3 +1,5 @@
+import { readingBody } from '@/src/lib/reading/display';
+
 import { supabaseOnServer } from '../../auth/server-client';
 import type { ReadingTarget } from './pipeline';
 
@@ -15,7 +17,7 @@ export type CurrentReading = {
   readonly id: string;
   /** 궁합만. 자기 풀이는 `null` */
   readonly score: number | null;
-  /** 원문 Markdown — 화면은 이 글의 절 구조를 알지 않는다 */
+  /** 사용자용 Markdown — 저장된 원문의 내부 검토용 근거 절은 서버 경계에서 뺀다 */
   readonly output: string;
   readonly model: string;
   readonly viewedAt: string;
@@ -52,7 +54,7 @@ export async function currentReading(target: ReadingTarget): Promise<CurrentRead
   return {
     id: row.id as string,
     score: (row.score as number | null) ?? null,
-    output: row.output as string,
+    output: readingBody(row.output as string),
     model: row.model as string,
     viewedAt: row.viewed_at as string,
     createdAt: row.created_at as string,
