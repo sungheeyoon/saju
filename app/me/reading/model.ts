@@ -1,6 +1,9 @@
+import { openai } from '@ai-sdk/openai';
 import { NoOutputGeneratedError, Output, generateText, jsonSchema } from 'ai';
 
 import { READING_POLICY, type ReadingOutput } from '@/src/lib/reading';
+
+import { GENERATION } from './generation';
 
 import type { ModelCall, ReadingGenerator } from './generator';
 
@@ -10,35 +13,17 @@ import type { ModelCall, ReadingGenerator } from './generator';
  * 어느 모델을 어떻게 부르는지가 여기 하나로 모여 있어야, 저장된 결과가 무엇으로
  * 만들어졌는지 되짚을 때 볼 곳이 하나다. 부르는 쪽은 프롬프트만 넘긴다.
  *
- * ## 게이트웨이를 지난다
+ * ## OpenAI Responses API 를 직접 부른다
  *
- * 모델 이름을 문자열로 적으면 Vercel AI Gateway 를 지난다. 그래서 저장소가 provider
- * 열쇠를 직접 들지 않고, **모델을 바꾸는 일이 문자열 한 줄**이 된다 — 9단계가 실험
- * 인프라라는 말이 코드에서도 참이려면 그 자리가 싸야 한다.
+ * `@ai-sdk/openai` 의 provider 가 서버 환경의 `OPENAI_API_KEY` 를 읽는다. 키를 코드나
+ * 브라우저에 싣지 않고도 **모델을 바꾸는 일은 문자열 한 줄**로 남는다 — 9단계가 실험
+ * 인프라라는 말이 코드에서도 참이려면 그 자리가 싸야 한다. Responses API 의 원격 저장은
+ * 끈다. 현재 Reading 을 우리 DB 에 보존하는 규율과 provider 쪽 보존을 섞지 않기 위해서다.
+ *
+ * 모델 이름과 설정은 `generation.ts` 가 든다 — 채점표도 같은 값을 읽어야 하는데, 여기서
+ * 읽어 가면 provider SDK 가 브라우저 묶음에 실린다.
  */
 
-/**
- * 지금 쓰는 모델과 **우리가 정한 생성 설정.**
- *
- * `settings` 에는 **우리가 정한 것만** 적는다. 온도를 안 적은 것은 값이다 — 그 값은
- * provider 기본값이라는 뜻이고, 안 정한 것을 정한 척 적어 두면 나중에 그 숫자를 근거로
- * 결과를 견주게 된다.
- */
-export const GENERATION = {
-  model: 'openai/gpt-5.6-luna',
-  provider: 'vercel-ai-gateway',
-  settings: {
-    /**
-     * **기다리다 마는 자리를 우리가 정한다.**
-     *
-     * 안 정하면 플랫폼이 요청을 끊는 순간이 상한이 되고, 그때는 실패를 기록할 코드가
-     * 아예 안 돈다 — 시도가 `running` 인 채로 남는다. DB 가 그 행을 만료로 닫아 주지만
-     * (`reading_run_timeout`), 그 전에 **우리 손으로 끝내고 실패를 적는 것**이 맞다.
-     * 이 값은 그 만료보다 짧아야 뜻이 있다.
-     */
-    timeout: 240_000,
-  },
-} as const;
 
 /**
  * 모델이 낼 것의 **모양.**
@@ -71,10 +56,13 @@ const SCHEMA = jsonSchema<ReadingOutput>({
 export async function callModel(prompt: string): Promise<ModelCall> {
   try {
     const { output } = await generateText({
-      model: GENERATION.model,
+      model: openai(GENERATION.model),
       output: Output.object({ schema: SCHEMA }),
       prompt,
       timeout: GENERATION.settings.timeout,
+      providerOptions: {
+        openai: { store: GENERATION.settings.store },
+      },
     });
 
     return { ok: true, output };
@@ -96,7 +84,7 @@ export async function callModel(prompt: string): Promise<ModelCall> {
 }
 
 /** 실제 배포에서 쓰는 구현. 파이프라인은 이 객체의 계약만 안다. */
-export const gatewayReadingGenerator: ReadingGenerator = {
+export const openAIReadingGenerator: ReadingGenerator = {
   generation: GENERATION,
   generate: callModel,
 };

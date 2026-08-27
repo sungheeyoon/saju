@@ -8,6 +8,7 @@ import {
   chartForQualityCase,
   readingEvidenceOf,
   readingPromptOf,
+  selfSectionCount,
   type PromptVariantId,
   type QualityCaseId,
 } from '@/src/lib/reading';
@@ -47,8 +48,8 @@ export type ReadingPreview = {
   /**
    * 손으로 견줄 변형들 — **같은 근거 한 벌에서 난다.**
    *
-   * 근거와 기준 시각을 변형마다 새로 지으면 넷이 서로 다른 자료를 읽게 되고, 그때
-   * 견주는 것은 프롬프트가 아니라 운이 짚힌 시각이다. 한 번 지어 넷이 나눠 쓴다.
+   * 근거와 기준 시각을 변형마다 새로 지으면 서로 다른 자료를 읽게 되고, 그때 견주는
+   * 것은 프롬프트가 아니라 운이 짚힌 시각이다. 한 번 지어 모든 변형이 나눠 쓴다.
    */
   readonly variants: readonly {
     readonly id: PromptVariantId;
@@ -145,6 +146,10 @@ export type QualityCasePrompt = {
   readonly variant: PromptVariantId;
   readonly prompt: string;
   readonly promptDigest: string;
+  /** 그 변형이 세우는 절의 수 — 채점표의 눈금이 이 값에서 나온다 */
+  readonly sections: number;
+  /** 그 변형이 계약한 본문 분량 — 채점표가 초과를 값으로 보인다 */
+  readonly length: { readonly min: number; readonly max: number };
 };
 
 export type QualityCasePreview = {
@@ -152,6 +157,9 @@ export type QualityCasePreview = {
   readonly golden: string;
   readonly dimension: string;
   readonly setVersion: string;
+  readonly roundId: string;
+  /** 칸마다 몇 번 돌리는가 — 채점표가 그만큼 칸을 연다 */
+  readonly runsPerCell: number;
   readonly viewedAt: string;
   readonly evidenceDigest: string;
   readonly evidenceBytes: number;
@@ -160,7 +168,7 @@ export type QualityCasePreview = {
 };
 
 /**
- * 고정 사례 하나로 변형 넷을 짓는다 — **한 근거, 한 시각.**
+ * 고정 사례 하나로 모든 변형을 짓는다 — **한 근거, 한 시각.**
  *
  * 저장된 판본을 읽지 않으므로 로그인 계정과 무관하고, 언제 눌러도 같은 값이 나온다.
  * 그것이 이 세트의 요점이다 — 어제 잰 것과 오늘 잰 것을 이어 붙일 수 있어야 한다.
@@ -179,17 +187,30 @@ export function qualityCasePreview(caseId: QualityCaseId): QualityCasePreview {
     return found.assembly;
   };
 
+  const { round } = SELF_QUALITY_CASE_SET;
+
   return {
     caseId,
     golden: chosen.golden,
     dimension: chosen.dimension,
     setVersion: SELF_QUALITY_CASE_SET.version,
+    roundId: round.id,
+    runsPerCell: round.runsPerCell,
     viewedAt: SELF_QUALITY_CASE_SET.viewedAt,
     evidenceDigest: digest(evidenceText),
     evidenceBytes: Buffer.byteLength(evidenceText, 'utf8'),
     prompts: blindLabelsFor(caseId).map(({ blind, variant }) => {
-      const prompt = readingPromptOf(evidence, assemblyOf(variant));
-      return { blind, variant, prompt, promptDigest: digest(prompt) };
+      const assembly = assemblyOf(variant);
+      const prompt = readingPromptOf(evidence, assembly);
+
+      return {
+        blind,
+        variant,
+        prompt,
+        promptDigest: digest(prompt),
+        sections: selfSectionCount(assembly),
+        length: assembly.selfLength,
+      };
     }),
   };
 }

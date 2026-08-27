@@ -147,7 +147,7 @@ const saveAs = async (client, kind, target, output, score) => {
     p_person_a: target.personA ?? null,
     p_person_b: target.personB ?? null,
     p_match_id: target.matchId ?? null,
-    p_model: 'openai/gpt-5.6-luna',
+    p_model: 'gpt-5.6-luna',
     p_prompt_version: 'reading-prompt-v1',
   });
   if (started.error) return { error: started.error };
@@ -164,8 +164,8 @@ const saveAs = async (client, kind, target, output, score) => {
     p_evidence: '{"contract":{"version":"evidence-v0"},"charts":{}}',
     p_prompt: '# 역할\n검사용 프롬프트 원문',
     p_prompt_version: 'reading-prompt-v1',
-    p_model: 'openai/gpt-5.6-luna',
-    p_generation: { provider: 'vercel-ai-gateway', settings: {} },
+    p_model: 'gpt-5.6-luna',
+    p_generation: { provider: 'openai-responses-api', settings: { store: false } },
     p_viewed_at: new Date().toISOString(),
   });
   return { error: saved.error, run };

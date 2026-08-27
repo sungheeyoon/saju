@@ -1,7 +1,7 @@
 import { computeSaju, type Saju } from '../saju';
 import { GOLDEN_CASES } from '../saju/golden/cases';
 
-import { PROMPT_VARIANTS, type PromptVariantId } from './variants';
+import { PROMPT_VARIANTS, type PromptVariant, type PromptVariantId } from './variants';
 
 /**
  * **품질을 재는 고정 사례** — 골든 케이스를 *가리켜서* 쓴다.
@@ -33,6 +33,46 @@ export const SELF_QUALITY_CASE_SET = {
   version: 'self-quality-v1',
   /** 모든 사례가 같은 순간으로 운을 짚는다 */
   viewedAt: '2026-08-26T04:00:00.000Z',
+  /**
+   * **이번에 실제로 돌리는 것** — 사례 전부 × 변형 전부가 아니다.
+   *
+   * 세트에는 사례 다섯과 변형 여덟이 있다. 마흔 칸을 손으로 채점할 수는 없고, 안 돌린
+   * 칸을 화면이 세우면 빈 칸이 백업에 `0자·소제목 0개`로 실린다 — **안 돌린 것과 0자로
+   * 나온 것이 파일에서 같아 보인다.** 그래서 라운드를 값으로 못박고, 화면은 이것만
+   * 세운다.
+   *
+   * ## 이 라운드가 정하는 것은 승자가 아니다
+   *
+   * 사례 셋 · 채점자 하나 · 칸마다 두 번. 이 표본으로 「answer-first 가 이겼다」는 안
+   * 나온다. 나오는 것은 둘이다 — **떨어질 것**(hard fail·눈에 띄게 나쁜 것)과 **다음에
+   * 잴 축**. 그래서 이긴 것을 합치는 결정은 이 라운드의 산출물이 아니다.
+   */
+  round: {
+    id: 'round-1',
+    /**
+     * 칸마다 몇 번 돌리는가 — **둘 이상이라야 변동성을 잰다.**
+     *
+     * 한 번씩만 돌리면 같은 프롬프트가 매번 같은 글을 내는지 알 수 없고, 그러면 두
+     * 변형의 차이가 변형 때문인지 그날 운이었는지도 못 가른다.
+     */
+    runsPerCell: 2,
+    /** 셋만 돈다 — Q02·Q04 는 세트에 남되 이번엔 안 세운다 */
+    cases: ['Q01', 'Q03', 'Q05'],
+    /**
+     * 기준판 · 단일변수 셋 · 범위 하나.
+     *
+     * `length-v1` 과 `recency-check-v1`·`selection-bridge-v1` 은 이번에 안 돈다. 앞의
+     * 것은 `focus-now-v1` 이 분량을 이미 반대쪽 끝까지 밀어 보므로 같은 축을 두 번 재는
+     * 셈이고, 뒤의 둘은 출력의 단위와 무관해 이 라운드의 물음에 답하지 않는다.
+     */
+    variants: [
+      'control',
+      'answer-first-v1',
+      'bounded-items-v1',
+      'now-first-v1',
+      'focus-now-v1',
+    ],
+  },
   /**
    * `dimension` 은 화면이 **글자 그대로** 세운다. 마크업을 넣으면 별표가 그대로 보인다 —
    * 프롬프트에 들어가는 문자열과 화면에 서는 문자열은 다른 규칙을 따른다.
@@ -68,6 +108,20 @@ export const SELF_QUALITY_CASE_SET = {
 
 export type QualityCaseId = (typeof SELF_QUALITY_CASE_SET)['cases'][number]['id'];
 
+/** 이번 라운드에 서는 변형 — 목록 전체가 아니라 `round.variants` 가 정한다 */
+export const roundVariants = (): readonly PromptVariant[] =>
+  SELF_QUALITY_CASE_SET.round.variants.map((id) => {
+    const found = PROMPT_VARIANTS.find((variant) => variant.id === id);
+    if (found === undefined) throw new Error(`라운드가 없는 변형을 가리킨다: ${id}`);
+    return found;
+  });
+
+/** 이번 라운드에 서는 사례 */
+export const roundCases = (): readonly QualityCaseId[] => SELF_QUALITY_CASE_SET.round.cases;
+
+/** 그 사례가 이번 라운드에 도는가 — 화면이 나머지를 흐리게 세운다 */
+export const inRound = (id: QualityCaseId): boolean => roundCases().includes(id);
+
 /** 가리킨 골든 사례가 실제로 있는가 — 없으면 그 자리에서 멈춘다 */
 export function chartForQualityCase(id: QualityCaseId): Saju {
   const chosen = SELF_QUALITY_CASE_SET.cases.find((one) => one.id === id);
@@ -87,11 +141,11 @@ export function chartForQualityCase(id: QualityCaseId): Saju {
  * 평가하는 사람이 「이건 control 이니까」를 알고 점수를 매기면, 재는 것이 글이 아니라
  * 기대가 된다. 그래서 채점하는 동안에는 이름을 감추고 내보낼 때 짝을 함께 적는다.
  *
- * **사례마다 순서가 달라야 한다.** 넷의 차례가 늘 같으면 첫 사례에서 짝을 한 번 알아챈
+ * **사례마다 순서가 달라야 한다.** 변형의 차례가 늘 같으면 첫 사례에서 짝을 한 번 알아챈
  * 뒤로는 가린 것이 아니다. 그렇다고 무작위로 섞으면 어제 채점한 `Q01-A` 와 오늘의
  * `Q01-A` 가 다른 것이 되어 기록을 이어 붙일 수 없다 — 사례 id 로 자리를 정한다.
  */
-const BLIND_LETTERS = ['A', 'B', 'C', 'D'] as const;
+const BLIND_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
 
 /**
  * 사례 id 와 변형 id 를 섞어 만든 자리값 — **작지만 한결같아야 한다.**
@@ -111,18 +165,18 @@ function hashOf(text: string): number {
 /**
  * 사례마다 변형이 서는 차례 — **돌리지 않고 섞는다.**
  *
- * 처음에는 `PROMPT_VARIANTS` 를 사례 id 만큼 **회전**시켰다. 그러면 넷의 상대 차례가
- * 늘 같아서, 한 사례에서 짝 하나만 알아채면 **그 사례의 나머지 셋이 공짜로 따라온다.**
+ * 처음에는 `PROMPT_VARIANTS` 를 사례 id 만큼 **회전**시켰다. 그러면 변형의 상대 차례가
+ * 늘 같아서, 한 사례에서 짝 하나만 알아채면 **그 사례의 나머지가 공짜로 따라온다.**
  * 가린 것이 아니라 잠깐 덮어 둔 것이었다.
  *
  * 사례 id 와 변형 id를 함께 섞어 자리값을 짓고 그 값으로 세운다. 짝 하나가 새어도 같은
- * 사례의 다른 셋을 알려 주지 않는다.
+ * 사례의 다른 변형을 알려 주지 않는다.
  *
  * **차례가 사례마다 달라야 하고 같은 사례에는 늘 같아야 한다.** 늘 같으면 첫 사례에서
  * 알아챈 뒤로는 가린 것이 아니고, 무작위면 어제 채점한 기록을 오늘 것에 못 이어 붙인다.
  */
 export function blindOrderFor(id: QualityCaseId): readonly PromptVariantId[] {
-  return [...PROMPT_VARIANTS]
+  return roundVariants()
     .map((variant) => ({ id: variant.id, at: hashOf(`${id}:${variant.id}`) }))
     .sort((one, other) => one.at - other.at)
     .map((one) => one.id);
@@ -132,6 +186,11 @@ export function blindOrderFor(id: QualityCaseId): readonly PromptVariantId[] {
 export function blindLabelsFor(
   id: QualityCaseId,
 ): readonly { readonly blind: string; readonly variant: PromptVariantId }[] {
+  const standing = roundVariants();
+  if (standing.length > BLIND_LETTERS.length) {
+    throw new Error(`가린 이름이 부족하다: ${standing.length}개 변형`);
+  }
+
   return blindOrderFor(id).map((variant, index) => ({
     blind: `${id}-${BLIND_LETTERS[index]}`,
     variant,
@@ -149,7 +208,7 @@ export function blindKeyForAll(): readonly {
   readonly blind: string;
   readonly variant: PromptVariantId;
 }[] {
-  return SELF_QUALITY_CASE_SET.cases.flatMap((one) =>
-    blindLabelsFor(one.id).map((pair) => ({ caseId: one.id, ...pair })),
+  return roundCases().flatMap((caseId) =>
+    blindLabelsFor(caseId).map((pair) => ({ caseId, ...pair })),
   );
 }

@@ -70,7 +70,24 @@ export function readingEvidenceOf(
 
 export * from './policy';
 export * from './notes';
-export { CONTROL, READING_PROMPTS, readingPromptOf, type PromptAssembly } from './prompt';
+export {
+  CONTROL,
+  READING_PROMPTS,
+  readingPromptOf,
+  selfSectionCount,
+  type PromptAssembly,
+  type SelfScope,
+} from './prompt';
+export {
+  EVIDENCE_SECTION,
+  measureMarkdown,
+  measureText,
+  outputDeviations,
+  type Answered,
+  type DeviationKind,
+  type Measured,
+  type OutputDeviation,
+} from './measure';
 export { PROMPT_VARIANTS, type PromptVariant, type PromptVariantId } from './variants';
 export {
   SELF_QUALITY_CASE_SET,
@@ -78,6 +95,9 @@ export {
   blindLabelsFor,
   blindOrderFor,
   chartForQualityCase,
+  inRound,
+  roundCases,
+  roundVariants,
   type QualityCaseId,
 } from './quality-cases';
 export {

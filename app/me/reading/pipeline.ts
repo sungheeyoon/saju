@@ -14,7 +14,7 @@ import { NoKeyError, keyedClient } from '../../keyed-client';
 import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '../../revision';
 import { ResultClosedError, pinnedInputs } from '../match/inputs';
 import { generateReadingArtifact, type ReadingGenerator } from './generator';
-import { gatewayReadingGenerator } from './model';
+import { openAIReadingGenerator } from './model';
 
 /**
  * **결과 생성 요청** — 사용자가 눌렀을 때만 도는 길.
@@ -105,7 +105,7 @@ export async function requestReading(
    * 대상별 잠금뿐이다.
    */
   requestKey?: string,
-  generator: ReadingGenerator = gatewayReadingGenerator,
+  generator: ReadingGenerator = openAIReadingGenerator,
 ): Promise<ReadingRequest> {
   const supabase = await supabaseOnServer();
 
