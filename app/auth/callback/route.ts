@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseOnServer } from '../server-client';
+import { safeReturnPath } from '../return-path';
 
 /**
  * 구글이 답을 들고 돌아오는 자리.
@@ -15,6 +16,7 @@ import { supabaseOnServer } from '../server-client';
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
+  const returnTo = safeReturnPath(url.searchParams.get('next'));
 
   if (url.searchParams.get('error') !== null) {
     return NextResponse.redirect(new URL('/auth/denied', url.origin));
@@ -31,5 +33,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/auth/denied', url.origin));
   }
 
-  return NextResponse.redirect(new URL('/me', url.origin));
+  return NextResponse.redirect(new URL(returnTo, url.origin));
 }

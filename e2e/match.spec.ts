@@ -88,9 +88,8 @@ test.describe('동의로 열리는 흐름', () => {
       서지 않으면 「동의」라는 낱말만 남고, 받은 쪽은 자기가 무엇을 정하는 중인지
       모른 채 버튼을 고른다(`CONSENT_FLOW_STEPS`).
     */
-    await expect(
-      receiver.page.getByRole('heading', { name: /상세 궁합은.*서로 동의한 뒤.*열립니다/ }),
-    ).toBeVisible();
+    await expect(receiver.page.getByRole('heading', { name: '궁합 요청과 새 소식' })).toBeVisible();
+    await receiver.page.getByText('궁합 요청은 어떻게 진행되나요?').click();
     await expect(receiver.page.getByRole('listitem').filter({ hasText: '요청을 보냅니다' })).toBeVisible();
     await expect(receiver.page.getByText('보내는 것만으로 상대에게 열리는 것은 없고')).toBeVisible();
     await expect(receiver.page.getByRole('heading', { name: `보내는${tag}` })).toBeVisible();
@@ -98,8 +97,8 @@ test.describe('동의로 열리는 흐름', () => {
     // 수락 전에도 상대의 정확한 출생정보는 없다(US 39).
     await expect(receiver.page.getByText('1990-05-15')).toHaveCount(0);
 
-    await receiver.page.getByRole('button', { name: '수락하고 Match 만들기' }).click();
-    await expect(receiver.page.getByRole('heading', { name: '성립한 Match' })).toBeVisible();
+    await receiver.page.getByRole('button', { name: '수락하고 궁합 열기' }).click();
+    await expect(receiver.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
 
     // ── 양쪽이 같은 결과 화면에 선다 ────────────────────────────────────────
     for (const person of [asker, receiver]) {
@@ -134,13 +133,13 @@ test.describe('동의로 열리는 흐름', () => {
     await pendingRequest(asker, receiver);
 
     await receiver.page.goto('/me/requests');
-    await expect(receiver.page.getByRole('button', { name: '수락하고 Match 만들기' })).toBeVisible();
+    await expect(receiver.page.getByRole('button', { name: '수락하고 궁합 열기' })).toBeVisible();
 
     // 보낸 쪽이 Evidence 를 바꾼다 — 이름이 아니라 여덟 글자를 바꾸는 수정이다.
     await asker.page.goto('/me');
-    await asker.page.getByRole('button', { name: '생년월일시 고치기' }).click();
+    await asker.page.getByRole('button', { name: '출생 정보 수정' }).click();
     await fillBirthDate(asker.page, '1988-02-11');
-    await asker.page.getByRole('button', { name: '새 판본으로 저장' }).click();
+    await asker.page.getByRole('button', { name: '변경 사항 저장' }).click();
     await expect(asker.page.getByText('1988-02-11')).toBeVisible();
 
     /*
@@ -149,7 +148,7 @@ test.describe('동의로 열리는 흐름', () => {
       `cancelled` 를 갈라서 말하기로 한 것이 여기서 실제로 읽힌다.
     */
     await receiver.page.reload();
-    await expect(receiver.page.getByRole('button', { name: '수락하고 Match 만들기' })).toHaveCount(0);
+    await expect(receiver.page.getByRole('button', { name: '수락하고 궁합 열기' })).toHaveCount(0);
     await expect(receiver.page.getByText('답할 요청이 없습니다')).toBeVisible();
     await expect(
       receiver.page.getByText(`가${tag} 님과의 요청이 출생정보 수정으로 무효가 되었습니다`),
@@ -183,7 +182,7 @@ test.describe('동의로 열리는 흐름', () => {
       **신고가 차단이 아니다.** 답할 요청은 그대로 서 있고, 상대도 후보 목록에서
       사라지지 않는다 — 보이지 않게 하려면 차단을 따로 눌러야 한다.
     */
-    await expect(receiver.page.getByRole('button', { name: '수락하고 Match 만들기' })).toBeVisible();
+    await expect(receiver.page.getByRole('button', { name: '수락하고 궁합 열기' })).toBeVisible();
     await expect(receiver.page.getByText('차단한 사람', { exact: false })).toHaveCount(0);
   });
 
@@ -197,7 +196,7 @@ test.describe('동의로 열리는 흐름', () => {
     await bothParticipate(leaver, other, tag);
     await pendingRequest(other, leaver);
 
-    await leaver.page.goto('/me');
+    await leaver.page.goto('/me/settings');
     await leaver.page.getByRole('button', { name: '계정 삭제 요청' }).click();
 
     // **무엇이 지워지지 않는지**를 누르기 전에 말한다.

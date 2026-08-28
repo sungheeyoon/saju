@@ -13,20 +13,20 @@ export default function Home() {
         <div className="absolute -right-12 -top-16 size-64 rounded-full bg-wood-soft blur-3xl" aria-hidden="true" />
         <div className="absolute -bottom-16 -left-20 size-56 rounded-full bg-water-soft blur-3xl" aria-hidden="true" />
         <div className="relative max-w-3xl">
-          <p className="eyebrow">나의 사주</p>
+          <p className="eyebrow">사주 보기</p>
           <h1 className="mt-3 text-[2rem] font-bold leading-[1.25] tracking-[-0.045em] sm:text-[3rem]">
             나를 이루는 흐름을<br className="hidden sm:block" /> 차분하게 읽어보세요
           </h1>
           <p className="mt-4 max-w-2xl text-[0.95rem] leading-7 text-secondary sm:text-base">
-            생년월일시에서 명식을 계산하고, 결과가 나온 근거와 해석의 한계까지 함께 보여드립니다.
-            입력은 이 브라우저 안에서만 계산되며 서버에 저장되지 않습니다.
+            출생 정보로 사주의 기본 구조와 운의 흐름을 확인하세요. 입력한 정보는
+            이 브라우저에서만 계산되며 계정에 저장되지 않습니다.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <a href="#calculator" className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong">
-              내 명식 입력하기
+              출생 정보 입력하기
             </a>
             <Link href="/compat" className="rounded-full border border-border-strong bg-surface px-5 py-2.5 text-sm font-semibold hover:border-accent hover:text-accent">
-              두 사람 궁합 보기
+              궁합 보기 <span className="text-xs opacity-75">· 로그인 필요</span>
             </Link>
           </div>
         </div>
@@ -63,7 +63,7 @@ export default function Home() {
       <section id="calculator" className="scroll-mt-24">
         <div className="mb-5">
           <p className="eyebrow">생년월일시</p>
-          <h2 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">출생 정보를 알려주세요</h2>
+          <h2 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">출생 정보를 입력해 주세요</h2>
           <p className="mt-1 text-sm text-secondary">시간을 모르면 비워도 괜찮습니다. 확인 가능한 범위만 계산합니다.</p>
         </div>
         <Suspense fallback={<div className="h-56 rounded-2xl border border-border bg-surface shadow-[var(--shadow-card)]" />}>

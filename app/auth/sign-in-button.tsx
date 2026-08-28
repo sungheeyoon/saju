@@ -10,7 +10,7 @@ import { supabaseInBrowser } from './browser-client';
  * 등록돼 있어야 한다. 등록 안 된 주소면 구글이 `redirect_uri_mismatch` 로 대놓고
  * 거절하므로 조용히 실패하지는 않는다.
  */
-export function SignInButton() {
+export function SignInButton({ returnTo = '/me' }: { returnTo?: string }) {
   const [failure, setFailure] = useState<string | null>(null);
   const [going, setGoing] = useState(false);
 
@@ -18,9 +18,12 @@ export function SignInButton() {
     setGoing(true);
     setFailure(null);
 
+    const callback = new URL('/auth/callback', window.location.origin);
+    callback.searchParams.set('next', returnTo);
+
     const { error } = await supabaseInBrowser().auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callback.toString() },
     });
 
     // 성공하면 이 줄에 닿기 전에 화면이 떠난다. 여기 왔다면 못 떠난 것이다.

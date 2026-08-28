@@ -138,10 +138,7 @@ function ElementBar({ saju }: { saju: Saju }) {
     <div className="flex flex-col gap-2 border-t border-border pt-4">
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-xs font-semibold text-secondary">오행 분포</p>
-        <p className="text-[11px] text-muted">
-          {glyphCount === 8 ? '여덟' : '여섯'} 글자를 그대로 셌습니다
-          {glyphCount !== 8 && <span> · 시주 제외</span>}
-        </p>
+        {glyphCount !== 8 && <p className="text-[11px] text-muted">출생 시각을 몰라 시주는 제외했습니다</p>}
       </div>
 
       <ul className="grid grid-cols-5 gap-1.5">

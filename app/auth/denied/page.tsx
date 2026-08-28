@@ -19,7 +19,7 @@ export default function DeniedPage() {
       </header>
 
       <p className="text-sm text-secondary">
-        로그인 없이 쓰는 명식·궁합 화면은 그대로 열려 있습니다.
+        사주 계산은 로그인 없이 이용할 수 있고, 궁합과 저장 기능은 로그인 후 이용할 수 있습니다.
       </p>
 
       <p className="flex gap-4 text-sm">
@@ -27,7 +27,7 @@ export default function DeniedPage() {
           다시 로그인
         </Link>
         <Link href="/" className="text-accent underline underline-offset-2">
-          명식 보기
+          사주 보기
         </Link>
       </p>
     </main>

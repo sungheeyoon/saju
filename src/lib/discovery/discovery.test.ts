@@ -117,7 +117,7 @@ describe('목록이 함께 드는 말', () => {
   /** 없는 것을 설명하지 않는다 — 탐색 자리가 없는 날 그 말이 서 있으면 없는 것을 찾게 된다 */
   it('탐색 후보가 실제로 섰을 때만 그 말이 붙는다', () => {
     expect(boardNotes({ viewerMissingCount: 2, hasExploration: true }).explorationNote).toContain(
-      '탐색 후보',
+      '새로운 추천',
     );
     expect(boardNotes({ viewerMissingCount: 2, hasExploration: false }).explorationNote).toBeNull();
   });

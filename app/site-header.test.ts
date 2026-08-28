@@ -14,4 +14,9 @@ describe('회원 내비게이션 활성 상태', () => {
     expect(isNavigationActive('/me/match/example', '/me/requests')).toBe(true);
     expect(isNavigationActive('/me/people/example', '/me/people')).toBe(true);
   });
+
+  it('직접 입력과 저장한 사람 궁합은 같은 궁합 메뉴로 묶인다', () => {
+    expect(isNavigationActive('/compat', '/compat')).toBe(true);
+    expect(isNavigationActive('/me/compat', '/compat')).toBe(true);
+  });
 });

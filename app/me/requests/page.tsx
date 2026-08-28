@@ -24,8 +24,8 @@ import {
 } from './manage';
 
 export const metadata = {
-  title: '요청과 알림 — 만세력',
-  description: '상세 궁합 요청과 앱 내 알림, 그리고 성립한 Match 를 봅니다.',
+  title: '소식 — 만세력',
+  description: '궁합 요청과 함께 보는 궁합의 새 소식을 확인합니다.',
 };
 
 /**
@@ -55,10 +55,11 @@ export default async function RequestsPage() {
     <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">
       <header className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <p className="eyebrow">요청과 알림</p>
+          <p className="eyebrow">소식</p>
           <h1 className="text-2xl font-bold tracking-tight">
-            상세 궁합은 <span className="text-accent">서로 동의한 뒤</span>에 열립니다
+            궁합 요청과 새 소식
           </h1>
+          <p className="text-sm text-secondary">받은 요청에 답하고, 함께 보기로 한 궁합을 확인하세요.</p>
         </div>
 
         {/*
@@ -66,25 +67,27 @@ export default async function RequestsPage() {
           읽는 사람은 자기가 무엇을 하는 중인지 모른다 — 걸음마다 무엇이 열리고 무엇이
           아직 안 열리는지를 함께 적는 것이 이 제품의 설명 자체다(`CONSENT_FLOW_STEPS`).
         */}
-        <ol className="grid gap-3 sm:grid-cols-3">
-          {CONSENT_FLOW_STEPS.map((step, index) => (
-            <li key={step.title} className="flex flex-col gap-1.5 rounded-2xl border border-border bg-surface p-4">
-              <p className="flex items-center gap-2 text-sm font-bold">
-                <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent-wash text-xs text-accent-strong">
-                  {index + 1}
-                </span>
-                {step.title}
-              </p>
-              <p className="text-xs leading-5 text-secondary">{step.body}</p>
-            </li>
-          ))}
-        </ol>
-
-        <p className="text-xs leading-5 text-muted">{CONSENT_FLOW_CAVEAT}</p>
+        <details className="rounded-2xl border border-border bg-surface p-4">
+          <summary className="cursor-pointer text-sm font-bold">궁합 요청은 어떻게 진행되나요?</summary>
+          <ol className="mt-4 grid gap-3 sm:grid-cols-3">
+            {CONSENT_FLOW_STEPS.map((step, index) => (
+              <li key={step.title} className="flex flex-col gap-1.5 rounded-xl bg-surface-soft p-4">
+                <p className="flex items-center gap-2 text-sm font-bold">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent-wash text-xs text-accent-strong">
+                    {index + 1}
+                  </span>
+                  {step.title}
+                </p>
+                <p className="text-xs leading-5 text-secondary">{step.body}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-3 text-xs leading-5 text-muted">{CONSENT_FLOW_CAVEAT}</p>
+        </details>
 
         <p className="flex flex-wrap gap-4 text-sm">
           <Link href="/me/discovery" className="text-accent underline underline-offset-2">
-            후보 보러 가기
+            새로운 인연 찾기
           </Link>
           <Link href="/me" className="text-accent underline underline-offset-2">
             내 사주
@@ -218,13 +221,13 @@ function Notifications({ inbox }: { inbox: Inbox }) {
     <section className={`${CARD} flex flex-col gap-3`}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <h2 className="text-base font-semibold">
-          알림 {inbox.unread > 0 && <span className="text-accent">{inbox.unread}</span>}
+          새 소식 {inbox.unread > 0 && <span className="text-accent">{inbox.unread}</span>}
         </h2>
         <MarkAllRead unread={inbox.unread} />
       </div>
 
       {inbox.notifications.length === 0 ? (
-        <p className="text-sm text-muted">아직 알림이 없습니다.</p>
+        <p className="text-sm text-muted">아직 새 소식이 없습니다.</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {inbox.notifications.map((notification) => (
@@ -246,7 +249,7 @@ function Notifications({ inbox }: { inbox: Inbox }) {
       )}
 
       <p className="text-xs text-muted">
-        알림은 앱 안에서만 옵니다. 이메일·문자·카카오로는 보내지 않습니다.
+        소식은 앱 안에서만 확인할 수 있습니다. 이메일·문자·카카오로는 보내지 않습니다.
       </p>
     </section>
   );
@@ -262,7 +265,7 @@ function Notifications({ inbox }: { inbox: Inbox }) {
 function Matches({ matches }: { matches: InboxMatch[] }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold">성립한 Match</h2>
+      <h2 className="text-base font-semibold">함께 보는 궁합</h2>
 
       {matches.length === 0 ? (
         <p className="text-sm text-muted">아직 없습니다.</p>
@@ -272,7 +275,7 @@ function Matches({ matches }: { matches: InboxMatch[] }) {
             <li key={match.matchId} className={`${CARD} flex flex-col gap-2`}>
               <div className="flex flex-wrap items-baseline gap-x-3">
                 <h3 className="text-base font-semibold">{match.nickname}</h3>
-                <span className="text-xs text-muted">{when(match.createdAt)} 성립</span>
+                <span className="text-xs text-muted">{when(match.createdAt)} 연결</span>
               </div>
               {match.intro !== null && <p className="text-sm text-secondary">{match.intro}</p>}
               {match.suppliedToMe !== null && (

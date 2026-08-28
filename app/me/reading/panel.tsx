@@ -105,9 +105,16 @@ export function ReadingPanel({
 
     if (result.ok) {
       setPhase('idle');
-      // 성공한 저장은 Server Action 응답에 새 RSC 화면이 함께 오고, 중복 요청은 저장을
-      // 하지 않으므로 그때만 현재 결과를 한 번 다시 읽는다.
-      if (!result.replaced) router.refresh();
+      /*
+        성공하면 **언제나 다시 읽는다.**
+
+        전에는 교체했을 때만 건너뛰었다 — Server Action 의 `revalidatePath` 가 새 RSC
+        화면을 응답에 실어 준다고 믿었기 때문이다. 실제로는 그 화면이 오지 않는 왕복이
+        있었고, 그때 이 칸은 **DB 에 없는 글**을 계속 세운다(교체는 이전 글을 지운다).
+        「눌렀는데 그대로」가 그것이다. 새 결과를 만드는 것과 견주면 한 번 더 읽는 값은
+        싸다 — 이 길에는 모델 호출이 없다.
+      */
+      router.refresh();
       return;
     }
 
@@ -215,6 +222,8 @@ function LoadingState() {
 }
 
 function Result({ reading, target }: { reading: CurrentReading; target: ReadingTarget }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div className="flex flex-col gap-5">
       {reading.score !== null && (
@@ -228,9 +237,30 @@ function Result({ reading, target }: { reading: CurrentReading; target: ReadingT
         <p>{READING_ON_REQUEST_NOTE}</p>
         {target.kind === 'match' ? <p>{READING_PINNED_NOTE}</p> : !reading.fromCurrentRevision && <p className="text-danger">{READING_STALE_NOTE}</p>}
       </div>
-      <article className="rounded-2xl border border-border bg-surface-raised p-5 shadow-[var(--shadow-card)] sm:p-7 lg:p-8">
-        <Markdown source={reading.output} />
-      </article>
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-[var(--shadow-card)]">
+        <button
+          type="button"
+          onClick={() => setExpanded((current) => !current)}
+          aria-expanded={expanded}
+          aria-controls={`reading-${reading.id}`}
+          className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-surface-soft sm:px-7"
+        >
+          <span>
+            <span className="block text-sm font-bold">사주풀이 전문</span>
+            <span className="mt-0.5 block text-xs text-muted">
+              {expanded ? '긴 풀이를 접어 화면을 간단히 볼 수 있어요.' : '핵심 성향부터 관계 조언까지 이어서 읽어보세요.'}
+            </span>
+          </span>
+          <span className="shrink-0 text-sm font-semibold text-accent">
+            {expanded ? '접기 ↑' : '펼쳐보기 ↓'}
+          </span>
+        </button>
+        {expanded && (
+          <article id={`reading-${reading.id}`} className="border-t border-border p-5 sm:p-7 lg:p-8">
+            <Markdown source={reading.output} />
+          </article>
+        )}
+      </div>
     </div>
   );
 }

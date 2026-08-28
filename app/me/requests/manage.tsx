@@ -105,7 +105,7 @@ export function RespondButtons({ requestId }: { requestId: string }) {
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={() => answer(true)} disabled={working} className={PRIMARY}>
-          {working ? '보내는 중…' : '수락하고 Match 만들기'}
+          {working ? '보내는 중…' : '수락하고 궁합 열기'}
         </button>
         <button type="button" onClick={() => answer(false)} disabled={working} className={QUIET}>
           거절

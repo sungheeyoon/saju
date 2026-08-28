@@ -73,7 +73,7 @@ export default async function MatchResultPage({
         <h1 className="text-2xl font-semibold tracking-tight">함께 보는 궁합</h1>
         <p className="flex flex-wrap gap-4 text-sm">
           <Link href="/me/requests" className="text-accent underline underline-offset-2">
-            요청과 알림
+            소식
           </Link>
           <Link href="/me" className="text-accent underline underline-offset-2">
             내 사주
@@ -87,7 +87,7 @@ export default async function MatchResultPage({
         <section className={`${CARD} flex flex-col gap-2`}>
           <p className="text-sm">{outcome.message}</p>
           <p className="text-xs text-muted">
-            Match 와 두 분의 동의는 그대로 있습니다. 지금 이 화면이 그 판본을 읽지 못하는
+            함께 보기로 한 두 분의 동의는 그대로 있습니다. 지금 이 화면이 그 판본을 읽지 못하는
             것입니다.
           </p>
         </section>

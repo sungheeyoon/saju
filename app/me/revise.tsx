@@ -20,7 +20,15 @@ import { revisePerson } from './actions';
  *
  * 여기서도 익명 화면과 **같은 폼**을 쓴다.
  */
-export function ReviseChart({ personId, current }: { personId: string; current: Query }) {
+export function ReviseChart({
+  personId,
+  current,
+  embedded = false,
+}: {
+  personId: string;
+  current: Query;
+  embedded?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(current);
@@ -54,13 +62,13 @@ export function ReviseChart({ personId, current }: { personId: string; current: 
         }}
         className="self-start text-sm text-accent underline underline-offset-2"
       >
-        생년월일시 고치기
+        출생 정보 수정
       </button>
     );
   }
 
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-4">
+    <section className={`flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 ${embedded ? 'col-span-full' : ''}`}>
       {/*
         **무엇이 남고 무엇이 안 남는지를 고치기 전에 말한다**(ADR 0011).
 
@@ -96,7 +104,7 @@ export function ReviseChart({ personId, current }: { personId: string; current: 
           disabled={missing !== null || saving || (pillarsSame && !nameChanged)}
           className="h-11 rounded-lg bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-60 sm:h-10"
         >
-          {saving ? '저장하는 중…' : pillarsSame ? '이름 저장' : '새 판본으로 저장'}
+          {saving ? '저장하는 중…' : pillarsSame ? '이름 저장' : '변경 사항 저장'}
         </button>
         <button
           type="button"

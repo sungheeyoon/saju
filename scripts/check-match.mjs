@@ -273,8 +273,8 @@ try {
 
     for (const [who, cookie, partner] of [['청한 쪽', aCookie, NAME.b], ['받은 쪽', bCookie, NAME.a]]) {
       const html = plain(await body('/me/requests', cookie));
-      check(`${who} 화면에 성립한 Match 가 선다`,
-        html.includes('성립한 Match') && html.includes(partner));
+      check(`${who} 화면에 함께 보는 궁합이 선다`,
+        html.includes('함께 보는 궁합') && html.includes(partner));
       check(`${who} 화면에서 결과로 들어가는 길이 선다`,
         html.includes('/me/match/') && html.includes('함께 보기'));
     }

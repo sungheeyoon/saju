@@ -7,7 +7,6 @@ import { chartOf } from '../chart';
 import { toSearchParams } from '../query';
 import { UnreadableRevisionError, queryFromRevision } from '../revision';
 import { Halted } from './halted';
-import { RequestDeletion } from './leaving';
 import { Onboarding } from './onboarding';
 import { PillarCard } from './pillar-card';
 import { ReadingSection } from './reading/section';
@@ -41,13 +40,12 @@ export default async function MePage() {
   return (
     <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
       <header className="flex flex-col gap-2 border-b border-border pb-6">
-        <p className="eyebrow">내 자리</p>
+        <p className="eyebrow">내 사주</p>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-[-0.04em]">나의 흐름</h1>
-            <p className="mt-1 text-sm text-secondary">저장된 명식과 지금의 해석을 한곳에서 확인하세요.</p>
+            <h1 className="text-3xl font-bold tracking-[-0.04em]">내 사주</h1>
+            <p className="mt-1 text-sm text-secondary">명식과 사주풀이를 한곳에서 확인하세요.</p>
           </div>
-          <p className="rounded-full bg-surface-soft px-3 py-1.5 text-xs text-muted">{user.email}</p>
         </div>
       </header>
 
@@ -60,9 +58,6 @@ export default async function MePage() {
       ) : (
         <SelfChart personId={account.self_person_id} />
       )}
-
-      {/* 살아 있는 계정에게만 떠나는 길을 보인다 — 이미 요청한 사람에게는 할 말이 없다 */}
-      <Footer canLeave={account !== null && account.status === 'active'} />
     </main>
   );
 }
@@ -130,26 +125,32 @@ async function SelfChart({ personId }: { personId: string }) {
       <div className="flex min-w-0 flex-col gap-6">
         <PillarCard label={edge.local_label} saju={saju} />
 
-        <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 rounded-2xl border border-border bg-surface-soft p-5 text-sm">
-          <dt className="text-muted">생년월일</dt>
+        <section className="rounded-2xl border border-border bg-surface-soft p-5">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-3 border-b border-border pb-3">
+            <h2 className="text-sm font-bold">저장된 출생 정보</h2>
+            <ReviseChart personId={personId} current={query} embedded />
+          </div>
+          <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 text-sm">
+            <dt className="text-muted">생년월일</dt>
           {/*
             음력으로 넣었으면 **적은 그대로와 바뀐 양력을 함께** 보여준다. 양력만
             보이면 사용자가 자기 입력을 못 알아보고, 원본만 보이면 우리가 무엇으로
             계산했는지 모른다(ADR 0002).
           */}
-          <dd>
-            {query.calendar === 'solar'
-              ? current.solar_date
-              : `${CALENDAR_KO[query.calendar]} ${current.original_date} · 양력 ${current.solar_date}`}
-            {current.birth_time === null ? ' · 시각 모름' : ` ${query.time}`}
-          </dd>
-          <dt className="text-muted">성별</dt>
-          <dd>{GENDER_KO[query.gender]}</dd>
-          <dt className="text-muted">출생지</dt>
-          <dd>{query.city}</dd>
-          <dt className="text-muted">자시 규칙</dt>
-          <dd>{query.rule === 'jo' ? '조자시 (23:00 경계)' : '야자시 (자정 경계)'}</dd>
-        </dl>
+            <dd>
+              {query.calendar === 'solar'
+                ? current.solar_date
+                : `${CALENDAR_KO[query.calendar]} ${current.original_date} · 양력 ${current.solar_date}`}
+              {current.birth_time === null ? ' · 시각 모름' : ` ${query.time}`}
+            </dd>
+            <dt className="text-muted">성별</dt>
+            <dd>{GENDER_KO[query.gender]}</dd>
+            <dt className="text-muted">출생지</dt>
+            <dd>{query.city}</dd>
+            <dt className="text-muted">자시 규칙</dt>
+            <dd>{query.rule === 'jo' ? '조자시 (23:00 경계)' : '야자시 (자정 경계)'}</dd>
+          </dl>
+        </section>
 
         {/*
           **자기 풀이** — 저장된 근거를 사용자가 직접 읽지 않아도 무엇이 보이는지
@@ -157,7 +158,6 @@ async function SelfChart({ personId }: { personId: string }) {
         */}
         <ReadingSection target={{ kind: 'self' }} />
 
-        <ReviseChart personId={personId} current={query} />
       </div>
 
       {/*
@@ -180,10 +180,10 @@ async function SelfChart({ personId }: { personId: string }) {
           등록한 사람 관리 <span aria-hidden="true">→</span>
         </Link>
         <Link href="/me/compat" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
-          저장된 사람끼리 궁합 <span aria-hidden="true">→</span>
+          저장한 사람으로 궁합 보기 <span aria-hidden="true">→</span>
         </Link>
         <Link href="/me/discovery" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
-          새로운 인연 발견 <span aria-hidden="true">→</span>
+          새로운 인연 찾기 <span aria-hidden="true">→</span>
         </Link>
         <Requests />
       </aside>
@@ -204,7 +204,7 @@ async function Requests() {
 
   return (
     <Link href="/me/requests" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
-      <span>요청과 알림 <span aria-hidden="true">→</span></span>
+      <span>새 소식 <span aria-hidden="true">→</span></span>
       {/*
         수만 그리면 화면 밖에서는 **아무 뜻이 없다.** 「1」을 읽어 주는 것으로는 그것이
         무엇의 1인지 알 수 없어서, 보이지 않는 말을 붙여 배지가 스스로 무엇인지 말하게
@@ -217,35 +217,5 @@ async function Requests() {
         </span>
       )}
     </Link>
-  );
-}
-
-function Footer({ canLeave }: { canLeave: boolean }) {
-  const signOut = async () => {
-    'use server';
-    const client = await supabaseOnServer();
-    await client.auth.signOut();
-    redirect('/');
-  };
-
-  return (
-    <div className="flex flex-col gap-4 border-t border-border pt-4 text-sm">
-      <div className="flex items-center gap-4">
-        <Link href="/" className="text-accent underline underline-offset-2">
-          로그인 없이 계산하기
-        </Link>
-        <form action={signOut}>
-          <button type="submit" className="text-accent underline underline-offset-2">
-            로그아웃
-          </button>
-        </form>
-      </div>
-
-      {/*
-        **떠나는 길은 있어야 한다**(US 61). 로그아웃 옆이 아니라 아래에 두고 접어 두는
-        것은, 이 화면의 일이 내 사주를 보는 것이지 떠나는 것이 아니기 때문이다.
-      */}
-      {canLeave && <RequestDeletion />}
-    </div>
   );
 }

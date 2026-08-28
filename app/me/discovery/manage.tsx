@@ -67,10 +67,10 @@ export function ProfileForm({ current }: { current: DiscoveryProfileInput }) {
   return (
     <section className={`${CARD} flex flex-col gap-4`}>
       <header className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold">공개용 프로필</h2>
+        <h2 className="text-base font-semibold">인연 찾기 프로필</h2>
         <p className="text-sm text-secondary">
-          후보 목록에 설 때 보이는 것입니다. 저장된 출생정보나 가족·친구에게 붙인 이름은
-          여기에 쓰이지 않습니다.
+          다른 사람의 인연 목록에 표시되는 정보입니다. 저장한 출생 정보나 가족·친구에게
+          붙인 이름은 공개되지 않습니다.
         </p>
       </header>
 
@@ -83,7 +83,7 @@ export function ProfileForm({ current }: { current: DiscoveryProfileInput }) {
             setProfile({ ...profile, nickname: event.target.value.slice(0, NICKNAME_MAX) })
           }
           maxLength={NICKNAME_MAX}
-          placeholder="후보 목록에 설 이름"
+          placeholder="인연 목록에 보일 이름"
           className={`${FIELD} w-40`}
         />
       </label>
@@ -170,15 +170,15 @@ export function ParticipationToggle({
   if (optedIn) {
     return (
       <section className={`${CARD} flex flex-col gap-3`}>
-        <h2 className="text-base font-semibold">매칭 참여 중</h2>
+        <h2 className="text-base font-semibold">인연 찾기 참여 중</h2>
         <p className="text-sm text-secondary">
-          다른 참여자의 후보 목록에 설 수 있습니다. 상대에게 보이는 것은 별명·소개와,
+          다른 참여자의 인연 목록에 표시될 수 있습니다. 상대에게 보이는 것은 별명·소개와,
           그 사람에게 부족한 오행 중 내가 채우는 오행의 이름과 뜻입니다. 생년월일시·
           출생지·전체 명식·전체 오행 개수표·숫자 점수는 보이지 않습니다.
         </p>
         <p className="text-sm text-secondary">
           언제든 끌 수 있고, 끄면 매칭 풀에 내놓은 오행 요약도 거둡니다. 내 사주와 저장한
-          사람들은 그대로 남습니다. 이미 주고받은 요청과 성립한 Match 도 그대로입니다 —
+          사람들은 그대로 남습니다. 이미 주고받은 요청과 함께 보기로 한 궁합도 그대로입니다 —
           참여를 끄는 것은 새로 보이지 않겠다는 뜻이지 지난 일을 지우는 것이 아닙니다.
         </p>
         <div className="flex flex-wrap items-center gap-3">
@@ -188,7 +188,7 @@ export function ParticipationToggle({
             disabled={working}
             className="h-11 rounded-lg border border-border px-4 text-sm text-secondary transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-60 sm:h-10"
           >
-            {working ? '끄는 중…' : '매칭 참여 끄기'}
+            {working ? '끄는 중…' : '인연 찾기 쉬기'}
           </button>
         </div>
         {failure !== null && <p className="text-sm text-muted">{failure}</p>}
@@ -198,10 +198,10 @@ export function ParticipationToggle({
 
   return (
     <section className={`${CARD} flex flex-col gap-3`}>
-      <h2 className="text-base font-semibold">매칭 참여</h2>
+        <h2 className="text-base font-semibold">인연 찾기 참여</h2>
       <p className="text-sm text-secondary">
-        켜면 내 <strong className="font-medium">selfPerson</strong> 이 다른 참여자의 후보
-        목록에 설 수 있습니다. 내가 대신 등록한 가족·친구는 후보가 되지 않습니다.
+        참여하면 내 사주를 기준으로 다른 참여자의 인연 목록에 표시될 수 있습니다.
+        내가 대신 등록한 가족·친구는 공개되지 않습니다.
       </p>
 
       {/*
@@ -231,7 +231,7 @@ export function ParticipationToggle({
           disabled={working || needsNickname}
           className={BUTTON}
         >
-          {working ? '켜는 중…' : '매칭 참여 켜기'}
+          {working ? '켜는 중…' : '인연 찾기 시작'}
         </button>
         {/* 왜 눌리지 않는지 버튼 옆에서 말한다 */}
         {needsNickname && (

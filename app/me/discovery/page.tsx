@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { DISCOVERY_POLICY_V0 } from '@/src/lib/discovery';
-
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { candidatesForViewer, type CandidateBoard } from '../candidates';
@@ -12,8 +10,8 @@ import { HideButton, ParticipationToggle, ProfileForm, RequestButton, UnhideAll 
 import { PREFER_GENDERS, type DiscoveryProfileInput, type PreferGender } from './profile';
 
 export const metadata = {
-  title: '후보 — 만세력',
-  description: '매칭에 참여한 사람들 사이에서 오행 보완으로 줄 세운 후보를 봅니다.',
+  title: '인연 찾기 — 만세력',
+  description: '오행의 보완을 바탕으로 새로운 인연을 살펴봅니다.',
 };
 
 /**
@@ -48,24 +46,13 @@ export default async function DiscoveryPage() {
   const board = optedIn ? await openBoard() : null;
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-12 sm:px-6 sm:py-16">
+    <main className="app-shell flex w-full max-w-4xl flex-1 flex-col gap-7 py-9 sm:py-12">
       <header className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">후보</h1>
+        <p className="eyebrow">인연</p>
+        <h1 className="text-3xl font-bold tracking-[-0.04em]">새로운 인연 찾기</h1>
         <p className="max-w-2xl text-sm text-secondary">
-          매칭에 참여한 사람들 사이에서 <strong className="font-medium">오행 보완</strong>과
-          함께 놓은 균형 두 축으로 줄을 세웁니다({DISCOVERY_POLICY_V0.version}). 기존
-          데이팅 서비스와 다른 발견 가설이고, 검증된 정답이 아닙니다.
-        </p>
-        <p className="flex flex-wrap gap-4 text-sm">
-          <Link href="/me" className="text-accent underline underline-offset-2">
-            내 사주
-          </Link>
-          <Link href="/me/people" className="text-accent underline underline-offset-2">
-            등록한 사람
-          </Link>
-          <Link href="/me/requests" className="text-accent underline underline-offset-2">
-            요청과 알림
-          </Link>
+          서로 부족한 오행을 보완할 수 있는 사람을 먼저 보여드립니다. 추천 순서는
+          궁합의 좋고 나쁨이나 운명적인 순위를 뜻하지 않습니다.
         </p>
       </header>
 
@@ -77,7 +64,7 @@ export default async function DiscoveryPage() {
         <section className={`${CARD} bg-surface-sunken`}>
           <h2 className="text-base font-semibold">먼저 내 사주를 등록해 주세요</h2>
           <p className="mt-1.5 text-sm text-secondary">
-            후보 순서는 오행으로 정해지므로 내 사주가 있어야 참여할 수 있습니다.{' '}
+            오행의 보완을 살펴보려면 먼저 내 사주가 필요합니다.{' '}
             <Link href="/me" className="text-accent underline underline-offset-2">
               내 사주 등록하기
             </Link>
@@ -141,7 +128,7 @@ function Candidates({ board, hiddenCount }: { board: CandidateBoard; hiddenCount
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline gap-x-3">
-        <h2 className="text-base font-semibold">지금 볼 수 있는 후보</h2>
+        <h2 className="text-base font-semibold">지금 만날 수 있는 인연</h2>
         <p className="text-sm text-secondary">
           {board.cards.length === 0 ? '아직 없습니다' : `${board.cards.length}명`}
         </p>
@@ -162,7 +149,7 @@ function Candidates({ board, hiddenCount }: { board: CandidateBoard; hiddenCount
 
       {board.cards.length === 0 ? (
         <p className="text-sm text-muted">
-          매칭에 참여한 다른 사람이 아직 없습니다. 참여자가 생기면 여기에 섭니다.
+          아직 소개할 인연이 없습니다. 새로운 참여자가 생기면 여기에 보여드릴게요.
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -173,7 +160,7 @@ function Candidates({ board, hiddenCount }: { board: CandidateBoard; hiddenCount
                 <h3 className="text-base font-semibold">{card.nickname}</h3>
                 {card.exploration && (
                   <span className="rounded-full bg-accent-wash px-2 py-0.5 text-xs text-accent">
-                    탐색 후보
+                    새로운 추천
                   </span>
                 )}
               </div>

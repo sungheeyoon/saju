@@ -116,7 +116,7 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
 
   it('세 문턱이 같은 목록 앞에 선다', () => {
     expect(REQUEST_INTRO).toContain('수락');
-    expect(CONSENT_INTRO).toContain('Match');
+    expect(CONSENT_INTRO).toContain('같은 궁합 결과');
     // 결과 화면도 같은 목록을 읽는다(ADR 0010) — 앞에 붙는 말만 다르다.
     expect(MATCH_RESULT_INTRO).toContain('사주풀이와 점수');
   });
@@ -164,7 +164,7 @@ describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
 
   /** 「못 연다」와 「없다」는 다른 말이다 — Match 와 동의는 그대로 있다 */
   it('열지 못할 때도 Match 가 그대로라고 말한다', () => {
-    expect(MATCH_RESULT_CLOSED_NOTE).toContain('Match');
+    expect(MATCH_RESULT_CLOSED_NOTE).toContain('두 분의 동의');
     expect(MATCH_RESULT_CLOSED_NOTE).toContain('그대로');
   });
 });
@@ -230,7 +230,7 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
 
   it('차단이 「다시 보지 않기」보다 넓고 되돌릴 수 없다는 것을 말한다', () => {
     expect(BLOCK_NOTE).toContain('요청');
-    expect(BLOCK_NOTE).toContain('Match');
+    expect(BLOCK_NOTE).toContain('함께 보던 궁합');
     // 용어집: 차단은 양방향으로 접촉을 막고 **되돌리지 않는다**. 푸는 문이 없으므로
     // 누르기 전에 그렇게 말해야 한다.
     expect(BLOCK_NOTE).toContain('되돌릴 수 없습니다');

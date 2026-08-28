@@ -58,23 +58,22 @@ export default async function PeoplePage() {
   const people = suspended ? [] : await peopleWithCharts(managed);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-12 sm:px-6 sm:py-16">
-      <header className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">등록한 사람</h1>
-        <p className="text-sm text-secondary">
-          가족·친구의 사주를 여기서 관리합니다. {people.length}/{PERSON_LIMIT}명.
-        </p>
-        <p className="flex flex-wrap gap-4 text-sm">
-          <Link href="/me" className="text-accent underline underline-offset-2">
-            내 사주
-          </Link>
-          <Link href="/me/compat" className="text-accent underline underline-offset-2">
-            저장된 사람끼리 궁합
-          </Link>
-          <Link href="/me/discovery" className="text-accent underline underline-offset-2">
-            후보
-          </Link>
-        </p>
+    <main className="app-shell flex w-full max-w-4xl flex-1 flex-col gap-7 py-9 sm:py-12">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">사람</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">저장한 사람</h1>
+          <p className="mt-1 text-sm text-secondary">
+            가족과 친구의 출생 정보를 저장하고, 각 사람의 사주나 두 사람의 궁합을 확인하세요.
+            <span className="ml-2 text-muted">{people.length}/{PERSON_LIMIT}명</span>
+          </p>
+        </div>
+        <Link
+          href="/me/compat"
+          className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
+        >
+          저장한 사람으로 궁합 보기
+        </Link>
       </header>
 
       {suspended ? (
@@ -176,7 +175,7 @@ function readChart(
 
 function PersonCard({ person }: { person: Person }) {
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-4">
+    <section className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
       {person.chart.ok ? (
         <ChartSummary query={person.chart.query} />
       ) : (
@@ -192,6 +191,14 @@ function PersonCard({ person }: { person: Person }) {
       <NoteForm personId={person.personId} note={person.note ?? ''} />
 
       <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
+        {person.chart.ok && (
+          <Link
+            href={`/me/people/${person.personId}`}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-strong"
+          >
+            사주 상세 보기
+          </Link>
+        )}
         {/* 못 읽는 판본은 고치는 폼도 못 채운다 — 빈 폼을 주면 그 값이 새 판본으로 굳는다 */}
         {person.chart.ok && <ReviseChart personId={person.personId} current={person.chart.query} />}
         <RemoveFromList personId={person.personId} label={person.local_label} />

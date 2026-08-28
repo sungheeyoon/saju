@@ -42,8 +42,8 @@ export const config = {
   /**
    * 익명 흐름은 지나가지 않게 한다.
    *
-   * `/` 와 `/compat` 은 로그인 없이 도는 화면이고 정적으로 미리 그려진다. 거기까지
-   * proxy 를 태우면 세션도 없는 요청마다 Supabase 를 한 번씩 두드리게 된다.
+   * `/` 만 로그인 없이 도는 정적 화면이다. `/compat` 은 로그인 후 쓰므로 만료된
+   * 세션을 갱신해야 한다.
    */
-  matcher: ['/me/:path*', '/auth/:path*'],
+  matcher: ['/me/:path*', '/compat', '/auth/:path*'],
 };

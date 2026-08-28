@@ -192,9 +192,8 @@ export function CompatCalculator() {
         <section className={`${CARD} bg-surface-sunken`}>
           <h2 className="text-base font-semibold">두 사람의 생년월일시를 입력해 주세요</h2>
           <p className="mt-1.5 text-sm text-secondary">
-            두 원국 <strong className="font-medium">사이에</strong> 성립하는 관계와, 서로의 오행을
-            어떻게 채우는지를 보여줍니다. 그 사실 아래에, 사실만 입력으로 쓰는 베타
-            매칭 지표가 함께 섭니다.
+            두 사람 사이에 보이는 관계와 서로의 오행을 어떻게 보완하는지 정리해 드립니다.
+            직접 입력한 정보와 결과는 계정에 저장되지 않습니다.
           </p>
         </section>
       ) : result.ok ? (

@@ -218,22 +218,22 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByRole('link', { name: '전체 명식 자세히 보기' }).click();
     await expect(page).toHaveURL(/\/#/);
 
-    // 익명 화면이므로 공개 메뉴가 선다 — 그렇다고 로그인을 권하지는 않는다.
+    // 공개 계산 화면에서도 로그인 상태에 맞는 내 메뉴가 선다.
     const header = page.getByRole('banner');
     await expect(header.getByRole('link', { name: '로그인' })).toHaveCount(0);
 
-    const back = header.getByRole('link', { name: '내 자리' });
+    const back = header.getByRole('link', { name: '내 사주' });
     await expect(back).toBeVisible();
 
     await back.click();
     await expect(page).toHaveURL(/\/me$/);
-    await expect(page.getByRole('heading', { name: '나의 흐름' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '내 사주' })).toBeVisible();
   });
 
   test('사람을 추가하면 목록에 서고 그 사람과의 수동 궁합이 열린다', async ({ page, signedIn }) => {
     await page.goto('/me/people');
 
-    await expect(page.getByRole('heading', { name: '등록한 사람' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '저장한 사람' })).toBeVisible();
     await expect(page.getByRole('heading', { name: '어머니' })).toBeVisible();
 
     await page.getByRole('button', { name: '사람 추가' }).click();
@@ -247,8 +247,14 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await expect(page.getByRole('heading', { name: '친구' })).toBeVisible();
 
+    const friend = page.locator('section').filter({ has: page.getByRole('heading', { name: '친구' }) });
+    await friend.getByRole('link', { name: '사주 상세 보기' }).click();
+    await expect(page.getByRole('heading', { name: '친구의 사주' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+    await page.getByRole('link', { name: '사람 목록으로' }).click();
+
     // 스무 명 한도를 세는 것도 이 목록이다(US 18).
-    await page.getByRole('link', { name: '저장된 사람끼리 궁합' }).click();
+    await page.getByRole('link', { name: '저장한 사람으로 궁합 보기' }).click();
     await expect(page).toHaveURL(/\/me\/compat/);
 
     await page.getByLabel('첫 번째').selectOption({ label: `${signedIn.label} (나)` });
@@ -266,15 +272,28 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('궁합 베타')).toHaveCount(0);
   });
 
+  test('계정 작업은 우측 설정 메뉴의 계정 관리에 모여 있다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me');
+
+    await page.locator('summary[aria-label="설정 메뉴"]').click();
+    await page.getByRole('link', { name: '계정 관리' }).click();
+
+    await expect(page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
+    const account = page.getByRole('main');
+    await expect(account.getByRole('button', { name: '로그아웃' })).toBeVisible();
+    await expect(account.getByRole('button', { name: '계정 삭제 요청' })).toBeVisible();
+  });
+
   test('입력을 고치면 새 판본으로 다시 그린다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
 
     await expect(page.getByText('1990-05-15')).toBeVisible();
 
-    await page.getByRole('button', { name: '생년월일시 고치기' }).click();
+    await page.getByRole('button', { name: '출생 정보 수정' }).click();
     await fillBirthDate(page, '1990-06-20');
-    await page.getByRole('button', { name: '새 판본으로 저장' }).click();
+    await page.getByRole('button', { name: '변경 사항 저장' }).click();
 
     await expect(page.getByText('1990-06-20')).toBeVisible();
     await expect(page.getByText('1990-05-15')).toHaveCount(0);

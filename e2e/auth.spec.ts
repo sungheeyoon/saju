@@ -23,8 +23,7 @@ test('로그인 화면은 초대받은 사람만 들어온다고 미리 말한�
   await page.goto('/auth');
 
   await expect(page.getByText('초대받은 분만', { exact: false })).toBeVisible();
-  // 익명 흐름으로 돌아갈 길을 막지 않는다. 로그인은 매칭을 위한 것이지 계산의 조건이 아니다.
-  await expect(page.getByRole('link', { name: '로그인 없이 명식 보기' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '사주 보기로 돌아가기' })).toBeVisible();
 });
 
 test('초대 관문에 막혀 돌아오면 계정이 만들어지지 않았다고 말한다', async ({ page }) => {
@@ -36,15 +35,19 @@ test('초대 관문에 막혀 돌아오면 계정이 만들어지지 않았다�
   await expect(page.getByText('계정은 만들어지지 않았습니다', { exact: false })).toBeVisible();
 });
 
-test('익명 흐름은 로그인과 무관하게 그대로 열려 있다', async ({ page }) => {
+test('사주 계산은 로그인 없이 열리고 궁합은 로그인으로 이어진다', async ({ page }) => {
   await page.goto('/');
 
   /*
     헤더 오른쪽 끝은 **세션을 보고 정해진다**(`SiteHeader`). 로그인한 사람에게는
-    「내 자리」가 서므로, 세션이 없을 때 그 자리가 로그인을 권하는지도 함께 잰다 —
+    설정 메뉴가 서므로, 세션이 없을 때 그 자리가 로그인을 권하는지도 함께 잰다 —
     한쪽만 재면 둘 중 하나가 늘 틀린 채로 지나간다.
   */
-  await expect(page.getByRole('link', { name: '로그인' })).toBeVisible();
-  await expect(page.getByRole('link', { name: '내 자리' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: '로그인', exact: true })).toBeVisible();
+  await expect(page.getByLabel('설정 메뉴')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: '생년월일시를 입력해 주세요' })).toBeVisible();
+
+  await page.goto('/compat');
+  await expect(page).toHaveURL(/\/auth\?next=%2Fcompat/);
+  await expect(page.getByRole('heading', { name: '궁합을 보려면 로그인해 주세요' })).toBeVisible();
 });

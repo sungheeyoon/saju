@@ -222,7 +222,7 @@ export function SajuCalculator() {
               것이 그것이다. 「사주」는 그 둘과 이 일 전체를 다 가리켜서, 버튼에
               적으면 무엇이 나오는지 말해 주지 않는다.
             */}
-            {query === null ? '내 명식 보기' : '결과 업데이트'}
+            {query === null ? '사주 결과 보기' : '수정한 정보로 다시 보기'}
           </button>
 
           {/* 왜 눌리지 않는지 버튼 옆에서 말한다 — 잠긴 버튼만 두면 이유를 찾아야 한다 */}
@@ -231,7 +231,7 @@ export function SajuCalculator() {
 
         {dirty && (
           <p className="text-sm text-secondary">
-            입력이 바뀌었습니다. &lsquo;결과 업데이트&rsquo;를 누르면 반영됩니다.
+            입력이 바뀌었습니다. &lsquo;수정한 정보로 다시 보기&rsquo;를 누르면 반영됩니다.
           </p>
         )}
       </form>
@@ -255,6 +255,15 @@ export function SajuCalculator() {
       )}
     </div>
   );
+}
+
+/**
+ * 저장한 사람의 상세 화면도 공개 계산기와 같은 결과 구성을 쓴다.
+ * 저장된 입력을 주소로 옮기지 않고, 서버가 권한을 확인해 계산한 명식만 받는다.
+ */
+export function SajuResult({ saju }: { saju: Saju }) {
+  const [viewedAt] = useState(() => Date.now());
+  return <SajuView saju={saju} viewedAt={viewedAt} />;
 }
 
 function SajuView({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
@@ -405,7 +414,7 @@ function ResultNav() {
   return (
     <nav
       aria-label="결과 바로가기"
-      className="sticky top-2 z-20 -my-2 overflow-x-auto rounded-xl border border-border bg-surface/95 px-2 py-2 shadow-sm backdrop-blur"
+      className="sticky top-20 z-20 -my-2 overflow-x-auto rounded-xl border border-border bg-surface/95 px-2 py-2 shadow-sm backdrop-blur"
     >
       <ul className="flex min-w-max items-center gap-1">
         {RESULT_LINKS.map(([target, label]) => (
@@ -459,8 +468,8 @@ function FortuneTabs({
   return (
     // `id="fortune"` 은 위의 `NowFortune` 이 든다 — 바로가기가 '운' 을 가리킬 때
     // 먼저 보여야 하는 것은 지금이고, 표는 그 아래에서 둘러보는 것이다.
-    <div className="flex flex-col gap-3">
-      <div className={`${CARD} flex flex-wrap items-center justify-between gap-3 py-3`}>
+    <section className={`${CARD} flex flex-col gap-5`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold">운 흐름</h2>
           <p className="mt-0.5 text-xs text-secondary">
@@ -502,12 +511,13 @@ function FortuneTabs({
         id="fortune-panel"
         role="tabpanel"
         aria-labelledby={`fortune-tab-${view}`}
+        className="border-t border-border pt-5"
       >
         {view === 'daeun' && <DaeunTable saju={saju} now={now} />}
         {view === 'saeun' && <SaeunTable saju={saju} now={now} />}
         {view === 'wolun' && <WolunTable saju={saju} now={now} />}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -963,7 +973,7 @@ function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
   const currentChartId = now.saeun.chartId;
 
   return (
-    <section className={CARD}>
+    <section>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 className="text-base font-semibold">세운</h2>
         <p className="text-sm text-secondary">
@@ -1013,7 +1023,7 @@ function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                 return (
                   <td key={entry.year} className="snap-start px-1 align-top">
                     <div
-                      className={`mx-auto flex w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
+                      className={`mx-auto flex min-h-[7.25rem] w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
                         current
                           ? 'border-accent bg-accent-wash'
                           : 'border-border bg-surface-sunken'
@@ -1088,7 +1098,7 @@ function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
   const currentChartId = now.wolun.chartId;
 
   return (
-    <section className={CARD}>
+    <section>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 className="text-base font-semibold">월운</h2>
         <p className="text-sm text-secondary">{year}년 (사주년)</p>
@@ -1127,7 +1137,7 @@ function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
               {entries.map((entry) => (
                 <td key={entry.chartId} className="snap-start px-1 align-top">
                   <div
-                    className={`mx-auto flex w-full max-w-20 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
+                    className={`mx-auto flex min-h-[7.25rem] w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
                       entry.chartId === currentChartId
                         ? 'border-accent bg-accent-wash'
                         : 'border-border bg-surface-sunken'
@@ -1136,8 +1146,8 @@ function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                     <span className="text-[10px] text-muted">
                       {TEN_GOD_KO[entry.tenGods.stem]}
                     </span>
-                    <span className="glyph text-xl leading-none">{entry.pillar.stem}</span>
-                    <span className="glyph text-xl leading-none">{entry.pillar.branch}</span>
+                    <span className="glyph text-2xl leading-none">{entry.pillar.stem}</span>
+                    <span className="glyph text-2xl leading-none">{entry.pillar.branch}</span>
                     <span className="text-[10px] text-muted">
                       {TEN_GOD_KO[entry.tenGods.branch]}
                     </span>
@@ -1187,7 +1197,7 @@ function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
   const currentChartId = now.daeun?.chartId;
 
   return (
-    <section className={CARD}>
+    <section>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 className="text-base font-semibold">대운</h2>
         <p className="text-sm">
@@ -1230,7 +1240,7 @@ function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                 return (
                   <td key={entry.chartId} className="snap-start px-1 align-top">
                     <div
-                      className={`mx-auto flex w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
+                      className={`mx-auto flex min-h-[7.25rem] w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
                         current ? 'border-accent bg-accent-wash' : 'border-border bg-surface-sunken'
                       }`}
                     >

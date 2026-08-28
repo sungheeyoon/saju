@@ -6,12 +6,13 @@ import { analyzeCompatibility } from '@/src/lib/saju';
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { CompatView } from '../../compat-view';
+import { CompatModeNav } from '../../compat-mode-nav';
 import { REVISION_REPLACED_NOTE, UnreadableRevisionError } from '../../revision';
 import { Halted } from '../halted';
 import { payloadForViewer, type PersonPayload } from '../payload';
 
 export const metadata = {
-  title: '저장된 사람끼리 궁합 — 만세력',
+  title: '저장한 사람으로 궁합 보기 — 만세력',
   description: '저장해 둔 두 사람을 골라 사이에 성립하는 관계를 봅니다.',
 };
 
@@ -80,23 +81,15 @@ export default async function ManagedCompatPage({
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 py-10 sm:px-6 sm:py-14">
       <header className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">저장된 사람끼리 궁합</h1>
+        <p className="eyebrow">궁합</p>
+        <h1 className="text-3xl font-bold tracking-[-0.04em]">두 사람의 궁합 보기</h1>
         <p className="max-w-2xl text-sm text-secondary">
-          저장해 둔 사람 둘을 고르면 <strong className="font-medium">사이에</strong> 성립하는
-          형충회합과 오행 보완을 봅니다. 내가 끼지 않는 조합도 됩니다.
-        </p>
-        <p className="flex flex-wrap gap-4 text-sm">
-          <Link href="/me" className="text-accent underline underline-offset-2">
-            내 사주
-          </Link>
-          <Link href="/me/people" className="text-accent underline underline-offset-2">
-            등록한 사람
-          </Link>
-          <Link href="/me/discovery" className="text-accent underline underline-offset-2">
-            후보
-          </Link>
+          저장한 사람 둘을 골라 관계와 오행의 보완을 살펴봅니다. 내가 포함되지 않은
+          두 사람도 고를 수 있습니다.
         </p>
       </header>
+
+      <CompatModeNav mode="saved" />
 
       {suspended ? (
         <Halted status={account?.status ?? 'suspended'} />

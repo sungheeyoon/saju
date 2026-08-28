@@ -35,7 +35,7 @@ export const ACCOUNT_HALTED_TEXT: Record<
   deletion_requested: {
     title: '삭제를 요청한 계정입니다.',
     detail:
-      '요청을 받았습니다. 후보 노출과 새 요청·해석 생성은 이미 멈췄고, 저장된 자료는 운영자가 처리할 때까지 그대로 있습니다. 되돌리려면 운영자에게 알려 주세요.',
+      '요청을 받았습니다. 인연 찾기 노출과 새 요청·풀이 생성은 이미 멈췄고, 저장된 자료는 운영자가 처리할 때까지 그대로 있습니다. 되돌리려면 운영자에게 알려 주세요.',
   },
 } as const;
 
@@ -53,7 +53,7 @@ export function haltedText(status: string): { title: string; detail: string } | 
  * 두 사람의 것인 자료는 한쪽이 지울 수 없다(PRD: 무조건 연쇄 삭제하지 않는다).
  */
 export const DELETION_NOTE =
-  '삭제를 요청하면 후보 노출이 즉시 꺼지고, 답을 기다리던 요청이 정리되며, 새 요청·Match·AI 해석 생성이 막힙니다. 저장된 자료는 그 자리에서 지워지지 않습니다 — 운영자가 처리하며, 이미 성립한 Match 처럼 두 사람의 것인 기록은 한쪽이 지울 수 없습니다.';
+  '삭제를 요청하면 인연 찾기 참여가 즉시 꺼지고, 답을 기다리던 요청이 정리되며, 새 요청과 풀이 생성이 막힙니다. 저장된 자료는 그 자리에서 지워지지 않습니다 — 운영자가 처리하며, 이미 함께 보기로 한 궁합처럼 두 사람의 기록은 한쪽이 지울 수 없습니다.';
 
 /** 되돌리는 길이 화면에 없다는 것을 누르기 전에 말한다 */
 export const DELETION_IRREVERSIBLE_NOTE =
@@ -84,6 +84,6 @@ export const isReportReason = (value: string): value is ReportReason =>
  * 끝나거나 그 반대가 된다.
  */
 export const REPORT_NOTE =
-  '신고는 운영자에게 기록을 남기는 것입니다. 상대에게는 알리지 않고, 이 사람이 후보 목록에서 사라지지도 않습니다 — 보이지 않게 하려면 차단을 함께 눌러 주세요.';
+  '신고는 운영자에게 기록을 남기는 것입니다. 상대에게는 알리지 않고, 이 사람이 인연 목록에서 사라지지도 않습니다 — 보이지 않게 하려면 차단을 함께 눌러 주세요.';
 
 export const REPORT_DETAIL_MAX = 1000;
