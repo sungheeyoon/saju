@@ -5,6 +5,7 @@ import {
   CONTROL,
   PROMPT_VARIANTS,
   READING_POLICY,
+  READING_PROMPTS,
   readingEvidenceOf,
   readingPromptOf,
   selfSectionCount,
@@ -217,6 +218,73 @@ describe('고객이 읽는 글의 계약', () => {
   };
 
   const selfPrompt = (assembly = CONTROL) => readingPromptOf(evidence(), assembly);
+
+  /**
+   * 여기서 재는 것은 **몸통**이라 자료를 안 붙인다.
+   *
+   * `readingPromptOf` 는 kind 와 자료가 짝인 값만 받는다(private 은 redacted, match 는
+   * shared) — 타입이 그 짝을 강제하므로 자료를 지어 끼워 넣을 수가 없다. 몸통만 볼
+   * 자리에서는 `READING_PROMPTS` 가 그대로 답이다.
+   */
+  const compatPrompt = (kind: 'private' | 'match') => READING_PROMPTS[kind];
+
+  /** 「낼 것」이 세우는 절의 수 — `**1. …**` 꼴로 번호가 붙은 것만 센다 */
+  const sectionCountOf = (prompt: string) => (prompt.match(/^\*\*\d+\. /gm) ?? []).length;
+
+  /**
+   * **궁합이 자기 풀이의 요약처럼 보이면 안 된다.**
+   *
+   * 분량이 문자열 안에 박혀 있는 동안 궁합은 1000~1600자였다. 자기 풀이가 5000~9000
+   * 으로 올라갈 때 아무도 여기를 안 봤고, 같은 사람이 둘을 나란히 읽으면 궁합만
+   * 요약문이었다. 조립 밖의 값은 조립을 고칠 때 안 고쳐진다 — 그래서 값으로 올렸고
+   * 시험이 그 자리를 잡는다.
+   */
+  it('궁합 분량이 자기 풀이와 같은 자릿수에 선다', () => {
+    const { selfLength, compatLength } = CONTROL;
+
+    for (const kind of ['private', 'match'] as const) {
+      // 자기 풀이의 절반 아래로 내려가면 나란히 읽었을 때 요약으로 보인다
+      expect(compatLength[kind].min, kind).toBeGreaterThanOrEqual(selfLength.min / 2);
+      expect(compatLength[kind].max, kind).toBeGreaterThanOrEqual(selfLength.max / 2);
+    }
+
+    // 저장 계약 안에 들어야 나온 글이 길이 때문에 버려지지 않는다
+    for (const kind of ['private', 'match'] as const) {
+      expect(compatLength[kind].max, kind).toBeLessThanOrEqual(READING_POLICY.markdownLength.max);
+    }
+
+    for (const kind of ['private', 'match'] as const) {
+      const { min, max } = compatLength[kind];
+      expect(compatPrompt(kind), kind).toContain(`사용자 본문은 ${min}~${max}자`);
+    }
+  });
+
+  /**
+   * **재료가 다르면 물어보는 것도 달라야 한다.**
+   *
+   * 공유 궁합은 여덟 글자와 관계 사실까지만 열린다(ADR 0012) — 각자의 성격·신살·운은
+   * 없다. 그 절을 세우면 모델은 없는 자료로 답을 지어내거나 「알 수 없다」를 적는다.
+   * **둘 다 동의 범위를 지킨 것이 아니다.** 물어보지 않는 것이 지키는 것이다.
+   */
+  it('공유 궁합에는 동의 범위 밖을 묻는 절을 세우지 않는다', () => {
+    const shared = compatPrompt('match');
+    const own = compatPrompt('private');
+
+    for (const heading of ['각자 이 관계에서 어떤 사람인가', '지금 두 사람의 운']) {
+      expect(own, heading).toContain(heading);
+      expect(shared, heading).not.toContain(heading);
+    }
+
+    // 둘이 함께 쓰는 절은 양쪽에 다 선다
+    for (const heading of ['둘이 만나야 생기는 것', '서로를 채우는 자리', '생활에서 반복될 장면']) {
+      expect(shared, heading).toContain(heading);
+      expect(own, heading).toContain(heading);
+    }
+
+    // 분량만 올리면 이미 한 말을 늘여 쓴다 — 절을 먼저 채웠는지 잡는다
+    expect(sectionCountOf(shared)).toBeGreaterThanOrEqual(10);
+    expect(sectionCountOf(own)).toBeGreaterThan(sectionCountOf(shared));
+  });
 
   it('기준판은 개인 사주의 핵심 물음을 빠짐없이 다룬다', () => {
     expect(selfSectionCount(CONTROL)).toBe(9);

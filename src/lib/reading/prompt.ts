@@ -19,6 +19,19 @@ export type SelfPresentation = 'expert-v3' | 'legacy-v1';
 export type PromptAssembly = {
   /** 검사용 근거 절을 제외한 자기 풀이 본문 목표 길이 */
   readonly selfLength: Length;
+  /**
+   * 궁합 본문 목표 길이 — **kind 마다 다르다.**
+   *
+   * 이 값이 문자열 안에 박혀 있는 동안 1000~1600 이었다. 자기 풀이가 5000~9000 으로
+   * 올라갈 때 궁합은 아무도 안 봤고, 그래서 **같은 사람이 자기 풀이와 궁합을 나란히
+   * 읽으면 궁합이 요약처럼 보인다.** 조립 밖에 있는 값은 조립을 고칠 때 안 고쳐진다.
+   *
+   * 둘을 갈라 두는 까닭은 재료가 다르기 때문이다. 비공개 궁합은 두 원국의 분석을
+   * 통째로 들고 있어 자기 풀이보다 오히려 재료가 많고, 공유 궁합은 동의 범위가
+   * 여덟 글자와 관계 사실까지라 각자의 성격·신살·운을 못 읽는다(ADR 0012).
+   * **한 숫자로 묶으면 하나는 늘여 쓰기가 되고 하나는 잘린다.**
+   */
+  readonly compatLength: Record<Exclude<ReadingKind, 'self'>, Length>;
   /** 사용자에게 보여 줄 자기 풀이의 뼈대 */
   readonly selfPresentation: SelfPresentation;
   /** 본문 계약 앞에 얹는 실험 규칙 */
@@ -30,6 +43,10 @@ export type PromptAssembly = {
 /** 실제 배포에서 쓰는 기준판. */
 export const CONTROL: PromptAssembly = {
   selfLength: { min: 5000, max: 9000 },
+  compatLength: {
+    private: { min: 5000, max: 9000 },
+    match: { min: 4000, max: 7000 },
+  },
   selfPresentation: 'expert-v3',
   extraSections: [],
   tail: null,
@@ -288,30 +305,82 @@ const SCORE_SECTION = `## 점수
 구조를 각각 본 뒤 합친다. 관계가 많다는 것이 좋다는 뜻은 아니다. 시각을 모르는 사람이
 있으면 그만큼 덜 확신하는 쪽으로 잡는다.`;
 
-const COMPAT_SECTIONS = `두 사람을 부를 이름이 자료에 없다. \`charts.a\`는 「첫 번째 분」,
-\`charts.b\`는 「두 번째 분」이라고 부르고 누구 이야기인지 분명히 한다.
+/**
+ * 두 kind가 **함께 쓰는** 궁합 절들.
+ *
+ * 다섯 절 1000~1600자였다. 그 분량은 「잘 맞아요/부딪혀요」를 세 줄씩 적으면 끝나는
+ * 크기라, 자기 풀이가 아홉 절로 깊어지는 동안 궁합만 **요약문**으로 남아 있었다.
+ *
+ * 늘리는 방법이 둘인데 하나만 옳다. 같은 다섯 절에 분량만 올리면 모델은 이미 한 말을
+ * 늘여 쓴다 — **물어보지 않은 것에는 답이 안 나온다.** 그래서 절을 먼저 채운다. 여기
+ * 있는 것은 전부 자료가 실제로 들고 있는 것들이다(`compatibility` 의 관계 목록·
+ * `combinedFormations`·`elementSupport`·양방향 `tenGods`·`eokbuMatch`).
+ */
+const COMPAT_SHARED_SECTIONS = [
+  `**1. 한 줄로** — 이 둘이 만나면 어떤 그림인지 한 문장. 비유를 쓸 거면 여기서만.`,
+  `**2. 서로에게 무엇인가** — 첫 번째 분이 두 번째 분을 보는 자리와 그 반대가 **다르다**
+(\`tenGods.aSeesB\`·\`bSeesA\`). 한쪽이 다른 쪽을 뜻하지 않는다 — 한 사람은 기대고 한 사람은
+책임을 느끼는 짝사랑 모양이 흔하다. 그 비대칭이 **일상에서 어떻게 보이는지**까지 쓴다.`,
+  `**3. 처음에 끌리는 지점** — 만나서 얼마 안 됐을 때 서로의 무엇이 눈에 들어오는지.
+그리고 그 끌림이 **오래 갈 것인지 초반에만 세게 오는 것인지**도 함께 말한다.`,
+  `**4. 잘 맞는 지점 넷** — 줄마다 「어디서 맞는가 → 왜 그런가 → 그래서 무엇이 쉬워지는가」.
+**넷을 채워라.** 둘에서 멈추면 어느 두 사람에게나 맞는 말만 남는다.`,
+  `**5. 부딪히는 지점 넷** — 줄마다 「어디서 부딪히는가 → 어떤 상황에서 터지는가 → 그때 각자
+무엇을 하면 되는가」. 대처는 **두 사람 몫을 따로** 적는다. 한쪽만 참으라는 조언은 조언이 아니다.`,
+  `**6. 서로를 채우는 자리** — \`elementSupport\` 와 \`eokbuMatch\`. 한쪽에 없는 기운을 다른 쪽이
+갖고 있으면 그것이 관계에서 **무엇으로 나타나는지** 쓴다. 채워지지 않고 남는 것
+(\`stillMissing\`)도 숨기지 말고, 둘 다 없는 것은 **밖에서 구해야 하는 것**이라고 말한다.`,
+  `**7. 둘이 만나야 생기는 것** — \`combinedFormations\`. 혼자서는 못 이루고 둘이 모여야 서는
+구조다. **궁합의 본론이 여기다** — 있으면 무엇이 열리는지 충분히 풀고, 없으면 없다고 적은 뒤
+대신 어디서 힘이 나는지 말한다.`,
+  `**8. 생활에서 반복될 장면** — 돈 쓰는 방식·연락의 속도·계획과 즉흥·집안일과 약속처럼
+**실제로 부딪히는 자리**에서 두 사람이 어떻게 다른지. 앞 절을 요약하지 말고 장면으로 옮긴다.`,
+  `**9. 오래 가려면 무엇이 필요한가** — 이 관계가 잘 흘렀을 때의 모습과, 틀어질 때 **가장 먼저
+보이는 신호**. 그리고 그 신호가 왔을 때 무엇을 하면 되는지. 「노력하면 된다」는 답이 아니다.`,
+];
+
+/**
+ * 비공개 궁합만 서는 절 — **공유 궁합은 이 재료가 없다.**
+ *
+ * 자료가 갈리는 자리를 절 목록이 그대로 든다. 공유 궁합에 이 절을 세우면 모델은 없는
+ * 자료로 답을 지어내거나 「알 수 없다」를 아홉 번 적는다 — **둘 다 동의 범위를 지킨
+ * 것이 아니다.** 물어보지 않는 것이 지키는 것이다.
+ */
+const COMPAT_PRIVATE_SECTIONS = [
+  `**10. 각자 이 관계에서 어떤 사람인가** — 두 원국을 각각 읽어, 이 사람이 가까운 사이에서
+반복하는 모양을 한 사람씩 서너 문장으로. 서운할 때의 반응과 표현하는 속도까지.
+**둘을 견주지 말고 각각 쓴다** — 견주는 것은 앞 절들이 이미 했다.`,
+  `**11. 지금 두 사람의 운** — 각자의 대운·세운이 지금 어느 자리인지 밝히고, 두 흐름이 같은
+방향인지 엇갈리는지. 그래서 **지금이 이 관계에 어떤 시기인지**까지. 기준 시각을 적는다.`,
+];
+
+/** 궁합 절 목록 — kind 가 재료를 정하고, 재료가 절을 정한다 */
+const compatSections = (kind: Exclude<ReadingKind, 'self'>, assembly: PromptAssembly): string => {
+  const sections =
+    kind === 'private'
+      ? [...COMPAT_SHARED_SECTIONS, ...COMPAT_PRIVATE_SECTIONS]
+      : COMPAT_SHARED_SECTIONS;
+  const { min, max } = assembly.compatLength[kind];
+
+  return `두 사람을 부를 이름이 자료에 없다. \`charts.a\`는 「첫 번째 분」,
+\`charts.b\`는 「두 번째 분」이라고 부르고 **문장마다 누구 이야기인지 분명히 한다.**
 
 ## 낼 것
 
 Markdown으로 쓰고 소제목은 \`##\`로 단다.
 
-**1. 한 줄로** — 이 둘이 만나면 어떤 그림인지 한 문장.
+${sections.join('\n\n')}
 
-**2. 서로에게 보이는 모습** — 서로를 다르게 받아들이는 장면.
-
-**3. 편해지는 순간** — 실제 생활에서 잘 맞는 장면 셋.
-
-**4. 부딪히는 순간** — 어떤 상황에서 어긋나고 그때 무엇을 하면 되는지 셋.
-
-**5. 둘이 함께 있을 때** — 혼자일 때와 달라지는 것과 기억할 한 가지.
+**${sections.length + 1}. 점수** — 아래를 따른다.
 
 그다음에 줄을 긋고:
 
 ${PROMPT_PARTS.closing}
 
-사용자 본문은 1000~1600자. 검사용 근거 절은 분량에 넣지 않는다.
+사용자 본문은 ${min}~${max}자. 검사용 근거 절은 분량에 넣지 않는다.
 
 ${SCORE_SECTION}`;
+};
 
 const MATCH_SCOPE = `## 이 자료의 범위
 
@@ -363,7 +432,7 @@ const bodyOf = (kind: ReadingKind, assembly: PromptAssembly): string => {
     voice,
     ...(kind === 'match' ? [] : [PROMPT_PARTS.personality]),
     ...assembly.extraSections,
-    kind === 'self' ? selfSections(assembly) : COMPAT_SECTIONS,
+    kind === 'self' ? selfSections(assembly) : compatSections(kind, assembly),
     OUTPUT_CONTRACT(kind),
   ].join('\n\n');
 };
