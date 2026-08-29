@@ -10,7 +10,7 @@
 -- 4. **판본을 든다.** 그래서 `revisions_in_use()` 가 이 표를 자동으로 본다(ADR 0011) —
 --    표 이름을 적어 둔 목록이 아니라 FK 에서 읽기 때문이다.
 begin;
-select plan(44);
+select plan(48);
 
 /** 다섯 오행 개수만 주면 요약 한 벌이 된다(11번 시험과 같은 손잡이) */
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
@@ -346,6 +346,58 @@ select throws_ok(
   format($$select * from public.start_reading_run('private', 'key-priv-0002', %L::uuid, %L::uuid)$$,
     (select kim_person from people), (select lee_person from people)),
   '23514', null, '못 보는 대상으로는 요청을 시작할 수 없다');
+
+-- ── 본 궁합을 다시 찾아간다 ────────────────────────────────────────────────
+
+/**
+ * 결과가 사는 주소는 `?a=…&b=…` 이고 둘 다 불투명 uuid 다. 화면을 벗어나면 주소가
+ * 사라지고, 사라진 주소를 사람이 기억할 수는 없다 — **저장돼 있지만 닿을 수 없는 것**은
+ * 사용자에게 없는 것과 같다. 목록이 그 길이다.
+ */
+select is(
+  (select count(*)::int from public.my_private_readings()),
+  1,
+  '내가 본 비공개 궁합이 목록에 선다');
+
+/**
+ * **이름을 함께 낸다.** id 만 내주면 화면이 사람 목록을 따로 읽어 맞춰야 하고, 그러면
+ * 짝짓는 자리가 둘이 된다. 이름은 Person 이 아니라 내 엣지가 든다.
+ */
+select is(
+  (select label_a || '·' || label_b from public.my_private_readings()
+   where person_a = least((select mom from mine), (select kim_person from people))),
+  (select
+     (select local_label from public.user_person_access
+      where user_id = (select kim from folks)
+        and person_id = least((select mom from mine), (select kim_person from people)))
+     || '·' ||
+     (select local_label from public.user_person_access
+      where user_id = (select kim from folks)
+        and person_id = greatest((select mom from mine), (select kim_person from people)))),
+  '두 사람을 부르는 이름이 목록에 함께 실린다');
+
+/**
+ * 글도 근거도 안 나간다 — 목록은 결과로 가는 **길**이지 두 번째 결과 화면이 아니다.
+ * `security definer` 가 내주는 것이 곧 브라우저가 볼 수 있는 것이라, 반환형이 곧 계약이다.
+ */
+select bag_eq(
+  $$select unnest(array['person_a','person_b','label_a','label_b','score','created_at','from_current_revision'])$$,
+  $$select p.name from unnest((
+      select proargnames from pg_proc
+      where oid = 'public.my_private_readings()'::regprocedure)) as p(name)$$,
+  '목록은 본문도 근거도 내주지 않는다');
+
+/**
+ * **남의 목록은 비어 있다.** `security definer` 는 RLS 를 지나가므로, 좁힘이 함수
+ * 안에 없으면 이 함수가 곧 남의 궁합 기록을 세는 문이 된다.
+ */
+select pg_temp.acting((select lee from folks));
+select is(
+  (select count(*)::int from public.my_private_readings()),
+  0,
+  '남이 본 궁합은 내 목록에 안 선다');
+
+select pg_temp.acting((select kim from folks));
 
 -- ── 공유 궁합 — 매인 판본으로만 나고 양쪽이 같은 것을 본다 ──────────────────
 

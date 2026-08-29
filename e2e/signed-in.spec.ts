@@ -192,6 +192,13 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     await expect(page.getByRole('heading', { name: '두 사람의 사주풀이' })).toBeVisible();
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
+
+    /*
+      **본 적 없으면 목록도 없다.** 처음 온 사람에게 빈 목록은 할 일이 하나 더 있는
+      것처럼 보이는데, 고르는 칸이 이미 그 말을 하고 있다. 풀이를 만든 적이 없는
+      이 흐름에서는 서지 않아야 한다.
+    */
+    await expect(page.getByRole('heading', { name: '본 궁합' })).toHaveCount(0);
     await expect(page.getByText('궁합 베타')).toHaveCount(0);
   });
 

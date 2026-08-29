@@ -10,6 +10,7 @@ import { CompatModeNav } from '../../compat-mode-nav';
 import { REVISION_REPLACED_NOTE, UnreadableRevisionError } from '../../revision';
 import { Halted } from '../halted';
 import { payloadForViewer, type PersonPayload } from '../payload';
+import { myPrivateReadings, type PrivateReadingEntry } from '../reading/current';
 import { ReadingSection } from '../reading/section';
 
 /**
@@ -106,12 +107,116 @@ export default async function ManagedCompatPage({
       ) : (
         <>
           <PairPicker people={people} a={a} b={b} />
+          <SeenPairs open={outcome?.kind === 'ok' ? outcome.pair : null} />
           {outcome !== null && <Result outcome={outcome} />}
         </>
       )}
     </main>
   );
 }
+
+/**
+ * **본 궁합을 다시 찾아가는 자리.**
+ *
+ * 결과가 사는 주소는 `?a=…&b=…` 이고 둘 다 불투명 uuid 다. 화면을 벗어나면 주소가
+ * 사라지고, 사라진 주소를 사람이 기억할 수는 없다 — 저장돼 있는데 **닿을 수 없는 것**은
+ * 사용자에게 없는 것과 같다. 두 사람을 다시 고르면 같은 결과가 서기는 하지만, 그러려면
+ * 내가 누구와 누구를 봤는지를 먼저 기억해야 한다. 사람이 스물이면 그것은 기억이 아니라
+ * 뒤지기다.
+ *
+ * **고르는 칸 바로 아래**에 둔다. 결과 아래에 두면 긴 풀이를 다 지나야 만나고, 그러면
+ * 다시 찾아가려는 사람에게는 없는 것과 같다. 여기는 「무엇을 볼까」를 정하는 자리이고
+ * 이 목록도 같은 물음에 답한다.
+ *
+ * **비어 있으면 아무것도 안 그린다.** 처음 온 사람에게 빈 목록은 할 일이 하나 더 있는
+ * 것처럼 보이는데, 고르는 칸이 이미 그 말을 하고 있다.
+ */
+async function SeenPairs({ open }: { open: { personA: string; personB: string } | null }) {
+  const seen = await myPrivateReadings();
+  if (seen.length === 0) return null;
+
+  return (
+    <section className={`${CARD} flex flex-col gap-3`}>
+      <div>
+        <h2 className="text-base font-semibold">본 궁합</h2>
+        <p className="mt-0.5 text-xs leading-5 text-muted">
+          만들어 둔 풀이가 그대로 남아 있습니다. 눌러서 다시 보세요.
+        </p>
+      </div>
+
+      <ul className="flex flex-col gap-2">
+        {seen.map((one) => (
+          <SeenPair
+            key={`${one.personA}:${one.personB}`}
+            entry={one}
+            /*
+              **지금 보고 있는 것은 링크가 아니다.** 눌러도 같은 자리인 링크는 눌러 보고
+              나서야 그것을 알게 된다. 대신 그 줄을 표시해 두면 목록이 「어디에 있는지」도
+              함께 말한다.
+            */
+            isOpen={open !== null && open.personA === one.personA && open.personB === one.personB}
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function SeenPair({ entry, isOpen }: { entry: PrivateReadingEntry; isOpen: boolean }) {
+  const body = (
+    <>
+      <span className="min-w-0 flex-1 truncate font-medium">
+        {entry.labelA} <span className="text-muted">×</span> {entry.labelB}
+      </span>
+      {entry.score !== null && (
+        <span className="shrink-0 text-sm font-semibold tabular-nums text-accent">
+          {entry.score}
+          <span className="ml-0.5 text-xs font-normal text-muted">점</span>
+        </span>
+      )}
+      {/*
+        **낡았다는 것을 목록에서도 말한다.** 열어 봐야 알게 되면, 목록은 「지금 입력으로
+        본 것」과 「그 뒤에 고친 입력으로 다시 봐야 하는 것」을 같은 줄로 보이게 된다.
+        색만으로 말하지 않는다 — 낱말이 함께 있어야 한다.
+      */}
+      {!entry.fromCurrentRevision && (
+        <span className="shrink-0 rounded-full bg-warning-wash px-2 py-0.5 text-[11px] font-semibold text-warning">
+          이전 입력
+        </span>
+      )}
+      <time dateTime={entry.createdAt} className="shrink-0 text-xs text-muted">
+        {seenAt(entry.createdAt)}
+      </time>
+    </>
+  );
+
+  const shared = 'flex items-center gap-3 rounded-xl border px-4 py-3 text-sm';
+
+  return (
+    <li>
+      {isOpen ? (
+        <div
+          aria-current="true"
+          className={`${shared} border-accent bg-accent-wash`}
+        >
+          {body}
+          <span className="shrink-0 text-xs font-semibold text-accent">지금 보는 중</span>
+        </div>
+      ) : (
+        <Link
+          href={`/me/compat?a=${entry.personA}&b=${entry.personB}`}
+          className={`${shared} border-border-strong bg-surface hover:border-accent hover:text-accent`}
+        >
+          {body}
+        </Link>
+      )}
+    </li>
+  );
+}
+
+/** 날짜만 — 목록에서 분 단위는 읽는 데 방해만 된다 */
+const seenAt = (iso: string) =>
+  new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 
 /** 주소에 같은 이름이 두 번 오면 앞의 것만 읽는다 — 뒤의 것으로 조용히 바뀌지 않게 */
 const firstOf = (value: string | string[] | undefined): string | null =>
