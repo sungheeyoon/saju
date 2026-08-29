@@ -1,11 +1,13 @@
 import type { Saju } from '@/src/lib/saju';
 import {
+  CONTROL,
   ReadingEvidenceError,
   checkReading,
   readingEvidenceOf,
   readingPromptOf,
   type BirthSecret,
   type ReadingKind,
+  type ReadingNames,
   type ReadingOutput,
 } from '@/src/lib/reading';
 
@@ -54,12 +56,20 @@ export async function generateReadingArtifact({
   charts,
   viewedAt,
   secrets,
+  names,
   generator,
 }: {
   kind: ReadingKind;
   charts: { a: Saju; b?: Saju };
   viewedAt: Date;
   secrets: readonly BirthSecret[];
+  /**
+   * 두 사람을 부르는 말 — **근거가 아니라 프롬프트에 실린다.**
+   *
+   * `readingEvidenceOf` 에 넣지 않는 것이 요점이다. 이름이 근거에 들어가면 그 이름으로
+   * 판정하는 길이 열리고, 저장된 근거에도 남는다. 부르는 말은 부르는 자리에만 선다.
+   */
+  names?: ReadingNames | null;
   generator: ReadingGenerator;
 }): Promise<ArtifactResult> {
   let evidence;
@@ -72,7 +82,7 @@ export async function generateReadingArtifact({
     throw failure;
   }
 
-  const prompt = readingPromptOf(evidence);
+  const prompt = readingPromptOf(evidence, CONTROL, names ?? null);
   const called = await generator.generate(prompt);
   if (!called.ok) return called;
 

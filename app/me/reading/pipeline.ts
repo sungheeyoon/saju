@@ -6,6 +6,7 @@ import {
   READING_POLICY,
   type BirthSecret,
   type ReadingKind,
+  type ReadingNames,
 } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -180,13 +181,14 @@ async function generate(
   keyed: ReturnType<typeof keyedClient>,
   generator: ReadingGenerator,
 ): Promise<ReadingRequest> {
-  let revisions: StoredRevision[];
+  let read: Awaited<ReturnType<typeof revisionsFor>>;
   try {
-    revisions = await revisionsFor(kind, started);
+    read = await revisionsFor(kind, started);
   } catch (failure) {
     if (failure instanceof ResultClosedError) return fail(started.run_id, 'closed', failure.message);
     throw failure;
   }
+  const { revisions, names } = read;
 
   let charts: { a: Saju; b?: Saju };
   try {
@@ -209,6 +211,7 @@ async function generate(
     charts,
     viewedAt,
     secrets: revisions.map(secretOf),
+    names,
     generator,
   });
   if (!generated.ok) return fail(started.run_id, generated.code, generated.detail);
@@ -258,7 +261,17 @@ async function generate(
  * 공유 궁합만 열쇠를 쓴다(ADR 0010). 나머지 둘은 RLS 가 이미 열어 준 길이고, 거기에
  * 열쇠를 쓰면 「무엇을 볼 수 있는가」의 답이 정책에서 앱 코드로 옮겨 간다.
  */
-async function revisionsFor(kind: ReadingKind, started: StartedRun): Promise<StoredRevision[]> {
+/**
+ * 그 시도가 읽을 판본들과, 그 사람들을 **부르는 말.**
+ *
+ * 둘을 함께 내는 까닭은 차례가 하나이기 때문이다. 이름을 다른 함수가 따로 구해 오면
+ * 판본의 차례와 이름의 차례를 맞추는 일이 부르는 쪽 몫이 되고, **자리가 넷이면 하나는
+ * 안 고쳐진다.**
+ */
+async function revisionsFor(
+  kind: ReadingKind,
+  started: StartedRun,
+): Promise<{ revisions: StoredRevision[]; names: ReadingNames | null }> {
   if (kind === 'match') {
     const inputs = await pinnedInputs(started.match_id as string);
     const a = inputs.get(started.revision_a);
@@ -267,7 +280,19 @@ async function revisionsFor(kind: ReadingKind, started: StartedRun): Promise<Sto
     if (a === undefined || b === undefined) {
       throw new ResultClosedError('매인 판본을 찾지 못했습니다');
     }
-    return [a, b];
+
+    /**
+     * **공유 궁합은 아직 이름을 못 부른다.**
+     *
+     * 이름이 없어서가 아니다 — 두 사람 다 스스로 고른 별명이 있고 결과 화면에 이미
+     * 서 있다(`partner_nickname`). 없는 것은 **어느 판본이 누구 것인가**다.
+     * `match_calculation_inputs` 는 판본만 내주고 소유자를 안 밝힌다. 그 매김을 앱이
+     * 짐작하면 두 사람의 이름이 서로 바뀐 채 나갈 수 있고, 그건 안 부르는 것보다 나쁘다.
+     *
+     * 내 쪽 별명을 상대 자리에 쓰는 길도 막혀 있다. 내가 붙인 말은 상대가 보는 화면에
+     * 실려서는 안 된다 — 그것이 이 파일이 처음부터 localLabel 을 근거에 안 실은 이유다.
+     */
+    return { revisions: [a, b], names: null };
   }
 
   const supabase = await supabaseOnServer();
@@ -276,19 +301,57 @@ async function revisionsFor(kind: ReadingKind, started: StartedRun): Promise<Sto
   const { data } = await supabase
     .from('person_chart_revision')
     .select(
-      'id, calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis',
+      'id, person_id, calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis',
     )
     .in('id', wanted);
 
-  const rows = new Map((data ?? []).map((row) => [row.id as string, row as StoredRevision]));
+  const rows = new Map(
+    (data ?? []).map((row) => [row.id as string, row as StoredRevision & { person_id: string }]),
+  );
 
   /**
    * 하나라도 못 읽으면 멈춘다. 한 사람 것으로 두 사람 궁합을 지어낼 수 없고,
    * 지어낼 수 없는 것을 기본값으로 메우면 아무도 동의한 적 없는 결과가 선다.
    */
-  return wanted.map((id) => {
+  const found = wanted.map((id) => {
     const row = rows.get(id);
     if (row === undefined) throw new ResultClosedError('계산 입력을 읽지 못했습니다');
     return row;
   });
+
+  return { revisions: found, names: await labelsFor(found.map((row) => row.person_id)) };
+}
+
+/**
+ * 내가 그 사람을 뭐라 부르는가 — **차례는 판본이 정한다.**
+ *
+ * 쌍의 차례를 여기서 다시 정하지 않는다. 비공개 궁합의 두 판본은 DB 가 Person id 로
+ * 줄 세워 내주므로(`least`·`greatest`), 이름도 **그 판본이 들고 온 `person_id`** 를 따라
+ * 붙인다. 앱이 같은 정렬 규칙을 한 번 더 적으면 자리가 둘이 되고, 둘이 갈리는 날
+ * 이름과 명식이 서로 바뀐 채로 나간다.
+ *
+ * 못 찾은 자리는 지어내지 않는다 — 부를 말이 없다는 사실을 그대로 넘긴다.
+ */
+async function labelsFor(personIds: readonly string[]): Promise<ReadingNames | null> {
+  const supabase = await supabaseOnServer();
+
+  // 정책이 자기 목록만 내준다. 여기서 `user_id` 를 또 적지 않는다.
+  const { data } = await supabase
+    .from('user_person_access')
+    .select('person_id, local_label')
+    .in('person_id', [...personIds]);
+
+  const labels = new Map((data ?? []).map((row) => [row.person_id as string, row.local_label as string]));
+  const [first, second] = personIds;
+  const a = labels.get(first);
+  const b = second === undefined ? undefined : labels.get(second);
+
+  /**
+   * **하나라도 못 찾으면 통째로 포기한다.** 한쪽만 이름으로 부르고 다른 쪽을 「두 번째
+   * 분」이라 부르면, 읽는 사람은 이름 없는 쪽이 덜 중요한 사람인 줄 안다.
+   */
+  if (a === undefined) return null;
+  if (second !== undefined && b === undefined) return null;
+
+  return { a, b };
 }

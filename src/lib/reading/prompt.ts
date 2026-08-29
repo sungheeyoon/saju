@@ -12,6 +12,30 @@ import { PROMPT_PARTS, withSummary } from '../saju/evidence/prompt';
 import type { ReadingEvidence } from '.';
 import { READING_POLICY, isScored, type ReadingKind } from './policy';
 
+/**
+ * 두 사람을 **뭐라고 부를 것인가.**
+ *
+ * 자료에는 이름이 없다 — `chartOf` 는 날짜·시각·성별만 엔진에 넘기고 이름은 두고 간다.
+ * 그래서 프롬프트가 「첫 번째 분」·「두 번째 분」이라 불렀고, 나온 글이 통째로 그랬다.
+ * **읽는 사람에게 그건 사람 이야기가 아니라 표의 행 이름이다.**
+ *
+ * 이름은 자료가 아니라 **부르는 말**이라 따로 다닌다. 근거에 실리지 않고 프롬프트에만
+ * 선다 — 이름으로 판정하는 일은 없어야 하고, 그러려면 이름이 근거 안에 있으면 안 된다.
+ */
+export type ReadingNames = { readonly a: string; readonly b?: string };
+
+/**
+ * 이름을 못 구했을 때 부르는 말 — **자리를 비우지 않는다.**
+ *
+ * 비우면 모델이 「A씨」·「그분」을 지어내고, 그러면 같은 사람이 문단마다 다른 이름으로
+ * 불린다. 부를 말이 없다는 사실을 그대로 적는 것이 낫다.
+ *
+ * **이름이 없다는 것은 `null` 로 말한다.** 이 값과 견주어 알아내게 하면, 자기 어머니를
+ * 「첫 번째 분」이라고 저장해 둔 사람에게서 조용히 틀린다 — 판별자를 값으로 두면
+ * 부르는 쪽이 그것을 손으로 다시 짓게 된다.
+ */
+export const FALLBACK_NAMES: ReadingNames = { a: '첫 번째 분', b: '두 번째 분' };
+
 /** 사용자에게 나가는 결과를 만드는 프롬프트 조립 옵션. */
 export type Length = { readonly min: number; readonly max: number };
 export type SelfPresentation = 'expert-v3' | 'legacy-v1';
@@ -44,8 +68,8 @@ export type PromptAssembly = {
 export const CONTROL: PromptAssembly = {
   selfLength: { min: 5000, max: 9000 },
   compatLength: {
-    private: { min: 5000, max: 9000 },
-    match: { min: 4000, max: 7000 },
+    private: { min: 3500, max: 5500 },
+    match: { min: 3000, max: 4800 },
   },
   selfPresentation: 'expert-v3',
   extraSections: [],
@@ -88,26 +112,34 @@ const tenGodGlossLines = (): string =>
  * 표에서 문장을 지으면 조사도 지어야 한다. 「나무는 불를 살리고」가 프롬프트에 서면,
  * 사람 말로 쓰라고 시키는 자리에서 사람이 안 쓰는 말이 본보기로 나간다.
  */
-const withParticle = (word: string, closed: string, open: string): string => {
+const particleOf = (word: string, closed: string, open: string): string => {
   const last = word.charCodeAt(word.length - 1) - 0xac00;
   const hasBatchim = last >= 0 && last <= 11171 && last % 28 !== 0;
 
-  return `${word}${hasBatchim ? closed : open}`;
+  return hasBatchim ? closed : open;
 };
 
+/** 낱말에 조사를 붙여서 — 낱말 없이 조사만 필요하면 `particleOf` 를 쓴다 */
+const withParticle = (word: string, closed: string, open: string): string =>
+  `${word}${particleOf(word, closed, open)}`;
+
 /**
- * 오행을 **두 이름으로** 내주고 서로 무엇을 하는지까지 — 상생·상극도 표에서 짓는다.
+ * 오행을 두 이름으로 내주되 **기본값은 목·화·토·금·수다.**
  *
- * 한 벌로 못박지 않는다. 「금이 셋이에요」는 자연스럽고 「쇠가 셋이에요」는 어색한데,
- * 「쇠가 나무를 자른다」는 자연스럽고 「금이 목을 극한다」는 안 읽힌다. **어느 쪽이
- * 맞는지는 문장마다 다르므로 고르는 일을 글 쓰는 쪽에 남긴다.**
+ * 앞판은 둘을 나란히 놓고 「그때그때 골라라」고만 했다. 그랬더니 글이 쇠·흙으로 기울었다 —
+ * 본보기 문장의 상생·상극이 전부 그림말이었기 때문이다. **가르쳐 준 예시가 곧 기본값이
+ * 된다.** 「쇠가 셋이에요」·「흙이 두텁습니다」는 한국어에서 어색하고, 사주를 조금이라도
+ * 아는 사람에게는 틀린 말처럼 들린다.
+ *
+ * 그래서 부르는 이름은 한자어 쪽으로 세우고, 그림말은 **상극을 눈에 보이게 할 때만**
+ * 꺼내도록 자리를 좁힌다. 「금이 목을 극한다」가 안 읽히는 것은 여전하므로 없애지는 않는다.
  */
 const elementGlossLines = (): string =>
   ELEMENTS.map((element) => {
-    const generates = ELEMENT_PICTURE_KO[GENERATES[element]];
-    const controls = ELEMENT_PICTURE_KO[CONTROLS[element]];
+    const generates = ELEMENT_KO[GENERATES[element]];
+    const controls = ELEMENT_KO[CONTROLS[element]];
 
-    return `- **${ELEMENT_KO[element]} · ${ELEMENT_PICTURE_KO[element]}** — ${withParticle(generates, '을', '를')} 살리고 ${withParticle(controls, '을', '를')} 이긴다`;
+    return `- **${ELEMENT_KO[element]}** — ${withParticle(generates, '을', '를')} 살리고 ${withParticle(controls, '을', '를')} 이긴다 (그림이 필요할 때만 「${ELEMENT_PICTURE_KO[element]}」)`;
   }).join('\n');
 
 /**
@@ -149,9 +181,12 @@ ${tenGodGlossLines()}
 
 ${elementGlossLines()}
 
-**이름은 두 벌이고, 한 쪽으로 통일하지 않는다.** 셀 때는 「금이 셋이에요」가 자연스럽고,
-그림을 그릴 때는 「쇠가 나무를 자른다」가 낫다. 「금이 목을 극한다」는 한자어를 한글로 적은
-것일 뿐이라 안 읽힌다. **그 문장에 맞는 쪽을 그때그때 골라라** — 한 벌로 통일하려 들지 마라.
+**부를 때는 목·화·토·금·수가 기본이다.** 「금이 셋이에요」·「토가 두텁습니다」처럼 쓴다.
+「쇠가 셋이에요」·「흙이 두텁습니다」는 한국어에서 어색하다.
+
+그림말(나무·불·흙·쇠·물)은 **상생·상극을 눈에 보이게 할 때만** 꺼낸다 — 「금이 목을
+극한다」는 안 읽히니 「쇠가 나무를 자르는 모양」이라고 한 번 보여 주고, 그다음부터는
+다시 한자어로 돌아온다. **한 편에 두세 번을 넘기지 마라.**
 
 - 이렇게 쓰지 마라 — 「시주의 인목과 대운의 갑인이 불씨를 살리니, 눌려만 사는 사람이 아닙니다.」
 - 이렇게 써라 — 「타고난 시주 자리에 나무가 있고(인목), 지금 도는 십 년 운도 나무예요(갑인 대운). 당신은 불이라서 나무가 들어오면 꺼져 가던 불씨에 다시 불이 붙습니다. 눌려만 사는 사람이 아니라는 뜻이에요.」
@@ -165,7 +200,24 @@ ${elementGlossLines()}
 - 이렇게 써라 — 「타고난 자리에서 나무(인)와 금(신)이 정면으로 부딪힙니다. 쇠가 나무를 자르는 모양이라 자리를 옮기거나 하던 일을 접는 일이 되풀이돼요(인신충). 지금 도는 십 년 운이 같은 부딪힘을 한 번 더 얹고 있고요.」
 
 **이름을 지우라는 뜻이 아니다.** 이름 없이 먼저 이해되게 쓰고, 이름은 뒤에 붙여
-「아, 그게 그 말이구나」로 남겨라.`;
+「아, 그게 그 말이구나」로 남겨라.
+
+### 4. 근거를 문장 앞에 세우지 마라 — **한 편에 두세 번이면 족하다**
+
+풀어 쓰라고 했다고 **문단마다 구조부터 대면 글이 지친다.** 이런 문장이 되풀이되면
+읽는 사람은 세 번째부터 앞부분을 건너뛴다.
+
+> 첫 번째 분의 불과 두 번째 분의 물이 각자의 날 자리에서 맞서 있어, 첫 번째 분은
+> 즉각적인 반응을 원하고 두 번째 분은 속으로 따져 본 뒤 움직이기 쉽습니다.
+
+뒤 절반은 좋다. 지치게 하는 것은 **앞 절반이 매번 먼저 온다는 것**이다.
+
+- **결론이 먼저, 근거는 짧게 뒤에.** 「한 분은 바로 답이 와야 안심하고, 한 분은 속으로
+  한 바퀴 돌린 뒤에 움직입니다. 날 자리의 물과 불이 맞선 모양이에요.」
+- **같은 구조를 두 번 설명하지 마라.** 한 번 세워 둔 그림은 그다음부터 이름만 부른다.
+- **어느 자리의 무슨 글자인지는 필요할 때만.** 「각자의 날 자리에서」가 그 문단의 뜻을
+  바꾸지 않으면 빼라. 자리 이름은 **처음 한 번**이면 된다.
+- 근거를 다 적어야 정확한 것이 아니다. **어디서 온 말인지는 맨 끝 근거 칸이 든다.**`;
 
 /** 정확성은 지키되, 개인 사주를 보러 온 사람이 궁금한 것을 숨기지 않는다. */
 const SELF_CUSTOMER_VOICE = `${CUSTOMER_TONE}
@@ -316,17 +368,18 @@ const SCORE_SECTION = `## 점수
  * 있는 것은 전부 자료가 실제로 들고 있는 것들이다(`compatibility` 의 관계 목록·
  * `combinedFormations`·`elementSupport`·양방향 `tenGods`·`eokbuMatch`).
  */
-const COMPAT_SHARED_SECTIONS = [
+const COMPAT_SHARED_SECTIONS = (a: string, b: string) => [
   `**1. 한 줄로** — 이 둘이 만나면 어떤 그림인지 한 문장. 비유를 쓸 거면 여기서만.`,
-  `**2. 서로에게 무엇인가** — 첫 번째 분이 두 번째 분을 보는 자리와 그 반대가 **다르다**
+  `**2. 서로에게 무엇인가** — ${withParticle(a, '이', '가')} ${withParticle(b, '을', '를')} 보는 자리와 그 반대가 **다르다**
 (\`tenGods.aSeesB\`·\`bSeesA\`). 한쪽이 다른 쪽을 뜻하지 않는다 — 한 사람은 기대고 한 사람은
 책임을 느끼는 짝사랑 모양이 흔하다. 그 비대칭이 **일상에서 어떻게 보이는지**까지 쓴다.`,
   `**3. 처음에 끌리는 지점** — 만나서 얼마 안 됐을 때 서로의 무엇이 눈에 들어오는지.
 그리고 그 끌림이 **오래 갈 것인지 초반에만 세게 오는 것인지**도 함께 말한다.`,
-  `**4. 잘 맞는 지점 넷** — 줄마다 「어디서 맞는가 → 왜 그런가 → 그래서 무엇이 쉬워지는가」.
-**넷을 채워라.** 둘에서 멈추면 어느 두 사람에게나 맞는 말만 남는다.`,
-  `**5. 부딪히는 지점 넷** — 줄마다 「어디서 부딪히는가 → 어떤 상황에서 터지는가 → 그때 각자
-무엇을 하면 되는가」. 대처는 **두 사람 몫을 따로** 적는다. 한쪽만 참으라는 조언은 조언이 아니다.`,
+  `**4. 잘 맞는 지점 셋** — **줄마다 한두 문장.** 「어디서 맞는가 → 그래서 무엇이 쉬워지는가」로
+짧게 끊는다. 좋은 이야기는 길게 늘일수록 오히려 흐려진다 — 왜 그런지는 여기서 다 대지 마라.`,
+  `**5. 부딪히는 지점 셋** — 여기는 조금 더 써도 된다. 줄마다 「어디서 부딪히는가 → 어떤
+상황에서 터지는가 → 그때 각자 무엇을 하면 되는가」. 대처는 **두 사람 몫을 따로** 적는다 —
+한쪽만 참으라는 조언은 조언이 아니다.`,
   `**6. 서로를 채우는 자리** — \`elementSupport\` 와 \`eokbuMatch\`. 한쪽에 없는 기운을 다른 쪽이
 갖고 있으면 그것이 관계에서 **무엇으로 나타나는지** 쓴다. 채워지지 않고 남는 것
 (\`stillMissing\`)도 숨기지 말고, 둘 다 없는 것은 **밖에서 구해야 하는 것**이라고 말한다.`,
@@ -355,15 +408,42 @@ const COMPAT_PRIVATE_SECTIONS = [
 ];
 
 /** 궁합 절 목록 — kind 가 재료를 정하고, 재료가 절을 정한다 */
-const compatSections = (kind: Exclude<ReadingKind, 'self'>, assembly: PromptAssembly): string => {
+const namingBlock = (names: ReadingNames | null): string => {
+  const { a, b = FALLBACK_NAMES.b as string } = names ?? FALLBACK_NAMES;
+
+  const head =
+    names === null
+      ? `이 자료로는 두 분을 부를 이름을 알 수 없다. \`charts.a\` 를 **${a}**, \`charts.b\` 를
+**${b}**${particleOf(b, '이', '')}라고 부른다. 어색한 말인 것을 알지만 **호칭을 지어내는 것보다 낫다** — 지어내면
+같은 사람이 문단마다 다른 이름으로 불린다.`
+      : `\`charts.a\` 는 **${a}**, \`charts.b\` 는 **${b}**${particleOf(b, '이다', '다')}.
+**본문에서는 이 이름으로만 부른다** — 「첫 번째 분」·「두 번째 분」처럼 자리 이름으로
+부르지 마라. 읽는 사람에게 그것은 사람이 아니라 표의 행이다.
+
+이름을 고쳐 부르지 마라. 성이나 호칭을 덧붙이지도 말고 **받은 그대로** 쓴다.`;
+
+  return `## 두 사람을 부르는 말
+
+${head}
+
+\`charts.a\`·\`charts.b\` 라는 경로 이름은 **맨 끝 근거 칸에서만** 쓴다.
+문장마다 누구 이야기인지 분명히 하되, 한 문단에서 같은 사람을 세 번 부르지는 마라 —
+한국어는 주어를 자연스럽게 생략한다.`;
+};
+
+const compatSections = (
+  kind: Exclude<ReadingKind, 'self'>,
+  assembly: PromptAssembly,
+  names: ReadingNames | null,
+): string => {
+  const { a, b = FALLBACK_NAMES.b as string } = names ?? FALLBACK_NAMES;
   const sections =
     kind === 'private'
-      ? [...COMPAT_SHARED_SECTIONS, ...COMPAT_PRIVATE_SECTIONS]
-      : COMPAT_SHARED_SECTIONS;
+      ? [...COMPAT_SHARED_SECTIONS(a, b), ...COMPAT_PRIVATE_SECTIONS]
+      : COMPAT_SHARED_SECTIONS(a, b);
   const { min, max } = assembly.compatLength[kind];
 
-  return `두 사람을 부를 이름이 자료에 없다. \`charts.a\`는 「첫 번째 분」,
-\`charts.b\`는 「두 번째 분」이라고 부르고 **문장마다 누구 이야기인지 분명히 한다.**
+  return `${namingBlock(names)}
 
 ## 낼 것
 
@@ -399,7 +479,11 @@ ${
 
 본문에 JSON 코드 감싸개를 두르지 않는다. 표는 쓰지 않는다. 소제목·문단·목록·굵게만 쓴다.`;
 
-const bodyOf = (kind: ReadingKind, assembly: PromptAssembly): string => {
+const bodyOf = (
+  kind: ReadingKind,
+  assembly: PromptAssembly,
+  names: ReadingNames | null,
+): string => {
   const isExpertSelf = kind === 'self' && assembly.selfPresentation === 'expert-v3';
   const head =
     kind === 'self'
@@ -432,24 +516,33 @@ const bodyOf = (kind: ReadingKind, assembly: PromptAssembly): string => {
     voice,
     ...(kind === 'match' ? [] : [PROMPT_PARTS.personality]),
     ...assembly.extraSections,
-    kind === 'self' ? selfSections(assembly) : compatSections(kind, assembly),
+    kind === 'self' ? selfSections(assembly) : compatSections(kind, assembly, names),
     OUTPUT_CONTRACT(kind),
   ].join('\n\n');
 };
 
 /** kind마다의 기준 프롬프트 몸통 — 자료 없이. */
 export const READING_PROMPTS: Record<ReadingKind, string> = {
-  self: bodyOf('self', CONTROL),
-  private: bodyOf('private', CONTROL),
-  match: bodyOf('match', CONTROL),
+  self: bodyOf('self', CONTROL, null),
+  private: bodyOf('private', CONTROL, null),
+  match: bodyOf('match', CONTROL, null),
 };
 
 /** 실제로 보낼 문자열. 정적 규칙을 먼저 두고 개인별 자료는 맨 뒤에 붙인다. */
 export function readingPromptOf(
   { kind, evidence }: ReadingEvidence,
   assembly: PromptAssembly = CONTROL,
+  /**
+   * 두 사람을 부르는 말 — **자료가 아니라 프롬프트에만 실린다.**
+   *
+   * 기본값이 「첫 번째 분」인 것은 이름을 못 구하는 자리가 실제로 있기 때문이다
+   * (공유 궁합은 어느 판본이 누구 것인지 앱이 모른다). 자리를 비우면 모델이 호칭을
+   * 지어내므로 비우지 않는다.
+   */
+  names: ReadingNames | null = null,
 ): string {
-  const body = assembly === CONTROL ? READING_PROMPTS[kind] : bodyOf(kind, assembly);
+  const useCached = assembly === CONTROL && names === null;
+  const body = useCached ? READING_PROMPTS[kind] : bodyOf(kind, assembly, names);
   const head = withSummary(body, evidence);
   const prompt = `${head}
 

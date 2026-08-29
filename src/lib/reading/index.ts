@@ -72,10 +72,12 @@ export * from './policy';
 export * from './notes';
 export {
   CONTROL,
+  FALLBACK_NAMES,
   READING_PROMPTS,
   readingPromptOf,
   selfSectionCount,
   type PromptAssembly,
+  type ReadingNames,
   type SelfPresentation,
 } from './prompt';
 export {

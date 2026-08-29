@@ -4,6 +4,7 @@ import { computeSaju } from '../saju';
 import {
   CONTROL,
   PROMPT_VARIANTS,
+  FALLBACK_NAMES,
   READING_POLICY,
   READING_PROMPTS,
   readingEvidenceOf,
@@ -17,6 +18,12 @@ const chart = () =>
   computeSaju({ year: 1990, month: 5, day: 15, hour: 14, minute: 30, second: 0, gender: 'male' });
 
 const evidence = () => readingEvidenceOf('self', { a: chart() }, VIEWED_AT);
+
+/** 두 사람짜리 — 이름은 자료가 아니라 프롬프트에 실리므로 여기서는 명식만 짓는다 */
+const other = () =>
+  computeSaju({ year: 1992, month: 8, day: 20, hour: 9, minute: 0, second: 0, gender: 'female' });
+
+const pairEvidence = () => readingEvidenceOf('private', { a: chart(), b: other() }, VIEWED_AT);
 
 /**
  * **실험판이 실제로 보내는 것을 흔들지 않는가.**
@@ -232,6 +239,55 @@ describe('고객이 읽는 글의 계약', () => {
   const sectionCountOf = (prompt: string) => (prompt.match(/^\*\*\d+\. /gm) ?? []).length;
 
   /**
+   * **「첫 번째 분」은 사람 이름이 아니라 표의 행 이름이다.**
+   *
+   * 자료에 이름이 없어서 프롬프트가 그렇게 불렀고, 나온 글이 통째로 그랬다. 이름은
+   * 자료가 아니라 **부르는 말**이라 근거에 실리지 않고 프롬프트에만 선다.
+   */
+  it('받은 이름으로 부르고 자리 이름을 본문에 쓰지 못하게 한다', () => {
+    const named = readingPromptOf(pairEvidence(), CONTROL, { a: '어머니', b: '아버지' });
+
+    expect(named).toContain('`charts.a` 는 **어머니**, `charts.b` 는 **아버지**다.');
+
+    // 조사는 받침을 따른다 — 낱말을 꽂는 자리에서 「아버지이다」가 나오면 안 된다
+    const closed = readingPromptOf(pairEvidence(), CONTROL, { a: '동생', b: '형' });
+    expect(closed).toContain('`charts.b` 는 **형**이다.');
+    expect(closed).toContain('동생이 형을 보는 자리');
+    expect(named).toContain('자리 이름으로\n부르지 마라');
+    expect(named).toContain('받은 그대로');
+
+    // 절 안내문도 이름으로 말한다 — 한 자리만 고치면 본문이 두 말투를 섞는다
+    expect(named).toContain('어머니가 아버지를 보는 자리');
+  });
+
+  /**
+   * 이름을 못 구하는 자리가 실제로 있다 — 공유 궁합은 어느 판본이 누구 것인지 앱이
+   * 모른다. **자리를 비우면 모델이 호칭을 지어내고**, 그러면 같은 사람이 문단마다
+   * 다른 이름으로 불린다.
+   */
+  it('이름이 없으면 비우지 않고 자리를 채운다', () => {
+    expect(FALLBACK_NAMES.a).not.toBe('');
+    expect(READING_PROMPTS.match).toContain(FALLBACK_NAMES.a);
+  });
+
+  /**
+   * **자세한 것과 지치는 것은 다르다.**
+   *
+   * 「A의 불과 B의 물이 각자의 날 자리에서 맞서 있어…」가 문단마다 먼저 오면 읽는
+   * 사람은 세 번째부터 앞부분을 건너뛴다. 뒤 절반은 좋았다 — 지치게 한 것은 앞
+   * 절반이 매번 먼저 온다는 것이다.
+   */
+  it('구조 설명을 문장 앞에 매번 세우지 못하게 한다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('근거를 문장 앞에 세우지 마라');
+    expect(prompt).toContain('결론이 먼저, 근거는 짧게 뒤에');
+    expect(prompt).toContain('같은 구조를 두 번 설명하지 마라');
+    // 고쳐야 할 본보기를 함께 싣는다 — 규칙만 적으면 같은 문장이 다시 나온다
+    expect(prompt).toContain('각자의 날 자리에서 맞서 있어');
+  });
+
+  /**
    * **궁합이 자기 풀이의 요약처럼 보이면 안 된다.**
    *
    * 분량이 문자열 안에 박혀 있는 동안 궁합은 1000~1600자였다. 자기 풀이가 5000~9000
@@ -333,16 +389,15 @@ describe('고객이 읽는 글의 계약', () => {
     expect(prompt).toContain('재물·현실 감각·성과');
     expect(prompt).toContain('규범·책임·남이 매기는 평가');
 
-    // 간지 — 오행 이름을 **두 벌 다** 내주고 서로 무엇을 하는지까지
-    expect(prompt).toContain('**목 · 나무** — 불을 살리고 흙을 이긴다');
-    expect(prompt).toContain('**금 · 쇠** — 물을 살리고 나무를 이긴다');
-
     /*
-      **한 벌로 못박지 않는다.** 「금이 셋이에요」는 자연스럽고 「쇠가 셋이에요」는
-      어색한데, 「쇠가 나무를 자른다」는 자연스럽고 「금이 목을 극한다」는 안 읽힌다.
-      어느 쪽이 맞는지가 문장마다 다르므로 고르는 일을 글 쓰는 쪽에 남긴다.
+      **부르는 이름은 한자어가 기본이다.** 앞판은 둘을 나란히 놓고 「그때그때 골라라」고만
+      했는데, 본보기의 상생·상극이 전부 그림말이라 글이 쇠·흙으로 기울었다 — **가르쳐 준
+      예시가 곧 기본값이 된다.** 그림말은 상극을 눈에 보이게 할 때만 꺼내게 자리를 좁혔다.
     */
-    expect(prompt).toContain('그 문장에 맞는 쪽을 그때그때 골라라');
+    expect(prompt).toContain('**목** — 화를 살리고 토를 이긴다');
+    expect(prompt).toContain('**금** — 수를 살리고 목을 이긴다');
+    expect(prompt).toContain('부를 때는 목·화·토·금·수가 기본이다');
+    expect(prompt).toContain('한 편에 두세 번을 넘기지 마라');
 
     // 관계 — 이름만 적지 말고 장면으로
     expect(prompt).toContain('충·형·해·합은 장면으로 풀어 쓴다');
