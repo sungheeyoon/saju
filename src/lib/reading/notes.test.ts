@@ -36,19 +36,20 @@ describe('기다리는 동안의 문구', () => {
   });
 
   /**
-   * **뒷문장을 빼면 거짓말이 된다.**
+   * **경고를 지우는 것이 그 변경의 결과다.**
    *
-   * 생성은 누른 그 요청 안에서 끝까지 돈다. 앱 안의 이동은 그 요청을 끊지 않지만
-   * 새로고침과 탭 닫기는 끊는다. 앞문장만 적으면 화면은 깔끔해지고 문구는 틀린다 —
-   * 사용자가 실제로 조심해야 하는 것이 정확히 그 둘이다.
+   * 만드는 일이 누름의 요청 안에서 돌던 동안에는 「새로고침하면 중단될 수 있습니다」가
+   * 참이었다. 응답 뒤로 옮긴 뒤에는 거짓이다 — 남겨 두면 하지 않아도 되는 걱정을
+   * 시키고, 사용자는 그 화면 앞에 붙들려 앉아 있게 된다.
+   *
+   * 문구가 배선을 따라오지 않으면 **화면이 옛 제약을 계속 파는 셈**이라 여기서 잡는다.
    */
-  it('나가도 되는 것과 안 되는 것을 함께 말한다', () => {
-    expect(READING_LEAVE_SAFE_NOTE).toContain('이동');
+  it('나가도 되고 새로고침해도 된다고 말한다', () => {
     expect(READING_LEAVE_SAFE_NOTE).toContain('새로고침');
-    expect(READING_LEAVE_SAFE_NOTE).toContain('탭을 닫으면');
 
-    // 「그대로 두어 주세요」로 가두지 않는다 — 가둘 이유가 없다
-    expect(READING_LEAVE_SAFE_NOTE).not.toContain('그대로 두어');
+    for (const scare of ['중단', '그대로 두어', '닫지 마']) {
+      expect(READING_LEAVE_SAFE_NOTE, scare).not.toContain(scare);
+    }
   });
 
   /**
@@ -61,7 +62,8 @@ describe('기다리는 동안의 문구', () => {
     for (const blame of ['실패', '오류', '문제가']) {
       expect(READING_ALREADY_RUNNING_NOTE, blame).not.toContain(blame);
     }
-    // 무엇을 하면 되는지까지 — 상태만 알리고 끝내면 사용자는 다시 누른다
-    expect(READING_ALREADY_RUNNING_NOTE).toContain('다시 열면');
+    // 무엇이 되고 있는지까지 — 상태만 알리고 끝내면 사용자는 다시 누른다
+    expect(READING_ALREADY_RUNNING_NOTE).toContain('기다립니다');
+    expect(READING_ALREADY_RUNNING_NOTE).toContain('완성되면');
   });
 });

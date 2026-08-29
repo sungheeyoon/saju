@@ -22,6 +22,12 @@ export async function ReadingSection({ target }: { target: ReadingTarget }) {
         target={target}
         initialReading={reading}
         initialFailed={run?.status === 'failed'}
+        /*
+          **도는 시도를 화면이 알고 열린다.** 만드는 일이 누름의 요청에서 떨어져 나온
+          뒤로, 새로고침하고 돌아오거나 다른 기기에서 열어도 만들던 것은 계속 돈다.
+          모르면 화면이 「아무것도 안 하고 있다」고 말하게 된다.
+        */
+        initialRunning={run?.status === 'running'}
         allowMockFallback={process.env.NODE_ENV !== 'production'}
       />
     </section>

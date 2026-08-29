@@ -87,20 +87,36 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
   /**
    * **아무것도 시작하지 않은 성공을 말없이 지나가지 않는가.**
    *
-   * 한 대상에 도는 시도는 하나다(`start_reading_run`). 끊긴 시도가 남아 있거나 공유
-   * 궁합에서 상대가 먼저 눌렀으면 이 누름은 새 글을 만들지 않고 `replaced: false` 로
-   * 돌아온다. 그 갈래를 안 보면 화면은 **성공으로 받아** 예전 글을 다시 세우고, 누른
-   * 사람에게는 「눌렀는데 그대로」가 된다.
+   * 한 대상에 도는 시도는 하나다(`start_reading_run`). 이미 도는 것이 있으면 이 누름은
+   * 아무것도 열지 않고 `started: false` 로 돌아온다. 그 갈래를 안 보면 누른 사람에게는
+   * 「눌렀는데 그대로」가 된다.
    *
    * 갈래는 지우기 쉽다 — `result.ok` 만 보면 코드가 짧아지고 시험도 안 걸린다.
-   * 그래서 여기서 잡는다.
    */
-  it('결과 칸이 replaced 를 갈라 본다', () => {
+  it('결과 칸이 열렸는지 아닌지를 갈라 본다', () => {
     const panel = files.find(({ path }) => path === 'app/me/reading/panel.tsx');
     expect(panel, '결과 칸을 찾지 못했다').toBeDefined();
 
-    expect(panel!.text).toContain('result.replaced');
+    expect(panel!.text).toContain('result.started');
     expect(panel!.text).toContain('READING_ALREADY_RUNNING_NOTE');
+  });
+
+  /**
+   * **누름이 모델을 기다리지 않는가.**
+   *
+   * 만드는 일이 누름의 요청 안에 있으면 새로고침·탭 닫기가 그것을 끊고, 열린 시도가
+   * 남아 그 대상이 10분간 잠긴다. 응답 뒤로 옮기는 것이 그 값을 없앤다.
+   *
+   * 되돌리기는 쉽다 — 액션이 `requestReading` 을 그냥 `await` 하면 코드가 짧아지고
+   * 화면도 돌아간다. 느려지는 것은 사용자 쪽이라 시험이 안 잡는다. 그래서 잡는다.
+   */
+  it('누름의 액션이 만드는 일을 응답 뒤로 넘긴다', () => {
+    const actions = files.find(({ path }) => path === 'app/me/reading/actions.ts');
+    const pipeline = files.find(({ path }) => path === 'app/me/reading/pipeline.ts');
+
+    expect(actions!.text).toContain('beginReading');
+    expect(actions!.text, '액션이 결과를 기다리고 있다').not.toContain('requestReading');
+    expect(pipeline!.text, '응답 뒤로 넘기는 자리가 없다').toContain('after(');
   });
 
   /**
@@ -114,6 +130,28 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
 
     expect(panel!.text).toContain('readingWaitNote(GENERATION.settings.timeout)');
     expect(panel!.text).not.toContain('보통 1분');
+  });
+
+  /**
+   * **결과 칸이 서는 화면은 다 상한을 든다.**
+   *
+   * 생성은 응답 뒤에 돌고(`after`), 그 콜백이 사는 시간은 **그것을 부른 라우트의
+   * 상한**이다. 선언이 없으면 플랫폼 기본값에서 잘리고, 그러면 시도가 열린 채 남아
+   * 그 대상이 10분간 잠긴다 — 화면에는 「만드는 중」만 돌고 아무것도 안 온다.
+   *
+   * `/me/compat` 이 실제로 그랬다. 결과 칸을 붙이면서 상한을 안 붙였고, 붙은 뒤에도
+   * 아무 시험도 그것을 안 봤다.
+   */
+  it('결과 칸이 서는 화면은 모델 상한만큼 살 수 있다', () => {
+    const hosts = files
+      .filter(({ path }) => path.endsWith('page.tsx'))
+      .filter(({ text }) => text.includes('<ReadingSection'));
+
+    expect(hosts.length, '결과 칸을 세우는 화면을 못 찾았다').toBeGreaterThan(0);
+
+    for (const { path, text } of hosts) {
+      expect(text, `${path} 에 maxDuration 이 없다`).toMatch(/export const maxDuration = \d+/);
+    }
   });
 
   it('사용자 화면이 근거 절 머리말을 직접 알지 않는다', () => {

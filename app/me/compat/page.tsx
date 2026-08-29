@@ -12,6 +12,15 @@ import { Halted } from '../halted';
 import { payloadForViewer, type PersonPayload } from '../payload';
 import { ReadingSection } from '../reading/section';
 
+/**
+ * 모델 240초 상한이 먼저 끝나 실패를 기록하고, DB 600초 만료보다는 먼저 닫는다.
+ *
+ * **결과 칸이 서는 화면은 다 이 값을 든다.** 생성은 응답 뒤에 도는데(`after`), 그
+ * 콜백이 사는 시간은 그것을 부른 라우트의 상한이다. 여기 없으면 플랫폼 기본값에서
+ * 잘리고, 그러면 시도가 열린 채 남아 이 대상이 10분간 잠긴다.
+ */
+export const maxDuration = 300;
+
 export const metadata = {
   title: '저장한 사람으로 궁합 보기 — 만세력',
   description: '저장해 둔 두 사람을 골라 사이에 성립하는 관계를 봅니다.',

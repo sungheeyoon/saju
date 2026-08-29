@@ -19,7 +19,7 @@ import {
   readingWaitNote,
 } from '@/src/lib/reading';
 
-import { generateReading } from './actions';
+import { generateReading, readingRunState } from './actions';
 import { GENERATION } from './generation';
 import type { CurrentReading } from './current';
 import { Markdown } from './markdown';
@@ -55,16 +55,25 @@ export function ReadingPanel({
   target,
   initialReading,
   initialFailed,
+  initialRunning,
   allowMockFallback,
 }: {
   target: ReadingTarget;
   initialReading: CurrentReading | null;
   initialFailed: boolean;
+  /**
+   * 이 화면을 여는 지금 **서버에 도는 시도가 있는가.**
+   *
+   * 만드는 일이 누름의 요청에서 떨어져 나온 뒤로 생긴 값이다. 새로고침하고 돌아오거나
+   * 다른 기기에서 열어도 만들던 것은 계속 돌고 있으므로, 화면은 그 사실을 알고 기다리는
+   * 모습으로 열려야 한다. 모르면 「아무것도 안 하고 있다」고 말하게 된다.
+   */
+  initialRunning: boolean;
   allowMockFallback: boolean;
 }) {
   const router = useRouter();
   const [mockReading, setMockReading] = useState<CurrentReading | null>(null);
-  const [phase, setPhase] = useState<Phase>('idle');
+  const [phase, setPhase] = useState<Phase>(initialRunning ? 'loading' : 'idle');
   const [failure, setFailure] = useState(initialFailed ? READING_FAILED_NOTE : null);
   const [isMock, setIsMock] = useState(false);
   const reading = mockReading ?? initialReading;
@@ -84,6 +93,45 @@ export function ReadingPanel({
     setFailure('풀이를 만드는 연결을 지금 쓸 수 없어, 화면 검토용 예시 글을 대신 보이고 있습니다.');
     setPhase('idle');
   };
+
+  /**
+   * **도는 시도를 지켜본다.** 끝나면 화면을 다시 읽는다.
+   *
+   * 누른 그 화면에서만 도는 것이 아니다. 새로고침하고 돌아오거나 다른 기기에서 열어도
+   * 서버에는 도는 시도가 있으므로(`initialRunning`), 이 고리는 **마운트될 때부터**
+   * 돈다. 만드는 일이 요청에서 떨어져 나온 뒤로 그것이 가능해졌다.
+   */
+  useEffect(() => {
+    if (phase !== 'loading') return;
+
+    let alive = true;
+    const ask = async () => {
+      let run: Awaited<ReturnType<typeof readingRunState>>;
+      try {
+        run = await readingRunState(target);
+      } catch {
+        // 한 번 못 물은 것으로 끝났다고 하지 않는다. 다음 물음에서 다시 본다.
+        return;
+      }
+      if (!alive || run === null || run.status === 'running') return;
+
+      setPhase('idle');
+      if (run.status === 'failed') setFailure(READING_FAILED_NOTE);
+      /*
+        끝난 것을 보면 **언제나 다시 읽는다.** 결과는 서버에만 있고, 이 칸이 들고 있는
+        것은 마지막으로 그린 화면이다. 다시 안 읽으면 교체로 사라진 옛 글을 계속 세운다.
+      */
+      router.refresh();
+    };
+
+    // 물어보는 간격은 짧게 잡지 않는다 — 4분짜리 일에 1초짜리 왕복은 값만 쓴다.
+    const tick = setInterval(ask, 3000);
+
+    return () => {
+      alive = false;
+      clearInterval(tick);
+    };
+  }, [phase, target, router]);
 
   const generate = async () => {
     setPhase('loading');
@@ -108,24 +156,15 @@ export function ReadingPanel({
     }
 
     if (result.ok) {
-      setPhase('idle');
       /*
-        **아무것도 시작하지 않은 성공**이 있다. 한 대상에 도는 시도는 하나이므로
-        (`start_reading_run`), 끊긴 시도가 남아 있거나 공유 궁합에서 상대가 먼저
-        눌렀으면 이 누름은 새 글을 만들지 않는다. 그것을 말없이 지나가면 화면은
-        예전 글을 다시 세우고, 누른 사람에게는 「눌렀는데 그대로」가 된다.
-      */
-      if (!result.replaced) setFailure(READING_ALREADY_RUNNING_NOTE);
-      /*
-        성공하면 **언제나 다시 읽는다.**
+        **답이 결과가 아니라 시작 여부다.** 열었으면 기다리는 화면에 그대로 머문다 —
+        만드는 일은 응답 뒤에 돌고, 위의 고리가 끝나는 것을 본다.
 
-        전에는 교체했을 때만 건너뛰었다 — Server Action 의 `revalidatePath` 가 새 RSC
-        화면을 응답에 실어 준다고 믿었기 때문이다. 실제로는 그 화면이 오지 않는 왕복이
-        있었고, 그때 이 칸은 **DB 에 없는 글**을 계속 세운다(교체는 이전 글을 지운다).
-        「눌렀는데 그대로」가 그것이다. 새 결과를 만드는 것과 견주면 한 번 더 읽는 값은
-        싸다 — 이 길에는 모델 호출이 없다.
+        열지 못했으면(이미 도는 시도가 있다) 그것도 기다릴 일이다. 남이 열었든 내가
+        아까 열었든 그 시도가 끝나면 새 글이 선다. 다만 **내가 방금 연 것이 아니라는
+        사실**은 말해 준다 — 안 그러면 「눌렀는데 그대로」로 보인다.
       */
-      router.refresh();
+      if (!result.started) setFailure(READING_ALREADY_RUNNING_NOTE);
       return;
     }
 

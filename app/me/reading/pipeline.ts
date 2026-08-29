@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
+import { after } from 'next/server';
+
 import type { Saju } from '@/src/lib/saju';
 import {
   isScored,
@@ -93,26 +95,24 @@ const secretOf = (revision: StoredRevision): BirthSecret => ({
  */
 export const READING_CHART_NAMES = ['첫 번째 분', '두 번째 분'] as const;
 
-export async function requestReading(
+/**
+ * 시도를 **연다** — 모델은 아직 안 부른다.
+ *
+ * 여는 일과 만드는 일을 가르는 것이 비동기 생성의 전부다. 여기까지는 밀리초짜리
+ * DB 왕복 하나라 응답을 붙들지 않고, 만드는 일은 응답이 나간 뒤에 돈다.
+ *
+ * @returns 열었으면 그 시도, 이미 도는 것이 있으면 `null`, 못 열면 거절 문장.
+ */
+async function openRun(
   target: ReadingTarget,
-  /**
-   * 한 번 누른 것을 가리키는 값 — **브라우저가 짓는다.**
-   *
-   * 손으로 적을 자리를 여는 것이 맞는 드문 경우다. 이 값이 지어내는 것은 남에 대한
-   * 사실이 아니라 **자기 요청의 이름**이고, 거짓으로 지어도 자기 요청 하나가 두 번
-   * 도는 것뿐이다. 같은 누름의 재전송을 알아보려면 브라우저 쪽에 안정된 값이 있어야 한다.
-   *
-   * 없으면 서버가 짓는다 — 그때는 이 열쇠가 아무것도 막지 못하고, 막는 것은 DB 의
-   * 대상별 잠금뿐이다.
-   */
-  requestKey?: string,
-  generator: ReadingGenerator = openAIReadingGenerator,
-): Promise<ReadingRequest> {
+  requestKey: string | undefined,
+  generator: ReadingGenerator,
+): Promise<{ ok: true; started: StartedRun | null } | { ok: false; message: string }> {
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('start_reading_run', {
     p_kind: target.kind,
-    /** 같은 누름의 재전송을 알아보는 값. 무엇을 막는지는 위 주석이 든다 */
+    /** 같은 누름의 재전송을 알아보는 값. 무엇을 막는지는 아래 주석이 든다 */
     p_idempotency_key: requestKey ?? randomUUID(),
     p_person_a: target.kind === 'private' ? target.personA : null,
     p_person_b: target.kind === 'private' ? target.personB : null,
@@ -123,10 +123,16 @@ export async function requestReading(
 
   if (error) return { ok: false, message: error.message };
 
-  const started = ((data ?? []) as StartedRun[])[0];
   // 0행은 「같은 요청이 이미 돌았다」다. 모델을 부르지 않는다.
-  if (started === undefined) return { ok: true, replaced: false };
+  return { ok: true, started: ((data ?? []) as StartedRun[])[0] ?? null };
+}
 
+/** 연 시도를 **끝까지 민다** — 자르고·부르고·검사하고·저장한다. */
+async function closeRun(
+  target: ReadingTarget,
+  started: StartedRun,
+  generator: ReadingGenerator,
+): Promise<ReadingRequest> {
   /**
    * **모델보다 열쇠를 먼저 확인한다.** 자기 풀이·비공개 궁합은 계산 입력을 사용자 JWT 로
    * 읽으므로 이 확인이 저장 직전까지 미뤄지기 쉽다. 그러면 열쇠 없는 배포에서도 유료
@@ -150,6 +156,85 @@ export async function requestReading(
     await fail(started.run_id, 'unexpected', failure instanceof Error ? failure.message : '알 수 없는 실패');
     throw failure;
   }
+}
+
+/**
+ * **누름 하나를 끝까지 처리한다** — 열고, 만들고, 저장한다.
+ *
+ * 화면은 이제 이 길로 오지 않는다(`beginReading` 이 응답을 먼저 보낸다). 남는 이유는
+ * 둘이다. 하나는 **응답 뒤에 도는 일이 곧 이 함수**라는 것이고, 다른 하나는 시험이
+ * 파이프라인 전체를 한 번에 밀어 볼 자리라는 것이다 — 배선을 재는 시험이 화면의
+ * 비동기 사정까지 흉내 내야 하면 그 시험은 배선을 안 재게 된다.
+ */
+export async function requestReading(
+  target: ReadingTarget,
+  /**
+   * 한 번 누른 것을 가리키는 값 — **브라우저가 짓는다.**
+   *
+   * 손으로 적을 자리를 여는 것이 맞는 드문 경우다. 이 값이 지어내는 것은 남에 대한
+   * 사실이 아니라 **자기 요청의 이름**이고, 거짓으로 지어도 자기 요청 하나가 두 번
+   * 도는 것뿐이다. 같은 누름의 재전송을 알아보려면 브라우저 쪽에 안정된 값이 있어야 한다.
+   *
+   * 없으면 서버가 짓는다 — 그때는 이 열쇠가 아무것도 막지 못하고, 막는 것은 DB 의
+   * 대상별 잠금뿐이다.
+   */
+  requestKey?: string,
+  generator: ReadingGenerator = openAIReadingGenerator,
+): Promise<ReadingRequest> {
+  const opened = await openRun(target, requestKey, generator);
+  if (!opened.ok) return opened;
+  if (opened.started === null) return { ok: true, replaced: false };
+
+  return closeRun(target, opened.started, generator);
+}
+
+/** 눌렀을 때 화면이 곧바로 받는 답 — **결과가 아니라 시작 여부다.** */
+export type ReadingStart =
+  /** 이 누름이 시도를 열었다. 만드는 일은 응답 뒤에 돈다 */
+  | { ok: true; started: true }
+  /** 이미 도는 시도가 있다. 아무것도 새로 열지 않았다 */
+  | { ok: true; started: false }
+  | { ok: false; message: string };
+
+/**
+ * **응답을 먼저 보내고 만드는 일은 뒤에 돈다.**
+ *
+ * 앞서는 누름 하나가 모델 호출까지 붙들고 있었다. 그래서 새로고침이나 탭 닫기가
+ * 요청을 끊으면 **만들던 것이 함께 끊겼고**, 열린 시도가 남아 그 대상이 10분간
+ * 잠겼다. 사용자가 한 일은 새로고침 하나인데 대가가 그것이었다.
+ *
+ * `after` 는 응답이 나간 **뒤에** 콜백을 돌린다(라우트의 `maxDuration` 안에서).
+ * 그러면 브라우저가 끊어도 만들던 것은 안 끊긴다 — 응답은 이미 갔으니 끊을 것이 없다.
+ * 화면은 시도의 상태를 물어 보며 기다리고, 다른 기기에서 열어도 같은 상태를 본다.
+ *
+ * **시도를 여는 일은 여기서 기다린다.** `after` 안에서 열면 「눌렀는데 아무 일도 안
+ * 일어난 것처럼 보이는」 창이 생기고, 그 사이에 한 번 더 누르면 잠금이 아직 없어서
+ * 두 번 돈다. 여는 것은 밀리초짜리 DB 왕복 하나라 응답을 붙들지 않는다.
+ */
+export async function beginReading(
+  target: ReadingTarget,
+  requestKey?: string,
+  generator: ReadingGenerator = openAIReadingGenerator,
+): Promise<ReadingStart> {
+  const opened = await openRun(target, requestKey, generator);
+  if (!opened.ok) return opened;
+  if (opened.started === null) return { ok: true, started: false };
+
+  const started = opened.started;
+  after(async () => {
+    /**
+     * **여기서 던지면 아무도 못 듣는다.** 응답은 이미 나갔고 부르는 쪽이 없다. 그래도
+     * `closeRun` 이 시도를 닫아 두므로 화면은 다음 물음에서 실패를 본다 — 열린 채
+     * 남는 것만은 막아야 그 대상이 10분간 잠기지 않는다.
+     */
+    try {
+      await closeRun(target, started, generator);
+    } catch {
+      // `closeRun` 이 이미 `fail_reading_run` 을 적었다. 여기서 더 할 일이 없다.
+    }
+  });
+
+  return { ok: true, started: true };
 }
 
 async function fail(runId: string, code: string, detail: string): Promise<ReadingRequest> {
