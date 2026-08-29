@@ -1,10 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
+  READING_ALREADY_RUNNING_NOTE,
   READING_AUTHORSHIP_NOTE,
+  READING_LEAVE_SAFE_NOTE,
   READING_FAILED_NOTE,
   READING_NONE_NOTE,
   READING_ON_REQUEST_NOTE,
@@ -14,9 +16,11 @@ import {
   READING_SCORE_NOTE,
   READING_STALE_NOTE,
   readingOrderNote,
+  readingWaitNote,
 } from '@/src/lib/reading';
 
 import { generateReading } from './actions';
+import { GENERATION } from './generation';
 import type { CurrentReading } from './current';
 import { Markdown } from './markdown';
 import type { ReadingTarget } from './pipeline';
@@ -105,6 +109,13 @@ export function ReadingPanel({
 
     if (result.ok) {
       setPhase('idle');
+      /*
+        **아무것도 시작하지 않은 성공**이 있다. 한 대상에 도는 시도는 하나이므로
+        (`start_reading_run`), 끊긴 시도가 남아 있거나 공유 궁합에서 상대가 먼저
+        눌렀으면 이 누름은 새 글을 만들지 않는다. 그것을 말없이 지나가면 화면은
+        예전 글을 다시 세우고, 누른 사람에게는 「눌렀는데 그대로」가 된다.
+      */
+      if (!result.replaced) setFailure(READING_ALREADY_RUNNING_NOTE);
       /*
         성공하면 **언제나 다시 읽는다.**
 
@@ -200,15 +211,47 @@ function EmptyState() {
   );
 }
 
+/**
+ * **멈춘 화면이 아니라는 것을 무엇이 말하는가.**
+ *
+ * 스피너는 서버가 죽어도 계속 돈다. 그래서 오래 걸리는 일에서 스피너는 「살아 있다」를
+ * 말하지 못한다 — 30초쯤 지나면 사용자는 고장으로 읽는다.
+ *
+ * 올라가는 숫자는 다르다. 초가 늘어나는 것은 **브라우저가 이 화면을 아직 붙들고
+ * 있다**는 증거이고, 사람은 그것을 그렇게 읽는다. 그래서 여기서 세는 것을 「진행률」이라
+ * 부르지 않는다 — 서버가 지금 어느 단계인지 우리는 모르고, 시간만 보고 단계를 지어
+ * 보이면 그건 꾸며 낸 진행이다. 이 저장소가 값에 대고 지켜 온 규율을 화면에서 깰 이유가 없다.
+ */
 function LoadingState() {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    /**
+     * **틱을 세지 않고 시각을 뺀다.** 배경 탭에서는 `setInterval` 이 눌려서 늦게 돌고,
+     * 틱을 세면 그만큼 적게 센다 — 다른 탭을 보다 돌아온 사람에게 「10초째」라고 말하게 된다.
+     */
+    const startedAt = Date.now();
+    const tick = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
+
+    return () => clearInterval(tick);
+  }, []);
+
   return (
     <div role="status" aria-live="polite" className="rounded-2xl bg-accent-wash p-5 sm:p-6">
       <div className="flex items-center gap-3">
         <span className="grid size-10 animate-pulse place-items-center rounded-full bg-accent text-on-accent" aria-hidden="true">✦</span>
-        <div>
+        <div className="min-w-0">
           <p className="font-semibold">명식의 흐름을 이어 읽고 있어요</p>
           <p className="text-xs text-secondary">근거를 확인하고, 단정하지 않는 문장으로 옮깁니다.</p>
         </div>
+        {/*
+          **읽어 주지 않는다.** 바깥이 `aria-live` 라 이 숫자가 매초 낭독되면 화면
+          낭독기를 쓰는 사람에게는 글을 읽을 수 없는 칸이 된다. 살아 있다는 신호는
+          눈으로 보는 사람에게 필요한 것이고, 낭독되는 문장은 위의 한 줄로 족하다.
+        */}
+        <p aria-hidden="true" className="ml-auto shrink-0 text-sm font-semibold tabular-nums text-accent">
+          {elapsed}초
+        </p>
       </div>
       <div className="mt-6 flex flex-col gap-3" aria-hidden="true">
         <div className="reading-skeleton h-4 w-2/5 rounded-full" />
@@ -216,7 +259,9 @@ function LoadingState() {
         <div className="reading-skeleton h-3 w-11/12 rounded-full" />
         <div className="reading-skeleton h-3 w-4/5 rounded-full" />
       </div>
-      <p className="mt-5 text-xs text-muted">보통 1분 안에 완성됩니다. 이 화면을 그대로 두어 주세요.</p>
+      <p className="mt-5 text-xs leading-5 text-muted">
+        {readingWaitNote(GENERATION.settings.timeout)} {READING_LEAVE_SAFE_NOTE}
+      </p>
     </div>
   );
 }

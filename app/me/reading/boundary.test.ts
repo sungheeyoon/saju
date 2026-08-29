@@ -84,6 +84,38 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
    * 들고 있다면 그 화면은 근거 절을 알아보려 하고 있다는 뜻이고, 알아보려 한다는 것은
    * 언젠가 세우려 한다는 뜻이다. 자르는 규칙은 한 자리에만 있어야 한다.
    */
+  /**
+   * **아무것도 시작하지 않은 성공을 말없이 지나가지 않는가.**
+   *
+   * 한 대상에 도는 시도는 하나다(`start_reading_run`). 끊긴 시도가 남아 있거나 공유
+   * 궁합에서 상대가 먼저 눌렀으면 이 누름은 새 글을 만들지 않고 `replaced: false` 로
+   * 돌아온다. 그 갈래를 안 보면 화면은 **성공으로 받아** 예전 글을 다시 세우고, 누른
+   * 사람에게는 「눌렀는데 그대로」가 된다.
+   *
+   * 갈래는 지우기 쉽다 — `result.ok` 만 보면 코드가 짧아지고 시험도 안 걸린다.
+   * 그래서 여기서 잡는다.
+   */
+  it('결과 칸이 replaced 를 갈라 본다', () => {
+    const panel = files.find(({ path }) => path === 'app/me/reading/panel.tsx');
+    expect(panel, '결과 칸을 찾지 못했다').toBeDefined();
+
+    expect(panel!.text).toContain('result.replaced');
+    expect(panel!.text).toContain('READING_ALREADY_RUNNING_NOTE');
+  });
+
+  /**
+   * **기다림의 길이를 화면이 손으로 적지 않는다.**
+   *
+   * 앞 문구는 「보통 1분 안에 완성됩니다」였고 우리는 그 값을 잰 적이 없다. 상한이
+   * 바뀌는 날 손으로 적은 숫자는 조용히 거짓이 된다.
+   */
+  it('기다림 문구를 상한에서 지어 온다', () => {
+    const panel = files.find(({ path }) => path === 'app/me/reading/panel.tsx');
+
+    expect(panel!.text).toContain('readingWaitNote(GENERATION.settings.timeout)');
+    expect(panel!.text).not.toContain('보통 1분');
+  });
+
   it('사용자 화면이 근거 절 머리말을 직접 알지 않는다', () => {
     const knowing = files
       .filter(({ path }) => path.startsWith('app/'))
