@@ -136,6 +136,50 @@ describe('해석용은 막지 않고 딱지만 붙인다', () => {
     // 조이는 쪽은 여전히 문장마다 단다 — 두 프롬프트가 같으면 견줄 것이 없다.
     expect(promptBodyOf('strict')).toContain('[강도 · 근거경로]');
   });
+
+  /**
+   * **경로만 적게 하면 「어디를 봤는지」만 남는다.**
+   *
+   * 앞판의 본보기는 `강점 — analysis.strength [유도]` 였고, 실제로 나온 글이 그대로
+   * 그랬다 — 열세 줄 중 열이 `[사실]` 이었다. 딱지가 틀린 것이 아니라 **무엇에
+   * 붙었는지**가 틀렸다. 사다리를 출처에 달아 놓으니, 정작 문장이 주장한 것은 아무
+   * 딱지도 없이 지나갔다.
+   */
+  it('근거 줄이 결론과 출처와 넘어간 것을 갈라 적게 한다', () => {
+    for (const kind of READING_KINDS) {
+      const body = promptBodyOf(kind);
+
+      expect(body, kind).toContain('결론 「…」');
+      expect(body, kind).toContain('넘어간 것');
+      // 사다리는 출처에만 — 결론에 붙일 두 번째 눈금을 만들지 않는다
+      expect(body, kind).toContain('**층은 자료 칸에만 단다.**');
+    }
+  });
+
+  /**
+   * **이름을 못 대는 절은 그 관계에서 나온 결론이 아닐 가능성이 크다.**
+   *
+   * 실제 출력에서 「부딪히는 지점」은 관계를 이름으로 열거했는데(정계충·묘유충…)
+   * 「생활에서 반복될 장면」은 `compatibility.relations` 라고만 적었다. 그 차이가 눈에
+   * 보이려면 이름이 강제돼야 한다.
+   */
+  it('관계를 근거로 들 때 이름을 대게 한다', () => {
+    for (const kind of READING_KINDS) {
+      expect(promptBodyOf(kind), kind).toContain('관계를 들 때는 이름을 댄다');
+    }
+  });
+
+  /**
+   * 빈칸은 양쪽으로 다 신호가 된다. 전부 「없음」이면 자료를 옮겨 적은 것이고, 전부
+   * 길면 자료를 거의 안 쓴 것이다 — **둘 다 그 자리가 고칠 자리다.**
+   */
+  it('넘어간 것 칸이 비거나 넘칠 때 무엇을 뜻하는지 함께 적는다', () => {
+    const body = promptBodyOf('reading');
+
+    expect(body).toContain('자료를 우리말로 옮기기만');
+    expect(body).toContain('그건 자료가 이미 하고 있다');
+    expect(body).toContain('모든\n칸이 길면 자료를 거의 안 쓴 것이다');
+  });
 });
 
 /**
