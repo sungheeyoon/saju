@@ -4,20 +4,19 @@ import { selfSectionCount, type PromptAssembly } from './prompt';
 export { EVIDENCE_SECTION } from './display';
 
 /**
- * 출력에서 **셀 수 있는 것**을 센다 — 채점 화면과 실호출 검사가 같은 자리에서 센다.
+ * 출력에서 **셀 수 있는 것**을 센다.
  *
- * 처음에는 이 계산이 채점 화면(`rubric.tsx`) 안에 있었다. 그러면 두 가지가 따라온다.
+ * 이 계산은 채점 화면(`'use client'`) 안에 있었다. 그 자리에 있는 동안 두 가지가
+ * 따라왔다.
  *
- * 1. **시험이 한 줄도 안 닿는다.** `'use client'` 안의 계산은 브라우저에서 처음 돈다.
- *    빈 칸을 0자로 적는지, 근거 칸을 빼고 세는지, 첫 절을 어디서 끊는지가 전부
- *    「열어 봐야 아는 것」이 된다.
- * 2. **실호출 검사가 같은 자를 못 쓴다.** 그래서 변형이 계약한 분량과 절 수를 지켰는지
+ * 1. **시험이 한 줄도 안 닿는다.** 브라우저에서 처음 도는 계산이라, 근거 칸을 빼고
+ *    세는지 첫 절을 어디서 끊는지가 전부 「열어 봐야 아는 것」이 된다.
+ * 2. **실호출 검사가 같은 자를 못 쓴다.** 그러면 변형이 계약한 분량과 절 수를 지켰는지
  *    아무도 안 재게 된다 — 자기 풀이 저장 계약(400~12000자)만 통과하면 초록이라,
- *    「지금만」이 여덟 절 1500자를 써도 시험은 아무 말도 안 한다. 좁힌 출력이 품질을
- *    지키는지 보려고 세운 변형인데, 좁혀졌는지를 안 재는 것이다.
+ *    절을 넷만 시킨 변형이 여덟 절을 내도 시험은 아무 말도 안 한다.
  *
- * 그래서 세는 일을 여기 한 자리에 둔다. 화면은 이 값을 보이고, 실호출 검사는 이 값을
- * 계약에 댄다.
+ * 채점 화면은 걷혔지만(ADR 0015) 자는 남는다. 지금 이 값을 읽는 것은 실호출
+ * 검사(`call.live.test.ts`)다 — 변형이 시킨 대로 냈는지를 거기서 계약에 댄다.
  */
 
 /** 아직 안 본 것과 보고 나서 아니었던 것은 다르다 */
@@ -83,32 +82,6 @@ export function measureMarkdown(markdown: string, scoreIsNull: Answered = 'unkno
     headings: (markdown.match(/^##\s/gm) ?? []).length,
     scoreIsNull,
   };
-}
-
-/**
- * 사람이 **붙여 넣은 것**을 잰다.
- *
- * 모델이 구조화 출력을 그대로 뱉으면 `{"score":…, "markdown":"…"}` 이고, 대화창에서
- * 손으로 돌리면 본문만 오기도 한다. 둘 다 받는다 — 다만 JSON 이 아니면 `score` 는
- * **모른다**고 말한다. 「안 봤다」를 「null 이 아니었다」로 적으면 그 줄은 조용히 거짓이 된다.
- */
-export function measureText(text: string | undefined): Measured {
-  const trimmed = (text ?? '').trim();
-
-  let markdown = trimmed;
-  let scoreIsNull: Answered = 'unknown';
-
-  if (trimmed.startsWith('{')) {
-    try {
-      const parsed = JSON.parse(trimmed) as { score?: unknown; markdown?: unknown };
-      if (typeof parsed.markdown === 'string') markdown = parsed.markdown;
-      if ('score' in parsed) scoreIsNull = parsed.score === null ? 'yes' : 'no';
-    } catch {
-      // JSON 처럼 시작했지만 아니었다 — 통째로 본문으로 본다.
-    }
-  }
-
-  return { ...measureMarkdown(markdown, scoreIsNull), received: trimmed !== '' };
 }
 
 /**

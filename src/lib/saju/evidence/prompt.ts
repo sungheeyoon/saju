@@ -1,4 +1,11 @@
-import { BRANCH_INFO, SEASON_KO, STEM_INFO, type Branch, type Stem } from '../constants';
+import {
+  BRANCH_INFO,
+  ELEMENT_KO,
+  SEASON_KO,
+  STEM_INFO,
+  type Branch,
+  type Stem,
+} from '../constants';
 import {
   CLAIM_STRENGTH_KO,
   CLAIM_STRENGTH_ORDER,
@@ -536,6 +543,25 @@ export type Summarizable = {
   charts: { a: SummarizedChart; b: SummarizedChart | null };
 };
 
+/**
+ * 한 기둥을 **사람이 읽는 꼴로** — 한글 이름과 두 글자의 오행.
+ *
+ * 자료의 `pillars` 는 간지와 한글 이름만 들고 오행은 안 든다. 그러면 「인목은 나무다」를
+ * 모델이 제 기억에서 꺼내 쓰게 되고, 그것은 이 프롬프트가 딱 하나 금지한 것(자료 밖을
+ * 자료인 척하기)의 경계에 선다. 오행은 지지·천간에 붙은 **정의**라 새로 재는 값이 아니니,
+ * 상수표에서 읽어 머리에 실어 준다 — 그러면 글이 자료를 읽고 쓴 것이 된다.
+ *
+ * 여기서는 **`ELEMENT_KO` 로 적는다.** 이 줄이 하는 일은 庚 을 金 으로 옮기는 수고를
+ * 덜어 주는 것까지이고, 「금이냐 쇠냐」는 문장마다 다르므로 그 선택은 프롬프트가 두 벌을
+ * 다 내주고 글 쓰는 쪽이 한다. 머리가 한 벌을 먼저 적으면 그것이 그대로 베껴진다.
+ */
+const plainPillar = (pillar: { stem: string; branch: string; ko: string }): string => {
+  const stemElement = STEM_INFO[pillar.stem as Stem].element;
+  const branchElement = BRANCH_INFO[pillar.branch as Branch].element;
+
+  return `${pillar.ko}(${ELEMENT_KO[stemElement]}·${ELEMENT_KO[branchElement]})`;
+};
+
 function chartSummary(key: 'charts.a' | 'charts.b', chart: SummarizedChart): string {
   const { pillars, now } = chart;
   const { year, month, day, hour, dayMaster, meta } = pillars;
@@ -550,9 +576,17 @@ function chartSummary(key: 'charts.a' | 'charts.b', chart: SummarizedChart): str
     hour === null ? '시 —(시간 미상)' : `시 ${hour.name}`,
   ].join(' · ');
 
+  const plain = [
+    `년 ${plainPillar(year)}`,
+    `월 ${plainPillar(month)}`,
+    `일 ${plainPillar(day)}`,
+    hour === null ? '시 —(시간 미상)' : `시 ${plainPillar(hour)}`,
+  ].join(' · ');
+
   const lines = [
     `\`${key}\``,
     `- 여덟 글자  ${eight}`,
+    `- 한글과 오행  ${plain}`,
     `- 일간 ${dayMaster}(${stem.yinYang === '陽' ? '양' : '음'}·${stem.element}) · 월지 ${month.branch}(${SEASON_KO[monthBranch.season]}) · 절입 ${meta.monthTerm.name} · 사주년 ${meta.sajuYear}`,
   ];
 
@@ -563,8 +597,12 @@ function chartSummary(key: 'charts.a' | 'charts.b', chart: SummarizedChart): str
         ? `대운 없음(${now.daeunAbsence})`
         : `대운 ${now.daeun.index} ${now.daeun.pillar.name}(만 ${now.daeun.startAge}→${now.daeun.endAge}세)`;
 
+    const daeunPlain =
+      now.daeun === null ? '대운 —' : `대운 ${plainPillar(now.daeun.pillar)}`;
+
     lines.push(
       `- 지금 만 ${now.age}세 — ${daeun} · 세운 ${now.saeun.pillar.name}(${now.saeun.year}) · 월운 ${now.wolun.pillar.name}(${now.wolun.startTerm.name})`,
+      `- 운의 한글과 오행  ${daeunPlain} · 세운 ${plainPillar(now.saeun.pillar)} · 월운 ${plainPillar(now.wolun.pillar)}`,
     );
   }
 

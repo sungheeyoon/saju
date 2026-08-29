@@ -81,7 +81,6 @@ export {
 export {
   EVIDENCE_SECTION,
   measureMarkdown,
-  measureText,
   outputDeviations,
   type Answered,
   type DeviationKind,
@@ -89,17 +88,6 @@ export {
   type OutputDeviation,
 } from './measure';
 export { PROMPT_VARIANTS, type PromptVariant, type PromptVariantId } from './variants';
-export {
-  SELF_QUALITY_CASE_SET,
-  blindKeyForAll,
-  blindLabelsFor,
-  blindOrderFor,
-  chartForQualityCase,
-  inRound,
-  roundCases,
-  roundVariants,
-  type QualityCaseId,
-} from './quality-cases';
 export {
   checkReading,
   secretForms,

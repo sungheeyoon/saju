@@ -238,12 +238,61 @@ describe('고객이 읽는 글의 계약', () => {
     }
   });
 
-  it('사주 용어를 금지하지 않고 한 번은 풀어 쓰게 한다', () => {
+  it('사주 용어를 금지하지 않고 뜻을 먼저 세우게 한다', () => {
     const prompt = selfPrompt();
 
     expect(prompt).toContain('사주 용어를 금지어처럼 피하지 마라');
-    expect(prompt).toContain('처음 나올');
-    expect(prompt).toContain('때만 일상어로 풀어');
+    expect(prompt).toContain('뜻이 먼저');
+    expect(prompt).toContain('이름은 뒤에 따라온다');
+  });
+
+  /**
+   * **이름을 먼저 놓는 것이 이 글이 안 읽히던 까닭이었다.**
+   *
+   * 「처음 나올 때 한 번 풀어라」는 이것을 못 막았다 — 이름을 앞에 놓고 뒤에 흐릿한
+   * 설명을 붙이는 것도 그 규칙은 통과시킨다. 그래서 고친 것은 분량이 아니라 **순서**다.
+   *
+   * 세 갈래를 따로 잠근다. 십성·간지·관계는 서로 다른 방식으로 막히고, 하나로 뭉치면
+   * 셋 중 둘은 조용히 안 고쳐진다.
+   */
+  it('용어를 뜻·그림·장면으로 옮기는 세 갈래를 다 세운다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('이름이 아니라 그림으로 말한다');
+    expect(prompt).toContain('뜻 → 눈에 보이는 장면 → (이름)');
+
+    // 십성 — 이름이 아니라 뜻이 프롬프트에 실린다
+    expect(prompt).toContain('재물·현실 감각·성과');
+    expect(prompt).toContain('규범·책임·남이 매기는 평가');
+
+    // 간지 — 오행 이름을 **두 벌 다** 내주고 서로 무엇을 하는지까지
+    expect(prompt).toContain('**목 · 나무** — 불을 살리고 흙을 이긴다');
+    expect(prompt).toContain('**금 · 쇠** — 물을 살리고 나무를 이긴다');
+
+    /*
+      **한 벌로 못박지 않는다.** 「금이 셋이에요」는 자연스럽고 「쇠가 셋이에요」는
+      어색한데, 「쇠가 나무를 자른다」는 자연스럽고 「금이 목을 극한다」는 안 읽힌다.
+      어느 쪽이 맞는지가 문장마다 다르므로 고르는 일을 글 쓰는 쪽에 남긴다.
+    */
+    expect(prompt).toContain('그 문장에 맞는 쪽을 그때그때 골라라');
+
+    // 관계 — 이름만 적지 말고 장면으로
+    expect(prompt).toContain('충·형·해·합은 장면으로 풀어 쓴다');
+    expect(prompt).toContain('그래서 삶에서 무엇이 흔들리는지');
+  });
+
+  /**
+   * 고쳐야 할 문장을 **본보기로 함께 싣는다.** 규칙만 적으면 모델은 규칙을 지켰다고
+   * 여기면서 같은 문장을 다시 낸다 — 실제로 나온 글이 그랬다.
+   */
+  it('실제로 나왔던 안 읽히는 문장을 고칠 짝과 함께 든다', () => {
+    const prompt = selfPrompt();
+
+    for (const bad of ['관성과 재성이 무겁게 자리해', '시주의 인목과 대운의 갑인', '인신충']) {
+      expect(prompt, bad).toContain(bad);
+    }
+    expect(prompt).toContain('이렇게 쓰지 마라');
+    expect(prompt).toContain('이렇게 써라');
   });
 
   it('사주 용어는 한글 이름으로 쓰고 생한자나 다른 외국 문자를 섞지 않는다', () => {

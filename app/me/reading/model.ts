@@ -20,8 +20,8 @@ import type { ModelCall, ReadingGenerator } from './generator';
  * 인프라라는 말이 코드에서도 참이려면 그 자리가 싸야 한다. Responses API 의 원격 저장은
  * 끈다. 현재 Reading 을 우리 DB 에 보존하는 규율과 provider 쪽 보존을 섞지 않기 위해서다.
  *
- * 모델 이름과 설정은 `generation.ts` 가 든다 — 채점표도 같은 값을 읽어야 하는데, 여기서
- * 읽어 가면 provider SDK 가 브라우저 묶음에 실린다.
+ * 모델 이름과 설정은 `generation.ts` 가 든다 — 결과 옆에 「무엇으로 만든 것인가」를
+ * 함께 남기는 자리들이 그 값을 읽어야 하는데, 여기서 읽어 가면 provider SDK 가 딸려 온다.
  */
 
 

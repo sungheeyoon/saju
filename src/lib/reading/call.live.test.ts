@@ -5,13 +5,12 @@ import { describe, expect, it } from 'vitest';
 import { computeSaju } from '@/src/lib/saju';
 import {
   CONTROL,
-  SELF_QUALITY_CASE_SET,
+  PROMPT_VARIANTS,
   checkReading,
   measureMarkdown,
   readingEvidenceOf,
   readingPromptOf,
   outputDeviations,
-  roundVariants,
   type OutputDeviation,
 } from '@/src/lib/reading';
 
@@ -41,6 +40,14 @@ const OUTPUT_ROOT = '.reading-live';
 
 const live = process.env.READING_LIVE === '1';
 const variantsLive = process.env.READING_VARIANTS_LIVE === '1';
+
+/**
+ * 변형끼리 견줄 때의 **고정 기준 시각.**
+ *
+ * 운은 부르는 순간으로 짚으므로, 안 고정하면 어제 부른 것과 오늘 부른 것이 **다른
+ * 운을 읽는다.** 변형을 견주려는 자리에서 그것은 잡음이 아니라 다른 실험이다.
+ */
+const VARIANTS_VIEWED_AT = '2026-08-26T04:00:00.000Z';
 
 const INPUT = {
   year: 1990,
@@ -98,15 +105,14 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
 });
 
 /**
- * 돈이 드는 내부 1차 선별 — **품질 우열이 아니라** 이번 라운드에 서는 변형이 모두
- * 계약을 지키는지만 본다.
+ * 돈이 드는 내부 1차 선별 — **품질 우열이 아니라** 변형들이 모두 자기 계약을 지키는지만 본다.
  *
- * **30건 라운드가 아니다.** 사례 하나에서 변형마다 한 번씩이고, 채점은 사람이 화면에서
- * 한다. 여기서 초록인 것은 「배선이 이어져 있고 다섯 변형이 시킨 대로 낸다」까지다.
+ * 여기서 초록인 것은 「배선이 이어져 있고 변형이 시킨 대로 낸다」까지다. 우열은 사람이
+ * 화면에서 본다 — 자기 명식으로, `/me/reading/inspect` 의 「실험용 변형」 자리에서.
  *
- * 목록을 여기 다시 적지 않는다. 라운드는 `SELF_QUALITY_CASE_SET.round` 가 정하므로,
- * 손으로 옮겨 적으면 화면이 세우는 것과 여기서 부르는 것이 갈리는 날이 온다 — 그날
- * 「같은 것을 재고 있다」가 거짓이 된다.
+ * 목록을 여기 다시 적지 않는다. `PROMPT_VARIANTS` 가 정하므로 손으로 옮겨 적으면
+ * 화면이 세우는 것과 여기서 부르는 것이 갈리는 날이 온다 — 그날 「같은 것을 재고
+ * 있다」가 거짓이 된다.
  *
  * ## 저장 계약만으로는 좁아졌는지 못 잰다
  *
@@ -115,26 +121,26 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
  * 변형이 좁아졌는지조차 안 재고 채점대에 오른다. 그래서 변형마다 **자기 조립이 계약한
  * 분량과 절 수**를 함께 잰다(`assemblyBreaches`).
  */
-describe.skipIf(!variantsLive)('이번 라운드의 변형이 같은 Evidence 에서 실제 출력을 낸다', () => {
+describe.skipIf(!variantsLive)('변형들이 같은 Evidence 에서 실제 출력을 낸다', () => {
   it('막는 계약을 다 지나고 분량 목표는 값으로 남는다', { timeout: 300_000 }, async () => {
     loadLocalEnv();
     const { callModel } = await import('@/app/me/reading/model');
     const evidence = readingEvidenceOf(
       'self',
       { a: computeSaju(INPUT) },
-      new Date(SELF_QUALITY_CASE_SET.viewedAt),
+      new Date(VARIANTS_VIEWED_AT),
     );
 
     const called = await Promise.all(
-      roundVariants().map(async (variant) => ({
+      PROMPT_VARIANTS.map(async (variant) => ({
         variant,
         result: await callModel(readingPromptOf(evidence, variant.assembly)),
       })),
     );
 
     /**
-     * **먼저 적고 나서 판정한다.** 다섯 번의 호출은 돈이 들었고, 판정하다 던지면 그
-     * 원문이 사라진다 — 무엇이 어긋났는지 보려고 다시 다섯 번을 부르게 된다.
+     * **먼저 적고 나서 판정한다.** 호출은 돈이 들었고, 판정하다 던지면 그 원문이
+     * 사라진다 — 무엇이 어긋났는지 보려고 값을 치른 호출을 다시 하게 된다.
      */
     const at = new Date().toISOString().replace(/[:.]/g, '-');
     const dir = `${OUTPUT_ROOT}/${at}`;
@@ -151,10 +157,10 @@ describe.skipIf(!variantsLive)('이번 라운드의 변형이 같은 Evidence �
     }
 
     /**
-     * **다섯을 다 판정하고 나서 한 번에 말한다.**
+     * **전부 판정하고 나서 한 번에 말한다.**
      *
-     * 변형마다 그 자리에서 던지면 첫 변형이 어긋나는 순간 나머지 넷의 판정을 못 본다 —
-     * 이미 부른 뒤인데도. 한 라운드가 어디서 어긋나는지는 **다섯을 나란히 놓아야** 보인다.
+     * 변형마다 그 자리에서 던지면 첫 변형이 어긋나는 순간 나머지의 판정을 못 본다 —
+     * 이미 부른 뒤인데도. 어디서 어긋나는지는 **나란히 놓아야** 보인다.
      */
     const verdicts = called.map(({ variant, result }) => {
       if (!result.ok) {

@@ -5,10 +5,6 @@ import {
   READING_KINDS,
   READING_POLICY,
   READING_PROMPTS,
-  SELF_QUALITY_CASE_SET,
-  blindKeyForAll,
-  inRound,
-  type QualityCaseId,
   type ReadingKind,
 } from '@/src/lib/reading';
 
@@ -17,8 +13,7 @@ import { CARD } from '../../../card';
 import { CopyText } from '../copy-text';
 import { readingArtifacts, currentReading, lastReadingRun } from '../current';
 import type { ReadingTarget } from '../pipeline';
-import { qualityCasePreview, selfReadingPreview, type PreviewResult } from '../preview';
-import { RubricSheet } from '../rubric';
+import { selfReadingPreview, type PreviewResult } from '../preview';
 
 export const metadata = {
   title: '해석 내부 보기 — 만세력',
@@ -40,7 +35,7 @@ export const metadata = {
 export default async function InspectPage({
   searchParams,
 }: {
-  searchParams: Promise<{ kind?: string; a?: string; b?: string; m?: string; case?: string }>;
+  searchParams: Promise<{ kind?: string; a?: string; b?: string; m?: string }>;
 }) {
   const supabase = await supabaseOnServer();
 
@@ -103,8 +98,6 @@ export default async function InspectPage({
       <SelfPreview preview={preview} />
 
       <ExperimentVariants preview={preview} />
-
-      <QualityCases chosen={qualityCaseFrom(params.case)} />
 
       <section className="flex flex-col gap-4">
         <h2 className="text-base font-semibold">프롬프트 몸통 (자료 없이)</h2>
@@ -326,194 +319,4 @@ function targetFrom(params: {
 
   if (!params.m || !UUID.test(params.m)) return null;
   return { kind, matchId: params.m };
-}
-
-/**
- * **고정 사례 실험** — 저장된 판본이 아니라 못박아 둔 다섯으로 잰다.
- *
- * 내 판본 하나로는 「이 변형이 낫다」가 아니라 「나에게 낫다」만 나온다. 특히 뻔한
- * 문장은 **여러 명식에서 표현이 얼마나 되풀이되는지**를 봐야 드러나므로, 사례가 하나면
- * 원리적으로 못 잰다.
- *
- * 모든 칸(사례 × 변형)을 한 번에 펴지 않는다. 사례 하나를 고르면 그 사례의 변형만 선다 —
- * 긴 프롬프트를 전부 펴면 화면이 자료가 된다.
- */
-function QualityCases({ chosen }: { chosen: QualityCaseId | null }) {
-  const set = SELF_QUALITY_CASE_SET;
-
-  return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold">
-          고정 사례 실험 <code className="text-xs font-normal text-muted">{set.version}</code>
-        </h2>
-        <p className="text-sm text-secondary">
-          골든 케이스를 <strong className="font-medium">가리켜</strong> 씁니다 — 입력을 베끼면
-          저쪽이 고쳐졌을 때 두 벌이 조용히 갈립니다. 기준 시각은 {set.viewedAt} 으로
-          못박혀 있어, 어제 잰 것과 오늘 잰 것을 이어 붙일 수 있습니다.
-        </p>
-        <p className="text-sm text-secondary">
-          이번 라운드 <code className="text-xs text-muted">{set.round.id}</code> 는 사례{' '}
-          {set.round.cases.length}개 × 변형 {set.round.variants.length}개 × {set.round.runsPerCell}
-          회입니다. 이 표본이 정하는 것은 <strong className="font-medium">승자가 아니라</strong>{' '}
-          떨어질 것과 다음에 잴 축입니다.
-        </p>
-      </div>
-
-      {/*
-        **이번 라운드에 도는 것만 누를 수 있다.**
-
-        안 돌린 칸을 화면이 세우면 빈 칸이 기록에 `0자 · 소제목 0개`로 실리고, 그때
-        「안 돌렸다」와 「0자로 나왔다」가 파일에서 같아 보인다. 나머지 사례는 세트에
-        남아 있다는 것만 보이고 열리지 않는다.
-      */}
-      <nav aria-label="고정 사례" className="flex flex-wrap gap-2">
-        {set.cases.map((one) =>
-          inRound(one.id) ? (
-            <Link
-              key={one.id}
-              href={`/me/reading/inspect?kind=self&case=${one.id}`}
-              aria-current={chosen === one.id ? 'page' : undefined}
-              className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${
-                chosen === one.id
-                  ? 'border-accent bg-accent-wash text-accent-strong'
-                  : 'border-border-strong bg-surface hover:border-accent hover:text-accent'
-              }`}
-            >
-              {one.id}
-            </Link>
-          ) : (
-            <span
-              key={one.id}
-              className="rounded-full border border-border px-3 py-1.5 text-sm font-semibold text-muted"
-            >
-              {one.id} <span className="font-normal">(이번 라운드 아님)</span>
-            </span>
-          ),
-        )}
-      </nav>
-
-      {chosen === null ? (
-        <p className={`${CARD} text-sm text-secondary`}>
-          사례를 하나 고르면 그 근거로 지은 변형들이 섭니다.
-        </p>
-      ) : (
-        <ChosenCase caseId={chosen} />
-      )}
-
-      <BlindKey />
-    </section>
-  );
-}
-
-function ChosenCase({ caseId }: { caseId: QualityCaseId }) {
-  const built = qualityCasePreview(caseId);
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div className={`${CARD} flex flex-col gap-2 text-sm`}>
-        <p className="font-semibold">{built.dimension}</p>
-        <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-          <span>
-            <dt className="inline">골든</dt> <dd className="inline text-foreground">{built.golden}</dd>
-          </span>
-          <span>
-            <dt className="inline">자료</dt>{' '}
-            <dd className="inline text-foreground">
-              {built.evidenceBytes} 바이트 · {built.evidenceDigest}
-            </dd>
-          </span>
-        </dl>
-      </div>
-
-      <div className={CARD}>
-        {/*
-          **짝을 넘기지 않는다.** 채점표가 `variant` 를 알면 언젠가 그것이 파일로 새고,
-          첫 사례를 끝내는 순간 남은 변형의 블라인드가 깨진다. 짝은 아래 「짝 공개」가 든다.
-
-          프롬프트를 **채점표 안에** 넣는다. 라운드를 여는 것이 곧 설정을 얼리는 것이므로,
-          프롬프트가 그 밖에 있으면 얼리기 전에 복사해 만들 수 있다 — 그러면 「생성 전에
-          찍혔는가」가 다시 사람의 기억이 된다.
-        */}
-        <RubricSheet
-          caseId={built.caseId}
-          setVersion={built.setVersion}
-          roundId={built.roundId}
-          runsPerCell={built.runsPerCell}
-          viewedAt={built.viewedAt}
-          evidenceDigest={built.evidenceDigest}
-          promptVersion={READING_POLICY.version}
-          rows={built.prompts.map(({ blind, promptDigest, sections, length }) => ({
-            blind,
-            promptDigest,
-            sections,
-            length,
-          }))}
-        >
-          {built.prompts.map((one) => (
-            <details key={one.blind} className="rounded-xl border border-border p-3">
-              <summary className="cursor-pointer text-sm font-medium">
-                {one.blind}{' '}
-                <code className="ml-1 text-xs font-normal text-muted">{one.promptDigest}</code>
-              </summary>
-              <div className="mt-2 flex justify-end">
-                <CopyText text={one.prompt} label="이 프롬프트 복사" />
-              </div>
-              <Pre text={one.prompt} />
-            </details>
-          ))}
-        </RubricSheet>
-      </div>
-    </div>
-  );
-}
-
-/**
- * **짝 공개** — 이번 라운드를 다 채점한 뒤에만 편다.
- *
- * 접어 두는 것으로 족하다. 여기서 지키려는 것은 남이 못 보게 하는 것이 아니라
- * **내가 채점하다 눈에 걸리지 않게** 하는 것이다. 사례별 기록에 짝이 없는 것이
- * 진짜 방어이고(`RubricSheet`), 이 칸은 마지막에 한 번 여는 자리다.
- *
- * 사례 수를 문장에 적어 두지 않는다. 라운드가 줄었는데 안내가 「다섯 사례」로 남아
- * 있으면 **끝나는 조건이 화면과 코드에서 어긋난다** — 다 끝내고도 아직 남은 줄 안다.
- * 그리고 짝은 라운드마다 다르므로 파일에 `roundId` 를 함께 싣는다. 없으면 다음 라운드의
- * 짝과 섞여도 알아볼 수가 없다.
- */
-function BlindKey() {
-  const { round, version } = SELF_QUALITY_CASE_SET;
-  const pairs = blindKeyForAll();
-
-  return (
-    <details className={CARD}>
-      <summary className="cursor-pointer text-sm font-medium">
-        짝 공개 — {round.cases.length}개 사례를 다 채점한 뒤에 여세요
-      </summary>
-      <p className="mt-2 text-xs leading-5 text-muted">
-        채점 중에 이것을 보면 재는 것이 글이 아니라 기대가 됩니다. 사례별 기록에는 짝이
-        들어 있지 않으니, 백업을 먼저 다 모으고 마지막에 여기서 맞춰 보세요. 이번 라운드는{' '}
-        <code>{round.id}</code> — 칸 {pairs.length}개입니다.
-      </p>
-      <Pre text={pairs.map((one) => `${one.blind}\t${one.variant}`).join('\n')} />
-      <div className="mt-2 flex justify-end">
-        <CopyText
-          text={JSON.stringify({ setVersion: version, roundId: round.id, pairs }, null, 2)}
-          label="짝 복사 (JSON)"
-        />
-      </div>
-    </details>
-  );
-}
-
-/**
- * 주소로 들어온 값이라 모양부터 본다 — 틀린 것은 「고르지 않은 것」과 같다.
- *
- * 이번 라운드 밖의 사례도 마찬가지다. 화면에서 못 누르게 해 놓고 주소로는 열리면,
- * 세우지 않기로 한 칸이 열려 빈 채로 기록된다 — **막는 자리가 둘이면 하나는 샌다.**
- */
-function qualityCaseFrom(value: string | undefined): QualityCaseId | null {
-  const found = SELF_QUALITY_CASE_SET.cases.find((one) => one.id === value);
-  if (found === undefined || !inRound(found.id)) return null;
-
-  return found.id;
 }

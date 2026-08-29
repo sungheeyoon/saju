@@ -104,95 +104,9 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(
       page.getByRole('heading', { name: '실험용 변형 — 실제 생성에는 쓰지 않습니다' }),
     ).toBeVisible();
-    for (const id of ['control', 'recency-check-v1', 'length-v1', 'selection-bridge-v1']) {
+    for (const id of ['control', 'longer-v1', 'recency-check-v1', 'legacy-v1']) {
       await expect(page.getByText(id, { exact: true })).toBeVisible();
     }
-
-    /*
-      **고정 사례는 저장된 판본과 무관하다.** 내 판본 하나로는 「이 변형이 낫다」가 아니라
-      「나에게 낫다」만 나오고, 뻔한 문장은 여러 명식을 나란히 놓아야 드러난다.
-
-      그리고 **어느 변형인지는 채점하는 동안 화면에 없다.** 있으면 재는 것이 글이 아니라
-      기대가 된다 — 짝은 내보낸 JSON 에서만 열린다.
-    */
-    await page.goto('/me/reading/inspect?kind=self&case=Q01');
-    await expect(page.getByRole('heading', { name: /고정 사례 실험/ })).toBeVisible();
-
-    for (const blind of ['Q01-A', 'Q01-B', 'Q01-C', 'Q01-D']) {
-      await expect(page.locator('summary').filter({ hasText: blind })).toBeVisible();
-    }
-    /*
-      **적기 전에 고르게 한다.** 저장해 둔 사례로 돌아오면 화면은 비어 있고, 그 상태에서
-      한 칸이라도 적으면 빈 것을 바탕으로 통째로 다시 저장되어 예전 기록이 한 줄로 덮인다.
-    */
-    await expect(page.getByRole('button', { name: '저장된 채점 이어서' })).toBeVisible();
-    await expect(page.getByRole('button', { name: '버리고 새로 시작' })).toBeVisible();
-    await expect(page.getByRole('button', { name: '이 사례 기록 복사 (JSON)' })).toHaveCount(0);
-
-    await page.getByRole('button', { name: '버리고 새로 시작' }).click();
-    await expect(page.locator('fieldset').filter({ hasText: 'Q01-A' })).toBeVisible();
-
-    /*
-      **짝은 사례별 기록에 없다.** 있으면 첫 사례를 끝내는 순간 남은 넷의 블라인드가
-      깨진다 — 차례가 사례마다 섞여 있어도, 정답표를 한 번 본 사람에게는 소용이 없다.
-    */
-    const sheet = page.locator('fieldset').filter({ hasText: 'Q01-A' });
-    for (const variant of ['control', 'length-v1', 'recency-check-v1', 'selection-bridge-v1']) {
-      await expect(sheet.getByText(variant)).toHaveCount(0);
-    }
-
-    /*
-      셀 수 있는 것은 센다. **근거 칸은 본문 길이에서 뺀다** — 프롬프트가 「근거 칸은
-      분량에 넣지 않는다」고 계약했으므로, 통째로 세면 근거를 길게 쓴 글이 본문을 길게
-      쓴 글로 보인다. 분량 변형이 재려는 값이 바로 그것이다.
-    */
-    await sheet
-      .getByRole('textbox')
-      .first()
-      .fill('{"score": null, "markdown": "본문열자입니다\\n\\n### 근거 (검사용)\\n\\n긴 근거"}');
-    await expect(sheet.getByText('null', { exact: true })).toBeVisible();
-    // 본문은 일곱 자다. 근거 칸까지 세면 스무 자가 넘는다 — 그 둘이 갈려야 한다.
-    await expect(sheet.getByText('7자', { exact: true })).toHaveCount(1);
-
-    // 설정이 비어 있으면 내보내지 못한다 — 「같은 모델 설정으로 비교했다」가 거짓이 된다.
-    await expect(page.getByText('설정을 먼저 적어 주세요', { exact: false })).toBeVisible();
-    await expect(page.getByRole('button', { name: '이 사례 기록 복사 (JSON)' })).toHaveCount(0);
-
-    const round = page.locator('fieldset').filter({ hasText: '이 라운드를 돌린 설정' });
-    for (const [label, value] of [
-      ['run id', 'r1'],
-      ['모델', 'openai/gpt-5.6-luna'],
-      ['provider', 'vercel-ai-gateway'],
-      ['생성 설정', 'temperature=1'],
-    ] as const) {
-      await round.getByLabel(label, { exact: true }).fill(value);
-    }
-    await expect(page.getByRole('button', { name: '이 사례 기록 복사 (JSON)' })).toBeVisible();
-
-    /*
-      **버린다고 했으면 실제로 지운다.** 화면만 비우면 아무것도 안 적고 나갔을 때 다음
-      복원에서 버렸던 기록이 되살아난다 — 사용자는 지운 줄 알고 있다.
-    */
-    await page.reload();
-    await page.getByRole('button', { name: '저장된 채점 이어서' }).click();
-    await expect(sheet.getByText('7자', { exact: true })).toHaveCount(1);
-    // 라운드 설정은 세트 단위로 남는다 — 다섯 사례가 같은 설정으로 돌아야 견줄 수 있다.
-    await expect(round.getByLabel('모델', { exact: true })).toHaveValue('openai/gpt-5.6-luna');
-
-    await page.reload();
-    await page.getByRole('button', { name: '버리고 새로 시작' }).click();
-    await expect(sheet.getByText('7자', { exact: true })).toHaveCount(0);
-
-    await page.reload();
-    await page.getByRole('button', { name: '저장된 채점 이어서' }).click();
-    await expect(sheet.getByText('7자', { exact: true })).toHaveCount(0);
-
-    // 짝은 따로, 접힌 채로 선다.
-    await expect(
-      page.getByRole('group').filter({ hasText: '짝 공개 — 다섯 사례를 다 채점한 뒤에 여세요' }),
-    ).toBeVisible();
-
-    await page.goto('/me/reading/inspect?kind=self');
 
     // 세 kind 의 몸통도 복사할 수 있다 — 자료 없이 몸통만 고쳐 볼 때의 자리다.
     // 접혀 있으므로 펴고 본다. 접힌 채로 세면 「없다」와 「안 보인다」가 같은 답이 된다.

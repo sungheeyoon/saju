@@ -1,16 +1,9 @@
-import { createHash } from 'node:crypto';
-
 import {
   PROMPT_VARIANTS,
   ReadingEvidenceError,
-  SELF_QUALITY_CASE_SET,
-  blindLabelsFor,
-  chartForQualityCase,
   readingEvidenceOf,
   readingPromptOf,
-  selfSectionCount,
   type PromptVariantId,
-  type QualityCaseId,
 } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -129,88 +122,4 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
     if (failure instanceof ReadingEvidenceError) return { ok: false, message: failure.message };
     throw failure;
   }
-}
-
-/**
- * 지문 — **같은 것을 두 번 잰 것인지 나중에 되짚는 값.**
- *
- * 46KB 짜리 둘을 눈으로 견줄 수는 없다. 채점 기록에 이 값이 함께 남으면, 나중에 「그때
- * 그 프롬프트가 지금 것과 같은가」를 한 줄로 답할 수 있다. 길이는 12자면 족하다 —
- * 우리가 가르려는 것은 남의 위조가 아니라 우리 자신의 판본이다.
- */
-const digest = (text: string) => createHash('sha256').update(text).digest('hex').slice(0, 12);
-
-export type QualityCasePrompt = {
-  /** 채점하는 동안 보이는 이름 — 어느 변형인지 감춘다 */
-  readonly blind: string;
-  readonly variant: PromptVariantId;
-  readonly prompt: string;
-  readonly promptDigest: string;
-  /** 그 변형이 세우는 절의 수 — 채점표의 눈금이 이 값에서 나온다 */
-  readonly sections: number;
-  /** 그 변형이 계약한 본문 분량 — 채점표가 초과를 값으로 보인다 */
-  readonly length: { readonly min: number; readonly max: number };
-};
-
-export type QualityCasePreview = {
-  readonly caseId: QualityCaseId;
-  readonly golden: string;
-  readonly dimension: string;
-  readonly setVersion: string;
-  readonly roundId: string;
-  /** 칸마다 몇 번 돌리는가 — 채점표가 그만큼 칸을 연다 */
-  readonly runsPerCell: number;
-  readonly viewedAt: string;
-  readonly evidenceDigest: string;
-  readonly evidenceBytes: number;
-  /** 가린 차례대로 — 화면이 이 순서로 세운다 */
-  readonly prompts: readonly QualityCasePrompt[];
-};
-
-/**
- * 고정 사례 하나로 모든 변형을 짓는다 — **한 근거, 한 시각.**
- *
- * 저장된 판본을 읽지 않으므로 로그인 계정과 무관하고, 언제 눌러도 같은 값이 나온다.
- * 그것이 이 세트의 요점이다 — 어제 잰 것과 오늘 잰 것을 이어 붙일 수 있어야 한다.
- */
-export function qualityCasePreview(caseId: QualityCaseId): QualityCasePreview {
-  const chosen = SELF_QUALITY_CASE_SET.cases.find((one) => one.id === caseId);
-  if (chosen === undefined) throw new Error(`없는 품질 사례: ${caseId}`);
-
-  const viewedAt = new Date(SELF_QUALITY_CASE_SET.viewedAt);
-  const evidence = readingEvidenceOf('self', { a: chartForQualityCase(caseId) }, viewedAt);
-  const evidenceText = JSON.stringify(evidence.evidence);
-
-  const assemblyOf = (id: PromptVariantId) => {
-    const found = PROMPT_VARIANTS.find((variant) => variant.id === id);
-    if (found === undefined) throw new Error(`없는 변형: ${id}`);
-    return found.assembly;
-  };
-
-  const { round } = SELF_QUALITY_CASE_SET;
-
-  return {
-    caseId,
-    golden: chosen.golden,
-    dimension: chosen.dimension,
-    setVersion: SELF_QUALITY_CASE_SET.version,
-    roundId: round.id,
-    runsPerCell: round.runsPerCell,
-    viewedAt: SELF_QUALITY_CASE_SET.viewedAt,
-    evidenceDigest: digest(evidenceText),
-    evidenceBytes: Buffer.byteLength(evidenceText, 'utf8'),
-    prompts: blindLabelsFor(caseId).map(({ blind, variant }) => {
-      const assembly = assemblyOf(variant);
-      const prompt = readingPromptOf(evidence, assembly);
-
-      return {
-        blind,
-        variant,
-        prompt,
-        promptDigest: digest(prompt),
-        sections: selfSectionCount(assembly),
-        length: assembly.selfLength,
-      };
-    }),
-  };
 }
