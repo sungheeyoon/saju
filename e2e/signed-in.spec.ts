@@ -183,6 +183,15 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       Reading 의 것이다 — 둘이면 무엇을 믿을지 사용자가 정해야 한다.
     */
     await expect(page.getByText('match-v0')).toHaveCount(0);
+
+    /*
+      **관계를 세워 놓고 읽어 주는 버튼이 없으면 화면이 자료다.** 이 자리가 비어 있는
+      동안 화면은 스물몇 개짜리 관계 목록을 세워 두고 끝났다. 파이프라인은 처음부터
+      세 kind 를 다 받았으므로 막혀 있던 것은 화면 한 줄이었고, 한 줄짜리 누락은
+      시험이 안 잡으면 다시 빠진다.
+    */
+    await expect(page.getByRole('heading', { name: '두 사람의 사주풀이' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
     await expect(page.getByText('궁합 베타')).toHaveCount(0);
   });
 

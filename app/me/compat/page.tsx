@@ -10,6 +10,7 @@ import { CompatModeNav } from '../../compat-mode-nav';
 import { REVISION_REPLACED_NOTE, UnreadableRevisionError } from '../../revision';
 import { Halted } from '../halted';
 import { payloadForViewer, type PersonPayload } from '../payload';
+import { ReadingSection } from '../reading/section';
 
 export const metadata = {
   title: '저장한 사람으로 궁합 보기 — 만세력',
@@ -184,6 +185,14 @@ type Outcome =
       first: PersonPayload;
       second: PersonPayload;
       /**
+       * 이 쌍의 Person id — **판본을 다 읽은 뒤에만 존재한다.**
+       *
+       * 주소에서 곧장 꺼내 쓰지 않는 까닭이 있다. 결과 슬롯이 AI 풀이 대상을 들려면
+       * 그 대상은 **실제로 읽힌 두 사람**이어야 한다. 주소의 값을 그대로 쓰면 못 읽는
+       * 판본이나 못 보는 사람에게도 풀이 버튼이 서고, 눌러야 거절을 만난다.
+       */
+      pair: { personA: string; personB: string };
+      /**
        * 결과를 **보는** 시각(ms) — 판본을 읽은 그때다.
        *
        * 엔진은 지금을 스스로 묻지 않고(`NOW_POLICY.viewingInstant`) 넘겨받는다.
@@ -228,7 +237,7 @@ async function pairOutcome(a: string | null, b: string | null): Promise<Outcome>
    */
   if (first === null || second === null) notFound();
 
-  return { kind: 'ok', first, second, viewedAt: Date.now() };
+  return { kind: 'ok', first, second, pair: { personA: a, personB: b }, viewedAt: Date.now() };
 }
 
 function Result({ outcome }: { outcome: Outcome }) {
@@ -271,10 +280,23 @@ function Result({ outcome }: { outcome: Outcome }) {
       compat={analyzeCompatibility(first.saju, second.saju)}
       names={{ a: first.name, b: second.name }}
       viewedAt={outcome.viewedAt}
-      /** 첫 세로 슬라이스는 Match만 연다. private의 결과 슬롯은 다음 슬라이스까지 비운다. */
-      verdict={null}
+      /**
+       * 비공개 궁합의 결과 슬롯 — **자기 풀이·공유 궁합과 같은 칸을 쓴다**(`ReadingSection`).
+       *
+       * 이 자리가 비어 있는 동안 화면은 관계 스물몇 개를 세워 놓고 **읽어 주는 버튼이
+       * 없었다.** 파이프라인은 처음부터 세 kind 를 다 받았고(`ReadingTarget`), 쌍의 차례도
+       * DB 가 정한다(`least`·`greatest`) — 막혀 있던 것은 화면 한 줄뿐이었다.
+       */
+      verdict={
+        <ReadingSection key="private-reading" target={{ kind: 'private', ...outcome.pair }} />
+      }
       notice={
-        <p className="text-xs text-muted">
+        /*
+          **키를 단다.** 이 원소는 서버 컴포넌트가 만들어 클라이언트 컴포넌트
+          (`CompatView`)의 자식 배열로 건너간다. 경계를 넘어온 원소는 `jsx` 가 달아 두는
+          「검사했다」 표시를 잃으므로, 정적인 자리에 서 있어도 React 가 키를 찾는다.
+        */
+        <p key="revision-notice" className="text-xs text-muted">
           <strong className="font-medium">현재 저장된 출생정보 기준입니다.</strong>{' '}
           {REVISION_REPLACED_NOTE}
         </p>
