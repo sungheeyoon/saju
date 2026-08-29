@@ -1,4 +1,4 @@
-import { readingBody } from '@/src/lib/reading/display';
+import { readingBody, readingGrounding } from '@/src/lib/reading/display';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import type { ReadingTarget } from './pipeline';
@@ -99,6 +99,23 @@ export type ReadingArtifacts = {
  * 사용자가 읽는 화면에서는 한 번도 실려 나가지 않아야 「결과 화면에 무엇이 나가는가」에
  * 한 문장으로 답할 수 있다(ADR 0008).
  */
+/**
+ * 절마다 **어디서 온 말인가** — 내부 화면만 읽는다.
+ *
+ * `currentReading` 은 서버 경계에서 이 절을 잘라 낸다(`readingBody`). 그 규율은 그대로
+ * 두고, 되짚는 자리에서만 잘린 쪽을 따로 읽는다 — 한 함수가 두 벌을 다 내주면 언젠가
+ * 사용자 화면이 그 값을 세운다.
+ */
+export async function readingGroundingOf(target: ReadingTarget): Promise<string | null> {
+  const supabase = await supabaseOnServer();
+
+  const { data, error } = await supabase.rpc('my_reading', argsOf(target));
+  if (error) return null;
+
+  const row = ((data ?? []) as Record<string, unknown>[])[0];
+  return row === undefined ? null : readingGrounding(row.output as string);
+}
+
 export async function readingArtifacts(target: ReadingTarget): Promise<ReadingArtifacts | null> {
   const supabase = await supabaseOnServer();
 

@@ -11,7 +11,7 @@ import {
 import { supabaseOnServer } from '../../../auth/server-client';
 import { CARD } from '../../../card';
 import { CopyText } from '../copy-text';
-import { readingArtifacts, currentReading, lastReadingRun } from '../current';
+import { readingArtifacts, currentReading, lastReadingRun, readingGroundingOf } from '../current';
 import type { ReadingTarget } from '../pipeline';
 import { selfReadingPreview, type PreviewResult } from '../preview';
 
@@ -221,10 +221,11 @@ function ExperimentVariants({ preview: result }: { preview: PreviewResult }) {
 }
 
 async function Inspected({ target }: { target: ReadingTarget }) {
-  const [artifacts, reading, run] = await Promise.all([
+  const [artifacts, reading, run, grounding] = await Promise.all([
     readingArtifacts(target),
     currentReading(target),
     lastReadingRun(target),
+    readingGroundingOf(target),
   ]);
 
   return (
@@ -256,6 +257,35 @@ async function Inspected({ target }: { target: ReadingTarget }) {
           </dl>
         )}
       </div>
+
+      {/*
+        **절마다 어디서 온 말인가.** 프롬프트가 시켜서 만들어지고 DB 에 저장까지 되는데
+        여태 어디에도 안 서 있었다 — 그러면 「이 문장이 왜 이렇게 나왔나」의 답이 사람의
+        짐작이 된다. 자료를 다시 읽고 그럴듯한 경로를 되짚는 것은 검수가 아니라 재해석이다.
+
+        맨 위에 편다. 되짚으러 들어온 사람이 제일 먼저 볼 것이고, 46KB 짜리 프롬프트를
+        지나서야 만나면 안 보는 것과 같다.
+      */}
+      {reading !== null && (
+        <details className={CARD} open>
+          <summary className="cursor-pointer text-sm font-medium">
+            모델이 적은 근거 — 절마다 한 줄
+          </summary>
+          {grounding === null ? (
+            <p className="mt-2 text-sm text-secondary">
+              이 글에는 근거 절이 없습니다. 프롬프트가 시킨 것을 모델이 안 낸 것이고,
+              그 자체가 되짚을 거리입니다.
+            </p>
+          ) : (
+            <>
+              <div className="mt-2 flex justify-end">
+                <CopyText text={grounding} label="근거 복사" />
+              </div>
+              <Pre text={grounding} />
+            </>
+          )}
+        </details>
+      )}
 
       {artifacts === null ? (
         <p className={`${CARD} text-sm text-secondary`}>저장된 결과가 없습니다.</p>
