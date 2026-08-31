@@ -126,6 +126,24 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     expect(checkReading(ok(kind))).toEqual({ ok: true });
   });
 
+  /**
+   * **실제 호출이 여기서 떨어졌다.** 프롬프트 9절이 「문답 형식」만 시키니 모델이
+   * `**Q. 공부나 자격증은 잘 맞나요?**` 로 썼고, 자기 풀이 본문의 라틴 문자 한 종
+   * (`Q`)에 `non-korean-self-body` 가 걸렸다.
+   *
+   * 프롬프트를 한국어 형식으로 못박았으니(`질문 1.`) 그 형식이 실제로 지나가는지도
+   * 함께 잠근다 — 시킨 형식이 검사에 걸리면 고친 것이 아니다.
+   */
+  it('문답 절을 「질문 1.」로 쓰면 지나가고 「Q.」로 쓰면 걸린다', () => {
+    const withQuestion = `${OK_MARKDOWN}\n\n## 궁금한 것\n\n**질문 1. 공부나 자격증은 잘 맞나요?**\n\n잘 맞습니다.`;
+    const withLatin = `${OK_MARKDOWN}\n\n## 궁금한 것\n\n**Q. 공부나 자격증은 잘 맞나요?**\n\n잘 맞습니다.`;
+
+    const self = (markdown: string) => ({ ...ok('self'), output: { score: null, markdown } });
+
+    expect(codesOf(checkReading(self(withQuestion)))).toEqual([]);
+    expect(codesOf(checkReading(self(withLatin)))).toContain('non-korean-self-body');
+  });
+
   it('자료에 없는 간지는 hard fail 이다', () => {
     const base = ok('match');
     const absent = [...'甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥'].find(
