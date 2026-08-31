@@ -5,8 +5,15 @@ import { useState, useTransition } from 'react';
 
 import { BirthFields } from '../../birth-form';
 import { DEFAULT_QUERY, missingAnswer, type Query } from '../../query';
+import {
+  RELATIONS,
+  RELATION_INTRO,
+  RELATION_LABEL,
+  type Relation,
+} from '@/src/lib/people';
+
 import { NOTE_MAX } from '../../revision';
-import { addManagedPerson, removeFromList, updateNote } from '../actions';
+import { addManagedPerson, removeFromList, updateNote, updateRelation } from '../actions';
 
 /**
  * 목록을 손대는 세 자리 — 추가·메모·빼기.
@@ -29,6 +36,7 @@ export function AddPerson({ remaining }: { remaining: number }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState<Query>({ ...DEFAULT_QUERY, name: '' });
   const [note, setNote] = useState('');
+  const [relation, setRelation] = useState<Relation | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
 
@@ -37,10 +45,11 @@ export function AddPerson({ remaining }: { remaining: number }) {
   const save = () => {
     setFailure(null);
     startSaving(async () => {
-      const result = await addManagedPerson(query, note);
+      const result = await addManagedPerson(query, note, relation);
       if (result.ok) {
         setQuery({ ...DEFAULT_QUERY, name: '' });
         setNote('');
+        setRelation(null);
         setOpen(false);
         router.refresh();
       } else {
@@ -78,6 +87,7 @@ export function AddPerson({ remaining }: { remaining: number }) {
 
       <BirthFields value={query} onChange={setQuery} idPrefix="add" namePlaceholder="엄마" />
 
+      <RelationField value={relation} onChange={setRelation} idPrefix="add" />
       <NoteField value={note} onChange={setNote} idPrefix="add" />
 
       <div className="flex flex-wrap items-center gap-3">
@@ -98,6 +108,69 @@ export function AddPerson({ remaining }: { remaining: number }) {
 
       {failure !== null && <p className="text-sm text-muted">저장하지 못했습니다 — {failure}</p>}
     </section>
+  );
+}
+
+/**
+ * 무슨 사이인지 고르는 칸 — **안 고르는 것도 답이다.**
+ *
+ * 필수로 두지 않는다. 모를 수도 있고 말하기 싫을 수도 있는데, 필수로 두면 사람들은
+ * 아무거나 고른다 — 그러면 **틀린 값이 「모른다」보다 나쁜 자리에 앉는다.** 안 고르면
+ * 궁합 풀이가 어느 쪽으로도 단정하지 않는 장면으로 쓴다.
+ *
+ * 라디오로 두는 것은 넷뿐이라서다. 고른 것을 되돌릴 수 있어야 하므로 「아직 모르겠음」이
+ * 나란히 선다 — 라디오는 스스로 풀리지 않는다.
+ */
+function RelationField({
+  value,
+  onChange,
+  idPrefix,
+}: {
+  value: Relation | null;
+  onChange: (next: Relation | null) => void;
+  idPrefix: string;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-1.5">
+      <legend className="text-xs text-secondary">나와 무슨 사이인가요? (선택)</legend>
+      <div className="flex flex-wrap gap-2 pt-1">
+        {[...RELATIONS, null].map((choice) => {
+          const id = `${idPrefix}-relation-${choice ?? 'unknown'}`;
+          const label = choice === null ? '아직 모르겠음' : RELATION_LABEL[choice];
+          const chosen = value === choice;
+
+          return (
+            <label
+              key={id}
+              htmlFor={id}
+              className={`relative cursor-pointer rounded-full border px-3 py-1.5 text-sm
+                has-[:focus-visible]:outline has-[:focus-visible]:outline-3
+                has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft ${
+                  chosen
+                    ? 'border-accent bg-accent-wash text-accent'
+                    : 'border-border text-secondary hover:border-accent'
+                }`}
+            >
+              {/*
+                칸 전체를 덮는 라디오 — 보이지는 않지만 **이것이 눌린다.**
+                `sr-only` 로 숨기면 글자만 누를 수 있는 칸이 되고, 라벨을 못 짚는
+                손에는 누를 것이 없는 칸이 된다(`birth-form.tsx` 와 같은 규율).
+              */}
+              <input
+                type="radio"
+                id={id}
+                name={`${idPrefix}-relation`}
+                checked={chosen}
+                onChange={() => onChange(choice)}
+                className="absolute inset-0 cursor-pointer appearance-none opacity-0"
+              />
+              {label}
+            </label>
+          );
+        })}
+      </div>
+      <p className="text-xs text-muted">{RELATION_INTRO}</p>
+    </fieldset>
   );
 }
 
@@ -123,6 +196,50 @@ function NoteField({
         className="rounded-md border border-border bg-surface px-2.5 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash"
       />
     </label>
+  );
+}
+
+/**
+ * 무슨 사이인지 고쳐 적는 자리 — **판본이 되지 않는다.**
+ *
+ * 메모와 나란히 선다. 둘 다 여덟 글자를 안 바꾸므로 판본이 안 쌓이고, 그래서
+ * 생년월일시를 고치는 폼과는 갈라 둔다.
+ *
+ * **누르면 바로 저장한다.** 라디오 하나에 「저장」 버튼을 더 두면 고른 것과 저장된
+ * 것이 갈리는 상태가 생기고, 사용자는 고르기만 하고 떠난다.
+ */
+export function RelationForm({
+  personId,
+  relation,
+}: {
+  personId: string;
+  relation: Relation | null;
+}) {
+  const router = useRouter();
+  const [value, setValue] = useState(relation);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [saving, startSaving] = useTransition();
+
+  const choose = (next: Relation | null) => {
+    setValue(next);
+    setFailure(null);
+    startSaving(async () => {
+      const result = await updateRelation(personId, next);
+      if (result.ok) router.refresh();
+      else {
+        // 저장 못 했으면 화면도 되돌린다 — 안 되돌리면 고른 척만 하고 서 있게 된다.
+        setValue(relation);
+        setFailure(result.message);
+      }
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <RelationField value={value} onChange={choose} idPrefix={personId} />
+      {saving && <span className="text-xs text-muted">저장하는 중…</span>}
+      {failure !== null && <span className="text-xs text-muted">{failure}</span>}
+    </div>
   );
 }
 

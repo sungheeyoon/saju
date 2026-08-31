@@ -7,10 +7,28 @@ const keyedClient = vi.fn();
 
 class NoKeyError extends Error {}
 
+/**
+ * 파이프라인이 판본 말고도 두 자리를 더 읽는다 — 부를 이름과 **무슨 사이인가**
+ * (`user_person_access`), 그리고 내가 어느 쪽인가(`app_user.self_person_id`).
+ * 관계는 내가 한쪽에 서 있을 때만 답이 있으므로 둘 다 필요하다.
+ */
+const maybeSingle = vi.fn(async () => ({ data: { self_person_id: 'person-a' } }));
+const edgesIn = vi.fn(async () => ({ data: [] as unknown[], error: null }));
+
 vi.mock('../../auth/server-client', () => ({
   supabaseOnServer: async () => ({
     rpc,
-    from: () => ({ select: () => ({ in: selectIn }) }),
+    /**
+     * **표마다 다른 답을 낸다.** 판본과 엣지를 한 mock 으로 받으면 관계를 읽는 자리가
+     * 판본 행을 받게 되고, 그러면 「관계를 못 읽었다」와 「관계가 없다」가 같은 그림이
+     * 되어 이 시험이 그 둘을 못 가른다.
+     */
+    from: (table: string) => ({
+      select: () => ({
+        in: table === 'user_person_access' ? edgesIn : selectIn,
+        maybeSingle,
+      }),
+    }),
   }),
 }));
 
@@ -65,6 +83,7 @@ beforeEach(() => {
   rpc.mockReset();
   keyedRpc.mockReset();
   selectIn.mockReset();
+  edgesIn.mockClear();
   keyedClient.mockReset();
 
   generator = new FakeReadingGenerator({
@@ -174,6 +193,71 @@ describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저�
     expect(Object.keys(saved)).not.toContain('p_person_a');
     expect(Object.keys(saved)).not.toContain('p_match_id');
     expect(saved.p_run_id).toBe('run-1');
+  });
+
+  /**
+   * **관계는 내가 한쪽에 서 있을 때만 안다.**
+   *
+   * 저장한 값은 「나와 그 사람」이지 「그 둘」이 아니다. 이 배선이 없으면 궁합 풀이가
+   * 두 사람이 무슨 사이인지 모른 채 쓰이고, 그 기본값은 사실상 연애다.
+   */
+  const pairRun = {
+    ...started,
+    person_b: 'person-b',
+    revision_b: 'rev-b',
+  };
+
+  const askForPair = async () => {
+    rpc.mockImplementation(async (name: string) =>
+      name === 'start_reading_run' ? { data: [pairRun], error: null } : { data: null, error: null },
+    );
+    selectIn.mockResolvedValue({
+      data: [
+        { ...BIRTH, id: 'rev-a', person_id: 'person-a' },
+        { ...BIRTH, id: 'rev-b', person_id: 'person-b' },
+      ],
+      error: null,
+    });
+
+    await requestReading(
+      { kind: 'private', personA: 'person-a', personB: 'person-b' },
+      undefined,
+      generator,
+    );
+
+    return generator.prompts[0];
+  };
+
+  it('내가 한쪽이면 상대에게 붙여 둔 사이를 프롬프트가 든다', async () => {
+    edgesIn.mockResolvedValue({
+      data: [
+        { person_id: 'person-a', local_label: '나', relation: null },
+        { person_id: 'person-b', local_label: '엄마', relation: 'family' },
+      ],
+      error: null,
+    });
+
+    expect(await askForPair()).toContain('가족이다');
+  });
+
+  /**
+   * **둘 다 내가 아니면 이 쌍의 관계는 우리가 아는 것이 아니다.** 어머니가 나의
+   * 가족인 것과 어머니가 그 친구와 무슨 사이인지는 다른 물음이다. 한쪽 값을 쌍의
+   * 관계인 척 쓰면 남남인 두 사람의 궁합이 「가족」으로 읽힌다.
+   */
+  it('둘 다 내가 아니면 모른다고 넘긴다', async () => {
+    maybeSingle.mockResolvedValueOnce({ data: { self_person_id: 'person-me' } });
+    edgesIn.mockResolvedValue({
+      data: [
+        { person_id: 'person-a', local_label: '엄마', relation: 'family' },
+        { person_id: 'person-b', local_label: '친구', relation: 'friend' },
+      ],
+      error: null,
+    });
+
+    const prompt = await askForPair();
+    expect(prompt).toContain('무슨 사이인지 모른다');
+    expect(prompt).not.toContain('가족이다');
   });
 
   it('provider 메타데이터도 교체 가능한 생성기에서 가져온다', async () => {

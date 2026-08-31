@@ -157,12 +157,34 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await form.getByLabel('이름').fill('친구');
     await fillBirthDate(form, '1991-08-08');
     await fillBirthTime(form, '09:20');
+
+    /*
+      **무슨 사이인지 묻는다.** 이 값이 없던 동안 궁합 풀이는 어머니와의 궁합에도
+      「처음에 끌리는 지점」을 썼다 — 모델이 지어낸 것이 아니라 자료에 없어서 관계의
+      일반적 가능성으로 읽은 것이고, 그 기본값은 사실상 연애였다.
+
+      점수에 안 쓴다는 것도 고르는 자리에서 말한다. 관계가 무엇이든 두 원국 사이의
+      사실은 같고, 관계로 점수가 움직이면 그것은 근거가 아니라 우리가 지어낸 규칙이다.
+    */
+    await expect(form.getByText('이 값은 점수에 쓰지 않습니다')).toBeVisible();
+    await form.getByRole('radio', { name: '친구·동료' }).check();
+
     await form.getByRole('button', { name: '등록', exact: true }).click();
 
     await expect(page.getByRole('heading', { name: '친구' })).toBeVisible();
 
-    const friend = page.locator('section').filter({ has: page.getByRole('heading', { name: '친구' }) });
-    await friend.getByRole('link', { name: '사주 상세 보기' }).click();
+    /*
+      **고른 것이 목록에 서 있고 거기서 고쳐진다.** 못 고치면 잘못 고른 사람을
+      지웠다 다시 등록하게 되고, 그러면 그 사람의 판본 이력이 고르기 실수 때문에 사라진다.
+    */
+    const friendCard = page
+      .locator('section')
+      .filter({ has: page.getByRole('heading', { name: '친구' }) });
+    await expect(friendCard.getByRole('radio', { name: '친구·동료' })).toBeChecked();
+    await friendCard.getByRole('radio', { name: '가족' }).check();
+    await expect(friendCard.getByRole('radio', { name: '가족' })).toBeChecked();
+
+    await friendCard.getByRole('link', { name: '사주 상세 보기' }).click();
     await expect(page.getByRole('heading', { name: '친구의 사주' })).toBeVisible();
     await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
     await page.getByRole('link', { name: '사람 목록으로' }).click();

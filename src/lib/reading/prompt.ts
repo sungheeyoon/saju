@@ -6,6 +6,12 @@ import {
   ELEMENT_PICTURE_KO,
   GENERATES,
 } from '../saju/constants';
+import {
+  RELATION_FOR_PROMPT,
+  RELATION_FROM_MATCH,
+  RELATION_UNKNOWN,
+  type Relation,
+} from '../people';
 import { EVIDENCE_CONTRACT } from '../saju/evidence';
 import { PROMPT_PARTS, withSummary } from '../saju/evidence/prompt';
 
@@ -23,6 +29,24 @@ import { READING_POLICY, isScored, type ReadingKind } from './policy';
  * 선다 — 이름으로 판정하는 일은 없어야 하고, 그러려면 이름이 근거 안에 있으면 안 된다.
  */
 export type ReadingNames = { readonly a: string; readonly b?: string };
+
+/**
+ * 프롬프트에만 실리는 것 — **자료가 아니라 부르는 말과 사이.**
+ *
+ * 둘을 한 값으로 묶는다. 따로 받으면 이름만 넘기고 관계를 잊는 호출부가 생기고,
+ * 그때 모델은 **다시 연애로 읽는다** — 잊어서 생긴 침묵과 정말 모르는 침묵이
+ * 구별되지 않기 때문이다.
+ */
+export type ReadingAbout = {
+  readonly names: ReadingNames | null;
+  /**
+   * 두 사람이 무슨 사이인가. **모르면 `null` 이고 그것도 값이다.**
+   *
+   * `match` 는 여기 안 온다 — 인연 찾기로 만나 서로 동의한 사이라는 것을 성립
+   * 방식이 이미 정하므로, 고른 값이 아니라 kind 가 답이다.
+   */
+  readonly relation: Relation | null;
+};
 
 /**
  * 이름을 못 구했을 때 부르는 말 — **자리를 비우지 않는다.**
@@ -453,11 +477,40 @@ ${head}
 한국어는 주어를 자연스럽게 생략한다.`;
 };
 
+/**
+ * **두 사람이 무슨 사이인가** — 자료에 없던 값.
+ *
+ * 이것이 없던 동안 궁합 풀이는 어느 관계에나 맞는 장면으로 썼고, 그 기본값은 사실상
+ * 연애였다. 어머니와의 궁합에 「처음에 끌리는 지점」이 나간 것이 그래서다.
+ *
+ * **모른다도 값으로 싣는다.** 자리를 비우면 모르는 것과 안 물어본 것이 같은 침묵이
+ * 되고, 모델은 그 침묵을 예전처럼 읽는다.
+ */
+const relationBlock = (kind: Exclude<ReadingKind, 'self'>, relation: Relation | null): string => {
+  const said =
+    kind === 'match'
+      ? RELATION_FROM_MATCH
+      : relation === null
+        ? RELATION_UNKNOWN
+        : RELATION_FOR_PROMPT[relation];
+
+  return `## 두 사람은 무슨 사이인가
+
+${said}.
+
+이 값으로 **장면과 조언을 고른다.** 같은 근거라도 가족에게 할 말과 연인에게 할 말이
+다르다 — 연락 습관, 돈 쓰는 방식, 부딪히는 자리가 관계마다 다른 얼굴로 나온다.
+
+**점수는 이 값으로 움직이지 않는다.** 관계가 무엇이든 두 원국 사이의 사실은 같다.
+「가족이라 잘 맞는다」처럼 관계 자체를 근거로 쓰지 마라.`;
+};
+
 const compatSections = (
   kind: Exclude<ReadingKind, 'self'>,
   assembly: PromptAssembly,
-  names: ReadingNames | null,
+  about: ReadingAbout,
 ): string => {
+  const { names, relation } = about;
   const { a, b = FALLBACK_NAMES.b as string } = names ?? FALLBACK_NAMES;
   const sections =
     kind === 'private'
@@ -466,6 +519,8 @@ const compatSections = (
   const { min, max } = assembly.compatLength[kind];
 
   return `${namingBlock(names)}
+
+${relationBlock(kind, relation)}
 
 ## 낼 것
 
@@ -504,7 +559,7 @@ ${
 const bodyOf = (
   kind: ReadingKind,
   assembly: PromptAssembly,
-  names: ReadingNames | null,
+  about: ReadingAbout,
 ): string => {
   const isExpertSelf = kind === 'self' && assembly.selfPresentation === 'expert-v3';
   const head =
@@ -538,16 +593,19 @@ const bodyOf = (
     voice,
     ...(kind === 'match' ? [] : [PROMPT_PARTS.personality]),
     ...assembly.extraSections,
-    kind === 'self' ? selfSections(assembly) : compatSections(kind, assembly, names),
+    kind === 'self' ? selfSections(assembly) : compatSections(kind, assembly, about),
     OUTPUT_CONTRACT(kind),
   ].join('\n\n');
 };
 
+/** 이름도 사이도 모르는 자리 — **모른다를 한 값으로 든다** */
+export const NOTHING_KNOWN: ReadingAbout = { names: null, relation: null };
+
 /** kind마다의 기준 프롬프트 몸통 — 자료 없이. */
 export const READING_PROMPTS: Record<ReadingKind, string> = {
-  self: bodyOf('self', CONTROL, null),
-  private: bodyOf('private', CONTROL, null),
-  match: bodyOf('match', CONTROL, null),
+  self: bodyOf('self', CONTROL, NOTHING_KNOWN),
+  private: bodyOf('private', CONTROL, NOTHING_KNOWN),
+  match: bodyOf('match', CONTROL, NOTHING_KNOWN),
 };
 
 /** 실제로 보낼 문자열. 정적 규칙을 먼저 두고 개인별 자료는 맨 뒤에 붙인다. */
@@ -555,16 +613,17 @@ export function readingPromptOf(
   { kind, evidence }: ReadingEvidence,
   assembly: PromptAssembly = CONTROL,
   /**
-   * 두 사람을 부르는 말 — **자료가 아니라 프롬프트에만 실린다.**
+   * 부르는 말과 무슨 사이인가 — **자료가 아니라 프롬프트에만 실린다.**
    *
-   * 기본값이 「첫 번째 분」인 것은 이름을 못 구하는 자리가 실제로 있기 때문이다
+   * 이름의 기본값이 「첫 번째 분」인 것은 못 구하는 자리가 실제로 있기 때문이다
    * (공유 궁합은 어느 판본이 누구 것인지 앱이 모른다). 자리를 비우면 모델이 호칭을
-   * 지어내므로 비우지 않는다.
+   * 지어내므로 비우지 않는다. 관계도 같다 — 모르면 모른다고 싣는다.
    */
-  names: ReadingNames | null = null,
+  about: ReadingAbout = NOTHING_KNOWN,
 ): string {
-  const useCached = assembly === CONTROL && names === null;
-  const body = useCached ? READING_PROMPTS[kind] : bodyOf(kind, assembly, names);
+  const useCached =
+    assembly === CONTROL && about.names === null && about.relation === null;
+  const body = useCached ? READING_PROMPTS[kind] : bodyOf(kind, assembly, about);
   const head = withSummary(body, evidence);
   const prompt = `${head}
 

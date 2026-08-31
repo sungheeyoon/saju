@@ -78,6 +78,7 @@ let momId;
     p_city: '부산',
     p_late_night_rule: 'jo',
     p_time_basis: 'localMean',
+    p_relation: 'family',
   });
   check('가족을 등록한다 (음력 입력)', typeof mom === 'string', error?.message);
   momId = mom;
@@ -86,6 +87,23 @@ let momId;
     p_local_label: '아빠', p_note: null, ...birth, p_original_date: '1960-01-20', p_solar_date: '1960-01-20',
   });
   check('한 사람 더 등록한다', dadError === null, dadError?.message);
+
+  /**
+   * **무슨 사이인지가 화면이 읽는 자리까지 간다.** 이 값이 없던 동안 궁합 풀이는
+   * 두 사람을 연인처럼 읽었다 — 자료에 없어서 관계의 일반적 가능성으로 쓴 것이다.
+   */
+  const { data: edges } = await client
+    .from('user_person_access')
+    .select('person_id, relation')
+    .in('person_id', [mom]);
+  check('고른 사이가 엣지에 남는다', edges?.[0]?.relation === 'family');
+
+  const changed = await client
+    .from('user_person_access')
+    .update({ relation: 'friend' })
+    .eq('person_id', mom);
+  check('고른 사이를 고쳐 적을 수 있다', changed.error === null, changed.error?.message ?? '');
+  await client.from('user_person_access').update({ relation: 'family' }).eq('person_id', mom);
 
   const { data: account } = await client.from('app_user').select('self_person_id').maybeSingle();
   selfPersonId = account?.self_person_id;

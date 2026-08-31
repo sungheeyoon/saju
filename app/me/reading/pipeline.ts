@@ -2,13 +2,15 @@ import { randomUUID } from 'node:crypto';
 
 import { after } from 'next/server';
 
+import { relationOf, type Relation } from '@/src/lib/people';
 import type { Saju } from '@/src/lib/saju';
 import {
   isScored,
+  NOTHING_KNOWN,
   READING_POLICY,
   type BirthSecret,
+  type ReadingAbout,
   type ReadingKind,
-  type ReadingNames,
 } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -273,7 +275,7 @@ async function generate(
     if (failure instanceof ResultClosedError) return fail(started.run_id, 'closed', failure.message);
     throw failure;
   }
-  const { revisions, names } = read;
+  const { revisions, about } = read;
 
   let charts: { a: Saju; b?: Saju };
   try {
@@ -296,7 +298,7 @@ async function generate(
     charts,
     viewedAt,
     secrets: revisions.map(secretOf),
-    names,
+    about,
     generator,
   });
   if (!generated.ok) return fail(started.run_id, generated.code, generated.detail);
@@ -356,7 +358,7 @@ async function generate(
 async function revisionsFor(
   kind: ReadingKind,
   started: StartedRun,
-): Promise<{ revisions: StoredRevision[]; names: ReadingNames | null }> {
+): Promise<{ revisions: StoredRevision[]; about: ReadingAbout }> {
   if (kind === 'match') {
     const inputs = await pinnedInputs(started.match_id as string);
     const a = inputs.get(started.revision_a);
@@ -377,7 +379,11 @@ async function revisionsFor(
      * 내 쪽 별명을 상대 자리에 쓰는 길도 막혀 있다. 내가 붙인 말은 상대가 보는 화면에
      * 실려서는 안 된다 — 그것이 이 파일이 처음부터 localLabel 을 근거에 안 실은 이유다.
      */
-    return { revisions: [a, b], names: null };
+    /**
+     * **관계도 여기서 고르지 않는다.** 인연 찾기에서 만나 서로 동의한 사이라는 것은
+     * 성립 방식이 이미 정한 사실이라, 프롬프트가 kind 로 안다(`relationBlock`).
+     */
+    return { revisions: [a, b], about: NOTHING_KNOWN };
   }
 
   const supabase = await supabaseOnServer();
@@ -404,11 +410,11 @@ async function revisionsFor(
     return row;
   });
 
-  return { revisions: found, names: await labelsFor(found.map((row) => row.person_id)) };
+  return { revisions: found, about: await aboutFor(found.map((row) => row.person_id)) };
 }
 
 /**
- * 내가 그 사람을 뭐라 부르는가 — **차례는 판본이 정한다.**
+ * 내가 그 사람을 뭐라 부르고 **무슨 사이인가** — 차례는 판본이 정한다.
  *
  * 쌍의 차례를 여기서 다시 정하지 않는다. 비공개 궁합의 두 판본은 DB 가 Person id 로
  * 줄 세워 내주므로(`least`·`greatest`), 이름도 **그 판본이 들고 온 `person_id`** 를 따라
@@ -416,27 +422,59 @@ async function revisionsFor(
  * 이름과 명식이 서로 바뀐 채로 나간다.
  *
  * 못 찾은 자리는 지어내지 않는다 — 부를 말이 없다는 사실을 그대로 넘긴다.
+ *
+ * ## 관계는 **내가 한쪽일 때만** 안다
+ *
+ * 저장한 값은 「나와 그 사람」이지 「그 둘」이 아니다. 그래서 어머니와 친구의 궁합을
+ * 볼 때 이 쌍의 관계는 우리가 아는 것이 아니다 — 어머니가 나의 가족인 것과 어머니가
+ * 그 친구와 무슨 사이인지는 다른 물음이다.
+ *
+ * **그럴 때는 모른다고 넘긴다.** 한쪽 값을 쌍의 관계인 척 쓰면 남남인 두 사람의
+ * 궁합이 「가족」으로 읽히고, 그것은 안 묻는 것보다 나쁘다.
  */
-async function labelsFor(personIds: readonly string[]): Promise<ReadingNames | null> {
+async function aboutFor(personIds: readonly string[]): Promise<ReadingAbout> {
   const supabase = await supabaseOnServer();
 
-  // 정책이 자기 목록만 내준다. 여기서 `user_id` 를 또 적지 않는다.
-  const { data } = await supabase
-    .from('user_person_access')
-    .select('person_id, local_label')
-    .in('person_id', [...personIds]);
+  const [edges, account] = await Promise.all([
+    // 정책이 자기 목록만 내준다. 여기서 `user_id` 를 또 적지 않는다.
+    supabase
+      .from('user_person_access')
+      .select('person_id, local_label, relation')
+      .in('person_id', [...personIds]),
+    supabase.from('app_user').select('self_person_id').maybeSingle(),
+  ]);
 
-  const labels = new Map((data ?? []).map((row) => [row.person_id as string, row.local_label as string]));
+  const rows = new Map((edges.data ?? []).map((row) => [row.person_id as string, row]));
   const [first, second] = personIds;
-  const a = labels.get(first);
-  const b = second === undefined ? undefined : labels.get(second);
+  const a = rows.get(first)?.local_label as string | undefined;
+  const b = second === undefined ? undefined : (rows.get(second)?.local_label as string | undefined);
 
   /**
-   * **하나라도 못 찾으면 통째로 포기한다.** 한쪽만 이름으로 부르고 다른 쪽을 「두 번째
-   * 분」이라 부르면, 읽는 사람은 이름 없는 쪽이 덜 중요한 사람인 줄 안다.
+   * **하나라도 못 찾으면 이름은 통째로 포기한다.** 한쪽만 이름으로 부르고 다른 쪽을
+   * 「두 번째 분」이라 부르면, 읽는 사람은 이름 없는 쪽이 덜 중요한 사람인 줄 안다.
    */
-  if (a === undefined) return null;
-  if (second !== undefined && b === undefined) return null;
+  const names =
+    a === undefined || (second !== undefined && b === undefined) ? null : { a, b };
 
-  return { a, b };
+  return { names, relation: relationBetween(personIds, rows, account.data?.self_person_id) };
+}
+
+/**
+ * 이 쌍의 관계 — **내가 한쪽에 서 있을 때만 답이 있다.**
+ *
+ * 자기 풀이(한 사람)에는 상대가 없으므로 관계가 없다. 두 사람일 때는 내 selfPerson 이
+ * 낀 경우에만, 다른 쪽에 붙여 둔 값이 곧 이 쌍의 관계다.
+ */
+function relationBetween(
+  personIds: readonly string[],
+  rows: Map<string, { relation: string | null }>,
+  selfPersonId: string | null | undefined,
+): Relation | null {
+  const [first, second] = personIds;
+  if (second === undefined || selfPersonId === null || selfPersonId === undefined) return null;
+
+  if (first === selfPersonId) return relationOf(rows.get(second)?.relation);
+  if (second === selfPersonId) return relationOf(rows.get(first)?.relation);
+
+  return null;
 }

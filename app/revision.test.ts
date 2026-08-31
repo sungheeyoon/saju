@@ -251,10 +251,23 @@ describe('무엇이 새 판본을 만드는가', () => {
 
 describe('가족·친구를 등록할 때 함께 가는 것', () => {
   it('판본이 될 부분은 자기 사주를 저장할 때와 **같은 값**이다', () => {
-    const { p_note, ...managed } = managedPersonArgs(submitted, '음력 생일만 아신다');
+    const { p_note, p_relation, ...managed } = managedPersonArgs(
+      submitted,
+      '음력 생일만 아신다',
+      'family',
+    );
 
     expect(managed).toEqual(selfPersonArgs(submitted));
     expect(p_note).toBe('음력 생일만 아신다');
+    expect(p_relation).toBe('family');
+  });
+
+  /**
+   * **안 고른 것은 「모른다」다.** 그럴듯한 기본값을 두면 안 물어본 사람 전부가
+   * 그 값으로 적히고, 궁합 풀이가 그것을 사실로 읽는다.
+   */
+  it('관계를 안 고르면 null 로 간다', () => {
+    expect(managedPersonArgs(submitted, '', null).p_relation).toBeNull();
   });
 
   /**
@@ -265,7 +278,7 @@ describe('가족·친구를 등록할 때 함께 가는 것', () => {
    */
   it.each(['', '   ', '\n'])('빈 메모는 %j 든 null 이다', (note) => {
     expect(noteOrNull(note)).toBeNull();
-    expect(managedPersonArgs(submitted, note).p_note).toBeNull();
+    expect(managedPersonArgs(submitted, note, null).p_note).toBeNull();
   });
 
   it('메모의 앞뒤 공백은 지운다 — 길이 상한이 공백을 세지 않게', () => {

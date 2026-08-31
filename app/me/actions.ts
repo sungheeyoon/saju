@@ -2,6 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 
+import { relationOf } from '@/src/lib/people';
+
 import { supabaseOnServer } from '../auth/server-client';
 import { missingAnswer, type Query } from '../query';
 import { selfElementSummary } from './summary';
@@ -64,7 +66,11 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
  *
  * 한도에 걸렸을 때 나오는 말은 DB 가 쓴 문장 그대로다 — 사람이 읽을 수 있게 써 뒀다.
  */
-export async function addManagedPerson(query: Query, note: string): Promise<SaveResult> {
+export async function addManagedPerson(
+  query: Query,
+  note: string,
+  relation: string | null,
+): Promise<SaveResult> {
   const missing = missingAnswer(query);
   if (missing !== null) return { ok: false, message: missing };
 
@@ -72,7 +78,15 @@ export async function addManagedPerson(query: Query, note: string): Promise<Save
   if (unsupported !== null) return { ok: false, message: unsupported };
 
   const supabase = await supabaseOnServer();
-  const { error } = await supabase.rpc('create_managed_person', managedPersonArgs(query, note));
+  /**
+   * **모르는 값은 모르는 채로 넘긴다.** 화면이 보낸 글자를 그대로 싣지 않는 것은
+   * 이 자리가 서버 액션이라 주소만 알면 아무 값이나 올 수 있기 때문이다. 검사식이
+   * DB 에도 있지만, 거기서 걸리면 사용자가 읽는 것은 제약 이름이다.
+   */
+  const { error } = await supabase.rpc(
+    'create_managed_person',
+    managedPersonArgs(query, note, relationOf(relation)),
+  );
 
   if (error) return { ok: false, message: error.message };
 
@@ -94,6 +108,33 @@ export async function updateNote(personId: string, note: string): Promise<SaveRe
   const { error } = await supabase
     .from('user_person_access')
     .update({ note: noteOrNull(note) })
+    .eq('person_id', personId);
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/me/people');
+  return { ok: true };
+}
+
+/**
+ * 무슨 사이인지 고쳐 적는다.
+ *
+ * `note` 와 같은 문이다 — 정책이 이미 열어 준 칸이라 RPC 로 감싸지 않는다. 잘못
+ * 고른 것을 못 고치면 사람을 지웠다 다시 등록하게 되고, **그러면 그 사람의 판본
+ * 이력이 고르기 실수 때문에 사라진다.**
+ *
+ * 궁합 결과는 여기서 안 건드린다. 이 값은 다음 생성 요청이 읽을 뿐이고, 지금 서 있는
+ * 글은 그것을 만들 때의 자료로 난 것이다(ADR 0013).
+ */
+export async function updateRelation(
+  personId: string,
+  relation: string | null,
+): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  const { error } = await supabase
+    .from('user_person_access')
+    .update({ relation: relationOf(relation) })
     .eq('person_id', personId);
 
   if (error) return { ok: false, message: error.message };

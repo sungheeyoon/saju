@@ -73,10 +73,12 @@ export * from './notes';
 export {
   CONTROL,
   FALLBACK_NAMES,
+  NOTHING_KNOWN,
   READING_PROMPTS,
   readingPromptOf,
   selfSectionCount,
   type PromptAssembly,
+  type ReadingAbout,
   type ReadingNames,
   type SelfPresentation,
 } from './prompt';

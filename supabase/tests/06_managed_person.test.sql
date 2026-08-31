@@ -1,6 +1,6 @@
 -- 가족·친구 Person — 만들어지고, 스무 명에서 막히고, 남에게는 없는 것과 같다.
 begin;
-select plan(16);
+select plan(21);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -19,7 +19,7 @@ grant select on me to authenticated;
 create temporary table mom as
 select public.create_managed_person(
   '엄마', '음력 생일만 아신다', 'lunar', '1962-03-11', '1962-04-15',
-  '07:20', 'female', '부산', 'jo', 'localMean'
+  '07:20', 'female', '부산', 'jo', 'localMean', 'family'
 ) as person_id;
 grant select on mom to authenticated;
 
@@ -32,10 +32,17 @@ select is(
   '만들어진 Person 은 현재 판본을 가리킨다');
 
 select is(
-  (select a.local_label || '/' || a.note || '/' || a.role
+  (select a.local_label || '/' || a.note || '/' || a.role || '/' || a.relation
    from public.user_person_access a where a.person_id = (select person_id from mom)),
-  '엄마/음력 생일만 아신다/owner',
-  '부를 이름·메모·역할은 엣지가 든다');
+  '엄마/음력 생일만 아신다/owner/family',
+  '부를 이름·메모·역할·사이는 엣지가 든다');
+
+/**
+ * **사람이 아니라 나와 그 사람 사이에 붙는다.** 같은 사람이 누군가에겐 어머니고
+ * 누군가에겐 친구다. `person` 에 붙이면 그 사람이 「가족」이라는 속성을 가진 것이
+ * 되는데, 그것은 우리가 아는 사실이 아니다.
+ */
+select hasnt_column('public', 'person', 'relation', '관계는 Person 에 안 붙는다');
 
 -- 판본은 원본과 변환값을 둘 다 든다(ADR 0002). 음력으로 등록해도 마찬가지다.
 select is(
@@ -68,6 +75,38 @@ select is(
   (select note from public.user_person_access where person_id = (select person_id from dad)),
   null,
   '공백뿐인 메모는 없음으로 들어간다 — 없음은 한 값이다');
+
+/**
+ * **안 고른 것은 「모른다」다.** 그럴듯한 기본값을 두면 안 물어본 사람 전부가 그
+ * 값으로 적히고, 궁합 풀이가 그것을 사실로 읽는다.
+ */
+select is(
+  (select relation from public.user_person_access where person_id = (select person_id from dad)),
+  null,
+  '사이를 안 고르면 모른다로 남는다');
+
+select throws_ok(
+  $$update public.user_person_access set relation = 'coworker'
+    where person_id = (select person_id from dad)$$,
+  '23514', null,
+  '모르는 갈래는 들어가지 않는다');
+
+/** 잘못 고른 것을 못 고치면 사람을 지웠다 다시 등록하게 되고, 그러면 판본 이력이 사라진다 */
+select lives_ok(
+  $$update public.user_person_access set relation = 'friend'
+    where person_id = (select person_id from dad)$$,
+  '고른 사이를 고쳐 적을 수 있다');
+
+/**
+ * **관계를 안 받는 문이 남아 있지 않다.** 인자에 기본값을 붙였으므로 옛 서명을 안
+ * 지우면 열 개짜리 호출이 어느 쪽으로 갈지 모호해지고, 더 나쁘게는 관계를 영영 못
+ * 받는 문이 브라우저에 열린 채 남는다.
+ */
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'create_managed_person'),
+  1,
+  '사람을 등록하는 문은 하나다');
 
 select throws_ok(
   $$select public.create_managed_person(

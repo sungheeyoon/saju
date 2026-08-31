@@ -232,6 +232,37 @@ try {
     const after = plain(await body(`/me/compat${pair}`, cookie.a));
     check('준비된 비공개 궁합이 사용자 화면에 선다',
       after.includes('둘은 서로 다른 속도로'));
+
+    /**
+     * **파이프라인이 관계를 읽는 두 자리가 브라우저 열쇠로 열리는가.**
+     *
+     * 관계는 「나와 그 사람」에 붙어 있으므로 이 쌍의 관계는 **내가 한쪽일 때만**
+     * 안다(`aboutFor`). 그래서 필요한 것이 둘이다 — 엣지의 `relation` 과 내가 어느
+     * 쪽인지(`self_person_id`). 프롬프트에 어떻게 실리는지는 단위 시험이 잰다.
+     *
+     * 여기서 재는 것은 **RLS 를 지나 읽히는가**다. 정책이 이 열을 안 열어 주면
+     * 파이프라인은 조용히 「모른다」로 떨어지고, 그때 궁합 풀이는 예전처럼 연애로 쓴다.
+     */
+    await a.from('user_person_access').update({ relation: 'family' }).eq('person_id', momId);
+
+    const edges = await a
+      .from('user_person_access')
+      .select('person_id, local_label, relation')
+      .in('person_id', [account.self_person_id, momId]);
+    const relationOfMom = (edges.data ?? []).find((row) => row.person_id === momId)?.relation;
+
+    check('파이프라인이 읽는 질의로 사이가 읽힌다', relationOfMom === 'family',
+      edges.error?.message ?? String(relationOfMom));
+    check('내가 어느 쪽인지도 같은 열쇠로 읽힌다',
+      (edges.data ?? []).some((row) => row.person_id === account.self_person_id));
+
+    /** 남의 엣지는 안 읽힌다 — 안 읽히면 남의 관계로 내 글이 달라질 길도 없다 */
+    const stranger = await b
+      .from('user_person_access')
+      .select('person_id, relation')
+      .in('person_id', [momId]);
+    check('남이 붙여 둔 사이는 안 읽힌다', (stranger.data ?? []).length === 0,
+      stranger.error?.message ?? '');
   }
 
   // ── 4. 공유 궁합 — 양쪽이 같은 글을 읽는다 ───────────────────────────────

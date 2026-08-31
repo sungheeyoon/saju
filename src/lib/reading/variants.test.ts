@@ -263,13 +263,65 @@ describe('고객이 읽는 글의 계약', () => {
     expect(selfPrompt()).toContain('이 절은 사용자에게 안 나간다');
   });
 
+  /**
+   * **두 사람이 무슨 사이인지 모른 채 쓰이고 있었다.**
+   *
+   * 그래서 어머니와의 궁합에 「처음에 끌리는 지점」이 나갔다. 모델이 지어낸 것이
+   * 아니라 자료에 없어서 관계의 일반적 가능성으로 읽은 것이고, 그 기본값은 사실상
+   * 연애였다.
+   */
+  it('무슨 사이인지 프롬프트가 말한다', () => {
+    const asFamily = readingPromptOf(pairEvidence(), CONTROL, {
+      names: { a: '나', b: '엄마' },
+      relation: 'family',
+    });
+
+    expect(asFamily).toContain('가족이다');
+    expect(asFamily).toContain('연애의 장면으로 읽지 말고');
+  });
+
+  /**
+   * **모른다도 값으로 싣는다.** 자리를 비우면 모르는 것과 안 물어본 것이 같은 침묵이
+   * 되고, 모델은 그 침묵을 예전처럼 읽는다.
+   */
+  it('관계를 모르면 모른다고 싣는다 — 비우지 않는다', () => {
+    const unknown = readingPromptOf(pairEvidence(), CONTROL, {
+      names: { a: '나', b: '누구' },
+      relation: null,
+    });
+
+    expect(unknown).toContain('무슨 사이인지 모른다');
+    expect(unknown).toContain('어느 쪽으로도 단정하지 말고');
+  });
+
+  /** 공유 궁합은 고른 값이 아니라 **성립 방식**이 관계를 정한다 */
+  it('공유 궁합은 인연 찾기에서 만난 사이라고 말한다', () => {
+    expect(compatPrompt('match')).toContain('인연 찾기에서 만나 서로 상세 궁합에 동의한 사이다');
+  });
+
+  /**
+   * **관계는 판정에 안 쓴다.** 넣기 시작하면 「가족이라 78점」이 나오고, 그것은 근거가
+   * 아니라 우리가 지어낸 규칙이다.
+   */
+  it('관계로 점수를 움직이지 말라고 못박는다', () => {
+    for (const kind of ['private', 'match'] as const) {
+      expect(compatPrompt(kind)).toContain('점수는 이 값으로 움직이지 않는다');
+      expect(compatPrompt(kind)).toContain('관계 자체를 근거로 쓰지 마라');
+    }
+  });
+
+  /** 한 사람 풀이에는 상대가 없다 — 없는 물음에 답을 세우지 않는다 */
+  it('자기 풀이에는 관계 절이 서지 않는다', () => {
+    expect(selfPrompt()).not.toContain('두 사람은 무슨 사이인가');
+  });
+
   it('받은 이름으로 부르고 자리 이름을 본문에 쓰지 못하게 한다', () => {
-    const named = readingPromptOf(pairEvidence(), CONTROL, { a: '어머니', b: '아버지' });
+    const named = readingPromptOf(pairEvidence(), CONTROL, { names: { a: '어머니', b: '아버지' }, relation: null });
 
     expect(named).toContain('`charts.a` 는 **어머니**, `charts.b` 는 **아버지**다.');
 
     // 조사는 받침을 따른다 — 낱말을 꽂는 자리에서 「아버지이다」가 나오면 안 된다
-    const closed = readingPromptOf(pairEvidence(), CONTROL, { a: '동생', b: '형' });
+    const closed = readingPromptOf(pairEvidence(), CONTROL, { names: { a: '동생', b: '형' }, relation: null });
     expect(closed).toContain('`charts.b` 는 **형**이다.');
     expect(closed).toContain('동생이 형을 보는 자리');
     expect(named).toContain('자리 이름으로\n부르지 마라');

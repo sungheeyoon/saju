@@ -7,7 +7,8 @@ import {
   readingPromptOf,
   type BirthSecret,
   type ReadingKind,
-  type ReadingNames,
+  NOTHING_KNOWN,
+  type ReadingAbout,
   type ReadingOutput,
 } from '@/src/lib/reading';
 
@@ -56,7 +57,7 @@ export async function generateReadingArtifact({
   charts,
   viewedAt,
   secrets,
-  names,
+  about,
   generator,
 }: {
   kind: ReadingKind;
@@ -64,12 +65,13 @@ export async function generateReadingArtifact({
   viewedAt: Date;
   secrets: readonly BirthSecret[];
   /**
-   * 두 사람을 부르는 말 — **근거가 아니라 프롬프트에 실린다.**
+   * 부르는 말과 무슨 사이인가 — **근거가 아니라 프롬프트에 실린다.**
    *
-   * `readingEvidenceOf` 에 넣지 않는 것이 요점이다. 이름이 근거에 들어가면 그 이름으로
-   * 판정하는 길이 열리고, 저장된 근거에도 남는다. 부르는 말은 부르는 자리에만 선다.
+   * `readingEvidenceOf` 에 넣지 않는 것이 요점이다. 이름이나 관계가 근거에 들어가면
+   * 그 값으로 판정하는 길이 열리고(「가족이라 78점」), 저장된 근거에도 남는다.
+   * 부르는 말도 사이도 부르는 자리에만 선다.
    */
-  names?: ReadingNames | null;
+  about?: ReadingAbout;
   generator: ReadingGenerator;
 }): Promise<ArtifactResult> {
   let evidence;
@@ -82,7 +84,7 @@ export async function generateReadingArtifact({
     throw failure;
   }
 
-  const prompt = readingPromptOf(evidence, CONTROL, names ?? null);
+  const prompt = readingPromptOf(evidence, CONTROL, about ?? NOTHING_KNOWN);
   const called = await generator.generate(prompt);
   if (!called.ok) return called;
 
