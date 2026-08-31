@@ -6,6 +6,8 @@ import { GENDER_KO, type Compatibility, type CompatSide, type Saju } from '@/src
 
 import { BetweenSections } from './between-view';
 import { CARD } from './card';
+import type { Relation } from '@/src/lib/people';
+
 import { EvidencePanel } from './evidence-panel';
 import { PILLAR_COLUMNS } from './saju-calculator';
 
@@ -46,6 +48,7 @@ export function CompatView({
   notice,
   verdict,
   foldFacts,
+  relation = null,
 }: {
   charts: Record<CompatSide, Saju>;
   /** 두 사람을 부르는 말 — 입력한 이름이거나 '첫 번째 사람' */
@@ -82,12 +85,14 @@ export function CompatView({
    * 한쪽만 고쳐지고, 그때 두 화면이 서로 다른 것을 감춘다.
    */
   foldFacts?: boolean;
+  /** 두 사람이 무슨 사이인가 — 복사해 가는 프롬프트에 실린다(익명 화면) */
+  relation?: Relation | null;
 }) {
   const facts = (
     <>
       <ChartPair charts={charts} names={names} />
       <BetweenSections compat={compat} names={names} />
-      <EvidencePanel a={charts.a} b={charts.b} viewedAt={viewedAt} />
+      <EvidencePanel a={charts.a} b={charts.b} viewedAt={viewedAt} relation={relation} />
     </>
   );
 
@@ -98,7 +103,7 @@ export function CompatView({
         <ChartPair charts={charts} names={names} />
         <BetweenSections compat={compat} names={names} />
         {verdict}
-        <EvidencePanel a={charts.a} b={charts.b} viewedAt={viewedAt} />
+        <EvidencePanel a={charts.a} b={charts.b} viewedAt={viewedAt} relation={relation} />
       </div>
     );
   }

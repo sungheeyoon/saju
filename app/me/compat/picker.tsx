@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { RELATIONS, RELATION_LABEL, type Relation } from '@/src/lib/people';
+import type { Relation } from '@/src/lib/people';
 import {
   READING_ALREADY_RUNNING_NOTE,
   READING_FAILED_NOTE,
@@ -14,6 +14,7 @@ import {
 
 import { GENERATION } from '../reading/generation';
 
+import { RelationChoice } from '../../relation-choice';
 import { readingRunState } from '../reading/actions';
 import { startPairReading } from './actions';
 
@@ -137,47 +138,12 @@ export function PairPicker({
         />
       </div>
 
-      <fieldset className="rounded-xl bg-surface-sunken px-4 py-3">
-        <legend className="float-left w-full text-sm font-semibold">두 분은 무슨 사이인가요?</legend>
-        <p className="mt-1.5 text-xs leading-5 text-muted">
-          사이에 따라 읽어 드릴 방향이 달라집니다. 가족에게 할 말과 연인에게 할 말이 다르기
-          때문입니다. <strong className="font-medium">점수에는 쓰지 않습니다.</strong>
-        </p>
-
-        <div className="mt-2.5 flex flex-wrap gap-2">
-          {[...RELATIONS, null].map((choice) => {
-            const id = `pair-relation-${choice ?? 'unknown'}`;
-            const label = choice === null ? '아직 모르겠음' : RELATION_LABEL[choice];
-            const picked = relation === choice;
-
-            return (
-              <label
-                key={id}
-                htmlFor={id}
-                className={`relative cursor-pointer rounded-full border px-3.5 py-1.5 text-sm has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft ${
-                  picked
-                    ? 'border-accent bg-accent-wash font-medium text-accent'
-                    : 'border-border bg-surface text-secondary hover:border-accent'
-                }`}
-              >
-                {/*
-                  칸 전체를 덮는 라디오 — 보이지는 않지만 **이것이 눌린다.** `sr-only` 로
-                  숨기면 글자만 누를 수 있는 칸이 된다(`birth-form.tsx` 와 같은 규율).
-                */}
-                <input
-                  type="radio"
-                  id={id}
-                  name="pair-relation"
-                  checked={picked}
-                  onChange={() => setRelation(choice)}
-                  className="absolute inset-0 cursor-pointer appearance-none opacity-0"
-                />
-                {label}
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
+      <RelationChoice
+        value={relation}
+        onChange={setRelation}
+        idPrefix="pair"
+        className="rounded-xl bg-surface-sunken px-4 py-3"
+      />
 
       <div className="flex flex-wrap items-center gap-3">
         <button

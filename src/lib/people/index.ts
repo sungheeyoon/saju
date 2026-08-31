@@ -80,6 +80,34 @@ export const RELATION_UNKNOWN =
 export const RELATION_FROM_MATCH =
   '인연 찾기에서 만나 서로 상세 궁합에 동의한 사이다. 아직 서로를 잘 모르는 두 사람이다';
 
+/**
+ * 프롬프트에 실을 문장 — **모를 때도 한 문장이 나간다.**
+ *
+ * 자리를 비우면 모르는 것과 안 물어본 것이 같은 침묵이 되고, 모델은 그 침묵을
+ * 연애로 읽는다. 그것이 이 값을 만든 까닭이다.
+ *
+ * 우리가 부르는 프롬프트와 사용자가 복사해 가는 프롬프트가 **같은 문장**을 쓴다.
+ * 두 자리에 따로 적으면 한쪽만 고쳐지고, 그때 어느 쪽이 우리 뜻인지 알 수 없다.
+ */
+export const relationSentence = (relation: Relation | null): string =>
+  relation === null ? RELATION_UNKNOWN : RELATION_FOR_PROMPT[relation];
+
+/**
+ * 관계가 프롬프트에서 하는 일 — **장면을 고르되 점수는 안 건드린다.**
+ *
+ * 두 프롬프트가 이 문단을 함께 쓴다. 「점수는 이 값으로 움직이지 않는다」를 한 곳에만
+ * 적으면, 안 적힌 쪽에서 모델이 「가족이라 78점」을 낸다.
+ */
+export const relationBlock = (said: string): string => `## 두 사람은 무슨 사이인가
+
+${said}.
+
+이 값으로 **장면과 조언을 고른다.** 같은 근거라도 가족에게 할 말과 연인에게 할 말이
+다르다 — 연락 습관, 돈 쓰는 방식, 부딪히는 자리가 관계마다 다른 얼굴로 나온다.
+
+**점수는 이 값으로 움직이지 않는다.** 관계가 무엇이든 두 원국 사이의 사실은 같다.
+「가족이라 잘 맞는다」처럼 관계 자체를 근거로 쓰지 마라.`;
+
 /** 모르는 값은 모르는 채로 둔다 — 그럴듯한 쪽으로 눕히지 않는다 */
 export const relationOf = (raw: string | null | undefined): Relation | null =>
   RELATIONS.find((known) => known === raw) ?? null;

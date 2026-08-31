@@ -588,7 +588,12 @@ test('제출한 생년월일은 어떤 요청에도 실리지 않는다', async 
  * 궁합 화면은 한 주소에 입력 두 벌을 싣는다. 접두사가 섞이면 상대의 생일로 내
  * 사주가 나오므로, 링크로 다시 열었을 때 두 명식이 그대로인지가 본론이다.
  */
-memberTest('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그대로 열린다', async ({ page, signedIn }) => {
+memberTest('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그대로 열린다', async ({
+  page,
+  context,
+  signedIn,
+}) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   expect(signedIn.label).not.toBe('');
   const consoleErrors: string[] = [];
   page.on('console', (message) => {
@@ -612,6 +617,16 @@ memberTest('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그
     await fillBirthTime(group, time);
     await group.getByLabel('이름', { exact: true }).fill(name);
   }
+
+  /**
+   * **묻는 자리가 읽기 전이다.** 관계를 묻는 까닭이 「사이에 따라 해석의 방향을 달리
+   * 잡겠다」는 것이라, 두 화면 다 고르는 칸 옆에서 묻는다.
+   *
+   * 익명 화면은 우리가 모델을 안 부르지만 **프롬프트는 나간다**(복사해 붙여 넣는 글).
+   * 그 글에도 같은 구멍이 있었으므로 여기서도 묻는다.
+   */
+  await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
+  await page.getByRole('radio', { name: '가족' }).check();
 
   const first = page.getByRole('group', { name: '민수' });
   await page.getByRole('button', { name: '궁합 보기' }).click();
@@ -638,6 +653,24 @@ memberTest('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그
     scroll: document.documentElement.scrollWidth,
   }));
   expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
+
+  /**
+   * **고른 사이가 복사해 가는 글에 실린다.**
+   *
+   * 링크로 다시 연 자리라 라디오는 되돌아가 있다 — 링크를 받은 사람은 그 답을 한 적이
+   * 없으므로 그것이 맞다. 다시 고르고 복사해서 실제로 실리는지 본다.
+   */
+  await page.getByRole('radio', { name: '가족' }).check();
+
+  await page.getByText('풀이에 넘기는 자료').click();
+  await page.getByRole('button', { name: '궁합', exact: false }).first().click();
+  await page.getByRole('button', { name: '프롬프트 + 자료 복사' }).click();
+
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toContain('두 사람은 무슨 사이인가');
+  expect(copied).toContain('가족이다');
+  // 관계는 장면을 고르는 값이지 점수를 움직이는 값이 아니다.
+  expect(copied).toContain('점수는 이 값으로 움직이지 않는다');
 });
 
 /**

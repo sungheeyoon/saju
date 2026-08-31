@@ -6,12 +6,7 @@ import {
   ELEMENT_PICTURE_KO,
   GENERATES,
 } from '../saju/constants';
-import {
-  RELATION_FOR_PROMPT,
-  RELATION_FROM_MATCH,
-  RELATION_UNKNOWN,
-  type Relation,
-} from '../people';
+import { RELATION_FROM_MATCH, relationBlock, relationSentence, type Relation } from '../people';
 import { EVIDENCE_CONTRACT } from '../saju/evidence';
 import { PROMPT_PARTS, withSummary } from '../saju/evidence/prompt';
 
@@ -486,24 +481,12 @@ ${head}
  * **모른다도 값으로 싣는다.** 자리를 비우면 모르는 것과 안 물어본 것이 같은 침묵이
  * 되고, 모델은 그 침묵을 예전처럼 읽는다.
  */
-const relationBlock = (kind: Exclude<ReadingKind, 'self'>, relation: Relation | null): string => {
-  const said =
-    kind === 'match'
-      ? RELATION_FROM_MATCH
-      : relation === null
-        ? RELATION_UNKNOWN
-        : RELATION_FOR_PROMPT[relation];
-
-  return `## 두 사람은 무슨 사이인가
-
-${said}.
-
-이 값으로 **장면과 조언을 고른다.** 같은 근거라도 가족에게 할 말과 연인에게 할 말이
-다르다 — 연락 습관, 돈 쓰는 방식, 부딪히는 자리가 관계마다 다른 얼굴로 나온다.
-
-**점수는 이 값으로 움직이지 않는다.** 관계가 무엇이든 두 원국 사이의 사실은 같다.
-「가족이라 잘 맞는다」처럼 관계 자체를 근거로 쓰지 마라.`;
-};
+const relationOf = (kind: Exclude<ReadingKind, 'self'>, relation: Relation | null): string =>
+  /**
+   * 공유 궁합은 고르는 값이 아니다 — 인연 찾기에서 만나 서로 동의한 사이라는 것을
+   * **성립 방식이 이미 정한다.** 그래서 kind 가 곧 답이다.
+   */
+  relationBlock(kind === 'match' ? RELATION_FROM_MATCH : relationSentence(relation));
 
 const compatSections = (
   kind: Exclude<ReadingKind, 'self'>,
@@ -520,7 +503,7 @@ const compatSections = (
 
   return `${namingBlock(names)}
 
-${relationBlock(kind, relation)}
+${relationOf(kind, relation)}
 
 ## 낼 것
 

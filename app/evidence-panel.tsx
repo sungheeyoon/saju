@@ -13,6 +13,7 @@ import {
   type PromptKind,
   type Saju,
 } from '@/src/lib/saju';
+import type { Relation } from '@/src/lib/people';
 
 import { CARD } from './card';
 
@@ -45,11 +46,21 @@ export function EvidencePanel({
   a,
   b,
   viewedAt,
+  relation = null,
 }: {
   a: Saju;
   b?: Saju;
   /** 결과를 보는 기준 시각(ms). 운을 이 시각으로 짚는다 — 화면이 잡아서 넘긴다 */
   viewedAt: number;
+  /**
+   * 두 사람이 무슨 사이인가 — **복사해 가는 프롬프트에 실린다.**
+   *
+   * 익명 화면은 우리가 모델을 안 부르지만 프롬프트는 나간다. 그 글에도 같은 구멍이
+   * 있었다 — 두 사람이 무슨 사이인지 안 적혀 있어서 모델이 사실상 연애로 읽는다.
+   *
+   * 저장하지 않는다. 이 화면은 계정이 없고 입력은 주소의 `#` 뒤에만 산다(ADR 0007).
+   */
+  relation?: Relation | null;
 }) {
   const [opened, setOpened] = useState(false);
   const [copy, setCopy] = useState<'idle' | 'copied' | 'failed'>('idle');
@@ -94,6 +105,7 @@ export function EvidencePanel({
           evidence={evidence}
           json={json}
           kind={kind}
+          relation={relation}
           onPick={setKind}
           copy={copy}
           onCopy={async (text) => {
@@ -122,6 +134,7 @@ function EvidenceBody({
   evidence,
   json,
   kind,
+  relation,
   onPick,
   copy,
   onCopy,
@@ -129,6 +142,8 @@ function EvidenceBody({
   evidence: Evidence;
   json: string;
   kind: PromptKind;
+  /** 복사해 가는 프롬프트에 실릴 사이 — 자료에는 안 들어간다 */
+  relation: Relation | null;
   onPick: (kind: PromptKind) => void;
   copy: 'idle' | 'copied' | 'failed';
   onCopy: (text: string) => void;
@@ -144,7 +159,7 @@ function EvidenceBody({
    */
   const choices = PROMPTS.filter((prompt) => people === 2 || !prompt.needsTwo);
   const picked = choices.find((prompt) => prompt.kind === kind) ?? choices[0];
-  const promptText = promptWithEvidence(picked.kind, evidence);
+  const promptText = promptWithEvidence(picked.kind, evidence, relation);
 
   /**
    * 넘어가는 것은 **들여쓰지 않은 쪽**이고, 세는 단위는 **바이트**다.
@@ -246,7 +261,7 @@ function EvidenceBody({
             프롬프트 미리 보기
           </summary>
           <pre className="mt-2 max-h-80 overflow-auto rounded-md border border-border bg-surface-sunken p-3 text-[11px] leading-relaxed whitespace-pre-wrap text-secondary">
-            {promptHeadOf(picked.kind, evidence)}
+            {promptHeadOf(picked.kind, evidence, relation)}
           </pre>
           <p className="mt-1.5 text-xs text-muted">
             복사하면 이 아래에 자료가 <code>json</code> 블록으로 붙습니다.

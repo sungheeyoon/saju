@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import type { Relation } from '@/src/lib/people';
+
 import {
   analyzeCompatibility,
   type Compatibility,
@@ -13,6 +15,7 @@ import { chartOf } from './chart';
 import { BirthFields } from './birth-form';
 import { MatchResult } from './compat-match';
 import { CompatView, SIDES, SIDE_LABEL } from './compat-view';
+import { RelationChoice } from './relation-choice';
 import { ScoringNote } from './match-index';
 import { CopyLinkButton } from './copy-link';
 import { CARD } from './card';
@@ -127,6 +130,14 @@ export function CompatCalculator() {
    * 링크로 바로 들어왔으면 첫 렌더 시각이 그 값이다.
    */
   const [viewedAt, setViewedAt] = useState(() => Date.now());
+  /**
+   * 두 사람이 무슨 사이인가 — **저장하지 않는다.**
+   *
+   * 이 화면은 계정이 없고 입력은 주소의 `#` 뒤에만 산다(ADR 0007). 이 값은 복사해
+   * 가는 프롬프트에만 실리므로 주소에도 안 싣는다 — 링크를 받은 사람은 그 답을 한
+   * 적이 없다.
+   */
+  const [relation, setRelation] = useState<Relation | null>(null);
 
   const shown = useRef(searchParams.toString());
   useEffect(() => {
@@ -174,6 +185,13 @@ export function CompatCalculator() {
           ))}
         </div>
 
+        <RelationChoice
+          value={relation}
+          onChange={setRelation}
+          idPrefix="anon"
+          className={`${CARD}`}
+        />
+
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
@@ -204,6 +222,7 @@ export function CompatCalculator() {
           viewedAt={viewedAt}
           /* 이 화면의 링크에는 두 사람의 입력이 통째로 실린다 — 그 사실을 버튼이 말한다 */
           notice={<CopyLinkButton />}
+          relation={relation}
           /*
             익명 화면에는 AI 가 없다(저장도 계정도 없다). 그래서 사실 아래에 서는 것은
             결정론적 베타 지표뿐이고, 무엇을 보고 있는지는 각주가 말한다.

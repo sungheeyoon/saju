@@ -521,3 +521,40 @@ describe('자료와 한 덩어리로 나간다', () => {
     expect(PROMPTS.map((p) => p.kind).sort()).toEqual([...KINDS].sort());
   });
 });
+
+/**
+ * **익명 화면은 모델을 안 부르지만 프롬프트는 나간다.**
+ *
+ * 사용자가 복사해 붙여 넣는 그 글에도 같은 구멍이 있었다 — 두 사람이 무슨 사이인지
+ * 안 적혀 있어서 모델이 관계의 일반적 가능성으로, 사실상 연애로 읽는다. 우리가 부르는
+ * 프롬프트만 고치면 **같은 제품이 두 자리에서 다른 약속을 한다.**
+ */
+describe('복사해 가는 궁합 프롬프트도 무슨 사이인지 말한다', () => {
+  const at = new Date('2026-08-31T00:00:00.000Z');
+  const pair = () => evidenceOf({ a: saju(), b: other() }, at);
+
+  it('고른 사이가 실린다', () => {
+    const text = promptWithEvidence('compat', pair(), 'family');
+
+    expect(text).toContain('가족이다');
+    expect(text).toContain('연애의 장면으로 읽지 말고');
+  });
+
+  /** 자리를 비우면 모르는 것과 안 물어본 것이 같은 침묵이 된다 */
+  it('안 골라도 모른다고 실린다', () => {
+    expect(promptWithEvidence('compat', pair())).toContain('무슨 사이인지 모른다');
+  });
+
+  /** 관계는 장면을 고르는 값이지 점수를 움직이는 값이 아니다 */
+  it('그 값으로 점수를 움직이지 말라고 함께 적는다', () => {
+    expect(promptWithEvidence('compat', pair())).toContain('점수는 이 값으로 움직이지 않는다');
+  });
+
+  /** 한 사람 프롬프트에는 상대가 없다 — 없는 물음에 답을 세우지 않는다 */
+  it('한 사람 프롬프트에는 관계 절이 없다', () => {
+    const text = promptWithEvidence('reading', evidenceOf({ a: saju() }, at));
+
+    expect(text).not.toContain('두 사람은 무슨 사이인가');
+    expect(text).not.toContain('{{relation}}');
+  });
+});

@@ -1,3 +1,4 @@
+import { relationBlock, relationSentence, type Relation } from '../../people';
 import {
   BRANCH_INFO,
   ELEMENT_KO,
@@ -392,6 +393,18 @@ ${CLOSING}
 
 본문 1200~1600자.`;
 
+/**
+ * **관계 문단이 들어갈 자리.**
+ *
+ * 이 프롬프트는 정적인 문자열이라 몸통을 미리 지어 둔다(`BODY`). 관계는 사람마다
+ * 다르므로 복사할 때 끼운다 — 자리만 표시해 두고 `promptHeadOf` 가 채운다.
+ *
+ * **자리를 비워 두지 않는 것이 요점이다.** 안 고른 사람에게도 「무슨 사이인지 모른다」가
+ * 실려야 한다. 비우면 모르는 것과 안 물어본 것이 같은 침묵이 되고, 모델은 그 침묵을
+ * 연애로 읽는다.
+ */
+const RELATION_HERE = '{{relation}}';
+
 const COMPAT = `# 역할
 
 너는 두 사람의 사주를 맞대어 읽어 주는 사람이다. 「잘 맞는다/안 맞는다」로 끝내지 마라 — **어디서 맞고 어디서 부딪히며 그때 어떻게 하는지**가 이 글의 목적이다.
@@ -403,6 +416,8 @@ ${VOICE}
 ${PERSONALITY}
 
 두 사람을 부를 이름이 자료에 없다. \`charts.a\` 를 「첫 번째 분」, \`charts.b\` 를 「두 번째 분」이라 부르고, **누구 이야기인지 문장마다 분명히 하라.**
+
+${RELATION_HERE}
 
 ## 낼 것
 
@@ -697,8 +712,12 @@ ${lines.join('\n\n')}
  * 들여쓰지 않는다. 붙여 넣는 자리에서 들여쓰기는 읽기 좋음이 아니라 **무게**다 —
  * 두 사람짜리가 들여쓰면 460KB 이고 안 들여쓰면 76KB 다.
  */
-export function promptWithEvidence(kind: PromptKind, evidence: Summarizable): string {
-  return `${promptHeadOf(kind, evidence)}
+export function promptWithEvidence(
+  kind: PromptKind,
+  evidence: Summarizable,
+  relation: Relation | null = null,
+): string {
+  return `${promptHeadOf(kind, evidence, relation)}
 
 ## 자료 (${EVIDENCE_CONTRACT.version})
 
@@ -714,8 +733,21 @@ ${JSON.stringify(evidence)}
  * 「보내기 전에 무엇을 보내는지 본다」는 그 칸의 구실이 절반만 지켜진다. 자료만
  * 잘라 낸다 — 잘린 자리가 어디인지는 화면이 한 줄로 적는다.
  */
-export function promptHeadOf(kind: PromptKind, evidence: Summarizable): string {
-  return withSummary(BODY[kind], evidence);
+export function promptHeadOf(
+  kind: PromptKind,
+  evidence: Summarizable,
+  /**
+   * 두 사람이 무슨 사이인가 — **궁합 프롬프트에만 뜻이 있다.**
+   *
+   * 익명 화면은 우리가 모델을 안 부르지만 **프롬프트는 나간다.** 사용자가 복사해
+   * 붙여 넣는 그 글에도 같은 구멍이 있었다 — 두 사람이 무슨 사이인지 안 적혀 있어서
+   * 모델이 관계의 일반적 가능성으로, 사실상 연애로 읽는다.
+   */
+  relation: Relation | null = null,
+): string {
+  const body = BODY[kind].replace(RELATION_HERE, relationBlock(relationSentence(relation)));
+
+  return withSummary(body, evidence);
 }
 
 /**
