@@ -591,6 +591,23 @@ describe('고객이 읽는 글의 계약', () => {
     expect(prompt).not.toContain('못박지');
   });
 
+  /**
+   * **프롬프트가 계약이 금지하는 형식을 부르고 있었다.**
+   *
+   * 9절이 「문답 형식」만 시키니 모델이 `**Q. 공부나 자격증은 잘 맞나요?**` 로 썼고,
+   * `checkReading` 은 자기 풀이 본문의 라틴 문자를 통째로 거절한다
+   * (`non-korean-self-body`). 실호출에서 그렇게 떨어졌다 — 걸린 글자는 `Q` 하나.
+   *
+   * 계약을 열어 `Q` 만 봐주는 길도 있었지만, 그러면 다음에 `A`·`Tip`·`Case` 가 온다.
+   * 부르는 쪽을 한국어 형식으로 못박는다.
+   */
+  it('문답 절을 한국어 형식으로 시키고 영문 표기를 막는다', () => {
+    // **`self` 만이다.** 한글 아닌 글자를 막는 것은 자기 풀이 본문뿐이고
+    // (`checkReading` 의 `kind === 'self'` 갈래), 궁합에는 문답 절 자체가 없다.
+    expect(READING_PROMPTS.self).toContain('질문 1.');
+    expect(READING_PROMPTS.self).toContain('영문 표기');
+  });
+
   it('어색하거나 낡은 절 이름을 사용자 본문에 쓰지 않는다', () => {
     const prompt = selfPrompt();
 
