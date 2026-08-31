@@ -1,3 +1,5 @@
+import type { Locator } from '@playwright/test';
+
 import { expect, hideEveryoneExcept, optIn, test, type Person } from './session';
 
 import { fillBirthDate } from './birth-form';
@@ -68,6 +70,14 @@ test.describe('동의로 열리는 흐름', () => {
     await asker.page.goto('/me/discovery');
     await expect(asker.page.getByRole('heading', { name: `받는${tag}` })).toBeVisible();
 
+    /**
+     * **카드를 이름으로 좁힌다.** `hideEveryoneExcept` 는 부를 때 있던 프로필만 가리므로,
+     * 나란히 도는 시험이 그 뒤에 만든 참여자는 이 목록에 함께 선다. 그때 이름 없이
+     * 버튼을 잡으면 strict mode 가 물고, 그것은 **화면이 깨진 것이 아니라 시험이
+     * 목록 순서를 재고 있었다는 뜻**이다.
+     */
+    const card = asker.page.getByRole('listitem').filter({ hasText: `받는${tag}` });
+
     /*
       **맛보기다.** 어느 오행을 채우는지는 말하고 원문은 닫는다(ADR 0003 · PRD).
 
@@ -77,10 +87,10 @@ test.describe('동의로 열리는 흐름', () => {
     */
     await expect(asker.page.getByText('1990-05-15')).toHaveCount(0);
 
-    await asker.page.getByRole('button', { name: '상세 궁합 요청하기' }).click();
+    await card.getByRole('button', { name: '상세 궁합 요청하기' }).click();
     // 보내기 전에 공개 범위를 읽는다 — 후보 카드만 본 것은 동의가 아니다(PRD).
-    await expect(asker.page.getByText('여덟 글자', { exact: false }).first()).toBeVisible();
-    await asker.page.getByRole('button', { name: '요청 보내기' }).click();
+    await expect(card.getByText('여덟 글자', { exact: false }).first()).toBeVisible();
+    await card.getByRole('button', { name: '요청 보내기' }).click();
 
     // ── 받은 쪽이 읽고 수락한다 ─────────────────────────────────────────────
     await receiver.page.goto('/me/requests');
@@ -98,7 +108,11 @@ test.describe('동의로 열리는 흐름', () => {
     // 수락 전에도 상대의 정확한 출생정보는 없다(US 39).
     await expect(receiver.page.getByText('1990-05-15')).toHaveCount(0);
 
-    await receiver.page.getByRole('button', { name: '수락하고 궁합 열기' }).click();
+    await receiver.page
+      .getByRole('listitem')
+      .filter({ hasText: `보내는${tag}` })
+      .getByRole('button', { name: '수락하고 궁합 열기' })
+      .click();
     await expect(receiver.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
 
     // ── 양쪽이 같은 결과 화면에 선다 ────────────────────────────────────────
@@ -223,6 +237,104 @@ test.describe('동의로 열리는 흐름', () => {
     // 답을 기다리던 요청은 정리된다 — 상대가 답할 수 없는 요청을 계속 보지 않는다.
     await other.page.goto('/me/requests');
     await expect(other.page.getByText('기다리는 중인 요청이 없습니다')).toBeVisible();
+  });
+
+  /**
+   * **동의 범위가 제출 버튼 앞에 읽히는가** — 좁은 화면에서(PRD 접근성 항목).
+   *
+   * 마크업 차례만 재면 부족하다. 좁은 화면에서 범위 목록이 길어지면 버튼이 위로
+   * 올라와 붙어 버릴 수 있고, 그러면 **읽기 전에 누를 수 있는 배치**가 된다.
+   * 재는 것은 「먼저 그려졌나」가 아니라 **「버튼보다 위에 있나」**다.
+   */
+  test('좁은 화면에서도 동의 범위가 보내기 버튼 위에 선다', async ({ openAs, isMobile }) => {
+    test.skip(!isMobile, '좁은 화면에서만 재는 배치다');
+
+    const tag = String(Date.now()).slice(-4);
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+    await bothParticipate(asker, receiver, tag);
+
+    await asker.page.goto('/me/discovery');
+    /*
+      **첫 카드로 좁힌다.** 시험들이 나란히 도는 동안 남의 후보가 목록에 함께 설 수
+      있고, 여기서 재는 것은 「누가 서 있나」가 아니라 **한 카드 안의 배치**다.
+    */
+    await asker.page.getByRole('button', { name: '상세 궁합 요청하기' }).first().click();
+
+    const scope = asker.page.getByText('서로에게 열리는 것').first();
+    const send = asker.page.getByRole('button', { name: '요청 보내기' }).first();
+    await expect(scope).toBeVisible();
+    await expect(send).toBeVisible();
+
+    const above = await scope.boundingBox();
+    const below = await send.boundingBox();
+    expect(above).not.toBeNull();
+    expect(below).not.toBeNull();
+    expect(above!.y + above!.height).toBeLessThanOrEqual(below!.y);
+
+    // 가로로 밀려나 있으면 세로 차례는 지켜도 안 읽힌다.
+    const width = asker.page.viewportSize()?.width ?? 0;
+    expect(above!.x).toBeGreaterThanOrEqual(0);
+    expect(above!.x + above!.width).toBeLessThanOrEqual(width);
+  });
+
+  /**
+   * **키보드만으로 요청·수락·차단에 닿는가**(PRD 접근성 항목).
+   *
+   * 세 문 다 `button` 이라 마우스로는 눌린다. 키보드로도 눌리는지는 **초점이
+   * 그 자리에 갈 수 있는가**에 달려 있고, 그것은 마크업이 아니라 배치가 정한다 —
+   * 초점을 못 받는 칸에 얹힌 조작은 이 시험에서만 드러난다.
+   */
+  test('요청·수락·차단에 키보드만으로 닿는다', async ({ openAs }) => {
+    const tag = String(Date.now()).slice(-4);
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+    await bothParticipate(asker, receiver, tag);
+
+    /**
+     * 초점을 눌러 옮긴다. 못 닿으면 그 자리에서 죽는다 — 눌러 본 적 없는 문이다.
+     *
+     * **카드를 이름으로 좁혀서 잡는다.** 시험들이 나란히 도는 동안 남의 후보가 목록에
+     * 함께 서면 `.first()` 는 매번 다른 카드를 가리키고, 그러면 이 시험은 배치가
+     * 아니라 **그날의 목록 순서**를 재게 된다.
+     */
+    const reach = async (person: Person, name: string, within?: Locator) => {
+      const target = (within ?? person.page).getByRole('button', { name });
+      await expect(target).toBeVisible();
+      for (let step = 0; step < 80; step += 1) {
+        if (await target.evaluate((node) => node === document.activeElement)) return;
+        await person.page.keyboard.press('Tab');
+      }
+      throw new Error(`탭으로 「${name}」에 못 닿았습니다`);
+    };
+
+    await asker.page.goto('/me/discovery');
+    const card = asker.page.getByRole('listitem').filter({ hasText: `나${tag}` });
+    await reach(asker, '상세 궁합 요청하기', card);
+    await asker.page.keyboard.press('Enter');
+
+    // 열린 범위 안에서도 초점이 이어진다 — 새로 그려진 칸이 탭 순서 밖이면 여기서 죽는다.
+    await reach(asker, '요청 보내기', card);
+    await asker.page.keyboard.press('Enter');
+    // 눌린 것이 실제로 요청이 됐는지는 목록에서 본다 — 초점만 닿고 안 눌리면 여기서 갈린다.
+    await asker.page.goto('/me/requests');
+    await expect(asker.page.getByRole('heading', { name: '보낸 요청' })).toBeVisible();
+    await expect(asker.page.getByText('기다리는 중인 요청이 없습니다')).toHaveCount(0);
+
+    await receiver.page.goto('/me/requests');
+    const received = receiver.page.getByRole('listitem').filter({ hasText: `가${tag}` });
+    await reach(receiver, '수락하고 궁합 열기', received);
+    await receiver.page.keyboard.press('Enter');
+    await expect(receiver.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
+
+    /**
+     * 차단은 **한 번 더 묻는다.** 그래서 키보드로 닿아야 하는 문이 둘이다 — 여는
+     * 것과 확인하는 것. 확인 칸이 탭 순서 밖에 있으면 마우스로만 차단할 수 있게 된다.
+     */
+    await receiver.page.goto('/me/requests');
+    await reach(receiver, '차단', receiver.page.getByRole('listitem').filter({ hasText: `가${tag}` }));
+    await receiver.page.keyboard.press('Enter');
+    await reach(receiver, '차단합니다');
   });
 
   test('차단하면 그 사람은 후보에서도 사라지고 새 요청도 서지 않는다', async ({ openAs }) => {

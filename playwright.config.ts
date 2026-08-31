@@ -44,6 +44,15 @@ function localStack(): Record<string, string> {
   }
 }
 
+/**
+ * 로그인한 세션이 있어야 도는 시험들 — **이름으로 가른다.**
+ *
+ * 디렉터리로 가르지 않는 것은 `session.ts` 와 `birth-form.ts` 같은 손잡이를 양쪽이
+ * 함께 쓰기 때문이다. 옮겨 두면 상대 경로가 길어지고, 길어진 경로는 어느 쪽이
+ * 백엔드를 요구하는지 말해 주지 않는다.
+ */
+const AUTHED = ['**/signed-in.spec.ts', '**/match.spec.ts'];
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -54,13 +63,38 @@ export default defineConfig({
     baseURL,
     trace: 'on-first-retry',
   },
+  /**
+   * **백엔드가 필요한 시험과 아닌 시험을 project 로 가른다.**
+   *
+   * `auth.spec.ts` 가 「로그인하지 않은 사람을 돌려보내는 데 백엔드가 필요하면 그것부터
+   * 잘못이다」라고 적어 두었고, 그 계약 덕에 익명 시험은 CI 의 껍데기 접속값으로도
+   * 돈다. 로그인 흐름은 반대다 — 로컬 스택에 계정을 만들어야 시작조차 못 한다.
+   *
+   * 둘을 한 project 에 두면 **기본 명령이 스택 없이는 초록으로 안 끝난다.** 그러면
+   * 「원래 두 개는 빨간불이다」가 되고, 그 순간부터 아무도 이 층의 색을 안 본다.
+   *
+   * `npm run test:e2e` 는 위 둘만 돌린다. 로그인 흐름은 `npm run test:e2e:authed` 이고
+   * 그것만 `npm run db:start` 를 요구한다.
+   */
   projects: [
     {
       name: 'desktop-chromium',
+      testIgnore: AUTHED,
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'mobile-chromium',
+      testIgnore: AUTHED,
+      use: { ...devices['Pixel 5'] },
+    },
+    {
+      name: 'authed-desktop',
+      testMatch: AUTHED,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'authed-mobile',
+      testMatch: AUTHED,
       use: { ...devices['Pixel 5'] },
     },
   ],
