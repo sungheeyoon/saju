@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { READING_KINDS, type ReadingKind } from '../reading';
+
 import {
   BLOCK_NOTE,
   CONSENT_FLOW_CAVEAT,
@@ -58,10 +60,16 @@ describe('요청 상태는 다섯이고 다섯 다 말이 있다', () => {
   });
 });
 
-describe('알림은 네 사건을 말한다', () => {
+describe('알림은 여섯 사건을 말한다', () => {
+  /**
+   * **상대가 있는 사건**만 이 규칙을 진다. 실패는 사람이 아니라 대상으로 알아보는
+   * 사건이라 아래에서 따로 잰다 — 자기 풀이 실패에 부를 사람이 없다.
+   */
+  const withCounterpart = NOTIFICATION_KINDS.filter((kind) => kind !== 'reading_failed');
+
   it('사건마다 문장이 있고 별명을 부른다', () => {
-    for (const kind of NOTIFICATION_KINDS) {
-      const text = notificationText(kind, '지영');
+    for (const kind of withCounterpart) {
+      const text = notificationText({ kind, nickname: '지영', readingKind: null });
       expect(text).toContain('지영');
       expect(text.length).toBeGreaterThan(0);
     }
@@ -73,7 +81,7 @@ describe('알림은 네 사건을 말한다', () => {
    */
   it('별명이 없으면 사람을 부르지 않는 문장으로 낸다', () => {
     for (const kind of NOTIFICATION_KINDS) {
-      const text = notificationText(kind, null);
+      const text = notificationText({ kind, nickname: null, readingKind: null });
       expect(text.length).toBeGreaterThan(0);
       expect(text).not.toContain('null');
       expect(text).not.toContain('undefined');
@@ -82,9 +90,56 @@ describe('알림은 네 사건을 말한다', () => {
   });
 
   it('빈 별명도 없는 것으로 읽는다', () => {
-    expect(notificationText('request_received', '  ')).toBe(
-      notificationText('request_received', null),
+    expect(notificationText({ kind: 'request_received', nickname: '  ', readingKind: null })).toBe(
+      notificationText({ kind: 'request_received', nickname: null, readingKind: null }),
     );
+  });
+});
+
+/**
+ * **실패는 사람이 아니라 대상으로 알아본다.**
+ *
+ * 만드는 일이 누름에서 떨어져 나온 뒤(ADR 0016) 탭을 닫으면 실패를 말할 화면이 없다.
+ * 알림함이 그 자리를 메우는데, 「풀이를 만들지 못했습니다」 한 줄만 서면 **어느 것을
+ * 다시 눌러야 하는지** 알 수 없다.
+ */
+describe('실패 알림은 무엇을 만들다 실패했는지 말한다', () => {
+  const failed = (readingKind: ReadingKind | null, nickname: string | null = null) =>
+    notificationText({ kind: 'reading_failed', nickname, readingKind });
+
+  it('세 대상이 서로 다른 문장으로 선다', () => {
+    const said = new Set([failed('self'), failed('private'), failed('match', '지영')]);
+    expect(said.size).toBe(3);
+  });
+
+  it('자기 풀이 실패는 사람을 부르지 않는다', () => {
+    // 별명이 딸려 와도 자기 풀이에는 부를 상대가 없다.
+    expect(failed('self', '지영')).not.toContain('지영');
+  });
+
+  it('공유 궁합 실패는 상대를 부른다', () => {
+    expect(failed('match', '지영')).toContain('지영');
+  });
+
+  /**
+   * 시도 기록을 못 읽었을 때 **어느 것인지 지어 말하지 않는다.** 자기 풀이라고
+   * 잘못 부르면 사용자는 멀쩡한 글을 다시 만들러 간다.
+   */
+  it('무엇이었는지 모르면 모르는 채로 말한다', () => {
+    const unknown = failed(null);
+    expect(unknown.length).toBeGreaterThan(0);
+    expect(unknown).not.toContain('내 사주풀이');
+    expect(unknown).not.toContain('함께 보는');
+  });
+
+  /**
+   * 실패는 현재 결과를 지우지 않는다 — 성공한 요청만 교체한다(ADR 0013). 그 말이
+   * 없으면 읽던 글이 사라진 줄 안다.
+   */
+  it('지금 보이는 글은 그대로라고 함께 말한다', () => {
+    for (const kind of [...READING_KINDS, null]) {
+      expect(failed(kind)).toContain('그대로');
+    }
   });
 });
 

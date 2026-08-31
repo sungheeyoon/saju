@@ -239,9 +239,25 @@ function Notifications({ inbox }: { inbox: Inbox }) {
               {notification.unread && (
                 <span className="size-1.5 rounded-full bg-accent" aria-label="읽지 않음" />
               )}
-              <span className={notification.unread ? '' : 'text-secondary'}>
-                {notification.text}
-              </span>
+              {/*
+                **갈 자리가 있으면 링크로 세운다.** 실패 알림은 「무엇이 안 됐다」로
+                끝나면 안 되고 다시 누를 자리까지 닿아야 한다 — 비공개 궁합은 두
+                사람을 다시 골라야 가는 자리다. 갈 곳이 없으면 글자로만 선다.
+              */}
+              {notification.href === null ? (
+                <span className={notification.unread ? '' : 'text-secondary'}>
+                  {notification.text}
+                </span>
+              ) : (
+                <Link
+                  href={notification.href}
+                  className={`underline underline-offset-2 ${
+                    notification.unread ? 'text-accent' : 'text-secondary'
+                  }`}
+                >
+                  {notification.text}
+                </Link>
+              )}
               <span className="text-xs text-muted">{when(notification.createdAt)}</span>
             </li>
           ))}

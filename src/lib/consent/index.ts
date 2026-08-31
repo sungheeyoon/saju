@@ -1,4 +1,5 @@
 import { ELEMENT_KO, type Element } from '../saju';
+import type { ReadingKind } from '../reading';
 
 /**
  * 요청 · 동의 · Match 가 사람에게 하는 **말**.
@@ -79,12 +80,34 @@ export const NOTIFICATION_KINDS = [
    * 공유 결과가 새 글로 바뀌었다 — **상대에게만 선다.**
    *
    * 누른 사람은 결과를 그 자리에서 보므로 알릴 것이 없다. 상대는 자기가 보던 글이
-   * 바뀐 것을 알아야 한다. 실패는 여기 없다 — 생성이 요청과 같은 왕복에서 끝나므로
-   * 누른 사람 화면에 서고, 알림함에 한 번 더 세우면 같은 말을 두 자리에서 하게 된다.
+   * 바뀐 것을 알아야 한다.
    */
   'reading_ready',
+  /**
+   * 만들다 실패했다 — **누른 사람에게 선다.**
+   *
+   * 만드는 일이 누름에서 떨어져 나온 뒤로(ADR 0016) 탭을 닫으면 실패를 말할 화면이
+   * 없다. 그 대상의 화면으로 다시 걸어 들어와야만 보이는데, 비공개 궁합은 두 사람을
+   * 다시 골라야 닿는 자리다. **조용한 실패를 남기지 않는다.**
+   */
+  'reading_failed',
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
+
+/**
+ * 알림 한 줄이 말하는 **사건.**
+ *
+ * 별명 하나만 받던 자리다. 실패가 들어오면서 그것으로 부족해졌다 — **실패는 사람이
+ * 아니라 대상으로 알아본다.** 자기 풀이도 비공개 궁합도 상대가 없으므로, 별명만으로는
+ * 「무엇을 다시 눌러야 하는지」가 문장에 안 실린다.
+ */
+export type NotificationEvent = {
+  readonly kind: NotificationKind;
+  /** 상대의 별명. 상대가 없는 사건이거나 프로필을 못 읽으면 `null` */
+  readonly nickname: string | null;
+  /** `reading_failed` 가 무엇을 만들다 실패했나. 다른 사건에는 없다 */
+  readonly readingKind: ReadingKind | null;
+};
 
 /**
  * 알림 한 줄.
@@ -96,7 +119,7 @@ export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
  * 별명을 못 읽는 경우가 있다(상대가 프로필을 지운 뒤). 그때도 사건은 말할 수 있으므로
  * 사람을 부르지 않는 문장으로 낸다 — 「알 수 없는 사람」이라고 지어 부르지 않는다.
  */
-export function notificationText(kind: NotificationKind, nickname: string | null): string {
+export function notificationText({ kind, nickname, readingKind }: NotificationEvent): string {
   const who = nickname?.trim() ?? '';
 
   switch (kind) {
@@ -120,6 +143,25 @@ export function notificationText(kind: NotificationKind, nickname: string | null
       return who === ''
         ? '함께 보는 궁합의 사주풀이가 새로 만들어졌습니다.'
         : `${who} 님과의 궁합 해석이 새로 만들어졌습니다.`;
+    /**
+     * **지금 보이는 글은 그대로**라는 것까지 함께 말한다. 실패는 현재 결과를 지우지
+     * 않는데(성공한 요청만 교체한다), 그 말이 없으면 읽던 글이 사라진 줄 안다.
+     */
+    case 'reading_failed':
+      if (readingKind === 'self') {
+        return '내 사주풀이를 만들지 못했습니다. 지금 보이는 글은 그대로입니다.';
+      }
+      if (readingKind === 'match') {
+        return who === ''
+          ? '함께 보는 궁합의 사주풀이를 만들지 못했습니다. 지금 보이는 글은 그대로입니다.'
+          : `${who} 님과의 궁합 해석을 만들지 못했습니다. 지금 보이는 글은 그대로입니다.`;
+      }
+      /**
+       * `private` 과 **모르는 값**이 한 갈래다. 시도 기록을 못 읽었을 때 자기 풀이나
+       * 공유 궁합이라고 **지어 말하지 않는다** — 어느 것인지 모를 때 할 수 있는 말은
+       * 「하나를 만들지 못했다」까지다.
+       */
+      return '사주풀이를 만들지 못했습니다. 지금 보이는 글은 그대로입니다.';
   }
 }
 

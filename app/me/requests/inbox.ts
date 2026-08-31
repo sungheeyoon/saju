@@ -1,5 +1,6 @@
 import { ELEMENTS, type Element } from '@/src/lib/saju';
 import { cardTextFor, type BalanceBand } from '@/src/lib/discovery';
+import { READING_KINDS, type ReadingKind } from '@/src/lib/reading';
 import {
   NOTIFICATION_KINDS,
   REQUEST_STATUSES,
@@ -55,6 +56,10 @@ type NotificationRow = {
   counterpart_nickname: string | null;
   request_id: string | null;
   match_id: string | null;
+  /** 실패한 시도가 무엇을 만들던 것인가. 실패 알림에만 있다 */
+  reading_kind: string | null;
+  reading_person_a: string | null;
+  reading_person_b: string | null;
   created_at: string;
   read_at: string | null;
 };
@@ -89,6 +94,15 @@ export type InboxMatch = {
 export type InboxNotification = {
   readonly notificationId: string;
   readonly text: string;
+  /**
+   * 가서 볼 자리 — **실패 알림에만 있다.**
+   *
+   * 다른 사건은 요청과 Match 를 이 화면이 이미 세우고 있어 갈 곳이 여기다. 실패는
+   * 다르다. 어느 대상인지 아는 것과 **그 자리로 가는 것**은 다른 일이고, 비공개
+   * 궁합은 두 사람을 다시 골라야 닿는다. 못 찾으면 `null` — 아무 데도 안 가는 링크를
+   * 세우지 않는다.
+   */
+  readonly href: string | null;
   readonly createdAt: string;
   readonly unread: boolean;
 };
@@ -113,6 +127,31 @@ function elementsOf(raw: string[] | null): Element[] {
 /** 밴드 이름을 못 알아보면 가장 낮은 칸으로 읽는다 — 좋은 쪽으로 눕히지 않는다 */
 function bandOf(raw: string): BalanceBand {
   return BANDS.find((band) => band === raw) ?? 'skewed';
+}
+
+/**
+ * 실패한 시도를 다시 누를 수 있는 자리.
+ *
+ * **주소를 지어 내지 않는다.** 대상을 못 알아보면 `null` 이고, 그때 알림은 글자로만
+ * 선다 — 눌러도 아무것도 없는 줄을 만들지 않는다.
+ */
+function destinationFor(
+  kind: NotificationKind,
+  readingKind: ReadingKind | null,
+  row: NotificationRow,
+): string | null {
+  if (kind !== 'reading_failed') return null;
+
+  if (readingKind === 'self') return '/me';
+  if (readingKind === 'match') {
+    return row.match_id === null ? null : `/me/match/${row.match_id}`;
+  }
+  if (readingKind === 'private') {
+    if (row.reading_person_a === null || row.reading_person_b === null) return null;
+    return `/me/compat?a=${row.reading_person_a}&b=${row.reading_person_b}`;
+  }
+
+  return null;
 }
 
 /**
@@ -186,11 +225,18 @@ export async function inboxForViewer(): Promise<Inbox> {
       const kind = NOTIFICATION_KINDS.find((known) => known === row.kind);
       if (kind === undefined) return [];
 
+      const readingKind = READING_KINDS.find((known) => known === row.reading_kind) ?? null;
+
       return [
         {
           notificationId: row.notification_id,
           // **문장은 DB 가 저장하지 않는다.** 사건과 상대만 오고 말은 정책이 짓는다.
-          text: notificationText(kind as NotificationKind, row.counterpart_nickname),
+          text: notificationText({
+            kind: kind as NotificationKind,
+            nickname: row.counterpart_nickname,
+            readingKind,
+          }),
+          href: destinationFor(kind as NotificationKind, readingKind, row),
           createdAt: row.created_at,
           unread: row.read_at === null,
         },

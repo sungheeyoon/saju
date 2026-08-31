@@ -10,7 +10,7 @@
 -- 4. **판본을 든다.** 그래서 `revisions_in_use()` 가 이 표를 자동으로 본다(ADR 0011) —
 --    표 이름을 적어 둔 목록이 아니라 FK 에서 읽기 때문이다.
 begin;
-select plan(48);
+select plan(52);
 
 /** 다섯 오행 개수만 주면 요약 한 벌이 된다(11번 시험과 같은 손잡이) */
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
@@ -509,16 +509,92 @@ select is(
   '준비 완료 알림이 상대 별명을 든다');
 
 /**
- * **일어나지 않는 사건은 검사식에 적지 않는다.** 생성이 요청과 같은 왕복에서 끝나므로
- * 실패는 누른 사람 화면에 서고 시도 기록이 그것을 든다.
+ * **그날이 왔다.** 만드는 일이 누름에서 떨어져 나온 뒤로(ADR 0016) 생성은 요청과 같은
+ * 왕복에서 끝나지 않는다. 탭을 닫으면 실패를 말할 화면이 없으므로 알림함이 그 자리를
+ * 멘다.
  */
 reset role;
 select is(
   (select count(*)::int from pg_constraint
    where conname = 'notification_kind_check'
      and pg_get_constraintdef(oid) like '%reading_failed%'),
+  1,
+  '실패는 이제 일어나는 사건이라 검사식에 있다');
+set local role authenticated;
+
+-- ── 실패는 누른 사람에게 선다 ──────────────────────────────────────────────
+
+/**
+ * 김에게는 이미 실패 알림이 하나 있다 — 위에서 「만드는 동안 입력이 바뀌어」 거절당한
+ * 시도를 닫았고, 그것도 실패다. **여기서 세는 것은 늘어나는가와 안 늘어나는가**이지
+ * 절대 개수가 아니다.
+ */
+select pg_temp.acting((select kim from folks));
+
+create temporary table failed_before as
+select count(*)::int as n from public.my_notifications() where kind = 'reading_failed';
+grant select on failed_before to authenticated, service_role;
+
+create temporary table run_told as
+select run_id as id from public.start_reading_run('self', 'key-self-fail-0001');
+grant select on run_told to authenticated, service_role;
+
+select public.fail_reading_run((select id from run_told), 'model-call-failed', '모델이 안 왔다');
+
+select is(
+  (select count(*)::int from public.my_notifications() where kind = 'reading_failed'),
+  (select n + 1 from failed_before),
+  '실패하면 누른 사람 알림함에 한 줄이 선다');
+
+/**
+ * **실패는 사람이 아니라 대상으로 알아본다.** 자기 풀이에는 부를 상대가 없으므로,
+ * 어느 것이 실패했는지는 시도가 든 대상에서만 나온다. 하나라도 그것을 못 들면
+ * 그 줄은 「무언가 안 됐다」로 끝나 어디를 다시 눌러야 할지 말하지 못한다.
+ */
+select is(
+  (select count(*)::int from public.my_notifications() n
+   where n.kind = 'reading_failed' and n.reading_kind is distinct from 'self'),
   0,
-  '아직 일어나지 않는 알림은 검사식에 없다');
+  '실패 알림이 저마다 무엇을 만들다 실패했는지 든다');
+
+/**
+ * **만료로 닫히는 것은 알리지 않는다.**
+ *
+ * 끝나지 못한 시도는 다음 누름이 여는 자리에서 쓸려 닫힌다(`expired`). 그 자리에
+ * 알림을 세우면 **지금 막 누른 사람에게 옛 실패를 알리는 줄**이 남는다 — 그 사람은
+ * 이미 그 화면에 서 있다.
+ */
+create temporary table run_abandoned as
+select run_id as id from public.start_reading_run('self', 'key-self-stale-0001');
+grant select on run_abandoned to authenticated, service_role;
+
+-- 만료 너머로 밀어 둔다. 서버가 죽어 아무도 못 닫은 시도와 같은 모양이다.
+reset role;
+update public.reading_run set created_at = created_at - interval '11 minutes'
+where id = (select id from run_abandoned);
+set local role authenticated;
+select pg_temp.acting((select kim from folks));
+
+create temporary table run_after as
+select run_id as id from public.start_reading_run('self', 'key-self-newer-0001');
+grant select on run_after to authenticated, service_role;
+
+select is(
+  (select count(*)::int from public.my_notifications() where kind = 'reading_failed'),
+  (select n + 1 from failed_before),
+  '만료로 쓸려 닫힌 시도는 알리지 않는다');
+
+/**
+ * **늦게 돌아온 호출은 이 문에 못 들어온다.** 그 시도는 이미 만료로 닫혔으므로
+ * 0행을 만난다 — 그래서 「더 나중 시도가 있나」를 여기서 다시 묻지 않는다.
+ */
+select throws_ok(
+  format($$select public.fail_reading_run(%L::uuid, 'closed')$$,
+    (select id from run_abandoned)),
+  'P0002', null, '이미 닫힌 시도는 다시 닫히지 않는다');
+
+-- 도는 것을 남기지 않는다. 다음 시험이 같은 대상으로 시도를 연다.
+select public.fail_reading_run((select id from run_after), 'model-no-output', '모양이 아니다');
 
 -- ── 늦게 돌아온 호출은 새 결과를 덮지 않는다 ────────────────────────────────
 

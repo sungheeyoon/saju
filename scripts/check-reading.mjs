@@ -7,11 +7,13 @@
  * **화면과 RPC 가 실제로 이어져 있는가**다.
  *
  * 1. **화면 조회가 AI 를 부르지 않는가** — 없으면 없다고 말하고 버튼만 선다.
- * 2. **저장된 글이 화면에 서는가** — 자기 풀이와 공유 궁합. 비공개 궁합은 아직 DB 계약까지다.
+ * 2. **저장된 글이 화면에 서는가** — 세 kind 를 다 잰다.
  * 3. **근거와 프롬프트가 사용자 화면에 없는가** — 그 둘은 내부 화면의 것이다.
  * 4. **양쪽이 같은 글을 읽는가** — 「첫 번째 분」이 누구인지는 자리마다 다르게 적힌다.
  * 5. **표를 브라우저가 직접 못 읽는가** — 근거가 그 안에 있다.
  * 6. **매인 판본으로 서 있는가** — 한쪽이 입력을 고쳐도 공유 결과의 글이 안 바뀐다.
+ * 7. **실패가 알림함에 서는가** — 만드는 일이 누름에서 떠난 뒤로 실패를 말할 화면이
+ *    없을 수 있다(ADR 0016). 그 줄이 어디를 다시 눌러야 하는지까지 들어야 한다.
  */
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
@@ -204,7 +206,11 @@ try {
     const pair = `?a=${account.self_person_id}&b=${momId}`;
 
     const before = plain(await body(`/me/compat${pair}`, cookie.a));
-    check('저장된 사람끼리 궁합에는 아직 사주풀이 칸이 서지 않는다', !before.includes('사주풀이'));
+    /**
+     * 이 두 줄은 「아직 안 선다」를 재고 있었다. `b6e1893` 이 그 칸을 세웠는데 여기가
+     * 안 따라와서, 그 뒤로 흐름 검사가 **고쳐진 것을 고장이라고 부르고 있었다.**
+     */
+    check('저장된 사람끼리 궁합에도 사주풀이 칸이 선다', before.includes('사주풀이'));
     for (const word of ['match-v0', '100점 만점 베타 탐색 지표']) {
       check(`내부 지표(${word})가 로그인 화면에 없다`, !before.includes(word));
     }
@@ -224,8 +230,8 @@ try {
     check('비공개 궁합 점수가 같은 결과에 있다', current.data?.[0]?.score === 71);
 
     const after = plain(await body(`/me/compat${pair}`, cookie.a));
-    check('준비된 비공개 궁합도 아직 사용자 화면에는 서지 않는다',
-      !after.includes('둘은 서로 다른 속도로'));
+    check('준비된 비공개 궁합이 사용자 화면에 선다',
+      after.includes('둘은 서로 다른 속도로'));
   }
 
   // ── 4. 공유 궁합 — 양쪽이 같은 글을 읽는다 ───────────────────────────────
@@ -341,6 +347,56 @@ try {
     const mine = plain(await body('/me', cookie.a));
     check('자기 풀이는 이전 입력으로 썼다고 말한다', mine.includes('이전 출생정보로 썼습니다'));
     check('그래도 글은 그대로 서 있다', mine.includes('스스로 정한 규칙 안에서'));
+  }
+
+  // ── 8. 실패는 알림함에 서고 다시 누를 자리까지 닿는다 ────────────────────
+  {
+    /**
+     * **만드는 일이 누름에서 떠났다**(ADR 0016). 탭을 닫으면 실패를 말할 화면이
+     * 없으므로 알림함이 그 자리를 멘다. 여기서 재는 것은 두 가지다 — 그 줄이 서는가,
+     * 그리고 **어느 것을 다시 눌러야 하는지** 말하는가.
+     */
+    const before = plain(await body('/me/requests', cookie.a));
+    check('아직 실패 알림은 없다', !before.includes('만들지 못했습니다'));
+
+    const opened = await a.rpc('start_reading_run', {
+      p_kind: 'self', p_idempotency_key: `check-fail-self-${stamp}`,
+    });
+    check('자기 풀이 시도가 열린다', !opened.error && opened.data?.[0]?.run_id,
+      opened.error?.message ?? '');
+
+    await a.rpc('fail_reading_run', {
+      p_run_id: opened.data[0].run_id,
+      p_failure_code: 'model-call-failed',
+      p_failure_detail: '모델이 안 왔다',
+    });
+
+    const told = await body('/me/requests', cookie.a);
+    const text = plain(told);
+    check('실패가 알림함에 선다', text.includes('내 사주풀이를 만들지 못했습니다'));
+    check('지금 보이는 글은 그대로라고 말한다', text.includes('지금 보이는 글은 그대로입니다'));
+    check('다시 누를 자리로 가는 링크가 붙는다', told.includes('href="/me"'));
+
+    /** **어느 궁합인지**까지 말한다 — 비공개 궁합은 두 사람을 다시 골라야 닿는 자리다 */
+    const { data: account } = await a.from('app_user').select('self_person_id').maybeSingle();
+    const pairRun = await a.rpc('start_reading_run', {
+      p_kind: 'private', p_idempotency_key: `check-fail-private-${stamp}`,
+      p_person_a: account.self_person_id, p_person_b: momId,
+    });
+    await a.rpc('fail_reading_run', {
+      p_run_id: pairRun.data[0].run_id,
+      p_failure_code: 'model-no-output',
+      p_failure_detail: '모양이 아니다',
+    });
+
+    const both = await body('/me/requests', cookie.a);
+    const pair = [account.self_person_id, momId].sort();
+    check('궁합 실패는 그 두 사람의 화면으로 간다',
+      both.includes(`/me/compat?a=${pair[0]}&amp;b=${pair[1]}`));
+
+    /** 남의 실패는 내 알림함에 없다 — 시도는 부른 사람의 것이다 */
+    const stranger = plain(await body('/me/requests', cookie.b));
+    check('남의 실패는 내 알림함에 안 선다', !stranger.includes('만들지 못했습니다'));
   }
 } finally {
   stop();
