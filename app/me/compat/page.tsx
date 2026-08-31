@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
+import { relationOf } from '@/src/lib/people';
 import { analyzeCompatibility } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { CompatView } from '../../compat-view';
-import { CompatModeNav } from '../../compat-mode-nav';
+import { PairRelation } from './relation';
+import { CompatHero } from '../../compat-hero';
 import { REVISION_REPLACED_NOTE, UnreadableRevisionError } from '../../revision';
 import { Halted } from '../halted';
 import { payloadForViewer, type PersonPayload } from '../payload';
@@ -89,28 +91,74 @@ export default async function ManagedCompatPage({
    */
   const outcome = suspended ? null : await pairOutcome(a, b);
 
+  if (suspended) {
+    return (
+      <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
+        <CompatHero mode="saved" />
+        <Halted status={account?.status ?? 'suspended'} />
+      </main>
+    );
+  }
+
+  /**
+   * **결과는 제 페이지에 선다.**
+   *
+   * 고르는 칸과 본 궁합 목록과 결과를 한 화면에 쌓아 두면, 다시 찾아온 사람이 자기
+   * 결과에 닿기까지 세 덩어리를 지나야 한다. 「무엇을 볼까」와 「무엇이 나왔나」는
+   * 다른 물음이므로 자리를 가른다 — 주소는 이미 갈려 있었다(`?a=…&b=…`).
+   */
+  if (outcome !== null && outcome.kind === 'ok') {
+    return <ResultPage outcome={outcome} />;
+  }
+
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 py-10 sm:px-6 sm:py-14">
-      <header className="flex flex-col gap-1.5">
+    <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
+      <CompatHero mode="saved" />
+
+      <div className="flex flex-col gap-6">
+        <PairPicker people={people} a={a} b={b} />
+        <SeenPairs />
+        {outcome !== null && <Result outcome={outcome} />}
+      </div>
+    </main>
+  );
+}
+
+/**
+ * 두 사람의 결과 하나 — **제목이 곧 누구와 누구인가**다.
+ *
+ * 사람이 보러 온 것은 읽어 주는 글이다. 그 앞에 표 스물몇 개를 세워 두면 글까지
+ * 내려오지 못하므로 판정을 먼저 세우고 사실은 접는다(`foldFacts`).
+ */
+async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' }> }) {
+  const supabase = await supabaseOnServer();
+  const { data: relation } = await supabase.rpc('pair_relation_of', {
+    p_person_a: outcome.pair.personA,
+    p_person_b: outcome.pair.personB,
+  });
+
+  return (
+    <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
+      <header className="flex flex-col gap-2">
+        <Link
+          href="/me/compat"
+          className="self-start text-sm text-secondary underline underline-offset-2 hover:text-accent"
+        >
+          ← 다른 궁합 보기
+        </Link>
         <p className="eyebrow">궁합</p>
-        <h1 className="text-3xl font-bold tracking-[-0.04em]">두 사람의 궁합 보기</h1>
-        <p className="max-w-2xl text-sm text-secondary">
-          저장한 사람 둘을 골라 관계와 오행의 보완을 살펴봅니다. 내가 포함되지 않은
-          두 사람도 고를 수 있습니다.
-        </p>
+        <h1 className="text-3xl font-bold tracking-[-0.04em] sm:text-4xl">
+          {outcome.first.name} <span className="text-muted">×</span> {outcome.second.name}
+        </h1>
       </header>
 
-      <CompatModeNav mode="saved" />
+      <PairRelation
+        personA={outcome.pair.personA}
+        personB={outcome.pair.personB}
+        relation={relationOf(relation as string | null)}
+      />
 
-      {suspended ? (
-        <Halted status={account?.status ?? 'suspended'} />
-      ) : (
-        <>
-          <PairPicker people={people} a={a} b={b} />
-          <SeenPairs open={outcome?.kind === 'ok' ? outcome.pair : null} />
-          {outcome !== null && <Result outcome={outcome} />}
-        </>
-      )}
+      <Result outcome={outcome} />
     </main>
   );
 }
@@ -131,7 +179,7 @@ export default async function ManagedCompatPage({
  * **비어 있으면 아무것도 안 그린다.** 처음 온 사람에게 빈 목록은 할 일이 하나 더 있는
  * 것처럼 보이는데, 고르는 칸이 이미 그 말을 하고 있다.
  */
-async function SeenPairs({ open }: { open: { personA: string; personB: string } | null }) {
+async function SeenPairs() {
   const seen = await myPrivateReadings();
   if (seen.length === 0) return null;
 
@@ -146,70 +194,43 @@ async function SeenPairs({ open }: { open: { personA: string; personB: string } 
 
       <ul className="flex flex-col gap-2">
         {seen.map((one) => (
-          <SeenPair
-            key={`${one.personA}:${one.personB}`}
-            entry={one}
-            /*
-              **지금 보고 있는 것은 링크가 아니다.** 눌러도 같은 자리인 링크는 눌러 보고
-              나서야 그것을 알게 된다. 대신 그 줄을 표시해 두면 목록이 「어디에 있는지」도
-              함께 말한다.
-            */
-            isOpen={open !== null && open.personA === one.personA && open.personB === one.personB}
-          />
+          <SeenPair key={`${one.personA}:${one.personB}`} entry={one} />
         ))}
       </ul>
     </section>
   );
 }
 
-function SeenPair({ entry, isOpen }: { entry: PrivateReadingEntry; isOpen: boolean }) {
-  const body = (
-    <>
-      <span className="min-w-0 flex-1 truncate font-medium">
-        {entry.labelA} <span className="text-muted">×</span> {entry.labelB}
-      </span>
-      {entry.score !== null && (
-        <span className="shrink-0 text-sm font-semibold tabular-nums text-accent">
-          {entry.score}
-          <span className="ml-0.5 text-xs font-normal text-muted">점</span>
-        </span>
-      )}
-      {/*
-        **낡았다는 것을 목록에서도 말한다.** 열어 봐야 알게 되면, 목록은 「지금 입력으로
-        본 것」과 「그 뒤에 고친 입력으로 다시 봐야 하는 것」을 같은 줄로 보이게 된다.
-        색만으로 말하지 않는다 — 낱말이 함께 있어야 한다.
-      */}
-      {!entry.fromCurrentRevision && (
-        <span className="shrink-0 rounded-full bg-warning-wash px-2 py-0.5 text-[11px] font-semibold text-warning">
-          이전 입력
-        </span>
-      )}
-      <time dateTime={entry.createdAt} className="shrink-0 text-xs text-muted">
-        {seenAt(entry.createdAt)}
-      </time>
-    </>
-  );
-
-  const shared = 'flex items-center gap-3 rounded-xl border px-4 py-3 text-sm';
-
+function SeenPair({ entry }: { entry: PrivateReadingEntry }) {
   return (
     <li>
-      {isOpen ? (
-        <div
-          aria-current="true"
-          className={`${shared} border-accent bg-accent-wash`}
-        >
-          {body}
-          <span className="shrink-0 text-xs font-semibold text-accent">지금 보는 중</span>
-        </div>
-      ) : (
-        <Link
-          href={`/me/compat?a=${entry.personA}&b=${entry.personB}`}
-          className={`${shared} border-border-strong bg-surface hover:border-accent hover:text-accent`}
-        >
-          {body}
-        </Link>
-      )}
+      <Link
+        href={`/me/compat?a=${entry.personA}&b=${entry.personB}`}
+        className="flex items-center gap-3 rounded-xl border border-border-strong bg-surface px-4 py-3 text-sm hover:border-accent hover:text-accent"
+      >
+        <span className="min-w-0 flex-1 truncate font-medium">
+          {entry.labelA} <span className="text-muted">×</span> {entry.labelB}
+        </span>
+        {entry.score !== null && (
+          <span className="shrink-0 text-sm font-semibold tabular-nums text-accent">
+            {entry.score}
+            <span className="ml-0.5 text-xs font-normal text-muted">점</span>
+          </span>
+        )}
+        {/*
+          **낡았다는 것을 목록에서도 말한다.** 열어 봐야 알게 되면, 목록은 「지금 입력으로
+          본 것」과 「그 뒤에 고친 입력으로 다시 봐야 하는 것」을 같은 줄로 보이게 된다.
+          색만으로 말하지 않는다 — 낱말이 함께 있어야 한다.
+        */}
+        {!entry.fromCurrentRevision && (
+          <span className="shrink-0 rounded-full bg-warning-wash px-2 py-0.5 text-[11px] font-semibold text-warning">
+            이전 입력
+          </span>
+        )}
+        <time dateTime={entry.createdAt} className="shrink-0 text-xs text-muted">
+          {seenAt(entry.createdAt)}
+        </time>
+      </Link>
     </li>
   );
 }
@@ -355,17 +376,13 @@ async function pairOutcome(a: string | null, b: string | null): Promise<Outcome>
 }
 
 function Result({ outcome }: { outcome: Outcome }) {
-  if (outcome.kind === 'empty') {
-    return (
-      <section className={`${CARD} bg-surface-sunken`}>
-        <h2 className="text-base font-semibold">두 사람을 골라 주세요</h2>
-        <p className="mt-1.5 text-sm text-secondary">
-          고른 두 사람의 <strong className="font-medium">지금 저장된</strong> 출생정보로
-          계산합니다.
-        </p>
-      </section>
-    );
-  }
+  /**
+   * **아직 안 골랐으면 아무것도 안 그린다.**
+   *
+   * 「두 사람을 골라 주세요」 카드가 고르는 칸 바로 아래 서 있었다. 같은 말을 두 번
+   * 하는 자리이고, 처음 온 사람에게는 할 일이 하나 더 있는 것처럼 보인다.
+   */
+  if (outcome.kind === 'empty') return null;
 
   if (outcome.kind === 'same') {
     return (
@@ -401,6 +418,7 @@ function Result({ outcome }: { outcome: Outcome }) {
        * 없었다.** 파이프라인은 처음부터 세 kind 를 다 받았고(`ReadingTarget`), 쌍의 차례도
        * DB 가 정한다(`least`·`greatest`) — 막혀 있던 것은 화면 한 줄뿐이었다.
        */
+      foldFacts
       verdict={
         <ReadingSection key="private-reading" target={{ kind: 'private', ...outcome.pair }} />
       }

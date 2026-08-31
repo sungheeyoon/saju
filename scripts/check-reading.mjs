@@ -211,6 +211,11 @@ try {
      * 안 따라와서, 그 뒤로 흐름 검사가 **고쳐진 것을 고장이라고 부르고 있었다.**
      */
     check('저장된 사람끼리 궁합에도 사주풀이 칸이 선다', before.includes('사주풀이'));
+    /**
+     * **명식은 접혀 있다.** 사람이 보러 온 것은 읽어 주는 글인데, 그 앞에 표 스물몇
+     * 개를 세워 두면 글까지 내려오지 못한다. 시험이 끝나면 이 칸은 통째로 내린다.
+     */
+    check('둘의 명식은 접어 둔다', before.includes('둘의 명식 보기'));
     for (const word of ['match-v0', '100점 만점 베타 탐색 지표']) {
       check(`내부 지표(${word})가 로그인 화면에 없다`, !before.includes(word));
     }
@@ -234,35 +239,33 @@ try {
       after.includes('둘은 서로 다른 속도로'));
 
     /**
-     * **파이프라인이 관계를 읽는 두 자리가 브라우저 열쇠로 열리는가.**
+     * **사이는 사람이 아니라 쌍에 붙고, 궁합 화면에서 묻는다.**
      *
-     * 관계는 「나와 그 사람」에 붙어 있으므로 이 쌍의 관계는 **내가 한쪽일 때만**
-     * 안다(`aboutFor`). 그래서 필요한 것이 둘이다 — 엣지의 `relation` 과 내가 어느
-     * 쪽인지(`self_person_id`). 프롬프트에 어떻게 실리는지는 단위 시험이 잰다.
-     *
-     * 여기서 재는 것은 **RLS 를 지나 읽히는가**다. 정책이 이 열을 안 열어 주면
-     * 파이프라인은 조용히 「모른다」로 떨어지고, 그때 궁합 풀이는 예전처럼 연애로 쓴다.
+     * 사람 탭은 그 사람의 사주를 보는 자리다. 그리고 「나와 그 사람」만 알면 어머니와
+     * 친구의 궁합에서는 답이 없다 — 어머니가 나의 가족인 것과 어머니가 그 친구와 무슨
+     * 사이인지는 다른 물음이다.
      */
-    await a.from('user_person_access').update({ relation: 'family' }).eq('person_id', momId);
+    const set = await a.rpc('set_pair_relation', {
+      p_person_a: momId, p_person_b: account.self_person_id, p_relation: 'family',
+    });
+    check('궁합 화면이 쌍의 사이를 적는다', set.error === null, set.error?.message ?? '');
 
-    const edges = await a
-      .from('user_person_access')
-      .select('person_id, local_label, relation')
-      .in('person_id', [account.self_person_id, momId]);
-    const relationOfMom = (edges.data ?? []).find((row) => row.person_id === momId)?.relation;
+    const asked = await a.rpc('pair_relation_of', {
+      p_person_a: account.self_person_id, p_person_b: momId,
+    });
+    check('차례를 뒤집어 물어도 같은 답이다', asked.data === 'family', String(asked.data));
 
-    check('파이프라인이 읽는 질의로 사이가 읽힌다', relationOfMom === 'family',
-      edges.error?.message ?? String(relationOfMom));
-    check('내가 어느 쪽인지도 같은 열쇠로 읽힌다',
-      (edges.data ?? []).some((row) => row.person_id === account.self_person_id));
+    /** 남의 쌍은 안 읽힌다 — 안 읽히면 남의 관계로 내 글이 달라질 길도 없다 */
+    const stranger = await b.rpc('pair_relation_of', {
+      p_person_a: account.self_person_id, p_person_b: momId,
+    });
+    check('남이 적어 둔 사이는 안 읽힌다', !stranger.data, String(stranger.data));
 
-    /** 남의 엣지는 안 읽힌다 — 안 읽히면 남의 관계로 내 글이 달라질 길도 없다 */
-    const stranger = await b
-      .from('user_person_access')
-      .select('person_id, relation')
-      .in('person_id', [momId]);
-    check('남이 붙여 둔 사이는 안 읽힌다', (stranger.data ?? []).length === 0,
-      stranger.error?.message ?? '');
+    /** 결과 화면이 그 물음을 세운다 */
+    const resultPage = plain(await body(`/me/compat${pair}`, cookie.a));
+    check('궁합 화면이 무슨 사이인지 묻는다', resultPage.includes('두 분은 무슨 사이인가요'));
+    check('점수에 안 쓴다는 것도 그 자리에서 말한다',
+      resultPage.includes('점수에는 쓰지 않습니다'));
   }
 
   // ── 4. 공유 궁합 — 양쪽이 같은 글을 읽는다 ───────────────────────────────

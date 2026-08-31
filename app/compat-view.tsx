@@ -45,6 +45,7 @@ export function CompatView({
   viewedAt,
   notice,
   verdict,
+  foldFacts,
 }: {
   charts: Record<CompatSide, Saju>;
   /** 두 사람을 부르는 말 — 입력한 이름이거나 '첫 번째 사람' */
@@ -70,14 +71,64 @@ export function CompatView({
    * `notice` 와 같은 규율이다. 화면마다 다른 사실은 여기서 판단하지 않고 받는다.
    */
   verdict: ReactNode;
+  /**
+   * 사실을 **접어 둘까** — 판정을 먼저 세울까.
+   *
+   * 익명 화면은 계산기다. 두 명식과 사이의 관계가 곧 결과물이라 그것이 먼저 선다.
+   * 로그인 화면은 다르다 — 사람이 보러 온 것은 **읽어 주는 글**이고, 그 앞에 표
+   * 스물몇 개를 세워 두면 글까지 내려오지 못한다.
+   *
+   * 접는 자리를 화면이 따로 그리지 않고 여기서 가르는 이유는 늘 같다. 두 번 그리면
+   * 한쪽만 고쳐지고, 그때 두 화면이 서로 다른 것을 감춘다.
+   */
+  foldFacts?: boolean;
 }) {
+  const facts = (
+    <>
+      <ChartPair charts={charts} names={names} />
+      <BetweenSections compat={compat} names={names} />
+      <EvidencePanel a={charts.a} b={charts.b} viewedAt={viewedAt} />
+    </>
+  );
+
+  if (foldFacts !== true) {
+    return (
+      <div className="flex flex-col gap-6">
+        {notice}
+        <ChartPair charts={charts} names={names} />
+        <BetweenSections compat={compat} names={names} />
+        {verdict}
+        <EvidencePanel a={charts.a} b={charts.b} viewedAt={viewedAt} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {notice}
-      <ChartPair charts={charts} names={names} />
-      <BetweenSections compat={compat} names={names} />
       {verdict}
-      <EvidencePanel a={charts.a} b={charts.b} viewedAt={viewedAt} />
+
+      {/*
+        **테스트 기간에만 여는 자리.**
+
+        두 명식과 사이의 관계표는 우리가 계산이 맞는지 보려고 세운 것이지 사용자가
+        보러 온 것이 아니다. 시험이 끝나면 이 칸은 통째로 내린다 — 그때 지울 것이
+        하나이도록 한 덩어리로 접어 둔다.
+      */}
+      <details className="group rounded-2xl border border-border bg-surface">
+        <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold hover:text-accent">
+          <span className="inline-flex items-center gap-2">
+            <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-90">
+              ▶
+            </span>
+            둘의 명식 보기
+          </span>
+          <span className="mt-1 block pl-6 text-xs font-normal text-muted">
+            여덟 글자와 사이에 걸리는 관계를 자료 그대로 봅니다. 계산을 확인하는 자리입니다.
+          </span>
+        </summary>
+        <div className="flex flex-col gap-6 border-t border-border px-5 py-5">{facts}</div>
+      </details>
     </div>
   );
 }

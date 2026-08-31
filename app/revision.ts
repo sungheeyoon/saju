@@ -1,5 +1,3 @@
-import type { Relation } from '@/src/lib/people';
-
 import {
   CALENDARS,
   CITY_LONGITUDES,
@@ -252,25 +250,18 @@ export const NOTE_MAX = 200;
 export const noteOrNull = (note: string): string | null => note.trim() || null;
 
 /**
- * `create_managed_person` 이 받는 인자 한 벌 — 메모와 관계가 더 붙는다.
+ * `create_managed_person` 이 받는 인자 한 벌 — 메모가 하나 더 붙는다.
  *
- * 둘 다 판본이 아니다(여덟 글자를 바꾸지 않는다). 그런데도 여기 함께 실리는 것은,
+ * 메모는 판본이 아니다(여덟 글자를 바꾸지 않는다). 그런데도 여기 함께 실리는 것은,
  * 등록이라는 **한 사건**에서 Person·엣지·판본이 한 트랜잭션에 들어가기 때문이다.
  *
- * 관계는 안 고르면 `null` 이고 그것은 **「모른다」**다. 그럴듯한 기본값을 두지 않는
- * 이유는 늘 같다 — 안 물어본 것을 물어본 척 채우면 그 순간부터 틀린 값이 확신을 얻는다.
+ * 무슨 사이인가는 여기 없다. 그것은 사람이 아니라 **쌍**에 붙고, 묻는 자리도 사람을
+ * 등록하는 곳이 아니라 궁합을 보는 곳이다.
  */
-export type ManagedPersonArgs = SelfPersonArgs & {
-  p_note: string | null;
-  p_relation: Relation | null;
-};
+export type ManagedPersonArgs = SelfPersonArgs & { p_note: string | null };
 
-export function managedPersonArgs(
-  query: Query,
-  note: string,
-  relation: Relation | null,
-): ManagedPersonArgs {
-  return { ...selfPersonArgs(query), p_note: noteOrNull(note), p_relation: relation };
+export function managedPersonArgs(query: Query, note: string): ManagedPersonArgs {
+  return { ...selfPersonArgs(query), p_note: noteOrNull(note) };
 }
 
 /** `add_person_revision` 이 받는 인자 한 벌 */

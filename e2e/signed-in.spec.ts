@@ -158,31 +158,20 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await fillBirthDate(form, '1991-08-08');
     await fillBirthTime(form, '09:20');
 
-    /*
-      **무슨 사이인지 묻는다.** 이 값이 없던 동안 궁합 풀이는 어머니와의 궁합에도
-      「처음에 끌리는 지점」을 썼다 — 모델이 지어낸 것이 아니라 자료에 없어서 관계의
-      일반적 가능성으로 읽은 것이고, 그 기본값은 사실상 연애였다.
-
-      점수에 안 쓴다는 것도 고르는 자리에서 말한다. 관계가 무엇이든 두 원국 사이의
-      사실은 같고, 관계로 점수가 움직이면 그것은 근거가 아니라 우리가 지어낸 규칙이다.
-    */
-    await expect(form.getByText('이 값은 점수에 쓰지 않습니다')).toBeVisible();
-    await form.getByRole('radio', { name: '친구·동료' }).check();
-
     await form.getByRole('button', { name: '등록', exact: true }).click();
 
     await expect(page.getByRole('heading', { name: '친구' })).toBeVisible();
 
     /*
-      **고른 것이 목록에 서 있고 거기서 고쳐진다.** 못 고치면 잘못 고른 사람을
-      지웠다 다시 등록하게 되고, 그러면 그 사람의 판본 이력이 고르기 실수 때문에 사라진다.
+      **사람 탭은 그 사람의 사주를 보는 자리다.** 무슨 사이인지는 여기서 묻지 않는다 —
+      내 사주 화면에 「나와 나는 무슨 사이인가」가 없는 것과 같다. 관계가 글을 바꾸는
+      것은 궁합을 읽을 때뿐이라, 묻는 자리도 거기다.
     */
+    await expect(page.getByText('무슨 사이')).toHaveCount(0);
+
     const friendCard = page
       .locator('section')
       .filter({ has: page.getByRole('heading', { name: '친구' }) });
-    await expect(friendCard.getByRole('radio', { name: '친구·동료' })).toBeChecked();
-    await friendCard.getByRole('radio', { name: '가족' }).check();
-    await expect(friendCard.getByRole('radio', { name: '가족' })).toBeChecked();
 
     await friendCard.getByRole('link', { name: '사주 상세 보기' }).click();
     await expect(page.getByRole('heading', { name: '친구의 사주' })).toBeVisible();
@@ -197,8 +186,28 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByLabel('두 번째').selectOption({ label: '어머니' });
     await page.getByRole('button', { name: '궁합 보기' }).click();
 
-    await expect(page.getByText('두 원국 사이의 관계')).toBeVisible();
+    /*
+      **결과는 제 페이지에 선다.** 고르는 칸과 본 궁합 목록과 결과를 한 화면에 쌓아
+      두면, 다시 찾아온 사람이 자기 결과에 닿기까지 세 덩어리를 지나야 한다.
+    */
+    await expect(page.getByRole('heading', { name: `${signedIn.label} × 어머니` })).toBeVisible();
     await expect(page.getByText('현재 저장된 출생정보 기준입니다')).toBeVisible();
+
+    /*
+      **여기서 무슨 사이인지 묻는다.** 사이에 따라 읽어 줄 장면이 달라지는데, 이 값이
+      없던 동안 궁합 풀이는 어머니와의 궁합에도 「처음에 끌리는 지점」을 썼다.
+    */
+    await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
+    await page.getByRole('radio', { name: '가족' }).check();
+    await expect(page.getByRole('radio', { name: '가족' })).toBeChecked();
+
+    /*
+      **명식은 접혀 있다.** 사람이 보러 온 것은 읽어 주는 글인데, 그 앞에 표 스물몇
+      개를 세워 두면 글까지 내려오지 못한다.
+    */
+    await expect(page.getByText('두 원국 사이의 관계')).not.toBeVisible();
+    await page.getByText('둘의 명식 보기').click();
+    await expect(page.getByText('두 원국 사이의 관계')).toBeVisible();
 
     /*
       **내부 지표는 로그인 화면에 서지 않는다.** 점수 자리는 하나이고 그것은 현재

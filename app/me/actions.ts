@@ -66,11 +66,7 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
  *
  * 한도에 걸렸을 때 나오는 말은 DB 가 쓴 문장 그대로다 — 사람이 읽을 수 있게 써 뒀다.
  */
-export async function addManagedPerson(
-  query: Query,
-  note: string,
-  relation: string | null,
-): Promise<SaveResult> {
+export async function addManagedPerson(query: Query, note: string): Promise<SaveResult> {
   const missing = missingAnswer(query);
   if (missing !== null) return { ok: false, message: missing };
 
@@ -78,15 +74,7 @@ export async function addManagedPerson(
   if (unsupported !== null) return { ok: false, message: unsupported };
 
   const supabase = await supabaseOnServer();
-  /**
-   * **모르는 값은 모르는 채로 넘긴다.** 화면이 보낸 글자를 그대로 싣지 않는 것은
-   * 이 자리가 서버 액션이라 주소만 알면 아무 값이나 올 수 있기 때문이다. 검사식이
-   * DB 에도 있지만, 거기서 걸리면 사용자가 읽는 것은 제약 이름이다.
-   */
-  const { error } = await supabase.rpc(
-    'create_managed_person',
-    managedPersonArgs(query, note, relationOf(relation)),
-  );
+  const { error } = await supabase.rpc('create_managed_person', managedPersonArgs(query, note));
 
   if (error) return { ok: false, message: error.message };
 
@@ -117,29 +105,35 @@ export async function updateNote(personId: string, note: string): Promise<SaveRe
 }
 
 /**
- * 무슨 사이인지 고쳐 적는다.
+ * 이 **쌍**이 무슨 사이인지 적는다 — 사람이 아니라 두 사람에 붙는다.
  *
- * `note` 와 같은 문이다 — 정책이 이미 열어 준 칸이라 RPC 로 감싸지 않는다. 잘못
- * 고른 것을 못 고치면 사람을 지웠다 다시 등록하게 되고, **그러면 그 사람의 판본
- * 이력이 고르기 실수 때문에 사라진다.**
+ * 사람 탭에서 묻지 않는다. 그 화면은 그 사람의 사주를 보는 자리이고, 관계가 글을
+ * 바꾸는 것은 **궁합을 볼 때**다. 그리고 「나와 그 사람」만 알면 어머니와 친구의
+ * 궁합에서는 답이 없다 — 쌍에 붙여야 어느 조합이든 답할 수 있다.
+ *
+ * 차례는 DB 가 정한다(`least`·`greatest`). 화면이 지으면 그 규칙이 두 자리에 있게 되고,
+ * 둘이 갈리는 날 같은 쌍이 두 줄로 남는다.
  *
  * 궁합 결과는 여기서 안 건드린다. 이 값은 다음 생성 요청이 읽을 뿐이고, 지금 서 있는
  * 글은 그것을 만들 때의 자료로 난 것이다(ADR 0013).
  */
-export async function updateRelation(
-  personId: string,
+export async function setPairRelation(
+  personA: string,
+  personB: string,
   relation: string | null,
 ): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase
-    .from('user_person_access')
-    .update({ relation: relationOf(relation) })
-    .eq('person_id', personId);
+  const { error } = await supabase.rpc('set_pair_relation', {
+    p_person_a: personA,
+    p_person_b: personB,
+    // 모르는 값은 모르는 채로 넘긴다 — 서버 액션은 주소만 알면 아무 값이나 온다.
+    p_relation: relationOf(relation),
+  });
 
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath('/me/people');
+  revalidatePath('/me/compat');
   return { ok: true };
 }
 

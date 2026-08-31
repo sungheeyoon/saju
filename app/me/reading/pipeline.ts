@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import { after } from 'next/server';
 
-import { relationOf, type Relation } from '@/src/lib/people';
+import { relationOf } from '@/src/lib/people';
 import type { Saju } from '@/src/lib/saju';
 import {
   isScored,
@@ -414,7 +414,7 @@ async function revisionsFor(
 }
 
 /**
- * 내가 그 사람을 뭐라 부르고 **무슨 사이인가** — 차례는 판본이 정한다.
+ * 내가 그 사람을 뭐라 부르고 **이 쌍이 무슨 사이인가** — 차례는 판본이 정한다.
  *
  * 쌍의 차례를 여기서 다시 정하지 않는다. 비공개 궁합의 두 판본은 DB 가 Person id 로
  * 줄 세워 내주므로(`least`·`greatest`), 이름도 **그 판본이 들고 온 `person_id`** 를 따라
@@ -423,31 +423,35 @@ async function revisionsFor(
  *
  * 못 찾은 자리는 지어내지 않는다 — 부를 말이 없다는 사실을 그대로 넘긴다.
  *
- * ## 관계는 **내가 한쪽일 때만** 안다
+ * ## 관계는 **쌍에 물어본다**
  *
- * 저장한 값은 「나와 그 사람」이지 「그 둘」이 아니다. 그래서 어머니와 친구의 궁합을
- * 볼 때 이 쌍의 관계는 우리가 아는 것이 아니다 — 어머니가 나의 가족인 것과 어머니가
- * 그 친구와 무슨 사이인지는 다른 물음이다.
+ * 사람에 붙였다면 어머니와 친구의 궁합에서는 답이 없었을 것이다 — 어머니가 나의
+ * 가족인 것과 어머니가 그 친구와 무슨 사이인지는 다른 물음이기 때문이다. 궁합 화면이
+ * 지금 보고 있는 두 사람에 대해 묻고, 그 답이 그 쌍에 남는다.
  *
- * **그럴 때는 모른다고 넘긴다.** 한쪽 값을 쌍의 관계인 척 쓰면 남남인 두 사람의
- * 궁합이 「가족」으로 읽히고, 그것은 안 묻는 것보다 나쁘다.
+ * **없으면 「모른다」다.** 행이 없는 것이 곧 모른다이므로, 여기서 두 가지 없음을
+ * 가르지 않는다.
  */
 async function aboutFor(personIds: readonly string[]): Promise<ReadingAbout> {
   const supabase = await supabaseOnServer();
+  const [first, second] = personIds;
 
-  const [edges, account] = await Promise.all([
+  const [edges, pair] = await Promise.all([
     // 정책이 자기 목록만 내준다. 여기서 `user_id` 를 또 적지 않는다.
     supabase
       .from('user_person_access')
-      .select('person_id, local_label, relation')
+      .select('person_id, local_label')
       .in('person_id', [...personIds]),
-    supabase.from('app_user').select('self_person_id').maybeSingle(),
+    second === undefined
+      ? Promise.resolve({ data: null })
+      : supabase.rpc('pair_relation_of', { p_person_a: first, p_person_b: second }),
   ]);
 
-  const rows = new Map((edges.data ?? []).map((row) => [row.person_id as string, row]));
-  const [first, second] = personIds;
-  const a = rows.get(first)?.local_label as string | undefined;
-  const b = second === undefined ? undefined : (rows.get(second)?.local_label as string | undefined);
+  const labels = new Map(
+    (edges.data ?? []).map((row) => [row.person_id as string, row.local_label as string]),
+  );
+  const a = labels.get(first);
+  const b = second === undefined ? undefined : labels.get(second);
 
   /**
    * **하나라도 못 찾으면 이름은 통째로 포기한다.** 한쪽만 이름으로 부르고 다른 쪽을
@@ -456,25 +460,5 @@ async function aboutFor(personIds: readonly string[]): Promise<ReadingAbout> {
   const names =
     a === undefined || (second !== undefined && b === undefined) ? null : { a, b };
 
-  return { names, relation: relationBetween(personIds, rows, account.data?.self_person_id) };
-}
-
-/**
- * 이 쌍의 관계 — **내가 한쪽에 서 있을 때만 답이 있다.**
- *
- * 자기 풀이(한 사람)에는 상대가 없으므로 관계가 없다. 두 사람일 때는 내 selfPerson 이
- * 낀 경우에만, 다른 쪽에 붙여 둔 값이 곧 이 쌍의 관계다.
- */
-function relationBetween(
-  personIds: readonly string[],
-  rows: Map<string, { relation: string | null }>,
-  selfPersonId: string | null | undefined,
-): Relation | null {
-  const [first, second] = personIds;
-  if (second === undefined || selfPersonId === null || selfPersonId === undefined) return null;
-
-  if (first === selfPersonId) return relationOf(rows.get(second)?.relation);
-  if (second === selfPersonId) return relationOf(rows.get(first)?.relation);
-
-  return null;
+  return { names, relation: relationOf(pair.data as string | null) };
 }

@@ -1,10 +1,9 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { CompatCalculator } from '../compat-calculator';
-import { CompatModeNav } from '../compat-mode-nav';
+import { CompatHero } from '../compat-hero';
 
 export const metadata = {
   title: '궁합 — 만세력',
@@ -20,21 +19,7 @@ export default async function CompatPage() {
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
-      <header className="relative overflow-hidden rounded-[2rem] border border-border bg-surface px-6 py-9 shadow-[var(--shadow-card)] sm:px-10 sm:py-11">
-        <div className="absolute -right-12 -top-20 size-64 rounded-full bg-fire-soft blur-3xl" aria-hidden="true" />
-        <div className="relative max-w-3xl">
-          <p className="eyebrow">궁합</p>
-          <h1 className="mt-2 text-[2rem] font-bold leading-tight tracking-[-0.045em] sm:text-[2.75rem]">두 사람의 궁합 보기</h1>
-          <p className="mt-4 max-w-2xl text-[0.95rem] leading-7 text-secondary">
-            두 명식을 나란히 놓고 서로에게 생기는 관계와 오행의 보완을 살펴봅니다. 숫자로 좋고 나쁨을 단정하지 않고, 어떤 관계가 왜 보이는지 근거부터 설명합니다.
-          </p>
-          <Link href="/me" className="mt-6 inline-flex rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent">
-            내 사주로 돌아가기
-          </Link>
-        </div>
-      </header>
-
-      <CompatModeNav mode="direct" />
+      <CompatHero mode="direct" />
 
       {/*
         원국 화면과 같은 이유로 Suspense 아래에 둔다 — 주소창의 `#` 뒤를 읽는데

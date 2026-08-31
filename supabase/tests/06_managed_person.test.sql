@@ -1,6 +1,6 @@
 -- 가족·친구 Person — 만들어지고, 스무 명에서 막히고, 남에게는 없는 것과 같다.
 begin;
-select plan(21);
+select plan(27);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -19,7 +19,7 @@ grant select on me to authenticated;
 create temporary table mom as
 select public.create_managed_person(
   '엄마', '음력 생일만 아신다', 'lunar', '1962-03-11', '1962-04-15',
-  '07:20', 'female', '부산', 'jo', 'localMean', 'family'
+  '07:20', 'female', '부산', 'jo', 'localMean'
 ) as person_id;
 grant select on mom to authenticated;
 
@@ -32,17 +32,20 @@ select is(
   '만들어진 Person 은 현재 판본을 가리킨다');
 
 select is(
-  (select a.local_label || '/' || a.note || '/' || a.role || '/' || a.relation
+  (select a.local_label || '/' || a.note || '/' || a.role
    from public.user_person_access a where a.person_id = (select person_id from mom)),
-  '엄마/음력 생일만 아신다/owner/family',
-  '부를 이름·메모·역할·사이는 엣지가 든다');
+  '엄마/음력 생일만 아신다/owner',
+  '부를 이름·메모·역할은 엣지가 든다');
 
 /**
- * **사람이 아니라 나와 그 사람 사이에 붙는다.** 같은 사람이 누군가에겐 어머니고
- * 누군가에겐 친구다. `person` 에 붙이면 그 사람이 「가족」이라는 속성을 가진 것이
- * 되는데, 그것은 우리가 아는 사실이 아니다.
+ * **무슨 사이인가는 사람에 안 붙는다.**
+ *
+ * 한 번 붙였다가 걷었다. 사람에 붙이면 「나와 그 사람」만 알게 되는데, 어머니와
+ * 친구의 궁합에서는 그 값으로 답할 수 없다 — 어머니가 나의 가족인 것과 어머니가 그
+ * 친구와 무슨 사이인지는 다른 물음이다. 묻는 자리도 사람 탭이 아니라 궁합 화면이다.
  */
 select hasnt_column('public', 'person', 'relation', '관계는 Person 에 안 붙는다');
+select hasnt_column('public', 'user_person_access', 'relation', '관계는 엣지에도 안 붙는다');
 
 -- 판본은 원본과 변환값을 둘 다 든다(ADR 0002). 음력으로 등록해도 마찬가지다.
 select is(
@@ -76,37 +79,60 @@ select is(
   null,
   '공백뿐인 메모는 없음으로 들어간다 — 없음은 한 값이다');
 
+-- ── 사이는 쌍에 붙는다 ───────────────────────────────────────────────────────
+
 /**
- * **안 고른 것은 「모른다」다.** 그럴듯한 기본값을 두면 안 물어본 사람 전부가 그
- * 값으로 적히고, 궁합 풀이가 그것을 사실로 읽는다.
+ * **차례를 값이 정한다.** 안 정하면 (엄마,아빠)와 (아빠,엄마)가 다른 줄이 되고,
+ * 그때 한 쌍에 답이 둘 남는다. 부르는 쪽이 기억하지 않게 문이 그것을 든다.
  */
+select public.set_pair_relation(
+  (select person_id from dad), (select person_id from mom), 'family');
+
 select is(
-  (select relation from public.user_person_access where person_id = (select person_id from dad)),
+  (select relation from public.pair_relation
+   where person_low = least((select person_id from mom), (select person_id from dad))
+     and person_high = greatest((select person_id from mom), (select person_id from dad))),
+  'family',
+  '쌍에 적어 둔 사이가 남는다');
+
+select is(
+  (select count(*)::int from public.pair_relation),
+  1,
+  '차례를 뒤집어 불러도 줄은 하나다');
+
+select is(
+  public.pair_relation_of((select person_id from mom), (select person_id from dad)),
+  'family',
+  '어느 차례로 물어도 같은 답이 나온다');
+
+/**
+ * **모른다는 행이 없는 것이다.** `null` 을 담는 줄을 두면 안 고른 것과 「모른다를
+ * 골랐다」가 다른 값이 되고, 화면도 프롬프트도 두 가지를 물어야 한다.
+ */
+select public.set_pair_relation(
+  (select person_id from mom), (select person_id from dad), null);
+
+select is(
+  (select count(*)::int from public.pair_relation),
+  0,
+  '되돌리면 줄이 사라진다 — 모른다는 없는 것이다');
+
+select is(
+  public.pair_relation_of((select person_id from mom), (select person_id from dad)),
   null,
-  '사이를 안 고르면 모른다로 남는다');
+  '적어 둔 것이 없으면 모른다');
 
 select throws_ok(
-  $$update public.user_person_access set relation = 'coworker'
-    where person_id = (select person_id from dad)$$,
+  format($$select public.set_pair_relation(%L::uuid, %L::uuid, 'coworker')$$,
+    (select person_id from mom), (select person_id from dad)),
   '23514', null,
   '모르는 갈래는 들어가지 않는다');
 
-/** 잘못 고른 것을 못 고치면 사람을 지웠다 다시 등록하게 되고, 그러면 판본 이력이 사라진다 */
-select lives_ok(
-  $$update public.user_person_access set relation = 'friend'
-    where person_id = (select person_id from dad)$$,
-  '고른 사이를 고쳐 적을 수 있다');
-
-/**
- * **관계를 안 받는 문이 남아 있지 않다.** 인자에 기본값을 붙였으므로 옛 서명을 안
- * 지우면 열 개짜리 호출이 어느 쪽으로 갈지 모호해지고, 더 나쁘게는 관계를 영영 못
- * 받는 문이 브라우저에 열린 채 남는다.
- */
-select is(
-  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.proname = 'create_managed_person'),
-  1,
-  '사람을 등록하는 문은 하나다');
+select throws_ok(
+  format($$select public.set_pair_relation(%L::uuid, %L::uuid, 'family')$$,
+    (select person_id from mom), (select person_id from mom)),
+  '22023', null,
+  '같은 사람 둘로는 사이를 적을 수 없다');
 
 select throws_ok(
   $$select public.create_managed_person(
@@ -197,6 +223,22 @@ select set_config('request.jwt.claims', tests.claims((select lee from who)), tru
 select is(
   (select count(*)::int from public.person), 0,
   '남이 등록한 가족은 한 줄도 안 보인다');
+
+/**
+ * **남의 두 사람에 사이를 적을 수 없다.**
+ *
+ * 정책이 두 Person 이 정말 내가 볼 수 있는 사람인지 묻는다. 안 물으면 아무 uuid
+ * 쌍에나 줄을 남길 수 있고, 그 줄은 **남의 Person id 를 내 표에 적어 두는 일**이 된다.
+ */
+select throws_ok(
+  format($$select public.set_pair_relation(%L::uuid, %L::uuid, 'family')$$,
+    (select person_id from mom), (select person_id from dad)),
+  '42501', null,
+  '남의 두 사람에는 사이를 못 적는다');
+
+select is(
+  (select count(*)::int from public.pair_relation), 0,
+  '남이 적어 둔 사이도 한 줄도 안 보인다');
 
 reset role;
 select * from finish();

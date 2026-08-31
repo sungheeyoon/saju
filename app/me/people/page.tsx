@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { relationOf } from '@/src/lib/people';
 import { CALENDAR_KO, ELEMENT_KO, GENDER_KO, STEM_INFO } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -10,7 +9,7 @@ import type { Query } from '../../query';
 import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '../../revision';
 import { ReviseChart } from '../revise';
 import { Halted } from '../halted';
-import { AddPerson, NoteForm, RelationForm, RemoveFromList } from './manage';
+import { AddPerson, NoteForm, RemoveFromList } from './manage';
 
 export const metadata = {
   title: '등록한 사람 — 만세력',
@@ -44,7 +43,7 @@ export default async function PeoplePage() {
     // 정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
     supabase
       .from('user_person_access')
-      .select('person_id, local_label, note, relation')
+      .select('person_id, local_label, note')
       .order('created_at', { ascending: true }),
   ]);
 
@@ -109,12 +108,7 @@ function PeopleList({ people }: { people: Person[] }) {
   );
 }
 
-type Edge = {
-  person_id: string;
-  local_label: string;
-  note: string | null;
-  relation: string | null;
-};
+type Edge = { person_id: string; local_label: string; note: string | null };
 
 /**
  * 목록 한 사람이 든 것 — 못 읽는 판본이면 **명식 대신 그 사실을 든다.**
@@ -194,7 +188,6 @@ function PersonCard({ person }: { person: Person }) {
         </div>
       )}
 
-      <RelationForm personId={person.personId} relation={relationOf(person.relation)} />
       <NoteForm personId={person.personId} note={person.note ?? ''} />
 
       <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">

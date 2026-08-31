@@ -8,11 +8,11 @@ const keyedClient = vi.fn();
 class NoKeyError extends Error {}
 
 /**
- * 파이프라인이 판본 말고도 두 자리를 더 읽는다 — 부를 이름과 **무슨 사이인가**
- * (`user_person_access`), 그리고 내가 어느 쪽인가(`app_user.self_person_id`).
- * 관계는 내가 한쪽에 서 있을 때만 답이 있으므로 둘 다 필요하다.
+ * 파이프라인이 판본 말고도 둘을 더 읽는다 — 부를 이름(`user_person_access`)과
+ * **이 쌍이 무슨 사이인가**(`pair_relation_of`). 관계는 사람이 아니라 쌍에 붙으므로
+ * 어느 조합이든 답이 있을 수 있다.
  */
-const maybeSingle = vi.fn(async () => ({ data: { self_person_id: 'person-a' } }));
+const maybeSingle = vi.fn(async () => ({ data: null }));
 const edgesIn = vi.fn(async () => ({ data: [] as unknown[], error: null }));
 
 vi.mock('../../auth/server-client', () => ({
@@ -75,6 +75,8 @@ const started = {
 const GOOD = `## 한 줄로\n${'스스로 정한 규칙 안에서 오래 버티는 사람입니다. '.repeat(20)}`;
 
 let generator: InstanceType<typeof FakeReadingGenerator>;
+/** 이 쌍에 적어 둔 사이 — 없으면 `null` 이고 그것이 「모른다」다 */
+let relationOfPair: string | null = null;
 
 const savedCall = () => keyedRpc.mock.calls.find(([name]) => name === 'save_reading');
 const failedCall = () => rpc.mock.calls.find(([name]) => name === 'fail_reading_run');
@@ -91,9 +93,12 @@ beforeEach(() => {
     output: { score: null, markdown: GOOD },
   });
 
-  rpc.mockImplementation(async (name: string) =>
-    name === 'start_reading_run' ? { data: [started], error: null } : { data: null, error: null },
-  );
+  relationOfPair = null;
+  rpc.mockImplementation(async (name: string) => {
+    if (name === 'start_reading_run') return { data: [started], error: null };
+    if (name === 'pair_relation_of') return { data: relationOfPair, error: null };
+    return { data: null, error: null };
+  });
   selectIn.mockResolvedValue({ data: [BIRTH], error: null });
   keyedRpc.mockResolvedValue({ data: 'reading-1', error: null });
   keyedClient.mockReturnValue({ rpc: keyedRpc });
@@ -208,9 +213,11 @@ describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저�
   };
 
   const askForPair = async () => {
-    rpc.mockImplementation(async (name: string) =>
-      name === 'start_reading_run' ? { data: [pairRun], error: null } : { data: null, error: null },
-    );
+    rpc.mockImplementation(async (name: string) => {
+      if (name === 'start_reading_run') return { data: [pairRun], error: null };
+      if (name === 'pair_relation_of') return { data: relationOfPair, error: null };
+      return { data: null, error: null };
+    });
     selectIn.mockResolvedValue({
       data: [
         { ...BIRTH, id: 'rev-a', person_id: 'person-a' },
@@ -228,32 +235,33 @@ describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저�
     return generator.prompts[0];
   };
 
-  it('내가 한쪽이면 상대에게 붙여 둔 사이를 프롬프트가 든다', async () => {
+  it('쌍에 적어 둔 사이를 프롬프트가 든다', async () => {
     edgesIn.mockResolvedValue({
       data: [
-        { person_id: 'person-a', local_label: '나', relation: null },
-        { person_id: 'person-b', local_label: '엄마', relation: 'family' },
+        { person_id: 'person-a', local_label: '나' },
+        { person_id: 'person-b', local_label: '엄마' },
       ],
       error: null,
     });
+    relationOfPair = 'family';
 
     expect(await askForPair()).toContain('가족이다');
   });
 
   /**
-   * **둘 다 내가 아니면 이 쌍의 관계는 우리가 아는 것이 아니다.** 어머니가 나의
-   * 가족인 것과 어머니가 그 친구와 무슨 사이인지는 다른 물음이다. 한쪽 값을 쌍의
-   * 관계인 척 쓰면 남남인 두 사람의 궁합이 「가족」으로 읽힌다.
+   * **적어 둔 것이 없으면 모른다.** 행이 없는 것이 곧 모른다이므로 두 가지 없음을
+   * 가르지 않는다. 그리고 자리를 비우지 않는다 — 비우면 모르는 것과 안 물어본 것이
+   * 같은 침묵이 되고, 모델은 그 침묵을 예전처럼 연애로 읽는다.
    */
-  it('둘 다 내가 아니면 모른다고 넘긴다', async () => {
-    maybeSingle.mockResolvedValueOnce({ data: { self_person_id: 'person-me' } });
+  it('적어 둔 사이가 없으면 모른다고 넘긴다', async () => {
     edgesIn.mockResolvedValue({
       data: [
-        { person_id: 'person-a', local_label: '엄마', relation: 'family' },
-        { person_id: 'person-b', local_label: '친구', relation: 'friend' },
+        { person_id: 'person-a', local_label: '엄마' },
+        { person_id: 'person-b', local_label: '친구' },
       ],
       error: null,
     });
+    relationOfPair = null;
 
     const prompt = await askForPair();
     expect(prompt).toContain('무슨 사이인지 모른다');
