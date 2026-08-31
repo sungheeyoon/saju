@@ -901,7 +901,14 @@ export const RELATION_ROW = '{participants} — {name}';
  *
  * '반쪽'을 '두 글자'로 고친 것과 같은 종류다 — 규칙은 그대로고 낱말만 낡았다.
  */
-export const RELATION_MARKS = { combined: '따로 있는 글자들이 합쳐 이룬 것' } as const;
+export const RELATION_MARKS = {
+  combined: '따로 있는 글자들이 합쳐 이룬 것',
+  /**
+   * 반쪽 합은 시주가 셋째 글자를 들고 오면 완전한 것에 흡수돼 **사라진다.**
+   * 3000건에서 4.4% 가 그렇다 — `absorbableByUnknownHour` 가 그 이야기를 든다.
+   */
+  absorbable: '보이는 세 기둥에서 성립하며, 시주에 따라 완전한 합으로 흡수될 수 있음',
+} as const;
 
 const relationRow = (mark?: string): string =>
   mark === undefined ? RELATION_ROW : `${RELATION_ROW} (${mark})`;
@@ -922,6 +929,23 @@ const relationFragments: Fragment[] = [
     variant: 'combined',
     strength: 'fact',
     template: relationRow(RELATION_MARKS.combined),
+  },
+  /**
+   * 시주를 모르는 반쪽 합 — **행을 지우지도 내리지도 않고 함께 말한다.**
+   *
+   * 강도가 `fact` 인 것이 맞다. 「보이는 세 기둥에서 성립하고, 시주에 따라 흡수될
+   * 수 있다」는 두 토막이 다 참이기 때문이다. 잘라서 앞만 남기면 완성된 명식에
+   * 대한 주장이 되어 사실이 아니게 되므로, **꼬리가 문장의 일부**다.
+   *
+   * `relation.coverage` 와 나눈 자리가 요점이다. 저쪽은 **목록**이 못 본 것을
+   * 말하고 이쪽은 **이 행**이 흔들릴 수 있음을 말한다 — 없는 것과 사라질 수
+   * 있는 것은 다른 이야기다.
+   */
+  {
+    topic: 'relation.present',
+    variant: 'row-absorbable',
+    strength: 'fact',
+    template: relationRow(RELATION_MARKS.absorbable),
   },
 ];
 

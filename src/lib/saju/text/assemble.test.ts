@@ -4,6 +4,7 @@ import { computeSaju, type Saju } from '@/src/lib/saju';
 import { ELEMENT_ROLE_KO, TEN_GOD_KO } from '@/src/lib/saju/analysis';
 import { analyzeCompatibility } from '@/src/lib/saju/compat';
 import { currentFortuneOf } from '@/src/lib/saju/now';
+import { absorbableByUnknownHour, type Relation } from '@/src/lib/saju/relations';
 import { randomInputs, withoutHour } from '@/src/lib/saju/population';
 import { TWELVE_STAGE_KO } from '@/src/lib/saju/stages';
 import {
@@ -178,47 +179,90 @@ describe('조립기', () => {
     });
 
     /**
-     * **관계 행이 `fact` 로 남는 근거다.**
+     * **관계 행이 `fact` 로 남는 근거 — 그리고 그 근거의 정확한 한계.**
      *
-     * 시주가 빠져도 여섯 글자에서 난 관계는 그대로 성립한다 — 흔들리는 것은
-     * 항목이 아니라 목록의 전체성이고, 그것을 항목마다 나눠 지우면 관측된 사실을
-     * 의심하는 것처럼 읽힌다(`INCOMPLETE_INPUT_RULE`).
+     * 이 자리에는 「시주가 붙어도 여섯 글자에서 난 관계는 사라지지 않는다」가
+     * 서 있었고 480 쌍으로 0 건임을 확인했다고 적혀 있었다. **틀린 시험이었다.**
+     * 1985~1994년의 열두 날만 훑어 반례를 만나지 못했을 뿐이고, 무작위 표본에서는
+     * 2961건 중 129건(4.4%)에서 관계가 사라진다.
      *
-     * 그 전제를 480 쌍으로 세어 확인한다. 사라지는 것은 **절입일 명식뿐**인데
-     * 그때는 월주가 통째로 바뀐 다른 명식이고, 그 불확실성은 관계만의 것이 아니라
-     * 강약·조후까지 걸리므로 `meta.warnings` 가 든다.
+     * 사라지는 것은 **`full: false` 인 삼합·방합뿐이다.** 세 글자가 다 모이면 그
+     * 안의 두 글자 조합을 버리기 때문이고(`absorbedPairs`), 시주가 셋째 글자를
+     * 들고 오면 반쪽 줄이 완전한 줄로 바뀐다. 그래서 행은 여전히 `fact` 이되
+     * **그 행만 흡수될 수 있다고 함께 말한다**(`row-absorbable`).
+     *
+     * 시험도 방향을 둘로 든다 — 반례가 **있다**는 것과, 사라진 것이 그 갈래를
+     * **넘지 않는다**는 것.
      */
-    it('시주가 붙어도 여섯 글자에서 난 관계는 사라지지 않는다', () => {
+    // 1200 명식을 시각 있는 짝과 없는 짝으로 두 번 세는 측정이라 기본 5초를 넘길 수
+    // 있다. 표본을 줄이면 반례를 못 만나는 판이 생긴다 — 그것이 이 시험의 앞판이었다.
+    it('사라지는 관계는 반쪽 삼합·방합뿐이다', { timeout: 30_000 }, () => {
       const keysOf = (saju: Saju) =>
-        saju.relations.map((r) => `${r.ko}@${r.participants.map((p) => p.position).join(',')}`);
+        new Map(
+          saju.relations.map((r) => [
+            `${r.ko}@${r.participants.map((p) => p.position).join(',')}`,
+            r,
+          ]),
+        );
 
       let checked = 0;
-      const lost: string[] = [];
+      const lost: { key: string; relation: Relation }[] = [];
 
-      for (let year = 1985; year <= 1994; year += 1) {
-        for (let month = 1; month <= 12; month += 1) {
-          const day = 3 + ((year + month) % 25);
-          const hourless = male(year, month, day, null);
+      for (const input of randomInputs(1200)) {
+        const hourless = computeSaju(withoutHour(input));
+        const withHour = computeSaju(input);
 
-          // 절입일이면 시각에 따라 월주가 통째로 갈린다 — 다른 명식이 되는 것이라
-          // "관계가 사라졌다"고 셀 수 없다. 그 경우는 경고가 이미 든다.
-          if (hourless.meta.warnings.some((warning) => warning.includes('절입일'))) continue;
+        // 세 기둥이 갈리면 다른 명식이라 "관계가 사라졌다"고 셀 수 없다.
+        const three = (saju: Saju) =>
+          (['year', 'month', 'day'] as const).map((p) => saju.pillars[p].name).join(' ');
+        if (three(hourless) !== three(withHour)) continue;
 
-          const six = new Set(keysOf(hourless));
+        checked += 1;
+        const eight = keysOf(withHour);
 
-          for (const hour of [1, 7, 13, 19]) {
-            const eight = new Set(keysOf(male(year, month, day, hour)));
-            checked += 1;
-
-            for (const key of six) {
-              if (!eight.has(key)) lost.push(`${year}-${month}-${day} ${hour}시 · ${key}`);
-            }
-          }
+        for (const [key, relation] of keysOf(hourless)) {
+          if (!eight.has(key)) lost.push({ key, relation });
         }
       }
 
-      expect(checked).toBeGreaterThan(400);
-      expect(lost).toEqual([]);
+      expect(checked).toBeGreaterThan(1000);
+
+      // 반례가 없으면 이 시험은 아무것도 재지 않는다 — 앞선 시험이 그랬다.
+      expect(lost.length).toBeGreaterThan(0);
+
+      // 그리고 사라진 것은 그 갈래를 넘지 않는다.
+      const beyond = lost.filter(({ relation }) => !absorbableByUnknownHour(relation, false));
+      expect(beyond.map(({ key }) => key)).toEqual([]);
+    });
+
+    /** 고정 반례 하나 — 무작위 표본이 언젠가 못 만날 수 있다 */
+    it('壬申 癸卯 丁酉 에 시주 庚戌 이 붙으면 신유 반방합이 금방으로 흡수된다', () => {
+      const input = {
+        year: 2052,
+        month: 3,
+        day: 7,
+        hour: 20,
+        minute: 0,
+        second: 0,
+        gender: 'male',
+      } as const;
+
+      const hourless = computeSaju(withoutHour(input));
+      const withHour = computeSaju(input);
+
+      expect(withHour.pillars.hour?.name).toBe('庚戌');
+      expect(hourless.relations.map((r) => r.ko)).toContain('신유 반방합');
+      expect(withHour.relations.map((r) => r.ko)).not.toContain('신유 반방합');
+      expect(withHour.relations.map((r) => r.ko)).toContain('신유술 금방');
+
+      // 그 행은 지워지지도 내려가지도 않고, 단서를 달고 선다.
+      const row = assembleText(hourless).find(
+        ({ request }) =>
+          request.topic === 'relation.present' && request.slots.name === '신유 반방합',
+      );
+      expect(row?.request.variant).toBe('row-absorbable');
+      expect(row?.strength).toBe('fact');
+      expect(row?.text).toContain('시주에 따라 완전한 합으로 흡수될 수 있음');
     });
 
     /**

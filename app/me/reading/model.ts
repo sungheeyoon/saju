@@ -55,7 +55,7 @@ const SCHEMA = jsonSchema<ReadingOutput>({
  */
 export async function callModel(prompt: string): Promise<ModelCall> {
   try {
-    const { output } = await generateText({
+    const { output, usage, response } = await generateText({
       model: openai(GENERATION.model),
       output: Output.object({ schema: SCHEMA }),
       prompt,
@@ -65,21 +65,51 @@ export async function callModel(prompt: string): Promise<ModelCall> {
       },
     });
 
-    return { ok: true, output };
+    /**
+     * 쓴 양과 **실제로 답한 모델**을 함께 낸다.
+     *
+     * 요청한 이름(`GENERATION.model`)과 응답한 이름이 다를 수 있다 — 별칭이
+     * 어느 판으로 풀렸는지는 응답만 안다. 되짚을 때 볼 곳이 하나여야 하므로
+     * 둘 중 응답 쪽을 남긴다.
+     *
+     * 못 받은 자리는 `null` 이다. 0 으로 채우면 비용이 조용히 0 이 된다.
+     */
+    return {
+      ok: true,
+      output,
+      usage: {
+        inputTokens: usage?.inputTokens ?? null,
+        noCacheTokens: usage?.inputTokenDetails?.noCacheTokens ?? null,
+        cacheReadTokens: usage?.inputTokenDetails?.cacheReadTokens ?? null,
+        cacheWriteTokens: usage?.inputTokenDetails?.cacheWriteTokens ?? null,
+        outputTokens: usage?.outputTokens ?? null,
+        totalTokens: usage?.totalTokens ?? null,
+      },
+      modelId: response?.modelId ?? null,
+    };
   } catch (failure) {
     if (NoOutputGeneratedError.isInstance(failure)) {
       return { ok: false, code: 'model-no-output', detail: '모델이 계약한 모양으로 내지 않았습니다' };
+    }
+
+    const detail = failure instanceof Error ? failure.message : String(failure);
+
+    /**
+     * **시간 초과는 따로 부른다.**
+     *
+     * 한 덩어리로 두었더니 「모델이 못 냈다」와 「우리가 기다리다 끊었다」가 같은
+     * 코드로 남았다. 둘은 손댈 곳이 다르다 — 앞은 프롬프트나 스키마이고, 뒤는
+     * 분량이나 문턱(`GENERATION.settings.timeout`)이다. 알림 문구도 갈려야 한다.
+     */
+    if (/timeout|aborted|abort/i.test(detail)) {
+      return { ok: false, code: 'model-timeout', detail };
     }
 
     /**
      * 메시지를 그대로 남긴다. 여기 오는 것은 provider 의 오류 문장이고 출생 원문이
      * 실릴 자리가 아니다 — 프롬프트에 그 값이 없기 때문이다(ADR 0008).
      */
-    return {
-      ok: false,
-      code: 'model-call-failed',
-      detail: failure instanceof Error ? failure.message : String(failure),
-    };
+    return { ok: false, code: 'model-call-failed', detail };
   }
 }
 

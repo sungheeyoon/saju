@@ -156,9 +156,15 @@ describe('말뭉치', () => {
       // 종류가 열하나인 것은 그대로다 — 줄어든 것은 문장 수이지 표가 아니다.
       expect(Object.keys(RELATION_KIND_KO).length).toBe(11);
 
-      // 남은 변종 둘은 종류가 아니라 **성립한 방식**이 가른다. 두 사람 글자가
-      // 합쳐 이룬 것은 인정 여부 자체가 계통 선택이라 섞으면 안 된다.
-      expect(FRAGMENT_TOPICS['relation.present'].variants).toEqual(['row', 'combined']);
+      // 남은 변종 셋은 종류가 아니라 **성립한 방식과 흔들림**이 가른다. 두 사람
+      // 글자가 합쳐 이룬 것은 인정 여부 자체가 계통 선택이라 섞으면 안 되고,
+      // 시주를 모르는 반쪽 합은 시주가 붙으면 흡수돼 사라질 수 있어 같은 문장을
+      // 쓸 수 없다(`absorbableByUnknownHour`).
+      expect(FRAGMENT_TOPICS['relation.present'].variants).toEqual([
+        'row',
+        'combined',
+        'row-absorbable',
+      ]);
     });
 
     /**
@@ -168,7 +174,7 @@ describe('말뭉치', () => {
     it('종류 이름이 문장 틀에 없다', () => {
       const rows = FRAGMENTS.filter((fragment) => fragment.topic === 'relation.present');
 
-      expect(rows).toHaveLength(2);
+      expect(rows).toHaveLength(3);
       for (const fragment of rows) {
         for (const ko of Object.values(RELATION_KIND_KO)) {
           expect(fragment.template.includes(ko), `${keyOf(fragment)} 에 ${ko}`).toBe(false);

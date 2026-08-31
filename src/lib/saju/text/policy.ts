@@ -429,12 +429,15 @@ export type ClaimPolarity = 'presence' | 'absence';
  * **`relations` 는 여기 없다.** 한동안 있었는데, 그것이 규칙과 어긋났다 — 관계는
  * 적힌 한 줄 한 줄이 시주와 무관하게 참이고 흔들리는 것은 항목이 아니라 목록의
  * **전체성**이다. 목록의 한계를 항목마다 나눠 지우는 것은 관측된 사실을 의심하는
- * 것처럼 보이게 만든다. 지금은 목록이 제 몫을 따로 든다(`relation.coverage`).
+ * 것처럼 보이게 만든다. 지금은 목록이 제 몫을 따로 든다(`relation.coverage`),
+ * 그리고 「없다」는 `LIST_COMPLETENESS_PATHS` 가 잠근다.
  *
- * 그 전제는 세어서 확인했다 — 480 쌍에서 **시주가 붙어 사라진 관계는 0건**이다
- * (`assemble.test.ts`). 사라지는 것은 절입일 명식뿐인데 그때는 월주가 통째로 바뀐
- * 다른 명식이고, 그 불확실성은 관계만의 것이 아니라 강약·조후까지 걸리므로 여기가
- * 아니라 `meta.warnings` 가 든다.
+ * **한 갈래는 예외였다.** 여기에는 「480 쌍에서 시주가 붙어 사라진 관계는 0건」이라고
+ * 적혀 있었는데 틀린 말이었다 — 그 시험이 열두 날만 훑어 반례를 못 만났을 뿐이고,
+ * 무작위 표본에서는 2961건 중 129건(4.4%)에서 사라진다. 사라지는 것은 `full: false`
+ * 인 삼합·방합뿐이다(`absorbedPairs` 가 흡수한다). 그 갈래도 **행을 내리지 않고**
+ * 그 행만 흡수될 수 있다고 함께 말한다 — `absorbableByUnknownHour` 와
+ * `relation.present/row-absorbable`, 그리고 `docs/text/claim-policy.md`.
  */
 export const HOUR_SENSITIVE_PATHS: readonly ClaimPath[] = [
   /**
@@ -483,6 +486,70 @@ export const HOUR_SENSITIVE_PATHS: readonly ClaimPath[] = [
   'analysis.effectiveElements',
 ];
 
+/**
+ * 시주가 붙으면 **목록이 길어질 수 있는** 자리 — 인식 규칙의 셋째 줄.
+ *
+ * 여태 이 줄에는 **계약이 없었다.** 표는 「"이것이 전부다"는 목록이 따로 말한다」고
+ * 적어 두었고 그 목록은 `relation.coverage` 인데, 그것은 **L3 문장 층에만 있다.**
+ * AI 에 넘기는 자료에는 그런 값이 없어서, 계약은 시간 미상에도 「관계가 없다」를
+ * `fact` 로 말해도 된다고 적고 있었다 — 문장 층이 들던 몫을 자료 층에서는 아무도
+ * 안 들고 있었던 것이다.
+ *
+ * **`HOUR_SENSITIVE_PATHS` 로는 못 고친다.** 저쪽은 「있다」까지 한 칸 내리는데,
+ * 여기서 흔들리는 것은 항목이 아니라 목록의 끝이다. 거의 전부가 **늘어나는** 쪽이라,
+ * 적힌 한 줄은 시주를 몰라도 그대로 참이다. 내리면 관측된 사실을 의심하는 것처럼
+ * 읽힌다 — 관계 행을 `fact` 로 되돌린 그 판단이다.
+ *
+ * 그래서 **「있다」는 그대로 두고 「없다」만 잠근다.**
+ *
+ * **한 갈래는 늘어나기만 하지 않는다.** 반쪽 삼합·방합은 시주가 셋째 글자를 들고
+ * 오면 완전한 것에 흡수돼 사라진다(4.4%). 그 갈래도 「있다」를 내리지 않고 그 행이
+ * 스스로 단서를 든다 — 위 `absorbableByUnknownHour` 자리를 보라.
+ *
+ * 재어 본 값(2000건, 세 기둥이 같은 표본이 아니라 시각만 지운 짝):
+ * 시주를 지우면 자리 색인이 **일주 칸에서 57.9%, 세 칸 중 하나라도면 85.3%**
+ * 달라진다. 거의 전부가 늘어난 것이고, 그래서 「없다」만 위험하다.
+ */
+export const LIST_COMPLETENESS_PATHS: readonly ClaimPath[] = [
+  /** 관계 목록 — 시주 두 글자가 새 형충회합을 만든다 */
+  'relations',
+  /**
+   * 암합. `HOUR_SENSITIVE_PATHS` 의 주석이 「짝이 뒤집힌 것은 0건이고 98.9% 는
+   * 짝이 줄기만 한다 — 흔들리는 것은 「이것이 전부다」」라고 적고 그 줄로 보냈는데,
+   * 보낸 곳에 아무것도 없었다. 이제 여기가 그 줄이다.
+   */
+  'analysis.hiddenCombinations',
+
+  /**
+   * 아래 일곱은 **전수 감사에서 나왔다**(`completeness.test.ts`).
+   *
+   * 처음에는 「재지 않았으니 넣지 않는다」고 두었는데, 그것이 판정 기준을 잘못
+   * 고른 것이었다. **발생률은 심각도를 말하고, 「없다」를 말해도 되는가는 반례
+   * 하나가 정한다.** 시주를 붙여 항목이 한 번이라도 늘어나면 그 자리에서
+   * 「없다」는 틀릴 수 있는 문장이다.
+   *
+   * 그래서 목록을 손으로 채우지 않는다. 시험이 자리마다 항목을 뽑아 시주 있는
+   * 짝과 맞대고, 늘어나는 자리인데 「없다」가 잠기지 않았으면 거기서 걸린다.
+   * 새 근거가 들어오면 「목록인가 아닌가」부터 정하게 되어 있다.
+   */
+  /** 여덟 글자 — 시주 두 글자가 없으면 「이 글자가 없다」를 말할 수 없다 */
+  'pillars',
+  /** 12운성 — 시지에서 새 운성이 선다 */
+  'stages',
+  /** 공망·12신살·신살 — 시주에서만 걸리는 신살이 있다 */
+  'sinsal',
+  /** 십성 — 시간·시지의 십성이 더해진다 */
+  'analysis.tenGods',
+  /**
+   * 세운·월운·현재운. `HOUR_SENSITIVE_PATHS` 의 주석이 「그 몫은 목록이 따로
+   * 든다(`relation.coverage`)」로 넘겼는데, 그 목록은 **L3 문장 층에만 있다.**
+   * 자료 층에는 넘겨받은 곳이 없었다.
+   */
+  'saeun',
+  'wolun',
+  'now',
+];
+
 /** 강도를 한 칸 내린다. `silent` 아래는 없다 */
 export function downgrade(strength: ClaimStrength): ClaimStrength {
   const index = CLAIM_STRENGTH_ORDER.indexOf(strength);
@@ -517,6 +584,12 @@ export function ceilingFor({ paths, polarity = 'presence', hourKnown = true }: C
     // 없다는 주장은 시주가 통째로 뒤집을 수 있다 — 내리는 것으로는 부족하다.
     if (sensitive && polarity === 'absence') return 'silent';
     if (sensitive) ceiling = downgrade(ceiling);
+
+    // 목록이 길어질 수 있는 자리 — 적힌 항목은 그대로 참이라 「있다」는 내리지
+    // 않고, 「없다」만 잠근다(`LIST_COMPLETENESS_PATHS`).
+    if (polarity === 'absence' && paths.some((path) => LIST_COMPLETENESS_PATHS.includes(path))) {
+      return 'silent';
+    }
   }
 
   return ceiling;

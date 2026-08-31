@@ -91,6 +91,8 @@ beforeEach(() => {
   generator = new FakeReadingGenerator({
     ok: true,
     output: { score: null, markdown: GOOD },
+    usage: null,
+    modelId: null,
   });
 
   relationOfPair = null;
@@ -131,6 +133,8 @@ describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저�
     generator.respondWith({
       ok: true,
       output: { score: null, markdown: `${GOOD}\n1990-05-12 에 태어났습니다.` },
+      usage: null,
+      modelId: null,
     });
 
     const result = await requestReading({ kind: 'self' }, undefined, generator);
@@ -141,7 +145,7 @@ describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저�
   });
 
   it('점수 계약을 어긴 글도 저장하지 않는다', async () => {
-    generator.respondWith({ ok: true, output: { score: 70, markdown: GOOD } });
+    generator.respondWith({ ok: true, output: { score: 70, markdown: GOOD }, usage: null, modelId: null });
 
     await requestReading({ kind: 'self' }, undefined, generator);
 

@@ -222,8 +222,19 @@ describe('넘길 자료', () => {
 
       expect(hourless['analysis.elements'].presence).not.toBe('silent');
       expect(hourless['analysis.elements'].absence).toBe('silent');
-      // 흔들리지 않는 근거는 두 방향이 같다.
-      expect(hourless.pillars.absence).toBe(hourless.pillars.presence);
+
+      /**
+       * 흔들리지 않는 근거는 두 방향이 같다 — **조후가 그 자리다.** 일간과 월지만
+       * 보므로 시주가 아무것도 바꾸지 않는다.
+       *
+       * 한동안 이 줄이 `pillars` 를 들고 있었는데, 전수 감사에서 여덟 글자도
+       * 목록이라는 것이 드러났다(`completeness.test.ts`) — 시주 두 글자가 없으면
+       * 「이 명식에 그 글자가 없다」를 말할 수 없다. 「있다」는 그대로 `fact` 이고
+       * 「없다」만 잠긴다.
+       */
+      expect(hourless['analysis.johu'].absence).toBe(hourless['analysis.johu'].presence);
+      expect(hourless.pillars.presence).toBe('fact');
+      expect(hourless.pillars.absence).toBe('silent');
     });
 
     it('궁합 상한은 두 사람 중 모르는 쪽이 있으면 함께 내려간다', () => {

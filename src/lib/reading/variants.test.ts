@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '../saju';
+import { type RelationKind } from '../saju/constants';
+import { ABSORPTION_RULE } from '../saju/evidence/prompt';
+import { ABSORBABLE_KINDS, RELATION_KIND_KO } from '../saju/relations';
 import {
   CONTROL,
   PROMPT_VARIANTS,
@@ -606,6 +609,36 @@ describe('고객이 읽는 글의 계약', () => {
     // (`checkReading` 의 `kind === 'self'` 갈래), 궁합에는 문답 절 자체가 없다.
     expect(READING_PROMPTS.self).toContain('질문 1.');
     expect(READING_PROMPTS.self).toContain('영문 표기');
+  });
+
+  /**
+   * **문구가 상수를 베끼지 않는지 잰다.**
+   *
+   * 흡수 조건은 `absorbableByUnknownHour` 한 벌인데 문구가 그 조건을 산문으로
+   * 옮겨 적으면 사본이 생기고, `ABSORBABLE_KINDS` 가 바뀌면 L3 만 따라간다.
+   * 지금은 `ABSORPTION_RULE` 이 상수에서 지어지므로 여기서 재는 것은
+   * **어느 종류도 두 목록 밖에 남지 않는가**다.
+   */
+  it('관계 종류가 빠짐없이 흡수 규칙의 어느 한쪽에 선다', () => {
+    const absorbable = new Set<string>(
+      (ABSORBABLE_KINDS as readonly RelationKind[]).map((kind) => RELATION_KIND_KO[kind]),
+    );
+
+    const [head, tail] = ABSORPTION_RULE.split('은 사라지지 않으니');
+    expect(tail, '「사라지지 않으니」 절이 없다').toBeDefined();
+
+    for (const [kind, ko] of Object.entries(RELATION_KIND_KO)) {
+      const side = absorbable.has(ko) ? head : head.slice(head.lastIndexOf('. ') + 1);
+      expect(absorbable.has(ko) ? head.includes(ko) : side.includes(ko), `${kind}(${ko})`).toBe(
+        true,
+      );
+    }
+  });
+
+  it('흡수 규칙은 세 kind 에 모두 실린다 — 궁합에도 반쪽 합이 있다', () => {
+    for (const kind of ['self', 'private', 'match'] as const) {
+      expect(READING_PROMPTS[kind], kind).toContain(ABSORPTION_RULE);
+    }
   });
 
   it('어색하거나 낡은 절 이름을 사용자 본문에 쓰지 않는다', () => {

@@ -112,6 +112,57 @@ export const RELATION_POLICY = {
   ghostGateBasis: 'all-branch-pairs',
 } as const;
 
+/**
+ * 시주가 붙으면 **완전한 것에 흡수돼 사라질 수 있는** 관계 — 반쪽 삼합·방합.
+ *
+ * ## 이 함수가 왜 생겼는가
+ *
+ * 이 저장소는 관계 행을 `fact` 로 둔다. 근거는 「시주가 붙어도 여섯 글자에서 난
+ * 관계는 사라지지 않는다」였고, 480 쌍을 세어 0 건임을 확인했다고 적혀 있었다.
+ *
+ * **그 전제가 틀렸다.** 무작위 3000건에서 세 기둥이 같은 짝만 골라 재면 2961건
+ * 중 **129건(4.4%)** 에서 관계가 사라진다. 480 쌍은 1985~1994년의 열두 날만
+ * 훑어서 반례를 만나지 못했을 뿐이다.
+ *
+ * 사라지는 것은 **예외 없이 `full: false` 인 삼합(76)과 방합(68)뿐이고** 충·형·
+ * 해·파·원진·귀문·육합·천간합은 하나도 사라지지 않는다. 까닭도 하나다 —
+ * `RELATION_POLICY.absorbedPairs: 'kept-for-punishments-only'` 라, 세 글자가 다
+ * 모이면 그 안의 두 글자 조합은 버려진다. 시주가 셋째 글자를 들고 오면 반쪽이
+ * 완전한 것으로 바뀌면서 반쪽 줄이 없어진다.
+ *
+ * ```
+ * 壬申 癸卯 丁酉 ??   시간 미상 → 신유 반방합
+ * 壬申 癸卯 丁酉 庚戌  시주가 붙으면 → 신유술 금방 (반방합은 사라진다)
+ * ```
+ *
+ * ## 그래서 무엇을 하는가
+ *
+ * 그 행을 **지우지도 내리지도 않는다.** 세 기둥에서 그 반쪽이 성립한다는 것은
+ * 그대로 참이다. 대신 **함께 말한다** — 「지금 보이는 세 기둥에서는 성립하고,
+ * 시주에 따라 흡수될 수 있다」. 그 문장 전체는 `fact` 다. 잘라서 「반방합이
+ * 있다」만 남기면 그것은 완성된 명식에 대한 주장이 되어 사실이 아니게 된다.
+ *
+ * **판정은 여기 한 벌만 둔다.** 프롬프트와 L3 가 각자 조건을 적으면 한쪽만
+ * 고치는 날이 오고, 그때 어느 쪽이 맞는지 알 수 없다.
+ *
+ * `full` 과 `kind` 로 유도되므로 관계에 새 필드를 만들지 않는다.
+ */
+export const ABSORBABLE_KINDS = [
+  'branchTripleCombination',
+  'branchDirectionalCombination',
+] as const satisfies readonly RelationKind[];
+
+export function absorbableByUnknownHour(
+  relation: Pick<Relation, 'kind' | 'full'>,
+  hourKnown: boolean,
+): boolean {
+  return (
+    !hourKnown &&
+    !relation.full &&
+    (ABSORBABLE_KINDS as readonly RelationKind[]).includes(relation.kind)
+  );
+}
+
 /** 정렬 기준 — 합을 먼저, 그다음 충·형·해·파·원진·귀문 */
 const KIND_ORDER: readonly RelationKind[] = [
   'stemCombination',
