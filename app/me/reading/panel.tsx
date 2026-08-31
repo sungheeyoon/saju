@@ -57,6 +57,7 @@ export function ReadingPanel({
   initialFailed,
   initialRunning,
   allowMockFallback,
+  layout = 'card',
 }: {
   target: ReadingTarget;
   initialReading: CurrentReading | null;
@@ -70,6 +71,18 @@ export function ReadingPanel({
    */
   initialRunning: boolean;
   allowMockFallback: boolean;
+  /**
+   * 이 칸이 **카드인가 페이지인가.**
+   *
+   * `card` 는 다른 것들 사이에 끼어 있는 자리다(`/me` 의 자기 풀이). 긴 글을 접어
+   * 두고 만드는 버튼을 아래에 둔다.
+   *
+   * `page` 는 그 글을 읽으러 온 자리다. **이미 상세 화면인데 또 펼쳐 보라고 하지
+   * 않는다** — 한 번 더 누르게 하는 것은 아무것도 아끼지 않는다. 그리고 다시 받는
+   * 버튼은 위로 간다. 그것은 글을 읽기 **전에** 정하는 일이라 8천 자 뒤에 있으면
+   * 없는 것과 같다.
+   */
+  layout?: 'card' | 'page';
 }) {
   const router = useRouter();
   const [mockReading, setMockReading] = useState<CurrentReading | null>(null);
@@ -177,6 +190,54 @@ export function ReadingPanel({
     setPhase('error');
   };
 
+  const onPage = layout === 'page';
+
+  const makeBlock = (
+    <div
+      className={`flex flex-col gap-3 ${onPage ? 'rounded-2xl border border-border bg-surface px-5 py-4' : 'border-t border-border pt-5'}`}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold">
+            {reading === null ? '명식 근거로 풀이를 받아 보세요' : '지금 풀이를 새로 받을 수 있어요'}
+          </p>
+          <p className="mt-0.5 text-xs leading-5 text-muted">
+            {reading === null ? READING_NONE_NOTE : READING_REPLACES_NOTE}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={generate}
+          disabled={phase === 'loading'}
+          className="h-11 shrink-0 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60 sm:h-10"
+        >
+          {phase === 'loading' ? '풀이를 쓰고 있어요…' : reading === null ? '사주풀이 받기' : '다시 풀이받기'}
+        </button>
+      </div>
+      {/*
+        누가 썼는지와 무엇을 안 넘겼는지는 **만드는 버튼 옆**에 선다(`notes.ts`).
+        제목이 아니라 여기인 이유는, 이 두 사실이 필요한 시점이 글을 읽을 때가
+        아니라 만들지 말지를 정할 때이기 때문이다.
+      */}
+      <p className="text-xs leading-5 text-muted">{READING_AUTHORSHIP_NOTE}</p>
+      <p className="text-xs leading-5 text-muted">{READING_REDACTION_NOTE}</p>
+    </div>
+  );
+
+  const alert = failure === null ? null : (
+    <div
+      role={phase === 'error' ? 'alert' : 'status'}
+      className={`rounded-xl px-4 py-3 text-sm leading-6 ${phase === 'error' ? 'bg-danger-wash text-danger' : 'bg-warning-wash text-warning'}`}
+    >
+      <p>{failure}</p>
+      {phase === 'error' && (
+        <button type="button" onClick={generate} className="mt-2 font-semibold underline underline-offset-4">
+          다시 시도하기
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <>
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -188,52 +249,34 @@ export function ReadingPanel({
         </div>
         {reading !== null && (
           <div className="flex items-center gap-2">
-            {isMock && <span className="rounded-full bg-warning-wash px-2.5 py-1 text-[11px] font-semibold text-warning">예시 결과</span>}
+            {isMock && (
+              <span className="rounded-full bg-warning-wash px-2.5 py-1 text-[11px] font-semibold text-warning">
+                예시 결과
+              </span>
+            )}
             <span className="text-xs text-muted">{when(reading.createdAt)} 생성</span>
           </div>
         )}
       </header>
+
+      {/*
+        **다시 받는 버튼이 글 위에 선다.** 그것은 글을 읽기 전에 정하는 일이라, 8천 자
+        뒤에 있으면 없는 것과 같다. 카드로 설 때는 반대다 — 거기서는 이 칸이 다른 것들
+        사이에 끼어 있어서, 먼저 무엇이 있는지 보이고 나서 만들지 말지를 정한다.
+      */}
+      {onPage && makeBlock}
+      {onPage && alert}
 
       {phase === 'loading' ? (
         <LoadingState />
       ) : reading === null ? (
         <EmptyState />
       ) : (
-        <Result reading={reading} target={target} />
+        <Result reading={reading} target={target} alwaysOpen={onPage} />
       )}
 
-      {failure !== null && (
-        <div role={phase === 'error' ? 'alert' : 'status'} className={`rounded-xl px-4 py-3 text-sm leading-6 ${phase === 'error' ? 'bg-danger-wash text-danger' : 'bg-warning-wash text-warning'}`}>
-          <p>{failure}</p>
-          {phase === 'error' && (
-            <button type="button" onClick={generate} className="mt-2 font-semibold underline underline-offset-4">다시 시도하기</button>
-          )}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-3 border-t border-border pt-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold">{reading === null ? '명식 근거로 풀이를 받아 보세요' : '지금 풀이를 새로 받을 수 있어요'}</p>
-            <p className="mt-0.5 text-xs leading-5 text-muted">{reading === null ? READING_NONE_NOTE : READING_REPLACES_NOTE}</p>
-          </div>
-          <button
-            type="button"
-            onClick={generate}
-            disabled={phase === 'loading'}
-            className="h-11 shrink-0 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60 sm:h-10"
-          >
-            {phase === 'loading' ? '풀이를 쓰고 있어요…' : reading === null ? '사주풀이 받기' : '다시 풀이받기'}
-          </button>
-        </div>
-        {/*
-          누가 썼는지와 무엇을 안 넘겼는지는 **만드는 버튼 옆**에 선다(`notes.ts`).
-          제목이 아니라 여기인 이유는, 이 두 사실이 필요한 시점이 글을 읽을 때가
-          아니라 만들지 말지를 정할 때이기 때문이다.
-        */}
-        <p className="text-xs leading-5 text-muted">{READING_AUTHORSHIP_NOTE}</p>
-        <p className="text-xs leading-5 text-muted">{READING_REDACTION_NOTE}</p>
-      </div>
+      {!onPage && alert}
+      {!onPage && makeBlock}
     </>
   );
 }
@@ -305,8 +348,18 @@ function LoadingState() {
   );
 }
 
-function Result({ reading, target }: { reading: CurrentReading; target: ReadingTarget }) {
+function Result({
+  reading,
+  target,
+  alwaysOpen,
+}: {
+  reading: CurrentReading;
+  target: ReadingTarget;
+  /** 상세 화면에서는 접지 않는다 — 그 글을 읽으러 온 자리다 */
+  alwaysOpen: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const open = alwaysOpen || expanded;
 
   return (
     <div className="flex flex-col gap-5">
@@ -322,25 +375,31 @@ function Result({ reading, target }: { reading: CurrentReading; target: ReadingT
         {target.kind === 'match' ? <p>{READING_PINNED_NOTE}</p> : !reading.fromCurrentRevision && <p className="text-danger">{READING_STALE_NOTE}</p>}
       </div>
       <div className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-[var(--shadow-card)]">
-        <button
-          type="button"
-          onClick={() => setExpanded((current) => !current)}
-          aria-expanded={expanded}
-          aria-controls={`reading-${reading.id}`}
-          className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-surface-soft sm:px-7"
-        >
-          <span>
-            <span className="block text-sm font-bold">사주풀이 전문</span>
-            <span className="mt-0.5 block text-xs text-muted">
-              {expanded ? '긴 풀이를 접어 화면을 간단히 볼 수 있어요.' : '핵심 성향부터 관계 조언까지 이어서 읽어보세요.'}
+        {/* 상세 화면에는 여는 버튼이 없다 — 이미 그 글을 읽으러 온 자리다 */}
+        {!alwaysOpen && (
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => !current)}
+            aria-expanded={expanded}
+            aria-controls={`reading-${reading.id}`}
+            className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-surface-soft sm:px-7"
+          >
+            <span>
+              <span className="block text-sm font-bold">사주풀이 전문</span>
+              <span className="mt-0.5 block text-xs text-muted">
+                {expanded ? '긴 풀이를 접어 화면을 간단히 볼 수 있어요.' : '핵심 성향부터 관계 조언까지 이어서 읽어보세요.'}
+              </span>
             </span>
-          </span>
-          <span className="shrink-0 text-sm font-semibold text-accent">
-            {expanded ? '접기 ↑' : '펼쳐보기 ↓'}
-          </span>
-        </button>
-        {expanded && (
-          <article id={`reading-${reading.id}`} className="border-t border-border p-5 sm:p-7 lg:p-8">
+            <span className="shrink-0 text-sm font-semibold text-accent">
+              {expanded ? '접기 ↑' : '펼쳐보기 ↓'}
+            </span>
+          </button>
+        )}
+        {open && (
+          <article
+            id={`reading-${reading.id}`}
+            className={`p-5 sm:p-7 lg:p-8 ${alwaysOpen ? '' : 'border-t border-border'}`}
+          >
             <Markdown source={reading.output} />
           </article>
         )}

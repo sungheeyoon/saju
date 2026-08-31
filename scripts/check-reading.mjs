@@ -216,6 +216,8 @@ try {
      * 개를 세워 두면 글까지 내려오지 못한다. 시험이 끝나면 이 칸은 통째로 내린다.
      */
     check('둘의 명식은 접어 둔다', before.includes('둘의 명식 보기'));
+    /** 상세 화면에서는 글을 또 펼치라고 하지 않는다 — 그 글을 읽으러 온 자리다 */
+    check('풀이 전문을 접는 버튼이 없다', !before.includes('펼쳐보기'));
     for (const word of ['match-v0', '100점 만점 베타 탐색 지표']) {
       check(`내부 지표(${word})가 로그인 화면에 없다`, !before.includes(word));
     }
@@ -239,12 +241,16 @@ try {
       after.includes('둘은 서로 다른 속도로'));
 
     /**
-     * **사이는 사람이 아니라 쌍에 붙고, 궁합 화면에서 묻는다.**
+     * **사이는 고르는 칸 옆에서 묻는다.**
      *
-     * 사람 탭은 그 사람의 사주를 보는 자리다. 그리고 「나와 그 사람」만 알면 어머니와
-     * 친구의 궁합에서는 답이 없다 — 어머니가 나의 가족인 것과 어머니가 그 친구와 무슨
-     * 사이인지는 다른 물음이다.
+     * 관계를 묻는 까닭이 「사이에 따라 해석의 방향을 달리 잡겠다」는 것이라, 읽고 난
+     * 뒤에 묻는 것은 아무 뜻이 없다 — 이미 나온 글은 그 답을 못 쓴다.
      */
+    const picker = plain(await body('/me/compat', cookie.a));
+    check('고르는 화면이 무슨 사이인지 묻는다', picker.includes('두 분은 무슨 사이인가요'));
+    check('점수에 안 쓴다는 것도 그 자리에서 말한다', picker.includes('점수에는 쓰지 않습니다'));
+    check('상세 화면에서는 다시 묻지 않는다', !after.includes('두 분은 무슨 사이인가요'));
+
     const set = await a.rpc('set_pair_relation', {
       p_person_a: momId, p_person_b: account.self_person_id, p_relation: 'family',
     });
@@ -260,12 +266,6 @@ try {
       p_person_a: account.self_person_id, p_person_b: momId,
     });
     check('남이 적어 둔 사이는 안 읽힌다', !stranger.data, String(stranger.data));
-
-    /** 결과 화면이 그 물음을 세운다 */
-    const resultPage = plain(await body(`/me/compat${pair}`, cookie.a));
-    check('궁합 화면이 무슨 사이인지 묻는다', resultPage.includes('두 분은 무슨 사이인가요'));
-    check('점수에 안 쓴다는 것도 그 자리에서 말한다',
-      resultPage.includes('점수에는 쓰지 않습니다'));
   }
 
   // ── 4. 공유 궁합 — 양쪽이 같은 글을 읽는다 ───────────────────────────────

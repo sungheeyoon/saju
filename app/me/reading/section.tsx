@@ -13,7 +13,14 @@ import type { ReadingTarget } from './pipeline';
  * **읽기만 한다.** 이 칸이 그려지는 것으로 AI 가 불리지 않는다 — 부르는 길은 버튼
  * 하나뿐이다(`GenerateButton`).
  */
-export async function ReadingSection({ target }: { target: ReadingTarget }) {
+export async function ReadingSection({
+  target,
+  layout,
+}: {
+  target: ReadingTarget;
+  /** 카드로 서는가, 그 글을 읽으러 온 페이지인가 — `ReadingPanel` 이 그 뜻을 든다 */
+  layout?: 'card' | 'page';
+}) {
   const [reading, run] = await Promise.all([currentReading(target), lastReadingRun(target)]);
 
   return (
@@ -29,6 +36,7 @@ export async function ReadingSection({ target }: { target: ReadingTarget }) {
         */
         initialRunning={run?.status === 'running'}
         allowMockFallback={process.env.NODE_ENV !== 'production'}
+        layout={layout}
       />
     </section>
   );

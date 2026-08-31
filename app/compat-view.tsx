@@ -103,10 +103,16 @@ export function CompatView({
     );
   }
 
+  /**
+   * **접은 칸이 판정 위에 선다.**
+   *
+   * 상세 화면에서 사람이 하는 일은 둘이다 — 다시 받거나, 무엇으로 쓴 글인지 확인하거나.
+   * 둘 다 글을 읽기 **전에** 정하는 일이라 글 위에 서야 한다. 아래에 두면 8천 자를
+   * 지나야 만나고, 그러면 없는 것과 같다.
+   */
   return (
     <div className="flex flex-col gap-6">
       {notice}
-      {verdict}
 
       {/*
         **테스트 기간에만 여는 자리.**
@@ -129,6 +135,8 @@ export function CompatView({
         </summary>
         <div className="flex flex-col gap-6 border-t border-border px-5 py-5">{facts}</div>
       </details>
+
+      {verdict}
     </div>
   );
 }

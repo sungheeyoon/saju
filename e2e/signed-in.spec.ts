@@ -182,52 +182,37 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByRole('link', { name: '저장한 사람으로 궁합 보기' }).click();
     await expect(page).toHaveURL(/\/me\/compat/);
 
-    await page.getByLabel('첫 번째').selectOption({ label: `${signedIn.label} (나)` });
-    await page.getByLabel('두 번째').selectOption({ label: '어머니' });
-    await page.getByRole('button', { name: '궁합 보기' }).click();
-
     /*
-      **결과는 제 페이지에 선다.** 고르는 칸과 본 궁합 목록과 결과를 한 화면에 쌓아
-      두면, 다시 찾아온 사람이 자기 결과에 닿기까지 세 덩어리를 지나야 한다.
-    */
-    await expect(page.getByRole('heading', { name: `${signedIn.label} × 어머니` })).toBeVisible();
-    await expect(page.getByText('현재 저장된 출생정보 기준입니다')).toBeVisible();
-
-    /*
-      **여기서 무슨 사이인지 묻는다.** 사이에 따라 읽어 줄 장면이 달라지는데, 이 값이
-      없던 동안 궁합 풀이는 어머니와의 궁합에도 「처음에 끌리는 지점」을 썼다.
+      **무슨 사이인지는 고르는 칸 옆에서 묻는다.** 관계를 묻는 까닭이 「사이에 따라
+      해석의 방향을 달리 잡겠다」는 것이라, 읽고 난 뒤에 묻는 것은 아무 뜻이 없다.
     */
     await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
+    await expect(page.getByText('점수에는 쓰지 않습니다')).toBeVisible();
+
+    await page.getByLabel('첫 번째').selectOption({ label: `${signedIn.label} (나)` });
+
+    /*
+      **두 칸이 서로를 안다.** 첫 번째에서 고른 사람은 두 번째 목록에서 빠진다 —
+      같은 사람 둘을 고를 수 있게 두면 누르고 나서야 거절을 만난다.
+    */
+    await expect(page.getByLabel('두 번째').locator('option')).not.toContainText([
+      `${signedIn.label} (나)`,
+    ]);
+
+    await page.getByLabel('두 번째').selectOption({ label: '어머니' });
     await page.getByRole('radio', { name: '가족' }).check();
     await expect(page.getByRole('radio', { name: '가족' })).toBeChecked();
 
     /*
-      **명식은 접혀 있다.** 사람이 보러 온 것은 읽어 주는 글인데, 그 앞에 표 스물몇
-      개를 세워 두면 글까지 내려오지 못한다.
+      **누르지 않는다.** 이 버튼은 이제 모델을 부른다 — 시험이 누르면 4분과 돈이 든다.
+      여기서 재는 것은 배선이 아니라 **고르는 자리가 무엇을 묻는가**이고, 배선은
+      흐름 검사와 단위 시험이 잰다.
     */
-    await expect(page.getByText('두 원국 사이의 관계')).not.toBeVisible();
-    await page.getByText('둘의 명식 보기').click();
-    await expect(page.getByText('두 원국 사이의 관계')).toBeVisible();
-
-    /*
-      **내부 지표는 로그인 화면에 서지 않는다.** 점수 자리는 하나이고 그것은 현재
-      Reading 의 것이다 — 둘이면 무엇을 믿을지 사용자가 정해야 한다.
-    */
-    await expect(page.getByText('match-v0')).toHaveCount(0);
-
-    /*
-      **관계를 세워 놓고 읽어 주는 버튼이 없으면 화면이 자료다.** 이 자리가 비어 있는
-      동안 화면은 스물몇 개짜리 관계 목록을 세워 두고 끝났다. 파이프라인은 처음부터
-      세 kind 를 다 받았으므로 막혀 있던 것은 화면 한 줄이었고, 한 줄짜리 누락은
-      시험이 안 잡으면 다시 빠진다.
-    */
-    await expect(page.getByRole('heading', { name: '두 사람의 사주풀이' })).toBeVisible();
-    await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '궁합 보기' })).toBeEnabled();
 
     /*
       **본 적 없으면 목록도 없다.** 처음 온 사람에게 빈 목록은 할 일이 하나 더 있는
-      것처럼 보이는데, 고르는 칸이 이미 그 말을 하고 있다. 풀이를 만든 적이 없는
-      이 흐름에서는 서지 않아야 한다.
+      것처럼 보이는데, 고르는 칸이 이미 그 말을 하고 있다.
     */
     await expect(page.getByRole('heading', { name: '본 궁합' })).toHaveCount(0);
     await expect(page.getByText('궁합 베타')).toHaveCount(0);

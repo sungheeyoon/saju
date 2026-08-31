@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
-import { relationOf } from '@/src/lib/people';
 import { analyzeCompatibility } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { CompatView } from '../../compat-view';
-import { PairRelation } from './relation';
+import { PairPicker } from './picker';
 import { CompatHero } from '../../compat-hero';
 import { REVISION_REPLACED_NOTE, UnreadableRevisionError } from '../../revision';
 import { Halted } from '../halted';
@@ -131,12 +130,6 @@ export default async function ManagedCompatPage({
  * 내려오지 못하므로 판정을 먼저 세우고 사실은 접는다(`foldFacts`).
  */
 async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' }> }) {
-  const supabase = await supabaseOnServer();
-  const { data: relation } = await supabase.rpc('pair_relation_of', {
-    p_person_a: outcome.pair.personA,
-    p_person_b: outcome.pair.personB,
-  });
-
   return (
     <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
       <header className="flex flex-col gap-2">
@@ -151,12 +144,6 @@ async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' 
           {outcome.first.name} <span className="text-muted">×</span> {outcome.second.name}
         </h1>
       </header>
-
-      <PairRelation
-        personA={outcome.pair.personA}
-        personB={outcome.pair.personB}
-        relation={relationOf(relation as string | null)}
-      />
 
       <Result outcome={outcome} />
     </main>
@@ -248,68 +235,6 @@ const firstOf = (value: string | string[] | undefined): string | null =>
  *
  * 자바스크립트가 하는 일이 없다. 고른 결과가 곧 주소(`?a=…&b=…`)이고 그 주소가
  * 곧 화면이므로, 상태를 들고 있다가 옮겨 줄 컴포넌트가 필요하지 않다.
- */
-function PairPicker({
-  people,
-  a,
-  b,
-}: {
-  people: { personId: string; label: string; isSelf: boolean }[];
-  a: string | null;
-  b: string | null;
-}) {
-  if (people.length < 2) {
-    return (
-      <section className={`${CARD} bg-surface-sunken`}>
-        <h2 className="text-base font-semibold">고를 사람이 아직 둘이 아닙니다</h2>
-        <p className="mt-1.5 text-sm text-secondary">
-          가족이나 친구를 등록하면 여기서 고를 수 있습니다.{' '}
-          <Link href="/me/people" className="text-accent underline underline-offset-2">
-            사람 등록하기
-          </Link>
-        </p>
-      </section>
-    );
-  }
-
-  return (
-    <form method="get" action="/me/compat" className={`${CARD} flex flex-wrap items-end gap-3`}>
-      {(['a', 'b'] as const).map((side) => (
-        <label key={side} className="flex flex-col gap-1.5">
-          <span className="text-xs text-secondary">{side === 'a' ? '첫 번째' : '두 번째'}</span>
-          <select
-            name={side}
-            defaultValue={(side === 'a' ? a : b) ?? ''}
-            required
-            className="h-11 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash sm:h-10"
-          >
-            <option value="" disabled>
-              고르기
-            </option>
-            {people.map((person) => (
-              <option key={person.personId} value={person.personId}>
-                {person.label}
-                {person.isSelf ? ' (나)' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
-      ))}
-
-      <button
-        type="submit"
-        className="h-11 rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 sm:h-10"
-      >
-        궁합 보기
-      </button>
-    </form>
-  );
-}
-
-/**
- * 고른 둘이 무엇인가 — **화면을 그리기 전에 답이 나온다.**
- *
- * 못 보는 사람은 여기서 `notFound()` 로 끝난다.
  */
 type Outcome =
   | { kind: 'empty' }
@@ -420,7 +345,11 @@ function Result({ outcome }: { outcome: Outcome }) {
        */
       foldFacts
       verdict={
-        <ReadingSection key="private-reading" target={{ kind: 'private', ...outcome.pair }} />
+        <ReadingSection
+          key="private-reading"
+          target={{ kind: 'private', ...outcome.pair }}
+          layout="page"
+        />
       }
       notice={
         /*
