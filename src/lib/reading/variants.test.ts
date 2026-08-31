@@ -244,6 +244,32 @@ describe('고객이 읽는 글의 계약', () => {
    * 자료에 이름이 없어서 프롬프트가 그렇게 불렀고, 나온 글이 통째로 그랬다. 이름은
    * 자료가 아니라 **부르는 말**이라 근거에 실리지 않고 프롬프트에만 선다.
    */
+  /**
+   * **한계 고지는 사용자에게 간다.**
+   *
+   * 이 내용은 검사용 근거 절 뒤에 붙어 있었고, 화면이 근거를 자를 때 함께 잘렸다
+   * (`readingBody` 는 `### 근거` 앞에서 끝낸다). 잘려 나가던 첫 항목이 「자료에는 두
+   * 사람이 연인인지 가족인지가 없습니다」였다 — 되짚기용 정보가 아니라 **읽는 사람이
+   * 이 글을 얼마나 믿어야 하는지** 정하는 고지다.
+   *
+   * 그래서 재는 것은 낱말이 있는가가 아니라 **어느 쪽에 서 있는가**다.
+   */
+  it('한계 고지가 검사용 근거 절 앞에 선다', () => {
+    for (const prompt of [selfPrompt(), compatPrompt('private'), compatPrompt('match')]) {
+      const limits = prompt.indexOf('이 풀이가 기대는 것');
+      const grounding = prompt.indexOf('### 근거 (검사용)');
+
+      expect(limits).toBeGreaterThan(-1);
+      expect(grounding).toBeGreaterThan(-1);
+      expect(limits).toBeLessThan(grounding);
+    }
+  });
+
+  /** 옮기면서 말투도 옮긴다 — 경로 이름과 층 딱지는 뒤쪽 절의 것이다 */
+  it('한계 고지에는 경로 이름을 쓰지 말라고 적는다', () => {
+    expect(selfPrompt()).toContain('경로 이름과 층 딱지는 여기 쓰지 마라');
+  });
+
   it('받은 이름으로 부르고 자리 이름을 본문에 쓰지 못하게 한다', () => {
     const named = readingPromptOf(pairEvidence(), CONTROL, { a: '어머니', b: '아버지' });
 
@@ -343,8 +369,9 @@ describe('고객이 읽는 글의 계약', () => {
   });
 
   it('기준판은 개인 사주의 핵심 물음을 빠짐없이 다룬다', () => {
-    expect(selfSectionCount(CONTROL)).toBe(9);
-    expect(selfSectionCount(variant('legacy-v1').assembly)).toBe(8);
+    // 본문 아홉 절에 한계 고지 한 절이 더 선다(옛 뼈대는 여덟 + 하나).
+    expect(selfSectionCount(CONTROL)).toBe(10);
+    expect(selfSectionCount(variant('legacy-v1').assembly)).toBe(9);
 
     const prompt = selfPrompt();
     for (const heading of [

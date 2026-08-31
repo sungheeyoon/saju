@@ -327,9 +327,31 @@ const LEGACY_SELF_SECTIONS = [
   '**8. 지금** — 지금 도는 운과 이번 달에 밀어붙일 것·미룰 것.',
 ];
 
+/**
+ * **이 풀이가 무엇에 기대고 있는지** — 사용자에게 하는 마지막 말.
+ *
+ * 원래 이 내용은 검사용 근거 절 뒤에 붙어 있었고, 그래서 화면이 근거를 자를 때
+ * 함께 잘렸다(`display.ts` 는 `### 근거` 앞에서 끝낸다). 잘려 나가던 셋 중 첫
+ * 항목이 「자료에는 두 사람이 연인인지 가족인지가 없습니다」였다 — **되짚기용
+ * 기술 정보가 아니라 사용자가 읽어야 할 고지**다.
+ *
+ * 그래서 본문 쪽으로 옮긴다. 옮기면서 말투도 옮긴다. 검토자에게 하던 말이 아니라
+ * **읽는 사람에게 하는 말**이라, 경로 이름과 층 딱지는 여전히 뒤쪽 근거 절의 것이다.
+ */
+const LIMITS_SECTION = (index: number): string =>
+  `**${index}. 이 풀이가 기대는 것** — 무엇을 딛고 쓴 글인지 두세 가지로 말한다.
+자료에 없어서 일반적인 가능성으로 읽은 것, 아직 실험 중인 판정이라 다른 체계면 달라질 수
+있는 것, 없다고 나온 것을 어디까지 없다고 읽어야 하는지. \`contract.excluded\` 와
+\`limitations\` 를 여기서 읽는다.
+
+**경로 이름과 층 딱지는 여기 쓰지 마라** — 그건 뒤쪽 검사용 절의 말이다. 여기서는
+「무엇을 몰라서 어디까지만 말했는지」를 사람의 말로 쓴다. 앞의 판단을 흐리려는 절이
+아니라, **읽은 사람이 이 글을 얼마나 믿어야 하는지 스스로 정할 수 있게 하는 절**이다.`;
+
 const selfSections = (assembly: PromptAssembly): string => {
-  const sections =
+  const body =
     assembly.selfPresentation === 'expert-v3' ? EXPERT_SELF_SECTIONS : LEGACY_SELF_SECTIONS;
+  const sections = [...body, LIMITS_SECTION(body.length + 1)];
   const { min, max } = assembly.selfLength;
 
   return `## 낼 것
@@ -347,9 +369,10 @@ ${PROMPT_PARTS.closing}
 
 /** 채점 화면과 실호출 검사가 기대할 자기 풀이 소제목 수. */
 export const selfSectionCount = (assembly: PromptAssembly): number =>
-  assembly.selfPresentation === 'expert-v3'
+  /** 한계 고지 절이 본문의 마지막에 하나 더 선다 — 세는 자리도 그것을 안다 */
+  (assembly.selfPresentation === 'expert-v3'
     ? EXPERT_SELF_SECTIONS.length
-    : LEGACY_SELF_SECTIONS.length;
+    : LEGACY_SELF_SECTIONS.length) + 1;
 
 const SCORE_SECTION = `## 점수
 
@@ -452,6 +475,8 @@ Markdown으로 쓰고 소제목은 \`##\`로 단다.
 ${sections.join('\n\n')}
 
 **${sections.length + 1}. 점수** — 아래를 따른다.
+
+${LIMITS_SECTION(sections.length + 2)}
 
 그다음에 줄을 긋고:
 

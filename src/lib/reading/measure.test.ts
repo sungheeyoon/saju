@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CONTROL, PROMPT_VARIANTS, measureMarkdown, outputDeviations } from '.';
+import { CONTROL, PROMPT_VARIANTS, measureMarkdown, outputDeviations, selfSectionCount } from '.';
 
 /**
  * 이 계산은 채점 화면 안에 있었다. 그 자리에 있는 동안은 시험이 한 줄도 안 닿았고,
@@ -71,25 +71,43 @@ describe('조립이 시킨 대로 나왔는가', () => {
     return found.assembly;
   };
 
+  /**
+   * **절 수를 여기 다시 적지 않는다.** 조립이 절을 하나 더 세우면 이 숫자도 따라
+   * 움직여야 하는데, 손으로 적어 두면 그날 시험이 「고쳐진 것」을 고장이라 부른다.
+   */
+  const ok = (assembly: ReturnType<typeof legacy>) => selfSectionCount(assembly);
+
+  /**
+   * 그 계약이 원하는 **한가운데**로 지은 글. 분량도 손으로 적지 않는다 — 절이 하나
+   * 늘면 같은 채움값이 같은 총량을 뜻하지 않는다.
+   */
+  const onTarget = (assembly: ReturnType<typeof legacy>) => {
+    const count = ok(assembly);
+    const { min, max } = assembly.selfLength;
+    return body(count, Math.floor((min + max) / 2 / count));
+  };
+
   it('시킨 대로면 아무 말도 하지 않는다', () => {
-    expect(outputDeviations(measureMarkdown(body(9, 650)), CONTROL)).toEqual([]);
-    expect(outputDeviations(measureMarkdown(body(8, 280)), legacy())).toEqual([]);
+    expect(outputDeviations(measureMarkdown(onTarget(CONTROL)), CONTROL)).toEqual([]);
+    expect(outputDeviations(measureMarkdown(onTarget(legacy())), legacy())).toEqual([]);
   });
 
   /** 새 뼈대가 옛 뼈대처럼 길고 많은 절을 쓰면 저장은 되지만 채점 대상이 아니다 */
-  it('기준판이 여덟 절 긴 글을 내면 둘 다 짚는다', () => {
-    const codes = outputDeviations(measureMarkdown(body(8, 280)), CONTROL).map((one) => one.code);
+  it('기준판이 옛 뼈대의 글을 내면 둘 다 짚는다', () => {
+    const codes = outputDeviations(measureMarkdown(onTarget(legacy())), CONTROL)
+      .map((one) => one.code);
 
     expect(codes).toContain('length-off-target');
     expect(codes).toContain('section-count-mismatch');
   });
 
   it('같은 글이 옛 뼈대 계약에는 맞을 수 있다', () => {
-    expect(outputDeviations(measureMarkdown(body(8, 280)), legacy())).toEqual([]);
+    expect(outputDeviations(measureMarkdown(onTarget(legacy())), legacy())).toEqual([]);
   });
 
   it('절 수는 맞고 분량만 어긋난 것을 갈라 짚는다', () => {
-    const codes = outputDeviations(measureMarkdown(body(9, 20)), CONTROL).map((one) => one.code);
+    const codes = outputDeviations(measureMarkdown(body(ok(CONTROL), 20)), CONTROL)
+      .map((one) => one.code);
 
     expect(codes).toEqual(['length-off-target']);
   });
@@ -101,7 +119,7 @@ describe('조립이 시킨 대로 나왔는가', () => {
    * 한 자리에서만 분량을 막게 되는 날이 온다.
    */
   it('절 수는 계약이고 분량은 목표다', () => {
-    const both = outputDeviations(measureMarkdown(body(8, 280)), CONTROL);
+    const both = outputDeviations(measureMarkdown(onTarget(legacy())), CONTROL);
     const kindOf = (code: string) => both.find((one) => one.code === code)?.kind;
 
     expect(kindOf('section-count-mismatch')).toBe('contract');
