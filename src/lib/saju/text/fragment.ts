@@ -893,7 +893,13 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
     paths: ['relations'],
     polarity: 'presence',
     form: 'row',
-    variants: ['row', 'combined'],
+    /**
+     * `row-absorbable` 은 **시주를 모르는 반쪽 합**이다. 그 행은 세 기둥에서
+     * 성립한다는 것까지가 참이고, 시주가 셋째 글자를 들고 오면 완전한 것에
+     * 흡수돼 사라진다(`absorbableByUnknownHour`). 같은 문장을 쓰면 완성된 명식에
+     * 대한 주장이 되어 `fact` 로 설 수 없다.
+     */
+    variants: ['row', 'combined', 'row-absorbable'],
     slots: ['participants', 'name'],
     samples: { participants: '년지 子 · 일지 午', name: '자오충' },
     note: '어느 자리의 어느 글자끼리 어떤 관계가 성립하는가',

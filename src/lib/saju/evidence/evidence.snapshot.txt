@@ -59,24 +59,24 @@
   analysis.favorability          있다 candidate  없다 candidate
 
 ── 상한 · 시간 미상
-  pillars                        있다 fact       없다 fact
-  relations                      있다 fact       없다 fact
-  stages                         있다 fact       없다 fact
-  sinsal                         있다 fact       없다 fact
+  pillars                        있다 fact       없다 silent
+  relations                      있다 fact       없다 silent
+  stages                         있다 fact       없다 silent
+  sinsal                         있다 fact       없다 silent
   daeun                          있다 candidate  없다 silent
   meta                           있다 fact       없다 fact
-  now                            있다 fact       없다 fact
+  now                            있다 fact       없다 silent
   analysis.elements              있다 derived    없다 silent
   analysis.effectiveElements     있다 candidate  없다 silent
   analysis.bureaus               있다 candidate  없다 silent
-  analysis.tenGods               있다 fact       없다 fact
+  analysis.tenGods               있다 fact       없다 silent
   analysis.tenGodCounts          있다 derived    없다 silent
   analysis.strength              있다 candidate  없다 silent
   analysis.eokbu                 있다 reference  없다 silent
   analysis.johu                  있다 reference  없다 reference
   analysis.rootedness            있다 derived    없다 silent
   analysis.rootQuality           있다 candidate  없다 silent
-  analysis.hiddenCombinations    있다 fact       없다 fact
+  analysis.hiddenCombinations    있다 fact       없다 silent
   analysis.followingCandidacy    있다 derived    없다 silent
   analysis.following             있다 reference  없다 silent
   analysis.structure             있다 reference  없다 silent

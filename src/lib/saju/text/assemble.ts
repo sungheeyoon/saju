@@ -26,7 +26,7 @@ import { PILLAR_POSITION_KO, type PillarPosition } from '../position';
 import { TWELVE_SPIRIT_KO } from '../sinsal/twelveSpirits';
 import { TWELVE_STAGE_KO } from '../stages';
 import { COMPAT_CHART_ID, COMPAT_SIDES, type Compatibility, type CompatSide } from '../compat';
-import { orderedParticipants, type Relation } from '../relations';
+import { absorbableByUnknownHour, orderedParticipants, type Relation } from '../relations';
 import type { Saju } from '../index';
 import { FOLLOWING_SILENT_VERDICTS, type ClaimPath, type ClaimStrength } from './policy';
 import { FRAGMENT_INDEX } from './corpus';
@@ -101,8 +101,22 @@ const participantsOf = (relation: Relation, labelOf?: (chartId: string) => strin
     .join(' · ');
 
 /** 쌍 관계인가, 따로 있던 글자들이 합쳐 이룬 것인가 */
-const relationVariant = (relation: Relation): string =>
-  relation.scope === 'combinedFormation' ? 'combined' : 'row';
+/**
+ * 관계 행의 변종 — **두 축을 곱한다.** `followingVariant` 와 같은 꼴이다.
+ *
+ * 하나는 어떻게 성립했는가(한 판 안 / 두 판이 합쳐), 다른 하나는 **시주가 붙으면
+ * 사라질 수 있는가**(`absorbableByUnknownHour`). 뒤엣것을 섞지 않고 축으로 둔
+ * 이유는, 섞으면 반쪽 합에도 완성된 합과 같은 문장이 나가기 때문이다.
+ *
+ * `combined-absorbable` 은 두지 않는다. 두 판이 합쳐 이룬 것은 정의상 완성된
+ * 구조라 언제나 `full: true` 이고(1200명 짝 399건에서 반쪽은 0건), 그 전제는
+ * `corpus.test.ts` 가 다시 센다. 닿지 않는 변종을 두면 문장이 하나 죽는다.
+ */
+const relationVariant = (relation: Relation, hourKnown: boolean): string => {
+  if (relation.scope === 'combinedFormation') return 'combined';
+
+  return absorbableByUnknownHour(relation, hourKnown) ? 'row-absorbable' : 'row';
+};
 
 const tenGodTerms = (pillar: PillarTenGods | null): string[] => {
   if (!pillar) return [];
@@ -638,7 +652,7 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
     requests.push({
       ...base,
       topic: 'relation.present',
-      variant: relationVariant(relation),
+      variant: relationVariant(relation, saju.meta.hourKnown),
       slots: { participants: participantsOf(relation), name: relation.ko },
     });
   }
@@ -820,7 +834,7 @@ export function findNowUtterances(now: CurrentFortune): FragmentRequest[] {
     requests.push({
       ...base,
       topic: 'relation.present',
-      variant: relationVariant(relation),
+      variant: relationVariant(relation, now.hourKnown),
       slots: { participants: participantsOf(relation, nowChartLabel), name: relation.ko },
     });
   }
@@ -1031,7 +1045,9 @@ export function findCompatUtterances(
     requests.push({
       ...base,
       topic: 'relation.present',
-      variant: relationVariant(relation),
+      // 둘 중 하나라도 시주를 모르면 반쪽 합이 흡수될 수 있다 — 궁합 상한을
+      // 두 사람의 곱으로 묻는 것과 같은 셈이다(`compatClaimsFor`).
+      variant: relationVariant(relation, compat.hourKnown.a && compat.hourKnown.b),
       slots: { participants: participantsOf(relation, labelOf), name: relation.ko },
     });
   }

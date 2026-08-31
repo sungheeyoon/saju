@@ -19,8 +19,36 @@ export type ReadingGeneration = {
   readonly settings: Readonly<Record<string, unknown>>;
 };
 
+/**
+ * 한 번의 호출이 무엇을 썼는가 — **비용을 세려면 이것이 결과와 함께 와야 한다.**
+ *
+ * 칸마다 `null` 을 허용한다. provider 가 안 주는 자리가 실제로 있고, 그때
+ * 「0 을 썼다」로 적으면 비용 계산이 조용히 틀린다 — 「없다」와 「못 셌다」는
+ * 값 옆에 있어야 한다. 세는 쪽은 `null` 을 만나면 계산을 포기하고 멈춘다.
+ */
+export type ModelUsage = {
+  inputTokens: number | null;
+  /**
+   * 입력을 셋으로 가른다 — **단가가 서로 다르기 때문이다.**
+   *
+   * `inputTokens` 는 셋을 합친 값이라, 그것만 들고 캐시 단가를 곱하면 값이 틀린다.
+   */
+  noCacheTokens: number | null;
+  cacheReadTokens: number | null;
+  cacheWriteTokens: number | null;
+  outputTokens: number | null;
+  totalTokens: number | null;
+};
+
 export type ModelCall =
-  | { ok: true; output: ReadingOutput }
+  | {
+      ok: true;
+      output: ReadingOutput;
+      /** 못 받았으면 `null`. 지어내지 않는다 */
+      usage: ModelUsage | null;
+      /** provider 가 실제로 답한 모델 — 우리가 **요청한** 이름과 다를 수 있다 */
+      modelId: string | null;
+    }
   | { ok: false; code: string; detail: string };
 
 /**

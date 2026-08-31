@@ -4,7 +4,7 @@ L3 문장 골든 — 발화 판정과 조립
 
   ✓ 문장이 됐다   · 발화는 있으나 조각이 없다   × 말하지 않기로 했다
 
-  말뭉치 90 / 지시서 90 칸
+  말뭉치 91 / 지시서 91 칸
 
     ruleSet          utterance-discovery-v1
     selection        all-facts-speak
@@ -323,10 +323,10 @@ L3 문장 골든 — 발화 판정과 조립
         사실     시주를 빼고 센 목록이라 그 자리가 낄 관계는 여기 없습니다.
     ✓ relation.present/row@fact
         사실     년간 庚 · 일간 乙 — 을경합금
-    ✓ relation.present/row@fact
-        사실     월지 巳 · 일지 酉 — 사유 반합
-    ✓ relation.present/row@fact
-        사실     년지 午 · 월지 巳 — 사오 반방합
+    ✓ relation.present/row-absorbable@fact
+        사실     월지 巳 · 일지 酉 — 사유 반합 (보이는 세 기둥에서 성립하며, 시주에 따라 완전한 합으로 흡수될 수 있음)
+    ✓ relation.present/row-absorbable@fact
+        사실     년지 午 · 월지 巳 — 사오 반방합 (보이는 세 기둥에서 성립하며, 시주에 따라 완전한 합으로 흡수될 수 있음)
     ✓ relation.present/row@fact
         사실     월간 辛 · 일간 乙 — 을신충
 
@@ -562,30 +562,30 @@ L3 문장 골든 — 발화 판정과 조립
         사실     시주를 빼고 센 목록이라 그 자리가 낄 관계는 여기 없습니다.
     ✓ relation.present/row@fact
         사실     년간 庚 · 대운 월간 乙 — 을경합금
-    ✓ relation.present/row@fact
-        사실     월지 巳 · 대운 월지 酉 — 사유 반합
+    ✓ relation.present/row-absorbable@fact
+        사실     월지 巳 · 대운 월지 酉 — 사유 반합 (보이는 세 기둥에서 성립하며, 시주에 따라 완전한 합으로 흡수될 수 있음)
     ✓ relation.present/row@fact
         사실     월간 辛 · 대운 월간 乙 — 을신충
     ✓ relation.present/row@fact
         사실     일지 酉 · 대운 월지 酉 — 유유형
     ✓ relation.present/row@fact
         사실     월간 辛 · 세운 년간 丙 — 병신합수
-    ✓ relation.present/row@fact
-        사실     월지 巳 · 세운 년지 午 — 사오 반방합
+    ✓ relation.present/row-absorbable@fact
+        사실     월지 巳 · 세운 년지 午 — 사오 반방합 (보이는 세 기둥에서 성립하며, 시주에 따라 완전한 합으로 흡수될 수 있음)
     ✓ relation.present/row@fact
         사실     년지 午 · 세운 년지 午 — 오오형
     ✓ relation.present/row@fact
         사실     월간 辛 · 월운 월간 丙 — 병신합수
     ✓ relation.present/row@fact
         사실     월지 巳 · 월운 월지 申 — 사신합수
-    ✓ relation.present/row@fact
-        사실     일지 酉 · 월운 월지 申 — 신유 반방합
+    ✓ relation.present/row-absorbable@fact
+        사실     일지 酉 · 월운 월지 申 — 신유 반방합 (보이는 세 기둥에서 성립하며, 시주에 따라 완전한 합으로 흡수될 수 있음)
     ✓ relation.present/row@fact
         사실     월지 巳 · 월운 월지 申 — 사신형
     ✓ relation.present/row@fact
         사실     월지 巳 · 월운 월지 申 — 사신파
-    ✓ relation.present/row@fact
-        사실     대운 월지 酉 · 월운 월지 申 — 신유 반방합
+    ✓ relation.present/row-absorbable@fact
+        사실     대운 월지 酉 · 월운 월지 申 — 신유 반방합 (보이는 세 기둥에서 성립하며, 시주에 따라 완전한 합으로 흡수될 수 있음)
 
 ── now-before-first-daeun
    첫 대운 전 — 아직 없다는 것은 이 사람의 사실이라 말한다
@@ -749,8 +749,8 @@ L3 문장 골든 — 발화 판정과 조립
         사실     민수 년지 午 · 지영 일지 未 — 오미합화
     ✓ relation.present/row@fact
         사실     민수 월지 巳 · 지영 년지 申 — 사신합수
-    ✓ relation.present/row@fact
-        사실     민수 년지 午 · 지영 월지 戌 — 오술 반합
+    ✓ relation.present/row-absorbable@fact
+        사실     민수 년지 午 · 지영 월지 戌 — 오술 반합 (보이는 세 기둥에서 성립하며, 시주에 따라 완전한 합으로 흡수될 수 있음)
     ✓ relation.present/combined@fact
         사실     민수 년지 午 · 민수 월지 巳 · 지영 일지 未 — 사오미 화방 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/combined@fact
@@ -896,8 +896,8 @@ L3 문장 골든 — 발화 판정과 조립
         사실     민수 월지 巳 · 민수 일지 酉 · 지영 월지 丑 — 사유축 금국 (따로 있는 글자들이 합쳐 이룬 것)
     ✓ relation.present/combined@fact
         사실     민수 년지 午 · 민수 월지 巳 · 지영 년지 未 — 사오미 화방 (따로 있는 글자들이 합쳐 이룬 것)
-    ✓ relation.present/row@fact
-        사실     민수 일지 酉 · 지영 일지 申 — 신유 반방합
+    ✓ relation.present/row-absorbable@fact
+        사실     민수 일지 酉 · 지영 일지 申 — 신유 반방합 (보이는 세 기둥에서 성립하며, 시주에 따라 완전한 합으로 흡수될 수 있음)
     ✓ relation.present/row@fact
         사실     민수 년간 庚 · 지영 일간 甲 — 갑경충
     ✓ relation.present/row@fact

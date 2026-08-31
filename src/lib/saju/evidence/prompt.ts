@@ -5,6 +5,7 @@ import {
   SEASON_KO,
   STEM_INFO,
   type Branch,
+  type RelationKind,
   type Stem,
 } from '../constants';
 import {
@@ -12,6 +13,7 @@ import {
   CLAIM_STRENGTH_ORDER,
   type ClaimStrength,
 } from '../text/policy';
+import { ABSORBABLE_KINDS, RELATION_KIND_KO } from '../relations';
 import { EVIDENCE_CONTRACT, type ChartEvidence } from '.';
 
 /**
@@ -122,6 +124,29 @@ const ladderLines = (rule: Record<ClaimStrength, string>): string =>
  * 자료가 무엇인지, 무엇이 딱 하나 금지인지, 층을 어떻게 달지 — 셋뿐이다. 짧은 것이
  * 목적이다. 규칙이 길면 모델이 규칙 지키기에 지면을 다 쓰고 해석을 안 한다.
  */
+/**
+ * 흡수 규칙 문구 — **상수에서 짓는다. 손으로 적지 않는다.**
+ *
+ * 산문으로 두면 조건이 두 벌이 된다(reading 규칙과 strict 규칙). 판정은
+ * `absorbableByUnknownHour` 한 벌인데 문구가 그 조건을 베끼면, `ABSORBABLE_KINDS` 가
+ * 바뀌었을 때 L3 만 따라가고 프롬프트는 옛말을 한다.
+ *
+ * 관계 종류가 늘어도 두 목록이 저절로 갈린다 — 그리고 어느 쪽에도 안 서는 종류가
+ * 생기면 `variants.test.ts` 가 잡는다.
+ */
+const kindKo = (kinds: readonly RelationKind[]): string =>
+  kinds.map((kind) => RELATION_KIND_KO[kind]).join('·');
+
+const ABSORBABLE_KO = kindKo(ABSORBABLE_KINDS);
+
+const SAFE_KO = kindKo(
+  (Object.keys(RELATION_KIND_KO) as RelationKind[]).filter(
+    (kind) => !(ABSORBABLE_KINDS as readonly RelationKind[]).includes(kind),
+  ),
+);
+
+export const ABSORPTION_RULE = `**시각을 모르는 명식의 반쪽 합은 사라질 수 있다.** \`meta.hourKnown\` 이 거짓이고 관계가 \`full: false\` 인 ${ABSORBABLE_KO}이면, 시주가 셋째 글자를 들고 오는 순간 완전한 합에 흡수돼 그 반쪽 줄은 없어진다. 그러니 **「반합이 있습니다」로 잘라 쓰지 마라** — 「보이는 세 기둥에서는 성립하고, 시주에 따라 완전한 합으로 흡수될 수 있다」까지가 한 문장이고, 그 전체가 사실이다. 앞토막만 남기면 완성된 명식에 대한 주장이 되어 사실이 아니게 된다. ${SAFE_KO}은 사라지지 않으니 이 단서를 붙이지 마라. 두 사람 자료라면 **둘 중 하나라도** 시각을 모르면 그 사이의 반쪽 합에 같은 단서가 붙는다.`;
+
 const readingRules = (): string => `## 이 자료가 무엇인가
 
 만세력 엔진이 낸 **사실과 계산의 목록**이다(\`contract\`, ${EVIDENCE_CONTRACT.version}). 해석은 하나도 들어 있지 않다(\`contract.interpretation: "none"\`) — 그 자리를 채우라고 너에게 넘긴다.
@@ -131,6 +156,8 @@ const readingRules = (): string => `## 이 자료가 무엇인가
 **어느 칸의 관계인지 섞지 마라.** \`natal\` 의 관계는 타고난 구조이고 \`decade\`·\`annual\`·\`monthly\` 의 관계는 그 시기에 **새로 걸린 것**이다. 원국에 있던 충을 「올해 생긴 일」로 옮겨 적으면 그 문장은 해마다 참이 되어 아무것도 말하지 않고, 반대로 올해 걸린 것을 타고난 성향으로 적으면 내년에 거짓이 된다.
 
 **운은 원국을 다시 쓰지 않는다.** 운에서 새로 걸린 관계는 그 시기의 조건으로만 쓰고, 원국의 무엇과 만나 무엇을 드러내거나 누르는지로 이어라.
+
+${ABSORPTION_RULE}
 
 ## 사실에 관한 단 하나의 금지
 
@@ -489,9 +516,10 @@ const STRICT = `# 역할
 3. **점수도 등급도 만들지 않는다**(\`contract.scoring: "${EVIDENCE_CONTRACT.scoring}"\`). 오행 비율(\`analysis.elements.ratios\`)은 지장간을 사령 일수로 펼친 **엔진 내부 점수**이지 세력이 그만큼이라는 뜻이 아니다.
 4. **길흉을 말하지 않는다.**
 5. **용신을 확정하지 않는다.** \`analysis.eokbu\` 는 억부만 본 후보다. 「기신은 金입니다」가 아니라 「억부 후보를 용신으로 놓으면 金이 기신 자리에 온다」이다.
-6. **합이 되었다고 말하지 않는다.** 관계 목록은 「모였다」까지고 화(化)는 \`analysis.transformation\` 이 세 등급으로만 낸다.
-7. **운은 지금 도는 칸뿐이다**(\`contract.fortune: "${EVIDENCE_CONTRACT.fortune}"\`). \`daeunAbsence: "beyond-table"\` 은 우리 표가 짧아서이지 그 사람에게 대운이 없다는 뜻이 아니다.
-8. **누구의, 어느 판의 글자인지 밝힌다**(\`chartId\`).
+6. ${ABSORPTION_RULE}
+7. **합이 되었다고 말하지 않는다.** 관계 목록은 「모였다」까지고 화(化)는 \`analysis.transformation\` 이 세 등급으로만 낸다.
+8. **운은 지금 도는 칸뿐이다**(\`contract.fortune: "${EVIDENCE_CONTRACT.fortune}"\`). \`daeunAbsence: "beyond-table"\` 은 우리 표가 짧아서이지 그 사람에게 대운이 없다는 뜻이 아니다.
+9. **누구의, 어느 판의 글자인지 밝힌다**(\`chartId\`).
 
 ## 강도 사다리
 

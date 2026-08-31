@@ -253,6 +253,13 @@ async function fail(runId: string, code: string, detail: string): Promise<Readin
 
 /** 사용자가 읽을 말 — 코드 이름을 그대로 보이지 않는다 */
 function messageFor(code: string, detail: string): string {
+  /**
+   * 시간 초과도 여기다. 새 코드를 안 적으면 아래 갈래로 새어 「검사를 통과하지
+   * 못했습니다(model-timeout)」가 되는데, 검사는 서 보지도 못했다.
+   */
+  if (code === 'model-timeout') {
+    return '결과를 만드는 데 너무 오래 걸려 중간에 멈췄습니다. 잠시 뒤에 다시 시도해 주세요. 지금 보이는 결과는 그대로입니다.';
+  }
   if (code === 'model-call-failed' || code === 'model-no-output') {
     return '결과를 만들지 못했습니다. 잠시 뒤에 다시 시도해 주세요. 지금 보이는 결과는 그대로입니다.';
   }

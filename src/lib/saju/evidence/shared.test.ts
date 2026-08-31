@@ -24,6 +24,23 @@ describe('공유 자료는 상대 원국 전체 판정을 들지 않는다', () 
     }
   });
 
+  /**
+   * **목록이 엔진을 따라오는지 되묻는다.**
+   *
+   * 위 시험은 목록에 적힌 것이 잘렸는지만 본다. 그래서 새 자리가 엔진에
+   * 들어오면 `shareChart` 가 고르기만 하므로 조용히 잘리는데, 계약이 들고
+   * 나가는 목록에는 이름이 없다 — 받는 쪽은 그런 자리가 있었다는 것조차 모른다.
+   * `UNCOVERED_FACTS_BY_PATH` 가 여섯 줄에 멈춰 있던 것과 같은 자리라 방향을
+   * 뒤집어 한 번 더 잰다.
+   */
+  it('잘린 자리는 빠짐없이 목록에 적혀 있다', () => {
+    const dropped = Object.keys(pair.charts.a).filter(
+      (path) => !Object.keys(shared!.charts.a).includes(path),
+    );
+
+    expect(dropped.sort()).toEqual(Object.keys(WITHHELD_PATHS).sort());
+  });
+
   it('빠진 자리는 자르기 전에는 있던 자리다', () => {
     for (const path of Object.keys(WITHHELD_PATHS)) {
       expect(Object.keys(pair.charts.a)).toContain(path);

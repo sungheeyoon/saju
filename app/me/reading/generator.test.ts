@@ -28,6 +28,8 @@ describe('Match 첫 세로 슬라이스의 생성 경계', () => {
     const fake = new FakeReadingGenerator({
       ok: true,
       output: { score: 68, markdown: SAFE_MARKDOWN },
+      usage: null,
+      modelId: null,
     });
 
     const result = await generateReadingArtifact({
@@ -64,7 +66,12 @@ describe('Match 첫 세로 슬라이스의 생성 경계', () => {
       [`${SAFE_MARKDOWN}\n상대는 1993-11-03 에 태어났습니다.`, 'birth-input-leaked'],
       [`${SAFE_MARKDOWN}\n상대 원국은 신약합니다.`, 'out-of-scope-judgment'],
     ] as const) {
-      const fake = new FakeReadingGenerator({ ok: true, output: { score: 68, markdown } });
+      const fake = new FakeReadingGenerator({
+        ok: true,
+        output: { score: 68, markdown },
+        usage: null,
+        modelId: null,
+      });
       const result = await generateReadingArtifact({
         kind: 'match',
         charts: { a: A, b: B },
