@@ -315,6 +315,47 @@ describe('고객이 읽는 글의 계약', () => {
     expect(selfPrompt()).not.toContain('두 사람은 무슨 사이인가');
   });
 
+  /**
+   * **이름만 부르면 사람을 두고 품평하는 글이 된다.**
+   *
+   * 한국에서 풀이를 해 주는 자리의 말은 「운영자님은」이지 「운영자는」이 아니다.
+   * 다만 부르는 말이 이미 호칭이면(엄마·어머니·형·언니) 겹쳐 붙일 수 없고, 문장마다
+   * 불러 세우면 기계가 자리를 채운 것처럼 읽힌다 — 셋을 함께 시킨다.
+   */
+  it('이름 뒤에 님을 붙이되 겹치지도 반복하지도 말라고 적는다', () => {
+    const named = readingPromptOf(pairEvidence(), CONTROL, {
+      names: { a: '운영자', b: '김경리' },
+      relation: null,
+    });
+
+    expect(named).toContain('「운영자님은」');
+    expect(named).toContain('부르는 말이 이미 호칭이면 겹쳐 붙이지 마라');
+    expect(named).toContain('문장마다 이름으로 불러 세우지 마라');
+  });
+
+  /**
+   * **말투가 한 벌이어야 한 사람이 말하는 글이 된다.**
+   *
+   * 앞 규칙이 「`~해요`·`~있어요`·`~입니다`를 자연스럽게 섞어라」였고, 시킨 대로
+   * 나왔다 — 「느낄 수 있습니다 … 따라와요 … 받을 때도 있습니다」. 리듬이 아니라
+   * 여러 사람이 이어 쓴 것처럼 읽힌다.
+   */
+  it('해요체 하나로 쓰라고 적고 섞지 말라고 못박는다', () => {
+    for (const prompt of [selfPrompt(), compatPrompt('private'), compatPrompt('match')]) {
+      expect(prompt).toContain('해요체 하나로 쓴다');
+      expect(prompt).toContain('와 섞지 마라');
+      // 통일이 단조로움이 되지 않게 — 해요체 안에도 어미가 여럿이다.
+      expect(prompt).toContain('모든 문장을 `~해요`로 닫는 것이 통일이 아니다');
+    }
+  });
+
+  it('본보기 글도 그 말투로 쓰여 있다', () => {
+    // 지시문이 시키는 것과 본보기가 다르면 모델은 본보기를 따른다.
+    const sample = selfPrompt();
+    expect(sample).toContain('정작 내 일정이 밀려요');
+    expect(sample).not.toContain('정작 내 일정이 밀립니다');
+  });
+
   it('받은 이름으로 부르고 자리 이름을 본문에 쓰지 못하게 한다', () => {
     const named = readingPromptOf(pairEvidence(), CONTROL, { names: { a: '어머니', b: '아버지' }, relation: null });
 
