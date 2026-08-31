@@ -245,29 +245,22 @@ describe('고객이 읽는 글의 계약', () => {
    * 자료가 아니라 **부르는 말**이라 근거에 실리지 않고 프롬프트에만 선다.
    */
   /**
-   * **한계 고지는 사용자에게 간다.**
+   * **불확실함은 안에서 다 적고, 밖으로는 필요한 것만 나간다.**
    *
-   * 이 내용은 검사용 근거 절 뒤에 붙어 있었고, 화면이 근거를 자를 때 함께 잘렸다
-   * (`readingBody` 는 `### 근거` 앞에서 끝낸다). 잘려 나가던 첫 항목이 「자료에는 두
-   * 사람이 연인인지 가족인지가 없습니다」였다 — 되짚기용 정보가 아니라 **읽는 사람이
-   * 이 글을 얼마나 믿어야 하는지** 정하는 고지다.
-   *
-   * 그래서 재는 것은 낱말이 있는가가 아니라 **어느 쪽에 서 있는가**다.
+   * 「가장 흔들리는 것 셋」은 검사용 절에 그대로 남는다 — 화면이 거기서 끊으므로
+   * 사용자에게 안 간다. 그 대신 본문은 **고지를 모아 두는 절을 만들지 않고** 알아야
+   * 바뀌는 것만 그 판단 옆에서 말한다. 고지를 덩어리로 두면 읽는 사람이 그 덩어리를
+   * 건너뛰고, 정작 그 문장이 얼마나 단단한지는 못 읽는다.
    */
-  it('한계 고지가 검사용 근거 절 앞에 선다', () => {
+  it('흔들리는 것은 검사용 절에서 세고 본문에는 절로 세우지 않는다', () => {
     for (const prompt of [selfPrompt(), compatPrompt('private'), compatPrompt('match')]) {
-      const limits = prompt.indexOf('이 풀이가 기대는 것');
-      const grounding = prompt.indexOf('### 근거 (검사용)');
-
-      expect(limits).toBeGreaterThan(-1);
-      expect(grounding).toBeGreaterThan(-1);
-      expect(limits).toBeLessThan(grounding);
+      expect(prompt).toContain('가장 흔들리는 것 셋');
+      expect(prompt).toContain('한계는 절로 세우지 말고 그 판단 옆에서 말한다');
     }
   });
 
-  /** 옮기면서 말투도 옮긴다 — 경로 이름과 층 딱지는 뒤쪽 절의 것이다 */
-  it('한계 고지에는 경로 이름을 쓰지 말라고 적는다', () => {
-    expect(selfPrompt()).toContain('경로 이름과 층 딱지는 여기 쓰지 마라');
+  it('검사용 절이 사용자에게 안 간다는 것을 프롬프트가 안다', () => {
+    expect(selfPrompt()).toContain('이 절은 사용자에게 안 나간다');
   });
 
   it('받은 이름으로 부르고 자리 이름을 본문에 쓰지 못하게 한다', () => {
@@ -369,9 +362,8 @@ describe('고객이 읽는 글의 계약', () => {
   });
 
   it('기준판은 개인 사주의 핵심 물음을 빠짐없이 다룬다', () => {
-    // 본문 아홉 절에 한계 고지 한 절이 더 선다(옛 뼈대는 여덟 + 하나).
-    expect(selfSectionCount(CONTROL)).toBe(10);
-    expect(selfSectionCount(variant('legacy-v1').assembly)).toBe(9);
+    expect(selfSectionCount(CONTROL)).toBe(9);
+    expect(selfSectionCount(variant('legacy-v1').assembly)).toBe(8);
 
     const prompt = selfPrompt();
     for (const heading of [

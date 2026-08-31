@@ -76,6 +76,26 @@ export const CONTROL: PromptAssembly = {
   tail: null,
 };
 
+/**
+ * **불확실함은 안에서 다 적고, 밖으로는 필요한 것만 나간다.**
+ *
+ * 검사용 근거 절이 「가장 흔들리는 것 셋」을 빠짐없이 든다. 그 절은 사용자에게 안
+ * 나가므로(화면이 그 앞에서 끊는다) 안에서는 마음껏 적을 수 있고, 적어 두었다는
+ * 이유로 본문이 조용해지면 안 된다.
+ *
+ * 그렇다고 그 셋을 본문으로 옮기지도 않는다. **고지를 한 덩어리로 모아 두면 읽는
+ * 사람은 그 덩어리를 건너뛴다** — 그러면 고지도 안 읽히고, 정작 그 판단이 얼마나
+ * 단단한지도 그 문장에서는 안 읽힌다. 알아야 바뀌는 것만 그 자리에서 말한다.
+ *
+ * 자기 풀이는 번호 목록이고 궁합은 불릿이라 꼴이 다르다. **문장은 한 자리에서 난다.**
+ */
+const LIMITS_ARE_WOVEN_IN = `**한계는 절로 세우지 말고 그 판단 옆에서 말한다.** 무엇이 흔들리는지는 맨 끝 검사용
+절에서 빠짐없이 적되, 그것을 본문에 「이 풀이의 한계」 같은 절로 옮기지 마라. 대신
+**읽는 사람이 알아야 바뀌는 것만** 그 문장 안에서 자연스럽게 밝힌다 — 자료에 없어서
+일반적인 가능성으로 말한 것이면 그렇게 말한 그 자리에서 한마디로 짚는 식이다. 나머지
+불확실함은 이미 완충 표현이 지고 있다. **고지를 모아 두면 읽는 사람은 그 덩어리를
+건너뛰고, 정작 그 문장이 얼마나 단단한지는 못 읽는다.**`;
+
 const CUSTOMER_TONE = `## 고객에게 말하는 말투
 
 본문은 경험 많은 한국인 사주 상담가가 눈앞의 한 사람에게 직접 해 주는
@@ -257,6 +277,7 @@ const SELF_CUSTOMER_VOICE = `${CUSTOMER_TONE}
 9. 다른 명식에도 그대로 붙일 수 있는 문장은 지운다. 이 명식의 서로 다른 근거가 만나
    만드는 **모순과 반전**을 찾아라. 좋은 해석은 「그런 면도 있어요」가 아니라
    「왜 두 모습이 함께 나오는지」를 보여 준다.
+10. ${LIMITS_ARE_WOVEN_IN}
 
 ${PLAIN_TERMS}
 
@@ -264,7 +285,7 @@ ${PLAIN_TERMS}
 
 **규칙을 지키느라 글이 딱딱해지면 규칙이 진 것이다.**
 
-위의 아홉은 읽히는 글을 만들려고 있는 것이지, 검사를 통과하려고 있는 것이 아니다.
+위의 열은 읽히는 글을 만들려고 있는 것이지, 검사를 통과하려고 있는 것이 아니다.
 문장이 점검표처럼 반복되거나 다음 줄로 넘어갈 이유가 없어지면, 규칙보다
 **읽고 싶은 글**을 고른다. 이 글의 목적은 결백함이 아니라 **끝까지 읽히는 것**이다.`;
 
@@ -276,6 +297,7 @@ const RELATIONSHIP_CUSTOMER_VOICE = `${CUSTOMER_TONE}
 - 「잘 맞아요」·「충돌할 수 있어요」로 끝내지 않는다. 언제 편해지고, 언제 어긋나며,
   그 순간 두 사람이 무엇을 하면 달라지는지까지 쓴다.
 - 근거 경로와 기술 이름은 맨 끝 검사용 근거 절에만 적는다.
+- ${LIMITS_ARE_WOVEN_IN}
 
 ${PLAIN_TERMS}`;
 
@@ -327,31 +349,9 @@ const LEGACY_SELF_SECTIONS = [
   '**8. 지금** — 지금 도는 운과 이번 달에 밀어붙일 것·미룰 것.',
 ];
 
-/**
- * **이 풀이가 무엇에 기대고 있는지** — 사용자에게 하는 마지막 말.
- *
- * 원래 이 내용은 검사용 근거 절 뒤에 붙어 있었고, 그래서 화면이 근거를 자를 때
- * 함께 잘렸다(`display.ts` 는 `### 근거` 앞에서 끝낸다). 잘려 나가던 셋 중 첫
- * 항목이 「자료에는 두 사람이 연인인지 가족인지가 없습니다」였다 — **되짚기용
- * 기술 정보가 아니라 사용자가 읽어야 할 고지**다.
- *
- * 그래서 본문 쪽으로 옮긴다. 옮기면서 말투도 옮긴다. 검토자에게 하던 말이 아니라
- * **읽는 사람에게 하는 말**이라, 경로 이름과 층 딱지는 여전히 뒤쪽 근거 절의 것이다.
- */
-const LIMITS_SECTION = (index: number): string =>
-  `**${index}. 이 풀이가 기대는 것** — 무엇을 딛고 쓴 글인지 두세 가지로 말한다.
-자료에 없어서 일반적인 가능성으로 읽은 것, 아직 실험 중인 판정이라 다른 체계면 달라질 수
-있는 것, 없다고 나온 것을 어디까지 없다고 읽어야 하는지. \`contract.excluded\` 와
-\`limitations\` 를 여기서 읽는다.
-
-**경로 이름과 층 딱지는 여기 쓰지 마라** — 그건 뒤쪽 검사용 절의 말이다. 여기서는
-「무엇을 몰라서 어디까지만 말했는지」를 사람의 말로 쓴다. 앞의 판단을 흐리려는 절이
-아니라, **읽은 사람이 이 글을 얼마나 믿어야 하는지 스스로 정할 수 있게 하는 절**이다.`;
-
 const selfSections = (assembly: PromptAssembly): string => {
-  const body =
+  const sections =
     assembly.selfPresentation === 'expert-v3' ? EXPERT_SELF_SECTIONS : LEGACY_SELF_SECTIONS;
-  const sections = [...body, LIMITS_SECTION(body.length + 1)];
   const { min, max } = assembly.selfLength;
 
   return `## 낼 것
@@ -369,10 +369,9 @@ ${PROMPT_PARTS.closing}
 
 /** 채점 화면과 실호출 검사가 기대할 자기 풀이 소제목 수. */
 export const selfSectionCount = (assembly: PromptAssembly): number =>
-  /** 한계 고지 절이 본문의 마지막에 하나 더 선다 — 세는 자리도 그것을 안다 */
-  (assembly.selfPresentation === 'expert-v3'
+  assembly.selfPresentation === 'expert-v3'
     ? EXPERT_SELF_SECTIONS.length
-    : LEGACY_SELF_SECTIONS.length) + 1;
+    : LEGACY_SELF_SECTIONS.length;
 
 const SCORE_SECTION = `## 점수
 
@@ -475,8 +474,6 @@ Markdown으로 쓰고 소제목은 \`##\`로 단다.
 ${sections.join('\n\n')}
 
 **${sections.length + 1}. 점수** — 아래를 따른다.
-
-${LIMITS_SECTION(sections.length + 2)}
 
 그다음에 줄을 긋고:
 
