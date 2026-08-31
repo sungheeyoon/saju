@@ -44,7 +44,8 @@ test.describe('동의로 열리는 흐름', () => {
       [receiver, `받는${tag}`],
     ] as const) {
       await person.page.goto('/me/discovery');
-      await expect(person.page.getByRole('heading', { name: '공개용 프로필' })).toBeVisible();
+      // 낱말이 「매칭」에서 「인연 찾기」로 바뀌었는데 이 시험이 안 따라왔었다.
+      await expect(person.page.getByRole('heading', { name: '인연 찾기 프로필' })).toBeVisible();
 
       await person.page.getByLabel('별명').fill(nickname);
       await person.page.getByRole('button', { name: '프로필 저장' }).click();
@@ -57,8 +58,8 @@ test.describe('동의로 열리는 흐름', () => {
       await expect(person.page.getByText('상대에게 보이는 것')).toBeVisible();
       await expect(person.page.getByText('보이지 않는 것')).toBeVisible();
 
-      await person.page.getByRole('button', { name: '매칭 참여 켜기' }).click();
-      await expect(person.page.getByRole('heading', { name: '매칭 참여 중' })).toBeVisible();
+      await person.page.getByRole('button', { name: '인연 찾기 시작' }).click();
+      await expect(person.page.getByRole('heading', { name: '인연 찾기 참여 중' })).toBeVisible();
     }
 
     hideEveryoneExcept([asker.account.email, receiver.account.email]);
