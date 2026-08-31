@@ -182,9 +182,19 @@ select model, prompt_version, count(*), max(created_at) as 마지막
 from public.reading_run group by 1, 2 order by 4 desc;
 ```
 
-**비용은 여기서 안 보인다.** 호출 수는 위에서 세지만 금액은 Vercel AI Gateway 쪽에
-있다. 첫 실호출 전에 게이트웨이에 예산 한도를 걸어 둔다 — 앱의 빗장
-(`reading_rate_limit()`, 한 시간 20회)은 **사용자당**이라 총액을 막지 않는다.
+**비용은 여기서 안 보인다.** 호출 수는 위에서 세지만 금액은 provider 쪽에 있다.
+
+> **게이트웨이가 아니라 OpenAI 를 직접 부른다.** 이 문단은 「Vercel AI Gateway 에
+> 예산 한도를 걸어 둔다」라고 적혀 있었는데, 게이트웨이가 카드 없음으로 거절하는
+> 동안 `@ai-sdk/openai` 로 옮겼다(`app/me/reading/model.ts`). 한도를 걸 자리도
+> 함께 옮겨 갔다.
+
+한도는 **OpenAI 대시보드**에 건다 — Settings → Organization → Limits 의 월 예산과
+경고선이다. 앱의 빗장(`reading_rate_limit()`, 한 시간 20회)은 **사용자당**이라
+총액을 막지 못한다. 테스터가 열 명이면 한 시간에 200번까지 열려 있다.
+
+지금 서 있는 값은 `GENERATION` 이 든다. 무엇으로 얼마나 불렀는지는 위의
+`reading_run` 질의가 세고, **그것에 값을 곱해 보는 일은 대시보드에서 한다.**
 
 ---
 
@@ -249,5 +259,11 @@ npx supabase migration list   # 로컬과 원격이 같은지 확인
 배포 전 확인은 `npm run verify` 와 네 층 전부:
 
 ```bash
-npm test && npm run test:db && npm run test:flow && npm run test:e2e
+npm test && npm run test:db && npm run test:flow
+npm run test:e2e          # 백엔드 없이 돈다
+npm run test:e2e:authed   # `npm run db:start` 를 요구한다
 ```
+
+**e2e 가 두 명령인 것은 계약이다.** 로그인하지 않은 사람을 돌려보내는 데 백엔드가
+필요하면 그것부터 잘못이라, 그쪽은 CI 의 껍데기 접속값으로도 돈다. 로그인 흐름만
+로컬 스택을 요구한다.
