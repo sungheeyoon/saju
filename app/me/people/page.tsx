@@ -188,8 +188,6 @@ function PersonCard({ person }: { person: Person }) {
         </div>
       )}
 
-      <NoteForm personId={person.personId} note={person.note ?? ''} />
-
       <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
         {person.chart.ok && (
           <Link
@@ -202,6 +200,8 @@ function PersonCard({ person }: { person: Person }) {
         {/* 못 읽는 판본은 고치는 폼도 못 채운다 — 빈 폼을 주면 그 값이 새 판본으로 굳는다 */}
         {person.chart.ok && <ReviseChart personId={person.personId} current={person.chart.query} />}
         <RemoveFromList personId={person.personId} label={person.local_label} />
+        {/* 메모는 마지막에 선다 — 열리는 칸이 `w-full` 이라 이 줄 아래로 내려간다 */}
+        <NoteForm personId={person.personId} note={person.note ?? ''} />
       </div>
     </section>
   );

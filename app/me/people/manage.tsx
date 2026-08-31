@@ -127,13 +127,21 @@ function NoteField({
 }
 
 /**
- * 메모만 고치는 자리 — **판본이 되지 않는다.**
+ * 메모 — **접어 둔다.**
  *
- * 생년월일시를 고치는 폼과 나란히 두지 않는다. 한쪽은 새 판본을 쌓고 한쪽은 안
+ * 늘 펼쳐 두었더니 빈 칸 하나가 카드 높이의 삼분지 일을 먹었다. 스무 명이면 그
+ * 빈 칸이 스무 개다. **꼭 필요한 값이 아닌 것이 자리를 제일 많이 차지하고 있었다.**
+ *
+ * 그래서 다른 조작들과 같은 줄에 버튼으로 서고, 누르면 그 아래에 열린다. 적어 둔
+ * 메모가 있으면 버튼이 그것을 말한다 — 접힌 것이 **비어 있다는 뜻이 되면** 적어 둔
+ * 사람이 자기 메모를 잃은 줄 안다.
+ *
+ * 생년월일시를 고치는 폼과는 여전히 갈라 둔다. 한쪽은 새 판본을 쌓고 한쪽은 안
  * 쌓는데, 한 버튼 아래 두면 무엇이 쌓이는지가 흐려진다.
  */
 export function NoteForm({ personId, note }: { personId: string; note: string }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [value, setValue] = useState(note);
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
@@ -144,35 +152,61 @@ export function NoteForm({ personId, note }: { personId: string; note: string })
     setFailure(null);
     startSaving(async () => {
       const result = await updateNote(personId, value);
-      if (result.ok) router.refresh();
-      else setFailure(result.message);
+      if (result.ok) {
+        setOpen(false);
+        router.refresh();
+      } else {
+        setFailure(result.message);
+      }
     });
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      <NoteField value={value} onChange={setValue} idPrefix={personId} />
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={save}
-          disabled={!changed || saving}
-          className="h-9 rounded-md border border-border px-3 text-xs text-secondary transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-50"
-        >
-          {saving ? '저장하는 중…' : '메모 저장'}
-        </button>
-        {failure !== null && <span className="text-xs text-muted">{failure}</span>}
-      </div>
-    </div>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        className="text-sm text-secondary underline underline-offset-2 hover:text-accent"
+      >
+        {note.trim() === '' ? '메모 넣기' : '메모 고치기'}
+      </button>
+
+      {/*
+        `w-full` 이라 줄바꿈해서 제 줄에 선다 — 버튼들이 선 줄 아래다. 패널을 줄 밖에
+        따로 두면 여는 버튼과 열리는 칸이 두 컴포넌트로 갈린다.
+      */}
+      {open && (
+        <div className="flex w-full flex-col gap-2 pt-1">
+          <NoteField value={value} onChange={setValue} idPrefix={personId} />
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={save}
+              disabled={!changed || saving}
+              className="h-9 rounded-md border border-border px-3 text-xs text-secondary transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-50"
+            >
+              {saving ? '저장하는 중…' : '메모 저장'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setValue(note);
+                setOpen(false);
+              }}
+              disabled={saving}
+              className="text-xs text-secondary underline underline-offset-2"
+            >
+              닫기
+            </button>
+            {failure !== null && <span className="text-xs text-muted">{failure}</span>}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
-/**
- * 목록에서 뺀다 — **한 번 더 묻는다.**
- *
- * 되돌릴 수 없다. 엣지가 사라지면 그 Person 은 더 이상 보이지 않으므로, 잘못 눌렀을
- * 때 스스로 되돌릴 방법이 없다. 그래서 누르는 순간이 아니라 확인한 순간에 지운다.
- */
 export function RemoveFromList({ personId, label }: { personId: string; label: string }) {
   const router = useRouter();
   const [asked, setAsked] = useState(false);

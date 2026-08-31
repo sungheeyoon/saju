@@ -60,7 +60,12 @@ export function ReviseChart({
           setQuery(current);
           setOpen(true);
         }}
-        className="self-start text-sm text-accent underline underline-offset-2"
+        /*
+          `self-start` 를 달지 않는다. 이 버튼은 다른 버튼들과 한 줄에 서는데,
+          `self-start` 가 그 줄의 `items-center` 를 이겨서 **혼자만 위로 솟아 있었다.**
+          늘어나는 것을 막아야 하는 자리(`embedded`)에서만 단다.
+        */
+        className={`text-sm text-accent underline underline-offset-2 ${embedded ? 'self-start' : ''}`}
       >
         출생 정보 수정
       </button>
