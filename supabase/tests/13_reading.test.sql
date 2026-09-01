@@ -10,7 +10,7 @@
 -- 4. **판본을 든다.** 그래서 `revisions_in_use()` 가 이 표를 자동으로 본다(ADR 0011) —
 --    표 이름을 적어 둔 목록이 아니라 FK 에서 읽기 때문이다.
 begin;
-select plan(52);
+select plan(53);
 
 /** 다섯 오행 개수만 주면 요약 한 벌이 된다(11번 시험과 같은 손잡이) */
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
@@ -683,7 +683,7 @@ select throws_ok(
     (select id from run_suspended_self), (select revision from suspended_input)),
   'P0002', null, '만드는 동안 계정이 중지되면 자기 풀이도 저장하지 않는다');
 
--- 열쇠의 허용 집합은 설명이 아니라 실제 ACL 로 **정확히 여섯**이다.
+-- 열쇠의 허용 집합은 설명이 아니라 실제 ACL 로 **정확히 여덟**이다.
 -- 만드는 일이 요청을 떠나면서 넷이 늘었다(ADR 0020) — 실패를 닫는 문, 도착을 적는 문,
 -- 일감을 집는 문, 집었다 놓는 문. 그 수를 여기서 세지 않으면 다음에 문이 늘어도 아무도
 -- 모른다.
@@ -698,14 +698,35 @@ select is(
    where n.nspname = 'public'
      and has_function_privilege('service_role', p.oid, 'EXECUTE')),
   array[
+    'adopt_reading_job',
     'claim_reading_job',
     'fail_reading_job',
     'match_calculation_inputs',
+    'open_reading_jobs',
     'record_reading_webhook_event',
     'release_reading_job',
     'save_reading'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 여섯 개뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 여덟 개뿐이다');
+
+/**
+ * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**
+ *
+ * 26일자 마이그레이션이 「앞으로 생길 함수도 닫힌 채로 시작한다」며 기본 권한을 바꿔
+ * 두었는데, 그 뒤에 revoke 없이 만든 함수 하나가 `proacl` 이 빈 채로 서서 anon·
+ * authenticated·service_role 모두에게 열렸다.
+ *
+ * 위 시험은 열쇠에게 열린 것만 센다. 그것만으로는 **anon 에게 열린 문**을 못 잡는다.
+ * `proacl` 이 비었다는 것은 「아무도 손대지 않았다」이고, 이 저장소에서 그것은 곧
+ * 「기본값대로 PUBLIC 에 열려 있다」다.
+ */
+select is(
+  (select array_agg(p.proname::text order by p.proname::text)
+   from pg_proc p
+   join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proacl is null),
+  null,
+  'public 함수 중 권한을 손대지 않은 것이 하나도 없다');
 
 select * from finish();
 rollback;

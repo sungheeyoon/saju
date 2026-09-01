@@ -73,7 +73,14 @@ export type ModelSubmission =
  * 「아직 안 됐다」는 다른 말이고, 뒤엣것은 기다리면 된다.
  */
 export type ModelRetrieval =
-  | { ok: true; output: ReadingOutput; usage: ModelUsage | null; modelId: string | null }
+  | {
+      ok: true;
+      output: ReadingOutput;
+      usage: ModelUsage | null;
+      modelId: string | null;
+      /** 우리가 실어 보낸 이름표. 이름표로 일감을 못 찾았을 때 이것으로 되찾는다 */
+      runId: string | null;
+    }
   | { ok: 'pending' }
   | { ok: false; code: string; detail: string };
 

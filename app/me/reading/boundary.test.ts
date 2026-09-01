@@ -205,6 +205,24 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     expect(body.split('after(')[0]).not.toContain('collectReadingResult');
   });
 
+  /**
+   * **관문 밖의 주소는 스스로 자격을 물어야 한다.**
+   *
+   * `/api` 는 `proxy.ts` 를 지나지 않는다. 그래서 아무나 두드릴 수 있고, 복구기는
+   * 두드리면 남의 시도를 닫는다. webhook 은 서명이, 복구기는 `CRON_SECRET` 이 든다 —
+   * 둘 중 하나라도 빠지면 그 문은 열린 문이다.
+   */
+  it('관문 밖 주소는 저마다 자격을 묻는다', () => {
+    const routes = files.filter(({ path }) => path.startsWith('app/api/') && path.endsWith('route.ts'));
+
+    expect(routes.length, 'api 라우트를 못 찾았다').toBeGreaterThan(0);
+
+    for (const { path, text } of routes) {
+      const asks = /verifyReadingWebhook|CRON_SECRET/.test(text);
+      expect(asks, `${path} 이 자격을 묻지 않는다`).toBe(true);
+    }
+  });
+
   it('사용자 화면이 근거 절 머리말을 직접 알지 않는다', () => {
     const knowing = files
       .filter(({ path }) => path.startsWith('app/'))

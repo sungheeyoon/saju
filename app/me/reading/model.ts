@@ -235,6 +235,7 @@ export async function retrieveBackgroundReading(responseId: string): Promise<Mod
         totalTokens: response.usage?.total_tokens ?? null,
       },
       modelId: response.model ?? null,
+      runId: (response.metadata?.reading_run_id as string | undefined) ?? null,
     };
   } catch (failure) {
     return { ok: false, code: 'model-retrieve-failed', detail: messageOf(failure) };

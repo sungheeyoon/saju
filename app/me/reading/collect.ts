@@ -57,10 +57,42 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     return { done: 'skipped', why: '열쇠가 없습니다' };
   }
 
-  const { data, error } = await keyed.rpc('claim_reading_job', { p_response_id: responseId });
-  if (error) return { done: 'skipped', why: error.message };
+  const claim = async (): Promise<ClaimedJob | undefined> => {
+    const { data, error } = await keyed.rpc('claim_reading_job', { p_response_id: responseId });
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as ClaimedJob[])[0];
+  };
 
-  const [job] = (data ?? []) as ClaimedJob[];
+  let job: ClaimedJob | undefined;
+  try {
+    job = await claim();
+
+    /**
+     * **이름표를 잃은 일감을 되찾는다.**
+     *
+     * 제출은 됐는데 `response_id` 를 적기 전에 끊기면 이 이름으로는 못 찾는다. 그때
+     * 쓰라고 요청에 `metadata.reading_run_id` 를 실어 보냈다(ADR 0020) — 결과에 붙여
+     * 보낸 이름표가 우리 쪽 기록보다 먼저다.
+     *
+     * 회수를 한 번 더 하게 되지만 그 값을 치를 자리가 여기다. 안 하면 그 작업은 돈만
+     * 나가고 결과가 아무 데도 안 붙는다.
+     */
+    if (job === undefined) {
+      const orphan = await retrieveBackgroundReading(responseId);
+      const runId = orphan.ok === true ? orphan.runId : null;
+
+      if (runId !== null) {
+        const { data: adopted } = await keyed.rpc('adopt_reading_job', {
+          p_run_id: runId,
+          p_response_id: responseId,
+        });
+        if (adopted === true) job = await claim();
+      }
+    }
+  } catch (failure) {
+    return { done: 'skipped', why: failure instanceof Error ? failure.message : String(failure) };
+  }
+
   if (job === undefined) return { done: 'skipped', why: '집을 일감이 없습니다' };
 
   /**
