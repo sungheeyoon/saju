@@ -4,6 +4,7 @@ import { computeSaju } from '../saju';
 import { type RelationKind } from '../saju/constants';
 import { ABSORPTION_RULE } from '../saju/evidence/prompt';
 import { ABSORBABLE_KINDS, RELATION_KIND_KO } from '../saju/relations';
+import { COMMON_STAR_KO } from '../saju/sinsal';
 import {
   CONTROL,
   PROMPT_VARIANTS,
@@ -641,6 +642,43 @@ describe('고객이 읽는 글의 계약', () => {
     }
   });
 
+
+  /**
+   * **`position` 만 맞추라고 하면 틀린 조인을 시킨다.** 천간에 걸린 신살(현침·
+   * 월덕·천덕)을 같은 기둥 **지지**의 충이나 공망과 묶게 되는데, 2000건에서
+   * 그럴 자리가 1604건 있다. 조인 규칙이 프롬프트에서 조용히 빠지면 그 오독이
+   * 돌아오므로 여기서 잠근다.
+   */
+  it('신살을 겹침과 맞출 때 target 까지 가르라고 시킨다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('hits[].target');
+    expect(prompt).toContain('공망은 지지에 붙는다');
+    // `pillar` 는 「같은 글자」가 아니라 「같은 기둥」이다.
+    expect(prompt).toContain('같은 기둥에서 함께 있다');
+  });
+
+  /**
+   * 색인과 옮겨 적은 신살은 원본과 **같은 값**이다. 보강 근거 둘로 세면
+   * 강도가 근거 없이 올라간다 — 「근거 여럿이 같은 방향이면 단정한다」가
+   * 새는 자리라 규칙을 함께 싣는다.
+   */
+  it('파생 색인과 옮겨 적은 신살을 별개 근거로 세지 말라고 시킨다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('같은 근거를 두 번 세지 마라');
+    expect(prompt).toContain('`overlaps` 는 근거를 하나 늘리지 않는다');
+    expect(prompt).toContain('귀문관살」은 같은 사실이다');
+  });
+
+  it('흔한 신살 목록은 손으로 적지 않고 잰 값을 읽는다', () => {
+    const prompt = selfPrompt();
+
+    for (const ko of COMMON_STAR_KO) expect(prompt, ko).toContain(ko);
+    // 백분율은 싣지 않는다 — 균등 난수 모집단이라 인구 비율이 아니다.
+    expect(prompt).not.toContain('67%');
+    expect(prompt).not.toContain('무작위 삼천');
+  });
   it('어색하거나 낡은 절 이름을 사용자 본문에 쓰지 않는다', () => {
     const prompt = selfPrompt();
 

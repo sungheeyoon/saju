@@ -239,6 +239,10 @@ export const UNCOVERED_FACTS_BY_PATH: readonly {
   { paths: ['analysis.followingCandidacy'], note: '종격 후보 자격 — 판정(`analysis.following`)만 말한다' },
   { paths: ['stages'] },
   { paths: ['sinsal'] },
+  {
+    paths: ['overlaps'],
+    note: '자리마다 함께 걸린 것 — 관계 행은 관계 목록이 자기 이름으로 말하고, 「이 자리에 그것이 함께 걸렸다」를 잇는 주제는 아직 없다',
+  },
   // 대운·세운·월운은 **표 전체로는** 아직 침묵한다. 지금 도는 한 칸만
   // 현재운이 말한다(`findNowUtterances`) — 아홉 칸과 열두 칸을 다 말하는 것은
   // "고르지 않는다"가 화면을 덮어 버리는 자리라 따로 정할 일이다.

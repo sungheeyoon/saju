@@ -17,6 +17,9 @@
 # 돈을 낸 실호출 결과가 떨어지는 자리 — 채점 전 원문이라 저장소에 올리지 않는다
 /.reading-live
 
+# A/B 하네스 결과 — 모델 출력 원문과 프롬프트 해시가 남는다
+/.ab-overlaps
+
 # next.js
 /.next/
 /.next-check/

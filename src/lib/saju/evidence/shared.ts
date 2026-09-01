@@ -32,6 +32,7 @@ export const WITHHELD_PATHS = {
   relations: '원국 **안에서** 닫힌 형충회합이다. 두 원국 **사이**의 것은 `compatibility` 가 든다',
   stages: '12운성 — 원국 하나의 판정이다',
   sinsal: '공망·12신살·신살 — 원국 하나의 판정이다',
+  overlaps: '자리마다 함께 걸린 것 — 원국 안에서 닫힌 관계와 공망을 자리로 색인한 것이다',
   daeun: '대운은 동의 범위 밖이다',
   now: '지금 도는 운도 마찬가지다',
 } as const satisfies Partial<Record<keyof ChartEvidence, string>>;

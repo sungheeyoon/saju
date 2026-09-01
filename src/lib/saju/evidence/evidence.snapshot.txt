@@ -39,6 +39,7 @@
   relations                      있다 fact       없다 fact
   stages                         있다 fact       없다 fact
   sinsal                         있다 fact       없다 fact
+  overlaps                       있다 fact       없다 fact
   daeun                          있다 derived    없다 derived
   meta                           있다 fact       없다 fact
   now                            있다 fact       없다 fact
@@ -63,6 +64,7 @@
   relations                      있다 fact       없다 silent
   stages                         있다 fact       없다 silent
   sinsal                         있다 fact       없다 silent
+  overlaps                       있다 fact       없다 silent
   daeun                          있다 candidate  없다 silent
   meta                           있다 fact       없다 fact
   now                            있다 fact       없다 silent
@@ -95,21 +97,23 @@
   viewedAt: 2026-08-22T04:00:00.000Z
   charts:
     a:
-      claims: {22}
+      claims: {23}
       pillars: {6}
       analysis: {15}
       stages: {3}
       sinsal: {3}
+      overlaps: [4]
       meta: {8}
       relations: [7]
       daeun: {8}
       now: {13}
     b:
-      claims: {22}
+      claims: {23}
       pillars: {6}
       analysis: {15}
       stages: {3}
       sinsal: {3}
+      overlaps: [4]
       meta: {8}
       relations: [9]
       daeun: {8}
@@ -242,4 +246,4 @@
 
 ── 크기
   한 사람  31KB
-  두 사람  94KB
+  두 사람  96KB

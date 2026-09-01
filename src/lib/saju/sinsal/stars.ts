@@ -161,6 +161,32 @@ export const SINSAL_POLICY = {
   taegeuk: 'year-stem-yuanhai-ziping',
 } as const;
 
+/**
+ * **재어 보고 값으로 남긴 것** — 어느 신살이 흔한가.
+ *
+ * 신살은 이름마다 걸리는 조건이 넓기도 하고 좁기도 한데, 자료는 그것을 말하지
+ * 않는다. 걸린 신살 여덟 개가 평평한 목록으로 도착하면 읽는 쪽은 화개와 천문성을
+ * 같은 무게로 읽는다 — 명리가는 화개를 보고 놀라지 않는데도 그렇다.
+ *
+ * 그래서 문턱 위에 있는 것들의 이름을 값으로 든다. **백분율은 내지 않는다.**
+ * 모집단이 균등 난수라(`population.ts`) 실제 인구 분포가 아니고, 「인구의 67%」로
+ * 읽히면 우리가 재지 않은 것을 말하는 것이 된다. 줄 세우는 데 쓴 숫자를 그대로
+ * 내보내지 않고 말로 바꾸는 자리다.
+ *
+ * **손으로 적었지만 믿지 않는다** — `sinsal.test.ts` 가 삼천 건에서 다시 세어
+ * 이 목록과 맞댄다. 표가 바뀌어 흔한 것이 달라지면 거기서 걸린다.
+ */
+export const COMMON_STAR_THRESHOLD = 0.4;
+
+/** 문턱 위 — 둘에 하나꼴로 걸리므로 이것으로 사람을 설명할 수 없다 */
+export const COMMON_STAR_KO: readonly string[] = [
+  '화개살',
+  '태극귀인',
+  '천을귀인',
+  '귀문관살',
+  '원진살',
+];
+
 const branchIndexOf = (branch: Branch): number => BRANCHES.indexOf(branch);
 
 /** 록지에서 n 칸 뒤의 지지 */

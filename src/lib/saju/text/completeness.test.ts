@@ -30,6 +30,13 @@ const ITEMS: Partial<Record<ClaimPath, (saju: Saju) => string[]>> = {
   relations: (saju) =>
     saju.relations.map((r) => `${r.ko}@${r.participants.map((p) => p.position).join()}`),
 
+  overlaps: (saju) =>
+    saju.overlaps.flatMap((o) => [
+      ...o.stem.map((r) => `${o.position}/stem/${r.ko}`),
+      ...o.branch.map((r) => `${o.position}/branch/${r.ko}`),
+      ...o.emptiness.map((basis) => `${o.position}/empty/${basis}`),
+    ]),
+
   stages: (saju) =>
     Object.entries(saju.stages).flatMap(([basis, byPosition]) =>
       typeof byPosition === 'object' && byPosition !== null
@@ -212,7 +219,7 @@ describe('자리별 목록의 완전성', () => {
   it('「있다」는 내려가지 않는다 — 늘어나는 것과 흔들리는 것은 다른 축이다', () => {
     // 목록이 길어져도 적힌 항목은 그대로 참이다. `HOUR_SENSITIVE_PATHS` 가
     // 따로 잡는 자리(값이 달라지는 것)만 내려간다.
-    for (const path of ['relations', 'sinsal', 'stages'] as const) {
+    for (const path of ['relations', 'overlaps', 'sinsal', 'stages'] as const) {
       expect(ceilingFor({ paths: [path], polarity: 'presence', hourKnown: false })).toBe('fact');
     }
   });

@@ -166,6 +166,7 @@ export const CLAIM_PATHS = [
   'relations',
   'stages',
   'sinsal',
+  'overlaps',
   'daeun',
   'saeun',
   'wolun',
@@ -241,6 +242,13 @@ export const CLAIM_CEILING: Record<ClaimPath, ClaimStrength> = {
   relations: 'fact',
   stages: 'fact',
   sinsal: 'fact',
+  /**
+   * 자리 색인은 **사실이다** — 관계표와 공망을 자리로 맞춰 본 것뿐이고 고르는 자리가
+   * 없다. 겹쳤다는 것이 무엇을 뜻하는지(양인이 충을 맞으면 …)는 계통이 갈리지만 그
+   * 판정은 하지 않으므로 이 칸이 내려갈 이유가 없다 — 암합이 성립을 말하지 않기
+   * 때문에 `fact` 로 설 수 있는 것과 같은 자리다.
+   */
+  overlaps: 'fact',
   saeun: 'fact',
   wolun: 'fact',
   meta: 'fact',
@@ -513,6 +521,8 @@ export const HOUR_SENSITIVE_PATHS: readonly ClaimPath[] = [
 export const LIST_COMPLETENESS_PATHS: readonly ClaimPath[] = [
   /** 관계 목록 — 시주 두 글자가 새 형충회합을 만든다 */
   'relations',
+  /** 그 관계를 자리로 색인한 것 — 원본이 길어지면 색인도 길어진다 */
+  'overlaps',
   /**
    * 암합. `HOUR_SENSITIVE_PATHS` 의 주석이 「짝이 뒤집힌 것은 0건이고 98.9% 는
    * 짝이 줄기만 한다 — 흔들리는 것은 「이것이 전부다」」라고 적고 그 줄로 보냈는데,

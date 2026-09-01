@@ -64,13 +64,26 @@ const messageOf = (failure: unknown): string =>
  * **던지지 않는다.** 실패도 값으로 낸다 — 부르는 쪽은 실패를 기록하고 직전 성공
  * 결과를 그대로 두어야 하므로, 예외로 빠져나가면 그 기록이 남지 않는다.
  */
-export async function callModel(prompt: string): Promise<ModelCall> {
+export async function callModel(
+  prompt: string,
+  /**
+   * 기다리다 마는 시각 — **기본은 운영값이다.**
+   *
+   * 열어 둔 것은 평가용 하네스 하나 때문이다. 운영은 이제 이 길로 오지 않고
+   * (ADR 0020: 제출하고 떠난다) 그쪽은 함수 수명에 매여 있지 않은데, 이 동기 경로만
+   * 240초에 걸려 열다섯 번짜리 비교가 완주를 못 한다.
+   *
+   * **호출부가 안 넘기면 운영값 그대로다.** 넘긴 쪽은 자기가 다른 조건에서 쟀다는 것을
+   * 결과에 함께 적어야 한다.
+   */
+  timeoutMs: number = GENERATION.settings.timeout,
+): Promise<ModelCall> {
   try {
     const { output, usage, response } = await generateText({
       model: openai(GENERATION.model),
       output: Output.object({ schema: SCHEMA }),
       prompt,
-      timeout: GENERATION.settings.timeout,
+      timeout: timeoutMs,
       providerOptions: {
         openai: { store: GENERATION.settings.store },
       },

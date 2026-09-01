@@ -9,6 +9,7 @@ import {
   type PillarOptions,
   type Pillars,
 } from './pillars';
+import { positionOverlapsOf, type PositionOverlap } from './overlap';
 import { findRelations, type Relation } from './relations';
 import { computeSaeun, type Saeun, type SaeunOptions } from './saeun';
 import { computeWolun, type Wolun, type WolunOptions } from './wolun';
@@ -38,6 +39,7 @@ export * from './input';
 export * from './lunar';
 // 현재운. `Saju` 에 얹지 않고 따로 부른다 — 보는 시각은 명식의 일부가 아니다.
 export * from './now';
+export * from './overlap';
 export * from './position';
 export * from './relations';
 export * from './saeun';
@@ -112,6 +114,14 @@ export type Saju = {
   stages: Stages;
   /** 공망 · 12신살 · 출처와 산출법을 고정한 핵심 신살 */
   sinsal: Sinsal;
+  /**
+   * 자리마다 그 글자에 함께 걸린 것 — 관계표와 공망을 자리로 색인한 것.
+   *
+   * 새 사실은 없다. `relations` 와 `sinsal.emptiness` 에서 유도되고, 시험이 관계표에서
+   * 다시 세어 어긋나지 않는지 확인한다. 신살·십성·12운성이 모두 「어느 자리에 있는가」를
+   * 말하는데 그 자리에 무엇이 함께 걸렸는지를 맞춰 보는 곳이 아무 데도 없었다.
+   */
+  overlaps: PositionOverlap[];
   /**
    * 세운 — 해마다의 간지와 그것이 원국과 무엇을 하는지.
    *
@@ -226,12 +236,18 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     { stages: stageOptions, ...saeunOptions },
   );
 
+  // 관계와 신살을 **먼저 세운다.** 자리 색인이 둘을 맞춰 보므로 그 둘이 먼저 있어야
+  // 한다. 색인이 스스로 관계를 다시 세면 두 벌이 되고, 어긋난 쪽을 알 수 없게 된다.
+  const relations = findRelations(pillars);
+  const sinsal = analyzeSinsal(pillars, sinsalOptions);
+
   return {
     pillars,
     analysis: analyzePillars(pillars, { ...analysisOptions, instant: corrected.instant }),
-    relations: findRelations(pillars),
+    relations,
     stages: twelveStagesOf(pillars, stageOptions),
-    sinsal: analyzeSinsal(pillars, sinsalOptions),
+    sinsal,
+    overlaps: positionOverlapsOf({ relations, emptiness: sinsal.emptiness, hourKnown }),
     saeun,
     wolun: computeWolun(
       { pillars, year: wolunOptions?.year ?? saeun.entries[0].year, daeun, birthDate },

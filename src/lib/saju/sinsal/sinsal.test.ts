@@ -13,9 +13,12 @@ import {
 import { PILLAR_POSITIONS } from '@/src/lib/saju/position';
 import { findRelations } from '@/src/lib/saju/relations';
 import { STEM_PROSPERITY } from '@/src/lib/saju/stages';
+import { randomInputs } from '@/src/lib/saju/population';
 import {
   BAEKHO_PILLARS,
   CHEONEUL_BRANCHES,
+  COMMON_STAR_KO,
+  COMMON_STAR_THRESHOLD,
   GOEGANG_PILLARS,
   GWANGWI_HAKGWAN_BRANCH,
   HYEONCHIM_GLYPHS,
@@ -643,5 +646,35 @@ describe('computeSaju 와의 연결', () => {
     expect(saju.sinsal.emptiness[0].basis).toBe('day');
     expect(saju.sinsal.twelveSpirits[0].basis).toBe('year');
     expect(saju.sinsal).toEqual(analyzeSinsal(saju.pillars));
+  });
+});
+
+describe('흔한 신살은 재어서 정한다', () => {
+  /**
+   * `COMMON_STAR_KO` 를 손으로 적었으므로 여기서 다시 센다. 표가 바뀌거나
+   * 정책(`SINSAL_POLICY`)이 달라져 흔한 것이 달라지면 이 줄에서 걸린다 —
+   * 프롬프트가 이 목록을 그대로 읽으므로, 안 걸리면 문구만 조용히 낡는다.
+   */
+  // 삼천 건을 도는 측정이라 기본 5초를 넘긴다. 표본을 줄이면 원진살(40.8%)과
+  // 백호대살(37.8%) 사이 3%p 가 흔들려 문턱 판정이 뒤집힌다 — 시간을 늘린다.
+  it('삼천 건에서 다시 세어도 문턱 위가 같다', { timeout: 30_000 }, () => {
+    const N = 3000;
+    const hit = new Map<string, number>();
+
+    for (const input of randomInputs(N)) {
+      for (const ko of new Set(computeSaju(input).sinsal.stars.map((star) => star.ko))) {
+        hit.set(ko, (hit.get(ko) ?? 0) + 1);
+      }
+    }
+
+    const common = [...hit.entries()]
+      .filter(([, count]) => count / N >= COMMON_STAR_THRESHOLD)
+      .sort((a, b) => b[1] - a[1])
+      .map(([ko]) => ko);
+
+    expect(common).toEqual([...COMMON_STAR_KO]);
+
+    // 문턱 아래가 비어 있으면 이 목록은 「전부」를 적은 것이지 「흔한 것」이 아니다.
+    expect(hit.size).toBeGreaterThan(COMMON_STAR_KO.length);
   });
 });
