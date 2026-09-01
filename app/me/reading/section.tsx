@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { CARD } from '../../card';
 import { currentReading, lastReadingRun } from './current';
 import { ReadingPanel } from './panel';
@@ -16,10 +18,13 @@ import type { ReadingTarget } from './pipeline';
 export async function ReadingSection({
   target,
   layout,
+  ask,
 }: {
   target: ReadingTarget;
   /** 카드로 서는가, 그 글을 읽으러 온 페이지인가 — `ReadingPanel` 이 그 뜻을 든다 */
   layout?: 'card' | 'page';
+  /** 다음 풀이를 위해 먼저 정할 것 — 만드는 버튼 옆에 선다 */
+  ask?: ReactNode;
 }) {
   const [reading, run] = await Promise.all([currentReading(target), lastReadingRun(target)]);
 
@@ -37,6 +42,7 @@ export async function ReadingSection({
         initialRunning={run?.status === 'running'}
         allowMockFallback={process.env.NODE_ENV !== 'production'}
         layout={layout}
+        ask={ask}
       />
     </section>
   );

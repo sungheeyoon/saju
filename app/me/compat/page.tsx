@@ -6,7 +6,9 @@ import { analyzeCompatibility } from '@/src/lib/saju';
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { CompatView } from '../../compat-view';
+import { pairRelationFor } from './actions';
 import { PairPicker } from './picker';
+import { RelationForNext } from './relation-for-next';
 import { CompatHero } from '../../compat-hero';
 import { REVISION_REPLACED_NOTE, UnreadableRevisionError } from '../../revision';
 import { Halted } from '../halted';
@@ -300,7 +302,7 @@ async function pairOutcome(a: string | null, b: string | null): Promise<Outcome>
   return { kind: 'ok', first, second, pair: { personA: a, personB: b }, viewedAt: Date.now() };
 }
 
-function Result({ outcome }: { outcome: Outcome }) {
+async function Result({ outcome }: { outcome: Outcome }) {
   /**
    * **아직 안 골랐으면 아무것도 안 그린다.**
    *
@@ -330,6 +332,14 @@ function Result({ outcome }: { outcome: Outcome }) {
 
   const { first, second } = outcome;
 
+  /**
+   * **이 쌍에 적어 둔 사이** — 다시 풀이받을 때 고칠 수 있게 칸에 세운다.
+   *
+   * 못 읽으면 칸을 안 세운다. 「모른다」로 세워 두면 화면이 저장된 값과 다른 말을
+   * 하게 되고, 사용자는 자기가 답한 적 없는 값을 보고 답한 줄 안다.
+   */
+  const stored = await pairRelationFor(outcome.pair.personA, outcome.pair.personB);
+
   return (
     <CompatView
       charts={{ a: first.saju, b: second.saju }}
@@ -349,6 +359,23 @@ function Result({ outcome }: { outcome: Outcome }) {
           key="private-reading"
           target={{ kind: 'private', ...outcome.pair }}
           layout="page"
+          /**
+           * **사이를 고치는 칸이 만드는 버튼 옆에 선다.**
+           *
+           * 고르는 칸에서만 물었으므로, 처음에 안 골랐거나 잘못 고른 사람은 바꿀
+           * 길이 없었다. 「읽기 전에 묻는다」(ADR 0019)는 그대로다 — 이 칸이 바꾸는
+           * 것은 지금 서 있는 글이 아니라 **다음 글**이고, 그래서 버튼 옆이다.
+           */
+          ask={
+            stored.ok ? (
+              <RelationForNext
+                key="relation-for-next"
+                personA={outcome.pair.personA}
+                personB={outcome.pair.personB}
+                initial={stored.relation}
+              />
+            ) : undefined
+          }
         />
       }
       notice={

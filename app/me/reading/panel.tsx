@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import {
   READING_ALREADY_RUNNING_NOTE,
@@ -58,6 +58,7 @@ export function ReadingPanel({
   initialRunning,
   allowMockFallback,
   layout = 'card',
+  ask,
 }: {
   target: ReadingTarget;
   initialReading: CurrentReading | null;
@@ -83,6 +84,17 @@ export function ReadingPanel({
    * 없는 것과 같다.
    */
   layout?: 'card' | 'page';
+  /**
+   * **다음 풀이를 위해 먼저 정할 것.**
+   *
+   * 만드는 버튼과 같은 덩어리에 선다. 이 자리에 있는 물음은 지금 서 있는 글이 아니라
+   * **다음 글**을 바꾸는 것이라, 글 위도 아래도 아닌 **버튼 옆**이 답이다 — 누가 썼는지와
+   * 무엇을 안 넘겼는지를 여기 세운 것과 같은 까닭이다(`notes.ts`).
+   *
+   * 지금은 비공개 궁합의 「무슨 사이인가」 하나뿐이다. 자기 풀이에는 상대가 없고 공유
+   * 궁합은 성립 방식이 사이를 정한다.
+   */
+  ask?: ReactNode;
 }) {
   const router = useRouter();
   const [mockReading, setMockReading] = useState<CurrentReading | null>(null);
@@ -196,6 +208,8 @@ export function ReadingPanel({
     <div
       className={`flex flex-col gap-3 ${onPage ? 'rounded-2xl border border-border bg-surface px-5 py-4' : 'border-t border-border pt-5'}`}
     >
+      {/* 먼저 정할 것이 있으면 버튼보다 앞에 선다 — 정하고 나서 누르는 차례다 */}
+      {ask}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold">

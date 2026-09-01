@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { Relation } from '@/src/lib/people';
 import {
@@ -16,7 +16,7 @@ import { GENERATION } from '../reading/generation';
 
 import { RelationChoice } from '../../relation-choice';
 import { readingRunState } from '../reading/actions';
-import { startPairReading } from './actions';
+import { pairRelationFor, startPairReading } from './actions';
 
 export type Choosable = { personId: string; label: string; isSelf: boolean };
 
@@ -48,11 +48,48 @@ export function PairPicker({
   const [first, setFirst] = useState(a ?? '');
   const [second, setSecond] = useState(b ?? '');
   const [relation, setRelation] = useState<Relation | null>(null);
+  /**
+   * **이 누름이 사이를 건드리는가.**
+   *
+   * 안 건드렸으면 안 적는다. 칸이 늘 「아직 모르겠음」에서 시작하던 동안, 지난번에
+   * 답해 둔 두 사람을 다시 고르기만 해도 그 답이 지워졌다 — `null` 은 행을 지우는
+   * 답이기 때문이다. 「모른다를 골랐다」와 「이 누름에서 안 정했다」는 다른 일이다.
+   */
+  const answered = useRef<string | null>(null);
   const [running, setRunning] = useState(false);
   const [waited, setWaited] = useState(0);
   const [failure, setFailure] = useState<string | null>(null);
 
   const chosen = first !== '' && second !== '' && first !== second;
+  /** 차례를 안 타는 쌍 이름 — 첫째·둘째를 바꿔 골라도 같은 쌍이다(DB 와 같은 규율) */
+  const pairKey = chosen ? [first, second].sort().join('|') : '';
+
+  /**
+   * **고른 두 사람에 대해 저장해 둔 답을 칸에 세운다.**
+   *
+   * 이 값이 없던 동안 화면은 늘 「아직 모르겠음」을 보여 주었고, 그것은 저장된 값과
+   * 달랐다. 화면이 저장 상태를 그대로 보여 주면 그 화면을 눌러도 아무것도 안 지워진다.
+   */
+  useEffect(() => {
+    if (pairKey === '') return;
+
+    let alive = true;
+    void pairRelationFor(first, second).then((read) => {
+      // 못 읽었으면 칸을 건드리지 않는다 — 「못 읽었다」를 「모른다」로 세우지 않는다.
+      // 방금 사용자가 이 쌍에서 고른 것이 있으면 그것이 저장된 값보다 뒤의 답이다.
+      if (!alive || !read.ok || answered.current === pairKey) return;
+      setRelation(read.relation);
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [pairKey, first, second]);
+
+  const chooseRelation = (next: Relation | null) => {
+    answered.current = pairKey;
+    setRelation(next);
+  };
 
   /** 도는 시도를 지켜본다 — 끝나면 목록을 다시 읽는다(`ReadingPanel` 과 같은 고리) */
   useEffect(() => {
@@ -108,7 +145,13 @@ export function PairPicker({
     setWaited(0);
     setRunning(true);
 
-    const result = await startPairReading(first, second, relation, crypto.randomUUID());
+    const result = await startPairReading(
+      first,
+      second,
+      // 안 건드렸으면 안 적는다 — 저장된 답은 그대로 두고 파이프라인이 그것을 읽는다.
+      answered.current === pairKey ? relation : undefined,
+      crypto.randomUUID(),
+    );
     if (result.ok) {
       // 열지 못했으면(이미 도는 시도가 있다) 그것도 기다릴 일이다. 다만 내가 방금 연
       // 것이 아니라는 사실은 말해 준다 — 안 그러면 「눌렀는데 그대로」로 보인다.
@@ -140,7 +183,7 @@ export function PairPicker({
 
       <RelationChoice
         value={relation}
-        onChange={setRelation}
+        onChange={chooseRelation}
         idPrefix="pair"
         className="rounded-xl bg-surface-sunken px-4 py-3"
       />
