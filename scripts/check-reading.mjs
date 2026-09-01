@@ -182,7 +182,16 @@ try {
     check('만드는 버튼이 선다', mine.includes('사주풀이 받기'));
     check('누가 쓰는지는 버튼 옆에 남는다', plain(mine).includes('언어 모델이 씁니다'));
     check('넘기지 않는 것을 화면이 말한다', plain(mine).includes('넣지 않은 값은 나올 수 없습니다'));
-    check('풀이권이 버튼 옆에 선다', plain(mine).includes('풀이권 5번 중 5번 남음'));
+    /**
+     * **숫자는 이제 서버 HTML 에 없다.** 머리글이 브라우저에서 읽는다 — 헤더는 `/` 와
+     * `/compat` 에도 서고 그 둘은 정적으로 미리 그려지므로, 서버에서 읽으면 세션도 없는
+     * 방문마다 화면이 요청마다 도는 것이 된다(`site-header.tsx`).
+     *
+     * 그래서 이 층은 **셈**을 재고, 그 셈이 화면 어디에 서는지는 e2e 가 잰다.
+     */
+    const fresh = await a.rpc('my_reading_credits');
+    check('아직 아무것도 안 만들었으면 다섯이 남는다',
+      fresh.data?.[0]?.available === 5, JSON.stringify(fresh.data?.[0] ?? null));
   }
 
   // ── 2. 자기 풀이 ─────────────────────────────────────────────────────────
@@ -195,7 +204,10 @@ try {
     check('내부 검토용 근거 절은 사용자 결과에서 숨긴다', !mine.includes('근거 (검사용)'));
     check('자기 풀이에는 점수가 서지 않는다', !mine.includes('실험 중인 풀이가 붙인 값'));
     check('다시 열어도 그대로라고 말한다', mine.includes('화면을 다시 열어도'));
-    check('만들면 풀이권이 하나 준다', mine.includes('풀이권 5번 중 4번 남음'));
+    const spent = await a.rpc('my_reading_credits');
+    check('만들면 풀이권이 하나 준다',
+      spent.data?.[0]?.used === 1 && spent.data?.[0]?.available === 4,
+      JSON.stringify(spent.data?.[0] ?? null));
 
     /**
      * **설문 전체가 동의 뒤에 있다.**
@@ -214,7 +226,7 @@ try {
 
     /** **그래도 사주는 그대로다** — 닫히는 것은 설문 하나뿐이다 */
     check('동의 전에도 풀이는 그대로 선다', mine.includes('스스로 정한 규칙 안에서'));
-    check('동의 전에도 만드는 버튼은 그대로다', mine.includes('풀이권 5번 중 4번 남음'));
+    check('동의 전에도 만드는 버튼은 그대로다', mine.includes('다시 풀이받기'));
 
     const userA = await userIdOf(mail.a);
     sql(`update public.app_user set improvement_consent = true where id = '${userA}'`);
@@ -570,8 +582,10 @@ try {
      * 비공개·Match)이고 방금 둘이 실패했다. 반환하는 일을 아무도 하지 않았는데 잔액이 그대로여야 한다 —
      * 그것이 「차감하고 반환한다」가 아니라 「센다」로 만든 이유다.
      */
-    const after = plain(await body('/me', cookie.a));
-    check('실패한 시도는 풀이권을 쓰지 않는다', after.includes('풀이권 5번 중 1번 남음'));
+    const left = await a.rpc('my_reading_credits');
+    check('실패한 시도는 풀이권을 쓰지 않는다',
+      left.data?.[0]?.used === 4 && left.data?.[0]?.available === 1,
+      JSON.stringify(left.data?.[0] ?? null));
   }
 } finally {
   stop();

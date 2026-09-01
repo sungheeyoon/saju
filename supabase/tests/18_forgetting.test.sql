@@ -10,7 +10,7 @@
 --    함께 지워진다.
 -- 4. **Match 는 양쪽에서 사라진다.** 상대 화면에도 그 결과가 안 남는다.
 begin;
-select plan(17);
+select plan(18);
 
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
 returns jsonb language sql as $$
@@ -227,10 +227,18 @@ select is(
   1,
   '남이 놓고 간 고아는 그대로 남는다');
 
+/**
+ * **답한 수를 재지 않는다.** 이 함수는 DB 전체를 쓰는 것이 그 일이라 답도 전역이고,
+ * 그 숫자에 값을 걸면 **「DB 가 비어 있는가」를 재는 시험**이 된다 — 이 파일이 위에서
+ * 한 번 걸린 바로 그 자리다. 재려는 것은 「그것까지 데려가는가」이므로 그것만 본다.
+ */
+select lives_ok($$select public.forget_orphan_people()$$, '전체 쓸기가 돈다');
+
 select is(
-  (select public.forget_orphan_people()),
-  1,
-  '전체 쓸기는 그것까지 데려간다');
+  (select count(*)::int from public.person
+   where id = '00000000-0000-0000-0000-0000000000aa'),
+  0,
+  '전체 쓸기는 남이 놓고 간 고아까지 데려간다');
 
 select * from finish();
 rollback;

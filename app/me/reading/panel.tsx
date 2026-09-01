@@ -16,13 +16,13 @@ import {
   READING_SCORE_NOTE,
   READING_STALE_NOTE,
   isScored,
-  readingCreditsLabel,
   readingCreditsNote,
   readingOrderNote,
   readingWaitNote,
 } from '@/src/lib/reading';
 
 import { generateReading, readingRunState } from './actions';
+import { announceCreditsMoved } from './credits-signal';
 import { GENERATION } from './generation';
 import type { CurrentReading, ReadingCredits } from './current';
 import { ReadingFeedback } from './feedback';
@@ -180,6 +180,11 @@ export function ReadingPanel({
       setPhase('idle');
       if (run.status === 'failed') setFailure(READING_FAILED_NOTE);
       /*
+        끝난 자리에서 외친다. 성공이면 잡고 있던 자리가 쓴 자리로 옮겨 가고 실패면
+        그 자리가 풀린다 — 어느 쪽이든 헤더가 들고 있는 숫자는 낡았다.
+      */
+      announceCreditsMoved();
+      /*
         끝난 것을 보면 **언제나 다시 읽는다.** 결과는 서버에만 있고, 이 칸이 들고 있는
         것은 마지막으로 그린 화면이다. 다시 안 읽으면 교체로 사라진 옛 글을 계속 세운다.
       */
@@ -218,6 +223,8 @@ export function ReadingPanel({
     }
 
     if (result.ok) {
+      /* 시도가 열렸으면 그 자리를 이미 잡았다 — 성공을 기다리지 않고 알린다 */
+      announceCreditsMoved();
       /*
         **답이 결과가 아니라 시작 여부다.** 열었으면 기다리는 화면에 그대로 머문다 —
         만드는 일은 응답 뒤에 돌고, 위의 고리가 끝나는 것을 본다.
@@ -264,25 +271,26 @@ export function ReadingPanel({
             {reading === null ? READING_NONE_NOTE : READING_REPLACES_NOTE}
           </p>
         </div>
-        <div className="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
-          <button
-            type="button"
-            onClick={generate}
-            disabled={phase === 'loading' || spent}
-            className="h-11 w-full rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto"
-          >
-            {phase === 'loading' ? '풀이를 쓰고 있어요…' : reading === null ? '사주풀이 받기' : '다시 풀이받기'}
-          </button>
-          {/*
-            **버튼 아래에 선다.** 이 숫자가 필요한 시점은 누를지 정할 때이고, 그때 눈이
-            가 있는 곳이 버튼이다. 글 위에 세우면 다 읽고 내려온 뒤에야 읽힌다.
-          */}
-          {credits !== null && (
-            <p className="text-xs font-semibold tabular-nums text-secondary">
-              {readingCreditsLabel(credits)}
-            </p>
-          )}
-        </div>
+        {/*
+          **숫자는 여기 없다 — 머리글에 있다.**
+
+          한동안 이 버튼 아래에 세웠다. 「누를지 정할 때 눈이 가 있는 곳」이라는 이유였고
+          그건 지금도 맞다. 그런데 풀이권은 **이 글의 성질이 아니라 계정의 성질**이다.
+          화면마다 세우면 자기 풀이·저장한 사람·비공개 궁합·공유 궁합 넷에 같은 숫자가
+          네 번 서고, 그중 하나를 안 고치는 날이 온다.
+
+          대신 **말할 것이 있을 때는 여기서 말한다**(`creditsNote`). 「지금 만들고 있는
+          하나가 한 번을 쓰고 있어요」와 「새로 만들 수는 없지만…」은 이 누름에 대한
+          말이라 누르는 자리에 있어야 한다.
+        */}
+        <button
+          type="button"
+          onClick={generate}
+          disabled={phase === 'loading' || spent}
+          className="h-11 w-full shrink-0 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto"
+        >
+          {phase === 'loading' ? '풀이를 쓰고 있어요…' : reading === null ? '사주풀이 받기' : '다시 풀이받기'}
+        </button>
       </div>
       {/*
         누가 썼는지와 무엇을 안 넘겼는지는 **만드는 버튼 옆**에 선다(`notes.ts`).

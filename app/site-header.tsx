@@ -4,7 +4,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { readingCreditsLabel } from '@/src/lib/reading';
+
 import { supabaseInBrowser } from './auth/browser-client';
+import { READING_CREDITS_MOVED } from './me/reading/credits-signal';
 
 const PUBLIC_LINKS = [
   { href: '/', label: '사주 보기' },
@@ -108,7 +111,16 @@ export function SiteHeader() {
           자리만 잡아 두면 글자가 늦게 오는 것으로 끝난다.
         */}
         {memberNavigation ? (
-          <AccountMenu email={email} />
+          <>
+            {/*
+              **세션을 확인한 뒤에만 세운다.** 아직 모르는 동안 세우면 로그인 없는
+              질의가 한 번 나가고, 로그인 뒤에도 그 실패한 자리에 그대로 머문다.
+              달렸다 떨어지는 것으로 그 둘을 가른다 — 붙어 있는 칸이 스스로 「지금은
+              아니다」를 판정하면 그 판정이 또 한 자리가 된다.
+            */}
+            {session === 'in' && <Credits />}
+            <AccountMenu email={email} />
+          </>
         ) : (
           session === 'unknown' ? (
             <span aria-hidden="true" className={`${TRAILING} invisible`}>
@@ -122,6 +134,76 @@ export function SiteHeader() {
         )}
       </div>
     </header>
+  );
+}
+
+/**
+ * 남은 풀이권 — **설정 옆에 선다.**
+ *
+ * 한동안 만드는 버튼 아래에 있었다. 「누를지 정할 때 눈이 가 있는 곳」이라는 이유였고
+ * 그건 지금도 맞다. 그런데 풀이권은 **이 글의 성질이 아니라 계정의 성질**이다. 화면마다
+ * 세우면 넷에 같은 숫자가 네 번 서고, 그중 하나를 안 고치는 날이 온다. 계정에 딸린 것은
+ * 계정이 사는 자리에 둔다.
+ *
+ * ## 서버에 안 묻는다
+ *
+ * 이 파일이 세션을 브라우저에서 읽는 것과 같은 까닭이다. 헤더는 `/` 와 `/compat` 에도
+ * 서는데 그 둘은 정적으로 미리 그려진다 — 서버에서 잔액을 읽으면 세션도 없는 방문마다
+ * 화면이 요청마다 도는 것이 된다.
+ *
+ * ## 그래서 `router.refresh()` 로는 안 바뀐다
+ *
+ * 서버가 다시 그리는 것은 서버 컴포넌트뿐이고 이 `useEffect` 는 다시 돌지 않는다.
+ * 잔액이 움직이는 자리가 한 마디 외치고(`announceCreditsMoved`) 여기서 듣는다.
+ *
+ * ## 모르면 안 세운다
+ *
+ * 못 물었거나 아직 안 물은 동안에는 빈 자리다. 「—」이나 「불러오는 중」을 세우면
+ * 사용자가 있지도 않은 숫자를 세어 보게 되고, 그 자리는 대부분의 시간 동안 거짓말이다.
+ */
+function Credits() {
+  const [label, setLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    let watching = true;
+    const read = async () => {
+      const { data, error } = await supabaseInBrowser().rpc('my_reading_credits');
+      if (!watching) return;
+
+      const row = ((data ?? []) as Record<string, unknown>[])[0];
+      if (error || row === undefined) {
+        setLabel(null);
+        return;
+      }
+
+      setLabel(
+        readingCreditsLabel({
+          limit: row.credit_limit as number,
+          available: row.available as number,
+        }),
+      );
+    };
+
+    void read();
+    window.addEventListener(READING_CREDITS_MOVED, read);
+
+    return () => {
+      watching = false;
+      window.removeEventListener(READING_CREDITS_MOVED, read);
+    };
+  }, []);
+
+  if (label === null) return null;
+
+  return (
+    /*
+      **폰에서도 보인다.** 처음에는 `sm:` 아래에서 숨겼는데, 그러면 폰으로 쓰는 사람은
+      자기 잔액을 한 번도 못 본다 — 이 제품은 데스크톱과 모바일 둘 다를 약속한다(PRD).
+      좁아지는 것은 옆의 메뉴이고, 그 줄은 이미 가로로 흐르게 되어 있다.
+    */
+    <span className="shrink-0 rounded-full bg-accent-wash px-2.5 py-1.5 text-xs font-semibold tabular-nums text-accent">
+      {label}
+    </span>
   );
 }
 

@@ -68,16 +68,21 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('넣지 않은 값은 나올 수 없습니다', { exact: false })).toBeVisible();
 
     /*
-      **풀이권은 버튼과 한 덩어리다.**
+      **풀이권은 머리글에 선다 — 설정 옆이다.**
 
-      이 숫자가 필요한 시점은 누를지 정할 때다. 화면 어딘가에 있기만 하면 된다면 제목
-      옆이나 맨 아래에 두어도 검사가 통과하고, 그러면 정할 때 눈이 가 있는 자리에는 없다.
-      그래서 「있다」가 아니라 **버튼과 같은 상자 안에 있다**를 잰다.
+      한동안 만드는 버튼과 한 덩어리였다. 「누를지 정할 때 눈이 가 있는 자리」라는
+      이유였고 그건 지금도 맞다. 그런데 풀이권은 이 글의 성질이 아니라 **계정의 성질**
+      이라, 화면마다 세우면 넷에 같은 숫자가 네 번 서고 그중 하나를 안 고치는 날이 온다.
+
+      그래서 「있다」가 아니라 **머리글 안에 있다**를 잰다. 본문 어딘가로 돌아가면
+      이 줄이 빨개진다.
     */
-    const make = page.getByRole('button', { name: '사주풀이 받기' });
     await expect(
-      make.locator('xpath=..').getByText('풀이권 5번 중 5번 남음'),
+      page.locator('header').getByText('풀이권 5번 중 5번 남음'),
     ).toBeVisible();
+
+    /* 서버 HTML 에는 없다 — 브라우저가 읽는다. 그래서 흐름 검사는 셈만 잰다 */
+    await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
 
     // 다시 열어도 만들어지지 않는다 — 같은 자리에 같은 문장이 그대로 선다.
     await page.reload();
@@ -150,7 +155,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('현재 관계 해석 점수')).toBeHidden();
 
     /* 만든 것이 하나이므로 풀이권도 하나 줄어 있다 — kind 를 안 묻는다 */
-    await expect(page.getByText('풀이권 5번 중 4번 남음')).toBeVisible();
+    await expect(page.locator('header').getByText('풀이권 5번 중 4번 남음')).toBeVisible();
   });
 
   /**
@@ -249,7 +254,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(make).toBeVisible();
 
     /* 풀이권은 kind 를 안 묻는다 — 전역 다섯에서 함께 센다 */
-    await expect(make.locator('xpath=..').getByText('풀이권 5번 중 5번 남음')).toBeVisible();
+    await expect(page.locator('header').getByText('풀이권 5번 중 5번 남음')).toBeVisible();
 
     /*
       **여는 것만으로는 아무것도 안 만든다.** 다시 열어도 같은 자리에 같은 문장이 선다 —
@@ -361,7 +366,14 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       .filter({ has: page.getByRole('heading', { name: '친구' }) });
 
     await friendCard.getByRole('link', { name: '사주 상세 보기' }).click();
-    await expect(page.getByRole('heading', { name: '친구의 사주' })).toBeVisible();
+    /*
+      `exact` 를 안 주면 **두 개를 잡는다.** 같은 화면에 「친구의 사주풀이」가 함께
+      서면서 「친구의 사주」가 그 부분 문자열이 됐다. 이름을 쓰는 제목이 하나 늘면
+      이런 자리가 조용히 생긴다.
+    */
+    await expect(
+      page.getByRole('heading', { name: '친구의 사주', exact: true }),
+    ).toBeVisible();
     await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
     await page.getByRole('link', { name: '사람 목록으로' }).click();
 
