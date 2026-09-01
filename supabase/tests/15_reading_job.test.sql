@@ -12,7 +12,7 @@
 -- 4. **시도가 지워지면 얼린 입력도 함께 지워진다** — 주인 없는 재료가 판본을 붙들면 보존이다.
 -- 5. **영수증은 `event_id` 로 멱등이고 본문을 들지 않는다.**
 begin;
-select plan(31);
+select plan(35);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void
@@ -102,6 +102,24 @@ as $$
   select count(*)::int from public.notification
   where user_id = uid and kind = 'reading_failed';
 $$;
+
+create or replace function pg_temp.cron_schedule(name text)
+returns text
+language sql
+security definer
+as $$ select schedule from cron.job where jobname = name $$;
+
+create or replace function pg_temp.cron_count(name text)
+returns int
+language sql
+security definer
+as $$ select count(*)::int from cron.job where jobname = name $$;
+
+create or replace function pg_temp.wake()
+returns void
+language sql
+security definer
+as $$ select public.wake_reading_recovery() $$;
 
 create or replace function pg_temp.record_event(ev text, resp text, kind text)
 returns boolean
@@ -370,6 +388,47 @@ select pg_temp.drop_run((select run_id from started));
 select is(pg_temp.jobs(), 0, '시도가 지워져도 남는 얼린 입력은 없다 (cascade)');
 
 select is(pg_temp.receipts(), 3, '영수증은 시도와 함께 지워지지 않는다 — 수명이 다르다');
+
+-- ---------------------------------------------------------------------------
+-- 9. 깨우는 쪽은 Supabase 다
+-- ---------------------------------------------------------------------------
+
+/**
+ * 복구 주기를 1분으로 적어 놓고 Vercel cron 에 걸었는데 Hobby 는 하루 한 번이다.
+ * 깨우는 쪽만 Supabase 로 옮겼다 — 복구 API 도 집는 문도 시계도 그대로다.
+ */
+select is(
+  pg_temp.cron_schedule('reading-recovery'),
+  '* * * * *',
+  '복구기를 1분마다 깨우는 일정이 서 있다');
+
+select is(
+  pg_temp.cron_count('reading-recovery'),
+  1,
+  '일정이 하나다 — 두 번 걸리면 분당 두 번 부른다');
+
+/**
+ * **아직 안 넣었으면 조용히 지나간다.** 여기서 예외를 내면 1분마다 실패가 쌓이고,
+ * 그 소음이 진짜 실패를 덮는다. 값이 없다는 것은 배선이 안 끝났다는 뜻이지 무언가
+ * 잘못됐다는 뜻이 아니다.
+ */
+select lives_ok(
+  $$select pg_temp.wake()$$,
+  'Vault 에 주소도 열쇠도 없으면 조용히 지나간다');
+
+/**
+ * 이 함수는 Vault 값을 읽어 밖으로 요청을 만든다. 열어 두면 부르는 것만으로 그 값을
+ * 흘릴 수 있다 — `cron` 이 소유자 권한으로 부르므로 아무에게도 안 열어도 된다.
+ */
+select is(
+  (select count(*)::int from pg_proc p
+   join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'wake_reading_recovery'
+     and (has_function_privilege('anon', p.oid, 'EXECUTE')
+       or has_function_privilege('authenticated', p.oid, 'EXECUTE')
+       or has_function_privilege('service_role', p.oid, 'EXECUTE'))),
+  0,
+  '깨우는 함수는 아무에게도 안 열려 있다');
 
 select * from finish();
 rollback;

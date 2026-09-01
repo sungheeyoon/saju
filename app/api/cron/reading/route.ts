@@ -5,10 +5,16 @@ import { collectReadingResult } from '../../../me/reading/collect';
 /**
  * **webhook 이 흘린 것을 줍는다** (ADR 0020).
  *
- * 그물이 하나면 webhook 이 안 온 날 그 시도는 만료까지 잠긴 채로 남는다. 1분마다 돌며
- * 두 가지를 한다 — 아직 안 끝난 것을 가져와 보고, 너무 오래된 것을 닫는다.
+ * 그물이 하나면 webhook 이 안 온 날 그 시도는 만료까지 잠긴 채로 남는다. 두 가지를
+ * 한다 — 아직 안 끝난 것을 가져와 보고, 너무 오래된 것을 닫는다.
  *
- *   복구 주기 1분  <  우리 deadline 8분  <  DB 만료 10분
+ *   Supabase 복구 1분  <  우리 deadline 8분  <  DB 실행 만료 10분
+ *   화면 폴링 3초 = 표시용
+ *   Vercel 하루 cron = 최후 청소
+ *
+ * **깨우는 쪽이 둘이다.** 1분짜리는 Supabase 의 `pg_cron` 이 두드리고(`wake_reading_recovery`),
+ * Vercel 은 하루 한 번 청소만 한다 — Hobby 요금제의 cron 이 하루 한 번이기 때문이고,
+ * 그것을 모르고 분 단위로 적었다가 고쳤다.
  *
  * provider 회수 가능 시간은 그 줄에 없다. 「약 10분」이라고만 알려진 값이라 우리 숫자와
  * 나란히 세우면 보장 안 되는 것을 보장인 척 쓰게 된다.
@@ -27,8 +33,14 @@ type OpenJob = { run_id: string; response_id: string | null; overdue: boolean };
 
 export async function GET(request: Request): Promise<Response> {
   /**
-   * **Vercel 만 부를 수 있다.** 이 주소는 로그인 관문 밖이라 아무나 두드릴 수 있고,
-   * 두드리면 남의 시도를 닫을 수 있다.
+   * **올바른 `CRON_SECRET` 을 든 스케줄러만 부를 수 있다.**
+   *
+   * 이 주소는 로그인 관문 밖이라 아무나 두드릴 수 있고, 두드리면 남의 시도를 닫는다.
+   * 두드리는 쪽이 둘이므로(Supabase 1분 · Vercel 하루) 자격도 그 둘이 같은 값을 든다 —
+   * Vercel 환경변수와 Supabase Vault 에 같은 문자열을 넣는다.
+   *
+   * **`OPENAI_WEBHOOK_SECRET` 과 같은 값을 쓰지 않는다.** 하는 일이 다르고, 하나로 쓰면
+   * 한쪽이 새는 순간 둘 다 샌다.
    */
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
