@@ -87,6 +87,85 @@ returns integer language sql immutable as $$ select 8 $$;
 
 ---
 
+## 지우기
+
+**「그만두기」와 「지우기」는 다른 일이다.** 매칭 참여를 끄는 것은 상태이고(ADR 0014)
+계정 중지도 상태다. 여기 적힌 것은 되돌릴 수 없는 쪽이다.
+
+### 한 사람
+
+```sql
+select * from public.forget_user('<user uuid>');
+--  people_forgotten | revisions_forgotten
+```
+
+한 문장이면 된다. `auth.users` 하나가 사라지면 `app_user` 가 따라가고 거기서 열여덟
+갈래가 FK 로 따라간다 — Person 엣지·discovery·요청·Match·결과·시도·설문·알림·차단·신고.
+그다음 **이 사람이 관리하던 Person 중** 아무도 안 보게 된 것과 그 판본을 지운다(ADR 0023).
+남이 놓고 간 고아는 안 건드린다 — 그것은 종료 파기의 일이다.
+
+무엇이 함께 사라지는지 **누르기 전에** 알아야 한다.
+
+- **Match 가 양쪽에서 사라진다.** 공유 결과와 알림도 함께. 상대 화면에서도 없어진다 —
+  공유 결과는 서버가 두 판본을 읽어 자르는 것이라 한쪽이 사라지면 설 수 없다(ADR 0010).
+- **남이 관리하는 Person 은 남는다.** 「누가 만들었나」만 비워진다.
+- **신고 기록도 사라진다.** 신고한 쪽이든 신고당한 쪽이든 계정이 사라지면 그 행이 따라간다.
+  안전 운영에 남겨야 할 것이 있으면 **지우기 전에** 따로 적는다.
+
+`invite` 는 안 건드린다. **삭제는 접근 회수가 아니다** — 위의 초대 절과 같은 구분이다.
+다시 못 들어오게 하려면 초대도 따로 지운다.
+
+```sql
+delete from public.invite where email = '<지운 사람의 주소>';
+```
+
+### 베타 종료 — 전부
+
+```sql
+-- 무엇을 지울 것인지 먼저 본다. 세어 보지 않고 지우지 않는다.
+select count(*) as 계정 from auth.users;
+select count(*) as 사람, (select count(*) from public.person_chart_revision) as 판본
+from public.person;
+
+-- 하나씩 잊는다. 한 문장으로 지우면 어디서 멈췄는지 알 수 없다.
+do $$
+declare victim uuid;
+begin
+  for victim in select id from auth.users loop
+    perform public.forget_user(victim);
+  end loop;
+end $$;
+
+-- 사람마다의 삭제는 **그 사람이 관리하던 Person 만** 정리한다(ADR 0023). 아무도
+-- 관리한 적 없던 고아는 그 반복으로 안 사라지므로, 여기서 한 번 쓸어 낸다.
+select public.forget_orphan_people();
+
+-- 남은 것이 없어야 한다. 남았다면 그것이 이 절차의 구멍이다.
+select
+  (select count(*) from auth.users) as 계정,
+  (select count(*) from public.person) as 사람,
+  (select count(*) from public.person_chart_revision) as 판본,
+  (select count(*) from public.reading) as 결과,
+  (select count(*) from public.reading_feedback) as 설문;
+
+-- 초대 명단은 사람 이름이 적힌 명단이다. 종료에는 이것도 지운다.
+delete from public.invite;
+```
+
+### DB 밖
+
+절차가 DB 에서 끝나지 않는다. **여기 적힌 것 중 확인 안 된 것은 확인 안 됐다고 적어 둔다** —
+안내에 「파기했습니다」라고 쓰려면 이 목록이 전부 닫혀 있어야 한다.
+
+| 어디 | 무엇이 있나 | 어떻게 되나 |
+| --- | --- | --- |
+| Supabase Auth | 로그인 신원·세션·토큰 | `auth.users` 삭제가 `identities`·`sessions`·`one_time_tokens`·`mfa_factors` 를 cascade 로 데려간다(확인함) |
+| Supabase 백업 | 지운 행이 그 시점 스냅숏에 남는다 | **확인해서 여기 적을 것** — 프로젝트의 백업·PITR 보존 기간과, 그 기간이 지나야 파기가 끝나는지 |
+| Vercel 로그 | 요청 로그. 출생 원문은 안 적는다(PRD 로그 규율) | **확인해서 여기 적을 것** — 보존 기간 |
+| OpenAI | 프롬프트에 여덟 글자와 그 위의 사실이 들어간다. 정확한 생년월일시·출생지·분 단위는 안 나간다(ADR 0008) | 우리가 요청하는 값은 `store: false` 다(`generation.ts`). **다만 `background: true` 로 제출하고 `responses.retrieve` 로 되찾으므로 그 사이에는 provider 가 들고 있다** — 무엇이 얼마나 남는지는 provider 의 약속이고, 확인해서 여기 적을 것 |
+
+---
+
 ## 설문 읽기
 
 답은 **그 글을 만든 시도에 매여 있다**(ADR 0022). 그래서 프롬프트 판본과 모델이 답 옆에
