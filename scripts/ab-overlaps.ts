@@ -45,6 +45,8 @@ import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { computeSaju, type Saju, type SajuInput } from '../src/lib/saju';
+import { BRANCH_INFO, STEM_INFO } from '../src/lib/saju/constants';
+import { currentFortuneOf } from '../src/lib/saju/now';
 import { randomInputs } from '../src/lib/saju/population';
 import { absorbableByUnknownHour } from '../src/lib/saju/relations';
 import { CONTROL, readingEvidenceOf, readingPromptOf } from '../src/lib/reading';
@@ -193,6 +195,7 @@ const ALL_STAR_KO: ReadonlySet<string> = new Set(
 /** 관계 이름은 앞에 간지 두 글자가 붙는다 — 「자오충」·「해묘 반합」 */
 const GANJI = '자축인묘진사오미신유술해갑을병정무기경신임계';
 
+
 /**
  * 자료에 없는 이름을 말했는가 — 「없는 것을 지어내지 마라」.
  *
@@ -207,15 +210,61 @@ const GANJI = '자축인묘진사오미신유술해갑을병정무기경신임�
  * 엔진이 낼 수 있는 이름의 집합과 맞댄다. 「요구」는 간지가 아니라 애초에 안 걸린다.
  */
 function fabricated(saju: Saju, text: string): Gate {
-  const realRelations = new Set(saju.relations.map((r) => r.ko.replace(/\s+/g, '')));
+  /**
+   * **운 관계도 자료다.** 원국만 보면 세운·월운과 원국 사이의 관계를 전부 허위로 잡는다 —
+   * 첫 실행에서 「오오형·신해해·묘신원진·묘신귀문」 넷이 그렇게 걸렸고 넷 다 자료에
+   * 있었다.
+   */
+  const now = currentFortuneOf(saju, VIEWED_AT);
+  const everyRelation = [
+    ...saju.relations,
+    ...(now.relations ?? []),
+    ...(['daeun', 'saeun', 'wolun'] as const).flatMap(
+      (span) => (now[span] as { relations?: { ko: string }[] } | null)?.relations ?? [],
+    ),
+  ];
+
+  const realRelations = new Set(everyRelation.map((r) => r.ko.replace(/\s+/g, '')));
   const realStars = new Set(saju.sinsal.stars.map((s) => s.ko));
+
+  /**
+   * **이 명식에 실제로 있는 글자만 관계 이름의 앞자리에 설 수 있다.**
+   *
+   * 앞판은 「간지 두 글자 + 접미사」 꼴이면 다 잡았다. 寅·丁 이 간지라 **「인정해」**
+   * 가 관계 이름으로 걸렸다 — 손으로 제외 목록을 적을 수도 있었지만 그러면 다음
+   * 낱말에서 또 걸린다.
+   *
+   * 관계 이름은 언제나 그 명식(또는 지금 도는 운)에 **있는 글자**를 부른다. 없는 글자로
+   * 시작하는 것은 관계 이름이 아니다.
+   */
+  const ko = (char: string): string =>
+    (STEM_INFO as Record<string, { ko: string }>)[char]?.ko ??
+    (BRANCH_INFO as Record<string, { ko: string }>)[char]?.ko ??
+    char;
+
+  const present = new Set(
+    [
+      ...(['year', 'month', 'day', 'hour'] as const)
+        .map((position) => saju.pillars[position])
+        .filter((pillar) => pillar !== null)
+        .flatMap((pillar) => [pillar.stem as string, pillar.branch as string]),
+      ...everyRelation.flatMap(
+        (r) => (r as { participants?: { char: string }[] }).participants?.map((p) => p.char) ?? [],
+      ),
+    ].map(ko),
+  );
 
   const relationShaped = new RegExp(`[${GANJI}]{2}\\s?(?:충|합|형|파|해|원진|귀문|반합|반방합)`, 'g');
   const unknownRelations = [
     ...new Set(
       (text.match(relationShaped) ?? [])
         .map((word) => word.replace(/\s+/g, ''))
-        .filter((word) => !realRelations.has(word)),
+        /**
+         * **자료의 이름이 더 길 수 있다.** 「병신합수」를 「병신합」으로 잘라 놓고 못
+         * 찾았다 — 접미사가 붙는 이름은 앞에서부터 맞대야 한다.
+         */
+        .filter((word) => present.has(word[0]) && present.has(word[1]))
+        .filter((word) => ![...realRelations].some((real) => real.startsWith(word))),
     ),
   ];
 
