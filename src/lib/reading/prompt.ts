@@ -11,7 +11,7 @@ import { EVIDENCE_CONTRACT } from '../saju/evidence';
 import { PROMPT_PARTS, withSummary } from '../saju/evidence/prompt';
 
 import type { ReadingEvidence } from '.';
-import { READING_POLICY, isScored, type ReadingKind } from './policy';
+import { READING_POLICY, isScored, isSolo, type PairKind, type ReadingKind } from './policy';
 
 /**
  * 두 사람을 **뭐라고 부를 것인가.**
@@ -74,7 +74,7 @@ export type PromptAssembly = {
    * 여덟 글자와 관계 사실까지라 각자의 성격·신살·운을 못 읽는다(ADR 0012).
    * **한 숫자로 묶으면 하나는 늘여 쓰기가 되고 하나는 잘린다.**
    */
-  readonly compatLength: Record<Exclude<ReadingKind, 'self'>, Length>;
+  readonly compatLength: Record<PairKind, Length>;
   /** 사용자에게 보여 줄 자기 풀이의 뼈대 */
   readonly selfPresentation: SelfPresentation;
   /** 본문 계약 앞에 얹는 실험 규칙 */
@@ -550,7 +550,7 @@ ${head}
  * **모른다도 값으로 싣는다.** 자리를 비우면 모르는 것과 안 물어본 것이 같은 침묵이
  * 되고, 모델은 그 침묵을 예전처럼 읽는다.
  */
-const relationOf = (kind: Exclude<ReadingKind, 'self'>, relation: Relation | null): string =>
+const relationOf = (kind: PairKind, relation: Relation | null): string =>
   /**
    * 공유 궁합은 고르는 값이 아니다 — 인연 찾기에서 만나 서로 동의한 사이라는 것을
    * **성립 방식이 이미 정한다.** 그래서 kind 가 곧 답이다.
@@ -558,7 +558,7 @@ const relationOf = (kind: Exclude<ReadingKind, 'self'>, relation: Relation | nul
   relationBlock(kind === 'match' ? RELATION_FROM_MATCH : relationSentence(relation));
 
 const compatSections = (
-  kind: Exclude<ReadingKind, 'self'>,
+  kind: PairKind,
   assembly: PromptAssembly,
   about: ReadingAbout,
 ): string => {
@@ -615,9 +615,10 @@ const bodyOf = (
   assembly: PromptAssembly,
   about: ReadingAbout,
 ): string => {
-  const isExpertSelf = kind === 'self' && assembly.selfPresentation === 'expert-v3';
+  const solo = isSolo(kind);
+  const isExpertSelf = solo && assembly.selfPresentation === 'expert-v3';
   const head =
-    kind === 'self'
+    solo
       ? isExpertSelf
         ? `# 역할
 
@@ -634,7 +635,7 @@ const bodyOf = (
 어디서 편해지고 어디서 부딪히며 그때 무엇을 하면 되는지 말한다.`;
 
   const voice =
-    kind === 'self'
+    solo
       ? isExpertSelf
         ? SELF_CUSTOMER_VOICE
         : PROMPT_PARTS.voice
@@ -647,7 +648,7 @@ const bodyOf = (
     voice,
     ...(kind === 'match' ? [] : [PROMPT_PARTS.personality]),
     ...assembly.extraSections,
-    kind === 'self' ? selfSections(assembly) : compatSections(kind, assembly, about),
+    solo ? selfSections(assembly) : compatSections(kind, assembly, about),
     OUTPUT_CONTRACT(kind),
   ].join('\n\n');
 };
@@ -658,6 +659,8 @@ export const NOTHING_KNOWN: ReadingAbout = { names: null, relation: null };
 /** kind마다의 기준 프롬프트 몸통 — 자료 없이. */
 export const READING_PROMPTS: Record<ReadingKind, string> = {
   self: bodyOf('self', CONTROL, NOTHING_KNOWN),
+  /* `self` 와 같은 몸통이다 — 갈리는 것은 접근 판정 하나뿐이다(`isSolo`) */
+  person: bodyOf('person', CONTROL, NOTHING_KNOWN),
   private: bodyOf('private', CONTROL, NOTHING_KNOWN),
   match: bodyOf('match', CONTROL, NOTHING_KNOWN),
 };

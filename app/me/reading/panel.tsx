@@ -15,6 +15,7 @@ import {
   READING_REPLACES_NOTE,
   READING_SCORE_NOTE,
   READING_STALE_NOTE,
+  isScored,
   readingCreditsLabel,
   readingCreditsNote,
   readingOrderNote,
@@ -61,6 +62,7 @@ export function ReadingPanel({
   initialRunning,
   credits,
   consented,
+  heading,
   allowMockFallback,
   layout = 'card',
   ask,
@@ -94,6 +96,15 @@ export function ReadingPanel({
    * 사주는 하나도 안 좁아진다 — 위의 모든 칸이 이 값을 묻지 않는다.
    */
   consented: boolean;
+  /**
+   * 이 칸의 제목 — **부르는 쪽이 정한다.**
+   *
+   * kind 로 지어내던 자리다(`self` 면 「나의 사주풀이」, 아니면 「두 사람의 사주풀이」).
+   * 저장한 사람의 풀이가 생기면서 그 방식이 끝났다 — 「{이름}의 사주풀이」는 이 칸이
+   * 알 수 없는 값이고, 이름을 여기서 또 읽어 오면 화면이 이미 들고 있는 것을 한 번 더
+   * 묻는 일이 된다.
+   */
+  heading: string;
   allowMockFallback: boolean;
   /**
    * 이 칸이 **카드인가 페이지인가.**
@@ -129,7 +140,7 @@ export function ReadingPanel({
   const showMock = () => {
     setMockReading({
       id: 'development-preview',
-      score: target.kind === 'self' ? null : 78,
+      score: isScored(target.kind) ? 78 : null,
       output: MOCK_OUTPUT,
       model: 'development-preview',
       viewedAt: new Date().toISOString(),
@@ -303,9 +314,7 @@ export function ReadingPanel({
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="eyebrow">사주풀이</p>
-          <h2 className="mt-1 text-xl font-bold tracking-tight">
-            {target.kind === 'self' ? '나의 사주풀이' : '두 사람의 사주풀이'}
-          </h2>
+          <h2 className="mt-1 text-xl font-bold tracking-tight">{heading}</h2>
         </div>
         {reading !== null && (
           <div className="flex items-center gap-2">

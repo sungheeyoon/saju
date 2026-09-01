@@ -143,6 +143,10 @@ function destinationFor(
   if (kind !== 'reading_failed') return null;
 
   if (readingKind === 'self') return '/me';
+  /* 저장한 사람의 풀이는 그 사람의 상세 화면에서 다시 누른다 */
+  if (readingKind === 'person') {
+    return row.reading_person_a === null ? null : `/me/people/${row.reading_person_a}`;
+  }
   if (readingKind === 'match') {
     return row.match_id === null ? null : `/me/match/${row.match_id}`;
   }

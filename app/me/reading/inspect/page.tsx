@@ -342,6 +342,11 @@ function targetFrom(params: {
 
   if (kind === 'self') return { kind };
 
+  if (kind === 'person') {
+    if (!params.a || !UUID.test(params.a)) return null;
+    return { kind, personId: params.a };
+  }
+
   if (kind === 'private') {
     if (!params.a || !params.b || !UUID.test(params.a) || !UUID.test(params.b)) return null;
     return { kind, personA: params.a, personB: params.b };

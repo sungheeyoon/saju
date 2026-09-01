@@ -1,7 +1,13 @@
 import { BRANCHES, STEMS } from '../saju/constants';
 
 import { readingBody } from './display';
-import { READING_POLICY, isScored, type ReadingKind, type ReadingOutput } from './policy';
+import {
+  READING_POLICY,
+  isScored,
+  isSolo,
+  type ReadingKind,
+  type ReadingOutput,
+} from './policy';
 
 /**
  * 나온 글을 **저장하기 전에** 검사한다.
@@ -285,7 +291,7 @@ export function checkReading({
    * 개인 풀이 화면은 한글 이름으로 읽힌다. 계산 근거에는 원문 한자가 필요하므로
    * `readingBody` 로 사용자에게 보이는 부분만 자르고 검사한다.
    */
-  if (kind === 'self') {
+  if (isSolo(kind)) {
     const nonKoreanLetters = nonKoreanLettersIn(readingBody(markdown));
     if (nonKoreanLetters.length > 0) {
       failures.push({

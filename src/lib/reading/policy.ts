@@ -17,7 +17,8 @@
  *
  * ## 세 kind 는 **한 파이프라인**이다
  *
- * `self`(내 명식 하나) · `private`(내가 접근 가능한 두 사람) · `match`(성립한 Match).
+ * `self`(내 명식 하나) · `person`(내가 관리하는 저장된 사람 하나) ·
+ * `private`(내가 접근 가능한 두 사람) · `match`(성립한 Match).
  * 갈리는 것은 **근거 범위와 접근 판정 둘뿐**이고 나머지는 같은 길을 지난다. kind 마다
  * 파이프라인을 따로 만들면 출력 검사가 한 갈래에서만 도는 일이 생긴다(PRD).
  *
@@ -28,10 +29,32 @@
  * 견줄 짝으로 나중에 붙이고, 무엇을 넘겼는지는 판본 이름이 든다(`promptVersion`).
  */
 
-export const READING_KINDS = ['self', 'private', 'match'] as const;
+export const READING_KINDS = ['self', 'person', 'private', 'match'] as const;
 export type ReadingKind = (typeof READING_KINDS)[number];
 
-/** 점수를 내는 kind — 자기 풀이에는 궁합 점수를 억지로 붙이지 않는다 */
+/**
+ * 한 사람의 명식으로 나는 kind — **`self` 와 `person` 은 같은 계열이다.**
+ *
+ * 자료도 프롬프트도 검사도 같다. 갈리는 것은 접근 판정 하나뿐이다 — `self` 는 부른
+ * 사람의 selfPerson 을 스스로 찾고, `person` 은 `user_person_access` 에 있는 Person
+ * 하나를 받는다.
+ *
+ * **그렇다고 한 낱말로 합치지 않는다.** 합치면 「누구 것을 모델에 넘겼는가」가 기록에서
+ * 사라진다 — 내 명식을 넘긴 것과 남의 명식을 넘긴 것은 동의 범위가 다른 일이다.
+ *
+ * `kind === 'self'` 라고 적힌 자리를 이 술어로 바꾼 것이 이 갈래를 넣는 일의 절반이었다.
+ * 「자기 풀이인가」를 물어야 할 자리와 「한 사람짜리인가」를 물어야 할 자리가 그동안
+ * 같은 문장이었기 때문이다.
+ */
+export const SOLO_KINDS = ['self', 'person'] as const;
+export type SoloKind = (typeof SOLO_KINDS)[number];
+export const isSolo = (kind: ReadingKind): kind is SoloKind =>
+  (SOLO_KINDS as readonly string[]).includes(kind);
+
+/** 두 사람 사이를 읽는 kind — 점수가 나는 쪽이다 */
+export type PairKind = Exclude<ReadingKind, SoloKind>;
+
+/** 점수를 내는 kind — 한 사람짜리 풀이에는 궁합 점수를 억지로 붙이지 않는다 */
 export const SCORED_KINDS: readonly ReadingKind[] = ['private', 'match'];
 export const isScored = (kind: ReadingKind): boolean => SCORED_KINDS.includes(kind);
 

@@ -17,10 +17,18 @@ import type { ReadingTarget } from './pipeline';
  */
 export async function ReadingSection({
   target,
+  heading,
   layout,
   ask,
 }: {
   target: ReadingTarget;
+  /**
+   * 이 칸의 제목 — 안 주면 kind 가 정한다.
+   *
+   * `person` 은 「{이름}의 사주풀이」라서 부르는 쪽만 알 수 있다. 여기서 이름을 다시
+   * 읽어 오면 화면이 이미 들고 있는 것을 한 번 더 묻게 된다.
+   */
+  heading?: string;
   /** 카드로 서는가, 그 글을 읽으러 온 페이지인가 — `ReadingPanel` 이 그 뜻을 든다 */
   layout?: 'card' | 'page';
   /** 다음 풀이를 위해 먼저 정할 것 — 만드는 버튼 옆에 선다 */
@@ -52,6 +60,7 @@ export async function ReadingSection({
         initialRunning={run?.status === 'running'}
         credits={credits}
         consented={consented}
+        heading={heading ?? (target.kind === 'self' ? '나의 사주풀이' : '두 사람의 사주풀이')}
         allowMockFallback={process.env.NODE_ENV !== 'production'}
         layout={layout}
         ask={ask}

@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { CITY_LONGITUDES, computeSaju } from '@/src/lib/saju';
 import {
   READING_KINDS,
+  SOLO_KINDS,
+  isSolo,
   READING_POLICY,
   READING_PROMPTS,
   ReadingEvidenceError,
@@ -29,12 +31,27 @@ const SECRET: BirthSecret = {
   city: '부산',
 };
 
+/* `self` 와 `person` 은 한 사람짜리다 — kind 이름이 아니라 계열로 가른다 */
 const evidenceFor = (kind: ReadingKind) =>
-  readingEvidenceOf(kind, kind === 'self' ? { a: A } : { a: A, b: B }, VIEWED_AT);
+  readingEvidenceOf(kind, isSolo(kind) ? { a: A } : { a: A, b: B }, VIEWED_AT);
 
 describe('kind 는 근거 범위에서만 갈린다', () => {
-  it('자기 풀이는 두 번째 사람을 받지 않는다', () => {
-    expect(() => readingEvidenceOf('self', { a: A, b: B }, VIEWED_AT)).toThrow(ReadingEvidenceError);
+  it('한 사람짜리 풀이는 두 번째 사람을 받지 않는다', () => {
+    for (const kind of SOLO_KINDS) {
+      expect(() => readingEvidenceOf(kind, { a: A, b: B }, VIEWED_AT)).toThrow(
+        ReadingEvidenceError,
+      );
+    }
+  });
+
+  /**
+   * **`person` 은 `self` 와 같은 자료를 받는다.**
+   *
+   * 갈리는 것은 접근 판정 하나뿐이고 그것은 DB 에 있다. 여기서 갈리기 시작하면 남의
+   * 명식에는 다른 컷이 적용되는 셈이 되고, 그 차이는 화면에서 안 보인다.
+   */
+  it('저장한 사람의 풀이는 자기 풀이와 같은 컷을 받는다', () => {
+    expect(evidenceFor('person').evidence).toEqual(evidenceFor('self').evidence);
   });
 
   it('궁합은 한 사람으로 만들지 않는다', () => {

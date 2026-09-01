@@ -85,6 +85,75 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
+   * **내 명식 화면에는 이 칸이 없다.**
+   *
+   * 목록은 selfPerson 을 걸러 내지만 이 주소는 열린다. 칸을 세우면 같은 명식에 글이
+   * 둘 서고 같은 자료로 풀이권이 두 번 나간다. 막는 것은 DB 이고, 화면은 그 자리에
+   * 어디로 가면 되는지를 세운다 — 못 만드는 버튼을 눌러야 알게 하지 않는다.
+   */
+  test('내 명식을 저장한 사람으로 열면 풀이 칸 대신 갈 곳을 말한다', async ({
+    page,
+    signedIn,
+  }) => {
+    expect(signedIn.label).not.toBe('');
+
+    /* 화면 안에는 이리 오는 링크가 없다 — 목록이 selfPerson 을 걸러 내므로 주소로 연다 */
+    await page.goto(`/me/people/${signedIn.selfPersonId}`);
+    await expect(
+      page.getByRole('heading', { name: `${signedIn.label}의 사주`, exact: true }),
+    ).toBeVisible();
+
+    await expect(page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
+    await expect(page.getByText('내 명식의 사주풀이는')).toBeVisible();
+    /* 머리글에도 같은 이름의 링크가 있다 — 재려는 것은 본문에 세운 그 길이다 */
+    await page.getByRole('main').getByRole('link', { name: '내 사주' }).click();
+
+    await expect(page.getByRole('heading', { name: '나의 사주풀이' })).toBeVisible();
+  });
+
+  /**
+   * **대문자로 적은 주소도 같은 답을 받는다.**
+   *
+   * `uuid` 비교도 주소 검사 정규식도 대소문자를 안 가리므로 이 주소는 조회를 지나간다.
+   * 그런데 화면의 「이게 내 selfPerson 인가」는 문자열 비교라 가린다 — 주소에 적힌
+   * 글자를 그대로 들고 견주면 거짓이 되고, 그때 못 만드는 버튼이 선다.
+   *
+   * DB 는 그래도 거절하므로 안전은 지켜진다. 여기서 재는 것은 **화면의 약속**이다:
+   * 못 만드는 버튼을 애초에 안 보여 준다.
+   */
+  test('대문자로 적은 내 명식 주소도 풀이 칸을 세우지 않는다', async ({ page, signedIn }) => {
+    const shouted = (signedIn.selfPersonId as string).toUpperCase();
+    expect(shouted).not.toBe(signedIn.selfPersonId);
+
+    await page.goto(`/me/people/${shouted}`);
+
+    /* 조회 자체는 지나간다 — 그래서 이 시험이 뜻이 있다 */
+    await expect(
+      page.getByRole('heading', { name: `${signedIn.label}의 사주`, exact: true }),
+    ).toBeVisible();
+
+    await expect(page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
+    await expect(page.getByText('내 명식의 사주풀이는')).toBeVisible();
+  });
+
+  /** 저장된 글이 그 사람의 화면에 실제로 서는가 — 위 시험은 빈 자리까지만 본다 */
+  test('저장한 사람의 풀이는 그 사람의 화면에서 읽힌다', async ({ page, personReader }) => {
+    await page.goto(`/me/people/${personReader.personId}`);
+
+    await expect(page.getByRole('heading', { name: '어머니의 사주풀이' })).toBeVisible();
+
+    /* 카드 배치라 긴 글이 접혀 있다 — 펼쳐서 그 글이 진짜 저장돼 있는지 본다 */
+    await page.getByRole('button', { name: '펼쳐보기 ↓' }).click();
+    await expect(page.getByText('어머니의 결')).toBeVisible();
+
+    /* 한 사람짜리라 궁합 점수가 안 선다 */
+    await expect(page.getByText('현재 관계 해석 점수')).toBeHidden();
+
+    /* 만든 것이 하나이므로 풀이권도 하나 줄어 있다 — kind 를 안 묻는다 */
+    await expect(page.getByText('풀이권 5번 중 4번 남음')).toBeVisible();
+  });
+
+  /**
    * **설문을 실제로 눌러 본다.**
    *
    * 흐름 검사(`check-reading.mjs`)가 이미 같은 화면을 받아 글자를 세지만 그쪽은 JS 를
@@ -146,6 +215,48 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByLabel('어느 대목이 맞았고 어느 대목이 달랐나요?')).toHaveValue(
       '첫 문단은 맞았고 마지막은 달랐어요',
     );
+  });
+
+  /**
+   * **저장한 사람의 상세 화면에도 만드는 버튼이 선다.**
+   *
+   * 이 화면에는 명식 표만 있었다. 엄마의 풀이를 보려면 엄마 × 다른 한 사람 궁합으로
+   * 가야 했고, 한 명짜리 길이 없었다.
+   *
+   * 흐름 검사가 이미 같은 화면을 받아 글자를 세지만, **누르는 손**은 여기에만 있다.
+   */
+  test('저장한 사람의 상세 화면에서 그 사람의 사주풀이를 받을 수 있다', async ({
+    page,
+    signedIn,
+  }) => {
+    const kin = signedIn.managed[0];
+    expect(kin).not.toBe(undefined);
+
+    await page.goto('/me/people');
+    await expect(page.getByText(kin).first()).toBeVisible();
+    /* 목록에 관리 Person 은 이 사람 하나뿐이다 — 이어서 제목으로 누구인지 확인한다 */
+    await page.getByRole('link', { name: '사주 상세 보기' }).first().click();
+
+    await expect(
+      page.getByRole('heading', { name: `${kin}의 사주`, exact: true }),
+    ).toBeVisible();
+
+    /* 제목이 그 사람 이름으로 선다 — kind 로 지어내던 자리다 */
+    await expect(page.getByRole('heading', { name: `${kin}의 사주풀이` })).toBeVisible();
+    await expect(page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
+
+    const make = page.getByRole('button', { name: '사주풀이 받기' });
+    await expect(make).toBeVisible();
+
+    /* 풀이권은 kind 를 안 묻는다 — 전역 다섯에서 함께 센다 */
+    await expect(make.locator('xpath=..').getByText('풀이권 5번 중 5번 남음')).toBeVisible();
+
+    /*
+      **여는 것만으로는 아무것도 안 만든다.** 다시 열어도 같은 자리에 같은 문장이 선다 —
+      화면을 여는 것이 요금이 되면 새로고침이 곧 비용이다.
+    */
+    await page.reload();
+    await expect(page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
   });
 
   /**

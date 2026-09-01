@@ -69,7 +69,15 @@ export async function payloadForViewer(personId: string): Promise<PersonPayload 
    * 둘이 되고, 둘은 언젠가 어긋난다(ADR 0004).
    */
   const [{ data: person }, { data: edge }] = await Promise.all([
-    supabase.from('person').select('current_revision_id').eq('id', personId).maybeSingle(),
+    /*
+      **`id` 를 함께 받는다 — 되돌려줄 값은 주소에 적힌 글자가 아니다.**
+
+      Postgres 의 `uuid` 비교도 아래 정규식도 대소문자를 안 가리므로, 대문자로 적은
+      주소가 여기까지 그대로 통과한다. 그 값을 되돌려주면 부르는 쪽의 문자열 비교가
+      전부 어긋난다 — 「이게 내 selfPerson 인가」가 거짓이 되고, 그때 화면은 못 만드는
+      버튼을 세운다. 정규화는 DB 가 이미 했고, 그 답을 그대로 들고 나간다.
+    */
+    supabase.from('person').select('id, current_revision_id').eq('id', personId).maybeSingle(),
     supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
   ]);
 
@@ -91,7 +99,8 @@ export async function payloadForViewer(personId: string): Promise<PersonPayload 
   const query = queryFromRevision(revision, edge.local_label);
 
   return {
-    personId,
+    /** 주소에 적힌 글자가 아니라 **DB 가 정규화한 값**이다(위) */
+    personId: person.id as string,
     revisionId: person.current_revision_id,
     name: query.name,
     // 서버가 계산한다. 익명 화면과 **같은 함수**라 저장하기 전에 본 사주와

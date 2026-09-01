@@ -38,6 +38,7 @@ export async function readingRunState(target: ReadingTarget): Promise<LastRun | 
   if (run !== null && run.status !== 'running') {
     if (target.kind === 'match') revalidatePath(`/me/match/${target.matchId}`);
     if (target.kind === 'self') revalidatePath('/me');
+    if (target.kind === 'person') revalidatePath(`/me/people/${target.personId}`);
     if (target.kind === 'private') revalidatePath('/me/compat');
   }
 
@@ -84,6 +85,7 @@ export async function submitReadingFeedback(
   */
   if (target.kind === 'match') revalidatePath(`/me/match/${target.matchId}`);
   if (target.kind === 'self') revalidatePath('/me');
+  if (target.kind === 'person') revalidatePath(`/me/people/${target.personId}`);
   if (target.kind === 'private') revalidatePath('/me/compat');
 
   return { ok: true };

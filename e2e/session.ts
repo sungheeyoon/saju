@@ -64,6 +64,13 @@ export type Account = {
   readonly label: string;
   /** 이 계정이 등록한 가족·친구 — `people` 을 요청했을 때만 */
   readonly managed: readonly string[];
+  /**
+   * 내 selfPerson — `selfPerson` 을 요청했을 때만.
+   *
+   * `/me/people/{이 값}` 은 화면 안에서 가는 링크가 없다(목록이 selfPerson 을 걸러 낸다).
+   * 그래도 주소로는 열리므로, 그 자리가 무엇을 세우는지 재려면 id 가 필요하다.
+   */
+  readonly selfPersonId: string | null;
 };
 
 /**
@@ -111,6 +118,8 @@ async function seed(
   if (error) throw new Error(`초대된 주소인데 가입이 막혔습니다 — ${error.message}`);
   await awaitUsable(client);
 
+  let selfPersonId: string | null = null;
+
   if (wanted.selfPerson) {
     const saved = await client.rpc('create_self_person', {
       p_local_label: label,
@@ -124,6 +133,7 @@ async function seed(
       p_time_basis: 'localMean',
     });
     if (saved.error) throw new Error(`자기 사주를 못 넣었습니다 — ${saved.error.message}`);
+    selfPersonId = saved.data as string;
   }
 
   for (const person of wanted.people ?? []) {
@@ -142,7 +152,11 @@ async function seed(
     if (made.error) throw new Error(`${person} 을 못 넣었습니다 — ${made.error.message}`);
   }
 
-  return { account: { email, label, managed: wanted.people ?? [] }, password, api: client };
+  return {
+    account: { email, label, managed: wanted.people ?? [], selfPersonId },
+    password,
+    api: client,
+  };
 }
 
 /**
@@ -222,11 +236,49 @@ export type Reader = {
   readonly runId: string;
 };
 
+/** 저장한 사람 하나의 풀이까지 만들어 둔 계정 */
+export type PersonReader = Reader & { readonly personId: string };
+
+/**
+ * 한 사람짜리 풀이 한 벌을 세워 둔다 — **모델은 안 부른다.**
+ *
+ * 시도는 사용자 JWT 로 열고(자격을 `auth.uid()` 가 판정한다) 저장은 `postgres` 로 한다 —
+ * 서버가 열쇠로 부르는 그 문이다.
+ */
+async function saveReadingAs(
+  api: SupabaseClient,
+  email: string,
+  kind: 'self' | 'person',
+  personId: string | null,
+  body: string,
+): Promise<string> {
+  const started = await api.rpc('start_reading_run', {
+    p_kind: kind,
+    p_idempotency_key: `e2e-${kind}-${email}`,
+    p_person_a: personId,
+    p_model: 'gpt-e2e',
+    p_prompt_version: 'reading-prompt-v1',
+  });
+  if (started.error) throw new Error(`시도를 못 열었습니다 — ${started.error.message}`);
+
+  const run = started.data?.[0];
+  if (!run) throw new Error('시도가 시작되지 않았습니다');
+
+  sql(`select public.save_reading(
+         '${run.run_id}'::uuid, '${run.revision_a}'::uuid, null,
+         '## ${body} — 브라우저가 읽을 글입니다.', null,
+         '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
+
+  return run.run_id as string;
+}
+
 type Fixtures = {
   /** 자기 사주와 가족 한 명까지 넣어 둔 계정으로 로그인한 상태 */
   signedIn: Account;
   /** 자기 풀이가 저장돼 있고 개선 활용에도 동의한 계정 */
   reader: Reader;
+  /** 저장한 사람 하나의 풀이가 이미 있는 계정 */
+  personReader: PersonReader;
   /** 가입만 끝난 계정 — 온보딩 화면에서 시작한다 */
   newcomer: Account;
   /**
@@ -277,25 +329,29 @@ export const test = base.extend<Fixtures, { local: Local }>({
     sql(`update public.app_user set improvement_consent = true
          where id = (select id from auth.users where email = '${account.email}')`);
 
-    const started = await api.rpc('start_reading_run', {
-      p_kind: 'self',
-      p_idempotency_key: `e2e-reading-${account.email}`,
-      p_model: 'gpt-e2e',
-      p_prompt_version: 'reading-prompt-v1',
-    });
-    if (started.error) throw new Error(`시도를 못 열었습니다 — ${started.error.message}`);
-
-    const run = started.data?.[0];
-    if (!run) throw new Error('시도가 시작되지 않았습니다');
-
-    sql(`select public.save_reading(
-           '${run.run_id}'::uuid, '${run.revision_a}'::uuid, null,
-           '## 지금의 핵심 — 브라우저가 읽을 글입니다.', null,
-           '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
+    const runId = await saveReadingAs(api, account.email, 'self', null, '지금의 핵심');
 
     const cookies = await cookiesFor(local, account.email, password);
     await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
-    await use({ account, runId: run.run_id });
+    await use({ account, runId });
+  },
+
+  personReader: async ({ local, context, baseURL }, use) => {
+    const { account, password, api } = await seed(local, {
+      selfPerson: true,
+      people: ['어머니'],
+    });
+
+    const { data: edges } = await api.from('user_person_access').select('person_id, local_label');
+    const kin = (edges ?? []).find((row) => row.local_label === '어머니');
+    if (!kin) throw new Error('저장한 사람을 못 찾았습니다');
+
+    const personId = kin.person_id as string;
+    const runId = await saveReadingAs(api, account.email, 'person', personId, '어머니의 결');
+
+    const cookies = await cookiesFor(local, account.email, password);
+    await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
+    await use({ account, runId, personId });
   },
 
   newcomer: async ({ local, context, baseURL }, use) => {

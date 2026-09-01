@@ -61,6 +61,8 @@ import { openAIReadingGenerator, submitBackgroundReading } from './model';
 
 export type ReadingTarget =
   | { kind: 'self' }
+  /** 내가 관리하는 저장된 사람 하나 — `self` 와 같은 자료를 쓰되 접근 판정이 다르다 */
+  | { kind: 'person'; personId: string }
   | { kind: 'private'; personA: string; personB: string }
   | { kind: 'match'; matchId: string };
 
@@ -117,7 +119,13 @@ async function openRun(
     p_kind: target.kind,
     /** 같은 누름의 재전송을 알아보는 값. 무엇을 막는지는 아래 주석이 든다 */
     p_idempotency_key: requestKey ?? randomUUID(),
-    p_person_a: target.kind === 'private' ? target.personA : null,
+    /* `person` 은 한 사람만 싣는다. `self` 는 아무것도 안 싣는다 — DB 가 스스로 찾는다 */
+    p_person_a:
+      target.kind === 'private'
+        ? target.personA
+        : target.kind === 'person'
+          ? target.personId
+          : null,
     p_person_b: target.kind === 'private' ? target.personB : null,
     p_match_id: target.kind === 'match' ? target.matchId : null,
     p_model: generator.generation.model,

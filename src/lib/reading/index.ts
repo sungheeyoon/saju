@@ -3,7 +3,7 @@ import { redactEvidence, type RedactedEvidence } from '../saju/evidence/redacted
 import { shareEvidence, type SharedEvidence } from '../saju/evidence/shared';
 import type { Saju } from '../saju';
 
-import type { ReadingKind } from './policy';
+import { isSolo, type ReadingKind } from './policy';
 
 /**
  * kind 마다 모델에 넘기는 자료를 **여기서 자른다.**
@@ -20,6 +20,7 @@ import type { ReadingKind } from './policy';
  */
 export type ReadingEvidence =
   | { kind: 'self'; evidence: RedactedEvidence }
+  | { kind: 'person'; evidence: RedactedEvidence }
   | { kind: 'private'; evidence: RedactedEvidence }
   | { kind: 'match'; evidence: SharedEvidence };
 
@@ -47,9 +48,10 @@ export function readingEvidenceOf(
   const full: Evidence = evidenceOf(charts, viewedAt);
   const redacted = redactEvidence(full);
 
-  if (kind === 'self') {
+  /* `self` 와 `person` 은 같은 자료를 받는다 — 갈리는 것은 접근 판정 하나뿐이다 */
+  if (isSolo(kind)) {
     if (charts.b !== undefined) {
-      throw new ReadingEvidenceError('자기 풀이는 한 사람의 자료로만 만듭니다.');
+      throw new ReadingEvidenceError('한 사람의 풀이는 한 사람의 자료로만 만듭니다.');
     }
     return { kind, evidence: redacted };
   }

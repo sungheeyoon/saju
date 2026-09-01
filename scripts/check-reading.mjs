@@ -279,6 +279,48 @@ try {
     check('프롬프트가 사용자 화면에 없다', !mine.includes('검사용 프롬프트 원문'));
   }
 
+  // ── 2-1. 저장한 사람 하나의 풀이 ─────────────────────────────────────────
+  {
+    const page = `/me/people/${momId}`;
+
+    /** **여는 것만으로는 아무것도 안 만든다** — 시도가 열리면 이 화면이 곧 요금이 된다 */
+    const before = Number(sql(
+      `select count(*) from public.reading_run where kind = 'person'`));
+    const empty = await body(page, cookie.a);
+    const after = Number(sql(
+      `select count(*) from public.reading_run where kind = 'person'`));
+    check('저장한 사람 화면을 여는 것으로 시도가 열리지 않는다', before === after,
+      `${before} → ${after}`);
+
+    check('그 사람 이름으로 풀이 칸이 선다', plain(empty).includes('엄마의 사주풀이'));
+    check('만드는 버튼이 선다', empty.includes('사주풀이 받기'));
+    check('아직 없으면 없다고 말한다', plain(empty).includes('아직 만들어 둔 사주풀이가 없습니다'));
+
+    const saved = await saveAs(a, 'person', { personA: momId }, OUTPUT.self, null);
+    check('저장한 사람의 풀이가 저장된다', !saved.error, saved.error?.message ?? '');
+
+    const filled = plain(await body(page, cookie.a));
+    check('저장한 글이 그 화면에 선다', filled.includes('스스로 정한 규칙 안에서'));
+    check('한 사람짜리라 점수가 안 선다', !filled.includes('실험 중인 풀이가 붙인 값'));
+
+    /** 남의 것은 못 본다 — **없는 것과 못 보는 것을 가르지 않는다** */
+    const stranger = await body(page, cookie.b);
+    check('남의 저장한 사람 화면은 안 열린다', !stranger.includes('엄마의 사주풀이'));
+
+    /**
+     * **내 명식이면 이 칸이 아니다.**
+     *
+     * 목록은 selfPerson 을 걸러 내지만 이 주소는 열린다. 칸을 세우면 같은 명식에 글이
+     * 둘 서고 같은 자료로 풀이권이 두 번 나간다.
+     */
+    const { data: me } = await a.from('app_user').select('self_person_id').maybeSingle();
+    const asPerson = await body(`/me/people/${me.self_person_id}`, cookie.a);
+    check('내 명식 화면에는 저장한 사람 풀이 칸이 없다', !asPerson.includes('사주풀이 받기'));
+    check('대신 어디로 가면 되는지 말한다',
+      plain(asPerson).includes('내 명식의 사주풀이는'));
+    check('그 길이 링크로 닿는다', asPerson.includes('href="/me"'));
+  }
+
   // ── 3. 비공개 궁합 ───────────────────────────────────────────────────────
   {
     const { data: account } = await a.from('app_user').select('self_person_id').maybeSingle();
@@ -524,12 +566,12 @@ try {
     check('남의 실패는 내 알림함에 안 선다', !stranger.includes('만들지 못했습니다'));
 
     /**
-     * **실패는 풀이권을 먹지 않는다.** 여기까지 성공한 것은 셋(자기·비공개·Match)이고
-     * 방금 둘이 실패했다. 반환하는 일을 아무도 하지 않았는데 잔액이 그대로여야 한다 —
+     * **실패는 풀이권을 먹지 않는다.** 여기까지 성공한 것은 넷(자기·저장한 사람·
+     * 비공개·Match)이고 방금 둘이 실패했다. 반환하는 일을 아무도 하지 않았는데 잔액이 그대로여야 한다 —
      * 그것이 「차감하고 반환한다」가 아니라 「센다」로 만든 이유다.
      */
     const after = plain(await body('/me', cookie.a));
-    check('실패한 시도는 풀이권을 쓰지 않는다', after.includes('풀이권 5번 중 2번 남음'));
+    check('실패한 시도는 풀이권을 쓰지 않는다', after.includes('풀이권 5번 중 1번 남음'));
   }
 } finally {
   stop();

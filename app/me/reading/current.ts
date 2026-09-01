@@ -52,7 +52,12 @@ export type LastRun = {
 
 const argsOf = (target: ReadingTarget) => ({
   p_kind: target.kind,
-  p_person_a: target.kind === 'private' ? target.personA : null,
+  p_person_a:
+    target.kind === 'private'
+      ? target.personA
+      : target.kind === 'person'
+        ? target.personId
+        : null,
   p_person_b: target.kind === 'private' ? target.personB : null,
   p_match_id: target.kind === 'match' ? target.matchId : null,
 });

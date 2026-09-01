@@ -72,7 +72,7 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 - Match 동의 후에는 관계를 통해 상대의 여덟 글자가 전부 드러날 수 있다. 그래도 정확한
   생년월일시·출생지, 상대 원국 전체 판정·근거와 private Reading은 내려받을 수 없다.
 - AI 입력과 출력에 정확한 생년월일시·출생지가 없고, 근거 밖 주장이 품질 게이트를 통과하지 못한다.
-- AI 해석은 사용자가 결과 생성 요청을 실행할 때만 생성되고, 세 kind의 접근 범위가 서로를 열지 않는다.
+- AI 해석은 사용자가 결과 생성 요청을 실행할 때만 생성되고, 네 kind의 접근 범위가 서로를 열지 않는다.
 - 주요 흐름이 데스크톱과 모바일 브라우저의 자동화 테스트로 잠긴다.
 
 ## User Stories
@@ -101,6 +101,7 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 22. As an User, I want to 수동 궁합 결과를 중립적인 문체로 본다, so that 누가 읽는지에 따라 관계 사실이 바뀌지 않는다.
 23. As an User, I want to 궁합 근거와 AI가 만든 실험 점수를 구분해 본다, so that 결과 점수를 궁합의 절대적인 정답으로 오해하지 않는다.
 23-1. As an User, I want to 내 명식을 AI가 풀어 준 글을 읽는다, so that 저장된 근거를 내가 직접 해석하지 않아도 무엇이 보이는지 알 수 있다.
+23-3. As an User, I want to 내가 저장한 가족·친구 한 명의 사주풀이를 그 사람의 상세 화면에서 받는다, so that 궁합을 거치지 않고도 그 한 사람이 어떤 사람인지 읽을 수 있다.
 23-2. As an User, I want to 해석이 내가 눌렀을 때만 생성된다, so that 화면을 열 때마다 글이 달라지거나 호출 비용이 나가지 않는다.
 24. As an User, I want to 같은 조합에서 결과 생성 요청이 성공하면 현재 점수와 해석이 새 결과로 교체된다, so that 현재 결과만 사용하고 과거 결과 이력을 관리하지 않는다.
 25. As an User, I want to 조합의 현재 Reading을 빠르게 본다, so that 화면을 다시 열었다는 이유만으로 AI가 재호출되지 않는다.
@@ -202,7 +203,7 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 - MatchRequest 모듈은 요청 생성·수락·거절·무효화와 revision 비교를 하나의 상태 머신으로
   제공한다. 수락과 Match 생성은 같은 트랜잭션에서 일어난다.
 - Reading 모듈은 redacted Evidence 생성, prompt 조립, AI 호출, 점수·해석 출력 검사,
-  현재 결과 교체와 사용자별 응답 projection을 하나의 파이프라인으로 감싼다. 세 kind는
+  현재 결과 교체와 사용자별 응답 projection을 하나의 파이프라인으로 감싼다. 네 kind는
   같은 파이프라인을 쓰되 근거 범위와 접근 판정만 달라진다 — kind마다 다른 파이프라인을
   만들면 출력 검사가 한 갈래에서만 도는 일이 생긴다.
 - 알림 모듈은 도메인 사건을 앱 내 inbox 항목으로 바꾸며 외부 채널을 가정하지 않는다.
@@ -249,10 +250,22 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
   자기 풀이이고, 두 사람 궁합 출력은 점수와 해석을 함께 포함한다. 같은 대상의 결과 생성
   요청이 성공하면 이 값을 한 벌로 교체하고 이전 출력·근거는 제품
   데이터에서 더는 보존하거나 참조하지 않는다.
-- `kind`는 셋이다. `self`는 자기 selfPerson 한 명의 풀이, `private`는 요청 User가 접근
-  가능한 두 Person의 궁합, `match`는 성립한 Match의 공유 궁합이다. 셋은 접근 범위가 다르다 —
-  `self`와 `private`는 요청 User만 보고, `match`는 Match 범위로 양쪽이 본다. 한 kind의
+- `kind`는 넷이다. `self`는 자기 selfPerson 한 명의 풀이, `person`은 요청 User가
+  `UserPersonAccess`로 관리하는 저장된 Person 한 명의 풀이, `private`는 요청 User가 접근
+  가능한 두 Person의 궁합, `match`는 성립한 Match의 공유 궁합이다. 넷은 접근 범위가 다르다 —
+  `self`·`person`·`private`는 요청 User만 보고, `match`는 Match 범위로 양쪽이 본다. 한 kind의
   권한 판정이 다른 kind를 열지 않는다.
+- `self`와 `person`은 **한 사람짜리 계열**이다. 자료·프롬프트·출력 검사·비식별화가 같고
+  궁합 점수를 만들지 않는다. 갈리는 것은 접근 판정 하나뿐이다 — `self`는 요청 User의
+  selfPerson을 스스로 찾고, `person`은 대상 Person을 인자로 받아 엣지를 확인한다. 그래도
+  **한 낱말로 합치지 않는다.** 합치면 내 명식을 모델에 넘긴 것과 남의 명식을 넘긴 것이
+  기록에서 같아지고, 그 둘은 동의 범위가 다른 일이다.
+- `person`의 현재 결과는 **User별·Person별로 하나**다. 같은 Person을 여러 User가 관리해도
+  각자의 결과를 따로 가지며, 한쪽이 다시 만들어도 다른 쪽의 글은 바뀌지 않는다.
+- **요청 User 자신의 selfPerson은 `person`의 대상이 아니다.** selfPerson도 요청 User의
+  `UserPersonAccess`에 있으므로 막지 않으면 같은 명식에 `self`와 `person` 두 결과가 서고,
+  같은 자료로 결과 생성이 두 번 과금된다. 이 판정은 접근 판정 함수에 두며 화면 필터에
+  두지 않는다.
 - 대상별 현재 결과는 하나뿐이다. 일반 조회는 이 값을 읽을 뿐 AI를 호출하지 않는다.
   결과 생성 요청이 성공했을 때만 출력·근거·생성 메타데이터를 원자적으로 교체한다.
 - `visibility`나 `perspectivePersonId`는 두지 않는다. 누가 보는가는 `kind`와 접근 근거가
@@ -520,7 +533,7 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
   여덟 글자 나열은 privacy hard fail이 아니라 불필요한 나열을 피하는 품질 규칙으로 검사한다.
 - AI 품질 게이트는 고정 사례별 evidence consistency와 구체성·근거 밀착성·실용성 rubric을
   기록한다. prompt 변경 전후를 같은 모델 설정과 같은 사례로 비교한다.
-- Reading 테스트는 세 kind의 접근 범위가 서로를 열지 않는지, 화면 조회가 AI를 호출하지
+- Reading 테스트는 네 kind의 접근 범위가 서로를 열지 않는지, 화면 조회가 AI를 호출하지
   않는지, 결과 생성 요청이 성공할 때만 현재 점수·해석·근거가 한 벌로 교체되는지를 검증한다.
 - Reading 생성 통합 테스트는 성공·provider 실패·timeout·재시도·idempotency·rate limit과
   같은 요청의 중복 교체 방지, 실패 시 직전 성공 결과 유지, 교체 후 이전 결과 미참조를 검증한다.
@@ -571,7 +584,7 @@ MVP는 Google OAuth와 정확한 이메일 초대 allowlist로 닫힌 성인 테
 8. 판본 참조 수명주기를 신규 migration으로 구현한다. terminal 요청의 판본 FK를 정리하고,
    현재·pending·Match·Reading 참조분을 제외한 이전 판본을 최근 두 개로 제한한다.
 9. redacted Evidence와 Reading 파이프라인을 **실험 인프라로** 만든다. 해석 완성 단계가
-   아니다. 세 kind(자기 풀이·비공개 궁합·Match 궁합)를 각자의 접근 범위로 세우고, 조합별
+   아니다. kind(자기 풀이·저장한 사람 풀이·비공개 궁합·Match 궁합)를 각자의 접근 범위로 세우고, 조합별
    현재 결과 하나를 둔다. 결과 생성 요청이 성공하면 출력·Evidence·프롬프트·모델 설정을
    통째로 교체하며 이전 결과는 참조하지 않는다. 엔진과 AI의 역할은 확정하지 않고 versioned
    실험으로 비교해 내부 품질 게이트를 반복한다.
