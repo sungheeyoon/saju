@@ -431,13 +431,49 @@ const SCORE_SECTION = `## 점수
  * 있는 것은 전부 자료가 실제로 들고 있는 것들이다(`compatibility` 의 관계 목록·
  * `combinedFormations`·`elementSupport`·양방향 `tenGods`·`eokbuMatch`).
  */
-const COMPAT_SHARED_SECTIONS = (a: string, b: string) => [
+/**
+ * 이제 막 만난 두 사람에게만 맞는 물음 — **연인과 공유 궁합이 함께 쓴다.**
+ *
+ * 공유 궁합은 인연 찾기에서 만나 서로 열어 준 사이라 **처음이 실제로 지금이다.**
+ */
+const FIRST_ATTRACTION = `**3. 처음에 끌리는 지점** — 만나서 얼마 안 됐을 때 서로의 무엇이 눈에 들어오는지.
+그리고 그 끌림이 **오래 갈 것인지 초반에만 세게 오는 것인지**도 함께 말한다.`;
+
+/**
+ * **3번 절만 관계를 탄다** — 나머지 여덟은 어느 사이에나 선다.
+ *
+ * ADR 0018 이 고친 사고가 「어머니와의 궁합에 처음 끌리는 장면이 나갔다」였는데, 고친
+ * 자리는 관계 블록 하나뿐이었다. 절 목록은 이름 둘만 받고 관계를 몰라서 **「연애의
+ * 장면으로 읽지 마라」 바로 다음 줄에서 「처음에 끌리는 지점을 써라」고 시키고 있었다.**
+ *
+ * 규칙과 낼 것이 부딪히면 **낼 것이 이긴다.** 절 제목은 채울 빈칸이고 규칙은 추상이라,
+ * 모델은 빈칸을 고른다. 그러니 관계마다 이 절의 **물음 자체**를 바꾼다 — 하지 말라고
+ * 한 번 더 적는 것으로는 안 된다.
+ *
+ * 가족에게는 처음이 없고, 친구·동료는 처음보다 무엇으로 이어져 있는지가 답이다. 모를
+ * 때가 가장 조심할 자리다 — 「어느 사이에나 해당하는 장면으로 읽어라」라고 해 놓고
+ * 연애의 물음을 세우면, 모델이 기댈 것은 절 제목뿐이라 그 말이 죽는다.
+ */
+const MEETING_SECTION: Record<Relation | 'match' | 'unknown', string> = {
+  partner: FIRST_ATTRACTION,
+  match: FIRST_ATTRACTION,
+  family: `**3. 오래 되풀이돼 온 자리** — 이 사이에는 처음이 없다. 만나서 알게 된 것이 아니라
+**같은 자리에서 오래 되풀이돼 온 것**이 무엇인지 쓴다. 서로 익숙해서 못 보는 것, 그리고
+나이가 들며 달라진 것과 그대로인 것을 갈라서 말한다.`,
+  friend: `**3. 무엇으로 이어져 있는가** — 어떻게 가까워졌고 지금 무엇이 이 사이를 이어 주는지.
+일로 만난 사이라면 그 일이 끝나도 남을 것인지까지. **끌림·설렘의 말로 쓰지 마라** —
+가까운 사이를 설명하는 말은 그것 말고도 많다.`,
+  unknown: `**3. 서로의 무엇이 먼저 눈에 들어오는가** — 두 사람이 서로에게서 가장 먼저 알아보는
+것과, 지내면서 나중에야 보이는 것. **처음·끌림·설렘처럼 특정한 사이를 전제하는 말은 쓰지
+마라** — 어느 사이에나 해당하는 장면으로 쓴다.`,
+};
+
+const COMPAT_SHARED_SECTIONS = (a: string, b: string, meeting: string) => [
   `**1. 한 줄로** — 이 둘이 만나면 어떤 그림인지 한 문장. 비유를 쓸 거면 여기서만.`,
   `**2. 서로에게 무엇인가** — ${withParticle(a, '이', '가')} ${withParticle(b, '을', '를')} 보는 자리와 그 반대가 **다르다**
 (\`tenGods.aSeesB\`·\`bSeesA\`). 한쪽이 다른 쪽을 뜻하지 않는다 — 한 사람은 기대고 한 사람은
 책임을 느끼는 짝사랑 모양이 흔하다. 그 비대칭이 **일상에서 어떻게 보이는지**까지 쓴다.`,
-  `**3. 처음에 끌리는 지점** — 만나서 얼마 안 됐을 때 서로의 무엇이 눈에 들어오는지.
-그리고 그 끌림이 **오래 갈 것인지 초반에만 세게 오는 것인지**도 함께 말한다.`,
+  meeting,
   `**4. 잘 맞는 지점 셋** — **줄마다 한두 문장.** 「어디서 맞는가 → 그래서 무엇이 쉬워지는가」로
 짧게 끊는다. 좋은 이야기는 길게 늘일수록 오히려 흐려진다 — 왜 그런지는 여기서 다 대지 마라.`,
   `**5. 부딪히는 지점 셋** — 여기는 조금 더 써도 된다. 줄마다 「어디서 부딪히는가 → 어떤
@@ -528,10 +564,12 @@ const compatSections = (
 ): string => {
   const { names, relation } = about;
   const { a, b = FALLBACK_NAMES.b as string } = names ?? FALLBACK_NAMES;
+  /** 공유 궁합은 고른 값이 아니라 성립 방식이 관계를 정한다 — 3번 절도 같은 자리에서 갈린다 */
+  const meeting = MEETING_SECTION[kind === 'match' ? 'match' : (relation ?? 'unknown')];
   const sections =
     kind === 'private'
-      ? [...COMPAT_SHARED_SECTIONS(a, b), ...COMPAT_PRIVATE_SECTIONS]
-      : COMPAT_SHARED_SECTIONS(a, b);
+      ? [...COMPAT_SHARED_SECTIONS(a, b, meeting), ...COMPAT_PRIVATE_SECTIONS]
+      : COMPAT_SHARED_SECTIONS(a, b, meeting);
   const { min, max } = assembly.compatLength[kind];
 
   return `${namingBlock(names)}

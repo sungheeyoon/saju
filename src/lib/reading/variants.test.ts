@@ -297,6 +297,42 @@ describe('고객이 읽는 글의 계약', () => {
     expect(unknown).toContain('어느 쪽으로도 단정하지 말고');
   });
 
+  /**
+   * **규칙과 낼 것이 부딪히면 낼 것이 이긴다.**
+   *
+   * ADR 0018 이 관계 블록을 세웠지만 절 목록은 관계를 몰랐다. 그래서 「연애의 장면으로
+   * 읽지 마라」 바로 다음 줄에서 「처음에 끌리는 지점을 써라」고 시키고 있었다 — 절
+   * 제목은 채울 빈칸이고 규칙은 추상이라, 모델은 빈칸을 고른다.
+   */
+  it('가족·친구 궁합에는 처음 끌리는 절을 세우지 않는다', () => {
+    const asFamily = readingPromptOf(pairEvidence(), CONTROL, {
+      names: { a: '나', b: '엄마' },
+      relation: 'family',
+    });
+
+    expect(asFamily).not.toContain('처음에 끌리는 지점');
+    expect(asFamily).toContain('이 사이에는 처음이 없다');
+
+    const asFriend = readingPromptOf(pairEvidence(), CONTROL, {
+      names: { a: '나', b: '동료' },
+      relation: 'friend',
+    });
+
+    expect(asFriend).not.toContain('처음에 끌리는 지점');
+    expect(asFriend).toContain('끌림·설렘의 말로 쓰지 마라');
+  });
+
+  /** 모를 때가 가장 조심할 자리다 — 중립으로 읽으라 해 놓고 연애의 물음을 세우지 않는다 */
+  it('무슨 사이인지 모르면 특정한 사이를 전제하는 절도 안 세운다', () => {
+    expect(compatPrompt('private')).not.toContain('처음에 끌리는 지점');
+    expect(compatPrompt('private')).toContain('특정한 사이를 전제하는 말은 쓰지');
+  });
+
+  /** 인연 찾기에서 막 만난 두 사람은 **처음이 실제로 지금**이라 그대로 둔다 */
+  it('공유 궁합에는 처음 끌리는 절이 그대로 선다', () => {
+    expect(compatPrompt('match')).toContain('처음에 끌리는 지점');
+  });
+
   /** 공유 궁합은 고른 값이 아니라 **성립 방식**이 관계를 정한다 */
   it('공유 궁합은 인연 찾기에서 만난 사이라고 말한다', () => {
     expect(compatPrompt('match')).toContain('인연 찾기에서 만나 서로 상세 궁합에 동의한 사이다');
