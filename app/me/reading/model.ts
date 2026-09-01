@@ -1,11 +1,12 @@
 import { openai } from '@ai-sdk/openai';
-import { NoOutputGeneratedError, Output, generateText, jsonSchema } from 'ai';
+import OpenAI from 'openai';
+import { NoOutputGeneratedError, Output, generateText, jsonSchema, type JSONSchema7 } from 'ai';
 
 import { READING_POLICY, type ReadingOutput } from '@/src/lib/reading';
 
 import { GENERATION } from './generation';
 
-import type { ModelCall, ReadingGenerator } from './generator';
+import type { ModelCall, ModelRetrieval, ModelSubmission, ReadingGenerator } from './generator';
 
 /**
  * **모델을 부르는 유일한 자리.**
@@ -32,7 +33,11 @@ import type { ModelCall, ReadingGenerator } from './generator';
  * 아니라 **검사**가 판정한다(`checkReading`) — 스키마로 막아 버리면 모델이 규칙을
  * 어겼을 때 그것을 잡는 검사가 한 번도 안 서고, 그 검사가 실제로 무는지 알 수 없다.
  */
-const SCHEMA = jsonSchema<ReadingOutput>({
+/**
+ * **한 벌이다.** AI SDK 쪽과 Responses API 쪽이 같은 것을 문다 — 복사하면 두 벌이 되고,
+ * 어긋난 날 어느 쪽이 진짜인지 알 수 없다.
+ */
+const OUTPUT_SHAPE = {
   type: 'object',
   properties: {
     score: {
@@ -45,7 +50,13 @@ const SCHEMA = jsonSchema<ReadingOutput>({
   },
   required: ['score', 'markdown'],
   additionalProperties: false,
-});
+} satisfies JSONSchema7;
+
+const SCHEMA = jsonSchema<ReadingOutput>(OUTPUT_SHAPE);
+
+/** provider 의 오류 문장. 출생 원문이 실릴 자리가 아니다 — 프롬프트에 그 값이 없다 */
+const messageOf = (failure: unknown): string =>
+  failure instanceof Error ? failure.message : String(failure);
 
 /**
  * 프롬프트 하나를 보내고 결과를 받는다.
@@ -92,7 +103,7 @@ export async function callModel(prompt: string): Promise<ModelCall> {
       return { ok: false, code: 'model-no-output', detail: '모델이 계약한 모양으로 내지 않았습니다' };
     }
 
-    const detail = failure instanceof Error ? failure.message : String(failure);
+    const detail = messageOf(failure);
 
     /**
      * **시간 초과는 따로 부른다.**
@@ -118,3 +129,114 @@ export const openAIReadingGenerator: ReadingGenerator = {
   generation: GENERATION,
   generate: callModel,
 };
+
+// ---------------------------------------------------------------------------
+// 요청 수명 밖에서 도는 길 — 제출과 회수 (ADR 0020)
+// ---------------------------------------------------------------------------
+
+/**
+ * **같은 경계 안에 둔다.**
+ *
+ * 제출과 회수가 갈린다고 자리를 나누면 provider SDK 가 파이프라인 전체로 번진다.
+ * 「모델을 부르는 유일한 자리」는 그대로이고, 달라지는 것은 그 자리가 **기다리지
+ * 않는다**는 것뿐이다.
+ */
+const client = () => new OpenAI();
+
+/**
+ * 일을 떠나보낸다. **완성본을 기다리지 않는다.**
+ *
+ * `metadata.reading_run_id` 를 함께 싣는 것이 이 함수에서 가장 중요한 한 줄이다.
+ * 제출은 됐는데 우리 쪽에 `response_id` 를 적기 전에 끊기면 그 작업은 주인을 잃는다 —
+ * 돈은 나가고 결과는 아무 데도 안 붙는다. **이름표를 결과에 붙여 보내는 것이 우리 쪽
+ * 기록보다 먼저다**(ADR 0020).
+ */
+export async function submitBackgroundReading(
+  prompt: string,
+  runId: string,
+): Promise<ModelSubmission> {
+  try {
+    const response = await client().responses.create({
+      model: GENERATION.model,
+      input: prompt,
+      background: true,
+      store: GENERATION.settings.store,
+      metadata: { reading_run_id: runId },
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'reading',
+          strict: true,
+          schema: OUTPUT_SHAPE,
+        },
+      },
+    });
+
+    return { ok: true, responseId: response.id };
+  } catch (failure) {
+    return { ok: false, code: 'model-submit-failed', detail: messageOf(failure) };
+  }
+}
+
+/**
+ * 떠나보낸 것을 가져온다.
+ *
+ * **끝나는 길이 넷이다** — `completed` 는 글을 들고 오고, `failed`·`cancelled`·
+ * `incomplete` 는 이유를 들고 온다. 나머지(`queued`·`in_progress`)는 아직 도는 중이라
+ * 실패가 아니다.
+ */
+export async function retrieveBackgroundReading(responseId: string): Promise<ModelRetrieval> {
+  try {
+    const response = await client().responses.retrieve(responseId);
+
+    if (response.status === 'queued' || response.status === 'in_progress') {
+      return { ok: 'pending' };
+    }
+
+    if (response.status !== 'completed') {
+      return {
+        ok: false,
+        // 시도 상태를 그대로 코드로 쓴다 — 우리가 이름을 새로 지으면 provider 의
+        // 갈래가 늘었을 때 어디로 접혔는지 알 수 없다.
+        code: `model-${response.status ?? 'unknown'}`,
+        detail: response.incomplete_details?.reason ?? response.error?.message ?? '',
+      };
+    }
+
+    const text = response.output_text;
+    if (typeof text !== 'string' || text === '') {
+      return { ok: false, code: 'model-no-output', detail: '모델이 계약한 모양으로 내지 않았습니다' };
+    }
+
+    /**
+     * **여기서 던지지 않는다.** 스키마가 strict 라도 파싱은 우리 몫이고, 못 읽은 것은
+     * 실패로 값이 되어야 시도가 닫힌다.
+     */
+    let output: ReadingOutput;
+    try {
+      output = JSON.parse(text) as ReadingOutput;
+    } catch {
+      return { ok: false, code: 'model-no-output', detail: '결과를 읽지 못했습니다' };
+    }
+
+    return {
+      ok: true,
+      output,
+      usage: {
+        inputTokens: response.usage?.input_tokens ?? null,
+        noCacheTokens:
+          response.usage?.input_tokens === undefined
+            ? null
+            : response.usage.input_tokens - (response.usage.input_tokens_details?.cached_tokens ?? 0),
+        cacheReadTokens: response.usage?.input_tokens_details?.cached_tokens ?? null,
+        // Responses API 는 캐시 쓰기를 따로 세지 않는다. 0 이 아니라 「못 셌다」다.
+        cacheWriteTokens: null,
+        outputTokens: response.usage?.output_tokens ?? null,
+        totalTokens: response.usage?.total_tokens ?? null,
+      },
+      modelId: response.model ?? null,
+    };
+  } catch (failure) {
+    return { ok: false, code: 'model-retrieve-failed', detail: messageOf(failure) };
+  }
+}

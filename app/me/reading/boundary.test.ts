@@ -154,6 +154,24 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     }
   });
 
+  /**
+   * **모델을 부르는 자리가 하나다.**
+   *
+   * `model.ts` 는 스스로를 「모델을 부르는 유일한 자리」라고 적어 두었는데 그것을 세는
+   * 곳이 없었다. 만드는 일이 요청을 떠나면서(ADR 0020) 그 자리에 제출·회수가 더 붙었고,
+   * provider SDK 를 두 개 물게 됐다 — 번지기 딱 좋은 모양이다.
+   *
+   * 번지면 무엇이 나쁜가. 프롬프트를 짓는 코드나 화면이 provider 를 직접 부르기 시작하면
+   * **자르기와 검사를 지나지 않는 길**이 생긴다. 그것이 ADR 0008 이 막은 바로 그 길이다.
+   */
+  it('provider SDK 를 아는 파일은 model.ts 하나다', () => {
+    const knowing = files
+      .filter(({ text }) => /from '(openai|@ai-sdk\/[^']+)'/.test(text))
+      .map(({ path }) => path);
+
+    expect(knowing).toEqual(['app/me/reading/model.ts']);
+  });
+
   it('사용자 화면이 근거 절 머리말을 직접 알지 않는다', () => {
     const knowing = files
       .filter(({ path }) => path.startsWith('app/'))

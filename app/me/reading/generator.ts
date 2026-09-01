@@ -57,6 +57,26 @@ export type ModelCall =
  * 파이프라인은 SDK나 특정 provider를 알지 않고 이 계약만 부른다. 실제 게이트웨이와
  * 테스트 fake가 같은 모양을 쓰므로 provider 교체가 redaction·prompt·검사를 우회하지 않는다.
  */
+/**
+ * 제출 결과 — **떠나보냈다는 사실까지다.**
+ *
+ * 여기서 글은 안 온다. 오는 것은 그 작업을 나중에 다시 찾을 이름표뿐이다.
+ */
+export type ModelSubmission =
+  | { ok: true; responseId: string }
+  | { ok: false; code: string; detail: string };
+
+/**
+ * 회수 결과 — **아직 안 끝났을 수 있다.**
+ *
+ * `pending` 을 실패로 접으면 복구기가 그때마다 시도를 닫아 버린다. 「못 가져왔다」와
+ * 「아직 안 됐다」는 다른 말이고, 뒤엣것은 기다리면 된다.
+ */
+export type ModelRetrieval =
+  | { ok: true; output: ReadingOutput; usage: ModelUsage | null; modelId: string | null }
+  | { ok: 'pending' }
+  | { ok: false; code: string; detail: string };
+
 export interface ReadingGenerator {
   readonly generation: ReadingGeneration;
   generate(prompt: string): Promise<ModelCall>;
