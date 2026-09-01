@@ -172,6 +172,39 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     expect(knowing).toEqual(['app/me/reading/model.ts']);
   });
 
+  /**
+   * **provider 가 두드리는 문은 로그인 관문 밖에 선다.**
+   *
+   * `proxy.ts` 의 matcher 안에 들어가면 provider 가 로그인 화면을 받는다 — 그리고 그건
+   * 2xx 라서, 우리는 사건을 잃고도 잃은 줄 모른다.
+   */
+  it('webhook 은 로그인 관문을 지나지 않는다', () => {
+    const proxy = readFileSync('proxy.ts', 'utf8');
+    const matcher = /matcher: \[([^\]]*)\]/.exec(proxy)?.[1] ?? '';
+
+    expect(matcher, 'matcher 를 못 찾았다').not.toBe('');
+    expect(matcher).not.toContain('/api');
+  });
+
+  /**
+   * **응답을 먼저 보낸다.** 회수·검사·저장을 2xx 앞에 두면 그 시간이 길어질수록
+   * 재전송이 늘고, 늘어난 재전송이 다시 같은 일을 시킨다.
+   */
+  it('webhook 은 무거운 일을 응답 뒤로 미룬다', () => {
+    const route = files.find(({ path }) => path === 'app/api/openai/webhook/route.ts');
+
+    expect(route, 'webhook 라우트를 못 찾았다').toBeDefined();
+    expect(route!.text, '응답 뒤로 넘기는 자리가 없다').toContain('after(');
+    // 회수는 `after` 안에서만 불린다 — 그 밖에서 부르면 응답이 늦어진다.
+    // import 줄은 빼고 본다. 쓰는 자리를 재려는 것이지 들여오는 자리가 아니다.
+    const body = route!.text
+      .split('\n')
+      .filter((line) => !line.startsWith('import'))
+      .join('\n');
+
+    expect(body.split('after(')[0]).not.toContain('collectReadingResult');
+  });
+
   it('사용자 화면이 근거 절 머리말을 직접 알지 않는다', () => {
     const knowing = files
       .filter(({ path }) => path.startsWith('app/'))

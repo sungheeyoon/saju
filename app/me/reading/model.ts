@@ -240,3 +240,39 @@ export async function retrieveBackgroundReading(responseId: string): Promise<Mod
     return { ok: false, code: 'model-retrieve-failed', detail: messageOf(failure) };
   }
 }
+
+/**
+ * 이 요청이 정말 provider 가 보낸 것인가.
+ *
+ * **던지지 않는다.** 서명이 안 맞는 것은 흔한 일이고(누가 그 주소를 두드릴 수 있다)
+ * 예외로 빠져나가면 라우트가 500 을 낸다 — 500 은 재전송을 부르는데, 서명이 안 맞는
+ * 요청은 다시 와도 똑같이 안 맞는다.
+ */
+export async function verifyReadingWebhook(
+  payload: string,
+  headers: Headers,
+): Promise<
+  | { ok: true; id: string; responseId: string; type: string }
+  | { ok: false; detail: string }
+> {
+  try {
+    const event = await client().webhooks.unwrap(payload, headers);
+
+    /**
+     * 우리가 아는 것은 response 사건뿐이다. 다른 것이 오면 **적지 않고 지나간다** —
+     * 영수증에 우리가 처리하지도 않을 사건이 쌓이면 「안 집힌 것」을 세는 자리가 흐려진다.
+     */
+    if (!event.type.startsWith('response.')) {
+      return { ok: false, detail: `다루지 않는 사건입니다: ${event.type}` };
+    }
+
+    return {
+      ok: true,
+      id: event.id,
+      responseId: (event.data as { id: string }).id,
+      type: event.type,
+    };
+  } catch (failure) {
+    return { ok: false, detail: messageOf(failure) };
+  }
+}

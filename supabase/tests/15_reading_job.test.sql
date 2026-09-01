@@ -12,7 +12,7 @@
 -- 4. **시도가 지워지면 얼린 입력도 함께 지워진다** — 주인 없는 재료가 판본을 붙들면 보존이다.
 -- 5. **영수증은 `event_id` 로 멱등이고 본문을 들지 않는다.**
 begin;
-select plan(22);
+select plan(31);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void
@@ -103,6 +103,34 @@ as $$
   where user_id = uid and kind = 'reading_failed';
 $$;
 
+create or replace function pg_temp.record_event(ev text, resp text, kind text)
+returns boolean
+language sql
+security definer
+as $$ select public.record_reading_webhook_event(ev, resp, kind) $$;
+
+/**
+ * **집는 순간 소비된다.** 두 번 부르면 두 번째는 0행이므로, 한 번 불러 통째로 담아 두고
+ * 거기서 여러 값을 잰다 — 값마다 다시 부르면 첫 번째만 참이 된다.
+ */
+create or replace function pg_temp.claim_once(resp text)
+returns jsonb
+language sql
+security definer
+as $$ select to_jsonb(j) from public.claim_reading_job(resp) j $$;
+
+create or replace function pg_temp.set_response(run uuid, resp text)
+returns void
+language sql
+security definer
+as $$ update public.reading_job set response_id = resp, status = 'submitted' where run_id = run $$;
+
+create or replace function pg_temp.job_status(run uuid)
+returns text
+language sql
+security definer
+as $$ select status from public.reading_job where run_id = run $$;
+
 create temporary table folks as
 select tests.signup('job-owner@example.com') as owner;
 grant select on folks to authenticated, service_role;
@@ -183,7 +211,73 @@ select throws_ok(
   '도는 작업이 붙든 판본은 지워지지 않는다');
 
 -- ---------------------------------------------------------------------------
--- 6. 열쇠가 실패로 닫는다 — 사용자 JWT 없이
+-- 6. 도착을 적는 문 — 두 번째는 `false` 다
+-- ---------------------------------------------------------------------------
+
+select throws_ok(
+  $$select public.record_reading_webhook_event('evt_x', 'resp_x', 'response.completed')$$,
+  '42501',
+  null,
+  '도착을 적는 문도 브라우저에 안 열려 있다');
+
+select ok(
+  pg_temp.record_event('evt_a', 'resp_a', 'response.completed'),
+  '처음 온 사건은 true 를 낸다');
+
+/**
+ * **두 번째는 예외가 아니라 `false` 다.** 재전송은 정상이고, 여기서 예외를 내면
+ * provider 가 2xx 를 못 받아 72시간 동안 또 보낸다.
+ */
+select ok(
+  not pg_temp.record_event('evt_a', 'resp_a', 'response.completed'),
+  '같은 사건이 다시 오면 false — 예외가 아니다');
+
+-- ---------------------------------------------------------------------------
+-- 7. 일감을 집는 문 — 판본을 행째로 들고 온다
+-- ---------------------------------------------------------------------------
+
+select throws_ok(
+  $$select * from public.claim_reading_job('resp_x')$$,
+  '42501',
+  null,
+  '일감을 집는 문도 브라우저에 안 열려 있다');
+
+select pg_temp.set_response((select run_id from started), 'resp_job');
+
+create temporary table claimed as select pg_temp.claim_once('resp_job') as job;
+grant select on claimed to authenticated, service_role;
+
+select is(
+  (select job ->> 'run_id' from claimed),
+  (select run_id::text from started),
+  '이름표로 일감을 찾는다');
+
+/**
+ * **판본을 행째로 낸다.** 검사가 출생 원문을 알아야 유출을 재는데 webhook 에는 사용자
+ * 세션이 없어 RLS 로는 그 행에 닿을 수 없다. 붙들어 둔 이유가 여기서 값을 낸다.
+ */
+select is(
+  (select job -> 'birth_a' ->> 'birth_time' from claimed),
+  '09:00:00',
+  '붙들어 둔 판본의 출생 원문이 함께 온다');
+
+select is(
+  (select job ->> 'prompt' from claimed),
+  '# 역할',
+  '얼린 프롬프트도 그대로 온다 — 그 사이 배포가 나도 보낸 것으로 검사한다');
+
+select is(
+  pg_temp.job_status((select run_id from started)),
+  'retrieving',
+  '집으면 표시한다 — 복구기가 같은 일감을 두 번 집지 않게');
+
+select is(
+  pg_temp.claim_once('resp_job'),
+  null,
+  '이미 집힌 일감은 다시 안 나온다');
+
+-- ---------------------------------------------------------------------------
+-- 8. 열쇠가 실패로 닫는다 — 사용자 JWT 없이
 -- ---------------------------------------------------------------------------
 
 /**
@@ -275,7 +369,7 @@ select pg_temp.drop_run((select run_id from started));
 
 select is(pg_temp.jobs(), 0, '시도가 지워져도 남는 얼린 입력은 없다 (cascade)');
 
-select is(pg_temp.receipts(), 2, '영수증은 시도와 함께 지워지지 않는다 — 수명이 다르다');
+select is(pg_temp.receipts(), 3, '영수증은 시도와 함께 지워지지 않는다 — 수명이 다르다');
 
 select * from finish();
 rollback;
