@@ -12,7 +12,7 @@
 -- 4. **시도가 지워지면 얼린 입력도 함께 지워진다** — 주인 없는 재료가 판본을 붙들면 보존이다.
 -- 5. **영수증은 `event_id` 로 멱등이고 본문을 들지 않는다.**
 begin;
-select plan(35);
+select plan(38);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void
@@ -102,6 +102,18 @@ as $$
   select count(*)::int from public.notification
   where user_id = uid and kind = 'reading_failed';
 $$;
+
+create or replace function pg_temp.mark_processed(ev text)
+returns void
+language sql
+security definer
+as $$ select public.mark_reading_webhook_processed(ev) $$;
+
+create or replace function pg_temp.processed_at(ev text)
+returns timestamptz
+language sql
+security definer
+as $$ select processed_at from public.reading_webhook_event where event_id = ev $$;
 
 create or replace function pg_temp.cron_schedule(name text)
 returns text
@@ -388,6 +400,34 @@ select pg_temp.drop_run((select run_id from started));
 select is(pg_temp.jobs(), 0, '시도가 지워져도 남는 얼린 입력은 없다 (cascade)');
 
 select is(pg_temp.receipts(), 3, '영수증은 시도와 함께 지워지지 않는다 — 수명이 다르다');
+
+-- ---------------------------------------------------------------------------
+-- 8b. 영수증에 「집었다」를 적는다
+-- ---------------------------------------------------------------------------
+
+/**
+ * **열을 만든 것과 채우는 것은 다른 일이다.**
+ *
+ * `processed_at` 을 만들고 인덱스까지 걸어 놓고 채우는 자리를 안 썼다. 첫 실호출에서
+ * 드러났다 — webhook 이 도착하고 결과도 1초 만에 저장됐는데 영수증은 `null` 로 남았다.
+ * 시험이 열의 존재만 재고 있어서 그것을 못 잡았다.
+ */
+select is(
+  pg_temp.processed_at('evt_a'),
+  null,
+  '적기 전에는 비어 있다');
+
+select pg_temp.mark_processed('evt_a');
+
+select isnt(
+  pg_temp.processed_at('evt_a'),
+  null,
+  '집고 나면 시각이 적힌다');
+
+/** 두 번 적어도 처음 시각이 남는다 — 재전송이 「방금 집었다」로 보이면 안 된다 */
+select lives_ok(
+  $$select pg_temp.mark_processed('evt_a')$$,
+  '이미 적힌 것을 다시 적어도 조용하다');
 
 -- ---------------------------------------------------------------------------
 -- 9. 깨우는 쪽은 Supabase 다

@@ -223,6 +223,29 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     }
   });
 
+  /**
+   * **만든 열을 채우는 자리가 있는가.**
+   *
+   * `processed_at` 을 만들고 인덱스까지 걸어 놓고 쓰는 코드를 안 썼다. 첫 실호출에서야
+   * 드러났고, 그때까지 네 층이 다 초록이었다 — 시험이 열의 존재만 재고 있었다.
+   *
+   * 「받았는데 못 집은 사건」을 세는 것이 그 열의 존재 이유이므로, 아무도 안 적으면
+   * 그 수는 언제나 전부다.
+   */
+  it('영수증을 집었다고 적는 자리가 있다', () => {
+    /**
+     * **시험 자신은 빼고 센다.** 처음에 안 뺐더니 이 시험이 자기 본문에 적힌 이름을
+     * 세어 언제나 초록이었다 — 호출을 지워도 통과했다. 위 `DEFINITION` 이 같은 함정을
+     * 위해 서 있는 자리다.
+     */
+    const marking = files
+      .filter(({ path }) => !path.endsWith('.test.ts'))
+      .filter(({ text }) => text.includes('mark_reading_webhook_processed'))
+      .map(({ path }) => path);
+
+    expect(marking, '적는 자리가 없다').not.toEqual([]);
+  });
+
   it('사용자 화면이 근거 절 머리말을 직접 알지 않는다', () => {
     const knowing = files
       .filter(({ path }) => path.startsWith('app/'))

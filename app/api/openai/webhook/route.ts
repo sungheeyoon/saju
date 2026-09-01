@@ -68,7 +68,19 @@ export async function POST(request: Request): Promise<Response> {
    */
   if (fresh === true) {
     after(async () => {
-      await collectReadingResult(event.responseId);
+      const outcome = await collectReadingResult(event.responseId);
+
+      /**
+       * **집었다고 적는다.**
+       *
+       * 「아직 도는 중」이면 안 적는다 — 그 사건으로 할 일이 남아 있다. 저장·실패·
+       * 건너뜀은 이 사건으로 할 수 있는 일이 끝난 것이라 적는다.
+       *
+       * 여기서 던지면 안 적힌 채로 남고, 그것이 맞다 — 무언가 잘못됐다는 표시다.
+       */
+      if (outcome.done !== 'pending') {
+        await keyed.rpc('mark_reading_webhook_processed', { p_event_id: event.id });
+      }
     });
   }
 
