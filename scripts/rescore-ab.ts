@@ -46,7 +46,7 @@ for (const line of lines) {
     arm: string;
     text?: string;
     error?: string;
-    length?: { chars: number; target: { min: number; max: number }; overBy: number };
+    length?: { body: number; whole: number; target: { min: number; max: number }; overBy: number };
     production?: { ok: boolean };
     durationMs?: number;
     gates?: Gate[];
@@ -70,7 +70,7 @@ for (const line of lines) {
   const length =
     run.length === undefined
       ? ''
-      : ` · ${run.length.chars}자(주문 ${run.length.target.min}~${run.length.target.max}` +
+      : ` · 본문 ${run.length.body}자(주문 ${run.length.target.min}~${run.length.target.max}` +
         `${run.length.overBy > 0 ? `, +${run.length.overBy} 초과` : ''})`;
 
   console.log(`${head}${seconds}${length} · 프로덕션 ${run.production?.ok === false ? 'FAIL' : run.production?.ok ? '통과' : '안 잼'}`);
