@@ -683,7 +683,7 @@ select throws_ok(
     (select id from run_suspended_self), (select revision from suspended_input)),
   'P0002', null, '만드는 동안 계정이 중지되면 자기 풀이도 저장하지 않는다');
 
--- 열쇠의 허용 집합은 설명이 아니라 실제 ACL 로 **정확히 아홉**이다.
+-- 열쇠의 허용 집합은 설명이 아니라 실제 ACL 로 **정확히 열**이다.
 -- 만드는 일이 요청을 떠나면서 넷이 늘었다(ADR 0020) — 실패를 닫는 문, 도착을 적는 문,
 -- 일감을 집는 문, 집었다 놓는 문. 그 수를 여기서 세지 않으면 다음에 문이 늘어도 아무도
 -- 모른다.
@@ -704,11 +704,12 @@ select is(
     'freeze_reading_job',
     'match_calculation_inputs',
     'open_reading_jobs',
+    'reading_recovery_configured',
     'record_reading_webhook_event',
     'release_reading_job',
     'save_reading'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 아홉 개뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 열 개뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**
