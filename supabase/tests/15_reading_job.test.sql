@@ -12,7 +12,7 @@
 -- 4. **시도가 지워지면 얼린 입력도 함께 지워진다** — 주인 없는 재료가 판본을 붙들면 보존이다.
 -- 5. **영수증은 `event_id` 로 멱등이고 본문을 들지 않는다.**
 begin;
-select plan(15);
+select plan(22);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void
@@ -81,6 +81,27 @@ returns int
 language sql
 security definer
 as $$ select count(*)::int from public.reading_webhook_event $$;
+
+create or replace function pg_temp.fail_job(run uuid, code text)
+returns boolean
+language sql
+security definer
+as $$ select public.fail_reading_job(run, code, '끊겼다') $$;
+
+create or replace function pg_temp.run_status(run uuid)
+returns text
+language sql
+security definer
+as $$ select status from public.reading_run where id = run $$;
+
+create or replace function pg_temp.notices(uid uuid)
+returns int
+language sql
+security definer
+as $$
+  select count(*)::int from public.notification
+  where user_id = uid and kind = 'reading_failed';
+$$;
 
 create temporary table folks as
 select tests.signup('job-owner@example.com') as owner;
@@ -162,6 +183,60 @@ select throws_ok(
   '도는 작업이 붙든 판본은 지워지지 않는다');
 
 -- ---------------------------------------------------------------------------
+-- 6. 열쇠가 실패로 닫는다 — 사용자 JWT 없이
+-- ---------------------------------------------------------------------------
+
+/**
+ * **사용자 쪽 문으로는 못 닫는다.** `fail_reading_run` 은 `auth.uid()` 를 걸어서
+ * provider 가 두드릴 수 없다. 그 사실이 이 새 함수가 있는 이유이므로 함께 잰다.
+ */
+select throws_ok(
+  format($$select public.fail_reading_job(%L::uuid, 'model-timeout', null)$$,
+    (select run_id from started)),
+  '42501',
+  null,
+  '실패로 닫는 문은 브라우저에 안 열려 있다');
+
+select ok(
+  pg_temp.fail_job((select run_id from started), 'model-timeout'),
+  '열쇠는 시도를 실패로 닫는다');
+
+select is(
+  pg_temp.run_status((select run_id from started)),
+  'failed',
+  '시도가 닫혔다');
+
+select is(
+  pg_temp.notices((select owner from folks)),
+  1,
+  '닫는 일과 알리는 일이 한 문장 안에 있다');
+
+/**
+ * **끝난 것을 다시 닫으라고 해도 예외를 내지 않는다.**
+ *
+ * 우리 deadline 이 먼저 닫은 뒤에 webhook 이 도착하는 것은 정상이다. 거기서 예외를 내면
+ * provider 가 2xx 를 못 받아 72시간 동안 같은 사건을 다시 보낸다.
+ */
+select ok(
+  not pg_temp.fail_job((select run_id from started), 'model-timeout'),
+  '이미 끝난 시도는 「닫을 것이 없었다」를 값으로 낸다 — 예외가 아니다');
+
+select is(
+  pg_temp.notices((select owner from folks)),
+  1,
+  '두 번째 호출은 알림을 더 넣지 않는다');
+
+/**
+ * **끝나면 얼린 입력이 간다 — 어느 길로 끝나든.** 지우는 일을 부르는 쪽에 맡기면
+ * 자리가 넷이 되고 하나는 안 고쳐진다. 상태 전이에 매달아서 여기서도 그냥 지나간다.
+ */
+select is(pg_temp.jobs(), 0, '실패로 닫혀도 얼린 입력은 함께 지워진다');
+
+select ok(
+  not pg_temp.in_use((select revision_a from started)),
+  '붙들던 판본도 그때 풀린다');
+
+-- ---------------------------------------------------------------------------
 -- 5. 영수증 — `event_id` 가 멱등의 축
 -- ---------------------------------------------------------------------------
 
@@ -198,11 +273,7 @@ select is(
 
 select pg_temp.drop_run((select run_id from started));
 
-select is(pg_temp.jobs(), 0, '시도가 지워지면 얼린 입력도 함께 지워진다');
-
-select ok(
-  not pg_temp.in_use((select revision_a from started)),
-  '붙들던 것이 사라지면 판본도 풀린다');
+select is(pg_temp.jobs(), 0, '시도가 지워져도 남는 얼린 입력은 없다 (cascade)');
 
 select is(pg_temp.receipts(), 2, '영수증은 시도와 함께 지워지지 않는다 — 수명이 다르다');
 
