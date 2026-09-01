@@ -101,6 +101,52 @@ export type ArtifactResult =
   | { ok: true; artifact: ReadingArtifact }
   | { ok: false; code: string; detail: string };
 
+/** 자르고 프롬프트를 지은 것까지 — **모델은 안 부른다** */
+export type ReadingInput = { prompt: string; evidenceText: string };
+
+export type InputResult =
+  | { ok: true; input: ReadingInput }
+  | { ok: false; code: string; detail: string };
+
+/**
+ * 자르기와 프롬프트 짓기 — **여기까지가 보내기 전이다.**
+ *
+ * 만드는 일이 요청을 떠나면서(ADR 0020) 이 앞부분만 따로 필요해졌다. 보낼 것을 짓고,
+ * 그 지은 것을 얼려 두고, 떠나보낸다. 완성본은 한참 뒤에 다른 길로 온다.
+ *
+ * `generateReadingArtifact` 가 이것을 그대로 쓴다 — **한 벌이어야** 옛 길과 새 길이
+ * 같은 프롬프트를 보낸다.
+ */
+export function readingInputOf({
+  kind,
+  charts,
+  viewedAt,
+  about,
+}: {
+  kind: ReadingKind;
+  charts: { a: Saju; b?: Saju };
+  viewedAt: Date;
+  about?: ReadingAbout;
+}): InputResult {
+  let evidence;
+  try {
+    evidence = readingEvidenceOf(kind, charts, viewedAt);
+  } catch (failure) {
+    if (failure instanceof ReadingEvidenceError) {
+      return { ok: false, code: 'evidence-incomplete', detail: failure.message };
+    }
+    throw failure;
+  }
+
+  return {
+    ok: true,
+    input: {
+      prompt: readingPromptOf(evidence, CONTROL, about ?? NOTHING_KNOWN),
+      evidenceText: JSON.stringify(evidence.evidence),
+    },
+  };
+}
+
 /**
  * 세 kind가 함께 쓰는 생성 코어: 자르기 → prompt → provider → 출력 검사.
  *
@@ -129,21 +175,13 @@ export async function generateReadingArtifact({
   about?: ReadingAbout;
   generator: ReadingGenerator;
 }): Promise<ArtifactResult> {
-  let evidence;
-  try {
-    evidence = readingEvidenceOf(kind, charts, viewedAt);
-  } catch (failure) {
-    if (failure instanceof ReadingEvidenceError) {
-      return { ok: false, code: 'evidence-incomplete', detail: failure.message };
-    }
-    throw failure;
-  }
+  const made = readingInputOf({ kind, charts, viewedAt, about });
+  if (!made.ok) return made;
 
-  const prompt = readingPromptOf(evidence, CONTROL, about ?? NOTHING_KNOWN);
+  const { prompt, evidenceText } = made.input;
   const called = await generator.generate(prompt);
   if (!called.ok) return called;
 
-  const evidenceText = JSON.stringify(evidence.evidence);
   const verdict = checkReading({ kind, output: called.output, evidenceText, secrets });
   if (!verdict.ok) {
     return {

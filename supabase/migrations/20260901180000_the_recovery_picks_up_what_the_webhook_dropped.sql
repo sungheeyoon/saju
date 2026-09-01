@@ -100,3 +100,65 @@ $$;
 
 revoke execute on function public.adopt_reading_job(uuid, text) from anon, public, authenticated;
 grant execute on function public.adopt_reading_job(uuid, text) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- 보내기 전에 얼린다
+-- ---------------------------------------------------------------------------
+
+/**
+ * **떠나보내기 전에 적는다.**
+ *
+ * 순서가 뒤집히면 제출은 됐는데 재료가 없는 순간이 생기고, 그 사이에 webhook 이 오면
+ * 집을 것이 없어 그대로 흘러간다. 얼리는 것이 먼저이고 제출이 나중이다.
+ *
+ * 같은 시도로 두 번 얼리지 않는다 — `run_id` 가 PK 다.
+ */
+create or replace function public.freeze_reading_job(
+  p_run_id uuid,
+  p_revision_a uuid,
+  p_revision_b uuid,
+  p_prompt text,
+  p_evidence text,
+  p_prompt_version text,
+  p_requested_model text,
+  p_generation jsonb,
+  p_viewed_at timestamptz
+)
+returns void
+language sql
+security definer
+set search_path = ''
+as $$
+  insert into public.reading_job (
+    run_id, revision_a, revision_b, prompt, evidence, prompt_version,
+    requested_model, generation, viewed_at)
+  values (
+    p_run_id, p_revision_a, p_revision_b, p_prompt, p_evidence, p_prompt_version,
+    p_requested_model, coalesce(p_generation, '{}'::jsonb), p_viewed_at);
+$$;
+
+revoke execute on function public.freeze_reading_job(
+  uuid, uuid, uuid, text, text, text, text, jsonb, timestamptz
+) from anon, public, authenticated;
+grant execute on function public.freeze_reading_job(
+  uuid, uuid, uuid, text, text, text, text, jsonb, timestamptz
+) to service_role;
+
+/** 이름표를 채우면서 「보냈다」로 옮긴다 — 되찾기와 같은 문을 쓴다 */
+create or replace function public.adopt_reading_job(p_run_id uuid, p_response_id text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.reading_job j
+  set response_id = p_response_id, status = 'submitted'
+  where j.run_id = p_run_id
+    and j.response_id is null
+    and exists (
+      select 1 from public.reading_run r where r.id = j.run_id and r.status = 'running');
+
+  return found;
+end;
+$$;

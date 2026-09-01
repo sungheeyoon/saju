@@ -37,8 +37,35 @@ vi.mock('../../keyed-client', () => ({
   NoKeyError,
 }));
 
+/**
+ * **`after` 에 넘긴 일을 붙잡아 둔다.**
+ *
+ * 화면이 오는 길(`beginReading`)은 응답을 먼저 보내고 나머지를 `after` 에 넘긴 뒤
+ * **기다리지 않는다** — 그것이 그 함수의 존재 이유다. 그래서 곧바로 돌리기만 하면
+ * 시험이 그 일보다 먼저 끝나고, 아무것도 안 재고 초록이 된다. 실제로 그랬다.
+ *
+ * 넘어온 promise 를 모아 두고 시험이 `settle()` 로 기다린다.
+ */
+const pending: Promise<unknown>[] = [];
+vi.mock('next/server', () => ({
+  after: (work: () => Promise<void>) => {
+    pending.push(work());
+  },
+}));
+
+const settle = async () => {
+  await Promise.all(pending);
+  pending.length = 0;
+};
+
+const submit = vi.fn();
+vi.mock('./model', async () => ({
+  ...(await vi.importActual<Record<string, unknown>>('./model')),
+  submitBackgroundReading: (...args: unknown[]) => submit(...args),
+}));
+
 const { FakeReadingGenerator } = await import('./fake-generator');
-const { requestReading } = await import('./pipeline');
+const { beginReading, requestReading } = await import('./pipeline');
 
 /**
  * **파이프라인이 실제로 이어져 있는가.**
@@ -104,6 +131,82 @@ beforeEach(() => {
   selectIn.mockResolvedValue({ data: [BIRTH], error: null });
   keyedRpc.mockResolvedValue({ data: 'reading-1', error: null });
   keyedClient.mockReturnValue({ rpc: keyedRpc });
+  pending.length = 0;
+  submit.mockReset();
+  submit.mockResolvedValue({ ok: true, responseId: 'resp-1' });
+});
+
+/**
+ * **화면이 실제로 오는 길** — 얼리고 떠나보낸다 (ADR 0020).
+ *
+ * 위 시험들은 `requestReading` 을 민다. 그 길은 모델의 완성본을 그 자리에서 기다리는
+ * 옛 길이고, **화면은 이제 거기로 오지 않는다.** 갈아 끼우고도 시험이 옛 길만 밀면
+ * 새 배선은 한 번도 안 지나간 채로 초록이 된다 — 그 상태가 실제로 한 번 있었다.
+ */
+describe('누름은 얼리고 떠나보낸다', () => {
+  const frozen = () => keyedRpc.mock.calls.find(([name]) => name === 'freeze_reading_job');
+  const adopted = () => keyedRpc.mock.calls.find(([name]) => name === 'adopt_reading_job');
+
+  it('얼린 뒤에 보낸다 — 순서가 뒤집히면 재료 없는 순간이 생긴다', async () => {
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(frozen(), '얼리지 않았다').toBeDefined();
+    expect(submit).toHaveBeenCalledOnce();
+
+    const froze = keyedRpc.mock.invocationCallOrder[
+      keyedRpc.mock.calls.findIndex(([name]) => name === 'freeze_reading_job')
+    ];
+    expect(froze).toBeLessThan(submit.mock.invocationCallOrder[0]);
+  });
+
+  it('얼린 것과 보낸 것이 같은 프롬프트다', async () => {
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(submit.mock.calls[0][0]).toBe(frozen()?.[1].p_prompt);
+    // 이름표를 함께 보낸다 — 우리 쪽 기록보다 먼저다.
+    expect(submit.mock.calls[0][1]).toBe(started.run_id);
+  });
+
+  it('얼린 프롬프트에 출생 원문이 없다 — 자르는 자리를 실제로 지난다', async () => {
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    const sent = `${frozen()?.[1].p_prompt}${frozen()?.[1].p_evidence}`;
+    for (const secret of [BIRTH.original_date, BIRTH.solar_date, BIRTH.city, '14:30']) {
+      expect(sent, secret).not.toContain(secret);
+    }
+  });
+
+  it('보낸 뒤에 이름표를 적는다', async () => {
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(adopted()?.[1]).toEqual({ p_run_id: started.run_id, p_response_id: 'resp-1' });
+  });
+
+  it('저장 열쇠가 없으면 보내지 않는다 — 만들 수 없는 결과는 부르지도 않는다', async () => {
+    keyedClient.mockImplementation(() => {
+      throw new NoKeyError('열쇠가 없습니다');
+    });
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(failedCall(), '실패를 안 적었다').toBeDefined();
+  });
+
+  it('제출이 실패하면 시도를 닫는다', async () => {
+    submit.mockResolvedValue({ ok: false, code: 'model-submit-failed', detail: '끊겼다' });
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(failedCall()?.[1]).toMatchObject({ p_failure_code: 'model-submit-failed' });
+    expect(adopted(), '보내지도 못했는데 이름표를 적었다').toBeUndefined();
+  });
 });
 
 describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저장한다', () => {

@@ -18,8 +18,9 @@ import { chartOf } from '../../chart';
 import { NoKeyError, keyedClient } from '../../keyed-client';
 import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '../../revision';
 import { ResultClosedError, pinnedInputs } from '../match/inputs';
-import { generateReadingArtifact, type ReadingGenerator } from './generator';
-import { openAIReadingGenerator } from './model';
+import { generateReadingArtifact, readingInputOf, type ReadingGenerator } from './generator';
+import { GENERATION } from './generation';
+import { openAIReadingGenerator, submitBackgroundReading } from './model';
 
 /**
  * **결과 생성 요청** — 사용자가 눌렀을 때만 도는 길.
@@ -130,6 +131,100 @@ async function openRun(
 }
 
 /** 연 시도를 **끝까지 민다** — 자르고·부르고·검사하고·저장한다. */
+/**
+ * **떠나보낸다** — 얼리고, 제출하고, 이름표를 적는다 (ADR 0020).
+ *
+ * 완성본을 기다리지 않는다. 여기서 하는 일은 전부 밀리초짜리이거나 짧은 왕복 하나뿐이라
+ * 240초 벽에 닿지 않는다.
+ *
+ * ## 얼리는 것이 제출보다 먼저다
+ *
+ * 순서가 뒤집히면 제출은 됐는데 재료가 없는 순간이 생기고, 그 사이에 webhook 이 오면
+ * 집을 것이 없어 그대로 흘러간다.
+ *
+ * ## 실패는 여기서 닫는다
+ *
+ * 얼리기 전이나 제출 전에 걸린 것은 아직 아무것도 안 떠났으므로 그 자리에서 닫는다.
+ * **제출한 뒤에 실패하는 자리는 없다** — 이름표를 못 적어도 `metadata` 가 그 일감을
+ * 되찾아 주고, 그마저 안 되면 복구기가 deadline 에 닫는다.
+ */
+async function sendRun(target: ReadingTarget, started: StartedRun): Promise<void> {
+  const { kind } = target;
+
+  let keyed: ReturnType<typeof keyedClient>;
+  try {
+    keyed = keyedClient('결과 제출');
+  } catch (failure) {
+    await fail(started.run_id, 'unexpected', failure instanceof NoKeyError ? failure.message : '');
+    return;
+  }
+
+  let read: Awaited<ReturnType<typeof revisionsFor>>;
+  try {
+    read = await revisionsFor(kind, started);
+  } catch (failure) {
+    await fail(started.run_id, 'closed', failure instanceof Error ? failure.message : '');
+    return;
+  }
+
+  let charts: { a: Saju; b?: Saju };
+  try {
+    const [first, second] = read.revisions;
+    charts = {
+      a: chartOf(queryFromRevision(first, READING_CHART_NAMES[0])),
+      b:
+        second === undefined
+          ? undefined
+          : chartOf(queryFromRevision(second, READING_CHART_NAMES[1])),
+    };
+  } catch (failure) {
+    if (failure instanceof UnreadableRevisionError) {
+      await fail(started.run_id, 'unreadable-revision', failure.message);
+      return;
+    }
+    throw failure;
+  }
+
+  const viewedAt = new Date();
+  const made = readingInputOf({ kind, charts, viewedAt, about: read.about });
+  if (!made.ok) {
+    await fail(started.run_id, made.code, made.detail);
+    return;
+  }
+
+  const { error: freezeError } = await keyed.rpc('freeze_reading_job', {
+    p_run_id: started.run_id,
+    p_revision_a: started.revision_a,
+    p_revision_b: started.revision_b,
+    p_prompt: made.input.prompt,
+    p_evidence: made.input.evidenceText,
+    p_prompt_version: READING_POLICY.version,
+    p_requested_model: GENERATION.model,
+    p_generation: { ...GENERATION.settings, provider: GENERATION.provider },
+    p_viewed_at: viewedAt.toISOString(),
+  });
+
+  if (freezeError) {
+    await fail(started.run_id, 'unexpected', freezeError.message);
+    return;
+  }
+
+  const submitted = await submitBackgroundReading(made.input.prompt, started.run_id);
+  if (!submitted.ok) {
+    await fail(started.run_id, submitted.code, submitted.detail);
+    return;
+  }
+
+  /**
+   * **못 적어도 잃지 않는다.** 요청에 실어 보낸 `metadata.reading_run_id` 로 webhook 이
+   * 되찾는다 — 이름표를 결과에 붙여 보내는 것이 우리 쪽 기록보다 먼저인 이유다.
+   */
+  await keyed.rpc('adopt_reading_job', {
+    p_run_id: started.run_id,
+    p_response_id: submitted.responseId,
+  });
+}
+
 async function closeRun(
   target: ReadingTarget,
   started: StartedRun,
@@ -163,10 +258,16 @@ async function closeRun(
 /**
  * **누름 하나를 끝까지 처리한다** — 열고, 만들고, 저장한다.
  *
- * 화면은 이제 이 길로 오지 않는다(`beginReading` 이 응답을 먼저 보낸다). 남는 이유는
- * 둘이다. 하나는 **응답 뒤에 도는 일이 곧 이 함수**라는 것이고, 다른 하나는 시험이
- * 파이프라인 전체를 한 번에 밀어 볼 자리라는 것이다 — 배선을 재는 시험이 화면의
- * 비동기 사정까지 흉내 내야 하면 그 시험은 배선을 안 재게 된다.
+ * **화면은 이 길로 오지 않고, 응답 뒤에 도는 일도 더는 이 함수가 아니다**(ADR 0020).
+ * `beginReading` 은 이제 얼리고 떠나보내며(`sendRun`), 완성본은 webhook 이나 복구기가
+ * 가져와 저장한다(`collect.ts`).
+ *
+ * 그래도 남긴다. **자르기 → 프롬프트 → 검사 → 저장을 한 번에 밀어 보는 자리**가 여기
+ * 하나뿐이고, 그 네 자리는 새 길에서도 그대로 쓰인다. 다만 **이 함수가 초록이라고 화면이
+ * 도는 것은 아니다** — 배선은 `beginReading` 을 미는 시험이 따로 잰다.
+ *
+ * 옛 길만 밀던 동안 새 배선은 한 번도 안 지나간 채로 네 층이 다 초록이었다. 그 상태가
+ * 실제로 있었고, 그래서 이 문단이 있다.
  */
 export async function requestReading(
   target: ReadingTarget,
@@ -226,13 +327,13 @@ export async function beginReading(
   after(async () => {
     /**
      * **여기서 던지면 아무도 못 듣는다.** 응답은 이미 나갔고 부르는 쪽이 없다. 그래도
-     * `closeRun` 이 시도를 닫아 두므로 화면은 다음 물음에서 실패를 본다 — 열린 채
+     * `sendRun` 이 시도를 닫아 두므로 화면은 다음 물음에서 실패를 본다 — 열린 채
      * 남는 것만은 막아야 그 대상이 10분간 잠기지 않는다.
      */
     try {
-      await closeRun(target, started, generator);
+      await sendRun(target, started);
     } catch {
-      // `closeRun` 이 이미 `fail_reading_run` 을 적었다. 여기서 더 할 일이 없다.
+      // 여기까지 온 것은 우리가 못 적은 경우다. 복구기가 deadline 에 닫는다.
     }
   });
 
