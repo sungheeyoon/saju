@@ -69,6 +69,7 @@ export function readingEvidenceOf(
 }
 
 export * from './policy';
+export * from './feedback';
 export * from './notes';
 export {
   CONTROL,

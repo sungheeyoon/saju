@@ -182,6 +182,7 @@ try {
     check('만드는 버튼이 선다', mine.includes('사주풀이 받기'));
     check('누가 쓰는지는 버튼 옆에 남는다', plain(mine).includes('언어 모델이 씁니다'));
     check('넘기지 않는 것을 화면이 말한다', plain(mine).includes('넣지 않은 값은 나올 수 없습니다'));
+    check('풀이권이 버튼 옆에 선다', plain(mine).includes('풀이권 5번 중 5번 남음'));
   }
 
   // ── 2. 자기 풀이 ─────────────────────────────────────────────────────────
@@ -194,6 +195,84 @@ try {
     check('내부 검토용 근거 절은 사용자 결과에서 숨긴다', !mine.includes('근거 (검사용)'));
     check('자기 풀이에는 점수가 서지 않는다', !mine.includes('실험 중인 풀이가 붙인 값'));
     check('다시 열어도 그대로라고 말한다', mine.includes('화면을 다시 열어도'));
+    check('만들면 풀이권이 하나 준다', mine.includes('풀이권 5번 중 4번 남음'));
+
+    /**
+     * **설문 전체가 동의 뒤에 있다.**
+     *
+     * 점수와 태그도 `respondent_user_id` 와 시도에 매여 제품 개선에 쓰인다. 「선택
+     * 동의를 거절했다고 서비스가 좁아지면 안 된다」가 지키라는 것은 **사주 서비스**이지
+     * 개선 자료 수집이 아니다.
+     *
+     * 그리고 「동의하면 더 답할 수 있어요」 같은 줄도 없다 — 거절한 사람에게 거절을
+     * 다시 보여 주는 자리가 된다.
+     */
+    check('동의 전에는 설문이 통째로 없다', !mine.includes('이 풀이는 어떠셨어요'));
+    check('점수 문항도 없다', !mine.includes('실제 경험과 얼마나 비슷했나요'));
+    check('적는 칸도 없다', !mine.includes('어느 대목이 맞았고'));
+    check('동의를 권하는 줄도 없다', !mine.includes('동의하면'));
+
+    /** **그래도 사주는 그대로다** — 닫히는 것은 설문 하나뿐이다 */
+    check('동의 전에도 풀이는 그대로 선다', mine.includes('스스로 정한 규칙 안에서'));
+    check('동의 전에도 만드는 버튼은 그대로다', mine.includes('풀이권 5번 중 4번 남음'));
+
+    const userA = await userIdOf(mail.a);
+    sql(`update public.app_user set improvement_consent = true where id = '${userA}'`);
+
+    /**
+     * 여기서 재는 것은 배선이다 — 저장이 `source_run_id` 를 적었고, `my_reading` 이
+     * 그 값을 냈고, 화면이 그 자리에 칸을 세웠다. 셋 중 하나만 빠져도 빨개진다.
+     */
+    const consented = plain(await body('/me', cookie.a));
+    check('동의하면 설문이 글 아래에 선다', consented.includes('이 풀이는 어떠셨어요'));
+    check('어느 글에 대한 답인지 말한다', consented.includes('지금 읽은 이 풀이에 대한 답입니다'));
+    /*
+      「정확」만 보고 재면 안 된다 — 같은 화면에 「정확한 생년월일시는 넘기지 않습니다」가
+      이미 서 있다(ADR 0008). 재려는 것은 **묻는 말**이므로 낱말을 좁혀서 본다.
+    */
+    check('「정확도」라고 묻지 않는다',
+      !consented.includes('정확도') && consented.includes('실제 경험과 얼마나 비슷했나요'));
+    check('적는 칸이 열린다', consented.includes('어느 대목이 맞았고 어느 대목이 달랐나요'));
+    check('넓게 묻지 않는다', consented.includes('풀이의 문장을 가리켜 주시면'));
+    check('한도가 화면에 선다', consented.includes('200자'));
+
+    /**
+     * 답을 남기면 화면이 그 사실로 선다.
+     *
+     * **누르는 길은 여기서 안 잰다** — 이 검사는 JS 를 안 돌린다. 그 길은 e2e 가
+     * 실제 브라우저로 잰다(`signed-in.spec.ts`). 여기서 재는 것은 RPC 와 화면 사이의
+     * 배선이고, 특히 **남긴 답이 그대로 다시 내려오는가**다.
+     */
+    const answered = await a.rpc('leave_reading_feedback', {
+      p_run_id: saved.run.run_id,
+      p_usefulness: 4,
+      p_perceived_fit: 2,
+      p_felt_length: 'long',
+      p_issue_tags: ['abstract', 'repetitive', 'assertive', 'jargon', 'mismatch', 'ui'],
+      p_comment: '두 번째 문단이 제일 맞았어요',
+    });
+    check('여섯 태그를 다 넣어도 받는다', !answered.error, answered.error?.message ?? '');
+
+    const thanked = plain(await body('/me', cookie.a));
+    check('답한 뒤에는 고맙다고 말한다', thanked.includes('답해 주셔서 고맙습니다'));
+    check('고칠 수 있다고도 말한다', thanked.includes('답 고치기'));
+
+    /**
+     * **동의를 철회하면 그때까지 받은 답이 지워진다.**
+     *
+     * 「앞으로는 안 받는다」로만 두면 사용자는 자기가 철회한 뒤에도 자기 답이 개선에
+     * 쓰이는 것을 모른다.
+     */
+    await a.rpc('set_improvement_consent', { p_consent: false });
+    const left = Number(sql(
+      `select count(*) from public.reading_feedback where respondent_user_id = '${userA}'`));
+    check('철회하면 받아 둔 답이 남지 않는다', left === 0, `${left}줄 남음`);
+
+    const withdrawn = plain(await body('/me', cookie.a));
+    check('철회하면 설문도 화면에서 사라진다', !withdrawn.includes('이 풀이는 어떠셨어요'));
+    check('그래도 풀이는 그대로 선다', withdrawn.includes('스스로 정한 규칙 안에서'));
+
+    sql(`update public.app_user set improvement_consent = true where id = '${userA}'`);
 
     /** 근거와 프롬프트는 **사용자 화면의 것이 아니다** */
     check('근거가 사용자 화면에 없다', !mine.includes('evidence-v0'));
@@ -249,7 +328,19 @@ try {
     const picker = plain(await body('/me/compat', cookie.a));
     check('고르는 화면이 무슨 사이인지 묻는다', picker.includes('두 분은 무슨 사이인가요'));
     check('점수에 안 쓴다는 것도 그 자리에서 말한다', picker.includes('점수에는 쓰지 않습니다'));
-    check('상세 화면에서는 다시 묻지 않는다', !after.includes('두 분은 무슨 사이인가요'));
+    /**
+     * **상세 화면에서도 묻는다 — 다만 다음 글을 위해서다.**
+     *
+     * 이 줄은 「상세 화면에서는 다시 묻지 않는다」였다. 고르는 칸에서만 물었으므로
+     * 처음에 안 골랐거나 잘못 고른 사람은 바꿀 길이 없다는 것이 뒤에 드러났고, 그래서
+     * 만드는 버튼 옆에 고치는 칸이 섰다(`RelationForNext`). 「읽기 전에 묻는다」(ADR
+     * 0019)는 그대로다 — 이 칸이 바꾸는 것은 지금 서 있는 글이 아니라 다음 글이다.
+     *
+     * 검사가 그 결정을 안 따라와 이 자리는 그동안 빨간 채로 서 있었다.
+     */
+    check('상세 화면에서는 다음 글을 위해 묻는다', after.includes('두 분은 무슨 사이인가요'));
+    check('지금 서 있는 글은 안 바뀐다고 말한다',
+      after.includes('다시 풀이받을 때부터 이 사이로 읽어 드려요'));
 
     const set = await a.rpc('set_pair_relation', {
       p_person_a: momId, p_person_b: account.self_person_id, p_relation: 'family',
@@ -431,6 +522,14 @@ try {
     /** 남의 실패는 내 알림함에 없다 — 시도는 부른 사람의 것이다 */
     const stranger = plain(await body('/me/requests', cookie.b));
     check('남의 실패는 내 알림함에 안 선다', !stranger.includes('만들지 못했습니다'));
+
+    /**
+     * **실패는 풀이권을 먹지 않는다.** 여기까지 성공한 것은 셋(자기·비공개·Match)이고
+     * 방금 둘이 실패했다. 반환하는 일을 아무도 하지 않았는데 잔액이 그대로여야 한다 —
+     * 그것이 「차감하고 반환한다」가 아니라 「센다」로 만든 이유다.
+     */
+    const after = plain(await body('/me', cookie.a));
+    check('실패한 시도는 풀이권을 쓰지 않는다', after.includes('풀이권 5번 중 2번 남음'));
   }
 } finally {
   stop();

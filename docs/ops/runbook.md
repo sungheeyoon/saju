@@ -50,6 +50,104 @@ where email = 'tester@example.com'
 
 ---
 
+## 풀이권
+
+폐쇄 베타에서 한 사람이 AI 풀이를 몇 번 만들 수 있는가. **어디에도 적혀 있지 않다** —
+`reading_run` 을 세는 것이 곧 잔액이다(ADR 0021). 그래서 누구의 잔액도 손으로 고칠 수
+없고, 고칠 자리를 찾을 필요도 없다.
+
+```sql
+-- 누가 얼마나 썼나. `reserved` 는 지금 만들고 있는 것이 잡고 있는 자리다.
+select u.email,
+       count(*) filter (where r.status = 'succeeded') as 쓴것,
+       count(*) filter (where r.status = 'running'
+         and r.created_at > now() - public.reading_run_timeout()) as 만드는중,
+       count(*) filter (where r.status = 'failed') as 실패
+from auth.users u
+left join public.reading_run r on r.user_id = u.id
+group by u.email
+order by 쓴것 desc;
+```
+
+한 사람에게 더 주려면 상한을 옮긴다. **그 사람만 올릴 수는 없다** — 값이 하나뿐인 것이
+이 설계의 요점이다.
+
+```sql
+create or replace function public.reading_credit_limit()
+returns integer language sql immutable as $$ select 8 $$;
+```
+
+> 옮기기 전에 **무엇을 근거로 옮기는지 적어 둔다.** 처음 다섯은 재어 보고 정한 값이
+> 아니다(ADR 0021). 「달라고 해서」와 「테스터 대부분이 다섯에서 멈춰서」는 다른 근거이고,
+> 뒤의 것만 다음 판을 정하는 데 쓸 수 있다.
+
+**전체 비용은 이 값이 안 막는다.** 사람당 상한일 뿐이라, 초대 인원이 늘면 OpenAI 쪽
+예산 한도를 따로 옮겨야 한다. 그리고 실패한 시도도 모델은 이미 불렸으므로 「성공 건수 ×
+인원」이 호출 상한이 아니다.
+
+---
+
+## 설문 읽기
+
+답은 **그 글을 만든 시도에 매여 있다**(ADR 0022). 그래서 프롬프트 판본과 모델이 답 옆에
+이미 있고, 따로 이어 붙일 일이 없다.
+
+```sql
+-- 프롬프트 판본별로 어떻게 읽혔나. 표본이 적을 때는 평균보다 개수를 먼저 본다.
+select r.prompt_version, r.model, r.kind,
+       count(*) as 답,
+       round(avg(f.usefulness), 2) as 도움,
+       round(avg(f.perceived_fit), 2) as 체감적합성,
+       count(*) filter (where f.felt_length = 'long') as 길다,
+       count(*) filter (where f.felt_length = 'short') as 짧다
+from public.reading_feedback f
+join public.reading_run r on r.id = f.reading_run_id
+group by r.prompt_version, r.model, r.kind
+order by 답 desc;
+```
+
+```sql
+-- 무엇이 아쉬웠나. 태그는 여섯 이름뿐이다(`src/lib/reading/feedback.ts`).
+select r.prompt_version, t as 태그, count(*)
+from public.reading_feedback f
+join public.reading_run r on r.id = f.reading_run_id,
+     unnest(f.issue_tags) t
+group by r.prompt_version, t
+order by count(*) desc;
+```
+
+> **체감 적합성만 보고 판단하지 않는다.** 바넘 문장은 근거 없이도 「내 얘기 같다」를
+> 만든다. 이 값만 오르고 근거 밀착성이 떨어지면 그것은 개선이 아니라 바넘화다(PRD).
+
+**풀이 본문은 여기 없다.** `reading_run` 은 글을 남기지 않으므로 답 옆에 남는 것은 점수와
+태그와 생성 메타데이터뿐이고, 사용자의 실제 풀이를 운영자가 읽을 일이 없다.
+
+**설문 전체가 개선 활용 동의 뒤에 있다.** 점수도 태그도 동의한 사람의 것만 들어온다.
+
+```sql
+-- 적어 주신 글. 동의한 사람의 것만 들어온다(RPC 가 막는다).
+select r.prompt_version, f.comment, f.submitted_at
+from public.reading_feedback f
+join public.reading_run r on r.id = f.reading_run_id
+where f.comment is not null
+order by f.submitted_at desc;
+```
+
+동의는 `app_user.improvement_consent` 하나다. **`null` 과 `false` 는 다르다** — `null` 은
+아직 안 물어본 것이고 `false` 는 거절한 것이다. 안내 화면이 서기 전까지는 전부 `null` 이라
+설문이 아무에게도 안 보인다.
+
+값을 손으로 옮기지 않는다. `set_improvement_consent(boolean)` 이 그 문이고, **끄면 그
+사람의 답이 함께 지워진다** — 한 트랜잭션이다(ADR 0022). `update` 로 값만 꺼 두면 답은
+근거 없이 남는다.
+
+```sql
+-- 누가 어디에 있나
+select improvement_consent as 동의, count(*) from public.app_user group by 1;
+```
+
+---
+
 ## 계정 중지와 해제
 
 `status` 하나가 모든 문을 막는다 — 읽기까지 막는다(`is_active_account()`). 새 관문을

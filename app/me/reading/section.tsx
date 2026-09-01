@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { CARD } from '../../card';
-import { currentReading, lastReadingRun } from './current';
+import { currentReading, improvementConsented, lastReadingRun, readingCredits } from './current';
 import { ReadingPanel } from './panel';
 import type { ReadingTarget } from './pipeline';
 
@@ -26,7 +26,17 @@ export async function ReadingSection({
   /** 다음 풀이를 위해 먼저 정할 것 — 만드는 버튼 옆에 선다 */
   ask?: ReactNode;
 }) {
-  const [reading, run] = await Promise.all([currentReading(target), lastReadingRun(target)]);
+  /*
+    **잔액은 대상을 모른다.** 사람마다 하나뿐이라 세 화면이 같은 값을 읽는다 — 그래서
+    `argsOf` 를 안 받는다. 여기서 함께 읽는 것은 이 값이 필요한 시점이 글을 읽을 때가
+    아니라 **만들지 말지를 정할 때**이고, 그 자리가 이 칸이기 때문이다.
+  */
+  const [reading, run, credits, consented] = await Promise.all([
+    currentReading(target),
+    lastReadingRun(target),
+    readingCredits(),
+    improvementConsented(),
+  ]);
 
   return (
     <section className={`${CARD} flex flex-col gap-5`}>
@@ -40,6 +50,8 @@ export async function ReadingSection({
           모르면 화면이 「아무것도 안 하고 있다」고 말하게 된다.
         */
         initialRunning={run?.status === 'running'}
+        credits={credits}
+        consented={consented}
         allowMockFallback={process.env.NODE_ENV !== 'production'}
         layout={layout}
         ask={ask}

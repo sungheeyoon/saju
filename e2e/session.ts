@@ -209,9 +209,24 @@ async function cookiesFor(local: Local, email: string, password: string) {
   return [...jar].map(([name, value]) => ({ name, value: encodeURIComponent(value) }));
 }
 
+/**
+ * 자기 풀이가 **이미 저장돼 있는** 계정 — 설문을 실제로 눌러 보려면 답할 글이 있어야 한다.
+ *
+ * 모델은 부르지 않는다. 시도는 사용자 JWT 로 열고(자격을 `auth.uid()` 가 판정한다),
+ * 저장은 `postgres` 로 한다 — 서버가 열쇠로 부르는 그 문이다. 재려는 것은 글이 어떻게
+ * 만들어지는가가 아니라 **저장된 글 아래의 설문을 브라우저가 실제로 보낼 수 있는가**다.
+ */
+export type Reader = {
+  readonly account: Account;
+  /** 그 글을 만든 시도 — 설문이 매달린 자리 */
+  readonly runId: string;
+};
+
 type Fixtures = {
   /** 자기 사주와 가족 한 명까지 넣어 둔 계정으로 로그인한 상태 */
   signedIn: Account;
+  /** 자기 풀이가 저장돼 있고 개선 활용에도 동의한 계정 */
+  reader: Reader;
   /** 가입만 끝난 계정 — 온보딩 화면에서 시작한다 */
   newcomer: Account;
   /**
@@ -250,6 +265,37 @@ export const test = base.extend<Fixtures, { local: Local }>({
     const cookies = await cookiesFor(local, account.email, password);
     await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
     await use(account);
+  },
+
+  reader: async ({ local, context, baseURL }, use) => {
+    const { account, password, api } = await seed(local, { selfPerson: true });
+
+    /*
+      **설문 전체가 동의 뒤에 있다.** 이 값을 켜는 화면은 아직 없으므로(안내와
+      처리방침이 설 때 온다) 여기서는 운영자가 하듯 SQL 로 켠다.
+    */
+    sql(`update public.app_user set improvement_consent = true
+         where id = (select id from auth.users where email = '${account.email}')`);
+
+    const started = await api.rpc('start_reading_run', {
+      p_kind: 'self',
+      p_idempotency_key: `e2e-reading-${account.email}`,
+      p_model: 'gpt-e2e',
+      p_prompt_version: 'reading-prompt-v1',
+    });
+    if (started.error) throw new Error(`시도를 못 열었습니다 — ${started.error.message}`);
+
+    const run = started.data?.[0];
+    if (!run) throw new Error('시도가 시작되지 않았습니다');
+
+    sql(`select public.save_reading(
+           '${run.run_id}'::uuid, '${run.revision_a}'::uuid, null,
+           '## 지금의 핵심 — 브라우저가 읽을 글입니다.', null,
+           '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
+
+    const cookies = await cookiesFor(local, account.email, password);
+    await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
+    await use({ account, runId: run.run_id });
   },
 
   newcomer: async ({ local, context, baseURL }, use) => {

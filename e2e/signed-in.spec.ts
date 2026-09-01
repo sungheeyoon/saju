@@ -67,9 +67,85 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     // 넘기지 않는 것을 화면이 먼저 말한다(ADR 0008).
     await expect(page.getByText('넣지 않은 값은 나올 수 없습니다', { exact: false })).toBeVisible();
 
+    /*
+      **풀이권은 버튼과 한 덩어리다.**
+
+      이 숫자가 필요한 시점은 누를지 정할 때다. 화면 어딘가에 있기만 하면 된다면 제목
+      옆이나 맨 아래에 두어도 검사가 통과하고, 그러면 정할 때 눈이 가 있는 자리에는 없다.
+      그래서 「있다」가 아니라 **버튼과 같은 상자 안에 있다**를 잰다.
+    */
+    const make = page.getByRole('button', { name: '사주풀이 받기' });
+    await expect(
+      make.locator('xpath=..').getByText('풀이권 5번 중 5번 남음'),
+    ).toBeVisible();
+
     // 다시 열어도 만들어지지 않는다 — 같은 자리에 같은 문장이 그대로 선다.
     await page.reload();
     await expect(page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
+  });
+
+  /**
+   * **설문을 실제로 눌러 본다.**
+   *
+   * 흐름 검사(`check-reading.mjs`)가 이미 같은 화면을 받아 글자를 세지만 그쪽은 JS 를
+   * 안 돌린다. 그래서 못 재는 것이 이 시험의 전부다 — 라디오가 눌리는가, 다 안 고르면
+   * 막히는가, **보낸 뒤에 고맙다는 화면으로 바뀌는가**, 그리고 새로고침하고 돌아와도
+   * 그 상태로 열리는가.
+   *
+   * 마지막 둘이 갈린다. 보낸 직후의 화면은 이 컴포넌트가 스스로 바꾸고, 새로고침 뒤의
+   * 화면은 서버가 내려준 값(`my_feedback`)으로 선다. 둘 중 하나만 되면 「보냈는데
+   * 사라졌다」나 「보냈다고 하는데 다시 물어본다」가 된다.
+   */
+  test('읽은 글 아래에서 설문을 보내면 그 자리에서 고맙다고 하고, 다시 열어도 그대로다', async ({
+    page,
+    reader,
+  }) => {
+    expect(reader.runId).not.toBe('');
+    await page.goto('/me');
+
+    /* `/me` 는 카드 배치라 긴 글이 접혀 있다 — 펼쳐서 그 글이 진짜 저장돼 있는지 본다 */
+    await page.getByRole('button', { name: '펼쳐보기 ↓' }).click();
+    await expect(page.getByText('브라우저가 읽을 글입니다')).toBeVisible();
+
+    /* 설문은 접힘 밖에 선다 — 읽고 나서 곧바로 묻는 자리다 */
+    await expect(page.getByText('이 풀이는 어떠셨어요')).toBeVisible();
+
+    /* **세 가지를 다 고르기 전에는 못 보낸다** — 안 고른 것이 어느 값으로든 저장되면 안 된다 */
+    const send = page.getByRole('button', { name: '답 보내기' });
+    await expect(send).toBeDisabled();
+
+    await page.getByRole('radio', { name: '5 — 많이 됐어요' }).check();
+    await expect(send).toBeDisabled();
+    await page.getByRole('radio', { name: '1 — 많이 달라요' }).check();
+    await expect(send).toBeDisabled();
+    await page.getByRole('radio', { name: '길어요' }).check();
+    await expect(send).toBeEnabled();
+
+    await page.getByRole('checkbox', { name: '너무 추상적이에요' }).check();
+    await page
+      .getByLabel('어느 대목이 맞았고 어느 대목이 달랐나요?')
+      .fill('첫 문단은 맞았고 마지막은 달랐어요');
+
+    await send.click();
+
+    await expect(page.getByText('답해 주셔서 고맙습니다')).toBeVisible();
+    await expect(page.getByText('이 풀이는 어떠셨어요')).toBeHidden();
+
+    /*
+      **다시 열면 서버가 내려준 값으로 선다.** 위의 화면은 컴포넌트가 스스로 바꾼
+      것이라, 새로고침을 안 해 보면 저장이 실제로 됐는지 이 시험이 한 번도 못 잰다.
+    */
+    await page.reload();
+    await expect(page.getByText('답해 주셔서 고맙습니다')).toBeVisible();
+
+    /* **고치는 화면은 빈 칸으로 열리지 않는다** — 빈 칸이면 다시 보낼 때 적은 글이 지워진다 */
+    await page.getByRole('button', { name: '답 고치기' }).click();
+    await expect(page.getByRole('radio', { name: '5 — 많이 됐어요' })).toBeChecked();
+    await expect(page.getByRole('radio', { name: '길어요' })).toBeChecked();
+    await expect(page.getByRole('checkbox', { name: '너무 추상적이에요' })).toBeChecked();
+    await expect(page.getByLabel('어느 대목이 맞았고 어느 대목이 달랐나요?')).toHaveValue(
+      '첫 문단은 맞았고 마지막은 달랐어요',
+    );
   });
 
   /**

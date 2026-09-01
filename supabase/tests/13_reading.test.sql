@@ -12,6 +12,20 @@
 begin;
 select plan(53);
 
+/**
+ * **이 파일은 풀이권을 재지 않는다.**
+ *
+ * 한 사람이 대상 여럿에 시도를 여는 것이 여기서 재려는 것인데, 폐쇄 베타의 풀이권은
+ * 다섯이라 파이프라인을 다 밟기 전에 걸린다. 그 거절은 이 파일이 재는 것이 아니고,
+ * 16번이 따로 잰다.
+ *
+ * 값을 올려 두는 것으로 지나간다 — 트랜잭션이 되돌아가므로 다른 파일에는 남지 않는다.
+ * 검사 자체를 끄지 않는 것이 중요하다. 끄면 이 파일의 어느 줄이 풀이권을 건드리는지도
+ * 모르게 되고, 그때 16번은 이 파일이 이미 지나온 길을 처음부터 다시 봐야 한다.
+ */
+create or replace function public.reading_credit_limit()
+returns integer language sql immutable as $limit$ select 100 $limit$;
+
 /** 다섯 오행 개수만 주면 요약 한 벌이 된다(11번 시험과 같은 손잡이) */
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
 returns jsonb

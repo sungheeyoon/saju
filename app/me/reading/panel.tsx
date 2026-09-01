@@ -15,13 +15,16 @@ import {
   READING_REPLACES_NOTE,
   READING_SCORE_NOTE,
   READING_STALE_NOTE,
+  readingCreditsLabel,
+  readingCreditsNote,
   readingOrderNote,
   readingWaitNote,
 } from '@/src/lib/reading';
 
 import { generateReading, readingRunState } from './actions';
 import { GENERATION } from './generation';
-import type { CurrentReading } from './current';
+import type { CurrentReading, ReadingCredits } from './current';
+import { ReadingFeedback } from './feedback';
 import { Markdown } from './markdown';
 import type { ReadingTarget } from './pipeline';
 
@@ -56,6 +59,8 @@ export function ReadingPanel({
   initialReading,
   initialFailed,
   initialRunning,
+  credits,
+  consented,
   allowMockFallback,
   layout = 'card',
   ask,
@@ -71,6 +76,24 @@ export function ReadingPanel({
    * 모습으로 열려야 한다. 모르면 「아무것도 안 하고 있다」고 말하게 된다.
    */
   initialRunning: boolean;
+  /**
+   * 남은 풀이권 — **못 물었으면 `null`.**
+   *
+   * 모르면 그 줄을 아예 안 세운다. 「알 수 없음」을 세우면 사용자가 있지도 않은 숫자를
+   * 세어 보게 되고, 만들지 말지를 그 값으로 정하게 된다.
+   */
+  credits: ReadingCredits | null;
+  /**
+   * 설문을 세울 수 있는가 — 개선 활용에 **동의한 사람만.**
+   *
+   * `improvementConsented()` 가 `null`(아직 안 물었다)과 `false`(거절했다)를 이미 하나로
+   * 좁혀 준다. 여기서 다시 `?? false` 를 적으면 좁히는 자리가 둘이 된다.
+   *
+   * 점수와 태그도 이 뒤에 있다. 설문은 서비스 제공에 필요한 처리가 아니라 우리가 더
+   * 나은 것을 만들려고 받는 것이라, 자유로운 선택 동의 뒤에 서야 한다. 거절해도
+   * 사주는 하나도 안 좁아진다 — 위의 모든 칸이 이 값을 묻지 않는다.
+   */
+  consented: boolean;
   allowMockFallback: boolean;
   /**
    * 이 칸이 **카드인가 페이지인가.**
@@ -113,6 +136,9 @@ export function ReadingPanel({
       createdAt: new Date().toISOString(),
       viewerIsFirst: true,
       fromCurrentRevision: true,
+      /* 예시 결과에는 만든 시도가 없다 — 그래서 설문도 안 붙는다 */
+      sourceRunId: null,
+      myFeedback: null,
     });
     setIsMock(true);
     setFailure('풀이를 만드는 연결을 지금 쓸 수 없어, 화면 검토용 예시 글을 대신 보이고 있습니다.');
@@ -204,6 +230,14 @@ export function ReadingPanel({
 
   const onPage = layout === 'page';
 
+  /*
+    **다 쓴 것과 기다리는 것을 가른다.** 도는 시도가 자리를 잡고 있는 동안에는 버튼을
+    닫지 않는다 — 그 사람이 누르면 DB 가 「끝나면 다시 눌러 주세요」로 답하고, 그것이
+    이 화면이 대신 말해 줄 수 없는 사실이다(다른 대상을 만들고 있을 수도 있다).
+  */
+  const spent = credits !== null && credits.available === 0 && credits.reserved === 0;
+  const creditsNote = credits === null ? null : readingCreditsNote(credits);
+
   const makeBlock = (
     <div
       className={`flex flex-col gap-3 ${onPage ? 'rounded-2xl border border-border bg-surface px-5 py-4' : 'border-t border-border pt-5'}`}
@@ -219,20 +253,32 @@ export function ReadingPanel({
             {reading === null ? READING_NONE_NOTE : READING_REPLACES_NOTE}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={generate}
-          disabled={phase === 'loading'}
-          className="h-11 shrink-0 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60 sm:h-10"
-        >
-          {phase === 'loading' ? '풀이를 쓰고 있어요…' : reading === null ? '사주풀이 받기' : '다시 풀이받기'}
-        </button>
+        <div className="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
+          <button
+            type="button"
+            onClick={generate}
+            disabled={phase === 'loading' || spent}
+            className="h-11 w-full rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto"
+          >
+            {phase === 'loading' ? '풀이를 쓰고 있어요…' : reading === null ? '사주풀이 받기' : '다시 풀이받기'}
+          </button>
+          {/*
+            **버튼 아래에 선다.** 이 숫자가 필요한 시점은 누를지 정할 때이고, 그때 눈이
+            가 있는 곳이 버튼이다. 글 위에 세우면 다 읽고 내려온 뒤에야 읽힌다.
+          */}
+          {credits !== null && (
+            <p className="text-xs font-semibold tabular-nums text-secondary">
+              {readingCreditsLabel(credits)}
+            </p>
+          )}
+        </div>
       </div>
       {/*
         누가 썼는지와 무엇을 안 넘겼는지는 **만드는 버튼 옆**에 선다(`notes.ts`).
         제목이 아니라 여기인 이유는, 이 두 사실이 필요한 시점이 글을 읽을 때가
         아니라 만들지 말지를 정할 때이기 때문이다.
       */}
+      {creditsNote !== null && <p className="text-xs leading-5 text-muted">{creditsNote}</p>}
       <p className="text-xs leading-5 text-muted">{READING_AUTHORSHIP_NOTE}</p>
       <p className="text-xs leading-5 text-muted">{READING_REDACTION_NOTE}</p>
     </div>
@@ -287,6 +333,26 @@ export function ReadingPanel({
         <EmptyState />
       ) : (
         <Result reading={reading} target={target} alwaysOpen={onPage} />
+      )}
+
+      {/*
+        **읽고 나서 곧바로 묻는다 — 글 바로 아래다.**
+
+        시점이 값을 정한다. 다 읽은 직후가 기억이 가장 선명하고, 여기를 떠난 뒤에 묻는
+        설문은 「대체로 괜찮았다」를 받는다.
+
+        **예시 결과에는 안 붙는다.** 그 글은 모델이 쓴 것이 아니라 개발용으로 박아 둔
+        문자열이라, 그것에 대한 답을 세면 프롬프트 판본별 값이 조용히 오염된다.
+
+        `sourceRunId` 가 없는 글에도 안 붙는다. 이 값이 생기기 전에 저장된 글들이고,
+        어느 시도가 만들었는지 지어 넣지 않았다 — 매달 자리가 없으면 안 묻는다.
+
+        그리고 **동의하지 않았으면 통째로 안 선다.** 「동의하면 더 답할 수 있어요」
+        같은 줄도 세우지 않는다 — 거절한 사람에게 거절을 다시 보여 주는 자리가 된다.
+      */}
+      {consented && phase !== 'loading' && reading !== null && !isMock
+        && reading.sourceRunId !== null && (
+        <ReadingFeedback target={target} runId={reading.sourceRunId} given={reading.myFeedback} />
       )}
 
       {!onPage && alert}

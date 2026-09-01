@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   READING_ALREADY_RUNNING_NOTE,
   READING_LEAVE_SAFE_NOTE,
+  readingCreditsLabel,
+  readingCreditsNote,
   readingWaitNote,
 } from './notes';
 
@@ -65,5 +67,68 @@ describe('기다리는 동안의 문구', () => {
     // 무엇이 되고 있는지까지 — 상태만 알리고 끝내면 사용자는 다시 누른다
     expect(READING_ALREADY_RUNNING_NOTE).toContain('기다립니다');
     expect(READING_ALREADY_RUNNING_NOTE).toContain('완성되면');
+  });
+});
+
+/**
+ * **풀이권은 세는 것이지 적어 두는 것이 아니다**(`reading_credit_limit`). 화면이 하는
+ * 말도 그 사실을 따라야 한다 — 「차감」과 「반환」이라는 낱말이 여기 들어오면 사용자는
+ * 어딘가에 자기 잔고가 적혀 있다고 믿고, 실패한 뒤에 그것이 돌아왔는지 확인하러 간다.
+ */
+describe('풀이권 문구', () => {
+  /**
+   * **「토큰」이라고 부르지 않는다.** 모델의 토큰과 같은 낱말이 되면 긴 풀이가 더
+   * 비싸다고 읽힌다 — 여기서 세는 것은 만드는 횟수 하나뿐이다.
+   */
+  it('모델의 낱말을 빌려 쓰지 않는다', () => {
+    const label = readingCreditsLabel({ limit: 5, available: 3 });
+
+    for (const borrowed of ['토큰', '크레딧', '포인트', 'token']) {
+      expect(label, borrowed).not.toContain(borrowed);
+    }
+    expect(label).toContain('풀이권');
+  });
+
+  /** 준 것과 남은 것을 함께 세운다 — 얼마나 썼는지를 사용자가 따로 세지 않게 */
+  it('준 것과 남은 것을 함께 말한다', () => {
+    expect(readingCreditsLabel({ limit: 5, available: 3 })).toBe('풀이권 5번 중 3번 남음');
+    expect(readingCreditsLabel({ limit: 5, available: 0 })).toBe('풀이권 5번 중 0번 남음');
+  });
+
+  /** 값에서 짓는다 — 손으로 적었다면 상한을 옮겨도 문구가 안 따라온다 */
+  it('상한이 바뀌면 문구도 바뀐다', () => {
+    expect(readingCreditsLabel({ limit: 10, available: 3 })).toContain('10번 중');
+  });
+
+  /**
+   * **말할 것이 없으면 안 선다.** 늘 무언가 적혀 있는 줄은 곧 안 읽히고, 그때 정작
+   * 말해야 하는 순간에도 안 읽힌다.
+   */
+  it('평소에는 아무 말도 하지 않는다', () => {
+    expect(readingCreditsNote({ reserved: 0, available: 3 })).toBeNull();
+  });
+
+  /**
+   * 도는 시도가 자리를 잡고 있어서 잔액이 하나 줄어 보인다. 이유를 말하지 않으면
+   * 「누르지도 않았는데 하나가 사라졌다」로 읽힌다.
+   */
+  it('만들고 있는 동안에는 왜 하나 줄었는지와 돌아온다는 것을 함께 말한다', () => {
+    const note = readingCreditsNote({ reserved: 1, available: 2 });
+
+    expect(note).toContain('만들고 있는');
+    expect(note).toContain('돌아옵니다');
+  });
+
+  /** 다 쓴 사람에게 가장 필요한 사실은 **다시 보기는 그대로**라는 것이다 */
+  it('다 썼을 때 닫힌 것과 열린 것을 가른다', () => {
+    const note = readingCreditsNote({ reserved: 0, available: 0 });
+
+    expect(note).toContain('다시 볼 수 있어요');
+    expect(note).not.toContain('반환');
+  });
+
+  /** 만들고 있으면서 다 쓴 상태에서는 **기다리면 된다**는 쪽을 먼저 말한다 */
+  it('만들고 있는 것이 있으면 그 사실이 앞선다', () => {
+    expect(readingCreditsNote({ reserved: 1, available: 0 })).toContain('만들고 있는');
   });
 });

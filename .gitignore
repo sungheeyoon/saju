@@ -44,3 +44,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# overlaps A/B 가 남기는 실행 산출물 — 결과이지 소스가 아니다
+.ab-overlaps
