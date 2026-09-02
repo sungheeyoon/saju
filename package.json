@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test --project=desktop-chromium --project=mobile-chromium",
-    "test:e2e:authed": "playwright test --project=authed-desktop --project=authed-mobile",
+    "test:e2e:authed": "playwright test --project=authed-desktop --project=authed-mobile --project=notice-gate --workers=1",
     "db:start": "supabase start -x realtime,storage-api,imgproxy,edge-runtime,logflare,vector,supavisor,studio",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",

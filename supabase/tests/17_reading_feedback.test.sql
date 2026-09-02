@@ -10,7 +10,7 @@
 --    답이 없다.
 -- 4. **표는 한 줄도 안 보인다.** 답을 세는 것은 운영자의 일이다.
 begin;
-select plan(29);
+select plan(31);
 
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
 returns jsonb language sql as $$
@@ -232,7 +232,39 @@ select pg_temp.acting((select lee from folks));
 select throws_ok(
   format($$select public.leave_reading_feedback(%L::uuid, 4::smallint, 4::smallint, 'right')$$,
     (select id from run_self)),
-  'P0002', null, '남의 자기 풀이에는 답할 수 없다');
+  'P0002', null, '남의 성공한 풀이에는 답할 수 없다');
+
+/**
+ * **상태로 갈라 답하지 않는다.**
+ *
+ * 검사 차례가 뒤집혀 있었다 — 상태를 먼저 봤으므로 남의 `running` 시도에는
+ * 「완성된 풀이에만 답할 수 있습니다」(`23514`)가, 남의 `succeeded` 시도에는
+ * 「찾지 못했습니다」(`P0002`)가 나갔다. 두 답이 다르면 **남의 시도가 어느 상태인지**를
+ * 되묻는 문이 된다.
+ *
+ * 앞의 시험은 성공한 것만 넣어 봐서 이 구멍을 못 잡았다.
+ */
+select pg_temp.acting((select kim from folks));
+create temporary table run_running as
+select run_id as id from public.start_reading_run('self', 'fb-open-0001');
+grant select on run_running to authenticated, service_role;
+
+select pg_temp.acting((select lee from folks));
+select throws_ok(
+  format($$select public.leave_reading_feedback(%L::uuid, 4::smallint, 4::smallint, 'right')$$,
+    (select id from run_running)),
+  'P0002', null, '남의 도는 시도도 같은 답으로 거절한다');
+
+reset role;
+update public.reading_run set status = 'failed', failure_code = 'call_failed'
+where id = (select id from run_running);
+set local role authenticated;
+select pg_temp.acting((select lee from folks));
+
+select throws_ok(
+  format($$select public.leave_reading_feedback(%L::uuid, 4::smallint, 4::smallint, 'right')$$,
+    (select id from run_running)),
+  'P0002', null, '남의 실패한 시도도 같은 답으로 거절한다');
 
 -- ── 공유 궁합 — 누르지 않은 쪽도 답한다 ─────────────────────────────────────
 

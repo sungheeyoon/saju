@@ -53,6 +53,17 @@ function localStack(): Record<string, string> {
  */
 const AUTHED = ['**/signed-in.spec.ts', '**/match.spec.ts'];
 
+/**
+ * 안내 관문은 **혼자 돈다.**
+ *
+ * 재려는 것이 전역 상태다 — 「일정이 비어 있으면」과 「일정이 있으면」은 같은 표 한 줄을
+ * 두고 서로 반대를 요구한다. 나란히 돌리면 한쪽이 다른 쪽이 세운 것을 지운다.
+ *
+ * 모바일에서 따로 안 돈다. 이 파일이 재는 것은 배치가 아니라 **지나갈 수 있는가**이고,
+ * 그 답은 화면 폭에 달려 있지 않다.
+ */
+const NOTICE = ['**/notice.spec.ts'];
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -79,12 +90,12 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop-chromium',
-      testIgnore: AUTHED,
+      testIgnore: [...AUTHED, ...NOTICE],
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'mobile-chromium',
-      testIgnore: AUTHED,
+      testIgnore: [...AUTHED, ...NOTICE],
       use: { ...devices['Pixel 5'] },
     },
     {
@@ -96,6 +107,12 @@ export default defineConfig({
       name: 'authed-mobile',
       testMatch: AUTHED,
       use: { ...devices['Pixel 5'] },
+    },
+    {
+      name: 'notice-gate',
+      testMatch: NOTICE,
+      fullyParallel: false,
+      use: { ...devices['Desktop Chrome'] },
     },
   ],
   webServer: {

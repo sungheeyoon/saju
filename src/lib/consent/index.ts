@@ -1,3 +1,6 @@
+export * from './notice';
+export * from './schedule';
+
 import { ELEMENT_KO, type Element } from '../saju';
 import type { ReadingKind } from '../reading';
 

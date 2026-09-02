@@ -4,6 +4,8 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { test as base, type Page } from '@playwright/test';
 
+import { NOTICE_VERSION } from '@/src/lib/consent';
+
 /**
  * 로그인한 사람의 화면을 **진짜 브라우저로** 재는 자리.
  *
@@ -46,6 +48,35 @@ const sql = (statement: string) =>
  * 검사는 서로 나란히 돈다. 치우지 않으면 어제 만든 계정이 오늘의 후보 목록에 서고,
  * 「상대가 목록에 선다」가 자리 번호에 기대는 시험이 된다.
  */
+/**
+ * 검사용 일정을 세운다 — **표에 넣는다.**
+ *
+ * 일정이 코드 상수였을 때는 이 자리를 브라우저로 재려면 소스를 고쳐야 했고, 그래서
+ * 「안내를 확인하면 시작된다」가 건너뛰어졌다. 표로 옮기면서 **둘 다 재진다** — 비운
+ * 채로 열면 못 지나가고, 넣고 열면 지나간다.
+ *
+ * 쌓는 표라 지우고 넣는다. 이력이 남는 것은 운영의 값이지 검사의 값이 아니다.
+ */
+export function scheduleBeta(endsOn: string | null): void {
+  if (endsOn === null) {
+    sql('delete from public.beta_schedule');
+    return;
+  }
+
+  /*
+    **지우고 넣지 않는다.** 나란히 도는 워커들이 같은 표를 쓰는데, 지운 자리와 넣는
+    자리 사이에 다른 워커의 확인이 끼면 그 확인은 「일정이 없다」로 거절된다. 이미
+    그 값이면 아무것도 안 한다.
+  */
+  sql(`insert into public.beta_schedule (ends_on, note)
+       select '${endsOn}', '검사'
+       where coalesce((select s.ends_on from public.current_beta_schedule() s),
+                      '1900-01-01') <> '${endsOn}'`);
+}
+
+/** 검사가 쓰는 종료일 — 하나뿐이라 손잡이와 시험이 같은 값을 본다 */
+export const scheduledEndsOn = (): string => '2026-10-31';
+
 export function hideEveryoneExcept(emails: readonly string[]): void {
   const quoted = emails.map((one) => `'${one}'`).join(', ');
   for (const email of emails) {
@@ -92,6 +123,8 @@ type Seed = {
   readonly selfPerson: boolean;
   /** 함께 만들어 둘 가족·친구의 부를 이름 */
   readonly people?: readonly string[];
+  /** 안내를 **안 지나온** 사람으로 둔다 — 관문 자체를 재는 시험만 쓴다 */
+  readonly skipNotice?: boolean;
 };
 
 const BIRTH = {
@@ -117,6 +150,30 @@ async function seed(
   const { error } = await client.auth.signUp({ email, password });
   if (error) throw new Error(`초대된 주소인데 가입이 막혔습니다 — ${error.message}`);
   await awaitUsable(client);
+
+  /*
+    **안내를 지난다.** 첫 입력 앞에 관문이 하나 생겼고(`create_self_person`), 실제
+    사람은 `/welcome` 에서 그 값을 남기고 온다. 관문 자체를 재는 시험은 이 손잡이를
+    안 쓰고 직접 연다 — 그 시험이 재려는 것이 바로 이 자리이기 때문이다.
+
+    선택 동의는 **꺼 둔다.** 켜 두면 「동의한 사람에게만」을 재는 시험이 우연히 통과한다.
+  */
+  if (wanted.skipNotice !== true) {
+    /*
+      **일정이 있어야 확인이 남는다.** 안내 관문 시험이 이 표를 비웠다 채웠다 하므로,
+      확인을 지나야 하는 계정은 자기 몫을 스스로 세운다 — 앞의 시험이 무엇을 남겼는지
+      기대하지 않는다.
+    */
+    scheduleBeta(scheduledEndsOn());
+
+    const passed = await client.rpc('acknowledge_notice', {
+      p_version: NOTICE_VERSION,
+      p_ends_on: scheduledEndsOn(),
+      p_improvement: false,
+      p_contact: false,
+    });
+    if (passed.error) throw new Error(`안내를 지나지 못했습니다 — ${passed.error.message}`);
+  }
 
   let selfPersonId: string | null = null;
 
@@ -272,6 +329,12 @@ async function saveReadingAs(
   return run.run_id as string;
 }
 
+/**
+ * 가입만 하고 **안내는 안 본** 계정.
+ *
+ * `newcomer` 는 안내를 지나 온다 — 그 손잡이를 쓰는 시험들이 재려는 것은 온보딩이지
+ * 관문이 아니기 때문이다. 관문 자체를 재려면 지나오지 **않은** 사람이 필요하다.
+ */
 type Fixtures = {
   /** 자기 사주와 가족 한 명까지 넣어 둔 계정으로 로그인한 상태 */
   signedIn: Account;
@@ -281,6 +344,8 @@ type Fixtures = {
   personReader: PersonReader;
   /** 가입만 끝난 계정 — 온보딩 화면에서 시작한다 */
   newcomer: Account;
+  /** 가입만 하고 안내는 안 본 계정 — 관문을 재는 자리 */
+  newcomerRaw: Account;
   /**
    * 사람을 **하나 더** 연다 — 요청·수락·차단처럼 둘이 있어야 성립하는 흐름.
    *
@@ -356,6 +421,13 @@ export const test = base.extend<Fixtures, { local: Local }>({
 
   newcomer: async ({ local, context, baseURL }, use) => {
     const { account, password } = await seed(local, { selfPerson: false });
+    const cookies = await cookiesFor(local, account.email, password);
+    await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
+    await use(account);
+  },
+
+  newcomerRaw: async ({ local, context, baseURL }, use) => {
+    const { account, password } = await seed(local, { selfPerson: false, skipNotice: true });
     const cookies = await cookiesFor(local, account.email, password);
     await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
     await use(account);

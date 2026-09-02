@@ -9,8 +9,10 @@
 -- 3. **주인 없는 출생정보가 안 남는다.** 아무도 관리하지 않게 된 Person 은 판본까지
 --    함께 지워진다.
 -- 4. **Match 는 양쪽에서 사라진다.** 상대 화면에도 그 결과가 안 남는다.
+-- 5. **FK 가 안 닿는 것까지 지운다.** 감사 로그·flow state·초대 명단은 사용자에 매여
+--    있지 않아 cascade 가 못 데려간다 — 그런데 감사 로그는 모든 행이 이메일을 든다.
 begin;
-select plan(18);
+select plan(20);
 
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
 returns jsonb language sql as $$
@@ -110,6 +112,23 @@ reset role;
  *
  * 화면이 없는 것이 아니라 스키마가 거절하고 있었다.
  */
+/**
+ * **FK 가 안 닿는 자리를 먼저 채워 둔다.**
+ *
+ * 실제로는 GoTrue 가 로그인마다 쌓는다. 여기서는 손으로 한 줄 넣어 「지워지는가」만
+ * 잰다 — 이 행이 남으면 「한 사람을 잊었다」가 거짓이 된다.
+ */
+insert into auth.audit_log_entries (id, instance_id, payload, created_at)
+values (
+  gen_random_uuid(), '00000000-0000-0000-0000-000000000000',
+  jsonb_build_object(
+    'action', 'login',
+    'actor_id', (select kim from folks)::text,
+    'actor_username', 'kim-gone@example.com'),
+  now());
+
+insert into public.invite (email, note) values ('kim-gone@example.com', '지울 사람');
+
 create temporary table forgotten as
 select * from public.forget_user((select kim from folks));
 grant select on forgotten to authenticated, service_role;
@@ -123,6 +142,31 @@ select is(
   (select count(*)::int from public.app_user where id = (select kim from folks)),
   0,
   '앱 계정도 함께 사라진다');
+
+/**
+ * **매여 있지 않은 것도 사라진다.**
+ *
+ * 감사 로그는 사용자 id 를 열로 안 들고 `payload` 안에 넣는다 — 그래서 FK 가 없고
+ * cascade 가 못 데려간다. 확인해 보니 로컬의 모든 행이 이메일을 그대로 들고 있었다.
+ */
+select is(
+  (select count(*)::int from auth.audit_log_entries a
+   where a.payload ->> 'actor_id' = (select kim from folks)::text
+      or a.payload ->> 'actor_username' = 'kim-gone@example.com'),
+  0,
+  '로그인 감사 기록이 남지 않는다');
+
+/**
+ * **초대 명단도 지운다.**
+ *
+ * 「삭제는 접근 회수가 아니다」로 남겨 두던 것이다. 그 구분이 지키려던 것은 「데이터는
+ * 지우되 다시 들어오게 둘 수 있다」이지 **삭제를 요청한 사람의 이메일을 명단에 남기는
+ * 것**이 아니었다. 다시 들어오게 할 일이 생기면 다시 초대하면 된다.
+ */
+select is(
+  (select count(*)::int from public.invite where email = 'kim-gone@example.com'),
+  0,
+  '초대 명단에서도 그 주소가 사라진다');
 
 /** 열여덟 갈래가 FK 로 따라간다 — 이 시험은 표 이름을 세 개만 짚어 본다 */
 select is(

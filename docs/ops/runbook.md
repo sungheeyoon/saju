@@ -21,6 +21,47 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"
 
 ---
 
+## 테스트 시작하기 — **날짜 한 줄**
+
+지금은 아무도 시작할 수 없다. 종료일이 없으면 안내가 만들어지지 않고, 안내가 없으면
+`/welcome` 에 버튼이 없다(ADR 0024). 배포 없이 **언제든** 넣고 옮길 수 있다.
+
+```sql
+-- 정한다. 파기 기한은 이 둘에서 나므로 따로 적지 않는다.
+insert into public.beta_schedule (ends_on, purge_within_days, note)
+values ('2026-10-31', 30, '고정 종료일 — 초대 시점과 무관하다');
+
+-- 지금 값과 이력
+select * from public.current_beta_schedule();
+select id, ends_on, purge_within_days, note, set_at from public.beta_schedule order by id desc;
+```
+
+**덮어쓰지 않고 쌓는다.** 옮기려면 새 줄을 넣는다 — 이건 사용자에게 한 약속이고, 바뀐
+기록이 남아야 「그때 뭐라고 했더라」에 답할 수 있다.
+
+> **옮기면 모두가 안내를 다시 본다.** 확인 기록이 판본과 **본 날짜**를 함께 들기
+> 때문이다(`notice_ends_on`). 기간이 바뀌는 것은 알린 내용이 바뀌는 것이라 그게 맞다 —
+> 다시 안 물으면 11월에 지운다는 안내를 보고 확인한 사람의 자료를 이듬해까지 들게 된다.
+
+**종료일은 초대와 무관하다.** 언제 몇 명을 초대하든 그날 끝난다 — 초대에서 며칠을 세는
+값이 아니므로, 테스터를 늦게 넣었다고 자동으로 밀리지 않는다. 밀려면 새 줄을 넣는다.
+
+넣고 나면 `/privacy` 를 열어 날짜가 문장 안에 서 있는지 눈으로 본 뒤 아래 「초대」로 간다.
+
+**문구를 고쳤으면 판본도 올린다**(`NOTICE_VERSION`, 코드). 판본만 올리고 문구를 안 고치면
+사람들을 이유 없이 다시 세우는 것이고, 문구만 고치고 판본을 안 올리면 아무도 새 문구를
+못 본다. 날짜는 판본에 없다 — 둘은 따로 움직이고 관문이 둘 다 본다.
+
+```sql
+-- 누가 어느 판본·어느 날짜에서 무엇을 골랐나
+select u.email, a.notice_version, a.notice_ends_on, a.notice_ack_at,
+       a.improvement_consent as 개선활용, a.contact_consent as 후속연락
+from public.app_user a join auth.users u on u.id = a.id
+order by a.notice_ack_at desc nulls first;
+```
+
+---
+
 ## 초대
 
 가입 관문은 **정확한 이메일 일치**다. 목록에 없는 주소는 auth 계정 자체가 안 만들어진다
@@ -126,29 +167,62 @@ delete from public.invite where email = '<지운 사람의 주소>';
 select count(*) as 계정 from auth.users;
 select count(*) as 사람, (select count(*) from public.person_chart_revision) as 판본
 from public.person;
+```
 
--- 하나씩 잊는다. 한 문장으로 지우면 어디서 멈췄는지 알 수 없다.
+```sql
+-- 하나씩 잊는다. **전체가 한 트랜잭션이다** — 한 명에서 실패하면 앞에서 지운 사람까지
+-- 전부 되돌아간다. 그게 맞다: 절반만 지워진 상태로 끝나는 것보다 아무것도 안 지워진
+-- 상태에서 이유를 보고 다시 도는 편이 낫다. 어디서 멈췄는지는 notice 가 말한다.
 do $$
 declare victim uuid;
 begin
   for victim in select id from auth.users loop
+    raise notice '잊는 중: %', victim;
     perform public.forget_user(victim);
   end loop;
 end $$;
+```
 
+```sql
 -- 사람마다의 삭제는 **그 사람이 관리하던 Person 만** 정리한다(ADR 0023). 아무도
 -- 관리한 적 없던 고아는 그 반복으로 안 사라지므로, 여기서 한 번 쓸어 낸다.
 select public.forget_orphan_people();
+```
 
+```sql
 -- 남은 것이 없어야 한다. 남았다면 그것이 이 절차의 구멍이다.
+--
+-- **FK 로 안 따라오는 것들이 이 목록에 있다.** `reading_webhook_event` 는 어느 표에도
+-- 안 매여 있고(도착을 적는 영수증이라 그렇다), 감사 로그·flow state·초대 명단은
+-- `forget_user` 가 손으로 지운다 — 셋 다 사용자에 매여 있지 않다.
 select
-  (select count(*) from auth.users) as 계정,
-  (select count(*) from public.person) as 사람,
+  (select count(*) from auth.users)                  as 계정,
+  (select count(*) from auth.audit_log_entries)      as 감사로그,
+  (select count(*) from auth.flow_state)             as 로그인중간상태,
+  (select count(*) from public.invite)               as 초대명단,
+  (select count(*) from public.person)               as 사람,
   (select count(*) from public.person_chart_revision) as 판본,
-  (select count(*) from public.reading) as 결과,
-  (select count(*) from public.reading_feedback) as 설문;
+  (select count(*) from public.reading)              as 결과,
+  (select count(*) from public.reading_run)          as 시도,
+  (select count(*) from public.reading_job)          as 일감,
+  (select count(*) from public.reading_feedback)     as 설문,
+  (select count(*) from public.notification)         as 알림,
+  (select count(*) from public.report)               as 신고,
+  (select count(*) from public.reading_webhook_event) as 영수증;
+```
 
--- 초대 명단은 사람 이름이 적힌 명단이다. 종료에는 이것도 지운다.
+**영수증은 마지막이다.** `reading_webhook_event` 는 도착을 적는 자리라 어느 FK 에도 안
+매여 있다. 생성이 도는 중에 지우면 그 사이 도착한 응답을 두 번 집을 수 있다. 순서는
+**생성 중단 → 재전송 창(최대 72시간) 경과 또는 webhook 폐쇄 → 영수증 삭제**다.
+
+```sql
+-- 위 검증에서 영수증만 남았을 때, 재전송 창이 지난 뒤에 지운다.
+delete from public.reading_webhook_event;
+```
+
+```sql
+-- 초대 명단은 사람 이름이 적힌 명단이다. 사람마다의 삭제가 이미 지우지만,
+-- 가입한 적 없는 초대는 계정이 없어 그 길로 안 사라진다.
 delete from public.invite;
 ```
 
@@ -157,12 +231,18 @@ delete from public.invite;
 절차가 DB 에서 끝나지 않는다. **여기 적힌 것 중 확인 안 된 것은 확인 안 됐다고 적어 둔다** —
 안내에 「파기했습니다」라고 쓰려면 이 목록이 전부 닫혀 있어야 한다.
 
-| 어디 | 무엇이 있나 | 어떻게 되나 |
+| 어디 | 무엇이 있나 | 얼마나 남나 |
 | --- | --- | --- |
-| Supabase Auth | 로그인 신원·세션·토큰 | `auth.users` 삭제가 `identities`·`sessions`·`one_time_tokens`·`mfa_factors` 를 cascade 로 데려간다(확인함) |
-| Supabase 백업 | 지운 행이 그 시점 스냅숏에 남는다 | **확인해서 여기 적을 것** — 프로젝트의 백업·PITR 보존 기간과, 그 기간이 지나야 파기가 끝나는지 |
-| Vercel 로그 | 요청 로그. 출생 원문은 안 적는다(PRD 로그 규율) | **확인해서 여기 적을 것** — 보존 기간 |
-| OpenAI | 프롬프트에 여덟 글자와 그 위의 사실이 들어간다. 정확한 생년월일시·출생지·분 단위는 안 나간다(ADR 0008) | 우리가 요청하는 값은 `store: false` 다(`generation.ts`). **다만 `background: true` 로 제출하고 `responses.retrieve` 로 되찾으므로 그 사이에는 provider 가 들고 있다** — 무엇이 얼마나 남는지는 provider 의 약속이고, 확인해서 여기 적을 것 |
+| Supabase Auth | 로그인 신원·세션·토큰 | `auth.users` 삭제가 identities·sessions·one_time_tokens·mfa_factors 를 cascade 로 데려간다(확인함). 감사 로그·flow state 는 FK 가 없어 `forget_user` 가 손으로 지운다 |
+| Supabase 백업 | 지운 행이 스냅숏에 남는다 | **Free 플랜에는 자동 일일 백업과 PITR 이 없다.** 운영자가 손으로 dump 를 뜬 적이 없으면 남는 것이 없다. 플랜을 올리면 이 줄을 다시 쓴다 |
+| Vercel 로그 | 요청 로그. 출생 원문은 안 적는다(PRD 로그 규율) | **Hobby 플랜의 런타임 로그 보존은 1시간.** 플랜을 올리면 이 줄을 다시 쓴다 |
+| OpenAI | 프롬프트에 여덟 글자와 그 위의 사실이 들어간다. 정확한 생년월일시·출생지·분 단위는 안 나간다(ADR 0008) | `store: false` 로 보내되 `background: true` 라 회수용으로 **약 10분** 들고 있다. 그와 별개로 기본 abuse monitoring 로그가 **최대 30일**, 프롬프트 캐시가 마지막 사용 후 **최소 30분**이다 |
+
+> **OpenAI 프로젝트의 ZDR·MAM 설정은 확인 안 됐다.** 별도 승인을 받은 기억이 없으면
+> 기본값(최대 30일)으로 안내한다. 승인받았다면 대시보드에서 확인하고 이 줄을 고친다.
+>
+> 요금제 두 줄은 **지금 플랜 기준**이다. 플랜을 올리는 것은 보존 기간을 늘리는 일이고,
+> 그때 처리방침도 함께 고쳐야 한다.
 
 ---
 

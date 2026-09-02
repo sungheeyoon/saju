@@ -17,6 +17,7 @@ import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
+import { passNotice } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -64,6 +65,7 @@ sql(`insert into public.invite (email, note) values
 const person = async (email, label, birth, city, gender) => {
   const client = anon();
   await client.auth.signUp({ email, password });
+  await passNotice(client);
   await client.rpc('create_self_person', {
     p_local_label: label, p_calendar: 'solar',
     p_original_date: birth, p_solar_date: birth, p_birth_time: '14:30',

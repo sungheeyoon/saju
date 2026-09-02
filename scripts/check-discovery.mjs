@@ -16,6 +16,7 @@ import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
+import { passNotice } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -55,6 +56,7 @@ sql(`insert into public.invite (email, note) values ('${mine}', '검사'), ('${t
 
 const me = anon();
 await me.auth.signUp({ email: mine, password });
+await passNotice(me);
 await me.rpc('create_self_person', {
   p_local_label: '민수', p_calendar: 'solar',
   p_original_date: '1990-05-15', p_solar_date: '1990-05-15', p_birth_time: '14:30',
@@ -63,6 +65,7 @@ await me.rpc('create_self_person', {
 
 const other = anon();
 await other.auth.signUp({ email: theirs, password });
+await passNotice(other);
 await other.rpc('create_self_person', {
   p_local_label: '지영', p_calendar: 'solar',
   p_original_date: '1992-03-03', p_solar_date: '1992-03-03', p_birth_time: '09:00',

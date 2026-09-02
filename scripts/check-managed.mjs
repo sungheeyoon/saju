@@ -18,6 +18,7 @@ import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
+import { passNotice } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -65,6 +66,7 @@ await other.auth.signUp({ email: theirs, password });
 let selfPersonId;
 let momId;
 {
+  await passNotice(client);
   await client.rpc('create_self_person', { p_local_label: '민수', ...birth });
 
   const { data: mom, error } = await client.rpc('create_managed_person', {
@@ -149,6 +151,7 @@ let momId;
 // ── 5. 남에게는 없는 것과 같다 ────────────────────────────────────────────────
 let theirPersonId;
 {
+  await passNotice(other);
   await other.rpc('create_self_person', { p_local_label: '지영', ...birth, p_gender: 'female' });
   const { data: account } = await other.from('app_user').select('self_person_id').maybeSingle();
   theirPersonId = account?.self_person_id;

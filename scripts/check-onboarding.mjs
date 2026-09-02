@@ -12,6 +12,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { execFileSync } from 'node:child_process';
+import { CHECK_ENDS_ON, passNotice, scheduleBeta } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -78,8 +79,37 @@ const client = anon();
   check('아직 selfPerson 이 없다', account?.self_person_id === null);
 }
 
+// ── 3-1. 안내를 보기 전에는 첫 입력이 안 들어간다 ────────────────────────────
+{
+  const { data: before } = await client
+    .from('app_user').select('notice_ack_at, improvement_consent').maybeSingle();
+  check('가입만 한 사람은 안내를 본 적이 없다', before?.notice_ack_at === null);
+  check('선택 답도 아직 없다 — 「거절」이 아니라 「안 물었다」다',
+    before?.improvement_consent === null);
+
+  /**
+   * **여기가 출생정보가 처음 들어오는 자리다.** 화면에도 관문이 있지만(`/me` 레이아웃)
+   * 되돌릴 수 없는 첫 쓰기는 DB 가 막는다 — 화면만 막으면 이렇게 RPC 로 지나간다.
+   */
+  const { error } = await client.rpc('create_self_person', {
+    p_local_label: '민수', p_calendar: 'solar',
+    p_original_date: '1990-05-15', p_solar_date: '1990-05-15', p_birth_time: '14:30',
+    p_gender: 'male', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+  });
+  check('안내를 안 봤으면 첫 입력이 거절된다',
+    error !== null && error.message.includes('처리 안내'), error?.message ?? '들어가 버렸다');
+
+  /** 선택 답을 비운 채 지나가는 길이 없다 — 물었는데 `null` 인 사람이 생기면 안 된다 */
+  scheduleBeta();
+  const { error: blank } = await client.rpc('acknowledge_notice', {
+    p_version: 'notice-check', p_ends_on: CHECK_ENDS_ON, p_improvement: null, p_contact: false,
+  });
+  check('선택 항목을 비운 채로는 안내를 지날 수 없다', blank !== null, blank?.message ?? '지나가 버렸다');
+}
+
 // ── 4. 자기 사주를 저장한다 ───────────────────────────────────────────────────
 {
+  await passNotice(client);
   const { error } = await client.rpc('create_self_person', {
     p_local_label: '민수',
     p_calendar: 'solar',
@@ -93,6 +123,7 @@ const client = anon();
   });
   check('자기 사주를 저장한다', error === null, error?.message);
 
+  await passNotice(client);
   const { error: again } = await client.rpc('create_self_person', {
     p_local_label: '민수2', p_calendar: 'solar',
     p_original_date: '1991-01-01', p_solar_date: '1991-01-01', p_birth_time: '09:00',

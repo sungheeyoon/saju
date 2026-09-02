@@ -218,3 +218,30 @@ export async function revisePerson(personId: string, query: Query): Promise<Save
   revalidatePath('/me/discovery');
   return { ok: true };
 }
+
+/**
+ * 선택 동의 하나를 바꾼다.
+ *
+ * **어느 값인지를 인자로 받되 문을 나눠 부른다.** 하나의 RPC 로 합치면 한쪽만 바꾸려는
+ * 화면이 다른 쪽 값을 다시 적어 넣어야 하고, 그때 그 값을 어디서 읽어 왔는지가 또 한
+ * 자리가 된다 — 두 화면이 서로 다른 답을 적는 자리는 그렇게 생긴다.
+ *
+ * 철회하면 개선 활용 쪽은 남긴 답까지 지운다. 그 규칙은 DB 에 있다(ADR 0022).
+ */
+export async function setOptionalConsent(
+  key: 'improvement' | 'contact',
+  consent: boolean,
+): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  const { error } = await supabase.rpc(
+    key === 'improvement' ? 'set_improvement_consent' : 'set_contact_consent',
+    { p_consent: consent },
+  );
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/me/settings');
+  revalidatePath('/me');
+  return { ok: true };
+}

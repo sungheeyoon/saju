@@ -4,6 +4,9 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { Halted } from '../halted';
 import { RequestDeletion } from '../leaving';
+import { ConsentControls } from '../consent-controls';
+import { NOTICE_VERSION, asKoreanDay } from '@/src/lib/consent';
+import Link from 'next/link';
 
 export const metadata = {
   title: '계정 관리 — 만세력',
@@ -17,7 +20,10 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const { data: account } = await supabase.from('app_user').select('status').maybeSingle();
+  const { data: account } = await supabase
+    .from('app_user')
+    .select('status, improvement_consent, contact_consent, notice_version, notice_ack_at')
+    .maybeSingle();
 
   const signOut = async () => {
     'use server';
@@ -50,6 +56,31 @@ export default async function SettingsPage() {
           </button>
         </form>
       </section>
+
+      {account?.status === 'active' && (
+        <section className={`${CARD} flex flex-col gap-4`}>
+          <div>
+            <h2 className="text-base font-bold">선택 동의</h2>
+            <p className="mt-1 text-sm text-secondary">
+              둘 다 선택입니다. 어느 쪽을 끄셔도 사주와 궁합, 사주풀이는 그대로
+              쓰실 수 있습니다.
+            </p>
+          </div>
+          <ConsentControls
+            improvement={account.improvement_consent === true}
+            contact={account.contact_consent === true}
+          />
+          <p className="border-t border-border pt-4 text-xs leading-5 text-muted">
+            {account.notice_ack_at === null
+              ? '아직 처리 안내를 확인하지 않으셨습니다.'
+              : `${asKoreanDay((account.notice_ack_at as string).slice(0, 10))}에 처리 안내(${account.notice_version})를 확인하셨습니다.`}{' '}
+            {account.notice_version !== NOTICE_VERSION && '안내가 새로 바뀌어 다시 보여 드립니다.'}{' '}
+            <Link href="/privacy" className="font-semibold text-accent underline underline-offset-4">
+              처리방침 보기
+            </Link>
+          </p>
+        </section>
+      )}
 
       {account?.status === 'active' && (
         <section className={`${CARD} flex flex-col gap-4`}>
