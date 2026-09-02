@@ -33,19 +33,22 @@ export const CHECK_ENDS_ON = '2026-10-31';
 export function scheduleBeta(endsOn = CHECK_ENDS_ON) {
   // **지우고 넣지 않는다** — 이미 그 값이면 아무것도 안 한다(`e2e/session.ts` 와 같은 까닭).
   execFileSync('docker', ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq',
-    '-c', `insert into public.beta_schedule (ends_on, note)
-           select '${endsOn}', '검사'
+    '-c', `insert into public.beta_schedule
+             (ends_on, note, operator_name, operator_officer, operator_contact)
+           select '${endsOn}', '검사', '만세력 운영자', '검사 담당', 'ops@example.com'
            where coalesce((select s.ends_on from public.current_beta_schedule() s),
-                          '1900-01-01') <> '${endsOn}'`]);
+                          '1900-01-01') <> '${endsOn}'
+              or (select s.operator_contact from public.current_beta_schedule() s) is null`]);
 }
 
 /** 선택 동의는 **꺼 둔다** — 켜 두면 「동의한 사람에게만」을 재는 검사가 우연히 통과한다 */
 export async function passNotice(client) {
   scheduleBeta();
 
+  const current = await client.rpc('current_beta_schedule');
   const { error } = await client.rpc('acknowledge_notice', {
     p_version: NOTICE_VERSION,
-    p_ends_on: CHECK_ENDS_ON,
+    p_schedule_id: current.data?.[0]?.schedule_id,
     p_improvement: false,
     p_contact: false,
   });

@@ -31,7 +31,14 @@ export const metadata = {
 */
 export default async function PrivacyPage() {
   const supabase = await supabaseOnServer();
-  const dates = await scheduleFrom((name) => supabase.rpc(name));
+  const notice = await scheduleFrom((name) => supabase.rpc(name));
+
+  /*
+    **둘 다 있어야 안내가 선다.** 날짜가 없으면 보유기간을 말할 수 없고, 처리자와
+    연락처가 없으면 열람·정정·삭제를 어디에 요구하는지 말할 수 없다 — 어느 쪽이
+    비어도 지키는 것이 없는 문장만 남는다.
+  */
+  const ready = notice;
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
@@ -43,7 +50,7 @@ export default async function PrivacyPage() {
         </p>
       </header>
 
-      {dates === null ? (
+      {ready === null ? (
         /*
           **날짜를 지어내지 않는다.** 「추후 종료 예정」으로 메우면 그 문장이 실제로
           지키는 것이 없고, 보유기간을 「목적 달성 시까지」로 적는 것과 같은 말이 된다.
@@ -51,7 +58,7 @@ export default async function PrivacyPage() {
         <p className={`${CARD} text-sm leading-6`}>{NOTICE_NOT_READY}</p>
       ) : (
         <>
-          {noticeFor(dates).map((section) => (
+          {noticeFor(ready.dates, ready.operator).map((section) => (
             <section key={section.title} className={`${CARD} flex flex-col gap-3`}>
               <h2 className="text-base font-bold">{section.title}</h2>
               <ul className="flex flex-col gap-2">
@@ -98,7 +105,7 @@ export default async function PrivacyPage() {
 
           <p className="text-xs leading-5 text-muted">
             비공개 베타 기간에는 파기 시점이 위 종료일에 매여 있습니다(종료 후{' '}
-            {dates.purgeWithinDays}일 이내). 공개 전환 시에는 이 방침을 다시 씁니다.
+            {ready.dates.purgeWithinDays}일 이내). 공개 전환 시에는 이 방침을 다시 씁니다.
           </p>
         </>
       )}

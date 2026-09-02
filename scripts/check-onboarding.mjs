@@ -12,7 +12,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { execFileSync } from 'node:child_process';
-import { CHECK_ENDS_ON, passNotice, scheduleBeta } from './notice.mjs';
+import { passNotice, scheduleBeta } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -102,7 +102,7 @@ const client = anon();
   /** 선택 답을 비운 채 지나가는 길이 없다 — 물었는데 `null` 인 사람이 생기면 안 된다 */
   scheduleBeta();
   const { error: blank } = await client.rpc('acknowledge_notice', {
-    p_version: 'notice-check', p_ends_on: CHECK_ENDS_ON, p_improvement: null, p_contact: false,
+    p_version: 'notice-check', p_schedule_id: 1, p_improvement: null, p_contact: false,
   });
   check('선택 항목을 비운 채로는 안내를 지날 수 없다', blank !== null, blank?.message ?? '지나가 버렸다');
 }

@@ -19,6 +19,18 @@ import { supabaseEnv } from '@/app/auth/config';
 export async function proxy(request: NextRequest) {
   const { url, publishableKey } = supabaseEnv();
 
+  /**
+   * **경로를 서버 컴포넌트에 넘긴다.**
+   *
+   * 레이아웃은 자기 아래 어느 화면이 열렸는지 모른다. 그런데 베타가 끝난 뒤에도
+   * `/me/settings` 만은 열려 있어야 한다 — 그 기간은 자료가 아직 남아 있는 기간이고,
+   * 철회와 삭제 요청이 닿아야 하는 때다.
+   *
+   * **판정을 여기서 하지 않는다.** 여기서 하는 일은 「지금 어디인가」를 실어 주는
+   * 것뿐이고, 무엇을 열고 닫을지는 여전히 레이아웃과 DB 가 정한다.
+   */
+  request.headers.set('x-pathname', request.nextUrl.pathname);
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(url, publishableKey, {

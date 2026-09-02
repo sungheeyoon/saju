@@ -16,12 +16,15 @@
  * 바뀌면 이미 확인한 사람에게 다시 보여 준다. 「보여 준 적 있다」가 아니라 「무엇을
  * 보여 주었는가」가 남아야 그 판단을 할 수 있다.
  *
- * **날짜는 이 판본에 없다.** 문구와 날짜는 따로 움직인다 — 날짜만 바뀌어도 다시
- * 보여 줘야 하므로, 확인 기록이 판본과 날짜를 **둘 다** 든다(`notice_ends_on`).
- * 하나로 합쳐 매번 판본을 올리면 「문구가 바뀌었다」와 「기간이 바뀌었다」가 구별되지
- * 않는다.
+ * **날짜와 운영자는 이 판본에 없다.** 그 둘은 표의 한 줄이 들고 실행 중에 움직인다 —
+ * 그래서 확인 기록이 판본과 **그 줄 번호**를 함께 든다(`notice_schedule_id`). 어느
+ * 칸이 바뀌든 새 줄이 되므로, 줄을 견주면 「무엇을 보여 주었나」에 한 값으로 답한다.
+ *
+ * `v1` → `v2`: 국외 이전의 항목·국가·시기·목적·기간, 파기 절차와 방법, 권리 행사
+ * 방법과 처리자 연락처가 새로 들어갔다. 본문이 크게 바뀌었으므로 이미 확인한 사람도
+ * 다시 본다 — 판본을 안 올리면 그 사람들은 옛 문서에 동의한 채로 남는다.
  */
-export const NOTICE_VERSION = 'notice-v1';
+export const NOTICE_VERSION = 'notice-v2';
 
 /**
  * 지금 일정 — **표에서 온다**(`current_beta_schedule`).
@@ -61,7 +64,67 @@ export type NoticeSection = {
  * 보유기간을 말할 수 없는 안내는 안내가 아니다. 「목적 달성 시까지」로 메우면 그 문장이
  * 실제로 지키는 것이 없다.
  */
-export function noticeFor(dates: BetaDates): readonly NoticeSection[] {
+export type Operator = {
+  /** 개인정보처리자 — 사람 이름이든 상호든, 사용자가 누구에게 말하는지 알 수 있는 이름 */
+  readonly name: string;
+  /** 개인정보 보호책임자 */
+  readonly officer: string;
+  /** 직접 닿는 창구. 「초대 메일에 회신」은 창구가 아니다 */
+  readonly contact: string;
+};
+
+/** 국외로 나가는 곳 하나 — 요구되는 항목을 다 든다 */
+type Transfer = {
+  readonly to: string;
+  readonly country: string;
+  readonly items: string;
+  readonly when: string;
+  readonly purpose: string;
+  readonly period: string;
+  readonly policy: string;
+};
+
+const TRANSFERS: readonly Transfer[] = [
+  {
+    to: 'Supabase, Inc.',
+    country: '미국',
+    items: '구글 계정 이메일, 생년월일시·출생지·성별, 계산된 명식과 저장된 풀이',
+    when: '서비스를 이용하실 때마다 네트워크를 통해 전송',
+    purpose: '계정 인증과 데이터베이스 보관',
+    period: '베타 종료 후 파기 시점까지',
+    policy: 'https://supabase.com/privacy',
+  },
+  {
+    to: 'Vercel Inc.',
+    country: '미국',
+    items:
+      '접속 기록과 요청 정보, 그리고 저장·수정하실 때 서버를 지나가는 생년월일시·출생지·성별(로그에는 적지 않습니다)',
+    when: '서비스를 이용하실 때마다 네트워크를 통해 전송하며, 처리가 끝나면 남기지 않습니다',
+    purpose: '서비스 운영과 화면 전송, 입력을 데이터베이스로 넘기는 처리',
+    period: '보관하지 않습니다. 런타임 로그만 1시간(현재 요금제 기준)',
+    policy: 'https://vercel.com/legal/privacy-policy',
+  },
+  {
+    to: 'OpenAI, L.L.C.',
+    country: '미국',
+    items:
+      '계산된 여덟 글자와 그 위에서 나온 사실. 정확한 생년월일시·출생지·분 단위 시각은 보내지 않습니다',
+    when: '사주풀이 만들기를 누르셨을 때만 네트워크를 통해 전송',
+    purpose: '풀이 글과 점수 생성',
+    period: '회수용 보관 약 10분, 별도 오·남용 점검 기록 최대 30일',
+    policy: 'https://openai.com/policies/privacy-policy',
+  },
+];
+
+/** 국외 이전 절을 자료에서 짓는다 — 표를 손으로 적으면 한 칸이 비어도 안 보인다 */
+const transferLines = (): readonly string[] =>
+  TRANSFERS.flatMap((one) => [
+    `${one.to}(${one.country}) — 이전 항목: ${one.items}`,
+    `${one.to} — 이전 시기와 방법: ${one.when} · 이전 목적: ${one.purpose} · 보유기간: ${one.period}`,
+    `${one.to} — 개인정보 관련 문의처는 이곳에 안내되어 있습니다: ${one.policy}`,
+  ]);
+
+export function noticeFor(dates: BetaDates, operator: Operator): readonly NoticeSection[] {
   return [
     {
       title: '무엇을 받고 무엇에 쓰나요',
@@ -77,7 +140,7 @@ export function noticeFor(dates: BetaDates): readonly NoticeSection[] {
       lines: [
         `이 비공개 베타는 ${asKoreanDay(dates.endsOn)}에 끝납니다.`,
         `계정과 저장된 정보는 종료 후 ${dates.purgeWithinDays}일 이내, 늦어도 ${asKoreanDay(dates.purgeBy)}까지 파기합니다.`,
-        '종료 전에도 언제든 삭제를 요청하실 수 있고, 요청하시면 그 시점에 파기합니다.',
+        '종료 전에도 언제든 삭제를 요청하실 수 있고, 요청하시면 영업일 기준 3일 이내에 파기합니다.',
       ],
     },
     {
@@ -92,8 +155,34 @@ export function noticeFor(dates: BetaDates): readonly NoticeSection[] {
     {
       title: '맡겨서 처리하는 곳',
       lines: [
-        '계정과 데이터베이스는 Supabase, 서비스 운영은 Vercel 을 씁니다.',
-        '두 곳 모두 국외에 서버를 둡니다. 맡기는 범위는 이 서비스를 돌리는 데 필요한 저장과 전송뿐입니다.',
+        '계정과 데이터베이스는 Supabase, 서비스 운영은 Vercel, 풀이 생성은 OpenAI 에 맡깁니다.',
+        '맡기는 범위는 이 서비스를 돌리는 데 필요한 저장·전송·생성뿐이고, 세 곳 모두 국외에 서버를 둡니다. 아래에 항목과 기간을 따로 적습니다.',
+      ],
+    },
+    {
+      title: '국외로 나가는 것',
+      lines: [
+        ...transferLines(),
+        '위 이전을 거부하실 수 있습니다. 다만 세 곳 모두 이 서비스를 제공하는 데 반드시 필요해, 거부하시면 서비스를 이용하실 수 없습니다.',
+      ],
+    },
+    {
+      title: '파기 절차와 방법',
+      lines: [
+        `보유기간이 지나거나 처리 목적이 끝나면 지체 없이 파기합니다. 이 베타에서는 ${asKoreanDay(dates.purgeBy)}이 그 기한입니다.`,
+        '전자적 파일은 데이터베이스에서 삭제하며, 복구할 수 없습니다. 종이로 출력한 기록은 만들지 않습니다.',
+        '삭제를 요청하시면 운영자가 확인한 뒤 영업일 기준 3일 이내에 같은 방법으로 지웁니다.',
+        '함께 보기로 한 궁합이 있다면 그 관계와 결과는 상대 화면에서도 함께 사라집니다.',
+      ],
+    },
+    {
+      title: '권리와 행사 방법',
+      lines: [
+        '언제든 열람·정정·삭제·처리정지를 요구하실 수 있습니다.',
+        '저장된 출생정보는 내 사주 화면에서 직접 고치실 수 있고, 선택 동의는 계정 관리 화면에서 켜고 끄실 수 있습니다.',
+        '그 밖의 요구는 아래 연락처로 알려 주시면 처리하고 결과를 알려 드립니다.',
+        `개인정보처리자: ${operator.name} · 개인정보 보호책임자: ${operator.officer} · 연락처: ${operator.contact}`,
+        '처리 결과에 이의가 있으시면 개인정보 분쟁조정위원회(1833-6972)나 개인정보침해 신고센터(118)에 도움을 요청하실 수 있습니다.',
       ],
     },
     {
@@ -138,9 +227,18 @@ export const OPTIONAL_CONSENTS: readonly OptionalConsent[] = [
   },
 ];
 
-/** 일정이 아직 없을 때 화면이 하는 말 — **테스터가 볼 자리가 아니다** */
+/** 아직 세울 수 없을 때 화면이 하는 말 — **테스터가 볼 자리가 아니다** */
 export const NOTICE_NOT_READY =
-  '아직 테스트를 시작할 수 없습니다. 베타 종료일이 정해지면 이 화면이 열립니다.';
+  '아직 테스트를 시작할 수 없습니다. 종료일과 운영자 연락처가 정해지면 이 화면이 열립니다.';
+
+/**
+ * 끝난 뒤에 하는 말.
+ *
+ * **중지된 계정과 다른 말이어야 한다.** 「중지되었습니다」는 그 사람에 대한 판단이고,
+ * 이것은 서비스가 끝난 것이다 — 한 문장으로 합치면 아무 잘못 없이 중지당했다고 읽는다.
+ */
+export const betaOverNote = (dates: BetaDates): string =>
+  `이 비공개 테스트는 ${asKoreanDay(dates.endsOn)}에 끝났습니다. 저장된 정보는 ${asKoreanDay(dates.purgeBy)}까지 파기합니다.`;
 
 /** 확인 버튼 옆의 한 줄 — 무엇을 누르는 것인지 */
 export const NOTICE_ACK_NOTE =

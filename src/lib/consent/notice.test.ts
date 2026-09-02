@@ -11,6 +11,15 @@ import { scheduleFrom } from './schedule';
 describe('지금 일정 읽기', () => {
   const answering = (data: unknown, error: unknown = null) => async () => ({ data, error });
 
+  const full = {
+    ends_on: '2026-10-31',
+    purge_by: '2026-11-30',
+    purge_within_days: 30,
+    operator_name: '만세력 운영자',
+    operator_officer: '홍길동',
+    operator_contact: 'ops@example.com',
+  };
+
   /** 못 읽으면 `null` — 「모른다」를 날짜인 척 흘려보내지 않는다 */
   it('못 읽으면 없는 것으로 답한다', async () => {
     expect(await scheduleFrom(answering(null, new Error('끊김')))).toBeNull();
@@ -19,18 +28,27 @@ describe('지금 일정 읽기', () => {
   });
 
   /** 파기 기한을 **여기서 짓지 않는다** — DB 가 낸 값을 그대로 든다 */
-  it('DB 가 낸 두 날짜를 그대로 든다', async () => {
-    const dates = await scheduleFrom(
-      answering([{ ends_on: '2026-10-31', purge_by: '2026-11-30', purge_within_days: 30 }]),
-    );
+  it('DB 가 낸 값을 그대로 든다', async () => {
+    expect(await scheduleFrom(answering([full]))).toEqual({
+      dates: { endsOn: '2026-10-31', purgeBy: '2026-11-30', purgeWithinDays: 30 },
+      operator: { name: '만세력 운영자', officer: '홍길동', contact: 'ops@example.com' },
+    });
+  });
 
-    expect(dates).toEqual({ endsOn: '2026-10-31', purgeBy: '2026-11-30', purgeWithinDays: 30 });
+  /**
+   * **반쪽은 안 낸다.** 날짜만 있고 연락처가 없으면 열람·정정·삭제를 어디에 요구하는지
+   * 말할 수 없다 — 그런 안내는 지키는 것이 없는 문장만 남는다.
+   */
+  it('운영자가 비어 있으면 안내가 안 선다', async () => {
+    expect(await scheduleFrom(answering([{ ...full, operator_contact: null }]))).toBeNull();
+    expect(await scheduleFrom(answering([{ ...full, operator_name: null }]))).toBeNull();
   });
 });
 
 describe('안내 문구', () => {
   const dates = { endsOn: '2026-11-30', purgeBy: '2026-12-30', purgeWithinDays: 30 };
-  const text = noticeFor(dates)
+  const operator = { name: '만세력 운영자', officer: '홍길동', contact: 'ops@example.com' };
+  const text = noticeFor(dates, operator)
     .flatMap((section) => [section.title, ...section.lines])
     .join('\n');
 
@@ -70,6 +88,59 @@ describe('안내 문구', () => {
     expect(text).toContain('Vercel');
     expect(text).toContain('국외');
   });
+});
+
+/**
+ * 처리방침이 갖춰야 하는 것들 — **없으면 지키는 것이 없는 문장만 남는다.**
+ *
+ * 「무엇을 받는다」만 적고 누구에게 무엇을 요구하는지 안 적으면, 열람·정정·삭제는
+ * 적혀만 있는 권리가 된다. 국외로 나가는데 어디로 얼마나 가는지 안 적으면 「보냅니다」가
+ * 아무것도 알리지 않는다.
+ */
+describe('처리방침이 갖춰야 하는 것', () => {
+  const operator = { name: '만세력 운영자', officer: '홍길동', contact: 'ops@example.com' };
+  const dates = { endsOn: '2026-10-31', purgeBy: '2026-11-30', purgeWithinDays: 30 };
+  const text = noticeFor(dates, operator)
+    .flatMap((section) => [section.title, ...section.lines])
+    .join('\n');
+
+  it('누구에게 말하면 되는지 적는다', () => {
+    expect(text).toContain(operator.name);
+    expect(text).toContain(operator.officer);
+    expect(text).toContain(operator.contact);
+  });
+
+  it('권리와 행사 방법을 적는다', () => {
+    for (const right of ['열람', '정정', '삭제', '처리정지']) {
+      expect(text, right).toContain(right);
+    }
+  });
+
+  it('파기 절차와 방법을 적는다', () => {
+    expect(text).toContain('파기 절차와 방법');
+    expect(text).toContain('복구할 수 없습니다');
+  });
+
+  /** 국외 이전은 **항목·국가·시기·목적·기간·거부**가 다 있어야 한다 */
+  it('국외로 나가는 곳마다 여섯 가지를 다 적는다', () => {
+    for (const where of ['Supabase', 'Vercel', 'OpenAI']) {
+      expect(text, where).toContain(where);
+    }
+    expect(text).toContain('미국');
+    expect(text).toContain('이전 항목');
+    expect(text).toContain('이전 시기와 방법');
+    expect(text).toContain('보유기간');
+    expect(text).toContain('거부하실 수 있습니다');
+  });
+
+  /**
+   * **거부의 효과를 숨기지 않는다.** 「거부할 수 있습니다」만 적고 그러면 무엇이
+   * 안 되는지 안 적으면, 고를 수 있는 것처럼 보이는 것을 고르게 된다.
+   */
+  it('거부하면 무엇이 안 되는지도 적는다', () => {
+    expect(text).toContain('이용하실 수 없습니다');
+  });
+
 });
 
 describe('선택 항목', () => {

@@ -58,12 +58,14 @@ begin
     일정도 함께 세운다 — 확인 기록이 **본 날짜**를 들기 때문이다. 없으면 `/me` 관문이
     「일정이 바뀌었다」로 읽고 모두를 안내 화면으로 돌려보낸다.
   */
-  insert into public.beta_schedule (ends_on, note)
-  select '2026-10-31'::date, '시험'
+  insert into public.beta_schedule
+    (ends_on, note, operator_name, operator_officer, operator_contact)
+  select '2026-10-31'::date, '시험', '만세력 운영자', '시험 담당', 'ops@example.com'
   where not exists (select 1 from public.beta_schedule);
 
   update public.app_user
   set notice_version = 'notice-for-tests',
+      notice_schedule_id = (select s.schedule_id from public.current_beta_schedule() s),
       notice_ends_on = (select s.ends_on from public.current_beta_schedule() s),
       notice_ack_at = now(),
       improvement_consent = false,

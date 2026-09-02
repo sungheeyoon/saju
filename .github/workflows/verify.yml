@@ -17,6 +17,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+
+      # DB·flow·로그인 검사는 여기서 안 돈다. 살아 있는 Supabase 가 필요하고, CI 에
+      # 그 스택을 세우는 것은 이 워크플로가 하던 일보다 큰 변경이다. **그래서 이
+      # 워크플로가 초록이어도 「전부 통과」는 아니다** — 배포 전에는 손으로 돌린다:
+      #   npm run test:db && npm run test:flow && npm run test:e2e:authed
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
         env:

@@ -3,7 +3,12 @@ import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { CARD } from '../card';
-import { NOTICE_NOT_READY, NOTICE_VERSION, noticeFor, scheduleFrom } from '@/src/lib/consent';
+import {
+  NOTICE_NOT_READY,
+  NOTICE_VERSION,
+  noticeFor,
+  scheduleFrom,
+} from '@/src/lib/consent';
 
 import { ConsentForm } from './consent-form';
 
@@ -31,15 +36,33 @@ export default async function WelcomePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const { data: account } = await supabase
-    .from('app_user')
-    .select('notice_version')
-    .maybeSingle();
+  const [{ data: account }, notice] = await Promise.all([
+    supabase.from('app_user').select('notice_version, notice_schedule_id').maybeSingle(),
+    scheduleFrom((name) => supabase.rpc(name)),
+  ]);
 
-  // 이미 이 판본을 확인했으면 여기 머물 이유가 없다.
-  if (account?.notice_version === NOTICE_VERSION) redirect('/me');
+  /**
+   * **관문과 같은 것을 본다 — 판본과 날짜 둘 다.**
+   *
+   * 판본만 보고 있었다. `/me` 는 날짜도 보고 여기로 보내는데 여기는 판본만 같으면
+   * 돌려보냈으므로, **일정을 옮기는 순간 두 화면이 서로에게 공을 넘겼다.** 날짜를
+   * 언제든 옮길 수 있게 만든 것이 그 자리에서 루프가 됐다.
+   *
+   * 같은 질문에 두 자리가 답하고 있었던 것이다. 답을 한 모양으로 맞춘다.
+   */
+  const acknowledged =
+    notice !== null &&
+    account?.notice_version === NOTICE_VERSION &&
+    account?.notice_schedule_id === notice.scheduleId;
 
-  const dates = await scheduleFrom((name) => supabase.rpc(name));
+  if (acknowledged) redirect('/me');
+
+  /*
+    **둘 다 있어야 안내가 선다.** 날짜가 없으면 보유기간을 말할 수 없고, 처리자와
+    연락처가 없으면 열람·정정·삭제를 어디에 요구하는지 말할 수 없다 — 어느 쪽이
+    비어도 지키는 것이 없는 문장만 남는다.
+  */
+  const ready = notice;
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
@@ -53,11 +76,11 @@ export default async function WelcomePage() {
         </p>
       </header>
 
-      {dates === null ? (
+      {ready === null ? (
         <p className={`${CARD} text-sm leading-6`}>{NOTICE_NOT_READY}</p>
       ) : (
         <>
-          {noticeFor(dates).map((section) => (
+          {noticeFor(ready.dates, ready.operator).map((section) => (
             <section key={section.title} className={`${CARD} flex flex-col gap-3`}>
               <h2 className="text-base font-bold">{section.title}</h2>
               <ul className="flex flex-col gap-2">
@@ -72,7 +95,7 @@ export default async function WelcomePage() {
 
           <section className={`${CARD}`}>
             {/* 본 날짜를 함께 싣는다 — 그 사이에 일정이 바뀌었으면 DB 가 거절한다 */}
-            <ConsentForm version={NOTICE_VERSION} endsOn={dates.endsOn} />
+            <ConsentForm version={NOTICE_VERSION} scheduleId={ready.scheduleId} />
           </section>
         </>
       )}

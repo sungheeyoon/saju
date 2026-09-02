@@ -70,6 +70,14 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',
+  /**
+   * **CI 는 느리다.** 기본 5초는 이 기계에서 넉넉하지만 공유 러너에서는 첫 그리기가
+   * 그보다 오래 걸려, 고장이 아닌 것이 빨간불이 됐다. 기다리는 시간을 늘리는 것은
+   * 무엇을 재는지를 바꾸지 않는다 — 안 나타나는 것은 여전히 안 나타난다.
+   */
+  expect: { timeout: process.env.CI ? 15_000 : 5_000 },
+  timeout: process.env.CI ? 60_000 : 30_000,
+
   use: {
     baseURL,
     trace: 'on-first-retry',

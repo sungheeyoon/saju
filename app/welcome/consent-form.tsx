@@ -16,7 +16,13 @@ import { acknowledgeNotice } from './actions';
  * **기본값은 꺼짐이다.** 미리 켜 두면 고른 것이 아니라 안 끈 것이 되고, 그것을 동의라고
  * 부를 수 없다.
  */
-export function ConsentForm({ version, endsOn }: { version: string; endsOn: string }) {
+export function ConsentForm({
+  version,
+  scheduleId,
+}: {
+  version: string;
+  scheduleId: number;
+}) {
   const router = useRouter();
   const [chosen, setChosen] = useState<Record<string, boolean>>({
     improvement: false,
@@ -30,8 +36,8 @@ export function ConsentForm({ version, endsOn }: { version: string; endsOn: stri
     startSaving(async () => {
       const result = await acknowledgeNotice({
         version,
-        /* 이 사람이 **본** 날짜다. 그 사이에 옮겼으면 DB 가 거절하고 새 화면을 보여 준다 */
-        endsOn,
+        /* 이 사람이 **본 안내의 줄**이다. 그 사이에 바뀌었으면 DB 가 거절한다 */
+        scheduleId,
         improvement: chosen.improvement === true,
         contact: chosen.contact === true,
       });

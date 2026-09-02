@@ -26,10 +26,17 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"
 지금은 아무도 시작할 수 없다. 종료일이 없으면 안내가 만들어지지 않고, 안내가 없으면
 `/welcome` 에 버튼이 없다(ADR 0024). 배포 없이 **언제든** 넣고 옮길 수 있다.
 
+**두 가지를 함께 넣는다** — 언제 끝나는가와 **누가 약속하는가**. 처리자와 연락처가 없으면
+열람·정정·삭제·처리정지가 적혀만 있는 권리가 되므로, 셋 중 하나라도 비면 안내가 안 선다.
+
 ```sql
--- 정한다. 파기 기한은 이 둘에서 나므로 따로 적지 않는다.
-insert into public.beta_schedule (ends_on, purge_within_days, note)
-values ('2026-10-31', 30, '고정 종료일 — 초대 시점과 무관하다');
+-- 정한다. 파기 기한은 종료일과 여유에서 나므로 따로 적지 않는다.
+insert into public.beta_schedule (
+  ends_on, purge_within_days, note,
+  operator_name, operator_officer, operator_contact)
+values (
+  '2026-10-31', 30, '고정 종료일 — 초대 시점과 무관하다',
+  '<처리자 이름 또는 상호>', '<보호책임자 이름>', '<직접 닿는 이메일 또는 전화>');
 
 -- 지금 값과 이력
 select * from public.current_beta_schedule();
@@ -42,6 +49,9 @@ select id, ends_on, purge_within_days, note, set_at from public.beta_schedule or
 > **옮기면 모두가 안내를 다시 본다.** 확인 기록이 판본과 **본 날짜**를 함께 들기
 > 때문이다(`notice_ends_on`). 기간이 바뀌는 것은 알린 내용이 바뀌는 것이라 그게 맞다 —
 > 다시 안 물으면 11월에 지운다는 안내를 보고 확인한 사람의 자료를 이듬해까지 들게 된다.
+
+> **연락처는 공개 화면에 그대로 실린다.** `/privacy` 는 로그인 없이 열리므로 여기 적는
+> 주소는 누구나 본다. 개인 주소를 쓸지 별도 창구를 팔지는 정하고 넣는다.
 
 **종료일은 초대와 무관하다.** 언제 몇 명을 초대하든 그날 끝난다 — 초대에서 며칠을 세는
 값이 아니므로, 테스터를 늦게 넣었다고 자동으로 밀리지 않는다. 밀려면 새 줄을 넣는다.
@@ -159,6 +169,22 @@ select * from public.forget_user('<user uuid>');
 ```sql
 delete from public.invite where email = '<지운 사람의 주소>';
 ```
+
+### 종료일이 되면 — **저절로 닫힌다**
+
+종료일이 지나면 `is_active_account()` 가 거짓이 되어 discovery·요청·수락·풀이 생성·설문이
+한꺼번에 닫히고, `/me` 아래는 「비공개 테스트가 끝났습니다」로 선다. 운영자가 그날 무엇을
+누르지 않아도 된다 — 날짜가 집행한다.
+
+```sql
+-- 닫혔는지 본다
+select public.beta_is_over(), * from public.current_beta_schedule();
+```
+
+미루려면 새 줄을 넣는다(위 「테스트 시작하기」). 넣는 순간 다시 열리고, **모두가 안내를
+다시 본다** — 기간이 바뀌는 것은 알린 내용이 바뀌는 것이다.
+
+파기는 저절로 안 된다. 아래를 손으로 돈다.
 
 ### 베타 종료 — 전부
 
@@ -394,14 +420,36 @@ order by a.deletion_requested_at;
 무엇을 지우고 무엇을 남길지는 **공개 출시 전에 확정하기로 한 항목**이다(PRD). 지금은
 아래를 지키고, 판단이 필요한 건은 남겨 둔다.
 
-- 성립한 Match 는 한쪽이 지울 수 없다. 두 사람의 것이다.
-- 공유된 현재 Reading 의 보존·삭제 기준은 아직 정해지지 않았다.
-- 계산 입력과 Person 은 지울 수 있다. 지우면 FK 가 판본·요청·Reading 을 따라 정리한다.
+- **성립한 Match 는 양쪽에서 사라진다.** 그 공유 결과와 알림도 함께. 고를 수 있는 다른
+  답이 없다 — 공유 결과는 서버가 두 판본을 읽어 자르는 것이라 한쪽이 사라지면 그 화면은
+  설 수 없다(ADR 0010·0023). 삭제 화면이 누르기 전에 이 사실을 말한다.
+- 계산 입력과 Person 은 지운다. 남이 함께 관리하는 Person 은 남고 「누가 만들었나」만
+  비워진다.
+- **처리 기한은 영업일 3일이다.** 화면과 처리방침이 그렇게 적혀 있다.
 
 ```sql
--- 실제로 지울 때 — auth 쪽을 지우면 app_user 가 따라간다(on delete cascade).
--- 되돌릴 수 없다. 위 목록으로 대상을 확인한 뒤에만 실행한다.
-delete from auth.users where id = '<user-id>';
+-- **`delete from auth.users` 를 직접 쓰지 않는다.**
+--
+-- 그 문장은 FK 가 닿는 것만 데려간다. 감사 로그(모든 행이 이메일을 든다)·flow state·
+-- 초대 명단은 사용자에 안 매여 있어 그대로 남는다(ADR 0023). 위의 「지우기」 절과 같은
+-- 문을 쓴다 — 절차가 둘이면 하나는 낡는다.
+select * from public.forget_user('<user-id>');
+```
+
+지운 뒤에는 **아래 「베타 종료 — 전부」의 검증 질의를 그대로** 돌려 그 사람의 흔적이
+없는지 본다. 한 사람을 지운 뒤라 전체가 0일 수는 없으므로, 그 사람의 이메일과 id 로
+좁혀 본다.
+
+```sql
+select
+  (select count(*) from auth.users where id = '<user-id>') as 계정,
+  -- **두 조건을 다 본다.** `forget_user` 가 그 둘로 지운다 — id 로만 세면 이메일만
+  -- 든 행(로그인 시도 등)이 남아도 0으로 보인다.
+  (select count(*) from auth.audit_log_entries
+   where payload ->> 'actor_id' = '<user-id>'
+      or payload ->> 'actor_username' = '<지운 주소>') as 감사로그,
+  (select count(*) from auth.flow_state where user_id = '<user-id>') as 로그인중간상태,
+  (select count(*) from public.invite where email = '<지운 주소>') as 초대명단;
 ```
 
 ---

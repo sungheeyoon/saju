@@ -214,9 +214,21 @@ test.describe('동의로 열리는 흐름', () => {
     await leaver.page.goto('/me/settings');
     await leaver.page.getByRole('button', { name: '계정 삭제 요청' }).click();
 
-    // **무엇이 지워지지 않는지**를 누르기 전에 말한다.
+    /*
+      **누르기 전에 읽는 말이 실제와 같아야 한다.**
+
+      이 줄은 「저장된 자료는 그 자리에서 지워지지 않습니다 … 두 사람의 기록은 한쪽이
+      지울 수 없습니다」를 잠그고 있었다. 그때는 참이었다 — 삭제 절차가 없었고 공유
+      결과를 어떻게 할지 정하지 않았다. ADR 0023 이 그것을 정하면서 **반대가 됐다**:
+      Match 는 양쪽 계정에 cascade 라 한쪽이 나가면 공유 결과가 양쪽에서 사라진다.
+
+      시험이 틀린 약속을 잠그고 있었던 것이다. 지금 계약을 잠근다.
+    */
     await expect(
-      leaver.page.getByText('저장된 자료는 그 자리에서 지워지지 않습니다', { exact: false }),
+      leaver.page.getByText('영업일 기준 3일 이내에 지웁니다', { exact: false }),
+    ).toBeVisible();
+    await expect(
+      leaver.page.getByText('상대 화면에서도 함께 사라집니다', { exact: false }),
     ).toBeVisible();
 
     await leaver.page.getByRole('button', { name: '삭제를 요청합니다' }).click();

@@ -49,6 +49,58 @@ test.describe('시작하기 전에', () => {
     /* 처리방침도 같은 말을 한다 — 두 화면이 같은 자료를 쓴다 */
     await page.goto('/privacy');
     await expect(page.getByText(NOTICE_NOT_READY)).toBeVisible();
+
+    /*
+      **되돌려 놓는다.** 이 표는 전역이라 비운 채로 끝내면 다음에 도는 것이 그 상태를
+      물려받는다 — 다른 파일의 손잡이가 확인을 못 남기고, 그때 그 빨간불은 무엇이
+      깨졌는지 말해 주지 않는다.
+    */
+    scheduleBeta(scheduledEndsOn());
+  });
+
+  /**
+   * **날짜를 옮기면 다시 묻고, 루프에 빠지지 않는다.**
+   *
+   * `/me` 는 판본과 날짜를 보고 여기로 보내는데 여기는 **판본만** 보고 돌려보냈다.
+   * 날짜를 언제든 옮길 수 있게 만든 것이 그 자리에서 `/me ↔ /welcome` 루프가 됐다 —
+   * 같은 질문에 두 자리가 다르게 답하고 있었던 것이다.
+   */
+  test('일정을 옮기면 다시 확인받고 루프에 빠지지 않는다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    scheduleBeta(scheduledEndsOn());
+
+    await page.goto('/me');
+    await expect(page).toHaveURL(/\/me$/);
+
+    /* 운영자가 미룬다 — 날짜가 아니라 **줄**이 바뀌므로, 같은 날짜로 연락처만 고쳐도 같다 */
+    scheduleBeta('2026-12-31');
+
+    await page.goto('/me');
+    await expect(page).toHaveURL(/\/welcome$/);
+    await expect(page.getByText(asKoreanDay('2026-12-31'), { exact: false })).toBeVisible();
+
+    /* 다시 확인하면 돌아온다 — 여기서 루프면 이 줄이 타임아웃으로 죽는다 */
+    await page.getByRole('button', { name: '확인하고 시작하기' }).click();
+    await expect(page).toHaveURL(/\/me$/);
+
+    /* 되돌려 둔다 — 뒤에 도는 시험이 이 표를 본다 */
+    scheduleBeta(scheduledEndsOn());
+  });
+
+  /**
+   * **종료일이 지나면 저절로 닫힌다.** 날짜가 적혀만 있고 집행되지 않으면 「10월 31일에
+   * 끝납니다」는 지키는 것이 없는 문장이다.
+   */
+  test('종료일이 지나면 내 사주가 끝났다고 말한다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    scheduleBeta('2020-01-01');
+
+    await page.goto('/me');
+
+    await expect(page.getByRole('heading', { name: '비공개 테스트가 끝났습니다' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
+
+    scheduleBeta(scheduledEndsOn());
   });
 
   test('안내를 확인하면 시작할 수 있다', async ({ page, newcomerRaw }) => {

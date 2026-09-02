@@ -68,10 +68,12 @@ export function scheduleBeta(endsOn: string | null): void {
     자리 사이에 다른 워커의 확인이 끼면 그 확인은 「일정이 없다」로 거절된다. 이미
     그 값이면 아무것도 안 한다.
   */
-  sql(`insert into public.beta_schedule (ends_on, note)
-       select '${endsOn}', '검사'
+  sql(`insert into public.beta_schedule
+         (ends_on, note, operator_name, operator_officer, operator_contact)
+       select '${endsOn}', '검사', '만세력 운영자', '검사 담당', 'ops@example.com'
        where coalesce((select s.ends_on from public.current_beta_schedule() s),
-                      '1900-01-01') <> '${endsOn}'`);
+                      '1900-01-01') <> '${endsOn}'
+          or (select s.operator_contact from public.current_beta_schedule() s) is null`);
 }
 
 /** 검사가 쓰는 종료일 — 하나뿐이라 손잡이와 시험이 같은 값을 본다 */
@@ -166,9 +168,10 @@ async function seed(
     */
     scheduleBeta(scheduledEndsOn());
 
+    const current = await client.rpc('current_beta_schedule');
     const passed = await client.rpc('acknowledge_notice', {
       p_version: NOTICE_VERSION,
-      p_ends_on: scheduledEndsOn(),
+      p_schedule_id: current.data?.[0]?.schedule_id,
       p_improvement: false,
       p_contact: false,
     });

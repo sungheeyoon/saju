@@ -9,7 +9,7 @@
 -- 3. **거절해도 서비스는 그대로다.** 닫히는 것은 설문 하나뿐이다.
 -- 4. **철회가 곧 지움이다.** 안내 화면에서 거절한 경우에도 같다.
 begin;
-select plan(23);
+select plan(33);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -37,12 +37,13 @@ select pg_temp.acting((select kim from fresh));
 
 /** 일정이 없으면 확인 자체가 안 남는다 — 안내가 만들어지지 않기 때문이다 */
 select throws_like(
-  $$select public.acknowledge_notice('notice-v1', '2026-10-31', false, true)$$,
+  $$select public.acknowledge_notice('notice-v1', (select s.schedule_id from public.current_beta_schedule() s), false, true)$$,
   '%기간이 정해지지%',
   '일정이 없으면 확인이 남지 않는다');
 
 reset role;
-insert into public.beta_schedule (ends_on, note) values ('2026-10-31', '시험');
+insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
+values ('2026-10-31', '시험', '운영자', '담당', 'ops@example.com');
 set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 
@@ -67,7 +68,7 @@ select throws_like(
 
 /** 판본을 안 들고 오면 무엇을 보여 줬는지 못 남긴다 */
 select throws_ok(
-  $$select public.acknowledge_notice('', '2026-10-31', true, true)$$,
+  $$select public.acknowledge_notice('', (select s.schedule_id from public.current_beta_schedule() s), true, true)$$,
   '23514', null, '판본 없이는 확인이 남지 않는다');
 
 /**
@@ -77,11 +78,11 @@ select throws_ok(
  * 안 물어본 사람이 같은 값이 되고, 다시 물어야 할 사람을 못 고른다.
  */
 select throws_ok(
-  $$select public.acknowledge_notice('notice-v1', '2026-10-31', null, false)$$,
+  $$select public.acknowledge_notice('notice-v1', (select s.schedule_id from public.current_beta_schedule() s), null, false)$$,
   '23514', null, '선택 항목을 비운 채로는 지나갈 수 없다');
 
 select lives_ok(
-  $$select public.acknowledge_notice('notice-v1', '2026-10-31', false, true)$$,
+  $$select public.acknowledge_notice('notice-v1', (select s.schedule_id from public.current_beta_schedule() s), false, true)$$,
   '확인과 선택 답이 함께 남는다');
 
 select is(
@@ -132,7 +133,7 @@ select is(
  * 동의를 근거로 처리하던 것은 동의가 사라지면 근거가 사라진다(ADR 0022).
  */
 select lives_ok(
-  $$select public.acknowledge_notice('notice-v2', '2026-10-31', true, false)$$,
+  $$select public.acknowledge_notice('notice-v2', (select s.schedule_id from public.current_beta_schedule() s), true, false)$$,
   '새 판본을 다시 확인할 수 있다');
 
 select is(
@@ -150,7 +151,7 @@ set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 
 select lives_ok(
-  $$select public.acknowledge_notice('notice-v3', '2026-10-31', false, false)$$,
+  $$select public.acknowledge_notice('notice-v3', (select s.schedule_id from public.current_beta_schedule() s), false, false)$$,
   '다시 물었을 때 거절할 수 있다');
 
 reset role;
@@ -172,7 +173,7 @@ set local role authenticated;
  */
 select pg_temp.acting(tests.signup('lee-notice@example.com'));
 select lives_ok(
-  $$select public.acknowledge_notice('notice-v9', '2026-10-31', true, true)$$,
+  $$select public.acknowledge_notice('notice-v9', (select s.schedule_id from public.current_beta_schedule() s), true, true)$$,
   '남이 자기 확인을 남긴다');
 
 reset role;
@@ -191,18 +192,20 @@ select is(
  * 받아 주면 그 사람은 11월에 지운다는 안내를 보고 확인했는데 기록은 이듬해가 된다.
  */
 reset role;
-insert into public.beta_schedule (ends_on, note) values ('2026-12-31', '연장');
+insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
+values ('2026-12-31', '연장', '운영자', '담당', 'ops@example.com');
 set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 
 select throws_like(
-  $$select public.acknowledge_notice('notice-v3', '2026-10-31', false, false)$$,
+  $$select public.acknowledge_notice('notice-v3', 1::bigint, false, false)$$,
   '%바뀌었습니다%',
-  '옛 날짜를 들고 온 확인은 거절된다');
+  '옛 안내를 들고 온 확인은 거절된다');
 
 select lives_ok(
-  $$select public.acknowledge_notice('notice-v3', '2026-12-31', false, false)$$,
-  '새 날짜로는 확인된다');
+  $$select public.acknowledge_notice('notice-v3',
+      (select s.schedule_id from public.current_beta_schedule() s), false, false)$$,
+  '지금 안내로는 확인된다');
 
 select is(
   (select a.notice_ends_on from public.app_user a where a.id = (select kim from fresh)),
@@ -222,6 +225,85 @@ select is(
   2,
   '일정을 옮겨도 앞의 약속이 남는다');
 set local role authenticated;
+
+-- ── 종료일이 끝낸다 ────────────────────────────────────────────────────────
+
+/**
+ * **적혀만 있던 날짜를 집행한다.**
+ *
+ * 일정은 안내에 날짜를 찍고 확인을 다시 받는 데만 쓰였다. 어느 접근 판정에도 안 걸려
+ * 있어서 다음 날에도 그대로 돌았다 — 「10월 31일에 끝납니다」라고 적어 두고 안 끝나면
+ * 그 문장은 지키는 것이 없다.
+ */
+select is(public.beta_is_over(), false, '종료일 전에는 안 끝났다');
+
+reset role;
+insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
+values ('2020-01-01', '지난 날', '운영자', '담당', 'ops@example.com');
+set local role authenticated;
+select pg_temp.acting((select kim from fresh));
+
+select is(public.beta_is_over(), true, '종료일이 지나면 끝난 것이다');
+
+/** **한 자리에 걸어 모든 문이 닫힌다** — 문마다 날짜를 적으면 하나는 안 고쳐진다 */
+select is(public.is_active_account(), false, '끝나면 계정이 활성이 아니다');
+
+select throws_like(
+  $$select * from public.start_reading_run('self', 'over-0001')$$,
+  '%끝났습니다%',
+  '끝난 뒤에는 풀이를 만들 수 없다 — 돈이 나가는 문이라 따로 건다');
+
+select throws_like(
+  $$select public.acknowledge_notice('notice-v3',
+      (select s.schedule_id from public.current_beta_schedule() s), false, false)$$,
+  '%끝났습니다%',
+  '끝난 뒤에는 확인도 안 받는다');
+
+/**
+ * **끝난 서비스가 새 자료를 받으면 안 된다.**
+ *
+ * 설문도 자격을 `reading_scope_for` 에 물었는데 그 함수는 `status` 열만 본다 —
+ * 풀이 생성에서 이미 만난 자리이고, 같은 이유로 여기도 종료 뒤에 답이 들어갔다.
+ */
+select throws_like(
+  format($$select public.leave_reading_feedback(%L::uuid, 4::smallint, 4::smallint, 'right')$$,
+    gen_random_uuid()),
+  '%',
+  '끝난 뒤에는 설문도 안 받는다');
+
+/**
+ * **`status` 는 안 건드린다.** 그 값은 「이 사람을 중지했다」는 운영 판단이고, 베타가
+ * 끝난 것은 그 사람에 대한 판단이 아니다 — 한 열에 적으면 종료 뒤에 중지를 풀 수 없다.
+ */
+reset role;
+select is(
+  (select a.status from public.app_user a where a.id = (select kim from fresh)),
+  'active',
+  '끝나도 계정 상태 자체는 그대로다');
+set local role authenticated;
+select pg_temp.acting((select kim from fresh));
+
+/** 미루면 다시 열린다 */
+reset role;
+insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
+values ('2099-12-31', '연장', '운영자', '담당', 'ops@example.com');
+set local role authenticated;
+select pg_temp.acting((select kim from fresh));
+
+select is(public.beta_is_over(), false, '날짜를 미루면 다시 열린다');
+
+/** 공백은 「있다」가 아니다 — 빈 문자열이 든 안내는 화면에 아무것도 안 적히는 자리를 만든다 */
+reset role;
+select throws_ok(
+  $$insert into public.beta_schedule
+      (ends_on, operator_name, operator_officer, operator_contact)
+    values ('2027-01-01', '  ', '담당', 'ops@example.com')$$,
+  '23514', null, '공백 운영자 정보는 안 들어간다');
+
+select throws_ok(
+  $$insert into public.beta_schedule (ends_on, operator_name)
+    values ('2027-01-01', '운영자')$$,
+  '23514', null, '셋 중 하나만 넣을 수 없다');
 
 select * from finish();
 rollback;
