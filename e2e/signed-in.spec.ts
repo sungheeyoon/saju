@@ -1,6 +1,11 @@
 import { expect, test } from './session';
 
-import { fillBirthDate, fillBirthTime } from './birth-form';
+import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
+import type { Page } from '@playwright/test';
+
+/** 익명 파일에서 함께 옮겨 온 손잡이 — 그 시험이 쓰던 것과 같은 값이다 */
+const sharedParams = (page: Page) =>
+  new URLSearchParams(new URL(page.url()).hash.slice(1));
 
 /**
  * 로그인한 사람의 세로 흐름 — **브라우저에서.**
@@ -443,4 +448,183 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('1990-06-20')).toBeVisible();
     await expect(page.getByText('1990-05-15')).toHaveCount(0);
   });
+});
+
+/**
+ * **로그인이 필요한데 익명 파일에 살던 것들.**
+ *
+ * `saju.spec.ts` 는 CI 가 도는 유일한 e2e 인데, 거기에 세션이 필요한 시험 넷이 섞여
+ * 있었다. CI 에는 살아 있는 Supabase 가 없으므로 그 넷은 **언제나 실패할 자리**였고,
+ * 앞선 단계가 먼저 죽는 동안 가려져 있었다. 파일이 재는 것을 파일 이름과 맞춘다.
+ */
+
+/**
+ * **로그인이 필요한데 익명 파일에 살던 것들.**
+ *
+ * `saju.spec.ts` 는 CI 가 도는 유일한 e2e 인데, 거기에 세션이 필요한 시험 넷이 섞여
+ * 있었다. CI 에는 살아 있는 Supabase 가 없으므로 그 넷은 **언제나 실패할 자리**였고,
+ * 앞선 단계가 먼저 죽는 동안 가려져 있었다. 파일이 재는 것을 파일 이름과 맞춘다.
+ */
+test.describe('로그인한 사람의 궁합 화면', () => {
+  /**
+   * 궁합 화면은 한 주소에 입력 두 벌을 싣는다. 접두사가 섞이면 상대의 생일로 내
+   * 사주가 나오므로, 링크로 다시 열었을 때 두 명식이 그대로인지가 본론이다.
+   */
+  test('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그대로 열린다', async ({
+    page,
+    context,
+    signedIn,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    expect(signedIn.label).not.toBe('');
+    const consoleErrors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') consoleErrors.push(message.text());
+    });
+
+    await page.goto('/compat');
+    await expect(
+      page.getByRole('heading', { name: '두 사람의 생년월일시를 입력해 주세요' }),
+    ).toBeVisible();
+
+    // **묶음의 이름이 입력한 이름으로 바뀐다**(`legend` 가 `nameOf(form, side)`다).
+    // 그래서 이름을 마지막에 채우고, 그 뒤로는 사람 이름으로 가리킨다.
+    for (const [placeholder, name, date, time] of [
+      ['첫 번째 사람', '민수', '1990-05-15', '14:30'],
+      ['두 번째 사람', '지영', '1992-08-20', '09:00'],
+    ] as const) {
+      const group = page.getByRole('group', { name: placeholder });
+
+      await fillBirthDate(group, date);
+      await fillBirthTime(group, time);
+      await group.getByLabel('이름', { exact: true }).fill(name);
+    }
+
+    /**
+     * **묻는 자리가 읽기 전이다.** 관계를 묻는 까닭이 「사이에 따라 해석의 방향을 달리
+     * 잡겠다」는 것이라, 두 화면 다 고르는 칸 옆에서 묻는다.
+     *
+     * 익명 화면은 우리가 모델을 안 부르지만 **프롬프트는 나간다**(복사해 붙여 넣는 글).
+     * 그 글에도 같은 구멍이 있었으므로 여기서도 묻는다.
+     */
+    await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
+    await page.getByRole('radio', { name: '가족' }).check();
+
+    const first = page.getByRole('group', { name: '민수' });
+    await page.getByRole('button', { name: '궁합 보기' }).click();
+
+    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
+
+    const shared = page.url();
+    const params = sharedParams(page);
+    expect(params.get('a.date')).toBe('1990-05-15');
+    expect(params.get('b.date')).toBe('1992-08-20');
+    expect(params.get('a.hour')).toBe('14:30');
+
+    const chart = await page.locator('main').innerText();
+
+    await page.goto(shared);
+    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
+    expect(await page.locator('main').innerText()).toBe(chart);
+    await expectBirthDate(first, '1990-05-15');
+    expect(consoleErrors).toEqual([]);
+
+    // 관계 표가 넓어 가로로 흐르기 쉽다 — 표 안에서만 스크롤되어야 한다.
+    const overflow = await page.evaluate(() => ({
+      client: document.documentElement.clientWidth,
+      scroll: document.documentElement.scrollWidth,
+    }));
+    expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
+
+    /**
+     * **고른 사이가 복사해 가는 글에 실린다.**
+     *
+     * 링크로 다시 연 자리라 라디오는 되돌아가 있다 — 링크를 받은 사람은 그 답을 한 적이
+     * 없으므로 그것이 맞다. 다시 고르고 복사해서 실제로 실리는지 본다.
+     */
+    await page.getByRole('radio', { name: '가족' }).check();
+
+    await page.getByText('풀이에 넘기는 자료').click();
+    await page.getByRole('button', { name: '궁합', exact: false }).first().click();
+    await page.getByRole('button', { name: '프롬프트 + 자료 복사' }).click();
+
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain('두 사람은 무슨 사이인가');
+    expect(copied).toContain('가족이다');
+    // 관계는 장면을 고르는 값이지 점수를 움직이는 값이 아니다.
+    expect(copied).toContain('점수는 이 값으로 움직이지 않는다');
+  });
+
+  /**
+   * 주소가 곧 결과라는 것을 화면이 말해 주지 않으면 아무도 링크를 공유하지 않는다.
+   * 버튼이 실제로 지금 주소를 클립보드에 넣는지까지 본다.
+   */
+
+  test('한 사람만 적힌 궁합 주소는 빈 폼으로 연다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    // 반쪽 링크로 남의 사주가 섞여 보이면 안 된다.
+    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30');
+    await expect(
+      page.getByRole('heading', { name: '두 사람의 생년월일시를 입력해 주세요' }),
+    ).toBeVisible();
+  });
+
+  /**
+   * 검증된 사실이 검증 중인 수치보다 먼저 읽혀야 한다 — `docs/product/matching-beta.md`
+   * 가 적어 둔 결정이고, 화면에서는 순서가 그 결정의 전부다. 지표 카드를 위로 올리는
+   * 변경은 여기서 걸린다. 관심 버튼도 함께 본다: 받지 않는 신청을 받는 것처럼
+   * 보이지 않기로 했으므로, 눌렀을 때 그렇게 말하는지가 계약이다.
+   */
+
+  test('베타 매칭 지표는 사실 아래에 서고, 관심 버튼은 받지 않는다고 말한다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+
+    const facts = page.getByRole('heading', { name: '두 원국 사이의 관계' });
+    await expect(facts).toBeVisible();
+    await expect(page.getByText('궁합 베타 · match-v0')).toBeVisible();
+
+    const shown = await page.locator('main').innerText();
+    expect(shown.indexOf('두 원국 사이의 관계')).toBeLessThan(shown.indexOf('먼저 보이는 신호'));
+
+    await page.getByRole('button', { name: '관심 있어요' }).click();
+    await expect(page.getByRole('status')).toContainText('신청을 받지 않고');
+  });
+
+  /**
+   * 넘길 자료는 **열기 전에는 만들지 않는다.** 두 사람짜리가 들여쓴 JSON 으로
+   * 460KB 라 방문마다 만들면 비싸고, 대부분의 방문은 이 칸을 안 연다.
+   *
+   * 그래서 여기서 보는 것은 「칸이 있다」가 아니라 **「열면 실제로 나온다」**이다.
+   * 상한 표가 서고 시각을 아는 명식과 모르는 명식에서 다르게 서는 것까지 본다 —
+   * 그 표가 이 자료의 요점이고, 값이 아니라 계약이라 화면 어디에도 없던 것이다.
+   */
+
+  test('넘길 자료는 열었을 때 상한 표와 함께 선다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+
+    const panel = page.getByRole('group').filter({ hasText: '풀이에 넘기는 자료' });
+    await expect(panel).toBeVisible();
+
+    // 닫혀 있는 동안에는 자료를 안 만든다 — 표도 버튼도 없다.
+    await expect(page.getByRole('button', { name: 'JSON 내려받기' })).toBeHidden();
+
+    await panel.getByText('풀이에 넘기는 자료').click();
+
+    await expect(page.getByRole('button', { name: 'JSON 내려받기' })).toBeVisible();
+    await expect(panel).toContainText('analysis.eokbu');
+    await expect(panel).toContainText('evidence-v0');
+    // 안 싣는 것도 이유와 함께 적힌다.
+    await expect(panel).toContainText('now');
+  });
+
+  /**
+   * 자료만 넘기면 계약은 값으로만 실려 있고, 받는 쪽이 모델이면 **읽히지 않은 채**
+   * 지나간다. 그래서 프롬프트를 함께 복사한다.
+   *
+   * 여기서 보는 것은 문구가 아니라 **경계**다 — 클립보드에 실제로 규칙이 먼저 들어가고
+   * 자료가 뒤에 붙는지, 그리고 한 사람일 때 두 사람용 프롬프트가 자리를 차지하지 않는지.
+   * 둘 다 브라우저로 눌러야만 보인다.
+   */
 });
