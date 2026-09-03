@@ -14,6 +14,18 @@ vi.mock('../reading/pipeline', () => ({
 
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
 
+/**
+ * 같은 명식을 찾는 일은 **여기서 재지 않는다.**
+ *
+ * 그것은 저장된 판본을 읽어 엔진으로 견주는 별개의 일이고 자기 시험을 갖는다
+ * (`app/same-chart.test.ts`). 여기서 재는 것은 **그 답을 받은 뒤에 무엇을 하는가**다.
+ * 안 눕히면 이 파일의 모든 검사가 `from()` 을 흉내 내는 일에 매달린다.
+ */
+const sameChart = vi.fn();
+vi.mock('../same-chart', () => ({
+  sameChartInMyList: (...args: unknown[]) => sameChart(...args),
+}));
+
 const { pairRelationFor, savePairForReading, startPairReading } = await import('./actions');
 
 const relationCall = () => rpc.mock.calls.find(([name]) => name === 'set_pair_relation');
@@ -23,6 +35,8 @@ beforeEach(() => {
   rpc.mockResolvedValue({ data: null, error: null });
   begin.mockReset();
   begin.mockResolvedValue({ ok: true, started: true });
+  sameChart.mockReset();
+  sameChart.mockResolvedValue(null);
 });
 
 /**
@@ -138,6 +152,8 @@ describe('직접 입력한 두 사람을 저장하는 자리', () => {
       p_relation: 'family',
     });
     expect(result).toEqual({ ok: true, personA: 'saved-a', personB: 'saved-b' });
+    // 아무도 「이미 있다」고 답하지 않았으면 둘 다 새로 만든다.
+    expect(saveCall()?.[1]).toMatchObject({ p_a_person: null, p_b_person: null });
   });
 
   /** 모르는 이름은 눕히지 않는다 — 서버 액션은 주소만 알면 아무 값이나 온다 */
@@ -170,6 +186,7 @@ describe('직접 입력한 두 사람을 저장하는 자리', () => {
   });
 
   /** 0행은 저장이 아니다 — 「했다」로 읽으면 없는 사람에게 풀이 화면을 연다 */
+  /** 0행은 저장이 아니다 — 「했다」로 읽으면 없는 사람에게 풀이 화면을 연다 */
   it('아무 줄도 안 오면 실패로 읽는다', async () => {
     rpc.mockResolvedValue({ data: [], error: null });
 
@@ -181,7 +198,71 @@ describe('직접 입력한 두 사람을 저장하는 자리', () => {
 
     expect(await savePairForReading(person('민수'), person('지영'), null)).toEqual({
       ok: false,
+      kind: 'failed',
       message: '등록할 수 있는 사람은 10명까지입니다.',
     });
+  });
+});
+
+/**
+ * **같은 명식이면 묻고 나서 저장한다** (ADR 0034).
+ *
+ * 막으려는 것은 중복 행이 아니라 **풀이권이 두 번 나가는 것**이다. 대상이 둘이면
+ * 풀이도 둘이고 풀이권도 둘이다(ADR 0013·0021).
+ */
+describe('같은 명식을 묻는 자리', () => {
+  const person = (name: string): Query => ({ ...DEFAULT_QUERY, name, date: '1990-05-15', time: '14:30' });
+  const saveCall = () => rpc.mock.calls.find(([name]) => name === 'create_pair_for_reading');
+  const same = { personId: 'already-there', label: '엄마', isSelf: false };
+
+  beforeEach(() => {
+    rpc.mockResolvedValue({ data: [{ person_a: 'saved-a', person_b: 'saved-b' }], error: null });
+  });
+
+  /** 물어야 하면 **아무것도 저장하지 않는다** — 저장하고 물으면 물을 이유가 없다 */
+  it('묻는 동안에는 저장하지 않는다', async () => {
+    sameChart.mockResolvedValueOnce(same);
+
+    expect(await savePairForReading(person('민수'), person('지영'), 'family')).toEqual({
+      ok: false,
+      kind: 'same-chart',
+      side: 'a',
+      same,
+    });
+    expect(saveCall()).toBeUndefined();
+  });
+
+  /** 「맞다」고 답한 쪽은 **만들지 않고 있는 것을 쓴다** */
+  it('맞다고 답한 쪽은 있는 사람으로 보낸다', async () => {
+    await savePairForReading(person('민수'), person('지영'), 'family', { a: 'already-there' });
+
+    expect(saveCall()?.[1]).toMatchObject({ p_a_person: 'already-there', p_b_person: null });
+  });
+
+  /**
+   * **「아니다」와 「아직 안 물었다」는 다른 값이다.**
+   *
+   * 둘을 합치면 「아니다」라고 답한 사람이 같은 물음을 영영 다시 받는다. `null` 이
+   * 답이고 없는 것이 아직 안 물은 것이다.
+   */
+  it('아니라고 답한 쪽은 다시 묻지 않는다', async () => {
+    sameChart.mockResolvedValue(same);
+
+    const result = await savePairForReading(person('민수'), person('지영'), null, { a: null });
+
+    // a 는 답이 있으니 건너뛰고 b 를 묻는다.
+    expect(result).toMatchObject({ kind: 'same-chart', side: 'b' });
+  });
+
+  it('둘 다 답했으면 더 묻지 않고 저장한다', async () => {
+    sameChart.mockResolvedValue(same);
+
+    const result = await savePairForReading(person('민수'), person('지영'), null, {
+      a: null,
+      b: 'already-there',
+    });
+
+    expect(result).toEqual({ ok: true, personA: 'saved-a', personB: 'saved-b' });
+    expect(saveCall()?.[1]).toMatchObject({ p_a_person: null, p_b_person: 'already-there' });
   });
 });

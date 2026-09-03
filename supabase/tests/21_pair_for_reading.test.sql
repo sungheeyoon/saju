@@ -6,6 +6,8 @@
 -- 2. **한도에 걸리면 아무도 안 남는다.** 등록을 두 번 부르던 길에서는 첫 사람만 남고
 --    되돌리는 일을 호출부가 기억해야 했다.
 -- 3. **문은 로그인한 사람에게만 열린다.**
+-- 4. **한쪽이 이미 저장돼 있으면 그 사람을 쓴다** — 새로 만들지 않는다(ADR 0034).
+--    그리고 내 목록에 없는 id 는 거절된다.
 --
 -- ## 한도 트리거는 **미룬 제약**이다
 --
@@ -13,7 +15,7 @@
 -- 트랜잭션 안에서 돌고 롤백으로 끝나므로, 그대로 두면 **이 시험은 한도를 한 번도 안
 -- 재고 통과한다.** 그래서 부르기 전에 즉시로 바꾼다 — 재려는 것이 실제로 서게.
 begin;
-select plan(14);
+select plan(19);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -33,13 +35,19 @@ begin
 end;
 $$;
 
-/** 두 사람을 저장하는 한 문 — 이름 말고는 다 같은 입력이라 시험이 짧아진다 */
-create or replace function pg_temp.save_pair(first text, second text, rel text)
+/**
+ * 두 사람을 저장하는 한 문 — 이름 말고는 다 같은 입력이라 시험이 짧아진다.
+ *
+ * 뒤의 둘은 「이미 저장돼 있다고 사용자가 답한 사람」이다. `null` 이면 새로 만든다.
+ */
+create or replace function pg_temp.save_pair(
+  first text, second text, rel text,
+  have_a uuid default null, have_b uuid default null)
 returns table (person_a uuid, person_b uuid) language sql as $$
   select * from public.create_pair_for_reading(
     first,  null, 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
     second, null, 'solar', '1992-08-20', '1992-08-20', '09:00', 'male',   '부산', 'jo', 'localMean',
-    rel);
+    rel, have_a, have_b);
 $$;
 
 /** 목록에 든 사람 수 — selfPerson 은 한도가 안 세므로 여기서도 뺀다 */
@@ -166,6 +174,81 @@ select is(
   (select remaining from public.my_person_slots()),
   3,
   '두 명을 빼면 두 자리가 돌아온다');
+
+-- ── 이미 저장된 사람이면 그 사람을 쓴다 (ADR 0034) ────────────────────────
+--
+-- 같은 사람을 두 번 저장하면 대상이 둘이 되고, 대상이 둘이면 **풀이권도 둘**이다.
+-- 사용자가 「저장된 그 사람이 맞다」고 답하면 그쪽은 만들지 않는다.
+--
+-- 「같은 명식인가」는 여기서 판정하지 않는다 — **DB 는 명식을 계산할 수 없다.** 앱이
+-- 견주어 물어보고, 이 문은 그 답을 받아 한 사람만 만드는 길을 연다.
+
+/**
+ * 남의 사람 id 는 **그 사람으로 도는 동안** 집는다.
+ *
+ * 처음에는 kim 으로 돌면서 `where a.user_id = lee` 로 찾았다. 그 select 도 정책을
+ * 지나므로 **0행이 오고**, `null` 이 넘어가 새 사람이 만들어졌다 — 재려던 거절을
+ * 한 번도 안 재고 「예외가 없다」로 떨어졌다. 정책이 막는 것을 시험이 그대로 맞았다.
+ */
+select pg_temp.acting((select lee from folks));
+
+create temporary table other_persons as
+select a.person_id as id
+from public.user_person_access a
+join public.app_user u on u.id = a.user_id
+where a.person_id is distinct from u.self_person_id
+limit 1;
+grant select on other_persons to authenticated;
+
+/**
+ * **빈 계정으로 잰다.** 앞선 검사들이 kim·lee 에 사람을 쌓아 두어서, 그 둘로 세면
+ * 「둘이 늘었나」가 아니라 「앞에서 몇을 만들었나」를 재게 된다.
+ */
+create temporary table fresh as select pg_temp.joins('park-pair@example.com') as uid;
+grant select on fresh to authenticated;
+
+create temporary table already as
+select person_a as one, person_b as two from pg_temp.save_pair('먼저', '나중', 'family');
+grant select on already to authenticated;
+
+select is(
+  pg_temp.managed((select uid from fresh)),
+  2::bigint,
+  '먼저 둘이 들어간다');
+
+/** 한쪽이 이미 있다고 답하면 **한 사람만** 는다 */
+create temporary table reused as
+select person_a as one, person_b as two
+from pg_temp.save_pair('안 만들어짐', '또 하나', 'friend', (select one from already));
+grant select on reused to authenticated;
+
+select is(
+  pg_temp.managed((select uid from fresh)),
+  3::bigint,
+  '한쪽이 이미 있으면 한 사람만 는다');
+
+select is(
+  (select one from reused),
+  (select one from already),
+  '그 자리에는 있던 사람이 그대로 선다 — 새 id 가 아니다');
+
+/**
+ * **주는 id 가 내 것인지 문이 묻는다.**
+ *
+ * 안 물으면 남의 person id 를 넣어 내 `pair_relation` 에 줄을 만들 수 있다.
+ * 없는 사람과 못 보는 사람을 가르지 않는다 — 정책이 이미 자기 줄만 내준다.
+ */
+select throws_ok(
+  format($$select * from pg_temp.save_pair('아무', '누구', null, %L::uuid)$$,
+    (select id from other_persons)),
+  '42501',
+  '저장한 사람 목록에 없는 사람입니다.',
+  '남의 사람 id 로는 쌍을 만들 수 없다');
+
+select is(
+  pg_temp.managed((select uid from fresh)),
+  3::bigint,
+  '거절되면 아무도 안 남는다 — 여기서도 한 문이다');
 
 -- ── 문은 로그인한 사람에게만 ──────────────────────────────────────────────
 

@@ -9,6 +9,7 @@ import { BirthFields } from '../../birth-form';
 import { DEFAULT_QUERY, missingAnswer, type Query } from '../../query';
 import { NOTE_MAX } from '../../revision';
 import { addManagedPerson, removeFromList, updateNote } from '../actions';
+import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from '../../same-chart-ask';
 
 /**
  * 목록을 손대는 세 자리 — 추가·메모·빼기.
@@ -39,23 +40,53 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   const [query, setQuery] = useState<Query>({ ...DEFAULT_QUERY, name: '' });
   const [note, setNote] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
+  /** 같은 명식이 이미 있으면 여기 선다 — 서 있는 동안 등록 버튼은 자리를 비운다 */
+  const [question, setQuestion] = useState<SameChartQuestion | null>(null);
   const [saving, startSaving] = useTransition();
 
   const missing = missingAnswer(query);
 
+  /**
+   * 「맞다」면 **아무것도 등록하지 않고** 그 사람에게 간다 — 자리도 안 쓰고 대상도 안 는다.
+   * 목적은 중복 행이 아니라 **풀이권이 두 번 나가는 것**을 막는 것이다(ADR 0034).
+   */
+  const attempt = async (evenIfSameChart: boolean): Promise<SaveOutcome> => {
+    const result = await addManagedPerson(query, note, evenIfSameChart);
+
+    if (result.ok) {
+      setQuery({ ...DEFAULT_QUERY, name: '' });
+      setNote('');
+      setOpen(false);
+      router.refresh();
+      return { done: true };
+    }
+    if (result.kind === 'failed') return { failed: result.message };
+
+    const { same } = result;
+    return {
+      ask: {
+        label: same.label,
+        answer: async (sameperson) => {
+          if (!sameperson) return attempt(true);
+          router.push(same.isSelf ? '/me' : `/me/people/${same.personId}`);
+          return { done: true };
+        },
+      },
+    };
+  };
+
+  const settle = (outcome: SaveOutcome) => {
+    if ('failed' in outcome) {
+      setFailure(outcome.failed);
+      setQuestion(null);
+      return;
+    }
+    setQuestion('ask' in outcome ? outcome.ask : null);
+  };
+
   const save = () => {
     setFailure(null);
-    startSaving(async () => {
-      const result = await addManagedPerson(query, note);
-      if (result.ok) {
-        setQuery({ ...DEFAULT_QUERY, name: '' });
-        setNote('');
-        setOpen(false);
-        router.refresh();
-      } else {
-        setFailure(result.message);
-      }
-    });
+    startSaving(async () => settle(await attempt(false)));
   };
 
   // 못 읽었으면(`null`) 막지 않는다 — 막는 것은 DB 이고 화면은 먼저 말해 줄 뿐이다.
@@ -91,21 +122,36 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
 
       <NoteField value={note} onChange={setNote} idPrefix="add" />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON}>
-          {saving ? '저장하는 중…' : '등록'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          disabled={saving}
-          className="text-sm text-secondary underline underline-offset-2"
-        >
-          그만두기
-        </button>
-        {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-        {missing !== null && <span className="text-xs text-muted">{missing}</span>}
-      </div>
+      {question !== null ? (
+        /*
+          **물음이 서면 등록 버튼은 내려간다.** 둘을 함께 세우면 답하지 않고 다시 누를 수
+          있고, 그러면 같은 물음이 또 온다 — 그때 사용자는 자기 답이 안 먹혔다고 읽는다.
+        */
+        <SameChartAsk
+          question={question}
+          busy={saving}
+          onAnswer={(sameperson) => {
+            setFailure(null);
+            startSaving(async () => settle(await question.answer(sameperson)));
+          }}
+        />
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON}>
+            {saving ? '저장하는 중…' : '등록'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            disabled={saving}
+            className="text-sm text-secondary underline underline-offset-2"
+          >
+            그만두기
+          </button>
+          {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
+          {missing !== null && <span className="text-xs text-muted">{missing}</span>}
+        </div>
+      )}
 
       {failure !== null && <p className="text-sm text-muted">저장하지 못했습니다 — {failure}</p>}
     </section>

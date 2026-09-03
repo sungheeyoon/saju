@@ -93,6 +93,17 @@ export function hideEveryoneExcept(emails: readonly string[]): void {
 }
 
 /**
+ * 저장 자리 한도 — **검사가 수를 손으로 적지 않게.**
+ *
+ * `person_limit()` 은 모든 역할에 닫혀 있지만 이 문은 `postgres` 로 돈다. 화면이 말하는
+ * 「앞으로 N명 더」를 재려면 그 N 이 어디서 오는지 검사도 알아야 하는데, 그 수를 여기
+ * 적으면 한도를 옮기는 날 **검사만 옛 수를 지킨다.**
+ */
+export function personLimit(): number {
+  return Number(sql('select public.person_limit()'));
+}
+
+/**
  * 저장한 사람 자리를 채워 **정확히 `free` 자리만 남긴다** — 한도에 닿은 화면을 재려고.
  *
  * `create_managed_person` 을 한도만큼 부르는 것이 정직하지만, 재려는 것은 등록이 아니라
@@ -107,17 +118,6 @@ export function hideEveryoneExcept(emails: readonly string[]): void {
  * 받아서 **DB 에 지금 몇이 들어 있고 한도가 얼마인지 물어** 그만큼 넣는다.
  * `person_limit()` 은 모든 역할에 닫혀 있지만 이 문은 `postgres` 로 돈다.
  */
-/**
- * 저장 자리 한도 — **검사가 수를 손으로 적지 않게.**
- *
- * `person_limit()` 은 모든 역할에 닫혀 있지만 이 문은 `postgres` 로 돈다. 화면이 말하는
- * 「앞으로 N명 더」를 재려면 그 N 이 어디서 오는지 검사도 알아야 하는데, 그 수를 여기
- * 적으면 한도를 옮기는 날 **검사만 옛 수를 지킨다.**
- */
-export function personLimit(): number {
-  return Number(sql('select public.person_limit()'));
-}
-
 export function leavePersonSlots(email: string, free: number): void {
   sql(`
     with here as (

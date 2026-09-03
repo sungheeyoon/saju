@@ -391,7 +391,13 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     signedIn,
   }) => {
     expect(signedIn.label).not.toBe('');
-    await page.goto('/#date=1990-05-15&hour=14:30');
+    /*
+      **씨앗의 자기 사주와 안 겹치는 날을 쓴다.** 씨앗은 1990-05-15 14:30 으로 자기
+      사주를 든다(`BIRTH`). 그 날을 여기 쓰면 저장 직전에 「저장된 나와 같은 사람인가요?」
+      가 서고(ADR 0034), 이 검사가 재려던 것은 그것이 아니다. 성별을 바꿔도 안 갈린다 —
+      여덟 글자는 성별로 갈리지 않는다.
+    */
+    await page.goto('/#date=1988-11-07&hour=09:15');
 
     /*
       **도착지가 부르는 이름을 그대로 쓴다.** 제목이 「AI 풀이」였던 동안 이 칸은 앱
@@ -414,6 +420,83 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '상우의 사주풀이' })).toBeVisible();
     // 이미 저장된 사람에게 「저장하세요」가 다시 서지 않는다.
     await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toHaveCount(0);
+  });
+
+  /**
+   * **같은 명식이면 저장하기 전에 묻는다** (ADR 0034).
+   *
+   * 막으려는 것은 중복 행이 아니라 **풀이권이 두 번 나가는 것**이다 — 대상이 둘이면
+   * 풀이도 둘이고 풀이권도 둘이다(ADR 0013·0021).
+   *
+   * `signedIn` 이 든 「어머니」와 **같은 입력**을 친다. 이름만 다르다 — 그것이 정확히
+   * 사용자가 자기가 이미 저장한 줄 모르는 경우다.
+   *
+   * **도시를 인코딩한다.** 조각에 한글을 그대로 실으면 도시가 안 잡히고, 그러면
+   * 「다시 보기」 버튼이 영영 잠긴 채로 남는다 — 처음에 이 검사가 그렇게 걸렸다.
+   *
+   * 이 흐름은 **단위 시험으로 못 잰다.** 견주는 일은 서버에서 저장된 판본을 읽어
+   * 엔진으로 다시 계산하는 것이라, 세 조각(엔진·저장된 판본·저장 액션)이 서로에 대해
+   * 옳은지는 실제로 이어 봐야 드러난다.
+   */
+  const SAME_AS_MOTHER = `/#${new URLSearchParams({
+    date: '1962-03-02',
+    hour: '07:10',
+    gender: 'female',
+    city: '대구',
+  })}`;
+
+  test('같은 명식을 저장하려 하면 묻고, 맞다고 하면 그 사람에게 간다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto(SAME_AS_MOTHER);
+    // 붙기 전에 채우면 React 가 그 값을 안 보고, 그러면 「다시 보기」가 영영 잠긴다.
+    await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toBeVisible();
+
+    await page.getByLabel('이름', { exact: true }).fill('엄마');
+    await page.getByRole('button', { name: '수정한 정보로 다시 보기' }).click();
+    await page.getByRole('button', { name: '이 사람을 저장하고 사주풀이로 가기' }).click();
+
+    const ask = page.getByRole('group', { name: '같은 사람인지 확인' });
+    await expect(ask).toContainText('저장된 어머니 님과 같은 사람인가요?');
+    // 왜 묻는지 적는다 — 「이미 있습니다」로 끝내면 막는 줄로 읽는다.
+    await expect(ask).toContainText('풀이권을 한 번 더');
+
+    /*
+      **물음이 서면 저장 버튼은 내려간다.** 함께 세우면 답하지 않고 다시 누를 수 있고,
+      그때 사용자는 자기 답이 안 먹혔다고 읽는다.
+    */
+    await expect(
+      page.getByRole('button', { name: '이 사람을 저장하고 사주풀이로 가기' }),
+    ).toHaveCount(0);
+
+    await ask.getByRole('button', { name: '네, 같은 사람입니다' }).click();
+
+    await expect(page).toHaveURL(/\/me\/people\/[0-9a-f-]+$/);
+    // 「엄마」가 아니라 저장돼 있던 이름이다 — 아무것도 새로 저장되지 않았다.
+    await expect(page.getByRole('heading', { name: '어머니의 사주', exact: true })).toBeVisible();
+
+    await page.goto('/me/people');
+    await expect(page.getByRole('heading', { name: '엄마' })).toHaveCount(0);
+  });
+
+  /**
+   * **「아니다」가 있어야 한다.** 쌍둥이가 있고 생년월일시가 겹치는 남남이 있다.
+   * 강제로 합치면 우리가 모르는 것을 아는 척하는 것이다(ADR 0005).
+   */
+  test('다른 사람이라고 답하면 그대로 저장된다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto(SAME_AS_MOTHER);
+    await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toBeVisible();
+
+    await page.getByLabel('이름', { exact: true }).fill('쌍둥이');
+    await page.getByRole('button', { name: '수정한 정보로 다시 보기' }).click();
+    await page.getByRole('button', { name: '이 사람을 저장하고 사주풀이로 가기' }).click();
+
+    const ask = page.getByRole('group', { name: '같은 사람인지 확인' });
+    await expect(ask).toBeVisible();
+    await ask.getByRole('button', { name: '아니요, 다른 사람입니다' }).click();
+
+    await expect(page).toHaveURL(/\/me\/people\/[0-9a-f-]+$/);
+    await expect(page.getByRole('heading', { name: '쌍둥이의 사주', exact: true })).toBeVisible();
   });
 
   test('사람을 추가하면 목록에 서고 그 사람과의 수동 궁합이 열린다', async ({ page, signedIn }) => {
@@ -654,7 +737,8 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     signedIn,
   }) => {
     expect(signedIn.label).not.toBe('');
-    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+    // 첫 칸이 씨앗의 자기 사주와 같은 날이면 저장 직전에 같은 명식 물음이 선다(ADR 0034).
+    await page.goto('/compat#a.date=1988-11-07&a.hour=09:15&b.date=1992-08-20&b.hour=09:00');
 
     await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
 

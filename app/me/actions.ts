@@ -6,6 +6,7 @@ import { relationOf } from '@/src/lib/people';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { missingAnswer, type Query } from '../query';
+import { sameChartInMyList, type SameChart } from './same-chart';
 import { selfElementSummary } from './summary';
 import {
   managedPersonArgs,
@@ -22,8 +23,14 @@ export type SaveResult = { ok: true } | { ok: false; message: string };
  *
  * 「됐다」만 돌려주면 부르는 쪽이 그 사람의 화면으로 갈 수 없다. 목록을 다시 그리는
  * 화면은 이 값을 안 봐도 되므로 `SaveResult` 를 넓히는 대신 갈래를 하나 둔다.
+ *
+ * **셋째 갈래가 「아직 저장 안 했고 물어봐야 한다」다.** `ok: false` 안에서 `kind` 로
+ * 가른다 — 거절과 물음은 화면이 할 일이 다르다(하나는 문장을 세우고 하나는 칸을 연다).
  */
-export type PersonSaved = { ok: true; personId: string } | { ok: false; message: string };
+export type PersonSaved =
+  | { ok: true; personId: string }
+  | { ok: false; kind: 'failed'; message: string }
+  | { ok: false; kind: 'same-chart'; same: SameChart };
 
 /**
  * 자기 사주를 저장한다.
@@ -74,22 +81,40 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
  *
  * 한도에 걸렸을 때 나오는 말은 DB 가 쓴 문장 그대로다 — 사람이 읽을 수 있게 써 뒀다.
  */
-export async function addManagedPerson(query: Query, note: string): Promise<PersonSaved> {
+export async function addManagedPerson(
+  query: Query,
+  note: string,
+  /**
+   * 같은 명식이 있어도 **그대로 저장한다** — 사용자가 「아니다」라고 답했을 때만 참이다.
+   *
+   * 기본값이 「묻는다」인 것이 요점이다. 「확인했으면 참을 넘겨라」로 두면 호출부 셋 중
+   * 하나는 그것을 잊고, 잊은 자리는 조용히 옛 동작으로 돈다 — **호출부가 잊지 않아야
+   * 맞는 기본값은 틀린 기본값이다.**
+   */
+  evenIfSameChart = false,
+): Promise<PersonSaved> {
   const missing = missingAnswer(query);
-  if (missing !== null) return { ok: false, message: missing };
+  if (missing !== null) return { ok: false, kind: 'failed', message: missing };
 
   const unsupported = unsupportedForSaving(query);
-  if (unsupported !== null) return { ok: false, message: unsupported };
+  if (unsupported !== null) return { ok: false, kind: 'failed', message: unsupported };
+
+  if (!evenIfSameChart) {
+    const same = await sameChartInMyList(query);
+    if (same !== null) return { ok: false, kind: 'same-chart', same };
+  }
 
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc('create_managed_person', managedPersonArgs(query, note));
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, kind: 'failed', message: error.message };
   /**
    * 0행은 저장이 아니다 — 「했다」로 읽으면 없는 사람의 화면을 열러 간다. 목록만 다시
    * 그리는 화면은 이 값을 안 봐도 되지만, **못 받았다는 사실은 값으로 남는다.**
    */
-  if (typeof data !== 'string') return { ok: false, message: '저장한 사람을 찾지 못했습니다.' };
+  if (typeof data !== 'string') {
+    return { ok: false, kind: 'failed', message: '저장한 사람을 찾지 못했습니다.' };
+  }
 
   revalidatePath('/me/people');
   return { ok: true, personId: data };
@@ -105,8 +130,11 @@ export async function addManagedPerson(query: Query, note: string): Promise<Pers
  * 메모는 안 받는다. 이 입구는 이름과 여덟 글자만 들고 왔고, **묻지 않은 것을 빈 값으로
  * 채워 저장하지 않는다** — 메모는 사람 탭에서 언제든 적을 수 있다.
  */
-export async function savePersonForReading(query: Query): Promise<PersonSaved> {
-  return addManagedPerson(query, '');
+export async function savePersonForReading(
+  query: Query,
+  evenIfSameChart = false,
+): Promise<PersonSaved> {
+  return addManagedPerson(query, '', evenIfSameChart);
 }
 
 /**

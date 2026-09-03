@@ -9,10 +9,11 @@ import { noRoomToSave, type PersonSlots, type Relation } from '@/src/lib/people'
 import { supabaseInBrowser } from './auth/browser-client';
 import { CARD } from './card';
 import { savePersonForReading } from './me/actions';
-import { savePairForReading } from './me/compat/actions';
+import { savePairForReading, type PairAnswers } from './me/compat/actions';
 import { personSlotsFrom } from './person-slots';
 import type { Query } from './query';
 import { RelationChoice } from './relation-choice';
+import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
 
 /**
  * 직접 입력한 사람으로 **풀이까지 가는 길** — 사주 한 장과 궁합 둘이 같은 칸을 쓴다.
@@ -110,18 +111,35 @@ function SaveCard({
   ask?: ReactNode;
   label: string;
   note: ReactNode;
-  onSave: () => Promise<string | null>;
+  onSave: () => Promise<SaveOutcome>;
 }) {
   const context = useSaveContext();
   const [failure, setFailure] = useState<string | null>(null);
+  /**
+   * 물어야 할 것이 있으면 여기 선다 — **물음이 서 있는 동안 저장 버튼은 자리를 비운다.**
+   * 둘을 함께 세우면 사용자가 답하지 않고 다시 누를 수 있고, 그러면 같은 물음이 또 온다.
+   */
+  const [question, setQuestion] = useState<SameChartQuestion | null>(null);
   const [saving, startSaving] = useTransition();
+
+  const settle = (outcome: SaveOutcome) => {
+    if ('failed' in outcome) {
+      setFailure(outcome.failed);
+      setQuestion(null);
+      return;
+    }
+    setQuestion('ask' in outcome ? outcome.ask : null);
+  };
 
   const save = () => {
     setFailure(null);
-    startSaving(async () => {
-      const failed = await onSave();
-      if (failed !== null) setFailure(failed);
-    });
+    startSaving(async () => settle(await onSave()));
+  };
+
+  const answer = (sameperson: boolean) => {
+    if (question === null) return;
+    setFailure(null);
+    startSaving(async () => settle(await question.answer(sameperson)));
   };
 
   /** 아직 모르는 동안은 자리를 비운다 — 버튼을 세웠다 지우면 화면이 흔들린다 */
@@ -160,7 +178,13 @@ function SaveCard({
 
       {ask}
 
-      {noRoom !== null ? (
+      {question !== null ? (
+        /*
+          **물음이 서면 저장 버튼은 내려간다.** 둘을 함께 세우면 답하지 않고 다시 누를 수
+          있고, 그러면 같은 물음이 또 온다 — 그때 사용자는 자기 답이 안 먹혔다고 읽는다.
+        */
+        <SameChartAsk question={question} busy={saving} onAnswer={answer} />
+      ) : noRoom !== null ? (
         /*
           **버튼 자리에 무엇을 해야 하는지가 선다.** 잠긴 버튼만 두면 왜 안 눌리는지
           찾아야 하고, 그냥 눌리게 두면 눌러도 아무 일이 안 일어난다 — 한 문으로
@@ -223,6 +247,30 @@ export function SaveForReading({ a, b }: { a: Query; b: Query }) {
   const router = useRouter();
   const [relation, setRelation] = useState<Relation | null>(null);
 
+  /**
+   * **두 번 물을 수 있다.** 둘 다 이미 저장돼 있으면 한쪽씩 답한다.
+   *
+   * 답한 쪽은 `answered` 에 남아 다시 안 묻는다 — `null` 이 「아니라고 답했다」이고
+   * 없는 것이 「아직 안 물었다」다. 그 둘을 한 값으로 합치면 「아니다」라고 답한 사람이
+   * 같은 물음을 영영 다시 받는다.
+   */
+  const savePair = async (answered: PairAnswers): Promise<SaveOutcome> => {
+    const saved = await savePairForReading(a, b, relation, answered);
+    if (saved.ok) {
+      router.push(`/me/compat?a=${saved.personA}&b=${saved.personB}`);
+      return { done: true };
+    }
+    if (saved.kind === 'failed') return { failed: saved.message };
+
+    return {
+      ask: {
+        label: saved.same.label,
+        answer: (sameperson) =>
+          savePair({ ...answered, [saved.side]: sameperson ? saved.same.personId : null }),
+      },
+    };
+  };
+
   return (
     <SaveCard
       needed={2}
@@ -238,13 +286,7 @@ export function SaveForReading({ a, b }: { a: Query; b: Query }) {
       }
       label="두 사람을 저장하고 궁합 풀이로 가기"
       note={`저장한 사람 목록에 ${called(a.name, '첫 번째 사람')} · ${called(b.name, '두 번째 사람')} 두 분이 추가됩니다.`}
-      onSave={async () => {
-        const saved = await savePairForReading(a, b, relation);
-        if (!saved.ok) return saved.message;
-
-        router.push(`/me/compat?a=${saved.personA}&b=${saved.personB}`);
-        return null;
-      }}
+      onSave={() => savePair({})}
     />
   );
 }
@@ -258,6 +300,31 @@ export function SaveForReading({ a, b }: { a: Query; b: Query }) {
 export function SavePersonForReading({ query }: { query: Query }) {
   const router = useRouter();
 
+  /**
+   * 「맞다」면 **아무것도 저장하지 않고** 그 사람에게 간다. 자리도 안 쓰고 대상도 안 는다 —
+   * 그것이 이 물음이 있는 이유다.
+   */
+  const savePerson = async (evenIfSameChart: boolean): Promise<SaveOutcome> => {
+    const saved = await savePersonForReading(query, evenIfSameChart);
+    if (saved.ok) {
+      router.push(`/me/people/${saved.personId}`);
+      return { done: true };
+    }
+    if (saved.kind === 'failed') return { failed: saved.message };
+
+    const { same } = saved;
+    return {
+      ask: {
+        label: same.label,
+        answer: async (sameperson) => {
+          if (!sameperson) return savePerson(true);
+          router.push(same.isSelf ? '/me' : `/me/people/${same.personId}`);
+          return { done: true };
+        },
+      },
+    };
+  };
+
   return (
     <SaveCard
       needed={1}
@@ -265,13 +332,7 @@ export function SavePersonForReading({ query }: { query: Query }) {
       saveWhat="이 사람"
       label="이 사람을 저장하고 사주풀이로 가기"
       note={`저장한 사람 목록에 ${called(query.name, '이 사람')}이(가) 추가됩니다.`}
-      onSave={async () => {
-        const saved = await savePersonForReading(query);
-        if (!saved.ok) return saved.message;
-
-        router.push(`/me/people/${saved.personId}`);
-        return null;
-      }}
+      onSave={() => savePerson(false)}
     />
   );
 }

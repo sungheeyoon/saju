@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { relationOf, type Relation } from '@/src/lib/people';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { sameChartInMyList, type SameChart } from '../same-chart';
 import { missingAnswer, type Query } from '../../query';
 import { managedPersonArgs, unsupportedForSaving } from '../../revision';
 import { beginReading, type ReadingStart } from '../reading/pipeline';
@@ -96,21 +97,51 @@ export async function startPairReading(
  * 것은 **모양**뿐이고, 그마저도 사람이 읽을 말로 돌려주려는 것이다(`saveSelfPerson` 과
  * 같은 규율). 한도에 걸리면 **아무도 저장되지 않는다** — 한 트랜잭션이라 그렇다.
  */
+/**
+ * 어느 쪽이 이미 저장돼 있나 — **한쪽씩 답한다.**
+ *
+ * 둘 다 이미 있을 수 있으므로 물음도 두 번 갈 수 있다. 한 번에 둘을 물으면 화면이
+ * 「첫 번째는 맞고 두 번째는 아니다」를 한 칸에 담아야 하고, 그 칸은 누구도 안 읽는다.
+ */
 export type PairSaved =
   | { ok: true; personA: string; personB: string }
-  | { ok: false; message: string };
+  | { ok: false; kind: 'failed'; message: string }
+  | { ok: false; kind: 'same-chart'; side: 'a' | 'b'; same: SameChart };
+
+/**
+ * 사용자가 「같은 사람이다」라고 답한 쪽 — **그쪽은 만들지 않고 있는 것을 쓴다.**
+ *
+ * `null` 이면 아직 안 물었거나 「아니다」라고 답한 것이고, 그때는 새로 만든다.
+ * 확인은 DB 가 한 번 더 한다(`person_for_pair` — 내 목록에 없는 id 는 거절된다).
+ */
+export type PairAnswers = { readonly a?: string | null; readonly b?: string | null };
 
 export async function savePairForReading(
   a: Query,
   b: Query,
   relation: string | null,
+  answered: PairAnswers = {},
 ): Promise<PairSaved> {
   for (const one of [a, b]) {
     const missing = missingAnswer(one);
-    if (missing !== null) return { ok: false, message: missing };
+    if (missing !== null) return { ok: false, kind: 'failed', message: missing };
 
     const unsupported = unsupportedForSaving(one);
-    if (unsupported !== null) return { ok: false, message: unsupported };
+    if (unsupported !== null) return { ok: false, kind: 'failed', message: unsupported };
+  }
+
+  /**
+   * **아직 안 물은 쪽만 묻는다.** 답한 쪽을 다시 물으면 「아니다」라고 답한 사람이 같은
+   * 물음을 영영 다시 받는다.
+   */
+  for (const [side, query, answer] of [
+    ['a', a, answered.a],
+    ['b', b, answered.b],
+  ] as const) {
+    if (answer !== undefined) continue;
+
+    const same = await sameChartInMyList(query);
+    if (same !== null) return { ok: false, kind: 'same-chart', side, same };
   }
 
   const supabase = await supabaseOnServer();
@@ -120,12 +151,16 @@ export async function savePairForReading(
     ...prefixed(managedPersonArgs(b, ''), 'b'),
     // 모르는 값은 모르는 채로 넘긴다 — 서버 액션은 주소만 알면 아무 값이나 온다.
     p_relation: relationOf(relation),
+    p_a_person: answered.a ?? null,
+    p_b_person: answered.b ?? null,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, kind: 'failed', message: error.message };
 
   const saved = ((data ?? []) as { person_a: string; person_b: string }[])[0];
-  if (saved === undefined) return { ok: false, message: '두 사람을 저장하지 못했습니다.' };
+  if (saved === undefined) {
+    return { ok: false, kind: 'failed', message: '두 사람을 저장하지 못했습니다.' };
+  }
 
   revalidatePath('/me/people');
   revalidatePath('/me/compat');

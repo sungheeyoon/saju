@@ -86,3 +86,23 @@ export function calculateChart(query: Query): ChartResult {
     };
   }
 }
+
+/**
+ * 같은 사람인지 견주는 값 — **여덟 글자와 「시각을 아는가」.**
+ *
+ * 이름도 메모도 출생지도 안 든다. 서울에서 났다고 적었든 부산이라 적었든, 나온 명식이
+ * 같으면 우리가 아는 한 같은 명식이다 — 견주는 것은 **입력이 아니라 결과**여야 한다.
+ * 같은 사람을 양력으로 한 번, 음력으로 한 번 넣는 것이 정확히 사용자가 자기가 이미
+ * 저장한 줄 모르는 경우이고, 원문으로 견주면 그 경우를 못 잡는다.
+ *
+ * **시각을 모르는 여섯 글자는 여덟 글자와 다른 명식이다.** 같다고 하면 시주가 있는 쪽의
+ * 풀이를 없는 쪽에 붙이게 된다. `pillars.hour` 가 `null` 인 것이 그 사실이라 따로 실을
+ * 값이 없다.
+ *
+ * 저장해 두지 않는다. 엔진이 바뀌면 저장된 지문은 **조용히 낡고**, 낡은 지문은 「다른
+ * 사람」이라고 조용히 답한다. 견줄 때 계산하면 언제나 지금 엔진의 답이다.
+ */
+export function chartFingerprint(saju: Saju): string {
+  const { year, month, day, hour } = saju.pillars;
+  return [year.name, month.name, day.name, hour?.name ?? '시각모름'].join('/');
+}
