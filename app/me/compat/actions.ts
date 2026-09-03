@@ -8,7 +8,6 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { sameChartInMyList, type SameChart } from '../same-chart';
 import { missingAnswer, type Query } from '../../query';
 import { managedPersonArgs, unsupportedForSaving } from '../../revision';
-import { beginReading, type ReadingStart } from '../reading/pipeline';
 
 /**
  * 이 쌍에 적어 둔 사이 — **화면이 저장된 값을 보여 주려고 읽는다.**
@@ -37,45 +36,6 @@ export async function pairRelationFor(
 
   return { ok: true, relation: relationOf(data) };
 }
-
-/**
- * 두 사람의 풀이를 시작한다 — **사이를 먼저 적고 나서.**
- *
- * 둘이 한 누름에서 일어나야 한다. 사이를 따로 저장하게 두면 「골랐는데 안 반영된
- * 글」이 나올 수 있고, 그때 사용자는 자기가 고른 것이 무슨 소용이었는지 알 수 없다.
- *
- * **적는 것이 먼저다.** 시도를 먼저 열면 근거를 조립하는 자리가 옛 값을 읽는다.
- *
- * ## `undefined` 는 안 적는다
- *
- * 「모른다를 골랐다」와 **「이 누름에서 사이를 안 정했다」**는 다른 일이다. 앞의 것은
- * 행을 지우는 답이고 뒤의 것은 아무 답도 아니다. 한 값으로 묶여 있던 동안, 저장된
- * 답이 있는 쌍을 다시 고르기만 해도 그 답이 조용히 지워졌다.
- *
- * 저장되는 값은 그대로 둘뿐이다 — 행이 있거나 없거나(ADR 0019). 갈린 것은 **이번
- * 누름이 그 값을 건드리는가**이고, 그것은 저장 값이 아니라 쓰기의 일이다.
- */
-export async function startPairReading(
-  personA: string,
-  personB: string,
-  relation: string | null | undefined,
-  requestKey: string,
-): Promise<ReadingStart> {
-  const supabase = await supabaseOnServer();
-
-  if (relation !== undefined) {
-    const { error } = await supabase.rpc('set_pair_relation', {
-      p_person_a: personA,
-      p_person_b: personB,
-      // 모르는 값은 모르는 채로 넘긴다 — 서버 액션은 주소만 알면 아무 값이나 온다.
-      p_relation: relationOf(relation),
-    });
-    if (error) return { ok: false, message: error.message };
-  }
-
-  return beginReading({ kind: 'private', personA, personB }, requestKey);
-}
-
 
 /**
  * 직접 입력한 두 사람을 **저장하고 궁합 풀이로 넘긴다.**

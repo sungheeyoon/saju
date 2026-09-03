@@ -79,12 +79,27 @@ export default async function PersonSajuPage({
           <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">{person.name}의 사주</h1>
           <p className="mt-1 text-sm text-secondary">명식과 운의 흐름을 자세히 확인하세요.</p>
         </div>
-        <Link
-          href="/me/people"
-          className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
-        >
-          사람 목록으로
-        </Link>
+        {/*
+          **궁합은 여기서도 시작한다**(ADR 0036).
+
+          `/me/compat` 은 메뉴에 없다. 거기 가려면 머리글의 「궁합 보기」를 눌러 직접
+          입력 화면에 닿은 뒤 길을 찾아야 했는데, 저장한 사람을 보고 있는 사람이
+          「이 사람과 누구」를 떠올리는 자리는 바로 여기다. 첫 칸이 채워진 채 열린다.
+        */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/me/compat?a=${person.personId}`}
+            className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
+          >
+            이 사람과 궁합 보기
+          </Link>
+          <Link
+            href="/me/people"
+            className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
+          >
+            사람 목록으로
+          </Link>
+        </div>
       </header>
 
       <SajuResult saju={person.saju} />

@@ -538,6 +538,16 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       page.getByRole('heading', { name: '친구의 사주', exact: true }),
     ).toBeVisible();
     await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+
+    /*
+      **사람 상세가 궁합으로 가는 길을 낸다**(ADR 0036). `/me/compat` 은 메뉴에 없어서,
+      거기 가려면 머리글의 「궁합 보기」로 직접 입력 화면에 닿은 뒤 길을 찾아야 했다.
+      첫 칸이 이 사람으로 채워진 채 열린다.
+    */
+    await expect(
+      page.getByRole('link', { name: '이 사람과 궁합 보기' }),
+    ).toHaveAttribute('href', /^\/me\/compat\?a=.+/);
+
     await page.getByRole('link', { name: '사람 목록으로' }).click();
 
     // 저장 자리 한도를 세는 것도 이 목록이다(US 18).
@@ -566,18 +576,39 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('radio', { name: '가족' })).toBeChecked();
 
     /*
-      **누르지 않는다.** 이 버튼은 이제 모델을 부른다 — 시험이 누르면 4분과 돈이 든다.
-      여기서 재는 것은 배선이 아니라 **고르는 자리가 무엇을 묻는가**이고, 배선은
-      흐름 검사와 단위 시험이 잰다.
-    */
-    await expect(page.getByRole('button', { name: '궁합 보기' })).toBeEnabled();
-
-    /*
       **본 적 없으면 목록도 없다.** 처음 온 사람에게 빈 목록은 할 일이 하나 더 있는
       것처럼 보이는데, 고르는 칸이 이미 그 말을 하고 있다.
     */
     await expect(page.getByRole('heading', { name: '본 궁합' })).toHaveCount(0);
     await expect(page.getByText('궁합 베타')).toHaveCount(0);
+
+    /*
+      **눌러도 아무것도 안 만들어진다**(ADR 0036). 이 누름이 모델을 부르던 동안에는
+      여기서 멈춰야 했다 — 시험이 누르면 4분과 돈이 들었다. 이제 이 누름은 만세력을
+      열 뿐이고, 글은 그 아래의 버튼이 만든다. 걸음이 하나 늘었으므로 시험도 하나 는다.
+    */
+    await page.getByRole('button', { name: '궁합 보기' }).click();
+
+    await expect(page).toHaveURL(/\/me\/compat\?a=.+&b=.+/);
+    await expect(
+      page.getByRole('heading', { name: `${signedIn.label} × 어머니` }),
+    ).toBeVisible();
+
+    /*
+      **만세력이 먼저 서고 만드는 버튼은 그 아래다.** 두 사람의 여덟 글자가 이 화면의
+      본론이고, 관계표는 우리가 검산하려고 세운 원자료라 여기 안 선다(ADR 0025·0035).
+    */
+    await expect(page.getByText('일간').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toHaveCount(0);
+
+    /*
+      **고른 사이는 쌍에 남는다.** 옮겨 왔다고 사라지지 않는다 — 결과 아래의 칸이
+      저장된 값을 그대로 세운다(`RelationForNext`).
+    */
+    await expect(page.getByRole('radio', { name: '가족' })).toBeChecked();
+
+    // 글을 만드는 버튼은 **여기** 있다. 누르지 않는다 — 누르면 4분과 돈이 든다.
+    await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
   });
 
   test('계정 작업은 우측 설정 메뉴의 계정 관리에 모여 있다', async ({ page, signedIn }) => {

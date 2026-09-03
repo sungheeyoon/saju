@@ -2,32 +2,34 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import type { Relation } from '@/src/lib/people';
-import {
-  READING_ALREADY_RUNNING_NOTE,
-  READING_FAILED_NOTE,
-  READING_LEAVE_SAFE_NOTE,
-  readingWaitNote,
-} from '@/src/lib/reading';
-
-import { GENERATION } from '../reading/generation';
 
 import { RelationChoice } from '../../relation-choice';
-import { readingRunState } from '../reading/actions';
-import { pairRelationFor, startPairReading } from './actions';
+import { setPairRelation } from '../actions';
+import { pairRelationFor } from './actions';
 
 export type Choosable = { personId: string; label: string; isSelf: boolean };
 
 /**
- * 두 사람을 고르고 **무슨 사이인지 함께 답한 뒤** 풀이를 시작하는 자리.
+ * 두 사람을 고르고 **무슨 사이인지 함께 답한 뒤** 궁합 만세력으로 가는 자리.
+ *
+ * ## 여기서는 아무것도 만들지 않는다
+ *
+ * 이 누름이 모델을 부르던 동안, 사용자는 **만세력을 보기 전에 풀이권을 썼다.** 버튼에는
+ * 「궁합 보기」라고 적혀 있었으니 자기가 무엇을 눌렀는지도 그 자리에서는 알 수 없었다.
+ * 이제 이 누름은 주소를 바꿀 뿐이고, 글을 만드는 것은 **결과 아래의 버튼 하나**다
+ * (ADR 0036 · `ReadingSection`).
+ *
+ * 그래서 세 화면이 같은 모양이 된다 — 만세력을 먼저 보고, 그 아래에서 만든다.
  *
  * ## 관계를 왜 여기서 묻나
  *
  * 관계를 묻는 까닭은 「무슨 사이인지에 따라 해석의 방향을 달리 잡아 드리겠다」는 것이다.
  * 그러니 **읽고 난 뒤에 묻는 것은 아무 뜻이 없다** — 이미 나온 글은 그 답을 못 쓴다.
- * 고르는 칸 옆에 나란히 서야 그 약속이 참이 된다.
+ * 고르는 칸 옆에 나란히 서야 그 약속이 참이 된다(ADR 0019). 만드는 자리가 한 걸음
+ * 뒤로 물러나도 이것은 안 흔들린다. 답은 **쌍에 남고**, 결과 아래의 버튼이 그것을 읽는다.
  *
  * ## 두 칸이 서로를 안다
  *
@@ -56,8 +58,7 @@ export function PairPicker({
    * 답이기 때문이다. 「모른다를 골랐다」와 「이 누름에서 안 정했다」는 다른 일이다.
    */
   const answered = useRef<string | null>(null);
-  const [running, setRunning] = useState(false);
-  const [waited, setWaited] = useState(0);
+  const [opening, startOpening] = useTransition();
   const [failure, setFailure] = useState<string | null>(null);
 
   const chosen = first !== '' && second !== '' && first !== second;
@@ -91,40 +92,6 @@ export function PairPicker({
     setRelation(next);
   };
 
-  /** 도는 시도를 지켜본다 — 끝나면 목록을 다시 읽는다(`ReadingPanel` 과 같은 고리) */
-  useEffect(() => {
-    if (!running) return;
-
-    let alive = true;
-    const since = Date.now();
-    const seconds = setInterval(() => setWaited(Math.floor((Date.now() - since) / 1000)), 1000);
-
-    const ask = async () => {
-      let run: Awaited<ReturnType<typeof readingRunState>>;
-      try {
-        run = await readingRunState({ kind: 'private', personA: first, personB: second });
-      } catch {
-        // 한 번 못 물은 것으로 끝났다고 하지 않는다. 다음 물음에서 다시 본다.
-        return;
-      }
-      if (!alive || run === null || run.status === 'running') return;
-
-      setRunning(false);
-      if (run.status === 'failed') setFailure(READING_FAILED_NOTE);
-      // 결과는 서버에만 있다. 다시 안 읽으면 방금 만든 것이 목록에 안 선다.
-      router.refresh();
-    };
-
-    // 물어보는 간격은 짧게 잡지 않는다 — 4분짜리 일에 1초짜리 왕복은 값만 쓴다.
-    const tick = setInterval(ask, 3000);
-
-    return () => {
-      alive = false;
-      clearInterval(tick);
-      clearInterval(seconds);
-    };
-  }, [running, first, second, router]);
-
   if (people.length < 2) {
     return (
       <section className="rounded-2xl border border-border bg-surface-sunken px-5 py-4">
@@ -139,28 +106,30 @@ export function PairPicker({
     );
   }
 
-  const start = async () => {
+  /**
+   * **적고 나서 옮긴다.**
+   *
+   * 사이는 다음 글이 읽을 값이고 그 글을 만드는 버튼은 저쪽 화면에 있다. 못 적은 채로
+   * 보내면 사용자가 방금 고른 것과 다른 사이로 글이 나고, 그 자리에서는 왜 그런지
+   * 알 수 없다. 그래서 못 적었으면 그렇게 말하고 **여기 머문다.**
+   *
+   * 안 건드렸으면 아예 안 적는다 — 저장된 답은 그대로 두고 파이프라인이 그것을 읽는다.
+   */
+  const open = () => {
     if (!chosen) return;
     setFailure(null);
-    setWaited(0);
-    setRunning(true);
 
-    const result = await startPairReading(
-      first,
-      second,
-      // 안 건드렸으면 안 적는다 — 저장된 답은 그대로 두고 파이프라인이 그것을 읽는다.
-      answered.current === pairKey ? relation : undefined,
-      crypto.randomUUID(),
-    );
-    if (result.ok) {
-      // 열지 못했으면(이미 도는 시도가 있다) 그것도 기다릴 일이다. 다만 내가 방금 연
-      // 것이 아니라는 사실은 말해 준다 — 안 그러면 「눌렀는데 그대로」로 보인다.
-      if (!result.started) setFailure(READING_ALREADY_RUNNING_NOTE);
-      return;
-    }
+    startOpening(async () => {
+      if (answered.current === pairKey) {
+        const written = await setPairRelation(first, second, relation);
+        if (!written.ok) {
+          setFailure(`사이를 적지 못했습니다. ${written.message}`);
+          return;
+        }
+      }
 
-    setRunning(false);
-    setFailure(result.message);
+      router.push(`/me/compat?a=${first}&b=${second}`);
+    });
   };
 
   return (
@@ -191,35 +160,20 @@ export function PairPicker({
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={start}
-          disabled={!chosen || running}
+          onClick={open}
+          disabled={!chosen || opening}
           className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:h-10"
         >
-          {running ? '풀이 만드는 중…' : '궁합 보기'}
+          {opening ? '여는 중…' : '궁합 보기'}
         </button>
         {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-        {!chosen && !running && (
+        {!chosen && !opening && (
           <span className="text-xs text-muted">두 사람을 고르면 시작할 수 있습니다.</span>
         )}
       </div>
 
-      {running && (
-        <div role="status" className="flex flex-col gap-1 rounded-xl bg-surface-sunken px-4 py-3">
-          {/*
-            **올라가는 숫자가 「살아 있다」를 말한다.** 스피너는 서버가 죽어도 계속 도므로
-            오래 걸리는 일에서는 그것을 말하지 못한다(`ReadingPanel` 과 같은 규율).
-          */}
-          <p className="text-sm font-medium tabular-nums">
-            풀이 만드는 중 · {waited}초
-          </p>
-          <p className="text-xs leading-5 text-muted">
-            {readingWaitNote(GENERATION.settings.timeout)} {READING_LEAVE_SAFE_NOTE}
-          </p>
-        </div>
-      )}
-
       {failure !== null && (
-        <p role="status" className="rounded-xl bg-warning-wash px-4 py-3 text-sm leading-6 text-warning">
+        <p role="alert" className="rounded-xl bg-warning-wash px-4 py-3 text-sm leading-6 text-warning">
           {failure}
         </p>
       )}

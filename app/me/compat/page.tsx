@@ -132,8 +132,12 @@ export default async function ManagedCompatPage({
 /**
  * 두 사람의 결과 하나 — **제목이 곧 누구와 누구인가**다.
  *
- * 사람이 보러 온 것은 읽어 주는 글이다. 그 앞에 표 스물몇 개를 세워 두면 글까지
- * 내려오지 못하므로 이 화면은 사실을 아예 안 세운다(`hideFacts`).
+ * **만세력이 먼저 서고 만드는 버튼은 그 아래다**(ADR 0036). 고르는 칸이 곧장 모델을
+ * 부르던 동안 사용자는 만세력을 보기 전에 풀이권을 썼다. 이제 고르면 이 화면이 서고,
+ * 여기서 한 번 더 눌러야 글이 난다 — `/` 와 `/compat` 이 이미 그 모양이다.
+ *
+ * 그 앞에 표 스물몇 개를 세워 두면 글까지 내려오지 못하므로 **관계표는 여전히 안
+ * 세운다**(`chartsOnly`). 서는 것은 여덟 글자다.
  */
 async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' }> }) {
   return (
@@ -346,7 +350,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
        * 없었다.** 파이프라인은 처음부터 세 kind 를 다 받았고(`ReadingTarget`), 쌍의 차례도
        * DB 가 정한다(`least`·`greatest`) — 막혀 있던 것은 화면 한 줄뿐이었다.
        */
-      hideFacts
+      chartsOnly
       verdict={
         <ReadingSection
           key="private-reading"
