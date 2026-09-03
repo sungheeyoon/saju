@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { ELEMENTS, ELEMENT_KO } from '@/src/lib/saju';
 
 import { ELEMENT_TONE } from './element-tone';
+import { HOUR_UNKNOWN_LABEL } from './query';
 import { SajuCalculator } from './saju-calculator';
 
 export default function Home() {
@@ -64,7 +65,15 @@ export default function Home() {
         <div className="mb-5">
           <p className="eyebrow">생년월일시</p>
           <h2 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">출생 정보를 입력해 주세요</h2>
-          <p className="mt-1 text-sm text-secondary">시간을 모르면 비워도 괜찮습니다. 확인 가능한 범위만 계산합니다.</p>
+          {/*
+            **비워 두는 길은 없다.** 「시간을 모르면 비워도 괜찮습니다」라고 적혀
+            있었는데, 폼은 빈 칸을 거절한다(`missingForCalculation`) — 시각을 모르면
+            「출생 시각 모름」을 **골라야** 넘어간다. 화면이 폼과 다른 말을 하고 있었다.
+          */}
+          <p className="mt-1 text-sm text-secondary">
+            출생 시각을 모르면 「{HOUR_UNKNOWN_LABEL}」을 고르세요. 나머지 세 기둥은 그대로
+            계산합니다.
+          </p>
         </div>
         <Suspense fallback={<div className="h-56 rounded-2xl border border-border bg-surface shadow-[var(--shadow-card)]" />}>
           <SajuCalculator />

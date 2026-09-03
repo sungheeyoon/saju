@@ -28,8 +28,15 @@ export function MatchIndexCard({
   return (
     <section className={CARD}>
       <div className="flex flex-wrap items-center justify-between gap-3">
+        {/*
+          **`preview.policyVersion` 은 여기 안 선다.** ADR 0026 이 「딱지에서 뺀다」고
+          적어 두고 각주만 고쳤다 — 정작 이 줄이 남아 `궁합 베타 · match-v0` 으로 서
+          있었고, e2e 가 그것을 못박아 두어 초록불이었다. 내부 판본 이름은 사용자에게
+          아무 뜻이 없다(CONTEXT.md 「기존 실험 지표」). 값은 `preview` 에 그대로 실려
+          있으므로 되짚을 때는 자료에서 읽는다.
+        */}
         <span className="inline-flex rounded-full bg-accent-wash px-2.5 py-1 text-xs font-medium text-accent">
-          궁합 베타 · {preview.policyVersion}
+          궁합 베타
         </span>
         <span className="text-xs text-muted">검증 중인 판정은 지표에서 제외</span>
       </div>

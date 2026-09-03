@@ -591,7 +591,9 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 
     const facts = page.getByRole('heading', { name: '두 원국 사이의 관계' });
     await expect(facts).toBeVisible();
-    await expect(page.getByText('궁합 베타 · match-v0')).toBeVisible();
+    await expect(page.getByText('궁합 베타', { exact: true })).toBeVisible();
+    // 내부 판본 이름은 화면 어디에도 없다(ADR 0026).
+    await expect(page.locator('main')).not.toContainText('match-v0');
 
     const shown = await page.locator('main').innerText();
     expect(shown.indexOf('두 원국 사이의 관계')).toBeLessThan(shown.indexOf('먼저 보이는 신호'));
