@@ -312,6 +312,73 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     },
   );
 
+  /**
+   * **`억부` 도 지나가야 한다 — 첫 실호출에서야 드러났다.**
+   *
+   * `shareEvidence` 는 `compatibility` 를 통째로 남기고 그 안에 `eokbuMatch` 가 있다.
+   * 게다가 궁합 6절이 그것을 읽으라고 시킨다. 목록에 넣어 둔 동안 **시키는 대로 쓴 글이
+   * hard fail 났고**, match 는 프로덕션에서 한 번도 안 불렸으므로 아무도 몰랐다.
+   */
+  it('억부는 공유 궁합에서도 걸리지 않는다 — 자료에 있고 절이 그것을 시킨다', () => {
+    const base = ok('match');
+    const result = checkReading({
+      ...base,
+      output: {
+        ...base.output,
+        markdown: `${OK_MARKDOWN}\n억부 쪽의 맞물림은 아직 후보로만 볼 수 있어요.`,
+      },
+    });
+
+    expect(result).toEqual({ ok: true });
+  });
+
+  /** 조후는 다르다 — 그 값은 `analysis` 에 있고 공유 자료에서 통째로 빠진다 */
+  it('조후는 그대로 hard fail 이다 — 공유 자료에 값이 없다', () => {
+    const base = ok('match');
+    const result = checkReading({
+      ...base,
+      output: { ...base.output, markdown: `${OK_MARKDOWN}\n조후로 보면 둘 다 메마릅니다.` },
+    });
+
+    expect(codesOf(result)).toContain('out-of-scope-judgment');
+  });
+
+  /**
+   * **맨 끝 근거 칸은 세지 않는다.**
+   *
+   * 화면이 거기서 끊으므로 상대에게 안 간다. 그리고 그 절은 계약을 대라고 시킨 자리인데
+   * 공유 자료의 `contract.withheld` 가 「대운은 동의 범위 밖이다」처럼 그 낱말을 산문으로
+   * 들고 있다 — 통째로 세면 **모델이 「그건 안 썼습니다」라고 적는 것까지 위반이 된다.**
+   * 첫 실호출이 정확히 그렇게 떨어졌다.
+   */
+  it('안 썼다고 근거 칸에 적은 것은 위반이 아니다', () => {
+    const base = ok('match');
+    const grounding =
+      '### 근거 (검사용)\n\n점수 — 결론 「68점」 | 자료: compatibility.eokbuMatch [후보] | ' +
+      '넘어간 것: 세운·월운과 대운은 contract.excluded·withheld라 반영하지 않음';
+
+    const result = checkReading({
+      ...base,
+      output: { ...base.output, markdown: `${OK_MARKDOWN}\n\n${grounding}` },
+    });
+
+    expect(result).toEqual({ ok: true });
+  });
+
+  /** 무뎌지지는 않았다 — 본문에 서면 그대로 걸린다 */
+  it('같은 낱말이 본문에 서면 그대로 걸린다', () => {
+    const base = ok('match');
+    const result = checkReading({
+      ...base,
+      output: {
+        ...base.output,
+        markdown: `${OK_MARKDOWN}\n지금 대운이 두 분을 함께 밀어 줍니다.\n\n### 근거 (검사용)\n\n한 줄`,
+      },
+    });
+
+    expect(codesOf(result)).toContain('out-of-scope-judgment');
+  });
+
   it.each(['둘이 함께 세운 규칙을 지킵니다.', '두 사람의 통근 거리를 먼저 맞춰야 합니다.'])(
     '일상어는 원국 판정으로 잡지 않는다 — %s',
     (sentence) => {

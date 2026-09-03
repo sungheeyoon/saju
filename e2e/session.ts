@@ -92,6 +92,29 @@ export function hideEveryoneExcept(emails: readonly string[]): void {
   }
 }
 
+/**
+ * 저장한 사람 자리를 **채운다** — 한도에 닿은 화면을 재려고.
+ *
+ * `create_managed_person` 을 스무 번 부르는 것이 정직하지만, 재려는 것은 등록이 아니라
+ * **자리가 없을 때 저장 입구가 무엇을 보여주는가**다. 그 앞을 브라우저로 스무 번 지나면
+ * 시험이 재려던 것보다 등록 화면에 더 오래 매달린다.
+ *
+ * 그래서 운영자가 하듯 SQL 로 넣는다. `person_limit` 은 커밋에서 서는 미룬 제약이라
+ * (`deferrable initially deferred`) 한 문에 스물까지는 그대로 들어간다 — 그것이 정확히
+ * 「한 자리도 안 남은」 상태다.
+ */
+export function fillPersonSlots(email: string, count: number): void {
+  sql(`
+    with made as (
+      insert into public.person (id)
+      select gen_random_uuid() from generate_series(1, ${count})
+      returning id
+    )
+    insert into public.user_person_access (user_id, person_id, local_label, role)
+    select (select id from auth.users where email = '${email}'), made.id, '자리채움', 'owner'
+    from made`);
+}
+
 export type Account = {
   readonly email: string;
   readonly label: string;

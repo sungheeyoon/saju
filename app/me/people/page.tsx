@@ -12,6 +12,7 @@ import {
   queryFromRevision,
   type StoredRevision,
 } from '../../revision';
+import { managedEdges, personSlotsFrom } from '../../person-slots';
 import { ReviseChart } from '../revise';
 import { Halted } from '../halted';
 import { AddPerson, NoteForm, RemoveFromList } from './manage';
@@ -30,9 +31,6 @@ export const metadata = {
   title: '저장한 사람 — 만세력',
   description: '가족·친구의 사주를 한 계정에서 관리합니다.',
 };
-
-/** 한도는 DB 가 든다. 여기 있는 수는 **남은 자리를 세어 보여주기 위한 것뿐**이다 */
-const PERSON_LIMIT = 20;
 
 /**
  * 가족·친구 Person 을 관리하는 자리.
@@ -53,7 +51,9 @@ export default async function PeoplePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const [{ data: account }, { data: edges }] = await Promise.all([
+  /** 몇 자리 남았는지는 **DB 가 센다** — 화면이 빼기를 하면 selfPerson 을 잊는 자리가 생긴다 */
+  const [slotRow, { data: account }, { data: edges }] = await Promise.all([
+    supabase.rpc('my_person_slots'),
     supabase.from('app_user').select('status, self_person_id').maybeSingle(),
     // 정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
     supabase
@@ -67,9 +67,11 @@ export default async function PeoplePage() {
    * 없다」가 같은 화면이면 사용자는 자기 자료가 지워진 줄 안다. 그래서 여기서 한 번 더
    * 말한다 — 막는 것은 정책이고, 화면은 그 사실을 옮기기만 한다.
    */
+  const slots = personSlotsFrom(slotRow.data, slotRow.error);
+
   const suspended = account !== null && account.status !== 'active';
 
-  const managed = (edges ?? []).filter((edge) => edge.person_id !== account?.self_person_id);
+  const managed = managedEdges(edges, account?.self_person_id);
   const people = suspended ? [] : await peopleWithCharts(managed);
 
   return (
@@ -80,7 +82,11 @@ export default async function PeoplePage() {
           <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">저장한 사람</h1>
           <p className="mt-1 text-sm text-secondary">
             가족과 친구의 출생 정보를 저장하고, 각 사람의 사주나 두 사람의 궁합을 확인하세요.
-            <span className="ml-2 text-muted">{people.length}/{PERSON_LIMIT}명</span>
+            {slots !== null && (
+              <span className="ml-2 text-muted">
+                {slots.used}/{slots.limit}명
+              </span>
+            )}
           </p>
         </div>
         <Link
@@ -95,7 +101,7 @@ export default async function PeoplePage() {
         <Halted status={account?.status ?? 'suspended'} />
       ) : (
         <>
-          <AddPerson remaining={PERSON_LIMIT - people.length} />
+          <AddPerson remaining={slots?.remaining ?? null} />
           <PeopleList people={people} />
         </>
       )}

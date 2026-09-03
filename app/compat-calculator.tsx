@@ -13,6 +13,7 @@ import {
 import { chartOf } from './chart';
 import { BirthFields } from './birth-form';
 import { MatchResult } from './compat-match';
+import { SaveForReading } from './save-for-reading';
 import { CompatView, SIDES, SIDE_LABEL } from './compat-view';
 import { ScoringNote } from './match-index';
 import { CopyLinkButton } from './copy-link';
@@ -79,6 +80,14 @@ type Result =
        * 명식이 어긋난다. 같은 `pair` 에서 나와야 그 틈이 없다.
        */
       names: Record<CompatSide, string>;
+      /**
+       * 계산에 실제로 쓴 입력 두 벌 — **이름과 같은 자리에 둔다.**
+       *
+       * 저장하는 칸이 폼(`form`)을 읽으면, 결과를 본 뒤 칸을 만지작거린 사람에게서
+       * **화면에 서 있는 결과와 다른 두 사람**이 목록에 남는다. 그리는 값과 저장하는
+       * 값이 한 곳에서 나와야 그 틈이 없다.
+       */
+      pair: Pair;
     }
   | { ok: false; message: string };
 
@@ -97,6 +106,7 @@ function calculate(pair: Pair): Result {
       charts,
       compat: analyzeCompatibility(charts.a, charts.b),
       names: { a: nameOf(pair, 'a'), b: nameOf(pair, 'b') },
+      pair,
     };
   } catch (error) {
     return {
@@ -194,7 +204,8 @@ export function CompatCalculator() {
           <h2 className="text-base font-semibold">두 사람의 생년월일시를 입력해 주세요</h2>
           <p className="mt-1.5 text-sm text-secondary">
             두 사람 사이에 보이는 관계와 서로의 오행을 어떻게 보완하는지 정리해 드립니다.
-            직접 입력한 정보와 결과는 계정에 저장되지 않습니다.
+            입력한 정보는 저장되지 않습니다 — 궁합 풀이까지 보려면 결과 아래에서 두
+            사람을 저장할 수 있습니다.
           </p>
         </section>
       ) : result.ok ? (
@@ -208,10 +219,19 @@ export function CompatCalculator() {
             익명 화면에는 AI 가 없다(저장도 계정도 없다). 그래서 사실 아래에 서는 것은
             결정론적 베타 지표뿐이고, 무엇을 보고 있는지는 각주가 말한다.
           */
+          /*
+            **AI 로 가는 길은 저장 하나다.** 이 화면은 대상을 안 만들므로(ADR 0007) 시도도
+            잠금도 풀이권도 걸 자리가 없다 — 무슨 사이인지 묻는 칸이 여기 없던 것도 그래서다
+            (읽어 갈 프롬프트가 없으면 그 라디오는 아무것도 안 바꾼다).
+
+            저장한 사람 쪽 화면은 이 자리에 `ReadingSection` 을 세운다. 여기 서는 것은 그
+            화면으로 건너가는 다리다 — 자리는 같다.
+          */
           verdict={
             <>
               <MatchResult charts={result.charts} compat={result.compat} names={result.names} />
               <ScoringNote />
+              <SaveForReading a={result.pair.a} b={result.pair.b} />
             </>
           }
         />

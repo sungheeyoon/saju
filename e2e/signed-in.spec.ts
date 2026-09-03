@@ -1,4 +1,4 @@
-import { expect, test } from './session';
+import { expect, fillPersonSlots, test } from './session';
 
 import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
 import type { Page } from '@playwright/test';
@@ -379,6 +379,43 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '내 사주' })).toBeVisible();
   });
 
+  /**
+   * **직접 입력한 한 사람이 사주풀이로 가는 길.**
+   *
+   * 궁합 쪽과 같은 다리이고 갈리는 것은 둘이다 — 사이를 묻지 않고(혼자 보는 풀이에는
+   * 물을 상대가 없다), 저장이 하나라 한 문으로 묶을 일이 없다. 도착하는 곳은 사람 탭의
+   * 그 사람 화면이고, 거기가 저장한 사람의 풀이가 사는 자리다(`person` 흐름).
+   */
+  test('직접 입력한 한 사람을 저장하면 그 사람의 사주풀이 화면으로 건너간다', async ({
+    page,
+    signedIn,
+  }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/#date=1990-05-15&hour=14:30');
+
+    /*
+      **도착지가 부르는 이름을 그대로 쓴다.** 제목이 「AI 풀이」였던 동안 이 칸은 앱
+      어디에도 없는 세 번째 이름을 세우고 있었고, 그래서 제목과 버튼이 서로 다른 것을
+      가리켰다(ADR 0026·0027).
+    */
+    await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toBeVisible();
+    await expect(page.locator('main')).not.toContainText('AI 풀이');
+    // 혼자 보는 풀이에는 물을 상대가 없다.
+    await expect(page.getByText('두 분은 무슨 사이인가요')).toHaveCount(0);
+
+    await page.getByLabel('이름', { exact: true }).fill('상우');
+    await page.getByRole('button', { name: '수정한 정보로 다시 보기' }).click();
+
+    await expect(page.locator('main')).toContainText('저장한 사람 목록에 상우');
+    await page.getByRole('button', { name: '이 사람을 저장하고 사주풀이로 가기' }).click();
+
+    await expect(page).toHaveURL(/\/me\/people\/[0-9a-f-]+$/);
+    // 저장한 사람이라 이 화면에는 그 사람 이름으로 풀이를 만드는 자리가 있다.
+    await expect(page.getByRole('heading', { name: '상우의 사주풀이' })).toBeVisible();
+    // 이미 저장된 사람에게 「저장하세요」가 다시 서지 않는다.
+    await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toHaveCount(0);
+  });
+
   test('사람을 추가하면 목록에 서고 그 사람과의 수동 궁합이 열린다', async ({ page, signedIn }) => {
     await page.goto('/me/people');
 
@@ -539,12 +576,11 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     }
 
     /**
-     * **사이를 묻는 칸은 여기 없다.**
+     * **입력하는 동안에는 사이를 묻지 않는다.**
      *
-     * 익명 화면에서 이 값이 움직이던 것은 복사해 가는 프롬프트 하나뿐이었고, 그 칸이
-     * `/evidence` 로 옮겨 가면서 함께 옮겼다. 여기 남았으면 아무것도 바꾸지 않는
-     * 라디오가 결과 화면에 서 있게 된다. 저장하는 쪽(`/me/compat`)은 그대로 묻는다 —
-     * 거기서는 실제로 풀이의 방향을 고른다.
+     * 이 값이 움직이는 것은 저장하고 나서다. 폼 옆에 세우면 저장을 안 할 사람에게도
+     * 아무것도 바꾸지 않는 라디오가 서고, 그 자리에서 한 번 걷어 낸 적이 있다. 묻는
+     * 칸은 **결과 아래 저장 버튼 옆**에 선다 — 그 누름이 그 값을 함께 적는다.
      */
     await expect(page.getByText('두 분은 무슨 사이인가요')).toHaveCount(0);
 
@@ -601,6 +637,92 @@ test.describe('로그인한 사람의 궁합 화면', () => {
    * 주소가 곧 결과라는 것을 화면이 말해 주지 않으면 아무도 링크를 공유하지 않는다.
    * 버튼이 실제로 지금 주소를 클립보드에 넣는지까지 본다.
    */
+
+  /**
+   * **직접 입력한 두 사람이 궁합 풀이로 가는 길.**
+   *
+   * 이 화면은 아무것도 저장하지 않아서 AI 가 없었다 — 시도도 잠금도 풀이권도 대상에
+   * 거는데(ADR 0013) 걸 대상이 없다. 그래서 길은 저장 하나이고, 무슨 사이인지도
+   * **그 누름에 함께** 적힌다. 따로 두면 골라 놓고 저장만 한 사람의 답이 사라진다.
+   *
+   * 여기서 재는 것은 세 걸음이 실제로 이어지는가다 — 묻고 · 저장하고 · 풀이 화면에
+   * 그 답이 이미 서 있는가. pgTAP 은 한 문으로 들어가는 것까지만 알고, 흐름 검사는
+   * `#` 뒤를 못 읽는다(주소의 조각은 서버에 오지 않는다).
+   */
+  test('직접 입력한 두 사람을 저장하면 그 사이까지 궁합 화면으로 건너간다', async ({
+    page,
+    signedIn,
+  }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+
+    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
+
+    // 이름이 없으면 목록에서 알아볼 수 없다 — 저장하는 자리가 그것을 먼저 묻는다.
+    for (const [placeholder, name] of [
+      ['첫 번째 사람', '민수'],
+      ['두 번째 사람', '지영'],
+    ] as const) {
+      await page.getByRole('group', { name: placeholder }).getByLabel('이름', { exact: true }).fill(name);
+    }
+    await page.getByRole('button', { name: '결과 업데이트' }).click();
+
+    const save = page.getByRole('heading', { name: '궁합 풀이로 이어 보기' });
+    await expect(save).toBeVisible();
+
+    // 사실이 먼저 읽히고 AI 로 가는 다리는 그 아래다.
+    const shown = await page.locator('main').innerText();
+    expect(shown.indexOf('두 원국 사이의 관계')).toBeLessThan(shown.indexOf('궁합 풀이로 이어 보기'));
+    // 제목·설명·버튼이 한 낱말을 쓴다 — 세 번째 이름을 세우지 않는다
+    expect(shown).not.toContain('AI 풀이');
+    // 무엇이 목록에 남는지 누르기 전에 적는다. 남은 자리도 — 서버에서 건너온 값이다.
+    expect(shown).toContain('저장한 사람 목록에 민수 · 지영');
+    expect(shown).toContain('앞으로 19명 더 저장할 수 있습니다');
+
+    await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
+    await page.getByRole('radio', { name: '가족' }).check();
+
+    await page.getByRole('button', { name: '두 사람을 저장하고 궁합 풀이로 가기' }).click();
+
+    await expect(page).toHaveURL(/\/me\/compat\?a=[0-9a-f-]+&b=[0-9a-f-]+$/);
+    await expect(page.getByRole('heading', { name: '민수 × 지영' })).toBeVisible();
+    // 저장된 두 사람이라 이 화면에는 풀이를 만드는 자리가 있다.
+    await expect(page.locator('main')).toContainText('사주풀이');
+
+    /**
+     * **고른 사이가 그 쌍에 적혀 있다.** 다음 풀이를 위한 칸이 저장된 값을 그대로
+     * 보여 주므로(`RelationForNext`), 여기서 「가족」이 눌려 있으면 저장이 실제로
+     * 그 값을 적은 것이다 — 화면이 기본값으로 그렇게 보이는 것이 아니다.
+     */
+    await expect(page.getByRole('radio', { name: '가족' })).toBeChecked();
+  });
+
+  /**
+   * **자리가 없으면 버튼을 세우지 않는다.**
+   *
+   * 저장이 한 문이라 한도에 걸리면 둘 다 되돌아간다 — 우리 쪽에서 보면 옳지만 사용자에게는
+   * **눌러도 아무 일이 안 일어나는 앱**이다. 그러면 이 입구는 있는 것보다 나쁘다.
+   *
+   * 궁합은 둘이 필요하므로 **한 자리만 남은 것도 못 쓰는 자리**다. 그 경계를 재려고
+   * 자리를 열아홉까지만 채운다(`signedIn` 이 「어머니」 하나를 이미 들고 있어 열여덟을
+   * 더한다) — 스물을 다 채우면 `remaining === 0` 갈래만 서고 이 자리는 안 재진다.
+   */
+  test('저장할 자리가 모자라면 버튼 대신 무엇을 해야 하는지가 선다', async ({
+    page,
+    signedIn,
+  }) => {
+    fillPersonSlots(signedIn.email, 18);
+
+    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+    await expect(page.getByRole('heading', { name: '궁합 풀이로 이어 보기' })).toBeVisible();
+
+    await expect(
+      page.getByRole('button', { name: '두 사람을 저장하고 궁합 풀이로 가기' }),
+    ).toHaveCount(0);
+
+    await expect(page.getByText('자리가 1명분만 남았습니다')).toBeVisible();
+    await expect(page.getByRole('link', { name: '사람 탭에서 자리 비우기 →' })).toBeVisible();
+  });
 
   test('한 사람만 적힌 궁합 주소는 빈 폼으로 연다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');

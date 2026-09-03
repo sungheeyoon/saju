@@ -122,6 +122,14 @@ export type BirthSecret = {
  *   시키는 대로 쓴 글이 hard fail 난다.
  * - **관계 이름**(원진·귀문·형·충·파·해 …). 두 원국 **사이의** 관계는 동의 범위 안이고
  *   자료에 실제로 있다 — 재어 봤다: 공유 자료에 「사술원진」·「사술귀문」이 그대로 있다.
+ * - **`억부`**. 같은 까닭인데 **처음 실호출에서야 드러났다.** `shareEvidence` 는
+ *   `compatibility` 를 통째로 남기고 그 안에 `eokbuMatch` 가 있다(그 파일이 「오행 보완과
+ *   억부 후보를 사실상 드러내지만 궁합 그 자체라 뺄 수 없다」고 적어 두었다). 게다가
+ *   궁합 6절이 **`eokbuMatch` 를 읽으라고 시킨다.** 시키는 대로 쓴 글이 hard fail 났다.
+ *
+ *   `조후` 는 남는다 — 그 값은 `analysis` 에 있고 공유 자료에서 통째로 빠진다. 자료에
+ *   없는 판정이므로 글에 있으면 지어낸 것이다. **둘을 가른 것은 낱말의 인상이 아니라
+ *   `WITHHELD_PATHS` 가 실제로 무엇을 잘라 냈는가다.**
  */
 export const OUT_OF_SCOPE_TERMS: readonly string[] = [
   // 신강·신약과 그 근거
@@ -131,13 +139,12 @@ export const OUT_OF_SCOPE_TERMS: readonly string[] = [
   '득령',
   '득지',
   '득세',
-  // 용신 갈래
+  // 용신 갈래 — **`억부` 는 여기 없다.** 아래 「여기 없는 것」이 왜인지 든다
   '용신',
   '기신',
   '희신',
   '구신',
   '한신',
-  '억부',
   '조후',
   '격국',
   '종격',
@@ -477,7 +484,21 @@ export function checkReading({
    * 쓴 글이 걸린다.
   */
   if (kind === 'match') {
-    const outOfScope = OUT_OF_SCOPE_TERMS.filter((term) => hasSajuTerm(markdown, term));
+    /**
+     * **본문만 본다.**
+     *
+     * 맨 끝 검사용 근거 절은 화면이 잘라 내므로(`readingBody`) 상대에게 가지 않는다.
+     * 그리고 그 절은 **경로와 계약을 대라고 시킨 자리**인데, 공유 자료의
+     * `contract.withheld` 가 「대운은 동의 범위 밖이다」·「12신살」처럼 그 낱말들을 산문으로
+     * 들고 있다. 통째로 세면 **모델이 「그건 안 썼습니다」라고 적는 것까지 위반으로 잡힌다** —
+     * 첫 실호출에서 그렇게 떨어졌다(「사운·월운과 대운은 contract.excluded·withheld라
+     * 반영하지 않음」).
+     *
+     * 여기서 놓치는 것이 하나 는다: 본문에서는 이름을 안 대고 근거 칸에서만 댄 판정.
+     * 그건 낱말 검사가 원래 못 잡는 것과 같은 종류다 — 못 막는 것을 막는 척하지 않는다.
+     */
+    const body = readingBody(markdown);
+    const outOfScope = OUT_OF_SCOPE_TERMS.filter((term) => hasSajuTerm(body, term));
     if (outOfScope.length > 0) {
       failures.push({ code: 'out-of-scope-judgment', detail: outOfScope.join('·') });
     }

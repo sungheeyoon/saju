@@ -111,3 +111,41 @@ ${said}.
 /** 모르는 값은 모르는 채로 둔다 — 그럴듯한 쪽으로 눕히지 않는다 */
 export const relationOf = (raw: string | null | undefined): Relation | null =>
   RELATIONS.find((known) => known === raw) ?? null;
+
+
+/**
+ * 저장할 자리 — **DB 가 세어 내준다**(`my_person_slots`).
+ *
+ * 수를 여기 적지 않는다. 한도는 트리거가 걸고 그 수는 `person_limit()` 이 든다.
+ * 화면이 그 수를 손으로 베껴 들면 한도를 옮기는 날 화면만 옛 수를 말한다.
+ */
+export type PersonSlots = {
+  readonly limit: number;
+  readonly used: number;
+  readonly remaining: number;
+};
+
+/**
+ * 자리가 모자라서 못 저장할 때 하는 말 — **모자라지 않으면 `null`.**
+ *
+ * 저장하는 입구가 셋이다(사람 탭 · 사주 결과 아래 · 궁합 결과 아래). 말을 각자 지으면
+ * 한 자리는 「한 명을 지워야 합니다」라 하고 다른 자리는 조용히 실패한다. 그리고 조용히
+ * 실패하는 쪽이 사용자에게는 **풀이가 안 되는 앱**이다.
+ *
+ * @param needed 이 입구가 저장하려는 사람 수. 사주풀이는 하나, 궁합은 둘이다.
+ * @param slots 지금 자리 — **못 읽었으면 `null` 을 넘긴다.** 그때는 막지 않는다:
+ *   읽기가 한 번 실패했다고 「다 찼다」고 말하면 그것은 거짓이고, 저장은 어차피 DB 가
+ *   막는다. 여기서 하는 일은 먼저 말해 주는 것이지 판정이 아니다.
+ *
+ * **둘이 필요한데 하나 남은 자리도 못 저장한다.** 한 문으로 저장하므로 첫 사람이
+ * 들어가고 둘째에서 막히면 둘 다 되돌아간다 — 눌러 봐야 아무 일도 안 일어난다.
+ */
+export const noRoomToSave = (needed: number, slots: PersonSlots | null): string | null => {
+  if (slots === null || slots.remaining >= needed) return null;
+
+  return slots.remaining === 0
+    ? `저장한 사람이 ${slots.limit}명을 다 채웠습니다. 한 명을 지워야 여기서 저장할 수 있습니다.`
+    : `저장한 사람이 ${slots.used}명이라 자리가 ${slots.remaining}명분만 남았습니다. ${needed}명을 저장하려면 ${
+        needed - slots.remaining
+      }명을 지워야 합니다.`;
+};

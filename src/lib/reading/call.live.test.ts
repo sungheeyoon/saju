@@ -7,6 +7,7 @@ import {
   CONTROL,
   PROMPT_VARIANTS,
   checkReading,
+  isScored,
   measureMarkdown,
   readingEvidenceOf,
   readingPromptOf,
@@ -63,6 +64,22 @@ const SECRETS = [
   { originalDate: '1990-05-12', solarDate: '1990-05-12', birthTime: '14:30:00', city: '서울' },
 ] as const;
 
+/** 두 사람짜리 kind 를 부를 때의 상대 — 궁합에는 두 명식이 있어야 한다 */
+const OTHER = {
+  year: 1992,
+  month: 8,
+  day: 20,
+  hour: 9,
+  minute: 0,
+  second: 0,
+  gender: 'female',
+} as const;
+
+const PAIR_SECRETS = [
+  ...SECRETS,
+  { originalDate: '1992-08-20', solarDate: '1992-08-20', birthTime: '09:00:00', city: '부산' },
+] as const;
+
 /** 로컬에서 부를 때만 — 배포에서는 플랫폼이 환경을 준다 */
 function loadLocalEnv(): void {
   try {
@@ -77,31 +94,80 @@ function loadLocalEnv(): void {
   }
 }
 
+/**
+ * **네 kind 를 다 부른다** — 하나만 불러 놓고 「배선이 이어져 있다」고 말하지 않는다.
+ *
+ * `self` 하나만 돌던 동안 나머지 셋은 **한 번도 모델에 닿은 적이 없었다.** 시험이
+ * 초록인 것은 프롬프트가 조립되는 것까지이고, 그 뒤는 아무도 안 봤다.
+ *
+ * 셋의 위험이 서로 다르다.
+ *
+ * - `person` — `self` 와 몸통이 같다. 갈리는 것은 접근 판정 하나뿐이라 여기서 새로
+ *   드러날 것은 적다. 그래도 부른다: **「같을 것이다」와 「같았다」는 다르다.**
+ * - `private` — 두 원국을 통째로 들고 절이 열하나다. 자료가 가장 크다.
+ * - `match` — **가장 다르다.** 범위 절이 하나 더 서고(`MATCH_SCOPE`), 근거는 한 번 더
+ *   잘려 있고(`shareEvidence`), 절 목록도 짧고, 점수가 붙는다. 그리고 이 kind 에만
+ *   동의 범위 낱말 검사가 걸린다 — **모델이 시키지도 않은 신살·운 이름을 쓰면 그때 처음
+ *   드러난다.** 조립만 재는 시험으로는 영영 안 잡히는 자리다.
+ */
+const kinds = [
+  { kind: 'self', pair: false },
+  { kind: 'person', pair: false },
+  { kind: 'private', pair: true },
+  { kind: 'match', pair: true },
+] as const;
+
 describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
-  it('자기 풀이 한 편이 나오고 검사를 지난다', { timeout: 300_000 }, async () => {
-    loadLocalEnv();
-    const { callModel } = await import('@/app/me/reading/model');
+  it.each(kinds)(
+    '$kind — 한 편이 나오고 검사를 지난다',
+    { timeout: 300_000 },
+    async ({ kind, pair }) => {
+      loadLocalEnv();
+      const { callModel } = await import('@/app/me/reading/model');
 
-    const a = computeSaju(INPUT);
-    const evidence = readingEvidenceOf('self', { a }, new Date());
-    const called = await callModel(readingPromptOf(evidence));
+      const charts = pair
+        ? { a: computeSaju(INPUT), b: computeSaju(OTHER) }
+        : { a: computeSaju(INPUT) };
+      const evidence = readingEvidenceOf(kind, charts, new Date());
+      const called = await callModel(readingPromptOf(evidence));
 
-    // 실패도 값으로 오므로 무엇이 막았는지 그대로 보인다.
-    expect(called.ok ? '' : `${called.code}: ${called.detail}`).toBe('');
-    if (!called.ok) return;
+      // 실패도 값으로 오므로 무엇이 막았는지 그대로 보인다.
+      expect(called.ok ? '' : `${called.code}: ${called.detail}`).toBe('');
+      if (!called.ok) return;
 
-    const verdict = checkReading({
-      kind: 'self',
-      output: called.output,
-      evidenceText: JSON.stringify(evidence.evidence),
-      secrets: SECRETS,
-    });
+      /**
+       * **부른 값을 먼저 떨군다.** 판정하다 던지면 돈을 낸 원문이 사라지고, 무엇이
+       * 어긋났는지 보려고 같은 호출을 다시 하게 된다(변형 쪽과 같은 규율).
+       */
+      const dir = `${OUTPUT_ROOT}/kinds`;
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        `${dir}/${kind}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
+        JSON.stringify({ kind, ...called }, null, 2),
+      );
 
-    expect(verdict.ok ? [] : verdict.failures).toEqual([]);
+      const verdict = checkReading({
+        kind,
+        output: called.output,
+        evidenceText: JSON.stringify(evidence.evidence),
+        secrets: pair ? PAIR_SECRETS : SECRETS,
+      });
 
-    /** 프롬프트만 바뀌고 모델이 예전 네 절을 내면 실제 증상은 그대로다. */
-    expect(outputDeviations(measureMarkdown(called.output.markdown), CONTROL)).toEqual([]);
-  });
+      expect(verdict.ok ? [] : verdict.failures).toEqual([]);
+
+      /**
+       * **점수는 있어야 할 때 있고 없어야 할 때 없다** — 구조화 출력 스키마가 그 자리를
+       * 열어 두므로 모델이 자기 풀이에 숫자를 붙여 낼 수 있다. `checkReading` 이 이미
+       * 그것을 보지만, 여기서 한 번 더 눈에 보이게 적는다.
+       */
+      expect(called.output.score === null).toBe(!isScored(kind));
+
+      /** 한 사람짜리만 절 수 계약이 있다 — 궁합 절 목록은 kind 가 정한다 */
+      if (!pair) {
+        expect(outputDeviations(measureMarkdown(called.output.markdown), CONTROL)).toEqual([]);
+      }
+    },
+  );
 });
 
 /**

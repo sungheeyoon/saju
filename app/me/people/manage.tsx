@@ -24,7 +24,7 @@ const BUTTON =
  * 익명 화면·온보딩과 **같은 폼**을 쓴다(`BirthFields`). 저장하는 화면이라고 다른 폼을
  * 두면 한쪽만 고쳐져서 「같은 값을 넣었는데 다른 사주가 나오는」 상태가 생긴다.
  */
-export function AddPerson({ remaining }: { remaining: number }) {
+export function AddPerson({ remaining }: { remaining: number | null }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState<Query>({ ...DEFAULT_QUERY, name: '' });
@@ -49,7 +49,8 @@ export function AddPerson({ remaining }: { remaining: number }) {
     });
   };
 
-  if (remaining <= 0) {
+  // 못 읽었으면(`null`) 막지 않는다 — 막는 것은 DB 이고 화면은 먼저 말해 줄 뿐이다.
+  if (remaining !== null && remaining <= 0) {
     return (
       <p className="rounded-xl border border-border bg-surface-sunken p-4 text-sm text-muted">
         등록할 수 있는 스무 명을 다 채웠습니다. 목록에서 누군가를 빼면 다시 등록할 수 있습니다.
@@ -72,7 +73,7 @@ export function AddPerson({ remaining }: { remaining: number }) {
         <p className="text-sm text-secondary">
           부를 이름은 <strong className="font-medium">나만 봅니다.</strong> 같은 사람을 다른
           사람은 다르게 부를 수 있으므로, 이름은 그 사람이 아니라 나와 그 사람 사이에 붙습니다.
-          {remaining <= 5 && ` 앞으로 ${remaining}명 더 등록할 수 있습니다.`}
+          {remaining !== null && remaining <= 5 && ` 앞으로 ${remaining}명 더 등록할 수 있습니다.`}
         </p>
       </header>
 

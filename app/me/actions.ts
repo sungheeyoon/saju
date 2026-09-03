@@ -18,6 +18,14 @@ import {
 export type SaveResult = { ok: true } | { ok: false; message: string };
 
 /**
+ * 저장한 사람 하나 — **id 를 함께 낸다.**
+ *
+ * 「됐다」만 돌려주면 부르는 쪽이 그 사람의 화면으로 갈 수 없다. 목록을 다시 그리는
+ * 화면은 이 값을 안 봐도 되므로 `SaveResult` 를 넓히는 대신 갈래를 하나 둔다.
+ */
+export type PersonSaved = { ok: true; personId: string } | { ok: false; message: string };
+
+/**
  * 자기 사주를 저장한다.
  *
  * **여기서 권한을 판정하지 않는다.** 서버 액션은 주소가 알려지면 누구나 부를 수 있는
@@ -66,7 +74,7 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
  *
  * 한도에 걸렸을 때 나오는 말은 DB 가 쓴 문장 그대로다 — 사람이 읽을 수 있게 써 뒀다.
  */
-export async function addManagedPerson(query: Query, note: string): Promise<SaveResult> {
+export async function addManagedPerson(query: Query, note: string): Promise<PersonSaved> {
   const missing = missingAnswer(query);
   if (missing !== null) return { ok: false, message: missing };
 
@@ -74,12 +82,31 @@ export async function addManagedPerson(query: Query, note: string): Promise<Save
   if (unsupported !== null) return { ok: false, message: unsupported };
 
   const supabase = await supabaseOnServer();
-  const { error } = await supabase.rpc('create_managed_person', managedPersonArgs(query, note));
+  const { data, error } = await supabase.rpc('create_managed_person', managedPersonArgs(query, note));
 
   if (error) return { ok: false, message: error.message };
+  /**
+   * 0행은 저장이 아니다 — 「했다」로 읽으면 없는 사람의 화면을 열러 간다. 목록만 다시
+   * 그리는 화면은 이 값을 안 봐도 되지만, **못 받았다는 사실은 값으로 남는다.**
+   */
+  if (typeof data !== 'string') return { ok: false, message: '저장한 사람을 찾지 못했습니다.' };
 
   revalidatePath('/me/people');
-  return { ok: true };
+  return { ok: true, personId: data };
+}
+
+/**
+ * 직접 입력한 한 사람을 **저장하고 그 사람의 풀이로 넘긴다.**
+ *
+ * 사주 결과 화면(`/`)은 아무것도 저장하지 않아서 AI 풀이가 없다 — 시도도 잠금도
+ * 풀이권도 대상에 거는데(ADR 0013) 걸 대상이 없다. 궁합 쪽과 **같은 길**이고, 다른
+ * 것은 저장이 하나뿐이라 한 문으로 묶을 일이 없다는 것이다(ADR 0030).
+ *
+ * 메모는 안 받는다. 이 입구는 이름과 여덟 글자만 들고 왔고, **묻지 않은 것을 빈 값으로
+ * 채워 저장하지 않는다** — 메모는 사람 탭에서 언제든 적을 수 있다.
+ */
+export async function savePersonForReading(query: Query): Promise<PersonSaved> {
+  return addManagedPerson(query, '');
 }
 
 /**

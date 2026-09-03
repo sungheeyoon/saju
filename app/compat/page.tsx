@@ -31,7 +31,8 @@ export default async function CompatPage() {
 
       <footer className="border-t border-border py-6 text-xs leading-6 text-muted">
         직접 입력한 정보는 저장되지 않으며 브라우저에서 계산됩니다. 결과 링크를 복사하면
-        두 사람의 입력도 주소의 <code>#</code> 뒤에 함께 담깁니다.
+        두 사람의 입력도 주소의 <code>#</code> 뒤에 함께 담깁니다. 결과 아래에서 두 사람을
+        저장하면 그때부터 계정에 남고, 궁합 풀이를 만들 수 있습니다.
       </footer>
     </main>
   );

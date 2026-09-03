@@ -7,6 +7,7 @@ import { CARD } from './card';
 import { calculateChart } from './chart';
 import { useHashParams, writeParams } from './hash-query';
 import { CopyLinkButton } from './copy-link';
+import { SavePersonForReading } from './save-for-reading';
 import { ELEMENT_TONE } from './element-tone';
 import {
   TOPICS_THE_TABLE_HOLDS,
@@ -248,7 +249,21 @@ export function SajuCalculator() {
           </p>
         </section>
       ) : result.ok ? (
-        <SajuView saju={result.saju} viewedAt={viewedAt} />
+        <>
+          <SajuView saju={result.saju} viewedAt={viewedAt} />
+          {/*
+            **AI 로 가는 길은 저장 하나다.** 이 화면은 대상을 안 만들므로 시도도 잠금도
+            풀이권도 걸 자리가 없다(ADR 0013·0030). 저장하면 그 사람의 화면으로 가고,
+            거기가 저장한 사람의 풀이가 사는 자리다.
+
+            `SajuView` 안이 아니라 여기다 — 그 컴포넌트는 저장한 사람의 화면도 함께 쓴다
+            (`SajuResult`). 안에 두면 **이미 저장된 사람에게 「저장하세요」가 선다.**
+
+            `query` 를 넘긴다. 폼(`form`)은 사용자가 지금 고치고 있는 값이라, 그것을
+            저장하면 화면에 서 있는 명식과 다른 사람이 목록에 남는다.
+          */}
+          {query !== null && <SavePersonForReading query={query} />}
+        </>
       ) : (
         <p role="alert" className={`${CARD} text-sm`}>
           {result.message}
