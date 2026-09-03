@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import {
   READING_ALREADY_RUNNING_NOTE,
-  READING_AUTHORSHIP_NOTE,
   READING_LEAVE_SAFE_NOTE,
   READING_FAILED_NOTE,
   READING_NONE_NOTE,
@@ -121,8 +120,8 @@ export function ReadingPanel({
    * **다음 풀이를 위해 먼저 정할 것.**
    *
    * 만드는 버튼과 같은 덩어리에 선다. 이 자리에 있는 물음은 지금 서 있는 글이 아니라
-   * **다음 글**을 바꾸는 것이라, 글 위도 아래도 아닌 **버튼 옆**이 답이다 — 누가 썼는지와
-   * 무엇을 안 넘겼는지를 여기 세운 것과 같은 까닭이다(`notes.ts`).
+   * **다음 글**을 바꾸는 것이라, 글 위도 아래도 아닌 **버튼 옆**이 답이다 — 무엇을 안
+   * 넘겼는지를 여기 세운 것과 같은 까닭이다(`notes.ts`).
    *
    * 지금은 비공개 궁합의 「무슨 사이인가」 하나뿐이다. 자기 풀이에는 상대가 없고 공유
    * 궁합은 성립 방식이 사이를 정한다.
@@ -290,22 +289,27 @@ export function ReadingPanel({
       {/* 먼저 정할 것이 있으면 버튼보다 앞에 선다 — 정하고 나서 누르는 차례다 */}
       {ask}
       {/*
-        **아직 없을 때만 권한다.**
+        **버튼 옆에 남는 것은 한 줄뿐이다.**
 
-        이미 글이 서 있는 화면에서는 「지금 풀이를 새로 받을 수 있어요 / 새로 만들면
-        지금 것을 대신합니다」가 버튼 옆에 늘 붙어 있었다. 버튼이 이미 「다시
-        풀이받기」라고 적혀 있으니 앞 줄은 버튼을 한국어로 옮겨 적은 것이었고, 뒤 줄은
-        **누르지 않을 사람에게** 경고를 하고 있었다. 경고는 누르는 순간으로 옮겼다.
+        여기에 넉 줄이 서 있었다 — 「지금 풀이를 새로 받을 수 있어요」·「새로 만들면 지금
+        것을 대신합니다」·「언어 모델이 씁니다」·「넘기지 않습니다」. 앞 둘은 각각 버튼을
+        한국어로 옮겨 적은 것과 **누르지 않을 사람에게 하는 경고**였고, 그 둘을 걷고 나니
+        남은 둘도 한 덩어리로 읽히지 않았다.
+
+        남긴 것은 **무엇을 안 넘기는가** 하나다. 누를지 정하는 시점에 사용자가 실제로
+        알아야 하는 사실이고, 그 자리가 여기다. 아직 글이 없을 때만 권하는 말이 위에
+        붙는다.
       */}
-      <div
-        className={`flex flex-col gap-3 sm:flex-row sm:items-center ${reading === null ? 'sm:justify-between' : 'sm:justify-start'}`}
-      >
-        {reading === null && (
-          <div>
-            <p className="text-sm font-semibold">명식 근거로 풀이를 받아 보세요</p>
-            <p className="mt-0.5 text-xs leading-5 text-muted">{READING_NONE_NOTE}</p>
-          </div>
-        )}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-0.5">
+          {reading === null && (
+            <>
+              <p className="text-sm font-semibold">명식 근거로 풀이를 받아 보세요</p>
+              <p className="text-xs leading-5 text-muted">{READING_NONE_NOTE}</p>
+            </>
+          )}
+          <p className="text-xs leading-5 text-muted">{READING_REDACTION_NOTE}</p>
+        </div>
         {/*
           **숫자는 여기 없다 — 머리글에 있다.**
 
@@ -327,14 +331,8 @@ export function ReadingPanel({
           {phase === 'loading' ? '풀이 만드는 중…' : reading === null ? '사주풀이 받기' : '다시 풀이받기'}
         </button>
       </div>
-      {/*
-        누가 썼는지와 무엇을 안 넘겼는지는 **만드는 버튼 옆**에 선다(`notes.ts`).
-        제목이 아니라 여기인 이유는, 이 두 사실이 필요한 시점이 글을 읽을 때가
-        아니라 만들지 말지를 정할 때이기 때문이다.
-      */}
+      {/* 풀이권에 대해 말할 것이 있을 때만 한 줄 더 선다 — 이 누름에 대한 말이라 여기다 */}
       {creditsNote !== null && <p className="text-xs leading-5 text-muted">{creditsNote}</p>}
-      <p className="text-xs leading-5 text-muted">{READING_AUTHORSHIP_NOTE}</p>
-      <p className="text-xs leading-5 text-muted">{READING_REDACTION_NOTE}</p>
     </div>
   );
 

@@ -63,13 +63,9 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
 
     /*
-      **도구 이름은 제목에 서지 않지만 사라지지도 않는다.** 「AI 해석」이라는 제목을
-      내리면서 「누가 썼는가」까지 같이 내려가면, 조립된 문장과 모델이 쓴 글이 한
-      화면에서 구별되지 않는다. 그래서 만드는 버튼 옆의 한 줄을 함께 잰다.
+      **버튼 옆에 남는 것은 한 줄뿐이다.** 넉 줄이 쌓여 통째로 안 읽히던 자리라, 누를지
+      정하는 시점에 실제로 쓰는 사실 하나만 남겼다 — 무엇을 안 넘기는가(ADR 0008).
     */
-    await expect(page.getByText('언어 모델이 씁니다', { exact: false })).toBeVisible();
-
-    // 넘기지 않는 것을 화면이 먼저 말한다(ADR 0008).
     await expect(page.getByText('넣지 않은 값은 나올 수 없습니다', { exact: false })).toBeVisible();
 
     /*

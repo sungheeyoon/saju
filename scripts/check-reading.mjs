@@ -182,7 +182,6 @@ try {
     check('내 사주에 사주풀이 칸이 선다', mine.includes('나의 사주풀이'));
     check('아직 없으면 없다고 말한다', plain(mine).includes('아직 만들어 둔 사주풀이가 없습니다'));
     check('만드는 버튼이 선다', mine.includes('사주풀이 받기'));
-    check('누가 쓰는지는 버튼 옆에 남는다', plain(mine).includes('언어 모델이 씁니다'));
     check('넘기지 않는 것을 화면이 말한다', plain(mine).includes('넣지 않은 값은 나올 수 없습니다'));
     /**
      * **숫자는 이제 서버 HTML 에 없다.** 머리글이 브라우저에서 읽는다 — 헤더는 `/` 와
