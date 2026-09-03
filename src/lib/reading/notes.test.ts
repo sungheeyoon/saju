@@ -103,9 +103,14 @@ describe('풀이권 문구', () => {
   /**
    * **말할 것이 없으면 안 선다.** 늘 무언가 적혀 있는 줄은 곧 안 읽히고, 그때 정작
    * 말해야 하는 순간에도 안 읽힌다.
+   *
+   * **다 썼을 때도 마찬가지다.** 한동안 「새로 만들 수는 없지만 이미 만든 풀이는 언제든
+   * 다시 볼 수 있어요」가 섰다. 다시 보기가 닫힌 적이 한 번도 없어서 그 줄이 새로 알려
+   * 주는 것이 없었다 — 잔액은 머리글이 들고, 못 누른다는 것은 닫힌 버튼이 말한다.
+   * 그래서 이 함수는 이제 잔액을 묻지 않고, 갈래가 도는 시도 하나뿐이다.
    */
   it('평소에는 아무 말도 하지 않는다', () => {
-    expect(readingCreditsNote({ reserved: 0, available: 3 })).toBeNull();
+    expect(readingCreditsNote({ reserved: 0 })).toBeNull();
   });
 
   /**
@@ -113,22 +118,9 @@ describe('풀이권 문구', () => {
    * 「누르지도 않았는데 하나가 사라졌다」로 읽힌다.
    */
   it('만들고 있는 동안에는 왜 하나 줄었는지와 돌아온다는 것을 함께 말한다', () => {
-    const note = readingCreditsNote({ reserved: 1, available: 2 });
+    const note = readingCreditsNote({ reserved: 1 });
 
     expect(note).toContain('만들고 있는');
     expect(note).toContain('돌아옵니다');
-  });
-
-  /** 다 쓴 사람에게 가장 필요한 사실은 **다시 보기는 그대로**라는 것이다 */
-  it('다 썼을 때 닫힌 것과 열린 것을 가른다', () => {
-    const note = readingCreditsNote({ reserved: 0, available: 0 });
-
-    expect(note).toContain('다시 볼 수 있어요');
-    expect(note).not.toContain('반환');
-  });
-
-  /** 만들고 있으면서 다 쓴 상태에서는 **기다리면 된다**는 쪽을 먼저 말한다 */
-  it('만들고 있는 것이 있으면 그 사실이 앞선다', () => {
-    expect(readingCreditsNote({ reserved: 1, available: 0 })).toContain('만들고 있는');
   });
 });

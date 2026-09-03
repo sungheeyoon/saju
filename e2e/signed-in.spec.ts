@@ -66,7 +66,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       **버튼 옆에 남는 것은 한 줄뿐이다.** 넉 줄이 쌓여 통째로 안 읽히던 자리라, 누를지
       정하는 시점에 실제로 쓰는 사실 하나만 남겼다 — 무엇을 안 넘기는가(ADR 0008).
     */
-    await expect(page.getByText('넣지 않은 값은 나올 수 없습니다', { exact: false })).toBeVisible();
+    await expect(page.getByText('출생지는 넘기지 않습니다', { exact: false })).toBeVisible();
 
     /*
       **풀이권은 머리글에 선다 — 설정 옆이다.**
