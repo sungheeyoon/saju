@@ -51,7 +51,7 @@ test.describe('동의로 열리는 흐름', () => {
 
       await person.page.getByLabel('별명').fill(nickname);
       await person.page.getByRole('button', { name: '프로필 저장' }).click();
-      await expect(person.page.getByText('저장했습니다.')).toBeVisible();
+      await expect(person.page.getByText('저장했습니다')).toBeVisible();
 
       /*
         **켜기 전에 무엇이 나가고 무엇이 안 나가는지 읽힌다**(US 26 · PRD).
@@ -105,7 +105,7 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receiver.page.getByText('보내는 것만으로 상대에게 열리는 것은 없고')).toBeVisible();
     await expect(receiver.page.getByRole('heading', { name: `보내는${tag}` })).toBeVisible();
 
-    // 수락 전에도 상대의 정확한 출생정보는 없다(US 39).
+    // 수락 전에도 상대의 정확한 출생 정보는 없다(US 39).
     await expect(receiver.page.getByText('1990-05-15')).toHaveCount(0);
 
     await receiver.page
@@ -137,7 +137,7 @@ test.describe('동의로 열리는 흐름', () => {
     }
   });
 
-  test('한쪽이 출생정보를 고치면 pending 요청이 무효가 되고 그 사실이 알림함에 선다', async ({
+  test('한쪽이 출생 정보를 고치면 pending 요청이 무효가 되고 그 사실이 알림함에 선다', async ({
     openAs,
   }) => {
     const tag = String(Date.now()).slice(-4);
@@ -166,7 +166,7 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receiver.page.getByRole('button', { name: '수락하고 궁합 열기' })).toHaveCount(0);
     await expect(receiver.page.getByText('답할 요청이 없습니다')).toBeVisible();
     await expect(
-      receiver.page.getByText(`가${tag} 님과의 요청이 출생정보 수정으로 무효가 되었습니다`),
+      receiver.page.getByText(`가${tag} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다`),
     ).toBeVisible();
   });
 
@@ -237,13 +237,13 @@ test.describe('동의로 열리는 흐름', () => {
       **이유를 갈라서 말한다.** 자기가 요청해서 그렇게 된 사람에게 「중지되었습니다」는
       거짓이다 — 상태 하나에 문장 하나가 매여 있다(`src/lib/account`).
     */
-    await expect(leaver.page.getByText('삭제를 요청한 계정입니다.')).toBeVisible();
-    await expect(leaver.page.getByText('중지된 계정입니다.')).toHaveCount(0);
+    await expect(leaver.page.getByText('삭제를 요청한 계정입니다')).toBeVisible();
+    await expect(leaver.page.getByText('중지된 계정입니다')).toHaveCount(0);
 
     // 새 관문을 두지 않았으므로 다른 화면도 같은 값을 보고 같은 말을 한다.
     for (const path of ['/me/people', '/me/discovery', '/me/requests']) {
       await leaver.page.goto(path);
-      await expect(leaver.page.getByText('삭제를 요청한 계정입니다.')).toBeVisible();
+      await expect(leaver.page.getByText('삭제를 요청한 계정입니다')).toBeVisible();
     }
 
     // 답을 기다리던 요청은 정리된다 — 상대가 답할 수 없는 요청을 계속 보지 않는다.

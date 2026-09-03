@@ -243,7 +243,7 @@ export function RemoveFromList({ personId, label }: { personId: string; label: s
         disabled={removing}
         className="text-accent underline underline-offset-2 disabled:opacity-60"
       >
-        {removing ? '빼는 중…' : '뺀다'}
+        {removing ? '빼는 중…' : '뺍니다'}
       </button>
       <button
         type="button"

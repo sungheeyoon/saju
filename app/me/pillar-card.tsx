@@ -1,4 +1,5 @@
 import { ELEMENT_TONE } from '../element-tone';
+import { HOUR_UNKNOWN_LABEL } from '../query';
 import {
   BRANCH_INFO,
   ELEMENTS,
@@ -70,7 +71,7 @@ export function PillarCard({ label, saju }: { label: string; saju: Saju }) {
             {pillar === null ? (
               <div className="flex h-full min-h-32 flex-col items-center justify-center rounded-xl border border-dashed border-border px-1 text-center">
                 <span className="glyph text-2xl text-muted">?</span>
-                <span className="mt-1 text-[11px] leading-4 text-muted">시각 모름</span>
+                <span className="mt-1 text-[11px] leading-4 text-muted">{HOUR_UNKNOWN_LABEL}</span>
               </div>
             ) : (
               <div className="flex flex-col gap-1.5">

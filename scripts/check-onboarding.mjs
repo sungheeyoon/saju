@@ -88,7 +88,7 @@ const client = anon();
     before?.improvement_consent === null);
 
   /**
-   * **여기가 출생정보가 처음 들어오는 자리다.** 화면에도 관문이 있지만(`/me` 레이아웃)
+   * **여기가 출생 정보가 처음 들어오는 자리다.** 화면에도 관문이 있지만(`/me` 레이아웃)
    * 되돌릴 수 없는 첫 쓰기는 DB 가 막는다 — 화면만 막으면 이렇게 RPC 로 지나간다.
    */
   const { error } = await client.rpc('create_self_person', {
@@ -315,7 +315,7 @@ const other = anon();
     p_birth_time: '01:00', p_gender: 'male', p_city: '서울',
     p_late_night_rule: 'jo', p_time_basis: 'localMean',
   });
-  check('claim 된 Person 의 출생정보는 남이 못 고친다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
+  check('claim 된 Person 의 출생 정보는 남이 못 고친다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
 }
 
 const failed = checks.filter((c) => !c.pass);

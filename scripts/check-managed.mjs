@@ -161,7 +161,7 @@ let theirPersonId;
   check('남이 등록한 가족은 한 줄도 안 보인다', people?.length === 1, `${people?.length ?? '?'}줄`);
 
   const { error } = await other.rpc('add_person_revision', { p_person_id: momId, ...birth });
-  check('남의 가족 출생정보는 못 고친다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
+  check('남의 가족 출생 정보는 못 고친다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
 }
 
 // ── 6. 화면 — 여기서부터는 HTTP 다 ────────────────────────────────────────────
@@ -222,7 +222,7 @@ try {
     check('저장된 두 사람의 궁합이 나온다', response.status === 200, String(response.status));
     check('두 사람을 부를 이름으로 부른다', body.includes('민수') && body.includes('어머니'));
     check('결과가 무엇을 기준으로 났는지 문장으로 말한다',
-      body.includes('현재 저장된 출생정보 기준입니다'));
+      body.includes('현재 저장된 출생 정보 기준입니다'));
     /**
      * `b6e1893` 이 이 칸을 세웠다. 그 전까지 여기는 「아직 안 선다」를 재고 있었고,
      * 화면이 고쳐진 뒤로도 그대로 남아 **고쳐진 것을 고장이라고 부르고 있었다.**

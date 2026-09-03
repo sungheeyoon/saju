@@ -56,7 +56,7 @@ describe('요청 상태는 다섯이고 다섯 다 말이 있다', () => {
    */
   it('무효와 거둠을 갈라서 말한다', () => {
     expect(REQUEST_STATUS_TEXT.invalidated.label).not.toBe(REQUEST_STATUS_TEXT.cancelled.label);
-    expect(REQUEST_STATUS_TEXT.invalidated.sent).toContain('출생정보');
+    expect(REQUEST_STATUS_TEXT.invalidated.sent).toContain('출생 정보');
   });
 });
 
@@ -196,9 +196,9 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
  * 못 열 때 무엇이 그대로 남아 있는지. 셋 다 화면이 손으로 적으면 한 곳만 고쳐진다.
  */
 describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
-  it('동의한 그때의 출생정보로 났고 나중 수정에 흔들리지 않는다고 말한다', () => {
-    // 「매인 판본」은 우리가 FK 를 부르는 이름이다 — 사용자에게는 그때의 출생정보다.
-    expect(MATCH_RESULT_PINNED_NOTE).toContain('그때의 출생정보');
+  it('동의한 그때의 출생 정보로 났고 나중 수정에 흔들리지 않는다고 말한다', () => {
+    // 「매인 판본」은 우리가 FK 를 부르는 이름이다 — 사용자에게는 그때의 출생 정보다.
+    expect(MATCH_RESULT_PINNED_NOTE).toContain('그때의 출생 정보');
     expect(MATCH_RESULT_PINNED_NOTE).toContain('움직이지 않습니다');
   });
 
@@ -262,7 +262,7 @@ describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
    * 전에는 흐름 설명에만 걸어 두고 요청 카드에는 「판본」을 허용했다. 그러면 사용자는
    * 그 낱말을 **어디선가 한 번은** 만나게 되고, 처음 만나는 자리가 우리 내부어인 것은
    * 어느 화면이든 마찬가지다. 이제 사용자에게 닿는 문장 전부에서 뺀다 — 「판본」은
-   * FK 를 부르는 이름이고, 사용자가 아는 것은 **그때 저장한 출생정보**다.
+   * FK 를 부르는 이름이고, 사용자가 아는 것은 **그때 저장한 출생 정보**다.
    */
   it('사용자에게 닿는 문장 어디에도 판본이라는 말이 없다', () => {
     const everything = [
@@ -287,7 +287,7 @@ describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
     expect(everything).not.toContain('match-v0');
 
     // 같은 사실은 그래도 말한다 — 무엇이 요청을 깨뜨리는지, 그리고 그다음에 할 일.
-    expect(CONSENT_FLOW_CAVEAT).toContain('출생정보');
+    expect(CONSENT_FLOW_CAVEAT).toContain('출생 정보');
     expect(CONSENT_FLOW_CAVEAT).toContain('무효');
     expect(CONSENT_FLOW_CAVEAT).toContain('다시 보내야');
   });
@@ -298,8 +298,8 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
    * 미리 적어 두면 실제로 무효가 됐을 때 **그렇게 하기로 했던 것**이 된다. 안 적으면
    * 사고처럼 읽힌다.
    */
-  it('요청이 그때의 출생정보에 매인다는 것을 먼저 말한다', () => {
-    expect(REVISION_BOUND_NOTE).toContain('출생정보');
+  it('요청이 그때의 출생 정보에 매인다는 것을 먼저 말한다', () => {
+    expect(REVISION_BOUND_NOTE).toContain('출생 정보');
     expect(REVISION_BOUND_NOTE).toContain('무효');
     // 이름·메모 수정은 무효로 만들지 않는다 — 그 경계도 함께 적는다.
     expect(REVISION_BOUND_NOTE).toContain('이름');

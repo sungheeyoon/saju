@@ -195,7 +195,7 @@ export function PairPicker({
           disabled={!chosen || running}
           className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:h-10"
         >
-          {running ? '풀이를 쓰고 있어요…' : '궁합 보기'}
+          {running ? '풀이 만드는 중…' : '궁합 보기'}
         </button>
         {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
         {!chosen && !running && (
@@ -210,7 +210,7 @@ export function PairPicker({
             오래 걸리는 일에서는 그것을 말하지 못한다(`ReadingPanel` 과 같은 규율).
           */}
           <p className="text-sm font-medium tabular-nums">
-            풀이를 쓰고 있어요 · {waited}초
+            풀이 만드는 중 · {waited}초
           </p>
           <p className="text-xs leading-5 text-muted">
             {readingWaitNote(GENERATION.settings.timeout)} {READING_LEAVE_SAFE_NOTE}

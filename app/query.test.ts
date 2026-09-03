@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_QUERY,
+  HOUR_UNKNOWN_LABEL,
   NAME_MAX,
   mergeSearchParams,
   BIRTH_YEAR_MAX,
@@ -137,23 +138,23 @@ describe('주소창에 실은 입력', () => {
    */
   describe('시각은 세 가지 상태다', () => {
     /**
-     * 폼은 「시간 입력」에서 시작한다. 두 칸이 다 꺼져 있으면 고를 것이 있다는 것을
+     * 폼은 「시각 입력」에서 시작한다. 두 칸이 다 꺼져 있으면 고를 것이 있다는 것을
      * 사용자가 못 알아본다 — 대신 **켜진 쪽이 답이 아니라 요구**라서 위험이 없다:
-     * 시각을 안 적으면 버튼이 잠긴 채로 남는다. 「시간 모름」을 기본으로 뒀다면
+     * 시각을 안 적으면 버튼이 잠긴 채로 남는다. 「출생 시각 모름」을 기본으로 뒀다면
      * 아무 말 없이 시주 없는 명식이 나갔을 것이다.
      */
     it('시각을 적으라는 쪽에서 시작하되, 안 적으면 계산하지 않는다', () => {
       expect(DEFAULT_QUERY.hourKnown).toBe(true);
       expect(DEFAULT_QUERY.time).toBe('');
       expect(missingAnswer({ ...DEFAULT_QUERY, name: '민수', date: '1990-05-15' })).toContain(
-        '출생시각',
+        '출생 시각',
       );
     });
 
     /** 「아직 안 골랐다」는 이제 주소에서만 온다 — 그때는 두 갈래를 다 말한다 */
     it('고르지 않은 상태는 두 갈래를 함께 말한다', () => {
       const unanswered = { ...DEFAULT_QUERY, name: '민수', date: '1990-05-15', hourKnown: null };
-      expect(missingAnswer(unanswered)).toContain('시간 모름');
+      expect(missingAnswer(unanswered)).toContain(HOUR_UNKNOWN_LABEL);
     });
 
     it('주소에 시각 칸이 없으면 고르지 않은 것으로 읽는다', () => {
@@ -179,8 +180,8 @@ describe('주소창에 실은 입력', () => {
     it('아무도 대신 답할 수 없는 셋을 묻는다', () => {
       expect(missingAnswer({ ...filled, name: '  ' })).toContain('이름');
       expect(missingAnswer({ ...filled, date: '' })).toContain('생년월일');
-      expect(missingAnswer({ ...filled, hourKnown: null })).toContain('출생시각');
-      expect(missingAnswer({ ...filled, time: '' })).toContain('출생시각');
+      expect(missingAnswer({ ...filled, hourKnown: null })).toContain('출생 시각');
+      expect(missingAnswer({ ...filled, time: '' })).toContain('출생 시각');
     });
 
     /** 기본값이 있는 칸은 이미 답이 있다 — 다시 묻지 않는다 */

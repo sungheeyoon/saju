@@ -24,7 +24,7 @@ const SECRETS = [
 const SAFE_MARKDOWN = `## 두 사람 사이\n${'서로의 속도를 확인하고 합의한 규칙을 분명히 하면 좋습니다. '.repeat(20)}`;
 
 describe('Match 첫 세로 슬라이스의 생성 경계', () => {
-  it('정확한 출생정보와 상대 원국 전체 판정은 Evidence·prompt·통과 응답에 없다', async () => {
+  it('정확한 출생 정보와 상대 원국 전체 판정은 Evidence·prompt·통과 응답에 없다', async () => {
     const fake = new FakeReadingGenerator({
       ok: true,
       output: { score: 68, markdown: SAFE_MARKDOWN },

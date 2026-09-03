@@ -17,6 +17,7 @@ import {
 
 import { solarDateOf } from './chart';
 import {
+  HOUR_UNKNOWN_LABEL,
   NAME_MAX,
   TIME_BASES,
   TIME_BASIS,
@@ -403,13 +404,13 @@ function splitTime(time: string) {
  * 갈리고, 그 한 칸이 시주를 통째로 바꾼다. 자시 규칙(조자시 23:00 경계)도 23시가
  * 23시로 적혀 있을 때만 사람이 대조할 수 있다.
  *
- * 「시간 모름」은 라디오다. 체크박스는 **꺼진 상태가 답처럼 보이지 않아서**, 시각을
+ * 「출생 시각 모름」은 라디오다. 체크박스는 **꺼진 상태가 답처럼 보이지 않아서**, 시각을
  * 안 넣고 체크도 안 한 사람이 자기가 아직 아무것도 고르지 않았다는 것을 모른다
  * (`hourKnown` 이 `null`·`false`·`true` 셋인 이유). 세그먼트로 세워 두면 고르기
  * 전에는 어느 쪽도 켜져 있지 않은 것이 눈에 보인다.
  *
  * '모름' 을 고르면 적어 둔 시각도 지운다. 남겨 두면 "모름인데 14:30" 이 상태로
- * 남고, 다시 '시간 입력' 을 고르는 순간 사용자가 지웠다고 생각한 값으로 계산된다.
+ * 남고, 다시 「출생 시각 입력」을 고르는 순간 사용자가 지웠다고 생각한 값으로 계산된다.
  */
 function TimeFields({
   value,
@@ -459,13 +460,18 @@ function TimeFields({
 
   return (
     <fieldset className="flex min-w-0 flex-col gap-2 sm:col-span-2">
-      <legend className="text-xs font-semibold text-secondary">출생시각</legend>
+      <legend className="text-xs font-semibold text-secondary">출생 시각</legend>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className={`${SEGMENT} grid-cols-2`}>
           {[
-            { known: true, label: '시간 입력' },
-            { known: false, label: '시간 모름' },
+            /*
+              **둘이 대칭이다.** 「시간 입력」 / 「출생 시각 모름」으로 두면 한쪽만
+              무엇의 시각인지 말한다. 화면에서는 legend 가 그 자리를 덮지만, 낭독기는
+              고른 칸 하나만 읽어 주는 때가 있어 그때 「입력」이 무엇의 입력인지 모른다.
+            */
+            { known: true, label: '출생 시각 입력' },
+            { known: false, label: HOUR_UNKNOWN_LABEL },
           ].map((option) => (
             <label
               key={option.label}
@@ -521,7 +527,7 @@ function TimeFields({
       <p className="text-xs leading-5 text-muted">
         {value.hourKnown === false
           ? '시각을 모르면 시주를 뽑지 않습니다. 나머지 세 기둥은 그대로 계산합니다.'
-          : '24시간으로 적습니다 — 오후 2시 30분은 14시 30분입니다. 모르면 「시간 모름」을 고르세요.'}
+          : `24시간으로 적습니다 — 오후 2시 30분은 14시 30분입니다. 모르면 「${HOUR_UNKNOWN_LABEL}」을 고르세요.`}
       </p>
     </fieldset>
   );

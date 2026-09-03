@@ -378,7 +378,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
           「검사했다」 표시를 잃으므로, 정적인 자리에 서 있어도 React 가 키를 찾는다.
         */
         <p key="revision-notice" className="text-xs text-muted">
-          <strong className="font-medium">현재 저장된 출생정보 기준입니다.</strong>{' '}
+          <strong className="font-medium">현재 저장된 출생 정보 기준입니다.</strong>{' '}
           {REVISION_REPLACED_NOTE}
         </p>
       }

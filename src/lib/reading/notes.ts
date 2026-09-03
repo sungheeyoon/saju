@@ -50,7 +50,7 @@ export const READING_SCORE_NOTE = `이 점수는 실험 중인 풀이가 붙인 
 
 /** 만든 뒤에 입력이 바뀌었다 — 고장이 아니라 그렇게 하기로 한 것이다 */
 export const READING_STALE_NOTE =
-  '이 풀이는 이전 출생정보로 썼습니다. 지금 저장된 입력으로 보려면 새로 만들어 주세요.';
+  '이 풀이는 이전 출생 정보로 썼습니다. 지금 저장된 입력으로 보려면 새로 만들어 주세요.';
 
 /** 공유 결과는 **매인 판본**으로 난다 — 뒤의 수정이 이 글을 흔들지 않는다 */
 export const READING_PINNED_NOTE =

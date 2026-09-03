@@ -95,7 +95,7 @@ export function ConsentForm({
           disabled={saving}
           className="h-11 rounded-xl bg-accent px-6 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-wait disabled:opacity-60"
         >
-          {saving ? '적는 중이에요…' : '확인하고 시작하기'}
+          {saving ? '적는 중…' : '확인하고 시작하기'}
         </button>
       </div>
     </div>

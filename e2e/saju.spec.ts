@@ -255,10 +255,10 @@ test('생년월일시는 숫자로 적고 범위 밖이면 버튼이 잠긴다',
   await expect(page.getByLabel('출생일')).toHaveAttribute('placeholder', '1~28');
 
   // 시각도 같다. 25시는 계산으로 흘러가지 않는다.
-  await page.getByLabel('출생 시').fill('25');
-  await expect(page.getByLabel('출생 시')).toHaveAttribute('aria-invalid', 'true');
+  await page.getByLabel('출생 시', { exact: true }).fill('25');
+  await expect(page.getByLabel('출생 시', { exact: true })).toHaveAttribute('aria-invalid', 'true');
   await expect(page.getByRole('button', { name: '사주 결과 보기' })).toBeDisabled();
-  await page.getByLabel('출생 시').fill('14');
+  await page.getByLabel('출생 시', { exact: true }).fill('14');
 
   await page.getByRole('button', { name: '사주 결과 보기' }).click();
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
@@ -269,7 +269,7 @@ test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한�
   await enterKnownBirth(page);
 
   await chooseHourUnknown(page);
-  await expect(page.getByLabel('출생 시')).toBeDisabled();
+  await expect(page.getByLabel('출생 시', { exact: true })).toBeDisabled();
   await expect(page.getByLabel('출생 분')).toBeDisabled();
   await page.getByRole('button', { name: '사주 결과 보기' }).click();
   await expect(page.getByText('미상 · 시주를 뽑지 않았습니다')).toBeVisible();
@@ -697,7 +697,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
 
   for (const control of [
     page.getByLabel('출생연도'),
-    page.getByLabel('출생 시'),
+    page.getByLabel('출생 시', { exact: true }),
     page.getByRole('button', { name: '사주 결과 보기' }),
   ]) {
     /*

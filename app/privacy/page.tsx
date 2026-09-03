@@ -90,7 +90,7 @@ export default async function PrivacyPage() {
           <section className={`${CARD} flex flex-col gap-3`}>
             <h2 className="text-base font-bold">확인하고 고치고 지우는 방법</h2>
             <ul className="flex flex-col gap-2 text-sm leading-6 text-secondary">
-              <li>저장된 출생정보는 내 사주 화면에서 언제든 고칠 수 있습니다.</li>
+              <li>저장된 출생 정보는 내 사주 화면에서 언제든 고칠 수 있습니다.</li>
               <li>선택 동의는 계정 관리 화면에서 켜고 끌 수 있습니다.</li>
               <li>
                 계정과 저장된 정보의 삭제는 계정 관리 화면에서 요청하실 수 있습니다. 상세

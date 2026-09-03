@@ -29,11 +29,11 @@ export const ACCOUNT_HALTED_TEXT: Record<
   { readonly title: string; readonly detail: string }
 > = {
   suspended: {
-    title: '중지된 계정입니다.',
+    title: '중지된 계정입니다',
     detail: '저장된 자료는 그대로 있고, 지금은 열어 볼 수 없습니다.',
   },
   deletion_requested: {
-    title: '삭제를 요청한 계정입니다.',
+    title: '삭제를 요청한 계정입니다',
     detail:
       '요청을 받았습니다. 인연 찾기 노출과 새 요청·풀이 생성은 이미 멈췄고, 저장된 자료는 운영자가 처리할 때까지 그대로 있습니다. 되돌리려면 운영자에게 알려 주세요.',
   },

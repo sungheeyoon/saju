@@ -131,7 +131,7 @@ export function ProfileForm({ current }: { current: DiscoveryProfileInput }) {
           {saving ? '저장하는 중…' : '프로필 저장'}
         </button>
         {missing !== null && <span className="text-xs text-muted">{missing}</span>}
-        {saved && !changed && <span className="text-xs text-muted">저장했습니다.</span>}
+        {saved && !changed && <span className="text-xs text-muted">저장했습니다</span>}
       </div>
 
       {failure !== null && <p className="text-sm text-muted">저장하지 못했습니다 — {failure}</p>}

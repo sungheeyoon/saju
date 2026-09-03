@@ -289,7 +289,7 @@ export function ReadingPanel({
           disabled={phase === 'loading' || spent}
           className="h-11 w-full shrink-0 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto"
         >
-          {phase === 'loading' ? '풀이를 쓰고 있어요…' : reading === null ? '사주풀이 받기' : '다시 풀이받기'}
+          {phase === 'loading' ? '풀이 만드는 중…' : reading === null ? '사주풀이 받기' : '다시 풀이받기'}
         </button>
       </div>
       {/*

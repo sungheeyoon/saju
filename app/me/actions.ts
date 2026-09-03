@@ -155,7 +155,7 @@ export async function removeFromList(personId: string): Promise<SaveResult> {
 }
 
 /**
- * 고친 출생정보를 새 판본으로 쌓는다.
+ * 고친 출생 정보를 새 판본으로 쌓는다.
  *
  * 두 가지가 함께 일어나지만 **같은 종류가 아니다.**
  *

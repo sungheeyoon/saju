@@ -41,7 +41,7 @@ export function SignInButton({ returnTo = '/me' }: { returnTo?: string }) {
         disabled={going}
         className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent disabled:opacity-60"
       >
-        {going ? '구글로 이동합니다…' : '구글로 로그인'}
+        {going ? '구글로 이동하는 중…' : '구글로 로그인'}
       </button>
       {failure !== null && (
         <p className="text-xs text-muted">로그인을 시작하지 못했습니다 — {failure}</p>

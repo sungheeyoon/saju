@@ -106,11 +106,11 @@ export type Query = {
    * 씌우게 되는데, 그것은 엔진이 정오를 채워 넣을 때 경계한 것과 같은 실수다 —
    * **모르는 것을 아는 것처럼 만들지 않는다**(`UNKNOWN_HOUR_PROXY`).
    *
-   * `null` 은 이제 **주소에서만 온다.** 폼은 「시간 입력」에서 시작한다
+   * `null` 은 이제 **주소에서만 온다.** 폼은 「출생 시각 입력」에서 시작한다
    * (`DEFAULT_QUERY`) — 두 칸이 다 꺼져 있으면 사용자가 그것을 「고를 게 있다」가
    * 아니라 「잠긴 칸」으로 읽었다. 그래도 위험이 없는 것은, 켜진 쪽이 **모른다는
    * 답이 아니라 적으라는 요구**라서다: 시각을 안 적으면 버튼이 잠긴 채로 남는다.
-   * 반대로 「시간 모름」을 기본으로 두면 아무 말 없이 시주 없는 명식이 나간다.
+   * 반대로 「출생 시각 모름」을 기본으로 두면 아무 말 없이 시주 없는 명식이 나간다.
    *
    * `false` 여야만 엔진에 `hour: null` 이 간다. `null` 로는 계산을 시작하지
    * 않는다(`missingAnswer`).
@@ -132,7 +132,7 @@ export const DEFAULT_QUERY: Query = {
   // 결과를 예시 명식으로 채우지 않는다. 사용자가 입력하기 전에는 빈 상태다.
   date: '',
   time: '',
-  // 「시간 입력」에서 시작한다 — 위 `hourKnown` 참조. 시각 두 칸이 비어 있으면
+  // 「출생 시각 입력」에서 시작한다 — 위 `hourKnown` 참조. 시각 두 칸이 비어 있으면
   // 버튼은 그대로 잠겨 있으므로, 켜 둔다고 답을 대신 채우는 것이 아니다.
   hourKnown: true,
   gender: 'female',
@@ -149,6 +149,21 @@ export const LATE_NIGHT_RULES: readonly LateNightRule[] = ['jo', 'ya'];
 
 /** 시각을 모른다는 표시. 시각과 같은 칸을 쓰므로 "모름인데 14:30" 이 만들어지지 않는다 */
 const HOUR_UNKNOWN = 'unknown';
+
+/**
+ * 시각을 모른다는 **한 가지 사실을 부르는 한 가지 말.**
+ *
+ * 세 벌이었다 — 넣을 때는 「시간 모름」 라디오를 고르고, 내 사주에서는 「시각 모름」으로
+ * 읽고, 결과 표에서는 「시각 미상」을 봤다. 같은 칸을 세 이름으로 부르면 사용자는 그것이
+ * 같은 것인지 확인하는 데 눈을 쓴다.
+ *
+ * 「시간」이 아니라 **「시각」**인 것은 시간이 길이(두 시간)로도 읽히기 때문이고,
+ * 「미상」이 아니라 **「모름」**인 것은 미상이 행정 문서의 말이기 때문이다.
+ *
+ * 값은 그대로 `'unknown'` 이다. 바꾼 것은 **화면에 적는 글자**뿐이라 이미 나눠 준 링크도
+ * 저장된 판본도 움직이지 않는다.
+ */
+export const HOUR_UNKNOWN_LABEL = '출생 시각 모름';
 
 const SAEUN_MIN = 1900;
 const SAEUN_MAX = 2100;
@@ -227,8 +242,8 @@ export function missingForCalculation(query: Query): string | null {
   const refused = birthYearRefusal(query);
   if (refused !== null) return refused;
   // 고르지 않은 것과 "모른다"고 답한 것은 다르다 — 위 `hourKnown` 참조.
-  if (query.hourKnown === null) return '출생시각을 입력하거나 시간 모름을 골라 주세요.';
-  if (query.hourKnown && query.time === '') return '출생시각을 입력해 주세요.';
+  if (query.hourKnown === null) return `출생 시각을 입력하거나 ${HOUR_UNKNOWN_LABEL}을 골라 주세요.`;
+  if (query.hourKnown && query.time === '') return '출생 시각을 입력해 주세요.';
 
   return null;
 }

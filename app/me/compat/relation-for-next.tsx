@@ -63,7 +63,7 @@ export function RelationForNext({
 
       <p className="text-xs leading-5 text-muted" aria-live="polite">
         {saving
-          ? '적는 중이에요…'
+          ? '적는 중…'
           : '지금 서 있는 글은 그대로입니다. 다시 풀이받을 때부터 이 사이로 읽어 드려요.'}
       </p>
 

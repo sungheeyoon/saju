@@ -5,7 +5,7 @@ import { CALENDAR_KO, ELEMENT_KO, GENDER_KO, STEM_INFO } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { chartOf, solarDateOf } from '../../chart';
-import type { Query } from '../../query';
+import { HOUR_UNKNOWN_LABEL, type Query } from '../../query';
 import {
   UNREADABLE_REVISION_NOTE,
   UnreadableRevisionError,
@@ -166,7 +166,7 @@ function readChart(
   localLabel: string,
 ): Person['chart'] {
   if (revision === undefined) {
-    return { ok: false, message: '저장된 출생정보를 읽지 못했습니다.' };
+    return { ok: false, message: '저장된 출생 정보를 읽지 못했습니다.' };
   }
 
   try {
@@ -245,7 +245,7 @@ function ChartSummary({ query }: { query: Query }) {
             {columns.map(([label, pillar]) => (
               <td key={label} className="text-2xl">
                 {/* 시각을 모르면 시주가 아예 없다. 정오로 메워 午시를 내지 않는다 */}
-                {pillar === null ? <span className="text-sm text-muted">시각 모름</span> : pillar.name}
+                {pillar === null ? <span className="text-sm text-muted">{HOUR_UNKNOWN_LABEL}</span> : pillar.name}
               </td>
             ))}
           </tr>
@@ -261,7 +261,7 @@ function ChartSummary({ query }: { query: Query }) {
         {query.calendar === 'solar'
           ? query.date
           : `${CALENDAR_KO[query.calendar]} ${query.date} · 양력 ${isoOf(solarDateOf(query))}`}
-        {query.hourKnown === false ? ' · 시각 모름' : ` ${query.time}`} · {GENDER_KO[query.gender]} ·{' '}
+        {query.hourKnown === false ? ` · ${HOUR_UNKNOWN_LABEL}` : ` ${query.time}`} · {GENDER_KO[query.gender]} ·{' '}
         {query.city}
       </p>
     </div>

@@ -205,7 +205,7 @@ export function ReadingFeedback({
           disabled={!ready || saving}
           className="h-10 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {saving ? '보내는 중이에요…' : '답 보내기'}
+          {saving ? '보내는 중…' : '답 보내기'}
         </button>
         {!ready && <p className="text-xs text-muted">위 세 가지를 골라 주시면 보낼 수 있어요.</p>}
       </div>

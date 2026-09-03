@@ -50,7 +50,7 @@ export async function expectBirthDate(scope: Scope, date: string): Promise<void>
 /**
  * 시각을 아는 쪽을 고르고 시·분을 적는다.
  *
- * 폼은 「시간 입력」에서 시작하므로 두 칸은 이미 열려 있다. 그래도 고르는 줄을 먼저
+ * 폼은 「출생 시각 입력」에서 시작하므로 두 칸은 이미 열려 있다. 그래도 고르는 줄을 먼저
  * 누른다 — 주소에서 온 입력은 `hourKnown` 이 `null` 이거나 `false` 일 수 있고, 그때는
  * 두 칸이 잠겨 있다.
  */
@@ -59,14 +59,18 @@ export async function fillBirthTime(scope: Scope, time: string): Promise<void> {
   if (!match) throw new Error(`HH:MM 이 아니다: ${time}`);
   const [, hour, minute] = match;
 
-  await scope.getByRole('radio', { name: '시간 입력', exact: true }).check();
-  await scope.getByLabel('출생 시').fill(hour);
-  await scope.getByLabel('출생 분').fill(minute);
+  await scope.getByRole('radio', { name: '출생 시각 입력', exact: true }).check();
+  /*
+    `exact` 없이 「출생 시」로 찾으면 **라디오까지 걸린다** — 「출생 시각 모름」이
+    그 글자로 시작한다. 부분일치는 화면 낱말이 길어지는 날 조용히 둘을 잡는다.
+  */
+  await scope.getByLabel('출생 시', { exact: true }).fill(hour);
+  await scope.getByLabel('출생 분', { exact: true }).fill(minute);
 }
 
 /** 시각을 모른다고 답한다 — 고르지 않은 것과 다르다 */
 export async function chooseHourUnknown(scope: Scope): Promise<void> {
-  await scope.getByRole('radio', { name: '시간 모름', exact: true }).check();
+  await scope.getByRole('radio', { name: '출생 시각 모름', exact: true }).check();
 }
 
 /** 달력 기준 — 양력·음력 평달·음력 윤달 셋 중 하나 */

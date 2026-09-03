@@ -223,11 +223,11 @@ try {
         && html.includes('상대 원국 하나에 대한 전체 판정'));
     /**
      * 「판본」은 우리가 FK 를 부르는 이름이라 사용자 문장에서 뺐다(ADR 0026).
-     * 재는 것은 낱말이 아니라 **말하고 있는 사실**이다 — 이 요청이 지금의 출생정보에
+     * 재는 것은 낱말이 아니라 **말하고 있는 사실**이다 — 이 요청이 지금의 출생 정보에
      * 매여 있고, 고치면 무효가 된다는 것.
      */
-    check('요청이 그때의 출생정보에 매여 있다고 미리 말한다',
-      text.includes('저장해 두신 출생정보에 매여') && text.includes('무효'));
+    check('요청이 그때의 출생 정보에 매여 있다고 미리 말한다',
+      text.includes('저장해 두신 출생 정보에 매여') && text.includes('무효'));
     check('그 문장에 내부어가 안 섞인다', !text.includes('판본'));
     /**
      * 문구가 「다시 서지 않고」에서 「다시 나타나지 않고」로 바뀌었는데 여기가 안
@@ -313,14 +313,14 @@ try {
     });
 
     const asker = plain(await body('/me/requests', aCookie));
-    check('출생정보를 고치면 pending 이 무효가 된다',
-      asker.includes(`${NAME.c} 님과의 요청이 출생정보 수정으로 무효가 되었습니다`));
+    check('출생 정보를 고치면 pending 이 무효가 된다',
+      asker.includes(`${NAME.c} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다`));
     check('무효가 된 요청은 기다리는 목록에서 내려간다',
       asker.includes('기다리는 중인 요청이 없습니다'));
 
     const other = plain(await body('/me/requests', cCookie));
     check('무효화는 양쪽 다 알림을 받는다',
-      other.includes(`${NAME.a} 님과의 요청이 출생정보 수정으로 무효가 되었습니다`));
+      other.includes(`${NAME.a} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다`));
   }
 
   // ── 9. 차단은 「다시 보지 않기」보다 넓다 ───────────────────────────────────

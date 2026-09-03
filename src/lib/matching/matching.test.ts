@@ -57,6 +57,13 @@ describe('match-v0', () => {
     /** 각주가 답하는 물음은 「이 숫자가 무엇인가」다 — 제외 사실은 딱지가 든다 */
     expect(preview.caveat).toContain('궁합의 정답이 아니라');
     expect(preview.caveat).not.toContain('검증 중인 판정');
+
+    /**
+     * **내부 판본 이름은 사용자에게 닿는 어디에도 없다**(CONTEXT.md · ADR 0026).
+     * `policyVersion` 은 값으로 실려 화면이 안 쓰는 자리에서만 읽힌다.
+     */
+    const shown = [...preview.highlights, preview.caveat, ...preview.dimensions.map((d) => `${d.label} ${d.description}`)].join(' ');
+    expect(shown).not.toContain('match-v0');
   });
 
   /**

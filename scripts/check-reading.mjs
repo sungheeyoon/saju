@@ -522,7 +522,7 @@ try {
     const after = plain(await body(`/me/match/${matchId}`, cookie.a));
     check('상대가 입력을 고쳐도 공유 결과의 글은 그대로다',
       after.includes('서로의 빈자리를 채웁니다'));
-    check('그래도 「이전 입력으로 썼다」고 말하지 않는다', !after.includes('이전 출생정보로 썼습니다'));
+    check('그래도 「이전 입력으로 썼다」고 말하지 않는다', !after.includes('이전 출생 정보로 썼습니다'));
 
     /** 자기 풀이는 반대다 — 지금 판본이 아니면 그렇게 말한다 */
     const mineAccount = await a.from('app_user').select('self_person_id').maybeSingle();
@@ -534,7 +534,7 @@ try {
     });
 
     const mine = plain(await body('/me', cookie.a));
-    check('자기 풀이는 이전 입력으로 썼다고 말한다', mine.includes('이전 출생정보로 썼습니다'));
+    check('자기 풀이는 이전 입력으로 썼다고 말한다', mine.includes('이전 출생 정보로 썼습니다'));
     check('그래도 글은 그대로 서 있다', mine.includes('스스로 정한 규칙 안에서'));
   }
 

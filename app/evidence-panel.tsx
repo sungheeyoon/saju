@@ -239,7 +239,7 @@ function EvidenceBody({
           </button>
           <span className="text-xs text-muted">
             {copy === 'copied'
-              ? '복사했습니다.'
+              ? '복사했습니다'
               : copy === 'failed'
                 ? '복사에 실패했습니다. 내려받기를 쓰세요.'
                 : `붙여 넣을 분량 ${Math.round(promptBytes / 1024)}KB · 자료만 ${Math.round(

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { supabaseOnServer } from '../auth/server-client';
 import { unreadCount } from './requests/inbox';
 import { chartOf } from '../chart';
-import { toSearchParams } from '../query';
+import { HOUR_UNKNOWN_LABEL, toSearchParams } from '../query';
 import { UNREADABLE_REVISION_NOTE, UnreadableRevisionError, queryFromRevision } from '../revision';
 import { Halted } from './halted';
 import { Onboarding } from './onboarding';
@@ -93,7 +93,7 @@ async function SelfChart({ personId }: { personId: string }) {
     .eq('id', person.current_revision_id)
     .maybeSingle();
 
-  if (!current) return <p className="text-sm text-muted">저장된 출생정보를 찾지 못했습니다.</p>;
+  if (!current) return <p className="text-sm text-muted">저장된 출생 정보를 찾지 못했습니다.</p>;
 
   /**
    * 못 읽는 판본은 **메우지 않는다.**
@@ -139,7 +139,7 @@ async function SelfChart({ personId }: { personId: string }) {
               {query.calendar === 'solar'
                 ? current.solar_date
                 : `${CALENDAR_KO[query.calendar]} ${current.original_date} · 양력 ${current.solar_date}`}
-              {current.birth_time === null ? ' · 시각 모름' : ` ${query.time}`}
+              {current.birth_time === null ? ` · ${HOUR_UNKNOWN_LABEL}` : ` ${query.time}`}
             </dd>
             <dt className="text-muted">성별</dt>
             <dd>{GENDER_KO[query.gender]}</dd>
