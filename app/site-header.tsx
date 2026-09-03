@@ -14,8 +14,19 @@ const PUBLIC_LINKS = [
   { href: '/compat', label: '궁합 보기' },
 ] as const;
 
+/**
+ * 로그인한 사람의 메뉴 — **「내 사주」가 홈이고, 계산기는 메뉴 안에 있다.**
+ *
+ * 로고는 이미 `/me` 로 가고 로그인도 거기로 떨어진다(`safeReturnPath`). 그런데 회원
+ * 메뉴에는 `/` 로 가는 길이 한 줄도 없었다 — 저장하지 않은 남의 생년월일시로 한 번
+ * 계산해 보는 자리를, 로그인하고 나면 주소를 직접 쳐야만 열 수 있었다.
+ *
+ * 이름은 공개 메뉴와 **같은 것을 쓴다**(「사주 보기」). 같은 화면을 두 낱말로 부르면
+ * 로그인 전후로 다른 기능처럼 읽힌다(ADR 0026·0027).
+ */
 const MEMBER_LINKS = [
   { href: '/me', label: '내 사주' },
+  { href: '/', label: '사주 보기' },
   { href: '/me/people', label: '사람' },
   { href: '/compat', label: '궁합' },
   { href: '/me/discovery', label: '인연 찾기' },

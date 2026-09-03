@@ -129,7 +129,7 @@ export function ReadingFeedback({
 
       <fieldset>
         <legend className="float-left w-full text-sm font-semibold">분량은 어땠나요?</legend>
-        <div className="mt-2.5 flex flex-wrap gap-2">
+        <div className="mt-2.5 flex flex-wrap gap-2 clear-both">
           {FELT_LENGTHS.map((choice) => (
             <Chip
               key={choice}
@@ -147,7 +147,7 @@ export function ReadingFeedback({
 
       <fieldset>
         <legend className="float-left w-full text-sm font-semibold">아쉬운 점이 있다면요?</legend>
-        <p className="mt-1 text-xs leading-5 text-muted">
+        <p className="mt-1 text-xs leading-5 text-muted clear-both">
           여러 개 고를 수 있고, 없으면 안 골라도 됩니다.
         </p>
         <div className="mt-2.5 flex flex-wrap gap-2">
@@ -226,9 +226,14 @@ function Scale({
   onChange: (next: FeedbackScore) => void;
 }) {
   return (
-    <fieldset>
+    /*
+      **양 끝 이름은 눈금에 붙어 있어야 뜻이 있다.** 「많이 됐어요」가 화면 오른쪽 끝에
+      혼자 서 있으면 그것이 5번 칸의 이름인지 이 칸 전체의 말인지 알 수 없다. 사이드바가
+      없어지며 이 칸이 화면 폭만큼 넓어져 그 둘이 벌어졌다 — 폭을 눈금에 맞춰 잡는다.
+    */
+    <fieldset className="max-w-md">
       <legend className="float-left w-full text-sm font-semibold">{question.label}</legend>
-      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+      <div className="mt-2.5 flex flex-wrap items-center gap-2 clear-both">
         {FEEDBACK_SCALE.map((score) => (
           <Chip
             key={score}

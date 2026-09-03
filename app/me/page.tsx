@@ -56,7 +56,10 @@ export default async function MePage() {
       ) : account.self_person_id === null ? (
         <Onboarding />
       ) : (
-        <SelfChart personId={account.self_person_id} />
+        <>
+          <Unread />
+          <SelfChart personId={account.self_person_id} />
+        </>
       )}
     </main>
   );
@@ -119,101 +122,97 @@ async function SelfChart({ personId }: { personId: string }) {
   const saju = chartOf(query);
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
-      <div className="flex min-w-0 flex-col gap-6">
-        <PillarCard label={edge.local_label} saju={saju} />
+    <section className="flex min-w-0 flex-col gap-6">
+      <PillarCard label={edge.local_label} saju={saju} />
 
-        <section className="rounded-2xl border border-border bg-surface-soft p-5">
-          <div className="grid grid-cols-[1fr_auto] items-center gap-3 border-b border-border pb-3">
-            <h2 className="text-sm font-bold">저장된 출생 정보</h2>
-            <ReviseChart personId={personId} current={query} embedded />
-          </div>
-          <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 text-sm">
-            <dt className="text-muted">생년월일</dt>
+      {/*
+        전체 명식은 익명 화면이 그린다. 입력은 `#` 뒤에 실리므로 서버로 가지 않는다.
+        같은 엔진·같은 함수를 쓰므로 여기 여덟 글자와 저쪽 여덟 글자는 같은 값이다.
+
+        **이 화면에 남은 유일한 길이다.** 사람·궁합·인연 찾기·소식으로 가는 목록이
+        여기 따로 서 있었는데, 그 넷은 이미 머리글의 메뉴가 든다 — 같은 길을 두 자리에
+        세우면 하나를 고칠 때 다른 하나가 낡는다. 이 링크만 남는 것은 저쪽이 **이
+        명식의 이어 보기**라서다. 메뉴에는 그런 자리가 없다.
+      */}
+      <Link
+        href={`/#${toSearchParams(query).toString()}`}
+        className="self-start rounded-full border border-border-strong bg-surface px-5 py-2.5 text-sm font-semibold hover:border-accent hover:text-accent"
+      >
+        전체 명식 자세히 보기 <span aria-hidden="true">→</span>
+      </Link>
+
+      <section className="rounded-2xl border border-border bg-surface-soft p-5">
+        <div className="grid grid-cols-[1fr_auto] items-center gap-3 border-b border-border pb-3">
+          <h2 className="text-sm font-bold">저장된 출생 정보</h2>
+          <ReviseChart personId={personId} current={query} embedded />
+        </div>
+        <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 text-sm">
+          <dt className="text-muted">생년월일</dt>
           {/*
             음력으로 넣었으면 **적은 그대로와 바뀐 양력을 함께** 보여준다. 양력만
             보이면 사용자가 자기 입력을 못 알아보고, 원본만 보이면 우리가 무엇으로
             계산했는지 모른다(ADR 0002).
           */}
-            <dd>
-              {query.calendar === 'solar'
-                ? current.solar_date
-                : `${CALENDAR_KO[query.calendar]} ${current.original_date} · 양력 ${current.solar_date}`}
-              {current.birth_time === null ? ` · ${HOUR_UNKNOWN_LABEL}` : ` ${query.time}`}
-            </dd>
-            <dt className="text-muted">성별</dt>
-            <dd>{GENDER_KO[query.gender]}</dd>
-            <dt className="text-muted">출생지</dt>
-            <dd>{query.city}</dd>
-            <dt className="text-muted">자시 규칙</dt>
-            <dd>{query.rule === 'jo' ? '조자시 (23:00 경계)' : '야자시 (자정 경계)'}</dd>
-          </dl>
-        </section>
-
-        {/*
-          **자기 풀이** — 저장된 근거를 사용자가 직접 읽지 않아도 무엇이 보이는지
-          알게 하는 자리다(US 23-1). 여는 것만으로는 만들지 않는다.
-        */}
-        <ReadingSection target={{ kind: 'self' }} />
-
-      </div>
+          <dd>
+            {query.calendar === 'solar'
+              ? current.solar_date
+              : `${CALENDAR_KO[query.calendar]} ${current.original_date} · 양력 ${current.solar_date}`}
+            {current.birth_time === null ? ` · ${HOUR_UNKNOWN_LABEL}` : ` ${query.time}`}
+          </dd>
+          <dt className="text-muted">성별</dt>
+          <dd>{GENDER_KO[query.gender]}</dd>
+          <dt className="text-muted">출생지</dt>
+          <dd>{query.city}</dd>
+          <dt className="text-muted">자시 규칙</dt>
+          <dd>{query.rule === 'jo' ? '조자시 (23:00 경계)' : '야자시 (자정 경계)'}</dd>
+        </dl>
+      </section>
 
       {/*
-        전체 명식은 익명 화면이 그린다. 입력은 `#` 뒤에 실리므로 서버로 가지 않는다.
-        같은 엔진·같은 함수를 쓰므로 여기 여덟 글자와 저쪽 여덟 글자는 같은 값이다.
+        **자기 풀이** — 저장된 근거를 사용자가 직접 읽지 않아도 무엇이 보이는지
+        알게 하는 자리다(US 23-1). 여는 것만으로는 만들지 않는다.
       */}
-      <aside className="flex h-fit flex-col gap-2 rounded-2xl border border-border bg-surface p-4 shadow-[var(--shadow-card)] lg:sticky lg:top-24">
-        <p className="px-2 pb-1 text-xs font-bold text-muted">빠른 메뉴</p>
-        <Link
-          href={`/#${toSearchParams(query).toString()}`}
-          className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent"
-        >
-          전체 명식 자세히 보기 <span aria-hidden="true">→</span>
-        </Link>
-        {/*
-          가족·친구는 이 화면에 없다. 여기는 「나」의 자리이고, 스무 명 한도가 세는
-          것도 저쪽 목록이다.
-        */}
-        <Link href="/me/people" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
-          저장한 사람 관리 <span aria-hidden="true">→</span>
-        </Link>
-        <Link href="/me/compat" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
-          저장한 사람으로 궁합 보기 <span aria-hidden="true">→</span>
-        </Link>
-        <Link href="/me/discovery" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
-          새로운 인연 찾기 <span aria-hidden="true">→</span>
-        </Link>
-        <Requests />
-      </aside>
+      <ReadingSection target={{ kind: 'self' }} />
     </section>
   );
 }
 
 /**
- * 요청함으로 가는 자리 — **안 읽은 것이 있으면 수를 함께 든다.**
+ * 안 읽은 알림 — **있을 때만 선다.**
  *
  * 알림은 앱 안에서만 온다(용어집). 그러니 들어왔을 때 **여기서** 눈에 띄어야 한다 —
- * 요청 화면까지 들어가야 알 수 있으면 앱 내 알림은 아무에게도 닿지 않는다.
+ * 요청 화면까지 들어가야 알 수 있으면 앱 내 알림은 아무에게도 닿지 않는다. 로그인한
+ * 사람이 도착하는 자리가 이 화면이라 더 그렇다.
+ *
+ * 전에는 옆의 빠른 메뉴 안에 「새 소식 →」 한 줄로 늘 서 있었다. 그 목록을 걷어 내면서
+ * 배지까지 같이 사라질 뻔했다 — **목록에서 숨긴 것을 배지에서도 숨기면** 알림이 닿는
+ * 길이 없어진다. 그래서 길은 메뉴에 두고, **띠는 알림이 실제로 있을 때만** 세운다.
+ * 늘 서 있는 줄은 곧 안 읽히고, 그때 정작 무언가 왔을 때도 안 읽힌다.
  *
  * 목록 전체를 읽지 않고 개수만 묻는다. 이 화면은 알림의 내용을 그리지 않는다.
  */
-async function Requests() {
+async function Unread() {
   const unread = await unreadCount();
+  if (unread === 0) return null;
 
   return (
-    <Link href="/me/requests" className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
-      <span>새 소식 <span aria-hidden="true">→</span></span>
-      {/*
-        수만 그리면 화면 밖에서는 **아무 뜻이 없다.** 「1」을 읽어 주는 것으로는 그것이
-        무엇의 1인지 알 수 없어서, 보이지 않는 말을 붙여 배지가 스스로 무엇인지 말하게
-        한다. 밖에서 이 배지를 재는 검사도 같은 말을 짚는다(`scripts/check-match.mjs`).
-      */}
-      {unread > 0 && (
+    <Link
+      href="/me/requests"
+      className="flex items-center justify-between gap-3 rounded-2xl border border-accent bg-accent-wash px-4 py-3 text-sm font-semibold text-accent-strong hover:border-accent-strong"
+    >
+      <span>아직 확인하지 않은 새 소식이 있습니다.</span>
+      <span className="flex shrink-0 items-center gap-2">
+        {/*
+          수만 그리면 화면 밖에서는 **아무 뜻이 없다.** 「1」을 읽어 주는 것으로는 그것이
+          무엇의 1인지 알 수 없어서, 보이지 않는 말을 붙여 배지가 스스로 무엇인지 말하게
+          한다. 밖에서 이 배지를 재는 검사도 같은 말을 짚는다(`scripts/check-match.mjs`).
+        */}
         <span className="grid size-5 place-items-center rounded-full bg-fire text-[10px] font-bold text-white">
           {unread}
           <span className="sr-only">건 안 읽음</span>
         </span>
-      )}
+        <span aria-hidden="true">→</span>
+      </span>
     </Link>
   );
 }

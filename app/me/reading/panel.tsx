@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import {
   READING_ALREADY_RUNNING_NOTE,
@@ -9,7 +9,6 @@ import {
   READING_LEAVE_SAFE_NOTE,
   READING_FAILED_NOTE,
   READING_NONE_NOTE,
-  READING_ON_REQUEST_NOTE,
   READING_PINNED_NOTE,
   READING_REDACTION_NOTE,
   READING_REPLACES_NOTE,
@@ -246,6 +245,34 @@ export function ReadingPanel({
     setPhase('error');
   };
 
+  /**
+   * 되돌릴 수 없는 누름 앞의 확인 창 — **경고를 읽는 시점을 누름에 붙인다.**
+   *
+   * 새로 만들면 지금 글과 점수는 사라진다(ADR 0013: 통째로 교체). 그 사실은 한동안
+   * 버튼 옆에 늘 적혀 있었는데, 늘 적혀 있는 문장은 누르려는 사람에게 **읽히지 않는
+   * 시점**에 서 있는 것과 같다. 여기서는 누른 사람만, 누른 그때 읽는다.
+   *
+   * **처음 만들 때는 안 묻는다.** 사라질 것이 없으면 확인은 걸음 하나를 늘리는 일일
+   * 뿐이다 — 확인 창은 잃는 것이 있을 때만 값을 한다.
+   *
+   * 상태를 안 든다. `<dialog>` 가 열림·닫힘을 스스로 들고, Esc 와 초점 가둠도 브라우저가
+   * 한다 — 그 셋을 손으로 다시 만들면 세 자리가 더 생긴다.
+   */
+  const confirming = useRef<HTMLDialogElement>(null);
+
+  const press = () => {
+    if (reading === null) {
+      void generate();
+      return;
+    }
+    confirming.current?.showModal();
+  };
+
+  const replace = () => {
+    confirming.current?.close();
+    void generate();
+  };
+
   const onPage = layout === 'page';
 
   /*
@@ -262,15 +289,23 @@ export function ReadingPanel({
     >
       {/* 먼저 정할 것이 있으면 버튼보다 앞에 선다 — 정하고 나서 누르는 차례다 */}
       {ask}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold">
-            {reading === null ? '명식 근거로 풀이를 받아 보세요' : '지금 풀이를 새로 받을 수 있어요'}
-          </p>
-          <p className="mt-0.5 text-xs leading-5 text-muted">
-            {reading === null ? READING_NONE_NOTE : READING_REPLACES_NOTE}
-          </p>
-        </div>
+      {/*
+        **아직 없을 때만 권한다.**
+
+        이미 글이 서 있는 화면에서는 「지금 풀이를 새로 받을 수 있어요 / 새로 만들면
+        지금 것을 대신합니다」가 버튼 옆에 늘 붙어 있었다. 버튼이 이미 「다시
+        풀이받기」라고 적혀 있으니 앞 줄은 버튼을 한국어로 옮겨 적은 것이었고, 뒤 줄은
+        **누르지 않을 사람에게** 경고를 하고 있었다. 경고는 누르는 순간으로 옮겼다.
+      */}
+      <div
+        className={`flex flex-col gap-3 sm:flex-row sm:items-center ${reading === null ? 'sm:justify-between' : 'sm:justify-start'}`}
+      >
+        {reading === null && (
+          <div>
+            <p className="text-sm font-semibold">명식 근거로 풀이를 받아 보세요</p>
+            <p className="mt-0.5 text-xs leading-5 text-muted">{READING_NONE_NOTE}</p>
+          </div>
+        )}
         {/*
           **숫자는 여기 없다 — 머리글에 있다.**
 
@@ -285,7 +320,7 @@ export function ReadingPanel({
         */}
         <button
           type="button"
-          onClick={generate}
+          onClick={press}
           disabled={phase === 'loading' || spent}
           className="h-11 w-full shrink-0 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto"
         >
@@ -374,6 +409,48 @@ export function ReadingPanel({
 
       {!onPage && alert}
       {!onPage && makeBlock}
+
+      {/*
+        **글이 있을 때만 그린다.** 없으면 이 창이 물을 것도 없고, 화면 어디에서도
+        열리지 않는다.
+      */}
+      {reading !== null && (
+        <dialog
+          ref={confirming}
+          aria-labelledby="reading-replace-title"
+          /*
+            **`m-auto` 는 장식이 아니다.** 브라우저 기본 스타일은 열린 `<dialog>` 를
+            `margin: auto` 로 가운데에 놓는데, Tailwind 의 preflight 이 모든 요소의
+            여백을 0 으로 되돌린다 — 그대로 두면 이 창이 화면 왼쪽 위 구석에 붙는다.
+          */
+          className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
+        >
+          <h3 id="reading-replace-title" className="text-base font-bold">
+            지금 풀이를 대신합니다
+          </h3>
+          <p className="mt-2 text-sm leading-6 text-secondary">{READING_REPLACES_NOTE}</p>
+          {/*
+            **누르는 쪽이 오른쪽이다.** 좁은 화면에서는 위아래로 서고, 그때도 확인이
+            위에 온다(`flex-col-reverse` 가 아니라 순서를 그대로 뒤집는다).
+          */}
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
+            <button
+              type="button"
+              onClick={replace}
+              className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong sm:h-10"
+            >
+              다시 풀이받습니다
+            </button>
+            <button
+              type="button"
+              onClick={() => confirming.current?.close()}
+              className="h-11 rounded-xl border border-border px-5 text-sm text-secondary hover:border-border-strong hover:text-foreground sm:h-10"
+            >
+              그만두기
+            </button>
+          </div>
+        </dialog>
+      )}
     </>
   );
 }
@@ -466,9 +543,19 @@ function Result({
           <p className="max-w-md text-xs leading-5 text-muted">{READING_SCORE_NOTE}</p>
         </div>
       )}
+      {/*
+        **늘 참인 사실은 여기 안 적는다.**
+
+        「화면을 다시 열어도 이 풀이는 그대로입니다」가 이 줄에 있었다. 참이지만 이
+        화면에서 **한 번도 틀린 적이 없는** 사실이라, 읽는 사람에게는 늘 서 있는 배경이
+        된다. 그 배경이 두꺼워질수록 옆에 선 「이전 출생 정보로 썼습니다」처럼 **실제로
+        갈리는** 한 줄이 같이 안 읽힌다.
+
+        새로 만들면 지금 것이 사라진다는 경고도 이 자리를 떠났다 — 그것은 되돌릴 수
+        없는 누름 **직전**에 필요한 말이라, 확인 창이 든다.
+      */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs leading-5 text-muted">
         {target.kind === 'match' && <p>{readingOrderNote(reading.viewerIsFirst)}</p>}
-        <p>{READING_ON_REQUEST_NOTE}</p>
         {target.kind === 'match' ? <p>{READING_PINNED_NOTE}</p> : !reading.fromCurrentRevision && <p className="text-danger">{READING_STALE_NOTE}</p>}
       </div>
       <div className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-[var(--shadow-card)]">
