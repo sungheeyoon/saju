@@ -209,7 +209,7 @@ function Credits() {
   return (
     /*
       **폰에서도 보인다.** 처음에는 `sm:` 아래에서 숨겼는데, 그러면 폰으로 쓰는 사람은
-      자기 잔액을 한 번도 못 본다 — 이 제품은 데스크톱과 모바일 둘 다를 약속한다(PRD).
+      자기 잔액을 한 번도 못 본다 — 이 제품은 데스크톱과 모바일 둘 다를 약속한다(`prd-archive`).
       좁아지는 것은 옆의 메뉴이고, 그 줄은 이미 가로로 흐르게 되어 있다.
     */
     <span className="shrink-0 rounded-full bg-accent-wash px-2.5 py-1.5 text-xs font-semibold tabular-nums text-accent">

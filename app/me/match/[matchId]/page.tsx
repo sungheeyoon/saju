@@ -143,7 +143,7 @@ function Result({ result }: { result: SharedResult }) {
         **점수는 여기 한 자리에서만 난다.** 예전에는 이 자리에 `match-v0` 대시보드가
         섰다. 그것을 내린 것은 지표가 틀려서가 아니라 **한 화면에 점수가 둘이면 사용자가
         무엇을 믿을지 정해야 하기 때문**이다 — 사용자에게 보이는 점수는 현재 결과의
-        일부이고(PRD), `match-v0` 는 내부 실험 자산으로 남는다(ADR 0003).
+        일부이고(`prd-archive`), `match-v0` 는 내부 실험 자산으로 남는다(ADR 0003).
       */}
       <ReadingSection target={{ kind: 'match', matchId: result.matchId }} />
 

@@ -27,7 +27,7 @@ import { openAIReadingGenerator, submitBackgroundReading } from './model';
  *
  * 한 번의 왕복에서 여섯을 한다: 시작을 기록하고 · 판본을 읽고 · 근거를 자르고 ·
  * 모델을 부르고 · 나온 것을 검사하고 · 통째로 교체한다. 실패하면 **직전 성공 결과를
- * 건드리지 않고** 실패만 남긴다(PRD).
+ * 건드리지 않고** 실패만 남긴다(ADR 0017).
  *
  * ## 세 kind 가 갈리는 자리는 둘뿐이다
  *

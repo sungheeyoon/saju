@@ -47,7 +47,7 @@ export const metadata = {
  * RLS 가 잠근다.
  *
  * **나 중심이 아니어도 된다.** 엄마×아빠처럼 내가 끼지 않는 조합이 이 화면의
- * 이유다(PRD US 21).
+ * 이유다(`prd-archive` US 21).
  */
 export default async function ManagedCompatPage({
   searchParams,

@@ -26,7 +26,7 @@ import {
  *   READING_VARIANTS_LIVE=1 npx vitest run src/lib/reading/call.live.test.ts
  *
  * 재는 것은 글의 품질이 아니라 **파이프라인이 이어져 있는가**다. 품질은 사람이
- * 본다(PRD: 최종 출시 판단은 제품 담당자의 blind review).
+ * 본다(`prd-archive`: 최종 출시 판단은 제품 담당자의 blind review).
  */
 
 /**

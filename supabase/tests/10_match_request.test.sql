@@ -249,7 +249,7 @@ grant select on asked_park to authenticated;
 select pg_temp.acting((select park from folks));
 
 /**
- * **이름·메모를 고치는 것은 요청을 무효화하지 않는다**(PRD).
+ * **이름·메모를 고치는 것은 요청을 무효화하지 않는다**(`prd-archive`).
  *
  * 판본이 실제로 쌓였을 때만 무효화가 돈다. 같은 값으로 저장을 누르면 아무것도 쌓이지
  * 않으므로 여기까지 오지 않는다.
@@ -446,7 +446,7 @@ select is((select count(*)::int from public.block), 2, '내가 건 차단은 내
 
 -- ── 제재된 사람의 Match 는 만들어지지 않는다 ─────────────────────────────────
 --
--- 「계정 제재는 새 접근과 접촉을 중단한다」(PRD)는 **받는 쪽에만** 거는 규칙이 아니다.
+-- 「계정 제재는 새 접근과 접촉을 중단한다」(`prd-archive`)는 **받는 쪽에만** 거는 규칙이 아니다.
 -- 답하는 쪽 상태만 물었더니 제재된 요청자의 Match 가 그대로 만들어졌다.
 set local role authenticated;
 create temporary table han as

@@ -136,7 +136,7 @@ for each row execute function public.settled_request_releases_revisions();
 /**
  * 지금 어떤 판본이 어딘가에 매여 있는가.
  *
- * 표 이름을 적어 두고 훑을 수도 있었다. 그러면 Reading 이 붙는 날(PRD 9단계) 아무도
+ * 표 이름을 적어 두고 훑을 수도 있었다. 그러면 Reading 이 붙는 날(`prd-archive` 9단계) 아무도
  * 이 함수를 다시 보지 않고, 그날 정리 작업은 **이미 공유된 결과의 근거를 지운다.**
  * 되돌릴 수 없는 삭제 앞에서 「빠뜨렸는지」를 사람의 기억에 맡길 수 없다.
  *

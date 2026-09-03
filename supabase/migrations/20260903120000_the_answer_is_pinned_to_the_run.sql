@@ -78,13 +78,13 @@ create table public.reading_feedback (
   /** 나를 이해하는 데 도움이 됐나 */
   usefulness smallint not null check (usefulness between 1 and 5),
   /**
-   * 실제 경험과 얼마나 비슷했나 — **PRD 가 「체감 적합성」이라 부르는 값이다.**
+   * 실제 경험과 얼마나 비슷했나 — **`prd-archive` 가 「체감 적합성」이라 부르는 값이다.**
    *
    * 「정확도」라고 부르지 않는다. 사주 해석의 객관적 정확도를 우리가 잰 적이 없고,
    * 그 낱말을 쓰면 잰 적 없는 것을 쟀다고 말하는 셈이 된다.
    *
    * **혼자 읽으면 안 되는 값이다.** 바넘 문장은 근거 없이도 「내 얘기 같다」를 만든다.
-   * 이 값만 오르고 근거 밀착성이 떨어지면 그것은 개선이 아니라 바넘화다(PRD).
+   * 이 값만 오르고 근거 밀착성이 떨어지면 그것은 개선이 아니라 바넘화다(`prd-archive`).
    */
   perceived_fit smallint not null check (perceived_fit between 1 and 5),
 

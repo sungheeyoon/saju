@@ -152,7 +152,7 @@ describe('실패 알림은 무엇을 만들다 실패했는지 말한다', () =>
 describe('Match 가 여는 범위는 한 벌이다', () => {
   it('열리는 것에 궁합 관계·사주풀이와 점수·일부 오행 구성이 있다', () => {
     const shown = MATCH_DISCLOSURE.shown.join(' ');
-    // 점수는 풀이와 같은 생성 건에서 난다. 내부 지표 이름은 여기 서지 않는다(PRD).
+    // 점수는 풀이와 같은 생성 건에서 난다. 내부 지표 이름은 여기 서지 않는다(`prd-archive`).
     expect(shown).toContain('궁합 풀이와 점수');
     expect(shown).not.toContain('match-v0');
     expect(shown).toContain('오행');
@@ -214,7 +214,7 @@ describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
     // 「궁합 풀이」만 적으면 표와 같은 곳에서 나온 것처럼 읽힌다.
     expect(MATCH_RESULT_ENGINE_NOTE).toContain('궁합 풀이');
     expect(MATCH_RESULT_ENGINE_NOTE).toContain('언어 모델');
-    // 내부 지표 이름은 사용자에게 보이지 않는다(PRD).
+    // 내부 지표 이름은 사용자에게 보이지 않는다(`prd-archive`).
     expect(MATCH_RESULT_ENGINE_NOTE).not.toContain('match-v0');
   });
 
@@ -283,7 +283,7 @@ describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
     ].join(' ');
 
     expect(everything).not.toContain('판본');
-    /** 내부 지표 이름도 같은 이유로 안 선다(PRD) */
+    /** 내부 지표 이름도 같은 이유로 안 선다(`prd-archive`) */
     expect(everything).not.toContain('match-v0');
 
     // 같은 사실은 그래도 말한다 — 무엇이 요청을 깨뜨리는지, 그리고 그다음에 할 일.

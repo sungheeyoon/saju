@@ -6,7 +6,7 @@
 -- 여기서 그 둘을 채운다.
 --
 -- 이 단계가 만드는 것은 **접근 근거**이지 결과 화면이 아니다. 상세 궁합과 `match-v0`
--- 공유 결과는 다음 단계다(PRD 7). Match 가 먼저 있어야 그 화면이 무엇에 기대는지
+-- 공유 결과는 다음 단계다(`prd-archive` 7). Match 가 먼저 있어야 그 화면이 무엇에 기대는지
 -- 말할 수 있다.
 
 -- ---------------------------------------------------------------------------
@@ -53,7 +53,7 @@ create table public.match_request (
   addressee_user_id uuid not null references public.app_user (id) on delete cascade,
 
   /**
-   * 다섯이 최소 집합이다(PRD).
+   * 다섯이 최소 집합이다(`prd-archive`).
    *
    * `invalidated` 와 `cancelled` 는 둘 다 「성립하지 않았다」지만 **누가 거뒀는지가
    * 다르다** — 앞은 입력이 바뀌어서고 뒤는 요청자가 스스로다. 한 값으로 합치면
@@ -113,7 +113,7 @@ create table public.match_request (
 /**
  * **두 사람 사이에 살아 있는 결정은 하나다.**
  *
- * PRD 는 pending 하나를 요구한다. 여기서 `accepted` 와 `rejected` 까지 묶는 것은
+ * `prd-archive` 는 pending 하나를 요구한다. 여기서 `accepted` 와 `rejected` 까지 묶는 것은
  * 제품 결정이다 — 수락된 쌍에 또 요청할 이유가 없고, **거절한 사람에게 다시 두드리는
  * 길을 우리가 열지 않는다.** 거절은 되돌리지 않는다.
  *
@@ -143,7 +143,7 @@ create index match_request_by_requester on public.match_request (requester_user_
  * 통째로 여는 열쇠가 아니다. 무엇이 나가는지는 여는 함수가 정한다.
  *
  * 판본 둘을 든다. 나중에 어느 입력에 대한 합의였는지 되짚어야 하고, 그 뒤에 입력이
- * 바뀌어도 이 Match 와 과거 Reading 은 지우지 않는다(PRD).
+ * 바뀌어도 이 Match 와 과거 Reading 은 지우지 않는다(`prd-archive`).
  */
 create table public.match (
   id uuid primary key default gen_random_uuid(),
@@ -172,7 +172,7 @@ create table public.match (
  * 가 짓는다. 여기에 완성된 문장을 저장하면 말을 고칠 때 과거 알림이 옛 문장으로 남고,
  * 상대의 별명이 바뀌면 알림이 옛 이름을 부른다.
  *
- * `reading_ready` · `reading_failed` 는 아직 없다(PRD 8단계). 지금 일어나지 않는 사건을
+ * `reading_ready` · `reading_failed` 는 아직 없다(`prd-archive` 8단계). 지금 일어나지 않는 사건을
  * 검사식에 미리 적어 두면, 그 값이 실제로 쓰이는 날 아무도 여기를 다시 보지 않는다.
  */
 create table public.notification (
@@ -610,7 +610,7 @@ begin
    * **양쪽 계정이 살아 있어야 한다.**
    *
    * 내 상태만 물었더니 **제재된 사람의 Match 가 만들어졌다**(재어 봤다). 「계정 제재는
-   * 새 접근과 접촉을 중단한다」(PRD)는 받는 쪽에만 거는 규칙이 아니다. 상대가 중지됐다는
+   * 새 접근과 접촉을 중단한다」(`prd-archive`)는 받는 쪽에만 거는 규칙이 아니다. 상대가 중지됐다는
    * 것은 알리지 않는다 — 없는 요청과 같은 문장을 낸다.
    */
   if exists (
@@ -728,7 +728,7 @@ $$;
  *
  * 이 함수는 판본이 실제로 쌓였을 때만 불린다(`add_person_revision` 은 지문이 같으면
  * 아무것도 쌓지 않는다). 그래서 이름·메모를 고치는 것은 여기까지 오지 않는다 —
- * 「이름을 고쳤더니 요청이 사라졌다」는 일이 구조적으로 생기지 않는다(PRD).
+ * 「이름을 고쳤더니 요청이 사라졌다」는 일이 구조적으로 생기지 않는다(`prd-archive`).
  *
  * **판본을 쌓는 그 트랜잭션 안에서 돈다.** 나누면 그 사이에 낀 수락이 옛 판본으로
  * Match 를 만든다.
@@ -996,7 +996,7 @@ as $$
     on other.user_id = case
       when r.requester_user_id = (select auth.uid()) then r.addressee_user_id
       else r.requester_user_id end
-  -- **중지된 계정과의 요청은 서지 않는다.** 제재는 새 접근과 접촉을 함께 멈춘다(PRD).
+  -- **중지된 계정과의 요청은 서지 않는다.** 제재는 새 접근과 접촉을 함께 멈춘다(`prd-archive`).
   -- 답할 수 없는 요청이 목록에 남아 있으면, 누를 때마다 「찾지 못했습니다」만 나온다.
   join public.app_user counterpart
     on counterpart.id = other.user_id and counterpart.status = 'active'
@@ -1011,11 +1011,11 @@ $$;
  * 성립한 Match.
  *
  * **여기서 나가는 것이 지금 Match 가 주는 접근의 전부다.** 상세 궁합과 `match-v0`
- * 공유 결과는 다음 단계에 열린다(PRD 7) — 그때도 자르는 것은 서버가 하고, 정확한
+ * 공유 결과는 다음 단계에 열린다(`prd-archive` 7) — 그때도 자르는 것은 서버가 하고, 정확한
  * 생년월일시·출생지·전체 명식은 열리지 않는다(ADR 0008).
  *
  * 차단했거나 차단당한 Match 는 나가지 않는다. **행은 지우지 않는다** — 무엇이 있었는지는
- * 남기고 새 접근만 멈춘다(PRD: 과거 공유 결과의 보존·삭제는 계정 삭제 정책과 함께 정한다).
+ * 남기고 새 접근만 멈춘다(`prd-archive`: 과거 공유 결과의 보존·삭제는 계정 삭제 정책과 함께 정한다).
  */
 create or replace function public.my_matches()
 returns table (

@@ -1,6 +1,6 @@
 -- 현재 AI 결과 — **대상마다 한 벌, 요청이 성공할 때만 통째로 교체**
 --
--- PRD 9단계다. 앞의 파일들이 여기까지 오는 길을 놓았다 — 판본(0004)·접근(0008)·
+-- `prd-archive` 9단계다. 앞의 파일들이 여기까지 오는 길을 놓았다 — 판본(0004)·접근(0008)·
 -- 공유 결과(0010)·판본 보존(0011). 이 파일이 그 위에 **결과**를 얹는다.
 --
 -- 세 가지가 이 표의 모양을 정한다.
@@ -149,7 +149,7 @@ create table public.reading_run (
   status text not null default 'running' check (status in ('running', 'succeeded', 'failed')),
   /** 실패 코드 — `READING_FAILURES` 의 이름 또는 호출 실패다 */
   failure_code text,
-  /** 무엇이 걸렸는지. **출생 원문은 여기 적지 않는다**(PRD: 로그 규율) */
+  /** 무엇이 걸렸는지. **출생 원문은 여기 적지 않는다**(`prd-archive`: 로그 규율) */
   failure_detail text check (length(failure_detail) <= 500),
 
   model text,
@@ -219,7 +219,7 @@ alter table public.reading_run enable row level security;
  * 정책이 없는 표는 `authenticated` 에게 닫혀 있다.
  *
  * 근거와 프롬프트가 이 표에 있다. 열어 주면 `Reading.evidence` 를 클라이언트가 직접
- * select 할 수 있게 되고, 그것은 PRD 가 명시적으로 막은 것이다. 닿는 길은 아래
+ * select 할 수 있게 되고, 그것은 `prd-archive` 가 명시적으로 막은 것이다. 닿는 길은 아래
  * `definer` 함수뿐이고 — **그 함수가 내주는 것이 곧 브라우저가 볼 수 있는 것이다.**
  */
 
@@ -534,7 +534,7 @@ as $$ select interval '10 minutes' $$;
  *   결과를 읽어야 한다.
  *
  * **두 번 교체를 막는 것은 뒤의 조건이다.** 두 번 누르거나 두 창에서 함께 눌러도
- * 모델은 한 번만 불리고 현재 결과도 한 번만 바뀐다(PRD). 열쇠는 안정된 값을 들고
+ * 모델은 한 번만 불리고 현재 결과도 한 번만 바뀐다(ADR 0013). 열쇠는 안정된 값을 들고
  * 오는 쪽이 생길 때를 위해 받아 둔다.
  *
  * **판본을 내주는 것이 요점이다.** 앱이 「어떤 판본으로 만들까」를 스스로 고르면
@@ -676,7 +676,7 @@ grant execute on function public.start_reading_run(text, text, uuid, uuid, uuid,
 /**
  * 시도가 실패했다 — **현재 결과는 건드리지 않는다.**
  *
- * 직전 성공 결과를 그대로 두는 것이 이 함수가 하는 일의 전부다(PRD). 실패한 요청이
+ * 직전 성공 결과를 그대로 두는 것이 이 함수가 하는 일의 전부다(ADR 0013·0017). 실패한 요청이
  * 결과를 지우거나 비우면, 한 번 실패한 대상은 예전에 본 글까지 잃는다.
  */
 create or replace function public.fail_reading_run(
@@ -726,7 +726,7 @@ grant execute on function public.fail_reading_run(uuid, text, text) to authentic
  *
  * 자기 것이면 자기를 속이는 것으로 끝나지만 **Match 는 다르다.** 상대가 그 글을
  * 「중립적인 AI 해석」으로 읽고 알림까지 받는다 — 안전 운영이 검증되기 전에는 열지
- * 않기로 한 대화 통로가 뒷문으로 생기는 것이다(PRD: 채팅은 별도 단계).
+ * 않기로 한 대화 통로가 뒷문으로 생기는 것이다(`docs/prd.md` §6.1: 채팅은 다음 단계).
  *
  * 그래서 `service_role` 만 부른다. ADR 0006 이 「사용자 경로에 열쇠를 쓰지 않는다」고
  * 적었고 ADR 0010 이 그 예외를 하나 뚫었다. **이것이 두 번째 구멍이고, 모양은 앞의

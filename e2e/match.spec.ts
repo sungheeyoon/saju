@@ -54,8 +54,8 @@ test.describe('동의로 열리는 흐름', () => {
       await expect(person.page.getByText('저장했습니다')).toBeVisible();
 
       /*
-        **켜기 전에 무엇이 나가고 무엇이 안 나가는지 읽힌다**(US 26 · PRD).
-        화면·ADR·PRD 가 같은 문장을 쓰기로 한 자리다.
+        **켜기 전에 무엇이 나가고 무엇이 안 나가는지 읽힌다**(US 26 · `prd-archive`).
+        화면·ADR·`prd-archive` 가 같은 문장을 쓰기로 한 자리다.
       */
       await expect(person.page.getByText('상대에게 보이는 것')).toBeVisible();
       await expect(person.page.getByText('보이지 않는 것')).toBeVisible();
@@ -79,7 +79,7 @@ test.describe('동의로 열리는 흐름', () => {
     const card = asker.page.getByRole('listitem').filter({ hasText: `받는${tag}` });
 
     /*
-      **맛보기다.** 어느 오행을 채우는지는 말하고 원문은 닫는다(ADR 0003 · PRD).
+      **맛보기다.** 어느 오행을 채우는지는 말하고 원문은 닫는다(ADR 0003 · `prd-archive`).
 
       낱말이 아니라 **값**을 센다. 「생년월일」은 참여 화면이 「보이지 않는 것」을
       적으면서 이미 쓰고 있는 말이라, 낱말을 세면 약속을 적어 둔 문장이 그 약속을
@@ -88,7 +88,7 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(asker.page.getByText('1990-05-15')).toHaveCount(0);
 
     await card.getByRole('button', { name: '상세 궁합 요청하기' }).click();
-    // 보내기 전에 공개 범위를 읽는다 — 후보 카드만 본 것은 동의가 아니다(PRD).
+    // 보내기 전에 공개 범위를 읽는다 — 후보 카드만 본 것은 동의가 아니다(`prd-archive`).
     await expect(card.getByText('여덟 글자', { exact: false }).first()).toBeVisible();
     await card.getByRole('button', { name: '요청 보내기' }).click();
 
@@ -252,7 +252,7 @@ test.describe('동의로 열리는 흐름', () => {
   });
 
   /**
-   * **동의 범위가 제출 버튼 앞에 읽히는가** — 좁은 화면에서(PRD 접근성 항목).
+   * **동의 범위가 제출 버튼 앞에 읽히는가** — 좁은 화면에서(`prd-archive` 접근성 항목).
    *
    * 마크업 차례만 재면 부족하다. 좁은 화면에서 범위 목록이 길어지면 버튼이 위로
    * 올라와 붙어 버릴 수 있고, 그러면 **읽기 전에 누를 수 있는 배치**가 된다.
@@ -291,7 +291,7 @@ test.describe('동의로 열리는 흐름', () => {
   });
 
   /**
-   * **키보드만으로 요청·수락·차단에 닿는가**(PRD 접근성 항목).
+   * **키보드만으로 요청·수락·차단에 닿는가**(`prd-archive` 접근성 항목).
    *
    * 세 문 다 `button` 이라 마우스로는 눌린다. 키보드로도 눌리는지는 **초점이
    * 그 자리에 갈 수 있는가**에 달려 있고, 그것은 마크업이 아니라 배치가 정한다 —

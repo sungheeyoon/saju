@@ -189,7 +189,7 @@ try {
   check('중립적인 문장이 함께 선다', mine.includes('두 사람 사이에 대해 말할 수 있는 것'));
 
   /**
-   * **점수 자리가 하나다.** 내부 지표는 사용자 화면에 서지 않는다(PRD).
+   * **점수 자리가 하나다.** 내부 지표는 사용자 화면에 서지 않는다(`prd-archive`).
    */
   for (const word of NO_INDEX) {
     check(`내부 지표(${word})가 결과 화면에 없다`, !mine.includes(word));

@@ -1,6 +1,6 @@
 -- 신고와 계정 삭제 요청
 --
--- 공개 범위를 넓히기 전에 갖춰야 하는 안전 운영 기반의 나머지 둘이다(PRD: US 61 · 69).
+-- 공개 범위를 넓히기 전에 갖춰야 하는 안전 운영 기반의 나머지 둘이다(`prd-archive`: US 61 · 69).
 -- 차단은 이미 있다 — 차단은 **내가 안 보겠다**는 것이고, 신고는 **운영자가 봐야
 -- 한다**는 것이다. 한 버튼으로 합치면 「보기 싫다」와 「규칙을 어겼다」가 같은 기록이
 -- 되어 제재의 근거가 되지 못한다.
@@ -59,7 +59,7 @@ create index report_by_reported on public.report (reported_user_id, created_at d
 /**
  * **상태를 하나 더 둔다 — 새 관문을 두지 않는다.**
  *
- * 「삭제를 요청하면 discovery·요청·Match·AI 를 즉시 막는다」(PRD)를 새 칸으로 두면
+ * 「삭제를 요청하면 discovery·요청·Match·AI 를 즉시 막는다」(`prd-archive`)를 새 칸으로 두면
  * 막는 자리마다 `is_active_account()` 와 그 칸을 **둘 다** 물어야 하고, 자리가 여럿이면
  * 하나는 안 고쳐진다. 그래서 이미 모든 문이 묻고 있는 값 하나에 값을 더한다 —
  * `is_active_account()` 는 그대로 `status = 'active'` 를 보므로 새로 고칠 문이 없다.
@@ -72,7 +72,7 @@ alter table public.app_user drop constraint app_user_status_check;
 alter table public.app_user add constraint app_user_status_check
   check (status in ('active', 'suspended', 'deletion_requested'));
 
-/** 언제 요청했는가 — 보존 기간을 세는 자리는 공개 출시 전에 정한다(PRD) */
+/** 언제 요청했는가 — 보존 기간을 세는 자리는 공개 출시 전에 정한다(`prd-archive`) */
 alter table public.app_user add column deletion_requested_at timestamptz;
 
 alter table public.app_user add constraint deletion_time_matches_status
@@ -178,7 +178,7 @@ $$;
 /**
  * 계정 삭제를 요청한다.
  *
- * **지우지 않는다.** 폐쇄 MVP 에서 실제 삭제는 운영자가 처리하고(PRD), 무엇을
+ * **지우지 않는다.** 폐쇄 MVP 에서 실제 삭제는 운영자가 처리하고(`prd-archive`), 무엇을
  * 삭제·익명화·보존할지는 공개 출시 전에 따로 정한다 — 다른 User 의 권리와 이미 공유된
  * 결과가 얽혀 있어 무조건 연쇄 삭제하지 않기로 했기 때문이다.
  *

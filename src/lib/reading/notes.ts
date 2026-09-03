@@ -41,7 +41,7 @@ export const READING_REPLACES_NOTE =
 /**
  * 점수가 무엇인지 — **검증된 사실이 아니라 실험 결과다.**
  *
- * 내부 엔진·프롬프트·모델 판본은 말하지 않는다(PRD). 사용자가 알아야 하는 것은
+ * 내부 엔진·프롬프트·모델 판본은 말하지 않는다(`prd-archive`). 사용자가 알아야 하는 것은
  * 「이 숫자를 얼마나 믿을 것인가」이지 그것을 만든 부품의 이름이 아니다.
  */
 export const READING_SCORE_NOTE = `이 점수는 실험 중인 풀이가 붙인 값입니다(${READING_POLICY.scoreRange.min}~${READING_POLICY.scoreRange.max}). 궁합의 정답이나 관계의 좋고 나쁨이 아닙니다.`;
