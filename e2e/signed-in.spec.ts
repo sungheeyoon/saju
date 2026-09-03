@@ -157,7 +157,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('어머니의 결')).toBeVisible();
 
     /* 한 사람짜리라 궁합 점수가 안 선다 */
-    await expect(page.getByText('현재 관계 해석 점수')).toBeHidden();
+    await expect(page.getByText('현재 궁합 풀이 점수')).toBeHidden();
 
     /* 만든 것이 하나이므로 풀이권도 하나 줄어 있다 — kind 를 안 묻는다 */
     await expect(page.locator('header').getByText('풀이권 5번 중 4번 남음')).toBeVisible();

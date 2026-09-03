@@ -93,7 +93,7 @@ async function SelfChart({ personId }: { personId: string }) {
     .eq('id', person.current_revision_id)
     .maybeSingle();
 
-  if (!current) return <p className="text-sm text-muted">현재 판본을 찾지 못했습니다.</p>;
+  if (!current) return <p className="text-sm text-muted">저장된 출생정보를 찾지 못했습니다.</p>;
 
   /**
    * 못 읽는 판본은 **메우지 않는다.**

@@ -152,8 +152,8 @@ describe('실패 알림은 무엇을 만들다 실패했는지 말한다', () =>
 describe('Match 가 여는 범위는 한 벌이다', () => {
   it('열리는 것에 궁합 관계·사주풀이와 점수·일부 오행 구성이 있다', () => {
     const shown = MATCH_DISCLOSURE.shown.join(' ');
-    // 점수는 사주풀이와 같은 생성 건에서 난다. 내부 지표 이름은 여기 서지 않는다(PRD).
-    expect(shown).toContain('사주풀이와 점수');
+    // 점수는 풀이와 같은 생성 건에서 난다. 내부 지표 이름은 여기 서지 않는다(PRD).
+    expect(shown).toContain('궁합 풀이와 점수');
     expect(shown).not.toContain('match-v0');
     expect(shown).toContain('오행');
     // 누가 보든 같은 글이다 — `perspectivePersonId` 로 결론이 바뀌지 않는다(US 48).
@@ -173,7 +173,7 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
     expect(REQUEST_INTRO).toContain('수락');
     expect(CONSENT_INTRO).toContain('같은 궁합 결과');
     // 결과 화면도 같은 목록을 읽는다(ADR 0010) — 앞에 붙는 말만 다르다.
-    expect(MATCH_RESULT_INTRO).toContain('사주풀이와 점수');
+    expect(MATCH_RESULT_INTRO).toContain('궁합 풀이와 점수');
   });
 
   /**
@@ -196,8 +196,9 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
  * 못 열 때 무엇이 그대로 남아 있는지. 셋 다 화면이 손으로 적으면 한 곳만 고쳐진다.
  */
 describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
-  it('매인 판본으로 났고 나중 수정에 흔들리지 않는다고 말한다', () => {
-    expect(MATCH_RESULT_PINNED_NOTE).toContain('판본');
+  it('동의한 그때의 출생정보로 났고 나중 수정에 흔들리지 않는다고 말한다', () => {
+    // 「매인 판본」은 우리가 FK 를 부르는 이름이다 — 사용자에게는 그때의 출생정보다.
+    expect(MATCH_RESULT_PINNED_NOTE).toContain('그때의 출생정보');
     expect(MATCH_RESULT_PINNED_NOTE).toContain('움직이지 않습니다');
   });
 
@@ -207,11 +208,11 @@ describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
    * 예전에는 이 자리가 「모델이 붙어도 점수를 새로 만들지 않고 `match-v0` 를 설명한다」
    * 였다. 그 결정은 폐기됐다(HEAD `a9337f4`) — 점수는 해석과 **같은 생성 건**에서 나온다.
    */
-  it('조립된 문장과 모델이 쓴 사주풀이를 구별해 말한다', () => {
+  it('조립된 문장과 모델이 쓴 궁합 풀이를 구별해 말한다', () => {
     expect(MATCH_RESULT_ENGINE_NOTE).toContain('조립');
     // 제목에는 도구 이름을 안 박지만 **두 층이 나란히 서는 이 자리에서는 밝힌다.**
-    // 「사주풀이」만 적으면 표와 같은 곳에서 나온 것처럼 읽힌다.
-    expect(MATCH_RESULT_ENGINE_NOTE).toContain('사주풀이');
+    // 「궁합 풀이」만 적으면 표와 같은 곳에서 나온 것처럼 읽힌다.
+    expect(MATCH_RESULT_ENGINE_NOTE).toContain('궁합 풀이');
     expect(MATCH_RESULT_ENGINE_NOTE).toContain('언어 모델');
     // 내부 지표 이름은 사용자에게 보이지 않는다(PRD).
     expect(MATCH_RESULT_ENGINE_NOTE).not.toContain('match-v0');
@@ -255,9 +256,36 @@ describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
    * 개념을 **처음 만나는 자리**에서 우리 내부 낱말로 설명하지 않는다.
    * 「판본」은 요청 카드 안의 고지가 든다(`REVISION_BOUND_NOTE`).
    */
-  it('흐름 설명에는 판본이라는 말이 서지 않는다', () => {
-    const flow = [...CONSENT_FLOW_STEPS.map((step) => `${step.title} ${step.body}`), CONSENT_FLOW_CAVEAT].join(' ');
-    expect(flow).not.toContain('판본');
+  /**
+   * **한 자리가 아니라 전부에서 없다.**
+   *
+   * 전에는 흐름 설명에만 걸어 두고 요청 카드에는 「판본」을 허용했다. 그러면 사용자는
+   * 그 낱말을 **어디선가 한 번은** 만나게 되고, 처음 만나는 자리가 우리 내부어인 것은
+   * 어느 화면이든 마찬가지다. 이제 사용자에게 닿는 문장 전부에서 뺀다 — 「판본」은
+   * FK 를 부르는 이름이고, 사용자가 아는 것은 **그때 저장한 출생정보**다.
+   */
+  it('사용자에게 닿는 문장 어디에도 판본이라는 말이 없다', () => {
+    const everything = [
+      ...CONSENT_FLOW_STEPS.map((step) => `${step.title} ${step.body}`),
+      CONSENT_FLOW_CAVEAT,
+      ...MATCH_DISCLOSURE.shown,
+      ...MATCH_DISCLOSURE.hidden,
+      REQUEST_INTRO,
+      CONSENT_INTRO,
+      REVISION_BOUND_NOTE,
+      REJECTION_IS_FINAL_NOTE,
+      BLOCK_NOTE,
+      MATCH_RESULT_INTRO,
+      MATCH_RESULT_PINNED_NOTE,
+      MATCH_RESULT_ENGINE_NOTE,
+      MATCH_RESULT_CLOSED_NOTE,
+      ...Object.values(REQUEST_STATUS_TEXT).flatMap((one) => [one.label, one.sent, one.received]),
+    ].join(' ');
+
+    expect(everything).not.toContain('판본');
+    /** 내부 지표 이름도 같은 이유로 안 선다(PRD) */
+    expect(everything).not.toContain('match-v0');
+
     // 같은 사실은 그래도 말한다 — 무엇이 요청을 깨뜨리는지, 그리고 그다음에 할 일.
     expect(CONSENT_FLOW_CAVEAT).toContain('출생정보');
     expect(CONSENT_FLOW_CAVEAT).toContain('무효');
@@ -270,8 +298,8 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
    * 미리 적어 두면 실제로 무효가 됐을 때 **그렇게 하기로 했던 것**이 된다. 안 적으면
    * 사고처럼 읽힌다.
    */
-  it('요청이 판본에 매인다는 것을 먼저 말한다', () => {
-    expect(REVISION_BOUND_NOTE).toContain('판본');
+  it('요청이 그때의 출생정보에 매인다는 것을 먼저 말한다', () => {
+    expect(REVISION_BOUND_NOTE).toContain('출생정보');
     expect(REVISION_BOUND_NOTE).toContain('무효');
     // 이름·메모 수정은 무효로 만들지 않는다 — 그 경계도 함께 적는다.
     expect(REVISION_BOUND_NOTE).toContain('이름');

@@ -70,7 +70,7 @@ export default async function SettingsPage() {
           <p className="border-t border-border pt-4 text-xs leading-5 text-muted">
             {account.notice_ack_at === null
               ? '아직 처리 안내를 확인하지 않으셨습니다.'
-              : `${asKoreanDay((account.notice_ack_at as string).slice(0, 10))}에 처리 안내(${account.notice_version})를 확인하셨습니다.`}{' '}
+              : `${asKoreanDay((account.notice_ack_at as string).slice(0, 10))}에 처리 안내를 확인하셨습니다.`}{' '}
             {account.notice_version !== NOTICE_VERSION && '안내가 새로 바뀌어 다시 보여 드립니다.'}{' '}
             <Link href="/privacy" className="font-semibold text-accent underline underline-offset-4">
               처리방침 보기

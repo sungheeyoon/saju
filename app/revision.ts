@@ -74,7 +74,7 @@ export class UnreadableRevisionError extends Error {
   readonly value: unknown;
 
   constructor(field: keyof StoredRevision, value: unknown, reason: string) {
-    super(`저장된 판본을 읽지 못했습니다 — ${reason}`);
+    super(`저장된 출생정보를 읽지 못했습니다 — ${reason}`);
     this.name = 'UnreadableRevisionError';
     this.field = field;
     this.value = value;

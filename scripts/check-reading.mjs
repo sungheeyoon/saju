@@ -458,9 +458,9 @@ try {
 
     /** 상대에게 준비 완료가 뜬다 — 누른 사람에게는 안 뜬다 */
     const inbox = plain(await body('/me/requests', cookie.b));
-    check('상대의 알림함에 준비 완료가 뜬다', inbox.includes('궁합 해석이 새로 만들어졌습니다'));
+    check('상대의 알림함에 준비 완료가 뜬다', inbox.includes('궁합 풀이가 새로 만들어졌습니다'));
     const mineInbox = plain(await body('/me/requests', cookie.a));
-    check('누른 사람에게는 뜨지 않는다', !mineInbox.includes('궁합 해석이 새로 만들어졌습니다'));
+    check('누른 사람에게는 뜨지 않는다', !mineInbox.includes('궁합 풀이가 새로 만들어졌습니다'));
   }
 
   // ── 5. 표는 브라우저가 직접 못 읽는다 ────────────────────────────────────

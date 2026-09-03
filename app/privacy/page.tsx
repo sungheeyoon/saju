@@ -2,10 +2,11 @@ import Link from 'next/link';
 
 import { CARD } from '../card';
 import {
+  NOTICE_EDITION,
   NOTICE_NOT_READY,
-  NOTICE_VERSION,
   OPTIONAL_CONSENTS,
   OPTIONAL_CONSENT_NOTE,
+  asKoreanDay,
   noticeFor,
   scheduleFrom,
 } from '@/src/lib/consent';
@@ -47,7 +48,8 @@ export default async function PrivacyPage() {
         <p className="eyebrow">처리방침</p>
         <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">개인정보 처리방침</h1>
         <p className="mt-1 text-sm text-secondary">
-          이 서비스는 초대받은 분만 쓰는 비공개 베타입니다. 판본 {NOTICE_VERSION}.
+          이 서비스는 초대받은 분만 쓰는 비공개 베타입니다. {NOTICE_EDITION.name} ·{' '}
+          {asKoreanDay(NOTICE_EDITION.effectiveFrom)} 시행.
         </p>
       </header>
 

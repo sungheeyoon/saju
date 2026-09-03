@@ -97,7 +97,7 @@ export function ReviseChart({
       {pillarsSame && (
         <p className="text-xs text-muted">
           {nameChanged
-            ? '이름만 바뀌었습니다. 부르는 이름은 여덟 글자를 바꾸지 않으므로 판본은 새로 생기지 않습니다.'
+            ? '이름만 바뀌었습니다. 부르는 이름은 여덟 글자를 바꾸지 않으므로 저장된 출생정보는 그대로입니다.'
             : '바뀐 것이 없습니다.'}
         </p>
       )}

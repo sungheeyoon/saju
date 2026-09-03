@@ -76,7 +76,7 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
     .eq('id', account.self_person_id)
     .maybeSingle();
 
-  if (!person?.current_revision_id) return { ok: false, message: '저장된 입력을 찾지 못했습니다.' };
+  if (!person?.current_revision_id) return { ok: false, message: '저장된 출생정보를 찾지 못했습니다.' };
 
   const { data: revision } = await supabase
     .from('person_chart_revision')
@@ -86,7 +86,7 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
     .eq('id', person.current_revision_id)
     .maybeSingle();
 
-  if (!revision) return { ok: false, message: '현재 판본을 찾지 못했습니다.' };
+  if (!revision) return { ok: false, message: '저장된 출생정보를 찾지 못했습니다.' };
 
   /**
    * 이름 자리에 **파이프라인이 쓰는 말**을 넣는다(`READING_CHART_NAMES`).

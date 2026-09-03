@@ -131,7 +131,7 @@ test.describe('동의로 열리는 흐름', () => {
       await expect(person.page.getByText('서울')).toHaveCount(0);
 
       // 현재 Reading 은 아직 없다 — 화면을 여는 것으로 만들어지지 않는다(US 25).
-      await expect(person.page.getByRole('heading', { name: '두 사람의 사주풀이' })).toBeVisible();
+      await expect(person.page.getByRole('heading', { name: '두 사람의 궁합 풀이' })).toBeVisible();
       await expect(person.page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
       await expect(person.page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
     }

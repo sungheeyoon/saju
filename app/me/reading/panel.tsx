@@ -462,7 +462,7 @@ function Result({
     <div className="flex flex-col gap-5">
       {reading.score !== null && (
         <div className="flex flex-col gap-2 rounded-2xl bg-accent-wash p-5 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-xs font-semibold text-accent">현재 관계 해석 점수</p><p className="mt-1 text-4xl font-bold tabular-nums">{reading.score}<span className="ml-1 text-base font-medium text-secondary">/ 100</span></p></div>
+          <div><p className="text-xs font-semibold text-accent">현재 궁합 풀이 점수</p><p className="mt-1 text-4xl font-bold tabular-nums">{reading.score}<span className="ml-1 text-base font-medium text-secondary">/ 100</span></p></div>
           <p className="max-w-md text-xs leading-5 text-muted">{READING_SCORE_NOTE}</p>
         </div>
       )}
