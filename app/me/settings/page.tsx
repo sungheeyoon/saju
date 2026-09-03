@@ -5,7 +5,7 @@ import { CARD } from '../../card';
 import { Halted } from '../halted';
 import { RequestDeletion } from '../leaving';
 import { ConsentControls } from '../consent-controls';
-import { NOTICE_VERSION, asKoreanDay } from '@/src/lib/consent';
+import { NOTICE_VERSION, OPTIONAL_CONSENT_NOTE, asKoreanDay } from '@/src/lib/consent';
 import Link from 'next/link';
 
 export const metadata = {
@@ -61,10 +61,7 @@ export default async function SettingsPage() {
         <section className={`${CARD} flex flex-col gap-4`}>
           <div>
             <h2 className="text-base font-bold">선택 동의</h2>
-            <p className="mt-1 text-sm text-secondary">
-              둘 다 선택입니다. 어느 쪽을 끄셔도 사주와 궁합, 사주풀이는 그대로
-              쓰실 수 있습니다.
-            </p>
+            <p className="mt-1 text-sm text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
           </div>
           <ConsentControls
             improvement={account.improvement_consent === true}

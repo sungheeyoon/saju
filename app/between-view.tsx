@@ -15,6 +15,7 @@ import { CARD } from './card';
 import {
   TOPICS_THE_TABLE_HOLDS,
   TOPIC_TABLE_FOOTNOTE,
+  ClaimStrengthLegend,
   UtteranceList,
   said,
   warningsToShow,
@@ -229,11 +230,7 @@ function SaidBetween({ utterances }: { utterances: Utterance[] }) {
       </div>
 
       <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3 text-xs text-muted">
-        <p>
-          왼쪽 딱지는 <strong className="font-medium">얼마나 세게 말할 수 있는가</strong>입니다.
-          여덟 글자에서 곧장 세어진 것은 사실, 우리가 고른 문턱을 거친 것은 유도, 아직
-          시험 중인 규칙은 후보입니다. 근거보다 세게 말하지 않는지는 계약이 검사합니다.
-        </p>
+        <ClaimStrengthLegend />
         <p>
           십성은 일간끼리만 본 값이라 양쪽이 서로 다를 수 있고, 육친(누가 누구의 무엇인가)
           으로 단정하지 않습니다. 오행은 있고 없음만 셉니다 — 부족을 채우는 쪽이 좋다는

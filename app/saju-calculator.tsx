@@ -11,6 +11,7 @@ import { ELEMENT_TONE } from './element-tone';
 import {
   TOPICS_THE_TABLE_HOLDS,
   TOPIC_TABLE_FOOTNOTE,
+  ClaimStrengthLegend,
   UtteranceList,
   placeNowUtterances,
   said,
@@ -334,12 +335,9 @@ function SaidAbout({ utterances }: { utterances: Utterance[] }) {
         <UtteranceList utterances={utterances} />
       </div>
 
-      <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-        왼쪽 딱지는 <strong className="font-medium">얼마나 세게 말할 수 있는가</strong>입니다.
-        여덟 글자에서 곧장 세어진 것은 사실, 우리가 고른 문턱을 거친 것은 유도, 아직 시험
-        중인 규칙은 후보, 조건을 자동 판정하지 않고 옮겨 적은 표는 참고입니다. 근거보다
-        세게 말하지 않는지는 계약이 검사하고, 아래 카드들이 그 근거를 숫자로 폅니다.
-      </p>
+      <div className="mt-3 border-t border-border pt-3 text-xs text-muted">
+        <ClaimStrengthLegend tail=" 아래 카드들이 그 근거를 숫자로 폅니다." />
+      </div>
     </section>
   );
 }

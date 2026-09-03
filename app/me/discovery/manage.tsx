@@ -140,6 +140,34 @@ export function ProfileForm({ current }: { current: DiscoveryProfileInput }) {
 }
 
 /**
+ * 무엇이 나가고 무엇이 안 나가는가 — **화면이 문장을 짓지 않는다.**
+ *
+ * 정책이 값으로 들고(`DISCOVERY_DISCLOSURE`), ADR 0003 과 PRD 가 같은 문장을 든다.
+ * 세 곳에 따로 적으면 한 곳만 고쳐지고, 그때 사용자가 읽은 약속과 실제 동작이 갈린다.
+ *
+ * 켜기 전과 켠 뒤가 **같은 목록을 본다.** 켠 뒤에는 이 열거가 문단으로 한 벌 더 적혀
+ * 있었다 — 한 칸에 두 벌이면 갈리고, 갈리면 어느 쪽이 약속인지 알 수 없다.
+ */
+function Disclosure() {
+  return (
+    <dl className="flex flex-col gap-3 rounded-md border border-border bg-surface-sunken p-3 text-sm">
+      <div className="flex flex-col gap-1">
+        <dt className="text-xs text-muted">상대에게 보이는 것</dt>
+        {DISCOVERY_DISCLOSURE.shown.map((line) => (
+          <dd key={line}>{line}</dd>
+        ))}
+      </div>
+      <div className="flex flex-col gap-1">
+        <dt className="text-xs text-muted">보이지 않는 것</dt>
+        {DISCOVERY_DISCLOSURE.hidden.map((line) => (
+          <dd key={line}>{line}</dd>
+        ))}
+      </div>
+    </dl>
+  );
+}
+
+/**
  * 매칭 참여를 켜고 끄는 자리 — **켜기 전에 무엇이 나가는지 적는다.**
  *
  * 후보 카드만 본 것은 궁합 동의가 아니고(PRD), 참여를 켜는 것도 명식 공개가 아니다.
@@ -170,11 +198,17 @@ export function ParticipationToggle({
     return (
       <section className={`${CARD} flex flex-col gap-3`}>
         <h2 className="text-base font-semibold">인연 찾기 참여 중</h2>
+        {/*
+          열거를 **목록에 맡긴다.** 여기 「상대에게 보이는 것은 별명·소개와… 생년월일시·
+          출생지·전체 명식·전체 오행 개수표·숫자 점수는 보이지 않습니다」가 손으로 적혀
+          있었다. 아래 목록이 같은 것을 항목으로 다시 펴므로 한 칸에 두 벌이었고, 두 벌은
+          갈린다. 문단은 「어디에 서는가」만 말하고 무엇이 나가는지는 정책이 든다.
+        */}
         <p className="text-sm text-secondary">
-          다른 참여자의 인연 목록에 표시될 수 있습니다. 상대에게 보이는 것은 별명·소개와,
-          그 사람에게 부족한 오행 중 내가 채우는 오행의 이름과 뜻입니다. 생년월일시·
-          출생지·전체 명식·전체 오행 개수표·숫자 점수는 보이지 않습니다.
+          다른 참여자의 인연 목록에 표시될 수 있습니다. 상대에게 공개되는 정보와 공개되지
+          않는 정보는 아래와 같습니다.
         </p>
+        <Disclosure />
         <p className="text-sm text-secondary">
           언제든 끌 수 있고, 끄면 매칭 풀에 내놓은 오행 요약도 거둡니다. 내 사주와 저장한
           사람들은 그대로 남습니다. 이미 주고받은 요청과 함께 보기로 한 궁합도 그대로입니다 —
@@ -203,25 +237,7 @@ export function ParticipationToggle({
         내가 대신 등록한 가족·친구는 공개되지 않습니다.
       </p>
 
-      {/*
-        **화면이 문장을 짓지 않는다.** 무엇이 나가고 무엇이 안 나가는지는 정책이 값으로
-        들고(`DISCOVERY_DISCLOSURE`), ADR 0003 과 PRD 가 같은 문장을 든다. 세 곳에 따로
-        적으면 한 곳만 고쳐지고, 그때 사용자가 읽은 약속과 실제 동작이 갈린다.
-      */}
-      <dl className="flex flex-col gap-3 rounded-md border border-border bg-surface-sunken p-3 text-sm">
-        <div className="flex flex-col gap-1">
-          <dt className="text-xs text-muted">상대에게 보이는 것</dt>
-          {DISCOVERY_DISCLOSURE.shown.map((line) => (
-            <dd key={line}>{line}</dd>
-          ))}
-        </div>
-        <div className="flex flex-col gap-1">
-          <dt className="text-xs text-muted">보이지 않는 것</dt>
-          {DISCOVERY_DISCLOSURE.hidden.map((line) => (
-            <dd key={line}>{line}</dd>
-          ))}
-        </div>
-      </dl>
+      <Disclosure />
 
       <div className="flex flex-wrap items-center gap-3">
         <button

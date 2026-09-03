@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { NOTICE_ACK_NOTE, OPTIONAL_CONSENTS } from '@/src/lib/consent';
+import { NOTICE_ACK_NOTE, OPTIONAL_CONSENTS, OPTIONAL_CONSENT_NOTE } from '@/src/lib/consent';
 
 import { acknowledgeNotice } from './actions';
 
@@ -55,10 +55,7 @@ export function ConsentForm({
     <div className="flex flex-col gap-5">
       <fieldset className="flex flex-col gap-4">
         <legend className="float-left w-full text-base font-bold">고르실 수 있는 것</legend>
-        <p className="mt-1 text-sm leading-6 text-secondary">
-          아래 둘은 선택입니다. 고르지 않으셔도 사주와 궁합, 사주풀이를 그대로 쓰실 수
-          있습니다.
-        </p>
+        <p className="mt-1 text-sm leading-6 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
 
         {OPTIONAL_CONSENTS.map((one) => (
           <label

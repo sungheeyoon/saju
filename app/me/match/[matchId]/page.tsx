@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import {
+  MATCH_RESULT_CLOSED_NOTE,
   MATCH_RESULT_ENGINE_NOTE,
   MATCH_RESULT_INTRO,
   MATCH_RESULT_PINNED_NOTE,
@@ -84,12 +85,20 @@ export default async function MatchResultPage({
       {outcome.kind === 'ok' ? (
         <Result result={outcome.result} />
       ) : (
-        <section className={`${CARD} flex flex-col gap-2`}>
-          <p className="text-sm">{outcome.message}</p>
-          <p className="text-xs text-muted">
-            함께 보기로 한 두 분의 동의는 그대로 있습니다. 지금 이 화면이 그 판본을 읽지 못하는
-            것입니다.
-          </p>
+        /*
+          **문장은 정책이 든다** — 화면이 손으로 적지 않는다.
+
+          여기 「함께 보기로 한 두 분의 동의는 그대로 있습니다…」가 적혀 있었고,
+          `MATCH_RESULT_CLOSED_NOTE` 가 같은 말을 하며 시험까지 딸린 채로 **아무도 안
+          부르는 상수**로 서 있었다. 두 벌이면 갈리고, 실제로 조금 갈려 있었다.
+
+          `outcome.message` 는 내리고 이 한 줄만 세운다. 그 값은 「매인 판본을 찾지
+          못했습니다」처럼 **우리가 FK 를 부르는 이름**이라 읽는 사람에게 아무 뜻이 없고,
+          이 문장이 이미 「무엇이 그대로이고 무엇이 지금 안 되는지」를 다 말한다. 어느
+          갈래로 닫혔는지는 서버 로그가 든다.
+        */
+        <section className={CARD}>
+          <p className="text-sm text-secondary">{MATCH_RESULT_CLOSED_NOTE}</p>
         </section>
       )}
     </main>

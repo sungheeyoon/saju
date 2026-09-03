@@ -5,6 +5,7 @@ import {
   NOTICE_NOT_READY,
   NOTICE_VERSION,
   OPTIONAL_CONSENTS,
+  OPTIONAL_CONSENT_NOTE,
   noticeFor,
   scheduleFrom,
 } from '@/src/lib/consent';
@@ -73,10 +74,7 @@ export default async function PrivacyPage() {
 
           <section className={`${CARD} flex flex-col gap-3`}>
             <h2 className="text-base font-bold">고르실 수 있는 것</h2>
-            <p className="text-sm leading-6 text-secondary">
-              아래 둘은 선택입니다. 동의하지 않으셔도 사주와 궁합, 사주풀이를 그대로
-              쓰실 수 있습니다.
-            </p>
+            <p className="text-sm leading-6 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
             <ul className="flex flex-col gap-3">
               {OPTIONAL_CONSENTS.map((one) => (
                 <li key={one.key}>

@@ -41,8 +41,22 @@ describe('match-v0', () => {
     ]);
     expect(preview.index).toBeGreaterThanOrEqual(0);
     expect(preview.index).toBeLessThanOrEqual(100);
-    expect(preview.highlights).toHaveLength(3);
+    /**
+     * **신호는 실제로 난 것만 선다** — 셋을 채우지 않는다.
+     *
+     * 모자라면 「억부·종격·격국처럼 검증 중인 판정은 제외했어요」로 자리를 메우고
+     * 있었다. 그건 신호가 아니라 안내문이고, 같은 카드의 머리 딱지와 각주가 이미
+     * 하는 말이라 한 카드가 같은 말을 세 번 했다. 이 두 사람은 서로의 빈 오행을
+     * 채우지 않아 신호가 둘이고, **둘이면 둘이 맞다.**
+     */
+    expect(preview.highlights).toHaveLength(2);
+    for (const highlight of preview.highlights) {
+      expect(highlight).not.toContain('검증 중인 판정');
+    }
+
+    /** 각주가 답하는 물음은 「이 숫자가 무엇인가」다 — 제외 사실은 딱지가 든다 */
     expect(preview.caveat).toContain('궁합의 정답이 아니라');
+    expect(preview.caveat).not.toContain('검증 중인 판정');
   });
 
   /**

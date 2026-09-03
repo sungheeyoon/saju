@@ -10,7 +10,11 @@ import { pairRelationFor } from './actions';
 import { PairPicker } from './picker';
 import { RelationForNext } from './relation-for-next';
 import { CompatHero } from '../../compat-hero';
-import { REVISION_REPLACED_NOTE, UnreadableRevisionError } from '../../revision';
+import {
+  REVISION_REPLACED_NOTE,
+  UNREADABLE_REVISION_NOTE,
+  UnreadableRevisionError,
+} from '../../revision';
 import { Halted } from '../halted';
 import { payloadForViewer, type PersonPayload } from '../payload';
 import { myPrivateReadings, type PrivateReadingEntry } from '../reading/current';
@@ -315,9 +319,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
     return (
       <section className={`${CARD} flex flex-col gap-2`}>
         <p className="text-sm">{outcome.message}</p>
-        <p className="text-xs text-muted">
-          저장된 값은 그대로 있습니다. 지금 화면이 그 값을 읽지 못하는 것입니다.
-        </p>
+        <p className="text-xs text-muted">{UNREADABLE_REVISION_NOTE}</p>
       </section>
     );
   }

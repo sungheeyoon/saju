@@ -120,7 +120,11 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
   try {
     inputs = await pinnedInputs(matchId);
   } catch (failure) {
-    if (failure instanceof ResultClosedError) return { kind: 'closed', message: failure.message };
+    if (failure instanceof ResultClosedError) {
+      // 화면은 왜 닫혔는지 말하지 않는다(내부어다). 그러니 여기서 남긴다.
+      console.error('공유 결과를 닫는다', matchId, failure.message);
+      return { kind: 'closed', message: failure.message };
+    }
     throw failure;
   }
 
@@ -132,7 +136,9 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
    * 일어난다면 **다른 사람의 사주로 결과를 그리는 것**이라 여기서 멈춘다.
    */
   if (mine === undefined || theirs === undefined) {
-    return { kind: 'closed', message: '공유 결과를 열지 못했습니다 — 매인 판본을 찾지 못했습니다' };
+    const message = '공유 결과를 열지 못했습니다 — 매인 판본을 찾지 못했습니다';
+    console.error('공유 결과를 닫는다', matchId, message);
+    return { kind: 'closed', message };
   }
 
   const names = { a: '나', b: scope.partner_nickname ?? '상대' } as const;

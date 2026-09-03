@@ -205,3 +205,47 @@ export function UtteranceList({ utterances }: { utterances: readonly Utterance[]
     </div>
   );
 }
+
+/**
+ * 딱지가 무슨 뜻인가 — **한 벌만 있다.**
+ *
+ * 원국 화면과 궁합 화면이 이 문단을 각자 손으로 들고 있었고, 그래서 이미 갈려 있었다:
+ * 궁합 쪽에는 **「참고」가 빠져** 있었다. 같은 딱지 체계를 화면마다 다르게 설명하면
+ * 사용자는 자기가 본 딱지가 무엇인지 화면에 따라 다르게 배운다.
+ *
+ * **낱말은 엔진에서 온다**(`CLAIM_STRENGTH_KO`). 여기서 '사실'·'유도'를 손으로 적으면
+ * 딱지에 찍히는 글자와 그 뜻을 적은 글자가 갈릴 수 있고, 그건 눈에 안 띈다.
+ *
+ * `silent` 는 뜻을 적지 않는다 — 말하지 않기로 한 것은 딱지로 서지 않으므로,
+ * 여기 적으면 본 적 없는 딱지를 설명하는 줄이 된다.
+ */
+const CLAIM_STRENGTH_MEANING: Record<Exclude<ClaimStrength, 'silent'>, string> = {
+  // 조사를 문장에 붙여 둔다 — '표' 뒤에는 「은」이 아니라 「는」이 붙어서,
+  // 밖에서 한 글자를 이어 붙이면 넷 중 하나가 틀린 말이 된다.
+  fact: '여덟 글자에서 곧장 세어진 것은',
+  derived: '우리가 고른 문턱을 거친 것은',
+  candidate: '아직 시험 중인 규칙은',
+  reference: '조건을 자동 판정하지 않고 옮겨 적은 표는',
+};
+
+const MEANING_ORDER: readonly Exclude<ClaimStrength, 'silent'>[] = [
+  'fact',
+  'derived',
+  'candidate',
+  'reference',
+];
+
+export function ClaimStrengthLegend({ tail }: { tail?: React.ReactNode }) {
+  return (
+    <p>
+      왼쪽 딱지는 <strong className="font-medium">얼마나 세게 말할 수 있는가</strong>입니다.{' '}
+      {MEANING_ORDER.map((strength, index) => (
+        <span key={strength}>
+          {CLAIM_STRENGTH_MEANING[strength]} {CLAIM_STRENGTH_KO[strength]}
+          {index < MEANING_ORDER.length - 1 ? ', ' : '입니다. '}
+        </span>
+      ))}
+      근거보다 세게 말하지 않는지는 계약이 검사합니다.{tail}
+    </p>
+  );
+}

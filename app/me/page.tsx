@@ -5,7 +5,7 @@ import { supabaseOnServer } from '../auth/server-client';
 import { unreadCount } from './requests/inbox';
 import { chartOf } from '../chart';
 import { toSearchParams } from '../query';
-import { UnreadableRevisionError, queryFromRevision } from '../revision';
+import { UNREADABLE_REVISION_NOTE, UnreadableRevisionError, queryFromRevision } from '../revision';
 import { Halted } from './halted';
 import { Onboarding } from './onboarding';
 import { PillarCard } from './pillar-card';
@@ -109,9 +109,7 @@ async function SelfChart({ personId }: { personId: string }) {
       return (
         <section className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4">
           <p className="text-sm">{error.message}</p>
-          <p className="text-xs text-muted">
-            저장된 값은 그대로 있습니다. 지금 화면이 그 값을 읽지 못하는 것입니다.
-          </p>
+          <p className="text-xs text-muted">{UNREADABLE_REVISION_NOTE}</p>
         </section>
       );
     }

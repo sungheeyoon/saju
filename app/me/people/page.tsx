@@ -6,7 +6,12 @@ import { CALENDAR_KO, ELEMENT_KO, GENDER_KO, STEM_INFO } from '@/src/lib/saju';
 import { supabaseOnServer } from '../../auth/server-client';
 import { chartOf, solarDateOf } from '../../chart';
 import type { Query } from '../../query';
-import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '../../revision';
+import {
+  UNREADABLE_REVISION_NOTE,
+  UnreadableRevisionError,
+  queryFromRevision,
+  type StoredRevision,
+} from '../../revision';
 import { ReviseChart } from '../revise';
 import { Halted } from '../halted';
 import { AddPerson, NoteForm, RemoveFromList } from './manage';
@@ -182,9 +187,7 @@ function PersonCard({ person }: { person: Person }) {
         <div className="flex flex-col gap-1">
           <h2 className="text-base font-semibold">{person.local_label}</h2>
           <p className="text-sm">{person.chart.message}</p>
-          <p className="text-xs text-muted">
-            저장된 값은 그대로 있습니다. 지금 화면이 그 값을 읽지 못하는 것입니다.
-          </p>
+          <p className="text-xs text-muted">{UNREADABLE_REVISION_NOTE}</p>
         </div>
       )}
 
