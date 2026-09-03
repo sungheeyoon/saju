@@ -93,25 +93,52 @@ export function hideEveryoneExcept(emails: readonly string[]): void {
 }
 
 /**
- * 저장한 사람 자리를 **채운다** — 한도에 닿은 화면을 재려고.
+ * 저장한 사람 자리를 채워 **정확히 `free` 자리만 남긴다** — 한도에 닿은 화면을 재려고.
  *
- * `create_managed_person` 을 스무 번 부르는 것이 정직하지만, 재려는 것은 등록이 아니라
- * **자리가 없을 때 저장 입구가 무엇을 보여주는가**다. 그 앞을 브라우저로 스무 번 지나면
+ * `create_managed_person` 을 한도만큼 부르는 것이 정직하지만, 재려는 것은 등록이 아니라
+ * **자리가 없을 때 저장 입구가 무엇을 보여주는가**다. 그 앞을 브라우저로 열 번 지나면
  * 시험이 재려던 것보다 등록 화면에 더 오래 매달린다.
  *
  * 그래서 운영자가 하듯 SQL 로 넣는다. `person_limit` 은 커밋에서 서는 미룬 제약이라
- * (`deferrable initially deferred`) 한 문에 스물까지는 그대로 들어간다 — 그것이 정확히
- * 「한 자리도 안 남은」 상태다.
+ * (`deferrable initially deferred`) 한 문에 한도까지는 그대로 들어간다.
+ *
+ * **몇 개를 넣을지는 여기서 세지 않는다.** 부르는 쪽이 「몇 개 넣어라」를 적으면 그 수는
+ * 한도에서 손으로 뺀 값이고, 한도를 옮기는 날 그 뺄셈만 옛 수로 남는다. 남길 자리를
+ * 받아서 **DB 에 지금 몇이 들어 있고 한도가 얼마인지 물어** 그만큼 넣는다.
+ * `person_limit()` 은 모든 역할에 닫혀 있지만 이 문은 `postgres` 로 돈다.
  */
-export function fillPersonSlots(email: string, count: number): void {
+/**
+ * 저장 자리 한도 — **검사가 수를 손으로 적지 않게.**
+ *
+ * `person_limit()` 은 모든 역할에 닫혀 있지만 이 문은 `postgres` 로 돈다. 화면이 말하는
+ * 「앞으로 N명 더」를 재려면 그 N 이 어디서 오는지 검사도 알아야 하는데, 그 수를 여기
+ * 적으면 한도를 옮기는 날 **검사만 옛 수를 지킨다.**
+ */
+export function personLimit(): number {
+  return Number(sql('select public.person_limit()'));
+}
+
+export function leavePersonSlots(email: string, free: number): void {
   sql(`
-    with made as (
+    with here as (
+      select id as user_id from auth.users where email = '${email}'
+    ),
+    room as (
+      select greatest(0,
+        public.person_limit() - ${free} - (
+          select count(*) from public.user_person_access a
+          join public.app_user u on u.id = a.user_id
+          where a.user_id = (select user_id from here)
+            and a.person_id is distinct from u.self_person_id
+        ))::int as needed
+    ),
+    made as (
       insert into public.person (id)
-      select gen_random_uuid() from generate_series(1, ${count})
+      select gen_random_uuid() from generate_series(1, (select needed from room))
       returning id
     )
     insert into public.user_person_access (user_id, person_id, local_label, role)
-    select (select id from auth.users where email = '${email}'), made.id, '자리채움', 'owner'
+    select (select user_id from here), made.id, '자리채움', 'owner'
     from made`);
 }
 

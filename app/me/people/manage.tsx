@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
+import type { PersonSlots } from '@/src/lib/people';
+
 import { BirthFields } from '../../birth-form';
 import { DEFAULT_QUERY, missingAnswer, type Query } from '../../query';
 import { NOTE_MAX } from '../../revision';
@@ -23,8 +25,15 @@ const BUTTON =
  *
  * 익명 화면·온보딩과 **같은 폼**을 쓴다(`BirthFields`). 저장하는 화면이라고 다른 폼을
  * 두면 한쪽만 고쳐져서 「같은 값을 넣었는데 다른 사주가 나오는」 상태가 생긴다.
+ *
+ * **자리 수는 받아서 쓴다.** 「스무 명을 다 채웠습니다」가 이 화면의 문장에 박혀 있었다 —
+ * 한도를 옮기는 날 DB 는 열에서 막는데 화면은 계속 스물이라고 말한다. 그래서 남은 자리만
+ * 받지 않고 한 줄을 통째로 받는다: 한도는 `person_limit()` 이 들고 `my_person_slots()`
+ * 가 그것을 내준다(ADR 0032).
  */
-export function AddPerson({ remaining }: { remaining: number | null }) {
+export function AddPerson({ slots }: { slots: PersonSlots | null }) {
+  // 못 읽었으면 `null` — 그때는 막지도 않고 수를 말하지도 않는다.
+  const remaining = slots?.remaining ?? null;
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState<Query>({ ...DEFAULT_QUERY, name: '' });
@@ -53,7 +62,8 @@ export function AddPerson({ remaining }: { remaining: number | null }) {
   if (remaining !== null && remaining <= 0) {
     return (
       <p className="rounded-xl border border-border bg-surface-sunken p-4 text-sm text-muted">
-        등록할 수 있는 스무 명을 다 채웠습니다. 목록에서 누군가를 빼면 다시 등록할 수 있습니다.
+        등록할 수 있는 {slots?.limit}명을 다 채웠습니다. 목록에서 누군가를 빼면 다시 등록할 수
+        있습니다.
       </p>
     );
   }
@@ -130,7 +140,7 @@ function NoteField({
 /**
  * 메모 — **접어 둔다.**
  *
- * 늘 펼쳐 두었더니 빈 칸 하나가 카드 높이의 삼분지 일을 먹었다. 스무 명이면 그
+ * 늘 펼쳐 두었더니 빈 칸 하나가 카드 높이의 삼분지 일을 먹었다. 목록이 길면 그
  * 빈 칸이 스무 개다. **꼭 필요한 값이 아닌 것이 자리를 제일 많이 차지하고 있었다.**
  *
  * 그래서 다른 조작들과 같은 줄에 버튼으로 서고, 누르면 그 아래에 열린다. 적어 둔

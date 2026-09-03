@@ -69,7 +69,7 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
  * 가족·친구 한 사람을 등록한다.
  *
  * 자기 사주 저장과 **모양이 같고 판정하는 자리도 같다** — 여기서 권한도 한도도 묻지
- * 않는다. 스무 명 한도는 DB 트리거가 들고(`enforce_person_limit`), 그 판정을 여기에도
+ * 않는다. 저장 자리 한도는 DB 트리거가 들고(`enforce_person_limit`), 그 판정을 여기에도
  * 적으면 세는 규칙이 두 곳이 된다. 그러면 selfPerson 을 세느냐 마느냐가 언젠가 갈린다.
  *
  * 한도에 걸렸을 때 나오는 말은 DB 가 쓴 문장 그대로다 — 사람이 읽을 수 있게 써 뒀다.

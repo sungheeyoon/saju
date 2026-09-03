@@ -20,7 +20,7 @@ export const managedEdges = <T extends { person_id: string }>(
  * 있으면 필드 이름이 바뀌는 날 한쪽만 고쳐진다.
  *
  * @returns 못 읽었으면 `null` — **0 으로 눕히지 않는다.** 0 은 「다 찼다」이고, 그렇게
- *   눕히면 읽기가 한 번 실패한 사람에게 화면이 「스무 명을 채웠다」고 거짓을 말한다.
+ *   눕히면 읽기가 한 번 실패한 사람에게 화면이 「자리를 다 채웠다」고 거짓을 말한다.
  */
 export function personSlotsFrom(
   data: unknown,

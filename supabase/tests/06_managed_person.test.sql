@@ -1,4 +1,4 @@
--- 가족·친구 Person — 만들어지고, 스무 명에서 막히고, 남에게는 없는 것과 같다.
+-- 가족·친구 Person — 만들어지고, 한도에서 막히고, 남에게는 없는 것과 같다.
 begin;
 select plan(27);
 
@@ -179,12 +179,15 @@ select is(
   0,
   '목록에서 빠지면 그 Person 은 더 이상 보이지 않는다');
 
--- ── 스무 명에서 막힌다 ────────────────────────────────────────────────────────
+-- ── 한도에서 막힌다 ──────────────────────────────────────────────────────────
 --
--- 지금 관리 Person 은 아빠 하나다(엄마는 뺐다). 열아홉을 더 만들면 스물이다.
+-- 지금 관리 Person 은 아빠 하나다(엄마는 뺐다). 한도까지 채운 뒤 하나를 더 넣어 본다.
+--
+-- **수를 여기 적지 않는다.** `tests.person_limit()` 이 `person_limit()` 을 읽는다 —
+-- 한도를 옮기는 날 시험이 옛 수를 지키고 있으면 그것은 시험이 아니라 화석이다.
 do $$
 begin
-  for i in 2..20 loop
+  for i in 2..tests.person_limit() loop
     perform public.create_managed_person(
       '가족' || i, null, 'solar', '1990-05-15', '1990-05-15',
       '14:30', 'female', '서울', 'jo', 'localMean');
@@ -195,8 +198,8 @@ $$;
 /**
  * 한도 트리거는 `deferrable initially deferred` 라 커밋에 선다.
  *
- * 이 시험은 `rollback` 으로 끝나므로 그대로 두면 **한 번도 안 선다** — 스물한
- * 번째가 통과한 것처럼 보인 채로 끝난다. 여기서 즉시로 바꿔 그 자리를 앞당긴다.
+ * 이 시험은 `rollback` 으로 끝나므로 그대로 두면 **한 번도 안 선다** — 한도를 넘긴
+ * 한 명이 통과한 것처럼 보인 채로 끝난다. 여기서 즉시로 바꿔 그 자리를 앞당긴다.
  */
 set constraints all immediate;
 
@@ -204,15 +207,16 @@ select is(
   (select count(*)::int from public.user_person_access a
    join public.app_user u on u.id = a.user_id
    where a.person_id is distinct from u.self_person_id),
-  20,
-  '스무 명까지는 들어간다');
+  tests.person_limit(),
+  '한도까지는 들어간다');
 
 select throws_ok(
   $$select public.create_managed_person(
-      '스물하나', null, 'solar', '1990-05-15', '1990-05-15',
+      '한 명 더', null, 'solar', '1990-05-15', '1990-05-15',
       '14:30', 'female', '서울', 'jo', 'localMean')$$,
-  '23514', '등록할 수 있는 사람은 20명까지입니다.',
-  '스물한 번째는 거절된다');
+  '23514',
+  format('등록할 수 있는 사람은 %s명까지입니다.', tests.person_limit()),
+  '한도를 넘기는 한 명은 거절된다');
 
 reset role;
 

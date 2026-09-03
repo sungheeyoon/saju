@@ -24,7 +24,7 @@ import { AddPerson, NoteForm, RemoveFromList } from './manage';
   화면을 세 이름으로 부르고 있었다. 「등록」은 관리·DB 쪽 말이고 「내 사람」은 관계의
   뜻이 너무 세다 — 여기 있는 것은 내가 **저장해 둔** 사람들이다(ADR 0027).
 
-  「등록하다」는 동사로 남는다(「사람 등록하기」·「등록할 수 있는 스무 명」). 목록의
+  「등록하다」는 동사로 남는다(「사람 등록하기」·「등록할 수 있는 자리」). 목록의
   이름과 그 목록에 넣는 동작은 다른 말이라 같은 낱말일 이유가 없다.
 */
 export const metadata = {
@@ -36,7 +36,7 @@ export const metadata = {
  * 가족·친구 Person 을 관리하는 자리.
  *
  * selfPerson 은 여기 없다. 「내가 관리하는 사람」의 목록이고 나는 `/me` 에 있다 —
- * 스무 명 한도가 세는 것도 정확히 이 목록이다(`enforce_person_limit`).
+ * 저장 자리 한도가 세는 것도 정확히 이 목록이다(`enforce_person_limit`).
  *
  * **여기서 「전체 명식 보기」로 넘기지 않는다.** 그 링크는 입력을 주소의 `#` 뒤에
  * 싣는데(`/me` 가 자기 것에 그렇게 한다), 남이 등록해 준 가족의 생년월일시가
@@ -101,7 +101,7 @@ export default async function PeoplePage() {
         <Halted status={account?.status ?? 'suspended'} />
       ) : (
         <>
-          <AddPerson remaining={slots?.remaining ?? null} />
+          <AddPerson slots={slots} />
           <PeopleList people={people} />
         </>
       )}

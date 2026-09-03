@@ -92,6 +92,23 @@ as $$
   select json_build_object('sub', actor::text, 'role', 'authenticated')::text;
 $$;
 
+/**
+ * 저장 자리 한도 — **시험이 수를 손으로 적지 않게.**
+ *
+ * `person_limit()` 은 모든 역할에 닫혀 있어서(상수를 내주는 함수라도 닫는다),
+ * `set local role authenticated` 뒤에는 시험이 그것을 못 부른다. 그래서 `definer` 로
+ * 한 겹 감싼다 — `tests.signup` 이 같은 이유로 definer 인 것과 같은 자리다.
+ *
+ * 한도를 옮기는 날 **시험이 옛 수를 지키는 일**이 없게 하려는 것이다. 그것은 시험이
+ * 깨지는 것보다 나쁘다: 깨지면 우리가 보지만, 옛 수를 지키면 아무도 안 본다.
+ */
+create or replace function tests.person_limit()
+returns integer
+language sql
+stable
+security definer
+as $$ select public.person_limit() $$;
+
 -- 시험은 역할을 `authenticated` 로 바꾼 채로 이 손잡이들을 부른다.
 grant usage on schema tests to authenticated;
 grant execute on all functions in schema tests to authenticated;

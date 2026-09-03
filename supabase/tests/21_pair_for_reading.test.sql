@@ -97,14 +97,16 @@ select is(
 -- ── 한도에 걸리면 아무도 안 남는다 ────────────────────────────────────────
 
 /**
- * 열아홉까지 채운다. 다음 한 쌍이 스물과 스물하나가 되므로 **첫 사람은 통과하고
- * 둘째에서 막힌다** — 갈라 부르던 길이 첫 사람만 남기던 바로 그 자리다.
+ * **한 자리만 남겨 둔다.** 다음 한 쌍에서 첫 사람은 통과하고 둘째에서 막힌다 —
+ * 갈라 부르던 길이 첫 사람만 남기던 바로 그 자리다.
+ *
+ * 수를 여기 적지 않는다. `tests.person_limit()` 이 든다.
  */
 select pg_temp.acting((select lee from folks));
 do $$
 declare at integer;
 begin
-  for at in 1..19 loop
+  for at in 1..(tests.person_limit() - 1) loop
     perform public.create_managed_person(
       'ㅅ' || at, null, 'solar', '1990-05-15', '1990-05-15', '14:30',
       'female', '서울', 'jo', 'localMean');
@@ -116,13 +118,13 @@ $$;
 set constraints public.person_limit immediate;
 
 select throws_ok(
-  $$select * from pg_temp.save_pair('스물', '스물하나', 'friend')$$,
-  '등록할 수 있는 사람은 20명까지입니다.',
+  $$select * from pg_temp.save_pair('한 명', '두 명째', 'friend')$$,
+  format('등록할 수 있는 사람은 %s명까지입니다.', tests.person_limit()),
   '한도를 넘기는 쌍은 거절된다');
 
 select is(
   pg_temp.managed((select lee from folks)),
-  19::bigint,
+  (tests.person_limit() - 1)::bigint,
   '거절되면 첫 사람도 안 남는다 — 한 문이라 함께 되돌아간다');
 
 set constraints public.person_limit deferred;
@@ -134,22 +136,22 @@ set constraints public.person_limit deferred;
  * 하나는 **selfPerson 을 안 빼는 것**을 잊는다. 그래서 DB 가 센다.
  */
 /**
- * 앞의 거절이 통째로 되돌아갔으므로 이 사람은 여전히 열아홉이다. 그래서 남은 자리가
- * 하나 — **궁합 입구가 막아야 하는 바로 그 자리**다(둘이 필요한데 하나 남았다).
+ * 앞의 거절이 통째로 되돌아갔으므로 남은 자리는 여전히 하나다 — **궁합 입구가 막아야
+ * 하는 바로 그 자리**다(둘이 필요한데 하나 남았다).
  */
 select is(
   (select remaining from public.my_person_slots()),
   1,
-  '열아홉 명이면 한 자리가 남는다');
+  '한 자리가 남는다');
 
 select is(
   (select used from public.my_person_slots()),
-  19,
-  'selfPerson 은 안 센다 — 스무 명이 묶여 있어도 열아홉이다');
+  tests.person_limit() - 1,
+  'selfPerson 은 안 센다 — 자기 것까지 묶여 있어도 한 명 적게 센다');
 
 select is(
   (select person_limit from public.my_person_slots()),
-  20,
+  tests.person_limit(),
   '한도 수도 함께 낸다 — 화면이 손으로 베끼지 않게');
 
 /** 자리를 비우면 그만큼 돌아온다 — 화면이 「지우면 된다」고 말한 것이 참이어야 한다 */

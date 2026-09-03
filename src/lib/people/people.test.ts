@@ -2,8 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import { RELATIONS, noRoomToSave, relationOf, relationSentence, type PersonSlots } from '.';
 
-/** DB 가 내주는 한 줄 — 수는 `person_limit()` 이 들고 화면은 그것을 옮기기만 한다 */
-const slots = (remaining: number, limit = 20): PersonSlots => ({
+/**
+ * DB 가 내주는 한 줄 — 수는 `person_limit()` 이 들고 화면은 그것을 옮기기만 한다.
+ *
+ * 그래서 여기 적힌 수는 **한도가 아니라 표본**이다. 이 함수가 하는 일은 문장을 짓는
+ * 것뿐이고 어떤 수가 와도 같아야 하므로, 아래 검사도 이 값에서 문장을 만들어 대조한다 —
+ * 기대값에 숫자를 손으로 적으면 한도를 옮기는 날 이 파일이 옛 수를 지킨다.
+ */
+const LIMIT = 10;
+
+const slots = (remaining: number, limit = LIMIT): PersonSlots => ({
   limit,
   used: limit - remaining,
   remaining,
@@ -19,7 +27,7 @@ describe('저장할 자리가 모자랄 때', () => {
   it('자리가 넉넉하면 아무 말도 하지 않는다', () => {
     expect(noRoomToSave(1, slots(1))).toBeNull();
     expect(noRoomToSave(2, slots(2))).toBeNull();
-    expect(noRoomToSave(2, slots(20))).toBeNull();
+    expect(noRoomToSave(2, slots(LIMIT))).toBeNull();
   });
 
   /** 둘이 필요한데 하나 남은 자리 — 한 문으로 저장하므로 눌러도 둘 다 되돌아간다 */
@@ -36,7 +44,7 @@ describe('저장할 자리가 모자랄 때', () => {
     for (const needed of [1, 2]) {
       const said = noRoomToSave(needed, slots(0));
 
-      expect(said, String(needed)).toContain('20명을 다 채웠습니다');
+      expect(said, String(needed)).toContain(`${LIMIT}명을 다 채웠습니다`);
       expect(said, String(needed)).toContain('한 명을 지워야');
     }
   });

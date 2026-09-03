@@ -1,4 +1,4 @@
-import { expect, fillPersonSlots, test } from './session';
+import { expect, leavePersonSlots, personLimit, test } from './session';
 
 import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
 import type { Page } from '@playwright/test';
@@ -457,7 +457,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
     await page.getByRole('link', { name: '사람 목록으로' }).click();
 
-    // 스무 명 한도를 세는 것도 이 목록이다(US 18).
+    // 저장 자리 한도를 세는 것도 이 목록이다(US 18).
     await page.getByRole('link', { name: '저장한 사람으로 궁합 보기' }).click();
     await expect(page).toHaveURL(/\/me\/compat/);
 
@@ -677,7 +677,9 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     expect(shown).not.toContain('AI 풀이');
     // 무엇이 목록에 남는지 누르기 전에 적는다. 남은 자리도 — 서버에서 건너온 값이다.
     expect(shown).toContain('저장한 사람 목록에 민수 · 지영');
-    expect(shown).toContain('앞으로 19명 더 저장할 수 있습니다');
+    // 이 계정은 「어머니」 하나를 들고 있다. 수는 DB 에 묻는다 — 여기 적으면 한도를
+    // 옮기는 날 이 검사만 옛 수를 지킨다.
+    expect(shown).toContain(`앞으로 ${personLimit() - 1}명 더 저장할 수 있습니다`);
 
     await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
     await page.getByRole('radio', { name: '가족' }).check();
@@ -704,14 +706,15 @@ test.describe('로그인한 사람의 궁합 화면', () => {
    * **눌러도 아무 일이 안 일어나는 앱**이다. 그러면 이 입구는 있는 것보다 나쁘다.
    *
    * 궁합은 둘이 필요하므로 **한 자리만 남은 것도 못 쓰는 자리**다. 그 경계를 재려고
-   * 자리를 열아홉까지만 채운다(`signedIn` 이 「어머니」 하나를 이미 들고 있어 열여덟을
-   * 더한다) — 스물을 다 채우면 `remaining === 0` 갈래만 서고 이 자리는 안 재진다.
+   * **한 자리만 남기고** 채운다 — 다 채우면 `remaining === 0` 갈래만 서고 이 자리는
+   * 안 재진다. 몇 개를 넣을지는 DB 가 센다(`signedIn` 이 「어머니」 하나를 이미 들고
+   * 있고, 한도는 `person_limit()` 이 든다).
    */
   test('저장할 자리가 모자라면 버튼 대신 무엇을 해야 하는지가 선다', async ({
     page,
     signedIn,
   }) => {
-    fillPersonSlots(signedIn.email, 18);
+    leavePersonSlots(signedIn.email, 1);
 
     await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
     await expect(page.getByRole('heading', { name: '궁합 풀이로 이어 보기' })).toBeVisible();

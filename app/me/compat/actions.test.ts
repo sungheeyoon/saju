@@ -177,11 +177,11 @@ describe('직접 입력한 두 사람을 저장하는 자리', () => {
   });
 
   it('DB 가 거절한 말을 그대로 옮긴다', async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: '스무 명까지 저장할 수 있습니다.' } });
+    rpc.mockResolvedValue({ data: null, error: { message: '등록할 수 있는 사람은 10명까지입니다.' } });
 
     expect(await savePairForReading(person('민수'), person('지영'), null)).toEqual({
       ok: false,
-      message: '스무 명까지 저장할 수 있습니다.',
+      message: '등록할 수 있는 사람은 10명까지입니다.',
     });
   });
 });
