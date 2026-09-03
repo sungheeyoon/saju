@@ -7,7 +7,6 @@ import { CARD } from './card';
 import { calculateChart } from './chart';
 import { useHashParams, writeParams } from './hash-query';
 import { CopyLinkButton } from './copy-link';
-import { EvidencePanel } from './evidence-panel';
 import { ELEMENT_TONE } from './element-tone';
 import {
   TOPICS_THE_TABLE_HOLDS,
@@ -302,7 +301,13 @@ function SajuView({ saju, viewedAt }: { saju: Saju; viewedAt: number }) {
       <StarTable saju={saju} />
       <TimeCorrections saju={saju} />
       <Warnings saju={saju} />
-      <EvidencePanel a={saju} viewedAt={viewedAt} />
+      {/*
+        넘길 자료 패널은 **여기 서지 않는다**(`/evidence`).
+
+        「프롬프트 + 자료 복사」·「JSON 내려받기」·「붙여 넣을 분량 46KB」·`relations-v1`
+        은 계약을 검산하는 우리에게 필요한 것이지 사주를 보러 온 사람이 쓰는 것이 아니다.
+        같은 링크의 `#` 뒤를 그대로 넘기면 그쪽에서 같은 자료가 선다.
+      */}
     </div>
   );
 }

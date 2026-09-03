@@ -6,6 +6,7 @@ import {
   SUPPORTED_YEAR_RANGE,
   type Calendar,
   type CityName,
+  type CompatSide,
   type Gender,
   type LateNightRule,
 } from '@/src/lib/saju';
@@ -258,6 +259,16 @@ export function missingAnswer(query: Query): string | null {
  * 열려야 하기 때문이다.
  */
 export type QueryPrefix = '' | 'a.' | 'b.';
+
+/**
+ * 어느 쪽이 어느 접두사인가 — **코덱 옆에 둔다.**
+ *
+ * 궁합 계산기 안에 있었다. 같은 링크를 읽는 자리가 둘이 되면서(`/evidence` 가
+ * 결과 화면의 주소를 그대로 연다) 옮겼다 — 접두사를 읽는 쪽이 제 손으로 `'a.'` 를
+ * 적으면, 접두사가 바뀌는 날 한쪽만 고쳐지고 그때 두 화면이 같은 주소에서 다른
+ * 사람을 읽는다.
+ */
+export const PREFIX: Record<CompatSide, QueryPrefix> = { a: 'a.', b: 'b.' };
 
 /**
  * 입력 한 벌을 주소창에 싣는다.

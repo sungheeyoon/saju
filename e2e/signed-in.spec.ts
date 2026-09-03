@@ -501,14 +501,14 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     }
 
     /**
-     * **묻는 자리가 읽기 전이다.** 관계를 묻는 까닭이 「사이에 따라 해석의 방향을 달리
-     * 잡겠다」는 것이라, 두 화면 다 고르는 칸 옆에서 묻는다.
+     * **사이를 묻는 칸은 여기 없다.**
      *
-     * 익명 화면은 우리가 모델을 안 부르지만 **프롬프트는 나간다**(복사해 붙여 넣는 글).
-     * 그 글에도 같은 구멍이 있었으므로 여기서도 묻는다.
+     * 익명 화면에서 이 값이 움직이던 것은 복사해 가는 프롬프트 하나뿐이었고, 그 칸이
+     * `/evidence` 로 옮겨 가면서 함께 옮겼다. 여기 남았으면 아무것도 바꾸지 않는
+     * 라디오가 결과 화면에 서 있게 된다. 저장하는 쪽(`/me/compat`)은 그대로 묻는다 —
+     * 거기서는 실제로 풀이의 방향을 고른다.
      */
-    await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
-    await page.getByRole('radio', { name: '가족' }).check();
+    await expect(page.getByText('두 분은 무슨 사이인가요')).toHaveCount(0);
 
     const first = page.getByRole('group', { name: '민수' });
     await page.getByRole('button', { name: '궁합 보기' }).click();
@@ -537,11 +537,15 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
 
     /**
-     * **고른 사이가 복사해 가는 글에 실린다.**
+     * **고른 사이가 복사해 가는 글에 실린다** — `/evidence` 에서.
      *
-     * 링크로 다시 연 자리라 라디오는 되돌아가 있다 — 링크를 받은 사람은 그 답을 한 적이
-     * 없으므로 그것이 맞다. 다시 고르고 복사해서 실제로 실리는지 본다.
+     * 결과 화면의 링크를 그대로 넘기면 같은 명식으로 자료가 선다. 코덱도 계산도 한
+     * 함수라 여기 여덟 글자와 저쪽 여덟 글자가 갈릴 자리가 없고, 그래서 이 검사가
+     * 옮겨 간 화면에서도 같은 것을 잰다.
      */
+    await page.goto(shared.replace('/compat#', '/evidence#'));
+
+    await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
     await page.getByRole('radio', { name: '가족' }).check();
 
     await page.getByText('풀이에 넘기는 자료').click();
@@ -572,11 +576,16 @@ test.describe('로그인한 사람의 궁합 화면', () => {
   /**
    * 검증된 사실이 검증 중인 수치보다 먼저 읽혀야 한다 — `docs/product/matching-beta.md`
    * 가 적어 둔 결정이고, 화면에서는 순서가 그 결정의 전부다. 지표 카드를 위로 올리는
-   * 변경은 여기서 걸린다. 관심 버튼도 함께 본다: 받지 않는 신청을 받는 것처럼
-   * 보이지 않기로 했으므로, 눌렀을 때 그렇게 말하는지가 계약이다.
+   * 변경은 여기서 걸린다.
+   *
+   * 지표 아래의 부름도 함께 본다. 여기 「관심 있어요」가 서 있었고 누르면 「지금은
+   * 신청을 받지 않습니다」로 답했다 — **아무 데도 닿지 않는 버튼**이었다. 그 사이에
+   * `/me/discovery` 가 실제로 요청을 받게 되었으므로 그리로 잇는다. 링크가 `/auth` 를
+   * 거치는 것은 로그인 여부를 익명 화면이 몰라도 되게 하려는 것이라, **로그인한 사람이
+   * 눌렀을 때 실제로 인연 찾기에 닿는지**가 이 검사의 요점이다.
    */
 
-  test('베타 매칭 지표는 사실 아래에 서고, 관심 버튼은 받지 않는다고 말한다', async ({ page, signedIn }) => {
+  test('베타 매칭 지표는 사실 아래에 서고, 그 아래 부름은 인연 찾기에 닿는다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
 
@@ -587,8 +596,31 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     const shown = await page.locator('main').innerText();
     expect(shown.indexOf('두 원국 사이의 관계')).toBeLessThan(shown.indexOf('먼저 보이는 신호'));
 
-    await page.getByRole('button', { name: '관심 있어요' }).click();
-    await expect(page.getByRole('status')).toContainText('신청을 받지 않고');
+    // 받지 않는 신청을 받는 것처럼 보이던 버튼은 없다.
+    await expect(page.getByRole('button', { name: '관심 있어요' })).toHaveCount(0);
+
+    await page.getByRole('link', { name: '인연 찾기에서 요청하기' }).click();
+    await expect(page).toHaveURL(/\/me\/discovery$/);
+    await expect(page.getByRole('heading', { name: '새로운 인연 찾기' })).toBeVisible();
+  });
+
+  /**
+   * **궁합 결과에도 넘길 자료는 없다.**
+   *
+   * 결과 화면 둘 다에서 내렸다(`/` 와 여기). 옮긴 칸은 다시 돌아오기 쉬우므로 두
+   * 화면이 각자 지킨다 — 익명 사주 쪽은 `e2e/saju.spec.ts` 가 같은 것을 짚는다.
+   */
+
+  test('궁합 결과에는 넘길 자료 패널이 서지 않는다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+
+    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
+
+    const shown = await page.locator('main').innerText();
+    for (const word of ['풀이에 넘기는 자료', '무엇을 시킬 것인가', 'JSON 내려받기']) {
+      expect(shown).not.toContain(word);
+    }
   });
 
   /**
@@ -602,7 +634,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 
   test('넘길 자료는 열었을 때 상한 표와 함께 선다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
-    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+    await page.goto('/evidence#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
 
     const panel = page.getByRole('group').filter({ hasText: '풀이에 넘기는 자료' });
     await expect(panel).toBeVisible();

@@ -6,9 +6,7 @@ import { GENDER_KO, type Compatibility, type CompatSide, type Saju } from '@/src
 
 import { BetweenSections } from './between-view';
 import { CARD } from './card';
-import type { Relation } from '@/src/lib/people';
 
-import { EvidencePanel } from './evidence-panel';
 import { PILLAR_COLUMNS } from './saju-calculator';
 
 /**
@@ -23,10 +21,9 @@ import { PILLAR_COLUMNS } from './saju-calculator';
  * 그래서 받는 것은 계산이 끝난 값 셋뿐이다. 어느 화면인지는 `notice` 하나로만
  * 드러난다 — 링크에 무엇이 실리는지가 두 화면에서 서로 다른 사실이라 그렇다.
  *
- * **Match 결과 화면은 이것을 쓰지 않는다.** 여기는 두 명식을 나란히 놓고 근거
- * 패널까지 여는 자리이고, 그쪽은 상대의 `Saju`·`ChartEvidence` 를 받지 않는다
- * (ADR 0010·0012). 관계 참가자를 합쳐 여덟 글자가 드러날 수는 있지만 둘이 함께 쓰는
- * 것은 사이에 대한 칸들뿐이다(`BetweenSections`).
+ * **Match 결과 화면은 이것을 쓰지 않는다.** 여기는 두 명식을 나란히 놓는 자리이고,
+ * 그쪽은 상대의 `Saju` 를 받지 않는다(ADR 0010·0012). 관계 참가자를 합쳐 여덟 글자가
+ * 드러날 수는 있지만 둘이 함께 쓰는 것은 사이에 대한 칸들뿐이다(`BetweenSections`).
  */
 
 /**
@@ -44,18 +41,14 @@ export function CompatView({
   charts,
   compat,
   names,
-  viewedAt,
   notice,
   verdict,
-  foldFacts,
-  relation = null,
+  hideFacts,
 }: {
   charts: Record<CompatSide, Saju>;
   /** 두 사람을 부르는 말 — 입력한 이름이거나 '첫 번째 사람' */
   names: Record<CompatSide, string>;
   compat: Compatibility;
-  /** 결과를 보는 기준 시각(ms) — 넘길 자료가 지금의 운을 이 시각으로 짚는다 */
-  viewedAt: number;
   /**
    * 결과 맨 위에 서는 한 줄 — **화면마다 다른 사실을 말한다.**
    *
@@ -75,72 +68,46 @@ export function CompatView({
    */
   verdict: ReactNode;
   /**
-   * 사실을 **접어 둘까** — 판정을 먼저 세울까.
+   * 사실을 **아예 안 세울까** — 판정만 세울까.
    *
-   * 익명 화면은 계산기다. 두 명식과 사이의 관계가 곧 결과물이라 그것이 먼저 선다.
+   * 익명 화면은 계산기다. 두 명식과 사이의 관계가 곧 결과물이라 그것이 선다.
    * 로그인 화면은 다르다 — 사람이 보러 온 것은 **읽어 주는 글**이고, 그 앞에 표
    * 스물몇 개를 세워 두면 글까지 내려오지 못한다.
    *
-   * 접는 자리를 화면이 따로 그리지 않고 여기서 가르는 이유는 늘 같다. 두 번 그리면
+   * 한동안 접어 두는 것으로 갈랐다(`foldFacts`). 접은 칸도 결과 화면에 「펼치면 뭔가
+   * 더 있다」는 자리를 만들고, 그 안에 든 것은 우리가 검산하려고 세운 원자료였다.
+   * 그래서 이제 **안 세운다.**
+   *
+   * 가르는 자리를 화면이 따로 그리지 않고 여기 두는 이유는 늘 같다. 두 번 그리면
    * 한쪽만 고쳐지고, 그때 두 화면이 서로 다른 것을 감춘다.
    */
-  foldFacts?: boolean;
-  /** 두 사람이 무슨 사이인가 — 복사해 가는 프롬프트에 실린다(익명 화면) */
-  relation?: Relation | null;
+  hideFacts?: boolean;
 }) {
-  const facts = (
-    <>
-      <ChartPair charts={charts} names={names} />
-      <BetweenSections compat={compat} names={names} />
-      <EvidencePanel a={charts.a} b={charts.b} viewedAt={viewedAt} relation={relation} />
-    </>
-  );
-
-  if (foldFacts !== true) {
+  if (hideFacts === true) {
+    /**
+     * **판정만 선다.**
+     *
+     * 「둘의 명식 보기」라는 접은 칸이 여기 있었다. 두 명식과 사이의 관계표를 담고
+     * 「계산을 확인하는 자리입니다」라고 스스로 적어 두었고, 시험이 끝나면 통째로
+     * 내리기로 하고 한 덩어리로 접어 둔 것이었다. 그때가 지금이다.
+     *
+     * 이 화면에서 사람이 보러 온 것은 **읽어 주는 글**이다. 여덟 글자와 관계표는
+     * 계산이 맞는지 우리가 보려고 세운 원자료이고, 접어 두어도 결과 화면 한가운데에
+     * 「펼치면 뭔가 더 있다」는 자리를 하나 만든다.
+     */
     return (
       <div className="flex flex-col gap-6">
         {notice}
-        <ChartPair charts={charts} names={names} />
-        <BetweenSections compat={compat} names={names} />
         {verdict}
-        <EvidencePanel a={charts.a} b={charts.b} viewedAt={viewedAt} relation={relation} />
       </div>
     );
   }
 
-  /**
-   * **접은 칸이 판정 위에 선다.**
-   *
-   * 상세 화면에서 사람이 하는 일은 둘이다 — 다시 받거나, 무엇으로 쓴 글인지 확인하거나.
-   * 둘 다 글을 읽기 **전에** 정하는 일이라 글 위에 서야 한다. 아래에 두면 8천 자를
-   * 지나야 만나고, 그러면 없는 것과 같다.
-   */
   return (
     <div className="flex flex-col gap-6">
       {notice}
-
-      {/*
-        **테스트 기간에만 여는 자리.**
-
-        두 명식과 사이의 관계표는 우리가 계산이 맞는지 보려고 세운 것이지 사용자가
-        보러 온 것이 아니다. 시험이 끝나면 이 칸은 통째로 내린다 — 그때 지울 것이
-        하나이도록 한 덩어리로 접어 둔다.
-      */}
-      <details className="group rounded-2xl border border-border bg-surface">
-        <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold hover:text-accent">
-          <span className="inline-flex items-center gap-2">
-            <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-90">
-              ▶
-            </span>
-            둘의 명식 보기
-          </span>
-          <span className="mt-1 block pl-6 text-xs font-normal text-muted">
-            여덟 글자와 사이에 걸리는 관계를 자료 그대로 봅니다. 계산을 확인하는 자리입니다.
-          </span>
-        </summary>
-        <div className="flex flex-col gap-6 border-t border-border px-5 py-5">{facts}</div>
-      </details>
-
+      <ChartPair charts={charts} names={names} />
+      <BetweenSections compat={compat} names={names} />
       {verdict}
     </div>
   );

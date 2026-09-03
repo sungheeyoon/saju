@@ -118,15 +118,14 @@ export function ProfileForm({ current }: { current: DiscoveryProfileInput }) {
       </label>
 
       {/*
-        나이·거리 칸이 없는 이유를 적어 둔다. 없는 것을 그냥 비워 두면 「빠뜨렸나」로
-        읽히고, 나이는 실제로 못 쓰는 값이다(ADR 0005).
-      */}
-      <p className="text-xs text-muted">
-        나이 조건은 두지 않았습니다. 저장된 생년월일은 사주 입력이지 신원 정보가 아니라
-        연령 자격의 근거로 쓸 수 없습니다. 거리 조건도 없습니다 — 출생지는 사는 곳이
-        아닙니다.
-      </p>
+        나이·거리 칸이 없는 이유는 **화면이 말하지 않는다.**
 
+        한동안 「나이 조건은 두지 않았습니다…」를 세 줄로 적어 두었다. 없는 것을 비워
+        두면 「빠뜨렸나」로 읽힐까 봐였는데, 칸이 셋뿐인 폼에서는 그렇게 읽히지 않고
+        **없는 기능을 변호하는 문단**이 폼 한가운데에 서서 오히려 덜 만든 화면으로
+        보이게 했다. 나이를 못 쓰는 이유는 ADR 0005 가 든다 — 실제로 나이·거리 칸이
+        생기는 날 그 설명은 칸과 함께 선다.
+      */}
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={save} disabled={missing !== null || saving || !changed} className={BUTTON}>
           {saving ? '저장하는 중…' : '프로필 저장'}

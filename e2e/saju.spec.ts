@@ -603,10 +603,29 @@ test('결과 링크 복사 버튼이 지금 주소를 클립보드에 넣는다'
 });
 
 
+/**
+ * **넘길 자료는 결과 화면에 없다.**
+ *
+ * 「프롬프트 + 자료 복사」·「JSON 내려받기」·「붙여 넣을 분량 46KB」·`relations-v1` 은
+ * 계약을 검산하는 우리에게 필요한 것이지 사주를 보러 온 사람이 쓰는 것이 아니다.
+ * `/evidence` 로 옮겼고, 옮긴 것은 **다시 돌아오기 쉬우므로** 이 자리가 지킨다.
+ */
+test('사주 결과에는 넘길 자료 패널이 서지 않는다', async ({ page }) => {
+  await page.goto('/#date=1990-05-15&hour=14:30');
+
+  await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+
+  const shown = await page.locator('main').innerText();
+  for (const word of ['풀이에 넘기는 자료', '무엇을 시킬 것인가', 'JSON 내려받기', 'relations-v']) {
+    expect(shown).not.toContain(word);
+  }
+});
+
+
 test('프롬프트를 골라 자료와 함께 복사한다', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 
-  await page.goto('/#date=1990-05-15&hour=14:30');
+  await page.goto('/evidence#date=1990-05-15&hour=14:30');
 
   const panel = page.getByRole('group').filter({ hasText: '풀이에 넘기는 자료' });
   await panel.getByText('풀이에 넘기는 자료').click();
@@ -646,7 +665,7 @@ test('프롬프트를 골라 자료와 함께 복사한다', async ({ page, cont
 
 
 test('시각을 모르면 상한 표가 내려앉고 없다는 쪽이 잠긴다', async ({ page }) => {
-  await page.goto('/#date=1988-07-15&hour=unknown');
+  await page.goto('/evidence#date=1988-07-15&hour=unknown');
 
   const panel = page.getByRole('group').filter({ hasText: '풀이에 넘기는 자료' });
   await panel.getByText('풀이에 넘기는 자료').click();

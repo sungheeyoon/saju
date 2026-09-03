@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import type { Relation } from '@/src/lib/people';
 
 import {
   analyzeCompatibility,
@@ -15,7 +14,6 @@ import { chartOf } from './chart';
 import { BirthFields } from './birth-form';
 import { MatchResult } from './compat-match';
 import { CompatView, SIDES, SIDE_LABEL } from './compat-view';
-import { RelationChoice } from './relation-choice';
 import { ScoringNote } from './match-index';
 import { CopyLinkButton } from './copy-link';
 import { CARD } from './card';
@@ -25,10 +23,10 @@ import {
   mergeSearchParams,
   missingAnswer,
   missingForCalculation,
+  PREFIX,
   queryFromSearchParams,
   toSearchParams,
   type Query,
-  type QueryPrefix,
 } from './query';
 
 /**
@@ -66,7 +64,6 @@ const missingInPair = (
   }
   return null;
 };
-const PREFIX: Record<CompatSide, QueryPrefix> = { a: 'a.', b: 'b.' };
 
 type Pair = Record<CompatSide, Query>;
 
@@ -122,22 +119,16 @@ export function CompatCalculator() {
 
   const [form, setForm] = useState<Pair>(submitted ?? { a: DEFAULT_QUERY, b: DEFAULT_QUERY });
 
-  /**
-   * 결과를 **보는** 시각. 제출할 때마다 새로 잡는다.
-   *
-   * 원국 화면과 같은 규율이다(`SajuCalculator`) — 엔진은 시각을 스스로 묻지 않고
-   * (`NOW_POLICY.viewingInstant`) `Date.now()` 를 부르는 곳은 화면 한 곳이다.
-   * 링크로 바로 들어왔으면 첫 렌더 시각이 그 값이다.
-   */
-  const [viewedAt, setViewedAt] = useState(() => Date.now());
-  /**
-   * 두 사람이 무슨 사이인가 — **저장하지 않는다.**
-   *
-   * 이 화면은 계정이 없고 입력은 주소의 `#` 뒤에만 산다(ADR 0007). 이 값은 복사해
-   * 가는 프롬프트에만 실리므로 주소에도 안 싣는다 — 링크를 받은 사람은 그 답을 한
-   * 적이 없다.
-   */
-  const [relation, setRelation] = useState<Relation | null>(null);
+  /*
+    보는 시각도, 두 사람이 무슨 사이인가도 **여기서 잡지 않는다.**
+
+    둘 다 넘길 자료(`EvidencePanel`)를 위한 값이었다 — 시각은 자료가 「지금 도는 운」을
+    짚는 기준이고, 사이는 복사해 가는 프롬프트에 실리는 한 줄이다. 그 칸이 `/evidence`
+    로 옮겨 가면서 함께 옮겼다. 여기 두고 왔으면 아무것도 바꾸지 않는 라디오가 결과
+    화면에 남았을 것이다.
+
+    이 화면이 그리는 것(두 명식·사이의 관계·`match-v0` 지표)은 시각을 묻지 않는다.
+  */
 
   const shown = useRef(searchParams.toString());
   useEffect(() => {
@@ -158,7 +149,6 @@ export function CompatCalculator() {
     ).toString();
 
     shown.current = params;
-    setViewedAt(Date.now());
     writeParams(params, submitted === null ? 'push' : 'replace');
   };
 
@@ -184,13 +174,6 @@ export function CompatCalculator() {
             </fieldset>
           ))}
         </div>
-
-        <RelationChoice
-          value={relation}
-          onChange={setRelation}
-          idPrefix="anon"
-          className={`${CARD}`}
-        />
 
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -219,10 +202,8 @@ export function CompatCalculator() {
           charts={result.charts}
           compat={result.compat}
           names={result.names}
-          viewedAt={viewedAt}
           /* 이 화면의 링크에는 두 사람의 입력이 통째로 실린다 — 그 사실을 버튼이 말한다 */
           notice={<CopyLinkButton />}
-          relation={relation}
           /*
             익명 화면에는 AI 가 없다(저장도 계정도 없다). 그래서 사실 아래에 서는 것은
             결정론적 베타 지표뿐이고, 무엇을 보고 있는지는 각주가 말한다.

@@ -129,7 +129,7 @@ export default async function ManagedCompatPage({
  * 두 사람의 결과 하나 — **제목이 곧 누구와 누구인가**다.
  *
  * 사람이 보러 온 것은 읽어 주는 글이다. 그 앞에 표 스물몇 개를 세워 두면 글까지
- * 내려오지 못하므로 판정을 먼저 세우고 사실은 접는다(`foldFacts`).
+ * 내려오지 못하므로 이 화면은 사실을 아예 안 세운다(`hideFacts`).
  */
 async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' }> }) {
   return (
@@ -254,14 +254,6 @@ type Outcome =
        * 판본이나 못 보는 사람에게도 풀이 버튼이 서고, 눌러야 거절을 만난다.
        */
       pair: { personA: string; personB: string };
-      /**
-       * 결과를 **보는** 시각(ms) — 판본을 읽은 그때다.
-       *
-       * 엔진은 지금을 스스로 묻지 않고(`NOW_POLICY.viewingInstant`) 넘겨받는다.
-       * 부르는 자리를 그리는 도중이 아니라 읽는 자리에 두는 것은, 같은 요청 안에서
-       * 두 번 그려도 같은 답이 나와야 하기 때문이다.
-       */
-      viewedAt: number;
     };
 
 async function pairOutcome(a: string | null, b: string | null): Promise<Outcome> {
@@ -299,7 +291,7 @@ async function pairOutcome(a: string | null, b: string | null): Promise<Outcome>
    */
   if (first === null || second === null) notFound();
 
-  return { kind: 'ok', first, second, pair: { personA: a, personB: b }, viewedAt: Date.now() };
+  return { kind: 'ok', first, second, pair: { personA: a, personB: b } };
 }
 
 async function Result({ outcome }: { outcome: Outcome }) {
@@ -345,7 +337,6 @@ async function Result({ outcome }: { outcome: Outcome }) {
       charts={{ a: first.saju, b: second.saju }}
       compat={analyzeCompatibility(first.saju, second.saju)}
       names={{ a: first.name, b: second.name }}
-      viewedAt={outcome.viewedAt}
       /**
        * 비공개 궁합의 결과 슬롯 — **자기 풀이·공유 궁합과 같은 칸을 쓴다**(`ReadingSection`).
        *
@@ -353,7 +344,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
        * 없었다.** 파이프라인은 처음부터 세 kind 를 다 받았고(`ReadingTarget`), 쌍의 차례도
        * DB 가 정한다(`least`·`greatest`) — 막혀 있던 것은 화면 한 줄뿐이었다.
        */
-      foldFacts
+      hideFacts
       verdict={
         <ReadingSection
           key="private-reading"
