@@ -175,7 +175,7 @@ async function SelfChart({ personId }: { personId: string }) {
           것도 저쪽 목록이다.
         */}
         <Link href="/me/people" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
-          등록한 사람 관리 <span aria-hidden="true">→</span>
+          저장한 사람 관리 <span aria-hidden="true">→</span>
         </Link>
         <Link href="/me/compat" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-secondary hover:bg-accent-wash hover:text-accent">
           저장한 사람으로 궁합 보기 <span aria-hidden="true">→</span>

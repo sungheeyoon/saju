@@ -38,8 +38,8 @@ export function Onboarding() {
       <header className="flex flex-col gap-1">
         <h2 className="text-base font-semibold">내 사주 등록</h2>
         <p className="text-sm text-secondary">
-          한 번 넣어 두면 다시 입력하지 않습니다. 나중에 고칠 수 있고, 고친 기록은 덮어쓰지
-          않고 쌓입니다.
+          한 번 넣어 두면 다시 입력하지 않습니다. 나중에 언제든 고칠 수 있고, 고치면 그때부터
+          새 입력으로 계산합니다.
         </p>
       </header>
 

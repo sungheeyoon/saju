@@ -16,8 +16,18 @@ import { ReviseChart } from '../revise';
 import { Halted } from '../halted';
 import { AddPerson, NoteForm, RemoveFromList } from './manage';
 
+/*
+  **이 화면의 이름은 「저장한 사람」 하나다.**
+
+  탭 제목은 「등록한 사람」, h1 은 「저장한 사람」, 궁합 탭에서는 「내 사람」이라 한
+  화면을 세 이름으로 부르고 있었다. 「등록」은 관리·DB 쪽 말이고 「내 사람」은 관계의
+  뜻이 너무 세다 — 여기 있는 것은 내가 **저장해 둔** 사람들이다(ADR 0027).
+
+  「등록하다」는 동사로 남는다(「사람 등록하기」·「등록할 수 있는 스무 명」). 목록의
+  이름과 그 목록에 넣는 동작은 다른 말이라 같은 낱말일 이유가 없다.
+*/
 export const metadata = {
-  title: '등록한 사람 — 만세력',
+  title: '저장한 사람 — 만세력',
   description: '가족·친구의 사주를 한 계정에서 관리합니다.',
 };
 
@@ -98,7 +108,7 @@ function PeopleList({ people }: { people: Person[] }) {
     <>
       {people.length === 0 ? (
         <p className="rounded-xl border border-border bg-surface-sunken p-4 text-sm text-muted">
-          아직 등록한 사람이 없습니다. 부를 이름과 생년월일시를 넣으면 여기에 쌓입니다.
+          아직 저장한 사람이 없습니다. 부를 이름과 생년월일시를 넣으면 여기에 쌓입니다.
         </p>
       ) : (
         <ul className="flex flex-col gap-4">

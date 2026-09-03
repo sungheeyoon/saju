@@ -21,7 +21,7 @@ export default function PersonNotFound() {
           두 사람 고르기
         </Link>
         <Link href="/me/people" className="text-accent underline underline-offset-2">
-          등록한 사람
+          저장한 사람
         </Link>
       </p>
     </main>
