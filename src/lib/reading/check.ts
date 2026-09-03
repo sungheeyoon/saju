@@ -1,4 +1,21 @@
-import { BRANCHES, STEMS } from '../saju/constants';
+import { TEN_GOD_GROUP_KO, TEN_GOD_KO } from '../saju/analysis';
+import {
+  BRANCHES,
+  BRANCH_CLASHES,
+  BRANCH_DESTRUCTIONS,
+  BRANCH_GHOST_GATES,
+  BRANCH_HARMS,
+  BRANCH_INFO,
+  BRANCH_PUNISHMENTS,
+  BRANCH_RESENTMENTS,
+  BRANCH_SIX_COMBINATIONS,
+  STEMS,
+  STEM_CLASHES,
+  STEM_COMBINATIONS,
+  STEM_INFO,
+  type Branch,
+  type Stem,
+} from '../saju/constants';
 
 import { readingBody } from './display';
 import {
@@ -150,17 +167,22 @@ export const OUT_OF_SCOPE_TERMS: readonly string[] = [
 ];
 
 /**
- * 사주 말과 일상어가 겹치는 둘은 **낱말 하나만으로 판정하지 않는다.**
+ * 사주 말과 일상어가 **소리가 같은 것들** — 낱말 하나만으로 판정하지 않는다.
  *
  * - `통근` — 「통근 거리」는 두 사람의 생활을 말하는 정상적인 궁합 문장이다. 원국의
  *   뿌리를 말할 때 함께 나오는 자리·동사만 잡는다.
  * - `세운` — 「함께 세운 규칙」의 동사와 해마다 도는 운의 이름이 같다. 조사나 운 문맥을
  *   가진 명사만 잡는다.
+ * - `상관`·`인성` — 「상관없어요」·「인성이 좋은 사람」이 그대로 걸린다.
+ * - `도화`·`인사해` — 도화지·도화선은 그림이고, 「먼저 인사해 보세요」는 조언이다.
+ *
+ * **한 표를 두 검사가 나눠 쓴다.** 동의 범위 밖 판정을 찾는 일과 쉬운 말 판을 재는 일이
+ * 같은 낱말을 서로 다르게 읽으면, 한쪽에서 통과한 것이 다른 쪽에서 걸린다.
  *
  * 나머지는 이 중의성이 없으므로 값 자체를 찾는다. 모두 정규식으로 바꾸면 무엇을 놓치는지
  * 읽을 수 없고, 처음 막으려던 판정까지 조용히 빠진다.
  */
-const AMBIGUOUS_OUT_OF_SCOPE: Readonly<Record<string, readonly RegExp[]>> = {
+const AMBIGUOUS_SAJU_TERMS: Readonly<Record<string, readonly RegExp[]>> = {
   통근: [
     /(?:일간|천간|지지|지장간|월지|일지|뿌리).{0,16}통근/,
     /통근.{0,16}(?:일간|천간|지지|지장간|월지|일지|뿌리)/,
@@ -172,13 +194,124 @@ const AMBIGUOUS_OUT_OF_SCOPE: Readonly<Record<string, readonly RegExp[]>> = {
     /(?:올해|금년|연도|대운|월운).{0,12}세운/,
     /세운.{0,12}(?:올해|금년|연도|대운|월운)/,
   ],
+  /** 곁에 다른 사주 말이 서 있을 때만 십성으로 읽는다 */
+  상관: [
+    /(?:식신|편관|정관|비견|겁재|재성|관성|인성|십성|일간)[^\n]{0,24}상관/,
+    /상관[^\n]{0,24}(?:식신|편관|정관|비견|겁재|재성|관성|인성|십성|일간)/,
+    /상관(?:격|이 강|이 세|이 많|이 약|이 발달|의 기운)/,
+  ],
+  인성: [
+    /(?:비겁|식상|재성|관성|비견|겁재|식신|편재|정재|편관|정관|편인|정인|십성|일간)[^\n]{0,24}인성/,
+    /인성[^\n]{0,24}(?:비겁|식상|재성|관성|비견|겁재|식신|편재|정재|편관|정관|편인|정인|십성|일간)/,
+    /인성(?:격|이 강|이 세|이 많|이 두텁|의 기운)/,
+  ],
+  /** 도화지·도화선은 그림이고 종이다 */
+  도화: [/도화(?!지|선)/],
+  /** 지지해 하나가 하필 인사하는 말과 같다 — 뒤에 동사가 이어지면 관계 이름이 아니다 */
+  인사해: [/인사해(?!\s*(?:보|주|줘|요|서|야|드리|봐|준))/],
 };
 
-const hasOutOfScopeTerm = (markdown: string, term: string): boolean => {
-  const contextual = AMBIGUOUS_OUT_OF_SCOPE[term];
+const hasSajuTerm = (markdown: string, term: string): boolean => {
+  const contextual = AMBIGUOUS_SAJU_TERMS[term];
   return contextual === undefined
     ? markdown.includes(term)
     : contextual.some((pattern) => pattern.test(markdown));
+};
+
+/**
+ * **쉬운 말 판이 본문에 내면 안 되는 분류명들.**
+ *
+ * `OUT_OF_SCOPE_TERMS` 와 겨누는 것이 다르다. 저쪽은 **동의 범위 밖의 판정**을 찾는
+ * 일이라 나오면 저장을 막고, 이쪽은 **그 판이 시킨 대로 나왔는가**를 재는 자다
+ * (`outputDeviations`). 그래서 하나가 나왔다고 글을 버리지 않는다 — 목표는 「단 하나도
+ * 안 나오게」가 아니라 **읽는 사람 앞에 분류명이 튀어나오는 일이 얼마나 남았는가**다.
+ *
+ * ## 오행은 여기 없다
+ *
+ * 목·화·토·금·수는 막지 않는다. 「금이 셋이에요」는 한국어에서 자연스러운 말이고, 그것을
+ * 세는 것이 이 제품이 하는 일의 절반이다. 이름을 안 부르기로 한 것은 **읽는 사람이
+ * 멈추는 말**이지 셀 수 있는 사실이 아니다.
+ *
+ * ## 이름은 표에서 짓는다
+ *
+ * 십성과 관계 이름을 손으로 옮겨 적지 않는다. 십성 이름이 늘거나 관계 표가 바뀌면 이
+ * 목록이 저절로 따라온다 — 손으로 적으면 그날 한쪽만 고쳐진다.
+ */
+const ko = {
+  branch: (char: Branch): string => BRANCH_INFO[char].ko,
+  stem: (char: Stem): string => STEM_INFO[char].ko,
+};
+
+/**
+ * 관계 이름 — **표가 든 `ko` 를 그대로 쓰지 않는다.**
+ *
+ * 표의 `ko` 에는 합화한 오행이 붙어 있고(`자축합토`), 사람이 쓰는 글에는 대개 그 앞토막만
+ * 나온다(`자축합`). 삼형도 표는 `인사신 삼형` 인데 글은 `인사신형` 이라 적는다. 그래서
+ * 짝만 표에서 가져오고 **뒤에 붙는 한 글자는 여기서 짓는다.**
+ */
+const RELATION_NAMES: readonly string[] = [
+  ...BRANCH_CLASHES.map(({ branches: [a, b] }) => `${ko.branch(a)}${ko.branch(b)}충`),
+  ...BRANCH_HARMS.map(({ branches: [a, b] }) => `${ko.branch(a)}${ko.branch(b)}해`),
+  ...BRANCH_DESTRUCTIONS.map(({ branches: [a, b] }) => `${ko.branch(a)}${ko.branch(b)}파`),
+  ...BRANCH_SIX_COMBINATIONS.map(({ branches: [a, b] }) => `${ko.branch(a)}${ko.branch(b)}합`),
+  ...BRANCH_RESENTMENTS.map(({ ko: name }) => name),
+  ...BRANCH_GHOST_GATES.map(({ ko: name }) => name),
+  ...BRANCH_PUNISHMENTS.map((punishment) =>
+    punishment.kind === 'self'
+      ? `${ko.branch(punishment.branch).repeat(2)}형`
+      : `${punishment.branches.map(ko.branch).join('')}형`,
+  ),
+  ...STEM_CLASHES.map(({ stems: [a, b] }) => `${ko.stem(a)}${ko.stem(b)}충`),
+  ...STEM_COMBINATIONS.map(({ stems: [a, b] }) => `${ko.stem(a)}${ko.stem(b)}합`),
+];
+
+export const PLAIN_FORBIDDEN_TERMS: readonly string[] = [
+  // 명식 자체를 부르는 말
+  '원국',
+  '명식',
+  '일간',
+  '십성',
+  // 십성 — 계열 다섯과 낱낱 열
+  ...Object.values(TEN_GOD_GROUP_KO),
+  ...Object.values(TEN_GOD_KO),
+  // 별도 체계
+  '격국',
+  '조후',
+  '억부',
+  '용신',
+  '신강',
+  '신약',
+  // 때를 부르는 이름
+  '대운',
+  '세운',
+  '월운',
+  // 신살 — 이름이 아니라 하는 일로 쓰게 한다
+  '신살',
+  '천을귀인',
+  '천덕귀인',
+  '월덕귀인',
+  '문창귀인',
+  '학당귀인',
+  '역마',
+  '도화',
+  '화개',
+  '공망',
+  '백호',
+  '괴강',
+  '양인',
+  // 관계 — 이름은 표에서 짓는다
+  ...RELATION_NAMES,
+];
+
+/**
+ * 그 글에 남은 분류명들 — **본문만 본다.**
+ *
+ * 맨 끝 검사용 근거 절은 경로와 관계 이름을 대라고 시킨 자리다. 통째로 세면 **시킨 대로
+ * 쓴 근거 칸이 어긴 것으로 잡히고**, 그러면 이 자는 판을 재는 대신 자기 자신을 잰다.
+ */
+export const plainTermsIn = (markdown: string): readonly string[] => {
+  const body = readingBody(markdown);
+  return PLAIN_FORBIDDEN_TERMS.filter((term) => hasSajuTerm(body, term));
 };
 
 const STEM_CHARS: readonly string[] = STEMS;
@@ -344,7 +477,7 @@ export function checkReading({
    * 쓴 글이 걸린다.
   */
   if (kind === 'match') {
-    const outOfScope = OUT_OF_SCOPE_TERMS.filter((term) => hasOutOfScopeTerm(markdown, term));
+    const outOfScope = OUT_OF_SCOPE_TERMS.filter((term) => hasSajuTerm(markdown, term));
     if (outOfScope.length > 0) {
       failures.push({ code: 'out-of-scope-judgment', detail: outOfScope.join('·') });
     }

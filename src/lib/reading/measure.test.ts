@@ -133,4 +133,51 @@ describe('조립이 시킨 대로 나왔는가', () => {
 
     expect(contracts.map((one) => one.code)).toEqual(['section-count-mismatch']);
   });
+
+  /**
+   * **이름을 안 부르기로 한 판에서 이름이 몇 개나 남았는가.**
+   *
+   * 막지 않는다. 하나 새어 나왔다고 그 글이 다른 변형의 글이 되지는 않고, 막으면 그 판은
+   * 한 번도 채점대에 못 선다 — 그러면 「절과 본보기를 갈랐더니 정말 달라졌는가」에 영영
+   * 답이 안 나온다.
+   */
+  describe('이름을 안 부르는 판만 분류명을 센다', () => {
+    const plain = () => {
+      const found = PROMPT_VARIANTS.find((one) => one.id === 'plain-terms-v1');
+      if (found === undefined) throw new Error('plain-terms-v1 이 없다');
+      return found.assembly;
+    };
+
+    const withTerms = (assembly: ReturnType<typeof legacy>) => {
+      const count = ok(assembly);
+      const filler = Math.floor(((assembly.selfLength.min + assembly.selfLength.max) / 2) / count);
+      return `${body(count, filler)}\n\n재성이 무겁고 대운이 곧 바뀝니다.`;
+    };
+
+    const codesOf = (assembly: ReturnType<typeof legacy>) =>
+      outputDeviations(measureMarkdown(withTerms(assembly)), assembly).map((one) => one.code);
+
+    it('이름을 다는 판에서는 아예 서지 않는다', () => {
+      expect(codesOf(CONTROL)).not.toContain('plain-terms-exposed');
+    });
+
+    it('이름을 안 부르는 판에서는 남은 것을 적는다', () => {
+      expect(codesOf(plain())).toContain('plain-terms-exposed');
+    });
+
+    it('적기만 하고 막지는 않는다', () => {
+      const found = outputDeviations(measureMarkdown(withTerms(plain())), plain()).find(
+        (one) => one.code === 'plain-terms-exposed',
+      );
+
+      expect(found?.kind).toBe('target');
+      // 무엇이 남았는지 세지 않으면 어디를 고칠지 알 수 없다
+      expect(found?.detail).toContain('재성');
+      expect(found?.detail).toContain('대운');
+    });
+
+    it('시킨 대로 나온 글에는 아무 말도 하지 않는다', () => {
+      expect(outputDeviations(measureMarkdown(onTarget(plain())), plain())).toEqual([]);
+    });
+  });
 });

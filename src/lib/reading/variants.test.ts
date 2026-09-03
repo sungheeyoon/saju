@@ -11,6 +11,7 @@ import {
   READING_POLICY,
   READING_PROMPTS,
   readingEvidenceOf,
+  plainTermsIn,
   readingPromptOf,
   selfSectionCount,
 } from '.';
@@ -117,7 +118,7 @@ describe('변형은 기준판에서 하나씩만 벗어난다', () => {
 
     expect(prompt).toContain('본문은 8500~11000자');
     expect(prompt).not.toContain('본문은 5000~9000자');
-    expect(prompt).toContain('**1. 이 사주의 핵심**');
+    expect(prompt).toContain('**2. 이 사주의 핵심**');
     expect(prompt).not.toContain('## 제출 전 확인');
   });
 
@@ -494,11 +495,12 @@ describe('고객이 읽는 글의 계약', () => {
   });
 
   it('기준판은 개인 사주의 핵심 물음을 빠짐없이 다룬다', () => {
-    expect(selfSectionCount(CONTROL)).toBe(9);
+    expect(selfSectionCount(CONTROL)).toBe(10);
     expect(selfSectionCount(variant('legacy-v1').assembly)).toBe(8);
 
     const prompt = selfPrompt();
     for (const heading of [
+      '먼저 볼 핵심 세 가지',
       '이 사주의 핵심',
       '성격과 속마음',
       '강점과 타고난 복',
@@ -739,5 +741,108 @@ describe('고객이 읽는 글의 계약', () => {
     expect(CONTROL.selfPresentation).toBe('expert-v3');
     expect(selfPrompt()).toContain('이 사주의 핵심');
     expect(selfPrompt()).not.toContain('살림법');
+  });
+
+  /**
+   * **5000~9000자는 처음 여는 사람에게 벽이다.**
+   *
+   * 분량을 줄이는 것으로 풀지 않는다 — 그만큼 쓰라고 시킨 것은 궁금한 것이 실제로
+   * 그만큼이기 때문이다. 대신 맨 앞에 셋을 세워 **어디부터 읽을지 고를 수 있게** 한다.
+   */
+  it('긴 풀이 맨 앞에 먼저 볼 셋이 선다', () => {
+    const prompt = selfPrompt();
+
+    expect(prompt).toContain('**1. 먼저 볼 핵심 세 가지**');
+    // 요약이 앞에 서고 본론이 그다음이다 — 순서가 뒤집히면 문이 아니라 꼬리가 된다
+    expect(prompt.indexOf('먼저 볼 핵심 세 가지')).toBeLessThan(prompt.indexOf('이 사주의 핵심'));
+    expect(prompt).toContain('여기서는 근거를 대지 않는다');
+    // 광고 문구가 되면 그 아래 문장까지 광고로 읽힌다
+    expect(prompt).toContain('좋은 말만 모으는 자리도 아니다');
+  });
+
+  /**
+   * **번호는 목록이 안다.**
+   *
+   * 절 번호를 문자열 안에 박아 두면, 맨 앞에 하나가 들어오는 날 나머지를 손으로 다시
+   * 센다. 용어 판이 둘로 갈린 뒤로는 그 손질이 두 벌이 되고, 그때 한 벌만 고쳐진다.
+   */
+  it('절 번호가 차례대로 하나씩 붙는다', () => {
+    const numbers = [...selfPrompt().matchAll(/^\*\*(\d+)\. /gm)].map(([, at]) => Number(at));
+
+    expect(numbers).toEqual(
+      Array.from({ length: selfSectionCount(CONTROL) }, (_, at) => at + 1),
+    );
+  });
+
+  /**
+   * **규칙 한 줄로는 못 이긴다 — 절과 본보기가 함께 갈려야 한다.**
+   *
+   * 앞판은 「뜻 → 장면 → (이름)」을 시키면서 같은 프롬프트의 다른 자리에서 이름을
+   * 부르라고 시키고 있었다. 여기서 잠그는 것은 그 모순의 재발이다.
+   */
+  describe('이름을 안 부르는 판', () => {
+    const plain = () => selfPrompt(variant('plain-terms-v1').assembly);
+
+    it('이름을 부르라고 시키던 절이 하나도 안 선다', () => {
+      const prompt = plain();
+
+      for (const order of [
+        '사주 용어를 금지어처럼 피하지 마라',
+        '대운·세운·월운이라는 이름을 쓴다',
+        '실제로 걸린 것은 이름을 숨기지 말고',
+        '이름이 아니라 그림으로 말한다',
+      ]) {
+        expect(prompt, order).not.toContain(order);
+      }
+    });
+
+    it('그 자리마다 이름 대신 무엇을 쓸지 시킨다', () => {
+      const prompt = plain();
+
+      expect(prompt).toContain('이름 대신 그 이름이 가리키는 것을 쓴다');
+      expect(prompt).toContain('**전문용어를 설명의 중심으로 쓰지 마라.**');
+      // 절 제목부터 분류명을 안 세운다
+      expect(prompt).toContain('앞으로의 흐름');
+      expect(prompt).not.toContain('지금 들어온 운');
+      expect(prompt).toContain('걸린 것의 이름은 본문에\n쓰지 말고');
+    });
+
+    /**
+     * **가르쳐 준 예시가 곧 기본값이 된다.** 「본문에서는 쓰지 마라」고 해 놓고 본보기의
+     * 좋은 문장에 이름을 달아 두면, 모델이 따라가는 것은 본보기다.
+     */
+    it('「이렇게 써라」 본보기에 분류명이 하나도 없다', () => {
+      const goodLines = (prompt: string) =>
+        prompt.split('\n').filter((line) => line.startsWith('- 이렇게 써라'));
+
+      expect(goodLines(plain()).flatMap(plainTermsIn)).toEqual([]);
+      // 견줄 짝 — 이름을 다는 판의 본보기에는 실제로 이름이 달려 있다
+      expect(goodLines(selfPrompt()).flatMap(plainTermsIn).length).toBeGreaterThan(0);
+    });
+
+    /** 오행까지 풀면 셀 수 있는 사실을 세지 못하게 된다 */
+    it('오행 이름은 그대로 부르게 둔다', () => {
+      const prompt = plain();
+
+      expect(prompt).toContain('**목·화·토·금·수는 바꾸지 않는다.**');
+      expect(prompt).toContain('금이 셋이에요');
+    });
+
+    /** 궁합도 같은 판을 탄다 — 한 kind 만 고치면 같은 사람이 두 말투를 읽는다 */
+    it('궁합 절도 함께 갈린다', () => {
+      const compat = readingPromptOf(pairEvidence(), variant('plain-terms-v1').assembly, {
+        names: { a: '나', b: '엄마' },
+        relation: 'family',
+      });
+
+      expect(compat).toContain('지금 두 사람이 지나는 때');
+      expect(compat).not.toContain('각자의 대운·세운이 지금 어느 자리인지');
+      expect(compat).toContain('이름 대신 그 이름이 가리키는 것을 쓴다');
+    });
+
+    /** 이름을 안 부르는 것과 근거 없이 쓰는 것은 다르다 */
+    it('이름을 뺀 자리에 없는 것을 채우지 말라고 적는다', () => {
+      expect(plain()).toContain('자료에 없는 도움을 지어내지 마라');
+    });
   });
 });

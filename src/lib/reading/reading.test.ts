@@ -14,7 +14,12 @@ import {
   readingPromptOf,
   type ReadingKind,
 } from '@/src/lib/reading';
-import { secretForms, type BirthSecret } from '@/src/lib/reading/check';
+import {
+  PLAIN_FORBIDDEN_TERMS,
+  plainTermsIn,
+  secretForms,
+  type BirthSecret,
+} from '@/src/lib/reading/check';
 
 const VIEWED_AT = new Date('2026-08-25T13:00:00+09:00');
 
@@ -363,5 +368,61 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
   it('길이 계약은 정책에서 읽는다', () => {
     expect(READING_POLICY.markdownLength.min).toBeGreaterThan(0);
     expect(READING_POLICY.scoreRange).toEqual({ min: 0, max: 100 });
+  });
+});
+
+/**
+ * **쉬운 말 판이 실제로 되었는지 재는 자.**
+ *
+ * `checkReading` 과 겨누는 것이 다르다. 저쪽은 저장을 막는 일이고 이쪽은 「그 판이 시킨
+ * 대로 나왔는가」를 세는 일이라, 여기서 하나가 걸렸다고 글이 버려지지는 않는다. 그래서
+ * **놓치는 것보다 멀쩡한 글을 잡는 쪽이 더 나쁘다** — 잡히면 판 자체가 실패로 읽힌다.
+ */
+describe('쉬운 말 판에 남은 분류명을 센다', () => {
+  it('분류명은 잡고 오행 이름은 잡지 않는다', () => {
+    expect(plainTermsIn('재성이 강해서 현실적입니다.')).toEqual(['재성']);
+    expect(plainTermsIn('대운이 바뀌는 시기예요.')).toEqual(['대운']);
+
+    // 「금이 셋이에요」는 한국어에서 자연스러운 말이고, 세는 것이 이 제품이 하는 일이다
+    expect(plainTermsIn('금이 셋이라 기준이 분명하고, 물이 약한 편이에요.')).toEqual([]);
+    expect(plainTermsIn('나무 기운이 들어오면 다시 붙습니다.')).toEqual([]);
+  });
+
+  /** 관계 이름은 손으로 적지 않는다 — 표가 짝을 들고, 뒤에 붙는 한 글자만 짓는다 */
+  it('관계 이름을 표에서 지어 잡는다', () => {
+    for (const name of ['인신충', '묘유충', '자미해', '사술원진', '자유귀문', '자묘형']) {
+      expect(PLAIN_FORBIDDEN_TERMS, name).toContain(name);
+    }
+
+    expect(plainTermsIn('타고난 자리에 인신충이 있어요.')).toEqual(['인신충']);
+  });
+
+  /** 소리가 같은 일상어를 잡으면 그 판은 되지도 않았는데 실패로 읽힌다 */
+  it.each([
+    '그건 저와 상관없어요.',
+    '인성이 좋은 사람을 만나면 편해집니다.',
+    '도화지를 펼쳐 놓고 시작하는 편이에요.',
+    '먼저 인사해 보세요.',
+    '둘이 함께 세운 규칙이 오래갑니다.',
+  ])('일상어 「%s」는 분류명이 아니다', (sentence) => {
+    expect(plainTermsIn(sentence)).toEqual([]);
+  });
+
+  /**
+   * 맨 끝 근거 칸은 **경로와 관계 이름을 대라고 시킨 자리**다. 통째로 세면 시킨 대로 쓴
+   * 근거 칸이 어긴 것으로 잡히고, 그때 이 자는 판이 아니라 자기 자신을 잰다.
+   */
+  it('검사용 근거 절은 세지 않는다', () => {
+    const markdown = [
+      '## 먼저 볼 핵심 세 가지',
+      '',
+      '앞으로 몇 년은 하던 방식을 바꾸게 되는 일이 생기기 쉬워요.',
+      '',
+      '### 근거 (검사용)',
+      '',
+      '핵심 — 결론 「방식이 바뀐다」 | 자료: relations 묘유충 [사실] · analysis.tenGods 재성 [사실] | 넘어간 것: 없음',
+    ].join('\n');
+
+    expect(plainTermsIn(markdown)).toEqual([]);
   });
 });

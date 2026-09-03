@@ -16,8 +16,8 @@ import { CONTROL, type PromptAssembly } from './prompt';
  * 앞 기준판은 네 절로 줄이고 판정 이름을 전부 숨겼다. 그 결과 개인 사주에서 가장
  * 궁금한 일·돈·연애·귀인과 대운의 맥락이 사라지고, 생활 코칭만 남았다.
  *
- * 기준판은 개인 사주가 답해야 할 아홉 축을 다시 열었다(`expert-v3`). 옛 여덟 절은
- * 길이와 구조를 견줄 실험판으로만 남긴다.
+ * 기준판은 개인 사주가 답해야 할 축들을 다시 열고(`expert-v3`), 그 위에 먼저 볼 셋을
+ * 요약으로 얹었다. 옛 여덟 절은 길이와 구조를 견줄 실험판으로만 남긴다.
  */
 
 /** 자료 뒤에 서는 꼬리 — **새 지시가 아니라 제출 전 확인이다.** */
@@ -26,7 +26,7 @@ const RECENCY_CHECK = `## 제출 전 확인
 위 자료를 다 읽었으면 아래를 하나씩 확인하고 내라. **여기서 새로 정하는 규칙은 없다** —
 앞에서 이미 정한 것을 빠뜨리지 않았는지만 본다.
 
-- 아홉 절을 모두 썼는가
+- 열 절을 모두 썼는가 — 맨 앞 요약 셋을 빠뜨리지 않았는가
 - 사용자 본문에 생한자나 한국어가 아닌 외국 문자가 없는가
 - 귀인·신살은 자료에 실제로 있는 것만 이름을 밝혔는가
 - 일·돈·연애와 대운·세운·월운을 빠뜨리지 않았는가
@@ -35,7 +35,12 @@ const RECENCY_CHECK = `## 제출 전 확인
 - 다른 사람에게 그대로 붙여도 맞는 문장을 지웠는가
 - 검사용 근거 절이 절마다 한 줄씩 있는가`;
 
-export type PromptVariantId = 'control' | 'legacy-v1' | 'longer-v1' | 'recency-check-v1';
+export type PromptVariantId =
+  | 'control'
+  | 'legacy-v1'
+  | 'longer-v1'
+  | 'plain-terms-v1'
+  | 'recency-check-v1';
 
 export type PromptVariant = {
   readonly id: PromptVariantId;
@@ -56,7 +61,7 @@ export const PROMPT_VARIANTS: readonly PromptVariant[] = [
   {
     id: 'control',
     label: '기준판',
-    changes: '실제로 보내는 것 그대로 — 아홉 절, 5000~9000자, 한국어 상담 말투.',
+    changes: '실제로 보내는 것 그대로 — 요약 절을 앞세운 열 절, 5000~9000자, 한국어 상담 말투.',
     confounded: null,
     assembly: CONTROL,
   },
@@ -75,11 +80,19 @@ export const PROMPT_VARIANTS: readonly PromptVariant[] = [
     assembly: { ...CONTROL, tail: RECENCY_CHECK },
   },
   {
+    id: 'plain-terms-v1',
+    label: '이름 없이',
+    changes:
+      '전문용어의 이름을 본문에 부르지 않고 그 말이 가리키는 장면으로 쓴다. 절과 본보기가 함께 그 판으로 바뀐다 — 오행 이름은 그대로 둔다.',
+    confounded: null,
+    assembly: { ...CONTROL, terminology: 'plain' },
+  },
+  {
     id: 'legacy-v1',
     label: '옛 여덟 절',
     changes: '갈아엎기 전의 뼈대 — 여덟 절, 1800~2600자. 새 것이 정말 나은지 견줄 바탕.',
     confounded:
-      '뼈대와 분량이 함께 움직인다. 이 변형은 새 아홉 절과 옛 여덟 절의 전체 인상을 견주는 자리이지 단일변수 실험이 아니다 — 져도 그것이 절 수 탓인지 분량 탓인지 이 라운드는 답하지 않는다.',
+      '뼈대와 분량이 함께 움직인다. 이 변형은 새 뼈대와 옛 여덟 절의 전체 인상을 견주는 자리이지 단일변수 실험이 아니다 — 져도 그것이 절 수 탓인지 분량 탓인지 이 라운드는 답하지 않는다.',
     assembly: {
       ...CONTROL,
       selfPresentation: 'legacy-v1',

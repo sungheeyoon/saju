@@ -84,6 +84,7 @@ export {
   type ReadingAbout,
   type ReadingNames,
   type SelfPresentation,
+  type Terminology,
 } from './prompt';
 export {
   EVIDENCE_SECTION,
@@ -97,8 +98,10 @@ export {
 export { PROMPT_VARIANTS, type PromptVariant, type PromptVariantId } from './variants';
 export {
   checkReading,
+  plainTermsIn,
   secretForms,
   OUT_OF_SCOPE_TERMS,
+  PLAIN_FORBIDDEN_TERMS,
   READING_FAILURES,
   type BirthSecret,
   type ReadingCheck,

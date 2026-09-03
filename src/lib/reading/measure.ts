@@ -1,3 +1,4 @@
+import { plainTermsIn } from './check';
 import { readingBody } from './display';
 import { selfSectionCount, type PromptAssembly } from './prompt';
 
@@ -107,7 +108,7 @@ export function measureMarkdown(markdown: string, scoreIsNull: Answered = 'unkno
 export type DeviationKind = 'contract' | 'target';
 
 export type OutputDeviation = {
-  readonly code: 'length-off-target' | 'section-count-mismatch';
+  readonly code: 'length-off-target' | 'plain-terms-exposed' | 'section-count-mismatch';
   /** `contract` 는 막는다. `target` 은 적는다 */
   readonly kind: DeviationKind;
   readonly detail: string;
@@ -135,6 +136,27 @@ export function outputDeviations(
       kind: 'target',
       detail: `본문 ${measured.length}자 (${min}~${max})`,
     });
+  }
+
+  /**
+   * **이름을 안 부르기로 한 판에서 이름이 몇 개나 남았는가.**
+   *
+   * 이것도 `target` 이다. 하나 새어 나왔다고 그 글이 다른 변형의 글이 되지는 않고,
+   * 막아 버리면 그 판은 **한 번도 채점대에 못 선다** — 그러면 「규칙을 세게 적는
+   * 것만으로 되는가」라는 물음에 영영 답이 안 나온다. 세고, 옆에 적어 둔다.
+   *
+   * 부르는 쪽이 판을 기억하지 않는다. 조립이 `annotated` 면 이 자는 아예 안 선다 —
+   * 그 판은 이름을 부르라고 시킨 판이라 여기서 세는 것이 뜻이 없다.
+   */
+  if (assembly.terminology === 'plain') {
+    const exposed = plainTermsIn(measured.markdown);
+    if (exposed.length > 0) {
+      deviations.push({
+        code: 'plain-terms-exposed',
+        kind: 'target',
+        detail: `본문에 남은 분류명 ${exposed.length}개 — ${exposed.join('·')}`,
+      });
+    }
   }
 
   return deviations;
