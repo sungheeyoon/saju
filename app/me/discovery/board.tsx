@@ -20,26 +20,38 @@ import { HideButton, RefreshBoard, RequestButton, UnhideAll } from './manage';
 export async function DiscoveryBoard() {
   const supabase = await supabaseOnServer();
 
+  /*
+    **묻는 것이 「켰는가」에서 「껐는가」로 바뀌었다**(PRD §4.1).
+
+    참여가 기본으로 켜지면서 안 켠 사람이라는 상태가 없어졌다. 남은 것은 직접 끈
+    사람이고, 그 하나만 목록을 안 받는다.
+  */
   const { data: profile } = await supabase
     .from('discovery_profile')
-    .select('opted_in_at')
+    .select('opted_out_at')
     .maybeSingle();
 
-  if (profile?.opted_in_at == null) return <Invitation />;
+  if (profile?.opted_out_at != null) return <Resting />;
 
-  /**
-   * **낡은 요약을 여기서 고친다.**
-   *
-   * 판본을 고친 뒤 `refresh_discovery_summary` 가 실패한 채로 남아 있으면 나는 참여
-   * 중인데 아무에게도 안 보인다. 그 상태를 스스로 벗어나게 한다.
-   */
   const self = await selfElementSummary();
   if (self === null) return null;
 
-  await supabase.rpc('refresh_discovery_summary', {
+  /**
+   * **자동 참여가 열리는 자리가 여기다.**
+   *
+   * 요약은 DB 가 못 만든다 — 절기·자시·경도 판정이 엔진에 있다. 그러니 참여를 여는 일은
+   * 앱이 요약을 넣는 자리에서만 일어날 수 있고, 그 자리가 이미 여기였다(낡은 요약을
+   * 고치려고 부르던 자리). 호출부를 늘리는 대신 이 한 자리의 뜻을 넓혔다 — 저장한
+   * 사람도, 방금 이름을 지은 사람도, 판본을 고친 사람도 홈을 열면서 같은 문을 지난다.
+   *
+   * 거짓이 오면 조용히 아무것도 안 세운다. 참여가 열릴 자리가 아니라는 뜻이고(이름이
+   * 아직 없다), 그 사람은 이름을 짓는 화면으로 이미 보내지는 중이다.
+   */
+  const { data: joined } = await supabase.rpc('ensure_discovery_participation', {
     p_person_id: self.personId,
     p_summary: self.summary,
   });
+  if (joined !== true) return null;
 
   // 목록을 **먼저** 읽는다 — 그 호출이 하루 지난 스냅샷을 새로 만들 수 있고, 시각은
   // 그다음에 물어야 방금 만들어진 것의 시각이 된다.
@@ -63,18 +75,21 @@ export async function DiscoveryBoard() {
 }
 
 /**
- * 참여하지 않은 사람에게 서는 자리.
+ * 쉬기로 한 사람에게 서는 자리.
  *
- * **목록이 있을 자리에 목록이 없는 이유를 적는다.** 아무것도 안 세우면 이 사람은
- * 추천이라는 것이 있는 줄도 모른다.
+ * **목록이 있을 자리에 목록이 없는 이유를 적는다.** 아무것도 안 세우면 어제 있던 것이
+ * 오늘 없어진 것으로 읽히고, 그것은 고장으로 보인다.
+ *
+ * 「참여하면 …을 보여드립니다」라고 권하지 않는다. 이 사람은 그 문장을 이미 읽고 끈
+ * 사람이라, 다시 세우면 끈 결정을 우리가 안 받아들이는 것으로 읽힌다.
  */
-function Invitation() {
+function Resting() {
   return (
     <section className={`${CARD} flex flex-col gap-2`}>
-      <h2 className="text-base font-semibold">인연 찾기</h2>
+      <h2 className="text-base font-semibold">인연 찾기를 쉬고 있습니다</h2>
       <p className="text-sm text-secondary">
-        참여하면 서로 부족한 오행을 채우는 사람을 여기에 보여드립니다. 무엇이 공개되고
-        무엇이 공개되지 않는지는 켜기 전에 읽으실 수 있습니다.
+        지금은 다른 참여자의 목록에 서지 않고, 소개받는 목록도 만들지 않습니다. 내 사주와
+        저장한 사람들은 그대로 있습니다.
       </p>
       <Link
         href="/me/discovery"

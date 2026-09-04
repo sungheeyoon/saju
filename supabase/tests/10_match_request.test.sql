@@ -293,7 +293,7 @@ select is(
 -- 이미 거두기 때문이다. 무효화와 수락이 겹치는 찰나를 손으로 세워 두고, 그때도
 -- 수락이 Match 를 만들지 않는지를 잰다(US 44).
 select pg_temp.acting((select park from folks));
-select public.refresh_discovery_summary(
+select public.ensure_discovery_participation(
   (select park_person from persons), pg_temp.summary(0, 0, 4, 4, 0));
 
 /**

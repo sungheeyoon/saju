@@ -419,7 +419,7 @@ select pg_temp.acting((select kim from folks));
  * 위에서 김이 입력을 고쳤으므로 내놓은 오행 요약이 낡았다 — 낡으면 후보가 아니다
  * (ADR 0003 「이행」). 요약을 지금 판본의 것으로 다시 내놓아야 청할 수 있다.
  */
-select public.refresh_discovery_summary(
+select public.ensure_discovery_participation(
   (select kim_person from people), pg_temp.summary(4, 4, 0, 0, 0));
 
 -- 요청은 **노출 기록에 매인다**(ADR 0009). 목록을 먼저 열어야 청할 수 있다.

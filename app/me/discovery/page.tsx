@@ -31,10 +31,20 @@ export default async function DiscoveryPage() {
 
   const [{ data: account }, { data: profile }] = await Promise.all([
     supabase.from('app_user').select('status, self_person_id').maybeSingle(),
-    supabase.from('discovery_profile').select('prefer_gender, opted_in_at').maybeSingle(),
+    supabase.from('discovery_profile').select('prefer_gender, opted_out_at').maybeSingle(),
   ]);
 
-  const optedIn = profile?.opted_in_at != null;
+  /**
+   * **묻는 것은 「껐는가」다**(PRD §4.1).
+   *
+   * `opted_in_at` 을 보고 있었다. 참여가 기본으로 켜진 뒤로 그 칸이 비어 있다는 것은
+   * 「참여하지 않는다」가 아니라 **「홈을 아직 안 열었다」**를 뜻할 수 있다 — 참여를 여는
+   * 것은 홈이 요약을 넣는 자리이기 때문이다. 그 상태를 「참여 안 함」으로 그리면, 곧
+   * 목록에 설 사람에게 「당신은 안 보입니다」라고 말하게 된다.
+   *
+   * 끈 사건은 그런 애매함이 없다. 사용자가 누른 것만 그 칸에 남는다.
+   */
+  const resting = profile?.opted_out_at != null;
 
   return (
     <main className="app-shell flex w-full max-w-4xl flex-1 flex-col gap-7 py-9 sm:py-12">
@@ -78,11 +88,11 @@ export default async function DiscoveryPage() {
 
           <PreferenceForm current={preferGenderOf(profile?.prefer_gender)} />
 
-          {/* **켜기 전에 무엇이 나가는지부터 읽힌다.** */}
-          <ParticipationToggle optedIn={optedIn} />
+          {/* **끄기 직전에도 되돌리기 직전에도 무엇이 나가는지 읽힌다.** */}
+          <ParticipationToggle resting={resting} />
 
-          {/* 켠 사람에게만 목록으로 가는 길을 낸다 — 안 켠 사람에게는 아직 목록이 없다 */}
-          {optedIn && (
+          {/* 쉬는 사람에게는 목록이 없다 — 없는 자리로 가는 길을 내지 않는다 */}
+          {!resting && (
             <Link
               href="/me"
               className="self-start text-sm font-semibold text-accent underline underline-offset-4"

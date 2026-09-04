@@ -77,7 +77,7 @@ select throws_ok(
   '후보를 볼 수 없다');
 
 select throws_ok(
-  format($$select public.refresh_discovery_summary(%L, %L)$$,
+  format($$select public.ensure_discovery_participation(%L, %L)$$,
     (select person_id from mine), (select elements from summary)),
   '42501', null,
   '매칭 풀의 요약도 못 갱신한다');

@@ -125,12 +125,15 @@ function Disclosure() {
 }
 
 /**
- * 매칭 참여를 켜고 끄는 자리 — **켜기 전에 무엇이 나가는지 적는다.**
+ * 매칭 참여를 켜고 끄는 자리 — **이제 여기가 켜는 자리가 아니다.**
  *
- * 후보 카드만 본 것은 궁합 동의가 아니고(`prd-archive`), 참여를 켜는 것도 명식 공개가 아니다.
- * 무엇이 나가고 무엇이 안 나가는지를 버튼 위에 적는다.
+ * 참여는 기본으로 켜져 있고(PRD §4.1), 무엇이 나가는지는 가입 관문이 읽힌다
+ * (`notice-v3`). 여기 남은 일은 **끄는 것과, 껐던 것을 되돌리는 것** 둘이다.
+ *
+ * 그래도 목록은 양쪽에 그대로 선다. 끄기 직전에도 무엇을 거두는지 보여야 하고, 되돌리기
+ * 직전에도 무엇이 다시 나가는지 보여야 한다 — 두 누름 다 남에게 보이는 범위를 바꾼다.
  */
-export function ParticipationToggle({ optedIn }: { optedIn: boolean }) {
+export function ParticipationToggle({ resting }: { resting: boolean }) {
   const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
@@ -144,7 +147,7 @@ export function ParticipationToggle({ optedIn }: { optedIn: boolean }) {
     });
   };
 
-  if (optedIn) {
+  if (!resting) {
     return (
       <section className={`${CARD} flex flex-col gap-3`}>
         <h2 className="text-base font-semibold">인연 찾기 참여 중</h2>
@@ -155,8 +158,8 @@ export function ParticipationToggle({ optedIn }: { optedIn: boolean }) {
           갈린다. 문단은 「어디에 서는가」만 말하고 무엇이 나가는지는 정책이 든다.
         */}
         <p className="text-sm text-secondary">
-          다른 참여자의 인연 목록에 표시될 수 있습니다. 상대에게 공개되는 정보와 공개되지
-          않는 정보는 아래와 같습니다.
+          내 사주를 저장하시면 인연 찾기에 자동으로 참여합니다. 다른 참여자의 인연 목록에
+          표시될 수 있고, 상대에게 공개되는 정보와 공개되지 않는 정보는 아래와 같습니다.
         </p>
         <Disclosure />
         <p className="text-sm text-secondary">
@@ -179,23 +182,23 @@ export function ParticipationToggle({ optedIn }: { optedIn: boolean }) {
     );
   }
 
+  /*
+    **쉬는 중인 사람에게만 서는 자리다.** 「아직 안 켠 사람」이 없어졌으므로 여기 설 수
+    있는 것은 직접 끈 사람뿐이고, 그래서 문장이 권유가 아니라 **지금 상태의 설명**이다.
+  */
   return (
     <section className={`${CARD} flex flex-col gap-3`}>
-        <h2 className="text-base font-semibold">인연 찾기 참여</h2>
+      <h2 className="text-base font-semibold">인연 찾기 쉬는 중</h2>
       <p className="text-sm text-secondary">
-        참여하면 내 사주를 기준으로 다른 참여자의 인연 목록에 표시될 수 있습니다.
-        내가 대신 등록한 가족·친구는 공개되지 않습니다.
+        지금은 다른 참여자의 인연 목록에 서지 않습니다. 다시 시작하시면 내 사주를 기준으로
+        표시되고, 내가 대신 등록한 가족·친구는 그때도 공개되지 않습니다.
       </p>
 
       <Disclosure />
 
       <div className="flex flex-wrap items-center gap-3">
-        {/*
-          **별명이 없어 못 누르는 자리가 없어졌다.** 이름은 가입할 때 짓고, 여기 오는
-          사람은 이미 그 자리를 지나왔다(§5.1).
-        */}
         <button type="button" onClick={() => toggle(true)} disabled={working} className={BUTTON}>
-          {working ? '켜는 중…' : '인연 찾기 시작'}
+          {working ? '켜는 중…' : '인연 찾기 다시 시작'}
         </button>
       </div>
       {failure !== null && <p className="text-sm text-muted">{failure}</p>}

@@ -246,12 +246,15 @@ export async function revisePerson(personId: string, query: Query): Promise<Save
    * 낡은 요약은 후보 질의가 이미 걸러낸다. 그래도 여기서 따라가게 하는 것은 그 탈락이
    * **조용하기** 때문이다 — 사용자는 참여 중이라고 알고 있는데 아무에게도 안 보이게 된다.
    * 내 사주가 아니면 RPC 가 스스로 아무 일도 하지 않는다 — 그래서 앱은 안 묻는다.
+   *
+   * 참여가 기본으로 켜진 뒤로 이 호출은 **참여를 열기도 한다**(PRD §4.1). 끈 사람은
+   * 그대로 쉰다 — 그 판정도 RPC 안에 있다(`opted_out_at`).
    */
   const self = await selfElementSummary();
   /*
     **「내 사주인가」를 여기서 묻지 않는다.**
 
-    `self.personId === personId` 로 걸렀었다. `refresh_discovery_summary` 가 이미 같은
+    `self.personId === personId` 로 걸렀었다. `ensure_discovery_participation` 이 이미 같은
     질문에 답하는데(`self_person is distinct from p_person_id`) 앱이 한 번 더 판정한
     것이고, 둘 중 **나쁜 쪽이 먼저 답하고** 있었다 — 저쪽은 `uuid` 비교라 대소문자를
     안 가리고 이쪽은 문자열 비교라 가린다. 대문자로 적힌 id 가 오면 이 줄이 거짓이 되어
@@ -260,7 +263,7 @@ export async function revisePerson(personId: string, query: Query): Promise<Save
     요약을 만들 재료가 있는지만 보고 넘긴다. 판정은 한 자리에서 한다.
   */
   if (self !== null) {
-    const { error: summaryError } = await supabase.rpc('refresh_discovery_summary', {
+    const { error: summaryError } = await supabase.rpc('ensure_discovery_participation', {
       p_person_id: personId,
       p_summary: self.summary,
     });

@@ -37,12 +37,12 @@ async function pendingRequest(from: Person, to: Person): Promise<void> {
 }
 
 test.describe('동의로 열리는 흐름', () => {
-  test('참여를 켜고 요청을 보내 수락하면 두 사람이 같은 결과 화면에 선다', async ({ openAs }) => {
+  test('저장한 사람은 이미 참여 중이고, 요청을 보내 수락하면 같은 결과 화면에 선다', async ({ openAs }) => {
     const tag = String(Date.now()).slice(-4);
     const asker = await openAs({ selfPerson: true });
     const receiver = await openAs({ selfPerson: true });
 
-    // ── 참여를 화면에서 켠다 ────────────────────────────────────────────────
+    // ── 참여는 이미 켜져 있다 — 화면에서 그것을 확인한다 ────────────────────
     for (const [person, nickname] of [
       [asker, `보내는${tag}`],
       [receiver, `받는${tag}`],
@@ -63,14 +63,25 @@ test.describe('동의로 열리는 흐름', () => {
       await expect(person.page.getByRole('heading', { name: '인연 찾기 설정' })).toBeVisible();
 
       /*
-        **켜기 전에 무엇이 나가고 무엇이 안 나가는지 읽힌다**(US 26 · `prd-archive`).
+        **무엇이 나가고 무엇이 안 나가는지 읽힌다**(US 26 · `prd-archive`).
         화면·ADR·`prd-archive` 가 같은 문장을 쓰기로 한 자리다.
       */
       await expect(person.page.getByText('상대에게 보이는 것')).toBeVisible();
       await expect(person.page.getByText('보이지 않는 것')).toBeVisible();
 
-      await person.page.getByRole('button', { name: '인연 찾기 시작' }).click();
+      /*
+        **누를 버튼이 없다**(PRD §4.1, ADR 0037). 참여가 기본으로 켜진 뒤로 이 화면에서
+        켜는 일이 없어졌고, 무엇이 나가는지는 가입 관문이 읽힌다(`notice-v3`). 여기 남은
+        누름은 끄는 것 하나다 — 그 버튼이 서 있는 것으로 「지금 켜져 있다」를 잰다.
+      */
       await expect(person.page.getByRole('heading', { name: '인연 찾기 참여 중' })).toBeVisible();
+      await expect(person.page.getByRole('button', { name: '인연 찾기 쉬기' })).toBeVisible();
+
+      /*
+        **참여가 실제로 열리는 자리는 홈이다.** 요약은 DB 가 못 만들어서 앱이 넣고, 그
+        자리가 목록이 서는 화면이다. 여기서 홈을 한 번 여는 것이 그 문을 지나는 일이다.
+      */
+      await person.page.goto('/me');
     }
 
     hideEveryoneExcept([asker.account.email, receiver.account.email]);

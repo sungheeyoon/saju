@@ -16,7 +16,7 @@ const source = readFileSync(new URL('../src/lib/consent/notice.ts', import.meta.
 
 /**
  * 판본은 이제 **이름·시행일과 한 덩어리**에서 나온다(`NOTICE_EDITION`). 사용자 화면에
- * 서는 것은 「제2판 · 2026년 9월 2일 시행」이고, `notice-v2` 는 기록에만 남는 열쇠다.
+ * 서는 것은 「제3판 · 2026년 9월 4일 시행」이고, `notice-v3` 은 기록에만 남는 열쇠다.
  */
 const found = /version: '([^']+)'/.exec(source);
 

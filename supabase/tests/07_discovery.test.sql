@@ -1,6 +1,6 @@
 -- discovery — 참여한 사람만 보고, 사주로는 아무도 지우지 않는다.
 begin;
-select plan(39);
+select plan(46);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim,
@@ -116,27 +116,83 @@ select throws_ok(
   '22023', null,
   '모양이 맞지 않는 요약으로는 참여할 수 없다');
 
-select lives_ok(
-  format($$select public.set_discovery_participation(true, %L)$$, (select 고른네오행 from summaries)),
-  '별명과 사주가 있으면 참여한다');
+/**
+ * **자동 참여** — 켠 적 없어도 풀에 든다(PRD §4.1, ADR 0037).
+ *
+ * 요약은 DB 가 못 만든다. 그래서 참여가 열리는 자리는 언제나 **앱이 요약을 넣는
+ * 자리**이고, 그 자리가 이 함수다 — 홈이 목록을 열 때 부른다. 여기서 참여가 안 열리면
+ * 「저장한 사람은 자동으로 후보 풀에 든다」는 줄이 코드 어디에도 없게 된다.
+ */
+select is(
+  public.ensure_discovery_participation(
+    (select person_id from mine), (select 고른네오행 from summaries)),
+  true,
+  '켠 적 없어도 요약이 들어오면 참여가 열린다');
 
 select is(
-  (select (opted_in_at is not null) and element_revision_id = (
+  (select (opted_in_at is not null) and opted_out_at is null and element_revision_id = (
      select current_revision_id from public.person where id = (select person_id from mine))
    from public.discovery_profile),
   true,
-  '참여를 켜면 요약이 지금 판본에 붙는다');
+  '자동 참여도 요약을 지금 판본에 붙인다');
+
+-- ── 끄는 것은 사건으로 남는다 ─────────────────────────────────────────────────
+select is(public.set_discovery_participation(false, null), false, '참여를 끈다');
+
+select is(
+  (select opted_in_at is null and opted_out_at is not null
+      and element_summary is null and element_revision_id is null
+   from public.discovery_profile),
+  true,
+  '끄면 요약을 거두고 끈 시각이 남는다');
+
+/**
+ * **끈 사람은 홈을 열어도 다시 안 켜진다.**
+ *
+ * 참여가 기본으로 켜진 뒤로 `opted_in_at is null` 하나가 「안 켰다」와 「껐다」를 함께
+ * 뜻하게 됐다. 그 둘을 안 가르면 끈 사람이 다음 방문에 되살아나고, 그것은 고장이 아니라
+ * **사용자가 한 결정을 우리가 매번 되돌리는 일**이다. 여기서 재는 것이 그 경계다.
+ */
+select is(
+  public.ensure_discovery_participation(
+    (select person_id from mine), (select 고른네오행 from summaries)),
+  false,
+  '끈 사람은 자동으로 다시 켜지지 않는다');
+
+select is(
+  (select opted_in_at is null and element_summary is null from public.discovery_profile),
+  true,
+  '거짓을 낼 때는 아무것도 안 쓴다');
+
+-- ── 다시 켜는 것은 끈 기록을 지운다 ───────────────────────────────────────────
+select lives_ok(
+  format($$select public.set_discovery_participation(true, %L)$$, (select 고른네오행 from summaries)),
+  '쉬던 사람이 직접 다시 켠다');
+
+select is(
+  (select (opted_in_at is not null) and opted_out_at is null
+      and element_revision_id = (
+        select current_revision_id from public.person where id = (select person_id from mine))
+   from public.discovery_profile),
+  true,
+  '다시 켜면 끈 기록이 지워지고 요약이 지금 판본에 붙는다');
 
 /**
  * 참여 상태는 사용자가 직접 못 옮긴다.
  *
- * 켠 시각을 손으로 적을 수 있으면 그것은 사건의 기록이 아니다. 이름과 소개가 계정으로
+ * 켠 시각을 손으로 적을 수 있으면 그것은 사건의 기록이 아니다. **끈 시각도 마찬가지다**
+ * — 그 칸을 지울 수 있으면 자동 참여가 다시 이 사람을 켠다. 이름과 소개가 계정으로
  * 옮겨 간 뒤로 이 표에서 열어 준 칸은 **선호 하나뿐**이다.
  */
 select throws_ok(
   $$update public.discovery_profile set opted_in_at = now()$$,
   '42501', null,
   '참여 시각은 사용자가 못 건드린다');
+
+select throws_ok(
+  $$update public.discovery_profile set opted_out_at = null$$,
+  '42501', null,
+  '끈 시각도 사용자가 못 건드린다');
 
 -- ── 후보 ──────────────────────────────────────────────────────────────────────
 /**

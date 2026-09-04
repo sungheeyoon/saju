@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { DISCOVERY_DISCLOSURE } from '../discovery';
 import { NOTICE_VERSION, OPTIONAL_CONSENTS, noticeFor } from './notice';
 import { scheduleFrom } from './schedule';
 
@@ -141,6 +142,28 @@ describe('처리방침이 갖춰야 하는 것', () => {
     expect(text).toContain('이용하실 수 없습니다');
   });
 
+  /**
+   * **참여가 기본으로 켜진 뒤로 이 관문이 그 고지를 든다**(PRD §4.1, ADR 0037).
+   *
+   * 전에는 참여를 켜는 화면이 이 말을 했다. 저장이 곧 참여가 되면서 그 화면을 안 지나는
+   * 길이 생겼고, 그러면 **켠 적 없는 참여를 막는 것이 이 문단 하나뿐**이다. 여기서
+   * 빠지면 아무도 읽지 않은 채로 남에게 보이게 된다.
+   */
+  it('자동 참여와 끄는 길을 관문에서 말한다', () => {
+    expect(text).toContain('자동으로 참여합니다');
+    expect(text).toContain('끄실 수 있습니다');
+  });
+
+  /**
+   * 무엇이 나가고 무엇이 안 나가는지는 **한 자리에서 온다**(`DISCOVERY_DISCLOSURE`).
+   * 여기 손으로 한 벌 더 적으면 참여 화면과 갈리고, 그때 사용자가 읽은 약속이 어느
+   * 쪽인지 말할 수 없게 된다.
+   */
+  it('참여 화면과 같은 열거를 든다', () => {
+    for (const line of [...DISCOVERY_DISCLOSURE.shown, ...DISCOVERY_DISCLOSURE.hidden]) {
+      expect(text, line).toContain(line);
+    }
+  });
 });
 
 describe('선택 항목', () => {

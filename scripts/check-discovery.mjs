@@ -87,8 +87,12 @@ await other.rpc('create_self_person', {
 
 // ── 2. 참여하지 않으면 후보도 없다 ────────────────────────────────────────────
 {
+  /*
+    참여는 기본으로 켜지지만(PRD §4.1) **켜지는 자리는 홈이다** — 요약을 앱이 만들어
+    넣어야 하기 때문이다. 여기 둘은 아직 홈을 안 열었으므로 풀에 없다.
+  */
   const { error } = await me.rpc('my_discovery_board');
-  check('참여하기 전에는 후보를 볼 수 없다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
+  check('요약을 내놓기 전에는 후보를 볼 수 없다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
 
   const { data: profiles } = await me.from('discovery_profile').select('user_id');
   check('남의 프로필은 한 줄도 안 보인다', profiles?.length === 0, `${profiles?.length ?? '?'}줄`);
@@ -127,7 +131,7 @@ try {
     const response = await get('/me/discovery', myCookie);
     const body = await response.text();
     check('후보 화면이 열린다', response.status === 200, String(response.status));
-    check('참여를 켜기 전에는 무엇이 나가는지 먼저 적는다',
+    check('무엇이 나가고 무엇이 안 나가는지를 설정 화면이 든다',
       body.includes('상대에게 보이는 것') && body.includes('보이지 않는 것'));
     /**
      * **켜기 전에 알린다.** 후보 카드가 내 오행을 이름과 뜻으로 말하게 되므로, 그
@@ -177,6 +181,20 @@ const isolate = (emails) => {
     return account.self_person_id;
   };
   const theirPersonId = await personOf(other);
+
+  // ── 5-a. 자동 참여 — **아무것도 안 눌러도 홈을 열면 풀에 든다** ─────────────
+  /**
+   * PRD §4.1 의 마지막 줄이 여기서 재어진다(ADR 0037).
+   *
+   * 이 사람은 참여 버튼을 누른 적이 없다. 사주를 저장했고 이름을 지었을 뿐이다. 홈을
+   * 한 번 여는 것만으로 요약이 풀에 서야 한다 — DB 는 요약을 못 만들므로, 앱이 그
+   * 자리에서 넣지 않으면 「저장한 사람은 자동으로 후보 풀에 든다」가 아무 데도 없다.
+   */
+  {
+    check('참여를 켠 적이 없다', summaryOf(mine) === '', summaryOf(mine).slice(0, 40));
+    await get('/me', myCookie);
+    check('홈을 한 번 여는 것만으로 풀에 든다', summaryOf(mine) !== '', summaryOf(mine).slice(0, 40));
+  }
 
   /**
    * 참여를 켤 때 **모양만 맞는 가짜 요약**을 넣어 둔다.
@@ -501,6 +519,19 @@ const isolate = (emails) => {
 
     const { data: person } = await other.from('person').select('id');
     check('참여를 꺼도 내 사주는 그대로다', person?.length === 1, `${person?.length ?? '?'}줄`);
+
+    /**
+     * **끈 사람에게는 자동 참여가 안 돈다.**
+     *
+     * 참여를 여는 자리가 홈이므로, 끈 사람이 홈을 여는 것이 곧 그 문을 다시 지나는
+     * 일이다. 「안 켰다」와 「껐다」를 안 가르면 여기서 참여가 되살아난다 — 고장이
+     * 아니라 사용자가 한 결정을 우리가 매번 되돌리는 일이라, 화면에서 재어 둔다.
+     */
+    await get('/me', theirCookie);
+    check('끈 사람은 홈을 열어도 다시 안 켜진다', summaryOf(theirs) === '', summaryOf(theirs).slice(0, 40));
+
+    const back = await (await get('/me', myCookie)).text();
+    check('끈 사람은 남의 목록에도 안 돌아온다', !back.includes(THEIR_NAME));
   }
 } finally {
   stop();
