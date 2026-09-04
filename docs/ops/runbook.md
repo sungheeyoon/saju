@@ -487,7 +487,8 @@ select model, prompt_version, count(*), max(created_at) as 마지막
 from public.reading_run group by 1, 2 order by 4 desc;
 ```
 
-**비용은 여기서 안 보인다.** 호출 수는 위에서 세지만 금액은 provider 쪽에 있다.
+**여기서는 호출 수만 센다.** 쓴 토큰과 하루 상한은 아래 「AI 비용 한도」가 들고, 금액은
+provider 쪽에 있다.
 
 > **게이트웨이가 아니라 OpenAI 를 직접 부른다.** 이 문단은 「Vercel AI Gateway 에
 > 예산 한도를 걸어 둔다」라고 적혀 있었는데, 게이트웨이가 카드 없음으로 거절하는
