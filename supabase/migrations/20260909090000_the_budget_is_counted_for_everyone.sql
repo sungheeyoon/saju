@@ -151,8 +151,13 @@ begin
   /**
    * 답을 기다리지 않는다 — `pg_net` 은 요청을 큐에 넣고 곧 돌아온다. 그래야 이 알림이
    * **사용자의 누름을 붙들지 않는다.** 결과가 궁금하면 `net._http_response` 를 본다.
+   *
+   * **`net` 이지 `extensions` 가 아니다.** 재어 봤다 — 로컬과 원격 둘 다 `pg_net` 의
+   * 함수가 `net` 스키마에 산다. `create extension … with schema extensions` 로 적어 둔
+   * 자리가 있지만(20260901210000), 이미 설치된 확장은 그 구절로 안 옮겨 간다.
+   * 그 착각이 아래 `wake_reading_recovery` 를 **사흘 동안 4,542번** 실패시켰다.
    */
-  perform extensions.http_post(
+  perform net.http_post(
     url := url,
     body := jsonb_build_object(
       'text', p_kind || ' — ' || p_detail,
@@ -545,3 +550,53 @@ group by 1, 2;
  * 하루에 몇 번 불렸는지 셀 수 있고, 그것은 사용자에게 보일 값이 아니다.
  */
 revoke all on public.reading_spend_daily from anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- 같은 착각이 복구기를 세워 두고 있었다
+-- ---------------------------------------------------------------------------
+
+/**
+ * `wake_reading_recovery` 를 다시 쓴다 — **한 낱말만 바뀐다: `extensions` → `net`.**
+ *
+ * 알림을 쏴 보다가 `extensions.http_post` 가 없다는 것을 알았고, 같은 이유로 복구기도
+ * 안 돌고 있었다. 원격의 `cron.job_run_details` 를 열어 보니 **2026-09-01 부터 4,542번
+ * 연속 실패**였다 — 「함수가 없다」로 매분 죽고 있었다.
+ *
+ * 무엇을 잃었나: webhook 이 떨어뜨린 일감을 집는 자리가 한 번도 안 돌았다(ADR 0020).
+ * webhook 이 다 도착했다면 잃은 것은 없고, 하나라도 흘렸다면 그 시도는 10분 만료가
+ * 닫을 때까지 「만드는 중」으로 남았다. **조용한 실패를 안 남긴다**던 그 설계가 그 자리에서
+ * 조용했다.
+ *
+ * 왜 아무도 몰랐나: `wake_reading_recovery` 는 값이 없으면 조용히 지나가게 지어 두었고
+ * (배선 전에 소음을 안 내려고), 실패는 `cron.job_run_details` 에만 남는다. **그 표를
+ * 보는 절차가 없었다** — 그래서 운영 절차에 한 줄 넣는다.
+ */
+create or replace function public.wake_reading_recovery()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  url text;
+  secret text;
+begin
+  select decrypted_secret into url
+  from vault.decrypted_secrets where name = 'reading_recovery_url';
+
+  select decrypted_secret into secret
+  from vault.decrypted_secrets where name = 'reading_recovery_secret';
+
+  if url is null or secret is null then
+    return;
+  end if;
+
+  perform net.http_get(
+    url := url,
+    headers := jsonb_build_object('Authorization', 'Bearer ' || secret),
+    timeout_milliseconds := 45000);
+end;
+$$;
+
+revoke execute on function public.wake_reading_recovery()
+  from anon, public, authenticated, service_role;

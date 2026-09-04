@@ -132,9 +132,9 @@ returns integer language sql immutable as $$ select 8 $$;
 > 아니다(ADR 0021). 「달라고 해서」와 「테스터 대부분이 다섯에서 멈춰서」는 다른 근거이고,
 > 뒤의 것만 다음 판을 정하는 데 쓸 수 있다.
 
-**전체 비용은 이 값이 안 막는다.** 사람당 상한일 뿐이라, 초대 인원이 늘면 OpenAI 쪽
-예산 한도를 따로 옮겨야 한다. 그리고 실패한 시도도 모델은 이미 불렸으므로 「성공 건수 ×
-인원」이 호출 상한이 아니다.
+**전체 비용은 이 값이 안 막는다.** 사람당 상한일 뿐이라, 초대 인원이 늘면 하루 전체
+상한(`reading_daily_budget()`, 아래 「AI 비용 한도」)과 OpenAI 쪽 예산을 함께 옮겨야 한다.
+그리고 실패한 시도도 모델은 이미 불렸으므로 「성공 건수 × 인원」이 호출 상한이 아니다.
 
 ---
 
@@ -494,12 +494,112 @@ from public.reading_run group by 1, 2 order by 4 desc;
 > 동안 `@ai-sdk/openai` 로 옮겼다(`app/me/reading/model.ts`). 한도를 걸 자리도
 > 함께 옮겨 갔다.
 
-한도는 **OpenAI 대시보드**에 건다 — Settings → Organization → Limits 의 월 예산과
-경고선이다. 앱의 빗장(`reading_rate_limit()`, 한 시간 20회)은 **사용자당**이라
-총액을 막지 못한다. 테스터가 열 명이면 한 시간에 200번까지 열려 있다.
+바깥 한도는 **OpenAI 대시보드**에 건다 — Settings → Organization → Limits 의 월 예산과
+경고선, 그리고 자동 충전 끄기. 안쪽 한도는 앱에 있다(아래).
 
 지금 서 있는 값은 `GENERATION` 이 든다. 무엇으로 얼마나 불렀는지는 위의
 `reading_run` 질의가 세고, **그것에 값을 곱해 보는 일은 대시보드에서 한다.**
+
+---
+
+## AI 비용 한도 — **안쪽 벽과 바깥 벽** (ADR 0039)
+
+벽이 둘이고 **안쪽이 먼저 닿아야 한다.** 앱 상한에 닿은 사용자는 「오늘은 여기까지,
+내일 다시 열립니다」를 읽는다. 대시보드 한도에 먼저 닿으면 읽는 것은 「실패했습니다」뿐이다.
+
+| | 값 | 어디 |
+|---|---|---|
+| 사람당 풀이권 | 5 | `reading_credit_limit()` |
+| 사람당 시간당 | 20 (실패한 시도도 든다) | `reading_rate_limit()` |
+| **전체 하루** | **100** | `reading_daily_budget()` |
+| 운영자 경고 | 상한의 80% | `reading_budget_warning()` |
+| 바깥 벽 | 월 예산·자동 충전 끔 | OpenAI 대시보드 |
+
+### 얼마나 썼나
+
+```sql
+-- 날짜·종류별 시도와 토큰. `usage_unknown` 이 크면 토큰 합이 실제보다 작다는 뜻이다.
+select * from public.reading_spend_daily order by day desc, kind;
+
+-- 오늘 몇 번 썼나 (상한이 보는 바로 그 수)
+select public.reading_spend_today() as 오늘, public.reading_daily_budget() as 상한;
+```
+
+**금액은 여기 없다.** 단가는 provider 가 정하므로 토큰까지만 낸다 — 원 단위는 대시보드다.
+
+### 막혔을 때 — **하루 봉쇄를 푸는 한 줄**
+
+OpenAI 장애로 실패가 쌓여 상한이 찼는데 사람들이 아직 못 쓴 경우다. 실패도 그 수에
+들므로 **아무도 글 하나 못 받고 하루가 닫힐 수 있다.** 그때 상한을 임시로 올린다:
+
+```sql
+create or replace function public.reading_daily_budget()
+returns integer language sql immutable set search_path = '' as $$ select 300 $$;
+```
+
+**올리기 전에 셋을 본다.**
+
+1. `select * from public.reading_spend_daily where day = (now() at time zone 'Asia/Seoul')::date;`
+   — 실패가 대부분인가. 성공이 쌓여 찬 것이면 그것은 사고가 아니라 정상 사용이고,
+   그때 올리는 것은 **비용을 쓰겠다는 결정**이다
+2. **바깥 벽이 위에 있는가.** 새 값 × 한 번 비용이 대시보드 월 예산 안에 드는가.
+   안쪽을 바깥보다 높이 올리면 이 문서의 첫 줄이 거짓이 된다
+3. 장애가 끝났는가. 실패가 계속 나는 중에 올리면 **새는 구멍을 넓히는 것**이다
+
+**그날 안에 되돌린다.** 되돌리는 것도 같은 한 줄이고, 값만 100 이다. 안 되돌리면 다음
+사고 때 이 벽은 없는 것과 같다.
+
+### 운영자 알림 배선
+
+경고(80%)와 도달은 `ops_alert` 에 적히고, **주소가 있으면** 거기로도 던진다. Slack·Discord
+Incoming Webhook 둘 다 그대로 받는다.
+
+```sql
+-- 넣기 (한 번)
+select vault.create_secret('https://hooks.slack.com/services/…', 'ops_alert_url');
+
+-- 들어갔나 — 값은 안 본다
+select count(*) from vault.decrypted_secrets where name = 'ops_alert_url';
+
+-- 실제로 나가는지 한 번 쏴 본다
+select public.notify_ops('ops-alert-test', '배선 확인');
+
+-- 나갔나 — 200 이면 닿았다
+select status_code, created from net._http_response order by created desc limit 3;
+```
+
+> `notify_ops` 는 **하루에 한 종류당 한 줄**이다. 같은 이름으로 두 번 쏘면 두 번째는
+> `false` 를 내고 아무것도 안 던진다. 다시 시험하려면 이름을 바꾸거나
+> `delete from public.ops_alert where kind = 'ops-alert-test';` 로 지운다.
+
+```sql
+-- 무엇이 언제 울렸나
+select kind, detail, created_at from public.ops_alert order by created_at desc limit 20;
+```
+
+---
+
+## 도는 잡이 정말 도나 — **실패는 여기에만 남는다**
+
+`pg_cron` 이 돌리는 것은 앱 로그에 안 남고 `cron.job_run_details` 에만 남는다. 그래서
+**실패해도 아무도 모른다.** 실제로 그랬다: 복구기가 2026-09-01 부터 **4,542번 연속
+실패**하고 있었고(`extensions.http_get` 은 없다 — `pg_net` 은 `net` 에 산다), 알림 배선을
+쏴 보다가 같은 착각을 발견해서야 드러났다(ADR 0039).
+
+**배포한 날과, 잡을 건드린 날에 한 번씩 본다.**
+
+```sql
+select j.jobname, d.status, count(*) as 횟수,
+       min(d.start_time) as 처음, max(d.start_time) as 마지막,
+       max(d.return_message) filter (where d.status = 'failed') as 마지막_실패
+from cron.job_run_details d
+join cron.job j on j.jobid = d.jobid
+where d.start_time > now() - interval '24 hours'
+group by 1, 2 order by 1, 2;
+```
+
+지금 서 있는 잡은 둘이다 — `reading-recovery`(1분)와 `match-request-expiry`(매시 7분).
+**`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**
 
 ---
 

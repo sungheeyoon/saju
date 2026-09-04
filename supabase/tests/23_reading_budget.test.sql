@@ -10,7 +10,7 @@
 --    난다 — 둘 다 아직 아무도 벽을 만나기 전이다. 같은 날 두 번은 안 난다.
 -- 5. **쓴 토큰은 실패한 시도에도 남는다.** 성공만 세면 지출이 언제나 실제보다 작다.
 begin;
-select plan(19);
+select plan(21);
 
 /** 저장 문은 열쇠에만 열려 있다 — 시험은 소유자 권한으로 감싸 부른다(16번과 같은 손잡이) */
 create or replace function pg_temp.save(run uuid, rev uuid, spent jsonb)
@@ -244,6 +244,32 @@ select is(
   public.reading_spend_today(),
   public.reading_daily_budget(),
   '오늘 쓴 수는 상한에서 멈춘다');
+
+-- ── 주소가 있으면 **실제로 던진다** ──────────────────────────────────────────
+--
+-- 여기 없던 자리다. 주소가 없으면 `notify_ops` 는 던지기 전에 돌아가므로, 던지는 줄
+-- 자체가 한 번도 안 돌았다 — 그 줄에 적힌 스키마가 틀렸다는 것을 **쏴 보고서야** 알았다
+-- (`extensions.http_post` 는 없다. `pg_net` 은 `net` 에 산다). 같은 착각이 복구기를
+-- 사흘 동안 4,542번 실패시켰다. 그래서 둘 다 「주소가 있는 채로」 부른다.
+--
+-- 요청은 큐에 들어갈 뿐이라 이 시험은 네트워크를 안 탄다. 큐에 넣은 줄도 롤백된다.
+
+reset role;
+-- 배선을 이미 해 둔 DB 에서도 돌아야 한다. 시험이 자기 값을 세우고, 롤백이 되돌린다.
+delete from vault.secrets
+where name in ('ops_alert_url', 'ops_alert_secret', 'reading_recovery_url', 'reading_recovery_secret');
+
+select vault.create_secret('http://127.0.0.1:9/ops', 'ops_alert_url');
+select vault.create_secret('http://127.0.0.1:9/cron', 'reading_recovery_url');
+select vault.create_secret('cron-secret', 'reading_recovery_secret');
+
+select lives_ok(
+  $$select public.notify_ops('wired-test', '주소가 있을 때')$$,
+  '주소가 있으면 알림이 실제로 던져진다 — 던지는 줄이 도는 것을 여기서 잰다');
+
+select lives_ok(
+  $$select public.wake_reading_recovery()$$,
+  '복구기를 깨우는 줄도 같은 자리를 쓴다 — 한쪽만 고치면 다른 쪽이 다시 조용히 죽는다');
 
 -- ── 문 ────────────────────────────────────────────────────────────────────────
 
