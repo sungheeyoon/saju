@@ -438,6 +438,13 @@ type Fixtures = {
   /** 가입만 하고 안내는 안 본 계정 — 관문을 재는 자리 */
   newcomerRaw: Account;
   /**
+   * 안내도 이름도 없는 계정 — **관문 둘이 이어 서는 자리를 재는 데만 쓴다.**
+   *
+   * `newcomerRaw` 는 이름이 있어서 안내를 지나면 `/me` 에 선다. 실제 새 사람은 거기서
+   * 한 번 더 `/me/profile` 로 보내지고, **그 두 번째 튕김이 화면을 비운 적이 있다.**
+   */
+  newcomerBare: Account;
+  /**
    * 사람을 **하나 더** 연다 — 요청·수락·차단처럼 둘이 있어야 성립하는 흐름.
    *
    * 창을 따로 여는 것이 핵심이다. 한 브라우저에서 쿠키만 갈아 끼우면 「상대에게는
@@ -519,6 +526,17 @@ export const test = base.extend<Fixtures, { local: Local }>({
 
   newcomerRaw: async ({ local, context, baseURL }, use) => {
     const { account, password } = await seed(local, { selfPerson: false, skipNotice: true });
+    const cookies = await cookiesFor(local, account.email, password);
+    await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
+    await use(account);
+  },
+
+  newcomerBare: async ({ local, context, baseURL }, use) => {
+    const { account, password } = await seed(local, {
+      selfPerson: false,
+      skipNotice: true,
+      skipProfile: true,
+    });
     const cookies = await cookiesFor(local, account.email, password);
     await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
     await use(account);

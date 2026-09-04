@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 
 import { NOTICE_ACK_NOTE, OPTIONAL_CONSENTS, OPTIONAL_CONSENT_NOTE } from '@/src/lib/consent';
 
@@ -23,7 +22,6 @@ export function ConsentForm({
   version: string;
   scheduleId: number;
 }) {
-  const router = useRouter();
   const [chosen, setChosen] = useState<Record<string, boolean>>({
     improvement: false,
     contact: false,
@@ -34,7 +32,12 @@ export function ConsentForm({
   const send = () => {
     setFailure(null);
     startSaving(async () => {
-      const result = await acknowledgeNotice({
+      /*
+        **성공하면 이 줄 아래로 안 온다.** 서버 액션이 스스로 다음 화면으로 보낸다 —
+        여기서 `/me` 로 보내면 거기서 관문이 한 번 더 튕기고, 그 두 번째 튕김이
+        화면을 비운다(`acknowledgeNotice`).
+      */
+      const failed = await acknowledgeNotice({
         version,
         /* 이 사람이 **본 안내의 줄**이다. 그 사이에 바뀌었으면 DB 가 거절한다 */
         scheduleId,
@@ -42,12 +45,7 @@ export function ConsentForm({
         contact: chosen.contact === true,
       });
 
-      if (result.ok) {
-        router.replace('/me');
-        router.refresh();
-        return;
-      }
-      setFailure(result.message);
+      setFailure(failed.message);
     });
   };
 

@@ -135,4 +135,29 @@ test.describe('시작하기 전에', () => {
     await page.goto('/welcome');
     await expect(page).toHaveURL(/\/me$/);
   });
+
+  /**
+   * **관문 둘이 이어 설 때도 화면이 선다.**
+   *
+   * 위 시험의 사람은 이름이 있어서 안내를 지나면 `/me` 에 멈춘다. 실제로 처음 오는
+   * 사람은 이름이 없어 거기서 한 번 더 `/me/profile` 로 보내지고, **그 두 번째 튕김에서
+   * 화면이 빈 적이 있다** — 사람이 직접 새로고침해야 나왔다.
+   *
+   * 그래서 재는 것은 주소가 아니라 **글자**다. 주소만 보면 튕김은 끝났는데 아무것도
+   * 안 그려진 상태를 통과시킨다 — 그게 정확히 그때 일어난 일이었다.
+   */
+  test('이름이 없는 사람은 안내를 지나 이름 짓는 화면까지 이어서 선다', async ({
+    page,
+    newcomerBare,
+  }) => {
+    expect(newcomerBare.email).not.toBe('');
+    scheduleBeta(scheduledEndsOn());
+
+    await page.goto('/welcome');
+    await page.getByRole('button', { name: '확인하고 시작하기' }).click();
+
+    await expect(page).toHaveURL(/\/me\/profile$/);
+    await expect(page.getByRole('heading', { name: '어떻게 불러 드릴까요' })).toBeVisible();
+    await expect(page.getByLabel('닉네임')).toBeVisible();
+  });
 });
