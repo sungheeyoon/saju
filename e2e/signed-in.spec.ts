@@ -701,7 +701,21 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     const first = page.getByRole('group', { name: '민수' });
     await page.getByRole('button', { name: '궁합 보기' }).click();
 
-    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
+    /*
+      **분석 표는 접혀 있다**(ADR 0035). 결과가 났다는 것은 접이칸이 서는 것으로 안다 —
+      관계 표는 응답에 실려 있지만 사용자 앞에 먼저 서지는 않는다.
+    */
+    const analysis = page.getByText('두 원국을 맞대어 본 표');
+    await expect(analysis).toBeVisible();
+    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeHidden();
+
+    /*
+      **접는 것이지 자르는 것이 아니다.** 자료는 그대로 그려져 있고 안 보일 뿐이다 —
+      `toContainText` 는 `textContent` 를 보므로 접힌 안쪽까지 센다. 흐름 검사가 이
+      자리를 못 잡는 것은 이 화면이 주소의 `#` 뒤를 읽어 **브라우저에서** 계산하기
+      때문이다(ADR 0007). 서버 응답에는 결과 자체가 없다.
+    */
+    await expect(page.locator('main')).toContainText('두 원국 사이의 관계');
 
     const shared = page.url();
     const params = sharedParams(page);
@@ -712,12 +726,22 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     const chart = await page.locator('main').innerText();
 
     await page.goto(shared);
-    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
+    await expect(analysis).toBeVisible();
     expect(await page.locator('main').innerText()).toBe(chart);
     await expectBirthDate(first, '1990-05-15');
     expect(consoleErrors).toEqual([]);
 
-    // 관계 표가 넓어 가로로 흐르기 쉽다 — 표 안에서만 스크롤되어야 한다.
+    /*
+      **펼침을 실제로 눌러 본다.** 마크업만 재는 검사는 태그 한 겹에 조용히 0을 낸다 —
+      접힌 것과 아예 없는 것이 같은 답을 내면 이 검사는 아무것도 안 지킨다.
+    */
+    await analysis.click();
+    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: '두 사람 사이에 대해 말할 수 있는 것' }),
+    ).toBeVisible();
+
+    // 관계 표가 넓어 가로로 흐르기 쉽다 — 펴 놓고 재야 그 표를 재는 것이 된다.
     const overflow = await page.evaluate(() => ({
       client: document.documentElement.clientWidth,
       scroll: document.documentElement.scrollWidth,
@@ -771,7 +795,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     // 첫 칸이 씨앗의 자기 사주와 같은 날이면 저장 직전에 같은 명식 물음이 선다(ADR 0034).
     await page.goto('/compat#a.date=1988-11-07&a.hour=09:15&b.date=1992-08-20&b.hour=09:00');
 
-    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
+    await expect(page.getByText('두 원국을 맞대어 본 표')).toBeVisible();
 
     // 이름이 없으면 목록에서 알아볼 수 없다 — 저장하는 자리가 그것을 먼저 묻는다.
     for (const [placeholder, name] of [
@@ -785,9 +809,11 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     const save = page.getByRole('heading', { name: '궁합 풀이로 이어 보기' });
     await expect(save).toBeVisible();
 
-    // 사실이 먼저 읽히고 AI 로 가는 다리는 그 아래다.
+    // 사실이 먼저 읽히고 AI 로 가는 다리는 그 아래다 — 접힌 채로도 자리는 그대로다.
     const shown = await page.locator('main').innerText();
-    expect(shown.indexOf('두 원국 사이의 관계')).toBeLessThan(shown.indexOf('궁합 풀이로 이어 보기'));
+    expect(shown.indexOf('두 원국을 맞대어 본 표')).toBeLessThan(
+      shown.indexOf('궁합 풀이로 이어 보기'),
+    );
     // 제목·설명·버튼이 한 낱말을 쓴다 — 세 번째 이름을 세우지 않는다
     expect(shown).not.toContain('AI 풀이');
     // 무엇이 목록에 남는지 누르기 전에 적는다. 남은 자리도 — 서버에서 건너온 값이다.
@@ -867,14 +893,21 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
 
-    const facts = page.getByRole('heading', { name: '두 원국 사이의 관계' });
-    await expect(facts).toBeVisible();
+    const analysis = page.getByText('두 원국을 맞대어 본 표');
+    await expect(analysis).toBeVisible();
     await expect(page.getByText('궁합 베타', { exact: true })).toBeVisible();
     // 내부 판본 이름은 화면 어디에도 없다(ADR 0026).
     await expect(page.locator('main')).not.toContainText('match-v0');
 
     const shown = await page.locator('main').innerText();
-    expect(shown.indexOf('두 원국 사이의 관계')).toBeLessThan(shown.indexOf('먼저 보이는 신호'));
+    expect(shown.indexOf('두 원국을 맞대어 본 표')).toBeLessThan(shown.indexOf('먼저 보이는 신호'));
+
+    /*
+      **접힌 것이지 잘린 것이 아니다**(ADR 0035). 눌러서 안에 든 것을 본다 — 자료는
+      응답에 그대로 실려 있고, 갈린 것은 **먼저 서는가**뿐이다.
+    */
+    await analysis.click();
+    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
 
     // 받지 않는 신청을 받는 것처럼 보이던 버튼은 없다.
     await expect(page.getByRole('button', { name: '관심 있어요' })).toHaveCount(0);
@@ -895,6 +928,8 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
 
+    // 접이칸을 펴 놓고 본다 — 접힌 안쪽까지 훑어야 「어디에도 없다」가 된다.
+    await page.getByText('두 원국을 맞대어 본 표').click();
     await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
 
     const shown = await page.locator('main').innerText();

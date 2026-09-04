@@ -137,7 +137,7 @@ export default async function ManagedCompatPage({
  * 여기서 한 번 더 눌러야 글이 난다 — `/` 와 `/compat` 이 이미 그 모양이다.
  *
  * 그 앞에 표 스물몇 개를 세워 두면 글까지 내려오지 못하므로 **관계표는 여전히 안
- * 세운다**(`chartsOnly`). 서는 것은 여덟 글자다.
+ * 세운다**(`analysis="hidden"`). 서는 것은 여덟 글자다.
  */
 async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' }> }) {
   return (
@@ -350,7 +350,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
        * 없었다.** 파이프라인은 처음부터 세 kind 를 다 받았고(`ReadingTarget`), 쌍의 차례도
        * DB 가 정한다(`least`·`greatest`) — 막혀 있던 것은 화면 한 줄뿐이었다.
        */
-      chartsOnly
+      analysis="hidden"
       verdict={
         <ReadingSection
           key="private-reading"

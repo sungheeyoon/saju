@@ -43,7 +43,7 @@ export function CompatView({
   names,
   notice,
   verdict,
-  chartsOnly,
+  analysis,
 }: {
   charts: Record<CompatSide, Saju>;
   /** 두 사람을 부르는 말 — 입력한 이름이거나 '첫 번째 사람' */
@@ -68,52 +68,87 @@ export function CompatView({
    */
   verdict: ReactNode;
   /**
-   * **여덟 글자까지만 세울까** — 사이의 관계표까지 다 세울까.
+   * 분석 표를 **어떻게 두는가** — 접어 두는가, 아예 안 세우는가.
    *
-   * 익명 화면은 계산기다. 두 명식과 사이의 관계가 곧 결과물이라 그것이 선다.
-   * 저장한 두 사람의 화면은 다르다 — 사람이 보러 온 것은 **읽어 주는 글**이고, 그
-   * 앞에 표 스물몇 개를 세워 두면 글까지 내려오지 못한다.
+   * ## 갈리는 것은 화면이 아니라 화면 안의 무엇인가다
    *
-   * 한동안 접어 두는 것으로 갈랐고(`foldFacts`), 그다음에는 **두 명식까지 함께**
-   * 내렸다(`hideFacts`, ADR 0025). 그런데 이제 이 화면은 풀이를 만들기 전에 서는
-   * 자리다 — 만세력을 보고 나서 그 아래에서 만든다(ADR 0036). 볼 만세력이 없으면
-   * 그 걸음은 걸음이 아니다.
+   * 두 종류가 섞여 있다(ADR 0035).
    *
-   * 그래서 가르는 자리가 옮겨 간다. **여덟 글자는 사용자 것이고, 관계표는 우리가
-   * 검산하려고 세운 원자료다**(ADR 0035 가 `/compat` 에서 같은 선을 긋는다).
+   * - **사용자 것** — 두 사람의 여덟 글자, 오행이 서로를 어떻게 채우는지,
+   *   사이를 묻는 칸, 저장해서 풀이로 가는 다리
+   * - **우리 것** — 관계 표와 그 표에서 세운 발화. 프롬프트와 근거를 손보면서
+   *   무엇이 나왔는지 대조하는 **엔진 중간 결과**다
    *
-   * 가르는 자리를 화면이 따로 그리지 않고 여기 두는 이유는 늘 같다. 두 번 그리면
-   * 한쪽만 고쳐지고, 그때 두 화면이 서로 다른 것을 감춘다.
+   * 사용자 앞에 표 스물몇 개가 먼저 서면 아래로 못 내려간다. 그래서 우리 것은
+   * 먼저 서지 않는다 — 다만 **두 화면이 하는 일이 달라서 방식이 갈린다.**
+   *
+   * - `folded` — 익명 화면(`/compat`). 계산기이고, 우리도 여기서 두 결과를 나란히
+   *   놓고 본다. 없애면 그 자리를 잃으므로 **접는다.** 펴면 그대로 다 나온다
+   * - `hidden` — 저장한 두 사람 화면(`/me/compat`). 사람이 보러 온 것은 읽어 주는
+   *   글이고, 접은 칸도 그 앞에 「펼치면 뭔가 더 있다」는 자리를 하나 만든다
+   *   (ADR 0025). 여덟 글자는 그대로 선다 — 이 화면은 글을 만들기 **전에** 서는
+   *   만세력이기 때문이다(ADR 0036)
+   *
+   * **기본값을 두지 않는다.** 없으면 새로 생기는 화면이 아무 말 없이 다 펼친 쪽에
+   * 선다. 가르는 자리를 화면이 따로 그리지 않고 여기 두는 이유도 같다 — 두 번
+   * 그리면 한쪽만 고쳐지고, 그때 두 화면이 서로 다른 것을 감춘다.
+   *
+   * **숨김 뒤에 자격을 걸지 않는다.** 이건 보안이 아니라 편집이다. 접힌 자료는
+   * 응답에 그대로 실린다 — 자르는 것이 아니다.
    */
-  chartsOnly?: boolean;
+  analysis: 'folded' | 'hidden';
 }) {
-  if (chartsOnly === true) {
-    /**
-     * **여덟 글자와 판정만 선다.**
-     *
-     * 「둘의 명식 보기」라는 접은 칸이 여기 있었다. 두 명식과 사이의 관계표를 담고
-     * 「계산을 확인하는 자리입니다」라고 스스로 적어 두었다 — 접은 칸도 결과 화면
-     * 한가운데에 「펼치면 뭔가 더 있다」는 자리를 하나 만들므로 통째로 내렸다.
-     *
-     * 관계표는 그대로 안 선다. **돌아온 것은 여덟 글자뿐**이고, 그것은 검산용
-     * 원자료가 아니라 사용자가 보러 온 만세력이다.
-     */
-    return (
-      <div className="flex flex-col gap-6">
-        {notice}
-        <ChartPair charts={charts} names={names} />
-        {verdict}
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-6">
       {notice}
       <ChartPair charts={charts} names={names} />
-      <BetweenSections compat={compat} names={names} />
+      {analysis === 'folded' && <FoldedAnalysis compat={compat} names={names} />}
       {verdict}
     </div>
+  );
+}
+
+/**
+ * 접어 둔 분석 — **기본은 접힘이고, 펴면 그대로 다 나온다.**
+ *
+ * 접이칸이 제 이름으로 무엇이 들었는지 말한다. 「계산을 확인하는 자리입니다」처럼
+ * **자기 용도를 적지 않는다** — 그 문장이 붙어 있던 칸은 사용자에게 「내가 볼 것이
+ * 아니다」로 읽혔고, 그러면 접어 둔 뜻이 아니라 치워 둔 뜻이 된다.
+ *
+ * 딱지를 마크업으로만 재는 검사는 태그 한 겹에 조용히 0을 내므로, e2e 는 이 칸을
+ * **실제로 눌러** 안에 든 것을 본다.
+ */
+function FoldedAnalysis({
+  compat,
+  names,
+}: {
+  compat: Compatibility;
+  names: Record<CompatSide, string>;
+}) {
+  return (
+    <details className="group">
+      {/*
+        **마커를 우리가 그린다.** `display` 를 `list-item` 이 아닌 값으로 주면 브라우저가
+        기본 삼각형을 지우고, 그러면 눌러야 하는 자리인지가 화면에 안 남는다. 펼침
+        상태는 `<summary>` 가 스스로 알리므로 이 글자는 화면에만 선다.
+      */}
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-border bg-surface-sunken px-5 py-4 hover:border-accent [&::-webkit-details-marker]:hidden">
+        <span>
+          <span className="text-base font-semibold">두 원국을 맞대어 본 표</span>
+          <span className="mt-0.5 block text-xs leading-5 text-muted">
+            사이에 걸리는 관계와, 그 표에서 말할 수 있는 것.
+          </span>
+        </span>
+        <span aria-hidden className="shrink-0 text-sm text-secondary">
+          <span className="group-open:hidden">펼치기</span>
+          <span className="hidden group-open:inline">접기</span>
+        </span>
+      </summary>
+
+      <div className="mt-6 flex flex-col gap-6">
+        <BetweenSections compat={compat} names={names} />
+      </div>
+    </details>
   );
 }
 

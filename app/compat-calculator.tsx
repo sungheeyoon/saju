@@ -213,6 +213,15 @@ export function CompatCalculator() {
           charts={result.charts}
           compat={result.compat}
           names={result.names}
+          /*
+            **분석 표는 접혀 있다**(ADR 0035). 관계 표와 거기서 세운 발화는 우리가
+            프롬프트와 근거를 손보면서 대조하는 값이라, 사용자 앞에 먼저 서면 아래로
+            못 내려간다. 없애지는 않는다 — 두 결과를 나란히 놓고 보는 자리가 여기뿐이다.
+
+            사용자 앞에 먼저 서는 것은 두 사람의 여덟 글자, 오행이 서로를 어떻게
+            채우는지(`MatchResult`), 사이를 묻는 칸과 저장 다리(`SaveForReading`)다.
+          */
+          analysis="folded"
           /* 이 화면의 링크에는 두 사람의 입력이 통째로 실린다 — 그 사실을 버튼이 말한다 */
           notice={<CopyLinkButton />}
           /*
