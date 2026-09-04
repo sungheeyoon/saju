@@ -382,6 +382,7 @@ describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저�
     const [, saved] = savedCall() as [string, Record<string, unknown>];
     expect(startedArgs.p_model).toBe('fake/reading');
     expect(saved.p_model).toBe('fake/reading');
-    expect(saved.p_generation).toEqual({ provider: 'fake', settings: {} });
+    /* 쓴 토큰도 함께 남는다 — 가짜 생성기는 못 세므로 `null` 이다(ADR 0039) */
+    expect(saved.p_generation).toEqual({ provider: 'fake', settings: {}, usage: null });
   });
 });

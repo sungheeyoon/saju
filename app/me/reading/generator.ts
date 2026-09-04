@@ -82,7 +82,8 @@ export type ModelRetrieval =
       runId: string | null;
     }
   | { ok: 'pending' }
-  | { ok: false; code: string; detail: string };
+  /** **실패도 쓴 양을 들고 온다** — 다 돌고 나서 끝난 갈래가 있다(ADR 0039) */
+  | { ok: false; code: string; detail: string; usage: ModelUsage | null };
 
 export interface ReadingGenerator {
   readonly generation: ReadingGeneration;
@@ -97,9 +98,18 @@ export type ReadingArtifact = {
   readonly prompt: string;
 };
 
+/**
+ * **쓴 토큰은 실패에도 실린다.**
+ *
+ * 모델이 다 돌고 나서 우리 검사가 무는 자리가 있다 — 그때 글은 없지만 돈은 나갔다.
+ * 여기서 안 들고 나오면 그 지출을 적을 자리가 영영 없다(ADR 0039).
+ *
+ * 모델을 부르기도 전에 끝난 갈래는 `null` 이다. 0 이 아니다 — 「안 썼다」와 「못 셌다」는
+ * 다른 사실이고, 0 으로 적으면 그 둘이 같은 값이 된다.
+ */
 export type ArtifactResult =
-  | { ok: true; artifact: ReadingArtifact }
-  | { ok: false; code: string; detail: string };
+  | { ok: true; artifact: ReadingArtifact; usage: ModelUsage | null }
+  | { ok: false; code: string; detail: string; usage: ModelUsage | null };
 
 /** 자르고 프롬프트를 지은 것까지 — **모델은 안 부른다** */
 export type ReadingInput = { prompt: string; evidenceText: string };
@@ -176,11 +186,13 @@ export async function generateReadingArtifact({
   generator: ReadingGenerator;
 }): Promise<ArtifactResult> {
   const made = readingInputOf({ kind, charts, viewedAt, about });
-  if (!made.ok) return made;
+  // 보내기도 전에 끝났다 — 쓴 것이 없다.
+  if (!made.ok) return { ...made, usage: null };
 
   const { prompt, evidenceText } = made.input;
   const called = await generator.generate(prompt);
-  if (!called.ok) return called;
+  // 부르다 실패했다. provider 가 쓴 양을 알려 주지 않는 갈래다.
+  if (!called.ok) return { ...called, usage: null };
 
   const verdict = checkReading({ kind, output: called.output, evidenceText, secrets });
   if (!verdict.ok) {
@@ -188,8 +200,10 @@ export async function generateReadingArtifact({
       ok: false,
       code: verdict.failures[0].code,
       detail: verdict.failures.map((one) => `${one.code}: ${one.detail}`).join(' · '),
+      // **여기가 돈이 나간 실패다.** 모델은 다 돌았고 우리 검사가 물었다.
+      usage: called.usage,
     };
   }
 
-  return { ok: true, artifact: { output: called.output, evidenceText, prompt } };
+  return { ok: true, artifact: { output: called.output, evidenceText, prompt }, usage: called.usage };
 }

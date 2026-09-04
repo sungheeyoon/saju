@@ -18,7 +18,12 @@ import { chartOf } from '../../chart';
 import { NoKeyError, keyedClient } from '../../keyed-client';
 import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '../../revision';
 import { ResultClosedError, pinnedInputs } from '../match/inputs';
-import { generateReadingArtifact, readingInputOf, type ReadingGenerator } from './generator';
+import {
+  generateReadingArtifact,
+  readingInputOf,
+  type ModelUsage,
+  type ReadingGenerator,
+} from './generator';
 import { GENERATION } from './generation';
 import { openAIReadingGenerator, submitBackgroundReading } from './model';
 
@@ -385,13 +390,26 @@ export async function sendAcceptedMatchReading(requestId: string): Promise<void>
   await sendRun({ kind: 'match', matchId: started.match_id as string }, started);
 }
 
-async function fail(runId: string, code: string, detail: string): Promise<ReadingRequest> {
+/**
+ * 시도를 실패로 닫는다.
+ *
+ * **쓴 토큰을 함께 넘긴다**(ADR 0039). 모델이 다 돌고 나서 검사가 무는 갈래가 있는데,
+ * 그때 글은 없어도 돈은 나갔다. `null` 이면 안 적는다 — 0 으로 채우면 지출이 조용히
+ * 0 이 된다.
+ */
+async function fail(
+  runId: string,
+  code: string,
+  detail: string,
+  usage: ModelUsage | null = null,
+): Promise<ReadingRequest> {
   const supabase = await supabaseOnServer();
 
   await supabase.rpc('fail_reading_run', {
     p_run_id: runId,
     p_failure_code: code,
     p_failure_detail: detail,
+    p_usage: usage,
   });
 
   return { ok: false, message: messageFor(code, detail) };
@@ -454,7 +472,7 @@ async function generate(
     about,
     generator,
   });
-  if (!generated.ok) return fail(started.run_id, generated.code, generated.detail);
+  if (!generated.ok) return fail(started.run_id, generated.code, generated.detail, generated.usage);
 
   const { evidenceText, output, prompt } = generated.artifact;
 
@@ -473,9 +491,11 @@ async function generate(
     p_prompt: prompt,
     p_prompt_version: READING_POLICY.version,
     p_model: generator.generation.model,
+    /** 쓴 토큰도 함께 남긴다 — 성공한 지출을 세는 자리가 여기다(ADR 0039) */
     p_generation: {
       provider: generator.generation.provider,
       settings: generator.generation.settings,
+      usage: generated.usage,
     },
     p_viewed_at: viewedAt.toISOString(),
   });
@@ -488,7 +508,7 @@ async function generate(
    * 일어나지 않는다.
    */
   if (error) {
-    await fail(started.run_id, 'save-rejected', error.message);
+    await fail(started.run_id, 'save-rejected', error.message, generated.usage);
     return { ok: false, message: error.message };
   }
 

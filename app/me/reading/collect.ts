@@ -3,6 +3,7 @@ import { checkReading, isScored, type BirthSecret, type ReadingKind } from '@/sr
 import { keyedClient } from '../../keyed-client';
 import type { StoredRevision } from '../../revision';
 
+import type { ModelUsage } from './generator';
 import { retrieveBackgroundReading } from './model';
 
 /**
@@ -99,11 +100,17 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
    * **실패는 한 자리에서 닫는다.** 갈래가 넷인데(회수 실패·모델 실패·검사 실패·저장
    * 실패) 자리를 나누면 하나는 알림을 안 넣는다.
    */
-  const close = async (code: string, detail: string): Promise<CollectOutcome> => {
+  const close = async (
+    code: string,
+    detail: string,
+    /** 쓴 토큰 — **실패에도 나간 돈이 있다**(ADR 0039). 모르면 `null` 이고 안 적는다 */
+    usage: ModelUsage | null = null,
+  ): Promise<CollectOutcome> => {
     await keyed.rpc('fail_reading_job', {
       p_run_id: job.run_id,
       p_failure_code: code,
       p_failure_detail: detail,
+      p_usage: usage,
     });
     return { done: 'failed', code };
   };
@@ -119,7 +126,7 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     return { done: 'pending' };
   }
 
-  if (retrieved.ok === false) return close(retrieved.code, retrieved.detail);
+  if (retrieved.ok === false) return close(retrieved.code, retrieved.detail, retrieved.usage);
 
   /**
    * **얼린 것으로 검사한다.** 그 사이 배포가 났어도 보낸 것을 기준으로 재고, 사용자가
@@ -134,7 +141,8 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
   });
 
   if (!verdict.ok) {
-    return close(verdict.failures[0].code, verdict.failures.map((f) => f.detail).join(' · '));
+    // 모델은 다 돌았다 — 검사가 문 것이라 토큰은 이미 나갔다.
+    return close(verdict.failures[0].code, verdict.failures.map((f) => f.detail).join(' · '), retrieved.usage);
   }
 
   const { error: saveError } = await keyed.rpc('save_reading', {
@@ -152,7 +160,7 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     p_viewed_at: job.viewed_at,
   });
 
-  if (saveError) return close('save-rejected', saveError.message);
+  if (saveError) return close('save-rejected', saveError.message, retrieved.usage);
 
   return { done: 'saved' };
 }

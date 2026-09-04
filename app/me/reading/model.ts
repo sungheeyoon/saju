@@ -6,7 +6,13 @@ import { READING_POLICY, type ReadingOutput } from '@/src/lib/reading';
 
 import { GENERATION } from './generation';
 
-import type { ModelCall, ModelRetrieval, ModelSubmission, ReadingGenerator } from './generator';
+import type {
+  ModelCall,
+  ModelRetrieval,
+  ModelSubmission,
+  ModelUsage,
+  ReadingGenerator,
+} from './generator';
 
 /**
  * **모델을 부르는 유일한 자리.**
@@ -57,6 +63,32 @@ const SCHEMA = jsonSchema<ReadingOutput>(OUTPUT_SHAPE);
 /** provider 의 오류 문장. 출생 원문이 실릴 자리가 아니다 — 프롬프트에 그 값이 없다 */
 const messageOf = (failure: unknown): string =>
   failure instanceof Error ? failure.message : String(failure);
+
+/**
+ * 응답이 든 토큰 수를 우리 모양으로 — **한 자리에서만 옮긴다.**
+ *
+ * 성공과 실패가 각자 이 셈을 적으면 언젠가 한쪽만 고쳐지고, 그때 실패 쪽 지출이
+ * 조용히 다른 값이 된다.
+ */
+const usageOf = (response: {
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+    input_tokens_details?: { cached_tokens?: number };
+  } | null;
+}): ModelUsage => ({
+  inputTokens: response.usage?.input_tokens ?? null,
+  noCacheTokens:
+    response.usage?.input_tokens === undefined
+      ? null
+      : response.usage.input_tokens - (response.usage.input_tokens_details?.cached_tokens ?? 0),
+  cacheReadTokens: response.usage?.input_tokens_details?.cached_tokens ?? null,
+  // Responses API 는 캐시 쓰기를 따로 세지 않는다. 0 이 아니라 「못 셌다」다.
+  cacheWriteTokens: null,
+  outputTokens: response.usage?.output_tokens ?? null,
+  totalTokens: response.usage?.total_tokens ?? null,
+});
 
 /**
  * 프롬프트 하나를 보내고 결과를 받는다.
@@ -193,6 +225,12 @@ export async function retrieveBackgroundReading(responseId: string): Promise<Mod
       return { ok: 'pending' };
     }
 
+    /**
+     * **끝난 것은 실패여도 쓴 양을 들고 온다.**
+     *
+     * `incomplete` 는 모델이 다 돌다가 상한에 걸린 것이라 토큰이 이미 나갔다. 여기서
+     * 안 실으면 그 지출이 어디에도 안 남는다(ADR 0039).
+     */
     if (response.status !== 'completed') {
       return {
         ok: false,
@@ -200,12 +238,18 @@ export async function retrieveBackgroundReading(responseId: string): Promise<Mod
         // 갈래가 늘었을 때 어디로 접혔는지 알 수 없다.
         code: `model-${response.status ?? 'unknown'}`,
         detail: response.incomplete_details?.reason ?? response.error?.message ?? '',
+        usage: usageOf(response),
       };
     }
 
     const text = response.output_text;
     if (typeof text !== 'string' || text === '') {
-      return { ok: false, code: 'model-no-output', detail: '모델이 계약한 모양으로 내지 않았습니다' };
+      return {
+        ok: false,
+        code: 'model-no-output',
+        detail: '모델이 계약한 모양으로 내지 않았습니다',
+        usage: usageOf(response),
+      };
     }
 
     /**
@@ -216,29 +260,19 @@ export async function retrieveBackgroundReading(responseId: string): Promise<Mod
     try {
       output = JSON.parse(text) as ReadingOutput;
     } catch {
-      return { ok: false, code: 'model-no-output', detail: '결과를 읽지 못했습니다' };
+      return { ok: false, code: 'model-no-output', detail: '결과를 읽지 못했습니다', usage: usageOf(response) };
     }
 
     return {
       ok: true,
       output,
-      usage: {
-        inputTokens: response.usage?.input_tokens ?? null,
-        noCacheTokens:
-          response.usage?.input_tokens === undefined
-            ? null
-            : response.usage.input_tokens - (response.usage.input_tokens_details?.cached_tokens ?? 0),
-        cacheReadTokens: response.usage?.input_tokens_details?.cached_tokens ?? null,
-        // Responses API 는 캐시 쓰기를 따로 세지 않는다. 0 이 아니라 「못 셌다」다.
-        cacheWriteTokens: null,
-        outputTokens: response.usage?.output_tokens ?? null,
-        totalTokens: response.usage?.total_tokens ?? null,
-      },
+      usage: usageOf(response),
       modelId: response.model ?? null,
       runId: (response.metadata?.reading_run_id as string | undefined) ?? null,
     };
   } catch (failure) {
-    return { ok: false, code: 'model-retrieve-failed', detail: messageOf(failure) };
+    // 회수 자체가 안 됐다. 무엇을 썼는지 물어볼 데가 없다 — 0 이 아니라 `null` 이다.
+    return { ok: false, code: 'model-retrieve-failed', detail: messageOf(failure), usage: null };
   }
 }
 
