@@ -83,7 +83,7 @@ const 가짜 = {
 };
 
 for (const [client, nickname] of [[a, NAME.a], [b, NAME.b], [c, NAME.c]]) {
-  await client.from('discovery_profile').insert({ nickname, prefer_gender: 'any' });
+  await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: null });
   await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
 }
 

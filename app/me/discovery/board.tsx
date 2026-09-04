@@ -4,6 +4,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { boardStamp, candidatesForViewer, type CandidateBoard } from '../candidates';
 import { selfElementSummary } from '../summary';
+import { Avatar } from '../avatar';
 import { HideButton, RefreshBoard, RequestButton, UnhideAll } from './manage';
 
 /**
@@ -13,7 +14,7 @@ import { HideButton, RefreshBoard, RequestButton, UnhideAll } from './manage';
  * 세웠다. 이제 뽑는 일은 스냅샷이 하고 여기는 **만들어 둔 열 명을 읽기만 한다** —
  * 그래서 방문마다 도는 셈 없이 홈에 세울 수 있다.
  *
- * 설정(별명·소개·조건·참여 켜고 끄기)은 `/me/discovery` 에 남는다. 목록과 설정은
+ * 설정(조건·참여 켜고 끄기)은 `/me/discovery` 에 남는다. 목록과 설정은
  * 보는 빈도가 다르다 — 매번 보는 것을 매번 안 보는 것 아래에 두면 목록이 안 읽힌다.
  */
 export async function DiscoveryBoard() {
@@ -141,13 +142,20 @@ function Candidates({
                 번호에 구멍이 남는다 — 1·2·4 로 적히면 화면이 무언가 잃어버린 것처럼
                 보이고, 다시 매기면 노출 기록이 든 자리와 갈린다.
               */}
-              <div className="flex flex-wrap items-baseline gap-x-3">
-                <h3 className="text-base font-semibold">{card.nickname}</h3>
-                {card.exploration && (
-                  <span className="rounded-full bg-accent-wash px-2 py-0.5 text-xs text-accent">
-                    새로운 추천
-                  </span>
-                )}
+              <div className="flex items-center gap-3">
+                <Avatar
+                  userId={card.candidateUserId}
+                  nickname={card.nickname}
+                  hasPhoto={card.hasPhoto}
+                />
+                <div className="flex flex-wrap items-baseline gap-x-3">
+                  <h3 className="text-base font-semibold">{card.nickname}</h3>
+                  {card.exploration && (
+                    <span className="rounded-full bg-accent-wash px-2 py-0.5 text-xs text-accent">
+                      새로운 추천
+                    </span>
+                  )}
+                </div>
               </div>
 
               {card.intro !== null && <p className="text-sm text-secondary">{card.intro}</p>}

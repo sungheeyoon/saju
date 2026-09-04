@@ -122,6 +122,7 @@ export type BoardRow = {
   candidateUserId: string;
   nickname: string;
   intro: string | null;
+  hasPhoto: boolean;
   /** 0부터 — 화면의 차례이자 노출 기록이 든 자리 */
   seat: number;
   exploration: boolean;
@@ -164,7 +165,7 @@ export const NO_MISSING_NOTICE =
  */
 export const DISCOVERY_DISCLOSURE = {
   shown: [
-    '공개용 별명과 소개.',
+    '닉네임과 프로필 사진, 그리고 소개 — 사진은 올린 사람만 서고, 없으면 이름의 첫 글자가 섭니다.',
     '나에게 부족한 오행 중 소개받은 사람이 채우는 오행의 이름과 그 뜻 — 상대의 카드에도 같은 방식으로 내 오행이 몇 글자 나타납니다.',
     '함께 놓았을 때의 오행 균형을 말로 옮긴 설명.',
   ],

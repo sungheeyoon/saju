@@ -1,6 +1,6 @@
 -- discovery — 참여한 사람만 보고, 사주로는 아무도 지우지 않는다.
 begin;
-select plan(40);
+select plan(39);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim,
@@ -104,13 +104,12 @@ select public.create_self_person(
 ) as person_id;
 grant select on mine to authenticated;
 
-select throws_ok(
-  format($$select public.set_discovery_participation(true, %L)$$, (select 고른네오행 from summaries)),
-  '23502', null,
-  '공개용 별명이 없으면 참여할 수 없다');
-
-insert into public.discovery_profile (nickname, intro, prefer_gender)
-values ('민수', '조용한 편입니다', 'any');
+/*
+  **「별명이 없으면 참여 못 한다」를 여기서 안 잰다.** 이름이 계정으로 옮겨 가면서
+  사주보다 앞에 섰고(`the_name_comes_before_the_chart`), 사주가 있는 사람은 이름도 있다.
+  이름 없이 사주를 등록하는 길이 막혔는지는 `02_self_person` 이 잰다.
+*/
+select public.save_my_profile('민수', '조용한 편입니다');
 
 select throws_ok(
   $$select public.set_discovery_participation(true, '{"counts":{}}'::jsonb)$$,
@@ -131,8 +130,8 @@ select is(
 /**
  * 참여 상태는 사용자가 직접 못 옮긴다.
  *
- * 켠 시각을 손으로 적을 수 있으면 그것은 사건의 기록이 아니다. 열어 준 칸은 별명·소개·
- * 선호 셋뿐이다.
+ * 켠 시각을 손으로 적을 수 있으면 그것은 사건의 기록이 아니다. 이름과 소개가 계정으로
+ * 옮겨 간 뒤로 이 표에서 열어 준 칸은 **선호 하나뿐**이다.
  */
 select throws_ok(
   $$update public.discovery_profile set opted_in_at = now()$$,
@@ -170,7 +169,7 @@ select public.create_self_person(
 ) as person_id;
 grant select on theirs to authenticated;
 
-insert into public.discovery_profile (nickname, prefer_gender) values ('지영', 'any');
+select public.save_my_profile('지영', null);
 select public.set_discovery_participation(true, (select 토금뿐 from summaries));
 
 reset role;

@@ -234,8 +234,14 @@ select
   (select count(*) from public.reading_feedback)     as 설문,
   (select count(*) from public.notification)         as 알림,
   (select count(*) from public.report)               as 신고,
+  (select count(*) from public.profile_photo)        as 프로필사진,
   (select count(*) from public.reading_webhook_event) as 영수증;
 ```
+
+**프로필 사진은 손으로 안 지운다.** 바이트가 Postgres 안에 있고 `app_user` 에 cascade 로
+매여 있어서, 계정이 사라지면 함께 사라진다(ADR 0040). 파일 저장소에 뒀다면 이 절차에
+한 단계가 늘고 그 단계는 DB 밖에 있었을 것이다 — 위 표에 0 이 아닌 수가 남으면 그것이
+이 결정이 깨졌다는 뜻이다.
 
 **영수증은 마지막이다.** `reading_webhook_event` 는 도착을 적는 자리라 어느 FK 에도 안
 매여 있다. 생성이 도는 중에 지우면 그 사이 도착한 응답을 두 번 집을 수 있다. 순서는

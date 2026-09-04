@@ -11,6 +11,7 @@ import {
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
+import { Avatar } from '../avatar';
 import { Halted } from '../halted';
 import { inboxForViewer, type Inbox, type InboxMatch, type InboxRequest } from './inbox';
 import {
@@ -299,9 +300,16 @@ function Matches({ matches }: { matches: InboxMatch[] }) {
         <ul className="flex flex-col gap-3">
           {matches.map((match) => (
             <li key={match.matchId} className={`${CARD} flex flex-col gap-2`}>
-              <div className="flex flex-wrap items-baseline gap-x-3">
-                <h3 className="text-base font-semibold">{match.nickname}</h3>
-                <span className="text-xs text-muted">{when(match.createdAt)} 연결</span>
+              <div className="flex items-center gap-3">
+                <Avatar
+                  userId={match.partnerUserId}
+                  nickname={match.nickname}
+                  hasPhoto={match.hasPhoto}
+                />
+                <div className="flex flex-wrap items-baseline gap-x-3">
+                  <h3 className="text-base font-semibold">{match.nickname}</h3>
+                  <span className="text-xs text-muted">{when(match.createdAt)} 연결</span>
+                </div>
               </div>
               {match.intro !== null && <p className="text-sm text-secondary">{match.intro}</p>}
               {match.suppliedToMe !== null && (
@@ -326,13 +334,20 @@ function Matches({ matches }: { matches: InboxMatch[] }) {
   );
 }
 
-/** 요청 한 장의 머리 — 별명·소개와 **양쪽 방향의 오행** */
+/** 요청 한 장의 머리 — 닉네임·사진·소개와 **양쪽 방향의 오행** */
 function RequestHead({ request }: { request: InboxRequest }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex flex-wrap items-baseline gap-x-3">
-        <h3 className="text-base font-semibold">{request.nickname}</h3>
-        <span className="text-xs text-muted">{when(request.createdAt)}</span>
+      <div className="flex items-center gap-3">
+        <Avatar
+          userId={request.counterpartUserId}
+          nickname={request.nickname}
+          hasPhoto={request.hasPhoto}
+        />
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <h3 className="text-base font-semibold">{request.nickname}</h3>
+          <span className="text-xs text-muted">{when(request.createdAt)}</span>
+        </div>
       </div>
 
       {request.intro !== null && <p className="text-sm text-secondary">{request.intro}</p>}

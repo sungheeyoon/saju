@@ -1,6 +1,6 @@
 -- 온보딩 — Person·판본·엣지·claim 이 한 사건으로 일어난다.
 begin;
-select plan(10);
+select plan(11);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -24,6 +24,25 @@ select is((select self_person_id from public.app_user where id = (select kim fro
 
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
+
+/**
+ * **이름이 사주보다 먼저다**(PRD §5.1).
+ *
+ * 손잡이가 가입할 때 이름을 지어 주므로(실제 사람도 프로필 화면을 지나온다) 여기서만
+ * 도로 지운다.
+ */
+reset role;
+update public.app_user set nickname = null where id = (select kim from who);
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
+
+select throws_like(
+  $$select public.create_self_person(
+      '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean')$$,
+  '%닉네임%',
+  '이름을 안 지었으면 첫 입력을 넣을 수 없다');
+
+select public.save_my_profile('김온', null);
 
 create temporary table target as
 select public.create_self_person(

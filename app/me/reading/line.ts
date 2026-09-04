@@ -10,7 +10,7 @@ import type { ReadingEntry } from './current';
  * DB 반환값에 섞어 두면 문구를 고칠 때마다 마이그레이션이 필요해진다.
  *
  * 반대로 **이름을 화면이 짓지는 않는다.** 이름이 나오는 표가 kind 마다 다르고
- * (`local_label` · `discovery_profile.nickname`), 그것을 화면이 물으면 네 번 묻게 된다.
+ * (`local_label` · `app_user.nickname`), 그것을 화면이 물으면 네 번 묻게 된다.
  *
  * ## 왜 페이지 밖에 있나
  *

@@ -22,7 +22,7 @@ begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
-  insert into public.discovery_profile (nickname, prefer_gender) values (who, 'any');
+  perform public.save_my_profile(who, null);
   perform public.set_discovery_participation(true, summary);
   return uid;
 end;
@@ -54,10 +54,10 @@ set local role authenticated;
 
 create temporary table folks as
 select
-  pg_temp.participant('kim-mr@example.com', '김', pg_temp.summary(4, 4, 0, 0, 0)) as kim,
-  pg_temp.participant('lee-mr@example.com', '이', pg_temp.summary(0, 0, 4, 4, 0)) as lee,
-  pg_temp.participant('park-mr@example.com', '박', pg_temp.summary(2, 2, 2, 2, 0)) as park,
-  pg_temp.participant('choi-mr@example.com', '최', pg_temp.summary(0, 0, 0, 0, 8)) as choi;
+  pg_temp.participant('kim-mr@example.com', '김요', pg_temp.summary(4, 4, 0, 0, 0)) as kim,
+  pg_temp.participant('lee-mr@example.com', '이요', pg_temp.summary(0, 0, 4, 4, 0)) as lee,
+  pg_temp.participant('park-mr@example.com', '박요', pg_temp.summary(2, 2, 2, 2, 0)) as park,
+  pg_temp.participant('choi-mr@example.com', '최요', pg_temp.summary(0, 0, 0, 0, 8)) as choi;
 grant select on folks to authenticated;
 
 /**
@@ -161,7 +161,7 @@ select pg_temp.acting((select lee from folks));
 
 select is((select count(*)::int from public.my_notifications()), 1, '받은 쪽에 알림이 하나 선다');
 select is((select kind from public.my_notifications()), 'request_received', '새 요청 알림이다');
-select is((select counterpart_nickname from public.my_notifications()), '김',
+select is((select counterpart_nickname from public.my_notifications()), '김요',
   '알림은 상대의 **공개용 별명**을 든다');
 select is((select unread_notifications()), 1, '안 읽은 알림이 하나다');
 
@@ -219,8 +219,8 @@ select is(
 
 select is(
   (select partner_nickname from public.my_matches()),
-  '김',
-  '받은 쪽에서 상대는 김이다');
+  '김요',
+  '받은 쪽에서 상대는 김요다');
 
 select is(
   (select count(*)::int from public.my_notifications() where kind = 'request_accepted'),
@@ -239,7 +239,7 @@ select is(
   'Match 는 내 사람 목록을 늘리지 않는다 — 여전히 나 하나다');
 
 select pg_temp.acting((select kim from folks));
-select is((select partner_nickname from public.my_matches()), '이', '보낸 쪽에서 상대는 이다');
+select is((select partner_nickname from public.my_matches()), '이요', '보낸 쪽에서 상대는 이요다');
 
 -- ── 입력이 바뀌면 pending 이 무효가 된다 ──────────────────────────────────────
 create temporary table asked_park as
@@ -467,7 +467,7 @@ select is((select count(*)::int from public.block), 2, '내가 건 차단은 내
 -- 답하는 쪽 상태만 물었더니 제재된 요청자의 Match 가 그대로 만들어졌다.
 set local role authenticated;
 create temporary table han as
-select pg_temp.participant('han-mr@example.com', '한', pg_temp.summary(4, 0, 0, 0, 4)) as uid;
+select pg_temp.participant('han-mr@example.com', '한요', pg_temp.summary(4, 0, 0, 0, 4)) as uid;
 grant select on han to authenticated;
 
 reset role;
@@ -625,9 +625,9 @@ set local role authenticated;
 
 create temporary table later as
 select
-  pg_temp.participant('yoon-mr@example.com', '윤', pg_temp.summary(4, 4, 0, 0, 0)) as yoon,
-  pg_temp.participant('jang-mr@example.com', '장', pg_temp.summary(0, 0, 4, 4, 0)) as jang,
-  pg_temp.participant('moon-mr@example.com', '문', pg_temp.summary(0, 0, 0, 0, 8)) as moon;
+  pg_temp.participant('yoon-mr@example.com', '윤요', pg_temp.summary(4, 4, 0, 0, 0)) as yoon,
+  pg_temp.participant('jang-mr@example.com', '장요', pg_temp.summary(0, 0, 4, 4, 0)) as jang,
+  pg_temp.participant('moon-mr@example.com', '문요', pg_temp.summary(0, 0, 0, 0, 8)) as moon;
 grant select on later to authenticated;
 
 /** 앞선 시험들이 남긴 사람들은 이 셋의 관심 밖이다 — 서로만 보이게 둔다 */

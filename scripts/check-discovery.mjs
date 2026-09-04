@@ -140,8 +140,9 @@ try {
   }
 
   // ── 5. 둘 다 참여한다 ───────────────────────────────────────────────────────
+  /* 이름과 소개는 계정의 것이다(§5.2) — `discovery_profile` 에는 조건만 남았다 */
   const profileFor = (client, nickname, intro) =>
-    client.from('discovery_profile').insert({ nickname, intro, prefer_gender: 'any' });
+    client.rpc('save_my_profile', { p_nickname: nickname, p_intro: intro });
 
   await profileFor(me, MINE_NAME, '조용한 편입니다');
   await profileFor(other, THEIR_NAME, '주말엔 걷습니다');
@@ -313,7 +314,7 @@ const isolate = (emails) => {
       !keys.includes('complement') && !keys.includes('combined_balance') && !keys.includes('score'),
       keys.join(','));
     check('반환은 카드에 설 값뿐이다',
-      keys.join(',') === 'balance_band,candidate_user_id,exploration,intro,nickname,seat,supplied_elements',
+      keys.join(',') === 'balance_band,candidate_user_id,exploration,has_photo,intro,nickname,seat,supplied_elements',
       keys.join(','));
 
     const axis = await me.rpc('discovery_complement', { a: {}, b: {} });
@@ -358,6 +359,53 @@ const isolate = (emails) => {
 
     check('노출 기록의 수·후보·자리·탐색이 목록과 정확히 같다', logged === shown,
       `${logged} vs ${shown}`);
+  }
+
+  // ── 6-2. 얼굴은 **이름이 보이는 자리에서만** 보인다 ─────────────────────────
+  /**
+   * 사진은 후보 카드에 선다(§5.1). 그래서 여는 조건도 카드와 같아야 한다 — 조건을 새로
+   * 지으면 화면에는 없는 사람의 사진이 주소로 열리는 자리가 난다.
+   *
+   * **바이트를 내주는 것은 라우트 하나뿐이다.** 여기서 재는 것은 그 라우트가 판정을
+   * 안 하고 DB 의 답을 그대로 따르는가다.
+   */
+  {
+    const 사진 = Buffer.from('89504e470d0a1a0a-검사용', 'utf8').toString('base64');
+    const { error: 올림 } = await other.rpc('set_my_photo', {
+      p_content_type: 'image/png',
+      p_base64: 사진,
+    });
+    check('사진을 올린다', 올림 === null, 올림?.message);
+
+    forgetBoard(mine);
+    const response = await get('/me', myCookie);
+    const body = await response.text();
+
+    const theirId = (await other.auth.getUser()).data.user?.id;
+    check('후보 카드가 사진 주소를 든다', body.includes(`/me/photo/${theirId}`),
+      (/\/me\/photo\/[0-9a-f-]{36}/.exec(body) ?? ['(없다)'])[0]);
+
+    /* **바이트는 화면에 안 실린다** — 카드 여덟 장이 통째로 들어가면 첫 화면이 무거워진다 */
+    check('사진 바이트가 화면에 실려 오지 않는다', !body.includes(사진.slice(0, 40)));
+
+    const opened = await get(`/me/photo/${theirId}`, myCookie);
+    check('후보로 선 사람의 사진이 열린다', opened.status === 200, String(opened.status));
+    check('올린 형식 그대로 나간다',
+      opened.headers.get('content-type') === 'image/png',
+      opened.headers.get('content-type') ?? '(없다)');
+    /* 중간 캐시가 한 사람에게 내준 얼굴을 다음 사람에게 주면 「볼 수 있는 사람에게만」이 무너진다 */
+    check('캐시는 사람마다 든다',
+      (opened.headers.get('cache-control') ?? '').includes('private'),
+      opened.headers.get('cache-control') ?? '(없다)');
+
+    const missing = await get(`/me/photo/${crypto.randomUUID()}`, myCookie);
+    check('없는 사람의 사진은 404 다 — 못 보는 사람과 같은 답', missing.status === 404,
+      String(missing.status));
+
+    /* 못 보는 사람은 **없는 사람과 같은 답**을 받는다 — 500 은 우리가 고장 났다는 말이다 */
+    const anonymous = await fetch(`${BASE}/me/photo/${theirId}`, { redirect: 'manual' });
+    check('로그인하지 않으면 없는 것과 같은 답을 받는다', anonymous.status === 404,
+      String(anonymous.status));
   }
 
   // ── 7. 다시 보지 않기 ───────────────────────────────────────────────────────

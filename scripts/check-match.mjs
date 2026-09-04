@@ -37,7 +37,7 @@ const stamp = Date.now();
  *
  * 화면 본문에서 별명을 찾아 재는 검사가 여럿인데, 지난 실행이 남긴 동명이인이 DB 에
  * 있으면 그 사람이 후보 목록에 서서 검사가 헛디딘다(재어 봤다 — 43/44). 별명 상한이
- * 12자라 네 자리만 붙인다.
+ * 여덟 자라 네 자리만 붙인다.
  */
 const tag = String(stamp).slice(-4);
 const NAME = {
@@ -93,7 +93,7 @@ for (const [client, nickname, intro] of [
   [b, NAME.b, '주말엔 걷습니다'],
   [c, NAME.c, '요리를 합니다'],
 ]) {
-  await client.from('discovery_profile').insert({ nickname, intro, prefer_gender: 'any' });
+  await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: intro });
   await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
 }
 
@@ -373,8 +373,8 @@ try {
 
     const d = await person(dMail, '수민', '1991-07-07', '인천', 'female');
     const e = await person(eMail, '태호', '1989-02-02', '광주', 'male');
-    await d.from('discovery_profile').insert({ nickname: NAME.d, prefer_gender: 'any' });
-    await e.from('discovery_profile').insert({ nickname: NAME.e, prefer_gender: 'any' });
+    await d.rpc('save_my_profile', { p_nickname: NAME.d, p_intro: null });
+    await e.rpc('save_my_profile', { p_nickname: NAME.e, p_intro: null });
     await d.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
     await e.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
 

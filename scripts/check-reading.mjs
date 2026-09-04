@@ -79,7 +79,7 @@ const person = async (email, label, birth) => {
     p_original_date: birth.date, p_solar_date: birth.date, p_birth_time: '14:30',
     p_gender: birth.gender, p_city: birth.city, p_late_night_rule: 'jo', p_time_basis: 'localMean',
   });
-  await client.from('discovery_profile').insert({ nickname: label, prefer_gender: 'any' });
+  await client.rpc('save_my_profile', { p_nickname: label, p_intro: null });
   await client.rpc('set_discovery_participation', {
     p_on: true,
     p_summary: {
@@ -543,7 +543,7 @@ try {
 
     /**
      * 네 kind 가 다 선다 — 줄 이름은 kind 마다 다른 표에서 난 이름으로 지어진다
-     * (`local_label` · `discovery_profile.nickname`).
+     * (`local_label` · `app_user.nickname`).
      */
     check('목록에 내 사주 줄이 선다', shown.includes('내 사주'));
     check('목록에 저장한 사람 줄이 선다', shown.includes('엄마 사주'));

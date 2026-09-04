@@ -32,7 +32,7 @@ export default async function MeLayout({ children }: { children: React.ReactNode
   if (user === null) return children;
 
   const [{ data: account }, notice] = await Promise.all([
-    supabase.from('app_user').select('notice_version, notice_schedule_id').maybeSingle(),
+    supabase.from('app_user').select('nickname, notice_version, notice_schedule_id').maybeSingle(),
     scheduleFrom((name) => supabase.rpc(name)),
   ]);
 
@@ -118,6 +118,24 @@ export default async function MeLayout({ children }: { children: React.ReactNode
       account.notice_schedule_id !== notice.scheduleId);
 
   if (stale) redirect('/welcome');
+
+  /**
+   * **안내 다음이 이름이다**(PRD §5.1).
+   *
+   * 이름은 앱 안의 모든 자리에서 사람을 부르는 말이라, 없는 채로 지나가면 소식과 요청
+   * 목록이 이름 자리에 빈 칸을 세운다. 그래서 첫 입력보다 앞에 선다.
+   *
+   * 예외는 둘이다. 이름을 짓는 화면 자신과, 계정 관리 — 뒤엣것은 베타가 끝난 뒤에도
+   * 열어 두는 자리와 같은 까닭이다. 이름을 안 지었다는 이유로 **로그아웃과 삭제 요청까지
+   * 막으면** 들어오지도 나가지도 못한다.
+   *
+   * 여기서 하는 일은 길을 가리키는 것이고, 막는 일은 DB 가 한다 —
+   * `create_self_person` 이 이름을 묻고, `the_name_comes_before_the_chart` 가 그 뒤를
+   * 받는다.
+   */
+  const naming = here.startsWith('/me/profile');
+
+  if (account.nickname === null && !naming && !managing) redirect('/me/profile');
 
   return children;
 }

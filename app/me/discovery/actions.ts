@@ -5,27 +5,23 @@ import { revalidatePath } from 'next/cache';
 import { supabaseOnServer } from '../../auth/server-client';
 import type { SaveResult } from '../actions';
 import { selfElementSummary } from '../summary';
-import { missingInProfile, type DiscoveryProfileInput } from './profile';
+import { PREFER_GENDERS, type PreferGender } from './profile';
 
 /**
- * 공개용 프로필을 저장한다.
+ * 보고 싶은 상대를 저장한다.
  *
- * RPC 가 없다. 별명·소개·선호는 정책이 이미 열어 준 칸이고(`"내 프로필만 고친다"`),
- * 열려 있는 것을 함수로 다시 감싸면 판정하는 자리가 둘이 된다. **참여 상태와 오행
- * 요약은 이 길로 못 지나간다** — 그 둘은 열어 준 칸이 아니다.
+ * RPC 가 없다. 이 칸은 정책이 이미 열어 준 자리이고(`"내 프로필만 고친다"`), 열려 있는
+ * 것을 함수로 다시 감싸면 판정하는 자리가 둘이 된다. **참여 상태와 오행 요약은 이 길로
+ * 못 지나간다** — 그 둘은 열어 준 칸이 아니다.
+ *
+ * **이름과 소개도 이 길로 안 지나간다.** 계정으로 옮겨 갔고, 그 표에는 열어 준 칸이 없다.
  */
-export async function saveDiscoveryProfile(profile: DiscoveryProfileInput): Promise<SaveResult> {
-  const missing = missingInProfile(profile);
-  if (missing !== null) return { ok: false, message: missing };
+export async function savePreferGender(value: PreferGender): Promise<SaveResult> {
+  if (!(PREFER_GENDERS as readonly string[]).includes(value)) {
+    return { ok: false, message: '보고 싶은 상대를 다시 골라 주세요.' };
+  }
 
   const supabase = await supabaseOnServer();
-
-  const row = {
-    nickname: profile.nickname.trim(),
-    // 소개는 있거나 없다. 빈 문자열로 저장하면 「없음」이 두 값이 된다.
-    intro: profile.intro.trim() || null,
-    prefer_gender: profile.preferGender,
-  };
 
   /**
    * 처음인지 아닌지를 먼저 묻는다.
@@ -37,8 +33,8 @@ export async function saveDiscoveryProfile(profile: DiscoveryProfileInput): Prom
   const { data: existing } = await supabase.from('discovery_profile').select('user_id').maybeSingle();
 
   const { error } = existing
-    ? await supabase.from('discovery_profile').update(row).eq('user_id', existing.user_id)
-    : await supabase.from('discovery_profile').insert(row);
+    ? await supabase.from('discovery_profile').update({ prefer_gender: value }).eq('user_id', existing.user_id)
+    : await supabase.from('discovery_profile').insert({ prefer_gender: value });
 
   if (error) return { ok: false, message: error.message };
 
@@ -51,7 +47,7 @@ export async function saveDiscoveryProfile(profile: DiscoveryProfileInput): Prom
  *
  * **켤 때 오행 요약을 함께 낸다.** 요약은 브라우저가 아니라 여기서 내 판본을 읽어
  * 만든다 — 클라이언트가 지어 보낼 수 있으면 매칭 풀에 아무 요약이나 올라간다.
- * 자격(사주가 있는가·별명이 있는가·계정이 살아 있는가)은 RPC 가 묻는다.
+ * 자격(사주가 있는가·계정이 살아 있는가)은 RPC 가 묻는다 — 이름은 이미 있다(§5.1).
  */
 export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult> {
   const supabase = await supabaseOnServer();

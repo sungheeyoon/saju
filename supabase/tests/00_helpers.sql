@@ -53,6 +53,9 @@ security definer
 as $$
 declare
   new_id uuid := tests.signup_raw(signup_email);
+  base text;
+  taken text;
+  n integer := 0;
 begin
   /*
     일정도 함께 세운다 — 확인 기록이 **본 날짜**를 들기 때문이다. 없으면 `/me` 관문이
@@ -71,6 +74,32 @@ begin
       improvement_consent = false,
       contact_consent = false
   where id = new_id;
+
+  /*
+    **이름도 함께 짓는다** — 안내와 같은 까닭이다.
+
+    첫 입력 앞의 관문이 하나 더 늘었다(#14). 실제 사람은 프로필 화면에서 이름을 짓고
+    오므로 이 손잡이도 같은 자리를 지난다 — 안 지나면 거의 모든 파일이 사주를 못 만들고,
+    그러면 이 관문 하나가 다른 모든 시험을 막는다. 관문 자체를 재는 시험은 `signup_raw`
+    로 만들거나 이름을 지운다.
+
+    메일 앞자리에서 따되 **부딪히면 숫자를 붙인다.** 이름이 유일해졌으므로, 한 파일에서
+    두 사람의 앞자리가 같으면 손잡이가 그 자리에서 멈춘다 — 시험이 재려던 것과 상관없는
+    자리에서.
+  */
+  base := left(regexp_replace(split_part(signup_email, '@', 1), '[^0-9A-Za-z가-힣]', '', 'g'), 8);
+  if length(base) < 2 then base := base || '벗'; end if;
+  taken := base;
+  while exists (
+    select 1 from public.app_user u
+    where public.nickname_key(u.nickname) = public.nickname_key(taken)
+  ) loop
+    n := n + 1;
+    taken := left(base, greatest(1, 8 - length(n::text))) || n::text;
+  end loop;
+
+  update public.app_user set nickname = taken where id = new_id;
+
   return new_id;
 end;
 $$;

@@ -16,8 +16,8 @@ import { supabaseOnServer } from '../auth/server-client';
  * **후보가 브라우저로 내려가는 유일한 문.**
  *
  * `payloadForViewer` 와 같은 규율이다 — 묻지 않고 답만 낸다. 다만 **자르는 자리가 다르다.**
- * 후보 카드는 맛보기이므로 추천 이유는 적극적으로 나간다: 별명, 소개, **어느 오행을
- * 채우는지와 그 뜻**, 함께 놓았을 때의 균형을 말로 옮긴 한 줄.
+ * 후보 카드는 맛보기이므로 추천 이유는 적극적으로 나간다: 닉네임, 프로필 사진이 있는지,
+ * 소개, **어느 오행을 채우는지와 그 뜻**, 함께 놓았을 때의 균형을 말로 옮긴 한 줄.
  *
  * **자를 것은 이미 DB 에서 잘려 온다.** `my_discovery_board()` 가 스냅샷을 읽어 카드에 설
  * 값만 내준다 — 두 축의 숫자도 가중합도 그 반환형에 없고, 그 셈을 하는 함수는
@@ -38,6 +38,8 @@ export type CandidateCard = {
   readonly candidateUserId: string;
   readonly nickname: string;
   readonly intro: string | null;
+  /** 사진이 있는가 — **바이트는 여기 없다.** 그림은 주소로 받아 간다 */
+  readonly hasPhoto: boolean;
   /** 0부터 — 화면의 차례이자 노출 기록이 든 자리 */
   readonly position: number;
   readonly exploration: boolean;
@@ -62,6 +64,7 @@ type BoardRow = {
   candidate_user_id: string;
   nickname: string;
   intro: string | null;
+  has_photo: boolean;
   seat: number;
   exploration: boolean;
   supplied_elements: string[] | null;
@@ -99,6 +102,7 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
       candidateUserId: row.candidate_user_id,
       nickname: row.nickname,
       intro: row.intro,
+      hasPhoto: row.has_photo === true,
       position: row.seat,
       exploration: row.exploration,
       ...cardTextFor({ suppliedElements, balanceBand }),

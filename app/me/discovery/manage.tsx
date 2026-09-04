@@ -13,19 +13,11 @@ import {
   hideCandidate,
   refreshDiscoveryBoard,
   requestMatch,
-  saveDiscoveryProfile,
+  savePreferGender,
   setDiscoveryParticipation,
   unhideAllCandidates,
 } from './actions';
-import {
-  INTRO_MAX,
-  NICKNAME_MAX,
-  PREFER_GENDERS,
-  PREFER_GENDER_KO,
-  missingInProfile,
-  type DiscoveryProfileInput,
-  type PreferGender,
-} from './profile';
+import { PREFER_GENDERS, PREFER_GENDER_KO, type PreferGender } from './profile';
 
 const FIELD =
   'h-11 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash sm:h-10';
@@ -34,29 +26,30 @@ const BUTTON =
   'h-11 rounded-lg bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-60 sm:h-10';
 
 /**
- * 공개용 프로필 — **Person 입력도 부를 이름도 아니다.**
+ * 보고 싶은 상대 — **이 화면에 남은 유일한 칸.**
  *
- * 「엄마」는 내가 그 사람을 부르는 말이고, 후보 카드에 서는 것은 내가 고른 별명이다
- * (US 28). 두 값을 한 칸으로 합치면 남의 목록에 내 가족 호칭이 선다.
+ * 별명과 소개는 계정으로 옮겨 갔다(§5.2). 그 둘이 여기 있었을 때는 「인연 찾기에
+ * 참여해야 이름이 생기는」 상태였고, 참여하지 않는 사람은 이름 없는 사람이었다.
+ *
+ * 나이·거리 칸이 없는 이유는 **화면이 말하지 않는다.** 한동안 「나이 조건은 두지
+ * 않았습니다…」를 세 줄로 적어 두었는데, 칸이 하나뿐인 폼에서 그것은 **없는 기능을
+ * 변호하는 문단**이다. 나이를 못 쓰는 이유는 ADR 0005 가 든다 — 실제로 그 칸이 생기는
+ * 날 설명도 칸과 함께 선다.
  */
-export function ProfileForm({ current }: { current: DiscoveryProfileInput }) {
+export function PreferenceForm({ current }: { current: PreferGender }) {
   const router = useRouter();
-  const [profile, setProfile] = useState(current);
+  const [preferGender, setPreferGender] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, startSaving] = useTransition();
 
-  const missing = missingInProfile(profile);
-  const changed =
-    profile.nickname.trim() !== current.nickname.trim() ||
-    profile.intro.trim() !== current.intro.trim() ||
-    profile.preferGender !== current.preferGender;
+  const changed = preferGender !== current;
 
   const save = () => {
     setFailure(null);
     setSaved(false);
     startSaving(async () => {
-      const result = await saveDiscoveryProfile(profile);
+      const result = await savePreferGender(preferGender);
       if (result.ok) {
         setSaved(true);
         router.refresh();
@@ -69,46 +62,18 @@ export function ProfileForm({ current }: { current: DiscoveryProfileInput }) {
   return (
     <section className={`${CARD} flex flex-col gap-4`}>
       <header className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold">인연 찾기 프로필</h2>
+        <h2 className="text-base font-semibold">보고 싶은 상대</h2>
         <p className="text-sm text-secondary">
-          다른 사람의 인연 목록에 표시되는 정보입니다. 저장한 출생 정보나 가족·친구에게
-          붙인 이름은 공개되지 않습니다.
+          사주와 무관한 조건입니다. 저장한 출생 정보나 가족·친구에게 붙인 이름은 공개되지
+          않습니다.
         </p>
       </header>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-secondary">별명</span>
-        <input
-          type="text"
-          value={profile.nickname}
-          onChange={(event) =>
-            setProfile({ ...profile, nickname: event.target.value.slice(0, NICKNAME_MAX) })
-          }
-          maxLength={NICKNAME_MAX}
-          placeholder="인연 목록에 보일 이름"
-          className={`${FIELD} w-40`}
-        />
-      </label>
-
-      <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-secondary">소개 (선택)</span>
-        <textarea
-          value={profile.intro}
-          onChange={(event) => setProfile({ ...profile, intro: event.target.value.slice(0, INTRO_MAX) })}
-          maxLength={INTRO_MAX}
-          rows={3}
-          placeholder="사주와 무관한 소개입니다"
-          className="rounded-md border border-border bg-surface px-2.5 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash"
-        />
-      </label>
-
-      <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-secondary">보고 싶은 상대</span>
+        <span className="sr-only">보고 싶은 상대</span>
         <select
-          value={profile.preferGender}
-          onChange={(event) =>
-            setProfile({ ...profile, preferGender: event.target.value as PreferGender })
-          }
+          value={preferGender}
+          onChange={(event) => setPreferGender(event.target.value as PreferGender)}
           className={`${FIELD} w-40`}
         >
           {PREFER_GENDERS.map((value) => (
@@ -119,20 +84,10 @@ export function ProfileForm({ current }: { current: DiscoveryProfileInput }) {
         </select>
       </label>
 
-      {/*
-        나이·거리 칸이 없는 이유는 **화면이 말하지 않는다.**
-
-        한동안 「나이 조건은 두지 않았습니다…」를 세 줄로 적어 두었다. 없는 것을 비워
-        두면 「빠뜨렸나」로 읽힐까 봐였는데, 칸이 셋뿐인 폼에서는 그렇게 읽히지 않고
-        **없는 기능을 변호하는 문단**이 폼 한가운데에 서서 오히려 덜 만든 화면으로
-        보이게 했다. 나이를 못 쓰는 이유는 ADR 0005 가 든다 — 실제로 나이·거리 칸이
-        생기는 날 그 설명은 칸과 함께 선다.
-      */}
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} disabled={missing !== null || saving || !changed} className={BUTTON}>
-          {saving ? '저장하는 중…' : '프로필 저장'}
+        <button type="button" onClick={save} disabled={saving || !changed} className={BUTTON}>
+          {saving ? '저장하는 중…' : '조건 저장'}
         </button>
-        {missing !== null && <span className="text-xs text-muted">{missing}</span>}
         {saved && !changed && <span className="text-xs text-muted">저장했습니다</span>}
       </div>
 
@@ -175,14 +130,7 @@ function Disclosure() {
  * 후보 카드만 본 것은 궁합 동의가 아니고(`prd-archive`), 참여를 켜는 것도 명식 공개가 아니다.
  * 무엇이 나가고 무엇이 안 나가는지를 버튼 위에 적는다.
  */
-export function ParticipationToggle({
-  optedIn,
-  needsNickname,
-}: {
-  optedIn: boolean;
-  /** 별명이 없으면 아직 켤 수 없다 — 후보 카드에 설 이름이 없으면 설 자리가 없다 */
-  needsNickname: boolean;
-}) {
+export function ParticipationToggle({ optedIn }: { optedIn: boolean }) {
   const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
@@ -242,18 +190,13 @@ export function ParticipationToggle({
       <Disclosure />
 
       <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={() => toggle(true)}
-          disabled={working || needsNickname}
-          className={BUTTON}
-        >
+        {/*
+          **별명이 없어 못 누르는 자리가 없어졌다.** 이름은 가입할 때 짓고, 여기 오는
+          사람은 이미 그 자리를 지나왔다(§5.1).
+        */}
+        <button type="button" onClick={() => toggle(true)} disabled={working} className={BUTTON}>
           {working ? '켜는 중…' : '인연 찾기 시작'}
         </button>
-        {/* 왜 눌리지 않는지 버튼 옆에서 말한다 */}
-        {needsNickname && (
-          <span className="text-xs text-muted">공개용 별명을 먼저 저장해 주세요.</span>
-        )}
       </div>
       {failure !== null && <p className="text-sm text-muted">{failure}</p>}
     </section>

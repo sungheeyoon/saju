@@ -648,6 +648,10 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.goto('/me');
 
     await page.locator('summary[aria-label="설정 메뉴"]').click();
+
+    /* 프로필도 같은 메뉴에서 닿는다 — 이름은 앱 전체의 것이라 길도 앱 전체의 자리에 선다 */
+    await expect(page.getByRole('link', { name: '프로필' })).toBeVisible();
+
     await page.getByRole('link', { name: '계정 관리' }).click();
 
     await expect(page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
@@ -1006,4 +1010,64 @@ test.describe('로그인한 사람의 궁합 화면', () => {
    * 자료가 뒤에 붙는지, 그리고 한 사람일 때 두 사람용 프롬프트가 자리를 차지하지 않는지.
    * 둘 다 브라우저로 눌러야만 보인다.
    */
+});
+
+/**
+ * 가입할 때 만드는 프로필 — **안내 다음이 이름이다**(PRD §5.1).
+ *
+ * 관문이 넷 있다: 레이아웃이 길을 가리키고, `create_self_person` 이 문장으로 거절하고,
+ * 검사식이 마지막으로 막는다. 여기서 재는 것은 **첫째**다 — 사람이 실제로 그 길로
+ * 가는가. 나머지 셋은 pgTAP 이 잰다.
+ */
+test.describe('가입할 때 만드는 프로필', () => {
+  test('이름을 안 지었으면 이름부터 짓게 하고, 지으면 내 사주로 보낸다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipProfile: true });
+
+    await newcomer.page.goto('/me');
+    await expect(newcomer.page).toHaveURL(/\/me\/profile$/);
+    await expect(newcomer.page.getByRole('heading', { name: '어떻게 불러 드릴까요' })).toBeVisible();
+
+    const name = `벗${String(Date.now()).slice(-6)}`;
+    await newcomer.page.getByLabel('닉네임').fill(name);
+    await newcomer.page.getByRole('button', { name: '중복 확인' }).click();
+    await expect(newcomer.page.getByText('쓸 수 있는 닉네임입니다.')).toBeVisible();
+
+    await newcomer.page.getByRole('button', { name: '이 이름으로 시작하기' }).click();
+
+    /* 짓고 나면 원래 가려던 자리다 — 고치러 온 사람은 이 화면에 그대로 남는다 */
+    await expect(newcomer.page).toHaveURL(/\/me$/);
+    await expect(newcomer.page.getByRole('heading', { name: '내 사주 등록' })).toBeVisible();
+  });
+
+  /**
+   * **이름이 없다고 나가는 길까지 막지 않는다.**
+   *
+   * 계정 관리는 로그아웃과 삭제 요청이 닿는 자리다. 이름을 안 지었다는 이유로 그것까지
+   * 막으면 들어오지도 나가지도 못한다 — 베타가 끝난 뒤에도 이 화면만 열어 두는 것과
+   * 같은 까닭이다.
+   */
+  test('이름이 없어도 계정 관리는 열린다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipProfile: true });
+
+    await newcomer.page.goto('/me/settings');
+    await expect(newcomer.page).toHaveURL(/\/me\/settings$/);
+    await expect(newcomer.page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
+  });
+
+  test('이름은 나중에 고칠 수 있고, 고칠 때도 중복 규칙은 같다', async ({ openAs }) => {
+    const one = await openAs({ selfPerson: true });
+    const two = await openAs({ selfPerson: true });
+
+    await two.page.goto('/me/profile');
+    await expect(two.page.getByRole('heading', { name: '프로필' })).toBeVisible();
+
+    /* 남이 쓰는 이름으로 고치려 하면 확인 자리에서 먼저 말한다 */
+    await two.page.getByLabel('닉네임').fill(one.account.nickname);
+    await two.page.getByRole('button', { name: '중복 확인' }).click();
+    await expect(two.page.getByText('이미 쓰고 있는 닉네임입니다.')).toBeVisible();
+
+    /* 그래도 눌러 보면 저장이 거절한다 — 확인은 안내이고 막는 것은 DB 다 */
+    await two.page.getByRole('button', { name: '프로필 저장' }).click();
+    await expect(two.page.getByText(/저장하지 못했습니다/)).toBeVisible();
+  });
 });

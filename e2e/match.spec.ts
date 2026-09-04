@@ -47,13 +47,20 @@ test.describe('동의로 열리는 흐름', () => {
       [asker, `보내는${tag}`],
       [receiver, `받는${tag}`],
     ] as const) {
-      await person.page.goto('/me/discovery');
-      // 낱말이 「매칭」에서 「인연 찾기」로 바뀌었는데 이 시험이 안 따라왔었다.
-      await expect(person.page.getByRole('heading', { name: '인연 찾기 프로필' })).toBeVisible();
-
-      await person.page.getByLabel('별명').fill(nickname);
+      /*
+        **이름은 프로필 화면에서 짓는다**(§5.1). 인연 찾기 설정에 남은 것은 조건 하나다 —
+        이름이 참여의 부속물이던 때에는 참여하지 않는 사람에게 이름이 없었다.
+      */
+      await person.page.goto('/me/profile');
+      await person.page.getByLabel('닉네임').fill(nickname);
+      await person.page.getByRole('button', { name: '중복 확인' }).click();
+      await expect(person.page.getByText('쓸 수 있는 닉네임입니다.')).toBeVisible();
       await person.page.getByRole('button', { name: '프로필 저장' }).click();
       await expect(person.page.getByText('저장했습니다')).toBeVisible();
+
+      await person.page.goto('/me/discovery');
+      // 낱말이 「매칭」에서 「인연 찾기」로 바뀌었는데 이 시험이 안 따라왔었다.
+      await expect(person.page.getByRole('heading', { name: '인연 찾기 설정' })).toBeVisible();
 
       /*
         **켜기 전에 무엇이 나가고 무엇이 안 나가는지 읽힌다**(US 26 · `prd-archive`).

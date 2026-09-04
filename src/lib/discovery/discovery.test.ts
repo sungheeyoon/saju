@@ -52,7 +52,9 @@ describe('discovery-v0 는 정책을 값으로 든다', () => {
    */
   it('참여 전 고지가 실제로 나가는 것과 나가지 않는 것을 그대로 적는다', () => {
     const shown = DISCOVERY_DISCLOSURE.shown.join(' ');
-    expect(shown).toContain('별명');
+    expect(shown).toContain('닉네임');
+    // 사진이 나가기 시작했다(§5.1) — 고지가 그 사실을 적는지 여기서 붙든다
+    expect(shown).toContain('프로필 사진');
     expect(shown).toContain('오행');
     expect(shown).toContain('뜻');
 

@@ -32,6 +32,7 @@ type RequestRow = {
   counterpart_user_id: string;
   counterpart_nickname: string | null;
   counterpart_intro: string | null;
+  counterpart_has_photo: boolean;
   status: string;
   supplied_to_me: string[] | null;
   supplied_to_them: string[] | null;
@@ -45,6 +46,7 @@ type MatchRow = {
   partner_user_id: string;
   partner_nickname: string | null;
   partner_intro: string | null;
+  partner_has_photo: boolean;
   supplied_to_me: string[] | null;
   balance_band: string;
   created_at: string;
@@ -71,6 +73,7 @@ export type InboxRequest = {
   readonly counterpartUserId: string;
   readonly nickname: string;
   readonly intro: string | null;
+  readonly hasPhoto: boolean;
   readonly status: RequestStatus;
   /** 상대가 내게 채우는 오행 — **내 자리 기준**이다. 방향은 DB 가 뒤집어 준다 */
   readonly suppliedToMe: string | null;
@@ -86,6 +89,7 @@ export type InboxMatch = {
   readonly partnerUserId: string;
   readonly nickname: string;
   readonly intro: string | null;
+  readonly hasPhoto: boolean;
   readonly suppliedToMe: string | null;
   readonly balanceLabel: string;
   readonly createdAt: string;
@@ -199,6 +203,7 @@ export async function inboxForViewer(): Promise<Inbox> {
           counterpartUserId: row.counterpart_user_id,
           nickname: row.counterpart_nickname ?? '',
           intro: row.counterpart_intro,
+          hasPhoto: row.counterpart_has_photo === true,
           status,
           suppliedToMe: suppliedText(elementsOf(row.supplied_to_me), 'toMe'),
           suppliedToThem: suppliedText(elementsOf(row.supplied_to_them), 'toThem'),
@@ -217,6 +222,7 @@ export async function inboxForViewer(): Promise<Inbox> {
       partnerUserId: row.partner_user_id,
       nickname: row.partner_nickname ?? '',
       intro: row.partner_intro,
+      hasPhoto: row.partner_has_photo === true,
       suppliedToMe: suppliedText(elementsOf(row.supplied_to_me), 'toMe'),
       balanceLabel: cardTextFor({
         suppliedElements: [],

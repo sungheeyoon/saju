@@ -35,7 +35,7 @@ begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
-  insert into public.discovery_profile (nickname, prefer_gender) values (who, 'any');
+  perform public.save_my_profile(who, null);
   perform public.set_discovery_participation(true, summary);
   return uid;
 end;

@@ -4,8 +4,8 @@ import { redirect } from 'next/navigation';
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { Halted } from '../halted';
-import { ParticipationToggle, ProfileForm } from './manage';
-import { PREFER_GENDERS, type DiscoveryProfileInput, type PreferGender } from './profile';
+import { ParticipationToggle, PreferenceForm } from './manage';
+import { preferGenderOf } from './profile';
 
 export const metadata = {
   title: '인연 찾기 설정 — 만세력',
@@ -16,7 +16,7 @@ export const metadata = {
  * 인연 찾기 **설정** — 목록은 여기 없다.
  *
  * 추천 목록은 홈(`/me`)이 든다(ADR 0037). 목록이 스냅샷이 된 뒤로 그것을 읽는 값이
- * 싸졌고, 매번 보는 것을 매번 안 보는 것(별명·소개·조건) 아래에 둘 이유가 없어졌다.
+ * 싸졌고, 매번 보는 것을 매번 안 보는 것(조건) 아래에 둘 이유가 없어졌다.
  *
  * 여기 남는 것은 **내가 남에게 어떻게 보이는가**다. 그 판단은 한 번 정하면 오래 안
  * 건드리는 값이라 따로 선다.
@@ -31,10 +31,7 @@ export default async function DiscoveryPage() {
 
   const [{ data: account }, { data: profile }] = await Promise.all([
     supabase.from('app_user').select('status, self_person_id').maybeSingle(),
-    supabase
-      .from('discovery_profile')
-      .select('nickname, intro, prefer_gender, opted_in_at')
-      .maybeSingle(),
+    supabase.from('discovery_profile').select('prefer_gender, opted_in_at').maybeSingle(),
   ]);
 
   const optedIn = profile?.opted_in_at != null;
@@ -66,14 +63,23 @@ export default async function DiscoveryPage() {
         </section>
       ) : (
         <>
-          <ProfileForm current={profileInput(profile)} />
-
           {/*
-            **켜기 전에 무엇이 나가는지부터 읽힌다.** 별명이 없으면 아직 켤 수 없지만,
-            그렇다고 이 설명을 감추면 사용자는 무엇을 켜는 것인지 모른 채 별명부터 짓게 된다.
-            버튼은 잠그고 이유를 옆에 적는다.
+            **이름과 사진은 여기 없다.** 그 둘은 계정의 것이고 프로필 화면이 든다 —
+            참여를 끄면 함께 거둬지는 값들과 한 행에 두면, 참여하지 않는 사람은 이름
+            없는 사람이 된다(§5.2).
           */}
-          <ParticipationToggle optedIn={optedIn} needsNickname={profile === null} />
+          <p className="text-sm text-secondary">
+            닉네임·프로필 사진·소개는{' '}
+            <Link href="/me/profile" className="text-accent underline underline-offset-2">
+              프로필 화면
+            </Link>
+            에서 정합니다.
+          </p>
+
+          <PreferenceForm current={preferGenderOf(profile?.prefer_gender)} />
+
+          {/* **켜기 전에 무엇이 나가는지부터 읽힌다.** */}
+          <ParticipationToggle optedIn={optedIn} />
 
           {/* 켠 사람에게만 목록으로 가는 길을 낸다 — 안 켠 사람에게는 아직 목록이 없다 */}
           {optedIn && (
@@ -88,16 +94,4 @@ export default async function DiscoveryPage() {
       )}
     </main>
   );
-}
-
-function profileInput(
-  profile: { nickname: string; intro: string | null; prefer_gender: string } | null,
-): DiscoveryProfileInput {
-  return {
-    nickname: profile?.nickname ?? '',
-    intro: profile?.intro ?? '',
-    preferGender: (PREFER_GENDERS as readonly string[]).includes(profile?.prefer_gender ?? '')
-      ? (profile?.prefer_gender as PreferGender)
-      : 'any',
-  };
 }

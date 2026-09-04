@@ -106,6 +106,9 @@ select pg_temp.acting((select kim from fresh));
 
 -- ── 지나온 뒤 ──────────────────────────────────────────────────────────────
 
+/* 안내 다음이 이름이다 — 이 사람은 `signup_raw` 로 만들어 아직 아무것도 안 지났다 */
+select public.save_my_profile('김안', null);
+
 select lives_ok(
   $$select public.create_self_person(
       '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean')$$,

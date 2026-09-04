@@ -159,6 +159,8 @@ export function leavePersonSlots(email: string, free: number): void {
 export type Account = {
   readonly email: string;
   readonly label: string;
+  /** 앱 안에서 불리는 이름 — **부를 이름(`label`)과 다른 값이다**(§5.2) */
+  readonly nickname: string;
   /** 이 계정이 등록한 가족·친구 — `people` 을 요청했을 때만 */
   readonly managed: readonly string[];
   /**
@@ -191,6 +193,8 @@ type Seed = {
   readonly people?: readonly string[];
   /** 안내를 **안 지나온** 사람으로 둔다 — 관문 자체를 재는 시험만 쓴다 */
   readonly skipNotice?: boolean;
+  /** 이름을 **안 지은** 사람으로 둔다 — 프로필 관문 자체를 재는 시험만 쓴다 */
+  readonly skipProfile?: boolean;
 };
 
 const BIRTH = {
@@ -209,6 +213,8 @@ async function seed(
   const email = `e2e-${stamp}@example.com`;
   const password = `pw-${stamp}-Aa1!`;
   const label = `민수${stamp.slice(-4)}`;
+  /* 여덟 자까지다. 이름이 유일해졌으므로 짧게 자르면 나란히 도는 워커끼리 부딪힌다 */
+  const nickname = `벗${stamp.slice(-6)}`;
 
   sql(`insert into public.invite (email, note) values ('${email}', 'e2e')`);
 
@@ -240,6 +246,18 @@ async function seed(
       p_contact: false,
     });
     if (passed.error) throw new Error(`안내를 지나지 못했습니다 — ${passed.error.message}`);
+  }
+
+  /*
+    **안내 다음이 이름이다**(§5.1). 첫 입력 앞의 관문이 하나 더 늘었고, 실제 사람은
+    `/me/profile` 에서 이름을 짓고 온다. 관문 자체를 재는 시험만 이 자리를 건너뛴다.
+  */
+  if (wanted.skipProfile !== true) {
+    const named = await client.rpc('save_my_profile', {
+      p_nickname: nickname,
+      p_intro: null,
+    });
+    if (named.error) throw new Error(`이름을 못 지었습니다 — ${named.error.message}`);
   }
 
   let selfPersonId: string | null = null;
@@ -277,7 +295,7 @@ async function seed(
   }
 
   return {
-    account: { email, label, managed: wanted.people ?? [], selfPersonId },
+    account: { email, label, nickname, managed: wanted.people ?? [], selfPersonId },
     password,
     api: client,
   };
@@ -290,9 +308,15 @@ async function seed(
  * 매칭 풀에 내놓는 자기 요약이고, 우리가 재려는 것은 그 숫자가 아니라 **요청·수락·
  * 무효화가 이어지는가**다.
  */
-export async function optIn(api: SupabaseClient, nickname: string): Promise<void> {
-  const profile = await api.from('discovery_profile').insert({ nickname, prefer_gender: 'any' });
-  if (profile.error) throw new Error(`공개용 프로필을 못 넣었습니다 — ${profile.error.message}`);
+export async function optIn(api: SupabaseClient, nickname?: string): Promise<void> {
+  /*
+    **이름은 이미 있다.** 가입할 때 짓기 때문이다(§5.1) — 여기서 이름을 넘기는 것은
+    시험이 그 사람을 이름으로 잡아야 할 때뿐이다.
+  */
+  if (nickname !== undefined) {
+    const named = await api.rpc('save_my_profile', { p_nickname: nickname, p_intro: null });
+    if (named.error) throw new Error(`이름을 못 지었습니다 — ${named.error.message}`);
+  }
 
   const on = await api.rpc('set_discovery_participation', {
     p_on: true,

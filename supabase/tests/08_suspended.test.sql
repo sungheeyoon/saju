@@ -23,7 +23,7 @@ grant select on mine to authenticated;
 select public.create_managed_person(
   '엄마', null, 'solar', '1962-04-15', '1962-04-15', '07:20', 'female', '부산', 'jo', 'localMean');
 
-insert into public.discovery_profile (nickname, prefer_gender) values ('민수', 'any');
+select public.save_my_profile('민수', null);
 select public.set_discovery_participation(true, (select elements from summary));
 
 -- 여기까지는 다 된다. 이제 운영자가 계정을 중지한다.
@@ -66,9 +66,9 @@ with removed as (
 select is((select count(*)::int from removed), 0, '감춘 목록도 못 건드린다');
 
 select throws_ok(
-  $$insert into public.discovery_profile (nickname) values ('새 이름')$$,
+  $$select public.save_my_profile('새이름', null)$$,
   '42501', null,
-  '프로필을 새로 만들지도 못한다');
+  '이름도 못 고친다');
 
 -- ── RPC ───────────────────────────────────────────────────────────────────────
 select throws_ok(

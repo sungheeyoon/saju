@@ -46,8 +46,19 @@ export function scheduleBeta(endsOn = CHECK_ENDS_ON) {
               or (select s.operator_contact from public.current_beta_schedule() s) is null`]);
 }
 
-/** 선택 동의는 **꺼 둔다** — 켜 두면 「동의한 사람에게만」을 재는 검사가 우연히 통과한다 */
-export async function passNotice(client) {
+/**
+ * 안내를 지나고 **이름까지 짓는다.**
+ *
+ * 첫 입력 앞의 관문이 둘이 됐다(#14) — 안내 다음이 이름이다. 실제 사람은 `/welcome`
+ * 다음에 `/me/profile` 을 지나오므로 검사 계정도 같은 자리를 지난다. 이름을 안 지으면
+ * 모든 검사가 사주 등록에서 멈추고, 그때 멈추는 자리는 그 검사가 재려던 곳이 아니다.
+ *
+ * 이름은 **유일해야 한다.** 부딪히면 검사가 재려던 것과 상관없는 자리에서 넘어지므로,
+ * 부르는 쪽이 이름을 안 정하면 무작위로 짓는다.
+ *
+ * 선택 동의는 **꺼 둔다** — 켜 두면 「동의한 사람에게만」을 재는 검사가 우연히 통과한다.
+ */
+export async function passNotice(client, nickname) {
   scheduleBeta();
 
   const current = await client.rpc('current_beta_schedule');
@@ -58,4 +69,10 @@ export async function passNotice(client) {
     p_contact: false,
   });
   if (error) throw new Error(`안내를 지나지 못했습니다 — ${error.message}`);
+
+  const named = await client.rpc('save_my_profile', {
+    p_nickname: nickname ?? `벗${Math.random().toString(36).slice(2, 8)}`,
+    p_intro: null,
+  });
+  if (named.error) throw new Error(`이름을 짓지 못했습니다 — ${named.error.message}`);
 }

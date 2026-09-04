@@ -262,7 +262,15 @@ function AccountMenu({ email }: { email: string | null }) {
       </summary>
       <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-float)]">
         {email && <p className="truncate border-b border-border px-3 py-2 text-xs text-muted">{email}</p>}
-        <Link href="/me/settings" className="mt-1 block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft">
+        {/*
+          **프로필로 가는 길은 여기다.** 가입할 때 한 번 짓고 나면 그 화면을 다시 찾을
+          자리가 없었다 — 인연 설정 안의 한 줄로만 닿았고, 인연에 참여하지 않는 사람은
+          그 화면에 갈 이유가 없다. 이름은 앱 전체의 것이므로 길도 앱 전체의 자리에 선다.
+        */}
+        <Link href="/me/profile" className="mt-1 block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft">
+          프로필
+        </Link>
+        <Link href="/me/settings" className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft">
           계정 관리
         </Link>
         <button
