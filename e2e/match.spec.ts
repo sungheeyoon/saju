@@ -1,6 +1,6 @@
 import type { Locator } from '@playwright/test';
 
-import { expect, hideEveryoneExcept, optIn, test, type Person } from './session';
+import { expect, forgetBoards, hideEveryoneExcept, optIn, test, type Person } from './session';
 
 import { fillBirthDate } from './birth-form';
 
@@ -21,12 +21,14 @@ async function bothParticipate(a: Person, b: Person, tag: string): Promise<void>
   await optIn(a.api, `가${tag}`);
   await optIn(b.api, `나${tag}`);
   hideEveryoneExcept([a.account.email, b.account.email]);
+  // 참여를 켜기 전에 만들어진 목록이 있으면 그 목록에는 서로가 없다.
+  forgetBoards([a.account.email, b.account.email]);
 }
 
 /** 요청 하나를 pending 으로 세운다 — 화면으로 재는 자리가 아닐 때 */
 async function pendingRequest(from: Person, to: Person): Promise<void> {
   // 후보 목록을 한 번 받아야 요청의 근거(reason snapshot)가 선다(ADR 0009).
-  const board = await from.api.rpc('discovery_board');
+  const board = await from.api.rpc('my_discovery_board');
   if (board.error) throw new Error(`후보 목록을 못 받았습니다 — ${board.error.message}`);
 
   const partner = await to.api.from('discovery_profile').select('user_id').maybeSingle();
@@ -65,9 +67,10 @@ test.describe('동의로 열리는 흐름', () => {
     }
 
     hideEveryoneExcept([asker.account.email, receiver.account.email]);
+    forgetBoards([asker.account.email, receiver.account.email]);
 
-    // ── 후보를 보고 요청을 보낸다 ───────────────────────────────────────────
-    await asker.page.goto('/me/discovery');
+    // ── 후보를 보고 요청을 보낸다 — **목록은 홈에 선다**(ADR 0037) ──────────
+    await asker.page.goto('/me');
     await expect(asker.page.getByRole('heading', { name: `받는${tag}` })).toBeVisible();
 
     /**
@@ -84,8 +87,12 @@ test.describe('동의로 열리는 흐름', () => {
       낱말이 아니라 **값**을 센다. 「생년월일」은 참여 화면이 「보이지 않는 것」을
       적으면서 이미 쓰고 있는 말이라, 낱말을 세면 약속을 적어 둔 문장이 그 약속을
       깨뜨린 것으로 잡힌다.
+
+      **카드 안에서 센다.** 목록이 홈으로 온 뒤로(ADR 0037) 같은 화면에 내 저장된
+      출생 정보가 함께 서 있고, 그것은 내 것이라 거기 있어야 한다. 재려는 것은
+      **후보 카드가 무엇을 말하는가**다.
     */
-    await expect(asker.page.getByText('1990-05-15')).toHaveCount(0);
+    await expect(card.getByText('1990-05-15')).toHaveCount(0);
 
     await card.getByRole('button', { name: '상세 궁합 요청하기' }).click();
     // 보내기 전에 공개 범위를 읽는다 — 후보 카드만 본 것은 동의가 아니다(`prd-archive`).
@@ -275,7 +282,7 @@ test.describe('동의로 열리는 흐름', () => {
     const receiver = await openAs({ selfPerson: true });
     await bothParticipate(asker, receiver, tag);
 
-    await asker.page.goto('/me/discovery');
+    await asker.page.goto('/me');
     /*
       **첫 카드로 좁힌다.** 시험들이 나란히 도는 동안 남의 후보가 목록에 함께 설 수
       있고, 여기서 재는 것은 「누가 서 있나」가 아니라 **한 카드 안의 배치**다.
@@ -329,7 +336,7 @@ test.describe('동의로 열리는 흐름', () => {
       throw new Error(`탭으로 「${name}」에 못 닿았습니다`);
     };
 
-    await asker.page.goto('/me/discovery');
+    await asker.page.goto('/me');
     const card = asker.page.getByRole('listitem').filter({ hasText: `나${tag}` });
     await reach(asker, '상세 궁합 요청하기', card);
     await asker.page.keyboard.press('Enter');
@@ -381,11 +388,11 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receiver.page.getByRole('heading', { name: `가${tag}` })).toHaveCount(0);
 
     // 막는 것은 한쪽이 아니다 — 보낸 쪽의 후보 목록에서도 사라진다(제재는 양방향).
-    await asker.page.goto('/me/discovery');
+    await asker.page.goto('/me');
     await expect(asker.page.getByRole('heading', { name: `나${tag}` })).toHaveCount(0);
 
     // 새 요청도 서지 않는다.
-    const board = await asker.api.rpc('discovery_board');
+    const board = await asker.api.rpc('my_discovery_board');
     expect(board.error).toBeNull();
     const partner = await receiver.api.from('discovery_profile').select('user_id').maybeSingle();
     const again = await asker.api.rpc('request_match', {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 import { DISCOVERY_DISCLOSURE } from '@/src/lib/discovery';
 import { REQUEST_INTRO } from '@/src/lib/consent';
@@ -11,6 +11,7 @@ import { CARD } from '../../card';
 import { MatchScope } from '../requests/manage';
 import {
   hideCandidate,
+  refreshDiscoveryBoard,
   requestMatch,
   saveDiscoveryProfile,
   setDiscoveryParticipation,
@@ -256,6 +257,57 @@ export function ParticipationToggle({
       </div>
       {failure !== null && <p className="text-sm text-muted">{failure}</p>}
     </section>
+  );
+}
+
+/**
+ * 목록을 새로 받는다 — **얼마나 기다려야 하는지는 DB 가 말한다**(ADR 0037).
+ *
+ * `waitSeconds` 는 DB 가 센 값이다(`my_discovery_snapshot`). 여기서 5분을 다시 세지 않는
+ * 것은 그 수가 두 곳에 적히면 갈리기 때문이고, 남은 초를 시각에서 직접 빼지 않는 것은
+ * **브라우저 시계가 서버와 다를 수 있어서**다 — 그러면 눌리는 시점이 사람마다 달라진다.
+ * 받은 수만큼만 세어 내려간다.
+ *
+ * 눌리지 않는 이유를 버튼 자리에서 말한다. 아무 말 없이 흐린 버튼은 고장으로 읽힌다.
+ */
+export function RefreshBoard({ waitSeconds }: { waitSeconds: number }) {
+  const router = useRouter();
+  const [left, setLeft] = useState(waitSeconds);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [working, startWorking] = useTransition();
+
+  useEffect(() => {
+    if (left <= 0) return;
+    const tick = setInterval(() => setLeft((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => clearInterval(tick);
+  }, [left]);
+
+  const refresh = () => {
+    setFailure(null);
+    startWorking(async () => {
+      const result = await refreshDiscoveryBoard();
+      if (result.ok) router.refresh();
+      else setFailure(result.message);
+    });
+  };
+
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={refresh}
+        disabled={working || left > 0}
+        className="h-9 rounded-lg border border-border px-3 text-sm text-secondary transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-60"
+      >
+        {working ? '받는 중…' : '목록 새로 받기'}
+      </button>
+      {left > 0 && (
+        <span className="text-xs text-muted">
+          {left >= 60 ? `${Math.ceil(left / 60)}분` : `${left}초`} 뒤에 다시 받을 수 있습니다
+        </span>
+      )}
+      {failure !== null && <span className="text-xs text-muted">{failure}</span>}
+    </span>
   );
 }
 

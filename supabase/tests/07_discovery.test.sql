@@ -141,7 +141,7 @@ select throws_ok(
 
 -- ── 후보 ──────────────────────────────────────────────────────────────────────
 /**
- * **`discovery_board` 는 `security definer` 라 RLS 가 안 걸린다.**
+ * **`my_discovery_board` 는 `security definer` 라 RLS 가 안 걸린다.**
  *
  * 그래서 이 시험이 세는 수는 스스로 좁혀지지 않는다 — 다른 검사가 남긴 참여자까지
  * 함께 세면 「DB 가 비어 있는가」를 재게 된다. 이 시험이 만든 사람으로 좁혀서 센다.
@@ -150,7 +150,7 @@ create or replace function pg_temp.candidates_among(target uuid)
 returns integer
 language sql
 as $$
-  select count(*)::int from public.discovery_board() c where c.candidate_user_id = target;
+  select count(*)::int from public.my_discovery_board() c where c.candidate_user_id = target;
 $$;
 
 select is(
@@ -178,7 +178,7 @@ reset role;
 /**
  * **여기부터 후보를 보므로 다른 검사가 남긴 참여자를 먼저 뺀다.**
  *
- * `discovery_board` 는 `definer` 라 RLS 로 스스로 좁혀지지 않고, 자리도 열 개까지다.
+ * `my_discovery_board` 는 `definer` 라 RLS 로 스스로 좁혀지지 않고, 자리도 열 개까지다.
  * 안 좁히면 「지영이 후보로 서는가」가 「지영이 남들보다 위인가」를 재게 되고, 남은
  * 참여자가 열을 넘는 순간 목표가 목록 밖으로 밀린다 — 재현했다(참여자 36 명에서
  * 이 단언이 무너졌다). 이 정리는 **수를 재는 대목보다 앞에** 있어야 한다.
@@ -189,13 +189,23 @@ from (select kim as uid from who union select lee from who union select park fro
      public.discovery_profile p
 where p.user_id not in (select kim from who union select lee from who union select park from who);
 
+/**
+ * **목록은 이제 스냅샷이다** — 새 참여자는 다음 스냅샷부터 선다(ADR 0037).
+ *
+ * 김은 지영이 들어오기 전에 한 번 목록을 열었고, 그때 만들어진 스냅샷이 아직 신선하다.
+ * 시험은 **씨앗을 고를 수 있는 닫힌 문**으로 다시 뽑는다 — 사람이 누르는 문은 5분
+ * 쿨다운이 있고, 여기서 재려는 것은 쿨다운이 아니다.
+ */
+create temporary table kim_first as
+select public.refresh_discovery_snapshot_for((select kim from who), 'seven') as id;
+
 -- 참여하지 않은 사람은 후보도 못 본다 — 풀은 서로 내놓은 사람들의 자리다.
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select park from who)), true);
 
 select throws_ok(
-  $$select * from public.discovery_board()$$,
+  $$select * from public.my_discovery_board()$$,
   '42501', null,
   '참여하지 않으면 후보를 볼 수 없다');
 
@@ -209,7 +219,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 select results_eq(
-  format($$select nickname, supplied_elements, balance_band from public.discovery_board()
+  format($$select nickname, supplied_elements, balance_band from public.my_discovery_board()
            where candidate_user_id = %L$$, (select lee from who)),
   -- 함께 놓은 균형 56.25 → 가운데 칸. 숫자는 안 나가고 이 이름만 나간다.
   $$values ('지영'::text, array[]::text[], 'mixed'::text)$$,
@@ -223,7 +233,7 @@ select results_eq(
  */
 select is(
   (select count(*)::int from pg_catalog.pg_proc
-   where proname = 'discovery_board' and pronamespace = 'public'::regnamespace and pronargs = 0),
+   where proname = 'my_discovery_board' and pronamespace = 'public'::regnamespace and pronargs = 0),
   1,
   '후보 목록 함수는 인자를 받지 않는다');
 
@@ -242,7 +252,7 @@ select hasnt_function('public', 'log_discovery_impressions',
 select is(
   (select count(*)::int from unnest(
      (select proargnames from pg_catalog.pg_proc
-      where proname = 'discovery_board' and pronamespace = 'public'::regnamespace)) as name
+      where proname = 'my_discovery_board' and pronamespace = 'public'::regnamespace)) as name
    where name in ('complement', 'combined_balance', 'score')),
   0,
   '반환형에 두 축의 값도 점수도 없다');
@@ -330,11 +340,15 @@ reset role;
  */
 delete from public.discovery_impression where viewer_user_id = (select kim from who);
 
+/* 기록은 **스냅샷을 만들 때** 난다. 읽기는 아무것도 안 적으므로 여기서 다시 뽑는다. */
+create temporary table kim_again as
+select public.refresh_discovery_snapshot_for((select kim from who), 'seven-again') as id;
+
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 select is(
-  (select count(*)::int from public.discovery_board()),
+  (select count(*)::int from public.my_discovery_board()),
   1,
   '목록을 연다');
 

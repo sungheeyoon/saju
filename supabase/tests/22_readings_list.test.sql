@@ -150,7 +150,7 @@ select lives_ok(
   '두 사람의 궁합이 저장된다');
 
 -- 요청은 노출 기록에 매인다(ADR 0009) — 목록을 먼저 열어야 청할 수 있다.
-select lives_ok($$select count(*) from public.discovery_board()$$, '김이 후보 목록을 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '김이 후보 목록을 연다');
 
 create temporary table asked as
 select public.request_match((select lee from folks)) as request_id;

@@ -423,7 +423,7 @@ select public.refresh_discovery_summary(
   (select kim_person from people), pg_temp.summary(4, 4, 0, 0, 0));
 
 -- 요청은 **노출 기록에 매인다**(ADR 0009). 목록을 먼저 열어야 청할 수 있다.
-select lives_ok($$select count(*) from public.discovery_board()$$, '김이 후보 목록을 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '김이 후보 목록을 연다');
 
 create temporary table asked as
 select public.request_match((select lee from folks)) as request_id;

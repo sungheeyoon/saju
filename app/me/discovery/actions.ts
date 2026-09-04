@@ -86,6 +86,23 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
 }
 
 /**
+ * 목록을 새로 받는다 — **인자가 없다**(ADR 0037).
+ *
+ * 뽑기도 씨앗도 5분 쿨다운도 DB 안에 있다. 여기서 씨앗을 지어 보내면 사용자가 씨앗을
+ * 바꿔 가며 다시 뽑을 수 있고, 그때 노출 기록이 무엇을 잰 것인지 말할 수 없게 된다.
+ * 거절의 문장도 DB 가 낸다 — 「방금 새로 받았습니다」를 여기서 다시 판정하지 않는다.
+ */
+export async function refreshDiscoveryBoard(): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  const { error } = await supabase.rpc('refresh_discovery_snapshot');
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/me');
+  return { ok: true };
+}
+
+/**
  * 이 사람은 그만 본다 — **차단이 아니다.**
  *
  * 되돌릴 수 있다. 차단은 접촉을 막는 별개의 일이고, 막을 접촉은 아직 없다.
@@ -100,7 +117,7 @@ export async function hideCandidate(candidateUserId: string): Promise<SaveResult
 
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath('/me/discovery');
+  revalidatePath('/me');
   return { ok: true };
 }
 
@@ -119,7 +136,7 @@ export async function unhideAllCandidates(): Promise<SaveResult> {
 
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath('/me/discovery');
+  revalidatePath('/me');
   return { ok: true };
 }
 
@@ -128,7 +145,7 @@ export async function unhideAllCandidates(): Promise<SaveResult> {
  *
  * **인자는 상대 하나뿐이다.** 판본도 추천 이유도 정책 버전도 RPC 가 그 자리에서 읽는다 —
  * 앱이 실어 보내면 그 값은 손으로 적은 값이 되고, 이 서버 액션도 RPC 도 주소만 알면
- * 부를 수 있는 자리다(`discovery_board` 와 같은 규율).
+ * 부를 수 있는 자리다(`my_discovery_board` 와 같은 규율).
  *
  * 거절의 문장도 하나다. 없는 사람·참여하지 않는 사람·차단한 사람·이미 결정이 있는
  * 사람이 모두 같은 말을 받는다 — 갈라서 말하면 「저 사람이 이 서비스를 쓰나」를 묻는
@@ -143,7 +160,7 @@ export async function requestMatch(candidateUserId: string): Promise<SaveResult>
 
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath('/me/discovery');
+  revalidatePath('/me');
   revalidatePath('/me/requests');
   return { ok: true };
 }

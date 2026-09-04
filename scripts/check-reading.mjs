@@ -243,7 +243,13 @@ try {
     check('동의 전에는 설문이 통째로 없다', !mine.includes('이 풀이는 어떠셨어요'));
     check('점수 문항도 없다', !mine.includes('실제 경험과 얼마나 비슷했나요'));
     check('적는 칸도 없다', !mine.includes('어느 대목이 맞았고'));
-    check('동의를 권하는 줄도 없다', !mine.includes('동의하면'));
+    /*
+      **인연 카드가 같은 화면에 선다**(ADR 0037). 그 카드가 든 「서로 동의하면 형충회합과…」는
+      풀이 설문과 아무 상관이 없는 말이라, 재는 자리를 목록 앞까지로 좁힌다.
+    */
+    const beforeBoard = mine.indexOf('지금 만날 수 있는 인연');
+    const readingOnly = beforeBoard === -1 ? mine : mine.slice(0, beforeBoard);
+    check('동의를 권하는 줄도 없다', !readingOnly.includes('동의하면'));
 
     /** **그래도 사주는 그대로다** — 닫히는 것은 설문 하나뿐이다 */
     check('동의 전에도 풀이는 그대로 선다', mine.includes('스스로 정한 규칙 안에서'));
@@ -446,7 +452,7 @@ try {
   // ── 4. 공유 궁합 — 양쪽이 같은 글을 읽는다 ───────────────────────────────
   let matchId;
   {
-    await a.rpc('discovery_board');
+    await a.rpc('my_discovery_board');
     const asked = await a.rpc('request_match', { p_candidate_user_id: await userIdOf(mail.b) });
     check('요청이 선다', !asked.error, asked.error?.message ?? '');
     const accepted = await b.rpc('respond_to_match_request', { p_request_id: asked.data, p_accept: true });

@@ -36,7 +36,13 @@ const MEMBER_LINKS = [
    * 먼저 기억해야 했다. 저장돼 있는데 닿을 수 없는 것은 사용자에게 없는 것과 같다.
    */
   { href: '/me/readings', label: '풀이' },
-  { href: '/me/discovery', label: '인연 찾기' },
+  /**
+   * **목록이 아니라 설정으로 간다**(ADR 0037).
+   *
+   * 소개받은 사람들은 홈(`/me`)에 선다. 이 자리가 여는 것은 「내가 어떻게 보일까」이고,
+   * 이름을 「인연 찾기」로 두면 목록을 찾는 사람이 여기서 목록을 못 찾는다.
+   */
+  { href: '/me/discovery', label: '인연 설정' },
   { href: '/me/requests', label: '소식' },
 ] as const;
 

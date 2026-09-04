@@ -6,8 +6,9 @@
  * 1. **화면이 후보에 대해 무엇을 내려보내는가** — 정책이 옳아도 서버가 전체 오행 요약이나
  *    숫자 점수를 함께 실어 보내면, 맛보기의 공개 경계가 개발자 도구 한 번에 무너진다.
  *    그건 응답 본문을 봐야 알 수 있다.
- * 2. **노출 기록이 실제로 쌓이는가** — 화면을 한 번 열었을 때 쌓이는지는 화면을 열어
- *    봐야 안다. 안 쌓이는 상태는 화면에서 아무 티도 나지 않는다.
+ * 2. **노출 기록이 실제로 쌓이는가** — 목록이 스냅샷이 된 뒤로(ADR 0037) 기록은 **뽑을
+ *    때** 난다. 뽑히는지는 화면을 열어 봐야 알고, 안 쌓이는 상태는 화면에서 아무 티도
+ *    나지 않는다.
  * 3. **낡은 요약이 스스로 낫는가** — 판본을 고치면 요약이 낡아 후보에서 빠지는데,
  *    그 사람이 화면을 한 번 열면 돌아와야 한다. 두 경로가 걸린 일이라 DB 안에서 못 잰다.
  */
@@ -51,6 +52,18 @@ const impressionsFor = (email) =>
          join auth.users u on u.id = i.viewer_user_id where u.email = '${email}'`),
   );
 
+/**
+ * 다음에 목록을 열 때 **다시 뽑게 한다** (ADR 0037).
+ *
+ * 목록이 스냅샷이 된 뒤로 화면을 여는 것은 아무것도 안 적는다 — 기록은 뽑을 때 난다.
+ * 사람이 누르는 문(`refresh_discovery_snapshot`)은 5분 쿨다운이 있어 한 검사 안에서 두
+ * 번 못 쓰고, 씨앗을 고르는 문은 닫혀 있다(열면 노출 기록이 무엇을 잰 것인지 말할 수
+ * 없게 된다). 그래서 검사는 **스냅샷을 지운다** — 다음 열기가 스스로 새로 만든다.
+ */
+const forgetBoard = (email) =>
+  sql(`delete from public.discovery_snapshot s using auth.users u
+       where u.id = s.user_id and u.email = '${email}'`);
+
 // ── 1. 두 사람이 사주를 등록한다 ──────────────────────────────────────────────
 sql(`insert into public.invite (email, note) values ('${mine}', '검사'), ('${theirs}', '검사')`);
 
@@ -74,7 +87,7 @@ await other.rpc('create_self_person', {
 
 // ── 2. 참여하지 않으면 후보도 없다 ────────────────────────────────────────────
 {
-  const { error } = await me.rpc('discovery_board');
+  const { error } = await me.rpc('my_discovery_board');
   check('참여하기 전에는 후보를 볼 수 없다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
 
   const { data: profiles } = await me.from('discovery_profile').select('user_id');
@@ -180,11 +193,12 @@ const isolate = (emails) => {
   await me.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
   await other.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
 
-  await get('/me/discovery', myCookie);
-  await get('/me/discovery', theirCookie);
+  // 요약을 고치는 자리는 **목록이 서는 화면**이다. 목록이 홈으로 왔으므로 홈을 연다.
+  await get('/me', myCookie);
+  await get('/me', theirCookie);
 
   check(
-    '화면을 열면 요약이 내 판본에서 다시 계산된다',
+    '홈을 열면 요약이 내 판본에서 다시 계산된다',
     summaryOf(mine) !== '' && !summaryOf(mine).includes('"木": 8') &&
       summaryOf(theirs) !== '' && !summaryOf(theirs).includes('"木": 8'),
     summaryOf(mine).slice(0, 70),
@@ -192,8 +206,10 @@ const isolate = (emails) => {
 
   // ── 6. 후보가 선다 ──────────────────────────────────────────────────────────
   {
+    // 위에서 이미 한 번 열어 스냅샷이 섰다. 기록이 **뽑을 때** 나는 것을 재려면 지운다.
+    forgetBoard(mine);
     const before = impressionsFor(mine);
-    const response = await get('/me/discovery', myCookie);
+    const response = await get('/me', myCookie);
     const body = await response.text();
 
     check('참여하면 상대가 후보로 선다', body.includes(THEIR_NAME), String(response.status));
@@ -226,9 +242,16 @@ const isolate = (emails) => {
     /**
      * 「세운」은 평범한 말과 겹치므로(「줄 세운」) 빼고, 명식을 가리키는 말만 본다.
      * 「형충회합」은 **여기 없어야 할 것이 아니라 다음에 열리는 것**이라 위에서 따로 쟀다.
+     *
+     * **목록이 홈으로 온 뒤로 본문 전체를 볼 수 없다**(ADR 0037) — 같은 화면에 내
+     * 명식이 서 있고, 그것은 내 것이라 여기 있어야 한다. 재려는 것은 **후보 카드가
+     * 무엇을 말하는가**이므로 목록이 시작하는 자리부터 본다.
      */
-    check('여덟 글자·십성·신살·대운은 후보 화면에 없다',
-      !/일간|십성|신살|천간|지장간|대운/.test(body));
+    const main = body.slice(body.indexOf('<main'), body.indexOf('</main>'));
+    const listOnly = main.slice(main.indexOf('지금 만날 수 있는 인연'));
+    check('여덟 글자·십성·신살·대운은 후보 목록에 없다',
+      listOnly !== '' && !/일간|십성|신살|천간|지장간|대운/.test(listOnly),
+      (/[^>]{0,40}(일간|십성|신살|천간|지장간|대운)[^<]{0,40}/.exec(listOnly) ?? ['목록을 못 찾았다'])[0]);
 
     check('노출 기록이 쌓인다', impressionsFor(mine) > before, `${before} → ${impressionsFor(mine)}`);
   }
@@ -282,7 +305,7 @@ const isolate = (emails) => {
    * 그래서 카드에 없는 것과, 그 값을 세는 함수가 안 열려 있는 것을 함께 잰다.
    */
   {
-    const { data: rows, error } = await me.rpc('discovery_board');
+    const { data: rows, error } = await me.rpc('my_discovery_board');
     check('후보 목록을 직접 불러도 돈다', !error && Array.isArray(rows), error?.message);
 
     const keys = Object.keys(rows?.[0] ?? {}).sort();
@@ -320,8 +343,9 @@ const isolate = (emails) => {
   {
     sql(`delete from public.discovery_impression i using auth.users u
          where u.id = i.viewer_user_id and u.email = '${mine}'`);
+    forgetBoard(mine);
 
-    const { data: rows } = await me.rpc('discovery_board');
+    const { data: rows } = await me.rpc('my_discovery_board');
     const logged = sql(`select coalesce(string_agg(
         i.candidate_user_id::text || ':' || i.position || ':' || i.exploration, ',' order by i.position), '')
       from public.discovery_impression i
@@ -357,7 +381,7 @@ const isolate = (emails) => {
     const before = hiddenCount();
     await me.from('discovery_hidden').insert({ hidden_user_id: theirUserId });
 
-    const body = await (await get('/me/discovery', myCookie)).text();
+    const body = await (await get('/me', myCookie)).text();
     check('다시 보지 않기로 하면 후보에서 빠진다', !body.includes(THEIR_NAME));
     // React 는 나란한 글자 마디 사이에 `<!-- -->` 를 넣는다. 수를 견줄 때 그것을 지운다.
     const plain = body.replace(/<!--\s*-->/g, '');
@@ -366,7 +390,7 @@ const isolate = (emails) => {
       `${before + 1}명이어야 한다`);
 
     await me.from('discovery_hidden').delete().eq('hidden_user_id', theirUserId);
-    const back = await (await get('/me/discovery', myCookie)).text();
+    const back = await (await get('/me', myCookie)).text();
     check('되돌리면 다시 선다', back.includes(THEIR_NAME));
   }
 
@@ -380,20 +404,50 @@ const isolate = (emails) => {
     });
 
     // RPC 를 직접 불렀으므로 요약은 아직 옛 판본의 것이다 — 그 사이에는 후보가 아니다.
-    const stale = await (await get('/me/discovery', myCookie)).text();
+    const stale = await (await get('/me', myCookie)).text();
     check('요약이 낡은 사람은 후보에서 빠진다', !stale.includes(THEIR_NAME));
 
-    // 그 사람이 화면을 한 번 열면 스스로 낫는다.
-    await get('/me/discovery', theirCookie);
-    const healed = await (await get('/me/discovery', myCookie)).text();
-    check('그 사람이 화면을 열면 요약이 따라와 다시 선다', healed.includes(THEIR_NAME));
+    /**
+     * 그 사람이 홈을 한 번 열면 요약이 판본을 따라간다.
+     *
+     * **출생지만 옮겼으므로 오행 개수표는 그대로다.** 내 카드가 든 값이 지금 그 사람의
+     * 값과 같으니 카드는 거짓말을 하지 않는다 — 그대로 선다. 스냅샷이 견주는 것은
+     * 판본 id 가 아니라 **그때 그 요약**이고, 그래서 안 바뀐 것에는 아무 일도 안 난다.
+     */
+    await get('/me', theirCookie);
+    const healed = await (await get('/me', myCookie)).text();
+    check('그 사람이 홈을 열면 요약이 따라와 다시 선다', healed.includes(THEIR_NAME));
+  }
+
+  // ── 8-2. 요약이 **바뀌면** 그 카드는 지금의 그 사람이 아니다 ────────────────
+  {
+    await other.rpc('add_person_revision', {
+      p_person_id: theirPersonId,
+      p_calendar: 'solar', p_original_date: '1993-07-07', p_solar_date: '1993-07-07',
+      p_birth_time: '21:10', p_gender: 'female', p_city: '대구',
+      p_late_night_rule: 'jo', p_time_basis: 'localMean',
+    });
+    await get('/me', theirCookie);
+
+    /**
+     * 내가 든 카드는 **바뀌기 전 요약**을 가리킨다. 남겨 두면 화면이 지금의 그 사람이
+     * 아닌 오행을 말하고, 눌러도 요청이 안 난다(`request_match` 는 요약 두 벌이 지금과
+     * 같은 기록만 받는다). 그래서 읽는 자리에서 빠지고, 새로 받아야 돌아온다.
+     */
+    const changed = await (await get('/me', myCookie)).text();
+    check('요약이 바뀌면 내 목록에서 빠진다 — 카드가 옛 값을 가리킨다',
+      !changed.includes(THEIR_NAME));
+
+    forgetBoard(mine);
+    const again = await (await get('/me', myCookie)).text();
+    check('목록을 새로 받으면 다시 선다', again.includes(THEIR_NAME));
   }
 
   // ── 9. 참여를 끄면 풀에서 사라지고 요약도 거둬진다 ──────────────────────────
   {
     await other.rpc('set_discovery_participation', { p_on: false, p_summary: null });
 
-    const body = await (await get('/me/discovery', myCookie)).text();
+    const body = await (await get('/me', myCookie)).text();
     check('참여를 끄면 후보에서 사라진다', !body.includes(THEIR_NAME));
     check('내놓은 요약도 거둬진다', summaryOf(theirs) === '', summaryOf(theirs).slice(0, 40));
 

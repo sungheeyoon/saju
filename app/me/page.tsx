@@ -6,6 +6,7 @@ import { unreadCount } from './requests/inbox';
 import { chartOf } from '../chart';
 import { HOUR_UNKNOWN_LABEL, toSearchParams } from '../query';
 import { UNREADABLE_REVISION_NOTE, UnreadableRevisionError, queryFromRevision } from '../revision';
+import { DiscoveryBoard } from './discovery/board';
 import { Halted } from './halted';
 import { Onboarding } from './onboarding';
 import { PillarCard } from './pillar-card';
@@ -59,6 +60,11 @@ export default async function MePage() {
         <>
           <Unread />
           <SelfChart personId={account.self_person_id} />
+          {/*
+            **추천은 홈에 선다**(PRD §2.0). 목록이 스냅샷이 된 뒤로 여는 값이 싸졌다 —
+            전에는 방문마다 풀 전체를 줄 세우는 셈이라 이 자리에 둘 수 없었다.
+          */}
+          <DiscoveryBoard />
         </>
       )}
     </main>

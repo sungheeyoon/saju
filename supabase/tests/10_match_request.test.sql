@@ -63,7 +63,7 @@ grant select on folks to authenticated;
 /**
  * **다른 검사가 남긴 참여자는 이 시험의 관심 밖이다**(`09_discovery_board` 와 같은 이유).
  *
- * `discovery_board` 는 `security definer` 라 RLS 로 좁혀지지 않는다. 좁히지 않으면
+ * `my_discovery_board` 는 `security definer` 라 RLS 로 좁혀지지 않는다. 좁히지 않으면
  * 이 파일이 「DB 가 비어 있는가」를 잰다.
  */
 reset role;
@@ -87,14 +87,14 @@ set local role authenticated;
 
 -- ── 후보를 본 데서 요청이 난다 ────────────────────────────────────────────────
 select pg_temp.acting((select kim from folks));
-create temporary table kim_board as select * from public.discovery_board();
+create temporary table kim_board as select * from public.my_discovery_board();
 grant select on kim_board to authenticated;
 
 select is((select count(*)::int from kim_board), 3, '김의 목록에 셋이 선다');
 
 -- 박도 목록을 연다. 나중에 박이 김에게 청하려면 김을 본 적이 있어야 한다.
 select pg_temp.acting((select park from folks));
-select lives_ok($$select count(*) from public.discovery_board()$$, '박도 목록을 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '박도 목록을 연다');
 
 /**
  * **후보로 한 번도 뜨지 않은 사람에게는 청할 수 없다.**
@@ -128,7 +128,7 @@ select throws_ok(
   '같은 쌍에 살아 있는 결정은 하나뿐이다');
 
 select is(
-  (select count(*)::int from public.discovery_board()
+  (select count(*)::int from public.my_discovery_board()
    where candidate_user_id = (select lee from folks)),
   0,
   '청한 사람은 후보 목록에서 빠진다');
@@ -309,8 +309,25 @@ select throws_ok(
   '42501', '지금은 이 사람에게 요청할 수 없습니다. 후보 목록을 새로 열어 확인해 주세요.',
   '요약이 바뀐 사람에게는 목록을 다시 열기 전까지 청할 수 없다');
 
--- 다시 열면 새 기록이 남고, 그때는 청할 수 있다.
-select lives_ok($$select count(*) from public.discovery_board()$$, '김이 목록을 다시 연다');
+/**
+ * **다시 여는 것으로는 안 된다 — 새로 받아야 한다**(ADR 0037).
+ *
+ * 목록이 스냅샷이 된 뒤로 읽기는 아무것도 적지 않는다. 박의 카드는 그때의 판본을
+ * 가리키므로 읽는 자리에서 빠지고, 새 노출 기록은 다시 뽑을 때만 난다. 사람이 누르는
+ * 문은 5분 쿨다운이 있어, 시험은 씨앗을 고르는 닫힌 문으로 뽑는다.
+ */
+reset role;
+create temporary table kim_refreshed as
+select public.refresh_discovery_snapshot_for((select kim from folks), 'ten') as id;
+
+set local role authenticated;
+select pg_temp.acting((select kim from folks));
+
+select is(
+  (select count(*)::int from public.my_discovery_board()
+   where candidate_user_id = (select park from folks)),
+  1,
+  '새로 받으면 박이 다시 선다');
 
 create temporary table asked_again as
 select public.request_match((select park from folks)) as request_id;
@@ -373,7 +390,7 @@ select throws_ok(
   '거절한 사람에게 다시 두드리는 길은 열지 않는다');
 
 select is(
-  (select count(*)::int from public.discovery_board()
+  (select count(*)::int from public.my_discovery_board()
    where candidate_user_id = (select choi from folks)),
   0,
   '거절한 사람은 후보 목록에도 서지 않는다');
@@ -410,7 +427,7 @@ set local role authenticated;
 select pg_temp.acting((select park from folks));
 -- 박도 자기 요약이 바뀌었으므로 자기가 든 옛 기록은 더 이상 지금의 자기가 아니다.
 -- 목록을 다시 열어 새 기록을 남긴 뒤에 청한다.
-select lives_ok($$select count(*) from public.discovery_board()$$, '박이 목록을 다시 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '박이 목록을 다시 연다');
 
 create temporary table asked_kim as
 select public.request_match((select kim from folks)) as request_id;
@@ -462,7 +479,7 @@ set local role authenticated;
 
 select pg_temp.acting((select uid from han));
 select is(
-  (select count(*)::int from public.discovery_board()
+  (select count(*)::int from public.my_discovery_board()
    where candidate_user_id = (select lee from folks)),
   1,
   '한의 목록에 이가 선다');
@@ -479,7 +496,7 @@ update public.discovery_profile set prefer_gender = 'male' where user_id = (sele
 
 select pg_temp.acting((select uid from han));
 select is(
-  (select count(*)::int from public.discovery_board()
+  (select count(*)::int from public.my_discovery_board()
    where candidate_user_id = (select lee from folks)),
   0,
   '조건이 바뀌면 목록에서 사라진다');
@@ -494,7 +511,7 @@ select pg_temp.acting((select lee from folks));
 update public.discovery_profile set prefer_gender = 'any' where user_id = (select lee from folks);
 
 select pg_temp.acting((select uid from han));
-select lives_ok($$select count(*) from public.discovery_board()$$, '한이 목록을 다시 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '한이 목록을 다시 연다');
 
 create temporary table asked_lee_by_han as
 select public.request_match((select lee from folks)) as request_id;
@@ -549,7 +566,7 @@ select is(
 
 -- ── 취소한 요청은 없던 일이 된다 ─────────────────────────────────────────────
 select pg_temp.acting((select choi from folks));
-select lives_ok($$select count(*) from public.discovery_board()$$, '최가 목록을 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '최가 목록을 연다');
 
 create temporary table asked_lee as
 select public.request_match((select lee from folks)) as request_id;
@@ -630,7 +647,7 @@ select is(
   array[0, 0, 0, 1],
   '아직 아무것도 안 잡혀 있다');
 
-select lives_ok($$select count(*) from public.discovery_board()$$, '윤이 목록을 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '윤이 목록을 연다');
 
 create temporary table asked_jang as
 select public.request_match((select jang from later)) as request_id;
@@ -668,7 +685,7 @@ select is(
   array[0, 1],
   '거두면 자리가 풀린다 — 되돌리는 일 없이');
 
-select lives_ok($$select count(*) from public.discovery_board()$$, '윤이 목록을 다시 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '윤이 목록을 다시 연다');
 create temporary table asked_jang_again as
 select public.request_match((select jang from later)) as request_id;
 grant select on asked_jang_again to authenticated;
@@ -687,7 +704,7 @@ select is(
 
 -- ── 7일이 지나면 만료다 ─────────────────────────────────────────────────────
 
-select lives_ok($$select count(*) from public.discovery_board()$$, '윤이 문을 보러 목록을 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '윤이 문을 보러 목록을 연다');
 create temporary table asked_moon as
 select public.request_match((select moon from later)) as request_id;
 grant select on asked_moon to authenticated;
@@ -743,7 +760,7 @@ select is(
 
 /** 만료된 요청은 다시 청할 수 있다 — `one_live_request_between_two` 가 `pending` 만 묶는다 */
 select pg_temp.acting((select yoon from later));
-select lives_ok($$select count(*) from public.discovery_board()$$, '윤이 다시 목록을 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '윤이 다시 목록을 연다');
 select isnt(
   public.request_match((select moon from later)),
   null,

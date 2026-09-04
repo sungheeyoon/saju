@@ -79,6 +79,20 @@ export function scheduleBeta(endsOn: string | null): void {
 /** 검사가 쓰는 종료일 — 하나뿐이라 손잡이와 시험이 같은 값을 본다 */
 export const scheduledEndsOn = (): string => '2026-10-31';
 
+/**
+ * 다음에 목록을 열 때 **다시 뽑게 한다** (ADR 0037).
+ *
+ * 목록이 스냅샷이 된 뒤로 화면을 여는 것은 아무것도 안 뽑는다 — 만들어 둔 열 명을
+ * 읽을 뿐이다. 그래서 참여를 켜거나 감춘 것을 되돌린 **뒤에** 새 목록이 필요하면
+ * 스냅샷을 지운다. 사람이 누르는 문(`refresh_discovery_snapshot`)은 5분 쿨다운이
+ * 있어 한 시험 안에서 두 번 못 쓰고, 씨앗을 고르는 문은 닫혀 있다.
+ */
+export function forgetBoards(emails: readonly string[]): void {
+  const quoted = emails.map((one) => `'${one}'`).join(', ');
+  sql(`delete from public.discovery_snapshot s using auth.users u
+       where u.id = s.user_id and u.email in (${quoted})`);
+}
+
 export function hideEveryoneExcept(emails: readonly string[]): void {
   const quoted = emails.map((one) => `'${one}'`).join(', ');
   for (const email of emails) {

@@ -183,7 +183,7 @@ grant select on people to authenticated, service_role;
 set local role authenticated;
 
 select pg_temp.acting((select kim from folks));
-select lives_ok($$select count(*) from public.discovery_board()$$, '김이 후보 목록을 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '김이 후보 목록을 연다');
 
 create temporary table asked_lee as
 select public.request_match((select lee from folks)) as request_id;

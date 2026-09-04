@@ -269,7 +269,7 @@ select throws_ok(
 -- ── 공유 궁합 — 누르지 않은 쪽도 답한다 ─────────────────────────────────────
 
 select pg_temp.acting((select kim from folks));
-select lives_ok($$select count(*) from public.discovery_board()$$, '김이 후보 목록을 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '김이 후보 목록을 연다');
 
 create temporary table asked as
 select public.request_match((select lee from folks)) as request_id;

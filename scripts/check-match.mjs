@@ -118,6 +118,17 @@ const isolate = (emails) => {
 
 isolate([aMail, bMail, cMail]);
 
+/**
+ * 다음에 홈을 열 때 목록을 **다시 뽑게 한다** (ADR 0037).
+ *
+ * 목록은 스냅샷이라 두 번째 열기는 아무것도 안 적는다. 사람은 「목록 새로 받기」를
+ * 누르지만 그 문은 5분 쿨다운이 있고 씨앗을 고르는 문은 닫혀 있어, 검사는 스냅샷을
+ * 지워 다음 열기가 새로 뽑게 한다.
+ */
+const forgetBoard = (email) =>
+  sql(`delete from public.discovery_snapshot s using auth.users u
+       where u.id = s.user_id and u.email = '${email}'`);
+
 const cookieFor = async (email) => {
   const jar = new Map();
   const browser = createServerClient(API, status.ANON_KEY, {
@@ -164,22 +175,28 @@ try {
   /**
    * ── 1. 참여자끼리 후보로 선다 ─────────────────────────────────────────────
    *
-   * **현우는 후보 화면을 열지 않는다.** 화면을 여는 것이 곧 노출 기록을 남기는 일이라
-   * (`discovery_board` 가 고르면서 함께 적는다), 열어 버리면 아래에서 「후보로 본 적
+   * **현우는 홈을 열지 않는다.** 목록이 홈에 서므로(ADR 0037) 홈을 여는 것이 곧 목록을
+   * 처음 뽑는 일이고, 뽑는 자리가 노출 기록을 남긴다. 열어 버리면 아래에서 「후보로 본 적
    * 없는 사람」을 한 번도 못 재게 된다. 참여는 켜 뒀으므로 남의 목록에는 선다.
    */
-  for (const cookie of [aCookie, bCookie]) await get('/me/discovery', cookie);
+  for (const cookie of [aCookie, bCookie]) await get('/me', cookie);
+
+  /*
+    **첫 방문이 자기 요약을 판본에서 다시 계산한다.** 민수가 먼저 열었으므로 그때 민수가
+    본 지영은 아직 가짜 요약이었고, 그 카드는 지금의 지영이 아니라 목록에서 빠진다
+    (ADR 0037). 사람에게는 다음 목록이 그 자리이고, 검사는 스냅샷을 지워 다시 뽑게 한다.
+  */
+  forgetBoard(aMail);
 
   {
-    const html = await body('/me/discovery', aCookie);
+    const html = await body('/me', aCookie);
     check('후보 목록에 다른 참여자가 선다', html.includes(NAME.b) && html.includes(NAME.c));
     check('요청 버튼이 후보 카드에 선다', html.includes('상세 궁합 요청하기'));
   }
 
   // ── 2. 요청은 후보로 본 데서만 난다 ─────────────────────────────────────────
   {
-    // 현우는 아직 목록을 연 적이 없다 — 민수를 후보로 본 적이 없다.
-    await get('/me', cCookie);
+    // 현우는 아직 홈을 연 적이 없다 — 민수를 후보로 본 적이 없다.
     const unseen = await c.rpc('request_match', { p_candidate_user_id: userId(aMail) });
     const nobody = await c.rpc('request_match', {
       p_candidate_user_id: '00000000-0000-0000-0000-000000000000',
@@ -197,7 +214,7 @@ try {
   check('후보로 본 사람에게는 청할 수 있다', !asked.error, asked.error?.message ?? '');
 
   {
-    const html = await body('/me/discovery', aCookie);
+    const html = await body('/me', aCookie);
     check('청한 사람은 후보 목록에서 빠진다', !html.includes(NAME.b) && html.includes(NAME.c));
   }
 
@@ -372,9 +389,16 @@ try {
      * 남은 기록은 **지금의 그 사람이 아니다.** 요청은 그런 기록으로는 나지 않는다 —
      * 그것이 이 단계에서 새로 건 규칙이다(ADR 0009).
      */
-    await get('/me/discovery', dCookie);
-    await get('/me/discovery', eCookie);
-    await get('/me/discovery', dCookie);
+    await get('/me', dCookie);
+    await get('/me', eCookie);
+
+    /*
+      **다시 열어도 새 기록은 안 난다** (ADR 0037) — 목록은 만들어 둔 것을 읽을 뿐이고,
+      기록은 뽑을 때 난다. 사람은 「목록 새로 받기」를 누르지만 그 문은 5분 쿨다운이
+      있어 검사가 못 쓴다. 그래서 스냅샷을 지워 다음 열기가 새로 뽑게 한다.
+    */
+    forgetBoard(dMail);
+    await get('/me', dCookie);
 
     // ── 동시 수락은 Match 를 하나만 만든다 ──────────────────────────────────
     const race = await d.rpc('request_match', { p_candidate_user_id: userId(eMail) });
@@ -401,8 +425,8 @@ try {
      * 중 하나지만(요청이 거절되거나, 만들어졌다가 그 자리에서 거둬지거나), **pending 이
      * 남는 갈래는 없어야 한다.**
      */
-    // 청하려면 본 적이 있어야 한다 — 현우가 이제 목록을 연다.
-    await get('/me/discovery', cCookie);
+    // 청하려면 본 적이 있어야 한다 — 현우가 이제 홈을 연다.
+    await get('/me', cCookie);
 
     const clash = await Promise.all([
       e.rpc('block_user', { p_user_id: userId(cMail) }),

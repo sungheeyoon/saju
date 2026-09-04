@@ -264,13 +264,12 @@ export async function revisePerson(personId: string, query: Query): Promise<Save
       p_person_id: personId,
       p_summary: self.summary,
     });
-    // 저장은 끝났다. 요약을 못 따라가게 한 것은 다음 후보 화면이 고친다.
+    // 저장은 끝났다. 요약을 못 따라가게 한 것은 홈이 목록을 열 때 고친다.
     if (summaryError) console.error('오행 요약을 갱신하지 못했습니다', summaryError.message);
   }
 
   revalidatePath('/me');
   revalidatePath('/me/people');
-  revalidatePath('/me/discovery');
   return { ok: true };
 }
 

@@ -946,7 +946,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 
     await page.getByRole('link', { name: '인연 찾기에서 요청하기' }).click();
     await expect(page).toHaveURL(/\/me\/discovery$/);
-    await expect(page.getByRole('heading', { name: '새로운 인연 찾기' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '인연 찾기 설정' })).toBeVisible();
   });
 
   /**

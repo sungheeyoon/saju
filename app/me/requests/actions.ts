@@ -65,7 +65,7 @@ export async function respondToRequest(requestId: string, accept: boolean): Prom
   }
 
   revalidatePath('/me/requests');
-  revalidatePath('/me/discovery');
+  revalidatePath('/me');
   return { ok: true, status };
 }
 
@@ -85,7 +85,7 @@ export async function cancelRequest(requestId: string): Promise<RespondResult> {
   if (status === null) return { ok: false, message: '요청을 거두지 못했습니다.' };
 
   revalidatePath('/me/requests');
-  revalidatePath('/me/discovery');
+  revalidatePath('/me');
   return { ok: true, status };
 }
 
@@ -102,7 +102,7 @@ export async function blockUser(userId: string): Promise<SaveResult> {
   if (error) return { ok: false, message: error.message };
 
   revalidatePath('/me/requests');
-  revalidatePath('/me/discovery');
+  revalidatePath('/me');
   return { ok: true };
 }
 

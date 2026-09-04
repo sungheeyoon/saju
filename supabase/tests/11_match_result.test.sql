@@ -65,7 +65,7 @@ reset role;
 /**
  * **다른 검사가 남긴 참여자는 이 시험의 관심 밖이다**(`10_match_request` 와 같은 이유).
  *
- * `discovery_board` 는 `security definer` 라 RLS 로 좁혀지지 않는다. 좁히지 않으면
+ * `my_discovery_board` 는 `security definer` 라 RLS 로 좁혀지지 않는다. 좁히지 않으면
  * 이 파일이 「DB 가 비어 있는가」를 잰다.
  */
 insert into public.discovery_hidden (user_id, hidden_user_id)
@@ -100,7 +100,7 @@ set local role authenticated;
 
 -- ── 후보를 보고 청하고 수락한다 ──────────────────────────────────────────────
 select pg_temp.acting((select kim from folks));
-select lives_ok($$select count(*) from public.discovery_board()$$, '김이 후보 목록을 연다');
+select lives_ok($$select count(*) from public.my_discovery_board()$$, '김이 후보 목록을 연다');
 
 create temporary table asked as
 select public.request_match((select lee from folks)) as request_id;

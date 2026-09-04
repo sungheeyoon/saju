@@ -151,15 +151,18 @@ const betweenOf = (html) =>
 try {
   // ── 1. 후보 → 요청 → 수락 ─────────────────────────────────────────────────
   /**
-   * 둘 다 연 **뒤에** 민수가 한 번 더 연다.
+   * 둘 다 연 **뒤에** 민수가 목록을 다시 뽑아 연다.
    *
    * 첫 화면에서 각자 자기 요약을 판본에서 다시 계산하므로, 상대가 아직 안 열었을 때
-   * 남은 노출 기록은 **지금의 그 사람이 아니다.** 요청은 그런 기록으로는 나지 않는다
-   * (ADR 0009).
+   * 뽑힌 목록은 **지금의 그 사람이 아니다.** 요청은 그런 기록으로는 나지 않는다
+   * (ADR 0009). 목록이 스냅샷이 된 뒤로(ADR 0037) 다시 여는 것만으로는 새로 안 뽑히고,
+   * 사람은 「목록 새로 받기」를 누른다 — 그 문은 5분 쿨다운이 있어 검사는 스냅샷을 지운다.
    */
-  await get('/me/discovery', cookie.a);
-  await get('/me/discovery', cookie.b);
-  await get('/me/discovery', cookie.a);
+  await get('/me', cookie.a);
+  await get('/me', cookie.b);
+  sql(`delete from public.discovery_snapshot s using auth.users u
+       where u.id = s.user_id and u.email = '${mail.a}'`);
+  await get('/me', cookie.a);
 
   const asked = await a.rpc('request_match', { p_candidate_user_id: userId(mail.b) });
   check('후보로 본 사람에게 청한다', !asked.error, asked.error?.message ?? '');

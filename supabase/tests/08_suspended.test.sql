@@ -72,7 +72,7 @@ select throws_ok(
 
 -- ── RPC ───────────────────────────────────────────────────────────────────────
 select throws_ok(
-  $$select * from public.discovery_board()$$,
+  $$select * from public.my_discovery_board()$$,
   '42501', null,
   '후보를 볼 수 없다');
 
@@ -86,7 +86,7 @@ select throws_ok(
  * 노출 기록은 **손으로 적을 자리가 없다.**
  *
  * 예전에는 인증 사용자가 후보 id·자리·탐색 여부를 적어 넣는 RPC 가 있었다. 그 함수를
- * 없애고 `discovery_board` 안으로 넣었으므로, 중지된 계정이 기록을 남길 길도 함께 사라졌다.
+ * 없애고 `my_discovery_board` 안으로 넣었으므로, 중지된 계정이 기록을 남길 길도 함께 사라졌다.
  */
 select hasnt_function('public', 'log_discovery_impressions',
   '노출 기록을 손으로 적는 함수는 없다');

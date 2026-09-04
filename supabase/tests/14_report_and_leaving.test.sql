@@ -103,7 +103,7 @@ select throws_ok(
   '자기 자신은 신고할 수 없다');
 
 -- 후보 목록에서 한 번 보면 마주친 것이다.
-select public.discovery_board();
+select public.my_discovery_board();
 
 select lives_ok(
   format('select public.report_user(%L, %L, %L)', (select lee from folks), 'harassment', '  겪은 일  '),
@@ -159,11 +159,11 @@ select is(
 
 -- 한 쌍 사이에 유효한 pending 은 하나뿐이므로(ADR 0009) 상대를 갈라 둘을 만든다.
 select pg_temp.acting((select lee from folks));
-select public.discovery_board();
+select public.my_discovery_board();
 select public.request_match((select park from folks));
 
 select pg_temp.acting((select park from folks));
-select public.discovery_board();
+select public.my_discovery_board();
 select public.request_match((select kim from folks));
 
 /*

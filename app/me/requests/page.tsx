@@ -95,11 +95,12 @@ export default async function RequestsPage() {
         </details>
 
         <p className="flex flex-wrap gap-4 text-sm">
+          {/* 소개받은 사람들은 홈에 선다(ADR 0037) — 이 자리는 설정으로만 잇는다 */}
           <Link href="/me/discovery" className="text-accent underline underline-offset-2">
-            새로운 인연 찾기
+            인연 찾기 설정
           </Link>
           <Link href="/me" className="text-accent underline underline-offset-2">
-            내 사주
+            내 사주와 인연 목록
           </Link>
         </p>
       </header>
