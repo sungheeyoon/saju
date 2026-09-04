@@ -1,3 +1,4 @@
+export * from './gate';
 export * from './notice';
 export * from './schedule';
 

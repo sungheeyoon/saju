@@ -22,8 +22,12 @@
 
 ## 이름은 사주보다 **앞**이다 — 그런데 검사식으로는 못 적었다
 
-관문이 셋이다. 레이아웃이 길을 가리키고(`/me` → `/me/profile`), `create_self_person` 이
-새 계정을 막고, `set_discovery_participation` 이 **남에게 보이는 문**을 막는다.
+관문이 셋이다. **`proxy.ts` 가** 길을 가리키고(`/me` → `/me/profile`),
+`create_self_person` 이 새 계정을 막고, `set_discovery_participation` 이 **남에게 보이는
+문**을 막는다.
+
+> 첫째는 레이아웃에 있었다. 거기서는 **앱 안 이동에 안 돌아** 이름 없는 사람이 링크로
+> 홈에 가면 그냥 열렸다 — 재어서 찾았고 옮겼다(ADR 0041, 2026-09-04).
 
 넷째로 검사식을 걸고 싶었다 — `check (self_person_id is null or nickname is not null)`
 한 줄이면 이름 없이 사주를 든 계정이 영영 못 생긴다. **그런데 이미 있는 사람들이 정확히

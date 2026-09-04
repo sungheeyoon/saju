@@ -1046,6 +1046,27 @@ test.describe('가입할 때 만드는 프로필', () => {
    * 막으면 들어오지도 나가지도 못한다 — 베타가 끝난 뒤에도 이 화면만 열어 두는 것과
    * 같은 까닭이다.
    */
+  /**
+   * **앱 안에서 걸어 다닐 때도 관문이 선다.**
+   *
+   * `page.goto` 는 전체 적재라 서버가 튕김을 다 처리한다. 실제 사람은 링크를 누르고,
+   * 그때는 화면 조각만 오간다 — 관문이 레이아웃에 있던 동안 **그 길에서는 한 번도 안
+   * 돌았다.** 이름 없는 사람이 헤더의 「내 사주」를 누르면 등록 화면이 그대로 열렸다.
+   *
+   * 그래서 이 시험은 **반드시 눌러서** 간다. `goto` 로 재면 고쳐지기 전에도 통과한다.
+   */
+  test('이름이 없으면 앱 안 링크로 홈에 가도 이름부터 짓게 한다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipProfile: true });
+
+    await newcomer.page.goto('/me/settings');
+    await expect(newcomer.page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
+
+    await newcomer.page.getByRole('link', { name: '내 사주' }).first().click();
+
+    await expect(newcomer.page).toHaveURL(/\/me\/profile$/);
+    await expect(newcomer.page.getByRole('heading', { name: '어떻게 불러 드릴까요' })).toBeVisible();
+  });
+
   test('이름이 없어도 계정 관리는 열린다', async ({ openAs }) => {
     const newcomer = await openAs({ selfPerson: false, skipProfile: true });
 

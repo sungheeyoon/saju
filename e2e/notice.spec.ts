@@ -97,10 +97,30 @@ test.describe('시작하기 전에', () => {
 
     await page.goto('/me');
 
+    /* 그리는 것이 아니라 튕긴다 — 관문 셋이 다 `proxy.ts` 로 옮겨 갔다 */
+    await expect(page).toHaveURL(/\/closed$/);
     await expect(page.getByRole('heading', { name: '비공개 테스트가 끝났습니다' })).toBeVisible();
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
 
+    /* 끝나도 나가는 길은 열려 있다 */
+    await page.goto('/me/settings');
+    await expect(page).toHaveURL(/\/me\/settings$/);
+    await expect(page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
+
     scheduleBeta(scheduledEndsOn());
+  });
+
+  /**
+   * **끝나지 않았는데 끝났다고 말하지 않는다.**
+   *
+   * 이 주소는 링크 하나로 아무 때나 열 수 있다. 안 물으면 「끝났습니다」가 거짓말이 된다.
+   */
+  test('아직 안 끝났으면 끝났다는 화면은 열리지 않는다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    scheduleBeta(scheduledEndsOn());
+
+    await page.goto('/closed');
+    await expect(page).toHaveURL(/\/me$/);
   });
 
   test('안내를 확인하면 시작할 수 있다', async ({ page, newcomerRaw }) => {
