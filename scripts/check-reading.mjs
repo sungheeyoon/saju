@@ -159,6 +159,16 @@ const saveAs = async (client, kind, target, output, score) => {
   const run = started.data?.[0];
   if (!run) return { error: new Error('시도가 시작되지 않았다') };
 
+  return saveToRun(run, output, score);
+};
+
+/**
+ * 이미 열려 있는 시도에 결과를 적는다 — **동의가 연 시도가 그렇다** (ADR 0038).
+ *
+ * 공유 궁합은 아무도 안 누른다. 수락이 요청자 이름으로 시도를 열어 두므로 여는 일이
+ * 아니라 **찾는 일**이고, 그 행은 브라우저에 안 열리므로 여기서만 SQL 로 읽는다.
+ */
+const saveToRun = async (run, output, score) => {
   const saved = await keyed().rpc('save_reading', {
     p_run_id: run.run_id,
     p_revision_a: run.revision_a,
@@ -445,7 +455,45 @@ try {
     const { data: matches } = await a.rpc('my_matches');
     matchId = matches?.[0]?.match_id;
 
-    const saved = await saveAs(a, 'match', { matchId }, OUTPUT.match, 64);
+    /**
+     * **동의가 시도를 연다 — 아무도 안 누른다** (ADR 0038).
+     *
+     * 수락은 받은 쪽(b) 세션에서 일어났는데 시도는 **청한 쪽(a)** 이름으로 서야 한다.
+     * 한 세션짜리 시험은 이 자리를 못 잰다: 여는 사람과 누르는 사람과 보는 사람이
+     * 다 다르다.
+     */
+    const opened = sql(`select r.id || '|' || r.user_id || '|' || coalesce(r.status,'')
+       from public.reading_run r where r.match_id = '${matchId}'`);
+    const [openedRunId, openedBy, openedStatus] = opened.split('|');
+
+    check('수락이 시도를 연다 — 아무도 안 눌렀는데', openedStatus === 'running', opened);
+    check('시도는 청한 사람 이름으로 선다',
+      openedBy === (await userIdOf(mail.a)), `${openedBy}`);
+
+    /** **예약이 사용으로 옮겨 간다** — 합계는 그대로다 */
+    const { data: creditRows } = await a.rpc('my_reading_credits');
+    check('수락이 예약을 사용으로 옮긴다',
+      creditRows?.[0]?.requested === 0 && creditRows?.[0]?.reserved === 1,
+      JSON.stringify(creditRows?.[0] ?? null));
+
+    /**
+     * **누를 것이 없다.** 글이 아직 없고 만들고 있는 중인데, 두 화면 어디에도 만드는
+     * 버튼이 서지 않는다 — 「먼저 누른 사람이 쓴다」가 사라지는 것은 누를 것이
+     * 없어져서다. 양쪽 다 본다: 결과는 둘의 것이다.
+     */
+    for (const [who, jar] of [['청한 쪽', cookie.a], ['동의한 쪽', cookie.b]]) {
+      const waiting = await body(`/me/match/${matchId}`, jar);
+      check(`${who} 화면에 만드는 버튼이 없다`, !waiting.includes('사주풀이 받기'));
+      check(`${who} 화면이 만드는 중이라고 말한다`,
+        plain(waiting).includes('명식의 흐름을 이어 읽고 있어요'));
+    }
+
+    const pinnedRun = {
+      run_id: openedRunId,
+      revision_a: sql(`select low_revision_id from public.match where id = '${matchId}'`),
+      revision_b: sql(`select high_revision_id from public.match where id = '${matchId}'`),
+    };
+    const saved = await saveToRun(pinnedRun, OUTPUT.match, 64);
     check('공유 궁합이 저장된다', !saved.error, saved.error?.message ?? '');
 
     const mine = plain(await body(`/me/match/${matchId}`, cookie.a));
@@ -453,6 +501,9 @@ try {
 
     check('양쪽이 같은 글을 읽는다',
       mine.includes('서로의 빈자리를 채웁니다') && theirs.includes('서로의 빈자리를 채웁니다'));
+    /** **글이 선 뒤에도 누를 것이 없다** — 「버튼이 없다」는 성공 경로의 약속이다 */
+    check('글이 선 뒤에도 만드는 버튼이 없다',
+      !mine.includes('다시 풀이받기') && !theirs.includes('다시 풀이받기'));
     check('양쪽이 같은 점수를 본다', mine.includes('64') && theirs.includes('64'));
 
     /**

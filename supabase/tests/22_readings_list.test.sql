@@ -174,10 +174,17 @@ grant select on pinned to authenticated, service_role;
 set local role authenticated;
 select pg_temp.acting((select kim from folks));
 
+/**
+ * **아무도 안 누른다 — 동의가 시도를 열었다**(ADR 0038). 시도는 청한 쪽(김) 이름으로
+ * 이미 서 있으므로 여는 것이 아니라 찾는다. `reading_run` 은 당사자에게도 안 열린다.
+ */
+reset role;
 create temporary table match_run as
-select run_id as id from public.start_reading_run(
-  'match', 'list-match-0001', null, null, (select match_id from matched));
+select r.id from public.reading_run r
+where r.match_id = (select match_id from matched) and r.status = 'running';
 grant select on match_run to authenticated, service_role;
+set local role authenticated;
+select pg_temp.acting((select kim from folks));
 
 select lives_ok(
   format($$select pg_temp.save(%L::uuid, %L::uuid, %L::uuid, '## 함께 보는 궁합', 64::smallint)$$,

@@ -123,4 +123,24 @@ describe('풀이권 문구', () => {
     expect(note).toContain('만들고 있는');
     expect(note).toContain('돌아옵니다');
   });
+
+  /**
+   * **보낸 요청도 자리를 잡는다** (ADR 0038). 이유를 말하지 않으면 「청하기만 했는데
+   * 하나가 사라졌다」로 읽힌다 — 도는 시도와 같은 자리에서 같은 이유로 말한다.
+   */
+  it('보낸 요청이 잡고 있으면 몇 건이 잡고 있는지와 언제 돌아오는지를 말한다', () => {
+    const note = readingCreditsNote({ reserved: 0, requested: 2 });
+
+    expect(note).toContain('2건');
+    expect(note).toContain('돌아옵니다');
+  });
+
+  /**
+   * **지금 움직이고 있는 쪽을 먼저 말한다.** 그것은 곧 끝나고, 요청은 상대의 답을
+   * 기다리는 일이라 시간의 결이 다르다. 두 줄을 함께 세우면 어느 쪽을 기다리는지가
+   * 흐려진다.
+   */
+  it('둘 다 잡고 있으면 만들고 있는 쪽을 먼저 말한다', () => {
+    expect(readingCreditsNote({ reserved: 1, requested: 3 })).toContain('만들고 있는');
+  });
 });

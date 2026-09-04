@@ -10,7 +10,7 @@
 -- 4. **판본을 든다.** 그래서 `revisions_in_use()` 가 이 표를 자동으로 본다(ADR 0011) —
 --    표 이름을 적어 둔 목록이 아니라 FK 에서 읽기 때문이다.
 begin;
-select plan(53);
+select plan(58);
 
 /**
  * **이 파일은 풀이권을 재지 않는다.**
@@ -429,6 +429,15 @@ create temporary table asked as
 select public.request_match((select lee from folks)) as request_id;
 grant select on asked to authenticated, service_role;
 
+/**
+ * **요청이 자리를 잡는다** (ADR 0038). 원장은 없다 — `pending` 인 내 요청을 세는 것이
+ * 곧 예약이다. 이 자리는 아직 아무도 안 눌렀는데 잔액이 하나 줄어 있어야 한다.
+ */
+select is(
+  (select requested from public.my_reading_credits()),
+  1,
+  '보낸 요청이 풀이권 한 자리를 잡는다');
+
 select pg_temp.acting((select lee from folks));
 select is(
   public.respond_to_match_request((select request_id from asked), true),
@@ -448,10 +457,57 @@ grant select on pinned to authenticated, service_role;
 set local role authenticated;
 select pg_temp.acting((select lee from folks));
 
+/**
+ * **수락이 시도를 이미 열었다** — 요청자 이름으로(ADR 0038).
+ *
+ * 여기서 `start_reading_run` 을 부르던 자리다. 이제는 부를 것이 없다: 같은 대상에 도는
+ * 시도는 하나이므로 0행이 오고, 그 0행으로 저장하려 들면 「기록할 시도를 찾지
+ * 못했습니다」가 난다. 동의가 예약을 쓰는 것이 이 ADR 의 전부다.
+ *
+ * `reading_run` 은 당사자에게도 안 열리므로 소유자로 읽는다 — 재려는 것은 열람이
+ * 아니라 **누구 이름으로 섰는가**다.
+ */
+reset role;
 create temporary table run_match as
-select run_id as id from public.start_reading_run(
-  'match', 'key-match-0001', null, null, (select match_id from matched));
+select r.id, r.user_id
+from public.reading_run r
+where r.match_id = (select match_id from matched) and r.status = 'running';
 grant select on run_match to authenticated, service_role;
+set local role authenticated;
+select pg_temp.acting((select lee from folks));
+
+select is(
+  (select count(*)::int from run_match),
+  1,
+  '수락이 시도를 연다 — 아무도 안 눌렀는데');
+
+/**
+ * **예약이 사용으로 옮겨 간다.** `pending` 이 `accepted` 가 되면서 셈에서 빠지고, 그
+ * 자리를 새 `running` 시도가 이어받는다 — 합계는 그대로다. 빼고 더하는 일이 아니라
+ * **같은 자리를 다른 이름으로 세는 일**이다.
+ */
+select pg_temp.acting((select kim from folks));
+select is(
+  (select array[reserved, requested] from public.my_reading_credits()),
+  array[1, 0],
+  '수락이 예약을 사용으로 옮긴다');
+select pg_temp.acting((select lee from folks));
+
+/**
+ * **요청자 것이다.** 수락은 받은 쪽 세션에서 일어나므로 `auth.uid()` 로 actor 를 정하는
+ * 문을 그대로 부르면 시도가 받은 쪽 것으로 서고, 풀이권도 그쪽에서 나간다.
+ */
+select is(
+  (select user_id from run_match),
+  (select kim from folks),
+  '시도는 청한 사람 이름으로 선다');
+
+/** 받은 쪽은 누를 것이 없다 — 같은 대상에 도는 시도가 이미 하나 있다 */
+select is(
+  (select count(*)::int from public.start_reading_run(
+    'match', 'key-match-0001', null, null, (select match_id from matched))),
+  0,
+  '동의한 쪽이 눌러도 아무것도 새로 열리지 않는다');
 
 /**
  * **매인 판본이 아니면 저장하지 않는다.** 동의한 대상이 그 판본이라 결과도 그것으로
@@ -499,15 +555,19 @@ select isnt(
   '누가 앞인지는 Match 가 정하고 보는 사람마다 뒤집히지 않는다');
 
 /**
- * 알림은 **상대에게만** 선다 — 누른 사람은 결과를 그 자리에서 본다.
- * 여기서 만든 사람은 이(수락한 쪽)이므로 알림은 김에게 가야 한다.
+ * 알림은 **시도를 연 사람의 상대에게만** 선다.
+ *
+ * 「누른 사람은 그 자리에서 본다」가 이 규칙의 이유였는데, 이제 공유 궁합에서는 아무도
+ * 안 누른다 — 동의가 연다(ADR 0038). 시도는 **청한 사람(김)** 것으로 서므로 준비 완료는
+ * **이**에게 간다. 방향이 뒤집힌 것이 아니라, 여는 사람이 바뀐 것이다.
  */
+select pg_temp.acting((select kim from folks));
 select is(
   (select count(*)::int from public.my_notifications() n where n.kind = 'reading_ready'),
   0,
-  '누른 사람에게는 알림이 서지 않는다');
+  '시도를 연 쪽에는 알림이 서지 않는다');
 
-select pg_temp.acting((select kim from folks));
+select pg_temp.acting((select lee from folks));
 select is(
   (select count(*)::int from public.my_notifications() n where n.kind = 'reading_ready'),
   1,
@@ -519,7 +579,7 @@ select is(
  */
 select is(
   (select counterpart_nickname from public.my_notifications() n where n.kind = 'reading_ready'),
-  '이읽',
+  '김읽',
   '준비 완료 알림이 상대 별명을 든다');
 
 /**
@@ -718,13 +778,15 @@ select is(
     'freeze_reading_job',
     'mark_reading_webhook_processed',
     'match_calculation_inputs',
+    /** 동의가 연 시도를 서버가 찾아 제출한다 — 부르는 사람은 요청자가 아니다(ADR 0038) */
+    'match_run_awaiting_send',
     'open_reading_jobs',
     'reading_recovery_configured',
     'record_reading_webhook_event',
     'release_reading_job',
     'save_reading'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 열한 개뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 열두 개뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

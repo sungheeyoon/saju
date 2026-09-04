@@ -145,7 +145,17 @@ function Result({ result }: { result: SharedResult }) {
         무엇을 믿을지 정해야 하기 때문**이다 — 사용자에게 보이는 점수는 현재 결과의
         일부이고(`prd-archive`), `match-v0` 는 내부 실험 자산으로 남는다(ADR 0003).
       */}
-      <ReadingSection target={{ kind: 'match', matchId: result.matchId }} />
+      {/*
+        **여기에는 만드는 버튼이 없다** (ADR 0038).
+
+        풀이권은 요청할 때 예약되고 동의가 그것을 쓴다. 그래서 이 글은 수락하는 그
+        순간부터 만들어지고 있고, 두 사람 다 누를 것이 없다 — 「먼저 누른 사람이 쓴다」가
+        사라지는 것은 규칙을 하나 더 세워서가 아니라 **누를 것이 없어져서**다.
+
+        글도 도는 시도도 없을 때만 「다시 만들기」가 선다. 자동 생성이 실패한 자리이고,
+        거기서까지 버튼을 없애면 동의는 났는데 아무도 못 여는 Match 가 남는다.
+      */}
+      <ReadingSection target={{ kind: 'match', matchId: result.matchId }} automatic />
 
       <p className="text-xs text-muted">{MATCH_RESULT_ENGINE_NOTE}</p>
 

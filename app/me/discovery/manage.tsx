@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { DISCOVERY_DISCLOSURE } from '@/src/lib/discovery';
 import { REQUEST_INTRO } from '@/src/lib/consent';
+import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading';
 
 import { CARD } from '../../card';
 import { MatchScope } from '../requests/manage';
@@ -363,6 +364,11 @@ export function RequestButton({ candidateUserId }: { candidateUserId: string }) 
   return (
     <div className="flex w-full flex-col gap-3">
       <MatchScope intro={REQUEST_INTRO} />
+      {/*
+        **누르기 직전에 말한다** (ADR 0028·0038). 요청 한 건이 풀이권 한 번을 잡으므로,
+        누르고 나서 잔액이 줄어 있으면 「청하기만 했는데」로 읽힌다 — 그때는 이미 늦다.
+      */}
+      <p className="text-xs leading-5 text-muted">{REQUEST_RESERVES_NOTE}</p>
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={send} disabled={working} className={BUTTON}>
           {working ? '보내는 중…' : '요청 보내기'}

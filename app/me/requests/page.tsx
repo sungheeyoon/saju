@@ -23,6 +23,15 @@ import {
   RespondButtons,
 } from './manage';
 
+/**
+ * **수락이 여기서 풀이를 떠나보낸다** (ADR 0038).
+ *
+ * 동의하면 시도가 열리고, 제출은 응답 뒤에 돈다(`after`). 그 콜백이 사는 시간은 그것을
+ * 부른 라우트의 상한이다 — 여기 없으면 플랫폼 기본값에서 잘리고, 그러면 시도가 열린 채
+ * 남아 그 Match 가 10분간 잠긴다. 결과 칸이 서는 화면들과 같은 값을 든다.
+ */
+export const maxDuration = 300;
+
 export const metadata = {
   title: '소식 — 만세력',
   description: '궁합 요청과 함께 보는 궁합의 새 소식을 확인합니다.',

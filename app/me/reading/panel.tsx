@@ -63,6 +63,7 @@ export function ReadingPanel({
   heading,
   allowMockFallback,
   layout = 'card',
+  automatic = false,
   ask,
 }: {
   target: ReadingTarget;
@@ -126,6 +127,17 @@ export function ReadingPanel({
    * 지금은 비공개 궁합의 「무슨 사이인가」 하나뿐이다. 자기 풀이에는 상대가 없고 공유
    * 궁합은 성립 방식이 사이를 정한다.
    */
+  /**
+   * 이 글을 **동의가 만드는가** (ADR 0038).
+   *
+   * 공유 궁합이 그렇다. 요청할 때 풀이권을 예약하고 동의가 그것을 쓰므로, 성공 경로에는
+   * **누를 것이 아무것도 없다** — 「먼저 누른 사람」이 사라지는 것은 누를 것이 없어져서다.
+   *
+   * **실패 경로에서까지 없애지는 않는다.** 글도 없고 도는 시도도 없으면 그 자리는 막다른
+   * 골목이 되고, 그것은 이 ADR 이 없애려던 바로 그 자리다. 그때는 「다시 만들기」가 서고,
+   * 누른 사람이 한 번을 쓴다(ADR 0017 — 드물고 눈에 보이는 자리다).
+   */
+  automatic?: boolean;
   ask?: ReactNode;
 }) {
   const router = useRouter();
@@ -282,7 +294,15 @@ export function ReadingPanel({
   const spent = credits !== null && credits.available === 0 && credits.reserved === 0;
   const creditsNote = credits === null ? null : readingCreditsNote(credits);
 
-  const makeBlock = (
+  /**
+   * **누를 것이 있는가.**
+   *
+   * 동의가 만드는 글은 성공 경로에 버튼이 없다 — 이미 있는 글도, 지금 만들고 있는 것도
+   * 누를 일이 아니다. 남는 자리는 **아무것도 없는 자리** 하나이고, 그때만 버튼이 선다.
+   */
+  const hideMake = automatic && (reading !== null || phase === 'loading');
+
+  const makeBlock = hideMake ? null : (
     <div
       className={`flex flex-col gap-3 ${onPage ? 'rounded-2xl border border-border bg-surface px-5 py-4' : 'border-t border-border pt-5'}`}
     >
@@ -328,7 +348,13 @@ export function ReadingPanel({
           disabled={phase === 'loading' || spent}
           className="h-11 w-full shrink-0 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto"
         >
-          {phase === 'loading' ? '풀이 만드는 중…' : reading === null ? '사주풀이 받기' : '다시 풀이받기'}
+          {phase === 'loading'
+            ? '풀이 만드는 중…'
+            : automatic
+              ? '다시 만들기'
+              : reading === null
+                ? '사주풀이 받기'
+                : '다시 풀이받기'}
         </button>
       </div>
       {/* 풀이권에 대해 말할 것이 있을 때만 한 줄 더 선다 — 이 누름에 대한 말이라 여기다 */}

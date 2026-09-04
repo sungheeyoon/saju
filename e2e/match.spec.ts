@@ -130,10 +130,19 @@ test.describe('동의로 열리는 흐름', () => {
       await expect(person.page.getByText('1990-05-15')).toHaveCount(0);
       await expect(person.page.getByText('서울')).toHaveCount(0);
 
-      // 현재 Reading 은 아직 없다 — 화면을 여는 것으로 만들어지지 않는다(US 25).
+      /*
+        **누를 것이 없다** (ADR 0038).
+
+        여기서 「아직 만들어 둔 사주풀이가 없습니다」와 「사주풀이 받기」를 재고 있었다.
+        그 둘이 참이려면 누가 눌러야 하는데, 이제 아무도 안 누른다 — 풀이권은 요청할
+        때 예약되고 **동의가 그것을 쓴다.** 「먼저 누른 사람이 쓴다」가 사라지는 것은
+        규칙을 하나 더 세워서가 아니라 누를 것이 없어져서다.
+
+        무엇이 서 있는지는 시각에 달렸다(만드는 중이거나, 열쇠 없는 시험 환경에서는
+        곧 실패한다). 시각에 안 달린 것 하나를 잰다: **그 버튼은 없다.**
+      */
       await expect(person.page.getByRole('heading', { name: '두 사람의 궁합 풀이' })).toBeVisible();
-      await expect(person.page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
-      await expect(person.page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
+      await expect(person.page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
     }
   });
 

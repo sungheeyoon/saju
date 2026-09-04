@@ -1,11 +1,13 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 
 import { REQUEST_STATUSES, type RequestStatus } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import type { SaveResult } from '../actions';
+import { sendAcceptedMatchReading } from '../reading/pipeline';
 
 /**
  * 답한 결과는 **세 갈래**다.
@@ -41,6 +43,26 @@ export async function respondToRequest(requestId: string, accept: boolean): Prom
 
   const status = statusOf(data);
   if (status === null) return { ok: false, message: '답을 남기지 못했습니다.' };
+
+  /**
+   * **동의하면 풀이가 저절로 만들어진다** (ADR 0038).
+   *
+   * 시도는 수락 트랜잭션 안에서 이미 열렸다 — 청한 사람 이름으로. 여기서 하는 것은
+   * 그것을 떠나보내는 일뿐이고, 그 일은 응답 뒤에 돈다: 수락을 누른 사람이 「수락했다」를
+   * 보기까지 모델 왕복을 기다릴 이유가 없다(ADR 0020 과 같은 규율).
+   *
+   * **던지지 않는다.** 응답은 이미 나갔고 부르는 쪽이 없다. 실패하면 `sendRun` 이 시도를
+   * 닫고, 결과 화면에 「다시 만들기」가 선다.
+   */
+  if (status === 'accepted') {
+    after(async () => {
+      try {
+        await sendAcceptedMatchReading(requestId);
+      } catch {
+        // 여기까지 온 것은 우리가 못 적은 경우다. 복구기가 deadline 에 닫는다.
+      }
+    });
+  }
 
   revalidatePath('/me/requests');
   revalidatePath('/me/discovery');

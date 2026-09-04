@@ -125,7 +125,21 @@ export default defineConfig({
   ],
   webServer: {
     command: `npm run dev -- --hostname localhost --port ${port}`,
-    env: localStack(),
+    env: {
+      ...localStack(),
+      /**
+       * **시험은 모델을 안 부른다.**
+       *
+       * 여태는 부를 길이 버튼 하나뿐이라 「누르지 않는다」로 족했다. 이제 **동의가
+       * 풀이를 만든다**(ADR 0038) — 수락을 누르는 시험 하나가 곧 실호출이 되고,
+       * 그것은 매 실행마다 돈이 나가는 자리다.
+       *
+       * 열쇠를 비우면 제출이 그 자리에서 실패하고 시도가 닫힌다. **막는 것을
+       * 시험 코드에 두지 않는 것이 요점이다** — 「이 시험은 누르지 마세요」는
+       * 다음에 시험을 쓰는 사람이 모르는 규칙이지만, 없는 열쇠는 아무도 못 쓴다.
+       */
+      OPENAI_API_KEY: '',
+    },
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

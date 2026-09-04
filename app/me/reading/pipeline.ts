@@ -348,6 +348,43 @@ export async function beginReading(
   return { ok: true, started: true };
 }
 
+/**
+ * 동의가 연 시도를 **떠나보낸다** (ADR 0038).
+ *
+ * 수락은 시도를 열기만 한다 — 자르기·프롬프트·제출은 Node 의 일이고, DB 트랜잭션
+ * 안에서 할 수 있는 것이 아니다. 그래서 수락한 사람의 응답 뒤(`after`)에 이 함수가 돈다.
+ *
+ * ## 누른 사람이 아니라 열쇠로 읽는다
+ *
+ * 시도는 **청한 사람** 것으로 서 있고 `reading_run` 은 당사자에게도 안 열린다. 수락을
+ * 부른 사람은 받은 쪽이라 그 행을 볼 길이 없다 — 그래서 열쇠가 여는 문 하나로 찾는다
+ * (`match_run_awaiting_send`). 그 문은 **아직 안 얼린 것만** 내주므로 두 번 부르거나
+ * 복구기와 겹쳐도 같은 시도가 두 번 나가지 않는다.
+ *
+ * ## 못 보내도 막다른 길이 아니다
+ *
+ * 여기서 실패하면 시도는 `sendRun` 이 닫고(실패로), 결과 화면에는 「다시 만들기」가
+ * 선다. 「누를 버튼이 없다」는 성공 경로의 약속이지 실패 경로의 약속이 아니다.
+ */
+export async function sendAcceptedMatchReading(requestId: string): Promise<void> {
+  let keyed: ReturnType<typeof keyedClient>;
+  try {
+    keyed = keyedClient('동의가 연 시도를 제출할');
+  } catch {
+    // 열쇠가 없는 배포다. 시도는 열린 채로 남고 만료 때 닫힌다 — 화면에 버튼이 돌아온다.
+    return;
+  }
+
+  const { data, error } = await keyed.rpc('match_run_awaiting_send', { p_request_id: requestId });
+  if (error) return;
+
+  const started = ((data ?? []) as StartedRun[])[0];
+  // 0행은 「보낼 것이 없다」다 — 수락이 시도를 못 열었거나 이미 떠났다.
+  if (started === undefined) return;
+
+  await sendRun({ kind: 'match', matchId: started.match_id as string }, started);
+}
+
 async function fail(runId: string, code: string, detail: string): Promise<ReadingRequest> {
   const supabase = await supabaseOnServer();
 

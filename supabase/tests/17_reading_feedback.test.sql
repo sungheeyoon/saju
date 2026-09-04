@@ -291,12 +291,20 @@ from public.match m where m.id = (select match_id from matched);
 grant select on pinned to authenticated, service_role;
 set local role authenticated;
 
-/** **이가 누른다.** 풀이권도 이가 쓰고, 시도의 `user_id` 도 이다 */
-select pg_temp.acting((select lee from folks));
+/**
+ * **아무도 안 누른다 — 동의가 시도를 연다**(ADR 0038).
+ *
+ * 여기서 이(수락한 쪽)가 눌렀었다. 이제 시도는 수락 트랜잭션 안에서 **김(청한 쪽)**
+ * 이름으로 서 있고, 풀이권도 김이 쓴다. 이 파일이 재려는 것은 그 다음 자리다 —
+ * **누른 사람이 아니어도 답할 수 있는가.** 이제 그 물음이 더 곧다: 누른 사람이 없다.
+ */
+reset role;
 create temporary table run_match as
-select run_id as id from public.start_reading_run(
-  'match', 'fb-match-0001', null, null, (select match_id from matched));
+select r.id from public.reading_run r
+where r.match_id = (select match_id from matched) and r.status = 'running';
 grant select on run_match to authenticated, service_role;
+set local role authenticated;
+select pg_temp.acting((select lee from folks));
 
 select lives_ok(
   format($$select pg_temp.save(%L::uuid, %L::uuid, %L::uuid, '## 공유 궁합', 64::smallint)$$,

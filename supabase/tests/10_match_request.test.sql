@@ -4,7 +4,7 @@
 -- 사람에게만」, 「살아 있는 결정은 한 쌍에 하나」, 「수락 순간 판본을 다시 본다」,
 -- 「없는 사람과 못 보는 사람의 답이 같다」.
 begin;
-select plan(73);
+select plan(92);
 
 /**
  * 참여자 하나를 세우는 손잡이.
@@ -588,6 +588,166 @@ select is(
 select ok((select public.unread_notifications()) > 0, '안 읽은 알림이 있다');
 select ok((select public.mark_notifications_read()) > 0, '읽음으로 바꾼 개수를 돌려준다');
 select is((select public.unread_notifications()), 0, '읽고 나면 안 읽은 알림이 없다');
+
+-- ── 요청이 풀이권 한 자리를 잡는다 (ADR 0038) ────────────────────────────────
+--
+-- **예약은 값이 아니라 세는 법이다.** 원장을 두지 않았으므로 여기서 재는 것은 「차감과
+-- 반환이 맞는가」가 아니라 **살아 있는 요청이 셈에 드는가**다. 끝나는 갈래가 넷이고
+-- 그중 어느 것도 되돌리는 일을 하지 않는다.
+
+reset role;
+
+/**
+ * **한 장으로 잰다.** 다섯 장을 쓰려면 결과를 다섯 번 저장해야 하고, 그건 이 파일이
+ * 재려는 것이 아니다. 경계는 한 장에서도 똑같이 서 있다.
+ */
+create or replace function public.reading_credit_limit()
+returns integer language sql immutable as $limit$ select 1 $limit$;
+
+set local role authenticated;
+
+create temporary table later as
+select
+  pg_temp.participant('yoon-mr@example.com', '윤', pg_temp.summary(4, 4, 0, 0, 0)) as yoon,
+  pg_temp.participant('jang-mr@example.com', '장', pg_temp.summary(0, 0, 4, 4, 0)) as jang,
+  pg_temp.participant('moon-mr@example.com', '문', pg_temp.summary(0, 0, 0, 0, 8)) as moon;
+grant select on later to authenticated;
+
+/** 앞선 시험들이 남긴 사람들은 이 셋의 관심 밖이다 — 서로만 보이게 둔다 */
+reset role;
+insert into public.discovery_hidden (user_id, hidden_user_id)
+select ours.uid, p.user_id
+from (select yoon as uid from later union all select jang from later
+      union all select moon from later) ours,
+     public.discovery_profile p
+where p.user_id not in (
+  select yoon from later union all select jang from later union all select moon from later);
+set local role authenticated;
+
+select pg_temp.acting((select yoon from later));
+select is(
+  (select array[used, reserved, requested, available] from public.my_reading_credits()),
+  array[0, 0, 0, 1],
+  '아직 아무것도 안 잡혀 있다');
+
+select lives_ok($$select count(*) from public.discovery_board()$$, '윤이 목록을 연다');
+
+create temporary table asked_jang as
+select public.request_match((select jang from later)) as request_id;
+grant select on asked_jang to authenticated;
+
+select is(
+  (select array[used, reserved, requested, available] from public.my_reading_credits()),
+  array[0, 0, 1, 0],
+  '요청 한 건이 풀이권 한 자리를 잡는다');
+
+/**
+ * **제품에 새로 서는 사실 하나** — 요청을 띄운 사람은 자기 사주 풀이를 못 만든다.
+ * 버그가 아니라 정책이라, 거절의 말이 「다 썼다」가 아니라 **왜 잡혀 있는지**를 말한다.
+ */
+select throws_like(
+  $$select * from public.start_reading_run('self', 'yoon-self-0001')$$,
+  '%인연 요청%',
+  '요청이 잡고 있으면 자기 풀이도 못 만든다');
+
+/** **제품에 새로 서는 사실 둘** — 풀이권 없이는 인연 요청을 못 한다 */
+select throws_like(
+  format($$select public.request_match(%L::uuid)$$, (select moon from later)),
+  '%풀이권%',
+  '잔액이 없으면 청할 수 없다');
+
+-- ── 끝나는 갈래는 다 자리를 푼다 ─────────────────────────────────────────────
+
+select is(
+  public.cancel_match_request((select request_id from asked_jang)),
+  'cancelled',
+  '거두면 요청이 없던 일이 된다');
+
+select is(
+  (select array[requested, available] from public.my_reading_credits()),
+  array[0, 1],
+  '거두면 자리가 풀린다 — 되돌리는 일 없이');
+
+select lives_ok($$select count(*) from public.discovery_board()$$, '윤이 목록을 다시 연다');
+create temporary table asked_jang_again as
+select public.request_match((select jang from later)) as request_id;
+grant select on asked_jang_again to authenticated;
+
+select pg_temp.acting((select jang from later));
+select is(
+  public.respond_to_match_request((select request_id from asked_jang_again), false),
+  'rejected',
+  '장이 거절한다');
+
+select pg_temp.acting((select yoon from later));
+select is(
+  (select array[requested, available] from public.my_reading_credits()),
+  array[0, 1],
+  '거절당하면 자리가 풀린다');
+
+-- ── 7일이 지나면 만료다 ─────────────────────────────────────────────────────
+
+select lives_ok($$select count(*) from public.discovery_board()$$, '윤이 문을 보러 목록을 연다');
+create temporary table asked_moon as
+select public.request_match((select moon from later)) as request_id;
+grant select on asked_moon to authenticated;
+
+select is(
+  (select array[requested, available] from public.my_reading_credits()),
+  array[1, 0],
+  '문에게 청한 것도 한 자리를 잡는다');
+
+reset role;
+update public.match_request set expires_at = now() - interval '1 minute'
+where id = (select request_id from asked_moon);
+set local role authenticated;
+select pg_temp.acting((select yoon from later));
+
+/**
+ * **잔액은 미는 일을 안 기다린다.** 셈이 `expires_at > now()` 만 보므로 풀이권은 기한이
+ * 지나는 그 순간 이미 돌아와 있다. cron 이 늦어도 사용자가 잃는 것이 없다.
+ */
+select is(
+  (select array[requested, available] from public.my_reading_credits()),
+  array[0, 1],
+  '기한이 지나면 밀기 전에도 자리가 풀려 있다');
+
+/** 미는 일이 하는 것은 **표시와 유일 인덱스**다 — 목록에서 내려가고 다시 청할 수 있게 된다 */
+reset role;
+select is(public.expire_match_requests(), 1, '기한이 지난 요청 하나를 만료로 민다');
+set local role authenticated;
+select pg_temp.acting((select yoon from later));
+
+select is(
+  (select status from public.my_match_requests()
+   where request_id = (select request_id from asked_moon)),
+  'expired',
+  '만료는 거둠·무효와 다른 상태로 남는다');
+
+select is(
+  (select count(*)::int from public.my_notifications()
+   where request_id = (select request_id from asked_moon) and kind = 'request_expired'),
+  1,
+  '요청자에게만 만료가 알려진다 — 풀이권이 돌아왔다는 것을 알아야 한다');
+
+/**
+ * 받은 쪽에는 만료가 안 선다 — 답을 안 한 것이라 알릴 일이 없고, 알리면 「답하지
+ * 않았다」를 두드리는 도구가 된다. 처음 받은 통보는 그대로 남는다.
+ */
+select pg_temp.acting((select moon from later));
+select is(
+  (select count(*)::int from public.my_notifications()
+   where request_id = (select request_id from asked_moon) and kind = 'request_expired'),
+  0,
+  '답하지 않은 쪽은 두드리지 않는다');
+
+/** 만료된 요청은 다시 청할 수 있다 — `one_live_request_between_two` 가 `pending` 만 묶는다 */
+select pg_temp.acting((select yoon from later));
+select lives_ok($$select count(*) from public.discovery_board()$$, '윤이 다시 목록을 연다');
+select isnt(
+  public.request_match((select moon from later)),
+  null,
+  '만료된 뒤에는 같은 사람에게 다시 청할 수 있다');
 
 reset role;
 select * from finish();

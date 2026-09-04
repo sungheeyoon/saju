@@ -19,6 +19,7 @@ export async function ReadingSection({
   target,
   heading,
   layout,
+  automatic,
   ask,
 }: {
   target: ReadingTarget;
@@ -31,6 +32,11 @@ export async function ReadingSection({
   heading?: string;
   /** 카드로 서는가, 그 글을 읽으러 온 페이지인가 — `ReadingPanel` 이 그 뜻을 든다 */
   layout?: 'card' | 'page';
+  /**
+   * 이 글을 **동의가 만드는가** (ADR 0038). 성공 경로에는 누를 것이 없다 —
+   * 뜻은 `ReadingPanel` 이 든다.
+   */
+  automatic?: boolean;
   /** 다음 풀이를 위해 먼저 정할 것 — 만드는 버튼 옆에 선다 */
   ask?: ReactNode;
 }) {
@@ -63,6 +69,7 @@ export async function ReadingSection({
         heading={heading ?? (target.kind === 'self' ? '나의 사주풀이' : '두 사람의 궁합 풀이')}
         allowMockFallback={process.env.NODE_ENV !== 'production'}
         layout={layout}
+        automatic={automatic}
         ask={ask}
       />
     </section>

@@ -113,6 +113,13 @@ export type ReadingCredits = {
   readonly used: number;
   /** 지금 만들고 있는 것이 잡고 있는 자리 — 화면이 그 이유를 말할 수 있게 따로 든다 */
   readonly reserved: number;
+  /**
+   * 상대의 답을 기다리는 **내 요청**이 잡고 있는 자리 (ADR 0038).
+   *
+   * `reserved` 와 합쳐 내지 않는다. 자리가 찬 것은 같지만 사용자가 할 일이 다르다 —
+   * 하나는 기다리면 되고 하나는 보낸 요청을 거두면 된다.
+   */
+  readonly requested: number;
   readonly available: number;
 };
 
@@ -138,6 +145,7 @@ export async function readingCredits(): Promise<ReadingCredits | null> {
     limit: row.credit_limit as number,
     used: row.used as number,
     reserved: row.reserved as number,
+    requested: row.requested as number,
     available: row.available as number,
   };
 }

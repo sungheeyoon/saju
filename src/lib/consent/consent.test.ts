@@ -27,17 +27,19 @@ import {
  *
  * pending 이 무엇으로 갈 수 있는지, 무엇이 무효를 부르는지는 전부 DB 안에 있고
  * `supabase/tests/10_match_request.test.sql` 이 잰다. 여기서 재는 것은 **말**이다 —
- * 다섯 상태와 네 사건에 빠짐없이 문장이 있는지, 그리고 그 문장이 실제 동작과 같은
+ * 여섯 상태와 사건마다 빠짐없이 문장이 있는지, 그리고 그 문장이 실제 동작과 같은
  * 약속을 하는지.
  */
-describe('요청 상태는 다섯이고 다섯 다 말이 있다', () => {
-  it('DB 검사식과 같은 다섯을 든다', () => {
+describe('요청 상태는 여섯이고 여섯 다 말이 있다', () => {
+  /** 만료가 여섯째다 — 7일 답이 없으면 예약해 둔 풀이권이 돌아온다(ADR 0038) */
+  it('DB 검사식과 같은 여섯을 든다', () => {
     expect([...REQUEST_STATUSES]).toEqual([
       'pending',
       'accepted',
       'rejected',
       'invalidated',
       'cancelled',
+      'expired',
     ]);
   });
 
@@ -93,6 +95,17 @@ describe('알림은 여섯 사건을 말한다', () => {
     expect(notificationText({ kind: 'request_received', nickname: '  ', readingKind: null })).toBe(
       notificationText({ kind: 'request_received', nickname: null, readingKind: null }),
     );
+  });
+
+  /**
+   * **만료는 풀이권이 돌아왔다는 소식이다** (ADR 0038). 요청이 조용히 사라지면 사용자는
+   * 쓰지도 않은 것을 잃은 줄 아는데, 실제로 잃은 것은 없다 — 그 사실이 문장에 있어야 한다.
+   */
+  it('만료 알림은 풀이권이 돌아왔다는 것까지 말한다', () => {
+    for (const nickname of ['지영', null]) {
+      expect(notificationText({ kind: 'request_expired', nickname, readingKind: null }))
+        .toContain('풀이권');
+    }
   });
 });
 

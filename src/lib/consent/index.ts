@@ -28,6 +28,14 @@ export const REQUEST_STATUSES = [
   'rejected',
   'invalidated',
   'cancelled',
+  /**
+   * 7일 답이 없어 만료됐다 (ADR 0038).
+   *
+   * `cancelled`(스스로 거둠)·`invalidated`(입력이 바뀜)와 갈라 둔다. 셋 다 「성립하지
+   * 않았다」지만 사용자가 알아야 하는 것은 이유다 — 만료는 **아무도 아무것도 안 한 것**이고,
+   * 그때 예약해 둔 풀이권이 돌아온다.
+   */
+  'expired',
 ] as const;
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
 
@@ -71,6 +79,11 @@ export const REQUEST_STATUS_TEXT: Record<
     sent: '보낸 요청을 거뒀습니다.',
     received: '거둬진 요청입니다.',
   },
+  expired: {
+    label: '만료',
+    sent: '7일 동안 답이 없어 요청이 만료되었습니다. 잡고 있던 풀이권은 돌아왔습니다.',
+    received: '답하지 않은 채 7일이 지나 요청이 만료되었습니다.',
+  },
 };
 
 /** 앱 내 알림이 다루는 사건 — 이름은 DB 의 검사식과 같다 */
@@ -79,6 +92,14 @@ export const NOTIFICATION_KINDS = [
   'request_accepted',
   'request_rejected',
   'request_invalidated',
+  /**
+   * 7일 답이 없어 만료됐다 — **요청한 쪽에만 선다** (ADR 0038).
+   *
+   * 받은 쪽은 답을 안 한 것이라 알릴 일이 없고, 알리면 「답하지 않았다」를 두드리는
+   * 도구가 된다. 요청자는 **잡고 있던 풀이권이 돌아왔다**는 것을 알아야 한다 — 조용히
+   * 사라지면 쓰지도 않은 것을 잃은 줄 안다.
+   */
+  'request_expired',
   /**
    * 공유 결과가 새 글로 바뀌었다 — **상대에게만 선다.**
    *
@@ -142,6 +163,10 @@ export function notificationText({ kind, nickname, readingKind }: NotificationEv
       return who === ''
         ? '출생 정보가 바뀌어 요청이 무효가 되었습니다.'
         : `${who} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다.`;
+    case 'request_expired':
+      return who === ''
+        ? '답이 없어 요청이 만료되었습니다. 잡고 있던 풀이권은 돌아왔습니다.'
+        : `${who} 님에게 보낸 요청이 만료되었습니다. 잡고 있던 풀이권은 돌아왔습니다.`;
     case 'reading_ready':
       return who === ''
         ? '함께 보는 궁합 풀이가 새로 만들어졌습니다.'
@@ -243,9 +268,16 @@ export const CONSENT_FLOW_CAVEAT =
 export const REQUEST_INTRO =
   '요청을 보내면 상대의 소식에 뜹니다. 상대가 수락해야만 아래가 열리고, 수락하지 않으면 지금 보이는 것에서 더 나가지 않습니다.';
 
-/** 수락 전에 읽는 말 — **후보 카드만 본 것은 궁합 동의가 아니다** */
+/**
+ * 수락 전에 읽는 말 — **후보 카드만 본 것은 궁합 동의가 아니다.**
+ *
+ * **풀이가 저절로 만들어진다는 것도 여기서 말한다** (ADR 0038). 수락한 사람은
+ * 아무것도 안 눌렀는데 화면에 「만드는 중」이 서 있게 되고, 그 이유를 여기서 미리
+ * 읽지 않으면 자기 풀이권이 나간 줄 안다. 실제로는 청한 사람이 요청할 때 잡아 둔
+ * 한 번이 쓰인다.
+ */
 export const CONSENT_INTRO =
-  '수락하면 두 사람이 같은 궁합 결과를 함께 볼 수 있습니다. 아래 내용만 서로에게 열리고, 그 밖의 것은 열리지 않습니다.';
+  '수락하면 두 사람이 같은 궁합 결과를 함께 볼 수 있습니다. 아래 내용만 서로에게 열리고, 그 밖의 것은 열리지 않습니다. 수락하는 그 자리에서 궁합 풀이가 만들어지기 시작하고, 풀이권은 요청하신 분이 씁니다.';
 
 /**
  * 요청이 잡아 둔 것 — **사람이 아니라 그때 그 입력에 대한 동의다.**
