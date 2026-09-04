@@ -658,6 +658,37 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     const account = page.getByRole('main');
     await expect(account.getByRole('button', { name: '로그아웃' })).toBeVisible();
     await expect(account.getByRole('button', { name: '계정 삭제 요청' })).toBeVisible();
+
+    /*
+      **누르고 나면 판이 닫힌다.** `<details>` 는 안의 링크를 눌러도 스스로 안 닫히고,
+      앱 안 이동은 화면만 갈아 끼우므로 펼친 판이 새 화면 위에 그대로 얹혀 있었다.
+    */
+    await expect(page.locator('details:has(summary[aria-label="설정 메뉴"])')).not.toHaveAttribute(
+      'open',
+      /.*/,
+    );
+  });
+
+  /**
+   * **버튼의 이름은 「끄기」다.**
+   *
+   * 「철회하기」라고 적혀 있었다 — 서류의 말이지 누르는 것의 이름이 아니다. 처리 안내가
+   * 「계정 관리 화면에서 켜고 끄실 수 있습니다」라고 약속하므로 화면도 그 낱말을 쓴다.
+   * 끄는 일 자체는 그대로다 — 없애면 처리방침이 약속한 것이 화면에 없게 된다.
+   */
+  test('선택 동의는 켜고 끄는 말로 서고, 끄면 남긴 답도 지운다고 미리 말한다', async ({
+    page,
+    reader,
+  }) => {
+    expect(reader.account.email).not.toBe('');
+    await page.goto('/me/settings');
+
+    const consent = page.getByRole('main');
+    await expect(consent.getByRole('button', { name: '철회하기' })).toHaveCount(0);
+
+    /* `reader` 는 개선 활용에 동의한 계정이라 그 줄이 켜져 있다 */
+    await expect(consent.getByRole('button', { name: '끄기' }).first()).toBeVisible();
+    await expect(consent.getByText('끄시면 지금까지 남기신 설문 답도 함께 지웁니다.')).toBeVisible();
   });
 
   test('입력을 고치면 새 판본으로 다시 그린다', async ({ page, signedIn }) => {

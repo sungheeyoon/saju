@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { readingCreditsLabel } from '@/src/lib/reading';
 
@@ -231,14 +231,50 @@ function Credits() {
   );
 }
 
+/**
+ * 설정 메뉴 — **누르고 나면 닫힌다.**
+ *
+ * `<details>` 는 안의 링크를 눌러도 스스로 안 닫힌다. 앱 안 이동은 화면만 갈아 끼우므로
+ * 펼쳐진 판이 새 화면 위에 그대로 얹혀 있었다 — 사용자가 기어를 한 번 더 눌러야 치워졌다.
+ *
+ * 닫는 자리를 셋 둔다. **주소가 바뀌면**(다른 화면으로 갔다), **눌렀으면**(같은 화면으로
+ * 가는 누름은 주소를 안 바꾼다 — 계정 관리에서 계정 관리를 누르는 경우), 그리고 **바깥을
+ * 누르거나 Esc 를 누르면.** 마지막은 열어 두면 같은 불평이 한 걸음 뒤에 다시 온다 —
+ * 펼친 판이 안 닫히는 것은 어느 쪽이든 같은 고장이다.
+ */
 function AccountMenu({ email }: { email: string | null }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const panel = useRef<HTMLDetailsElement>(null);
   const [leaving, setLeaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+
+  const close = () => {
+    if (panel.current !== null) panel.current.open = false;
+  };
+
+  useEffect(close, [pathname]);
+
+  useEffect(() => {
+    const outside = (event: MouseEvent) => {
+      if (panel.current !== null && !panel.current.contains(event.target as Node)) close();
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') close();
+    };
+
+    document.addEventListener('mousedown', outside);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('mousedown', outside);
+      document.removeEventListener('keydown', escape);
+    };
+  }, []);
 
   const signOut = async () => {
     setLeaving(true);
     setFailure(null);
+    close();
     const { error } = await supabaseInBrowser().auth.signOut();
     if (error) {
       setLeaving(false);
@@ -250,7 +286,7 @@ function AccountMenu({ email }: { email: string | null }) {
   };
 
   return (
-    <details className="group relative shrink-0">
+    <details ref={panel} className="group relative shrink-0">
       <summary
         className="grid size-10 cursor-pointer list-none place-items-center rounded-full border border-border-strong bg-surface text-secondary hover:border-accent hover:text-accent [&::-webkit-details-marker]:hidden"
         aria-label="설정 메뉴"
@@ -267,10 +303,18 @@ function AccountMenu({ email }: { email: string | null }) {
           자리가 없었다 — 인연 설정 안의 한 줄로만 닿았고, 인연에 참여하지 않는 사람은
           그 화면에 갈 이유가 없다. 이름은 앱 전체의 것이므로 길도 앱 전체의 자리에 선다.
         */}
-        <Link href="/me/profile" className="mt-1 block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft">
+        <Link
+          href="/me/profile"
+          onClick={close}
+          className="mt-1 block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
+        >
           프로필
         </Link>
-        <Link href="/me/settings" className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft">
+        <Link
+          href="/me/settings"
+          onClick={close}
+          className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
+        >
           계정 관리
         </Link>
         <button
