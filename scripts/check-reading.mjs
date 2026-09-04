@@ -473,6 +473,64 @@ try {
     check('누른 사람에게는 뜨지 않는다', !mineInbox.includes('궁합 풀이가 새로 만들어졌습니다'));
   }
 
+  // ── 4-1. 만든 글은 한 목록에 선다 ────────────────────────────────────────
+  //
+  // 여기까지 오면 a 는 네 kind 를 다 만들었다. 흩어져 있던 넷이 한 화면에 서는가와,
+  // **그 화면이 본문을 안 싣는가**가 이 자리에서 재는 것이다.
+  {
+    const list = await body('/me/readings', cookie.a);
+    const shown = plain(list);
+
+    check('풀이 목록이 열린다', shown.includes('만든 풀이'));
+    check('머리글에 풀이가 선다', shown.includes('풀이'));
+
+    /**
+     * 네 kind 가 다 선다 — 줄 이름은 kind 마다 다른 표에서 난 이름으로 지어진다
+     * (`local_label` · `discovery_profile.nickname`).
+     */
+    check('목록에 내 사주 줄이 선다', shown.includes('내 사주'));
+    check('목록에 저장한 사람 줄이 선다', shown.includes('엄마 사주'));
+    /**
+     * 두 사람 궁합의 차례는 **uuid 의 차례이지 사람의 차례가 아니다.** 어느 이름이
+     * 앞에 서는지로 재면 그날그날 다른 답을 내는 검사가 된다 — 둘이 함께 서는가만 본다.
+     */
+    check('목록에 두 사람 궁합 줄이 선다',
+      shown.includes('엄마') && shown.includes(NAME.a) && shown.includes('궁합'));
+    /** 함께 보는 궁합의 이름은 상대의 **공개 별명**이다 — `local_label` 이 아니다 */
+    check('목록에 함께 보는 궁합 줄이 선다', shown.includes(`${NAME.b} 궁합`));
+
+    check('궁합 줄에 점수가 함께 선다', shown.includes('71') && shown.includes('64'));
+
+    /** 누르면 그 글이 사는 화면으로 간다 — 목록 안에서 결과를 열지 않는다 */
+    for (const [what, href] of [
+      ['내 사주', 'href="/me"'],
+      ['저장한 사람', `href="/me/people/${momId}"`],
+      ['함께 보는 궁합', `href="/me/match/${matchId}"`],
+    ]) {
+      check(`${what} 줄이 그 대상의 화면으로 간다`, list.includes(href), href);
+    }
+    check('두 사람 궁합 줄이 그 둘의 화면으로 간다', /href="\/me\/compat\?a=[^"]+&(amp;)?b=/.test(list));
+
+    /**
+     * **본문이 없다.** 이건 SQL 시험이 못 잰다 — 반환형에 열이 하나 늘어도 pgTAP 은
+     * 그걸 위반이라 부르지 않는다(ADR 0033). 네 글의 첫 문장을 다 짚는다: 목록이 곧
+     * 두 번째 결과 화면이 되는 순간 이 중 하나가 여기 실린다.
+     */
+    for (const [what, sentence] of [
+      ['자기 풀이', '스스로 정한 규칙 안에서'],
+      ['비공개 궁합', '둘은 서로 다른 속도로'],
+      ['공유 궁합', '서로의 빈자리를 채웁니다'],
+    ]) {
+      check(`목록에 ${what} 본문이 없다`, !shown.includes(sentence));
+    }
+    check('목록에 근거도 프롬프트도 없다',
+      !list.includes('evidence-v0') && !list.includes('검사용 프롬프트 원문'));
+
+    /** 남의 목록은 내 글을 안 든다 — `security definer` 는 RLS 를 지나간다 */
+    const stranger = plain(await body('/me/readings', cookie.b));
+    check('남이 만든 글은 내 목록에 안 선다', !stranger.includes('엄마 사주'));
+  }
+
   // ── 5. 표는 브라우저가 직접 못 읽는다 ────────────────────────────────────
   {
     const rows = await a.from('reading').select('output');

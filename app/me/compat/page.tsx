@@ -18,6 +18,7 @@ import {
 import { Halted } from '../halted';
 import { payloadForViewer, type PersonPayload } from '../payload';
 import { myPrivateReadings, type PrivateReadingEntry } from '../reading/current';
+import { readingDate } from '../reading/line';
 import { ReadingSection } from '../reading/section';
 
 /**
@@ -225,16 +226,12 @@ function SeenPair({ entry }: { entry: PrivateReadingEntry }) {
           </span>
         )}
         <time dateTime={entry.createdAt} className="shrink-0 text-xs text-muted">
-          {seenAt(entry.createdAt)}
+          {readingDate(entry.createdAt)}
         </time>
       </Link>
     </li>
   );
 }
-
-/** 날짜만 — 목록에서 분 단위는 읽는 데 방해만 된다 */
-const seenAt = (iso: string) =>
-  new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 
 /** 주소에 같은 이름이 두 번 오면 앞의 것만 읽는다 — 뒤의 것으로 조용히 바뀌지 않게 */
 const firstOf = (value: string | string[] | undefined): string | null =>

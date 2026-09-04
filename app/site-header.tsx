@@ -29,6 +29,13 @@ const MEMBER_LINKS = [
   { href: '/', label: '사주 보기' },
   { href: '/me/people', label: '사람' },
   { href: '/compat', label: '궁합' },
+  /**
+   * **만든 글이 사는 자리는 메뉴에 있다**(ADR 0033).
+   *
+   * 풀이가 네 화면에 흩어져 있어서, 만든 글에 닿으려면 그것이 어느 화면의 것인지를
+   * 먼저 기억해야 했다. 저장돼 있는데 닿을 수 없는 것은 사용자에게 없는 것과 같다.
+   */
+  { href: '/me/readings', label: '풀이' },
   { href: '/me/discovery', label: '인연 찾기' },
   { href: '/me/requests', label: '소식' },
 ] as const;

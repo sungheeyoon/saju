@@ -611,6 +611,38 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
   });
 
+  /**
+   * **만든 글이 사는 자리는 메뉴에 있다**(ADR 0033).
+   *
+   * 풀이가 네 화면에 흩어져 있어서, 만든 글에 닿으려면 그것이 어느 화면의 것인지를
+   * 먼저 기억해야 했다. 여기서 재는 것은 **길이 나 있는가**와, 아직 아무것도 없는
+   * 사람에게 그 화면이 무엇을 말하는가다.
+   *
+   * 글을 실제로 만들어 놓고 재지는 않는다 — 누르면 4분과 돈이 든다. 네 kind 가 다
+   * 서는지는 흐름 검사가 열쇠로 저장해 놓고 잰다(`check-reading.mjs`).
+   */
+  test('머리글의 풀이가 만든 글의 목록으로 간다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me');
+
+    await page.getByRole('link', { name: '풀이', exact: true }).click();
+
+    await expect(page).toHaveURL(/\/me\/readings$/);
+    // `exact` 를 안 주면 **두 개를 잡는다** — 「아직 만든 풀이가 없습니다」가 이것을 품는다.
+    await expect(page.getByRole('heading', { name: '만든 풀이', exact: true })).toBeVisible();
+
+    /*
+      **빈 화면만 남기지 않는다.** 「본 궁합」은 비어 있으면 아무것도 안 그렸는데, 거기서는
+      고르는 칸이 이미 그 말을 하고 있었다. 여기는 메뉴에서 눌러 들어온 제 화면이라 그
+      말을 대신해 줄 것이 없다.
+    */
+    await expect(page.getByRole('heading', { name: '아직 만든 풀이가 없습니다' })).toBeVisible();
+    // 머리글에도 같은 이름의 길이 있으므로 본문 안에서 찾는다.
+    await expect(
+      page.getByRole('main').getByRole('link', { name: '내 사주', exact: true }),
+    ).toBeVisible();
+  });
+
   test('계정 작업은 우측 설정 메뉴의 계정 관리에 모여 있다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');

@@ -204,6 +204,55 @@ export async function myPrivateReadings(): Promise<readonly PrivateReadingEntry[
   }));
 }
 
+/**
+ * 내가 만든 글 하나 — **결과가 아니라 결과로 가는 길이다.**
+ *
+ * `PrivateReadingEntry` 와 같은 규율이되 kind 넷을 다 든다. 본문도 근거도 없다 —
+ * 목록에 본문을 실으면 그 목록이 곧 두 번째 결과 화면이 된다(ADR 0008·0033).
+ */
+export type ReadingEntry = {
+  readonly kind: ReadingTarget['kind'];
+  /** `match` 는 `null` — 가는 길이 `matchId` 다 */
+  readonly personA: string | null;
+  readonly personB: string | null;
+  readonly matchId: string | null;
+  /** `self` 는 `null` — 대상이 나라서 부를 이름이 없다 */
+  readonly labelA: string | null;
+  readonly labelB: string | null;
+  readonly score: number | null;
+  readonly createdAt: string;
+  readonly fromCurrentRevision: boolean;
+};
+
+/**
+ * 내가 만든 글 전부 — **최근 것이 앞이다.**
+ *
+ * 차례도 좁힘도 DB 가 정한다(`my_readings`). 여기서 다시 정렬하거나 걸러내면 판정하는
+ * 자리가 둘이 되고, 둘이 갈리는 날 화면이 DB 보다 넓거나 좁아진다.
+ *
+ * `myPrivateReadings` 와 문을 따로 쓴다. 저것은 `/me/compat` 안에서 「무엇을 볼까」에
+ * 답하고 이것은 「내가 뭘 만들었나」에 답한다 — 한 함수가 둘을 겸하면 호출부가 인자로
+ * 물음을 고르게 되고, 그 인자를 잘못 준 화면이 남의 물음에 답한다.
+ */
+export async function myReadings(): Promise<readonly ReadingEntry[]> {
+  const supabase = await supabaseOnServer();
+
+  const { data, error } = await supabase.rpc('my_readings');
+  if (error) return [];
+
+  return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
+    kind: row.kind as ReadingTarget['kind'],
+    personA: (row.person_a as string | null) ?? null,
+    personB: (row.person_b as string | null) ?? null,
+    matchId: (row.match_id as string | null) ?? null,
+    labelA: (row.label_a as string | null) ?? null,
+    labelB: (row.label_b as string | null) ?? null,
+    score: (row.score as number | null) ?? null,
+    createdAt: row.created_at as string,
+    fromCurrentRevision: row.from_current_revision as boolean,
+  }));
+}
+
 export type ReadingArtifacts = {
   readonly evidence: string;
   readonly prompt: string;
