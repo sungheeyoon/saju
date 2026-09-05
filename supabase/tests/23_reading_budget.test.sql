@@ -224,6 +224,16 @@ reset role;
 update public.reading_run set created_at = now() - interval '2 hours'
 where user_id = (select park from folks);
 
+/**
+ * **민 만큼 오늘 수가 빠진다.** 하루는 서울 자정에서 끊으므로(`reading_spend_today`),
+ * 자정 직후에 이 파일이 돌면 「두 시간 전」이 **어제**가 되고 방금 채운 상한이 저절로
+ * 풀린다 — 그러면 아래 세 줄이 시간대 때문에 무너진다. 민 자리를 도로 채운다. 채우는
+ * 사람이 누구인지는 상관없다 — 이 검사가 재려는 것이 「남의 시도까지 센다」이다.
+ */
+select pg_temp.spend(
+  (select filler from folks),
+  public.reading_daily_budget() - public.reading_spend_today());
+
 set local role authenticated;
 select pg_temp.becomes((select park from folks));
 
