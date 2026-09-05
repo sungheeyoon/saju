@@ -256,6 +256,14 @@ describe('고객이 읽는 글의 계약', () => {
   const selfPrompt = (assembly = CONTROL) => readingPromptOf(evidence(), assembly);
 
   /**
+   * **앞 기준판** — 이름을 달아 부르던 벌.
+   *
+   * 아래 몇 줄은 그 판의 계약이다. 기준판이 이름을 안 부르는 쪽으로 올라갔다고 해서
+   * 지우지 않는다 — 되돌릴지 판단하려면 그 판이 무엇을 시켰는지가 남아 있어야 한다.
+   */
+  const annotatedPrompt = () => selfPrompt(variant('annotated-terms-v1').assembly);
+
+  /**
    * 여기서 재는 것은 **몸통**이라 자료를 안 붙인다.
    *
    * `readingPromptOf` 는 kind 와 자료가 짝인 값만 받는다(private 은 redacted, match 는
@@ -503,7 +511,7 @@ describe('고객이 읽는 글의 계약', () => {
     const shared = compatPrompt('match');
     const own = compatPrompt('private');
 
-    for (const heading of ['각자 이 관계에서 어떤 사람인가', '지금 두 사람의 운']) {
+    for (const heading of ['각자 이 관계에서 어떤 사람인가', '지금 두 사람이 지나는 때']) {
       expect(own, heading).toContain(heading);
       expect(shared, heading).not.toContain(heading);
     }
@@ -533,15 +541,15 @@ describe('고객이 읽는 글의 계약', () => {
       '연애와 인간관계',
       '귀인과 기회',
       '조심할 점과 몸',
-      '지금 들어온 운',
+      '앞으로의 흐름',
       '궁금한 것 세 가지',
     ]) {
       expect(prompt, heading).toContain(heading);
     }
   });
 
-  it('사주 용어를 금지하지 않고 뜻을 먼저 세우게 한다', () => {
-    const prompt = selfPrompt();
+  it('앞 기준판은 용어를 금지하지 않고 뜻을 먼저 세우게 했다', () => {
+    const prompt = annotatedPrompt();
 
     expect(prompt).toContain('사주 용어를 금지어처럼 피하지 마라');
     expect(prompt).toContain('뜻이 먼저');
@@ -557,8 +565,8 @@ describe('고객이 읽는 글의 계약', () => {
    * 세 갈래를 따로 잠근다. 십성·간지·관계는 서로 다른 방식으로 막히고, 하나로 뭉치면
    * 셋 중 둘은 조용히 안 고쳐진다.
    */
-  it('용어를 뜻·그림·장면으로 옮기는 세 갈래를 다 세운다', () => {
-    const prompt = selfPrompt();
+  it('앞 기준판은 용어를 뜻·그림·장면으로 옮기는 세 갈래를 다 세웠다', () => {
+    const prompt = annotatedPrompt();
 
     expect(prompt).toContain('이름이 아니라 그림으로 말한다');
     expect(prompt).toContain('뜻 → 눈에 보이는 장면 → (이름)');
@@ -586,8 +594,8 @@ describe('고객이 읽는 글의 계약', () => {
    * 고쳐야 할 문장을 **본보기로 함께 싣는다.** 규칙만 적으면 모델은 규칙을 지켰다고
    * 여기면서 같은 문장을 다시 낸다 — 실제로 나온 글이 그랬다.
    */
-  it('실제로 나왔던 안 읽히는 문장을 고칠 짝과 함께 든다', () => {
-    const prompt = selfPrompt();
+  it('앞 기준판도 안 읽히던 문장을 고칠 짝과 함께 들었다', () => {
+    const prompt = annotatedPrompt();
 
     for (const bad of ['관성과 재성이 무겁게 자리해', '시주의 인목과 대운의 갑인', '인신충']) {
       expect(prompt, bad).toContain(bad);
@@ -596,22 +604,36 @@ describe('고객이 읽는 글의 계약', () => {
     expect(prompt).toContain('이렇게 써라');
   });
 
-  it('사주 용어는 한글 이름으로 쓰고 생한자나 다른 외국 문자를 섞지 않는다', () => {
-    const prompt = selfPrompt();
+  it('앞 기준판은 용어를 한글 이름으로 쓰게 했다 — 글자 계약은 두 판에 다 산다', () => {
+    const prompt = annotatedPrompt();
 
     expect(prompt).toContain('사주 용어와 간지는 한글 이름으로 쓴다');
-    expect(prompt).toContain('생한자와 한국어가 아닌 외국 문자는 사용자 본문에 쓰지 마라');
     expect(prompt).toContain('갑신 대운');
+
+    // 글자 계약은 판을 안 가린다 — 지금 나가는 판에도 그대로 선다
+    for (const one of [prompt, selfPrompt()]) {
+      expect(one).toContain('생한자와 한국어가 아닌 외국 문자는 사용자 본문에 쓰지 마라');
+    }
   });
 
-  it('귀인과 신살을 근거가 있을 때 사용자 본문에 보여 준다', () => {
-    const prompt = selfPrompt();
+  /**
+   * **여기서 두 판이 정반대를 시킨다.** 앞 기준판은 걸린 신살의 이름을 보여 주라고 했고,
+   * 지금 기준판은 그 이름을 쓰지 말고 **생활에서 어떤 도움으로 나타나는지**를 쓰라고 한다.
+   * 둘 다 「없는 것을 지어내지 마라」는 같이 든다 — 갈리는 것은 이름을 부르는가 하나다.
+   */
+  it('앞 기준판은 신살 이름을 보여 주고, 지금 기준판은 그 자리에 무엇이 나타나는지를 쓴다', () => {
+    const annotated = annotatedPrompt();
 
     for (const term of ['천을귀인', '문창귀인', '역마', '도화', '화개']) {
-      expect(prompt, term).toContain(term);
+      expect(annotated, term).toContain(term);
     }
-    expect(prompt).toContain('실제로 걸린 것은 이름을 숨기지 말고');
-    expect(prompt).toContain('없는 귀인이나 신살은 만들지 마라');
+    expect(annotated).toContain('실제로 걸린 것은 이름을 숨기지 말고');
+    expect(annotated).toContain('없는 귀인이나 신살은 만들지 마라');
+
+    const plain = selfPrompt();
+    expect(plain).toContain('걸린 것의 이름은 본문에\n쓰지 말고');
+    expect(plain).toContain('자료에 없는 도움을 지어내지 마라');
+    expect(plain).not.toContain('실제로 걸린 것은 이름을 숨기지 말고');
   });
 
   it('좋은 것은 흐리지 않고 풍성하게 말한다', () => {
@@ -622,13 +644,26 @@ describe('고객이 읽는 글의 계약', () => {
     expect(prompt).toContain('같은 완충 표현을 붙이지 마라');
   });
 
-  it('현재 운은 십 년·올해·이번 달을 나눠 충분히 푼다', () => {
-    const prompt = selfPrompt();
+  /**
+   * **세 겹의 때는 두 판에서 다 살아 있다** — 갈리는 것은 그것을 뭐라고 부르는가다.
+   * 앞 기준판은 이름을 쓰라고 했고, 지금 기준판은 「앞으로 몇 년은」·「올해는」처럼
+   * 때로 말하라고 한다. 겹치는 자리를 먼저 보라는 지시(`now.overlaps`)는 **두 판에 다
+   * 있어야 한다** — 이름 문제가 아니라 무엇을 중심에 놓느냐의 문제라서, 한쪽에만 있으면
+   * 판을 바꾸는 순간 그 무게가 조용히 사라진다.
+   */
+  it('현재 운은 두 판 모두 십 년·올해·이번 달을 나누고 겹치는 자리를 먼저 본다', () => {
+    const annotated = annotatedPrompt();
+    expect(annotated).toContain('대운·세운·월운이라는 이름을 쓴다');
+    expect(annotated).toContain('십 년짜리 큰 흐름');
 
-    expect(prompt).toContain('대운·세운·월운이라는 이름을 쓴다');
-    expect(prompt).toContain('십 년짜리 큰 흐름');
-    expect(prompt).toContain('올해의 흐름');
-    expect(prompt).toContain('이번 달의 흐름');
+    const plain = selfPrompt();
+    expect(plain).toContain('세 겹의 때');
+    expect(plain).toContain('「앞으로 몇 년은」·「올해는」·「이번 달은」');
+    expect(plain).not.toContain('대운·세운·월운이라는 이름을 쓴다');
+
+    for (const one of [annotated, plain]) {
+      expect(one).toContain('먼저 볼 것은 `now.overlaps` 다');
+    }
   });
 
   it('생활 코칭이 해석을 덮지 않게 한다', () => {
@@ -769,9 +804,10 @@ describe('고객이 읽는 글의 계약', () => {
    * 하는데(`READING_POLICY.version`), 그 둘이 따로 놀면 같은 이름의 결과 둘이 서로 다른
    * 프롬프트로 만들어진다.
    */
-  it('기준판은 새 뼈대이고 용신 계열을 읽는다', () => {
+  it('기준판은 새 뼈대이고, 용신 계열을 읽고, 이름을 안 부른다', () => {
     expect(CONTROL.selfPresentation).toBe('expert-v4');
-    expect(READING_POLICY.version).toBe('reading-prompt-v5');
+    expect(CONTROL.terminology).toBe('plain');
+    expect(READING_POLICY.version).toBe('reading-prompt-v6');
     expect(selfPrompt()).toContain('이 사주의 핵심');
     expect(selfPrompt()).not.toContain('살림법');
     expect(selfPrompt()).toContain('analysis.strength');
@@ -815,8 +851,10 @@ describe('고객이 읽는 글의 계약', () => {
    * 앞판은 「뜻 → 장면 → (이름)」을 시키면서 같은 프롬프트의 다른 자리에서 이름을
    * 부르라고 시키고 있었다. 여기서 잠그는 것은 그 모순의 재발이다.
    */
-  describe('이름을 안 부르는 판', () => {
-    const plain = () => selfPrompt(variant('plain-terms-v1').assembly);
+  describe('이름을 안 부르는 판 — 지금 기준판이다', () => {
+    const plain = () => selfPrompt();
+    /** 견줄 짝 — 이름을 달아 부르던 앞 기준판 */
+    const annotated = () => selfPrompt(variant('annotated-terms-v1').assembly);
 
     it('이름을 부르라고 시키던 절이 하나도 안 선다', () => {
       const prompt = plain();
@@ -852,7 +890,7 @@ describe('고객이 읽는 글의 계약', () => {
 
       expect(goodLines(plain()).flatMap(plainTermsIn)).toEqual([]);
       // 견줄 짝 — 이름을 다는 판의 본보기에는 실제로 이름이 달려 있다
-      expect(goodLines(selfPrompt()).flatMap(plainTermsIn).length).toBeGreaterThan(0);
+      expect(goodLines(annotated()).flatMap(plainTermsIn).length).toBeGreaterThan(0);
     });
 
     /** 오행까지 풀면 셀 수 있는 사실을 세지 못하게 된다 */
@@ -865,7 +903,7 @@ describe('고객이 읽는 글의 계약', () => {
 
     /** 궁합도 같은 판을 탄다 — 한 kind 만 고치면 같은 사람이 두 말투를 읽는다 */
     it('궁합 절도 함께 갈린다', () => {
-      const compat = readingPromptOf(pairEvidence(), variant('plain-terms-v1').assembly, {
+      const compat = readingPromptOf(pairEvidence(), CONTROL, {
         names: { a: '나', b: '엄마' },
         relation: 'family',
       });

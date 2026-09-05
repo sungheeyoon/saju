@@ -40,7 +40,7 @@ export type PromptVariantId =
   | 'no-yongsin-v1'
   | 'legacy-v1'
   | 'longer-v1'
-  | 'plain-terms-v1'
+  | 'annotated-terms-v1'
   | 'recency-check-v1';
 
 export type PromptVariant = {
@@ -81,10 +81,10 @@ export const PROMPT_VARIANTS: readonly PromptVariant[] = [
     assembly: { ...CONTROL, tail: RECENCY_CHECK },
   },
   {
-    id: 'plain-terms-v1',
-    label: '이름 없이',
+    id: 'annotated-terms-v1',
+    label: '이름을 달아 부른다 (앞 기준판)',
     changes:
-      '전문용어의 이름을 본문에 부르지 않고 그 말이 가리키는 장면으로 쓴다. 절과 본보기가 함께 그 판으로 바뀐다 — 오행 이름은 그대로 둔다.',
+      '기준판이 이름을 안 부르는 판으로 올라가기 전의 벌. 전문용어를 「뜻 → 장면 → (이름)」 차례로 본문에 단다 — 무엇이 없어지는지를 견줄 짝이다.',
     /**
      * **가드를 절 단위로 조이자 이 변형이 걸렸다.** 조립 칸은 `terminology` 하나인데
      * 그 한 칸이 **절 여섯의 본문을 다시 쓴다.** `changes` 는 「절과 본보기가 함께
@@ -92,8 +92,8 @@ export const PROMPT_VARIANTS: readonly PromptVariant[] = [
      * 있었다.
      */
     confounded:
-      '용어 판을 바꾸면 절 여섯의 본문이 함께 다시 쓰인다. 이겨도 용어 규칙 덕인지 다시 쓴 절 덕인지 이 라운드는 답하지 않는다.',
-    assembly: { ...CONTROL, terminology: 'plain' },
+      '용어 판을 바꾸면 절 여섯의 본문이 함께 다시 쓰인다. 이 짝이 이겨도 용어 규칙 탓인지 다시 쓴 절 탓인지 이 라운드는 답하지 않는다.',
+    assembly: { ...CONTROL, terminology: 'annotated' },
   },
   {
     id: 'no-yongsin-v1',
