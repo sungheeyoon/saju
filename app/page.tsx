@@ -4,7 +4,7 @@ import { ELEMENTS, ELEMENT_KO } from '@/src/lib/saju';
 
 import { CompatEntry } from './compat-entry';
 import { ELEMENT_TONE } from './element-tone';
-import { HOUR_UNKNOWN_LABEL } from './query';
+import { HOUR_UNKNOWN_CHOICE } from './query';
 import { SajuCalculator } from './saju-calculator';
 
 export default function Home() {
@@ -68,7 +68,7 @@ export default function Home() {
             「출생 시각 모름」을 **골라야** 넘어간다. 화면이 폼과 다른 말을 하고 있었다.
           */}
           <p className="mt-1 text-sm text-secondary">
-            출생 시각을 모르면 「{HOUR_UNKNOWN_LABEL}」을 고르세요.
+            출생 시각을 모르면 「{HOUR_UNKNOWN_CHOICE}」을 고르세요.
           </p>
         </div>
         <Suspense fallback={<div className="h-56 rounded-2xl border border-border bg-surface shadow-[var(--shadow-card)]" />}>

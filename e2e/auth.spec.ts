@@ -53,7 +53,7 @@ test('사주 계산은 로그인 없이 열리고 궁합은 로그인으로 이�
   */
   await expect(page.getByRole('link', { name: '로그인', exact: true })).toBeVisible();
   await expect(page.getByLabel('설정 메뉴')).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: '생년월일시를 입력해 주세요' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '출생 정보를 입력해 주세요' })).toBeVisible();
 
   await page.goto('/compat');
   await expect(page).toHaveURL(/\/auth\?next=%2Fcompat/);
