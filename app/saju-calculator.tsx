@@ -36,6 +36,8 @@ import {
   ELEMENT_ROLE_KO,
   FOLLOWING_DIRECTION_KO,
   FOLLOWING_PATTERN_POLICY,
+  JUDGEMENT_KO,
+  PRECEDENCE_REASON_KO,
   FOLLOWING_PATTERN_STATUS_KO,
   EMPTINESS_BASIS_KO,
   UNRESOLVED_FACTOR_KO,
@@ -1428,9 +1430,18 @@ function PillarChart({ saju }: { saju: Saju }) {
               value={(key) => `${PALACE[key].role} · ${PALACE[key].period}`}
             />
 
+            {/*
+              **계통을 밝힌다.** 「일간 기준」만으로는 부족하다 — 음간을 역행시키느냐
+              (음양순역, 연해자평 이래의 정통) 양간과 같이 보느냐(양포태)에 따라 같은
+              일간·지지에서 다른 운성이 나온다. 산출법이 갈리는 신살은 기준을 밝힌다고
+              해 놓고 이 줄만 안 밝히고 있었다.
+
+              값은 명식이 들고 있다(`stages.yinReverse`) — 화면이 기본값을 다시 적으면
+              옵션을 바꾼 명식에서 거짓말이 된다.
+            */}
             <MarkRow
               label="12운성"
-              hint="일간 기준"
+              hint={`일간 기준 · ${saju.stages.yinReverse ? '음양순역' : '양포태'}`}
               value={(key) => {
                 const stage = saju.stages.byDayMaster[key];
                 return stage ? TWELVE_STAGE_KO[stage] : null;
@@ -1611,10 +1622,25 @@ function ElementChart({ saju }: { saju: Saju }) {
     <section className={CARD}>
       <h2 className="text-base font-semibold">오행 분포</h2>
       <p className="mt-1 mb-4 text-xs text-secondary">
-        개수는 {glyphCount === 8 ? '여덟' : '여섯'} 글자를 그대로 센 것(옆의 %는 그
+        개수는 {glyphCount === 8 ? '여덟' : '여섯'} 글자를 그대로 센 것(괄호 안은 그
         비중), 점수는 지장간을 사령 일수로 펼친 값입니다. 다른 만세력은 대개
         앞쪽 기준으로 %를 냅니다
         {glyphCount !== 8 && <span className="text-muted"> · 시주 제외</span>}
+      </p>
+      {/*
+        **딱지 둘이 범례 없이 서 있었다.**
+
+        「필요」는 억부가 가리키는 **방향**이라 신약이면 비겁·인성 둘 다 붙는다
+        (`strength.neededElements`). 아래 억부 칸이 그중 **하나**를 후보로 고른 것이라,
+        같은 낱말이 한 화면에서 두 넓이로 쓰인다 — 둘이 어긋난 것이 아닌데 범례가
+        없으면 어긋나 보인다. 오신 배정에서 한신인 오행에 「필요」가 붙는 것도 이
+        까닭이다.
+      */}
+      <p className="mb-4 text-xs text-muted">
+        <span className="text-muted">최강</span> 은 점수가 가장 높은 오행,{' '}
+        <span className="text-accent">필요</span> 는 억부가 가리키는 방향입니다 — 신약이면
+        비겁·인성 둘, 신강이면 식상·재성·관성 셋이 함께 붙습니다. 아래 억부 칸은 그중
+        하나를 후보로 고른 것입니다.
       </p>
 
       <table className="w-full border-collapse text-sm">
@@ -1641,9 +1667,14 @@ function ElementChart({ saju }: { saju: Saju }) {
                   counts[element] === 0 ? 'text-muted' : ''
                 }`}
               >
+                {/*
+                  **「1」과 「13%」가 붙어 「113%」로 읽혔다.** 여백만 두고 구분자가
+                  없었는데, 오른쪽 정렬에 `tabular-nums` 라 두 수가 한 수처럼 보인다.
+                  괄호가 두 값을 가른다.
+                */}
                 {counts[element]}
-                <span className="ml-1 text-xs text-muted">
-                  {Math.round((counts[element] / glyphCount) * 100)}%
+                <span className="ml-1.5 text-xs text-muted">
+                  ({Math.round((counts[element] / glyphCount) * 100)}%)
                 </span>
               </td>
               <td className="py-1 pl-3 text-right tabular-nums text-secondary">
@@ -1667,9 +1698,15 @@ function ElementChart({ saju }: { saju: Saju }) {
         </tbody>
       </table>
 
+      {/*
+        **「없다」도 자를 밝힌다.** 이 줄은 개수 기준이라 지장간에만 있는 오행이 여기
+        선다 — 바로 위 표에서 그 오행의 점수가 0 이 아닌 것을 함께 보게 된다. 대치 칸이
+        같은 자리에서 「8.0%」와 「한 자도 없다」를 동시에 말하던 것과 같은 종류다.
+      */}
       {missing.length > 0 && (
         <p className="mt-3 border-t border-border pt-3 text-xs text-secondary">
-          없는 오행 {missing.map((e) => ELEMENT_KO[e]).join(', ')}
+          여덟 글자에 없는 오행 {missing.map((e) => ELEMENT_KO[e]).join(', ')}
+          <span className="text-muted"> (지장간에는 있을 수 있습니다 — 점수 칸을 보세요)</span>
           {glyphCount !== 8 && (
             <span className="text-muted"> · 시주에 있었을지는 알 수 없습니다</span>
           )}
@@ -1681,7 +1718,7 @@ function ElementChart({ saju }: { saju: Saju }) {
 
 /** 신강·신약 — 임계값 대비 단일 비율이므로 메터. */
 function StrengthMeter({ saju }: { saju: Saju }) {
-  const { strength, eokbu, johu, tonggwan, yongsinAgreement } = saju.analysis;
+  const { strength, eokbu, johu, tonggwan, yongsinAgreement, precedence } = saju.analysis;
   const percent = strength.ratio * 100;
   const threshold = 50;
 
@@ -1789,7 +1826,7 @@ function StrengthMeter({ saju }: { saju: Saju }) {
           <span className="text-sm font-medium">{ELEMENT_KO[eokbu.suggestedElement]}</span>
           <span className="text-sm text-secondary">{ELEMENT_ROLE_KO[eokbu.role]}</span>
           {!eokbu.presentInChart && (
-            <span className="text-xs text-muted">원국에 없는 오행</span>
+            <span className="text-xs text-muted">여덟 글자에 없는 오행</span>
           )}
         </div>
         <p className="mt-1.5 text-xs text-secondary">{eokbu.reason}</p>
@@ -1847,7 +1884,73 @@ function StrengthMeter({ saju }: { saju: Saju }) {
       </div>
 
       <TonggwanFacts tonggwan={tonggwan} />
+      <PrecedenceTable precedence={precedence} />
     </section>
+  );
+}
+
+/**
+ * 판정 사이의 서열 — **어긋날 때 무엇을 보는가.**
+ *
+ * 이 칸이 없는 동안 화면은 답 넷을 나란히 세우고 아무 말도 안 했다. 「가종 후보」와
+ * 「억부 木」을 함께 본 사람이 어느 쪽으로 읽을지는 그때그때 달랐고, 그것은 우리가
+ * 정하지 않은 것이 아니라 **정해 놓고 안 알려 준 것**이다.
+ *
+ * 값은 엔진이 든다(`analysis.precedence`). 화면이 스위치를 다시 적으면 정책만 바뀌고
+ * 이 표가 안 따라오는 날이 온다 — 바로 위 칸이 종격 대조 성적으로 그 일을 겪었다.
+ */
+function PrecedenceTable({ precedence }: { precedence: Saju['analysis']['precedence'] }) {
+  const shaken = precedence.rows.filter((row) => row.disagrees === true);
+
+  return (
+    <div className="mt-4 border-t border-border pt-3">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+          사실
+        </span>
+        <span className="text-xs text-muted">판정이 어긋날 때</span>
+        <span className="text-sm font-medium">
+          {JUDGEMENT_KO[precedence.primary]}를 봅니다
+        </span>
+        {shaken.length > 0 && (
+          <span className="text-sm text-secondary">
+            지금 어긋나는 것 {shaken.map((row) => row.ko).join(' · ')}
+          </span>
+        )}
+      </div>
+
+      <ul className="mt-2 flex flex-col gap-1 text-xs">
+        {precedence.rows.map((row) => (
+          <li key={row.key} className="flex flex-wrap items-baseline gap-x-2">
+            <span className={`w-8 shrink-0 ${row.key === precedence.primary ? 'font-medium' : 'text-secondary'}`}>
+              {row.ko}
+            </span>
+            <span className={row.overrides ? 'text-accent' : 'text-muted'}>
+              {row.overrides ? '기준' : '안 뒤집음'}
+            </span>
+            <span className="text-muted">{PRECEDENCE_REASON_KO[row.reason]}</span>
+            {/*
+              **「어긋나지 않는다」와 「견줄 수 없다」를 가른다.** 격국은 상신을 오행으로
+              내지 않고 통관은 판정이 없다 — 빈 값을 「같다」로 적으면 안 재 본 것이
+              잰 것처럼 보인다.
+            */}
+            <span className="text-secondary">
+              {row.disagrees === null
+                ? '견줄 수 없음'
+                : row.disagrees
+                  ? '지금 억부와 어긋남'
+                  : ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-2 text-xs text-muted">
+        억부가 기준인 것은 <strong className="font-medium">용신을 잡는 네 길 중 유일하게
+        외부 명조와 대조된 판정</strong>이기 때문입니다 — 그것도 시험값입니다. 이 서열은
+        AI 풀이 자료에도 같이 실립니다.
+      </p>
+    </div>
   );
 }
 
@@ -1883,6 +1986,12 @@ function TonggwanFacts({ tonggwan }: { tonggwan: Saju['analysis']['tonggwan'] })
           {ELEMENT_KO[tightest.controlled]}{' '}
           <span className="tabular-nums">{percent(tightest.shares.controlled)}</span>
         </span>
+        {/*
+          **기준을 칸 안에 적는다.** 위의 오행 분포 표는 여덟 글자를 그대로 센 개수 %
+          이고 여기는 지장간까지 편 점수 % 다. 한 페이지에서 같은 오행이 13% 와 15.4%
+          로 두 번 나오는데 어느 자로 잰 것인지가 이 칸에는 없었다.
+        */}
+        <span className="text-xs text-muted">점수 기준(지장간·국 반영)</span>
       </div>
 
       <p className="mt-1.5 text-xs text-secondary">
@@ -1890,9 +1999,11 @@ function TonggwanFacts({ tonggwan }: { tonggwan: Saju['analysis']['tonggwan'] })
         {ELEMENT_KO[tightest.bridge]}입니다({percent(tightest.shares.bridge)}) —{' '}
         {tightest.controller}는 {tightest.bridge}를 낳고 {tightest.bridge}는{' '}
         {tightest.controlled}를 낳습니다.{' '}
-        {tightest.bridgePresent
-          ? '이 오행은 원국에 있습니다.'
-          : '그런데 이 오행이 원국에 한 자도 없습니다 — 이을 손이 없다는 뜻입니다.'}
+        {tightest.bridgePresence === 'revealed'
+          ? '이 오행은 여덟 글자에 드러나 있습니다.'
+          : tightest.bridgePresence === 'hidden'
+            ? '다만 여덟 글자에는 드러나지 않고 지장간에만 있습니다 — 위 몫은 그 지장간까지 편 점수입니다.'
+            : '그런데 이 오행이 지장간까지 봐도 한 톨 없습니다 — 이을 손이 없다는 뜻입니다.'}
       </p>
 
       <p className="mt-2 text-xs text-muted">

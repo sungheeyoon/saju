@@ -22,6 +22,7 @@ import {
   SINSAL_POLICY,
   STRENGTH_POLICY,
   STRUCTURE_OUTCOME_KO,
+  PRECEDENCE_POLICY,
   STRUCTURE_POLICY,
   TONGGWAN_POLICY,
   YONGSIN_POLICY,
@@ -199,7 +200,7 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     saju.analysis;
   const { structure, favorability, hiddenCombinations } = saju.analysis;
   const { bureaus, effectiveElements } = saju.analysis;
-  const { tonggwan, yongsinAgreement } = saju.analysis;
+  const { tonggwan, yongsinAgreement, precedence } = saju.analysis;
   const { dayMaster: rooting } = rootedness;
   const round = (value: number) => Math.round(value * 1000) / 1000;
   lines.push(
@@ -253,10 +254,20 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     // 통관 — 가장 팽팽한 쌍과 그 사이. 판정이 아니라 사실이라 값이 흔들리면 여기서 보인다.
     `  통관   ${tonggwan.tightest.controller}剋${tonggwan.tightest.controlled}` +
       ` · 가벼운 쪽 ${(tonggwan.tightest.facing * 100).toFixed(1)}%` +
-      ` · 사이 ${tonggwan.tightest.bridge}${tonggwan.tightest.bridgePresent ? '' : '(없음)'}`,
+      ` · 사이 ${tonggwan.tightest.bridge}(${tonggwan.tightest.bridgePresence})`,
     // 억부와 조후가 같은 것을 가리키는가 — 어느 쪽이 우선인지는 여전히 말하지 않는다.
     `  대조   억부 ${yongsinAgreement.eokbuElement} ↔ 조후 ${yongsinAgreement.johuStems.join('')}` +
       ` · ${yongsinAgreement.aligned ? `겹침 ${yongsinAgreement.sharedStems.join('')}` : '어긋남'}`,
+    // 서열 — 무엇이 기준이고 지금 무엇이 어긋나는가. 서열 자체가 흔들리면 여기서 보인다.
+    `  서열   기준 ${precedence.primary}` +
+      ` · 어긋남 ${
+        precedence.rows.filter((row) => row.disagrees === true).map((row) => row.key).join(',') ||
+        '없음'
+      }` +
+      ` · 견줄 수 없음 ${
+        precedence.rows.filter((row) => row.disagrees === null).map((row) => row.key).join(',') ||
+        '없음'
+      }`,
   );
 
   // 세운은 골든 케이스마다 출생년부터 세 해만 찍는다 — 열 해를 다 찍으면
@@ -412,6 +423,13 @@ describe('골든 테스트', () => {
       '        판정이 없으므로 억부를 뒤집을 일도 없다. 문턱을 고를 때 쓸 모집단 분포만 재어 둔다.',
       '',
       ...Object.entries(TONGGWAN_POLICY).map(
+        ([key, value]) => `          ${key.padEnd(22)} ${typeof value === 'object' ? JSON.stringify(value) : value}`,
+      ),
+      '',
+      '  서열  판정이 어긋날 때 무엇을 보는가 — 스위치를 다시 적지 않고 각 정책에서 읽는다.',
+      '        지금은 억부 하나만 이긴다. 나머지는 왜 안 뒤집는지를 이유로 든다.',
+      '',
+      ...Object.entries(PRECEDENCE_POLICY).map(
         ([key, value]) => `          ${key.padEnd(22)} ${typeof value === 'object' ? JSON.stringify(value) : value}`,
       ),
       '',

@@ -24,7 +24,7 @@ const chart = (year: string, month: string, day: string, hour: string) => {
 };
 
 const candidacyOf = (pillars: ReturnType<typeof chart>) =>
-  tonggwanCandidacyOf(pillars, effectiveElementsOf(pillars).distribution);
+  tonggwanCandidacyOf(pillars, effectiveElementsOf(pillars));
 
 describe('통관 후보의 재료', () => {
   /**
@@ -81,19 +81,37 @@ describe('통관 후보의 재료', () => {
 
     expect(new Set([tightest.controller, tightest.controlled])).toEqual(new Set(['水', '火']));
     expect(tightest.bridge).toBe('木');
-    // 甲이 시간에 서 있으므로 이을 손은 있다.
-    expect(tightest.bridgePresent).toBe(true);
+    // 甲이 시간에 서 있으므로 이을 손은 드러나 있다.
+    expect(tightest.bridgePresence).toBe('revealed');
     // 일간 丙은 극당하는 쪽이다 — 남의 대치가 아니라 자기가 낀 대치다.
     expect(tightest.dayMasterAt).toBe('controlled');
   });
 
-  it('잇는 오행이 원국에 없으면 없다고 적는다', () => {
-    // 금과 목이 맞서는데 사이의 수가 글자로 한 자도 없다.
-    const { pairs } = candidacyOf(chart('庚戌', '庚辰', '甲寅', '乙丑'));
-    const metalWood = pairs.find((pair) => pair.controller === '金')!;
+  /**
+   * **「없다」와 「숨어 있다」는 다른 사실이다.**
+   *
+   * 한동안 개수 하나로 참·거짓만 냈다. 그러면 지장간에만 있는 오행이 같은 칸에서
+   * 「8.0%」와 「한 자도 없다」를 동시에 말한다 — 몫은 점수로, 존재는 글자로 재기
+   * 때문이다. 둘 다 참인데 읽는 쪽은 어느 말을 믿을지 모른다.
+   */
+  it('드러난 것과 숨은 것과 없는 것을 가른다', () => {
+    // 庚戌·庚辰·甲寅·乙丑 — 금목 대치의 사이인 水가 글자로는 없고 지장간(辰·丑)에만 있다.
+    const hidden = candidacyOf(chart('庚戌', '庚辰', '甲寅', '乙丑')).pairs.find(
+      (pair) => pair.controller === '金',
+    )!;
 
-    expect(metalWood.bridge).toBe('水');
-    expect(metalWood.bridgePresent).toBe(false);
+    expect(hidden.bridge).toBe('水');
+    expect(hidden.bridgePresence).toBe('hidden');
+    // 숨어 있으면 몫은 0 이 아니다 — 이 둘이 어긋나 보이던 자리다.
+    expect(hidden.shares.bridge).toBeGreaterThan(0);
+
+    // 사주 여덟 글자에 수가 아예 없고 지장간에도 없는 자리를 찾는다.
+    const absent = candidacyOf(chart('丙午', '甲午', '丙午', '甲午')).pairs.find(
+      (pair) => pair.bridge === '水',
+    )!;
+
+    expect(absent.bridgePresence).toBe('absent');
+    expect(absent.shares.bridge).toBe(0);
   });
 
   /**
@@ -110,37 +128,5 @@ describe('통관 후보의 재료', () => {
     expect(Object.keys(candidacy)).toEqual(['status', 'pairs', 'tightest']);
   });
 
-  /**
-   * 모집단에서 어떤 값이 나오는지 재어 둔다 — **문턱을 고를 때 쓸 바탕이다.**
-   *
-   * 지금은 아무 선도 긋지 않지만, 나중에 계통을 채택하는 사람이 「0.3 이면 몇
-   * 퍼센트가 걸리는가」를 물을 것이다. 그때 표본을 새로 만들면 여기 적힌 숫자와
-   * 비교할 수 없으므로, 같은 모집단(`population.ts`)에서 지금 재어 남긴다.
-   */
-  it('무작위 3000건에서 가장 팽팽한 쌍의 분포를 재어 둔다', () => {
-    const tightest = randomInputs(3000).map(
-      (input) => computeSaju(input).analysis.tonggwan.tightest,
-    );
-    const round = (value: number) => Math.round(value * 1000) / 1000;
-    const share = (floor: number) =>
-      round(tightest.filter((pair) => pair.facing >= floor).length / 3000);
-
-    // 다섯 쌍 중 가장 팽팽한 것이라 언제나 하나는 나온다 — 「없음」이 없는 층이다.
-    expect(tightest).toHaveLength(3000);
-
-    /**
-     * **정책이 적어 둔 숫자와 같은 표본에서 같은 값이 나오는지 잠근다.**
-     *
-     * 계약이 죽은 값을 들고 있으면 그 값은 검증되지 않는다 — 이 저장소가 여러 번
-     * 겪은 자리다. 분포를 바꾸는 변경(가중치·국·합화)이 들어오면 여기서 먼저 걸리고,
-     * 그때 고칠 것은 시험이 아니라 `TONGGWAN_POLICY.calibration` 이다.
-     */
-    const measured = TONGGWAN_POLICY.calibration;
-    for (const [floor, expected] of Object.entries(measured.facingAtLeast)) {
-      expect(share(Number(floor)), `facing ≥ ${floor}`).toBe(expected);
-    }
-    expect(round(tightest.filter((pair) => !pair.bridgePresent).length / 3000)).toBe(
-      measured.bridgeAbsent,
-    );
-  });
+  /** 3000건짜리 보정값은 `calibration.test.ts` 가 한 바퀴로 다 잰다 — 세 번 돌지 않는다 */
 });

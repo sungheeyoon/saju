@@ -250,6 +250,15 @@ export const UNCOVERED_FACTS_BY_PATH: readonly {
     paths: ['analysis.yongsinAgreement'],
     note: '억부와 조후가 같은 것을 가리키는가 — 어긋날 때 어느 쪽을 보는지는 정하지 않아 문장이 없다',
   },
+  /**
+   * 서열은 **자료와 화면이 먼저 든다.** 문장으로 「종격이 억부를 안 뒤집습니다」를
+   * 말하려면 그 앞에 종격 문장이 서야 하는데, 종격 문장은 게이트가 닫혀 있어 후보까지만
+   * 말한다. 순서가 거꾸로다.
+   */
+  {
+    paths: ['analysis.precedence'],
+    note: '판정 사이의 서열 — 값과 화면이 들고 문장은 아직 읽지 않는다',
+  },
   { paths: ['stages'] },
   { paths: ['sinsal'] },
   // 대운·세운·월운은 **표 전체로는** 아직 침묵한다. 지금 도는 한 칸만
@@ -364,6 +373,98 @@ function transformationRequest(
       name: transformation.ko,
       verdict: TRANSFORMATION_VERDICT_KO[transformation.verdict],
       element: ELEMENT_KO[transformation.target],
+      sharers: '',
+      over: '',
+    },
+  };
+}
+
+/**
+ * 한 글자를 둘이 물고 있는 합들 — **한 줄로 묶는다.**
+ *
+ * 합은 쌍마다 하나씩 서므로 壬(년)·丁(일)·壬(시) 는 정임합 **둘**로 세어진다. 그
+ * 둘을 따로 적으면 화면에 같은 문장이 두 번 서고, 두 줄 다 「하나가 걸려 있는데」로
+ * 시작한다 — **「하나」가 틀린 말이 되는 자리다.**
+ *
+ * 묶는 기준은 우리가 고르지 않는다. 판정이 이미 `blockers` 에 `contested` 를 달고
+ * 있고(`transformation.ts`), 다투는 상대까지 `facts.rivals` 로 들고 있다. 여기서
+ * 하는 일은 **같은 글자를 두고 겹친 것들을 한 덩어리로 세는 것**뿐이다.
+ *
+ * 化한 합은 묶지 않는다. 쟁합이면 化를 막는 쪽으로 세어지므로 거의 없지만, 판정이
+ * 그 둘을 갈라 두었는데 문장이 뭉개면 「옮기지도 않은 무게를 옮겼다」와 같은 종류의
+ * 거짓이 된다.
+ */
+function contestedGroupsOf(
+  transformations: readonly StemTransformation[],
+): { members: StemTransformation[]; over: { position: PillarPosition; stem: Stem } }[] {
+  const groups = new Map<
+    string,
+    { members: StemTransformation[]; over: { position: PillarPosition; stem: Stem } }
+  >();
+
+  for (const transformation of transformations) {
+    if (transformation.verdict !== 'bound') continue;
+    if (!transformation.blockers.includes('contested')) continue;
+
+    /*
+      다투는 대상은 **이 합의 참여자 중 상대가 함께 물고 있는 글자**다. `rivals` 는
+      그 상대 천간들이고, 대상은 양쪽 합에 함께 든 자리라 참여자에서 찾는다.
+    */
+    const rivalStems = new Set(transformation.facts.rivals.map((rival) => rival.stem));
+    const over = transformation.participants.find((participant) =>
+      transformation.participants.some(
+        (other) => other !== participant && rivalStems.has(other.stem),
+      ),
+    ) ?? transformation.participants.find((participant) => !rivalStems.has(participant.stem));
+
+    if (!over) continue;
+
+    const key = `${over.position}:${over.stem}:${transformation.ko}`;
+    const group = groups.get(key);
+    if (group) group.members.push(transformation);
+    else groups.set(key, { members: [transformation], over });
+  }
+
+  // 혼자 남은 것은 다툼이 아니다 — 상대가 다른 이름의 합이면 이 줄이 세지 않는다.
+  return [...groups.values()].filter((group) => group.members.length > 1);
+}
+
+const COUNT_KO = ['', '하나', '둘', '셋', '넷', '다섯'] as const;
+
+/** 「년주」가 아니라 「년간」 — 천간합이 다투는 것은 기둥이 아니라 그 기둥의 천간이다 */
+const stemSeats = (positions: readonly PillarPosition[]): string =>
+  positions.map((position) => PILLAR_POSITION_KO[position].replace('주', '간')).join('·');
+
+function contestedRequest(group: {
+  members: StemTransformation[];
+  over: { position: PillarPosition; stem: Stem };
+}): Pick<FragmentRequest, 'topic' | 'variant' | 'slots'> {
+  const first = group.members[0];
+  const rivals = [
+    ...new Map(
+      group.members
+        .flatMap((member) => member.participants)
+        .filter((participant) => participant.position !== group.over.position)
+        .map((participant) => [participant.position, participant]),
+    ).values(),
+  ];
+
+  return {
+    topic: 'transformation.verdict',
+    variant: 'contested',
+    slots: {
+      name: first.ko,
+      verdict: TRANSFORMATION_VERDICT_KO[first.verdict],
+      element: ELEMENT_KO[first.target],
+      /*
+        천간합이므로 자리 이름도 **천간 쪽으로 부른다.** `PILLAR_POSITION_KO` 는
+        「년주」를 주는데 여기서 다투는 것은 기둥이 아니라 그 기둥의 천간이다 —
+        관계 표가 참여자를 부를 때 쓰는 것과 같은 손질이다.
+      */
+      sharers: `${stemSeats(rivals.map((rival) => rival.position))}의 ${rivals[0].stem} ${
+        COUNT_KO[rivals.length] ?? `${rivals.length}자`
+      }`,
+      over: `${stemSeats([group.over.position])} ${group.over.stem}`,
     },
   };
 }
@@ -589,8 +690,16 @@ export function findUtterances(saju: Saju): FragmentRequest[] {
   // 무게가 실제로 움직이는 순서다 — 천간합화가 먼저고 지지국이 나중이다
   // (`effectiveElementsOf`). 문장 순서를 그것에 맞춰 두면 `shifts` 를 되짚는
   // 사람이 목록과 문장을 나란히 읽을 수 있다.
+  const contested = contestedGroupsOf(saju.analysis.effectiveElements.transformations);
+  const grouped = new Set(contested.flatMap((group) => group.members));
+
   for (const transformation of saju.analysis.effectiveElements.transformations) {
+    if (grouped.has(transformation)) continue;
     requests.push({ ...base, ...transformationRequest(transformation) });
+  }
+
+  for (const group of contested) {
+    requests.push({ ...base, ...contestedRequest(group) });
   }
 
   for (const bureau of saju.analysis.bureaus) {

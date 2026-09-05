@@ -508,7 +508,7 @@ describe('조립기', () => {
       expect(DAY_MASTER.analysis.effectiveElements.shifts).toHaveLength(0);
     });
 
-    it('네 변종이 모두 실제로 조회된다', () => {
+    it('다섯 변종이 모두 실제로 조회된다', () => {
       const variantsOf = (saju: Saju) =>
         findUtterances(saju)
           .filter((request) => request.topic === 'transformation.verdict')
@@ -520,7 +520,13 @@ describe('조립기', () => {
         ...randomInputs(200).flatMap((input) => variantsOf(computeSaju(input))),
       ]);
 
-      expect([...seen].sort()).toEqual(['bound', 'conditional', 'day-master', 'transformed']);
+      expect([...seen].sort()).toEqual([
+        'bound',
+        'conditional',
+        'contested',
+        'day-master',
+        'transformed',
+      ]);
     });
   });
 

@@ -1,5 +1,5 @@
 import { CONTROLS, ELEMENTS, GENERATES, STEM_INFO, type Element, type Stem } from '../constants';
-import type { ElementDistribution } from './fiveElements';
+import type { EffectiveElements } from './effectiveElements';
 
 /**
  * 통관(通關) — **맞선 두 세력 사이를 잇는 자리.**
@@ -48,7 +48,13 @@ export type TonggwanPair = {
   controlled: Element;
   /** 사이를 잇는 오행 — 극하는 쪽이 낳고, 그것이 극당하는 쪽을 낳는다 */
   bridge: Element;
-  /** 셋의 실효 몫 */
+  /**
+   * 셋의 실효 몫 — **점수 기준이다.**
+   *
+   * 지장간을 사령 일수로 펼쳐 재고 국·합화까지 반영한 값이라, 오행 분포 표의
+   * 개수 %(여덟 글자를 그대로 센 것)와 **다른 자를 쓴다.** 화면이 기준을 안 적으면
+   * 한 페이지 안에서 같은 오행이 13% 와 15.4% 로 두 번 나온다.
+   */
   shares: { controller: number; controlled: number; bridge: number };
   /**
    * 맞선 둘 중 **가벼운 쪽**의 몫.
@@ -59,8 +65,18 @@ export type TonggwanPair = {
   facing: number;
   /** 맞선 둘의 몫 차이 — 0 에 가까울수록 팽팽하다 */
   gap: number;
-  /** 잇는 오행이 원국 여덟 글자에 실제로 있는가 — 없으면 이을 손이 없다 */
-  bridgePresent: boolean;
+  /**
+   * 잇는 오행이 원국 어디에 있는가 — **세 갈래다.**
+   *
+   * 처음에는 `bridgePresent: boolean` 이었고, 그 참·거짓을 개수(`counts`)로만 냈다.
+   * 그런데 몫은 점수로 내고 있었다 — 지장간에만 있는 오행이 **「8.0%」와 「한 자도
+   * 없다」를 한 칸에서 동시에** 말했다. 둘 다 참인데 자가 달라서, 읽는 쪽은 어느
+   * 말을 믿을지 알 수 없다.
+   *
+   * 조후가 같은 문제를 이미 풀어 두었다(`JohuCandidate.presence`). 같은 낱말을 쓴다 —
+   * 드러났는가(천간이거나 지지 본기), 숨어만 있는가(지장간), 아예 없는가.
+   */
+  bridgePresence: 'revealed' | 'hidden' | 'absent';
   /**
    * 일간이 이 대치의 어디에 서 있는가.
    *
@@ -96,6 +112,15 @@ export const TONGGWAN_POLICY = {
   /** 다섯 쌍을 다 내고 가벼운 쪽이 무거운 순으로 세운다 */
   ordering: 'weaker-side-descending',
   /**
+   * 몫은 실효 분포의 **점수**로, 존재는 **글자**로 낸다 — 자가 둘이라 값으로 적는다.
+   *
+   * 존재를 점수로 재면 지장간에 한 톨 있는 오행이 「있다」가 되고, 몫을 개수로 재면
+   * 국과 합화를 반영한 세력이 사라진다. 둘을 한 자로 맞출 수는 없으므로 **가른 것을
+   * 밝힌다.**
+   */
+  shareBasis: 'effective-score',
+  presenceBasis: 'literal-glyphs',
+  /**
    * 억부를 뒤집지 않는다 — **뒤집을 판정 자체가 없다.**
    *
    * 종격·격국의 같은 이름 스위치와 값은 같지만 이유가 한 칸 앞이다. 그 둘은
@@ -122,8 +147,13 @@ export const TONGGWAN_POLICY = {
     /** 가장 팽팽한 쌍의 `facing` 이 이 값 이상인 비율 */
     facingAtLeast: { 0.15: 0.896, 0.2: 0.62, 0.25: 0.378, 0.3: 0.102, 0.35: 0.022 },
     median: 0.218,
-    /** 가장 팽팽한 쌍의 통관신이 원국에 아예 없는 비율 */
-    bridgeAbsent: 0.203,
+    /**
+     * 가장 팽팽한 쌍의 통관신이 **여덟 글자에 드러나지 않은** 비율(숨은 것 + 없는 것).
+     *
+     * 「아예 없는 비율」이라고 적었다가 고쳤다. 재는 식은 처음부터 개수가 0 인가였고,
+     * 그것은 지장간에만 있는 것도 함께 센다 — 이름만 더 세게 말하고 있었다.
+     */
+    bridgeNotRevealed: 0.203,
     note: 'no-threshold-chosen',
   },
   /** 외부 대조 — 아직 없다. 없다는 것을 값으로 남긴다 */
@@ -149,10 +179,18 @@ const CONTROL_PAIRS: readonly { controller: Element; controlled: Element }[] = E
  */
 export function tonggwanCandidacyOf(
   pillars: TonggwanInput,
-  distribution: ElementDistribution,
+  /**
+   * **둘 다 받는다.** 몫은 옮긴 뒤의 분포에서, 존재는 글자를 그대로 센 바탕에서 낸다.
+   *
+   * 분포 하나만 받던 동안 존재도 그 분포의 `counts` 로 냈다. 그런데 그 개수는 옮김과
+   * 무관한 값이라(무게만 옮기고 글자는 안 바꾼다) 틀리지는 않았어도, **어느 자로
+   * 재는지가 인자 하나에 가려져 있었다.** 갈라 받으면 부르는 쪽도 그것을 안다.
+   */
+  effective: EffectiveElements,
 ): TonggwanCandidacy {
   const dayMasterElement = STEM_INFO[pillars.dayMaster].element;
-  const { ratios, counts } = distribution;
+  const { ratios } = effective.distribution;
+  const { counts, scores } = effective.base;
 
   const pairs = CONTROL_PAIRS.map(({ controller, controlled }): TonggwanPair => {
     const bridge = GENERATES[controller];
@@ -168,7 +206,8 @@ export function tonggwanCandidacyOf(
       },
       facing: Math.min(ratios[controller], ratios[controlled]),
       gap: Math.abs(ratios[controller] - ratios[controlled]),
-      bridgePresent: counts[bridge] > 0,
+      bridgePresence:
+        counts[bridge] > 0 ? 'revealed' : scores[bridge] > 0 ? 'hidden' : 'absent',
       dayMasterAt:
         dayMasterElement === controller
           ? 'controller'

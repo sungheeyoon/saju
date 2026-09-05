@@ -248,10 +248,17 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
   'transformation.verdict': {
     paths: ['analysis.effectiveElements'],
     polarity: 'presence',
-    variants: ['transformed', 'conditional', 'bound', 'day-master'],
-    slots: ['name', 'verdict', 'element'],
+    variants: ['transformed', 'conditional', 'bound', 'day-master', 'contested'],
+    /** `sharers`·`over` 는 다투는 자리에만 채워진다 — 나머지 변종에서는 빈 칸이다 */
+    slots: ['name', 'verdict', 'element', 'sharers', 'over'],
     // 판정 이름을 표본에 둔다 — 근거 없이 렌더되면 금지 표현으로 걸려야 한다.
-    samples: { name: '정임합목', verdict: '합이불화', element: '목' },
+    samples: {
+      name: '정임합목',
+      verdict: '합이불화',
+      element: '목',
+      sharers: '년간·시간의 壬 둘',
+      over: '일간 丁',
+    },
     note: '천간합이 정말 화신으로 변했는가',
   },
 
