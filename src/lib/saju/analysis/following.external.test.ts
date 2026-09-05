@@ -10,7 +10,8 @@ import { rootednessOf } from './rootedness';
 import { rootQualityOf } from './rootQuality';
 import { FOLLOWING_EXTERNAL_CASES } from './validation/followingExternalCases';
 
-function assess(pillars: (typeof FOLLOWING_EXTERNAL_CASES)[number]['pillars']) {
+/** 네 기둥 문자열을 계산판으로 — 뿌리를 따로 보는 시험도 이것을 쓴다 */
+function chartOf(pillars: (typeof FOLLOWING_EXTERNAL_CASES)[number]['pillars']) {
   const parse = (name: string) => {
     const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
     if (!pillar) throw new Error(`간지가 아니다: ${name}`);
@@ -18,14 +19,17 @@ function assess(pillars: (typeof FOLLOWING_EXTERNAL_CASES)[number]['pillars']) {
   };
 
   const day = parse(pillars.day);
-  const input = {
+  return {
     year: parse(pillars.year),
     month: parse(pillars.month),
     day,
     hour: parse(pillars.hour),
     dayMaster: day.stem,
   };
+}
 
+function assess(pillars: (typeof FOLLOWING_EXTERNAL_CASES)[number]['pillars']) {
+  const input = chartOf(pillars);
   const rootedness = rootednessOf(input);
   const effective = effectiveElementsOf(input);
   const quality = rootQualityOf(rootedness, input, bureausOf(input));
@@ -382,5 +386,44 @@ describe('종격 외부 명조 대조', () => {
      */
     const qi = outsideDoor.find((testCase) => testCase.id === 'dtsm-congxiang-8-qi')!;
     expect(assess(qi.pillars).selfShare).toBeGreaterThan(0.4);
+  });
+
+  /**
+   * **뿌리로 후보에 머문 넷이 무엇으로 버티는지 짚는다.**
+   *
+   * 「문턱이 낮아서」가 아니라는 것까지는 위 시험이 고정했다. 여기서는 한 칸 더 들어간다 —
+   * 그 자리를 **무엇이 붙잡고 있는가**. 셋은 **충 없는 묘고(墓庫)의 중기 뿌리 하나**로
+   * 버티고, 넷째는 진짜 록(祿)이라 성질이 다르다.
+   *
+   * 이 구성이 바뀌면 `ROOT_QUALITY_POLICY.branchClass` 의 감도 표(거기 적어 둔 sweep)가
+   * 함께 낡는다. 그래서 표가 아니라 **구성**을 여기서 잠근다 — 숫자는 규칙이 바뀌면 다시
+   * 재면 되지만, 「무엇 때문에 못 넘어오는가」가 달라지면 그 표를 읽는 방법 자체가 달라진다.
+   */
+  it('뿌리로 막힌 자리가 무엇으로 버티는지 고정한다', () => {
+    const held = ['kill-3', 'dtsm-congxiang-1', 'qlmg-abandon-hurt', 'qlmg-yanfeng-2nd'];
+
+    const rooted = held.map((id) => {
+      const testCase = FOLLOWING_EXTERNAL_CASES.find((one) => one.id === id)!;
+      const chart = chartOf(testCase.pillars);
+      const quality = rootQualityOf(rootednessOf(chart), chart, bureausOf(chart)).dayMaster;
+
+      /** 이 자리를 붙잡고 있는 가장 무거운 뿌리 하나 */
+      const heaviest = [...quality.roots].sort((a, b) => b.strength - a.strength)[0];
+
+      return {
+        id,
+        branchClass: heaviest.branchClass,
+        role: heaviest.root.role,
+        clashed: heaviest.clashed,
+      };
+    });
+
+    expect(rooted).toEqual([
+      { id: 'kill-3', branchClass: 'storage', role: '中氣', clashed: false },
+      { id: 'dtsm-congxiang-1', branchClass: 'storage', role: '中氣', clashed: false },
+      { id: 'qlmg-abandon-hurt', branchClass: 'storage', role: '中氣', clashed: false },
+      // 넷째만 다르다 — 亥의 정기 壬은 壬의 녹이라 묘고 이야기가 아니다.
+      { id: 'qlmg-yanfeng-2nd', branchClass: 'birth', role: '正氣', clashed: false },
+    ]);
   });
 });
