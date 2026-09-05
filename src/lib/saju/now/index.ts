@@ -1,10 +1,11 @@
 import { ageOnDate, koreaDateOf } from '../age';
-import { BRANCH_INFO } from '../constants';
+import { BRANCH_INFO, type Branch, type Stem } from '../constants';
 import type { CivilDate, CivilDateTime } from '../civilTime';
 import { daeunAtAge, type DaeunAbsence, type DaeunEntry } from '../daeun';
 import type { Saju } from '../index';
 import { findMonthTerm } from '../pillars/month';
-import type { Relation } from '../relations';
+import type { PillarPosition } from '../position';
+import { NATAL_CHART_ID, type Relation } from '../relations';
 import { computeSaeun, type SaeunEntry } from '../saeun';
 import type { SolarTerm } from '../solarTerms';
 import { computeWolun, type WolunEntry } from '../wolun';
@@ -129,9 +130,87 @@ export type CurrentFortune = {
    * 세지 않으므로 여기에도 없고, `UNCOVERED_NOW_FACTS` 가 그것을 값으로 든다.
    */
   relations: Relation[];
+  /**
+   * 지금 걸린 것이 **원국에 이미 있던 자리를 다시 밟는가.**
+   *
+   * 원국에 인신충이 있는 사람에게 이번 달 申이 또 오면, 그 달은 「새 충 하나」가 아니라
+   * **같은 자리를 두 번째로 치는 달**이다. 두 사실은 목록에 다 있었지만 서로 다른
+   * 칸에 있었고, 목록이 열아홉 줄이면 **가장 중요한 한 줄이 그 안에 파묻힌다.**
+   *
+   * 여기서 관계를 새로 세지 않는다(`RESTATED_RELATIONS` 와 같은 규율) — 이미 나온 두
+   * 목록을 맞춰 보기만 한다. 세는 자리가 둘이 되면 표와 카드가 어긋나는 날 어느 쪽이
+   * 맞는지 알 수 없다.
+   */
+  overlaps: NowOverlap[];
   /** 원국을 시주까지 보고 셌는가 — 문장의 강도가 여기에 걸린다 */
   hourKnown: boolean;
 };
+
+/**
+ * 지금 걸린 관계 하나가 다시 밟은 원국의 자리들.
+ *
+ * **겹침은 「같은 종류가 같은 자리에」다.** 원국의 시지 寅이 이미 충을 맞고 있는데 운의
+ * 글자가 그 寅을 또 충하면 겹친 것이고, 다른 자리의 다른 충은 겹친 것이 아니다. 종류를
+ * 안 보면 「이 자리에 뭔가 또 걸렸다」가 되어 거의 모든 달이 참이 된다.
+ */
+export type NowOverlap = {
+  /** 다시 밟은 관계의 이름 — 지금 목록에도 같은 이름으로 서 있다 */
+  ko: string;
+  kind: Relation['kind'];
+  /**
+   * 지금 그 자리를 치는 운의 글자.
+   *
+   * 관계를 통째로 다시 싣지 않는다. **가리키기만 한다** — 같은 관계가 `relations` 에
+   * 이미 있고, 여기까지 관계 객체를 복사하면 자료가 그만큼 두꺼워진다. 이 값을 만든
+   * 까닭이 「열아홉 줄에 파묻힌 한 줄을 꺼내는 것」인데 목록을 늘리면 되돌리는 일이다.
+   */
+  from: { chartId: string; position: PillarPosition; char: Stem | Branch };
+  /** 원국에서 이미 그 종류가 걸려 있던 자리들 */
+  natalSeats: readonly PillarPosition[];
+};
+
+/**
+ * 지금 걸린 것들 가운데 원국의 같은 자리를 다시 밟는 것만 고른다.
+ *
+ * 원국 참여자의 **자리**로 맞춘다. 글자까지 견주지 않는 것은 자리가 이미 글자를 정하기
+ * 때문이고, 계산판(`chartId`)으로 원국 쪽만 골라내는 것은 운끼리 걸린 관계를 원국이
+ * 다시 밟았다고 셀 수 없기 때문이다.
+ */
+function overlapsOf(natalRelations: readonly Relation[], now: readonly Relation[]): NowOverlap[] {
+  const found: NowOverlap[] = [];
+
+  for (const relation of now) {
+    const seats = new Set(
+      relation.participants
+        .filter((participant) => participant.chartId === NATAL_CHART_ID)
+        .map((participant) => participant.position),
+    );
+    if (seats.size === 0) continue;
+
+    const natalSeats = [
+      ...new Set(
+        natalRelations
+          .filter(
+            (natal) =>
+              natal.kind === relation.kind &&
+              natal.participants.some((participant) => seats.has(participant.position)),
+          )
+          .flatMap((natal) => natal.participants.map((participant) => participant.position)),
+      ),
+    ];
+    if (natalSeats.length === 0) continue;
+
+    // 치는 쪽은 원국 밖의 글자다 — 운이 데려온 그 한 자가 이 겹침을 만든다.
+    const from = relation.participants.find(
+      (participant) => participant.chartId !== NATAL_CHART_ID,
+    );
+    if (!from) continue;
+
+    found.push({ ko: relation.ko, kind: relation.kind, from, natalSeats });
+  }
+
+  return found;
+}
 
 /**
  * 관계를 어디서 가져오는지 — 값으로 적어 둔다.
@@ -192,6 +271,12 @@ export function currentFortuneOf(saju: Saju, viewedAt: Date): CurrentFortune {
   const saeun = saeunEntryOf(saju, sajuYear, birthDate);
   const wolun = wolunEntryOf(saju, sajuYear, monthTerm, birthDate);
 
+  const relations = [
+    ...(daeun?.relations ?? []),
+    ...saeun.relations.filter(inDaeun(daeun)),
+    ...wolun.relations.filter(inDaeun(daeun)),
+  ];
+
   return {
     viewedAt,
     viewedOn,
@@ -215,11 +300,9 @@ export function currentFortuneOf(saju: Saju, viewedAt: Date): CurrentFortune {
     // 견주는데(한 해가 대운 경계를 넘으면 둘이다), 그중 하나는 지금 돌고 있지
     // 않다. 표에서는 그것이 맞고 여기서는 아니다 — 이 카드가 말하는 것은 한
     // 해가 아니라 **지금**이다.
-    relations: [
-      ...(daeun?.relations ?? []),
-      ...saeun.relations.filter(inDaeun(daeun)),
-      ...wolun.relations.filter(inDaeun(daeun)),
-    ],
+    relations,
+    // 새로 세지 않는다 — 위 목록과 원국의 목록을 맞춰 보기만 한다.
+    overlaps: overlapsOf(saju.relations, relations),
     hourKnown,
   };
 }
@@ -305,6 +388,13 @@ export const NOW_POLICY = {
   counting: 'reuses-saeun-wolun-daeun',
   /** 관계는 대운·세운·월운 칸에서 옮겨 담기만 한다 */
   relations: RESTATED_RELATIONS,
+  /**
+   * 겹침도 **새로 세지 않는다** — 원국의 목록과 지금의 목록을 맞춰 보기만 한다.
+   *
+   * 같은 종류가 같은 자리에 다시 걸리는 것만 센다. 자리만 보면 「이 자리에 뭔가 또
+   * 걸렸다」가 되어 거의 모든 달이 참이 되고, 그러면 아무것도 안 가리키는 값이 된다.
+   */
+  overlaps: 'matched-by-kind-and-seat',
   /** 운끼리의 관계는 좁은 쪽이 넓은 쪽을 든다 — 대운 한 칸이 열 해를 하나로 못 가리킨다 */
   fortunesCrossed: 'narrower-holds-the-wider',
   /** 대운을 못 짚는 두 이유를 구분한다 — 이 사람의 사실과 우리 표의 한계 */

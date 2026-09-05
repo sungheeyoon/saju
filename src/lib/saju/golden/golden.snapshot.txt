@@ -189,6 +189,7 @@
           boundaries             terms-by-instant-daeun-by-age
           counting               reuses-saeun-wolun-daeun
           relations              restated-from-daeun-saeun-and-wolun
+          overlaps               matched-by-kind-and-seat
           fortunesCrossed        narrower-holds-the-wider
           daeunAbsence           before-first-vs-beyond-table
           daeunIsChosen          rounding-is-a-lineage-choice
