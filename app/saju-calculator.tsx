@@ -35,6 +35,7 @@ import {
   HIDDEN_STEM_ROLE_KO,
   ELEMENT_ROLE_KO,
   FOLLOWING_DIRECTION_KO,
+  FOLLOWING_PATTERN_POLICY,
   FOLLOWING_PATTERN_STATUS_KO,
   EMPTINESS_BASIS_KO,
   UNRESOLVED_FACTOR_KO,
@@ -1789,12 +1790,16 @@ function StrengthMeter({ saju }: { saju: Saju }) {
           잡는 네 길 중 하나일 뿐이고, 아직 판정하지 않은 것이 남아 있습니다 —{' '}
           {eokbu.unresolved.map((factor) => UNRESOLVED_FACTOR_KO[factor]).join(', ')}.
           이 가운데 통근·투출은 <strong className="font-medium">사실만 위에 적어 두었고</strong>,
-          그것이 쓸 만한 뿌리인지를 재는 판정만 아직 없습니다. 종격도 조건이 되는 사실은
-          위에 적어 두었고, 어디서 선을 긋느냐만 정하지 않았습니다 — 계통을 고르는 순간
-          억부와 정반대 답이 나오기 때문입니다. 위 조후표도 조건을 전부 자동 판정하지
-          않은 참고값입니다.
-          꺼리는 오행(기신)도 내지 않습니다 — 오행 상극표 한 줄로 정해지는 것이
-          아니기 때문입니다.
+          그것이 쓸 만한 뿌리인지를 재는 판정만 아직 없습니다. 종격은 위 칸에서{' '}
+          <strong className="font-medium">따로 판정하지만 이 후보에는 반영되지 않았습니다</strong> —
+          문턱이 고전의 숫자가 아니라 이 엔진의 실험값이라, 억부와 정반대 답이 나오더라도
+          뒤집지 않고 나란히 세웁니다. 위 조후표도 조건을 전부 자동 판정하지 않은
+          참고값입니다.
+          꺼리는 오행(기신)은 판정하지 않습니다 — 명식 전체에서 무엇이 병인지를 봐야
+          정해지지 오행 상극표 한 줄로 나오는 것이 아니기 때문입니다. 다만 「이 후보를
+          용신 자리에 놓으면 다섯 오행이 어디에 오는가」(희용기구한)는 표 조회라 계통이
+          갈리지 않고, 그 배정은 화면에 세우지 않는 대신 AI 풀이에 넘기는 자료에
+          함께 싣습니다.
         </p>
       </div>
     </section>
@@ -1874,6 +1879,10 @@ function RootingNote({ saju }: { saju: Saju }) {
 function FollowingCandidacyNote({ saju }: { saju: Saju }) {
   const { followingCandidacy: candidacy, following } = saju.analysis;
   const percent = (ratio: number) => `${(ratio * 100).toFixed(1)}%`;
+  /** 문턱과 대조 성적은 **재는 자리가 들고 있는 값**을 그대로 읽는다 — 아래 주석 참조 */
+  const { dominance } = FOLLOWING_PATTERN_POLICY;
+  const { externalCheck } = dominance;
+  const share = (ratio: number) => `${Math.round(ratio * 100)}%`;
 
   return (
     <div className="mt-3 border-t border-border pt-3">
@@ -1888,7 +1897,11 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
         <span className="text-sm text-secondary">
           자당(비겁·인성) 몫{' '}
           <span className="tabular-nums">{percent(following.selfShare)}</span>
-          <span className="text-muted"> (밖으로 종 ≤30% · 안으로 종 ≥70%)</span>
+          <span className="text-muted">
+            {' '}
+            (밖으로 종 ≤{share(dominance.outwardMaxSelfShare)} · 안으로 종 ≥
+            {share(dominance.inwardMinSelfShare)})
+          </span>
           {following.direction && (
             <span className="ml-1.5">{FOLLOWING_DIRECTION_KO[following.direction]}</span>
           )}
@@ -1923,10 +1936,18 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
         <strong className="font-medium">문턱은 고전이 정한 숫자가 아닙니다.</strong> 무작위
         3000건의 세력 분포를 재고 정한 이 엔진의 실험값입니다. 종에는 방향이 둘이라
         축 하나의 양끝으로 잽니다 — 일간을 도울 것이 없으면 <strong className="font-medium">밖으로</strong>
-        (종재·종살), 일간 편이 극왕하면 <strong className="font-medium">안으로</strong> 따릅니다. 외부 자료에서 종격이라고 밝힌 명조 14건과 대조해 보니{' '}
-        <strong className="font-medium">4건만 잡았습니다</strong> — 덜 잡는 쪽으로 틀립니다.
-        그래서 이 판정은 억부 후보를 뒤집지 않습니다. 진종·가종 어느 쪽으로도 밀기 어려운
-        명식은 &lsquo;종격 후보&rsquo;로 남겨 둡니다.
+        (종재·종살), 일간 편이 극왕하면 <strong className="font-medium">안으로</strong> 따릅니다.{' '}
+        {/*
+          **수치를 손으로 적지 않는다.** 여기 「14건 중 4건」이 적혀 있었다 — 규칙이 v2 로
+          가고 대조 자료가 늘어나는 동안 화면만 v1 의 숫자에 남아 있었다. 재는 자리가
+          값으로 들고 있는 것을(`externalCheck`) 화면이 다시 적으면, 엔진이 나아질 때마다
+          화면은 조용히 틀린 말을 하게 된다.
+        */}
+        외부 자료에서 종격이라고 밝힌 명조 {externalCheck.claimedFollowing}건과 대조해{' '}
+        <strong className="font-medium">{externalCheck.caught}건을 잡았습니다</strong> — 여전히
+        덜 잡는 쪽으로 틀리고, 아니라고 적힌 쪽에서도 {externalCheck.falsePositives}건을
+        종격으로 봅니다. 그래서 이 판정은 억부 후보를 뒤집지 않습니다. 진종·가종 어느
+        쪽으로도 밀기 어려운 명식은 &lsquo;종격 후보&rsquo;로 남겨 둡니다.
       </p>
     </div>
   );
