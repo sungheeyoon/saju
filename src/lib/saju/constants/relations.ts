@@ -280,15 +280,6 @@ export function findTripleCombinations(
   });
 }
 
-/** 주어진 지지 집합에서 완전히 성립하는 방합을 찾는다. */
-export function findDirectionalCombinations(
-  branches: readonly Branch[],
-): BranchDirectionalCombination[] {
-  const present = new Set(branches);
-  return BRANCH_DIRECTIONAL_COMBINATIONS.filter((c) =>
-    c.branches.every((b) => present.has(b)),
-  );
-}
 
 /**
  * 주어진 지지 집합에서 성립하는 형(刑)을 찾는다.

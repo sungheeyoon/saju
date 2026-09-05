@@ -9,7 +9,7 @@
  */
 
 /** 지구가 경도 1°를 지나는 데 걸리는 시간(분). 1440분 ÷ 360° */
-export const MINUTES_PER_DEGREE = 4;
+const MINUTES_PER_DEGREE = 4;
 
 /** 표준시 오프셋(분)에 대응하는 표준자오선 경도. UTC+9 → 135°, UTC+8:30 → 127.5° */
 export function standardMeridian(standardOffsetMinutes: number): number {

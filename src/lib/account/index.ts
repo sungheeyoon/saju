@@ -13,10 +13,10 @@
  */
 
 /** 이름은 DB 의 검사식과 같다(`app_user_status_check`) */
-export const ACCOUNT_STATUSES = ['active', 'suspended', 'deletion_requested'] as const;
+const ACCOUNT_STATUSES = ['active', 'suspended', 'deletion_requested'] as const;
 export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
 
-export const isActiveAccount = (status: string): boolean => status === 'active';
+const isActiveAccount = (status: string): boolean => status === 'active';
 
 /**
  * 살아 있지 않은 계정에게 하는 말.
@@ -24,7 +24,7 @@ export const isActiveAccount = (status: string): boolean => status === 'active';
  * **이유를 갈라서 말한다.** 운영자가 건 제재와 본인이 낸 요청은 같은 것을 막지만 같은
  * 일이 아니다 — 자기가 요청해서 그렇게 된 사람에게 「중지되었습니다」는 거짓이다.
  */
-export const ACCOUNT_HALTED_TEXT: Record<
+const ACCOUNT_HALTED_TEXT: Record<
   Exclude<AccountStatus, 'active'>,
   { readonly title: string; readonly detail: string }
 > = {
@@ -84,8 +84,6 @@ export const REPORT_REASONS = [
 
 export type ReportReason = (typeof REPORT_REASONS)[number]['value'];
 
-export const isReportReason = (value: string): value is ReportReason =>
-  REPORT_REASONS.some((one) => one.value === value);
 
 /**
  * 신고는 차단이 아니다 — **누르기 전에 그 차이를 읽힌다.**

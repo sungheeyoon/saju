@@ -117,7 +117,7 @@ export type StarOptions = {
   yinYangin?: boolean;
 };
 
-export const DEFAULT_YIN_YANGIN = false;
+const DEFAULT_YIN_YANGIN = false;
 
 /**
  * 채택한 규칙 묶음. 관계 연산의 `RELATION_POLICY` 와 같은 구실을 한다 —
@@ -206,7 +206,7 @@ export const amrokBranchOf = (stem: Stem): Branch => {
  * 중립으로 두는 것과 같은 이유로, 매력을 복으로 읽을지 화로 읽을지가 계통마다
  * 갈린다.
  */
-export const HONGYEOM_BRANCH: Record<Stem, Branch> = {
+const HONGYEOM_BRANCH: Record<Stem, Branch> = {
   甲: '午',
   乙: '午',
   丙: '寅',
@@ -306,7 +306,7 @@ export const HYEONCHIM_MIN_HITS = 3;
  * 항목이다. 天門은 두 지지 사이의 문이므로 한 글자만으로 완성됐다고 하지 않고
  * 원국에 戌亥가 함께 있을 때만 성립시킨다.
  */
-export const CHEONMUN_BRANCHES = ['戌', '亥'] as const satisfies readonly Branch[];
+const CHEONMUN_BRANCHES = ['戌', '亥'] as const satisfies readonly Branch[];
 
 /**
  * 고신살(孤辰殺)·과숙살(寡宿殺) — 년지의 계절에서 나온다.
@@ -357,7 +357,7 @@ export const CHEONEUL_BRANCHES: Record<Stem, readonly [Branch, Branch]> = {
  * 대상이 천간인 달과 지지인 달이 섞여 있다(卯·酉·午·子월만 지지다).
  * 유도할 규칙이 없어 표 그대로 둔다.
  */
-export const CHEONDEOK_TARGET: Record<Branch, Stem | Branch> = {
+const CHEONDEOK_TARGET: Record<Branch, Stem | Branch> = {
   寅: '丁',
   卯: '申',
   辰: '壬',

@@ -360,7 +360,7 @@ const nonKoreanLettersIn = (text: string): string[] =>
  * 자료가 아닌 값(사람 이름·도시)은 여기 안 든다. 이름이 라틴 문자여도 걸리지 않는다 —
  * **걸려야 하는 것은 우리가 넘긴 이름이지 사용자가 지은 이름이 아니다.**
  */
-export const evidencePathsIn = (evidenceText: string): readonly string[] => {
+const evidencePathsIn = (evidenceText: string): readonly string[] => {
   let parsed: unknown;
   try {
     parsed = JSON.parse(evidenceText);
@@ -409,7 +409,7 @@ const topLevelNamesIn = (evidenceText: string): readonly string[] => {
  * 맨 끝 검사용 근거 절은 경로를 대라고 시킨 자리다. 통째로 세면 시킨 대로 쓴 근거 칸이
  * 어긴 것으로 잡힌다(`plainTermsIn`·Match 범위 검사와 같은 자리에서 같은 이유로 자른다).
  */
-export const evidencePathsLeakedIn = (markdown: string, evidenceText: string): readonly string[] => {
+const evidencePathsLeakedIn = (markdown: string, evidenceText: string): readonly string[] => {
   const body = readingBody(markdown);
 
   const dotted = evidencePathsIn(evidenceText).filter((path) => body.includes(path));

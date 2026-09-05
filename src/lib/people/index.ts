@@ -60,7 +60,7 @@ export const RELATION_INTRO =
  * 화면은 「친구·동료」라고 짧게 쓰지만 모델에게는 무엇을 하라는 것인지까지 말해야
  * 한다. 두 말을 한 값으로 묶으면 화면을 다듬을 때 프롬프트가 함께 움직인다.
  */
-export const RELATION_FOR_PROMPT: Record<Relation, string> = {
+const RELATION_FOR_PROMPT: Record<Relation, string> = {
   family: '가족이다. 연애의 장면으로 읽지 말고, 오래 같이 살아온 사이에서 되풀이되는 것으로 읽어라',
   friend: '친구이거나 함께 일하는 사이다. 연애의 장면으로 읽지 마라',
   partner: '연인이거나 배우자다',
@@ -73,7 +73,7 @@ export const RELATION_FOR_PROMPT: Record<Relation, string> = {
  * 끼리의 궁합은 애초에 알 수가 없다 — 저장한 것은 「나와 그 사람」이지 「그 둘」이
  * 아니기 때문이다. 그때 자기 풀이 때처럼 조용히 넘기면 모델은 **다시 연애로 읽는다.**
  */
-export const RELATION_UNKNOWN =
+const RELATION_UNKNOWN =
   '무슨 사이인지 모른다. 연인·가족·동료 중 어느 쪽으로도 단정하지 말고, 어느 사이에나 해당하는 장면으로 읽어라';
 
 /** 인연 찾기로 만나 서로 동의한 두 사람 — 고르는 값이 아니라 **성립 방식이 정한다** */

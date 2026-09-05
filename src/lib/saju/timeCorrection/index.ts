@@ -76,7 +76,7 @@ export type TimeCorrectionOptions = {
   dstTransitionPolicy?: DstTransitionPolicy;
 };
 
-export const DEFAULT_TIME_CORRECTION_OPTIONS = {
+const DEFAULT_TIME_CORRECTION_OPTIONS = {
   useLongitude: true,
   useEquationOfTime: false,
   useDst: true,

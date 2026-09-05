@@ -608,7 +608,7 @@ export const LIST_COMPLETENESS_PATHS: readonly ClaimPath[] = [
 ];
 
 /** 강도를 한 칸 내린다. `silent` 아래는 없다 */
-export function downgrade(strength: ClaimStrength): ClaimStrength {
+function downgrade(strength: ClaimStrength): ClaimStrength {
   const index = CLAIM_STRENGTH_ORDER.indexOf(strength);
   return CLAIM_STRENGTH_ORDER[Math.max(0, index - 1)];
 }
@@ -823,7 +823,7 @@ export const FORBIDDEN_CLAIMS: readonly ForbiddenClaim[] = [
  * 만세력에 있는 항목이 통째로 없으면 빠뜨린 것처럼 보인다는 것을 귀문·원진에서
  * 이미 배웠다.
  */
-export const DISCLOSURE_PATTERNS: readonly string[] = [
+const DISCLOSURE_PATTERNS: readonly string[] = [
   '판정하지 않',
   '내지 않',
   '보지 않',

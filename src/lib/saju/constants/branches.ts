@@ -70,6 +70,3 @@ export function branchIndex(branch: Branch): number {
   return BRANCH_INFO[branch].index;
 }
 
-export function isBranch(value: string): value is Branch {
-  return value in BRANCH_INFO;
-}

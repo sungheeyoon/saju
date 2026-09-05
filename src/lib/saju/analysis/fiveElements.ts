@@ -2,8 +2,8 @@ import {
   BRANCH_INFO,
   ELEMENTS,
   HIDDEN_STEMS,
-  HIDDEN_STEM_TOTAL_DAYS,
   STEM_INFO,
+  hiddenStemWeight,
   type Element,
   type HiddenStem,
   type HiddenStemRole,
@@ -58,7 +58,7 @@ export type ElementWeights = {
  * 나눌 때 다른 배수를 쓰면, 같은 여기(餘氣)가 한쪽에서는 얕고 다른 쪽에서는
  * 두껍다고 말하게 된다.
  */
-export const HIDDEN_STEM_ROLE_FACTOR: Record<HiddenStemRole, number> = {
+const HIDDEN_STEM_ROLE_FACTOR: Record<HiddenStemRole, number> = {
   正氣: 1,
   中氣: 0.5,
   餘氣: 0.25,
@@ -82,7 +82,7 @@ export function hiddenStemShares(
   weighting: ElementWeights['hiddenStemWeighting'],
 ): number[] {
   if (weighting === 'days') {
-    return hiddens.map((hidden) => hidden.days / HIDDEN_STEM_TOTAL_DAYS);
+    return hiddens.map(hiddenStemWeight);
   }
 
   const weighted = hiddens.map((hidden) => hidden.days * HIDDEN_STEM_ROLE_FACTOR[hidden.role]);

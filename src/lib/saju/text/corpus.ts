@@ -915,7 +915,7 @@ const nowFragments: Fragment[] = [
  *
  * 두 벌인 것은 시간 미상 때문이고, 갈리는 것은 **시주를 뺐다는 사실 하나**다.
  */
-export const RELATION_ROW = '{participants} — {name}';
+const RELATION_ROW = '{participants} — {name}';
 
 /**
  * 행 뒤에 괄호로 붙는 단서.
@@ -936,7 +936,7 @@ export const RELATION_ROW = '{participants} — {name}';
  *
  * '반쪽'을 '두 글자'로 고친 것과 같은 종류다 — 규칙은 그대로고 낱말만 낡았다.
  */
-export const RELATION_MARKS = {
+const RELATION_MARKS = {
   combined: '따로 있는 글자들이 합쳐 이룬 것',
   /**
    * 반쪽 합은 시주가 셋째 글자를 들고 오면 완전한 것에 흡수돼 **사라진다.**
