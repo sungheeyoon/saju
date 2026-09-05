@@ -166,6 +166,74 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     expect(codesOf(checkReading(self(withLatin)))).toContain('non-korean-self-body');
   });
 
+  /**
+   * **경로 이름이 본문에 새는 것을 잰다.**
+   *
+   * 프롬프트는 `analysis.strength`·`charts.a` 같은 이름을 대놓고 넘기면서 「본문에 쓰지
+   * 마라」고 적어 두었는데, **그 말을 지켰는지 재는 자리가 없었다.** 두 번 새고 두 번 다
+   * 사람 눈으로 잡았다. 기준판이 용신 계열을 읽게 되면서 지시문이 든 경로 이름이 늘었으니
+   * 위험은 전보다 커졌다.
+   *
+   * 어휘를 상수로 적지 않고 **모델에 넘긴 JSON 에서 뜬다** — 자료가 늘면 검사도 같이 는다.
+   */
+  describe('자료 경로가 본문에 새면 막는다', () => {
+    const withBody = (kind: ReadingKind, body: string) => ({
+      ...ok(kind),
+      output: { score: isScored(kind) ? 72 : null, markdown: `${OK_MARKDOWN}\n\n${body}` },
+    });
+
+    it('점 찍힌 경로가 본문에 있으면 걸린다', () => {
+      const leaked = withBody('self', '버틸 힘은 `analysis.strength` 를 보면 약한 쪽입니다.');
+
+      expect(codesOf(checkReading(leaked))).toContain('evidence-path-leaked');
+    });
+
+    it('맨 위 칸 이름을 홑낱말로 불러도 걸린다', () => {
+      const leaked = withBody('private', 'charts 두 벌을 나란히 놓고 보면 결이 다릅니다.');
+
+      expect(codesOf(checkReading(leaked))).toContain('evidence-path-leaked');
+    });
+
+    /**
+     * **궁합에는 막는 것이 하나도 없었다.**
+     *
+     * 「한글 아닌 글자」 검사는 개인 풀이에만 걸린다 — 궁합 본문에는 사람이 지은 이름이
+     * 실리고 그 이름이 라틴 문자일 수 있기 때문이다. 그래서 경로가 새도 지나갔다.
+     */
+    it('궁합에도 걸린다 — kind 를 안 가린다', () => {
+      for (const kind of ['private', 'match'] as const) {
+        const leaked = withBody(kind, '두 분의 `charts.a` 와 `charts.b` 를 견주면');
+
+        expect(codesOf(checkReading(leaked)), kind).toContain('evidence-path-leaked');
+      }
+    });
+
+    /**
+     * **시킨 대로 쓴 근거 칸은 안 센다.** 그 절은 경로를 대라고 시킨 자리이고 화면이
+     * 그 앞에서 끊는다 — 통째로 세면 이 자는 판을 재는 대신 자기 자신을 잰다.
+     */
+    it('맨 끝 근거 절의 경로는 안 걸린다', () => {
+      const grounded = withBody(
+        'self',
+        '### 근거 (검사용)\n\n- 강점 — `analysis.strength` [유도]\n- 오행 — `charts.a.analysis.elements` [사실]',
+      );
+
+      expect(codesOf(checkReading(grounded))).toEqual([]);
+    });
+
+    /**
+     * **걸려야 하는 것은 우리가 넘긴 이름이지 사용자가 지은 이름이 아니다.**
+     *
+     * 궁합 본문에는 받은 그대로의 이름이 실린다. 라틴 문자 이름을 「외국 문자가 섞였다」로
+     * 막으면 멀쩡한 글이 걸리고, 그러면 검사를 끄게 된다.
+     */
+    it('사람 이름이 라틴 문자여도 안 걸린다', () => {
+      const named = withBody('private', 'Anna님과 Ben님은 서로 다른 속도로 마음을 엽니다.');
+
+      expect(codesOf(checkReading(named))).toEqual([]);
+    });
+  });
+
   it('자료에 없는 간지는 hard fail 이다', () => {
     const base = ok('match');
     const absent = [...'甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥'].find(
