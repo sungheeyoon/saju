@@ -238,16 +238,13 @@ export function SajuCalculator() {
         )}
       </form>
 
-      {result === null ? (
-        <section className={`${CARD} bg-surface-sunken`} aria-labelledby="empty-title">
-          <h2 id="empty-title" className="text-base font-semibold">
-            생년월일시를 입력해 주세요
-          </h2>
-          <p className="mt-1.5 text-sm text-secondary">
-            입력 전에는 예시 명식을 보여주지 않습니다.
-          </p>
-        </section>
-      ) : result.ok ? (
+      {/*
+        **입력 전에는 아무것도 안 세운다.** 한동안 「생년월일시를 입력해 주세요」라는
+        빈 칸이 서 있었는데, 바로 위의 폼이 이미 같은 말을 하고 있다 — 폼을 보고 있는
+        사람에게 폼을 채우라고 한 번 더 말하는 자리였다. 예시 명식을 안 채우는 규율은
+        그대로다(`query.ts`).
+      */}
+      {result === null ? null : result.ok ? (
         <>
           <SajuView saju={result.saju} viewedAt={viewedAt} />
           {/*

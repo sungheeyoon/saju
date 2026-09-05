@@ -35,7 +35,7 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
 
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: '생년월일시를 입력해 주세요' })).toBeVisible();
+  /* 빈 칸에 세우던 안내는 걷혔다 — 입력 전 화면이 무엇을 **안** 세우는지로 본다 */
   await expect(page.getByRole('heading', { name: '사주팔자' })).toHaveCount(0);
 
   await enterKnownBirth(page);
