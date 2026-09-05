@@ -657,6 +657,28 @@ const structureFragments: Fragment[] = [
   },
   // 아무것도 투출하지 않아 정기로 잡은 자리. 고전이 정기를 기본값으로 두었기
   // 때문에 나온 값이지 그 글자가 드러나서 나온 값이 아니라는 것을 문장이 적는다.
+  /**
+   * **변격만 말하면 본격이 사라진다.**
+   *
+   * 투출한 글자로 격이 변해도 월령 정기가 가리키는 격(본격)은 남아 있고, 출처가 그것을
+   * 조항으로 든다 — 「又有變之而**不失本格**者」(§112). 어느 쪽이 이 명식의 격인지는
+   * 우리가 판정하지 않기로 했으므로(`STRUCTURE_POLICY.nativeKind`), 문장도 **둘을
+   * 나란히 적고 고르지 않는다.** 고르는 순간 그 문장은 우리가 안 한 판정을 한 것이 된다.
+   */
+  {
+    topic: 'structure.kind',
+    variant: 'revealed-with-native',
+    strength: 'candidate',
+    template:
+      '월지 {monthBranch} 자리의 {sourceStem} 쪽이 {revealedAt} 자리의 천간에 드러나 있어 {kind} 쪽을 후보로 봅니다. 다만 월령 정기로는 {nativeKind} 자리라, 둘 중 어느 쪽으로 볼지는 정하지 않았습니다.',
+  },
+  {
+    topic: 'structure.kind',
+    variant: 'revealed-with-native',
+    strength: 'reference',
+    template:
+      '시주를 빼고 세면 월지 {monthBranch} 자리의 {sourceStem} 쪽이 {revealedAt} 자리의 천간에 드러나 있어 {kind} 쪽을 참고할 수 있습니다. 월령 정기로는 {nativeKind} 자리라 둘을 함께 봅니다.',
+  },
   {
     topic: 'structure.kind',
     variant: 'principal-only',

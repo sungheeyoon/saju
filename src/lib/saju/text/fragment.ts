@@ -210,13 +210,22 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
   'structure.kind': {
     paths: ['analysis.structure'],
     polarity: 'presence',
-    variants: ['revealed', 'principal-only', 'self-revealed-only', 'self-seat'],
-    slots: ['kind', 'monthBranch', 'sourceStem', 'revealedAt'],
+    variants: [
+      'revealed',
+      /** 변격과 본격이 갈리는 자리 — 둘을 나란히 적고 고르지 않는다 */
+      'revealed-with-native',
+      'principal-only',
+      'self-revealed-only',
+      'self-seat',
+    ],
+    /** `nativeKind` 는 변격과 본격이 갈리는 자리에만 채워진다 */
+    slots: ['kind', 'monthBranch', 'sourceStem', 'revealedAt', 'nativeKind'],
     samples: {
       kind: '정관격',
       monthBranch: '유',
       sourceStem: '신',
       revealedAt: '연간·시간',
+      nativeKind: '상관격',
     },
     note: '월령에서 무엇을 격으로 잡는가',
   },

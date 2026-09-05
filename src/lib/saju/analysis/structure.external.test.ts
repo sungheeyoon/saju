@@ -52,6 +52,21 @@ const scorable = STRUCTURE_EXTERNAL_CASES.filter(
 const agrees = (testCase: (typeof STRUCTURE_EXTERNAL_CASES)[number]) =>
   (testCase.claim.kinds as readonly string[]).includes(kindOf(testCase));
 
+/**
+ * 본격까지 세는 채점 — **더 약한 증거다.**
+ *
+ * 이름을 둘 내고 그중 하나가 맞으면 맞다고 세는 것이라, 하나를 내고 맞힌 것과 같은
+ * 무게일 수 없다. 그래서 **두 수를 다 고정한다** — 하나로 줄이면 어느 쪽으로 잰 것인지가
+ * 사라지고, 나중에 이 수를 근거로 게이트를 여는 사람이 그 차이를 못 본다.
+ */
+const agreesWithNative = (testCase: (typeof STRUCTURE_EXTERNAL_CASES)[number]) => {
+  if (agrees(testCase)) return true;
+
+  const chart = chartOf(testCase.pillars);
+  const { principalKind } = structureOf(chart, effectiveElementsOf(chart).distribution);
+  return principalKind !== null && (testCase.claim.kinds as readonly string[]).includes(principalKind);
+};
+
 describe('격국 외부 대조 데이터셋', () => {
   it('한 책에서 왔고 자리마다 출처를 든다', () => {
     expect(new Set(STRUCTURE_EXTERNAL_CASES.map(({ id }) => id)).size).toBe(
@@ -117,6 +132,30 @@ describe('격국 외부 대조 데이터셋', () => {
   });
 
   /**
+   * **본격을 함께 들면 일흔둘 중 일흔이 덮인다.**
+   *
+   * 남은 아홉 중 일곱이 「변격은 우리 답, 본격은 저쪽 답」인 자리였다 — 출처가 §112
+   * 「又有變之而不失本格者」로 남겨 둔 그 자리다. 우리가 본격을 안 들고 있어서 자료로는
+   * 그 문장이 어디서 왔는지 알 수가 없었다.
+   *
+   * **투출 겸격은 값을 못 냈다.** §144 의 「兼透則兼用」을 따라 투출한 다른 후보까지
+   * 세어 봤지만 한 건도 더 안 잡힌다 — 이 자료에서 이름을 가르는 것은 투출이 아니라
+   * 본격이다. 그래서 겸격을 배열로 넓히지 않고 본격 한 칸만 든다.
+   */
+  it('본격까지 세면 일흔 — 다만 이름을 둘 내고 맞힌 것이다', () => {
+    expect(scorable.filter(agreesWithNative)).toHaveLength(70);
+
+    const missed = scorable.filter((testCase) => !agreesWithNative(testCase));
+
+    /*
+      남은 둘은 **묘고(墓庫)의 잡기**를 쓰는 자리다 — 未庫의 甲을 재로 보고(cai-7),
+      辰中의 암장 살을 격으로 본다(pianguan-2). 그 논리는 다른 장(論雜氣如何取用)에
+      있고, 우리는 그 장을 아직 안 읽었다. 여기서 규칙을 늘리지 않는다.
+    */
+    expect(missed.map((testCase) => testCase.id)).toEqual(['zpzq-cai-7', 'zpzq-pianguan-2']);
+  });
+
+  /**
    * **남은 아홉은 한 무리다 — 그리고 규칙이 틀린 것이 아니다.**
    *
    * 처음 쟀을 때 어긋난 열여섯은 두 무리였다. 하나(왕지 월령의 여기 투출)는 출처가
@@ -127,8 +166,8 @@ describe('격국 외부 대조 데이터셋', () => {
    * 「一透則一用，兼透則兼用」 — 둘이 투출하면 **둘 다 쓴다.** 이름이 둘인 자리를 우리
    * `kind` 가 하나로 접는 것이라, **규칙이 갈린 것이 아니라 값의 모양이 좁다.**
    *
-   * 그래서 이 아홉은 규칙을 고쳐서 줄일 것이 아니다. 줄이려면 격이 겸격을 들 수 있어야
-   * 하고, 그것은 격의 자료 구조를 바꾸는 별건이다.
+   * 그래서 이 아홉은 규칙을 고쳐서 줄인 것이 아니다. **격이 본격을 함께 들게** 했고
+   * (`principalKind`), 그러면 일곱이 덮인다 — 아래 시험이 그 수를 따로 든다.
    */
   it('남은 어긋남은 정기 미투출 한 무리다', () => {
     const missed = scorable.filter((testCase) => !agrees(testCase));
@@ -151,10 +190,11 @@ describe('격국 외부 대조 데이터셋', () => {
   /**
    * **게이트는 여전히 닫혀 있다.**
    *
-   * 87.5% 는 종격의 재현율(30건 중 17건)보다 높지만, 그것이 게이트를 여는 근거가 되지는
-   * 않는다 — 계통이 **하나뿐**이라 이 성적이 말하는 것은 「자평 계열과 얼마나 맞는가」이고,
-   * 남은 아홉이 **겸격을 한 이름으로 접는 데서** 오기 때문이다. 이름을 하나만 들 수
-   * 있다는 것을 알면서 그 판정으로 억부를 뒤집을 수는 없다.
+   * 87.5%(정확) · 97.2%(본격 포함) 는 종격의 재현율(30건 중 17건)보다 높다. 그래도 안
+   * 연다 — 계통이 **하나뿐**이고, 뒤의 수는 **이름을 둘 내고 맞힌 것**이라 하나를 내고
+   * 맞힌 것과 같은 무게가 아니기 때문이다. 게다가 우리는 둘 중 어느 쪽이 이 명식의
+   * 격인지를 **판정하지 않기로 했다**(`nativeKind`). 고르지 않은 답으로 억부를 뒤집을
+   * 수는 없다.
    */
   it('억부도 조후도 뒤집지 않는다', () => {
     expect(STRUCTURE_POLICY.yongsinOverride).toBe('disabled');

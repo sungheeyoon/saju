@@ -138,12 +138,13 @@
           status                 experimental
           basis                  month-branch
           selection              revealed-hidden-stem-then-principal
+          nativeKind             kept-alongside-variation
           peakMonth              principal-only
           selfSeat               lu-blade-table-then-month-rob
           fireEarthSameCourse    true
           outcome                conditions-listed
           yongsinOverride        disabled
-          externalCheck          {"dataset":"structureExternalCases","cases":74,"scored":72,"agreed":63,"lineages":1,"passed":false}
+          externalCheck          {"dataset":"structureExternalCases","cases":74,"scored":72,"agreed":63,"agreedWithNative":70,"lineages":1,"passed":false}
           sources                {"selection":"https://zh.wikisource.org/wiki/子平真詮","successAndFailure":"https://zh.wikisource.org/wiki/子平真詮/論用神成敗救應"}
 
   통관  맞선 다섯 쌍과 그 사이를 잇는 오행을 세기만 한다 — 얼마나 맞서야 대치인가는 계통이 갈린다.
@@ -401,7 +402,7 @@
   종후보  유근 · 식상 37.0% · 월령 장악 · 투간 생부 癸
   뿌리질  0.179  亥壬=0.179
   국·합화 해묘 반합(木 0.25) · 무계합화:bound 무계합화:bound · 이동 0.192
-  격국   정관격 · 미정 · experimental · 戊(여기) 투출  성 없음 / 패 없음
+  격국   정관격 · 미정 · experimental (본격 상관격) · 戊(여기) 투출  성 없음 / 패 없음
   오신   용신 금(0) · 희신 토(1) · 기신 화(1) · 구신 목(3) · 한신 수(3)
   조후후보 辛=absent 丙=hidden
   암합   6건  무계합화(명암합) 무계합화(명암합) 을경합금(암암합) 무계합화(명암합) 무계합화(명암합) 무계합화(명암합)
@@ -455,7 +456,7 @@
   종후보  무근 · 인성 42.8% · 월령 아님 · 투간 생부 辛
   뿌리질  0 (남은 것 없음)  뿌리 없음
   국·합화 사유 반합(金 0.25) · 무계합화:conditional · 이동 0.192
-  격국   정관격 · 성격 · experimental · 戊(여기) 투출  성 관봉재인 / 패 없음
+  격국   정관격 · 성격 · experimental (본격 상관격) · 戊(여기) 투출  성 관봉재인 / 패 없음
   오신   용신 금(3) · 희신 토(1) · 기신 화(1) · 구신 목(2) · 한신 수(1)
   조후후보 辛=revealed 丙=hidden
   암합   10건  을경합금(명암합) 을경합금(명암합) 무계합화(명암합) 병신합수(암암합) 병신합수(명암합) 병신합수(암암합) 무계합화(명암합) 병신합수(암암합) 병신합수(명암합) 병신합수(암암합)
@@ -1388,7 +1389,7 @@
   종후보  유근 · 비겁 37.5% · 월령 아님 · 투간 생부 庚壬
   뿌리질  1.175  子壬=0.175 子癸=1
   국·합화 국 없음 · 정임합목:bound · 이동 0
-  격국   편재격 · 파격 · experimental · 丁(중기) 투출  성 없음 / 패 비겁탈재
+  격국   편재격 · 파격 · experimental (본격 정관격) · 丁(중기) 투출  성 없음 / 패 비겁탈재
   오신   용신 수(3) · 희신 금(1) · 기신 토(1) · 구신 화(2) · 한신 목(1)
   조후후보 辛=hidden 甲=hidden 壬=revealed 癸=revealed
   암합   9건  정임합목(명암합) 을경합금(명암합) 을경합금(암암합) 병신합수(암암합) 정임합목(명암합) 정임합목(암암합) 무계합화(명암합) 무계합화(암암합) 무계합화(암암합)

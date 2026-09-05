@@ -13,6 +13,7 @@ import {
   FOLLOWING_DIRECTION_KO,
   FOLLOWING_PATTERN_STATUS_KO,
   SELF_SEAT_KINDS,
+  STRUCTURE_KIND_KO,
   TEN_GOD_GROUP,
   TEN_GOD_KO,
   TRANSFORMATION_VERDICT_KO,
@@ -592,6 +593,7 @@ function structureRequest(saju: Saju): Pick<FragmentRequest, 'topic' | 'variant'
     kind: structure.ko,
     monthBranch: BRANCH_INFO[saju.pillars.month.branch].ko,
     sourceStem: STEM_INFO[structure.source.stem].ko,
+    nativeKind: structure.principalKind === null ? '' : STRUCTURE_KIND_KO[structure.principalKind],
   };
 
   if ((SELF_SEAT_KINDS as readonly string[]).includes(structure.kind)) {
@@ -607,9 +609,16 @@ function structureRequest(saju: Saju): Pick<FragmentRequest, 'topic' | 'variant'
     };
   }
 
+  /*
+    **본격이 따로 서면 둘을 나란히 적는다.**
+
+    투출로 격이 변해도 월령 정기가 가리키는 격은 남는다(§112 「又有變之而不失本格者」).
+    변격만 적으면 문장이 **우리가 안 한 판정을 한 것**이 된다 — 둘 중 하나를 고른 셈이
+    되기 때문이다.
+  */
   return {
     topic: 'structure.kind',
-    variant: 'revealed',
+    variant: structure.principalKind === null ? 'revealed' : 'revealed-with-native',
     slots: { ...shared, revealedAt: positionsKo(structure.source.revealedAt) },
   };
 }

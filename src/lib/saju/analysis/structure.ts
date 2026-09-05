@@ -54,6 +54,13 @@ export const STRUCTURE_POLICY = {
   /** 투출한 지장간으로 잡되, 없으면 정기로 잡는다 */
   selection: 'revealed-hidden-stem-then-principal',
   /**
+   * 변격과 **본격을 함께 낸다** — 어느 쪽이 이 명식의 격인지는 고르지 않는다.
+   *
+   * 출처가 「又有變之而不失本格者」(§112)로 그 자리를 남겨 두었고, 조건은 목록으로만
+   * 든다. 둘 중 하나를 고르는 것은 그 목록을 판정으로 접는 일이라 하지 않는다.
+   */
+  nativeKind: 'kept-alongside-variation',
+  /**
    * 왕지 월령은 **정기 하나로 본다** — 출처의 조항이다(論用神變化).
    *
    * 「除子午卯酉外，餘皆有藏」. 사령 표는 그대로 두고 격을 잡는 자리에서만 거른다.
@@ -95,11 +102,10 @@ export const STRUCTURE_POLICY = {
    * 1. **계통이 하나뿐이다.** 억부·종격 자료는 계통을 둘 이상 섞었는데 격국은 자평
    *    계열의 개념 자체라 다른 눈금이 없다. 그러니 이 성적이 말하는 것은 「자평 계열과
    *    얼마나 맞는가」뿐이다.
-   * 2. **남은 아홉이 아직 규칙 차이다.** 정기가 투출하지 않았는데 저쪽은 정기를 격으로
-   *    부르는 자리다. 출처의 조항(§108)은 「不透甲而透丙，則同知得以作主」로 **우리와 같은
-   *    규칙**을 말하는데, 정작 예시에서는 본격을 함께 부른다 — 겸격(§144 「一透則一用，
-   *    兼透則兼用」)이라 이름이 둘인 자리이고, 우리 `kind` 는 하나만 든다. 규칙이 틀린
-   *    것이 아니라 **우리 값의 모양이 좁다.**
+   * 2. **뒤의 수는 이름을 둘 내고 맞힌 것이다.** 남은 아홉 중 일곱은 「변격은 우리 답,
+   *    본격은 저쪽 답」인 자리였고, 그래서 격이 본격을 함께 들게 했다(`principalKind`,
+   *    §112 「又有變之而不失本格者」). 덮이기는 하지만 **둘 중 어느 쪽이 이 명식의 격인지는
+   *    우리가 판정하지 않는다** — 고르지 않은 답은 고른 답보다 약하다.
    *
    * 성적을 올리려고 규칙을 만지지 않는다 — 그러면 이 대조가 채점이 아니라 자기 답안지가
    * 된다. 왕지 조항을 고친 근거도 성적이 아니라 원문 한 줄이었다.
@@ -109,7 +115,15 @@ export const STRUCTURE_POLICY = {
     cases: 74,
     /** 실재할 수 없는 둘(판본 오배)은 채점에서 뺀다 */
     scored: 72,
+    /** 이름 하나를 내고 맞힌 것 */
     agreed: 63,
+    /**
+     * 본격까지 세면 일흔이 덮인다 — **더 약한 증거다.**
+     *
+     * 이름을 둘 내고 그중 하나가 맞으면 맞다고 센 것이라 앞의 수와 무게가 다르다.
+     * 둘을 한 수로 접지 않는 까닭이 그것이다.
+     */
+    agreedWithNative: 70,
     lineages: 1,
     passed: false,
   },
@@ -275,6 +289,23 @@ export type Structure = {
   status: 'experimental';
   kind: StructureKind;
   ko: string;
+  /**
+   * 본격(本格) — **월령 정기가 가리키는 격.**
+   *
+   * 격은 투출로 **변한다**(§108 「用神遂有變化」). 그런데 같은 책이 바로 뒤에서 말한다:
+   * 「又有變之而**不失本格**者」(§112) — 변해도 본격을 잃지 않는 경우가 있다. 실제로 이
+   * 책은 申월 庚이 안 나온 명조를 「乙用申官」이라 부른다. 변격만 들고 있으면 그 문장이
+   * 어디서 왔는지 자료로는 알 수가 없다.
+   *
+   * **어느 쪽이 이 명식의 격인지는 판정하지 않는다.** 「변격이 본격을 대신하는가」가
+   * 곧 §112 가 「경우가 있다」로 남겨 둔 자리이고, 그 조건은 이 책도 목록으로만 든다.
+   * 우리는 **둘 다 사실로 내고** 고르지 않는다.
+   *
+   * 변화가 없었으면(정기로 격을 잡았으면) 본격과 변격이 같으므로 `null` 이다 — 같은 값을
+   * 두 자리에 두면 읽는 쪽이 「둘이 다르다」로 읽는다. 건록·양인·월겁도 `null` 이다:
+   * 그 자리는 월령 자체가 격이라 변할 것이 없다.
+   */
+  principalKind: StructureKind | null;
   /** 격이 된 지장간 */
   source: {
     stem: Stem;
@@ -459,6 +490,16 @@ export function structureOf(
   const chosen = selfSeat
     ? candidates.find((candidate) => candidate.role === '正氣')!
     : revealedChoice;
+
+  /*
+    **본격은 변격과 다를 때만 선다.** 정기로 잡았으면 둘이 같고, 건록·양인·월겁이면
+    월령 자체가 격이라 변할 것이 없다.
+  */
+  const principal = candidates.find((candidate) => candidate.role === '正氣')!;
+  const principalKind =
+    selfSeat === null && TEN_GOD_GROUP[principal.tenGod] !== '比劫'
+      ? regularKindOf(principal.tenGod)
+      : null;
   const revealed = revealedRoles(pillars);
   const roles = elementRolesOf(STEM_INFO[pillars.dayMaster].element);
   const ratio = (role: ElementRole) => elements.ratios[roles[role]];
@@ -612,6 +653,8 @@ export function structureOf(
     status: 'experimental',
     kind,
     ko: STRUCTURE_KIND_KO[kind],
+    // 변격과 다를 때만 선다 — 같은 값을 두 자리에 두면 「둘이 다르다」로 읽힌다.
+    principalKind: principalKind === kind ? null : principalKind,
     source: {
       stem: chosen.stem,
       role: chosen.role,

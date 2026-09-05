@@ -23,6 +23,7 @@ import {
   STRENGTH_POLICY,
   STRUCTURE_OUTCOME_KO,
   PRECEDENCE_POLICY,
+  STRUCTURE_KIND_KO,
   STRUCTURE_POLICY,
   TONGGWAN_POLICY,
   YONGSIN_POLICY,
@@ -235,6 +236,8 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
       ` · 이동 ${round(effectiveElements.shifts.reduce((sum, shift) => sum + shift.amount, 0))}`,
     // 격국 — 월령에서 무엇을 잡았고 성패의 조건이 무엇인가.
     `  격국   ${structure.ko} · ${STRUCTURE_OUTCOME_KO[structure.outcome]} · ${structure.status}` +
+      // 본격이 따로 서면 그것도 찍는다 — 둘 중 하나를 고르지 않기로 한 자리라 둘 다 보인다.
+      `${structure.principalKind === null ? '' : ` (본격 ${STRUCTURE_KIND_KO[structure.principalKind]})`}` +
       ` · ${structure.source.stem}(${HIDDEN_STEM_ROLE_KO[structure.source.role]})` +
       `${structure.revealed ? ' 투출' : ' 미투출'}` +
       `${structure.monthClashed ? ' · 월령충' : ''}` +
