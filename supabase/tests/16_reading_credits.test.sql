@@ -69,18 +69,7 @@ select
   public.create_managed_person('형', null, 'solar', '1986-07-23', '1986-07-23', '11:15',
     'male', '인천', 'jo', 'localMean') as bro,
   public.create_managed_person('삼촌', null, 'solar', '1958-09-30', '1958-09-30', '16:50',
-    'male', '대전', 'jo', 'localMean') as unc,
-  /*
-    풀이권이 여덟이 되면서 **대상이 더 있어야 다 쓸 수 있다.** 한 대상의 현재 풀이는
-    하나이므로 같은 사람을 다시 눌러서는 자리가 안 준다 — 여덟을 쓰려면 여덟 대상이
-    필요하고, 저장 자리(열)는 그것을 감당한다(ADR 0032 의 부등식이 여기서 쓰인다).
-  */
-  public.create_managed_person('이모', null, 'solar', '1964-04-11', '1964-04-11', '03:20',
-    'female', '울산', 'jo', 'localMean') as aunt,
-  public.create_managed_person('사촌', null, 'solar', '1992-12-05', '1992-12-05', '18:45',
-    'male', '수원', 'jo', 'localMean') as cou,
-  public.create_managed_person('친구', null, 'solar', '1991-02-27', '1991-02-27', '20:30',
-    'female', '전주', 'jo', 'localMean') as pal;
+    'male', '대전', 'jo', 'localMean') as unc;
 grant select on kin to authenticated, service_role;
 
 -- ── 아무것도 안 했을 때 ─────────────────────────────────────────────────────
@@ -104,7 +93,7 @@ grant select on run_self to authenticated, service_role;
  */
 select is(
   (select array[used, reserved, available] from public.my_reading_credits()),
-  array[0, 1, 7],
+  array[0, 1, 4],
   '도는 시도가 성공할 자리를 미리 잡는다');
 
 select lives_ok(
@@ -117,7 +106,7 @@ select lives_ok(
 /** `running` → `succeeded` 는 자리를 **옮길** 뿐이다 — 합계가 안 움직인다 */
 select is(
   (select array[used, reserved, available] from public.my_reading_credits()),
-  array[1, 0, 7],
+  array[1, 0, 4],
   '성공하면 잡고 있던 자리가 쓴 자리로 옮겨 갈 뿐이다');
 
 -- ── 끊긴 시도가 풀이권을 물고 있지 않는다 ───────────────────────────────────
@@ -135,7 +124,7 @@ select set_config('request.jwt.claims', tests.claims((select kim from folks)), t
 
 select is(
   (select array[used, reserved, available] from public.my_reading_credits()),
-  array[1, 0, 7],
+  array[1, 0, 4],
   '유효시간이 지난 시도는 자리를 잡지 않는다');
 
 -- ── 마지막 하나만 남을 때까지 쓴다 ─────────────────────────────────────────
@@ -145,14 +134,11 @@ select lives_ok(
   '비공개 궁합 하나가 소모된다');
 select pg_temp.burn((select dad from kin), 'credit-priv-0002');
 select pg_temp.burn((select sis from kin), 'credit-priv-0003');
-select pg_temp.burn((select aunt from kin), 'credit-priv-0009');
-select pg_temp.burn((select cou from kin), 'credit-priv-0010');
-select pg_temp.burn((select pal from kin), 'credit-priv-0011');
 
 select is(
   (select array[used, reserved, available] from public.my_reading_credits()),
-  array[7, 0, 1],
-  '일곱을 쓰면 하나가 남는다');
+  array[4, 0, 1],
+  '넷을 쓰면 하나가 남는다');
 
 -- ── 마지막 하나를 도는 시도가 잡고 있다 ─────────────────────────────────────
 
@@ -164,10 +150,10 @@ grant select on run_bro to authenticated, service_role;
 
 select is(
   (select array[used, reserved, available] from public.my_reading_credits()),
-  array[7, 1, 0],
+  array[4, 1, 0],
   '마지막 하나를 도는 시도가 잡으면 남은 것이 없다');
 
-/** **이 줄이 아홉 번째를 막는다** — 성공은 아직 일곱뿐이지만 자리는 다 찼다 */
+/** **이 줄이 여섯 번째를 막는다** — 성공은 아직 넷뿐이지만 자리는 다 찼다 */
 select throws_like(
   format($$select * from public.start_reading_run('private', 'credit-priv-0005', %L::uuid, %L::uuid)$$,
     (select unc from kin), (select self_person_id from public.app_user)),
@@ -193,18 +179,18 @@ select public.fail_reading_run((select id from run_bro), 'call_failed');
 
 select is(
   (select array[used, reserved, available] from public.my_reading_credits()),
-  array[7, 0, 1],
+  array[4, 0, 1],
   '실패한 시도는 세지 않으므로 자리가 저절로 풀린다');
 
 select lives_ok(
   $$select pg_temp.burn((select unc from kin), 'credit-priv-0007')$$,
-  '풀린 자리로 마지막 하나를 만든다');
+  '풀린 자리로 다섯째를 만든다');
 
 -- ── 다 쓰면 막힌다 ──────────────────────────────────────────────────────────
 
 select is(
   (select array[used, reserved, available] from public.my_reading_credits()),
-  array[8, 0, 0],
+  array[5, 0, 0],
   '다 쓰면 남은 것이 없다');
 
 /**

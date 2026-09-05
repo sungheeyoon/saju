@@ -125,8 +125,8 @@ select lives_ok(
 
 select is(
   (select available from public.my_reading_credits()),
-  7,
-  '풀이권도 그대로 돈다');
+  tests.reading_credit_limit() - 1,
+  '풀이권도 그대로 돈다 — 방금 하나를 열었으므로 딱 하나만 줄었다');
 
 -- ── 다시 물을 때 ───────────────────────────────────────────────────────────
 

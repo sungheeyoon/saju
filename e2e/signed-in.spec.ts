@@ -79,7 +79,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       이 줄이 빨개진다.
     */
     await expect(
-      page.locator('header').getByText('풀이권 8번 중 8번 남음'),
+      page.locator('header').getByText('풀이권 5번 중 5번 남음'),
     ).toBeVisible();
 
     /* 서버 HTML 에는 없다 — 브라우저가 읽는다. 그래서 흐름 검사는 셈만 잰다 */
@@ -156,7 +156,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('현재 궁합 풀이 점수')).toBeHidden();
 
     /* 만든 것이 하나이므로 풀이권도 하나 줄어 있다 — kind 를 안 묻는다 */
-    await expect(page.locator('header').getByText('풀이권 8번 중 7번 남음')).toBeVisible();
+    await expect(page.locator('header').getByText('풀이권 5번 중 4번 남음')).toBeVisible();
   });
 
   /**
@@ -261,7 +261,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       풀이권이 하나 더 잡힌다 — 둘 다 그대로인 것으로 잰다(하나는 이미 이 글을 만들 때 썼다).
     */
     await expect(page.getByText('풀이 만드는 중…')).toHaveCount(0);
-    await expect(page.locator('header').getByText('풀이권 8번 중 7번 남음')).toBeVisible();
+    await expect(page.locator('header').getByText('풀이권 5번 중 4번 남음')).toBeVisible();
     await expect(again).toBeEnabled();
   });
 
@@ -297,7 +297,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(make).toBeVisible();
 
     /* 풀이권은 kind 를 안 묻는다 — 전역 다섯에서 함께 센다 */
-    await expect(page.locator('header').getByText('풀이권 8번 중 8번 남음')).toBeVisible();
+    await expect(page.locator('header').getByText('풀이권 5번 중 5번 남음')).toBeVisible();
 
     /*
       **여는 것만으로는 아무것도 안 만든다.** 다시 열어도 같은 자리에 같은 문장이 선다 —
