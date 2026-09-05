@@ -53,18 +53,21 @@ const agrees = (testCase: (typeof STRUCTURE_EXTERNAL_CASES)[number]) =>
   (testCase.claim.kinds as readonly string[]).includes(kindOf(testCase));
 
 /**
- * 본격까지 세는 채점 — **더 약한 증거다.**
+ * 함께 불리는 이름까지 세는 채점 — **훨씬 약한 증거다.**
  *
- * 이름을 둘 내고 그중 하나가 맞으면 맞다고 세는 것이라, 하나를 내고 맞힌 것과 같은
- * 무게일 수 없다. 그래서 **두 수를 다 고정한다** — 하나로 줄이면 어느 쪽으로 잰 것인지가
- * 사라지고, 나중에 이 수를 근거로 게이트를 여는 사람이 그 차이를 못 본다.
+ * 이름을 여럿 내고 그중 하나가 맞으면 맞다고 세는 것이라, 하나를 내고 맞힌 것과 같은
+ * 무게일 수 없다. **이름을 더 들수록 이 수는 올라간다** — 지금 72/72 인 것이 규칙이
+ * 좋아서가 아니라 답을 여럿 냈기 때문이라는 뜻이고, 그래서 게이트는 이 수로 안 연다.
+ *
+ * 두 수를 다 고정한다. 하나로 줄이면 어느 쪽으로 잰 것인지가 사라지고, 나중에 이 수를
+ * 근거로 게이트를 여는 사람이 그 차이를 못 본다.
  */
-const agreesWithNative = (testCase: (typeof STRUCTURE_EXTERNAL_CASES)[number]) => {
+const agreesWithAlso = (testCase: (typeof STRUCTURE_EXTERNAL_CASES)[number]) => {
   if (agrees(testCase)) return true;
 
   const chart = chartOf(testCase.pillars);
-  const { principalKind } = structureOf(chart, effectiveElementsOf(chart).distribution);
-  return principalKind !== null && (testCase.claim.kinds as readonly string[]).includes(principalKind);
+  const { alsoKinds } = structureOf(chart, effectiveElementsOf(chart).distribution);
+  return alsoKinds.some((also) => (testCase.claim.kinds as readonly string[]).includes(also.kind));
 };
 
 describe('격국 외부 대조 데이터셋', () => {
@@ -132,27 +135,24 @@ describe('격국 외부 대조 데이터셋', () => {
   });
 
   /**
-   * **본격을 함께 들면 일흔둘 중 일흔이 덮인다.**
+   * **함께 불리는 이름까지 세면 일흔둘이 다 덮인다 — 그리고 그것이 요점이 아니다.**
    *
-   * 남은 아홉 중 일곱이 「변격은 우리 답, 본격은 저쪽 답」인 자리였다 — 출처가 §112
-   * 「又有變之而不失本格者」로 남겨 둔 그 자리다. 우리가 본격을 안 들고 있어서 자료로는
-   * 그 문장이 어디서 왔는지 알 수가 없었다.
+   * 조항 둘을 읽고 이름 둘을 더 들었다: 본격(§112)과 묘고(§143). 그러자 어긋남이 0이
+   * 됐는데, **규칙이 좋아져서가 아니라 답을 여럿 냈기 때문**이다. 우리가 고른 하나로
+   * 세는 수(63)는 그대로다 — 두 조항 다 `kind` 를 바꾸지 않았다.
    *
-   * **투출 겸격은 값을 못 냈다.** §144 의 「兼透則兼用」을 따라 투출한 다른 후보까지
-   * 세어 봤지만 한 건도 더 안 잡힌다 — 이 자료에서 이름을 가르는 것은 투출이 아니라
-   * 본격이다. 그래서 겸격을 배열로 넓히지 않고 본격 한 칸만 든다.
+   * 그러니 이 수는 「우리 격국이 자평 계열과 100% 맞는다」가 아니라 **「자평 계열이 부르는
+   * 이름이 우리가 든 이름 안에 있다」**로만 읽어야 한다.
+   *
+   * **투출 겸격은 값을 못 냈다.** §144 의 「兼透則兼用」을 따라 투출한 다른 후보까지,
+   * 그리고 「會支」로 국이 선 오행까지 세어 봤지만 각각 한 건도 더 안 잡힌다. 그래서
+   * 그 둘은 안 넣는다 — 넣어 놓고 아무것도 안 하는 자리를 만들지 않는다.
    */
-  it('본격까지 세면 일흔 — 다만 이름을 둘 내고 맞힌 것이다', () => {
-    expect(scorable.filter(agreesWithNative)).toHaveLength(70);
+  it('함께 불리는 이름까지 세면 일흔둘 — 이름을 여럿 내고 맞힌 것이다', () => {
+    expect(scorable.filter(agreesWithAlso)).toHaveLength(72);
 
-    const missed = scorable.filter((testCase) => !agreesWithNative(testCase));
-
-    /*
-      남은 둘은 **묘고(墓庫)의 잡기**를 쓰는 자리다 — 未庫의 甲을 재로 보고(cai-7),
-      辰中의 암장 살을 격으로 본다(pianguan-2). 그 논리는 다른 장(論雜氣如何取用)에
-      있고, 우리는 그 장을 아직 안 읽었다. 여기서 규칙을 늘리지 않는다.
-    */
-    expect(missed.map((testCase) => testCase.id)).toEqual(['zpzq-cai-7', 'zpzq-pianguan-2']);
+    // 고른 하나로 세는 수는 이 변경으로 움직이지 않았다 — 이름을 더 든 것뿐이다.
+    expect(scorable.filter(agrees)).toHaveLength(63);
   });
 
   /**
@@ -190,11 +190,10 @@ describe('격국 외부 대조 데이터셋', () => {
   /**
    * **게이트는 여전히 닫혀 있다.**
    *
-   * 87.5%(정확) · 97.2%(본격 포함) 는 종격의 재현율(30건 중 17건)보다 높다. 그래도 안
-   * 연다 — 계통이 **하나뿐**이고, 뒤의 수는 **이름을 둘 내고 맞힌 것**이라 하나를 내고
-   * 맞힌 것과 같은 무게가 아니기 때문이다. 게다가 우리는 둘 중 어느 쪽이 이 명식의
-   * 격인지를 **판정하지 않기로 했다**(`nativeKind`). 고르지 않은 답으로 억부를 뒤집을
-   * 수는 없다.
+   * 87.5%(고른 하나) · 100%(이름을 다 세면) 는 종격의 재현율(30건 중 17건)보다 높다.
+   * 그래도 안 연다 — 계통이 **하나뿐**이고, 뒤의 수는 **답을 여럿 내고 맞힌 것**이라
+   * 조항을 읽을 때마다 저절로 오른다. 게다가 우리는 그중 어느 쪽이 이 명식의 격인지를
+   * **판정하지 않기로 했다**(`nativeKind`). 고르지 않은 답으로 억부를 뒤집을 수는 없다.
    */
   it('억부도 조후도 뒤집지 않는다', () => {
     expect(STRUCTURE_POLICY.yongsinOverride).toBe('disabled');
@@ -202,6 +201,7 @@ describe('격국 외부 대조 데이터셋', () => {
     expect(STRUCTURE_POLICY.externalCheck.cases).toBe(STRUCTURE_EXTERNAL_CASES.length);
     expect(STRUCTURE_POLICY.externalCheck.scored).toBe(scorable.length);
     expect(STRUCTURE_POLICY.externalCheck.agreed).toBe(63);
+    expect(STRUCTURE_POLICY.externalCheck.agreedWithAlso).toBe(72);
     expect(STRUCTURE_POLICY.externalCheck.lineages).toBe(1);
   });
 });

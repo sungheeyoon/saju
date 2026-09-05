@@ -4,6 +4,7 @@ import {
   STEM_INFO,
   findBranchClash,
   type Branch,
+  type Element,
   type HiddenStemRole,
   type Stem,
 } from '../constants';
@@ -54,10 +55,15 @@ export const STRUCTURE_POLICY = {
   /** 투출한 지장간으로 잡되, 없으면 정기로 잡는다 */
   selection: 'revealed-hidden-stem-then-principal',
   /**
-   * 변격과 **본격을 함께 낸다** — 어느 쪽이 이 명식의 격인지는 고르지 않는다.
+   * **함께 불리는 이름을 다 낸다** — 어느 쪽이 이 명식의 격인지는 고르지 않는다.
    *
-   * 출처가 「又有變之而不失本格者」(§112)로 그 자리를 남겨 두었고, 조건은 목록으로만
-   * 든다. 둘 중 하나를 고르는 것은 그 목록을 판정으로 접는 일이라 하지 않는다.
+   * 조항이 둘이다: 본격(§112 「又有變之而不失本格者」)과 묘고(§143 「辰…為水庫」).
+   * 어느 쪽을 고를지의 조건을 이 책도 목록으로만 들므로, 고르는 것은 그 목록을 판정으로
+   * 접는 일이라 하지 않는다.
+   *
+   * **이름이 늘수록 외부 대조는 쉬워진다.** 그래서 게이트는 「우리가 고른 하나가
+   * 맞았는가」로만 연다 — `externalCheck.agreed` 가 그 수이고, 이름을 다 세는 수는
+   * `agreedWithAlso` 로 따로 든다.
    */
   nativeKind: 'kept-alongside-variation',
   /**
@@ -102,10 +108,10 @@ export const STRUCTURE_POLICY = {
    * 1. **계통이 하나뿐이다.** 억부·종격 자료는 계통을 둘 이상 섞었는데 격국은 자평
    *    계열의 개념 자체라 다른 눈금이 없다. 그러니 이 성적이 말하는 것은 「자평 계열과
    *    얼마나 맞는가」뿐이다.
-   * 2. **뒤의 수는 이름을 둘 내고 맞힌 것이다.** 남은 아홉 중 일곱은 「변격은 우리 답,
-   *    본격은 저쪽 답」인 자리였고, 그래서 격이 본격을 함께 들게 했다(`principalKind`,
-   *    §112 「又有變之而不失本格者」). 덮이기는 하지만 **둘 중 어느 쪽이 이 명식의 격인지는
-   *    우리가 판정하지 않는다** — 고르지 않은 답은 고른 답보다 약하다.
+   * 2. **뒤의 수는 이름을 여럿 내고 맞힌 것이다.** 조항 둘을 더 읽어 이름을 둘 더
+   *    들었고(`alsoKinds` — 본격 §112, 묘고 §143) 그러자 어긋남이 0이 됐다. 그런데
+   *    `agreed` 는 63 그대로다 — **규칙이 좋아진 것이 아니라 답을 여럿 낸 것**이라는
+   *    뜻이고, 우리는 그중 어느 쪽인지도 고르지 않는다.
    *
    * 성적을 올리려고 규칙을 만지지 않는다 — 그러면 이 대조가 채점이 아니라 자기 답안지가
    * 된다. 왕지 조항을 고친 근거도 성적이 아니라 원문 한 줄이었다.
@@ -118,12 +124,16 @@ export const STRUCTURE_POLICY = {
     /** 이름 하나를 내고 맞힌 것 */
     agreed: 63,
     /**
-     * 본격까지 세면 일흔이 덮인다 — **더 약한 증거다.**
+     * 함께 불리는 이름까지 세면 **일흔둘이 다 덮인다 — 훨씬 약한 증거다.**
      *
-     * 이름을 둘 내고 그중 하나가 맞으면 맞다고 센 것이라 앞의 수와 무게가 다르다.
-     * 둘을 한 수로 접지 않는 까닭이 그것이다.
+     * 이름을 여럿 내고 그중 하나가 맞으면 맞다고 센 것이다. 조항을 읽을 때마다 이름이
+     * 늘고 이 수는 따라 오르므로, **규칙이 좋아진 것과 답을 여럿 낸 것을 이 수는 구별하지
+     * 못한다.** 앞의 `agreed` 는 두 조항을 넣는 동안 63 그대로였다 — 그것이 증거다.
+     *
+     * 그래서 게이트는 `agreed` 로만 연다. 이 수는 「자평 계열이 부르는 이름이 우리가 든
+     * 이름 안에 있다」까지만 말한다.
      */
-    agreedWithNative: 70,
+    agreedWithAlso: 72,
     lineages: 1,
     passed: false,
   },
@@ -290,22 +300,25 @@ export type Structure = {
   kind: StructureKind;
   ko: string;
   /**
-   * 본격(本格) — **월령 정기가 가리키는 격.**
+   * **이 명식이 함께 불리는 다른 격 이름들.**
    *
-   * 격은 투출로 **변한다**(§108 「用神遂有變化」). 그런데 같은 책이 바로 뒤에서 말한다:
-   * 「又有變之而**不失本格**者」(§112) — 변해도 본격을 잃지 않는 경우가 있다. 실제로 이
-   * 책은 申월 庚이 안 나온 명조를 「乙用申官」이라 부른다. 변격만 들고 있으면 그 문장이
-   * 어디서 왔는지 자료로는 알 수가 없다.
+   * 격은 하나로 안 끝난다. 출처가 같은 명조를 두 이름으로 부르는 자리를 조항으로 둘
+   * 들었고, 우리는 어느 쪽이 이 명식의 격인지 **고르지 않는다** — 그 판정의 조건을
+   * 이 책도 목록으로만 들기 때문이다.
    *
-   * **어느 쪽이 이 명식의 격인지는 판정하지 않는다.** 「변격이 본격을 대신하는가」가
-   * 곧 §112 가 「경우가 있다」로 남겨 둔 자리이고, 그 조건은 이 책도 목록으로만 든다.
-   * 우리는 **둘 다 사실로 내고** 고르지 않는다.
+   * - `native` — **본격.** 「又有變之而**不失本格**者」(§112). 투출로 격이 변해도 월령
+   *   정기가 가리키는 격은 남는다. 이 책이 申월 庚 미투출 명조를 「乙用申官」이라
+   *   부르는 자리다.
+   * - `tomb` — **묘고(墓庫)의 오행이 천간에 드러난 자리.** 「四墓者，雜氣也…**辰**本藏戊，
+   *   而又**為水庫**」(§143). 辰은 水의 창고라, 지장간에 壬이 없어도 천간의 壬을 그 자리로
+   *   센다 — 이 책이 「辰中暗煞，壬以透之」·「甲透未庫」라고 쓰는 자리다.
    *
-   * 변화가 없었으면(정기로 격을 잡았으면) 본격과 변격이 같으므로 `null` 이다 — 같은 값을
-   * 두 자리에 두면 읽는 쪽이 「둘이 다르다」로 읽는다. 건록·양인·월겁도 `null` 이다:
-   * 그 자리는 월령 자체가 격이라 변할 것이 없다.
+   * `kind` 와 같은 이름은 여기 서지 않는다. 비어 있으면 이름이 하나라는 뜻이다.
+   *
+   * **이름이 늘수록 대조는 쉬워진다.** 그래서 외부 대조는 「우리가 고른 하나가 맞았는가」를
+   * 먼저 세고, 이 목록까지 세는 수는 **더 약한 증거**로 따로 든다(`externalCheck`).
    */
-  principalKind: StructureKind | null;
+  alsoKinds: readonly { kind: StructureKind; basis: 'native' | 'tomb' }[];
   /** 격이 된 지장간 */
   source: {
     stem: Stem;
@@ -383,6 +396,19 @@ function revealedRoles(pillars: StructureInput): Revealed {
  * 식신격이라 부른다 — 외부 대조 일흔둘 중 일곱이 이 한 자리에서 어긋났다.
  */
 const PEAK_BRANCHES: readonly Branch[] = ['子', '午', '卯', '酉'];
+
+/**
+ * 사고(四墓)가 무엇의 창고인가 — 「辰本藏戊，而又**為水庫**」(§143 論雜氣如何取用).
+ *
+ * 지장간 표와 다른 축이다. 辰의 지장간은 乙·癸·戊인데, 이 책은 천간의 **壬**도 「辰中暗煞」
+ * 이라 부른다 — 창고는 오행을 담는 것이지 글자를 담는 것이 아니기 때문이다.
+ */
+const TOMB_ELEMENT: Partial<Record<Branch, Element>> = {
+  辰: '水',
+  戌: '火',
+  丑: '金',
+  未: '木',
+};
 
 /** 격을 잡는다 — 월지 지장간 중 투출한 것, 없으면 정기. 왕지는 정기 하나뿐이다 */
 function selectSource(pillars: StructureInput) {
@@ -492,14 +518,35 @@ export function structureOf(
     : revealedChoice;
 
   /*
-    **본격은 변격과 다를 때만 선다.** 정기로 잡았으면 둘이 같고, 건록·양인·월겁이면
-    월령 자체가 격이라 변할 것이 없다.
+    **함께 불리는 이름들.** 건록·양인·월겁은 월령 자체가 격이라 변할 것이 없어 비운다.
   */
   const principal = candidates.find((candidate) => candidate.role === '正氣')!;
-  const principalKind =
-    selfSeat === null && TEN_GOD_GROUP[principal.tenGod] !== '比劫'
-      ? regularKindOf(principal.tenGod)
-      : null;
+  const alsoKinds: { kind: StructureKind; basis: 'native' | 'tomb' }[] = [];
+
+  if (selfSeat === null) {
+    if (TEN_GOD_GROUP[principal.tenGod] !== '比劫') {
+      alsoKinds.push({ kind: regularKindOf(principal.tenGod), basis: 'native' });
+    }
+
+    /*
+      묘고는 그 오행의 **창고**라, 지장간에 없는 천간이라도 같은 오행이면 그 자리로 센다.
+      辰의 지장간은 乙癸戊인데 이 책은 천간의 壬을 「辰中暗煞」이라 부른다.
+
+      비겁은 여기서도 격이 아니다 — `selectSource` 가 투출한 비겁을 거르는 것과 같은
+      규율이고, 그 자리는 건록·양인·월겁이 따로 든다.
+    */
+    const tombElement = TOMB_ELEMENT[pillars.month.branch];
+    if (tombElement) {
+      for (const position of PILLAR_POSITIONS) {
+        const pillar = position === 'day' ? null : pillars[position];
+        if (pillar === null || STEM_INFO[pillar.stem].element !== tombElement) continue;
+
+        const tenGod = tenGodOf(pillars.dayMaster, pillar.stem);
+        if (TEN_GOD_GROUP[tenGod] === '比劫') continue;
+        alsoKinds.push({ kind: regularKindOf(tenGod), basis: 'tomb' });
+      }
+    }
+  }
   const revealed = revealedRoles(pillars);
   const roles = elementRolesOf(STEM_INFO[pillars.dayMaster].element);
   const ratio = (role: ElementRole) => elements.ratios[roles[role]];
@@ -653,8 +700,15 @@ export function structureOf(
     status: 'experimental',
     kind,
     ko: STRUCTURE_KIND_KO[kind],
-    // 변격과 다를 때만 선다 — 같은 값을 두 자리에 두면 「둘이 다르다」로 읽힌다.
-    principalKind: principalKind === kind ? null : principalKind,
+    /*
+      고른 이름과 같은 것, 그리고 서로 겹치는 것은 빼고 든다 — 같은 값이 두 번 서면
+      읽는 쪽이 「셋이 다르다」로 읽는다.
+    */
+    alsoKinds: alsoKinds.filter(
+      (also, index) =>
+        also.kind !== kind &&
+        alsoKinds.findIndex((earlier) => earlier.kind === also.kind) === index,
+    ),
     source: {
       stem: chosen.stem,
       role: chosen.role,
