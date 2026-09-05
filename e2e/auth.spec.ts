@@ -19,20 +19,28 @@ test('로그인하지 않으면 내 계정 화면에 들어가지 못한다', as
   await expect(page.getByRole('button', { name: '구글로 로그인' })).toBeVisible();
 });
 
-test('로그인 화면은 초대받은 사람만 들어온다고 미리 말한다', async ({ page }) => {
+test('로그인 화면은 코드가 한 번 필요하다고 미리 말한다', async ({ page }) => {
   await page.goto('/auth');
 
-  await expect(page.getByText('초대받은 분만', { exact: false })).toBeVisible();
+  /*
+    **로그인 버튼을 누르기 전에 알려 준다.** 이메일 명단이 문을 지킬 때는 「초대받은
+    분만」이었고, 그때는 명단에 없으면 로그인 자체가 안 됐다. 지금은 로그인이 되고
+    그다음에 코드를 묻는다(ADR 0042) — 코드가 없는 사람이 로그인부터 하고 나서
+    막다른 화면을 만나지 않게, 필요한 것을 여기서 먼저 말한다.
+  */
+  await expect(page.getByText('테스트 코드', { exact: false })).toBeVisible();
   await expect(page.getByRole('link', { name: '사주 보기로 돌아가기' })).toBeVisible();
 });
 
-test('초대 관문에 막혀 돌아오면 계정이 만들어지지 않았다고 말한다', async ({ page }) => {
-  // 훅이 거부하면 구글이 아니라 Supabase 가 `error` 를 달아 이 자리로 돌려보낸다.
-  await page.goto('/auth/callback?error=access_denied&error_description=not+invited');
+test('로그인이 끊기면 왜인지 모른다고 말한다', async ({ page }) => {
+  /*
+    초대 훅이 거부하면 Supabase 가 `error` 를 달아 이 자리로 돌려보냈다. 훅을 걷은
+    뒤로 그 길은 없어졌지만, 구글 쪽에서 취소하거나 중간에 끊기면 여전히 이리로 온다.
+  */
+  await page.goto('/auth/callback?error=access_denied&error_description=cancelled');
 
   await expect(page).toHaveURL(/\/auth\/denied$/);
-  await expect(page.getByRole('heading', { name: '초대된 주소가 아닙니다' })).toBeVisible();
-  await expect(page.getByText('계정은 만들어지지 않았습니다', { exact: false })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '로그인하지 못했습니다' })).toBeVisible();
 });
 
 test('사주 계산은 로그인 없이 열리고 궁합은 로그인으로 이어진다', async ({ page }) => {

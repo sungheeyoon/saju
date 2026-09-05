@@ -16,6 +16,18 @@ import { fillBirthDate } from './birth-form';
  * 누른다.
  */
 
+/**
+ * 이 시험만의 꼬리표 — **이름이 부딪히지 않게.**
+ *
+ * `Date.now()` 의 끝 네 자리였다. 그러면 십 초에 한 번씩 같은 값이 돌아오고, 로컬 DB 는
+ * 실행 사이에 안 지워지므로 **어제 만든 계정과 이름이 부딪힌다** — 시험이 재려던 것과
+ * 상관없는 자리에서 「이미 쓰고 있는 닉네임입니다」로 죽는다. 무작위를 섞어 그 자리를 없앤다.
+ *
+ * 닉네임은 여덟 자까지라 다섯 자만 쓴다(앞에 한 글자가 붙는다).
+ */
+const freshTag = (): string =>
+  (Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(-5);
+
 /** 둘 다 매칭에 참여시키고 서로만 보이게 한다 */
 async function bothParticipate(a: Person, b: Person, tag: string): Promise<void> {
   await optIn(a.api, `가${tag}`);
@@ -38,7 +50,7 @@ async function pendingRequest(from: Person, to: Person): Promise<void> {
 
 test.describe('동의로 열리는 흐름', () => {
   test('저장한 사람은 이미 참여 중이고, 요청을 보내 수락하면 같은 결과 화면에 선다', async ({ openAs }) => {
-    const tag = String(Date.now()).slice(-4);
+    const tag = freshTag();
     const asker = await openAs({ selfPerson: true });
     const receiver = await openAs({ selfPerson: true });
 
@@ -174,7 +186,7 @@ test.describe('동의로 열리는 흐름', () => {
   test('한쪽이 출생 정보를 고치면 pending 요청이 무효가 되고 그 사실이 알림함에 선다', async ({
     openAs,
   }) => {
-    const tag = String(Date.now()).slice(-4);
+    const tag = freshTag();
     const asker = await openAs({ selfPerson: true });
     const receiver = await openAs({ selfPerson: true });
 
@@ -205,7 +217,7 @@ test.describe('동의로 열리는 흐름', () => {
   });
 
   test('신고는 차단과 따로 남고, 상대는 목록에서 사라지지 않는다', async ({ openAs }) => {
-    const tag = String(Date.now()).slice(-4);
+    const tag = freshTag();
     const asker = await openAs({ selfPerson: true });
     const receiver = await openAs({ selfPerson: true });
 
@@ -238,7 +250,7 @@ test.describe('동의로 열리는 흐름', () => {
   test('삭제를 요청하면 그 자리에서 모든 화면이 닫히고 이유를 갈라서 말한다', async ({
     openAs,
   }) => {
-    const tag = String(Date.now()).slice(-4);
+    const tag = freshTag();
     const leaver = await openAs({ selfPerson: true });
     const other = await openAs({ selfPerson: true });
 
@@ -295,7 +307,7 @@ test.describe('동의로 열리는 흐름', () => {
   test('좁은 화면에서도 동의 범위가 보내기 버튼 위에 선다', async ({ openAs, isMobile }) => {
     test.skip(!isMobile, '좁은 화면에서만 재는 배치다');
 
-    const tag = String(Date.now()).slice(-4);
+    const tag = freshTag();
     const asker = await openAs({ selfPerson: true });
     const receiver = await openAs({ selfPerson: true });
     await bothParticipate(asker, receiver, tag);
@@ -332,7 +344,7 @@ test.describe('동의로 열리는 흐름', () => {
    * 초점을 못 받는 칸에 얹힌 조작은 이 시험에서만 드러난다.
    */
   test('요청·수락·차단에 키보드만으로 닿는다', async ({ openAs }) => {
-    const tag = String(Date.now()).slice(-4);
+    const tag = freshTag();
     const asker = await openAs({ selfPerson: true });
     const receiver = await openAs({ selfPerson: true });
     await bothParticipate(asker, receiver, tag);
@@ -384,7 +396,7 @@ test.describe('동의로 열리는 흐름', () => {
   });
 
   test('차단하면 그 사람은 후보에서도 사라지고 새 요청도 서지 않는다', async ({ openAs }) => {
-    const tag = String(Date.now()).slice(-4);
+    const tag = freshTag();
     const asker = await openAs({ selfPerson: true });
     const receiver = await openAs({ selfPerson: true });
 

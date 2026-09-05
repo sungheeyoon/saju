@@ -26,23 +26,26 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 /**
- * **이름이 사주보다 먼저다**(PRD §5.1).
+ * **가입이 사주보다 먼저다**(ADR 0042).
  *
- * 손잡이가 가입할 때 이름을 지어 주므로(실제 사람도 프로필 화면을 지나온다) 여기서만
- * 도로 지운다.
+ * 안내와 이름이 각자 문이던 것을 「가입」 하나가 든다. 손잡이가 그 자리를 지나 주므로
+ * (실제 사람도 `/signup` 을 지나온다) 여기서만 도로 지운다.
  */
 reset role;
-update public.app_user set nickname = null where id = (select kim from who);
+update public.app_user set signed_up_at = null where id = (select kim from who);
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 select throws_like(
   $$select public.create_self_person(
       '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean')$$,
-  '%닉네임%',
-  '이름을 안 지었으면 첫 입력을 넣을 수 없다');
+  '%가입을 먼저%',
+  '가입을 안 끝냈으면 첫 입력을 넣을 수 없다');
 
-select public.save_my_profile('김온', null);
+reset role;
+update public.app_user set signed_up_at = now() where id = (select kim from who);
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 create temporary table target as
 select public.create_self_person(

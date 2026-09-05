@@ -12,10 +12,10 @@ create schema if not exists tests;
 select plan(2);
 
 /**
- * 가입만 한다 — **안내는 아직 안 봤다.**
+ * 구글 로그인만 한다 — **가입은 아직 안 끝났다.**
  *
- * 초대 훅은 GoTrue 안에서 도는 것이라 여기서는 지나간다 — 훅 자체는 함수를 직접
- * 불러 따로 잰다. 여기서 재려는 것은 **가입한 뒤에 무엇이 보이는가**다.
+ * 이메일 명단이 문을 지킬 때는 이 상태가 화면에만 있었다. 명단을 걷은 뒤로는(ADR 0042)
+ * 실재하는 상태다 — 구글 계정만 있고 코드도 이름도 안내 확인도 없는 계정.
  *
  * `security definer` 인 것은 역할을 `authenticated` 로 바꾼 뒤에도 부를 수 있게
  * 하려는 것이다.
@@ -98,7 +98,12 @@ begin
     taken := left(base, greatest(1, 8 - length(n::text))) || n::text;
   end loop;
 
-  update public.app_user set nickname = taken where id = new_id;
+  /*
+    **가입이 끝난 것으로 둔다**(ADR 0042). 코드는 안 붙인다 — 코드가 서기 전에 들어온
+    계정이 그 모양이고, 여기서 재려는 것은 코드가 아니라 그다음이다. 코드 자체는
+    `01_signup_code` 가 실제 문(`complete_signup`)으로 잰다.
+  */
+  update public.app_user set nickname = taken, signed_up_at = now() where id = new_id;
 
   return new_id;
 end;
@@ -138,10 +143,18 @@ stable
 security definer
 as $$ select public.person_limit() $$;
 
+/** 풀이권 총량 — `tests.person_limit()` 과 같은 자리, 같은 까닭이다 */
+create or replace function tests.reading_credit_limit()
+returns integer
+language sql
+stable
+security definer
+as $$ select public.reading_credit_limit() $$;
+
 -- 시험은 역할을 `authenticated` 로 바꾼 채로 이 손잡이들을 부른다.
 grant usage on schema tests to authenticated;
 grant execute on all functions in schema tests to authenticated;
 
 select has_function('tests', 'signup', array['text'], '가입한 척하는 손잡이가 선다');
-select has_function('tests', 'signup_raw', array['text'], '안내를 안 본 손잡이도 선다');
+select has_function('tests', 'signup_raw', array['text'], '가입을 안 끝낸 손잡이도 선다');
 select * from finish();

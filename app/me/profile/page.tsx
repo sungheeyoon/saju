@@ -10,15 +10,14 @@ export const metadata = {
 };
 
 /**
- * 프로필 — **가입할 때 짓고, 언제든 고친다**(PRD §5.1).
+ * 프로필 — **고치는 자리 하나** (PRD §5.1).
  *
- * 한 주소가 두 자리를 든다. 이름이 없으면 짓는 자리이고, 있으면 고치는 자리다. 갈라
- * 두면 「고치기」 주소가 이름 없는 사람에게 열려 관문이 하나 새는 자리가 된다.
+ * 이름을 **짓는** 일은 여기 없다. 가입 폼이 코드·이름·안내 확인을 한 번에 적으므로
+ * (`/signup`, ADR 0042), 이 화면에 닿는 사람은 이미 이름이 있다. 그래서 관문의 예외
+ * 목록에서도 빠졌다 — 이름 없이 열려야 할 이유가 없어졌다.
  *
- * ## 관문은 `/me` 레이아웃이 든다
- *
- * 여기는 이름이 없어도 열려야 하는 자리라, 이 화면만 관문의 예외다. 그 판단도 레이아웃
- * 한 곳에 있다 — 화면마다 「나는 예외다」를 적으면 언젠가 하나가 안 고쳐진다.
+ * 여기 남는 것은 **셋을 고치는 일**이다: 닉네임 · 프로필 사진 · 소개. 뒤의 둘은 가입
+ * 폼에 없으므로 실제로 채우는 자리도 여기다.
  */
 export default async function ProfilePage() {
   const supabase = await supabaseOnServer();
@@ -57,19 +56,13 @@ export default async function ProfilePage() {
   const { data: photo } = await supabase.rpc('photo_of', { p_user_id: user.id });
   const hasPhoto = (photo ?? []).length > 0;
 
-  const naming = account.nickname === null;
-
   return (
     <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-7 py-9 sm:py-12">
       <header className="flex flex-col gap-1.5 border-b border-border pb-6">
         <p className="eyebrow">프로필</p>
-        <h1 className="text-3xl font-bold tracking-[-0.04em]">
-          {naming ? '어떻게 불러 드릴까요' : '프로필'}
-        </h1>
+        <h1 className="text-3xl font-bold tracking-[-0.04em]">프로필</h1>
         <p className="max-w-xl text-sm text-secondary">
-          {naming
-            ? '앱 안에서 쓰실 닉네임을 정해 주세요. 사진과 소개는 나중에 채우셔도 됩니다.'
-            : '앱 안의 모든 자리에서 이 이름으로 불립니다. 언제든 고치실 수 있습니다.'}
+          앱 안의 모든 자리에서 이 이름으로 불립니다. 언제든 고치실 수 있습니다.
         </p>
       </header>
 
@@ -77,7 +70,6 @@ export default async function ProfilePage() {
         current={{ nickname: account.nickname ?? '', intro: account.intro ?? '' }}
         hasPhoto={hasPhoto}
         userId={user.id}
-        naming={naming}
       />
     </main>
   );

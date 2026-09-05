@@ -37,13 +37,15 @@ select pg_temp.acting((select kim from fresh));
 
 /** 일정이 없으면 확인 자체가 안 남는다 — 안내가 만들어지지 않기 때문이다 */
 select throws_like(
-  $$select public.acknowledge_notice('notice-v1', (select s.schedule_id from public.current_beta_schedule() s), false, true)$$,
+  $$select public.complete_signup('NOTICE1', '김안', 'notice-v1', (select s.schedule_id from public.current_beta_schedule() s), false, true)$$,
   '%기간이 정해지지%',
   '일정이 없으면 확인이 남지 않는다');
 
 reset role;
 insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
 values ('2026-10-31', '시험', '운영자', '담당', 'ops@example.com');
+insert into public.signup_code (code, note, valid_on, max_uses)
+values ('NOTICE1', '시험', public.signup_today(), 5);
 set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 
@@ -61,14 +63,14 @@ select is(
 select throws_like(
   $$select public.create_self_person(
       '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean')$$,
-  '%처리 안내%',
-  '안내를 안 봤으면 첫 입력을 넣을 수 없다');
+  '%가입을 먼저%',
+  '가입을 안 끝냈으면 첫 입력을 넣을 수 없다');
 
 -- ── 확인 ───────────────────────────────────────────────────────────────────
 
 /** 판본을 안 들고 오면 무엇을 보여 줬는지 못 남긴다 */
 select throws_ok(
-  $$select public.acknowledge_notice('', (select s.schedule_id from public.current_beta_schedule() s), true, true)$$,
+  $$select public.complete_signup('NOTICE1', '김안', '', (select s.schedule_id from public.current_beta_schedule() s), true, true)$$,
   '23514', null, '판본 없이는 확인이 남지 않는다');
 
 /**
@@ -78,12 +80,12 @@ select throws_ok(
  * 안 물어본 사람이 같은 값이 되고, 다시 물어야 할 사람을 못 고른다.
  */
 select throws_ok(
-  $$select public.acknowledge_notice('notice-v1', (select s.schedule_id from public.current_beta_schedule() s), null, false)$$,
+  $$select public.complete_signup('NOTICE1', '김안', 'notice-v1', (select s.schedule_id from public.current_beta_schedule() s), null, false)$$,
   '23514', null, '선택 항목을 비운 채로는 지나갈 수 없다');
 
 select lives_ok(
-  $$select public.acknowledge_notice('notice-v1', (select s.schedule_id from public.current_beta_schedule() s), false, true)$$,
-  '확인과 선택 답이 함께 남는다');
+  $$select public.complete_signup('NOTICE1', '김안', 'notice-v1', (select s.schedule_id from public.current_beta_schedule() s), false, true)$$,
+  '코드·이름·확인·선택 답이 한 번에 남는다');
 
 select is(
   (select array[a.notice_version, a.improvement_consent::text, a.contact_consent::text]
@@ -106,13 +108,10 @@ select pg_temp.acting((select kim from fresh));
 
 -- ── 지나온 뒤 ──────────────────────────────────────────────────────────────
 
-/* 안내 다음이 이름이다 — 이 사람은 `signup_raw` 로 만들어 아직 아무것도 안 지났다 */
-select public.save_my_profile('김안', null);
-
 select lives_ok(
   $$select public.create_self_person(
       '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean')$$,
-  '안내를 본 뒤에는 첫 입력이 들어간다');
+  '가입을 끝낸 뒤에는 첫 입력이 들어간다');
 
 /**
  * **거절해도 서비스는 그대로다.**
@@ -126,7 +125,7 @@ select lives_ok(
 
 select is(
   (select available from public.my_reading_credits()),
-  4,
+  7,
   '풀이권도 그대로 돈다');
 
 -- ── 다시 물을 때 ───────────────────────────────────────────────────────────
@@ -136,7 +135,7 @@ select is(
  * 동의를 근거로 처리하던 것은 동의가 사라지면 근거가 사라진다(ADR 0022).
  */
 select lives_ok(
-  $$select public.acknowledge_notice('notice-v2', (select s.schedule_id from public.current_beta_schedule() s), true, false)$$,
+  $$select public.complete_signup(null, null, 'notice-v2', (select s.schedule_id from public.current_beta_schedule() s), true, false)$$,
   '새 판본을 다시 확인할 수 있다');
 
 select is(
@@ -154,7 +153,7 @@ set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 
 select lives_ok(
-  $$select public.acknowledge_notice('notice-v3', (select s.schedule_id from public.current_beta_schedule() s), false, false)$$,
+  $$select public.complete_signup(null, null, 'notice-v3', (select s.schedule_id from public.current_beta_schedule() s), false, false)$$,
   '다시 물었을 때 거절할 수 있다');
 
 reset role;
@@ -162,13 +161,13 @@ select is(
   (select count(*)::int from public.reading_feedback
    where respondent_user_id = (select kim from fresh)),
   0,
-  '안내 화면에서 거절해도 이미 남긴 답이 지워진다');
+  '다시 지나며 거절해도 이미 남긴 답이 지워진다');
 set local role authenticated;
 
 -- ── 남의 것은 못 만진다 ────────────────────────────────────────────────────
 
 /**
- * `acknowledge_notice` 는 **uuid 를 안 받는다.** definer 라 정책을 지나가므로, 받으면
+ * `complete_signup` 은 **uuid 를 안 받는다.** definer 라 정책을 지나가므로, 받으면
  * 남의 확인을 대신 남기는 문이 된다.
  *
  * 남의 행을 **읽어서** 확인하지 않는다 — 정책이 자기 행만 내주므로 그 질의는 언제나
@@ -176,7 +175,7 @@ set local role authenticated;
  */
 select pg_temp.acting(tests.signup('lee-notice@example.com'));
 select lives_ok(
-  $$select public.acknowledge_notice('notice-v9', (select s.schedule_id from public.current_beta_schedule() s), true, true)$$,
+  $$select public.complete_signup(null, null, 'notice-v9', (select s.schedule_id from public.current_beta_schedule() s), true, true)$$,
   '남이 자기 확인을 남긴다');
 
 reset role;
@@ -201,12 +200,12 @@ set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 
 select throws_like(
-  $$select public.acknowledge_notice('notice-v3', 1::bigint, false, false)$$,
+  $$select public.complete_signup(null, null, 'notice-v3', 1::bigint, false, false)$$,
   '%바뀌었습니다%',
   '옛 안내를 들고 온 확인은 거절된다');
 
 select lives_ok(
-  $$select public.acknowledge_notice('notice-v3',
+  $$select public.complete_signup(null, null, 'notice-v3',
       (select s.schedule_id from public.current_beta_schedule() s), false, false)$$,
   '지금 안내로는 확인된다');
 
@@ -257,10 +256,10 @@ select throws_like(
   '끝난 뒤에는 풀이를 만들 수 없다 — 돈이 나가는 문이라 따로 건다');
 
 select throws_like(
-  $$select public.acknowledge_notice('notice-v3',
+  $$select public.complete_signup(null, null, 'notice-v3',
       (select s.schedule_id from public.current_beta_schedule() s), false, false)$$,
   '%끝났습니다%',
-  '끝난 뒤에는 확인도 안 받는다');
+  '끝난 뒤에는 가입도 확인도 안 받는다');
 
 /**
  * **끝난 서비스가 새 자료를 받으면 안 된다.**

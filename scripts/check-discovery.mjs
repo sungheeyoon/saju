@@ -65,7 +65,6 @@ const forgetBoard = (email) =>
        where u.id = s.user_id and u.email = '${email}'`);
 
 // ── 1. 두 사람이 사주를 등록한다 ──────────────────────────────────────────────
-sql(`insert into public.invite (email, note) values ('${mine}', '검사'), ('${theirs}', '검사')`);
 
 const me = anon();
 await me.auth.signUp({ email: mine, password });

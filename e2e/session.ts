@@ -16,8 +16,9 @@ import { NOTICE_VERSION } from '@/src/lib/consent';
  * ## 구글은 몰지 않는다
  *
  * 로그인 자체는 남의 화면을 지나가므로 자동화하지 않는다. 대신 **가입 관문은 그대로
- * 지난다** — 초대 명단에 넣고 GoTrue 로 가입한다. 훅이 거부하면 여기서 계정이 안
- * 생기고 시험이 그 자리에서 죽는다. 우리가 건너뛰는 것은 구글의 동의 화면뿐이다.
+ * 지난다** — 오늘 쓸 수 있는 코드를 세우고 `complete_signup` 을 실제로 부른다(ADR 0042).
+ * 코드가 없거나 정원이 찼으면 여기서 시험이 죽는다. 우리가 건너뛰는 것은 구글의 동의
+ * 화면뿐이다.
  *
  * ## 시험마다 **새 계정**을 만든다
  *
@@ -34,7 +35,7 @@ import { NOTICE_VERSION } from '@/src/lib/consent';
 
 type Local = { api: string; anonKey: string };
 
-/** 초대 명단은 **운영자가 SQL 로 넣는다** — `service_role` 에도 이 표는 안 열려 있다. */
+/** 테스트 코드는 **운영자가 SQL 로 넣는다** — `service_role` 에도 이 표는 안 열려 있다. */
 const sql = (statement: string) =>
   execFileSync(
     'docker',
@@ -78,6 +79,25 @@ export function scheduleBeta(endsOn: string | null): void {
 
 /** 검사가 쓰는 종료일 — 하나뿐이라 손잡이와 시험이 같은 값을 본다 */
 export const scheduledEndsOn = (): string => '2026-10-31';
+
+/** e2e 가 쓰는 테스트 코드 — 한 자리에 두어 손잡이와 시험이 같은 값을 본다 */
+export const E2E_CODE = 'E2ECODE';
+
+/**
+ * 오늘 쓸 수 있는 코드를 세운다.
+ *
+ * **부를 때마다 `valid_on` 을 오늘로 민다.** 코드는 하루만 사는데 검사는 자정을 걸쳐
+ * 돌 수 있다 — 그러면 어제 코드가 되어, 시험이 재려던 것과 상관없는 자리에서 죽는다.
+ *
+ * 정원은 넉넉하게 둔다. 워커가 나란히 돌며 계정을 하나씩 만들므로, 좁게 잡으면
+ * 「정원이 찼습니다」가 이유 없는 빨간불이 된다 — 정원 자체는 pgTAP 이 잰다.
+ */
+export function seedSignupCode(): void {
+  sql(`insert into public.signup_code (code, note, valid_on, max_uses)
+       values ('${E2E_CODE}', 'e2e', (now() at time zone 'Asia/Seoul')::date, 1000)
+       on conflict (code) do update
+         set valid_on = excluded.valid_on, max_uses = excluded.max_uses`);
+}
 
 /**
  * 다음에 목록을 열 때 **다시 뽑게 한다** (ADR 0037).
@@ -191,10 +211,8 @@ type Seed = {
   readonly selfPerson: boolean;
   /** 함께 만들어 둘 가족·친구의 부를 이름 */
   readonly people?: readonly string[];
-  /** 안내를 **안 지나온** 사람으로 둔다 — 관문 자체를 재는 시험만 쓴다 */
-  readonly skipNotice?: boolean;
-  /** 이름을 **안 지은** 사람으로 둔다 — 프로필 관문 자체를 재는 시험만 쓴다 */
-  readonly skipProfile?: boolean;
+  /** 가입을 **안 끝낸** 사람으로 둔다 — 관문 자체를 재는 시험만 쓴다 */
+  readonly skipSignup?: boolean;
 };
 
 const BIRTH = {
@@ -216,48 +234,37 @@ async function seed(
   /* 여덟 자까지다. 이름이 유일해졌으므로 짧게 자르면 나란히 도는 워커끼리 부딪힌다 */
   const nickname = `벗${stamp.slice(-6)}`;
 
-  sql(`insert into public.invite (email, note) values ('${email}', 'e2e')`);
-
   const client = createClient(local.api, local.anonKey, { auth: { persistSession: false } });
   const { error } = await client.auth.signUp({ email, password });
-  if (error) throw new Error(`초대된 주소인데 가입이 막혔습니다 — ${error.message}`);
+  if (error) throw new Error(`로그인이 막혔습니다 — ${error.message}`);
   await awaitUsable(client);
 
   /*
-    **안내를 지난다.** 첫 입력 앞에 관문이 하나 생겼고(`create_self_person`), 실제
-    사람은 `/welcome` 에서 그 값을 남기고 온다. 관문 자체를 재는 시험은 이 손잡이를
-    안 쓰고 직접 연다 — 그 시험이 재려는 것이 바로 이 자리이기 때문이다.
+    **가입을 끝낸다** — 코드·이름·안내 확인이 한 문으로 나간다(ADR 0042). 실제 사람은
+    `/signup` 에서 그 셋을 한 번에 남기고 온다. 관문 자체를 재는 시험만 이 자리를
+    건너뛴다 — 그 시험이 재려는 것이 바로 이 자리이기 때문이다.
 
     선택 동의는 **꺼 둔다.** 켜 두면 「동의한 사람에게만」을 재는 시험이 우연히 통과한다.
   */
-  if (wanted.skipNotice !== true) {
+  if (wanted.skipSignup !== true) {
     /*
       **일정이 있어야 확인이 남는다.** 안내 관문 시험이 이 표를 비웠다 채웠다 하므로,
-      확인을 지나야 하는 계정은 자기 몫을 스스로 세운다 — 앞의 시험이 무엇을 남겼는지
+      가입을 지나야 하는 계정은 자기 몫을 스스로 세운다 — 앞의 시험이 무엇을 남겼는지
       기대하지 않는다.
     */
     scheduleBeta(scheduledEndsOn());
+    seedSignupCode();
 
     const current = await client.rpc('current_beta_schedule');
-    const passed = await client.rpc('acknowledge_notice', {
+    const passed = await client.rpc('complete_signup', {
+      p_code: E2E_CODE,
+      p_nickname: nickname,
       p_version: NOTICE_VERSION,
       p_schedule_id: current.data?.[0]?.schedule_id,
       p_improvement: false,
       p_contact: false,
     });
-    if (passed.error) throw new Error(`안내를 지나지 못했습니다 — ${passed.error.message}`);
-  }
-
-  /*
-    **안내 다음이 이름이다**(§5.1). 첫 입력 앞의 관문이 하나 더 늘었고, 실제 사람은
-    `/me/profile` 에서 이름을 짓고 온다. 관문 자체를 재는 시험만 이 자리를 건너뛴다.
-  */
-  if (wanted.skipProfile !== true) {
-    const named = await client.rpc('save_my_profile', {
-      p_nickname: nickname,
-      p_intro: null,
-    });
-    if (named.error) throw new Error(`이름을 못 지었습니다 — ${named.error.message}`);
+    if (passed.error) throw new Error(`가입을 끝내지 못했습니다 — ${passed.error.message}`);
   }
 
   let selfPersonId: string | null = null;
@@ -435,15 +442,14 @@ type Fixtures = {
   personReader: PersonReader;
   /** 가입만 끝난 계정 — 온보딩 화면에서 시작한다 */
   newcomer: Account;
-  /** 가입만 하고 안내는 안 본 계정 — 관문을 재는 자리 */
-  newcomerRaw: Account;
   /**
-   * 안내도 이름도 없는 계정 — **관문 둘이 이어 서는 자리를 재는 데만 쓴다.**
+   * 구글 로그인만 하고 **가입은 안 끝낸** 계정 — 관문을 재는 자리.
    *
-   * `newcomerRaw` 는 이름이 있어서 안내를 지나면 `/me` 에 선다. 실제 새 사람은 거기서
-   * 한 번 더 `/me/profile` 로 보내지고, **그 두 번째 튕김이 화면을 비운 적이 있다.**
+   * 전에는 이 자리에 둘이 있었다(`newcomerRaw`·`newcomerBare`): 안내를 안 본 사람과
+   * 이름도 없는 사람. 관문 둘이 이어 서는 자리에서 화면이 비는 고장이 있었기 때문이다.
+   * 문이 하나가 되면서(ADR 0042) 그 자리가 없어졌고, 계정도 하나로 준다.
    */
-  newcomerBare: Account;
+  newcomerRaw: Account;
   /**
    * 사람을 **하나 더** 연다 — 요청·수락·차단처럼 둘이 있어야 성립하는 흐름.
    *
@@ -525,18 +531,7 @@ export const test = base.extend<Fixtures, { local: Local }>({
   },
 
   newcomerRaw: async ({ local, context, baseURL }, use) => {
-    const { account, password } = await seed(local, { selfPerson: false, skipNotice: true });
-    const cookies = await cookiesFor(local, account.email, password);
-    await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
-    await use(account);
-  },
-
-  newcomerBare: async ({ local, context, baseURL }, use) => {
-    const { account, password } = await seed(local, {
-      selfPerson: false,
-      skipNotice: true,
-      skipProfile: true,
-    });
+    const { account, password } = await seed(local, { selfPerson: false, skipSignup: true });
     const cookies = await cookiesFor(local, account.email, password);
     await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
     await use(account);

@@ -34,12 +34,24 @@ export type ProfileInput = {
   intro: string;
 };
 
-/** 아직 못 채운 칸 — 없으면 `null` */
-export function missingInProfile(profile: ProfileInput): string | null {
-  const name = profile.nickname.trim();
+/**
+ * 이름 하나만 본다 — 없으면 `null`.
+ *
+ * **가입 폼에는 소개 칸이 없다**(ADR 0042). 그 자리에서 `missingInProfile` 을 부르면
+ * 빈 소개를 함께 재게 되고, 재는 것과 화면에 선 것이 갈린다.
+ */
+export function missingNickname(nickname: string): string | null {
+  const name = nickname.trim();
   if (name.length < NICKNAME_MIN || name.length > NICKNAME_MAX) {
     return `닉네임은 ${NICKNAME_MIN}자에서 ${NICKNAME_MAX}자까지입니다.`;
   }
+  return null;
+}
+
+/** 아직 못 채운 칸 — 없으면 `null` */
+export function missingInProfile(profile: ProfileInput): string | null {
+  const missing = missingNickname(profile.nickname);
+  if (missing !== null) return missing;
   if (profile.intro.trim().length > INTRO_MAX) return `소개는 ${INTRO_MAX}자까지입니다.`;
   return null;
 }

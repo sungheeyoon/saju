@@ -79,7 +79,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       이 줄이 빨개진다.
     */
     await expect(
-      page.locator('header').getByText('풀이권 5번 중 5번 남음'),
+      page.locator('header').getByText('풀이권 8번 중 8번 남음'),
     ).toBeVisible();
 
     /* 서버 HTML 에는 없다 — 브라우저가 읽는다. 그래서 흐름 검사는 셈만 잰다 */
@@ -156,7 +156,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('현재 궁합 풀이 점수')).toBeHidden();
 
     /* 만든 것이 하나이므로 풀이권도 하나 줄어 있다 — kind 를 안 묻는다 */
-    await expect(page.locator('header').getByText('풀이권 5번 중 4번 남음')).toBeVisible();
+    await expect(page.locator('header').getByText('풀이권 8번 중 7번 남음')).toBeVisible();
   });
 
   /**
@@ -261,7 +261,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       풀이권이 하나 더 잡힌다 — 둘 다 그대로인 것으로 잰다(하나는 이미 이 글을 만들 때 썼다).
     */
     await expect(page.getByText('풀이 만드는 중…')).toHaveCount(0);
-    await expect(page.locator('header').getByText('풀이권 5번 중 4번 남음')).toBeVisible();
+    await expect(page.locator('header').getByText('풀이권 8번 중 7번 남음')).toBeVisible();
     await expect(again).toBeEnabled();
   });
 
@@ -297,7 +297,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(make).toBeVisible();
 
     /* 풀이권은 kind 를 안 묻는다 — 전역 다섯에서 함께 센다 */
-    await expect(page.locator('header').getByText('풀이권 5번 중 5번 남음')).toBeVisible();
+    await expect(page.locator('header').getByText('풀이권 8번 중 8번 남음')).toBeVisible();
 
     /*
       **여는 것만으로는 아무것도 안 만든다.** 다시 열어도 같은 자리에 같은 문장이 선다 —
@@ -1044,66 +1044,56 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 });
 
 /**
- * 가입할 때 만드는 프로필 — **안내 다음이 이름이다**(PRD §5.1).
+ * 가입 관문 — **문 하나가 앱 안 이동에도 선다**(ADR 0041·0042).
  *
- * 관문이 넷 있다: 레이아웃이 길을 가리키고, `create_self_person` 이 문장으로 거절하고,
- * 검사식이 마지막으로 막는다. 여기서 재는 것은 **첫째**다 — 사람이 실제로 그 길로
- * 가는가. 나머지 셋은 pgTAP 이 잰다.
+ * 관문이 셋 있다: `proxy.ts` 가 길을 가리키고, `create_self_person` 과
+ * `create_managed_person` 이 문장으로 거절하고, 검사식이 마지막으로 막는다. 여기서
+ * 재는 것은 **첫째**다 — 사람이 실제로 그 길로 가는가. 나머지 둘은 pgTAP 이 잰다.
  */
-test.describe('가입할 때 만드는 프로필', () => {
-  test('이름을 안 지었으면 이름부터 짓게 하고, 지으면 내 사주로 보낸다', async ({ openAs }) => {
-    const newcomer = await openAs({ selfPerson: false, skipProfile: true });
-
-    await newcomer.page.goto('/me');
-    await expect(newcomer.page).toHaveURL(/\/me\/profile$/);
-    await expect(newcomer.page.getByRole('heading', { name: '어떻게 불러 드릴까요' })).toBeVisible();
-
-    const name = `벗${String(Date.now()).slice(-6)}`;
-    await newcomer.page.getByLabel('닉네임').fill(name);
-    await newcomer.page.getByRole('button', { name: '중복 확인' }).click();
-    await expect(newcomer.page.getByText('쓸 수 있는 닉네임입니다.')).toBeVisible();
-
-    await newcomer.page.getByRole('button', { name: '이 이름으로 시작하기' }).click();
-
-    /* 짓고 나면 원래 가려던 자리다 — 고치러 온 사람은 이 화면에 그대로 남는다 */
-    await expect(newcomer.page).toHaveURL(/\/me$/);
-    await expect(newcomer.page.getByRole('heading', { name: '내 사주 등록' })).toBeVisible();
-  });
-
-  /**
-   * **이름이 없다고 나가는 길까지 막지 않는다.**
-   *
-   * 계정 관리는 로그아웃과 삭제 요청이 닿는 자리다. 이름을 안 지었다는 이유로 그것까지
-   * 막으면 들어오지도 나가지도 못한다 — 베타가 끝난 뒤에도 이 화면만 열어 두는 것과
-   * 같은 까닭이다.
-   */
+test.describe('가입 관문', () => {
   /**
    * **앱 안에서 걸어 다닐 때도 관문이 선다.**
    *
    * `page.goto` 는 전체 적재라 서버가 튕김을 다 처리한다. 실제 사람은 링크를 누르고,
    * 그때는 화면 조각만 오간다 — 관문이 레이아웃에 있던 동안 **그 길에서는 한 번도 안
-   * 돌았다.** 이름 없는 사람이 헤더의 「내 사주」를 누르면 등록 화면이 그대로 열렸다.
+   * 돌았다.**
    *
    * 그래서 이 시험은 **반드시 눌러서** 간다. `goto` 로 재면 고쳐지기 전에도 통과한다.
+   * 누를 자리는 공개 화면의 메뉴다 — 가입이 안 끝난 사람에게는 `/me` 아래가 통째로
+   * 닫혀 있어서, 그 안에서 누를 링크가 하나도 없다.
    */
-  test('이름이 없으면 앱 안 링크로 홈에 가도 이름부터 짓게 한다', async ({ openAs }) => {
-    const newcomer = await openAs({ selfPerson: false, skipProfile: true });
+  test('가입을 안 끝냈으면 앱 안 링크로 홈에 가도 가입 화면이 선다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipSignup: true });
 
-    await newcomer.page.goto('/me/settings');
-    await expect(newcomer.page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
+    await newcomer.page.goto('/');
+    await expect(
+      newcomer.page.getByRole('heading', { name: '생년월일시를 입력해 주세요' }),
+    ).toBeVisible();
 
-    await newcomer.page.getByRole('link', { name: '내 사주' }).first().click();
+    await newcomer.page.getByRole('link', { name: '만세력 홈' }).first().click();
 
-    await expect(newcomer.page).toHaveURL(/\/me\/profile$/);
-    await expect(newcomer.page.getByRole('heading', { name: '어떻게 불러 드릴까요' })).toBeVisible();
+    await expect(newcomer.page).toHaveURL(/\/signup$/);
+    await expect(
+      newcomer.page.getByRole('heading', { name: /테스트 코드와 닉네임/ }),
+    ).toBeVisible();
   });
 
-  test('이름이 없어도 계정 관리는 열린다', async ({ openAs }) => {
-    const newcomer = await openAs({ selfPerson: false, skipProfile: true });
+  /**
+   * **가입 전에는 계정 관리도 안 열린다.**
+   *
+   * 이름만 없던 시절에는 열어 두었다 — 나가는 길까지 막으면 들어오지도 나가지도 못하기
+   * 때문이었다. 지금은 나가는 길이 가입 화면 안에 있다(`SignOutLink`). 관리할 것이 아직
+   * 없는 계정에 관리 화면을 여는 것은 빈 화면을 하나 더 만드는 일이다.
+   */
+  test('가입 전에는 계정 관리도 가입 화면으로 보낸다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipSignup: true });
 
     await newcomer.page.goto('/me/settings');
-    await expect(newcomer.page).toHaveURL(/\/me\/settings$/);
-    await expect(newcomer.page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
+
+    await expect(newcomer.page).toHaveURL(/\/signup$/);
+    await expect(
+      newcomer.page.getByRole('button', { name: '다른 계정으로 로그인하기' }),
+    ).toBeVisible();
   });
 
   test('이름은 나중에 고칠 수 있고, 고칠 때도 중복 규칙은 같다', async ({ openAs }) => {

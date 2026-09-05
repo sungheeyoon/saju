@@ -24,7 +24,11 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"
 ## 테스트 시작하기 — **날짜 한 줄**
 
 지금은 아무도 시작할 수 없다. 종료일이 없으면 안내가 만들어지지 않고, 안내가 없으면
-`/welcome` 에 버튼이 없다(ADR 0024). 배포 없이 **언제든** 넣고 옮길 수 있다.
+`/signup` 에 폼이 아예 없다(ADR 0024). 배포 없이 **언제든** 넣고 옮길 수 있다.
+
+> **일정을 옮기면 이미 가입한 사람도 다시 확인한다.** 관문이 「지금 일정 줄」을 보므로
+> (ADR 0042) 그 사람들은 다음 방문에 `/signup` 으로 돌아가 확인 하나만 다시 누른다 —
+> 코드와 닉네임은 다시 안 묻는다.
 
 **두 가지를 함께 넣는다** — 언제 끝나는가와 **누가 약속하는가**. 처리자와 연락처가 없으면
 열람·정정·삭제·처리정지가 적혀만 있는 권리가 되므로, 셋 중 하나라도 비면 안내가 안 선다.
@@ -72,32 +76,55 @@ order by a.notice_ack_at desc nulls first;
 
 ---
 
-## 초대
+## 초대 — **코드 한 줄** (ADR 0042)
 
-가입 관문은 **정확한 이메일 일치**다. 목록에 없는 주소는 auth 계정 자체가 안 만들어진다
-(Before User Created Auth Hook — ADR 0006).
+이메일 명단은 걷었다. 지금 문을 여는 것은 **테스트 코드**다 — 운영자가 코드를 하나 만들고
+그 문자열만 전하면 받은 사람이 스스로 들어온다.
 
-```sql
--- 넣는다. 대소문자는 훅이 정규화하지만 넣을 때도 소문자로 넣는 편이 낫다.
-insert into public.invite (email, note)
-values ('tester@example.com', '1차 테스터 · 소개: 아무개');
-
--- 누가 초대돼 있고 그중 누가 실제로 들어왔나
-select i.email, i.note, i.created_at, u.id is not null as 가입함
-from public.invite i
-left join auth.users u on lower(u.email) = lower(i.email)
-order by i.created_at desc;
-```
-
-**초대를 지우는 것은 접근 회수가 아니다.** 이미 만들어진 세션은 그대로 산다. 이미
-들어온 사람을 막으려면 아래의 계정 중지를 쓴다.
+코드에는 둘이 붙는다: **사는 하루**와 **최대 인원**. 기한 없는 코드는 새면 영원히 열린
+문이고, 수 없는 코드는 한 사람이 퍼뜨리면 정원이 없다. 둘을 함께 두면 새어도 오늘 N명까지다.
 
 ```sql
--- 아직 안 들어온 사람만 목록에서 뺀다
-delete from public.invite
-where email = 'tester@example.com'
-  and not exists (select 1 from auth.users u where lower(u.email) = lower(email));
+-- 오늘 열 명. 코드는 **대문자**로 넣는다(검사식이 그것만 받는다).
+-- 하루의 경계는 서울 자정이다 — 「오늘」이 사용자가 읽는 오늘과 같아야 한다.
+insert into public.signup_code (code, note, valid_on, max_uses)
+values ('SAJU1001', '1차 테스터 · 오픈채팅방 공지', (now() at time zone 'Asia/Seoul')::date, 10);
+
+-- 오늘 살아 있는 코드와 남은 자리
+select c.code, c.note, c.valid_on, c.max_uses,
+       count(u.id) as 들어온사람,
+       c.max_uses - count(u.id) as 남은자리
+from public.signup_code c
+left join public.app_user u on u.signup_code = c.code
+where c.valid_on = (now() at time zone 'Asia/Seoul')::date
+group by c.code, c.note, c.valid_on, c.max_uses;
+
+-- 어느 계정이 어느 코드로 왔나
+select au.email, u.signup_code, u.signed_up_at, u.nickname
+from public.app_user u
+join auth.users au on au.id = u.id
+order by u.signed_up_at desc nulls last;
 ```
+
+**`signed_up_at` 이 비어 있는 계정은 「구글 로그인만 한 사람」이다.** 코드를 못 넣었거나
+안 넣은 것이고, 그 계정은 아무것도 못 한다 — 사주도 저장한 사람도 못 넣는다. 그대로 두면
+된다. 다시 코드를 주면 그 자리에서 가입이 끝난다.
+
+**코드를 지우는 것은 접근 회수가 아니다.** 이미 들어온 사람의 세션은 그대로 산다. 그리고
+**누가 그 코드로 들어왔는지가 곧 기록**이라 쓰인 코드는 지워지지 않는다(FK). 막으려면
+아래의 계정 중지를 쓴다.
+
+```sql
+-- 아직 아무도 안 쓴 코드만 지워진다. 쓰인 코드는 FK 가 막는다 — 그게 맞다.
+delete from public.signup_code where code = 'SAJU1001';
+
+-- 정원을 줄이거나 하루를 옮기는 편이 낫다
+update public.signup_code set max_uses = 0 where code = 'SAJU1001';
+```
+
+> **훅은 껐다.** `[auth.hook.before_user_created]` 는 `config.toml` 에서 지웠다. **원격
+> 프로젝트에서는 손으로 꺼야 하고, 그것을 마이그레이션보다 먼저 해야 한다** — 아래
+> 「가입 코드 배포 — 훅을 먼저 끈다」.
 
 ---
 
@@ -131,6 +158,15 @@ returns integer language sql immutable as $$ select 8 $$;
 > 옮기기 전에 **무엇을 근거로 옮기는지 적어 둔다.** 처음 다섯은 재어 보고 정한 값이
 > 아니다(ADR 0021). 「달라고 해서」와 「테스터 대부분이 다섯에서 멈춰서」는 다른 근거이고,
 > 뒤의 것만 다음 판을 정하는 데 쓸 수 있다.
+>
+> **다섯에서 여덟으로 옮긴 근거는 셈이다.** 내 사주 하나, 저장한 사람 하나, 그 둘의 궁합
+> 하나면 벌써 셋이다. 남은 둘로 인연 요청을 띄우면 그 둘은 답이 올 때까지 **예약**으로
+> 묶여 있어(ADR 0038) 매칭을 한 바퀴도 못 돈다. 여덟이면 그 셋을 하고도 요청 셋을 띄운 채
+> 재시도 하나와 실패 하나가 들어갈 자리가 남는다.
+
+> **저장 자리보다 크게 올리지 않는다.** `person_limit()` 이 열이고, 풀이를 받으려면 대상이
+> 저장돼 있어야 한다(ADR 0032). 이 부등식이 깨지는 순간 풀이권을 가지고도 쓸 데가 없는
+> 사람이 생기고, 그때 다시 열어야 하는 것은 저장 한도가 아니라 **저장 없이 풀이 받기**다.
 
 **전체 비용은 이 값이 안 막는다.** 사람당 상한일 뿐이라, 초대 인원이 늘면 하루 전체
 상한(`reading_daily_budget()`, 아래 「AI 비용 한도」)과 OpenAI 쪽 예산을 함께 옮겨야 한다.
@@ -163,11 +199,12 @@ select * from public.forget_user('<user uuid>');
 - **신고 기록도 사라진다.** 신고한 쪽이든 신고당한 쪽이든 계정이 사라지면 그 행이 따라간다.
   안전 운영에 남겨야 할 것이 있으면 **지우기 전에** 따로 적는다.
 
-`invite` 는 안 건드린다. **삭제는 접근 회수가 아니다** — 위의 초대 절과 같은 구분이다.
-다시 못 들어오게 하려면 초대도 따로 지운다.
+**다시 못 들어오게 하는 것은 이 문이 아니다.** 삭제는 접근 회수가 아니고(위의 초대 절과
+같은 구분), 코드는 사람에 매여 있지 않다 — 지운 사람이 같은 코드를 아직 들고 있으면 그
+코드가 살아 있는 동안에는 다시 들어올 수 있다. 막으려면 **그 코드를 닫는다.**
 
 ```sql
-delete from public.invite where email = '<지운 사람의 주소>';
+update public.signup_code set max_uses = 0 where code = '<그 사람에게 준 코드>';
 ```
 
 ### 종료일이 되면 — **저절로 닫힌다**
@@ -219,13 +256,13 @@ select public.forget_orphan_people();
 -- 남은 것이 없어야 한다. 남았다면 그것이 이 절차의 구멍이다.
 --
 -- **FK 로 안 따라오는 것들이 이 목록에 있다.** `reading_webhook_event` 는 어느 표에도
--- 안 매여 있고(도착을 적는 영수증이라 그렇다), 감사 로그·flow state·초대 명단은
--- `forget_user` 가 손으로 지운다 — 셋 다 사용자에 매여 있지 않다.
+-- 안 매여 있고(도착을 적는 영수증이라 그렇다), 감사 로그와 flow state 는 `forget_user`
+-- 가 손으로 지운다 — 둘 다 사용자에 매여 있지 않다.
 select
   (select count(*) from auth.users)                  as 계정,
   (select count(*) from auth.audit_log_entries)      as 감사로그,
   (select count(*) from auth.flow_state)             as 로그인중간상태,
-  (select count(*) from public.invite)               as 초대명단,
+  (select count(*) from public.signup_code)          as 가입코드,
   (select count(*) from public.person)               as 사람,
   (select count(*) from public.person_chart_revision) as 판본,
   (select count(*) from public.reading)              as 결과,
@@ -253,9 +290,9 @@ delete from public.reading_webhook_event;
 ```
 
 ```sql
--- 초대 명단은 사람 이름이 적힌 명단이다. 사람마다의 삭제가 이미 지우지만,
--- 가입한 적 없는 초대는 계정이 없어 그 길로 안 사라진다.
-delete from public.invite;
+-- 가입 코드는 사람 이름이 아니라 문자열과 운영자 메모다. 그래도 「누가 그 코드로
+-- 들어왔나」가 계정과 함께 사라진 뒤에는 남길 이유가 없다.
+delete from public.signup_code;
 ```
 
 ### DB 밖
@@ -436,9 +473,9 @@ order by a.deletion_requested_at;
 ```sql
 -- **`delete from auth.users` 를 직접 쓰지 않는다.**
 --
--- 그 문장은 FK 가 닿는 것만 데려간다. 감사 로그(모든 행이 이메일을 든다)·flow state·
--- 초대 명단은 사용자에 안 매여 있어 그대로 남는다(ADR 0023). 위의 「지우기」 절과 같은
--- 문을 쓴다 — 절차가 둘이면 하나는 낡는다.
+-- 그 문장은 FK 가 닿는 것만 데려간다. 감사 로그(모든 행이 이메일을 든다)와 flow state 는
+-- 사용자에 안 매여 있어 그대로 남는다(ADR 0023). 위의 「지우기」 절과 같은 문을 쓴다 —
+-- 절차가 둘이면 하나는 낡는다.
 select * from public.forget_user('<user-id>');
 ```
 
@@ -454,8 +491,7 @@ select
   (select count(*) from auth.audit_log_entries
    where payload ->> 'actor_id' = '<user-id>'
       or payload ->> 'actor_username' = '<지운 주소>') as 감사로그,
-  (select count(*) from auth.flow_state where user_id = '<user-id>') as 로그인중간상태,
-  (select count(*) from public.invite where email = '<지운 주소>') as 초대명단;
+  (select count(*) from auth.flow_state where user_id = '<user-id>') as 로그인중간상태;
 ```
 
 ---
@@ -667,6 +703,60 @@ group by 1;
 npx supabase db push          # 새 마이그레이션을 원격에 적용
 npx supabase migration list   # 로컬과 원격이 같은지 확인
 ```
+
+### 가입 코드 배포 — **훅을 먼저 끈다** (ADR 0042, 한 번만)
+
+`20260911090000_the_code_opens_the_signup.sql` 이 `gate_signup_by_invite` 를 지운다.
+원격의 훅이 **그 함수를 가리킨 채로** 남아 있으면 GoTrue 가 없는 함수를 부르고,
+그때 **아무도 로그인하지 못한다.** 로컬에서 실제로 그 상태를 봤다.
+
+    Error running hook URI: pg-functions://postgres/public/gate_signup_by_invite
+
+순서가 곧 안전이다.
+
+**1. 훅을 끈다 (대시보드)**
+
+<https://supabase.com/dashboard/project/skxtqxajfmxiusqrgbuf/auth/hooks>
+
+메뉴로 가면 왼쪽 사이드바의 **Authentication** → 그 안의 **Hooks** 다. 그 화면에 훅
+종류가 카드로 서 있고 우리 것은 **Before User Created** 하나다 — 값에
+`pg-functions://postgres/public/gate_signup_by_invite` 가 적혀 있는 그 카드다. 거기서
+훅을 **끄거나 지운다**(활성 토글을 내리거나, 지정된 Postgres 함수를 비운다).
+
+저장한 뒤 **화면을 새로 고쳐 실제로 꺼졌는지 눈으로 확인한다.** 이 한 걸음이 안 되면
+다음 걸음이 서비스를 닫는다.
+
+> `supabase config push` 로 대신하지 않는다. **원격의 구글 설정을 지운다**(맨 위 경고).
+
+**2. 마이그레이션을 올린다**
+
+```bash
+npx supabase db push
+```
+
+**3. 앱을 배포한다** — `main` 에 머지하면 자동으로 나간다.
+
+**4. 첫 코드를 넣는다** — 위 「초대」의 `insert into public.signup_code …`.
+
+**5. 확인한다** — 로그인이 되는가(훅이 안 남았는가), 코드 없이 `/me` 로 가면 `/signup`
+이 서는가, 넣은 코드로 가입이 끝나는가.
+
+```sql
+-- 오늘 코드와 남은 자리
+select c.code, c.max_uses, count(u.id) as 들어온사람
+from public.signup_code c
+left join public.app_user u on u.signup_code = c.code
+where c.valid_on = (now() at time zone 'Asia/Seoul')::date
+group by c.code, c.max_uses;
+
+-- 가입이 안 끝난 계정 — 코드를 못 넣었거나 안 넣은 사람이다. 그대로 둬도 된다.
+select au.email, u.signed_up_at
+from public.app_user u join auth.users au on au.id = u.id
+where u.signed_up_at is null;
+```
+
+**되돌려야 하면** 훅을 다시 켤 수는 없다 — 가리킬 함수가 없어졌기 때문이다. 되돌리는
+길은 마이그레이션을 되돌리는 것 하나다. 그래서 **1번을 눈으로 확인한 뒤에만 2번으로 간다.**
 
 배포 전 확인은 `npm run verify` 와 네 층 전부:
 

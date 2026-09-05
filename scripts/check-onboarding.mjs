@@ -3,8 +3,9 @@
  *
  * pgTAP 은 DB 안에서만 돈다. 그래서 못 재는 것이 둘 있다.
  *
- * 1. **GoTrue 가 초대 훅을 정말 부르는가** — 함수가 옳게 판정하는 것과, 가입 경로가
- *    그 함수를 거치는 것은 다른 문제다. 설정 한 줄이면 안 부르게 된다.
+ * 1. **구글 로그인만 한 계정이 실제로 아무것도 못 하는가** — 이메일 명단을 걷은 뒤로
+ *    (ADR 0042) 그 상태가 실재한다. 화면 관문은 길만 가리키므로, 되돌릴 수 없는 첫
+ *    쓰기가 RPC 로도 막히는지는 실제 스택에 대고 재야 한다.
  * 2. **화면이 쓰는 질의가 도는가** — 정책이 옳아도 PostgREST 질의 모양이 틀리면
  *    화면은 빈 채로 나온다. 빈 화면은 「저장 안 됨」과 구별되지 않는다.
  *
@@ -12,12 +13,11 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { execFileSync } from 'node:child_process';
-import { passNotice, scheduleBeta } from './notice.mjs';
+import { CHECK_CODE, NOTICE_VERSION, passNotice, scheduleBeta, seedSignupCode } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
 
-const admin = createClient(API, status.SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 
 const checks = [];
@@ -27,68 +27,45 @@ const check = (name, pass, detail = '') => {
 };
 
 const stamp = Date.now();
-const invited = `invited-${stamp}@example.com`;
-const stranger = `stranger-${stamp}@example.com`;
+const tester = `tester-${stamp}@example.com`;
 const password = `pw-${stamp}-Aa1!`;
 
-/**
- * 초대는 **운영자가 SQL 로 넣는다.**
- *
- * PostgREST 로 안 넣는 이유가 설계다 — `service_role` 에도 이 표의 권한을 주지 않았다.
- * 그 키가 새면 초대 명단이 통째로 열리기 때문이다. 그래서 이 검사도 앱이 쓰는 길이
- * 아니라 운영자가 쓰는 길로 넣는다.
- */
-const sql = (statement) =>
-  execFileSync('docker', ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-q', '-c', statement],
-    { encoding: 'utf8' });
+const scheduleId = async (client) =>
+  (await client.rpc('current_beta_schedule')).data?.[0]?.schedule_id;
 
-// ── 1. 초대 명단에 하나 넣는다 ────────────────────────────────────────────────
+// ── 1. 코드는 운영자가 만든다 ────────────────────────────────────────────────
 {
+  scheduleBeta();
   let ok = true;
   let detail = '';
   try {
-    sql(`insert into public.invite (email, note) values ('${invited}', '검사')`);
+    seedSignupCode();
   } catch (error) {
     ok = false;
     detail = String(error.stderr ?? error.message).trim();
   }
-  check('초대 명단에 넣는다 (운영자 SQL)', ok, detail);
+  check('테스트 코드를 넣는다 (운영자 SQL)', ok, detail);
 }
 
-// ── 2. 초대 안 된 주소는 가입 자체가 안 된다 ──────────────────────────────────
-{
-  const { data, error } = await anon().auth.signUp({ email: stranger, password });
-  check('초대 안 된 주소는 계정이 만들어지지 않는다', error !== null && data.user === null,
-    error ? `거부: ${error.message}` : '가입돼 버렸다');
-
-  const { data: leftover } = await admin.auth.admin.listUsers();
-  const stayed = leftover.users.some((u) => u.email === stranger);
-  check('거부된 주소는 auth.users 에 흔적도 안 남긴다', !stayed);
-}
-
-// ── 3. 초대된 주소는 들어오고, 계정 행이 따라 생긴다 ──────────────────────────
+// ── 2. 구글 로그인만으로 계정 행이 생긴다 ─────────────────────────────────────
 const client = anon();
 {
-  const { data, error } = await client.auth.signUp({ email: invited, password });
-  check('초대된 주소는 들어온다', error === null && data.user !== null, error?.message);
+  const { data, error } = await client.auth.signUp({ email: tester, password });
+  check('명단 없이도 로그인은 된다 — 문은 코드가 지킨다', error === null && data.user !== null,
+    error?.message);
   check('세션이 선다', Boolean(data.session));
 
   const { data: account, error: readError } = await client
-    .from('app_user').select('status, self_person_id').maybeSingle();
-  check('가입하면 계정 행이 따라 생긴다', account?.status === 'active', readError?.message);
+    .from('app_user').select('status, self_person_id, signed_up_at').maybeSingle();
+  check('로그인하면 계정 행이 따라 생긴다', account?.status === 'active', readError?.message);
   check('아직 selfPerson 이 없다', account?.self_person_id === null);
+  check('가입은 아직 안 끝났다', account?.signed_up_at === null);
 }
 
-// ── 3-1. 안내를 보기 전에는 첫 입력이 안 들어간다 ────────────────────────────
+// ── 3. 가입이 안 끝난 계정은 아무것도 못 쓴다 ────────────────────────────────
 {
-  const { data: before } = await client
-    .from('app_user').select('notice_ack_at, improvement_consent').maybeSingle();
-  check('가입만 한 사람은 안내를 본 적이 없다', before?.notice_ack_at === null);
-  check('선택 답도 아직 없다 — 「거절」이 아니라 「안 물었다」다',
-    before?.improvement_consent === null);
-
   /**
-   * **여기가 출생 정보가 처음 들어오는 자리다.** 화면에도 관문이 있지만(`/me` 레이아웃)
+   * **여기가 출생 정보가 처음 들어오는 자리다.** 화면에도 관문이 있지만(`proxy.ts`)
    * 되돌릴 수 없는 첫 쓰기는 DB 가 막는다 — 화면만 막으면 이렇게 RPC 로 지나간다.
    */
   const { error } = await client.rpc('create_self_person', {
@@ -96,15 +73,39 @@ const client = anon();
     p_original_date: '1990-05-15', p_solar_date: '1990-05-15', p_birth_time: '14:30',
     p_gender: 'male', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',
   });
-  check('안내를 안 봤으면 첫 입력이 거절된다',
-    error !== null && error.message.includes('처리 안내'), error?.message ?? '들어가 버렸다');
+  check('가입을 안 끝냈으면 첫 입력이 거절된다',
+    error !== null && error.message.includes('가입을 먼저'), error?.message ?? '들어가 버렸다');
+
+  /** 남의 생년월일시가 들어오는 문도 같은 자리에서 막힌다 */
+  const { error: managed } = await client.rpc('create_managed_person', {
+    p_local_label: '어머니', p_note: null, p_calendar: 'solar',
+    p_original_date: '1965-03-02', p_solar_date: '1965-03-02', p_birth_time: '09:00',
+    p_gender: 'female', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+  });
+  check('가입을 안 끝냈으면 남의 사주도 거절된다',
+    managed !== null && managed.message.includes('가입을 먼저'), managed?.message ?? '들어가 버렸다');
+}
+
+// ── 3-1. 코드가 실제로 문이다 ────────────────────────────────────────────────
+{
+  const { error: nocode } = await client.rpc('complete_signup', {
+    p_code: null, p_nickname: '민수', p_version: NOTICE_VERSION,
+    p_schedule_id: await scheduleId(client), p_improvement: false, p_contact: false,
+  });
+  check('코드 없이는 가입이 안 끝난다', nocode !== null, nocode?.message ?? '지나가 버렸다');
+
+  const { error: wrong } = await client.rpc('complete_signup', {
+    p_code: 'NOSUCHCODE', p_nickname: '민수', p_version: NOTICE_VERSION,
+    p_schedule_id: await scheduleId(client), p_improvement: false, p_contact: false,
+  });
+  check('없는 코드는 거절된다', wrong !== null, wrong?.message ?? '지나가 버렸다');
 
   /** 선택 답을 비운 채 지나가는 길이 없다 — 물었는데 `null` 인 사람이 생기면 안 된다 */
-  scheduleBeta();
-  const { error: blank } = await client.rpc('acknowledge_notice', {
-    p_version: 'notice-check', p_schedule_id: 1, p_improvement: null, p_contact: false,
+  const { error: blank } = await client.rpc('complete_signup', {
+    p_code: CHECK_CODE, p_nickname: '민수', p_version: NOTICE_VERSION,
+    p_schedule_id: await scheduleId(client), p_improvement: null, p_contact: false,
   });
-  check('선택 항목을 비운 채로는 안내를 지날 수 없다', blank !== null, blank?.message ?? '지나가 버렸다');
+  check('선택 항목을 비운 채로는 가입할 수 없다', blank !== null, blank?.message ?? '지나가 버렸다');
 }
 
 // ── 4. 자기 사주를 저장한다 ───────────────────────────────────────────────────
@@ -123,7 +124,6 @@ const client = anon();
   });
   check('자기 사주를 저장한다', error === null, error?.message);
 
-  await passNotice(client);
   const { error: again } = await client.rpc('create_self_person', {
     p_local_label: '민수2', p_calendar: 'solar',
     p_original_date: '1991-01-01', p_solar_date: '1991-01-01', p_birth_time: '09:00',
@@ -164,7 +164,6 @@ let personId;
 const other = anon();
 {
   const otherEmail = `other-${stamp}@example.com`;
-  sql(`insert into public.invite (email, note) values ('${otherEmail}', '검사')`);
   await other.auth.signUp({ email: otherEmail, password });
 
   const { data: people } = await other.from('person').select('id');

@@ -58,7 +58,6 @@ const sql = (statement) =>
   execFileSync('docker', ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq', '-c', statement],
     { encoding: 'utf8' }).trim();
 
-sql(`insert into public.invite (email, note) values ('${mail.a}', '검사'), ('${mail.b}', '검사')`);
 
 /** 지난 실행이 남긴 참여자가 후보 목록을 헛디디게 하지 않는다 */
 const hideOthers = (email) => {
@@ -200,9 +199,15 @@ try {
      *
      * 그래서 이 층은 **셈**을 재고, 그 셈이 화면 어디에 서는지는 e2e 가 잰다.
      */
+    /*
+      **총량을 손으로 안 적는다.** RPC 가 이미 `credit_limit` 을 내주므로 그것을 견준다 —
+      수를 옮기는 날 검사만 옛 수를 지키는 일이 없게(`tests.reading_credit_limit` 과 같은 규율).
+    */
     const fresh = await a.rpc('my_reading_credits');
-    check('아직 아무것도 안 만들었으면 다섯이 남는다',
-      fresh.data?.[0]?.available === 5, JSON.stringify(fresh.data?.[0] ?? null));
+    const room = fresh.data?.[0]?.credit_limit;
+    check('아직 아무것도 안 만들었으면 총량이 그대로 남는다',
+      typeof room === 'number' && fresh.data?.[0]?.available === room,
+      JSON.stringify(fresh.data?.[0] ?? null));
   }
 
   // ── 2. 자기 풀이 ─────────────────────────────────────────────────────────
@@ -227,7 +232,8 @@ try {
     check('그 경고가 버튼 옆에 늘 서 있지는 않다', !mine.includes('지금 풀이를 새로 받을 수 있어요'));
     const spent = await a.rpc('my_reading_credits');
     check('만들면 풀이권이 하나 준다',
-      spent.data?.[0]?.used === 1 && spent.data?.[0]?.available === 4,
+      spent.data?.[0]?.used === 1
+        && spent.data?.[0]?.available === spent.data?.[0]?.credit_limit - 1,
       JSON.stringify(spent.data?.[0] ?? null));
 
     /**
@@ -719,7 +725,8 @@ try {
      */
     const left = await a.rpc('my_reading_credits');
     check('실패한 시도는 풀이권을 쓰지 않는다',
-      left.data?.[0]?.used === 4 && left.data?.[0]?.available === 1,
+      left.data?.[0]?.used === 4
+        && left.data?.[0]?.available === left.data?.[0]?.credit_limit - 4,
       JSON.stringify(left.data?.[0] ?? null));
   }
 } finally {

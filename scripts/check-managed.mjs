@@ -37,11 +37,6 @@ const password = `pw-${stamp}-Aa1!`;
 const mine = `mine-${stamp}@example.com`;
 const theirs = `theirs-${stamp}@example.com`;
 
-// 초대는 운영자가 SQL 로 넣는다 — `service_role` 에도 이 표의 권한을 주지 않았다.
-const sql = (statement) =>
-  execFileSync('docker', ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-q', '-c', statement],
-    { encoding: 'utf8' });
-
 const birth = {
   p_calendar: 'solar',
   p_original_date: '1990-05-15',
@@ -54,7 +49,6 @@ const birth = {
 };
 
 // ── 1. 두 계정을 세운다 ───────────────────────────────────────────────────────
-sql(`insert into public.invite (email, note) values ('${mine}', '검사'), ('${theirs}', '검사')`);
 
 const client = anon();
 await client.auth.signUp({ email: mine, password });

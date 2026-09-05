@@ -11,7 +11,7 @@ import { gateFor, scheduleFrom } from '@/src/lib/consent';
  *
  * ## 관문이 여기로 온 이유 — **레이아웃은 안 돈다**
  *
- * 안내·종료·이름 셋은 `app/me/layout.tsx` 에 있었다. 그런데 **레이아웃은 자기 아래
+ * 관문은 `app/me/layout.tsx` 에 있었다. 그런데 **레이아웃은 자기 아래
  * 화면끼리 옮겨 다닐 때 다시 안 돈다** — 재어 봤다(2026-09-04). 그래서 관문이 첫 문서
  * 적재에서만 섰고, 앱 안에서 걸어 다니는 사람에게는 아무것도 안 물었다. 그리고
  * 레이아웃이 자기 아래 화면으로 튕기면 브라우저가 그 조각을 끝없이 다시 받아 **화면이
@@ -22,8 +22,11 @@ import { gateFor, scheduleFrom } from '@/src/lib/consent';
  * ## 그래도 **접근 판정은 안 한다**
  *
  * 무엇을 볼 수 있는지는 여전히 DB 정책이 정하고, 되돌릴 수 없는 문마다 DB 가 다시
- * 묻는다(`create_self_person`·`start_reading_run`·`is_active_account`). 여기서 하는
- * 일은 **길을 가리키는 것**뿐이라, 이 파일이 통째로 틀려도 열리는 문은 없다.
+ * 묻는다(`create_self_person`·`create_managed_person`·`start_reading_run`·
+ * `is_active_account`). 여기서 하는 일은 **길을 가리키는 것**뿐이라, 이 파일이 통째로
+ * 틀려도 열리는 문은 없다.
+ *
+ * 관문이 묻는 것은 **둘**이다 — 베타가 끝났나, 가입이 끝났나(ADR 0042).
  *
  * 고르는 규칙은 여기 없다 — `gateFor` 가 든다. 자료를 읽는 일과 고르는 일을 떼어
  * 두면 규칙을 브라우저 없이 전부 밟을 수 있고, **밟히지 않은 규칙이 그 구멍을
@@ -72,7 +75,10 @@ export async function proxy(request: NextRequest) {
     보내고, 화면이 「계정을 읽지 못했습니다」라고 말한다.
   */
   const [{ data: account }, notice] = await Promise.all([
-    supabase.from('app_user').select('nickname, notice_version, notice_schedule_id').maybeSingle(),
+    supabase
+      .from('app_user')
+      .select('signed_up_at, notice_version, notice_schedule_id')
+      .maybeSingle(),
     scheduleFrom((name) => supabase.rpc(name)),
   ]);
 
@@ -81,7 +87,7 @@ export async function proxy(request: NextRequest) {
     account === null
       ? null
       : {
-          nickname: account.nickname,
+          signedUp: account.signed_up_at !== null,
           noticeVersion: account.notice_version,
           noticeScheduleId: account.notice_schedule_id,
         },
@@ -100,6 +106,10 @@ export const config = {
    *
    * `/` 만 로그인 없이 도는 정적 화면이다. `/compat` 은 로그인 후 쓰므로 만료된
    * 세션을 갱신해야 한다.
+   *
+   * `/signup` 도 로그인한 사람의 화면이다. **여기서 튕기지는 않지만**(`gateFor` 는
+   * `/me` 아래만 본다) 세션은 갱신해야 한다 — 안내가 바뀌어 오랜만에 돌아온 사람의
+   * 토큰이 만료돼 있으면, 가입을 마치라는 화면 대신 로그인 화면이 선다.
    */
-  matcher: ['/me/:path*', '/compat', '/auth/:path*'],
+  matcher: ['/me/:path*', '/compat', '/auth/:path*', '/signup'],
 };
