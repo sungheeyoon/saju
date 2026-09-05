@@ -143,6 +143,14 @@ stable
 security definer
 as $$ select public.person_limit() $$;
 
+/** 풀이권 총량 — `tests.person_limit()` 과 같은 자리, 같은 까닭이다 */
+create or replace function tests.reading_credit_limit()
+returns integer
+language sql
+stable
+security definer
+as $$ select public.reading_credit_limit() $$;
+
 -- 시험은 역할을 `authenticated` 로 바꾼 채로 이 손잡이들을 부른다.
 grant usage on schema tests to authenticated;
 grant execute on all functions in schema tests to authenticated;
