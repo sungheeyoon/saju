@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import { Suspense } from 'react';
 
 import { ELEMENTS, ELEMENT_KO } from '@/src/lib/saju';
 
+import { CompatEntry } from './compat-entry';
 import { ELEMENT_TONE } from './element-tone';
 import { HOUR_UNKNOWN_LABEL } from './query';
 import { SajuCalculator } from './saju-calculator';
@@ -19,16 +19,13 @@ export default function Home() {
             나를 이루는 흐름을<br className="hidden sm:block" /> 차분하게 읽어보세요
           </h1>
           <p className="mt-4 max-w-2xl text-[0.95rem] leading-7 text-secondary sm:text-base">
-            출생 정보로 사주의 기본 구조와 운의 흐름을 확인하세요. 입력한 정보는
-            이 브라우저에서만 계산되며 계정에 저장되지 않습니다.
+            출생 정보로 사주의 기본 구조와 운의 흐름을 확인하세요.
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <a href="#calculator" className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong">
               출생 정보 입력하기
             </a>
-            <Link href="/compat" className="rounded-full border border-border-strong bg-surface px-5 py-2.5 text-sm font-semibold hover:border-accent hover:text-accent">
-              궁합 보기 <span className="text-xs opacity-75">· 로그인 필요</span>
-            </Link>
+            <CompatEntry />
           </div>
         </div>
 
@@ -81,8 +78,7 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-border py-6 text-xs leading-6 text-muted">
-        절기는 천문 계산(태양 황경), 표준시 이력은 IANA tz 데이터에서 생성했습니다. 계산은
-        전부 브라우저에서 실행됩니다.
+        절기는 천문 계산(태양 황경), 표준시 이력은 IANA tz 데이터에서 생성했습니다.
       </footer>
     </main>
   );

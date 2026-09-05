@@ -244,8 +244,7 @@ export function SajuCalculator() {
             생년월일시를 입력해 주세요
           </h2>
           <p className="mt-1.5 text-sm text-secondary">
-            입력 전에는 예시 명식을 보여주지 않습니다. 계산은 서버 전송 없이 이 브라우저에서
-            처리됩니다.
+            입력 전에는 예시 명식을 보여주지 않습니다.
           </p>
         </section>
       ) : result.ok ? (
