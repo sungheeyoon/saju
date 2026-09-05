@@ -132,7 +132,7 @@
 
   격국  월령의 지장간 중 투출한 것으로 격을 잡는다 — 없으면 정기다(잡기격이 여기서 나온다).
         성패는 참·거짓 하나가 아니라 조건의 목록이다. 이루는 것과 깨는 것이 섞이면 미정이다.
-        억부도 조후도 뒤집지 않는다 — 종격과 같은 자리인데 외부 대조는 아직 0건이다.
+        억부도 조후도 뒤집지 않는다 — 대조는 했고(72건 중 56건) 계통이 하나뿐이라 게이트는 닫혀 있다.
 
           ruleSet                wolryeong-structure-v1
           status                 experimental
@@ -142,7 +142,7 @@
           fireEarthSameCourse    true
           outcome                conditions-listed
           yongsinOverride        disabled
-          externalCheck          {"dataset":null,"cases":0,"passed":false}
+          externalCheck          {"dataset":"structureExternalCases","cases":74,"scored":72,"agreed":56,"lineages":1,"passed":false}
           sources                {"selection":"https://zh.wikisource.org/wiki/子平真詮","successAndFailure":"https://zh.wikisource.org/wiki/子平真詮/論用神成敗救應"}
 
   통관  맞선 다섯 쌍과 그 사이를 잇는 오행을 세기만 한다 — 얼마나 맞서야 대치인가는 계통이 갈린다.
