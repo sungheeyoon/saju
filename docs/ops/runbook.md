@@ -122,9 +122,9 @@ delete from public.signup_code where code = 'SAJU1001';
 update public.signup_code set max_uses = 0 where code = 'SAJU1001';
 ```
 
-> **훅은 껐다.** `[auth.hook.before_user_created]` 는 `config.toml` 에서 지웠고, **원격
-> 프로젝트의 Auth Hooks 설정에서도 꺼야 한다.** 켜 둔 채로 함수만 지우면 GoTrue 가 없는
-> 함수를 부르고, 그때 아무도 로그인하지 못한다.
+> **훅은 껐다.** `[auth.hook.before_user_created]` 는 `config.toml` 에서 지웠다. **원격
+> 프로젝트에서는 손으로 꺼야 하고, 그것을 마이그레이션보다 먼저 해야 한다** — 아래
+> 「가입 코드 배포 — 훅을 먼저 끈다」.
 
 ---
 
@@ -199,11 +199,12 @@ select * from public.forget_user('<user uuid>');
 - **신고 기록도 사라진다.** 신고한 쪽이든 신고당한 쪽이든 계정이 사라지면 그 행이 따라간다.
   안전 운영에 남겨야 할 것이 있으면 **지우기 전에** 따로 적는다.
 
-`invite` 는 안 건드린다. **삭제는 접근 회수가 아니다** — 위의 초대 절과 같은 구분이다.
-다시 못 들어오게 하려면 초대도 따로 지운다.
+**다시 못 들어오게 하는 것은 이 문이 아니다.** 삭제는 접근 회수가 아니고(위의 초대 절과
+같은 구분), 코드는 사람에 매여 있지 않다 — 지운 사람이 같은 코드를 아직 들고 있으면 그
+코드가 살아 있는 동안에는 다시 들어올 수 있다. 막으려면 **그 코드를 닫는다.**
 
 ```sql
-delete from public.invite where email = '<지운 사람의 주소>';
+update public.signup_code set max_uses = 0 where code = '<그 사람에게 준 코드>';
 ```
 
 ### 종료일이 되면 — **저절로 닫힌다**
@@ -255,13 +256,13 @@ select public.forget_orphan_people();
 -- 남은 것이 없어야 한다. 남았다면 그것이 이 절차의 구멍이다.
 --
 -- **FK 로 안 따라오는 것들이 이 목록에 있다.** `reading_webhook_event` 는 어느 표에도
--- 안 매여 있고(도착을 적는 영수증이라 그렇다), 감사 로그·flow state·초대 명단은
--- `forget_user` 가 손으로 지운다 — 셋 다 사용자에 매여 있지 않다.
+-- 안 매여 있고(도착을 적는 영수증이라 그렇다), 감사 로그와 flow state 는 `forget_user`
+-- 가 손으로 지운다 — 둘 다 사용자에 매여 있지 않다.
 select
   (select count(*) from auth.users)                  as 계정,
   (select count(*) from auth.audit_log_entries)      as 감사로그,
   (select count(*) from auth.flow_state)             as 로그인중간상태,
-  (select count(*) from public.invite)               as 초대명단,
+  (select count(*) from public.signup_code)          as 가입코드,
   (select count(*) from public.person)               as 사람,
   (select count(*) from public.person_chart_revision) as 판본,
   (select count(*) from public.reading)              as 결과,
@@ -289,9 +290,9 @@ delete from public.reading_webhook_event;
 ```
 
 ```sql
--- 초대 명단은 사람 이름이 적힌 명단이다. 사람마다의 삭제가 이미 지우지만,
--- 가입한 적 없는 초대는 계정이 없어 그 길로 안 사라진다.
-delete from public.invite;
+-- 가입 코드는 사람 이름이 아니라 문자열과 운영자 메모다. 그래도 「누가 그 코드로
+-- 들어왔나」가 계정과 함께 사라진 뒤에는 남길 이유가 없다.
+delete from public.signup_code;
 ```
 
 ### DB 밖
@@ -472,9 +473,9 @@ order by a.deletion_requested_at;
 ```sql
 -- **`delete from auth.users` 를 직접 쓰지 않는다.**
 --
--- 그 문장은 FK 가 닿는 것만 데려간다. 감사 로그(모든 행이 이메일을 든다)·flow state·
--- 초대 명단은 사용자에 안 매여 있어 그대로 남는다(ADR 0023). 위의 「지우기」 절과 같은
--- 문을 쓴다 — 절차가 둘이면 하나는 낡는다.
+-- 그 문장은 FK 가 닿는 것만 데려간다. 감사 로그(모든 행이 이메일을 든다)와 flow state 는
+-- 사용자에 안 매여 있어 그대로 남는다(ADR 0023). 위의 「지우기」 절과 같은 문을 쓴다 —
+-- 절차가 둘이면 하나는 낡는다.
 select * from public.forget_user('<user-id>');
 ```
 
@@ -490,8 +491,7 @@ select
   (select count(*) from auth.audit_log_entries
    where payload ->> 'actor_id' = '<user-id>'
       or payload ->> 'actor_username' = '<지운 주소>') as 감사로그,
-  (select count(*) from auth.flow_state where user_id = '<user-id>') as 로그인중간상태,
-  (select count(*) from public.invite where email = '<지운 주소>') as 초대명단;
+  (select count(*) from auth.flow_state where user_id = '<user-id>') as 로그인중간상태;
 ```
 
 ---
@@ -703,6 +703,60 @@ group by 1;
 npx supabase db push          # 새 마이그레이션을 원격에 적용
 npx supabase migration list   # 로컬과 원격이 같은지 확인
 ```
+
+### 가입 코드 배포 — **훅을 먼저 끈다** (ADR 0042, 한 번만)
+
+`20260911090000_the_code_opens_the_signup.sql` 이 `gate_signup_by_invite` 를 지운다.
+원격의 훅이 **그 함수를 가리킨 채로** 남아 있으면 GoTrue 가 없는 함수를 부르고,
+그때 **아무도 로그인하지 못한다.** 로컬에서 실제로 그 상태를 봤다.
+
+    Error running hook URI: pg-functions://postgres/public/gate_signup_by_invite
+
+순서가 곧 안전이다.
+
+**1. 훅을 끈다 (대시보드)**
+
+<https://supabase.com/dashboard/project/skxtqxajfmxiusqrgbuf/auth/hooks>
+
+메뉴로 가면 왼쪽 사이드바의 **Authentication** → 그 안의 **Hooks** 다. 그 화면에 훅
+종류가 카드로 서 있고 우리 것은 **Before User Created** 하나다 — 값에
+`pg-functions://postgres/public/gate_signup_by_invite` 가 적혀 있는 그 카드다. 거기서
+훅을 **끄거나 지운다**(활성 토글을 내리거나, 지정된 Postgres 함수를 비운다).
+
+저장한 뒤 **화면을 새로 고쳐 실제로 꺼졌는지 눈으로 확인한다.** 이 한 걸음이 안 되면
+다음 걸음이 서비스를 닫는다.
+
+> `supabase config push` 로 대신하지 않는다. **원격의 구글 설정을 지운다**(맨 위 경고).
+
+**2. 마이그레이션을 올린다**
+
+```bash
+npx supabase db push
+```
+
+**3. 앱을 배포한다** — `main` 에 머지하면 자동으로 나간다.
+
+**4. 첫 코드를 넣는다** — 위 「초대」의 `insert into public.signup_code …`.
+
+**5. 확인한다** — 로그인이 되는가(훅이 안 남았는가), 코드 없이 `/me` 로 가면 `/signup`
+이 서는가, 넣은 코드로 가입이 끝나는가.
+
+```sql
+-- 오늘 코드와 남은 자리
+select c.code, c.max_uses, count(u.id) as 들어온사람
+from public.signup_code c
+left join public.app_user u on u.signup_code = c.code
+where c.valid_on = (now() at time zone 'Asia/Seoul')::date
+group by c.code, c.max_uses;
+
+-- 가입이 안 끝난 계정 — 코드를 못 넣었거나 안 넣은 사람이다. 그대로 둬도 된다.
+select au.email, u.signed_up_at
+from public.app_user u join auth.users au on au.id = u.id
+where u.signed_up_at is null;
+```
+
+**되돌려야 하면** 훅을 다시 켤 수는 없다 — 가리킬 함수가 없어졌기 때문이다. 되돌리는
+길은 마이그레이션을 되돌리는 것 하나다. 그래서 **1번을 눈으로 확인한 뒤에만 2번으로 간다.**
 
 배포 전 확인은 `npm run verify` 와 네 층 전부:
 
