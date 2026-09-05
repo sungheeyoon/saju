@@ -185,7 +185,7 @@ describe('변형은 한 곳만 벗어난다', () => {
    * **칸만 세면 못 보는 자리가 있다.**
    *
    * `selfPresentation` 한 칸을 바꾸면서 절 셋을 함께 움직이는 변형이 실제로 들어왔다
-   * (`yongsin-v1`). 칸 수로는 「한 곳만 바꿨다」라 `confounded` 를 못 적게 막혔는데,
+   * (`yongsin-v1`, 지금은 승격되어 그 짝이 `no-yongsin-v1` 이다). 칸 수로는 「한 곳만 바꿨다」라 `confounded` 를 못 적게 막혔는데,
    * 이겨도 셋 중 무엇 덕인지 모르는 것은 두 칸을 바꾼 것과 똑같다.
    *
    * 그래서 **바뀐 절 수도 함께 센다.** 자를 내린 뒤에야 규칙 1 이 제 몫을 한다.
@@ -761,11 +761,21 @@ describe('고객이 읽는 글의 계약', () => {
     }
   });
 
-  /** 실제로 보내는 것은 새 뼈대다 — 옛판이 기준판 자리로 되돌아오지 않았다 */
-  it('기준판은 새 뼈대다', () => {
-    expect(CONTROL.selfPresentation).toBe('expert-v3');
+  /**
+   * 실제로 보내는 것은 새 뼈대다 — 옛판이 기준판 자리로 되돌아오지 않았다.
+   *
+   * 그 자리가 `expert-v4` 로 올라갔다. **뼈대 이름을 여기에 박아 두는 까닭**은 승격이
+   * 조용히 일어나지 않게 하려는 것이다 — 기준판이 바뀌면 저장되는 판본 이름도 바뀌어야
+   * 하는데(`READING_POLICY.version`), 그 둘이 따로 놀면 같은 이름의 결과 둘이 서로 다른
+   * 프롬프트로 만들어진다.
+   */
+  it('기준판은 새 뼈대이고 용신 계열을 읽는다', () => {
+    expect(CONTROL.selfPresentation).toBe('expert-v4');
+    expect(READING_POLICY.version).toBe('reading-prompt-v5');
     expect(selfPrompt()).toContain('이 사주의 핵심');
     expect(selfPrompt()).not.toContain('살림법');
+    expect(selfPrompt()).toContain('analysis.strength');
+    expect(selfPrompt()).toContain('analysis.structure');
   });
 
   /**
