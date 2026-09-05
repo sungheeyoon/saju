@@ -11,7 +11,7 @@ import {
 import { computeSaju } from '@/src/lib/saju';
 import { randomInputs } from '@/src/lib/saju/population';
 import { eokbuAssessmentOf } from '@/src/lib/saju/analysis/yongsin';
-import { GENERATED_BY, CONTROLLED_BY, pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
+import { GENERATED_BY, CONTROLLED_BY, HIDDEN_STEMS, pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
 
 const chart = (year: string, month: string, day: string, hour: string) => {
   const parse = (name: string) => {
@@ -206,5 +206,60 @@ describe('희용기구한', () => {
       expect(seat.ratio).toBeGreaterThanOrEqual(0);
       expect(seat.detail.length).toBeGreaterThan(0);
     }
+  });
+});
+
+/**
+ * 왕지 월령 — **출처가 조항으로 답을 준 자리.**
+ *
+ * 「如十二支中，除子午卯酉外，餘皆有藏，不必四庫也」(《子平真詮》論用神變化). 격을 잡을 때
+ * 이 넷은 정기 하나로 본다. 사령 표(`HIDDEN_STEMS`)는 그대로다 — 오행 점수와 뿌리는
+ * 여전히 子의 壬 10일을 세고, 갈린 것은 **격을 잡는 자리 하나**다.
+ */
+describe('왕지 월령은 정기 하나로 격을 잡는다', () => {
+  const chart = (year: string, month: string, day: string, hour: string) => {
+    const parse = (name: string) => {
+      const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
+      if (!pillar) throw new Error(`간지가 아니다: ${name}`);
+      return pillar;
+    };
+    const dayPillar = parse(day);
+    return {
+      year: parse(year),
+      month: parse(month),
+      day: dayPillar,
+      hour: parse(hour),
+      dayMaster: dayPillar.stem,
+    };
+  };
+  const kindOf = (pillars: ReturnType<typeof chart>) =>
+    structureOf(pillars, effectiveElementsOf(pillars).distribution).kind;
+
+  /**
+   * 丁亥·癸卯·癸卯·甲寅 — 출처가 식신격 장에 실은 명조(沈路分命). 卯의 여기 甲이 시간에
+   * 투출해 있어서, 여기를 함께 들면 상관격으로 잡힌다. 조항대로면 정기 乙 하나이고
+   * 癸에게 乙은 식신이다.
+   */
+  it('卯월에 甲이 투간해도 정기 乙로 잡는다', () => {
+    expect(kindOf(chart('丁亥', '癸卯', '癸卯', '甲寅'))).toBe('食神格');
+  });
+
+  /**
+   * 庚寅·乙酉·甲子·戊辰 — 정관격 장의 명조(李參政命). 酉의 여기를 들면 庚이 년간에
+   * 투출해 편관격이 된다. 조항대로면 정기 辛 하나이고 甲에게 辛은 정관이다.
+   */
+  it('酉월에 庚이 투간해도 정기 辛으로 잡는다', () => {
+    expect(kindOf(chart('庚寅', '乙酉', '甲子', '戊辰'))).toBe('正官格');
+  });
+
+  /** 왕지가 아닌 달은 그대로다 — 조항이 넷만 든다 */
+  it('왕지가 아닌 달에서는 여기 투출을 여전히 본다', () => {
+    // 申월 정기 庚이 안 나오고 여기 戊가 시간에 투출 — §108 의 「同知得以作主」 자리다.
+    expect(kindOf(chart('甲申', '壬申', '乙巳', '戊寅'))).toBe('正財格');
+  });
+
+  it('사령 표는 안 건드린다 — 격을 잡는 자리에서만 거른다', () => {
+    expect(HIDDEN_STEMS['卯'].map((hidden) => hidden.stem)).toEqual(['甲', '乙']);
+    expect(STRUCTURE_POLICY.peakMonth).toBe('principal-only');
   });
 });

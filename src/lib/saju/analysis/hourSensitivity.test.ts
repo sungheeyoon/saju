@@ -25,10 +25,14 @@ import { HOUR_SENSITIVE_PATHS, type ClaimPath } from '../text/policy';
  * | `analysis.rootQuality` | 일간 뿌리의 세기 | 64.6% |
  * | `analysis.bureaus` | 선 국(局)의 종류 집합 | 39.7% |
  * | `analysis.effectiveElements` | 가장 무거운 오행 | 31.4% |
- * | `analysis.structure` | 성패 | 26.5% |
+ * | `analysis.structure` | 성패 | 28.6% |
  * | `analysis.favorability` | 다섯 자리 배정 | 25.4% |
- * | `analysis.structure` | 무슨 격인가 | 8.7% |
+ * | `analysis.structure` | 무슨 격인가 | 6.4% |
  * | `analysis.hiddenCombinations` | 암합 짝 | **0%** |
+ *
+ * 격국의 두 줄은 2026-09-05 에 다시 쟀다. 왕지 월령을 정기 하나로 보게 되면서
+ * (`STRUCTURE_POLICY.peakMonth`) 격의 종류가 시주에 덜 흔들린다 — 8.7% → 6.4%.
+ * 여기 투출을 안 보니 시주 두 글자가 격을 바꿀 길이 그만큼 줄었다.
  *
  * ## 뒤에 들어온 자리 (2026-09-05, 같은 방식)
  *
