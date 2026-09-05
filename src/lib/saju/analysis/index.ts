@@ -15,7 +15,13 @@ import { rootednessOf, type Rootedness } from './rootedness';
 import { rootQualityOf, type RootQualityChart } from './rootQuality';
 import { strengthOf, type Strength, type StrengthOptions } from './strength';
 import { structureOf, type Structure } from './structure';
-import { eokbuAssessmentOf, type EokbuAssessment } from './yongsin';
+import { tonggwanCandidacyOf, type TonggwanCandidacy } from './tonggwan';
+import {
+  eokbuAssessmentOf,
+  yongsinAgreementOf,
+  type EokbuAssessment,
+  type YongsinAgreement,
+} from './yongsin';
 import { tenGodChartOf, tenGodCountsOf, type TenGod, type TenGodChart } from './tenGods';
 
 export * from './bureau';
@@ -28,6 +34,7 @@ export * from './hiddenRelations';
 export * from './rootedness';
 export * from './rootQuality';
 export * from './structure';
+export * from './tonggwan';
 export * from './strength';
 export * from './transformation';
 export * from './yongsin';
@@ -122,6 +129,22 @@ export type Analysis = {
    * 개수가 아니라 질로 잰다.
    */
   following: FollowingAssessment;
+  /**
+   * 통관 후보의 재료 — **판정이 아니다.**
+   *
+   * 억부는 언제나 답을 하나 내지만, 두 세력이 팽팽히 맞선 명식에서는 그 물음이
+   * 답을 못 낸다. 맞선 다섯 쌍과 그 사이를 잇는 오행을 세어만 둔다 — 얼마나
+   * 맞서야 대치인가는 계통이 갈리는 문턱이라 여기서 긋지 않는다.
+   */
+  tonggwan: TonggwanCandidacy;
+  /**
+   * 억부와 조후가 같은 것을 가리키는가 — **대조지 판정이 아니다.**
+   *
+   * 두 후보가 화면에 나란히 서 있기만 하고 서로 무슨 관계인지는 아무도 말하지
+   * 않았다. 어느 쪽이 우선인지는 여전히 정하지 않는다 — 그것은 한난조습을 재는
+   * 자리가 있어야 답할 수 있고 이 엔진에 그 자리가 없다.
+   */
+  yongsinAgreement: YongsinAgreement;
 };
 
 export type AnalysisOptions = {
@@ -147,6 +170,7 @@ export function analyzePillars(
   const effective = effectiveElementsOf(pillars, options.weights);
   const rootQuality = rootQualityOf(rootedness, pillars, effective.bureaus);
   const eokbu = eokbuAssessmentOf(pillars, strength, options.weights, effective.distribution);
+  const johu = johuAssessmentOf(pillars, options.instant);
 
   return {
     elements,
@@ -159,7 +183,9 @@ export function analyzePillars(
     // 강약이 실효 분포에서 세력을 쟀으므로 억부도 같은 분포에서 「무엇이 가장
     // 무거운가」를 골라야 한다. 다르면 한 문장 안에서 같은 세력을 두 번 다르게 센다.
     eokbu,
-    johu: johuAssessmentOf(pillars, options.instant),
+    johu,
+    // 두 후보를 견주기만 한다. 우선순위를 정하는 자리가 아니다.
+    yongsinAgreement: yongsinAgreementOf(eokbu, johu),
     // 격국도 강약·억부·종격과 같은 분포에서 세력을 잰다.
     structure: structureOf(pillars, effective.distribution),
     favorability: favorabilityOf(eokbu, effective.distribution),
@@ -169,6 +195,9 @@ export function analyzePillars(
     // 종격은 국과 합화를 반영한 실효 분포로 잰다 — 亥卯未가 木局을 이루면
     // 未를 土로 논하지 않는다는 말이 여기서 값을 낸다.
     followingCandidacy: followingCandidacyOf(pillars, effective.distribution, rootedness),
+    // 통관은 강약·억부와 **같은 실효 분포**에서 잰다 — 한 화면 안에서 같은 세력을
+    // 두 번 다르게 세지 않기 위해서다.
+    tonggwan: tonggwanCandidacyOf(pillars, effective.distribution),
     following: followingAssessmentOf(
       pillars,
       effective.distribution,

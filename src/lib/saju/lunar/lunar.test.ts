@@ -142,7 +142,7 @@ describe('거부', () => {
 });
 
 describe('달력 형식', () => {
-  it('양력·음력 평달·음력 윤달 셋뿐이다 — DB 의 검사식과 같은 낱말', () => {
+  it('양력·음력·음력 윤달 셋뿐이다 — DB 의 검사식과 같은 낱말', () => {
     expect(CALENDARS).toEqual(['solar', 'lunar', 'lunar_leap']);
   });
 });

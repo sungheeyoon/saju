@@ -23,6 +23,7 @@ import {
   STRENGTH_POLICY,
   STRUCTURE_OUTCOME_KO,
   STRUCTURE_POLICY,
+  TONGGWAN_POLICY,
   YONGSIN_POLICY,
   SPIRIT_BASIS_KO,
   TEN_GOD_KO,
@@ -198,6 +199,7 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
     saju.analysis;
   const { structure, favorability, hiddenCombinations } = saju.analysis;
   const { bureaus, effectiveElements } = saju.analysis;
+  const { tonggwan, yongsinAgreement } = saju.analysis;
   const { dayMaster: rooting } = rootedness;
   const round = (value: number) => Math.round(value * 1000) / 1000;
   lines.push(
@@ -248,6 +250,13 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
       ` · 자당 ${(following.selfShare * 100).toFixed(1)}%` +
       `${following.direction ? ` ${FOLLOWING_DIRECTION_KO[following.direction]}` : ''}` +
       ` · 뿌리점수 ${round(following.rootScore)}`,
+    // 통관 — 가장 팽팽한 쌍과 그 사이. 판정이 아니라 사실이라 값이 흔들리면 여기서 보인다.
+    `  통관   ${tonggwan.tightest.controller}剋${tonggwan.tightest.controlled}` +
+      ` · 가벼운 쪽 ${(tonggwan.tightest.facing * 100).toFixed(1)}%` +
+      ` · 사이 ${tonggwan.tightest.bridge}${tonggwan.tightest.bridgePresent ? '' : '(없음)'}`,
+    // 억부와 조후가 같은 것을 가리키는가 — 어느 쪽이 우선인지는 여전히 말하지 않는다.
+    `  대조   억부 ${yongsinAgreement.eokbuElement} ↔ 조후 ${yongsinAgreement.johuStems.join('')}` +
+      ` · ${yongsinAgreement.aligned ? `겹침 ${yongsinAgreement.sharedStems.join('')}` : '어긋남'}`,
   );
 
   // 세운은 골든 케이스마다 출생년부터 세 해만 찍는다 — 열 해를 다 찍으면
@@ -396,6 +405,13 @@ describe('골든 테스트', () => {
       '        억부도 조후도 뒤집지 않는다 — 종격과 같은 자리인데 외부 대조는 아직 0건이다.',
       '',
       ...Object.entries(STRUCTURE_POLICY).map(
+        ([key, value]) => `          ${key.padEnd(22)} ${typeof value === 'object' ? JSON.stringify(value) : value}`,
+      ),
+      '',
+      '  통관  맞선 다섯 쌍과 그 사이를 잇는 오행을 세기만 한다 — 얼마나 맞서야 대치인가는 계통이 갈린다.',
+      '        판정이 없으므로 억부를 뒤집을 일도 없다. 문턱을 고를 때 쓸 모집단 분포만 재어 둔다.',
+      '',
+      ...Object.entries(TONGGWAN_POLICY).map(
         ([key, value]) => `          ${key.padEnd(22)} ${typeof value === 'object' ? JSON.stringify(value) : value}`,
       ),
       '',

@@ -50,6 +50,10 @@ export async function expectBirthDate(scope: Scope, date: string): Promise<void>
 /**
  * 시각을 아는 쪽을 고르고 시·분을 적는다.
  *
+ * 이름으로 찾는 「출생 시각 입력」은 **화면에 그렇게 적혀 있지 않다.** 칸에 보이는 글자는
+ * 「시각 입력」이고, 온전한 이름은 `aria-label` 이 들고 있다(`birth-form.tsx`). 검사가
+ * 짚는 것은 언제나 불리는 이름 쪽이다.
+ *
  * 폼은 「출생 시각 입력」에서 시작하므로 두 칸은 이미 열려 있다. 그래도 고르는 줄을 먼저
  * 누른다 — 주소에서 온 입력은 `hourKnown` 이 `null` 이거나 `false` 일 수 있고, 그때는
  * 두 칸이 잠겨 있다.
@@ -73,7 +77,7 @@ export async function chooseHourUnknown(scope: Scope): Promise<void> {
   await scope.getByRole('radio', { name: '출생 시각 모름', exact: true }).check();
 }
 
-/** 달력 기준 — 양력·음력 평달·음력 윤달 셋 중 하나 */
+/** 달력 기준 — 양력·음력·음력 윤달 셋 중 하나. 「음력」은 「음력 윤달」의 앞토막이라 `exact` 다 */
 export async function chooseCalendar(scope: Scope, calendar: Calendar): Promise<void> {
   await scope.getByRole('radio', { name: CALENDAR_KO[calendar], exact: true }).check();
 }

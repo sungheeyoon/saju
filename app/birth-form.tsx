@@ -17,6 +17,7 @@ import {
 
 import { solarDateOf } from './chart';
 import {
+  HOUR_UNKNOWN_CHOICE,
   HOUR_UNKNOWN_LABEL,
   NAME_MAX,
   TIME_BASES,
@@ -313,9 +314,14 @@ const within = (value: string, min: number, max: number) =>
 function DateFields({
   value,
   onDate,
+  onCalendar,
+  idPrefix,
 }: {
   value: Query;
   onDate: (date: string) => void;
+  onCalendar: (calendar: Calendar) => void;
+  /** 한 화면에 폼이 둘일 때 라디오 그룹이 섞이지 않게 하는 이름 */
+  idPrefix: string;
 }) {
   const [parts, setParts] = useState(() => splitDate(value.date));
   const lastEmitted = useRef(value.date);
@@ -346,6 +352,42 @@ function DateFields({
   return (
     <Group label="생년월일">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {/*
+          **달력은 날짜의 일부다.** 한동안 이 셋은 이름 칸 옆에서 폭을 반이나 차지하고
+          서 있었다 — 자기가 무엇을 바꾸는지에서 두 줄 떨어진 자리였다. 「1984-10-05」는
+          양력인지 음력인지가 정해져야 비로소 하루를 가리키므로, 고르는 자리도 그 숫자
+          바로 옆이어야 한다. 무엇을 고르든 날짜가 다시 판정되는 것(`chooseCalendar`)도
+          여기 붙어 있을 때 눈에 보인다.
+
+          `Group` 의 제목은 label 이 아니라 그냥 글자다. 이 셋은 라디오 묶음이라 제
+          이름을 따로 가져야 하므로 `fieldset` 으로 싸고 legend 는 화면에서만 감춘다 —
+          「생년월일」 아래에 「달력 기준」을 또 세우면 줄만 늘고, 낭독기는 이름을 잃는다.
+        */}
+        {/* 좁은 화면에서는 한 줄을 다 쓴다 — 안 그러면 「년」 칸만 옆에 붙어 따라온다 */}
+        <fieldset className="min-w-0 basis-full sm:basis-auto">
+          <legend className="sr-only">달력 기준</legend>
+          <div className={`${SEGMENT} grid-flow-col`}>
+            {CALENDARS.map((calendar) => (
+              <label
+                key={calendar}
+                className={`${SEGMENT_ITEM} whitespace-nowrap ${
+                  value.calendar === calendar ? 'bg-surface text-foreground shadow-sm' : 'text-muted'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={`${idPrefix}-calendar`}
+                  value={calendar}
+                  checked={value.calendar === calendar}
+                  onChange={() => onCalendar(calendar)}
+                  className={SEGMENT_INPUT}
+                />
+                {CALENDAR_KO[calendar]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
         <NumberField
           label="출생연도"
           suffix="년"
@@ -466,12 +508,19 @@ function TimeFields({
         <div className={`${SEGMENT} grid-cols-2`}>
           {[
             /*
-              **둘이 대칭이다.** 「시간 입력」 / 「출생 시각 모름」으로 두면 한쪽만
-              무엇의 시각인지 말한다. 화면에서는 legend 가 그 자리를 덮지만, 낭독기는
-              고른 칸 하나만 읽어 주는 때가 있어 그때 「입력」이 무엇의 입력인지 모른다.
+              **보이는 글자와 불리는 이름이 다르다.**
+
+              한동안 두 칸이 「출생 시각 입력」·「출생 시각 모름」이었다. 바로 위
+              legend 가 「출생 시각」이라, 한 뼘 안에서 같은 말이 세 번 났다.
+              무엇의 시각인지는 제목이 이미 말하므로 **보이는 쪽은 답만 한다.**
+
+              그래도 온전한 이름은 남긴다(`aria-label`). 낭독기는 고른 칸 하나만
+              읽어 주는 때가 있고, 그때 「입력」 두 글자로는 무엇의 입력인지 모른다.
+              보이는 글자가 불리는 이름 안에 그대로 들어 있으므로, 화면을 보며 말로
+              누르는 사람에게도 둘이 어긋나지 않는다.
             */
-            { known: true, label: '출생 시각 입력' },
-            { known: false, label: HOUR_UNKNOWN_LABEL },
+            { known: true, label: '시각 입력', name: '출생 시각 입력' },
+            { known: false, label: HOUR_UNKNOWN_CHOICE, name: HOUR_UNKNOWN_LABEL },
           ].map((option) => (
             <label
               key={option.label}
@@ -482,6 +531,7 @@ function TimeFields({
               <input
                 type="radio"
                 name={`${idPrefix}-hour`}
+                aria-label={option.name}
                 checked={value.hourKnown === option.known}
                 onChange={() => choose(option.known)}
                 className={SEGMENT_INPUT}
@@ -527,7 +577,7 @@ function TimeFields({
       <p className="text-xs leading-5 text-muted">
         {value.hourKnown === false
           ? '시각을 모르면 시주를 뽑지 않습니다. 나머지 세 기둥은 그대로 계산합니다.'
-          : `24시간으로 적습니다 — 오후 2시 30분은 14시 30분입니다. 모르면 「${HOUR_UNKNOWN_LABEL}」을 고르세요.`}
+          : `24시간으로 적습니다 — 오후 2시 30분은 14시 30분입니다. 모르면 「${HOUR_UNKNOWN_CHOICE}」을 고르세요.`}
       </p>
     </fieldset>
   );
@@ -581,51 +631,12 @@ export function BirthFields({
           />
         </Field>
 
-        <Group label="달력 기준">
-          <div className={`${SEGMENT} max-w-md grid-cols-3`}>
-            {CALENDARS.map((calendar) => (
-              <label
-                key={calendar}
-                className={`${SEGMENT_ITEM} ${
-                  value.calendar === calendar ? 'bg-surface text-foreground shadow-sm' : 'text-muted'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name={`${idPrefix}-calendar`}
-                  value={calendar}
-                  checked={value.calendar === calendar}
-                  onChange={() => chooseCalendar(calendar)}
-                  className={SEGMENT_INPUT}
-                />
-                {CALENDAR_KO[calendar]}
-              </label>
-            ))}
-          </div>
-        </Group>
-
         {/*
-          달력 형식과 날짜는 **함께 읽어야 뜻이 생긴다.** 「1984-10-05」 하나로는
-          양력인지 음력인지 알 수 없고, 음력이면 평달인지 윤달인지에 따라 실제
-          날이 한 달 떨어진다. 그래서 변환 결과를 바로 밑에 적는다 — **저장이나
-          계산 전에.** 사용자가 아는 것은 음력 날짜뿐인데, 우리가 무엇을 양력으로
-          잡았는지 못 보면 잘못 골랐다는 것을 결과 화면에 가서야 알게 된다.
+          **이름 옆은 성별이다.** 달력이 여기 서 있던 동안 이 줄은 「이름 · 달력 기준」
+          이었다 — 사람을 묻다 말고 날짜 형식을 묻고, 다시 아래에서 날짜를 물었다.
+          묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 · 시각) →
+          어디서(출생지).
         */}
-        <div className="flex flex-col gap-1.5 sm:col-span-2">
-          <DateFields value={value} onDate={(date) => set('date', date)} />
-          {converted !== null && (
-            <p
-              role={converted.ok ? undefined : 'alert'}
-              // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
-              className={`text-xs ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
-            >
-              {converted.text}
-            </p>
-          )}
-        </div>
-
-        <TimeFields value={value} onChange={onChange} idPrefix={idPrefix} />
-
         <Field label="성별">
           <SelectShell className="max-w-56">
             <select
@@ -641,6 +652,33 @@ export function BirthFields({
             </select>
           </SelectShell>
         </Field>
+
+        {/*
+          달력 형식과 날짜는 **함께 읽어야 뜻이 생긴다.** 「1984-10-05」 하나로는
+          양력인지 음력인지 알 수 없고, 음력이면 평달인지 윤달인지에 따라 실제
+          날이 한 달 떨어진다. 그래서 변환 결과를 바로 밑에 적는다 — **저장이나
+          계산 전에.** 사용자가 아는 것은 음력 날짜뿐인데, 우리가 무엇을 양력으로
+          잡았는지 못 보면 잘못 골랐다는 것을 결과 화면에 가서야 알게 된다.
+        */}
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <DateFields
+            value={value}
+            onDate={(date) => set('date', date)}
+            onCalendar={chooseCalendar}
+            idPrefix={idPrefix}
+          />
+          {converted !== null && (
+            <p
+              role={converted.ok ? undefined : 'alert'}
+              // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
+              className={`text-xs ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
+            >
+              {converted.text}
+            </p>
+          )}
+        </div>
+
+        <TimeFields value={value} onChange={onChange} idPrefix={idPrefix} />
 
         <Field label="출생지">
           <SelectShell className="max-w-72">

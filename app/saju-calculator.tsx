@@ -35,6 +35,7 @@ import {
   HIDDEN_STEM_ROLE_KO,
   ELEMENT_ROLE_KO,
   FOLLOWING_DIRECTION_KO,
+  FOLLOWING_PATTERN_POLICY,
   FOLLOWING_PATTERN_STATUS_KO,
   EMPTINESS_BASIS_KO,
   UNRESOLVED_FACTOR_KO,
@@ -794,7 +795,15 @@ function StarTable({ saju }: { saju: Saju }) {
  * 아니다 — 조립기가 이름을 이어 붙일 때 쓰는 판단과 같다(`joinNames`).
  */
 const hasFinalConsonant = (char: string): boolean => {
-  const ko = BRANCH_INFO[char as keyof typeof BRANCH_INFO]?.ko ?? char;
+  /*
+    지지만 읽고 있었다. 천간을 그대로 넘기면 한자에는 받침이 없으므로 **언제나
+    「가」·「를」** 이 나온다 — 壬(임)·辛(신)처럼 받침 있는 글자에서 틀린다. 조후가
+    권한 글자를 문장에 넣기 시작하면서 걸렸다.
+  */
+  const ko =
+    BRANCH_INFO[char as keyof typeof BRANCH_INFO]?.ko ??
+    STEM_INFO[char as keyof typeof STEM_INFO]?.ko ??
+    char;
   const code = ko.charCodeAt(ko.length - 1) - 0xac00;
 
   return code >= 0 && code <= 11171 && code % 28 !== 0;
@@ -1672,7 +1681,7 @@ function ElementChart({ saju }: { saju: Saju }) {
 
 /** 신강·신약 — 임계값 대비 단일 비율이므로 메터. */
 function StrengthMeter({ saju }: { saju: Saju }) {
-  const { strength, eokbu, johu } = saju.analysis;
+  const { strength, eokbu, johu, tonggwan, yongsinAgreement } = saju.analysis;
   const percent = strength.ratio * 100;
   const threshold = 50;
 
@@ -1784,20 +1793,116 @@ function StrengthMeter({ saju }: { saju: Saju }) {
           )}
         </div>
         <p className="mt-1.5 text-xs text-secondary">{eokbu.reason}</p>
+
+        {/*
+          **두 칸이 서로 무슨 관계인지 말한다.**
+
+          조후와 억부가 여태 나란히 서 있기만 했다. 하나는 「土를 쓰라」 하고 다른
+          하나는 「壬·丙을 보라」 하는데, 그 둘이 같은 말인지는 읽는 사람이 오행 표를
+          외워 맞춰 봐야 알 수 있었다 — 무작위 3000건에서 **어긋나는 명식이 43.2%** 다.
+
+          **어느 쪽이 급한지는 여기서도 말하지 않는다.** 한랭·조열이 급하면 조후가
+          억부를 제친다는 것이 여러 계통의 말이지만, 「얼마나 급해야」를 재는 자리가
+          엔진에 없다(`YONGSIN_POLICY.johuAgainstEokbu`).
+        */}
+        <p className="mt-2 border-t border-border pt-2 text-xs text-secondary">
+          <span className="font-medium">
+            {yongsinAgreement.aligned ? '두 길이 같은 곳을 가리킵니다.' : '두 길이 다른 곳을 가리킵니다.'}
+          </span>{' '}
+          {yongsinAgreement.aligned ? (
+            <>
+              조후가 권한 글자 가운데{' '}
+              <span className="glyph">{yongsinAgreement.sharedStems.join(' · ')}</span>
+              {subjectParticle(yongsinAgreement.sharedStems[yongsinAgreement.sharedStems.length - 1])}{' '}
+              억부와 같은 {ELEMENT_KO[yongsinAgreement.eokbuElement]}입니다.
+            </>
+          ) : (
+            <>
+              조후가 권한 <span className="glyph">{yongsinAgreement.johuStems.join(' · ')}</span> 중에는
+              억부가 권한 {ELEMENT_KO[yongsinAgreement.eokbuElement]}
+              {subjectParticle(ELEMENT_KO[yongsinAgreement.eokbuElement])} 없습니다.
+            </>
+          )}{' '}
+          <span className="text-muted">
+            어느 쪽을 먼저 보아야 하는지는 판정하지 않습니다 — 한랭·조열이 얼마나 급한지를
+            재는 자리가 아직 없습니다.
+          </span>
+        </p>
+
         <p className="mt-2 text-xs text-muted">
           <strong className="font-medium">용신 확정값이 아닙니다.</strong> 억부는 용신을
           잡는 네 길 중 하나일 뿐이고, 아직 판정하지 않은 것이 남아 있습니다 —{' '}
           {eokbu.unresolved.map((factor) => UNRESOLVED_FACTOR_KO[factor]).join(', ')}.
           이 가운데 통근·투출은 <strong className="font-medium">사실만 위에 적어 두었고</strong>,
-          그것이 쓸 만한 뿌리인지를 재는 판정만 아직 없습니다. 종격도 조건이 되는 사실은
-          위에 적어 두었고, 어디서 선을 긋느냐만 정하지 않았습니다 — 계통을 고르는 순간
-          억부와 정반대 답이 나오기 때문입니다. 위 조후표도 조건을 전부 자동 판정하지
-          않은 참고값입니다.
-          꺼리는 오행(기신)도 내지 않습니다 — 오행 상극표 한 줄로 정해지는 것이
-          아니기 때문입니다.
+          그것이 쓸 만한 뿌리인지를 재는 판정만 아직 없습니다. 종격은 위 칸에서{' '}
+          <strong className="font-medium">따로 판정하지만 이 후보에는 반영되지 않았습니다</strong> —
+          문턱이 고전의 숫자가 아니라 이 엔진의 실험값이라, 억부와 정반대 답이 나오더라도
+          뒤집지 않고 나란히 세웁니다. 위 조후표도 조건을 전부 자동 판정하지 않은
+          참고값입니다.
+          꺼리는 오행(기신)은 판정하지 않습니다 — 명식 전체에서 무엇이 병인지를 봐야
+          정해지지 오행 상극표 한 줄로 나오는 것이 아니기 때문입니다. 다만 「이 후보를
+          용신 자리에 놓으면 다섯 오행이 어디에 오는가」(희용기구한)는 표 조회라 계통이
+          갈리지 않고, 그 배정은 화면에 세우지 않는 대신 AI 풀이 자료에 함께 실립니다.
         </p>
       </div>
+
+      <TonggwanFacts tonggwan={tonggwan} />
     </section>
+  );
+}
+
+/**
+ * 통관 재료 — **판정이 아니라 맞선 두 세력의 사실이다.**
+ *
+ * 억부는 언제나 답을 하나 낸다. 「무엇이 가장 무거운가」로 한쪽을 고르고 그 반대편을
+ * 권하는데, **두 세력이 팽팽히 맞선 명식에서는 그 물음이 답을 못 낸다** — 어느 쪽을
+ * 눌러도 나머지가 그대로 남는다. 고전이 그 자리에 쓰라고 한 것이 통관이고, 이 칸은
+ * 그 자리인지 아닌지를 **읽는 사람이 판단할 재료**를 편다.
+ *
+ * 다섯 쌍을 다 내지 않고 가장 팽팽한 하나만 세운다. 다섯 줄을 세우면 이 칸이 화면에서
+ * 가장 큰 자리를 차지하는데, 판정도 아닌 것이 그럴 자리는 아니다. 나머지 넷은 자료에
+ * 그대로 실린다(`analysis.tonggwan`).
+ */
+function TonggwanFacts({ tonggwan }: { tonggwan: Saju['analysis']['tonggwan'] }) {
+  const { tightest } = tonggwan;
+  const percent = (ratio: number) => `${(ratio * 100).toFixed(1)}%`;
+
+  return (
+    <div className="mt-4 border-t border-border pt-3">
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+          사실
+        </span>
+        <span className="text-xs text-muted">가장 팽팽한 대치</span>
+        <span className="glyph text-lg font-medium">
+          {tightest.controller} → {tightest.controlled}
+        </span>
+        <span className="text-sm text-secondary">
+          {ELEMENT_KO[tightest.controller]}{' '}
+          <span className="tabular-nums">{percent(tightest.shares.controller)}</span> ↔{' '}
+          {ELEMENT_KO[tightest.controlled]}{' '}
+          <span className="tabular-nums">{percent(tightest.shares.controlled)}</span>
+        </span>
+      </div>
+
+      <p className="mt-1.5 text-xs text-secondary">
+        사이를 잇는 것은 <span className="glyph">{tightest.bridge}</span>{' '}
+        {ELEMENT_KO[tightest.bridge]}입니다({percent(tightest.shares.bridge)}) —{' '}
+        {tightest.controller}는 {tightest.bridge}를 낳고 {tightest.bridge}는{' '}
+        {tightest.controlled}를 낳습니다.{' '}
+        {tightest.bridgePresent
+          ? '이 오행은 원국에 있습니다.'
+          : '그런데 이 오행이 원국에 한 자도 없습니다 — 이을 손이 없다는 뜻입니다.'}
+      </p>
+
+      <p className="mt-2 text-xs text-muted">
+        <strong className="font-medium">맞선 것인지는 판정하지 않습니다.</strong> 얼마나
+        맞서야 대치(相戰)인지, 대치면 억부를 제치는지가 계통마다 갈리기 때문입니다 — 종격이
+        먼저 지나온 자리와 같습니다. 가벼운 쪽이{' '}
+        <span className="tabular-nums">{percent(tightest.facing)}</span> 인데, 무작위 3000건에서
+        이 값이 30% 를 넘는 명식은 10.2% 입니다. 나머지 네 쌍도 자료에는 그대로 실립니다.
+      </p>
+    </div>
   );
 }
 
@@ -1874,6 +1979,10 @@ function RootingNote({ saju }: { saju: Saju }) {
 function FollowingCandidacyNote({ saju }: { saju: Saju }) {
   const { followingCandidacy: candidacy, following } = saju.analysis;
   const percent = (ratio: number) => `${(ratio * 100).toFixed(1)}%`;
+  /** 문턱과 대조 성적은 **재는 자리가 들고 있는 값**을 그대로 읽는다 — 아래 주석 참조 */
+  const { dominance } = FOLLOWING_PATTERN_POLICY;
+  const { externalCheck } = dominance;
+  const share = (ratio: number) => `${Math.round(ratio * 100)}%`;
 
   return (
     <div className="mt-3 border-t border-border pt-3">
@@ -1888,7 +1997,11 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
         <span className="text-sm text-secondary">
           자당(비겁·인성) 몫{' '}
           <span className="tabular-nums">{percent(following.selfShare)}</span>
-          <span className="text-muted"> (밖으로 종 ≤30% · 안으로 종 ≥70%)</span>
+          <span className="text-muted">
+            {' '}
+            (밖으로 종 ≤{share(dominance.outwardMaxSelfShare)} · 안으로 종 ≥
+            {share(dominance.inwardMinSelfShare)})
+          </span>
           {following.direction && (
             <span className="ml-1.5">{FOLLOWING_DIRECTION_KO[following.direction]}</span>
           )}
@@ -1923,10 +2036,18 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
         <strong className="font-medium">문턱은 고전이 정한 숫자가 아닙니다.</strong> 무작위
         3000건의 세력 분포를 재고 정한 이 엔진의 실험값입니다. 종에는 방향이 둘이라
         축 하나의 양끝으로 잽니다 — 일간을 도울 것이 없으면 <strong className="font-medium">밖으로</strong>
-        (종재·종살), 일간 편이 극왕하면 <strong className="font-medium">안으로</strong> 따릅니다. 외부 자료에서 종격이라고 밝힌 명조 14건과 대조해 보니{' '}
-        <strong className="font-medium">4건만 잡았습니다</strong> — 덜 잡는 쪽으로 틀립니다.
-        그래서 이 판정은 억부 후보를 뒤집지 않습니다. 진종·가종 어느 쪽으로도 밀기 어려운
-        명식은 &lsquo;종격 후보&rsquo;로 남겨 둡니다.
+        (종재·종살), 일간 편이 극왕하면 <strong className="font-medium">안으로</strong> 따릅니다.{' '}
+        {/*
+          **수치를 손으로 적지 않는다.** 여기 「14건 중 4건」이 적혀 있었다 — 규칙이 v2 로
+          가고 대조 자료가 늘어나는 동안 화면만 v1 의 숫자에 남아 있었다. 재는 자리가
+          값으로 들고 있는 것을(`externalCheck`) 화면이 다시 적으면, 엔진이 나아질 때마다
+          화면은 조용히 틀린 말을 하게 된다.
+        */}
+        외부 자료에서 종격이라고 밝힌 명조 {externalCheck.claimedFollowing}건과 대조해{' '}
+        <strong className="font-medium">{externalCheck.caught}건을 잡았습니다</strong> — 여전히
+        덜 잡는 쪽으로 틀리고, 아니라고 적힌 쪽에서도 {externalCheck.falsePositives}건을
+        종격으로 봅니다. 그래서 이 판정은 억부 후보를 뒤집지 않습니다. 진종·가종 어느
+        쪽으로도 밀기 어려운 명식은 &lsquo;종격 후보&rsquo;로 남겨 둡니다.
       </p>
     </div>
   );

@@ -43,6 +43,8 @@ L3 문장 골든 — 발화 판정과 조립
     analysis.bureaus · analysis.effectiveElements (몫과 등급을 정한 조건들 — 국의 받침·왕지의 충, 化를 막은 것. 조건의 목록이라 한 문장으로 접으면 반올림이 되므로 결과만 든다)
     analysis.rootQuality (일간 밖의 천간 — 일간의 뿌리만 말한다. 질의 수치는 배수를 곱한 값이라 단위가 없어 들지 않는다)
     analysis.followingCandidacy (종격 후보 자격 — 판정(`analysis.following`)만 말한다)
+    analysis.tonggwan (맞선 다섯 쌍과 그 사이를 잇는 오행 — 문턱을 고르지 않아 「대치다」를 말할 자리가 없다)
+    analysis.yongsinAgreement (억부와 조후가 같은 것을 가리키는가 — 어긋날 때 어느 쪽을 보는지는 정하지 않아 문장이 없다)
     stages
     sinsal
     daeun · saeun · wolun (표 전체 — 지금 도는 칸만 현재운이 말한다)

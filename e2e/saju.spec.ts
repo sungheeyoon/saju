@@ -532,7 +532,8 @@ test('수정은 히스토리를 쌓지 않아 뒤로가기 한 번에 빈 화면
   await expect(page).toHaveURL(/saeun=2030/);
 
   await page.goBack();
-  await expect(page.getByRole('heading', { name: '생년월일시를 입력해 주세요' })).toBeVisible();
+  /* 빈 화면에는 세우는 것이 없다 — 결과가 걷혔는지로 본다 */
+  await expect(page.getByRole('heading', { name: '사주팔자' })).toHaveCount(0);
   await expect(page).toHaveURL(/\/$/);
 });
 

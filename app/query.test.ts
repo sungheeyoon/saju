@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_QUERY,
-  HOUR_UNKNOWN_LABEL,
+  HOUR_UNKNOWN_CHOICE,
   NAME_MAX,
   mergeSearchParams,
   BIRTH_YEAR_MAX,
@@ -154,7 +154,7 @@ describe('주소창에 실은 입력', () => {
     /** 「아직 안 골랐다」는 이제 주소에서만 온다 — 그때는 두 갈래를 다 말한다 */
     it('고르지 않은 상태는 두 갈래를 함께 말한다', () => {
       const unanswered = { ...DEFAULT_QUERY, name: '민수', date: '1990-05-15', hourKnown: null };
-      expect(missingAnswer(unanswered)).toContain(HOUR_UNKNOWN_LABEL);
+      expect(missingAnswer(unanswered)).toContain(HOUR_UNKNOWN_CHOICE);
     });
 
     it('주소에 시각 칸이 없으면 고르지 않은 것으로 읽는다', () => {

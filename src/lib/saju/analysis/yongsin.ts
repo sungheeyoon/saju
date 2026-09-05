@@ -6,8 +6,10 @@ import {
   GENERATES,
   STEM_INFO,
   type Element,
+  type Stem,
 } from '../constants';
 import { effectiveElementsOf } from './effectiveElements';
+import type { JohuAssessment } from './johu';
 import {
   elementDistributionOf,
   type DistributionInput,
@@ -91,6 +93,65 @@ const UNRESOLVED: readonly UnresolvedFactor[] = [
   'rootQuality',
 ];
 
+/**
+ * 억부와 조후가 **같은 것을 가리키는가.**
+ *
+ * 두 후보가 여태 화면에 나란히 서 있기만 했다. 억부는 「土를 쓰라」 하고 조후는
+ * 「壬·丙을 보라」 하는데, 그 둘이 같은 말인지 다른 말인지를 **아무도 말하지
+ * 않았다.** 읽는 사람이 오행 표를 외워서 스스로 맞춰 보아야 했다.
+ *
+ * 여기서 하는 일은 그 대조뿐이다. **어느 쪽이 우선인지는 말하지 않는다** — 한랭·
+ * 조열이 급하면 조후가 억부를 제친다는 것이 여러 계통의 말이지만, 「얼마나 급해야
+ * 제치는가」는 한난조습을 재는 자리가 먼저 있어야 답할 수 있고 이 엔진에는 그 자리가
+ * 없다(`UNRESOLVED_FACTOR_KO.climate` 가 비어 있는 이유다).
+ *
+ * 그래서 `status: 'fact'` 다. 문턱도 계통 선택도 없이 **우리가 이미 낸 두 값을 오행
+ * 표로 견준 것**이고, 어긋난다는 것도 맞는다는 것도 그 자체로는 좋고 나쁨이 아니다.
+ */
+export type YongsinAgreement = {
+  /** 판정이 아니라 대조다 — 새로 고른 것이 없다 */
+  status: 'fact';
+  /** 억부가 권한 오행 */
+  eokbuElement: Element;
+  /** 조후가 권한 천간 — 상·하반월이 정해졌으면 그 절반의 것이다 */
+  johuStems: readonly Stem[];
+  /** 그중 억부와 오행이 같은 것 */
+  sharedStems: readonly Stem[];
+  /**
+   * 두 길이 같은 것을 가리키는가.
+   *
+   * **같다고 더 옳은 것이 아니다.** 어긋나면 두 계통이 다른 것을 권한다는 사실이고,
+   * 그 자리에서 무엇을 볼지는 아직 우리가 정하지 않았다.
+   */
+  aligned: boolean;
+};
+
+/**
+ * 억부 후보와 조후 후보를 오행 표로 견준다.
+ *
+ * 조후는 **오행이 아니라 글자**를 권한다 — 丙이 필요한 자리에 丁이 있는 것은 다른
+ * 사정이다(`JohuCandidate` 가 글자로 세는 이유). 그래서 「같다」는 것은 조후가 권한
+ * 글자 중에 억부가 권한 오행짜리가 **있다**는 뜻이지, 둘이 같은 답이라는 뜻이 아니다.
+ */
+export function yongsinAgreementOf(
+  eokbu: EokbuAssessment,
+  johu: JohuAssessment,
+): YongsinAgreement {
+  // 화면과 같은 목록을 본다 — 절반이 정해졌으면 그 절반이다.
+  const johuStems = johu.halfStems ?? johu.stems;
+  const sharedStems = johuStems.filter(
+    (stem) => STEM_INFO[stem].element === eokbu.suggestedElement,
+  );
+
+  return {
+    status: 'fact',
+    eokbuElement: eokbu.suggestedElement,
+    johuStems,
+    sharedStems,
+    aligned: sharedStems.length > 0,
+  };
+}
+
 /** 일간에서 본 오행의 자리 — 십성을 오행 단위로 묶은 것 */
 export type ElementRole = '比劫' | '印星' | '食傷' | '財星' | '官星';
 
@@ -167,6 +228,14 @@ export const YONGSIN_POLICY = {
   structure: 'judged-but-does-not-override',
   /** 조후 조건은 자동 판정하지 않는다 */
   johu: 'qiongtong-baojian-120-reference',
+  /**
+   * 억부와 조후를 **견주기만 한다.**
+   *
+   * 어느 쪽이 우선인지는 정하지 않는다 — 한랭·조열이 급하면 조후가 억부를 제친다는
+   * 것이 여러 계통의 말이지만, 「얼마나 급해야」를 재는 자리(한난조습)가 이 엔진에
+   * 없다. 없는 판정을 이름만 붙여 세우지 않는다.
+   */
+  johuAgainstEokbu: 'compared-not-ranked',
   /** 판정은 하되(실험 규칙 v2) 억부를 뒤집지 않는다 */
   followingPattern: 'judged-but-does-not-override',
   /**

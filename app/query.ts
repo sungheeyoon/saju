@@ -165,6 +165,19 @@ const HOUR_UNKNOWN = 'unknown';
  */
 export const HOUR_UNKNOWN_LABEL = '출생 시각 모름';
 
+/**
+ * 폼에서 그 답을 고르는 칸에 적는 글자 — **위의 이름과 일부러 다르다.**
+ *
+ * `HOUR_UNKNOWN_LABEL` 은 **결과가 명식을 부르는 말**이다. 기둥 카드 밑이나 사람
+ * 목록처럼 앞뒤에 아무 맥락이 없는 자리에 홀로 서므로 「출생」까지 다 말해야 한다.
+ *
+ * 폼에서는 그 글자가 세 번 겹쳤다 — 묶음 제목이 「출생 시각」이고 그 아래 두 칸이
+ * 「출생 시각 입력」·「출생 시각 모름」이었다. 무엇의 시각인지는 제목이 이미 말한다.
+ * 낭독기는 고른 칸 하나만 읽어 주는 때가 있어 그쪽에는 온전한 이름을 남긴다
+ * (`aria-label`) — **보이는 글자만 짧아지고 불리는 이름은 그대로다.**
+ */
+export const HOUR_UNKNOWN_CHOICE = '시각 모름';
+
 const SAEUN_MIN = 1900;
 const SAEUN_MAX = 2100;
 
@@ -242,7 +255,7 @@ export function missingForCalculation(query: Query): string | null {
   const refused = birthYearRefusal(query);
   if (refused !== null) return refused;
   // 고르지 않은 것과 "모른다"고 답한 것은 다르다 — 위 `hourKnown` 참조.
-  if (query.hourKnown === null) return `출생 시각을 입력하거나 ${HOUR_UNKNOWN_LABEL}을 골라 주세요.`;
+  if (query.hourKnown === null) return `출생 시각을 입력하거나 「${HOUR_UNKNOWN_CHOICE}」을 골라 주세요.`;
   if (query.hourKnown && query.time === '') return '출생 시각을 입력해 주세요.';
 
   return null;

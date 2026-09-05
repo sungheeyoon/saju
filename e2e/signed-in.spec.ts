@@ -1067,7 +1067,7 @@ test.describe('가입 관문', () => {
 
     await newcomer.page.goto('/');
     await expect(
-      newcomer.page.getByRole('heading', { name: '생년월일시를 입력해 주세요' }),
+      newcomer.page.getByRole('heading', { name: '출생 정보를 입력해 주세요' }),
     ).toBeVisible();
 
     await newcomer.page.getByRole('link', { name: '만세력 홈' }).first().click();
