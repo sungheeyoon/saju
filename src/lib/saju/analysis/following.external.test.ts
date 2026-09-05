@@ -292,4 +292,50 @@ describe('종격 외부 명조 대조', () => {
     expect(FOLLOWING_PATTERN_POLICY.eokbuOverride).toBe('disabled');
     expect(FOLLOWING_PATTERN_POLICY.dominance.externalCheck.passed).toBe(false);
   });
+
+  /**
+   * **놓친 열셋을 세 무리로 가른다 — 「문턱이 낮아서」가 아니다.**
+   *
+   * 재현율이 17/30 에 멈춘 이유를 문턱 탓으로 두면 다음 사람이 문턱부터 만진다. 그래서
+   * 놓친 자리가 **무엇 때문에** 놓쳤는지를 여기서 고정한다. 지렛대 넷을 당겨 본 결과는
+   * `FOLLOWING_PATTERN_POLICY.dominance.externalCheck` 위의 표에 있다 — 넷 다 재현율을
+   * 발화율로 산다.
+   */
+  it('놓친 자리를 세 무리로 고정한다', () => {
+    const missed = SCORED.filter(
+      (testCase) =>
+        claimsFollowing(testCase.claim.verdict) && !engineFollows(assess(testCase.pillars).verdict),
+    );
+
+    expect(missed).toHaveLength(13);
+
+    const { outwardMaxSelfShare } = FOLLOWING_PATTERN_POLICY.dominance;
+
+    /** 1. 자당이 문 밖 — 假從은 정의상 자당이 남아 있어 진종과 같은 문턱으로 못 담는다 */
+    const outsideDoor = missed.filter(
+      (testCase) => assess(testCase.pillars).selfShare > outwardMaxSelfShare,
+    );
+
+    /** 2. 문 안인데 뿌리로 후보에 머문 것 — 문턱이 아니라 뿌리 등급의 문제다 */
+    const heldByRoot = missed.filter((testCase) => {
+      const one = assess(testCase.pillars);
+      return one.selfShare <= outwardMaxSelfShare && one.verdict === 'candidate';
+    });
+
+    expect(outsideDoor).toHaveLength(11);
+    expect(heldByRoot.map((testCase) => testCase.id)).toEqual([
+      'kill-3',
+      'dtsm-congxiang-1',
+    ]);
+
+    // 두 무리가 열셋을 다 덮는다 — 남는 것이 있으면 무리를 하나 더 세워야 한다.
+    expect(outsideDoor.length + heldByRoot.length).toBe(missed.length);
+
+    /**
+     * 문 밖 열하나 가운데 하나(`dtsm-congxiang-8-qi`)는 **從氣**다 — 기세를 따르는 것이라
+     * 자당 축으로 재는 자리가 아니다. 자당이 41.1% 로 가장 높은 것이 그 표시다.
+     */
+    const qi = outsideDoor.find((testCase) => testCase.id === 'dtsm-congxiang-8-qi')!;
+    expect(assess(qi.pillars).selfShare).toBeGreaterThan(0.4);
+  });
 });

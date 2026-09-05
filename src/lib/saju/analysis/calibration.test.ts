@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { computeSaju } from '../index';
 import { randomInputs } from '../population';
+import { FOLLOWING_PATTERN_POLICY } from './followingPatterns';
 import { TONGGWAN_POLICY } from './tonggwan';
 
 /**
@@ -33,6 +34,8 @@ type Tally = {
   aligned: number;
   /** 억부와 어긋나는 판정이 하나라도 있는 건수 */
   shaken: number;
+  /** 종격 판정이 무엇으로 났는가 — 정책이 적어 둔 발화율을 다시 세는 자리 */
+  following: Record<string, number>;
 };
 
 const FLOORS = [0.15, 0.2, 0.25, 0.3, 0.35];
@@ -43,10 +46,11 @@ function tally(): Tally {
     bridgeNotRevealed: 0,
     aligned: 0,
     shaken: 0,
+    following: {},
   };
 
   for (const input of randomInputs(SAMPLE)) {
-    const { tonggwan, yongsinAgreement, precedence } = computeSaju(input).analysis;
+    const { tonggwan, yongsinAgreement, precedence, following } = computeSaju(input).analysis;
     const { tightest } = tonggwan;
 
     for (const floor of FLOORS) {
@@ -57,6 +61,7 @@ function tally(): Tally {
     if (tightest.bridgePresence !== 'revealed') counted.bridgeNotRevealed += 1;
     if (yongsinAgreement.aligned) counted.aligned += 1;
     if (precedence.rows.some((row) => row.disagrees === true)) counted.shaken += 1;
+    counted.following[following.verdict] = (counted.following[following.verdict] ?? 0) + 1;
   }
 
   return counted;
@@ -101,5 +106,26 @@ describe('모집단 보정값 (시드 20260821 · 3000건)', () => {
    */
   it('서열 — 어긋남이 하나라도 있는 명식의 비율', () => {
     expect(share(counted.shaken)).toBe(0.545);
+  });
+
+  /**
+   * **종격 발화율은 게이트를 닫아 둔 근거다 — 그런데 아무도 안 재고 있었다.**
+   *
+   * `calibration.observedRates` 는 「고전이 「百無一二」라 한 자리에서 우리는 10% 대」라는
+   * 문장의 근거이고, 그 문장이 억부를 안 뒤집는 이유다. 그런데 그 수를 **손으로 적어
+   * 두고 아무도 다시 세지 않았다** — 실제로 왕지 월령 규칙이 바뀌자 낡았다(5.2 → 5.37).
+   *
+   * 계약이 죽은 값을 들고 있으면 그 값은 검증되지 않는다. 같은 한 바퀴에서 함께 센다.
+   */
+  it('종격 — 정책이 적어 둔 모집단 발화율이 실제와 같다', () => {
+    const rates = FOLLOWING_PATTERN_POLICY.dominance.calibration.observedRates;
+    const round = (count: number) => Math.round((count / SAMPLE) * 10000) / 10000;
+
+    expect(round(counted.following['true-following'] ?? 0)).toBe(rates['true-following']);
+    expect(round(counted.following['pseudo-following'] ?? 0)).toBe(rates['pseudo-following']);
+    expect(round(counted.following.candidate ?? 0)).toBe(rates.candidate);
+
+    // 게이트를 닫아 둔 조건 — 고전의 희소성과 자릿수가 다르다.
+    expect(rates['true-following'] + rates['pseudo-following']).toBeGreaterThan(0.02);
   });
 });
