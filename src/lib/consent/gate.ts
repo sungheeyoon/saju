@@ -54,7 +54,7 @@ export type GateAccount = {
 };
 
 /** 가입을 끝내는 자리 — `/me` 밖이라 관문이 자기 자신을 막지 않는다 */
-export const SIGNUP_PATH = '/signup';
+const SIGNUP_PATH = '/signup';
 
 /** 지금 안내 한 벌 — 못 읽었으면 `null` */
 export type GateNotice = {

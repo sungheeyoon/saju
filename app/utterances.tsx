@@ -66,7 +66,7 @@ export const TOPIC_TABLE_FOOTNOTE = 'relation.coverage';
  * 뒤쪽은 실제로 한 번 당했다 — 조립기는 한 번 내고 **두 번 놓는 것은 화면의 일이라
  * 테스트가 못 본다**(`TOPIC_TABLE_FOOTNOTE`). 여기서는 그 실수가 표현 불가능하다.
  */
-export const NOW_TOPIC_PLACEMENT = {
+const NOW_TOPIC_PLACEMENT = {
   header: ['now.asOf'] as readonly string[],
   relations: ['relation.present'] as readonly string[],
   footnote: ['now.coverage', 'relation.coverage'] as readonly string[],

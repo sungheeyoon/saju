@@ -81,7 +81,7 @@ export type DaeunOptions = {
   stages?: TwelveStageOptions;
 };
 
-export const DEFAULT_DAEUN_OPTIONS = {
+const DEFAULT_DAEUN_OPTIONS = {
   rounding: 'round',
   zeroStartAge: 'keep',
   count: 9,
@@ -364,7 +364,7 @@ export type DaeunAbsence =
  * 걸친 것을 하나로 반올림하지 않는다. 어느 쪽을 고르든 그 해의 절반은 틀린
  * 대운과 견주게 되고, 틀렸다는 사실이 값 어디에도 남지 않는다.
  */
-export function daeunSpanningAges(
+function daeunSpanningAges(
   daeun: Daeun,
   fromAge: number,
   toAge: number,

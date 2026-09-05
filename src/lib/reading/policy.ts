@@ -55,7 +55,7 @@ export const isSolo = (kind: ReadingKind): kind is SoloKind =>
 export type PairKind = Exclude<ReadingKind, SoloKind>;
 
 /** 점수를 내는 kind — 한 사람짜리 풀이에는 궁합 점수를 억지로 붙이지 않는다 */
-export const SCORED_KINDS: readonly ReadingKind[] = ['private', 'match'];
+const SCORED_KINDS: readonly ReadingKind[] = ['private', 'match'];
 export const isScored = (kind: ReadingKind): boolean => SCORED_KINDS.includes(kind);
 
 export const READING_POLICY = {

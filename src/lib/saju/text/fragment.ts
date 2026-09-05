@@ -1064,7 +1064,7 @@ export const VARIABLE_PARTICLES: readonly string[] = ['이', '가', '은', '는'
 const SLOT_PATTERN = /\{([a-zA-Z]+)\}/g;
 
 /** 문장 틀이 쓴 슬롯 이름들 */
-export function slotsUsedBy(template: string): string[] {
+function slotsUsedBy(template: string): string[] {
   return [...template.matchAll(SLOT_PATTERN)].map(([, name]) => name);
 }
 

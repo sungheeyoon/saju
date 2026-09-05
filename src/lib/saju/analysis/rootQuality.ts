@@ -34,13 +34,13 @@ import type { Root, Rootedness, StemRooting } from './rootedness';
 /** 지지의 갈래 — 왕지(旺支)·생지(生支)·고지(庫支) */
 export type BranchClass = 'peak' | 'birth' | 'storage';
 
-export const BRANCH_CLASS_KO: Record<BranchClass, string> = {
+const BRANCH_CLASS_KO: Record<BranchClass, string> = {
   peak: '왕지',
   birth: '생지',
   storage: '고지',
 };
 
-export const BRANCH_CLASS: Record<Branch, BranchClass> = {
+const BRANCH_CLASS: Record<Branch, BranchClass> = {
   子: 'peak', 午: 'peak', 卯: 'peak', 酉: 'peak',
   寅: 'birth', 申: 'birth', 巳: 'birth', 亥: 'birth',
   辰: 'storage', 戌: 'storage', 丑: 'storage', 未: 'storage',

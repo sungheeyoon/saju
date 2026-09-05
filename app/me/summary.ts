@@ -16,7 +16,7 @@ import { queryFromRevision } from '../revision';
  * 요약은 각자가 참여할 때 내놓은 것이고, 우리는 그것을 읽지도 않는다(DB 안에서
  * 두 축으로 바뀌어 나온다).
  */
-export function elementSummaryFrom(query: Query): ElementSummary {
+function elementSummaryFrom(query: Query): ElementSummary {
   // 익명 화면·저장된 화면과 **같은 함수**로 계산한다. 여기서 따로 세면 후보 목록의
   // 오행과 내 명식의 오행이 갈릴 수 있다.
   return elementSummaryOf(chartOf(query).analysis.elements);

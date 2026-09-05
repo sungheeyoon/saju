@@ -74,7 +74,7 @@ const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
-export function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex min-w-0 flex-col gap-1.5">
       <span className="text-xs font-semibold text-secondary">{label}</span>
@@ -100,7 +100,7 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /** 시간 기준 하나를 고르는 라디오. 세 개가 한 그룹이라 조합이 생기지 않는다. */
-export function BasisRadio({
+function BasisRadio({
   name,
   basis,
   checked,

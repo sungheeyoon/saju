@@ -43,6 +43,3 @@ export function stemIndex(stem: Stem): number {
   return STEM_INFO[stem].index;
 }
 
-export function isStem(value: string): value is Stem {
-  return value in STEM_INFO;
-}

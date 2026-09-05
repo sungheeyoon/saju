@@ -193,7 +193,7 @@ export type StrengthOptions = {
   includeDayMaster?: boolean;
 };
 
-export const DEFAULT_STRENGTH_OPTIONS = {
+const DEFAULT_STRENGTH_OPTIONS = {
   overallThreshold: 0.5,
   requiredCriteria: 2,
   includeDayMaster: false,

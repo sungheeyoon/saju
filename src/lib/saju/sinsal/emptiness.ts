@@ -91,5 +91,3 @@ export function findEmptiness(pillars: EmptinessInput): Emptiness[] {
   ];
 }
 
-/** 육십갑자가 열 개씩 여섯 순으로 나뉜다는 사실 — 검산용 */
-export const SEXAGENARY_CYCLE_COUNT = SEXAGENARY_CYCLE_LENGTH / STEM_COUNT;

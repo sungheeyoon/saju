@@ -178,10 +178,10 @@ export const DISCOVERY_EMPTY = {
     '그동안 내 사주풀이를 받아 보시거나, 가족·친구를 저장해 두 분의 궁합을 보실 수 있습니다.',
 } as const;
 
-export const EXPLORATION_NOTE =
+const EXPLORATION_NOTE =
   '새로운 추천은 비슷한 유형만 반복해서 보여드리지 않기 위해 일부러 섞은 인연입니다.';
 
-export const NO_MISSING_NOTICE =
+const NO_MISSING_NOTICE =
   '당신의 원국에는 빠진 오행이 없어 보완으로 견줄 것이 없습니다. 아래 순서는 함께 놓았을 때의 오행 균형으로 섰습니다.';
 
 /**
