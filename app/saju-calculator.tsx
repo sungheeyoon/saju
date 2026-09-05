@@ -41,11 +41,13 @@ import {
   FOLLOWING_PATTERN_STATUS_KO,
   EMPTINESS_BASIS_KO,
   UNRESOLVED_FACTOR_KO,
+  PILLAR_POSITIONS,
   PILLAR_POSITION_KO,
   RELATION_KIND_KO,
   SPIRIT_BASIS_KO,
   STEM_INFO,
   TEN_GOD_KO,
+  TRANSFORMATION_VERDICT_KO,
   TWELVE_SPIRIT_ALIAS,
   TWELVE_SPIRIT_KO,
   TWELVE_STAGE_KO,
@@ -64,6 +66,7 @@ import {
   type Relation,
   type Saju,
   type StarNature,
+  type StemTransformation,
   type StarTarget,
   type Utterance,
 } from '@/src/lib/saju';
@@ -373,6 +376,37 @@ function SaidAbout({ utterances }: { utterances: Utterance[] }) {
  * 수 있고, 무엇보다 엔진이 시각을 스스로 묻지 않기로 한 결정
  * (`NOW_POLICY.viewingInstant`)이 화면에서 되돌아온다.
  */
+/**
+ * 겹침을 **운이 데려온 글자로 묶는다.**
+ *
+ * 운의 한 자가 원국의 어느 글자와 같으면 그 자리에 걸려 있던 관계가 **통째로** 겹친다 —
+ * 대운 寅이 시지 寅과 같아서 다섯 관계가 한꺼번에 겹치는 것이 그것이다. 줄로 풀면 다섯
+ * 줄이 한 사실을 다섯 번 말하고, 그러면 파묻힌 줄을 꺼내려고 만든 칸이 다시 목록이 된다.
+ *
+ * 엔진이 낸 값을 다시 세지 않는다 — `overlaps` 를 **모으기만** 한다.
+ */
+function groupOverlaps(
+  overlaps: CurrentFortune['overlaps'],
+): Map<string, { char: string; seats: PillarPosition[]; names: string[] }> {
+  const grouped = new Map<string, { char: string; seats: PillarPosition[]; names: string[] }>();
+
+  for (const overlap of overlaps) {
+    const key = `${overlap.from.chartId}:${overlap.from.char}`;
+    const found = grouped.get(key) ?? { char: overlap.from.char, seats: [], names: [] };
+
+    grouped.set(key, {
+      char: found.char,
+      // 자리는 년→시 차례로 — 모은 순서는 관계가 세어진 순서라 사람이 읽는 차례가 아니다.
+      seats: [...new Set([...found.seats, ...overlap.natalSeats])].sort(
+        (a, b) => PILLAR_POSITIONS.indexOf(a) - PILLAR_POSITIONS.indexOf(b),
+      ),
+      names: [...new Set([...found.names, overlap.ko])],
+    });
+  }
+
+  return grouped;
+}
+
 function NowFortune({ now }: { now: CurrentFortune }) {
   const { header, body, relations, footnote } = useMemo(
     () => placeNowUtterances(assembleNowText(now)),
@@ -396,6 +430,44 @@ function NowFortune({ now }: { now: CurrentFortune }) {
         아니라 자리를 주는 것이고, 원국 화면에서 이 주제를 뺀 것과 이유가 다르다
         (저쪽은 표가 든다).
       */}
+      {/*
+        **열아홉 줄에 파묻히던 한 줄을 먼저 세운다.**
+
+        원국에 이미 인신충이 있는 사람에게 이번 달 申이 또 오면, 그 달은 「새 충 하나」가
+        아니라 **같은 자리를 두 번째로 치는 달**이다. 두 사실은 아래 목록에 다 있었지만
+        서로 다른 줄에 있었고, 줄이 스물에 가까우면 사람도 모델도 그 짝을 못 맞춘다.
+
+        엔진이 세어 준 것만 세운다(`now.overlaps`) — 화면이 다시 맞추면 목록과 이 칸이
+        어긋나는 날 어느 쪽이 맞는지 알 수 없다.
+      */}
+      {now.overlaps.length > 0 && (
+        <div className="mt-4 border-t border-border pt-3">
+          <h3 className="text-sm font-medium">원국의 같은 자리를 다시 밟는 것</h3>
+          {/*
+            **글자로 묶는다.** 운이 데려온 한 자가 원국의 어느 글자와 같으면 그 자리의
+            관계가 통째로 겹치므로, 줄로 풀면 다섯 줄이 한 사실을 다섯 번 말한다. 겹치게
+            만든 것은 그 **한 자**이고, 무엇이 겹쳤는지는 그 옆에 이름으로 선다.
+          */}
+          <ul className="mt-2 flex flex-col gap-1.5 text-sm">
+            {[...groupOverlaps(now.overlaps)].map(([key, group]) => (
+              <li key={key} className="flex flex-wrap items-baseline gap-x-2">
+                <span className="glyph font-medium">{group.char}</span>
+                <span className="text-secondary">
+                  {subjectParticle(group.char)} 원국{' '}
+                  {group.seats.map((seat) => PILLAR_POSITION_KO[seat]).join('·')}의 같은 자리를
+                  다시 밟습니다 —{' '}
+                  <span className="text-foreground">{group.names.join(' · ')}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-muted">
+            새로 센 것이 아니라 아래 목록과 원국의 관계 표를 맞춰 본 것입니다 — 같은 종류가
+            같은 자리에 다시 걸린 것만 셉니다.
+          </p>
+        </div>
+      )}
+
       {relations.length > 0 && (
         <div className="mt-4 border-t border-border pt-3">
           <h3 className="text-sm font-medium">지금이 원국과 맺는 관계</h3>
@@ -1610,6 +1682,118 @@ function GlyphCell({
 }
 
 /**
+ * 무엇이 세력을 옮겼고 무엇은 안 옮겼는가 — **한 줄로 선다.**
+ *
+ * 강약·억부·종격·격국·통관이 전부 **옮긴 뒤의 분포**에서 세력을 잰다. 그런데 무엇이
+ * 옮겼는지는 유도 문장 여러 줄에 흩어져 있어서, 「왜 이 합은 반영하고 저 합은 안
+ * 했나」를 알려면 그 줄을 다 읽고 역추적해야 했다.
+ *
+ * **옮기는 축은 국(局) 하나다.** 삼합·방합 계열만 무게를 기울인다 — 육합은 두 글자가
+ * 묶이는 관계이지 세력을 만드는 축이 아니고, 천간합은 化했을 때만 옮긴다. 그 갈림을
+ * 여기서 한 번에 보인다.
+ *
+ * 몫의 근거도 같은 줄에 적는다. 25% 는 자료에 맞춰 고른 값이 아니라 **완성된 국의
+ * 절반**이고, 세 등급의 간격을 2배로 고정한 데서 나온다(`BUREAU_POLICY.pull`) — 등급
+ * 사이의 비를 먼저 정하고 자료를 본다는 규율이다.
+ */
+function WeightShifts({ saju }: { saju: Saju }) {
+  const { bureaus, effectiveElements } = saju.analysis;
+  const { transformations, shifts } = effectiveElements;
+
+  /*
+    **같은 합이 두 줄로 서지 않게 묶는다.**
+
+    한 글자를 둘이 물면 합도 둘로 세어진다(쟁합·투합). 그대로 나열하면 「정임합목 —
+    합이불화」가 두 번 서고, 그것은 문장 층에서 방금 고친 것과 **같은 고장**이다.
+    이름과 판정이 같은 것은 한 줄로 세우고 자리만 함께 든다.
+  */
+  const boundStems = [
+    ...transformations
+      .filter((one) => one.verdict !== 'transformed')
+      .reduce((grouped, one) => {
+        const key = `${one.ko}:${one.verdict}`;
+        const seats = grouped.get(key)?.seats ?? [];
+        grouped.set(key, {
+          ko: one.ko,
+          verdict: one.verdict,
+          seats: [...new Set([...seats, ...one.participants.map((at) => at.position)])],
+        });
+        return grouped;
+      }, new Map<string, { ko: string; verdict: StemTransformation['verdict']; seats: PillarPosition[] }>())
+      .values(),
+  ];
+  const sixCombinations = saju.relations.filter(
+    (relation) => relation.kind === 'branchSixCombination',
+  );
+
+  if (bureaus.length === 0 && boundStems.length === 0 && sixCombinations.length === 0) return null;
+
+  const percent = (ratio: number) => `${Math.round(ratio * 100)}%`;
+
+  return (
+    <div className="mt-4 border-t border-border pt-3">
+      <h3 className="text-sm font-medium">세력에 반영한 합과 안 한 합</h3>
+
+      <ul className="mt-2 flex flex-col gap-1 text-sm">
+        {bureaus.map((bureau) => {
+          const moved = shifts.filter((shift) => shift.cause === bureau.ko);
+          return (
+            <li key={`${bureau.kind}-${bureau.element}`} className="flex flex-wrap items-baseline gap-x-2">
+              <span className="text-accent">반영</span>
+              <span className="font-medium">{bureau.ko}</span>
+              <span className="text-secondary">
+                → <span className="glyph">{bureau.element}</span> {ELEMENT_KO[bureau.element]}{' '}
+                {percent(bureau.pull)} 만큼 기울임
+                {moved.length > 0 && (
+                  <span className="text-muted">
+                    {' '}
+                    ({moved
+                      .map((shift) => `${shift.from}→${shift.to} ${shift.amount.toFixed(2)}`)
+                      .join(' · ')})
+                  </span>
+                )}
+              </span>
+            </li>
+          );
+        })}
+
+        {boundStems.map((transformation) => (
+          <li key={`${transformation.ko}-${transformation.verdict}`} className="flex flex-wrap items-baseline gap-x-2">
+            <span className="text-muted">안 함</span>
+            <span className="font-medium">{transformation.ko}</span>
+            <span className="text-secondary">
+              {transformation.seats.map((seat) => PILLAR_POSITION_KO[seat].replace('주', '간')).join('·')}
+              {' '}— 천간합은 化했을 때만 옮깁니다({TRANSFORMATION_VERDICT_KO[transformation.verdict]} 자리)
+            </span>
+          </li>
+        ))}
+
+        {sixCombinations.length > 0 && (
+          <li className="flex flex-wrap items-baseline gap-x-2">
+            <span className="text-muted">안 함</span>
+            <span className="font-medium">
+              {sixCombinations.map((relation) => relation.ko).join(' · ')}
+            </span>
+            <span className="text-secondary">
+              육합은 두 글자가 묶이는 관계이지 세력을 만드는 국(局)이 아닙니다
+            </span>
+          </li>
+        )}
+      </ul>
+
+      <p className="mt-2 text-xs text-muted">
+        무게를 기울이는 것은 <strong className="font-medium">국(삼합·방합) 하나</strong>입니다.
+        몫은 완성된 국이 절반(50%), 왕지를 낀 두 글자가 그 절반(25%), 왕지가 빠진 붙은 두
+        글자가 다시 그 절반(12.5%) — <strong className="font-medium">자료에 맞춰 고른 값이
+        아니라</strong> 등급 사이의 비(2배)를 먼저 정하고 나온 이 엔진의 실험값입니다. 월령을
+        잡았거나 화신이 투간했으면 깎지 않고, 왕지가 충을 맞으면 절반으로 깎습니다.
+        글자를 바꾸지는 않습니다 — 辰이 수국에 들어도 그 안의 土가 0 이 되지는 않습니다.
+      </p>
+    </div>
+  );
+}
+
+/**
  * 오행 분포 — 크기 비교가 일이므로 단일 색조 막대.
  * 값을 전부 옆에 적으므로 표 역할도 겸한다(툴팁 불필요).
  */
@@ -1697,6 +1881,8 @@ function ElementChart({ saju }: { saju: Saju }) {
           ))}
         </tbody>
       </table>
+
+      <WeightShifts saju={saju} />
 
       {/*
         **「없다」도 자를 밝힌다.** 이 줄은 개수 기준이라 지장간에만 있는 오행이 여기

@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { CONTROLS, ELEMENTS, GENERATES, pillarOf, type Branch, type Stem } from '../constants';
-import { computeSaju } from '../index';
-import { randomInputs } from '../population';
 import { effectiveElementsOf } from './effectiveElements';
 import { TONGGWAN_POLICY, tonggwanCandidacyOf } from './tonggwan';
 
