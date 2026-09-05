@@ -80,6 +80,7 @@ export {
   READING_PROMPTS,
   readingPromptOf,
   selfSectionCount,
+  selfSectionTexts,
   type PromptAssembly,
   type ReadingAbout,
   type ReadingNames,

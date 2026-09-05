@@ -7,6 +7,7 @@ import { ABSORBABLE_KINDS, RELATION_KIND_KO } from '../saju/relations';
 import {
   CONTROL,
   PROMPT_VARIANTS,
+  selfSectionTexts,
   FALLBACK_NAMES,
   READING_POLICY,
   READING_PROMPTS,
@@ -180,6 +181,28 @@ describe('변형은 한 곳만 벗어난다', () => {
       (key) => JSON.stringify(variant.assembly[key]) !== JSON.stringify(CONTROL[key]),
     );
 
+  /**
+   * **칸만 세면 못 보는 자리가 있다.**
+   *
+   * `selfPresentation` 한 칸을 바꾸면서 절 셋을 함께 움직이는 변형이 실제로 들어왔다
+   * (`yongsin-v1`). 칸 수로는 「한 곳만 바꿨다」라 `confounded` 를 못 적게 막혔는데,
+   * 이겨도 셋 중 무엇 덕인지 모르는 것은 두 칸을 바꾼 것과 똑같다.
+   *
+   * 그래서 **바뀐 절 수도 함께 센다.** 자를 내린 뒤에야 규칙 1 이 제 몫을 한다.
+   */
+  const changedSections = (variant: (typeof PROMPT_VARIANTS)[number]) => {
+    const before = selfSectionTexts(CONTROL);
+    const after = selfSectionTexts(variant.assembly);
+    const longer = Math.max(before.length, after.length);
+
+    return Array.from({ length: longer }, (_, at) => at).filter((at) => before[at] !== after[at])
+      .length;
+  };
+
+  /** 한 곳인가 — 조립 칸과 절, 둘 중 어느 쪽으로 세도 하나 이하여야 한다 */
+  const changedPlaces = (variant: (typeof PROMPT_VARIANTS)[number]) =>
+    Math.max(changedKeys(variant).length, changedSections(variant));
+
   it('기준판은 한 칸도 안 바꾼다', () => {
     const control = PROMPT_VARIANTS.find((one) => one.id === 'control');
 
@@ -189,16 +212,18 @@ describe('변형은 한 곳만 벗어난다', () => {
 
   it('둘 이상 바꾼 변형은 무엇이 함께 움직였는지 적는다', () => {
     for (const variant of PROMPT_VARIANTS) {
-      const changed = changedKeys(variant);
-      if (changed.length <= 1) continue;
+      if (changedPlaces(variant) <= 1) continue;
 
-      expect(variant.confounded, `${variant.id} — ${changed.join('·')}`).not.toBeNull();
+      expect(
+        variant.confounded,
+        `${variant.id} — 칸 ${changedKeys(variant).join('·') || '없음'} · 절 ${changedSections(variant)}개`,
+      ).not.toBeNull();
     }
   });
 
   it('한 곳만 바꾼 변형은 뒤섞였다고 적지 않는다', () => {
     for (const variant of PROMPT_VARIANTS) {
-      if (changedKeys(variant).length > 1) continue;
+      if (changedPlaces(variant) > 1) continue;
 
       expect(variant.confounded, variant.id).toBeNull();
     }

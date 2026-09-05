@@ -57,7 +57,20 @@ export const FALLBACK_NAMES: ReadingNames = { a: '첫 번째 분', b: '두 번�
 
 /** 사용자에게 나가는 결과를 만드는 프롬프트 조립 옵션. */
 export type Length = { readonly min: number; readonly max: number };
-export type SelfPresentation = 'expert-v3' | 'legacy-v1';
+export type SelfPresentation =
+  | 'expert-v3'
+  /**
+   * expert-v3 에서 **절 수는 그대로 두고** 세 절이 용신 계열 값을 읽게 한 판.
+   *
+   * 자료에는 억부·조후·통관·격국·신강신약이 다 실리는데 **배포 프롬프트가 그중 어느
+   * 경로도 이름으로 부르지 않았다.** 모델이 JSON 을 다 받으니 읽을 수는 있지만, 절이
+   * 그쪽으로 눈을 돌리지 않으면 쓰였는지는 그때그때 다르다.
+   *
+   * 절을 새로 만들지 않는다 — 지시가 13,900자를 넘으면 규칙이 서로를 묻는다. 이미 있는
+   * 세 절(성격·강점·조심할 점)이 읽을 것을 더 가질 뿐이다.
+   */
+  | 'expert-v4'
+  | 'legacy-v1';
 
 /**
  * 전문용어를 **본문에 부를 것인가.**
@@ -526,8 +539,13 @@ const LEAD_SUMMARY: Section = {
  * 그리고 질문을 어디서 짓는지. 나머지 절은 애초에 이름을 부르라고 시키지 않았으므로
  * 두 판이 같은 문장을 쓴다 — **갈리지 않는 것을 두 벌로 적으면 한쪽만 고쳐진다.**
  */
-const expertSelfSections = (terminology: Terminology): readonly Section[] => {
+const expertSelfSections = (
+  terminology: Terminology,
+  presentation: SelfPresentation = 'expert-v3',
+): readonly Section[] => {
   const plain = terminology === 'plain';
+  /** 용신 계열을 읽는 판인가 — 세 절의 꼬리가 여기서 갈린다 */
+  const readsYongsin = presentation === 'expert-v4';
 
   return [
     LEAD_SUMMARY,
@@ -541,13 +559,38 @@ const expertSelfSections = (terminology: Terminology): readonly Section[] => {
       title: '성격과 속마음',
       body: `겉으로 보이는 모습, 혼자 있을 때의 속마음, 화가 나거나 불안할 때의 반응을
 나눠 읽는다. 일·선택·갈등에서 실제로 반복되는 장면 세 네 개를 엮어, 왜 반대되는 모습이
-한 사람 안에 함께 있는지까지 말한다.`,
+한 사람 안에 함께 있는지까지 말한다.${
+        readsYongsin
+          ? `
+
+**축을 하나 먼저 잡는다 — 제 힘으로 버티는 쪽인가, 둘레에 기대는 쪽인가**
+(\`analysis.strength\`). 이 하나가 위의 세 장면을 다른 이야기로 만든다: 버티는 쪽의
+고집과 기대는 쪽의 고집은 같은 낱말이어도 사는 모양이 다르다.
+
+\`criteria\` 셋이 갈리면 그 사람은 **양쪽을 오가는 사람**이다 — 어떤 자리에서 어느 쪽이
+나오는지를 장면으로 써라. **이 축의 이름도, 몇 대 몇이었는지도 본문에 쓰지 마라.**`
+          : ''
+      }`,
     },
     {
       title: '강점과 타고난 복',
       body: `재능과 장점을 최소 네 갈래로 풍성하게 쓴다. 각 강점마다 「무엇을 남보다
 잘하는가 → 어떤 판에서 빛나는가 → 그 재능이 어떤 복으로 이어지는가」를 보여 준다.
-좋은 절에 약점을 매번 끼워 넣어 김을 빼지 마라.`,
+좋은 절에 약점을 매번 끼워 넣어 김을 빼지 마라.${
+        readsYongsin
+          ? `
+
+**이 사람이 무엇으로 서 있는지를 먼저 본다**(\`analysis.structure\`). 태어난 달이 쥐여 준
+자리가 무엇인지, 그것이 재능을 어느 쪽으로 몰아 주는지를 강점의 뼈대로 삼아라 — 네 갈래가
+따로 놀지 않고 한 뿌리에서 갈라져 나오게.
+
+\`alsoKinds\` 가 비어 있지 않으면 그 자리가 **한 가지로 안 읽히는 사람**이라는 뜻이다.
+한쪽으로 단정하지 말고 둘이 함께 만드는 결을 써라. \`formingFactors\`·\`breakingFactors\`
+가 섞여 있으면 **잘 풀릴 때와 어긋날 때가 갈리는 사람**으로 쓴다.
+
+**이 자리의 이름도, 자료가 그것을 어떻게 잡았는지도 본문에 쓰지 마라.**`
+          : ''
+      }`,
     },
     {
       title: '일과 돈',
@@ -582,7 +625,23 @@ const expertSelfSections = (terminology: Terminology): readonly Section[] => {
 잘 다뤘을 때 바뀌는 좋은 모습을 빠짐없이 쓴다. 몸은 ${
         plain ? '오행의 치우침과 태어난 때의 춥고 더움' : '오행과 조후'
       }으로 보아 피로가 먼저 드러나기 쉬운 쪽과 생활에서 먼저 챙길 것을 쓴다. 사주로 병명을
-만들지 말고 초기 신호와 예방법을 구체적으로 말한다.`,
+만들지 말고 초기 신호와 예방법을 구체적으로 말한다.${
+        readsYongsin
+          ? `
+
+**늘릴 기운을 고르고 하루의 행동으로 옮긴다.** 고를 때 세 곳을 함께 본다 — 넘치면 누르고
+모자라면 돕는 쪽(\`analysis.eokbu\`), 춥고 더움을 고르는 쪽(\`analysis.johu\`), 그리고
+여덟 글자에 아예 없는 것(\`analysis.elements.missing\`).
+
+셋이 다른 것을 가리키면 **늘릴 것을 하나로 줄이지 말고 두 갈래로 준다** — 「이런 때는 이것을,
+저런 때는 저것을」처럼 **언제 어느 쪽인지**로 갈라라. 한쪽을 지우거나 둘을 뭉개지 마라.
+
+**무엇과 무엇이 갈렸는지는 쓰지 마라.** 읽는 사람에게 필요한 것은 갈린 사정이 아니라 두 길
+각각의 생활이다. 고른 기운도 **이름이 아니라 행동**으로 낸다: 시간대·장소·움직임·공부·물건·
+습관 중에서 서너 개. 오행이 어느 시간대·방위에 붙는지는 자료에 없으니 가져다 쓰되 근거 칸에
+「자료 밖」이라고 적어라.`
+          : ''
+      }`,
     },
     {
       title: plain ? '앞으로의 흐름' : '지금 들어온 운',
@@ -656,10 +715,20 @@ const LEGACY_SELF_SECTIONS: readonly Section[] = [
   { title: '지금', body: '지금 도는 운과 이번 달에 밀어붙일 것·미룰 것.' },
 ];
 
+/**
+ * 전문가 뼈대인가 — **`expert-` 로 시작하는 판이 둘이 됐다.**
+ *
+ * 한동안 `=== 'expert-v3'` 를 세 자리에서 따로 물었다. v4 를 넣자 그중 하나(말투)만
+ * 안 따라와서, 절은 v4 인데 말투는 옛 판인 프롬프트가 나왔다 — 3,163자가 조용히 빠졌다.
+ * 묻는 곳이 셋이면 그중 하나를 안 고치는 날이 온다. 한 자리에서 묻는다.
+ */
+const isExpertPresentation = (presentation: SelfPresentation): boolean =>
+  presentation === 'expert-v3' || presentation === 'expert-v4';
+
 /** 그 조립이 세우는 자기 풀이 절들 — 뼈대가 먼저, 용어 판이 그다음이다 */
 const selfSectionsOf = (assembly: PromptAssembly): readonly Section[] =>
-  assembly.selfPresentation === 'expert-v3'
-    ? expertSelfSections(assembly.terminology)
+  isExpertPresentation(assembly.selfPresentation)
+    ? expertSelfSections(assembly.terminology, assembly.selfPresentation)
     : LEGACY_SELF_SECTIONS;
 
 const selfSections = (assembly: PromptAssembly): string => {
@@ -702,14 +771,30 @@ const JUDGEMENT_PRECEDENCE = `## 무엇을 쓰면 좋은지가 갈릴 때
 어느 길을 볼지는 네가 고르지 않는다 — \`analysis.precedence\` 가 기준이 되는 하나
 (\`primary\`)와, 나머지가 그것을 **왜 못 뒤집는지**를 줄마다 들고 온다.
 
-갈린다는 사실은 말해도 된다. 「보는 길에 따라 답이 갈리는 명식」은 참이고, 그렇게 적으면
-읽는 사람이 자기가 무엇을 아는지 더 정확히 안다. 다만 **뒤집힌 쪽을 답으로 쓰지 마라** —
-\`overrides\` 가 거짓인 줄이 가리키는 것은 이 자료가 받쳐 주지 않는다. \`disagrees\` 가
-비어 있는 줄은 「같다」가 아니라 **견줄 수 없다**는 뜻이라, 「둘이 일치한다」로 읽으면 안 된다.`;
+갈리면 **두 길을 다 생활의 말로 준다** — 「이렇게 보면 이런 쪽이 열리고, 저렇게 보면 저런
+쪽이 열린다」. 한쪽을 지우지도, 둘을 뭉개 하나로 만들지도 마라.
+
+**갈렸다는 사정 자체는 본문에 설명하지 마라.** 무엇과 무엇이 어긋났는지, 어느 쪽이 우선인지,
+자료가 무엇을 어떻게 세었는지는 **읽는 사람이 알 필요가 없는 우리 사정**이다. 「자료의
+우선순위가 높은 쪽에 따르면」·「참고표와는 답이 갈리므로」 같은 문장은 해석이 아니라 우리
+장치의 해설이다. 그 사정은 맨 끝 근거 칸에서만 댄다.
+
+\`overrides\` 가 거짓인 줄이 가리키는 것을 **답으로 세우지는 마라.** \`disagrees\` 가 비어
+있는 줄은 「같다」가 아니라 **견줄 수 없다**는 뜻이라, 「둘이 일치한다」로 읽으면 안 된다.`;
 
 /** 채점 화면과 실호출 검사가 기대할 자기 풀이 소제목 수. */
 export const selfSectionCount = (assembly: PromptAssembly): number =>
   selfSectionsOf(assembly).length;
+
+/**
+ * 그 조립이 세우는 절들을 글자로 — **변형 가드가 절 단위를 세는 자다.**
+ *
+ * 「변형은 한 곳만 벗어난다」를 조립 **칸**으로만 세면, 한 칸 안에서 절 셋이 움직이는
+ * 변형이 「한 곳만 바꿨다」로 통과한다. 그러면 이겨도 무엇 덕인지 모른 채 합치게 되고,
+ * 그것이 규칙 1 이 막으려던 바로 그것이다. 세는 자를 절까지 내린다.
+ */
+export const selfSectionTexts = (assembly: PromptAssembly): readonly string[] =>
+  selfSectionsOf(assembly).map((section) => `${section.title}\n${section.body}`);
 
 const SCORE_SECTION = `## 점수
 
@@ -922,7 +1007,7 @@ const bodyOf = (
   about: ReadingAbout,
 ): string => {
   const solo = isSolo(kind);
-  const isExpertSelf = solo && assembly.selfPresentation === 'expert-v3';
+  const isExpertSelf = solo && isExpertPresentation(assembly.selfPresentation);
   const head =
     solo
       ? isExpertSelf
