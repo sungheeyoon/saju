@@ -184,6 +184,8 @@ export const CLAIM_PATHS = [
   'analysis.hiddenCombinations',
   'analysis.followingCandidacy',
   'analysis.following',
+  'analysis.tonggwan',
+  'analysis.yongsinAgreement',
   'analysis.structure',
   'analysis.favorability',
 ] as const;
@@ -326,8 +328,31 @@ export const CLAIM_CEILING: Record<ClaimPath, ClaimStrength> = {
    */
   'analysis.favorability': CLAIM_CEILING_EOKBU,
 
+  /**
+   * 통관 재료는 **실효 분포보다 셀 수 없다.**
+   *
+   * 잇는 오행이 무엇인지는 상생 고리에서 곧장 나오는 표라 갈릴 자리가 없다. 그런데
+   * 몫은 전부 실효 분포에서 오고, 그 분포는 「亥卯未가 모였으니 未의 무게 절반이
+   * 木으로 간다」는 우리가 고른 값을 이미 품고 있다(`analysis.effectiveElements` 가
+   * `derived` 인 이유). **근거를 물려받은 값이 근거보다 세게 말할 수는 없다.**
+   *
+   * 옆칸의 `analysis.followingCandidacy` 는 같은 분포를 쓰면서 `fact` 로 앉아 있다.
+   * 그 자리를 여기서 흔들지는 않되 이쪽이 그 칸을 근거로 올라가지도 않는다 — 둘 중
+   * 하나가 잘못 앉았다면 옮기는 일은 그 값을 재는 자리에서 해야 한다.
+   */
+  'analysis.tonggwan': 'derived',
+
   /** 조건을 자동 판정하지 않은 참고표다. 출처를 함께 밝힌다 */
   'analysis.johu': 'reference',
+
+  /**
+   * 억부·조후 대조는 **둘 중 약한 쪽을 따른다.**
+   *
+   * 대조 자체는 오행 표라 갈릴 자리가 없지만, 견주는 두 값이 각각 `candidate` 와
+   * `reference` 다. 「이 둘이 어긋난다」는 문장은 조후 후보가 맞아야 참이므로 조후가
+   * 든 상한을 넘을 수 없다 — 오신 배정이 억부보다 셀 수 없는 것과 같은 자리다.
+   */
+  'analysis.yongsinAgreement': 'reference',
 };
 
 /**
@@ -484,6 +509,18 @@ export const HOUR_SENSITIVE_PATHS: readonly ClaimPath[] = [
   'analysis.rootQuality',
   'analysis.bureaus',
   'analysis.effectiveElements',
+  /**
+   * 통관 재료 — **맞선 쌍이 바뀐다.** 시주 두 글자를 지우면 가장 팽팽한 쌍이
+   * 42.2% 에서 다른 쌍으로 갈린다. 실효 분포에서 재는 값이라 그 분포(31.4%)보다
+   * 더 흔들리는 것이 자연스럽다: 분포는 「가장 무거운 오행」 하나가 바뀔 때만
+   * 세는데, 이쪽은 다섯 쌍의 **순서**가 바뀌면 센다.
+   */
+  'analysis.tonggwan',
+  /**
+   * 억부·조후 대조 — **양쪽이 다 흔들려서 대조도 흔들린다.** 억부 후보가 바뀌거나
+   * 조후의 상·하반월이 뒤집히면 「같은 것을 가리키는가」의 답이 갈린다: 16.3%.
+   */
+  'analysis.yongsinAgreement',
 ];
 
 /**

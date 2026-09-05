@@ -29,6 +29,13 @@ import { HOUR_SENSITIVE_PATHS, type ClaimPath } from '../text/policy';
  * | `analysis.favorability` | 다섯 자리 배정 | 25.4% |
  * | `analysis.structure` | 무슨 격인가 | 8.7% |
  * | `analysis.hiddenCombinations` | 암합 짝 | **0%** |
+ *
+ * ## 뒤에 들어온 자리 (2026-09-05, 같은 방식)
+ *
+ * | 자리 | 무엇을 보았나 | 뒤집힘 |
+ * | --- | --- | ---: |
+ * | `analysis.tonggwan` | 가장 팽팽한 쌍 | 42.2% |
+ * | `analysis.yongsinAgreement` | 억부와 조후가 같은 것을 가리키는가 | 16.3% |
  */
 
 /** 시주만 지운 짝. 세 기둥이 갈린 표본은 시주의 몫이 아니라 빼고 낸다 */
@@ -68,6 +75,15 @@ const OBSERVED: Partial<Record<ClaimPath, (saju: Saju) => string>> = {
     Object.entries(saju.analysis.effectiveElements.distribution.ratios).sort(
       (a, b) => b[1] - a[1],
     )[0][0],
+  /**
+   * 통관은 **어느 쌍이 가장 팽팽한가**로 본다. 몫 자체를 견주면 소수점이 조금만
+   * 움직여도 뒤집힌 것으로 세어져 100% 가 나오고, 그것은 값이 흔들렸다는 말이
+   * 아니라 실수를 견줬다는 말이다.
+   */
+  'analysis.tonggwan': (saju) =>
+    `${saju.analysis.tonggwan.tightest.controller}${saju.analysis.tonggwan.tightest.controlled}`,
+  /** 대조의 답 하나만 본다 — 겹치는 글자 목록까지 견주면 조후 칸의 흔들림을 두 번 센다 */
+  'analysis.yongsinAgreement': (saju) => String(saju.analysis.yongsinAgreement.aligned),
 };
 
 describe('시주 민감도는 잰 값이다', () => {

@@ -237,6 +237,19 @@ export const UNCOVERED_FACTS_BY_PATH: readonly {
     note: '일간 밖의 천간 — 일간의 뿌리만 말한다. 질의 수치는 배수를 곱한 값이라 단위가 없어 들지 않는다',
   },
   { paths: ['analysis.followingCandidacy'], note: '종격 후보 자격 — 판정(`analysis.following`)만 말한다' },
+  /**
+   * 통관은 **엔진이 세기 시작했고 문장은 아직 모른다.** 여기 이름이 서 있는 동안은
+   * 조각도 문장도 이 값을 안 읽는다 — 「맞선 두 세력」을 문장으로 말하려면 얼마나
+   * 맞서야 맞선 것인지가 먼저이고, 그 문턱을 아직 안 골랐기 때문이다.
+   */
+  {
+    paths: ['analysis.tonggwan'],
+    note: '맞선 다섯 쌍과 그 사이를 잇는 오행 — 문턱을 고르지 않아 「대치다」를 말할 자리가 없다',
+  },
+  {
+    paths: ['analysis.yongsinAgreement'],
+    note: '억부와 조후가 같은 것을 가리키는가 — 어긋날 때 어느 쪽을 보는지는 정하지 않아 문장이 없다',
+  },
   { paths: ['stages'] },
   { paths: ['sinsal'] },
   // 대운·세운·월운은 **표 전체로는** 아직 침묵한다. 지금 도는 한 칸만

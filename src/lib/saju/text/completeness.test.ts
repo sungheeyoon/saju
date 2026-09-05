@@ -104,6 +104,14 @@ const NOT_A_LIST: readonly ClaimPath[] = [
   'analysis.following',
   'analysis.structure',
   'analysis.favorability',
+  /**
+   * 통관 재료는 목록처럼 생겼지만 **늘어나지 않는다.** 극 관계는 명식과 무관하게
+   * 언제나 다섯이라 시주가 붙어도 항목 수가 그대로다. 흔들리는 것은 순서와 몫이고,
+   * 그 축은 `HOUR_SENSITIVE_PATHS` 가 든다(가장 팽팽한 쌍이 42.2% 에서 갈린다).
+   */
+  'analysis.tonggwan',
+  /** 대조 하나다. 조후 후보 목록이 길어지는 것은 저쪽(`analysis.johu`)의 몫이다 */
+  'analysis.yongsinAgreement',
 ];
 
 describe('자리별 목록의 완전성', () => {
