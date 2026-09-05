@@ -37,7 +37,7 @@ const RECENCY_CHECK = `## 제출 전 확인
 
 export type PromptVariantId =
   | 'control'
-  | 'yongsin-v1'
+  | 'no-yongsin-v1'
   | 'legacy-v1'
   | 'longer-v1'
   | 'plain-terms-v1'
@@ -96,13 +96,13 @@ export const PROMPT_VARIANTS: readonly PromptVariant[] = [
     assembly: { ...CONTROL, terminology: 'plain' },
   },
   {
-    id: 'yongsin-v1',
-    label: '용신 계열을 읽힌다',
+    id: 'no-yongsin-v1',
+    label: '용신 계열을 안 읽힌다 (앞 기준판)',
     changes:
-      '이미 있는 세 절(성격·강점·조심할 점)이 버틸 힘·격국·억부·조후·대조를 읽게 한다. 절은 안 늘리고 지시문에 이름을 앞세우지도 않는다 — 뜻으로 쓰고 경로만 든다.',
+      '기준판이 `expert-v4` 로 올라가기 전의 뼈대(`expert-v3`). 세 절(성격·강점·조심할 점)이 버틸 힘·격국·억부·조후·대조를 안 읽는다 — 무엇이 없어지는지를 견줄 짝이다.',
     confounded:
-      '한 조립 칸(`selfPresentation`) 안에서 **절 셋이 함께 움직인다.** 이겨도 셋 중 무엇 덕인지 이 라운드는 답하지 않는다 — 합칠 때는 셋을 한 덩어리로 합치거나, 쪼개서 다시 재야 한다.',
-    assembly: { ...CONTROL, selfPresentation: 'expert-v4' },
+      '한 조립 칸(`selfPresentation`) 안에서 **절 셋이 함께 움직인다.** 이 짝이 이겨도 셋 중 무엇 탓인지 이 라운드는 답하지 않는다 — 되돌릴 때는 셋을 한 덩어리로 되돌리거나, 쪼개서 다시 재야 한다.',
+    assembly: { ...CONTROL, selfPresentation: 'expert-v3' },
   },
   {
     id: 'legacy-v1',

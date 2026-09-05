@@ -134,7 +134,7 @@ export const CONTROL: PromptAssembly = {
     private: { min: 3500, max: 5500 },
     match: { min: 3000, max: 4800 },
   },
-  selfPresentation: 'expert-v3',
+  selfPresentation: 'expert-v4',
   terminology: 'annotated',
   extraSections: [],
   tail: null,
