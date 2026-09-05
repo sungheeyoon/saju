@@ -68,18 +68,13 @@ export default function Home() {
             「출생 시각 모름」을 **골라야** 넘어간다. 화면이 폼과 다른 말을 하고 있었다.
           */}
           <p className="mt-1 text-sm text-secondary">
-            출생 시각을 모르면 「{HOUR_UNKNOWN_LABEL}」을 고르세요. 나머지 세 기둥은 그대로
-            계산합니다.
+            출생 시각을 모르면 「{HOUR_UNKNOWN_LABEL}」을 고르세요.
           </p>
         </div>
         <Suspense fallback={<div className="h-56 rounded-2xl border border-border bg-surface shadow-[var(--shadow-card)]" />}>
           <SajuCalculator />
         </Suspense>
       </section>
-
-      <footer className="border-t border-border py-6 text-xs leading-6 text-muted">
-        절기는 천문 계산(태양 황경), 표준시 이력은 IANA tz 데이터에서 생성했습니다.
-      </footer>
     </main>
   );
 }
