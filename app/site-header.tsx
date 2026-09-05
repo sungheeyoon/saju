@@ -9,10 +9,18 @@ import { readingCreditsLabel } from '@/src/lib/reading';
 import { supabaseInBrowser } from './auth/browser-client';
 import { READING_CREDITS_MOVED } from './me/reading/credits-signal';
 
-const PUBLIC_LINKS = [
-  { href: '/', label: '사주 보기' },
-  { href: '/compat', label: '궁합 보기' },
-] as const;
+/**
+ * 로그인하지 않은 사람의 메뉴 — **여기서 갈 수 있는 곳만 선다.**
+ *
+ * 「궁합 보기」가 나란히 서 있었다. 그런데 `/compat` 은 로그인해야 열리는 자리라,
+ * 메뉴에서 그것을 누른 사람은 로그인 화면을 만난다 — **메뉴는 지금 갈 수 있는 곳의
+ * 목록이지 제품 기능의 목록이 아니다.** 아직 계산 한 번 안 해 본 사람에게 먼저 할 말도
+ * 궁합이 아니다.
+ *
+ * 궁합으로 가는 길이 사라지지는 않는다. 사주 화면의 머리에 「로그인 필요」를 달고
+ * 서 있다(`compat-entry.tsx`) — 거기서는 그 말이 왜 눌러야 하는지까지 함께 말한다.
+ */
+const PUBLIC_LINKS = [{ href: '/', label: '사주 보기' }] as const;
 
 /**
  * 로그인한 사람의 메뉴 — **「내 사주」가 홈이고, 계산기는 메뉴 안에 있다.**
