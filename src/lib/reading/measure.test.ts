@@ -142,9 +142,12 @@ describe('조립이 시킨 대로 나왔는가', () => {
    * 답이 안 나온다.
    */
   describe('이름을 안 부르는 판만 분류명을 센다', () => {
-    const plain = () => {
-      const found = PROMPT_VARIANTS.find((one) => one.id === 'plain-terms-v1');
-      if (found === undefined) throw new Error('plain-terms-v1 이 없다');
+    /** 이름을 안 부르는 판이 이제 기준판이다 */
+    const plain = () => CONTROL;
+    /** 견줄 짝 — 이름을 달아 부르던 앞 기준판 */
+    const annotated = () => {
+      const found = PROMPT_VARIANTS.find((one) => one.id === 'annotated-terms-v1');
+      if (found === undefined) throw new Error('annotated-terms-v1 이 없다');
       return found.assembly;
     };
 
@@ -158,7 +161,7 @@ describe('조립이 시킨 대로 나왔는가', () => {
       outputDeviations(measureMarkdown(withTerms(assembly)), assembly).map((one) => one.code);
 
     it('이름을 다는 판에서는 아예 서지 않는다', () => {
-      expect(codesOf(CONTROL)).not.toContain('plain-terms-exposed');
+      expect(codesOf(annotated())).not.toContain('plain-terms-exposed');
     });
 
     it('이름을 안 부르는 판에서는 남은 것을 적는다', () => {
