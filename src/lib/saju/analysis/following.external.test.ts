@@ -135,6 +135,48 @@ describe('종격 외부 명조 대조', () => {
       { id: 'dtsm-jiacong-3', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 34.7 },
       { id: 'dtsm-jiacong-4-misprint', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 33 },
       { id: 'dtsm-jiacong-5', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 32.1 },
+          {
+        id: 'qlmg-xu-shiying',
+        claim: 'not-following',
+        engine: 'pseudo-following',
+        direction: 'outward',
+        selfShare: 26.9,
+      },
+      {
+        id: 'qlmg-qian-weng',
+        claim: 'not-following',
+        engine: 'candidate',
+        direction: 'outward',
+        selfShare: 29.5,
+      },
+      {
+        id: 'qlmg-xuantong',
+        claim: 'following',
+        engine: 'pseudo-following',
+        direction: 'outward',
+        selfShare: 25,
+      },
+      {
+        id: 'qlmg-yan-father',
+        claim: 'not-following',
+        engine: 'candidate',
+        direction: 'outward',
+        selfShare: 28,
+      },
+      {
+        id: 'qlmg-abandon-hurt',
+        claim: 'following',
+        engine: 'candidate',
+        direction: 'outward',
+        selfShare: 18.8,
+      },
+      {
+        id: 'qlmg-yanfeng-2nd',
+        claim: 'following',
+        engine: 'candidate',
+        direction: 'outward',
+        selfShare: 17.5,
+      },
     ]);
   });
 
@@ -205,10 +247,10 @@ describe('종격 외부 명조 대조', () => {
     const claimed = results.filter((r) => r.claimed);
     const rejected = results.filter((r) => !r.claimed);
 
-    expect(claimed).toHaveLength(30);
-    expect(claimed.filter((r) => r.engine)).toHaveLength(17);
-    expect(rejected).toHaveLength(4);
-    expect(rejected.filter((r) => r.engine)).toHaveLength(1);
+    expect(claimed).toHaveLength(33);
+    expect(claimed.filter((r) => r.engine)).toHaveLength(18);
+    expect(rejected).toHaveLength(7);
+    expect(rejected.filter((r) => r.engine)).toHaveLength(2);
   });
 
   /**
@@ -307,7 +349,7 @@ describe('종격 외부 명조 대조', () => {
         claimsFollowing(testCase.claim.verdict) && !engineFollows(assess(testCase.pillars).verdict),
     );
 
-    expect(missed).toHaveLength(13);
+    expect(missed).toHaveLength(15);
 
     const { outwardMaxSelfShare } = FOLLOWING_PATTERN_POLICY.dominance;
 
@@ -326,6 +368,9 @@ describe('종격 외부 명조 대조', () => {
     expect(heldByRoot.map((testCase) => testCase.id)).toEqual([
       'kill-3',
       'dtsm-congxiang-1',
+      // 셋째 계통이 이 무리를 둘 더 데려왔다 — 문 안인데 뿌리가 0.52·0.64 다.
+      'qlmg-abandon-hurt',
+      'qlmg-yanfeng-2nd',
     ]);
 
     // 두 무리가 열셋을 다 덮는다 — 남는 것이 있으면 무리를 하나 더 세워야 한다.

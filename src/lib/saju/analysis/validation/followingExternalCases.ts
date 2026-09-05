@@ -36,7 +36,9 @@ export type FollowingLineage =
   /** 현대 중화권 격국 정리 사이트 */
   | 'modern-chinese'
   /** 청대 고전 주석 (《적천수천미》 임철초) */
-  | 'classical-chinese';
+  | 'classical-chinese'
+  /** 민국 실전 명조 (《천리명고》 위천리) — 억부 자료와 같은 계통 이름을 쓴다 */
+  | 'republican-chinese';
 
 export type FollowingExternalCase = {
   id: string;
@@ -63,6 +65,29 @@ const KILL_SOURCE = {
 const MONEY_SOURCE = {
   title: '八字特別格 — 從財格',
   url: 'https://fatew.com/mode/money.htm',
+  retrievedAt: '2026-08-16',
+} as const;
+
+/**
+ * 《천리명고》 평단편 — **셋째 계통.**
+ *
+ * 앞의 둘과 성질이 다르다. 현대 정리 사이트는 從財·從殺만 골라 실은 예시집이고 고전
+ * 주석은 저자가 진종·가종을 논증하는 자리인데, 이쪽은 **실존 인물의 명조를 놓고 종격이냐
+ * 아니냐를 다투는 실전 기록**이다. 그래서 「종격이 아니다」가 셋 나온다 — 우리 자료에 그
+ * 방향이 넷뿐이었다.
+ *
+ * 그중 하나(`qlmg-xu-shiying`)는 저자가 **당대의 통설을 반박하는** 자리다:
+ * 「識者咸以從殺格推之，**不知**年頭癸水進氣，泄金生木，乙有根原，**不能從殺**」. 계통이
+ * 갈리는 것을 자료가 스스로 들고 있는 셈이라, 우리가 그 반대편에 서는 것은 오검출 하나가
+ * 아니라 **계통 차이**로도 읽어야 한다.
+ *
+ * 시(時) 하나만 다른 짝도 있다(`qlmg-yan-father` · `qlmg-abandon-hurt`). 저자가 한 문단에서
+ * 「相差一時인데 壽夭가 이렇게 다르다」며 나란히 든 것이라, **같은 세 기둥에서 시주 두 글자가
+ * 종격 여부를 뒤집는가**를 그대로 잰다.
+ */
+const QIANLI_SOURCE = {
+  title: '千里命稿 評斷篇 (民國 韋千里)',
+  url: 'https://shuyuan.zhiming.life/read/%E5%8D%83%E9%87%8C%E5%91%BD%E7%A8%BF/15',
   retrievedAt: '2026-08-16',
 } as const;
 
@@ -448,6 +473,64 @@ export const FOLLOWING_EXTERNAL_CASES: readonly FollowingExternalCase[] = [
       retrievedAt: '2026-08-16',
     },
     claim: { verdict: 'pseudo-following', label: '假從殺' },
+    chartConstruction: 'consistent',
+  },
+  {
+    id: 'qlmg-xu-shiying',
+    pillars: { year: '癸酉', month: '辛酉', day: '乙丑', hour: '辛巳' },
+    lineage: 'republican-chinese',
+    source: { ...QIANLI_SOURCE, locator: '許世英 命造' },
+    claim: { verdict: 'not-following', label: '不能從殺 (身弱用印)' },
+    chartConstruction: 'consistent',
+    caveats: [
+      '저자가 당대 통설을 반박하는 자리다 — 「識者咸以從殺格推之」라고 적고 그것을 뒤집는다',
+      '우리 엔진은 통설 쪽에 선다(가종). 오검출로 세되 계통 차이라는 것을 함께 읽어야 한다',
+    ],
+  },
+  {
+    id: 'qlmg-qian-weng',
+    pillars: { year: '壬子', month: '戊申', day: '戊辰', hour: '辛酉' },
+    lineage: 'republican-chinese',
+    source: { ...QIANLI_SOURCE, locator: '錢翁 命造' },
+    claim: { verdict: 'not-following', label: '從財則又不真 (身不任財)' },
+    chartConstruction: 'consistent',
+    caveats: ['월간 戊土 비견이 남아 종재가 참되지 못하다는 판정이다'],
+  },
+  {
+    id: 'qlmg-xuantong',
+    pillars: { year: '丙午', month: '庚寅', day: '壬午', hour: '丙午' },
+    lineage: 'republican-chinese',
+    source: { ...QIANLI_SOURCE, locator: '宣統帝 命造' },
+    claim: { verdict: 'following', label: '棄命而從之 (滿盤是財)' },
+    chartConstruction: 'consistent',
+  },
+  {
+    id: 'qlmg-yan-father',
+    pillars: { year: '辛酉', month: '戊戌', day: '丁未', hour: '壬寅' },
+    lineage: 'republican-chinese',
+    source: { ...QIANLI_SOURCE, locator: '閻錫山 封翁 命造' },
+    claim: { verdict: 'not-following', label: '傷官格 (生化不息)' },
+    chartConstruction: 'consistent',
+    caveats: ['아래 `qlmg-abandon-hurt` 와 세 기둥이 같고 시주만 다르다 — 저자가 나란히 든 짝이다'],
+  },
+  {
+    id: 'qlmg-abandon-hurt',
+    pillars: { year: '辛酉', month: '戊戌', day: '丁未', hour: '辛丑' },
+    lineage: 'republican-chinese',
+    source: { ...QIANLI_SOURCE, locator: '相差一時 命造 (棄命從傷)' },
+    claim: { verdict: 'following', label: '棄命從傷' },
+    chartConstruction: 'consistent',
+    caveats: [
+      '출처에 월주가 「戊戍」로 적혀 있다 — 戍는 戌의 전사 오류라 戌로 읽었다',
+      '위 `qlmg-yan-father` 와 시주 둘 글자만 다르다',
+    ],
+  },
+  {
+    id: 'qlmg-yanfeng-2nd',
+    pillars: { year: '乙亥', month: '己卯', day: '壬午', hour: '丙午' },
+    lineage: 'republican-chinese',
+    source: { ...QIANLI_SOURCE, locator: '雁峰 三胞胎 中 次男' },
+    claim: { verdict: 'following', label: '應作從財格論' },
     chartConstruction: 'consistent',
   },
 ] as const;
