@@ -593,7 +593,7 @@ function structureRequest(saju: Saju): Pick<FragmentRequest, 'topic' | 'variant'
     kind: structure.ko,
     monthBranch: BRANCH_INFO[saju.pillars.month.branch].ko,
     sourceStem: STEM_INFO[structure.source.stem].ko,
-    nativeKind: structure.principalKind === null ? '' : STRUCTURE_KIND_KO[structure.principalKind],
+    nativeKind: structure.alsoKinds.map((also) => STRUCTURE_KIND_KO[also.kind]).join('·'),
   };
 
   if ((SELF_SEAT_KINDS as readonly string[]).includes(structure.kind)) {
@@ -618,7 +618,7 @@ function structureRequest(saju: Saju): Pick<FragmentRequest, 'topic' | 'variant'
   */
   return {
     topic: 'structure.kind',
-    variant: structure.principalKind === null ? 'revealed' : 'revealed-with-native',
+    variant: structure.alsoKinds.length === 0 ? 'revealed' : 'revealed-with-native',
     slots: { ...shared, revealedAt: positionsKo(structure.source.revealedAt) },
   };
 }

@@ -236,8 +236,14 @@ function formatCase(golden: GoldenCase, saju: Saju): string {
       ` · 이동 ${round(effectiveElements.shifts.reduce((sum, shift) => sum + shift.amount, 0))}`,
     // 격국 — 월령에서 무엇을 잡았고 성패의 조건이 무엇인가.
     `  격국   ${structure.ko} · ${STRUCTURE_OUTCOME_KO[structure.outcome]} · ${structure.status}` +
-      // 본격이 따로 서면 그것도 찍는다 — 둘 중 하나를 고르지 않기로 한 자리라 둘 다 보인다.
-      `${structure.principalKind === null ? '' : ` (본격 ${STRUCTURE_KIND_KO[structure.principalKind]})`}` +
+      // 함께 불리는 이름이 있으면 그것도 찍는다 — 고르지 않기로 한 자리라 다 보인다.
+      `${
+        structure.alsoKinds.length === 0
+          ? ''
+          : ` (또한 ${structure.alsoKinds
+              .map((also) => `${STRUCTURE_KIND_KO[also.kind]}:${also.basis}`)
+              .join(' ')})`
+      }` +
       ` · ${structure.source.stem}(${HIDDEN_STEM_ROLE_KO[structure.source.role]})` +
       `${structure.revealed ? ' 투출' : ' 미투출'}` +
       `${structure.monthClashed ? ' · 월령충' : ''}` +
