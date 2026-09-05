@@ -151,12 +151,13 @@ describe('격국 — 성패', () => {
 
   /**
    * 격국은 억부도 조후도 뒤집지 않는다. 종격과 같은 자리인데 근거는 더 얕다 —
-   * 종격에는 외부 명조 서른다섯 건의 대조가 있고 이쪽은 0 건이다.
+   * 종격은 서른 건 중 열일곱을 잡고 이쪽은 일흔둘 중 쉰여섯이 맞는다. 자세한 행렬은
+   * `structure.external.test.ts`.
    */
   it('외부 대조가 0건이라는 것을 값으로 든다', () => {
     expect(STRUCTURE_POLICY.status).toBe('experimental');
     expect(STRUCTURE_POLICY.yongsinOverride).toBe('disabled');
-    expect(STRUCTURE_POLICY.externalCheck.cases).toBe(0);
+    expect(STRUCTURE_POLICY.externalCheck.cases).toBe(74);
     expect(STRUCTURE_POLICY.externalCheck.passed).toBe(false);
   });
 });
