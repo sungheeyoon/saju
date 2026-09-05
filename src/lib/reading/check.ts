@@ -71,6 +71,8 @@ export const READING_FAILURES = {
   'length-out-of-contract': '본문 길이가 계약을 벗어났습니다',
   /** 개인 풀이 화면에 생한자나 외국 문자가 섞였다 */
   'non-korean-self-body': '개인 풀이 본문에 한글이 아닌 문자가 섞였습니다',
+  /** 자료를 가려 읽으라고 준 경로 이름이 사용자 본문에 그대로 나왔다 */
+  'evidence-path-leaked': '자료 경로 이름이 본문에 나왔습니다',
 } as const;
 
 export type ReadingFailureCode = keyof typeof READING_FAILURES;
@@ -336,6 +338,88 @@ const nonKoreanLettersIn = (text: string): string[] =>
     (char) => !/\p{Script=Hangul}/u.test(char),
   );
 
+/**
+ * 자료가 넘긴 **식별자들** — 목록을 손으로 적지 않고 자료에서 뜬다.
+ *
+ * 프롬프트는 `analysis.strength`·`charts.a` 같은 경로를 대놓고 들고 있다. 「네가 자료를
+ * 가려 읽으라고 있는 식별자」라고 적어 두었고 본문에 쓰지 말라고도 적어 두었는데,
+ * **그 말을 지켰는지 재는 자리가 없었다.** 실제로 경로 이름이 그대로 본문에 샌 적이
+ * 두 번 있었고 둘 다 사람 눈으로 잡았다.
+ *
+ * 목록을 상수로 적지 않는 까닭은 이 파일의 규율 그대로다 — **우리가 답을 알고 있다.**
+ * 모델에 넘긴 JSON 이 바로 그 답이라, 자료가 늘면 검사도 같이 는다. 손으로 적으면
+ * 자료에 칸이 하나 늘 때마다 여기를 안 고치는 날이 온다.
+ *
+ * 뜨는 것은 둘이다.
+ *
+ * - **점 찍힌 경로** — 어느 깊이에서든 `부모.자식`. 한국어 산문에 라틴 낱말 둘이 점으로
+ *   묶여 나올 일은 없으므로 헛걸림이 사실상 없다.
+ * - **맨 위 칸 이름** — `charts`·`analysis` 처럼 프롬프트가 홑낱말로 부르는 것들. 이쪽은
+ *   낱말 경계를 봐서 다른 말 안에 든 것을 세지 않는다.
+ *
+ * 자료가 아닌 값(사람 이름·도시)은 여기 안 든다. 이름이 라틴 문자여도 걸리지 않는다 —
+ * **걸려야 하는 것은 우리가 넘긴 이름이지 사용자가 지은 이름이 아니다.**
+ */
+export const evidencePathsIn = (evidenceText: string): readonly string[] => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(evidenceText);
+  } catch {
+    // 자료가 JSON 이 아니면 이 검사는 할 말이 없다. 없는 근거로 막지 않는다.
+    return [];
+  }
+
+  const identifier = /^[A-Za-z][A-Za-z0-9]*$/;
+  const paths = new Set<string>();
+
+  const walk = (node: unknown, parent: string | null, depth: number): void => {
+    if (depth > 6 || node === null || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      // 배열은 이름을 만들지 않는다 — 원소는 부모의 이름을 그대로 이어받는다.
+      for (const item of node) walk(item, parent, depth + 1);
+      return;
+    }
+
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      if (!identifier.test(key)) continue;
+      if (parent !== null) paths.add(`${parent}.${key}`);
+      walk(value, key, depth + 1);
+    }
+  };
+
+  walk(parsed, null, 0);
+
+  return [...paths];
+};
+
+/** 홑낱말로 부르는 맨 위 칸 이름 — 다른 말 안에 든 것은 안 센다 */
+const topLevelNamesIn = (evidenceText: string): readonly string[] => {
+  try {
+    const parsed: unknown = JSON.parse(evidenceText);
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
+    return Object.keys(parsed).filter((key) => /^[A-Za-z][A-Za-z0-9]{2,}$/.test(key));
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * 그 글에 남은 자료 경로 — **본문만 본다.**
+ *
+ * 맨 끝 검사용 근거 절은 경로를 대라고 시킨 자리다. 통째로 세면 시킨 대로 쓴 근거 칸이
+ * 어긴 것으로 잡힌다(`plainTermsIn`·Match 범위 검사와 같은 자리에서 같은 이유로 자른다).
+ */
+export const evidencePathsLeakedIn = (markdown: string, evidenceText: string): readonly string[] => {
+  const body = readingBody(markdown);
+
+  const dotted = evidencePathsIn(evidenceText).filter((path) => body.includes(path));
+  const bare = topLevelNamesIn(evidenceText).filter((name) =>
+    new RegExp(`(?<![A-Za-z0-9])${name}(?![A-Za-z0-9])`).test(body),
+  );
+
+  return [...new Set([...dotted, ...bare])].sort();
+};
+
 const pad = (value: string): string => value.padStart(2, '0');
 const bare = (value: string): string => String(Number(value));
 
@@ -456,6 +540,25 @@ export function checkReading({
     }
   } else if (score !== null) {
     failures.push({ code: 'score-out-of-contract', detail: '자기 풀이에 점수가 붙었습니다' });
+  }
+
+  /**
+   * **경로 이름이 본문에 샜다** — kind 를 안 가린다.
+   *
+   * 개인 풀이는 「한글 아닌 글자」 검사가 이미 이것을 함께 잡는다. 그런데 그 검사는
+   * 궁합 둘에 안 걸린다 — 궁합 본문에는 **사람이 지은 이름**이 실리고, 그 이름이 라틴
+   * 문자일 수 있기 때문이다. 그래서 궁합 쪽은 경로가 새도 막는 것이 하나도 없었다.
+   *
+   * 이 검사는 언어가 아니라 **우리가 넘긴 식별자**를 본다. 그래서 이름이 라틴 문자여도
+   * 안 걸리고, 궁합에도 그대로 걸 수 있다. 코드를 갈라 두는 값도 있다 — 「한자가 섞였다」와
+   * 「경로가 샜다」는 고치는 자리가 다르다.
+   */
+  const leakedPaths = evidencePathsLeakedIn(markdown, evidenceText);
+  if (leakedPaths.length > 0) {
+    failures.push({
+      code: 'evidence-path-leaked',
+      detail: leakedPaths.slice(0, 5).join('·') + (leakedPaths.length > 5 ? ` 외 ${leakedPaths.length - 5}개` : ''),
+    });
   }
 
   const inventedCharacters = charactersIn(markdown).filter(
