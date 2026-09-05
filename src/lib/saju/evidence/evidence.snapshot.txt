@@ -57,6 +57,7 @@
   analysis.following             있다 candidate  없다 candidate
   analysis.tonggwan              있다 derived    없다 derived
   analysis.yongsinAgreement      있다 reference  없다 reference
+  analysis.precedence            있다 reference  없다 reference
   analysis.structure             있다 candidate  없다 candidate
   analysis.favorability          있다 candidate  없다 candidate
 
@@ -83,6 +84,7 @@
   analysis.following             있다 reference  없다 silent
   analysis.tonggwan              있다 candidate  없다 silent
   analysis.yongsinAgreement      있다 silent     없다 silent
+  analysis.precedence            있다 silent     없다 silent
   analysis.structure             있다 reference  없다 silent
   analysis.favorability          있다 reference  없다 silent
 
@@ -99,9 +101,9 @@
   viewedAt: 2026-08-22T04:00:00.000Z
   charts:
     a:
-      claims: {24}
+      claims: {25}
       pillars: {6}
-      analysis: {17}
+      analysis: {18}
       stages: {3}
       sinsal: {3}
       meta: {8}
@@ -109,9 +111,9 @@
       daeun: {8}
       now: {13}
     b:
-      claims: {24}
+      claims: {25}
       pillars: {6}
-      analysis: {17}
+      analysis: {18}
       stages: {3}
       sinsal: {3}
       meta: {8}
@@ -245,5 +247,5 @@
 }
 
 ── 크기
-  한 사람  32KB
-  두 사람  97KB
+  한 사람  33KB
+  두 사람  98KB

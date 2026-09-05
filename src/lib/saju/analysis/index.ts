@@ -15,6 +15,7 @@ import { rootednessOf, type Rootedness } from './rootedness';
 import { rootQualityOf, type RootQualityChart } from './rootQuality';
 import { strengthOf, type Strength, type StrengthOptions } from './strength';
 import { structureOf, type Structure } from './structure';
+import { judgementPrecedenceOf, type JudgementPrecedence } from './precedence';
 import { tonggwanCandidacyOf, type TonggwanCandidacy } from './tonggwan';
 import {
   eokbuAssessmentOf,
@@ -34,6 +35,7 @@ export * from './hiddenRelations';
 export * from './rootedness';
 export * from './rootQuality';
 export * from './structure';
+export * from './precedence';
 export * from './tonggwan';
 export * from './strength';
 export * from './transformation';
@@ -145,6 +147,14 @@ export type Analysis = {
    * 자리가 있어야 답할 수 있고 이 엔진에 그 자리가 없다.
    */
   yongsinAgreement: YongsinAgreement;
+  /**
+   * 판정 사이의 서열 — **어긋날 때 무엇이 이기는가.**
+   *
+   * 억부·조후·종격·격국·통관은 한 명식에서 서로 다른 답을 낼 수 있다. 그 관계가
+   * 여태 정책 상수에만 있어서, 자료를 받는 쪽은 **서열 없이 답 넷을 나란히** 받았다.
+   * 여기 오는 값은 각 정책의 스위치를 그대로 읽은 것이고, 판정이 늘면 줄이 는다.
+   */
+  precedence: JudgementPrecedence;
 };
 
 export type AnalysisOptions = {
@@ -171,6 +181,15 @@ export function analyzePillars(
   const rootQuality = rootQualityOf(rootedness, pillars, effective.bureaus);
   const eokbu = eokbuAssessmentOf(pillars, strength, options.weights, effective.distribution);
   const johu = johuAssessmentOf(pillars, options.instant);
+  const agreement = yongsinAgreementOf(eokbu, johu);
+  const structure = structureOf(pillars, effective.distribution);
+  const tonggwan = tonggwanCandidacyOf(pillars, effective);
+  const following = followingAssessmentOf(
+    pillars,
+    effective.distribution,
+    rootedness,
+    rootQuality.dayMaster,
+  );
 
   return {
     elements,
@@ -185,9 +204,9 @@ export function analyzePillars(
     eokbu,
     johu,
     // 두 후보를 견주기만 한다. 우선순위를 정하는 자리가 아니다.
-    yongsinAgreement: yongsinAgreementOf(eokbu, johu),
+    yongsinAgreement: agreement,
     // 격국도 강약·억부·종격과 같은 분포에서 세력을 잰다.
-    structure: structureOf(pillars, effective.distribution),
+    structure,
     favorability: favorabilityOf(eokbu, effective.distribution),
     rootedness,
     rootQuality,
@@ -197,12 +216,19 @@ export function analyzePillars(
     followingCandidacy: followingCandidacyOf(pillars, effective.distribution, rootedness),
     // 통관은 강약·억부와 **같은 실효 분포**에서 잰다 — 한 화면 안에서 같은 세력을
     // 두 번 다르게 세지 않기 위해서다.
-    tonggwan: tonggwanCandidacyOf(pillars, effective.distribution),
-    following: followingAssessmentOf(
-      pillars,
-      effective.distribution,
-      rootedness,
-      rootQuality.dayMaster,
-    ),
+    tonggwan,
+    following,
+    /*
+      **맨 뒤에 선다.** 서열 표는 위의 판정들을 읽어 세우므로 그것들이 다 나온 뒤라야
+      한다. 여기서 판정을 새로 하지 않는다 — 각 정책의 스위치와 이미 나온 값만 읽는다.
+    */
+    precedence: judgementPrecedenceOf({
+      eokbu,
+      johu,
+      agreement,
+      following,
+      structure,
+      tonggwan,
+    }),
   };
 }

@@ -186,6 +186,7 @@ export const CLAIM_PATHS = [
   'analysis.following',
   'analysis.tonggwan',
   'analysis.yongsinAgreement',
+  'analysis.precedence',
   'analysis.structure',
   'analysis.favorability',
 ] as const;
@@ -353,6 +354,18 @@ export const CLAIM_CEILING: Record<ClaimPath, ClaimStrength> = {
    * 든 상한을 넘을 수 없다 — 오신 배정이 억부보다 셀 수 없는 것과 같은 자리다.
    */
   'analysis.yongsinAgreement': 'reference',
+
+  /**
+   * 서열 표는 **가장 약한 줄을 따른다.**
+   *
+   * 서열 자체(무엇이 이기는가)는 우리가 정한 것을 옮겨 적기만 하므로 갈릴 자리가
+   * 없다. 그런데 줄마다 「지금 어긋나는가」를 함께 들고, 그 값은 조후 대조와 종격
+   * 판정에서 온다. 조후가 `reference` 이므로 이 표가 그보다 세게 말할 수는 없다.
+   *
+   * **서열과 어긋남을 두 자리로 가르지 않는다.** 가르면 서열만 읽고 어긋남을 안 읽는
+   * 쪽이 생기고, 그것은 이 값을 만든 까닭(둘을 함께 받게 한다)을 되돌리는 일이다.
+   */
+  'analysis.precedence': 'reference',
 };
 
 /**
@@ -521,6 +534,11 @@ export const HOUR_SENSITIVE_PATHS: readonly ClaimPath[] = [
    * 조후의 상·하반월이 뒤집히면 「같은 것을 가리키는가」의 답이 갈린다: 16.3%.
    */
   'analysis.yongsinAgreement',
+  /**
+   * 서열 표 — **서열은 안 흔들리고 어긋남이 흔들린다.** 조후 대조와 종격 판정을
+   * 함께 읽으므로 둘 중 하나만 뒤집혀도 표가 달라진다: 34.2%.
+   */
+  'analysis.precedence',
 ];
 
 /**

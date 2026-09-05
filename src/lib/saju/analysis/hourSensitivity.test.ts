@@ -36,6 +36,7 @@ import { HOUR_SENSITIVE_PATHS, type ClaimPath } from '../text/policy';
  * | --- | --- | ---: |
  * | `analysis.tonggwan` | 가장 팽팽한 쌍 | 42.2% |
  * | `analysis.yongsinAgreement` | 억부와 조후가 같은 것을 가리키는가 | 16.3% |
+ * | `analysis.precedence` | 어느 판정이 억부와 어긋나는가 | 34.2% |
  */
 
 /** 시주만 지운 짝. 세 기둥이 갈린 표본은 시주의 몫이 아니라 빼고 낸다 */
@@ -84,6 +85,12 @@ const OBSERVED: Partial<Record<ClaimPath, (saju: Saju) => string>> = {
     `${saju.analysis.tonggwan.tightest.controller}${saju.analysis.tonggwan.tightest.controlled}`,
   /** 대조의 답 하나만 본다 — 겹치는 글자 목록까지 견주면 조후 칸의 흔들림을 두 번 센다 */
   'analysis.yongsinAgreement': (saju) => String(saju.analysis.yongsinAgreement.aligned),
+  /**
+   * 서열은 정책에서 오므로 명식이 바꾸지 못한다 — **어긋남만 본다.** 서열까지 견주면
+   * 언제나 같아서 「안 흔들린다」가 나오고, 그것은 이 자리가 무엇을 재는지 흐린다.
+   */
+  'analysis.precedence': (saju) =>
+    saju.analysis.precedence.rows.map((row) => `${row.key}:${String(row.disagrees)}`).join(','),
 };
 
 describe('시주 민감도는 잰 값이다', () => {

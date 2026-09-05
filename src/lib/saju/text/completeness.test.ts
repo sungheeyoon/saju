@@ -112,6 +112,11 @@ const NOT_A_LIST: readonly ClaimPath[] = [
   'analysis.tonggwan',
   /** 대조 하나다. 조후 후보 목록이 길어지는 것은 저쪽(`analysis.johu`)의 몫이다 */
   'analysis.yongsinAgreement',
+  /**
+   * 줄이 여럿이지만 **목록이 아니다.** 판정의 수는 명식이 아니라 엔진이 정하므로
+   * 시주가 붙어도 줄이 늘지 않는다 — 늘어나는 것은 판정을 새로 만드는 날이다.
+   */
+  'analysis.precedence',
 ];
 
 describe('자리별 목록의 완전성', () => {
