@@ -90,7 +90,9 @@ describe('격국 외부 대조 데이터셋', () => {
   /**
    * **성적을 행렬로 고정한다.** 규칙을 만지면 어느 칸이 움직이는지 여기서 보인다.
    *
-   * 재어 본 값(2026-09-05): 72건 중 **56건 일치(77.8%)**.
+   * 재어 본 값(2026-09-05): 72건 중 **63건 일치(87.5%)**. 처음 쟀을 때는 56건이었고,
+   * 올린 것은 문턱이 아니라 **출처의 조항**이다 — 왕지 월령을 정기 하나로 보게 고쳤다
+   * (`STRUCTURE_POLICY.peakMonth`). 그 근거는 이 성적이 아니라 원문 한 줄이다.
    */
   it('장별 일치를 고정한다', () => {
     const byChapter = new Map<string, [number, number]>();
@@ -101,38 +103,39 @@ describe('격국 외부 대조 데이터셋', () => {
     }
 
     expect(Object.fromEntries(byChapter)).toEqual({
-      論正官: [2, 5],
+      論正官: [3, 5],
       論財: [10, 12],
       論印綬: [10, 11],
-      論食神: [6, 9],
-      論偏官: [5, 8],
-      論傷官: [6, 10],
+      論食神: [9, 9],
+      論偏官: [6, 8],
+      論傷官: [8, 10],
       論陽刃: [5, 5],
       論建祿月劫: [12, 12],
     });
 
-    expect(scorable.filter(agrees)).toHaveLength(56);
+    expect(scorable.filter(agrees)).toHaveLength(63);
   });
 
   /**
-   * **어긋난 열여섯은 흩어져 있지 않다.** 두 무리로 모인다.
+   * **남은 아홉은 한 무리다 — 그리고 규칙이 틀린 것이 아니다.**
    *
-   * 1. **왕지 월령에서 여기가 투출한 자리.** 卯의 지장간에 甲이 있고 그 甲이 천간에 서
-   *    있으면 우리는 상관격으로 잡는데, 이 책은 정기 乙로 보아 식신격이라 한다. 자평
-   *    계열은 子午卯酉를 **정기 하나로** 보는 관행이 있고 우리 표는 여기를 함께 든다.
-   * 2. **정기가 투출하지 않은 자리.** 申월에 庚이 안 나오고 戊가 나오면 우리는 재격으로
-   *    내려가는데, 이 책은 「乙用申官」처럼 정기를 격으로 부른다.
+   * 처음 쟀을 때 어긋난 열여섯은 두 무리였다. 하나(왕지 월령의 여기 투출)는 출처가
+   * 조항으로 답을 주어 고쳤다. 남은 아홉은 **정기가 투출하지 않은 자리**다.
    *
-   * **둘 다 규칙을 고치면 성적이 오른다. 그래서 지금 안 고친다** — 자료에 맞춰 규칙을
-   * 만지면 이 대조는 채점이 아니라 자기 답안지가 된다. 고칠 근거는 원문의 규칙 조항이지
-   * 이 성적이어야 하고, 그것은 별건이다.
+   * 여기서는 출처가 우리 편이다 — §108 은 「不透甲而透丙，則同知得以作主」로 **우리와 같은
+   * 규칙**을 말한다. 그런데 예시에서는 본격을 함께 부른다. §144 가 그 까닭을 든다:
+   * 「一透則一用，兼透則兼用」 — 둘이 투출하면 **둘 다 쓴다.** 이름이 둘인 자리를 우리
+   * `kind` 가 하나로 접는 것이라, **규칙이 갈린 것이 아니라 값의 모양이 좁다.**
+   *
+   * 그래서 이 아홉은 규칙을 고쳐서 줄일 것이 아니다. 줄이려면 격이 겸격을 들 수 있어야
+   * 하고, 그것은 격의 자료 구조를 바꾸는 별건이다.
    */
-  it('어긋난 자리가 두 무리로 모인다 — 규칙 차이지 흩어진 오차가 아니다', () => {
+  it('남은 어긋남은 정기 미투출 한 무리다', () => {
     const missed = scorable.filter((testCase) => !agrees(testCase));
 
-    expect(missed).toHaveLength(16);
+    expect(missed).toHaveLength(9);
 
-    // 식신↔상관이 서로 뒤집힌 것 — 왕지 월령의 여기 투출이 만드는 무리다.
+    // 왕지 월령이 만들던 식신↔상관 뒤집힘은 이제 하나도 없다.
     const foodHurt = missed.filter((testCase) => {
       const engine = kindOf(testCase);
       const claimed = testCase.claim.kinds as readonly string[];
@@ -142,23 +145,23 @@ describe('격국 외부 대조 데이터셋', () => {
       );
     });
 
-    expect(foodHurt.length).toBeGreaterThanOrEqual(5);
+    expect(foodHurt).toHaveLength(0);
   });
 
   /**
    * **게이트는 여전히 닫혀 있다.**
    *
-   * 77.8% 는 종격의 재현율(30건 중 17건)보다 높지만, 그것이 게이트를 여는 근거가 되지는
+   * 87.5% 는 종격의 재현율(30건 중 17건)보다 높지만, 그것이 게이트를 여는 근거가 되지는
    * 않는다 — 계통이 **하나뿐**이라 이 성적이 말하는 것은 「자평 계열과 얼마나 맞는가」이고,
-   * 어긋난 열여섯이 흩어진 오차가 아니라 **규칙 차이 두 무리**이기 때문이다. 규칙이 갈리는
-   * 것을 알면서 그 판정으로 억부를 뒤집을 수는 없다.
+   * 남은 아홉이 **겸격을 한 이름으로 접는 데서** 오기 때문이다. 이름을 하나만 들 수
+   * 있다는 것을 알면서 그 판정으로 억부를 뒤집을 수는 없다.
    */
   it('억부도 조후도 뒤집지 않는다', () => {
     expect(STRUCTURE_POLICY.yongsinOverride).toBe('disabled');
     expect(STRUCTURE_POLICY.externalCheck.passed).toBe(false);
     expect(STRUCTURE_POLICY.externalCheck.cases).toBe(STRUCTURE_EXTERNAL_CASES.length);
     expect(STRUCTURE_POLICY.externalCheck.scored).toBe(scorable.length);
-    expect(STRUCTURE_POLICY.externalCheck.agreed).toBe(56);
+    expect(STRUCTURE_POLICY.externalCheck.agreed).toBe(63);
     expect(STRUCTURE_POLICY.externalCheck.lineages).toBe(1);
   });
 });
