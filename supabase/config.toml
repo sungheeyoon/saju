@@ -275,12 +275,13 @@ max_frequency = "5s"
 # Force log out if the user has been inactive longer than the specified duration.
 # inactivity_timeout = "8h"
 
-# 가입 관문 — 초대 명단에 없으면 계정이 만들어지기 전에 거부한다(ADR 0006).
-# 앱 코드가 아니라 여기서 거는 이유는, 앱에서 거르면 「가입은 됐는데 아무것도
-# 못 하는 계정」이 남기 때문이다. 원격에서도 같은 함수를 같은 자리에 건다.
-[auth.hook.before_user_created]
-enabled = true
-uri = "pg-functions://postgres/public/gate_signup_by_invite"
+# 가입 관문은 **없다** (ADR 0042).
+#
+# 초대 이메일 명단이 여기 걸려 있었다. 코드로 바꾸면서 걷었다 — 문이 둘이면 둘 다
+# 지켜야 하고, 그중 하나는 언젠가 잊힌다. 대신 구글 로그인만으로는 아무것도 못 하는
+# **미완성 계정**이 생기고, 되돌릴 수 없는 첫 쓰기 둘이 그 상태를 거절한다.
+#
+# 원격에서도 이 훅을 꺼야 한다. 켜 둔 채로 함수만 지우면 GoTrue 가 없는 함수를 부른다.
 
 # This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
 # [auth.hook.custom_access_token]

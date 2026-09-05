@@ -56,9 +56,6 @@ const sql = (statement) =>
 
 const userId = (email) => sql(`select id from auth.users where email = '${email}'`);
 
-sql(`insert into public.invite (email, note) values
-     ('${mail.a}', '검사'), ('${mail.b}', '검사'), ('${mail.c}', '검사')`);
-
 const person = async (email, label, birth) => {
   const client = anon();
   await client.auth.signUp({ email, password });

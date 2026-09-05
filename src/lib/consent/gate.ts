@@ -25,16 +25,36 @@ import type { BetaDates } from './notice';
  *
  * ## 여기서 하는 일은 여전히 길을 가리키는 것이다
  *
- * 막는 일은 DB 가 한다 — `create_self_person` 이 이름을 묻고, `is_active_account()` 가
- * 종료일을 본다. 이 함수가 틀려도 열리는 문은 없다.
+ * 막는 일은 DB 가 한다 — `create_self_person` 과 `create_managed_person` 이 가입을 묻고,
+ * `is_active_account()` 가 종료일을 본다. 이 함수가 틀려도 열리는 문은 없다.
+ *
+ * ## 문은 **둘**이다 (ADR 0042)
+ *
+ * 셋이었다 — 안내 · 이름 · (그리고 종료). 안내와 이름이 한 폼으로 합쳐지면서
+ * (`/signup`) 남은 것은 **베타가 끝났나**와 **가입이 끝났나** 둘뿐이다.
+ *
+ * 「가입이 끝났나」에는 **지금 안내를 확인했는가**가 들어 있다. 안내가 새 판본이 되거나
+ * 운영자가 일정을 옮기면 이미 가입한 사람도 다시 그 폼을 지난다 — 그때 폼은 코드와
+ * 이름 칸을 안 세우고 확인만 받는다. 이 조건을 빼면 「11월에 지운다」를 읽고 확인한
+ * 사람을 이듬해까지 들고 있게 된다(ADR 0024 가 막으려던 것이 그것이다).
  */
 
 /** 계정에서 관문이 보는 세 칸 */
 export type GateAccount = {
-  readonly nickname: string | null;
+  /**
+   * 가입을 끝냈는가 — `app_user.signed_up_at` 이 있는가.
+   *
+   * **이름을 따로 안 본다.** 코드·이름·안내 확인은 한 문에서 함께 적히므로
+   * (`complete_signup`), 이 값이 참이면 이름은 반드시 있다. 곱해서 묻기 시작하면
+   * 묻는 자리마다 곱셈이 한 벌씩 생기고 그중 하나는 다르게 곱한다.
+   */
+  readonly signedUp: boolean;
   readonly noticeVersion: string | null;
   readonly noticeScheduleId: number | null;
 };
+
+/** 가입을 끝내는 자리 — `/me` 밖이라 관문이 자기 자신을 막지 않는다 */
+export const SIGNUP_PATH = '/signup';
 
 /** 지금 안내 한 벌 — 못 읽었으면 `null` */
 export type GateNotice = {
@@ -51,10 +71,6 @@ export type GateNotice = {
  */
 const gated = (path: string): boolean =>
   (path === '/me' || path.startsWith('/me/')) && !path.startsWith('/me/photo/');
-
-/** 이름이 없어도 열리는 자리 — 이름을 짓는 화면 자신과, 나가는 길 */
-const openWithoutName = (path: string): boolean =>
-  path.startsWith('/me/profile') || path.startsWith('/me/settings');
 
 /**
  * 베타가 끝났는가 — **한국 시각의 그날 끝까지**가 종료일이다.
@@ -92,29 +108,22 @@ export function gateFor(
   }
 
   /**
-   * **판본과 그 줄을 둘 다 본다.**
+   * **가입이 끝났는가** — 코드로 들어왔고, 이름이 있고, **지금** 안내를 확인했는가.
    *
-   * 날짜만 견주면 같은 날짜로 **운영자 정보만** 바꿔도 안 잡힌다 — 안내의 내용은 표의
-   * 한 줄이 들고, 어느 칸이 바뀌든 새 줄이 된다.
+   * 판본과 그 줄을 둘 다 본다. 날짜만 견주면 같은 날짜로 **운영자 정보만** 바꿔도 안
+   * 잡힌다 — 안내의 내용은 표의 한 줄이 들고, 어느 칸이 바뀌든 새 줄이 된다.
    *
    * 일정이 아직 없으면(`notice === null`) 그때도 보낸다. 그 화면이 「아직 시작할 수
    * 없습니다」를 말할 자리다.
    */
   if (
+    !account.signedUp ||
     notice === null ||
     account.noticeVersion !== NOTICE_VERSION ||
     account.noticeScheduleId !== notice.scheduleId
   ) {
-    return '/welcome';
+    return SIGNUP_PATH;
   }
-
-  /**
-   * **안내 다음이 이름이다**(PRD §5.1).
-   *
-   * 이름은 앱 안의 모든 자리에서 사람을 부르는 말이라, 없는 채로 지나가면 소식과 요청
-   * 목록이 이름 자리에 빈 칸을 세운다. 그래서 첫 입력보다 앞에 선다.
-   */
-  if (account.nickname === null && !openWithoutName(path)) return '/me/profile';
 
   return null;
 }

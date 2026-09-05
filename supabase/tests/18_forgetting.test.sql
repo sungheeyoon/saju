@@ -12,7 +12,7 @@
 -- 5. **FK 가 안 닿는 것까지 지운다.** 감사 로그·flow state·초대 명단은 사용자에 매여
 --    있지 않아 cascade 가 못 데려간다 — 그런데 감사 로그는 모든 행이 이메일을 든다.
 begin;
-select plan(20);
+select plan(19);
 
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
 returns jsonb language sql as $$
@@ -127,8 +127,6 @@ values (
     'actor_username', 'kim-gone@example.com'),
   now());
 
-insert into public.invite (email, note) values ('kim-gone@example.com', '지울 사람');
-
 create temporary table forgotten as
 select * from public.forget_user((select kim from folks));
 grant select on forgotten to authenticated, service_role;
@@ -156,17 +154,11 @@ select is(
   0,
   '로그인 감사 기록이 남지 않는다');
 
-/**
- * **초대 명단도 지운다.**
- *
- * 「삭제는 접근 회수가 아니다」로 남겨 두던 것이다. 그 구분이 지키려던 것은 「데이터는
- * 지우되 다시 들어오게 둘 수 있다」이지 **삭제를 요청한 사람의 이메일을 명단에 남기는
- * 것**이 아니었다. 다시 들어오게 할 일이 생기면 다시 초대하면 된다.
- */
-select is(
-  (select count(*)::int from public.invite where email = 'kim-gone@example.com'),
-  0,
-  '초대 명단에서도 그 주소가 사라진다');
+/*
+  **초대 명단은 이제 없다**(ADR 0042). 이 자리에 「명단에서도 그 주소가 사라진다」가
+  있었다 — 표를 걷으면서 함께 걷었다. 이메일이 남는 자리가 하나 줄었으므로 지우는
+  일이 닿아야 할 곳도 하나 줄었다.
+*/
 
 /** 열여덟 갈래가 FK 로 따라간다 — 이 시험은 표 이름을 세 개만 짚어 본다 */
 select is(

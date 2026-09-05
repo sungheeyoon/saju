@@ -75,10 +75,10 @@ async function shrink(file: File): Promise<{ contentType: string; base64: string
 }
 
 /**
- * 프로필을 짓고 고치는 자리 — **한 화면에서 셋을 다 만든다**(§5.1).
+ * 프로필을 고치는 자리 — **셋이 한 화면에 있다**(§5.1).
  *
- * 이름은 필수이고 사진과 소개는 선택이다. 그 차이가 화면에 보여야 한다 — 선택인 칸에
- * 별표를 안 붙이는 것으로는 부족해서, 필수인 칸에만 「저장하려면 필요합니다」가 붙는다.
+ * 이름은 가입 폼이 이미 받았고(`/signup`, ADR 0042), 사진과 소개는 거기 없다. 그래서
+ * 이 화면이 실제로 하는 일은 **이름을 고치는 것과 나머지 둘을 채우는 것**이다.
  *
  * ## 사진은 따로 저장된다
  *
@@ -90,13 +90,10 @@ export function ProfileForm({
   current,
   hasPhoto,
   userId,
-  /** 아직 이름이 없는 사람인가 — 저장한 뒤 어디로 보낼지가 갈린다 */
-  naming,
 }: {
   current: ProfileInput;
   hasPhoto: boolean;
   userId: string;
-  naming: boolean;
 }) {
   const router = useRouter();
   const [profile, setProfile] = useState(current);
@@ -134,11 +131,7 @@ export function ProfileForm({
         return;
       }
       setSaved(true);
-      /*
-        이름을 짓고 온 사람은 원래 가려던 자리로 보낸다. 고치러 온 사람은 이 화면에
-        그대로 둔다 — 고쳤다고 다른 데로 끌고 가면 방금 고친 것을 못 본다.
-      */
-      if (naming) router.replace('/me');
+      /* 고친 사람은 이 화면에 그대로 둔다 — 다른 데로 끌고 가면 방금 고친 것을 못 본다 */
       router.refresh();
     });
   };
@@ -210,10 +203,10 @@ export function ProfileForm({
           <button
             type="button"
             onClick={save}
-            disabled={missing !== null || saving || (!changed && !naming)}
+            disabled={missing !== null || saving || !changed}
             className={BUTTON}
           >
-            {saving ? '저장하는 중…' : naming ? '이 이름으로 시작하기' : '프로필 저장'}
+            {saving ? '저장하는 중…' : '프로필 저장'}
           </button>
           {missing !== null && <span className="text-xs text-muted">{missing}</span>}
           {saved && !changed && <span className="text-xs text-muted">저장했습니다</span>}

@@ -58,7 +58,6 @@ const sql = (statement) =>
   execFileSync('docker', ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq', '-c', statement],
     { encoding: 'utf8' }).trim();
 
-sql(`insert into public.invite (email, note) values ('${mail.a}', '검사'), ('${mail.b}', '검사')`);
 
 /** 지난 실행이 남긴 참여자가 후보 목록을 헛디디게 하지 않는다 */
 const hideOthers = (email) => {

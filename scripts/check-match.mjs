@@ -58,9 +58,6 @@ const sql = (statement) =>
 
 const userId = (email) => sql(`select id from auth.users where email = '${email}'`);
 
-sql(`insert into public.invite (email, note) values
-     ('${aMail}', '검사'), ('${bMail}', '검사'), ('${cMail}', '검사')`);
-
 /** 사람 하나를 세운다 — 가입·사주·공개 프로필·참여까지 */
 const person = async (email, label, birth, city, gender) => {
   const client = anon();
@@ -369,8 +366,6 @@ try {
   {
     const dMail = `racer-a-${stamp}@example.com`;
     const eMail = `racer-b-${stamp}@example.com`;
-    sql(`insert into public.invite (email, note) values ('${dMail}', '검사'), ('${eMail}', '검사')`);
-
     const d = await person(dMail, '수민', '1991-07-07', '인천', 'female');
     const e = await person(eMail, '태호', '1989-02-02', '광주', 'male');
     await d.rpc('save_my_profile', { p_nickname: NAME.d, p_intro: null });
