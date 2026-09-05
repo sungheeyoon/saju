@@ -30,9 +30,21 @@ export type Calendar = 'solar' | 'lunar' | 'lunar_leap';
 
 export const CALENDARS: readonly Calendar[] = ['solar', 'lunar', 'lunar_leap'];
 
+/**
+ * 화면에 적는 말 — **`lunar` 는 그냥 「음력」이다.**
+ *
+ * 한동안 「음력 평달」이었다. 값이 셋인 이유(윤달은 앞 달과 같은 번호를 쓴다)를 이름에
+ * 그대로 옮긴 것인데, 그러면 **음력으로 태어난 사람 대부분이 자기 것이 아닌 낱말을
+ * 먼저 읽는다.** 「평달」은 윤달과 마주 세울 때만 쓰는 말이고, 사람이 아는 자기 생일은
+ * 그냥 음력이다. 짝을 이루는 「음력 윤달」이 옆에 서 있으므로 무엇과 다른지는 그 자리에서
+ * 이미 보인다.
+ *
+ * 값은 그대로 `'lunar'` 다. 바뀐 것은 **화면에 적는 글자**뿐이라 저장된 판본도 DB 의
+ * 검사식도 움직이지 않는다.
+ */
 export const CALENDAR_KO: Record<Calendar, string> = {
   solar: '양력',
-  lunar: '음력 평달',
+  lunar: '음력',
   lunar_leap: '음력 윤달',
 };
 

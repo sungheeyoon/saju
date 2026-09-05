@@ -77,7 +77,7 @@ export async function chooseHourUnknown(scope: Scope): Promise<void> {
   await scope.getByRole('radio', { name: '출생 시각 모름', exact: true }).check();
 }
 
-/** 달력 기준 — 양력·음력 평달·음력 윤달 셋 중 하나 */
+/** 달력 기준 — 양력·음력·음력 윤달 셋 중 하나. 「음력」은 「음력 윤달」의 앞토막이라 `exact` 다 */
 export async function chooseCalendar(scope: Scope, calendar: Calendar): Promise<void> {
   await scope.getByRole('radio', { name: CALENDAR_KO[calendar], exact: true }).check();
 }
