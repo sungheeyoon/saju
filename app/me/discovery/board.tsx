@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
+
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { boardStamp, candidatesForViewer, type CandidateBoard } from '../candidates';
@@ -101,6 +103,34 @@ function Resting() {
   );
 }
 
+/**
+ * 목록이 비었을 때 — **없는 것을 설명하는 문장으로 없는 목록을 둘러싸지 않는다.**
+ *
+ * 맛보기 안내·순서 유의·「하루가 지나면 저절로 새로 만들어집니다」는 **목록이 있을 때**
+ * 하는 말이다. 빈 자리에 그대로 두면 다섯 문장이 아무것도 없는 자리를 감싸고, 그중
+ * 하나는 거짓에 가깝다 — 하루가 지나도 참여자가 없으면 그대로다.
+ *
+ * **새로 받기는 남긴다.** 오늘 들어온 사람은 내 스냅샷에 없고, 그 사람을 지금 보는 길이
+ * 이 버튼 하나다.
+ *
+ * **되돌리는 길도 남긴다.** 목록이 빈 이유가 다 숨겼기 때문일 수 있고, 그때 이 줄이
+ * 없으면 사용자는 자기가 만든 상태에서 나올 수 없다.
+ */
+function Empty({ hiddenCount, waitSeconds }: { hiddenCount: number; waitSeconds: number }) {
+  return (
+    <section className={`${CARD} flex flex-col gap-2`}>
+      <h2 className="text-base font-semibold">{DISCOVERY_EMPTY.title}</h2>
+      <p className="text-sm leading-6 text-secondary">{DISCOVERY_EMPTY.why}</p>
+      <p className="text-sm leading-6 text-secondary">{DISCOVERY_EMPTY.standing}</p>
+      <p className="text-sm leading-6 text-secondary">{DISCOVERY_EMPTY.meanwhile}</p>
+      <div className="flex flex-wrap items-center gap-4 pt-1">
+        <RefreshBoard waitSeconds={waitSeconds} />
+        <UnhideAll count={hiddenCount} />
+      </div>
+    </section>
+  );
+}
+
 function Candidates({
   board,
   hiddenCount,
@@ -110,14 +140,16 @@ function Candidates({
   hiddenCount: number;
   waitSeconds: number;
 }) {
+  if (board.cards.length === 0) {
+    return <Empty hiddenCount={hiddenCount} waitSeconds={waitSeconds} />;
+  }
+
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
         <div className="flex flex-wrap items-baseline gap-x-3">
           <h2 className="text-base font-semibold">지금 만날 수 있는 인연</h2>
-          <p className="text-sm text-secondary">
-            {board.cards.length === 0 ? '아직 없습니다' : `${board.cards.length}명`}
-          </p>
+          <p className="text-sm text-secondary">{board.cards.length}명</p>
         </div>
         <RefreshBoard waitSeconds={waitSeconds} />
       </div>
@@ -144,70 +176,64 @@ function Candidates({
       {/* 순서가 정답이 아니라는 말은 **목록이 든다** — 정책이 낸 문장 그대로다 */}
       <p className="text-xs text-muted">{board.caveat}</p>
 
-      {board.cards.length === 0 ? (
-        <p className="text-sm text-muted">
-          아직 소개할 인연이 없습니다. 새로운 참여자가 생기면 여기에 보여드릴게요.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {board.cards.map((card) => (
-            <li key={card.candidateUserId} className={`${CARD} flex flex-col gap-2`}>
-              {/*
-                **자리 번호는 안 적는다.** 스냅샷을 읽을 때 자격을 잃은 사람이 빠지면
-                번호에 구멍이 남는다 — 1·2·4 로 적히면 화면이 무언가 잃어버린 것처럼
-                보이고, 다시 매기면 노출 기록이 든 자리와 갈린다.
-              */}
-              <div className="flex items-center gap-3">
-                <Avatar
-                  userId={card.candidateUserId}
-                  nickname={card.nickname}
-                  hasPhoto={card.hasPhoto}
-                />
-                <div className="flex flex-wrap items-baseline gap-x-3">
-                  <h3 className="text-base font-semibold">{card.nickname}</h3>
-                  {card.exploration && (
-                    <span className="rounded-full bg-accent-wash px-2 py-0.5 text-xs text-accent">
-                      새로운 추천
+      <ul className="flex flex-col gap-3">
+        {board.cards.map((card) => (
+          <li key={card.candidateUserId} className={`${CARD} flex flex-col gap-2`}>
+            {/*
+              **자리 번호는 안 적는다.** 스냅샷을 읽을 때 자격을 잃은 사람이 빠지면
+              번호에 구멍이 남는다 — 1·2·4 로 적히면 화면이 무언가 잃어버린 것처럼
+              보이고, 다시 매기면 노출 기록이 든 자리와 갈린다.
+            */}
+            <div className="flex items-center gap-3">
+              <Avatar
+                userId={card.candidateUserId}
+                nickname={card.nickname}
+                hasPhoto={card.hasPhoto}
+              />
+              <div className="flex flex-wrap items-baseline gap-x-3">
+                <h3 className="text-base font-semibold">{card.nickname}</h3>
+                {card.exploration && (
+                  <span className="rounded-full bg-accent-wash px-2 py-0.5 text-xs text-accent">
+                    새로운 추천
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {card.intro !== null && <p className="text-sm text-secondary">{card.intro}</p>}
+
+            {/*
+              **추천 이유는 적극적으로 말한다.** 어느 오행이 무엇을 채우는지까지 —
+              감추면 「왜 이 사람인가」에 답하지 못한다. 문장은 정책이 지어 오고
+              (`ELEMENT_MEANING`), 화면은 글자를 앞에 세우기만 한다.
+            */}
+            {card.highlights.length > 0 && (
+              <ul className="flex flex-col gap-1.5">
+                {card.highlights.map((highlight) => (
+                  <li key={highlight.element} className="flex items-baseline gap-2 text-sm">
+                    <span className="glyph rounded-md bg-accent-wash px-1.5 py-0.5 text-accent">
+                      {highlight.element}
                     </span>
-                  )}
-                </div>
-              </div>
+                    <span>{highlight.text}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-              {card.intro !== null && <p className="text-sm text-secondary">{card.intro}</p>}
+            <p className="text-sm text-secondary">{card.balanceLabel}</p>
 
-              {/*
-                **추천 이유는 적극적으로 말한다.** 어느 오행이 무엇을 채우는지까지 —
-                감추면 「왜 이 사람인가」에 답하지 못한다. 문장은 정책이 지어 오고
-                (`ELEMENT_MEANING`), 화면은 글자를 앞에 세우기만 한다.
-              */}
-              {card.highlights.length > 0 && (
-                <ul className="flex flex-col gap-1.5">
-                  {card.highlights.map((highlight) => (
-                    <li key={highlight.element} className="flex items-baseline gap-2 text-sm">
-                      <span className="glyph rounded-md bg-accent-wash px-1.5 py-0.5 text-accent">
-                        {highlight.element}
-                      </span>
-                      <span>{highlight.text}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <p className="text-sm text-secondary">{card.balanceLabel}</p>
-
-              {/*
-                요청은 **후보를 본 데서** 난다. 이 카드가 스냅샷에 실렸다는 것이 노출
-                기록으로 남아 있고, `request_match` 는 그 기록이 있는 사람에게만 요청을
-                만든다.
-              */}
-              <div className="flex flex-wrap items-center gap-4 border-t border-border pt-2">
-                <RequestButton candidateUserId={card.candidateUserId} />
-                <HideButton candidateUserId={card.candidateUserId} />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+            {/*
+              요청은 **후보를 본 데서** 난다. 이 카드가 스냅샷에 실렸다는 것이 노출
+              기록으로 남아 있고, `request_match` 는 그 기록이 있는 사람에게만 요청을
+              만든다.
+            */}
+            <div className="flex flex-wrap items-center gap-4 border-t border-border pt-2">
+              <RequestButton candidateUserId={card.candidateUserId} />
+              <HideButton candidateUserId={card.candidateUserId} />
+            </div>
+          </li>
+        ))}
+      </ul>
 
       {/* 없는 것을 설명하지 않는다 — 탐색 후보가 실제로 섰을 때만 이 말이 붙는다 */}
       {board.explorationNote !== null && (
