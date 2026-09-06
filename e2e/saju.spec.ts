@@ -609,7 +609,9 @@ test('결과 링크 복사 버튼이 지금 주소를 클립보드에 넣는다'
  *
  * 「프롬프트 + 자료 복사」·「JSON 내려받기」·「붙여 넣을 분량 46KB」·`relations-v1` 은
  * 계약을 검산하는 우리에게 필요한 것이지 사주를 보러 온 사람이 쓰는 것이 아니다.
- * `/evidence` 로 옮겼고, 옮긴 것은 **다시 돌아오기 쉬우므로** 이 자리가 지킨다.
+ *
+ * 한동안 `/evidence` 로 옮겨 두었고 그 화면은 이제 없다(ADR 0047) — 내부 검증은
+ * `/me/reading/inspect` 하나다. **없앤 것이 다시 돌아오기 쉬우므로** 이 자리가 지킨다.
  */
 test('사주 결과에는 넘길 자료 패널이 서지 않는다', async ({ page }) => {
   await page.goto('/#date=1990-05-15&hour=14:30');
@@ -620,64 +622,6 @@ test('사주 결과에는 넘길 자료 패널이 서지 않는다', async ({ pa
   for (const word of ['풀이에 넘기는 자료', '무엇을 시킬 것인가', 'JSON 내려받기', 'relations-v']) {
     expect(shown).not.toContain(word);
   }
-});
-
-
-test('프롬프트를 골라 자료와 함께 복사한다', async ({ page, context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-
-  await page.goto('/evidence#date=1990-05-15&hour=14:30');
-
-  const panel = page.getByRole('group').filter({ hasText: '풀이에 넘기는 자료' });
-  await panel.getByText('풀이에 넘기는 자료').click();
-
-  // 한 사람이면 궁합 프롬프트는 아예 없다 — 흐리게 두고 안 먹히는 것보다 낫다.
-  await expect(panel.getByRole('button', { name: '궁합' })).toHaveCount(0);
-  await expect(panel.getByRole('button', { name: '전부 해석' })).toBeVisible();
-
-  await panel.getByRole('button', { name: '지금 도는 운' }).click();
-  await panel.getByRole('button', { name: '프롬프트 + 자료 복사' }).click();
-
-  const copied = await page.evaluate(() => navigator.clipboard.readText());
-
-  // 역할 · 한눈에 · 규칙 · 자료 순서. 자료가 앞에 오면 긴 JSON 을 다 읽고 나서야
-  // 규칙을 만나고, 머리가 없으면 여덟 글자를 보려고 36KB 를 뒤져야 한다.
-  const banned = '## 사실에 관한 단 하나의 금지';
-  expect(copied.indexOf('## 한눈에')).toBeLessThan(copied.indexOf(banned));
-  expect(copied.indexOf(banned)).toBeLessThan(copied.indexOf('## 자료'));
-  expect(copied).toContain('evidence-v0');
-  // 머리가 여덟 글자를 그대로 든다 — 1990-05-15 14:30 남자의 일주다.
-  expect(copied).toContain('여덟 글자');
-  expect(copied).toContain('庚辰');
-  // 고른 프롬프트가 실제로 실린다 — 지금 도는 운에만 있는 줄이다.
-  expect(copied).toContain('crossedFortunes');
-  expect(copied).toContain('"viewedAt"');
-
-  // **해석용은 막지 않는다.** 이 줄이 사라지면 모델이 입을 닫고 넘길 이유가 없어진다.
-  expect(copied).toContain('막지 않는다');
-
-  // 조인 쪽은 견줄 짝으로 따로 있다.
-  await panel.getByRole('button', { name: '상한 지키기' }).click();
-  await panel.getByRole('button', { name: '프롬프트 + 자료 복사' }).click();
-
-  const strict = await page.evaluate(() => navigator.clipboard.readText());
-  expect(strict).toContain('길흉을 말하지 않는다');
-});
-
-
-test('시각을 모르면 상한 표가 내려앉고 없다는 쪽이 잠긴다', async ({ page }) => {
-  await page.goto('/evidence#date=1988-07-15&hour=unknown');
-
-  const panel = page.getByRole('group').filter({ hasText: '풀이에 넘기는 자료' });
-  await panel.getByText('풀이에 넘기는 자료').click();
-
-  const row = panel.locator('tr').filter({ hasText: 'analysis.elements' });
-  await expect(row).toContainText('유도');
-  await expect(row).toContainText('말하지 않음');
-
-  // 흔들리지 않는 근거는 두 방향이 같다.
-  const pillars = panel.locator('tr').filter({ hasText: /^pillars/ });
-  await expect(pillars).toContainText('사실');
 });
 
 

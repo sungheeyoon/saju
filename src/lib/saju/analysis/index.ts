@@ -41,7 +41,13 @@ export * from './strength';
 export * from './transformation';
 export * from './yongsin';
 export * from './tenGods';
-export * from './validation/eokbuExternalCases';
+/*
+  **검증 사례는 공개 표면에 안 선다**(ADR 0047).
+
+  `validation/eokbuExternalCases` 는 39KB 짜리 외부 대조 자료이고 런타임 사용처가
+  없다 — 시험만 읽는다. 시험에서만 쓰는 것을 지우지는 않지만, 배럴에 세워 두면
+  공개 계산기가 도달하는 그래프에 든다.
+*/
 
 /**
  * 4주에서 해석의 재료를 뽑는다 — 오행 분포·십성·신강신약.

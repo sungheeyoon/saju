@@ -29,9 +29,6 @@ export * from './constants';
 export * from './daeun';
 // AI 에 넘길 객관 지표 — 해석 이전까지. 계약을 값과 함께 싣는다.
 export * from './evidence';
-// 자료와 함께 넘길 프롬프트. **`./evidence` 뒤에 서야 한다** — 프롬프트가 계약을
-// 읽어서 지어지므로, 앞에 두면 계약이 아직 없는 채로 평가된다.
-export * from './evidence/prompt';
 export * from './input';
 // 음력 변환. `computeSaju` 앞에 서는 경계라 엔진은 이것을 모른다 — 여기서 나온
 // 양력만 넘어간다(ADR 0002).

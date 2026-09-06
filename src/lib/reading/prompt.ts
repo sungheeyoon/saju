@@ -8,7 +8,8 @@ import {
 } from '../saju/constants';
 import { RELATION_FROM_MATCH, relationBlock, relationSentence, type Relation } from '../people';
 import { EVIDENCE_CONTRACT } from '../saju/evidence';
-import { PROMPT_PARTS, withSummary } from '../saju/evidence/prompt';
+import { PROMPT_PARTS } from './parts';
+import { withSummary } from './summary';
 
 import type { ReadingEvidence } from '.';
 import { READING_POLICY, isScored, isSolo, type PairKind, type ReadingKind } from './policy';
