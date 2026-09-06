@@ -80,7 +80,9 @@
 시험은 40건을 지우고 16건을 더했다. 지운 것은 **안 나가는 프롬프트를 재던 것**이고,
 더한 것은 같은 성질을 `READING_PROMPTS` 에 대고 잰다 — 재는 대상이 실물로 바뀌었다.
 
-한 가지가 그 과정에서 드러났다. **`PROMPT_PARTS.voice` 는 기준판에 안 닿는다** —
+한 가지가 그 과정에서 드러났다. **`PROMPT_PARTS.voice` 는 기준판에 안 닿았다** —
 `CONTROL.selfPresentation` 이 `expert-v4` 라 자기 풀이는 `selfCustomerVoice` 를, 궁합은
-`relationshipCustomerVoice` 를 쓴다. `legacy-v1` 판본으로만 선다. 지우지 않되 그 사실을
-시험이 값으로 든다(`parts.test.ts`).
+`relationshipCustomerVoice` 를 쓰고, 그 조각은 `legacy-v1` 판본으로만 섰다.
+
+여기서는 지우지 않고 시험이 그 사실을 값으로 들게 했다. **그 뒤 `legacy-v1` 을 지우면서
+함께 갔다**(ADR 0049) — 닿는 길이 그 판 하나였으므로 판이 사라지자 조각도 사라졌다.

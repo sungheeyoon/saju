@@ -70,8 +70,7 @@ export type SelfPresentation =
    * 절을 새로 만들지 않는다 — 지시가 13,900자를 넘으면 규칙이 서로를 묻는다. 이미 있는
    * 세 절(성격·강점·조심할 점)이 읽을 것을 더 가질 뿐이다.
    */
-  | 'expert-v4'
-  | 'legacy-v1';
+  | 'expert-v4';
 
 /**
  * 전문용어를 **본문에 부를 것인가.**
@@ -725,32 +724,16 @@ const expertSelfSections = (
   ];
 };
 
-const LEGACY_SELF_SECTIONS: readonly Section[] = [
-  { title: '한 줄로', body: '이 사람이 어떤 사람인지 한 문장.' },
-  { title: '타고난 결', body: '어떤 기질이고 그것이 하루에 어떻게 나오는지.' },
-  { title: '잘하는 것 넷', body: '무엇을 잘하는지, 왜 그런지, 어디에 쓰면 되는지.' },
-  { title: '걸리는 것 셋', body: '무엇이 문제인지, 언제 그러는지, 그때 어떻게 하는지.' },
-  { title: '일과 돈', body: '어떤 판에서 힘이 나고 어떤 판에서 빠지는지.' },
-  { title: '사람 관계', body: '되풀이되는 모양 하나와 달라질 수 있는 것 하나.' },
-  { title: '살림법', body: '늘릴 기운과 줄일 것을 일상 행동으로.' },
-  { title: '지금', body: '지금 도는 운과 이번 달에 밀어붙일 것·미룰 것.' },
-];
 
 /**
- * 전문가 뼈대인가 — **`expert-` 로 시작하는 판이 둘이 됐다.**
+ * 그 조립이 세우는 자기 풀이 절들 — 뼈대가 먼저, 용어 판이 그다음이다.
  *
- * 한동안 `=== 'expert-v3'` 를 세 자리에서 따로 물었다. v4 를 넣자 그중 하나(말투)만
- * 안 따라와서, 절은 v4 인데 말투는 옛 판인 프롬프트가 나왔다 — 3,163자가 조용히 빠졌다.
- * 묻는 곳이 셋이면 그중 하나를 안 고치는 날이 온다. 한 자리에서 묻는다.
+ * **고를 것이 없다.** 한동안 옛 여덟 절(`legacy-v1`)이 짝으로 서 있어서 여기가 갈림길
+ * 이었는데, 그 판을 지웠다(ADR 0049) — 기준판이 10절·5000~9000자로 가면서 8절·
+ * 1800~2600자와는 견줄 축이 하나도 안 남았다.
  */
-const isExpertPresentation = (presentation: SelfPresentation): boolean =>
-  presentation === 'expert-v3' || presentation === 'expert-v4';
-
-/** 그 조립이 세우는 자기 풀이 절들 — 뼈대가 먼저, 용어 판이 그다음이다 */
 const selfSectionsOf = (assembly: PromptAssembly): readonly Section[] =>
-  isExpertPresentation(assembly.selfPresentation)
-    ? expertSelfSections(assembly.terminology, assembly.selfPresentation)
-    : LEGACY_SELF_SECTIONS;
+  expertSelfSections(assembly.terminology, assembly.selfPresentation);
 
 const selfSections = (assembly: PromptAssembly): string => {
   const { min, max } = assembly.selfLength;
@@ -1028,30 +1011,22 @@ const bodyOf = (
   about: ReadingAbout,
 ): string => {
   const solo = isSolo(kind);
-  const isExpertSelf = solo && isExpertPresentation(assembly.selfPresentation);
   const head =
     solo
-      ? isExpertSelf
-        ? `# 역할
+      ? `# 역할
 
 너는 개인 사주 하나를 보고 성격·재능·복·일·돈·연애·도움이 들어오는 자리·지금의 흐름까지
 **시원하게 끝까지 읽어 주는 사주 해석가**다. 자료 밖을 지어내지는 않지만, 자료 안에서 받쳐 주는 말은
 조심스러움 뒤에 숨기지 마라. 독자가 자기 얘기를 알아보는 맛, 몰랐던 강점을 발견하는 맛,
 궁금했던 부분의 답을 듣는 맛이 모두 있어야 한다.`
-        : `# 역할
-
-너는 이 사람의 사주를 끝까지 읽어 주는 사람이다.`
       : `# 역할
 
 너는 두 사람 사이를 읽어 주는 사람이다. 잘 맞는다거나 안 맞는다고 끝내지 않고,
 어디서 편해지고 어디서 부딪히며 그때 무엇을 하면 되는지 말한다.`;
 
-  const voice =
-    solo
-      ? isExpertSelf
-        ? selfCustomerVoice(assembly.terminology)
-        : PROMPT_PARTS.voice
-      : relationshipCustomerVoice(assembly.terminology);
+  const voice = solo
+    ? selfCustomerVoice(assembly.terminology)
+    : relationshipCustomerVoice(assembly.terminology);
 
   return [
     head,

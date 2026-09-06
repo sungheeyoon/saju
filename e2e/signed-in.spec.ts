@@ -339,7 +339,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(
       page.getByRole('heading', { name: '실험용 변형 — 실제 생성에는 쓰지 않습니다' }),
     ).toBeVisible();
-    for (const id of ['control', 'longer-v1', 'recency-check-v1', 'legacy-v1']) {
+    for (const id of ['control', 'longer-v1', 'recency-check-v1', 'no-yongsin-v1']) {
       await expect(page.getByText(id, { exact: true })).toBeVisible();
     }
 

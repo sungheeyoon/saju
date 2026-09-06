@@ -38,7 +38,6 @@ const RECENCY_CHECK = `## 제출 전 확인
 export type PromptVariantId =
   | 'control'
   | 'no-yongsin-v1'
-  | 'legacy-v1'
   | 'longer-v1'
   | 'annotated-terms-v1'
   | 'recency-check-v1';
@@ -103,17 +102,5 @@ export const PROMPT_VARIANTS: readonly PromptVariant[] = [
     confounded:
       '한 조립 칸(`selfPresentation`) 안에서 **절 셋이 함께 움직인다.** 이 짝이 이겨도 셋 중 무엇 탓인지 이 라운드는 답하지 않는다 — 되돌릴 때는 셋을 한 덩어리로 되돌리거나, 쪼개서 다시 재야 한다.',
     assembly: { ...CONTROL, selfPresentation: 'expert-v3' },
-  },
-  {
-    id: 'legacy-v1',
-    label: '옛 여덟 절',
-    changes: '갈아엎기 전의 뼈대 — 여덟 절, 1800~2600자. 새 것이 정말 나은지 견줄 바탕.',
-    confounded:
-      '뼈대와 분량이 함께 움직인다. 이 변형은 새 뼈대와 옛 여덟 절의 전체 인상을 견주는 자리이지 단일변수 실험이 아니다 — 져도 그것이 절 수 탓인지 분량 탓인지 이 라운드는 답하지 않는다.',
-    assembly: {
-      ...CONTROL,
-      selfPresentation: 'legacy-v1',
-      selfLength: { min: 1800, max: 2600 },
-    },
   },
 ];
