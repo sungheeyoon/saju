@@ -6,7 +6,7 @@ import {
 } from '../element-tone';
 import {
   HOUR_UNKNOWN_LABEL,
-} from '../query';
+} from '@/src/lib/input/query';
 import {
   BRANCH_INFO,
   ELEMENT_KO,

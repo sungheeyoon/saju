@@ -8,7 +8,7 @@ import {
   type CivilDate,
   type Gender,
   type LateNightRule,
-} from '@/src/lib/saju';
+} from '../saju';
 
 import { solarDateOf } from './chart';
 

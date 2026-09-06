@@ -10,7 +10,7 @@ import {
   type Saju,
 } from '@/src/lib/saju';
 
-import { chartOf } from './chart';
+import { chartOf } from '@/src/lib/input/chart';
 import { BirthFields } from './birth-form';
 import { MatchResult } from './compat-match';
 import { SaveForReading } from './save-for-reading';
@@ -28,7 +28,7 @@ import {
   queryFromSearchParams,
   toSearchParams,
   type Query,
-} from './query';
+} from '@/src/lib/input/query';
 
 /**
  * 궁합 — 두 원국을 나란히 놓고 **사이에 성립하는 것**만 본다.

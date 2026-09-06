@@ -3,8 +3,8 @@ import { cardTextFor, type BalanceBand } from '@/src/lib/discovery';
 import { suppliedText } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { chartOf } from '../../chart';
-import { UnreadableRevisionError, queryFromRevision } from '../../revision';
+import { chartOf } from '@/src/lib/input/chart';
+import { UnreadableRevisionError, queryFromRevision } from '@/src/lib/input/revision';
 import { ResultClosedError, pinnedInputs } from './inputs';
 
 /**

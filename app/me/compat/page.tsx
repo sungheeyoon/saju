@@ -15,7 +15,7 @@ import {
   REVISION_REPLACED_NOTE,
   UNREADABLE_REVISION_NOTE,
   UnreadableRevisionError,
-} from '../../revision';
+} from '@/src/lib/input/revision';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { payloadForViewer, type PersonPayload } from '../payload';

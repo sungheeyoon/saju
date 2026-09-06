@@ -11,7 +11,7 @@ import { CARD } from './card';
 import { savePersonForReading } from './me/actions';
 import { savePairForReading, type PairAnswers } from './me/compat/actions';
 import { personSlotsFrom } from './person-slots';
-import type { Query } from './query';
+import type { Query } from '@/src/lib/input/query';
 import { RelationChoice } from './relation-choice';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
 

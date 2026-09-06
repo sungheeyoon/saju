@@ -1,5 +1,5 @@
 import { ELEMENT_TONE } from '../element-tone';
-import { HOUR_UNKNOWN_LABEL } from '../query';
+import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
 import {
   BRANCH_INFO,
   ELEMENTS,

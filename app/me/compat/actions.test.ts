@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_QUERY, type Query } from '../../query';
+import { DEFAULT_QUERY, type Query } from '@/src/lib/input/query';
 
 const rpc = vi.fn();
 vi.mock('../../auth/server-client', () => ({

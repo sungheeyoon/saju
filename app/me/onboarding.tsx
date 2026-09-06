@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { BirthFields } from '../birth-form';
-import { DEFAULT_QUERY, missingAnswer, type Query } from '../query';
+import { DEFAULT_QUERY, missingAnswer, type Query } from '@/src/lib/input/query';
 import { saveSelfPerson } from './actions';
 
 /**

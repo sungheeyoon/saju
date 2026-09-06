@@ -4,7 +4,7 @@ import { ELEMENTS, ELEMENT_KO } from '@/src/lib/saju';
 
 import { CompatEntry } from './compat-entry';
 import { ELEMENT_TONE } from './element-tone';
-import { HOUR_UNKNOWN_CHOICE } from './query';
+import { HOUR_UNKNOWN_CHOICE } from '@/src/lib/input/query';
 import { SajuCalculator } from './saju-calculator';
 
 export default function Home() {

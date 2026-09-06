@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { BirthFields } from './birth-form';
 import { CARD } from './card';
-import { calculateChart } from './chart';
+import { calculateChart } from '@/src/lib/input/chart';
 import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
 import { SajuView, sajuViewModelOf } from './saju/view';
@@ -14,7 +14,7 @@ import {
   queryFromSearchParams,
   toSearchParams,
   type Query,
-} from './query';
+} from '@/src/lib/input/query';
 
 /**
  * 익명 계산기 — **엔진이 순수 함수라 서버 없이 브라우저에서 그대로 돈다.**

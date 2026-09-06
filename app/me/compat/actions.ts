@@ -6,8 +6,8 @@ import { relationOf, type Relation } from '@/src/lib/people';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { sameChartInMyList, type SameChart } from '../same-chart';
-import { missingAnswer, type Query } from '../../query';
-import { managedPersonArgs, unsupportedForSaving } from '../../revision';
+import { missingAnswer, type Query } from '@/src/lib/input/query';
+import { managedPersonArgs, unsupportedForSaving } from '@/src/lib/input/revision';
 
 /**
  * 이 쌍에 적어 둔 사이 — **화면이 저장된 값을 보여 주려고 읽는다.**

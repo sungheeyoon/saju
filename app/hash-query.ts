@@ -15,7 +15,7 @@ import { useEffect, useMemo, useSyncExternalStore } from 'react';
  * 서버도 크롤러도 못 본다. 익명 흐름은 브라우저가 계산하므로 서버는 이 값이 애초에
  * 필요 없다.
  *
- * 코덱(`app/query.ts`)은 한 줄도 바뀌지 않는다. 그쪽은 `URLSearchParams` 하나만
+ * 코덱(`src/lib/input/query.ts`)은 한 줄도 바뀌지 않는다. 그쪽은 `URLSearchParams` 하나만
  * 알고, 그것이 `?` 에서 왔는지 `#` 에서 왔는지 모른다.
  *
  * ## 왜 `useSearchParams` 를 못 쓰나

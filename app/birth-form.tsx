@@ -15,7 +15,7 @@ import {
   type LateNightRule,
 } from '@/src/lib/saju';
 
-import { solarDateOf } from './chart';
+import { solarDateOf } from '@/src/lib/input/chart';
 import {
   HOUR_UNKNOWN_CHOICE,
   HOUR_UNKNOWN_LABEL,
@@ -26,7 +26,7 @@ import {
   birthYearRefusal,
   type Query,
   type TimeBasis,
-} from './query';
+} from '@/src/lib/input/query';
 
 /**
  * 생년월일시 입력 한 벌.

@@ -14,9 +14,9 @@ import {
 } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { chartOf } from '../../chart';
+import { chartOf } from '@/src/lib/input/chart';
 import { NoKeyError, keyedClient } from '../../keyed-client';
-import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '../../revision';
+import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '@/src/lib/input/revision';
 import { ResultClosedError, pinnedInputs } from '../match/inputs';
 import {
   generateReadingArtifact,

@@ -1,7 +1,7 @@
 import { checkReading, isScored, type BirthSecret, type ReadingKind } from '@/src/lib/reading';
 
 import { keyedClient } from '../../keyed-client';
-import type { StoredRevision } from '../../revision';
+import type { StoredRevision } from '@/src/lib/input/revision';
 
 import type { ModelUsage } from './generator';
 import { retrieveBackgroundReading } from './model';
