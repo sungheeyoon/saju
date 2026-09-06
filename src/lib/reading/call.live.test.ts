@@ -6,6 +6,7 @@ import { computeSaju } from '@/src/lib/saju';
 import {
   CONTROL,
   PROMPT_VARIANTS,
+  READING_POLICY,
   checkReading,
   isScored,
   measureMarkdown,
@@ -128,7 +129,8 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
       const charts = pair
         ? { a: computeSaju(INPUT), b: computeSaju(OTHER) }
         : { a: computeSaju(INPUT) };
-      const evidence = readingEvidenceOf(kind, charts, new Date());
+      const viewedAt = new Date();
+      const evidence = readingEvidenceOf(kind, charts, viewedAt);
       const called = await callModel(readingPromptOf(evidence));
 
       // 실패도 값으로 오므로 무엇이 막았는지 그대로 보인다.
@@ -141,9 +143,38 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
        */
       const dir = `${OUTPUT_ROOT}/kinds`;
       mkdirSync(dir, { recursive: true });
+
+      /**
+       * **무엇으로 만든 것인지 원문 옆에 적는다.**
+       *
+       * 이 파일은 `kind` 와 나온 글만 들고 있었다. 그래서 나중에 「이 글이 어느 판본에서
+       * 났나」를 물으면 답이 없었다 — 실제로 `legacy-v1` 을 지울지 판단하면서 「이 판을
+       * 돌린 적이 있나」를 이 파일들로 답하려다 못 했다.
+       *
+       * 저장되는 Reading 은 이미 적고 있고(`reading.prompt_version`·`generation`),
+       * 변형 실행도 적는다(`variant`). **여기만 안 적었다.**
+       *
+       * 프롬프트를 통째로 적지는 않는다 — 판본 이름이 그것을 되짚는 값이고
+       * (`READING_POLICY.version`), 원문은 그 판본으로 언제든 다시 짓는다.
+       */
+      const { GENERATION } = await import('@/app/me/reading/generation');
+
       writeFileSync(
-        `${dir}/${kind}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
-        JSON.stringify({ kind, ...called }, null, 2),
+        `${dir}/${kind}-${viewedAt.toISOString().replace(/[:.]/g, '-')}.json`,
+        JSON.stringify(
+          {
+            kind,
+            /** 기준판으로 부른다 — 변형을 견주는 것은 `READING_VARIANTS_LIVE` 쪽이다 */
+            variant: 'control',
+            promptVersion: READING_POLICY.version,
+            /** 운은 부르는 순간으로 짚는다 — 그 시각이 없으면 같은 입력도 다른 글이 난다 */
+            viewedAt: viewedAt.toISOString(),
+            generation: GENERATION,
+            ...called,
+          },
+          null,
+          2,
+        ),
       );
 
       const verdict = checkReading({
