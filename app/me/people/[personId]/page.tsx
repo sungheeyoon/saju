@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../../auth/server-client';
-import { SajuResult } from '../../../saju-calculator';
+import { SajuResult } from '../../../saju/view';
 import { UnreadableRevisionError } from '../../../revision';
 import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
@@ -77,6 +77,7 @@ export default async function PersonSajuPage({
    * 안전은 지켜지지만, 「못 만드는 버튼을 안 보여 준다」는 약속이 깨진다.
    */
   const mine = selfPersonIdOf(state) === person.personId;
+
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">

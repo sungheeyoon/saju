@@ -7,7 +7,7 @@ import { GENDER_KO, type Compatibility, type CompatSide, type Saju } from '@/src
 import { BetweenSections } from './between-view';
 import { CARD } from './card';
 
-import { PILLAR_COLUMNS } from './saju-calculator';
+import { PILLAR_COLUMNS } from './saju/shared';
 
 /**
  * 궁합 **결과 영역** — 입력을 어디서 받았는지 모른다.
