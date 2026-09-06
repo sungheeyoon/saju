@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { isBlocked } from '@/src/lib/account';
+
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
-import { Halted } from '../halted';
+import { AccountNotice } from '../account-notice';
+import { readAccount } from '../account';
 import { myReadings, type ReadingEntry } from '../reading/current';
 import { readingDate, readingHref, readingTitle } from '../reading/line';
 
@@ -40,11 +43,12 @@ export default async function ReadingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const { data: account } = await supabase.from('app_user').select('status').maybeSingle();
-  if (account !== null && account.status !== 'active') {
+  /** 온보딩을 안 묻는 화면이라 `self_person_id` 도 안 읽는다 */
+  const { state } = await readAccount(supabase, 'status');
+  if (isBlocked(state)) {
     return (
       <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
-        <Halted status={account.status} />
+        <AccountNotice state={state} />
       </main>
     );
   }

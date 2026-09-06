@@ -6,7 +6,10 @@ import {
   type PromptVariantId,
 } from '@/src/lib/reading';
 
+import { accountNoticeOf, selfPersonIdOf } from '@/src/lib/account';
+
 import { supabaseOnServer } from '../../auth/server-client';
+import { readAccount } from '../account';
 import { chartOf } from '../../chart';
 import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '../../revision';
 import { READING_CHART_NAMES } from './pipeline';
@@ -61,19 +64,20 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
   const supabase = await supabaseOnServer();
 
   // 정책이 자기 행만 내주므로 `where` 를 적지 않는다 — `/me` 와 같은 자리, 같은 규율.
-  const { data: account } = await supabase
-    .from('app_user')
-    .select('status, self_person_id')
-    .maybeSingle();
+  /** 판정은 화면과 **같은 함수**가 한다(ADR 0048) — 여기서만 다르게 갈리면 그 차이는 어디에도 안 적힌다 */
+  const { state } = await readAccount(supabase);
 
-  if (!account) return { ok: false, message: '계정을 읽지 못했습니다.' };
-  if (account.status !== 'active') return { ok: false, message: '지금은 결과를 만들 수 없는 계정입니다.' };
-  if (account.self_person_id === null) return { ok: false, message: '내 사주를 먼저 등록해 주세요.' };
+  const notice = accountNoticeOf(state);
+  if (notice !== null) return { ok: false, message: `${notice.title}. ${notice.detail}` };
+  if (state.kind === 'onboarding') return { ok: false, message: '내 사주를 먼저 등록해 주세요.' };
+
+  const selfPersonId = selfPersonIdOf(state);
+  if (selfPersonId === null) return { ok: false, message: '내 사주를 먼저 등록해 주세요.' };
 
   const { data: person } = await supabase
     .from('person')
     .select('current_revision_id')
-    .eq('id', account.self_person_id)
+    .eq('id', selfPersonId)
     .maybeSingle();
 
   if (!person?.current_revision_id) return { ok: false, message: '저장된 출생 정보를 찾지 못했습니다.' };

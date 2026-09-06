@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
+
 import { CALENDAR_KO, ELEMENT_KO, GENDER_KO, STEM_INFO } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -14,7 +16,8 @@ import {
 } from '../../revision';
 import { managedEdges, personSlotsFrom } from '../../person-slots';
 import { ReviseChart } from '../revise';
-import { Halted } from '../halted';
+import { AccountNotice } from '../account-notice';
+import { readAccount } from '../account';
 import { AddPerson, NoteForm, RemoveFromList } from './manage';
 
 /*
@@ -52,9 +55,9 @@ export default async function PeoplePage() {
   if (!user) redirect('/auth');
 
   /** 몇 자리 남았는지는 **DB 가 센다** — 화면이 빼기를 하면 selfPerson 을 잊는 자리가 생긴다 */
-  const [slotRow, { data: account }, { data: edges }] = await Promise.all([
+  const [slotRow, { state }, { data: edges }] = await Promise.all([
     supabase.rpc('my_person_slots'),
-    supabase.from('app_user').select('status, self_person_id').maybeSingle(),
+    readAccount(supabase),
     // 정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
     supabase
       .from('user_person_access')
@@ -69,10 +72,11 @@ export default async function PeoplePage() {
    */
   const slots = personSlotsFrom(slotRow.data, slotRow.error);
 
-  const suspended = account !== null && account.status !== 'active';
+  const blocked = isBlocked(state);
 
-  const managed = managedEdges(edges, account?.self_person_id);
-  const people = suspended ? [] : await peopleWithCharts(managed);
+  /** 온보딩이면 `null` 이고, 그때는 뺄 자기 것이 없다 — 목록은 그대로 선다 */
+  const managed = managedEdges(edges, selfPersonIdOf(state) ?? undefined);
+  const people = blocked ? [] : await peopleWithCharts(managed);
 
   return (
     <main className="app-shell flex w-full max-w-4xl flex-1 flex-col gap-7 py-9 sm:py-12">
@@ -97,8 +101,8 @@ export default async function PeoplePage() {
         </Link>
       </header>
 
-      {suspended ? (
-        <Halted status={account?.status ?? 'suspended'} />
+      {blocked ? (
+        <AccountNotice state={state} />
       ) : (
         <>
           <AddPerson slots={slots} />

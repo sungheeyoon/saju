@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
+import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
+
 import { supabaseOnServer } from '../../../auth/server-client';
 import { SajuResult } from '../../../saju-calculator';
 import { UnreadableRevisionError } from '../../../revision';
-import { Halted } from '../../halted';
+import { AccountNotice } from '../../account-notice';
+import { readAccount } from '../../account';
 import { payloadForViewer } from '../../payload';
 import { ReadingSection } from '../../reading/section';
 
@@ -33,14 +36,18 @@ export default async function PersonSajuPage({
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const { data: account } = await supabase
-    .from('app_user')
-    .select('status, self_person_id')
-    .maybeSingle();
-  if (account?.status !== 'active') {
+  /**
+   * **못 읽은 것을 중지로 말하지 않는다**(ADR 0048).
+   *
+   * 여기는 `account?.status !== 'active'` 로 물어서, 계정을 못 읽었을 때도 「중지된
+   * 계정입니다」를 세우고 있었다. `app_user` 의 select 정책은 `id = auth.uid()` 하나이고
+   * `status` 를 안 보므로 — 정지된 계정도 자기 행을 읽는다 — 그 말은 참일 수가 없었다.
+   */
+  const { state } = await readAccount(supabase);
+  if (isBlocked(state)) {
     return (
       <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-12">
-        <Halted status={account?.status ?? 'suspended'} />
+        <AccountNotice state={state} />
       </main>
     );
   }
@@ -69,7 +76,7 @@ export default async function PersonSajuPage({
    * 갈리는 순간 이 값이 거짓이 되고 화면은 못 만드는 버튼을 세운다 — DB 는 거절하므로
    * 안전은 지켜지지만, 「못 만드는 버튼을 안 보여 준다」는 약속이 깨진다.
    */
-  const mine = account.self_person_id === person.personId;
+  const mine = selfPersonIdOf(state) === person.personId;
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">

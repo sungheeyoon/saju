@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation';
 
+import { isBlocked } from '@/src/lib/account';
+
 import { supabaseOnServer } from '../../auth/server-client';
-import { Halted } from '../halted';
+import { AccountNotice } from '../account-notice';
+import { readAccount } from '../account';
 import { ProfileForm } from './form';
 
 export const metadata = {
@@ -28,23 +31,17 @@ export default async function ProfilePage() {
   if (!user) redirect('/auth');
 
   // 정책이 자기 행만 내주므로 `where` 를 적지 않는다. 적으면 판정하는 자리가 둘이 된다.
-  const { data: account } = await supabase
-    .from('app_user')
-    .select('status, nickname, intro')
-    .maybeSingle();
+  /** 온보딩을 안 묻는 화면이라 `self_person_id` 를 안 읽고, 대신 이름과 소개를 함께 읽는다 */
+  const { state, row: account } = await readAccount<{
+    status: string;
+    nickname: string | null;
+    intro: string | null;
+  }>(supabase, 'status, nickname, intro');
 
-  if (account === null) {
+  if (isBlocked(state) || account === null) {
     return (
       <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
-        <p className="text-sm text-muted">계정을 읽지 못했습니다. 다시 로그인해 주세요.</p>
-      </main>
-    );
-  }
-
-  if (account.status !== 'active') {
-    return (
-      <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
-        <Halted status={account.status} />
+        <AccountNotice state={state} />
       </main>
     );
   }

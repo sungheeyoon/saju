@@ -27,7 +27,7 @@ export function RequestDeletion() {
     setFailure(null);
     startWorking(async () => {
       const result = await requestAccountDeletion();
-      // 성공하면 이 화면이 통째로 「삭제를 요청한 계정입니다」로 바뀐다(`Halted`).
+      // 성공하면 이 화면이 통째로 「삭제를 요청한 계정입니다」로 바뀐다(`AccountNotice`).
       if (result.ok) router.refresh();
       else setFailure(result.message);
     });

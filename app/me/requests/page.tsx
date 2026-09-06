@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { isBlocked } from '@/src/lib/account';
 import {
   CONSENT_FLOW_CAVEAT,
   CONSENT_FLOW_STEPS,
@@ -12,7 +13,8 @@ import {
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { Avatar } from '../avatar';
-import { Halted } from '../halted';
+import { AccountNotice } from '../account-notice';
+import { readAccount } from '../account';
 import { inboxForViewer, type Inbox, type InboxMatch, type InboxRequest } from './inbox';
 import {
   BlockButton,
@@ -56,10 +58,8 @@ export default async function RequestsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const { data: account } = await supabase
-    .from('app_user')
-    .select('status, self_person_id')
-    .maybeSingle();
+  /** 온보딩을 안 묻는 화면이라 `self_person_id` 도 안 읽는다 — 안 물은 것에 답이 나오지 않게 */
+  const { state } = await readAccount(supabase, 'status');
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">
@@ -106,13 +106,7 @@ export default async function RequestsPage() {
         </p>
       </header>
 
-      {account === null ? (
-        <p className="text-sm text-muted">계정을 읽지 못했습니다. 다시 로그인해 주세요.</p>
-      ) : account.status !== 'active' ? (
-        <Halted status={account.status} />
-      ) : (
-        <InboxSections />
-      )}
+      {isBlocked(state) ? <AccountNotice state={state} /> : <InboxSections />}
     </main>
   );
 }

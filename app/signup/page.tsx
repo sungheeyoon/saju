@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
+import { readAccount } from '../me/account';
+import { AccountNotice } from '../me/account-notice';
 import { CARD } from '../card';
 import { SignOutLink } from './sign-out-link';
 import {
@@ -73,18 +75,31 @@ export default async function SignupPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const [{ data: account }, notice] = await Promise.all([
-    supabase
-      .from('app_user')
-      .select('status, signed_up_at, nickname, notice_version, notice_schedule_id')
-      .maybeSingle(),
+  /**
+   * **문은 여기 것이고 문구만 같은 자리에서 가져온다.**
+   *
+   * 이 화면이 묻는 것은 가입이 끝났는가이지 자기 사주가 있는가가 아니라, `/me` 의 상태
+   * 모형(ADR 0048)을 그대로 쓰지 않는다. 다만 **계정을 못 읽었을 때 하는 말**은 같아야
+   * 하고, 그 말은 못 읽은 까닭에 따라 갈린다 — DB 가 잠긴 사람에게 「다시 로그인해
+   * 주세요」는 들어올 곳이 없는 데로 보내는 말이다.
+   */
+  const [{ state, row: account }, notice] = await Promise.all([
+    readAccount<{
+      status: string;
+      signed_up_at: string | null;
+      nickname: string | null;
+      notice_version: string | null;
+      notice_schedule_id: number | null;
+    }>(supabase, 'status, signed_up_at, nickname, notice_version, notice_schedule_id'),
     scheduleFrom((name) => supabase.rpc(name)),
   ]);
 
   if (account === null) {
     return (
       <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
-        <p className={`${CARD} text-sm leading-6`}>계정을 읽지 못했습니다. 다시 로그인해 주세요.</p>
+        <div className={`${CARD} text-sm leading-6`}>
+          <AccountNotice state={state} />
+        </div>
       </main>
     );
   }
