@@ -100,20 +100,4 @@ describe('조각이 실제로 나가는 글에 닿는다', () => {
     }
   });
 
-  /**
-   * **`voice` 는 기준판에 안 닿는다 — 값으로 적어 둔다.**
-   *
-   * `CONTROL.selfPresentation` 이 `expert-v4` 라 자기 풀이는 `selfCustomerVoice` 를,
-   * 궁합은 `relationshipCustomerVoice` 를 쓴다(ADR 0029·0044). 이 조각은 `legacy-v1`
-   * 판본으로만 선다.
-   *
-   * 지우지 않는 까닭은 되돌릴지 판단하려면 **그 판이 무엇을 시켰는지가 남아 있어야**
-   * 하기 때문이다(ADR 0046 이 `annotated` 를 남긴 것과 같다). 다만 그것이 안 나간다는
-   * 사실은 어딘가에 적혀 있어야 하고, 여기가 그 자리다.
-   */
-  it('말투 조각은 기준판에 안 선다', () => {
-    for (const kind of READING_KINDS) {
-      expect(READING_PROMPTS[kind], kind).not.toContain(PROMPT_PARTS.voice);
-    }
-  });
 });

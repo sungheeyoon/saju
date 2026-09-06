@@ -123,22 +123,6 @@ describe('변형은 기준판에서 하나씩만 벗어난다', () => {
     expect(prompt).not.toContain('## 제출 전 확인');
   });
 
-  /**
-   * **옛 뼈대는 통째로 옛 뼈대여야 한다.**
-   *
-   * 절만 여덟으로 돌려놓고 말투 규칙은 새것을 쓰면, 견주는 것이 「옛 뼈대」가 아니라
-   * 「이름만 옛 뼈대인 잡종」이 된다. 그러면 어느 쪽이 나은지 물어도 답이 안 나온다.
-   */
-  it('옛 뼈대는 절도 말투도 옛것이다', () => {
-    const prompt = promptOf('legacy-v1');
-
-    expect(prompt).toContain('**7. 살림법**');
-    expect(prompt).toContain('본문은 1800~2600자');
-    // 옛 말투 규칙이 서고 새 고객 말투는 안 선다.
-    expect(prompt).toContain('**문단마다 「그래서」로 닫아라.**');
-    expect(prompt).not.toContain('## 고객에게 말하는 말투');
-    expect(prompt).not.toContain('이 사주의 핵심');
-  });
 
   it('기준판은 옛 절 이름을 하나도 들고 오지 않는다', () => {
     const prompt = readingPromptOf(evidence());
@@ -160,8 +144,13 @@ describe('변형은 기준판에서 하나씩만 벗어난다', () => {
 
     expect(changedKeys('longer-v1')).toEqual(['selfLength']);
     expect(changedKeys('recency-check-v1')).toEqual(['tail']);
-    // 옛 뼈대만 둘을 함께 바꾼다 — 그래서 `confounded` 를 적는다.
-    expect(changedKeys('legacy-v1').sort()).toEqual(['selfLength', 'selfPresentation']);
+    /*
+      **둘을 함께 바꾸던 예외가 없어졌다.** `legacy-v1` 이 절 수와 분량을 함께 옮겨서
+      `confounded` 를 적어야 했는데, 그 판을 지웠다(ADR 0049). 남은 판본은 전부 한 축이다
+      — `no-yongsin-v1` 은 칸으로는 하나이고 그 안에서 절 셋이 함께 움직여, 그 사실을
+      `confounded` 가 든다(아래 시험이 잰다).
+    */
+    expect(changedKeys('no-yongsin-v1')).toEqual(['selfPresentation']);
   });
 });
 
@@ -529,7 +518,6 @@ describe('고객이 읽는 글의 계약', () => {
 
   it('기준판은 개인 사주의 핵심 물음을 빠짐없이 다룬다', () => {
     expect(selfSectionCount(CONTROL)).toBe(10);
-    expect(selfSectionCount(variant('legacy-v1').assembly)).toBe(8);
 
     const prompt = selfPrompt();
     for (const heading of [
@@ -783,7 +771,10 @@ describe('고객이 읽는 글의 계약', () => {
   /** 본문에서 뺀 것은 없앤 것이 아니라 옮긴 것이다 */
   it('근거는 검사용 절로 옮겨 두고 계약은 그대로다', () => {
     expect(selfPrompt()).toContain('### 근거 (검사용)');
-    expect(selfPrompt(variant('legacy-v1').assembly)).toContain('### 근거 (검사용)');
+    // 판본이 무엇이든 검사용 절은 선다 — 옮긴 것이지 없앤 것이 아니다.
+    for (const one of PROMPT_VARIANTS) {
+      expect(selfPrompt(one.assembly), one.id).toContain('### 근거 (검사용)');
+    }
   });
 
   /** 자동 검사가 막으면 그 변형은 한 번도 채점대에 못 선다 */

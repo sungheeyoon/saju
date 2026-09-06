@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { CONTROL, PROMPT_VARIANTS, measureMarkdown, outputDeviations, selfSectionCount } from '.';
+import {
+  CONTROL,
+  PROMPT_VARIANTS,
+  measureMarkdown,
+  outputDeviations,
+  selfSectionCount,
+  type PromptAssembly,
+} from '.';
 
 /**
  * 이 계산은 채점 화면 안에 있었다. 그 자리에 있는 동안은 시험이 한 줄도 안 닿았고,
@@ -64,24 +71,27 @@ describe('무엇을 세는가', () => {
  * `checkReading` 의 문턱은 kind 하나에 하나뿐이라 변형마다 다른 지시를 못 잰다.
  */
 describe('조립이 시킨 대로 나왔는가', () => {
-  /** 기준판과 **절 수가 다른** 변형이 있어야 눈금이 하나로 못박히지 않았음을 잰다 */
-  const legacy = () => {
-    const found = PROMPT_VARIANTS.find((one) => one.id === 'legacy-v1');
-    if (found === undefined) throw new Error('legacy-v1 이 없다');
-    return found.assembly;
-  };
+  /**
+   * 기준판과 **계약이 다른** 조립 하나 — 눈금이 하나로 못박히지 않았음을 잰다.
+   *
+   * 한동안 `legacy-v1` 변형을 여기 끌어다 썼다. 그 판을 지우면서(ADR 0049) 드러난 것은
+   * **이 시험이 필요로 한 것이 변형이 아니라 계약 하나**였다는 것이다 —
+   * `outputDeviations` 는 `(measured, assembly)` 만 보고 그 조립이 목록에 있는지는
+   * 묻지 않는다. 여기서 지어 쓰면 판본 목록이 바뀌어도 이 시험은 안 흔들린다.
+   */
+  const shorter = (): PromptAssembly => ({ ...CONTROL, selfLength: { min: 1800, max: 2600 } });
 
   /**
    * **절 수를 여기 다시 적지 않는다.** 조립이 절을 하나 더 세우면 이 숫자도 따라
    * 움직여야 하는데, 손으로 적어 두면 그날 시험이 「고쳐진 것」을 고장이라 부른다.
    */
-  const ok = (assembly: ReturnType<typeof legacy>) => selfSectionCount(assembly);
+  const ok = (assembly: PromptAssembly) => selfSectionCount(assembly);
 
   /**
    * 그 계약이 원하는 **한가운데**로 지은 글. 분량도 손으로 적지 않는다 — 절이 하나
    * 늘면 같은 채움값이 같은 총량을 뜻하지 않는다.
    */
-  const onTarget = (assembly: ReturnType<typeof legacy>) => {
+  const onTarget = (assembly: PromptAssembly) => {
     const count = ok(assembly);
     const { min, max } = assembly.selfLength;
     return body(count, Math.floor((min + max) / 2 / count));
@@ -89,20 +99,29 @@ describe('조립이 시킨 대로 나왔는가', () => {
 
   it('시킨 대로면 아무 말도 하지 않는다', () => {
     expect(outputDeviations(measureMarkdown(onTarget(CONTROL)), CONTROL)).toEqual([]);
-    expect(outputDeviations(measureMarkdown(onTarget(legacy())), legacy())).toEqual([]);
+    expect(outputDeviations(measureMarkdown(onTarget(shorter())), shorter())).toEqual([]);
   });
 
-  /** 새 뼈대가 옛 뼈대처럼 길고 많은 절을 쓰면 저장은 되지만 채점 대상이 아니다 */
-  it('기준판이 옛 뼈대의 글을 내면 둘 다 짚는다', () => {
-    const codes = outputDeviations(measureMarkdown(onTarget(legacy())), CONTROL)
-      .map((one) => one.code);
+  /** 절도 모자라고 분량도 짧으면 **둘 다** 짚는다 — 하나가 다른 하나를 가리지 않는다 */
+  it('절과 분량이 함께 어긋나면 둘 다 짚는다', () => {
+    const codes = outputDeviations(measureMarkdown(body(8, 270)), CONTROL).map((one) => one.code);
 
     expect(codes).toContain('length-off-target');
     expect(codes).toContain('section-count-mismatch');
   });
 
-  it('같은 글이 옛 뼈대 계약에는 맞을 수 있다', () => {
-    expect(outputDeviations(measureMarkdown(onTarget(legacy())), legacy())).toEqual([]);
+  /**
+   * **눈금은 계약마다 다시 읽힌다.** 같은 글이 한 계약에서는 짧고 다른 계약에서는 맞다.
+   *
+   * 절 수로도 이것을 재고 있었는데, 그러려면 절 수가 다른 조립이 있어야 한다.
+   * `legacy-v1` 을 지우면서(ADR 0049) 남은 판은 전부 10절이라 **그 축으로는 더 못
+   * 잰다.** 분량 축은 그대로 잰다 — 눈금이 조립에서 온다는 것이 여기서 지켜진다.
+   */
+  it('같은 글이 다른 계약에는 맞을 수 있다', () => {
+    const short = measureMarkdown(onTarget(shorter()));
+
+    expect(outputDeviations(short, CONTROL).map((one) => one.code)).toEqual(['length-off-target']);
+    expect(outputDeviations(short, shorter())).toEqual([]);
   });
 
   it('절 수는 맞고 분량만 어긋난 것을 갈라 짚는다', () => {
@@ -119,7 +138,7 @@ describe('조립이 시킨 대로 나왔는가', () => {
    * 한 자리에서만 분량을 막게 되는 날이 온다.
    */
   it('절 수는 계약이고 분량은 목표다', () => {
-    const both = outputDeviations(measureMarkdown(onTarget(legacy())), CONTROL);
+    const both = outputDeviations(measureMarkdown(body(8, 270)), CONTROL);
     const kindOf = (code: string) => both.find((one) => one.code === code)?.kind;
 
     expect(kindOf('section-count-mismatch')).toBe('contract');
@@ -151,13 +170,13 @@ describe('조립이 시킨 대로 나왔는가', () => {
       return found.assembly;
     };
 
-    const withTerms = (assembly: ReturnType<typeof legacy>) => {
+    const withTerms = (assembly: PromptAssembly) => {
       const count = ok(assembly);
       const filler = Math.floor(((assembly.selfLength.min + assembly.selfLength.max) / 2) / count);
       return `${body(count, filler)}\n\n재성이 무겁고 대운이 곧 바뀝니다.`;
     };
 
-    const codesOf = (assembly: ReturnType<typeof legacy>) =>
+    const codesOf = (assembly: PromptAssembly) =>
       outputDeviations(measureMarkdown(withTerms(assembly)), assembly).map((one) => one.code);
 
     it('이름을 다는 판에서는 아예 서지 않는다', () => {
