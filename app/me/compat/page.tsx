@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
+import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 import { analyzeCompatibility } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -15,7 +16,8 @@ import {
   UNREADABLE_REVISION_NOTE,
   UnreadableRevisionError,
 } from '../../revision';
-import { Halted } from '../halted';
+import { AccountNotice } from '../account-notice';
+import { readAccount } from '../account';
 import { payloadForViewer, type PersonPayload } from '../payload';
 import { myPrivateReadings, type PrivateReadingEntry } from '../reading/current';
 import { readingDate } from '../reading/line';
@@ -66,8 +68,8 @@ export default async function ManagedCompatPage({
   const a = firstOf(params.a);
   const b = firstOf(params.b);
 
-  const [{ data: account }, { data: edges }] = await Promise.all([
-    supabase.from('app_user').select('status, self_person_id').maybeSingle(),
+  const [{ state }, { data: edges }] = await Promise.all([
+    readAccount(supabase),
     // 정책이 자기 목록만 내준다. 여기서 `user_id` 를 또 적지 않는다.
     supabase
       .from('user_person_access')
@@ -78,14 +80,14 @@ export default async function ManagedCompatPage({
   const people = (edges ?? []).map((edge) => ({
     personId: edge.person_id as string,
     label: edge.local_label as string,
-    isSelf: edge.person_id === account?.self_person_id,
+    isSelf: edge.person_id === selfPersonIdOf(state),
   }));
 
   /**
    * 중지된 계정에는 아무것도 안 보인다(정책이 막는다). 그대로 두면 404 로 떨어지는데,
    * 그건 「없는 사람」에게 하는 말이라 여기서는 틀린 말이다.
    */
-  const suspended = account !== null && account.status !== 'active';
+  const blocked = isBlocked(state);
 
   /**
    * **그릴 것을 정하기 전에 다 읽는다.**
@@ -95,13 +97,13 @@ export default async function ManagedCompatPage({
    * 못 보는 사람이 **같은 상태 코드**로 거절되는 것이 이 화면의 약속이라, 그 약속이
    * 렌더 순서에 기대지 않게 여기서 먼저 답을 낸다.
    */
-  const outcome = suspended ? null : await pairOutcome(a, b);
+  const outcome = blocked ? null : await pairOutcome(a, b);
 
-  if (suspended) {
+  if (blocked) {
     return (
       <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
         <CompatHero mode="saved" />
-        <Halted status={account?.status ?? 'suspended'} />
+        <AccountNotice state={state} />
       </main>
     );
   }

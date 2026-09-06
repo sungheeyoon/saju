@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
+import { isBlocked } from '@/src/lib/account';
+
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
-import { Halted } from '../halted';
+import { AccountNotice } from '../account-notice';
+import { readAccount } from '../account';
 import { ParticipationToggle, PreferenceForm } from './manage';
 import { preferGenderOf } from './profile';
 
@@ -29,8 +32,8 @@ export default async function DiscoveryPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const [{ data: account }, { data: profile }] = await Promise.all([
-    supabase.from('app_user').select('status, self_person_id').maybeSingle(),
+  const [{ state }, { data: profile }] = await Promise.all([
+    readAccount(supabase),
     supabase.from('discovery_profile').select('prefer_gender, opted_out_at').maybeSingle(),
   ]);
 
@@ -57,11 +60,9 @@ export default async function DiscoveryPage() {
         </p>
       </header>
 
-      {account === null ? (
-        <p className="text-sm text-muted">계정을 읽지 못했습니다. 다시 로그인해 주세요.</p>
-      ) : account.status !== 'active' ? (
-        <Halted status={account.status} />
-      ) : account.self_person_id === null ? (
+      {isBlocked(state) ? (
+        <AccountNotice state={state} />
+      ) : state.kind === 'onboarding' ? (
         <section className={`${CARD} bg-surface-sunken`}>
           <h2 className="text-base font-semibold">먼저 내 사주를 등록해 주세요</h2>
           <p className="mt-1.5 text-sm text-secondary">

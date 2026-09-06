@@ -1,8 +1,11 @@
 import { redirect } from 'next/navigation';
 
+import { isBlocked } from '@/src/lib/account';
+
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
-import { Halted } from '../halted';
+import { AccountNotice } from '../account-notice';
+import { readAccount } from '../account';
 import { RequestDeletion } from '../leaving';
 import { ConsentControls } from '../consent-controls';
 import { NOTICE_VERSION, OPTIONAL_CONSENT_NOTE, asKoreanDay } from '@/src/lib/consent';
@@ -20,10 +23,14 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const { data: account } = await supabase
-    .from('app_user')
-    .select('status, improvement_consent, contact_consent, notice_version, notice_ack_at')
-    .maybeSingle();
+  /** 온보딩을 안 묻는 화면이라 `self_person_id` 를 안 읽고, 대신 동의 칸을 함께 읽는다 */
+  const { state, row: account } = await readAccount<{
+    status: string;
+    improvement_consent: boolean | null;
+    contact_consent: boolean | null;
+    notice_version: string | null;
+    notice_ack_at: string | null;
+  }>(supabase, 'status, improvement_consent, contact_consent, notice_version, notice_ack_at');
 
   const signOut = async () => {
     'use server';
@@ -40,7 +47,7 @@ export default async function SettingsPage() {
         <p className="mt-1 text-sm text-secondary">로그인과 계정에 관한 작업을 한곳에서 관리합니다.</p>
       </header>
 
-      {account !== null && account.status !== 'active' && <Halted status={account.status} />}
+      {isBlocked(state) && <AccountNotice state={state} />}
 
       <section className={`${CARD} flex flex-col gap-4`}>
         <div>
@@ -57,7 +64,7 @@ export default async function SettingsPage() {
         </form>
       </section>
 
-      {account?.status === 'active' && (
+      {state.kind === 'active' && account !== null && (
         <section className={`${CARD} flex flex-col gap-4`}>
           <div>
             <h2 className="text-base font-bold">선택 동의</h2>
@@ -70,7 +77,7 @@ export default async function SettingsPage() {
           <p className="border-t border-border pt-4 text-xs leading-5 text-muted">
             {account.notice_ack_at === null
               ? '아직 처리 안내를 확인하지 않으셨습니다.'
-              : `${asKoreanDay((account.notice_ack_at as string).slice(0, 10))}에 처리 안내를 확인하셨습니다.`}{' '}
+              : `${asKoreanDay(account.notice_ack_at.slice(0, 10))}에 처리 안내를 확인하셨습니다.`}{' '}
             {account.notice_version !== NOTICE_VERSION && '안내가 새로 바뀌어 다시 보여 드립니다.'}{' '}
             <Link href="/privacy" className="font-semibold text-accent underline underline-offset-4">
               처리방침 보기
@@ -79,7 +86,7 @@ export default async function SettingsPage() {
         </section>
       )}
 
-      {account?.status === 'active' && (
+      {state.kind === 'active' && (
         <section className={`${CARD} flex flex-col gap-4`}>
           <div>
             <h2 className="text-base font-bold">계정 삭제</h2>

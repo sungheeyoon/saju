@@ -2,16 +2,18 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
+import { readAccount } from './account';
 import { unreadCount } from './requests/inbox';
 import { chartOf } from '../chart';
 import { HOUR_UNKNOWN_LABEL, toSearchParams } from '../query';
 import { UNREADABLE_REVISION_NOTE, UnreadableRevisionError, queryFromRevision } from '../revision';
 import { DiscoveryBoard } from './discovery/board';
-import { Halted } from './halted';
+import { AccountNotice } from './account-notice';
 import { Onboarding } from './onboarding';
 import { PillarCard } from './pillar-card';
 import { ReadingSection } from './reading/section';
 import { ReviseChart } from './revise';
+import { isBlocked } from '@/src/lib/account';
 import { CALENDAR_KO, GENDER_KO } from '@/src/lib/saju';
 
 /** 모델 240초 상한이 먼저 끝나 실패를 기록하고, DB 600초 만료보다는 먼저 닫는다. */
@@ -33,10 +35,8 @@ export default async function MePage() {
   if (!user) redirect('/auth');
 
   // 정책이 자기 행만 내주므로 `where` 를 적지 않는다. 적으면 판정하는 자리가 둘이 된다.
-  const { data: account } = await supabase
-    .from('app_user')
-    .select('status, self_person_id')
-    .maybeSingle();
+  const { state } = await readAccount(supabase);
+  const selfPersonId = state.kind === 'active' ? state.selfPersonId : null;
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
@@ -50,16 +50,14 @@ export default async function MePage() {
         </div>
       </header>
 
-      {account === null ? (
-        <p className="text-sm text-muted">계정을 읽지 못했습니다. 다시 로그인해 주세요.</p>
-      ) : account.status !== 'active' ? (
-        <Halted status={account.status} />
-      ) : account.self_person_id === null ? (
+      {isBlocked(state) ? (
+        <AccountNotice state={state} />
+      ) : selfPersonId === null ? (
         <Onboarding />
       ) : (
         <>
           <Unread />
-          <SelfChart personId={account.self_person_id} />
+          <SelfChart personId={selfPersonId} />
           {/*
             **추천은 홈에 선다**(PRD §2.0). 목록이 스냅샷이 된 뒤로 여는 값이 싸졌다 —
             전에는 방문마다 풀 전체를 줄 세우는 셈이라 이 자리에 둘 수 없었다.
