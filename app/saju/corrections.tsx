@@ -3,7 +3,7 @@ import {
 } from '../card';
 import {
   TIME_BASIS,
-} from '../query';
+} from '@/src/lib/input/query';
 import {
   type Saju,
 } from '@/src/lib/saju';

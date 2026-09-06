@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { chartFingerprint, chartOf } from './chart';
-import { DEFAULT_QUERY, type Query } from './query';
+import { chartFingerprint, chartOf } from '@/src/lib/input/chart';
+import { DEFAULT_QUERY, type Query } from '@/src/lib/input/query';
 
 const query = (over: Partial<Query>): Query => ({ ...DEFAULT_QUERY, ...over });
 

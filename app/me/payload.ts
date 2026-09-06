@@ -1,8 +1,8 @@
 import type { Saju } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../auth/server-client';
-import { chartOf } from '../chart';
-import { queryFromRevision } from '../revision';
+import { chartOf } from '@/src/lib/input/chart';
+import { queryFromRevision } from '@/src/lib/input/revision';
 
 /**
  * **저장된 한 사람이 브라우저로 내려가는 유일한 문.**

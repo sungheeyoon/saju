@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { BIRTH_YEAR_MAX } from '@/app/query';
+import { BIRTH_YEAR_MAX } from '@/src/lib/input/query';
 
 import {
   chooseCalendar,

@@ -1,9 +1,9 @@
 import { elementSummaryOf, type ElementSummary } from '@/src/lib/matching/elementAxes';
 
 import { supabaseOnServer } from '../auth/server-client';
-import type { Query } from '../query';
-import { chartOf } from '../chart';
-import { queryFromRevision } from '../revision';
+import type { Query } from '@/src/lib/input/query';
+import { chartOf } from '@/src/lib/input/chart';
+import { queryFromRevision } from '@/src/lib/input/revision';
 
 /**
  * 매칭 풀에 내놓을 **오행 요약**을 내 판본에서 만든다.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { fitsCalendar } from './birth-form';
-import { BIRTH_YEAR_MAX } from './query';
+import { BIRTH_YEAR_MAX } from '@/src/lib/input/query';
 
 /**
  * 달력을 바꾸면 **고를 수 있는 것 자체가 달라진다.**

@@ -4,7 +4,7 @@ import {
   solarFromLunar,
   type CivilDate,
   type Saju,
-} from '@/src/lib/saju';
+} from '../saju';
 
 import { TIME_BASIS, missingForCalculation, type Query } from './query';
 

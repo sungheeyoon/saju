@@ -1,6 +1,6 @@
-import { chartFingerprint, chartOf } from '../chart';
-import type { Query } from '../query';
-import { UnreadableRevisionError, queryFromRevision } from '../revision';
+import { chartFingerprint, chartOf } from '@/src/lib/input/chart';
+import type { Query } from '@/src/lib/input/query';
+import { UnreadableRevisionError, queryFromRevision } from '@/src/lib/input/revision';
 import { supabaseOnServer } from '../auth/server-client';
 
 /**

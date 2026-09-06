@@ -5,7 +5,7 @@ import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { SajuResult } from '../../../saju/view';
-import { UnreadableRevisionError } from '../../../revision';
+import { UnreadableRevisionError } from '@/src/lib/input/revision';
 import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { payloadForViewer } from '../../payload';

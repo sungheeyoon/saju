@@ -1,5 +1,5 @@
 import { NoKeyError, keyedClient } from '../../keyed-client';
-import type { StoredRevision } from '../../revision';
+import type { StoredRevision } from '@/src/lib/input/revision';
 
 /**
  * **매인 판본의 계산 입력을 읽는 유일한 자리 — 열쇠를 드는 유일한 자리이기도 하다.**

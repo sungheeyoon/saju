@@ -6,14 +6,14 @@ import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 import { CALENDAR_KO, ELEMENT_KO, GENDER_KO, STEM_INFO } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { chartOf, solarDateOf } from '../../chart';
-import { HOUR_UNKNOWN_LABEL, type Query } from '../../query';
+import { chartOf, solarDateOf } from '@/src/lib/input/chart';
+import { HOUR_UNKNOWN_LABEL, type Query } from '@/src/lib/input/query';
 import {
   UNREADABLE_REVISION_NOTE,
   UnreadableRevisionError,
   queryFromRevision,
   type StoredRevision,
-} from '../../revision';
+} from '@/src/lib/input/revision';
 import { managedEdges, personSlotsFrom } from '../../person-slots';
 import { ReviseChart } from '../revise';
 import { AccountNotice } from '../account-notice';

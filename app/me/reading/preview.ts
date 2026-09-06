@@ -10,8 +10,8 @@ import { accountNoticeOf, selfPersonIdOf } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { readAccount } from '../account';
-import { chartOf } from '../../chart';
-import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '../../revision';
+import { chartOf } from '@/src/lib/input/chart';
+import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '@/src/lib/input/revision';
 import { READING_CHART_NAMES } from './pipeline';
 
 /**

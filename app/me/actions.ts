@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { relationOf } from '@/src/lib/people';
 
 import { supabaseOnServer } from '../auth/server-client';
-import { missingAnswer, type Query } from '../query';
+import { missingAnswer, type Query } from '@/src/lib/input/query';
 import { sameChartInMyList, type SameChart } from './same-chart';
 import { selfElementSummary } from './summary';
 import {
@@ -14,7 +14,7 @@ import {
   revisionArgs,
   selfPersonArgs,
   unsupportedForSaving,
-} from '../revision';
+} from '@/src/lib/input/revision';
 
 export type SaveResult = { ok: true } | { ok: false; message: string };
 
