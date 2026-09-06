@@ -13,7 +13,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # **버전을 여기 적지 않는다**(`.nvmrc`). CI 가 20 에 고정돼 있는 동안 개발
+          # 기계는 24 였고, 그 차이는 `verify` 가 realtime client 를 안 만들어서 여태
+          # 안 드러났다 — `authed` 를 세우자 첫 실행에서 68건이 「Node.js detected but
+          # native WebSocket not found」로 죽었다(전역 `WebSocket` 은 Node 22부터다).
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run verify
@@ -48,7 +52,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # **버전을 여기 적지 않는다**(`.nvmrc`). CI 가 20 에 고정돼 있는 동안 개발
+          # 기계는 24 였고, 그 차이는 `verify` 가 realtime client 를 안 만들어서 여태
+          # 안 드러났다 — `authed` 를 세우자 첫 실행에서 68건이 「Node.js detected but
+          # native WebSocket not found」로 죽었다(전역 `WebSocket` 은 Node 22부터다).
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
