@@ -405,7 +405,18 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       가리켰다(ADR 0026·0027).
     */
     await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toBeVisible();
-    await expect(page.locator('main')).not.toContainText('AI 풀이');
+    /*
+      **이름을 재는 자리는 제목과 버튼이다** — 본문이 아니다.
+
+      `main` 전체에 `not.toContainText('AI 풀이')` 를 걸고 있었는데, 분석 카드의 설명이
+      「그 배정은 … AI 풀이 자료에 함께 실립니다」라고 적는다. 그건 세 번째 이름을 세우는
+      것이 아니라 **어디로 넘어가는 자료인지**를 말하는 산문이다. 그래서 이 시험은
+      로그인 e2e 가 안 돌던 동안 내내 빨간불이었고, 아무도 그것을 못 봤다.
+
+      막으려던 것은 「제목과 버튼이 서로 다른 것을 가리킨다」이므로 그 둘만 잰다.
+    */
+    await expect(page.getByRole('heading', { name: /AI 풀이/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /AI 풀이/ })).toHaveCount(0);
     // 혼자 보는 풀이에는 물을 상대가 없다.
     await expect(page.getByText('두 분은 무슨 사이인가요')).toHaveCount(0);
 
@@ -815,27 +826,13 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     }));
     expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
 
-    /**
-     * **고른 사이가 복사해 가는 글에 실린다** — `/evidence` 에서.
-     *
-     * 결과 화면의 링크를 그대로 넘기면 같은 명식으로 자료가 선다. 코덱도 계산도 한
-     * 함수라 여기 여덟 글자와 저쪽 여덟 글자가 갈릴 자리가 없고, 그래서 이 검사가
-     * 옮겨 간 화면에서도 같은 것을 잰다.
-     */
-    await page.goto(shared.replace('/compat#', '/evidence#'));
+    /*
+      **고른 사이가 프롬프트에 실린다**는 여기서 더 안 잰다.
 
-    await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
-    await page.getByRole('radio', { name: '가족' }).check();
-
-    await page.getByText('풀이에 넘기는 자료').click();
-    await page.getByRole('button', { name: '궁합', exact: false }).first().click();
-    await page.getByRole('button', { name: '프롬프트 + 자료 복사' }).click();
-
-    const copied = await page.evaluate(() => navigator.clipboard.readText());
-    expect(copied).toContain('두 사람은 무슨 사이인가');
-    expect(copied).toContain('가족이다');
-    // 관계는 장면을 고르는 값이지 점수를 움직이는 값이 아니다.
-    expect(copied).toContain('점수는 이 값으로 움직이지 않는다');
+      그 검사는 `/evidence` 로 건너가 복사 버튼을 눌렀는데, 그 화면이 없어졌다
+      (ADR 0047). 같은 성질은 `src/lib/reading/variants.test.ts` 가 실제로 나가는
+      프롬프트에 대고 잰다 — 브라우저를 지날 까닭이 없는 값이다.
+    */
   });
 
   /**
@@ -1005,33 +1002,6 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     }
   });
 
-  /**
-   * 넘길 자료는 **열기 전에는 만들지 않는다.** 두 사람짜리가 들여쓴 JSON 으로
-   * 460KB 라 방문마다 만들면 비싸고, 대부분의 방문은 이 칸을 안 연다.
-   *
-   * 그래서 여기서 보는 것은 「칸이 있다」가 아니라 **「열면 실제로 나온다」**이다.
-   * 상한 표가 서고 시각을 아는 명식과 모르는 명식에서 다르게 서는 것까지 본다 —
-   * 그 표가 이 자료의 요점이고, 값이 아니라 계약이라 화면 어디에도 없던 것이다.
-   */
-
-  test('넘길 자료는 열었을 때 상한 표와 함께 선다', async ({ page, signedIn }) => {
-    expect(signedIn.label).not.toBe('');
-    await page.goto('/evidence#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
-
-    const panel = page.getByRole('group').filter({ hasText: '풀이에 넘기는 자료' });
-    await expect(panel).toBeVisible();
-
-    // 닫혀 있는 동안에는 자료를 안 만든다 — 표도 버튼도 없다.
-    await expect(page.getByRole('button', { name: 'JSON 내려받기' })).toBeHidden();
-
-    await panel.getByText('풀이에 넘기는 자료').click();
-
-    await expect(page.getByRole('button', { name: 'JSON 내려받기' })).toBeVisible();
-    await expect(panel).toContainText('analysis.eokbu');
-    await expect(panel).toContainText('evidence-v0');
-    // 안 싣는 것도 이유와 함께 적힌다.
-    await expect(panel).toContainText('now');
-  });
 
   /**
    * 자료만 넘기면 계약은 값으로만 실려 있고, 받는 쪽이 모델이면 **읽히지 않은 채**
