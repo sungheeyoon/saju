@@ -38,9 +38,8 @@ jobs:
   # 실제 로그인은 **몰지 않는다** — 구글 화면은 남의 것이다. `e2e/session.ts` 가 로컬
   # 스택에 계정을 만들고 가입 관문은 그대로 지난다(ADR 0042).
   #
-  # `test:db` 와 `test:flow` 는 아직 여기서 안 돈다 — 앞엣것은 지금 빨간불이라 원인을
-  # 가르기 전이고, 뒤엣것은 모델을 실제로 부른다. **이 워크플로가 초록이어도 「전부
-  # 통과」는 아직 아니다.**
+  # `test:flow` 는 아직 여기서 안 돈다 — 모델을 실제로 부르므로 push 마다 돌 일이
+  # 아니다. **이 워크플로가 초록이어도 「전부 통과」는 아직 아니다.**
   authed:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -57,6 +56,14 @@ jobs:
       # CLI 는 devDependency 다 — `npm ci` 가 이미 놓았다. 안 쓰는 서비스는 빼고 띄운다
       # (`db:start`). 이 job 이 재는 것에 realtime·storage·studio 는 안 든다.
       - run: npm run db:start
+
+      # **표 검사가 e2e 보다 먼저다 — 순서가 뜻을 갖는다.**
+      #
+      # pgTAP 은 표를 전역으로 세는 자리가 있어서(「얼린 입력이 0개인가」·「후보로
+      # 서는가」) **먼저 만들어진 남의 행에 걸린다.** 로컬에서 이것이 빨간불이었고
+      # 원인이 e2e 가 남긴 계정이었다 — `supabase db reset` 뒤에 669건이 다 통과했다.
+      # 뒤에 두면 CI 에서도 같은 오염을 만든다.
+      - run: npm run test:db
 
       # `reuseExistingServer` 는 `CI` 에서 꺼지므로 Playwright 가 제 서버를 띄우고,
       # 그때 `webServer.env` 가 로컬 스택 값을 덮는다 — 원격에 닿을 자리가 없다.
