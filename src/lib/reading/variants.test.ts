@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '../saju';
 import { type RelationKind } from '../saju/constants';
-import { ABSORPTION_RULE } from '../saju/evidence/prompt';
+import { ABSORPTION_RULE } from './parts';
 import { ABSORBABLE_KINDS, RELATION_KIND_KO } from '../saju/relations';
 import {
   CONTROL,

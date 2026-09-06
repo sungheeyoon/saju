@@ -29,12 +29,20 @@
 `EVIDENCE_CONTRACT` · `INCLUDED_PATHS`/`EXCLUDED_PATHS` 다. 자료를 짓는 일과 자료의
 상한을 적는 일까지가 엔진이다.
 
-**모델에게 하는 말은 전부 `src/lib/reading/` 에 산다.** 살아 있는 조각(`PROMPT_PARTS` ·
-`withSummary` · `ABSORPTION_RULE` · `PROMPT_POLICY` · 요약 조립)이 그리로 옮겨 가고,
+**모델에게 하는 말은 전부 `src/lib/reading/` 에 산다.** 살아 있는 조각이 그리로 옮겨
+가되 **둘로 갈라 놓는다** — 손으로 쓴 산문(`parts.ts`: `PROMPT_PARTS` · `ABSORPTION_RULE`)과
+근거를 읽어서 짓는 함수(`summary.ts`: `withSummary` · 요약 조립)는 하는 일이 다르고,
+한 파일에 있을 때는 그 차이가 안 보였다.
+
 안 나가는 본문 다섯 벌과 그것을 고르던 `PROMPTS`·`BODY`·`promptBodyOf`·
-`promptWithEvidence`·`promptHeadOf`·`PromptKind` 는 지운다. 판본 실험 장치
-(`variants.ts`)도 같은 자리에 모인다 — **안 나가는 것들이 한 곳에 서 있어야 안 나간다는
-것이 보인다.**
+`promptWithEvidence`·`promptHeadOf`·`PromptKind` 는 지운다. `PROMPT_POLICY` 와
+`CEILING_RULE` 도 함께 간다 — 둘 다 그 다섯 벌만 쓰던 것이라 몸통이 사라지면 잴 것이
+없다.
+
+**판본 실험 장치는 안 옮긴다.** 처음에는 `variants.ts` 도 한 자리로 모으려 했는데, 다섯
+벌을 지우고 나니 **모을 것이 하나뿐이었다.** 그 파일은 이미 첫 줄이 「손으로 돌리는
+실험판 — 실제 생성에는 쓰지 않는다」이고, 한 파일을 위해 폴더를 만드는 것은 그 줄이 이미
+하는 말을 경로로 되풀이하는 것이다. 모으는 것은 **모을 것이 둘 이상일 때** 한다.
 
 배럴 34행을 지운다. 같은 이유로 `src/lib/saju/analysis/index.ts:44` 의
 `export * from './validation/eokbuExternalCases'` 도 내린다 — 39KB 검증 사례이고
@@ -61,3 +69,18 @@
 능력을 inspect 로 옮기면 서버 화면에 클라이언트 섹션을 붙여야 하고, 그러면 방금 지운
 경계가 같은 자리에 다시 생긴다. 저장하지 않은 명식의 근거를 보려면 사람을 저장해야
 하고 그것은 `person_limit` 을 먹는다 — 그 값은 치르기로 한다.
+
+## 재어 본 값
+
+공개 계산기에서 도달하는 소스가 **1099KB / 86파일 → 1013KB / 84파일**이 됐다. 줄어든
+87KB 는 프롬프트 48KB 와 검증 사례 39KB 를 더한 것과 같다. **이것은 도달 그래프이지
+번들이 아니다** — 번들러가 이미 흔들어 떨구고 있었는지는 재지 않았다. 다만 그래프에
+없으면 떨굴지 말지를 물을 일도 없다.
+
+시험은 40건을 지우고 16건을 더했다. 지운 것은 **안 나가는 프롬프트를 재던 것**이고,
+더한 것은 같은 성질을 `READING_PROMPTS` 에 대고 잰다 — 재는 대상이 실물로 바뀌었다.
+
+한 가지가 그 과정에서 드러났다. **`PROMPT_PARTS.voice` 는 기준판에 안 닿는다** —
+`CONTROL.selfPresentation` 이 `expert-v4` 라 자기 풀이는 `selfCustomerVoice` 를, 궁합은
+`relationshipCustomerVoice` 를 쓴다. `legacy-v1` 판본으로만 선다. 지우지 않되 그 사실을
+시험이 값으로 든다(`parts.test.ts`).
