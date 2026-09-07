@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useTransition } from 'react';
 
 import {
@@ -8,6 +9,7 @@ import {
   OPTIONAL_CONSENTS,
   OPTIONAL_CONSENT_NOTE,
   SIGNUP_CODE_NOTE,
+  asKoreanDay,
 } from '@/src/lib/consent';
 import { NICKNAME_MAX, NICKNAME_MIN, missingNickname, nicknameKey } from '@/src/lib/profile';
 
@@ -41,11 +43,15 @@ export function SignupForm({
   needsName,
   version,
   scheduleId,
+  endsOn,
+  purgeBy,
 }: {
   needsCode: boolean;
   needsName: boolean;
   version: string;
   scheduleId: number;
+  endsOn: string;
+  purgeBy: string;
 }) {
   const [code, setCode] = useState('');
   const [nickname, setNickname] = useState('');
@@ -158,16 +164,45 @@ export function SignupForm({
           */}
           {answer !== null && (
             <p className="text-sm text-secondary">
-              {answer.available ? '쓸 수 있는 닉네임입니다.' : '이미 쓰고 있는 닉네임입니다.'}
+              {answer.available
+                ? '사용할 수 있는 닉네임입니다.'
+                : '이미 사용 중인 닉네임입니다.'}
             </p>
           )}
 
           <p className="text-xs leading-5 text-muted">
-            앱 안의 모든 자리에서 이 이름으로 불립니다. 프로필 사진과 소개는 선택이고,
-            가입하신 뒤 프로필에서 채우실 수 있습니다.
+            앱에서는 이 닉네임을 사용합니다. 프로필 사진과 소개는 가입 후에 추가할 수
+            있습니다.
           </p>
         </div>
       )}
+
+      <div className="rounded-2xl bg-surface-soft p-4" aria-labelledby="signup-notice">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="signup-notice" className="text-sm font-bold">
+            가입 전에 확인해 주세요
+          </h2>
+          <Link
+            href="/privacy"
+            className="text-xs font-semibold text-accent underline underline-offset-4"
+          >
+            개인정보 처리방침
+          </Link>
+        </div>
+        <ul className="mt-2 flex flex-col gap-1 text-xs leading-5 text-secondary sm:text-sm sm:leading-6">
+          <li>구글 이메일과 닉네임, 직접 저장한 사주 정보는 서비스 제공에 사용합니다.</li>
+          <li>
+            베타는{' '}
+            <strong className="font-semibold text-foreground">{asKoreanDay(endsOn)}</strong>에 종료되며,
+            저장된 정보는 늦어도{' '}
+            <strong className="font-semibold text-foreground">{asKoreanDay(purgeBy)}</strong>까지 삭제합니다.
+          </li>
+          <li>
+            내 사주를 저장하면 인연 찾기에 참여합니다. 참여는 설정에서 언제든 끌 수
+            있습니다.
+          </li>
+        </ul>
+      </div>
 
       <label htmlFor="notice-ack" className={BOX}>
         <input
@@ -188,7 +223,7 @@ export function SignupForm({
         동의라고 부를 수 없다.
       */}
       <fieldset className="flex flex-col gap-3">
-        <legend className="float-left w-full text-sm font-semibold">고르실 수 있는 것</legend>
+        <legend className="float-left w-full text-sm font-semibold">선택 항목</legend>
         <p className="mt-1 text-sm leading-6 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
 
         {OPTIONAL_CONSENTS.map((one) => (

@@ -75,7 +75,7 @@ export default async function PrivacyPage() {
           ))}
 
           <section className={`${CARD} flex flex-col gap-3`}>
-            <h2 className="text-base font-bold">고르실 수 있는 것</h2>
+            <h2 className="text-base font-bold">선택 항목</h2>
             <p className="text-sm leading-6 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
             <ul className="flex flex-col gap-3">
               {OPTIONAL_CONSENTS.map((one) => (
