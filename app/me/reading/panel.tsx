@@ -565,34 +565,40 @@ function Result({
   return (
     <div className="flex flex-col gap-5">
       {/*
-        **점수와 비유가 한 칸에 선다 — 그리고 비유가 크다.**
+        **비유가 머리고 점수는 내려간다 — 배치가 결정을 따라간다.**
 
-        점수는 실호출 열한 번이 전부 62~68 이었다. 두 자리 정밀도는 「우리가 이만큼
-        안다」는 약속인데 재보니 그만큼 모른다. 그래서 숫자는 그대로 두되 **읽는 사람의
-        눈이 먼저 닿는 자리를 비유에 준다** — 같은 66 안에서도 두 관계를 갈라 말하는
-        것은 그쪽이다.
+        점수를 `text-4xl` 로 세운 것은 점수가 주인공이던 때의 배치다. 그런데 실호출
+        열한 번이 전부 62~68 이었고 같은 짝 재호출의 흔들림이 다른 짝과의 차이만큼
+        컸다 — 그래서 **뜻을 비유에 넘겼다**(ADR 0052). 화면이 그것을 안 따라가면
+        읽는 사람 눈에는 여전히 숫자가 답으로 보인다.
 
-        **비유만 있고 점수가 없는 자리가 있다.** 자기 풀이가 그렇다(점수는 궁합만).
-        그리고 이 열이 생기기 전에 저장된 글에는 비유가 없다 — 둘 중 하나만 있어도
-        칸은 선다.
+        ## 고지를 옆에 두지 않는다
+
+        점수 오른쪽에 `max-w-md` 로 세워 두었더니 **두 줄이 되는 순간 정렬이 깨졌다.**
+        `items-end` 가 숫자 밑동과 고지 밑동을 맞추는데, 고지의 줄 수는 글자 수에 따라
+        달라지므로 맞춰 둘 수 있는 값이 아니었다. 아래로 내리면 두 줄은 **깨진 것이
+        아니라 그냥 두 줄**이 된다.
+
+        ## 비유는 길이가 들쭉날쭉하다
+
+        마흔 자 안팎을 시키지만 지키는 값은 아니고, 막는 자리는 120자다. 그래서 한 줄을
+        전제하지 않는다 — `text-pretty` 로 줄을 고르게 나누고, 칸은 세로로 자란다.
       */}
       {(reading.score !== null || reading.metaphor !== null) && (
-        <div className="flex flex-col gap-3 rounded-2xl bg-accent-wash p-5">
+        <div className="flex flex-col gap-4 rounded-2xl bg-accent-wash p-5">
           {reading.metaphor !== null && (
-            <p className="text-xl font-semibold leading-8 sm:text-2xl sm:leading-9">
+            <p className="text-pretty text-lg font-semibold leading-7 sm:text-xl sm:leading-8">
               {reading.metaphor}
             </p>
           )}
           {reading.score !== null && (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-xs font-semibold text-accent">현재 궁합 풀이 점수</p>
-                <p className="mt-1 text-4xl font-bold tabular-nums">
-                  {reading.score}
-                  <span className="ml-1 text-base font-medium text-secondary">/ 100</span>
-                </p>
-              </div>
-              <p className="max-w-md text-xs leading-5 text-muted">{READING_SCORE_NOTE}</p>
+            <div className="flex flex-col gap-1.5">
+              <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="text-xs font-semibold text-accent">현재 궁합 풀이 점수</span>
+                <span className="text-2xl font-bold tabular-nums">{reading.score}</span>
+                <span className="text-xs font-medium text-secondary">/ 100</span>
+              </p>
+              <p className="text-xs leading-5 text-muted">{READING_SCORE_NOTE}</p>
             </div>
           )}
         </div>

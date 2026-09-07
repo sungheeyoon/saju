@@ -155,6 +155,16 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 한 사람짜리라 궁합 점수가 안 선다 */
     await expect(page.getByText('현재 궁합 풀이 점수')).toBeHidden();
 
+    /*
+      **점수가 없어도 비유는 선다.** 그 칸은 둘 중 하나만 있어도 열린다 — 자기 풀이와
+      저장한 사람 풀이에는 점수가 없고 비유만 있다.
+
+      길게 심어 둔 문장을 그대로 잰다. 화면이 줄여 쓰거나 자르면 여기서 걸린다.
+    */
+    await expect(
+      page.getByText('서로 다른 속도로 달리던 두 사람이 같은 자전거를 타고 오르막길을 오르는 모습이에요.'),
+    ).toBeVisible();
+
     /* 만든 것이 하나이므로 풀이권도 하나 줄어 있다 — kind 를 안 묻는다 */
     await expect(page.locator('header').getByText('풀이권 5번 중 4번 남음')).toBeVisible();
   });
