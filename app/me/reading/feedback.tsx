@@ -108,108 +108,113 @@ export function ReadingFeedback({
   };
 
   return (
-    <div className="flex flex-col gap-5 rounded-2xl bg-surface-sunken px-5 py-5">
-      <div>
+    <section className="overflow-hidden rounded-2xl border border-border bg-surface-raised">
+      <header className="border-b border-border px-5 py-4 sm:px-6">
         <p className="text-sm font-bold">이 풀이는 어떠셨어요?</p>
         <p className="mt-0.5 text-xs leading-5 text-muted">{FEEDBACK_SCOPE_NOTE}</p>
-      </div>
+      </header>
 
-      <Scale
-        name={`useful-${runId}`}
-        question={FEEDBACK_QUESTIONS.usefulness}
-        value={usefulness}
-        onChange={setUsefulness}
-      />
-      <Scale
-        name={`fit-${runId}`}
-        question={FEEDBACK_QUESTIONS.perceivedFit}
-        value={fit}
-        onChange={setFit}
-      />
-
-      <fieldset>
-        <legend className="float-left w-full text-sm font-semibold">분량은 어땠나요?</legend>
-        <div className="mt-2.5 flex flex-wrap gap-2 clear-both">
-          {FELT_LENGTHS.map((choice) => (
-            <Chip
-              key={choice}
-              id={`length-${runId}-${choice}`}
-              name={`length-${runId}`}
-              type="radio"
-              picked={feltLength === choice}
-              onPick={() => setFeltLength(choice)}
-            >
-              {FELT_LENGTH_LABEL[choice]}
-            </Chip>
-          ))}
+      <div className="flex flex-col gap-7 px-5 py-5 sm:px-6 sm:py-6">
+        <div className="flex flex-col gap-4">
+          <Scale
+            name={`useful-${runId}`}
+            question={FEEDBACK_QUESTIONS.usefulness}
+            value={usefulness}
+            onChange={setUsefulness}
+          />
+          <Scale
+            name={`fit-${runId}`}
+            question={FEEDBACK_QUESTIONS.perceivedFit}
+            value={fit}
+            onChange={setFit}
+          />
         </div>
-      </fieldset>
 
-      <fieldset>
-        <legend className="float-left w-full text-sm font-semibold">아쉬운 점이 있다면요?</legend>
-        <p className="mt-1 text-xs leading-5 text-muted clear-both">
-          여러 개 고를 수 있고, 없으면 안 골라도 됩니다.
-        </p>
-        <div className="mt-2.5 flex flex-wrap gap-2">
-          {ISSUE_TAGS.map((tag) => (
-            <Chip
-              key={tag}
-              id={`tag-${runId}-${tag}`}
-              name={`tag-${runId}-${tag}`}
-              type="checkbox"
-              picked={tags.includes(tag)}
-              onPick={() =>
-                setTags((current) =>
-                  current.includes(tag) ? current.filter((one) => one !== tag) : [...current, tag],
-                )
-              }
-            >
-              {ISSUE_TAG_LABEL[tag]}
-            </Chip>
-          ))}
+        <div className="flex flex-col gap-6 border-t border-border pt-6">
+          <fieldset>
+            <legend className="float-left mb-4 w-full text-sm font-semibold">분량은 어땠나요?</legend>
+            <div className="grid grid-cols-3 gap-2 clear-both">
+              {FELT_LENGTHS.map((choice) => (
+                <Chip
+                  key={choice}
+                  id={`length-${runId}-${choice}`}
+                  name={`length-${runId}`}
+                  type="radio"
+                  picked={feltLength === choice}
+                  onPick={() => setFeltLength(choice)}
+                >
+                  {FELT_LENGTH_LABEL[choice]}
+                </Chip>
+              ))}
+            </div>
+          </fieldset>
+
+          <fieldset className="border-t border-border pt-6">
+            <legend className="float-left mb-4 w-full text-sm font-semibold">
+              아쉬운 점이 있다면요?
+              <span className="ml-1.5 text-xs font-medium text-muted">중복 선택 가능</span>
+            </legend>
+            <div className="flex flex-wrap gap-2 clear-both">
+              {ISSUE_TAGS.map((tag) => (
+                <Chip
+                  key={tag}
+                  id={`tag-${runId}-${tag}`}
+                  name={`tag-${runId}-${tag}`}
+                  type="checkbox"
+                  picked={tags.includes(tag)}
+                  onPick={() =>
+                    setTags((current) =>
+                      current.includes(tag) ? current.filter((one) => one !== tag) : [...current, tag],
+                    )
+                  }
+                >
+                  {ISSUE_TAG_LABEL[tag]}
+                </Chip>
+              ))}
+            </div>
+          </fieldset>
         </div>
-      </fieldset>
 
-      {/*
-        **사람이 읽는 유일한 칸.** 설문 전체가 동의 뒤에 있으므로 여기까지 온 사람은
-        이미 동의했고, 이 칸만 따로 잠글 일이 없다.
-      */}
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor={`comment-${runId}`} className="text-sm font-semibold">
-          {FEEDBACK_COMMENT.label}
-        </label>
-        <p className="text-xs leading-5 text-muted">{FEEDBACK_COMMENT.hint}</p>
-        <textarea
-          id={`comment-${runId}`}
-          value={comment}
-          onChange={(event) => setComment(event.target.value.slice(0, FEEDBACK_COMMENT.limit))}
-          maxLength={FEEDBACK_COMMENT.limit}
-          rows={3}
-          className="rounded-xl border border-border bg-surface px-3 py-2 text-sm focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-soft"
-        />
-        <p className="text-xs tabular-nums text-muted">
-          {comment.length} / {FEEDBACK_COMMENT.limit}자
-        </p>
+        {/*
+          **사람이 읽는 유일한 칸.** 설문 전체가 동의 뒤에 있으므로 여기까지 온 사람은
+          이미 동의했고, 이 칸만 따로 잠글 일이 없다.
+        */}
+        <div className="flex flex-col gap-2 border-t border-border pt-6">
+          <label htmlFor={`comment-${runId}`} className="text-sm font-semibold">
+            {FEEDBACK_COMMENT.label}
+          </label>
+          <p className="text-xs leading-5 text-muted">{FEEDBACK_COMMENT.hint}</p>
+          <textarea
+            id={`comment-${runId}`}
+            value={comment}
+            onChange={(event) => setComment(event.target.value.slice(0, FEEDBACK_COMMENT.limit))}
+            maxLength={FEEDBACK_COMMENT.limit}
+            rows={3}
+            className="mt-1.5 rounded-xl border border-border bg-surface px-3 py-2 text-sm focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-soft"
+          />
+          <p className="text-right text-xs tabular-nums text-muted">
+            {comment.length} / {FEEDBACK_COMMENT.limit}자
+          </p>
+        </div>
+
+        {failure !== null && (
+          <p role="alert" className="text-sm leading-6 text-danger">
+            답을 남기지 못했습니다. {failure}
+          </p>
+        )}
+
+        <div className="-mx-5 -mb-5 flex flex-col gap-3 border-t border-border bg-surface-soft px-5 py-4 sm:-mx-6 sm:-mb-6 sm:flex-row sm:items-center sm:justify-end sm:px-6">
+          <button
+            type="button"
+            onClick={send}
+            disabled={!ready || saving}
+            className="h-11 w-full rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto"
+          >
+            {saving ? '보내는 중…' : '의견 보내기'}
+          </button>
+        </div>
       </div>
-
-      {failure !== null && (
-        <p role="alert" className="text-sm leading-6 text-danger">
-          답을 남기지 못했습니다. {failure}
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={send}
-          disabled={!ready || saving}
-          className="h-10 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {saving ? '보내는 중…' : '답 보내기'}
-        </button>
-        {!ready && <p className="text-xs text-muted">위 세 가지를 골라 주시면 보낼 수 있어요.</p>}
-      </div>
-    </div>
+    </section>
   );
 }
 
@@ -231,9 +236,9 @@ function Scale({
       혼자 서 있으면 그것이 5번 칸의 이름인지 이 칸 전체의 말인지 알 수 없다. 사이드바가
       없어지며 이 칸이 화면 폭만큼 넓어져 그 둘이 벌어졌다 — 폭을 눈금에 맞춰 잡는다.
     */
-    <fieldset className="max-w-md">
-      <legend className="float-left w-full text-sm font-semibold">{question.label}</legend>
-      <div className="mt-2.5 flex flex-wrap items-center gap-2 clear-both">
+    <fieldset className="rounded-xl border border-border bg-surface p-4">
+      <legend className="float-left mb-4 w-full text-sm font-semibold">{question.label}</legend>
+      <div className="grid max-w-md grid-cols-5 gap-2 clear-both">
         {FEEDBACK_SCALE.map((score) => (
           <Chip
             key={score}
@@ -255,7 +260,7 @@ function Scale({
           </Chip>
         ))}
       </div>
-      <div className="mt-1.5 flex justify-between text-xs text-muted">
+      <div className="mt-1.5 flex max-w-md justify-between text-xs text-muted">
         <span>{question.low}</span>
         <span>{question.high}</span>
       </div>
@@ -289,7 +294,7 @@ function Chip({
   return (
     <label
       htmlFor={id}
-      className={`relative min-w-11 cursor-pointer rounded-full border px-3.5 py-1.5 text-center text-sm has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft ${
+      className={`relative flex min-h-10 min-w-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2 text-center text-sm has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft ${
         picked
           ? 'border-accent bg-accent-wash font-medium text-accent'
           : 'border-border bg-surface text-secondary hover:border-accent'

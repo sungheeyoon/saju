@@ -112,8 +112,12 @@ describe('적는 칸', () => {
     expect(FEEDBACK_COMMENT.limit).toBe(200);
   });
 
-  /** 경고 한 줄은 남기되 그것이 통제라고 믿지 않는다 */
-  it('남의 생년월일을 적지 말라고 한 줄 말한다', () => {
-    expect(FEEDBACK_COMMENT.hint).toContain('생년월일');
+  /**
+   * **경고 문장은 통제가 아니다.** 막는 것은 좁은 질문·200자·동의 관문 셋이고, 그
+   * 셋이 서 있는 한 읽는 사람을 의심하는 한 줄은 자리를 차지할 값이 없다.
+   */
+  it('적지 말라고 미리 의심하지 않는다', () => {
+    expect(FEEDBACK_COMMENT.hint).not.toContain('생년월일');
+    expect(FEEDBACK_COMMENT.hint).not.toContain('말아');
   });
 });

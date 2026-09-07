@@ -189,73 +189,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
         </p>
       </div>
 
-      <table className="mt-5 w-full table-fixed border-separate border-spacing-x-1 text-center sm:mx-auto sm:max-w-3xl sm:border-spacing-x-2">
-        <caption className="sr-only">시주, 일주, 월주, 년주의 천간과 지지</caption>
-        <thead>
-          <tr>
-            {PILLAR_COLUMNS.map(({ key }) => (
-              <th key={`${key}-period`} className="pb-0.5 text-[10px] font-normal text-muted sm:text-xs">
-                {PALACE[key].period}
-              </th>
-            ))}
-          </tr>
-          <tr>
-            {PILLAR_COLUMNS.map(({ key, label }) => (
-              <th
-                key={key}
-                scope="col"
-                className={`pb-2 text-xs font-semibold sm:text-sm ${
-                  key === 'day' ? 'text-accent' : 'text-secondary'
-                }`}
-              >
-                {label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {PILLAR_COLUMNS.map(({ key, label }) => {
-              const pillar = pillars[key];
-              const tenGods = analysis.tenGods[key];
-              return (
-                <td key={key} className="align-top">
-                  <div
-                    aria-label={`${label} 천간과 지지`}
-                    className={`overflow-hidden rounded-xl border bg-surface-raised ${
-                      key === 'day' ? 'border-accent/35 shadow-sm' : 'border-border'
-                    }`}
-                  >
-                    <PillarGlyph
-                      glyph={pillar && pillar.stem}
-                      element={pillar ? STEM_INFO[pillar.stem].element : null}
-                      caption={
-                        pillar
-                          ? `${STEM_INFO[pillar.stem].ko}·${ELEMENT_KO[STEM_INFO[pillar.stem].element]}`
-                          : HOUR_UNKNOWN_LABEL
-                      }
-                      tenGod={tenGods?.stem ?? null}
-                      dayMaster={key === 'day'}
-                    />
-                    <div className="mx-2 border-t border-border" />
-                    <PillarGlyph
-                      glyph={pillar && pillar.branch}
-                      element={pillar ? BRANCH_INFO[pillar.branch].element : null}
-                      caption={
-                        pillar
-                          ? `${BRANCH_INFO[pillar.branch].ko}·${ELEMENT_KO[BRANCH_INFO[pillar.branch].element]}`
-                          : HOUR_UNKNOWN_LABEL
-                      }
-                      tenGod={tenGods?.branch ?? null}
-                      relationshipSeat={key === 'day'}
-                    />
-                  </div>
-                </td>
-              );
-            })}
-          </tr>
-        </tbody>
-      </table>
+      <PillarTable saju={saju} />
 
       {(pillars.meta.sajuYear !== saju.meta.inputTime.year || pillars.meta.lateNightShiftApplied) && (
         <ul
@@ -334,6 +268,81 @@ export function PillarChart({ saju }: { saju: Saju }) {
         </dl>
       </details>
     </section>
+  );
+}
+
+/** 결과 화면과 회원 홈이 함께 쓰는 네 기둥의 핵심 표. */
+export function PillarTable({ saju }: { readonly saju: Saju }) {
+  const { pillars, analysis } = saju;
+
+  return (
+    <table className="mt-5 w-full table-fixed border-separate border-spacing-x-1 text-center sm:mx-auto sm:max-w-3xl sm:border-spacing-x-2">
+      <caption className="sr-only">시주, 일주, 월주, 년주의 천간과 지지</caption>
+      <thead>
+        <tr>
+          {PILLAR_COLUMNS.map(({ key }) => (
+            <th key={`${key}-period`} className="pb-0.5 text-[10px] font-normal text-muted sm:text-xs">
+              {PALACE[key].period}
+            </th>
+          ))}
+        </tr>
+        <tr>
+          {PILLAR_COLUMNS.map(({ key, label }) => (
+            <th
+              key={key}
+              scope="col"
+              className={`pb-2 text-xs font-semibold sm:text-sm ${
+                key === 'day' ? 'text-accent' : 'text-secondary'
+              }`}
+            >
+              {label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {PILLAR_COLUMNS.map(({ key, label }) => {
+            const pillar = pillars[key];
+            const tenGods = analysis.tenGods[key];
+            return (
+              <td key={key} className="align-top">
+                <div
+                  aria-label={`${label} 천간과 지지`}
+                  className={`overflow-hidden rounded-xl border bg-surface-raised ${
+                    key === 'day' ? 'border-accent/35 shadow-sm' : 'border-border'
+                  }`}
+                >
+                  <PillarGlyph
+                    glyph={pillar && pillar.stem}
+                    element={pillar ? STEM_INFO[pillar.stem].element : null}
+                    caption={
+                      pillar
+                        ? `${STEM_INFO[pillar.stem].ko}·${ELEMENT_KO[STEM_INFO[pillar.stem].element]}`
+                        : HOUR_UNKNOWN_LABEL
+                    }
+                    tenGod={tenGods?.stem ?? null}
+                    dayMaster={key === 'day'}
+                  />
+                  <div className="mx-2 border-t border-border" />
+                  <PillarGlyph
+                    glyph={pillar && pillar.branch}
+                    element={pillar ? BRANCH_INFO[pillar.branch].element : null}
+                    caption={
+                      pillar
+                        ? `${BRANCH_INFO[pillar.branch].ko}·${ELEMENT_KO[BRANCH_INFO[pillar.branch].element]}`
+                        : HOUR_UNKNOWN_LABEL
+                    }
+                    tenGod={tenGods?.branch ?? null}
+                    relationshipSeat={key === 'day'}
+                  />
+                </div>
+              </td>
+            );
+          })}
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
