@@ -7,6 +7,12 @@ import type { Page } from '@playwright/test';
 const sharedParams = (page: Page) =>
   new URLSearchParams(new URL(page.url()).hash.slice(1));
 
+/** 화면 크기가 달라도 풀이권은 계정 자리에서 찾을 수 있어야 한다. */
+async function expectReadingCredits(page: Page, label: string) {
+  const header = page.getByRole('banner');
+  await expect(header.getByText(label, { exact: true })).toBeVisible();
+}
+
 /**
  * 로그인한 사람의 세로 흐름 — **브라우저에서.**
  *
@@ -24,6 +30,40 @@ const sharedParams = (page: Page) =>
  */
 
 test.describe('초대된 사람의 로그인 흐름', () => {
+  test('모바일은 핵심 메뉴를 하단에 모두 보이고 나머지는 설정에 둔다', async ({
+    page,
+    signedIn,
+  }, testInfo) => {
+    test.skip(!testInfo.project.name.includes('mobile'));
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me');
+
+    const mobileNav = page.getByRole('navigation', { name: '모바일 내 메뉴' });
+    await expect(mobileNav).toBeVisible();
+
+    const viewportWidth = page.viewportSize()?.width ?? 0;
+    for (const label of ['내 사주', '사람', '궁합', '풀이', '소식']) {
+      const link = mobileNav.getByRole('link', { name: label, exact: true });
+      await expect(link).toBeVisible();
+      const box = await link.boundingBox();
+      expect(box?.x).toBeGreaterThanOrEqual(0);
+      expect((box?.x ?? viewportWidth) + (box?.width ?? 0)).toBeLessThanOrEqual(viewportWidth);
+    }
+
+    const mobileCredit = page
+      .getByRole('banner')
+      .getByText('풀이권 5번 중 5번 남음', { exact: true });
+    const wholeMenu = page.getByLabel('전체 메뉴');
+    await expect(mobileCredit).toBeVisible();
+    const creditBox = await mobileCredit.boundingBox();
+    const menuBox = await wholeMenu.boundingBox();
+    expect((creditBox?.x ?? 0) + (creditBox?.width ?? 0)).toBeLessThanOrEqual(menuBox?.x ?? 0);
+
+    await wholeMenu.click();
+    await expect(page.getByRole('link', { name: '사주 보기', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: '인연 설정', exact: true })).toBeVisible();
+  });
+
   test('온보딩에서 내 사주를 저장하면 그 자리에서 저장된 명식으로 바뀐다', async ({
     page,
     newcomer,
@@ -78,9 +118,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       그래서 「있다」가 아니라 **머리글 안에 있다**를 잰다. 본문 어딘가로 돌아가면
       이 줄이 빨개진다.
     */
-    await expect(
-      page.locator('header').getByText('풀이권 5번 중 5번 남음'),
-    ).toBeVisible();
+    await expectReadingCredits(page, '풀이권 5번 중 5번 남음');
 
     /* 서버 HTML 에는 없다 — 브라우저가 읽는다. 그래서 흐름 검사는 셈만 잰다 */
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
@@ -166,7 +204,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     ).toBeVisible();
 
     /* 만든 것이 하나이므로 풀이권도 하나 줄어 있다 — kind 를 안 묻는다 */
-    await expect(page.locator('header').getByText('풀이권 5번 중 4번 남음')).toBeVisible();
+    await expectReadingCredits(page, '풀이권 5번 중 4번 남음');
   });
 
   /**
@@ -271,7 +309,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       풀이권이 하나 더 잡힌다 — 둘 다 그대로인 것으로 잰다(하나는 이미 이 글을 만들 때 썼다).
     */
     await expect(page.getByText('풀이 만드는 중…')).toHaveCount(0);
-    await expect(page.locator('header').getByText('풀이권 5번 중 4번 남음')).toBeVisible();
+    await expectReadingCredits(page, '풀이권 5번 중 4번 남음');
     await expect(again).toBeEnabled();
   });
 
@@ -307,7 +345,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(make).toBeVisible();
 
     /* 풀이권은 kind 를 안 묻는다 — 전역 다섯에서 함께 센다 */
-    await expect(page.locator('header').getByText('풀이권 5번 중 5번 남음')).toBeVisible();
+    await expectReadingCredits(page, '풀이권 5번 중 5번 남음');
 
     /*
       **여는 것만으로는 아무것도 안 만든다.** 다시 열어도 같은 자리에 같은 문장이 선다 —
@@ -381,7 +419,11 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     const header = page.getByRole('banner');
     await expect(header.getByRole('link', { name: '로그인' })).toHaveCount(0);
 
-    const back = header.getByRole('link', { name: '내 사주' });
+    const mobileNavigation = page.getByRole('navigation', { name: '모바일 내 메뉴' });
+    const back = (await mobileNavigation.isVisible())
+      // 개발 서버의 Next.js 도구가 화면 왼쪽 아래를 덮으므로 모바일은 같은 목적지인 로고를 쓴다.
+      ? header.getByRole('link', { name: '만세력 홈', exact: true })
+      : header.getByRole('link', { name: '내 사주', exact: true });
     await expect(back).toBeVisible();
 
     await back.click();
@@ -664,11 +706,14 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     ).toBeVisible();
   });
 
-  test('계정 작업은 우측 설정 메뉴의 계정 관리에 모여 있다', async ({ page, signedIn }) => {
+  test('계정 작업은 우측 계정 메뉴의 계정 관리에 모여 있다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
 
-    await page.locator('summary[aria-label="설정 메뉴"]').click();
+    const menuName = (await page.getByRole('navigation', { name: '모바일 내 메뉴' }).isVisible())
+      ? '전체 메뉴'
+      : '설정 메뉴';
+    await page.locator(`summary[aria-label="${menuName}"]`).click();
 
     /* 프로필도 같은 메뉴에서 닿는다 — 이름은 앱 전체의 것이라 길도 앱 전체의 자리에 선다 */
     await expect(page.getByRole('link', { name: '프로필' })).toBeVisible();
@@ -684,7 +729,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       **누르고 나면 판이 닫힌다.** `<details>` 는 안의 링크를 눌러도 스스로 안 닫히고,
       앱 안 이동은 화면만 갈아 끼우므로 펼친 판이 새 화면 위에 그대로 얹혀 있었다.
     */
-    await expect(page.locator('details:has(summary[aria-label="설정 메뉴"])')).not.toHaveAttribute(
+    await expect(page.locator(`details:has(summary[aria-label="${menuName}"])`)).not.toHaveAttribute(
       'open',
       /.*/,
     );

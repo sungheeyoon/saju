@@ -58,6 +58,15 @@ const MEMBER_LINKS = [
   { href: '/me/requests', label: '소식' },
 ] as const;
 
+/** 모바일에서 늘 보이는 다섯 길 — 나머지 둘은 전체 메뉴에 둔다. */
+const MOBILE_LINKS = [
+  { href: '/me', label: '내 사주', icon: 'home' },
+  { href: '/me/people', label: '사람', icon: 'people' },
+  { href: '/compat', label: '궁합', icon: 'compat' },
+  { href: '/me/readings', label: '풀이', icon: 'reading' },
+  { href: '/me/requests', label: '소식', icon: 'news' },
+] as const;
+
 /** 헤더 오른쪽 끝에 서는 것 — 셋이 같은 자리를 쓰므로 크기가 흔들리지 않는다 */
 const TRAILING =
   'shrink-0 rounded-full border border-border-strong bg-surface px-3.5 py-1.5 text-sm font-semibold hover:border-accent hover:text-accent';
@@ -90,6 +99,7 @@ export function SiteHeader() {
   const [email, setEmail] = useState<string | null>(null);
   const memberNavigation = protectedPath || session === 'in';
   const links = memberNavigation ? MEMBER_LINKS : PUBLIC_LINKS;
+  const creditsLabel = useReadingCredits(session === 'in');
 
   useEffect(() => {
     const supabase = supabaseInBrowser();
@@ -102,7 +112,7 @@ export function SiteHeader() {
       }
     });
 
-    // 설정 메뉴나 계정 관리 화면에서 로그아웃하면 헤더도 바로 공개 메뉴로 돌아간다.
+    // 계정 메뉴나 계정 관리 화면에서 로그아웃하면 헤더도 바로 공개 메뉴로 돌아간다.
     const { data } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next === null ? 'out' : 'in');
       setEmail(next?.user.email ?? null);
@@ -115,75 +125,91 @@ export function SiteHeader() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/88 backdrop-blur-xl">
-      <div className="app-shell flex h-16 items-center gap-5">
-        <Link href={memberNavigation ? '/me' : '/'} className="flex shrink-0 items-center gap-2.5" aria-label="만세력 홈">
-          <span className="grid size-8 place-items-center rounded-xl bg-accent text-sm font-bold text-on-accent shadow-sm">命</span>
-          <span className="hidden text-sm font-bold tracking-[-0.03em] sm:inline">만세력</span>
-        </Link>
-        {/*
+    <>
+      <header className="sticky top-0 z-40 border-b border-border bg-background/88 backdrop-blur-xl">
+        <div className="app-shell flex h-16 items-center gap-5">
+          <Link
+            href={memberNavigation ? '/me' : '/'}
+            className="flex shrink-0 items-center gap-2.5"
+            aria-label="만세력 홈"
+          >
+            <span className="grid size-8 place-items-center rounded-xl bg-accent text-sm font-bold text-on-accent shadow-sm">
+              命
+            </span>
+            <span className="hidden text-sm font-bold tracking-[-0.03em] sm:inline">만세력</span>
+          </Link>
+          {/*
           **줄이 하나도 없으면 `<nav>` 를 안 세운다.** 빈 길잡이는 보조기기에 「메뉴가
           있다」고 알리고 열어 보면 아무것도 없다. 자리는 남긴다 — 오른쪽 끝이 헤더
           바깥으로 붙어 서지 않게.
-        */}
-        {links.length === 0 ? (
-          <div className="min-w-0 flex-1" />
-        ) : (
-        <nav aria-label={memberNavigation ? '내 메뉴' : '주요 메뉴'} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
-          {links.map((link) => {
-            const active = isNavigationActive(pathname, link.href);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={active ? 'page' : undefined}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${active ? 'bg-accent-wash text-accent-strong' : 'text-secondary hover:bg-surface-soft hover:text-foreground'}`}
+          */}
+          {links.length === 0 ? (
+            <div className="min-w-0 flex-1" />
+          ) : (
+            <>
+              <div aria-hidden="true" className="min-w-0 flex-1 sm:hidden" />
+              <nav
+                aria-label={memberNavigation ? '내 메뉴' : '주요 메뉴'}
+                className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] sm:flex"
               >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
-        )}
-        {/*
+                {links.map((link) => {
+                  const active = isNavigationActive(pathname, link.href);
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      aria-current={active ? 'page' : undefined}
+                      className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${active ? 'bg-accent-wash text-accent-strong' : 'text-secondary hover:bg-surface-soft hover:text-foreground'}`}
+                    >
+                      {link.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </>
+          )}
+          {/*
           **익명 화면이라고 로그아웃된 것이 아니다.**
 
           로그인한 사람도 공개 사주 계산 화면으로 올 수 있다. 그런데 그 자리에
           「로그인」이 서 있으면 세션이 풀린 것처럼 보이고 내 메뉴로 돌아갈 길도 없다.
 
           아직 모르는 동안에는 **둘 다 안 보인다.** 「로그인」을 먼저 세우면 로그인한
-          사람이 한 번 깜빡이는 거짓말을 보고, 설정 메뉴를 먼저 세우면 그 반대다.
+          사람이 한 번 깜빡이는 거짓말을 보고, 계정 메뉴를 먼저 세우면 그 반대다.
           자리만 잡아 두면 글자가 늦게 오는 것으로 끝난다.
-        */}
-        {memberNavigation ? (
-          <>
-            {/*
+          */}
+          {memberNavigation ? (
+            <>
+              {/*
               **세션을 확인한 뒤에만 세운다.** 아직 모르는 동안 세우면 로그인 없는
               질의가 한 번 나가고, 로그인 뒤에도 그 실패한 자리에 그대로 머문다.
               달렸다 떨어지는 것으로 그 둘을 가른다 — 붙어 있는 칸이 스스로 「지금은
               아니다」를 판정하면 그 판정이 또 한 자리가 된다.
-            */}
-            {session === 'in' && <Credits />}
-            <AccountMenu email={email} />
-          </>
-        ) : (
-          session === 'unknown' ? (
-            <span aria-hidden="true" className={`${TRAILING} invisible`}>
-              로그인
-            </span>
+              */}
+              {creditsLabel !== null && <Credits label={creditsLabel} />}
+              <AccountMenu email={email} variant="mobile" />
+              <AccountMenu email={email} variant="desktop" />
+            </>
           ) : (
-            <Link href="/auth" className={TRAILING}>
-              로그인
-            </Link>
-          )
-        )}
-      </div>
-    </header>
+            session === 'unknown' ? (
+              <span aria-hidden="true" className={`${TRAILING} invisible`}>
+                로그인
+              </span>
+            ) : (
+              <Link href="/auth" className={TRAILING}>
+                로그인
+              </Link>
+            )
+          )}
+        </div>
+      </header>
+      {memberNavigation && <MobileNavigation pathname={pathname} />}
+    </>
   );
 }
 
 /**
- * 남은 풀이권 — **설정 옆에 선다.**
+ * 남은 풀이권 — **화면 크기와 관계없이 계정 메뉴 옆에 선다.**
  *
  * 한동안 만드는 버튼 아래에 있었다. 「누를지 정할 때 눈이 가 있는 곳」이라는 이유였고
  * 그건 지금도 맞다. 그런데 풀이권은 **이 글의 성질이 아니라 계정의 성질**이다. 화면마다
@@ -206,10 +232,12 @@ export function SiteHeader() {
  * 못 물었거나 아직 안 물은 동안에는 빈 자리다. 「—」이나 「불러오는 중」을 세우면
  * 사용자가 있지도 않은 숫자를 세어 보게 되고, 그 자리는 대부분의 시간 동안 거짓말이다.
  */
-function Credits() {
+function useReadingCredits(enabled: boolean): string | null {
   const [label, setLabel] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
+
     let watching = true;
     const read = async () => {
       const { data, error } = await supabaseInBrowser().rpc('my_reading_credits');
@@ -236,24 +264,94 @@ function Credits() {
       watching = false;
       window.removeEventListener(READING_CREDITS_MOVED, read);
     };
-  }, []);
+  }, [enabled]);
 
-  if (label === null) return null;
+  return enabled ? label : null;
+}
 
+function Credits({ label }: { label: string }) {
   return (
-    /*
-      **폰에서도 보인다.** 처음에는 `sm:` 아래에서 숨겼는데, 그러면 폰으로 쓰는 사람은
-      자기 잔액을 한 번도 못 본다 — 이 제품은 데스크톱과 모바일 둘 다를 약속한다(`prd-archive`).
-      좁아지는 것은 옆의 메뉴이고, 그 줄은 이미 가로로 흐르게 되어 있다.
-    */
-    <span className="shrink-0 rounded-full bg-accent-wash px-2.5 py-1.5 text-xs font-semibold tabular-nums text-accent">
+    <span className="inline-flex shrink-0 items-center rounded-full bg-accent-wash px-2.5 py-1.5 text-xs font-semibold tabular-nums text-accent">
       {label}
     </span>
   );
 }
 
+function MobileNavigation({ pathname }: { pathname: string }) {
+  return (
+    <nav
+      id="mobile-member-navigation"
+      aria-label="모바일 내 메뉴"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-xl sm:hidden"
+    >
+      <div className="mx-auto grid max-w-md grid-cols-5 px-1">
+        {MOBILE_LINKS.map((link) => {
+          const active = isNavigationActive(pathname, link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={active ? 'page' : undefined}
+              className={`relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold ${active ? 'text-accent' : 'text-muted hover:text-foreground'}`}
+            >
+              <MobileNavIcon name={link.icon} />
+              <span className="truncate">{link.label}</span>
+              {active && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-accent"
+                />
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+function MobileNavIcon({ name }: { name: (typeof MOBILE_LINKS)[number]['icon'] }) {
+  const paths = {
+    home: <path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4Z" />,
+    people: (
+      <>
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3.5 19c.4-3.3 2.2-5 5.5-5s5.1 1.7 5.5 5M15 6.5a2.5 2.5 0 0 1 0 5M16 14c2.7.2 4.2 1.8 4.5 4.5" />
+      </>
+    ),
+    compat: <path d="M12 20.5 4.6 13.4A4.8 4.8 0 0 1 11.4 6l.6.7.6-.7a4.8 4.8 0 0 1 6.8 7.4Z" />,
+    reading: (
+      <>
+        <path d="M4 5.5A3.5 3.5 0 0 1 7.5 4H12v16H7.5A3.5 3.5 0 0 0 4 21.5ZM20 5.5A3.5 3.5 0 0 0 16.5 4H12v16h4.5a3.5 3.5 0 0 1 3.5 1.5Z" />
+      </>
+    ),
+    news: (
+      <>
+        <path d="M6 9a6 6 0 0 1 12 0c0 7 2 7 2 8H4c0-1 2-1 2-8Z" />
+        <path d="M9.5 20h5" />
+      </>
+    ),
+  } as const;
+
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="size-5 fill-none stroke-current"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {paths[name]}
+    </svg>
+  );
+}
+
 /**
- * 설정 메뉴 — **누르고 나면 닫힌다.**
+ * 계정 메뉴 — **모바일에서는 전체 메뉴, 데스크톱에서는 설정 메뉴다.**
+ *
+ * 모바일은 위 내비게이션에서 빠진 길까지 품으므로 삼선 아이콘을 쓰고, 데스크톱은
+ * 내비게이션이 이미 모두 서 있으므로 계정 설정이라는 본래 역할의 톱니바퀴를 쓴다.
  *
  * `<details>` 는 안의 링크를 눌러도 스스로 안 닫힌다. 앱 안 이동은 화면만 갈아 끼우므로
  * 펼쳐진 판이 새 화면 위에 그대로 얹혀 있었다 — 사용자가 기어를 한 번 더 눌러야 치워졌다.
@@ -263,7 +361,13 @@ function Credits() {
  * 누르거나 Esc 를 누르면.** 마지막은 열어 두면 같은 불평이 한 걸음 뒤에 다시 온다 —
  * 펼친 판이 안 닫히는 것은 어느 쪽이든 같은 고장이다.
  */
-function AccountMenu({ email }: { email: string | null }) {
+function AccountMenu({
+  email,
+  variant,
+}: {
+  email: string | null;
+  variant: 'mobile' | 'desktop';
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const panel = useRef<HTMLDetailsElement>(null);
@@ -307,18 +411,45 @@ function AccountMenu({ email }: { email: string | null }) {
   };
 
   return (
-    <details ref={panel} className="group relative shrink-0">
+    <details
+      ref={panel}
+      className={`group relative shrink-0 ${variant === 'mobile' ? 'sm:hidden' : 'hidden sm:block'}`}
+    >
       <summary
         className="grid size-10 cursor-pointer list-none place-items-center rounded-full border border-border-strong bg-surface text-secondary hover:border-accent hover:text-accent [&::-webkit-details-marker]:hidden"
-        aria-label="설정 메뉴"
+        aria-label={variant === 'mobile' ? '전체 메뉴' : '설정 메뉴'}
       >
         <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4.5 fill-none stroke-current" strokeWidth="1.8">
-          <path d="M12 8.25A3.75 3.75 0 1 0 12 15.75 3.75 3.75 0 0 0 12 8.25Z" />
-          <path d="M19.2 13.1a7.7 7.7 0 0 0 0-2.2l2-1.55-2-3.45-2.48 1a8 8 0 0 0-1.9-1.1L14.45 3h-4.1l-.38 2.8a8 8 0 0 0-1.9 1.1l-2.48-1-2 3.45 2 1.55a7.7 7.7 0 0 0 0 2.2l-2 1.55 2 3.45 2.48-1a8 8 0 0 0 1.9 1.1l.38 2.8h4.1l.38-2.8a8 8 0 0 0 1.9-1.1l2.48 1 2-3.45-2.01-1.55Z" />
+          {variant === 'mobile' ? (
+            <path d="M4 6.5h16M4 12h16M4 17.5h16" strokeLinecap="round" />
+          ) : (
+            <>
+              <path d="M12 8.25A3.75 3.75 0 1 0 12 15.75 3.75 3.75 0 0 0 12 8.25Z" />
+              <path d="M19.2 13.1a7.7 7.7 0 0 0 0-2.2l2-1.55-2-3.45-2.48 1a8 8 0 0 0-1.9-1.1L14.45 3h-4.1l-.38 2.8a8 8 0 0 0-1.9 1.1l-2.48-1-2 3.45 2 1.55a7.7 7.7 0 0 0 0 2.2l-2 1.55 2 3.45 2.48-1a8 8 0 0 0 1.9 1.1l.38 2.8h4.1l.38-2.8a8 8 0 0 0 1.9-1.1l2.48 1 2-3.45-2.01-1.55Z" />
+            </>
+          )}
         </svg>
       </summary>
       <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-float)]">
         {email && <p className="truncate border-b border-border px-3 py-2 text-xs text-muted">{email}</p>}
+        {variant === 'mobile' && (
+          <div className="border-b border-border py-1">
+            <Link
+              href="/"
+              onClick={close}
+              className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
+            >
+              사주 보기
+            </Link>
+            <Link
+              href="/me/discovery"
+              onClick={close}
+              className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
+            >
+              인연 설정
+            </Link>
+          </div>
+        )}
         {/*
           **프로필로 가는 길은 여기다.** 가입할 때 한 번 짓고 나면 그 화면을 다시 찾을
           자리가 없었다 — 인연 설정 안의 한 줄로만 닿았고, 인연에 참여하지 않는 사람은

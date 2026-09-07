@@ -8,7 +8,7 @@ import { supabaseInBrowser } from '../auth/browser-client';
 /**
  * 가입 화면에서 나가는 길.
  *
- * 헤더의 설정 메뉴는 `/me` 안에서만 선다(`memberNavigation`). 이 화면은 그 밖이라
+ * 헤더의 계정 메뉴는 `/me` 안에서만 선다(`memberNavigation`). 이 화면은 그 밖이라
  * 로그아웃할 자리가 한 곳도 없었다 — 코드를 못 받은 사람이나 다른 구글 계정으로
  * 들어와야 하는 사람이 주소를 직접 쳐야 했다.
  */

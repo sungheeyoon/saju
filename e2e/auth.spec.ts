@@ -48,11 +48,11 @@ test('사주 계산은 로그인 없이 열리고 궁합은 로그인으로 이�
 
   /*
     헤더 오른쪽 끝은 **세션을 보고 정해진다**(`SiteHeader`). 로그인한 사람에게는
-    설정 메뉴가 서므로, 세션이 없을 때 그 자리가 로그인을 권하는지도 함께 잰다 —
+    계정 메뉴가 서므로, 세션이 없을 때 그 자리가 로그인을 권하는지도 함께 잰다 —
     한쪽만 재면 둘 중 하나가 늘 틀린 채로 지나간다.
   */
   await expect(page.getByRole('link', { name: '로그인', exact: true })).toBeVisible();
-  await expect(page.getByLabel('설정 메뉴')).toHaveCount(0);
+  await expect(page.getByLabel(/^(전체|설정) 메뉴$/)).toHaveCount(0);
   await expect(page.getByRole('heading', { name: '출생 정보를 입력해 주세요' })).toBeVisible();
 
   await page.goto('/compat');

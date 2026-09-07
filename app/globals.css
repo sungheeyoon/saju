@@ -171,4 +171,9 @@ textarea:focus-visible, summary:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
-@media (max-width: 640px) { .app-shell { width: min(100% - 2rem, 72rem); } }
+@media (max-width: 640px) {
+  .app-shell { width: min(100% - 2rem, 72rem); }
+  body:has(#mobile-member-navigation) {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
