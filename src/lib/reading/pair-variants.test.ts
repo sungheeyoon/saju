@@ -62,58 +62,88 @@ describe('비공개 궁합은 서열 값을 싣는다', () => {
   });
 });
 
-describe('P1 은 10절에만 선다', () => {
-  it('기준판(P0)은 10절에서 서열을 안 부른다', () => {
-    expect(sectionTen()).not.toContain('precedence');
+/** 기준판 아닌 판들 — 목록을 손으로 옮겨 적지 않는다 */
+const experiments = PAIR_VARIANTS.filter((variant) => variant.id !== 'control');
+
+describe('실험판은 10절에만 선다', () => {
+  it('기준판은 10절에 아무 규칙도 안 붙인다', () => {
+    expect(sectionTen()).toBe(
+      pairSectionTexts('private', CONTROL).find((text) => text.startsWith('**10.')),
+    );
+    expect(sectionTen()).not.toContain('analysis.');
   });
 
-  it('P1 은 10절 안에서만 그 문단을 든다', () => {
+  it.each(experiments)('$id — 움직인 절이 10절 하나다', (variant) => {
     const before = pairSectionTexts('private', CONTROL);
-    const after = pairSectionTexts(
-      'private',
-      { ...CONTROL, eachPersonJudgements: 'precedence-v1' },
-    );
+    const after = pairSectionTexts('private', variant.assembly);
 
     expect(after).toHaveLength(before.length);
 
-    const moved = before.map((text, at) => (text === after[at] ? null : at)).filter((at) => at !== null);
+    const moved = before
+      .map((text, at) => (text === after[at] ? null : at))
+      .filter((at) => at !== null);
 
-    // 절 하나만 움직인다 — 그 하나가 10절이다.
     expect(moved).toHaveLength(1);
     expect(after[moved[0] as number].startsWith('**10.')).toBe(true);
   });
 
   /**
-   * **두 사람 몫을 다 부른다.** 비공개 궁합에는 `precedence` 가 두 벌이라, 한쪽만 적으면
-   * 한 사람은 서열대로 읽히고 다른 사람은 안 읽힌다 — `plain` 승격 때 `now.overlaps`
+   * **두 사람 몫을 다 부른다.** 비공개 궁합에는 자료가 두 벌이라, 한쪽만 적으면 한
+   * 사람은 시킨 대로 읽히고 다른 사람은 안 읽힌다 — `plain` 승격 때 `now.overlaps`
    * 지시가 두 판 중 한쪽에만 들어가 있던 것과 같은 자리다.
    */
-  it('a 와 b 의 경로를 모두 적는다', () => {
-    const ten = sectionTen({ ...CONTROL, eachPersonJudgements: 'precedence-v1' });
+  it.each(experiments)('$id — `charts.a` 와 `charts.b` 를 모두 짚는다', (variant) => {
+    const ten = sectionTen(variant.assembly);
 
-    expect(ten).toContain('charts.a.analysis.precedence');
-    expect(ten).toContain('charts.b.analysis.precedence');
+    expect(ten).toContain('charts.a');
+    expect(ten).toContain('charts.b');
+  });
+
+  /**
+   * **없는 경로를 가리키는 규칙이 되면 안 된다.**
+   *
+   * 지시가 `analysis.X` 를 대면 그 X 는 두 사람 자료에 **실제로 있어야** 한다. 없으면
+   * 모델은 그 자리를 지어내거나 「알 수 없다」를 적는데, 둘 다 우리가 시킨 것이 아니다.
+   * 엔진이 판정 이름을 바꾸는 날 이 시험이 먼저 말한다 — 손으로 적은 경로는 엔진이
+   * 자랄 때 안 따라오지만, 대보는 시험은 따라온다.
+   */
+  it.each(experiments)('$id — 대는 경로가 두 사람 자료에 다 있다', (variant) => {
+    const named = [...sectionTen(variant.assembly).matchAll(/analysis\.([A-Za-z]+)/g)].map(
+      (found) => found[1],
+    );
+
+    expect(named.length, '경로를 하나도 안 대는 실험판은 잴 것이 없다').toBeGreaterThan(0);
+
+    const { evidence } = pairEvidence('private');
+    const charts = (evidence as unknown as { charts: Record<string, Record<string, unknown>> })
+      .charts;
+
+    for (const who of ['a', 'b']) {
+      const analysis = charts[who].analysis as Record<string, unknown>;
+
+      for (const key of named) {
+        expect(analysis[key], `charts.${who}.analysis.${key}`).toBeDefined();
+      }
+    }
   });
 
   /**
    * **판정 이름을 부르지 않는다.** 「억부」·「종격」으로 적으면 그 낱말이 본문으로 샌다.
-   * 지금 기준판은 분류명을 아예 안 부르는 판(`plain`)이라 더 그렇다.
+   * 지금 기준판은 분류명을 아예 안 부르는 판(`plain`)이라 더 그렇다 — 경로만 대고 뜻은
+   * 사람 말로 적는다.
    */
-  it('판정 이름을 본문에 안 들인다', () => {
-    const ten = sectionTen({ ...CONTROL, eachPersonJudgements: 'precedence-v1' });
+  it.each(experiments)('$id — 판정 이름을 본문에 안 들인다', (variant) => {
+    const ten = sectionTen(variant.assembly);
 
-    for (const name of ['억부', '조후', '종격', '격국', '통관']) {
+    for (const name of ['억부', '조후', '종격', '격국', '통관', '신강', '신약', '십성']) {
       expect(ten, name).not.toContain(name);
     }
   });
 
   /** 1~9절과 11절은 한 글자도 안 바뀐다 — `changes` 가 그렇게 적고 있다 */
-  it('나머지 절은 그대로다', () => {
+  it.each(experiments)('$id — 나머지 절은 그대로다', (variant) => {
     const before = pairSectionTexts('private', CONTROL);
-    const after = pairSectionTexts(
-      'private',
-      { ...CONTROL, eachPersonJudgements: 'precedence-v1' },
-    );
+    const after = pairSectionTexts('private', variant.assembly);
 
     for (let at = 0; at < before.length; at += 1) {
       if (before[at].startsWith('**10.')) continue;
@@ -123,8 +153,8 @@ describe('P1 은 10절에만 선다', () => {
   });
 
   /** 공유 궁합은 이 축이 닿지 않는다 — 절 목록에 10절 자체가 없다 */
-  it('공유 궁합 프롬프트는 이 축으로 안 움직인다', () => {
-    expect(promptOf('pair-precedence-v1', 'match')).toBe(promptOf('control', 'match'));
+  it.each(experiments)('$id — 공유 궁합 프롬프트는 이 축으로 안 움직인다', (variant) => {
+    expect(promptOf(variant.id, 'match')).toBe(promptOf('control', 'match'));
   });
 });
 
