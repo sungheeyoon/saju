@@ -158,7 +158,9 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 머리글에도 같은 이름의 링크가 있다 — 재려는 것은 본문에 세운 그 길이다 */
     await page.getByRole('main').getByRole('link', { name: '내 사주' }).click();
 
-    await expect(page.getByRole('heading', { name: '나의 사주풀이' })).toBeVisible();
+    /* 내 명식의 풀이는 `/me` 에 산다 — 그 자리의 이름이 「사주풀이」다 */
+    await expect(page).toHaveURL(/\/me$/);
+    await expect(page.getByRole('heading', { name: '사주풀이', exact: true })).toBeVisible();
   });
 
   /**
