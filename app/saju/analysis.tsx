@@ -15,11 +15,13 @@ import {
   JUDGEMENT_KO,
   PILLAR_POSITION_KO,
   PRECEDENCE_REASON_KO,
+  TRANSFORMATION_BLOCKER_KO,
   TRANSFORMATION_VERDICT_KO,
   UNRESOLVED_FACTOR_KO,
   type PillarPosition,
   type Saju,
   type StemTransformation,
+  type TransformationBlocker,
 } from '@/src/lib/saju';
 import {
   subjectParticle,
@@ -51,20 +53,30 @@ function WeightShifts({ saju }: { saju: Saju }) {
     한 글자를 둘이 물면 합도 둘로 세어진다(쟁합·투합). 그대로 나열하면 「정임합목 —
     합이불화」가 두 번 서고, 그것은 문장 층에서 방금 고친 것과 **같은 고장**이다.
     이름과 판정이 같은 것은 한 줄로 세우고 자리만 함께 든다.
+
+    **막은 것도 자리처럼 합친다.** 쟁합으로 두 줄이 된 같은 합은 막은 까닭이 서로 다를
+    수 있는데(한쪽만 떨어져 있는 경우), 한 줄로 세우면서 한쪽 것만 들면 **안 든 쪽의
+    까닭이 조용히 사라진다.**
   */
   const boundStems = [
     ...transformations
       .filter((one) => one.verdict !== 'transformed')
       .reduce((grouped, one) => {
         const key = `${one.ko}:${one.verdict}`;
-        const seats = grouped.get(key)?.seats ?? [];
+        const { seats = [], blockers = [] } = grouped.get(key) ?? {};
         grouped.set(key, {
           ko: one.ko,
           verdict: one.verdict,
           seats: [...new Set([...seats, ...one.participants.map((at) => at.position)])],
+          blockers: [...new Set([...blockers, ...one.blockers])],
         });
         return grouped;
-      }, new Map<string, { ko: string; verdict: StemTransformation['verdict']; seats: PillarPosition[] }>())
+      }, new Map<string, {
+        ko: string;
+        verdict: StemTransformation['verdict'];
+        seats: PillarPosition[];
+        blockers: TransformationBlocker[];
+      }>())
       .values(),
   ];
   const sixCombinations = saju.relations.filter(
@@ -108,7 +120,18 @@ function WeightShifts({ saju }: { saju: Saju }) {
             <span className="font-medium">{transformation.ko}</span>
             <span className="text-secondary">
               {transformation.seats.map((seat) => PILLAR_POSITION_KO[seat].replace('주', '간')).join('·')}
-              {' '}— 천간합은 化했을 때만 옮깁니다({TRANSFORMATION_VERDICT_KO[transformation.verdict]} 자리)
+              {' '}— 천간합은 化했을 때만 옮깁니다({TRANSFORMATION_VERDICT_KO[transformation.verdict]} 자리:{' '}
+              {/*
+                **막은 까닭이 여기 서지 않으면 이 줄은 판정만 하고 끝난다.** 「합이불화」는
+                결과의 이름이지 까닭이 아니라서, 그것만 읽은 사람은 왜 이 합은 안 옮겼고
+                저 합은 옮겼는지를 여전히 역추적해야 한다 — 이 카드가 없애려던 바로 그 일이다.
+
+                `transformed` 를 걸러 낸 줄이라 `blockers` 는 반드시 하나 이상이다
+                (판정이 그 배열의 길이에서 나온다).
+              */}
+              {transformation.blockers
+                .map((blocker) => TRANSFORMATION_BLOCKER_KO[blocker])
+                .join(', ')})
             </span>
           </li>
         ))}
