@@ -79,8 +79,10 @@ export {
   NOTHING_KNOWN,
   READING_PROMPTS,
   readingPromptOf,
+  pairSectionTexts,
   selfSectionCount,
   selfSectionTexts,
+  type EachPersonJudgements,
   type PromptAssembly,
   type ReadingAbout,
   type ReadingNames,
@@ -91,12 +93,20 @@ export {
   EVIDENCE_SECTION,
   measureMarkdown,
   outputDeviations,
+  pairOutputDeviations,
   type Answered,
   type DeviationKind,
   type Measured,
   type OutputDeviation,
 } from './measure';
-export { PROMPT_VARIANTS, type PromptVariant, type PromptVariantId } from './variants';
+export {
+  PAIR_VARIANTS,
+  PROMPT_VARIANTS,
+  type PairVariant,
+  type PairVariantId,
+  type PromptVariant,
+  type PromptVariantId,
+} from './variants';
 export {
   checkReading,
   plainTermsIn,

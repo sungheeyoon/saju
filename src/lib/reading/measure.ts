@@ -1,5 +1,6 @@
 import { plainTermsIn } from './check';
 import { readingBody } from './display';
+import { type PairKind } from './policy';
 import { selfSectionCount, type PromptAssembly } from './prompt';
 
 export { EVIDENCE_SECTION } from './display';
@@ -148,6 +149,50 @@ export function outputDeviations(
    * 부르는 쪽이 판을 기억하지 않는다. 조립이 `annotated` 면 이 자는 아예 안 선다 —
    * 그 판은 이름을 부르라고 시킨 판이라 여기서 세는 것이 뜻이 없다.
    */
+  if (assembly.terminology === 'plain') {
+    const exposed = plainTermsIn(measured.markdown);
+    if (exposed.length > 0) {
+      deviations.push({
+        code: 'plain-terms-exposed',
+        kind: 'target',
+        detail: `본문에 남은 분류명 ${exposed.length}개 — ${exposed.join('·')}`,
+      });
+    }
+  }
+
+  return deviations;
+}
+
+/**
+ * 궁합 쪽 자 — **분량 목표와 새어 나온 이름만 잰다.**
+ *
+ * `outputDeviations` 는 자기 풀이 모양이다(`selfLength`·`selfSectionCount`). 궁합에
+ * 그대로 대면 다른 밴드에 다른 절 수를 재게 되고, 그러면 자가 거짓말을 한다.
+ *
+ * **절 수는 안 센다.** 「한 사람짜리만 절 수 계약이 있다 — 궁합 절 목록은 kind 가
+ * 정한다」가 이미 정해져 있다. 여기서 그 계약을 새로 만들지 않는다. 안 재기로 한 것을
+ * 슬그머니 재기 시작하면, 이 라운드가 묻지도 않은 것 때문에 빨간불이 난다.
+ *
+ * **분량은 `target` 이다** — 자기 풀이 쪽과 같은 까닭이다. 3500~5500 은 모델에 대고
+ * 검증한 적이 없는 숫자라, 그것 하나로 검증된 것을 막으면 거꾸로 선다. 재고 적는다.
+ */
+export function pairOutputDeviations(
+  kind: PairKind,
+  measured: Measured,
+  assembly: PromptAssembly,
+): readonly OutputDeviation[] {
+  const deviations: OutputDeviation[] = [];
+
+  const { min, max } = assembly.compatLength[kind];
+  if (measured.length < min || measured.length > max) {
+    deviations.push({
+      code: 'length-off-target',
+      kind: 'target',
+      detail: `본문 ${measured.length}자 (${min}~${max})`,
+    });
+  }
+
+  /** 이름을 안 부르기로 한 판에서만 센다 — 궁합 절도 같은 규칙을 지난다 */
   if (assembly.terminology === 'plain') {
     const exposed = plainTermsIn(measured.markdown);
     if (exposed.length > 0) {
