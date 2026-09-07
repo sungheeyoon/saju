@@ -104,3 +104,52 @@ export const PROMPT_VARIANTS: readonly PromptVariant[] = [
     assembly: { ...CONTROL, selfPresentation: 'expert-v3' },
   },
 ];
+
+export type PairVariantId = 'control' | 'pair-precedence-v1';
+
+/** 같은 계약을 쓰되 id 만 갈린다 — 재는 축이 다르므로 목록도 다르다 */
+export type PairVariant = Omit<PromptVariant, 'id'> & { readonly id: PairVariantId };
+
+/**
+ * **비공개 궁합 변형** — 위 목록과 갈라 둔다.
+ *
+ * 한 목록으로 묶으면 자기 풀이 변형(`no-yongsin-v1`·`longer-v1`…)까지 궁합으로 부르게
+ * 되는데, 그것들은 궁합 프롬프트를 **한 글자도 안 바꾼다.** 그러면 돈을 내고 같은 글을
+ * 두 번 받으면서 「변형을 쟀다」고 적히는 자리가 생긴다. 재는 축이 다르면 목록도 다르다
+ * — `compatLength` 를 `selfLength` 에서 갈라 둔 것과 같은 판단이다.
+ *
+ * ## 이 라운드가 묻는 것 하나
+ *
+ * **10절의 각자 읽기가 안정되는가.** 그것만 묻는다. `analysis` 를 통째로 빼는 실험은
+ * 이 다음이다 — 둘을 같은 라운드에 넣으면 「자료가 있어서」와 「서열을 읽혀서」가 섞여
+ * 이겨도 무엇 덕인지 못 말한다.
+ *
+ * ## 부르기 전에 무엇을 볼지 적어 둔다
+ *
+ * 읽고 나서 기준이 생기면 그것은 측정이 아니라 감상이다. 10절만 놓고 넷을 본다.
+ *
+ * 1. 한 사람에 대해 **서로 다른 방향을 가리키는 서술이 함께 서는가** — P1 이 없앨 것
+ * 2. **같은 결론이 다른 근거로 되풀이되는가** — P1 이 **안** 고칠 것. 여기서 갈리면
+ *    「상관된 판정이 같은 결론을 거듭 강화한다」가 실재한다는 첫 증거다
+ * 3. 갈린 사정이 본문에 샜는가 — 「우선순위가 높은 쪽에 따르면」류
+ * 4. 분량이 계약 안에 남는가 (`compatLength.private`)
+ *
+ * 2번이 이 라운드의 값이다. **P1 의 실패가 곧 다음 문제의 존재 증거**가 되도록 짰다.
+ */
+export const PAIR_VARIANTS: readonly PairVariant[] = [
+  {
+    id: 'control',
+    label: '기준판 (P0)',
+    changes: '지금 실제로 나가는 비공개 궁합 그대로. 10절이 갈린 판정을 스스로 고른다.',
+    confounded: null,
+    assembly: CONTROL,
+  },
+  {
+    id: 'pair-precedence-v1',
+    label: '10절이 서열을 읽는다 (P1)',
+    changes:
+      '같은 자료·같은 절 목록에서 **10절에만** 한 문단이 붙는다 — 각자의 `analysis.precedence` 를 보고 `primary` 를 기준으로 읽고, `overrides` 가 거짓인 줄을 결론으로 세우지 않는다. 1~9절과 11절은 한 글자도 안 바뀐다.',
+    confounded: null,
+    assembly: { ...CONTROL, eachPersonJudgements: 'precedence-v1' },
+  },
+];

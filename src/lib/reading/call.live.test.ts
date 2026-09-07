@@ -5,11 +5,13 @@ import { describe, expect, it } from 'vitest';
 import { computeSaju } from '@/src/lib/saju';
 import {
   CONTROL,
+  PAIR_VARIANTS,
   PROMPT_VARIANTS,
   READING_POLICY,
   checkReading,
   isScored,
   measureMarkdown,
+  pairOutputDeviations,
   readingEvidenceOf,
   readingPromptOf,
   outputDeviations,
@@ -25,6 +27,7 @@ import {
  *
  *   READING_LIVE=1 npx vitest run src/lib/reading/call.live.test.ts
  *   READING_VARIANTS_LIVE=1 npx vitest run src/lib/reading/call.live.test.ts
+ *   READING_PAIR_LIVE=1 npx vitest run src/lib/reading/call.live.test.ts
  *
  * 재는 것은 글의 품질이 아니라 **파이프라인이 이어져 있는가**다. 품질은 사람이
  * 본다(`prd-archive`: 최종 출시 판단은 제품 담당자의 blind review).
@@ -42,6 +45,8 @@ const OUTPUT_ROOT = '.reading-live';
 
 const live = process.env.READING_LIVE === '1';
 const variantsLive = process.env.READING_VARIANTS_LIVE === '1';
+/** 비공개 궁합 P0/P1 만 부른다 — 위 둘과 재는 축이 달라 문도 따로다 */
+const pairLive = process.env.READING_PAIR_LIVE === '1';
 
 /**
  * 변형끼리 견줄 때의 **고정 기준 시각.**
@@ -65,21 +70,63 @@ const SECRETS = [
   { originalDate: '1990-05-12', solarDate: '1990-05-12', birthTime: '14:30:00', city: '서울' },
 ] as const;
 
-/** 두 사람짜리 kind 를 부를 때의 상대 — 궁합에는 두 명식이 있어야 한다 */
+/**
+ * 두 사람짜리 kind 를 부를 때의 상대 — 궁합에는 두 명식이 있어야 한다.
+ *
+ * **아무 명식이나 쓰면 안 되는 자리가 됐다.** P0/P1 이 재려는 것은 「판정이 갈릴 때
+ * 서열을 읽히면 달라지는가」인데, 갈리지 않는 명식으로 부르면 **P1 의 지시가 한 번도
+ * 발동하지 않는다** — 그러면 두 판의 차이는 프롬프트 효과가 아니라 생성 변동성이고,
+ * 그것을 읽고 「P1 이 낫다/못하다」로 적는 순간 이 라운드는 거짓을 남긴다.
+ *
+ * 앞 상대(1992-08-20 09:00)는 `disagrees` 가 한 줄도 참이 아니었다. 지시가
+ * `charts.a` 와 `charts.b` 를 **둘 다** 부르는데 b 쪽 절반이 무효인 표본이었다 —
+ * 「각각 보라」가 실제로 두 사람에게 걸리는지를 잴 수 없다.
+ *
+ * 지금 짝은 **둘 다 갈린다.** 그것을 부르기 전에 시험이 잠근다(아래).
+ */
 const OTHER = {
-  year: 1992,
-  month: 8,
-  day: 20,
-  hour: 9,
-  minute: 0,
+  year: 1993,
+  month: 11,
+  day: 3,
+  hour: 8,
+  minute: 10,
   second: 0,
   gender: 'female',
 } as const;
 
 const PAIR_SECRETS = [
   ...SECRETS,
-  { originalDate: '1992-08-20', solarDate: '1992-08-20', birthTime: '09:00:00', city: '부산' },
+  { originalDate: '1993-11-03', solarDate: '1993-11-03', birthTime: '08:10:00', city: '부산' },
 ] as const;
+
+/** 이 사람의 판정이 실제로 갈리는가 — `null` 은 「안 갈린다」가 아니라 **견줄 수 없다**다 */
+const disagreeingJudgements = (saju: ReturnType<typeof computeSaju>): readonly string[] =>
+  saju.analysis.precedence.rows.filter((row) => row.disagrees === true).map((row) => row.ko);
+
+/**
+ * **표본이 실험을 겨누는가 — 돈을 쓰지 않고 잰다.**
+ *
+ * 이 블록만 `skipIf` 가 없다. `npm test` 에서 늘 돌기 때문에, 표본이 무뎌지는 날
+ * **실호출을 하기도 전에** 빨간불이 난다. 실호출 안에서만 재면 그 사실은 돈을 쓴 뒤에야
+ * 드러나고, 무엇보다 **아무도 그 문을 안 여는 동안에는 영영 안 드러난다.**
+ *
+ * 엔진이 자라면 표본의 성질이 조용히 바뀐다 — 판정 하나가 서열 표에 들어오거나
+ * 정책 스위치가 뒤집히면 갈리던 명식이 안 갈리게 된다. 그때 이 시험이 말한다.
+ * 손으로 적은 목록은 엔진이 자랄 때 안 따라오지만, **재는 시험은 따라온다.**
+ */
+describe('P0/P1 표본은 실제로 갈리는 명식이다', () => {
+  it.each([
+    { who: 'a', input: INPUT },
+    { who: 'b', input: OTHER },
+  ])('$who 의 판정이 억부와 어긋나는 줄을 하나 이상 든다', ({ who, input }) => {
+    const disagreeing = disagreeingJudgements(computeSaju(input));
+
+    expect(
+      disagreeing,
+      `${who} 가 한 줄도 안 갈린다 — 이 표본으로 P0/P1 을 부르면 프롬프트 효과가 아니라 생성 변동성을 읽게 된다`,
+    ).not.toHaveLength(0);
+  });
+});
 
 /** 로컬에서 부를 때만 — 배포에서는 플랫폼이 환경을 준다 */
 function loadLocalEnv(): void {
@@ -299,6 +346,163 @@ describe.skipIf(!variantsLive)('변형들이 같은 Evidence 에서 실제 출�
     for (const { id, noted } of verdicts) {
       for (const one of noted) console.info(`[분량 기록] ${id} — ${one}`);
     }
+
+    expect(verdicts.map(({ id, blocking }) => `${id}: ${blocking.join(' · ') || 'ok'}`)).toEqual(
+      called.map(({ variant }) => `${variant.id}: ok`),
+    );
+  });
+});
+
+/**
+ * **비공개 궁합 P0 vs P1** — 10절의 각자 읽기가 안정되는가.
+ *
+ *   READING_PAIR_LIVE=1 npx vitest run src/lib/reading/call.live.test.ts
+ *
+ * 위 변형 실행과 갈라 둔 까닭은 `PAIR_VARIANTS` 주석에 있다 — 자기 풀이 변형들은 궁합
+ * 프롬프트를 한 글자도 안 바꾸므로, 한 목록으로 묶으면 돈을 내고 같은 글을 두 번 받으면서
+ * 「변형을 쟀다」고 적히는 자리가 생긴다.
+ *
+ * ## 여기서 판정하는 것은 계약뿐이다
+ *
+ * 초록인 것은 「두 판 다 막는 계약을 지난다」까지다. **어느 쪽이 나은지는 여기서 안
+ * 정한다** — 그것은 사람이 두 원문을 나란히 읽고 정한다(`PAIR_VARIANTS` 가 무엇을 볼지
+ * 넷으로 적어 두었다). 기계가 재는 것과 사람이 정하는 것을 한 자리에 섞으면, 초록불이
+ * 「좋다」로 읽힌다.
+ *
+ * ## 자료는 한 번 지어 둘이 나눠 쓴다
+ *
+ * 변형마다 근거를 새로 지으면 운을 짚은 시각이 갈리고, 그때 견주는 것은 프롬프트가
+ * 아니라 시각이다. 그래서 기준 시각도 고정한다(`VARIANTS_VIEWED_AT`).
+ */
+describe.skipIf(!pairLive)('비공개 궁합 두 판이 같은 자료에서 실제 출력을 낸다', () => {
+  it('P0 와 P1 이 나란히 나오고 둘 다 계약을 지난다', { timeout: 300_000 }, async () => {
+    loadLocalEnv();
+    const { callModel } = await import('@/app/me/reading/model');
+    const a = computeSaju(INPUT);
+    const b = computeSaju(OTHER);
+    const evidence = readingEvidenceOf('private', { a, b }, new Date(VARIANTS_VIEWED_AT));
+
+    /**
+     * **부르기 전에 표본을 잠근다.**
+     *
+     * P1 의 지시는 판정이 서로 다른 방향을 가리킬 때만 발동한다. 안 갈리는 명식으로
+     * 부르면 두 판의 차이는 프롬프트 효과가 아니라 **생성 변동성**이고, 그것을 읽고
+     * 「P1 이 낫다」로 적으면 이 라운드는 거짓을 남긴다. 돈을 쓰기 **전에** 멈춘다.
+     *
+     * 둘 다 요구하는 것은 지시가 `charts.a` 와 `charts.b` 를 **각각** 부르기 때문이다.
+     * 한쪽만 갈리면 그 절반이 무효인 채로 초록불이 난다.
+     */
+    const disagreeing = { a: disagreeingJudgements(a), b: disagreeingJudgements(b) };
+
+    expect(
+      disagreeing.a.length,
+      'a 의 판정이 하나도 안 갈린다 — 이 표본으로는 P1 이 발동하지 않는다',
+    ).toBeGreaterThan(0);
+    expect(
+      disagreeing.b.length,
+      'b 의 판정이 하나도 안 갈린다 — 지시의 `charts.b` 절반이 무효인 표본이다',
+    ).toBeGreaterThan(0);
+
+    const called = await Promise.all(
+      PAIR_VARIANTS.map(async (variant) => ({
+        variant,
+        result: await callModel(readingPromptOf(evidence, variant.assembly)),
+      })),
+    );
+
+    /** 먼저 적고 나서 판정한다 — 판정하다 던지면 값을 치른 원문이 사라진다 */
+    const at = new Date().toISOString().replace(/[:.]/g, '-');
+    const dir = `${OUTPUT_ROOT}/pair-${at}`;
+    mkdirSync(dir, { recursive: true });
+
+    const { GENERATION } = await import('@/app/me/reading/generation');
+
+    for (const { variant, result } of called) {
+      writeFileSync(
+        `${dir}/${variant.id}.json`,
+        JSON.stringify(
+          {
+            at,
+            kind: 'private',
+            variant: variant.id,
+            changes: variant.changes,
+            promptVersion: READING_POLICY.version,
+            viewedAt: VARIANTS_VIEWED_AT,
+            generation: GENERATION,
+            /** **이 표본이 무엇을 겨눴는지 산출물이 말한다** — 갈림이 없으면 읽을 것도 없다 */
+            disagreeing,
+            ...result,
+          },
+          null,
+          2,
+        ),
+      );
+    }
+
+    /**
+     * **10절만 따로 떼어 나란히 적는다.** 이 라운드가 재는 자리가 거기 하나인데, 두
+     * 원문을 통째로 열어 눈으로 찾으면 **읽는 사람마다 다른 자리를 견주게 된다.**
+     */
+    writeFileSync(
+      `${dir}/section-10.md`,
+      called
+        .map(({ variant, result }) => {
+          const body = result.ok ? result.output.markdown : `(호출 실패: ${result.code})`;
+          const ten = body.split(/^## /m).find((part) => part.startsWith('10.'));
+
+          return `# ${variant.id} — ${variant.label}\n\n${ten ? `## ${ten}` : '(10절을 못 찾음)'}`;
+        })
+        .join('\n\n---\n\n'),
+    );
+
+    /**
+     * **저장 계약만으로는 밴드를 못 잰다.**
+     *
+     * `checkReading` 이 보는 것은 400~12000자 하나뿐이다. `PAIR_VARIANTS` 가 「분량이
+     * 계약 안에 남는가」를 볼 것 넷 중 하나로 적어 두었는데, 그 3500~5500 을 아무도
+     * 안 재면 **적어 둔 잣대가 산출물 어디에도 안 남는다** — 자기 풀이 쪽에서 이미
+     * 겪은 자리다(그래서 `outputDeviations` 가 있다).
+     *
+     * 막지는 않는다. 3500~5500 은 모델에 대고 검증한 적이 없는 숫자라 `target` 이다.
+     */
+    const verdicts = called.map(({ variant, result }) => {
+      if (!result.ok) {
+        return { id: variant.id, blocking: [`${result.code}: ${result.detail}`], noted: [] };
+      }
+
+      const failures = checkReading({
+        kind: 'private',
+        output: result.output,
+        evidenceText: JSON.stringify(evidence.evidence),
+        secrets: PAIR_SECRETS,
+      });
+
+      /** 화면·자기 풀이와 **같은 자**로 잰다 — 두 자리에서 세면 언젠가 갈린다 */
+      const deviations = pairOutputDeviations(
+        'private',
+        measureMarkdown(result.output.markdown),
+        variant.assembly,
+      );
+      const said = (kind: OutputDeviation['kind']) =>
+        deviations.filter((one) => one.kind === kind).map((one) => `${one.code}: ${one.detail}`);
+
+      return {
+        id: variant.id,
+        blocking: [
+          ...(failures.ok ? [] : failures.failures.map((one) => `${one.code}: ${one.detail}`)),
+          ...said('contract'),
+        ],
+        /** 분량과 새어 나온 이름은 적기만 한다 — 문턱을 슬쩍 옮기지도, 지우지도 않는다 */
+        noted: said('target'),
+      };
+    });
+
+    writeFileSync(`${dir}/verdicts.json`, JSON.stringify(verdicts, null, 2));
+
+    for (const { id, noted } of verdicts) {
+      for (const one of noted) console.info(`[기록] ${id} — ${one}`);
+    }
+    console.info(`[나란히 읽을 자리] ${dir}/section-10.md`);
 
     expect(verdicts.map(({ id, blocking }) => `${id}: ${blocking.join(' · ') || 'ok'}`)).toEqual(
       called.map(({ variant }) => `${variant.id}: ok`),

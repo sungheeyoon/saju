@@ -99,6 +99,18 @@ export type SelfPresentation =
  */
 export type Terminology = 'annotated' | 'plain';
 
+/**
+ * 비공개 궁합 10절이 갈린 판정을 다루는 법 — **아직 어느 쪽이 나은지 모른다.**
+ *
+ * `unranked` 가 지금 실제로 나가는 것이다. 이름이 「서열 없음」인 것은 **없어서**가
+ * 아니다 — `analysis.precedence` 는 두 사람 몫 다 실려 있고, 그것을 읽으라는 줄만
+ * 없다. 값을 치르고 안 쓰는 자리라는 뜻이다.
+ *
+ * 재려는 것은 하나다: **10절의 각자 읽기가 안정되는가.** 재고 나서 이 축이 사라지든
+ * 기준판이 되든, 그때 이름이 바뀐다.
+ */
+export type EachPersonJudgements = 'unranked' | 'precedence-v1';
+
 export type PromptAssembly = {
   /** 검사용 근거 절을 제외한 자기 풀이 본문 목표 길이 */
   readonly selfLength: Length;
@@ -124,6 +136,14 @@ export type PromptAssembly = {
    * 본보기가 통째로 다른 벌로 바뀐다.
    */
   readonly terminology: Terminology;
+  /**
+   * 비공개 궁합 10절이 **각자를 읽을 때 갈린 판정을 어떻게 다루는가.**
+   *
+   * 이 축이 비공개 궁합에만 사는 까닭은 재료가 거기에만 있기 때문이다 — 공유 궁합은
+   * `analysis` 가 통째로 빠지고(`WITHHELD_PATHS`), 자기 풀이는 이미 제 몫의 서열 문단을
+   * 든다(`JUDGEMENT_PRECEDENCE`). **비공개 궁합만 값을 싣고 안 읽는다.**
+   */
+  readonly eachPersonJudgements: EachPersonJudgements;
   /** 본문 계약 앞에 얹는 실험 규칙 */
   readonly extraSections: readonly string[];
   /** 자료 뒤에 붙이는 제출 전 확인. 없으면 `null` */
@@ -139,6 +159,7 @@ export const CONTROL: PromptAssembly = {
   },
   selfPresentation: 'expert-v4',
   terminology: 'plain',
+  eachPersonJudgements: 'unranked',
   extraSections: [],
   tail: null,
 };
@@ -800,6 +821,26 @@ export const selfSectionCount = (assembly: PromptAssembly): number =>
 export const selfSectionTexts = (assembly: PromptAssembly): readonly string[] =>
   selfSectionsOf(assembly).map((section) => `${section.title}\n${section.body}`);
 
+/**
+ * 궁합 변형이 **절 몇 개를 움직였나** — `selfSectionTexts` 의 궁합 쪽 짝이다.
+ *
+ * 자기 풀이 쪽 자만 있는 동안 궁합 변형은 **절 단위로 세어지지 않았다.** 조립 칸으로만
+ * 세면 한 칸이 절 여럿을 다시 쓰는 변형이 「한 곳만 바꿨다」로 통과하고, 그것이 규칙 1
+ * 이 막으려던 바로 그것이다(`terminology` 한 칸이 절 여섯을 옮긴 전례가 있다).
+ *
+ * **이름과 관계를 고정해서 부른다.** 궁합 절은 부르는 이름과 무슨 사이인가를 본문에
+ * 싣기 때문에, 그것을 안 고정하면 조립이 같아도 절 문자열이 달라져 **자가 눈금을
+ * 잃는다.** 여기서 재려는 것은 조립이 옮긴 자리뿐이다.
+ */
+export const pairSectionTexts = (kind: PairKind, assembly: PromptAssembly): readonly string[] => {
+  const { a, b = FALLBACK_NAMES.b as string } = FALLBACK_NAMES;
+  const meeting = MEETING_SECTION[kind === 'match' ? 'match' : 'unknown'];
+
+  return kind === 'private'
+    ? [...COMPAT_SHARED_SECTIONS(a, b, meeting), ...compatPrivateSections(assembly)]
+    : [...COMPAT_SHARED_SECTIONS(a, b, meeting)];
+};
+
 const SCORE_SECTION = `## 점수
 
 0~100 정수 하나를 낸다. 서로 채워 주는 정도, 부딪히는 정도, 둘이 함께 있을 때 생기는
@@ -884,13 +925,42 @@ const COMPAT_SHARED_SECTIONS = (a: string, b: string, meeting: string) => [
  * 자료로 답을 지어내거나 「알 수 없다」를 아홉 번 적는다 — **둘 다 동의 범위를 지킨
  * 것이 아니다.** 물어보지 않는 것이 지키는 것이다.
  */
-const compatPrivateSections = (terminology: Terminology): readonly string[] => [
+/**
+ * 갈린 판정을 10절 **안에서만** 다루는 줄 — 최상위 문단으로 세우지 않는다.
+ *
+ * 자기 풀이의 `JUDGEMENT_PRECEDENCE` 를 그대로 가져다 붙일 수도 있었다. 안 한 까닭은
+ * 자리다 — 그 문단은 절 목록 **앞**에 서므로 1~11절 전체에 걸린다. 그런데 갈린 판정이
+ * 실제로 무는 자리는 10절 하나다: 1~9절은 `compatibility` 를 읽고 `analysis` 경로를
+ * 하나도 안 부르며, 11절은 운(`now`)이라 이 다섯 판정과 겹치지 않는다.
+ *
+ * **범위를 좁힌 것이 아니라 해당되는 절이 하나인 것이다.** 그리고 규칙이 세면 글이
+ * 딱딱해져 안 읽힌다 — 이 프롬프트가 여러 번 겪었고, 안 걸리는 절까지 규칙을 지우는
+ * 것은 값만 치르는 쪽이다.
+ *
+ * **두 사람 몫을 다 부른다.** 비공개 궁합에는 `precedence` 가 두 벌이다. 한쪽만 적으면
+ * 한 사람은 서열대로 읽히고 다른 사람은 안 읽힌다 — `plain` 승격 때 `now.overlaps`
+ * 지시가 두 판 중 한쪽에만 들어가 있던 것과 같은 자리다.
+ *
+ * **이름을 부르지 않는다.** 「억부」·「종격」으로 적으면 그 낱말이 본문으로 샌다. 지금
+ * 기준판은 분류명을 아예 안 부르는 판(`plain`)이라 더 그렇다.
+ */
+const EACH_PERSON_PRECEDENCE = `
+
+이 사람에 대한 판정들이 서로 다른 방향을 가리키면 **네가 고르지 마라.**
+\`charts.a.analysis.precedence\` 와 \`charts.b.analysis.precedence\` 를 **각각** 보고, 그
+사람의 \`primary\` 를 기준으로 읽는다. \`overrides\` 가 거짓인 줄이 가리키는 것은 결론으로
+세우지 않는다. **무엇과 무엇이 갈렸는지, 자료가 무엇을 어떻게 세었는지는 본문에 쓰지
+마라** — 그것은 읽는 사람이 알 필요가 없는 우리 사정이고, 맨 끝 근거 칸에서만 댄다.`;
+
+const compatPrivateSections = (assembly: PromptAssembly): readonly string[] => [
   `**10. 각자 이 관계에서 어떤 사람인가** — ${
-    terminology === 'plain' ? '두 사람의 자료를' : '두 원국을'
+    assembly.terminology === 'plain' ? '두 사람의 자료를' : '두 원국을'
   } 각각 읽어, 이 사람이 가까운 사이에서
 반복하는 모양을 한 사람씩 서너 문장으로. 서운할 때의 반응과 표현하는 속도까지.
-**둘을 견주지 말고 각각 쓴다** — 견주는 것은 앞 절들이 이미 했다.`,
-  terminology === 'plain'
+**둘을 견주지 말고 각각 쓴다** — 견주는 것은 앞 절들이 이미 했다.${
+    assembly.eachPersonJudgements === 'precedence-v1' ? EACH_PERSON_PRECEDENCE : ''
+  }`,
+  assembly.terminology === 'plain'
     ? `**11. 지금 두 사람이 지나는 때** — 두 사람이 각각 지금 어떤 흐름 위에 있는지 밝히고,
 그 둘이 같은 방향인지 엇갈리는지. **흐름의 분류명은 쓰지 말고** 「앞으로 몇 년은」·「올해는」
 처럼 때로 말한다. 그래서 **지금이 이 관계에 어떤 시기인지**까지. 기준 시각을 적는다.`
@@ -962,7 +1032,7 @@ const compatSections = (
     kind === 'private'
       ? [
           ...COMPAT_SHARED_SECTIONS(a, b, meeting),
-          ...compatPrivateSections(assembly.terminology),
+          ...compatPrivateSections(assembly),
         ]
       : COMPAT_SHARED_SECTIONS(a, b, meeting);
   const { min, max } = assembly.compatLength[kind];
@@ -1034,7 +1104,19 @@ const bodyOf = (
     ...(kind === 'match' ? [MATCH_SCOPE] : []),
     voice,
     ...(kind === 'match' ? [] : [PROMPT_PARTS.personality]),
-    // 두 사람 자료에는 `analysis` 가 통째로 빠져 있다 — 없는 경로를 가리키지 않는다.
+    /*
+      **`match` 자료에는 `analysis` 가 통째로 빠져 있다**(`WITHHELD_PATHS`) — 없는 경로를
+      가리키는 규칙이 되므로 안 붙인다.
+
+      이 줄은 한동안 「두 사람 자료에는 `analysis` 가 없다」고 적혀 있었다. `match` 에는
+      참이고 **`private` 에는 거짓이다** — 비공개 궁합은 두 사람 판정을 통째로 싣고
+      거기에 `precedence` 도 있다. 그런데 문이 `solo` 라 둘이 함께 잘려서, **private 은
+      값을 실으면서 그것을 읽으라는 규칙만 잃은 채로 남아 있었다.** 틀린 전제가 배제를
+      정당화하고 있던 자리다.
+
+      private 몫은 여기 세우지 않는다. 갈린 판정이 무는 절이 10절 하나뿐이라 그 절
+      안에서 다룬다(`EACH_PERSON_PRECEDENCE`).
+    */
     ...(solo ? [JUDGEMENT_PRECEDENCE] : []),
     ...assembly.extraSections,
     solo ? selfSections(assembly) : compatSections(kind, assembly, about),
