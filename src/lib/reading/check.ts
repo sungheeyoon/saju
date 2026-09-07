@@ -59,13 +59,20 @@ import {
  */
 
 /**
- * 비유 한 문장의 길이 상한 — **한 문장인지를 길이로 센다.**
+ * 비유가 **한 문장이 아니게 되는** 경계 — 「짧게 써라」는 프롬프트가 시키고 여기서는 안 센다.
  *
- * 문장 부호로 세지 않는다. 「돌고래가 물 만난 격」처럼 마침표 없이 끝나는 말도 한
- * 문장이고, 쉼표가 둘 셋인 긴 한 문장도 한 문장이라 부호는 세는 자가 못 된다.
- * 화면이 점수 아래 **한 줄**로 세우는 자리라, 재려는 것은 문법이 아니라 그 줄에 드는가다.
+ * 한동안 이 값이 60 이었고 프롬프트는 길이를 한 번도 말하지 않았다. 모델이 63자를 쓰자
+ * 다 만든 글이 버려졌다 — **지킬 방법이 없는 계약을 검사만 들고 있던 것**이다.
+ *
+ * 이제 시키는 값은 `metaphorLength.target` 이 들고 프롬프트가 그것을 말한다. 여기 남은
+ * 것은 **배치가 깨지는 자리**다: 화면이 점수 위에 한 줄로 세우는데 문단이 오면 그 줄이
+ * 무너진다. 「내 취향보다 길다」와 「이건 한 문장이 아니다」는 다른 물음이고, 막는 것은
+ * 뒤엣것뿐이다.
+ *
+ * 문장 부호로 세지 않는 까닭은 그대로다 — 「돌고래가 물 만난 격」처럼 마침표 없이 끝나는
+ * 말도 한 문장이고, 쉼표가 여럿인 긴 한 문장도 한 문장이다.
  */
-const METAPHOR_MAX = 60;
+const METAPHOR_MAX = READING_POLICY.metaphorLength.max;
 
 /**
  * **분류명을 빗댄 척 되살리는 문형** — 낱말이 아니라 꼴을 막는다.
@@ -553,7 +560,7 @@ export function checkReading({
   if (said.length === 0) {
     failures.push({ code: 'metaphor-out-of-contract', detail: '비었습니다' });
   } else if (said.length > METAPHOR_MAX) {
-    failures.push({ code: 'metaphor-out-of-contract', detail: `${said.length}자 (${METAPHOR_MAX} 이하)` });
+    failures.push({ code: 'metaphor-out-of-contract', detail: `${said.length}자 — 한 줄에 안 든다 (${METAPHOR_MAX} 이하)` });
   } else {
     const revived = ELEMENT_METAPHOR_SHAPES.filter((shape) => shape.test(said));
     if (revived.length > 0) {

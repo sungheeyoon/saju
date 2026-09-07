@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { EVIDENCE_CONTRACT } from '../saju/evidence';
 import { CLAIM_STRENGTH_KO, CLAIM_STRENGTH_ORDER } from '../saju/text/policy';
 import { PROMPT_PARTS } from './parts';
-import { READING_KINDS, READING_PROMPTS, isSolo } from '.';
+import { READING_KINDS, READING_POLICY, READING_PROMPTS, isSolo } from '.';
 
 /**
  * 지시문 조각을 잰다 — **이 시험이 재는 대상이 바뀌었다**(ADR 0047).
@@ -131,4 +131,36 @@ describe('조각이 실제로 나가는 글에 닿는다', () => {
     }
   });
 
+});
+
+/**
+ * **검사가 막는 값은 프롬프트가 말해야 한다.**
+ *
+ * 프로덕션에서 자기 풀이가 떨어졌다 — 검사는 비유를 60자로 막고 있었는데 **지시문에는
+ * 길이가 한 줄도 없었다.** 모델이 63자를 쓰자 다 만든 글이 버려졌다. 지킬 방법이 없는
+ * 계약이었고, 토큰은 나가고 글은 안 남았다.
+ *
+ * 「계약이 엔진을 안 따라오면 그 값은 검증되지 않는다」의 새 얼굴이다 — 이번에는
+ * **계약이 프롬프트를 안 따라왔다.** 그래서 여기서 그 짝을 잰다: 시키는 값이 실제로
+ * 네 kind 의 지시문에 적혀 있는가.
+ *
+ * 그리고 **시키는 값과 막는 값이 다르다는 것**도 함께 못박는다. 같으면 「한 자 넘었다」가
+ * 곧 실패가 되고, 그것이 방금 겪은 그 일이다.
+ */
+describe('시키는 값과 막는 값', () => {
+  it('비유 길이를 네 kind 모두에게 말한다', () => {
+    const { target } = READING_POLICY.metaphorLength;
+
+    for (const kind of READING_KINDS) {
+      expect(READING_PROMPTS[kind], kind).toContain(`${target}자 안팎`);
+    }
+  });
+
+  it('막는 값이 시키는 값보다 넉넉하다 — 한 자 넘었다고 버리지 않는다', () => {
+    const { target, max } = READING_POLICY.metaphorLength;
+
+    expect(max).toBeGreaterThan(target);
+    /* 「조금 길다」가 아니라 「한 문장이 아니다」를 막는 자리다 — 두 배는 떨어져 있어야 한다 */
+    expect(max).toBeGreaterThanOrEqual(target * 2);
+  });
 });
