@@ -419,9 +419,19 @@ async function saveReadingAs(
   const run = started.data?.[0];
   if (!run) throw new Error('시도가 시작되지 않았습니다');
 
+  /**
+   * **새 서명으로 부른다** — 비유를 함께 심는다.
+   *
+   * 옛 열한 인자짜리로 심던 동안 비유가 늘 `null` 이라, **CI 가 그 자리를 한 번도 안
+   * 봤다.** 화면이 점수 위에 세우는 줄인데 시험은 빈 화면만 재고 있던 것이다.
+   *
+   * 일부러 **길게** 심는다. 짧은 비유는 어느 배치에서나 예쁘고, 깨지는 것은 줄이 넘칠
+   * 때다 — 실제로 프로덕션에서 두 줄짜리 고지가 정렬을 무너뜨렸다.
+   */
   sql(`select public.save_reading(
          '${run.run_id}'::uuid, '${run.revision_a}'::uuid, null,
          '## ${body} — 브라우저가 읽을 글입니다.', null,
+         '서로 다른 속도로 달리던 두 사람이 같은 자전거를 타고 오르막길을 오르는 모습이에요.',
          '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
 
   return run.run_id as string;
