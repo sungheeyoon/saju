@@ -117,7 +117,7 @@ beforeEach(() => {
 
   generator = new FakeReadingGenerator({
     ok: true,
-    output: { score: null, markdown: GOOD },
+    output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: GOOD },
     usage: null,
     modelId: null,
   });
@@ -235,7 +235,7 @@ describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저�
   it('**검사를 통과하지 못하면 저장하지 않는다**', async () => {
     generator.respondWith({
       ok: true,
-      output: { score: null, markdown: `${GOOD}\n1990-05-12 에 태어났습니다.` },
+      output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: `${GOOD}\n1990-05-12 에 태어났습니다.` },
       usage: null,
       modelId: null,
     });
@@ -248,7 +248,7 @@ describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저�
   });
 
   it('점수 계약을 어긴 글도 저장하지 않는다', async () => {
-    generator.respondWith({ ok: true, output: { score: 70, markdown: GOOD }, usage: null, modelId: null });
+    generator.respondWith({ ok: true, output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: 70, markdown: GOOD }, usage: null, modelId: null });
 
     await requestReading({ kind: 'self' }, undefined, generator);
 

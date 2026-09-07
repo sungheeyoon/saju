@@ -52,9 +52,13 @@ const OUTPUT_SHAPE = {
       maximum: READING_POLICY.scoreRange.max,
       description: '궁합 결과일 때만 채운다. 한 사람의 풀이에는 null',
     },
+    metaphor: {
+      type: 'string',
+      description: '이 관계(또는 이 사람)를 빗댄 한 문장. 마침표 하나로 끝나는 짧은 말',
+    },
     markdown: { type: 'string', description: '사용자가 읽을 본문. Markdown 원문' },
   },
-  required: ['score', 'markdown'],
+  required: ['score', 'metaphor', 'markdown'],
   additionalProperties: false,
 } satisfies JSONSchema7;
 

@@ -487,6 +487,7 @@ async function generate(
     p_revision_b: started.revision_b,
     p_output: output.markdown,
     p_score: isScored(kind) ? output.score : null,
+    p_metaphor: output.metaphor,
     p_evidence: evidenceText,
     p_prompt: prompt,
     p_prompt_version: READING_POLICY.version,

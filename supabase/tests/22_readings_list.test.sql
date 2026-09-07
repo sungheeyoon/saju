@@ -64,7 +64,7 @@ language sql
 security definer
 as $$
   select public.save_reading(
-    run, rev_a, rev_b, body, score,
+    run, rev_a, rev_b, body, score, '두 사람이 같은 속도로 걷는 모양입니다.',
     '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'openai/gpt-5.6-luna',
     '{"temperature":1}'::jsonb, now());
 $$;
@@ -359,11 +359,15 @@ select is(
 /**
  * 글도 근거도 프롬프트도 안 나간다. `security definer` 가 내주는 것이 곧 브라우저가
  * 볼 수 있는 것이라, 열이 하나 늘면 그날 이 목록이 두 번째 결과 화면이 된다.
+ *
+ * **`metaphor` 는 일부러 내준다.** 카드마다 한 줄이 서야 하는 값이고, 본문이 아니라
+ * 본문을 대신하는 한 문장이다 — 그것이 여기 있어야 목록이 본문을 안 싣고도 말을 한다
+ * (ADR 0033 이 반환형에서 `output` 을 뺀 그 자리다).
  */
 select bag_eq(
   $$select unnest(array[
       'kind','person_a','person_b','match_id','label_a','label_b',
-      'score','created_at','from_current_revision'])$$,
+      'score','metaphor','created_at','from_current_revision'])$$,
   $$select p.name from unnest((
       select proargnames from pg_proc
       where oid = 'public.my_readings()'::regprocedure)) as p(name)$$,

@@ -58,6 +58,34 @@ import {
  * 반대편이다.
  */
 
+/**
+ * 비유 한 문장의 길이 상한 — **한 문장인지를 길이로 센다.**
+ *
+ * 문장 부호로 세지 않는다. 「돌고래가 물 만난 격」처럼 마침표 없이 끝나는 말도 한
+ * 문장이고, 쉼표가 둘 셋인 긴 한 문장도 한 문장이라 부호는 세는 자가 못 된다.
+ * 화면이 점수 아래 **한 줄**로 세우는 자리라, 재려는 것은 문법이 아니라 그 줄에 드는가다.
+ */
+const METAPHOR_MAX = 60;
+
+/**
+ * **분류명을 빗댄 척 되살리는 문형** — 낱말이 아니라 꼴을 막는다.
+ *
+ * 오행 낱말 자체를 막으면 「불같이 화를 내는」 같은 멀쩡한 비유가 함께 죽는다. 막을
+ * 것은 두 가지 꼴이다.
+ *
+ * 1. **두 오행을 마주 세우는 것** — 「물과 불처럼」·「나무와 쇠 같은」
+ * 2. **「A가 B를 만난/얻은 격」** — 상생 관계를 그대로 옮겨 적는 자리다. 「돌고래가
+ *    물 만난 격」은 살아야 하므로 **앞뒤가 둘 다 오행일 때만** 문다.
+ *
+ * 「금지 목록은 낱말이 아니라 문형을 막아야 한다」 — 오신 배정을 낱말째 막았다가 화면에
+ * 세우는 길이 통째로 닫혔던 자리에서 얻은 규율이다.
+ */
+const ELEMENTS_KO = '목|화|토|금|수|나무|불|흙|쇠|물';
+const ELEMENT_METAPHOR_SHAPES: readonly RegExp[] = [
+  new RegExp(`(${ELEMENTS_KO})(과|와)\\s*(${ELEMENTS_KO})`),
+  new RegExp(`(${ELEMENTS_KO})(이|가)\\s*(${ELEMENTS_KO})(을|를)\\s*(만난|얻은|본)`),
+];
+
 export const READING_FAILURES = {
   /** 자료에 없는 간지를 썼다 — 조심성이 아니라 참·거짓의 문제다 */
   'invented-characters': '자료에 없는 간지가 글에 나왔습니다',
@@ -73,6 +101,8 @@ export const READING_FAILURES = {
   'non-korean-self-body': '개인 풀이 본문에 한글이 아닌 문자가 섞였습니다',
   /** 자료를 가려 읽으라고 준 경로 이름이 사용자 본문에 그대로 나왔다 */
   'evidence-path-leaked': '자료 경로 이름이 본문에 나왔습니다',
+  /** 한 문장 비유가 비었거나, 한 문장이 아니거나, 분류명을 빗댄 척 되살렸다 */
+  'metaphor-out-of-contract': '한마디 비유가 계약을 벗어났습니다',
 } as const;
 
 export type ReadingFailureCode = keyof typeof READING_FAILURES;
@@ -501,7 +531,35 @@ export function checkReading({
   secrets: readonly BirthSecret[];
 }): ReadingCheck {
   const failures: ReadingFailure[] = [];
-  const { markdown, score } = output;
+  const { markdown, score, metaphor } = output;
+
+  /**
+   * **한 문장 비유** — 점수에서 내린 의미가 여기 얹혀 있으므로 비면 그 자리가 통째로 빈다.
+   *
+   * 세 가지를 본다.
+   *
+   * 1. **있는가.** 구조화 출력이 채워 주긴 하지만 빈 문자열은 막지 않는다.
+   * 2. **한 문장인가.** 화면이 점수 아래 한 줄로 세우는 자리라, 문단이 오면 그 배치가
+   *    깨진다. 문장 부호로 세지 않고 **길이로 센다** — 「~격.」처럼 마침표가 없는 말도
+   *    한 문장이고, 쉼표가 여럿인 긴 한 문장도 한 문장이라 세는 자가 못 된다.
+   * 3. **분류명을 빗댄 척 되살렸는가.** 「물과 불처럼」·「나무가 물을 만난 격」은 비유가
+   *    아니라 오행 이름을 다르게 적은 것이다. `plain` 판이 걷어낸 것을 뒷문으로 들이는
+   *    자리이고, **낱말이 한국어라 경로 검사에 안 걸린다.**
+   *
+   * 오행 낱말을 통째로 막지는 않는다 — 「불같이 화를 내는」은 비유이지 분류명이 아니다.
+   * 막는 것은 **두 오행을 마주 세우는 문형**과 **「A가 B를 만난/얻은 격」** 꼴이다.
+   */
+  const said = metaphor.trim();
+  if (said.length === 0) {
+    failures.push({ code: 'metaphor-out-of-contract', detail: '비었습니다' });
+  } else if (said.length > METAPHOR_MAX) {
+    failures.push({ code: 'metaphor-out-of-contract', detail: `${said.length}자 (${METAPHOR_MAX} 이하)` });
+  } else {
+    const revived = ELEMENT_METAPHOR_SHAPES.filter((shape) => shape.test(said));
+    if (revived.length > 0) {
+      failures.push({ code: 'metaphor-out-of-contract', detail: '오행을 빗댄 척 되살렸습니다' });
+    }
+  }
 
   const { min, max } = READING_POLICY.markdownLength;
   if (markdown.trim().length < min || markdown.length > max) {

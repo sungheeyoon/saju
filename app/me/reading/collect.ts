@@ -151,6 +151,7 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     p_revision_b: job.revision_b,
     p_output: retrieved.output.markdown,
     p_score: isScored(job.kind) ? retrieved.output.score : null,
+    p_metaphor: retrieved.output.metaphor,
     p_evidence: job.evidence,
     p_prompt: job.prompt,
     p_prompt_version: job.prompt_version,

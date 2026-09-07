@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { EVIDENCE_CONTRACT } from '../saju/evidence';
 import { CLAIM_STRENGTH_KO, CLAIM_STRENGTH_ORDER } from '../saju/text/policy';
 import { PROMPT_PARTS } from './parts';
-import { READING_KINDS, READING_PROMPTS } from '.';
+import { READING_KINDS, READING_PROMPTS, isSolo } from '.';
 
 /**
  * 지시문 조각을 잰다 — **이 시험이 재는 대상이 바뀌었다**(ADR 0047).
@@ -81,6 +81,24 @@ describe('해석용은 막지 않고 딱지만 붙인다', () => {
   });
 });
 
+/**
+ * **조각은 앞뒤로 빈 줄을 물지 않는다.**
+ *
+ * 조립기가 `'\n\n'` 으로 잇는다. 조각이 제 끝에 줄바꿈을 하나 더 들고 있으면 그 자리에만
+ * 빈 줄이 둘이 되는데, **눈으로는 안 보이고 글자 수로만 드러난다.**
+ *
+ * 실제로 겪었다. `PERSONALITY` 에서 강도 절을 떼어 낼 때 남은 꼬리 줄바꿈 하나가 그대로
+ * 붙어서, **기준판 프롬프트가 한 글자 길어진 채로** 통과할 뻔했다. 「기준판은 안 바뀐다」가
+ * 그 라운드의 전제였는데 그것이 조용히 거짓이 되는 자리였다.
+ */
+describe('조각은 이음매를 더럽히지 않는다', () => {
+  it.each(Object.keys(PROMPT_PARTS))('%s — 앞뒤에 군더더기 공백이 없다', (name) => {
+    const part = PROMPT_PARTS[name as keyof typeof PROMPT_PARTS];
+
+    expect(part).toBe(part.trim());
+  });
+});
+
 describe('조각이 실제로 나가는 글에 닿는다', () => {
   it('규칙과 끝자리는 모든 풀이에 선다', () => {
     for (const kind of READING_KINDS) {
@@ -89,13 +107,26 @@ describe('조각이 실제로 나가는 글에 닿는다', () => {
     }
   });
 
-  /** 공유 궁합은 성격을 안 읽는다 — 동의 범위 밖이다 */
-  it('성격 절은 공유 궁합에만 안 선다', () => {
+  /**
+   * **성격 읽는 순서가 서는 자리는 이제 자기 풀이뿐이다.**
+   *
+   * 공유 궁합은 동의 범위 밖이라 처음부터 안 섰다. 비공개 궁합은 절을 걷으면서 함께
+   * 내렸다 — 「해석은 네가 하라」면서 읽는 순서는 시키는 것이 앞뒤가 안 맞기 때문이다.
+   *
+   * **강도(`claimStrength`)는 넷 중 셋에 그대로 선다.** 한동안 이 문자열에 같이 살던
+   * 것을 갈랐다 — 그쪽은 근거가 몇 갈래냐로 말의 세기를 정하는 **경계**라 구성 지시와
+   * 함께 내려가면 안 된다.
+   */
+  it('성격 읽는 순서는 자기 풀이에만 서고 강도는 궁합에도 선다', () => {
     for (const kind of READING_KINDS) {
-      if (kind === 'match') {
-        expect(READING_PROMPTS[kind]).not.toContain(PROMPT_PARTS.personality);
-      } else {
+      if (isSolo(kind)) {
         expect(READING_PROMPTS[kind], kind).toContain(PROMPT_PARTS.personality);
+      } else {
+        expect(READING_PROMPTS[kind], kind).not.toContain(PROMPT_PARTS.personality);
+      }
+
+      if (kind !== 'match') {
+        expect(READING_PROMPTS[kind], kind).toContain(PROMPT_PARTS.claimStrength);
       }
     }
   });

@@ -151,6 +151,9 @@ export function ReadingPanel({
     setMockReading({
       id: 'development-preview',
       score: isScored(target.kind) ? 78 : null,
+      metaphor: isScored(target.kind)
+        ? '오래 걷던 두 사람이 같은 갈림길에서 잠깐 멈춘 모양입니다.'
+        : '늘 앞장서 걷다가 가끔 뒤를 돌아보는 사람입니다.',
       output: MOCK_OUTPUT,
       model: 'development-preview',
       viewedAt: new Date().toISOString(),
@@ -561,10 +564,37 @@ function Result({
 
   return (
     <div className="flex flex-col gap-5">
-      {reading.score !== null && (
-        <div className="flex flex-col gap-2 rounded-2xl bg-accent-wash p-5 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-xs font-semibold text-accent">현재 궁합 풀이 점수</p><p className="mt-1 text-4xl font-bold tabular-nums">{reading.score}<span className="ml-1 text-base font-medium text-secondary">/ 100</span></p></div>
-          <p className="max-w-md text-xs leading-5 text-muted">{READING_SCORE_NOTE}</p>
+      {/*
+        **점수와 비유가 한 칸에 선다 — 그리고 비유가 크다.**
+
+        점수는 실호출 열한 번이 전부 62~68 이었다. 두 자리 정밀도는 「우리가 이만큼
+        안다」는 약속인데 재보니 그만큼 모른다. 그래서 숫자는 그대로 두되 **읽는 사람의
+        눈이 먼저 닿는 자리를 비유에 준다** — 같은 66 안에서도 두 관계를 갈라 말하는
+        것은 그쪽이다.
+
+        **비유만 있고 점수가 없는 자리가 있다.** 자기 풀이가 그렇다(점수는 궁합만).
+        그리고 이 열이 생기기 전에 저장된 글에는 비유가 없다 — 둘 중 하나만 있어도
+        칸은 선다.
+      */}
+      {(reading.score !== null || reading.metaphor !== null) && (
+        <div className="flex flex-col gap-3 rounded-2xl bg-accent-wash p-5">
+          {reading.metaphor !== null && (
+            <p className="text-xl font-semibold leading-8 sm:text-2xl sm:leading-9">
+              {reading.metaphor}
+            </p>
+          )}
+          {reading.score !== null && (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold text-accent">현재 궁합 풀이 점수</p>
+                <p className="mt-1 text-4xl font-bold tabular-nums">
+                  {reading.score}
+                  <span className="ml-1 text-base font-medium text-secondary">/ 100</span>
+                </p>
+              </div>
+              <p className="max-w-md text-xs leading-5 text-muted">{READING_SCORE_NOTE}</p>
+            </div>
+          )}
         </div>
       )}
       {/*

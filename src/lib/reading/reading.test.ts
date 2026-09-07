@@ -99,10 +99,19 @@ describe('프롬프트는 출생 원문을 들고 나가지 않는다', () => {
     expect(prompt).toContain(A.pillars.day.name);
   });
 
-  it('공유 궁합 프롬프트는 범위를 적고 성격 읽는 순서를 빼고 온다', () => {
+  it('공유 궁합만 범위를 적고, 성격 읽는 순서는 두 궁합 다 안 든다', () => {
     expect(READING_PROMPTS.match).toContain('## 이 자료의 범위');
-    expect(READING_PROMPTS.match).not.toContain('## 성격을 읽는 순서');
-    expect(READING_PROMPTS.private).toContain('## 성격을 읽는 순서');
+    expect(READING_PROMPTS.private).not.toContain('## 이 자료의 범위');
+
+    /*
+      **비공개 궁합도 이제 읽는 순서를 안 시킨다.** 절을 걷으면서 함께 내렸다 —
+      「해석은 네가 하라」면서 읽는 순서는 시키는 것이 앞뒤가 안 맞기 때문이다.
+      강도는 다르다: 그쪽은 경계라 궁합에도 남는다.
+    */
+    for (const kind of ['match', 'private'] as const) {
+      expect(READING_PROMPTS[kind], kind).not.toContain('## 성격을 읽는 순서');
+    }
+    expect(READING_PROMPTS.private).toContain('## 얼마나 세게 말할까');
   });
 
   it('점수 계약은 궁합에만 붙는다', () => {
@@ -135,7 +144,7 @@ const OK_MARKDOWN = `## 한 줄로\n${'두 사람 사이에 성립하는 것을 
 
 const ok = (kind: ReadingKind) => ({
   kind,
-  output: { score: isScored(kind) ? 72 : null, markdown: OK_MARKDOWN },
+  output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: isScored(kind) ? 72 : null, markdown: OK_MARKDOWN },
   evidenceText: JSON.stringify(evidenceFor(kind).evidence),
   secrets: [SECRET],
 });
@@ -160,7 +169,7 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     const withQuestion = `${OK_MARKDOWN}\n\n## 궁금한 것\n\n**질문 1. 공부나 자격증은 잘 맞나요?**\n\n잘 맞습니다.`;
     const withLatin = `${OK_MARKDOWN}\n\n## 궁금한 것\n\n**Q. 공부나 자격증은 잘 맞나요?**\n\n잘 맞습니다.`;
 
-    const self = (markdown: string) => ({ ...ok('self'), output: { score: null, markdown } });
+    const self = (markdown: string) => ({ ...ok('self'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown } });
 
     expect(codesOf(checkReading(self(withQuestion)))).toEqual([]);
     expect(codesOf(checkReading(self(withLatin)))).toContain('non-korean-self-body');
@@ -179,7 +188,7 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
   describe('자료 경로가 본문에 새면 막는다', () => {
     const withBody = (kind: ReadingKind, body: string) => ({
       ...ok(kind),
-      output: { score: isScored(kind) ? 72 : null, markdown: `${OK_MARKDOWN}\n\n${body}` },
+      output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: isScored(kind) ? 72 : null, markdown: `${OK_MARKDOWN}\n\n${body}` },
     });
 
     it('점 찍힌 경로가 본문에 있으면 걸린다', () => {
@@ -483,20 +492,20 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
   );
 
   it('점수는 있어야 할 때 있고 없어야 할 때 없다', () => {
-    const withScore = checkReading({ ...ok('self'), output: { score: 70, markdown: OK_MARKDOWN } });
+    const withScore = checkReading({ ...ok('self'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: 70, markdown: OK_MARKDOWN } });
     expect(codesOf(withScore)).toContain('score-out-of-contract');
 
-    const without = checkReading({ ...ok('match'), output: { score: null, markdown: OK_MARKDOWN } });
+    const without = checkReading({ ...ok('match'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: OK_MARKDOWN } });
     expect(codesOf(without)).toContain('score-out-of-contract');
   });
 
   it.each([-1, 101, 72.5])('점수 %s 는 범위 밖이다', (score) => {
-    const result = checkReading({ ...ok('match'), output: { score, markdown: OK_MARKDOWN } });
+    const result = checkReading({ ...ok('match'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score, markdown: OK_MARKDOWN } });
     expect(codesOf(result)).toContain('score-out-of-contract');
   });
 
   it('빈 글은 지나가지 못한다', () => {
-    const result = checkReading({ ...ok('self'), output: { score: null, markdown: '   ' } });
+    const result = checkReading({ ...ok('self'), output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: '   ' } });
     expect(codesOf(result)).toContain('length-out-of-contract');
   });
 

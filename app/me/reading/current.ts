@@ -18,6 +18,13 @@ export type CurrentReading = {
   readonly id: string;
   /** 궁합만. 자기 풀이는 `null` */
   readonly score: number | null;
+  /**
+   * 점수 아래 한 줄로 서는 비유 — **이 열이 생기기 전 글에는 없다(`null`).**
+   *
+   * 되짚어 지어 넣지 않았다. 그때 나온 글이 아니고, 지어 넣으면 어느 것이 모델이 쓴
+   * 것인지 갈린다. 자기 풀이에는 점수가 없어도 이것은 있다.
+   */
+  readonly metaphor: string | null;
   /** 사용자용 Markdown — 저장된 원문의 내부 검토용 근거 절은 서버 경계에서 뺀다 */
   readonly output: string;
   readonly model: string;
@@ -75,6 +82,7 @@ export async function currentReading(target: ReadingTarget): Promise<CurrentRead
   return {
     id: row.id as string,
     score: (row.score as number | null) ?? null,
+    metaphor: (row.metaphor as string | null) ?? null,
     output: readingBody(row.output as string),
     model: row.model as string,
     viewedAt: row.viewed_at as string,
@@ -228,6 +236,7 @@ export type ReadingEntry = {
   readonly labelA: string | null;
   readonly labelB: string | null;
   readonly score: number | null;
+  readonly metaphor: string | null;
   readonly createdAt: string;
   readonly fromCurrentRevision: boolean;
 };
@@ -256,6 +265,7 @@ export async function myReadings(): Promise<readonly ReadingEntry[]> {
     labelA: (row.label_a as string | null) ?? null,
     labelB: (row.label_b as string | null) ?? null,
     score: (row.score as number | null) ?? null,
+    metaphor: (row.metaphor as string | null) ?? null,
     createdAt: row.created_at as string,
     fromCurrentRevision: row.from_current_revision as boolean,
   }));
