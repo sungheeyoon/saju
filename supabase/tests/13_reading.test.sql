@@ -79,7 +79,7 @@ language sql
 security definer
 as $$
   select public.save_reading(
-    run, rev_a, rev_b, body, score,
+    run, rev_a, rev_b, body, score, '두 사람이 같은 속도로 걷는 모양입니다.',
     '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'openai/gpt-5.6-luna',
     '{"temperature":1}'::jsonb, now());
 $$;
@@ -156,7 +156,7 @@ select throws_ok(
  */
 select throws_ok(
   $$select public.save_reading(
-      '00000000-0000-0000-0000-000000000000'::uuid, null, null, 'x', null,
+      '00000000-0000-0000-0000-000000000000'::uuid, null, null, 'x', null, null,
       '{}', 'p', 'v', 'm', '{}'::jsonb, now())$$,
   '42501', null, '결과를 저장하는 문은 로그인한 사람이 못 부른다');
 

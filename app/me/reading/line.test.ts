@@ -18,6 +18,7 @@ const entry = (over: Partial<ReadingEntry>): ReadingEntry => ({
   labelA: null,
   labelB: null,
   score: null,
+  metaphor: null,
   createdAt: '2026-09-03T00:00:00Z',
   fromCurrentRevision: true,
   ...over,

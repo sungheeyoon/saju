@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { EVIDENCE_CONTRACT } from '../saju/evidence';
 import { CLAIM_STRENGTH_KO, CLAIM_STRENGTH_ORDER } from '../saju/text/policy';
 import { PROMPT_PARTS } from './parts';
-import { READING_KINDS, READING_PROMPTS } from '.';
+import { READING_KINDS, READING_PROMPTS, isSolo } from '.';
 
 /**
  * 지시문 조각을 잰다 — **이 시험이 재는 대상이 바뀌었다**(ADR 0047).
@@ -107,13 +107,26 @@ describe('조각이 실제로 나가는 글에 닿는다', () => {
     }
   });
 
-  /** 공유 궁합은 성격을 안 읽는다 — 동의 범위 밖이다 */
-  it('성격 절은 공유 궁합에만 안 선다', () => {
+  /**
+   * **성격 읽는 순서가 서는 자리는 이제 자기 풀이뿐이다.**
+   *
+   * 공유 궁합은 동의 범위 밖이라 처음부터 안 섰다. 비공개 궁합은 절을 걷으면서 함께
+   * 내렸다 — 「해석은 네가 하라」면서 읽는 순서는 시키는 것이 앞뒤가 안 맞기 때문이다.
+   *
+   * **강도(`claimStrength`)는 넷 중 셋에 그대로 선다.** 한동안 이 문자열에 같이 살던
+   * 것을 갈랐다 — 그쪽은 근거가 몇 갈래냐로 말의 세기를 정하는 **경계**라 구성 지시와
+   * 함께 내려가면 안 된다.
+   */
+  it('성격 읽는 순서는 자기 풀이에만 서고 강도는 궁합에도 선다', () => {
     for (const kind of READING_KINDS) {
-      if (kind === 'match') {
-        expect(READING_PROMPTS[kind]).not.toContain(PROMPT_PARTS.personality);
-      } else {
+      if (isSolo(kind)) {
         expect(READING_PROMPTS[kind], kind).toContain(PROMPT_PARTS.personality);
+      } else {
+        expect(READING_PROMPTS[kind], kind).not.toContain(PROMPT_PARTS.personality);
+      }
+
+      if (kind !== 'match') {
+        expect(READING_PROMPTS[kind], kind).toContain(PROMPT_PARTS.claimStrength);
       }
     }
   });

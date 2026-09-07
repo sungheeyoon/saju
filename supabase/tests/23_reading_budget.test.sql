@@ -19,7 +19,7 @@ language sql
 security definer
 as $$
   select public.save_reading(
-    run, rev, null, '## 글', null::smallint,
+    run, rev, null, '## 글', null::smallint, '한 사람을 한마디로.',
     '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'openai/gpt-5.6-luna',
     jsonb_build_object('provider', 'openai-responses-api', 'usage', spent), now());
 $$;

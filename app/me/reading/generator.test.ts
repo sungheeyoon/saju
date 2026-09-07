@@ -27,7 +27,7 @@ describe('Match 첫 세로 슬라이스의 생성 경계', () => {
   it('정확한 출생 정보와 상대 원국 전체 판정은 Evidence·prompt·통과 응답에 없다', async () => {
     const fake = new FakeReadingGenerator({
       ok: true,
-      output: { score: 68, markdown: SAFE_MARKDOWN },
+      output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: 68, markdown: SAFE_MARKDOWN },
       usage: null,
       modelId: null,
     });
@@ -68,7 +68,7 @@ describe('Match 첫 세로 슬라이스의 생성 경계', () => {
     ] as const) {
       const fake = new FakeReadingGenerator({
         ok: true,
-        output: { score: 68, markdown },
+        output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: 68, markdown },
         usage: null,
         modelId: null,
       });

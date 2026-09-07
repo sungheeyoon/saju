@@ -82,7 +82,6 @@ export {
   pairSectionTexts,
   selfSectionCount,
   selfSectionTexts,
-  type EachPersonJudgements,
   type PairShape,
   type PromptAssembly,
   type ReadingAbout,

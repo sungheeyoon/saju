@@ -105,11 +105,7 @@ export const PROMPT_VARIANTS: readonly PromptVariant[] = [
   },
 ];
 
-export type PairVariantId =
-  | 'control'
-  | 'pair-precedence-v1'
-  | 'pair-named-v1'
-  | 'pair-needs-v1';
+export type PairVariantId = 'control' | 'pair-sections-v1';
 
 /** 같은 계약을 쓰되 id 만 갈린다 — 재는 축이 다르므로 목록도 다르다 */
 export type PairVariant = Omit<PromptVariant, 'id'> & { readonly id: PairVariantId };
@@ -181,42 +177,12 @@ export const PAIR_VARIANTS: readonly PairVariant[] = [
     assembly: CONTROL,
   },
   {
-    id: 'pair-precedence-v1',
-    label: '10절이 서열을 읽는다 (P1 — 겨눈 곳이 틀렸다)',
+    id: 'pair-sections-v1',
+    label: '절 열하나로 시킨다 (앞 기준판)',
     changes:
-      '**한 번 재봤고 안 닿았다.** 10절에 `analysis.precedence` 를 읽히는 문단이 붙는다 — 그런데 그 서열이 답하는 것은 「무엇을 쓸 것인가」이고 10절은 그것을 묻지 않는다. 표본 둘 다 갈리는데도 없앨 모순이 없었다. **「시켰는데 안 닿은 것」의 짝으로 남긴다.**',
-    confounded: null,
-    assembly: { ...CONTROL, eachPersonJudgements: 'precedence-v1' },
-  },
-  {
-    id: 'pair-named-v1',
-    label: '10절이 제 물음에 답하는 판정을 짚는다 (P2)',
-    changes:
-      '10절에만 한 문단이 붙는다 — 두 사람을 **각각** 열어 버티는 쪽인지 기대는 쪽인지(`analysis.strength`)를 축으로 잡고, 무거운 십성·부딪히는 자리·기댈 데 못 얻은 것(`analysis.tenGods`·`relations`·`analysis.rootedness`)에서 **유난히 튀는 것**을 장면으로 옮기게 한다. 1~9절과 11절은 한 글자도 안 바뀐다.',
-    /**
-     * `confounded` 가 `null` 인 것이 맞다 — **이 칸은 한 변형 안에서 무엇이 함께
-     * 움직였나를 적는 자리**이고, P2 는 칸도 절도 하나만 옮긴다. 두 실험판을 **서로**
-     * 견줄 때의 주의는 변형의 성질이 아니라 읽는 법이라 위 머리말에 적었다.
-     */
-    confounded: null,
-    assembly: { ...CONTROL, eachPersonJudgements: 'named-v1' },
-  },
-  {
-    id: 'pair-needs-v1',
-    label: '절을 걷고 다룰 것만 준다 (P3)',
-    changes:
-      '**절 열하나와 「성격을 읽는 순서」를 걷어낸다.** 그 자리에 사람들이 실제로 알고 싶어 하는 것 일곱을 놓고, 몇 덩이로 나눌지·어떤 차례로 쓸지·어느 판정을 읽을지·무엇이 이 사람의 답답한 점인지는 **모델이 정한다.** 근거·경계·말투·어려운 말 안 쓰기·분량·점수는 그대로다.',
-    /**
-     * **이 판은 교란이 크고, 그것이 맞다.**
-     *
-     * 재려는 것이 규칙 하나가 아니라 **접근 전체**다. 구조를 놓는 것과 해석을 놓는
-     * 것을 갈라서 재려면 「절은 걷고 성격 읽는 순서는 남긴 판」이 따로 있어야 하는데,
-     * 그 판은 「해석은 네가 하라면서 읽는 순서는 시키는」 앞뒤가 안 맞는 판이다.
-     *
-     * 그래서 **가르지 않고 통째로 던진다.** 이기면 다음 라운드가 쪼갠다.
-     */
+      '기준판이 절을 걷어내기 전의 벌. 우리가 정한 절 열하나와 「성격을 읽는 순서」가 서고, 무엇을 어느 절에 쓸지를 절마다 시킨다 — 무엇이 없어지는지를 견줄 짝이다.',
     confounded:
-      '절 목록과 「성격을 읽는 순서」가 함께 내려간다. 이겨도 「구조를 놔서」인지 「해석을 놔서」인지 이 라운드는 답하지 않는다 — 재려는 것이 규칙 하나가 아니라 접근 전체라 일부러 통째로 던진다.',
-    assembly: { ...CONTROL, pairShape: 'needs-v1' },
+      '절 목록과 「성격을 읽는 순서」가 함께 움직인다. 이 짝이 이겨도 「절이 있어서」인지 「읽는 순서를 시켜서」인지 이 라운드는 답하지 않는다.',
+    assembly: { ...CONTROL, pairShape: 'sections-v1' },
   },
 ];

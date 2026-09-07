@@ -30,6 +30,9 @@ const other = () =>
 
 const pairEvidence = () => readingEvidenceOf('private', { a: chart(), b: other() }, VIEWED_AT);
 
+/** 공유 궁합 — **절 목록이 남아 있는 유일한 궁합**이다(비공개는 절을 걷었다) */
+const matchEvidence = () => readingEvidenceOf('match', { a: chart(), b: other() }, VIEWED_AT);
+
 /**
  * **실험판이 실제로 보내는 것을 흔들지 않는가.**
  *
@@ -426,12 +429,20 @@ describe('고객이 읽는 글의 계약', () => {
     // 조사는 받침을 따른다 — 낱말을 꽂는 자리에서 「아버지이다」가 나오면 안 된다
     const closed = readingPromptOf(pairEvidence(), CONTROL, { names: { a: '동생', b: '형' }, relation: null });
     expect(closed).toContain('`charts.b` 는 **형**이다.');
-    expect(closed).toContain('동생이 형을 보는 자리');
     expect(named).toContain('자리 이름으로\n부르지 마라');
     expect(named).toContain('받은 그대로');
 
-    // 절 안내문도 이름으로 말한다 — 한 자리만 고치면 본문이 두 말투를 섞는다
-    expect(named).toContain('어머니가 아버지를 보는 자리');
+    /*
+      **절 안내문도 이름으로 말한다** — 한 자리만 고치면 본문이 두 말투를 섞는다.
+
+      비공개 궁합이 절을 걷은 뒤로 이 자리를 **공유 궁합에서 잰다.** 이름을 절 문장에
+      꽂는 자리가 거기에만 남았기 때문이다 — 비공개는 부르는 말 블록 하나가 다 든다.
+    */
+    const inSections = readingPromptOf(matchEvidence(), CONTROL, {
+      names: { a: '동생', b: '형' },
+      relation: null,
+    });
+    expect(inSections).toContain('동생이 형을 보는 자리');
   });
 
   /**
@@ -500,20 +511,35 @@ describe('고객이 읽는 글의 계약', () => {
     const shared = compatPrompt('match');
     const own = compatPrompt('private');
 
-    for (const heading of ['각자 이 관계에서 어떤 사람인가', '지금 두 사람이 지나는 때']) {
-      expect(own, heading).toContain(heading);
-      expect(shared, heading).not.toContain(heading);
+    /*
+      **잠그는 것은 「공유 궁합이 안 묻는다」 쪽이다.** 비공개가 절을 걷은 뒤로 두
+      프롬프트는 꼴이 다르다 — 한쪽은 절 목록, 한쪽은 다룰 것의 목록. 그래서 같은
+      문자열로 양쪽을 잴 수 없고, **각자의 꼴에서 같은 보장을 잰다.**
+    */
+    for (const outOfScope of [
+      '각자 이 관계에서 어떤 사람인가',
+      '지금 두 사람이 지나는 때',
+      '각자가 가까운 사이에서 어떤 사람인가',
+      '지금이 이 관계에 어떤 시기인가',
+    ]) {
+      expect(shared, outOfScope).not.toContain(outOfScope);
     }
 
-    // 둘이 함께 쓰는 절은 양쪽에 다 선다
+    // 비공개는 같은 것을 다룰 것의 목록으로 든다
+    for (const need of ['각자가 가까운 사이에서 어떤 사람인가', '지금이 이 관계에 어떤 시기인가']) {
+      expect(own, need).toContain(need);
+    }
+
+    // 둘이 함께 쓰는 것은 양쪽에 다 있다 — 공유는 절로, 비공개는 다룰 것으로
     for (const heading of ['둘이 만나야 생기는 것', '서로를 채우는 자리', '생활에서 반복될 장면']) {
       expect(shared, heading).toContain(heading);
-      expect(own, heading).toContain(heading);
+    }
+    for (const need of ['둘이 있어야 생기는 것', '서로 채워 주는 것', '실제 생활에서 반복될 장면']) {
+      expect(own, need).toContain(need);
     }
 
-    // 분량만 올리면 이미 한 말을 늘여 쓴다 — 절을 먼저 채웠는지 잡는다
+    // 분량만 올리면 이미 한 말을 늘여 쓴다 — 공유 궁합은 절을 먼저 채웠는지 잡는다
     expect(sectionCountOf(shared)).toBeGreaterThanOrEqual(10);
-    expect(sectionCountOf(own)).toBeGreaterThan(sectionCountOf(shared));
   });
 
   it('기준판은 개인 사주의 핵심 물음을 빠짐없이 다룬다', () => {
@@ -798,7 +824,7 @@ describe('고객이 읽는 글의 계약', () => {
   it('기준판은 새 뼈대이고, 용신 계열을 읽고, 이름을 안 부른다', () => {
     expect(CONTROL.selfPresentation).toBe('expert-v4');
     expect(CONTROL.terminology).toBe('plain');
-    expect(READING_POLICY.version).toBe('reading-prompt-v6');
+    expect(READING_POLICY.version).toBe('reading-prompt-v7');
     expect(selfPrompt()).toContain('이 사주의 핵심');
     expect(selfPrompt()).not.toContain('살림법');
     expect(selfPrompt()).toContain('analysis.strength');
@@ -899,9 +925,25 @@ describe('고객이 읽는 글의 계약', () => {
         relation: 'family',
       });
 
-      expect(compat).toContain('지금 두 사람이 지나는 때');
-      expect(compat).not.toContain('각자의 대운·세운이 지금 어느 자리인지');
+      /*
+        **비공개 궁합은 절을 걷었으므로 절 문장으로는 못 잰다.** 용어 판이 궁합에서
+        하는 일은 이제 두 가지다 — 어려운 말을 안 쓰게 하는 큰 블록, 그리고 분류명을
+        본문에 부르지 않는 것. 그 둘을 잰다.
+      */
       expect(compat).toContain('이름 대신 그 이름이 가리키는 것을 쓴다');
+      expect(compat).not.toContain('각자의 대운·세운이 지금 어느 자리인지');
+      expect(compat).toContain('지금이 이 관계에 어떤 시기인가');
+
+      /*
+        **절 문장이 갈리던 자리는 없어졌다.** 「흐름의 분류명은 쓰지 말고」는 비공개
+        11절에만 있던 말이고, 그 절과 함께 사라졌다. 용어 판이 궁합에서 하는 일이
+        **큰 블록 하나로 모인 것**이라, 여기서는 그 블록이 판마다 다른 것을 잰다.
+      */
+      const annotated = readingPromptOf(pairEvidence(), { ...CONTROL, terminology: 'annotated' }, {
+        names: { a: '나', b: '엄마' },
+        relation: 'family',
+      });
+      expect(annotated).not.toBe(compat);
     });
 
     /** 이름을 안 부르는 것과 근거 없이 쓰는 것은 다르다 */

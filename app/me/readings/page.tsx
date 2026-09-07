@@ -105,7 +105,19 @@ function Made({ readings }: { readings: readonly ReadingEntry[] }) {
             href={readingHref(one)}
             className="flex items-center gap-3 rounded-xl border border-border-strong bg-surface px-4 py-3 text-sm hover:border-accent hover:text-accent"
           >
-            <span className="min-w-0 flex-1 truncate font-medium">{readingTitle(one)}</span>
+            {/*
+              **제목 아래에 한 줄이 선다** — 이 목록은 본문을 안 싣기로 했고(ADR 0033),
+              그 자리를 비유가 대신한다. 제목만으로는 「엄마와의 궁합」이 열 줄 서면
+              어느 것이 어떤 이야기였는지 안 보인다.
+
+              옛 글에는 없다(`null`) — 그때 나온 글이 아니라 지어 넣지 않았다.
+            */}
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="truncate font-medium">{readingTitle(one)}</span>
+              {one.metaphor !== null && (
+                <span className="truncate text-xs font-normal text-muted">{one.metaphor}</span>
+              )}
+            </span>
 
             {/* 궁합 줄에는 점수가 함께 선다 — 결과 화면에서 이미 본 값이다(ADR 0033) */}
             {one.score !== null && (
