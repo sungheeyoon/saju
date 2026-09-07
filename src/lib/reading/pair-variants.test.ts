@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '../saju';
+import { PROMPT_PARTS } from './parts';
 import {
   CONTROL,
   PAIR_VARIANTS,
@@ -65,6 +66,20 @@ describe('비공개 궁합은 서열 값을 싣는다', () => {
 /** 기준판 아닌 판들 — 목록을 손으로 옮겨 적지 않는다 */
 const experiments = PAIR_VARIANTS.filter((variant) => variant.id !== 'control');
 
+/**
+ * **축마다 재는 자가 다르다.**
+ *
+ * 10절을 고치는 판(`eachPersonJudgements`)과 절을 통째로 걷는 판(`pairShape`)은 서로
+ * 다른 것을 지켜야 한다 — 앞엣것은 「10절만 움직였나」이고 뒤엣것은 애초에 10절이 없다.
+ * 한 자로 재려 들면 둘 중 하나는 틀린 것을 재게 된다.
+ */
+const tenthSectionExperiments = experiments.filter(
+  (variant) => variant.assembly.eachPersonJudgements !== CONTROL.eachPersonJudgements,
+);
+const shapeExperiments = experiments.filter(
+  (variant) => variant.assembly.pairShape !== CONTROL.pairShape,
+);
+
 describe('실험판은 10절에만 선다', () => {
   it('기준판은 10절에 아무 규칙도 안 붙인다', () => {
     expect(sectionTen()).toBe(
@@ -73,7 +88,7 @@ describe('실험판은 10절에만 선다', () => {
     expect(sectionTen()).not.toContain('analysis.');
   });
 
-  it.each(experiments)('$id — 움직인 절이 10절 하나다', (variant) => {
+  it.each(tenthSectionExperiments)('$id — 움직인 절이 10절 하나다', (variant) => {
     const before = pairSectionTexts('private', CONTROL);
     const after = pairSectionTexts('private', variant.assembly);
 
@@ -92,7 +107,7 @@ describe('실험판은 10절에만 선다', () => {
    * 사람은 시킨 대로 읽히고 다른 사람은 안 읽힌다 — `plain` 승격 때 `now.overlaps`
    * 지시가 두 판 중 한쪽에만 들어가 있던 것과 같은 자리다.
    */
-  it.each(experiments)('$id — `charts.a` 와 `charts.b` 를 모두 짚는다', (variant) => {
+  it.each(tenthSectionExperiments)('$id — `charts.a` 와 `charts.b` 를 모두 짚는다', (variant) => {
     const ten = sectionTen(variant.assembly);
 
     expect(ten).toContain('charts.a');
@@ -107,7 +122,7 @@ describe('실험판은 10절에만 선다', () => {
    * 엔진이 판정 이름을 바꾸는 날 이 시험이 먼저 말한다 — 손으로 적은 경로는 엔진이
    * 자랄 때 안 따라오지만, 대보는 시험은 따라온다.
    */
-  it.each(experiments)('$id — 대는 경로가 두 사람 자료에 다 있다', (variant) => {
+  it.each(tenthSectionExperiments)('$id — 대는 경로가 두 사람 자료에 다 있다', (variant) => {
     const named = [...sectionTen(variant.assembly).matchAll(/analysis\.([A-Za-z]+)/g)].map(
       (found) => found[1],
     );
@@ -132,7 +147,7 @@ describe('실험판은 10절에만 선다', () => {
    * 지금 기준판은 분류명을 아예 안 부르는 판(`plain`)이라 더 그렇다 — 경로만 대고 뜻은
    * 사람 말로 적는다.
    */
-  it.each(experiments)('$id — 판정 이름을 본문에 안 들인다', (variant) => {
+  it.each(tenthSectionExperiments)('$id — 판정 이름을 본문에 안 들인다', (variant) => {
     const ten = sectionTen(variant.assembly);
 
     for (const name of ['억부', '조후', '종격', '격국', '통관', '신강', '신약', '십성']) {
@@ -141,7 +156,7 @@ describe('실험판은 10절에만 선다', () => {
   });
 
   /** 1~9절과 11절은 한 글자도 안 바뀐다 — `changes` 가 그렇게 적고 있다 */
-  it.each(experiments)('$id — 나머지 절은 그대로다', (variant) => {
+  it.each(tenthSectionExperiments)('$id — 나머지 절은 그대로다', (variant) => {
     const before = pairSectionTexts('private', CONTROL);
     const after = pairSectionTexts('private', variant.assembly);
 
@@ -232,5 +247,85 @@ describe('궁합 변형도 한 곳만 벗어난다', () => {
     for (const variant of PAIR_VARIANTS) {
       expect(readingPromptOf(one, variant.assembly).split(payload), variant.id).toHaveLength(2);
     }
+  });
+});
+
+/**
+ * **절을 걷어낸 판이 무엇을 놓고 무엇을 쥐고 있는가.**
+ *
+ * 이 판의 위험은 「너무 많이 놓는 것」이다. 구성과 해석을 넘기면서 근거·경계·말투까지
+ * 함께 흘리면, 그것은 자율성이 아니라 **우리가 책임질 것을 모델에게 떠넘긴 것**이다.
+ * 여기서 잠그는 것은 그 선이다 — 놓은 것과 쥔 것을 둘 다 값으로 센다.
+ */
+describe('절을 걷는 판은 구성만 놓는다', () => {
+  it.each(shapeExperiments)('$id — 우리가 정한 절이 하나도 안 남는다', (variant) => {
+    const prompt = promptOf(variant.id);
+
+    expect(pairSectionTexts('private', variant.assembly)).toEqual([]);
+
+    /* 절 번호가 남으면 목록이 그대로 절이 된다 — 이름만 바뀐 같은 글이 나온다 */
+    for (const gone of ['**1. ', '**4. ', '**10. ', '**11. ']) {
+      expect(prompt, gone).not.toContain(gone);
+    }
+  });
+
+  /**
+   * **「성격을 읽는 순서」도 함께 내려간다.** 절만 걷고 이 문단을 남기면 「해석은 네가
+   * 하라」면서 읽는 순서는 시키는 꼴이라, 그 판이 재려던 것이 반쯤만 재어진다.
+   */
+  it.each(shapeExperiments)('$id — 성격 읽는 순서를 안 시킨다', (variant) => {
+    expect(promptOf(variant.id)).not.toContain('## 성격을 읽는 순서');
+    expect(promptOf('control')).toContain('## 성격을 읽는 순서');
+  });
+
+  it.each(shapeExperiments)('$id — 다룰 것 일곱을 다 든다', (variant) => {
+    const prompt = promptOf(variant.id);
+
+    for (const need of [
+      '두 사람이 서로에게 어떤 사람인가',
+      '어디가 맞고 어디서 부딪히는가',
+      '서로 채워 주는 것과, 둘이 있어야 생기는 것',
+      '실제 생활에서 반복될 장면',
+      '오래 가려면 무엇이 필요한가',
+      '각자가 가까운 사이에서 어떤 사람인가',
+      '지금이 이 관계에 어떤 시기인가',
+    ]) {
+      expect(prompt, need).toContain(need);
+    }
+  });
+
+  /**
+   * **놓지 않은 것** — 근거·경계·말투·용어·분량·점수·근거 칸.
+   *
+   * 이것이 이 판의 계약이다. 하나라도 함께 흘러 나가면 그때 나오는 글은 「자율성을 준
+   * 판」이 아니라 **아무것도 안 시킨 판**이고, 그 둘을 견주는 것은 이 라운드가 묻는
+   * 물음이 아니다.
+   */
+  it.each(shapeExperiments)('$id — 근거·경계·말투는 그대로 쥔다', (variant) => {
+    const prompt = promptOf(variant.id);
+
+    for (const kept of [
+      '## 이 자료가 무엇인가',
+      '## 사실에 관한 단 하나의 금지',
+      '## 근거의 층',
+      '## 얼마나 세게 말할까',
+      '## 고객에게 말하는 말투',
+      '## 본문 규칙',
+      '## 이름 대신 그 이름이 가리키는 것을 쓴다',
+      '## 두 사람을 부르는 말',
+    ]) {
+      expect(prompt, kept).toContain(kept);
+    }
+
+    /* 분량과 점수는 절이 아니라 계약이다 — 구조를 놔도 남는다 */
+    expect(prompt).toContain('사용자 본문은 3500~5500자');
+    expect(prompt).toContain('점수');
+    /* 맨 끝 검사용 근거 절 — 이것이 없으면 경로 검사가 본문 전체를 재게 된다 */
+    expect(prompt).toContain(PROMPT_PARTS.closing);
+  });
+
+  /** 공유 궁합은 동의 범위가 좁아 다룰 것의 목록 자체가 다르다 — 안 닿는다(ADR 0012) */
+  it.each(shapeExperiments)('$id — 공유 궁합은 그대로다', (variant) => {
+    expect(promptOf(variant.id, 'match')).toBe(promptOf('control', 'match'));
   });
 });

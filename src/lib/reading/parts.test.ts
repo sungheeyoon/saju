@@ -81,6 +81,24 @@ describe('해석용은 막지 않고 딱지만 붙인다', () => {
   });
 });
 
+/**
+ * **조각은 앞뒤로 빈 줄을 물지 않는다.**
+ *
+ * 조립기가 `'\n\n'` 으로 잇는다. 조각이 제 끝에 줄바꿈을 하나 더 들고 있으면 그 자리에만
+ * 빈 줄이 둘이 되는데, **눈으로는 안 보이고 글자 수로만 드러난다.**
+ *
+ * 실제로 겪었다. `PERSONALITY` 에서 강도 절을 떼어 낼 때 남은 꼬리 줄바꿈 하나가 그대로
+ * 붙어서, **기준판 프롬프트가 한 글자 길어진 채로** 통과할 뻔했다. 「기준판은 안 바뀐다」가
+ * 그 라운드의 전제였는데 그것이 조용히 거짓이 되는 자리였다.
+ */
+describe('조각은 이음매를 더럽히지 않는다', () => {
+  it.each(Object.keys(PROMPT_PARTS))('%s — 앞뒤에 군더더기 공백이 없다', (name) => {
+    const part = PROMPT_PARTS[name as keyof typeof PROMPT_PARTS];
+
+    expect(part).toBe(part.trim());
+  });
+});
+
 describe('조각이 실제로 나가는 글에 닿는다', () => {
   it('규칙과 끝자리는 모든 풀이에 선다', () => {
     for (const kind of READING_KINDS) {

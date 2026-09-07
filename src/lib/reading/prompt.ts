@@ -125,6 +125,51 @@ export type Terminology = 'annotated' | 'plain';
  */
 export type EachPersonJudgements = 'unranked' | 'precedence-v1' | 'named-v1';
 
+/**
+ * 비공개 궁합 본문을 **무엇이 정하는가** — 절 목록인가, 다룰 것의 목록인가.
+ *
+ * - `sections-v1` — 지금 나가는 것. 절 열하나를 우리가 정하고 절마다 무엇을 쓸지 시킨다.
+ * - `needs-v1` — **다룰 것만 주고 구성과 해석은 모델이 정한다.**
+ *
+ * ## 왜 이 축이 생겼나
+ *
+ * P1·P2 가 「10절에서 어느 판정을 읽힐까」를 물었다. 그것을 규칙 한 줄씩 재는 것으로는
+ * 끝이 안 난다 — 지시를 더 얹는 방향이라 이기든 지든 다음 라운드도 지시 하나를 더
+ * 얹게 된다. 이 축은 **반대로 흔든다.**
+ *
+ * 재보니 지시(자료 뺀 것)가 12,794자이고 이 축이 걷어내는 것은 **절 목록 약 1,443자와
+ * 「성격을 읽는 순서」 720자**다. 다룰 것의 목록을 도로 세우므로 실제로 줄어드는 것은
+ * **1,622자(13%)**다.
+ *
+ * **줄어든 글자보다 바뀐 것이 크다.** 우리가 정하던 절 열하나가 **0개**가 된다 — 절
+ * 문장이 짧아서 글자 수가 그 변화를 작아 보이게 한다. 처음 어림한 「29%」는 「낼 것」
+ * 블록을 통째로 구성 지시로 센 것이라 틀렸다. 그 안의 형식·점수·근거 칸 지시는 남는다.
+ *
+ * 근거·경계와 말투·용어·형식은 이 축이 안 건드린다 — 그쪽은 **우리가 책임질 것**이라
+ * 그대로 둔다. 시험이 그 선을 센다.
+ *
+ * ## 계약이 절을 요구하지 않는다
+ *
+ * `checkReading` 이 막는 일곱(`length-out-of-contract`·`non-korean-self-body`·
+ * `score-out-of-contract`·`evidence-path-leaked`·`invented-characters`·
+ * `birth-input-leaked`·`out-of-scope-judgment`) 어디에도 절 이야기가 없고, 궁합은 절 수
+ * 계약도 없다. **지금 열한 절은 필요해서 있는 것이 아니라 우리가 고른 것이다.**
+ *
+ * ## 한 번 놔봤고 얕아진 전례가 있다
+ *
+ * 자기 풀이에서 네 절로 줄였을 때 「일·돈·연애·귀인과 대운의 맥락이 사라지고 생활
+ * 코칭만 남았다」. 그때 없앤 것은 구조가 아니라 **다룰 것**이었다 — 모델은 자유를 얻으면
+ * 안전한 쪽으로 가고, 뭉뚱그린 조언이 제일 안전하다.
+ *
+ * 그래서 이 축은 구조만 놓고 **다룰 것은 그대로 든다**(`PAIR_NEEDS`). 「연애에서 무엇을
+ * 궁금해하나」는 커버리지이고 「4번 절에 잘 맞는 지점 셋을 써라」는 구성이다 — 지금
+ * 프롬프트는 그 둘을 한 덩어리로 묶어 두었다.
+ *
+ * **공유 궁합에는 안 닿는다.** 그쪽은 동의 범위가 여덟 글자와 관계 사실까지라(ADR 0012)
+ * 다룰 것의 목록 자체가 다르다. 한 목록으로 묶으면 없는 자료를 다루라고 시키게 된다.
+ */
+export type PairShape = 'sections-v1' | 'needs-v1';
+
 export type PromptAssembly = {
   /** 검사용 근거 절을 제외한 자기 풀이 본문 목표 길이 */
   readonly selfLength: Length;
@@ -158,6 +203,13 @@ export type PromptAssembly = {
    * 든다(`JUDGEMENT_PRECEDENCE`). **비공개 궁합만 값을 싣고 안 읽는다.**
    */
   readonly eachPersonJudgements: EachPersonJudgements;
+  /**
+   * 비공개 궁합 본문의 꼴 — 절 목록인가 다룰 것의 목록인가.
+   *
+   * **`needs-v1` 이면 `eachPersonJudgements` 는 뜻을 잃는다.** 그 축은 10절을 고치는
+   * 것인데 여기서는 10절이 없다. 둘을 함께 세우지 않는다 — 변형 목록이 그것을 지킨다.
+   */
+  readonly pairShape: PairShape;
   /** 본문 계약 앞에 얹는 실험 규칙 */
   readonly extraSections: readonly string[];
   /** 자료 뒤에 붙이는 제출 전 확인. 없으면 `null` */
@@ -174,6 +226,7 @@ export const CONTROL: PromptAssembly = {
   selfPresentation: 'expert-v4',
   terminology: 'plain',
   eachPersonJudgements: 'unranked',
+  pairShape: 'sections-v1',
   extraSections: [],
   tail: null,
 };
@@ -850,6 +903,15 @@ export const pairSectionTexts = (kind: PairKind, assembly: PromptAssembly): read
   const { a, b = FALLBACK_NAMES.b as string } = FALLBACK_NAMES;
   const meeting = MEETING_SECTION[kind === 'match' ? 'match' : 'unknown'];
 
+  /**
+   * **우리가 정한 절이 없는 판은 빈 목록이다.**
+   *
+   * 여기서 절 열하나를 그대로 돌려주면 자가 거짓말을 한다 — 프롬프트에 없는 절을 세게
+   * 되고, 그러면 절을 통째로 걷어낸 변형이 「한 절도 안 움직였다」로 통과한다. 그 판은
+   * 규칙 1 이 잡아야 하는 것 중 가장 큰 것인데도.
+   */
+  if (kind === 'private' && assembly.pairShape === 'needs-v1') return [];
+
   return kind === 'private'
     ? [...COMPAT_SHARED_SECTIONS(a, b, meeting), ...compatPrivateSections(assembly)]
     : [...COMPAT_SHARED_SECTIONS(a, b, meeting)];
@@ -1064,6 +1126,60 @@ const relationOf = (kind: PairKind, relation: Relation | null): string =>
    */
   relationBlock(kind === 'match' ? RELATION_FROM_MATCH : relationSentence(relation));
 
+/**
+ * **비공개 궁합에서 사람들이 알고 싶은 것** — 절 목록이 아니라 커버리지다.
+ *
+ * 지금 열한 절이 실제로 덮고 있는 것을 절 모양을 걷고 다시 적은 것이다. 항목 수가 절
+ * 수보다 적은 것은 줄여서가 아니라, **한 절이 하나씩 맡던 것을 묶었기 때문**이다 —
+ * 어떻게 나눌지는 이제 모델이 정한다.
+ *
+ * 이 목록이 이 판의 전부다. 절을 없애는 순간 **여기가 「무엇을 말할지」의 유일한
+ * 자리**가 되므로, 여기서 빠진 것은 글에서도 빠진다.
+ */
+const PAIR_NEEDS = [
+  '두 사람이 서로에게 어떤 사람인가',
+  '어디가 맞고 어디서 부딪히는가',
+  '서로 채워 주는 것과, 둘이 있어야 생기는 것',
+  '실제 생활에서 반복될 장면',
+  '오래 가려면 무엇이 필요한가',
+  '각자가 가까운 사이에서 어떤 사람인가',
+  '지금이 이 관계에 어떤 시기인가',
+] as const;
+
+/**
+ * 구성과 해석을 넘기는 자리 — **우리가 주는 것은 사실과 경계이지 해석이 아니다.**
+ *
+ * 세 문단이 각각 다른 일을 한다.
+ *
+ * 1. **다룰 것을 준다.** 안 주면 얕아진다 — 자기 풀이에서 겪었다.
+ * 2. **고르게 나누지 말라고 한다.** 이것이 없으면 목록이 곧 절이 되어, 이름만 바뀐 채
+ *    같은 글이 나온다. 항목마다 같은 분량을 주는 것이 **목록을 베낀 글**의 얼굴이다.
+ * 3. **해석을 넘긴다.** 어느 판정을 읽을지·무엇이 이 사람을 답답하게 하는지·무엇을
+ *    궁금해할지는 모델이 판단한다.
+ *
+ * **소제목을 제 말로 달게 한다.** 번호 목록으로 두면 모델은 목록을 베낀다 — 절을 걷어낸
+ * 뜻이 거기서 사라진다.
+ *
+ * 안 넘기는 것은 그대로 남는다: 근거의 층·사실 금지·강도·말투·어려운 말 안 쓰기·분량,
+ * 그리고 맨 끝 검사용 근거 절. 그것들은 **우리가 책임질 것**이라 모델에게 안 묻는다.
+ */
+const NEEDS_BLOCK = `## 무엇을 다룰까
+
+아래는 이 풀이를 받는 사람이 **실제로 알고 싶어 하는 것**이다. **절 목록이 아니다** —
+몇 덩이로 나눌지, 어떤 차례로 쓸지, 무엇을 깊게 파고 무엇을 한 줄로 지날지는 **네가
+정한다.**
+
+${PAIR_NEEDS.map((need) => `- ${need}`).join('\n')}
+
+**다 다루되 고르게 나누지는 마라.** 이 두 사람 자료에서 할 말이 많은 것은 길게, 자료가
+얇은 것은 짧게 쓴다. 모든 항목에 같은 분량을 주면 그것이 곧 **목록을 베낀 글**이다.
+
+자료의 어느 판정을 읽고 무엇을 버릴지도 네가 고른다. 이 사람이 무엇을 답답해할지, 두
+사람이 무엇을 궁금해할지도 네가 판단해서 쓴다 — **우리가 주는 것은 사실과 경계이지
+해석이 아니다.**
+
+소제목은 네가 붙인다. 번호로 세지 말고, 그 대목이 무슨 이야기인지가 드러나는 말로 단다.`;
+
 const compatSections = (
   kind: PairKind,
   assembly: PromptAssembly,
@@ -1082,17 +1198,38 @@ const compatSections = (
       : COMPAT_SHARED_SECTIONS(a, b, meeting);
   const { min, max } = assembly.compatLength[kind];
 
-  return `${namingBlock(names)}
+  /**
+   * **다룰 것만 주는 판** — 절 목록 자리에 커버리지가 서고 구성은 모델이 정한다.
+   *
+   * 비공개 궁합에만 갈린다. 공유 궁합은 동의 범위가 좁아 다룰 것의 목록 자체가 다르고,
+   * 한 목록으로 묶으면 **없는 자료를 다루라고 시키게 된다**(ADR 0012).
+   *
+   * 점수는 그대로 요구한다 — 절이 아니라 **계약**이라서다(`score-out-of-contract`).
+   * 몇 번째인지는 안 세는데, 소제목 수를 모델이 정하므로 셀 번호가 없다.
+   */
+  const needsShape = kind === 'private' && assembly.pairShape === 'needs-v1';
 
-${relationOf(kind, relation)}
+  const plan = needsShape
+    ? `${NEEDS_BLOCK}
 
 ## 낼 것
+
+Markdown으로 쓰고 소제목은 \`##\`로 단다. **소제목의 수와 차례는 네가 정한다.**
+
+맨 마지막 대목은 **점수**다 — 아래를 따른다.`
+    : `## 낼 것
 
 Markdown으로 쓰고 소제목은 \`##\`로 단다.
 
 ${sections.join('\n\n')}
 
-**${sections.length + 1}. 점수** — 아래를 따른다.
+**${sections.length + 1}. 점수** — 아래를 따른다.`;
+
+  return `${namingBlock(names)}
+
+${relationOf(kind, relation)}
+
+${plan}
 
 그다음에 줄을 긋고:
 
@@ -1148,7 +1285,19 @@ const bodyOf = (
     PROMPT_PARTS.rules,
     ...(kind === 'match' ? [MATCH_SCOPE] : []),
     voice,
-    ...(kind === 'match' ? [] : [PROMPT_PARTS.personality]),
+    /*
+      **「성격을 읽는 순서」는 구성·해석 지시다.** 다룰 것만 주는 판에서는 함께 내린다 —
+      절 목록만 걷고 이 문단을 남기면 「해석은 네가 하라」면서 읽는 순서는 시키는 꼴이라,
+      그 판이 재려던 것이 반쯤만 재어진다.
+
+      **강도(`claimStrength`)는 안 내린다.** 한 문자열에 같이 살던 것을 갈랐다 — 그쪽은
+      근거가 몇 갈래냐로 말의 세기를 정하는 **경계**이고, 그것까지 놓으면 자율성이
+      아니라 우리가 책임질 것을 떠넘긴 것이다. 시험이 그 자리를 잡았다.
+    */
+    ...(kind === 'match' || (kind === 'private' && assembly.pairShape === 'needs-v1')
+      ? []
+      : [PROMPT_PARTS.personality]),
+    ...(kind === 'match' ? [] : [PROMPT_PARTS.claimStrength]),
     /*
       **`match` 자료에는 `analysis` 가 통째로 빠져 있다**(`WITHHELD_PATHS`) — 없는 경로를
       가리키는 규칙이 되므로 안 붙인다.
