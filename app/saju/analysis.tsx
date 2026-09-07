@@ -26,6 +26,12 @@ import {
 import {
   subjectParticle,
 } from './shared';
+import {
+  CardTabs,
+} from './card-tabs';
+import {
+  ClaimStrengthLegend,
+} from '../utterances';
 
 
 /**
@@ -88,8 +94,21 @@ function WeightShifts({ saju }: { saju: Saju }) {
   const percent = (ratio: number) => `${Math.round(ratio * 100)}%`;
 
   return (
-    <div className="mt-4 border-t border-border pt-3">
-      <h3 className="text-sm font-medium">세력에 반영한 합과 안 한 합</h3>
+    /*
+      **접는다.** 이 칸이 답하는 것은 「왜 이 숫자냐」이고, 그것은 표를 보다가 걸렸을 때
+      찾는 물음이지 표를 열자마자 하는 물음이 아니다. 접은 칸도 자리를 하나 만들지만
+      (ADR 0025), 여기서는 그 자리 하나가 스무 줄보다 싸다.
+    */
+    <details className="group mt-4 border-t border-border pt-3">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium [&::-webkit-details-marker]:hidden">
+        <span
+          aria-hidden="true"
+          className="text-xs text-muted transition-transform group-open:rotate-90"
+        >
+          ▸
+        </span>
+        세력에 반영한 합과 안 한 합
+      </summary>
 
       <ul className="mt-2 flex flex-col gap-1 text-sm">
         {bureaus.map((bureau) => {
@@ -157,7 +176,7 @@ function WeightShifts({ saju }: { saju: Saju }) {
         잡았거나 화신이 투간했으면 깎지 않고, 왕지가 충을 맞으면 절반으로 깎습니다.
         글자를 바꾸지는 않습니다 — 辰이 수국에 들어도 그 안의 土가 0 이 되지는 않습니다.
       </p>
-    </div>
+    </details>
   );
 }
 
@@ -168,32 +187,25 @@ function WeightShifts({ saju }: { saju: Saju }) {
  */
 export function ElementChart({ saju }: { saju: Saju }) {
   const { counts, scores, ratios, missing, strongest, glyphCount } = saju.analysis.elements;
-  const needed = new Set(saju.analysis.strength.neededElements);
   const max = Math.max(...ELEMENTS.map((e) => ratios[e]), 0.0001);
 
   return (
     <section className={CARD}>
       <h2 className="text-base font-semibold">오행 분포</h2>
-      <p className="mt-1 mb-4 text-xs text-secondary">
-        개수는 {glyphCount === 8 ? '여덟' : '여섯'} 글자를 그대로 센 것(괄호 안은 그
-        비중), 점수는 지장간을 사령 일수로 펼친 값입니다. 다른 만세력은 대개
-        앞쪽 기준으로 %를 냅니다
-        {glyphCount !== 8 && <span className="text-muted"> · 시주 제외</span>}
-      </p>
       {/*
-        **딱지 둘이 범례 없이 서 있었다.**
+        **여기는 설명하는 자리가 아니라 자료를 내는 자리다.**
 
-        「필요」는 억부가 가리키는 **방향**이라 신약이면 비겁·인성 둘 다 붙는다
-        (`strength.neededElements`). 아래 억부 칸이 그중 **하나**를 후보로 고른 것이라,
-        같은 낱말이 한 화면에서 두 넓이로 쓰인다 — 둘이 어긋난 것이 아닌데 범례가
-        없으면 어긋나 보인다. 오신 배정에서 한신인 오행에 「필요」가 붙는 것도 이
-        까닭이다.
+        문단 둘이 서 있었다. 하나는 세 열이 무엇인지, 하나는 딱지 둘의 범례였다. 그중
+        범례는 **딱지를 옮겨서** 없앴다 — 「필요」는 억부가 가리키는 방향이라 이 표가
+        아니라 용신 칸의 값이고, 거기서는 옆에 선 후보가 그 뜻을 말해 준다.
+        「최강」은 낱말이 스스로 말한다.
+
+        열 이름은 한 줄로 남긴다. 「점수 1.10」이 무엇인지 모르면 그 칸은 자료가 아니라
+        정체 모를 수다 — 자를 밝히는 것은 설명이 아니다.
       */}
-      <p className="mb-4 text-xs text-muted">
-        <span className="text-muted">최강</span> 은 점수가 가장 높은 오행,{' '}
-        <span className="text-accent">필요</span> 는 억부가 가리키는 방향입니다 — 신약이면
-        비겁·인성 둘, 신강이면 식상·재성·관성 셋이 함께 붙습니다. 아래 억부 칸은 그중
-        하나를 후보로 고른 것입니다.
+      <p className="mt-1 mb-4 text-xs text-secondary">
+        개수는 {glyphCount === 8 ? '여덟' : '여섯'} 글자, 점수는 지장간까지 편 값입니다
+        {glyphCount !== 8 && <span className="text-muted"> · 시주 제외</span>}
       </p>
 
       <table className="w-full border-collapse text-sm">
@@ -213,7 +225,6 @@ export function ElementChart({ saju }: { saju: Saju }) {
                 <span className={`glyph inline-grid size-7 place-items-center rounded-lg ${ELEMENT_TONE[element].surface} ${ELEMENT_TONE[element].text}`}>{element}</span>{' '}
                 <span className="text-secondary">{ELEMENT_KO[element]}</span>
                 {element === strongest && <span className="ml-1.5 text-xs text-muted">최강</span>}
-                {needed.has(element) && <span className="ml-1.5 text-xs text-accent">필요</span>}
               </td>
               <td
                 className={`py-1 pl-3 text-right tabular-nums whitespace-nowrap ${
@@ -272,176 +283,291 @@ export function ElementChart({ saju }: { saju: Saju }) {
 }
 
 
-/** 신강·신약 — 임계값 대비 단일 비율이므로 메터. */
+/** 신강·신약 — 보조세력 비율과 득령·득지·득세 판정을 한 흐름으로 보여준다. */
 export function StrengthMeter({ saju }: { saju: Saju }) {
-  const { strength, eokbu, johu, tonggwan, yongsinAgreement, precedence } = saju.analysis;
+  const { strength } = saju.analysis;
   const percent = strength.ratio * 100;
   const threshold = 50;
+  const isStrong = strength.verdict === 'strong';
 
   return (
     <section className={`${CARD} flex flex-col`}>
-      <h2 className="text-base font-semibold">신강 · 신약</h2>
+      <div>
+        <h2 className="text-base font-semibold">신강 · 신약</h2>
+        <p className="mt-0.5 text-xs text-secondary">보조세력과 득령·득지·득세를 함께 봅니다</p>
+      </div>
 
-      <p className="mt-2 flex items-baseline gap-2">
-        <span className="text-3xl font-semibold">
-          {strength.verdict === 'strong' ? '신강' : '신약'}
-        </span>
-        <span className="text-sm text-secondary">세 기준 중 {strength.metCount}개 충족</span>
-      </p>
-
-      <div className="mt-4">
-        <div className="relative h-3 rounded-sm bg-track">
-          <div
-            className="h-full rounded-r-[4px] bg-accent"
-            style={{ width: `${percent}%` }}
-          />
-          <div
-            className="absolute inset-y-[-3px] w-px bg-border-strong"
-            style={{ left: `${threshold}%` }}
-            aria-hidden
-          />
+      <div className="mt-4 rounded-2xl bg-surface-soft p-4 sm:flex sm:items-center sm:justify-between sm:gap-6">
+        <div>
+          <p className="text-xs font-medium text-muted">현재 판정</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <strong className="text-3xl font-semibold">{isStrong ? '신강' : '신약'}</strong>
+            <span className="text-sm text-secondary">세 기준 중 {strength.metCount}개 충족</span>
+          </div>
         </div>
-        <div className="mt-1.5 flex justify-between text-xs text-secondary">
-          <span>
-            보조 {strength.supportScore.toFixed(2)} · 소모 {strength.opposeScore.toFixed(2)}
-          </span>
-          <span className="tabular-nums">
-            보조세력 {percent.toFixed(1)}%{' '}
-            <span className="text-muted">(기준 {threshold}%)</span>
-          </span>
+        <div className="mt-4 flex items-baseline gap-1 sm:mt-0 sm:text-right">
+          <span className="text-3xl font-semibold tabular-nums text-foreground">{percent.toFixed(1)}</span>
+          <span className="text-sm font-medium text-foreground">%</span>
+          <span className="ml-1 text-xs text-muted">보조세력</span>
         </div>
       </div>
 
-      <p className="mt-3 text-xs text-muted">
-        세력비에 태약·중화·태왕 같은 등급 이름은 붙이지 않습니다. 근거 있는 구간
-        경계를 아직 확보하지 못했습니다. 아래 세 기준도 서로 겹칩니다 — 득세
-        점수에 월지·일지가 이미 들어 있습니다.
-      </p>
+      <div className="mt-5">
+        <div
+          className="relative h-3 overflow-visible rounded-full bg-track"
+          role="img"
+          aria-label={`보조세력 ${percent.toFixed(1)}%, 신강 기준 ${threshold}%`}
+        >
+          <div
+            className="h-full rounded-full bg-foreground/55"
+            style={{ width: `${percent}%` }}
+          />
+          <div
+            className="absolute inset-y-[-4px] w-0.5 bg-foreground/45"
+            style={{ left: `${threshold}%` }}
+            aria-hidden="true"
+          />
+        </div>
+        <div className="mt-1.5 flex justify-between text-[10px] text-muted sm:text-xs">
+          <span>소모 우세</span>
+          <span>신강 기준 {threshold}%</span>
+          <span>보조 우세</span>
+        </div>
+      </div>
 
-      <ul className="mt-3 flex flex-col gap-1 border-t border-border pt-3 text-sm">
+      <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+        <div className="rounded-xl border border-border px-3 py-2.5">
+          <p className="text-[11px] text-muted">일간을 돕는 힘</p>
+          <p className="mt-0.5 text-lg font-semibold tabular-nums">{strength.supportScore.toFixed(2)}</p>
+          <p className="text-[10px] text-secondary">비겁·인성</p>
+        </div>
+        <div className="rounded-xl border border-border px-3 py-2.5">
+          <p className="text-[11px] text-muted">일간을 소모하는 힘</p>
+          <p className="mt-0.5 text-lg font-semibold tabular-nums">{strength.opposeScore.toFixed(2)}</p>
+          <p className="text-[10px] text-secondary">식상·재성·관성</p>
+        </div>
+      </div>
+
+      <div className="mt-5 border-t border-border pt-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <h3 className="text-sm font-semibold">판정 근거</h3>
+          <span className="text-xs text-muted">득령 · 득지 · 득세</span>
+        </div>
+      </div>
+      <ul className="mt-2 grid gap-2 sm:grid-cols-3">
         {strength.criteria.map((criterion) => (
-          <li key={criterion.key} className="flex gap-2">
-            <span className={criterion.met ? 'text-accent' : 'text-muted'}>
-              {criterion.met ? '○' : '✕'}
-            </span>
-            <span className="w-8 shrink-0">{criterion.label}</span>
-            <span className="text-secondary">{criterion.detail}</span>
+          <li
+            key={criterion.key}
+            className={`rounded-xl border p-3 ${
+              criterion.met ? 'border-border-strong bg-surface-sunken' : 'border-border bg-surface-soft'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold">{criterion.label}</span>
+              {/*
+                **충족에 강조색을 안 쓴다.** 세력비와 게이지를 중립색으로 내린 것과 같은
+                까닭이다 — 신강·신약은 좋고 나쁨이 아니므로, 세 기준 중 하나를 「달성」한
+                것처럼 보이는 초록이 여기만 남으면 그 판단이 반만 적용된 것이 된다.
+                가르는 일은 채움의 세기가 한다.
+              */}
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                criterion.met
+                  ? 'bg-foreground/85 text-background'
+                  : 'bg-surface-sunken text-muted'
+              }`}>
+                {criterion.met ? '충족' : '미충족'}
+              </span>
+            </div>
+            <p className="mt-1.5 text-xs leading-5 text-secondary">{criterion.detail}</p>
           </li>
         ))}
       </ul>
 
+      {/*
+        **한 줄만 남긴다.** 여기 세 문장이 있었다 — 등급 이름을 안 붙이는 까닭, 구간
+        경계를 못 잡은 사정, 세 기준이 겹친다는 사실. 앞의 둘은 **없는 것에 대한 해명**이라
+        화면에 안 세운다(안 붙은 등급을 사용자가 기다리고 있지 않다). 남은 하나는 바로 위
+        세 줄을 읽는 방법이라 그 옆에 선다.
+      */}
+      <p className="mt-2 text-xs text-muted">
+        세 기준은 서로 겹칩니다 — 득세 점수에 월지·일지가 이미 들어 있습니다.
+      </p>
+
       <RootingNote saju={saju} />
-
-      <div className="mt-4 border-t border-border pt-3">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
-            참고표
-          </span>
-          <span className="text-xs text-muted">조후 후보 천간</span>
-          <span className="glyph text-lg font-medium">
-            {(johu.halfStems ?? johu.stems).join(' · ')}
-          </span>
-          <span className="text-xs text-secondary">
-            {johu.dayMaster}일간 · {johu.monthBranch}월
-            {johu.half && (
-              <>
-                {' · '}
-                {johu.half === 'first' ? '상반월' : '하반월'}
-                {johu.midTerm && (
-                  <span className="text-muted">
-                    {' '}
-                    ({johu.midTerm.name} {johu.half === 'first' ? '전' : '후'})
-                  </span>
-                )}
-              </>
-            )}
-          </span>
-        </div>
-        <p className="mt-1.5 text-xs text-secondary">{johu.note}</p>
-        {johu.halfStems && (
-          <p className="mt-1 text-xs text-secondary">
-            이 칸은 상·하반월로 갈려서 그 절반의 후보만 위에 적었습니다. 전체 후보는{' '}
-            <span className="glyph">{johu.stems.join(' · ')}</span> 입니다.
-          </p>
-        )}
-        <p className="mt-2 text-xs text-muted">
-          《궁통보감》 120조합의 조건 요약입니다. 상·하반월만 판정합니다 — 경계가
-          중기(절기 +15°)라 천문으로 정해지기 때문입니다. &lsquo;수가 왕하면 戊&rsquo;
-          같은 세력 조건은 문턱을 지어내야 해서 판정하지 않으므로, 확정 용신이 아니라
-          후보와 조건을 함께 읽어야 합니다.
-        </p>
-      </div>
-
-      <div className="mt-4 border-t border-border pt-3">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
-            시험
-          </span>
-          <span className="text-xs text-muted">억부 관점의 후보</span>
-          <span className="glyph text-lg font-medium">{eokbu.suggestedElement}</span>
-          <span className="text-sm font-medium">{ELEMENT_KO[eokbu.suggestedElement]}</span>
-          <span className="text-sm text-secondary">{ELEMENT_ROLE_KO[eokbu.role]}</span>
-          {!eokbu.presentInChart && (
-            <span className="text-xs text-muted">여덟 글자에 없는 오행</span>
-          )}
-        </div>
-        <p className="mt-1.5 text-xs text-secondary">{eokbu.reason}</p>
-
-        {/*
-          **두 칸이 서로 무슨 관계인지 말한다.**
-
-          조후와 억부가 여태 나란히 서 있기만 했다. 하나는 「土를 쓰라」 하고 다른
-          하나는 「壬·丙을 보라」 하는데, 그 둘이 같은 말인지는 읽는 사람이 오행 표를
-          외워 맞춰 봐야 알 수 있었다 — 무작위 3000건에서 **어긋나는 명식이 43.2%** 다.
-
-          **어느 쪽이 급한지는 여기서도 말하지 않는다.** 한랭·조열이 급하면 조후가
-          억부를 제친다는 것이 여러 계통의 말이지만, 「얼마나 급해야」를 재는 자리가
-          엔진에 없다(`YONGSIN_POLICY.johuAgainstEokbu`).
-        */}
-        <p className="mt-2 border-t border-border pt-2 text-xs text-secondary">
-          <span className="font-medium">
-            {yongsinAgreement.aligned ? '두 길이 같은 곳을 가리킵니다.' : '두 길이 다른 곳을 가리킵니다.'}
-          </span>{' '}
-          {yongsinAgreement.aligned ? (
-            <>
-              조후가 권한 글자 가운데{' '}
-              <span className="glyph">{yongsinAgreement.sharedStems.join(' · ')}</span>
-              {subjectParticle(yongsinAgreement.sharedStems[yongsinAgreement.sharedStems.length - 1])}{' '}
-              억부와 같은 {ELEMENT_KO[yongsinAgreement.eokbuElement]}입니다.
-            </>
-          ) : (
-            <>
-              조후가 권한 <span className="glyph">{yongsinAgreement.johuStems.join(' · ')}</span> 중에는
-              억부가 권한 {ELEMENT_KO[yongsinAgreement.eokbuElement]}
-              {subjectParticle(ELEMENT_KO[yongsinAgreement.eokbuElement])} 없습니다.
-            </>
-          )}{' '}
-          <span className="text-muted">
-            어느 쪽을 먼저 보아야 하는지는 판정하지 않습니다 — 한랭·조열이 얼마나 급한지를
-            재는 자리가 아직 없습니다.
-          </span>
-        </p>
-
-        <p className="mt-2 text-xs text-muted">
-          <strong className="font-medium">용신 확정값이 아닙니다.</strong> 억부는 용신을
-          잡는 네 길 중 하나일 뿐이고, 아직 판정하지 않은 것이 남아 있습니다 —{' '}
-          {eokbu.unresolved.map((factor) => UNRESOLVED_FACTOR_KO[factor]).join(', ')}.
-          이 가운데 통근·투출은 <strong className="font-medium">사실만 위에 적어 두었고</strong>,
-          그것이 쓸 만한 뿌리인지를 재는 판정만 아직 없습니다. 종격은 위 칸에서{' '}
-          <strong className="font-medium">따로 판정하지만 이 후보에는 반영되지 않았습니다</strong> —
-          문턱이 고전의 숫자가 아니라 이 엔진의 실험값이라, 억부와 정반대 답이 나오더라도
-          뒤집지 않고 나란히 세웁니다. 위 조후표도 조건을 전부 자동 판정하지 않은
-          참고값입니다.
-          꺼리는 오행(기신)은 판정하지 않습니다 — 명식 전체에서 무엇이 병인지를 봐야
-          정해지지 오행 상극표 한 줄로 나오는 것이 아니기 때문입니다. 다만 「이 후보를
-          용신 자리에 놓으면 다섯 오행이 어디에 오는가」(희용기구한)는 표 조회라 계통이
-          갈리지 않고, 그 배정은 화면에 세우지 않는 대신 AI 풀이 자료에 함께 실립니다.
-        </p>
-      </div>
-
-      <TonggwanFacts tonggwan={tonggwan} />
-      <PrecedenceTable precedence={precedence} />
     </section>
+  );
+}
+
+
+/**
+ * 용신 — **한 답이 아니라 관점마다의 후보다.**
+ *
+ * 이 다섯이 신강·신약 카드 하나에 들어 있었다. 조후·억부·종격·통관·서열이 각자 딱지와
+ * 해명 문단을 달고 세로로 쌓여, 카드 하나가 화면 두 개 높이였다 — 「신강인가 신약인가」를
+ * 보러 온 사람이 그 답 아래로 스무 문단을 지나야 했다.
+ *
+ * **가르는 선은 「무엇을 재는가」다.** 강약은 일간의 세기 하나를 재고, 여기 다섯은 전부
+ * 「그래서 무엇을 쓰나」에 서로 다른 길로 답한다. 답이 갈릴 수 있다는 것이 이 카드의
+ * 내용이므로, 한 판씩 골라 보는 것이 나란히 쌓는 것보다 그 사실을 잘 말한다.
+ *
+ * **확정하지 않는다.** 어느 길이 먼저인지는 엔진이 판정하지 않고(`YONGSIN_POLICY`),
+ * 서열 판은 그 규칙을 값으로 든다.
+ */
+export function YongsinCard({ saju }: { saju: Saju }) {
+  const { eokbu, johu, tonggwan, yongsinAgreement, precedence } = saju.analysis;
+
+  return (
+    <CardTabs
+      id="yongsin"
+      anchorId="yongsin"
+      title="용신 후보"
+      note="관점마다 답이 다를 수 있어 확정하지 않고 나란히 둡니다."
+      tablistLabel="용신 관점"
+      initial="eokbu"
+      tabs={[
+        { key: 'eokbu', label: '억부', panel: <EokbuNote eokbu={eokbu} agreement={yongsinAgreement} /> },
+        { key: 'johu', label: '조후', panel: <JohuNote johu={johu} /> },
+        { key: 'following', label: '종격', panel: <FollowingCandidacyNote saju={saju} /> },
+        { key: 'tonggwan', label: '통관', panel: <TonggwanFacts tonggwan={tonggwan} /> },
+        { key: 'precedence', label: '서열', panel: <PrecedenceTable precedence={precedence} /> },
+      ]}
+      /*
+        **딱지 범례가 여기 산다.**
+
+        「이 명식에 대해 말할 수 있는 것」 카드가 들고 있었다. 그 카드를 걷으면서 범례만
+        남길 자리를 찾았는데, 「시험」과 「참고표」가 실제로 붙는 곳이 이 다섯 판이다
+        (「사실」은 낱말이 스스로 말한다). 설명이 그 딱지 옆에 있는 것이 화면 맨 위에
+        모여 있는 것보다 낫다 — 고지를 모아 두면 읽는 사람이 그 덩어리를 건너뛴다.
+
+        판 **밖에** 둔다. 안에 두면 다섯 판이 같은 문단을 다섯 번 들고, 그러면 판을
+        옮길 때마다 같은 글이 다시 나타나 각주가 본문처럼 읽힌다.
+      */
+      footnote={<ClaimStrengthLegend />}
+    />
+  );
+}
+
+
+/** 조후 — 《궁통보감》 조건 요약. **확정 용신이 아니라 후보와 조건이다.** */
+function JohuNote({ johu }: { johu: Saju['analysis']['johu'] }) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+          참고표
+        </span>
+        <span className="text-xs text-muted">조후 후보 천간</span>
+        <span className="glyph text-lg font-medium">
+          {(johu.halfStems ?? johu.stems).join(' · ')}
+        </span>
+        <span className="text-xs text-secondary">
+          {johu.dayMaster}일간 · {johu.monthBranch}월
+          {johu.half && (
+            <>
+              {' · '}
+              {johu.half === 'first' ? '상반월' : '하반월'}
+              {johu.midTerm && (
+                <span className="text-muted">
+                  {' '}
+                  ({johu.midTerm.name} {johu.half === 'first' ? '전' : '후'})
+                </span>
+              )}
+            </>
+          )}
+        </span>
+      </div>
+      <p className="mt-1.5 text-xs text-secondary">{johu.note}</p>
+      {johu.halfStems && (
+        <p className="mt-1 text-xs text-secondary">
+          이 칸은 상·하반월로 갈려서 그 절반의 후보만 위에 적었습니다. 전체 후보는{' '}
+          <span className="glyph">{johu.stems.join(' · ')}</span> 입니다.
+        </p>
+      )}
+      {/*
+        **줄인다.** 상·하반월만 판정하는 까닭(경계가 천문으로 정해진다)과 세력 조건을
+        판정하지 않는 까닭이 각각 한 문장씩 있었다. 남는 것은 **사용자가 알아야 읽는 법이
+        바뀌는 것** 하나다 — 이것은 확정 용신이 아니다.
+      */}
+      <p className="mt-2 text-xs text-muted">
+        세력 조건(&lsquo;수가 왕하면 戊&rsquo;)은 판정하지 않으므로, 확정 용신이 아니라
+        후보와 조건을 함께 읽어야 합니다.
+      </p>
+    </div>
+  );
+}
+
+
+/** 억부 — 세력에서 나온 후보 하나와, 조후와 같은 곳을 가리키는지. */
+function EokbuNote({
+  eokbu,
+  agreement,
+}: {
+  eokbu: Saju['analysis']['eokbu'];
+  agreement: Saju['analysis']['yongsinAgreement'];
+}) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+          시험
+        </span>
+        <span className="text-xs text-muted">억부 관점의 후보</span>
+        <span className="glyph text-lg font-medium">{eokbu.suggestedElement}</span>
+        <span className="text-sm font-medium">{ELEMENT_KO[eokbu.suggestedElement]}</span>
+        <span className="text-sm text-secondary">{ELEMENT_ROLE_KO[eokbu.role]}</span>
+        {!eokbu.presentInChart && (
+          <span className="text-xs text-muted">여덟 글자에 없는 오행</span>
+        )}
+      </div>
+      <p className="mt-1.5 text-xs text-secondary">{eokbu.reason}</p>
+
+      {/*
+        **두 칸이 서로 무슨 관계인지 말한다.**
+
+        조후와 억부가 여태 나란히 서 있기만 했다. 하나는 「土를 쓰라」 하고 다른 하나는
+        「壬·丙을 보라」 하는데, 그 둘이 같은 말인지는 읽는 사람이 오행 표를 외워 맞춰
+        봐야 알 수 있었다 — 무작위 3000건에서 **어긋나는 명식이 43.2%** 다.
+
+        판이 갈린 뒤로 이 줄이 더 필요해졌다. 조후는 이제 옆 탭에 있어 함께 보이지 않는다.
+      */}
+      <p className="mt-2 border-t border-border pt-2 text-xs text-secondary">
+        <span className="font-medium">
+          {agreement.aligned ? '조후와 같은 곳을 가리킵니다.' : '조후와 다른 곳을 가리킵니다.'}
+        </span>{' '}
+        {agreement.aligned ? (
+          <>
+            조후가 권한 글자 가운데{' '}
+            <span className="glyph">{agreement.sharedStems.join(' · ')}</span>
+            {subjectParticle(agreement.sharedStems[agreement.sharedStems.length - 1])}{' '}
+            억부와 같은 {ELEMENT_KO[agreement.eokbuElement]}입니다.
+          </>
+        ) : (
+          <>
+            조후가 권한 <span className="glyph">{agreement.johuStems.join(' · ')}</span> 중에는
+            억부가 권한 {ELEMENT_KO[agreement.eokbuElement]}
+            {subjectParticle(ELEMENT_KO[agreement.eokbuElement])} 없습니다.
+          </>
+        )}{' '}
+        <span className="text-muted">어느 쪽이 먼저인지는 「서열」 판이 답합니다.</span>
+      </p>
+
+      {/*
+        **열두 문장이 두 문장이 됐다.**
+
+        여기 있던 것은 대부분 **아직 판정하지 않은 것들의 목록**이었다 — 기신을 왜 안
+        내는지, 희용기구한을 왜 화면에 안 세우는지, 통근·투출을 어디까지 쟀는지. 그것들은
+        각자 제 자리(통근 칸·서열 판)에서 이미 말하고 있고, 여기서 다시 세면 **읽는 사람이
+        후보 하나를 보려고 아직 없는 것 여섯을 지나야 한다.**
+
+        남기는 것은 이 후보를 잘못 읽지 않게 하는 둘이다: 확정이 아니라는 것과, 무엇이
+        아직 안 재어졌는가.
+      */}
+      <p className="mt-2 text-xs text-muted">
+        <strong className="font-medium">용신 확정값이 아닙니다.</strong> 억부는 용신을 잡는
+        네 길 중 하나이고, 아직 판정하지 않은 것이 남아 있습니다 —{' '}
+        {eokbu.unresolved.map((factor) => UNRESOLVED_FACTOR_KO[factor]).join(', ')}.
+      </p>
+    </div>
   );
 }
 
@@ -460,7 +586,7 @@ function PrecedenceTable({ precedence }: { precedence: Saju['analysis']['precede
   const shaken = precedence.rows.filter((row) => row.disagrees === true);
 
   return (
-    <div className="mt-4 border-t border-border pt-3">
+    <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
           사실
@@ -529,7 +655,7 @@ function TonggwanFacts({ tonggwan }: { tonggwan: Saju['analysis']['tonggwan'] })
   const percent = (ratio: number) => `${(ratio * 100).toFixed(1)}%`;
 
   return (
-    <div className="mt-4 border-t border-border pt-3">
+    <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
           사실
@@ -591,51 +717,53 @@ function RootingNote({ saju }: { saju: Saju }) {
   const seat = (position: PillarPosition) => PILLAR_POSITION_KO[position].charAt(0);
 
   return (
-    <div className="mt-4 border-t border-border pt-3">
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
-          사실
-        </span>
-        <span className="text-xs text-muted">일간 {dayMaster.stem} 의 뿌리</span>
-        {dayMaster.rooted ? (
-          <>
-            <span className="text-sm text-secondary">
-              {dayMaster.roots
-                .map(
-                  (root) =>
-                    `${seat(root.position)}지 ${root.branch}의 ${root.stem}` +
-                    `(${HIDDEN_STEM_ROLE_KO[root.role]} ${root.days}일)`,
-                )
-                .join(' · ')}
-            </span>
-            <span className="text-sm font-medium tabular-nums">합 {dayMaster.totalDays}일</span>
-          </>
-        ) : (
-          <span className="text-sm font-medium">없음 — 지지 어디에도 통근하지 않았습니다</span>
+    <details className="group mt-4 border-t border-border pt-1">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+        뿌리와 투출 자세히 보기
+        <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">⌄</span>
+      </summary>
+      <div className="pb-2 pt-2">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">사실</span>
+          <span className="text-xs text-muted">일간 {dayMaster.stem}의 뿌리</span>
+          {dayMaster.rooted ? (
+            <>
+              <span className="text-sm text-secondary">
+                {dayMaster.roots
+                  .map(
+                    (root) =>
+                      `${seat(root.position)}지 ${root.branch}의 ${root.stem}` +
+                      `(${HIDDEN_STEM_ROLE_KO[root.role]} ${root.days}일)`,
+                  )
+                  .join(' · ')}
+              </span>
+              <span className="text-sm font-medium tabular-nums">합 {dayMaster.totalDays}일</span>
+            </>
+          ) : (
+            <span className="text-sm font-medium">없음 — 지지 어디에도 통근하지 않았습니다</span>
+          )}
+        </div>
+
+        {emergences.length > 0 && (
+          <p className="mt-1.5 text-xs text-secondary">
+            투출{' '}
+            {emergences
+              .map(
+                (emergence) =>
+                  `${seat(emergence.position)}지 ${emergence.branch}의 ${emergence.stem} → ` +
+                  emergence.revealedAt.map((position) => `${seat(position)}간`).join('·'),
+              )
+              .join(' / ')}
+          </p>
         )}
-      </div>
 
-      {emergences.length > 0 && (
-        <p className="mt-1.5 text-xs text-secondary">
-          투출{' '}
-          {emergences
-            .map(
-              (emergence) =>
-                `${seat(emergence.position)}지 ${emergence.branch}의 ${emergence.stem} → ` +
-                emergence.revealedAt.map((position) => `${seat(position)}간`).join('·'),
-            )
-            .join(' / ')}
+        <p className="mt-2 text-xs text-muted">
+          뿌리의 강약은 매기지 않습니다. 음양이 다른 뿌리와 고지의 중기도 거르지 않고
+          그대로 셉니다. 어디까지 통근으로 볼지는 계통마다 갈리며, 합충으로 뿌리가
+          상했는지도 여기서는 판정하지 않습니다.
         </p>
-      )}
-
-      <p className="mt-2 text-xs text-muted">
-        뿌리의 강약은 매기지 않습니다. 음양이 다른 뿌리(甲이 卯의 乙에 두는 것)와
-        고지(辰戌丑未)의 중기도 거르지 않고 그대로 셉니다 — 어디까지 통근으로 볼지가
-        계통마다 갈리기 때문입니다. 합충으로 뿌리가 상했는지도 보지 않습니다.
-      </p>
-
-      <FollowingCandidacyNote saju={saju} />
-    </div>
+      </div>
+    </details>
   );
 }
 
@@ -656,7 +784,7 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
   const share = (ratio: number) => `${Math.round(ratio * 100)}%`;
 
   return (
-    <div className="mt-3 border-t border-border pt-3">
+    <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
           시험

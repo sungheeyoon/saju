@@ -10,17 +10,21 @@ import { supabaseInBrowser } from './auth/browser-client';
 import { READING_CREDITS_MOVED } from './me/reading/credits-signal';
 
 /**
- * 로그인하지 않은 사람의 메뉴 — **여기서 갈 수 있는 곳만 선다.**
+ * 로그인하지 않은 사람의 메뉴 — **비어 있다.**
  *
- * 「궁합 보기」가 나란히 서 있었다. 그런데 `/compat` 은 로그인해야 열리는 자리라,
- * 메뉴에서 그것을 누른 사람은 로그인 화면을 만난다 — **메뉴는 지금 갈 수 있는 곳의
- * 목록이지 제품 기능의 목록이 아니다.** 아직 계산 한 번 안 해 본 사람에게 먼저 할 말도
- * 궁합이 아니다.
+ * 「궁합 보기」가 먼저 빠졌다. `/compat` 은 로그인해야 열리는 자리라, 메뉴에서 그것을
+ * 누른 사람은 로그인 화면을 만난다 — **메뉴는 지금 갈 수 있는 곳의 목록이지 제품
+ * 기능의 목록이 아니다.** 그 길은 사주 화면의 머리에 「로그인 필요」를 달고 서 있다
+ * (`compat-entry.tsx`).
  *
- * 궁합으로 가는 길이 사라지지는 않는다. 사주 화면의 머리에 「로그인 필요」를 달고
- * 서 있다(`compat-entry.tsx`) — 거기서는 그 말이 왜 눌러야 하는지까지 함께 말한다.
+ * 남은 「사주 보기」 하나도 뺀다. 로그인하지 않은 사람이 볼 수 있는 화면은 `/` 뿐이라
+ * **그 탭은 언제나 지금 보고 있는 화면을 가리켰다** — 눌러도 아무 데도 안 가는 줄은
+ * 길이 아니라 라벨이다. 돌아오는 길은 로고가 든다(같은 `/` 로 간다).
+ *
+ * 회원 메뉴에는 그 이름이 그대로 남는다. 거기서는 여러 화면 사이에서 **고르는 자리**라
+ * 이름이 일을 한다.
  */
-const PUBLIC_LINKS = [{ href: '/', label: '사주 보기' }] as const;
+const PUBLIC_LINKS = [] as const;
 
 /**
  * 로그인한 사람의 메뉴 — **「내 사주」가 홈이고, 계산기는 메뉴 안에 있다.**
@@ -117,6 +121,14 @@ export function SiteHeader() {
           <span className="grid size-8 place-items-center rounded-xl bg-accent text-sm font-bold text-on-accent shadow-sm">命</span>
           <span className="hidden text-sm font-bold tracking-[-0.03em] sm:inline">만세력</span>
         </Link>
+        {/*
+          **줄이 하나도 없으면 `<nav>` 를 안 세운다.** 빈 길잡이는 보조기기에 「메뉴가
+          있다」고 알리고 열어 보면 아무것도 없다. 자리는 남긴다 — 오른쪽 끝이 헤더
+          바깥으로 붙어 서지 않게.
+        */}
+        {links.length === 0 ? (
+          <div className="min-w-0 flex-1" />
+        ) : (
         <nav aria-label={memberNavigation ? '내 메뉴' : '주요 메뉴'} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
           {links.map((link) => {
             const active = isNavigationActive(pathname, link.href);
@@ -132,6 +144,7 @@ export function SiteHeader() {
             );
           })}
         </nav>
+        )}
         {/*
           **익명 화면이라고 로그아웃된 것이 아니다.**
 

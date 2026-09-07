@@ -23,9 +23,12 @@ import {
   type Saju,
 } from '@/src/lib/saju';
 import {
-  HorizontalScrollHint,
   PILLAR_COLUMNS,
 } from './shared';
+import {
+  PillarDetails,
+  type PillarDetailTab,
+} from './pillar-details';
 
 
 /**
@@ -71,253 +74,299 @@ import {
  * 육친을 성별로 단정하지 않는다 — "월간은 부친" 같은 배정은 계통과 성별에
  * 따라 갈리므로 관계(부모·형제) 수준까지만 적는다. 연령 구간도 대략이다.
  */
-const PALACE: Record<'year' | 'month' | 'day' | 'hour', { role: string; period: string }> = {
-  year: { role: '조상·뿌리', period: '초년' },
-  month: { role: '부모·형제', period: '청년' },
-  day: { role: '나·배우자', period: '중년' },
-  hour: { role: '자녀·결실', period: '말년' },
+const PALACE: Record<'year' | 'month' | 'day' | 'hour', { meaning: string; period: string }> = {
+  year: { meaning: '집안·뿌리', period: '초년' },
+  month: { meaning: '부모·성장 환경', period: '청년' },
+  day: { meaning: '일지는 가까운 관계를 보는 자리', period: '중년' },
+  hour: { meaning: '자녀·삶의 결실', period: '말년' },
 };
 
 
 /**
- * 기둥마다 한 칸씩 붙는 표식 — 12운성·12신살·공망이 같은 모양이다.
+ * 사주팔자 — 여덟 글자는 언제나 한눈에, 부가 표식은 한 종류씩 비교한다.
  *
- * 셋 다 "이 자리에 무엇이 붙는가"라서 행 하나로 충분하다. 기준이 갈리는
- * 것(년지/일지, 일주/년주)은 행을 나누고 무엇을 기준으로 삼았는지 왼쪽에
- * 적는다 — 기준을 안 적으면 두 줄이 왜 다른지 알 수 없다.
+ * `일주=나`로 칠하지 않는다. 나는 일주의 위 글자인 일간이고, 아래 일지는 가까운
+ * 관계를 보는 자리다. 시기·관계·글자를 한 셀에 합치던 표를 세 층으로 갈라서 이
+ * 차이를 화면 자체가 설명하게 한다.
  */
-function MarkRow({
-  label,
-  hint,
-  value,
-}: {
-  label: string;
-  hint: string;
-  value: (position: PillarPosition) => string | null;
-}) {
-  return (
-    <tr>
-      <td className="py-1.5 pr-2 text-right align-middle text-xs whitespace-nowrap text-muted">
-        {label}
-        <span className="block text-[10px] opacity-70">{hint}</span>
-      </td>
-      {PILLAR_COLUMNS.map(({ key }) => {
-        const mark = value(key);
-        return (
-          <td
-            key={key}
-            className={`px-2 py-1.5 text-xs ${key === 'day' ? 'font-medium' : 'text-secondary'}`}
-          >
-            {mark ?? <span className="text-muted opacity-40">·</span>}
-          </td>
-        );
-      })}
-    </tr>
-  );
-}
-
-
-/** 사주팔자 — 차트가 아니라 표다. 일주(나) 열만 강조한다. */
 export function PillarChart({ saju }: { saju: Saju }) {
   const { pillars, analysis } = saju;
 
+  const detailTabs: readonly PillarDetailTab[] = [
+    {
+      key: 'hidden-stems',
+      label: '지장간',
+      panel: (
+        <DetailPanel note="각 지지 안에 숨어 있는 천간과 십성입니다.">
+          <PillarValueGrid
+            values={(key) => {
+              const hiddenStems = analysis.tenGods[key]?.hiddenStems;
+              if (!hiddenStems || hiddenStems.length === 0) return null;
+              return (
+                <ul className="flex flex-col gap-1">
+                  {hiddenStems.map((hidden) => (
+                    <li key={hidden.stem + hidden.role} className="whitespace-nowrap">
+                      <span className="glyph font-medium text-foreground">{hidden.stem}</span>{' '}
+                      {TEN_GOD_KO[hidden.tenGod]}
+                    </li>
+                  ))}
+                </ul>
+              );
+            }}
+          />
+        </DetailPanel>
+      ),
+    },
+    {
+      key: 'stages',
+      label: '12운성',
+      panel: (
+        <DetailPanel
+          note={`일간 기준 · ${saju.stages.yinReverse ? '음양순역' : '양포태'} 방식`}
+        >
+          <PillarValueGrid
+            values={(key) => {
+              const stage = saju.stages.byDayMaster[key];
+              return stage ? TWELVE_STAGE_KO[stage] : null;
+            }}
+          />
+        </DetailPanel>
+      ),
+    },
+    {
+      key: 'spirits',
+      label: '12신살',
+      panel: (
+        <DetailPanel note="같은 자리도 무엇을 기준으로 보느냐에 따라 이름이 달라집니다.">
+          <div className="flex flex-col gap-4">
+            {saju.sinsal.twelveSpirits.map((chart) => (
+              <BasisBlock key={chart.basis} label={`${SPIRIT_BASIS_KO[chart.basis]} 기준`}>
+                <PillarValueGrid
+                  values={(key) => {
+                    const spirit = chart.byPosition[key];
+                    if (!spirit) return null;
+                    return TWELVE_SPIRIT_ALIAS[spirit] ?? TWELVE_SPIRIT_KO[spirit];
+                  }}
+                />
+              </BasisBlock>
+            ))}
+          </div>
+        </DetailPanel>
+      ),
+    },
+    {
+      key: 'emptiness',
+      label: '공망',
+      panel: (
+        <DetailPanel note="기준 간지가 속한 순에서 짝이 비는 두 지지를 봅니다.">
+          <div className="flex flex-col gap-4">
+            {saju.sinsal.emptiness.map((emptiness) => (
+              <BasisBlock
+                key={emptiness.basis}
+                label={`${EMPTINESS_BASIS_KO[emptiness.basis]} 기준 · ${emptiness.branches.join('')}`}
+              >
+                <PillarValueGrid
+                  values={(key) => (emptiness.positions.includes(key) ? '공망' : null)}
+                />
+              </BasisBlock>
+            ))}
+          </div>
+        </DetailPanel>
+      ),
+    },
+  ];
+
   return (
     <section id="chart" className={`${CARD} scroll-mt-20`}>
-      <h2 className="mb-4 text-base font-semibold">사주팔자</h2>
-
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[30rem] border-collapse text-center">
-          <thead>
-            <tr>
-              <th className="w-16" />
-              {PILLAR_COLUMNS.map(({ key, label }) => (
-                <th
-                  key={key}
-                  className={`px-2 pb-2 text-xs font-medium ${
-                    key === 'day' ? 'text-accent' : 'text-secondary'
-                  }`}
-                >
-                  {label}
-                  {key === 'day' && <span className="ml-1 opacity-70">나</span>}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <TenGodRow label="십성" saju={saju} position="stem" />
-
-            <tr>
-              <RowLabel>천간</RowLabel>
-              {PILLAR_COLUMNS.map(({ key }) => {
-                const pillar = pillars[key];
-                return (
-                  <GlyphCell
-                    key={key}
-                    emphasis={key === 'day'}
-                    glyph={pillar && pillar.stem}
-                    element={pillar ? STEM_INFO[pillar.stem].element : null}
-                    caption={
-                      pillar
-                        ? `${STEM_INFO[pillar.stem].ko} · ${ELEMENT_KO[STEM_INFO[pillar.stem].element]}`
-                        : HOUR_UNKNOWN_LABEL
-                    }
-                  />
-                );
-              })}
-            </tr>
-
-            <tr>
-              <RowLabel>지지</RowLabel>
-              {PILLAR_COLUMNS.map(({ key }) => {
-                const pillar = pillars[key];
-                return (
-                  <GlyphCell
-                    key={key}
-                    emphasis={key === 'day'}
-                    glyph={pillar && pillar.branch}
-                    element={pillar ? BRANCH_INFO[pillar.branch].element : null}
-                    caption={
-                      pillar
-                        ? `${BRANCH_INFO[pillar.branch].ko} · ${ELEMENT_KO[BRANCH_INFO[pillar.branch].element]}`
-                        : HOUR_UNKNOWN_LABEL
-                    }
-                  />
-                );
-              })}
-            </tr>
-
-            <TenGodRow label="십성" saju={saju} position="branch" />
-
-            <tr>
-              <RowLabel>지장간</RowLabel>
-              {PILLAR_COLUMNS.map(({ key }) => (
-                <td key={key} className="px-2 pt-2 align-top">
-                  <ul className="flex flex-col gap-0.5 text-[11px] text-muted">
-                    {analysis.tenGods[key]?.hiddenStems.map((hidden) => (
-                      <li key={hidden.stem + hidden.role}>
-                        <span className="glyph">{hidden.stem}</span> {TEN_GOD_KO[hidden.tenGod]}
-                      </li>
-                    ))}
-                  </ul>
-                </td>
-              ))}
-            </tr>
-
-            <MarkRow
-              label="궁"
-              hint="자리의 상징"
-              value={(key) => `${PALACE[key].role} · ${PALACE[key].period}`}
-            />
-
-            {/*
-              **계통을 밝힌다.** 「일간 기준」만으로는 부족하다 — 음간을 역행시키느냐
-              (음양순역, 연해자평 이래의 정통) 양간과 같이 보느냐(양포태)에 따라 같은
-              일간·지지에서 다른 운성이 나온다. 산출법이 갈리는 신살은 기준을 밝힌다고
-              해 놓고 이 줄만 안 밝히고 있었다.
-
-              값은 명식이 들고 있다(`stages.yinReverse`) — 화면이 기본값을 다시 적으면
-              옵션을 바꾼 명식에서 거짓말이 된다.
-            */}
-            <MarkRow
-              label="12운성"
-              hint={`일간 기준 · ${saju.stages.yinReverse ? '음양순역' : '양포태'}`}
-              value={(key) => {
-                const stage = saju.stages.byDayMaster[key];
-                return stage ? TWELVE_STAGE_KO[stage] : null;
-              }}
-            />
-
-            {saju.sinsal.twelveSpirits.map((chart) => (
-              <MarkRow
-                key={chart.basis}
-                label="12신살"
-                hint={`${SPIRIT_BASIS_KO[chart.basis]} 기준`}
-                value={(key) => {
-                  const spirit = chart.byPosition[key];
-                  if (!spirit) return null;
-                  return TWELVE_SPIRIT_ALIAS[spirit] ?? TWELVE_SPIRIT_KO[spirit];
-                }}
-              />
-            ))}
-
-            {saju.sinsal.emptiness.map((emptiness) => (
-              <MarkRow
-                key={emptiness.basis}
-                label="공망"
-                hint={`${EMPTINESS_BASIS_KO[emptiness.basis]} 기준 ${emptiness.branches.join('')}`}
-                value={(key) => (emptiness.positions.includes(key) ? '공망' : null)}
-              />
-            ))}
-          </tbody>
-        </table>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="text-base font-semibold">사주팔자</h2>
+          <p className="mt-0.5 text-xs text-secondary">위는 천간, 아래는 지지입니다</p>
+        </div>
+        <p className="rounded-full bg-accent-wash px-3 py-1 text-xs font-medium text-accent">
+          일간 <span className="glyph">{pillars.dayMaster}</span> ·{' '}
+          {STEM_INFO[pillars.dayMaster].ko}{ELEMENT_KO[STEM_INFO[pillars.dayMaster].element]}
+        </p>
       </div>
-      <HorizontalScrollHint />
 
-      <p className="mt-3 text-xs text-muted">
-        궁(宮)은 계산 결과가 아니라 자리에 붙은 관습적 의미입니다. 육친을 성별로
-        단정하지 않았고(월간=부친 같은 배정은 계통마다 갈립니다), 연령 구간도
-        대략입니다.
-      </p>
+      <table className="mt-5 w-full table-fixed border-separate border-spacing-x-1 text-center sm:mx-auto sm:max-w-3xl sm:border-spacing-x-2">
+        <caption className="sr-only">시주, 일주, 월주, 년주의 천간과 지지</caption>
+        <thead>
+          <tr>
+            {PILLAR_COLUMNS.map(({ key }) => (
+              <th key={`${key}-period`} className="pb-0.5 text-[10px] font-normal text-muted sm:text-xs">
+                {PALACE[key].period}
+              </th>
+            ))}
+          </tr>
+          <tr>
+            {PILLAR_COLUMNS.map(({ key, label }) => (
+              <th
+                key={key}
+                scope="col"
+                className={`pb-2 text-xs font-semibold sm:text-sm ${
+                  key === 'day' ? 'text-accent' : 'text-secondary'
+                }`}
+              >
+                {label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {PILLAR_COLUMNS.map(({ key, label }) => {
+              const pillar = pillars[key];
+              const tenGods = analysis.tenGods[key];
+              return (
+                <td key={key} className="align-top">
+                  <div
+                    aria-label={`${label} 천간과 지지`}
+                    className={`overflow-hidden rounded-xl border bg-surface-raised ${
+                      key === 'day' ? 'border-accent/35 shadow-sm' : 'border-border'
+                    }`}
+                  >
+                    <PillarGlyph
+                      glyph={pillar && pillar.stem}
+                      element={pillar ? STEM_INFO[pillar.stem].element : null}
+                      caption={
+                        pillar
+                          ? `${STEM_INFO[pillar.stem].ko}·${ELEMENT_KO[STEM_INFO[pillar.stem].element]}`
+                          : HOUR_UNKNOWN_LABEL
+                      }
+                      tenGod={tenGods?.stem ?? null}
+                      dayMaster={key === 'day'}
+                    />
+                    <div className="mx-2 border-t border-border" />
+                    <PillarGlyph
+                      glyph={pillar && pillar.branch}
+                      element={pillar ? BRANCH_INFO[pillar.branch].element : null}
+                      caption={
+                        pillar
+                          ? `${BRANCH_INFO[pillar.branch].ko}·${ELEMENT_KO[BRANCH_INFO[pillar.branch].element]}`
+                          : HOUR_UNKNOWN_LABEL
+                      }
+                      tenGod={tenGods?.branch ?? null}
+                      relationshipSeat={key === 'day'}
+                    />
+                  </div>
+                </td>
+              );
+            })}
+          </tr>
+        </tbody>
+      </table>
 
-      <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-border pt-4 text-sm">
-        <Term>일간</Term>
-        <dd>
-          <span className="glyph">{pillars.dayMaster}</span> {STEM_INFO[pillars.dayMaster].ko} ·{' '}
-          {ELEMENT_KO[STEM_INFO[pillars.dayMaster].element]}
-        </dd>
-
-        {saju.meta.gender && (
-          <>
-            <Term>성별</Term>
-            <dd>
-              {GENDER_KO[saju.meta.gender]}
-              <span className="text-muted"> · 여덟 글자는 성별로 달라지지 않습니다</span>
-            </dd>
-          </>
-        )}
-
-        <Term>사주년</Term>
-        <dd>
-          {pillars.meta.sajuYear}년 <span className="text-muted">입춘 기준</span>
+      {(pillars.meta.sajuYear !== saju.meta.inputTime.year || pillars.meta.lateNightShiftApplied) && (
+        <ul
+          aria-label="명식을 바꾼 입력 안내"
+          className="mt-4 flex flex-col gap-1.5 rounded-xl border border-warning/25 bg-warning-wash px-3 py-2.5 text-xs text-secondary sm:mx-auto sm:max-w-3xl"
+        >
           {pillars.meta.sajuYear !== saju.meta.inputTime.year && (
-            <span className="text-muted"> · 달력연도와 다릅니다</span>
+            <li>
+              <strong className="font-semibold text-foreground">사주년 {pillars.meta.sajuYear}년</strong>
+              {' '}· 입춘 전이라 달력연도 {saju.meta.inputTime.year}년과 다릅니다.
+            </li>
           )}
-        </dd>
+          {pillars.meta.lateNightShiftApplied && (
+            <li>
+              <strong className="font-semibold text-foreground">조자시 적용</strong>
+              {' '}· 일주를 다음 날로 넘겼습니다.
+            </li>
+          )}
+        </ul>
+      )}
 
-        <Term>절기</Term>
-        <dd>
-          {pillars.meta.monthTerm.name} ~ {pillars.meta.nextTerm.name}
-        </dd>
+      <PillarDetails tabs={detailTabs} />
 
-        {pillars.meta.hourKnown ? (
-          <>
-            <Term>자시 규칙</Term>
-            <dd>
-              {pillars.meta.lateNightRule === 'jo' ? '조자시' : '야자시'}
-              {pillars.meta.lateNightShiftApplied && (
-                <span className="text-muted"> · 일주를 다음 날로 넘겼습니다</span>
-              )}
-            </dd>
-          </>
-        ) : (
-          <>
-            <Term>출생 시각</Term>
-            <dd>
-              미상 <span className="text-muted">· 시주를 뽑지 않았습니다</span>
-            </dd>
-          </>
-        )}
-      </dl>
+      <details className="group mt-5 border-t border-border pt-4 sm:mx-auto sm:max-w-3xl">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+          네 기둥은 무엇을 뜻하나요?
+          <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">⌄</span>
+        </summary>
+        <div className="grid grid-cols-2 gap-2 pb-2 pt-2 sm:grid-cols-4">
+          {PILLAR_COLUMNS.map(({ key, label }) => (
+            <div key={key} className="rounded-xl bg-surface-soft p-3">
+              <p className="text-xs font-semibold text-foreground">{label} · {PALACE[key].period}</p>
+              <p className="mt-1 text-xs text-secondary">{PALACE[key].meaning}</p>
+            </div>
+          ))}
+        </div>
+        <p className="pb-2 pt-1 text-xs text-muted">
+          궁은 계산값이 아니라 자리에 붙는 전통적 상징입니다. 관계와 연령 구간은 넓게 참고해 주세요.
+        </p>
+      </details>
+
+      <details className="group border-t border-border pt-1 sm:mx-auto sm:max-w-3xl">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+          계산 기준과 출생 정보
+          <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">⌄</span>
+        </summary>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 pb-2 pt-2 text-sm">
+          {saju.meta.gender && (
+            <>
+              <Term>성별</Term>
+              <dd>
+                {GENDER_KO[saju.meta.gender]}
+                <span className="text-muted"> · 여덟 글자는 성별로 달라지지 않습니다</span>
+              </dd>
+            </>
+          )}
+          <Term>사주년</Term>
+          <dd>
+            {pillars.meta.sajuYear}년 <span className="text-muted">입춘 기준</span>
+          </dd>
+          <Term>절기</Term>
+          <dd>{pillars.meta.monthTerm.name} ~ {pillars.meta.nextTerm.name}</dd>
+          {pillars.meta.hourKnown ? (
+            <>
+              <Term>자시 규칙</Term>
+              <dd>
+                {pillars.meta.lateNightRule === 'jo' ? '조자시' : '야자시'}
+              </dd>
+            </>
+          ) : (
+            <>
+              <Term>출생 시각</Term>
+              <dd>미상 <span className="text-muted">· 시주를 뽑지 않았습니다</span></dd>
+            </>
+          )}
+        </dl>
+      </details>
     </section>
   );
 }
 
 
-function RowLabel({ children }: { children: React.ReactNode }) {
+function PillarGlyph({
+  glyph,
+  caption,
+  element,
+  tenGod,
+  dayMaster = false,
+  relationshipSeat = false,
+}: {
+  readonly glyph: string | null;
+  readonly caption: string;
+  readonly element: Element | null;
+  readonly tenGod: keyof typeof TEN_GOD_KO | null;
+  readonly dayMaster?: boolean;
+  readonly relationshipSeat?: boolean;
+}) {
+  const tone = element === null ? null : ELEMENT_TONE[element];
   return (
-    <td className="pr-2 text-right align-middle text-xs text-muted whitespace-nowrap">
-      {children}
-    </td>
+    <div className={`flex min-h-28 flex-col items-center justify-center px-0.5 py-2.5 sm:min-h-32 sm:py-3 ${tone?.surface ?? ''}`}>
+      <span className={`mb-1 min-h-4 text-[9px] font-medium leading-4 sm:text-[11px] ${dayMaster ? 'rounded-full bg-accent px-1.5 text-on-accent' : 'text-secondary'}`}>
+        {dayMaster ? '나' : tenGod ? TEN_GOD_KO[tenGod] : glyph === null ? '—' : ''}
+      </span>
+      <span className={`glyph text-[1.9rem] font-semibold leading-none sm:text-4xl ${glyph === null ? 'text-muted' : tone?.text}`}>
+        {glyph ?? '?'}
+      </span>
+      <span className="mt-1 whitespace-nowrap text-[9px] leading-4 text-secondary sm:text-[11px]">{caption}</span>
+      <span className={`mt-0.5 min-h-4 whitespace-nowrap text-[9px] leading-4 sm:text-[10px] ${relationshipSeat ? 'font-medium text-accent' : 'invisible'}`}>
+        {relationshipSeat ? '관계 자리' : '자리'}
+      </span>
+    </div>
   );
 }
 
@@ -327,67 +376,50 @@ function Term({ children }: { children: React.ReactNode }) {
 }
 
 
-function TenGodRow({
-  label,
-  saju,
-  position,
+function DetailPanel({
+  note,
+  children,
 }: {
-  label: string;
-  saju: Saju;
-  position: 'stem' | 'branch';
+  readonly note: string;
+  readonly children: React.ReactNode;
 }) {
   return (
-    <tr>
-      <RowLabel>{label}</RowLabel>
-      {PILLAR_COLUMNS.map(({ key }) => {
-        const chart = saju.analysis.tenGods[key];
-        // 시주가 없으면 십성도 없다. 일간 자리의 null 과 구분해야 한다.
-        if (chart === null) {
-          return (
-            <td key={key} className="px-2 py-1 text-xs text-muted">
-              —
-            </td>
-          );
-        }
-        const god = chart[position];
-        return (
-          <td key={key} className="px-2 py-1 text-xs text-secondary">
-            {god ? TEN_GOD_KO[god] : <span className="text-accent">일간</span>}
-          </td>
-        );
-      })}
-    </tr>
+    <div>
+      <p className="mb-3 text-xs text-muted">{note}</p>
+      {children}
+    </div>
   );
 }
 
 
-function GlyphCell({
-  glyph,
-  caption,
-  emphasis,
-  element,
+function PillarValueGrid({
+  values,
 }: {
-  /** `null` 이면 빈 자리 — 시각을 모르는 시주 */
-  glyph: string | null;
-  caption: string;
-  emphasis: boolean;
-  element: Element | null;
+  readonly values: (position: PillarPosition) => React.ReactNode | null;
 }) {
-  const tone = element === null ? null : ELEMENT_TONE[element];
   return (
-    <td className="px-2 py-1">
-      <div
-        className={`mx-auto flex w-full max-w-24 flex-col items-center gap-1 rounded-xl border py-3 ${
-          glyph === null ? 'border-dashed border-border' : `${tone?.border} ${tone?.surface}`
-        } ${emphasis ? 'ring-2 ring-foreground/15 ring-offset-2 ring-offset-surface' : ''}`}
-      >
-        <span
-          className={`glyph text-4xl font-semibold leading-none ${glyph === null ? 'text-muted' : tone?.text}`}
-        >
-          {glyph ?? '?'}
-        </span>
-        <span className="text-[11px] text-secondary">{caption}</span>
+    <div className="grid grid-cols-4 gap-1 text-center sm:gap-2">
+      {PILLAR_COLUMNS.map(({ key, label }) => {
+        const value = values(key);
+        return (
+          <div key={key} className={`min-w-0 rounded-lg px-0.5 py-2 text-[10px] sm:px-2 sm:text-xs ${key === 'day' ? 'bg-accent-wash text-accent' : 'bg-surface-soft text-secondary'}`}>
+            <p className="mb-1 text-[9px] font-medium opacity-70 sm:text-[10px]">{label}</p>
+            {value ?? <span className="opacity-40">·</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+function BasisBlock({ label, children }: { readonly label: string; readonly children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="mb-1.5 text-[11px] font-medium text-secondary">{label}</p>
+      <div>
+        {children}
       </div>
-    </td>
+    </div>
   );
 }

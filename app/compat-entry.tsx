@@ -45,7 +45,8 @@ export function CompatEntry() {
   return (
     <Link
       href="/compat"
-      className="rounded-full border border-border-strong bg-surface px-5 py-2.5 text-sm font-semibold hover:border-accent hover:text-accent"
+      /* 좁은 화면에서 옆 버튼과 한 줄에 선다 — 폭은 히어로가 나눈 칸이 정한다(`page.tsx`) */
+      className="flex min-h-11 items-center justify-center rounded-full border border-border-strong bg-surface px-3 py-2.5 text-center text-[0.8125rem] font-semibold leading-5 hover:border-accent hover:text-accent sm:px-5 sm:text-sm"
     >
       궁합 보기
       {signedIn !== true && (
