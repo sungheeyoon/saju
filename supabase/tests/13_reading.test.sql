@@ -784,9 +784,19 @@ select is(
     'reading_recovery_configured',
     'record_reading_webhook_event',
     'release_reading_job',
+    /*
+      **`save_reading` 이 두 벌 서 있다** — 인자가 하나 늘어 새 함수가 됐고, 옛 서명을
+      아직 안 지웠다. 넓히고(expand) 나중에 좁힌다(contract): 같이 지우면 어느 순서로
+      배포해도 창이 생긴다 — 마이그레이션이 먼저면 지금 떠 있는 앱이 없어진 함수를
+      부르고, 배포가 먼저면 새 앱이 아직 없는 함수를 부른다.
+
+      **이 줄이 좁히는 날을 잡아 준다.** 새 앱이 다 올라간 뒤 옛 서명을 지우면 여기서
+      한 줄이 빠지고, 그때 이 시험이 그 사실을 확인한다.
+    */
+    'save_reading',
     'save_reading'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 열두 개뿐이다');
+  'service_role 이 부를 수 있는 것은 이 목록뿐이다 — `save_reading` 은 좁히기 전이라 두 벌이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

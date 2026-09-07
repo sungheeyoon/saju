@@ -178,10 +178,29 @@ grant execute on function public.save_reading(
   uuid, uuid, uuid, text, smallint, text, text, text, text, text, jsonb, timestamptz
 ) to service_role;
 
--- 인자가 하나 늘어 옛 서명이 남는다. 지워야 두 벌이 안 된다.
-drop function if exists public.save_reading(
-  uuid, uuid, uuid, text, smallint, text, text, text, text, jsonb, timestamptz
-);
+-- ---------------------------------------------------------------------------
+-- **옛 서명을 여기서 안 지운다** — 배포 순서가 곧 안전이다
+-- ---------------------------------------------------------------------------
+--
+-- 인자가 하나 늘었으므로 이것은 고친 함수가 아니라 **새 함수**다. 옛 열한 인자짜리가
+-- 그대로 남고, 부르는 쪽은 인자 수로 갈린다.
+--
+-- 같이 지우면 **어느 순서로 배포해도 창이 생긴다.**
+--
+--   마이그레이션 먼저 → 지금 떠 있는 앱이 없어진 함수를 부른다
+--   머지(배포) 먼저   → 새 앱이 아직 없는 함수를 부른다
+--
+-- 그래서 넓히고(expand) 나중에 좁힌다(contract). 지금은 둘 다 서 있고, 새 앱이 다
+-- 올라간 뒤에 옛 것을 지우는 마이그레이션을 따로 낸다.
+--
+-- **옛 것으로 저장되면 비유가 `null` 로 남는다.** 그것이 맞다 — 그 글은 비유를 안 받고
+-- 나온 글이고, 화면은 `null` 이면 그 자리를 안 세운다.
+--
+-- 좁히는 날 이 줄을 쓴다:
+--
+--   drop function public.save_reading(
+--     uuid, uuid, uuid, text, smallint, text, text, text, text, jsonb, timestamptz
+--   );
 
 -- ---------------------------------------------------------------------------
 -- 읽는 자리 둘도 함께 든다
