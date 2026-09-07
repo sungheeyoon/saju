@@ -2,7 +2,6 @@ import {
   CONTROLLED_BY,
   GENERATED_BY,
   HIDDEN_STEMS,
-  STEM_COMBINATIONS,
   STEM_INFO,
   findStemClash,
   findStemCombination,
@@ -262,7 +261,14 @@ export function stemTransformationsOf(pillars: TransformationInput): StemTransfo
   return found;
 }
 
-/** 다섯 천간합의 화신 — 표를 두 벌 들지 않으려고 여기서 꺼내 쓴다 */
-export const STEM_COMBINATION_TARGETS: Record<string, Element> = Object.fromEntries(
-  STEM_COMBINATIONS.map((combination) => [combination.stems.join(''), combination.result]),
-);
+/*
+  **화신을 찾는 길은 `findStemCombination` 하나다.**
+
+  여기 `STEM_COMBINATION_TARGETS`(`'甲己' → 土` 꼴의 표)가 서 있었다. 주석은 「표를 두 벌
+  들지 않으려고 여기서 꺼내 쓴다」고 적었는데, 도입한 날부터 **꺼내 쓰는 자리가 한 번도
+  없었다** — 막으려던 두 벌째도 없었다. `STEM_COMBINATIONS` 가 유일한 표이고
+  `findStemCombination(a, b)` 이 `result` 를 함께 돌려준다.
+
+  다시 짓고 싶어지면 그 접근자를 부른다. 두 글자를 이어 붙인 문자열을 열쇠로 쓰면
+  `Stem` 짝이 `string` 으로 풀려서, 없는 조합을 물어봐도 컴파일러가 안 세운다.
+*/
