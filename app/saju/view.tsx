@@ -1,18 +1,9 @@
-import {
-  CARD,
-} from '../card';
-import { CopyLinkButton } from '../copy-link';
 import { sajuViewFor } from './request-view';
 import {
-  ClaimStrengthLegend,
-  TOPICS_THE_TABLE_HOLDS,
-  placeNowUtterances,
   TOPIC_TABLE_FOOTNOTE,
-  UtteranceList,
   said,
 } from '../utterances';
 import {
-  assembleNowText,
   assembleText,
   currentFortuneOf,
   type CurrentFortune,
@@ -30,7 +21,7 @@ import {
 } from './relations';
 import {
   DaeunTable,
-  NowFortune,
+  NowOverlaps,
   SaeunTable,
   WolunTable,
 } from './fortune';
@@ -40,6 +31,7 @@ import {
 import {
   ElementChart,
   StrengthMeter,
+  YongsinCard,
 } from './analysis';
 import {
   TimeCorrections,
@@ -48,41 +40,18 @@ import {
 
 
 /**
- * 이 명식에 대해 **말할 수 있는 것** — 문장은 요약, 아래 카드가 근거다.
+ * 바로가기 — **화면에 선 차례와 같다.**
  *
- * 궁합에서는 손으로 쓴 카드를 발화로 갈아 끼웠다. 여기서는 그러지 않는다 —
- * **원국 카드가 발화보다 자세하기** 때문이다. 세력 막대와 세 기준, 지장간 며칠치,
- * 조후 원문의 조건, 종격 판정의 재료 넷은 한 문장으로 접을 수 없고 접어서도 안 된다.
- * 그래서 역할을 나눈다: 이 카드는 **얼마나 세게 말할 수 있는가**를 들고, 아래 카드들은
- * 그렇게 말하게 해 준 숫자를 든다.
- *
- * **나란히 서는 것이 요점이다.** 억부 문장과 종격 문장이 서로 다른 오행을 가리킬 수
- * 있어서, 종격 여섯 벌이 전부 "억부 후보를 뒤집지 않습니다"를 달고 나간다. 두 문장을
- * 서로 다른 카드에 흩어 두면 그 마디가 무엇을 향한 말인지 보이지 않는다.
+ * 다르면 이 줄은 목차가 아니라 또 하나의 메뉴가 된다. 신살이 위로 올라갔으므로 여기서도
+ * 위로 온다.
  */
-function SaidAbout({ utterances }: { utterances: Utterance[] }) {
-  return (
-    <section className={CARD}>
-      <h2 className="text-base font-semibold">이 명식에 대해 말할 수 있는 것</h2>
-
-      <div className="mt-3">
-        <UtteranceList utterances={utterances} />
-      </div>
-
-      <div className="mt-3 border-t border-border pt-3 text-xs text-muted">
-        <ClaimStrengthLegend tail=" 아래 카드들이 그 근거를 숫자로 폅니다." />
-      </div>
-    </section>
-  );
-}
-
-
 const RESULT_LINKS = [
   ['chart', '명식'],
+  ['stars', '신살'],
   ['analysis', '분석'],
+  ['yongsin', '용신'],
   ['relations', '관계'],
   ['fortune', '운'],
-  ['stars', '신살'],
   ['corrections', '보정'],
 ] as const;
 
@@ -121,7 +90,6 @@ export type SajuViewModel = {
   readonly saju: Saju;
   readonly utterances: Utterance[];
   readonly now: CurrentFortune;
-  readonly nowText: ReturnType<typeof placeNowUtterances>;
 };
 
 /**
@@ -139,11 +107,16 @@ export type SajuViewModel = {
 export function sajuViewModelOf(saju: Saju, viewedAt: number): SajuViewModel {
   const now = currentFortuneOf(saju, new Date(viewedAt));
 
+  /*
+    **현재운 문장은 더 이상 안 짓는다.** 그것을 세우던 카드가 없어졌다 — 어느 운이
+    도는지는 표가 짚고, 겹치는 자리는 `now.overlaps` 가 그대로 든다. 조립기
+    (`assembleNowText`)는 지우지 않는다: 시험이 그 계약을 재고 있고, 화면이 안 쓰는
+    것과 없어도 되는 것은 다른 말이다.
+  */
   return {
     saju,
     utterances: assembleText(saju),
     now,
-    nowText: placeNowUtterances(assembleNowText(now)),
   };
 }
 
@@ -160,35 +133,76 @@ export async function SajuResult({ saju }: { saju: Saju }) {
   return <SajuView {...(await sajuViewFor(saju))} />;
 }
 
-export function SajuView({ saju, utterances, now, nowText }: SajuViewModel) {
+/**
+ * 기준 시각을 사람이 읽는 모양으로 — **한국 달력 시각이다**(`viewedOn`).
+ *
+ * `viewedAt` 을 그대로 찍으면 보는 사람의 시간대로 찍힌다. 절입일에는 시각이 달을
+ * 가르므로, 시까지 적어야 같은 날짜에 두 답이 있는 것처럼 보이지 않는다.
+ */
+function asOf(now: CurrentFortune): string {
+  const { year, month, day, hour, minute } = now.viewedOn;
+  return `${year}년 ${month}월 ${day}일 ${hour}시 ${minute}분`;
+}
+
+export function SajuView({ saju, utterances, now }: SajuViewModel) {
   return (
     <div className="flex flex-col gap-6">
       <ResultNav />
-      <CopyLinkButton />
       <PillarChart saju={saju} />
-      <SaidAbout
-        utterances={said(utterances, (topic) => !TOPICS_THE_TABLE_HOLDS.includes(topic))}
-      />
-      <div id="analysis" className="scroll-mt-20 grid gap-6 lg:grid-cols-2">
+      {/*
+        **신살이 여덟 글자 바로 아래 선다.**
+
+        맨 아래에 있었다. 화면이 위에서부터 「무엇을 셌는가 → 그래서 무엇을 쓰는가」로
+        내려가는 차례였고 신살은 그 어느 쪽도 아니라 끝에 붙었다. 그런데 여덟 글자 다음에
+        사람들이 찾는 것이 그것이다 — 자리를 읽는 표라 명식 표 바로 옆이 제 자리이기도 하다.
+
+        판정은 여전히 안 한다(길흉은 표 밖 한 줄). 위로 온 것은 순서지 무게가 아니다.
+      */}
+      <StarTable saju={saju} />
+      {/*
+        **요약 카드는 없다.**
+
+        「이 명식에 대해 말할 수 있는 것」이 여기 있었다. 발화를 모아 문장으로 세우고,
+        아래 카드들이 그 근거를 숫자로 편다는 구성이었다. 그런데 그 문장들이 말하는
+        억부·조후·종격은 **바로 아래 카드가 같은 말을 더 자세히** 한다 — 익명 화면에서
+        결과물은 표다(ADR 0025).
+
+        딱지 범례는 함께 지우지 않고 **용신 카드로 옮겼다.** 「시험」·「참고표」가 붙는
+        자리가 거기이고, 범례가 사라지면 아래 카드들이 뜻 모를 기호를 달고 선다.
+      */}
+      {/*
+        **두 카드를 나란히 두지 않는다.** 나란히 세우면 왼쪽은 표 하나로 끝나고 오른쪽은
+        그 세 배로 길어서, 둘이 같은 무게로 읽히라고 만든 배치가 오히려 한쪽을 빈칸으로
+        만들었다. 폭을 다 쓰면 오행 표의 막대도 길어진다 — 그 막대가 이 카드의 본문이다.
+      */}
+      <div id="analysis" className="scroll-mt-20 flex flex-col gap-6">
         <ElementChart saju={saju} />
         <StrengthMeter saju={saju} />
       </div>
+      <YongsinCard saju={saju} />
       <RelationTable
         saju={saju}
         coverage={said(utterances, (topic) => topic === TOPIC_TABLE_FOOTNOTE)}
       />
-      <NowFortune now={now} text={nowText} />
       {/*
-        **표 셋을 여기서 그려서 넘긴다.** 탭은 고르는 일만 하므로 브라우저로 가야 하지만,
-        표는 안 가도 된다 — 서버 화면에서는 표가 이미 그려진 채로 탭에 실려 간다.
-        탭이 표를 자식으로 부르면 표 셋의 코드가 탭을 따라 브라우저로 간다.
+        **바로가기의 '운' 은 이 묶음을 짚는다.** 전에는 「지금의 운」 카드가 그 자리를
+        들었는데 그 카드가 없어졌고, 남은 겹침 칸은 겹칠 것이 없으면 안 선다 — 없을 수
+        있는 것에 앵커를 걸면 어떤 명식에서는 바로가기가 아무 데도 안 간다.
       */}
-      <FortuneTabs
-        daeun={<DaeunTable saju={saju} now={now} />}
-        saeun={<SaeunTable saju={saju} now={now} />}
-        wolun={<WolunTable saju={saju} now={now} />}
-      />
-      <StarTable saju={saju} />
+      <div id="fortune" className="scroll-mt-20 flex flex-col gap-6">
+        <NowOverlaps now={now} />
+        {/*
+          **표 셋을 여기서 그려서 넘긴다.** 탭은 고르는 일만 하므로 브라우저로 가야 하지만,
+          표는 안 가도 된다 — 서버 화면에서는 표가 이미 그려진 채로 탭에 실려 간다.
+          탭이 표를 자식으로 부르면 표 셋의 코드가 탭을 따라 브라우저로 간다.
+        */}
+        <FortuneTabs
+          asOf={asOf(now)}
+          daeun={<DaeunTable saju={saju} now={now} />}
+          saeun={<SaeunTable saju={saju} now={now} />}
+          wolun={<WolunTable saju={saju} now={now} />}
+        />
+      </div>
       <TimeCorrections saju={saju} />
       <Warnings saju={saju} />
       {/*

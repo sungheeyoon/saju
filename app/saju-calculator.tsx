@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { BirthFields } from './birth-form';
 import { CARD } from './card';
+import { CopyLinkButton } from './copy-link';
 import { calculateChart } from '@/src/lib/input/chart';
 import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
@@ -55,6 +56,19 @@ export function SajuCalculator() {
 
   const missing = missingAnswer(form);
 
+  /**
+   * **눌러 본 적이 있는가** — 빠진 칸을 말할 시점을 정하는 값.
+   *
+   * 버튼을 잠가 두었다. 그러면 왜 안 눌리는지 묻게 되고, 옆에 답을 적어 두어도 그것은
+   * **아직 아무것도 안 한 사람에게 하는 말**이라 회색으로 늘 서 있었다. 잠긴 버튼은
+   * 키보드 포커스도 안 받아서, 화면을 못 보는 사람에게는 이유가 있는 자리 자체가 없다.
+   *
+   * 그래서 누르게 두고 **누른 뒤에** 말한다. 그때의 문장은 안내가 아니라 실제로 일어난
+   * 거절이므로 경고 색으로 선다 — 「경고는 되돌릴 수 없는 누름 직전에 선다」와 같은
+   * 규율의 다른 쪽 면이다(ADR 0028). 채워지면 스스로 사라진다.
+   */
+  const [tried, setTried] = useState(false);
+
   // 주소가 밖에서 바뀌면(뒤로가기·앞으로가기·링크로 들어옴) 폼도 그 값으로 되돌린다.
   // 화면은 주소가 가리키는 명식을 보여주는데 폼만 옛 입력을 들고 있으면,
   // '입력이 바뀌었습니다' 가 사용자가 바꾼 적 없는데도 떠 있게 된다.
@@ -96,6 +110,15 @@ export function SajuCalculator() {
       <form
         onSubmit={(event) => {
           event.preventDefault();
+          /*
+            **거절은 여기서 한 번만 한다.** 버튼의 잠금이 아니라 제출이 막으므로,
+            엔터로 보내든 버튼을 누르든 같은 답을 받는다.
+          */
+          if (missing !== null) {
+            setTried(true);
+            return;
+          }
+          setTried(false);
           submit(form);
         }}
         className={`${CARD} flex flex-col gap-4`}
@@ -105,8 +128,8 @@ export function SajuCalculator() {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
-            disabled={missing !== null}
-            className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-auto"
+            aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
+            className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 sm:h-10 sm:w-auto"
           >
             {/*
               **명식**이다 — 「사주」도 「만세력」도 아니다(용어집).
@@ -119,8 +142,25 @@ export function SajuCalculator() {
             {query === null ? '사주 결과 보기' : '수정한 정보로 다시 보기'}
           </button>
 
-          {/* 왜 눌리지 않는지 버튼 옆에서 말한다 — 잠긴 버튼만 두면 이유를 찾아야 한다 */}
-          {missing !== null && <p className="text-sm text-secondary">{missing}</p>}
+          {/*
+            **링크 복사는 제출 버튼 옆이다.**
+
+            결과 맨 위에 따로 한 줄로 서 있었다. 그런데 이 버튼이 복사하는 것은 **지금 폼이
+            내놓은 주소**라, 그 주소를 만드는 버튼 옆이 그것이 사는 자리다. 결과 위에 두면
+            무엇의 링크인지 한 번 더 생각하게 된다.
+
+            **저장한 사람 화면에서는 함께 사라진다.** 거기서도 결과 화면 부품을 그대로 쓰는데
+            (`SajuResult`), 그 주소(`/me/people/…`)에는 출생 정보가 안 실린다 — 버튼 옆
+            문장이 거기서는 참이 아니었고, 남에게 보내도 열리지 않는 링크였다.
+          */}
+          {query !== null && <CopyLinkButton />}
+
+          {/* 눌렀는데 못 간 이유를 버튼 옆에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
+          {tried && missing !== null && (
+            <p id="natal-missing" role="alert" className="text-sm font-medium text-danger">
+              {missing}
+            </p>
+          )}
         </div>
 
         {dirty && (

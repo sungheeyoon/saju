@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
@@ -11,7 +10,6 @@ import {
   NOTICE_NOT_READY,
   NOTICE_VERSION,
   betaIsOver,
-  noticeFor,
   scheduleFrom,
 } from '@/src/lib/consent';
 
@@ -19,7 +17,7 @@ import { SignupForm } from './form';
 
 export const metadata = {
   title: '가입하기 — 만세력',
-  description: '테스트 코드와 닉네임을 넣고, 무엇을 받고 언제까지 두는지 확인합니다.',
+  description: '테스트 코드와 닉네임을 입력하고 만세력을 시작합니다.',
 };
 
 /**
@@ -42,32 +40,13 @@ export const metadata = {
  * 지키는 것이 없고, 그때 우리는 알린 적 없는 것을 알렸다고 여기게 된다. 그래서 날짜가
  * 없으면 **폼이 아예 없다**(ADR 0024).
  *
- * ## 절반은 펴고 절반은 접는다
+ * ## 전문을 되풀이하지 않는다
  *
- * 처리방침 전문은 `/privacy` 에 있고 로그인 없이 열린다. 여기서도 **같은 자료**로 절마다
- * 세운다 — 따로 적으면 한쪽만 고쳐지고, 그때 사용자가 읽은 것과 우리가 지키는 것이 갈린다.
- *
- * 여덟 절을 다 편 채로 세우면 코드 칸과 확인 칸이 화면 밖으로 밀린다. 그래서 **가려지면
- * 안 되는 넷만** 편다.
- *
- * - **무엇을 받고 무엇에 쓰나요** — 무엇을 주는지 모르고 주는 일이 없게
- * - **언제까지 두나요** — 이 관문이 존재하는 이유 자체다(ADR 0024). 운영자가 날짜를
- *   옮겨 다시 묻는 자리에서 그 날짜가 접혀 있으면 다시 묻는 뜻이 없다
- * - **풀이를 만들 때 밖으로 나가는 것** — 자료가 국외 모델로 나가는 유일한 자리
- * - **인연 찾기에서 상대에게 보이는 것** — 읽지 않으면 켠 적 없는 참여가 생긴다
- *   (PRD §4.1, ADR 0037)
- *
- * 접는 넷은 위탁·국외이전·파기절차·권리 행사다. 길고, 읽는 사람이 필요할 때 찾아 읽는
- * 종류이고, `/privacy` 에 펼친 채로 서 있다.
+ * 처리방침 전문은 `/privacy` 에 로그인 없이 열린다. 가입 화면까지 전문을 복제하면 사용자가
+ * 해야 할 코드·이름 입력이 문서 뒤로 밀리고, 두 화면의 역할도 흐려진다. 여기에는 가입 전에
+ * 놓치면 안 되는 세 사실만 둔다: 어떤 정보를 쓰는지, 언제 파기하는지, 사주 저장 뒤 인연
+ * 찾기에 참여한다는 것. 위탁·국외이전·파기 방법·권리 행사는 전문에서 읽는다.
  */
-
-/** 접어 두는 절 — **여기 없는 것은 펴진다**(모르는 절이 생기면 펴지는 쪽이 안전하다) */
-const FOLDED = new Set([
-  '맡겨서 처리하는 곳',
-  '국외로 나가는 것',
-  '파기 절차와 방법',
-  '권리와 행사 방법',
-]);
 export default async function SignupPage() {
   const supabase = await supabaseOnServer();
   const {
@@ -131,12 +110,12 @@ export default async function SignupPage() {
       <header className="border-b border-border pb-6">
         <p className="eyebrow">{again ? '한 번 더 확인해 주세요' : '가입하기'}</p>
         <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">
-          {again ? '처리방침이 바뀌었습니다' : '테스트 코드와 닉네임만 있으면 됩니다'}
+          {again ? '개인정보 처리방침이 바뀌었습니다' : '테스트 코드와 닉네임을 입력해 주세요'}
         </h1>
         <p className="mt-1 text-sm leading-6 text-secondary">
           {again
             ? NOTICE_AGAIN_NOTE
-            : '초대받은 분만 쓰는 비공개 베타입니다. 무엇을 받고 언제까지 두는지 아래에 적어 두었습니다.'}
+            : '초대받은 분만 이용할 수 있는 비공개 베타입니다. 가입에 필요한 정보만 간단히 확인해 주세요.'}
         </p>
       </header>
 
@@ -147,52 +126,16 @@ export default async function SignupPage() {
         */
         <p className={`${CARD} text-sm leading-6`}>{NOTICE_NOT_READY}</p>
       ) : (
-        <>
-          <section className="flex flex-col gap-2">
-            {noticeFor(notice.dates, notice.operator).map((section) => {
-              const open = !FOLDED.has(section.title);
-
-              return (
-                <details
-                  key={section.title}
-                  open={open}
-                  className="group rounded-2xl border border-border bg-surface"
-                >
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3.5 text-sm font-bold hover:text-accent [&::-webkit-details-marker]:hidden">
-                    {section.title}
-                    <span className="shrink-0 text-xs font-medium text-muted">
-                      <span className="group-open:hidden">펼치기</span>
-                      <span className="hidden group-open:inline">접기</span>
-                    </span>
-                  </summary>
-                  <ul className="flex flex-col gap-2 border-t border-border px-5 py-4">
-                    {section.lines.map((line) => (
-                      <li key={line} className="text-sm leading-6 text-secondary">
-                        {line}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              );
-            })}
-          </section>
-
-          <Link
-            href="/privacy"
-            className="self-start text-sm font-semibold text-accent underline underline-offset-4"
-          >
-            처리방침 전문 보기
-          </Link>
-
-          <section className={CARD}>
-            <SignupForm
-              needsCode={account.signed_up_at === null}
-              needsName={account.nickname === null}
-              version={NOTICE_VERSION}
-              scheduleId={notice.scheduleId}
-            />
-          </section>
-        </>
+        <section className={CARD}>
+          <SignupForm
+            needsCode={account.signed_up_at === null}
+            needsName={account.nickname === null}
+            version={NOTICE_VERSION}
+            scheduleId={notice.scheduleId}
+            endsOn={notice.dates.endsOn}
+            purgeBy={notice.dates.purgeBy}
+          />
+        </section>
       )}
 
       {/*

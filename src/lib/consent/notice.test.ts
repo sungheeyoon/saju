@@ -180,7 +180,7 @@ describe('선택 항목', () => {
   it('개선 활용은 철회하면 지운다고 말한다', () => {
     const improvement = OPTIONAL_CONSENTS.find((one) => one.key === 'improvement');
 
-    expect(improvement?.detail).toContain('지웁니다');
+    expect(improvement?.detail).toContain('삭제합니다');
     expect(improvement?.detail).toContain('그대로');
   });
 
@@ -188,7 +188,7 @@ describe('선택 항목', () => {
   it('후속 연락에 홍보를 섞지 않는다', () => {
     const contact = OPTIONAL_CONSENTS.find((one) => one.key === 'contact');
 
-    expect(contact?.detail).toContain('광고나 홍보에는 쓰지 않습니다');
+    expect(contact?.detail).toContain('광고성 메시지는 보내지 않습니다');
     expect(contact?.detail).toContain('1년');
   });
 });

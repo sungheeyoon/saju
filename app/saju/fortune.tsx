@@ -2,10 +2,6 @@ import {
   CARD,
 } from '../card';
 import {
-  UtteranceList,
-  placeNowUtterances,
-} from '../utterances';
-import {
   DAEUN_DIRECTION_KO,
   PILLAR_POSITIONS,
   PILLAR_POSITION_KO,
@@ -115,104 +111,48 @@ function groupOverlaps(
 }
 
 /**
- * 지금의 운 — **버튼을 누른 시각을 기준으로 짚은 세 칸.**
+ * 지금의 운이 **원국의 같은 자리를 다시 밟는 것** — 카드 하나가 이 칸만 남았다.
  *
- * 아래 표들과 역할이 갈린다. 표는 **둘러보기** 도구다(세운 시작 연도를 옮겨 아홉 칸·
- * 열두 칸을 훑는다). 이 카드는 고르지 않고 **지금 하나**를 짚는다 — 사용자가 원한 것이
- * "몇 년 몇 월을 볼까"가 아니라 "지금 어떤가"였다.
+ * 「지금의 운」 카드가 여기 있었다. 지금 도는 대운·세운·월운을 짚고, 그것이 원국과 맺는
+ * 관계를 문장으로 폈다. 그중 **어느 운이 도는가는 아래 표가 이미 짚는다** — 표마다 지금
+ * 칸에 표시가 붙는다. 같은 사실을 두 번 말하는 자리였다.
  *
- * **강도 딱지가 여기서 처음 한 카드 안에서 갈린다.** 세운·월운 행은 사실이고 대운
- * 문장만 유도다. 갈리는 까닭은 대운수를 우리가 골랐기 때문이고(반올림이냐 버림이냐),
- * 그것을 문장이 스스로 밝힌다. 같은 카드에 나란히 서지 않으면 왜 하나만 딱지가 다른지
- * 보이지 않는다 — 억부와 종격을 한 카드에 모은 것과 같은 이유다.
+ * 이 칸만 다르다. **여기서만 말하는 사실**이다.
  *
- * 현재운을 **밖에서 받는다.** 여기서 짚으면 아래 표들이 각자 짚는 '지금' 과 어긋날
- * 수 있고, 무엇보다 엔진이 시각을 스스로 묻지 않기로 한 결정
- * (`NOW_POLICY.viewingInstant`)이 화면에서 되돌아온다.
+ * 원국에 이미 인신충이 있는 사람에게 이번 달 申이 또 오면, 그 달은 「새 충 하나」가
+ * 아니라 **같은 자리를 두 번째로 치는 달**이다. 두 사실은 아래 표 안에 다 있지만 서로
+ * 다른 줄에 있고, 줄이 스물에 가까우면 사람도 모델도 그 짝을 못 맞춘다.
+ *
+ * 엔진이 세어 준 것만 세운다(`now.overlaps`) — 화면이 다시 맞추면 표와 이 칸이 어긋나는
+ * 날 어느 쪽이 맞는지 알 수 없다. 겹칠 것이 없으면 **아무것도 안 세운다.**
  */
-
-export function NowFortune({
-  now,
-  /** 문장은 **밖에서 지어 받는다** — `sajuViewModelOf` 가 한 번만 짓는다 */
-  text: { header, body, relations, footnote },
-}: {
-  now: CurrentFortune;
-  text: ReturnType<typeof placeNowUtterances>;
-}) {
+export function NowOverlaps({ now }: { now: CurrentFortune }) {
+  if (now.overlaps.length === 0) return null;
 
   return (
-    <section id="fortune" className={`${CARD} scroll-mt-20`}>
-      <h2 className="text-base font-semibold">지금의 운</h2>
-
-      <div className="mt-3">
-        <UtteranceList utterances={header} />
-      </div>
-
-      <div className="mt-3 border-t border-border pt-3">
-        <UtteranceList utterances={body} />
-      </div>
-
+    <section className={CARD}>
+      <h2 className="text-base font-semibold">지금이 원국의 같은 자리를 다시 밟는 것</h2>
       {/*
-        관계를 갈라 세운다. 섞어 두면 아홉 줄이 본론인 세 칸을 묻는다 — 버리는 것이
-        아니라 자리를 주는 것이고, 원국 화면에서 이 주제를 뺀 것과 이유가 다르다
-        (저쪽은 표가 든다).
+        **글자로 묶는다.** 운이 데려온 한 자가 원국의 어느 글자와 같으면 그 자리의
+        관계가 통째로 겹치므로, 줄로 풀면 다섯 줄이 한 사실을 다섯 번 말한다. 겹치게
+        만든 것은 그 **한 자**이고, 무엇이 겹쳤는지는 그 옆에 이름으로 선다.
       */}
-      {/*
-        **열아홉 줄에 파묻히던 한 줄을 먼저 세운다.**
-
-        원국에 이미 인신충이 있는 사람에게 이번 달 申이 또 오면, 그 달은 「새 충 하나」가
-        아니라 **같은 자리를 두 번째로 치는 달**이다. 두 사실은 아래 목록에 다 있었지만
-        서로 다른 줄에 있었고, 줄이 스물에 가까우면 사람도 모델도 그 짝을 못 맞춘다.
-
-        엔진이 세어 준 것만 세운다(`now.overlaps`) — 화면이 다시 맞추면 목록과 이 칸이
-        어긋나는 날 어느 쪽이 맞는지 알 수 없다.
-      */}
-      {now.overlaps.length > 0 && (
-        <div className="mt-4 border-t border-border pt-3">
-          <h3 className="text-sm font-medium">원국의 같은 자리를 다시 밟는 것</h3>
-          {/*
-            **글자로 묶는다.** 운이 데려온 한 자가 원국의 어느 글자와 같으면 그 자리의
-            관계가 통째로 겹치므로, 줄로 풀면 다섯 줄이 한 사실을 다섯 번 말한다. 겹치게
-            만든 것은 그 **한 자**이고, 무엇이 겹쳤는지는 그 옆에 이름으로 선다.
-          */}
-          <ul className="mt-2 flex flex-col gap-1.5 text-sm">
-            {[...groupOverlaps(now.overlaps)].map(([key, group]) => (
-              <li key={key} className="flex flex-wrap items-baseline gap-x-2">
-                <span className="glyph font-medium">{group.char}</span>
-                <span className="text-secondary">
-                  {subjectParticle(group.char)} 원국{' '}
-                  {group.seats.map((seat) => PILLAR_POSITION_KO[seat]).join('·')}의 같은 자리를
-                  다시 밟습니다 —{' '}
-                  <span className="text-foreground">{group.names.join(' · ')}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-xs text-muted">
-            새로 센 것이 아니라 아래 목록과 원국의 관계 표를 맞춰 본 것입니다 — 같은 종류가
-            같은 자리에 다시 걸린 것만 셉니다.
-          </p>
-        </div>
-      )}
-
-      {relations.length > 0 && (
-        <div className="mt-4 border-t border-border pt-3">
-          <h3 className="text-sm font-medium">지금이 원국과 맺는 관계</h3>
-          <div className="mt-2">
-            <UtteranceList utterances={relations} />
-          </div>
-        </div>
-      )}
-
-      {footnote.length > 0 && (
-        <div className="mt-3 border-t border-border pt-3">
-          <UtteranceList utterances={footnote} />
-        </div>
-      )}
-
-      <p className="mt-3 border-t border-border pt-3 text-xs text-muted">
-        지금 하나만 짚습니다. 다른 시점은 아래 <strong className="font-medium">운 흐름</strong>{' '}
-        표에서 골라 봅니다.
+      <ul className="mt-3 flex flex-col gap-1.5 text-sm">
+        {[...groupOverlaps(now.overlaps)].map(([key, group]) => (
+          <li key={key} className="flex flex-wrap items-baseline gap-x-2">
+            <span className="glyph font-medium">{group.char}</span>
+            <span className="text-secondary">
+              {subjectParticle(group.char)} 원국{' '}
+              {group.seats.map((seat) => PILLAR_POSITION_KO[seat]).join('·')}의 같은 자리를
+              다시 밟습니다 —{' '}
+              <span className="text-foreground">{group.names.join(' · ')}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-muted">
+        새로 센 것이 아니라 아래 표와 원국의 관계 표를 맞춰 본 것입니다 — 같은 종류가 같은
+        자리에 다시 걸린 것만 셉니다.
       </p>
     </section>
   );
@@ -249,7 +189,7 @@ export function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
       </p>
 
       <div className="mt-4 snap-x snap-proximity overflow-x-auto">
-        <table className="w-full min-w-[52rem] border-collapse text-center">
+        <table className="w-full min-w-[52rem] table-fixed border-collapse text-center">
           <caption className="sr-only">해마다의 간지와 원국·대운과의 관계</caption>
           <thead>
             <tr>
@@ -374,7 +314,7 @@ export function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
       </p>
 
       <div className="mt-4 snap-x snap-proximity overflow-x-auto">
-        <table className="w-full min-w-[60rem] border-collapse text-center">
+        <table className="w-full min-w-[60rem] table-fixed border-collapse text-center">
           <caption className="sr-only">한 해 열두 달의 간지와 원국·세운과의 관계</caption>
           <thead>
             <tr>
@@ -479,7 +419,7 @@ export function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
       </p>
 
       <div className="mt-4 snap-x snap-proximity overflow-x-auto">
-        <table className="w-full min-w-[52rem] border-collapse text-center">
+        <table className="w-full min-w-[52rem] table-fixed border-collapse text-center">
           <caption className="sr-only">10년 단위 대운의 간지와 원국과의 관계</caption>
           <thead>
             <tr>

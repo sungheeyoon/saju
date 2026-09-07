@@ -21,8 +21,13 @@ export default function Home() {
           <p className="mt-4 max-w-2xl text-[0.95rem] leading-7 text-secondary sm:text-base">
             출생 정보로 사주의 기본 구조와 운의 흐름을 확인하세요.
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <a href="#calculator" className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong">
+          {/*
+            **좁아도 한 줄이다.** 흐르게 두면 폰에서 둘째 버튼만 아래로 떨어지는데,
+            그러면 나란한 두 갈래가 「하나 그리고 덧붙임」으로 읽힌다. 두 칸으로 나누고
+            글자와 여백을 좁혀 맞춘다 — 낱말은 그대로 둔다.
+          */}
+          <div className="mt-6 grid grid-cols-2 items-stretch gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+            <a href="#calculator" className="flex min-h-11 items-center justify-center rounded-full bg-accent px-3 py-2.5 text-center text-[0.8125rem] font-semibold leading-5 text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong sm:px-5 sm:text-sm">
               출생 정보 입력하기
             </a>
             <CompatEntry />
@@ -34,16 +39,23 @@ export default function Home() {
           손으로 적으면 히어로의 木과 여덟 글자 칸의 木이 다른 초록이 되고, 그때 색은
           아무것도 가리키지 않는 장식이 된다. 이름을 함께 세우는 것도 같은 이유다 —
           색만으로는 다섯을 가를 수 없는 사람이 있다.
+
+          **다섯은 한 줄이다.** 좁은 화면에서 넷과 하나로 접히면 마지막 하나가 남은
+          것처럼 보인다 — 오행은 낱개의 딱지가 아니라 **다섯이 함께 한 벌**이고,
+          줄이 갈리는 순간 그 사실이 화면에서 지워진다.
+
+          그래서 흐르게 두지 않고 다섯 칸으로 나눈다. 폭이 모자라면 낱말을 빼는 것이
+          아니라 칸이 좁아진다(「표가 좁으면 줄바꿈하지, 낱말을 바꾸지 않는다」).
         */}
-        <ul className="relative mt-8 flex flex-wrap gap-2">
+        <ul className="relative mt-8 grid grid-cols-5 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
           {ELEMENTS.map((element) => {
             const tone = ELEMENT_TONE[element];
             return (
               <li
                 key={element}
-                className={`flex items-center gap-1.5 rounded-full border py-1.5 pl-1.5 pr-3 text-xs font-semibold ${tone.border} ${tone.surface}`}
+                className={`flex items-center justify-center gap-1 rounded-full border py-1.5 pl-1 pr-2 text-[0.6875rem] font-semibold sm:justify-start sm:gap-1.5 sm:pl-1.5 sm:pr-3 sm:text-xs ${tone.border} ${tone.surface}`}
               >
-                <span className={`glyph grid size-6 place-items-center rounded-full bg-surface/70 ${tone.text}`}>
+                <span className={`glyph grid size-5 place-items-center rounded-full bg-surface/70 sm:size-6 ${tone.text}`}>
                   {element}
                 </span>
                 {ELEMENT_KO[element]}

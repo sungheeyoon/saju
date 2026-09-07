@@ -87,7 +87,7 @@ test.describe('시작하기 전에', () => {
     await expect(page.getByLabel('닉네임')).toHaveCount(0);
 
     /* 다시 확인하면 돌아온다 — 여기서 루프면 이 줄이 타임아웃으로 죽는다 */
-    await page.getByRole('checkbox', { name: /처리방침을 읽고/ }).check();
+    await page.getByRole('checkbox', { name: /위 내용을 확인/ }).check();
     await page.getByRole('button', { name: '확인하고 계속하기' }).click();
     await expect(page).toHaveURL(/\/me$/);
 
@@ -138,6 +138,14 @@ test.describe('시작하기 전에', () => {
 
     await page.goto('/signup');
 
+    /* 전문은 링크로 갈라 두고, 가입 화면에는 코드 앞의 핵심 안내만 선다 */
+    await expect(page.getByRole('heading', { name: '가입 전에 확인해 주세요' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '개인정보 처리방침' })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
+    await expect(page.getByText('무엇을 받고 무엇에 쓰나요', { exact: true })).toHaveCount(0);
+
     /*
       **날짜가 문장 안에 실제로 서 있어야 한다** — 그것이 이 화면이 있는 이유다.
       「파기합니다」 같은 낱말로 재면 날짜 없이도 지나가는 문장이 통과한다.
@@ -149,7 +157,7 @@ test.describe('시작하기 전에', () => {
       그것을 동의라고 부를 수 없다.
     */
     const improvement = page.getByRole('checkbox', { name: /풀이 개선/ });
-    const contact = page.getByRole('checkbox', { name: /다음 테스트 안내/ });
+    const contact = page.getByRole('checkbox', { name: /다음 테스트 소식/ });
     await expect(improvement).not.toBeChecked();
     await expect(contact).not.toBeChecked();
 
@@ -166,9 +174,9 @@ test.describe('시작하기 전에', () => {
     await page.getByLabel('테스트 코드').fill(E2E_CODE);
     await page.getByLabel('닉네임').fill(`벗${String(Date.now()).slice(-6)}`);
     await page.getByRole('button', { name: '중복 확인' }).click();
-    await expect(page.getByText('쓸 수 있는 닉네임입니다.')).toBeVisible();
+    await expect(page.getByText('사용할 수 있는 닉네임입니다.')).toBeVisible();
 
-    await page.getByRole('checkbox', { name: /처리방침을 읽고/ }).check();
+    await page.getByRole('checkbox', { name: /위 내용을 확인/ }).check();
     await expect(start).toBeEnabled();
     await start.click();
 
