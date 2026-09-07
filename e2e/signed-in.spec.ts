@@ -93,12 +93,18 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.goto('/me');
 
     await expect(page.getByText(signedIn.label, { exact: false }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: `${signedIn.label}의 사주팔자` })).toBeVisible();
+    const chart = page.getByRole('table', { name: '시주, 일주, 월주, 년주의 천간과 지지' });
+    await expect(chart).toBeVisible();
+    await expect(chart.getByRole('columnheader', { name: '일주' })).toBeVisible();
+    await expect(chart.getByLabel('일주 천간과 지지')).toContainText('나');
+    await expect(chart.getByLabel('일주 천간과 지지')).toContainText('관계 자리');
 
     /*
       **US 23-1 · 25 가 걸린 자리다.** 칸은 서고, 아직 없다고 말하고, 버튼만 있다.
       화면을 여는 것으로 모델이 불리면 배포와 새로고침이 결과를 바꾼다.
     */
-    await expect(page.getByRole('heading', { name: '나의 사주풀이' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '사주풀이', exact: true })).toBeVisible();
     await expect(page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
 
@@ -187,7 +193,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '어머니의 사주풀이' })).toBeVisible();
 
     /* 카드 배치라 긴 글이 접혀 있다 — 펼쳐서 그 글이 진짜 저장돼 있는지 본다 */
-    await page.getByRole('button', { name: '펼쳐보기 ↓' }).click();
+    await page.getByRole('button', { name: '자세히 보기', exact: true }).click();
     await expect(page.getByText('어머니의 결')).toBeVisible();
 
     /* 한 사람짜리라 궁합 점수가 안 선다 */
@@ -226,15 +232,16 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     expect(reader.runId).not.toBe('');
     await page.goto('/me');
 
-    /* `/me` 는 카드 배치라 긴 글이 접혀 있다 — 펼쳐서 그 글이 진짜 저장돼 있는지 본다 */
-    await page.getByRole('button', { name: '펼쳐보기 ↓' }).click();
+    /* `/me` 는 카드 배치라 긴 글과 설문을 앞세우지 않는다 */
+    await expect(page.getByText('이 풀이는 어떠셨어요')).toHaveCount(0);
+    await page.getByRole('button', { name: '자세히 보기', exact: true }).click();
     await expect(page.getByText('브라우저가 읽을 글입니다')).toBeVisible();
 
-    /* 설문은 접힘 밖에 선다 — 읽고 나서 곧바로 묻는 자리다 */
+    /* 전문을 읽기 전에는 설문을 앞세우지 않고, 펼친 뒤 글 바로 아래에 둔다 */
     await expect(page.getByText('이 풀이는 어떠셨어요')).toBeVisible();
 
     /* **세 가지를 다 고르기 전에는 못 보낸다** — 안 고른 것이 어느 값으로든 저장되면 안 된다 */
-    const send = page.getByRole('button', { name: '답 보내기' });
+    const send = page.getByRole('button', { name: '의견 보내기' });
     await expect(send).toBeDisabled();
 
     await page.getByRole('radio', { name: '5 — 많이 됐어요' }).check();
@@ -259,6 +266,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       것이라, 새로고침을 안 해 보면 저장이 실제로 됐는지 이 시험이 한 번도 못 잰다.
     */
     await page.reload();
+    await page.getByRole('button', { name: '자세히 보기', exact: true }).click();
     await expect(page.getByText('답해 주셔서 고맙습니다')).toBeVisible();
 
     /* **고치는 화면은 빈 칸으로 열리지 않는다** — 빈 칸이면 다시 보낼 때 적은 글이 지워진다 */

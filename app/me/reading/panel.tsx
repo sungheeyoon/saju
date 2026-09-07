@@ -145,6 +145,7 @@ export function ReadingPanel({
   const [phase, setPhase] = useState<Phase>(initialRunning ? 'loading' : 'idle');
   const [failure, setFailure] = useState(initialFailed ? READING_FAILED_NOTE : null);
   const [isMock, setIsMock] = useState(false);
+  const [readingExpanded, setReadingExpanded] = useState(false);
   const reading = mockReading ?? initialReading;
 
   const showMock = () => {
@@ -218,6 +219,7 @@ export function ReadingPanel({
     setFailure(null);
     setMockReading(null);
     setIsMock(false);
+    setReadingExpanded(false);
 
     let result: Awaited<ReturnType<typeof generateReading>>;
     try {
@@ -382,10 +384,7 @@ export function ReadingPanel({
   return (
     <>
       <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="eyebrow">사주풀이</p>
-          <h2 className="mt-1 text-xl font-bold tracking-tight">{heading}</h2>
-        </div>
+        <h2 className="text-xl font-bold tracking-tight">{heading}</h2>
         {reading !== null && (
           <div className="flex items-center gap-2">
             {isMock && (
@@ -411,7 +410,13 @@ export function ReadingPanel({
       ) : reading === null ? (
         <EmptyState />
       ) : (
-        <Result reading={reading} target={target} alwaysOpen={onPage} />
+        <Result
+          reading={reading}
+          target={target}
+          alwaysOpen={onPage}
+          expanded={readingExpanded}
+          onExpandedChange={setReadingExpanded}
+        />
       )}
 
       {/*
@@ -429,7 +434,7 @@ export function ReadingPanel({
         그리고 **동의하지 않았으면 통째로 안 선다.** 「동의하면 더 답할 수 있어요」
         같은 줄도 세우지 않는다 — 거절한 사람에게 거절을 다시 보여 주는 자리가 된다.
       */}
-      {consented && phase !== 'loading' && reading !== null && !isMock
+      {(onPage || readingExpanded) && consented && phase !== 'loading' && reading !== null && !isMock
         && reading.sourceRunId !== null && (
         <ReadingFeedback target={target} runId={reading.sourceRunId} given={reading.myFeedback} />
       )}
@@ -553,14 +558,29 @@ function Result({
   reading,
   target,
   alwaysOpen,
+  expanded,
+  onExpandedChange,
 }: {
   reading: CurrentReading;
   target: ReadingTarget;
   /** 상세 화면에서는 접지 않는다 — 그 글을 읽으러 온 자리다 */
   alwaysOpen: boolean;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
   const open = alwaysOpen || expanded;
+  const detailButton = !alwaysOpen && (
+    <button
+      type="button"
+      onClick={() => onExpandedChange(!expanded)}
+      aria-expanded={expanded}
+      aria-controls={`reading-${reading.id}`}
+      className="inline-flex min-h-10 shrink-0 items-center gap-1.5 self-start rounded-full border border-accent/25 bg-surface px-4 text-sm font-semibold text-accent shadow-sm hover:border-accent sm:self-auto"
+    >
+      {expanded ? '접기' : '자세히 보기'}
+      <span aria-hidden="true">{expanded ? '↑' : '→'}</span>
+    </button>
+  );
 
   return (
     <div className="flex flex-col gap-5">
@@ -585,14 +605,17 @@ function Result({
         전제하지 않는다 — `text-pretty` 로 줄을 고르게 나누고, 칸은 세로로 자란다.
       */}
       {(reading.score !== null || reading.metaphor !== null) && (
-        <div className="flex flex-col gap-4 rounded-2xl bg-accent-wash p-5">
-          {reading.metaphor !== null && (
-            <p className="text-pretty text-lg font-semibold leading-7 sm:text-xl sm:leading-8">
-              {reading.metaphor}
-            </p>
-          )}
+        <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface-raised px-5 py-4 shadow-[var(--shadow-card)] sm:px-6 sm:py-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {reading.metaphor !== null && (
+              <p className="max-w-2xl flex-1 py-0.5 text-pretty text-lg font-semibold leading-7 sm:text-xl sm:leading-8">
+                {reading.metaphor}
+              </p>
+            )}
+            {detailButton}
+          </div>
           {reading.score !== null && (
-            <div className="flex flex-col gap-1.5">
+            <div className={`flex flex-col gap-1.5 ${reading.metaphor !== null ? 'border-t border-border pt-4' : ''}`}>
               <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                 <span className="text-xs font-semibold text-accent">현재 궁합 풀이 점수</span>
                 <span className="text-2xl font-bold tabular-nums">{reading.score}</span>
@@ -603,6 +626,7 @@ function Result({
           )}
         </div>
       )}
+      {reading.score === null && reading.metaphor === null && detailButton}
       {/*
         **늘 참인 사실은 여기 안 적는다.**
 
@@ -618,36 +642,16 @@ function Result({
         {target.kind === 'match' && <p>{readingOrderNote(reading.viewerIsFirst)}</p>}
         {target.kind === 'match' ? <p>{READING_PINNED_NOTE}</p> : !reading.fromCurrentRevision && <p className="text-danger">{READING_STALE_NOTE}</p>}
       </div>
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-[var(--shadow-card)]">
-        {/* 상세 화면에는 여는 버튼이 없다 — 이미 그 글을 읽으러 온 자리다 */}
-        {!alwaysOpen && (
-          <button
-            type="button"
-            onClick={() => setExpanded((current) => !current)}
-            aria-expanded={expanded}
-            aria-controls={`reading-${reading.id}`}
-            className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-surface-soft sm:px-7"
-          >
-            <span>
-              <span className="block text-sm font-bold">사주풀이 전문</span>
-              <span className="mt-0.5 block text-xs text-muted">
-                {expanded ? '긴 풀이를 접어 화면을 간단히 볼 수 있어요.' : '핵심 성향부터 관계 조언까지 이어서 읽어보세요.'}
-              </span>
-            </span>
-            <span className="shrink-0 text-sm font-semibold text-accent">
-              {expanded ? '접기 ↑' : '펼쳐보기 ↓'}
-            </span>
-          </button>
-        )}
-        {open && (
+      {open && (
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-[var(--shadow-card)]">
           <article
             id={`reading-${reading.id}`}
-            className={`p-5 sm:p-7 lg:p-8 ${alwaysOpen ? '' : 'border-t border-border'}`}
+            className="p-5 sm:p-7 lg:p-8"
           >
             <Markdown source={reading.output} />
           </article>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

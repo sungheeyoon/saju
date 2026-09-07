@@ -176,7 +176,7 @@ async function SelfChart({ personId }: { personId: string }) {
         **자기 풀이** — 저장된 근거를 사용자가 직접 읽지 않아도 무엇이 보이는지
         알게 하는 자리다(US 23-1). 여는 것만으로는 만들지 않는다.
       */}
-      <ReadingSection target={{ kind: 'self' }} />
+      <ReadingSection target={{ kind: 'self' }} heading="사주풀이" />
     </section>
   );
 }
