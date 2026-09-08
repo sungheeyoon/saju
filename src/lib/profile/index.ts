@@ -74,7 +74,7 @@ export function nicknameKey(nickname: string): string {
  * 그 사실을 먼저 말한다.
  */
 export const PHOTO_NOTE =
-  '프로필 사진은 인연 목록과 요청 화면에서 상대에게 보입니다. 올리지 않으셔도 됩니다 — 없으면 없는 대로 섭니다.';
+  '프로필 사진은 인연 찾기와 요청 화면에서 다른 사람에게 공개됩니다.';
 
 /** 사진 없이 서는 자리 — 이름의 첫 글자 하나 */
 export function initialOf(nickname: string): string {

@@ -163,9 +163,9 @@ export function ParticipationToggle({ resting }: { resting: boolean }) {
         </p>
         <Disclosure />
         <p className="text-sm text-secondary">
-          언제든 끌 수 있고, 끄면 매칭 풀에 내놓은 오행 요약도 거둡니다. 내 사주와 저장한
-          사람들은 그대로 남습니다. 이미 주고받은 요청과 함께 보기로 한 궁합도 그대로입니다 —
-          참여를 끄는 것은 새로 보이지 않겠다는 뜻이지 지난 일을 지우는 것이 아닙니다.
+          언제든 끌 수 있습니다. 끄면 내 프로필과 오행 요약이 다른 참여자에게 더 이상
+          공개되지 않습니다. 내 사주와 저장한 사람, 이미 주고받은 요청과 함께 보기로 한 궁합은
+          그대로 남습니다.
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <button

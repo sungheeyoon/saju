@@ -12,7 +12,7 @@ import { readingDate, readingHref, readingTitle } from '../reading/line';
 
 export const metadata = {
   title: '풀이 — 만세력',
-  description: '내가 만든 사주풀이와 궁합 풀이가 시간순으로 섭니다.',
+  description: '내가 만든 사주풀이와 궁합 풀이를 최근 순서대로 확인합니다.',
 };
 
 /**
@@ -61,8 +61,8 @@ export default async function ReadingsPage() {
         <p className="eyebrow">풀이</p>
         <h1 className="text-3xl font-bold tracking-[-0.04em] sm:text-4xl">만든 풀이</h1>
         <p className="text-sm text-secondary">
-          내 사주와 저장한 사람, 두 사람의 궁합까지 만들어 둔 글이 최근 것부터 섭니다.
-          누르면 그 글이 사는 화면으로 갑니다.
+          내 사주풀이와 저장한 사람의 사주풀이, 궁합 풀이를 최근에 만든 순서대로 확인할 수
+          있습니다.
         </p>
       </header>
 

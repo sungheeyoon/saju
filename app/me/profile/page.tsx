@@ -59,7 +59,7 @@ export default async function ProfilePage() {
         <p className="eyebrow">프로필</p>
         <h1 className="text-3xl font-bold tracking-[-0.04em]">프로필</h1>
         <p className="max-w-xl text-sm text-secondary">
-          앱 안의 모든 자리에서 이 이름으로 불립니다. 언제든 고치실 수 있습니다.
+          앱에서 사용할 닉네임과 프로필을 관리합니다.
         </p>
       </header>
 

@@ -180,13 +180,8 @@ export function ProfileForm({
           </p>
         )}
 
-        <p className="text-xs text-muted">
-          앱 안의 모든 자리에서 이 이름으로 불립니다. 저장한 가족·친구에게 붙인 부를 이름은
-          내 목록 안에서만 쓰는 말이라 여기 들지 않습니다.
-        </p>
-
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-secondary">소개</span>
+          <span className="text-xs text-secondary">소개 (선택)</span>
           <textarea
             value={profile.intro}
             onChange={(event) =>
@@ -194,7 +189,7 @@ export function ProfileForm({
             }
             maxLength={INTRO_MAX}
             rows={3}
-            placeholder="사주와 무관한 소개입니다 — 비워 두셔도 됩니다"
+            placeholder="간단한 소개를 입력해 주세요"
             className="rounded-md border border-border bg-surface px-2.5 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash"
           />
         </label>

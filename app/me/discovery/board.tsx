@@ -90,8 +90,8 @@ function Resting() {
     <section className={`${CARD} flex flex-col gap-2`}>
       <h2 className="text-base font-semibold">인연 찾기를 쉬고 있습니다</h2>
       <p className="text-sm text-secondary">
-        지금은 다른 참여자의 목록에 서지 않고, 소개받는 목록도 만들지 않습니다. 내 사주와
-        저장한 사람들은 그대로 있습니다.
+        지금은 다른 참여자에게 내 프로필이 공개되지 않으며, 새로운 사람도 소개받지 않습니다.
+        내 사주와 저장한 사람은 그대로 남아 있습니다.
       </p>
       <Link
         href="/me/discovery"

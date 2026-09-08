@@ -104,7 +104,7 @@ export default async function PrivacyPage() {
           </section>
 
           <p className="text-xs leading-5 text-muted">
-            비공개 베타 기간에는 파기 시점이 위 종료일에 매여 있습니다(종료 후{' '}
+            비공개 베타 기간의 정보 파기 시점은 위 종료일을 기준으로 합니다(종료 후{' '}
             {ready.dates.purgeWithinDays}일 이내). 공개 전환 시에는 이 방침을 다시 씁니다.
           </p>
         </>

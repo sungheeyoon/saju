@@ -301,8 +301,8 @@ describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
 
     // 같은 사실은 그래도 말한다 — 무엇이 요청을 깨뜨리는지, 그리고 그다음에 할 일.
     expect(CONSENT_FLOW_CAVEAT).toContain('출생 정보');
-    expect(CONSENT_FLOW_CAVEAT).toContain('무효');
-    expect(CONSENT_FLOW_CAVEAT).toContain('다시 보내야');
+    expect(CONSENT_FLOW_CAVEAT).toContain('취소');
+    expect(CONSENT_FLOW_CAVEAT).toContain('다시 요청');
   });
 });
 
@@ -311,13 +311,13 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
    * 미리 적어 두면 실제로 무효가 됐을 때 **그렇게 하기로 했던 것**이 된다. 안 적으면
    * 사고처럼 읽힌다.
    */
-  it('요청이 그때의 출생 정보에 매인다는 것을 먼저 말한다', () => {
+  it('요청이 보낼 때의 출생 정보를 기준으로 한다는 것을 먼저 말한다', () => {
     expect(REVISION_BOUND_NOTE).toContain('출생 정보');
-    expect(REVISION_BOUND_NOTE).toContain('무효');
+    expect(REVISION_BOUND_NOTE).toContain('취소');
     // 이름·메모 수정은 무효로 만들지 않는다 — 그 경계도 함께 적는다.
     expect(REVISION_BOUND_NOTE).toContain('이름');
-    // 무효는 막다른 길이 아니다 — 그다음에 할 일을 함께 적는다.
-    expect(REVISION_BOUND_NOTE).toContain('다시 보내면');
+    // 취소는 막다른 길이 아니다 — 그다음에 할 일을 함께 적는다.
+    expect(REVISION_BOUND_NOTE).toContain('다시 요청');
   });
 
   it('거절이 되돌아오지 않는다는 것을 먼저 말한다', () => {

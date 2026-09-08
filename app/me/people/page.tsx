@@ -85,7 +85,7 @@ export default async function PeoplePage() {
           <p className="eyebrow">사람</p>
           <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">저장한 사람</h1>
           <p className="mt-1 text-sm text-secondary">
-            가족과 친구의 출생 정보를 저장하고, 각 사람의 사주나 두 사람의 궁합을 확인하세요.
+            가족이나 친구의 출생 정보를 저장하고 관리하세요.
             {slots !== null && (
               <span className="ml-2 text-muted">
                 {slots.used}/{slots.limit}명
@@ -118,7 +118,7 @@ function PeopleList({ people }: { people: Person[] }) {
     <>
       {people.length === 0 ? (
         <p className="rounded-xl border border-border bg-surface-sunken p-4 text-sm text-muted">
-          아직 저장한 사람이 없습니다. 부를 이름과 생년월일시를 넣으면 여기에 쌓입니다.
+          아직 저장한 사람이 없습니다. 이름과 출생 정보를 입력해 사람을 추가해 보세요.
         </p>
       ) : (
         <ul className="flex flex-col gap-4">

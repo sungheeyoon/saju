@@ -121,7 +121,7 @@ describe('풀이권 문구', () => {
     const note = readingCreditsNote({ reserved: 1 });
 
     expect(note).toContain('만들고 있는');
-    expect(note).toContain('돌아옵니다');
+    expect(note).toContain('복구됩니다');
   });
 
   /**
@@ -132,7 +132,7 @@ describe('풀이권 문구', () => {
     const note = readingCreditsNote({ reserved: 0, requested: 2 });
 
     expect(note).toContain('2건');
-    expect(note).toContain('돌아옵니다');
+    expect(note).toContain('복구됩니다');
   });
 
   /**
