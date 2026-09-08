@@ -63,12 +63,19 @@ export const sql = (statement) =>
 
 const CODE = 'UIWALK';
 
+/**
+ * **운영이 약속한 그 날짜를 쓴다.** 여기 아무 날이나 넣으면 `/privacy` 와 `/signup` 이
+ * 화면에 그 날을 찍고, 훑기로 찍은 그림이 사람들이 실제로 읽은 것과 다른 약속을 든다.
+ * 파기 기한은 `purge_within_days` 기본값(30일)에서 나므로 따로 안 적는다.
+ */
+export const BETA_ENDS_ON = '2026-10-31';
+
 function openTheDoor() {
   sql(`insert into public.beta_schedule
          (ends_on, note, operator_name, operator_officer, operator_contact)
-       select '2026-12-31', 'UI 훑기', '만세력 운영자', '보기 담당', 'ops@example.com'
+       select '${BETA_ENDS_ON}', 'UI 훑기', '만세력 운영자', '보기 담당', 'ops@example.com'
        where coalesce((select s.ends_on from public.current_beta_schedule() s),
-                      '1900-01-01') <> '2026-12-31'`);
+                      '1900-01-01') <> '${BETA_ENDS_ON}'`);
   sql(`insert into public.signup_code (code, note, valid_on, max_uses)
        values ('${CODE}', 'ui-walk', (now() at time zone 'Asia/Seoul')::date, 1000)
        on conflict (code) do update

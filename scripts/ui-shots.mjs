@@ -16,7 +16,7 @@ import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 
 import { build } from './ui-states.mjs';
-import { sql } from './ui-seed.mjs';
+import { BETA_ENDS_ON, sql } from './ui-seed.mjs';
 
 /** 베타를 끝내 놓는다 — `/closed` 는 **끝난 뒤에만** 서는 화면이다 */
 const endBeta = () =>
@@ -24,10 +24,11 @@ const endBeta = () =>
          (ends_on, note, operator_name, operator_officer, operator_contact)
        values ('2026-01-31', 'UI 훑기 — 끝난 뒤', '만세력 운영자', '보기 담당', 'ops@example.com')`);
 
+/* 되돌릴 때도 **씨 뿌리는 자리와 같은 날짜**여야 한다 — 갈리면 이 뒤의 화면이 딴 날을 찍는다 */
 const reopenBeta = () =>
   sql(`insert into public.beta_schedule
          (ends_on, note, operator_name, operator_officer, operator_contact)
-       values ('2026-12-31', 'UI 훑기', '만세력 운영자', '보기 담당', 'ops@example.com')`);
+       values ('${BETA_ENDS_ON}', 'UI 훑기', '만세력 운영자', '보기 담당', 'ops@example.com')`);
 
 const out = process.argv[2] ?? 'ui-shots';
 const port = process.env.UI_PORT ?? '3100';
