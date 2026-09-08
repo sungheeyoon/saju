@@ -2,12 +2,20 @@
 
 import type { ReactNode } from 'react';
 
-import { GENDER_KO, type Compatibility, type CompatSide, type Saju } from '@/src/lib/saju';
+import {
+  BRANCH_INFO,
+  ELEMENT_KO,
+  GENDER_KO,
+  STEM_INFO,
+  type Compatibility,
+  type CompatSide,
+  type Saju,
+} from '@/src/lib/saju';
 
 import { BetweenSections } from './between-view';
-import { CARD } from './card';
 
 import { PILLAR_COLUMNS } from './saju/shared';
+import { ELEMENT_TONE } from './element-tone';
 
 /**
  * 궁합 **결과 영역** — 입력을 어디서 받았는지 모른다.
@@ -152,7 +160,13 @@ function FoldedAnalysis({
   );
 }
 
-/** 두 명식을 나란히 — 여덟 글자만. 자세한 것은 각자의 원국 화면이 보여준다 */
+/**
+ * 두 명식을 **한 쌍의 보드** 안에 놓는다.
+ *
+ * 독립 카드 두 장은 저장한 사람 목록과 같은 인상을 줬다. 이 화면의 주어는 사람 둘이
+ * 아니라 **둘 사이**이므로, 공통 외곽과 가운데 연결 표식을 두고 각 사람은 좌우 면으로
+ * 나눈다. 모바일에서는 연결선이 세로로 이어져도 한 묶음이라는 인상이 유지된다.
+ */
 function ChartPair({
   charts,
   names,
@@ -161,51 +175,86 @@ function ChartPair({
   names: Record<CompatSide, string>;
 }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      {SIDES.map((side) => {
-        const saju = charts[side];
-        return (
-          <section key={side} className={CARD}>
-            <div className="flex flex-wrap items-baseline gap-x-2">
-              <h2 className="text-base font-semibold">{names[side]}</h2>
-              <span className="text-sm text-secondary">
-                일간 {saju.pillars.dayMaster} · {GENDER_KO[saju.meta.gender]}
-              </span>
-            </div>
+    <section className="relative overflow-hidden rounded-[2rem] border border-border bg-surface p-4 shadow-[var(--shadow-card)] sm:p-6">
+      <header className="flex flex-col items-start gap-1 px-1 pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:px-2">
+        <div>
+          <p className="eyebrow">두 사람의 명식</p>
+          <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">궁합의 출발점</h2>
+        </div>
+        <p className="text-xs text-muted sm:text-right">각자의 여덟 글자를 한자리에서 견줍니다</p>
+      </header>
 
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full border-collapse text-center">
-                <thead>
-                  <tr>
-                    {PILLAR_COLUMNS.map(({ key, label }) => (
-                      <th
-                        key={key}
-                        className={`pb-1 text-xs font-normal ${
-                          key === 'day' ? 'text-foreground' : 'text-muted'
-                        }`}
-                      >
-                        {label}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-t border-border">
-                    {PILLAR_COLUMNS.map(({ key }) => {
-                      const pillar = saju.pillars[key];
-                      return (
-                        <td key={key} className="glyph py-2 text-2xl">
-                          {pillar ? pillar.name : '—'}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        );
-      })}
-    </div>
+      <div className="relative grid gap-3 lg:grid-cols-2 lg:gap-10">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 grid size-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border-strong bg-surface text-sm font-semibold text-accent shadow-sm lg:size-10" aria-hidden="true">
+          ×
+        </div>
+
+        {SIDES.map((side) => (
+          <PairSide key={side} side={side} name={names[side]} saju={charts[side]} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PairSide({ side, name, saju }: { side: CompatSide; name: string; saju: Saju }) {
+  const dayMaster = STEM_INFO[saju.pillars.dayMaster];
+  const dayTone = ELEMENT_TONE[dayMaster.element];
+
+  return (
+    <section className="rounded-[1.5rem] border border-border bg-surface-soft/75 p-4 sm:p-5">
+      <div className="flex items-center gap-3">
+        <div className={`grid size-12 shrink-0 place-items-center rounded-full border ${dayTone.border} ${dayTone.surface}`}>
+          <span className={`glyph text-2xl font-bold ${dayTone.text}`}>{saju.pillars.dayMaster}</span>
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold tracking-[0.09em] text-muted">
+            {side === 'a' ? '첫 번째 사람' : '두 번째 사람'}
+          </p>
+          <h3 className="truncate text-lg font-bold tracking-[-0.02em]">{name}</h3>
+          <p className="text-xs text-secondary">
+            {dayMaster.ko}{ELEMENT_KO[dayMaster.element]} 일간 · {GENDER_KO[saju.meta.gender]}
+          </p>
+        </div>
+      </div>
+
+      <table className="mt-4 w-full table-fixed border-separate border-spacing-x-1 text-center">
+        <caption className="sr-only">{name}의 시주, 일주, 월주, 년주</caption>
+        <thead>
+          <tr>
+            {PILLAR_COLUMNS.map(({ key, label }) => (
+              <th key={key} className={`pb-1 text-[10px] font-medium ${key === 'day' ? 'text-accent' : 'text-muted'}`}>
+                {label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            {PILLAR_COLUMNS.map(({ key, label }) => {
+              const pillar = saju.pillars[key];
+              if (pillar === null) {
+                return <td key={key} className="rounded-lg bg-surface px-0.5 py-2 text-sm text-muted">—</td>;
+              }
+
+              const stemTone = ELEMENT_TONE[STEM_INFO[pillar.stem].element];
+              const branchTone = ELEMENT_TONE[BRANCH_INFO[pillar.branch].element];
+              return (
+                <td
+                  key={key}
+                  aria-label={`${label} ${pillar.name}`}
+                  className={`rounded-lg border px-0.5 py-2 ${
+                    key === 'day' ? 'border-accent/30 bg-surface' : 'border-transparent bg-surface/75'
+                  }`}
+                >
+                  <span className={`glyph text-xl font-semibold ${stemTone.text}`}>{pillar.stem}</span>
+                  <span className={`glyph text-xl font-semibold ${branchTone.text}`}>{pillar.branch}</span>
+                </td>
+              );
+            })}
+          </tr>
+        </tbody>
+      </table>
+    </section>
   );
 }

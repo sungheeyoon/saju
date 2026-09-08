@@ -3,7 +3,13 @@ import { redirect } from 'next/navigation';
 
 import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 
-import { CALENDAR_KO, ELEMENT_KO, GENDER_KO, STEM_INFO } from '@/src/lib/saju';
+import {
+  BRANCH_INFO,
+  CALENDAR_KO,
+  ELEMENT_KO,
+  GENDER_KO,
+  STEM_INFO,
+} from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { chartOf, solarDateOf } from '@/src/lib/input/chart';
@@ -19,6 +25,8 @@ import { ReviseChart } from '../revise';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { AddPerson, NoteForm, RemoveFromList } from './manage';
+import { ELEMENT_TONE } from '../../element-tone';
+import { PILLAR_COLUMNS } from '../../saju/shared';
 
 /*
   **이 화면의 이름은 「저장한 사람」 하나다.**
@@ -200,24 +208,27 @@ function readChart(
 
 function PersonCard({ person }: { person: Person }) {
   return (
-    <section className="flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
-      {person.chart.ok ? (
-        <ChartSummary query={person.chart.query} />
-      ) : (
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold">{person.local_label}</h2>
-          <p className="text-sm">{person.chart.message}</p>
-          <p className="text-xs text-muted">{UNREADABLE_REVISION_NOTE}</p>
-        </div>
-      )}
+    <section className="group relative overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]">
+      <div className="relative p-5 sm:p-6">
+        {person.chart.ok ? (
+          <ChartSummary query={person.chart.query} />
+        ) : (
+          <div className="flex flex-col gap-1">
+            <p className="eyebrow">저장한 사람</p>
+            <h2 className="text-xl font-bold tracking-[-0.03em]">{person.local_label}</h2>
+            <p className="mt-2 text-sm">{person.chart.message}</p>
+            <p className="text-xs text-muted">{UNREADABLE_REVISION_NOTE}</p>
+          </div>
+        )}
+      </div>
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-border bg-surface-soft/70 px-5 py-4 sm:px-6">
         {person.chart.ok && (
           <Link
             href={`/me/people/${person.personId}`}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-on-accent hover:bg-accent-strong"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong"
           >
-            사주 상세 보기
+            사주 상세 보기 <span aria-hidden="true">→</span>
           </Link>
         )}
         {/* 못 읽는 판본은 고치는 폼도 못 채운다 — 빈 폼을 주면 그 값이 새 판본으로 굳는다 */}
@@ -230,31 +241,59 @@ function PersonCard({ person }: { person: Person }) {
   );
 }
 
-/** 여덟 글자와 넣은 값 — `/me` 의 자기 사주와 같은 것을 보여준다 */
+/**
+ * 저장 목록의 한 사람 — **작은 원국 결과가 아니라 사람을 다시 찾는 표지**로 그린다.
+ *
+ * 여덟 글자를 한 줄짜리 표로만 두면 궁합의 두 사람 카드와 같은 모양이 된다. 여기서는
+ * 이름과 일간을 먼저 읽고, 네 기둥은 그 사람을 알아보는 두 번째 단서로 묶는다. 자세한
+ * 해석은 눌러 들어간 화면의 `PillarChart` 가 맡는다.
+ */
 function ChartSummary({ query }: { query: Query }) {
-  const { pillars } = chartOf(query);
-  const columns = [
-    ['시', pillars.hour],
-    ['일', pillars.day],
-    ['월', pillars.month],
-    ['년', pillars.year],
-  ] as const;
+  const saju = chartOf(query);
+  const { pillars } = saju;
+  const dayMaster = STEM_INFO[pillars.dayMaster];
+  const dayTone = ELEMENT_TONE[dayMaster.element];
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-base font-semibold">{query.name}</h2>
-        <span className="text-xs text-muted">
-          일간 <span className="glyph">{pillars.dayMaster}</span> {STEM_INFO[pillars.dayMaster].ko}{' '}
-          · {ELEMENT_KO[STEM_INFO[pillars.dayMaster].element]}
-        </span>
+    <div className="flex flex-col gap-5">
+      <div className="flex items-start gap-4">
+        <div
+          className={`grid size-16 shrink-0 place-items-center rounded-2xl border ${dayTone.border} ${dayTone.surface}`}
+          aria-label={`일간 ${pillars.dayMaster}, ${dayMaster.ko}${ELEMENT_KO[dayMaster.element]}`}
+        >
+          <span className={`glyph text-[2rem] font-bold leading-none ${dayTone.text}`} aria-hidden="true">
+            {pillars.dayMaster}
+          </span>
+        </div>
+
+        <div className="min-w-0 flex-1 pt-0.5">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <div>
+              <p className="eyebrow">저장한 사람</p>
+              <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">{query.name}</h2>
+            </div>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${dayTone.surface} ${dayTone.text}`}>
+              {dayMaster.ko}{ELEMENT_KO[dayMaster.element]} 일간
+            </span>
+          </div>
+          <p className="mt-1.5 text-sm text-secondary">
+            {query.calendar === 'solar'
+              ? query.date
+              : `${CALENDAR_KO[query.calendar]} ${query.date}`}
+            {query.hourKnown === false ? ` · ${HOUR_UNKNOWN_LABEL}` : ` · ${query.time}`}
+          </p>
+          <p className="mt-0.5 text-xs text-muted">
+            {GENDER_KO[query.gender]} · {query.city}
+          </p>
+        </div>
       </div>
 
-      <table className="w-full table-fixed text-center">
+      <table className="w-full table-fixed border-separate border-spacing-x-1.5 text-center sm:border-spacing-x-2">
+        <caption className="sr-only">{query.name}의 시주, 일주, 월주, 년주</caption>
         <thead>
           <tr className="text-xs text-muted">
-            {columns.map(([label]) => (
-              <th key={label} className="pb-1 font-normal">
+            {PILLAR_COLUMNS.map(({ key, label }) => (
+              <th key={key} className={`pb-1.5 font-medium ${key === 'day' ? 'text-accent' : ''}`}>
                 {label}
               </th>
             ))}
@@ -262,28 +301,38 @@ function ChartSummary({ query }: { query: Query }) {
         </thead>
         <tbody>
           <tr>
-            {columns.map(([label, pillar]) => (
-              <td key={label} className="text-2xl">
-                {/* 시각을 모르면 시주가 아예 없다. 정오로 메워 午시를 내지 않는다 */}
-                {pillar === null ? <span className="text-sm text-muted">{HOUR_UNKNOWN_LABEL}</span> : pillar.name}
-              </td>
-            ))}
+            {PILLAR_COLUMNS.map(({ key, label }) => {
+              const pillar = pillars[key];
+              if (pillar === null) {
+                return (
+                  <td key={key} className="rounded-xl bg-surface-sunken px-1 py-3 text-xs text-muted">
+                    {HOUR_UNKNOWN_LABEL}
+                  </td>
+                );
+              }
+
+              const stemTone = ELEMENT_TONE[STEM_INFO[pillar.stem].element];
+              const branchTone = ELEMENT_TONE[BRANCH_INFO[pillar.branch].element];
+              return (
+                <td
+                  key={key}
+                  aria-label={`${label} ${pillar.name}`}
+                  className={`rounded-xl border px-1 py-2.5 ${
+                    key === 'day' ? 'border-accent/30 bg-accent-wash/50' : 'border-border bg-surface-soft'
+                  }`}
+                >
+                  <span className={`glyph text-2xl font-semibold ${stemTone.text}`}>{pillar.stem}</span>
+                  <span className={`glyph text-2xl font-semibold ${branchTone.text}`}>{pillar.branch}</span>
+                </td>
+              );
+            })}
           </tr>
         </tbody>
       </table>
 
-      {/*
-        음력으로 넣었으면 **적은 그대로와 바뀐 양력을 함께** 보여준다. 양력만 보이면
-        사용자가 자기 입력을 못 알아보고, 원본만 보이면 우리가 무엇으로 계산했는지
-        모른다(ADR 0002). 변환은 계산과 **같은 함수**가 한다.
-      */}
-      <p className="text-sm text-secondary">
-        {query.calendar === 'solar'
-          ? query.date
-          : `${CALENDAR_KO[query.calendar]} ${query.date} · 양력 ${isoOf(solarDateOf(query))}`}
-        {query.hourKnown === false ? ` · ${HOUR_UNKNOWN_LABEL}` : ` ${query.time}`} · {GENDER_KO[query.gender]} ·{' '}
-        {query.city}
-      </p>
+      {query.calendar !== 'solar' && (
+        <p className="-mt-2 text-xs text-muted">계산에 쓴 양력 날짜 · {isoOf(solarDateOf(query))}</p>
+      )}
     </div>
   );
 }
