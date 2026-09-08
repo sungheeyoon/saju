@@ -288,8 +288,14 @@ export async function plantReading(api, { kind, personId = null, matchId = null,
   ].join('\n');
 
   const quoted = body.replaceAll("'", "''");
+  /**
+   * 비유는 **대상이 몇 사람인지에 따라 다르다.** 저장한 사람 목록의 카드가 이 문장을
+   * 한 줄로 세우면서, 한 사람의 글에 두 사람 이야기가 서 있는 것이 눈에 띄었다.
+   */
   const metaphor =
-    '서로 다른 속도로 달리던 두 사람이 같은 자전거를 타고 오르막길을 오르는 모습이에요.';
+    kind === 'match' || kind === 'private'
+      ? '서로 다른 속도로 달리던 두 사람이 같은 자전거를 타고 오르막길을 오르는 모습이에요.'
+      : '느리게 데워지고 오래 식지 않는 무쇠솥 같은 결입니다.';
 
   sql(`select public.save_reading(
          '${run.run_id}'::uuid,

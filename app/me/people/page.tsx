@@ -21,6 +21,8 @@ import {
   type StoredRevision,
 } from '@/src/lib/input/revision';
 import { managedEdges, personSlotsFrom } from '../../person-slots';
+import { myReadings, type ReadingEntry } from '../reading/current';
+import { readingDate } from '../reading/line';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { AddPerson } from './manage';
@@ -63,7 +65,7 @@ export default async function PeoplePage() {
   if (!user) redirect('/auth');
 
   /** 몇 자리 남았는지는 **DB 가 센다** — 화면이 빼기를 하면 selfPerson 을 잊는 자리가 생긴다 */
-  const [slotRow, { state }, { data: edges }] = await Promise.all([
+  const [slotRow, { state }, { data: edges }, made] = await Promise.all([
     supabase.rpc('my_person_slots'),
     readAccount(supabase),
     // 정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
@@ -71,7 +73,19 @@ export default async function PeoplePage() {
       .from('user_person_access')
       .select('person_id, local_label, note')
       .order('created_at', { ascending: true }),
+    /*
+      **풀이는 카드마다 묻지 않는다.** 사람 열이면 열 번 묻게 되고, 그 열 번이 같은
+      한 표를 본다. 목록 화면이 이미 쓰는 한 번(`my_readings`)으로 전부 덮는다 —
+      차례도 좁힘도 거기서 정해진 그대로 쓰고 여기서 다시 판정하지 않는다.
+    */
+    myReadings(),
   ]);
+
+  const readings = new Map(
+    made
+      .filter((one) => one.kind === 'person' && one.personA !== null)
+      .map((one) => [one.personA as string, one]),
+  );
 
   /**
    * 중지된 계정에는 목록이 **비어서** 온다(정책이 막는다). 빈 목록과 「등록한 사람이
@@ -114,14 +128,21 @@ export default async function PeoplePage() {
       ) : (
         <>
           <AddPerson slots={slots} />
-          <PeopleList people={people} />
+          <PeopleList people={people} readings={readings} />
         </>
       )}
     </main>
   );
 }
 
-function PeopleList({ people }: { people: Person[] }) {
+function PeopleList({
+  people,
+  readings,
+}: {
+  people: Person[];
+  /** 사람 하나에 지금 글 하나 — 대상별로 묶어 두고 카드마다 한 번 꺼낸다 */
+  readings: ReadonlyMap<string, ReadingEntry>;
+}) {
   return (
     <>
       {people.length === 0 ? (
@@ -132,7 +153,7 @@ function PeopleList({ people }: { people: Person[] }) {
         <ul className="flex flex-col gap-4">
           {people.map((person) => (
             <li key={person.personId}>
-              <PersonCard person={person} />
+              <PersonCard person={person} reading={readings.get(person.personId) ?? null} />
             </li>
           ))}
         </ul>
@@ -211,22 +232,25 @@ function readChart(
  *
  * 카드 아래에 조작 넷이 나란히 서 있었다(상세 · 수정 · 빼기 · 메모). 그중 늘 쓰는 것은
  * 하나뿐인데 넷이 같은 무게로 서서, 카드마다 그 줄이 반복되며 목록이 링크밭이 됐다.
- * 지금은 **버튼 하나와 관리 메뉴 하나**다(`PersonActions`).
+ *
+ * 지금 카드는 세 층이다. **누구인가**(머리) · **여덟 글자와 메모**(본문) · **그 사람의
+ * 사주풀이**(아래 띠). 손대는 것들은 오른쪽 위 구석의 관리 메뉴 하나로 물러난다 —
+ * 읽는 자리 위에 얹히지 않게.
  *
  * `overflow-hidden` 은 걷었다 — 메뉴가 카드 밖으로 열리는데 그것이 잘렸다. 둥근 모서리는
  * 아래 띠가 스스로 든다.
  */
-function PersonCard({ person }: { person: Person }) {
+function PersonCard({ person, reading }: { person: Person; reading: ReadingEntry | null }) {
   /** 적어 둔 메모는 **카드가 직접 보인다** — 여는 버튼 이름으로만 말하면 접힌 것이 빈 것이 된다 */
   const note = person.note?.trim() ?? '';
 
   return (
     <section className="relative rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]">
-      <div className="p-5 sm:p-6">
+      <div className="relative p-5 sm:p-6">
         {person.chart.ok ? (
           <ChartSummary query={person.chart.query} />
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 pr-12">
             <p className="eyebrow">저장한 사람</p>
             <h2 className="text-xl font-bold tracking-[-0.03em]">{person.local_label}</h2>
             <p className="mt-2 text-sm">{person.chart.message}</p>
@@ -240,17 +264,7 @@ function PersonCard({ person }: { person: Person }) {
             {note}
           </p>
         )}
-      </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-b-[1.75rem] border-t border-border bg-surface-soft/70 px-5 py-4 sm:px-6">
-        {person.chart.ok && (
-          <Link
-            href={`/me/people/${person.personId}`}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong"
-          >
-            사주 상세 보기 <span aria-hidden="true">→</span>
-          </Link>
-        )}
         {/* 못 읽는 판본은 고치는 폼도 못 채운다 — 빈 폼을 주면 그 값이 새 판본으로 굳는다 */}
         <PersonActions
           personId={person.personId}
@@ -259,7 +273,73 @@ function PersonCard({ person }: { person: Person }) {
           current={person.chart.ok ? person.chart.query : null}
         />
       </div>
+
+      {/* 좁은 화면에서는 **쌓는다** — 한 줄에 밀어 넣으면 비유가 세 글자로 잘린다 */}
+      <div className="flex flex-col gap-3 rounded-b-[1.75rem] border-t border-border bg-surface-soft/70 px-5 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
+        <ReadingLine personId={person.personId} reading={reading} />
+        {person.chart.ok && (
+          <Link
+            href={`/me/people/${person.personId}`}
+            className="inline-flex min-h-10 shrink-0 items-center gap-2 self-start rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent sm:self-auto"
+          >
+            사주 상세 보기 <span aria-hidden="true">→</span>
+          </Link>
+        )}
+      </div>
     </section>
+  );
+}
+
+/**
+ * 그 사람의 사주풀이 — **목록에서 한 줄로 읽고, 누르면 글로 간다**(ADR 0033 의 결).
+ *
+ * 만든 글에 닿으려면 사주 상세를 한 겹 지나야 했다. 카드가 그 사람의 표지라면 그 사람의
+ * 글이 있는지도 표지가 말해야 한다 — 없으면 사용자는 매번 눌러 봐야 안다.
+ *
+ * **본문은 안 싣는다.** 서는 것은 비유 한 줄과 가는 길뿐이고, 글이 사는 자리는 여전히
+ * 그 사람의 화면 하나다 — 결과가 두 곳에 서면 「무엇이 나가는가」의 답이 둘이 된다.
+ * 옛 글에는 비유가 없어서(`null`) 그때는 만든 날이 대신 선다.
+ */
+function ReadingLine({
+  personId,
+  reading,
+}: {
+  personId: string;
+  reading: ReadingEntry | null;
+}) {
+  if (reading === null) {
+    return (
+      <Link
+        href={`/me/people/${personId}#reading`}
+        className="group min-w-0 flex-1 text-sm text-muted hover:text-accent"
+      >
+        <span className="eyebrow block">사주풀이</span>
+        <span className="mt-0.5 block">
+          아직 만들지 않았습니다{' '}
+          <span className="font-semibold text-accent group-hover:underline">
+            만들러 가기 <span aria-hidden="true">→</span>
+          </span>
+        </span>
+      </Link>
+    );
+  }
+
+  return (
+    <Link href={`/me/people/${personId}#reading`} className="group min-w-0 flex-1">
+      <span className="eyebrow block">사주풀이</span>
+      <span className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-2 text-sm">
+        <span className="line-clamp-2 min-w-0 flex-1 text-secondary">
+          {reading.metaphor ?? `${readingDate(reading.createdAt)}에 만든 글`}
+        </span>
+        {!reading.fromCurrentRevision && (
+          <span className="whitespace-nowrap text-xs text-muted">이전 입력</span>
+        )}
+        {/* 눌러서 갈 수 있다는 것을 한 줄이 스스로 말한다 — 링크 하나 안의 글자다 */}
+        <span className="whitespace-nowrap font-semibold text-accent group-hover:underline">
+          풀이 보기 <span aria-hidden="true">→</span>
+        </span>
+      </span>
+    </Link>
   );
 }
 
@@ -279,24 +359,28 @@ function ChartSummary({ query }: { query: Query }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-start gap-4">
-        <div
-          className={`grid size-16 shrink-0 place-items-center rounded-2xl border ${dayTone.border} ${dayTone.surface}`}
-          aria-label={`일간 ${pillars.dayMaster}, ${dayMaster.ko}${ELEMENT_KO[dayMaster.element]}`}
-        >
-          <span className={`glyph text-[2rem] font-bold leading-none ${dayTone.text}`} aria-hidden="true">
-            {pillars.dayMaster}
+        {/*
+          **일간은 그 글자 아래에 붙는다.** 오른쪽 위에 따로 세웠더니 같은 한 가지를
+          카드의 두 끝이 나눠 말했고, 그 자리는 이제 관리 메뉴가 쓴다.
+        */}
+        <div className="flex shrink-0 flex-col items-center gap-1.5">
+          <div
+            className={`grid size-16 place-items-center rounded-2xl border ${dayTone.border} ${dayTone.surface}`}
+            aria-label={`일간 ${pillars.dayMaster}, ${dayMaster.ko}${ELEMENT_KO[dayMaster.element]}`}
+          >
+            <span className={`glyph text-[2rem] font-bold leading-none ${dayTone.text}`} aria-hidden="true">
+              {pillars.dayMaster}
+            </span>
+          </div>
+          <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${dayTone.surface} ${dayTone.text}`}>
+            {dayMaster.ko}{ELEMENT_KO[dayMaster.element]} 일간
           </span>
         </div>
 
-        <div className="min-w-0 flex-1 pt-0.5">
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-            <div>
-              <p className="eyebrow">저장한 사람</p>
-              <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">{query.name}</h2>
-            </div>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${dayTone.surface} ${dayTone.text}`}>
-              {dayMaster.ko}{ELEMENT_KO[dayMaster.element]} 일간
-            </span>
+        <div className="min-w-0 flex-1 pt-0.5 pr-12">
+          <div>
+            <p className="eyebrow">저장한 사람</p>
+            <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">{query.name}</h2>
           </div>
           <p className="mt-1.5 text-sm text-secondary">
             {query.calendar === 'solar'

@@ -136,10 +136,17 @@ export default async function PersonSajuPage({
           화면에 있습니다.
         </p>
       ) : (
-        <ReadingSection
-          target={{ kind: 'person', personId: person.personId }}
-          heading={`${person.name}의 사주풀이`}
-        />
+        /*
+          **목록에서 곧장 이 칸으로 온다.** 사람 카드의 풀이 줄이 `#reading` 으로 걸려
+          있어서, 만든 글을 보려고 명식 전체를 지나 내려오지 않아도 된다. 글이 사는
+          자리는 그대로 여기 하나다 — 목록은 한 줄로 말하고 길만 낸다.
+        */
+        <div id="reading" className="scroll-mt-24">
+          <ReadingSection
+            target={{ kind: 'person', personId: person.personId }}
+            heading={`${person.name}의 사주풀이`}
+          />
+        </div>
       )}
     </main>
   );

@@ -19,6 +19,9 @@ import { NoteEditor, RemoveConfirm } from './manage';
  *
  * 여는 방식은 계정 메뉴와 **같다**(`site-header.tsx`) — `<details>` 하나에 바깥 누름과
  * Esc 로 닫는 자리를 단다. 앱 안에서 화면이 갈리지 않는 자리라 주소를 보지는 않는다.
+ *
+ * **버튼은 카드 오른쪽 위 모서리에 떠 있고, 열린 칸은 흐름 안에 선다.** 아래 띠는 이제
+ * 사주풀이가 쓰고, 손대는 자리는 읽는 것 위에 얹히지 않는 구석으로 물러난다.
  */
 type Panel = 'revise' | 'note' | 'remove';
 
@@ -65,7 +68,7 @@ export function PersonActions({
 
   return (
     <>
-      <details ref={menu} className="relative ml-auto shrink-0">
+      <details ref={menu} className="absolute right-4 top-4 sm:right-5 sm:top-5">
         <summary
           className="grid size-10 cursor-pointer list-none place-items-center rounded-full border border-border bg-surface text-secondary hover:border-accent hover:text-accent [&::-webkit-details-marker]:hidden"
           aria-label={`${label} 관리`}
@@ -73,10 +76,7 @@ export function PersonActions({
           <Icon name="manage" />
         </summary>
 
-        {/*
-          **위로 연다.** 이 줄은 카드의 맨 아래라, 아래로 열면 다음 카드를 덮는다.
-        */}
-        <div className="absolute bottom-12 right-0 z-40 w-56 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-float)]">
+        <div className="absolute right-0 top-12 z-40 w-56 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-float)]">
           {current !== null && (
             <MenuItem icon="pencil" onClick={() => choose('revise')}>
               출생 정보 수정
@@ -92,11 +92,11 @@ export function PersonActions({
       </details>
 
       {/*
-        `w-full` 이라 줄바꿈해서 제 줄에 선다 — 버튼들이 선 줄 아래다. 패널을 줄 밖에
-        따로 두면 여는 메뉴와 열리는 칸이 두 컴포넌트로 갈린다.
+        열린 칸은 카드 본문의 **마지막 줄**로 선다 — 여는 메뉴와 열리는 칸을 두
+        컴포넌트로 가르지 않으려고 한 자리에 둔다.
       */}
       {panel !== null && (
-        <div className="w-full pt-1">
+        <div className="mt-5">
           {panel === 'revise' && current !== null && (
             <ReviseForm
               personId={personId}
