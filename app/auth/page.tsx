@@ -31,7 +31,7 @@ export default async function SignInPage({
           */}
           {!forCompat && '로그인하면 저장한 사람과 사주풀이를 다음에도 이어서 볼 수 있습니다. '}
           지금은 비공개 베타라, 처음 오셨다면 로그인 뒤에 <strong className="font-semibold">테스트 코드</strong>가
-          한 번 필요합니다.
+          필요합니다.
         </p>
       </header>
 

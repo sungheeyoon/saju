@@ -86,11 +86,15 @@ function Nothing() {
         <Link href="/me" className="text-accent underline underline-offset-2">
           내 사주
         </Link>{' '}
-        에서 내 풀이를 만들 수 있고, 저장한 사람의 풀이와 두 사람의 궁합은{' '}
+        에서 내 풀이를 만들 수 있습니다. 저장한 사람의 풀이는{' '}
         <Link href="/me/people" className="text-accent underline underline-offset-2">
           사람
         </Link>{' '}
-        에서 시작합니다.
+        에서, 두 사람의 궁합은{' '}
+        <Link href="/me/compat" className="text-accent underline underline-offset-2">
+          궁합
+        </Link>{' '}
+        에서 시작할 수 있습니다.
       </p>
     </section>
   );
