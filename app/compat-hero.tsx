@@ -16,7 +16,7 @@ import { CompatModeNav } from './compat-mode-nav';
 export function CompatHero({ mode }: { mode: 'direct' | 'saved' }) {
   return (
     <>
-      <header className="relative overflow-hidden rounded-[2rem] border border-border bg-surface px-6 py-9 shadow-[var(--shadow-card)] sm:px-10 sm:py-11">
+      <header className="relative overflow-hidden rounded-[1.75rem] border border-border bg-surface px-6 py-9 shadow-[var(--shadow-card)] sm:px-10 sm:py-11">
         <div
           className="absolute -right-12 -top-20 size-64 rounded-full bg-fire-soft blur-3xl"
           aria-hidden="true"

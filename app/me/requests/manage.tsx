@@ -42,9 +42,28 @@ const QUIET =
  * 그것만 받는다 — 동의 전에는 「이 요청은 판본에 매여 있다」이고, 결과에서는 「이
  * 결과가 그 판본으로 났다」이다. 목록을 화면마다 따로 적는 대신 이 한 줄을 받는다.
  */
-export function MatchScope({ intro, note = REVISION_BOUND_NOTE }: { intro: string; note?: string }) {
+export function MatchScope({
+  intro,
+  note = REVISION_BOUND_NOTE,
+  standalone = false,
+}: {
+  intro: string;
+  note?: string;
+  /**
+   * 카드 **안**에 끼는가, 카드들 **사이**에 홀로 서는가.
+   *
+   * 요청 카드와 인연 카드 안에서는 안쪽 칸이라 모서리가 작아야 한다 — 품은 것과 품긴
+   * 것이 같은 모서리면 층이 안 보인다. 함께 보는 궁합 화면에서는 이것이 카드들 사이에
+   * 홀로 서므로 카드와 같은 모서리를 쓴다.
+   */
+  standalone?: boolean;
+}) {
   return (
-    <div className="flex flex-col gap-3 rounded-md border border-border bg-surface-sunken p-3 text-sm">
+    <div
+      className={`flex flex-col gap-3 border border-border bg-surface-sunken text-sm ${
+        standalone ? 'rounded-[1.75rem] p-5 sm:p-6' : 'rounded-xl p-4'
+      }`}
+    >
       <p>{intro}</p>
       <dl className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">

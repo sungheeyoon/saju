@@ -7,7 +7,7 @@ export function CompatModeNav({ mode }: { mode: 'direct' | 'saved' }) {
   ] as const;
 
   return (
-    <nav aria-label="궁합 입력 방법" className="grid gap-2 rounded-2xl bg-surface-sunken p-1.5 sm:grid-cols-2">
+    <nav aria-label="궁합 입력 방법" className="grid gap-2 rounded-[1.75rem] bg-surface-sunken p-2 sm:grid-cols-2">
       {modes.map((item) => {
         const active = mode === item.key;
         return (
@@ -15,7 +15,7 @@ export function CompatModeNav({ mode }: { mode: 'direct' | 'saved' }) {
             key={item.key}
             href={item.href}
             aria-current={active ? 'page' : undefined}
-            className={`rounded-xl px-4 py-3 ${active ? 'bg-surface shadow-sm' : 'text-secondary hover:bg-surface/60 hover:text-foreground'}`}
+            className={`rounded-[1.35rem] px-4 py-3 ${active ? 'bg-surface shadow-sm' : 'text-secondary hover:bg-surface/60 hover:text-foreground'}`}
           >
             <span className="block text-sm font-bold">{item.label}</span>
             <span className="mt-0.5 block text-xs text-muted">{item.note}</span>

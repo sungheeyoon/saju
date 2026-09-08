@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 
 import type { Relation } from '@/src/lib/people';
 
+import { FIELD, SelectShell } from '../../birth-form';
 import { RelationChoice } from '../../relation-choice';
 import { setPairRelation } from '../actions';
 import { pairRelationFor } from './actions';
@@ -94,7 +95,7 @@ export function PairPicker({
 
   if (people.length < 2) {
     return (
-      <section className="rounded-2xl border border-border bg-surface-sunken px-5 py-4">
+      <section className="rounded-[1.75rem] border border-border bg-surface-sunken px-5 py-5 sm:px-6">
         <h2 className="text-base font-semibold">고를 사람이 아직 둘이 아닙니다</h2>
         <p className="mt-1.5 text-sm text-secondary">
           가족이나 친구를 등록하면 여기서 고를 수 있습니다.{' '}
@@ -134,7 +135,7 @@ export function PairPicker({
 
   return (
     <section className="flex flex-col gap-5 rounded-[1.75rem] border border-border bg-surface px-5 py-5">
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Choose
           label="첫 번째"
           value={first}
@@ -193,23 +194,25 @@ function Choose({
   people: Choosable[];
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-xs text-secondary">{label}</span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash sm:h-10"
-      >
-        <option value="" disabled>
-          고르기
-        </option>
-        {people.map((person) => (
-          <option key={person.personId} value={person.personId}>
-            {person.label}
-            {person.isSelf ? ' (나)' : ''}
+    <label className="flex min-w-0 flex-col gap-1.5">
+      <span className="text-xs font-semibold text-secondary">{label}</span>
+      <SelectShell>
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={`${FIELD} w-full appearance-none pr-8`}
+        >
+          <option value="" disabled>
+            고르기
           </option>
-        ))}
-      </select>
+          {people.map((person) => (
+            <option key={person.personId} value={person.personId}>
+              {person.label}
+              {person.isSelf ? ' (나)' : ''}
+            </option>
+          ))}
+        </select>
+      </SelectShell>
     </label>
   );
 }

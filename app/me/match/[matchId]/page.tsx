@@ -69,17 +69,33 @@ export default async function MatchResultPage({
   if (outcome === null) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 py-10 sm:px-6 sm:py-14">
-      <header className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">함께 보는 궁합</h1>
-        <p className="flex flex-wrap gap-4 text-sm">
-          <Link href="/me/requests" className="text-accent underline underline-offset-2">
+    /*
+      **다른 화면과 같은 폭·같은 머리를 쓴다.** 여기만 제 손으로 여백과 제목을 그리고
+      있어서, 소식에서 이 화면으로 들어오면 앱이 한 번 갈아 끼워지는 것처럼 보였다.
+    */
+    <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-6 py-9 sm:py-12">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <p className="eyebrow">인연</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">함께 보는 궁합</h1>
+          <p className="mt-1 text-sm text-secondary">
+            서로 동의한 두 분에게 같은 글과 같은 점수가 섭니다.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/me/requests"
+            className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
+          >
             소식
           </Link>
-          <Link href="/me" className="text-accent underline underline-offset-2">
+          <Link
+            href="/me"
+            className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
+          >
             내 사주
           </Link>
-        </p>
+        </div>
       </header>
 
       {outcome.kind === 'ok' ? (
@@ -110,7 +126,8 @@ function Result({ result }: { result: SharedResult }) {
     <>
       <section className={`${CARD} flex flex-col gap-2`}>
         <div className="flex flex-wrap items-baseline gap-x-3">
-          <h2 className="text-lg font-semibold">{result.partnerNickname}</h2>
+          <p className="eyebrow w-full">함께 보기로 한 사람</p>
+          <h2 className="text-xl font-bold tracking-[-0.03em]">{result.partnerNickname}</h2>
           <span className="text-xs text-muted">{when(result.createdAt)} 성립</span>
         </div>
         {result.partnerIntro !== null && (
@@ -135,7 +152,7 @@ function Result({ result }: { result: SharedResult }) {
         있는지는 동의할 때 읽은 그 목록이다 — 여기서 다시 쓰면 두 벌이 되고, 두 벌은
         갈린다. 매인 판본에 대한 말만 이 화면의 것으로 바꾼다.
       */}
-      <MatchScope intro={MATCH_RESULT_INTRO} note={MATCH_RESULT_PINNED_NOTE} />
+      <MatchScope intro={MATCH_RESULT_INTRO} note={MATCH_RESULT_PINNED_NOTE} standalone />
 
       <BetweenSections compat={result.compat} names={result.names} />
 

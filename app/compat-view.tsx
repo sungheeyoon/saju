@@ -140,7 +140,7 @@ function FoldedAnalysis({
         기본 삼각형을 지우고, 그러면 눌러야 하는 자리인지가 화면에 안 남는다. 펼침
         상태는 `<summary>` 가 스스로 알리므로 이 글자는 화면에만 선다.
       */}
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-border bg-surface-sunken px-5 py-4 hover:border-accent [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-[1.75rem] border border-border bg-surface-sunken px-5 py-4 hover:border-accent sm:px-6 [&::-webkit-details-marker]:hidden">
         <span>
           <span className="text-base font-semibold">두 원국을 맞대어 본 표</span>
           <span className="mt-0.5 block text-xs leading-5 text-muted">
@@ -177,7 +177,7 @@ function ChartPair({
   names: Record<CompatSide, string>;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-[2rem] border border-border bg-surface p-4 shadow-[var(--shadow-card)] sm:p-6">
+    <section className="relative overflow-hidden rounded-[1.75rem] border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
       <header className="flex flex-col items-start gap-1 px-1 pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:px-2">
         <div>
           <p className="eyebrow">두 사람의 명식</p>
@@ -195,33 +195,47 @@ function ChartPair({
   );
 }
 
+/**
+ * 한 사람의 면 — **저장한 사람 카드와 같은 머리를 쓴다.**
+ *
+ * 같은 한 사람을 목록에서는 네모 타일과 그 아래 일간으로 보고, 여기서는 동그란 원과
+ * 옆줄의 일간으로 봤다. 두 화면을 오가는 사람에게는 같은 것이 두 번 다르게 서는 셈이라,
+ * 머리의 모양을 한 벌로 맞춘다 — 타일은 이 면이 카드 안이라 한 치수 작다.
+ */
 function PairSide({ side, name, saju }: { side: CompatSide; name: string; saju: Saju }) {
   const dayMaster = STEM_INFO[saju.pillars.dayMaster];
   const dayTone = ELEMENT_TONE[dayMaster.element];
 
   return (
     <section className="rounded-[1.5rem] border border-border bg-surface-soft/75 p-4 sm:p-5">
-      <div className="flex items-center gap-3">
-        <div className={`grid size-12 shrink-0 place-items-center rounded-full border ${dayTone.border} ${dayTone.surface}`}>
-          <span className={`glyph text-2xl font-bold ${dayTone.text}`}>{saju.pillars.dayMaster}</span>
+      <div className="flex items-start gap-3.5">
+        <div className="flex shrink-0 flex-col items-center gap-1.5">
+          <div
+            className={`grid size-14 place-items-center rounded-2xl border ${dayTone.border} ${dayTone.surface}`}
+            aria-label={`일간 ${saju.pillars.dayMaster}, ${dayMaster.ko}${ELEMENT_KO[dayMaster.element]}`}
+          >
+            <span className={`glyph text-[1.75rem] font-bold leading-none ${dayTone.text}`} aria-hidden="true">
+              {saju.pillars.dayMaster}
+            </span>
+          </div>
+          <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${dayTone.surface} ${dayTone.text}`}>
+            {dayMaster.ko}{ELEMENT_KO[dayMaster.element]} 일간
+          </span>
         </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold tracking-[0.09em] text-muted">
-            {side === 'a' ? '첫 번째 사람' : '두 번째 사람'}
-          </p>
-          <h3 className="truncate text-lg font-bold tracking-[-0.02em]">{name}</h3>
-          <p className="text-xs text-secondary">
-            {dayMaster.ko}{ELEMENT_KO[dayMaster.element]} 일간 · {GENDER_KO[saju.meta.gender]}
-          </p>
+
+        <div className="min-w-0 flex-1 pt-0.5">
+          <p className="eyebrow">{side === 'a' ? '첫 번째 사람' : '두 번째 사람'}</p>
+          <h3 className="mt-0.5 truncate text-lg font-bold tracking-[-0.02em]">{name}</h3>
+          <p className="mt-0.5 text-xs text-secondary">{GENDER_KO[saju.meta.gender]}</p>
         </div>
       </div>
 
-      <table className="mt-4 w-full table-fixed border-separate border-spacing-x-1 text-center">
+      <table className="mt-4 w-full table-fixed border-separate border-spacing-x-1 text-center sm:border-spacing-x-1.5">
         <caption className="sr-only">{name}의 시주, 일주, 월주, 년주</caption>
         <thead>
           <tr>
             {PILLAR_COLUMNS.map(({ key, label }) => (
-              <th key={key} className={`pb-1 text-[10px] font-medium ${key === 'day' ? 'text-accent' : 'text-muted'}`}>
+              <th key={key} className={`pb-1.5 text-[10px] font-medium ${key === 'day' ? 'text-accent' : 'text-muted'}`}>
                 {label}
               </th>
             ))}
@@ -232,7 +246,11 @@ function PairSide({ side, name, saju }: { side: CompatSide; name: string; saju: 
             {PILLAR_COLUMNS.map(({ key, label }) => {
               const pillar = saju.pillars[key];
               if (pillar === null) {
-                return <td key={key} className="rounded-lg bg-surface px-0.5 py-2 text-sm text-muted">—</td>;
+                return (
+                  <td key={key} className="rounded-xl bg-surface-sunken px-1 py-2.5 text-xs text-muted">
+                    —
+                  </td>
+                );
               }
 
               const stemTone = ELEMENT_TONE[STEM_INFO[pillar.stem].element];
@@ -241,8 +259,8 @@ function PairSide({ side, name, saju }: { side: CompatSide; name: string; saju: 
                 <td
                   key={key}
                   aria-label={`${label} ${pillar.name}`}
-                  className={`rounded-lg border px-0.5 py-2 ${
-                    key === 'day' ? 'border-accent/30 bg-surface' : 'border-transparent bg-surface/75'
+                  className={`rounded-xl border px-1 py-2 ${
+                    key === 'day' ? 'border-accent/30 bg-accent-wash/50' : 'border-border bg-surface'
                   }`}
                 >
                   <span className={`glyph text-xl font-semibold ${stemTone.text}`}>{pillar.stem}</span>

@@ -18,7 +18,7 @@ export default async function SignInPage({
 
   return (
     <main className="app-shell grid flex-1 place-items-center py-12 sm:py-20">
-      <section className="flex w-full max-w-lg flex-col gap-6 rounded-[2rem] border border-border bg-surface p-6 shadow-[var(--shadow-float)] sm:p-10">
+      <section className="flex w-full max-w-lg flex-col gap-6 rounded-[1.75rem] border border-border bg-surface p-6 shadow-[var(--shadow-float)] sm:p-10">
       <header className="flex flex-col gap-2">
         <span className="grid size-11 place-items-center rounded-2xl bg-accent-wash font-bold text-accent">命</span>
         <h1 className="mt-2 text-2xl font-bold tracking-tight">

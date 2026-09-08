@@ -10,7 +10,7 @@ import { SajuCalculator } from './saju-calculator';
 export default function Home() {
   return (
     <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:gap-10 sm:py-14">
-      <header className="relative overflow-hidden rounded-[2rem] border border-border bg-surface px-6 py-9 shadow-[var(--shadow-card)] sm:px-10 sm:py-12">
+      <header className="relative overflow-hidden rounded-[1.75rem] border border-border bg-surface px-6 py-9 shadow-[var(--shadow-card)] sm:px-10 sm:py-12">
         <div className="absolute -right-12 -top-16 size-64 rounded-full bg-wood-soft blur-3xl" aria-hidden="true" />
         <div className="absolute -bottom-16 -left-20 size-56 rounded-full bg-water-soft blur-3xl" aria-hidden="true" />
         <div className="relative max-w-3xl">
