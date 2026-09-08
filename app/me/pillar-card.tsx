@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react';
+
 import { ELEMENT_TONE } from '../element-tone';
-import { CARD } from '../card';
 import { PillarTable } from '../saju/pillars';
 import {
   ELEMENTS,
@@ -15,34 +16,75 @@ import {
  * 공망까지 펴고, 여기는 「내 여덟 글자가 무엇이고 어느 기운으로 기울어 있는가」까지만
  * 보여 준다. 더 보려는 사람은 「전체 명식 자세히 보기」로 저쪽으로 간다.
  *
- * 핵심 표에는 여덟 글자와 오행·십성·일간과 일지의 자리를 함께 두고, 그 아래에는
- * 여덟(또는 여섯) 글자를 그대로 센 오행 분포만 둔다. 지장간·운성·신살처럼 설명이
- * 필요한 상세값은 이어 보기에서 다루므로 홈 카드가 결과 전체를 되풀이하지 않는다.
+ * ## 저장한 사람 카드와 **같은 모양으로 선다**
+ *
+ * 이 화면은 저장한 사람 목록과 같은 것을 보여 주면서 생김새가 달랐다 — 명식 한 벌,
+ * 출생 정보 한 벌, 그 사이에 떠 있는 링크 하나가 각자 다른 상자였다. 지금은 한 카드
+ * 안에 세 층으로 선다: **누구인가**(일간을 한자 아래에 붙인 머리) · **여덟 글자와
+ * 오행·저장된 출생 정보**(본문) · **이어 보는 길**(아래 띠). 고치는 손잡이는 오른쪽 위
+ * 모서리로 물러난다.
  *
  * 색은 오행을 가리키지만 혼자 가리키지 않는다 — 글자마다 오행 이름이 함께 서 있다
  * (`app/element-tone.ts`).
  */
-export function PillarCard({ label, saju }: { label: string; saju: Saju }) {
+export function PillarCard({
+  label,
+  saju,
+  corner,
+  details,
+  footer,
+}: {
+  label: string;
+  saju: Saju;
+  /** 오른쪽 위 모서리에 뜨는 손잡이 — 지금은 「출생 정보 수정」 하나다 */
+  corner?: ReactNode;
+  /** 저장된 출생 정보 — 판본을 읽는 일은 화면이 하고 카드는 자리만 든다 */
+  details?: ReactNode;
+  /** 아래 띠 — 이 명식을 이어 보는 길 */
+  footer?: ReactNode;
+}) {
   const { pillars } = saju;
-  const dayMasterElement = STEM_INFO[pillars.dayMaster].element;
+  const dayMaster = STEM_INFO[pillars.dayMaster];
+  const dayTone = ELEMENT_TONE[dayMaster.element];
 
   return (
-    <section className={`${CARD} flex flex-col`}>
-      <header className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h2 className="text-base font-semibold">{label}의 사주팔자</h2>
+    <section className="relative rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]">
+      <div className="relative p-5 sm:p-6">
+        <div className="flex items-start gap-4">
+          {/* 일간은 **그 글자 아래에** 붙는다 — 오른쪽 위는 손대는 자리가 쓴다 */}
+          <div className="flex shrink-0 flex-col items-center gap-1.5">
+            <div
+              className={`grid size-16 place-items-center rounded-2xl border ${dayTone.border} ${dayTone.surface}`}
+              aria-label={`일간 ${pillars.dayMaster}, ${dayMaster.ko}${ELEMENT_KO[dayMaster.element]}`}
+            >
+              <span className={`glyph text-[2rem] font-bold leading-none ${dayTone.text}`} aria-hidden="true">
+                {pillars.dayMaster}
+              </span>
+            </div>
+            <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${dayTone.surface} ${dayTone.text}`}>
+              {dayMaster.ko}{ELEMENT_KO[dayMaster.element]} 일간
+            </span>
+          </div>
+
+          <div className="min-w-0 flex-1 pr-12 pt-0.5">
+            <p className="eyebrow">내 사주</p>
+            <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">{label}의 사주팔자</h2>
+            {/* 그 너머(지장간·공망·운)는 **아래 띠가 말한다** — 같은 말을 카드가 두 번 하지 않는다 */}
+            <p className="mt-1.5 text-sm text-secondary">여덟 글자와 오행의 기울기를 봅니다.</p>
+          </div>
         </div>
-        <p className="rounded-full bg-accent-wash px-3 py-1 text-xs font-medium text-accent">
-          일간 <span className="glyph">{pillars.dayMaster}</span> ·{' '}
-          {STEM_INFO[pillars.dayMaster].ko}{ELEMENT_KO[dayMasterElement]}
-        </p>
-      </header>
 
-      <PillarTable saju={saju} />
+        <PillarTable saju={saju} />
 
-      <div className="mt-5">
-        <ElementBar saju={saju} />
+        <div className="mt-5">
+          <ElementBar saju={saju} />
+        </div>
+
+        {details}
+        {corner}
       </div>
+
+      {footer}
     </section>
   );
 }

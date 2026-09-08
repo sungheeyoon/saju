@@ -127,50 +127,65 @@ async function SelfChart({ personId }: { personId: string }) {
 
   return (
     <section className="flex min-w-0 flex-col gap-6">
-      <PillarCard label={edge.local_label} saju={saju} />
+      <PillarCard
+        label={edge.local_label}
+        saju={saju}
+        /* 고치는 손잡이는 카드 모서리에 뜬다 — 저장한 사람 카드의 관리 메뉴와 같은 자리다 */
+        corner={<ReviseChart personId={personId} current={query} variant="corner" />}
+        details={
+          <section className="mt-5 rounded-2xl border border-border bg-surface-soft/60 px-4 py-3">
+            <h3 className="text-xs font-semibold tracking-[0.08em] text-muted">저장된 출생 정보</h3>
+            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-5 gap-y-1.5 text-sm">
+              <dt className="text-muted">생년월일</dt>
+              {/*
+                음력으로 넣었으면 **적은 그대로와 바뀐 양력을 함께** 보여준다. 양력만
+                보이면 사용자가 자기 입력을 못 알아보고, 원본만 보이면 우리가 무엇으로
+                계산했는지 모른다(ADR 0002).
+              */}
+              <dd>
+                {query.calendar === 'solar'
+                  ? current.solar_date
+                  : `${CALENDAR_KO[query.calendar]} ${current.original_date} · 양력 ${current.solar_date}`}
+                {current.birth_time === null ? ` · ${HOUR_UNKNOWN_LABEL}` : ` ${query.time}`}
+              </dd>
+              <dt className="text-muted">성별</dt>
+              <dd>{GENDER_KO[query.gender]}</dd>
+              <dt className="text-muted">출생지</dt>
+              <dd>{query.city}</dd>
+              <dt className="text-muted">자시 규칙</dt>
+              <dd>{query.rule === 'jo' ? '조자시 (23:00 경계)' : '야자시 (자정 경계)'}</dd>
+            </dl>
+          </section>
+        }
+        footer={
+          /*
+            전체 명식은 익명 화면이 그린다. 입력은 `#` 뒤에 실리므로 서버로 가지 않는다.
+            같은 엔진·같은 함수를 쓰므로 여기 여덟 글자와 저쪽 여덟 글자는 같은 값이다.
 
-      {/*
-        전체 명식은 익명 화면이 그린다. 입력은 `#` 뒤에 실리므로 서버로 가지 않는다.
-        같은 엔진·같은 함수를 쓰므로 여기 여덟 글자와 저쪽 여덟 글자는 같은 값이다.
+            **이 화면에 남은 유일한 길이다.** 사람·궁합·인연 찾기·소식으로 가는 목록이
+            여기 따로 서 있었는데, 그 넷은 이미 머리글의 메뉴가 든다 — 같은 길을 두 자리에
+            세우면 하나를 고칠 때 다른 하나가 낡는다. 이 링크만 남는 것은 저쪽이 **이
+            명식의 이어 보기**라서다. 메뉴에는 그런 자리가 없다.
 
-        **이 화면에 남은 유일한 길이다.** 사람·궁합·인연 찾기·소식으로 가는 목록이
-        여기 따로 서 있었는데, 그 넷은 이미 머리글의 메뉴가 든다 — 같은 길을 두 자리에
-        세우면 하나를 고칠 때 다른 하나가 낡는다. 이 링크만 남는 것은 저쪽이 **이
-        명식의 이어 보기**라서다. 메뉴에는 그런 자리가 없다.
-      */}
-      <Link
-        href={`/#${toSearchParams(query).toString()}`}
-        className="self-start rounded-full border border-border-strong bg-surface px-5 py-2.5 text-sm font-semibold hover:border-accent hover:text-accent"
-      >
-        전체 명식 자세히 보기 <span aria-hidden="true">→</span>
-      </Link>
-
-      <section className="rounded-2xl border border-border bg-surface-soft p-5">
-        <div className="grid grid-cols-[1fr_auto] items-center gap-3 border-b border-border pb-3">
-          <h2 className="text-sm font-bold">저장된 출생 정보</h2>
-          <ReviseChart personId={personId} current={query} embedded />
-        </div>
-        <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 text-sm">
-          <dt className="text-muted">생년월일</dt>
-          {/*
-            음력으로 넣었으면 **적은 그대로와 바뀐 양력을 함께** 보여준다. 양력만
-            보이면 사용자가 자기 입력을 못 알아보고, 원본만 보이면 우리가 무엇으로
-            계산했는지 모른다(ADR 0002).
-          */}
-          <dd>
-            {query.calendar === 'solar'
-              ? current.solar_date
-              : `${CALENDAR_KO[query.calendar]} ${current.original_date} · 양력 ${current.solar_date}`}
-            {current.birth_time === null ? ` · ${HOUR_UNKNOWN_LABEL}` : ` ${query.time}`}
-          </dd>
-          <dt className="text-muted">성별</dt>
-          <dd>{GENDER_KO[query.gender]}</dd>
-          <dt className="text-muted">출생지</dt>
-          <dd>{query.city}</dd>
-          <dt className="text-muted">자시 규칙</dt>
-          <dd>{query.rule === 'jo' ? '조자시 (23:00 경계)' : '야자시 (자정 경계)'}</dd>
-        </dl>
-      </section>
+            떠 있던 버튼을 카드 아래 띠로 들인다 — 저장한 사람 카드가 그 자리에 풀이를
+            들고 서는 것과 같은 층이다.
+          */
+          <div className="flex flex-col gap-3 rounded-b-[1.75rem] border-t border-border bg-surface-soft/70 px-5 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
+            <div className="min-w-0 flex-1">
+              <p className="eyebrow">명식 전체</p>
+              <p className="mt-0.5 text-sm text-secondary">
+                지장간 · 공망 · 신살과 운의 흐름까지 이어서 봅니다.
+              </p>
+            </div>
+            <Link
+              href={`/#${toSearchParams(query).toString()}`}
+              className="inline-flex min-h-10 shrink-0 items-center gap-2 self-start rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent sm:self-auto"
+            >
+              전체 명식 자세히 보기 <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        }
+      />
 
       {/*
         **자기 풀이** — 저장된 근거를 사용자가 직접 읽지 않아도 무엇이 보이는지

@@ -24,12 +24,58 @@ export function ReviseChart({
   personId,
   current,
   embedded = false,
+  variant = 'link',
 }: {
   personId: string;
   current: Query;
   embedded?: boolean;
+  /**
+   * 여는 손잡이의 모양 — **글자냐 카드 모서리의 아이콘이냐.**
+   *
+   * 저장한 사람 카드가 손대는 것들을 오른쪽 위 구석의 아이콘 하나로 모은 뒤로, 내
+   * 명식 카드만 밑줄 친 글자로 열고 있었다. 두 화면이 같은 일을 다른 모양으로 내밀면
+   * 사용자는 그것이 같은 일인지부터 확인해야 한다.
+   *
+   * **부르는 이름은 그대로 「출생 정보 수정」이다** — 모양이 달라져도 보조기기와
+   * 시험이 읽는 이름은 한 벌이어야 한다.
+   */
+  variant?: 'link' | 'corner';
 }) {
   const [open, setOpen] = useState(false);
+
+  if (variant === 'corner') {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen((now) => !now)}
+          aria-expanded={open}
+          aria-label="출생 정보 수정"
+          className="absolute right-4 top-4 grid size-10 place-items-center rounded-full border border-border bg-surface text-secondary hover:border-accent hover:text-accent sm:right-5 sm:top-5"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="size-4.5 fill-none stroke-current"
+            strokeWidth="1.7"
+            strokeLinejoin="round"
+          >
+            <path d="M4 16.2 14.1 6.1a1.9 1.9 0 0 1 2.7 2.7L6.7 18.9l-3.2.5Z" />
+          </svg>
+        </button>
+        {open && (
+          <div className="mt-5">
+            <ReviseForm
+              personId={personId}
+              current={current}
+              onDone={() => setOpen(false)}
+              onCancel={() => setOpen(false)}
+            />
+          </div>
+        )}
+      </>
+    );
+  }
 
   if (open) {
     return (
