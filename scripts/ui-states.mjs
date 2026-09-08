@@ -21,7 +21,18 @@ export const STATES = {
 async function fullOne(local, { nickname, label, gender, tag }) {
   const person = await seed(local, {
     selfPerson: true,
-    people: ['어머니'],
+    /* 둘째 사람은 **메모를 달고 선다** — 카드에 메모 칸이 서는 화면도 훑을 값이 있다 */
+    people: [
+      '어머니',
+      {
+        label: '동생',
+        date: '1994-02-03',
+        time: '21:40',
+        gender: 'male',
+        city: '부산',
+        note: '태어난 시각은 병원 기록으로 확인했습니다. 입춘 전후를 늘 헷갈립니다.',
+      },
+    ],
     nickname,
     label,
     gender,

@@ -178,21 +178,29 @@ export async function seed(local, wanted, tag) {
   }
 
   const managed = [];
-  for (const person of wanted.people ?? []) {
+  /**
+   * 목록의 한 줄은 **이름만일 수도, 메모를 단 것일 수도 있다.**
+   *
+   * 적어 둔 메모는 카드가 직접 보이는데(`PersonActions` 로 옮긴 뒤로 그 자리가 생겼다),
+   * 씨앗이 메모를 하나도 안 심으면 훑기는 **그 칸이 없는 화면만** 찍는다. 문자열은 그대로
+   * 두고 객체를 함께 받는다 — 부르는 쪽 대부분은 이름 하나로 족하다.
+   */
+  for (const wantedPerson of wanted.people ?? []) {
+    const person = typeof wantedPerson === 'string' ? { label: wantedPerson } : wantedPerson;
     const made = await client.rpc('create_managed_person', {
-      p_local_label: person,
-      p_note: null,
+      p_local_label: person.label,
+      p_note: person.note ?? null,
       p_calendar: 'solar',
-      p_original_date: '1962-03-02',
-      p_solar_date: '1962-03-02',
-      p_birth_time: '07:10',
-      p_gender: 'female',
-      p_city: '대구',
+      p_original_date: person.date ?? '1962-03-02',
+      p_solar_date: person.date ?? '1962-03-02',
+      p_birth_time: person.time ?? '07:10',
+      p_gender: person.gender ?? 'female',
+      p_city: person.city ?? '대구',
       p_late_night_rule: 'jo',
       p_time_basis: 'localMean',
     });
-    if (made.error) throw new Error(`${person} 을 못 넣었습니다 — ${made.error.message}`);
-    managed.push({ label: person, personId: made.data });
+    if (made.error) throw new Error(`${person.label} 을 못 넣었습니다 — ${made.error.message}`);
+    managed.push({ label: person.label, personId: made.data });
   }
 
   return { email, password, label, nickname, selfPersonId, managed, api: client };
