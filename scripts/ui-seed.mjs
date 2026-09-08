@@ -64,11 +64,37 @@ export const sql = (statement) =>
 const CODE = 'UIWALK';
 
 /**
- * **운영이 약속한 그 날짜를 쓴다.** 여기 아무 날이나 넣으면 `/privacy` 와 `/signup` 이
- * 화면에 그 날을 찍고, 훑기로 찍은 그림이 사람들이 실제로 읽은 것과 다른 약속을 든다.
- * 파기 기한은 `purge_within_days` 기본값(30일)에서 나므로 따로 안 적는다.
+ * 로컬 스택의 종료일 — **날짜를 적는 자리는 여기 하나다.**
+ *
+ * 화면도(`/privacy` · `/signup` · `/closed`), 끝난 뒤를 찍으려고 시계를 미는 자리도
+ * 전부 표에서 읽는다(`current_beta_schedule`). 이 상수가 하는 일은 **빈 로컬 DB 에
+ * 그 한 줄을 넣는 것**뿐이고, 넣고 나면 아무도 이 값을 다시 안 본다 — 두 번째로 적는
+ * 자리가 생기면 그 둘은 갈리고, 갈린 날 화면 하나만 딴 날을 찍는다.
+ *
+ * **운영이 약속한 날과 같게 둔다.** 프로덕션의 진짜 값은 코드가 아니라 `beta_schedule`
+ * 표에 있고(배포 없이 옮기려고 그렇게 뒀다), 옮겼으면 여기도 따라 고친다 —
+ * `docs/ops/runbook.md` 의 「테스트 시작하기」.
+ *
+ * 파기 기한은 `purge_within_days` 기본값(30일)에서 DB 가 짓는다.
  */
 export const BETA_ENDS_ON = '2026-10-31';
+
+/**
+ * **훑기가 만든 시도를 오늘에서 비켜 둔다.**
+ *
+ * 하루 전체 상한(`reading_daily_budget`)은 사람이 아니라 서비스에 걸린 벽이라, 훑기를
+ * 몇 번 돌리면 도구가 제 상한에 갇힌다 — 100번째 그림을 찍고 나면 101번째 실행이
+ * 「오늘 만들 수 있는 풀이를 모두 썼습니다」로 죽는다. **벽을 낮추지는 않는다**(그러면
+ * 그 벽이 실제로 서는지를 영영 못 본다). 훑기가 심은 것만 어제로 미룬다 —
+ * `gpt-ui-walk` 이 그 표식이고, 사람이 만든 줄에는 안 닿는다.
+ */
+function clearTheWalkFromToday() {
+  sql(`update public.reading_run
+         set created_at = created_at - interval '1 day'
+       where model = 'gpt-ui-walk'
+         and created_at >= (date_trunc('day', now() at time zone 'Asia/Seoul')
+                            at time zone 'Asia/Seoul')`);
+}
 
 function openTheDoor() {
   sql(`insert into public.beta_schedule
@@ -117,6 +143,8 @@ export async function seed(local, wanted, tag) {
   const { error } = await client.auth.signUp({ email, password });
   if (error) throw new Error(`계정을 못 만들었습니다 — ${error.message}`);
   await awaitUsable(client);
+
+  clearTheWalkFromToday();
 
   if (wanted.skipSignup !== true) {
     openTheDoor();

@@ -17,7 +17,7 @@ import { chromium } from '@playwright/test';
 
 import { startCheckServer } from './next-server.mjs';
 import { build } from './ui-states.mjs';
-import { BETA_ENDS_ON, localStack } from './ui-seed.mjs';
+import { localStack, sql } from './ui-seed.mjs';
 
 const out = process.argv[2] ?? 'ui-shots';
 const port = process.env.UI_PORT ?? '3100';
@@ -31,8 +31,17 @@ const baseURL = `http://localhost:${port}`;
  * 11월 30일 파기」를 적는데 「끝났습니다」가 딴 날을 들면, 훑는 사람이 문구가 아니라
  * 씨앗을 읽게 된다. 일정은 그대로 두고 이 서버의 시계만 종료일 다음 날로 민다.
  *
+ * **날짜는 표에 물어본다.** 여기서 다시 적으면 정의가 둘이 되고, 둘은 갈린다 — 화면이
+ * 읽는 것과 시계를 미는 근거가 갈리는 순간 이 화면은 또 딴 날을 찍는다. 화면이 보는
+ * 바로 그 값(`current_beta_schedule`)에서 민다.
+ *
  * **따로 세운다.** 앞의 화면들은 아직 안 끝난 때를 보여야 하므로 같은 서버를 못 쓴다.
  */
+const endsOn = () => {
+  const day = sql('select s.ends_on from public.current_beta_schedule() s');
+  if (!day) throw new Error('일정이 비어 있습니다 — 씨앗이 안 돌았습니다.');
+  return day;
+};
 /**
  * **`next dev` 는 한 폴더에 하나만 뜬다.** 그래서 시계를 민 쪽은 검사가 쓰는 자리를
  * 그대로 쓴다 — 따로 지어(`.next-check`) `next start` 로 세우므로 켜 둔 개발 서버와
@@ -41,10 +50,10 @@ const baseURL = `http://localhost:${port}`;
  */
 const laterPort = Number(port) + 1;
 
-async function serverPastTheEnd() {
+async function serverPastTheEnd(day) {
   const local = localStack();
   /* 종료일 자정을 **1초 넘긴다** — 종료일은 한국 시각 그날 끝까지다 */
-  const now = new Date(new Date(`${BETA_ENDS_ON}T23:59:59+09:00`).getTime() + 1000);
+  const now = new Date(new Date(`${day}T23:59:59+09:00`).getTime() + 1000);
   return startCheckServer({
     port: laterPort,
     supabaseUrl: local.api,
@@ -187,8 +196,9 @@ for (const step of PLAN) {
 
   /* 시계를 민 서버는 **쓸 때 세운다** — 앞의 스물여덟 화면에는 필요 없다 */
   if (step.from === 'later' && later === null) {
-    console.log(`  · 시계를 ${BETA_ENDS_ON} 다음으로 민 서버를 ${laterPort} 에 세웁니다`);
-    later = await serverPastTheEnd();
+    const day = endsOn();
+    console.log(`  · 시계를 ${day} 다음으로 민 서버를 ${laterPort} 에 세웁니다`);
+    later = await serverPastTheEnd(day);
   }
   const from = step.from === 'later' ? later.base : baseURL;
 
