@@ -76,6 +76,20 @@ const PLAN = [
       { id: 'person', at: (one) => `/me/people/${one.managed[0].personId}`, name: '저장한 사람 — 상세' },
       { id: 'person-self', at: (one) => `/me/people/${one.selfPersonId}`, name: '내 원국 상세' },
       { id: 'readings', at: '/me/readings', name: '사주풀이 목록' },
+      /*
+        **누른 뒤에만 서는 화면이다.** 설문은 경로가 아니라 상태다 — 글을 펼치기 전에는
+        안 선다(읽지도 않은 글에 답을 받는 자리가 되므로). 그래서 `act` 로 그 누름까지
+        적는다.
+      */
+      {
+        id: 'feedback',
+        at: '/me',
+        name: '풀이 설문 (글을 펼친 뒤)',
+        act: async (page) => {
+          await page.getByRole('button', { name: '자세히 보기', exact: true }).first().click();
+          await page.getByText('이 풀이는 어떠셨어요').waitFor();
+        },
+      },
       { id: 'inspect', at: '/me/reading/inspect?kind=self', name: '해석 내부 보기 (검산)' },
       { id: 'discovery', at: '/me/discovery', name: '인연 찾기 설정' },
       { id: 'requests', at: '/me/requests', name: '궁합 요청과 새 소식' },
@@ -167,6 +181,8 @@ for (const step of PLAN) {
     for (const shot of step.shots) {
       const at = typeof shot.at === 'function' ? shot.at(person, built) : shot.at;
       await page.goto(`${baseURL}${at}`, { waitUntil: 'networkidle' }).catch(() => {});
+      /* 화면이 누름 뒤에만 서면 그 누름까지 하고 찍는다 — 실패해도 찍는다(그 화면도 값이다) */
+      if (shot.act) await shot.act(page).catch((error) => console.log(`    ↳ ${error.message}`));
       /*
         **주소가 갈렸으면 그대로 적는다.** 관문이 다른 데로 보냈다는 뜻이고, 그것도
         훑을 값이 있는 사실이다 — 찍힌 그림만 남기면 「이 경로가 이 화면」으로 읽힌다.
