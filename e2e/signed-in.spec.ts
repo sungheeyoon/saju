@@ -190,7 +190,18 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
   /** 저장된 글이 그 사람의 화면에 실제로 서는가 — 위 시험은 빈 자리까지만 본다 */
   test('저장한 사람의 풀이는 그 사람의 화면에서 읽힌다', async ({ page, personReader }) => {
-    await page.goto(`/me/people/${personReader.personId}`);
+    await page.goto('/me/people');
+
+    /* 목록 카드가 글의 유무를 알고, 이미 만든 사람에게는 만드는 길을 다시 내지 않는다. */
+    const personCard = page
+      .locator('section')
+      .filter({ has: page.getByRole('heading', { name: '어머니' }) });
+    const readingLink = personCard.getByRole('link', { name: /사주풀이 보기/ });
+    await expect(readingLink).toHaveAttribute(
+      'href',
+      `/me/people/${personReader.personId}#reading`,
+    );
+    await readingLink.click();
 
     await expect(page.getByRole('heading', { name: '어머니의 사주풀이' })).toBeVisible();
 
@@ -600,6 +611,25 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     const friendCard = page
       .locator('section')
       .filter({ has: page.getByRole('heading', { name: '친구' }) });
+
+    /* 새 사람은 같은 자리에서 풀이를 만들 길과 명식을 자세히 볼 길을 나란히 가진다. */
+    await expect(friendCard.getByRole('link', { name: /사주풀이 만들기/ })).toHaveAttribute(
+      'href',
+      /#reading$/,
+    );
+
+    /* 설명이 긴 두 버튼도 카드의 최소 너비를 밀어내지 않는다 — 320px에서 실제로 넘쳤다. */
+    const cardBox = await friendCard.boundingBox();
+    for (const action of [
+      friendCard.getByRole('link', { name: /사주풀이 만들기/ }),
+      friendCard.getByRole('link', { name: '사주 상세 보기' }),
+    ]) {
+      const actionBox = await action.boundingBox();
+      expect(actionBox?.x).toBeGreaterThanOrEqual(cardBox?.x ?? 0);
+      expect((actionBox?.x ?? 0) + (actionBox?.width ?? 0)).toBeLessThanOrEqual(
+        (cardBox?.x ?? 0) + (cardBox?.width ?? 0) + 0.5,
+      );
+    }
 
     await friendCard.getByRole('link', { name: '사주 상세 보기' }).click();
     /*

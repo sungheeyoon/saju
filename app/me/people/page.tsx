@@ -22,7 +22,6 @@ import {
 } from '@/src/lib/input/revision';
 import { managedEdges, personSlotsFrom } from '../../person-slots';
 import { myReadings, type ReadingEntry } from '../reading/current';
-import { readingDate } from '../reading/line';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { AddPerson } from './manage';
@@ -233,9 +232,9 @@ function readChart(
  * 카드 아래에 조작 넷이 나란히 서 있었다(상세 · 수정 · 빼기 · 메모). 그중 늘 쓰는 것은
  * 하나뿐인데 넷이 같은 무게로 서서, 카드마다 그 줄이 반복되며 목록이 링크밭이 됐다.
  *
- * 지금 카드는 세 층이다. **누구인가**(머리) · **여덟 글자와 메모**(본문) · **그 사람의
- * 사주풀이**(아래 띠). 손대는 것들은 오른쪽 위 구석의 관리 메뉴 하나로 물러난다 —
- * 읽는 자리 위에 얹히지 않게.
+ * 지금 카드는 두 층이다. **누구이고 어떤 명식인가**(본문) · **무엇을 할 것인가**(아래
+ * 두 선택지). 손대는 것들은 오른쪽 위 구석의 관리 메뉴 하나로 물러난다 — 읽는 자리
+ * 위에 얹히지 않게.
  *
  * `overflow-hidden` 은 걷었다 — 메뉴가 카드 밖으로 열리는데 그것이 잘렸다. 둥근 모서리는
  * 아래 띠가 스스로 든다.
@@ -274,18 +273,29 @@ function PersonCard({ person, reading }: { person: Person; reading: ReadingEntry
         />
       </div>
 
-      {/* 좁은 화면에서는 **쌓는다** — 한 줄에 밀어 넣으면 비유가 세 글자로 잘린다 */}
-      <div className="flex flex-col gap-3 rounded-b-[1.75rem] border-t border-border bg-surface-soft/70 px-5 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
-        <ReadingLine personId={person.personId} reading={reading} />
-        {person.chart.ok && (
+      {/*
+        두 길은 **같은 문법**으로 선다. 풀이만 문장 링크이고 상세만 버튼이면 무엇을 먼저
+        눌러야 하는지보다 생김새의 차이가 먼저 보인다. 상태에 따라 달라지는 것은 풀이
+        버튼의 제목과 설명뿐이고, 두 길의 크기와 구조는 같다.
+      */}
+      {person.chart.ok && (
+        <div className="grid min-w-0 gap-2 rounded-b-[1.75rem] border-t border-border bg-surface-soft/70 p-3 sm:grid-cols-2 sm:p-4">
+          <ReadingAction personId={person.personId} reading={reading} />
           <Link
             href={`/me/people/${person.personId}`}
-            className="inline-flex min-h-10 shrink-0 items-center gap-2 self-start rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent sm:self-auto"
+            className="group flex min-h-[4.75rem] w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-border bg-surface px-4 py-3 hover:border-accent"
           >
-            사주 상세 보기 <span aria-hidden="true">→</span>
+            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-sunken text-secondary group-hover:bg-accent-wash group-hover:text-accent">
+              <CardActionIcon name="chart" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">사주 상세 보기</span>
+              <span className="mt-0.5 block text-xs text-muted">명식 · 오행 · 운의 흐름</span>
+            </span>
+            <span className="shrink-0 text-sm text-muted group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true">→</span>
           </Link>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -298,9 +308,9 @@ function PersonCard({ person, reading }: { person: Person; reading: ReadingEntry
  *
  * **본문은 안 싣는다.** 서는 것은 비유 한 줄과 가는 길뿐이고, 글이 사는 자리는 여전히
  * 그 사람의 화면 하나다 — 결과가 두 곳에 서면 「무엇이 나가는가」의 답이 둘이 된다.
- * 옛 글에는 비유가 없어서(`null`) 그때는 만든 날이 대신 선다.
+ * 옛 글에는 비유가 없어서(`null`) 그때는 이어 읽을 수 있다는 안내가 대신 선다.
  */
-function ReadingLine({
+function ReadingAction({
   personId,
   reading,
 }: {
@@ -311,35 +321,66 @@ function ReadingLine({
     return (
       <Link
         href={`/me/people/${personId}#reading`}
-        className="group min-w-0 flex-1 text-sm text-muted hover:text-accent"
+        className="group flex min-h-[4.75rem] w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl bg-accent px-4 py-3 text-on-accent shadow-sm hover:bg-accent-strong"
       >
-        <span className="eyebrow block">사주풀이</span>
-        <span className="mt-0.5 block">
-          아직 만들지 않았습니다{' '}
-          <span className="font-semibold text-accent group-hover:underline">
-            만들러 가기 <span aria-hidden="true">→</span>
-          </span>
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/14">
+          <CardActionIcon name="reading" />
         </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-bold">사주풀이 만들기</span>
+          <span className="mt-0.5 line-clamp-2 block text-xs text-on-accent/75">기질과 삶의 흐름을 읽어보세요</span>
+        </span>
+        <span className="shrink-0 text-sm text-on-accent/70 group-hover:translate-x-0.5 group-hover:text-on-accent" aria-hidden="true">→</span>
       </Link>
     );
   }
 
   return (
-    <Link href={`/me/people/${personId}#reading`} className="group min-w-0 flex-1">
-      <span className="eyebrow block">사주풀이</span>
-      <span className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-2 text-sm">
-        <span className="line-clamp-2 min-w-0 flex-1 text-secondary">
-          {reading.metaphor ?? `${readingDate(reading.createdAt)}에 만든 글`}
+    <Link
+      href={`/me/people/${personId}#reading`}
+      className="group flex min-h-[4.75rem] w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-accent/25 bg-accent-wash px-4 py-3 hover:border-accent"
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface text-accent shadow-sm">
+        <CardActionIcon name="reading" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-1.5">
+          <span className="text-sm font-bold text-accent-strong">사주풀이 보기</span>
+          {!reading.fromCurrentRevision && (
+            <span className="rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted">이전 입력</span>
+          )}
         </span>
-        {!reading.fromCurrentRevision && (
-          <span className="whitespace-nowrap text-xs text-muted">이전 입력</span>
-        )}
-        {/* 눌러서 갈 수 있다는 것을 한 줄이 스스로 말한다 — 링크 하나 안의 글자다 */}
-        <span className="whitespace-nowrap font-semibold text-accent group-hover:underline">
-          풀이 보기 <span aria-hidden="true">→</span>
+        <span className="mt-0.5 block truncate text-xs text-secondary">
+          {reading.metaphor ?? '만들어 둔 풀이를 이어서 읽어보세요'}
         </span>
       </span>
+      <span className="shrink-0 text-sm text-accent group-hover:translate-x-0.5" aria-hidden="true">→</span>
     </Link>
+  );
+}
+
+function CardActionIcon({ name }: { name: 'reading' | 'chart' }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="size-[1.15rem] fill-none stroke-current"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {name === 'reading' ? (
+        <>
+          <path d="M5 5.5c2.8-.7 5-.1 7 1.5v12c-2-1.6-4.2-2.2-7-1.5Z" />
+          <path d="M19 5.5c-2.8-.7-5-.1-7 1.5v12c2-1.6 4.2-2.2 7-1.5Z" />
+        </>
+      ) : (
+        <>
+          <path d="M4 5h16v14H4Z" />
+          <path d="M8 5v14M12 5v14M16 5v14M4 10h16" />
+        </>
+      )}
+    </svg>
   );
 }
 
@@ -357,7 +398,7 @@ function ChartSummary({ query }: { query: Query }) {
   const dayTone = ELEMENT_TONE[dayMaster.element];
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="grid gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(22rem,1.1fr)] md:items-center md:gap-8">
       <div className="flex items-start gap-4">
         {/*
           **일간은 그 글자 아래에 붙는다.** 오른쪽 위에 따로 세웠더니 같은 한 가지를
