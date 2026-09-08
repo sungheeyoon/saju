@@ -181,7 +181,6 @@ export function PillarChart({ saju }: { saju: Saju }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-base font-semibold">사주팔자</h2>
-          <p className="mt-0.5 text-xs text-secondary">위는 천간, 아래는 지지입니다</p>
         </div>
         <p className="rounded-full bg-accent-wash px-3 py-1 text-xs font-medium text-accent">
           일간 <span className="glyph">{pillars.dayMaster}</span> ·{' '}

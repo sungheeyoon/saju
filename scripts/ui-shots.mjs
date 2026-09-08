@@ -18,11 +18,17 @@ import { chromium } from '@playwright/test';
 import { build } from './ui-states.mjs';
 import { BETA_ENDS_ON, sql } from './ui-seed.mjs';
 
-/** 베타를 끝내 놓는다 — `/closed` 는 **끝난 뒤에만** 서는 화면이다 */
+/**
+ * 베타를 끝내 놓는다 — `/closed` 는 **끝난 뒤에만** 서는 화면이다.
+ *
+ * **어제로 끝낸다.** 고정된 옛 날짜를 넣었더니 파기 기한까지 지나가서, 화면이 이미
+ * 지나간 날을 「이날까지 파기합니다」로 찍었다. `/closed` 가 실제로 서는 때는 종료와
+ * 파기 사이 — 자료가 아직 남아 있어 철회와 삭제 요청이 닿아야 하는 기간이다.
+ */
 const endBeta = () =>
   sql(`insert into public.beta_schedule
          (ends_on, note, operator_name, operator_officer, operator_contact)
-       values ('2026-01-31', 'UI 훑기 — 끝난 뒤', '만세력 운영자', '보기 담당', 'ops@example.com')`);
+       values (current_date - 1, 'UI 훑기 — 끝난 뒤', '만세력 운영자', '보기 담당', 'ops@example.com')`);
 
 /* 되돌릴 때도 **씨 뿌리는 자리와 같은 날짜**여야 한다 — 갈리면 이 뒤의 화면이 딴 날을 찍는다 */
 const reopenBeta = () =>

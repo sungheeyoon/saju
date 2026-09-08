@@ -27,8 +27,8 @@ const root = join(here, '..');
  */
 export function noticeVersion() {
   const source = readFileSync(join(root, 'src/lib/consent/notice.ts'), 'utf8');
-  const found = /version:\s*'([^']+)'/.exec(source);
-  if (!found) throw new Error('NOTICE_EDITION.version 을 못 읽었습니다.');
+  const found = /NOTICE_VERSION\s*=\s*'([^']+)'/.exec(source);
+  if (!found) throw new Error('NOTICE_VERSION 을 못 읽었습니다.');
   return found[1];
 }
 
