@@ -54,7 +54,7 @@ export default async function ProfilePage() {
   const hasPhoto = (photo ?? []).length > 0;
 
   return (
-    <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-7 py-9 sm:py-12">
+    <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
       <header className="flex flex-col gap-1.5 border-b border-border pb-6">
         <p className="eyebrow">프로필</p>
         <h1 className="text-3xl font-bold tracking-[-0.04em]">프로필</h1>

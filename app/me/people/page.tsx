@@ -101,7 +101,7 @@ export default async function PeoplePage() {
   const people = blocked ? [] : await peopleWithCharts(managed);
 
   return (
-    <main className="app-shell flex w-full max-w-4xl flex-1 flex-col gap-7 py-9 sm:py-12">
+    <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">사람</p>

@@ -139,7 +139,7 @@ async function InboxSections() {
       <section className="flex flex-col gap-3">
         <h2 className="text-base font-semibold">받은 요청 {received.length > 0 && `(${received.length})`}</h2>
         {received.length === 0 ? (
-          <p className="text-sm text-muted">답할 요청이 없습니다.</p>
+          <Nothing>답할 요청이 없습니다.</Nothing>
         ) : (
           <ul className="flex flex-col gap-3">
             {received.map((request) => (
@@ -169,7 +169,7 @@ async function InboxSections() {
       <section className="flex flex-col gap-3">
         <h2 className="text-base font-semibold">보낸 요청</h2>
         {sent.length === 0 ? (
-          <p className="text-sm text-muted">기다리는 중인 요청이 없습니다.</p>
+          <Nothing>기다리는 중인 요청이 없습니다.</Nothing>
         ) : (
           <ul className="flex flex-col gap-3">
             {sent.map((request) => (
@@ -283,13 +283,26 @@ function Notifications({ inbox }: { inbox: Inbox }) {
  * 아니라 결과 화면에 선다 — 목록이 결과를 미리 조금 보여주기 시작하면, 무엇이
  * 동의로 열린 것인지가 두 자리로 갈린다.
  */
+/**
+ * 절이 비었을 때 — **카드 자리에 카드가 선다.**
+ *
+ * 「받은 요청」·「보낸 요청」·「함께 보는 궁합」이 비면 회색 문장 한 줄만 바탕에 떠 있었다.
+ * 그런데 같은 절이 차면 그 자리에 카드가 서므로, 한 화면 안에서 같은 층의 절들이 있고
+ * 없고에 따라 다른 모양으로 보였다 — 빈 것과 카드 밖의 것은 다른 말이다.
+ */
+function Nothing({ children }: { children: React.ReactNode }) {
+  return (
+    <p className={`${CARD} text-sm text-muted`}>{children}</p>
+  );
+}
+
 function Matches({ matches }: { matches: InboxMatch[] }) {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-base font-semibold">함께 보는 궁합</h2>
 
       {matches.length === 0 ? (
-        <p className="text-sm text-muted">아직 없습니다.</p>
+        <Nothing>아직 없습니다.</Nothing>
       ) : (
         <ul className="flex flex-col gap-3">
           {matches.map((match) => (

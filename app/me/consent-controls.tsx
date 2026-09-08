@@ -52,8 +52,13 @@ export function ConsentControls({
         const on = now[one.key] === true;
         return (
           <div key={one.key} className="flex flex-col gap-2 border-t border-border pt-4 first:border-0 first:pt-0">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
+            {/*
+              **두 줄이 같은 자리에 선다.** `flex-wrap` 이라 설명이 긴 줄에서만 버튼이
+              아래로 내려갔고, 그래서 같은 종류의 스위치가 한 줄은 왼쪽 아래, 한 줄은
+              오른쪽에 서 있었다 — 두 개가 다른 것으로 보인다.
+            */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 sm:flex-1">
                 <p className="text-sm font-semibold">{one.label}</p>
                 <p className="mt-1 text-sm leading-6 text-secondary">{one.detail}</p>
               </div>
@@ -61,7 +66,7 @@ export function ConsentControls({
                 type="button"
                 onClick={() => flip(one.key, !on)}
                 disabled={saving}
-                className={`h-10 shrink-0 rounded-xl px-4 text-sm font-semibold disabled:opacity-60 ${
+                className={`h-10 shrink-0 self-start rounded-xl px-4 text-sm font-semibold disabled:opacity-60 sm:self-auto ${
                   on
                     ? 'border border-border-strong hover:border-danger hover:text-danger'
                     : 'bg-accent text-on-accent hover:bg-accent-strong'

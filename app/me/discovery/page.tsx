@@ -50,7 +50,7 @@ export default async function DiscoveryPage() {
   const resting = profile?.opted_out_at != null;
 
   return (
-    <main className="app-shell flex w-full max-w-4xl flex-1 flex-col gap-7 py-9 sm:py-12">
+    <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
       <header className="flex flex-col gap-1.5">
         <p className="eyebrow">인연</p>
         <h1 className="text-3xl font-bold tracking-[-0.04em]">인연 찾기 설정</h1>

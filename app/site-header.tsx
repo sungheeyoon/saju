@@ -97,9 +97,20 @@ export function SiteHeader() {
   const protectedPath = pathname.startsWith('/me') || pathname === '/compat';
   const [session, setSession] = useState<Session>('unknown');
   const [email, setEmail] = useState<string | null>(null);
+  /**
+   * **끝난 뒤에는 길을 안 세운다.**
+   *
+   * 베타가 끝나면 모든 화면이 `/closed` 로 되돌려진다(`proxy.ts`). 그런데 헤더는 그대로
+   * 일곱 길과 풀이권 배지를 이고 있었다 — 누르면 전부 이 화면으로 되돌아오는 죽은 길
+   * 일곱 개다. 남는 것은 **아직 할 수 있는 일**뿐이다: 계정 메뉴(계정 관리·로그아웃).
+   */
+  const ended = pathname === '/closed';
   const memberNavigation = protectedPath || session === 'in';
-  const links = memberNavigation ? MEMBER_LINKS : PUBLIC_LINKS;
-  const creditsLabel = useReadingCredits(session === 'in');
+  const links = ended ? [] : memberNavigation ? MEMBER_LINKS : PUBLIC_LINKS;
+  /* 남은 풀이권은 끝난 뒤에 셀 것이 아니다 — 쓸 자리가 없다 */
+  const creditsLabel = useReadingCredits(session === 'in' && !ended);
+  /** 로그인 화면에서 「로그인」은 지금 보고 있는 화면으로 가는 버튼이다 */
+  const onAuthScreen = pathname.startsWith('/auth');
 
   useEffect(() => {
     const supabase = supabaseInBrowser();
@@ -187,11 +198,11 @@ export function SiteHeader() {
               아니다」를 판정하면 그 판정이 또 한 자리가 된다.
               */}
               {creditsLabel !== null && <Credits label={creditsLabel} />}
-              <AccountMenu email={email} variant="mobile" />
-              <AccountMenu email={email} variant="desktop" />
+              <AccountMenu email={email} variant="mobile" ended={ended} />
+              <AccountMenu email={email} variant="desktop" ended={ended} />
             </>
           ) : (
-            session === 'unknown' ? (
+            session === 'unknown' || onAuthScreen ? (
               <span aria-hidden="true" className={`${TRAILING} invisible`}>
                 로그인
               </span>
@@ -203,7 +214,7 @@ export function SiteHeader() {
           )}
         </div>
       </header>
-      {memberNavigation && <MobileNavigation pathname={pathname} />}
+      {memberNavigation && !ended && <MobileNavigation pathname={pathname} />}
     </>
   );
 }
@@ -364,9 +375,16 @@ function MobileNavIcon({ name }: { name: (typeof MOBILE_LINKS)[number]['icon'] }
 function AccountMenu({
   email,
   variant,
+  ended = false,
 }: {
   email: string | null;
   variant: 'mobile' | 'desktop';
+  /**
+   * 베타가 끝난 화면인가 — 그때 **아직 열려 있는 길은 계정 관리 하나**다
+   * (`gateFor`: 끝난 뒤 지나가는 것은 `/me/settings` 뿐이다). 프로필도 인연 설정도
+   * 누르면 이 화면으로 되돌아온다.
+   */
+  ended?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -432,7 +450,7 @@ function AccountMenu({
       </summary>
       <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-float)]">
         {email && <p className="truncate border-b border-border px-3 py-2 text-xs text-muted">{email}</p>}
-        {variant === 'mobile' && (
+        {variant === 'mobile' && !ended && (
           <div className="border-b border-border py-1">
             <Link
               href="/"
@@ -455,13 +473,15 @@ function AccountMenu({
           자리가 없었다 — 인연 설정 안의 한 줄로만 닿았고, 인연에 참여하지 않는 사람은
           그 화면에 갈 이유가 없다. 이름은 앱 전체의 것이므로 길도 앱 전체의 자리에 선다.
         */}
-        <Link
-          href="/me/profile"
-          onClick={close}
-          className="mt-1 block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
-        >
-          프로필
-        </Link>
+        {!ended && (
+          <Link
+            href="/me/profile"
+            onClick={close}
+            className="mt-1 block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
+          >
+            프로필
+          </Link>
+        )}
         <Link
           href="/me/settings"
           onClick={close}

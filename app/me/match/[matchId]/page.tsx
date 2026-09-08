@@ -73,7 +73,7 @@ export default async function MatchResultPage({
       **다른 화면과 같은 폭·같은 머리를 쓴다.** 여기만 제 손으로 여백과 제목을 그리고
       있어서, 소식에서 이 화면으로 들어오면 앱이 한 번 갈아 끼워지는 것처럼 보였다.
     */
-    <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-6 py-9 sm:py-12">
+    <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div>
           <p className="eyebrow">인연</p>
