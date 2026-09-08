@@ -77,7 +77,7 @@ export default async function RequestsPage() {
           읽는 사람은 자기가 무엇을 하는 중인지 모른다 — 걸음마다 무엇이 열리고 무엇이
           아직 안 열리는지를 함께 적는 것이 이 제품의 설명 자체다(`CONSENT_FLOW_STEPS`).
         */}
-        <details className="rounded-2xl border border-border bg-surface p-4">
+        <details className="rounded-[1.75rem] border border-border bg-surface p-5">
           <summary className="cursor-pointer text-sm font-bold">궁합 요청은 어떻게 진행되나요?</summary>
           <ol className="mt-4 grid gap-3 sm:grid-cols-3">
             {CONSENT_FLOW_STEPS.map((step, index) => (
@@ -193,7 +193,7 @@ async function InboxSections() {
         무효와 거둠은 둘 다 「성립하지 않았다」지만 이유가 다르다(US 43).
       */}
       {decided.length > 0 && (
-        <details className="rounded-xl border border-border bg-surface p-4">
+        <details className="rounded-[1.75rem] border border-border bg-surface p-5">
           <summary className="cursor-pointer text-sm">끝난 요청 {decided.length}개</summary>
           <ul className="mt-3 flex flex-col gap-2 text-sm">
             {decided.map((request) => (

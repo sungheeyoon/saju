@@ -25,7 +25,7 @@ export default async function CompatPage() {
         원국 화면과 같은 이유로 Suspense 아래에 둔다 — 주소창의 `#` 뒤를 읽는데
         이 페이지는 빌드 때 미리 그려지고, fragment 는 서버에 오지 않는다.
       */}
-      <Suspense fallback={<div className="h-72 rounded-xl border border-border bg-surface" />}>
+      <Suspense fallback={<div className="h-72 rounded-[1.75rem] border border-border bg-surface" />}>
         <CompatCalculator />
       </Suspense>
 

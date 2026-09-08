@@ -46,7 +46,7 @@ export function RequestDeletion() {
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
+    <section className="flex flex-col gap-3 rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6">
       <h2 className="text-base font-semibold">계정 삭제 요청</h2>
       <p className="text-sm text-secondary">{DELETION_NOTE}</p>
       <p className="text-xs text-muted">{DELETION_IRREVERSIBLE_NOTE}</p>

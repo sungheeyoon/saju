@@ -114,7 +114,7 @@ async function SelfChart({ personId }: { personId: string }) {
   } catch (error) {
     if (error instanceof UnreadableRevisionError) {
       return (
-        <section className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4">
+        <section className="flex flex-col gap-2 rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6">
           <p className="text-sm">{error.message}</p>
           <p className="text-xs text-muted">{UNREADABLE_REVISION_NOTE}</p>
         </section>

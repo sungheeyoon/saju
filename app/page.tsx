@@ -83,7 +83,7 @@ export default function Home() {
             출생 시각을 모르면 「{HOUR_UNKNOWN_CHOICE}」을 고르세요.
           </p>
         </div>
-        <Suspense fallback={<div className="h-56 rounded-2xl border border-border bg-surface shadow-[var(--shadow-card)]" />}>
+        <Suspense fallback={<div className="h-56 rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]" />}>
           <SajuCalculator />
         </Suspense>
       </section>

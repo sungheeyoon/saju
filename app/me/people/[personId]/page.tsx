@@ -60,7 +60,7 @@ export default async function PersonSajuPage({
     if (error instanceof UnreadableRevisionError) {
       return (
         <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-12">
-          <p className="rounded-2xl border border-border bg-surface p-5 text-sm">{error.message}</p>
+          <p className="rounded-[1.75rem] border border-border bg-surface p-5 text-sm">{error.message}</p>
         </main>
       );
     }
@@ -128,7 +128,7 @@ export default async function PersonSajuPage({
         되는지**를 세운다. 못 만드는 버튼을 세워 두고 눌러야 알게 하지 않는다.
       */}
       {mine ? (
-        <p className="rounded-2xl border border-border bg-surface p-5 text-sm leading-6">
+        <p className="rounded-[1.75rem] border border-border bg-surface p-5 text-sm leading-6">
           내 명식의 사주풀이는{' '}
           <Link href="/me" className="font-semibold text-accent underline underline-offset-4">
             내 사주

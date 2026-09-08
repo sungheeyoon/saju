@@ -8,5 +8,10 @@
  *
  * 그 칸은 이제 없지만(ADR 0047) 스물한 자리가 이 문자열을 쓴다 — 되돌릴 값이 아니다.
  */
+/**
+ * 모서리는 **1.75rem 이다.** 내 명식과 저장한 사람 카드가 그 반지름으로 서면서, 같은
+ * 화면 안에서 카드마다 모서리가 갈렸다 — 한 화면에 두 벌이 서면 어느 쪽이 이 앱의
+ * 카드인지 사용자가 정하게 된다. 스물한 자리가 이 문자열 하나를 쓰므로 여기서 민다.
+ */
 export const CARD =
-  'rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6';
+  'rounded-[1.75rem] border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6';

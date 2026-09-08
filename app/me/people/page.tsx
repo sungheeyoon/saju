@@ -146,7 +146,7 @@ function PeopleList({
   return (
     <>
       {people.length === 0 ? (
-        <p className="rounded-xl border border-border bg-surface-sunken p-4 text-sm text-muted">
+        <p className="rounded-[1.75rem] border border-border bg-surface-sunken p-5 text-sm text-muted">
           아직 저장한 사람이 없습니다. 이름과 출생 정보를 입력해 사람을 추가해 보세요.
         </p>
       ) : (

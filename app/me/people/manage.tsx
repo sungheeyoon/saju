@@ -95,7 +95,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   // 못 읽었으면(`null`) 막지 않는다 — 막는 것은 DB 이고 화면은 먼저 말해 줄 뿐이다.
   if (remaining !== null && remaining <= 0) {
     return (
-      <p className="rounded-xl border border-border bg-surface-sunken p-4 text-sm text-muted">
+      <p className="rounded-[1.75rem] border border-border bg-surface-sunken p-5 text-sm text-muted">
         등록할 수 있는 {slots?.limit}명을 다 채웠습니다. 목록에서 누군가를 빼면 다시 등록할 수
         있습니다.
       </p>
@@ -111,7 +111,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   }
 
   return (
-    <section className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-4">
+    <section className="flex flex-col gap-4 rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6">
       <header className="flex flex-col gap-1">
         <h2 className="text-base font-semibold">사람 추가</h2>
         <p className="text-sm text-secondary">

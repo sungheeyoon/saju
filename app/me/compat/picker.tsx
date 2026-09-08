@@ -133,7 +133,7 @@ export function PairPicker({
   };
 
   return (
-    <section className="flex flex-col gap-5 rounded-2xl border border-border bg-surface px-5 py-5">
+    <section className="flex flex-col gap-5 rounded-[1.75rem] border border-border bg-surface px-5 py-5">
       <div className="flex flex-wrap items-end gap-3">
         <Choose
           label="첫 번째"
