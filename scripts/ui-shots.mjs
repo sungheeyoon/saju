@@ -15,30 +15,47 @@ import { join } from 'node:path';
 
 import { chromium } from '@playwright/test';
 
+import { startCheckServer } from './next-server.mjs';
 import { build } from './ui-states.mjs';
-import { BETA_ENDS_ON, sql } from './ui-seed.mjs';
-
-/**
- * 베타를 끝내 놓는다 — `/closed` 는 **끝난 뒤에만** 서는 화면이다.
- *
- * **어제로 끝낸다.** 고정된 옛 날짜를 넣었더니 파기 기한까지 지나가서, 화면이 이미
- * 지나간 날을 「이날까지 파기합니다」로 찍었다. `/closed` 가 실제로 서는 때는 종료와
- * 파기 사이 — 자료가 아직 남아 있어 철회와 삭제 요청이 닿아야 하는 기간이다.
- */
-const endBeta = () =>
-  sql(`insert into public.beta_schedule
-         (ends_on, note, operator_name, operator_officer, operator_contact)
-       values (current_date - 1, 'UI 훑기 — 끝난 뒤', '만세력 운영자', '보기 담당', 'ops@example.com')`);
-
-/* 되돌릴 때도 **씨 뿌리는 자리와 같은 날짜**여야 한다 — 갈리면 이 뒤의 화면이 딴 날을 찍는다 */
-const reopenBeta = () =>
-  sql(`insert into public.beta_schedule
-         (ends_on, note, operator_name, operator_officer, operator_contact)
-       values ('${BETA_ENDS_ON}', 'UI 훑기', '만세력 운영자', '보기 담당', 'ops@example.com')`);
+import { BETA_ENDS_ON, localStack } from './ui-seed.mjs';
 
 const out = process.argv[2] ?? 'ui-shots';
 const port = process.env.UI_PORT ?? '3100';
 const baseURL = `http://localhost:${port}`;
+
+/**
+ * **끝난 뒤를 찍을 때는 날짜가 아니라 시계를 옮긴다.**
+ *
+ * `/closed` 는 종료일이 지나야 서므로 전에는 일정 줄을 옛 날짜로 갈아 끼웠다. 그러면
+ * 그 화면만 약속하지 않은 날짜를 찍는다 — `/privacy` 와 `/signup` 이 「10월 31일 종료 ·
+ * 11월 30일 파기」를 적는데 「끝났습니다」가 딴 날을 들면, 훑는 사람이 문구가 아니라
+ * 씨앗을 읽게 된다. 일정은 그대로 두고 이 서버의 시계만 종료일 다음 날로 민다.
+ *
+ * **따로 세운다.** 앞의 화면들은 아직 안 끝난 때를 보여야 하므로 같은 서버를 못 쓴다.
+ */
+/**
+ * **`next dev` 는 한 폴더에 하나만 뜬다.** 그래서 시계를 민 쪽은 검사가 쓰는 자리를
+ * 그대로 쓴다 — 따로 지어(`.next-check`) `next start` 로 세우므로 켜 둔 개발 서버와
+ * 안 다툰다. `next start` 는 `NODE_ENV=production` 이라 `.env.development.local`
+ * (원격 값)도 안 읽는다.
+ */
+const laterPort = Number(port) + 1;
+
+async function serverPastTheEnd() {
+  const local = localStack();
+  /* 종료일 자정을 **1초 넘긴다** — 종료일은 한국 시각 그날 끝까지다 */
+  const now = new Date(new Date(`${BETA_ENDS_ON}T23:59:59+09:00`).getTime() + 1000);
+  return startCheckServer({
+    port: laterPort,
+    supabaseUrl: local.api,
+    anonKey: local.publishableKey,
+    secretKey: local.secretKey,
+    whileRunning: {
+      NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --import ./scripts/fake-clock.mjs`.trim(),
+      UI_FAKE_NOW: now.toISOString(),
+    },
+  });
+}
 
 /** 훑는 차례 — 사람이 실제로 지나가는 순서다 */
 const PLAN = [
@@ -134,8 +151,8 @@ const PLAN = [
   {
     state: 'full',
     group: '베타 종료',
-    before: endBeta,
-    after: reopenBeta,
+    /* 이 무리만 시계를 민 서버에서 찍는다 — 일정 줄은 안 건드린다 */
+    from: 'later',
     shots: [
       { id: 'closed', at: '/closed', name: '베타가 끝났습니다' },
       { id: 'me-closed', at: '/me', name: '끝난 뒤 내 계정을 열면' },
@@ -162,12 +179,18 @@ await mkdir(out, { recursive: true });
 const browser = await chromium.launch();
 const index = [];
 
+let later = null;
+
 for (const step of PLAN) {
   const built = step.state === null ? null : await build(step.state);
   const person = built?.people[0] ?? null;
 
-  // 상태를 세운 **뒤에** 건다 — 관문을 켜 두면 그 상태를 못 만든다.
-  step.before?.();
+  /* 시계를 민 서버는 **쓸 때 세운다** — 앞의 스물여덟 화면에는 필요 없다 */
+  if (step.from === 'later' && later === null) {
+    console.log(`  · 시계를 ${BETA_ENDS_ON} 다음으로 민 서버를 ${laterPort} 에 세웁니다`);
+    later = await serverPastTheEnd();
+  }
+  const from = step.from === 'later' ? later.base : baseURL;
 
   for (const size of SIZES) {
     const context = await browser.newContext({
@@ -181,13 +204,13 @@ for (const step of PLAN) {
       hasTouch: size.id === 'mobile',
     });
     if (person) {
-      await context.addCookies(person.cookies.map((one) => ({ ...one, url: baseURL })));
+      await context.addCookies(person.cookies.map((one) => ({ ...one, url: from })));
     }
     const page = await context.newPage();
 
     for (const shot of step.shots) {
       const at = typeof shot.at === 'function' ? shot.at(person, built) : shot.at;
-      await page.goto(`${baseURL}${at}`, { waitUntil: 'networkidle' }).catch(() => {});
+      await page.goto(`${from}${at}`, { waitUntil: 'networkidle' }).catch(() => {});
       /* 화면이 누름 뒤에만 서면 그 누름까지 하고 찍는다 — 실패해도 찍는다(그 화면도 값이다) */
       if (shot.act) await shot.act(page).catch((error) => console.log(`    ↳ ${error.message}`));
       /*
@@ -212,10 +235,9 @@ for (const step of PLAN) {
 
     await context.close();
   }
-
-  step.after?.();
 }
 
 await writeFile(join(out, 'index.json'), `${JSON.stringify(index, null, 2)}\n`);
 await browser.close();
+later?.stop();
 console.log(`\n${index.length}개 화면 × 2폭 → ${out}/`);

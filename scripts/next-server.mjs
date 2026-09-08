@@ -11,12 +11,15 @@
  * `secretKey` 는 **주는 검사만 준다.** 공유 결과 화면 하나가 그것으로 매인 판본을
  * 읽는다(ADR 0010). 안 주면 그 화면은 「지금은 열 수 없습니다」로 서므로, 열쇠가
  * 없을 때 무슨 일이 나는지도 검사가 실제로 볼 수 있다.
+ *
+ * `whileRunning` 은 **띄울 때만** 얹는다. 빌드에도 얹으면 그 값이 코드에 박혀, 다음에
+ * 그 값 없이 세운 서버까지 같은 것을 들고 돈다 — 훑기가 시계를 미는 자리가 그렇다.
  */
 import { execFileSync, spawn } from 'node:child_process';
 
 let built = false;
 
-export async function startCheckServer({ port, supabaseUrl, anonKey, secretKey }) {
+export async function startCheckServer({ port, supabaseUrl, anonKey, secretKey, whileRunning }) {
   const env = {
     ...process.env,
     NEXT_DIST_DIR: '.next-check',
@@ -34,7 +37,7 @@ export async function startCheckServer({ port, supabaseUrl, anonKey, secretKey }
   }
 
   const server = spawn('npx', ['next', 'start', '--hostname', 'localhost', '--port', String(port)], {
-    env,
+    env: { ...env, ...whileRunning },
     stdio: 'ignore',
   });
 
