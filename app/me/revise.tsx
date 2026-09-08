@@ -29,8 +29,56 @@ export function ReviseChart({
   current: Query;
   embedded?: boolean;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  if (open) {
+    return (
+      <ReviseForm
+        personId={personId}
+        current={current}
+        embedded={embedded}
+        onDone={() => setOpen(false)}
+        onCancel={() => setOpen(false)}
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      /*
+        `self-start` 를 달지 않는다. 이 버튼은 다른 것들과 한 줄에 설 수 있는데,
+        `self-start` 가 그 줄의 `items-center` 를 이겨서 **혼자만 위로 솟아 있었다.**
+        늘어나는 것을 막아야 하는 자리(`embedded`)에서만 단다.
+      */
+      className={`text-sm text-accent underline underline-offset-2 ${embedded ? 'self-start' : ''}`}
+    >
+      출생 정보 수정
+    </button>
+  );
+}
+
+/**
+ * 고치는 폼 그 자체 — **여는 자리를 밖에서 정한다.**
+ *
+ * `/me` 는 버튼 하나로 열고(`ReviseChart`), 저장한 사람 목록은 카드의 관리 메뉴에서
+ * 연다(`PersonActions`). 여는 방법이 둘이라고 폼이 둘이면 한쪽만 고쳐진다.
+ */
+export function ReviseForm({
+  personId,
+  current,
+  embedded = false,
+  onDone,
+  onCancel,
+}: {
+  personId: string;
+  current: Query;
+  embedded?: boolean;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const router = useRouter();
   const [query, setQuery] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
@@ -44,33 +92,13 @@ export function ReviseChart({
     startSaving(async () => {
       const result = await revisePerson(personId, query);
       if (result.ok) {
-        setOpen(false);
+        onDone();
         router.refresh();
       } else {
         setFailure(result.message);
       }
     });
   };
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          setQuery(current);
-          setOpen(true);
-        }}
-        /*
-          `self-start` 를 달지 않는다. 이 버튼은 다른 버튼들과 한 줄에 서는데,
-          `self-start` 가 그 줄의 `items-center` 를 이겨서 **혼자만 위로 솟아 있었다.**
-          늘어나는 것을 막아야 하는 자리(`embedded`)에서만 단다.
-        */
-        className={`text-sm text-accent underline underline-offset-2 ${embedded ? 'self-start' : ''}`}
-      >
-        출생 정보 수정
-      </button>
-    );
-  }
 
   return (
     <section className={`flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 ${embedded ? 'col-span-full' : ''}`}>
@@ -113,7 +141,7 @@ export function ReviseChart({
         </button>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={onCancel}
           disabled={saving}
           className="text-sm text-secondary underline underline-offset-2"
         >

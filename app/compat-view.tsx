@@ -164,8 +164,10 @@ function FoldedAnalysis({
  * 두 명식을 **한 쌍의 보드** 안에 놓는다.
  *
  * 독립 카드 두 장은 저장한 사람 목록과 같은 인상을 줬다. 이 화면의 주어는 사람 둘이
- * 아니라 **둘 사이**이므로, 공통 외곽과 가운데 연결 표식을 두고 각 사람은 좌우 면으로
- * 나눈다. 모바일에서는 연결선이 세로로 이어져도 한 묶음이라는 인상이 유지된다.
+ * 아니라 **둘 사이**이므로, 공통 외곽 하나 안에 각 사람을 좌우 면으로 나눈다.
+ *
+ * 가운데에 `×` 표식을 한 번 두었다가 걷었다. 묶여 있다는 것은 이미 외곽이 말하고,
+ * 그 위에 얹은 기호는 두 면 사이에서 읽을 것이 없는 자리를 하나 더 만들었다.
  */
 function ChartPair({
   charts,
@@ -184,11 +186,7 @@ function ChartPair({
         <p className="text-xs text-muted sm:text-right">각자의 여덟 글자를 한자리에서 견줍니다</p>
       </header>
 
-      <div className="relative grid gap-3 lg:grid-cols-2 lg:gap-10">
-        <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 grid size-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-border-strong bg-surface text-sm font-semibold text-accent shadow-sm lg:size-10" aria-hidden="true">
-          ×
-        </div>
-
+      <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
         {SIDES.map((side) => (
           <PairSide key={side} side={side} name={names[side]} saju={charts[side]} />
         ))}

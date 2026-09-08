@@ -21,10 +21,10 @@ import {
   type StoredRevision,
 } from '@/src/lib/input/revision';
 import { managedEdges, personSlotsFrom } from '../../person-slots';
-import { ReviseChart } from '../revise';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
-import { AddPerson, NoteForm, RemoveFromList } from './manage';
+import { AddPerson } from './manage';
+import { PersonActions } from './person-menu';
 import { ELEMENT_TONE } from '../../element-tone';
 import { PILLAR_COLUMNS } from '../../saju/shared';
 
@@ -206,10 +206,23 @@ function readChart(
   }
 }
 
+/**
+ * 한 사람 — **읽는 자리와 손대는 자리가 갈려 있다.**
+ *
+ * 카드 아래에 조작 넷이 나란히 서 있었다(상세 · 수정 · 빼기 · 메모). 그중 늘 쓰는 것은
+ * 하나뿐인데 넷이 같은 무게로 서서, 카드마다 그 줄이 반복되며 목록이 링크밭이 됐다.
+ * 지금은 **버튼 하나와 관리 메뉴 하나**다(`PersonActions`).
+ *
+ * `overflow-hidden` 은 걷었다 — 메뉴가 카드 밖으로 열리는데 그것이 잘렸다. 둥근 모서리는
+ * 아래 띠가 스스로 든다.
+ */
 function PersonCard({ person }: { person: Person }) {
+  /** 적어 둔 메모는 **카드가 직접 보인다** — 여는 버튼 이름으로만 말하면 접힌 것이 빈 것이 된다 */
+  const note = person.note?.trim() ?? '';
+
   return (
-    <section className="group relative overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]">
-      <div className="relative p-5 sm:p-6">
+    <section className="relative rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]">
+      <div className="p-5 sm:p-6">
         {person.chart.ok ? (
           <ChartSummary query={person.chart.query} />
         ) : (
@@ -220,9 +233,16 @@ function PersonCard({ person }: { person: Person }) {
             <p className="text-xs text-muted">{UNREADABLE_REVISION_NOTE}</p>
           </div>
         )}
+
+        {note !== '' && (
+          <p className="mt-5 rounded-2xl border border-border bg-surface-soft/60 px-4 py-3 text-sm text-secondary">
+            <span className="mr-2 text-xs font-semibold tracking-[0.08em] text-muted">메모</span>
+            {note}
+          </p>
+        )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-border bg-surface-soft/70 px-5 py-4 sm:px-6">
+      <div className="flex flex-wrap items-center gap-3 rounded-b-[1.75rem] border-t border-border bg-surface-soft/70 px-5 py-4 sm:px-6">
         {person.chart.ok && (
           <Link
             href={`/me/people/${person.personId}`}
@@ -232,10 +252,12 @@ function PersonCard({ person }: { person: Person }) {
           </Link>
         )}
         {/* 못 읽는 판본은 고치는 폼도 못 채운다 — 빈 폼을 주면 그 값이 새 판본으로 굳는다 */}
-        {person.chart.ok && <ReviseChart personId={person.personId} current={person.chart.query} />}
-        <RemoveFromList personId={person.personId} label={person.local_label} />
-        {/* 메모는 마지막에 선다 — 열리는 칸이 `w-full` 이라 이 줄 아래로 내려간다 */}
-        <NoteForm personId={person.personId} note={person.note ?? ''} />
+        <PersonActions
+          personId={person.personId}
+          label={person.local_label}
+          note={person.note ?? ''}
+          current={person.chart.ok ? person.chart.query : null}
+        />
       </div>
     </section>
   );
