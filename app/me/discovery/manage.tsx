@@ -7,6 +7,7 @@ import { DISCOVERY_DISCLOSURE } from '@/src/lib/discovery';
 import { REQUEST_INTRO } from '@/src/lib/consent';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading';
 
+import { FIELD, SelectShell } from '../../birth-form';
 import { CARD } from '../../card';
 import { MatchScope } from '../requests/manage';
 import {
@@ -18,9 +19,6 @@ import {
   unhideAllCandidates,
 } from './actions';
 import { PREFER_GENDERS, PREFER_GENDER_KO, type PreferGender } from './profile';
-
-const FIELD =
-  'h-11 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash sm:h-10';
 
 const BUTTON =
   'h-11 rounded-lg bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-60 sm:h-10';
@@ -71,17 +69,20 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
 
       <label className="flex flex-col gap-1.5">
         <span className="sr-only">보고 싶은 상대</span>
-        <select
-          value={preferGender}
-          onChange={(event) => setPreferGender(event.target.value as PreferGender)}
-          className={`${FIELD} w-40`}
-        >
-          {PREFER_GENDERS.map((value) => (
-            <option key={value} value={value}>
-              {PREFER_GENDER_KO[value]}
-            </option>
-          ))}
-        </select>
+        {/* 고르는 칸은 앱에 하나다 — 껍데기를 안 씌우면 이 자리만 브라우저 기본 화살표로 선다 */}
+        <SelectShell className="w-40">
+          <select
+            value={preferGender}
+            onChange={(event) => setPreferGender(event.target.value as PreferGender)}
+            className={`${FIELD} w-full appearance-none pr-8`}
+          >
+            {PREFER_GENDERS.map((value) => (
+              <option key={value} value={value}>
+                {PREFER_GENDER_KO[value]}
+              </option>
+            ))}
+          </select>
+        </SelectShell>
       </label>
 
       <div className="flex flex-wrap items-center gap-3">

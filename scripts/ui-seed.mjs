@@ -96,12 +96,33 @@ function clearTheWalkFromToday() {
                             at time zone 'Asia/Seoul')`);
 }
 
+/**
+ * **운영자 값은 여기서 짓지 않는다.**
+ *
+ * 훑기가 「만세력 운영자 · ops@example.com」을 적고 있었다. 그래서 `/privacy` 와
+ * `/signup` 이 프로덕션이 약속한 연락처와 **다른 연락처**를 찍었다 — 훑는 사람은 문구를
+ * 보는 대신 씨앗을 읽게 된다(날짜에서 한 번 겪은 것과 같은 일이다).
+ *
+ * 그 값의 진짜 자리는 첫 마이그레이션이 넣은 줄이다. 여기서는 **그 줄에서 그대로 옮겨
+ * 적는다** — 다시 타이핑하면 정의가 둘이 되고, 갈린 날 이 화면만 딴 연락처를 든다.
+ *
+ * 날짜뿐 아니라 **연락처가 다를 때도 새 줄을 넣는다.** 옛 훑기가 남긴 줄이 이미 서 있는
+ * DB 에서 날짜만 보고 지나가면, 그 화면은 계속 옛 연락처를 든다.
+ */
 function openTheDoor() {
   sql(`insert into public.beta_schedule
          (ends_on, note, operator_name, operator_officer, operator_contact)
-       select '${BETA_ENDS_ON}', 'UI 훑기', '만세력 운영자', '보기 담당', 'ops@example.com'
-       where coalesce((select s.ends_on from public.current_beta_schedule() s),
-                      '1900-01-01') <> '${BETA_ENDS_ON}'`);
+       select '${BETA_ENDS_ON}', 'UI 훑기',
+              first.operator_name, first.operator_officer, first.operator_contact
+       from (select operator_name, operator_officer, operator_contact
+               from public.beta_schedule
+              where operator_contact is not null
+              order by id
+              limit 1) first
+       where coalesce((select s.ends_on::text from public.current_beta_schedule() s), '')
+               <> '${BETA_ENDS_ON}'
+          or coalesce((select s.operator_contact from public.current_beta_schedule() s), '')
+               <> first.operator_contact`);
   sql(`insert into public.signup_code (code, note, valid_on, max_uses)
        values ('${CODE}', 'ui-walk', (now() at time zone 'Asia/Seoul')::date, 1000)
        on conflict (code) do update
