@@ -138,12 +138,24 @@ const OUTPUT = {
 };
 
 /**
+ * 점수 아래 서는 비유 한 줄(ADR 0052) — **저장 RPC 가 받는 열이므로 여기서도 심는다.**
+ *
+ * 본문에서 긁어내는 값이 아니라 열이다. 픽스처가 안 심으면 저장은 지나가지만 화면이
+ * 그 자리를 안 세우고, 그러면 이 검사는 「비유가 없는 글도 정상」이라고 말하게 된다.
+ */
+const METAPHOR = {
+  self: `늘 앞장서 걷다가 가끔 뒤를 돌아보는 사람 검사${tag}`,
+  private: `같은 방향을 다른 속도로 걷는 둘 검사${tag}`,
+  match: `서로의 빈자리에 가만히 서는 둘 검사${tag}`,
+};
+
+/**
  * 모델을 부르지 않고 결과 한 벌을 저장한다 — 시작과 저장 RPC 는 진짜를 부른다.
  *
  * 시작은 **사용자 JWT** 로(자격을 `auth.uid()` 가 판정한다), 저장은 **열쇠**로 한다.
  * 서버가 하는 것과 같은 차례다.
  */
-const saveAs = async (client, kind, target, output, score) => {
+const saveAs = async (client, kind, target, output, score, metaphor) => {
   const started = await client.rpc('start_reading_run', {
     p_kind: kind,
     p_idempotency_key: `check-${kind}-${stamp}`,
@@ -158,7 +170,7 @@ const saveAs = async (client, kind, target, output, score) => {
   const run = started.data?.[0];
   if (!run) return { error: new Error('시도가 시작되지 않았다') };
 
-  return saveToRun(run, output, score);
+  return saveToRun(run, output, score, metaphor);
 };
 
 /**
@@ -167,13 +179,14 @@ const saveAs = async (client, kind, target, output, score) => {
  * 공유 궁합은 아무도 안 누른다. 수락이 요청자 이름으로 시도를 열어 두므로 여는 일이
  * 아니라 **찾는 일**이고, 그 행은 브라우저에 안 열리므로 여기서만 SQL 로 읽는다.
  */
-const saveToRun = async (run, output, score) => {
+const saveToRun = async (run, output, score, metaphor) => {
   const saved = await keyed().rpc('save_reading', {
     p_run_id: run.run_id,
     p_revision_a: run.revision_a,
     p_revision_b: run.revision_b,
     p_output: output,
     p_score: score,
+    p_metaphor: metaphor ?? null,
     p_evidence: '{"contract":{"version":"evidence-v0"},"charts":{}}',
     p_prompt: '# 역할\n검사용 프롬프트 원문',
     p_prompt_version: 'reading-prompt-v1',
@@ -213,7 +226,7 @@ try {
 
   // ── 2. 자기 풀이 ─────────────────────────────────────────────────────────
   {
-    const saved = await saveAs(a, 'self', {}, OUTPUT.self, null);
+    const saved = await saveAs(a, 'self', {}, OUTPUT.self, null, METAPHOR.self);
     check('자기 풀이가 저장된다', !saved.error, saved.error?.message ?? '');
 
     const mine = plain(await body('/me/readings/self', cookie.a));
@@ -342,7 +355,7 @@ try {
     check('만드는 버튼이 선다', empty.includes('사주풀이 받기'));
     check('아직 없으면 없다고 말한다', plain(empty).includes('아직 만들어 둔 사주풀이가 없습니다'));
 
-    const saved = await saveAs(a, 'person', { personA: momId }, OUTPUT.self, null);
+    const saved = await saveAs(a, 'person', { personA: momId }, OUTPUT.self, null, METAPHOR.self);
     check('저장한 사람의 풀이가 저장된다', !saved.error, saved.error?.message ?? '');
 
     const filled = plain(await body(page, cookie.a));
@@ -375,31 +388,38 @@ try {
      * 이 두 줄은 「아직 안 선다」를 재고 있었다. `b6e1893` 이 그 칸을 세웠는데 여기가
      * 안 따라와서, 그 뒤로 흐름 검사가 **고쳐진 것을 고장이라고 부르고 있었다.**
      */
-    check('저장된 사람끼리 궁합에도 사주풀이 칸이 선다', before.includes('사주풀이'));
+    check('저장된 사람끼리 궁합에도 풀이 칸이 선다', before.includes('두 사람의 궁합 풀이'));
     /**
-     * **여덟 글자는 서고 관계표는 안 선다.**
+     * **여덟 글자도 관계표도 선다 — 접이칸으로 돌아오지는 않는다.**
      *
-     * 이 화면은 만드는 버튼 **위에** 서는 만세력이다(ADR 0036). 「둘의 명식 보기」라는
-     * 접이칸으로 돌아오지는 않는다 — 접은 칸은 결과 화면에 「펼치면 뭔가 더 있다」는
-     * 자리를 하나 만들 뿐이었다.
+     * 이 화면은 만드는 버튼 **위에** 서는 만세력이다(ADR 0036). 한동안 관계표를
+     * 「계산을 검산하는 원자료」로 보고 걷어 두었는데, 궁합을 저장 없이 여는 화면이
+     * 되면서 자리가 갈렸다 — **화면은 사용자 것이고 접는 것은 분석 표뿐이다**
+     * (ADR 0053·0054). 관계표는 사용자가 읽는 칸으로 그대로 선다.
      *
-     * 관계표는 계산을 검산하려고 세운 원자료라 그대로 안 선다. 접이칸의 낱말만 재면
-     * **펼쳐진 채로** 돌아와도 통과하므로 그 안에 있던 것을 함께 짚는다.
+     * 「둘의 명식 보기」라는 접이칸으로는 돌아오지 않는다 — 접은 칸은 결과 화면에
+     * 「펼치면 뭔가 더 있다」는 자리를 하나 만들 뿐이었다.
      */
     check('두 사람의 여덟 글자가 선다', /일간/.test(before));
     check('접이칸으로 돌아오지 않는다', !before.includes('둘의 명식 보기'));
-    check('사이의 관계표가 서지 않는다', !before.includes('두 원국 사이의 관계'));
+    check('사이의 관계표가 선다', before.includes('두 원국 사이의 관계'));
     check('넘길 자료 패널이 서지 않는다', !before.includes('풀이에 넘기는 자료'));
     /** 상세 화면에서는 글을 또 펼치라고 하지 않는다 — 그 글을 읽으러 온 자리다 */
     check('풀이 전문을 접는 버튼이 없다', !before.includes('펼쳐보기'));
-    for (const word of ['match-v0', '100점 만점 베타 탐색 지표']) {
-      check(`내부 지표(${word})가 로그인 화면에 없다`, !before.includes(word));
-    }
+    /**
+     * **내부로 남는 것은 판본 이름 하나다**(ADR 0026).
+     *
+     * 「100점 만점 베타 탐색 지표」도 여기서 함께 걸렀는데, 그 줄은 점수 옆에 서서
+     * 이 수가 무엇인지 말하는 **사용자 화면의 말**이다(`ScoringNote`). 내부 판본
+     * 이름과 달리 사용자에게 뜻이 있다.
+     */
+    check('내부 판본 이름(match-v0)이 로그인 화면에 없다', !before.includes('match-v0'));
+    check('점수가 무엇인지는 그 옆에서 말한다', before.includes('100점 만점 베타 탐색 지표'));
 
     const saved = await saveAs(
       a, 'private',
       { personA: account.self_person_id, personB: momId },
-      OUTPUT.private, 71,
+      OUTPUT.private, 71, METAPHOR.private,
     );
     check('비공개 궁합이 저장된다', !saved.error, saved.error?.message ?? '');
 
@@ -409,6 +429,15 @@ try {
     check('비공개 궁합이 공통 조회 계약으로 읽힌다',
       current.data?.[0]?.output?.includes('둘은 서로 다른 속도로'));
     check('비공개 궁합 점수가 같은 결과에 있다', current.data?.[0]?.score === 71);
+
+    /**
+     * **사이를 먼저 적는다.** 화면의 「무엇으로 읽는지」 한 줄은 적힌 사이가 있을 때만
+     * 서므로(`me/compat/page.tsx` 의 `ask`), 적기 전에 읽으면 없는 것이 맞다.
+     */
+    const set = await a.rpc('set_pair_relation', {
+      p_person_a: momId, p_person_b: account.self_person_id, p_relation: 'family',
+    });
+    check('궁합 화면이 쌍의 사이를 적는다', set.error === null, set.error?.message ?? '');
 
     const after = plain(await body(`/me/compat${pair}`, cookie.a));
     check('준비된 비공개 궁합이 사용자 화면에 선다',
@@ -433,11 +462,6 @@ try {
      */
     check('결과 화면에서는 다시 묻지 않는다', !after.includes('두 분은 무슨 사이인가요'));
     check('무엇으로 읽는지는 적는다', after.includes('사이로 읽어 드립니다'));
-
-    const set = await a.rpc('set_pair_relation', {
-      p_person_a: momId, p_person_b: account.self_person_id, p_relation: 'family',
-    });
-    check('궁합 화면이 쌍의 사이를 적는다', set.error === null, set.error?.message ?? '');
 
     const asked = await a.rpc('pair_relation_of', {
       p_person_a: account.self_person_id, p_person_b: momId,
@@ -502,7 +526,7 @@ try {
       revision_a: sql(`select low_revision_id from public.match where id = '${matchId}'`),
       revision_b: sql(`select high_revision_id from public.match where id = '${matchId}'`),
     };
-    const saved = await saveToRun(pinnedRun, OUTPUT.match, 64);
+    const saved = await saveToRun(pinnedRun, OUTPUT.match, 64, METAPHOR.match);
     check('공유 궁합이 저장된다', !saved.error, saved.error?.message ?? '');
 
     const mine = plain(await body(`/me/match/${matchId}`, cookie.a));
@@ -510,10 +534,18 @@ try {
 
     check('양쪽이 같은 글을 읽는다',
       mine.includes('서로의 빈자리를 채웁니다') && theirs.includes('서로의 빈자리를 채웁니다'));
-    /** **글이 선 뒤에도 누를 것이 없다** — 「버튼이 없다」는 성공 경로의 약속이다 */
+    /**
+     * **글이 선 뒤에도 누를 것이 없다** — 「버튼이 없다」는 성공 경로의 약속이다.
+     *
+     * 이 화면의 버튼은 「다시 만들기」다(`automatic`). 「다시 풀이받기」로 재면 안 된다 —
+     * 그 글자는 확인 창 안에도 있고, 그 창은 버튼이 없어도 닫힌 채 markup 에 실려 온다.
+     */
     check('글이 선 뒤에도 만드는 버튼이 없다',
-      !mine.includes('다시 풀이받기') && !theirs.includes('다시 풀이받기'));
+      !mine.includes('다시 만들기') && !theirs.includes('다시 만들기'));
     check('양쪽이 같은 점수를 본다', mine.includes('64') && theirs.includes('64'));
+    /** 점수가 못 하던 일을 한 문장이 진다(ADR 0052) — 열로 든 값이 화면까지 오는가 */
+    check('점수 곁에 비유 한 줄이 선다',
+      mine.includes(METAPHOR.match) && theirs.includes(METAPHOR.match));
 
     /**
      * **자리는 뒤집히지 않고 안내만 갈린다.** 글 하나를 둘이 읽으므로 「첫 번째 분」이
@@ -613,6 +645,7 @@ try {
       p_revision_b: null,
       p_output: '지어낸 글',
       p_score: null,
+      p_metaphor: null,
       p_evidence: '{}',
       p_prompt: 'x',
       p_prompt_version: 'x',

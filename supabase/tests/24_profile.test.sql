@@ -199,6 +199,21 @@ select public.create_self_person(
   '나', 'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '서울', 'jo', 'localMean');
 select public.set_discovery_participation(true, pg_temp.summary(0, 0, 4, 4, 0));
 
+/**
+ * **다른 검사가 남긴 참여자는 이 시험의 관심 밖이다**(`09_discovery_board` 와 같은 자리).
+ *
+ * 목록은 한 번에 열 명까지다. 같은 스택에 참여자가 쌓여 있으면 김이 그 열 자리에
+ * 못 들고, 그때 이 파일은 「후보로 서는가」가 아니라 「DB 가 비어 있는가」를 잰다.
+ */
+reset role;
+insert into public.discovery_hidden (user_id, hidden_user_id)
+select (select lee from who), p.user_id
+from public.discovery_profile p
+where p.user_id not in (select kim from who) and p.user_id <> (select lee from who);
+
+set local role authenticated;
+select pg_temp.acting((select lee from who));
+
 -- 이 열기가 스냅샷을 만든다. 김이 그 목록에 서 있어야 이가 김의 사진을 열 수 있다.
 select is(
   (select count(*)::int from public.my_discovery_board() b

@@ -15,13 +15,14 @@ import { readFileSync } from 'node:fs';
 const source = readFileSync(new URL('../src/lib/consent/notice.ts', import.meta.url), 'utf8');
 
 /**
- * 판본은 이제 **이름·시행일과 한 덩어리**에서 나온다(`NOTICE_EDITION`). 사용자 화면에
- * 서는 것은 「제3판 · 2026년 9월 4일 시행」이고, `notice-v3` 은 기록에만 남는 열쇠다.
+ * 판본은 **상수 한 줄**이다(`NOTICE_VERSION`). 한동안 이름·시행일과 한 덩어리였고
+ * (`NOTICE_EDITION`), 그 둘이 화면에서 걷히면서 다시 상수로 돌아왔다 — 화면에 안 서는
+ * `notice-v3` 은 기록에만 남는 열쇠다.
  */
-const found = /version: '([^']+)'/.exec(source);
+const found = /export const NOTICE_VERSION = '([^']+)'/.exec(source);
 
 if (found === null) {
-  throw new Error('`NOTICE_EDITION.version` 을 읽지 못했습니다 — notice.ts 의 모양이 바뀌었습니다.');
+  throw new Error('`NOTICE_VERSION` 을 읽지 못했습니다 — notice.ts 의 모양이 바뀌었습니다.');
 }
 
 export const NOTICE_VERSION = found[1];

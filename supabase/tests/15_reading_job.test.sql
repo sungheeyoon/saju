@@ -70,12 +70,6 @@ language sql
 security definer
 as $$ delete from public.reading_run where id = run $$;
 
-create or replace function pg_temp.jobs()
-returns int
-language sql
-security definer
-as $$ select count(*)::int from public.reading_job $$;
-
 create or replace function pg_temp.receipts()
 returns int
 language sql
@@ -164,6 +158,24 @@ as $$ select status from public.reading_job where run_id = run $$;
 create temporary table folks as
 select tests.signup('job-owner@example.com') as owner;
 grant select on folks to authenticated, service_role;
+
+/**
+ * **이 시험이 만든 얼린 입력만 센다.**
+ *
+ * 표 전체를 세고 있었다. 흐름 검사가 같은 스택에 남긴 행이 있으면 「지워졌는가」가
+ * 「DB 가 비어 있는가」가 되고, 그때 이 파일은 순서에 따라 붉어진다.
+ */
+create or replace function pg_temp.jobs()
+returns int
+language sql
+security definer
+as $$
+  select count(*)::int
+  from public.reading_job j
+  join public.reading_run r on r.id = j.run_id
+  where r.user_id in (select owner from folks)
+$$;
+
 
 -- **여기서 갈아입는다.** 안 갈아입으면 아래 「막힌다」를 한 번도 못 잰다.
 set local role authenticated;

@@ -162,6 +162,18 @@ select throws_ok(
 reset role;
 delete from public.ops_alert;
 
+/**
+ * **오늘 것을 먼저 비운다.**
+ *
+ * 하루 상한은 전역이라 `reading_spend_today()` 가 이 시험의 행만 세지 않는다. 같은
+ * 스택에 흐름 검사가 오늘 남긴 시도가 있으면 아래의 채우는 수가 음수가 되고, 그때
+ * 이 파일은 순서에 따라 붉어진다. 지우는 것은 이 트랜잭션 안이라 되돌아간다
+ * (`ops_alert` 를 비우는 위 줄과 같은 자리다).
+ */
+delete from public.reading_run
+where created_at >= (date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul')
+  and user_id not in (select filler from folks);
+
 /** 오늘 전체를 「경고 문턱 하나 앞」까지 채운다 */
 select pg_temp.spend(
   (select filler from folks),

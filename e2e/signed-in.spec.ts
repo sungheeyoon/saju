@@ -266,12 +266,13 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     expect(reader.runId).not.toBe('');
     await page.goto('/me/readings/self');
 
-    /* `/me` 는 카드 배치라 긴 글과 설문을 앞세우지 않는다 */
-    await expect(page.getByText('이 풀이는 어떠셨어요')).toHaveCount(0);
-    await page.getByRole('button', { name: '자세히 보기', exact: true }).click();
+    /**
+     * **풀이 화면은 글을 다시 접지 않는다**(ADR 0055). 이 주소로 온 사람은 그 글을
+     * 읽으러 온 것이라, 전문도 그 아래 설문도 펴는 걸음 없이 바로 선다. 접는 자리는
+     * `/me` 의 카드였고 그 카드는 이제 명식 화면의 것이다.
+     */
+    await expect(page.getByRole('button', { name: '자세히 보기', exact: true })).toHaveCount(0);
     await expect(page.getByText('브라우저가 읽을 글입니다')).toBeVisible();
-
-    /* 전문을 읽기 전에는 설문을 앞세우지 않고, 펼친 뒤 글 바로 아래에 둔다 */
     await expect(page.getByText('이 풀이는 어떠셨어요')).toBeVisible();
 
     /* **세 가지를 다 고르기 전에는 못 보낸다** — 안 고른 것이 어느 값으로든 저장되면 안 된다 */
@@ -300,7 +301,6 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       것이라, 새로고침을 안 해 보면 저장이 실제로 됐는지 이 시험이 한 번도 못 잰다.
     */
     await page.reload();
-    await page.getByRole('button', { name: '자세히 보기', exact: true }).click();
     await expect(page.getByText('답해 주셔서 고맙습니다')).toBeVisible();
 
     /* **고치는 화면은 빈 칸으로 열리지 않는다** — 빈 칸이면 다시 보낼 때 적은 글이 지워진다 */
@@ -329,7 +329,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     reader,
   }) => {
     expect(reader.runId).not.toBe('');
-    await page.goto('/me');
+    /* 만드는 버튼은 풀이 화면의 것이다(ADR 0055) — `/me` 는 명식만 든다 */
+    await page.goto('/me/readings/self');
 
     /* 있는 글 옆의 설명은 걷었다 — 버튼이 이미 자기 이름으로 말한다 */
     await expect(page.getByText('지금 풀이를 새로 받을 수 있어요')).toHaveCount(0);
@@ -676,7 +677,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     // 저장 자리 한도를 세는 것도 이 목록이다(US 18).
     await page.getByRole('link', { name: '궁합 보기' }).click();
-    await expect(page).toHaveURL(/\/compat$/);
+    /* 목록의 카드도 상세와 같은 길을 낸다 — 그 사람이 첫 칸에 앉은 채로 열린다 */
+    await expect(page).toHaveURL(/\/compat#a\.person=[0-9a-f-]+$/);
 
     /*
       **사이는 여기서 묻는다**(ADR 0019·0054). 읽기 전에 물어야 뜻이 있고, 다음 화면은
@@ -874,6 +876,23 @@ test.describe('초대된 사람의 로그인 흐름', () => {
  * 앞선 단계가 먼저 죽는 동안 가려져 있었다. 파일이 재는 것을 파일 이름과 맞춘다.
  */
 /**
+ * 칸 하나를 **토글로** 짚는다 — 이름으로도 자리로도 못 짚는다.
+ *
+ * 묶음의 이름은 그 칸이 들고 있는 사람의 이름이다(`legend`). 비어 있을 때만
+ * 「첫 번째 사람」이고, 첫 칸은 처음부터 자기 사주가 앉아 있어 그 계정의 별명으로
+ * 선다 — 고르거나 적을 때마다 또 바뀐다.
+ *
+ * 몇 번째 묶음인지로 세는 것도 안 된다. 한 칸을 「직접 입력」으로 돌리면 그 안에
+ * 입력 묶음이 자라서 뒤 칸의 번호가 밀린다. 두 칸에만 있고 모양이 바뀌어도 그대로
+ * 있는 것은 **어디서 올지를 고르는 토글** 하나다.
+ */
+const slotCard = (page: Page, side: '첫 번째' | '두 번째') =>
+  page
+    .getByRole('group')
+    .filter({ has: page.getByRole('button', { name: '저장한 사람' }) })
+    .nth(side === '첫 번째' ? 0 : 1);
+
+/**
  * 궁합의 첫 걸음을 **적어 넣어** 지나간다 — 여러 시험이 이 걸음을 함께 쓴다.
  *
  * 칸마다 어디서 올지를 고르는 화면이라(ADR 0054), 직접 적으려면 그 칸을 먼저
@@ -885,7 +904,7 @@ async function typeInto(
   side: '첫 번째' | '두 번째',
   { name, date, time }: { name: string; date: string; time: string },
 ): Promise<void> {
-  const card = page.getByRole('group', { name: `${side} 사람` });
+  const card = slotCard(page, side);
   await card.getByRole('button', { name: '직접 입력' }).click();
 
   await fillBirthDate(card, date);
@@ -911,7 +930,11 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 
     await page.goto('/compat');
 
-    await typeInto(page, '첫 번째', { name: '민수', date: '1990-05-15', time: '14:30' });
+    /*
+      **씨앗의 자기 사주와 같은 명식이면 물음이 먼저 선다**(ADR 0034). 시각만 비켜
+      두면 일주는 그대로라(庚辰) 아래에서 재는 것이 안 흔들린다.
+    */
+    await typeInto(page, '첫 번째', { name: '민수', date: '1990-05-15', time: '11:20' });
     await typeInto(page, '두 번째', { name: '지영', date: '1992-08-20', time: '09:00' });
 
     /**
@@ -969,7 +992,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     const params = sharedParams(page);
     expect(params.get('a.date')).toBe('1990-05-15');
     expect(params.get('b.date')).toBe('1992-08-20');
-    expect(params.get('a.hour')).toBe('14:30');
+    expect(params.get('a.hour')).toBe('11:20');
     await expectBirthDate(page.getByRole('group', { name: '민수' }), '1990-05-15');
 
     expect(consoleErrors).toEqual([]);
@@ -1047,7 +1070,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
   test('저장할 자리가 모자라도 궁합은 열린다', async ({ page, signedIn }) => {
     leavePersonSlots(signedIn.email, 1);
 
-    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+    await page.goto('/compat#a.name=민수&a.date=1990-05-15&a.hour=11:20&b.name=지영&b.date=1992-08-20&b.hour=09:00');
 
     await expect(page.getByRole('button', { name: '두 사람 명식 보기' })).toBeEnabled();
     await expect(page.getByText('자리가 1명분만 남았습니다')).toHaveCount(0);
@@ -1060,9 +1083,9 @@ test.describe('로그인한 사람의 궁합 화면', () => {
    */
   test('한 사람만 적힌 궁합 주소는 그 칸만 채운다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
-    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30');
+    await page.goto('/compat#a.name=민수&a.date=1990-05-15&a.hour=11:20');
 
-    await expectBirthDate(page.getByRole('group', { name: '첫 번째 사람' }), '1990-05-15');
+    await expectBirthDate(slotCard(page, '첫 번째'), '1990-05-15');
     await expect(page.getByRole('button', { name: '두 사람 명식 보기' })).toBeDisabled();
     await expect(page.getByText('두 번째 사람을 골라 주세요')).toBeVisible();
   });
@@ -1081,7 +1104,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 
   test('베타 매칭 지표는 사실 아래에 서고, 그 아래는 궁합 풀이로 이어진다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
-    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+    await page.goto('/compat#a.name=민수&a.date=1990-05-15&a.hour=11:20&b.name=지영&b.date=1992-08-20&b.hour=09:00');
     await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
     await expect(page).toHaveURL(/\/me\/compat\?a=/);
 
@@ -1121,7 +1144,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 
   test('궁합 결과에는 넘길 자료 패널이 서지 않는다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
-    await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+    await page.goto('/compat#a.name=민수&a.date=1990-05-15&a.hour=11:20&b.name=지영&b.date=1992-08-20&b.hour=09:00');
     await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
     await expect(page).toHaveURL(/\/me\/compat\?a=/);
 
