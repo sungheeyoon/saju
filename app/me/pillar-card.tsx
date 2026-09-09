@@ -74,6 +74,16 @@ export function PillarCard({
           </div>
         </div>
 
+        {/*
+          **여는 자리가 누르는 자리 바로 아래다.**
+
+          이 칸이 `{details}` 다음에 있었다. 손잡이는 `absolute` 로 오른쪽 위에 떠
+          있으니 **누르는 곳은 카드 머리이고 펴지는 곳은 카드 밑바닥**이었고, 폰에서
+          그 사이가 1,100px 이라 눌러도 화면 안에서는 아무 일도 안 일어난 것으로 보였다.
+          접힌 칸은 자기를 여는 손잡이 옆에 서야 한다.
+        */}
+        {corner}
+
         <PillarTable saju={saju} />
 
         <div className="mt-5">
@@ -81,7 +91,6 @@ export function PillarCard({
         </div>
 
         {details}
-        {corner}
       </div>
 
       {footer}

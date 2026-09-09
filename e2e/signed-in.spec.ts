@@ -851,7 +851,21 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await expect(page.getByText('1990-05-15')).toBeVisible();
 
-    await page.getByRole('button', { name: '출생 정보 수정' }).click();
+    const handle = page.getByRole('button', { name: '출생 정보 수정' });
+    await handle.click();
+
+    /**
+     * **열리는 자리가 누르는 자리 옆이어야 한다.**
+     *
+     * 이 폼이 카드 밑바닥에 서던 때가 있었다. 손잡이는 카드 오른쪽 위 모서리에 떠
+     * 있으므로 폰에서 그 사이가 1,100px 이었고, 눌러도 화면 안에서는 아무 일도 안
+     * 일어났다. **시험은 초록이었다** — 채우기 전에 스크롤해 주기 때문이다. 사람은
+     * 스크롤하지 않는다. 그래서 여기서 재는 것은 「폈는가」가 아니라 「어디에 폈는가」다.
+     */
+    const from = (await handle.boundingBox())!;
+    const to = (await page.getByLabel('출생연도').boundingBox())!;
+    expect(to.y - from.y).toBeLessThan(page.viewportSize()!.height);
+
     await fillBirthDate(page, '1990-06-20');
     await page.getByRole('button', { name: '변경 사항 저장' }).click();
 
