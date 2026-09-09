@@ -37,8 +37,8 @@ export async function readingRunState(target: ReadingTarget): Promise<LastRun | 
 
   if (run !== null && run.status !== 'running') {
     if (target.kind === 'match') revalidatePath(`/me/match/${target.matchId}`);
-    if (target.kind === 'self') revalidatePath('/me');
-    if (target.kind === 'person') revalidatePath(`/me/people/${target.personId}`);
+    if (target.kind === 'self') revalidatePath('/me/readings/self');
+    if (target.kind === 'person') revalidatePath(`/me/readings/${target.personId}`);
     if (target.kind === 'private') revalidatePath('/me/compat');
   }
 
@@ -84,8 +84,8 @@ export async function submitReadingFeedback(
     읽혀야 한다. 그 값은 `my_reading` 이 들고 오므로 이 화면을 무르게 한다.
   */
   if (target.kind === 'match') revalidatePath(`/me/match/${target.matchId}`);
-  if (target.kind === 'self') revalidatePath('/me');
-  if (target.kind === 'person') revalidatePath(`/me/people/${target.personId}`);
+  if (target.kind === 'self') revalidatePath('/me/readings/self');
+  if (target.kind === 'person') revalidatePath(`/me/readings/${target.personId}`);
   if (target.kind === 'private') revalidatePath('/me/compat');
 
   return { ok: true };

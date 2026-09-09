@@ -187,8 +187,9 @@ const saveToRun = async (run, output, score) => {
 try {
   // ── 1. 조회는 모델을 부르지 않는다 ───────────────────────────────────────
   {
-    const mine = await body('/me', cookie.a);
-    check('내 사주에 사주풀이 칸이 선다', mine.includes('나의 사주풀이'));
+    const mine = await body('/me/readings/self', cookie.a);
+    check('내 사주풀이 전용 화면이 선다', plain(mine).includes('내 사주풀이'));
+    check('명식은 자세히 보기 안에 접혀 있다', plain(mine).includes('명식 자세히 보기'));
     check('아직 없으면 없다고 말한다', plain(mine).includes('아직 만들어 둔 사주풀이가 없습니다'));
     check('만드는 버튼이 선다', mine.includes('사주풀이 받기'));
     check('넘기지 않는 것을 화면이 말한다', plain(mine).includes('출생지는 넘기지 않습니다'));
@@ -215,7 +216,7 @@ try {
     const saved = await saveAs(a, 'self', {}, OUTPUT.self, null);
     check('자기 풀이가 저장된다', !saved.error, saved.error?.message ?? '');
 
-    const mine = plain(await body('/me', cookie.a));
+    const mine = plain(await body('/me/readings/self', cookie.a));
     check('저장한 글이 화면에 선다', mine.includes('스스로 정한 규칙 안에서'));
     check('내부 검토용 근거 절은 사용자 결과에서 숨긴다', !mine.includes('근거 (검사용)'));
     check('자기 풀이에는 점수가 서지 않는다', !mine.includes('실험 중인 풀이가 붙인 값'));
@@ -268,7 +269,7 @@ try {
      * 여기서 재는 것은 배선이다 — 저장이 `source_run_id` 를 적었고, `my_reading` 이
      * 그 값을 냈고, 화면이 그 자리에 칸을 세웠다. 셋 중 하나만 빠져도 빨개진다.
      */
-    const consented = plain(await body('/me', cookie.a));
+    const consented = plain(await body('/me/readings/self', cookie.a));
     check('동의하면 설문이 글 아래에 선다', consented.includes('이 풀이는 어떠셨어요'));
     check('어느 글에 대한 답인지 말한다', consented.includes('지금 읽은 이 풀이에 대한 답입니다'));
     /*
@@ -298,7 +299,7 @@ try {
     });
     check('여섯 태그를 다 넣어도 받는다', !answered.error, answered.error?.message ?? '');
 
-    const thanked = plain(await body('/me', cookie.a));
+    const thanked = plain(await body('/me/readings/self', cookie.a));
     check('답한 뒤에는 고맙다고 말한다', thanked.includes('답해 주셔서 고맙습니다'));
     check('고칠 수 있다고도 말한다', thanked.includes('답 고치기'));
 
@@ -313,7 +314,7 @@ try {
       `select count(*) from public.reading_feedback where respondent_user_id = '${userA}'`));
     check('철회하면 받아 둔 답이 남지 않는다', left === 0, `${left}줄 남음`);
 
-    const withdrawn = plain(await body('/me', cookie.a));
+    const withdrawn = plain(await body('/me/readings/self', cookie.a));
     check('철회하면 설문도 화면에서 사라진다', !withdrawn.includes('이 풀이는 어떠셨어요'));
     check('그래도 풀이는 그대로 선다', withdrawn.includes('스스로 정한 규칙 안에서'));
 
@@ -326,7 +327,7 @@ try {
 
   // ── 2-1. 저장한 사람 하나의 풀이 ─────────────────────────────────────────
   {
-    const page = `/me/people/${momId}`;
+    const page = `/me/readings/${momId}`;
 
     /** **여는 것만으로는 아무것도 안 만든다** — 시도가 열리면 이 화면이 곧 요금이 된다 */
     const before = Number(sql(
@@ -360,10 +361,8 @@ try {
      */
     const { data: me } = await a.from('app_user').select('self_person_id').maybeSingle();
     const asPerson = await body(`/me/people/${me.self_person_id}`, cookie.a);
-    check('내 명식 화면에는 저장한 사람 풀이 칸이 없다', !asPerson.includes('사주풀이 받기'));
-    check('대신 어디로 가면 되는지 말한다',
-      plain(asPerson).includes('내 명식의 사주풀이는'));
-    check('그 길이 링크로 닿는다', asPerson.includes('href="/me"'));
+    check('내 명식 화면에는 풀이 본문이 없다', !asPerson.includes('사주풀이 받기'));
+    check('대신 풀이 탭으로 가는 길이 있다', asPerson.includes('href="/me/readings/self"'));
   }
 
   // ── 3. 비공개 궁합 ───────────────────────────────────────────────────────
@@ -564,8 +563,8 @@ try {
 
     /** 누르면 그 글이 사는 화면으로 간다 — 목록 안에서 결과를 열지 않는다 */
     for (const [what, href] of [
-      ['내 사주', 'href="/me"'],
-      ['저장한 사람', `href="/me/people/${momId}"`],
+      ['내 사주', 'href="/me/readings/self"'],
+      ['저장한 사람', `href="/me/readings/${momId}"`],
       ['함께 보는 궁합', `href="/me/match/${matchId}"`],
     ]) {
       check(`${what} 줄이 그 대상의 화면으로 간다`, list.includes(href), href);
@@ -662,7 +661,7 @@ try {
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
     });
 
-    const mine = plain(await body('/me', cookie.a));
+    const mine = plain(await body('/me/readings/self', cookie.a));
     check('자기 풀이는 이전 입력으로 썼다고 말한다', mine.includes('이전 출생 정보로 썼습니다'));
     check('그래도 글은 그대로 서 있다', mine.includes('스스로 정한 규칙 안에서'));
   }
@@ -693,7 +692,7 @@ try {
     const text = plain(told);
     check('실패가 알림함에 선다', text.includes('내 사주풀이를 만들지 못했습니다'));
     check('지금 보이는 글은 그대로라고 말한다', text.includes('지금 보이는 글은 그대로입니다'));
-    check('다시 누를 자리로 가는 링크가 붙는다', told.includes('href="/me"'));
+    check('다시 누를 자리로 가는 링크가 붙는다', told.includes('href="/me/readings/self"'));
 
     /** **어느 궁합인지**까지 말한다 — 비공개 궁합은 두 사람을 다시 골라야 닿는 자리다 */
     const { data: account } = await a.from('app_user').select('self_person_id').maybeSingle();

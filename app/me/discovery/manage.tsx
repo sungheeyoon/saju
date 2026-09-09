@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { DISCOVERY_DISCLOSURE } from '@/src/lib/discovery';
 import { REQUEST_INTRO } from '@/src/lib/consent';
@@ -335,6 +335,7 @@ export function UnhideAll({ count }: { count: number }) {
  */
 export function RequestButton({ candidateUserId }: { candidateUserId: string }) {
   const router = useRouter();
+  const confirming = useRef<HTMLDialogElement>(null);
   const [reading, setReading] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
@@ -363,13 +364,13 @@ export function RequestButton({ candidateUserId }: { candidateUserId: string }) 
   return (
     <div className="flex w-full flex-col gap-3">
       <MatchScope intro={REQUEST_INTRO} />
-      {/*
-        **누르기 직전에 말한다** (ADR 0028·0038). 요청 한 건이 풀이권 한 번을 잡으므로,
-        누르고 나서 잔액이 줄어 있으면 「청하기만 했는데」로 읽힌다 — 그때는 이미 늦다.
-      */}
-      <p className="text-xs leading-5 text-muted">{REQUEST_RESERVES_NOTE}</p>
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={send} disabled={working} className={BUTTON}>
+        <button
+          type="button"
+          onClick={() => confirming.current?.showModal()}
+          disabled={working}
+          className={BUTTON}
+        >
           {working ? '보내는 중…' : '요청 보내기'}
         </button>
         <button
@@ -382,6 +383,37 @@ export function RequestButton({ candidateUserId }: { candidateUserId: string }) 
         </button>
       </div>
       {failure !== null && <p className="text-sm text-muted">{failure}</p>}
+      <dialog
+        ref={confirming}
+        aria-labelledby={`request-match-${candidateUserId}`}
+        className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
+      >
+        <h3 id={`request-match-${candidateUserId}`} className="text-base font-bold">
+          풀이권 1회를 예약할까요?
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-secondary">{REQUEST_RESERVES_NOTE}</p>
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
+          <button
+            type="button"
+            onClick={() => {
+              confirming.current?.close();
+              send();
+            }}
+            disabled={working}
+            className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong sm:h-10"
+          >
+            요청 보내기
+          </button>
+          <button
+            type="button"
+            onClick={() => confirming.current?.close()}
+            disabled={working}
+            className="h-11 rounded-xl border border-border px-5 text-sm text-secondary hover:border-border-strong hover:text-foreground sm:h-10"
+          >
+            취소
+          </button>
+        </div>
+      </dialog>
     </div>
   );
 }

@@ -103,23 +103,23 @@ const PLAN = [
     group: '쓰는 중',
     shots: [
       { id: 'me', at: '/me', name: '내 계정 (홈)' },
+      { id: 'self-reading', at: '/me/readings/self', name: '내 사주풀이' },
       { id: 'profile', at: '/me/profile', name: '프로필' },
       { id: 'settings', at: '/me/settings', name: '설정' },
       { id: 'people', at: '/me/people', name: '저장한 사람' },
       { id: 'person', at: (one) => `/me/people/${one.managed[0].personId}`, name: '저장한 사람 — 상세' },
+      {
+        id: 'person-reading',
+        at: (one) => `/me/readings/${one.managed[0].personId}`,
+        name: '저장한 사람 — 사주풀이',
+      },
       { id: 'person-self', at: (one) => `/me/people/${one.selfPersonId}`, name: '내 원국 상세' },
       { id: 'readings', at: '/me/readings', name: '사주풀이 목록' },
-      /*
-        **누른 뒤에만 서는 화면이다.** 설문은 경로가 아니라 상태다 — 글을 펼치기 전에는
-        안 선다(읽지도 않은 글에 답을 받는 자리가 되므로). 그래서 `act` 로 그 누름까지
-        적는다.
-      */
       {
         id: 'feedback',
-        at: '/me',
-        name: '풀이 설문 (글을 펼친 뒤)',
+        at: '/me/readings/self',
+        name: '풀이 설문',
         act: async (page) => {
-          await page.getByRole('button', { name: '자세히 보기', exact: true }).first().click();
           await page.getByText('이 풀이는 어떠셨어요').waitFor();
         },
       },

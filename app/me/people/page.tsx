@@ -327,7 +327,7 @@ function ReadingAction({
   if (reading === null) {
     return (
       <Link
-        href={`/me/people/${personId}#reading`}
+        href={`/me/readings/${personId}`}
         className="group flex min-h-[4.75rem] w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl bg-accent px-4 py-3 text-on-accent shadow-sm hover:bg-accent-strong"
       >
         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/14">
@@ -344,7 +344,7 @@ function ReadingAction({
 
   return (
     <Link
-      href={`/me/people/${personId}#reading`}
+      href={`/me/readings/${personId}`}
       className="group flex min-h-[4.75rem] w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-accent/25 bg-accent-wash px-4 py-3 hover:border-accent"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface text-accent shadow-sm">

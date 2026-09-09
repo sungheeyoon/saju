@@ -51,27 +51,18 @@ describe('줄에 적히는 말', () => {
 
 describe('누르면 가는 곳', () => {
   it('네 kind 가 저마다 제 대상의 화면으로 간다', () => {
-    expect(readingHref(entry({ kind: 'self' }))).toBe('/me');
-    expect(readingHref(entry({ kind: 'person', personA: 'p1' }))).toBe('/me/people/p1');
+    expect(readingHref(entry({ kind: 'self' }))).toBe('/me/readings/self');
+    expect(readingHref(entry({ kind: 'person', personA: 'p1' }))).toBe('/me/readings/p1');
     expect(readingHref(entry({ kind: 'private', personA: 'p1', personB: 'p2' }))).toBe(
       '/me/compat?a=p1&b=p2',
     );
     expect(readingHref(entry({ kind: 'match', matchId: 'm1' }))).toBe('/me/match/m1');
   });
 
-  /**
-   * **목록은 본문을 싣지 않는다**(ADR 0008·0033). 그래서 가는 곳이 목록 안의 칸이
-   * 아니라 그 글이 원래 사는 화면이다 — 주소에 결과를 여는 조각이 붙으면 그 순간
-   * 이 목록이 두 번째 결과 화면이 된다.
-   */
-  it('목록 안에서 결과를 여는 주소를 만들지 않는다', () => {
-    for (const one of [
-      entry({ kind: 'self' }),
-      entry({ kind: 'person', personA: 'p1' }),
-      entry({ kind: 'private', personA: 'p1', personB: 'p2' }),
-      entry({ kind: 'match', matchId: 'm1' }),
-    ]) {
-      expect(readingHref(one).startsWith('/me/readings')).toBe(false);
-    }
+  it('한 사람 풀이는 풀이 탭으로, 궁합은 각각의 결과 화면으로 간다', () => {
+    expect(readingHref(entry({ kind: 'self' })).startsWith('/me/readings/')).toBe(true);
+    expect(readingHref(entry({ kind: 'person', personA: 'p1' })).startsWith('/me/readings/')).toBe(true);
+    expect(readingHref(entry({ kind: 'private', personA: 'p1', personB: 'p2' })).startsWith('/me/compat')).toBe(true);
+    expect(readingHref(entry({ kind: 'match', matchId: 'm1' })).startsWith('/me/match')).toBe(true);
   });
 });

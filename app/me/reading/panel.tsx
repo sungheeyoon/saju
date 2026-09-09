@@ -269,8 +269,9 @@ export function ReadingPanel({
    * 버튼 옆에 늘 적혀 있었는데, 늘 적혀 있는 문장은 누르려는 사람에게 **읽히지 않는
    * 시점**에 서 있는 것과 같다. 여기서는 누른 사람만, 누른 그때 읽는다.
    *
-   * **처음 만들 때는 안 묻는다.** 사라질 것이 없으면 확인은 걸음 하나를 늘리는 일일
-   * 뿐이다 — 확인 창은 잃는 것이 있을 때만 값을 한다.
+   * 처음 만드는 때에도 묻는다. 풀이권은 한정된 자원이라, 사라질 글이 없더라도 실제로
+   * 한 번을 쓰기 직전에는 사용자가 그 사실을 확인할 수 있어야 한다. 이미 글이 있으면
+   * 같은 창에서 기존 글과 점수가 교체된다는 사실까지 함께 말한다.
    *
    * 상태를 안 든다. `<dialog>` 가 열림·닫힘을 스스로 들고, Esc 와 초점 가둠도 브라우저가
    * 한다 — 그 셋을 손으로 다시 만들면 세 자리가 더 생긴다.
@@ -278,14 +279,10 @@ export function ReadingPanel({
   const confirming = useRef<HTMLDialogElement>(null);
 
   const press = () => {
-    if (reading === null) {
-      void generate();
-      return;
-    }
     confirming.current?.showModal();
   };
 
-  const replace = () => {
+  const confirmGenerate = () => {
     confirming.current?.close();
     void generate();
   };
@@ -446,47 +443,46 @@ export function ReadingPanel({
       {!onPage && alert}
       {!onPage && makeBlock}
 
-      {/*
-        **글이 있을 때만 그린다.** 없으면 이 창이 물을 것도 없고, 화면 어디에서도
-        열리지 않는다.
-      */}
-      {reading !== null && (
-        <dialog
-          ref={confirming}
-          aria-labelledby="reading-replace-title"
-          /*
-            **`m-auto` 는 장식이 아니다.** 브라우저 기본 스타일은 열린 `<dialog>` 를
-            `margin: auto` 로 가운데에 놓는데, Tailwind 의 preflight 이 모든 요소의
-            여백을 0 으로 되돌린다 — 그대로 두면 이 창이 화면 왼쪽 위 구석에 붙는다.
-          */
-          className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
-        >
-          <h3 id="reading-replace-title" className="text-base font-bold">
-            지금 풀이를 대신합니다
-          </h3>
-          <p className="mt-2 text-sm leading-6 text-secondary">{READING_REPLACES_NOTE}</p>
-          {/*
-            **누르는 쪽이 오른쪽이다.** 좁은 화면에서는 위아래로 서고, 그때도 확인이
-            위에 온다(`flex-col-reverse` 가 아니라 순서를 그대로 뒤집는다).
-          */}
-          <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
-            <button
-              type="button"
-              onClick={replace}
-              className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong sm:h-10"
-            >
-              다시 풀이받습니다
-            </button>
-            <button
-              type="button"
-              onClick={() => confirming.current?.close()}
-              className="h-11 rounded-xl border border-border px-5 text-sm text-secondary hover:border-border-strong hover:text-foreground sm:h-10"
-            >
-              그만두기
-            </button>
-          </div>
-        </dialog>
-      )}
+      <dialog
+        ref={confirming}
+        aria-labelledby="reading-confirm-title"
+        /*
+          **`m-auto` 는 장식이 아니다.** 브라우저 기본 스타일은 열린 `<dialog>` 를
+          `margin: auto` 로 가운데에 놓는데, Tailwind 의 preflight 이 모든 요소의
+          여백을 0 으로 되돌린다 — 그대로 두면 이 창이 화면 왼쪽 위 구석에 붙는다.
+        */
+        className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
+      >
+        <h3 id="reading-confirm-title" className="text-base font-bold">
+          풀이권 1회를 사용하시겠어요?
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-secondary">
+          계속하면 풀이권 1회가 사용됩니다. 생성에 실패하면 풀이권이 복구됩니다.
+        </p>
+        {reading !== null && (
+          <p className="mt-2 text-sm font-medium leading-6 text-danger">{READING_REPLACES_NOTE}</p>
+        )}
+        {/*
+          **누르는 쪽이 오른쪽이다.** 좁은 화면에서는 위아래로 서고, 그때도 확인이
+          위에 온다(`flex-col-reverse` 가 아니라 순서를 그대로 뒤집는다).
+        */}
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
+          <button
+            type="button"
+            onClick={confirmGenerate}
+            className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong sm:h-10"
+          >
+            {reading === null ? '풀이받기' : '다시 풀이받기'}
+          </button>
+          <button
+            type="button"
+            onClick={() => confirming.current?.close()}
+            className="h-11 rounded-xl border border-border px-5 text-sm text-secondary hover:border-border-strong hover:text-foreground sm:h-10"
+          >
+            그만두기
+          </button>
+        </div>
+      </dialog>
     </>
   );
 }

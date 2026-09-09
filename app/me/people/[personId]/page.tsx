@@ -9,16 +9,7 @@ import { UnreadableRevisionError } from '@/src/lib/input/revision';
 import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { payloadForViewer } from '../../payload';
-import { ReadingSection } from '../../reading/section';
-
-/**
- * **결과 칸이 서는 화면은 상한을 든다.**
- *
- * 생성은 응답 뒤에 돌고(`after`) 그 콜백이 사는 시간은 이 라우트의 상한이다. 없으면
- * 플랫폼 기본값에서 잘리고, 그러면 시도가 열린 채 남아 그 대상이 10분간 잠긴다 —
- * 화면에는 「만드는 중」만 돌고 아무것도 안 온다. `/me/compat` 이 실제로 그랬다.
- */
-export const maxDuration = 300;
+import { ReadingTabs } from '../../reading-tabs';
 
 export const metadata = {
   title: '사주 상세 보기 — 만세력',
@@ -110,44 +101,14 @@ export default async function PersonSajuPage({
         </div>
       </header>
 
+      <ReadingTabs
+        current="chart"
+        chartHref={`/me/people/${person.personId}`}
+        readingHref={mine ? '/me/readings/self' : `/me/readings/${person.personId}`}
+        label={mine ? '내 사주' : person.name}
+      />
+
       <SajuResult saju={person.saju} />
-
-      {/*
-        **저장한 사람도 혼자 풀이를 받는다.**
-
-        여기 버튼이 없던 동안 엄마의 풀이를 보려면 엄마 × 다른 한 사람 궁합으로 가야
-        했다. `self` 를 넓히지 않고 kind 를 하나 늘린 까닭은 낱말과, 낱말이 지키는 기록
-        때문이다 — 내 명식을 넘긴 것과 남의 명식을 넘긴 것은 동의 범위가 다른 일이다.
-
-        **여는 것만으로는 아무것도 안 만든다.** 이 칸은 저장된 결과를 읽을 뿐이고,
-        모델을 부르는 길은 버튼 하나다(`ReadingSection`).
-
-        **내 명식이면 이 칸이 아니다.** 목록은 selfPerson 을 이미 걸러 내지만 이 주소는
-        열린다. 여기에 칸을 세우면 같은 명식에 글이 둘 서고 같은 자료로 풀이권이 두 번
-        나간다. 막는 것은 DB 다(`reading_scope_for`) — 여기서는 그 자리에 **어디로 가면
-        되는지**를 세운다. 못 만드는 버튼을 세워 두고 눌러야 알게 하지 않는다.
-      */}
-      {mine ? (
-        <p className="rounded-[1.75rem] border border-border bg-surface p-5 text-sm leading-6">
-          내 명식의 사주풀이는{' '}
-          <Link href="/me" className="font-semibold text-accent underline underline-offset-4">
-            내 사주
-          </Link>{' '}
-          화면에 있습니다.
-        </p>
-      ) : (
-        /*
-          **목록에서 곧장 이 칸으로 온다.** 사람 카드의 풀이 줄이 `#reading` 으로 걸려
-          있어서, 만든 글을 보려고 명식 전체를 지나 내려오지 않아도 된다. 글이 사는
-          자리는 그대로 여기 하나다 — 목록은 한 줄로 말하고 길만 낸다.
-        */
-        <div id="reading" className="scroll-mt-24">
-          <ReadingSection
-            target={{ kind: 'person', personId: person.personId }}
-            heading={`${person.name}의 사주풀이`}
-          />
-        </div>
-      )}
     </main>
   );
 }

@@ -86,7 +86,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('1990-05-15')).toBeVisible();
   });
 
-  test('내 사주 화면은 사주풀이 칸을 세우되 여는 것만으로 만들지 않는다', async ({
+  test('내 명식과 사주풀이는 탭으로 갈리고 풀이 화면을 여는 것만으로 만들지 않는다', async ({
     page,
     signedIn,
   }) => {
@@ -100,13 +100,24 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(chart.getByLabel('일주 천간과 지지')).toContainText('나');
     await expect(chart.getByLabel('일주 천간과 지지')).toContainText('관계 자리');
 
-    /*
-      **US 23-1 · 25 가 걸린 자리다.** 칸은 서고, 아직 없다고 말하고, 버튼만 있다.
-      화면을 여는 것으로 모델이 불리면 배포와 새로고침이 결과를 바꾼다.
-    */
-    await expect(page.getByRole('heading', { name: '사주풀이', exact: true })).toBeVisible();
+    const tabs = page.getByRole('navigation', { name: '내 사주의 명식과 사주풀이' });
+    await expect(tabs.getByRole('link', { name: '명식 보기' })).toHaveAttribute('aria-current', 'page');
+    await tabs.getByRole('link', { name: '사주풀이', exact: true }).click();
+
+    await expect(page).toHaveURL(/\/me\/readings\/self$/);
+    await expect(page.getByRole('heading', { name: '내 사주풀이', exact: true }).first()).toBeVisible();
     await expect(page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
+    await expect(page.getByText('명식 자세히 보기')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '사주팔자' })).toBeHidden();
+    const readingTabs = page.getByRole('navigation', { name: '내 사주의 명식과 사주풀이' });
+    await expect(readingTabs.getByRole('link', { name: '사주풀이', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await page.getByText('명식 자세히 보기').click();
+    await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+    await page.getByText('명식 자세히 보기').click();
 
     /*
       **버튼 옆에 남는 것은 한 줄뿐이다.** 넉 줄이 쌓여 통째로 안 읽히던 자리라, 누를지
@@ -126,8 +137,16 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     await expectReadingCredits(page, '풀이권 5번 중 5번 남음');
 
-    /* 서버 HTML 에는 없다 — 브라우저가 읽는다. 그래서 흐름 검사는 셈만 잰다 */
-    await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
+    /* 처음 받을 때도 풀이권을 쓰기 전에 확인한다. 취소하면 생성은 시작되지 않는다. */
+    await page.getByRole('button', { name: '사주풀이 받기' }).click();
+    const asking = page.getByRole('dialog');
+    await expect(asking).toBeVisible();
+    await expect(asking.getByText('풀이권 1회가 사용됩니다', { exact: false })).toBeVisible();
+    await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toHaveCount(0);
+    await asking.getByRole('button', { name: '그만두기' }).click();
+    await expect(asking).toBeHidden();
+    await expect(page.getByText('풀이 만드는 중…')).toHaveCount(0);
+    await expectReadingCredits(page, '풀이권 5번 중 5번 남음');
 
     // 다시 열어도 만들어지지 않는다 — 같은 자리에 같은 문장이 그대로 선다.
     await page.reload();
@@ -141,7 +160,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * 둘 서고 같은 자료로 풀이권이 두 번 나간다. 막는 것은 DB 이고, 화면은 그 자리에
    * 어디로 가면 되는지를 세운다 — 못 만드는 버튼을 눌러야 알게 하지 않는다.
    */
-  test('내 명식을 저장한 사람으로 열면 풀이 칸 대신 갈 곳을 말한다', async ({
+  test('내 명식을 저장한 사람 주소로 열어도 자기 풀이 탭으로 간다', async ({
     page,
     signedIn,
   }) => {
@@ -154,13 +173,11 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     ).toBeVisible();
 
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
-    await expect(page.getByText('내 명식의 사주풀이는')).toBeVisible();
-    /* 머리글에도 같은 이름의 링크가 있다 — 재려는 것은 본문에 세운 그 길이다 */
-    await page.getByRole('main').getByRole('link', { name: '내 사주' }).click();
+    const tabs = page.getByRole('navigation', { name: '내 사주의 명식과 사주풀이' });
+    await tabs.getByRole('link', { name: '사주풀이', exact: true }).click();
 
-    /* 내 명식의 풀이는 `/me` 에 산다 — 그 자리의 이름이 「사주풀이」다 */
-    await expect(page).toHaveURL(/\/me$/);
-    await expect(page.getByRole('heading', { name: '사주풀이', exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/me\/readings\/self$/);
+    await expect(page.getByRole('heading', { name: '내 사주풀이', exact: true }).first()).toBeVisible();
   });
 
   /**
@@ -185,7 +202,10 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     ).toBeVisible();
 
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
-    await expect(page.getByText('내 명식의 사주풀이는')).toBeVisible();
+    await expect(
+      page.getByRole('navigation', { name: '내 사주의 명식과 사주풀이' })
+        .getByRole('link', { name: '사주풀이', exact: true }),
+    ).toHaveAttribute('href', '/me/readings/self');
   });
 
   /** 저장된 글이 그 사람의 화면에 실제로 서는가 — 위 시험은 빈 자리까지만 본다 */
@@ -199,15 +219,16 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     const readingLink = personCard.getByRole('link', { name: /사주풀이 보기/ });
     await expect(readingLink).toHaveAttribute(
       'href',
-      `/me/people/${personReader.personId}#reading`,
+      `/me/readings/${personReader.personId}`,
     );
     await readingLink.click();
 
     await expect(page.getByRole('heading', { name: '어머니의 사주풀이' })).toBeVisible();
 
-    /* 카드 배치라 긴 글이 접혀 있다 — 펼쳐서 그 글이 진짜 저장돼 있는지 본다 */
-    await page.getByRole('button', { name: '자세히 보기', exact: true }).click();
+    /* 풀이 전용 페이지라 글은 바로 서고, 명식만 접혀 있다. */
     await expect(page.getByText('어머니의 결')).toBeVisible();
+    await expect(page.getByText('명식 자세히 보기')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '사주팔자' })).toBeHidden();
 
     /* 한 사람짜리라 궁합 점수가 안 선다 */
     await expect(page.getByText('현재 궁합 풀이 점수')).toBeHidden();
@@ -243,7 +264,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     reader,
   }) => {
     expect(reader.runId).not.toBe('');
-    await page.goto('/me');
+    await page.goto('/me/readings/self');
 
     /* `/me` 는 카드 배치라 긴 글과 설문을 앞세우지 않는다 */
     await expect(page.getByText('이 풀이는 어떠셨어요')).toHaveCount(0);
@@ -320,6 +341,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 닫힌 `<dialog>` 는 접근성 트리에 없다 — 그래서 이 자리가 「열렸는가」를 잰다 */
     const asking = page.getByRole('dialog');
     await expect(asking).toBeVisible();
+    await expect(asking.getByText('풀이권 1회가 사용됩니다', { exact: false })).toBeVisible();
     await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toBeVisible();
 
     await asking.getByRole('button', { name: '그만두기' }).click();
@@ -342,7 +364,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    *
    * 흐름 검사가 이미 같은 화면을 받아 글자를 세지만, **누르는 손**은 여기에만 있다.
    */
-  test('저장한 사람의 상세 화면에서 그 사람의 사주풀이를 받을 수 있다', async ({
+  test('저장한 사람의 명식 화면에서 풀이 탭으로 이동해 풀이를 받을 수 있다', async ({
     page,
     signedIn,
   }) => {
@@ -358,8 +380,12 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       page.getByRole('heading', { name: `${kin}의 사주`, exact: true }),
     ).toBeVisible();
 
-    /* 제목이 그 사람 이름으로 선다 — kind 로 지어내던 자리다 */
-    await expect(page.getByRole('heading', { name: `${kin}의 사주풀이` })).toBeVisible();
+    const tabs = page.getByRole('navigation', { name: `${kin}의 명식과 사주풀이` });
+    await expect(tabs.getByRole('link', { name: '명식 보기' })).toHaveAttribute('aria-current', 'page');
+    await tabs.getByRole('link', { name: '사주풀이', exact: true }).click();
+
+    await expect(page).toHaveURL(/\/me\/readings\/[0-9a-f-]+$/);
+    await expect(page.getByRole('heading', { name: `${kin}의 사주풀이`, exact: true }).first()).toBeVisible();
     await expect(page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
 
     const make = page.getByRole('button', { name: '사주풀이 받기' });
@@ -499,7 +525,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.locator('main')).toContainText('저장한 사람 목록에 상우');
     await page.getByRole('button', { name: '이 사람을 저장하고 사주풀이로 가기' }).click();
 
-    await expect(page).toHaveURL(/\/me\/people\/[0-9a-f-]+$/);
+    await expect(page).toHaveURL(/\/me\/readings\/[0-9a-f-]+$/);
     // 저장한 사람이라 이 화면에는 그 사람 이름으로 풀이를 만드는 자리가 있다.
     await expect(page.getByRole('heading', { name: '상우의 사주풀이' })).toBeVisible();
     // 이미 저장된 사람에게 「저장하세요」가 다시 서지 않는다.
@@ -554,9 +580,9 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await ask.getByRole('button', { name: '네, 같은 사람입니다' }).click();
 
-    await expect(page).toHaveURL(/\/me\/people\/[0-9a-f-]+$/);
+    await expect(page).toHaveURL(/\/me\/readings\/[0-9a-f-]+$/);
     // 「엄마」가 아니라 저장돼 있던 이름이다 — 아무것도 새로 저장되지 않았다.
-    await expect(page.getByRole('heading', { name: '어머니의 사주', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '어머니의 사주풀이', exact: true }).first()).toBeVisible();
 
     await page.goto('/me/people');
     await expect(page.getByRole('heading', { name: '엄마' })).toHaveCount(0);
@@ -579,8 +605,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(ask).toBeVisible();
     await ask.getByRole('button', { name: '아니요, 다른 사람입니다' }).click();
 
-    await expect(page).toHaveURL(/\/me\/people\/[0-9a-f-]+$/);
-    await expect(page.getByRole('heading', { name: '쌍둥이의 사주', exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/me\/readings\/[0-9a-f-]+$/);
+    await expect(page.getByRole('heading', { name: '쌍둥이의 사주풀이', exact: true }).first()).toBeVisible();
   });
 
   test('사람을 추가하면 목록에 서고 그 사람과의 수동 궁합이 열린다', async ({ page, signedIn }) => {
@@ -615,7 +641,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 새 사람은 같은 자리에서 풀이를 만들 길과 명식을 자세히 볼 길을 나란히 가진다. */
     await expect(friendCard.getByRole('link', { name: /사주풀이 만들기/ })).toHaveAttribute(
       'href',
-      /#reading$/,
+      /\/me\/readings\/[0-9a-f-]+$/,
     );
 
     /* 설명이 긴 두 버튼도 카드의 최소 너비를 밀어내지 않는다 — 320px에서 실제로 넘쳤다. */
@@ -632,11 +658,6 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     }
 
     await friendCard.getByRole('link', { name: '사주 상세 보기' }).click();
-    /*
-      `exact` 를 안 주면 **두 개를 잡는다.** 같은 화면에 「친구의 사주풀이」가 함께
-      서면서 「친구의 사주」가 그 부분 문자열이 됐다. 이름을 쓰는 제목이 하나 늘면
-      이런 자리가 조용히 생긴다.
-    */
     await expect(
       page.getByRole('heading', { name: '친구의 사주', exact: true }),
     ).toBeVisible();
@@ -713,6 +734,30 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       누르지 않는다 — 누르면 4분과 돈이 든다.
     */
     await expect(page.getByRole('button', { name: '궁합 풀이 받기' })).toBeVisible();
+  });
+
+  test('사람을 목록에서 빼기 전에 확인 창을 띄우고 취소하면 그대로 둔다', async ({
+    page,
+    signedIn,
+  }) => {
+    const kin = signedIn.managed[0];
+    expect(kin).not.toBe(undefined);
+    await page.goto('/me/people');
+
+    const card = page.locator('section').filter({
+      has: page.getByRole('heading', { name: kin, exact: true }),
+    });
+    await card.getByLabel(`${kin} 관리`, { exact: true }).click();
+    await card.getByRole('button', { name: '목록에서 빼기' }).click();
+
+    const asking = page.getByRole('dialog');
+    await expect(asking).toBeVisible();
+    await expect(asking.getByRole('heading', { name: `${kin} 님을 목록에서 뺄까요?` })).toBeVisible();
+    await expect(asking.getByText('되돌릴 수 없습니다', { exact: false })).toBeVisible();
+    await asking.getByRole('button', { name: '취소' }).click();
+
+    await expect(asking).toBeHidden();
+    await expect(card.getByRole('heading', { name: kin, exact: true })).toBeVisible();
   });
 
   /**

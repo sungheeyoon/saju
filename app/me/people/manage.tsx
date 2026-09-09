@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import type { PersonSlots } from '@/src/lib/people';
 
@@ -275,8 +275,13 @@ export function RemoveConfirm({
   onCancel: () => void;
 }) {
   const router = useRouter();
+  const confirming = useRef<HTMLDialogElement>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [removing, startRemoving] = useTransition();
+
+  useEffect(() => {
+    if (confirming.current !== null && !confirming.current.open) confirming.current.showModal();
+  }, []);
 
   const remove = () => {
     setFailure(null);
@@ -288,25 +293,40 @@ export function RemoveConfirm({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3 text-sm">
-      <span className="text-secondary">{label} 님을 목록에서 뺍니다. 되돌릴 수 없습니다.</span>
-      <button
-        type="button"
-        onClick={remove}
-        disabled={removing}
-        className="h-9 rounded-md border border-border px-3 text-xs font-semibold text-danger transition-colors hover:border-danger disabled:opacity-60"
-      >
-        {removing ? '빼는 중…' : '뺍니다'}
-      </button>
-      <button
-        type="button"
-        onClick={onCancel}
-        disabled={removing}
-        className="text-xs text-secondary underline underline-offset-2"
-      >
-        그만두기
-      </button>
-      {failure !== null && <span className="text-xs text-muted">{failure}</span>}
-    </div>
+    <dialog
+      ref={confirming}
+      aria-labelledby={`remove-person-${personId}`}
+      onCancel={(event) => {
+        if (removing) event.preventDefault();
+      }}
+      onClose={onCancel}
+      className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
+    >
+      <h3 id={`remove-person-${personId}`} className="text-base font-bold">
+        {label} 님을 목록에서 뺄까요?
+      </h3>
+      <p className="mt-2 text-sm leading-6 text-secondary">
+        저장한 출생 정보와 이 사람의 풀이는 목록에서 사라지며 되돌릴 수 없습니다.
+      </p>
+      {failure !== null && <p className="mt-3 text-sm text-danger">빼지 못했습니다 — {failure}</p>}
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
+        <button
+          type="button"
+          onClick={remove}
+          disabled={removing}
+          className="h-11 rounded-xl bg-danger px-5 text-sm font-semibold text-white shadow-sm disabled:opacity-60 sm:h-10"
+        >
+          {removing ? '빼는 중…' : '목록에서 빼기'}
+        </button>
+        <button
+          type="button"
+          onClick={() => confirming.current?.close()}
+          disabled={removing}
+          className="h-11 rounded-xl border border-border px-5 text-sm text-secondary hover:border-border-strong hover:text-foreground sm:h-10"
+        >
+          취소
+        </button>
+      </div>
+    </dialog>
   );
 }

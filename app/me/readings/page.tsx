@@ -18,9 +18,8 @@ export const metadata = {
 /**
  * 만든 글이 **한 목록에** 서는 자리 (ADR 0033).
  *
- * 풀이가 네 화면에 흩어져 있었다 — 자기 풀이는 `/me`, 저장한 사람은 그 사람 상세,
- * 비공개 궁합은 `/me/compat` 의 「본 궁합」, 인연 궁합은 `/me/match/[id]`. **만든 글이
- * 어디 있는지 사용자가 외워야 하는 상태였다.**
+ * 풀이가 네 화면에 흩어져 있었다. 이제 한 사람 풀이는 `/me/readings/[subject]`에 따로
+ * 서고, 두 궁합은 각각의 결과 화면에 선다. 이 목록은 그 네 갈래의 공통 입구다.
  *
  * ## 여기서 아무것도 판정하지 않는다
  *
@@ -83,7 +82,7 @@ function Nothing() {
     <section className={`${CARD} flex flex-col gap-1.5`}>
       <h2 className="text-base font-semibold">아직 만든 풀이가 없습니다</h2>
       <p className="text-sm leading-6 text-secondary">
-        <Link href="/me" className="text-accent underline underline-offset-2">
+        <Link href="/me/readings/self" className="text-accent underline underline-offset-2">
           내 사주
         </Link>{' '}
         에서 내 풀이를 만들 수 있습니다. 저장한 사람의 풀이는{' '}

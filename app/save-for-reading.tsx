@@ -229,8 +229,8 @@ const called = (name: string, fallback: string) => name.trim() || fallback;
 /**
  * 한 사람 — **사이를 묻지 않는다.** 혼자 보는 풀이에는 물을 상대가 없다.
  *
- * 저장하고 나면 그 사람의 화면으로 간다(`/me/people/{id}`). 거기가 저장한 사람의 풀이가
- * 사는 자리이고, 이 입구가 흘려보내는 것은 정확히 그 흐름(`person`)이다.
+ * 저장하고 나면 그 사람의 풀이 화면으로 간다(`/me/readings/{id}`). 명식 화면을 먼저
+ * 지나지 않고 이 입구가 약속한 결과 자리로 곧장 간다.
  */
 export function SavePersonForReading({ query }: { query: Query }) {
   const router = useRouter();
@@ -242,7 +242,7 @@ export function SavePersonForReading({ query }: { query: Query }) {
   const savePerson = async (evenIfSameChart: boolean): Promise<SaveOutcome> => {
     const saved = await savePersonForReading(query, evenIfSameChart);
     if (saved.ok) {
-      router.push(`/me/people/${saved.personId}`);
+      router.push(`/me/readings/${saved.personId}`);
       return { done: true };
     }
     if (saved.kind === 'failed') return { failed: saved.message };
@@ -253,7 +253,7 @@ export function SavePersonForReading({ query }: { query: Query }) {
         label: same.label,
         answer: async (sameperson) => {
           if (!sameperson) return savePerson(true);
-          router.push(same.isSelf ? '/me' : `/me/people/${same.personId}`);
+          router.push(same.isSelf ? '/me/readings/self' : `/me/readings/${same.personId}`);
           return { done: true };
         },
       },

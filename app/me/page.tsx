@@ -11,13 +11,10 @@ import { DiscoveryBoard } from './discovery/board';
 import { AccountNotice } from './account-notice';
 import { Onboarding } from './onboarding';
 import { PillarCard } from './pillar-card';
-import { ReadingSection } from './reading/section';
 import { ReviseChart } from './revise';
+import { ReadingTabs } from './reading-tabs';
 import { isBlocked } from '@/src/lib/account';
 import { CALENDAR_KO, GENDER_KO } from '@/src/lib/saju';
-
-/** 모델 240초 상한이 먼저 끝나 실패를 기록하고, DB 600초 만료보다는 먼저 닫는다. */
-export const maxDuration = 300;
 
 /**
  * 로그인한 사람이 도착하는 자리.
@@ -45,7 +42,7 @@ export default async function MePage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold tracking-[-0.04em]">내 사주</h1>
-            <p className="mt-1 text-sm text-secondary">명식과 사주풀이를 한곳에서 확인하세요.</p>
+            <p className="mt-1 text-sm text-secondary">내 명식을 확인하고 사주풀이로 이어가세요.</p>
           </div>
         </div>
       </header>
@@ -127,6 +124,12 @@ async function SelfChart({ personId }: { personId: string }) {
 
   return (
     <section className="flex min-w-0 flex-col gap-6">
+      <ReadingTabs
+        current="chart"
+        chartHref="/me"
+        readingHref="/me/readings/self"
+        label="내 사주"
+      />
       <PillarCard
         label={edge.local_label}
         saju={saju}
@@ -187,11 +190,6 @@ async function SelfChart({ personId }: { personId: string }) {
         }
       />
 
-      {/*
-        **자기 풀이** — 저장된 근거를 사용자가 직접 읽지 않아도 무엇이 보이는지
-        알게 하는 자리다(US 23-1). 여는 것만으로는 만들지 않는다.
-      */}
-      <ReadingSection target={{ kind: 'self' }} heading="사주풀이" />
     </section>
   );
 }

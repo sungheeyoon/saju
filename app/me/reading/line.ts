@@ -38,18 +38,17 @@ export function readingTitle(entry: ReadingEntry): string {
 }
 
 /**
- * 누르면 가는 곳 — **그 대상의 화면**이다.
+ * 누르면 가는 곳 — **그 풀이의 화면**이다.
  *
- * 목록은 결과로 가는 길이지 결과가 서는 자리가 아니다(ADR 0033). 그래서 여는 것은
- * 목록 안의 어떤 칸이 아니라 그 글이 원래 사는 화면이다 — 거기서만 다시 만들기·설문·
- * 「이전 입력」이 한 벌로 서 있다.
+ * 한 사람의 명식과 풀이가 갈라졌으므로 자기·저장한 사람은 풀이 전용 주소로 간다.
+ * 궁합은 이미 결과 화면이 독립되어 있어 그 주소를 그대로 쓴다.
  */
 export function readingHref(entry: ReadingEntry): string {
   switch (entry.kind) {
     case 'self':
-      return '/me';
+      return '/me/readings/self';
     case 'person':
-      return `/me/people/${entry.personA}`;
+      return `/me/readings/${entry.personA}`;
     case 'private':
       return `/me/compat?a=${entry.personA}&b=${entry.personB}`;
     case 'match':

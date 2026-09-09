@@ -128,6 +128,9 @@ test.describe('동의로 열리는 흐름', () => {
     // 보내기 전에 공개 범위를 읽는다 — 후보 카드만 본 것은 동의가 아니다(`prd-archive`).
     await expect(card.getByText('여덟 글자', { exact: false }).first()).toBeVisible();
     await card.getByRole('button', { name: '요청 보내기' }).click();
+    const confirmRequest = asker.page.getByRole('dialog');
+    await expect(confirmRequest).toContainText('풀이권 1회');
+    await confirmRequest.getByRole('button', { name: '요청 보내기' }).click();
 
     // ── 받은 쪽이 읽고 수락한다 ─────────────────────────────────────────────
     await receiver.page.goto('/me/requests');
@@ -373,6 +376,10 @@ test.describe('동의로 열리는 흐름', () => {
 
     // 열린 범위 안에서도 초점이 이어진다 — 새로 그려진 칸이 탭 순서 밖이면 여기서 죽는다.
     await reach(asker, '요청 보내기', card);
+    await asker.page.keyboard.press('Enter');
+    const confirmRequest = asker.page.getByRole('dialog');
+    await expect(confirmRequest).toBeVisible();
+    await expect(confirmRequest.getByRole('button', { name: '요청 보내기' })).toBeFocused();
     await asker.page.keyboard.press('Enter');
     // 눌린 것이 실제로 요청이 됐는지는 목록에서 본다 — 초점만 닿고 안 눌리면 여기서 갈린다.
     await asker.page.goto('/me/requests');
