@@ -17,6 +17,7 @@ import {
 
 import { solarDateOf } from '@/src/lib/input/chart';
 import {
+  DEFAULT_QUERY,
   HOUR_UNKNOWN_CHOICE,
   HOUR_UNKNOWN_LABEL,
   NAME_MAX,
@@ -702,7 +703,12 @@ export function BirthFields({
         </Field>
       </div>
 
-      <details className="border-t border-border pt-3" open={TIME_BASIS[value.basis].advanced}>
+      {/*
+        접힌 자리에 기본값 아닌 값이 숨어 있으면 안 된다 — 주소로 들어온 입력이나
+        고쳐 온 판본이 진태양시가 아닐 때, 무엇으로 세운 명식인지가 접힘 뒤에 가린다.
+        그래서 「기본값과 다른가」로 편다. 기본값을 옮겨도 이 규칙은 따라온다.
+      */}
+      <details className="border-t border-border pt-3" open={value.basis !== DEFAULT_QUERY.basis}>
         <summary className="flex min-h-10 cursor-pointer items-center text-sm font-medium text-secondary">
           고급 설정
           <span className="ml-2 text-xs font-normal text-muted">자시 · 시간 기준 · 세운 연도</span>

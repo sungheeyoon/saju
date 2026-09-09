@@ -311,12 +311,19 @@ test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한�
 
   // 라디오는 끌 수 없다 — 반대쪽을 고른다. 그것이 라디오로 바꾼 이유이기도 하다.
   await fillBirthTime(page, '14:30');
-  await page.locator('summary').filter({ hasText: '고급 설정' }).click();
-  await page.getByRole('radio', { name: '진태양시' }).check();
   await expect(page.getByText('입력이 바뀌었습니다.', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: '수정한 정보로 다시 보기' }).click();
+
+  // 아무것도 안 고른 사람이 진태양시로 선다 — 고급 설정을 편 적이 없다(ADR 0057).
   await expect(page.getByRole('heading', { name: /적용된 보정.*진태양시/ })).toBeVisible();
   await expect(page.getByText('균시차', { exact: true })).toBeVisible();
+
+  // 기준은 여전히 사용자가 옮긴다 — 옮기면 균시차 줄이 빠진다.
+  await page.locator('summary').filter({ hasText: '고급 설정' }).click();
+  await page.getByRole('radio', { name: '지방평균태양시' }).check();
+  await page.getByRole('button', { name: '수정한 정보로 다시 보기' }).click();
+  await expect(page.getByRole('heading', { name: /적용된 보정.*지방평균태양시/ })).toBeVisible();
+  await expect(page.getByText('균시차', { exact: true })).toHaveCount(0);
 
   await page.getByRole('tab', { name: '월운' }).click();
   await expect(fortunePanel(page)).toContainText('월운');
@@ -541,7 +548,7 @@ test('제출한 입력이 주소에 실려 링크와 새로고침에서 같은 �
     gender: 'female',
     city: '서울',
     rule: 'jo',
-    basis: 'localMean',
+    basis: 'trueSolar',
     saeun: '2026',
   });
 

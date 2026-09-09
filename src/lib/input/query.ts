@@ -55,7 +55,13 @@ import {
  */
 export type TimeBasis = 'localMean' | 'record' | 'trueSolar';
 
-export const TIME_BASES = ['localMean', 'record', 'trueSolar'] as const satisfies readonly TimeBasis[];
+/**
+ * 화면에 서는 순서 — **기본값이 맨 앞이다.**
+ *
+ * 라디오 세 개의 순서가 곧 「무엇이 표준인가」로 읽힌다. 기본값을 가운데나 끝에
+ * 두면 사용자는 켜져 있는 것과 먼저 보이는 것이 어긋난 화면을 본다.
+ */
+export const TIME_BASES = ['trueSolar', 'localMean', 'record'] as const satisfies readonly TimeBasis[];
 
 export const TIME_BASIS: Record<
   TimeBasis,
@@ -64,13 +70,17 @@ export const TIME_BASIS: Record<
     hint: string;
     useLongitude: boolean;
     useEquationOfTime: boolean;
-    /** 고급 — 기본 화면에서는 접어둔다 */
-    advanced?: boolean;
   }
 > = {
+  trueSolar: {
+    label: '진태양시',
+    hint: '경도 + 균시차 · 기본값',
+    useLongitude: true,
+    useEquationOfTime: true,
+  },
   localMean: {
     label: '지방평균태양시',
-    hint: '경도 보정 · 기본값',
+    hint: '경도 보정만',
     useLongitude: true,
     useEquationOfTime: false,
   },
@@ -79,13 +89,6 @@ export const TIME_BASIS: Record<
     hint: '보정 없음',
     useLongitude: false,
     useEquationOfTime: false,
-  },
-  trueSolar: {
-    label: '진태양시',
-    hint: '경도 + 균시차 (±16분)',
-    useLongitude: true,
-    useEquationOfTime: true,
-    advanced: true,
   },
 };
 
@@ -163,7 +166,17 @@ export const DEFAULT_QUERY: Query = {
   gender: 'female',
   city: '서울',
   rule: 'jo',
-  basis: 'localMean',
+  /**
+   * 시간 기준은 **진태양시에서 시작한다**(ADR 0057).
+   *
+   * 국내 만세력이 대체로 진태양시로 세우므로, 다른 곳에서 뽑아 본 명식과
+   * 맞춰 보는 사람이 기본 화면에서 같은 여덟 글자를 본다. 균시차는 ±16분대라
+   * 시각이 시주 경계에 붙은 사람에게는 시주가 갈린다 — 그래서 이것은 취향이
+   * 아니라 어느 계통으로 세울 것인가의 선택이고, 고른 값은 주소와 저장된
+   * 판본에 그대로 실린다. **이미 저장된 사람과 이미 나눠 준 링크는 자기가
+   * 들고 있는 기준으로 그대로 선다** — 여기를 옮겨도 움직이지 않는다.
+   */
+  basis: 'trueSolar',
   // 현재 연도를 쓰지 않는다. 이 페이지는 빌드 때 미리 그려지므로 브라우저에서
   // 계산한 '올해'와 어긋나 하이드레이션이 깨진다. 고정값을 두고 사용자가 옮긴다.
   saeunFrom: 2026,
