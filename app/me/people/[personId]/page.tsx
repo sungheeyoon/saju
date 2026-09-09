@@ -90,13 +90,13 @@ export default async function PersonSajuPage({
         {/*
           **궁합은 여기서도 시작한다**(ADR 0036).
 
-          `/me/compat` 은 메뉴에 없다. 거기 가려면 머리글의 「궁합 보기」를 눌러 직접
-          입력 화면에 닿은 뒤 길을 찾아야 했는데, 저장한 사람을 보고 있는 사람이
-          「이 사람과 누구」를 떠올리는 자리는 바로 여기다. 첫 칸이 채워진 채 열린다.
+          저장한 사람을 보고 있는 사람이 「이 사람과 누구」를 떠올리는 자리는 바로
+          여기다. 궁합의 첫 걸음(`/compat`)이 **첫 칸이 이 사람으로 채워진 채** 열린다 —
+          주소의 `#a.person` 이 그 값이다.
         */}
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href={`/me/compat?a=${person.personId}`}
+            href={`/compat#a.person=${person.personId}`}
             className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
           >
             이 사람과 궁합 보기

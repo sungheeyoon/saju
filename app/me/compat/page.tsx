@@ -1,15 +1,16 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
-import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
+import { isBlocked } from '@/src/lib/account';
+import { RELATION_LABEL } from '@/src/lib/people';
 import { analyzeCompatibility } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { CompatView } from '../../compat-view';
+import { MatchResult } from '../../compat-match';
+import { ScoringNote } from '../../match-index';
 import { pairRelationFor } from './actions';
-import { PairPicker } from './picker';
-import { RelationForNext } from './relation-for-next';
 import { CompatHero } from '../../compat-hero';
 import {
   REVISION_REPLACED_NOTE,
@@ -68,20 +69,8 @@ export default async function ManagedCompatPage({
   const a = firstOf(params.a);
   const b = firstOf(params.b);
 
-  const [{ state }, { data: edges }] = await Promise.all([
-    readAccount(supabase),
-    // 정책이 자기 목록만 내준다. 여기서 `user_id` 를 또 적지 않는다.
-    supabase
-      .from('user_person_access')
-      .select('person_id, local_label')
-      .order('created_at', { ascending: true }),
-  ]);
-
-  const people = (edges ?? []).map((edge) => ({
-    personId: edge.person_id as string,
-    label: edge.local_label as string,
-    isSelf: edge.person_id === selfPersonIdOf(state),
-  }));
+  /* 고를 사람 목록은 여기서 안 읽는다 — 고르는 자리가 `/compat` 으로 갔다(ADR 0054) */
+  const { state } = await readAccount(supabase);
 
   /**
    * 중지된 계정에는 아무것도 안 보인다(정책이 막는다). 그대로 두면 404 로 떨어지는데,
@@ -102,7 +91,7 @@ export default async function ManagedCompatPage({
   if (blocked) {
     return (
       <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
-        <CompatHero mode="saved" />
+        <CompatHero />
         <AccountNotice state={state} />
       </main>
     );
@@ -121,10 +110,27 @@ export default async function ManagedCompatPage({
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
-      <CompatHero mode="saved" />
+      <CompatHero />
 
       <div className="flex flex-col gap-6">
-        <PairPicker people={people} a={a} b={b} />
+        {/*
+          **고르는 칸은 여기 없다**(ADR 0054). 두 사람을 정하는 자리는 `/compat` 하나이고,
+          이 주소는 **그 결과**가 사는 곳이다. 인자 없이 열리는 것은 본 궁합을 다시
+          찾아오는 길이라 그 목록과 시작하는 길만 세운다.
+        */}
+        <section className={`${CARD} flex flex-col gap-2`}>
+          <h2 className="text-base font-semibold">두 사람을 골라 주세요</h2>
+          <p className="text-sm leading-6 text-secondary">
+            궁합은 두 사람을 정하는 것부터 시작합니다. 저장한 사람에서 고르거나 직접 적을
+            수 있습니다.
+          </p>
+          <Link
+            href="/compat"
+            className="self-start text-sm font-medium text-accent underline underline-offset-2"
+          >
+            궁합 보러 가기 →
+          </Link>
+        </section>
         <SeenPairs />
         {outcome !== null && <Result outcome={outcome} />}
       </div>
@@ -139,8 +145,10 @@ export default async function ManagedCompatPage({
  * 부르던 동안 사용자는 만세력을 보기 전에 풀이권을 썼다. 이제 고르면 이 화면이 서고,
  * 여기서 한 번 더 눌러야 글이 난다 — `/` 와 `/compat` 이 이미 그 모양이다.
  *
- * 그 앞에 표 스물몇 개를 세워 두면 글까지 내려오지 못하므로 **관계표는 여전히 안
- * 세운다**(`analysis="hidden"`). 서는 것은 여덟 글자다.
+ * 그 앞에 표 스물몇 개를 세워 두면 글까지 내려오지 못하므로 **관계표는 접어 둔다**
+ * (`analysis="folded"`). 서는 것은 여덟 글자다 — 표는 우리가 대조하는 값이라 없애지
+ * 않고 접는다(ADR 0035). 접이칸이 살던 화면(`/compat` 의 결과)이 이 자리로 합쳐지면서
+ * 그 값이 갈 곳이 여기뿐이다.
  */
 async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' }> }) {
   return (
@@ -349,30 +357,51 @@ async function Result({ outcome }: { outcome: Outcome }) {
        * 없었다.** 파이프라인은 처음부터 세 kind 를 다 받았고(`ReadingTarget`), 쌍의 차례도
        * DB 가 정한다(`least`·`greatest`) — 막혀 있던 것은 화면 한 줄뿐이었다.
        */
-      analysis="hidden"
+      analysis="folded"
       verdict={
-        <ReadingSection
-          key="private-reading"
-          target={{ kind: 'private', ...outcome.pair }}
-          layout="page"
-          /**
-           * **사이를 고치는 칸이 만드는 버튼 옆에 선다.**
-           *
-           * 고르는 칸에서만 물었으므로, 처음에 안 골랐거나 잘못 고른 사람은 바꿀
-           * 길이 없었다. 「읽기 전에 묻는다」(ADR 0019)는 그대로다 — 이 칸이 바꾸는
-           * 것은 지금 서 있는 글이 아니라 **다음 글**이고, 그래서 버튼 옆이다.
-           */
-          ask={
-            stored.ok ? (
-              <RelationForNext
-                key="relation-for-next"
-                personA={outcome.pair.personA}
-                personB={outcome.pair.personB}
-                initial={stored.relation}
-              />
-            ) : undefined
-          }
-        />
+        <>
+          {/*
+            **두 길이 같은 차례로 선다** — 두 명식 → 베타 지표 → 사이 → 만드는 버튼.
+            직접 입력 화면에도 이 칸이 있었는데 여기만 없어서, 같은 흐름을 지나온
+            사람이 화면마다 다른 것을 보고 있었다.
+
+            셈은 브라우저에서 난다(`MatchResult`). 내 사람들의 명식이라 브라우저가
+            들고 있어도 되는 자리이고, 부르는 함수는 저쪽과 같다(ADR 0010).
+          */}
+          <MatchResult
+            key="match-index"
+            charts={{ a: first.saju, b: second.saju }}
+            compat={analyzeCompatibility(first.saju, second.saju)}
+            names={{ a: first.name, b: second.name }}
+          />
+          <ScoringNote key="scoring-note" />
+          <ReadingSection
+            key="private-reading"
+            target={{ kind: 'private', ...outcome.pair }}
+            layout="page"
+            /**
+             * **여기서는 사이를 다시 묻지 않는다**(ADR 0054).
+             *
+             * 물음은 두 사람을 고르는 자리에 있다 — 「사이에 따라 방향을 달리 잡겠다」가
+             * 까닭이므로 읽기 전에 물어야 뜻이 있고(ADR 0019), 그 자리가 이미 읽기
+             * 전이다. 한 흐름에서 두 번 물으면 사용자는 서로 다른 두 물음으로 읽는다.
+             *
+             * 대신 **무엇으로 읽는지는 적는다.** 이 값이 글의 방향을 바꾸는데 화면에
+             * 안 서면, 사용자는 자기가 무엇을 골랐는지 모른 채 만드는 버튼을 누른다.
+             * 고치는 길은 두 사람을 고르는 자리다.
+             */
+            ask={
+              stored.ok && stored.relation !== null ? (
+                <p key="relation-line" className="text-xs leading-5 text-muted">
+                  <strong className="font-medium text-secondary">
+                    {RELATION_LABEL[stored.relation]}
+                  </strong>{' '}
+                  사이로 읽어 드립니다. 바꾸시려면 두 사람을 고르는 자리에서 다시 고르세요.
+                </p>
+              ) : undefined
+            }
+          />
+        </>
       }
       notice={
         /*

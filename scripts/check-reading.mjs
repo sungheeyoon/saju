@@ -421,22 +421,19 @@ try {
      * 관계를 묻는 까닭이 「사이에 따라 해석의 방향을 달리 잡겠다」는 것이라, 읽고 난
      * 뒤에 묻는 것은 아무 뜻이 없다 — 이미 나온 글은 그 답을 못 쓴다.
      */
-    const picker = plain(await body('/me/compat', cookie.a));
+    const picker = plain(await body('/compat', cookie.a));
     check('고르는 화면이 무슨 사이인지 묻는다', picker.includes('두 분은 무슨 사이인가요'));
     check('점수에 안 쓴다는 것도 그 자리에서 말한다', picker.includes('점수에는 쓰지 않습니다'));
     /**
-     * **상세 화면에서도 묻는다 — 다만 다음 글을 위해서다.**
+     * **결과 화면에서는 다시 안 묻는다**(ADR 0054).
      *
-     * 이 줄은 「상세 화면에서는 다시 묻지 않는다」였다. 고르는 칸에서만 물었으므로
-     * 처음에 안 골랐거나 잘못 고른 사람은 바꿀 길이 없다는 것이 뒤에 드러났고, 그래서
-     * 만드는 버튼 옆에 고치는 칸이 섰다(`RelationForNext`). 「읽기 전에 묻는다」(ADR
-     * 0019)는 그대로다 — 이 칸이 바꾸는 것은 지금 서 있는 글이 아니라 다음 글이다.
-     *
-     * 검사가 그 결정을 안 따라와 이 자리는 그동안 빨간 채로 서 있었다.
+     * 묻는 자리는 두 사람을 고르는 곳 하나다. 「읽기 전에 묻는다」(ADR 0019)는 거기서
+     * 지켜지고, 여기서 또 물으면 한 흐름이 같은 것을 두 번 묻는다. 대신 **무엇으로
+     * 읽는지**는 적는다 — 글의 방향을 바꾸는 값이 화면에 없으면 사용자는 자기가 무엇을
+     * 골랐는지 모른 채 만드는 버튼을 누른다.
      */
-    check('상세 화면에서는 다음 글을 위해 묻는다', after.includes('두 분은 무슨 사이인가요'));
-    check('지금 서 있는 글은 안 바뀐다고 말한다',
-      after.includes('다시 풀이받을 때부터 이 사이로 읽어 드려요'));
+    check('결과 화면에서는 다시 묻지 않는다', !after.includes('두 분은 무슨 사이인가요'));
+    check('무엇으로 읽는지는 적는다', after.includes('사이로 읽어 드립니다'));
 
     const set = await a.rpc('set_pair_relation', {
       p_person_a: momId, p_person_b: account.self_person_id, p_relation: 'family',
@@ -495,7 +492,8 @@ try {
      */
     for (const [who, jar] of [['청한 쪽', cookie.a], ['동의한 쪽', cookie.b]]) {
       const waiting = await body(`/me/match/${matchId}`, jar);
-      check(`${who} 화면에 만드는 버튼이 없다`, !waiting.includes('사주풀이 받기'));
+      /* 궁합 화면은 그 글을 「궁합 풀이」라고 부른다 — 낱말이 갈리면 이 검사가 늘 참이 된다 */
+      check(`${who} 화면에 만드는 버튼이 없다`, !waiting.includes('궁합 풀이 받기'));
       check(`${who} 화면이 만드는 중이라고 말한다`,
         plain(waiting).includes('명식의 흐름을 이어 읽고 있어요'));
     }

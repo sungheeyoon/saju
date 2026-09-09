@@ -4,32 +4,30 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition, type ReactNode } from 'react';
 
-import { noRoomToSave, type PersonSlots, type Relation } from '@/src/lib/people';
+import { noRoomToSave, type PersonSlots } from '@/src/lib/people';
 
 import { supabaseInBrowser } from './auth/browser-client';
 import { CARD } from './card';
 import { savePersonForReading } from './me/actions';
-import { savePairForReading, type PairAnswers } from './me/compat/actions';
 import { personSlotsFrom } from './person-slots';
 import type { Query } from '@/src/lib/input/query';
-import { RelationChoice } from './relation-choice';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
 
 /**
- * 직접 입력한 사람으로 **풀이까지 가는 길** — 사주 한 장과 궁합 둘이 같은 칸을 쓴다.
+ * 직접 입력한 사람을 **저장해서 풀이까지 가는 길.**
  *
- * ## 이 화면들에는 왜 AI 가 없었나
+ * ## 이 화면에는 왜 AI 가 없나
  *
- * 시도도 잠금도 풀이권도 **대상**에 건다(ADR 0013). `/` 와 `/compat` 은 아무것도 저장하지
- * 않고 브라우저에서 계산하므로(ADR 0007) 걸 대상이 없었다. 궁합 쪽에 「두 분은 무슨
- * 사이인가요」가 없던 것도 그 사실의 그림자다 — 읽어 갈 프롬프트가 없는 자리에서 라디오는
- * **아무것도 바꾸지 않는 칸**이라, 한 번 세웠다가 걷어 낸 적이 있다.
+ * 시도도 잠금도 풀이권도 **대상**에 건다(ADR 0013). `/` 는 아무것도 저장하지 않고
+ * 브라우저에서 계산하므로(ADR 0007) 걸 대상이 없다. 그래서 여기서 풀이로 가는 길은
+ * 저장 하나다.
  *
- * ## 두 입구가 한 파일에 산다
+ * ## 궁합은 더 이상 여기를 지나지 않는다
  *
- * 저장 하나냐 둘이냐만 다르고 **나머지가 같다** — 무엇이 목록에 남는지 미리 적는 것,
- * 자리가 없을 때 버튼 대신 할 일을 세우는 것, 실패를 그 자리에서 말하는 것. 갈라 두면
- * 한쪽만 고쳐지고, 그때 조용히 실패하는 쪽이 남는다.
+ * 두 사람짜리 입구가 이 파일에 함께 살았다. 그쪽은 이제 **저장하지 않고** 궁합을 열고
+ * (`ReadPairTogether`), 만든 대상은 사람 목록에 안 선다. 남은 것은 「이 사람을 목록에
+ * 저장한다」는 뜻이 그대로인 한 사람짜리 하나다 — 저장이 목적인 자리와 저장이 관문일
+ * 뿐이던 자리는 같은 칸을 쓸 이유가 없었다.
  *
  * ## 저장이 곧 풀이는 아니다
  *
@@ -97,7 +95,6 @@ function SaveCard({
   /** 도착지가 그 글을 부르는 말 — 「사주풀이」이거나 「궁합 풀이」다 */
   reading,
   saveWhat,
-  ask,
   label,
   note,
   onSave,
@@ -107,8 +104,6 @@ function SaveCard({
   reading: string;
   /** 무엇을 저장하는가 — 「이 사람」·「두 사람」 */
   saveWhat: string;
-  /** 저장하면서 함께 적을 것 — 궁합만 쓴다 */
-  ask?: ReactNode;
   label: string;
   note: ReactNode;
   onSave: () => Promise<SaveOutcome>;
@@ -176,8 +171,6 @@ function SaveCard({
         </p>
       </div>
 
-      {ask}
-
       {question !== null ? (
         /*
           **물음이 서면 저장 버튼은 내려간다.** 둘을 함께 세우면 답하지 않고 다시 누를 수
@@ -232,64 +225,6 @@ function SaveCard({
 }
 
 const called = (name: string, fallback: string) => name.trim() || fallback;
-
-/**
- * 두 사람 — **묻는 것과 저장하는 것이 한 누름이다.**
- *
- * 사이를 따로 저장하게 두면 골라 놓고 나가 버린 사람의 답이 사라지고, 그때 사용자는
- * 자기가 고른 것이 무슨 소용이었는지 알 수 없다(`PairPicker` 와 같은 규율).
- *
- * **안 고르는 것도 답이다.** 필수로 두면 모르는 사람이 아무거나 고르고, 그러면 틀린
- * 값이 「모른다」보다 나쁜 자리에 앉는다. 안 고른 채로 저장되면 궁합 3번 절이 중립
- * 물음으로 나간다 — 그것이 맞는 동작이다(`MEETING_SECTION`).
- */
-export function SaveForReading({ a, b }: { a: Query; b: Query }) {
-  const router = useRouter();
-  const [relation, setRelation] = useState<Relation | null>(null);
-
-  /**
-   * **두 번 물을 수 있다.** 둘 다 이미 저장돼 있으면 한쪽씩 답한다.
-   *
-   * 답한 쪽은 `answered` 에 남아 다시 안 묻는다 — `null` 이 「아니라고 답했다」이고
-   * 없는 것이 「아직 안 물었다」다. 그 둘을 한 값으로 합치면 「아니다」라고 답한 사람이
-   * 같은 물음을 영영 다시 받는다.
-   */
-  const savePair = async (answered: PairAnswers): Promise<SaveOutcome> => {
-    const saved = await savePairForReading(a, b, relation, answered);
-    if (saved.ok) {
-      router.push(`/me/compat?a=${saved.personA}&b=${saved.personB}`);
-      return { done: true };
-    }
-    if (saved.kind === 'failed') return { failed: saved.message };
-
-    return {
-      ask: {
-        label: saved.same.label,
-        answer: (sameperson) =>
-          savePair({ ...answered, [saved.side]: sameperson ? saved.same.personId : null }),
-      },
-    };
-  };
-
-  return (
-    <SaveCard
-      needed={2}
-      reading="궁합 풀이"
-      saveWhat="두 사람"
-      ask={
-        <RelationChoice
-          value={relation}
-          onChange={setRelation}
-          idPrefix="save-for-reading"
-          className="rounded-xl bg-surface-sunken px-4 py-3"
-        />
-      }
-      label="두 사람을 저장하고 궁합 풀이로 가기"
-      note={`저장한 사람 목록에 ${called(a.name, '첫 번째 사람')} · ${called(b.name, '두 번째 사람')} 두 분이 추가됩니다.`}
-      onSave={() => savePair({})}
-    />
-  );
-}
 
 /**
  * 한 사람 — **사이를 묻지 않는다.** 혼자 보는 풀이에는 물을 상대가 없다.

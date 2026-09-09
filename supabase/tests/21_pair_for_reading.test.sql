@@ -15,7 +15,7 @@
 -- 트랜잭션 안에서 돌고 롤백으로 끝나므로, 그대로 두면 **이 시험은 한도를 한 번도 안
 -- 재고 통과한다.** 그래서 부르기 전에 즉시로 바꾼다 — 재려는 것이 실제로 서게.
 begin;
-select plan(19);
+select plan(25);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -48,6 +48,22 @@ returns table (person_a uuid, person_b uuid) language sql as $$
     first,  null, 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
     second, null, 'solar', '1992-08-20', '1992-08-20', '09:00', 'male',   '부산', 'jo', 'localMean',
     rel, have_a, have_b);
+$$;
+
+/**
+ * 같은 문을 **목록에 안 세우고** 부른다 — 궁합만 보려는 누름이 이렇게 부른다.
+ *
+ * 인자 하나만 다르다. 따로 함수를 만들지 않는 것이 요점이다 — 두 벌이 되면 판본·한도·
+ * 사이가 한쪽에만 붙는 날이 온다.
+ */
+create or replace function pg_temp.hide_pair(
+  first text, second text, rel text,
+  have_a uuid default null, have_b uuid default null)
+returns table (person_a uuid, person_b uuid) language sql as $$
+  select * from public.create_pair_for_reading(
+    first,  null, 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+    second, null, 'solar', '1992-08-20', '1992-08-20', '09:00', 'male',   '부산', 'jo', 'localMean',
+    rel, have_a, have_b, false);
 $$;
 
 /** 목록에 든 사람 수 — selfPerson 은 한도가 안 세므로 여기서도 뺀다 */
@@ -249,6 +265,60 @@ select is(
   pg_temp.managed((select uid from fresh)),
   3::bigint,
   '거절되면 아무도 안 남는다 — 여기서도 한 문이다');
+
+-- ── 궁합만 보려는 쌍은 **목록에 안 선다** ────────────────────────────────
+--
+-- 저장하지 않고도 궁합을 읽을 수 있어야 한다. 대상은 있어야 하지만(시도·잠금·풀이권이
+-- 대상에 걸린다) 그 대상이 **사람 목록에 서면** 궁합 한 번에 둘이 쌓이고, 지우는 일이
+-- 사용자 몫이 된다.
+
+select is(
+  (select used from public.my_person_slots()),
+  3,
+  '먼저 셋이 자리를 쓰고 있다');
+
+create temporary table hidden as
+select person_a as one, person_b as two from pg_temp.hide_pair('숨은 하나', '숨은 둘', 'friend');
+grant select on hidden to authenticated;
+
+select is(
+  (select count(*) from public.user_person_access a
+    where a.person_id in (select one from hidden union select two from hidden)
+      and not a.listed),
+  2::bigint,
+  '궁합만 보려고 만든 둘은 목록에 안 선다');
+
+select is(
+  (select used from public.my_person_slots()),
+  3,
+  '숨은 사람은 자리를 안 쓴다 — 사용자가 저장한 적 없는 것이 자리를 먹지 않는다');
+
+/** 숨어도 **판본은 든다** — 풀이가 읽는 것이 그것이다 */
+select is(
+  (select count(*) from public.person p
+    where p.id in (select one from hidden union select two from hidden)
+      and p.current_revision_id is not null),
+  2::bigint,
+  '숨은 사람도 현재 판본을 들고 있다');
+
+/** 사용자가 「저장된 그 사람」이라고 답한 쪽은 **그 사람 것이므로 안 숨긴다** */
+select public.create_pair_for_reading(
+  '안 만들어짐', null, 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  '숨은 셋',     null, 'solar', '1992-08-20', '1992-08-20', '09:00', 'male',   '부산', 'jo', 'localMean',
+  null, (select one from already), null, false);
+
+select is(
+  (select a.listed from public.user_person_access a where a.person_id = (select one from already)),
+  true,
+  '있던 사람은 궁합 한 번에 목록에서 사라지지 않는다');
+
+/** 목록에 올리는 것은 **그때 자리를 쓴다** — 한도가 update 에도 서야 지나가는 문이 없다 */
+select public.set_person_listed((select one from hidden), true);
+
+select is(
+  (select used from public.my_person_slots()),
+  4,
+  '목록에 올리면 그때 한 자리를 쓴다');
 
 -- ── 문은 로그인한 사람에게만 ──────────────────────────────────────────────
 

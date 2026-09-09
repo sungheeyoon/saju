@@ -67,10 +67,17 @@ export default async function PeoplePage() {
   const [slotRow, { state }, { data: edges }, made] = await Promise.all([
     supabase.rpc('my_person_slots'),
     readAccount(supabase),
-    // 정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
+    /*
+      정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
+
+      **목록에 서는 사람만 읽는다**(`listed`). 궁합만 보려고 만든 사람도 내 엣지이지만
+      사용자가 저장한 적 없는 사람이고, 그 사람이 여기 서면 「내가 등록한 적 없는 것이
+      목록에 있다」가 된다. 그 궁합은 풀이 목록에 선다.
+    */
     supabase
       .from('user_person_access')
       .select('person_id, local_label, note')
+      .eq('listed', true)
       .order('created_at', { ascending: true }),
     /*
       **풀이는 카드마다 묻지 않는다.** 사람 열이면 열 번 묻게 되고, 그 열 번이 같은
@@ -115,10 +122,10 @@ export default async function PeoplePage() {
           </p>
         </div>
         <Link
-          href="/me/compat"
+          href="/compat"
           className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
         >
-          저장한 사람으로 궁합 보기
+          궁합 보기
         </Link>
       </header>
 

@@ -643,23 +643,23 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 
     /*
-      **사람 상세가 궁합으로 가는 길을 낸다**(ADR 0036). `/me/compat` 은 메뉴에 없어서,
-      거기 가려면 머리글의 「궁합 보기」로 직접 입력 화면에 닿은 뒤 길을 찾아야 했다.
-      첫 칸이 이 사람으로 채워진 채 열린다.
+      **사람 상세가 궁합으로 가는 길을 낸다**(ADR 0036). 저장한 사람을 보고 있는 사람이
+      「이 사람과 누구」를 떠올리는 자리가 여기라, 궁합의 첫 걸음이 **첫 칸이 이 사람으로
+      채워진 채** 열린다(ADR 0054 — 주소의 `#a.person`).
     */
     await expect(
       page.getByRole('link', { name: '이 사람과 궁합 보기' }),
-    ).toHaveAttribute('href', /^\/me\/compat\?a=.+/);
+    ).toHaveAttribute('href', /^\/compat#a\.person=.+/);
 
     await page.getByRole('link', { name: '사람 목록으로' }).click();
 
     // 저장 자리 한도를 세는 것도 이 목록이다(US 18).
-    await page.getByRole('link', { name: '저장한 사람으로 궁합 보기' }).click();
-    await expect(page).toHaveURL(/\/me\/compat/);
+    await page.getByRole('link', { name: '궁합 보기' }).click();
+    await expect(page).toHaveURL(/\/compat$/);
 
     /*
-      **무슨 사이인지는 고르는 칸 옆에서 묻는다.** 관계를 묻는 까닭이 「사이에 따라
-      해석의 방향을 달리 잡겠다」는 것이라, 읽고 난 뒤에 묻는 것은 아무 뜻이 없다.
+      **사이는 여기서 묻는다**(ADR 0019·0054). 읽기 전에 물어야 뜻이 있고, 다음 화면은
+      이 답이 정해진 채로 선다.
     */
     await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
     await expect(page.getByText('점수에는 쓰지 않습니다')).toBeVisible();
@@ -676,13 +676,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await page.getByLabel('두 번째').selectOption({ label: '어머니' });
     await page.getByRole('radio', { name: '가족' }).check();
-    await expect(page.getByRole('radio', { name: '가족' })).toBeChecked();
 
-    /*
-      **본 적 없으면 목록도 없다.** 처음 온 사람에게 빈 목록은 할 일이 하나 더 있는
-      것처럼 보이는데, 고르는 칸이 이미 그 말을 하고 있다.
-    */
-    await expect(page.getByRole('heading', { name: '본 궁합' })).toHaveCount(0);
+    /* 고르는 자리에는 결과가 없다 — 지표도 명식도 다음 화면의 것이다 */
     await expect(page.getByText('궁합 베타')).toHaveCount(0);
 
     /*
@@ -690,7 +685,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       여기서 멈춰야 했다 — 시험이 누르면 4분과 돈이 들었다. 이제 이 누름은 만세력을
       열 뿐이고, 글은 그 아래의 버튼이 만든다. 걸음이 하나 늘었으므로 시험도 하나 는다.
     */
-    await page.getByRole('button', { name: '궁합 보기' }).click();
+    await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
 
     await expect(page).toHaveURL(/\/me\/compat\?a=.+&b=.+/);
     await expect(
@@ -699,19 +694,25 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     /*
       **만세력이 먼저 서고 만드는 버튼은 그 아래다.** 두 사람의 여덟 글자가 이 화면의
-      본론이고, 관계표는 우리가 검산하려고 세운 원자료라 여기 안 선다(ADR 0025·0035).
+      본론이고, 관계표는 우리가 검산하려고 세운 원자료라 **접힌 채로** 선다(ADR 0035).
     */
     await expect(page.getByText('일간').first()).toBeVisible();
-    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeHidden();
 
     /*
-      **고른 사이는 쌍에 남는다.** 옮겨 왔다고 사라지지 않는다 — 결과 아래의 칸이
-      저장된 값을 그대로 세운다(`RelationForNext`).
+      **차례가 정해져 있다** — 두 명식 → 베타 지표 → 만드는 버튼(ADR 0054). 사이는
+      앞 화면에서 이미 물었으므로 여기서는 **무엇으로 읽는지만** 적는다.
     */
-    await expect(page.getByRole('radio', { name: '가족' })).toBeChecked();
+    await expect(page.getByText('궁합 베타')).toBeVisible();
+    await expect(page.getByText('두 분은 무슨 사이인가요')).toHaveCount(0);
+    await expect(page.locator('main')).toContainText('가족 사이로 읽어 드립니다');
 
-    // 글을 만드는 버튼은 **여기** 있다. 누르지 않는다 — 누르면 4분과 돈이 든다.
-    await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
+    /*
+      **도착한 자리가 그 글을 부르는 말로 적는다.** 궁합 화면에서 「사주풀이 받기」라고
+      적으면 눌러 온 사람이 다른 것을 보고 있다고 읽는다(ADR 0026·0027).
+      누르지 않는다 — 누르면 4분과 돈이 든다.
+    */
+    await expect(page.getByRole('button', { name: '궁합 풀이 받기' })).toBeVisible();
   });
 
   /**
@@ -827,17 +828,36 @@ test.describe('초대된 사람의 로그인 흐름', () => {
  * 있었다. CI 에는 살아 있는 Supabase 가 없으므로 그 넷은 **언제나 실패할 자리**였고,
  * 앞선 단계가 먼저 죽는 동안 가려져 있었다. 파일이 재는 것을 파일 이름과 맞춘다.
  */
+/**
+ * 궁합의 첫 걸음을 **적어 넣어** 지나간다 — 여러 시험이 이 걸음을 함께 쓴다.
+ *
+ * 칸마다 어디서 올지를 고르는 화면이라(ADR 0054), 직접 적으려면 그 칸을 먼저
+ * 「직접 입력」으로 돌린다. 저장한 사람이 없는 계정에서는 이미 그 모양이지만 **이
+ * 시험들의 계정은 「어머니」를 들고 있다** — 화면이 고르는 칸에서 시작한다.
+ */
+async function typeInto(
+  page: Page,
+  side: '첫 번째' | '두 번째',
+  { name, date, time }: { name: string; date: string; time: string },
+): Promise<void> {
+  const card = page.getByRole('group', { name: `${side} 사람` });
+  await card.getByRole('button', { name: '직접 입력' }).click();
+
+  await fillBirthDate(card, date);
+  await fillBirthTime(card, time);
+  // 이름을 채우면 묶음의 이름이 그 이름으로 바뀐다 — 그래서 마지막이다.
+  await card.getByLabel('이름', { exact: true }).fill(name);
+}
+
 test.describe('로그인한 사람의 궁합 화면', () => {
   /**
-   * 궁합 화면은 한 주소에 입력 두 벌을 싣는다. 접두사가 섞이면 상대의 생일로 내
-   * 사주가 나오므로, 링크로 다시 열었을 때 두 명식이 그대로인지가 본론이다.
+   * 궁합의 첫 걸음은 한 주소에 입력 두 벌을 싣는다. 접두사가 섞이면 상대의 생일로 내
+   * 사주가 나오므로, 눌러서 넘어간 화면의 두 명식이 적은 대로인지가 본론이다.
+   *
+   * **결과는 다음 화면이다**(ADR 0054). 고르는 자리와 결과가 한 화면에 쌓여 있었는데,
+   * 저장한 사람에서 고른 쪽은 처음부터 화면이 갈려 있었다 — 둘을 같은 모양으로 세운다.
    */
-  test('궁합은 두 사람의 입력을 한 주소에 싣고 링크로 그대로 열린다', async ({
-    page,
-    context,
-    signedIn,
-  }) => {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  test('적어 넣은 두 사람이 그대로 명식 화면에 선다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     const consoleErrors: string[] = [];
     page.on('console', (message) => {
@@ -845,64 +865,38 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     });
 
     await page.goto('/compat');
-    await expect(
-      page.getByRole('heading', { name: '두 사람의 생년월일시를 입력해 주세요' }),
-    ).toBeVisible();
 
-    // **묶음의 이름이 입력한 이름으로 바뀐다**(`legend` 가 `nameOf(form, side)`다).
-    // 그래서 이름을 마지막에 채우고, 그 뒤로는 사람 이름으로 가리킨다.
-    for (const [placeholder, name, date, time] of [
-      ['첫 번째 사람', '민수', '1990-05-15', '14:30'],
-      ['두 번째 사람', '지영', '1992-08-20', '09:00'],
-    ] as const) {
-      const group = page.getByRole('group', { name: placeholder });
-
-      await fillBirthDate(group, date);
-      await fillBirthTime(group, time);
-      await group.getByLabel('이름', { exact: true }).fill(name);
-    }
+    await typeInto(page, '첫 번째', { name: '민수', date: '1990-05-15', time: '14:30' });
+    await typeInto(page, '두 번째', { name: '지영', date: '1992-08-20', time: '09:00' });
 
     /**
-     * **입력하는 동안에는 사이를 묻지 않는다.**
-     *
-     * 이 값이 움직이는 것은 저장하고 나서다. 폼 옆에 세우면 저장을 안 할 사람에게도
-     * 아무것도 바꾸지 않는 라디오가 서고, 그 자리에서 한 번 걷어 낸 적이 있다. 묻는
-     * 칸은 **결과 아래 저장 버튼 옆**에 선다 — 그 누름이 그 값을 함께 적는다.
+     * **사이는 여기서 묻는다**(ADR 0019·0054). 읽기 전에 물어야 뜻이 있고, 다음 화면은
+     * 이 답이 정해진 채로 선다 — 거기서 또 물으면 한 흐름이 같은 것을 두 번 묻는다.
      */
-    await expect(page.getByText('두 분은 무슨 사이인가요')).toHaveCount(0);
+    await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
+    await page.getByRole('radio', { name: '가족' }).check();
 
-    const first = page.getByRole('group', { name: '민수' });
-    await page.getByRole('button', { name: '궁합 보기' }).click();
+    await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
+
+    await expect(page).toHaveURL(/\/me\/compat\?a=[0-9a-f-]+&b=[0-9a-f-]+$/);
+    await expect(page.getByRole('heading', { name: '민수 × 지영' })).toBeVisible();
 
     /*
-      **분석 표는 접혀 있다**(ADR 0035). 결과가 났다는 것은 접이칸이 서는 것으로 안다 —
-      관계 표는 응답에 실려 있지만 사용자 앞에 먼저 서지는 않는다.
+      **적은 대로 계산됐는가.** 두 칸이 섞이면 여기서 드러난다 — 첫 사람의 일주가
+      두 번째 사람의 것으로 나오거나 그 반대가 된다.
+    */
+    await expect(page.getByText('庚辰').first()).toBeVisible();
+    await expect(page.getByText('戊辰').first()).toBeVisible();
+
+    /*
+      **분석 표는 접혀 있다**(ADR 0035). 관계 표는 우리가 대조하는 값이라 사용자 앞에
+      먼저 서지 않는다. 접는 것이지 자르는 것이 아니다 — `toContainText` 는
+      `textContent` 를 보므로 접힌 안쪽까지 센다.
     */
     const analysis = page.getByText('두 원국을 맞대어 본 표');
     await expect(analysis).toBeVisible();
     await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeHidden();
-
-    /*
-      **접는 것이지 자르는 것이 아니다.** 자료는 그대로 그려져 있고 안 보일 뿐이다 —
-      `toContainText` 는 `textContent` 를 보므로 접힌 안쪽까지 센다. 흐름 검사가 이
-      자리를 못 잡는 것은 이 화면이 주소의 `#` 뒤를 읽어 **브라우저에서** 계산하기
-      때문이다(ADR 0007). 서버 응답에는 결과 자체가 없다.
-    */
     await expect(page.locator('main')).toContainText('두 원국 사이의 관계');
-
-    const shared = page.url();
-    const params = sharedParams(page);
-    expect(params.get('a.date')).toBe('1990-05-15');
-    expect(params.get('b.date')).toBe('1992-08-20');
-    expect(params.get('a.hour')).toBe('14:30');
-
-    const chart = await page.locator('main').innerText();
-
-    await page.goto(shared);
-    await expect(analysis).toBeVisible();
-    expect(await page.locator('main').innerText()).toBe(chart);
-    await expectBirthDate(first, '1990-05-15');
-    expect(consoleErrors).toEqual([]);
 
     /*
       **펼침을 실제로 눌러 본다.** 마크업만 재는 검사는 태그 한 겹에 조용히 0을 낸다 —
@@ -921,13 +915,19 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     }));
     expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
 
-    /*
-      **고른 사이가 프롬프트에 실린다**는 여기서 더 안 잰다.
+    /**
+     * **고른 것은 주소에 남는다.** 뒤로 오면 적어 넣은 두 벌이 그대로 서 있어야 한다 —
+     * 다시 적게 하면 한 글자 고치려는 사람이 열 칸을 다시 채운다.
+     */
+    await page.goBack();
+    await expect(page).toHaveURL(/\/compat#/);
+    const params = sharedParams(page);
+    expect(params.get('a.date')).toBe('1990-05-15');
+    expect(params.get('b.date')).toBe('1992-08-20');
+    expect(params.get('a.hour')).toBe('14:30');
+    await expectBirthDate(page.getByRole('group', { name: '민수' }), '1990-05-15');
 
-      그 검사는 `/evidence` 로 건너가 복사 버튼을 눌렀는데, 그 화면이 없어졌다
-      (ADR 0047). 같은 성질은 `src/lib/reading/variants.test.ts` 가 실제로 나가는
-      프롬프트에 대고 잰다 — 브라우저를 지날 까닭이 없는 값이다.
-    */
+    expect(consoleErrors).toEqual([]);
   });
 
   /**
@@ -936,104 +936,90 @@ test.describe('로그인한 사람의 궁합 화면', () => {
    */
 
   /**
-   * **직접 입력한 두 사람이 궁합 풀이로 가는 길.**
+   * **적어 넣은 두 사람이 저장 없이 궁합 풀이로 간다.**
    *
-   * 이 화면은 아무것도 저장하지 않아서 AI 가 없었다 — 시도도 잠금도 풀이권도 대상에
-   * 거는데(ADR 0013) 걸 대상이 없다. 그래서 길은 저장 하나이고, 무슨 사이인지도
-   * **그 누름에 함께** 적힌다. 따로 두면 골라 놓고 저장만 한 사람의 답이 사라진다.
+   * 이 길은 아무것도 저장하지 않아서 AI 가 없었다 — 시도도 잠금도 풀이권도 대상에
+   * 거는데(ADR 0013) 걸 대상이 없었다. 지금은 대상을 만들되 **사람 목록에 안 세운다**
+   * (ADR 0053).
    *
-   * 여기서 재는 것은 세 걸음이 실제로 이어지는가다 — 묻고 · 저장하고 · 풀이 화면에
-   * 그 답이 이미 서 있는가. pgTAP 은 한 문으로 들어가는 것까지만 알고, 흐름 검사는
-   * `#` 뒤를 못 읽는다(주소의 조각은 서버에 오지 않는다).
+   * 여기서 재는 것은 네 걸음이 이어지는가다 — 묻고 · 열고 · 궁합 화면에 그 답이 이미
+   * 서 있고 · **사람 목록은 그대로인가.** pgTAP 은 문 하나까지만 알고, 흐름 검사는
+   * 브라우저가 만드는 이 걸음을 못 지난다.
    */
-  test('직접 입력한 두 사람을 저장하면 그 사이까지 궁합 화면으로 건너간다', async ({
-    page,
-    signedIn,
-  }) => {
+  test('적어 넣은 두 사람은 저장 없이 궁합 풀이로 건너간다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
-    // 첫 칸이 씨앗의 자기 사주와 같은 날이면 저장 직전에 같은 명식 물음이 선다(ADR 0034).
-    await page.goto('/compat#a.date=1988-11-07&a.hour=09:15&b.date=1992-08-20&b.hour=09:00');
 
-    await expect(page.getByText('두 원국을 맞대어 본 표')).toBeVisible();
+    await page.goto('/compat');
+    // 첫 칸이 씨앗의 자기 사주와 같은 날이면 같은 명식 물음이 선다(ADR 0034) — 피한다.
+    await typeInto(page, '첫 번째', { name: '민수', date: '1991-03-03', time: '11:20' });
+    await typeInto(page, '두 번째', { name: '지영', date: '1992-08-20', time: '09:00' });
 
-    // 이름이 없으면 목록에서 알아볼 수 없다 — 저장하는 자리가 그것을 먼저 묻는다.
-    for (const [placeholder, name] of [
-      ['첫 번째 사람', '민수'],
-      ['두 번째 사람', '지영'],
-    ] as const) {
-      await page.getByRole('group', { name: placeholder }).getByLabel('이름', { exact: true }).fill(name);
-    }
-    await page.getByRole('button', { name: '결과 업데이트' }).click();
-
-    const save = page.getByRole('heading', { name: '궁합 풀이로 이어 보기' });
-    await expect(save).toBeVisible();
-
-    // 사실이 먼저 읽히고 AI 로 가는 다리는 그 아래다 — 접힌 채로도 자리는 그대로다.
-    const shown = await page.locator('main').innerText();
-    expect(shown.indexOf('두 원국을 맞대어 본 표')).toBeLessThan(
-      shown.indexOf('궁합 풀이로 이어 보기'),
-    );
-    // 제목·설명·버튼이 한 낱말을 쓴다 — 세 번째 이름을 세우지 않는다
-    expect(shown).not.toContain('AI 풀이');
-    // 무엇이 목록에 남는지 누르기 전에 적는다. 남은 자리도 — 서버에서 건너온 값이다.
-    expect(shown).toContain('저장한 사람 목록에 민수 · 지영');
-    // 이 계정은 「어머니」 하나를 들고 있다. 수는 DB 에 묻는다 — 여기 적으면 한도를
-    // 옮기는 날 이 검사만 옛 수를 지킨다.
-    expect(shown).toContain(`앞으로 ${personLimit() - 1}명 더 저장할 수 있습니다`);
-
-    await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
     await page.getByRole('radio', { name: '가족' }).check();
-
-    await page.getByRole('button', { name: '두 사람을 저장하고 궁합 풀이로 가기' }).click();
+    await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
 
     await expect(page).toHaveURL(/\/me\/compat\?a=[0-9a-f-]+&b=[0-9a-f-]+$/);
     await expect(page.getByRole('heading', { name: '민수 × 지영' })).toBeVisible();
-    // 저장된 두 사람이라 이 화면에는 풀이를 만드는 자리가 있다.
-    await expect(page.locator('main')).toContainText('사주풀이');
 
     /**
-     * **고른 사이가 그 쌍에 적혀 있다.** 다음 풀이를 위한 칸이 저장된 값을 그대로
-     * 보여 주므로(`RelationForNext`), 여기서 「가족」이 눌려 있으면 저장이 실제로
-     * 그 값을 적은 것이다 — 화면이 기본값으로 그렇게 보이는 것이 아니다.
+     * **고른 사이가 그 쌍에 적혀 있다.** 화면이 그 값을 한 줄로 적으므로, 여기서
+     * 「가족」이 보이면 앞 화면의 누름이 실제로 그 값을 적은 것이다.
      */
-    await expect(page.getByRole('radio', { name: '가족' })).toBeChecked();
+    await expect(page.locator('main')).toContainText('가족 사이로 읽어 드립니다');
+
+    /*
+      **여기서는 다시 안 묻는다**(ADR 0054). 라디오가 또 서면 한 흐름이 같은 것을
+      두 번 묻는 셈이고, 사용자는 그것을 서로 다른 두 물음으로 읽는다.
+    */
+    await expect(page.getByText('두 분은 무슨 사이인가요')).toHaveCount(0);
+
+    // 만드는 버튼은 **여기** 있다. 누르지 않는다 — 누르면 4분과 돈이 든다.
+    await expect(page.getByRole('button', { name: '궁합 풀이 받기' })).toBeVisible();
+
+    /**
+     * **사람 목록은 그대로다.** 궁합을 보려고 만든 둘이 목록에 서면, 사용자는 저장한
+     * 적 없는 사람을 목록에서 지우는 일을 떠맡는다. 자리 수도 안 는다 — 이 계정이
+     * 들고 있는 것은 여전히 「어머니」 하나다.
+     */
+    await page.goto('/me/people');
+    await expect(page.getByRole('heading', { name: '저장한 사람' })).toBeVisible();
+    const list = await page.locator('main').innerText();
+    expect(list).not.toContain('민수');
+    expect(list).not.toContain('지영');
+    expect(list).toContain(`1/${personLimit()}명`);
   });
 
   /**
-   * **자리가 없으면 버튼을 세우지 않는다.**
+   * **저장 자리가 없어도 궁합은 열린다.**
    *
-   * 저장이 한 문이라 한도에 걸리면 둘 다 되돌아간다 — 우리 쪽에서 보면 옳지만 사용자에게는
-   * **눌러도 아무 일이 안 일어나는 앱**이다. 그러면 이 입구는 있는 것보다 나쁘다.
+   * 여기 「자리가 1명분만 남았습니다」가 서 있었다. 궁합에 둘이 필요한데 저장이 관문이던
+   * 시절에는 한 자리로 못 하는 일이었기 때문이다 — 그때는 버튼 대신 **무엇을 해야 하는지**
+   * 를 세우는 것이 맞았다.
    *
-   * 궁합은 둘이 필요하므로 **한 자리만 남은 것도 못 쓰는 자리**다. 그 경계를 재려고
-   * **한 자리만 남기고** 채운다 — 다 채우면 `remaining === 0` 갈래만 서고 이 자리는
-   * 안 재진다. 몇 개를 넣을지는 DB 가 센다(`signedIn` 이 「어머니」 하나를 이미 들고
-   * 있고, 한도는 `person_limit()` 이 든다).
+   * 지금은 궁합을 보려고 만든 사람이 목록에 안 서고(`listed`) **자리도 안 쓴다.** 그래서
+   * 한 자리만 남은 사람도, 열 자리를 다 쓴 사람도 궁합은 그대로 본다. 자리를 비우라는
+   * 말이 다시 여기 서면 그것은 참이 아닌 말이다.
    */
-  test('저장할 자리가 모자라면 버튼 대신 무엇을 해야 하는지가 선다', async ({
-    page,
-    signedIn,
-  }) => {
+  test('저장할 자리가 모자라도 궁합은 열린다', async ({ page, signedIn }) => {
     leavePersonSlots(signedIn.email, 1);
 
     await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
-    await expect(page.getByRole('heading', { name: '궁합 풀이로 이어 보기' })).toBeVisible();
 
-    await expect(
-      page.getByRole('button', { name: '두 사람을 저장하고 궁합 풀이로 가기' }),
-    ).toHaveCount(0);
-
-    await expect(page.getByText('자리가 1명분만 남았습니다')).toBeVisible();
-    await expect(page.getByRole('link', { name: '사람 탭에서 자리 비우기 →' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '두 사람 명식 보기' })).toBeEnabled();
+    await expect(page.getByText('자리가 1명분만 남았습니다')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: '사람 탭에서 자리 비우기 →' })).toHaveCount(0);
   });
 
-  test('한 사람만 적힌 궁합 주소는 빈 폼으로 연다', async ({ page, signedIn }) => {
+  /**
+   * **반쪽 링크로는 못 넘어간다.** 한 칸만 적힌 주소로 열면 그 칸만 채워지고, 나머지
+   * 한 칸을 정하기 전에는 버튼이 안 눌린다 — 남의 사주가 섞여 보일 자리가 없다.
+   */
+  test('한 사람만 적힌 궁합 주소는 그 칸만 채운다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
-    // 반쪽 링크로 남의 사주가 섞여 보이면 안 된다.
     await page.goto('/compat#a.date=1990-05-15&a.hour=14:30');
-    await expect(
-      page.getByRole('heading', { name: '두 사람의 생년월일시를 입력해 주세요' }),
-    ).toBeVisible();
+
+    await expectBirthDate(page.getByRole('group', { name: '첫 번째 사람' }), '1990-05-15');
+    await expect(page.getByRole('button', { name: '두 사람 명식 보기' })).toBeDisabled();
+    await expect(page.getByText('두 번째 사람을 골라 주세요')).toBeVisible();
   });
 
   /**
@@ -1041,16 +1027,18 @@ test.describe('로그인한 사람의 궁합 화면', () => {
    * 가 적어 둔 결정이고, 화면에서는 순서가 그 결정의 전부다. 지표 카드를 위로 올리는
    * 변경은 여기서 걸린다.
    *
-   * 지표 아래의 부름도 함께 본다. 여기 「관심 있어요」가 서 있었고 누르면 「지금은
-   * 신청을 받지 않습니다」로 답했다 — **아무 데도 닿지 않는 버튼**이었다. 그 사이에
-   * `/me/discovery` 가 실제로 요청을 받게 되었으므로 그리로 잇는다. 링크가 `/auth` 를
-   * 거치는 것은 로그인 여부를 익명 화면이 몰라도 되게 하려는 것이라, **로그인한 사람이
-   * 눌렀을 때 실제로 인연 찾기에 닿는지**가 이 검사의 요점이다.
+   * 지표 아래의 부름도 함께 본다. 여기 「관심 있어요」가 서 있었고, 그다음에는 「인연
+   * 찾기에서 요청하기」가 섰다 — 둘 다 **AI 궁합으로 가는 길이 없던 시절**의 자리다.
+   * 지금은 바로 아래에서 궁합 풀이를 만들 수 있으므로, 그 옆에서 「상세 궁합은 두 분이
+   * 서로 동의해야 열립니다」라고 말하면 방금 만들 수 있다고 한 것을 못 만든다고 하는
+   * 셈이 된다. 인연 찾기는 **모르는 사람과 이어지는 길**이지 이 두 사람을 읽는 길이 아니다.
    */
 
-  test('베타 매칭 지표는 사실 아래에 서고, 그 아래 부름은 인연 찾기에 닿는다', async ({ page, signedIn }) => {
+  test('베타 매칭 지표는 사실 아래에 서고, 그 아래는 궁합 풀이로 이어진다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+    await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
+    await expect(page).toHaveURL(/\/me\/compat\?a=/);
 
     const analysis = page.getByText('두 원국을 맞대어 본 표');
     await expect(analysis).toBeVisible();
@@ -1068,12 +1056,15 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     await analysis.click();
     await expect(page.getByRole('heading', { name: '두 원국 사이의 관계' })).toBeVisible();
 
-    // 받지 않는 신청을 받는 것처럼 보이던 버튼은 없다.
+    // 받지 않는 신청을 받는 것처럼 보이던 버튼도, 그것을 대신했던 링크도 없다.
     await expect(page.getByRole('button', { name: '관심 있어요' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: '인연 찾기에서 요청하기' })).toHaveCount(0);
+    await expect(page.locator('main')).not.toContainText('상세 궁합은 두 분이 서로 동의해야');
 
-    await page.getByRole('link', { name: '인연 찾기에서 요청하기' }).click();
-    await expect(page).toHaveURL(/\/me\/discovery$/);
-    await expect(page.getByRole('heading', { name: '인연 찾기 설정' })).toBeVisible();
+    // 그 자리는 이제 궁합 풀이를 만드는 버튼이 쓴다 — 지표 **아래**다.
+    const order = await page.locator('main').innerText();
+    expect(order.indexOf('먼저 보이는 신호')).toBeLessThan(order.indexOf('두 사람의 궁합 풀이'));
+    await expect(page.getByRole('button', { name: '궁합 풀이 받기' })).toBeVisible();
   });
 
   /**
@@ -1086,6 +1077,8 @@ test.describe('로그인한 사람의 궁합 화면', () => {
   test('궁합 결과에는 넘길 자료 패널이 서지 않는다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00');
+    await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
+    await expect(page).toHaveURL(/\/me\/compat\?a=/);
 
     // 접이칸을 펴 놓고 본다 — 접힌 안쪽까지 훑어야 「어디에도 없다」가 된다.
     await page.getByText('두 원국을 맞대어 본 표').click();

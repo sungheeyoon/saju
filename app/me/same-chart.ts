@@ -14,6 +14,15 @@ export type SameChart = {
   readonly label: string;
   /** 나 자신이면 갈 곳이 사람 상세가 아니라 `/me` 다 */
   readonly isSelf: boolean;
+  /**
+   * 사람 목록에 서 있는 사람인가.
+   *
+   * **묻는가 마는가가 여기서 갈린다.** 목록에 선 사람이면 사용자가 아는 사람이므로
+   * 「그 사람이 맞나요」를 물을 수 있다. 궁합만 보려고 만들어 둔 사람은 목록에 없어서
+   * 물어도 **확인할 데가 없다** — 그때는 묻지 않고 그대로 쓴다(대상이 하나면 풀이권도
+   * 하나다).
+   */
+  readonly listed: boolean;
 };
 
 /**
@@ -60,7 +69,7 @@ export async function sameChartInMyList(query: Query): Promise<SameChart | null>
     // 정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
     supabase
       .from('user_person_access')
-      .select('person_id, local_label')
+      .select('person_id, local_label, listed')
       .order('created_at', { ascending: true }),
   ]);
 
@@ -89,6 +98,16 @@ export async function sameChartInMyList(query: Query): Promise<SameChart | null>
 
   const byPerson = new Map((revisions ?? []).map((revision) => [revision.person_id, revision]));
 
+  /**
+   * **목록에 선 사람이 먼저다.**
+   *
+   * 같은 명식이 둘일 수 있다 — 사용자가 저장한 「어머니」와, 궁합만 보려고 만들어 둔
+   * 숨은 사람. 그때 숨은 쪽을 돌려주면 화면은 **묻지 않고** 그 사람을 쓰고, 사용자가
+   * 아는 그 사람은 목록에 남은 채 두 번째 대상이 된다(풀이권도 둘이다). 그래서 목록에
+   * 선 쪽을 먼저 찾고, 없을 때만 숨은 쪽을 쓴다.
+   */
+  let hidden: SameChart | null = null;
+
   for (const edge of edges) {
     const revision = byPerson.get(edge.person_id);
     if (revision === undefined) continue;
@@ -102,14 +121,18 @@ export async function sameChartInMyList(query: Query): Promise<SameChart | null>
       continue;
     }
 
-    if (theirs === mine) {
-      return {
-        personId: edge.person_id as string,
-        label: edge.local_label as string,
-        isSelf: edge.person_id === account?.self_person_id,
-      };
-    }
+    if (theirs !== mine) continue;
+
+    const found: SameChart = {
+      personId: edge.person_id as string,
+      label: edge.local_label as string,
+      isSelf: edge.person_id === account?.self_person_id,
+      listed: edge.listed as boolean,
+    };
+
+    if (found.listed) return found;
+    hidden ??= found;
   }
 
-  return null;
+  return hidden;
 }

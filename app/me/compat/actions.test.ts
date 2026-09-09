@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { DEFAULT_QUERY, type Query } from '@/src/lib/input/query';
+import { DEFAULT_QUERY } from '@/src/lib/input/query';
+
+import type { PairSide } from './actions';
 
 const rpc = vi.fn();
 vi.mock('../../auth/server-client', () => ({
@@ -21,7 +23,7 @@ vi.mock('../same-chart', () => ({
   sameChartInMyList: (...args: unknown[]) => sameChart(...args),
 }));
 
-const { pairRelationFor, savePairForReading } = await import('./actions');
+const { pairRelationFor, openPairScreen } = await import('./actions');
 
 beforeEach(() => {
   rpc.mockReset();
@@ -72,18 +74,18 @@ describe('사이를 읽는 자리', () => {
 
 
 /**
- * **직접 입력한 두 사람이 AI 로 가는 유일한 길.**
+ * **두 칸이 각자 어디서 오든 한 문으로 간다.**
  *
- * 그 화면은 대상을 안 만들어서 풀이를 걸 자리가 없었다(ADR 0007·0013). 여기서 잠그는
- * 것은 그 다리가 **한 문으로 간다는 것**과, 사이가 그 누름에 함께 실린다는 것이다.
+ * 한 칸은 저장한 사람에서 고를 수도 있고 직접 적을 수도 있다. 여기서 잠그는 것 넷 —
+ * 한 문으로 간다는 것, 사이가 그 누름에 함께 실린다는 것, **목록에 안 선다는 것**,
+ * 그리고 고른 사람 쪽에는 **입력을 안 보낸다는 것**이다.
  */
-describe('직접 입력한 두 사람을 저장하는 자리', () => {
-  const person = (name: string): Query => ({
-    ...DEFAULT_QUERY,
-    name,
-    date: '1990-05-15',
-    time: '14:30',
+describe('두 사람으로 궁합 화면을 여는 자리', () => {
+  const person = (name: string): PairSide => ({
+    from: 'typed',
+    query: { ...DEFAULT_QUERY, name, date: '1990-05-15', time: '14:30' },
   });
+  const saved = (personId: string): PairSide => ({ from: 'saved', personId });
 
   const saveCall = () => rpc.mock.calls.find(([name]) => name === 'create_pair_for_reading');
 
@@ -96,7 +98,7 @@ describe('직접 입력한 두 사람을 저장하는 자리', () => {
    * 사람에게서 첫 사람만 목록에 남고, 되돌리는 일을 호출부가 기억해야 한다.
    */
   it('두 사람과 사이를 한 문으로 보낸다', async () => {
-    const result = await savePairForReading(person('민수'), person('지영'), 'family');
+    const result = await openPairScreen(person('민수'), person('지영'), 'family');
 
     expect(rpc.mock.calls.filter(([name]) => name === 'create_managed_person')).toEqual([]);
     expect(saveCall()?.[1]).toMatchObject({
@@ -109,9 +111,65 @@ describe('직접 입력한 두 사람을 저장하는 자리', () => {
     expect(saveCall()?.[1]).toMatchObject({ p_a_person: null, p_b_person: null });
   });
 
+  /**
+   * **궁합 한 번이 사람 목록을 늘리지 않는다.** 이 화면이 오래 약속해 온 것이 「입력한
+   * 정보는 저장되지 않습니다」이고, 대상이 필요해서 만든 행이 목록에 서면 그 약속이
+   * 깨진다 — 지우는 일도 사용자 몫이 된다.
+   */
+  it('만든 두 사람은 목록에 안 세운다', async () => {
+    await openPairScreen(person('민수'), person('지영'), 'family');
+
+    expect(saveCall()?.[1]).toMatchObject({ p_listed: false });
+  });
+
+  /**
+   * **고른 사람 쪽에는 입력을 안 보낸다.** 문은 id 가 있으면 그 사람을 쓰고 나머지
+   * 인자를 안 보는데, 거기에 아무 값이나 채워 보내면 그 문을 읽는 사람이 「이 값이
+   * 어딘가에 쓰이나」를 다시 확인해야 한다.
+   */
+  it('고른 사람 쪽은 id 만 보낸다', async () => {
+    const result = await openPairScreen(saved('already-there'), person('지영'), 'family');
+
+    expect(result).toEqual({ ok: true, personA: 'saved-a', personB: 'saved-b' });
+    expect(saveCall()?.[1]).toMatchObject({
+      p_a_person: 'already-there',
+      p_a_local_label: null,
+      p_a_solar_date: null,
+      p_b_local_label: '지영',
+      p_b_person: null,
+    });
+    /*
+      **고른 사람 쪽은 같은 명식을 안 묻는다.** 사용자가 그 사람을 직접 가리켰으므로
+      「그분이 맞나요」는 이미 답이 나온 물음이다. 적어 넣은 쪽만 묻는다.
+    */
+    expect(sameChart).toHaveBeenCalledTimes(1);
+    expect(sameChart.mock.calls[0][0]).toMatchObject({ name: '지영' });
+  });
+
+  /**
+   * **「안 건드렸다」와 「모른다」는 다른 값이다.** 칸이 늘 「아직 모르겠음」에서
+   * 시작하므로, 안 건드린 것을 답으로 보내면 화면을 지나가는 것만으로 적어 둔 답이
+   * 지워진다.
+   */
+  it('사이를 안 건드렸으면 적지도 지우지도 않는다', async () => {
+    await openPairScreen(saved('one'), saved('two'), undefined);
+
+    expect(saveCall()?.[1]).toMatchObject({ p_relation: null });
+    expect(rpc.mock.calls.filter(([name]) => name === 'set_pair_relation')).toEqual([]);
+  });
+
+  /** 「모른다」를 고른 것은 답이다 — 적어 둔 것을 지운다 */
+  it('모른다를 고르면 적어 둔 사이를 지운다', async () => {
+    await openPairScreen(saved('one'), saved('two'), null);
+
+    expect(rpc.mock.calls.find(([name]) => name === 'set_pair_relation')?.[1]).toMatchObject({
+      p_relation: null,
+    });
+  });
+
   /** 모르는 이름은 눕히지 않는다 — 서버 액션은 주소만 알면 아무 값이나 온다 */
   it('모르는 사이 이름은 모른다로 눕힌다', async () => {
-    await savePairForReading(person('민수'), person('지영'), '동창');
+    await openPairScreen(person('민수'), person('지영'), '동창' as never);
 
     expect(saveCall()?.[1]).toMatchObject({ p_relation: null });
   });
@@ -121,16 +179,16 @@ describe('직접 입력한 두 사람을 저장하는 자리', () => {
    * 고치지 않으므로 사용자가 고른 적 없는 값이 굳으면 되돌릴 수 없다.
    */
   it('이름이 없으면 부르지도 않는다', async () => {
-    const result = await savePairForReading(person('민수'), person(''), null);
+    const result = await openPairScreen(person('민수'), person(''), null);
 
     expect(saveCall()).toBeUndefined();
     expect(result.ok).toBe(false);
   });
 
   it('모르는 도시는 저장하러 가지 않는다', async () => {
-    const result = await savePairForReading(
+    const result = await openPairScreen(
       person('민수'),
-      { ...person('지영'), city: '어딘가' as Query['city'] },
+      { from: 'typed', query: { ...DEFAULT_QUERY, name: '지영', date: '1990-05-15', time: '14:30', city: '어딘가' as never } },
       null,
     );
 
@@ -143,13 +201,13 @@ describe('직접 입력한 두 사람을 저장하는 자리', () => {
   it('아무 줄도 안 오면 실패로 읽는다', async () => {
     rpc.mockResolvedValue({ data: [], error: null });
 
-    expect((await savePairForReading(person('민수'), person('지영'), null)).ok).toBe(false);
+    expect((await openPairScreen(person('민수'), person('지영'), null)).ok).toBe(false);
   });
 
   it('DB 가 거절한 말을 그대로 옮긴다', async () => {
     rpc.mockResolvedValue({ data: null, error: { message: '등록할 수 있는 사람은 10명까지입니다.' } });
 
-    expect(await savePairForReading(person('민수'), person('지영'), null)).toEqual({
+    expect(await openPairScreen(person('민수'), person('지영'), null)).toEqual({
       ok: false,
       kind: 'failed',
       message: '등록할 수 있는 사람은 10명까지입니다.',
@@ -164,9 +222,12 @@ describe('직접 입력한 두 사람을 저장하는 자리', () => {
  * 풀이도 둘이고 풀이권도 둘이다(ADR 0013·0021).
  */
 describe('같은 명식을 묻는 자리', () => {
-  const person = (name: string): Query => ({ ...DEFAULT_QUERY, name, date: '1990-05-15', time: '14:30' });
+  const person = (name: string): PairSide => ({
+    from: 'typed',
+    query: { ...DEFAULT_QUERY, name, date: '1990-05-15', time: '14:30' },
+  });
   const saveCall = () => rpc.mock.calls.find(([name]) => name === 'create_pair_for_reading');
-  const same = { personId: 'already-there', label: '엄마', isSelf: false };
+  const same = { personId: 'already-there', label: '엄마', isSelf: false, listed: true };
 
   beforeEach(() => {
     rpc.mockResolvedValue({ data: [{ person_a: 'saved-a', person_b: 'saved-b' }], error: null });
@@ -176,7 +237,7 @@ describe('같은 명식을 묻는 자리', () => {
   it('묻는 동안에는 저장하지 않는다', async () => {
     sameChart.mockResolvedValueOnce(same);
 
-    expect(await savePairForReading(person('민수'), person('지영'), 'family')).toEqual({
+    expect(await openPairScreen(person('민수'), person('지영'), 'family')).toEqual({
       ok: false,
       kind: 'same-chart',
       side: 'a',
@@ -187,7 +248,7 @@ describe('같은 명식을 묻는 자리', () => {
 
   /** 「맞다」고 답한 쪽은 **만들지 않고 있는 것을 쓴다** */
   it('맞다고 답한 쪽은 있는 사람으로 보낸다', async () => {
-    await savePairForReading(person('민수'), person('지영'), 'family', { a: 'already-there' });
+    await openPairScreen(person('민수'), person('지영'), 'family', { a: 'already-there' });
 
     expect(saveCall()?.[1]).toMatchObject({ p_a_person: 'already-there', p_b_person: null });
   });
@@ -201,16 +262,30 @@ describe('같은 명식을 묻는 자리', () => {
   it('아니라고 답한 쪽은 다시 묻지 않는다', async () => {
     sameChart.mockResolvedValue(same);
 
-    const result = await savePairForReading(person('민수'), person('지영'), null, { a: null });
+    const result = await openPairScreen(person('민수'), person('지영'), null, { a: null });
 
     // a 는 답이 있으니 건너뛰고 b 를 묻는다.
     expect(result).toMatchObject({ kind: 'same-chart', side: 'b' });
   });
 
+  /**
+   * **숨은 사람에게는 안 묻는다.** 궁합만 보려고 만들어 둔 사람은 목록에 없어서 물어도
+   * 확인할 데가 없다. 새로 만들면 같은 두 사람이 대상 두 벌로 갈리고, 풀이 목록에 같은
+   * 쌍이 두 줄 선다 — 풀이권도 두 번 나간다.
+   */
+  it('목록에 없는 같은 명식은 묻지 않고 그대로 쓴다', async () => {
+    sameChart.mockResolvedValueOnce({ ...same, label: '민수', listed: false });
+
+    const result = await openPairScreen(person('민수'), person('지영'), 'family');
+
+    expect(result).toEqual({ ok: true, personA: 'saved-a', personB: 'saved-b' });
+    expect(saveCall()?.[1]).toMatchObject({ p_a_person: 'already-there', p_b_person: null });
+  });
+
   it('둘 다 답했으면 더 묻지 않고 저장한다', async () => {
     sameChart.mockResolvedValue(same);
 
-    const result = await savePairForReading(person('민수'), person('지영'), null, {
+    const result = await openPairScreen(person('민수'), person('지영'), null, {
       a: null,
       b: 'already-there',
     });

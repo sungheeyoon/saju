@@ -7,7 +7,8 @@ import {
   READING_ALREADY_RUNNING_NOTE,
   READING_LEAVE_SAFE_NOTE,
   READING_FAILED_NOTE,
-  READING_NONE_NOTE,
+  READING_NOUN,
+  readingNoneNote,
   READING_PINNED_NOTE,
   READING_REDACTION_NOTE,
   READING_REPLACES_NOTE,
@@ -291,6 +292,9 @@ export function ReadingPanel({
 
   const onPage = layout === 'page';
 
+  /** 이 대상을 부르는 말 — 두 사람짜리 화면은 「궁합 풀이」라고 적는다 */
+  const noun = READING_NOUN[target.kind];
+
   /*
     **다 쓴 것과 기다리는 것을 가른다.** 도는 시도가 자리를 잡고 있는 동안에는 버튼을
     닫지 않는다 — 그 사람이 누르면 DB 가 「끝나면 다시 눌러 주세요」로 답하고, 그것이
@@ -330,7 +334,7 @@ export function ReadingPanel({
           {reading === null && (
             <>
               <p className="text-sm font-semibold">명식 근거로 풀이를 받아 보세요</p>
-              <p className="text-xs leading-5 text-muted">{READING_NONE_NOTE}</p>
+              <p className="text-xs leading-5 text-muted">{readingNoneNote(noun)}</p>
             </>
           )}
           <p className="text-xs leading-5 text-muted">{READING_REDACTION_NOTE}</p>
@@ -358,7 +362,7 @@ export function ReadingPanel({
             : automatic
               ? '다시 만들기'
               : reading === null
-                ? '사주풀이 받기'
+                ? `${noun} 받기`
                 : '다시 풀이받기'}
         </button>
       </div>
