@@ -163,4 +163,16 @@ describe('시키는 값과 막는 값', () => {
     /* 「조금 길다」가 아니라 「한 문장이 아니다」를 막는 자리다 — 두 배는 떨어져 있어야 한다 */
     expect(max).toBeGreaterThanOrEqual(target * 2);
   });
+
+  it('개인과 궁합은 형세만 정하고 비유의 소재와 문장 꼴은 열어 둔다', () => {
+    expect(READING_PROMPTS.self).toContain('이 사람을 한눈에 보면 어떤 형세인지');
+    expect(READING_PROMPTS.private).toContain('이 두 사람이 함께 있을 때 어떤 형세인지');
+
+    for (const kind of READING_KINDS) {
+      expect(READING_PROMPTS[kind], kind).toContain('비유의 소재와 문장 꼴은 자유롭게 고른다');
+      expect(READING_PROMPTS[kind], kind).toContain('본문의 해요체 규칙을 적용하지 않는다');
+      expect(READING_PROMPTS[kind], kind).not.toContain('생활에서 본 장면');
+      expect(READING_PROMPTS[kind], kind).not.toContain('사람을 규정하지 마라');
+    }
+  });
 });

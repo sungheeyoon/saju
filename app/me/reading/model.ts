@@ -54,7 +54,7 @@ const OUTPUT_SHAPE = {
     },
     metaphor: {
       type: 'string',
-      description: '이 관계(또는 이 사람)를 빗댄 한 문장. 마침표 하나로 끝나는 짧은 말',
+      description: '이 사람 또는 두 사람의 형세를 한눈에 알아듣게 빗댄 짧은 한 문장',
     },
     markdown: { type: 'string', description: '사용자가 읽을 본문. Markdown 원문' },
   },

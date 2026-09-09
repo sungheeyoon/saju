@@ -157,6 +157,20 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     expect(checkReading(ok(kind))).toEqual({ ok: true });
   });
 
+  it('비유의 소재는 막지 않고 화면을 지키는 길이만 검사한다', () => {
+    const free = ok('self');
+    free.output.metaphor = '나무가 물을 만난 격';
+    expect(checkReading(free)).toEqual({ ok: true });
+
+    const empty = ok('self');
+    empty.output.metaphor = '   ';
+    expect(codesOf(checkReading(empty))).toContain('metaphor-out-of-contract');
+
+    const tooLong = ok('self');
+    tooLong.output.metaphor = '가'.repeat(READING_POLICY.metaphorLength.max + 1);
+    expect(codesOf(checkReading(tooLong))).toContain('metaphor-out-of-contract');
+  });
+
   /**
    * **실제 호출이 여기서 떨어졌다.** 프롬프트 9절이 「문답 형식」만 시키니 모델이
    * `**Q. 공부나 자격증은 잘 맞나요?**` 로 썼고, 자기 풀이 본문의 라틴 문자 한 종
