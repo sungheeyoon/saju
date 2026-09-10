@@ -62,47 +62,12 @@ export default async function RequestsPage() {
   const { state } = await readAccount(supabase, 'status');
 
   return (
-    <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">
-      <header className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <p className="eyebrow">소식</p>
-          <h1 className="text-2xl font-bold tracking-tight">
-            궁합 요청과 새 소식
-          </h1>
-          <p className="text-sm text-secondary">받은 요청에 답하고, 함께 보기로 한 궁합을 확인하세요.</p>
-        </div>
-
-        {/*
-          **흐름을 화면에 세운다.** 「동의한 뒤에 열립니다」한 줄만 두면 맞는 말이지만
-          읽는 사람은 자기가 무엇을 하는 중인지 모른다 — 걸음마다 무엇이 열리고 무엇이
-          아직 안 열리는지를 함께 적는 것이 이 제품의 설명 자체다(`CONSENT_FLOW_STEPS`).
-        */}
-        <details className="rounded-[1.75rem] border border-border bg-surface p-5">
-          <summary className="cursor-pointer text-sm font-bold">궁합 요청은 어떻게 진행되나요?</summary>
-          <ol className="mt-4 grid gap-3 sm:grid-cols-3">
-            {CONSENT_FLOW_STEPS.map((step, index) => (
-              <li key={step.title} className="flex flex-col gap-1.5 rounded-xl bg-surface-soft p-4">
-                <p className="flex items-center gap-2 text-sm font-bold">
-                  <span className="grid size-6 shrink-0 place-items-center rounded-full bg-accent-wash text-xs text-accent-strong">
-                    {index + 1}
-                  </span>
-                  {step.title}
-                </p>
-                <p className="text-xs leading-5 text-secondary">{step.body}</p>
-              </li>
-            ))}
-          </ol>
-          <p className="mt-3 text-xs leading-5 text-muted">{CONSENT_FLOW_CAVEAT}</p>
-        </details>
-
-        <p className="flex flex-wrap gap-4 text-sm">
-          {/* 소개받은 사람들은 홈에 선다(ADR 0037) — 이 자리는 설정으로만 잇는다 */}
-          <Link href="/me/settings" className="text-accent underline underline-offset-2">
-            계정 관리
-          </Link>
-          <Link href="/me" className="text-accent underline underline-offset-2">
-            내 사주와 인연 목록
-          </Link>
+    <main className="app-shell flex w-full flex-1 flex-col gap-8 py-9 sm:py-14">
+      <header className="flex max-w-2xl flex-col gap-2">
+        <p className="eyebrow">소식</p>
+        <h1 className="text-3xl font-bold tracking-[-0.04em] sm:text-4xl">궁합 요청과 새 소식</h1>
+        <p className="text-sm leading-6 text-secondary">
+          답해야 할 요청부터 새로 열린 궁합까지, 지금 확인할 일을 한곳에 모았습니다.
         </p>
       </header>
 
@@ -133,137 +98,297 @@ async function InboxSections() {
   const decided = inbox.requests.filter((request) => request.status !== 'pending');
 
   return (
-    <>
+    <div className="flex flex-col gap-8">
+      <InboxSummary
+        unread={inbox.unread}
+        received={received.length}
+        sent={sent.length}
+        matches={inbox.matches.length}
+      />
+
       <Notifications inbox={inbox} />
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold">받은 요청 {received.length > 0 && `(${received.length})`}</h2>
-        {received.length === 0 ? (
-          <Nothing>답할 요청이 없습니다.</Nothing>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {received.map((request) => (
-              <li key={request.requestId} className={`${CARD} flex flex-col gap-3`}>
-                <RequestHead request={request} />
-                {/*
-                  **동의 화면이다.** 무엇이 열리는지는 눌러야 나타나는 것이 아니라
-                  카드가 열릴 때부터 버튼 위에 서 있다 — 읽지 않고 누른 수락은 동의가
-                  아니고, 눌러야 나타나는 고지는 밖에서 잴 수도 없다.
-                */}
-                <MatchScope intro={CONSENT_INTRO} />
-                <RespondButtons requestId={request.requestId} />
-                {/*
-                  신고는 **상대가 나에게 한 일**이 있는 자리에만 둔다 — 받은 요청과
-                  성립한 Match. 내가 보낸 요청 카드에는 두지 않는다.
-                */}
-                <div className="flex flex-wrap items-center gap-4 border-t border-border pt-2">
-                  <BlockButton userId={request.counterpartUserId} />
-                  <ReportButton userId={request.counterpartUserId} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="flex min-w-0 flex-col gap-8">
+          <section className="flex flex-col gap-3">
+            <SectionHead
+              title="받은 요청"
+              count={received.length}
+              description="내 답을 기다리고 있는 요청입니다."
+            />
+            {received.length === 0 ? (
+              <Nothing>답할 요청이 없습니다.</Nothing>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {received.map((request) => (
+                  <li
+                    key={request.requestId}
+                    className={`${CARD} flex flex-col gap-4 border-accent/30`}
+                  >
+                    <RequestHead request={request} />
+                    {/*
+                      **동의 화면이다.** 무엇이 열리는지는 눌러야 나타나는 것이 아니라
+                      카드가 열릴 때부터 버튼 위에 서 있다 — 읽지 않고 누른 수락은 동의가
+                      아니고, 눌러야 나타나는 고지는 밖에서 잴 수도 없다.
+                    */}
+                    <MatchScope intro={CONSENT_INTRO} />
+                    <RespondButtons requestId={request.requestId} />
+                    {/*
+                      신고는 **상대가 나에게 한 일**이 있는 자리에만 둔다 — 받은 요청과
+                      성립한 Match. 내가 보낸 요청 카드에는 두지 않는다.
+                    */}
+                    <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
+                      <BlockButton userId={request.counterpartUserId} />
+                      <ReportButton userId={request.counterpartUserId} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold">보낸 요청</h2>
-        {sent.length === 0 ? (
-          <Nothing>기다리는 중인 요청이 없습니다.</Nothing>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {sent.map((request) => (
-              <li key={request.requestId} className={`${CARD} flex flex-col gap-2`}>
-                <RequestHead request={request} />
-                <p className="text-sm text-secondary">{REQUEST_STATUS_TEXT.pending.sent}</p>
-                <div className="flex flex-wrap items-center gap-4 border-t border-border pt-2">
-                  <CancelButton requestId={request.requestId} />
-                  <BlockButton userId={request.counterpartUserId} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+          <Matches matches={inbox.matches} />
 
-      <Matches matches={inbox.matches} />
+          <section className="flex flex-col gap-3">
+            <SectionHead
+              title="보낸 요청"
+              count={sent.length}
+              description="상대의 답을 기다리고 있는 요청입니다."
+            />
+            {sent.length === 0 ? (
+              <Nothing>기다리는 중인 요청이 없습니다.</Nothing>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {sent.map((request) => (
+                  <li key={request.requestId} className={`${CARD} flex flex-col gap-3`}>
+                    <RequestHead request={request} />
+                    <p className="rounded-xl bg-surface-soft px-4 py-3 text-sm text-secondary">
+                      {REQUEST_STATUS_TEXT.pending.sent}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
+                      <CancelButton requestId={request.requestId} />
+                      <BlockButton userId={request.counterpartUserId} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
-      {/*
-        끝난 요청도 남긴다. **왜 사라졌는지**를 말할 수 있어야 하기 때문이다 —
-        무효와 거둠은 둘 다 「성립하지 않았다」지만 이유가 다르다(US 43).
-      */}
-      {decided.length > 0 && (
-        <details className="rounded-[1.75rem] border border-border bg-surface p-5">
-          <summary className="cursor-pointer text-sm">끝난 요청 {decided.length}개</summary>
-          <ul className="mt-3 flex flex-col gap-2 text-sm">
-            {decided.map((request) => (
-              <li key={request.requestId} className="flex flex-col gap-0.5">
-                <span className="flex flex-wrap items-baseline gap-2">
-                  <strong className="font-medium">{request.nickname}</strong>
-                  <span className="text-xs text-muted">
-                    {REQUEST_STATUS_TEXT[request.status].label}
-                  </span>
-                  <span className="text-xs text-muted">{when(request.decidedAt ?? request.createdAt)}</span>
-                </span>
-                <span className="text-xs text-secondary">
-                  {request.direction === 'sent'
-                    ? REQUEST_STATUS_TEXT[request.status].sent
-                    : REQUEST_STATUS_TEXT[request.status].received}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
+          {/*
+            끝난 요청도 남긴다. **왜 사라졌는지**를 말할 수 있어야 하기 때문이다 —
+            무효와 거둠은 둘 다 「성립하지 않았다」지만 이유가 다르다(US 43).
+          */}
+          {decided.length > 0 && <DecidedRequests requests={decided} />}
+        </div>
 
-      <BlockedCount count={inbox.blocked} />
-    </>
+        <aside className="flex flex-col gap-4 lg:sticky lg:top-24">
+          <ConsentGuide />
+          <nav aria-label="소식 화면 관련 메뉴" className={`${CARD} flex flex-col gap-3`}>
+            <p className="text-xs font-bold tracking-[0.08em] text-muted">빠른 이동</p>
+            {/* 소개받은 사람들은 홈에 선다(ADR 0037) — 이 자리는 설정으로만 잇는다 */}
+            <Link
+              href="/me"
+              className="flex items-center justify-between rounded-xl bg-surface-soft px-4 py-3 text-sm font-medium hover:bg-accent-wash hover:text-accent"
+            >
+              내 사주와 인연 목록 <span aria-hidden="true">→</span>
+            </Link>
+            <Link
+              href="/me/settings"
+              className="flex items-center justify-between rounded-xl bg-surface-soft px-4 py-3 text-sm font-medium hover:bg-accent-wash hover:text-accent"
+            >
+              계정 관리 <span aria-hidden="true">→</span>
+            </Link>
+          </nav>
+          <BlockedCount count={inbox.blocked} />
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function InboxSummary({
+  unread,
+  received,
+  sent,
+  matches,
+}: {
+  unread: number;
+  received: number;
+  sent: number;
+  matches: number;
+}) {
+  const items = [
+    { label: '새 소식', value: unread, tone: 'bg-accent text-on-accent' },
+    { label: '받은 요청', value: received, tone: 'bg-accent-wash text-accent' },
+    { label: '답변 대기', value: sent, tone: 'bg-earth-soft text-earth' },
+    { label: '함께 보는 궁합', value: matches, tone: 'bg-water-soft text-water' },
+  ] as const;
+
+  return (
+    <section aria-label="소식 요약" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="flex min-h-24 flex-col justify-between rounded-2xl border border-border bg-surface p-4 shadow-[var(--shadow-card)]"
+        >
+          <span className="text-xs font-medium text-secondary">{item.label}</span>
+          <span
+            className={`mt-3 grid size-9 place-items-center self-end rounded-full text-base font-bold tabular-nums ${item.tone}`}
+          >
+            {item.value}
+          </span>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function SectionHead({
+  title,
+  count,
+  description,
+}: {
+  title: string;
+  count: number;
+  description: string;
+}) {
+  return (
+    <div className="flex items-end justify-between gap-4">
+      <div>
+        <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+        <p className="mt-0.5 text-xs text-muted">{description}</p>
+      </div>
+      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-sunken text-xs font-semibold tabular-nums text-secondary">
+        {count}
+      </span>
+    </div>
+  );
+}
+
+function ConsentGuide() {
+  return (
+    <details className={`${CARD} group`}>
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold [&::-webkit-details-marker]:hidden">
+        궁합 요청은 어떻게 진행되나요?
+        <span
+          aria-hidden="true"
+          className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-soft text-lg font-normal text-secondary group-open:rotate-45"
+        >
+          +
+        </span>
+      </summary>
+      <ol className="mt-5 flex flex-col gap-4 border-t border-border pt-5">
+        {CONSENT_FLOW_STEPS.map((step, index) => (
+          <li key={step.title} className="grid grid-cols-[1.75rem_1fr] gap-3">
+            <span className="grid size-7 place-items-center rounded-full bg-accent-wash text-xs font-bold text-accent-strong">
+              {index + 1}
+            </span>
+            <div>
+              <p className="text-sm font-semibold">{step.title}</p>
+              <p className="mt-1 text-xs leading-5 text-secondary">{step.body}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-4 border-t border-border pt-4 text-xs leading-5 text-muted">
+        {CONSENT_FLOW_CAVEAT}
+      </p>
+    </details>
+  );
+}
+
+function DecidedRequests({ requests }: { requests: readonly InboxRequest[] }) {
+  return (
+    <details className="rounded-2xl border border-border bg-surface px-5 py-4">
+      <summary className="cursor-pointer text-sm font-medium text-secondary">
+        끝난 요청 {requests.length}개
+      </summary>
+      <ul className="mt-4 flex flex-col divide-y divide-border border-t border-border text-sm">
+        {requests.map((request) => (
+          <li key={request.requestId} className="flex flex-col gap-1 py-3 first:pt-4 last:pb-0">
+            <span className="flex flex-wrap items-baseline gap-2">
+              <strong className="font-medium">{request.nickname}</strong>
+              <span className="rounded-full bg-surface-soft px-2 py-0.5 text-[11px] text-muted">
+                {REQUEST_STATUS_TEXT[request.status].label}
+              </span>
+              <span className="ml-auto text-xs text-muted">
+                {when(request.decidedAt ?? request.createdAt)}
+              </span>
+            </span>
+            <span className="text-xs text-secondary">
+              {request.direction === 'sent'
+                ? REQUEST_STATUS_TEXT[request.status].sent
+                : REQUEST_STATUS_TEXT[request.status].received}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
 function Notifications({ inbox }: { inbox: Inbox }) {
   return (
-    <section className={`${CARD} flex flex-col gap-3`}>
+    <section className={`${CARD} flex flex-col gap-4 overflow-hidden`}>
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="text-base font-semibold">
-          새 소식 {inbox.unread > 0 && <span className="text-accent">{inbox.unread}</span>}
-        </h2>
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 place-items-center rounded-full bg-accent-wash text-accent">
+            <BellIcon />
+          </span>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight">새 소식</h2>
+            <p className="text-xs text-muted">최근 활동과 풀이 상태를 확인하세요.</p>
+          </div>
+        </div>
         <MarkAllRead unread={inbox.unread} />
       </div>
 
       {inbox.notifications.length === 0 ? (
-        <p className="text-sm text-muted">아직 새 소식이 없습니다.</p>
+        <div className="rounded-2xl bg-surface-soft px-5 py-6 text-center">
+          <p className="text-sm font-medium">새로 도착한 소식이 없습니다</p>
+          <p className="mt-1 text-xs text-muted">새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.</p>
+        </div>
       ) : (
         <ul className="flex flex-col gap-2">
           {inbox.notifications.map((notification) => (
             <li
               key={notification.notificationId}
-              className="flex flex-wrap items-baseline gap-x-3 text-sm"
+              className={`grid grid-cols-[0.5rem_minmax(0,1fr)] gap-3 rounded-xl px-4 py-3 text-sm sm:grid-cols-[0.5rem_minmax(0,1fr)_auto] ${
+                notification.unread ? 'bg-accent-wash/70' : 'bg-surface-soft'
+              }`}
             >
               {/* 읽지 않은 것만 표시한다 — 읽은 것에 「읽음」을 붙이면 목록이 시끄럽다 */}
-              {notification.unread && (
-                <span className="size-1.5 rounded-full bg-accent" aria-label="읽지 않음" />
-              )}
+              <span
+                className={`mt-2 size-1.5 rounded-full ${notification.unread ? 'bg-accent' : 'bg-border-strong'}`}
+                aria-label={notification.unread ? '읽지 않음' : undefined}
+                aria-hidden={notification.unread ? undefined : true}
+              />
               {/*
                 **갈 자리가 있으면 링크로 세운다.** 실패 알림은 「무엇이 안 됐다」로
                 끝나면 안 되고 다시 누를 자리까지 닿아야 한다 — 비공개 궁합은 두
                 사람을 다시 골라야 가는 자리다. 갈 곳이 없으면 글자로만 선다.
               */}
               {notification.href === null ? (
-                <span className={notification.unread ? '' : 'text-secondary'}>
+                <span className={`leading-6 ${notification.unread ? 'font-medium' : 'text-secondary'}`}>
                   {notification.text}
                 </span>
               ) : (
                 <Link
                   href={notification.href}
-                  className={`underline underline-offset-2 ${
-                    notification.unread ? 'text-accent' : 'text-secondary'
+                  className={`leading-6 underline underline-offset-2 ${
+                    notification.unread ? 'font-medium text-accent' : 'text-secondary'
                   }`}
                 >
                   {notification.text}
                 </Link>
               )}
-              <span className="text-xs text-muted">{when(notification.createdAt)}</span>
+              <time
+                dateTime={notification.createdAt}
+                className="col-start-2 text-xs text-muted sm:col-start-3 sm:row-start-1 sm:mt-1"
+              >
+                {when(notification.createdAt)}
+              </time>
             </li>
           ))}
         </ul>
@@ -292,44 +417,51 @@ function Notifications({ inbox }: { inbox: Inbox }) {
  */
 function Nothing({ children }: { children: React.ReactNode }) {
   return (
-    <p className={`${CARD} text-sm text-muted`}>{children}</p>
+    <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border-strong bg-surface/60 px-5 py-5">
+      <span aria-hidden="true" className="size-2 rounded-full bg-border-strong" />
+      <p className="text-sm text-muted">{children}</p>
+    </div>
   );
 }
 
 function Matches({ matches }: { matches: InboxMatch[] }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-base font-semibold">함께 보는 궁합</h2>
+      <SectionHead
+        title="함께 보는 궁합"
+        count={matches.length}
+        description="서로 동의해 함께 열어 둔 궁합입니다."
+      />
 
       {matches.length === 0 ? (
         <Nothing>아직 없습니다.</Nothing>
       ) : (
         <ul className="flex flex-col gap-3">
           {matches.map((match) => (
-            <li key={match.matchId} className={`${CARD} flex flex-col gap-2`}>
+            <li key={match.matchId} className={`${CARD} flex flex-col gap-3`}>
               <div className="flex items-center gap-3">
                 <Avatar
                   userId={match.partnerUserId}
                   nickname={match.nickname}
                   hasPhoto={match.hasPhoto}
                 />
-                <div className="flex flex-wrap items-baseline gap-x-3">
+                <div className="min-w-0 flex-1">
                   <h3 className="text-base font-semibold">{match.nickname}</h3>
-                  <span className="text-xs text-muted">{when(match.createdAt)} 연결</span>
+                  <span className="mt-0.5 block text-xs text-muted">{when(match.createdAt)} 연결</span>
                 </div>
-              </div>
-              {match.intro !== null && <p className="text-sm text-secondary">{match.intro}</p>}
-              {match.suppliedToMe !== null && (
-                <p className="text-sm text-secondary">{match.suppliedToMe}</p>
-              )}
-              <p className="text-sm text-secondary">{match.balanceLabel}</p>
-              <div className="flex flex-wrap items-center gap-4 border-t border-border pt-2">
                 <Link
                   href={`/me/match/${match.matchId}`}
-                  className="text-sm text-accent underline underline-offset-2"
+                  className="shrink-0 rounded-full bg-accent-wash px-3.5 py-2 text-sm font-semibold text-accent hover:bg-accent-soft"
                 >
                   {MATCH_RESULT_LINK}
                 </Link>
+              </div>
+              {match.intro !== null && <p className="text-sm leading-6 text-secondary">{match.intro}</p>}
+              <div className="flex flex-wrap gap-2">
+                {match.suppliedToMe !== null && <InfoChip>{match.suppliedToMe}</InfoChip>}
+                <InfoChip>{match.balanceLabel}</InfoChip>
+              </div>
+              <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
                 <BlockButton userId={match.partnerUserId} />
                 <ReportButton userId={match.partnerUserId} />
               </div>
@@ -344,30 +476,54 @@ function Matches({ matches }: { matches: InboxMatch[] }) {
 /** 요청 한 장의 머리 — 닉네임·사진·소개와 **양쪽 방향의 오행** */
 function RequestHead({ request }: { request: InboxRequest }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
         <Avatar
           userId={request.counterpartUserId}
           nickname={request.nickname}
           hasPhoto={request.hasPhoto}
         />
-        <div className="flex flex-wrap items-baseline gap-x-3">
+        <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold">{request.nickname}</h3>
-          <span className="text-xs text-muted">{when(request.createdAt)}</span>
+          <time dateTime={request.createdAt} className="mt-0.5 block text-xs text-muted">
+            {when(request.createdAt)}
+          </time>
         </div>
       </div>
 
-      {request.intro !== null && <p className="text-sm text-secondary">{request.intro}</p>}
+      {request.intro !== null && <p className="text-sm leading-6 text-secondary">{request.intro}</p>}
 
       {/* 내 자리 기준이다 — 방향은 DB 가 뒤집어 준다 */}
-      {request.suppliedToMe !== null && (
-        <p className="text-sm text-secondary">{request.suppliedToMe}</p>
-      )}
-      {request.suppliedToThem !== null && (
-        <p className="text-sm text-secondary">{request.suppliedToThem}</p>
-      )}
-      <p className="text-sm text-secondary">{request.balanceLabel}</p>
+      <div className="flex flex-wrap gap-2">
+        {request.suppliedToMe !== null && <InfoChip>{request.suppliedToMe}</InfoChip>}
+        {request.suppliedToThem !== null && <InfoChip>{request.suppliedToThem}</InfoChip>}
+        <InfoChip>{request.balanceLabel}</InfoChip>
+      </div>
     </div>
+  );
+}
+
+function InfoChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full border border-border bg-surface-soft px-3 py-1 text-xs leading-5 text-secondary">
+      {children}
+    </span>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="size-5 fill-none stroke-current"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 9a6 6 0 0 1 12 0c0 7 2 7 2 8H4c0-1 2-1 2-8Z" />
+      <path d="M9.5 20h5" />
+    </svg>
   );
 }
 
