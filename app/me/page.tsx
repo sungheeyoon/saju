@@ -5,7 +5,7 @@ import { supabaseOnServer } from '../auth/server-client';
 import { readAccount } from './account';
 import { unreadCount } from './requests/inbox';
 import { chartOf } from '@/src/lib/input/chart';
-import { HOUR_UNKNOWN_LABEL, toSearchParams } from '@/src/lib/input/query';
+import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
 import { UNREADABLE_REVISION_NOTE, UnreadableRevisionError, queryFromRevision } from '@/src/lib/input/revision';
 import { DiscoveryBoard } from './discovery/board';
 import { AccountNotice } from './account-notice';
@@ -38,11 +38,10 @@ export default async function MePage() {
   return (
     <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
       <header className="flex flex-col gap-2 border-b border-border pb-6">
-        <p className="eyebrow">내 사주</p>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-[-0.04em]">내 사주</h1>
-            <p className="mt-1 text-sm text-secondary">내 명식을 확인하고 사주풀이로 이어가세요.</p>
+            <h1 className="text-3xl font-bold tracking-[-0.04em]">나의 명식과 인연</h1>
+            <p className="mt-1 text-sm text-secondary">저장한 명식을 확인하고 오늘의 인연을 만나보세요.</p>
           </div>
         </div>
       </header>
@@ -162,8 +161,9 @@ async function SelfChart({ personId }: { personId: string }) {
         }
         footer={
           /*
-            전체 명식은 익명 화면이 그린다. 입력은 `#` 뒤에 실리므로 서버로 가지 않는다.
-            같은 엔진·같은 함수를 쓰므로 여기 여덟 글자와 저쪽 여덟 글자는 같은 값이다.
+            전체 명식은 저장한 사람의 `명식 보기`와 같은 상세 화면이 그린다. 내 입력을
+            공개 계산 화면의 「모르는 사람」으로 다시 만들지 않고, 이미 저장된 Person 을
+            그대로 연다.
 
             **이 화면에 남은 유일한 길이다.** 사람·궁합·인연 찾기·소식으로 가는 목록이
             여기 따로 서 있었는데, 그 넷은 이미 머리글의 메뉴가 든다 — 같은 길을 두 자리에
@@ -181,7 +181,7 @@ async function SelfChart({ personId }: { personId: string }) {
               </p>
             </div>
             <Link
-              href={`/#${toSearchParams(query).toString()}`}
+              href={`/me/people/${personId}`}
               className="inline-flex min-h-10 shrink-0 items-center gap-2 self-start rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent sm:self-auto"
             >
               전체 명식 자세히 보기 <span aria-hidden="true">→</span>

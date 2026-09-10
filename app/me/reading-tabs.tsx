@@ -30,11 +30,11 @@ export function ReadingTabs({
       aria-label={`${label}의 명식과 사주풀이`}
       className="grid grid-cols-2 gap-1 rounded-2xl border border-border bg-surface-sunken p-1"
     >
-      <Link href={chartHref} aria-current={current === 'chart' ? 'page' : undefined} className={tab(current === 'chart')}>
-        명식 보기
-      </Link>
       <Link href={readingHref} aria-current={current === 'reading' ? 'page' : undefined} className={tab(current === 'reading')}>
         사주풀이
+      </Link>
+      <Link href={chartHref} aria-current={current === 'chart' ? 'page' : undefined} className={tab(current === 'chart')}>
+        명식 보기
       </Link>
     </nav>
   );

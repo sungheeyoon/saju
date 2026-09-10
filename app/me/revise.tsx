@@ -7,7 +7,6 @@ import { BirthFields } from '../birth-form';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
 import {
   REVISION_REPLACED_NOTE,
-  REVISION_RETENTION_NOTE,
   samePillarInput,
 } from '@/src/lib/input/revision';
 import { revisePerson } from './actions';
@@ -148,18 +147,9 @@ export function ReviseForm({
 
   return (
     <section className={`flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 ${embedded ? 'col-span-full' : ''}`}>
-      {/*
-        **무엇이 남고 무엇이 안 남는지를 고치기 전에 말한다**(ADR 0011).
-
-        전에는 「지금 판본은 지워지지 않습니다」만 적혀 있었다. 그 말은 참이지만, 읽는
-        사람에게는 「모든 이전 입력이 영원히 남는다」로 들린다. 실제로 지키는 것은
-        **진행 중인 요청과 성립한 Match 가 매어 둔 입력**이고, 아무것도 가리키지 않게
-        된 이전 입력은 정리된다. 문구는 화면이 짓지 않는다 — `src/lib/input/revision.ts` 가 든다.
-      */}
       <header className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold">고치기</h2>
+        <h2 className="text-base font-semibold">수정하기</h2>
         <p className="text-sm text-secondary">{REVISION_REPLACED_NOTE}</p>
-        <p className="text-xs text-muted">{REVISION_RETENTION_NOTE}</p>
       </header>
 
       <BirthFields value={query} onChange={setQuery} idPrefix="revise" />

@@ -42,7 +42,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(mobileNav).toBeVisible();
 
     const viewportWidth = page.viewportSize()?.width ?? 0;
-    for (const label of ['내 사주', '사람', '궁합', '풀이', '소식']) {
+    for (const label of ['내 사주', '사주·궁합', '사람', '풀이', '소식']) {
       const link = mobileNav.getByRole('link', { name: label, exact: true });
       await expect(link).toBeVisible();
       const box = await link.boundingBox();
@@ -60,7 +60,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     expect((creditBox?.x ?? 0) + (creditBox?.width ?? 0)).toBeLessThanOrEqual(menuBox?.x ?? 0);
 
     await wholeMenu.click();
-    await expect(page.getByRole('link', { name: '사주 보기', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: '사주 보기', exact: true })).toHaveCount(0);
     await expect(page.getByRole('link', { name: '인연 설정', exact: true })).toHaveCount(0);
   });
 
@@ -94,6 +94,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await expect(page.getByText(signedIn.label, { exact: false }).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: `${signedIn.label}의 사주팔자` })).toBeVisible();
+    await expect(page.getByLabel(/일주, 천간 .* 지지/)).toBeVisible();
     const chart = page.getByRole('table', { name: '시주, 일주, 월주, 년주의 천간과 지지' });
     await expect(chart).toBeVisible();
     await expect(chart.getByRole('columnheader', { name: '일주' })).toBeVisible();
@@ -108,16 +109,15 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '내 사주풀이', exact: true }).first()).toBeVisible();
     await expect(page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
-    await expect(page.getByText('명식 자세히 보기')).toBeVisible();
-    await expect(page.getByRole('heading', { name: '사주팔자' })).toBeHidden();
+    await expect(page.getByText('명식 자세히 보기')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: '사주팔자' })).toHaveCount(0);
     const readingTabs = page.getByRole('navigation', { name: '내 사주의 명식과 사주풀이' });
+    await expect(readingTabs.getByRole('link')).toHaveText(['사주풀이', '명식 보기']);
     await expect(readingTabs.getByRole('link', { name: '사주풀이', exact: true })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    await page.getByText('명식 자세히 보기').click();
-    await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
-    await page.getByText('명식 자세히 보기').click();
+    await expect(readingTabs.getByRole('link', { name: '명식 보기' })).toHaveAttribute('href', '/me');
 
     /*
       **버튼 옆에 남는 것은 한 줄뿐이다.** 넉 줄이 쌓여 통째로 안 읽히던 자리라, 누를지
@@ -225,10 +225,15 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await expect(page.getByRole('heading', { name: '어머니의 사주풀이' })).toBeVisible();
 
-    /* 풀이 전용 페이지라 글은 바로 서고, 명식만 접혀 있다. */
+    /* 풀이 전용 페이지에는 글만 서고, 명식은 별도 탭으로 간다. */
     await expect(page.getByText('어머니의 결')).toBeVisible();
-    await expect(page.getByText('명식 자세히 보기')).toBeVisible();
-    await expect(page.getByRole('heading', { name: '사주팔자' })).toBeHidden();
+    await expect(page.getByText('명식 자세히 보기')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: '사주팔자' })).toHaveCount(0);
+    const tabs = page.getByRole('navigation', { name: '어머니의 명식과 사주풀이' });
+    await expect(tabs.getByRole('link', { name: '명식 보기' })).toHaveAttribute(
+      'href',
+      `/me/people/${personReader.personId}`,
+    );
 
     /* 한 사람짜리라 궁합 점수가 안 선다 */
     await expect(page.getByText('현재 궁합 풀이 점수')).toBeHidden();
@@ -357,15 +362,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(again).toBeEnabled();
   });
 
-  /**
-   * **저장한 사람의 상세 화면에도 만드는 버튼이 선다.**
-   *
-   * 이 화면에는 명식 표만 있었다. 엄마의 풀이를 보려면 엄마 × 다른 한 사람 궁합으로
-   * 가야 했고, 한 명짜리 길이 없었다.
-   *
-   * 흐름 검사가 이미 같은 화면을 받아 글자를 세지만, **누르는 손**은 여기에만 있다.
-   */
-  test('저장한 사람의 명식 화면에서 풀이 탭으로 이동해 풀이를 받을 수 있다', async ({
+  /** 사람 카드의 단일 진입점이 풀이로 가고, 명식은 그 화면의 탭으로 오간다. */
+  test('저장한 사람의 풀이 화면에서 명식 탭으로 오갈 수 있다', async ({
     page,
     signedIn,
   }) => {
@@ -375,19 +373,20 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.goto('/me/people');
     await expect(page.getByText(kin).first()).toBeVisible();
     /* 목록에 관리 Person 은 이 사람 하나뿐이다 — 이어서 제목으로 누구인지 확인한다 */
-    await page.getByRole('link', { name: '사주 상세 보기' }).first().click();
-
-    await expect(
-      page.getByRole('heading', { name: `${kin}의 사주`, exact: true }),
-    ).toBeVisible();
-
-    const tabs = page.getByRole('navigation', { name: `${kin}의 명식과 사주풀이` });
-    await expect(tabs.getByRole('link', { name: '명식 보기' })).toHaveAttribute('aria-current', 'page');
-    await tabs.getByRole('link', { name: '사주풀이', exact: true }).click();
+    await page.getByRole('link', { name: '사주풀이 만들기' }).first().click();
 
     await expect(page).toHaveURL(/\/me\/readings\/[0-9a-f-]+$/);
     await expect(page.getByRole('heading', { name: `${kin}의 사주풀이`, exact: true }).first()).toBeVisible();
     await expect(page.getByText('아직 만들어 둔 사주풀이가 없습니다')).toBeVisible();
+
+    const tabs = page.getByRole('navigation', { name: `${kin}의 명식과 사주풀이` });
+    await expect(tabs.getByRole('link', { name: '사주풀이', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await tabs.getByRole('link', { name: '명식 보기' }).click();
+    await expect(page.getByRole('heading', { name: `${kin}의 사주`, exact: true })).toBeVisible();
+    await page.getByRole('link', { name: '사주풀이', exact: true }).click();
 
     const make = page.getByRole('button', { name: '사주풀이 받기' });
     await expect(make).toBeVisible();
@@ -446,37 +445,21 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('button', { name: '몸통 복사' })).toBeVisible();
   });
 
-  /**
-   * **익명 화면이라고 로그아웃된 것이 아니다.**
-   *
-   * 전체 명식은 익명 화면이 그린다(입력이 `#` 뒤에 실려 서버로 안 가기 때문이다).
-   * 그래서 로그인한 사람도 `/` 로 건너오는데, 그 자리에 「로그인」이 서 있으면 화면이
-   * 세션이 풀렸다고 말하는 것이 된다 — 회원 메뉴까지 사라져서 돌아갈 길도 없었다.
-   *
-   * 세션이 실제로 살아 있다는 것도 함께 잰다. 돌아온 `/me` 가 로그인 화면으로 튕기면
-   * 헤더만 고친 것이 된다.
-   */
-  test('전체 명식으로 건너가도 로그인이 풀린 것처럼 보이지 않는다', async ({ page, signedIn }) => {
+  /** 내 전체 명식은 공개 입력 화면이 아니라 저장한 사람과 같은 명식 상세로 간다. */
+  test('전체 명식 자세히 보기는 저장된 내 명식 상세를 연다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
 
     await page.getByRole('link', { name: '전체 명식 자세히 보기' }).click();
-    await expect(page).toHaveURL(/\/#/);
+    await expect(page).toHaveURL(new RegExp(`/me/people/${signedIn.selfPersonId}$`));
+    await expect(page.getByText('내 명식', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: `${signedIn.label}의 사주`, exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '나와 궁합 보기' })).toBeVisible();
 
-    // 공개 계산 화면에서도 로그인 상태에 맞는 내 메뉴가 선다.
-    const header = page.getByRole('banner');
-    await expect(header.getByRole('link', { name: '로그인' })).toHaveCount(0);
-
-    const mobileNavigation = page.getByRole('navigation', { name: '모바일 내 메뉴' });
-    const back = (await mobileNavigation.isVisible())
-      // 개발 서버의 Next.js 도구가 화면 왼쪽 아래를 덮으므로 모바일은 같은 목적지인 로고를 쓴다.
-      ? header.getByRole('link', { name: '만세력 홈', exact: true })
-      : header.getByRole('link', { name: '내 사주', exact: true });
-    await expect(back).toBeVisible();
-
-    await back.click();
+    await page.getByRole('link', { name: '내 사주로' }).click();
     await expect(page).toHaveURL(/\/me$/);
-    await expect(page.getByRole('heading', { name: '내 사주' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '나의 명식과 인연' })).toBeVisible();
   });
 
   /**
@@ -639,26 +622,24 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       .locator('section')
       .filter({ has: page.getByRole('heading', { name: '친구' }) });
 
-    /* 새 사람은 같은 자리에서 풀이를 만들 길과 명식을 자세히 볼 길을 나란히 가진다. */
-    await expect(friendCard.getByRole('link', { name: /사주풀이 만들기/ })).toHaveAttribute(
+    /* 새 사람 카드에는 풀이로 가는 길 하나만 선다. 명식은 다음 화면의 탭으로 간다. */
+    const readingLink = friendCard.getByRole('link', { name: /사주풀이 만들기/ });
+    await expect(readingLink).toHaveAttribute(
       'href',
       /\/me\/readings\/[0-9a-f-]+$/,
     );
+    await expect(friendCard.getByRole('link')).toHaveCount(1);
 
-    /* 설명이 긴 두 버튼도 카드의 최소 너비를 밀어내지 않는다 — 320px에서 실제로 넘쳤다. */
+    /* 설명이 긴 버튼도 카드의 최소 너비를 밀어내지 않는다 — 320px에서 실제로 넘쳤다. */
     const cardBox = await friendCard.boundingBox();
-    for (const action of [
-      friendCard.getByRole('link', { name: /사주풀이 만들기/ }),
-      friendCard.getByRole('link', { name: '사주 상세 보기' }),
-    ]) {
-      const actionBox = await action.boundingBox();
-      expect(actionBox?.x).toBeGreaterThanOrEqual(cardBox?.x ?? 0);
-      expect((actionBox?.x ?? 0) + (actionBox?.width ?? 0)).toBeLessThanOrEqual(
-        (cardBox?.x ?? 0) + (cardBox?.width ?? 0) + 0.5,
-      );
-    }
+    const actionBox = await readingLink.boundingBox();
+    expect(actionBox?.x).toBeGreaterThanOrEqual(cardBox?.x ?? 0);
+    expect((actionBox?.x ?? 0) + (actionBox?.width ?? 0)).toBeLessThanOrEqual(
+      (cardBox?.x ?? 0) + (cardBox?.width ?? 0) + 0.5,
+    );
 
-    await friendCard.getByRole('link', { name: '사주 상세 보기' }).click();
+    await readingLink.click();
+    await page.getByRole('link', { name: '명식 보기' }).click();
     await expect(
       page.getByRole('heading', { name: '친구의 사주', exact: true }),
     ).toBeVisible();

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { ELEMENT_TONE } from '../element-tone';
 import { PillarTable } from '../saju/pillars';
 import {
+  BRANCH_INFO,
   ELEMENTS,
   ELEMENT_KO,
   STEM_INFO,
@@ -20,7 +21,7 @@ import {
  *
  * 이 화면은 저장한 사람 목록과 같은 것을 보여 주면서 생김새가 달랐다 — 명식 한 벌,
  * 출생 정보 한 벌, 그 사이에 떠 있는 링크 하나가 각자 다른 상자였다. 지금은 한 카드
- * 안에 세 층으로 선다: **누구인가**(일간을 한자 아래에 붙인 머리) · **여덟 글자와
+ * 안에 세 층으로 선다: **누구인가**(오행색을 입은 일주 표식과 이름) · **여덟 글자와
  * 오행·저장된 출생 정보**(본문) · **이어 보는 길**(아래 띠). 고치는 손잡이는 오른쪽 위
  * 모서리로 물러난다.
  *
@@ -44,32 +45,29 @@ export function PillarCard({
   footer?: ReactNode;
 }) {
   const { pillars } = saju;
-  const dayMaster = STEM_INFO[pillars.dayMaster];
-  const dayTone = ELEMENT_TONE[dayMaster.element];
+  const dayPillar = pillars.day;
+  const dayStem = STEM_INFO[dayPillar.stem];
+  const dayBranch = BRANCH_INFO[dayPillar.branch];
+  const stemTone = ELEMENT_TONE[dayStem.element];
+  const branchTone = ELEMENT_TONE[dayBranch.element];
 
   return (
     <section className="relative rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]">
       <div className="relative p-5 sm:p-6">
-        <div className="flex items-start gap-4">
-          {/* 일간은 **그 글자 아래에** 붙는다 — 오른쪽 위는 손대는 자리가 쓴다 */}
-          <div className="flex shrink-0 flex-col items-center gap-1.5">
-            <div
-              className={`grid size-16 place-items-center rounded-2xl border ${dayTone.border} ${dayTone.surface}`}
-              aria-label={`일간 ${pillars.dayMaster}, ${dayMaster.ko}${ELEMENT_KO[dayMaster.element]}`}
-            >
-              <span className={`glyph text-[2rem] font-bold leading-none ${dayTone.text}`} aria-hidden="true">
-                {pillars.dayMaster}
-              </span>
-            </div>
-            <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${dayTone.surface} ${dayTone.text}`}>
-              {dayMaster.ko}{ELEMENT_KO[dayMaster.element]} 일간
+        <div className="min-w-0 pr-12">
+          <div
+            className="flex items-center gap-1.5"
+            aria-label={`${dayPillar.ko} 일주, 천간 ${dayStem.ko}${ELEMENT_KO[dayStem.element]}, 지지 ${dayBranch.ko}${ELEMENT_KO[dayBranch.element]}`}
+          >
+            <span className={`glyph grid size-8 place-items-center rounded-lg border text-lg font-bold ${stemTone.border} ${stemTone.surface} ${stemTone.text}`} aria-hidden="true">
+              {dayPillar.stem}
             </span>
+            <span className={`glyph grid size-8 place-items-center rounded-lg border text-lg font-bold ${branchTone.border} ${branchTone.surface} ${branchTone.text}`} aria-hidden="true">
+              {dayPillar.branch}
+            </span>
+            <span className="ml-1 text-sm font-semibold text-secondary">{dayPillar.ko} 일주</span>
           </div>
-
-          <div className="min-w-0 flex-1 pr-12 pt-0.5">
-            <p className="eyebrow">내 사주</p>
-            <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">{label}의 사주팔자</h2>
-          </div>
+          <h2 className="mt-2 text-xl font-bold tracking-[-0.03em]">{label}의 사주팔자</h2>
         </div>
 
         {/*

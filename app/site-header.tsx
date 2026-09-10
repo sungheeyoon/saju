@@ -33,14 +33,14 @@ const PUBLIC_LINKS = [] as const;
  * 메뉴에는 `/` 로 가는 길이 한 줄도 없었다 — 저장하지 않은 남의 생년월일시로 한 번
  * 계산해 보는 자리를, 로그인하고 나면 주소를 직접 쳐야만 열 수 있었다.
  *
- * 이름은 공개 메뉴와 **같은 것을 쓴다**(「사주 보기」). 같은 화면을 두 낱말로 부르면
- * 로그인 전후로 다른 기능처럼 읽힌다(ADR 0026·0027).
+ * 사주 계산과 궁합은 한 흐름이다. 궁합은 사주 화면 안의 「궁합 보기」로도 시작하고
+ * 별도 `/compat` 메뉴도 같은 곳으로 가므로, 회원 메뉴에서는 `사주·궁합` 한 이름으로
+ * 묶는다. 실제 화면 주소는 그대로라 직접 입력과 저장한 사람 흐름을 잃지 않는다.
  */
 const MEMBER_LINKS = [
   { href: '/me', label: '내 사주' },
-  { href: '/', label: '사주 보기' },
+  { href: '/', label: '사주·궁합' },
   { href: '/me/people', label: '사람' },
-  { href: '/compat', label: '궁합' },
   /**
    * **만든 글이 사는 자리는 메뉴에 있다**(ADR 0033).
    *
@@ -54,8 +54,8 @@ const MEMBER_LINKS = [
 /** 모바일에서 늘 보이는 다섯 길 — 나머지 둘은 전체 메뉴에 둔다. */
 const MOBILE_LINKS = [
   { href: '/me', label: '내 사주', icon: 'home' },
+  { href: '/', label: '사주·궁합', icon: 'compat' },
   { href: '/me/people', label: '사람', icon: 'people' },
-  { href: '/compat', label: '궁합', icon: 'compat' },
   { href: '/me/readings', label: '풀이', icon: 'reading' },
   { href: '/me/requests', label: '소식', icon: 'news' },
 ] as const;
@@ -65,8 +65,8 @@ const TRAILING =
   'shrink-0 rounded-full border border-border-strong bg-surface px-3.5 py-1.5 text-sm font-semibold hover:border-accent hover:text-accent';
 
 export function isNavigationActive(pathname: string, href: string): boolean {
-  if (href === '/' || href === '/me') return pathname === href;
-  if (href === '/compat') return pathname === '/compat' || pathname === '/me/compat';
+  if (href === '/') return pathname === '/' || pathname === '/compat' || pathname === '/me/compat';
+  if (href === '/me') return pathname === href;
   if (href === '/me/requests' && pathname.startsWith('/me/match/')) return true;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -443,17 +443,6 @@ function AccountMenu({
       </summary>
       <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-float)]">
         {email && <p className="truncate border-b border-border px-3 py-2 text-xs text-muted">{email}</p>}
-        {variant === 'mobile' && !ended && (
-          <div className="border-b border-border py-1">
-            <Link
-              href="/"
-              onClick={close}
-              className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
-            >
-              사주 보기
-            </Link>
-          </div>
-        )}
         {/*
           **프로필로 가는 길은 여기다.** 가입할 때 한 번 짓고 나면 그 화면을 다시 찾을
           자리가 없었다 — 예전 인연 설정 안의 한 줄로만 닿았고, 인연에 참여하지 않는 사람은

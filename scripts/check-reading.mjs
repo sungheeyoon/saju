@@ -202,7 +202,7 @@ try {
   {
     const mine = await body('/me/readings/self', cookie.a);
     check('내 사주풀이 전용 화면이 선다', plain(mine).includes('내 사주풀이'));
-    check('명식은 자세히 보기 안에 접혀 있다', plain(mine).includes('명식 자세히 보기'));
+    check('풀이 화면에 명식을 다시 싣지 않는다', !plain(mine).includes('명식 자세히 보기'));
     check('아직 없으면 없다고 말한다', plain(mine).includes('아직 만들어 둔 사주풀이가 없습니다'));
     check('만드는 버튼이 선다', mine.includes('사주풀이 받기'));
     check('넘기지 않는 것을 화면이 말한다', plain(mine).includes('출생지는 넘기지 않습니다'));

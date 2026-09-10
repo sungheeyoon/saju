@@ -60,8 +60,7 @@ export default async function CompatPage() {
       </Suspense>
 
       <footer className="border-t border-border py-6 text-xs leading-6 text-muted">
-        직접 입력한 사람은 <strong className="font-medium">사람 목록에 저장되지 않습니다</strong> —
-        저장 자리도 쓰지 않습니다. 만든 궁합 풀이는 풀이 목록에 남고 거기서 다시 열립니다.
+        직접 입력한 사람은 <strong className="font-medium">사람 목록에 저장되지 않습니다.</strong>
       </footer>
     </main>
   );

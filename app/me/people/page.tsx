@@ -239,8 +239,9 @@ function readChart(
  * 카드 아래에 조작 넷이 나란히 서 있었다(상세 · 수정 · 빼기 · 메모). 그중 늘 쓰는 것은
  * 하나뿐인데 넷이 같은 무게로 서서, 카드마다 그 줄이 반복되며 목록이 링크밭이 됐다.
  *
- * 지금 카드는 두 층이다. **누구이고 어떤 명식인가**(본문) · **무엇을 할 것인가**(아래
- * 두 선택지). 손대는 것들은 오른쪽 위 구석의 관리 메뉴 하나로 물러난다 — 읽는 자리
+ * 지금 카드는 두 층이다. **누구이고 어떤 명식인가**(본문) · **풀이를 읽거나 만드는 길**.
+ * 명식은 풀이 화면의 탭에서 바로 오갈 수 있으므로 같은 카드에 두 번째 길을 반복하지
+ * 않는다. 손대는 것들은 오른쪽 위 구석의 관리 메뉴 하나로 물러난다 — 읽는 자리
  * 위에 얹히지 않게.
  *
  * `overflow-hidden` 은 걷었다 — 메뉴가 카드 밖으로 열리는데 그것이 잘렸다. 둥근 모서리는
@@ -280,27 +281,9 @@ function PersonCard({ person, reading }: { person: Person; reading: ReadingEntry
         />
       </div>
 
-      {/*
-        두 길은 **같은 문법**으로 선다. 풀이만 문장 링크이고 상세만 버튼이면 무엇을 먼저
-        눌러야 하는지보다 생김새의 차이가 먼저 보인다. 상태에 따라 달라지는 것은 풀이
-        버튼의 제목과 설명뿐이고, 두 길의 크기와 구조는 같다.
-      */}
       {person.chart.ok && (
-        <div className="grid min-w-0 gap-2 rounded-b-[1.75rem] border-t border-border bg-surface-soft/70 p-3 sm:grid-cols-2 sm:p-4">
+        <div className="min-w-0 rounded-b-[1.75rem] border-t border-border bg-surface-soft/70 p-3 sm:p-4">
           <ReadingAction personId={person.personId} reading={reading} />
-          <Link
-            href={`/me/people/${person.personId}`}
-            className="group flex min-h-[4.75rem] w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-border bg-surface px-4 py-3 hover:border-accent"
-          >
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-sunken text-secondary group-hover:bg-accent-wash group-hover:text-accent">
-              <CardActionIcon name="chart" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold">사주 상세 보기</span>
-              <span className="mt-0.5 block text-xs text-muted">명식 · 오행 · 운의 흐름</span>
-            </span>
-            <span className="shrink-0 text-sm text-muted group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true">→</span>
-          </Link>
         </div>
       )}
     </section>
@@ -331,7 +314,7 @@ function ReadingAction({
         className="group flex min-h-[4.75rem] w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl bg-accent px-4 py-3 text-on-accent shadow-sm hover:bg-accent-strong"
       >
         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/14">
-          <CardActionIcon name="reading" />
+          <CardActionIcon />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-bold">사주풀이 만들기</span>
@@ -348,7 +331,7 @@ function ReadingAction({
       className="group flex min-h-[4.75rem] w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-accent/25 bg-accent-wash px-4 py-3 hover:border-accent"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface text-accent shadow-sm">
-        <CardActionIcon name="reading" />
+        <CardActionIcon />
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-1.5">
@@ -366,7 +349,7 @@ function ReadingAction({
   );
 }
 
-function CardActionIcon({ name }: { name: 'reading' | 'chart' }) {
+function CardActionIcon() {
   return (
     <svg
       aria-hidden="true"
@@ -376,17 +359,10 @@ function CardActionIcon({ name }: { name: 'reading' | 'chart' }) {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      {name === 'reading' ? (
-        <>
-          <path d="M5 5.5c2.8-.7 5-.1 7 1.5v12c-2-1.6-4.2-2.2-7-1.5Z" />
-          <path d="M19 5.5c-2.8-.7-5-.1-7 1.5v12c2-1.6 4.2-2.2 7-1.5Z" />
-        </>
-      ) : (
-        <>
-          <path d="M4 5h16v14H4Z" />
-          <path d="M8 5v14M12 5v14M16 5v14M4 10h16" />
-        </>
-      )}
+      <>
+        <path d="M5 5.5c2.8-.7 5-.1 7 1.5v12c-2-1.6-4.2-2.2-7-1.5Z" />
+        <path d="M19 5.5c-2.8-.7-5-.1-7 1.5v12c2-1.6 4.2-2.2 7-1.5Z" />
+      </>
     </svg>
   );
 }

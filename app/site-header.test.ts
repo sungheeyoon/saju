@@ -15,8 +15,9 @@ describe('회원 내비게이션 활성 상태', () => {
     expect(isNavigationActive('/me/people/example', '/me/people')).toBe(true);
   });
 
-  it('직접 입력과 저장한 사람 궁합은 같은 궁합 메뉴로 묶인다', () => {
-    expect(isNavigationActive('/compat', '/compat')).toBe(true);
-    expect(isNavigationActive('/me/compat', '/compat')).toBe(true);
+  it('사주와 두 궁합 화면은 같은 사주·궁합 메뉴로 묶인다', () => {
+    expect(isNavigationActive('/', '/')).toBe(true);
+    expect(isNavigationActive('/compat', '/')).toBe(true);
+    expect(isNavigationActive('/me/compat', '/')).toBe(true);
   });
 });
