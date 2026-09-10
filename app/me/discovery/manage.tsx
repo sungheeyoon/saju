@@ -258,7 +258,13 @@ export function RefreshBoard({ waitSeconds }: { waitSeconds: number }) {
   );
 }
 
-/** 이 사람은 그만 본다 — 되돌릴 수 있으므로 한 번 더 묻지 않는다 */
+/**
+ * 이 사람은 그만 본다 — 되돌릴 수 있으므로 한 번 더 묻지 않는다.
+ *
+ * **카드 아래에서 점수 위로 옮겼다.** 아래에 있을 때는 「상세 궁합 요청하기」와 같은
+ * 줄에 같은 크기로 서서, 되돌릴 수 있는 정리 하나가 이 카드의 유일한 목적과 나란히
+ * 놓였다. 무게가 다른 두 누름은 같은 줄에 세우지 않는다.
+ */
 export function HideButton({ candidateUserId }: { candidateUserId: string }) {
   const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
@@ -279,7 +285,7 @@ export function HideButton({ candidateUserId }: { candidateUserId: string }) {
         type="button"
         onClick={hide}
         disabled={working}
-        className="text-sm text-secondary underline underline-offset-2 disabled:opacity-60"
+        className="text-xs text-muted underline underline-offset-2 transition-colors hover:text-secondary disabled:opacity-60"
       >
         {working ? '감추는 중…' : '다시 보지 않기'}
       </button>
@@ -327,13 +333,32 @@ export function UnhideAll({ count }: { count: number }) {
 }
 
 /**
- * 상세 궁합 요청 — **보내기 전에 무엇이 열리는지 읽힌다.**
+ * 예측 점수와 상세 궁합 요청 — **한 장이다.**
+ *
+ * ## 왜 점수까지 여기서 그리나
+ *
+ * 점수는 화면(`board.tsx`)에 있었고 버튼만 여기 있었다. 둘을 한 테두리 안에 넣기로
+ * 하면서 합쳤다 — 나눠 두면 「같은 한 장으로 보이게」가 두 파일의 클래스 문자열이
+ * 맞아떨어질 때만 참인 약속이 된다.
+ *
+ * 더 큰 이유는 **펴질 때 모양이 갈리기 때문이다.** 접히면 점수 아래 버튼 하나가 좁은
+ * 칸에 서고, 펴지면 동의 안내가 카드 폭을 다 써야 한다(10rem 안에서는 못 읽는다).
+ * 그 두 모양을 아는 것은 접혔는지 펴졌는지 아는 이 컴포넌트뿐이라, 격자에 두 조각으로
+ * 내놓는 일도 여기서 한다.
+ *
+ * ## 보내기 전에 무엇이 열리는지 읽힌다
  *
  * 바로 보내지 않는다. 후보 카드만 본 것은 궁합 동의가 아니고(`prd-archive`), 무엇이 열리는지
  * 모른 채 누른 요청은 상대에게도 설명할 수 없는 요청이다. 수락 화면과 **같은 목록**을
  * 읽는다 — 두 곳에 따로 적으면 보내는 쪽과 받는 쪽이 다른 약속을 읽게 된다.
  */
-export function RequestButton({ candidateUserId }: { candidateUserId: string }) {
+export function PreviewScorePanel({
+  candidateUserId,
+  previewScore,
+}: {
+  candidateUserId: string;
+  previewScore: number;
+}) {
   const router = useRouter();
   const confirming = useRef<HTMLDialogElement>(null);
   const [reading, setReading] = useState(false);
@@ -349,40 +374,72 @@ export function RequestButton({ candidateUserId }: { candidateUserId: string }) 
     });
   };
 
-  if (!reading) {
-    return (
-      <button
-        type="button"
-        onClick={() => setReading(true)}
-        className="text-sm text-accent underline underline-offset-2"
-      >
-        상세 궁합 요청하기
-      </button>
-    );
-  }
-
   return (
-    <div className="flex w-full flex-col gap-3">
-      <MatchScope intro={REQUEST_INTRO} />
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={() => confirming.current?.showModal()}
-          disabled={working}
-          className={BUTTON}
-        >
-          {working ? '보내는 중…' : '요청 보내기'}
-        </button>
-        <button
-          type="button"
-          onClick={() => setReading(false)}
-          disabled={working}
-          className="text-sm text-secondary underline underline-offset-2"
-        >
-          그만두기
-        </button>
+    <>
+      {/*
+        **색은 이 한 장만 든다.** 전에는 추천 이유와 점수를 한 덩이의 물감 위에 같이
+        올렸는데, 그러면 물감이 무엇을 묶는 것인지 읽히지 않는다 — 카드 안의 모든 글이
+        배경을 갖는 셈이라 강조가 아니라 얼룩이 된다.
+
+        **왼쪽 글만큼 늘어난다.** 격자 칸이라 높이를 따로 안 적어도 옆 칸을 따라가고,
+        안의 것은 가운데에 머문다.
+      */}
+      <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-accent/20 bg-accent-wash px-3 py-3 text-center">
+        <p className="text-xs font-semibold text-accent">예측 궁합 점수</p>
+        <p className="text-2xl font-bold leading-none tabular-nums text-accent">
+          {previewScore}
+          <span className="ml-0.5 text-sm font-semibold">점</span>
+        </p>
+
+        {/*
+          **이 카드가 있는 이유가 이 누름이다.** 밑줄 친 글자로 서 있었는데, 그러면
+          모서리의 「다시 보지 않기」와 같은 무게로 읽힌다 — 앱의 다른 화면에서 이만한
+          누름은 전부 채운 버튼을 입는다(조건 저장, 인연 찾기 다시 시작).
+
+          펴진 뒤에는 이 자리에서 사라진다. 같은 일을 시키는 버튼이 한 카드에 둘 서면
+          어느 것이 지금 누를 것인지 알 수 없다 — 아래 안내가 「요청 보내기」를 든다.
+        */}
+        {!reading && (
+          <button
+            type="button"
+            onClick={() => setReading(true)}
+            className="mt-0.5 h-9 w-full rounded-lg bg-accent px-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-strong"
+          >
+            상세 궁합 보기
+          </button>
+        )}
       </div>
-      {failure !== null && <p className="text-sm text-muted">{failure}</p>}
+
+      {/*
+        **펴지면 카드 폭을 다 쓴다.** 격자의 두 칸에 걸치게 두는 것은, 이 안내가 무엇이
+        열리고 무엇이 안 열리는지를 항목으로 펴기 때문이다 — 10rem 안에서는 못 읽고,
+        못 읽는 동의는 동의가 아니다.
+      */}
+      {reading && (
+        <div className="col-span-full flex w-full flex-col gap-3">
+          <MatchScope intro={REQUEST_INTRO} />
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => confirming.current?.showModal()}
+              disabled={working}
+              className={BUTTON}
+            >
+              {working ? '보내는 중…' : '요청 보내기'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setReading(false)}
+              disabled={working}
+              className="text-sm text-secondary underline underline-offset-2"
+            >
+              그만두기
+            </button>
+          </div>
+          {failure !== null && <p className="text-sm text-muted">{failure}</p>}
+        </div>
+      )}
+
       <dialog
         ref={confirming}
         aria-labelledby={`request-match-${candidateUserId}`}
@@ -414,6 +471,6 @@ export function RequestButton({ candidateUserId }: { candidateUserId: string }) 
           </button>
         </div>
       </dialog>
-    </div>
+    </>
   );
 }

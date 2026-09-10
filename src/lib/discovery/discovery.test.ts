@@ -7,7 +7,11 @@ import {
   ELEMENT_MEANING,
   boardNotes,
   cardTextFor,
+  previewSummaryFor,
+  type BalanceBand,
 } from './index';
+
+import type { Element } from '../saju';
 
 /**
  * **줄 세우기는 여기서 재지 않는다.**
@@ -129,5 +133,57 @@ describe('목록이 함께 드는 말', () => {
   it('상세 궁합은 서로 동의한 뒤라고 말한다', () => {
     expect(DISCOVERY_TEASER).toContain('서로 만나보기를 선택하면');
     expect(DISCOVERY_TEASER).toContain('형충회합');
+  });
+});
+
+/**
+ * **점수를 말로 옮기는 자리.**
+ *
+ * 카드에 적히는 수 바로 옆에 서는 문장이라, 여기서 갈리면 사용자는 같은 카드에서
+ * 서로 다른 말을 두 번 읽는다.
+ */
+describe('previewSummaryFor 는 점수를 말로 옮긴다', () => {
+  const verdictAt = (previewScore: number) =>
+    previewSummaryFor({ previewScore, suppliedElements: ['木'], balanceBand: 'even' }).verdict;
+
+  /** 열 칸의 **아래 경계**를 하나씩 밟는다 — 경계가 한 칸 밀리면 여기서 걸린다 */
+  it('열 칸의 경계마다 정해진 문장이 선다', () => {
+    expect(verdictAt(100)).toBe('최고의 궁합에 가까워요.');
+    expect(verdictAt(90)).toBe('최고의 궁합에 가까워요.');
+    expect(verdictAt(89)).toBe('아주 좋은 궁합이에요.');
+    expect(verdictAt(80)).toBe('아주 좋은 궁합이에요.');
+    expect(verdictAt(70)).toBe('좋은 궁합이에요.');
+    expect(verdictAt(60)).toBe('괜찮은 궁합이에요.');
+    expect(verdictAt(50)).toBe('무난한 궁합이에요.');
+    expect(verdictAt(40)).toBe('조금 아쉬운 궁합이에요.');
+    expect(verdictAt(30)).toBe('잘 맞지 않는 편이에요.');
+    expect(verdictAt(20)).toBe('서로 맞지 않는 부분이 많아요.');
+    expect(verdictAt(10)).toBe('서로 잘 어우러지지 않아요.');
+    expect(verdictAt(0)).toBe('궁합이 매우 좋지 않아요.');
+  });
+
+  /**
+   * **접속사가 곧 설명이다.** 두 축이 같은 말을 하면 「-고 …도」, 갈리면 「-지만 …은」.
+   *
+   * 전에는 이 자리에 균형 문장 하나만 섰다 — 점수를 만든 두 축 중 뒤 축만 말하는
+   * 문장이라, 34점 옆에 「균형이 고른 편이에요」가 서고 **낮은 점수를 만든 축은 화면에
+   * 한 번도 안 나왔다.**
+   */
+  it('두 축이 같은 방향이면 이어 붙이고, 갈리면 뒤집는 접속으로 든다', () => {
+    const reasonOf = (suppliedElements: readonly Element[], balanceBand: BalanceBand) =>
+      previewSummaryFor({ previewScore: 50, suppliedElements, balanceBand }).reason;
+
+    expect(reasonOf(['木'], 'even')).toBe(
+      '내게 부족한 오행을 채워 주고, 두 사람의 오행도 고르게 어우러져요.',
+    );
+    expect(reasonOf(['木'], 'skewed')).toBe(
+      '내게 부족한 오행을 채워 주지만, 두 사람의 오행은 한쪽으로 기우는 편이에요.',
+    );
+    expect(reasonOf([], 'mixed')).toBe(
+      '내게 부족한 오행을 채워 주지는 않지만, 두 사람의 오행은 대체로 어우러져요.',
+    );
+    expect(reasonOf([], 'skewed')).toBe(
+      '내게 부족한 오행을 채워 주지 않고, 두 사람의 오행도 한쪽으로 기우는 편이에요.',
+    );
   });
 });

@@ -6,6 +6,7 @@ import {
   DISCOVERY_TEASER,
   boardNotes,
   cardTextFor,
+  previewSummaryFor,
   type BalanceBand,
   type CandidateHighlight,
 } from '@/src/lib/discovery';
@@ -48,6 +49,10 @@ export type CandidateCard = {
   readonly highlights: readonly CandidateHighlight[];
   /** 함께 놓았을 때의 균형 — 숫자가 아니라 말 */
   readonly balanceLabel: string;
+  /** 점수를 그대로 말로 옮긴 한 줄 */
+  readonly verdict: string;
+  /** 그 점수가 왜 그 자리인지 — 두 축을 접속으로 묶은 한 줄 */
+  readonly reason: string;
   /** 오행으로 미리 본 궁합 — 상세 궁합 점수와 다른 discovery-v0 참고값 */
   readonly previewScore: number;
   readonly [granted]: true;
@@ -101,6 +106,12 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
     );
     // 밴드 이름을 못 알아보면 가장 낮은 칸으로 읽는다 — 모르는 값을 좋은 쪽으로 눕히지 않는다.
     const balanceBand = BANDS.find((band) => band === row.balance_band) ?? 'skewed';
+    /*
+      **점수는 여기서 한 번만 자른다.** 카드에 적히는 수와 그 수를 말로 옮긴 문장이
+      서로 다른 반올림을 보면, 39.5 짜리 한 사람에게 「40점」과 「잘 맞지 않는 편」이
+      같이 선다.
+    */
+    const previewScore = Math.max(0, Math.min(100, Math.round(row.preview_score)));
 
     return {
       candidateUserId: row.candidate_user_id,
@@ -109,8 +120,9 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
       hasPhoto: row.has_photo === true,
       position: row.seat,
       exploration: row.exploration,
-      previewScore: Math.max(0, Math.min(100, Math.round(row.preview_score))),
+      previewScore,
       ...cardTextFor({ suppliedElements, balanceBand }),
+      ...previewSummaryFor({ previewScore, suppliedElements, balanceBand }),
       [granted]: true as const,
     };
   });

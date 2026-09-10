@@ -7,7 +7,7 @@ import { CARD } from '../../card';
 import { boardStamp, candidatesForViewer, type CandidateBoard } from '../candidates';
 import { selfElementSummary } from '../summary';
 import { Avatar } from '../avatar';
-import { HideButton, RefreshBoard, RequestButton, UnhideAll } from './manage';
+import { HideButton, PreviewScorePanel, RefreshBoard, UnhideAll } from './manage';
 
 /**
  * 추천 목록 — **홈에 선다**(PRD §2.0, ADR 0037).
@@ -178,70 +178,116 @@ function Candidates({
 
       <ul className="flex flex-col gap-3">
         {board.cards.map((card) => (
-          <li key={card.candidateUserId} className={`${CARD} flex flex-col gap-2`}>
+          /*
+            **카드는 격자다.** 점수와 그 아래 버튼이 한 칸에 세로로 서야 하는데, 눌러서
+            펴지는 안내는 카드 폭을 다 써야 한다 — 같은 자리에서 두 폭이 필요하다.
+            세로 묶음으로는 안 되고(안쪽 폭에 갇힌다), 격자라면 접힌 버튼은 오른쪽 칸에,
+            펴진 안내는 두 칸에 걸쳐 설 수 있다.
+
+            좁은 화면에서는 한 칸으로 접힌다. 오른쪽 칸을 10rem 으로 잡으면 360px 짜리
+            화면에서 글이 설 자리가 열 글자로 줄어든다.
+          */
+          <li
+            key={card.candidateUserId}
+            className={`${CARD} grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-[minmax(0,1fr)_10rem]`}
+          >
             {/*
               **자리 번호는 안 적는다.** 스냅샷을 읽을 때 자격을 잃은 사람이 빠지면
               번호에 구멍이 남는다 — 1·2·4 로 적히면 화면이 무언가 잃어버린 것처럼
               보이고, 다시 매기면 노출 기록이 든 자리와 갈린다.
             */}
-            <div className="flex items-center gap-3">
-              <Avatar
-                userId={card.candidateUserId}
-                nickname={card.nickname}
-                hasPhoto={card.hasPhoto}
-              />
-              <div className="flex flex-wrap items-baseline gap-x-3">
-                <h3 className="text-base font-semibold">{card.nickname}</h3>
-                {card.exploration && (
-                  <span className="rounded-full bg-accent-wash px-2 py-0.5 text-xs text-accent">
-                    색다른 인연
-                  </span>
-                )}
+            <div className="col-span-full flex items-start gap-3">
+              {/*
+                **얼굴과 이름은 서로 가운데를 맞춘다.** 이 줄이 통째로 `items-start` 인
+                것은 오른쪽 끝의 「다시 보지 않기」를 모서리에 붙이기 위해서인데, 그
+                맞춤이 얼굴과 이름에까지 걸리면 40px 짜리 원 옆에서 이름만 천장에 붙는다.
+                그 둘만 따로 묶어 가운데로 맞춘다.
+              */}
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <Avatar
+                  userId={card.candidateUserId}
+                  nickname={card.nickname}
+                  hasPhoto={card.hasPhoto}
+                />
+                <div className="flex min-w-0 flex-wrap items-baseline gap-x-3">
+                  <h3 className="text-base font-semibold">{card.nickname}</h3>
+                  {card.exploration && (
+                    <span className="rounded-full bg-accent-wash px-2 py-0.5 text-xs text-accent">
+                      색다른 인연
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/*
+                **카드의 오른쪽 위 끝.** 되돌릴 수 있는 정리 하나이고 이 카드의 목적이
+                아니다 — 목적은 점수 아래 버튼이 든다. 카드를 닫는 누름이 모서리에 서는
+                것은 이 앱 밖에서도 같은 자리라, 찾으라고 안 적어도 찾는다.
+              */}
+              <HideButton candidateUserId={card.candidateUserId} />
             </div>
 
-            {card.intro !== null && <p className="text-sm text-secondary">{card.intro}</p>}
-
-            <div className="flex items-center justify-between gap-3 rounded-lg bg-accent-wash px-3 py-2.5">
-              <div>
-                <p className="text-sm font-semibold text-accent">첫인상 궁합</p>
-                <p className="text-xs text-secondary">오행으로 미리 살펴본 참고 점수예요</p>
-              </div>
-              <p className="shrink-0 text-xl font-bold tabular-nums text-accent">
-                {card.previewScore}
-                <span className="ml-0.5 text-sm font-semibold">점</span>
-              </p>
-            </div>
+            {card.intro !== null && (
+              <p className="col-span-full text-sm text-secondary">{card.intro}</p>
+            )}
 
             {/*
               **추천 이유는 적극적으로 말한다.** 어느 오행이 무엇을 채우는지까지 —
               감추면 「왜 이 사람인가」에 답하지 못한다. 문장은 정책이 지어 오고
               (`ELEMENT_MEANING`), 화면은 글자를 앞에 세우기만 한다.
-            */}
-            {card.highlights.length > 0 && (
-              <ul className="flex flex-col gap-1.5">
-                {card.highlights.map((highlight) => (
-                  <li key={highlight.element} className="flex items-baseline gap-2 text-sm">
-                    <span className="glyph rounded-md bg-accent-wash px-1.5 py-0.5 text-accent">
-                      {highlight.element}
-                    </span>
-                    <span>{highlight.text}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
 
-            <p className="text-sm text-secondary">{card.balanceLabel}</p>
+              **판정·오행·이유는 한 덩이다.** 셋이 따로 서 있었을 때는 균형 문장이 점수
+              카드 아래까지 가로로 흘러서, 바로 위 줄과의 사이가 카드 높이만큼 벌어졌다.
+              셋 다 같은 것을 말한다 — 왜 이 사람인가.
+            */}
+            <div className="flex min-w-0 flex-col justify-center gap-1.5">
+              {/*
+                **점수를 말로 한 번 더 적는다.** 34라는 수는 그 자체로는 높은지 낮은지
+                말하지 않는다 — 만점이 몇인지, 보통이 몇인지를 사용자가 모르기 때문이다.
+              */}
+              <p className="text-sm font-semibold">{card.verdict}</p>
+
+              {/*
+                **채우는 오행은 이름과 뜻까지 말한다**(`discloses`). 없으면 이 줄이
+                통째로 빠지고 — 아래 이유가 그 사정을 「채워 주지 않고」로 든다. 비는
+                자리가 없다.
+              */}
+              {card.highlights.length > 0 && (
+                <ul className="flex flex-col gap-1.5">
+                  {card.highlights.map((highlight) => (
+                    <li key={highlight.element} className="flex items-baseline gap-2 text-sm">
+                      <span className="glyph rounded-md bg-accent-wash px-1.5 py-0.5 text-accent">
+                        {highlight.element}
+                      </span>
+                      <span>{highlight.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/*
+                **판정 바로 아래에 이유가 선다.** 전에 여기 있던 균형 문장은 점수를 만든
+                두 축 중 하나만 말했다 — 그래서 34점 옆에 「균형이 고른 편이에요」가 서는
+                일이 났다. 이 줄은 두 축을 다 든다.
+              */}
+              <p className="text-sm text-secondary">{card.reason}</p>
+            </div>
 
             {/*
+              **점수와 그 아래 누름은 한 장이다.** 그래서 화면이 두 조각으로 그리지 않고
+              한 컴포넌트에 맡긴다 — 나눠 그리면 「한 장으로 보이게」가 두 파일의 클래스
+              문자열이 맞아떨어질 때만 참인 약속이 된다.
+
               요청은 **후보를 본 데서** 난다. 이 카드가 스냅샷에 실렸다는 것이 노출
               기록으로 남아 있고, `request_match` 는 그 기록이 있는 사람에게만 요청을
               만든다.
+
+              펴진 뒤의 동의 안내는 격자의 두 칸에 걸친다 — 그 자리도 저쪽이 잡는다.
             */}
-            <div className="flex flex-wrap items-center gap-4 border-t border-border pt-2">
-              <RequestButton candidateUserId={card.candidateUserId} />
-              <HideButton candidateUserId={card.candidateUserId} />
-            </div>
+            <PreviewScorePanel
+              candidateUserId={card.candidateUserId}
+              previewScore={card.previewScore}
+            />
           </li>
         ))}
       </ul>

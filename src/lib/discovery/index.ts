@@ -146,6 +146,82 @@ const BALANCE_LABEL: Record<BalanceBand, string> = {
   skewed: '두 사람의 오행을 함께 보면 한쪽으로 기우는 편이에요.',
 };
 
+/**
+ * 점수를 말로 옮기는 문턱 — **화면에만 사는 수다.**
+ *
+ * `balanceBands` 와 나란히 두지 않았다. 그 두 수는 SQL 에도 한 벌 있어서 양쪽 시험이
+ * 같은 수를 들고, **숫자를 안 보여주기 때문에** 문턱이 곧 사용자가 보는 차이였다.
+ * 여기는 반대다 — 점수가 이미 카드에 34점으로 적혀 있고, 이 문턱은 그 수를 다시
+ * 말로 적을 뿐이다. 고쳐도 줄 세우기는 한 자리도 안 움직인다.
+ *
+ * 경계는 **위쪽이 닫힌다**(90 이상, 80 이상 …) — 열 칸이 모두 한쪽 방향으로 읽히도록.
+ * 위에서 아래로 읽으니 `find` 가 처음 걸리는 칸이 곧 그 점수의 칸이다.
+ */
+const PREVIEW_VERDICT: readonly (readonly [number, string])[] = [
+  [90, '최고의 궁합에 가까워요.'],
+  [80, '아주 좋은 궁합이에요.'],
+  [70, '좋은 궁합이에요.'],
+  [60, '괜찮은 궁합이에요.'],
+  [50, '무난한 궁합이에요.'],
+  [40, '조금 아쉬운 궁합이에요.'],
+  [30, '잘 맞지 않는 편이에요.'],
+  [20, '서로 맞지 않는 부분이 많아요.'],
+  [10, '서로 잘 어우러지지 않아요.'],
+  [0, '궁합이 매우 좋지 않아요.'],
+];
+
+/** 이유 문장의 뒷 절 — 균형을 **어우러짐의 말로** 옮긴다 */
+const BALANCE_CLAUSE: Record<BalanceBand, string> = {
+  even: '고르게 어우러져요',
+  mixed: '대체로 어우러져요',
+  skewed: '한쪽으로 기우는 편이에요',
+};
+
+/**
+ * 점수 한 줄과 그 이유 한 줄 — **후보 카드에서만 쓴다.**
+ *
+ * ## 왜 균형 문장만으로는 안 됐나
+ *
+ * 카드는 「34점」 옆에 「균형이 고른 편이에요」를 세우고 있었다. 둘 다 참인데 같이
+ * 읽으면 어긋난다 — 점수는 두 축의 합이고(보완 54% + 균형 46%), 균형 문장은 그중
+ * 뒤 축 하나만 말하기 때문이다. **낮은 점수를 만든 축이 화면에 한 번도 안 나왔다.**
+ *
+ * 그래서 이유는 두 축을 한 문장에 접속으로 묶는다. 두 축의 방향이 같으면 「-고 …도」,
+ * 다르면 「-지만 …은」 — 그 접속사가 곧 점수가 왜 그 자리인지의 설명이다.
+ *
+ * ## 지어내지 않는다
+ *
+ * 밴드마다 다른 이유를 손으로 적어 두지 않았다. 그러면 점수와 말이 따로 움직이고,
+ * 어느 날 80점 문장이 「채우는 오행이 많아요」라고 말하는데 실제로는 한 글자도 없는
+ * 일이 난다. **이유는 언제나 같은 두 사실에서 나온다.**
+ */
+export function previewSummaryFor(row: {
+  previewScore: number;
+  suppliedElements: readonly Element[];
+  balanceBand: BalanceBand;
+}): { verdict: string; reason: string } {
+  const hasSupply = row.suppliedElements.length > 0;
+  // 균형이 받쳐 주는가 — `skewed` 하나만 아쉬운 쪽이다
+  const supportive = row.balanceBand !== 'skewed';
+  // 두 축이 같은 말을 하는가. 접속사와 조사가 여기서 갈린다
+  const agree = hasSupply === supportive;
+
+  const supply = hasSupply
+    ? agree
+      ? '내게 부족한 오행을 채워 주고'
+      : '내게 부족한 오행을 채워 주지만'
+    : agree
+      ? '내게 부족한 오행을 채워 주지 않고'
+      : '내게 부족한 오행을 채워 주지는 않지만';
+
+  return {
+    // 못 알아보는 수가 와도 마지막 칸이 받는다 — 모르는 값을 좋은 쪽으로 눕히지 않는다
+    verdict: (PREVIEW_VERDICT.find(([floor]) => row.previewScore >= floor) ??
+      PREVIEW_VERDICT[PREVIEW_VERDICT.length - 1])[1],
+    reason: `${supply}, 두 사람의 오행${agree ? '도' : '은'} ${BALANCE_CLAUSE[row.balanceBand]}.`,
+  };
+}
+
 export const DISCOVERY_CAVEAT =
   '첫인상 궁합은 오행의 보완과 두 사람의 균형만 살펴본 참고 점수예요. 점수가 낮다고 인연을 숨기지는 않아요.';
 
