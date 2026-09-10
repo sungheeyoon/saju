@@ -28,7 +28,6 @@ function localStack(): Record<string, string> {
     return {
       NEXT_PUBLIC_SUPABASE_URL: status.API_URL,
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.PUBLISHABLE_KEY ?? status.ANON_KEY,
-      SUPABASE_URL: status.API_URL,
       /**
        * 공유 결과 화면이 이 열쇠로 매인 판본을 읽는다(ADR 0010).
        *

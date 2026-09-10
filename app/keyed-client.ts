@@ -33,11 +33,18 @@ export class NoKeyError extends Error {
  * @throws {NoKeyError} 접속값이나 열쇠가 없을 때.
  */
 export function keyedClient(what: string): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
   /**
-   * 이름 둘을 다 본다 — Vercel 통합이 넣어 주는 이름과 Supabase CLI 가 내주는 이름이
-   * 다르다.
+   * **열쇠만 이름 둘을 본다** — 로컬 스택이 옛 이름만 내주는 때가 있다.
+   *
+   * `supabase status` 가 `SECRET_KEY` 를 안 내주는 판본에서는 `SERVICE_ROLE_KEY` 뿐이라,
+   * 이 갈래가 없으면 로컬 시험이 열쇠 없는 배포와 같은 얼굴로 실패한다
+   * (`playwright.config.ts` 가 이름 둘을 다 덮는 까닭이 그것이다).
+   *
+   * 주소 쪽에는 그런 자리가 없다. 로컬 도구도 CI 도 배포도 `NEXT_PUBLIC_SUPABASE_URL`
+   * 하나만 쓴다 — 옛 갈래는 Vercel 통합이 이름을 두 벌 넣어 주던 동안의 자국이었다.
    */
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) throw new NoKeyError(what);

@@ -24,7 +24,6 @@ const child = spawn('npx', ['next', 'dev', '--hostname', 'localhost', '--port', 
     ...process.env,
     NEXT_PUBLIC_SUPABASE_URL: local.api,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: local.publishableKey,
-    SUPABASE_URL: local.api,
     SUPABASE_SECRET_KEY: local.secretKey,
     SUPABASE_SERVICE_ROLE_KEY: local.serviceRoleKey,
     /**
