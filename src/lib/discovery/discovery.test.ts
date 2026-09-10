@@ -129,10 +129,10 @@ describe('목록이 함께 드는 말', () => {
     expect(boardNotes({ viewerMissingCount: 2, hasExploration: false }).explorationNote).toBeNull();
   });
 
-  /** 여기서 멈추는 이유와 다음 — 상세 궁합은 서로 동의한 뒤다(US 36) */
-  it('상세 궁합은 서로 동의한 뒤라고 말한다', () => {
-    expect(DISCOVERY_TEASER).toContain('서로 만나보기를 선택하면');
-    expect(DISCOVERY_TEASER).toContain('형충회합');
+  /** 첫인상에서 상세 궁합으로 이어지는 버튼 이름을 그대로 쓴다. */
+  it('상세 궁합 보기로 다음 단계를 안내한다', () => {
+    expect(DISCOVERY_TEASER).toContain('상세 궁합 보기를 선택하면');
+    expect(DISCOVERY_TEASER).toContain('두 사람의 자세한 궁합');
   });
 });
 

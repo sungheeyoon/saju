@@ -11,6 +11,7 @@ import {
 import { supabaseOnServer } from '../../../auth/server-client';
 import { BetweenSections } from '../../../between-view';
 import { CARD } from '../../../card';
+import { PillarPair } from '../../../compat-view';
 import { BlockButton, MatchScope } from '../../requests/manage';
 import { ReadingSection } from '../../reading/section';
 import { matchResultForViewer, type SharedResult } from '../result';
@@ -31,10 +32,8 @@ export const metadata = {
  * 갈리면, 갈렸다는 사실을 아는 사람이 아무도 없다.
  *
  * **상대의 `Saju`와 `ChartEvidence`는 이 화면에 오지 않는다.** 서버가 두 판본을 읽어
- * 계산하고 잘라 내보낸다(ADR 0010·0012). 여기 서는 것은 `Compatibility` 와
- * `MatchPreview` 와 문장이고, 두 `Saju` 는 `matchResultForViewer` 안에서 나고 죽는다.
- * Compatibility의 관계 참가자를 합쳐 여덟 글자가 드러날 수는 있지만, 상대 원국 전체
- * 판정·명식 표·근거 패널은 없는 것이 그 경계다.
+ * 계산한 뒤, 서로 공개하기로 한 여덟 글자만 새 객체로 잘라 내보낸다(ADR 0010·0012).
+ * 정확한 생년월일시·출생지·상대 원국 전체 판정·근거 패널은 계속 서버 경계 안에 남는다.
  */
 export default async function MatchResultPage({
   params,
@@ -146,6 +145,8 @@ function Result({ result }: { result: SharedResult }) {
         )}
         <p className="text-sm text-secondary">{result.balanceLabel}</p>
       </section>
+
+      <PillarPair charts={result.charts} names={result.names} />
 
       {/*
         **결과 화면에서도 같은 한 벌을 읽는다.** 무엇이 열렸고 무엇이 여전히 닫혀

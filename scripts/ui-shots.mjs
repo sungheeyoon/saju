@@ -141,6 +141,11 @@ const PLAN = [
     ],
   },
   {
+    state: 'board',
+    group: '인연',
+    shots: [{ id: 'me-board', at: '/me', name: '내 계정 (홈) — 오늘의 인연이 섰을 때' }],
+  },
+  {
     state: 'pair',
     group: '인연',
     shots: [

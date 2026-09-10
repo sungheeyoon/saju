@@ -16,7 +16,7 @@ import { HideButton, PreviewScorePanel, RefreshBoard, UnhideAll } from './manage
  * 세웠다. 이제 뽑는 일은 스냅샷이 하고 여기는 **만들어 둔 열 명을 읽기만 한다** —
  * 그래서 방문마다 도는 셈 없이 홈에 세울 수 있다.
  *
- * 설정(조건·참여 켜고 끄기)은 `/me/discovery` 에 남는다. 목록과 설정은
+ * 설정(조건·참여 켜고 끄기)은 `/me/settings` 에 둔다. 목록과 설정은
  * 보는 빈도가 다르다 — 매번 보는 것을 매번 안 보는 것 아래에 두면 목록이 안 읽힌다.
  */
 export async function DiscoveryBoard() {
@@ -94,10 +94,10 @@ function Resting() {
         내 사주와 저장한 사람은 그대로 남아 있습니다.
       </p>
       <Link
-        href="/me/discovery"
+        href="/me/settings"
         className="self-start text-sm font-semibold text-accent underline underline-offset-4"
       >
-        인연 찾기 설정 열기
+        계정 관리 열기
       </Link>
     </section>
   );
@@ -110,6 +110,8 @@ function Resting() {
  * 하는 말이다. 빈 자리에 그대로 두면 다섯 문장이 아무것도 없는 자리를 감싸고, 그중
  * 하나는 거짓에 가깝다 — 하루가 지나도 참여자가 없으면 그대로다.
  *
+ * 설명 문단은 두지 않고 빈 상태만 한 문장으로 말한다.
+ *
  * **새로 받기는 남긴다.** 오늘 들어온 사람은 내 스냅샷에 없고, 그 사람을 지금 보는 길이
  * 이 버튼 하나다.
  *
@@ -120,9 +122,6 @@ function Empty({ hiddenCount, waitSeconds }: { hiddenCount: number; waitSeconds:
   return (
     <section className={`${CARD} flex flex-col gap-2`}>
       <h2 className="text-base font-semibold">{DISCOVERY_EMPTY.title}</h2>
-      <p className="text-sm leading-6 text-secondary">{DISCOVERY_EMPTY.why}</p>
-      <p className="text-sm leading-6 text-secondary">{DISCOVERY_EMPTY.standing}</p>
-      <p className="text-sm leading-6 text-secondary">{DISCOVERY_EMPTY.meanwhile}</p>
       <div className="flex flex-wrap items-center gap-4 pt-1">
         <RefreshBoard waitSeconds={waitSeconds} />
         <UnhideAll count={hiddenCount} />
@@ -155,15 +154,6 @@ function Candidates({
       </div>
 
       {/*
-        **목록이 고정된 것이라는 말을 여기서 한다.** 안 적으면 「왜 어제와 같은 사람들인가」에
-        답하지 못하고, 사용자는 추천이 멈춘 줄 안다.
-      */}
-      <p className="text-xs text-muted">
-        오늘 준비한 목록이에요. 하루가 지나면 새로 바뀌고, 다른 인연을 바로 보고 싶다면
-        새로 받아 보세요.
-      </p>
-
-      {/*
         여기서 멈추는 이유와 다음을 먼저 말한다 — **상세 궁합은 서로 동의한 뒤**다.
         문장은 정책이 든다.
       */}
@@ -172,9 +162,6 @@ function Candidates({
       </p>
 
       {board.notice !== null && <p className="text-sm text-secondary">{board.notice}</p>}
-
-      {/* 순서가 정답이 아니라는 말은 **목록이 든다** — 정책이 낸 문장 그대로다 */}
-      <p className="text-xs text-muted">{board.caveat}</p>
 
       <ul className="flex flex-col gap-3">
         {board.cards.map((card) => (

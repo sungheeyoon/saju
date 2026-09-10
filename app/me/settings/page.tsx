@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { isBlocked } from '@/src/lib/account';
@@ -8,8 +9,9 @@ import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { RequestDeletion } from '../leaving';
 import { ConsentControls } from '../consent-controls';
+import { ParticipationToggle, PreferenceForm } from '../discovery/manage';
+import { preferGenderOf } from '../discovery/profile';
 import { NOTICE_VERSION, OPTIONAL_CONSENT_NOTE, asKoreanDay } from '@/src/lib/consent';
-import Link from 'next/link';
 
 export const metadata = {
   title: '계정 관리 — 만세력',
@@ -24,13 +26,16 @@ export default async function SettingsPage() {
   if (!user) redirect('/auth');
 
   /** 온보딩을 안 묻는 화면이라 `self_person_id` 를 안 읽고, 대신 동의 칸을 함께 읽는다 */
-  const { state, row: account } = await readAccount<{
-    status: string;
-    improvement_consent: boolean | null;
-    contact_consent: boolean | null;
-    notice_version: string | null;
-    notice_ack_at: string | null;
-  }>(supabase, 'status, improvement_consent, contact_consent, notice_version, notice_ack_at');
+  const [{ state, row: account }, { data: discoveryProfile }] = await Promise.all([
+    readAccount<{
+      status: string;
+      improvement_consent: boolean | null;
+      contact_consent: boolean | null;
+      notice_version: string | null;
+      notice_ack_at: string | null;
+    }>(supabase, 'status, improvement_consent, contact_consent, notice_version, notice_ack_at'),
+    supabase.from('discovery_profile').select('prefer_gender, opted_out_at').maybeSingle(),
+  ]);
 
   const signOut = async () => {
     'use server';
@@ -49,20 +54,12 @@ export default async function SettingsPage() {
 
       {isBlocked(state) && <AccountNotice state={state} />}
 
-      <section className={`${CARD} flex flex-col gap-4`}>
-        <div>
-          <h2 className="text-base font-bold">로그인 정보</h2>
-          <p className="mt-1 text-sm text-secondary">{user.email}</p>
-        </div>
-        <form action={signOut} className="border-t border-border pt-4">
-          <button
-            type="submit"
-            className="h-10 rounded-xl border border-border-strong px-4 text-sm font-semibold hover:border-accent hover:text-accent"
-          >
-            로그아웃
-          </button>
-        </form>
-      </section>
+      {state.kind === 'active' && (
+        <>
+          <PreferenceForm current={preferGenderOf(discoveryProfile?.prefer_gender)} />
+          <ParticipationToggle resting={discoveryProfile?.opted_out_at != null} />
+        </>
+      )}
 
       {state.kind === 'active' && account !== null && (
         <section className={`${CARD} flex flex-col gap-4`}>
@@ -85,6 +82,21 @@ export default async function SettingsPage() {
           </p>
         </section>
       )}
+
+      <section className={`${CARD} flex flex-col gap-4`}>
+        <div>
+          <h2 className="text-base font-bold">로그인 정보</h2>
+          <p className="mt-1 text-sm text-secondary">{user.email}</p>
+        </div>
+        <form action={signOut} className="border-t border-border pt-4">
+          <button
+            type="submit"
+            className="h-10 rounded-xl border border-border-strong px-4 text-sm font-semibold hover:border-accent hover:text-accent"
+          >
+            로그아웃
+          </button>
+        </form>
+      </section>
 
       {state.kind === 'active' && (
         <section className={`${CARD} flex flex-col gap-4`}>

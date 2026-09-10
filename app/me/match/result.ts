@@ -1,4 +1,10 @@
-import { ELEMENTS, analyzeCompatibility, type Compatibility, type Element } from '@/src/lib/saju';
+import {
+  ELEMENTS,
+  analyzeCompatibility,
+  type Compatibility,
+  type CompatSide,
+  type Element,
+} from '@/src/lib/saju';
 import { cardTextFor, type BalanceBand } from '@/src/lib/discovery';
 import { suppliedText } from '@/src/lib/consent';
 
@@ -6,6 +12,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { chartOf } from '@/src/lib/input/chart';
 import { UnreadableRevisionError, queryFromRevision } from '@/src/lib/input/revision';
 import { ResultClosedError, pinnedInputs } from './inputs';
+import { sharedPillarChartOf, type SharedPillarChart } from '../../shared-pillar';
 
 /**
  * **공유 결과가 브라우저로 내려가는 유일한 문.**
@@ -46,6 +53,8 @@ export type SharedResult = {
    * 할지 헤매지 않도록 자기 자리를 앞에 둔다.
    */
   readonly names: { readonly a: string; readonly b: string };
+  /** 정확한 출생 입력과 원국 전체 판정을 뺀, 화면에 명시적으로 공유할 여덟 글자 */
+  readonly charts: Record<CompatSide, SharedPillarChart>;
   /** 두 원국 **사이**의 사실 — 각자의 원국 안에서 닫힌 것은 여기 없다 */
   readonly compat: Compatibility;
   /** 요청이 잡아 둔 그때의 두 축 — 지금 다시 세지 않는다 */
@@ -171,6 +180,10 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
       partnerNickname: names.b,
       partnerIntro: scope.partner_intro,
       names,
+      charts: {
+        a: sharedPillarChartOf(charts.a.pillars),
+        b: sharedPillarChartOf(charts.b.pillars),
+      },
       compat,
       suppliedToMe: suppliedText(elementsOf(scope.supplied_to_me), 'toMe'),
       suppliedToThem: suppliedText(elementsOf(scope.supplied_to_them), 'toThem'),

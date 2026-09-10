@@ -222,12 +222,9 @@ export function previewSummaryFor(row: {
   };
 }
 
-export const DISCOVERY_CAVEAT =
-  '첫인상 궁합은 오행의 보완과 두 사람의 균형만 살펴본 참고 점수예요. 점수가 낮다고 인연을 숨기지는 않아요.';
-
 /** 여기서 멈추는 이유와 다음 — **상세 궁합은 서로 동의한 뒤에 열린다** */
 export const DISCOVERY_TEASER =
-  '지금은 오행으로 살펴본 첫인상만 보여드려요. 서로 만나보기를 선택하면 형충회합과 자세한 궁합을 함께 확인할 수 있어요.';
+  '지금은 오행으로 살펴본 첫인상만 보여드려요. 상세 궁합 보기를 선택하면 두 사람의 자세한 궁합을 함께 확인할 수 있어요.';
 
 /**
  * 목록이 **빈 자리**에 서는 말 — 첫 주에는 이것이 기본 상태다.
@@ -248,12 +245,7 @@ export const DISCOVERY_TEASER =
  * 자리는 따로 있다(`Resting`).
  */
 export const DISCOVERY_EMPTY = {
-  title: '아직 소개해 드릴 인연이 없습니다',
-  why: '아직 참여자가 많지 않아 목록이 비어 있습니다. 새로운 참여자가 생기면 목록이 업데이트됩니다.',
-  standing:
-    '인연 찾기는 켜져 있습니다. 내 프로필은 다른 참여자에게 소개될 수 있습니다.',
-  meanwhile:
-    '그동안 내 사주풀이를 받아 보시거나, 가족·친구를 저장해 두 분의 궁합을 보실 수 있습니다.',
+  title: '소개해 드릴 인연이 없습니다.',
 } as const;
 
 const EXPLORATION_NOTE =

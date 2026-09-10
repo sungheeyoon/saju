@@ -48,13 +48,6 @@ const MEMBER_LINKS = [
    * 먼저 기억해야 했다. 저장돼 있는데 닿을 수 없는 것은 사용자에게 없는 것과 같다.
    */
   { href: '/me/readings', label: '풀이' },
-  /**
-   * **목록이 아니라 설정으로 간다**(ADR 0037).
-   *
-   * 소개받은 사람들은 홈(`/me`)에 선다. 이 자리가 여는 것은 「내가 어떻게 보일까」이고,
-   * 이름을 「인연 찾기」로 두면 목록을 찾는 사람이 여기서 목록을 못 찾는다.
-   */
-  { href: '/me/discovery', label: '인연 설정' },
   { href: '/me/requests', label: '소식' },
 ] as const;
 
@@ -381,7 +374,7 @@ function AccountMenu({
   variant: 'mobile' | 'desktop';
   /**
    * 베타가 끝난 화면인가 — 그때 **아직 열려 있는 길은 계정 관리 하나**다
-   * (`gateFor`: 끝난 뒤 지나가는 것은 `/me/settings` 뿐이다). 프로필도 인연 설정도
+   * (`gateFor`: 끝난 뒤 지나가는 것은 `/me/settings` 뿐이다). 프로필도 다른 설정도
    * 누르면 이 화면으로 되돌아온다.
    */
   ended?: boolean;
@@ -459,18 +452,11 @@ function AccountMenu({
             >
               사주 보기
             </Link>
-            <Link
-              href="/me/discovery"
-              onClick={close}
-              className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
-            >
-              인연 설정
-            </Link>
           </div>
         )}
         {/*
           **프로필로 가는 길은 여기다.** 가입할 때 한 번 짓고 나면 그 화면을 다시 찾을
-          자리가 없었다 — 인연 설정 안의 한 줄로만 닿았고, 인연에 참여하지 않는 사람은
+          자리가 없었다 — 예전 인연 설정 안의 한 줄로만 닿았고, 인연에 참여하지 않는 사람은
           그 화면에 갈 이유가 없다. 이름은 앱 전체의 것이므로 길도 앱 전체의 자리에 선다.
         */}
         {!ended && (

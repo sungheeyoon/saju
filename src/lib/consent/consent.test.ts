@@ -8,13 +8,13 @@ import {
   CONSENT_FLOW_STEPS,
   CONSENT_INTRO,
   MATCH_DISCLOSURE,
+  MATCH_PILLARS_DISCLOSURE,
   MATCH_RESULT_CLOSED_NOTE,
   MATCH_RESULT_INTRO,
   MATCH_RESULT_ENGINE_NOTE,
   MATCH_RESULT_PINNED_NOTE,
   NOTIFICATION_KINDS,
   REJECTION_IS_FINAL_NOTE,
-  REQUEST_INTRO,
   REQUEST_STATUSES,
   REQUEST_STATUS_TEXT,
   REVISION_BOUND_NOTE,
@@ -173,7 +173,7 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
     expect(shown).toContain('누가 보든');
   });
 
-  /** 여덟 글자는 열려도 출생 원문과 상대 원국 전체 판정은 계속 닫혀 있다 */
+  /** 여덟 글자는 명시적으로 열려도 출생 원문과 상대 원국 전체 판정은 계속 닫혀 있다 */
   it('열리지 않는 것에 출생 원문과 상대 원국 전체 판정이 있다', () => {
     const hidden = MATCH_DISCLOSURE.hidden.join(' ');
     expect(hidden).toContain('생년월일시');
@@ -183,21 +183,19 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
   });
 
   it('세 문턱이 같은 목록 앞에 선다', () => {
-    expect(REQUEST_INTRO).toContain('수락');
     expect(CONSENT_INTRO).toContain('같은 궁합 결과');
     // 결과 화면도 같은 목록을 읽는다(ADR 0010) — 앞에 붙는 말만 다르다.
-    expect(MATCH_RESULT_INTRO).toContain('궁합 풀이와 점수');
+    expect(MATCH_RESULT_INTRO).toContain('사주팔자 여덟 글자');
   });
 
-  /**
-   * 결과를 만들면서 실제로 무엇이 나가는지 알게 됐다 — 관계 표 여러 줄을 합치면
-   * 여덟 글자가 전부 드러날 수 있다. 우연에 맡기지 않고 동의 범위에 **적는다**(ADR 0012).
-   */
-  it('관계를 합치면 여덟 글자가 전부 보일 수 있음을 적는다', () => {
+  /** 결과에서 두 사람의 여덟 글자를 나란히 보여 주므로 동의 범위에 직접 적는다(ADR 0012). */
+  it('양쪽 여덟 글자를 서로 공개한다고 요청자와 수신자에게 명시한다', () => {
     const shown = MATCH_DISCLOSURE.shown.join(' ');
-    expect(shown).toContain('글자');
     expect(shown).toContain('여덟 글자');
-    expect(shown).toContain('전부');
+    expect(shown).toContain('년주·월주·일주·시주');
+    expect(MATCH_PILLARS_DISCLOSURE).toContain('내 사주팔자 여덟 글자가 상대에게 공개');
+    expect(MATCH_PILLARS_DISCLOSURE).toContain('상대의 사주팔자 여덟 글자도 나에게 공개');
+    expect(CONSENT_INTRO).toContain(MATCH_PILLARS_DISCLOSURE);
     expect(MATCH_DISCLOSURE.hidden.join(' ')).not.toContain('여덟 글자');
   });
 });
@@ -283,7 +281,6 @@ describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
       CONSENT_FLOW_CAVEAT,
       ...MATCH_DISCLOSURE.shown,
       ...MATCH_DISCLOSURE.hidden,
-      REQUEST_INTRO,
       CONSENT_INTRO,
       REVISION_BOUND_NOTE,
       REJECTION_IS_FINAL_NOTE,

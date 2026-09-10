@@ -330,15 +330,32 @@ export async function plantReading(api, { kind, personId = null, matchId = null,
   return run.run_id;
 }
 
-/** 인연 찾기 풀에 세운다 — 요약은 앱이 넣는 값이라 손으로 준다 */
-export async function participate(api) {
+/** 다섯 칸이 다 찬 요약 — **빠진 오행이 없다.** 후보 카드가 「채워 주지 않고」로 서는 쪽 */
+const EVEN_SUMMARY = { 木: 2, 火: 2, 土: 2, 金: 1, 水: 1 };
+
+/** 개수를 비율까지 갖춘 요약으로 — 앱이 넣는 모양 그대로 */
+const summaryOf = (counts) => {
+  const glyphCount = Object.values(counts).reduce((sum, one) => sum + one, 0);
+  return {
+    glyphCount,
+    counts,
+    ratios: Object.fromEntries(
+      Object.entries(counts).map(([element, count]) => [element, count / glyphCount]),
+    ),
+  };
+};
+
+/**
+ * 인연 찾기 풀에 세운다 — 요약은 앱이 넣는 값이라 손으로 준다.
+ *
+ * **개수를 받는다.** 기본값은 다섯 칸이 다 찬 요약이라 두 사람을 그대로 세우면 서로
+ * 채울 오행이 없다 — 후보 카드의 오행 칩이 한 번도 안 서는 상태다. 그 카드를 찍으려면
+ * 한쪽에 빈 칸이 있고 다른 쪽이 그것을 가져야 한다.
+ */
+export async function participate(api, counts = EVEN_SUMMARY) {
   const on = await api.rpc('set_discovery_participation', {
     p_on: true,
-    p_summary: {
-      glyphCount: 8,
-      counts: { 木: 2, 火: 2, 土: 2, 金: 1, 水: 1 },
-      ratios: { 木: 0.25, 火: 0.25, 土: 0.25, 金: 0.125, 水: 0.125 },
-    },
+    p_summary: summaryOf(counts),
   });
   if (on.error) throw new Error(`참여를 못 켰습니다 — ${on.error.message}`);
 }

@@ -69,8 +69,6 @@ export function PillarCard({
           <div className="min-w-0 flex-1 pr-12 pt-0.5">
             <p className="eyebrow">내 사주</p>
             <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">{label}의 사주팔자</h2>
-            {/* 그 너머(지장간·공망·운)는 **아래 띠가 말한다** — 같은 말을 카드가 두 번 하지 않는다 */}
-            <p className="mt-1.5 text-sm text-secondary">여덟 글자와 오행의 기울기를 봅니다.</p>
           </div>
         </div>
 

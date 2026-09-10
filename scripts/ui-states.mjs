@@ -16,6 +16,8 @@ export const STATES = {
   full: '자기 사주 + 가족 + 풀이 둘',
   /** 둘이 이어진 상태 — 궁합 결과와 알림함이 여기서만 산다 */
   pair: '수락된 궁합 한 쌍 (창 둘)',
+  /** 아직 아무에게도 안 보낸 상태 — **후보 카드가 실제로 서는 유일한 자리** */
+  board: '홈에 오늘의 인연이 선다 (요청 전)',
 };
 
 async function fullOne(local, { nickname, label, gender, tag }) {
@@ -115,6 +117,39 @@ export async function build(state) {
     return {
       local,
       people: [{ ...one, cookies: await cookiesFor(local, one.email, one.password), at: '/me' }],
+    };
+  }
+
+  /**
+   * **후보 카드를 찍으려면 짝이 둘 필요하다.**
+   *
+   * `full` 은 풀을 자기 하나로 좁히므로(`onlyTheseTwo`) 홈의 「오늘의 인연」이 늘 빈
+   * 자리로 선다 — 앱에서 가장 자주 보는 화면인데 훑기가 그 채워진 모양을 한 번도 안
+   * 찍고 있었다.
+   *
+   * `pair` 와 다른 것은 **아무것도 안 보냈다는 것**이다. 요청이 오가면 상대는 후보에서
+   * 빠지므로, 같은 상태로는 이 화면을 못 찍는다.
+   *
+   * 요약을 서로 어긋나게 준다. 둘 다 다섯 칸이 찬 기본값이면 채울 오행이 없어
+   * **오행 칩이 없는 카드**만 선다 — 그것도 참인 화면이지만 흔한 쪽은 아니다.
+   */
+  if (state === 'board') {
+    const viewer = await fullOne(local, { nickname: `벗${tag.slice(-4)}`, tag });
+    const other = await fullOne(local, {
+      nickname: `이웃${tag.slice(-3)}`,
+      label: '이웃',
+      gender: 'female',
+      tag,
+    });
+
+    // 보는 쪽에 土·金 이 비어 있고, 상대가 그 둘을 가졌다
+    await participate(viewer.api, { 木: 3, 火: 3, 土: 0, 金: 0, 水: 2 });
+    await participate(other.api, { 木: 1, 火: 1, 土: 3, 金: 2, 水: 1 });
+    onlyTheseTwo([viewer.email, other.email]);
+
+    return {
+      local,
+      people: [{ ...viewer, cookies: await cookiesFor(local, viewer.email, viewer.password), at: '/me' }],
     };
   }
 

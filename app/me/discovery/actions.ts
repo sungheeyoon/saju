@@ -38,7 +38,7 @@ export async function savePreferGender(value: PreferGender): Promise<SaveResult>
 
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath('/me/discovery');
+  revalidatePath('/me/settings');
   return { ok: true };
 }
 
@@ -59,7 +59,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
     });
     if (error) return { ok: false, message: error.message };
 
-    revalidatePath('/me/discovery');
+    revalidatePath('/me/settings');
     return { ok: true };
   }
 
@@ -77,7 +77,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
   });
   if (error) return { ok: false, message: error.message };
 
-  revalidatePath('/me/discovery');
+  revalidatePath('/me/settings');
   return { ok: true };
 }
 

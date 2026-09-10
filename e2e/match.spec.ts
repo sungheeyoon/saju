@@ -70,24 +70,16 @@ test.describe('동의로 열리는 흐름', () => {
       await person.page.getByRole('button', { name: '프로필 저장' }).click();
       await expect(person.page.getByText('저장했습니다')).toBeVisible();
 
-      await person.page.goto('/me/discovery');
-      // 낱말이 「매칭」에서 「인연 찾기」로 바뀌었는데 이 시험이 안 따라왔었다.
-      await expect(person.page.getByRole('heading', { name: '인연 찾기 설정' })).toBeVisible();
-
-      /*
-        **무엇이 나가고 무엇이 안 나가는지 읽힌다**(US 26 · `prd-archive`).
-        화면·ADR·`prd-archive` 가 같은 문장을 쓰기로 한 자리다.
-      */
-      await expect(person.page.getByText('상대에게 보이는 것')).toBeVisible();
-      await expect(person.page.getByText('보이지 않는 것')).toBeVisible();
+      await person.page.goto('/me/settings');
+      await expect(person.page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
 
       /*
         **누를 버튼이 없다**(PRD §4.1, ADR 0037). 참여가 기본으로 켜진 뒤로 이 화면에서
-        켜는 일이 없어졌고, 무엇이 나가는지는 가입 관문이 읽힌다(`notice-v3`). 여기 남은
+        켜는 일이 없어졌고, 무엇이 나가는지는 가입 관문이 읽힌다(`notice-v4`). 여기 남은
         누름은 끄는 것 하나다 — 그 버튼이 서 있는 것으로 「지금 켜져 있다」를 잰다.
       */
       await expect(person.page.getByRole('heading', { name: '인연 찾기 참여 중' })).toBeVisible();
-      await expect(person.page.getByRole('button', { name: '인연 찾기 쉬기' })).toBeVisible();
+      await expect(person.page.getByRole('button', { name: '인연 찾기 잠시 쉬기' })).toBeVisible();
 
       /*
         **참여가 실제로 열리는 자리는 홈이다.** 요약은 DB 가 못 만들어서 앱이 넣고, 그
@@ -124,12 +116,12 @@ test.describe('동의로 열리는 흐름', () => {
     */
     await expect(card.getByText('1990-05-15')).toHaveCount(0);
 
-    await card.getByRole('button', { name: '상세 궁합 요청하기' }).click();
-    // 보내기 전에 공개 범위를 읽는다 — 후보 카드만 본 것은 동의가 아니다(`prd-archive`).
-    await expect(card.getByText('여덟 글자', { exact: false }).first()).toBeVisible();
-    await card.getByRole('button', { name: '요청 보내기' }).click();
+    await card.getByRole('button', { name: '상세 궁합 보기' }).click();
     const confirmRequest = asker.page.getByRole('dialog');
-    await expect(confirmRequest).toContainText('풀이권 1회');
+    await expect(confirmRequest).toContainText('풀이권 1회가 임시로 차감됩니다');
+    await expect(confirmRequest).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
+    await expect(confirmRequest).toContainText('정확한 생년월일시와 출생지는 공개되지 않습니다');
+    await expect(confirmRequest).toContainText('상대와 연락할 수 있는 기능은 아직 지원하지 않습니다');
     await confirmRequest.getByRole('button', { name: '요청 보내기' }).click();
 
     // ── 받은 쪽이 읽고 수락한다 ─────────────────────────────────────────────
@@ -144,6 +136,9 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receiver.page.getByRole('listitem').filter({ hasText: '요청을 보냅니다' })).toBeVisible();
     await expect(receiver.page.getByText('보내는 것만으로 상대에게 열리는 것은 없고')).toBeVisible();
     await expect(receiver.page.getByRole('heading', { name: `보내는${tag}` })).toBeVisible();
+    const receivedCard = receiver.page.getByRole('listitem').filter({ hasText: `보내는${tag}` });
+    await expect(receivedCard).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
+    await expect(receivedCard).toContainText('정확한 생년월일시와 출생지는 공개되지 않습니다');
 
     // 수락 전에도 상대의 정확한 출생 정보는 없다(US 39).
     await expect(receiver.page.getByText('1990-05-15')).toHaveCount(0);
@@ -156,16 +151,22 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receiver.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
 
     // ── 양쪽이 같은 결과 화면에 선다 ────────────────────────────────────────
-    for (const person of [asker, receiver]) {
+    for (const [person, partner] of [
+      [asker, `받는${tag}`],
+      [receiver, `보내는${tag}`],
+    ] as const) {
       await person.page.goto('/me/requests');
       await person.page.getByRole('link', { name: '함께 보기' }).click();
 
       await expect(person.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
+      await expect(person.page.getByRole('heading', { name: '궁합의 출발점' })).toBeVisible();
+      await expect(person.page.getByText('각자의 여덟 글자를 한자리에서 견줍니다')).toBeVisible();
+      await expect(person.page.getByRole('table')).toHaveCount(2);
       await expect(person.page.getByText('두 원국 사이의 관계')).toBeVisible();
 
       /*
-        **동의 뒤에도 열리지 않는 것**(ADR 0012). 여덟 글자는 관계를 합쳐 드러날 수
-        있지만 정확한 출생 원문과 출생지는 그때도 열리지 않는다.
+        **동의 뒤에도 열리지 않는 것**(ADR 0012). 여덟 글자는 결과 화면에서 서로에게
+        공개되지만 정확한 출생 원문과 출생지는 그때도 열리지 않는다.
       */
       await expect(person.page.getByText('1990-05-15')).toHaveCount(0);
       await expect(person.page.getByText('서울')).toHaveCount(0);
@@ -183,6 +184,9 @@ test.describe('동의로 열리는 흐름', () => {
       */
       await expect(person.page.getByRole('heading', { name: '두 사람의 궁합 풀이' })).toBeVisible();
       await expect(person.page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
+
+      await person.page.goto('/me/readings');
+      await expect(person.page.getByRole('link', { name: new RegExp(`${partner} 궁합`) })).toBeVisible();
     }
   });
 
@@ -307,7 +311,7 @@ test.describe('동의로 열리는 흐름', () => {
    * 올라와 붙어 버릴 수 있고, 그러면 **읽기 전에 누를 수 있는 배치**가 된다.
    * 재는 것은 「먼저 그려졌나」가 아니라 **「버튼보다 위에 있나」**다.
    */
-  test('좁은 화면에서도 동의 범위가 보내기 버튼 위에 선다', async ({ openAs, isMobile }) => {
+  test('좁은 화면에서도 요청 안내가 보내기 버튼 위에 선다', async ({ openAs, isMobile }) => {
     test.skip(!isMobile, '좁은 화면에서만 재는 배치다');
 
     const tag = freshTag();
@@ -320,10 +324,11 @@ test.describe('동의로 열리는 흐름', () => {
       **첫 카드로 좁힌다.** 시험들이 나란히 도는 동안 남의 후보가 목록에 함께 설 수
       있고, 여기서 재는 것은 「누가 서 있나」가 아니라 **한 카드 안의 배치**다.
     */
-    await asker.page.getByRole('button', { name: '상세 궁합 요청하기' }).first().click();
+    await asker.page.getByRole('button', { name: '상세 궁합 보기' }).first().click();
 
-    const scope = asker.page.getByText('서로에게 열리는 것').first();
-    const send = asker.page.getByRole('button', { name: '요청 보내기' }).first();
+    const dialog = asker.page.getByRole('dialog');
+    const scope = dialog.getByText('풀이권 1회가 임시로 차감됩니다', { exact: false });
+    const send = dialog.getByRole('button', { name: '요청 보내기' });
     await expect(scope).toBeVisible();
     await expect(send).toBeVisible();
 
@@ -371,12 +376,9 @@ test.describe('동의로 열리는 흐름', () => {
 
     await asker.page.goto('/me');
     const card = asker.page.getByRole('listitem').filter({ hasText: `나${tag}` });
-    await reach(asker, '상세 궁합 요청하기', card);
+    await reach(asker, '상세 궁합 보기', card);
     await asker.page.keyboard.press('Enter');
 
-    // 열린 범위 안에서도 초점이 이어진다 — 새로 그려진 칸이 탭 순서 밖이면 여기서 죽는다.
-    await reach(asker, '요청 보내기', card);
-    await asker.page.keyboard.press('Enter');
     const confirmRequest = asker.page.getByRole('dialog');
     await expect(confirmRequest).toBeVisible();
     await expect(confirmRequest.getByRole('button', { name: '요청 보내기' })).toBeFocused();

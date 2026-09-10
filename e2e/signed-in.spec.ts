@@ -61,7 +61,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await wholeMenu.click();
     await expect(page.getByRole('link', { name: '사주 보기', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: '인연 설정', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: '인연 설정', exact: true })).toHaveCount(0);
   });
 
   test('온보딩에서 내 사주를 저장하면 그 자리에서 저장된 명식으로 바뀐다', async ({
@@ -812,6 +812,10 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     const account = page.getByRole('main');
     await expect(account.getByRole('button', { name: '로그아웃' })).toBeVisible();
     await expect(account.getByRole('button', { name: '계정 삭제 요청' })).toBeVisible();
+    const cardTitles = await account.getByRole('heading', { level: 2 }).allTextContents();
+    expect(cardTitles.indexOf('선택 동의')).toBeLessThan(cardTitles.indexOf('로그인 정보'));
+    expect(cardTitles.indexOf('로그인 정보')).toBeLessThan(cardTitles.indexOf('계정 삭제'));
+    expect(cardTitles.at(-1)).toBe('계정 삭제');
 
     /*
       **누르고 나면 판이 닫힌다.** `<details>` 는 안의 링크를 눌러도 스스로 안 닫히고,

@@ -1,7 +1,6 @@
 import { ELEMENTS, type Element } from '@/src/lib/saju';
 import type { ElementSummary } from '@/src/lib/matching/elementAxes';
 import {
-  DISCOVERY_CAVEAT,
   DISCOVERY_POLICY_V0,
   DISCOVERY_TEASER,
   boardNotes,
@@ -60,7 +59,6 @@ export type CandidateCard = {
 
 export type CandidateBoard = {
   readonly policyVersion: string;
-  readonly caveat: string;
   readonly teaser: string;
   readonly explorationNote: string | null;
   readonly notice: string | null;
@@ -134,7 +132,6 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
 
   return {
     policyVersion: DISCOVERY_POLICY_V0.version,
-    caveat: DISCOVERY_CAVEAT,
     teaser: DISCOVERY_TEASER,
     ...notes,
     cards,

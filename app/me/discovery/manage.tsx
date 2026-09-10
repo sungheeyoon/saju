@@ -3,13 +3,11 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
-import { DISCOVERY_DISCLOSURE } from '@/src/lib/discovery';
-import { REQUEST_INTRO } from '@/src/lib/consent';
+import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading';
 
 import { FIELD, SelectShell } from '../../birth-form';
 import { CARD } from '../../card';
-import { MatchScope } from '../requests/manage';
 import {
   hideCandidate,
   refreshDiscoveryBoard,
@@ -98,38 +96,10 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
 }
 
 /**
- * 무엇이 나가고 무엇이 안 나가는가 — **화면이 문장을 짓지 않는다.**
- *
- * 정책이 값으로 들고(`DISCOVERY_DISCLOSURE`), ADR 0003 과 `prd-archive` 가 같은 문장을 든다.
- * 세 곳에 따로 적으면 한 곳만 고쳐지고, 그때 사용자가 읽은 약속과 실제 동작이 갈린다.
- *
- * 켜기 전과 켠 뒤가 **같은 목록을 본다.** 켠 뒤에는 이 열거가 문단으로 한 벌 더 적혀
- * 있었다 — 한 칸에 두 벌이면 갈리고, 갈리면 어느 쪽이 약속인지 알 수 없다.
- */
-function Disclosure() {
-  return (
-    <dl className="flex flex-col gap-3 rounded-md border border-border bg-surface-sunken p-3 text-sm">
-      <div className="flex flex-col gap-1">
-        <dt className="text-xs text-muted">상대에게 보이는 것</dt>
-        {DISCOVERY_DISCLOSURE.shown.map((line) => (
-          <dd key={line}>{line}</dd>
-        ))}
-      </div>
-      <div className="flex flex-col gap-1">
-        <dt className="text-xs text-muted">보이지 않는 것</dt>
-        {DISCOVERY_DISCLOSURE.hidden.map((line) => (
-          <dd key={line}>{line}</dd>
-        ))}
-      </div>
-    </dl>
-  );
-}
-
-/**
  * 매칭 참여를 켜고 끄는 자리 — **이제 여기가 켜는 자리가 아니다.**
  *
  * 참여는 기본으로 켜져 있고(PRD §4.1), 무엇이 나가는지는 가입 관문이 읽힌다
- * (`notice-v3`). 여기 남은 일은 **끄는 것과, 껐던 것을 되돌리는 것** 둘이다.
+ * (`notice-v4`). 여기 남은 일은 **끄는 것과, 껐던 것을 되돌리는 것** 둘이다.
  *
  * 그래도 목록은 양쪽에 그대로 선다. 끄기 직전에도 무엇을 거두는지 보여야 하고, 되돌리기
  * 직전에도 무엇이 다시 나가는지 보여야 한다 — 두 누름 다 남에게 보이는 범위를 바꾼다.
@@ -152,21 +122,8 @@ export function ParticipationToggle({ resting }: { resting: boolean }) {
     return (
       <section className={`${CARD} flex flex-col gap-3`}>
         <h2 className="text-base font-semibold">인연 찾기 참여 중</h2>
-        {/*
-          열거를 **목록에 맡긴다.** 여기 「상대에게 보이는 것은 별명·소개와… 생년월일시·
-          출생지·전체 명식·전체 오행 개수표는 보이지 않습니다」가 손으로 적혀
-          있었다. 아래 목록이 같은 것을 항목으로 다시 펴므로 한 칸에 두 벌이었고, 두 벌은
-          갈린다. 문단은 「어디에 서는가」만 말하고 무엇이 나가는지는 정책이 든다.
-        */}
         <p className="text-sm text-secondary">
-          내 사주를 저장하시면 인연 찾기에 자동으로 참여합니다. 다른 참여자의 인연 목록에
-          표시될 수 있고, 상대에게 공개되는 정보와 공개되지 않는 정보는 아래와 같습니다.
-        </p>
-        <Disclosure />
-        <p className="text-sm text-secondary">
-          언제든 끌 수 있습니다. 끄면 내 프로필과 오행 요약이 다른 참여자에게 더 이상
-          공개되지 않습니다. 내 사주와 저장한 사람, 이미 주고받은 요청과 함께 보기로 한 궁합은
-          그대로 남습니다.
+          내 프로필과 오행 요약이 다른 참여자의 인연 목록에 표시될 수 있습니다.
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -175,7 +132,7 @@ export function ParticipationToggle({ resting }: { resting: boolean }) {
             disabled={working}
             className="h-11 rounded-lg border border-border px-4 text-sm text-secondary transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-60 sm:h-10"
           >
-            {working ? '끄는 중…' : '인연 찾기 쉬기'}
+            {working ? '끄는 중…' : '인연 찾기 잠시 쉬기'}
           </button>
         </div>
         {failure !== null && <p className="text-sm text-muted">{failure}</p>}
@@ -191,11 +148,8 @@ export function ParticipationToggle({ resting }: { resting: boolean }) {
     <section className={`${CARD} flex flex-col gap-3`}>
       <h2 className="text-base font-semibold">인연 찾기 쉬는 중</h2>
       <p className="text-sm text-secondary">
-        지금은 다른 참여자의 인연 목록에 서지 않습니다. 다시 시작하시면 내 사주를 기준으로
-        표시되고, 내가 대신 등록한 가족·친구는 그때도 공개되지 않습니다.
+        지금은 다른 참여자의 인연 목록에 내 프로필이 표시되지 않습니다.
       </p>
-
-      <Disclosure />
 
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={() => toggle(true)} disabled={working} className={BUTTON}>
@@ -341,16 +295,8 @@ export function UnhideAll({ count }: { count: number }) {
  * 하면서 합쳤다 — 나눠 두면 「같은 한 장으로 보이게」가 두 파일의 클래스 문자열이
  * 맞아떨어질 때만 참인 약속이 된다.
  *
- * 더 큰 이유는 **펴질 때 모양이 갈리기 때문이다.** 접히면 점수 아래 버튼 하나가 좁은
- * 칸에 서고, 펴지면 동의 안내가 카드 폭을 다 써야 한다(10rem 안에서는 못 읽는다).
- * 그 두 모양을 아는 것은 접혔는지 펴졌는지 아는 이 컴포넌트뿐이라, 격자에 두 조각으로
- * 내놓는 일도 여기서 한다.
- *
- * ## 보내기 전에 무엇이 열리는지 읽힌다
- *
- * 바로 보내지 않는다. 후보 카드만 본 것은 궁합 동의가 아니고(`prd-archive`), 무엇이 열리는지
- * 모른 채 누른 요청은 상대에게도 설명할 수 없는 요청이다. 수락 화면과 **같은 목록**을
- * 읽는다 — 두 곳에 따로 적으면 보내는 쪽과 받는 쪽이 다른 약속을 읽게 된다.
+ * 요청은 바로 보내지 않는다. 버튼을 누르면 풀이권의 임시 차감과 현재 제공 범위를
+ * 확인하는 팝업이 먼저 열린다.
  */
 export function PreviewScorePanel({
   candidateUserId,
@@ -361,7 +307,6 @@ export function PreviewScorePanel({
 }) {
   const router = useRouter();
   const confirming = useRef<HTMLDialogElement>(null);
-  const [reading, setReading] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
 
@@ -391,54 +336,16 @@ export function PreviewScorePanel({
           <span className="ml-0.5 text-sm font-semibold">점</span>
         </p>
 
-        {/*
-          **이 카드가 있는 이유가 이 누름이다.** 밑줄 친 글자로 서 있었는데, 그러면
-          모서리의 「다시 보지 않기」와 같은 무게로 읽힌다 — 앱의 다른 화면에서 이만한
-          누름은 전부 채운 버튼을 입는다(조건 저장, 인연 찾기 다시 시작).
-
-          펴진 뒤에는 이 자리에서 사라진다. 같은 일을 시키는 버튼이 한 카드에 둘 서면
-          어느 것이 지금 누를 것인지 알 수 없다 — 아래 안내가 「요청 보내기」를 든다.
-        */}
-        {!reading && (
-          <button
-            type="button"
-            onClick={() => setReading(true)}
-            className="mt-0.5 h-9 w-full rounded-lg bg-accent px-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-strong"
-          >
-            상세 궁합 보기
-          </button>
-        )}
+        {/* 이 카드의 주된 누름이므로 모서리의 「다시 보지 않기」보다 강하게 보인다. */}
+        <button
+          type="button"
+          onClick={() => confirming.current?.showModal()}
+          className="mt-0.5 h-9 w-full rounded-lg bg-accent px-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-strong"
+        >
+          상세 궁합 보기
+        </button>
+        {failure !== null && <p className="text-xs text-muted">{failure}</p>}
       </div>
-
-      {/*
-        **펴지면 카드 폭을 다 쓴다.** 격자의 두 칸에 걸치게 두는 것은, 이 안내가 무엇이
-        열리고 무엇이 안 열리는지를 항목으로 펴기 때문이다 — 10rem 안에서는 못 읽고,
-        못 읽는 동의는 동의가 아니다.
-      */}
-      {reading && (
-        <div className="col-span-full flex w-full flex-col gap-3">
-          <MatchScope intro={REQUEST_INTRO} />
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => confirming.current?.showModal()}
-              disabled={working}
-              className={BUTTON}
-            >
-              {working ? '보내는 중…' : '요청 보내기'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setReading(false)}
-              disabled={working}
-              className="text-sm text-secondary underline underline-offset-2"
-            >
-              그만두기
-            </button>
-          </div>
-          {failure !== null && <p className="text-sm text-muted">{failure}</p>}
-        </div>
-      )}
 
       <dialog
         ref={confirming}
@@ -446,9 +353,14 @@ export function PreviewScorePanel({
         className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
       >
         <h3 id={`request-match-${candidateUserId}`} className="text-base font-bold">
-          풀이권 1회를 예약할까요?
+          상세 궁합을 요청할까요?
         </h3>
         <p className="mt-2 text-sm leading-6 text-secondary">{REQUEST_RESERVES_NOTE}</p>
+        <p className="mt-3 text-sm leading-6 text-secondary">{MATCH_PILLARS_DISCLOSURE}</p>
+        <p className="mt-3 rounded-xl bg-surface-sunken p-3 text-sm leading-6 text-secondary">
+          현재는 두 사람이 궁합 풀이를 함께 보는 기능까지만 제공됩니다. 채팅이나 연락처
+          교환 등 상대와 연락할 수 있는 기능은 아직 지원하지 않습니다.
+        </p>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
           <button
             type="button"

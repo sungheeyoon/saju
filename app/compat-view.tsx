@@ -16,6 +16,7 @@ import { BetweenSections } from './between-view';
 
 import { PILLAR_COLUMNS } from './saju/shared';
 import { ELEMENT_TONE } from './element-tone';
+import { sharedPillarChartOf, type SharedPillarChart } from './shared-pillar';
 
 /**
  * 궁합 **결과 영역** — 입력을 어디서 받았는지 모른다.
@@ -29,9 +30,9 @@ import { ELEMENT_TONE } from './element-tone';
  * 그래서 받는 것은 계산이 끝난 값 셋뿐이다. 어느 화면인지는 `notice` 하나로만
  * 드러난다 — 링크에 무엇이 실리는지가 두 화면에서 서로 다른 사실이라 그렇다.
  *
- * **Match 결과 화면은 이것을 쓰지 않는다.** 여기는 두 명식을 나란히 놓는 자리이고,
- * 그쪽은 상대의 `Saju` 를 받지 않는다(ADR 0010·0012). 관계 참가자를 합쳐 여덟 글자가
- * 드러날 수는 있지만 둘이 함께 쓰는 것은 사이에 대한 칸들뿐이다(`BetweenSections`).
+ * Match 결과 화면은 이 컴포넌트 전체가 아니라 `PillarPair`만 재사용한다. 그 화면은
+ * 상대의 `Saju`를 받지 않고, 동의로 열린 여덟 글자만 잘라 만든 `SharedPillarChart`를
+ * 받는다(ADR 0010·0012).
  */
 
 /**
@@ -109,7 +110,13 @@ export function CompatView({
   return (
     <div className="flex flex-col gap-6">
       {notice}
-      <ChartPair charts={charts} names={names} />
+      <PillarPair
+        charts={{
+          a: { ...sharedPillarChartOf(charts.a.pillars), gender: charts.a.meta.gender },
+          b: { ...sharedPillarChartOf(charts.b.pillars), gender: charts.b.meta.gender },
+        }}
+        names={names}
+      />
       {analysis === 'folded' && <FoldedAnalysis compat={compat} names={names} />}
       {verdict}
     </div>
@@ -169,11 +176,11 @@ function FoldedAnalysis({
  * 가운데에 `×` 표식을 한 번 두었다가 걷었다. 묶여 있다는 것은 이미 외곽이 말하고,
  * 그 위에 얹은 기호는 두 면 사이에서 읽을 것이 없는 자리를 하나 더 만들었다.
  */
-function ChartPair({
+export function PillarPair({
   charts,
   names,
 }: {
-  charts: Record<CompatSide, Saju>;
+  charts: Record<CompatSide, SharedPillarChart>;
   names: Record<CompatSide, string>;
 }) {
   return (
@@ -188,7 +195,7 @@ function ChartPair({
 
       <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
         {SIDES.map((side) => (
-          <PairSide key={side} side={side} name={names[side]} saju={charts[side]} />
+          <PairSide key={side} side={side} name={names[side]} chart={charts[side]} />
         ))}
       </div>
     </section>
@@ -202,8 +209,16 @@ function ChartPair({
  * 옆줄의 일간으로 봤다. 두 화면을 오가는 사람에게는 같은 것이 두 번 다르게 서는 셈이라,
  * 머리의 모양을 한 벌로 맞춘다 — 타일은 이 면이 카드 안이라 한 치수 작다.
  */
-function PairSide({ side, name, saju }: { side: CompatSide; name: string; saju: Saju }) {
-  const dayMaster = STEM_INFO[saju.pillars.dayMaster];
+function PairSide({
+  side,
+  name,
+  chart,
+}: {
+  side: CompatSide;
+  name: string;
+  chart: SharedPillarChart;
+}) {
+  const dayMaster = STEM_INFO[chart.dayMaster];
   const dayTone = ELEMENT_TONE[dayMaster.element];
 
   return (
@@ -212,10 +227,10 @@ function PairSide({ side, name, saju }: { side: CompatSide; name: string; saju: 
         <div className="flex shrink-0 flex-col items-center gap-1.5">
           <div
             className={`grid size-14 place-items-center rounded-2xl border ${dayTone.border} ${dayTone.surface}`}
-            aria-label={`일간 ${saju.pillars.dayMaster}, ${dayMaster.ko}${ELEMENT_KO[dayMaster.element]}`}
+            aria-label={`일간 ${chart.dayMaster}, ${dayMaster.ko}${ELEMENT_KO[dayMaster.element]}`}
           >
             <span className={`glyph text-[1.75rem] font-bold leading-none ${dayTone.text}`} aria-hidden="true">
-              {saju.pillars.dayMaster}
+              {chart.dayMaster}
             </span>
           </div>
           <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${dayTone.surface} ${dayTone.text}`}>
@@ -226,7 +241,9 @@ function PairSide({ side, name, saju }: { side: CompatSide; name: string; saju: 
         <div className="min-w-0 flex-1 pt-0.5">
           <p className="eyebrow">{side === 'a' ? '첫 번째 사람' : '두 번째 사람'}</p>
           <h3 className="mt-0.5 truncate text-lg font-bold tracking-[-0.02em]">{name}</h3>
-          <p className="mt-0.5 text-xs text-secondary">{GENDER_KO[saju.meta.gender]}</p>
+          {chart.gender !== undefined && (
+            <p className="mt-0.5 text-xs text-secondary">{GENDER_KO[chart.gender]}</p>
+          )}
         </div>
       </div>
 
@@ -244,7 +261,7 @@ function PairSide({ side, name, saju }: { side: CompatSide; name: string; saju: 
         <tbody>
           <tr>
             {PILLAR_COLUMNS.map(({ key, label }) => {
-              const pillar = saju.pillars[key];
+              const pillar = chart[key];
               if (pillar === null) {
                 return (
                   <td key={key} className="rounded-xl bg-surface-sunken px-1 py-2.5 text-xs text-muted">
@@ -258,7 +275,7 @@ function PairSide({ side, name, saju }: { side: CompatSide; name: string; saju: 
               return (
                 <td
                   key={key}
-                  aria-label={`${label} ${pillar.name}`}
+                  aria-label={`${label} ${pillar.stem}${pillar.branch}`}
                   className={`rounded-xl border px-1 py-2 ${
                     key === 'day' ? 'border-accent/30 bg-accent-wash/50' : 'border-border bg-surface'
                   }`}

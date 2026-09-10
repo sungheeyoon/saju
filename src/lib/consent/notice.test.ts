@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { DISCOVERY_DISCLOSURE } from '../discovery';
-import { NOTICE_VERSION, OPTIONAL_CONSENTS, noticeFor } from './notice';
+import {
+  MATCH_PILLARS_DISCLOSURE,
+  NOTICE_VERSION,
+  OPTIONAL_CONSENTS,
+  noticeFor,
+} from './notice';
 import { scheduleFrom } from './schedule';
 
 /**
@@ -195,5 +200,17 @@ describe('선택 항목', () => {
 
 /** 문구가 바뀌면 판본도 바뀐다 — 「보여 준 적 있다」가 아니라 「무엇을 보여 줬나」다 */
 it('안내 판본이 값으로 서 있다', () => {
-  expect(NOTICE_VERSION).toMatch(/^notice-v\d+$/);
+  expect(NOTICE_VERSION).toBe('notice-v4');
+});
+
+it('가입 안내도 상세 궁합의 양방향 여덟 글자 공개를 직접 알린다', () => {
+  const text = noticeFor(
+    { endsOn: '2026-11-30', purgeBy: '2026-12-30', purgeWithinDays: 30 },
+    { name: '만세력 운영자', officer: '홍길동', contact: 'ops@example.com' },
+  )
+    .flatMap((section) => section.lines)
+    .join(' ');
+
+  expect(text).toContain(MATCH_PILLARS_DISCLOSURE);
+  expect(text).not.toContain('드러날 수 있습니다');
 });
