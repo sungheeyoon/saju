@@ -1,6 +1,6 @@
 -- discovery — 참여한 사람만 보고, 사주로는 아무도 지우지 않는다.
 begin;
-select plan(46);
+select plan(48);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim,
@@ -276,7 +276,7 @@ select set_config('request.jwt.claims', tests.claims((select kim from who)), tru
 select results_eq(
   format($$select nickname, supplied_elements, balance_band from public.my_discovery_board()
            where candidate_user_id = %L$$, (select lee from who)),
-  -- 함께 놓은 균형 56.25 → 가운데 칸. 숫자는 안 나가고 이 이름만 나간다.
+  -- 함께 놓은 균형 56.25 → 가운데 칸. 두 축의 원값은 숨기고 합친 참고값만 나간다.
   $$values ('지영'::text, array[]::text[], 'mixed'::text)$$,
   '참여한 상대가 후보로 선다 — 채우는 오행과 균형 칸과 함께');
 
@@ -299,10 +299,10 @@ select hasnt_function('public', 'log_discovery_impressions',
   '노출 기록을 손으로 적는 함수도 없다');
 
 /**
- * **두 축과 점수는 반환형에 없다.**
+ * **두 축의 원값은 반환형에 없고, 합친 첫인상 궁합만 나간다.**
  *
- * 82점과 79점은 절대적인 궁합 차이로 읽힌다. 「순서는 좋고 나쁨이 아니다」라고 적어
- * 놓고 숫자를 함께 내보내면 그 말은 아무도 안 믿는다.
+ * 상세 궁합의 결론처럼 읽히지 않게 이름부터 `preview_score` 로 두고, 두 축을 풀어낼
+ * 원값은 계속 감춘다. 화면은 이 숫자 바로 옆에서 오행만 본 참고값이라고 설명한다.
  */
 select is(
   (select count(*)::int from unnest(
@@ -310,7 +310,20 @@ select is(
       where proname = 'my_discovery_board' and pronamespace = 'public'::regnamespace)) as name
    where name in ('complement', 'combined_balance', 'score')),
   0,
-  '반환형에 두 축의 값도 점수도 없다');
+  '반환형에 두 축의 원값은 없다');
+
+select is(
+  (select count(*)::int from unnest(
+     (select proargnames from pg_catalog.pg_proc
+      where proname = 'my_discovery_board' and pronamespace = 'public'::regnamespace)) as name
+   where name = 'preview_score'),
+  1,
+  '두 축을 합친 첫인상 궁합 점수는 카드에 나간다');
+
+select ok(
+  (select preview_score between 0 and 100 from public.my_discovery_board()
+   where candidate_user_id = (select lee from who)),
+  '첫인상 궁합 점수는 0점부터 100점 사이다');
 
 /**
  * 두 축을 세는 함수는 **아무도 직접 못 부른다.**

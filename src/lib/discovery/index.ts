@@ -43,7 +43,8 @@ import { ELEMENT_KO, type Element } from '../saju';
  * 이름이 가리키는 것이 조용히 바뀐다.
  *
  * **줄 세우기는 SQL 이 한다.** 여기 적힌 수는 그 셈의 선언이고, `09_discovery_board`
- * 가 같은 수로 기대값을 만든다.
+ * 가 같은 수로 기대값을 만든다. 그 수는 후보 카드에서 `첫인상 궁합`으로도 보인다.
+ * 상세 궁합 점수와 혼동되지 않도록 오행 보완과 균형만 반영한 참고값이라고 함께 말한다.
  */
 export const DISCOVERY_POLICY_V0 = {
   version: 'discovery-v0',
@@ -84,7 +85,7 @@ export const DISCOVERY_POLICY_V0 = {
    * 넓어진다. 오른쪽은 서로 동의한 뒤에 열리는 것들이고, 생년월일시와 출생지는
    * 그때도 열리지 않는다(ADR 0008).
    */
-  discloses: ['supplied-elements', 'element-meaning', 'balance-band'] as const,
+  discloses: ['supplied-elements', 'element-meaning', 'balance-band', 'preview-score'] as const,
   withholds: [
     'birth-input',
     'birth-place',
@@ -96,7 +97,6 @@ export const DISCOVERY_POLICY_V0 = {
     'luck',
     'evidence',
     'element-counts',
-    'score',
   ] as const,
 } as const;
 
@@ -129,6 +129,8 @@ export type BoardRow = {
   /** 내게 없는 오행 중 이 후보가 가진 것. 상대의 전체 구성이 아니다 */
   suppliedElements: readonly Element[];
   balanceBand: BalanceBand;
+  /** 오행 보완 54% + 함께 놓은 균형 46% — 상세 궁합 전의 참고값 */
+  previewScore: number;
 };
 
 /** 이 후보가 내게 채우는 오행 하나와 그 뜻, 그리고 그것을 사람 말로 옮긴 한 줄 */
@@ -139,17 +141,17 @@ export type CandidateHighlight = {
 };
 
 const BALANCE_LABEL: Record<BalanceBand, string> = {
-  even: '함께 놓으면 오행 균형이 고르게 잡히는 편입니다.',
-  mixed: '함께 놓으면 오행이 대체로 고른 편입니다.',
-  skewed: '함께 놓아도 오행이 한쪽으로 기우는 편입니다.',
+  even: '두 사람의 오행을 함께 보면 균형이 고른 편이에요.',
+  mixed: '두 사람의 오행을 함께 보면 대체로 균형이 맞아요.',
+  skewed: '두 사람의 오행을 함께 보면 한쪽으로 기우는 편이에요.',
 };
 
 export const DISCOVERY_CAVEAT =
-  '추천 순서는 궁합의 좋고 나쁨이 아닙니다. 오행 보완과 함께 놓았을 때의 균형을 살펴볼 뿐이고, 사주 점수가 낮다는 이유로 누군가를 숨기지 않습니다.';
+  '첫인상 궁합은 오행의 보완과 두 사람의 균형만 살펴본 참고 점수예요. 점수가 낮다고 인연을 숨기지는 않아요.';
 
 /** 여기서 멈추는 이유와 다음 — **상세 궁합은 서로 동의한 뒤에 열린다** */
 export const DISCOVERY_TEASER =
-  '서로 동의하면 형충회합과 상세 궁합을 확인할 수 있습니다. 지금 보이는 것은 오행으로 본 맛보기이고, 여덟 글자와 구체적인 근거는 아직 열리지 않습니다.';
+  '지금은 오행으로 살펴본 첫인상만 보여드려요. 서로 만나보기를 선택하면 형충회합과 자세한 궁합을 함께 확인할 수 있어요.';
 
 /**
  * 목록이 **빈 자리**에 서는 말 — 첫 주에는 이것이 기본 상태다.
@@ -179,10 +181,10 @@ export const DISCOVERY_EMPTY = {
 } as const;
 
 const EXPLORATION_NOTE =
-  '새로운 추천은 비슷한 유형만 반복해서 보여드리지 않기 위해 일부러 섞은 인연입니다.';
+  '색다른 인연도 만나볼 수 있도록 일부 후보는 추천 순서와 관계없이 섞어 보여드려요.';
 
 const NO_MISSING_NOTICE =
-  '원국에 빠진 오행이 없어 보완 정도를 비교하기 어렵습니다. 아래 순서는 두 사람의 오행 균형을 기준으로 정했습니다.';
+  '내 사주에는 빠진 오행이 없어, 두 사람의 오행이 얼마나 고르게 어우러지는지를 중심으로 살펴봤어요.';
 
 /**
  * 참여를 켜기 전에 읽히는 말 — **화면과 ADR 과 `prd-archive` 가 같은 문장을 든다.**
@@ -195,11 +197,11 @@ export const DISCOVERY_DISCLOSURE = {
     '닉네임, 프로필 사진, 소개 — 사진을 등록하지 않으면 닉네임의 첫 글자가 표시됩니다.',
     '나에게 부족한 오행 중 소개받은 사람이 채우는 오행의 이름과 그 뜻 — 상대의 카드에도 같은 방식으로 내 오행이 몇 글자 나타납니다.',
     '함께 놓았을 때의 오행 균형을 말로 옮긴 설명.',
+    '오행의 보완과 두 사람의 균형을 합친 첫인상 궁합 점수.',
   ],
   hidden: [
     '생년월일시와 출생지.',
     '전체 명식과 전체 오행 개수표.',
-    '숫자 점수 — 순서를 정하는 데만 쓰고 누구에게도 보여주지 않습니다.',
   ],
 } as const;
 
@@ -218,7 +220,7 @@ export function cardTextFor(row: Pick<BoardRow, 'suppliedElements' | 'balanceBan
     highlights: row.suppliedElements.map((element) => ({
       element,
       meaning: ELEMENT_MEANING[element],
-      text: `당신에게 부족한 ${ELEMENT_KO[element]}(${element}) 기운을 채워 ${ELEMENT_MEANING[element]}을 돕는 조합입니다.`,
+      text: `내게 부족한 ${ELEMENT_KO[element]}(${element}) 기운을 채워 ${ELEMENT_MEANING[element]}에 힘을 보태요.`,
     })),
     balanceLabel: BALANCE_LABEL[row.balanceBand],
   };

@@ -148,8 +148,8 @@ function Candidates({
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
         <div className="flex flex-wrap items-baseline gap-x-3">
-          <h2 className="text-base font-semibold">지금 만날 수 있는 인연</h2>
-          <p className="text-sm text-secondary">{board.cards.length}명</p>
+          <h2 className="text-base font-semibold">오늘의 인연</h2>
+          <p className="text-sm text-secondary">{board.cards.length}명을 소개해 드려요</p>
         </div>
         <RefreshBoard waitSeconds={waitSeconds} />
       </div>
@@ -159,8 +159,8 @@ function Candidates({
         답하지 못하고, 사용자는 추천이 멈춘 줄 안다.
       */}
       <p className="text-xs text-muted">
-        이 목록은 만들어 둔 것입니다. 하루가 지나면 저절로 새로 만들어지고, 지금 바꾸고
-        싶으면 새로 받으시면 됩니다.
+        오늘 준비한 목록이에요. 하루가 지나면 새로 바뀌고, 다른 인연을 바로 보고 싶다면
+        새로 받아 보세요.
       </p>
 
       {/*
@@ -194,13 +194,24 @@ function Candidates({
                 <h3 className="text-base font-semibold">{card.nickname}</h3>
                 {card.exploration && (
                   <span className="rounded-full bg-accent-wash px-2 py-0.5 text-xs text-accent">
-                    새로운 추천
+                    색다른 인연
                   </span>
                 )}
               </div>
             </div>
 
             {card.intro !== null && <p className="text-sm text-secondary">{card.intro}</p>}
+
+            <div className="flex items-center justify-between gap-3 rounded-lg bg-accent-wash px-3 py-2.5">
+              <div>
+                <p className="text-sm font-semibold text-accent">첫인상 궁합</p>
+                <p className="text-xs text-secondary">오행으로 미리 살펴본 참고 점수예요</p>
+              </div>
+              <p className="shrink-0 text-xl font-bold tabular-nums text-accent">
+                {card.previewScore}
+                <span className="ml-0.5 text-sm font-semibold">점</span>
+              </p>
+            </div>
 
             {/*
               **추천 이유는 적극적으로 말한다.** 어느 오행이 무엇을 채우는지까지 —

@@ -20,8 +20,9 @@ import { supabaseOnServer } from '../auth/server-client';
  * 소개, **어느 오행을 채우는지와 그 뜻**, 함께 놓았을 때의 균형을 말로 옮긴 한 줄.
  *
  * **자를 것은 이미 DB 에서 잘려 온다.** `my_discovery_board()` 가 스냅샷을 읽어 카드에 설
- * 값만 내준다 — 두 축의 숫자도 가중합도 그 반환형에 없고, 그 셈을 하는 함수는
- * `authenticated` 가 직접 부르지도 못한다. 여기서 하는 일은 **말로 옮기는 것**뿐이다.
+ * 값만 내준다 — 두 축의 원값과 상대의 전체 오행표는 반환형에 없고, 화면에 허용한
+ * 첫인상 궁합만 완성된 점수로 내준다. 그 셈을 하는 함수는 `authenticated` 가 직접
+ * 부르지 못한다. 여기서 하는 일은 **말로 옮기는 것**뿐이다.
  *
  * 그래서 이 파일에는 자를 것을 고르는 판단이 없다. 판단이 앱에 있으면 그 앱을 건너뛴
  * 경로에서 열린다 — RPC 는 로그인한 사람이 브라우저에서 그대로 부를 수 있다.
@@ -47,6 +48,8 @@ export type CandidateCard = {
   readonly highlights: readonly CandidateHighlight[];
   /** 함께 놓았을 때의 균형 — 숫자가 아니라 말 */
   readonly balanceLabel: string;
+  /** 오행으로 미리 본 궁합 — 상세 궁합 점수와 다른 discovery-v0 참고값 */
+  readonly previewScore: number;
   readonly [granted]: true;
 };
 
@@ -59,7 +62,7 @@ export type CandidateBoard = {
   readonly cards: CandidateCard[];
 };
 
-/** `my_discovery_board()` 가 내주는 한 줄 — **두 축도 점수도 여기 없다** */
+/** `my_discovery_board()` 가 내주는 한 줄 — 두 축의 원값은 없고 합친 참고 점수만 있다 */
 type BoardRow = {
   candidate_user_id: string;
   nickname: string;
@@ -69,6 +72,7 @@ type BoardRow = {
   exploration: boolean;
   supplied_elements: string[] | null;
   balance_band: string;
+  preview_score: number;
 };
 
 const BANDS: readonly BalanceBand[] = ['even', 'mixed', 'skewed'];
@@ -105,6 +109,7 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
       hasPhoto: row.has_photo === true,
       position: row.seat,
       exploration: row.exploration,
+      previewScore: Math.max(0, Math.min(100, Math.round(row.preview_score))),
       ...cardTextFor({ suppliedElements, balanceBand }),
       [granted]: true as const,
     };

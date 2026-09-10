@@ -40,8 +40,9 @@ describe('discovery-v0 는 정책을 값으로 든다', () => {
   it('공개 범위를 값으로 선언한다', () => {
     expect(DISCOVERY_POLICY_V0.discloses).toContain('supplied-elements');
     expect(DISCOVERY_POLICY_V0.discloses).toContain('element-meaning');
+    expect(DISCOVERY_POLICY_V0.discloses).toContain('preview-score');
 
-    for (const closed of ['birth-input', 'pillars', 'relations', 'element-counts', 'score']) {
+    for (const closed of ['birth-input', 'pillars', 'relations', 'element-counts']) {
       expect(DISCOVERY_POLICY_V0.withholds).toContain(closed);
     }
   });
@@ -62,7 +63,7 @@ describe('discovery-v0 는 정책을 값으로 든다', () => {
     expect(hidden).toContain('생년월일시');
     expect(hidden).toContain('전체 명식');
     expect(hidden).toContain('개수표');
-    expect(hidden).toContain('숫자 점수');
+    expect(shown).toContain('첫인상 궁합 점수');
   });
 });
 
@@ -74,12 +75,12 @@ describe('추천 이유 — 맛보기는 적극적으로 말한다', () => {
       {
         element: '木',
         meaning: ELEMENT_MEANING.木,
-        text: '당신에게 부족한 목(木) 기운을 채워 성장과 확장을 돕는 조합입니다.',
+        text: '내게 부족한 목(木) 기운을 채워 성장과 확장에 힘을 보태요.',
       },
       {
         element: '金',
         meaning: ELEMENT_MEANING.金,
-        text: '당신에게 부족한 금(金) 기운을 채워 안정감과 결단력을 돕는 조합입니다.',
+        text: '내게 부족한 금(金) 기운을 채워 안정감과 결단력에 힘을 보태요.',
       },
     ]);
   });
@@ -88,7 +89,7 @@ describe('추천 이유 — 맛보기는 적극적으로 말한다', () => {
     const card = cardTextFor({ suppliedElements: [], balanceBand: 'even' });
 
     expect(card.highlights).toEqual([]);
-    expect(card.balanceLabel).toContain('고르게 잡히는 편');
+    expect(card.balanceLabel).toContain('균형이 고른 편');
   });
 
   /**
@@ -99,8 +100,8 @@ describe('추천 이유 — 맛보기는 적극적으로 말한다', () => {
     const labelOf = (band: 'even' | 'mixed' | 'skewed') =>
       cardTextFor({ suppliedElements: [], balanceBand: band }).balanceLabel;
 
-    expect(labelOf('even')).toContain('고르게 잡히는 편');
-    expect(labelOf('mixed')).toContain('대체로 고른 편');
+    expect(labelOf('even')).toContain('균형이 고른 편');
+    expect(labelOf('mixed')).toContain('대체로 균형이 맞아요');
     expect(labelOf('skewed')).toContain('한쪽으로 기우는 편');
 
     // 경계는 `discovery_balance_band` 와 같은 수여야 한다(pgTAP 이 같은 수를 잰다).
@@ -119,14 +120,14 @@ describe('목록이 함께 드는 말', () => {
   /** 없는 것을 설명하지 않는다 — 탐색 자리가 없는 날 그 말이 서 있으면 없는 것을 찾게 된다 */
   it('탐색 후보가 실제로 섰을 때만 그 말이 붙는다', () => {
     expect(boardNotes({ viewerMissingCount: 2, hasExploration: true }).explorationNote).toContain(
-      '새로운 추천',
+      '색다른 인연',
     );
     expect(boardNotes({ viewerMissingCount: 2, hasExploration: false }).explorationNote).toBeNull();
   });
 
   /** 여기서 멈추는 이유와 다음 — 상세 궁합은 서로 동의한 뒤다(US 36) */
   it('상세 궁합은 서로 동의한 뒤라고 말한다', () => {
-    expect(DISCOVERY_TEASER).toContain('서로 동의하면');
+    expect(DISCOVERY_TEASER).toContain('서로 만나보기를 선택하면');
     expect(DISCOVERY_TEASER).toContain('형충회합');
   });
 });

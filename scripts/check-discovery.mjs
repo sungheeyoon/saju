@@ -4,7 +4,7 @@
  * pgTAP 이 못 재는 것이 여기 셋 있다.
  *
  * 1. **화면이 후보에 대해 무엇을 내려보내는가** — 정책이 옳아도 서버가 전체 오행 요약이나
- *    숫자 점수를 함께 실어 보내면, 맛보기의 공개 경계가 개발자 도구 한 번에 무너진다.
+ *    두 축의 원값을 함께 실어 보내면, 맛보기의 공개 경계가 개발자 도구 한 번에 무너진다.
  *    그건 응답 본문을 봐야 알 수 있다.
  * 2. **노출 기록이 실제로 쌓이는가** — 목록이 스냅샷이 된 뒤로(ADR 0037) 기록은 **뽑을
  *    때** 난다. 뽑히는지는 화면을 열어 봐야 알고, 안 쌓이는 상태는 화면에서 아무 티도
@@ -138,8 +138,8 @@ try {
      */
     check('오행 이름과 뜻이 상대 카드에 나타난다고 미리 말한다',
       body.includes('오행의 이름과 그 뜻'));
-    check('보이지 않는 것에 개수표와 숫자 점수를 적는다',
-      body.includes('전체 오행 개수표') && body.includes('숫자 점수'));
+    check('개수표는 숨기고 첫인상 궁합 점수는 보인다고 미리 말한다',
+      body.includes('전체 오행 개수표') && body.includes('첫인상 궁합 점수'));
   }
 
   // ── 5. 둘 다 참여한다 ───────────────────────────────────────────────────────
@@ -237,14 +237,16 @@ const isolate = (emails) => {
      * 감추면 「왜 이 사람인가」에 답하지 못한다.
      */
     check('어느 오행을 채우는지 이름으로 말한다', /부족한 [목화토금수]\([木火土金水]\) 기운/.test(body),
-      (/당신에게 부족한[^<]{0,60}/.exec(body) ?? ['(없다)'])[0]);
+      (/내게 부족한[^<]{0,60}/.exec(body) ?? ['(없다)'])[0]);
     check('그 오행이 무엇인지 뜻을 붙인다',
       /성장과 확장|열정과 표현|중심과 포용|안정감과 결단력|유연함과 통찰/.test(body));
-    check('함께 놓았을 때의 균형을 말로 낸다', /오행 균형이 고르게|대체로 고른 편|한쪽으로 기우는 편/.test(body));
-    check('상세 궁합은 서로 동의한 뒤라고 말한다',
-      body.includes('서로 동의하면') && body.includes('형충회합'));
-    check('순서가 좋고 나쁨이 아니라는 말이 함께 선다',
-      body.includes('궁합의 좋고 나쁨이 아닙니다'));
+    check('함께 놓았을 때의 균형을 말로 낸다', /균형이 고른 편|대체로 균형이 맞아요|한쪽으로 기우는 편/.test(body));
+    check('첫인상 궁합 점수를 쉬운 설명과 함께 보여 준다',
+      body.includes('첫인상 궁합') && body.includes('오행으로 미리 살펴본 참고 점수예요') && /\d+<[^>]*>점/.test(body));
+    check('상세 궁합은 서로 선택한 뒤라고 말한다',
+      body.includes('서로 만나보기를 선택하면') && body.includes('형충회합'));
+    check('첫인상 궁합이 제한된 참고값이라는 말이 함께 선다',
+      body.includes('오행의 보완과 두 사람의 균형만 살펴본 참고 점수'));
 
     /**
      * **여기서 멈추는 것들.** 맛보기가 열리는 만큼 닫히는 자리도 또렷해야 한다 —
@@ -254,9 +256,9 @@ const isolate = (emails) => {
     check('상대의 출생지가 응답에 없다', !body.includes('부산'));
     check('상대의 오행 구성(개수표)이 응답에 없다',
       !body.includes('glyphCount') && !body.includes('"counts"') && !body.includes('"ratios"'));
-    check('두 축의 값과 점수가 응답에 없다',
+    check('두 축의 원값이 응답에 없다',
       !body.includes('combinedBalance') && !body.includes('combined_balance') &&
-      !/"complement"/.test(body) && !/"score"/.test(body));
+      !/"complement"/.test(body));
     /**
      * 「세운」은 평범한 말과 겹치므로(「줄 세운」) 빼고, 명식을 가리키는 말만 본다.
      * 「형충회합」은 **여기 없어야 할 것이 아니라 다음에 열리는 것**이라 위에서 따로 쟀다.
@@ -266,7 +268,7 @@ const isolate = (emails) => {
      * 무엇을 말하는가**이므로 목록이 시작하는 자리부터 본다.
      */
     const main = body.slice(body.indexOf('<main'), body.indexOf('</main>'));
-    const listOnly = main.slice(main.indexOf('지금 만날 수 있는 인연'));
+    const listOnly = main.slice(main.indexOf('오늘의 인연'));
     check('여덟 글자·십성·신살·대운은 후보 목록에 없다',
       listOnly !== '' && !/일간|십성|신살|천간|지장간|대운/.test(listOnly),
       (/[^>]{0,40}(일간|십성|신살|천간|지장간|대운)[^<]{0,40}/.exec(listOnly) ?? ['목록을 못 찾았다'])[0]);
@@ -317,7 +319,7 @@ const isolate = (emails) => {
   }
 
   /**
-   * **로그인한 브라우저가 숫자를 직접 받을 수 없다.**
+   * **로그인한 브라우저는 완성된 참고 점수만 받을 수 있다.**
    *
    * 반환형에서 뺀 것이 뜻을 가지려면 같은 값을 다른 문으로 받아 갈 수 없어야 한다.
    * 그래서 카드에 없는 것과, 그 값을 세는 함수가 안 열려 있는 것을 함께 잰다.
@@ -327,11 +329,14 @@ const isolate = (emails) => {
     check('후보 목록을 직접 불러도 돈다', !error && Array.isArray(rows), error?.message);
 
     const keys = Object.keys(rows?.[0] ?? {}).sort();
-    check('반환에 두 축의 값도 점수도 없다',
+    check('반환에 두 축의 원값은 없다',
       !keys.includes('complement') && !keys.includes('combined_balance') && !keys.includes('score'),
       keys.join(','));
+    check('반환에 0~100 첫인상 궁합이 있다',
+      Number.isInteger(rows?.[0]?.preview_score) && rows[0].preview_score >= 0 && rows[0].preview_score <= 100,
+      String(rows?.[0]?.preview_score));
     check('반환은 카드에 설 값뿐이다',
-      keys.join(',') === 'balance_band,candidate_user_id,exploration,has_photo,intro,nickname,seat,supplied_elements',
+      keys.join(',') === 'balance_band,candidate_user_id,exploration,has_photo,intro,nickname,preview_score,seat,supplied_elements',
       keys.join(','));
 
     const axis = await me.rpc('discovery_complement', { a: {}, b: {} });
