@@ -122,24 +122,60 @@ const { base: BASE, stop } = await startCheckServer({
   anonKey: status.ANON_KEY,
 });
 
+/**
+ * 후보 카드 목록만 잘라 낸다 — **홈에는 내 명식도 함께 서 있다.**
+ *
+ * 목록의 `<ul>` 을 열고 닫힌 자리까지 깊이를 세어 가른다. 카드 안에 오행 줄의 `<ul>` 이
+ * 또 있어서 첫 `</ul>` 에서 끊으면 점수 칸이 창 밖으로 나간다.
+ */
+const candidateListIn = (body) => {
+  const head = body.indexOf('>오늘의 인연</h2>');
+  if (head === -1) return '';
+  const start = body.indexOf('<ul', head);
+  if (start === -1) return '';
+
+  let depth = 0;
+  for (const tag of body.slice(start).matchAll(/<(\/?)ul\b/g)) {
+    depth += tag[1] === '/' ? -1 : 1;
+    if (depth === 0) return body.slice(start, start + tag.index + 5);
+  }
+  return '';
+};
+
 const get = (path, cookie) => fetch(`${BASE}${path}`, { headers: { cookie }, redirect: 'manual' });
 
 try {
-  // ── 4. 참여하기 전 화면 ─────────────────────────────────────────────────────
+  // ── 4. 참여를 다루는 자리와 그 고지 ─────────────────────────────────────────
+  /**
+   * **참여 화면은 없어졌다.** 참여가 기본으로 켜지면서(ADR 0037) 켜고 끄는 일은 계정
+   * 관리로 들어갔고, 무엇이 나가는지를 읽히는 자리는 **저장보다 앞**인 가입 안내다 —
+   * 그 안내 전문은 로그인 없이 `/privacy` 에 선다.
+   */
   {
-    const response = await get('/me/discovery', myCookie);
+    const moved = await get('/me/discovery', myCookie);
+    check('옛 인연 설정 주소는 계정 관리로 잇는다',
+      moved.status === 307 && moved.headers.get('location')?.endsWith('/me/settings'),
+      `${moved.status} → ${moved.headers.get('location')}`);
+
+    const response = await get('/me/settings', myCookie);
     const body = await response.text();
-    check('후보 화면이 열린다', response.status === 200, String(response.status));
-    check('무엇이 나가고 무엇이 안 나가는지를 설정 화면이 든다',
-      body.includes('상대에게 보이는 것') && body.includes('보이지 않는 것'));
+    check('계정 관리가 열린다', response.status === 200, String(response.status));
+    check('참여를 끄는 손잡이가 거기 있다',
+      body.includes('인연 찾기 참여 중') && body.includes('인연 찾기 잠시 쉬기'));
+
     /**
-     * **켜기 전에 알린다.** 후보 카드가 내 오행을 이름과 뜻으로 말하게 되므로, 그
-     * 사실이 참여 버튼 위에 있어야 한다.
+     * **켜기 전에 알린다.** 후보 카드가 내 오행을 이름으로 말하고 점수까지 세우므로,
+     * 그 사실이 첫 입력보다 앞에 서야 한다. 고지는 한 벌(`DISCOVERY_DISCLOSURE`)이고
+     * 가입 폼과 이 전문이 같은 것을 쓴다 — 여기서 재는 것은 그 전문이다.
      */
-    check('오행 이름과 뜻이 상대 카드에 나타난다고 미리 말한다',
-      body.includes('오행의 이름과 그 뜻'));
-    check('개수표는 숨기고 첫인상 궁합 점수는 보인다고 미리 말한다',
-      body.includes('전체 오행 개수표') && body.includes('첫인상 궁합 점수'));
+    const notice = await (await get('/privacy', '')).text();
+    check('무엇이 나가고 무엇이 안 나가는지를 안내가 든다',
+      notice.includes('인연 찾기에서 상대에게 보이는 것') &&
+        notice.includes('보이는 것 —') && notice.includes('보이지 않는 것 —'));
+    check('오행 이름이 상대 카드에 나타난다고 미리 말한다',
+      notice.includes('오행의 이름'));
+    check('개수표는 숨기고 예측 궁합 점수는 보인다고 미리 말한다',
+      notice.includes('전체 오행 개수표') && notice.includes('예측 궁합 점수'));
   }
 
   // ── 5. 둘 다 참여한다 ───────────────────────────────────────────────────────
@@ -238,24 +274,34 @@ const isolate = (emails) => {
      */
     check('어느 오행을 채우는지 이름으로 말한다', /부족한 [목화토금수]\([木火土金水]\) 기운/.test(body),
       (/내게 부족한[^<]{0,60}/.exec(body) ?? ['(없다)'])[0]);
-    check('그 오행이 무엇인지 뜻을 붙인다',
-      /성장과 확장|열정과 표현|중심과 포용|안정감과 결단력|유연함과 통찰/.test(body));
+    /**
+     * **오행의 뜻풀이는 카드에서 내려갔다.** 「목(木) — 성장과 확장」처럼 한 글자로
+     * 성격을 단정하던 줄이라, 지금은 무엇을 보완하는지만 말한다.
+     */
+    check('한 오행으로 성격을 단정하지 않는다',
+      !/성장과 확장|열정과 표현|중심과 포용|안정감과 결단력|유연함과 통찰/.test(body));
     check('함께 놓았을 때의 균형을 말로 낸다',
       /고르게 어우러져요|대체로 어우러져요|한쪽으로 기우는 편이에요/.test(body));
     // **점수를 만든 두 축이 다 나온다** — 뒤 축만 말하면 낮은 점수의 이유가 화면에 없다
-    check('점수의 이유가 보완 축까지 든다', /내게 부족한 오행을 채워 주/.test(body));
+    check('점수의 이유가 보완 축까지 든다',
+      /내게 적은 오행을 (크게 )?보완하(는 데 보탬이 되|지)/.test(body));
     check('첫인상 궁합 점수를 이름표와 함께 보여 준다',
       body.includes('예측 궁합 점수') && /\d+<[^>]*>점/.test(body));
     /**
      * **수는 그 자체로 높낮이를 말하지 않는다.** 만점이 몇인지 보통이 몇인지를
      * 사용자가 모르므로, 점수 옆에는 그 수를 말로 옮긴 한 줄이 함께 서야 한다.
      */
+    /**
+     * 일곱 칸이 **모두 단정을 피해 닫힌다**(ADR 0059) — 88점이 객관적인 최고 궁합이라는
+     * 말은 이 제품이 낼 수 있는 말이 아니다.
+     */
     check('점수를 말로 옮긴 한 줄이 함께 선다',
-      /궁합에 가까워요|궁합이에요|잘 맞지 않는 편이에요|맞지 않는 부분이 많아요|잘 어우러지지 않아요|매우 좋지 않아요/.test(body));
-    check('상세 궁합은 서로 선택한 뒤라고 말한다',
-      body.includes('서로 만나보기를 선택하면') && body.includes('형충회합'));
-    check('첫인상 궁합이 제한된 참고값이라는 말이 함께 선다',
-      body.includes('오행의 보완과 두 사람의 균형만 살펴본 참고 점수'));
+      /(일 수 있어요|에 가까워요|편이에요|있어요)\.?</.test(body) &&
+        /궁합|어울리|엇갈리|다른 부분/.test(body));
+    check('상세 궁합은 서로 선택한 뒤에 열린다고 말한다',
+      body.includes('상세 궁합 보기를 선택하면'));
+    check('참고 점수라는 말이 목록 머리에 선다',
+      body.includes('오행 구성을 바탕으로 계산한 참고 점수'));
 
     /**
      * **여기서 멈추는 것들.** 맛보기가 열리는 만큼 닫히는 자리도 또렷해야 한다 —
@@ -274,10 +320,13 @@ const isolate = (emails) => {
      *
      * **목록이 홈으로 온 뒤로 본문 전체를 볼 수 없다**(ADR 0037) — 같은 화면에 내
      * 명식이 서 있고, 그것은 내 것이라 여기 있어야 한다. 재려는 것은 **후보 카드가
-     * 무엇을 말하는가**이므로 목록이 시작하는 자리부터 본다.
+     * 무엇을 말하는가**이므로 카드 목록 하나만 잘라 본다.
+     *
+     * **자르는 자리는 목록의 `<ul>` 이다.** 홈의 머리글에도 「오늘의 인연을
+     * 만나보세요」가 있고 문서 끝에는 트리 전체가 직렬화돼 실린다 — 낱말로 자르면
+     * 내 명식이 후보의 것으로 잡혀 이 검사가 거짓 경보를 낸다.
      */
-    const main = body.slice(body.indexOf('<main'), body.indexOf('</main>'));
-    const listOnly = main.slice(main.indexOf('오늘의 인연'));
+    const listOnly = candidateListIn(body);
     check('여덟 글자·십성·신살·대운은 후보 목록에 없다',
       listOnly !== '' && !/일간|십성|신살|천간|지장간|대운/.test(listOnly),
       (/[^>]{0,40}(일간|십성|신살|천간|지장간|대운)[^<]{0,40}/.exec(listOnly) ?? ['목록을 못 찾았다'])[0]);

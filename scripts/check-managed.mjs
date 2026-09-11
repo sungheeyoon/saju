@@ -33,6 +33,11 @@ const check = (name, pass, detail = '') => {
 };
 
 const stamp = Date.now();
+/**
+ * 계정 닉네임 — **자기 사람은 이 이름으로 불린다.** 저장할 때 적어 넣은 이름이 아니다
+ * (`self_is_called_by_the_nickname`). 화면이 무엇을 적는지 재려면 이 값을 들고 있어야 한다.
+ */
+const nickname = `민수${String(stamp).slice(-4)}`;
 const password = `pw-${stamp}-Aa1!`;
 const mine = `mine-${stamp}@example.com`;
 const theirs = `theirs-${stamp}@example.com`;
@@ -60,7 +65,7 @@ await other.auth.signUp({ email: theirs, password });
 let selfPersonId;
 let momId;
 {
-  await passNotice(client);
+  await passNotice(client, nickname);
   await client.rpc('create_self_person', { p_local_label: '민수', ...birth });
 
   const { data: mom, error } = await client.rpc('create_managed_person', {
@@ -214,7 +219,8 @@ try {
     const response = await get(`/me/compat?a=${selfPersonId}&b=${momId}`, { cookie });
     const body = await response.text();
     check('저장된 두 사람의 궁합이 나온다', response.status === 200, String(response.status));
-    check('두 사람을 부를 이름으로 부른다', body.includes('민수') && body.includes('어머니'));
+    check('두 사람을 부를 이름으로 부른다', body.includes(nickname) && body.includes('어머니'),
+      `${nickname} · 어머니`);
     check('결과가 무엇을 기준으로 났는지 문장으로 말한다',
       body.includes('현재 저장된 출생 정보 기준입니다'));
     /**

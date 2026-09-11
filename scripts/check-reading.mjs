@@ -548,15 +548,19 @@ try {
       mine.includes(METAPHOR.match) && theirs.includes(METAPHOR.match));
 
     /**
-     * **자리는 뒤집히지 않고 안내만 갈린다.** 글 하나를 둘이 읽으므로 「첫 번째 분」이
-     * 누구인지는 화면이 말한다 — 글을 뒤집어 그리면 두 사람이 다른 글을 읽게 된다.
+     * **자리 이름은 화면에 안 선다**(ADR 0058). 글 하나를 둘이 읽지만 「첫 번째 분」은
+     * 우리가 프롬프트에서 쓰는 말이라, 읽는 사람 쪽에서 **나와 상대 닉네임**으로 옮겨
+     * 그린다. 안내를 덧붙이지 않고 본문의 낱말이 갈린다.
      */
-    check('내가 앞인지 화면이 말한다',
-      mine.includes('「첫 번째 분」이') && theirs.includes('「첫 번째 분」이'));
-    check('그 안내가 서로 다르다',
-      mine.includes('「첫 번째 분」이 나이고') !== theirs.includes('「첫 번째 분」이 나이고'));
-
-    check('매인 판본으로 났다고 말한다', mine.includes('동의한 그때의 입력으로 썼습니다'));
+    const callsMeMyself = (text) => /나(는|와|를|에게|의|도|만)/.test(text);
+    check('읽는 사람은 자기를 「나」로 본다', callsMeMyself(mine) && callsMeMyself(theirs));
+    check('상대는 공개 닉네임으로 불린다',
+      mine.includes(`${NAME.b}님`) && theirs.includes(`${NAME.a}님`));
+    /*
+      **자리 이름이 사라졌는지는 이 응답으로 못 잰다.** 옮기는 일은 그릴 때 일어나고,
+      본문 원문은 RSC 페이로드에 그대로 실려 온다 — 문자열로 훑으면 화면에 없는 「첫
+      번째 분」이 잡힌다. 그리는 함수 쪽은 `display.test.ts` 가 값으로 붙든다.
+    */
 
     /** 상대에게 준비 완료가 뜬다 — 누른 사람에게는 안 뜬다 */
     const inbox = plain(await body('/me/requests', cookie.b));
@@ -589,7 +593,7 @@ try {
     check('목록에 두 사람 궁합 줄이 선다',
       shown.includes('엄마') && shown.includes(NAME.a) && shown.includes('궁합'));
     /** 함께 보는 궁합의 이름은 상대의 **공개 별명**이다 — `local_label` 이 아니다 */
-    check('목록에 함께 보는 궁합 줄이 선다', shown.includes(`${NAME.b} 궁합`));
+    check('목록에 함께 보는 궁합 줄이 선다', shown.includes(`${NAME.b} 님과의 궁합 풀이`));
 
     check('궁합 줄에 점수가 함께 선다', shown.includes('71') && shown.includes('64'));
 

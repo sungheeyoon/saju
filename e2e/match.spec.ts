@@ -413,14 +413,24 @@ test.describe('동의로 열리는 흐름', () => {
     const received = receiver.page.getByRole('listitem').filter({ hasText: `가${tag}` });
     await reach(receiver, '수락하고 궁합 열기', received);
     await receiver.page.keyboard.press('Enter');
-    await expect(receiver.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
+    /**
+     * **수락은 화면을 옮기지 않는다**(ADR 0058) — 성립한 궁합은 소식이 아니라 풀이
+     * 목록에 선다. 그래서 눌린 것을 이 자리에서 재고, 결과가 어디 서는지는 흐름
+     * 시험이 따로 잡는다. 결과 화면으로 옮겨 가는 것을 여기서 기다리면, 안 눌렸을
+     * 때와 「안 옮겨 가는 것이 맞을 때」가 같은 실패로 보인다.
+     */
+    await expect(received.getByRole('button', { name: '수락하고 궁합 열기' })).toHaveCount(0);
 
     /**
      * 차단은 **한 번 더 묻는다.** 그래서 키보드로 닿아야 하는 문이 둘이다 — 여는
      * 것과 확인하는 것. 확인 칸이 탭 순서 밖에 있으면 마우스로만 차단할 수 있게 된다.
+     *
+     * **수락한 뒤의 차단은 결과 화면에 있다.** 소식의 카드는 답이 난 순간 「끝난 요청」
+     * 으로 접히고, 그 줄에는 조작이 없다 — 성립한 쌍을 끊는 자리는 풀이가 사는 곳이다.
      */
-    await receiver.page.goto('/me/requests');
-    await reach(receiver, '차단', receiver.page.getByRole('listitem').filter({ hasText: `가${tag}` }));
+    await receiver.page.goto('/me/readings');
+    await receiver.page.getByRole('link', { name: new RegExp(`가${tag} 님과의 궁합 풀이`) }).click();
+    await reach(receiver, '차단');
     await receiver.page.keyboard.press('Enter');
     await reach(receiver, '차단합니다');
   });

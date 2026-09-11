@@ -134,17 +134,27 @@ const client = anon();
 
 // ── 5. 화면이 읽는 그대로 읽는다 (app/me/page.tsx 와 같은 질의) ───────────────
 let personId;
+/** 계정 닉네임 — 자기 사람의 이름이 이것을 그대로 따른다 */
+let nickname;
 {
-  const { data: account } = await client.from('app_user').select('status, self_person_id').maybeSingle();
+  const { data: account } = await client
+    .from('app_user').select('status, self_person_id, nickname').maybeSingle();
   check('selfPerson 이 지정됐다', typeof account?.self_person_id === 'string');
 
   personId = account.self_person_id;
+  nickname = account.nickname;
   const [{ data: person }, { data: edge }] = await Promise.all([
     client.from('person').select('current_revision_id').eq('id', personId).maybeSingle(),
     client.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
   ]);
   check('Person 이 현재 판본을 가리킨다', typeof person?.current_revision_id === 'string');
-  check('부를 이름은 엣지가 든다', edge?.local_label === '민수');
+  /**
+   * **자기 자신은 저장할 때 적어 넣은 이름으로 불리지 않는다.** 계정 닉네임의 사본이
+   * 엣지에 붙는다 — 같은 사람에게 이름 둘이 생기지 않게 트리거가 붙들어 둔다.
+   * 여기 `민수` 를 그대로 적어 두면 저장 인자만 보고 통과라고 읽게 된다.
+   */
+  check('자기 사람은 계정 닉네임으로 불린다',
+    edge?.local_label === account?.nickname, `${edge?.local_label} vs ${account?.nickname}`);
 
   const { data: revision, error } = await client
     .from('person_chart_revision')
@@ -217,12 +227,16 @@ const other = anon();
   // 이름은 판본이 아니라 엣지가 든다 — 고쳐도 판본이 늘지 않는다.
   const { error: labelError } = await client
     .from('user_person_access').update({ local_label: '아빠' }).eq('person_id', personId);
-  check('부를 이름을 고친다', labelError === null, labelError?.message);
+  check('부를 이름을 고치는 쓰기는 거절되지 않는다', labelError === null, labelError?.message);
   check('이름을 고쳐도 판본은 늘지 않는다', (await countRevisions()) === 2);
 
+  /**
+   * **자기 사람에게는 두 번째 이름이 안 생긴다.** 쓰기는 지나가되 트리거가 닉네임으로
+   * 되돌린다 — 거절로 막으면 기존 읽기 경로가 쓰는 이 표의 쓰기가 통째로 막힌다.
+   */
   const { data: edge } = await client
     .from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle();
-  check('고친 이름이 되읽힌다', edge?.local_label === '아빠', edge?.local_label);
+  check('그래도 자기 이름은 닉네임 그대로다', edge?.local_label === nickname, edge?.local_label);
 
   // ── 음력 판본 — 원본과 변환값을 둘 다 든다 ─────────────────────────────────
   const { data: lunar, error: lunarError } = await revise({
