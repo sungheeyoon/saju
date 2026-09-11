@@ -120,9 +120,9 @@ function Resting() {
  */
 function Empty({ hiddenCount, waitSeconds }: { hiddenCount: number; waitSeconds: number }) {
   return (
-    <section className={`${CARD} flex flex-col gap-2`}>
+    <section className={`${CARD} flex flex-wrap items-center justify-between gap-4`}>
       <h2 className="text-base font-semibold">{DISCOVERY_EMPTY.title}</h2>
-      <div className="flex flex-wrap items-center gap-4 pt-1">
+      <div className="flex flex-wrap items-center justify-end gap-4">
         <RefreshBoard waitSeconds={waitSeconds} />
         <UnhideAll count={hiddenCount} />
       </div>

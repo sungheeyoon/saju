@@ -601,8 +601,8 @@ function Result({
       {/*
         **결론과 점수는 한 카드의 서로 다른 면이다.**
 
-        결론을 왼쪽의 넓은 면에 두고 점수는 오른쪽의 작은 면으로 가른다. 숫자가 긴
-        결론을 밀어내지 않으면서도 같은 결과의 요약임은 외곽 하나가 말한다. 좁은
+        결론을 왼쪽의 넓은 면 중앙에 두고 점수는 오른쪽의 작은 면 중앙에 둔다. 숫자가
+        긴 결론을 밀어내지 않으면서도 같은 결과의 요약임은 외곽 하나가 말한다. 좁은
         화면에서는 위아래로 쌓여 문장이 눌리지 않는다.
 
         ## 비유는 길이가 들쭉날쭉하다
@@ -612,20 +612,26 @@ function Result({
       */}
       {(reading.score !== null || reading.metaphor !== null) && (
         <section className="grid overflow-hidden rounded-[1.75rem] border border-border bg-surface-raised shadow-[var(--shadow-card)] sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="flex min-w-0 flex-col justify-center px-5 py-5 sm:px-6 sm:py-6">
-            <p className="eyebrow">{reading.score !== null ? '궁합 결과' : '풀이 결과'}</p>
+          <div
+            className={`flex min-w-0 flex-col justify-center px-5 py-5 sm:px-6 sm:py-6 ${
+              reading.score !== null ? 'items-center text-center' : ''
+            }`}
+          >
+            {reading.score === null && <p className="eyebrow">풀이 결과</p>}
             {reading.metaphor !== null && (
-              <p className="mt-1.5 max-w-2xl text-pretty text-lg font-semibold leading-7 sm:text-xl sm:leading-8">
+              <p
+                className={`${reading.score === null ? 'mt-1.5' : ''} max-w-2xl text-pretty text-lg font-semibold leading-7 sm:text-xl sm:leading-8`}
+              >
                 {reading.metaphor}
               </p>
             )}
           </div>
           {(reading.score !== null || detailButton) && (
-            <div className="flex min-w-40 flex-col justify-center gap-3 border-t border-border bg-accent-wash/45 px-5 py-4 sm:items-end sm:border-l sm:border-t-0 sm:px-6 sm:text-right">
+            <div className="flex min-w-40 flex-col items-center justify-center gap-3 border-t border-border bg-accent-wash/45 px-5 py-4 text-center sm:border-l sm:border-t-0 sm:px-6">
               {reading.score !== null && (
                 <div>
                   <p className="text-xs font-semibold text-accent">궁합 풀이 점수</p>
-                  <p className="mt-1 flex items-baseline gap-1 sm:justify-end">
+                  <p className="mt-1 flex items-baseline justify-center gap-1">
                     <span className="text-3xl font-bold tabular-nums">{reading.score}</span>
                     <span className="text-xs font-medium text-secondary">/ 100</span>
                   </p>
