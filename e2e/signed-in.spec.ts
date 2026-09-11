@@ -236,7 +236,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     );
 
     /* 한 사람짜리라 궁합 점수가 안 선다 */
-    await expect(page.getByText('현재 궁합 풀이 점수')).toBeHidden();
+    await expect(page.getByText('궁합 풀이 점수')).toBeHidden();
 
     /*
       **점수가 없어도 비유는 선다.** 그 칸은 둘 중 하나만 있어도 열린다 — 자기 풀이와

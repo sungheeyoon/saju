@@ -45,7 +45,9 @@ describe('줄에 적히는 말', () => {
 
   /** `match` 의 이름은 상대의 공개 별명이다 — `local_label` 은 매칭 상대에게 없다 */
   it('함께 보는 궁합은 상대의 별명으로 선다', () => {
-    expect(readingTitle(entry({ kind: 'match', matchId: 'm1', labelA: '바람' }))).toBe('바람 궁합');
+    expect(readingTitle(entry({ kind: 'match', matchId: 'm1', labelA: '바람' }))).toBe(
+      '바람 님과의 궁합 풀이',
+    );
   });
 });
 

@@ -185,12 +185,11 @@ export function PillarPair({
 }) {
   return (
     <section className="relative overflow-hidden rounded-[1.75rem] border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
-      <header className="flex flex-col items-start gap-1 px-1 pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-3 sm:px-2">
+      <header className="px-1 pb-4 sm:px-2">
         <div>
           <p className="eyebrow">두 사람의 명식</p>
           <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">궁합의 출발점</h2>
         </div>
-        <p className="text-xs text-muted sm:text-right">각자의 여덟 글자를 한자리에서 견줍니다</p>
       </header>
 
       <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">

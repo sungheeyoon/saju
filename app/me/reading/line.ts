@@ -33,7 +33,7 @@ export function readingTitle(entry: ReadingEntry): string {
     case 'private':
       return `${called(entry.labelA)} × ${called(entry.labelB)} 궁합`;
     case 'match':
-      return `${called(entry.labelA)} 궁합`;
+      return `${called(entry.labelA)} 님과의 궁합 풀이`;
   }
 }
 

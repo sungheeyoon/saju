@@ -11,7 +11,6 @@ import {
   readingNoneNote,
   READING_REDACTION_NOTE,
   READING_REPLACES_NOTE,
-  READING_SCORE_NOTE,
   READING_STALE_NOTE,
   isScored,
   readingCreditsNote,
@@ -600,19 +599,11 @@ function Result({
   return (
     <div className="flex flex-col gap-5">
       {/*
-        **비유가 머리고 점수는 내려간다 — 배치가 결정을 따라간다.**
+        **결론과 점수는 한 카드의 서로 다른 면이다.**
 
-        점수를 `text-4xl` 로 세운 것은 점수가 주인공이던 때의 배치다. 그런데 실호출
-        열한 번이 전부 62~68 이었고 같은 짝 재호출의 흔들림이 다른 짝과의 차이만큼
-        컸다 — 그래서 **뜻을 비유에 넘겼다**(ADR 0052). 화면이 그것을 안 따라가면
-        읽는 사람 눈에는 여전히 숫자가 답으로 보인다.
-
-        ## 고지를 옆에 두지 않는다
-
-        점수 오른쪽에 `max-w-md` 로 세워 두었더니 **두 줄이 되는 순간 정렬이 깨졌다.**
-        `items-end` 가 숫자 밑동과 고지 밑동을 맞추는데, 고지의 줄 수는 글자 수에 따라
-        달라지므로 맞춰 둘 수 있는 값이 아니었다. 아래로 내리면 두 줄은 **깨진 것이
-        아니라 그냥 두 줄**이 된다.
+        결론을 왼쪽의 넓은 면에 두고 점수는 오른쪽의 작은 면으로 가른다. 숫자가 긴
+        결론을 밀어내지 않으면서도 같은 결과의 요약임은 외곽 하나가 말한다. 좁은
+        화면에서는 위아래로 쌓여 문장이 눌리지 않는다.
 
         ## 비유는 길이가 들쭉날쭉하다
 
@@ -620,26 +611,30 @@ function Result({
         전제하지 않는다 — `text-pretty` 로 줄을 고르게 나누고, 칸은 세로로 자란다.
       */}
       {(reading.score !== null || reading.metaphor !== null) && (
-        <div className="flex flex-col gap-4 rounded-2xl border border-border bg-surface-raised px-5 py-4 shadow-[var(--shadow-card)] sm:px-6 sm:py-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <section className="grid overflow-hidden rounded-[1.75rem] border border-border bg-surface-raised shadow-[var(--shadow-card)] sm:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex min-w-0 flex-col justify-center px-5 py-5 sm:px-6 sm:py-6">
+            <p className="eyebrow">{reading.score !== null ? '궁합 결과' : '풀이 결과'}</p>
             {reading.metaphor !== null && (
-              <p className="max-w-2xl flex-1 py-0.5 text-pretty text-lg font-semibold leading-7 sm:text-xl sm:leading-8">
+              <p className="mt-1.5 max-w-2xl text-pretty text-lg font-semibold leading-7 sm:text-xl sm:leading-8">
                 {reading.metaphor}
               </p>
             )}
-            {detailButton}
           </div>
-          {reading.score !== null && (
-            <div className={`flex flex-col gap-1.5 ${reading.metaphor !== null ? 'border-t border-border pt-4' : ''}`}>
-              <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span className="text-xs font-semibold text-accent">현재 궁합 풀이 점수</span>
-                <span className="text-2xl font-bold tabular-nums">{reading.score}</span>
-                <span className="text-xs font-medium text-secondary">/ 100</span>
-              </p>
-              <p className="text-xs leading-5 text-muted">{READING_SCORE_NOTE}</p>
+          {(reading.score !== null || detailButton) && (
+            <div className="flex min-w-40 flex-col justify-center gap-3 border-t border-border bg-accent-wash/45 px-5 py-4 sm:items-end sm:border-l sm:border-t-0 sm:px-6 sm:text-right">
+              {reading.score !== null && (
+                <div>
+                  <p className="text-xs font-semibold text-accent">궁합 풀이 점수</p>
+                  <p className="mt-1 flex items-baseline gap-1 sm:justify-end">
+                    <span className="text-3xl font-bold tabular-nums">{reading.score}</span>
+                    <span className="text-xs font-medium text-secondary">/ 100</span>
+                  </p>
+                </div>
+              )}
+              {detailButton}
             </div>
           )}
-        </div>
+        </section>
       )}
       {reading.score === null && reading.metaphor === null && detailButton}
       {/*
@@ -661,6 +656,12 @@ function Result({
       {betweenSummaryAndBody}
       {open && (
         <div className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-[var(--shadow-card)]">
+          {target.kind === 'match' && (
+            <header className="border-b border-border px-5 py-4 sm:px-7 sm:py-5 lg:px-8">
+              <p className="eyebrow">두 사람의 풀이</p>
+              <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">궁합 풀이 결과</h2>
+            </header>
+          )}
           <article
             id={`reading-${reading.id}`}
             className="p-5 sm:p-7 lg:p-8"

@@ -1,5 +1,3 @@
-import { READING_POLICY } from './policy';
-
 /**
  * 현재 결과가 사람에게 하는 **말.**
  *
@@ -51,14 +49,6 @@ export const readingNoneNote = (noun: string) =>
  */
 export const READING_REPLACES_NOTE =
   '새로 만들면 지금 풀이와 점수를 대신합니다. 이전 것은 남기지 않습니다.';
-
-/**
- * 점수가 무엇인지 — **검증된 사실이 아니라 실험 결과다.**
- *
- * 내부 엔진·프롬프트·모델 판본은 말하지 않는다(`prd-archive`). 사용자가 알아야 하는 것은
- * 「이 숫자를 얼마나 믿을 것인가」이지 그것을 만든 부품의 이름이 아니다.
- */
-export const READING_SCORE_NOTE = `이 점수는 실험 중인 풀이가 붙인 값입니다(${READING_POLICY.scoreRange.min}~${READING_POLICY.scoreRange.max}). 궁합의 정답이나 관계의 좋고 나쁨이 아닙니다.`;
 
 /** 만든 뒤에 입력이 바뀌었다 — 고장이 아니라 그렇게 하기로 한 것이다 */
 export const READING_STALE_NOTE =

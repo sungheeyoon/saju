@@ -158,33 +158,34 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receiver.page.getByRole('listitem').filter({ hasText: '요청을 보냅니다' })).toBeVisible();
     await expect(receiver.page.getByText('보내는 것만으로 상대에게 열리는 것은 없고')).toBeVisible();
     await expect(receiver.page.getByRole('heading', { name: `보내는${tag}` })).toBeVisible();
-    const receivedCard = receiver.page.getByRole('listitem').filter({ hasText: `보내는${tag}` });
-    await expect(receivedCard).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
-    await expect(receivedCard).toContainText('정확한 생년월일시와 출생지는 공개되지 않습니다');
+    const receivedSection = receiver.page.locator('section').filter({
+      has: receiver.page.getByRole('heading', { name: '받은 요청' }),
+    });
+    const receivedCard = receivedSection.getByRole('listitem').filter({ hasText: `보내는${tag}` });
+    await expect(receivedCard).toContainText('당신의 사주팔자 여덟 글자가 상대에게 공개');
+    await expect(receivedCard).toContainText('상대와 자세한 궁합을 함께 보는 데 동의하시겠어요?');
 
     // 수락 전에도 상대의 정확한 출생 정보는 없다(US 39).
     await expect(receiver.page.getByText('1990-05-15')).toHaveCount(0);
 
-    await receiver.page
-      .getByRole('listitem')
-      .filter({ hasText: `보내는${tag}` })
-      .getByRole('button', { name: '수락하고 궁합 열기' })
-      .click();
-    await expect(receiver.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
+    await receivedCard.getByRole('button', { name: '수락하고 궁합 열기' }).click();
+    await expect(receivedCard.getByRole('button', { name: '수락하고 궁합 열기' })).toHaveCount(0);
 
     // ── 양쪽이 같은 결과 화면에 선다 ────────────────────────────────────────
     for (const [person, partner] of [
       [asker, `받는${tag}`],
       [receiver, `보내는${tag}`],
     ] as const) {
-      await person.page.goto('/me/requests');
-      await person.page.getByRole('link', { name: '함께 보기' }).click();
+      await person.page.goto('/me/readings');
+      await person.page
+        .getByRole('link', { name: new RegExp(`${partner} 님과의 궁합 풀이`) })
+        .click();
 
       await expect(person.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
       await expect(person.page.getByRole('heading', { name: '궁합의 출발점' })).toBeVisible();
-      await expect(person.page.getByText('각자의 여덟 글자를 한자리에서 견줍니다')).toBeVisible();
+      await expect(person.page.getByText('각자의 여덟 글자를 한자리에서 견줍니다')).toHaveCount(0);
       await expect(person.page.getByRole('table')).toHaveCount(2);
-      await expect(person.page.getByText('두 원국 사이의 관계')).toBeVisible();
+      await expect(person.page.getByText('두 원국 사이의 관계')).toHaveCount(0);
 
       /*
         **동의 뒤에도 열리지 않는 것**(ADR 0012). 여덟 글자는 결과 화면에서 서로에게
@@ -204,11 +205,9 @@ test.describe('동의로 열리는 흐름', () => {
         무엇이 서 있는지는 시각에 달렸다(만드는 중이거나, 열쇠 없는 시험 환경에서는
         곧 실패한다). 시각에 안 달린 것 하나를 잰다: **그 버튼은 없다.**
       */
-      await expect(person.page.getByRole('heading', { name: '두 사람의 궁합 풀이' })).toBeVisible();
+      await expect(person.page.getByRole('heading', { name: `${partner} 님과의 궁합 풀이` })).toBeVisible();
       await expect(person.page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
 
-      await person.page.goto('/me/readings');
-      await expect(person.page.getByRole('link', { name: new RegExp(`${partner} 궁합`) })).toBeVisible();
     }
   });
 

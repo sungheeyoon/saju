@@ -232,7 +232,7 @@ try {
     const mine = plain(await body('/me/readings/self', cookie.a));
     check('저장한 글이 화면에 선다', mine.includes('스스로 정한 규칙 안에서'));
     check('내부 검토용 근거 절은 사용자 결과에서 숨긴다', !mine.includes('근거 (검사용)'));
-    check('자기 풀이에는 점수가 서지 않는다', !mine.includes('실험 중인 풀이가 붙인 값'));
+    check('자기 풀이에는 점수가 서지 않는다', !mine.includes('궁합 풀이 점수'));
     /**
      * **경고는 이제 확인 창에 있다.**
      *
@@ -360,7 +360,7 @@ try {
 
     const filled = plain(await body(page, cookie.a));
     check('저장한 글이 그 화면에 선다', filled.includes('스스로 정한 규칙 안에서'));
-    check('한 사람짜리라 점수가 안 선다', !filled.includes('실험 중인 풀이가 붙인 값'));
+    check('한 사람짜리라 점수가 안 선다', !filled.includes('궁합 풀이 점수'));
 
     /** 남의 것은 못 본다 — **없는 것과 못 보는 것을 가르지 않는다** */
     const stranger = await body(page, cookie.b);

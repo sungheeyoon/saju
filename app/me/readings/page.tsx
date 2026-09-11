@@ -178,7 +178,7 @@ function MakingMatches({ matches }: { matches: readonly InboxMatch[] }) {
             >
               <Avatar userId={match.partnerUserId} nickname={match.nickname} hasPhoto={match.hasPhoto} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{match.nickname} 궁합</span>
+                <span className="block truncate font-medium">{match.nickname} 님과의 궁합 풀이</span>
                 <span className="mt-0.5 block text-xs font-normal text-muted">궁합 풀이 만드는 중…</span>
               </span>
               <span className="shrink-0 rounded-full bg-accent-wash px-3.5 py-2 font-semibold text-accent">

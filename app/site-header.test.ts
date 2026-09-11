@@ -11,7 +11,8 @@ describe('회원 내비게이션 활성 상태', () => {
 
   it('하위 상세 화면은 가장 가까운 메뉴가 활성화된다', () => {
     expect(isNavigationActive('/me/match/example', '/me')).toBe(false);
-    expect(isNavigationActive('/me/match/example', '/me/requests')).toBe(true);
+    expect(isNavigationActive('/me/match/example', '/me/readings')).toBe(true);
+    expect(isNavigationActive('/me/match/example', '/me/requests')).toBe(false);
     expect(isNavigationActive('/me/people/example', '/me/people')).toBe(true);
   });
 

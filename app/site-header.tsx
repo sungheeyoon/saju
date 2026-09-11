@@ -67,7 +67,7 @@ const TRAILING =
 export function isNavigationActive(pathname: string, href: string): boolean {
   if (href === '/') return pathname === '/' || pathname === '/compat' || pathname === '/me/compat';
   if (href === '/me') return pathname === href;
-  if (href === '/me/requests' && pathname.startsWith('/me/match/')) return true;
+  if (href === '/me/readings' && pathname.startsWith('/me/match/')) return true;
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

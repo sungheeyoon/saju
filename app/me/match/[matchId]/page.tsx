@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { MATCH_RESULT_CLOSED_NOTE } from '@/src/lib/consent';
@@ -67,27 +66,13 @@ export default async function MatchResultPage({
       있어서, 소식에서 이 화면으로 들어오면 앱이 한 번 갈아 끼워지는 것처럼 보였다.
     */
     <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+      <header className="border-b border-border pb-6">
         <div>
           <p className="eyebrow">인연</p>
           <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">함께 보는 궁합</h1>
           <p className="mt-1 text-sm text-secondary">
             서로 동의한 두 분에게 같은 글과 같은 점수가 섭니다.
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/me/requests"
-            className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
-          >
-            소식
-          </Link>
-          <Link
-            href="/me"
-            className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
-          >
-            내 사주
-          </Link>
         </div>
       </header>
 
