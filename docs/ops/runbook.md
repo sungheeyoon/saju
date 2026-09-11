@@ -9,7 +9,11 @@
 ## 어디서 실행하나
 
 Supabase 대시보드의 SQL Editor 에서 **원격 프로젝트**에 대고 실행한다.
-`skxtqxajfmxiusqrgbuf` — 배포된 앱이 보는 곳이다.
+`xgdeguyxgkillndraonc` — 배포된 앱이 보는 곳이다. **서울(`ap-northeast-2`)에 있다.**
+
+> **옛 ref `skxtqxajfmxiusqrgbuf` 는 이제 아니다.** 프로젝트를 서울로 옮겼고, 이 문서가
+> 한동안 옛 ref 를 가리키고 있었다. 여기 적힌 SQL 을 그 프로젝트에 대고 돌리면 아무
+> 사용자도 없는 곳을 고치게 된다 — 실행 전에 주소창의 ref 를 눈으로 맞춘다.
 
 로컬에서 연습하려면 `npm run db:start` 뒤에:
 
@@ -18,6 +22,31 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"
 ```
 
 > **`supabase config push` 를 쓰지 않는다.** 원격의 구글 설정을 지운다.
+
+### 접속값은 여섯이고 넣는 손은 하나다
+
+서울로 옮기면서 **Vercel 마켓플레이스 통합을 끊었다.** 그 통합이 같은 값을 이름 두 벌로
+넣어 주고 있었고(`NEXT_PUBLIC_` 접두사, 그리고 옛 `anon`·`service_role` 이름), 코드가
+주소를 이름 둘로 찾고 있었다. 지금은 넣는 자리가 손 하나뿐이라 그 갈래가 도달할 수 없다.
+
+| 이름 | 어디서 쓰나 |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | 브라우저와 서버 양쪽 |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | 브라우저 |
+| `SUPABASE_SECRET_KEY` | 서버 전용 — `definer` 함수를 부르는 자리 |
+| `OPENAI_API_KEY` · `OPENAI_WEBHOOK_SECRET` | 풀이 생성과 webhook (Production·Preview 둘 다) |
+| `CRON_SECRET` | 복구기를 깨우는 자리 |
+
+- **`NEXT_PUBLIC_` 이 붙으면 브라우저가 본다.** 열쇠를 그 접두사로 넣는 순간 공개된다.
+- `POSTGRES_*` 일곱과 `SUPABASE_JWT_SECRET`, 옛 이름 키 넷은 **코드가 한 번도 안 읽어서**
+  함께 지웠다. 다시 생기면 통합이 도로 붙은 것이다.
+- **열쇠 쪽 이름 갈래는 로컬에만 남겼다.** `supabase status` 가 `SECRET_KEY` 를 안 내주는
+  판본에서는 `SERVICE_ROLE_KEY` 뿐이라, 그 갈래가 없으면 로컬 시험이 열쇠 없는 배포와
+  같은 얼굴로 실패한다(`playwright.config.ts` 가 이름 둘을 다 덮는 까닭).
+- `vercel env pull` 은 **`--environment=production`** 이어야 운영 값이 온다. 그래도
+  Secret 로 넣은 것은 안 내려온다 — 그 자리는 손으로 붙인다.
+- **`.env.development.local` 은 이름과 달리 운영 DB 를 가리킨다.** 로컬 스택에 대고
+  돌릴 것을 여기 대고 돌리지 않는다.
 
 ---
 
@@ -717,7 +746,7 @@ npx supabase migration list   # 로컬과 원격이 같은지 확인
 
 **1. 훅을 끈다 (대시보드)**
 
-<https://supabase.com/dashboard/project/skxtqxajfmxiusqrgbuf/auth/hooks>
+<https://supabase.com/dashboard/project/xgdeguyxgkillndraonc/auth/hooks>
 
 메뉴로 가면 왼쪽 사이드바의 **Authentication** → 그 안의 **Hooks** 다. 그 화면에 훅
 종류가 카드로 서 있고 우리 것은 **Before User Created** 하나다 — 값에
