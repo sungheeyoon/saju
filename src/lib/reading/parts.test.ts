@@ -178,10 +178,71 @@ describe('시키는 값과 막는 값', () => {
     }
   });
 
-  it('후보 카드의 오행 첫인상 점수는 상세 풀이를 선입견으로 묶지 않는다', () => {
-    expect(READING_PROMPTS.private).not.toContain('오행 첫인상 점수');
-    expect(READING_PROMPTS.match).not.toContain('오행 첫인상 점수');
-    expect(READING_PROMPTS.private).not.toContain('discovery-v1');
-    expect(READING_PROMPTS.match).not.toContain('discovery-v1');
+  /**
+   * **뒤집힌 시험이다.** 전에는 후보 카드의 점수가 프롬프트에 **드는 것을 막았다** —
+   * 「넣으면 모델 점수가 앞선 숫자를 따라가고, 그러면 AI 가 스스로 종합하면 무엇이
+   * 나오는가를 못 잰다」가 까닭이었다.
+   *
+   * 그 실험은 돌았고 답이 나왔다(ADR 0052: 열한 번 전부 62~68). 이제 「앞선 숫자를
+   * 따라간다」는 막을 것이 아니라 **노리는 것**이다 — 카드에서 74 를 본 사람이 풀이권을
+   * 쓰고 65 를 받으면 안 된다.
+   *
+   * 몸통에 드는 것은 **규칙과 조정표**뿐이다. 짝마다 다른 기준점 한 수는 몸통에 못 굽고
+   * `readingPromptOf` 가 붙이므로, `READING_PROMPTS` 는 그대로 캐시된다.
+   */
+  it('궁합 몸통은 기준점 위에서 항목별로 움직이라고 시킨다', () => {
+    for (const kind of ['private', 'match'] as const) {
+      const prompt = READING_PROMPTS[kind];
+      expect(prompt, kind).toContain('## 점수');
+      expect(prompt, kind).toContain('기준점에서 시작해 항목별로 더하고 뺀다');
+      // 조정표의 여덟 항목이 다 선다 — 하나가 빠지면 모델은 그 자료를 안 본다
+      for (const item of [
+        '육합·삼합·방합',
+        '두 사람이 함께 이룬 삼합·방합',
+        '형·해·파·원진·귀문',
+        '함께 이룬 삼형',
+        '십성이 한쪽으로만 기운 자리',
+        '용신을 상대가 가졌다',
+        '둘 다 없는 오행',
+      ]) {
+        expect(prompt, `${kind}/${item}`).toContain(item);
+      }
+    }
+  });
+
+  /**
+   * **막는 값을 프롬프트가 말한다.** 이 저장소가 겪은 실패가 「검사가 60자를 막는데
+   * 프롬프트는 길이를 한 번도 안 말한 것」이었다 — 지킬 방법이 없는 계약이었고 토큰은
+   * 나가고 글은 버려졌다. 상한을 손으로 적지 않고 정책에서 꽂는지 함께 붙든다.
+   */
+  it('조정 상한은 검사가 무는 수를 그대로 적는다', () => {
+    for (const kind of ['private', 'match'] as const) {
+      expect(READING_PROMPTS[kind], kind).toContain(
+        `조정의 합은 -${READING_POLICY.scoreAdjustment} ~ +${READING_POLICY.scoreAdjustment} 를 넘지 않는다`,
+      );
+    }
+  });
+
+  /**
+   * **기준점을 그대로 뱉으면 풀이권이 아무것도 안 산다.** 앵커가 세면 모델은 움직이지
+   * 않는다 — 그 자리를 규칙으로 막는지 본다.
+   */
+  it('적어도 한 항목은 움직이라고 시킨다', () => {
+    for (const kind of ['private', 'match'] as const) {
+      expect(READING_PROMPTS[kind], kind).toContain('적어도 한 항목은 움직인다');
+      expect(READING_PROMPTS[kind], kind).toContain('기준점을 그대로 내지 마라');
+    }
+  });
+
+  /**
+   * 점수가 **본문에서 빠졌다.** 전에는 「맨 마지막 대목은 점수다」로 본문 절을 시켰는데,
+   * `readingBody()` 가 `### 근거` 앞에서만 자르므로 그 절이 사용자에게 그대로 나갔다 —
+   * 화면이 세우는 `score` 와 같은 수가 두 번 서고 둘이 갈려도 검사는 필드만 봤다.
+   */
+  it('점수 대목을 본문에 세우지 않는다', () => {
+    for (const kind of ['private', 'match'] as const) {
+      expect(READING_PROMPTS[kind], kind).not.toContain('맨 마지막 대목은 **점수**다');
+      expect(READING_PROMPTS[kind], kind).toContain('본문에 점수 대목을 따로 세우지 말고');
+    }
   });
 });

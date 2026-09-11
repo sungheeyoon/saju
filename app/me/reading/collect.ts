@@ -1,4 +1,4 @@
-import { checkReading, isScored, type BirthSecret, type ReadingKind } from '@/src/lib/reading';
+import { baselineIn, checkReading, isScored, type BirthSecret, type ReadingKind } from '@/src/lib/reading';
 
 import { keyedClient } from '../../keyed-client';
 import type { StoredRevision } from '@/src/lib/input/revision';
@@ -138,6 +138,8 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     output: retrieved.output,
     evidenceText: job.evidence,
     secrets,
+    // 얼린 프롬프트에서 되읽는다 — 그때 실제로 시킨 수다(ADR 0060)
+    baseline: baselineIn(job.prompt) ?? undefined,
   });
 
   if (!verdict.ok) {

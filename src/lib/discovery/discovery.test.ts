@@ -65,7 +65,7 @@ describe('discovery-v1 는 정책을 값으로 든다', () => {
     expect(hidden).toContain('생년월일시');
     expect(hidden).toContain('전체 명식');
     expect(hidden).toContain('개수표');
-    expect(shown).toContain('오행 첫인상 점수');
+    expect(shown).toContain('예측 궁합 점수');
   });
 });
 
@@ -80,11 +80,12 @@ describe('추천 이유 — 맛보기는 적극적으로 말한다', () => {
     expect(highlights).toEqual([
       {
         element: '木',
-        text: '내 사주에 없는 목(木) 기운을 이 사람이 가지고 있어요.',
+        // 0개일 때만 「부족한」이다 — 1개를 부족하다고 말하면 화면이 자료에 없는 것을 말한다
+        text: '내게 부족한 목(木) 기운을 채워줘요.',
       },
       {
         element: '金',
-        text: '내 사주에서 적은 금(金) 기운을 이 사람이 가지고 있어 보완에 보탬이 돼요.',
+        text: '내 사주에서 적은 금(金) 기운을 보완해 줘요.',
       },
     ]);
   });
@@ -134,6 +135,15 @@ describe('목록이 함께 드는 말', () => {
     expect(DISCOVERY_TEASER).toContain('상세 궁합 보기를 선택하면');
     expect(DISCOVERY_TEASER).toContain('두 사람의 자세한 궁합');
   });
+
+  /**
+   * **이름은 세게, 면책은 작게.** 카드는 「예측 궁합 점수」라고 부르고, 그것이 오행
+   * 구성만 본 참고 점수라는 말은 목록 머리의 이 한 줄이 든다 — 카드마다 되풀이하면
+   * 열 장에 열 번 같은 말이 서고, 아예 없으면 수가 근거 없이 단정으로 읽힌다.
+   */
+  it('참고 점수라는 사실은 목록 머리에서 한 번만 말한다', () => {
+    expect(DISCOVERY_TEASER).toContain('오행 구성을 바탕으로 계산한 참고 점수');
+  });
 });
 
 /**
@@ -146,15 +156,41 @@ describe('previewSummaryFor 는 점수를 말로 옮긴다', () => {
   const verdictAt = (previewScore: number) =>
     previewSummaryFor({ previewScore, suppliedElements: ['木'], balanceBand: 'even' }).verdict;
 
-  it('다섯 구간에서 궁합 단정 대신 오행 구성만 말한다', () => {
-    expect(verdictAt(100)).toBe('오행 구성이 매우 균형적인 편이에요.');
-    expect(verdictAt(90)).toBe('오행 구성이 매우 균형적인 편이에요.');
-    expect(verdictAt(89)).toBe('오행 구성이 좋은 편이에요.');
-    expect(verdictAt(80)).toBe('오행 구성이 좋은 편이에요.');
-    expect(verdictAt(70)).toBe('오행 구성이 무난한 편이에요.');
-    expect(verdictAt(60)).toBe('오행 구성이 다소 편중된 편이에요.');
-    expect(verdictAt(59)).toBe('오행 구성이 많이 편중된 편이에요.');
-    expect(verdictAt(0)).toBe('오행 구성이 많이 편중된 편이에요.');
+  /**
+   * **경계는 분포에서 왔다.** 이 점수는 중앙값 65 언저리에 몰리고 80 을 넘는 쌍이
+   * 서른에 하나다 — 90·80·70 에 금을 그으면 맨 위 두 칸이 영영 안 뜬다. 점수 계산을
+   * 고치면 이 일곱 수도 다시 재야 하므로, 경계를 값으로 여기 붙든다.
+   */
+  it('일곱 구간을 분포에 맞춘 경계로 가른다', () => {
+    expect(verdictAt(100)).toBe('아주 좋은 궁합일 수 있어요.');
+    expect(verdictAt(78)).toBe('아주 좋은 궁합일 수 있어요.');
+    expect(verdictAt(77)).toBe('좋은 궁합에 가까워요.');
+    expect(verdictAt(72)).toBe('좋은 궁합에 가까워요.');
+    expect(verdictAt(71)).toBe('꽤 잘 맞는 편이에요.');
+    expect(verdictAt(66)).toBe('꽤 잘 맞는 편이에요.');
+    expect(verdictAt(65)).toBe('무난하게 어울리는 편이에요.');
+    expect(verdictAt(60)).toBe('무난하게 어울리는 편이에요.');
+    expect(verdictAt(59)).toBe('조금 엇갈리는 부분이 있어요.');
+    expect(verdictAt(54)).toBe('조금 엇갈리는 부분이 있어요.');
+    expect(verdictAt(53)).toBe('잘 맞지 않는 부분이 있는 편이에요.');
+    expect(verdictAt(46)).toBe('잘 맞지 않는 부분이 있는 편이에요.');
+    expect(verdictAt(45)).toBe('서로 다른 부분이 많은 편이에요.');
+    expect(verdictAt(0)).toBe('서로 다른 부분이 많은 편이에요.');
+  });
+
+  /**
+   * **확정 판정은 이 제품이 낼 수 있는 말이 아니다.** 78점을 「아주 좋은 궁합이에요」로
+   * 닫으면 오행 구성 하나로 두 사람 사이를 단정한 것이 된다. 허용하는 종결은 넷뿐이고
+   * — 가능성(「-일 수 있어요」) · 근접(「-에 가까워요」) · 경향(「-편이에요」) ·
+   * 부분(「부분이 있어요」) — 일곱 칸이 모두 그 안에 드는지 여기서 붙든다. 한 칸만
+   * 단정형으로 새도 나머지 여섯의 조심이 무너진다.
+   */
+  it('일곱 칸 모두 단정하지 않는 꼴로 닫는다', () => {
+    for (const score of [100, 78, 72, 66, 60, 54, 46, 0]) {
+      expect(verdictAt(score), String(score)).toMatch(
+        /(일 수 있어요|에 가까워요|편이에요|부분이 있어요)\.$/,
+      );
+    }
   });
 
   /**

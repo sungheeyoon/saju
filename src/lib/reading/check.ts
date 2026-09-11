@@ -506,17 +506,20 @@ export type ReadingCheck =
  *
  * @param evidenceText 실제로 모델에 보낸 자료 그대로. 「자료에 있었나」를 이것에 묻는다.
  * @param secrets 이 결과에 걸린 사람들의 출생 원문. 모델은 못 본 값이다.
+ * @param baseline 궁합이면 프롬프트가 준 기준점. 조정 상한을 여기서 잰다(ADR 0060).
  */
 export function checkReading({
   kind,
   output,
   evidenceText,
   secrets,
+  baseline,
 }: {
   kind: ReadingKind;
   output: ReadingOutput;
   evidenceText: string;
   secrets: readonly BirthSecret[];
+  baseline?: number;
 }): ReadingCheck {
   const failures: ReadingFailure[] = [];
   const { markdown, score, metaphor } = output;
@@ -574,6 +577,26 @@ export function checkReading({
       score > READING_POLICY.scoreRange.max
     ) {
       failures.push({ code: 'score-out-of-contract', detail: `score=${String(score)}` });
+    } else if (baseline !== undefined) {
+      /**
+       * **조정 상한** — 기준점에서 이만큼까지만 움직인다(ADR 0060).
+       *
+       * 막는 값과 시키는 값이 **같은 수**다. 프롬프트가 「조정의 합은 -15 ~ +15 를 넘지
+       * 않는다」고 적고 검사가 같은 `scoreAdjustment` 를 읽는다 — 이 저장소가 한 번
+       * 겪은 실패가 「검사가 막는 값을 프롬프트가 한 번도 말하지 않은 것」이었다.
+       *
+       * 0~100 으로 자른 뒤를 잰다. 기준점 92 에 +15 면 107 이 아니라 100 이고, 그것을
+       * 어긴 것으로 세면 눈금 끝에 있는 짝이 늘 떨어진다.
+       */
+      const limit = READING_POLICY.scoreAdjustment;
+      const floor = Math.max(READING_POLICY.scoreRange.min, baseline - limit);
+      const ceiling = Math.min(READING_POLICY.scoreRange.max, baseline + limit);
+      if (score < floor || score > ceiling) {
+        failures.push({
+          code: 'score-out-of-contract',
+          detail: `score=${score} — 기준점 ${baseline}에서 ${limit}을 넘게 움직였습니다 (${floor}~${ceiling})`,
+        });
+      }
     }
   } else if (score !== null) {
     failures.push({ code: 'score-out-of-contract', detail: '자기 풀이에 점수가 붙었습니다' });

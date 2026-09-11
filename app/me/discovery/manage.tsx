@@ -330,7 +330,7 @@ export function PreviewScorePanel({
         안의 것은 가운데에 머문다.
       */}
       <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-accent/20 bg-accent-wash px-3 py-3 text-center">
-        <p className="text-xs font-semibold text-accent">오행 첫인상 점수</p>
+        <p className="text-xs font-semibold text-accent">예측 궁합 점수</p>
         <p className="text-2xl font-bold leading-none tabular-nums text-accent">
           {previewScore}
           <span className="ml-0.5 text-sm font-semibold">점</span>

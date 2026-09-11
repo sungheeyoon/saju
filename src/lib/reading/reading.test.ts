@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { CITY_LONGITUDES, computeSaju } from '@/src/lib/saju';
+import { previewScoreOf } from '@/src/lib/discovery';
 import {
   READING_KINDS,
   SOLO_KINDS,
+  baselineIn,
   isSolo,
   READING_POLICY,
   READING_PROMPTS,
@@ -132,6 +134,46 @@ describe('프롬프트는 출생 원문을 들고 나가지 않는다', () => {
     expect(isScored('self')).toBe(false);
   });
 
+  /**
+   * **기준점은 프롬프트에만 실리고 자료에는 안 실린다**(ADR 0060).
+   *
+   * 자료에 들어가면 `evidenceText` 에 실려서 경로 유출 검사가 이 수를 자료로 세고,
+   * 엔진이 점수를 낸 것처럼 읽힌다 — 엔진은 계속 안 낸다(`COMPAT_POLICY.scoring`).
+   */
+  it('궁합 프롬프트는 기준점을 싣고, 자료에는 안 싣는다', () => {
+    for (const kind of ['private', 'match'] as const) {
+      const evidence = evidenceFor(kind);
+      const prompt = readingPromptOf(evidence);
+
+      expect(prompt, kind).toContain('## 기준점');
+      expect(baselineIn(prompt), kind).toBe(
+        'baseline' in evidence ? evidence.baseline : null,
+      );
+      expect(JSON.stringify(evidence.evidence), kind).not.toContain('기준점');
+    }
+  });
+
+  /** 한 사람 풀이에는 점수가 없으므로 기준점도 안 선다 — 없는 것을 설명하지 않는다 */
+  it('자기 풀이에는 기준점이 서지 않는다', () => {
+    const prompt = readingPromptOf(evidenceFor('self'));
+
+    expect(prompt).not.toContain('## 기준점');
+    expect(baselineIn(prompt)).toBeNull();
+  });
+
+  /**
+   * **카드와 풀이가 같은 자를 쓴다.** 후보 카드의 「예측 궁합 점수」와 풀이의 기준점이
+   * 같은 함수에서 나오는지 본다 — 갈리면 74 를 보고 들어온 사람이 다른 수를 받는다.
+   */
+  it('기준점은 후보 카드와 같은 함수가 낸 같은 수다', () => {
+    const evidence = evidenceFor('match');
+    if (!('baseline' in evidence)) throw new Error('궁합에는 기준점이 있어야 합니다.');
+
+    expect(evidence.baseline).toBe(
+      previewScoreOf(A.analysis.elements, B.analysis.elements),
+    );
+  });
+
   it('머리는 운이 없는 자료에서도 선다 — 없는 줄을 지어 적지 않는다', () => {
     const prompt = readingPromptOf(evidenceFor('match'));
 
@@ -155,6 +197,46 @@ const codesOf = (result: ReturnType<typeof checkReading>): string[] =>
 describe('나온 글을 저장하기 전에 검사한다', () => {
   it.each(READING_KINDS)('%s — 멀쩡한 글은 지나간다', (kind) => {
     expect(checkReading(ok(kind))).toEqual({ ok: true });
+  });
+
+  /**
+   * **조정 상한** — 기준점에서 ±15 를 넘게 움직이면 계약 위반이다(ADR 0060).
+   *
+   * 상한이 없으면 기준점 65 에서 25 를 깎아 40 을 만들 수 있고, 그러면 기준점을 준
+   * 보람이 없다. 시키는 값과 막는 값이 **같은 `scoreAdjustment`** 에서 온다.
+   */
+  it('궁합 점수는 기준점에서 조정 상한 안에 든다', () => {
+    const limit = READING_POLICY.scoreAdjustment;
+    const at = (score: number, baseline: number) => {
+      const one = ok('match');
+      one.output.score = score;
+      return codesOf(checkReading({ ...one, baseline }));
+    };
+
+    expect(at(65, 65)).toEqual([]);
+    expect(at(65 + limit, 65)).toEqual([]);
+    expect(at(65 - limit, 65)).toEqual([]);
+    expect(at(65 + limit + 1, 65)).toContain('score-out-of-contract');
+    expect(at(65 - limit - 1, 65)).toContain('score-out-of-contract');
+
+    // 기준점을 안 넘긴 자리는 재지 않는다 — 옛 결과를 되검사할 때의 갈래다
+    const noBaseline = ok('match');
+    noBaseline.output.score = 20;
+    expect(codesOf(checkReading(noBaseline))).toEqual([]);
+  });
+
+  /**
+   * **눈금 끝에서 늘 떨어지면 안 된다.** 기준점 92 에 +15 는 107 이 아니라 100 이다.
+   * 자른 뒤를 재지 않으면 높은 기준점을 받은 짝이 무엇을 내도 계약 위반이 된다.
+   */
+  it('조정 상한은 0~100 으로 자른 뒤를 잰다', () => {
+    const one = ok('match');
+    one.output.score = 100;
+    expect(codesOf(checkReading({ ...one, baseline: 92 }))).toEqual([]);
+
+    const low = ok('match');
+    low.output.score = 0;
+    expect(codesOf(checkReading({ ...low, baseline: 10 }))).toEqual([]);
   });
 
   it('한 줄 요약은 빈 값과 화면을 넘는 길이를 막는다', () => {

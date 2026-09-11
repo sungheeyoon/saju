@@ -1,3 +1,4 @@
+import { previewScoreOf } from '../discovery';
 import { evidenceOf, type Evidence } from '../saju/evidence';
 import { redactEvidence, type RedactedEvidence } from '../saju/evidence/redacted';
 import { shareEvidence, type SharedEvidence } from '../saju/evidence/shared';
@@ -21,8 +22,17 @@ import { isSolo, type ReadingKind } from './policy';
 export type ReadingEvidence =
   | { kind: 'self'; evidence: RedactedEvidence }
   | { kind: 'person'; evidence: RedactedEvidence }
-  | { kind: 'private'; evidence: RedactedEvidence }
-  | { kind: 'match'; evidence: SharedEvidence };
+  /**
+   * 궁합 kind 에는 **기준점이 딸려 온다** — 타입이 그것을 강제한다(ADR 0060).
+   *
+   * 선택값으로 두면 안 실은 자리가 컴파일되고, 그 자리에서 나간 프롬프트는 눈금 없이
+   * 0~100 을 요구한다 — 옛 판으로 조용히 돌아가는 길이 열린다.
+   *
+   * `evidence` 안이 아니라 **옆에** 선다. 안에 넣으면 `evidenceText` 에 실려서 경로 유출
+   * 검사가 이 수를 자료로 세고, 엔진이 점수를 낸 것처럼 읽힌다.
+   */
+  | { kind: 'private'; evidence: RedactedEvidence; baseline: number }
+  | { kind: 'match'; evidence: SharedEvidence; baseline: number };
 
 /** 두 사람이 필요한 kind 에 한 사람만 왔다 — 지어낼 수 없으므로 멈춘다 */
 export class ReadingEvidenceError extends Error {
@@ -60,20 +70,32 @@ export function readingEvidenceOf(
     throw new ReadingEvidenceError('궁합 결과는 두 사람의 자료가 있어야 만듭니다.');
   }
 
-  if (kind === 'private') return { kind, evidence: redacted };
+  /**
+   * **기준점은 넘겨받지 않고 여기서 다시 잰다**(ADR 0060).
+   *
+   * 후보 카드의 스냅샷을 파이프로 넘기는 길도 있었는데 안 된다. `private` 는 카드를 아예
+   * 안 거쳐서 그 수가 없고, `match` 도 그 수는 하루짜리라 풀이 시각과 다를 수 있다. 넘기면
+   * **한 kind 만 기준점을 갖는다.**
+   *
+   * 두 축이 `counts` 와 `glyphCount` 만 보므로 다시 재는 데 드는 것이 없다.
+   */
+  const baseline = previewScoreOf(charts.a.analysis.elements, charts.b.analysis.elements);
+
+  if (kind === 'private') return { kind, evidence: redacted, baseline };
 
   const shared = shareEvidence(redacted);
   if (shared === null) {
     throw new ReadingEvidenceError('공유 결과의 자료를 만들지 못했습니다.');
   }
 
-  return { kind, evidence: shared };
+  return { kind, evidence: shared, baseline };
 }
 
 export * from './policy';
 export * from './feedback';
 export * from './notes';
 export {
+  baselineIn,
   CONTROL,
   FALLBACK_NAMES,
   NOTHING_KNOWN,

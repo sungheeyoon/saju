@@ -1,5 +1,6 @@
 import type { Saju } from '@/src/lib/saju';
 import {
+  baselineIn,
   CONTROL,
   ReadingEvidenceError,
   checkReading,
@@ -194,7 +195,17 @@ export async function generateReadingArtifact({
   // 부르다 실패했다. provider 가 쓴 양을 알려 주지 않는 갈래다.
   if (!called.ok) return { ...called, usage: null };
 
-  const verdict = checkReading({ kind, output: called.output, evidenceText, secrets });
+  /**
+   * **시킨 수에 대고 잰다.** 기준점은 프롬프트에만 실리므로 거기서 되읽는다 — 따로 실어
+   * 나르면 두 벌이 되고, 갈린 날 검사는 모델이 못 본 수를 든다(ADR 0060).
+   */
+  const verdict = checkReading({
+    kind,
+    output: called.output,
+    evidenceText,
+    secrets,
+    baseline: baselineIn(prompt) ?? undefined,
+  });
   if (!verdict.ok) {
     return {
       ok: false,
