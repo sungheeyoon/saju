@@ -1,6 +1,6 @@
 -- discovery — 참여한 사람만 보고, 사주로는 아무도 지우지 않는다.
 begin;
-select plan(48);
+select plan(57);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim,
@@ -72,6 +72,50 @@ select is(
   public.discovery_supplied_elements((select 고른네오행 from summaries), (select 토금뿐 from summaries)),
   array[]::text[],
   '채우는 것이 없으면 빈 목록이다');
+
+-- ── discovery-v1 오행 첫인상 ─────────────────────────────────────────────────
+select is(
+  round(public.discovery_count_balance_v1(
+    '{"glyphCount":8,"counts":{"木":2,"火":1,"土":2,"金":2,"水":1}}'::jsonb,
+    '{"glyphCount":8,"counts":{"木":1,"火":2,"土":1,"金":2,"水":2}}'::jsonb
+  ), 4),
+  93.7500::numeric,
+  '3·3·3·4·3의 글자 분포 균형은 93.75다');
+
+select is(
+  round(public.discovery_count_balance_v1(
+    '{"glyphCount":8,"counts":{"木":0,"火":1,"土":1,"金":4,"水":2}}'::jsonb,
+    '{"glyphCount":8,"counts":{"木":0,"火":0,"土":1,"金":4,"水":3}}'::jsonb
+  ), 4),
+  48.4375::numeric,
+  '0·1·2·8·5의 글자 분포 균형은 48.4375다');
+
+select is(
+  public.discovery_deficit_complement_v1(
+    '{"glyphCount":8,"counts":{"木":0,"火":0,"土":0,"金":8,"水":0}}'::jsonb,
+    '{"glyphCount":8,"counts":{"木":8,"火":0,"土":0,"金":0,"水":0}}'::jsonb
+  ),
+  40::numeric,
+  '서로 한 오행만 건네면 나머지 세 오행은 남아 상호보완은 40이다');
+
+select is(
+  round(public.discovery_deficit_complement_one_way_v1(
+    '{"glyphCount":8,"counts":{"木":1,"火":2,"土":2,"金":2,"水":1}}'::jsonb,
+    '{"glyphCount":8,"counts":{"木":2,"火":2,"土":2,"金":2,"水":0}}'::jsonb
+  ), 4),
+  round(public.discovery_deficit_complement_one_way_v1(
+    '{"glyphCount":8,"counts":{"木":1,"火":2,"土":2,"金":2,"水":1}}'::jsonb,
+    '{"glyphCount":8,"counts":{"木":8,"火":0,"土":0,"金":0,"水":0}}'::jsonb
+  ), 4),
+  '상대가 木을 20%보다 많이 가져도 추가 보완 가점은 없다');
+
+select is(
+  public.discovery_supplied_elements_v1(
+    '{"glyphCount":8,"counts":{"木":1,"火":2,"土":2,"金":2,"水":1}}'::jsonb,
+    '{"glyphCount":8,"counts":{"木":2,"火":2,"土":2,"金":1,"水":1}}'::jsonb
+  ),
+  array['木', '水'],
+  '하나뿐인 오행도 20% 미만이면 보완 후보로 든다');
 
 -- ── 요약의 모양 ───────────────────────────────────────────────────────────────
 select is(public.is_element_summary((select 고른네오행 from summaries)), true,
@@ -337,6 +381,22 @@ select function_privs_are('public', 'discovery_complement', array['jsonb', 'json
 select function_privs_are('public', 'discovery_supplied_elements', array['jsonb', 'jsonb'],
   'authenticated', array[]::text[],
   '추천 이유를 세는 함수도 직접 부를 수 없다');
+
+select function_privs_are('public', 'discovery_count_balance_v1', array['jsonb', 'jsonb'],
+  'authenticated', array[]::text[],
+  'v1 균형 함수는 로그인한 사람이 직접 부를 수 없다');
+
+select function_privs_are('public', 'discovery_deficit_complement_one_way_v1', array['jsonb', 'jsonb'],
+  'authenticated', array[]::text[],
+  'v1 한 방향 보완 함수는 로그인한 사람이 직접 부를 수 없다');
+
+select function_privs_are('public', 'discovery_deficit_complement_v1', array['jsonb', 'jsonb'],
+  'authenticated', array[]::text[],
+  'v1 상호보완 함수는 로그인한 사람이 직접 부를 수 없다');
+
+select function_privs_are('public', 'discovery_supplied_elements_v1', array['jsonb', 'jsonb'],
+  'authenticated', array[]::text[],
+  'v1 보완 오행 함수는 로그인한 사람이 직접 부를 수 없다');
 
 -- ── 하드 제외 ─────────────────────────────────────────────────────────────────
 insert into public.discovery_hidden (hidden_user_id) values ((select lee from who));

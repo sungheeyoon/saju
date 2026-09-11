@@ -527,7 +527,7 @@ describe('고객이 읽는 글의 계약', () => {
     }
 
     // 둘이 함께 쓰는 것은 양쪽 모두 같은 다룰 것의 목록으로 든다
-    for (const need of ['둘이 있어야 생기는 것', '서로 채워 주는 것', '실제 생활에서 반복될 장면']) {
+    for (const need of ['함께일 때 더 두드러지는 관계의 특징', '서로의 보완에 보탬이 되는 것', '실제 생활에서 반복될 장면']) {
       expect(shared, need).toContain(need);
       expect(own, need).toContain(need);
     }
@@ -536,7 +536,7 @@ describe('고객이 읽는 글의 계약', () => {
   });
 
   it('기준판은 개인 사주의 핵심 물음을 빠짐없이 다룬다', () => {
-    expect(selfSectionCount(CONTROL)).toBe(10);
+    expect(selfSectionCount(CONTROL)).toBe(9);
 
     const prompt = selfPrompt();
     for (const heading of [
@@ -549,10 +549,11 @@ describe('고객이 읽는 글의 계약', () => {
       '귀인과 기회',
       '조심할 점과 몸',
       '앞으로의 흐름',
-      '궁금한 것 세 가지',
     ]) {
       expect(prompt, heading).toContain(heading);
     }
+    expect(prompt).not.toContain('궁금한 것 세 가지');
+    expect(prompt).not.toContain('질문 셋을 **직접 지어**');
   });
 
   it('앞 기준판은 용어를 금지하지 않고 뜻을 먼저 세우게 했다', () => {
@@ -700,23 +701,6 @@ describe('고객이 읽는 글의 계약', () => {
   });
 
   /**
-   * **프롬프트가 계약이 금지하는 형식을 부르고 있었다.**
-   *
-   * 9절이 「문답 형식」만 시키니 모델이 `**Q. 공부나 자격증은 잘 맞나요?**` 로 썼고,
-   * `checkReading` 은 자기 풀이 본문의 라틴 문자를 통째로 거절한다
-   * (`non-korean-self-body`). 실호출에서 그렇게 떨어졌다 — 걸린 글자는 `Q` 하나.
-   *
-   * 계약을 열어 `Q` 만 봐주는 길도 있었지만, 그러면 다음에 `A`·`Tip`·`Case` 가 온다.
-   * 부르는 쪽을 한국어 형식으로 못박는다.
-   */
-  it('문답 절을 한국어 형식으로 시키고 영문 표기를 막는다', () => {
-    // **`self` 만이다.** 한글 아닌 글자를 막는 것은 자기 풀이 본문뿐이고
-    // (`checkReading` 의 `kind === 'self'` 갈래), 궁합에는 문답 절 자체가 없다.
-    expect(READING_PROMPTS.self).toContain('질문 1.');
-    expect(READING_PROMPTS.self).toContain('영문 표기');
-  });
-
-  /**
    * **문구가 상수를 베끼지 않는지 잰다.**
    *
    * 흡수 조건은 `absorbableByUnknownHour` 한 벌인데 문구가 그 조건을 산문으로
@@ -817,7 +801,7 @@ describe('고객이 읽는 글의 계약', () => {
   it('기준판은 새 뼈대이고, 용신 계열을 읽고, 이름을 안 부른다', () => {
     expect(CONTROL.selfPresentation).toBe('expert-v4');
     expect(CONTROL.terminology).toBe('plain');
-    expect(READING_POLICY.version).toBe('reading-prompt-v8');
+    expect(READING_POLICY.version).toBe('reading-prompt-v9');
     expect(selfPrompt()).toContain('이 사주의 핵심');
     expect(selfPrompt()).not.toContain('살림법');
     expect(selfPrompt()).toContain('analysis.strength');

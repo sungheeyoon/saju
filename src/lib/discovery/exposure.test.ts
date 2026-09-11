@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  combinedBalanceOf,
-  complementOf,
+  combinedCountBalanceOf,
   elementSummaryOf,
+  mutualDeficitComplementOf,
   type ElementSummary,
 } from '../matching/elementAxes';
 import { CITY_LONGITUDES, ELEMENTS, computeSaju, type Element } from '../saju';
-import { DISCOVERY_POLICY_V0 } from './index';
+import { DISCOVERY_POLICY } from './index';
 
 /**
  * **노출 분포를 재어 남긴다** — 문턱을 옮기지는 않는다.
  *
- * `prd-archive` 가 첫 배포 전에 요구한 측정이다. 고정 표본에서 `discovery-v0` 로 줄을 세웠을 때
+ * `prd-archive` 가 첫 배포 전에 요구한 측정이다. 고정 표본에서 `discovery-v1` 로 줄을 세웠을 때
  * 노출이 **출생시간 미상 여부**나 **특정 오행 분포**에 쏠리는지 본다. 검증되지 않은
  * 가설이 사람을 보이지 않게 만드는 것이 이 단계에서 가장 걱정되는 일이기 때문이다.
  *
@@ -104,12 +104,12 @@ const participants: Participant[] = SAMPLE.map((one) => {
   return { name: one.name, summary, hourKnown: one.hour !== null, dominant };
 });
 
-/** `discovery-v0` 의 점수 — SQL 이 하는 셈과 같은 두 축·같은 가중치 */
+/** `discovery-v1` 의 점수 — SQL 이 하는 셈과 같은 두 축·같은 가중치 */
 function scoreFor(viewer: ElementSummary, candidate: ElementSummary): number {
-  const { complement, combinedBalance } = DISCOVERY_POLICY_V0.weights;
+  const { complement, combinedBalance } = DISCOVERY_POLICY.weights;
   return (
-    complementOf(viewer, candidate) * complement +
-    combinedBalanceOf(viewer, candidate) * combinedBalance
+    mutualDeficitComplementOf(viewer, candidate) * complement +
+    combinedCountBalanceOf(viewer, candidate) * combinedBalance
   );
 }
 
@@ -123,7 +123,7 @@ function timesShown(): Map<string, number> {
       .map((one) => ({ name: one.name, score: scoreFor(viewer.summary, one.summary) }))
       // 동점은 이름으로 가른다 — 입력 순서에 기대면 표본을 섞을 때 값이 흔들린다.
       .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
-      .slice(0, DISCOVERY_POLICY_V0.pageSize);
+      .slice(0, DISCOVERY_POLICY.pageSize);
 
     for (const row of ranked) shown.set(row.name, (shown.get(row.name) ?? 0) + 1);
   }
@@ -137,7 +137,7 @@ const rate = (names: readonly string[], shown: Map<string, number>): number => {
   return Math.round((total / (names.length * chances)) * 100);
 };
 
-describe('discovery-v0 의 노출 분포 — 재어서 남긴다', () => {
+describe('discovery-v1 의 노출 분포 — 재어서 남긴다', () => {
   const shown = timesShown();
 
   it('아무도 목록에서 사라지지 않는다', () => {
@@ -156,7 +156,7 @@ describe('discovery-v0 의 노출 분포 — 재어서 남긴다', () => {
 
     /*
       **입력 완성도는 순위에 쓰지 않기로 했다**(`prd-archive`·ADR 0003). 그래도 격차는 날 수
-      있다 — 여섯 글자는 여덟 글자보다 「없는 오행」이 많아 보완 점수가 달라지기
+      있다 — 여섯 글자와 여덟 글자는 각 글자 비율의 간격이 달라 보완 점수가 달라지기
       때문이다. 그 격차가 얼마인지를 여기서 값으로 든다.
     */
     expect({
@@ -166,10 +166,10 @@ describe('discovery-v0 의 노출 분포 — 재어서 남긴다', () => {
       모르는_쪽_노출률: rate(unknown, shown),
     }).toMatchInlineSnapshot(`
       {
-        "모르는_쪽_노출률": 65,
+        "모르는_쪽_노출률": 63,
         "시각을_모르는_사람": 4,
         "시각을_아는_사람": 12,
-        "아는_쪽_노출률": 67,
+        "아는_쪽_노출률": 68,
       }
     `);
   });
@@ -186,11 +186,11 @@ describe('discovery-v0 의 노출 분포 — 재어서 남긴다', () => {
 
     expect(byElement).toMatchInlineSnapshot(`
       {
-        "土": 64,
-        "木": 51,
-        "水": 62,
+        "土": 62,
+        "木": 84,
+        "水": 58,
         "火": null,
-        "金": 85,
+        "金": 67,
       }
     `);
   });

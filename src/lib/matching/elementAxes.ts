@@ -1,11 +1,11 @@
 import { ELEMENTS, type Element } from '../saju';
 
 /**
- * 오행 두 축 — **`match-v0` 와 `discovery-v0` 가 같은 자로 잰다.**
+ * 오행 축 — 기존 `match-v0` 계산과 `discovery-v1` 첫인상 계산을 함께 둔다.
  *
- * 두 정책은 하는 일이 다르고 가중치도 다르지만(ADR 0003), 「오행 보완」과 「함께 놓은
- * 균형」이 무엇인가는 하나여야 한다. 정책마다 따로 세면 같은 두 사람이 화면에 따라
- * 다른 보완을 갖게 되고, 그 차이는 어디에도 안 적힌다.
+ * `match-v0`의 기존 이진 결손·가중 비율 축은 상세 정책의 재현을 위해 보존한다.
+ * `discovery-v1`은 보이는 글자 수와 연속적인 20% 부족분을 쓰므로 아래에 별도 함수로
+ * 명시한다(ADR 0003 개정).
  *
  * **셈이 여기에만 있는 것은 아니다.** 후보 노출은 상대의 오행 요약을 브라우저로
  * 내려보내지 않으므로 DB 안에서 같은 셈을 한 번 더 한다(`discovery_complement` ·
@@ -76,3 +76,59 @@ export function combinedBalanceOf(a: ElementSummary, b: ElementSummary): number 
   );
   return (1 - deviation / 1.6) * 100;
 }
+
+/**
+ * discovery-v1 의 균형도 — 가중 비율이 아니라 화면에 보이는 글자 수를 합쳐 잰다.
+ *
+ * 다섯 비율과 20% 사이 L1 거리의 최댓값은 1.6이다. 한 오행에 전부 몰리면
+ * `|1 - .2| + 4 * |0 - .2| = 1.6` 이 된다.
+ */
+export function combinedCountBalanceOf(a: ElementSummary, b: ElementSummary): number {
+  const total = a.glyphCount + b.glyphCount;
+  if (total <= 0) return 0;
+
+  const deviation = ELEMENTS.reduce(
+    (sum, element) => sum + Math.abs((a.counts[element] + b.counts[element]) / total - 0.2),
+    0,
+  );
+  return Math.max(0, Math.min(100, (1 - deviation / 1.6) * 100));
+}
+
+const countRatioOf = (summary: ElementSummary, element: Element): number =>
+  summary.glyphCount > 0 ? summary.counts[element] / summary.glyphCount : 0;
+
+/**
+ * 한 방향의 부족분 보완 — 상대 비율은 20%에서 포화한다.
+ *
+ * 상대가 해당 오행을 20%보다 많이 가진다고 보완 효과까지 계속 커지는 것은 아니다.
+ * 20%까지는 부족분에 닿는 정도로 보고, 그 뒤의 과다는 추가 가점으로 쓰지 않는다.
+ */
+export const deficitComplementOneWay = (
+  mine: ElementSummary,
+  partner: ElementSummary,
+): number =>
+  ELEMENTS.reduce(
+    (sum, element) =>
+      sum +
+      Math.max(0, 0.2 - countRatioOf(mine, element)) *
+        Math.min(1, countRatioOf(partner, element) / 0.2),
+    0,
+  );
+
+/**
+ * discovery-v1 의 상호보완도 — 서로의 20% 미만 부족분에 상대 비율이 얼마나 닿는지 잰다.
+ * 상대 비율은 20%에서 포화한다. 양방향 합의 최댓값은 1이므로 0~100으로 옮긴다.
+ */
+export function mutualDeficitComplementOf(a: ElementSummary, b: ElementSummary): number {
+  const raw = deficitComplementOneWay(a, b) + deficitComplementOneWay(b, a);
+  return Math.max(0, Math.min(100, raw * 100));
+}
+
+/** 내 비율이 20%보다 작고 상대가 하나 이상 가진 오행 — 카드 설명용 */
+export const suppliedDeficitElementsOf = (
+  mine: ElementSummary,
+  partner: ElementSummary,
+): Element[] =>
+  ELEMENTS.filter(
+    (element) => countRatioOf(mine, element) < 0.2 && partner.counts[element] > 0,
+  );

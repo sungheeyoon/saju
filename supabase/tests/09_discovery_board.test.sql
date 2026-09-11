@@ -9,7 +9,7 @@
 -- 「가중치대로 뽑혔는가」도 잰다 — 같은 씨앗이면 같은 목록이므로 여러 씨앗으로 뽑아
 -- 등장 횟수를 세면 된다. 그 문은 `authenticated` 에게 닫혀 있고, 그것도 여기서 잰다.
 begin;
-select plan(25);
+select plan(27);
 
 /**
  * 참여자 하나를 세우는 손잡이.
@@ -82,11 +82,11 @@ grant select on me to authenticated;
 create temporary table scores as
 select
   other.user_id,
-  public.discovery_complement(mine.element_summary, other.element_summary) * 0.54
-    + public.discovery_combined_balance(mine.element_summary, other.element_summary) * 0.46 as score,
+  public.discovery_deficit_complement_v1(mine.element_summary, other.element_summary) * 0.3
+    + public.discovery_count_balance_v1(mine.element_summary, other.element_summary) * 0.7 as score,
   row_number() over (order by
-    public.discovery_complement(mine.element_summary, other.element_summary) * 0.54
-    + public.discovery_combined_balance(mine.element_summary, other.element_summary) * 0.46 desc,
+    public.discovery_deficit_complement_v1(mine.element_summary, other.element_summary) * 0.3
+    + public.discovery_count_balance_v1(mine.element_summary, other.element_summary) * 0.7 desc,
     other.user_id) as rnk
 from public.discovery_profile other, public.discovery_profile mine
 where mine.user_id = (select uid from me)
@@ -103,6 +103,11 @@ select public.refresh_discovery_snapshot_for((select uid from me), 'seed-a') as 
 
 create temporary table board as
 select * from public.discovery_snapshot_slot where snapshot_id = (select id from first_id);
+
+select is(
+  (select policy_version from public.discovery_snapshot where id = (select id from first_id)),
+  'discovery-v1',
+  '새 스냅샷은 discovery-v1 정책을 기록한다');
 
 select is((select count(*)::int from board), 10, '한 번에 열 명이 선다');
 
@@ -200,7 +205,8 @@ select isnt(
 -- ── 가중치 — **점수가 높을수록 자주 뽑힌다** ──────────────────────────────────
 
 /**
- * 씨앗 백스물을 넣어 등장 횟수를 센다.
+ * 씨앗 천 개를 넣어 등장 횟수를 센다. cap 뒤에는 컷 밖 점수 간격이 전보다 좁아져
+ * 작은 표본의 씨앗 운이 실제 가중치보다 크게 보일 수 있으므로 표본을 넓힌다.
  *
  * 매번 직전 스냅샷을 지우는 것은 「직전에 있던 사람 제외」가 등장 횟수를 반씩 깎기
  * 때문이다 — 그 규칙은 따로 잰다. 여기서 재려는 것은 **뽑기의 기울기** 하나다.
@@ -214,7 +220,7 @@ declare
   s integer;
   made uuid;
 begin
-  for s in 1..120 loop
+  for s in 1..1000 loop
     delete from public.discovery_snapshot where user_id = actor;
     made := public.refresh_discovery_snapshot_for(actor, 'weights-' || s);
     insert into draws
@@ -359,6 +365,27 @@ select set_config('request.jwt.claims', tests.claims((select uid from me)), true
 select lives_ok(
   'select public.refresh_discovery_snapshot()',
   '5분이 지나면 새로 받는다');
+
+reset role;
+update public.discovery_snapshot set policy_version = 'discovery-v0'
+where id = (
+  select id from public.discovery_snapshot where user_id = (select uid from me)
+  order by seq desc limit 1
+);
+
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
+create temporary table upgraded as select * from public.my_discovery_board();
+
+reset role;
+select is(
+  (select policy_version from public.discovery_snapshot where user_id = (select uid from me)
+   order by seq desc limit 1),
+  'discovery-v1',
+  '이전 정책 스냅샷은 읽을 때 즉시 다시 만든다');
+
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
 
 /** 씨앗을 고를 수 있는 문은 **닫혀 있다** — 열려 있으면 노출 기록이 무엇을 잰 것인지 말할 수 없다 */
 select throws_ok(

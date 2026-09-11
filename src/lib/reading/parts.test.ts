@@ -164,15 +164,24 @@ describe('시키는 값과 막는 값', () => {
     expect(max).toBeGreaterThanOrEqual(target * 2);
   });
 
-  it('개인과 궁합은 형세만 정하고 비유의 소재와 문장 꼴은 열어 둔다', () => {
-    expect(READING_PROMPTS.self).toContain('이 사람을 한눈에 보면 어떤 형세인지');
-    expect(READING_PROMPTS.private).toContain('이 두 사람이 함께 있을 때 어떤 형세인지');
+  it('한 줄 요약은 비유 없이 대상 고유의 작동 방식을 직접 말한다', () => {
+    expect(READING_PROMPTS.self).toContain('이 사람의 핵심 작동 방식');
+    expect(READING_PROMPTS.private).toContain('이 관계의 핵심 작동 방식');
 
     for (const kind of READING_KINDS) {
-      expect(READING_PROMPTS[kind], kind).toContain('비유의 소재와 문장 꼴은 자유롭게 고른다');
-      expect(READING_PROMPTS[kind], kind).toContain('본문의 해요체 규칙을 적용하지 않는다');
-      expect(READING_PROMPTS[kind], kind).not.toContain('생활에서 본 장면');
-      expect(READING_PROMPTS[kind], kind).not.toContain('사람을 규정하지 마라');
+      expect(READING_PROMPTS[kind], kind).toContain('## 한 줄 요약');
+      expect(READING_PROMPTS[kind], kind).toContain('비유하지 말고 직접 요약한다');
+      expect(READING_PROMPTS[kind], kind).toContain('자연 풍경이나 오행의 물상');
+      expect(READING_PROMPTS[kind], kind).toContain('누구에게나 붙는 운세 문구는 실패다');
+      expect(READING_PROMPTS[kind], kind).not.toContain('## 한마디로 빗대면');
+      expect(READING_PROMPTS[kind], kind).not.toContain('비유의 소재와 문장 꼴은 자유롭게 고른다');
     }
+  });
+
+  it('후보 카드의 오행 첫인상 점수는 상세 풀이를 선입견으로 묶지 않는다', () => {
+    expect(READING_PROMPTS.private).not.toContain('오행 첫인상 점수');
+    expect(READING_PROMPTS.match).not.toContain('오행 첫인상 점수');
+    expect(READING_PROMPTS.private).not.toContain('discovery-v1');
+    expect(READING_PROMPTS.match).not.toContain('discovery-v1');
   });
 });

@@ -157,11 +157,7 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     expect(checkReading(ok(kind))).toEqual({ ok: true });
   });
 
-  it('비유의 소재는 막지 않고 화면을 지키는 길이만 검사한다', () => {
-    const free = ok('self');
-    free.output.metaphor = '나무가 물을 만난 격';
-    expect(checkReading(free)).toEqual({ ok: true });
-
+  it('한 줄 요약은 빈 값과 화면을 넘는 길이를 막는다', () => {
     const empty = ok('self');
     empty.output.metaphor = '   ';
     expect(codesOf(checkReading(empty))).toContain('metaphor-out-of-contract');

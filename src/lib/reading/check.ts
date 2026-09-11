@@ -90,7 +90,7 @@ export const READING_FAILURES = {
   /** 자료를 가려 읽으라고 준 경로 이름이 사용자 본문에 그대로 나왔다 */
   'evidence-path-leaked': '자료 경로 이름이 본문에 나왔습니다',
   /** 한 문장 비유가 비었거나 화면이 감당하는 길이를 넘었다 */
-  'metaphor-out-of-contract': '한마디 비유가 계약을 벗어났습니다',
+  'metaphor-out-of-contract': '한 줄 요약이 계약을 벗어났습니다',
 } as const;
 
 export type ReadingFailureCode = keyof typeof READING_FAILURES;
@@ -522,7 +522,7 @@ export function checkReading({
   const { markdown, score, metaphor } = output;
 
   /**
-   * **한 문장 비유** — 점수에서 내린 의미가 여기 얹혀 있으므로 비면 그 자리가 통째로 빈다.
+   * **한 줄 요약** — 점수에서 내린 의미가 여기 얹혀 있으므로 비면 그 자리가 통째로 빈다.
    *
    * 두 가지만 본다.
    *
@@ -530,7 +530,7 @@ export function checkReading({
    * 2. **한 문장인가.** 화면이 점수 아래 한 줄로 세우는 자리라, 문단이 오면 그 배치가
    *    깨진다. 문장 부호로 세지 않고 **길이로 센다** — 「~격.」처럼 마침표가 없는 말도
    *    한 문장이고, 쉼표가 여럿인 긴 한 문장도 한 문장이라 세는 자가 못 된다.
-   * 비유의 소재와 문장 꼴은 검사하지 않는다. 이 한 줄이 대상을 바로 알아보게 하는지는
+   * 문장의 의미는 검사하지 않는다. 이 한 줄이 대상을 바로 알아보게 하는지는
    * 모델에게 맡기고, 기계 검사는 화면 자리를 지키는 데만 쓴다(ADR 0056).
    */
   const said = metaphor.trim();

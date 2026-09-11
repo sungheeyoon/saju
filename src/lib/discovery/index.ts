@@ -1,7 +1,7 @@
 import { ELEMENT_KO, type Element } from '../saju';
 
 /**
- * `discovery-v0` — 아직 선택되지 않은 후보의 **노출 순서**.
+ * `discovery-v1` — 아직 선택되지 않은 후보의 **노출 순서와 오행 첫인상**.
  *
  * `match-v0` 와 **다른 정책이고 다른 일을 한다**(ADR 0003). 같은 숫자를 두 일에 쓰면
  * 한쪽이 만든 편향이 다른 쪽의 신뢰로 세탁된다. 그래서 네 축 중 둘을 일부러 뺐다.
@@ -37,24 +37,24 @@ import { ELEMENT_KO, type Element } from '../saju';
 /**
  * 정책 — **축·가중치·탐색 비율·버전을 값으로 선언한다**(`prd-archive`).
  *
- * 가중치는 `match-v0` 의 두 축(0.35 · 0.30)을 남기고 합이 1이 되게 다시 나눈 값이다
- * (0.35/0.65 ≈ 0.54, 0.30/0.65 ≈ 0.46). **거기서 왔을 뿐 지금부터는 따로 산다** —
- * `match-v0` 의 가중치를 고쳐도 이 값은 움직이지 않는다. 움직이면 `discovery-v0` 라는
- * 이름이 가리키는 것이 조용히 바뀐다.
+ * `discovery-v1` 은 눈에 보이는 글자 수의 합산 균형 70%와, 20% 미만 부족분에 상대
+ * 오행이 닿는 정도로 잰 상호보완 30%를 쓴다. 상대 오행은 20%에서 포화해 과다 보유를
+ * 추가 가점으로 만들지 않는다. 상세 궁합이나 명리의 정답이 아니라 오행 구성을 단순
+ * 비교한 첫인상이다.
  *
  * **줄 세우기는 SQL 이 한다.** 여기 적힌 수는 그 셈의 선언이고, `09_discovery_board`
- * 가 같은 수로 기대값을 만든다. 그 수는 후보 카드에서 `첫인상 궁합`으로도 보인다.
- * 상세 궁합 점수와 혼동되지 않도록 오행 보완과 균형만 반영한 참고값이라고 함께 말한다.
+ * 가 같은 수로 기대값을 만든다. 그 수는 후보 카드에서 `오행 첫인상 점수`로 보인다.
+ * 상세 궁합과 혼동되지 않도록 오행 구성만 단순 비교한 참고값이라고 함께 말한다.
  */
-export const DISCOVERY_POLICY_V0 = {
-  version: 'discovery-v0',
+export const DISCOVERY_POLICY = {
+  version: 'discovery-v1',
   status: 'beta',
   /** 정렬만 하고 사람을 지우지 않는다 */
   behavior: 'rank-only',
   hardThreshold: 'none',
   weights: {
-    complement: 0.54,
-    combinedBalance: 0.46,
+    complement: 0.3,
+    combinedBalance: 0.7,
   },
   /** 순위에 쓰지 않는 것 — 뺀 이유는 위 주석과 ADR 0003 에 있다 */
   excluded: [
@@ -85,7 +85,7 @@ export const DISCOVERY_POLICY_V0 = {
    * 넓어진다. 오른쪽은 서로 동의한 뒤에 열리는 것들이고, 생년월일시와 출생지는
    * 그때도 열리지 않는다(ADR 0008).
    */
-  discloses: ['supplied-elements', 'element-meaning', 'balance-band', 'preview-score'] as const,
+  discloses: ['supplied-elements', 'balance-band', 'preview-score'] as const,
   withholds: [
     'birth-input',
     'birth-place',
@@ -100,20 +100,6 @@ export const DISCOVERY_POLICY_V0 = {
   ] as const,
 } as const;
 
-/**
- * 오행 한 글자가 사람에게 무엇으로 읽히는가 — **관습적 의미이지 계산 결과가 아니다.**
- *
- * 엔진이 낸 사실이 아니므로 강도 딱지가 붙지 않는다. 후보 카드가 「왜 이 사람인가」를
- * 사람 말로 옮길 때만 쓰고, 사실을 말하는 자리에서는 쓰지 않는다.
- */
-export const ELEMENT_MEANING: Record<Element, string> = {
-  木: '성장과 확장',
-  火: '열정과 표현',
-  土: '중심과 포용',
-  金: '안정감과 결단력',
-  水: '유연함과 통찰',
-};
-
 /** 함께 놓은 균형을 세 칸으로 — 경계는 `balanceBands`, 판정은 `discovery_balance_band` */
 export type BalanceBand = 'even' | 'mixed' | 'skewed';
 
@@ -126,17 +112,16 @@ export type BoardRow = {
   /** 0부터 — 화면의 차례이자 노출 기록이 든 자리 */
   seat: number;
   exploration: boolean;
-  /** 내게 없는 오행 중 이 후보가 가진 것. 상대의 전체 구성이 아니다 */
+  /** 내 비율이 20%보다 낮은 오행 중 이 후보가 가진 것. 상대의 전체 구성이 아니다 */
   suppliedElements: readonly Element[];
   balanceBand: BalanceBand;
-  /** 오행 보완 54% + 함께 놓은 균형 46% — 상세 궁합 전의 참고값 */
+  /** 오행 보완 30% + 함께 놓은 균형 70% — 단순 비교 참고값 */
   previewScore: number;
 };
 
-/** 이 후보가 내게 채우는 오행 하나와 그 뜻, 그리고 그것을 사람 말로 옮긴 한 줄 */
+/** 이 후보가 내 적은 오행 중 가지고 있는 것 */
 export type CandidateHighlight = {
   element: Element;
-  meaning: string;
   text: string;
 };
 
@@ -158,16 +143,11 @@ const BALANCE_LABEL: Record<BalanceBand, string> = {
  * 위에서 아래로 읽으니 `find` 가 처음 걸리는 칸이 곧 그 점수의 칸이다.
  */
 const PREVIEW_VERDICT: readonly (readonly [number, string])[] = [
-  [90, '최고의 궁합에 가까워요.'],
-  [80, '아주 좋은 궁합이에요.'],
-  [70, '좋은 궁합이에요.'],
-  [60, '괜찮은 궁합이에요.'],
-  [50, '무난한 궁합이에요.'],
-  [40, '조금 아쉬운 궁합이에요.'],
-  [30, '잘 맞지 않는 편이에요.'],
-  [20, '서로 맞지 않는 부분이 많아요.'],
-  [10, '서로 잘 어우러지지 않아요.'],
-  [0, '궁합이 매우 좋지 않아요.'],
+  [90, '오행 구성이 매우 균형적인 편이에요.'],
+  [80, '오행 구성이 좋은 편이에요.'],
+  [70, '오행 구성이 무난한 편이에요.'],
+  [60, '오행 구성이 다소 편중된 편이에요.'],
+  [0, '오행 구성이 많이 편중된 편이에요.'],
 ];
 
 /** 이유 문장의 뒷 절 — 균형을 **어우러짐의 말로** 옮긴다 */
@@ -183,7 +163,7 @@ const BALANCE_CLAUSE: Record<BalanceBand, string> = {
  * ## 왜 균형 문장만으로는 안 됐나
  *
  * 카드는 「34점」 옆에 「균형이 고른 편이에요」를 세우고 있었다. 둘 다 참인데 같이
- * 읽으면 어긋난다 — 점수는 두 축의 합이고(보완 54% + 균형 46%), 균형 문장은 그중
+ * 읽으면 어긋난다 — 점수는 두 축의 합이고(보완 30% + 균형 70%), 균형 문장은 그중
  * 뒤 축 하나만 말하기 때문이다. **낮은 점수를 만든 축이 화면에 한 번도 안 나왔다.**
  *
  * 그래서 이유는 두 축을 한 문장에 접속으로 묶는다. 두 축의 방향이 같으면 「-고 …도」,
@@ -192,7 +172,7 @@ const BALANCE_CLAUSE: Record<BalanceBand, string> = {
  * ## 지어내지 않는다
  *
  * 밴드마다 다른 이유를 손으로 적어 두지 않았다. 그러면 점수와 말이 따로 움직이고,
- * 어느 날 80점 문장이 「채우는 오행이 많아요」라고 말하는데 실제로는 한 글자도 없는
+ * 어느 날 80점 문장이 「보완하는 오행이 많아요」라고 말하는데 실제로는 한 글자도 없는
  * 일이 난다. **이유는 언제나 같은 두 사실에서 나온다.**
  */
 export function previewSummaryFor(row: {
@@ -208,11 +188,11 @@ export function previewSummaryFor(row: {
 
   const supply = hasSupply
     ? agree
-      ? '내게 부족한 오행을 채워 주고'
-      : '내게 부족한 오행을 채워 주지만'
+      ? '내게 적은 오행을 보완하는 데 보탬이 되고'
+      : '내게 적은 오행을 보완하는 데 보탬이 되지만'
     : agree
-      ? '내게 부족한 오행을 채워 주지 않고'
-      : '내게 부족한 오행을 채워 주지는 않지만';
+      ? '내게 적은 오행을 크게 보완하지 않고'
+      : '내게 적은 오행을 크게 보완하지는 않지만';
 
   return {
     // 못 알아보는 수가 와도 마지막 칸이 받는다 — 모르는 값을 좋은 쪽으로 눕히지 않는다
@@ -224,7 +204,7 @@ export function previewSummaryFor(row: {
 
 /** 여기서 멈추는 이유와 다음 — **상세 궁합은 서로 동의한 뒤에 열린다** */
 export const DISCOVERY_TEASER =
-  '지금은 오행으로 살펴본 첫인상만 보여드려요. 상세 궁합 보기를 선택하면 두 사람의 자세한 궁합을 함께 확인할 수 있어요.';
+  '이 점수는 두 사람의 오행 구성을 단순 비교한 참고값입니다. 상세 궁합 보기를 선택하면 두 사람의 자세한 궁합을 함께 확인할 수 있어요.';
 
 /**
  * 목록이 **빈 자리**에 서는 말 — 첫 주에는 이것이 기본 상태다.
@@ -252,7 +232,7 @@ const EXPLORATION_NOTE =
   '색다른 인연도 만나볼 수 있도록 일부 후보는 추천 순서와 관계없이 섞어 보여드려요.';
 
 const NO_MISSING_NOTICE =
-  '내 사주에는 빠진 오행이 없어, 두 사람의 오행이 얼마나 고르게 어우러지는지를 중심으로 살펴봤어요.';
+  '내 사주에는 빠진 오행은 없지만, 20%보다 적은 오행까지 함께 살펴봤어요.';
 
 /**
  * 참여를 켜기 전에 읽히는 말 — **화면과 ADR 과 `prd-archive` 가 같은 문장을 든다.**
@@ -263,9 +243,9 @@ const NO_MISSING_NOTICE =
 export const DISCOVERY_DISCLOSURE = {
   shown: [
     '닉네임, 프로필 사진, 소개 — 사진을 등록하지 않으면 닉네임의 첫 글자가 표시됩니다.',
-    '나에게 부족한 오행 중 소개받은 사람이 채우는 오행의 이름과 그 뜻 — 상대의 카드에도 같은 방식으로 내 오행이 몇 글자 나타납니다.',
+    '나에게 20%보다 적은 오행 중 소개받은 사람이 가지고 있는 오행의 이름.',
     '함께 놓았을 때의 오행 균형을 말로 옮긴 설명.',
-    '오행의 보완과 두 사람의 균형을 합친 첫인상 궁합 점수.',
+    '오행의 보완과 두 사람의 균형을 합친 오행 첫인상 점수.',
   ],
   hidden: [
     '생년월일시와 출생지.',
@@ -274,22 +254,35 @@ export const DISCOVERY_DISCLOSURE = {
 } as const;
 
 /**
- * 후보 한 줄을 사람 말로 — **어느 오행이 무엇을 채우는지까지 말한다.**
+ * 후보 한 줄을 사람 말로 — **어느 오행의 보완에 보탬이 되는지 말한다.**
  *
  * 이름을 감추면 「왜 이 사람인가」에 답할 수 없고, 답 못 하는 추천은 궁금해지지도
- * 않는다. 여기서 부르는 것은 **내게 없는 오행 중 상대가 가진 것**뿐이다 — 상대의
+ * 않는다. 여기서 부르는 것은 **내게 20%보다 적은 오행 중 상대가 가진 것**뿐이다 — 상대의
  * 전체 구성도, 개수표도, 여덟 글자도 아니다.
  */
-export function cardTextFor(row: Pick<BoardRow, 'suppliedElements' | 'balanceBand'>): {
+export function cardTextFor(
+  row: Pick<BoardRow, 'suppliedElements' | 'balanceBand'> & {
+    /** 내 개수는 문구 강도만 가른다. 카드로 내려보내지는 않는다. */
+    viewerCounts?: Readonly<Record<Element, number>>;
+  },
+): {
   highlights: CandidateHighlight[];
   balanceLabel: string;
 } {
   return {
-    highlights: row.suppliedElements.map((element) => ({
-      element,
-      meaning: ELEMENT_MEANING[element],
-      text: `내게 부족한 ${ELEMENT_KO[element]}(${element}) 기운을 채워 ${ELEMENT_MEANING[element]}에 힘을 보태요.`,
-    })),
+    highlights: row.suppliedElements.map((element) => {
+      const label = `${ELEMENT_KO[element]}(${element})`;
+      const count = row.viewerCounts?.[element];
+      return {
+        element,
+        text:
+          count === 0
+            ? `내 사주에 없는 ${label} 기운을 이 사람이 가지고 있어요.`
+            : count === undefined
+              ? `내게 적은 ${label} 기운을 이 사람이 가지고 있어 보완에 보탬이 돼요.`
+              : `내 사주에서 적은 ${label} 기운을 이 사람이 가지고 있어 보완에 보탬이 돼요.`,
+      };
+    }),
     balanceLabel: BALANCE_LABEL[row.balanceBand],
   };
 }

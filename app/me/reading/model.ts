@@ -54,7 +54,8 @@ const OUTPUT_SHAPE = {
     },
     metaphor: {
       type: 'string',
-      description: '이 사람 또는 두 사람의 형세를 한눈에 알아듣게 빗댄 짧은 한 문장',
+      description:
+        '비유나 형세 표현 없이, 이 사람 또는 두 사람의 핵심 작동 방식을 직접 설명한 한 줄 요약',
     },
     markdown: { type: 'string', description: '사용자가 읽을 본문. Markdown 원문' },
   },
