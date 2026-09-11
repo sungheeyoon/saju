@@ -1,6 +1,6 @@
 -- 온보딩 — Person·판본·엣지·claim 이 한 사건으로 일어난다.
 begin;
-select plan(11);
+select plan(13);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -58,8 +58,24 @@ select isnt((select self_person_id from public.app_user where id = (select kim f
 select is((select role from public.user_person_access where user_id = (select kim from who)), 'owner',
   '만든 사람은 owner 로 들어간다');
 
-select is((select local_label from public.user_person_access where user_id = (select kim from who)), '민수',
-  '부를 이름은 Person 이 아니라 엣지가 든다');
+select is(
+  (select local_label from public.user_person_access where user_id = (select kim from who)),
+  (select nickname from public.app_user where id = (select kim from who)),
+  '자기 자신은 등록할 때 다시 적은 이름이 아니라 닉네임으로 부른다');
+
+update public.user_person_access set local_label = '다른이름'
+where user_id = (select kim from who)
+  and person_id = (select self_person_id from public.app_user where id = (select kim from who));
+select is(
+  (select local_label from public.user_person_access where user_id = (select kim from who)),
+  (select nickname from public.app_user where id = (select kim from who)),
+  '출생 정보 쪽에서는 자기 이름을 따로 바꿀 수 없다');
+
+select public.save_my_profile('새닉네임', null);
+select is(
+  (select local_label from public.user_person_access where user_id = (select kim from who)),
+  '새닉네임',
+  '프로필 닉네임을 바꾸면 자기 사람을 부르는 이름도 따라간다');
 
 select isnt((select current_revision_id from public.person where id = (select person_id from target)), null,
   'Person 이 현재 판본을 가리킨다');

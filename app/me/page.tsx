@@ -32,7 +32,11 @@ export default async function MePage() {
   if (!user) redirect('/auth');
 
   // 정책이 자기 행만 내주므로 `where` 를 적지 않는다. 적으면 판정하는 자리가 둘이 된다.
-  const { state } = await readAccount(supabase);
+  const { state, row: account } = await readAccount<{
+    status: string;
+    self_person_id: string | null;
+    nickname: string | null;
+  }>(supabase, 'status, self_person_id, nickname');
   const selfPersonId = state.kind === 'active' ? state.selfPersonId : null;
 
   return (
@@ -49,7 +53,7 @@ export default async function MePage() {
       {isBlocked(state) ? (
         <AccountNotice state={state} />
       ) : selfPersonId === null ? (
-        <Onboarding />
+        <Onboarding nickname={account?.nickname ?? ''} />
       ) : (
         <>
           <Unread />
@@ -133,7 +137,7 @@ async function SelfChart({ personId }: { personId: string }) {
         label={edge.local_label}
         saju={saju}
         /* 고치는 손잡이는 카드 모서리에 뜬다 — 저장한 사람 카드의 관리 메뉴와 같은 자리다 */
-        corner={<ReviseChart personId={personId} current={query} variant="corner" />}
+        corner={<ReviseChart personId={personId} current={query} variant="corner" editableName={false} />}
         details={
           <section className="mt-5 rounded-2xl border border-border bg-surface-soft/60 px-4 py-3">
             <h3 className="text-xs font-semibold tracking-[0.08em] text-muted">저장된 출생 정보</h3>

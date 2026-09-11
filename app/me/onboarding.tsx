@@ -16,9 +16,9 @@ import { saveSelfPerson } from './actions';
  * 여기서는 계산해 보여주지 않는다. 저장하면 그 자리에서 저장된 것으로 다시 그리므로,
  * 미리 계산해 보여주면 **저장된 것이 아닌 사주**를 저장된 것처럼 보여주게 된다.
  */
-export function Onboarding() {
+export function Onboarding({ nickname }: { nickname: string }) {
   const router = useRouter();
-  const [query, setQuery] = useState<Query>({ ...DEFAULT_QUERY, name: '' });
+  const [query, setQuery] = useState<Query>({ ...DEFAULT_QUERY, name: nickname });
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
 
@@ -38,12 +38,12 @@ export function Onboarding() {
       <header className="flex flex-col gap-1">
         <h2 className="text-base font-semibold">내 사주 등록</h2>
         <p className="text-sm text-secondary">
-          한 번 넣어 두면 다시 입력하지 않습니다. 나중에 언제든 고칠 수 있고, 고치면 그때부터
-          새 입력으로 계산합니다.
+          <strong className="font-medium">{nickname}</strong> 님의 출생 정보를 입력해 주세요.
+          나중에 언제든 고칠 수 있고, 고치면 그때부터 새 입력으로 계산합니다.
         </p>
       </header>
 
-      <BirthFields value={query} onChange={setQuery} idPrefix="self" namePlaceholder="부를 이름" />
+      <BirthFields value={query} onChange={setQuery} idPrefix="self" showName={false} />
 
       <div className="flex flex-wrap items-center gap-3">
         <button

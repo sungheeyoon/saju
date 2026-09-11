@@ -178,8 +178,9 @@ export function leavePersonSlots(email: string, free: number): void {
 
 export type Account = {
   readonly email: string;
+  /** selfPerson 이 앱 안에서 불리는 이름 — 현재 닉네임과 같다 */
   readonly label: string;
-  /** 앱 안에서 불리는 이름 — **부를 이름(`label`)과 다른 값이다**(§5.2) */
+  /** 앱 안에서 불리는 하나뿐인 이름 */
   readonly nickname: string;
   /** 이 계정이 등록한 가족·친구 — `people` 을 요청했을 때만 */
   readonly managed: readonly string[];
@@ -230,9 +231,9 @@ async function seed(
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const email = `e2e-${stamp}@example.com`;
   const password = `pw-${stamp}-Aa1!`;
-  const label = `민수${stamp.slice(-4)}`;
   /* 여덟 자까지다. 이름이 유일해졌으므로 짧게 자르면 나란히 도는 워커끼리 부딪힌다 */
   const nickname = `벗${stamp.slice(-6)}`;
+  const label = nickname;
 
   const client = createClient(local.api, local.anonKey, { auth: { persistSession: false } });
   const { error } = await client.auth.signUp({ email, password });

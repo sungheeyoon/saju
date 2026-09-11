@@ -73,7 +73,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     // 아직 selfPerson 이 없다 — 화면은 계산 결과가 아니라 등록 폼이다.
     await expect(page.getByRole('heading', { name: '내 사주 등록' })).toBeVisible();
 
-    await page.getByLabel('이름').fill(newcomer.label);
+    await expect(page.getByLabel('이름')).toHaveCount(0);
+    await expect(page.getByText(`${newcomer.label} 님의 출생 정보를 입력해 주세요.`)).toBeVisible();
     await fillBirthDate(page, '1990-05-15');
     await fillBirthTime(page, '14:30');
 
@@ -850,6 +851,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     const from = (await handle.boundingBox())!;
     const to = (await page.getByLabel('출생연도').boundingBox())!;
     expect(to.y - from.y).toBeLessThan(page.viewportSize()!.height);
+    await expect(page.getByLabel('이름')).toHaveCount(0);
+    await expect(page.getByText('내 이름은 프로필 닉네임으로 표시됩니다.')).toBeVisible();
 
     await fillBirthDate(page, '1990-06-20');
     await page.getByRole('button', { name: '변경 사항 저장' }).click();

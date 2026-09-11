@@ -594,6 +594,7 @@ export function BirthFields({
   onChange,
   idPrefix,
   namePlaceholder,
+  showName = true,
 }: {
   value: Query;
   onChange: (next: Query) => void;
@@ -601,6 +602,8 @@ export function BirthFields({
   idPrefix: string;
   /** 이름 칸이 비었을 때 대신 보일 말 */
   namePlaceholder?: string;
+  /** 본인은 계정 닉네임으로 부르므로 출생 정보에서 이름을 다시 묻지 않는다 */
+  showName?: boolean;
 }) {
   const set = <K extends keyof Query>(key: K, next: Query[K]) => onChange({ ...value, [key]: next });
 
@@ -626,16 +629,18 @@ export function BirthFields({
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="이름">
-          <input
-            type="text"
-            value={value.name}
-            onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
-            placeholder={namePlaceholder}
-            maxLength={NAME_MAX}
-            className={`${FIELD} w-full max-w-56`}
-          />
-        </Field>
+        {showName && (
+          <Field label="이름">
+            <input
+              type="text"
+              value={value.name}
+              onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
+              placeholder={namePlaceholder}
+              maxLength={NAME_MAX}
+              className={`${FIELD} w-full max-w-56`}
+            />
+          </Field>
+        )}
 
         {/*
           **이름 옆은 성별이다.** 달력이 여기 서 있던 동안 이 줄은 「이름 · 달력 기준」

@@ -24,6 +24,7 @@ export function ReviseChart({
   current,
   embedded = false,
   variant = 'link',
+  editableName = true,
 }: {
   personId: string;
   current: Query;
@@ -39,6 +40,8 @@ export function ReviseChart({
    * 시험이 읽는 이름은 한 벌이어야 한다.
    */
   variant?: 'link' | 'corner';
+  /** selfPerson 은 계정 닉네임으로 부르므로 이 폼에서 이름을 고치지 않는다 */
+  editableName?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -67,6 +70,7 @@ export function ReviseChart({
             <ReviseForm
               personId={personId}
               current={current}
+              editableName={editableName}
               onDone={() => setOpen(false)}
               onCancel={() => setOpen(false)}
             />
@@ -82,6 +86,7 @@ export function ReviseChart({
         personId={personId}
         current={current}
         embedded={embedded}
+        editableName={editableName}
         onDone={() => setOpen(false)}
         onCancel={() => setOpen(false)}
       />
@@ -114,12 +119,14 @@ export function ReviseForm({
   personId,
   current,
   embedded = false,
+  editableName = true,
   onDone,
   onCancel,
 }: {
   personId: string;
   current: Query;
   embedded?: boolean;
+  editableName?: boolean;
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -129,7 +136,7 @@ export function ReviseForm({
   const [saving, startSaving] = useTransition();
 
   const missing = missingAnswer(query);
-  const nameChanged = query.name.trim() !== current.name.trim();
+  const nameChanged = editableName && query.name.trim() !== current.name.trim();
   const pillarsSame = samePillarInput(current, query);
 
   const save = () => {
@@ -152,7 +159,15 @@ export function ReviseForm({
         <p className="text-sm text-secondary">{REVISION_REPLACED_NOTE}</p>
       </header>
 
-      <BirthFields value={query} onChange={setQuery} idPrefix="revise" />
+      {!editableName && (
+        <div className="rounded-lg bg-surface-soft px-3 py-2 text-sm">
+          <span className="text-muted">닉네임</span>{' '}
+          <strong className="font-medium">{current.name}</strong>
+          <p className="mt-0.5 text-xs text-muted">내 이름은 프로필 닉네임으로 표시됩니다.</p>
+        </div>
+      )}
+
+      <BirthFields value={query} onChange={setQuery} idPrefix="revise" showName={editableName} />
 
       {/*
         무엇이 일어날지 누르기 전에 말한다. 이름은 여덟 글자를 바꾸지 않으므로
