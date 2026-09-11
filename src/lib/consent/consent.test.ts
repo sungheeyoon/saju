@@ -7,6 +7,7 @@ import {
   CONSENT_FLOW_CAVEAT,
   CONSENT_FLOW_STEPS,
   CONSENT_INTRO,
+  MATCH_CONSENT_QUESTION,
   MATCH_DISCLOSURE,
   MATCH_PILLARS_DISCLOSURE,
   MATCH_RESULT_CLOSED_NOTE,
@@ -163,6 +164,10 @@ describe('실패 알림은 무엇을 만들다 실패했는지 말한다', () =>
  * 앞에 붙는 말만 다르다.
  */
 describe('Match 가 여는 범위는 한 벌이다', () => {
+  it('받은 요청 카드는 공개와 함께 보기를 한 문장으로 묻는다', () => {
+    expect(MATCH_CONSENT_QUESTION).toContain('당신의 사주팔자 여덟 글자가 상대에게 공개');
+    expect(MATCH_CONSENT_QUESTION).toContain('자세한 궁합을 함께 보는 데 동의');
+  });
   it('열리는 것에 궁합 관계·사주풀이와 점수·일부 오행 구성이 있다', () => {
     const shown = MATCH_DISCLOSURE.shown.join(' ');
     // 점수는 풀이와 같은 생성 건에서 난다. 내부 지표 이름은 여기 서지 않는다(`prd-archive`).

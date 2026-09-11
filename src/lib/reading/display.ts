@@ -37,3 +37,28 @@ export function readingGrounding(markdown: string): string | null {
   // 제목만 있고 줄이 없으면 **안 쓴 것**이다. 제목 한 줄을 근거라고 내주지 않는다.
   return markdown.slice(from).trim() === '' ? null : markdown.slice(grounding.index).trim();
 }
+
+/**
+ * 공개 이름을 받기 전에 만든 공유 궁합의 자리 호칭을 현재 화면의 두 이름으로 바꾼다.
+ * 새 풀이에는 자리 호칭이 없으므로 그대로 돌아간다.
+ */
+export function namedMatchBody(
+  markdown: string,
+  viewerIsFirst: boolean,
+  names: { readonly me: string; readonly partner: string },
+): string {
+  const first = viewerIsFirst ? names.me : names.partner;
+  const second = viewerIsFirst ? names.partner : names.me;
+  const replace = (source: string, seat: '첫 번째' | '두 번째', name: string) => {
+    const called = name === '나' ? name : `${name}님`;
+    const particle: Record<string, string> =
+      name === '나' ? { 은: '는', 이: '가', 을: '를', 과: '와' } : {};
+
+    return source.replace(
+      new RegExp(`${seat} 분(에게|은|이|을|과|의|도|만)?`, 'g'),
+      (_, suffix: string | undefined) => `${called}${suffix === undefined ? '' : (particle[suffix] ?? suffix)}`,
+    );
+  };
+
+  return replace(replace(markdown, '첫 번째', first), '두 번째', second);
+}

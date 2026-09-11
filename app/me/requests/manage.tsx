@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 
 import {
   REPORT_DETAIL_MAX,
@@ -11,10 +11,9 @@ import {
 } from '@/src/lib/account';
 import {
   BLOCK_NOTE,
-  MATCH_DISCLOSURE,
+  MATCH_CONSENT_QUESTION,
   REJECTION_IS_FINAL_NOTE,
   REQUEST_STATUS_TEXT,
-  REVISION_BOUND_NOTE,
   type RequestStatus,
 } from '@/src/lib/consent';
 
@@ -32,63 +31,20 @@ const PRIMARY =
 const QUIET =
   'h-11 rounded-lg border border-border px-4 text-sm text-secondary transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-60 sm:h-10';
 
-/**
- * Match 가 여는 범위 — **보내기 전과 수락 전이 같은 목록을 읽는다.**
- *
- * 두 화면에 따로 적으면 동의가 무엇에 대한 것인지 갈린다. 문장은 정책이 들고
- * (`MATCH_DISCLOSURE`), 여기서는 세우기만 한다.
- *
- * **결과 화면도 같은 목록을 읽는다**(ADR 0010). 갈리는 것은 아래에 붙는 한 줄뿐이라
- * 그것만 받는다 — 동의 전에는 「이 요청은 판본에 매여 있다」이고, 결과에서는 「이
- * 결과가 그 판본으로 났다」이다. 목록을 화면마다 따로 적는 대신 이 한 줄을 받는다.
- */
-export function MatchScope({
-  intro,
-  note = REVISION_BOUND_NOTE,
-  standalone = false,
-}: {
-  intro: string;
-  note?: string;
-  /**
-   * 카드 **안**에 끼는가, 카드들 **사이**에 홀로 서는가.
-   *
-   * 요청 카드와 인연 카드 안에서는 안쪽 칸이라 모서리가 작아야 한다 — 품은 것과 품긴
-   * 것이 같은 모서리면 층이 안 보인다. 함께 보는 궁합 화면에서는 이것이 카드들 사이에
-   * 홀로 서므로 카드와 같은 모서리를 쓴다.
-   */
-  standalone?: boolean;
-}) {
+/** 받은 요청 카드의 동의 질문 — 공개 범위 목록 대신 결정에 필요한 한 문장만 둔다. */
+export function MatchConsentQuestion() {
   return (
-    <div
-      className={`flex flex-col gap-3 border border-border bg-surface-sunken text-sm ${
-        standalone ? 'rounded-[1.75rem] p-5 sm:p-6' : 'rounded-xl p-4'
-      }`}
-    >
-      <p>{intro}</p>
-      <dl className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <dt className="text-xs text-muted">서로에게 열리는 것</dt>
-          {MATCH_DISCLOSURE.shown.map((line) => (
-            <dd key={line}>{line}</dd>
-          ))}
-        </div>
-        <div className="flex flex-col gap-1">
-          <dt className="text-xs text-muted">열리지 않는 것</dt>
-          {MATCH_DISCLOSURE.hidden.map((line) => (
-            <dd key={line}>{line}</dd>
-          ))}
-        </div>
-      </dl>
-      <p className="text-xs text-muted">{note}</p>
-    </div>
+    <p className="rounded-xl border border-accent/20 bg-accent-wash px-4 py-3 text-sm leading-6 text-secondary">
+      {MATCH_CONSENT_QUESTION}
+    </p>
   );
 }
 
 /**
  * 받은 요청에 답하는 자리.
  *
- * **공개 범위는 이 버튼이 들고 있지 않다.** 카드가 열릴 때부터 위에 서 있다
- * (`page.tsx` 가 `MatchScope` 를 세운다) — 눌러야 나타나는 고지는 「읽고 눌렀다」를
+ * **동의 질문은 이 버튼이 들고 있지 않다.** 카드가 열릴 때부터 위에 서 있다
+ * (`page.tsx` 가 `MatchConsentQuestion` 을 세운다) — 눌러야 나타나는 고지는 「읽고 눌렀다」를
  * 보장하지 못하고, 서버가 내려보낸 화면에 그 문장이 있는지 밖에서 잴 수도 없다.
  *
  * **결과를 상태로 받는다.** 수락을 눌렀는데 무효가 나오는 경우가 실재한다 — 그 사이에
@@ -318,36 +274,36 @@ export function ReportButton({ userId }: { userId: string }) {
   );
 }
 
-/** 읽음 처리 — 새 알림과 이미 확인한 알림을 가른다(US 58) */
-export function MarkAllRead({ unread }: { unread: number }) {
+/**
+ * 소식 화면에 실제로 들어오면 읽음으로 바꾼다.
+ *
+ * 서버에서 처리하면 `Link` 의 미리 가져오기만으로도 읽은 셈이 된다. 브라우저에 이
+ * 화면이 마운트된 뒤에만 실행해, 내 사주의 버튼·상단 내비게이션·직접 주소 입력 중
+ * 어느 길로 왔든 같은 사건으로 남긴다.
+ */
+export function ReadNotificationsOnVisit({ unread }: { unread: number }) {
   const router = useRouter();
+  const started = useRef(false);
   const [failure, setFailure] = useState<string | null>(null);
-  const [working, startWorking] = useTransition();
 
-  if (unread === 0) return null;
+  useEffect(() => {
+    if (unread === 0) {
+      started.current = false;
+      return;
+    }
+    // 개발 모드의 이중 effect 와 같은 화면의 재렌더가 RPC 를 거듭 부르지 않게 한다.
+    if (started.current) return;
+    started.current = true;
 
-  const mark = () => {
-    setFailure(null);
-    startWorking(async () => {
+    void (async () => {
       const result = await markNotificationsRead();
       if (result.ok) router.refresh();
       else setFailure(result.message);
-    });
-  };
+    })();
+  }, [router, unread]);
 
-  return (
-    <span className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={mark}
-        disabled={working}
-        className="text-sm text-accent underline underline-offset-2 disabled:opacity-60"
-      >
-        {working ? '읽는 중…' : `${unread}개 읽음으로`}
-      </button>
-      {failure !== null && <span className="text-xs text-muted">{failure}</span>}
-    </span>
-  );
+  if (failure === null) return null;
+  return <p className="text-xs text-muted">읽음 처리하지 못했습니다 — {failure}</p>;
 }
 
 /**

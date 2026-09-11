@@ -355,8 +355,8 @@ describe('고객이 읽는 글의 계약', () => {
   });
 
   /** 인연 찾기에서 막 만난 두 사람은 **처음이 실제로 지금**이라 그대로 둔다 */
-  it('공유 궁합에는 처음 끌리는 절이 그대로 선다', () => {
-    expect(compatPrompt('match')).toContain('처음에 끌리는 지점');
+  it('공유 궁합에는 처음 끌리는 물음이 선다', () => {
+    expect(compatPrompt('match')).toContain('처음에 서로의 무엇에 끌렸고');
   });
 
   /** 공유 궁합은 고른 값이 아니라 **성립 방식**이 관계를 정한다 */
@@ -432,17 +432,13 @@ describe('고객이 읽는 글의 계약', () => {
     expect(named).toContain('자리 이름으로\n부르지 마라');
     expect(named).toContain('받은 그대로');
 
-    /*
-      **절 안내문도 이름으로 말한다** — 한 자리만 고치면 본문이 두 말투를 섞는다.
-
-      비공개 궁합이 절을 걷은 뒤로 이 자리를 **공유 궁합에서 잰다.** 이름을 절 문장에
-      꽂는 자리가 거기에만 남았기 때문이다 — 비공개는 부르는 말 블록 하나가 다 든다.
-    */
+    /* 공유 궁합도 일반 궁합과 같은 자유 구성이라 이름은 부르는 말 블록이 책임진다. */
     const inSections = readingPromptOf(matchEvidence(), CONTROL, {
       names: { a: '동생', b: '형' },
       relation: null,
     });
-    expect(inSections).toContain('동생이 형을 보는 자리');
+    expect(inSections).toContain('`charts.a` 는 **동생**, `charts.b` 는 **형**이다.');
+    expect(inSections).not.toContain('첫 번째 분이라고 부른다');
   });
 
   /**
@@ -530,16 +526,13 @@ describe('고객이 읽는 글의 계약', () => {
       expect(own, need).toContain(need);
     }
 
-    // 둘이 함께 쓰는 것은 양쪽에 다 있다 — 공유는 절로, 비공개는 다룰 것으로
-    for (const heading of ['둘이 만나야 생기는 것', '서로를 채우는 자리', '생활에서 반복될 장면']) {
-      expect(shared, heading).toContain(heading);
-    }
+    // 둘이 함께 쓰는 것은 양쪽 모두 같은 다룰 것의 목록으로 든다
     for (const need of ['둘이 있어야 생기는 것', '서로 채워 주는 것', '실제 생활에서 반복될 장면']) {
+      expect(shared, need).toContain(need);
       expect(own, need).toContain(need);
     }
 
-    // 분량만 올리면 이미 한 말을 늘여 쓴다 — 공유 궁합은 절을 먼저 채웠는지 잡는다
-    expect(sectionCountOf(shared)).toBeGreaterThanOrEqual(10);
+    expect(sectionCountOf(shared)).toBe(0);
   });
 
   it('기준판은 개인 사주의 핵심 물음을 빠짐없이 다룬다', () => {

@@ -137,13 +137,13 @@ const plain = (html) => html.replace(/<!--\s*-->/g, '');
 const NO_INDEX = ['match-v0', '100점 만점 베타 탐색 지표', '입력 완성도'];
 
 /**
- * 두 원국 **사이의 관계** 칸 전체 — 매인 판본으로 났는지 재는 자리.
+ * 두 사람의 **명식** 카드 전체 — 매인 판본으로 났는지 재는 자리.
  *
  * 판본이 바뀌면 걸린 글자와 자리가 바뀐다. 큰 수 하나 대신 칸을 통째로 견주는 것은
  * 지표가 이 화면에서 내려갔기 때문이다.
  */
-const betweenOf = (html) =>
-  (/두 원국 사이의 관계[\s\S]*?(?=두 사람의 궁합 풀이)/.exec(plain(html)) ?? [null])[0];
+const pillarsOf = (html) =>
+  (/궁합의 출발점[\s\S]*?(?=명식의 흐름을 이어 읽고 있어요)/.exec(plain(html)) ?? [null])[0];
 
 try {
   // ── 1. 후보 → 요청 → 수락 ─────────────────────────────────────────────────
@@ -185,8 +185,11 @@ try {
    */
   check('결과 화면이 열린다', opened.status === 200, String(opened.status));
   check('상대는 공개용 별명으로 불린다', mine.includes(NAME.b) && theirs.includes(NAME.a));
-  check('두 원국 사이의 관계가 선다', mine.includes('두 원국 사이의 관계'));
-  check('중립적인 문장이 함께 선다', mine.includes('두 사람 사이에 대해 말할 수 있는 것'));
+  check('두 사람의 명식과 궁합의 출발점이 선다',
+    mine.includes('두 사람의 명식') && mine.includes('궁합의 출발점'));
+  check('엔진 중간 관계표는 결과 화면에서 빠진다',
+    !mine.includes('두 원국 사이의 관계')
+      && !mine.includes('두 사람 사이에 대해 말할 수 있는 것'));
 
   /**
    * **점수 자리가 하나다.** 내부 지표는 사용자 화면에 서지 않는다(`prd-archive`).
@@ -202,7 +205,7 @@ try {
    * 누가 눌러야 하는데, 이제 아무도 안 누른다 — 풀이권은 요청할 때 예약되고 동의가
    * 그것을 쓴다. 그래서 두 사람 다 **만드는 중**을 본다.
    */
-  check('사주풀이 칸이 선다', mine.includes('두 사람의 궁합 풀이'));
+  check('궁합 풀이 칸이 선다', mine.includes('궁합 풀이'));
   check('동의하면 그 자리에서 만들어지고 있다',
     plain(mine).includes('명식의 흐름을 이어 읽고 있어요'));
   check('두 사람이 같은 상태를 본다',
@@ -211,21 +214,15 @@ try {
   check('양쪽 다 만드는 버튼이 없다',
     !mine.includes('사주풀이 받기') && !theirs.includes('사주풀이 받기'));
 
-  // ── 3. 동의할 때 읽은 목록을 결과에서도 읽는다 ────────────────────────────
+  // ── 3. 결과 화면은 풀이와 명식만 둔다 ─────────────────────────────────────
   {
     const text = plain(mine);
-    check('결과 화면도 열리는 것과 열리지 않는 것을 함께 적는다',
-      mine.includes('서로에게 열리는 것') && mine.includes('열리지 않는 것'));
-    check('열리지 않는 것에 출생 원문이 그대로 적혀 있다',
-      mine.includes('정확한 생년월일시와 출생지'));
-    check('관계를 합치면 여덟 글자가 전부 보일 수 있음을 적는다',
-      text.includes('여덟 글자가 전부 보일 수 있습니다'));
-    /** 「매인 판본」은 내부어다 — 사용자에게는 동의하신 그때의 출생 정보다(ADR 0026) */
-    check('동의한 그때의 출생 정보로 났다고 말한다',
-      text.includes('동의하신 대상이 그때의 출생 정보이기 때문'));
-    check('결과 화면에 내부어가 없다', !text.includes('판본'));
-    check('조립된 문장과 궁합 풀이를 구별해 말한다', text.includes('곧바로 조립한 것입니다'));
-    check('풀이를 누가 쓰는지 밝힌다', text.includes('언어 모델이 따로 써서'));
+    check('함께 보기로 한 사람 소개 카드는 빠진다', !mine.includes('함께 보기로 한 사람'));
+    check('동의 범위 설명 카드는 빠진다',
+      !mine.includes('서로에게 열리는 것') && !mine.includes('열리지 않는 것'));
+    check('결과 화면의 긴 판본·엔진 설명은 빠진다',
+      !text.includes('동의하신 대상이 그때의 출생 정보이기 때문')
+        && !text.includes('곧바로 조립한 것입니다'));
   }
 
   // ── 4. 출생 원문은 응답에 없다 ────────────────────────────────────────────
@@ -235,13 +232,7 @@ try {
     check('내 생년월일도 이 화면에는 없다', !mine.includes(BIRTH.a.date));
     check('출생 시각이 응답에 없다', !mine.includes('14:30'));
 
-    /**
-     * **명식 표와 근거 패널은 이 화면에 아예 없다.**
-     *
-     * 궁합 화면은 두 명식을 나란히 놓고 근거까지 연다. 여기는 그 둘을 **받지 않는다** —
-     * 낱말로 재는 대신, 그 칸들에만 서는 문장이 하나도 없는지를 본다.
-     */
-    check('상대의 명식 표가 서지 않는다', !plain(mine).includes('일간 '));
+    check('상대의 여덟 글자 명식은 선다', plain(mine).includes('일간 '));
     check('근거 패널이 서지 않는다', !mine.includes('풀이에 넘기는 자료'));
     check('지금 도는 운이 서지 않는다', !mine.includes('지금 도는 운'));
     check('오행 개수표가 응답에 없다',
@@ -290,7 +281,7 @@ try {
 
   // ── 7. 매인 판본은 움직이지 않는다 ────────────────────────────────────────
   {
-    const before = betweenOf(mine);
+    const before = pillarsOf(mine);
 
     const { data: account } = await b.from('app_user').select('self_person_id').maybeSingle();
     const revised = await b.rpc('add_person_revision', {
@@ -307,15 +298,15 @@ try {
       String(reopened.status));
     /**
      * **무엇으로 재는가가 바뀌었다.** 전에는 `match-v0` 지표의 큰 수 하나로 쟀는데,
-     * 그 지표가 이 화면에서 내려갔다(9단계). 대신 두 원국 **사이의 관계** 칸을 통째로
+     * 그 지표와 관계표가 이 화면에서 내려갔다. 대신 두 사람의 **명식** 카드를 통째로
      * 견준다 — 시주가 14:30 에서 05:20 으로 옮겨 가면 상대의 시지가 바뀌므로, 지금
      * 판본으로 다시 계산했다면 이 칸이 달라진다.
      *
      * 칸이 비어 있으면 이 검사는 아무것도 재지 않는다. 그래서 비어 있지 않은지도 함께 본다.
      */
-    check('사이의 관계 칸이 비어 있지 않다', before !== null && before.length > 200,
+    check('두 사람의 명식 카드가 비어 있지 않다', before !== null && before.length > 200,
       `${before?.length ?? 0}자`);
-    check('**결과는 동의한 그때의 판본 그대로다**', betweenOf(after) === before);
+    check('**결과는 동의한 그때의 판본 그대로다**', pillarsOf(after) === before);
   }
 
   // ── 8. 차단하면 결과도 내려간다 ───────────────────────────────────────────

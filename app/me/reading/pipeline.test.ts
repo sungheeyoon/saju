@@ -89,6 +89,15 @@ const BIRTH = {
   time_basis: 'localMean',
 };
 
+const BIRTH_B = {
+  ...BIRTH,
+  id: 'rev-b',
+  original_date: '1992-03-03',
+  solar_date: '1992-03-03',
+  gender: 'female',
+  city: '서울',
+};
+
 const started = {
   run_id: 'run-1',
   person_a: 'person-a',
@@ -167,6 +176,39 @@ describe('누름은 얼리고 떠나보낸다', () => {
     expect(submit.mock.calls[0][0]).toBe(frozen()?.[1].p_prompt);
     // 이름표를 함께 보낸다 — 우리 쪽 기록보다 먼저다.
     expect(submit.mock.calls[0][1]).toBe(started.run_id);
+  });
+
+  it('공유 궁합도 두 공개 이름으로 부르고 자리 이름으로 퇴행하지 않는다', async () => {
+    const matchStarted = {
+      ...started,
+      match_id: 'match-1',
+      revision_b: 'rev-b',
+    };
+    rpc.mockImplementation(async (name: string) =>
+      name === 'start_reading_run'
+        ? { data: [matchStarted], error: null }
+        : { data: null, error: null },
+    );
+    keyedRpc.mockImplementation(async (name: string) => {
+      if (name === 'match_calculation_inputs') {
+        return {
+          data: [
+            { ...BIRTH, revision_id: 'rev-a', nickname: '민수' },
+            { ...BIRTH_B, revision_id: 'rev-b', nickname: '지영' },
+          ],
+          error: null,
+        };
+      }
+      return { data: 'reading-1', error: null };
+    });
+
+    await beginReading({ kind: 'match', matchId: 'match-1' });
+    await settle();
+
+    const prompt = frozen()?.[1].p_prompt as string;
+    expect(prompt).toContain('`charts.a` 는 **민수**, `charts.b` 는 **지영**');
+    expect(prompt).toContain('「첫 번째 분」·「두 번째 분」처럼 자리 이름으로');
+    expect(prompt).toContain('부르지 마라');
   });
 
   it('얼린 프롬프트에 출생 원문이 없다 — 자르는 자리를 실제로 지난다', async () => {

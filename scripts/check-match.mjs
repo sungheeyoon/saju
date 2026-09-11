@@ -224,26 +224,13 @@ try {
     check('새 요청 알림이 뜬다',
       text.includes(`${NAME.a} 님이 상세 궁합을 함께 보자고 요청했습니다`));
 
-    /**
-     * **무엇이 열리는지는 누르기 전에 있다.** 눌러야 나타나는 고지는 「읽고 눌렀다」를
-     * 보장하지 못한다.
-     */
-    check('수락 전에 열리는 것과 열리지 않는 것을 함께 적는다',
-      html.includes('서로에게 열리는 것') && html.includes('열리지 않는 것'));
-    check('여덟 글자가 전부 보일 수 있음을 수락 전에 적는다',
-      html.includes('여덟 글자') && html.includes('전부 보일 수 있습니다'));
-    check('그래도 출생 원문과 상대 원국 전체 판정은 열리지 않는다고 적는다',
-      html.includes('정확한 생년월일시와 출생지')
-        && html.includes('상대 원국 하나에 대한 전체 판정'));
-    /**
-     * 「판본」은 우리가 FK 를 부르는 이름이라 사용자 문장에서 뺐다(ADR 0026).
-     * 재는 것은 낱말이 아니라 **말하고 있는 사실**이다 — 이 요청이 지금의 출생 정보에
-     * 매여 있고, 고치면 무효가 된다는 것.
-     */
-    check('요청이 그때의 출생 정보에 매여 있다고 미리 말한다',
-      text.includes('현재 저장된 두 사람의 출생 정보를 기준으로 합니다')
-        && text.includes('기존 요청은 취소'));
-    check('그 문장에 내부어가 안 섞인다', !text.includes('판본'));
+    check('수락 카드가 여덟 글자 공개와 함께 보는 궁합을 한 문장으로 묻는다',
+      text.includes('당신의 사주팔자 여덟 글자가 상대에게 공개됩니다')
+        && text.includes('상대와 자세한 궁합을 함께 보는 데 동의하시겠어요'));
+    check('수락 카드에 긴 공개 범위 목록을 되풀이하지 않는다',
+      !html.includes('서로에게 열리는 것')
+        && !html.includes('열리지 않는 것')
+        && !html.includes('상대 원국 하나에 대한 전체 판정'));
     /**
      * 문구가 「다시 서지 않고」에서 「다시 나타나지 않고」로 바뀌었는데 여기가 안
      * 따라왔다. **재는 것은 문구가 아니라 약속이므로** 갈래를 지고 있는 뒷절을 짚는다.
@@ -299,11 +286,12 @@ try {
     check('수락하면 accepted 다', !error && settled === 'accepted', error?.message ?? String(settled));
 
     for (const [who, cookie, partner] of [['청한 쪽', aCookie, NAME.b], ['받은 쪽', bCookie, NAME.a]]) {
-      const html = plain(await body('/me/requests', cookie));
-      check(`${who} 화면에 함께 보는 궁합이 선다`,
-        html.includes('함께 보는 궁합') && html.includes(partner));
-      check(`${who} 화면에서 결과로 들어가는 길이 선다`,
-        html.includes('/me/match/') && html.includes('함께 보기'));
+      const news = plain(await body('/me/requests', cookie));
+      const readings = plain(await body('/me/readings', cookie));
+      check(`${who} 소식 화면에는 함께 보기 카드가 남지 않는다`,
+        !news.includes('/me/match/'));
+      check(`${who} 풀이 화면에 함께 보는 궁합이 선다`,
+        readings.includes(partner) && readings.includes('/me/match/') && readings.includes('함께 보기'));
     }
 
     /** **Match 는 내 사람 목록을 늘리지 않는다**(US 46) — 두 갈래로 남는다 */
@@ -348,12 +336,13 @@ try {
      * 결과로 들어가는 길이 그것이다.
      */
     const asker = plain(await body('/me/requests', aCookie));
-    check('차단하면 Match 가 목록에서 내려간다', !asker.includes('/me/match/'));
+    const askerReadings = plain(await body('/me/readings', aCookie));
+    check('차단하면 풀이 탭의 Match 가 목록에서 내려간다', !askerReadings.includes('/me/match/'));
     check('차단한 사람이 몇인지는 말하되 누구인지는 적지 않는다',
       asker.includes('차단한 사람 1명') && !asker.includes(userId(bMail)));
 
-    const blocked = plain(await body('/me/requests', bCookie));
-    check('차단당한 쪽에서도 내려간다', !blocked.includes('/me/match/'));
+    const blocked = plain(await body('/me/readings', bCookie));
+    check('차단당한 쪽의 풀이 탭에서도 내려간다', !blocked.includes('/me/match/'));
 
     check('그래도 Match 행은 지우지 않는다', Number(sql('select count(*) from public.match')) > 0);
   }

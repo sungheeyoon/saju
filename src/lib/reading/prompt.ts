@@ -140,8 +140,9 @@ export type Terminology = 'annotated' | 'plain';
  * 궁금해하나」는 커버리지이고 「4번 절에 잘 맞는 지점 셋을 써라」는 구성이다 — 지금
  * 프롬프트는 그 둘을 한 덩어리로 묶어 두었다.
  *
- * **공유 궁합에는 안 닿는다.** 그쪽은 동의 범위가 여덟 글자와 관계 사실까지라(ADR 0012)
- * 다룰 것의 목록 자체가 다르다. 한 목록으로 묶으면 없는 자료를 다루라고 시키게 된다.
+ * **공유 궁합도 같은 구성 축을 쓴다.** 다만 동의 범위가 여덟 글자와 관계 사실까지라
+ * (ADR 0012) 목록에서 각자의 원국 판정과 운을 묻는 두 항목은 빠진다. 같은 처리 방식과
+ * 같은 자료 범위는 다른 말이다.
  */
 export type PairShape = 'sections-v1' | 'needs-v1';
 
@@ -170,7 +171,7 @@ export type PromptAssembly = {
    * 본보기가 통째로 다른 벌로 바뀐다.
    */
   readonly terminology: Terminology;
-  /** 비공개 궁합 본문의 꼴 — 절 목록인가 다룰 것의 목록인가 */
+  /** 궁합 본문의 꼴 — 절 목록인가 다룰 것의 목록인가 */
   readonly pairShape: PairShape;
   /** 본문 계약 앞에 얹는 실험 규칙 */
   readonly extraSections: readonly string[];
@@ -871,7 +872,7 @@ export const pairSectionTexts = (kind: PairKind, assembly: PromptAssembly): read
    * 되고, 그러면 절을 통째로 걷어낸 변형이 「한 절도 안 움직였다」로 통과한다. 그 판은
    * 규칙 1 이 잡아야 하는 것 중 가장 큰 것인데도.
    */
-  if (kind === 'private' && assembly.pairShape === 'needs-v1') return [];
+  if (assembly.pairShape === 'needs-v1') return [];
 
   return kind === 'private'
     ? [...COMPAT_SHARED_SECTIONS(a, b, meeting), ...compatPrivateSections(assembly)]
@@ -1078,15 +1079,19 @@ const MEETING_NEED: Record<Relation | 'match' | 'unknown', string> = {
  * - **기준 시각** — 「지금」은 부르는 순간으로 짚는다. 언제를 기준으로 한 말인지 안
  *   밝히면 읽는 사람은 그 글이 언제의 것인지 모른다.
  */
-const pairNeeds = (meeting: string): readonly string[] => [
+const pairNeeds = (kind: PairKind, meeting: string): readonly string[] => [
   '두 사람이 서로에게 어떤 사람인가 — **한쪽이 보는 것과 반대쪽이 보는 것이 다르다**',
   meeting,
   '어디가 맞고 어디서 부딪히는가',
   '서로 채워 주는 것과, 둘이 있어야 생기는 것',
   '실제 생활에서 반복될 장면',
   '오래 가려면 무엇이 필요한가',
-  '각자가 가까운 사이에서 어떤 사람인가',
-  '지금이 이 관계에 어떤 시기인가 — 언제를 기준으로 한 말인지 밝힌다',
+  ...(kind === 'private'
+    ? [
+        '각자가 가까운 사이에서 어떤 사람인가',
+        '지금이 이 관계에 어떤 시기인가 — 언제를 기준으로 한 말인지 밝힌다',
+      ]
+    : []),
 ];
 
 /**
@@ -1107,13 +1112,13 @@ const pairNeeds = (meeting: string): readonly string[] => [
  * 안 넘기는 것은 그대로 남는다: 근거의 층·사실 금지·강도·말투·어려운 말 안 쓰기·분량,
  * 그리고 맨 끝 검사용 근거 절. 그것들은 **우리가 책임질 것**이라 모델에게 안 묻는다.
  */
-const NEEDS_BLOCK = (meeting: string): string => `## 무엇을 다룰까
+const NEEDS_BLOCK = (kind: PairKind, meeting: string): string => `## 무엇을 다룰까
 
 아래는 이 풀이를 받는 사람이 **실제로 알고 싶어 하는 것**이다. **절 목록이 아니다** —
 몇 덩이로 나눌지, 어떤 차례로 쓸지, 무엇을 깊게 파고 무엇을 한 줄로 지날지는 **네가
 정한다.**
 
-${pairNeeds(meeting).map((need) => `- ${need}`).join('\n')}
+${pairNeeds(kind, meeting).map((need) => `- ${need}`).join('\n')}
 
 **다 다루되 고르게 나누지는 마라.** 이 두 사람 자료에서 할 말이 많은 것은 길게, 자료가
 얇은 것은 짧게 쓴다. 모든 항목에 같은 분량을 주면 그것이 곧 **목록을 베낀 글**이다.
@@ -1144,17 +1149,15 @@ const compatSections = (
 
   /**
    * **다룰 것만 주는 판** — 절 목록 자리에 커버리지가 서고 구성은 모델이 정한다.
-   *
-   * 비공개 궁합에만 갈린다. 공유 궁합은 동의 범위가 좁아 다룰 것의 목록 자체가 다르고,
-   * 한 목록으로 묶으면 **없는 자료를 다루라고 시키게 된다**(ADR 0012).
+   * 공유 궁합도 같은 판을 쓰되, 범위 밖인 각자의 원국 판정과 운은 목록에 넣지 않는다.
    *
    * 점수는 그대로 요구한다 — 절이 아니라 **계약**이라서다(`score-out-of-contract`).
    * 몇 번째인지는 안 세는데, 소제목 수를 모델이 정하므로 셀 번호가 없다.
    */
-  const needsShape = kind === 'private' && assembly.pairShape === 'needs-v1';
+  const needsShape = assembly.pairShape === 'needs-v1';
 
   const plan = needsShape
-    ? `${NEEDS_BLOCK(MEETING_NEED[relation ?? 'unknown'])}
+    ? `${NEEDS_BLOCK(kind, MEETING_NEED[kind === 'match' ? 'match' : (relation ?? 'unknown')])}
 
 ## 낼 것
 

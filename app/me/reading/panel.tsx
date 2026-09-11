@@ -9,14 +9,12 @@ import {
   READING_FAILED_NOTE,
   READING_NOUN,
   readingNoneNote,
-  READING_PINNED_NOTE,
   READING_REDACTION_NOTE,
   READING_REPLACES_NOTE,
   READING_SCORE_NOTE,
   READING_STALE_NOTE,
   isScored,
   readingCreditsNote,
-  readingOrderNote,
   readingWaitNote,
 } from '@/src/lib/reading';
 
@@ -24,6 +22,7 @@ import { generateReading, readingRunState } from './actions';
 import { announceCreditsMoved } from './credits-signal';
 import { GENERATION } from './generation';
 import type { CurrentReading, ReadingCredits } from './current';
+import { namedMatchBody } from '@/src/lib/reading/display';
 import { ReadingFeedback } from './feedback';
 import { Markdown } from './markdown';
 import type { ReadingTarget } from './pipeline';
@@ -66,6 +65,8 @@ export function ReadingPanel({
   layout = 'card',
   automatic = false,
   ask,
+  betweenSummaryAndBody,
+  matchNames,
 }: {
   target: ReadingTarget;
   initialReading: CurrentReading | null;
@@ -140,6 +141,8 @@ export function ReadingPanel({
    */
   automatic?: boolean;
   ask?: ReactNode;
+  betweenSummaryAndBody?: ReactNode;
+  matchNames?: { readonly me: string; readonly partner: string };
 }) {
   const router = useRouter();
   const [mockReading, setMockReading] = useState<CurrentReading | null>(null);
@@ -407,9 +410,15 @@ export function ReadingPanel({
       {onPage && alert}
 
       {phase === 'loading' ? (
-        <LoadingState />
+        <>
+          {betweenSummaryAndBody}
+          <LoadingState />
+        </>
       ) : reading === null ? (
-        <EmptyState />
+        <>
+          {betweenSummaryAndBody}
+          <EmptyState />
+        </>
       ) : (
         <Result
           reading={reading}
@@ -417,6 +426,8 @@ export function ReadingPanel({
           alwaysOpen={onPage}
           expanded={readingExpanded}
           onExpandedChange={setReadingExpanded}
+          betweenSummaryAndBody={betweenSummaryAndBody}
+          matchNames={matchNames}
         />
       )}
 
@@ -560,6 +571,8 @@ function Result({
   alwaysOpen,
   expanded,
   onExpandedChange,
+  betweenSummaryAndBody,
+  matchNames,
 }: {
   reading: CurrentReading;
   target: ReadingTarget;
@@ -567,6 +580,8 @@ function Result({
   alwaysOpen: boolean;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
+  betweenSummaryAndBody?: ReactNode;
+  matchNames?: { readonly me: string; readonly partner: string };
 }) {
   const open = alwaysOpen || expanded;
   const detailButton = !alwaysOpen && (
@@ -638,17 +653,25 @@ function Result({
         새로 만들면 지금 것이 사라진다는 경고도 이 자리를 떠났다 — 그것은 되돌릴 수
         없는 누름 **직전**에 필요한 말이라, 확인 창이 든다.
       */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs leading-5 text-muted">
-        {target.kind === 'match' && <p>{readingOrderNote(reading.viewerIsFirst)}</p>}
-        {target.kind === 'match' ? <p>{READING_PINNED_NOTE}</p> : !reading.fromCurrentRevision && <p className="text-danger">{READING_STALE_NOTE}</p>}
-      </div>
+      {target.kind !== 'match' && !reading.fromCurrentRevision && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs leading-5 text-muted">
+          <p className="text-danger">{READING_STALE_NOTE}</p>
+        </div>
+      )}
+      {betweenSummaryAndBody}
       {open && (
         <div className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-[var(--shadow-card)]">
           <article
             id={`reading-${reading.id}`}
             className="p-5 sm:p-7 lg:p-8"
           >
-            <Markdown source={reading.output} />
+            <Markdown
+              source={
+                target.kind === 'match' && matchNames !== undefined
+                  ? namedMatchBody(reading.output, reading.viewerIsFirst, matchNames)
+                  : reading.output
+              }
+            />
           </article>
         </div>
       )}

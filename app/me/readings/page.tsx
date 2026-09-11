@@ -7,8 +7,10 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
+import { Avatar } from '../avatar';
 import { myReadings, type ReadingEntry } from '../reading/current';
 import { readingDate, readingHref, readingTitle } from '../reading/line';
+import { matchesForViewer, type InboxMatch } from '../requests/inbox';
 
 export const metadata = {
   title: '풀이 — 만세력',
@@ -52,7 +54,13 @@ export default async function ReadingsPage() {
     );
   }
 
-  const readings = await myReadings();
+  const [readings, matches] = await Promise.all([myReadings(), matchesForViewer()]);
+  const madeMatchIds = new Set(
+    readings.flatMap((reading) =>
+      reading.kind === 'match' && reading.matchId !== null ? [reading.matchId] : [],
+    ),
+  );
+  const making = matches.filter((match) => !madeMatchIds.has(match.matchId));
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
@@ -65,7 +73,8 @@ export default async function ReadingsPage() {
         </p>
       </header>
 
-      {readings.length === 0 ? <Nothing /> : <Made readings={readings} />}
+      {making.length > 0 && <MakingMatches matches={making} />}
+      {readings.length === 0 && making.length === 0 ? <Nothing /> : <Made readings={readings} />}
     </main>
   );
 }
@@ -100,6 +109,8 @@ function Nothing() {
 }
 
 function Made({ readings }: { readings: readonly ReadingEntry[] }) {
+  if (readings.length === 0) return null;
+
   return (
     <ul className="flex flex-col gap-2">
       {readings.map((one) => (
@@ -148,5 +159,35 @@ function Made({ readings }: { readings: readonly ReadingEntry[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function MakingMatches({ matches }: { matches: readonly InboxMatch[] }) {
+  return (
+    <section className="flex flex-col gap-3">
+      <div>
+        <h2 className="text-base font-semibold">함께 보는 궁합</h2>
+        <p className="mt-0.5 text-xs text-muted">서로 동의한 궁합 풀이를 만들고 있습니다.</p>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {matches.map((match) => (
+          <li key={match.matchId}>
+            <Link
+              href={`/me/match/${match.matchId}`}
+              className="flex items-center gap-3 rounded-xl border border-border-strong bg-surface px-4 py-3 text-sm hover:border-accent hover:text-accent"
+            >
+              <Avatar userId={match.partnerUserId} nickname={match.nickname} hasPhoto={match.hasPhoto} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{match.nickname} 궁합</span>
+                <span className="mt-0.5 block text-xs font-normal text-muted">궁합 풀이 만드는 중…</span>
+              </span>
+              <span className="shrink-0 rounded-full bg-accent-wash px-3.5 py-2 font-semibold text-accent">
+                함께 보기
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -275,6 +275,10 @@ export const CONSENT_FLOW_CAVEAT =
 export const CONSENT_INTRO =
   `${MATCH_PILLARS_DISCLOSURE} 수락하면 두 사람이 같은 궁합 결과를 함께 볼 수 있으며, 궁합 풀이는 요청한 분의 풀이권으로 만들어집니다.`;
 
+/** 받은 요청 카드에서 수락 전에 읽는 한 문장 질문. */
+export const MATCH_CONSENT_QUESTION =
+  '수락하면 당신의 사주팔자 여덟 글자가 상대에게 공개됩니다. 상대와 자세한 궁합을 함께 보는 데 동의하시겠어요?';
+
 /**
  * 요청이 잡아 둔 것 — **사람이 아니라 그때 그 입력에 대한 동의다.**
  *

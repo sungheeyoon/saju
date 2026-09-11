@@ -49,6 +49,28 @@ async function pendingRequest(from: Person, to: Person): Promise<void> {
 }
 
 test.describe('동의로 열리는 흐름', () => {
+  test('내 사주의 소식 버튼으로 들어오면 도착한 소식을 모두 읽은 것으로 남긴다', async ({
+    openAs,
+  }) => {
+    const tag = freshTag();
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+
+    await bothParticipate(asker, receiver, tag);
+    await pendingRequest(asker, receiver);
+
+    await receiver.page.goto('/me');
+    await expect(receiver.page.getByText('아직 확인하지 않은 새 소식이 있습니다.')).toBeVisible();
+    await receiver.page.getByText('아직 확인하지 않은 새 소식이 있습니다.').click();
+
+    await expect(receiver.page).toHaveURL(/\/me\/requests$/);
+    // 처음 내려온 알림의 읽지 않음 표시는 자동 읽음 처리 뒤의 refresh 에서 사라진다.
+    await expect(receiver.page.getByLabel('읽지 않음')).toHaveCount(0);
+
+    await receiver.page.goto('/me');
+    await expect(receiver.page.getByText('아직 확인하지 않은 새 소식이 있습니다.')).toHaveCount(0);
+  });
+
   test('저장한 사람은 이미 참여 중이고, 요청을 보내 수락하면 같은 결과 화면에 선다', async ({ openAs }) => {
     const tag = freshTag();
     const asker = await openAs({ selfPerson: true });

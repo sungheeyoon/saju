@@ -5,8 +5,6 @@ import { isBlocked } from '@/src/lib/account';
 import {
   CONSENT_FLOW_CAVEAT,
   CONSENT_FLOW_STEPS,
-  CONSENT_INTRO,
-  MATCH_RESULT_LINK,
   REQUEST_STATUS_TEXT,
 } from '@/src/lib/consent';
 
@@ -15,14 +13,14 @@ import { CARD } from '../../card';
 import { Avatar } from '../avatar';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
-import { inboxForViewer, type Inbox, type InboxMatch, type InboxRequest } from './inbox';
+import { inboxForViewer, type Inbox, type InboxRequest } from './inbox';
 import {
   BlockButton,
   ReportButton,
   BlockedCount,
   CancelButton,
-  MarkAllRead,
-  MatchScope,
+  MatchConsentQuestion,
+  ReadNotificationsOnVisit,
   RespondButtons,
 } from './manage';
 
@@ -99,12 +97,8 @@ async function InboxSections() {
 
   return (
     <div className="flex flex-col gap-8">
-      <InboxSummary
-        unread={inbox.unread}
-        received={received.length}
-        sent={sent.length}
-        matches={inbox.matches.length}
-      />
+      <ReadNotificationsOnVisit unread={inbox.unread} />
+      <InboxSummary unread={inbox.unread} received={received.length} sent={sent.length} />
 
       <Notifications inbox={inbox} />
 
@@ -131,7 +125,7 @@ async function InboxSections() {
                       카드가 열릴 때부터 버튼 위에 서 있다 — 읽지 않고 누른 수락은 동의가
                       아니고, 눌러야 나타나는 고지는 밖에서 잴 수도 없다.
                     */}
-                    <MatchScope intro={CONSENT_INTRO} />
+                    <MatchConsentQuestion />
                     <RespondButtons requestId={request.requestId} />
                     {/*
                       신고는 **상대가 나에게 한 일**이 있는 자리에만 둔다 — 받은 요청과
@@ -146,8 +140,6 @@ async function InboxSections() {
               </ul>
             )}
           </section>
-
-          <Matches matches={inbox.matches} />
 
           <section className="flex flex-col gap-3">
             <SectionHead
@@ -211,22 +203,19 @@ function InboxSummary({
   unread,
   received,
   sent,
-  matches,
 }: {
   unread: number;
   received: number;
   sent: number;
-  matches: number;
 }) {
   const items = [
     { label: '새 소식', value: unread, tone: 'bg-accent text-on-accent' },
     { label: '받은 요청', value: received, tone: 'bg-accent-wash text-accent' },
     { label: '답변 대기', value: sent, tone: 'bg-earth-soft text-earth' },
-    { label: '함께 보는 궁합', value: matches, tone: 'bg-water-soft text-water' },
   ] as const;
 
   return (
-    <section aria-label="소식 요약" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+    <section aria-label="소식 요약" className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
       {items.map((item) => (
         <div
           key={item.label}
@@ -341,7 +330,6 @@ function Notifications({ inbox }: { inbox: Inbox }) {
             <p className="text-xs text-muted">최근 활동과 풀이 상태를 확인하세요.</p>
           </div>
         </div>
-        <MarkAllRead unread={inbox.unread} />
       </div>
 
       {inbox.notifications.length === 0 ? (
@@ -421,55 +409,6 @@ function Nothing({ children }: { children: React.ReactNode }) {
       <span aria-hidden="true" className="size-2 rounded-full bg-border-strong" />
       <p className="text-sm text-muted">{children}</p>
     </div>
-  );
-}
-
-function Matches({ matches }: { matches: InboxMatch[] }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <SectionHead
-        title="함께 보는 궁합"
-        count={matches.length}
-        description="서로 동의해 함께 열어 둔 궁합입니다."
-      />
-
-      {matches.length === 0 ? (
-        <Nothing>아직 없습니다.</Nothing>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {matches.map((match) => (
-            <li key={match.matchId} className={`${CARD} flex flex-col gap-3`}>
-              <div className="flex items-center gap-3">
-                <Avatar
-                  userId={match.partnerUserId}
-                  nickname={match.nickname}
-                  hasPhoto={match.hasPhoto}
-                />
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-base font-semibold">{match.nickname}</h3>
-                  <span className="mt-0.5 block text-xs text-muted">{when(match.createdAt)} 연결</span>
-                </div>
-                <Link
-                  href={`/me/match/${match.matchId}`}
-                  className="shrink-0 rounded-full bg-accent-wash px-3.5 py-2 text-sm font-semibold text-accent hover:bg-accent-soft"
-                >
-                  {MATCH_RESULT_LINK}
-                </Link>
-              </div>
-              {match.intro !== null && <p className="text-sm leading-6 text-secondary">{match.intro}</p>}
-              <div className="flex flex-wrap gap-2">
-                {match.suppliedToMe !== null && <InfoChip>{match.suppliedToMe}</InfoChip>}
-                <InfoChip>{match.balanceLabel}</InfoChip>
-              </div>
-              <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
-                <BlockButton userId={match.partnerUserId} />
-                <ReportButton userId={match.partnerUserId} />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
   );
 }
 

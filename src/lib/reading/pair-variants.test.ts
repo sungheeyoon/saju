@@ -229,9 +229,9 @@ describe('기준판은 구성만 놓는다', () => {
     expect(prompt).toContain(PROMPT_PARTS.closing);
   });
 
-  /** 공유 궁합은 동의 범위가 좁아 다룰 것의 목록 자체가 다르다 — 안 닿는다(ADR 0012) */
-  it.each(shapeExperiments)('$id — 공유 궁합은 그대로다', (variant) => {
-    expect(promptOf(variant.id, 'match')).toBe(promptOf('control', 'match'));
+  /** 공유 궁합도 같은 구성 원칙을 쓰되, 동의 범위 안의 물음만 둔다. */
+  it.each(shapeExperiments)('$id — 공유 궁합도 같은 구성 축을 따른다', (variant) => {
+    expect(promptOf(variant.id, 'match')).not.toBe(promptOf('control', 'match'));
   });
 });
 

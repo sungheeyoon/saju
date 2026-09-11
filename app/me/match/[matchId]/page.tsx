@@ -1,18 +1,12 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
-import {
-  MATCH_RESULT_CLOSED_NOTE,
-  MATCH_RESULT_ENGINE_NOTE,
-  MATCH_RESULT_INTRO,
-  MATCH_RESULT_PINNED_NOTE,
-} from '@/src/lib/consent';
+import { MATCH_RESULT_CLOSED_NOTE } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../../auth/server-client';
-import { BetweenSections } from '../../../between-view';
 import { CARD } from '../../../card';
 import { PillarPair } from '../../../compat-view';
-import { BlockButton, MatchScope } from '../../requests/manage';
+import { BlockButton } from '../../requests/manage';
 import { ReadingSection } from '../../reading/section';
 import { matchResultForViewer, type SharedResult } from '../result';
 
@@ -123,40 +117,6 @@ export default async function MatchResultPage({
 function Result({ result }: { result: SharedResult }) {
   return (
     <>
-      <section className={`${CARD} flex flex-col gap-2`}>
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <p className="eyebrow w-full">함께 보기로 한 사람</p>
-          <h2 className="text-xl font-bold tracking-[-0.03em]">{result.partnerNickname}</h2>
-          <span className="text-xs text-muted">{when(result.createdAt)} 성립</span>
-        </div>
-        {result.partnerIntro !== null && (
-          <p className="text-sm text-secondary">{result.partnerIntro}</p>
-        )}
-
-        {/*
-          왜 이 사람이었나 — **요청이 잡아 둔 그때의 두 축**이다. 지금 다시 세지
-          않는 것은 요약이 지금 판본의 것이라 매인 판본과 갈릴 수 있어서다.
-        */}
-        {result.suppliedToMe !== null && (
-          <p className="text-sm text-secondary">{result.suppliedToMe}</p>
-        )}
-        {result.suppliedToThem !== null && (
-          <p className="text-sm text-secondary">{result.suppliedToThem}</p>
-        )}
-        <p className="text-sm text-secondary">{result.balanceLabel}</p>
-      </section>
-
-      <PillarPair charts={result.charts} names={result.names} />
-
-      {/*
-        **결과 화면에서도 같은 한 벌을 읽는다.** 무엇이 열렸고 무엇이 여전히 닫혀
-        있는지는 동의할 때 읽은 그 목록이다 — 여기서 다시 쓰면 두 벌이 되고, 두 벌은
-        갈린다. 매인 판본에 대한 말만 이 화면의 것으로 바꾼다.
-      */}
-      <MatchScope intro={MATCH_RESULT_INTRO} note={MATCH_RESULT_PINNED_NOTE} standalone />
-
-      <BetweenSections compat={result.compat} names={result.names} />
-
       {/*
         **점수는 여기 한 자리에서만 난다.** 예전에는 이 자리에 `match-v0` 대시보드가
         섰다. 그것을 내린 것은 지표가 틀려서가 아니라 **한 화면에 점수가 둘이면 사용자가
@@ -173,17 +133,19 @@ function Result({ result }: { result: SharedResult }) {
         글도 도는 시도도 없을 때만 「다시 만들기」가 선다. 자동 생성이 실패한 자리이고,
         거기서까지 버튼을 없애면 동의는 났는데 아무도 못 여는 Match 가 남는다.
       */}
-      <ReadingSection target={{ kind: 'match', matchId: result.matchId }} automatic />
-
-      <p className="text-xs text-muted">{MATCH_RESULT_ENGINE_NOTE}</p>
+      <ReadingSection
+        target={{ kind: 'match', matchId: result.matchId }}
+        heading={`${result.partnerNickname} 님과의 궁합 풀이`}
+        layout="page"
+        automatic
+        bare
+        matchNames={{ me: '나', partner: result.partnerNickname }}
+        betweenSummaryAndBody={<PillarPair charts={result.charts} names={result.names} />}
+      />
 
       <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4">
         <BlockButton userId={result.partnerUserId} />
       </div>
     </>
   );
-}
-
-function when(iso: string): string {
-  return new Date(iso).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' });
 }

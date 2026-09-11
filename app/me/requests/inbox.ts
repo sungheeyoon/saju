@@ -133,6 +133,28 @@ function bandOf(raw: string): BalanceBand {
   return BANDS.find((band) => band === raw) ?? 'skewed';
 }
 
+const matchOf = (row: MatchRow): InboxMatch => ({
+  matchId: row.match_id,
+  partnerUserId: row.partner_user_id,
+  nickname: row.partner_nickname ?? '',
+  intro: row.partner_intro,
+  hasPhoto: row.partner_has_photo === true,
+  suppliedToMe: suppliedText(elementsOf(row.supplied_to_me), 'toMe'),
+  balanceLabel: cardTextFor({
+    suppliedElements: [],
+    balanceBand: bandOf(row.balance_band),
+  }).balanceLabel,
+  createdAt: row.created_at,
+});
+
+/** 풀이 탭에 세울, 서로 동의해 성립한 궁합. */
+export async function matchesForViewer(): Promise<readonly InboxMatch[]> {
+  const supabase = await supabaseOnServer();
+  const { data, error } = await supabase.rpc('my_matches');
+  if (error) return [];
+  return ((data ?? []) as MatchRow[]).map(matchOf);
+}
+
 /**
  * 실패한 시도를 다시 누를 수 있는 자리.
  *
@@ -217,19 +239,7 @@ export async function inboxForViewer(): Promise<Inbox> {
       ];
     }),
 
-    matches: matchRows.map((row) => ({
-      matchId: row.match_id,
-      partnerUserId: row.partner_user_id,
-      nickname: row.partner_nickname ?? '',
-      intro: row.partner_intro,
-      hasPhoto: row.partner_has_photo === true,
-      suppliedToMe: suppliedText(elementsOf(row.supplied_to_me), 'toMe'),
-      balanceLabel: cardTextFor({
-        suppliedElements: [],
-        balanceBand: bandOf(row.balance_band),
-      }).balanceLabel,
-      createdAt: row.created_at,
-    })),
+    matches: matchRows.map(matchOf),
 
     notifications: notificationRows.flatMap((row) => {
       const kind = NOTIFICATION_KINDS.find((known) => known === row.kind);

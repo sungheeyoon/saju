@@ -1,6 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
-import { readingBody, readingGrounding } from './display';
+import { namedMatchBody, readingBody, readingGrounding } from './display';
+
+describe('옛 공유 궁합의 자리 호칭', () => {
+  const names = { me: '나', partner: '지영' } as const;
+
+  it('내가 첫 자리면 나와 상대 이름으로 바꾼다', () => {
+    expect(namedMatchBody('첫 번째 분은 빠르고 두 번째 분은 차분해요.', true, names)).toBe(
+      '나는 빠르고 지영님은 차분해요.',
+    );
+  });
+
+  it('내가 둘째 자리면 저장된 글의 차례를 뒤집지 않고 이름만 맞춘다', () => {
+    expect(namedMatchBody('첫 번째 분은 빠르고 두 번째 분은 차분해요.', false, names)).toBe(
+      '지영님은 빠르고 나는 차분해요.',
+    );
+  });
+
+  it('새 풀이처럼 자리 호칭이 없으면 손대지 않는다', () => {
+    const body = '민수님은 빠르고 지영님은 차분해요.';
+    expect(namedMatchBody(body, true, names)).toBe(body);
+  });
+});
 
 describe('사용자가 읽는 사주풀이 본문', () => {
   it('내부 검토용 근거 절을 화면 본문에서 뺀다', () => {

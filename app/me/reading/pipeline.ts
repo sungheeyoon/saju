@@ -6,7 +6,6 @@ import { relationOf } from '@/src/lib/people';
 import type { Saju } from '@/src/lib/saju';
 import {
   isScored,
-  NOTHING_KNOWN,
   READING_POLICY,
   type BirthSecret,
   type ReadingAbout,
@@ -542,22 +541,17 @@ async function revisionsFor(
       throw new ResultClosedError('매인 판본을 찾지 못했습니다');
     }
 
-    /**
-     * **공유 궁합은 아직 이름을 못 부른다.**
-     *
-     * 이름이 없어서가 아니다 — 두 사람 다 스스로 고른 별명이 있고 결과 화면에 이미
-     * 서 있다(`partner_nickname`). 없는 것은 **어느 판본이 누구 것인가**다.
-     * `match_calculation_inputs` 는 판본만 내주고 소유자를 안 밝힌다. 그 매김을 앱이
-     * 짐작하면 두 사람의 이름이 서로 바뀐 채 나갈 수 있고, 그건 안 부르는 것보다 나쁘다.
-     *
-     * 내 쪽 별명을 상대 자리에 쓰는 길도 막혀 있다. 내가 붙인 말은 상대가 보는 화면에
-     * 실려서는 안 된다 — 그것이 이 파일이 처음부터 localLabel 을 근거에 안 실은 이유다.
-     */
-    /**
-     * **관계도 여기서 고르지 않는다.** 인연 찾기에서 만나 서로 동의한 사이라는 것은
-     * 성립 방식이 이미 정한 사실이라, 프롬프트가 kind 로 안다(`relationBlock`).
-     */
-    return { revisions: [a, b], about: NOTHING_KNOWN };
+    const nameA = a.nickname?.trim();
+    const nameB = b.nickname?.trim();
+
+    return {
+      revisions: [a, b],
+      about: {
+        names: nameA && nameB ? { a: nameA, b: nameB } : null,
+        /** 인연 찾기에서 성립한 사이라는 사실은 kind 가 정한다. */
+        relation: null,
+      },
+    };
   }
 
   const supabase = await supabaseOnServer();

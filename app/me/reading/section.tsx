@@ -21,6 +21,9 @@ export async function ReadingSection({
   layout,
   automatic,
   ask,
+  betweenSummaryAndBody,
+  bare = false,
+  matchNames,
 }: {
   target: ReadingTarget;
   /**
@@ -39,6 +42,12 @@ export async function ReadingSection({
   automatic?: boolean;
   /** 다음 풀이를 위해 먼저 정할 것 — 만드는 버튼 옆에 선다 */
   ask?: ReactNode;
+  /** 점수·한 문장 결론 다음, 본문 전에 세울 내용. */
+  betweenSummaryAndBody?: ReactNode;
+  /** 독립 결과 화면에서 바깥 카드 테두리를 생략한다. */
+  bare?: boolean;
+  /** 옛 공유 풀이의 자리 호칭을 화면의 이름으로 옮길 때만 사용한다. */
+  matchNames?: { readonly me: string; readonly partner: string };
 }) {
   /*
     **잔액은 대상을 모른다.** 사람마다 하나뿐이라 세 화면이 같은 값을 읽는다 — 그래서
@@ -53,7 +62,7 @@ export async function ReadingSection({
   ]);
 
   return (
-    <section className={`${CARD} flex flex-col gap-5`}>
+    <section className={`${bare ? '' : CARD} flex flex-col gap-5`}>
       <ReadingPanel
         target={target}
         initialReading={reading}
@@ -71,6 +80,8 @@ export async function ReadingSection({
         layout={layout}
         automatic={automatic}
         ask={ask}
+        betweenSummaryAndBody={betweenSummaryAndBody}
+        matchNames={matchNames}
       />
     </section>
   );

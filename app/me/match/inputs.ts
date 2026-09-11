@@ -34,7 +34,8 @@ export class ResultClosedError extends Error {
 }
 
 /** `match_calculation_inputs` 가 내주는 한 줄 — 판본 하나의 계산 입력 */
-type InputRow = StoredRevision & { revision_id: string };
+export type PinnedInput = StoredRevision & { nickname: string | null };
+type InputRow = PinnedInput & { revision_id: string };
 
 /**
  * 그 Match 가 매어 둔 두 판본의 계산 입력 — **판본 id 로 찾을 수 있게 돌려준다.**
@@ -44,7 +45,7 @@ type InputRow = StoredRevision & { revision_id: string };
  *
  * @throws {ResultClosedError} 열쇠가 없거나 두 판본이 다 나오지 않을 때.
  */
-export async function pinnedInputs(matchId: string): Promise<Map<string, StoredRevision>> {
+export async function pinnedInputs(matchId: string): Promise<Map<string, PinnedInput>> {
   let keyed;
   try {
     keyed = keyedClient('계산 입력을 읽을');
@@ -67,6 +68,6 @@ export async function pinnedInputs(matchId: string): Promise<Map<string, StoredR
   }
 
   return new Map(
-    rows.map(({ revision_id, ...revision }) => [revision_id, revision as StoredRevision]),
+    rows.map(({ revision_id, ...revision }) => [revision_id, revision as PinnedInput]),
   );
 }

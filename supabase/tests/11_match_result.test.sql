@@ -10,7 +10,7 @@
 -- 그리고 이 파일이 재는 가장 중요한 하나: **한쪽이 입력을 고쳐도 매인 판본은 움직이지
 -- 않는다.** 결과가 조용히 다른 값이 되면 무엇에 동의한 것인지 알 수 없다.
 begin;
-select plan(30);
+select plan(31);
 
 /** 다섯 오행 개수만 주면 요약 한 벌이 된다 */
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
@@ -239,6 +239,12 @@ select bag_eq(
     (select match_id from matched)),
   $$select lee_revision from pinned union all select kim_revision from pinned$$,
   '나오는 것은 **매인 둘**이다 — 새로 쌓인 판본은 이 문으로 안 나온다');
+
+select bag_eq(
+  format($$select nickname from public.match_calculation_inputs(%L::uuid)$$,
+    (select match_id from matched)),
+  $$values ('김결'::text), ('이결'::text)$$,
+  '각 판본과 공개 별명이 함께 나와 공유 풀이가 사람 이름으로 부른다');
 
 select is(
   (select count(*)::int
