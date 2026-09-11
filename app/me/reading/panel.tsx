@@ -601,9 +601,9 @@ function Result({
       {/*
         **결론과 점수는 한 카드의 서로 다른 면이다.**
 
-        결론을 왼쪽의 넓은 면 중앙에 두고 점수는 오른쪽의 작은 면 중앙에 둔다. 숫자가
-        긴 결론을 밀어내지 않으면서도 같은 결과의 요약임은 외곽 하나가 말한다. 좁은
-        화면에서는 위아래로 쌓여 문장이 눌리지 않는다.
+        결론은 왼쪽의 넓은 면에서 글 흐름대로 시작하고, 점수는 오른쪽의 작은 면 중앙에
+        둔다. 숫자가 긴 결론을 밀어내지 않으면서도 같은 결과의 요약임은 외곽 하나가
+        말한다. 좁은 화면에서는 위아래로 쌓여 문장이 눌리지 않는다.
 
         ## 비유는 길이가 들쭉날쭉하다
 
@@ -612,11 +612,7 @@ function Result({
       */}
       {(reading.score !== null || reading.metaphor !== null) && (
         <section className="grid overflow-hidden rounded-[1.75rem] border border-border bg-surface-raised shadow-[var(--shadow-card)] sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div
-            className={`flex min-w-0 flex-col justify-center px-5 py-5 sm:px-6 sm:py-6 ${
-              reading.score !== null ? 'items-center text-center' : ''
-            }`}
-          >
+          <div className="flex min-w-0 flex-col justify-center px-5 py-5 sm:px-6 sm:py-6">
             {reading.score === null && <p className="eyebrow">풀이 결과</p>}
             {reading.metaphor !== null && (
               <p
