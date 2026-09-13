@@ -35,6 +35,16 @@ const PORT = Number(process.env.CHECK_PORT ?? 3216);
 const HOST = 'saju-snowy.vercel.app';
 const OG_IMAGE = `https://${HOST}/brand/saju-share-v1.jpg`;
 
+/**
+ * **띄울 때가 아니라 지을 때부터** 심는다.
+ *
+ * 첫 화면(`/`)은 정적으로 미리 그려지므로 그 메타데이터는 **빌드 때** 굳는다. 띄울 때만
+ * 주면 그 화면의 그림 주소가 `localhost` 로 굳어, 「절대 주소인가」를 재는 자리가 검사
+ * 안에서만 참이 된다. Vercel 에서는 빌드에도 이 값이 있으므로 여기서도 그렇게 둔다.
+ */
+process.env.VERCEL_ENV = 'production';
+process.env.VERCEL_PROJECT_PRODUCTION_URL = HOST;
+
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 const keyed = () => createClient(API, status.SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
@@ -169,7 +179,6 @@ const { base: BASE, stop } = await startCheckServer({
   supabaseUrl: API,
   anonKey: status.ANON_KEY,
   secretKey: status.SERVICE_ROLE_KEY,
-  whileRunning: { VERCEL_ENV: 'production', VERCEL_PROJECT_PRODUCTION_URL: HOST },
 });
 
 /** **쿠키를 한 줄도 안 보낸다** — 링크를 받은 사람이 그렇기 때문이다 */
@@ -193,14 +202,16 @@ for (const forbidden of ['다시 풀이받기', '서비스 설문', '풀이권',
 
 // ── 미리보기 ───────────────────────────────────────────────────────────────
 
-const meta = (property) =>
-  new RegExp(`<meta[^>]+property="${property}"[^>]+content="([^"]*)"`).exec(html)?.[1]
-  ?? new RegExp(`<meta[^>]+content="([^"]*)"[^>]+property="${property}"`).exec(html)?.[1]
+const metaIn = (source, property) =>
+  new RegExp(`<meta[^>]+property="${property}"[^>]+content="([^"]*)"`).exec(source)?.[1]
+  ?? new RegExp(`<meta[^>]+content="([^"]*)"[^>]+property="${property}"`).exec(source)?.[1]
   ?? null;
-const named = (name) =>
-  new RegExp(`<meta[^>]+name="${name}"[^>]+content="([^"]*)"`).exec(html)?.[1]
-  ?? new RegExp(`<meta[^>]+content="([^"]*)"[^>]+name="${name}"`).exec(html)?.[1]
+const namedIn = (source, name) =>
+  new RegExp(`<meta[^>]+name="${name}"[^>]+content="([^"]*)"`).exec(source)?.[1]
+  ?? new RegExp(`<meta[^>]+content="([^"]*)"[^>]+name="${name}"`).exec(source)?.[1]
   ?? null;
+const meta = (property) => metaIn(html, property);
+const named = (name) => namedIn(html, name);
 
 check('첫 HTML 에 미리보기 제목이 있다', meta('og:title') === '사주풀이가 도착했어요 | 만세력', meta('og:title'));
 check('첫 HTML 에 미리보기 설명이 있다',
@@ -215,6 +226,24 @@ check('트위터 카드도 같은 그림을 쓴다',
 check('미리보기에 닉네임도 풀이 문장도 없다',
   !(meta('og:title') ?? '').includes(NAME.a) && !(meta('og:description') ?? '').includes(NAME.a));
 check('검색 색인에서 빠진다', (named('robots') ?? '').includes('noindex'), named('robots'));
+
+/**
+ * **주소를 손으로 복사해 붙여 넣는 사람도 미리보기를 본다.**
+ *
+ * 미리보기가 공유 버튼에만 붙어 있으면, 「만세력 한번 써 봐」 하고 첫 화면 주소만
+ * 보내는 사람에게는 대화창에 파란 주소 한 줄만 선다. 미리보기는 기능이 아니라 앱
+ * 전체의 것이라 루트 레이아웃에 세웠고, 그것을 여기서 잰다.
+ */
+const home = await get('/');
+const homeHtml = await home.text();
+check('첫 화면에도 미리보기가 선다',
+  metaIn(homeHtml, 'og:title') === '만세력 — 나와 사람 사이를 이해하는 사주',
+  metaIn(homeHtml, 'og:title'));
+check('첫 화면의 그림도 같은 절대 주소다', metaIn(homeHtml, 'og:image') === OG_IMAGE,
+  metaIn(homeHtml, 'og:image'));
+check('첫 화면은 색인에서 안 빠진다',
+  (namedIn(homeHtml, 'robots') ?? '').includes('noindex') === false,
+  namedIn(homeHtml, 'robots') ?? '(없다)');
 
 const image = await get('/brand/saju-share-v1.jpg');
 const imageBytes = (await image.arrayBuffer()).byteLength;

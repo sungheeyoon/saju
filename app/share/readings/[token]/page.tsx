@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { Markdown } from '../../../me/reading/markdown';
-import { siteUrl } from '../../../site-url';
 import { supabaseForShared } from '../../public-client';
 
 /**
@@ -34,7 +33,7 @@ import { supabaseForShared } from '../../public-client';
  * 색인은 막는다. 공유본은 링크를 가진 사람의 것이지 검색으로 닿을 것이 아니다.
  */
 export const metadata: Metadata = {
-  metadataBase: siteUrl(),
+  /* `metadataBase` 는 여기 없다 — 루트 레이아웃 한 곳에서 내려온다 */
   title: '사주풀이가 도착했어요 | 만세력',
   description: '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
   robots: { index: false, follow: false },

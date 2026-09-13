@@ -1396,8 +1396,28 @@ test.describe('사주풀이 공유하기', () => {
     /* 제목 옆과 본문 아래 — 긴 글을 다 읽고 정한 사람도 그 자리에서 누를 수 있어야 한다 */
     await expect(page.getByRole('button', { name: SHARE })).toHaveCount(2);
 
+    /**
+     * **누르기 전후로 화면이 안 움직여야 한다.**
+     *
+     * 버튼 글자가 「공유 링크 복사」에서 「링크를 복사했습니다」로 바뀌고, 한동안은
+     * 그 아래 안내 줄까지 새로 섰다 — 잘 된 일이 화면을 흔들면 사용자는 고장으로
+     * 읽는다. 말로 고치면 다음에 또 밀리므로 **자리를 값으로 잡아 둔다.**
+     */
+    const anchor = page.getByText('이 풀이는 어떠셨어요').first();
+    const before = {
+      button: await page.getByRole('button', { name: SHARE }).first().boundingBox(),
+      below: await anchor.boundingBox(),
+    };
+
     await page.getByRole('button', { name: SHARE }).first().click();
     await expect(page.getByText('링크를 복사했습니다').first()).toBeVisible();
+
+    const after = {
+      button: await page.getByRole('button', { name: '링크를 복사했습니다' }).first().boundingBox(),
+      below: await anchor.boundingBox(),
+    };
+    expect(after.button?.width).toBe(before.button?.width);
+    expect(after.below?.y).toBe(before.below?.y);
 
     const copied = (await page.evaluate(() => navigator.clipboard.readText())).trim();
 

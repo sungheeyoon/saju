@@ -102,14 +102,12 @@ export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }
 
     if (held) {
       setPhase('copied');
-      setNotice('링크를 복사했습니다');
       return;
     }
 
     try {
       await navigator.clipboard.writeText(url);
       setPhase('copied');
-      setNotice('링크를 복사했습니다');
     } catch {
       setPhase('failed');
       setNotice('링크를 복사하지 못했습니다. 아래 주소를 직접 선택해 복사해 주세요.');
@@ -119,6 +117,10 @@ export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }
   /**
    * **버튼에 적힌 대로 일어난다.** 「공유하기」라고 적고 복사하면, 누른 사람은 공유
    * 시트를 기다리다 아무 일도 안 일어난 줄 안다(용어집: 한 사실에는 한 표기).
+   *
+   * 그리고 **된 것은 버튼이 혼자 말한다.** 한동안 버튼 아래에 「링크를 복사했습니다」가
+   * 한 줄 더 섰는데, 그 줄이 생기면서 아래 있던 것들이 통째로 밀렸다 — 잘 된 일이
+   * 화면을 흔드는 것은 고장처럼 보인다. 같은 말이 두 자리에 있을 이유도 없다.
    */
   const label =
     phase === 'working'
@@ -127,22 +129,32 @@ export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }
         ? '링크를 복사했습니다'
         : '공유 링크 복사';
 
+  /**
+   * **폭을 잡아 둔다.** 세 글자가 서로 길이가 달라서, 고정하지 않으면 누를 때마다
+   * 버튼이 늘었다 줄고 옆에 선 것들이 따라 움직인다. 가장 긴 글자에 맞춘다.
+   */
   const shape =
     variant === 'compact'
-      ? 'inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-accent/25 bg-surface px-4 text-sm font-semibold text-accent shadow-sm hover:border-accent disabled:opacity-60'
-      : 'inline-flex h-11 w-full shrink-0 items-center justify-center gap-1.5 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto';
+      ? 'inline-flex min-h-10 min-w-44 shrink-0 items-center justify-center rounded-full border border-accent/25 bg-surface px-4 text-sm font-semibold text-accent shadow-sm hover:border-accent disabled:opacity-60'
+      : 'inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto sm:min-w-44';
 
+  /*
+    **세로로 쌓되 늘이지는 않는다.** `items-start` 가 없으면 세로 flex 의 기본
+    `stretch` 가 버튼을 칸 너비만큼 늘여 버린다 — 좁은 화면에서는 그것이 맞지만
+    (`w-full`), 넓은 화면에서 1100px 짜리 버튼이 서는 것은 실수다. 예전에는 버튼을
+    감싼 가로 flex 가 그것을 막고 있었는데, 두 번째 버튼이 없어지면서 그 칸도 걷혔다.
+  */
   return (
-    <div className={variant === 'block' ? 'flex flex-col gap-2' : 'flex flex-col items-end gap-2'}>
+    <div className={`flex flex-col gap-2 ${variant === 'block' ? 'items-start' : 'items-end'}`}>
       <button type="button" onClick={start} disabled={phase === 'working'} className={shape}>
-        <span aria-hidden="true">🔗</span>
         {label}
       </button>
-      {notice !== null && (
-        <p
-          role={phase === 'failed' ? 'alert' : 'status'}
-          className={`text-xs leading-5 ${phase === 'failed' ? 'text-danger' : 'text-muted'}`}
-        >
+      {/*
+        **말이 서는 것은 실패했을 때뿐이다.** 그때는 화면이 밀려도 된다 — 읽어야 하는
+        말이고, 읽으라고 자리를 만드는 것이다. 잘 된 일은 버튼이 혼자 말한다.
+      */}
+      {phase === 'failed' && notice !== null && (
+        <p role="alert" className="text-xs leading-5 text-danger">
           {notice}
         </p>
       )}
