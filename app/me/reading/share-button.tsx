@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { shareMyReading } from './share';
+import type { ReadingTarget } from './pipeline';
 
 /**
  * 내 사주풀이를 **링크로 보낸다** — 누르면 주소가 클립보드에 들어간다.
@@ -57,7 +58,14 @@ const asText = (url: string) => new Blob([url], { type: 'text/plain' });
  */
 const IDLE = '공유 링크 복사';
 
-export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }) {
+export function ShareReadingButton({
+  target,
+  variant,
+}: {
+  /** 무엇을 보내는가 — 글은 서버가 이 대상으로 다시 읽는다 */
+  target: ReadingTarget;
+  variant: 'compact' | 'block';
+}) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [link, setLink] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -78,7 +86,7 @@ export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }
      * **여기서 시작해 두고 기다리지 않는다.** 이 약속을 클립보드에 그대로 넘겨야
      * 누른 자리에서 잡을 수 있다.
      */
-    const issued = shareMyReading().then((result) => {
+    const issued = shareMyReading(target).then((result) => {
       if (!result.ok) throw new Error(result.message);
       return new URL(result.path, window.location.origin).toString();
     });

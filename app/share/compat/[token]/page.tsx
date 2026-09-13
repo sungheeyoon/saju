@@ -1,7 +1,7 @@
 import { previewFor } from '../../preview';
 import { SharedReadingView } from '../../view';
 
-export const metadata = previewFor('self');
+export const metadata = previewFor('private');
 
 export default async function Page({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -9,11 +9,11 @@ export default async function Page({ params }: { params: Promise<{ token: string
   return (
     <SharedReadingView
       token={token}
-      expect="self"
-      eyebrow="공유받은 사주풀이"
+      expect="private"
+      eyebrow="공유받은 궁합 풀이"
       invitation={{
-        heading: '나를 이루는 흐름도 읽어 보세요',
-        note: '생년월일시를 넣으면 명식을 세우고, 그 근거로 사주풀이를 받습니다.',
+        heading: '우리 사이도 읽어 보세요',
+        note: '두 사람의 생년월일시를 넣으면 명식을 나란히 세우고, 그 근거로 궁합 풀이를 받습니다.',
       }}
     />
   );

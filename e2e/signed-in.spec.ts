@@ -1446,6 +1446,40 @@ test.describe('사주풀이 공유하기', () => {
     await guest.close();
   });
 
+  /**
+   * **저장한 사람의 풀이도 같은 버튼으로 나간다** — 다만 **다른 주소**로.
+   *
+   * 주소가 갈린 것은 미리보기 그림이 주소마다 상수로 서야 하기 때문이다(ADR 0064).
+   * 그래서 여기서 재는 것은 「버튼이 도는가」만이 아니라 **어느 주소가 나오는가**다.
+   */
+  test('저장한 사람의 풀이는 사람 주소로 나간다', async ({
+    page,
+    context,
+    personReader,
+    browser,
+  }) => {
+    expect(personReader.personId).not.toBe('');
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.goto(`/me/readings/${personReader.personId}`);
+
+    await page.getByRole('button', { name: SHARE }).first().click();
+    await expect(page.getByRole('button', { name: '복사했습니다' }).first()).toBeVisible();
+
+    const copied = (await page.evaluate(() => navigator.clipboard.readText())).trim();
+    expect(copied).toMatch(/^https?:\/\/[^\s]+\/share\/people\/[0-9a-f]{32}$/);
+
+    const guest = await browser.newContext();
+    const theirs = await guest.newPage();
+    await theirs.goto(copied);
+    await expect(theirs.getByText('브라우저가 읽을 글입니다')).toBeVisible();
+    await expect(theirs.getByRole('link', { name: '내 사주풀이 보기' }).first()).toBeVisible();
+
+    /* 같은 토큰을 내 사주풀이 주소로 열면 안 열린다 — 미리보기가 거짓말을 하는 자리다 */
+    const wrong = await theirs.goto(copied.replace('/share/people/', '/share/readings/'));
+    expect(wrong?.status()).toBe(404);
+    await guest.close();
+  });
+
   test('클립보드가 거절되면 주소를 세워 손으로 긁게 한다', async ({ page, reader }) => {
     expect(reader.runId).not.toBe('');
     /* 잡아 두는 길도 평범한 길도 다 막는다 — 실제로 둘 다 거절되는 브라우저가 있다 */

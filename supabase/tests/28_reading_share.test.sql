@@ -69,7 +69,7 @@ select pg_temp.acting((select kim from folks));
 
 select throws_ok(
   $$select public.share_my_reading('아무 글')$$,
-  null, '공유할 내 사주풀이가 없습니다',
+  null, '공유할 풀이가 없습니다',
   '풀이가 없으면 링크가 안 난다');
 
 -- ── 김이 풀이를 하나 만든다 ────────────────────────────────────────────────
@@ -157,7 +157,7 @@ select pg_temp.acting((select lee from folks));
 
 select throws_ok(
   $$select public.share_my_reading('## 지금의 핵심', '한 줄로 요약한 문장입니다.')$$,
-  null, '공유할 내 사주풀이가 없습니다',
+  null, '공유할 풀이가 없습니다',
   '남의 풀이 본문을 들고 와도 내 것이 없으면 안 난다');
 
 -- ── 표는 아무에게도 안 보인다 ──────────────────────────────────────────────

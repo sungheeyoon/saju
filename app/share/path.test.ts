@@ -1,15 +1,27 @@
 import { describe, expect, it } from 'vitest';
 
-import { SHARE_ROOT, isSharePath, sharePath } from './path';
+import { SHARE_ROOTS, isSharePath, sharePath } from './path';
 
 describe('공유본 주소', () => {
-  it('토큰이 주소의 마지막 칸이다', () => {
-    expect(sharePath('abc123')).toBe('/share/readings/abc123');
+  it('갈래마다 주소가 다르고 토큰이 마지막 칸이다', () => {
+    expect(sharePath('self', 'abc123')).toBe('/share/readings/abc123');
+    expect(sharePath('person', 'abc123')).toBe('/share/people/abc123');
+    expect(sharePath('private', 'abc123')).toBe('/share/compat/abc123');
   });
 
-  it('헤더는 공유 화면을 알아본다', () => {
-    expect(isSharePath(sharePath('abc123'))).toBe(true);
-    expect(isSharePath(SHARE_ROOT)).toBe(true);
+  /**
+   * **이 주소는 안 바꾼다.** 이미 뿌려진 링크가 여기 있고, 받은 사람의 대화창에
+   * 남아 있는 주소를 우리가 되돌릴 방법이 없다.
+   */
+  it('내 사주풀이의 주소는 처음 그대로다', () => {
+    expect(SHARE_ROOTS.self).toBe('/share/readings');
+  });
+
+  it('헤더는 세 주소를 다 알아본다', () => {
+    for (const root of Object.values(SHARE_ROOTS)) {
+      expect(isSharePath(root)).toBe(true);
+      expect(isSharePath(`${root}/abc123`)).toBe(true);
+    }
   });
 
   /**
@@ -18,7 +30,9 @@ describe('공유본 주소', () => {
    */
   it('앞자리만 같은 주소는 공유 화면이 아니다', () => {
     expect(isSharePath('/share/readingsomething')).toBe(false);
+    expect(isSharePath('/share/peopleish')).toBe(false);
     expect(isSharePath('/me/readings/self')).toBe(false);
+    expect(isSharePath('/me/compat')).toBe(false);
     expect(isSharePath('/')).toBe(false);
   });
 });

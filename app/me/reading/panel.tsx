@@ -319,10 +319,11 @@ export function ReadingPanel({
    * 개발용으로 박아 둔 문자열이고, DB 의 문도 저장된 원문에 없는 글은 안 받는다 —
    * 화면에서 먼저 막지 않으면 사용자는 이유를 모르는 실패를 본다.
    *
-   * 첫 판은 **내 사주풀이 하나**다. 저장한 사람과 두 궁합은 남의 자료가 섞여 있어
-   * 내보낼 범위를 따로 정해야 하고, 그 판단이 아직 없다.
+   * **인연 궁합만 빠진다.** 거기 있는 상대는 실재하는 계정이고, 그 사람이 동의한
+   * 것은 「이 사람에게 내 여덟 글자를 연다」이지 「누구에게든 연다」가 아니다
+   * (ADR 0012). 나머지 셋은 다 **내가 넣은 자료**라 내보낼지 말지를 넣은 사람이 정한다.
    */
-  const canShare = target.kind === 'self' && reading !== null && phase !== 'loading' && !isMock;
+  const canShare = target.kind !== 'match' && reading !== null && phase !== 'loading' && !isMock;
 
   const makeBlock = hideMake ? null : (
     <div
@@ -411,7 +412,7 @@ export function ReadingPanel({
             )}
             <span className="text-xs text-muted">{when(reading.createdAt)} 생성</span>
             {/* 제목 옆 — 글을 읽기 전에도 보낼 수 있다 */}
-            {canShare && <ShareReadingButton variant="compact" />}
+            {canShare && <ShareReadingButton target={target} variant="compact" />}
           </div>
         )}
       </header>
@@ -477,7 +478,7 @@ export function ReadingPanel({
           <p className="text-xs leading-5 text-muted">
             링크를 아는 사람은 누구나 이 풀이를 볼 수 있습니다.
           </p>
-          <ShareReadingButton variant="block" />
+          <ShareReadingButton target={target} variant="block" />
         </div>
       )}
 

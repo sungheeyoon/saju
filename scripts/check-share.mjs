@@ -44,6 +44,7 @@ const HOST = 'saju-snowy.vercel.app';
  */
 const SITE_IMAGE = `https://${HOST}/brand/saju-share-v1.jpg`;
 const READING_IMAGE = `https://${HOST}/brand/reading-share-v1.jpg`;
+const COMPAT_IMAGE = `https://${HOST}/brand/compat-share-v1.jpg`;
 
 /**
  * JPEG 가 스스로 말하는 가로세로 — **적어 둔 수가 맞는지 재려고 읽는다.**
@@ -161,8 +162,10 @@ await saveSelfReading(b, `## 지오\n\n${NAME.b}님의 글입니다.`, `지오�
 
 // ── 링크를 낸다 ────────────────────────────────────────────────────────────
 
-const share = (client, body, metaphor) =>
-  client.rpc('share_my_reading', { p_body: body, p_metaphor: metaphor });
+const share = (client, body, metaphor, kind = 'self', a = null, b = null) =>
+  client.rpc('share_my_reading', {
+    p_body: body, p_metaphor: metaphor, p_kind: kind, p_person_a: a, p_person_b: b,
+  });
 
 const first = await share(a, BODY.first, METAPHOR.first);
 check('내 사주풀이로 공유 링크가 난다', !first.error && typeof first.data === 'string',
@@ -201,8 +204,17 @@ const open = await anon().rpc('shared_reading', { p_token: token });
 const row = (open.data ?? [])[0];
 check('로그인하지 않은 역할이 공유본을 읽는다', !open.error && row !== undefined,
   open.error?.message ?? '');
-check('내주는 것은 글 둘과 시각 하나뿐이다',
-  row !== undefined && Object.keys(row).sort().join(',') === 'body,created_at,metaphor',
+/**
+ * **내주는 것을 센다.** `anon` 에게 열린 유일한 문이라, 여기 열이 하나 느는 것은
+ * 로그인 없는 사람이 볼 수 있는 것이 하나 느는 일이다. 지금 나가는 다섯을 못박아
+ * 두면, 여섯째가 생기는 날 그것이 **결정으로** 일어난다.
+ *
+ * `shared_by` 도 `version_key` 도 여기 없다 — 앞엣것은 누구의 글인지를 말하고,
+ * 뒤엣것은 그 사람의 다른 링크를 짐작하게 한다.
+ */
+check('내주는 것은 갈래·글 둘·점수·시각뿐이다',
+  row !== undefined
+    && Object.keys(row).sort().join(',') === 'body,created_at,kind,metaphor,score',
   row === undefined ? '' : Object.keys(row).join(','));
 check('닉네임이 든 사용자용 본문이 그대로 남는다', row?.body?.includes(`${NAME.a}님은`) === true);
 check('내부 검토용 근거 절은 공유본에 없다', row?.body?.includes('### 근거') === false);
@@ -260,6 +272,110 @@ check('미리보기에 닉네임도 풀이 문장도 없다',
   !(meta('og:title') ?? '').includes(NAME.a) && !(meta('og:description') ?? '').includes(NAME.a));
 check('검색 색인에서 빠진다', (named('robots') ?? '').includes('noindex'), named('robots'));
 
+// ── 저장한 사람과 두 사람의 궁합 ───────────────────────────────────────────
+
+/**
+ * **셋을 열고 하나를 닫았다**(ADR 0064). 내가 넣은 자료는 내보낼 수 있고, 인연
+ * 궁합은 상대가 동의한 범위가 링크 하나로 바뀌므로 못 내보낸다.
+ *
+ * 주소가 갈린 것도 여기서 잰다 — 미리보기 그림이 주소마다 상수로 서야 해서 갈랐고,
+ * 갈랐으면 **엉뚱한 주소로 열리지 않는지**가 곧 그 결정이 지켜지는지다.
+ */
+const { data: momId } = await a.rpc('create_managed_person', {
+  p_local_label: `엄마${tag}`, p_note: null, p_calendar: 'solar',
+  p_original_date: '1962-03-02', p_solar_date: '1962-03-02', p_birth_time: '07:10',
+  p_gender: 'female', p_city: '대구', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+});
+const { data: kidId } = await a.rpc('create_managed_person', {
+  p_local_label: `동생${tag}`, p_note: null, p_calendar: 'solar',
+  p_original_date: '1995-08-08', p_solar_date: '1995-08-08', p_birth_time: '09:20',
+  p_gender: 'male', p_city: '광주', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+});
+
+const PERSON_BODY = `## 엄마의 결` + String.fromCharCode(10) + `엄마${tag}님은 ${'오래 참고 나중에 말하는 편입니다. '.repeat(12)}`;
+const PERSON_SAID = `오래 참고 나중에 말하는 사람 검사${tag}`;
+const PAIR_BODY = `## 두 사람` + String.fromCharCode(10) + `${'둘은 같은 방향을 다른 속도로 봅니다. '.repeat(12)}`;
+const PAIR_SAID = `같은 방향을 다른 속도로 걷는 둘 검사${tag}`;
+
+const saveFor = async (kind, personA, personB, body, said, points) => {
+  const { data: started, error: failure } = await a.rpc('start_reading_run', {
+    p_kind: kind,
+    p_idempotency_key: `share-check-${crypto.randomUUID()}`,
+    p_person_a: personA,
+    p_person_b: personB,
+    p_model: MODEL,
+    p_prompt_version: PROMPT_VERSION,
+  });
+  if (failure) throw new Error(`${kind} 시도를 못 열었다 — ${failure.message}`);
+  const run = started?.[0];
+
+  const saved = await keyed().rpc('save_reading', {
+    p_run_id: run.run_id,
+    p_revision_a: run.revision_a,
+    p_revision_b: run.revision_b,
+    p_output: `${body}${GROUNDING}`,
+    p_score: points,
+    p_metaphor: said,
+    p_evidence: EVIDENCE,
+    p_prompt: PROMPT,
+    p_prompt_version: PROMPT_VERSION,
+    p_model: MODEL,
+    p_generation: { temperature: 1 },
+    p_viewed_at: new Date().toISOString(),
+  });
+  if (saved.error) throw new Error(`${kind} 풀이를 못 저장했다 — ${saved.error.message}`);
+};
+
+await saveFor('person', momId, null, PERSON_BODY, PERSON_SAID, null);
+await saveFor('private', momId, kidId, PAIR_BODY, PAIR_SAID, 72);
+
+const personLink = await share(a, PERSON_BODY, PERSON_SAID, 'person', momId, null);
+check('저장한 사람의 풀이로 링크가 난다', !personLink.error && typeof personLink.data === 'string',
+  personLink.error?.message ?? personLink.data);
+
+const pairLink = await share(a, PAIR_BODY, PAIR_SAID, 'private', momId, kidId);
+check('두 사람의 궁합으로 링크가 난다', !pairLink.error && typeof pairLink.data === 'string',
+  pairLink.error?.message ?? pairLink.data);
+
+const stolenPerson = await share(b, PERSON_BODY, PERSON_SAID, 'person', momId, null);
+check('남이 관리하는 사람은 공유 대상이 못 된다', Boolean(stolenPerson.error),
+  stolenPerson.error?.message ?? '통과해 버렸다');
+
+const asMatch = await share(a, PERSON_BODY, PERSON_SAID, 'match', null, null);
+check('인연 궁합은 갈래 이름으로도 막힌다', Boolean(asMatch.error),
+  asMatch.error?.message ?? '통과해 버렸다');
+
+const personPage = await get(`/share/people/${personLink.data}`);
+const personHtml = await personPage.text();
+check('저장한 사람의 공유 화면이 로그인 없이 열린다', personPage.status === 200, `HTTP ${personPage.status}`);
+check('그 사람을 부르는 이름이 든 채로 선다', personHtml.includes(`엄마${tag}님은`));
+check('저장한 사람 화면은 서비스 소개 그림을 쓴다',
+  metaIn(personHtml, 'og:image') === SITE_IMAGE, metaIn(personHtml, 'og:image'));
+
+const compatPage = await get(`/share/compat/${pairLink.data}`);
+const compatHtml = await compatPage.text();
+check('궁합 공유 화면이 로그인 없이 열린다', compatPage.status === 200, `HTTP ${compatPage.status}`);
+check('궁합은 점수까지 화면에 선다', compatHtml.includes('궁합 풀이 점수') && compatHtml.includes('72'));
+check('궁합 화면은 궁합 전용 그림을 쓴다',
+  metaIn(compatHtml, 'og:image') === COMPAT_IMAGE, metaIn(compatHtml, 'og:image'));
+check('궁합 화면은 제 제목을 쓴다',
+  metaIn(compatHtml, 'og:title') === '두 사람의 궁합이 도착했어요 | 만세력',
+  metaIn(compatHtml, 'og:title'));
+
+/**
+ * **엉뚱한 주소로는 안 열린다.** 주소마다 미리보기가 다르므로, 한 사람짜리 토큰이
+ * 궁합 주소로 열리면 대화창에는 「두 사람의 궁합」이 서고 열면 한 사람 글이 나온다 —
+ * 미리보기가 거짓말을 하는 자리다.
+ */
+for (const [label, address] of [
+  ['자기 풀이 토큰을 궁합 주소로', `/share/compat/${token}`],
+  ['궁합 토큰을 자기 풀이 주소로', `/share/readings/${pairLink.data}`],
+  ['사람 토큰을 자기 풀이 주소로', `/share/readings/${personLink.data}`],
+]) {
+  const wrong = await get(address);
+  check(`${label} 열면 안 열린다`, wrong.status === 404, `HTTP ${wrong.status}`);
+}
+
 /**
  * **주소를 손으로 복사해 붙여 넣는 사람도 미리보기를 본다.**
  *
@@ -288,6 +404,7 @@ check('첫 화면은 색인에서 안 빠진다',
 for (const [label, address, said] of [
   ['서비스 소개', '/brand/saju-share-v1.jpg', homeHtml],
   ['풀이 전용', '/brand/reading-share-v1.jpg', html],
+  ['궁합 전용', '/brand/compat-share-v1.jpg', compatHtml],
 ]) {
   const image = await get(address);
   const bytes = await image.arrayBuffer();
