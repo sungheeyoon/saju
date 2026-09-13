@@ -1410,10 +1410,10 @@ test.describe('사주풀이 공유하기', () => {
     };
 
     await page.getByRole('button', { name: SHARE }).first().click();
-    await expect(page.getByText('링크를 복사했습니다').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: '복사했습니다' }).first()).toBeVisible();
 
     const after = {
-      button: await page.getByRole('button', { name: '링크를 복사했습니다' }).first().boundingBox(),
+      button: await page.getByRole('button', { name: '복사했습니다' }).first().boundingBox(),
       below: await anchor.boundingBox(),
     };
     expect(after.button?.width).toBe(before.button?.width);

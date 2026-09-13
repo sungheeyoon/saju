@@ -45,6 +45,18 @@ type Phase = 'idle' | 'working' | 'copied' | 'failed';
 /** 클립보드에 실리는 것은 **주소 한 줄뿐이다.** 설명을 붙이면 붙여 넣는 자리에서 섞인다 */
 const asText = (url: string) => new Blob([url], { type: 'text/plain' });
 
+/**
+ * 평소에 적혀 있는 말 — **그리고 이 버튼의 폭을 정하는 말.**
+ *
+ * 누르면 글자가 바뀌는데, 바뀐 글자가 더 길면 버튼이 늘어나고 옆에 선 것들이 따라
+ * 움직인다. 한동안 가장 긴 글자에 맞춰 `min-w` 를 박아 뒀더니 **평소에 여백만 남았다** —
+ * 자리는 안 흔들렸지만 버튼이 제 크기가 아니었다.
+ *
+ * 그래서 **바뀌는 글자를 이것보다 짧게** 두고(「만드는 중…」·「복사했습니다」), 폭은
+ * 이 말이 정하게 한다. 숫자를 안 적으므로 글자를 고치면 폭도 따라온다.
+ */
+const IDLE = '공유 링크 복사';
+
 export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [link, setLink] = useState<string | null>(null);
@@ -122,21 +134,12 @@ export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }
    * 한 줄 더 섰는데, 그 줄이 생기면서 아래 있던 것들이 통째로 밀렸다 — 잘 된 일이
    * 화면을 흔드는 것은 고장처럼 보인다. 같은 말이 두 자리에 있을 이유도 없다.
    */
-  const label =
-    phase === 'working'
-      ? '링크 만드는 중…'
-      : phase === 'copied'
-        ? '링크를 복사했습니다'
-        : '공유 링크 복사';
+  const label = phase === 'working' ? '만드는 중…' : phase === 'copied' ? '복사했습니다' : IDLE;
 
-  /**
-   * **폭을 잡아 둔다.** 세 글자가 서로 길이가 달라서, 고정하지 않으면 누를 때마다
-   * 버튼이 늘었다 줄고 옆에 선 것들이 따라 움직인다. 가장 긴 글자에 맞춘다.
-   */
   const shape =
     variant === 'compact'
-      ? 'inline-flex min-h-10 min-w-44 shrink-0 items-center justify-center rounded-full border border-accent/25 bg-surface px-4 text-sm font-semibold text-accent shadow-sm hover:border-accent disabled:opacity-60'
-      : 'inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto sm:min-w-44';
+      ? 'inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-accent/25 bg-surface px-4 text-sm font-semibold text-accent shadow-sm hover:border-accent disabled:opacity-60'
+      : 'inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto';
 
   /*
     **세로로 쌓되 늘이지는 않는다.** `items-start` 가 없으면 세로 flex 의 기본
@@ -147,7 +150,21 @@ export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }
   return (
     <div className={`flex flex-col gap-2 ${variant === 'block' ? 'items-start' : 'items-end'}`}>
       <button type="button" onClick={start} disabled={phase === 'working'} className={shape}>
-        {label}
+        {/*
+          **안 보이는 한 벌이 폭을 잡는다.** 두 글자를 같은 칸에 겹쳐 놓고 아래 것을
+          숨기면, 칸의 너비는 늘 평소의 말이 정하고 위의 글자만 갈린다.
+
+          `invisible` 은 `visibility: hidden` 이라 보조기기의 이름 계산에서도 빠진다 —
+          `display: none` 과 달리 **자리는 차지하고** 읽히지는 않는다. 그 둘이 다 필요하다.
+        */}
+        <span className="grid">
+          <span aria-hidden="true" className="invisible col-start-1 row-start-1 whitespace-nowrap">
+            {IDLE}
+          </span>
+          <span className="col-start-1 row-start-1 place-self-center whitespace-nowrap">
+            {label}
+          </span>
+        </span>
       </button>
       {/*
         **말이 서는 것은 실패했을 때뿐이다.** 그때는 화면이 밀려도 된다 — 읽어야 하는
