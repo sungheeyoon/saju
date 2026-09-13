@@ -33,7 +33,42 @@ const PORT = Number(process.env.CHECK_PORT ?? 3216);
  * 도메인을 코드에 적지 않았다는 것이 이 검사로 값이 된다.
  */
 const HOST = 'saju-snowy.vercel.app';
-const OG_IMAGE = `https://${HOST}/brand/saju-share-v1.jpg`;
+
+/**
+ * 미리보기 그림은 **두 장이고 쓰임이 다르다.**
+ *
+ * 받은 사람이 열기 전에 보는 유일한 것이 이 그림이라, 무엇이 열릴지를 그림이 말해
+ * 줘야 한다 — 서비스를 소개하는 그림과 「누가 풀이를 하나 보냈다」는 그림은 다른
+ * 말을 한다. 그래서 여기서도 **어느 화면이 어느 장을 쓰는지**를 따로 잰다. 한 장으로
+ * 돌아가는 실수는 화면 어디에도 안 나타난다.
+ */
+const SITE_IMAGE = `https://${HOST}/brand/saju-share-v1.jpg`;
+const READING_IMAGE = `https://${HOST}/brand/reading-share-v1.jpg`;
+
+/**
+ * JPEG 가 스스로 말하는 가로세로 — **적어 둔 수가 맞는지 재려고 읽는다.**
+ *
+ * `og:image:width` 는 우리가 손으로 적는 값이다. 그림을 갈아 끼우면서 그 수를 안
+ * 고치면 수집기는 **틀린 칸을 잡아 놓고** 그림을 그린다 — 잘린 미리보기가 나가는데
+ * 우리 화면에는 아무 일도 안 일어난다. 파일에 답이 있으므로 짐작하지 않는다.
+ */
+const jpegSize = (bytes) => {
+  const view = new DataView(bytes);
+  let at = 2; // FFD8 다음부터
+  while (at + 9 < view.byteLength) {
+    if (view.getUint8(at) !== 0xff) {
+      at += 1;
+      continue;
+    }
+    const marker = view.getUint8(at + 1);
+    /* SOF0~SOF15 중 DHT(C4)·JPG(C8)·DAC(CC) 는 크기를 안 든다 */
+    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
+      return { height: view.getUint16(at + 5), width: view.getUint16(at + 7) };
+    }
+    at += 2 + view.getUint16(at + 2);
+  }
+  return null;
+};
 
 /**
  * **띄울 때가 아니라 지을 때부터** 심는다.
@@ -216,12 +251,10 @@ const named = (name) => namedIn(html, name);
 check('첫 HTML 에 미리보기 제목이 있다', meta('og:title') === '사주풀이가 도착했어요 | 만세력', meta('og:title'));
 check('첫 HTML 에 미리보기 설명이 있다',
   meta('og:description') === '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.', meta('og:description'));
-check('미리보기 그림이 절대 주소다', meta('og:image') === OG_IMAGE, meta('og:image'));
-check('그림의 실제 크기가 적혀 있다',
-  meta('og:image:width') === '1200' && meta('og:image:height') === '628',
-  `${meta('og:image:width')}x${meta('og:image:height')}`);
+check('공유본은 풀이 전용 그림을 쓴다', meta('og:image') === READING_IMAGE, meta('og:image'));
+check('공유본이 서비스 소개 그림을 쓰지 않는다', meta('og:image') !== SITE_IMAGE);
 check('트위터 카드도 같은 그림을 쓴다',
-  named('twitter:card') === 'summary_large_image' && named('twitter:image') === OG_IMAGE,
+  named('twitter:card') === 'summary_large_image' && named('twitter:image') === READING_IMAGE,
   `${named('twitter:card')} ${named('twitter:image')}`);
 check('미리보기에 닉네임도 풀이 문장도 없다',
   !(meta('og:title') ?? '').includes(NAME.a) && !(meta('og:description') ?? '').includes(NAME.a));
@@ -239,23 +272,38 @@ const homeHtml = await home.text();
 check('첫 화면에도 미리보기가 선다',
   metaIn(homeHtml, 'og:title') === '만세력 — 나와 사람 사이를 이해하는 사주',
   metaIn(homeHtml, 'og:title'));
-check('첫 화면의 그림도 같은 절대 주소다', metaIn(homeHtml, 'og:image') === OG_IMAGE,
+check('첫 화면은 서비스 소개 그림을 쓴다', metaIn(homeHtml, 'og:image') === SITE_IMAGE,
   metaIn(homeHtml, 'og:image'));
 check('첫 화면은 색인에서 안 빠진다',
   (namedIn(homeHtml, 'robots') ?? '').includes('noindex') === false,
   namedIn(homeHtml, 'robots') ?? '(없다)');
 
-const image = await get('/brand/saju-share-v1.jpg');
-const imageBytes = (await image.arrayBuffer()).byteLength;
-check('그림이 공개 경로에서 응답한다',
-  image.status === 200 && (image.headers.get('content-type') ?? '').includes('image/jpeg'),
-  `HTTP ${image.status} ${image.headers.get('content-type')}`);
 /**
- * **크기도 잰다.** 수집기는 큰 파일을 기다려 주지 않고 조용히 안 싣는다 — 그러면
- * 대화창에 제목만 남고, 그 고장은 우리 화면 어디에도 안 나타난다. 300KB 는 지금
- * 값(224KB)에 여유를 둔 선이고, 그림을 갈아 끼우다 다시 무거워지면 여기서 멈춘다.
+ * 두 장을 같은 잣대로 잰다 — **응답하는가 · 삼킬 만한가 · 적어 둔 수가 맞는가.**
+ *
+ * 300KB 는 지금 값(둘 다 약 220KB)에 여유를 둔 선이다. 수집기는 큰 파일을 기다려
+ * 주지 않고 조용히 안 싣는다 — 대화창에 제목만 남고 그 고장은 우리 화면 어디에도
+ * 안 나타난다. 그림을 갈아 끼우다 무거워지면 여기서 멈춘다.
  */
-check('그림이 미리보기가 삼킬 만한 크기다', imageBytes < 300_000, `${imageBytes} bytes`);
+for (const [label, address, said] of [
+  ['서비스 소개', '/brand/saju-share-v1.jpg', homeHtml],
+  ['풀이 전용', '/brand/reading-share-v1.jpg', html],
+]) {
+  const image = await get(address);
+  const bytes = await image.arrayBuffer();
+  check(`${label} 그림이 공개 경로에서 응답한다`,
+    image.status === 200 && (image.headers.get('content-type') ?? '').includes('image/jpeg'),
+    `HTTP ${image.status} ${image.headers.get('content-type')}`);
+  check(`${label} 그림이 미리보기가 삼킬 만한 크기다`, bytes.byteLength < 300_000,
+    `${bytes.byteLength} bytes`);
+
+  const real = jpegSize(bytes);
+  check(`${label} 그림에 적어 둔 크기가 파일과 같다`,
+    real !== null
+      && metaIn(said, 'og:image:width') === String(real.width)
+      && metaIn(said, 'og:image:height') === String(real.height),
+    `적힘 ${metaIn(said, 'og:image:width')}x${metaIn(said, 'og:image:height')} · 파일 ${real?.width}x${real?.height}`);
+}
 
 const missing = await get('/share/readings/0123456789abcdef0123456789abcdef');
 const missingHtml = await missing.text();
