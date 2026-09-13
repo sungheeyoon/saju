@@ -27,8 +27,6 @@ export async function saveServiceSurvey(
     p_unknown: [...answers.unknown],
     p_improve: [...answers.improve],
     p_improve_text: answers.improveText.trim() === '' ? null : answers.improveText,
-    p_credit_intent: answers.creditIntent,
-    p_credit_reasons: [...answers.creditReasons],
     p_wants: [...answers.wants],
     p_wants_new: [...answers.wantsNew],
     p_price_solo: answers.priceSolo,

@@ -3,10 +3,6 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 
 import {
-  CREDIT_INTENTS,
-  CREDIT_INTENT_LABEL,
-  CREDIT_REASONS,
-  CREDIT_REASON_LABEL,
   EMPTY_ANSWERS,
   IMPROVE_LABEL,
   IMPROVE_OPTIONS,
@@ -17,7 +13,8 @@ import {
   PRICE_LABEL,
   PRICE_NOTE,
   PRICE_OPTIONS,
-  PRICE_QUESTION,
+  PRICE_STEM,
+  PRICE_SUBJECT_LABEL,
   QUESTION,
   SOLE_CHOICES,
   SURVEY_COPY,
@@ -32,7 +29,6 @@ import {
   afterPicking,
   isAnswered,
   withoutHidden,
-  type CreditIntent,
   type PriceOption,
   type PriceSubject,
   type SurveyAnswers,
@@ -68,7 +64,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
 
   /** 마지막으로 서버에 넣은 것 — 안 바뀐 답을 되풀이해 보내지 않는다 */
   const saved = useRef(JSON.stringify(given?.answers ?? EMPTY_ANSWERS));
-  const shown = { creditsLeft: context.creditsLeft, readSolo: context.readSolo, readPair: context.readPair };
+  const shown = { readSolo: context.readSolo, readPair: context.readPair };
   const open = submittedAt === null || editing;
 
   useEffect(() => {
@@ -174,37 +170,6 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
         />
       </Picks>
 
-      {/* **잔액이 0이면 안 선다.** 다 쓴 사람에게 「더 쓸 생각이 있나」는 물을 것이 없다 */}
-      {context.creditsLeft > 0 && (
-        <One
-          question={QUESTION.creditIntent}
-          options={CREDIT_INTENTS}
-          label={CREDIT_INTENT_LABEL}
-          picked={answers.creditIntent}
-          onPick={(next) => {
-            /* 「더 쓰겠다」로 돌리면 이유 칸이 사라진다 — 남은 값을 데리고 가지 않는다 */
-            setAnswers((now) => ({
-              ...now,
-              creditIntent: next as CreditIntent | null,
-              creditReasons: next === 'will_use' || next === null ? [] : now.creditReasons,
-            }));
-          }}
-        >
-          {answers.creditIntent !== null && answers.creditIntent !== 'will_use' && (
-            <Picks
-              question={QUESTION.creditReasons}
-              hint={SURVEY_COPY.multiple}
-              options={CREDIT_REASONS}
-              label={CREDIT_REASON_LABEL}
-              sole={[]}
-              picked={answers.creditReasons}
-              onPick={(next) => pick('creditReasons', next)}
-              nested
-            />
-          )}
-        </One>
-      )}
-
       <Picks
         question={QUESTION.wants}
         hint={SURVEY_COPY.multiple}
@@ -231,20 +196,48 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
         />
       </Picks>
 
-      {/* **읽어 본 종류만 묻는다.** 안 써 본 것의 값은 값이 아니라 인상이다 */}
-      {asked.map((subject) => (
-        <One
-          key={subject}
-          question={PRICE_QUESTION[subject]}
-          note={PRICE_NOTE}
-          options={PRICE_OPTIONS}
-          label={PRICE_LABEL}
-          picked={subject === 'solo' ? answers.priceSolo : answers.pricePair}
-          onPick={(next) =>
-            pick(subject === 'solo' ? 'priceSolo' : 'pricePair', next as PriceOption | null)
-          }
-        />
-      ))}
+      {/*
+        **읽어 본 종류만 묻는다.** 안 써 본 것의 값은 값이 아니라 인상이다.
+
+        묻는 문장은 **한 번만** 선다. 상품마다 온전한 문장을 세웠더니 서른 자 넘는 같은
+        문장에서 낱말 하나만 갈려서 **같은 질문이 두 번 서 있는 것으로 읽혔다.**
+      */}
+      {asked.length > 0 && (
+        <section className={`${CARD} flex flex-col gap-3`}>
+          <p className="text-base font-bold">{PRICE_STEM}</p>
+          <p className="text-xs leading-5 text-secondary">{PRICE_NOTE}</p>
+          {asked.map((subject) => (
+            <fieldset key={subject} className="flex flex-col gap-2 border-t border-border pt-4">
+              <legend className="contents">
+                <span className="block text-sm font-semibold">{PRICE_SUBJECT_LABEL[subject]}</span>
+              </legend>
+              {PRICE_OPTIONS.map((option) => (
+                <label
+                  key={option}
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3.5 py-3 text-sm hover:border-accent has-checked:border-accent has-checked:bg-accent-wash"
+                >
+                  <input
+                    type="radio"
+                    checked={
+                      (subject === 'solo' ? answers.priceSolo : answers.pricePair) === option
+                    }
+                    onChange={() =>
+                      pick(subject === 'solo' ? 'priceSolo' : 'pricePair', option as PriceOption)
+                    }
+                    /* 잘못 고른 값을 지울 길 — 같은 것을 다시 누르면 풀린다 */
+                    onClick={() => {
+                      const now = subject === 'solo' ? answers.priceSolo : answers.pricePair;
+                      if (now === option) pick(subject === 'solo' ? 'priceSolo' : 'pricePair', null);
+                    }}
+                    className="size-4 accent-[var(--accent)]"
+                  />
+                  <span>{PRICE_LABEL[option]}</span>
+                </label>
+              ))}
+            </fieldset>
+          ))}
+        </section>
+      )}
 
       {asked.length > 0 && (
         <Picks
@@ -355,52 +348,6 @@ function Picks<T extends string>({
               type="checkbox"
               checked={picked.includes(option)}
               onChange={() => onPick(afterPicking(picked, option, sole))}
-              className="size-4 accent-[var(--accent)]"
-            />
-            <span>{label[option]}</span>
-          </label>
-        ))}
-      </div>
-      {children}
-    </fieldset>
-  );
-}
-
-/** 하나만 고르는 문항 — 같은 것을 다시 누르면 풀린다 */
-function One<T extends string>({
-  question,
-  note,
-  options,
-  label,
-  picked,
-  onPick,
-  children,
-}: {
-  question: string;
-  note?: string;
-  options: readonly T[];
-  label: Record<T, string>;
-  picked: T | null;
-  onPick: (next: T | null) => void;
-  children?: React.ReactNode;
-}) {
-  return (
-    <fieldset className={`${CARD} flex flex-col gap-3`}>
-      <legend className="contents">
-        <span className="block text-base font-bold">{question}</span>
-      </legend>
-      {note !== undefined && <p className="text-xs leading-5 text-secondary">{note}</p>}
-      <div className="flex flex-col gap-2">
-        {options.map((option) => (
-          <label
-            key={option}
-            className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3.5 py-3 text-sm hover:border-accent has-checked:border-accent has-checked:bg-accent-wash"
-          >
-            <input
-              type="radio"
-              checked={picked === option}
-              onChange={() => onPick(option)}
-              onClick={() => picked === option && onPick(null)}
               className="size-4 accent-[var(--accent)]"
             />
             <span>{label[option]}</span>

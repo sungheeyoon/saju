@@ -1,7 +1,5 @@
 import {
   EMPTY_ANSWERS,
-  type CreditIntent,
-  type CreditReason,
   type ImproveOption,
   type LikedOption,
   type PriceFactor,
@@ -23,8 +21,6 @@ import { supabaseOnServer } from '../../auth/server-client';
  */
 
 export type SurveyContext = {
-  /** 남은 풀이권 — 0이면 Q3 이 안 선다 */
-  readonly creditsLeft: number;
   /** 사주풀이를 읽어 봤나 — 값 문항이 이 값으로 선다 */
   readonly readSolo: boolean;
   /** 궁합을 읽어 봤나. **공유 궁합도 읽은 것이다** */
@@ -52,7 +48,6 @@ export async function surveyContext(): Promise<SurveyContext | null> {
   if (row === undefined) return null;
 
   return {
-    creditsLeft: Number(row.credits_left),
     readSolo: row.read_solo === true,
     readPair: row.read_pair === true,
     consented: row.consented === true,
@@ -81,8 +76,6 @@ export async function mySurvey(): Promise<MySurvey | null> {
       unknown: (row.unknown_features as UnknownOption[] | null) ?? [],
       improve: (row.improve as ImproveOption[] | null) ?? [],
       improveText: (row.improve_text as string | null) ?? '',
-      creditIntent: (row.credit_intent as CreditIntent | null) ?? null,
-      creditReasons: (row.credit_reasons as CreditReason[] | null) ?? [],
       wants: (row.wants as WantOption[] | null) ?? [],
       wantsNew: (row.wants_new as WantNewOption[] | null) ?? [],
       priceSolo: (row.price_solo as PriceOption | null) ?? null,

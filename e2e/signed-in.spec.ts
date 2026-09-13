@@ -7,7 +7,7 @@ import {
   test,
 } from './session';
 
-import { PRICE_QUESTION, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
+import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
 
 import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
 import type { Page } from '@playwright/test';
@@ -357,9 +357,15 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await expect(page.getByRole('heading', { name: SURVEY_COPY.title })).toBeVisible();
 
-    /* **읽어 본 종류만 값을 묻는다** — `reader` 는 궁합을 읽지 않았다 */
-    await expect(page.getByText(PRICE_QUESTION.solo)).toBeVisible();
-    await expect(page.getByText(PRICE_QUESTION.pair)).toHaveCount(0);
+    /*
+      **읽어 본 종류만 값을 묻는다** — `reader` 는 궁합을 읽지 않았다.
+
+      묻는 문장(`PRICE_STEM`)은 한 번만 서고 상품 이름이 칸마다 선다. 상품마다 온전한
+      문장을 세웠더니 같은 질문이 두 번 서 있는 것으로 읽혔다.
+    */
+    await expect(page.getByText(PRICE_STEM)).toBeVisible();
+    await expect(page.getByRole('group', { name: PRICE_SUBJECT_LABEL.solo })).toBeVisible();
+    await expect(page.getByRole('group', { name: PRICE_SUBJECT_LABEL.pair })).toHaveCount(0);
 
     const liked = page.getByRole('group', { name: QUESTION.liked });
     await liked.getByRole('checkbox', { name: '내 사주풀이', exact: true }).check();
@@ -373,7 +379,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     ).not.toBeChecked();
 
     await page
-      .getByRole('group', { name: PRICE_QUESTION.solo })
+      .getByRole('group', { name: PRICE_SUBJECT_LABEL.solo })
       .getByRole('radio', { name: '4,900원', exact: true })
       .check();
 

@@ -12,6 +12,13 @@
  * 우리가 고르는** 것이 되고, 표본이 「다 써 본 사람」 쪽으로 기운다. 탭 하나를 열어 두고
  * 할 사람이 자기 때에 하게 한다.
  *
+ * ## 남은 풀이권은 안 묻는다
+ *
+ * 「더 사용할 생각이 있나요」를 뒀다가 뺐다. **그 답으로 할 일이 없다** — 잔액은 테스트
+ * 기간의 인위적 한도라 그 의향이 제품의 무엇도 정하지 않고, 「앞으로 이용하고 싶은 것」이
+ * 이미 같은 것을 묻는다. 답할 사람의 시간을 쓰는 문항은 그 답이 무엇을 정하는지 말할 수
+ * 있어야 한다.
+ *
  * ## 이름은 화면에 서는 그 말이다
  *
  * 설문에만 있는 이름을 지으면 사용자가 고를 때 한 번 더 번역해야 한다. 그래서
@@ -118,50 +125,6 @@ export const IMPROVE_LABEL: Record<ImproveOption, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Q3 — 남은 풀이권
-// ---------------------------------------------------------------------------
-
-/**
- * **「왜 안 썼나」가 아니라 의향을 먼저 묻는다.**
- *
- * 아무 때나 답할 수 있게 되면 「안 쓴 이유」는 첫날 답하는 사람에게 성립하지 않는
- * 물음이다. 다섯 장을 그대로 쥔 사람에게 그것을 물으면, 그 사람의 답은 어느 칸에 넣어도
- * 거짓이 된다.
- */
-export const CREDIT_INTENTS = ['will_use', 'undecided', 'not_for_now'] as const;
-export type CreditIntent = (typeof CREDIT_INTENTS)[number];
-
-export const CREDIT_INTENT_LABEL: Record<CreditIntent, string> = {
-  will_use: '더 사용할 생각이에요',
-  undecided: '아직 정하지 않았어요',
-  not_for_now: '당분간 사용할 생각이 없어요',
-};
-
-/** 이유는 **의향이 「더 쓰겠다」가 아닐 때만** 묻는다 */
-export const CREDIT_REASONS = [
-  'enough',
-  'no_target',
-  'below_expectation',
-  'no_birth_info',
-  'troublesome',
-  'error',
-  'no_time',
-  'other',
-] as const;
-export type CreditReason = (typeof CREDIT_REASONS)[number];
-
-export const CREDIT_REASON_LABEL: Record<CreditReason, string> = {
-  enough: '지금 궁금한 내용은 충분히 봤어요',
-  no_target: '더 보고 싶은 사람이나 주제가 없어요',
-  below_expectation: '결과가 기대에 못 미쳤어요',
-  no_birth_info: '출생 정보를 구하기 어려워요',
-  troublesome: '입력하거나 이용하는 과정이 번거로워요',
-  error: '오류 때문에 이용하지 못했어요',
-  no_time: '아직 이용할 시간이 없었어요',
-  other: '기타',
-};
-
-// ---------------------------------------------------------------------------
 // Q4 — 앞으로. **있는 것과 없는 것을 갈라 세운다**
 // ---------------------------------------------------------------------------
 
@@ -259,9 +222,23 @@ export const PRICE_LABEL: Record<PriceOption, string> = {
 export const PRICE_SUBJECTS = ['solo', 'pair'] as const;
 export type PriceSubject = (typeof PRICE_SUBJECTS)[number];
 
-export const PRICE_QUESTION: Record<PriceSubject, string> = {
-  solo: '지금 읽은 것과 같은 구성과 분량의 새로운 사주풀이 1회에, 지불할 의향이 있는 최대 금액은 얼마인가요?',
-  pair: '지금 읽은 것과 같은 구성과 분량의 새로운 궁합 풀이 1회에, 지불할 의향이 있는 최대 금액은 얼마인가요?',
+/**
+ * **묻는 문장은 하나고, 상품이 그 아래에 선다.**
+ *
+ * 처음에는 상품마다 온전한 문장을 세웠다 — 「…새로운 **사주풀이** 1회에…」와 「…새로운
+ * **궁합 풀이** 1회에…」. 서른 자 넘는 같은 문장에서 낱말 하나만 갈리니 **같은 질문이 두
+ * 번 서 있는 것으로 읽혔다**(로컬에서 그렇게 보였다). 갈리는 말이 문장 한가운데 있으면
+ * 사람은 그것을 안 읽는다.
+ *
+ * 줄기를 한 번 세우고 갈리는 말만 각 칸의 이름으로 둔다. 값이 상품마다 따로 남는 것은
+ * 그대로다.
+ */
+export const PRICE_STEM =
+  '지금 읽은 것과 같은 구성과 분량으로 한 번 더 받는다면, 최대 얼마까지 낼 의향이 있으세요?';
+
+export const PRICE_SUBJECT_LABEL: Record<PriceSubject, string> = {
+  solo: '사주풀이 1회',
+  pair: '궁합 풀이 1회',
 };
 
 export const PRICE_NOTE =
@@ -359,8 +336,6 @@ export const QUESTION = {
   unknown: '이 설문을 보기 전까지, 있는 줄 몰랐던 기능이 있나요?',
   improve: '개선했으면 하는 부분은 무엇인가요?',
   improveText: '어떤 점이 어떻게 바뀌면 좋을까요?',
-  creditIntent: '남은 풀이권을 더 사용할 생각이 있나요?',
-  creditReasons: '어떤 이유인가요?',
   wants: '현재 기능 중 앞으로 이용하고 싶은 것은 무엇인가요?',
   wantsNew: '새로 생긴다면 이용해 보고 싶은 기능이 있나요?',
   priceFactors: '금액을 선택할 때 어떤 점을 고려했나요?',
@@ -379,8 +354,6 @@ export type SurveyAnswers = {
   readonly unknown: readonly UnknownOption[];
   readonly improve: readonly ImproveOption[];
   readonly improveText: string;
-  readonly creditIntent: CreditIntent | null;
-  readonly creditReasons: readonly CreditReason[];
   readonly wants: readonly WantOption[];
   readonly wantsNew: readonly WantNewOption[];
   readonly priceSolo: PriceOption | null;
@@ -394,8 +367,6 @@ export const EMPTY_ANSWERS: SurveyAnswers = {
   unknown: [],
   improve: [],
   improveText: '',
-  creditIntent: null,
-  creditReasons: [],
   wants: [],
   wantsNew: [],
   priceSolo: null,
@@ -416,8 +387,6 @@ export function isAnswered(answers: SurveyAnswers): boolean {
     answers.unknown.length > 0 ||
     answers.improve.length > 0 ||
     answers.improveText.trim() !== '' ||
-    answers.creditIntent !== null ||
-    answers.creditReasons.length > 0 ||
     answers.wants.length > 0 ||
     answers.wantsNew.length > 0 ||
     answers.priceSolo !== null ||
@@ -435,15 +404,10 @@ export function isAnswered(answers: SurveyAnswers): boolean {
  */
 export function withoutHidden(
   answers: SurveyAnswers,
-  shown: { creditsLeft: number; readSolo: boolean; readPair: boolean },
+  shown: { readSolo: boolean; readPair: boolean },
 ): SurveyAnswers {
   return {
     ...answers,
-    creditIntent: shown.creditsLeft > 0 ? answers.creditIntent : null,
-    creditReasons:
-      shown.creditsLeft > 0 && answers.creditIntent !== null && answers.creditIntent !== 'will_use'
-        ? answers.creditReasons
-        : [],
     priceSolo: shown.readSolo ? answers.priceSolo : null,
     pricePair: shown.readPair ? answers.pricePair : null,
     priceFactors: shown.readSolo || shown.readPair ? answers.priceFactors : [],
@@ -465,8 +429,6 @@ export const SURVEY_QUESTION_TITLE: Record<string, string> = {
   liked: '좋았던 기능',
   unknown: '몰랐던 기능',
   improve: '개선할 부분',
-  creditIntent: '남은 풀이권',
-  creditReasons: '더 안 쓰는 이유',
   wants: '앞으로 이용하고 싶은 것 (지금 있는 기능)',
   wantsNew: '새로 생긴다면',
   priceSolo: '사주풀이 값',
@@ -478,8 +440,6 @@ const CHOICE_LABELS: Record<string, Record<string, string>> = {
   liked: LIKED_LABEL,
   unknown: UNKNOWN_LABEL,
   improve: IMPROVE_LABEL,
-  creditIntent: CREDIT_INTENT_LABEL,
-  creditReasons: CREDIT_REASON_LABEL,
   wants: WANT_LABEL,
   wantsNew: WANT_NEW_LABEL,
   priceSolo: PRICE_LABEL,

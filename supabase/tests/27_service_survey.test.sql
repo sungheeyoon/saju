@@ -3,13 +3,13 @@
 -- 여기서 재는 것 다섯.
 --
 -- 1. **동의 뒤에만 받는다.** 끄면 남긴 답도 함께 사라진다 — 값만 꺼 두면 근거 없이 남는다.
--- 2. **안 물어본 문항의 답은 저장되지 않는다.** 잔액이 0이면 의향을, 안 읽은 종류면 값을
---    안 받는다. 화면이 숨기는 것과 서버가 안 받는 것은 다른 일이다.
+-- 2. **안 물어본 문항의 답은 저장되지 않는다.** 안 읽은 종류의 값은 실려 와도 안 받는다 —
+--    화면이 숨기는 것과 서버가 안 받는 것은 다른 일이다.
 -- 3. **초안은 집계에 안 든다.** 작성 도중의 문장을 제출한 의견처럼 읽으면 안 된다.
 -- 4. **처음 제출한 때와 그때의 일정은 안 움직인다.** 답을 고쳐도 그렇다.
 -- 5. **표는 밖에서 한 줄도 안 보인다.**
 begin;
-select plan(27);
+select plan(22);
 
 create or replace function pg_temp.save(run uuid, rev uuid)
 returns uuid language sql security definer as $$
@@ -42,14 +42,12 @@ create or replace function pg_temp.answer(
   liked text[] default array[]::text[],
   improve text[] default array[]::text[],
   said text default null,
-  intent text default null,
-  reasons text[] default array[]::text[],
   solo text default null,
   pair text default null,
   submit boolean default false)
 returns timestamptz language sql as $$
   select public.save_service_survey(
-    liked, array[]::text[], improve, said, intent, reasons,
+    liked, array[]::text[], improve, said,
     array[]::text[], array[]::text[], solo, pair, array[]::text[], null,
     array['free', '990', '1990', '4900', '9900', '12000', 'over_12000', 'unsure'],
     submit);
@@ -149,44 +147,6 @@ select is(
   (select array[price_solo, price_pair] from public.my_service_survey()),
   array['9900', null],
   '읽은 종류만 값이 남는다');
-
--- ── 잔액이 0이면 의향을 안 묻는다 ───────────────────────────────────────────
-
-select lives_ok(
-  $$select pg_temp.answer(array['self_reading'], intent => 'undecided',
-      reasons => array['no_time'])$$,
-  '잔액이 남아 있으면 의향이 들어간다');
-
-select is(
-  (select array[credit_intent] || credit_reasons from public.my_service_survey()),
-  array['undecided', 'no_time'],
-  '의향과 이유가 함께 남는다');
-
-select pg_temp.burn((select dad from kin), 'svc-0002');
-select pg_temp.burn((select sis from kin), 'svc-0003');
-select pg_temp.burn((select bro from kin), 'svc-0004');
-select pg_temp.burn((select unc from kin), 'svc-0005');
-
-select is(
-  (select credits_left from public.service_survey_context()),
-  0,
-  '다섯을 쓰면 남은 것이 없다');
-
-/**
- * **화면을 열어 둔 사이에 마지막 풀이권을 쓴 경우다.**
- *
- * 거절하지 않는다 — 사용자가 잘못 누른 것이 아니라 그 사이에 상태가 바뀐 것이고, 거절하면
- * 고칠 수 없는 오류를 보게 된다. 대신 안 물어본 문항의 답으로 남지 않게 비운다.
- */
-select lives_ok(
-  $$select pg_temp.answer(array['self_reading'], intent => 'undecided',
-      reasons => array['no_time'])$$,
-  '잔액이 0이 된 뒤에도 저장은 거절하지 않는다');
-
-select is(
-  (select array[credit_intent] || credit_reasons from public.my_service_survey()),
-  array[null]::text[],
-  '잔액이 0이면 의향도 이유도 안 남는다');
 
 -- ── 초안은 집계에 안 든다 ───────────────────────────────────────────────────
 
