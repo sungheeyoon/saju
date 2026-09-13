@@ -1,0 +1,11 @@
+Generated with the built-in image_gen tool.
+
+Use case: ads-marketing.
+Create one polished Korean saju service social link preview image for the real brand "만세력". Wide landscape aspect ratio 1.91:1, ideally 1536x804. Full bleed finished graphic, not a mockup.
+Brand context: a calm contemporary Korean app for understanding yourself and relationships through birth-chart readings. Editorial, thoughtful, friendly, beautifully crafted. Palette directly from app: warm ivory #f7f5ef, forest green #356b57, charcoal #20221f, with restrained five element accents sage #4f8063, terracotta #bd5d4c, ochre #a77d3d, slate #69727a, muted blue #4d7089.
+Composition: generous whitespace, left 55% dedicated to bold exceptionally legible Korean typography; right 45% features an exquisite sculptural paper-cut illustration of four upright layered rounded pillars and flowing ribbons connecting them, subtle circular sun form, representing four pillars and life's flow. Tactile premium uncoated paper, gentle embossed relief, soft natural shadows, restrained handmade detail, elegant contemporary Korean book cover art. Illustration extends naturally toward right and bottom edges, balanced and sophisticated. Five muted element colors appear in the paper layers; forest green remains primary. Background warm ivory.
+Exact visible text only:
+Small upper-left brand name: "만세력"
+Large main headline across two lines: "나를 이루는" then "흐름을 읽다"
+Smaller supporting text: "나와 사람 사이를 이해하는 사주"
+Use clear contemporary Korean sans-serif, heavy headline, compact careful tracking and ample line spacing. Perfect accurate Hangul, high contrast, headline readable at small thumbnail sizes. Keep all text inside generous 8% safe margins. No additional text, no Chinese characters, no fake chart, no birth dates, no personal names, no phone frame, no UI buttons, no watermark, no zodiac wheel, no tarot, no mystical purple, no fortune-telling cliches, no photographic people. Final image must feel like the app's own premium brand artwork, visually inviting in a chat message preview.

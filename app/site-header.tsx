@@ -8,6 +8,7 @@ import { readingCreditsLabel } from '@/src/lib/reading';
 
 import { supabaseInBrowser } from './auth/browser-client';
 import { READING_CREDITS_MOVED } from './me/reading/credits-signal';
+import { isSharePath } from './share/path';
 
 /**
  * 로그인하지 않은 사람의 메뉴 — **비어 있다.**
@@ -107,8 +108,20 @@ export function SiteHeader() {
    * 일곱 개다. 남는 것은 **아직 할 수 있는 일**뿐이다: 계정 메뉴(계정 관리·로그아웃).
    */
   const ended = pathname === '/closed';
-  const memberNavigation = protectedPath || session === 'in';
-  const links = ended ? [] : memberNavigation ? MEMBER_LINKS : PUBLIC_LINKS;
+  /**
+   * **공유본 화면에서는 헤더가 접힌다.**
+   *
+   * `/closed` 와 같은 자리에 같은 까닭으로 선다 — 거기서는 길이 죽어서 걷었고,
+   * 여기서는 **이 화면의 것이 아니어서** 걷는다. 링크를 받고 들어온 사람에게 남의
+   * 회원 메뉴와 풀이권 잔액은 길이 아니다. 그리고 보낸 사람이 자기 링크를 열어
+   * 확인할 때도 같아야 한다 — 받는 사람이 볼 화면을 보러 온 것이기 때문이다.
+   *
+   * 화면 자신이 이름과 시작하는 길을 이미 세우므로(`share/readings/[token]`),
+   * 여기서는 로고 한 줄만 남는다.
+   */
+  const shared = isSharePath(pathname);
+  const memberNavigation = !shared && (protectedPath || session === 'in');
+  const links = ended || shared ? [] : memberNavigation ? MEMBER_LINKS : PUBLIC_LINKS;
   /* 남은 풀이권은 끝난 뒤에 셀 것이 아니다 — 쓸 자리가 없다 */
   const creditsLabel = useReadingCredits(session === 'in' && !ended);
   /** 로그인 화면에서 「로그인」은 지금 보고 있는 화면으로 가는 버튼이다 */
@@ -204,7 +217,7 @@ export function SiteHeader() {
               <AccountMenu email={email} variant="desktop" ended={ended} />
             </>
           ) : (
-            session === 'unknown' || onAuthScreen ? (
+            session === 'unknown' || onAuthScreen || shared ? (
               <span aria-hidden="true" className={`${TRAILING} invisible`}>
                 로그인
               </span>

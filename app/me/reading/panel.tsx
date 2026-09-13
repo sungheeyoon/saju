@@ -23,6 +23,7 @@ import { GENERATION } from './generation';
 import type { CurrentReading, ReadingCredits } from './current';
 import { namedMatchBody } from '@/src/lib/reading/display';
 import { ReadingFeedback } from './feedback';
+import { ShareReadingButton } from './share-button';
 import { Markdown } from './markdown';
 import type { ReadingTarget } from './pipeline';
 
@@ -310,6 +311,19 @@ export function ReadingPanel({
    */
   const hideMake = automatic && (reading !== null || phase === 'loading');
 
+  /**
+   * **공유는 다 된 내 사주풀이에만 붙는다.**
+   *
+   * 없는 글과 지금 만들고 있는 글에는 보낼 것이 없다 — 그 자리에 버튼을 세우면 누른
+   * 사람이 빈 링크를 받는다. 예시 결과에도 안 붙는다. 그것은 모델이 쓴 글이 아니라
+   * 개발용으로 박아 둔 문자열이고, DB 의 문도 저장된 원문에 없는 글은 안 받는다 —
+   * 화면에서 먼저 막지 않으면 사용자는 이유를 모르는 실패를 본다.
+   *
+   * 첫 판은 **내 사주풀이 하나**다. 저장한 사람과 두 궁합은 남의 자료가 섞여 있어
+   * 내보낼 범위를 따로 정해야 하고, 그 판단이 아직 없다.
+   */
+  const canShare = target.kind === 'self' && reading !== null && phase !== 'loading' && !isMock;
+
   const makeBlock = hideMake ? null : (
     <div
       className={`flex flex-col gap-3 ${onPage ? 'rounded-2xl border border-border bg-surface px-5 py-4' : 'border-t border-border pt-5'}`}
@@ -389,13 +403,15 @@ export function ReadingPanel({
       <header className="flex flex-wrap items-start justify-between gap-3">
         <h2 className="text-xl font-bold tracking-tight">{heading}</h2>
         {reading !== null && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isMock && (
               <span className="rounded-full bg-warning-wash px-2.5 py-1 text-[11px] font-semibold text-warning">
                 예시 결과
               </span>
             )}
             <span className="text-xs text-muted">{when(reading.createdAt)} 생성</span>
+            {/* 제목 옆 — 글을 읽기 전에도 보낼 수 있다 */}
+            {canShare && <ShareReadingButton variant="compact" />}
           </div>
         )}
       </header>
@@ -445,6 +461,26 @@ export function ReadingPanel({
         그리고 **동의하지 않았으면 통째로 안 선다.** 「동의하면 더 답할 수 있어요」
         같은 줄도 세우지 않는다 — 거절한 사람에게 거절을 다시 보여 주는 자리가 된다.
       */}
+      {/*
+        **본문 끝에 한 번 더 선다.**
+
+        제목 옆의 것과 같은 일을 하는 버튼이 둘이다. 이 저장소는 같은 값을 두 자리에
+        적는 것을 싫어하는데, 여기서 둘인 것은 **글이 길기 때문**이다 — 여덟 천 자를 다
+        읽고 「누구한테 보내야지」라고 생각한 사람에게, 그 자리가 화면 맨 위에만 있으면
+        없는 것과 같다. 값을 두 번 적는 것이 아니라 같은 문 앞에 손잡이가 둘인 것이다.
+
+        접혀 있으면 안 세운다. 그때는 위의 것이 바로 보이는 자리에 있다.
+      */}
+      {canShare && (onPage || readingExpanded) && (
+        <div className="flex flex-col gap-2 border-t border-border pt-5">
+          <p className="text-sm font-semibold">이 풀이를 보내 보세요</p>
+          <p className="text-xs leading-5 text-muted">
+            링크를 아는 사람은 누구나 이 풀이를 볼 수 있습니다.
+          </p>
+          <ShareReadingButton variant="block" />
+        </div>
+      )}
+
       {(onPage || readingExpanded) && consented && phase !== 'loading' && reading !== null && !isMock
         && reading.sourceRunId !== null && (
         <ReadingFeedback target={target} runId={reading.sourceRunId} given={reading.myFeedback} />
