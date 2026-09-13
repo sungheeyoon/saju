@@ -110,23 +110,34 @@ order by a.notice_ack_at desc nulls first;
 이메일 명단은 걷었다. 지금 문을 여는 것은 **테스트 코드**다 — 운영자가 코드를 하나 만들고
 그 문자열만 전하면 받은 사람이 스스로 들어온다.
 
-코드에는 둘이 붙는다: **사는 하루**와 **최대 인원**. 기한 없는 코드는 새면 영원히 열린
-문이고, 수 없는 코드는 한 사람이 퍼뜨리면 정원이 없다. 둘을 함께 두면 새어도 오늘 N명까지다.
+코드에는 둘이 붙는다: **사는 기간**과 **최대 인원**. 기한 없는 코드는 새면 영원히 열린
+문이고, 수 없는 코드는 한 사람이 퍼뜨리면 정원이 없다. 둘을 함께 두면 새어도 N명까지다.
+
+**정원은 기간 전체에 누적이다**(ADR 0066). 이틀짜리 스무 명은 이틀 합쳐 스무 명이지
+날마다 스무 명이 아니다 — `app_user.signup_code` 로 세므로 자리가 안 돌아온다.
+**이틀을 덮겠다고 날짜만 다른 코드를 두 줄 넣지 마라.** 그러면 정원이 두 벌이 된다.
 
 ```sql
--- 오늘 열 명. 코드는 **대문자**로 넣는다(검사식이 그것만 받는다).
+-- 오늘 하루, 열 명. 코드는 **대문자**로 넣는다(검사식이 그것만 받는다).
 -- 하루의 경계는 서울 자정이다 — 「오늘」이 사용자가 읽는 오늘과 같아야 한다.
+-- `valid_until` 을 안 적으면 하루짜리다.
 insert into public.signup_code (code, note, valid_on, max_uses)
 values ('SAJU1001', '1차 테스터 · 오픈채팅방 공지', (now() at time zone 'Asia/Seoul')::date, 10);
 
+-- 오늘부터 내일까지, 합쳐서 스무 명.
+insert into public.signup_code (code, note, valid_on, valid_until, max_uses)
+values ('SAJU1002', '2차 테스터 · 오픈채팅방 공지',
+        (now() at time zone 'Asia/Seoul')::date,
+        (now() at time zone 'Asia/Seoul')::date + 1, 20);
+
 -- 오늘 살아 있는 코드와 남은 자리
-select c.code, c.note, c.valid_on, c.max_uses,
+select c.code, c.note, c.valid_on, c.valid_until, c.max_uses,
        count(u.id) as 들어온사람,
        c.max_uses - count(u.id) as 남은자리
 from public.signup_code c
 left join public.app_user u on u.signup_code = c.code
-where c.valid_on = (now() at time zone 'Asia/Seoul')::date
-group by c.code, c.note, c.valid_on, c.max_uses;
+where (now() at time zone 'Asia/Seoul')::date between c.valid_on and c.valid_until
+group by c.code, c.note, c.valid_on, c.valid_until, c.max_uses;
 
 -- 어느 계정이 어느 코드로 왔나
 select au.email, u.signup_code, u.signed_up_at, u.nickname

@@ -11,8 +11,10 @@
 -- 4. **코드는 한 사람에게 한 번만 쓰인다.** 안내가 바뀌어 다시 지나도 두 번 안 센다.
 -- 5. **명단은 안 보인다.** 살아 있는 코드가 열려 있으면 그것을 퍼뜨릴 수 있고,
 --    그 순간 정원이 뜻을 잃는다.
+-- 6. **코드는 창을 산다** (ADR 0066). 하루가 아니라 첫날과 끝날이고, **정원은 창
+--    전체에 누적**이라 이틀짜리 스무 명은 이틀 합쳐 스무 명이다.
 begin;
-select plan(20);
+select plan(27);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -31,12 +33,34 @@ insert into public.signup_code (code, note, valid_on, max_uses) values
   ('YESTER', '어제 것', public.signup_today() - 1, 10),
   ('FULL01', '정원 하나', public.signup_today(), 1);
 
+/**
+ * 창짜리 코드 셋 — **어제 시작해 내일 끝나는 것**(지금 열려 있다), **어제 끝난 것**
+ * (닫혔다), 그리고 **정원이 둘인 창**(누적을 재는 자리).
+ */
+insert into public.signup_code (code, note, valid_on, valid_until, max_uses) values
+  ('WINDOW', '어제~내일', public.signup_today() - 1, public.signup_today() + 1, 10),
+  ('PASSED', '그저께~어제', public.signup_today() - 2, public.signup_today() - 1, 10),
+  ('CARRY1', '창 전체에 둘', public.signup_today() - 1, public.signup_today() + 1, 2);
+
 create temporary table folks as
 select tests.signup_raw('kim-code@example.com') as kim,
        tests.signup_raw('lee-code@example.com') as lee,
        tests.signup_raw('park-code@example.com') as park,
-       tests.signup_raw('choi-code@example.com') as choi;
+       tests.signup_raw('choi-code@example.com') as choi,
+       tests.signup_raw('han-code@example.com') as han,
+       tests.signup_raw('seo-code@example.com') as seo,
+       tests.signup_raw('yun-code@example.com') as yun;
 grant select on folks to authenticated, service_role;
+
+/** 서울 자정 기준의 오늘 — 이 함수도 `authenticated` 에 닫혀 있다 */
+create or replace function pg_temp.today()
+returns date language sql security definer as $$ select public.signup_today() $$;
+
+/** 표가 아무에게도 안 열려 있으므로(그것이 규칙이다) 세는 손잡이를 따로 둔다 */
+create or replace function pg_temp.window_of(wanted text)
+returns date language sql security definer as $$
+  select c.valid_until from public.signup_code c where c.code = wanted;
+$$;
 
 create or replace function pg_temp.schedule_id()
 returns bigint language sql stable as $$
@@ -194,6 +218,48 @@ select throws_ok(
   42501,
   null,
   '오늘을 묻는 문도 닫혀 있다');
+
+-- ── 6. 코드는 창을 산다 (ADR 0066) ─────────────────────────────────────────
+
+/** 안 적으면 하루짜리다 — 절차서의 옛 INSERT 가 뜻하던 것이 그대로 참이어야 한다 */
+select is(pg_temp.window_of('TODAY1'), pg_temp.today(),
+  '끝날을 안 적으면 시작날과 같다');
+
+select is(pg_temp.window_of('WINDOW'), pg_temp.today() + 1,
+  '적으면 적은 대로 선다');
+
+select pg_temp.acting((select han from folks));
+select lives_ok(
+  $$select public.complete_signup('WINDOW', '한창', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
+  '어제 열려 내일 닫히는 코드는 오늘도 열려 있다');
+
+select pg_temp.acting((select seo from folks));
+select throws_like(
+  $$select public.complete_signup('PASSED', '서지남', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
+  '%지금 쓸 수 있는 코드가 아닙니다%',
+  '창이 지난 코드는 없는 코드와 같은 말로 막힌다');
+
+/**
+ * **정원은 창 전체에 누적이다.**
+ *
+ * 이것이 창을 만든 까닭이다 — 하루짜리 코드를 이틀치로 두 줄 넣으면 정원이 두 벌이
+ * 되어 「스무 명」이 마흔이 된다. 한 줄이 이틀을 살면 스무 명은 스무 명이다.
+ * `app_user.signup_code` 로 세므로 날이 바뀌어도 자리가 안 돌아온다.
+ */
+select lives_ok(
+  $$select public.complete_signup('CARRY1', '서정원', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
+  '창짜리 코드의 첫 자리가 나간다');
+
+select pg_temp.acting((select yun from folks));
+select lives_ok(
+  $$select public.complete_signup('CARRY1', '윤정원', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
+  '둘째 자리도 나간다');
+
+select pg_temp.acting((select choi from folks));
+select throws_like(
+  $$select public.complete_signup('CARRY1', '최정원', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
+  '%정원이 찼습니다%',
+  '창이 남아 있어도 정원이 차면 막힌다 — 자리는 날마다 안 돌아온다');
 
 select * from finish();
 rollback;
