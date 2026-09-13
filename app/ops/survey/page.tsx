@@ -6,11 +6,22 @@ import {
   ISSUE_TAG_LABEL,
   type FeltLength,
 } from '@/src/lib/reading';
+import { PRICE_LABEL, SURVEY_QUESTION_TITLE, choiceLabel, type PriceOption } from '@/src/lib/survey';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { readingDate } from '../../me/reading/line';
-import { DENIED, operatorSurvey, type CommentRow, type SurveyOverview, type TagRow, type VersionRow } from './read';
+import {
+  DENIED,
+  operatorSurvey,
+  type CommentRow,
+  type ServiceCount,
+  type ServiceOverview,
+  type ServiceText,
+  type SurveyOverview,
+  type TagRow,
+  type VersionRow,
+} from './read';
 
 export const metadata = {
   title: '설문 요약 — 만세력',
@@ -57,8 +68,7 @@ export default async function OperatorSurveyPage() {
         <p className="eyebrow">운영</p>
         <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">설문 요약</h1>
         <p className="mt-1 text-sm text-secondary">
-          풀이를 읽고 남긴 답입니다. 답은 그 글을 만든 시도에 매여 있어 판본과 모델이 옆에
-          섭니다.
+          설문 둘을 한 화면에서 봅니다 — 풀이 하나에 대한 답과, 서비스 전체에 대한 답.
         </p>
       </header>
 
@@ -68,6 +78,10 @@ export default async function OperatorSurveyPage() {
         </p>
       ) : (
         <>
+          <Head
+            title="풀이 설문"
+            note="풀이를 읽은 그 자리에서 남긴 답입니다. 답이 그 글을 만든 시도에 매여 있어 판본과 모델이 옆에 섭니다."
+          />
           <Overview counts={survey.overview} />
           {survey.overview.answers === 0 ? (
             <Nothing counts={survey.overview} />
@@ -78,9 +92,29 @@ export default async function OperatorSurveyPage() {
               <Comments rows={survey.comments} />
             </>
           )}
+
+          <Head
+            title="서비스 설문"
+            note="탭에서 언제든 받는 답입니다. 제출한 것만 셉니다 — 쓰다 만 초안은 안 듭니다."
+          />
+          <Service
+            counts={survey.service}
+            picks={survey.serviceCounts}
+            texts={survey.serviceTexts}
+          />
         </>
       )}
     </main>
+  );
+}
+
+/** 두 설문을 가르는 줄 — 같은 화면에 서지만 다른 것을 잰다 */
+function Head({ title, note }: { title: string; note: string }) {
+  return (
+    <div className="mt-3 border-b border-border pb-3 first:mt-0">
+      <h2 className="text-lg font-bold tracking-[-0.03em]">{title}</h2>
+      <p className="mt-1 text-sm text-secondary">{note}</p>
+    </div>
   );
 }
 
@@ -329,3 +363,136 @@ const KIND_LABEL: Record<string, string> = {
   private: '두 사람 궁합',
   match: '인연 궁합',
 };
+
+/**
+ * 서비스 설문 — **제출한 것만.**
+ *
+ * 초안을 빼는 것은 함수가 한다(`submitted_at is not null`). 화면이 걸러 내면 집계 화면이
+ * 하나 더 생기는 날 새어 들고, 그때 작성 도중의 문장이 제출한 의견처럼 읽힌다.
+ */
+function Service({
+  counts,
+  picks,
+  texts,
+}: {
+  counts: ServiceOverview;
+  picks: readonly ServiceCount[];
+  texts: readonly ServiceText[];
+}) {
+  /**
+   * **묻는 차례로 세운다.** DB 는 이름 순으로 내주는데, 그러면 「남은 풀이권」이 「좋았던
+   * 기능」보다 위에 서서 설문을 읽은 사람의 기억과 어긋난다. 차례를 아는 것은 문항의
+   * 말을 든 쪽이다(`SURVEY_QUESTION_TITLE`).
+   */
+  const asked = new Set(picks.map((row) => row.question));
+  const questions = [
+    ...Object.keys(SURVEY_QUESTION_TITLE).filter((one) => asked.has(one)),
+    ...[...asked].filter((one) => !(one in SURVEY_QUESTION_TITLE)),
+  ];
+
+  return (
+    <>
+      <section className={`${CARD} flex flex-col gap-4`}>
+        <h3 className="text-base font-bold">참여</h3>
+        <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Figure label="제출" value={counts.submitted} />
+          <Figure label="쓰는 중 (초안)" value={counts.drafts} />
+          <Figure label="사주풀이 값" value={counts.pricedSolo} />
+          <Figure label="궁합 값" value={counts.pricedPair} />
+        </dl>
+        <p className="border-t border-border pt-4 text-xs leading-5 text-muted">
+          답을 고쳐 다시 제출한 사람 {counts.updated}명. 고쳐도 한 사람은 한 줄이라 제출 수는
+          안 늡니다.{' '}
+          <strong className="font-semibold text-secondary">
+            값은 지불 의향이지 실제 구매가 아닙니다
+          </strong>{' '}
+          — 가격 후보를 좁히는 참고 자료로 쓰고, 판매 가격의 적절성은 실제 구매·이탈 결과와
+          함께 판단합니다.
+        </p>
+      </section>
+
+      {counts.submitted === 0 ? (
+        <section className={`${CARD} flex flex-col gap-2`}>
+          <h3 className="text-base font-bold">아직 제출된 답이 없습니다</h3>
+          <p className="text-sm leading-6 text-secondary">
+            {counts.drafts > 0
+              ? `쓰다 만 초안이 ${counts.drafts}건 있습니다. 제출하기 전까지는 여기에 세지 않습니다.`
+              : '설문은 메뉴의 「서비스 설문」에 늘 열려 있습니다.'}
+          </p>
+        </section>
+      ) : (
+        <>
+          <section className={`${CARD} flex flex-col gap-5`}>
+            {questions.map((question) => {
+              const rows = picks.filter((row) => row.question === question);
+              const most = Math.max(...rows.map((row) => row.answers));
+              return (
+                <div key={question} className="flex flex-col gap-2">
+                  <p className="text-sm font-bold">
+                    {SURVEY_QUESTION_TITLE[question] ?? question}
+                  </p>
+                  {rows.map((row) => (
+                    <div key={row.choice} className="flex items-center gap-3">
+                      <span className="w-52 shrink-0 text-sm text-secondary">
+                        {choiceLabel(row.question, row.choice)}
+                      </span>
+                      <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-soft">
+                        <span
+                          className="block h-full rounded-full bg-accent"
+                          style={{ width: `${Math.round((row.answers / most) * 100)}%` }}
+                        />
+                      </span>
+                      <span className="w-6 shrink-0 text-right text-sm font-semibold tabular-nums">
+                        {row.answers}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </section>
+
+          {texts.length > 0 && (
+            <section className={`${CARD} flex flex-col gap-4`}>
+              <h3 className="text-base font-bold">적어 주신 글</h3>
+              <ul className="flex flex-col gap-3">
+                {texts.map((row) => (
+                  <li
+                    key={`${row.submittedAt}:${row.improveText ?? ''}:${row.freeText ?? ''}`}
+                    className="rounded-2xl border border-border bg-surface-soft p-4"
+                  >
+                    {row.improveText !== null && (
+                      <p className="text-sm leading-6">
+                        <span className="mr-2 text-xs font-semibold text-muted">개선</span>
+                        {row.improveText}
+                      </p>
+                    )}
+                    {row.freeText !== null && (
+                      <p className="mt-2 text-sm leading-6">
+                        <span className="mr-2 text-xs font-semibold text-muted">그 밖에</span>
+                        {row.freeText}
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-muted">
+                      {[
+                        row.priceSolo !== null
+                          ? `사주풀이 ${PRICE_LABEL[row.priceSolo as PriceOption]}`
+                          : null,
+                        row.pricePair !== null
+                          ? `궁합 ${PRICE_LABEL[row.pricePair as PriceOption]}`
+                          : null,
+                        readingDate(row.submittedAt),
+                      ]
+                        .filter((one) => one !== null)
+                        .join(' · ')}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
+    </>
+  );
+}

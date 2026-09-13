@@ -59,19 +59,45 @@ export type CommentRow = {
   readonly submittedAt: string;
 };
 
+/** 서비스 설문 — **제출한 것만 센다.** 초안은 함수가 이미 빼고 내려준다 */
+export type ServiceOverview = {
+  readonly submitted: number;
+  readonly drafts: number;
+  readonly pricedSolo: number;
+  readonly pricedPair: number;
+  readonly updated: number;
+};
+
+export type ServiceCount = {
+  readonly question: string;
+  readonly choice: string;
+  readonly answers: number;
+};
+
+export type ServiceText = {
+  readonly improveText: string | null;
+  readonly freeText: string | null;
+  readonly priceSolo: string | null;
+  readonly pricePair: string | null;
+  readonly submittedAt: string;
+};
+
 export type OperatorSurvey = {
   readonly overview: SurveyOverview;
   readonly versions: readonly VersionRow[];
   readonly tags: readonly TagRow[];
   readonly comments: readonly CommentRow[];
+  readonly service: ServiceOverview;
+  readonly serviceCounts: readonly ServiceCount[];
+  readonly serviceTexts: readonly ServiceText[];
 };
 
 type Row = Record<string, unknown>;
 
 /**
- * 넷을 함께 청한다 — **하나라도 거절당하면 거절이다.**
+ * 일곱을 함께 청한다 — **하나라도 거절당하면 거절이다.**
  *
- * 넷이 같은 문(`is_operator`)을 지나므로 갈릴 일이 없지만, 갈리는 날 화면이 반쪽만
+ * 일곱이 같은 문(`is_operator`)을 지나므로 갈릴 일이 없지만, 갈리는 날 화면이 반쪽만
  * 그리는 것보다 아무것도 안 그리는 편이 낫다.
  *
  * @returns 거절이면 `DENIED`, 못 읽었으면 `null`.
@@ -79,19 +105,24 @@ type Row = Record<string, unknown>;
 export async function operatorSurvey(): Promise<OperatorSurvey | typeof DENIED | null> {
   const supabase = await supabaseOnServer();
 
-  const [overview, versions, tags, comments] = await Promise.all([
-    supabase.rpc('operator_survey_overview'),
-    supabase.rpc('operator_survey_by_version'),
-    supabase.rpc('operator_survey_tags'),
-    supabase.rpc('operator_survey_comments'),
-  ]);
+  const [overview, versions, tags, comments, service, serviceCounts, serviceTexts] =
+    await Promise.all([
+      supabase.rpc('operator_survey_overview'),
+      supabase.rpc('operator_survey_by_version'),
+      supabase.rpc('operator_survey_tags'),
+      supabase.rpc('operator_survey_comments'),
+      supabase.rpc('operator_service_survey_overview'),
+      supabase.rpc('operator_service_survey_counts'),
+      supabase.rpc('operator_service_survey_texts'),
+    ]);
 
-  const asked = [overview, versions, tags, comments];
+  const asked = [overview, versions, tags, comments, service, serviceCounts, serviceTexts];
   if (asked.some((answer) => answer.error?.code === '42501')) return DENIED;
   if (asked.some((answer) => answer.error !== null)) return null;
 
   const counts = ((overview.data ?? []) as Row[])[0];
-  if (counts === undefined) return null;
+  const said = ((service.data ?? []) as Row[])[0];
+  if (counts === undefined || said === undefined) return null;
 
   return {
     overview: {
@@ -129,6 +160,25 @@ export async function operatorSurvey(): Promise<OperatorSurvey | typeof DENIED |
       feltLength: row.felt_length as FeltLength,
       issueTags: (row.issue_tags as IssueTag[] | null) ?? [],
       comment: row.comment as string,
+      submittedAt: row.submitted_at as string,
+    })),
+    service: {
+      submitted: Number(said.submitted),
+      drafts: Number(said.drafts),
+      pricedSolo: Number(said.priced_solo),
+      pricedPair: Number(said.priced_pair),
+      updated: Number(said.updated),
+    },
+    serviceCounts: ((serviceCounts.data ?? []) as Row[]).map((row) => ({
+      question: row.question as string,
+      choice: row.choice as string,
+      answers: Number(row.answers),
+    })),
+    serviceTexts: ((serviceTexts.data ?? []) as Row[]).map((row) => ({
+      improveText: (row.improve_text as string | null) ?? null,
+      freeText: (row.free_text as string | null) ?? null,
+      priceSolo: (row.price_solo as string | null) ?? null,
+      pricePair: (row.price_pair as string | null) ?? null,
       submittedAt: row.submitted_at as string,
     })),
   };

@@ -49,6 +49,15 @@ const MEMBER_LINKS = [
    */
   { href: '/me/readings', label: '풀이' },
   { href: '/me/requests', label: '소식' },
+  /**
+   * **서비스 설문은 늘 열려 있다**(ADR 0062).
+   *
+   * 잔액이 0이 된 사람이나 종료 3일 전에 띠를 세우는 안이 있었는데, 그러면 답할 사람을
+   * 우리가 고르는 것이 되고 표본이 「다 써 본 사람」 쪽으로 기운다. 길을 하나 두고 할
+   * 사람이 자기 때에 하게 한다 — **메뉴는 지금 갈 수 있는 곳의 목록**이고, 이 자리는
+   * 언제나 갈 수 있다.
+   */
+  { href: '/me/survey', label: '서비스 설문' },
 ] as const;
 
 /** 모바일에서 늘 보이는 다섯 길 — 나머지 둘은 전체 메뉴에 둔다. */
@@ -455,6 +464,21 @@ function AccountMenu({
             className="mt-1 block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
           >
             프로필
+          </Link>
+        )}
+        {/*
+          **모바일에서는 이 판이 전체 메뉴다.** 하단 다섯 자리는 안 건드리고 나머지 길을
+          여기 둔다는 규칙이 이미 있고, 서비스 설문도 그 나머지다. 데스크톱은 위 줄에
+          이미 서 있으므로 여기 또 세우지 않는다 — 한 화면에 같은 길이 두 번 서면 어느
+          쪽이 그 화면의 길인지 사용자가 정하게 된다.
+        */}
+        {!ended && variant === 'mobile' && (
+          <Link
+            href="/me/survey"
+            onClick={close}
+            className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
+          >
+            서비스 설문
           </Link>
         )}
         <Link

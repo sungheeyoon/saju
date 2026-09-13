@@ -7,6 +7,8 @@ import {
   test,
 } from './session';
 
+import { PRICE_QUESTION, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
+
 import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
 import type { Page } from '@playwright/test';
 
@@ -324,6 +326,76 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByLabel('어느 대목이 맞았고 어느 대목이 달랐나요?')).toHaveValue(
       '첫 문단은 맞았고 마지막은 달랐어요',
     );
+  });
+
+  /**
+   * **서비스 설문은 탭에서 언제든 열린다**(ADR 0062).
+   *
+   * 흐름 검사가 화면을 받아 글자를 세지만 여기서만 재는 것이 셋이다.
+   *
+   * 1. **읽어 본 종류만 값을 묻는가** — `reader` 는 자기 풀이만 읽었으므로 궁합 값 문항이
+   *    서면 안 된다. 안 써 본 것의 값은 값이 아니라 인상이다
+   * 2. **단독 항목이 나머지를 푸는가** — 「특별히 없었어요」와 「내 사주풀이」가 함께 서면
+   *    그 답은 아무 뜻이 없다. 서버도 그것을 거절하므로 화면이 안 막으면 제출이 죽는다
+   * 3. **쓰던 답이 자동으로 남는가** — 새로고침 뒤에도 그대로 열려야 자동 저장이 한 일이다
+   */
+  test('서비스 설문은 읽은 종류만 값을 묻고, 쓰던 답이 남았다가 제출된다', async ({
+    page,
+    reader,
+  }, testInfo) => {
+    expect(reader.runId).not.toBe('');
+    await page.goto('/me');
+
+    /* 길은 데스크톱 메뉴에 서고, 모바일에서는 하단 다섯 자리를 안 건드리고 전체 메뉴에 든다 */
+    if (testInfo.project.name.includes('mobile')) {
+      await page.getByLabel('전체 메뉴').click();
+    }
+    await page
+      .getByRole('link', { name: SURVEY_COPY.tab, exact: true })
+      .first()
+      .click();
+
+    await expect(page.getByRole('heading', { name: SURVEY_COPY.title })).toBeVisible();
+
+    /* **읽어 본 종류만 값을 묻는다** — `reader` 는 궁합을 읽지 않았다 */
+    await expect(page.getByText(PRICE_QUESTION.solo)).toBeVisible();
+    await expect(page.getByText(PRICE_QUESTION.pair)).toHaveCount(0);
+
+    const liked = page.getByRole('group', { name: QUESTION.liked });
+    await liked.getByRole('checkbox', { name: '내 사주풀이', exact: true }).check();
+    await liked.getByRole('checkbox', { name: '특별히 없었어요', exact: true }).check();
+
+    /* 단독 항목을 누르면 나머지가 풀린다 */
+    await expect(liked.getByRole('checkbox', { name: '내 사주풀이', exact: true })).not.toBeChecked();
+    await liked.getByRole('checkbox', { name: '내 사주풀이', exact: true }).check();
+    await expect(
+      liked.getByRole('checkbox', { name: '특별히 없었어요', exact: true }),
+    ).not.toBeChecked();
+
+    await page
+      .getByRole('group', { name: PRICE_QUESTION.solo })
+      .getByRole('radio', { name: '4,900원', exact: true })
+      .check();
+
+    /* **쓰던 답이 저절로 남는다** — 다음에 들어와 처음부터 다시 쓰지 않게 */
+    await expect(page.getByText(SURVEY_COPY.draftSaved)).toBeVisible();
+
+    await page.reload();
+    await expect(
+      page.getByRole('group', { name: QUESTION.liked })
+        .getByRole('checkbox', { name: '내 사주풀이', exact: true }),
+    ).toBeChecked();
+
+    await page.getByRole('button', { name: SURVEY_COPY.submit }).click();
+    await expect(page.getByText(SURVEY_COPY.thanks)).toBeVisible();
+
+    /* 고치는 화면은 빈 칸으로 열리지 않는다 */
+    await page.getByRole('button', { name: '답 고치기' }).click();
+    await expect(
+      page.getByRole('group', { name: QUESTION.liked })
+        .getByRole('checkbox', { name: '내 사주풀이', exact: true }),
+    ).toBeChecked();
+    await expect(page.getByRole('button', { name: SURVEY_COPY.resubmit })).toBeVisible();
   });
 
   /**

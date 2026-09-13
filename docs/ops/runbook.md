@@ -216,9 +216,9 @@ select * from public.forget_user('<user uuid>');
 --  people_forgotten | revisions_forgotten
 ```
 
-한 문장이면 된다. `auth.users` 하나가 사라지면 `app_user` 가 따라가고 거기서 스물세
-갈래가 FK 로 따라간다 — Person 엣지·discovery·요청·Match·결과·시도·설문·알림·차단·신고.
-(세어 보려면 `pg_constraint` 에서 `app_user` 를 가리키는 FK 를 센다.)
+한 문장이면 된다. `auth.users` 하나가 사라지면 `app_user` 가 따라가고 거기서 스물네
+갈래가 FK 로 따라간다 — Person 엣지·discovery·요청·Match·결과·시도·풀이 설문·서비스
+설문·알림·차단·신고. (세어 보려면 `pg_constraint` 에서 `app_user` 를 가리키는 FK 를 센다.)
 그다음 **이 사람이 관리하던 Person 중** 아무도 안 보게 된 것과 그 판본을 지운다(ADR 0023).
 남이 놓고 간 고아는 안 건드린다 — 그것은 종료 파기의 일이다.
 
@@ -299,7 +299,8 @@ select
   (select count(*) from public.reading)              as 결과,
   (select count(*) from public.reading_run)          as 시도,
   (select count(*) from public.reading_job)          as 일감,
-  (select count(*) from public.reading_feedback)     as 설문,
+  (select count(*) from public.reading_feedback)     as 풀이설문,
+  (select count(*) from public.service_survey)       as 서비스설문,
   (select count(*) from public.notification)         as 알림,
   (select count(*) from public.report)               as 신고,
   (select count(*) from public.profile_photo)        as 프로필사진,
@@ -377,6 +378,12 @@ delete from public.operator where user_id =
 **운영자라는 이름으로 열리는 문은 그 이름을 묻는 자리의 개수다.** 지금은 설문을 읽는 함수
 넷뿐이고, 풀이권 예외는 여기 안 딸려 온다 — 그것은 별개의 표다(위 「풀이권」).
 
+### 두 설문이 한 화면에 선다
+
+`/ops/survey` 는 **풀이 설문**(글 하나에 대한 답)과 **서비스 설문**(서비스 전체에 대한 답,
+ADR 0062) 둘을 함께 든다. 아래 SQL 은 앞의 것을 손으로 세는 자리이고, 서비스 설문 쪽은
+「서비스 설문 — 손으로 세는 자리」 절에 있다.
+
 ### 손으로 세는 자리
 
 답은 **그 글을 만든 시도에 매여 있다**(ADR 0022). 그래서 프롬프트 판본과 모델이 답 옆에
@@ -435,6 +442,68 @@ order by f.submitted_at desc;
 -- 누가 어디에 있나
 select improvement_consent as 동의, count(*) from public.app_user group by 1;
 ```
+
+---
+
+## 서비스 설문 — 손으로 세는 자리 (ADR 0062)
+
+화면은 `/ops/survey` 의 아래쪽 절이다. 여기 SQL 은 그 화면이 안 열리거나 수를 의심할 때,
+그리고 **파기 전에 합계를 뽑을 때** 쓴다.
+
+**제출한 것만 센다.** `submitted_at` 이 비어 있는 줄은 쓰다 만 초안이고, 그 문장을 제출한
+의견처럼 읽으면 안 된다.
+
+```sql
+-- 참여
+select
+  count(*) filter (where submitted_at is not null) as 제출,
+  count(*) filter (where submitted_at is null)     as 초안,
+  count(*) filter (where updated_at is not null)   as 고쳐_다시_제출
+from public.service_survey;
+```
+
+```sql
+-- 문항별 선택지. 이름은 코드가 말로 옮긴다(`src/lib/survey`).
+select '좋았던 기능' as 문항, t as 선택, count(*)
+from public.service_survey s, unnest(s.liked) t
+where s.submitted_at is not null group by t
+union all
+select '몰랐던 기능', t, count(*)
+from public.service_survey s, unnest(s.unknown_features) t
+where s.submitted_at is not null group by t
+union all
+select '개선할 부분', t, count(*)
+from public.service_survey s, unnest(s.improve) t
+where s.submitted_at is not null group by t
+order by 1, 3 desc;
+```
+
+```sql
+-- 값 — **제시 금액 목록과 함께 본다.** 목록을 옮기고 나면 고른 값만으로는 뜻이 없다.
+select price_options as 제시목록,
+       price_solo as 사주풀이, price_pair as 궁합, count(*)
+from public.service_survey
+where submitted_at is not null
+group by 1, 2, 3
+order by count(*) desc;
+```
+
+> **지불 의향이지 실제 구매가 아니다.** 가격 후보를 좁히는 참고 자료로 쓰고, 판매 가격의
+> 적절성은 실제 구매·이탈 결과와 함께 판단한다.
+
+```sql
+-- 적어 주신 글
+select improve_text, free_text, submitted_at
+from public.service_survey
+where submitted_at is not null and (improve_text is not null or free_text is not null)
+order by submitted_at desc;
+```
+
+### 파기 전에 뽑는다
+
+답은 계정에 매여 있어 **베타 파기 때 함께 사라진다**(ADR 0023). 위 세 질의를 파기 **전에**
+돌려 결과를 따로 보관한다 — 남기는 것은 사람을 못 가리키는 **합계뿐**이고, 자유 서술은
+그대로 옮기지 않는다.
 
 ---
 
