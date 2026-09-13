@@ -6,7 +6,7 @@ import "./globals.css";
 const TITLE = "만세력 — 나와 사람 사이를 이해하는 사주";
 const DESCRIPTION = "명식의 근거부터 두 사람의 관계와 사주풀이까지 차분하게 살펴봅니다.";
 
-/** 링크 미리보기에 서는 그림 — 공유본 화면과 **같은 한 장**이다 */
+/** 사이트 대표 미리보기 — 사주풀이 공유본은 전용 이미지를 사용한다 */
 const PREVIEW = {
   url: "/brand/saju-share-v1.jpg",
   width: 1200,
