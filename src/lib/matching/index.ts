@@ -6,7 +6,14 @@ import {
   type Saju,
 } from '../saju';
 
-import { combinedBalanceOf, complementOf } from './elementAxes';
+/**
+ * **점수를 짓는 자리는 `discovery-v1` 하나다.**
+ *
+ * `matching → discovery → matching/elementAxes` 로 들어가므로 돌지 않는다. 저쪽이
+ * 가리키는 것은 축 파일이지 이 파일이 아니다.
+ */
+import { DISCOVERY_POLICY, previewScoreOf } from '../discovery';
+import { combinedCountBalanceOf, mutualDeficitComplementOf } from './elementAxes';
 
 /**
  * 테스터에게 보여 주는 첫 매칭 정책.
@@ -15,19 +22,7 @@ import { combinedBalanceOf, complementOf } from './elementAxes';
  * 네 묶음을, 가중치까지 공개한 제품 탐색 지표로 바꾼다. 억부·종격·격국은 이 정책의
  * 입력이 아니므로 그 판정이 바뀌어도 match-v0 결과는 흔들리지 않는다.
  */
-export const MATCH_POLICY_V0 = {
-  version: 'match-v0',
-  status: 'beta',
-  weights: {
-    complement: 0.35,
-    combinedBalance: 0.3,
-    connectionDensity: 0.25,
-    dataCompleteness: 0.1,
-  },
-  excluded: ['eokbu', 'following-pattern', 'structure', 'johu-conditions'] as const,
-} as const;
-
-export type MatchDimensionKey = keyof typeof MATCH_POLICY_V0.weights;
+export type MatchDimensionKey = keyof typeof DISCOVERY_POLICY.weights;
 
 export type MatchDimension = {
   key: MatchDimensionKey;
@@ -37,9 +32,9 @@ export type MatchDimension = {
 };
 
 export type MatchPreview = {
-  policyVersion: typeof MATCH_POLICY_V0.version;
-  status: typeof MATCH_POLICY_V0.status;
-  /** 궁합의 정답이 아니라 match-v0 안에서 비교하기 위한 제품 지표 */
+  policyVersion: typeof DISCOVERY_POLICY.version;
+  status: typeof DISCOVERY_POLICY.status;
+  /** 궁합의 정답이 아니라 `discovery-v1` 안에서 비교하기 위한 제품 지표 */
   index: number;
   dimensions: MatchDimension[];
   highlights: string[];
@@ -57,52 +52,53 @@ export function buildMatchPreview(
   names: Record<'a' | 'b', string>,
 ): MatchPreview {
   /**
-   * 두 축은 **`discovery-v0` 와 같은 자로 잰다**(`elementAxes.ts`).
+   * **후보 카드·궁합 풀이와 같은 함수로 잰다**(`previewScoreOf`).
    *
-   * 여기서 따로 세면 같은 두 사람이 후보 화면과 궁합 화면에서 다른 보완을 갖게 되고,
-   * 그 차이는 어디에도 안 적힌다. 갈라지는 것은 축이 아니라 **가중치와 하는 일**이다.
+   * 여기 `match-v0` 이라는 옛 판이 서 있었다. 축이 둘 더 있고(관계 신호·입력 완성도)
+   * 가중치도 달랐으며, 두 오행 축조차 다른 함수였다 — 「0개인 오행을 상대가 채우는
+   * 비율」과 「비율 평균의 쏠림」이었다.
+   *
+   * 그래서 **한 화면에 서로 다른 축의 점수가 둘 서 있었다.** 이 카드의 수와, 바로
+   * 아래 궁합 풀이가 내는 수. PRD §1.4 가 그러면 안 된다고 적어 두었는데
+   * (「한 화면에 점수가 둘이면 무엇을 믿을지 사용자가 정해야 한다」) 코드가 안
+   * 따라온 자리였다. 카드에서 74를 보고 풀이권을 쓴 사람이 65를 받는 그 어긋남이다.
+   *
+   * 이제 이 수는 **풀이 점수의 기준점 그 자체**다. 풀이는 여기서 ±15 안으로 움직인다
+   * (ADR 0060).
+   *
+   * 뺀 두 축은 `DISCOVERY_POLICY.excluded` 가 이미 「순위에 쓰지 않는 것」으로 들고
+   * 있었다 — 새로 정한 것이 아니라 정해져 있던 것을 이 화면이 안 따르고 있었다.
    */
-  const complement = complementOf(charts.a.analysis.elements, charts.b.analysis.elements);
-  const combinedBalance = combinedBalanceOf(charts.a.analysis.elements, charts.b.analysis.elements);
-  const connectionDensity = clamp(
-    30 + compat.relations.length * 11 + compat.combinedFormations.length * 8,
+  const complement = mutualDeficitComplementOf(
+    charts.a.analysis.elements,
+    charts.b.analysis.elements,
   );
-  const knownHours = Number(charts.a.meta.hourKnown) + Number(charts.b.meta.hourKnown);
-  const dataCompleteness = knownHours === 2 ? 100 : knownHours === 1 ? 72 : 45;
+  const combinedBalance = combinedCountBalanceOf(
+    charts.a.analysis.elements,
+    charts.b.analysis.elements,
+  );
 
   const dimensions: MatchDimension[] = [
     {
       key: 'complement',
       label: '오행 보완',
       score: clamp(complement),
-      description: '각자에게 없는 오행을 상대가 갖고 있는지 봅니다.',
+      description: '한쪽에 부족한 오행을 상대가 얼마나 채우는지 봅니다.',
     },
     {
       key: 'combinedBalance',
       label: '함께 놓은 균형',
       score: clamp(combinedBalance),
-      description: '두 명식의 오행 분포를 합쳐 다섯 축의 쏠림을 봅니다.',
-    },
-    {
-      key: 'connectionDensity',
-      label: '관계 신호',
-      score: connectionDensity,
-      description: '두 원국 사이에서 실제로 발견된 형충회합의 밀도입니다.',
-    },
-    {
-      key: 'dataCompleteness',
-      label: '입력 완성도',
-      score: dataCompleteness,
-      description: '출생 시각을 알수록 시주까지 포함해 비교합니다.',
+      description: '두 사람의 글자를 합쳐 오행 다섯이 고른지 봅니다.',
     },
   ];
 
-  const index = clamp(
-    dimensions.reduce(
-      (sum, dimension) => sum + dimension.score * MATCH_POLICY_V0.weights[dimension.key],
-      0,
-    ),
-  );
+  /**
+   * **여기서 가중합을 다시 짓지 않는다.** 막대는 반올림된 값이라 그것으로 합하면
+   * 후보 카드의 수와 1점씩 어긋난다 — 같은 두 사람이 두 화면에서 다른 수를 갖는
+   * 것이 이 고침이 없애려던 바로 그 일이다.
+   */
+  const index = previewScoreOf(charts.a.analysis.elements, charts.b.analysis.elements);
 
   const highlights: string[] = [];
   for (const side of ['a', 'b'] as const) {
@@ -135,8 +131,8 @@ export function buildMatchPreview(
   */
 
   return {
-    policyVersion: MATCH_POLICY_V0.version,
-    status: MATCH_POLICY_V0.status,
+    policyVersion: DISCOVERY_POLICY.version,
+    status: DISCOVERY_POLICY.status,
     index,
     dimensions,
     highlights: highlights.slice(0, 3),
