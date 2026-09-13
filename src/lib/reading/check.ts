@@ -588,7 +588,12 @@ export function checkReading({
        * 0~100 으로 자른 뒤를 잰다. 기준점 92 에 +15 면 107 이 아니라 100 이고, 그것을
        * 어긴 것으로 세면 눈금 끝에 있는 짝이 늘 떨어진다.
        */
-      const limit = READING_POLICY.scoreAdjustment;
+      /**
+       * **두 폭을 합쳐 막는다**(ADR 0065). 항목으로 설명되는 ±15 와, 표가 못 담은
+       * 것을 모델이 얹는 ±10. 갈라 둔 것은 프롬프트가 시키는 자리이고, 막는 자리에서는
+       * 최종값 하나만 보이므로 합이 곧 상한이다.
+       */
+      const limit = READING_POLICY.scoreAdjustment + READING_POLICY.scoreDiscretion;
       const floor = Math.max(READING_POLICY.scoreRange.min, baseline - limit);
       const ceiling = Math.min(READING_POLICY.scoreRange.max, baseline + limit);
       if (score < floor || score > ceiling) {

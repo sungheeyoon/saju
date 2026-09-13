@@ -200,13 +200,18 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
   });
 
   /**
-   * **조정 상한** — 기준점에서 ±15 를 넘게 움직이면 계약 위반이다(ADR 0060).
+   * **조정 상한** — 기준점에서 이만큼을 넘게 움직이면 계약 위반이다(ADR 0060·0065).
    *
    * 상한이 없으면 기준점 65 에서 25 를 깎아 40 을 만들 수 있고, 그러면 기준점을 준
-   * 보람이 없다. 시키는 값과 막는 값이 **같은 `scoreAdjustment`** 에서 온다.
+   * 보람이 없다. 시키는 값과 막는 값이 **같은 상수**에서 온다.
+   *
+   * **폭이 둘로 갈려 있다**(ADR 0065) — 항목 표로 설명되는 `scoreAdjustment` 와, 표가
+   * 못 담은 것을 모델이 얹는 `scoreDiscretion`. 프롬프트는 둘을 따로 시키지만 막는
+   * 자리에서는 최종값 하나만 보이므로 **합이 곧 상한**이다. 여기서 합을 읽는 것이
+   * 그 사실을 값으로 든다 — 한쪽만 읽으면 재량껏 움직인 글이 전부 떨어진다.
    */
   it('궁합 점수는 기준점에서 조정 상한 안에 든다', () => {
-    const limit = READING_POLICY.scoreAdjustment;
+    const limit = READING_POLICY.scoreAdjustment + READING_POLICY.scoreDiscretion;
     const at = (score: number, baseline: number) => {
       const one = ok('match');
       one.output.score = score;

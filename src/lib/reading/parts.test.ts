@@ -224,6 +224,28 @@ describe('시키는 값과 막는 값', () => {
   });
 
   /**
+   * **재량 폭도 프롬프트가 말한다**(ADR 0065).
+   *
+   * 검사는 두 폭을 합쳐서 막는다. 그런데 프롬프트가 재량 쪽을 한 마디도 안 하면,
+   * 모델은 항목 합 ±15 만 알고 그 안에서만 움직인다 — **열어 둔 폭을 아무도 안 쓰는
+   * 것**이고, 그러면 넓힌 보람이 없는데 아무 시험도 안 깨진다.
+   */
+  it('재량 폭도 프롬프트가 말한다 — 안 적으면 열어 두고 아무도 안 쓴다', () => {
+    for (const kind of ['private', 'match'] as const) {
+      expect(READING_PROMPTS[kind], kind).toContain(
+        `네 판단으로 ${READING_POLICY.scoreDiscretion} 점 안에서 더 움직일 수 있다`,
+      );
+    }
+  });
+
+  /** 한 사람짜리에는 점수가 없으므로 이 표도 그 지시도 안 선다 */
+  it('점수 없는 갈래에는 재량 폭을 말하지 않는다', () => {
+    for (const kind of ['self', 'person'] as const) {
+      expect(READING_PROMPTS[kind], kind).not.toContain('네 판단으로');
+    }
+  });
+
+  /**
    * **기준점을 그대로 뱉으면 풀이권이 아무것도 안 산다.** 앵커가 세면 모델은 움직이지
    * 않는다 — 그 자리를 규칙으로 막는지 본다.
    */
