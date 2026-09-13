@@ -886,14 +886,14 @@ const SCORE_SECTION = `## 점수
 
 | 항목 | 자료 | 폭 |
 | --- | --- | --- |
-| 육합·삼합·방합 | \`relations\` | +1 ~ +4 |
-| 두 사람이 함께 이룬 삼합·방합 | \`combinedFormations\` | +2 ~ +5 |
-| 충 | \`relations\` | -1 ~ -4 |
-| 형·해·파·원진·귀문 | \`relations\` | -1 ~ -3 |
-| 함께 이룬 삼형 | \`combinedFormations\` | -3 ~ -6 |
-| 십성이 한쪽으로만 기운 자리 | \`tenGods\` 양방향 | -2 ~ +2 |
-| 용신을 상대가 가졌다 | \`eokbuMatch\` | +1 ~ +3 |
-| 둘 다 없는 오행 | \`elementSupport.stillMissing\` | -1 ~ -3 |
+| 육합·삼합·방합 | \`relations\` | +2 ~ +8 |
+| 두 사람이 함께 이룬 삼합·방합 | \`combinedFormations\` | +4 ~ +10 |
+| 충 | \`relations\` | -2 ~ -8 |
+| 형·해·파·원진·귀문 | \`relations\` | -2 ~ -6 |
+| 함께 이룬 삼형 | \`combinedFormations\` | -6 ~ -12 |
+| 십성이 한쪽으로만 기운 자리 | \`tenGods\` 양방향 | -4 ~ +4 |
+| 용신을 상대가 가졌다 | \`eokbuMatch\` | +2 ~ +6 |
+| 둘 다 없는 오행 | \`elementSupport.stillMissing\` | -2 ~ -6 |
 
 **규칙 넷.**
 
@@ -901,7 +901,7 @@ const SCORE_SECTION = `## 점수
    적는 것과 있는 것을 안 적는 것은 다르다.
 2. **적어도 한 항목은 움직인다.** 기준점을 그대로 내지 마라. 두 사람 사이에 아무것도 안
    걸렸으면 그것 자체가 내리는 쪽 근거다.
-3. **조정의 합은 -15 ~ +15 를 넘지 않는다.** 넘을 것 같으면 항목마다 폭을 줄여 맞춘다.
+3. **조정의 합은 -${READING_POLICY.scoreAdjustment} ~ +${READING_POLICY.scoreAdjustment} 를 넘지 않는다.** 넘을 것 같으면 항목마다 폭을 줄여 맞춘다.
 4. 최종 점수는 **기준점 + 조정 합**이고 0~100 으로 자른다.
 
 같은 항목이라도 폭 안에서 어디에 놓을지는 자료가 정한다 — 그 관계가 두 사람 사이에서
