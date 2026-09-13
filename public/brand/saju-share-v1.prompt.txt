@@ -1,3 +1,8 @@
+이 파일은 참고 자료다 — OG 이미지로 연결되지 않는다.
+실제로 나가는 그림은 `saju-share-v1.jpg` (1200x628, 224KB) 이고, 여기 적힌 프롬프트가
+낸 1733x907 PNG 2.1MB 를 줄인 것이다. 원본 PNG 는 커밋 e9e2fe8 에 있다 —
+`git show e9e2fe8:public/brand/saju-share-v1.png > 원본.png`
+
 Generated with the built-in image_gen tool.
 
 Use case: ads-marketing.

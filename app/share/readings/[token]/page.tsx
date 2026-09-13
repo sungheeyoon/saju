@@ -45,9 +45,19 @@ export const metadata: Metadata = {
     description: '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
     images: [
       {
-        url: '/brand/saju-share-v1.png',
-        width: 1733,
-        height: 907,
+        /*
+          **1200×628 JPEG 이고 그것이 판단이다.** 원본은 1733×907 PNG 2.1MB 였는데,
+          종이 질감이 화면 전체에 깔려 있어 PNG 가 압축을 거의 못 한다. 미리보기
+          수집기는 큰 파일을 기다려 주지 않고 조용히 안 싣는다 — 그러면 대화창에
+          제목만 남는다. 224KB 로 줄였고 글자는 그대로 읽힌다.
+
+          가로세로는 원본 비(1.911)를 그대로 지켰다. 1200 은 미리보기의 사실상
+          표준 폭이라 어디서도 다시 줄이지 않는다.
+        */
+        url: '/brand/saju-share-v1.jpg',
+        width: 1200,
+        height: 628,
+        type: 'image/jpeg',
         alt: '만세력 — 나를 이루는 흐름을 읽다',
       },
     ],
@@ -56,7 +66,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: '사주풀이가 도착했어요 | 만세력',
     description: '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
-    images: ['/brand/saju-share-v1.png'],
+    images: ['/brand/saju-share-v1.jpg'],
   },
 };
 

@@ -33,7 +33,7 @@ const PORT = Number(process.env.CHECK_PORT ?? 3216);
  * 도메인을 코드에 적지 않았다는 것이 이 검사로 값이 된다.
  */
 const HOST = 'saju-snowy.vercel.app';
-const OG_IMAGE = `https://${HOST}/brand/saju-share-v1.png`;
+const OG_IMAGE = `https://${HOST}/brand/saju-share-v1.jpg`;
 
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 const keyed = () => createClient(API, status.SERVICE_ROLE_KEY, { auth: { persistSession: false } });
@@ -207,7 +207,7 @@ check('첫 HTML 에 미리보기 설명이 있다',
   meta('og:description') === '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.', meta('og:description'));
 check('미리보기 그림이 절대 주소다', meta('og:image') === OG_IMAGE, meta('og:image'));
 check('그림의 실제 크기가 적혀 있다',
-  meta('og:image:width') === '1733' && meta('og:image:height') === '907',
+  meta('og:image:width') === '1200' && meta('og:image:height') === '628',
   `${meta('og:image:width')}x${meta('og:image:height')}`);
 check('트위터 카드도 같은 그림을 쓴다',
   named('twitter:card') === 'summary_large_image' && named('twitter:image') === OG_IMAGE,
@@ -216,10 +216,17 @@ check('미리보기에 닉네임도 풀이 문장도 없다',
   !(meta('og:title') ?? '').includes(NAME.a) && !(meta('og:description') ?? '').includes(NAME.a));
 check('검색 색인에서 빠진다', (named('robots') ?? '').includes('noindex'), named('robots'));
 
-const image = await get('/brand/saju-share-v1.png');
+const image = await get('/brand/saju-share-v1.jpg');
+const imageBytes = (await image.arrayBuffer()).byteLength;
 check('그림이 공개 경로에서 응답한다',
-  image.status === 200 && (image.headers.get('content-type') ?? '').includes('image/png'),
+  image.status === 200 && (image.headers.get('content-type') ?? '').includes('image/jpeg'),
   `HTTP ${image.status} ${image.headers.get('content-type')}`);
+/**
+ * **크기도 잰다.** 수집기는 큰 파일을 기다려 주지 않고 조용히 안 싣는다 — 그러면
+ * 대화창에 제목만 남고, 그 고장은 우리 화면 어디에도 안 나타난다. 300KB 는 지금
+ * 값(224KB)에 여유를 둔 선이고, 그림을 갈아 끼우다 다시 무거워지면 여기서 멈춘다.
+ */
+check('그림이 미리보기가 삼킬 만한 크기다', imageBytes < 300_000, `${imageBytes} bytes`);
 
 const missing = await get('/share/readings/0123456789abcdef0123456789abcdef');
 const missingHtml = await missing.text();
