@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { calledName } from '@/src/lib/reading/display';
+
 import { Markdown } from '../me/reading/markdown';
 import type { ShareKind } from './path';
 import { supabaseForShared } from './public-client';
@@ -48,6 +50,7 @@ export async function SharedReadingView({
   const metaphor = (row.metaphor as string | null) ?? null;
   const score = (row.score as number | null) ?? null;
   const body = row.body as string;
+  const whose = titleOf(expect, row.name_a as string | null, row.name_b as string | null);
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-7 py-8 sm:py-12">
@@ -59,9 +62,18 @@ export async function SharedReadingView({
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div className="flex min-w-0 flex-col gap-1">
           <p className="eyebrow">{eyebrow}</p>
-          <p className="text-pretty text-lg font-bold tracking-[-0.03em] sm:text-xl">
-            만세력 — 나를 이루는 흐름을 읽다
-          </p>
+          {/*
+            **누구 것인지가 제목이다.**
+
+            여기 이름이 없으면 링크를 받은 사람은 글을 다 읽고도 「그래서 이게 누구
+            건데?」라고 묻는다 — 그 답은 본문 안에 흩어져 있고, 찾아내는 일이 읽는
+            사람 몫이 된다.
+
+            **새로 새는 값이 아니다.** 본문은 이미 이 사람을 이 이름으로 부른다.
+            머리에 한 번 세우는 것뿐이고, **미리보기에는 안 싣는다**(ADR 0063) —
+            대화창 목록에, 열어 보기도 전에 남의 이름이 서는 일은 없어야 한다.
+          */}
+          <h1 className="text-pretty text-xl font-bold tracking-[-0.03em] sm:text-2xl">{whose}</h1>
         </div>
         <StartButton variant="quiet" />
       </header>
@@ -112,6 +124,29 @@ export async function SharedReadingView({
       </section>
     </main>
   );
+}
+
+/**
+ * 이 화면의 제목 — **누구의 무엇인가.**
+ *
+ * 부르는 말은 `calledName` 이 정한다. 본문이 쓰는 규칙과 같은 것을 써야 머리와
+ * 본문이 같은 사람을 같은 이름으로 부른다.
+ *
+ * 두 사람은 `×` 로 잇는다. 목록이 이미 그렇게 적고 있고(`line.ts`), 조사를 안 쓰므로
+ * 이름 끝의 받침에 따라 「과」와 「와」가 갈리는 자리를 아예 안 만든다.
+ *
+ * **이름을 못 구했으면 갈래 이름만 세운다.** 「님의 사주풀이」처럼 앞이 빈 제목을
+ * 세우느니, 누구 것인지 모른다는 사실이 그대로 보이는 편이 낫다.
+ */
+function titleOf(kind: ShareKind, nameA: string | null, nameB: string | null): string {
+  const a = nameA === null ? '' : calledName(nameA);
+  const b = nameB === null ? '' : calledName(nameB);
+
+  if (kind === 'private') {
+    return a !== '' && b !== '' ? `${a} × ${b} 궁합 풀이` : '두 사람의 궁합 풀이';
+  }
+
+  return a !== '' ? `${a}의 사주풀이` : '사주풀이';
 }
 
 /** 시작하는 자리로 보내는 버튼 — 위아래 둘이 같은 곳을 가리킨다 */

@@ -1474,6 +1474,12 @@ test.describe('사주풀이 공유하기', () => {
     await expect(theirs.getByText('브라우저가 읽을 글입니다')).toBeVisible();
     await expect(theirs.getByRole('link', { name: '내 사주풀이 보기' }).first()).toBeVisible();
 
+    /**
+     * **누구 것인지가 제목에 선다.** 이름이 없으면 링크를 받은 사람은 글을 다 읽고도
+     * 「그래서 이게 누구 건데?」라고 묻는다 — 그 답은 본문에 흩어져 있다.
+     */
+    await expect(theirs.getByRole('heading', { level: 1 })).toHaveText('어머니님의 사주풀이');
+
     /* 같은 토큰을 내 사주풀이 주소로 열면 안 열린다 — 미리보기가 거짓말을 하는 자리다 */
     const wrong = await theirs.goto(copied.replace('/share/people/', '/share/readings/'));
     expect(wrong?.status()).toBe(404);

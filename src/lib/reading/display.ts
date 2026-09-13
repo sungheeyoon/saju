@@ -39,6 +39,35 @@ export function readingGrounding(markdown: string): string | null {
 }
 
 /**
+ * **이 사람을 화면에서 뭐라고 부르나** — 이름 뒤에 `님` 을 붙인다.
+ *
+ * 처음에는 가족 호칭 목록을 두고 「엄마」·「형」 같은 말에는 안 붙였다. 프롬프트가
+ * 본문에 대해 그렇게 시키고 있기 때문이다(`namingBlock`: 「부르는 말이 이미 호칭이면
+ * 겹쳐 붙이지 마라」).
+ *
+ * **사람이 그 목록을 걷기로 정했다.** 이유는 빈도다 — 이름표에 가족 호칭을 적는 것은
+ * 흔하지만, 친구를 저장할 때는 이름 세 글자를 그대로 적는 일이 더 잦다. 목록이
+ * 다루는 쪽이 예외이고, 예외를 위해 판정을 하나 두면 그 판정이 틀리는 날이 온다 —
+ * 한국어의 호칭을 다 셀 수 없으므로 목록은 언제나 모자란다.
+ *
+ * **따르는 값 하나를 적어 둔다.** 이름표가 「엄마」일 때 머리는 「엄마님의 사주풀이」로
+ * 서고 본문은 「엄마는」이라고 쓴다. 프롬프트는 그대로 두었으므로 그 두 자리가 갈린다.
+ * 본문 쪽이 사람이 읽는 문장이라 그쪽을 안 건드린 것이고, 이것은 **모르고 갈린 것이
+ * 아니라 알고 남긴 차이**다.
+ *
+ * 기계적으로 틀리는 셋만 막는다 — 이미 `님` 으로 끝나는 말(「어머님님」), 자기를
+ * 가리키는 말(「나님」), 그리고 빈 이름(「님」 한 글자).
+ */
+export function calledName(name: string): string {
+  const said = name.trim();
+  if (said === '') return said;
+  if (said === '나' || said === '저') return said;
+  if (said.endsWith('님')) return said;
+
+  return `${said}님`;
+}
+
+/**
  * 공개 이름을 받기 전에 만든 공유 궁합의 자리 호칭을 현재 화면의 두 이름으로 바꾼다.
  * 새 풀이에는 자리 호칭이 없으므로 그대로 돌아간다.
  */
@@ -50,7 +79,7 @@ export function namedMatchBody(
   const first = viewerIsFirst ? names.me : names.partner;
   const second = viewerIsFirst ? names.partner : names.me;
   const replace = (source: string, seat: '첫 번째' | '두 번째', name: string) => {
-    const called = name === '나' ? name : `${name}님`;
+    const called = calledName(name);
     const particle: Record<string, string> =
       name === '나' ? { 은: '는', 이: '가', 을: '를', 과: '와' } : {};
 

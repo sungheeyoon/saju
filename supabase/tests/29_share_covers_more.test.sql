@@ -9,7 +9,7 @@
 -- 4. **남의 사람은 못 가리킨다.** 내 엣지에 없는 Person id 를 넣으면 0행이다.
 -- 5. **옛 두 인자짜리가 아직 산다** — 넓히고 나중에 좁힌다.
 begin;
-select plan(13);
+select plan(17);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -98,6 +98,20 @@ select is(
   null::smallint,
   '한 사람짜리에는 점수가 없다');
 
+/**
+ * **누구 것인지 말한다.** 본문에 이미 있는 이름이고, 머리에 한 번 세우지 않으면
+ * 읽는 사람이 그것을 글에서 찾아내야 한다.
+ */
+select is(
+  (select s.name_a from public.shared_reading((select token from person_link)) s),
+  '엄마',
+  '저장한 사람은 내가 붙인 이름표로 선다');
+
+select is(
+  (select s.name_b from public.shared_reading((select token from person_link)) s),
+  null,
+  '한 사람짜리에는 둘째 이름이 없다');
+
 -- ── 두 사람의 궁합 ─────────────────────────────────────────────────────────
 
 create temporary table pair_run as
@@ -128,6 +142,43 @@ select is(
 
 select isnt((select token from pair_link), (select token from person_link),
   '대상이 다르면 링크도 다르다');
+
+/**
+ * 차례를 화면이 다시 정하지 않는다. `reading_scope` 가 Person id 로 줄 세워 내주고
+ * 본문의 이름도 그 차례를 따라 붙었으므로, 같은 차례로 적어야 머리와 본문이 같은
+ * 사람을 같은 이름으로 부른다.
+ */
+select is(
+  (select s.name_a || ' × ' || s.name_b from public.shared_reading((select token from pair_link)) s),
+  (select case when kin.mom < kin.kid then '엄마 × 동생' else '동생 × 엄마' end from kin),
+  '궁합은 두 이름을 판본과 같은 차례로 든다');
+
+-- ── 자기 풀이는 닉네임으로 선다 ────────────────────────────────────────────
+
+create temporary table self_run as
+select * from public.start_reading_run(
+  'self', 'more-self-0001', null, null, null, 'gpt-share', 'reading-prompt-v1');
+grant select on self_run to authenticated, service_role;
+
+select pg_temp.save(
+  (select run_id from self_run), (select revision_a from self_run), null,
+  '## 나' || chr(10) || '스스로 정한 기준이 있습니다.', '기준이 뚜렷한 사람입니다.', null);
+
+create temporary table self_link as
+select public.share_my_reading(
+  '## 나' || chr(10) || '스스로 정한 기준이 있습니다.',
+  '기준이 뚜렷한 사람입니다.', 'self', null, null) as token;
+grant select on self_link to authenticated, service_role, anon;
+
+/**
+ * **목록과 다른 이름을 쓴다.** `/me/readings` 는 이 줄을 「내 사주」로 적는다 —
+ * 거기서는 내 목록이라 이름이 오히려 줄을 헷갈리게 하기 때문이다(`line.ts`). 공유본을
+ * 읽는 사람에게는 반대다: 「내 사주」는 그 사람에게 아무 말도 안 한다.
+ */
+select is(
+  (select s.name_a from public.shared_reading((select token from self_link)) s),
+  (select u.nickname from public.app_user u where u.id = (select kim from folks)),
+  '자기 풀이는 닉네임으로 선다');
 
 -- ── 인연 궁합은 부를 수 없는 모양이다 ──────────────────────────────────────
 
@@ -161,7 +212,7 @@ select throws_ok(
   null, '공유할 풀이가 없습니다',
   '남의 두 사람 궁합도 못 가리킨다');
 
-select is(pg_temp.shares(), 2, '막힌 시도는 한 줄도 안 남긴다');
+select is(pg_temp.shares(), 3, '막힌 시도는 한 줄도 안 남긴다');
 
 -- ── 옛 서명이 아직 산다 ────────────────────────────────────────────────────
 

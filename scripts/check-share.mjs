@@ -212,9 +212,9 @@ check('로그인하지 않은 역할이 공유본을 읽는다', !open.error && 
  * `shared_by` 도 `version_key` 도 여기 없다 — 앞엣것은 누구의 글인지를 말하고,
  * 뒤엣것은 그 사람의 다른 링크를 짐작하게 한다.
  */
-check('내주는 것은 갈래·글 둘·점수·시각뿐이다',
+check('내주는 것은 갈래·이름 둘·글 둘·점수·시각뿐이다',
   row !== undefined
-    && Object.keys(row).sort().join(',') === 'body,created_at,kind,metaphor,score',
+    && Object.keys(row).sort().join(',') === 'body,created_at,kind,metaphor,name_a,name_b,score',
   row === undefined ? '' : Object.keys(row).join(','));
 check('닉네임이 든 사용자용 본문이 그대로 남는다', row?.body?.includes(`${NAME.a}님은`) === true);
 check('내부 검토용 근거 절은 공유본에 없다', row?.body?.includes('### 근거') === false);
@@ -239,6 +239,8 @@ check('풀이 본문이 화면에 선다', html.includes('지금의 핵심') && 
 check('한 줄 요약이 화면에 선다', html.includes(METAPHOR.first));
 check('근거 절은 화면에 없다', !html.includes('analysis.strength') && !html.includes('### 근거'));
 check('프롬프트와 근거 자료는 화면에 없다', !html.includes(PROMPT) && !html.includes('검사근거'));
+check('자기 풀이 화면이 누구 것인지 말한다', html.includes(`${NAME.a}님의 사주풀이`),
+  '제목에 닉네임이 없다');
 check('시작하는 길이 위아래로 둘 선다', (html.match(/내 사주풀이 보기/g) ?? []).length >= 2);
 check('가입에 코드가 필요하다는 것을 미리 말한다', html.includes('테스트 코드가 필요합니다'));
 
@@ -268,6 +270,10 @@ check('공유본이 서비스 소개 그림을 쓰지 않는다', meta('og:image
 check('트위터 카드도 같은 그림을 쓴다',
   named('twitter:card') === 'summary_large_image' && named('twitter:image') === READING_IMAGE,
   `${named('twitter:card')} ${named('twitter:image')}`);
+/**
+ * **이름은 화면에만 선다.** 대화창 목록에, 열어 보기도 전에 남의 이름이 서는 일은
+ * 없어야 한다 — 미리보기가 상수인 까닭이 그것이고 여기서 깨지지 않았는지를 잰다.
+ */
 check('미리보기에 닉네임도 풀이 문장도 없다',
   !(meta('og:title') ?? '').includes(NAME.a) && !(meta('og:description') ?? '').includes(NAME.a));
 check('검색 색인에서 빠진다', (named('robots') ?? '').includes('noindex'), named('robots'));
@@ -349,13 +355,30 @@ const personPage = await get(`/share/people/${personLink.data}`);
 const personHtml = await personPage.text();
 check('저장한 사람의 공유 화면이 로그인 없이 열린다', personPage.status === 200, `HTTP ${personPage.status}`);
 check('그 사람을 부르는 이름이 든 채로 선다', personHtml.includes(`엄마${tag}님은`));
+/**
+ * **누구 것인지가 제목에 선다.** 이름이 없으면 링크를 받은 사람은 글을 다 읽고도
+ * 「그래서 이게 누구 건데?」라고 묻는다.
+ */
+check('저장한 사람의 화면이 누구 것인지 말한다',
+  personHtml.includes(`엄마${tag}님의 사주풀이`), '제목에 이름이 없다');
 check('저장한 사람 화면은 서비스 소개 그림을 쓴다',
   metaIn(personHtml, 'og:image') === SITE_IMAGE, metaIn(personHtml, 'og:image'));
+/**
+ * **이름은 화면에만 선다.** 대화창 목록에, 열어 보기도 전에 남의 이름이 서는 일은
+ * 없어야 한다 — 미리보기가 상수인 까닭이 그것이고 여기서 깨지지 않았는지를 잰다.
+ */
+check('미리보기에는 저장한 사람의 이름이 없다',
+  !(metaIn(personHtml, 'og:title') ?? '').includes('엄마')
+    && !(metaIn(personHtml, 'og:description') ?? '').includes('엄마'));
 
 const compatPage = await get(`/share/compat/${pairLink.data}`);
 const compatHtml = await compatPage.text();
 check('궁합 공유 화면이 로그인 없이 열린다', compatPage.status === 200, `HTTP ${compatPage.status}`);
 check('궁합은 점수까지 화면에 선다', compatHtml.includes('궁합 풀이 점수') && compatHtml.includes('72'));
+check('궁합 화면이 두 사람 이름을 든다',
+  compatHtml.includes(`엄마${tag}님`) && compatHtml.includes(`동생${tag}님`)
+    && compatHtml.includes('궁합 풀이'),
+  '제목에 두 이름이 없다');
 check('궁합 화면은 궁합 전용 그림을 쓴다',
   metaIn(compatHtml, 'og:image') === COMPAT_IMAGE, metaIn(compatHtml, 'og:image'));
 check('궁합 화면은 제 제목을 쓴다',

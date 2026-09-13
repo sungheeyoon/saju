@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { namedMatchBody, readingBody, readingGrounding } from './display';
+import { calledName, namedMatchBody, readingBody, readingGrounding } from './display';
 
 describe('옛 공유 궁합의 자리 호칭', () => {
   const names = { me: '나', partner: '지영' } as const;
@@ -84,5 +84,39 @@ describe('되짚는 자리가 읽는 근거 절', () => {
 
   it('본문 문장 안의 근거라는 말에 걸리지 않는다', () => {
     expect(readingGrounding('## 한 줄로\n\n이 판단의 근거는 겹침입니다.')).toBeNull();
+  });
+});
+
+describe('화면에서 사람을 부르는 말', () => {
+  it('이름에는 님을 붙인다 — 안 붙이면 사람을 품평하는 글이 된다', () => {
+    expect(calledName('지영')).toBe('지영님');
+    expect(calledName('김철수')).toBe('김철수님');
+    expect(calledName('Anna')).toBe('Anna님');
+  });
+
+  /**
+   * 가족 호칭에도 붙인다. 목록을 두고 「엄마」를 빼던 판이 있었는데 사람이 걷기로
+   * 정했다 — 이름표에 친구 이름 세 글자를 적는 일이 더 잦고, **예외를 위해 둔 판정은
+   * 한국어의 호칭을 다 셀 수 없어 언제나 모자란다.**
+   */
+  it('가족 호칭에도 붙인다 — 예외를 두지 않는다', () => {
+    expect(calledName('엄마')).toBe('엄마님');
+    expect(calledName('동생')).toBe('동생님');
+    expect(calledName('우리 형')).toBe('우리 형님');
+  });
+
+  /** 기계적으로 틀리는 자리만 막는다 */
+  it('이미 님으로 끝나면 두 번 안 붙인다', () => {
+    expect(calledName('어머님')).toBe('어머님');
+    expect(calledName('선생님')).toBe('선생님');
+  });
+
+  it('자기를 가리키는 말에는 안 붙인다', () => {
+    expect(calledName('나')).toBe('나');
+  });
+
+  /** 빈 자리를 「님」 한 글자로 만들지 않는다 */
+  it('빈 이름은 빈 채로 둔다', () => {
+    expect(calledName('   ')).toBe('');
   });
 });
