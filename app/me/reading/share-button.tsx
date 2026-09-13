@@ -5,46 +5,45 @@ import { useEffect, useRef, useState } from 'react';
 import { shareMyReading } from './share';
 
 /**
- * 내 사주풀이를 **링크로 보낸다.**
+ * 내 사주풀이를 **링크로 보낸다** — 누르면 주소가 클립보드에 들어간다.
  *
  * ## 왜 주소창을 복사하지 않나
  *
  * 지금 보고 있는 주소(`/me/readings/self`)는 **나만 열린다.** 그것을 복사해 주는
  * 버튼은 받은 사람에게 빈 화면을 보내는 버튼이다 — 같은 이유로 저장한 사람 화면에서
  * 「결과 링크 복사」를 걷은 적이 있다(`app/copy-link.tsx`). 그래서 누르는 순간 서버가
- * **로그인 없이 열리는 공유본**을 하나 내놓고, 그 주소를 보낸다.
+ * **로그인 없이 열리는 공유본**을 하나 내놓고, 그 주소를 복사한다.
  *
- * ## 누름 하나에 왕복이 하나 있다 — 그래서 걸음이 둘일 수 있다
+ * ## 시스템 공유창을 안 쓴다 — 실기기에서 링크가 깨졌다
  *
- * 시스템 공유창(`navigator.share`)은 **사용자가 방금 눌렀을 때만** 열린다. 그런데
- * 링크는 서버에서 나므로 그 사이에 `await` 가 하나 끼고, 브라우저에 따라 그 순간
- * 「방금 눌렀다」가 만료된다. 그때는 거절을 오류로 세우지 않고 **「공유하기」 버튼을
- * 한 번 더 세운다** — 그 누름은 기다릴 것이 없으니 곧바로 열린다.
+ * 처음에는 `navigator.share({ title, text, url })` 로 공유 시트를 열었다. 카카오톡에서
+ * 실제로 보내 보니 이렇게 나왔다.
  *
- * ## 취소는 실패가 아니다
+ *     https://…/share/readings/d7ac56c1…만세력에서 받은 사주풀이입니다.
  *
- * 공유창을 열었다가 닫는 것은 사용자가 정한 일이다(`AbortError`). 아무 말 없이
- * 처음 자리로 돌아간다 — 거기에 빨간 글씨를 세우면 사용자는 자기가 뭘 잘못한 줄 안다.
+ * **받는 앱이 `url` 과 `text` 를 구분자 없이 이어 붙인다.** 주소가 그 자리에서 깨지므로
+ * 누를 수도 없고 미리보기도 안 뜬다 — 미리보기를 위해 지은 모든 것이 이 한 줄에서
+ * 무너진다. 넘기는 값을 `url` 하나로 줄이면 그 앱에서는 낫지만, **어느 앱이 어떻게
+ * 붙이는지는 앱마다 다르고 우리가 못 고친다.**
  *
- * ## 못 열면 복사하고, 복사도 못 하면 주소를 보여 준다
+ * 그래서 넘기지 않고 **복사한다.** 주소 한 줄만 클립보드에 들어가므로 어디에 붙여
+ * 넣어도 그대로다. 되돌리려면 여기 한 곳만 고치면 된다.
  *
- * 클립보드는 권한이나 출처 때문에 거절될 수 있다. 아무 일도 안 일어나는 버튼이 가장
- * 나쁘므로 그때는 주소를 그대로 세워 손으로 긁게 한다(`CopyText` 와 같은 규율).
+ * ## 누름이 만료되기 전에 클립보드를 잡는다
+ *
+ * 링크는 서버에서 나므로 누름과 복사 사이에 `await` 가 하나 낀다. Safari 는 그 사이에
+ * 「방금 눌렀다」를 만료시키고 클립보드를 거절한다 — 아무 일도 안 일어나는 버튼이 된다.
+ *
+ * `ClipboardItem` 은 **값 대신 Promise 를 받는다.** 누른 그 자리에서 클립보드를 잡아
+ * 두고 주소가 오면 채운다. 그 길이 없는 브라우저를 위해 평범한 `writeText` 를 뒤에
+ * 두고, 둘 다 거절되면 주소를 그대로 세워 손으로 긁게 한다 — 아무 일도 안 일어나는
+ * 버튼이 가장 나쁘다(`CopyText` 와 같은 규율).
  */
 
-/** 공유창에 함께 실리는 말 — 닉네임도 풀이 문장도 안 싣는다 */
-const SHARE_TITLE = '사주풀이가 도착했어요';
-const SHARE_TEXT = '만세력에서 받은 사주풀이입니다.';
+type Phase = 'idle' | 'working' | 'copied' | 'failed';
 
-type Phase =
-  /** 아직 안 눌렀다 */
-  | 'idle'
-  /** 서버가 링크를 내는 중 */
-  | 'working'
-  /** 링크는 났는데 공유창이 **한 번 더** 눌러 달라고 한다 */
-  | 'ready'
-  | 'copied'
-  | 'failed';
+/** 클립보드에 실리는 것은 **주소 한 줄뿐이다.** 설명을 붙이면 붙여 넣는 자리에서 섞인다 */
+const asText = (url: string) => new Blob([url], { type: 'text/plain' });
 
 export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }) {
   const [phase, setPhase] = useState<Phase>('idle');
@@ -55,29 +54,58 @@ export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }
   /* 「복사했습니다」는 잠깐만 — 다음에 눌렀을 때 눌린 줄 알아야 한다 */
   useEffect(() => {
     if (phase !== 'copied') return;
-    const timer = setTimeout(() => setPhase('idle'), 3000);
+    const timer = setTimeout(() => setPhase('idle'), 4000);
     return () => clearTimeout(timer);
   }, [phase]);
 
-  /**
-   * 공유창을 연다.
-   *
-   * @returns 열렸거나 사용자가 닫았으면 `true`. **닫은 것은 실패가 아니다** —
-   *   다음 수단(복사)으로 넘어가면 사용자가 그만둔 일을 우리가 계속하게 된다.
-   *   활성화가 만료돼 거절당했으면 `false` 이고, 그때만 버튼을 한 번 더 세운다.
-   */
-  const openSheet = async (url: string): Promise<boolean> => {
-    if (typeof navigator === 'undefined' || typeof navigator.share !== 'function') return false;
+  const start = async () => {
+    setPhase('working');
+    setNotice(null);
 
-    try {
-      await navigator.share({ title: SHARE_TITLE, text: SHARE_TEXT, url });
-      return true;
-    } catch (failure) {
-      return failure instanceof DOMException && failure.name === 'AbortError';
+    /**
+     * **여기서 시작해 두고 기다리지 않는다.** 이 약속을 클립보드에 그대로 넘겨야
+     * 누른 자리에서 잡을 수 있다.
+     */
+    const issued = shareMyReading().then((result) => {
+      if (!result.ok) throw new Error(result.message);
+      return new URL(result.path, window.location.origin).toString();
+    });
+    /* 아래에서 따로 받아 보므로, 여기서 안 잡으면 처리되지 않은 거절이 뜬다 */
+    issued.catch(() => {});
+
+    let held = false;
+    if (typeof ClipboardItem === 'function' && navigator.clipboard?.write !== undefined) {
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'text/plain': issued.then(asText) }),
+        ]);
+        held = true;
+      } catch {
+        /* 못 잡았으면 아래에서 평범한 길로 한 번 더 해 본다 */
+      }
     }
-  };
 
-  const copy = async (url: string) => {
+    let url: string;
+    try {
+      url = await issued;
+    } catch (failure) {
+      setPhase('failed');
+      setNotice(
+        failure instanceof Error && failure.message !== ''
+          ? failure.message
+          : '공유 링크를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+      );
+      return;
+    }
+
+    setLink(url);
+
+    if (held) {
+      setPhase('copied');
+      setNotice('링크를 복사했습니다');
+      return;
+    }
+
     try {
       await navigator.clipboard.writeText(url);
       setPhase('copied');
@@ -88,58 +116,16 @@ export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }
     }
   };
 
-  /** 이미 난 링크를 다시 쓴다 — 서버를 또 두드리지 않는다 */
-  const shareAgain = async () => {
-    if (link === null) return;
-    if (await openSheet(link)) {
-      setPhase('idle');
-      setNotice(null);
-      return;
-    }
-    await copy(link);
-  };
-
-  const start = async () => {
-    setPhase('working');
-    setNotice(null);
-
-    let result: Awaited<ReturnType<typeof shareMyReading>>;
-    try {
-      result = await shareMyReading();
-    } catch {
-      setPhase('failed');
-      setNotice('공유 링크를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
-      return;
-    }
-
-    if (!result.ok) {
-      setPhase('failed');
-      setNotice(result.message);
-      return;
-    }
-
-    const url = new URL(result.path, window.location.origin).toString();
-    setLink(url);
-
-    /*
-      공유창이 있는 브라우저면 곧바로 연다. 거절당하면(방금 누른 것이 만료됐다)
-      **한 번 더 누를 자리**를 세우고, 아예 없는 브라우저면 복사로 간다.
-    */
-    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-      if (await openSheet(url)) {
-        setPhase('idle');
-        return;
-      }
-      setPhase('ready');
-      setNotice('링크가 준비됐습니다');
-      return;
-    }
-
-    await copy(url);
-  };
-
+  /**
+   * **버튼에 적힌 대로 일어난다.** 「공유하기」라고 적고 복사하면, 누른 사람은 공유
+   * 시트를 기다리다 아무 일도 안 일어난 줄 안다(용어집: 한 사실에는 한 표기).
+   */
   const label =
-    phase === 'working' ? '링크 만드는 중…' : phase === 'copied' ? '링크를 복사했습니다' : '공유하기';
+    phase === 'working'
+      ? '링크 만드는 중…'
+      : phase === 'copied'
+        ? '링크를 복사했습니다'
+        : '공유 링크 복사';
 
   const shape =
     variant === 'compact'
@@ -148,25 +134,10 @@ export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }
 
   return (
     <div className={variant === 'block' ? 'flex flex-col gap-2' : 'flex flex-col items-end gap-2'}>
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={start} disabled={phase === 'working'} className={shape}>
-          <span aria-hidden="true">↗</span>
-          {label}
-        </button>
-        {/*
-          **한 번 더 누를 자리.** 여기서는 기다릴 것이 없어 공유창이 바로 열린다 —
-          위 버튼과 달리 `await` 를 하나도 안 지나기 때문이다.
-        */}
-        {phase === 'ready' && (
-          <button
-            type="button"
-            onClick={shareAgain}
-            className="inline-flex min-h-10 items-center rounded-full bg-accent px-4 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong"
-          >
-            공유창 열기
-          </button>
-        )}
-      </div>
+      <button type="button" onClick={start} disabled={phase === 'working'} className={shape}>
+        <span aria-hidden="true">🔗</span>
+        {label}
+      </button>
       {notice !== null && (
         <p
           role={phase === 'failed' ? 'alert' : 'status'}
@@ -175,11 +146,7 @@ export function ShareReadingButton({ variant }: { variant: 'compact' | 'block' }
           {notice}
         </p>
       )}
-      {/*
-        **주소를 세우는 자리는 하나다** — 복사가 거절됐을 때. 준비만 된 자리에는 안
-        세운다. 거기서는 아직 옆의 버튼이 할 일이 있고, 주소가 먼저 서면 사용자가
-        버튼 대신 그것을 긁게 된다.
-      */}
+      {/* 복사가 거절됐을 때만 주소를 세운다 — 됐을 때 세우면 붙여 넣을 곳이 둘이 된다 */}
       {phase === 'failed' && link !== null && (
         <input
           ref={address}

@@ -1369,52 +1369,46 @@ test.describe('가입 관문', () => {
  * 여기서 재는 것은 그쪽에 손이 없어서 못 재는 셋이다.
  *
  * 1. **버튼이 실제로 서버 액션을 도는가** — 화면이 든 글을 안 보내고 서버가 다시 읽는다.
- * 2. **시스템 공유창과 복사가 갈리는가** — 있는 브라우저와 없는 브라우저가 다르게 끝난다.
- * 3. **취소가 오류로 안 서는가** — 사용자가 닫은 창을 우리가 실패라고 부르면 안 된다.
+ * 2. **클립보드에 주소 한 줄만 들어가는가** — 설명이 붙으면 붙여 넣는 자리에서 섞이고,
+ *    실기기 카카오톡에서 실제로 그렇게 깨졌다.
+ * 3. **거절됐을 때 주소가 서는가** — 아무 일도 안 일어나는 버튼이 가장 나쁘다.
  */
 test.describe('사주풀이 공유하기', () => {
-  /** 공유창이 있는 브라우저인 척한다 — 넘긴 값을 그대로 붙잡아 둔다 */
-  const withShareSheet = (page: Page) =>
-    page.addInitScript(() => {
-      (window as unknown as { __shared: { url: string }[] }).__shared = [];
-      Object.defineProperty(navigator, 'share', {
-        configurable: true,
-        value: async (data: { url: string }) => {
-          (window as unknown as { __shared: { url: string }[] }).__shared.push(data);
-        },
-      });
-    });
+  const SHARE = '공유 링크 복사';
 
   test('풀이가 없으면 공유할 자리도 없다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me/readings/self');
 
-    await expect(page.getByRole('button', { name: '공유하기' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: SHARE })).toHaveCount(0);
   });
 
-  test('공유창이 있는 브라우저는 링크를 그 창으로 넘긴다', async ({ page, reader, browser }) => {
+  test('누르면 링크만 복사되고 그 주소가 로그인 없이 열린다', async ({
+    page,
+    context,
+    reader,
+    browser,
+  }) => {
     expect(reader.runId).not.toBe('');
-    await withShareSheet(page);
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.goto('/me/readings/self');
 
     /* 제목 옆과 본문 아래 — 긴 글을 다 읽고 정한 사람도 그 자리에서 누를 수 있어야 한다 */
-    await expect(page.getByRole('button', { name: '공유하기' })).toHaveCount(2);
+    await expect(page.getByRole('button', { name: SHARE })).toHaveCount(2);
 
-    await page.getByRole('button', { name: '공유하기' }).first().click();
+    await page.getByRole('button', { name: SHARE }).first().click();
+    await expect(page.getByText('링크를 복사했습니다').first()).toBeVisible();
 
-    await expect
-      .poll(async () =>
-        page.evaluate(() => (window as unknown as { __shared: { url: string }[] }).__shared.length),
-      )
-      .toBe(1);
+    const copied = (await page.evaluate(() => navigator.clipboard.readText())).trim();
 
-    const shared = await page.evaluate(
-      () => (window as unknown as { __shared: { url: string }[] }).__shared[0].url,
-    );
-    expect(shared).toMatch(/\/share\/readings\/[0-9a-f]{32}$/);
-
-    /* 취소도 실패도 아니었으므로 화면에는 아무 말이 안 남는다 */
-    await expect(page.getByText('링크를 복사했습니다')).toHaveCount(0);
+    /**
+     * **주소 한 줄이고 그 앞뒤에 아무것도 없다.**
+     *
+     * 여기가 이 시험의 핵심이다. 공유 시트에 설명을 함께 넘기던 때, 카카오톡이 주소와
+     * 설명을 **구분자 없이 이어 붙여** 링크가 그 자리에서 깨졌다. 붙여 넣는 값이
+     * 주소뿐이면 어느 앱에서도 그 일이 안 일어난다.
+     */
+    expect(copied).toMatch(/^https?:\/\/[^\s]+\/share\/readings\/[0-9a-f]{32}$/);
 
     /**
      * **쿠키 없는 창에서 연다.** 같은 창에서 열면 로그인한 사람이 여는 것이라,
@@ -1422,7 +1416,7 @@ test.describe('사주풀이 공유하기', () => {
      */
     const guest = await browser.newContext();
     const theirs = await guest.newPage();
-    await theirs.goto(shared);
+    await theirs.goto(copied);
 
     await expect(theirs.getByText('브라우저가 읽을 글입니다')).toBeVisible();
     await expect(theirs.getByRole('link', { name: '내 사주풀이 보기' }).first()).toBeVisible();
@@ -1432,59 +1426,30 @@ test.describe('사주풀이 공유하기', () => {
     await guest.close();
   });
 
-  test('공유창이 없으면 링크를 복사한다', async ({ page, context, reader }) => {
+  test('클립보드가 거절되면 주소를 세워 손으로 긁게 한다', async ({ page, reader }) => {
     expect(reader.runId).not.toBe('');
-    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    /* 잡아 두는 길도 평범한 길도 다 막는다 — 실제로 둘 다 거절되는 브라우저가 있다 */
     await page.addInitScript(() => {
-      Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
-    });
-    await page.goto('/me/readings/self');
-
-    await page.getByRole('button', { name: '공유하기' }).first().click();
-
-    await expect(page.getByText('링크를 복사했습니다').first()).toBeVisible();
-    const copied = await page.evaluate(() => navigator.clipboard.readText());
-    expect(copied).toMatch(/\/share\/readings\/[0-9a-f]{32}$/);
-  });
-
-  /**
-   * **닫은 창은 실패가 아니다.** 여기에 빨간 글씨가 서면 사용자는 자기가 뭘 잘못한
-   * 줄 안다 — 그만두는 것은 사용자가 정한 일이다.
-   */
-  test('공유창을 닫아도 오류가 안 선다', async ({ page, reader }) => {
-    expect(reader.runId).not.toBe('');
-    await page.addInitScript(() => {
-      (window as unknown as { __closed: number }).__closed = 0;
-      Object.defineProperty(navigator, 'share', {
+      Object.defineProperty(window, 'ClipboardItem', { configurable: true, value: undefined });
+      Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
-        value: async () => {
-          (window as unknown as { __closed: number }).__closed += 1;
-          throw new DOMException('그만두었습니다', 'AbortError');
+        value: {
+          write: async () => {
+            throw new DOMException('막혔습니다', 'NotAllowedError');
+          },
+          writeText: async () => {
+            throw new DOMException('막혔습니다', 'NotAllowedError');
+          },
         },
       });
     });
     await page.goto('/me/readings/self');
 
-    await page.getByRole('button', { name: '공유하기' }).first().click();
+    await page.getByRole('button', { name: SHARE }).first().click();
 
-    /* 공유창이 실제로 열렸다 닫혔다는 것을 먼저 붙잡는다 — 안 그러면 왕복 전에 잰다 */
-    await expect
-      .poll(async () => page.evaluate(() => (window as unknown as { __closed: number }).__closed))
-      .toBe(1);
-
-    /*
-      **화면에 아무 말도 안 남는다.** 여기 있는 `getByRole('alert')` 은 개발 서버의
-      오버레이까지 잡으므로, 이 칸이 낼 수 있는 말을 이름으로 센다.
-    */
-    for (const said of [
-      '공유 링크를 만들지 못했습니다',
-      '링크를 복사하지 못했습니다',
-      '링크를 복사했습니다',
-      '링크가 준비됐습니다',
-    ]) {
-      await expect(page.getByText(said)).toHaveCount(0);
-    }
-    await expect(page.getByRole('button', { name: '공유창 열기' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: '공유하기' }).first()).toBeEnabled();
+    await expect(page.getByRole('alert').first()).toContainText('직접 선택해 복사해 주세요');
+    const shown = page.getByLabel('공유 주소').first();
+    await expect(shown).toBeVisible();
+    await expect(shown).toHaveValue(/\/share\/readings\/[0-9a-f]{32}$/);
   });
 });
