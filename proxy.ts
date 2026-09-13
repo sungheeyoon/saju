@@ -110,6 +110,9 @@ export const config = {
    * `/signup` 도 로그인한 사람의 화면이다. **여기서 튕기지는 않지만**(`gateFor` 는
    * `/me` 아래만 본다) 세션은 갱신해야 한다 — 안내가 바뀌어 오랜만에 돌아온 사람의
    * 토큰이 만료돼 있으면, 가입을 마치라는 화면 대신 로그인 화면이 선다.
+   *
+   * `/ops` 도 같다. 관문 밖에 일부러 둔 자리라(ADR 0061) 여기서 아무 데도 안 보내지만,
+   * 세션이 안 갱신되면 오랜만에 들어온 운영자가 로그인 화면을 먼저 만난다.
    */
-  matcher: ['/me/:path*', '/compat', '/auth/:path*', '/signup'],
+  matcher: ['/me/:path*', '/compat', '/auth/:path*', '/signup', '/ops/:path*'],
 };

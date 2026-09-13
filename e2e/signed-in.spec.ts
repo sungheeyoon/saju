@@ -1,4 +1,11 @@
-import { expect, leavePersonSlots, personLimit, test } from './session';
+import {
+  answerReading,
+  expect,
+  leavePersonSlots,
+  makeOperator,
+  personLimit,
+  test,
+} from './session';
 
 import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
 import type { Page } from '@playwright/test';
@@ -317,6 +324,41 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByLabel('어느 대목이 맞았고 어느 대목이 달랐나요?')).toHaveValue(
       '첫 문단은 맞았고 마지막은 달랐어요',
     );
+  });
+
+  /**
+   * **운영자 화면은 운영자에게만 있다.**
+   *
+   * 여기서 재는 것 둘. 하나는 **없는 화면이 되는가** — 운영자가 아닌 로그인 사용자에게
+   * 이 주소는 404 다(`notFound`). pgTAP 이 함수가 거절하는 것을 이미 재지만, 거절을 받고
+   * 화면이 무엇을 하는지는 여기서만 잰다: 반쪽짜리 화면이나 붉은 오류가 서면 그것은
+   * 「여기 뭔가 있다」고 알려 주는 것이다.
+   *
+   * 다른 하나는 **남긴 답이 실제로 그 자리에 오르는가**다. 문·함수·화면이 각자 초록인데
+   * 이어 보면 비어 있는 자리를 이 한 줄이 잡는다.
+   */
+  test('설문 요약은 운영자에게만 서고, 남긴 답이 그 자리에 오른다', async ({ page, reader }) => {
+    expect(reader.runId).not.toBe('');
+
+    const closed = await page.goto('/ops/survey');
+    expect(closed?.status()).toBe(404);
+    await expect(page.getByRole('heading', { name: '설문 요약' })).toHaveCount(0);
+
+    /*
+      **글에 이 실행의 표를 남긴다.** 운영자에게는 모두의 답이 보이므로, 지난 실행이
+      남긴 같은 문장이 로컬 DB 에 쌓이면 「내가 방금 남긴 것이 섰는가」를 못 가린다.
+    */
+    const said = `셋째 문단이 제 얘기 같았어요 (${reader.runId.slice(0, 8)})`;
+    answerReading(reader.runId, reader.account.email, said);
+    makeOperator(reader.account.email);
+
+    await page.goto('/ops/survey');
+    await expect(page.getByRole('heading', { name: '설문 요약' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '적어 주신 글' })).toBeVisible();
+    await expect(page.getByText(said)).toBeVisible();
+
+    /* 누가 썼는지는 함수가 안 내준다 — 화면에도 그 값이 설 자리가 없다 */
+    await expect(page.getByText(reader.account.nickname)).toHaveCount(0);
   });
 
   /**

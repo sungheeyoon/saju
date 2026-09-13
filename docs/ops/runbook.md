@@ -216,8 +216,9 @@ select * from public.forget_user('<user uuid>');
 --  people_forgotten | revisions_forgotten
 ```
 
-한 문장이면 된다. `auth.users` 하나가 사라지면 `app_user` 가 따라가고 거기서 열여덟
+한 문장이면 된다. `auth.users` 하나가 사라지면 `app_user` 가 따라가고 거기서 스물세
 갈래가 FK 로 따라간다 — Person 엣지·discovery·요청·Match·결과·시도·설문·알림·차단·신고.
+(세어 보려면 `pg_constraint` 에서 `app_user` 를 가리키는 FK 를 센다.)
 그다음 **이 사람이 관리하던 Person 중** 아무도 안 보게 된 것과 그 판본을 지운다(ADR 0023).
 남이 놓고 간 고아는 안 건드린다 — 그것은 종료 파기의 일이다.
 
@@ -345,7 +346,38 @@ delete from public.signup_code;
 
 ---
 
-## 설문 읽기
+## 설문 읽기 — **화면이 있다** (ADR 0061)
+
+운영자로 로그인해서 **`/ops/survey`** 를 연다. 메뉴에 없는 주소라 직접 친다.
+
+화면이 드는 것 넷 — 들어온 답과 동의 분포, 판본별 평균, 아쉬운 점 태그, 적어 주신 글.
+아래 SQL 과 **같은 수**를 낸다(집계가 `operator_survey_*` 넷으로 옮겨 갔다). 화면이 안
+열리거나 그 수를 의심할 때만 아래로 내려간다.
+
+### 운영자를 세우고 내린다
+
+「이 사람이 운영자인가」에만 답하는 표가 따로 있다(`public.operator`). 앱에는 이 표에 닿는
+길이 없고 `service_role` 에도 안 열려 있다 — SQL Editor 에서만 넣는다.
+
+```sql
+-- 세운다
+insert into public.operator (user_id, note)
+select id, '누구에게 왜 주었는지'
+from auth.users where email = '<그 사람의 구글 계정>';
+
+-- 지금 누가 있나
+select u.email, o.note, o.added_at
+from public.operator o join auth.users u on u.id = o.user_id;
+
+-- 내린다 — 이 줄이 사라지면 `/ops/survey` 는 그 사람에게 없는 화면이 된다
+delete from public.operator where user_id =
+  (select id from auth.users where email = '<그 사람의 구글 계정>');
+```
+
+**운영자라는 이름으로 열리는 문은 그 이름을 묻는 자리의 개수다.** 지금은 설문을 읽는 함수
+넷뿐이고, 풀이권 예외는 여기 안 딸려 온다 — 그것은 별개의 표다(위 「풀이권」).
+
+### 손으로 세는 자리
 
 답은 **그 글을 만든 시도에 매여 있다**(ADR 0022). 그래서 프롬프트 판본과 모델이 답 옆에
 이미 있고, 따로 이어 붙일 일이 없다.

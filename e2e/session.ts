@@ -127,6 +127,33 @@ export function hideEveryoneExcept(emails: readonly string[]): void {
 }
 
 /**
+ * 이 사람을 **운영자로 세운다** — 운영자가 SQL 로 하는 그 일이다(ADR 0061).
+ *
+ * `public.operator` 는 `service_role` 에도 안 열려 있어서 `api` 로는 못 넣는다. 그것이
+ * 이 표의 요점이라, 검사도 그 경계를 넘지 않고 `postgres` 로 넣는다.
+ */
+export function makeOperator(email: string): void {
+  sql(`insert into public.operator (user_id, note)
+       select id, 'e2e' from auth.users where email = '${email}'
+       on conflict (user_id) do nothing`);
+}
+
+/**
+ * 답 하나를 남긴다 — **화면으로 누르는 자리는 설문 시험이 이미 잰다.**
+ *
+ * 여기서 재려는 것은 운영자 화면이 그 답을 세우는가이므로, 답을 만드는 데 라디오를
+ * 네 번 누르면 그 시험이 설문 폼이 깨졌을 때도 빨간불이 된다.
+ */
+export function answerReading(runId: string, email: string, said: string): void {
+  sql(`insert into public.reading_feedback
+         (reading_run_id, respondent_user_id,
+          usefulness, perceived_fit, felt_length, issue_tags, comment)
+       select '${runId}', u.id, 4, 2, 'right', array['abstract'], '${said}'
+       from auth.users u where u.email = '${email}'
+       on conflict (reading_run_id, respondent_user_id) do nothing`);
+}
+
+/**
  * 저장 자리 한도 — **검사가 수를 손으로 적지 않게.**
  *
  * `person_limit()` 은 모든 역할에 닫혀 있지만 이 문은 `postgres` 로 돈다. 화면이 말하는
