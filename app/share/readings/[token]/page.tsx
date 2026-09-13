@@ -13,7 +13,7 @@ export default async function Page({ params }: { params: Promise<{ token: string
       eyebrow="공유받은 사주풀이"
       invitation={{
         heading: '내 사주도 직접 읽어보세요',
-        note: '생년월일시를 입력하면 명식을 세우고, 그 근거를 바탕으로 나만의 사주풀이를 받아볼 수 있어요.',
+        note: '생년월일시를 입력하면 나만의 사주를 확인하고, 그 근거를 바탕으로 풀이를 받아볼 수 있어요.',
       }}
     />
   );
