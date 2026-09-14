@@ -27,7 +27,7 @@ const sharedParams = (page: Page) =>
  * (`signed-in.tsx`). 그래서 이 글자가 보인다는 것은 폼이 이미 자기 상태를 든다는 뜻이다.
  */
 async function submitReady(page: Page) {
-  await expect(page.getByRole('button', { name: '이 사람 명식 보기' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '사주 보기' })).toBeVisible();
 }
 
 /** 화면 크기가 달라도 풀이권은 계정 자리에서 찾을 수 있어야 한다. */
@@ -644,7 +644,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByLabel('이름', { exact: true }).fill('민수');
     await fillBirthDate(page, '1988-11-07');
     await fillBirthTime(page, '09:15');
-    await page.getByRole('button', { name: '이 사람 명식 보기' }).click();
+    await page.getByRole('button', { name: '사주 보기' }).click();
     await expect(page.locator('#chart')).toBeVisible();
   });
 
@@ -670,7 +670,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByLabel('이름', { exact: true }).fill('영희');
     await fillBirthDate(page, '1988-11-07');
     await fillBirthTime(page, '09:15');
-    await page.getByRole('button', { name: '이 사람 명식 보기' }).click();
+    await page.getByRole('button', { name: '사주 보기' }).click();
     await expect(page.locator('#chart')).toBeVisible();
 
     const entry = page.locator('#reading-next');
@@ -912,7 +912,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       여기서 멈춰야 했다 — 시험이 누르면 4분과 돈이 들었다. 이제 이 누름은 만세력을
       열 뿐이고, 글은 그 아래의 버튼이 만든다. 걸음이 하나 늘었으므로 시험도 하나 는다.
     */
-    await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
+    await page.getByRole('button', { name: '궁합 보기' }).click();
 
     await expect(page).toHaveURL(/\/me\/compat\?a=.+&b=.+/);
     await expect(
@@ -1168,7 +1168,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
     await page.getByRole('radio', { name: '가족' }).check();
 
-    await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
+    await page.getByRole('button', { name: '궁합 보기' }).click();
 
     await expect(page).toHaveURL(/\/me\/compat\?a=[0-9a-f-]+&b=[0-9a-f-]+$/);
     await expect(page.getByRole('heading', { name: '민수 × 지영' })).toBeVisible();
@@ -1247,7 +1247,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     await typeInto(page, '두 번째', { name: '지영', date: '1992-08-20', time: '09:00' });
 
     await page.getByRole('radio', { name: '가족' }).check();
-    await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
+    await page.getByRole('button', { name: '궁합 보기' }).click();
 
     await expect(page).toHaveURL(/\/me\/compat\?a=[0-9a-f-]+&b=[0-9a-f-]+$/);
     await expect(page.getByRole('heading', { name: '민수 × 지영' })).toBeVisible();
@@ -1296,7 +1296,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 
     await page.goto('/compat#a.name=민수&a.date=1990-05-15&a.hour=11:20&b.name=지영&b.date=1992-08-20&b.hour=09:00');
 
-    await expect(page.getByRole('button', { name: '두 사람 명식 보기' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: '궁합 보기' })).toBeEnabled();
     await expect(page.getByText('자리가 1명분만 남았습니다')).toHaveCount(0);
     await expect(page.getByRole('link', { name: '사람 탭에서 자리 비우기 →' })).toHaveCount(0);
   });
@@ -1310,7 +1310,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     await page.goto('/compat#a.name=민수&a.date=1990-05-15&a.hour=11:20');
 
     await expectBirthDate(slotCard(page, '첫 번째'), '1990-05-15');
-    await expect(page.getByRole('button', { name: '두 사람 명식 보기' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: '궁합 보기' })).toBeDisabled();
     await expect(page.getByText('두 번째 사람을 골라 주세요')).toBeVisible();
   });
 
@@ -1329,7 +1329,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
   test('베타 매칭 지표는 사실 아래에 서고, 그 아래는 궁합 풀이로 이어진다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/compat#a.name=민수&a.date=1990-05-15&a.hour=11:20&b.name=지영&b.date=1992-08-20&b.hour=09:00');
-    await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
+    await page.getByRole('button', { name: '궁합 보기' }).click();
     await expect(page).toHaveURL(/\/me\/compat\?a=/);
 
     const analysis = page.getByText('두 원국을 맞대어 본 표');
@@ -1369,7 +1369,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
   test('궁합 결과에는 넘길 자료 패널이 서지 않는다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/compat#a.name=민수&a.date=1990-05-15&a.hour=11:20&b.name=지영&b.date=1992-08-20&b.hour=09:00');
-    await page.getByRole('button', { name: '두 사람 명식 보기' }).click();
+    await page.getByRole('button', { name: '궁합 보기' }).click();
     await expect(page).toHaveURL(/\/me\/compat\?a=/);
 
     // 접이칸을 펴 놓고 본다 — 접힌 안쪽까지 훑어야 「어디에도 없다」가 된다.
