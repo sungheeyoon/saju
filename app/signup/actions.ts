@@ -22,6 +22,7 @@ import { supabaseOnServer } from '../auth/server-client';
  * 빈다(커밋 `2cbb31f`). 튕김이 하나면 그 자리가 없다.
  */
 export async function completeSignup(answer: {
+  resumeReading?: boolean;
   code: string;
   nickname: string;
   version: string;
@@ -49,7 +50,7 @@ export async function completeSignup(answer: {
   revalidatePath('/me', 'layout');
 
   /* `redirect` 는 던진다 — try 안에 두지 않는다(Next 문서). 여기가 이 함수의 끝이다 */
-  redirect('/me');
+  redirect(answer.resumeReading === true ? '/#resume-reading' : '/me');
 }
 
 /**

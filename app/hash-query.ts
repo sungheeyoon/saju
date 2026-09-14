@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
+import { READING_DRAFT_KEY } from './reading-draft';
+import { queryFromSearchParams } from '@/src/lib/input/query';
 
 /**
  * 제출된 입력을 주소창의 **`#` 뒤**에 싣는다.
@@ -63,6 +65,19 @@ const readNothing = (): string => '';
 
 export function useHashParams(): URLSearchParams {
   const raw = useSyncExternalStore(subscribe, readParams, readNothing);
+
+  useEffect(() => {
+    if (raw !== 'resume-reading') return;
+    try {
+      const draft = sessionStorage.getItem(READING_DRAFT_KEY);
+      if (draft && queryFromSearchParams(new URLSearchParams(draft)) !== null) {
+        writeParams(draft, 'replace');
+      }
+      sessionStorage.removeItem(READING_DRAFT_KEY);
+    } catch {
+      // An unavailable draft leaves the ordinary input form usable.
+    }
+  }, [raw]);
 
   /**
    * 옛 `?` 링크로 들어왔으면 주소만 `#` 으로 갈아 놓는다.

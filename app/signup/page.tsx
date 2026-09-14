@@ -47,12 +47,15 @@ export const metadata = {
  * 놓치면 안 되는 세 사실만 둔다: 어떤 정보를 쓰는지, 언제 파기하는지, 사주 저장 뒤 인연
  * 찾기에 참여한다는 것. 위탁·국외이전·파기 방법·권리 행사는 전문에서 읽는다.
  */
-export default async function SignupPage() {
+export default async function SignupPage({ searchParams }: {
+  searchParams: Promise<{ resume?: string }>;
+}) {
+  const resumeReading = (await searchParams).resume === 'reading';
   const supabase = await supabaseOnServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect('/auth');
+  if (!user) redirect(resumeReading ? '/auth?next=%2F%23resume-reading' : '/auth');
 
   /**
    * **문은 여기 것이고 문구만 같은 자리에서 가져온다.**
@@ -101,7 +104,7 @@ export default async function SignupPage() {
     account.notice_version === NOTICE_VERSION &&
     account.notice_schedule_id === notice.scheduleId;
 
-  if (done) redirect('/me');
+  if (done) redirect(resumeReading ? '/#resume-reading' : '/me');
 
   const again = account.signed_up_at !== null;
 
@@ -128,6 +131,7 @@ export default async function SignupPage() {
       ) : (
         <section className={CARD}>
           <SignupForm
+            resumeReading={resumeReading}
             needsCode={account.signed_up_at === null}
             needsName={account.nickname === null}
             version={NOTICE_VERSION}

@@ -178,6 +178,7 @@ export function SajuCalculator() {
       */}
       {result === null ? null : result.ok ? (
         <>
+          {query !== null && <SavePersonForReading query={query} />}
           <SajuView {...model!} />
           {/*
             **AI 로 가는 길은 저장 하나다.** 이 화면은 대상을 안 만들므로 시도도 잠금도
@@ -190,7 +191,12 @@ export function SajuCalculator() {
             `query` 를 넘긴다. 폼(`form`)은 사용자가 지금 고치고 있는 값이라, 그것을
             저장하면 화면에 서 있는 명식과 다른 사람이 목록에 남는다.
           */}
-          {query !== null && <SavePersonForReading query={query} />}
+          <a href="#reading-next" onClick={(event) => {
+            event.preventDefault();
+            document.getElementById('reading-next')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }} className="flex min-h-12 items-center justify-center rounded-xl border border-border bg-surface px-5 py-3 text-sm font-semibold text-accent">
+            사주풀이로 이어 보기 ↑
+          </a>
         </>
       ) : (
         <p role="alert" className={`${CARD} text-sm`}>

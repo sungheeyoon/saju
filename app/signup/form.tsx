@@ -39,6 +39,7 @@ const BOX =
  * 화면에 그대로 있고, 언제든 채울 수 있다(PRD §5.1).
  */
 export function SignupForm({
+  resumeReading = false,
   needsCode,
   needsName,
   version,
@@ -46,6 +47,7 @@ export function SignupForm({
   endsOn,
   purgeBy,
 }: {
+  resumeReading?: boolean;
   needsCode: boolean;
   needsName: boolean;
   version: string;
@@ -93,6 +95,7 @@ export function SignupForm({
         보내면 관문이 한 번 더 튕기고, 그 두 번째 튕김이 화면을 비운다.
       */
       const failed = await completeSignup({
+        resumeReading,
         code,
         nickname,
         version,

@@ -10,7 +10,8 @@ import { supabaseInBrowser } from './auth/browser-client';
 import { CARD } from './card';
 import { savePersonForReading } from './me/actions';
 import { personSlotsFrom } from './person-slots';
-import type { Query } from '@/src/lib/input/query';
+import { toSearchParams, type Query } from '@/src/lib/input/query';
+import { READING_DRAFT_KEY } from './reading-draft';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
 
 /**
@@ -91,6 +92,7 @@ function useSaveContext(): SaveContext {
 }
 
 function SaveCard({
+  query,
   needed,
   /** 도착지가 그 글을 부르는 말 — 「사주풀이」이거나 「궁합 풀이」다 */
   reading,
@@ -100,6 +102,7 @@ function SaveCard({
   onSave,
 }: {
   /** 이 입구가 저장하려는 사람 수 — 자리가 모자란지는 이 수가 정한다 */
+  query: Query;
   needed: number;
   reading: string;
   /** 무엇을 저장하는가 — 「이 사람」·「두 사람」 */
@@ -142,18 +145,44 @@ function SaveCard({
 
   if (context.state === 'out') {
     return (
-      <section className={`${CARD} flex flex-col gap-2`}>
-        <h2 className="text-base font-semibold">{reading}로 이어 보기</h2>
-        <p className="text-sm leading-6 text-secondary">
-          저장은 로그인한 뒤에 할 수 있습니다. 로그인하면 여기서 저장하고 바로 {reading}를
-          만들 수 있어요.
-        </p>
-        <Link
-          href="/auth"
-          className="self-start text-sm font-medium text-accent underline underline-offset-2"
-        >
-          로그인하기 →
-        </Link>
+      <section id="reading-next" className="scroll-mt-24 overflow-hidden rounded-[1.75rem] border border-accent/30 bg-surface shadow-[var(--shadow-card)]">
+        <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.2fr_1fr]">
+          <div>
+            <p className="eyebrow">기본 명식 확인 완료 · 다음은 사주풀이</p>
+            <h2 className="mt-3 text-2xl font-bold leading-snug tracking-tight">
+              {query.name.trim() ? `${query.name.trim()}님의 사주,` : '이 사주,'}<br />
+              내 삶에서는 어떤 뜻일까요?
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-secondary">
+              아래 표에는 타고난 사주의 구조가 담겨 있어요.
+              사주풀이에서는 이 구조를 바탕으로 성향과 강점, 일과 연애, 운의 흐름을 글로 풀어드려요.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-accent-wash p-5">
+            <p className="text-sm font-semibold">사주풀이로 이어 보기</p>
+            <p className="mt-2 text-sm leading-6 text-secondary">로그인 → 출생 정보 저장 → 사주풀이 만들기</p>
+            <Link
+              href="/auth?next=%2F%23resume-reading"
+              prefetch={false}
+              onClick={(event) => {
+                try {
+                  sessionStorage.setItem(READING_DRAFT_KEY, toSearchParams(query).toString());
+                } catch {
+                  event.preventDefault();
+                  setFailure('브라우저에서 입력 정보를 임시 보관하지 못했어요. 브라우저의 저장 공간 설정을 확인한 뒤 다시 눌러 주세요.');
+                }
+              }}
+              className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-on-accent hover:bg-accent-strong"
+            >
+              로그인하고 내 사주풀이 이어 보기 →
+            </Link>
+            <p className="mt-3 text-xs leading-5 text-secondary">이 탭에서 로그인하면 지금 입력한 정보로 돌아와요. 풀이를 만들 때 풀이권을 사용합니다.</p>
+          </div>
+        </div>
+        <div className="border-t border-border px-6 py-4 text-xs leading-5 text-secondary sm:px-8">
+          <strong className="font-semibold text-accent">테스트 코드를 받으셨다면</strong> 로그인 후 코드를 입력하고 지급된 풀이권을 사용해 보세요.
+        </div>
+        {failure !== null && <p role="alert" className="px-6 pb-4 text-sm text-danger">{failure}</p>}
       </section>
     );
   }
@@ -162,7 +191,7 @@ function SaveCard({
   const noRoom = noRoomToSave(needed, slots);
 
   return (
-    <section className={`${CARD} flex flex-col gap-4`}>
+    <section id="reading-next" className={`${CARD} scroll-mt-24 flex flex-col gap-4`}>
       <div>
         <h2 className="text-base font-semibold">{reading}로 이어 보기</h2>
         <p className="mt-1.5 text-sm leading-6 text-secondary">
@@ -262,6 +291,7 @@ export function SavePersonForReading({ query }: { query: Query }) {
 
   return (
     <SaveCard
+      query={query}
       needed={1}
       reading="사주풀이"
       saveWhat="이 사람"

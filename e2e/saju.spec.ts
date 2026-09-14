@@ -752,9 +752,9 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
 test('로그인하지 않은 사주 결과에는 저장 버튼 대신 로그인 길이 선다', async ({ page }) => {
   await page.goto('/#date=1990-05-15&hour=14:30');
 
-  await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '이 사주, 내 삶에서는 어떤 뜻일까요?' })).toBeVisible();
   await expect(
     page.getByRole('button', { name: '이 사람을 저장하고 사주풀이로 가기' }),
   ).toHaveCount(0);
-  await expect(page.getByRole('link', { name: '로그인하기 →' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '로그인하고 내 사주풀이 이어 보기 →' })).toBeVisible();
 });

@@ -33,5 +33,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/auth/denied', url.origin));
   }
 
-  return NextResponse.redirect(new URL(returnTo, url.origin));
+  // Complete the beta onboarding before restoring the anonymous reading input.
+  const destination = returnTo === '/#resume-reading' ? '/signup?resume=reading' : returnTo;
+  return NextResponse.redirect(new URL(destination, url.origin));
 }
