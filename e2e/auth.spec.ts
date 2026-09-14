@@ -44,6 +44,31 @@ test('로그인이 끊기면 왜인지 모른다고 말한다', async ({ page })
 });
 
 /**
+ * **콜백은 다른 오리진으로 보내지 않는다.**
+ *
+ * 여기서 `new URL(경로, request.url)` 로 절대 주소를 짓고 있었는데, 그 origin 은
+ * 요청이 들어온 주소가 아니라 **서버가 묶인 주소**다. `--hostname 0.0.0.0` 으로 띄운
+ * 개발 서버에서 `localhost:3000` 으로 로그인하면 `0.0.0.0:3000` 으로 돌려보냈다.
+ *
+ * 그 둘은 다른 오리진이라 **방금 붙인 세션 쿠키가 안 실린다.** 로그인은 성공했는데
+ * 도착한 화면에는 세션이 없고, 관문이 다시 로그인 화면으로 튕긴다 — 사용자에게는
+ * 「로그인했는데 계속 로그인하라고 한다」로 보인다. 실제로 그렇게 보였다.
+ *
+ * 붙은 서버 이름에 기대지 않고 재려고 **응답의 `Location` 을 직접 본다.** 검사용
+ * 서버는 `localhost` 로 묶이므로, 화면이 어디에 도착했는지만 보면 버그가 있어도
+ * 초록으로 지나간다.
+ */
+test('로그인 콜백은 오리진을 짓지 않고 경로만 돌려준다', async ({ request }) => {
+  const denied = await request.get('/auth/callback?error=access_denied', { maxRedirects: 0 });
+  expect(denied.status()).toBe(307);
+  expect(denied.headers()['location']).toBe('/auth/denied');
+
+  const stray = await request.get('/auth/callback', { maxRedirects: 0 });
+  expect(stray.status()).toBe(307);
+  expect(stray.headers()['location']).toBe('/auth');
+});
+
+/**
  * **끝난 로그인 흐름은 자기 검증 쿠키를 남기지 않는다.**
  *
  * 로그인을 시작할 때마다 PKCE 검증 쿠키가 하나 생기는데, 이름에 그 시도의 번호가

@@ -57,9 +57,14 @@ export function TabHeroBody({
         <h1 className="mt-2 text-2xl font-bold leading-[1.35] tracking-[-0.04em] sm:text-[1.875rem]">
           {title}
         </h1>
-        <p className="mt-2.5 max-w-lg text-sm leading-6 text-secondary sm:text-[0.95rem] sm:leading-7">
+        {/*
+          **문단이 여럿일 수 있다.** 궁합 쪽은 「무엇을 보는가」와 「어떻게 말하는가」를
+          따로 적는다 — 한 덩어리로 붙이면 둘째 문장이 첫째의 꼬리처럼 읽힌다.
+          그래서 `<p>` 가 아니라 칸이고, 부르는 쪽이 문단을 넣는다.
+        */}
+        <div className="mt-2.5 flex max-w-lg flex-col gap-2 text-sm leading-6 text-secondary sm:text-[0.95rem] sm:leading-7">
           {lede}
-        </p>
+        </div>
       </div>
       {actions}
     </div>

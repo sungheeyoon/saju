@@ -14,6 +14,20 @@ import { safeReturnPath } from '../return-path';
  * 두 번째가 우리가 일부러 만든 길이다. `auth.users` 에 아무것도 안 남으므로,
  * 다음에 초대 명단에 넣으면 그때 처음 가입한 것과 똑같이 들어온다.
  *
+ * ## 돌아갈 곳은 **요청이 정한다**
+ *
+ * 여기서 `new URL(경로, url.origin)` 으로 절대 주소를 지었는데, `request.url` 의
+ * origin 은 **요청이 들어온 주소가 아니라 서버가 묶인 주소**다. `--hostname 0.0.0.0`
+ * 으로 띄우면 `localhost:3000` 으로 들어온 사람을 `0.0.0.0:3000` 으로 돌려보낸다.
+ *
+ * 그 둘은 **다른 오리진**이라 방금 붙인 세션 쿠키가 안 실린다. 그래서 로그인은
+ * 성공했는데 도착한 화면에는 세션이 없고, 관문이 다시 로그인 화면으로 튕긴다 —
+ * 사용자에게는 「로그인했는데 계속 로그인하라고 한다」로 보인다.
+ *
+ * 그래서 **오리진을 짓지 않는다.** `Location` 에 경로만 적으면 브라우저가 자기가
+ * 두드린 주소를 기준으로 푼다(RFC 7231). 도착지는 `safeReturnPath` 가 이미 같은
+ * 오리진의 경로로 좁혀 두었으므로, 여기서 오리진을 아는 척할 이유가 없다.
+ *
  * ## 지나온 흔적을 치운다
  *
  * 로그인을 **시작할 때마다** PKCE 검증 쿠키가 하나 생기는데, 그 이름에는 그 시도의
@@ -36,11 +50,11 @@ export async function GET(request: Request) {
 
   if (url.searchParams.get('error') !== null) {
     await dropSpentVerifiers();
-    return NextResponse.redirect(new URL('/auth/denied', url.origin));
+    return goTo('/auth/denied');
   }
 
   if (code === null) {
-    return NextResponse.redirect(new URL('/auth', url.origin));
+    return goTo('/auth');
   }
 
   const supabase = await supabaseOnServer();
@@ -48,12 +62,23 @@ export async function GET(request: Request) {
   await dropSpentVerifiers();
 
   if (error) {
-    return NextResponse.redirect(new URL('/auth/denied', url.origin));
+    return goTo('/auth/denied');
   }
 
   // Complete the beta onboarding before restoring the anonymous reading input.
   const destination = returnTo === '/#resume-reading' ? '/signup?resume=reading' : returnTo;
-  return NextResponse.redirect(new URL(destination, url.origin));
+  return goTo(destination);
+}
+
+/**
+ * 같은 오리진 안에서 옮긴다 — **주소는 브라우저가 짓는다.**
+ *
+ * `NextResponse.redirect` 는 절대 주소를 요구하므로 쓰지 않는다. 여기서 절대 주소를
+ * 지으려면 오리진을 알아야 하는데, 이 자리에서 아는 오리진은 요청이 들어온 곳이
+ * 아니다(위 머리말). 경로만 적으면 그 문제가 사라진다.
+ */
+function goTo(path: string) {
+  return new NextResponse(null, { status: 307, headers: { Location: path } });
 }
 
 /**

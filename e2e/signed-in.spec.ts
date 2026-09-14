@@ -612,7 +612,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { name: '누구의 명식이든 여기서 봅니다.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '궁금한 사람의 사주를 바로 봅니다.' })).toBeVisible();
 
     /* 코드는 가입할 때 한 번 쓴다 — 회원이 눌러도 다시 지날 수 없는 길이다 */
     await expect(page.getByText('테스트 코드를 받으셨나요?')).toHaveCount(0);
@@ -665,7 +665,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       뜬 채 이 시험이 조사 이야기를 시작한다. 머리는 계산기보다 **먼저** 서므로
       (계산기는 `Suspense` 뒤에서 따로 붙는다) 제목만으로는 모자란다.
     */
-    await expect(page.getByRole('heading', { name: '누구의 명식이든 여기서 봅니다.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '궁금한 사람의 사주를 바로 봅니다.' })).toBeVisible();
     await submitReady(page);
     await page.getByLabel('이름', { exact: true }).fill('영희');
     await fillBirthDate(page, '1988-11-07');

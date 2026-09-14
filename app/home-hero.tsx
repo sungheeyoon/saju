@@ -130,12 +130,12 @@ function Hero({ member, signedIn }: { member: boolean; signedIn: boolean | null 
         <TabHeroBody
           /* 이 탭의 두 반쪽이 같은 눈썹을 쓴다 — 어디에 서 있는지가 뒤에 붙는다 */
           eyebrow="사주·궁합 · 한 사람"
-          title="누구의 명식이든 여기서 봅니다."
+          title="궁금한 사람의 사주를 바로 봅니다."
           lede={
-            <>
-              생년월일시를 입력하면 여덟 글자를 바로 확인할 수 있습니다. 저장하지 않고도
-              볼 수 있습니다.
-            </>
+            <p>
+              생년월일시를 입력하면 여덟 글자를 확인할 수 있습니다.<br />
+              저장하지 않고도 바로 볼 수 있습니다.
+            </p>
           }
           actions={
             <TabActions>
