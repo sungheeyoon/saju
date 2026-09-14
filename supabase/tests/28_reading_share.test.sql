@@ -28,10 +28,18 @@ returns uuid language sql security definer as $$
     '{"temperature":1}'::jsonb, now());
 $$;
 
-/** 공유본이 몇 줄인가 — 표가 닫혀 있으므로(그것이 규칙이다) 세는 손잡이를 따로 둔다 */
+/**
+ * 이 시험이 **보탠** 공유본이 몇 줄인가 — 표가 닫혀 있으므로(그것이 규칙이다) 세는 손잡이를 따로 둔다.
+ *
+ * 표 전체를 세면 로컬 DB 에 먼저 있던 공유본이 그대로 더해져 「하나다」가 27 로 떨어진다.
+ * 시작할 때의 수를 적어 두고 늘어난 만큼만 센다 — 있던 줄은 안 지운다.
+ */
+create temporary table share_baseline as
+select count(*)::int as n from public.reading_share;
+
 create or replace function pg_temp.shares()
 returns integer language sql security definer as $$
-  select count(*)::int from public.reading_share;
+  select count(*)::int - (select n from share_baseline) from public.reading_share;
 $$;
 
 /** 한 사람이 가입하고 자기 명식까지 세운다 */
@@ -68,7 +76,7 @@ grant select on folks to authenticated, service_role;
 select pg_temp.acting((select kim from folks));
 
 select throws_ok(
-  $$select public.share_my_reading('아무 글')$$,
+  $$select public.share_my_reading('아무 글', null, 'self', null, null)$$,
   null, '공유할 풀이가 없습니다',
   '풀이가 없으면 링크가 안 난다');
 
@@ -82,7 +90,7 @@ select pg_temp.reads(
 create temporary table first_link as
 select public.share_my_reading(
   '## 지금의 핵심' || chr(10) || '김공유님은 차분하게 봅니다.',
-  '한 줄로 요약한 문장입니다.') as token;
+  '한 줄로 요약한 문장입니다.', 'self', null, null) as token;
 grant select on first_link to authenticated, service_role, anon;
 
 select isnt((select token from first_link), null, '공유 링크가 난다');
@@ -92,12 +100,12 @@ select matches((select token from first_link), '^[0-9a-f]{32}$',
 -- ── 지어낸 글은 못 지나간다 ────────────────────────────────────────────────
 
 select throws_ok(
-  $$select public.share_my_reading('제가 직접 쓴 광고 문구입니다.', '한 줄로 요약한 문장입니다.')$$,
+  $$select public.share_my_reading('제가 직접 쓴 광고 문구입니다.', '한 줄로 요약한 문장입니다.', 'self', null, null)$$,
   null, '공유할 내용이 저장된 풀이와 다릅니다',
   '저장된 원문에 없는 글은 안 나간다');
 
 select throws_ok(
-  $$select public.share_my_reading('## 지금의 핵심', '내가 지은 다른 한 줄')$$,
+  $$select public.share_my_reading('## 지금의 핵심', '내가 지은 다른 한 줄', 'self', null, null)$$,
   null, '공유할 한 줄 요약이 저장된 풀이와 다릅니다',
   '한 줄 요약도 저장된 것과 같아야 한다');
 
@@ -106,7 +114,7 @@ select throws_ok(
 select is(
   public.share_my_reading(
     '## 지금의 핵심' || chr(10) || '김공유님은 차분하게 봅니다.',
-    '한 줄로 요약한 문장입니다.'),
+    '한 줄로 요약한 문장입니다.', 'self', null, null),
   (select token from first_link),
   '같은 결과를 다시 공유하면 먼저 낸 링크가 그대로 난다');
 
@@ -143,7 +151,7 @@ select is(
 create temporary table second_link as
 select public.share_my_reading(
   '## 새로 받은 풀이' || chr(10) || '이번에는 다르게 읽었습니다.',
-  '새로 난 한 줄입니다.') as token;
+  '새로 난 한 줄입니다.', 'self', null, null) as token;
 grant select on second_link to authenticated, service_role, anon;
 
 select isnt((select token from second_link), (select token from first_link),
@@ -156,7 +164,7 @@ select is(pg_temp.shares(), 2, '공유본이 둘이 된다');
 select pg_temp.acting((select lee from folks));
 
 select throws_ok(
-  $$select public.share_my_reading('## 지금의 핵심', '한 줄로 요약한 문장입니다.')$$,
+  $$select public.share_my_reading('## 지금의 핵심', '한 줄로 요약한 문장입니다.', 'self', null, null)$$,
   null, '공유할 풀이가 없습니다',
   '남의 풀이 본문을 들고 와도 내 것이 없으면 안 난다');
 
@@ -183,7 +191,7 @@ select is(
   '없는 토큰은 0행이다');
 
 select throws_ok(
-  $$select public.share_my_reading('아무 글')$$,
+  $$select public.share_my_reading('아무 글', null, 'self', null, null)$$,
   '42501', null, '로그인하지 않은 사람은 링크를 못 낸다');
 
 select * from finish();
