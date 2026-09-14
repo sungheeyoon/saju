@@ -1,11 +1,5 @@
-import {
-  ELEMENTS,
-  analyzeCompatibility,
-  type Compatibility,
-  type CompatSide,
-  type Element,
-} from '@/src/lib/saju';
-import { cardTextFor, type BalanceBand } from '@/src/lib/discovery';
+import { analyzeCompatibility, type Compatibility, type CompatSide } from '@/src/lib/saju';
+import { balanceBandOf, cardTextFor, knownElementsOf } from '@/src/lib/discovery';
 import { suppliedText } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -13,6 +7,7 @@ import { chartOf } from '@/src/lib/input/chart';
 import { UnreadableRevisionError, queryFromRevision } from '@/src/lib/input/revision';
 import { ResultClosedError, pinnedInputs } from './inputs';
 import { sharedPillarChartOf, type SharedPillarChart } from '../../shared-pillar';
+import { UUID } from '../../uuid';
 
 /**
  * **공유 결과가 브라우저로 내려가는 유일한 문.**
@@ -91,17 +86,6 @@ type ScopeRow = {
   balance_band: string;
   created_at: string;
 };
-
-/** 주소로 들어온 값이라 모양부터 본다 — 형식이 틀린 것도 「없는 Match」와 같은 답이다 */
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-const BANDS: readonly BalanceBand[] = ['even', 'mixed', 'skewed'];
-
-/** 모르는 오행 글자는 버린다. 모르는 값을 그럴듯한 것으로 눕히지 않는다 */
-const elementsOf = (raw: string[] | null): Element[] =>
-  (raw ?? []).filter((element): element is Element =>
-    (ELEMENTS as readonly string[]).includes(element),
-  );
 
 /**
  * 그 Match 의 공유 결과.
@@ -185,12 +169,11 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
         b: sharedPillarChartOf(charts.b.pillars),
       },
       compat,
-      suppliedToMe: suppliedText(elementsOf(scope.supplied_to_me), 'toMe'),
-      suppliedToThem: suppliedText(elementsOf(scope.supplied_to_them), 'toThem'),
+      suppliedToMe: suppliedText(knownElementsOf(scope.supplied_to_me), 'toMe'),
+      suppliedToThem: suppliedText(knownElementsOf(scope.supplied_to_them), 'toThem'),
       balanceLabel: cardTextFor({
         suppliedElements: [],
-        // 밴드 이름을 못 알아보면 가장 낮은 칸으로 읽는다 — 좋은 쪽으로 눕히지 않는다.
-        balanceBand: BANDS.find((band) => band === scope.balance_band) ?? 'skewed',
+        balanceBand: balanceBandOf(scope.balance_band),
       }).balanceLabel,
       createdAt: scope.created_at,
       [granted]: true,

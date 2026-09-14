@@ -10,6 +10,7 @@ import {
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { CARD } from '../../../card';
+import { UUID } from '../../../uuid';
 import { CopyText } from '../copy-text';
 import { readingArtifacts, currentReading, lastReadingRun, readingGroundingOf } from '../current';
 import type { ReadingTarget } from '../pipeline';
@@ -328,7 +329,6 @@ function Pre({ text }: { text: string }) {
   );
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** 주소로 들어온 값이라 모양부터 본다 — 틀린 것은 「고르지 않은 것」과 같다 */
 function targetFrom(params: {

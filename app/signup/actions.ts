@@ -52,22 +52,3 @@ export async function completeSignup(answer: {
   /* `redirect` 는 던진다 — try 안에 두지 않는다(Next 문서). 여기가 이 함수의 끝이다 */
   redirect(answer.resumeReading === true ? '/#resume-reading' : '/me');
 }
-
-/**
- * 이 이름을 쓸 수 있나 — **참·거짓 하나만 돌려받는다.**
- *
- * `app/me/profile/actions.ts` 의 것과 같은 문을 부른다. 여기 따로 두는 것은 가입 화면이
- * `/me` 밖이기 때문이고, 부르는 것은 같은 RPC 다 — 판정하는 자리는 여전히 하나다.
- */
-export async function checkNickname(
-  nickname: string,
-): Promise<{ ok: true; available: boolean } | { ok: false; message: string }> {
-  const supabase = await supabaseOnServer();
-
-  const { data, error } = await supabase.rpc('nickname_is_available', {
-    p_nickname: nickname.trim(),
-  });
-
-  if (error) return { ok: false, message: error.message };
-  return { ok: true, available: data === true };
-}

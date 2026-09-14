@@ -1,15 +1,14 @@
 import { ELEMENTS, type Element } from '../saju';
 
 /**
- * 오행 축 — 기존 `match-v0` 계산과 `discovery-v1` 첫인상 계산을 함께 둔다.
+ * 오행 축 — `discovery-v1` 첫인상 점수의 두 축.
  *
- * `match-v0`의 기존 이진 결손·가중 비율 축은 상세 정책의 재현을 위해 보존한다.
- * `discovery-v1`은 보이는 글자 수와 연속적인 20% 부족분을 쓰므로 아래에 별도 함수로
- * 명시한다(ADR 0003 개정).
+ * 보이는 글자 수로 재는 균형과, 서로의 20% 미만 부족분에 상대가 닿는 정도다
+ * (ADR 0003 개정). 옛 `match-v0` 의 이진 결손·가중 비율 축은 부르는 곳이 없어 걷었다.
  *
  * **셈이 여기에만 있는 것은 아니다.** 후보 노출은 상대의 오행 요약을 브라우저로
- * 내려보내지 않으므로 DB 안에서 같은 셈을 한 번 더 한다(`discovery_complement` ·
- * `discovery_combined_balance`). 두 언어에 하나씩 있으므로 갈릴 수 있고, 그래서
+ * 내려보내지 않으므로 DB 안에서 같은 셈을 한 번 더 한다(`discovery_count_balance_v1` ·
+ * `discovery_deficit_complement_v1`). 두 언어에 하나씩 있으므로 갈릴 수 있고, 그래서
  * **양쪽 시험이 같은 입력에 같은 기대값**을 든다 — 한쪽만 고치면 다른 쪽이 깨진다.
  */
 
@@ -36,45 +35,6 @@ export function elementSummaryOf(distribution: ElementSummary): ElementSummary {
     counts: { ...distribution.counts },
     ratios: { ...distribution.ratios },
   };
-}
-
-/** 내 원국에 아예 없는 오행 — 눈에 보이는 글자 기준 */
-const missingOf = (summary: ElementSummary): Element[] =>
-  ELEMENTS.filter((element) => summary.counts[element] === 0);
-
-/**
- * 상대가 내 없는 오행을 얼마나 채우는가 — 한 방향. 0~100.
- *
- * 빠진 오행이 없다는 것은 상대가 채울 몫도 없다는 뜻이다. 완벽한 궁합으로 올리지 않고
- * 중립값에 둔다. 이 숫자는 제품 선택이며 명리 규칙이 아니다.
- */
-export function complementOneWay(mine: ElementSummary, partner: ElementSummary): number {
-  const missing = missingOf(mine);
-  if (missing.length === 0) return 70;
-
-  const supplied = missing.filter((element) => partner.counts[element] > 0);
-  return (supplied.length / missing.length) * 100;
-}
-
-/** 양방향 평균 — 어느 쪽을 먼저 넣든 같은 값이다(자리 대칭) */
-export const complementOf = (a: ElementSummary, b: ElementSummary): number =>
-  (complementOneWay(a, b) + complementOneWay(b, a)) / 2;
-
-/** 내게 없는 오행 중 상대가 가진 개수 — 문장이 쓰는 수 */
-export const suppliedCountOf = (mine: ElementSummary, partner: ElementSummary): number =>
-  missingOf(mine).filter((element) => partner.counts[element] > 0).length;
-
-/**
- * 두 분포를 합쳤을 때 다섯 축이 얼마나 고른가. 0~100.
- *
- * 각 20% 로부터의 거리 합(최대 1.6)을 뒤집어 정규화한다.
- */
-export function combinedBalanceOf(a: ElementSummary, b: ElementSummary): number {
-  const deviation = ELEMENTS.reduce(
-    (sum, element) => sum + Math.abs((a.ratios[element] + b.ratios[element]) / 2 - 0.2),
-    0,
-  );
-  return (1 - deviation / 1.6) * 100;
 }
 
 /**
@@ -123,12 +83,3 @@ export function mutualDeficitComplementOf(a: ElementSummary, b: ElementSummary):
   const raw = deficitComplementOneWay(a, b) + deficitComplementOneWay(b, a);
   return Math.max(0, Math.min(100, raw * 100));
 }
-
-/** 내 비율이 20%보다 작고 상대가 하나 이상 가진 오행 — 카드 설명용 */
-export const suppliedDeficitElementsOf = (
-  mine: ElementSummary,
-  partner: ElementSummary,
-): Element[] =>
-  ELEMENTS.filter(
-    (element) => countRatioOf(mine, element) < 0.2 && partner.counts[element] > 0,
-  );

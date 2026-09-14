@@ -1,12 +1,13 @@
-import { ELEMENTS, type Element } from '@/src/lib/saju';
+import { ELEMENTS } from '@/src/lib/saju';
 import type { ElementSummary } from '@/src/lib/matching/elementAxes';
 import {
   DISCOVERY_POLICY,
   DISCOVERY_TEASER,
   boardNotes,
+  balanceBandOf,
   cardTextFor,
+  knownElementsOf,
   previewSummaryFor,
-  type BalanceBand,
   type CandidateHighlight,
 } from '@/src/lib/discovery';
 
@@ -79,8 +80,6 @@ type BoardRow = {
   preview_score: number;
 };
 
-const BANDS: readonly BalanceBand[] = ['even', 'mixed', 'skewed'];
-
 /**
  * 지금 내 후보 — **만들어 둔 목록을 읽는다**(ADR 0037).
  *
@@ -100,11 +99,8 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
   if (error) throw new Error(error.message);
 
   const cards = ((data ?? []) as BoardRow[]).map((row) => {
-    const suppliedElements = (row.supplied_elements ?? []).filter((element): element is Element =>
-      (ELEMENTS as readonly string[]).includes(element),
-    );
-    // 밴드 이름을 못 알아보면 가장 낮은 칸으로 읽는다 — 모르는 값을 좋은 쪽으로 눕히지 않는다.
-    const balanceBand = BANDS.find((band) => band === row.balance_band) ?? 'skewed';
+    const suppliedElements = knownElementsOf(row.supplied_elements);
+    const balanceBand = balanceBandOf(row.balance_band);
     /*
       **점수는 여기서 한 번만 자른다.** 카드에 적히는 수와 그 수를 말로 옮긴 문장이
       서로 다른 반올림을 보면, 39.5 짜리 한 사람에게 「40점」과 「잘 맞지 않는 편」이

@@ -4,7 +4,7 @@
 -- 사람에게만」, 「살아 있는 결정은 한 쌍에 하나」, 「수락 순간 판본을 다시 본다」,
 -- 「없는 사람과 못 보는 사람의 답이 같다」.
 begin;
-select plan(92);
+select plan(93);
 
 /**
  * 참여자 하나를 세우는 손잡이.
@@ -347,6 +347,22 @@ select is(
    where i.id = (select r.impression_id from public.match_request r
                  where r.id = (select request_id from asked_again))),
   '요청의 추천 이유는 그 노출 기록의 것과 같다');
+
+/**
+ * **받은 쪽의 이유도 같은 규칙으로 센다.**
+ *
+ * 보낸 쪽 몫은 노출 기록을 옮기고 받은 쪽 몫은 그 자리에서 다시 센다. 두 자리가 다른
+ * 규칙을 부르면 한 요청 안에서 두 사람이 서로 다른 셈으로 난 오행을 본다 — 실제로
+ * 받은 쪽만 옛 규칙(0개)을 부르고 있었다.
+ */
+select is(
+  (select r.supplied_to_addressee from public.match_request r
+   where r.id = (select request_id from asked_again)),
+  (select public.discovery_supplied_elements_v1(i.candidate_summary, i.viewer_summary)
+   from public.discovery_impression i
+   where i.id = (select r.impression_id from public.match_request r
+                 where r.id = (select request_id from asked_again))),
+  '받은 사람의 추천 이유도 후보 카드와 같은 규칙으로 센다');
 set local role authenticated;
 
 reset role;

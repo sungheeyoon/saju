@@ -64,8 +64,8 @@ vi.mock('./model', async () => ({
   submitBackgroundReading: (...args: unknown[]) => submit(...args),
 }));
 
-const { FakeReadingGenerator } = await import('./fake-generator');
-const { beginReading, requestReading } = await import('./pipeline');
+const { GENERATION } = await import('./generation');
+const { beginReading } = await import('./pipeline');
 
 /**
  * **파이프라인이 실제로 이어져 있는가.**
@@ -108,13 +108,9 @@ const started = {
   viewer_is_first: true,
 };
 
-const GOOD = `## 한 줄로\n${'스스로 정한 규칙 안에서 오래 버티는 사람입니다. '.repeat(20)}`;
-
-let generator: InstanceType<typeof FakeReadingGenerator>;
 /** 이 쌍에 적어 둔 사이 — 없으면 `null` 이고 그것이 「모른다」다 */
 let relationOfPair: string | null = null;
 
-const savedCall = () => keyedRpc.mock.calls.find(([name]) => name === 'save_reading');
 const failedCall = () => rpc.mock.calls.find(([name]) => name === 'fail_reading_run');
 
 beforeEach(() => {
@@ -123,13 +119,6 @@ beforeEach(() => {
   selectIn.mockReset();
   edgesIn.mockClear();
   keyedClient.mockReset();
-
-  generator = new FakeReadingGenerator({
-    ok: true,
-    output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: GOOD },
-    usage: null,
-    modelId: null,
-  });
 
   relationOfPair = null;
   rpc.mockImplementation(async (name: string) => {
@@ -148,9 +137,8 @@ beforeEach(() => {
 /**
  * **화면이 실제로 오는 길** — 얼리고 떠나보낸다 (ADR 0020).
  *
- * 위 시험들은 `requestReading` 을 민다. 그 길은 모델의 완성본을 그 자리에서 기다리는
- * 옛 길이고, **화면은 이제 거기로 오지 않는다.** 갈아 끼우고도 시험이 옛 길만 밀면
- * 새 배선은 한 번도 안 지나간 채로 초록이 된다 — 그 상태가 실제로 한 번 있었다.
+ * 완성본을 그 자리에서 기다리던 옛 길(`requestReading`)은 걷었다. 그 길만 밀던 동안 새
+ * 배선은 한 번도 안 지나간 채로 초록이었다 — 그래서 시험도 화면이 오는 이 길만 민다.
  */
 describe('누름은 얼리고 떠나보낸다', () => {
   const frozen = () => keyedRpc.mock.calls.find(([name]) => name === 'freeze_reading_job');
@@ -251,110 +239,49 @@ describe('누름은 얼리고 떠나보낸다', () => {
   });
 });
 
-describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저장한다', () => {
-  it('멀쩡한 글은 저장된다', async () => {
-    await expect(requestReading({ kind: 'self' }, undefined, generator)).resolves.toEqual({
-      ok: true,
-      replaced: true,
-    });
-    expect(savedCall()).toBeDefined();
-  });
-
-  it('모델에 넘긴 것에 출생 원문이 없다 — 자르는 자리를 실제로 지난다', async () => {
-    await requestReading({ kind: 'self' }, undefined, generator);
-
-    const [prompt] = generator.prompts;
-    for (const form of ['1990-05-12', '14:30', '부산']) {
-      expect(prompt, `${form} 이 프롬프트에 실렸다`).not.toContain(form);
-    }
-
-    // 저장되는 근거도 같은 것이어야 한다 — 근거 보기는 모델에 넘긴 것과 정확히 같다.
-    const [, saved] = savedCall() as [string, Record<string, string>];
-    expect(saved.p_evidence).not.toContain('1990-05-12');
-    expect(prompt).toContain(saved.p_evidence);
-  });
-
-  it('**검사를 통과하지 못하면 저장하지 않는다**', async () => {
-    generator.respondWith({
-      ok: true,
-      output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: null, markdown: `${GOOD}\n1990-05-12 에 태어났습니다.` },
-      usage: null,
-      modelId: null,
-    });
-
-    const result = await requestReading({ kind: 'self' }, undefined, generator);
-
-    expect(result.ok).toBe(false);
-    expect(savedCall(), '검사에 걸린 글이 저장됐다').toBeUndefined();
-    expect(failedCall()?.[1]).toMatchObject({ p_failure_code: 'birth-input-leaked' });
-  });
-
-  it('점수 계약을 어긴 글도 저장하지 않는다', async () => {
-    generator.respondWith({ ok: true, output: { metaphor: '두 사람이 같은 속도로 걷는 모양입니다.', score: 70, markdown: GOOD }, usage: null, modelId: null });
-
-    await requestReading({ kind: 'self' }, undefined, generator);
-
-    expect(savedCall()).toBeUndefined();
-    expect(failedCall()?.[1]).toMatchObject({ p_failure_code: 'score-out-of-contract' });
-  });
-
-  it('모델이 실패하면 실패만 남기고 현재 결과를 건드리지 않는다', async () => {
-    generator.respondWith({ ok: false, code: 'model-call-failed', detail: '끊겼다' });
-
-    const result = await requestReading({ kind: 'self' }, undefined, generator);
-
-    expect(result.ok).toBe(false);
-    expect(savedCall()).toBeUndefined();
-    expect(failedCall()?.[1]).toMatchObject({ p_failure_code: 'model-call-failed' });
-  });
-
-  it('저장 열쇠가 없으면 모델을 부르지 않는다', async () => {
-    keyedClient.mockImplementationOnce(() => {
-      throw new NoKeyError('열쇠 없음');
-    });
-
-    const result = await requestReading({ kind: 'self' }, undefined, generator);
-
-    expect(result.ok).toBe(false);
-    expect(generator.prompts).toHaveLength(0);
-    expect(failedCall()?.[1]).toMatchObject({ p_failure_code: 'closed' });
-  });
-
-  it('같은 요청이 이미 돌았으면 모델을 부르지 않는다', async () => {
+describe('누름은 시도를 한 번만 연다', () => {
+  it('같은 요청이 이미 돌았으면 보내지 않는다', async () => {
     rpc.mockImplementation(async (name: string) =>
       name === 'start_reading_run' ? { data: [], error: null } : { data: null, error: null },
     );
 
-    await expect(requestReading({ kind: 'self' }, 'same-key', generator)).resolves.toEqual({
+    await expect(beginReading({ kind: 'self' }, 'same-key')).resolves.toEqual({
       ok: true,
-      replaced: false,
+      started: false,
     });
-    expect(generator.prompts).toHaveLength(0);
+    await settle();
+    expect(submit).not.toHaveBeenCalled();
   });
 
   it('누름의 열쇠를 그대로 넘긴다', async () => {
-    await requestReading({ kind: 'self' }, 'press-0001', generator);
+    await beginReading({ kind: 'self' }, 'press-0001');
+    await settle();
 
     const [, args] = rpc.mock.calls[0] as [string, Record<string, string>];
     expect(args.p_idempotency_key).toBe('press-0001');
   });
 
-  it('저장할 때 대상을 다시 대지 않는다 — 시도 하나가 곧 대상이다', async () => {
-    await requestReading({ kind: 'self' }, undefined, generator);
+  it('시도에 적는 모델은 실제로 보내는 모델이다', async () => {
+    await beginReading({ kind: 'self' });
+    await settle();
 
-    const [, saved] = savedCall() as [string, Record<string, unknown>];
-    expect(Object.keys(saved)).not.toContain('p_kind');
-    expect(Object.keys(saved)).not.toContain('p_person_a');
-    expect(Object.keys(saved)).not.toContain('p_match_id');
-    expect(saved.p_run_id).toBe('run-1');
+    const [, startedArgs] = rpc.mock.calls[0] as [string, Record<string, unknown>];
+    const froze = keyedRpc.mock.calls.find(([name]) => name === 'freeze_reading_job') as [
+      string,
+      Record<string, unknown>,
+    ];
+    expect(startedArgs.p_model).toBe(GENERATION.model);
+    expect(froze[1].p_requested_model).toBe(GENERATION.model);
   });
+});
 
-  /**
-   * **관계는 내가 한쪽에 서 있을 때만 안다.**
-   *
-   * 저장한 값은 「나와 그 사람」이지 「그 둘」이 아니다. 이 배선이 없으면 궁합풀이가
-   * 두 사람이 무슨 사이인지 모른 채 쓰이고, 그 기본값은 사실상 연애다.
-   */
+/**
+ * **관계는 내가 한쪽에 서 있을 때만 안다.**
+ *
+ * 저장한 값은 「나와 그 사람」이지 「그 둘」이 아니다. 이 배선이 없으면 궁합풀이가
+ * 두 사람이 무슨 사이인지 모른 채 쓰이고, 그 기본값은 사실상 연애다.
+ */
+describe('궁합은 쌍에 적어 둔 사이로 읽는다', () => {
   const pairRun = {
     ...started,
     person_b: 'person-b',
@@ -375,13 +302,14 @@ describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저�
       error: null,
     });
 
-    await requestReading(
-      { kind: 'private', personA: 'person-a', personB: 'person-b' },
-      undefined,
-      generator,
-    );
+    await beginReading({ kind: 'private', personA: 'person-a', personB: 'person-b' });
+    await settle();
 
-    return generator.prompts[0];
+    const froze = keyedRpc.mock.calls.find(([name]) => name === 'freeze_reading_job') as [
+      string,
+      Record<string, string>,
+    ];
+    return froze[1].p_prompt;
   };
 
   it('쌍에 적어 둔 사이를 프롬프트가 든다', async () => {
@@ -415,16 +343,5 @@ describe('결과 생성 요청은 자르고 · 부르고 · 검사하고 · 저�
     const prompt = await askForPair();
     expect(prompt).toContain('무슨 사이인지 모른다');
     expect(prompt).not.toContain('가족이다');
-  });
-
-  it('provider 메타데이터도 교체 가능한 생성기에서 가져온다', async () => {
-    await requestReading({ kind: 'self' }, undefined, generator);
-
-    const [, startedArgs] = rpc.mock.calls[0] as [string, Record<string, unknown>];
-    const [, saved] = savedCall() as [string, Record<string, unknown>];
-    expect(startedArgs.p_model).toBe('fake/reading');
-    expect(saved.p_model).toBe('fake/reading');
-    /* 쓴 토큰도 함께 남는다 — 가짜 생성기는 못 세므로 `null` 이다(ADR 0039) */
-    expect(saved.p_generation).toEqual({ provider: 'fake', settings: {}, usage: null });
   });
 });

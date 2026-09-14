@@ -13,7 +13,8 @@ import {
 } from '@/src/lib/consent';
 import { NICKNAME_MAX, NICKNAME_MIN, missingNickname, nicknameKey } from '@/src/lib/profile';
 
-import { checkNickname, completeSignup } from './actions';
+import { checkNickname } from '../nickname';
+import { completeSignup } from './actions';
 
 const FIELD =
   'h-11 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash sm:h-10';

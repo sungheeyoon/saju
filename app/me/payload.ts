@@ -3,6 +3,7 @@ import type { Saju } from '@/src/lib/saju';
 import { supabaseOnServer } from '../auth/server-client';
 import { chartOf } from '@/src/lib/input/chart';
 import { queryFromRevision } from '@/src/lib/input/revision';
+import { UUID } from '../uuid';
 
 /**
  * **저장된 한 사람이 브라우저로 내려가는 유일한 문.**
@@ -47,8 +48,6 @@ export type PersonPayload = {
 };
 
 /** 주소로 들어온 값이라 모양부터 본다 — 형식이 틀린 것도 「없는 사람」과 같은 답이다 */
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * @returns 볼 수 있으면 payload, **없거나 못 보면 `null`.**
  *

@@ -230,6 +230,8 @@ test.describe('동의로 열리는 흐름', () => {
     await asker.page.getByRole('button', { name: '출생 정보 수정' }).click();
     await fillBirthDate(asker.page, '1988-02-11');
     await asker.page.getByRole('button', { name: '변경 사항 저장' }).click();
+    // 요청이 취소된다는 확인을 거쳐야 저장된다 — 경고는 그 누름 직전에 선다.
+    await asker.page.getByRole('button', { name: '바꾸고 저장하기' }).click();
     await expect(asker.page.getByText('1988-02-11')).toBeVisible();
 
     /*

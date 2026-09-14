@@ -1094,6 +1094,10 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await fillBirthDate(page, '1990-06-20');
     await page.getByRole('button', { name: '변경 사항 저장' }).click();
 
+    // 내 사주는 여덟 글자를 바꾸기 전에 한 번 묻는다 — 걸린 인연 요청이 취소되기 때문이다.
+    await expect(page.getByRole('dialog', { name: '출생 정보를 바꿀까요?' })).toBeVisible();
+    await page.getByRole('button', { name: '바꾸고 저장하기' }).click();
+
     await expect(page.getByText('1990-06-20')).toBeVisible();
     await expect(page.getByText('1990-05-15')).toHaveCount(0);
   });

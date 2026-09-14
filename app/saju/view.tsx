@@ -110,9 +110,8 @@ export function sajuViewModelOf(saju: Saju, viewedAt: number): SajuViewModel {
 
   /*
     **현재운 문장은 더 이상 안 짓는다.** 그것을 세우던 카드가 없어졌다 — 어느 운이
-    도는지는 표가 짚고, 겹치는 자리는 `now.overlaps` 가 그대로 든다. 조립기
-    (`assembleNowText`)는 지우지 않는다: 시험이 그 계약을 재고 있고, 화면이 안 쓰는
-    것과 없어도 되는 것은 다른 말이다.
+    도는지는 표가 짚고, 겹치는 자리는 `now.overlaps` 가 그대로 든다. 문장을
+    짓던 현재운 조립기도 함께 걷었다.
   */
   return {
     saju,

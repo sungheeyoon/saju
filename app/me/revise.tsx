@@ -1,7 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
+
+import { REVISION_CHANGE_CONFIRM } from '@/src/lib/consent';
 
 import { BirthFields } from '../birth-form';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
@@ -25,10 +27,18 @@ export function ReviseChart({
   embedded = false,
   variant = 'link',
   editableName = true,
+  confirmsRequests = false,
 }: {
   personId: string;
   current: Query;
   embedded?: boolean;
+  /**
+   * 여덟 글자를 바꾸기 전에 **요청이 취소된다고 한 번 묻는가.**
+   *
+   * 인연 요청은 내 명식에만 걸리므로 내 사주(`/me`)만 켠다. 저장한 사람을 고치는 자리는
+   * 걸린 요청이 없어 물을 것이 없다.
+   */
+  confirmsRequests?: boolean;
   /**
    * 여는 손잡이의 모양 — **글자냐 카드 모서리의 아이콘이냐.**
    *
@@ -71,6 +81,7 @@ export function ReviseChart({
               personId={personId}
               current={current}
               editableName={editableName}
+              confirmsRequests={confirmsRequests}
               onDone={() => setOpen(false)}
               onCancel={() => setOpen(false)}
             />
@@ -87,6 +98,7 @@ export function ReviseChart({
         current={current}
         embedded={embedded}
         editableName={editableName}
+        confirmsRequests={confirmsRequests}
         onDone={() => setOpen(false)}
         onCancel={() => setOpen(false)}
       />
@@ -120,6 +132,7 @@ export function ReviseForm({
   current,
   embedded = false,
   editableName = true,
+  confirmsRequests = false,
   onDone,
   onCancel,
 }: {
@@ -127,6 +140,7 @@ export function ReviseForm({
   current: Query;
   embedded?: boolean;
   editableName?: boolean;
+  confirmsRequests?: boolean;
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -134,12 +148,14 @@ export function ReviseForm({
   const [query, setQuery] = useState(current);
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
+  const [confirming, setConfirming] = useState(false);
 
   const missing = missingAnswer(query);
   const nameChanged = editableName && query.name.trim() !== current.name.trim();
   const pillarsSame = samePillarInput(current, query);
 
   const save = () => {
+    setConfirming(false);
     setFailure(null);
     startSaving(async () => {
       const result = await revisePerson(personId, query);
@@ -184,7 +200,8 @@ export function ReviseForm({
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
-          onClick={save}
+          /* 여덟 글자가 바뀌는 누름만 묻는다 — 이름만 고치는 것은 요청을 안 건드린다 */
+          onClick={confirmsRequests && !pillarsSame ? () => setConfirming(true) : save}
           disabled={missing !== null || saving || (pillarsSame && !nameChanged)}
           className="h-11 rounded-lg bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-60 sm:h-10"
         >
@@ -202,6 +219,66 @@ export function ReviseForm({
       </div>
 
       {failure !== null && <p className="text-sm text-muted">저장하지 못했습니다 — {failure}</p>}
+
+      {confirming && (
+        <RevisionConfirm personId={personId} onConfirm={save} onCancel={() => setConfirming(false)} />
+      )}
     </section>
+  );
+}
+
+/**
+ * 내 출생 정보를 바꾸기 직전의 확인 — **경고는 되돌릴 수 없는 누름 직전에 선다**(ADR 0028).
+ *
+ * 바꾸면 답을 기다리던 인연 요청이 취소된다. 그 사실을 바꾼 뒤에 소식으로만 알면 사고처럼
+ * 읽힌다. 문구는 `REVISION_CHANGE_CONFIRM` 한 자리에서 읽는다.
+ */
+function RevisionConfirm({
+  personId,
+  onConfirm,
+  onCancel,
+}: {
+  personId: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const confirming = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (confirming.current !== null && !confirming.current.open) confirming.current.showModal();
+  }, []);
+
+  return (
+    <dialog
+      ref={confirming}
+      aria-labelledby={`revise-confirm-${personId}`}
+      onClose={onCancel}
+      className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
+    >
+      <h3 id={`revise-confirm-${personId}`} className="text-base font-bold">
+        {REVISION_CHANGE_CONFIRM.title}
+      </h3>
+      <div className="mt-2 flex flex-col gap-1.5 text-sm leading-6 text-secondary">
+        {REVISION_CHANGE_CONFIRM.body.map((line) => (
+          <p key={line}>{line}</p>
+        ))}
+      </div>
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
+        <button
+          type="button"
+          onClick={onConfirm}
+          className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm sm:h-10"
+        >
+          {REVISION_CHANGE_CONFIRM.confirm}
+        </button>
+        <button
+          type="button"
+          onClick={() => confirming.current?.close()}
+          className="h-11 rounded-xl border border-border px-5 text-sm text-secondary hover:border-border-strong hover:text-foreground sm:h-10"
+        >
+          {REVISION_CHANGE_CONFIRM.cancel}
+        </button>
+      </div>
+    </dialog>
   );
 }

@@ -137,7 +137,15 @@ async function SelfChart({ personId }: { personId: string }) {
         label={edge.local_label}
         saju={saju}
         /* 고치는 손잡이는 카드 모서리에 뜬다 — 저장한 사람 카드의 관리 메뉴와 같은 자리다 */
-        corner={<ReviseChart personId={personId} current={query} variant="corner" editableName={false} />}
+        corner={
+          <ReviseChart
+            personId={personId}
+            current={query}
+            variant="corner"
+            editableName={false}
+            confirmsRequests
+          />
+        }
         details={
           <section className="mt-5 rounded-2xl border border-border bg-surface-soft/60 px-4 py-3">
             <h3 className="text-xs font-semibold tracking-[0.08em] text-muted">저장된 출생 정보</h3>

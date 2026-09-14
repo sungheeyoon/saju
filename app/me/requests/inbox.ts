@@ -1,5 +1,4 @@
-import { ELEMENTS, type Element } from '@/src/lib/saju';
-import { cardTextFor, type BalanceBand } from '@/src/lib/discovery';
+import { balanceBandOf, cardTextFor, knownElementsOf } from '@/src/lib/discovery';
 import { READING_KINDS, type ReadingKind } from '@/src/lib/reading';
 import {
   NOTIFICATION_KINDS,
@@ -119,30 +118,16 @@ export type Inbox = {
   readonly blocked: number;
 };
 
-const BANDS: readonly BalanceBand[] = ['even', 'mixed', 'skewed'];
-
-/** 모르는 오행 글자는 버린다. 모르는 값을 그럴듯한 것으로 눕히지 않는다 */
-function elementsOf(raw: string[] | null): Element[] {
-  return (raw ?? []).filter((element): element is Element =>
-    (ELEMENTS as readonly string[]).includes(element),
-  );
-}
-
-/** 밴드 이름을 못 알아보면 가장 낮은 칸으로 읽는다 — 좋은 쪽으로 눕히지 않는다 */
-function bandOf(raw: string): BalanceBand {
-  return BANDS.find((band) => band === raw) ?? 'skewed';
-}
-
 const matchOf = (row: MatchRow): InboxMatch => ({
   matchId: row.match_id,
   partnerUserId: row.partner_user_id,
   nickname: row.partner_nickname ?? '',
   intro: row.partner_intro,
   hasPhoto: row.partner_has_photo === true,
-  suppliedToMe: suppliedText(elementsOf(row.supplied_to_me), 'toMe'),
+  suppliedToMe: suppliedText(knownElementsOf(row.supplied_to_me), 'toMe'),
   balanceLabel: cardTextFor({
     suppliedElements: [],
-    balanceBand: bandOf(row.balance_band),
+    balanceBand: balanceBandOf(row.balance_band),
   }).balanceLabel,
   createdAt: row.created_at,
 });
@@ -227,11 +212,11 @@ export async function inboxForViewer(): Promise<Inbox> {
           intro: row.counterpart_intro,
           hasPhoto: row.counterpart_has_photo === true,
           status,
-          suppliedToMe: suppliedText(elementsOf(row.supplied_to_me), 'toMe'),
-          suppliedToThem: suppliedText(elementsOf(row.supplied_to_them), 'toThem'),
+          suppliedToMe: suppliedText(knownElementsOf(row.supplied_to_me), 'toMe'),
+          suppliedToThem: suppliedText(knownElementsOf(row.supplied_to_them), 'toThem'),
           balanceLabel: cardTextFor({
             suppliedElements: [],
-            balanceBand: bandOf(row.balance_band),
+            balanceBand: balanceBandOf(row.balance_band),
           }).balanceLabel,
           createdAt: row.created_at,
           decidedAt: row.decided_at,
