@@ -48,10 +48,54 @@ const psql = (statement) =>
  * 오늘로 밀어 둔다 — 자정을 걸친 검사가 이유 없이 빨간불이 되지 않게.
  */
 export function seedSignupCode(code = CHECK_CODE, maxUses = 100) {
+  /*
+    **정원은 쌓인다.** 「오늘 정원」이라고 말하지만 세는 것은 이 코드로 가입한 계정
+    전부(`complete_signup`)다. 검사가 계정을 하나씩 만들고 지우지 않으므로, 백 번쯤
+    돌면 그 뒤로는 **아무것도 안 고쳐도 빨간불**이 된다 — 재려던 것과 상관없는 자리에서.
+
+    벽을 넓히지 않는다(정원 자체는 pgTAP 이 잰다). 검사가 만든 계정에서 **이 코드의
+    표식만 뗀다** — 사람이 만든 계정에는 안 닿는다.
+  */
+  psql(`update public.app_user set signup_code = null where signup_code = '${code}'`);
   psql(`insert into public.signup_code (code, note, valid_on, max_uses)
         values ('${code}', '검사', (now() at time zone 'Asia/Seoul')::date, ${maxUses})
         on conflict (code) do update
           set valid_on = excluded.valid_on, max_uses = excluded.max_uses`);
+  clearMachineRunsFromToday();
+}
+
+/**
+ * 도구가 만든 시도를 **오늘에서 비켜 둔다.**
+ *
+ * 하루 전체 상한(`reading_daily_budget`)은 사람이 아니라 **서비스에 걸린 벽**이다.
+ * 로컬은 모델을 부르지 않지만 그 벽이 세는 것은 돈이 아니라 `reading_run` 행이라,
+ * 검사가 풀이를 심을 때마다 한 칸씩 쌓이고 100이 차면 도구가 제 벽에 갇힌다 —
+ * 「오늘 만들 수 있는 풀이를 모두 썼습니다」로 씨앗부터 죽는다.
+ *
+ * **벽은 낮추지 않는다.** 낮추면 그 벽이 실제로 서는지를 영영 못 본다(프로덕션에서는
+ * 이것이 돈을 막는 자리다). 대신 **도구가 심은 줄만** 어제로 미룬다 — 모델 이름이
+ * 그 표식이고, 사람이 만든 줄에는 안 닿는다.
+ *
+ * `scripts/ui-seed.mjs` 와 `e2e/session.ts` 가 같은 일을 한다. 세 층이 각자 돌 수 있어야
+ * 하므로 같은 규칙을 각자 들되, 표식의 목록은 여기 한 벌이다.
+ */
+export const MACHINE_MODELS = ['gpt-e2e', 'gpt-ui-walk', 'gpt-5.6-luna', 'x'];
+
+/**
+ * **표식은 모델 이름만으로 모자랐다.** 동의가 여는 시도(`match`)는 그 자리에서 모델을
+ * 모르므로 `model` 이 비어 있다 — 이름으로만 고르면 그 줄들이 오늘에 남아 쌓인다.
+ * 그래서 **계정으로도 본다**: 도구가 만드는 계정은 전부 `@example.com` 이고, 구글로
+ * 로그인한 사람의 주소는 그럴 수 없다.
+ */
+export function clearMachineRunsFromToday() {
+  const tags = MACHINE_MODELS.map((one) => `'${one}'`).join(', ');
+  psql(`update public.reading_run r
+          set created_at = r.created_at - interval '1 day'
+        where r.created_at >= (date_trunc('day', now() at time zone 'Asia/Seoul')
+                               at time zone 'Asia/Seoul')
+          and (r.model in (${tags})
+               or exists (select 1 from auth.users u
+                           where u.id = r.user_id and u.email like '%@example.com'))`);
 }
 
 /**

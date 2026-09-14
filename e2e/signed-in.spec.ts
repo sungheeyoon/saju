@@ -626,12 +626,22 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('사주풀이와 궁합은 로그인 후')).toHaveCount(0);
 
     /*
-      **「로그인 필요」는 깜빡이지도 않아야 한다.** 얼굴과 이 꼬리표가 세션을 따로
-      물으면 회원 전용 화면 위에 한 틱 동안 그 글자가 선다(`compat-entry.tsx`).
+      **회원의 머리에는 토글이 선다.** 사주와 궁합은 나란한 짝이라 버튼이 아니라 지금
+      어디에 있는지 함께 보이는 한 덩이로 잇는다(`segmented-nav.tsx`).
+
+      **「로그인 필요」는 깜빡이지도 않아야 한다.** 그 꼬리표는 현관의 것이고, 회원
+      화면에 한 틱이라도 서면 화면이 그 사람의 세션이 풀렸다고 말하는 셈이다.
     */
-    const compat = page.getByRole('link', { name: /궁합 보러 가기/ });
-    await expect(compat).toBeVisible();
-    await expect(compat).not.toContainText('로그인 필요');
+    const tabs = page.getByRole('navigation', { name: '사주와 궁합' });
+    await expect(tabs.getByRole('link', { name: '사주', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    await expect(tabs.getByRole('link', { name: '궁합', exact: true })).toHaveAttribute(
+      'href',
+      '/compat',
+    );
+    await expect(page.getByText('로그인 필요')).toHaveCount(0);
 
     /*
       **현관에서 하던 말은 회원에게 안 한다.** 버튼은 이제 양쪽이 같은 글자를 쓰지만

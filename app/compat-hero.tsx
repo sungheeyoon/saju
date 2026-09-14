@@ -1,3 +1,4 @@
+import { SajuCompatTabs } from './segmented-nav';
 import { TabHero } from './tab-hero';
 
 /**
@@ -18,6 +19,13 @@ import { TabHero } from './tab-hero';
  * 한동안 `pick` 을 받아 「궁합 보러 가기」를 세웠다. 그 버튼이 필요했던 화면은 인자 없이
  * 열리는 `/me/compat` 이었고, 그 화면을 걷으면서(풀이 목록이 같은 일을 더 잘 한다)
  * 이 머리가 버튼을 들 자리도 없어졌다.
+ *
+ * ## 대신 토글이 선다
+ *
+ * 버튼을 걷고 나니 **사주로 돌아오는 길도 없어졌다.** 되돌린 것은 버튼이 아니라
+ * `SajuCompatTabs` 다 — 두 화면은 위아래가 아니라 나란한 짝이고, 그 관계를 말하는
+ * 부품은 지금 어디에 있는지 함께 보여 주는 한 덩이다. `/` 의 회원 머리가 **같은 자리에
+ * 같은 것**을 든다(`home-hero.tsx`).
  */
 export function CompatHero() {
   return (
@@ -33,6 +41,7 @@ export function CompatHero() {
           </p>
         </>
       }
+      actions={<SajuCompatTabs current="compat" />}
     />
   );
 }

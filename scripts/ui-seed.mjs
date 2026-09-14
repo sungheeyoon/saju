@@ -16,6 +16,8 @@ import { dirname, join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 
+import { clearMachineRunsFromToday } from './notice.mjs';
+
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 
@@ -85,15 +87,11 @@ export const BETA_ENDS_ON = '2026-10-31';
  * 하루 전체 상한(`reading_daily_budget`)은 사람이 아니라 서비스에 걸린 벽이라, 훑기를
  * 몇 번 돌리면 도구가 제 상한에 갇힌다 — 100번째 그림을 찍고 나면 101번째 실행이
  * 「오늘 만들 수 있는 풀이를 모두 썼습니다」로 죽는다. **벽을 낮추지는 않는다**(그러면
- * 그 벽이 실제로 서는지를 영영 못 본다). 훑기가 심은 것만 어제로 미룬다 —
- * `gpt-ui-walk` 이 그 표식이고, 사람이 만든 줄에는 안 닿는다.
+ * 그 벽이 실제로 서는지를 영영 못 본다). 도구가 심은 것만 어제로 미룬다 — 모델 이름이
+ * 그 표식이고(`MACHINE_MODELS`), 사람이 만든 줄에는 안 닿는다.
  */
 function clearTheWalkFromToday() {
-  sql(`update public.reading_run
-         set created_at = created_at - interval '1 day'
-       where model = 'gpt-ui-walk'
-         and created_at >= (date_trunc('day', now() at time zone 'Asia/Seoul')
-                            at time zone 'Asia/Seoul')`);
+  clearMachineRunsFromToday();
 }
 
 /**

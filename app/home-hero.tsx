@@ -8,6 +8,7 @@ import { HOUR_UNKNOWN_CHOICE } from '@/src/lib/input/query';
 import { supabaseInBrowser } from './auth/browser-client';
 import { CompatEntry } from './compat-entry';
 import { SignedInProvider } from './signed-in';
+import { SajuCompatTabs } from './segmented-nav';
 import {
   TAB_ACTION_PRIMARY,
   TAB_HERO_CARD,
@@ -136,14 +137,19 @@ function Hero({ member, signedIn }: { member: boolean; signedIn: boolean | null 
               저장하지 않고도 바로 볼 수 있습니다.
             </p>
           }
-          actions={
-            <TabActions>
-              <a href="#calculator" className={TAB_ACTION_PRIMARY}>
-                출생 정보 입력하기
-              </a>
-              <CompatEntry signedIn />
-            </TabActions>
-          }
+          /*
+            **회원의 머리에는 토글 하나다.**
+
+            버튼 둘이 서 있었다 — 「출생 정보 입력하기」(`#calculator`)와 「궁합 보러
+            가기」. 앞엣것은 **바로 아래 보이는 폼으로 스크롤만 하는 누름**이고(`/compat`
+            에서 같은 이유로 걷었다), 뒤엣것은 나란한 짝으로 가는 길인데 버튼 모양이라
+            위아래 관계처럼 보였다.
+
+            지금은 사주와 궁합이 **한 덩이 토글**로 선다. 지금 어디에 있는지와 다른
+            반쪽으로 가는 길을 한 부품이 함께 말한다 — 한 사람의 사주와 풀이가 이미
+            같은 모양이다(`SegmentedNav`).
+          */
+          actions={<SajuCompatTabs current="saju" />}
         />
       ) : (
         <VisitorFace signedIn={signedIn} />

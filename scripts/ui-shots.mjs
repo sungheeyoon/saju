@@ -10,7 +10,7 @@
  * `/signup` 은 가입 전에만 선다. 그래서 목록의 단위가 상태 안의 경로다.
  */
 
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { chromium } from '@playwright/test';
@@ -103,6 +103,12 @@ const PLAN = [
     group: '쓰는 중',
     shots: [
       { id: 'me', at: '/me', name: '내 계정 (홈)' },
+      /*
+        **`/` 는 두 얼굴이다.** 익명 무리의 `home` 은 현관(제품 소개)이고, 회원이 메뉴의
+        「사주·궁합」으로 걸어오면 같은 주소가 **연장**으로 선다 — 머리에 사주·궁합
+        토글이 서고 계산기 위 안내가 빠진다. 한쪽만 찍어 두면 그 차이가 갤러리에 없다.
+      */
+      { id: 'home-member', at: '/', name: '사주 — 회원이 열었을 때' },
       { id: 'self-reading', at: '/me/readings/self', name: '내 사주풀이' },
       { id: 'profile', at: '/me/profile', name: '프로필' },
       { id: 'settings', at: '/me/settings', name: '설정' },
@@ -266,7 +272,27 @@ for (const step of PLAN) {
   }
 }
 
-await writeFile(join(out, 'index.json'), `${JSON.stringify(index, null, 2)}\n`);
+/**
+ * **몇 개만 다시 찍어도 목록은 온전하다.**
+ *
+ * `UI_ONLY` 로 세 화면만 찍고 나면 이 파일이 그 셋으로 덮여, 갤러리를 다시 엮을 때
+ * 나머지 서른이 없는 것이 된다. 있던 목록을 읽어 **같은 id 만 갈아 끼운다** — 차례는
+ * `PLAN` 이 정하므로 새로 들어온 화면도 제자리에 선다.
+ */
+const merged = await (async () => {
+  if (only.length === 0) return index;
+  try {
+    const before = JSON.parse(await readFile(join(out, 'index.json'), 'utf8'));
+    const fresh = new Map(index.map((one) => [one.id, one]));
+    const kept = before.map((one) => fresh.get(one.id) ?? one);
+    const added = index.filter((one) => !before.some((old) => old.id === one.id));
+    return [...kept, ...added];
+  } catch {
+    return index;
+  }
+})();
+
+await writeFile(join(out, 'index.json'), `${JSON.stringify(merged, null, 2)}\n`);
 await browser.close();
 later?.stop();
 console.log(`\n${index.length}개 화면 × 2폭 → ${out}/`);
