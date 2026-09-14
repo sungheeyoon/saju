@@ -1,6 +1,6 @@
 -- discovery — 참여한 사람만 보고, 사주로는 아무도 지우지 않는다.
 begin;
-select plan(57);
+select plan(47);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim,
@@ -9,11 +9,10 @@ select tests.signup('kim@example.com') as kim,
 grant select on who to authenticated;
 
 /**
- * 오행 요약 두 벌 — **`src/lib/matching/elementAxes.test.ts` 에 같은 것이 있다.**
+ * 오행 요약 세 벌 — 참여·후보·노출 시험이 내놓는 표본이다.
  *
- * 두 축은 TypeScript 와 SQL 에 하나씩 적혀 있다(후보의 요약을 브라우저로 내려보내지
- * 않으려면 DB 안에서도 세야 한다). 두 자리가 갈릴 수 있으므로 같은 입력에 같은
- * 기대값을 양쪽에 적어 둔다.
+ * 축의 셈은 아래 `discovery-v1` 절이 따로 잰다 — **`src/lib/matching/elementAxes.test.ts` 에
+ * 같은 입력과 같은 기대값이 있다.** 두 언어에 하나씩 적힌 셈이라 갈릴 수 있기 때문이다.
  */
 create temporary table summaries as
 select
@@ -24,54 +23,6 @@ select
   '{"glyphCount":8,"counts":{"木":2,"火":2,"土":2,"金":1,"水":1},
     "ratios":{"木":0.25,"火":0.25,"土":0.25,"金":0.125,"水":0.125}}'::jsonb as 다있다;
 grant select on summaries to authenticated;
-
--- ── 두 축 ─────────────────────────────────────────────────────────────────────
-select is(
-  round(public.discovery_complement_one_way((select 토금뿐 from summaries), (select 고른네오행 from summaries)), 4),
-  66.6667::numeric,
-  '없는 오행 셋 중 둘을 채우면 66.6667 이다');
-
-select is(
-  public.discovery_complement_one_way((select 고른네오행 from summaries), (select 토금뿐 from summaries)),
-  0::numeric,
-  '채우는 것이 없으면 0 이다');
-
-select is(
-  public.discovery_complement_one_way((select 다있다 from summaries), (select 토금뿐 from summaries)),
-  70::numeric,
-  '빠진 오행이 없으면 중립값 70 이다');
-
-select is(
-  round(public.discovery_complement((select 고른네오행 from summaries), (select 토금뿐 from summaries)), 4),
-  33.3333::numeric,
-  '보완은 양방향 평균이다');
-
-select is(
-  public.discovery_complement((select 토금뿐 from summaries), (select 고른네오행 from summaries)),
-  public.discovery_complement((select 고른네오행 from summaries), (select 토금뿐 from summaries)),
-  '자리를 바꿔도 같다');
-
-select is(
-  round(public.discovery_combined_balance((select 고른네오행 from summaries), (select 토금뿐 from summaries)), 4),
-  56.2500::numeric,
-  '함께 놓은 균형은 56.25 다');
-
-/**
- * **개수가 아니라 이름을 낸다.**
- *
- * 후보 카드는 「무엇을 채우는지」를 말해야 하는 맛보기다. 개수만 내면 그 말을 할 수
- * 없다. 여기서 나가는 것은 내게 없는 오행 중 상대가 가진 것뿐이고, 상대의 전체
- * 구성(개수표)은 여전히 안 나간다(ADR 0003 「이행」).
- */
-select is(
-  public.discovery_supplied_elements((select 토금뿐 from summaries), (select 고른네오행 from summaries)),
-  array['木', '火'],
-  '채우는 오행을 이름으로 낸다');
-
-select is(
-  public.discovery_supplied_elements((select 고른네오행 from summaries), (select 토금뿐 from summaries)),
-  array[]::text[],
-  '채우는 것이 없으면 빈 목록이다');
 
 -- ── discovery-v1 오행 첫인상 ─────────────────────────────────────────────────
 select is(
@@ -374,14 +325,6 @@ select ok(
  *
  * 반환형에서 뺀 것이 뜻을 가지려면, 같은 값을 다른 문으로 받아 갈 수 없어야 한다.
  */
-select function_privs_are('public', 'discovery_complement', array['jsonb', 'jsonb'],
-  'authenticated', array[]::text[],
-  '두 축을 로그인한 사람이 직접 부를 수 없다');
-
-select function_privs_are('public', 'discovery_supplied_elements', array['jsonb', 'jsonb'],
-  'authenticated', array[]::text[],
-  '추천 이유를 세는 함수도 직접 부를 수 없다');
-
 select function_privs_are('public', 'discovery_count_balance_v1', array['jsonb', 'jsonb'],
   'authenticated', array[]::text[],
   'v1 균형 함수는 로그인한 사람이 직접 부를 수 없다');

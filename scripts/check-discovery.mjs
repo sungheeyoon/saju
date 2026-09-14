@@ -397,7 +397,7 @@ const isolate = (emails) => {
       keys.join(',') === 'balance_band,candidate_user_id,exploration,has_photo,intro,nickname,preview_score,seat,supplied_elements',
       keys.join(','));
 
-    const axis = await me.rpc('discovery_complement', { a: {}, b: {} });
+    const axis = await me.rpc('discovery_count_balance_v1', { a: {}, b: {} });
     check('두 축을 세는 함수는 직접 못 부른다', axis.error !== null, axis.error?.message ?? '불렸다');
 
     const active = await me.rpc('is_active_account');
