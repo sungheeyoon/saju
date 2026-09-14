@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The in-app preview reaches the dev server through IPv4 loopback.
+  allowedDevOrigins: ['127.0.0.1', 'localhost'],
   /**
    * 빌드 산출물을 어디에 둘지 — **평소에는 `.next` 하나다.**
    *

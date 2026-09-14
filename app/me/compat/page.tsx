@@ -110,7 +110,7 @@ export default async function ManagedCompatPage({
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
-      <CompatHero />
+      <CompatHero pick="/compat" />
 
       <div className="flex flex-col gap-6">
         {/*

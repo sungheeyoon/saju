@@ -8,6 +8,7 @@ import { CopyLinkButton } from './copy-link';
 import { calculateChart } from '@/src/lib/input/chart';
 import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
+import { useSignedIn } from './signed-in';
 import { SajuView, sajuViewModelOf } from './saju/view';
 import {
   DEFAULT_QUERY,
@@ -30,8 +31,19 @@ import {
  *
  * 여기서는 그 스물넷이 결국 번들에 실린다. `#` 뒤는 서버에 오지 않으므로(ADR 0007)
  * 계산도 조립도 브라우저에서 할 수밖에 없다 — 그것이 이 화면이 치르는 값이다.
+ *
+ * ## 누구의 명식을 넣고 있나
+ *
+ * 세션은 문을 여는 값이 아니라 **화면이 누구를 부를지**를 정한다. 로그인하지
+ * 않은 사람이 `/` 에서 넣는 것은 대개 자기 것이다 — 현관이 그렇게 묻는다. 회원이
+ * 여기 넣는 것은 대개 **남의 것**이다: 자기 명식은 이미 저장돼 있고 「내 사주」가 열며,
+ * 이 화면은 메뉴에서 「사주·궁합」으로 따로 걸어와야 닿는다(`home-hero.tsx`).
+ *
+ * 그래서 버튼이 갈린다. 회원에게 「**내** 사주 먼저 살펴보기」라고 적으면, 아는 사람의
+ * 생년월일시를 적어 넣은 사람이 자기 것을 누르는 버튼을 보게 된다.
  */
 export function SajuCalculator() {
+  const signedIn = useSignedIn();
   const searchParams = useHashParams();
   const query = useMemo(() => queryFromSearchParams(searchParams), [searchParams]);
 
@@ -131,7 +143,11 @@ export function SajuCalculator() {
             aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
             className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 sm:h-10 sm:w-auto"
           >
-            {query === null ? '내 사주 먼저 살펴보기' : '수정한 정보로 다시 보기'}
+            {query !== null
+              ? '수정한 정보로 다시 보기'
+              : signedIn
+                ? '이 사람 명식 보기'
+                : '내 사주 먼저 살펴보기'}
           </button>
 
           {/*
@@ -155,9 +171,16 @@ export function SajuCalculator() {
           )}
         </div>
 
-        <p className="text-xs leading-5 text-secondary">
-          기본 명식을 먼저 살펴보고, 나의 성향과 운이 궁금하면 자세한 사주풀이로 이어가세요.
-        </p>
+        {/*
+          **회원에게는 이 줄을 안 세운다.** 「나의 성향과 운이 궁금하면」은 자기 것을
+          넣는 사람에게 하는 말이고, 저장하면 무슨 일이 일어나는지는 명식 아래 입구가
+          이미 말한다(`save-for-reading.tsx`).
+        */}
+        {!signedIn && (
+          <p className="text-xs leading-5 text-secondary">
+            기본 명식을 먼저 살펴보고, 나의 성향과 운이 궁금하면 자세한 사주풀이로 이어가세요.
+          </p>
+        )}
 
         {dirty && (
           <p className="text-sm text-secondary">
@@ -174,25 +197,26 @@ export function SajuCalculator() {
       */}
       {result === null ? null : result.ok ? (
         <>
-          {query !== null && <SavePersonForReading query={query} />}
-          <SajuView {...model!} />
           {/*
             **AI 로 가는 길은 저장 하나다.** 이 화면은 대상을 안 만들므로 시도도 잠금도
             풀이권도 걸 자리가 없다(ADR 0013·0030). 저장하면 그 사람의 화면으로 가고,
             거기가 저장한 사람의 풀이가 사는 자리다.
 
-            `SajuView` 안이 아니라 여기다 — 그 컴포넌트는 저장한 사람의 화면도 함께 쓴다
-            (`SajuResult`). 안에 두면 **이미 저장된 사람에게 「저장하세요」가 선다.**
+            공개 계산기만 afterChart 슬롯에 입구를 넘긴다. 저장한 사람의 화면에는
+            이 입구가 나오지 않는다.
+
+            **맨 아래에 같은 입구를 한 번 더 세우지 않는다.** 입구가 명식 위에 서 있던
+            동안에는 결과 끝에 「↑」 링크가 하나 더 있었다. 입구가 명식 바로 아래로
+            내려온 지금 그 링크는 4천 픽셀 위로 되돌려 보내는 화살표다 — 가까운 곳을
+            가리키는 얼굴로 먼 곳을 가리킨다.
 
             `query` 를 넘긴다. 폼(`form`)은 사용자가 지금 고치고 있는 값이라, 그것을
             저장하면 화면에 서 있는 명식과 다른 사람이 목록에 남는다.
           */}
-          <a href="#reading-next" onClick={(event) => {
-            event.preventDefault();
-            document.getElementById('reading-next')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }} className="flex min-h-12 items-center justify-center rounded-xl border border-border bg-surface px-5 py-3 text-sm font-semibold text-accent">
-            이 사주가 궁금하다면, 자세한 풀이로 이어가기 ↑
-          </a>
+          <SajuView
+            {...model!}
+            afterChart={query !== null ? <SavePersonForReading query={query} /> : null}
+          />
         </>
       ) : (
         <p role="alert" className={`${CARD} text-sm`}>

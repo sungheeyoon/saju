@@ -43,6 +43,64 @@ test('로그인이 끊기면 왜인지 모른다고 말한다', async ({ page })
   await expect(page.getByRole('heading', { name: '로그인하지 못했습니다' })).toBeVisible();
 });
 
+/**
+ * **콜백은 다른 오리진으로 보내지 않는다.**
+ *
+ * 여기서 `new URL(경로, request.url)` 로 절대 주소를 짓고 있었는데, 그 origin 은
+ * 요청이 들어온 주소가 아니라 **서버가 묶인 주소**다. `--hostname 0.0.0.0` 으로 띄운
+ * 개발 서버에서 `localhost:3000` 으로 로그인하면 `0.0.0.0:3000` 으로 돌려보냈다.
+ *
+ * 그 둘은 다른 오리진이라 **방금 붙인 세션 쿠키가 안 실린다.** 로그인은 성공했는데
+ * 도착한 화면에는 세션이 없고, 관문이 다시 로그인 화면으로 튕긴다 — 사용자에게는
+ * 「로그인했는데 계속 로그인하라고 한다」로 보인다. 실제로 그렇게 보였다.
+ *
+ * 붙은 서버 이름에 기대지 않고 재려고 **응답의 `Location` 을 직접 본다.** 검사용
+ * 서버는 `localhost` 로 묶이므로, 화면이 어디에 도착했는지만 보면 버그가 있어도
+ * 초록으로 지나간다.
+ */
+test('로그인 콜백은 오리진을 짓지 않고 경로만 돌려준다', async ({ request }) => {
+  const denied = await request.get('/auth/callback?error=access_denied', { maxRedirects: 0 });
+  expect(denied.status()).toBe(307);
+  expect(denied.headers()['location']).toBe('/auth/denied');
+
+  const stray = await request.get('/auth/callback', { maxRedirects: 0 });
+  expect(stray.status()).toBe(307);
+  expect(stray.headers()['location']).toBe('/auth');
+});
+
+/**
+ * **끝난 로그인 흐름은 자기 검증 쿠키를 남기지 않는다.**
+ *
+ * 로그인을 시작할 때마다 PKCE 검증 쿠키가 하나 생기는데, 이름에 그 시도의 번호가
+ * 박혀서(`…-flow-<난수>-code-verifier`) **덮어쓰이지 않고 쌓인다.** 끝까지 못 간
+ * 시도마다 하나씩 늘고, 쌓인 것은 그 뒤 모든 요청에 실려 나간다.
+ *
+ * 쌓이면 요청 헤더가 Node 의 한도(16KB)를 넘고 서버는 화면 대신 **431** 을 돌려준다.
+ * 그러면 로그인이 안 되고, 안 되니 또 시도하고, 시도마다 하나가 는다 — 로컬에서
+ * 실제로 이 구덩이에 빠져 한동안 아무 화면도 안 열렸다.
+ *
+ * **세션 쿠키는 안 건드린다**를 함께 잰다. 쓸어 내는 빗자루가 넓으면 이 자리가
+ * 사람을 로그아웃시키는 자리가 된다.
+ */
+test('로그인 흐름이 끝나면 쌓인 검증 쿠키를 쓸어 낸다', async ({ page, context }) => {
+  await context.addCookies(
+    [
+      { name: 'sb-test-auth-token-flow-1111-code-verifier', value: 'a' },
+      { name: 'sb-test-auth-token-flow-2222-code-verifier', value: 'b' },
+      { name: 'sb-test-auth-token-flows-code-verifier', value: 'c' },
+      /* 지우면 안 되는 것 — 이게 사라지면 로그인이 풀린다 */
+      { name: 'sb-test-auth-token.0', value: 'keep' },
+    ].map((cookie) => ({ ...cookie, url: 'http://localhost:3000' })),
+  );
+
+  await page.goto('/auth/callback?error=access_denied');
+  await expect(page).toHaveURL(/\/auth\/denied$/);
+
+  const left = (await context.cookies()).map((cookie) => cookie.name);
+  expect(left.filter((name) => name.endsWith('-code-verifier'))).toEqual([]);
+  expect(left).toContain('sb-test-auth-token.0');
+});
+
 test('사주 계산은 로그인 없이 열리고 궁합은 로그인으로 이어진다', async ({ page }) => {
   await page.goto('/');
 

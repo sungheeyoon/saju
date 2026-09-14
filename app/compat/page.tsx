@@ -49,15 +49,17 @@ export default async function CompatPage() {
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
-      <CompatHero />
+      <CompatHero pick="#pair" />
 
       {/*
         원국 화면과 같은 이유로 Suspense 아래에 둔다 — 주소창의 `#` 뒤를 읽는데
         이 페이지는 빌드 때 미리 그려지고, fragment 는 서버에 오지 않는다.
       */}
-      <Suspense fallback={<div className="h-72 rounded-[1.75rem] border border-border bg-surface" />}>
-        <CompatPicker people={people} />
-      </Suspense>
+      <section id="pair" className="scroll-mt-24">
+        <Suspense fallback={<div className="h-72 rounded-[1.75rem] border border-border bg-surface" />}>
+          <CompatPicker people={people} />
+        </Suspense>
+      </section>
 
       <footer className="border-t border-border py-6 text-xs leading-6 text-muted">
         직접 입력한 사람은 <strong className="font-medium">사람 목록에 저장되지 않습니다.</strong>

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { sajuViewFor } from './request-view';
 import {
   TOPIC_TABLE_FOOTNOTE,
@@ -144,11 +145,12 @@ function asOf(now: CurrentFortune): string {
   return `${year}년 ${month}월 ${day}일 ${hour}시 ${minute}분`;
 }
 
-export function SajuView({ saju, utterances, now }: SajuViewModel) {
+export function SajuView({ saju, utterances, now, afterChart }: SajuViewModel & { afterChart?: ReactNode }) {
   return (
     <div className="flex flex-col gap-6">
       <ResultNav />
       <PillarChart saju={saju} />
+      {afterChart}
       {/*
         **신살이 여덟 글자 바로 아래 선다.**
 
