@@ -16,11 +16,10 @@ import { DISCOVERY_POLICY, previewScoreOf } from '../discovery';
 import { combinedCountBalanceOf, mutualDeficitComplementOf } from './elementAxes';
 
 /**
- * 테스터에게 보여 주는 첫 매칭 정책.
+ * 궁합 결과 화면의 「궁합 베타」 지표 — `discovery-v1` 두 축을 가중치까지 공개해 보인다.
  *
- * 명리의 정답이나 관계의 좋고 나쁨을 판정하지 않는다. 현재 엔진이 사실로 낼 수 있는
- * 네 묶음을, 가중치까지 공개한 제품 탐색 지표로 바꾼다. 억부·종격·격국은 이 정책의
- * 입력이 아니므로 그 판정이 바뀌어도 match-v0 결과는 흔들리지 않는다.
+ * 명리의 정답이나 관계의 좋고 나쁨을 판정하지 않는다. 억부·종격·격국은 이 지표의
+ * 입력이 아니므로 그 판정이 바뀌어도 수는 흔들리지 않는다.
  */
 export type MatchDimensionKey = keyof typeof DISCOVERY_POLICY.weights;
 

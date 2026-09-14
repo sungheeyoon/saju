@@ -3,7 +3,7 @@ import type { MatchPreview } from '@/src/lib/matching';
 import { CARD } from './card';
 
 /**
- * `match-v0` 를 화면에 세우는 자리 — **여기서는 아무것도 계산하지 않는다.**
+ * 「궁합 베타」 지표를 화면에 세우는 자리 — **여기서는 아무것도 계산하지 않는다.**
  *
  * 숫자와 문구는 전부 `buildMatchPreview` 가 낸다. 화면이 제 손으로 가중치를 얹기
  * 시작하면 정책 버전이 가리키는 것과 사람이 본 것이 갈라진다.
@@ -32,7 +32,7 @@ export function MatchIndexCard({
           **`preview.policyVersion` 은 여기 안 선다.** ADR 0026 이 「딱지에서 뺀다」고
           적어 두고 각주만 고쳤다 — 정작 이 줄이 남아 `궁합 베타 · match-v0` 으로 서
           있었고, e2e 가 그것을 못박아 두어 초록불이었다. 내부 판본 이름은 사용자에게
-          아무 뜻이 없다(CONTEXT.md 「기존 실험 지표」). 값은 `preview` 에 그대로 실려
+          아무 뜻이 없다(ADR 0026). 값은 `preview` 에 그대로 실려
           있으므로 되짚을 때는 자료에서 읽는다.
         */}
         <span className="inline-flex rounded-full bg-accent-wash px-2.5 py-1 text-xs font-medium text-accent">

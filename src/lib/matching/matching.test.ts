@@ -15,7 +15,7 @@ const chart = (year: number, month: number, day: number, hour: number | null) =>
     { longitude: 126.98, useLongitude: true },
   );
 
-describe('match-v0', () => {
+describe('궁합 베타 지표', () => {
   it('공개한 가중치의 합이 1이다', () => {
     expect(
       Object.values(DISCOVERY_POLICY.weights).reduce((sum, weight) => sum + weight, 0),

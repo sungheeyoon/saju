@@ -6,7 +6,7 @@ import type { Compatibility, Saju } from '@/src/lib/saju';
 import { MatchIndexCard } from './match-index';
 
 /**
- * 익명·저장 궁합 화면의 `match-v0` 칸.
+ * 궁합 결과 화면의 「궁합 베타」 칸 — `discovery-v1` 두 축으로 낸 수를 그린다.
  *
  * **셈은 여기서 부르고 그리기는 `MatchIndexCard` 가 한다.** 이 화면은 두 명식을
  * 브라우저가 들고 있어도 되는 자리라(사용자가 스스로 넣었거나 자기 사람들이다)
