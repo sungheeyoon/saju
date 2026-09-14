@@ -7,9 +7,9 @@
 -- 3. **인연 궁합은 못 내보낸다.** 상대가 동의한 것은 한 사람에게 여는 것이지
 --    누구에게든 여는 것이 아니다(ADR 0012). 새 서명이 `p_match_id` 를 아예 안 받는다.
 -- 4. **남의 사람은 못 가리킨다.** 내 엣지에 없는 Person id 를 넣으면 0행이다.
--- 5. **옛 두 인자짜리가 아직 산다** — 넓히고 나중에 좁힌다.
+-- 5. **옛 두 인자짜리는 좁혀졌다** — 다섯 인자짜리만 남는다(넓히고 나중에 좁힌다).
 begin;
-select plan(17);
+select plan(18);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -26,9 +26,13 @@ returns uuid language sql security definer as $$
     '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-share', '{}'::jsonb, now());
 $$;
 
+/** 이 시험이 **보탠** 공유본만 센다 — 로컬 DB 에 먼저 있던 줄은 시작할 때의 수로 뺀다 */
+create temporary table share_baseline as
+select count(*)::int as n from public.reading_share;
+
 create or replace function pg_temp.shares()
 returns integer language sql security definer as $$
-  select count(*)::int from public.reading_share;
+  select count(*)::int - (select n from share_baseline) from public.reading_share;
 $$;
 
 create or replace function pg_temp.joins(mail text)
@@ -214,14 +218,16 @@ select throws_ok(
 
 select is(pg_temp.shares(), 3, '막힌 시도는 한 줄도 안 남긴다');
 
--- ── 옛 서명이 아직 산다 ────────────────────────────────────────────────────
+-- ── 옛 서명은 좁혀졌다 ─────────────────────────────────────────────────────
 
-select is(
-  (select count(*)::int from pg_proc p
-   join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.proname = 'share_my_reading'),
-  2,
-  '두 서명이 함께 서 있다 — 넓히고 나중에 좁힌다');
+/**
+ * **둘을 따로 잰다.** 서명 수만 세면 옛 것이 남고 새 것이 사라져도 1 로 초록이다.
+ */
+select hasnt_function('public', 'share_my_reading', array['text', 'text'],
+  '옛 두 인자짜리 공유 문은 없다');
+
+select has_function('public', 'share_my_reading', array['text', 'text', 'text', 'uuid', 'uuid'],
+  '앱이 부르는 다섯 인자짜리 공유 문은 있다');
 
 select * from finish();
 rollback;
