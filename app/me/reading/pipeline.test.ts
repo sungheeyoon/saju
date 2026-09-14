@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const rpc = vi.fn();
 const keyedRpc = vi.fn();
@@ -141,6 +141,20 @@ beforeEach(() => {
  * 배선은 한 번도 안 지나간 채로 초록이었다 — 그래서 시험도 화면이 오는 이 길만 민다.
  */
 describe('누름은 얼리고 떠나보낸다', () => {
+  /**
+   * **시계를 고정한다.** 파이프라인은 기준 시각을 누른 순간(`new Date()`)으로 잡고, 그 값이
+   * ISO 로 근거에 실린다. 그대로 두면 **UTC 14:30 에 도는 실행에서** 기준 시각
+   * `…T14:30…Z` 가 출생 시각 `14:30` 으로 잡혀 「출생 원문이 없다」가 떨어진다 — PR #59 의
+   * CI 가 정확히 그 분에 돌아 떨어졌다. 고친 것은 제품이 아니라 시험이 시계를 탄 자리다.
+   */
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-08-26T09:00:00+09:00'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   const frozen = () => keyedRpc.mock.calls.find(([name]) => name === 'freeze_reading_job');
   const adopted = () => keyedRpc.mock.calls.find(([name]) => name === 'adopt_reading_job');
 
