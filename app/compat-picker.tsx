@@ -230,7 +230,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
             disabled={!chosen || sameTwice || opening}
             className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-auto"
           >
-            {opening ? '여는 중…' : '두 사람 명식 보기'}
+            {opening ? '여는 중…' : '궁합 보기'}
           </button>
 
           {/* 왜 눌리지 않는지 버튼 옆에서 말한다 — 잠긴 버튼만 두면 이유를 찾아야 한다 */}
