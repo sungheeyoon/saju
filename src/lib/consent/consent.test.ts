@@ -6,19 +6,17 @@ import {
   BLOCK_NOTE,
   CONSENT_FLOW_CAVEAT,
   CONSENT_FLOW_STEPS,
-  CONSENT_INTRO,
   MATCH_CONSENT_QUESTION,
   MATCH_DISCLOSURE,
   MATCH_PILLARS_DISCLOSURE,
   MATCH_RESULT_CLOSED_NOTE,
-  MATCH_RESULT_INTRO,
   MATCH_RESULT_ENGINE_NOTE,
   MATCH_RESULT_PINNED_NOTE,
   NOTIFICATION_KINDS,
   REJECTION_IS_FINAL_NOTE,
   REQUEST_STATUSES,
   REQUEST_STATUS_TEXT,
-  REVISION_BOUND_NOTE,
+  REVISION_CHANGE_CONFIRM,
   notificationText,
   suppliedText,
 } from './index';
@@ -187,12 +185,6 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
     expect(hidden).toContain('전체 판정');
   });
 
-  it('세 문턱이 같은 목록 앞에 선다', () => {
-    expect(CONSENT_INTRO).toContain('같은 궁합 결과');
-    // 결과 화면도 같은 목록을 읽는다(ADR 0010) — 앞에 붙는 말만 다르다.
-    expect(MATCH_RESULT_INTRO).toContain('사주팔자 여덟 글자');
-  });
-
   /** 결과에서 두 사람의 여덟 글자를 나란히 보여 주므로 동의 범위에 직접 적는다(ADR 0012). */
   it('양쪽 여덟 글자를 서로 공개한다고 요청자와 수신자에게 명시한다', () => {
     const shown = MATCH_DISCLOSURE.shown.join(' ');
@@ -200,7 +192,6 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
     expect(shown).toContain('년주·월주·일주·시주');
     expect(MATCH_PILLARS_DISCLOSURE).toContain('내 사주팔자 여덟 글자가 상대에게 공개');
     expect(MATCH_PILLARS_DISCLOSURE).toContain('상대의 사주팔자 여덟 글자도 나에게 공개');
-    expect(CONSENT_INTRO).toContain(MATCH_PILLARS_DISCLOSURE);
     expect(MATCH_DISCLOSURE.hidden.join(' ')).not.toContain('여덟 글자');
   });
 });
@@ -270,7 +261,6 @@ describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
 
   /**
    * 개념을 **처음 만나는 자리**에서 우리 내부 낱말로 설명하지 않는다.
-   * 「판본」은 요청 카드 안의 고지가 든다(`REVISION_BOUND_NOTE`).
    */
   /**
    * **한 자리가 아니라 전부에서 없다.**
@@ -286,11 +276,10 @@ describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
       CONSENT_FLOW_CAVEAT,
       ...MATCH_DISCLOSURE.shown,
       ...MATCH_DISCLOSURE.hidden,
-      CONSENT_INTRO,
-      REVISION_BOUND_NOTE,
+      REVISION_CHANGE_CONFIRM.title,
+      ...REVISION_CHANGE_CONFIRM.body,
       REJECTION_IS_FINAL_NOTE,
       BLOCK_NOTE,
-      MATCH_RESULT_INTRO,
       MATCH_RESULT_PINNED_NOTE,
       MATCH_RESULT_ENGINE_NOTE,
       MATCH_RESULT_CLOSED_NOTE,
@@ -313,13 +302,14 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
    * 미리 적어 두면 실제로 무효가 됐을 때 **그렇게 하기로 했던 것**이 된다. 안 적으면
    * 사고처럼 읽힌다.
    */
-  it('요청이 보낼 때의 출생 정보를 기준으로 한다는 것을 먼저 말한다', () => {
-    expect(REVISION_BOUND_NOTE).toContain('출생 정보');
-    expect(REVISION_BOUND_NOTE).toContain('취소');
-    // 이름·메모 수정은 무효로 만들지 않는다 — 그 경계도 함께 적는다.
-    expect(REVISION_BOUND_NOTE).toContain('이름');
+  it('출생 정보를 바꾸기 전에 요청이 취소된다는 것을 먼저 말한다', () => {
+    const said = [REVISION_CHANGE_CONFIRM.title, ...REVISION_CHANGE_CONFIRM.body].join(' ');
+    expect(said).toContain('출생 정보');
+    expect(said).toContain('취소');
     // 취소는 막다른 길이 아니다 — 그다음에 할 일을 함께 적는다.
-    expect(REVISION_BOUND_NOTE).toContain('다시 요청');
+    expect(said).toContain('다시 요청');
+    // 이미 만든 것은 안 사라진다 — 안 적으면 고칠 것을 못 고친다.
+    expect(said).toContain('그대로 남습니다');
   });
 
   it('거절이 되돌아오지 않는다는 것을 먼저 말한다', () => {

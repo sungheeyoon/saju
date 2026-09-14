@@ -102,10 +102,9 @@ export type CurrentFortune = {
   /**
    * 첫 대운 — **아직 오지 않았을 때 무엇이 오는지 말하기 위한 것.**
    *
-   * `saju.daeun.entries[0]` 을 옮겨 담기만 한다. L3 가 `Saju` 를 받지 않기로 했으니
-   * (`findNowUtterances`) 이 한 칸이 여기 있어야 "만 2세인 지금은 첫 대운 丁巳
-   * 앞이다" 를 말할 수 있다. 넘겨주지 않으면 문장 층이 `Saju` 를 다시 받게 되고,
-   * 그 순간 화면의 운과 문장의 운이 갈릴 길이 열린다.
+   * `saju.daeun.entries[0]` 을 옮겨 담기만 한다. 이 한 칸이 여기 있어야 화면과 근거가
+   * `Saju` 를 다시 받지 않고 「첫 대운 앞이다」를 말할 수 있다 — 다시 받게 되면 그 순간
+   * 화면의 운과 근거의 운이 갈릴 길이 열린다.
    */
   firstDaeun: DaeunEntry;
   /**
@@ -232,8 +231,7 @@ export const RESTATED_RELATIONS = 'restated-from-daeun-saeun-and-wolun' as const
  * 그대로다 — 대운 한 칸은 열 해라 함께 놓을 세운이 하나가 아니므로 **좁은 쪽이 넓은
  * 쪽을 든다.**
  *
- * 남은 한 줄은 성질이 다르다. 값이 없는 것이 아니라 **값은 있는데 말할 주제가 없다** —
- * 그쪽은 `UNCOVERED_NOW_TOPICS` 와 이웃한 공백이다.
+ * 남은 한 줄은 성질이 다르다. 값이 없는 것이 아니라 **값은 있는데 말할 주제가 없다.**
  */
 export const UNCOVERED_NOW_FACTS: readonly string[] = [
   'stages · sinsal (세 칸이 이미 계산해 두었으나 주제가 없다)',

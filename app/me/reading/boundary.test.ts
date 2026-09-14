@@ -107,7 +107,7 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
    * 만드는 일이 누름의 요청 안에 있으면 새로고침·탭 닫기가 그것을 끊고, 열린 시도가
    * 남아 그 대상이 10분간 잠긴다. 응답 뒤로 옮기는 것이 그 값을 없앤다.
    *
-   * 되돌리기는 쉽다 — 액션이 `requestReading` 을 그냥 `await` 하면 코드가 짧아지고
+   * 되돌리기는 쉽다 — 액션이 만드는 일을 그냥 `await` 하면 코드가 짧아지고
    * 화면도 돌아간다. 느려지는 것은 사용자 쪽이라 시험이 안 잡는다. 그래서 잡는다.
    */
   it('누름의 액션이 만드는 일을 응답 뒤로 넘긴다', () => {
@@ -115,7 +115,6 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     const pipeline = files.find(({ path }) => path === 'app/me/reading/pipeline.ts');
 
     expect(actions!.text).toContain('beginReading');
-    expect(actions!.text, '액션이 결과를 기다리고 있다').not.toContain('requestReading');
     expect(pipeline!.text, '응답 뒤로 넘기는 자리가 없다').toContain('after(');
   });
 

@@ -6,13 +6,7 @@ import { READING_POLICY, type ReadingOutput } from '@/src/lib/reading';
 
 import { GENERATION } from './generation';
 
-import type {
-  ModelCall,
-  ModelRetrieval,
-  ModelSubmission,
-  ModelUsage,
-  ReadingGenerator,
-} from './generator';
+import type { ModelCall, ModelRetrieval, ModelSubmission, ModelUsage } from './generator';
 
 /**
  * **모델을 부르는 유일한 자리.**
@@ -96,7 +90,12 @@ const usageOf = (response: {
 });
 
 /**
- * 프롬프트 하나를 보내고 결과를 받는다.
+ * 프롬프트 하나를 보내고 결과를 **그 자리에서** 받는다.
+ *
+ * **화면은 이 길로 오지 않는다** — 누름은 `submitBackgroundReading` 으로 떠나보내고
+ * 완성본은 webhook 이나 복구기가 가져온다(ADR 0020). 이 함수를 부르는 것은 실호출
+ * 시험(`src/lib/reading/call.live.test.ts`) 하나다. 프롬프트를 고친 뒤 기다리는 길로
+ * 한 번에 재 보는 자리라 남긴다.
  *
  * **던지지 않는다.** 실패도 값으로 낸다 — 부르는 쪽은 실패를 기록하고 직전 성공
  * 결과를 그대로 두어야 하므로, 예외로 빠져나가면 그 기록이 남지 않는다.
@@ -160,12 +159,6 @@ export async function callModel(prompt: string): Promise<ModelCall> {
     return { ok: false, code: 'model-call-failed', detail };
   }
 }
-
-/** 실제 배포에서 쓰는 구현. 파이프라인은 이 객체의 계약만 안다. */
-export const openAIReadingGenerator: ReadingGenerator = {
-  generation: GENERATION,
-  generate: callModel,
-};
 
 // ---------------------------------------------------------------------------
 // 요청 수명 밖에서 도는 길 — 제출과 회수 (ADR 0020)

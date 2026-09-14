@@ -3,7 +3,7 @@ import {
   mutualDeficitComplementOf,
   type ElementSummary,
 } from '../matching/elementAxes';
-import { ELEMENT_KO, type Element } from '../saju';
+import { ELEMENTS, ELEMENT_KO, type Element } from '../saju';
 
 /**
  * `discovery-v1` — 아직 선택되지 않은 후보의 **노출 순서와 오행 첫인상**.
@@ -138,6 +138,23 @@ export function previewScoreOf(a: ElementSummary, b: ElementSummary): number {
 
 /** 함께 놓은 균형을 세 칸으로 — 경계는 `balanceBands`, 판정은 `discovery_balance_band` */
 export type BalanceBand = 'even' | 'mixed' | 'skewed';
+
+const BALANCE_BANDS: readonly BalanceBand[] = ['even', 'mixed', 'skewed'];
+
+/**
+ * DB 가 준 밴드 이름을 읽는다 — **못 알아보면 가장 낮은 칸이다.**
+ *
+ * 모르는 값을 좋은 쪽으로 눕히지 않는다. 후보 카드·요청함·인연 결과 세 자리가 이 읽기를
+ * 한 벌씩 적고 있었다.
+ */
+export const balanceBandOf = (raw: string): BalanceBand =>
+  BALANCE_BANDS.find((band) => band === raw) ?? 'skewed';
+
+/** DB 가 준 오행 글자를 읽는다 — 모르는 글자는 버린다. 그럴듯한 것으로 눕히지 않는다 */
+export const knownElementsOf = (raw: readonly string[] | null): Element[] =>
+  (raw ?? []).filter((element): element is Element =>
+    (ELEMENTS as readonly string[]).includes(element),
+  );
 
 /** `discovery_board()` 가 내주는 한 줄 — **여기 없는 것이 안 나가는 것이다** */
 export type BoardRow = {

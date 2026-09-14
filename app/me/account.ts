@@ -7,7 +7,7 @@ type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
 /**
  * 온보딩까지 묻는 화면이 읽는 두 칸 — 일곱 화면이 이 글자를 똑같이 적고 있었다.
  */
-export const ACCOUNT_COLUMNS = 'status, self_person_id';
+const ACCOUNT_COLUMNS = 'status, self_person_id';
 
 /** 표에서 오는 모양 — 여기서만 DB 의 이름을 쓴다 */
 type AccountRow = {

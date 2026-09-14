@@ -36,25 +36,6 @@ export async function saveProfile(profile: ProfileInput): Promise<SaveResult> {
 }
 
 /**
- * 이 이름을 쓸 수 있나 — **참·거짓 하나만 돌려받는다.**
- *
- * 누가 쓰고 있는지도, 비슷한 이름도, 대신 쓸 이름도 안 묻는다. 대안을 추천하려면 남들이
- * 쓰는 이름을 훑어야 하고, 그것은 이 문이 아니다.
- */
-export async function checkNickname(
-  nickname: string,
-): Promise<{ ok: true; available: boolean } | { ok: false; message: string }> {
-  const supabase = await supabaseOnServer();
-
-  const { data, error } = await supabase.rpc('nickname_is_available', {
-    p_nickname: nickname.trim(),
-  });
-
-  if (error) return { ok: false, message: error.message };
-  return { ok: true, available: data === true };
-}
-
-/**
  * 사진을 올린다 — **줄이는 일은 브라우저가 했다.**
  *
  * 여기 닿는 것은 이미 512px 안팎으로 줄여 놓은 바이트다(`shrinkToDataUrl`). 그렇다고

@@ -17,6 +17,7 @@ import type { CompatSide } from '@/src/lib/saju';
 
 import { BirthFields, FIELD, SelectShell } from './birth-form';
 import { CARD } from './card';
+import { SIDE_LABEL, SIDES } from './compat-view';
 import { useHashParams, writeParams } from './hash-query';
 import { openPairScreen, pairRelationFor, type PairAnswers, type PairSide } from './me/compat/actions';
 import { RelationChoice } from './relation-choice';
@@ -51,8 +52,6 @@ export type Choosable = { personId: string; label: string; isSelf: boolean };
 /** 한 칸이 들고 있는 것 — 고른 사람이거나 적어 넣은 입력이다 */
 type Slot = { from: 'saved'; personId: string } | { from: 'typed'; query: Query };
 
-const SIDES = ['a', 'b'] as const;
-const SIDE_LABEL: Record<CompatSide, string> = { a: '첫 번째', b: '두 번째' };
 
 /** 주소에 담긴 한 칸을 읽는다 — `a.person` 이 있으면 고른 사람이다 */
 function slotFrom(params: URLSearchParams, side: CompatSide, people: Choosable[]): Slot | null {
