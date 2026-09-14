@@ -16,6 +16,20 @@ import type { Page } from '@playwright/test';
 const sharedParams = (page: Page) =>
   new URLSearchParams(new URL(page.url()).hash.slice(1));
 
+/**
+ * 계산기가 **붙을 때까지** 기다린다 — 폼에 적기 전에 한 번.
+ *
+ * `/` 는 미리 그려지고 계산기는 `Suspense` 뒤에서 따로 붙는다. 붙기 전에 칸을 채우면
+ * React 가 자기 상태(빈 값)로 되돌리고, 시험은 「이름을 입력해 주세요」를 만난다.
+ *
+ * **버튼 글자가 곧 그 신호다.** 미리 그려진 HTML 은 「내 사주 먼저 살펴보기」를 들고
+ * 오고, 이 글자로 바뀌려면 계산기가 붙어서 세션 통로를 읽어야 한다
+ * (`signed-in.tsx`). 그래서 이 글자가 보인다는 것은 폼이 이미 자기 상태를 든다는 뜻이다.
+ */
+async function submitReady(page: Page) {
+  await expect(page.getByRole('button', { name: '이 사람 명식 보기' })).toBeVisible();
+}
+
 /** 화면 크기가 달라도 풀이권은 계정 자리에서 찾을 수 있어야 한다. */
 async function expectReadingCredits(page: Page, label: string) {
   const header = page.getByRole('banner');
@@ -584,6 +598,93 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
+   * **`/` 는 회원에게 다른 얼굴을 세운다.**
+   *
+   * 한 주소가 두 사람을 받는다 — 로그인하지 않은 사람에게는 현관이고, 회원에게는
+   * 메뉴의 「사주·궁합」이 데려오는 연장이다(`home-hero.tsx`). 익명 쪽은
+   * `saju.spec.ts` 가 재므로 여기서는 **회원에게 사라져야 할 것**을 잰다: 이미 지난
+   * 가입 관문, 이미 아는 제품 소개, 이미 가진 세션을 두고 하는 「로그인 필요」.
+   */
+  test('회원이 보는 `/` 에는 가입 안내 대신 직접 입력하는 얼굴이 선다', async ({
+    page,
+    signedIn,
+  }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/');
+
+    await expect(page.getByRole('heading', { name: '누구의 명식이든 여기서 봅니다.' })).toBeVisible();
+
+    /* 코드는 가입할 때 한 번 쓴다 — 회원이 눌러도 다시 지날 수 없는 길이다 */
+    await expect(page.getByText('테스트 코드를 받으셨나요?')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /테스트 코드로 시작하기/ })).toHaveCount(0);
+    /* 제품 소개와 「로그인 후」 안내도 현관의 것이다 */
+    await expect(page.getByText('사주풀이에서 만날 이야기')).toHaveCount(0);
+    await expect(page.getByText('사주풀이와 궁합은 로그인 후')).toHaveCount(0);
+
+    /*
+      **「로그인 필요」는 깜빡이지도 않아야 한다.** 얼굴과 이 꼬리표가 세션을 따로
+      물으면 회원 전용 화면 위에 한 틱 동안 그 글자가 선다(`compat-entry.tsx`).
+    */
+    const compat = page.getByRole('link', { name: /궁합 보기/ });
+    await expect(compat).toBeVisible();
+    await expect(compat).not.toContainText('로그인 필요');
+
+    /*
+      **버튼이 「내 사주」라고 말하지 않는다.** 회원이 여기 넣는 것은 대개 남의
+      생년월일시다 — 자기 명식은 이미 저장돼 있고 「내 사주」가 연다. 그 사람에게
+      자기 것을 누르는 버튼을 보이면, 적어 넣은 사람과 버튼이 서로 다른 사람을
+      가리킨다(`saju-calculator.tsx`).
+    */
+    await expect(page.getByRole('heading', { name: '출생 정보를 입력해 주세요' })).toBeVisible();
+    await expect(page.getByText('첫 단계 · 기본 명식 확인')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '내 사주 먼저 살펴보기' })).toHaveCount(0);
+    await expect(page.getByText('나의 성향과 운이 궁금하면')).toHaveCount(0);
+
+    await submitReady(page);
+    await page.getByLabel('이름', { exact: true }).fill('민수');
+    await fillBirthDate(page, '1988-11-07');
+    await fillBirthTime(page, '09:15');
+    await page.getByRole('button', { name: '이 사람 명식 보기' }).click();
+    await expect(page.locator('#chart')).toBeVisible();
+  });
+
+  /**
+   * **이름 뒤에 조사를 안 붙인다.**
+   *
+   * 「이(가)」는 앞 글자의 받침을 따르는데 이름은 사용자가 적는 값이다 —
+   * 「영희이(가) 추가됩니다」가 화면에 그대로 찍혀 있었다. 받침 없는 이름과 이름이
+   * 아예 없는 경우, 둘 다 잰다: 갈리는 자리가 그 둘이다(`save-for-reading.tsx`).
+   */
+  test('저장 안내는 이름 뒤에 짝 조사를 찍지 않는다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+
+    await page.goto('/');
+    /*
+      **회원 얼굴이 선 뒤에 채운다.** 폼은 붙기 전까지 값을 못 지킨다 — 하이드레이션
+      전에 적으면 React 가 자기 상태로 칸을 되돌리고, 그러면 「이름을 입력해 주세요」가
+      뜬 채 이 시험이 조사 이야기를 시작한다. 머리는 계산기보다 **먼저** 서므로
+      (계산기는 `Suspense` 뒤에서 따로 붙는다) 제목만으로는 모자란다.
+    */
+    await expect(page.getByRole('heading', { name: '누구의 명식이든 여기서 봅니다.' })).toBeVisible();
+    await submitReady(page);
+    await page.getByLabel('이름', { exact: true }).fill('영희');
+    await fillBirthDate(page, '1988-11-07');
+    await fillBirthTime(page, '09:15');
+    await page.getByRole('button', { name: '이 사람 명식 보기' }).click();
+    await expect(page.locator('#chart')).toBeVisible();
+
+    const entry = page.locator('#reading-next');
+    await expect(entry).toContainText('「영희」 이름으로 추가됩니다');
+    await expect(entry).not.toContainText('이(가)');
+
+    /* 이름은 주소로 들어온 입력에서 빠질 수 있다 — 그때는 문장이 통째로 갈린다 */
+    await page.goto('/#date=1988-11-07&hour=09:15');
+    await expect(page.locator('#chart')).toBeVisible();
+    await expect(entry).toContainText('이 사람이 추가됩니다');
+    await expect(entry).not.toContainText('이(가)');
+  });
+
+  /**
    * **직접 입력한 한 사람이 사주풀이로 가는 길.**
    *
    * 궁합 쪽과 같은 다리이고 갈리는 것은 둘이다 — 사이를 묻지 않고(혼자 보는 풀이에는
@@ -627,7 +728,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByLabel('이름', { exact: true }).fill('상우');
     await page.getByRole('button', { name: '수정한 정보로 다시 보기' }).click();
 
-    await expect(page.locator('main')).toContainText('저장한 사람 목록에 상우');
+    /* 이름 뒤에 조사를 안 붙인다 — 갈리는 두 경우는 따로 잰다(「짝 조사」 시험) */
+    await expect(page.locator('main')).toContainText('저장한 사람 목록에 「상우」 이름으로 추가됩니다');
     await page.getByRole('button', { name: '이 사람을 저장하고 사주풀이로 가기' }).click();
 
     await expect(page).toHaveURL(/\/me\/readings\/[0-9a-f-]+$/);

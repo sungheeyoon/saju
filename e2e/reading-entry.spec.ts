@@ -1,12 +1,15 @@
 import { expect, test } from '@playwright/test';
 
-test('풀이 입구는 명식보다 먼저 보이고 로그인에 출생 정보를 보내지 않는다', async ({ page }) => {
+test('풀이 입구는 명식 아래에 작게 보이고 로그인에 출생 정보를 보내지 않는다', async ({ page }) => {
   await page.goto('/#name=민수&date=1990-05-15&hour=14:30');
   const entry = page.locator('#reading-next');
-  await expect(entry).toContainText('민수님의 사주,');
+  await expect(entry).toContainText('이 사주가 내 삶에서는 어떤 뜻일까요?');
   await expect(page.locator('#chart')).toBeVisible();
-  expect((await entry.boundingBox())!.y).toBeLessThan((await page.locator('#chart').boundingBox())!.y);
-  await page.getByRole('link', { name: '로그인하고 자세한 풀이로 이어가기 →' }).click();
+  const chart = (await page.locator('#chart').boundingBox())!;
+  const card = (await entry.boundingBox())!;
+  expect(card.y).toBeGreaterThanOrEqual(chart.y + chart.height);
+  expect(card.height).toBeLessThan(240);
+  await page.getByRole('link', { name: '자세한 사주풀이로 이어가기 →' }).click();
   await expect(page).toHaveURL(/\/auth\?next=%2F%23resume-reading/);
   expect(page.url()).not.toContain('1990');
   await expect(page.getByRole('heading', { name: '내 사주풀이로 이어갈까요?' })).toBeVisible();

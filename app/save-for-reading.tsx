@@ -145,27 +145,13 @@ function SaveCard({
 
   if (context.state === 'out') {
     return (
-      <section id="reading-next" className="scroll-mt-24 overflow-hidden rounded-[1.75rem] border border-accent/30 bg-surface shadow-[var(--shadow-card)]">
-        <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.2fr_1fr]">
+      <section id="reading-next" className="scroll-mt-24 rounded-2xl border border-border bg-accent-wash/50 p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="eyebrow">내 사주 첫걸음 · 기본 명식</p>
-            <h2 className="mt-3 text-2xl font-bold leading-snug tracking-tight">
-              {query.name.trim() ? `${query.name.trim()}님의 사주,` : '이 사주,'}<br />
-              자세한 풀이로 읽어볼까요?
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-secondary">
-              아래는 출생 정보로 살펴본 기본 명식이에요.
-              이 글자들이 나의 성격과 연애, 일에서 어떻게 드러나는지 사주풀이에서 읽어보세요.
-            </p>
+            <h2 className="text-base font-semibold">이 사주가 내 삶에서는 어떤 뜻일까요?</h2>
+            <p className="mt-1 text-sm leading-6 text-secondary">성향부터 일과 연애, 운의 흐름까지 글로 풀어드려요.</p>
           </div>
-          <div className="rounded-2xl bg-accent-wash p-5">
-            <p className="text-sm font-semibold">내 성향과 운을 자세히 알고 싶다면</p>
-            <ul className="mt-3 space-y-2 text-sm leading-6 text-secondary">
-              <li>나는 어떤 강점을 가진 사람일까?</li>
-              <li>일과 연애에서 무엇을 조심하면 좋을까?</li>
-              <li>지금의 운은 내 사주와 어떻게 이어질까?</li>
-            </ul>
-            <p className="mt-2 text-sm leading-6 text-secondary">로그인 → 출생 정보 저장 → 사주풀이 만들기</p>
+          <div className="shrink-0">
             <Link
               href="/auth?next=%2F%23resume-reading"
               prefetch={false}
@@ -177,17 +163,14 @@ function SaveCard({
                   setFailure('브라우저에서 입력 정보를 임시 보관하지 못했어요. 브라우저의 저장 공간 설정을 확인한 뒤 다시 눌러 주세요.');
                 }
               }}
-              className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-on-accent hover:bg-accent-strong"
+              className="flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent hover:bg-accent-strong"
             >
-              로그인하고 자세한 풀이로 이어가기 →
+              자세한 사주풀이로 이어가기 →
             </Link>
-            <p className="mt-3 text-xs leading-5 text-secondary">이 탭에서 로그인하면 지금 입력한 정보로 돌아와요. 풀이를 만들 때 풀이권을 사용합니다.</p>
+            <p className="mt-2 text-xs leading-5 text-secondary sm:text-right">로그인 필요 · 풀이 생성 시 풀이권 사용</p>
           </div>
         </div>
-        <div className="border-t border-border px-6 py-4 text-xs leading-5 text-secondary sm:px-8">
-          <strong className="font-semibold text-accent">테스트 코드를 받으셨다면</strong> 로그인 후 코드를 입력하고 지급된 풀이권을 사용해 보세요.
-        </div>
-        {failure !== null && <p role="alert" className="px-6 pb-4 text-sm text-danger">{failure}</p>}
+        {failure !== null && <p role="alert" className="mt-3 text-sm text-danger">{failure}</p>}
       </section>
     );
   }
@@ -258,8 +241,6 @@ function SaveCard({
   );
 }
 
-const called = (name: string, fallback: string) => name.trim() || fallback;
-
 /**
  * 한 사람 — **사이를 묻지 않는다.** 혼자 보는 풀이에는 물을 상대가 없다.
  *
@@ -301,7 +282,21 @@ export function SavePersonForReading({ query }: { query: Query }) {
       reading="사주풀이"
       saveWhat="이 사람"
       label="이 사람을 저장하고 사주풀이로 가기"
-      note={`저장한 사람 목록에 ${called(query.name, '이 사람')}이(가) 추가됩니다.`}
+      /*
+        **이름 뒤에 조사를 안 붙인다.** 「이(가)」는 앞 글자의 받침을 따르는데 이름은
+        사용자가 적는 값이다 — 「영희이(가)」가 화면에 그대로 찍혀 있었다. 받침을
+        코드가 세어 고를 수도 있지만, 이름에는 한글만 오는 게 아니다(로마자·숫자·한자).
+        조각 층이 정한 것과 같은 답을 쓴다: **값 뒤에 낱말을 하나 놓는다**
+        (`text/fragment.ts` 의 넷째 규칙).
+
+        이름이 없는 경우는 문장을 통째로 가른다. 「이 사람」에 조사를 붙이는 것은
+        붙박이 글자라 런타임에 흔들릴 자리가 없다.
+      */
+      note={
+        query.name.trim()
+          ? `저장한 사람 목록에 「${query.name.trim()}」 이름으로 추가됩니다.`
+          : '저장한 사람 목록에 이 사람이 추가됩니다.'
+      }
       onSave={() => savePerson(false)}
     />
   );
