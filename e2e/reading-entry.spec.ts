@@ -6,7 +6,7 @@ test('풀이 입구는 명식보다 먼저 보이고 로그인에 출생 정보�
   await expect(entry).toContainText('민수님의 사주,');
   await expect(page.locator('#chart')).toBeVisible();
   expect((await entry.boundingBox())!.y).toBeLessThan((await page.locator('#chart').boundingBox())!.y);
-  await page.getByRole('link', { name: '로그인하고 내 사주풀이 이어 보기 →' }).click();
+  await page.getByRole('link', { name: '로그인하고 자세한 풀이로 이어가기 →' }).click();
   await expect(page).toHaveURL(/\/auth\?next=%2F%23resume-reading/);
   expect(page.url()).not.toContain('1990');
   await expect(page.getByRole('heading', { name: '내 사주풀이로 이어갈까요?' })).toBeVisible();
@@ -20,6 +20,6 @@ test('풀이 입구는 명식보다 먼저 보이고 로그인에 출생 정보�
 
 test('임시 입력이 없는 복귀 주소에서도 출생 정보를 입력할 수 있다', async ({ page }) => {
   await page.goto('/#resume-reading');
-  await expect(page.getByRole('button', { name: '사주 결과 보기' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '내 사주 먼저 살펴보기' })).toBeVisible();
   await expect(page.getByLabel('이름')).toHaveValue('');
 });

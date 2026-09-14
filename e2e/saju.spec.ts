@@ -48,7 +48,7 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
   await expect(page.getByRole('heading', { name: '사주팔자' })).toHaveCount(0);
 
   await enterKnownBirth(page);
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
 
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: '결과 바로가기' })).toBeVisible();
@@ -109,7 +109,7 @@ test('化를 판정한 명식에서만 합화라고 부른다', async ({ page })
   await page.getByLabel('이름', { exact: true }).fill('민수');
   await fillBirthDate(page, '1999-10-23');
   await fillBirthTime(page, '22:00');
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
 
   /*
     **판정만 적고 까닭을 안 적으면 이 카드는 제 일을 안 한 것이다.**
@@ -159,7 +159,7 @@ test('음력으로 넣으면 잡은 양력을 먼저 보여주고 그 날로 계
 
   await expect(page.getByText('양력 1965년 4월 13일로 계산합니다')).toBeVisible();
 
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
   const fromLunar = await page.locator('#chart').innerText();
 
   // 링크는 음력이라는 것을 함께 든다 — 안 실으면 받은 사람이 양력으로 읽는다.
@@ -171,7 +171,7 @@ test('음력으로 넣으면 잡은 양력을 먼저 보여주고 그 날로 계
   await page.getByLabel('이름', { exact: true }).fill('엄마');
   await fillBirthDate(page, '1965-04-13');
   await fillBirthTime(page, '09:00');
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
 
   expect(await page.locator('#chart').innerText()).toBe(fromLunar);
   expect(sharedParams(page).has('cal')).toBe(false);
@@ -233,7 +233,7 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
   await page.goto('/');
 
   const year = page.getByLabel('출생연도');
-  const show = page.getByRole('button', { name: '사주 결과 보기' });
+  const show = page.getByRole('button', { name: '내 사주 먼저 살펴보기' });
   /* 폼 안에 서는 거절 하나 — 결과 자리의 알림과 섞이지 않게 폼으로 좁힌다 */
   const refusal = page.locator('form').getByRole('alert');
   await page.getByLabel('이름', { exact: true }).fill('민수');
@@ -293,7 +293,7 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
   await expect(refusal).toHaveText('출생 시각을 입력해 주세요.');
   await page.getByLabel('출생 시', { exact: true }).fill('14');
 
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 });
 
@@ -304,7 +304,7 @@ test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한�
   await chooseHourUnknown(page);
   await expect(page.getByLabel('출생 시', { exact: true })).toBeDisabled();
   await expect(page.getByLabel('출생 분')).toBeDisabled();
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
   await expect(
     page.getByLabel('시주 천간과 지지').getByText('출생 시각 모름').first(),
   ).toBeVisible();
@@ -359,7 +359,7 @@ test('운 표는 기준 시각을 밝히고 원국을 다시 밟는 자리를 �
 
   await page.goto('/');
   await enterKnownBirth(page);
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
 
   const fortune = page.locator('#fortune');
   const text = await fortune.innerText();
@@ -398,7 +398,7 @@ test('시간 미상이면 대운 표가 대운수가 흔들린다고 말한다',
   await page.getByLabel('이름', { exact: true }).fill('민수');
   await fillBirthDate(page, '1990-05-15');
   await chooseHourUnknown(page);
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
 
   await page.getByRole('tab', { name: '대운' }).click();
 
@@ -422,7 +422,7 @@ test('기준 시각은 제출할 때마다 새로 잡힌다', async ({ page }) =
   await page.goto('/');
 
   await enterKnownBirth(page);
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
 
   /* 기준 시각은 이제 「운 흐름」 카드의 머리에 선다 — 그 표들이 「현재」를 짚는 근거다 */
   const asOf = async () =>
@@ -459,7 +459,7 @@ test('대운 표가 칸 안을 채우고 지금 도는 칸을 짚는다', async 
 
   await page.goto('/');
   await enterKnownBirth(page);
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
 
   await page.getByRole('tab', { name: '대운' }).click();
   const panel = fortunePanel(page);
@@ -499,7 +499,7 @@ test('세운·월운 표가 대운과 걸리는 것을 딱지와 함께 낸다',
 
   await page.goto('/');
   await enterKnownBirth(page);
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
 
   const panel = fortunePanel(page);
 
@@ -536,7 +536,7 @@ test('제출한 입력이 주소에 실려 링크와 새로고침에서 같은 �
 
   await page.goto('/');
   await enterKnownBirth(page);
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 
   const shared = page.url();
@@ -570,7 +570,7 @@ test('제출한 입력이 주소에 실려 링크와 새로고침에서 같은 �
 test('수정은 히스토리를 쌓지 않아 뒤로가기 한 번에 빈 화면으로 돌아온다', async ({ page }) => {
   await page.goto('/');
   await enterKnownBirth(page);
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 
   await page.locator('summary').filter({ hasText: '고급 설정' }).click();
@@ -620,7 +620,7 @@ test('제출한 생년월일은 어떤 요청에도 실리지 않는다', async 
 
   await page.goto('/');
   await enterKnownBirth(page);
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 
   // 주소에는 있다.
@@ -639,7 +639,7 @@ test('결과 링크 복사 버튼이 지금 주소를 클립보드에 넣는다'
   await expect(page.getByRole('button', { name: '결과 링크 복사' })).toHaveCount(0);
 
   await enterKnownBirth(page);
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 
   await page.getByRole('button', { name: '결과 링크 복사' }).click();
@@ -690,7 +690,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   for (const control of [
     page.getByLabel('출생연도'),
     page.getByLabel('출생 시', { exact: true }),
-    page.getByRole('button', { name: '사주 결과 보기' }),
+    page.getByRole('button', { name: '내 사주 먼저 살펴보기' }),
     /*
       **히어로의 두 갈래도 과녁이다.** 좁은 화면에서 둘을 한 줄에 세우려고 글자와
       여백을 줄였고, 그때 높이가 42px 로 내려갔다 — 이 검사가 이 둘을 안 재고 있어서
@@ -714,7 +714,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }
 
   await enterKnownBirth(page);
-  await page.getByRole('button', { name: '사주 결과 보기' }).click();
+  await page.getByRole('button', { name: '내 사주 먼저 살펴보기' }).click();
   const pillarDetails = page.getByRole('tablist', { name: '사주팔자 상세 정보' });
   await expect(pillarDetails).toBeVisible();
   for (const tab of await pillarDetails.getByRole('tab').all()) {
@@ -752,9 +752,9 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
 test('로그인하지 않은 사주 결과에는 저장 버튼 대신 로그인 길이 선다', async ({ page }) => {
   await page.goto('/#date=1990-05-15&hour=14:30');
 
-  await expect(page.getByRole('heading', { name: '이 사주, 내 삶에서는 어떤 뜻일까요?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '이 사주, 자세한 풀이로 읽어볼까요?' })).toBeVisible();
   await expect(
     page.getByRole('button', { name: '이 사람을 저장하고 사주풀이로 가기' }),
   ).toHaveCount(0);
-  await expect(page.getByRole('link', { name: '로그인하고 내 사주풀이 이어 보기 →' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '로그인하고 자세한 풀이로 이어가기 →' })).toBeVisible();
 });

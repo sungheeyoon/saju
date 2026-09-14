@@ -131,15 +131,7 @@ export function SajuCalculator() {
             aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
             className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 sm:h-10 sm:w-auto"
           >
-            {/*
-              **명식**이다 — 「사주」도 「만세력」도 아니다(용어집).
-
-              만세력은 절기와 간지를 찾는 책력이고 이 저장소의 이름이다. 그 표로
-              한 사람의 입력에서 뽑아 낸 여덟 글자가 **명식**이고, 이 버튼이 내는
-              것이 그것이다. 「사주」는 그 둘과 이 일 전체를 다 가리켜서, 버튼에
-              적으면 무엇이 나오는지 말해 주지 않는다.
-            */}
-            {query === null ? '사주 결과 보기' : '수정한 정보로 다시 보기'}
+            {query === null ? '내 사주 먼저 살펴보기' : '수정한 정보로 다시 보기'}
           </button>
 
           {/*
@@ -162,6 +154,10 @@ export function SajuCalculator() {
             </p>
           )}
         </div>
+
+        <p className="text-xs leading-5 text-secondary">
+          기본 명식을 먼저 살펴보고, 나의 성향과 운이 궁금하면 자세한 사주풀이로 이어가세요.
+        </p>
 
         {dirty && (
           <p className="text-sm text-secondary">
@@ -195,7 +191,7 @@ export function SajuCalculator() {
             event.preventDefault();
             document.getElementById('reading-next')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }} className="flex min-h-12 items-center justify-center rounded-xl border border-border bg-surface px-5 py-3 text-sm font-semibold text-accent">
-            사주풀이로 이어 보기 ↑
+            이 사주가 궁금하다면, 자세한 풀이로 이어가기 ↑
           </a>
         </>
       ) : (

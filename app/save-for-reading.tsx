@@ -148,18 +148,23 @@ function SaveCard({
       <section id="reading-next" className="scroll-mt-24 overflow-hidden rounded-[1.75rem] border border-accent/30 bg-surface shadow-[var(--shadow-card)]">
         <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.2fr_1fr]">
           <div>
-            <p className="eyebrow">기본 명식 확인 완료 · 다음은 사주풀이</p>
+            <p className="eyebrow">내 사주 첫걸음 · 기본 명식</p>
             <h2 className="mt-3 text-2xl font-bold leading-snug tracking-tight">
               {query.name.trim() ? `${query.name.trim()}님의 사주,` : '이 사주,'}<br />
-              내 삶에서는 어떤 뜻일까요?
+              자세한 풀이로 읽어볼까요?
             </h2>
             <p className="mt-3 text-sm leading-6 text-secondary">
-              아래 표에는 타고난 사주의 구조가 담겨 있어요.
-              사주풀이에서는 이 구조를 바탕으로 성향과 강점, 일과 연애, 운의 흐름을 글로 풀어드려요.
+              아래는 출생 정보로 살펴본 기본 명식이에요.
+              이 글자들이 나의 성격과 연애, 일에서 어떻게 드러나는지 사주풀이에서 읽어보세요.
             </p>
           </div>
           <div className="rounded-2xl bg-accent-wash p-5">
-            <p className="text-sm font-semibold">사주풀이로 이어 보기</p>
+            <p className="text-sm font-semibold">내 성향과 운을 자세히 알고 싶다면</p>
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-secondary">
+              <li>나는 어떤 강점을 가진 사람일까?</li>
+              <li>일과 연애에서 무엇을 조심하면 좋을까?</li>
+              <li>지금의 운은 내 사주와 어떻게 이어질까?</li>
+            </ul>
             <p className="mt-2 text-sm leading-6 text-secondary">로그인 → 출생 정보 저장 → 사주풀이 만들기</p>
             <Link
               href="/auth?next=%2F%23resume-reading"
@@ -174,7 +179,7 @@ function SaveCard({
               }}
               className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-on-accent hover:bg-accent-strong"
             >
-              로그인하고 내 사주풀이 이어 보기 →
+              로그인하고 자세한 풀이로 이어가기 →
             </Link>
             <p className="mt-3 text-xs leading-5 text-secondary">이 탭에서 로그인하면 지금 입력한 정보로 돌아와요. 풀이를 만들 때 풀이권을 사용합니다.</p>
           </div>
