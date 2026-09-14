@@ -23,10 +23,9 @@ export function CompatEntry({ signedIn }: { signedIn: boolean | null }) {
   return (
     <Link
       href="/compat"
-      /* 「이 탭의 나머지 반쪽」 버튼 — `/compat` 의 「사주 보기」와 같은 것을 쓴다 */
       className={TAB_ACTION_SECONDARY}
     >
-      <span>궁합 보기</span>
+      <span>궁합 보러 가기</span>
       {signedIn !== true && (
         <span className={`text-xs opacity-75${signedIn === null ? ' invisible' : ''}`}>로그인 필요</span>
       )}

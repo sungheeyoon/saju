@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { OPTIONAL_CONSENTS } from '@/src/lib/consent';
 
 import { setOptionalConsent } from './actions';
+import { SETTINGS_DANGER, SETTINGS_PRIMARY, SettingsRow } from './settings/card';
 
 /**
  * 선택 동의를 켜고 끄는 자리 — **끄는 것이 곧 지움이라는 것을 그 자리에서 말한다.**
@@ -21,6 +22,12 @@ import { setOptionalConsent } from './actions';
  * 낱말을 쓰면, 안내를 읽고 찾아온 사람이 그 자리를 못 알아본다(ADR 0026).
  *
  * **끄는 일 자체는 그대로 있다.** 없애면 처리방침이 약속한 것이 화면에 없게 된다.
+ *
+ * ## 줄의 모양은 이 파일이 안 정한다
+ *
+ * 카드 언어는 `settings/card.tsx` 한 벌이다(제목 · 설명 · 줄 · 누름의 기하). 여기서
+ * 또 정하면 같은 화면의 칸 다섯이 서로 조금씩 다른 모양으로 서고, 그것이 이 화면이
+ * 「다섯 화면」처럼 보이던 까닭이었다.
  */
 export function ConsentControls({
   improvement,
@@ -47,47 +54,29 @@ export function ConsentControls({
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <>
       {OPTIONAL_CONSENTS.map((one) => {
         const on = now[one.key] === true;
         return (
-          <div key={one.key} className="flex flex-col gap-2 border-t border-border pt-4 first:border-0 first:pt-0">
-            {/*
-              **두 줄이 같은 자리에 선다.** `flex-wrap` 이라 설명이 긴 줄에서만 버튼이
-              아래로 내려갔고, 그래서 같은 종류의 스위치가 한 줄은 왼쪽 아래, 한 줄은
-              오른쪽에 서 있었다 — 두 개가 다른 것으로 보인다.
-            */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0 sm:flex-1">
-                <p className="text-sm font-semibold">{one.label}</p>
-                <p className="mt-1 text-sm leading-6 text-secondary">{one.detail}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => flip(one.key, !on)}
-                disabled={saving}
-                className={`h-10 shrink-0 self-start rounded-xl px-4 text-sm font-semibold disabled:opacity-60 sm:self-auto ${
-                  on
-                    ? 'border border-border-strong hover:border-danger hover:text-danger'
-                    : 'bg-accent text-on-accent hover:bg-accent-strong'
-                }`}
-              >
-                {on ? '끄기' : '켜기'}
-              </button>
-            </div>
-            <p className="text-xs leading-5 text-muted">
-              {on ? '지금 동의하고 계십니다.' : '지금은 동의하지 않으셨습니다.'}
-              {one.key === 'improvement' && on && ' 끄시면 지금까지 남기신 설문 답도 함께 지웁니다.'}
-            </p>
-          </div>
+          <SettingsRow key={one.key} label={one.label} help={one.detail} note={one.erasure}>
+            <span className="text-sm text-secondary">{on ? '현재 동의 중' : '현재 동의하지 않음'}</span>
+            <button
+              type="button"
+              onClick={() => flip(one.key, !on)}
+              disabled={saving}
+              className={on ? SETTINGS_DANGER : SETTINGS_PRIMARY}
+            >
+              {on ? '끄기' : '켜기'}
+            </button>
+          </SettingsRow>
         );
       })}
 
       {failure !== null && (
-        <p role="alert" className="text-sm leading-6 text-danger">
+        <p role="alert" className="border-t border-border pt-4 text-sm leading-6 text-danger">
           {failure}
         </p>
       )}
-    </div>
+    </>
   );
 }

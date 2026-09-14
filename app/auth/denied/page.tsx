@@ -31,7 +31,7 @@ export default function DeniedPage() {
           다시 로그인
         </Link>
         <Link href="/" className="text-accent underline underline-offset-2">
-          사주 보기
+          사주 보러 가기
         </Link>
       </p>
     </main>

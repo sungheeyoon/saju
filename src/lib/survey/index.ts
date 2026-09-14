@@ -152,7 +152,7 @@ export const WANT_LABEL: Record<WantOption, string> = {
   person_reading: '다른 사람의 사주 보기',
   pair_reading: '다른 사람과의 궁합 보기',
   discovery: '새로운 인연 찾기',
-  refresh_luck: '시간이 지난 뒤 지금 운으로 다시 풀이받기',
+  refresh_luck: '시간이 지난 뒤 지금 운으로 사주풀이 다시 받기',
   unsure: '아직 잘 모르겠어요',
   none_again: '다시 이용할 생각은 없어요',
 };
@@ -226,7 +226,7 @@ export type PriceSubject = (typeof PRICE_SUBJECTS)[number];
  * **묻는 문장은 하나고, 상품이 그 아래에 선다.**
  *
  * 처음에는 상품마다 온전한 문장을 세웠다 — 「…새로운 **사주풀이** 1회에…」와 「…새로운
- * **궁합 풀이** 1회에…」. 서른 자 넘는 같은 문장에서 낱말 하나만 갈리니 **같은 질문이 두
+ * **궁합풀이** 1회에…」. 서른 자 넘는 같은 문장에서 낱말 하나만 갈리니 **같은 질문이 두
  * 번 서 있는 것으로 읽혔다**(로컬에서 그렇게 보였다). 갈리는 말이 문장 한가운데 있으면
  * 사람은 그것을 안 읽는다.
  *
@@ -238,7 +238,7 @@ export const PRICE_STEM =
 
 export const PRICE_SUBJECT_LABEL: Record<PriceSubject, string> = {
   solo: '사주풀이 1회',
-  pair: '궁합 풀이 1회',
+  pair: '궁합풀이 1회',
 };
 
 export const PRICE_NOTE =

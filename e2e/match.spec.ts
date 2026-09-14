@@ -100,8 +100,9 @@ test.describe('동의로 열리는 흐름', () => {
         켜는 일이 없어졌고, 무엇이 나가는지는 가입 관문이 읽힌다(`notice-v4`). 여기 남은
         누름은 끄는 것 하나다 — 그 버튼이 서 있는 것으로 「지금 켜져 있다」를 잰다.
       */
-      await expect(person.page.getByRole('heading', { name: '인연 찾기 참여 중' })).toBeVisible();
-      await expect(person.page.getByRole('button', { name: '인연 찾기 잠시 쉬기' })).toBeVisible();
+      await expect(person.page.getByRole('heading', { name: '인연 찾기', exact: true })).toBeVisible();
+      await expect(person.page.getByText('현재 다른 사람에게 내 프로필이 소개되고 있어요.')).toBeVisible();
+      await expect(person.page.getByRole('button', { name: '인연 찾기 쉬기' })).toBeVisible();
 
       /*
         **참여가 실제로 열리는 자리는 홈이다.** 요약은 DB 가 못 만들어서 앱이 넣고, 그
@@ -138,7 +139,7 @@ test.describe('동의로 열리는 흐름', () => {
     */
     await expect(card.getByText('1990-05-15')).toHaveCount(0);
 
-    await card.getByRole('button', { name: '상세 궁합 보기' }).click();
+    await card.getByRole('button', { name: '상세 궁합 요청하기' }).click();
     const confirmRequest = asker.page.getByRole('dialog');
     await expect(confirmRequest).toContainText('풀이권 1회가 임시로 차감됩니다');
     await expect(confirmRequest).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
@@ -178,14 +179,14 @@ test.describe('동의로 열리는 흐름', () => {
     ] as const) {
       await person.page.goto('/me/readings');
       await person.page
-        .getByRole('link', { name: new RegExp(`${partner} 님과의 궁합 풀이`) })
+        .getByRole('link', { name: new RegExp(`${partner} 님과의 궁합풀이`) })
         .click();
 
       await expect(person.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
       await expect(person.page.getByRole('heading', { name: '궁합의 출발점' })).toBeVisible();
       await expect(person.page.getByText('각자의 여덟 글자를 한자리에서 견줍니다')).toHaveCount(0);
       await expect(person.page.getByRole('table')).toHaveCount(2);
-      await expect(person.page.getByText('두 원국 사이의 관계')).toHaveCount(0);
+      await expect(person.page.getByText('두 사주 사이의 관계')).toHaveCount(0);
 
       /*
         **동의 뒤에도 열리지 않는 것**(ADR 0012). 여덟 글자는 결과 화면에서 서로에게
@@ -197,7 +198,7 @@ test.describe('동의로 열리는 흐름', () => {
       /*
         **누를 것이 없다** (ADR 0038).
 
-        여기서 「아직 만들어 둔 사주풀이가 없습니다」와 「사주풀이 받기」를 재고 있었다.
+        여기서 「아직 받아 둔 궁합풀이가 없습니다」와 「궁합풀이 받기」를 재고 있었다.
         그 둘이 참이려면 누가 눌러야 하는데, 이제 아무도 안 누른다 — 풀이권은 요청할
         때 예약되고 **동의가 그것을 쓴다.** 「먼저 누른 사람이 쓴다」가 사라지는 것은
         규칙을 하나 더 세워서가 아니라 누를 것이 없어져서다.
@@ -205,8 +206,8 @@ test.describe('동의로 열리는 흐름', () => {
         무엇이 서 있는지는 시각에 달렸다(만드는 중이거나, 열쇠 없는 시험 환경에서는
         곧 실패한다). 시각에 안 달린 것 하나를 잰다: **그 버튼은 없다.**
       */
-      await expect(person.page.getByRole('heading', { name: `${partner} 님과의 궁합 풀이` })).toBeVisible();
-      await expect(person.page.getByRole('button', { name: '사주풀이 받기' })).toHaveCount(0);
+      await expect(person.page.getByRole('heading', { name: `${partner} 님과의 궁합풀이` })).toBeVisible();
+      await expect(person.page.getByRole('button', { name: '궁합풀이 받기' })).toHaveCount(0);
 
     }
   });
@@ -286,7 +287,7 @@ test.describe('동의로 열리는 흐름', () => {
     await pendingRequest(other, leaver);
 
     await leaver.page.goto('/me/settings');
-    await leaver.page.getByRole('button', { name: '계정 삭제 요청' }).click();
+    await leaver.page.getByRole('button', { name: '계정 삭제', exact: true }).click();
 
     /*
       **누르기 전에 읽는 말이 실제와 같아야 한다.**
@@ -345,7 +346,7 @@ test.describe('동의로 열리는 흐름', () => {
       **첫 카드로 좁힌다.** 시험들이 나란히 도는 동안 남의 후보가 목록에 함께 설 수
       있고, 여기서 재는 것은 「누가 서 있나」가 아니라 **한 카드 안의 배치**다.
     */
-    await asker.page.getByRole('button', { name: '상세 궁합 보기' }).first().click();
+    await asker.page.getByRole('button', { name: '상세 궁합 요청하기' }).first().click();
 
     const dialog = asker.page.getByRole('dialog');
     const scope = dialog.getByText('풀이권 1회가 임시로 차감됩니다', { exact: false });
@@ -397,7 +398,7 @@ test.describe('동의로 열리는 흐름', () => {
 
     await asker.page.goto('/me');
     const card = asker.page.getByRole('listitem').filter({ hasText: `나${tag}` });
-    await reach(asker, '상세 궁합 보기', card);
+    await reach(asker, '상세 궁합 요청하기', card);
     await asker.page.keyboard.press('Enter');
 
     const confirmRequest = asker.page.getByRole('dialog');
@@ -429,7 +430,7 @@ test.describe('동의로 열리는 흐름', () => {
      * 으로 접히고, 그 줄에는 조작이 없다 — 성립한 쌍을 끊는 자리는 풀이가 사는 곳이다.
      */
     await receiver.page.goto('/me/readings');
-    await receiver.page.getByRole('link', { name: new RegExp(`가${tag} 님과의 궁합 풀이`) }).click();
+    await receiver.page.getByRole('link', { name: new RegExp(`가${tag} 님과의 궁합풀이`) }).click();
     await reach(receiver, '차단');
     await receiver.page.keyboard.press('Enter');
     await reach(receiver, '차단합니다');

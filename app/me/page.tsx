@@ -44,8 +44,8 @@ export default async function MePage() {
       <header className="flex flex-col gap-2 border-b border-border pb-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-[-0.04em]">나의 명식과 인연</h1>
-            <p className="mt-1 text-sm text-secondary">저장한 명식을 확인하고 오늘의 인연을 만나보세요.</p>
+            <h1 className="text-3xl font-bold tracking-[-0.04em]">나의 사주와 인연</h1>
+            <p className="mt-1 text-sm text-secondary">저장한 사주를 확인하고 오늘의 인연을 만나보세요.</p>
           </div>
         </div>
       </header>
@@ -165,21 +165,21 @@ async function SelfChart({ personId }: { personId: string }) {
         }
         footer={
           /*
-            전체 명식은 저장한 사람의 `명식 보기`와 같은 상세 화면이 그린다. 내 입력을
+            사주 상세는 저장한 사람의 `사주` 탭과 같은 화면이 그린다. 내 입력을
             공개 계산 화면의 「모르는 사람」으로 다시 만들지 않고, 이미 저장된 Person 을
             그대로 연다.
 
             **이 화면에 남은 유일한 길이다.** 사람·궁합·인연 찾기·소식으로 가는 목록이
             여기 따로 서 있었는데, 그 넷은 이미 머리글의 메뉴가 든다 — 같은 길을 두 자리에
             세우면 하나를 고칠 때 다른 하나가 낡는다. 이 링크만 남는 것은 저쪽이 **이
-            명식의 이어 보기**라서다. 메뉴에는 그런 자리가 없다.
+            사주의 이어 보기**라서다. 메뉴에는 그런 자리가 없다.
 
             떠 있던 버튼을 카드 아래 띠로 들인다 — 저장한 사람 카드가 그 자리에 풀이를
             들고 서는 것과 같은 층이다.
           */
           <div className="flex flex-col gap-3 rounded-b-[1.75rem] border-t border-border bg-surface-soft/70 px-5 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
             <div className="min-w-0 flex-1">
-              <p className="eyebrow">명식 전체</p>
+              <p className="eyebrow">사주 상세</p>
               <p className="mt-0.5 text-sm text-secondary">
                 지장간 · 공망 · 신살과 운의 흐름까지 이어서 봅니다.
               </p>
@@ -188,7 +188,7 @@ async function SelfChart({ personId }: { personId: string }) {
               href={`/me/people/${personId}`}
               className="inline-flex min-h-10 shrink-0 items-center gap-2 self-start rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent sm:self-auto"
             >
-              전체 명식 자세히 보기 <span aria-hidden="true">→</span>
+              사주 자세히 보기 <span aria-hidden="true">→</span>
             </Link>
           </div>
         }

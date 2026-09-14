@@ -71,7 +71,7 @@ export default async function MatchResultPage({
           <p className="eyebrow">인연</p>
           <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">함께 보는 궁합</h1>
           <p className="mt-1 text-sm text-secondary">
-            서로 동의한 두 분에게 같은 글과 같은 점수가 섭니다.
+            서로 동의한 두 분에게 같은 글과 같은 점수가 보입니다.
           </p>
         </div>
       </header>
@@ -115,12 +115,12 @@ function Result({ result }: { result: SharedResult }) {
         순간부터 만들어지고 있고, 두 사람 다 누를 것이 없다 — 「먼저 누른 사람이 쓴다」가
         사라지는 것은 규칙을 하나 더 세워서가 아니라 **누를 것이 없어져서**다.
 
-        글도 도는 시도도 없을 때만 「다시 만들기」가 선다. 자동 생성이 실패한 자리이고,
+        글도 도는 시도도 없을 때만 「궁합풀이 받기」가 선다. 자동 생성이 실패한 자리이고,
         거기서까지 버튼을 없애면 동의는 났는데 아무도 못 여는 Match 가 남는다.
       */}
       <ReadingSection
         target={{ kind: 'match', matchId: result.matchId }}
-        heading={`${result.partnerNickname} 님과의 궁합 풀이`}
+        heading={`${result.partnerNickname} 님과의 궁합풀이`}
         layout="page"
         automatic
         bare

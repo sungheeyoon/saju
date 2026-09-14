@@ -10,7 +10,7 @@ import { CompatHero } from '../compat-hero';
 
 export const metadata = {
   title: '궁합 — 만세력',
-  description: '두 원국 사이에 성립하는 관계와 오행 보완을 사실 그대로 봅니다.',
+  description: '두 사주 사이에 성립하는 관계와 오행 보완을 사실 그대로 봅니다.',
 };
 
 /**
@@ -49,13 +49,16 @@ export default async function CompatPage() {
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
-      <CompatHero pick="#pair" />
+      <CompatHero />
 
       {/*
-        원국 화면과 같은 이유로 Suspense 아래에 둔다 — 주소창의 `#` 뒤를 읽는데
+        사주 화면과 같은 이유로 Suspense 아래에 둔다 — 주소창의 `#` 뒤를 읽는데
         이 페이지는 빌드 때 미리 그려지고, fragment 는 서버에 오지 않는다.
+
+        **앵커가 없다.** 머리의 「두 사람 고르기」가 여기(`#pair`)를 가리키고 있었는데,
+        그 버튼을 걷으면서 짚을 사람도 없어졌다.
       */}
-      <section id="pair" className="scroll-mt-24">
+      <section>
         <Suspense fallback={<div className="h-72 rounded-[1.75rem] border border-border bg-surface" />}>
           <CompatPicker people={people} />
         </Suspense>

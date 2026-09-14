@@ -79,6 +79,7 @@ export default async function PrivacyPage() {
                 <li key={one.key}>
                   <p className="text-sm font-semibold">{one.label}</p>
                   <p className="mt-0.5 text-sm leading-6 text-secondary">{one.detail}</p>
+                  <p className="mt-0.5 text-sm leading-6 text-secondary">{one.erasure}</p>
                 </li>
               ))}
             </ul>

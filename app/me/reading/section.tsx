@@ -75,7 +75,7 @@ export async function ReadingSection({
         initialRunning={run?.status === 'running'}
         credits={credits}
         consented={consented}
-        heading={heading ?? (target.kind === 'self' ? '나의 사주풀이' : '두 사람의 궁합 풀이')}
+        heading={heading ?? (target.kind === 'self' ? '나의 사주풀이' : '두 사람의 궁합풀이')}
         allowMockFallback={process.env.NODE_ENV !== 'production'}
         layout={layout}
         automatic={automatic}

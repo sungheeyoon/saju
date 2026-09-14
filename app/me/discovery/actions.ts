@@ -8,7 +8,7 @@ import { selfElementSummary } from '../summary';
 import { PREFER_GENDERS, type PreferGender } from './profile';
 
 /**
- * 보고 싶은 상대를 저장한다.
+ * 만나볼 상대의 조건을 저장한다.
  *
  * RPC 가 없다. 이 칸은 정책이 이미 열어 준 자리이고(`"내 프로필만 고친다"`), 열려 있는
  * 것을 함수로 다시 감싸면 판정하는 자리가 둘이 된다. **참여 상태와 오행 요약은 이 길로
@@ -18,7 +18,7 @@ import { PREFER_GENDERS, type PreferGender } from './profile';
  */
 export async function savePreferGender(value: PreferGender): Promise<SaveResult> {
   if (!(PREFER_GENDERS as readonly string[]).includes(value)) {
-    return { ok: false, message: '보고 싶은 상대를 다시 골라 주세요.' };
+    return { ok: false, message: '만나볼 상대의 성별을 다시 골라 주세요.' };
   }
 
   const supabase = await supabaseOnServer();

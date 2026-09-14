@@ -161,7 +161,7 @@ try {
     const body = await response.text();
     check('계정 관리가 열린다', response.status === 200, String(response.status));
     check('참여를 끄는 손잡이가 거기 있다',
-      body.includes('인연 찾기 참여 중') && body.includes('인연 찾기 잠시 쉬기'));
+      body.includes('현재 다른 사람에게 내 프로필이 소개되고 있어요') && body.includes('인연 찾기 쉬기'));
 
     /**
      * **켜기 전에 알린다.** 후보 카드가 내 오행을 이름으로 말하고 점수까지 세우므로,
@@ -299,7 +299,7 @@ const isolate = (emails) => {
       /(일 수 있어요|에 가까워요|편이에요|있어요)\.?</.test(body) &&
         /궁합|어울리|엇갈리|다른 부분/.test(body));
     check('상세 궁합은 서로 선택한 뒤에 열린다고 말한다',
-      body.includes('상세 궁합 보기를 선택하면'));
+      body.includes('상세 궁합 요청하기를 누르면'));
     check('참고 점수라는 말이 목록 머리에 선다',
       body.includes('오행 구성을 바탕으로 계산한 참고 점수'));
 

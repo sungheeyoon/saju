@@ -1,26 +1,36 @@
-import Link from 'next/link';
-
-import { TAB_ACTION_PRIMARY, TAB_ACTION_SECONDARY, TabActions, TabHero } from './tab-hero';
+import { SajuCompatTabs } from './segmented-nav';
+import { TabHero } from './tab-hero';
 
 /**
- * 궁합 화면의 머리 — **「사주·궁합」 탭의 두 사람 쪽.**
+ * 궁합 화면의 머리 — **버튼 없이 선다.**
  *
  * **아래에 있던 나눔 탭을 걷었다**(ADR 0054). 「두 사람 직접 입력」과 「저장한 사람
  * 선택」이 화면 둘로 갈려 있었는데, 나뉜 것은 사람이 아니라 **한 칸의 입력 방법**이라
  * 지금은 칸마다 고른다.
  *
- * **여기 있던 길은 `/me` 로 나갔다.** 「내 사주로 돌아가기」 하나뿐이었는데 그것은 다른
- * 탭이다 — 머리글은 이 화면과 `/` 를 한 줄로 묶어 두고, 화면은 사용자를 그 줄 밖으로
- * 내보내고 있었다. 이제 한 사람 쪽(`/`)과 같은 모양의 버튼 줄을 쓴다(`tab-hero.tsx`).
+ * ## 버튼 줄이 없다
  *
- * `pick` 은 **이 화면에서 시작하는 길**이다. 고르는 칸이 같은 화면에 있으면 그 자리로
- * (`#pair`), 결과가 사는 화면이면 고르는 화면으로(`/compat`) 간다. 막힌 계정에는
- * 안 넘긴다 — 시작할 수 없는 사람에게 시작하는 버튼을 세우지 않는다.
+ * 진한 「두 사람 고르기」가 `#pair` 를 가리키고 서 있었다. 바로 아래 이미 보이는 칸으로
+ * **스크롤만 하는 누름**이라, 화면에서 가장 크게 보이는 것이 아무것도 하지 않았다 —
+ * 정작 시작하는 누름은 그 칸 안의 「궁합 보기」다. 옆의 「사주 보기」는 더 나빴다:
+ * 궁합을 적으러 온 사람을 **입력칸 바로 위에서 사주로 내보내는 길**이다. 탭 사이를
+ * 오가는 것은 머리글이 이미 한다.
+ *
+ * 한동안 `pick` 을 받아 「궁합 보러 가기」를 세웠다. 그 버튼이 필요했던 화면은 인자 없이
+ * 열리는 `/me/compat` 이었고, 그 화면을 걷으면서(풀이 목록이 같은 일을 더 잘 한다)
+ * 이 머리가 버튼을 들 자리도 없어졌다.
+ *
+ * ## 대신 토글이 선다
+ *
+ * 버튼을 걷고 나니 **사주로 돌아오는 길도 없어졌다.** 되돌린 것은 버튼이 아니라
+ * `SajuCompatTabs` 다 — 두 화면은 위아래가 아니라 나란한 짝이고, 그 관계를 말하는
+ * 부품은 지금 어디에 있는지 함께 보여 주는 한 덩이다. `/` 의 회원 머리가 **같은 자리에
+ * 같은 것**을 든다(`home-hero.tsx`).
  */
-export function CompatHero({ pick }: { pick?: string }) {
+export function CompatHero() {
   return (
     <TabHero
-      eyebrow="사주·궁합 · 두 사람"
+      eyebrow="궁합"
       title="두 사람의 궁합을 살펴봅니다."
       lede={
         <>
@@ -31,18 +41,7 @@ export function CompatHero({ pick }: { pick?: string }) {
           </p>
         </>
       }
-      actions={
-        <TabActions>
-          {pick !== undefined && (
-            <Link href={pick} className={TAB_ACTION_PRIMARY}>
-              두 사람 고르기
-            </Link>
-          )}
-          <Link href="/" className={TAB_ACTION_SECONDARY}>
-            <span>사주 보기</span>
-          </Link>
-        </TabActions>
-      }
+      actions={<SajuCompatTabs current="compat" />}
     />
   );
 }

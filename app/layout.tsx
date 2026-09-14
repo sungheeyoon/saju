@@ -4,7 +4,7 @@ import { siteUrl } from "./site-url";
 import "./globals.css";
 
 const TITLE = "만세력 — 나와 사람 사이를 이해하는 사주";
-const DESCRIPTION = "명식의 근거부터 두 사람의 관계와 사주풀이까지 차분하게 살펴봅니다.";
+const DESCRIPTION = "사주의 근거부터 두 사람의 궁합과 사주풀이까지 차분하게 살펴봅니다.";
 
 /** 사이트 대표 미리보기 — 사주풀이 공유본은 전용 이미지를 사용한다 */
 const PREVIEW = {

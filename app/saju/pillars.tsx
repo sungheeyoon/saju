@@ -192,7 +192,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
 
       {(pillars.meta.sajuYear !== saju.meta.inputTime.year || pillars.meta.lateNightShiftApplied) && (
         <ul
-          aria-label="명식을 바꾼 입력 안내"
+          aria-label="사주를 바꾼 입력 안내"
           className="mt-4 flex flex-col gap-1.5 rounded-xl border border-warning/25 bg-warning-wash px-3 py-2.5 text-xs text-secondary sm:mx-auto sm:max-w-3xl"
         >
           {pillars.meta.sajuYear !== saju.meta.inputTime.year && (

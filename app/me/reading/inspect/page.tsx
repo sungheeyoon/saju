@@ -60,7 +60,7 @@ export default async function InspectPage({
         <h1 className="text-2xl font-semibold tracking-tight">해석 내부 보기</h1>
         <p className="max-w-2xl text-sm text-secondary">
           실제로 모델에 보낸 프롬프트와 근거, 마지막 시도의 결과입니다. 사용자 화면에는
-          서지 않는 값들입니다. 아래 <strong className="font-medium">지금 보낼 프롬프트</strong>는
+          나오지 않는 값들입니다. 아래 <strong className="font-medium">지금 보낼 프롬프트</strong>는
           모델을 부르지 않고 지어 본 것이라, 게이트웨이 열쇠가 없어도 복사해서 다른 곳에
           붙여 볼 수 있습니다.
         </p>
@@ -75,7 +75,7 @@ export default async function InspectPage({
       </header>
 
       <section className={`${CARD} flex flex-col gap-2 text-sm`}>
-        <h2 className="text-base font-semibold">지금 서 있는 계약</h2>
+        <h2 className="text-base font-semibold">지금 적용되는 계약</h2>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
           <dt className="text-muted">프롬프트 판본</dt>
           <dd>{READING_POLICY.version}</dd>

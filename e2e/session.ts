@@ -93,10 +93,44 @@ export const E2E_CODE = 'E2ECODE';
  * 「정원이 찼습니다」가 이유 없는 빨간불이 된다 — 정원 자체는 pgTAP 이 잰다.
  */
 export function seedSignupCode(): void {
+  /*
+    **정원은 쌓인다.** 「오늘 정원」이라고 말하지만 세는 것은 이 코드로 가입한 계정
+    전부다(`complete_signup`). 시험이 계정을 하나씩 만들고 지우지 않으므로 천 번쯤
+    돌면 그 뒤로는 아무것도 안 고쳐도 빨간불이 된다. 벽을 넓히는 대신 **시험이 만든
+    계정에서 이 코드의 표식만 뗀다**(정원 자체는 pgTAP 이 잰다).
+  */
+  sql(`update public.app_user set signup_code = null where signup_code = '${E2E_CODE}'`);
   sql(`insert into public.signup_code (code, note, valid_on, max_uses)
        values ('${E2E_CODE}', 'e2e', (now() at time zone 'Asia/Seoul')::date, 1000)
        on conflict (code) do update
          set valid_on = excluded.valid_on, max_uses = excluded.max_uses`);
+}
+
+/**
+ * 시험이 만든 시도를 **오늘에서 비켜 둔다.**
+ *
+ * 하루 전체 상한(`reading_daily_budget`)은 서비스에 걸린 벽이고, 세는 것은 돈이 아니라
+ * `reading_run` 행이다. 로컬은 모델을 부르지 않는데도 **풀이를 심을 때마다 한 칸씩
+ * 쌓여** 백 번이면 시험이 제 벽에 갇힌다 — 「오늘 만들 수 있는 풀이를 모두 썼습니다」로
+ * 씨앗부터 죽고, 그때 빨간불은 고친 코드와 아무 상관이 없다.
+ *
+ * **벽은 낮추지 않는다** — 프로덕션에서 그것이 돈을 막는 자리다. 시험이 심은 줄만
+ * 어제로 미룬다(`gpt-e2e` 가 그 표식이다). `scripts/notice.mjs` 가 흐름 검사에서,
+ * `scripts/ui-seed.mjs` 가 훑기에서 같은 일을 한다.
+ */
+function clearTestRunsFromToday(): void {
+  /*
+    **모델 이름만으로는 모자라다.** 동의가 여는 시도(`match`)는 그 자리에서 모델을
+    모르므로 `model` 이 비어 있다. 시험이 만드는 계정은 전부 `@example.com` 이고 구글로
+    로그인한 사람의 주소는 그럴 수 없으니, 그것을 표식으로 함께 쓴다.
+  */
+  sql(`update public.reading_run r
+         set created_at = r.created_at - interval '1 day'
+       where r.created_at >= (date_trunc('day', now() at time zone 'Asia/Seoul')
+                              at time zone 'Asia/Seoul')
+         and (r.model = 'gpt-e2e'
+              or exists (select 1 from auth.users u
+                          where u.id = r.user_id and u.email like '%@example.com'))`);
 }
 
 /**
@@ -513,6 +547,9 @@ export const test = base.extend<Fixtures, { local: Local }>({
         throw new Error('로컬 Supabase 가 떠 있지 않습니다 — `npm run db:start` 뒤에 다시 도세요.');
       }
       if (!status.API_URL || !status.ANON_KEY) throw new Error('로컬 접속값을 읽지 못했습니다.');
+
+      /* 워커가 서기 전에 한 번 — 지난 실행들이 오늘의 상한을 다 쓰고 있을 수 있다 */
+      clearTestRunsFromToday();
 
       await use({ api: status.API_URL, anonKey: status.ANON_KEY });
     },

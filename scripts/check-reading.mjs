@@ -202,10 +202,9 @@ try {
   {
     const mine = await body('/me/readings/self', cookie.a);
     check('내 사주풀이 전용 화면이 선다', plain(mine).includes('내 사주풀이'));
-    check('풀이 화면에 명식을 다시 싣지 않는다', !plain(mine).includes('명식 자세히 보기'));
-    check('아직 없으면 없다고 말한다', plain(mine).includes('아직 만들어 둔 사주풀이가 없습니다'));
+    check('풀이 화면에 사주를 다시 싣지 않는다', !plain(mine).includes('사주 자세히 보기'));
+    check('아직 없으면 없다고 말한다', plain(mine).includes('아직 받아 둔 사주풀이가 없습니다'));
     check('만드는 버튼이 선다', mine.includes('사주풀이 받기'));
-    check('넘기지 않는 것을 화면이 말한다', plain(mine).includes('출생지는 넘기지 않습니다'));
     /**
      * **숫자는 이제 서버 HTML 에 없다.** 머리글이 브라우저에서 읽는다 — 헤더는 `/` 와
      * `/compat` 에도 서고 그 둘은 정적으로 미리 그려지므로, 서버에서 읽으면 세션도 없는
@@ -232,12 +231,12 @@ try {
     const mine = plain(await body('/me/readings/self', cookie.a));
     check('저장한 글이 화면에 선다', mine.includes('스스로 정한 규칙 안에서'));
     check('내부 검토용 근거 절은 사용자 결과에서 숨긴다', !mine.includes('근거 (검사용)'));
-    check('자기 풀이에는 점수가 서지 않는다', !mine.includes('궁합 풀이 점수'));
+    check('자기 풀이에는 점수가 서지 않는다', !mine.includes('궁합풀이 점수'));
     /**
      * **경고는 이제 확인 창에 있다.**
      *
      * 「새로 만들면 지금 것을 대신합니다」가 만드는 버튼 옆에 늘 서 있었다. 늘 서 있는
-     * 경고는 누르지 않을 사람에게 하는 말이라, 「다시 풀이받기」를 누른 뒤 뜨는 창으로
+     * 경고는 누르지 않을 사람에게 하는 말이라, 「사주풀이 다시 받기」를 누른 뒤 뜨는 창으로
      * 옮겼다. 이 층은 JS 를 안 돌리므로 **그 창이 화면에 실려 왔는가**까지 잰다 —
      * 실제로 열리고 취소되는 것은 e2e 가 손으로 눌러 본다.
      */
@@ -273,7 +272,7 @@ try {
 
     /** **그래도 사주는 그대로다** — 닫히는 것은 설문 하나뿐이다 */
     check('동의 전에도 풀이는 그대로 선다', mine.includes('스스로 정한 규칙 안에서'));
-    check('동의 전에도 만드는 버튼은 그대로다', mine.includes('다시 풀이받기'));
+    check('동의 전에도 만드는 버튼은 그대로다', mine.includes('사주풀이 다시 받기'));
 
     const userA = await userIdOf(mail.a);
     sql(`update public.app_user set improvement_consent = true where id = '${userA}'`);
@@ -286,8 +285,7 @@ try {
     check('동의하면 설문이 글 아래에 선다', consented.includes('이 풀이는 어떠셨어요'));
     check('어느 글에 대한 답인지 말한다', consented.includes('지금 읽은 이 풀이에 대한 답입니다'));
     /*
-      「정확」만 보고 재면 안 된다 — 같은 화면에 「정확한 생년월일시는 넘기지 않습니다」가
-      이미 서 있다(ADR 0008). 재려는 것은 **묻는 말**이므로 낱말을 좁혀서 본다.
+      「정확」만 보고 재면 안 된다. 재려는 것은 **묻는 말**이므로 낱말을 좁혀서 본다.
     */
     check('「정확도」라고 묻지 않는다',
       !consented.includes('정확도') && consented.includes('실제 경험과 얼마나 비슷했나요'));
@@ -353,14 +351,14 @@ try {
 
     check('그 사람 이름으로 풀이 칸이 선다', plain(empty).includes('엄마의 사주풀이'));
     check('만드는 버튼이 선다', empty.includes('사주풀이 받기'));
-    check('아직 없으면 없다고 말한다', plain(empty).includes('아직 만들어 둔 사주풀이가 없습니다'));
+    check('아직 없으면 없다고 말한다', plain(empty).includes('아직 받아 둔 사주풀이가 없습니다'));
 
     const saved = await saveAs(a, 'person', { personA: momId }, OUTPUT.self, null, METAPHOR.self);
     check('저장한 사람의 풀이가 저장된다', !saved.error, saved.error?.message ?? '');
 
     const filled = plain(await body(page, cookie.a));
     check('저장한 글이 그 화면에 선다', filled.includes('스스로 정한 규칙 안에서'));
-    check('한 사람짜리라 점수가 안 선다', !filled.includes('궁합 풀이 점수'));
+    check('한 사람짜리라 점수가 안 선다', !filled.includes('궁합풀이 점수'));
 
     /** 남의 것은 못 본다 — **없는 것과 못 보는 것을 가르지 않는다** */
     const stranger = await body(page, cookie.b);
@@ -388,7 +386,7 @@ try {
      * 이 두 줄은 「아직 안 선다」를 재고 있었다. `b6e1893` 이 그 칸을 세웠는데 여기가
      * 안 따라와서, 그 뒤로 흐름 검사가 **고쳐진 것을 고장이라고 부르고 있었다.**
      */
-    check('저장된 사람끼리 궁합에도 풀이 칸이 선다', before.includes('두 사람의 궁합 풀이'));
+    check('저장된 사람끼리 궁합에도 풀이 칸이 선다', before.includes('두 사람의 궁합풀이'));
     /**
      * **여덟 글자도 관계표도 선다 — 접이칸으로 돌아오지는 않는다.**
      *
@@ -402,7 +400,7 @@ try {
      */
     check('두 사람의 여덟 글자가 선다', /일간/.test(before));
     check('접이칸으로 돌아오지 않는다', !before.includes('둘의 명식 보기'));
-    check('사이의 관계표가 선다', before.includes('두 원국 사이의 관계'));
+    check('사이의 관계표가 선다', before.includes('두 사주 사이의 관계'));
     check('넘길 자료 패널이 서지 않는다', !before.includes('풀이에 넘기는 자료'));
     /** 상세 화면에서는 글을 또 펼치라고 하지 않는다 — 그 글을 읽으러 온 자리다 */
     check('풀이 전문을 접는 버튼이 없다', !before.includes('펼쳐보기'));
@@ -515,10 +513,10 @@ try {
      */
     for (const [who, jar] of [['청한 쪽', cookie.a], ['동의한 쪽', cookie.b]]) {
       const waiting = await body(`/me/match/${matchId}`, jar);
-      /* 궁합 화면은 그 글을 「궁합 풀이」라고 부른다 — 낱말이 갈리면 이 검사가 늘 참이 된다 */
-      check(`${who} 화면에 만드는 버튼이 없다`, !waiting.includes('궁합 풀이 받기'));
+      /* 궁합 화면은 그 글을 「궁합풀이」라고 부른다 — 낱말이 갈리면 이 검사가 늘 참이 된다 */
+      check(`${who} 화면에 만드는 버튼이 없다`, !waiting.includes('궁합풀이 받기'));
       check(`${who} 화면이 만드는 중이라고 말한다`,
-        plain(waiting).includes('명식의 흐름을 이어 읽고 있어요'));
+        plain(waiting).includes('사주의 흐름을 이어 읽고 있어요'));
     }
 
     const pinnedRun = {
@@ -537,11 +535,13 @@ try {
     /**
      * **글이 선 뒤에도 누를 것이 없다** — 「버튼이 없다」는 성공 경로의 약속이다.
      *
-     * 이 화면의 버튼은 「다시 만들기」다(`automatic`). 「다시 풀이받기」로 재면 안 된다 —
-     * 그 글자는 확인 창 안에도 있고, 그 창은 버튼이 없어도 닫힌 채 markup 에 실려 온다.
+     * 재는 글자는 **버튼 이름 그대로**다(「궁합풀이 다시 받기」). 한동안 이 자리의
+     * 버튼만 「다시 만들기」라는 다른 이름을 써서 그것으로 쟀는데, 그 까닭은 같은
+     * 글자가 확인 창 안에도 실려 오기 때문이었다 — 이제 버튼이 없는 화면에는 창도
+     * 안 실린다(`panel.tsx`).
      */
     check('글이 선 뒤에도 만드는 버튼이 없다',
-      !mine.includes('다시 만들기') && !theirs.includes('다시 만들기'));
+      !mine.includes('궁합풀이 다시 받기') && !theirs.includes('궁합풀이 다시 받기'));
     check('양쪽이 같은 점수를 본다', mine.includes('64') && theirs.includes('64'));
     /** 점수가 못 하던 일을 한 문장이 진다(ADR 0052) — 열로 든 값이 화면까지 오는가 */
     check('점수 곁에 비유 한 줄이 선다',
@@ -564,9 +564,9 @@ try {
 
     /** 상대에게 준비 완료가 뜬다 — 누른 사람에게는 안 뜬다 */
     const inbox = plain(await body('/me/requests', cookie.b));
-    check('상대의 알림함에 준비 완료가 뜬다', inbox.includes('궁합 풀이가 새로 만들어졌습니다'));
+    check('상대의 알림함에 준비 완료가 뜬다', inbox.includes('궁합풀이가 새로 만들어졌습니다'));
     const mineInbox = plain(await body('/me/requests', cookie.a));
-    check('누른 사람에게는 뜨지 않는다', !mineInbox.includes('궁합 풀이가 새로 만들어졌습니다'));
+    check('누른 사람에게는 뜨지 않는다', !mineInbox.includes('궁합풀이가 새로 만들어졌습니다'));
   }
 
   // ── 4-1. 만든 글은 한 목록에 선다 ────────────────────────────────────────
@@ -593,7 +593,7 @@ try {
     check('목록에 두 사람 궁합 줄이 선다',
       shown.includes('엄마') && shown.includes(NAME.a) && shown.includes('궁합'));
     /** 함께 보는 궁합의 이름은 상대의 **공개 별명**이다 — `local_label` 이 아니다 */
-    check('목록에 함께 보는 궁합 줄이 선다', shown.includes(`${NAME.b} 님과의 궁합 풀이`));
+    check('목록에 함께 보는 궁합 줄이 선다', shown.includes(`${NAME.b} 님과의 궁합풀이`));
 
     check('궁합 줄에 점수가 함께 선다', shown.includes('71') && shown.includes('64'));
 

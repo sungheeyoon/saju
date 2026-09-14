@@ -80,7 +80,7 @@ export default async function OperatorSurveyPage() {
         <>
           <Head
             title="풀이 설문"
-            note="풀이를 읽은 그 자리에서 남긴 답입니다. 답이 그 글을 만든 시도에 매여 있어 판본과 모델이 옆에 섭니다."
+            note="풀이를 읽은 그 자리에서 남긴 답입니다. 답이 그 글을 만든 시도에 매여 있어 판본과 모델이 옆에 함께 보입니다."
           />
           <Overview counts={survey.overview} />
           {survey.overview.answers === 0 ? (
@@ -168,10 +168,10 @@ function Nothing({ counts }: { counts: SurveyOverview }) {
       <h2 className="text-base font-bold">아직 답이 없습니다</h2>
       <p className="text-sm leading-6 text-secondary">
         {counts.consented === 0
-          ? '개선 활용에 동의한 사람이 아직 없습니다. 동의하기 전에는 풀이 아래에 설문이 서지 않습니다.'
+          ? '개선 활용에 동의한 사람이 아직 없습니다. 동의하기 전에는 풀이 아래에 설문이 표시되지 않습니다.'
           : counts.succeededRuns === 0
-            ? '완성된 풀이가 아직 없습니다. 설문은 완성된 풀이 아래에 섭니다.'
-            : '동의한 분들이 아직 답을 남기지 않았습니다. 설문은 풀이를 읽은 그 자리에 섭니다.'}
+            ? '완성된 풀이가 아직 없습니다. 설문은 완성된 풀이 아래에 표시됩니다.'
+            : '동의한 분들이 아직 답을 남기지 않았습니다. 설문은 풀이를 읽은 그 자리에 표시됩니다.'}
       </p>
     </section>
   );
@@ -315,7 +315,7 @@ function Comments({ rows }: { rows: readonly CommentRow[] }) {
     <section className={`${CARD} flex flex-col gap-4`}>
       <div>
         <h2 className="text-base font-bold">적어 주신 글</h2>
-        <p className="mt-1 text-sm text-secondary">최근에 남긴 것부터 섭니다.</p>
+        <p className="mt-1 text-sm text-secondary">최근에 남긴 것부터 보입니다.</p>
       </div>
 
       <ul className="flex flex-col gap-3">

@@ -102,8 +102,16 @@ async function InboxSections() {
 
       <Notifications inbox={inbox} />
 
-      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="flex min-w-0 flex-col gap-8">
+      {/*
+        **한 줄로 내려온다.** 오른쪽에 곁줄이 있었고 그 안에 「빠른 이동」(내 사주·계정
+        관리)이 서 있었다. 그 둘은 **머리글의 메뉴가 이미 드는 길**이라, 화면 안에 또
+        세우면 같은 길이 두 자리에 있는 셈이다 — 소식 화면이 하는 일은 요청에 답하는 것
+        하나다.
+
+        안내 접이칸은 **맨 아래**로 내려갔다. 읽어야 할 요청보다 먼저 설 이유가 없고,
+        처음 온 사람은 답하고 나서 「이게 어떻게 되는 거지」를 묻는다.
+      */}
+      <div className="flex flex-col gap-8">
           <section className="flex flex-col gap-3">
             <SectionHead
               title="받은 요청"
@@ -172,28 +180,9 @@ async function InboxSections() {
             무효와 거둠은 둘 다 「성립하지 않았다」지만 이유가 다르다(US 43).
           */}
           {decided.length > 0 && <DecidedRequests requests={decided} />}
-        </div>
 
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-24">
-          <ConsentGuide />
-          <nav aria-label="소식 화면 관련 메뉴" className={`${CARD} flex flex-col gap-3`}>
-            <p className="text-xs font-bold tracking-[0.08em] text-muted">빠른 이동</p>
-            {/* 소개받은 사람들은 홈에 선다(ADR 0037) — 이 자리는 설정으로만 잇는다 */}
-            <Link
-              href="/me"
-              className="flex items-center justify-between rounded-xl bg-surface-soft px-4 py-3 text-sm font-medium hover:bg-accent-wash hover:text-accent"
-            >
-              내 사주와 인연 목록 <span aria-hidden="true">→</span>
-            </Link>
-            <Link
-              href="/me/settings"
-              className="flex items-center justify-between rounded-xl bg-surface-soft px-4 py-3 text-sm font-medium hover:bg-accent-wash hover:text-accent"
-            >
-              계정 관리 <span aria-hidden="true">→</span>
-            </Link>
-          </nav>
           <BlockedCount count={inbox.blocked} />
-        </aside>
+          <ConsentGuide />
       </div>
     </div>
   );

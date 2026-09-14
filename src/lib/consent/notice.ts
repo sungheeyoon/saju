@@ -230,11 +230,19 @@ export function noticeFor(dates: BetaDates, operator: Operator): readonly Notice
   ];
 }
 
-/** 선택 항목 하나 — **거절해도 서비스는 그대로다** */
+/**
+ * 선택 항목 하나 — **거절해도 서비스는 그대로다.**
+ *
+ * 줄이 둘인 것이 요점이다. `detail` 은 **무엇에 쓰는가**이고 `erasure` 는 **끄면 어떻게
+ * 되는가**다. 한 문장에 이어 붙여 두었더니 세 화면(가입·처리방침·계정 관리)에서 그
+ * 덩어리가 통째로 안 읽혔고, 정작 누르기 직전에 읽어야 하는 것은 뒤쪽이다(ADR 0022·0028).
+ */
 export type OptionalConsent = {
   readonly key: 'improvement' | 'contact';
   readonly label: string;
   readonly detail: string;
+  /** 끄거나 기간이 지나면 어떻게 되는가 — **지움과 보관 기한이 여기 산다** */
+  readonly erasure: string;
 };
 
 /**
@@ -249,15 +257,16 @@ export type OptionalConsent = {
 export const OPTIONAL_CONSENTS: readonly OptionalConsent[] = [
   {
     key: 'improvement',
-    label: '내 답변을 풀이 개선에 활용하는 데 동의합니다',
-    detail:
-      '풀이 후 5문항 설문에 남긴 답변과 생성 기록을 서비스 개선에 사용합니다. 선택하지 않으면 설문이 표시되지 않고, 동의를 철회하면 남긴 답변을 삭제합니다. 사주·궁합·풀이는 그대로 이용할 수 있습니다.',
+    label: '풀이 개선에 답변 활용',
+    detail: '설문 답변과 생성 기록을 서비스 개선에 활용합니다.',
+    erasure: '동의를 끄면 지금까지 남긴 설문 답변을 삭제합니다.',
   },
   {
     key: 'contact',
-    label: '다음 테스트 소식을 이메일로 받겠습니다',
+    label: '다음 테스트 소식 받기',
     detail:
-      '다음 테스트 초대와 인터뷰 요청만 보내드립니다. 광고성 메시지는 보내지 않습니다. 동의를 철회하거나 수집 후 1년이 지나면 더 이상 사용하지 않습니다.',
+      '다음 테스트 초대와 인터뷰 요청을 이메일로 보내드립니다. 광고성 메시지는 보내지 않습니다.',
+    erasure: '동의를 끄거나 수집 후 1년이 지나면 이메일을 더 쓰지 않습니다.',
   },
 ];
 
@@ -271,9 +280,13 @@ export const OPTIONAL_CONSENTS: readonly OptionalConsent[] = [
  *
  * 「이용할 수 있습니다」로 적는다. 「쓰실 수 있습니다」와 뜻이 같지만 처리방침이 쓰는
  * 말투가 이쪽이고, 이 문장은 그 문서에도 그대로 선다.
+ *
+ * **「거절해도 좁아지지 않는다」가 이제 이 한 줄에만 산다.** 항목마다 「사주·궁합·풀이는
+ * 그대로 이용할 수 있습니다」를 꼬리로 달고 있었는데, 같은 약속이 셋(공통 한 줄 + 항목 둘)
+ * 이면 고쳐지지 않는 자리가 생긴다 — 한 사실에 한 표기다(ADR 0027).
  */
 export const OPTIONAL_CONSENT_NOTE =
-  '원하지 않으면 선택하지 않아도 됩니다. 서비스 이용에는 영향이 없습니다.';
+  '원할 때만 선택해 주세요. 서비스 이용에는 영향이 없습니다.';
 
 /** 아직 세울 수 없을 때 화면이 하는 말 — **테스터가 볼 자리가 아니다** */
 export const NOTICE_NOT_READY =

@@ -74,10 +74,26 @@ const MOBILE_LINKS = [
 const TRAILING =
   'shrink-0 rounded-full border border-border-strong bg-surface px-3.5 py-1.5 text-sm font-semibold hover:border-accent hover:text-accent';
 
+/**
+ * 지금 보고 있는 화면이 **어느 줄의 것인가.**
+ *
+ * ## 탭 안에서 움직이면 메뉴는 안 움직인다
+ *
+ * 내 사주는 화면 둘을 탭으로 나눠 쓴다 — 사주(`/me`)와 사주풀이(`/me/readings/self`).
+ * 주소가 `/me/readings` 아래라서 그 탭을 누르면 **메뉴의 불이 「내 사주」에서 「풀이」로
+ * 옮겨 갔다.** 사용자는 탭 하나를 눌렀는데 화면이 다른 줄로 건너간 것처럼 보인다.
+ *
+ * 「풀이」는 **만든 글 전부가 시간순으로 서는 목록**(`/me/readings`)과 그 목록에서
+ * 열리는 글들의 줄이다. 자기 풀이는 그 목록에도 서지만, 사용자가 그 화면에 닿는 길은
+ * 대개 내 사주의 탭이다 — 그 자리에 있는 동안 불은 내 사주에 있어야 한다.
+ */
 export function isNavigationActive(pathname: string, href: string): boolean {
   if (href === '/') return pathname === '/' || pathname === '/compat' || pathname === '/me/compat';
-  if (href === '/me') return pathname === href;
-  if (href === '/me/readings' && pathname.startsWith('/me/match/')) return true;
+  if (href === '/me') return pathname === href || pathname === '/me/readings/self';
+  if (href === '/me/readings') {
+    if (pathname === '/me/readings/self') return false;
+    return pathname === href || pathname.startsWith(`${href}/`) || pathname.startsWith('/me/match/');
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

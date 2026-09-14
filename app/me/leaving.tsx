@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react';
 import { DELETION_IRREVERSIBLE_NOTE, DELETION_NOTE } from '@/src/lib/account';
 
 import { requestAccountDeletion } from './requests/actions';
+import { SETTINGS_DANGER, SETTINGS_QUIET, SettingsRow } from './settings/card';
 
 /**
  * 떠나는 자리 — **한 번 더 묻고, 무엇이 지워지지 않는지 먼저 말한다.**
@@ -16,6 +17,9 @@ import { requestAccountDeletion } from './requests/actions';
  *
  * 계정 관리 화면 안에서도 접힌 채로 시작한다. 되돌리기 어려운 작업이므로 설명과
  * 실행 버튼을 처음부터 같은 무게로 세우지 않는다.
+ *
+ * **모양은 이 파일이 안 정한다**(`settings/card.tsx`). 펴진 판이 카드 안의 또 다른
+ * 카드로 서던 동안, 이 자리는 계정 관리의 다른 칸들과 다른 언어를 쓰고 있었다.
  */
 export function RequestDeletion() {
   const router = useRouter();
@@ -35,41 +39,54 @@ export function RequestDeletion() {
 
   if (!asking) {
     return (
-      <button
-        type="button"
-        onClick={() => setAsking(true)}
-        className="self-start text-sm text-secondary underline underline-offset-2"
+      /*
+        **이 누름은 아무것도 안 지운다.** 자세한 내용을 펴는 것이고, 되돌릴 수 없는
+        누름은 그 안의 「삭제를 요청합니다」다. 카드의 둘째 줄이 그렇게 말한다.
+      */
+      <SettingsRow
+        help={
+          <>
+            계정을 삭제하면 저장한 정보와 이용 기록이 삭제됩니다.
+            <br />
+            삭제 전에 자세한 내용을 확인할 수 있습니다.
+          </>
+        }
       >
-        계정 삭제 요청
-      </button>
+        <button type="button" onClick={() => setAsking(true)} className={SETTINGS_DANGER}>
+          계정 삭제
+        </button>
+      </SettingsRow>
     );
   }
 
   return (
-    <section className="flex flex-col gap-3 rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6">
-      <h2 className="text-base font-semibold">계정 삭제 요청</h2>
-      <p className="text-sm text-secondary">{DELETION_NOTE}</p>
-      <p className="text-xs text-muted">{DELETION_IRREVERSIBLE_NOTE}</p>
-
+    <SettingsRow
+      help={DELETION_NOTE}
+      note={DELETION_IRREVERSIBLE_NOTE}
+    >
+      {/*
+        **펴진 판도 이 화면의 줄 하나다.** 전에는 카드 안에 또 하나의 카드(테두리·모서리·
+        제목)가 서서, 되돌리기 어려운 자리가 **다른 화면에서 온 것처럼** 보였다. 같은 줄
+        모양을 쓰고 무게는 글과 버튼의 색이 든다.
+      */}
       <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={leave}
-          disabled={working}
-          className="h-11 rounded-lg border border-border px-4 text-sm text-secondary transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-60 sm:h-10"
-        >
-          {working ? '보내는 중…' : '삭제를 요청합니다'}
-        </button>
         <button
           type="button"
           onClick={() => setAsking(false)}
           disabled={working}
-          className="text-sm text-secondary underline underline-offset-2"
+          className={SETTINGS_QUIET}
         >
           그만두기
         </button>
-        {failure !== null && <span className="text-xs text-muted">{failure}</span>}
+        <button type="button" onClick={leave} disabled={working} className={SETTINGS_DANGER}>
+          {working ? '보내는 중…' : '삭제를 요청합니다'}
+        </button>
       </div>
-    </section>
+      {failure !== null && (
+        <p role="alert" className="text-sm text-danger">
+          {failure}
+        </p>
+      )}
+    </SettingsRow>
   );
 }

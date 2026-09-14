@@ -4,6 +4,7 @@ import { DISCOVERY_DISCLOSURE } from '../discovery';
 import {
   MATCH_PILLARS_DISCLOSURE,
   NOTICE_VERSION,
+  OPTIONAL_CONSENT_NOTE,
   OPTIONAL_CONSENTS,
   noticeFor,
 } from './notice';
@@ -177,7 +178,19 @@ describe('선택 항목', () => {
     expect(OPTIONAL_CONSENTS.map((one) => one.key)).toEqual(['improvement', 'contact']);
 
     for (const one of OPTIONAL_CONSENTS) {
-      expect(one.detail.length, one.key).toBeGreaterThan(30);
+      expect(one.detail.length, one.key).toBeGreaterThan(20);
+    }
+  });
+
+  /**
+   * **끄면 어떻게 되는지는 항목마다 제 줄로 선다.**
+   *
+   * 한 문장에 이어 붙여 두었더니 세 화면에서 그 덩어리가 통째로 안 읽혔다. 줄을 가른 뒤로
+   * 재는 자리도 갈린다 — `detail` 은 무엇에 쓰는가, `erasure` 는 끄거나 기간이 지난 뒤다.
+   */
+  it('항목마다 끄면 어떻게 되는지 적혀 있다', () => {
+    for (const one of OPTIONAL_CONSENTS) {
+      expect(one.erasure.length, one.key).toBeGreaterThan(10);
     }
   });
 
@@ -185,16 +198,30 @@ describe('선택 항목', () => {
   it('개선 활용은 철회하면 지운다고 말한다', () => {
     const improvement = OPTIONAL_CONSENTS.find((one) => one.key === 'improvement');
 
-    expect(improvement?.detail).toContain('삭제합니다');
-    expect(improvement?.detail).toContain('그대로');
+    expect(improvement?.erasure).toContain('삭제합니다');
+  });
+
+  /**
+   * **「거절해도 좁아지지 않는다」는 공통 한 줄이 든다.**
+   *
+   * 항목마다 「사주·궁합·풀이는 그대로 이용할 수 있습니다」를 꼬리로 달고 있었다. 같은
+   * 약속이 셋이면 고쳐지지 않는 자리가 생긴다 — 한 사실에 한 표기다(ADR 0027).
+   */
+  it('거절해도 서비스가 그대로라는 말은 한 자리에 있다', () => {
+    expect(OPTIONAL_CONSENT_NOTE).toContain('서비스 이용에는 영향이 없습니다');
+
+    for (const one of OPTIONAL_CONSENTS) {
+      expect(`${one.detail}${one.erasure}`, one.key).not.toContain('그대로 이용');
+    }
   });
 
   /** 후속 연락은 **광고가 아니다** — 합치면 하나로 받아 둘 다 쓰게 된다 */
-  it('후속 연락에 홍보를 섞지 않는다', () => {
+  it('후속 연락에 홍보를 섞지 않고 보관 기한을 든다', () => {
     const contact = OPTIONAL_CONSENTS.find((one) => one.key === 'contact');
 
     expect(contact?.detail).toContain('광고성 메시지는 보내지 않습니다');
-    expect(contact?.detail).toContain('1년');
+    /* 이메일 보관 기한은 이 항목에만 적혀 있다 — 빠지면 안내 전체에서 사라진다 */
+    expect(contact?.erasure).toContain('1년');
   });
 });
 

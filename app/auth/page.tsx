@@ -30,7 +30,7 @@ export default async function SignInPage({
             궁합 쪽은 제목이 이미 「왜 여기 섰는가」를 다 말한다 — 본문이 그 이유를 한 번 더
             적으면 바로 아래 선 베타 안내까지 같이 안 읽힌다.
           */}
-          {forReading && '로그인 후 방금 확인한 명식으로 돌아갑니다. 출생 정보를 저장하고 사주풀이를 만들어 보세요. '}
+          {forReading && '로그인 후 방금 확인한 사주로 돌아갑니다. 출생 정보를 저장하면 사주풀이를 받을 수 있습니다. '}
           {!forCompat && !forReading && '로그인하면 저장한 사람과 사주풀이를 다음에도 이어서 볼 수 있습니다. '}
           지금은 비공개 베타라, 처음 오셨다면 로그인 뒤에 <strong className="font-semibold">테스트 코드</strong>가
           필요합니다.
@@ -40,7 +40,7 @@ export default async function SignInPage({
       <SignInButton returnTo={returnTo} />
 
       <Link href="/" className="text-sm text-accent underline underline-offset-2">
-        사주 보기로 돌아가기
+        사주로 돌아가기
       </Link>
       </section>
     </main>

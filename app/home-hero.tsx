@@ -8,6 +8,7 @@ import { HOUR_UNKNOWN_CHOICE } from '@/src/lib/input/query';
 import { supabaseInBrowser } from './auth/browser-client';
 import { CompatEntry } from './compat-entry';
 import { SignedInProvider } from './signed-in';
+import { SajuCompatTabs } from './segmented-nav';
 import {
   TAB_ACTION_PRIMARY,
   TAB_HERO_CARD,
@@ -89,7 +90,7 @@ export function HomeHero({ calculator }: { calculator: ReactNode }) {
             **제목은 둘이 같다.** 묻는 것이 같기 때문이다 — 가르는 것은 이 입력이
             그 사람에게 무엇이냐는 쪽이지 무엇을 묻느냐가 아니다.
           */}
-          <p className="eyebrow">{member ? '직접 입력' : '첫 단계 · 기본 명식 확인'}</p>
+          <p className="eyebrow">{member ? '직접 입력' : '첫 단계 · 사주 확인'}</p>
           <h2 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">출생 정보를 입력해 주세요</h2>
           <p className="mt-2 text-sm leading-6 text-secondary">
             {!member && (
@@ -128,8 +129,7 @@ function Hero({ member, signedIn }: { member: boolean; signedIn: boolean | null 
       */}
       {member ? (
         <TabHeroBody
-          /* 이 탭의 두 반쪽이 같은 눈썹을 쓴다 — 어디에 서 있는지가 뒤에 붙는다 */
-          eyebrow="사주·궁합 · 한 사람"
+          eyebrow="사주"
           title="궁금한 사람의 사주를 바로 봅니다."
           lede={
             <p>
@@ -137,14 +137,19 @@ function Hero({ member, signedIn }: { member: boolean; signedIn: boolean | null 
               저장하지 않고도 바로 볼 수 있습니다.
             </p>
           }
-          actions={
-            <TabActions>
-              <a href="#calculator" className={TAB_ACTION_PRIMARY}>
-                출생 정보 입력하기
-              </a>
-              <CompatEntry signedIn />
-            </TabActions>
-          }
+          /*
+            **회원의 머리에는 토글 하나다.**
+
+            버튼 둘이 서 있었다 — 「출생 정보 입력하기」(`#calculator`)와 「궁합 보러
+            가기」. 앞엣것은 **바로 아래 보이는 폼으로 스크롤만 하는 누름**이고(`/compat`
+            에서 같은 이유로 걷었다), 뒤엣것은 나란한 짝으로 가는 길인데 버튼 모양이라
+            위아래 관계처럼 보였다.
+
+            지금은 사주와 궁합이 **한 덩이 토글**로 선다. 지금 어디에 있는지와 다른
+            반쪽으로 가는 길을 한 부품이 함께 말한다 — 한 사람의 사주와 풀이가 이미
+            같은 모양이다(`SegmentedNav`).
+          */
+          actions={<SajuCompatTabs current="saju" />}
         />
       ) : (
         <VisitorFace signedIn={signedIn} />
@@ -175,7 +180,7 @@ function VisitorFace({ signedIn }: { signedIn: boolean | null }) {
               <CompatEntry signedIn={signedIn} />
             </TabActions>
           </div>
-          <p className="mt-3 text-xs leading-5 text-secondary">기본 명식은 로그인 없이 · 사주풀이와 궁합은 로그인 후</p>
+          <p className="mt-3 text-xs leading-5 text-secondary">사주는 로그인 없이 · 사주풀이와 궁합은 로그인 후</p>
         </div>
         <div className="rounded-2xl border border-border bg-background/80 p-5 sm:p-6">
           <p className="text-xs font-semibold tracking-wide text-accent">사주풀이에서 만날 이야기</p>

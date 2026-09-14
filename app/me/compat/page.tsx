@@ -20,8 +20,6 @@ import {
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { payloadForViewer, type PersonPayload } from '../payload';
-import { myPrivateReadings, type PrivateReadingEntry } from '../reading/current';
-import { readingDate } from '../reading/line';
 import { ReadingSection } from '../reading/section';
 
 /**
@@ -34,7 +32,7 @@ import { ReadingSection } from '../reading/section';
 export const maxDuration = 300;
 
 export const metadata = {
-  title: '저장한 사람으로 궁합 보기 — 만세력',
+  title: '궁합 — 만세력',
   description: '저장해 둔 두 사람을 골라 사이에 성립하는 관계를 봅니다.',
 };
 
@@ -100,40 +98,46 @@ export default async function ManagedCompatPage({
   /**
    * **결과는 제 페이지에 선다.**
    *
-   * 고르는 칸과 본 궁합 목록과 결과를 한 화면에 쌓아 두면, 다시 찾아온 사람이 자기
-   * 결과에 닿기까지 세 덩어리를 지나야 한다. 「무엇을 볼까」와 「무엇이 나왔나」는
-   * 다른 물음이므로 자리를 가른다 — 주소는 이미 갈려 있었다(`?a=…&b=…`).
+   * 고르는 칸과 결과를 한 화면에 쌓아 두면, 다시 찾아온 사람이 자기 결과에 닿기까지
+   * 두 덩어리를 지나야 한다. 「무엇을 볼까」와 「무엇이 나왔나」는 다른 물음이므로
+   * 자리를 가른다 — 주소는 이미 갈려 있었다(`?a=…&b=…`).
    */
   if (outcome !== null && outcome.kind === 'ok') {
     return <ResultPage outcome={outcome} />;
   }
 
-  return (
-    <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
-      <CompatHero pick="/compat" />
+  /**
+   * **인자 없이 열리면 고르는 자리로 보낸다.**
+   *
+   * 여기 「본 궁합」 목록이 서 있었다. 다시 찾아오는 길이라는 까닭이었는데, **풀이 목록
+   * (`/me/readings`)이 이미 그 일을 더 잘 한다** — 궁합 줄에 점수와 한 줄 비유와
+   * 「이전 입력」 딱지와 날짜까지 선다. 같은 목록이 두 자리에 있으면 한쪽만 고쳐지는
+   * 날이 오고, 그날 두 화면은 서로 다른 것을 말한다(ADR 0033).
+   *
+   * 주소는 살려 둔다. 이 화면으로 오는 옛 길이 있었고(풀이 목록의 빈 상태·사람을 못
+   * 찾은 자리), 그 링크가 404 를 만나는 것보다 **시작하는 자리로 이어지는 것**이 맞다.
+   */
+  if (outcome === null || outcome.kind === 'empty') redirect('/compat');
 
-      <div className="flex flex-col gap-6">
-        {/*
-          **고르는 칸은 여기 없다**(ADR 0054). 두 사람을 정하는 자리는 `/compat` 하나이고,
-          이 주소는 **그 결과**가 사는 곳이다. 인자 없이 열리는 것은 본 궁합을 다시
-          찾아오는 길이라 그 목록과 시작하는 길만 세운다.
-        */}
-        <section className={`${CARD} flex flex-col gap-2`}>
-          <h2 className="text-base font-semibold">두 사람을 골라 주세요</h2>
-          <p className="text-sm leading-6 text-secondary">
-            궁합은 두 사람을 정하는 것부터 시작합니다. 저장한 사람에서 고르거나 직접 적을
-            수 있습니다.
-          </p>
-          <Link
-            href="/compat"
-            className="self-start text-sm font-medium text-accent underline underline-offset-2"
-          >
-            궁합 보러 가기 →
-          </Link>
-        </section>
-        <SeenPairs />
-        {outcome !== null && <Result outcome={outcome} />}
-      </div>
+  /**
+   * **거절은 그 자리에서 말한다.** 같은 사람 둘(`same`)과 못 읽은 판본(`unreadable`)은
+   * 주소가 무언가를 가리키고 있는데 결과가 안 나는 경우다. 고르는 자리로 되돌려 보내면
+   * 사용자는 **왜 되돌아왔는지 모른 채** 같은 주소를 다시 누른다.
+   */
+  return (
+    <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
+      <header className="flex flex-col gap-2">
+        <Link
+          href="/compat"
+          className="self-start text-sm text-secondary underline underline-offset-2 hover:text-accent"
+        >
+          ← 궁합 보러 가기
+        </Link>
+        <p className="eyebrow">궁합</p>
+        <h1 className="text-3xl font-bold tracking-[-0.04em] sm:text-4xl">궁합을 볼 수 없습니다</h1>
+      </header>
+
+      <Result outcome={outcome} />
     </main>
   );
 }
@@ -154,11 +158,12 @@ async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' 
   return (
     <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
       <header className="flex flex-col gap-2">
+        {/* 되돌아가는 자리는 **만든 풀이 목록**이다 — 이 궁합도 거기 한 줄로 선다 */}
         <Link
-          href="/me/compat"
+          href="/me/readings"
           className="self-start text-sm text-secondary underline underline-offset-2 hover:text-accent"
         >
-          ← 다른 궁합 보기
+          ← 만든 풀이 목록
         </Link>
         <p className="eyebrow">궁합</p>
         <h1 className="text-3xl font-bold tracking-[-0.04em] sm:text-4xl">
@@ -168,78 +173,6 @@ async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' 
 
       <Result outcome={outcome} />
     </main>
-  );
-}
-
-/**
- * **본 궁합을 다시 찾아가는 자리.**
- *
- * 결과가 사는 주소는 `?a=…&b=…` 이고 둘 다 불투명 uuid 다. 화면을 벗어나면 주소가
- * 사라지고, 사라진 주소를 사람이 기억할 수는 없다 — 저장돼 있는데 **닿을 수 없는 것**은
- * 사용자에게 없는 것과 같다. 두 사람을 다시 고르면 같은 결과가 서기는 하지만, 그러려면
- * 내가 누구와 누구를 봤는지를 먼저 기억해야 한다. 사람이 스물이면 그것은 기억이 아니라
- * 뒤지기다.
- *
- * **고르는 칸 바로 아래**에 둔다. 결과 아래에 두면 긴 풀이를 다 지나야 만나고, 그러면
- * 다시 찾아가려는 사람에게는 없는 것과 같다. 여기는 「무엇을 볼까」를 정하는 자리이고
- * 이 목록도 같은 물음에 답한다.
- *
- * **비어 있으면 아무것도 안 그린다.** 처음 온 사람에게 빈 목록은 할 일이 하나 더 있는
- * 것처럼 보이는데, 고르는 칸이 이미 그 말을 하고 있다.
- */
-async function SeenPairs() {
-  const seen = await myPrivateReadings();
-  if (seen.length === 0) return null;
-
-  return (
-    <section className={`${CARD} flex flex-col gap-3`}>
-      <div>
-        <h2 className="text-base font-semibold">본 궁합</h2>
-        <p className="mt-0.5 text-xs leading-5 text-muted">
-          만들어 둔 풀이가 그대로 남아 있습니다. 눌러서 다시 보세요.
-        </p>
-      </div>
-
-      <ul className="flex flex-col gap-2">
-        {seen.map((one) => (
-          <SeenPair key={`${one.personA}:${one.personB}`} entry={one} />
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function SeenPair({ entry }: { entry: PrivateReadingEntry }) {
-  return (
-    <li>
-      <Link
-        href={`/me/compat?a=${entry.personA}&b=${entry.personB}`}
-        className="flex items-center gap-3 rounded-xl border border-border-strong bg-surface px-4 py-3 text-sm hover:border-accent hover:text-accent"
-      >
-        <span className="min-w-0 flex-1 truncate font-medium">
-          {entry.labelA} <span className="text-muted">×</span> {entry.labelB}
-        </span>
-        {entry.score !== null && (
-          <span className="shrink-0 text-sm font-semibold tabular-nums text-accent">
-            {entry.score}
-            <span className="ml-0.5 text-xs font-normal text-muted">점</span>
-          </span>
-        )}
-        {/*
-          **낡았다는 것을 목록에서도 말한다.** 열어 봐야 알게 되면, 목록은 「지금 입력으로
-          본 것」과 「그 뒤에 고친 입력으로 다시 봐야 하는 것」을 같은 줄로 보이게 된다.
-          색만으로 말하지 않는다 — 낱말이 함께 있어야 한다.
-        */}
-        {!entry.fromCurrentRevision && (
-          <span className="shrink-0 rounded-full bg-warning-wash px-2 py-0.5 text-[11px] font-semibold text-warning">
-            이전 입력
-          </span>
-        )}
-        <time dateTime={entry.createdAt} className="shrink-0 text-xs text-muted">
-          {readingDate(entry.createdAt)}
-        </time>
-      </Link>
-    </li>
   );
 }
 
