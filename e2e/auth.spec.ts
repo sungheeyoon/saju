@@ -29,7 +29,7 @@ test('로그인 화면은 코드가 한 번 필요하다고 미리 말한다', a
     막다른 화면을 만나지 않게, 필요한 것을 여기서 먼저 말한다.
   */
   await expect(page.getByText('테스트 코드', { exact: false })).toBeVisible();
-  await expect(page.getByRole('link', { name: '사주 보기로 돌아가기' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '사주로 돌아가기' })).toBeVisible();
 });
 
 test('로그인이 끊기면 왜인지 모른다고 말한다', async ({ page }) => {

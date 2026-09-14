@@ -9,7 +9,6 @@ import {
   READING_FAILED_NOTE,
   READING_NOUN,
   readingNoneNote,
-  READING_REDACTION_NOTE,
   READING_REPLACES_NOTE,
   READING_STALE_NOTE,
   isScored,
@@ -29,7 +28,7 @@ import type { ReadingTarget } from './pipeline';
 
 const MOCK_OUTPUT = `## 지금의 핵심
 
-당신의 명식은 **한 방향으로 빠르게 밀어붙이기보다, 주변의 흐름을 읽고 자신의 기준을 세울 때 힘이 나는 구조**로 보입니다. 겉으로는 차분하게 상황을 정리하지만, 납득할 만한 이유가 생기면 생각보다 결단이 빠른 편입니다.
+당신의 사주는 **한 방향으로 빠르게 밀어붙이기보다, 주변의 흐름을 읽고 자신의 기준을 세울 때 힘이 나는 구조**로 보입니다. 겉으로는 차분하게 상황을 정리하지만, 납득할 만한 이유가 생기면 생각보다 결단이 빠른 편입니다.
 
 ## 강점이 드러나는 방식
 
@@ -49,7 +48,7 @@ const MOCK_OUTPUT = `## 지금의 핵심
 
 ---
 
-이 해석은 저장된 명식 근거를 바탕으로 현재 확인 가능한 경향을 설명합니다. 출생 시각이 없거나 계산 근거가 제한된 부분은 단정하지 않았으며, 중요한 결정을 대신하는 판단으로 사용하지 마세요.`;
+이 해석은 저장된 사주 근거를 바탕으로 현재 확인 가능한 경향을 설명합니다. 출생 시각이 없거나 계산 근거가 제한된 부분은 단정하지 않았으며, 중요한 결정을 대신하는 판단으로 사용하지 마세요.`;
 
 type Phase = 'idle' | 'loading' | 'error';
 
@@ -136,8 +135,9 @@ export function ReadingPanel({
    * **누를 것이 아무것도 없다** — 「먼저 누른 사람」이 사라지는 것은 누를 것이 없어져서다.
    *
    * **실패 경로에서까지 없애지는 않는다.** 글도 없고 도는 시도도 없으면 그 자리는 막다른
-   * 골목이 되고, 그것은 이 ADR 이 없애려던 바로 그 자리다. 그때는 「다시 만들기」가 서고,
-   * 누른 사람이 한 번을 쓴다(ADR 0017 — 드물고 눈에 보이는 자리다).
+   * 골목이 되고, 그것은 이 ADR 이 없애려던 바로 그 자리다. 그때는 아무것도 없는 자리에
+   * 서는 버튼 그대로 「궁합풀이 받기」가 서고, 누른 사람이 한 번을 쓴다
+   * (ADR 0017 — 드물고 눈에 보이는 자리다).
    */
   automatic?: boolean;
   ask?: ReactNode;
@@ -292,7 +292,7 @@ export function ReadingPanel({
 
   const onPage = layout === 'page';
 
-  /** 이 대상을 부르는 말 — 두 사람짜리 화면은 「궁합 풀이」라고 적는다 */
+  /** 이 대상을 부르는 말 — 두 사람짜리 화면은 「궁합풀이」라고 적는다 */
   const noun = READING_NOUN[target.kind];
 
   /*
@@ -325,6 +325,42 @@ export function ReadingPanel({
    */
   const canShare = target.kind !== 'match' && reading !== null && phase !== 'loading' && !isMock;
 
+  /**
+   * 만드는 버튼 — **두 자리에 같은 버튼이 선다.**
+   *
+   * 글이 아직 없으면 권하는 말과 함께 칸 안에(`block`), 글이 이미 있으면 **머리의 공유
+   * 버튼 옆에**(`pill`) 선다. 뒤엣것이 이 화면에서 사용자가 글을 읽고 나서 하는 두
+   * 가지 — 보내기와 다시 받기 — 이고, 그 둘은 나란히 있어야 고르기가 된다.
+   */
+  const makeButton = (shape: 'block' | 'pill') => (
+    <button
+      type="button"
+      onClick={press}
+      disabled={phase === 'loading' || spent}
+      className={
+        shape === 'pill'
+          ? 'inline-flex min-h-10 w-full items-center justify-center rounded-full bg-accent px-4 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60'
+          : 'h-11 w-full shrink-0 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto'
+      }
+    >
+      {phase === 'loading'
+        ? `${noun} 받는 중…`
+        : reading === null
+          ? `${noun} 받기`
+          : `${noun} 다시 받기`}
+    </button>
+  );
+
+  /**
+   * 글을 읽으러 온 화면에 **이미 글이 있으면** 만드는 버튼은 머리로 올라간다.
+   *
+   * 전에는 글 위에 칸 하나가 통째로 서 있었다 — 권하는 말·안 넘기는 것·버튼. 그런데
+   * 글이 이미 있는 사람에게 그 칸이 하는 말은 버튼 하나뿐이고, 나머지 줄은 **읽을
+   * 이유가 없는 자리**를 차지하고 있었다. 제목 옆에 「언제 만들었나」, 그 아래 보내기와
+   * 다시 받기 — 그것이 이 화면에서 글 말고 있어야 하는 전부다.
+   */
+  const makeInHeader = onPage && reading !== null && !hideMake;
+
   const makeBlock = hideMake ? null : (
     <div
       className={`flex flex-col gap-3 ${onPage ? 'rounded-2xl border border-border bg-surface px-5 py-4' : 'border-t border-border pt-5'}`}
@@ -347,12 +383,12 @@ export function ReadingPanel({
         <div className="flex flex-col gap-0.5">
           {reading === null && (
             <>
-              <p className="text-sm font-semibold">명식 근거로 풀이를 받아 보세요</p>
+              <p className="text-sm font-semibold">사주를 바탕으로 {noun}를 받아 보세요</p>
               <p className="text-xs leading-5 text-muted">{readingNoneNote(noun)}</p>
             </>
           )}
-          <p className="text-xs leading-5 text-muted">{READING_REDACTION_NOTE}</p>
         </div>
+
         {/*
           **숫자는 여기 없다 — 머리글에 있다.**
 
@@ -365,20 +401,7 @@ export function ReadingPanel({
           하나가 한 번을 쓰고 있어요」와 「새로 만들 수는 없지만…」은 이 누름에 대한
           말이라 누르는 자리에 있어야 한다.
         */}
-        <button
-          type="button"
-          onClick={press}
-          disabled={phase === 'loading' || spent}
-          className="h-11 w-full shrink-0 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto"
-        >
-          {phase === 'loading'
-            ? '풀이 만드는 중…'
-            : automatic
-              ? '다시 만들기'
-              : reading === null
-                ? `${noun} 받기`
-                : '다시 풀이받기'}
-        </button>
+        {makeButton('block')}
       </div>
       {/* 풀이권에 대해 말할 것이 있을 때만 한 줄 더 선다 — 이 누름에 대한 말이라 여기다 */}
       {creditsNote !== null && <p className="text-xs leading-5 text-muted">{creditsNote}</p>}
@@ -401,19 +424,56 @@ export function ReadingPanel({
 
   return (
     <>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <h2 className="text-xl font-bold tracking-tight">{heading}</h2>
-        {reading !== null && (
-          <div className="flex flex-wrap items-center gap-2">
-            {isMock && (
-              <span className="rounded-full bg-warning-wash px-2.5 py-1 text-[11px] font-semibold text-warning">
-                예시 결과
+      <header className="flex flex-col gap-3">
+        {/*
+          **왼쪽은 이름, 오른쪽은 이 글에 대해 할 수 있는 것.**
+
+          제목과 「언제 만들었나」와 누름 둘이 한 덩이를 이룬다. 넓은 화면에서는 제목이
+          왼쪽에 서고 나머지가 **오른쪽 끝으로 한 줄**을 이룬다(날짜 아래에 버튼 둘).
+          좁은 화면에서는 위에서 아래로 쌓이고, 그때 버튼 둘은 **줄을 반씩 나눠 쓴다** —
+          가운데에 모아 두면 누르는 자리가 화면마다 옮겨 다닌다.
+        */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+          <h2 className="text-xl font-bold tracking-tight">{heading}</h2>
+
+          <div className="flex flex-col gap-2 sm:shrink-0 sm:items-end">
+            {reading !== null && (
+              <span className="flex flex-wrap items-center gap-2">
+                {isMock && (
+                  <span className="rounded-full bg-warning-wash px-2.5 py-1 text-[11px] font-semibold text-warning">
+                    예시 결과
+                  </span>
+                )}
+                <span className="text-xs text-muted">{when(reading.createdAt)} 생성</span>
               </span>
             )}
-            <span className="text-xs text-muted">{when(reading.createdAt)} 생성</span>
-            {/* 제목 옆 — 글을 읽기 전에도 보낼 수 있다 */}
-            {canShare && <ShareReadingButton target={target} variant="compact" />}
+
+            {/*
+              **보내기와 다시 받기가 나란히 선다.** 글을 다 읽은 사람이 하는 일이 그
+              둘이다. 전에는 보내기만 제목 옆에 있고 다시 받기는 글 위의 칸에, 그리고
+              보내기가 본문 아래에 **한 번 더** 있었다 — 같은 일에 손잡이가 셋이면 어느
+              것이 무엇인지 세어 봐야 한다.
+            */}
+            {(canShare || makeInHeader) && (
+              /*
+                **둘이면 반반이다.** 글자 길이대로 두면 「사주풀이 다시 받기」가 「공유
+                링크 복사」보다 넓어서, 나란히 선 두 누름이 서로 다른 무게로 보인다.
+                격자로 나누면 **긴 쪽이 폭을 정하고 짧은 쪽이 그것을 따른다** — 좁은
+                화면에서는 줄을 반씩 나눠 쓰고, 넓은 화면에서는 그 한 쌍이 오른쪽 끝에
+                붙는다. 하나만 설 때는 나눌 것이 없으므로 제 크기로 선다.
+              */
+              <div className={canShare && makeInHeader ? 'grid grid-cols-2 gap-2' : 'flex'}>
+                {canShare && <ShareReadingButton target={target} variant="compact" />}
+                {makeInHeader && makeButton('pill')}
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* 다음 글에 대한 말은 그 버튼 아래다 — 사이 물음과 풀이권 이야기 */}
+        {makeInHeader && ask}
+        {makeInHeader && creditsNote !== null && (
+          <p className="text-xs leading-5 text-muted">{creditsNote}</p>
         )}
       </header>
 
@@ -422,7 +482,7 @@ export function ReadingPanel({
         뒤에 있으면 없는 것과 같다. 카드로 설 때는 반대다 — 거기서는 이 칸이 다른 것들
         사이에 끼어 있어서, 먼저 무엇이 있는지 보이고 나서 만들지 말지를 정한다.
       */}
-      {onPage && makeBlock}
+      {onPage && !makeInHeader && makeBlock}
       {onPage && alert}
 
       {phase === 'loading' ? (
@@ -463,25 +523,13 @@ export function ReadingPanel({
         같은 줄도 세우지 않는다 — 거절한 사람에게 거절을 다시 보여 주는 자리가 된다.
       */}
       {/*
-        **본문 끝에 한 번 더 선다.**
+        **본문 끝에 공유 칸을 한 번 더 세우지 않는다.**
 
-        제목 옆의 것과 같은 일을 하는 버튼이 둘이다. 이 저장소는 같은 값을 두 자리에
-        적는 것을 싫어하는데, 여기서 둘인 것은 **글이 길기 때문**이다 — 여덟 천 자를 다
-        읽고 「누구한테 보내야지」라고 생각한 사람에게, 그 자리가 화면 맨 위에만 있으면
-        없는 것과 같다. 값을 두 번 적는 것이 아니라 같은 문 앞에 손잡이가 둘인 것이다.
-
-        접혀 있으면 안 세운다. 그때는 위의 것이 바로 보이는 자리에 있다.
+        「이 풀이를 보내 보세요」와 채운 버튼이 여기 서 있었다. 글이 길어서 맨 위의 것이
+        안 보인다는 까닭이었는데, 같은 문 앞의 손잡이가 둘이면 **어느 것이 무엇인지**
+        세어 봐야 한다. 머리의 두 버튼(보내기·다시 받기)이 한 자리에 있으므로, 다 읽고
+        보내려는 사람은 위로 한 번 올라가면 된다.
       */}
-      {canShare && (onPage || readingExpanded) && (
-        <div className="flex flex-col gap-2 border-t border-border pt-5">
-          <p className="text-sm font-semibold">이 풀이를 보내 보세요</p>
-          <p className="text-xs leading-5 text-muted">
-            링크를 아는 사람은 누구나 이 풀이를 볼 수 있습니다.
-          </p>
-          <ShareReadingButton target={target} variant="block" />
-        </div>
-      )}
-
       {(onPage || readingExpanded) && consented && phase !== 'loading' && reading !== null && !isMock
         && reading.sourceRunId !== null && (
         <ReadingFeedback target={target} runId={reading.sourceRunId} given={reading.myFeedback} />
@@ -490,6 +538,13 @@ export function ReadingPanel({
       {!onPage && alert}
       {!onPage && makeBlock}
 
+      {/*
+        **누를 수 없는 자리에는 창도 없다.** 이 창은 만드는 버튼이 여는 것이라, 버튼이
+        없는 화면(동의가 만드는 글의 성공 경로)에서는 열릴 길이 없다. 그런데도 닫힌 채
+        markup 에 실려 오면 **버튼 글자가 화면에 두 벌** 남는다 — 검사는 그 글자를 세어
+        「만드는 버튼이 있나」를 재므로, 안 눌리는 창 하나가 그 답을 늘 참으로 만든다.
+      */}
+      {hideMake ? null : (
       <dialog
         ref={confirming}
         aria-labelledby="reading-confirm-title"
@@ -519,7 +574,7 @@ export function ReadingPanel({
             onClick={confirmGenerate}
             className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong sm:h-10"
           >
-            {reading === null ? '풀이받기' : '다시 풀이받기'}
+            {reading === null ? `${noun} 받기` : `${noun} 다시 받기`}
           </button>
           <button
             type="button"
@@ -530,6 +585,7 @@ export function ReadingPanel({
           </button>
         </div>
       </dialog>
+      )}
     </>
   );
 }
@@ -540,7 +596,7 @@ function EmptyState() {
       <div className="max-w-sm">
         <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-accent-wash text-xl text-accent" aria-hidden="true">✦</span>
         <h3 className="mt-4 text-base font-bold">아직 받아 둔 풀이가 없어요</h3>
-        <p className="mt-2 text-sm leading-6 text-secondary">복잡한 명식 정보를 핵심 성향, 강점, 균형을 위한 제안으로 나누어 읽기 쉽게 정리합니다.</p>
+        <p className="mt-2 text-sm leading-6 text-secondary">복잡한 사주 정보를 핵심 성향, 강점, 균형을 위한 제안으로 나누어 읽기 쉽게 정리합니다.</p>
       </div>
     </div>
   );
@@ -576,7 +632,7 @@ function LoadingState() {
       <div className="flex items-center gap-3">
         <span className="grid size-10 animate-pulse place-items-center rounded-full bg-accent text-on-accent" aria-hidden="true">✦</span>
         <div className="min-w-0">
-          <p className="font-semibold">명식의 흐름을 이어 읽고 있어요</p>
+          <p className="font-semibold">사주의 흐름을 이어 읽고 있어요</p>
           <p className="text-xs text-secondary">근거를 확인하고, 단정하지 않는 문장으로 옮깁니다.</p>
         </div>
         {/*
@@ -663,7 +719,7 @@ function Result({
             <div className="flex min-w-40 flex-col items-center justify-center gap-3 border-t border-border bg-accent-wash/45 px-5 py-4 text-center sm:border-l sm:border-t-0 sm:px-6">
               {reading.score !== null && (
                 <div>
-                  <p className="text-xs font-semibold text-accent">궁합 풀이 점수</p>
+                  <p className="text-xs font-semibold text-accent">궁합풀이 점수</p>
                   <p className="mt-1 flex items-baseline justify-center gap-1">
                     <span className="text-3xl font-bold tabular-nums">{reading.score}</span>
                     <span className="text-xs font-medium text-secondary">/ 100</span>
@@ -698,7 +754,7 @@ function Result({
           {target.kind === 'match' && (
             <header className="border-b border-border px-5 py-4 sm:px-7 sm:py-5 lg:px-8">
               <p className="eyebrow">두 사람의 풀이</p>
-              <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">궁합 풀이 결과</h2>
+              <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">궁합풀이 결과</h2>
             </header>
           )}
           <article

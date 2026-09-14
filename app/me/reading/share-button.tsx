@@ -146,7 +146,7 @@ export function ShareReadingButton({
 
   const shape =
     variant === 'compact'
-      ? 'inline-flex min-h-10 shrink-0 items-center justify-center rounded-full border border-accent/25 bg-surface px-4 text-sm font-semibold text-accent shadow-sm hover:border-accent disabled:opacity-60'
+      ? 'inline-flex min-h-10 w-full items-center justify-center rounded-full border border-accent/25 bg-surface px-4 text-sm font-semibold text-accent shadow-sm hover:border-accent disabled:opacity-60'
       : 'inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto';
 
   /*
@@ -156,7 +156,15 @@ export function ShareReadingButton({
     감싼 가로 flex 가 그것을 막고 있었는데, 두 번째 버튼이 없어지면서 그 칸도 걷혔다.
   */
   return (
-    <div className={`flex flex-col gap-2 ${variant === 'block' ? 'items-start' : 'items-end'}`}>
+    /*
+      **`compact` 는 담긴 칸을 채운다.** 옆의 「다시 받기」와 **반반으로** 서기 때문이다
+      (`panel.tsx` 의 머리가 격자로 나눈다). 폭을 스스로 정하지 않으므로 그 칸이 정한다.
+    */
+    <div
+      className={`flex flex-col gap-2 ${
+        variant === 'block' ? 'items-start' : 'w-full items-stretch'
+      }`}
+    >
       <button type="button" onClick={start} disabled={phase === 'working'} className={shape}>
         {/*
           **안 보이는 한 벌이 폭을 잡는다.** 두 글자를 같은 칸에 겹쳐 놓고 아래 것을

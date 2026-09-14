@@ -149,7 +149,7 @@ function FoldedAnalysis({
       */}
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-[1.75rem] border border-border bg-surface-sunken px-5 py-4 hover:border-accent sm:px-6 [&::-webkit-details-marker]:hidden">
         <span>
-          <span className="text-base font-semibold">두 원국을 맞대어 본 표</span>
+          <span className="text-base font-semibold">두 사주를 맞대어 본 표</span>
           <span className="mt-0.5 block text-xs leading-5 text-muted">
             사이에 걸리는 관계와, 그 표에서 말할 수 있는 것.
           </span>
@@ -187,7 +187,7 @@ export function PillarPair({
     <section className="relative overflow-hidden rounded-[1.75rem] border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
       <header className="px-1 pb-4 sm:px-2">
         <div>
-          <p className="eyebrow">두 사람의 명식</p>
+          <p className="eyebrow">각자의 사주</p>
           <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">궁합의 출발점</h2>
         </div>
       </header>

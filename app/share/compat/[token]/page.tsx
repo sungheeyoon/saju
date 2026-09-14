@@ -10,7 +10,7 @@ export default async function Page({ params }: { params: Promise<{ token: string
     <SharedReadingView
       token={token}
       expect="private"
-      eyebrow="공유받은 궁합 풀이"
+      eyebrow="공유받은 궁합풀이"
       invitation={{
         heading: '다른 사람과의 궁합도 읽어보세요',
         note: '두 사람의 생년월일시를 입력하면 두 사람의 궁합을 확인하고, 그 근거를 바탕으로 풀이를 받아볼 수 있어요.',

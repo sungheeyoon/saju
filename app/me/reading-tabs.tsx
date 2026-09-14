@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 /**
- * 한 사람을 보는 두 자리 — **명식과 풀이를 같은 화면에 쌓지 않는다.**
+ * 한 사람을 보는 두 자리 — **사주와 풀이를 같은 화면에 쌓지 않는다.**
  *
  * 탭은 현재 화면을 숨겼다 보이는 클라이언트 상태가 아니라 각각 주소를 가진 링크다.
  * 그래서 사람 목록이나 풀이 목록에서 원하는 자리로 곧장 들어올 수 있고, 뒤로가기도
@@ -27,14 +27,19 @@ export function ReadingTabs({
 
   return (
     <nav
-      aria-label={`${label}의 명식과 사주풀이`}
+      aria-label={`${label}의 사주와 사주풀이`}
       className="grid grid-cols-2 gap-1 rounded-2xl border border-border bg-surface-sunken p-1"
     >
+      {/*
+        **사주가 먼저다.** 풀이는 사주 위에서 나는 것이라, 차례가 뒤집혀 있으면 처음
+        온 사람이 결과를 먼저 보고 근거를 나중에 찾는다. 왼쪽에서 오른쪽으로 읽는 순서가
+        곧 만들어지는 순서다.
+      */}
+      <Link href={chartHref} aria-current={current === 'chart' ? 'page' : undefined} className={tab(current === 'chart')}>
+        사주
+      </Link>
       <Link href={readingHref} aria-current={current === 'reading' ? 'page' : undefined} className={tab(current === 'reading')}>
         사주풀이
-      </Link>
-      <Link href={chartHref} aria-current={current === 'chart' ? 'page' : undefined} className={tab(current === 'chart')}>
-        명식 보기
       </Link>
     </nav>
   );

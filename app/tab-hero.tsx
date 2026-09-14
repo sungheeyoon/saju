@@ -3,20 +3,21 @@ import type { ReactNode } from 'react';
 /**
  * 「사주·궁합」 탭의 머리 — **한 탭이면 한 얼굴이다.**
  *
- * 이 탭에는 화면이 둘 있다. 한 사람의 명식(`/`)과 두 사람의 궁합(`/compat`·`/me/compat`).
+ * 이 탭에는 화면이 둘 있다. 한 사람의 사주(`/`)와 두 사람의 궁합(`/compat`·`/me/compat`).
  * 머리글이 둘을 같은 줄로 묶는데(`site-header.tsx` 의 `isNavigationActive`), 정작 두
  * 화면의 머리는 여백도 글자 크기도 발광색도 서로 달랐다 — **같은 곳이라고 말해 놓고
  * 다른 곳처럼 생긴 것**이다. 껍데기를 여기 한 벌만 두어 그럴 자리를 없앤다.
  *
- * ## 길은 짝을 이룬다
+ * ## 버튼 줄은 시작할 것이 있는 화면에만 선다
  *
- * 더 나빴던 것은 오가는 길이었다. `/` 에는 「궁합 보기」가 있어 옆으로 갔는데,
- * `/compat` 의 유일한 길은 「내 사주로 돌아가기」로 **`/me` 즉 다른 탭**이었다. 한쪽은
- * 탭 안에서 움직이고 다른 쪽은 탭을 떠나는 것이라, 두 화면이 형제라는 말이 화면에서만
- * 거짓이 됐다.
+ * 한동안 두 머리가 같은 버튼 줄을 들었다 — **이 화면에서 시작하는 길**(진한 버튼)과
+ * **이 탭의 나머지 반쪽**(테두리 버튼). 짝을 맞춘다는 뜻이었는데, `/compat` 에서는 그
+ * 짝이 둘 다 헛돌았다: 진한 버튼은 **바로 아래 이미 보이는 입력칸**으로 스크롤만 했고,
+ * 테두리 버튼은 궁합을 적으러 온 사람을 사주로 내보냈다.
  *
- * 그래서 두 머리의 버튼 줄이 같은 모양을 쓴다: **이 화면에서 시작하는 길**(진한 버튼)과
- * **이 탭의 나머지 반쪽**(테두리 버튼). 어느 쪽에 서 있든 다른 반쪽이 같은 자리에 있다.
+ * 그래서 규칙을 바꿨다. **입력칸이 같은 화면에 있으면 머리에는 버튼을 안 세운다** —
+ * 시작하는 누름은 그 칸 안에 하나뿐이다(`/compat` 의 「궁합 보기」). 지금 버튼 줄을
+ * 드는 것은 `/` 하나다(출생 정보 입력하기 · 궁합 보러 가기).
  */
 export const TAB_HERO_CARD =
   'relative overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]';
@@ -48,7 +49,8 @@ export function TabHeroBody({
   eyebrow: string;
   title: ReactNode;
   lede: ReactNode;
-  actions: ReactNode;
+  /** 버튼 줄 — **없을 수 있다.** 시작하는 자리가 곧 이 화면이면 세울 길이 없다 */
+  actions?: ReactNode;
 }) {
   return (
     <div className="relative flex flex-col gap-6 px-6 py-7 sm:flex-row sm:items-end sm:justify-between sm:gap-8 sm:px-10 sm:py-9">
@@ -66,12 +68,12 @@ export function TabHeroBody({
           {lede}
         </div>
       </div>
-      {actions}
+      {actions ?? null}
     </div>
   );
 }
 
-/** 껍데기와 속을 한 번에 — 속이 안 갈리는 화면(`/compat`)은 이걸 쓴다 */
+/** 껍데기와 속을 한 번에 — 속이 안 갈리는 화면(궁합 쪽)은 이걸 쓴다 */
 export function TabHero(props: Parameters<typeof TabHeroBody>[0]) {
   return (
     <header className={TAB_HERO_CARD}>
@@ -85,7 +87,7 @@ export function TabHero(props: Parameters<typeof TabHeroBody>[0]) {
  * 버튼 줄 — **좁은 화면에서 둘이 한 줄을 나눠 쓰고 높이가 같다.**
  *
  * `flex-1` 이라 하나만 설 때도 자리가 비지 않는다. 칸을 `grid-cols-2` 로 고정하면
- * 버튼 하나짜리 화면(막힌 계정의 궁합 머리)에서 반쪽이 빈 채로 선다.
+ * 버튼 하나짜리 화면에서 반쪽이 빈 채로 선다.
  */
 export function TabActions({ children }: { children: ReactNode }) {
   return (

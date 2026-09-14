@@ -118,7 +118,7 @@ function BetweenRelations({
   return (
     <section className={CARD}>
       <div className="flex flex-wrap items-baseline gap-x-3">
-        <h2 className="text-base font-semibold">두 원국 사이의 관계</h2>
+        <h2 className="text-base font-semibold">두 사주 사이의 관계</h2>
         <p className="text-sm text-secondary">
           {relations.length === 0 ? '걸리는 것이 없습니다' : `${relations.length}개`}
         </p>

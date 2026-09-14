@@ -34,14 +34,16 @@ import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-c
  *
  * 눌러도 글이 나오지 않는다. 저장하고 **그 사람의 화면으로 데려다줄 뿐**이고, 풀이권을
  * 쓰는 누름은 거기서 사용자가 한다. 되돌릴 수 없는 누름을 대신 눌러 주지 않는다
- * (ADR 0028). 그래서 버튼도 「풀이 받기」가 아니라 **어디로 가는지**를 적는다.
+ * (ADR 0028). 그래서 버튼은 「사주풀이 받기」라고 말하지 않는다 — **「저장하고
+ * 계속하기」**이고, 무엇이 이어지는지는 바로 아래 한 줄이 든다. 「사주풀이 받기」는
+ * 도착한 화면의 버튼 이름이라, 여기서 그 이름을 쓰면 두 누름이 같은 약속을 한다.
  *
  * ## 도착지가 부르는 이름을 그대로 쓴다
  *
  * 처음에는 이 칸의 제목이 「AI 풀이로 이어 보기」였다. 앱 어디에도 없는 **세 번째
- * 이름**이었다 — 화면이 부르는 말은 한 사람짜리 「사주풀이」와 두 사람짜리 「궁합 풀이」
+ * 이름**이었다 — 화면이 부르는 말은 한 사람짜리 「사주풀이」와 두 사람짜리 「궁합풀이」
  * 둘뿐이다. 그래서 제목과 버튼이 서로 다른 것을 가리키고 있었다: 「AI 풀이로 이어
- * 보기」라고 해 놓고 버튼은 「궁합 풀이로 가기」였다.
+ * 보기」라고 해 놓고 버튼은 「궁합풀이로 가기」였다.
  *
  * **이름은 부르는 쪽이 짓지 않는다**(ADR 0026·0027). 이 다리가 데려다주는 화면이
  * 그것을 뭐라고 부르는지가 답이고, 제목·설명·버튼이 그 한 낱말을 함께 쓴다.
@@ -94,7 +96,7 @@ function useSaveContext(): SaveContext {
 function SaveCard({
   query,
   needed,
-  /** 도착지가 그 글을 부르는 말 — 「사주풀이」이거나 「궁합 풀이」다 */
+  /** 도착지가 그 글을 부르는 말 — 「사주풀이」이거나 「궁합풀이」다 */
   reading,
   saveWhat,
   label,
@@ -105,7 +107,7 @@ function SaveCard({
   query: Query;
   needed: number;
   reading: string;
-  /** 무엇을 저장하는가 — 「이 사람」·「두 사람」 */
+  /** 무엇을 저장하는가 — 목록에 남는 것의 이름 */
   saveWhat: string;
   label: string;
   note: ReactNode;
@@ -165,9 +167,11 @@ function SaveCard({
               }}
               className="flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent hover:bg-accent-strong"
             >
-              자세한 사주풀이로 이어가기 →
+              로그인하고 계속하기
             </Link>
-            <p className="mt-2 text-xs leading-5 text-secondary sm:text-right">로그인 필요 · 풀이 생성 시 풀이권 사용</p>
+            <p className="mt-2 text-xs leading-5 text-secondary sm:text-right">
+              로그인하면 이 입력으로 돌아옵니다 · 사주풀이는 저장한 뒤에 받고 풀이권 1회를 씁니다
+            </p>
           </div>
         </div>
         {failure !== null && <p role="alert" className="mt-3 text-sm text-danger">{failure}</p>}
@@ -183,8 +187,8 @@ function SaveCard({
       <div>
         <h2 className="text-base font-semibold">{reading}로 이어 보기</h2>
         <p className="mt-1.5 text-sm leading-6 text-secondary">
-          이 화면은 입력을 저장하지 않아서 여기서는 {reading}를 만들 수 없습니다.{' '}
-          {saveWhat}을 저장하면 {reading}를 만들 수 있고, 다음에 다시 찾아볼 수도 있습니다.
+          이 화면은 입력을 저장하지 않아서 여기서는 {reading}를 받을 수 없습니다.{' '}
+          {saveWhat}를 저장하면 {reading}를 받을 수 있고, 다음에 다시 찾아볼 수도 있습니다.
         </p>
       </div>
 
@@ -225,7 +229,7 @@ function SaveCard({
             나서 알게 되면 그 목록은 사용자가 만든 것이 아니라 화면이 만든 것이 된다.
           */}
           <p className="text-xs leading-5 text-muted">
-            {note}
+            {note} 저장한 뒤 {reading}를 받는 화면으로 갑니다.
             {slots !== null && ` 앞으로 ${slots.remaining}명 더 저장할 수 있습니다.`} 목록에서
             빼는 것은 사람 탭에서 할 수 있습니다.
           </p>
@@ -280,8 +284,8 @@ export function SavePersonForReading({ query }: { query: Query }) {
       query={query}
       needed={1}
       reading="사주풀이"
-      saveWhat="이 사람"
-      label="이 사람을 저장하고 사주풀이로 가기"
+      saveWhat="출생 정보"
+      label="저장하고 계속하기"
       /*
         **이름 뒤에 조사를 안 붙인다.** 「이(가)」는 앞 글자의 받침을 따르는데 이름은
         사용자가 적는 값이다 — 「영희이(가)」가 화면에 그대로 찍혀 있었다. 받침을

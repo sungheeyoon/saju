@@ -47,7 +47,7 @@ import {
  * 위로 온다.
  */
 const RESULT_LINKS = [
-  ['chart', '명식'],
+  ['chart', '여덟 글자'],
   ['stars', '신살'],
   ['analysis', '분석'],
   ['yongsin', '용신'],

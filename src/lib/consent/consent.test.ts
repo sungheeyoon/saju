@@ -171,7 +171,7 @@ describe('Match 가 여는 범위는 한 벌이다', () => {
   it('열리는 것에 궁합 관계·사주풀이와 점수·일부 오행 구성이 있다', () => {
     const shown = MATCH_DISCLOSURE.shown.join(' ');
     // 점수는 풀이와 같은 생성 건에서 난다. 내부 지표 이름은 여기 서지 않는다(`prd-archive`).
-    expect(shown).toContain('궁합 풀이와 점수');
+    expect(shown).toContain('궁합풀이와 점수');
     expect(shown).not.toContain('match-v0');
     expect(shown).toContain('오행');
     // 누가 보든 같은 글이다 — `perspectivePersonId` 로 결론이 바뀌지 않는다(US 48).
@@ -224,11 +224,11 @@ describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
    * 예전에는 이 자리가 「모델이 붙어도 점수를 새로 만들지 않고 `match-v0` 를 설명한다」
    * 였다. 그 결정은 폐기됐다(HEAD `a9337f4`) — 점수는 해석과 **같은 생성 건**에서 나온다.
    */
-  it('조립된 문장과 모델이 쓴 궁합 풀이를 구별해 말한다', () => {
+  it('조립된 문장과 모델이 쓴 궁합풀이를 구별해 말한다', () => {
     expect(MATCH_RESULT_ENGINE_NOTE).toContain('조립');
     // 제목에는 도구 이름을 안 박지만 **두 층이 나란히 서는 이 자리에서는 밝힌다.**
-    // 「궁합 풀이」만 적으면 표와 같은 곳에서 나온 것처럼 읽힌다.
-    expect(MATCH_RESULT_ENGINE_NOTE).toContain('궁합 풀이');
+    // 「궁합풀이」만 적으면 표와 같은 곳에서 나온 것처럼 읽힌다.
+    expect(MATCH_RESULT_ENGINE_NOTE).toContain('궁합풀이');
     expect(MATCH_RESULT_ENGINE_NOTE).toContain('언어 모델');
     // 내부 지표 이름은 사용자에게 보이지 않는다(`prd-archive`).
     expect(MATCH_RESULT_ENGINE_NOTE).not.toContain('match-v0');

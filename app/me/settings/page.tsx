@@ -4,11 +4,11 @@ import { redirect } from 'next/navigation';
 import { isBlocked } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { CARD } from '../../card';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { RequestDeletion } from '../leaving';
 import { ConsentControls } from '../consent-controls';
+import { SETTINGS_QUIET, SettingsCard, SettingsRow } from './card';
 import { ParticipationToggle, PreferenceForm } from '../discovery/manage';
 import { preferGenderOf } from '../discovery/profile';
 import { NOTICE_VERSION, OPTIONAL_CONSENT_NOTE, asKoreanDay } from '@/src/lib/consent';
@@ -62,52 +62,50 @@ export default async function SettingsPage() {
       )}
 
       {state.kind === 'active' && account !== null && (
-        <section className={`${CARD} flex flex-col gap-4`}>
-          <div>
-            <h2 className="text-base font-bold">선택 동의</h2>
-            <p className="mt-1 text-sm text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
-          </div>
+        <SettingsCard title="선택 동의" description={OPTIONAL_CONSENT_NOTE}>
           <ConsentControls
             improvement={account.improvement_consent === true}
             contact={account.contact_consent === true}
           />
-          <p className="border-t border-border pt-4 text-xs leading-5 text-muted">
-            {account.notice_ack_at === null
-              ? '아직 처리 안내를 확인하지 않으셨습니다.'
-              : `${asKoreanDay(account.notice_ack_at.slice(0, 10))}에 처리 안내를 확인하셨습니다.`}{' '}
-            {account.notice_version !== NOTICE_VERSION && '안내가 새로 바뀌어 다시 보여 드립니다.'}{' '}
-            <Link href="/privacy" className="font-semibold text-accent underline underline-offset-4">
+          {/*
+            **처리 안내도 이 카드의 한 줄이다.** 작은 글자 한 줄로 카드 밑단에 깔려
+            있었는데, 여기서 사용자가 찾는 것 셋(무엇을 켰나 · 무엇을 껐나 · 무엇을
+            확인했나) 중 하나다. 위의 선택 항목 둘과 같은 줄 모양으로 선다.
+          */}
+          <SettingsRow
+            label="개인정보 처리 안내"
+            help={
+              account.notice_ack_at === null
+                ? '아직 처리 안내를 확인하지 않았습니다.'
+                : `${asKoreanDay(account.notice_ack_at.slice(0, 10))} 처리 안내를 확인했습니다.`
+            }
+            note={
+              account.notice_version !== NOTICE_VERSION
+                ? '안내가 새로 바뀌어 다시 보여 드립니다.'
+                : undefined
+            }
+          >
+            <Link href="/privacy" className={SETTINGS_QUIET}>
               처리방침 보기
             </Link>
-          </p>
-        </section>
+          </SettingsRow>
+        </SettingsCard>
       )}
 
-      <section className={`${CARD} flex flex-col gap-4`}>
-        <div>
-          <h2 className="text-base font-bold">로그인 정보</h2>
-          <p className="mt-1 text-sm text-secondary">{user.email}</p>
-        </div>
-        <form action={signOut} className="border-t border-border pt-4">
-          <button
-            type="submit"
-            className="h-10 rounded-xl border border-border-strong px-4 text-sm font-semibold hover:border-accent hover:text-accent"
-          >
-            로그아웃
-          </button>
-        </form>
-      </section>
+      <SettingsCard title="로그인 정보">
+        <SettingsRow help={user.email}>
+          <form action={signOut}>
+            <button type="submit" className={SETTINGS_QUIET}>
+              로그아웃
+            </button>
+          </form>
+        </SettingsRow>
+      </SettingsCard>
 
       {state.kind === 'active' && (
-        <section className={`${CARD} flex flex-col gap-4`}>
-          <div>
-            <h2 className="text-base font-bold">계정 삭제</h2>
-            <p className="mt-1 text-sm text-secondary">
-              삭제 요청의 영향과 남는 자료를 확인한 뒤 요청할 수 있습니다.
-            </p>
-          </div>
+        <SettingsCard title="계정 삭제">
           <RequestDeletion />
-        </section>
+        </SettingsCard>
       )}
     </main>
   );

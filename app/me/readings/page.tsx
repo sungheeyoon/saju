@@ -14,7 +14,7 @@ import { matchesForViewer, type InboxMatch } from '../requests/inbox';
 
 export const metadata = {
   title: '풀이 — 만세력',
-  description: '내가 만든 사주풀이와 궁합 풀이를 최근 순서대로 확인합니다.',
+  description: '내가 만든 사주풀이와 궁합풀이를 최근 순서대로 확인합니다.',
 };
 
 /**
@@ -68,7 +68,7 @@ export default async function ReadingsPage() {
         <p className="eyebrow">풀이</p>
         <h1 className="text-3xl font-bold tracking-[-0.04em] sm:text-4xl">만든 풀이</h1>
         <p className="text-sm text-secondary">
-          내 사주풀이와 저장한 사람의 사주풀이, 궁합 풀이를 최근에 만든 순서대로 확인할 수
+          내 사주풀이와 저장한 사람의 사주풀이, 궁합풀이를 최근에 만든 순서대로 확인할 수
           있습니다.
         </p>
       </header>
@@ -99,7 +99,7 @@ function Nothing() {
           사람
         </Link>{' '}
         에서, 두 사람의 궁합은{' '}
-        <Link href="/me/compat" className="text-accent underline underline-offset-2">
+        <Link href="/compat" className="text-accent underline underline-offset-2">
           궁합
         </Link>{' '}
         에서 시작할 수 있습니다.
@@ -167,7 +167,7 @@ function MakingMatches({ matches }: { matches: readonly InboxMatch[] }) {
     <section className="flex flex-col gap-3">
       <div>
         <h2 className="text-base font-semibold">함께 보는 궁합</h2>
-        <p className="mt-0.5 text-xs text-muted">서로 동의한 궁합 풀이를 만들고 있습니다.</p>
+        <p className="mt-0.5 text-xs text-muted">서로 동의한 궁합풀이를 만들고 있습니다.</p>
       </div>
       <ul className="flex flex-col gap-2">
         {matches.map((match) => (
@@ -178,8 +178,8 @@ function MakingMatches({ matches }: { matches: readonly InboxMatch[] }) {
             >
               <Avatar userId={match.partnerUserId} nickname={match.nickname} hasPhoto={match.hasPhoto} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{match.nickname} 님과의 궁합 풀이</span>
-                <span className="mt-0.5 block text-xs font-normal text-muted">궁합 풀이 만드는 중…</span>
+                <span className="block truncate font-medium">{match.nickname} 님과의 궁합풀이</span>
+                <span className="mt-0.5 block text-xs font-normal text-muted">궁합풀이 만드는 중…</span>
               </span>
               <span className="shrink-0 rounded-full bg-accent-wash px-3.5 py-2 font-semibold text-accent">
                 함께 보기

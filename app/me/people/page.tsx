@@ -125,7 +125,7 @@ export default async function PeoplePage() {
           href="/compat"
           className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
         >
-          궁합 보기
+          궁합 보러 가기
         </Link>
       </header>
 
@@ -317,7 +317,7 @@ function ReadingAction({
           <CardActionIcon />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-bold">사주풀이 만들기</span>
+          <span className="block text-sm font-bold">사주풀이 받기</span>
           <span className="mt-0.5 line-clamp-2 block text-xs text-on-accent/75">기질과 삶의 흐름을 읽어보세요</span>
         </span>
         <span className="shrink-0 text-sm text-on-accent/70 group-hover:translate-x-0.5 group-hover:text-on-accent" aria-hidden="true">→</span>

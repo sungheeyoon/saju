@@ -243,6 +243,8 @@ export function SignupForm({
             <span>
               <span className="block text-sm font-semibold">{one.label}</span>
               <span className="mt-1 block text-sm leading-6 text-secondary">{one.detail}</span>
+              {/* 끄면 어떻게 되는지는 **켜기 전에도** 읽힌다 — 세 화면이 같은 줄을 쓴다 */}
+              <span className="mt-1 block text-xs leading-5 text-muted">{one.erasure}</span>
             </span>
           </label>
         ))}

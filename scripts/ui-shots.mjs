@@ -76,7 +76,7 @@ const PLAN = [
       {
         id: 'home-result',
         at: '/?name=민수&date=1990-05-15&hour=14:30&gender=female&city=서울&rule=jo&basis=localMean&saeun=2026',
-        name: '첫 화면 — 원국 결과',
+        name: '첫 화면 — 사주 결과',
       },
       { id: 'auth', at: '/auth', name: '로그인' },
       { id: 'auth-compat', at: '/auth?next=/compat', name: '로그인 — 궁합에서 온 사람' },
@@ -107,13 +107,23 @@ const PLAN = [
       { id: 'profile', at: '/me/profile', name: '프로필' },
       { id: 'settings', at: '/me/settings', name: '설정' },
       { id: 'people', at: '/me/people', name: '저장한 사람' },
+      {
+        id: 'people-menu',
+        at: '/me/people',
+        name: '저장한 사람 — 관리 메뉴',
+        /* 카드 오른쪽 위의 관리 메뉴를 펴고 찍는다 — `getByRole('button')` 으로는 안 잡힌다 */
+        act: async (page) => {
+          await page.locator('summary[aria-label$="관리"]').first().click();
+          await page.getByText('출생 정보 수정').first().waitFor();
+        },
+      },
       { id: 'person', at: (one) => `/me/people/${one.managed[0].personId}`, name: '저장한 사람 — 상세' },
       {
         id: 'person-reading',
         at: (one) => `/me/readings/${one.managed[0].personId}`,
         name: '저장한 사람 — 사주풀이',
       },
-      { id: 'person-self', at: (one) => `/me/people/${one.selfPersonId}`, name: '내 원국 상세' },
+      { id: 'person-self', at: (one) => `/me/people/${one.selfPersonId}`, name: '내 사주 상세' },
       { id: 'readings', at: '/me/readings', name: '사주풀이 목록' },
       {
         id: 'feedback',
@@ -130,13 +140,12 @@ const PLAN = [
       {
         id: 'compat-anon-result',
         at: '/compat#a.date=1990-05-15&a.hour=14:30&b.date=1992-08-20&b.hour=09:00',
-        name: '궁합 — 직접 입력 결과',
+        name: '궁합 — 칸을 채운 상태',
       },
-      { id: 'my-compat', at: '/me/compat', name: '저장한 사람으로 궁합' },
       {
         id: 'my-compat-result',
         at: (one) => `/me/compat?a=${one.selfPersonId}&b=${one.managed[0].personId}`,
-        name: '저장한 사람으로 궁합 — 결과',
+        name: '궁합 — 두 사람의 결과',
       },
     ],
   },
@@ -195,7 +204,12 @@ const index = [];
 
 let later = null;
 
+/** 몇 화면만 다시 찍을 때 — 빈 값이면 전부 */
+const only = (process.env.UI_ONLY ?? '').split(',').filter((one) => one !== '');
+
 for (const step of PLAN) {
+  const shots = only.length === 0 ? step.shots : step.shots.filter((one) => only.includes(one.id));
+  if (shots.length === 0) continue;
   const built = step.state === null ? null : await build(step.state);
   const person = built?.people[0] ?? null;
 
@@ -223,7 +237,7 @@ for (const step of PLAN) {
     }
     const page = await context.newPage();
 
-    for (const shot of step.shots) {
+    for (const shot of shots) {
       const at = typeof shot.at === 'function' ? shot.at(person, built) : shot.at;
       await page.goto(`${from}${at}`, { waitUntil: 'networkidle' }).catch(() => {});
       /* 화면이 누름 뒤에만 서면 그 누름까지 하고 찍는다 — 실패해도 찍는다(그 화면도 값이다) */

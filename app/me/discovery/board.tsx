@@ -120,12 +120,20 @@ function Resting() {
  */
 function Empty({ hiddenCount, waitSeconds }: { hiddenCount: number; waitSeconds: number }) {
   return (
-    <section className={`${CARD} flex flex-wrap items-center justify-between gap-4`}>
-      <h2 className="text-base font-semibold">{DISCOVERY_EMPTY.title}</h2>
-      <div className="flex flex-wrap items-center justify-end gap-4">
-        <RefreshBoard waitSeconds={waitSeconds} />
-        <UnhideAll count={hiddenCount} />
+    <section className={`${CARD} flex flex-col items-start gap-4`}>
+      <div>
+        <h2 className="text-base font-semibold">{DISCOVERY_EMPTY.title}</h2>
+        <p className="mt-1 text-sm leading-6 text-secondary">{DISCOVERY_EMPTY.line}</p>
       </div>
+      {/*
+        **한 줄에 밀어 넣지 않는다.** 제목과 버튼과 남은 시간이 `flex-wrap` 한 줄을
+        나눠 쓰고 있었다. 좁은 화면에서는 그 셋이 각자 다른 곳에서 줄바꿈해, 제목
+        오른쪽에 버튼이 반쯤 걸리고 그 아래 시간이 혼자 남았다 — **차례가 화면 폭마다
+        달라지는 배치**다. 위에서 아래로 한 차례만 둔다: 무슨 일인지 · 무엇을 할 수
+        있는지 · 언제 다시 되는지.
+      */}
+      <RefreshBoard waitSeconds={waitSeconds} />
+      <UnhideAll count={hiddenCount} />
     </section>
   );
 }
@@ -273,6 +281,7 @@ function Candidates({
             */}
             <PreviewScorePanel
               candidateUserId={card.candidateUserId}
+              nickname={card.nickname}
               previewScore={card.previewScore}
             />
           </li>

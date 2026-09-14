@@ -17,8 +17,8 @@ export default function PersonNotFound() {
         주소에 적힌 사람을 찾지 못했습니다. 목록에서 다시 골라 주세요.
       </p>
       <p className="flex flex-wrap gap-4 text-sm">
-        <Link href="/me/compat" className="text-accent underline underline-offset-2">
-          두 사람 고르기
+        <Link href="/compat" className="text-accent underline underline-offset-2">
+          궁합 보러 가기
         </Link>
         <Link href="/me/people" className="text-accent underline underline-offset-2">
           저장한 사람

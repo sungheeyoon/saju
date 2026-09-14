@@ -90,7 +90,7 @@ export async function SharedReadingView({
           {/* 궁합에서는 **점수가 그 글의 일부다.** 빼면 받은 사람이 다른 글을 본다 */}
           {score !== null && (
             <div className="flex min-w-40 flex-col items-center justify-center border-t border-border bg-accent-wash/45 px-5 py-4 text-center sm:border-l sm:border-t-0 sm:px-6">
-              <p className="text-xs font-semibold text-accent">궁합 풀이 점수</p>
+              <p className="text-xs font-semibold text-accent">궁합풀이 점수</p>
               <p className="mt-1 flex items-baseline justify-center gap-1">
                 <span className="text-3xl font-bold tabular-nums">{score}</span>
                 <span className="text-xs font-medium text-secondary">/ 100</span>
@@ -143,13 +143,19 @@ function titleOf(kind: ShareKind, nameA: string | null, nameB: string | null): s
   const b = nameB === null ? '' : calledName(nameB);
 
   if (kind === 'private') {
-    return a !== '' && b !== '' ? `${a} × ${b} 궁합 풀이` : '두 사람의 궁합 풀이';
+    return a !== '' && b !== '' ? `${a} × ${b} 궁합풀이` : '두 사람의 궁합풀이';
   }
 
   return a !== '' ? `${a}의 사주풀이` : '사주풀이';
 }
 
-/** 시작하는 자리로 보내는 버튼 — 위아래 둘이 같은 곳을 가리킨다 */
+/**
+ * 시작하는 자리로 보내는 버튼 — 위아래 둘이 같은 곳을 가리킨다.
+ *
+ * **「내 사주풀이 보기」가 아니다.** 이 글을 읽는 사람에게는 열 풀이가 아직 없고, 이
+ * 누름이 여는 것은 로그인이다(가입에는 테스트 코드가 더 필요하다 — 그 말은 바로 아래
+ * 줄이 든다). 없는 것을 「보기」라고 적으면 눌러서 도착한 자리가 약속과 다르다.
+ */
 function StartButton({ variant }: { variant: 'quiet' | 'loud' }) {
   return (
     <Link
@@ -160,7 +166,7 @@ function StartButton({ variant }: { variant: 'quiet' | 'loud' }) {
           : 'inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-surface px-4 text-sm font-semibold text-accent shadow-sm hover:border-accent'
       }
     >
-      내 사주풀이 보기
+      로그인하고 시작하기
     </Link>
   );
 }

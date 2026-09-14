@@ -9,6 +9,19 @@ describe('회원 내비게이션 활성 상태', () => {
     expect(isNavigationActive('/me/compat', '/me')).toBe(false);
   });
 
+  /**
+   * **탭 안에서 움직이면 메뉴는 안 움직인다.** 내 사주의 사주풀이 탭은 주소가
+   * `/me/readings` 아래지만 그 탭을 누른 사람은 내 사주에 있다.
+   */
+  it('내 사주의 사주풀이 탭은 내 사주에 귀속된다', () => {
+    expect(isNavigationActive('/me/readings/self', '/me')).toBe(true);
+    expect(isNavigationActive('/me/readings/self', '/me/readings')).toBe(false);
+    /* 목록과 저장한 사람의 풀이는 그대로 「풀이」다 */
+    expect(isNavigationActive('/me/readings', '/me/readings')).toBe(true);
+    expect(isNavigationActive('/me/readings', '/me')).toBe(false);
+    expect(isNavigationActive('/me/readings/example', '/me/readings')).toBe(true);
+  });
+
   it('하위 상세 화면은 가장 가까운 메뉴가 활성화된다', () => {
     expect(isNavigationActive('/me/match/example', '/me')).toBe(false);
     expect(isNavigationActive('/me/match/example', '/me/readings')).toBe(true);

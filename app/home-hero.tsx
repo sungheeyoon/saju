@@ -89,7 +89,7 @@ export function HomeHero({ calculator }: { calculator: ReactNode }) {
             **제목은 둘이 같다.** 묻는 것이 같기 때문이다 — 가르는 것은 이 입력이
             그 사람에게 무엇이냐는 쪽이지 무엇을 묻느냐가 아니다.
           */}
-          <p className="eyebrow">{member ? '직접 입력' : '첫 단계 · 기본 명식 확인'}</p>
+          <p className="eyebrow">{member ? '직접 입력' : '첫 단계 · 사주 확인'}</p>
           <h2 className="mt-1 text-xl font-bold tracking-tight sm:text-2xl">출생 정보를 입력해 주세요</h2>
           <p className="mt-2 text-sm leading-6 text-secondary">
             {!member && (
@@ -128,8 +128,7 @@ function Hero({ member, signedIn }: { member: boolean; signedIn: boolean | null 
       */}
       {member ? (
         <TabHeroBody
-          /* 이 탭의 두 반쪽이 같은 눈썹을 쓴다 — 어디에 서 있는지가 뒤에 붙는다 */
-          eyebrow="사주·궁합 · 한 사람"
+          eyebrow="사주"
           title="궁금한 사람의 사주를 바로 봅니다."
           lede={
             <p>
@@ -175,7 +174,7 @@ function VisitorFace({ signedIn }: { signedIn: boolean | null }) {
               <CompatEntry signedIn={signedIn} />
             </TabActions>
           </div>
-          <p className="mt-3 text-xs leading-5 text-secondary">기본 명식은 로그인 없이 · 사주풀이와 궁합은 로그인 후</p>
+          <p className="mt-3 text-xs leading-5 text-secondary">사주는 로그인 없이 · 사주풀이와 궁합은 로그인 후</p>
         </div>
         <div className="rounded-2xl border border-border bg-background/80 p-5 sm:p-6">
           <p className="text-xs font-semibold tracking-wide text-accent">사주풀이에서 만날 이야기</p>

@@ -241,11 +241,11 @@ check('근거 절은 화면에 없다', !html.includes('analysis.strength') && !
 check('프롬프트와 근거 자료는 화면에 없다', !html.includes(PROMPT) && !html.includes('검사근거'));
 check('자기 풀이 화면이 누구 것인지 말한다', html.includes(`${NAME.a}님의 사주풀이`),
   '제목에 닉네임이 없다');
-check('시작하는 길이 위아래로 둘 선다', (html.match(/내 사주풀이 보기/g) ?? []).length >= 2);
+check('시작하는 길이 위아래로 둘 선다', (html.match(/로그인하고 시작하기/g) ?? []).length >= 2);
 check('가입에 코드가 필요하다는 것을 미리 말한다', html.includes('테스트 코드가 필요합니다'));
 
 /* 원본 사용자의 손잡이는 하나도 없다 */
-for (const forbidden of ['다시 풀이받기', '서비스 설문', '풀이권', '소식']) {
+for (const forbidden of ['다시 받기', '서비스 설문', '풀이권', '소식']) {
   check(`원본 사용자의 자리가 없다 — ${forbidden}`, !html.includes(forbidden));
 }
 
@@ -374,10 +374,10 @@ check('미리보기에는 저장한 사람의 이름이 없다',
 const compatPage = await get(`/share/compat/${pairLink.data}`);
 const compatHtml = await compatPage.text();
 check('궁합 공유 화면이 로그인 없이 열린다', compatPage.status === 200, `HTTP ${compatPage.status}`);
-check('궁합은 점수까지 화면에 선다', compatHtml.includes('궁합 풀이 점수') && compatHtml.includes('72'));
+check('궁합은 점수까지 화면에 선다', compatHtml.includes('궁합풀이 점수') && compatHtml.includes('72'));
 check('궁합 화면이 두 사람 이름을 든다',
   compatHtml.includes(`엄마${tag}님`) && compatHtml.includes(`동생${tag}님`)
-    && compatHtml.includes('궁합 풀이'),
+    && compatHtml.includes('궁합풀이'),
   '제목에 두 이름이 없다');
 check('궁합 화면은 궁합 전용 그림을 쓴다',
   metaIn(compatHtml, 'og:image') === COMPAT_IMAGE, metaIn(compatHtml, 'og:image'));

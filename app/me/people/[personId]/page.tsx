@@ -12,8 +12,8 @@ import { payloadForViewer } from '../../payload';
 import { ReadingTabs } from '../../reading-tabs';
 
 export const metadata = {
-  title: '사주 상세 보기 — 만세력',
-  description: '저장된 한 사람의 명식과 운 흐름을 자세히 봅니다.',
+  title: '사주 상세 — 만세력',
+  description: '저장한 사람의 사주와 운의 흐름을 자세히 봅니다.',
 };
 
 export default async function PersonSajuPage({
@@ -74,9 +74,9 @@ export default async function PersonSajuPage({
     <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div>
-          <p className="eyebrow">{mine ? '내 명식' : '저장한 사람'}</p>
+          <p className="eyebrow">{mine ? '내 사주' : '저장한 사람'}</p>
           <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">{person.name}의 사주</h1>
-          <p className="mt-1 text-sm text-secondary">명식과 운의 흐름을 자세히 확인하세요.</p>
+          <p className="mt-1 text-sm text-secondary">사주와 운의 흐름을 자세히 확인하세요.</p>
         </div>
         {/*
           **궁합은 여기서도 시작한다**(ADR 0036).
@@ -90,13 +90,13 @@ export default async function PersonSajuPage({
             href={`/compat#a.person=${person.personId}`}
             className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
           >
-            {mine ? '나와 궁합 보기' : '이 사람과 궁합 보기'}
+            궁합 보러 가기
           </Link>
           <Link
             href={mine ? '/me' : '/me/people'}
             className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
           >
-            {mine ? '내 사주로' : '사람 목록으로'}
+            {mine ? '내 사주로 돌아가기' : '사람 목록으로 돌아가기'}
           </Link>
         </div>
       </header>
