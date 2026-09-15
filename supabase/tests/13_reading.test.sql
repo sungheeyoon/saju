@@ -10,7 +10,7 @@
 -- 4. **판본을 든다.** 그래서 `revisions_in_use()` 가 이 표를 자동으로 본다(ADR 0011) —
 --    표 이름을 적어 둔 목록이 아니라 FK 에서 읽기 때문이다.
 begin;
-select plan(54);
+select plan(63);
 
 /**
  * **이 파일은 풀이권을 재지 않는다.**
@@ -501,6 +501,79 @@ select isnt(
   (select viewer_is_first from seen_by_kim),
   (select viewer_is_first from seen_by_lee),
   '누가 앞인지는 Match 가 정하고 보는 사람마다 뒤집히지 않는다');
+
+-- ── 인연 궁합의 원문 근거는 운영자만 (ADR 0068) ──────────────────────────────
+
+/**
+ * **본문은 당사자가 읽고, 근거·프롬프트·생성 설정은 못 읽는다.** 저장된 근거에는 상대의
+ * 명식이 들고 옛 컷은 상대의 억부 후보·성별까지 든다. 화면이 아니라 문에서 막는지를 잰다 —
+ * 그래서 RPC 를 직접 부른다.
+ */
+select pg_temp.acting((select lee from folks));
+select is(
+  (select count(*)::int from public.my_reading_artifacts('match', null, null, (select match_id from matched))),
+  0,
+  '인연 궁합 당사자(받은 쪽)는 근거·프롬프트를 못 읽는다');
+
+select pg_temp.acting((select kim from folks));
+select is(
+  (select count(*)::int from public.my_reading_artifacts('match', null, null, (select match_id from matched))),
+  0,
+  '청한 쪽도 못 읽는다');
+
+select is(
+  (select output from public.my_reading('match', null, null, (select match_id from matched))),
+  '## 공유 궁합',
+  '본문은 그대로 읽는다');
+
+/** 다른 kind 는 그대로다 — 내가 넣은 자료의 근거는 내가 읽는다 */
+select is(
+  (select count(*)::int from public.my_reading_artifacts('self')),
+  1,
+  '자기 풀이 근거는 여전히 본인에게 열린다');
+
+select is(
+  (select count(*)::int from public.my_reading_artifacts(
+    'private', (select kim_person from people), (select mom from mine))),
+  1,
+  '비공개 궁합 근거도 여전히 열린다');
+
+select pg_temp.acting((select choi from folks));
+select is(
+  (select count(*)::int from public.my_reading_artifacts('match', null, null, (select match_id from matched))),
+  0,
+  '무관한 사용자는 못 읽는다');
+
+/**
+ * **운영자여도 범위는 그대로다.** 당사자가 아닌 운영자에게 모든 Match 의 근거를 여는 권한을
+ * 새로 만들지 않았는지 — 운영자를 세운 뒤에 다시 묻는다.
+ */
+set local role postgres;
+insert into public.operator (user_id, note)
+values ((select choi from folks), '시험 — 당사자가 아닌 운영자'),
+       ((select kim from folks), '시험 — 당사자인 운영자');
+set local role authenticated;
+
+select pg_temp.acting((select choi from folks));
+select is(
+  (select count(*)::int from public.my_reading_artifacts('match', null, null, (select match_id from matched))),
+  0,
+  '당사자가 아닌 운영자는 여전히 못 읽는다');
+
+select pg_temp.acting((select kim from folks));
+select is(
+  (select prompt_version from public.my_reading_artifacts('match', null, null, (select match_id from matched))),
+  'reading-prompt-v1',
+  '당사자인 운영자는 읽는다');
+
+/** 바깥문 — 익명에게는 함수 자체가 닫혀 있다. 대상 id 는 임시 표에서 읽으므로 그 표만 연다 */
+grant select on matched to anon;
+set local role anon;
+select throws_ok(
+  format($$select * from public.my_reading_artifacts('match', null, null, %L::uuid)$$,
+    (select match_id from matched)),
+  '42501', null, '익명은 근거 문을 부를 수 없다');
+set local role authenticated;
 
 /**
  * 알림은 **시도를 연 사람의 상대에게만** 선다.
