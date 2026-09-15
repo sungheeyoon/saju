@@ -113,7 +113,9 @@ describe('프롬프트는 출생 원문을 들고 나가지 않는다', () => {
     for (const kind of ['match', 'private'] as const) {
       expect(READING_PROMPTS[kind], kind).not.toContain('## 성격을 읽는 순서');
     }
-    expect(READING_PROMPTS.private).toContain('## 얼마나 세게 말할까');
+    // 4판은 강도를 「말의 세기」 한 절로 옮겼다
+    expect(READING_PROMPTS.private).toContain('## 말의 세기');
+    expect(READING_PROMPTS.private).not.toContain('## 얼마나 세게 말할까');
   });
 
   it('점수 계약은 궁합에만 붙는다', () => {
@@ -487,14 +489,16 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
   );
 
   /**
-   * **`억부` 도 지나가야 한다 — 첫 실호출에서야 드러났다.**
+   * **`억부` 는 운영 컷(`legacy-v0`)에서만 지나간다 — 첫 실호출에서야 드러났다.**
    *
-   * `shareEvidence` 는 `compatibility` 를 통째로 남기고 그 안에 `eokbuMatch` 가 있다.
-   * 게다가 궁합 6절이 그것을 읽으라고 시킨다. 목록에 넣어 둔 동안 **시키는 대로 쓴 글이
-   * hard fail 났고**, match 는 프로덕션에서 한 번도 안 불렸으므로 아무도 몰랐다.
+   * 옛 컷은 `compatibility` 를 통째로 남기고 그 안에 `eokbuMatch` 가 있다. 게다가 궁합 절이
+   * 그것을 읽으라고 시킨다. 목록에 넣어 둔 동안 **시키는 대로 쓴 글이 hard fail 났다.**
    */
-  it('억부는 공유 궁합에서도 걸리지 않는다 — 자료에 있고 절이 그것을 시킨다', () => {
-    const base = ok('match');
+  it('억부는 옛 컷의 공유 궁합에서 걸리지 않는다 — 자료에 있고 절이 그것을 시킨다', () => {
+    const base = {
+      ...ok('match'),
+      evidenceText: JSON.stringify(readingEvidenceOf('match', { a: A, b: B }, VIEWED_AT, 'legacy-v0').evidence),
+    };
     const result = checkReading({
       ...base,
       output: {
@@ -504,6 +508,20 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     });
 
     expect(result).toEqual({ ok: true });
+  });
+
+  /** A·B 는 그 판정의 이름을 본문에 안 쓰게 하므로 막는다(ADR 0067) — 판은 자료가 든 값에서 읽는다 */
+  it.each(['limited-v1', 'extended-v1'])('억부는 %s 판 본문에서 걸린다', (input) => {
+    const base = ok('match');
+    const evidence = JSON.parse(base.evidenceText);
+    evidence.contract.matchInput = input;
+    const result = checkReading({
+      ...base,
+      evidenceText: JSON.stringify(evidence),
+      output: { ...base.output, markdown: `${OK_MARKDOWN}\n억부 쪽의 맞물림은 아직 후보로만 볼 수 있어요.` },
+    });
+
+    expect(codesOf(result)).toContain('out-of-scope-judgment');
   });
 
   /** 조후는 다르다 — 그 값은 `analysis` 에 있고 공유 자료에서 통째로 빠진다 */

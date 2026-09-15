@@ -183,6 +183,166 @@ export const PAIR_VARIANTS: readonly PairVariant[] = [
       '기준판이 절을 걷어내기 전의 벌. 우리가 정한 절 열하나와 「성격을 읽는 순서」가 서고, 무엇을 어느 절에 쓸지를 절마다 시킨다 — 무엇이 없어지는지를 견줄 짝이다.',
     confounded:
       '절 목록과 「성격을 읽는 순서」가 함께 움직인다. 이 짝이 이겨도 「절이 있어서」인지 「읽는 순서를 시켜서」인지 이 라운드는 답하지 않는다.',
-    assembly: { ...CONTROL, pairShape: 'sections-v1' },
+    /* 운영 기본값이 궁합 읽는 법 4판으로 옮겨 가도 이 옛 판은 옛 조각으로 재현한다 */
+    assembly: { ...CONTROL, pairShape: 'sections-v1', pairReading: 'plain-v1' },
+  },
+];
+
+export type MatchInputVariantId =
+  | 'match-limited-v1'
+  | 'match-extended-v1'
+  | 'match-limited-v2'
+  | 'match-extended-v2'
+  | 'match-limited-direct-v3'
+  | 'match-limited-claims-v3'
+  | 'match-limited-guide2-v4'
+  | 'match-limited-guide3-v5';
+
+/**
+ * **인연 궁합 입력 두 판** — 자료를 많이 넣는 쪽이 낫다고 가정하지 않고 견준다(ADR 0067).
+ *
+ * 위 두 목록과 규칙 1(「하나만 벗어난다」)을 **못 지킨다.** 확장형은 자료를 더하는 것만으로
+ * 끝나지 않는다 — 점수표가 새 근거를 가리키고, 범위 절이 그 판정을 어떻게 쓸지 말해야
+ * 한다. 그래서 무엇이 함께 움직였는지를 값으로 든다(`promptChanges`). 결과를 「필드만
+ * 더한 효과」로 읽지 않는다.
+ *
+ * **둘 다 실험판이다.** 운영은 옛 컷(`legacy-v0`)이고, 이 목록의 어느 쪽도 운영판이 아니다.
+ *
+ * 두 판이 **같이 쓰는 것**: 기준점 계산(`previewScoreOf`)·조정 상한·재량 폭·분량·모델·
+ * 생성 설정·말투·출력 계약. `assembly` 가 `matchInput` 한 칸만 다르다.
+ */
+export type MatchInputVariant = {
+  readonly id: MatchInputVariantId;
+  /** 몇 번째 비교인가 — 한 라운드의 두 판만 견준다 */
+  readonly round: 1 | 2 | 3 | 4 | 5;
+  readonly label: string;
+  readonly assembly: PromptAssembly;
+  /** 제한형에 **더해진** 자료 경로 — 제한형은 빈 목록이다 */
+  readonly addedEvidence: readonly string[];
+  /** 자료와 함께 **바뀐 지시** — 비교를 읽을 때 같이 적는다 */
+  readonly promptChanges: readonly string[];
+};
+
+export const MATCH_INPUT_VARIANTS: readonly MatchInputVariant[] = [
+  {
+    id: 'match-limited-v1',
+    round: 1,
+    label: 'A 제한형',
+    assembly: { ...CONTROL, matchInput: 'limited-v1', pairReading: 'plain-v1', pairWriting: 'direct-v1' },
+    addedEvidence: [],
+    promptChanges: [],
+  },
+  {
+    id: 'match-extended-v1',
+    round: 1,
+    label: 'B 확장형 (실험 전용)',
+    assembly: { ...CONTROL, matchInput: 'extended-v1', pairReading: 'plain-v1', pairWriting: 'direct-v1' },
+    addedEvidence: [
+      'charts.*.analysis.elements',
+      'charts.*.analysis.strength',
+      'charts.*.analysis.eokbu',
+      'compatibility.elementSupport.*.weakest',
+      'compatibility.eokbuMatch',
+      'compatibility.relations[].contested (원국 안 경쟁자)',
+    ],
+    promptChanges: [
+      '점수표에 「용신을 상대가 가졌다 | eokbuMatch | +1~+3」 줄이 선다',
+      '범위 절이 실린 판정(신강신약·억부 후보·오행 세력)을 사이 설명의 근거로만 쓰고 이름은 본문에 안 쓰라고 말한다',
+    ],
+  },
+  /**
+   * **2라운드** — 1라운드 두 판에 읽는 법과 결론 규칙을 얹는다(`pairReading: 'guide-v1'`).
+   *
+   * 1라운드 변형은 지우지 않는다 — 그 프롬프트 해시로 지난 실호출을 재현한다. 2라운드는 **읽는 법과
+   * 문체 지시가 함께 바뀐다**(`promptChanges`). 좋아져도 어느 하나의 효과로 읽지 않는다.
+   */
+  {
+    id: 'match-limited-v2',
+    round: 2,
+    label: 'A 제한형 + 읽는 법',
+    assembly: { ...CONTROL, matchInput: 'limited-v1', pairReading: 'guide-v1' },
+    addedEvidence: [],
+    promptChanges: ['「이 자료를 읽는 법」(판에 실린 경로만)', '「결론은 근거가 닿는 데까지만」 규칙'],
+  },
+  {
+    id: 'match-extended-v2',
+    round: 2,
+    label: 'B 확장형 + 읽는 법 (실험 전용)',
+    assembly: { ...CONTROL, matchInput: 'extended-v1', pairReading: 'guide-v1' },
+    addedEvidence: [
+      'charts.*.analysis.elements',
+      'charts.*.analysis.strength',
+      'charts.*.analysis.eokbu',
+      'compatibility.elementSupport.*.weakest',
+      'compatibility.eokbuMatch',
+      'compatibility.relations[].contested (원국 안 경쟁자)',
+    ],
+    promptChanges: [
+      '점수표에 「용신을 상대가 가졌다 | eokbuMatch | +1~+3」 줄이 선다',
+      '범위 절이 실린 판정을 사이 설명의 근거로만 쓰고 이름은 본문에 안 쓰라고 말한다 — 「시험값이라 단정하지 않는다」는 뺐다',
+      '「이 자료를 읽는 법」(판에 실린 경로만)',
+      '「결론은 근거가 닿는 데까지만」 규칙',
+    ],
+  },
+  /**
+   * **3라운드** — A 제한형(+읽는 법)을 기준으로 **쓰는 방식만** 견준다. 입력 범위는 같다.
+   *
+   * 직접 작성판은 2라운드 A 와 조립이 같다 — 같은 명식이면 프롬프트 해시도 같다. 주장·근거판은
+   * 지시 한 절과 **출력 스키마**(`claims` 가 본문보다 먼저)가 함께 바뀐다.
+   */
+  {
+    id: 'match-limited-direct-v3',
+    round: 3,
+    label: 'A + 읽는 법 · 직접 작성',
+    assembly: { ...CONTROL, matchInput: 'limited-v1', pairReading: 'guide-v1', pairWriting: 'direct-v1' },
+    addedEvidence: [],
+    promptChanges: [],
+  },
+  {
+    id: 'match-limited-claims-v3',
+    round: 3,
+    label: 'A + 읽는 법 · 주장·근거 연결 후 작성',
+    assembly: { ...CONTROL, matchInput: 'limited-v1', pairReading: 'guide-v1', pairWriting: 'claims-first-v1' },
+    addedEvidence: [],
+    promptChanges: ['「쓰기 전에 주장과 근거를 잇는다」 절', '출력 스키마에 `claims` 가 본문보다 먼저 선다'],
+  },
+  /**
+   * **4라운드** — A 제한형에 읽는 법 2판. 판 비교가 아니라 **한 판의 소규모 확인**이다(두 분 명식 + 다른 커플).
+   *
+   * 2라운드 A(`match-limited-v2`)에서 달라진 것: 억제 규칙 절(「결론은 근거가 닿는 데까지만」)을 걷고, 「틀리면
+   * 안 되는 것」·「관계를 읽는 안내」·「본문에 옮기지 않는 것」을 넣었다. 자료 안내(경로별 뜻)는 같다.
+   */
+  {
+    id: 'match-limited-guide2-v4',
+    round: 4,
+    label: 'A + 읽는 법 2판',
+    assembly: { ...CONTROL, matchInput: 'limited-v1', pairReading: 'guide-v2', pairWriting: 'direct-v1' },
+    addedEvidence: [],
+    promptChanges: [
+      '억제 규칙 절 「결론은 근거가 닿는 데까지만」을 걷었다',
+      '「틀리면 안 되는 것」 — 사람·방향·값의 기준·합화·한 글 안의 모순',
+      '「관계를 읽는 안내」 — 정답표가 아닌 종합 해석 안내, 자신 있게 쓰기',
+      '「본문에 옮기지 않는 것」 — 경로·검토 말·기준 설명은 근거 칸에만',
+    ],
+  },
+  /**
+   * **5라운드** — 4라운드와 같은 조건(두 분 명식 + 다른 커플, 1회씩). 새 안내와 부딪히던 공통 지시·예시를 인연 궁합
+   * 실험판에서 갈아 끼우고, 관계 질문을 고르는 안내로, 한 줄 요약을 본문 뒤로.
+   */
+  {
+    id: 'match-limited-guide3-v5',
+    round: 5,
+    label: 'A + 읽는 법 3판',
+    assembly: { ...CONTROL, matchInput: 'limited-v1', pairReading: 'guide-v3', pairWriting: 'direct-v1' },
+    addedEvidence: [],
+    promptChanges: [
+      '공통 규칙 — 운 칸 설명·「자료 밖이라고 먼저 적어라」·층을 본문 표지로 드러내는 사다리를 인연 궁합용 짧은 판으로',
+      '본문 규칙 — 「한계는 판단 옆에서 말한다」 → 「이 글에 없는 것은 꺼내지도 설명하지도 않는다」',
+      '용어 절 — 고정 대응 예시(관성·재성·금 셋)·운·신살 예시·역할 본보기(즉각 반응/속으로 따짐)를 걷음',
+      '근거 칸 — 「연락 속도·편관」 본보기와 「한계는 본문에서」 끝줄을 걷음',
+      '관계 안내 — 목차가 아니라 두드러지는 이야기 두세 개를 고르는 안내. 「다 다루되」 목록도 같은 뜻으로',
+      '「틀리면 안 되는 것」에 한 사람의 모습(요약 포함)·시각 모르는 쪽의 반쪽 합',
+      '한 줄 요약 — 본문을 다 쓴 뒤 가장 크게 다룬 이야기 하나, 대구 금지. 출력 스키마 차례를 본문 → 점수 → 요약으로(실험 전용)',
+    ],
   },
 ];

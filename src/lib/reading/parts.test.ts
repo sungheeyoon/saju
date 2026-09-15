@@ -102,8 +102,14 @@ describe('조각은 이음매를 더럽히지 않는다', () => {
 describe('조각이 실제로 나가는 글에 닿는다', () => {
   it('규칙과 끝자리는 모든 풀이에 선다', () => {
     for (const kind of READING_KINDS) {
-      expect(READING_PROMPTS[kind], kind).toContain(PROMPT_PARTS.rules);
-      expect(READING_PROMPTS[kind], kind).toContain(PROMPT_PARTS.closing);
+      if (isSolo(kind)) {
+        expect(READING_PROMPTS[kind], kind).toContain(PROMPT_PARTS.rules);
+        expect(READING_PROMPTS[kind], kind).toContain(PROMPT_PARTS.closing);
+      } else {
+        // 궁합 4판은 제 규칙과 끝자리를 든다 — 이름은 같고 문장은 궁합 몫이다
+        expect(READING_PROMPTS[kind], kind).toContain('## 사실에 관한 단 하나의 금지');
+        expect(READING_PROMPTS[kind], kind).toContain('### 근거 (검사용)');
+      }
     }
   });
 
@@ -125,8 +131,10 @@ describe('조각이 실제로 나가는 글에 닿는다', () => {
         expect(READING_PROMPTS[kind], kind).not.toContain(PROMPT_PARTS.personality);
       }
 
-      if (kind !== 'match') {
+      if (isSolo(kind)) {
         expect(READING_PROMPTS[kind], kind).toContain(PROMPT_PARTS.claimStrength);
+      } else {
+        expect(READING_PROMPTS[kind], kind).toContain('## 말의 세기');
       }
     }
   });
@@ -166,9 +174,17 @@ describe('시키는 값과 막는 값', () => {
 
   it('한 줄 요약은 비유 없이 대상 고유의 작동 방식을 직접 말한다', () => {
     expect(READING_PROMPTS.self).toContain('이 사람의 핵심 작동 방식');
-    expect(READING_PROMPTS.private).toContain('이 관계의 핵심 작동 방식');
 
-    for (const kind of READING_KINDS) {
+    for (const kind of READING_KINDS.filter((one) => !isSolo(one))) {
+      expect(READING_PROMPTS[kind], kind).toContain('## 한 줄 요약');
+      expect(READING_PROMPTS[kind], kind).toContain('본문을 다 쓴 뒤에');
+      expect(READING_PROMPTS[kind], kind).toContain('비유가 아니다');
+      expect(READING_PROMPTS[kind], kind).toContain('자연 풍경·오행 물상으로 돌려 말하지 않는다');
+      expect(READING_PROMPTS[kind], kind).toContain('누구에게나 붙는 말이면 다시 쓴다');
+      expect(READING_PROMPTS[kind], kind).not.toContain('## 한마디로 빗대면');
+    }
+
+    for (const kind of READING_KINDS.filter(isSolo)) {
       expect(READING_PROMPTS[kind], kind).toContain('## 한 줄 요약');
       expect(READING_PROMPTS[kind], kind).toContain('비유하지 말고 직접 요약한다');
       expect(READING_PROMPTS[kind], kind).toContain('자연 풍경이나 오행의 물상');
@@ -205,6 +221,11 @@ describe('시키는 값과 막는 값', () => {
         '용신을 상대가 가졌다',
         '둘 다 없는 오행',
       ]) {
+        // 제한형 A 인연 궁합에는 억부 후보가 없어 그 줄을 세우지 않는다
+        if (kind === 'match' && item === '용신을 상대가 가졌다') {
+          expect(prompt, `${kind}/${item}`).not.toContain(item);
+          continue;
+        }
         expect(prompt, `${kind}/${item}`).toContain(item);
       }
     }

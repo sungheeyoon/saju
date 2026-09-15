@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '../saju';
-import { PROMPT_PARTS } from './parts';
 import {
   CONTROL,
   PAIR_VARIANTS,
@@ -179,17 +178,17 @@ describe('기준판은 구성만 놓는다', () => {
     expect(promptOf('pair-sections-v1')).toContain('## 성격을 읽는 순서');
   });
 
-  it('다룰 것 일곱을 다 든다', () => {
+  it('알고 싶은 것을 목차 아닌 한 문단으로 다 든다', () => {
     const prompt = promptOf('control');
 
     for (const need of [
-      '두 사람이 서로에게 어떤 사람인가',
-      '어디가 맞고 어디서 부딪히는가',
-      '서로의 보완에 보탬이 되는 것과, 함께일 때 더 두드러지는 관계의 특징',
-      '실제 생활에서 반복될 장면',
+      '두 사람이 서로에게 어떤 사람이고',
+      '어디서 잘 맞고 어디서 부딪히며',
+      '함께 지내면 어떤 장면이 되풀이되고',
       '오래 가려면 무엇이 필요한가',
-      '각자가 가까운 사이에서 어떤 사람인가',
-      '지금이 이 관계에 어떤 시기인가',
+      '각자가 가까운 사이에서 어떤 사람인지',
+      '지금이 이 관계에 어떤 시기인지',
+      '이것을 절 목록으로 삼지 마라',
     ]) {
       expect(prompt, need).toContain(need);
     }
@@ -211,8 +210,8 @@ describe('기준판은 구성만 놓는다', () => {
     for (const kept of [
       '## 이 자료가 무엇인가',
       '## 사실에 관한 단 하나의 금지',
-      '## 근거의 층',
-      '## 얼마나 세게 말할까',
+      '## 말의 세기',
+      '## 틀리면 안 되는 것',
       '## 고객에게 말하는 말투',
       '## 본문 규칙',
       '## 이름 대신 그 이름이 가리키는 것을 쓴다',
@@ -226,7 +225,7 @@ describe('기준판은 구성만 놓는다', () => {
     expect(prompt).toContain('사용자 본문은 3500~5500자');
     expect(prompt).toContain('점수');
     /* 맨 끝 검사용 근거 절 — 이것이 없으면 경로 검사가 본문 전체를 재게 된다 */
-    expect(prompt).toContain(PROMPT_PARTS.closing);
+    expect(prompt).toContain('### 근거 (검사용)');
   });
 
   /** 공유 궁합도 같은 구성 원칙을 쓰되, 동의 범위 안의 물음만 둔다. */

@@ -60,7 +60,7 @@ export function seedSignupCode(code = CHECK_CODE, maxUses = 100) {
   psql(`insert into public.signup_code (code, note, valid_on, max_uses)
         values ('${code}', '검사', (now() at time zone 'Asia/Seoul')::date, ${maxUses})
         on conflict (code) do update
-          set valid_on = excluded.valid_on, max_uses = excluded.max_uses`);
+          set valid_on = excluded.valid_on, valid_until = excluded.valid_on, max_uses = excluded.max_uses`);
   clearMachineRunsFromToday();
 }
 

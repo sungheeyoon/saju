@@ -1,7 +1,12 @@
 import { previewScoreOf } from '../discovery';
 import { evidenceOf, type Evidence } from '../saju/evidence';
 import { redactEvidence, type RedactedEvidence } from '../saju/evidence/redacted';
-import { shareEvidence, type SharedEvidence } from '../saju/evidence/shared';
+import {
+  DEFAULT_MATCH_INPUT,
+  shareEvidence,
+  type MatchInput,
+  type SharedEvidence,
+} from '../saju/evidence/shared';
 import type { Saju } from '../saju';
 
 import { isSolo, type ReadingKind } from './policy';
@@ -54,6 +59,13 @@ export function readingEvidenceOf(
   kind: ReadingKind,
   charts: { a: Saju; b?: Saju },
   viewedAt: Date,
+  /**
+   * 인연 궁합에 어느 판의 입력을 넣는가 — **다른 kind 는 이 값을 안 본다.**
+   *
+   * 기본값은 운영 기준인 제한형이다. 확장형은 견주는 실험에서만 넘긴다(ADR 0067).
+   * 프롬프트도 같은 값을 들고 와야 한다 — `readingPromptOf` 가 둘이 어긋나면 멈춘다.
+   */
+  matchInput: MatchInput = DEFAULT_MATCH_INPUT,
 ): ReadingEvidence {
   const full: Evidence = evidenceOf(charts, viewedAt);
   const redacted = redactEvidence(full);
@@ -83,7 +95,7 @@ export function readingEvidenceOf(
 
   if (kind === 'private') return { kind, evidence: redacted, baseline };
 
-  const shared = shareEvidence(redacted);
+  const shared = shareEvidence(redacted, matchInput);
   if (shared === null) {
     throw new ReadingEvidenceError('공유 결과의 자료를 만들지 못했습니다.');
   }
@@ -91,6 +103,20 @@ export function readingEvidenceOf(
   return { kind, evidence: shared, baseline };
 }
 
+export {
+  COMPARED_MATCH_INPUTS,
+  DEFAULT_MATCH_INPUT,
+  MATCH_INPUTS,
+  MATCH_INPUT_FIELDS,
+  type MatchInput,
+} from '../saju/evidence/shared';
+export {
+  MATCH_READING_GUIDE,
+  guideFor,
+  matchReadingGuideBlock,
+  matchReadingGuideV2Block,
+  type GuideEntry,
+} from './match-reading-guide';
 export * from './policy';
 export * from './feedback';
 export * from './notes';
@@ -98,9 +124,11 @@ export {
   baselineIn,
   CONTROL,
   FALLBACK_NAMES,
+  LEGACY_PAIR_ASSEMBLY,
   NOTHING_KNOWN,
   READING_PROMPTS,
   readingPromptOf,
+  writesSummaryLast,
   pairSectionTexts,
   selfSectionCount,
   selfSectionTexts,
@@ -122,8 +150,11 @@ export {
   type OutputDeviation,
 } from './measure';
 export {
+  MATCH_INPUT_VARIANTS,
   PAIR_VARIANTS,
   PROMPT_VARIANTS,
+  type MatchInputVariant,
+  type MatchInputVariantId,
   type PairVariant,
   type PairVariantId,
   type PromptVariant,
