@@ -113,8 +113,6 @@ export {
 export {
   MATCH_READING_GUIDE,
   guideFor,
-  matchReadingGuideBlock,
-  matchReadingGuideV2Block,
   type GuideEntry,
 } from './match-reading-guide';
 export * from './policy';

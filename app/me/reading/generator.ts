@@ -3,6 +3,7 @@ import {
   CONTROL,
   ReadingEvidenceError,
   readingEvidenceOf,
+  type PromptAssembly,
   readingPromptOf,
   type ReadingKind,
   NOTHING_KNOWN,
@@ -95,15 +96,21 @@ export function readingInputOf({
   charts,
   viewedAt,
   about,
+  assembly = CONTROL,
 }: {
   kind: ReadingKind;
   charts: { a: Saju; b?: Saju };
   viewedAt: Date;
   about?: ReadingAbout;
+  /**
+   * **자료와 지시가 같은 조립에서 나온다.** 인연 궁합 자료의 판(`matchInput`)을 여기서 따로 기본값으로
+   * 고르면, 원복하려고 `CONTROL` 만 바꾼 날 자료와 지시가 갈려 생성이 멈춘다(ADR 0067).
+   */
+  assembly?: PromptAssembly;
 }): InputResult {
   let evidence;
   try {
-    evidence = readingEvidenceOf(kind, charts, viewedAt);
+    evidence = readingEvidenceOf(kind, charts, viewedAt, assembly.matchInput);
   } catch (failure) {
     if (failure instanceof ReadingEvidenceError) {
       return { ok: false, code: 'evidence-incomplete', detail: failure.message };
@@ -114,7 +121,7 @@ export function readingInputOf({
   return {
     ok: true,
     input: {
-      prompt: readingPromptOf(evidence, CONTROL, about ?? NOTHING_KNOWN),
+      prompt: readingPromptOf(evidence, assembly, about ?? NOTHING_KNOWN),
       evidenceText: JSON.stringify(evidence.evidence),
     },
   };

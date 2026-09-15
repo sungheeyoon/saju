@@ -144,64 +144,6 @@ function keysOf(value: unknown, out = new Set<string>()): Set<string> {
   return out;
 }
 
-/** 경로 문자열을 따라 값을 찾는다 — `compatibility.relations[13].full` · 없으면 `undefined` */
-export function valueAt(root: unknown, path: string): unknown {
-  const tokens = [...path.replace(/^\$\.?/, '').matchAll(/[^.[\]]+|\[(\d+)\]/g)].map((m) =>
-    m[1] === undefined ? m[0] : Number(m[1]),
-  );
-  let node: unknown = root;
-  for (const token of tokens) {
-    if (node === null || typeof node !== 'object') return undefined;
-    node = (node as Record<string | number, unknown>)[token];
-  }
-  return node;
-}
-
-export type ClaimLike = {
-  subject: string;
-  statement: string;
-  evidence: readonly { path: string; value: string }[];
-  reach: string;
-};
-
-/** 주장 목록을 자료와 맞춘다 — **경로가 있는가 · 값이 같은가 · 사람이 맞는가** */
-export function checkClaims(evidence: SharedEvidence, claims: readonly ClaimLike[]) {
-  const problems: { claim: number; statement: string; code: string; detail: string }[] = [];
-  const same = (found: unknown, written: string) => {
-    const exact = JSON.stringify(found);
-    if (exact === written) return true;
-    try {
-      return JSON.stringify(JSON.parse(written)) === exact;
-    } catch {
-      return typeof found === 'string' && found === written;
-    }
-  };
-
-  claims.forEach((claim, index) => {
-    if (claim.evidence.length === 0) {
-      problems.push({ claim: index, statement: claim.statement, code: 'no-evidence', detail: '근거 없음' });
-    }
-    for (const ref of claim.evidence) {
-      const found = valueAt(evidence, ref.path);
-      if (found === undefined) {
-        problems.push({ claim: index, statement: claim.statement, code: 'path-missing', detail: ref.path });
-        continue;
-      }
-      if (!same(found, ref.value)) {
-        problems.push({ claim: index, statement: claim.statement, code: 'value-mismatch', detail: `${ref.path}: ${ref.value} ≠ ${JSON.stringify(found)}` });
-      }
-      /* 한 사람에 대한 주장이 반대편 사람의 칸만 가리키면 사람이 바뀐 것일 수 있다 */
-      const side = /(?:charts|elementSupport|eokbuMatch)\.(a|b)\b/.exec(ref.path)?.[1];
-      const want = claim.subject === '첫 번째 분' ? 'a' : claim.subject === '두 번째 분' ? 'b' : null;
-      if (side !== undefined && want !== null && side !== want) {
-        problems.push({ claim: index, statement: claim.statement, code: 'subject-side-mismatch', detail: `${claim.subject} ↔ ${ref.path}` });
-      }
-    }
-  });
-
-  return { claims: claims.length, direct: claims.filter((c) => c.reach === 'direct').length, problems };
-}
-
 const ELEMENT_WORDS: Readonly<Record<string, RegExp>> = {
   木: /나무|목\s*기운|목의|목이|목은|목\(/,
   火: /불기운|불의 기운|불이|화\s*기운|화의|화\(/,

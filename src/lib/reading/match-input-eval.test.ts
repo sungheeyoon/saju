@@ -6,7 +6,6 @@ import {
   aggregateMatchRuns,
   blindPacket,
   chartsOf,
-  checkClaims,
   fixtureTraits,
   measureMatchRun,
   secretsOf,
@@ -142,49 +141,11 @@ describe('재는 법', () => {
   });
 });
 
-describe('주장 목록 대조', () => {
+describe('검토 후보', () => {
   const fixture = MATCH_INPUT_FIXTURES.find((one) => one.id === 'day-branch-clash')!;
   const reading = readingEvidenceOf('match', chartsOf(fixture), new Date('2026-08-26T04:00:00Z'), 'limited-v1');
   if (reading.kind !== 'match') throw new Error('인연 궁합이 아니다');
-  const { elementSupport, relations, tenGods } = reading.evidence.compatibility;
-
-  it('경로·값·사람이 맞으면 문제가 없다', () => {
-    const result = checkClaims(reading.evidence, [
-      {
-        subject: '첫 번째 분',
-        statement: '드러난 글자에 없는 오행이 있다',
-        evidence: [{ path: 'compatibility.elementSupport.a.missing', value: JSON.stringify(elementSupport.a.missing) }],
-        reach: 'direct',
-      },
-      {
-        subject: '두 사람',
-        statement: '일지끼리 부딪힌다',
-        evidence: [
-          { path: `compatibility.relations[${relations.findIndex((r) => r.kind === 'branchClash')}].ko`, value: relations.find((r) => r.kind === 'branchClash')!.ko },
-          { path: 'compatibility.tenGods.aSeesB', value: tenGods.aSeesB },
-        ],
-        reach: 'narrowed',
-      },
-    ]);
-    expect(result.problems).toEqual([]);
-    expect(result).toMatchObject({ claims: 2, direct: 1 });
-  });
-
-  it('없는 경로·다른 값·사람 바뀜을 잡는다', () => {
-    const result = checkClaims(reading.evidence, [
-      {
-        subject: '두 번째 분',
-        statement: '없는 오행이 있다',
-        evidence: [
-          { path: 'compatibility.elementSupport.a.missing', value: JSON.stringify(elementSupport.a.missing) },
-          { path: 'compatibility.tenGods.aSeesB', value: '"아무거나"' },
-          { path: 'analysis.eokbu', value: '{}' },
-        ],
-        reach: 'direct',
-      },
-    ]);
-    expect(result.problems.map((p) => p.code).sort()).toEqual(['path-missing', 'subject-side-mismatch', 'value-mismatch']);
-  });
+  const { elementSupport } = reading.evidence.compatibility;
 
   it('사람-오행 엇갈림 후보 — 두 번째 분에게 없다고 한 오행이 그 사람 missing 에 없으면 후보다', () => {
     const [absentA] = elementSupport.a.missing;

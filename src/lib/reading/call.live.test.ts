@@ -525,7 +525,6 @@ describe.skipIf(!pairLive)('비공개 궁합 두 판이 같은 자료에서 실�
  *
  *   # 먼저 부르지 않고 프롬프트만 — 호출 수·입력 크기·반영 여부를 본다
  *   READING_MATCH_INPUT_LIVE=1 READING_MATCH_DRY=1 npx vitest run src/lib/reading/call.live.test.ts
- *   # 2라운드(읽는 법) — READING_MATCH_ROUND=2 를 붙인다. 기본은 1라운드
  *   # 소규모 — 표본 하나 × 두 판 × 1회 = 2콜
  *   READING_MATCH_INPUT_LIVE=1 READING_MATCH_REPEAT=1 READING_MATCH_FIXTURES=internal-rival npx vitest run src/lib/reading/call.live.test.ts
  *   # 같은 실행에 판마다 2회 더 — 프롬프트가 한 글자라도 다르면 부르기 전에 멈춘다
@@ -550,9 +549,8 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
   it('두 판을 같은 조건으로 부르고 호출·계약·사람 확인을 갈라 떨군다', { timeout: 3_600_000 }, async () => {
     const { existsSync } = await import('node:fs');
     const { createHash } = await import('node:crypto');
-    const { MATCH_INPUT_FIXTURES, aggregateMatchRuns, blindPacket, chartsOf, checkClaims, measureMatchRun, secretsOf } =
+    const { MATCH_INPUT_FIXTURES, aggregateMatchRuns, blindPacket, chartsOf, measureMatchRun, secretsOf } =
       await import('./match-input-eval');
-    type ClaimLike = import('./match-input-eval').ClaimLike;
     const { chartOf } = await import('@/src/lib/input/chart');
     const { queryFromRevision } = await import('@/src/lib/input/revision');
     const { relationSentence, RELATIONS } = await import('@/src/lib/people');
@@ -562,10 +560,7 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
     const maxCalls = Number(process.env.READING_MATCH_MAX_CALLS ?? '24');
     const concurrency = Number(process.env.READING_MATCH_CONCURRENCY ?? '2');
     const pairFile = process.env.READING_MATCH_PAIR_FILE;
-    /** 한 라운드의 두 판만 견준다 — 기본은 1라운드(지난 실호출 재현) */
-    const round = Number(process.env.READING_MATCH_ROUND ?? '1');
-    const variants = MATCH_INPUT_VARIANTS.filter((variant) => variant.round === round);
-    if (variants.length === 0) throw new Error(`라운드 ${round} 의 변형이 없다`);
+    const variants = MATCH_INPUT_VARIANTS;
     const { guideFor } = await import('./match-reading-guide');
     const appendTo = process.env.READING_MATCH_RUN_DIR;
 
@@ -645,8 +640,6 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
         throw new Error(`${key}: 사이 문장이 프롬프트에 없다`);
       }
       if (reading.evidence.contract.matchInput !== variant.assembly.matchInput) throw new Error(`${key}: 자료의 판이 다르다`);
-      const claimsFirst = variant.assembly.pairWriting === 'claims-first-v1';
-      if (head.includes('## 쓰기 전에 주장과 근거를 잇는다') !== claimsFirst) throw new Error(`${key}: 주장·근거 절이 판과 어긋난다`);
       /* 읽는 법을 싣는 판이면 그 경로가 전부 이 자료에 있어야 한다 — 없는 경로를 설명하지 않는다 */
       const guided = variant.assembly.pairReading !== 'plain-v1';
       if (head.includes('## 이 자료를 읽는 법') !== guided) throw new Error(`${key}: 읽는 법이 판과 어긋난다`);
@@ -680,7 +673,6 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
       output: { markdown: string; score: number | null; metaphor: string } | null;
       contractDeviations: readonly string[];
       targetDeviations: readonly string[];
-      claimsCheck?: ReturnType<typeof checkClaims> | null;
     };
     let previous: Line[] = [];
     let seed = Math.floor(Math.random() * 1_000_000);
@@ -730,7 +722,6 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
               source,
               baseline: built.get(`${id}|${variants[0].id}`)!.reading.baseline,
             })),
-            round,
             variants: variants.map(({ id, label, addedEvidence, promptChanges, assembly }) => ({
               id,
               label,
@@ -763,10 +754,9 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
       while (cursor < planned.length) {
         const { key, rep } = planned[cursor++];
         const { subject, variant, reading, prompt } = built.get(key)!;
-        const claimsFirst = variant.assembly.pairWriting === 'claims-first-v1';
-        // 운영 파이프라인과 같은 규칙으로 요약 차례를 정한다(4판 포함)
+        // 운영 파이프라인과 같은 규칙으로 요약 차례를 정한다
         const summaryLast = writesSummaryLast('match', variant.assembly);
-        const called = await callModel(prompt, { claimsFirst, summaryLast });
+        const called = await callModel(prompt, { summaryLast });
 
         const line: Line = called.ok
           ? (() => {
@@ -785,9 +775,6 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
                   baseline: reading.baseline,
                   secrets: subject.secrets,
                 }),
-                claimsCheck: claimsFirst
-                  ? checkClaims(reading.evidence, ((called.output as { claims?: ClaimLike[] }).claims ?? []))
-                  : null,
                 contractDeviations: deviations.filter((d) => d.kind === 'contract').map((d) => `${d.code}: ${d.detail}`),
                 targetDeviations: deviations.filter((d) => d.kind === 'target').map((d) => `${d.code}: ${d.detail}`),
               };
@@ -851,7 +838,6 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
               seatSentences: line.metrics!.seatSentences,
               personalDrift: line.metrics!.personalDrift,
               reviewCandidates: line.metrics!.reviewCandidates ?? {},
-              claimsCheck: line.claimsCheck ?? null,
               targetDeviations: line.targetDeviations,
             })),
           usage: { thisRun: usageOf(fresh), total: usageOf(all) },
