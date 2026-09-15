@@ -79,7 +79,9 @@ export default async function InspectPage({
         <h2 className="text-base font-semibold">지금 적용되는 계약</h2>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
           <dt className="text-muted">프롬프트 판본</dt>
-          <dd>{READING_POLICY.version}</dd>
+          <dd>
+            개인 풀이 {READING_POLICY.version} · 궁합 {READING_POLICY.pairVersion}
+          </dd>
           <dt className="text-muted">엔진·AI 경계</dt>
           <dd>{READING_POLICY.boundary}</dd>
           <dt className="text-muted">기존 지표</dt>

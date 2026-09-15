@@ -69,8 +69,18 @@ export const READING_POLICY = {
    * `v10` 은 **기준점 + 항목 조정 ±15 + 재량 ±10** 이다(ADR 0060·0065). 재량은 이름을
    * 새로 달지 않고 들어왔고 그것까지를 v10 으로 친다 — 이름이 붙은 2026-09-11 부터 재량이
    * 들어온 09-13 사이의 궁합 풀이는 재량 없이 났으므로, 그 이틀치는 만든 시각으로 가른다.
+   *
+   * **궁합은 따로 센다**(`pairVersion`). 2026-09-15 에 궁합 두 kind 의 프롬프트(읽는 법 4판 · 자리가 붙은
+   * 사실 목록 · 요약은 본문 뒤)를 바꾸고 인연 궁합 입력을 제한형 A 로 바꿨다. 개인 풀이는 그대로다 — 한 이름으로
+   * 올리면 안 바뀐 kind 의 새 결과가 바뀐 것처럼 기록된다. 이름은 `promptVersionOf` 로 고른다.
    */
   version: 'reading-prompt-v10',
+  /**
+   * 궁합 판본 — `v11`(ADR 0067).
+   * - 인연 궁합: 제한형 A 입력 + 자리가 붙은 사실 목록 + 궁합 읽는 법 4판 + 한 줄 요약을 본문 뒤에
+   * - 비공개 궁합: 입력은 그대로(두 원국 전체) + 같은 목록·읽는 법 4판(그 자료에 맞춘 안내)·요약 차례
+   */
+  pairVersion: 'reading-prompt-v11',
   /**
    * 엔진과 AI 의 경계 — **기준점 위에서 항목별로 움직인다**(ADR 0060).
    *
@@ -178,3 +188,7 @@ export type ReadingOutput = {
   /** 원문 Markdown. 화면은 절 구조를 알지 않는다 */
   markdown: string;
 };
+
+/** 그 kind 의 결과에 적을 프롬프트 판본 — **저장하는 자리는 이것만 부른다** */
+export const promptVersionOf = (kind: ReadingKind): string =>
+  isSolo(kind) ? READING_POLICY.version : READING_POLICY.pairVersion;

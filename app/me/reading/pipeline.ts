@@ -4,7 +4,7 @@ import { after } from 'next/server';
 
 import { relationOf } from '@/src/lib/people';
 import type { Saju } from '@/src/lib/saju';
-import { READING_POLICY, type ReadingAbout, type ReadingKind } from '@/src/lib/reading';
+import { promptVersionOf, writesSummaryLast, type ReadingAbout, type ReadingKind } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { chartOf } from '@/src/lib/input/chart';
@@ -108,7 +108,7 @@ async function openRun(
     p_person_b: target.kind === 'private' ? target.personB : null,
     p_match_id: target.kind === 'match' ? target.matchId : null,
     p_model: GENERATION.model,
-    p_prompt_version: READING_POLICY.version,
+    p_prompt_version: promptVersionOf(target.kind),
   });
 
   if (error) return { ok: false, message: error.message };
@@ -184,7 +184,7 @@ async function sendRun(target: ReadingTarget, started: StartedRun): Promise<void
     p_revision_b: started.revision_b,
     p_prompt: made.input.prompt,
     p_evidence: made.input.evidenceText,
-    p_prompt_version: READING_POLICY.version,
+    p_prompt_version: promptVersionOf(kind),
     p_requested_model: GENERATION.model,
     p_generation: { ...GENERATION.settings, provider: GENERATION.provider },
     p_viewed_at: viewedAt.toISOString(),
@@ -195,7 +195,9 @@ async function sendRun(target: ReadingTarget, started: StartedRun): Promise<void
     return;
   }
 
-  const submitted = await submitBackgroundReading(made.input.prompt, started.run_id);
+  const submitted = await submitBackgroundReading(made.input.prompt, started.run_id, {
+    summaryLast: writesSummaryLast(kind),
+  });
   if (!submitted.ok) {
     await fail(started.run_id, submitted.code, submitted.detail);
     return;

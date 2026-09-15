@@ -59,6 +59,75 @@ const OUTPUT_SHAPE = {
 
 const SCHEMA = jsonSchema<ReadingOutput>(OUTPUT_SHAPE);
 
+/**
+ * **주장·근거를 먼저 잇는 실험판의 모양** — 실호출 실험(`call.live.test.ts`)만 쓴다(ADR 0067 3라운드).
+ *
+ * `claims` 를 **맨 앞에** 둔다. 구조화 출력은 속성 차례대로 지으므로, 본문보다 주장 목록이 먼저
+ * 나온다 — 「잇고 나서 쓴다」가 한 번의 호출 안에서 성립하는 자리가 여기다. 운영 생성은 이 모양을
+ * 쓰지 않는다.
+ */
+export type ReadingClaim = {
+  subject: '첫 번째 분' | '두 번째 분' | '두 사람';
+  statement: string;
+  evidence: { path: string; value: string }[];
+  reach: 'direct' | 'narrowed';
+};
+
+const CLAIMS_FIRST_SHAPE = {
+  type: 'object',
+  properties: {
+    claims: {
+      type: 'array',
+      description: '본문을 쓰기 전에 채운다. 본문에 쓸 주장마다 한 줄. 사용자에게 안 보인다',
+      items: {
+        type: 'object',
+        properties: {
+          subject: { type: 'string', enum: ['첫 번째 분', '두 번째 분', '두 사람'] },
+          statement: { type: 'string', description: '본문에 쓸 주장 한 문장' },
+          evidence: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                path: { type: 'string', description: '자료 JSON 경로 — 사람 자리 a/b 와 배열 번호까지' },
+                value: { type: 'string', description: '그 경로의 값을 JSON 그대로 옮긴 문자열' },
+              },
+              required: ['path', 'value'],
+              additionalProperties: false,
+            },
+          },
+          reach: { type: 'string', enum: ['direct', 'narrowed'] },
+        },
+        required: ['subject', 'statement', 'evidence', 'reach'],
+        additionalProperties: false,
+      },
+    },
+    ...OUTPUT_SHAPE.properties,
+  },
+  required: ['claims', 'score', 'metaphor', 'markdown'],
+  additionalProperties: false,
+} satisfies JSONSchema7;
+
+const CLAIMS_FIRST_SCHEMA = jsonSchema<ReadingOutput & { claims: ReadingClaim[] }>(CLAIMS_FIRST_SHAPE);
+
+/**
+ * **본문을 먼저, 한 줄 요약을 마지막에** — 인연 궁합 운영(2026-09-15)과 실험이 쓴다(ADR 0067).
+ *
+ * 운영 모양은 `score · metaphor · markdown` 차례라 요약이 본문보다 먼저 지어진다. 구조화 출력은 속성 차례대로
+ * 짓으므로, 요약을 본문의 핵심으로 쓰게 하려면 차례를 바꿔야 한다. 필드와 뜻은 같다.
+ */
+const SUMMARY_LAST_SHAPE = {
+  ...OUTPUT_SHAPE,
+  properties: {
+    markdown: OUTPUT_SHAPE.properties.markdown,
+    score: OUTPUT_SHAPE.properties.score,
+    metaphor: OUTPUT_SHAPE.properties.metaphor,
+  },
+  required: ['markdown', 'score', 'metaphor'],
+} satisfies JSONSchema7;
+
+const SUMMARY_LAST_SCHEMA = jsonSchema<ReadingOutput>(SUMMARY_LAST_SHAPE);
+
 /** provider 의 오류 문장. 출생 원문이 실릴 자리가 아니다 — 프롬프트에 그 값이 없다 */
 const messageOf = (failure: unknown): string =>
   failure instanceof Error ? failure.message : String(failure);
@@ -100,11 +169,22 @@ const usageOf = (response: {
  * **던지지 않는다.** 실패도 값으로 낸다 — 부르는 쪽은 실패를 기록하고 직전 성공
  * 결과를 그대로 두어야 하므로, 예외로 빠져나가면 그 기록이 남지 않는다.
  */
-export async function callModel(prompt: string): Promise<ModelCall> {
+export async function callModel(
+  prompt: string,
+  /** 실험 전용 — 운영 경로는 이 인자를 안 넘긴다 */
+  options: {
+    /** 주장 목록을 본문보다 먼저 받는다 */
+    claimsFirst?: boolean;
+    /** 본문을 먼저, 한 줄 요약을 마지막에 받는다 */
+    summaryLast?: boolean;
+  } = {},
+): Promise<ModelCall> {
   try {
     const { output, usage, response } = await generateText({
       model: openai(GENERATION.model),
-      output: Output.object({ schema: SCHEMA }),
+      output: Output.object({
+        schema: options.claimsFirst ? CLAIMS_FIRST_SCHEMA : options.summaryLast ? SUMMARY_LAST_SCHEMA : SCHEMA,
+      }),
       prompt,
       timeout: GENERATION.settings.timeout,
       providerOptions: {
@@ -184,6 +264,11 @@ const client = () => new OpenAI();
 export async function submitBackgroundReading(
   prompt: string,
   runId: string,
+  /**
+   * 한 줄 요약을 본문 뒤에 받는가 — **두 궁합의 4판만**(`writesSummaryLast`, ADR 0067). 필드와 뜻은 같고
+   * 차례만 다르다. 안 넘기면 운영 차례 그대로다.
+   */
+  options: { summaryLast?: boolean } = {},
 ): Promise<ModelSubmission> {
   try {
     const response = await client().responses.create({
@@ -197,7 +282,7 @@ export async function submitBackgroundReading(
           type: 'json_schema',
           name: 'reading',
           strict: true,
-          schema: OUTPUT_SHAPE,
+          schema: options.summaryLast ? SUMMARY_LAST_SHAPE : OUTPUT_SHAPE,
         },
       },
     });

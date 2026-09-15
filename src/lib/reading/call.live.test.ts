@@ -1,10 +1,12 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '@/src/lib/saju';
 import {
   CONTROL,
+  MATCH_INPUT_FIELDS,
+  MATCH_INPUT_VARIANTS,
   PAIR_VARIANTS,
   PROMPT_VARIANTS,
   READING_POLICY,
@@ -15,6 +17,7 @@ import {
   readingEvidenceOf,
   readingPromptOf,
   outputDeviations,
+  writesSummaryLast,
   type OutputDeviation,
 } from '@/src/lib/reading';
 
@@ -47,6 +50,8 @@ const live = process.env.READING_LIVE === '1';
 const variantsLive = process.env.READING_VARIANTS_LIVE === '1';
 /** 비공개 궁합 P0/P1 만 부른다 — 위 둘과 재는 축이 달라 문도 따로다 */
 const pairLive = process.env.READING_PAIR_LIVE === '1';
+/** 인연 궁합 입력 A/B — `READING_MATCH_DRY=1` 이면 부르지 않고 프롬프트만 떨군다 */
+const matchInputLive = process.env.READING_MATCH_INPUT_LIVE === '1';
 
 /**
  * 변형끼리 견줄 때의 **고정 기준 시각.**
@@ -134,7 +139,12 @@ function loadLocalEnv(): void {
     for (const line of readFileSync('.env.development.local', 'utf8').split('\n')) {
       const [key, ...rest] = line.split('=');
       if (key && !key.startsWith('#') && rest.length > 0 && !process.env[key.trim()]) {
-        process.env[key.trim()] = rest.join('=').trim();
+        /**
+         * **감싼 따옴표는 값이 아니다.** Next.js 는 벗겨서 읽는데 여기서만 안 벗겨, 따옴표째
+         * 열쇠를 보내 두 콜이 「잘못된 열쇠」로 떨어졌다(토큰은 안 나갔다).
+         */
+        const raw = rest.join('=').trim();
+        process.env[key.trim()] = /^(["'])(.*)\1$/.test(raw) ? raw.slice(1, -1) : raw;
       }
     }
   } catch {
@@ -507,5 +517,360 @@ describe.skipIf(!pairLive)('비공개 궁합 두 판이 같은 자료에서 실�
     expect(verdicts.map(({ id, blocking }) => `${id}: ${blocking.join(' · ') || 'ok'}`)).toEqual(
       called.map(({ variant }) => `${variant.id}: ok`),
     );
+  });
+});
+
+/**
+ * **인연 궁합 입력 두 판(A 제한형 · B 확장형)을 같은 조건으로 부른다**(ADR 0067).
+ *
+ *   # 먼저 부르지 않고 프롬프트만 — 호출 수·입력 크기·반영 여부를 본다
+ *   READING_MATCH_INPUT_LIVE=1 READING_MATCH_DRY=1 npx vitest run src/lib/reading/call.live.test.ts
+ *   # 2라운드(읽는 법) — READING_MATCH_ROUND=2 를 붙인다. 기본은 1라운드
+ *   # 소규모 — 표본 하나 × 두 판 × 1회 = 2콜
+ *   READING_MATCH_INPUT_LIVE=1 READING_MATCH_REPEAT=1 READING_MATCH_FIXTURES=internal-rival npx vitest run src/lib/reading/call.live.test.ts
+ *   # 같은 실행에 판마다 2회 더 — 프롬프트가 한 글자라도 다르면 부르기 전에 멈춘다
+ *   READING_MATCH_INPUT_LIVE=1 READING_MATCH_REPEAT=2 READING_MATCH_RUN_DIR=.reading-live/match-input-… npx vitest run …
+ *   # 저장된 명식 한 쌍(Git 밖 파일)으로
+ *   READING_MATCH_INPUT_LIVE=1 READING_MATCH_PAIR_FILE=.reading-live/private/my-pair.json READING_MATCH_REPEAT=1 npx vitest run …
+ *
+ * **같게 두는 것**: 명식·기준 시각·모델·생성 설정·분량·기준점·조정 상한·재량 폭·사이. **다른 것**은
+ * 자료 범위와 그에 따라 바뀐 지시 둘이고, 둘 다 `manifest.json` 에 적는다.
+ *
+ * ## 세 갈래를 섞지 않는다 — `verdicts.json`
+ *
+ * 1. **호출** — 모델까지 닿아 구조화 출력이 왔는가. **하나라도 실패하면 이 시험이 빨간불이다.**
+ *    기록 수가 맞는 것은 성공이 아니다. 실패 원문은 `runs.jsonl` 에 남는다.
+ * 2. **출력 계약** — 저장 검사(`checkReading`)가 막는 것과 분량 밖 같은 계약 어긋남. 실험 결과로
+ *    적고 시험을 떨구지 않는다 — 그러나 `status` 가 `complete` 로 서지 않는다.
+ * 3. **사람이 확인할 것** — 근거 오류 후보·자리 문장·이탈 지표. 자동 판정이 아니다.
+ *
+ * 이 결과는 AI 설명 품질의 비교이지 실제 관계가 잘 되는지의 검증이 아니다.
+ */
+describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으로 부른다', () => {
+  it('두 판을 같은 조건으로 부르고 호출·계약·사람 확인을 갈라 떨군다', { timeout: 3_600_000 }, async () => {
+    const { existsSync } = await import('node:fs');
+    const { createHash } = await import('node:crypto');
+    const { MATCH_INPUT_FIXTURES, aggregateMatchRuns, blindPacket, chartsOf, checkClaims, measureMatchRun, secretsOf } =
+      await import('./match-input-eval');
+    type ClaimLike = import('./match-input-eval').ClaimLike;
+    const { chartOf } = await import('@/src/lib/input/chart');
+    const { queryFromRevision } = await import('@/src/lib/input/revision');
+    const { relationSentence, RELATIONS } = await import('@/src/lib/people');
+
+    const dry = process.env.READING_MATCH_DRY === '1';
+    const repeat = Number(process.env.READING_MATCH_REPEAT ?? '3');
+    const maxCalls = Number(process.env.READING_MATCH_MAX_CALLS ?? '24');
+    const concurrency = Number(process.env.READING_MATCH_CONCURRENCY ?? '2');
+    const pairFile = process.env.READING_MATCH_PAIR_FILE;
+    /** 한 라운드의 두 판만 견준다 — 기본은 1라운드(지난 실호출 재현) */
+    const round = Number(process.env.READING_MATCH_ROUND ?? '1');
+    const variants = MATCH_INPUT_VARIANTS.filter((variant) => variant.round === round);
+    if (variants.length === 0) throw new Error(`라운드 ${round} 의 변형이 없다`);
+    const { guideFor } = await import('./match-reading-guide');
+    const appendTo = process.env.READING_MATCH_RUN_DIR;
+
+    type Subject = {
+      id: string;
+      asks: string;
+      charts: ReturnType<typeof chartsOf>;
+      secrets: ReturnType<typeof secretsOf>;
+      about: { names: null; relation: (typeof RELATIONS)[number] | null };
+      /** 기록에 남길 출처 — 출생 원문은 안 적는다 */
+      source: Record<string, unknown>;
+    };
+
+    const subjects: Subject[] = [];
+    if (pairFile) {
+      const pair = JSON.parse(readFileSync(pairFile, 'utf8'));
+      if (pair.relation !== null && !(RELATIONS as readonly string[]).includes(pair.relation)) {
+        throw new Error(`모르는 사이: ${pair.relation}`);
+      }
+      subjects.push({
+        id: pair.id,
+        asks: '저장된 명식 한 쌍 — 사람 이름 대신 A·B 로 부른다',
+        charts: {
+          a: chartOf(queryFromRevision(pair.a.revision, 'A')),
+          b: chartOf(queryFromRevision(pair.b.revision, 'B')),
+        },
+        secrets: [pair.a.revision, pair.b.revision].map((revision) => ({
+          originalDate: revision.original_date,
+          solarDate: revision.solar_date,
+          birthTime: revision.birth_time,
+          city: revision.city,
+        })),
+        about: { names: null, relation: pair.relation },
+        source: {
+          kind: 'pair-file',
+          personIds: [pair.a.personId, pair.b.personId],
+          revisionIds: [pair.a.revisionId, pair.b.revisionId],
+        },
+      });
+    } else {
+      const wanted = process.env.READING_MATCH_FIXTURES?.split(',').map((id) => id.trim());
+      const fixtures = MATCH_INPUT_FIXTURES.filter((fixture) => !wanted || wanted.includes(fixture.id));
+      if (wanted && fixtures.length !== wanted.length) throw new Error(`모르는 표본: ${wanted.join(',')}`);
+      for (const fixture of fixtures) {
+        subjects.push({
+          id: fixture.id,
+          asks: fixture.asks,
+          charts: chartsOf(fixture),
+          secrets: secretsOf(fixture),
+          about: { names: null, relation: null },
+          source: { kind: 'fixture' },
+        });
+      }
+    }
+
+    const built = new Map(
+      subjects.flatMap((subject) =>
+        variants.map((variant) => {
+          const reading = readingEvidenceOf('match', subject.charts, new Date(VARIANTS_VIEWED_AT), variant.assembly.matchInput);
+          if (reading.kind !== 'match') throw new Error('인연 궁합이 아니다');
+          const prompt = readingPromptOf(reading, variant.assembly, subject.about);
+          const hash = createHash('sha256').update(prompt).digest('hex').slice(0, 16);
+          return [`${subject.id}|${variant.id}` as string, { subject, variant, reading, prompt, hash }] as const;
+        }),
+      ),
+    );
+
+    /**
+     * **부르기 전에 잰다** — 사이와 판이 실제 최종 프롬프트에 실렸는가. 안 실렸는데 부르면
+     * 돈을 내고 다른 실험을 한다.
+     */
+    for (const [key, { subject, variant, reading, prompt }] of built) {
+      const [head] = prompt.split('\n## 자료 (');
+      const json = JSON.stringify(reading.evidence);
+      const extended = variant.assembly.matchInput === 'extended-v1';
+      if (subject.about.relation !== null && !head.includes(relationSentence(subject.about.relation))) {
+        throw new Error(`${key}: 사이 문장이 프롬프트에 없다`);
+      }
+      if (reading.evidence.contract.matchInput !== variant.assembly.matchInput) throw new Error(`${key}: 자료의 판이 다르다`);
+      const claimsFirst = variant.assembly.pairWriting === 'claims-first-v1';
+      if (head.includes('## 쓰기 전에 주장과 근거를 잇는다') !== claimsFirst) throw new Error(`${key}: 주장·근거 절이 판과 어긋난다`);
+      /* 읽는 법을 싣는 판이면 그 경로가 전부 이 자료에 있어야 한다 — 없는 경로를 설명하지 않는다 */
+      const guided = variant.assembly.pairReading !== 'plain-v1';
+      if (head.includes('## 이 자료를 읽는 법') !== guided) throw new Error(`${key}: 읽는 법이 판과 어긋난다`);
+      if (guided) {
+        for (const entry of guideFor(variant.assembly.matchInput)) {
+          const leaf = entry.path.split('.').pop()!.replace('[]', '');
+          if (!json.includes(`"${leaf}"`)) throw new Error(`${key}: 읽는 법의 ${entry.path} 가 자료에 없다`);
+        }
+      }
+      if (json.includes('"eokbuMatch"') !== extended || head.includes('용신을 상대가 가졌다') !== extended) {
+        throw new Error(`${key}: 억부 근거와 점수표가 판과 어긋난다`);
+      }
+      /* 계약의 `withheld` 는 뺀 자리의 이름을 든다 — 값이 실렸는지는 계약 밖에서 본다 */
+      const values = JSON.stringify({ ...reading.evidence, contract: null });
+      if (values.includes('"gender"') || values.includes('lateNightRule')) throw new Error(`${key}: 입력 메타가 실렸다`);
+    }
+    for (const subject of subjects) {
+      const baselines = new Set(variants.map((v) => built.get(`${subject.id}|${v.id}`)!.reading.baseline));
+      if (baselines.size !== 1) throw new Error(`${subject.id}: 두 판의 기준점이 다르다`);
+    }
+
+    loadLocalEnv();
+    const { GENERATION } = await import('@/app/me/reading/generation');
+    const at = new Date().toISOString().replace(/[:.]/g, '-');
+    const dir = appendTo ?? `${OUTPUT_ROOT}/match-input-${dry ? 'dry-' : ''}${subjects.length === 1 ? `${subjects[0].id}-` : ''}${at}`;
+    const hashes = Object.fromEntries([...built].map(([key, { hash }]) => [key, hash]));
+
+    type Line = import('./match-input-eval').MatchRunRecord & {
+      baseline: number;
+      usage: unknown;
+      output: { markdown: string; score: number | null; metaphor: string } | null;
+      contractDeviations: readonly string[];
+      targetDeviations: readonly string[];
+      claimsCheck?: ReturnType<typeof checkClaims> | null;
+    };
+    let previous: Line[] = [];
+    let seed = Math.floor(Math.random() * 1_000_000);
+
+    if (appendTo) {
+      if (!existsSync(`${dir}/manifest.json`)) throw new Error(`이어 붙일 실행이 없다: ${dir}`);
+      const manifest = JSON.parse(readFileSync(`${dir}/manifest.json`, 'utf8'));
+      if (JSON.stringify(manifest.promptHashes) !== JSON.stringify(hashes)) {
+        throw new Error('이어 붙일 실행과 프롬프트가 다르다 — 같은 조건이 아니므로 부르지 않는다');
+      }
+      if (JSON.stringify(manifest.generation) !== JSON.stringify(GENERATION)) throw new Error('생성 설정이 다르다');
+      seed = manifest.seed;
+      previous = existsSync(`${dir}/runs.jsonl`)
+        ? readFileSync(`${dir}/runs.jsonl`, 'utf8').trim().split('\n').filter(Boolean).map((line) => JSON.parse(line))
+        : [];
+    }
+
+    const planned = [...built.values()].flatMap(({ subject, variant }) => {
+      const done = previous.filter((line) => line.fixture === subject.id && line.variant === variant.id);
+      const from = done.reduce((max, line) => Math.max(max, line.rep), 0);
+      return Array.from({ length: repeat }, (_, index) => ({ key: `${subject.id}|${variant.id}`, rep: from + index + 1 }));
+    });
+    if (!dry && planned.length > maxCalls) {
+      throw new Error(`계획 ${planned.length}콜이 상한 ${maxCalls}콜을 넘는다 — READING_MATCH_MAX_CALLS 로 올린다`);
+    }
+
+    mkdirSync(dir, { recursive: true });
+    if (!appendTo) {
+      writeFileSync(
+        `${dir}/manifest.json`,
+        JSON.stringify(
+          {
+            at,
+            dry,
+            purpose: 'AI 설명 품질 비교 — 실제 관계 성공률 검증이 아니다',
+            promptVersion: READING_POLICY.version,
+            generation: GENERATION,
+            viewedAt: VARIANTS_VIEWED_AT,
+            seed,
+            maxCalls,
+            scoreAdjustment: READING_POLICY.scoreAdjustment,
+            scoreDiscretion: READING_POLICY.scoreDiscretion,
+            subjects: subjects.map(({ id, asks, about, source }) => ({
+              id,
+              asks,
+              relation: about.relation,
+              source,
+              baseline: built.get(`${id}|${variants[0].id}`)!.reading.baseline,
+            })),
+            round,
+            variants: variants.map(({ id, label, addedEvidence, promptChanges, assembly }) => ({
+              id,
+              label,
+              matchInput: assembly.matchInput,
+              pairReading: assembly.pairReading,
+              fields: MATCH_INPUT_FIELDS[assembly.matchInput],
+              addedEvidence,
+              promptChanges,
+            })),
+            promptHashes: hashes,
+            promptChars: Object.fromEntries([...built].map(([key, { prompt }]) => [key, prompt.length])),
+          },
+          null,
+          2,
+        ),
+      );
+    }
+
+    if (dry) {
+      for (const [key, { prompt }] of built) writeFileSync(`${dir}/${key.replace('|', '--')}.prompt.md`, prompt);
+      return;
+    }
+
+    const { callModel } = await import('@/app/me/reading/model');
+    const fresh: Line[] = [];
+    let cursor = 0;
+
+    /** **다시 부르지 않는다** — 실패도 한 번의 결과다 */
+    const worker = async () => {
+      while (cursor < planned.length) {
+        const { key, rep } = planned[cursor++];
+        const { subject, variant, reading, prompt } = built.get(key)!;
+        const claimsFirst = variant.assembly.pairWriting === 'claims-first-v1';
+        // 운영 파이프라인과 같은 규칙으로 요약 차례를 정한다(4판 포함)
+        const summaryLast = writesSummaryLast('match', variant.assembly);
+        const called = await callModel(prompt, { claimsFirst, summaryLast });
+
+        const line: Line = called.ok
+          ? (() => {
+              const deviations = pairOutputDeviations('match', measureMarkdown(called.output.markdown), variant.assembly);
+              return {
+                fixture: subject.id,
+                variant: variant.id,
+                rep,
+                ok: true,
+                baseline: reading.baseline,
+                usage: called.usage,
+                output: called.output,
+                metrics: measureMatchRun({
+                  evidence: reading.evidence,
+                  output: called.output,
+                  baseline: reading.baseline,
+                  secrets: subject.secrets,
+                }),
+                claimsCheck: claimsFirst
+                  ? checkClaims(reading.evidence, ((called.output as { claims?: ClaimLike[] }).claims ?? []))
+                  : null,
+                contractDeviations: deviations.filter((d) => d.kind === 'contract').map((d) => `${d.code}: ${d.detail}`),
+                targetDeviations: deviations.filter((d) => d.kind === 'target').map((d) => `${d.code}: ${d.detail}`),
+              };
+            })()
+          : {
+              fixture: subject.id,
+              variant: variant.id,
+              rep,
+              ok: false,
+              failure: `${called.code}: ${called.detail}`,
+              baseline: reading.baseline,
+              /** 실패 응답은 사용량을 안 들고 온다 — 0 으로 채우지 않는다 */
+              usage: null,
+              output: null,
+              contractDeviations: [],
+              targetDeviations: [],
+            };
+
+        fresh.push(line);
+        appendFileSync(`${dir}/runs.jsonl`, `${JSON.stringify({ ...line, calledAt: new Date().toISOString() })}\n`);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, concurrency) }, worker));
+
+    const all = [...previous, ...fresh];
+    const sum = (lines: Line[], field: 'inputTokens' | 'outputTokens' | 'totalTokens') =>
+      lines.reduce((total, line) => total + (((line.usage ?? {}) as Record<string, number | null>)[field] ?? 0), 0);
+    const usageOf = (lines: Line[]) => ({
+      calls: lines.length,
+      withUsage: lines.filter((line) => line.usage !== null).length,
+      inputTokens: sum(lines, 'inputTokens'),
+      outputTokens: sum(lines, 'outputTokens'),
+      totalTokens: sum(lines, 'totalTokens'),
+    });
+
+    const failures = all.filter((line) => !line.ok);
+    const contract = all
+      .filter((line) => line.ok && ((line.metrics?.blocking.length ?? 0) > 0 || line.contractDeviations.length > 0))
+      .map((line) => ({ fixture: line.fixture, variant: line.variant, rep: line.rep, blocking: line.metrics!.blocking, contractDeviations: line.contractDeviations }));
+
+    writeFileSync(
+      `${dir}/verdicts.json`,
+      JSON.stringify(
+        {
+          status: failures.length > 0 ? 'calls-failed' : contract.length > 0 ? 'complete-with-contract-violations' : 'complete',
+          calls: {
+            thisRun: { planned: planned.length, ok: fresh.filter((l) => l.ok).length, failed: fresh.filter((l) => !l.ok).length },
+            total: { ok: all.filter((l) => l.ok).length, failed: failures.length },
+            failures: failures.map(({ fixture, variant, rep, failure }) => ({ fixture, variant, rep, failure })),
+          },
+          contract,
+          humanReview: all
+            .filter((line) => line.ok)
+            .map((line) => ({
+              fixture: line.fixture,
+              variant: line.variant,
+              rep: line.rep,
+              unknownRelations: line.metrics!.unknownRelations,
+              absentPaths: line.metrics!.absentPaths,
+              relationCoverage: line.metrics!.relationCoverage,
+              seatSentences: line.metrics!.seatSentences,
+              personalDrift: line.metrics!.personalDrift,
+              reviewCandidates: line.metrics!.reviewCandidates ?? {},
+              claimsCheck: line.claimsCheck ?? null,
+              targetDeviations: line.targetDeviations,
+            })),
+          usage: { thisRun: usageOf(fresh), total: usageOf(all) },
+        },
+        null,
+        2,
+      ),
+    );
+    writeFileSync(`${dir}/aggregate.json`, JSON.stringify(aggregateMatchRuns(all), null, 2));
+
+    const packet = blindPacket(
+      all.filter((line) => line.ok).map((line) => ({ fixture: line.fixture, variant: line.variant, rep: line.rep, ...line.output! })),
+      seed,
+    );
+    writeFileSync(`${dir}/blind.md`, packet.markdown);
+    writeFileSync(`${dir}/key.json`, JSON.stringify(packet.key, null, 2));
+
+    /** 호출이 하나라도 실패했으면 이 실험은 성공이 아니다 */
+    expect(fresh.filter((line) => !line.ok).map((line) => `${line.fixture}/${line.variant}/${line.rep} ${line.failure}`), dir).toEqual([]);
+    expect(fresh).toHaveLength(planned.length);
   });
 });

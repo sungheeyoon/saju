@@ -8,6 +8,15 @@ import {
 } from '../saju/constants';
 import { RELATION_FROM_MATCH, relationBlock, relationSentence, type Relation } from '../people';
 import { EVIDENCE_CONTRACT } from '../saju/evidence';
+import { DEFAULT_MATCH_INPUT, type MatchInput } from '../saju/evidence/shared';
+import {
+  CLAIMS_FIRST_BLOCK,
+  type GuideScope,
+  matchReadingGuideBlock,
+  matchReadingGuideV2Block,
+  matchReadingGuideV3Block,
+} from './match-reading-guide';
+import { ABSORPTION_RULE } from './parts';
 import { PROMPT_PARTS } from './parts';
 import { withSummary } from './summary';
 
@@ -177,6 +186,29 @@ export type PromptAssembly = {
   readonly extraSections: readonly string[];
   /** 자료 뒤에 붙이는 제출 전 확인. 없으면 `null` */
   readonly tail: string | null;
+  /**
+   * 인연 궁합에 넣는 입력의 판 — **자료와 프롬프트가 같은 값을 들어야 한다.**
+   *
+   * 자료를 짓는 쪽(`readingEvidenceOf`)과 지시를 짓는 쪽이 따로 고르면, 확장형 자료에
+   * 제한형 점수표가 붙거나 그 반대가 된다. `readingPromptOf` 가 둘을 맞춰 보고 어긋나면 멈춘다.
+   */
+  readonly matchInput: MatchInput;
+  /**
+   * 인연 궁합 자료를 **읽는 법과 결론 규칙**을 싣는가 — 실험 전용(ADR 0067 2라운드).
+   *
+   * `plain-v1` 은 싣지 않는다(운영·1라운드 A/B 그대로). `guide-v1` 은 경로별 뜻과 근거 범위 규칙을
+   * 싣고, 확장형 범위 절의 「시험값이라 단정하지 않는다」를 뺀다. **읽는 법과 문체 지시가 함께
+   * 움직인다** — 어느 한쪽만의 효과로 읽지 않는다.
+   */
+  readonly pairReading: 'plain-v1' | 'guide-v1' | 'guide-v2' | 'guide-v3' | 'guide-v4';
+  /**
+   * 인연 궁합을 **어떻게 쓰는가** — 실험 전용(ADR 0067 3라운드).
+   *
+   * `direct-v1` 은 곧바로 본문을 쓴다(운영·1·2라운드 그대로). `claims-first-v1` 은 응답의 `claims` 칸에
+   * 주장마다 사람·근거 경로·값을 먼저 적고, 본문은 그 목록의 주장만으로 쓴다. 출력 스키마도 함께
+   * 바뀐다(`callModel` 의 `claimsFirst`).
+   */
+  readonly pairWriting: 'direct-v1' | 'claims-first-v1';
 };
 
 /** 실제 배포에서 쓰는 기준판. */
@@ -191,7 +223,32 @@ export const CONTROL: PromptAssembly = {
   pairShape: 'needs-v1',
   extraSections: [],
   tail: null,
+  matchInput: DEFAULT_MATCH_INPUT,
+  /** 인연 궁합 읽는 법 4판 — 제한형 A 와 한 세트로 운영에 올렸다(2026-09-15, ADR 0067) */
+  pairReading: 'guide-v4',
+  pairWriting: 'direct-v1',
 };
+
+/**
+ * **원복용 궁합 조립** — 4판 이전에 운영이 보내던 궁합 지시와 인연 궁합 옛 컷.
+ *
+ * 되돌릴 때 `CONTROL` 의 두 칸을 이 값으로 바꾼다. 시험이 이 조립으로 옛 판의 계약을 계속
+ * 재므로, 원복하는 날 옛 판이 조용히 깨져 있지 않다.
+ */
+export const LEGACY_PAIR_ASSEMBLY: PromptAssembly = {
+  ...CONTROL,
+  matchInput: 'legacy-v0',
+  pairReading: 'plain-v1',
+};
+
+/**
+ * 궁합 자료에 각자의 억부 후보(`eokbuMatch`)가 실리는가.
+ *
+ * 비공개 궁합은 두 원국을 통째로 싣고, 인연 궁합은 확장형일 때만 싣는다. **점수표와 절이
+ * 이 한 답을 쓴다** — 자료에 없는 근거로 점수를 움직이라고 시키지 않는다.
+ */
+const carriesEokbu = (kind: PairKind, assembly: PromptAssembly): boolean =>
+  kind === 'private' || assembly.matchInput !== 'limited-v1';
 
 /**
  * **불확실함은 안에서 다 적고, 밖으로는 필요한 것만 나간다.**
@@ -537,6 +594,225 @@ ${termsSection(terminology)}
 문장이 점검표처럼 반복되거나 다음 줄로 넘어갈 이유가 없어지면, 규칙보다
 **읽고 싶은 글**을 고른다. 이 글의 목적은 결백함이 아니라 **끝까지 읽히는 것**이다.`;
 
+/**
+ * **인연 궁합 v3 — 새 안내와 부딪히던 공통 지시를 인연 궁합 실험판에서만 갈아 끼운다**(ADR 0067 5라운드).
+ *
+ * 4라운드 원문을 끝까지 읽어 보니 새 안내(자신 있게, 정답표 아님, 본문에 검토 말 없음)와 **반대 방향으로
+ * 미는 공통 조각**이 여럿 서 있었다. 그 조각들은 자기 풀이·비공개 궁합·운영 인연 궁합이 함께 쓰므로 원본은
+ * 두고, `pairReading: 'guide-v3'` 인 인연 궁합에만 아래로 바꾼다.
+ *
+ * - 공통 규칙 — 운 칸 설명(인연 궁합 자료에 운이 없다), 「자료 밖」이라고 본문에 먼저 적으라는 줄, 층을 본문 표지로
+ *   드러내라는 사다리 → **없는 운은 말하지 않고, 층과 넘어간 것은 근거 칸에만**
+ * - 본문 규칙의 「한계는 판단 옆에서 말한다」 → 「이 글에 없는 것은 꺼내지도, 없다고 설명하지도 않는다」
+ * - 용어 절의 **고정 대응 예시**(관성 → 책임감, 재성 → 현실적, 금 셋 → 기준 분명)와 운·신살 예시, 「근거를 앞에
+ *   세우지 마라」의 본보기(「첫 번째 분은 즉각적인 반응을 원하고 두 번째 분은 속으로 따져 본 뒤」) — **명식과
+ *   상관없이 모든 글에 같은 틀이 나온 원인으로 보인다**
+ * - 근거 칸 본보기의 「연락 속도가 어긋난다 · 편관」과 끝줄 「한계는 본문에서 판단 옆에」
+ * - 한 줄 요약의 대구 본보기와 차례 — 이제 **본문을 다 쓴 뒤** 그 핵심으로 쓴다
+ */
+const PAIR_DATA_V3: Record<PairKind, string> = {
+  match: `두 사람의 원국 **사이** 관계가 실려 있고, 참여자마다 \`chartId\` 가 \`natal:a\`(첫 번째 분)·\`natal:b\`(두 번째 분)로 갈린다. 대운·세운·월운은 이 자료에 없다 — 시기는 이 글이 다루는 이야기가 아니다.`,
+  private: `두 사람 각자의 원국 판정·원국 안 관계·신살과, 두 원국 사이의 관계, 기준 시각(\`viewedAt\`)에 도는 운이 실려 있다. 관계 참여자의 \`chartId\` 는 \`natal:a\`·\`natal:b\`(두 원국 사이) · \`natal\`(한 사람 원국 안) · \`decade:n\`·\`annual:연도\`·\`monthly:…\`(운)로 갈린다. **어느 칸의 관계인지 섞지 마라** — 원국의 관계는 타고난 구조이고, 운에서 걸린 관계는 그 시기에 새로 걸린 것이다.`,
+};
+
+const pairRulesV3 = (kind: PairKind): string => `## 이 자료가 무엇인가
+
+만세력 엔진이 낸 **사실과 계산의 목록**이다(\`contract\`, ${EVIDENCE_CONTRACT.version}). 해석은 들어 있지 않다 — 그 자리를 채우라고 너에게 넘긴다.
+
+${PAIR_DATA_V3[kind]}
+
+## 사실에 관한 단 하나의 금지
+
+**없는 것을 지어내지 마라.** 자료에 없는 글자·관계·운을 있다고 하면, 그 위에 쌓은 해석은 전부 남의 이야기가 된다.
+
+그 밖에는 막지 않는다. 성향·장면·조언은 네가 자료를 겹쳐 해석해서 말한다. 자료에서 곧바로 나오지 않고 네가 더한 말(생활 장면·조언)은 **본문에서 따로 표시하지 않고**, 맨 끝 근거 칸의 「넘어간 것」에 적는다.
+
+## 말의 세기
+
+값마다 \`claims\` 표에 상한이 적혀 있다. 그 딱지는 **맨 끝 근거 칸에만** 단다. 본문에서 얼마나 세게 말할지는 딱지 이름이 아니라 **근거가 몇 갈래로 모이는가**로 정한다 — 여러 자료가 한 방향을 가리키면 단정하고, 한 갈래뿐이면 장면을 좁혀서 쓴다. 「…쪽으로 본다면」·「추측이지만」 같은 표지를 본문에 달지 않는다.`;
+
+
+const EVIDENCE_NOT_UP_FRONT_V3 = `### 근거를 문장 앞에 세우지 마라
+
+문단마다 「어느 자리의 무엇이 무엇과 맞서서」로 시작하면 글이 지친다. 결론을 먼저 말하고, 근거는 필요할 때 짧게 뒤에 붙인다. 한 번 세운 그림은 그다음부터 짧게 가리키기만 한다. 어디서 온 말인지는 맨 끝 근거 칸이 든다.`;
+
+const MATCH_TERMS_V3 = `## 이름 대신 그 이름이 가리키는 것을 쓴다
+
+읽는 사람은 **사주를 공부하러 온 것이 아니다.** 전문용어의 이름을 본문에 쓰지 말고, 두 사람 사이에서 그것이 **어떤 순간으로 나타나는지**를 쓴다. 이름을 괄호에 넣어 뒤에 다는 것도 쓰지 않는다.
+
+**낱말을 낱말로 갈아 끼우는 일이 아니다.** 한 이름을 정해진 한 마디로 옮겨 두면 그 말이 새 전문용어가 된다. 같은 관계라도 **누구의 어느 자리에 걸렸느냐**에 따라 나타나는 모습이 다르다 — 그 모습을 이 두 사람의 장면으로 써라.
+
+### 오행은 그대로 부른다
+
+**목·화·토·금·수는 바꾸지 않는다.** 그림말(나무·불·흙·쇠·물)은 상생·상극을 눈에 보이게 할 때만 쓴다.
+
+${elementGlossLines()}
+
+개수나 없는 오행을 말할 때는 그것이 **두 사람 사이에서** 무엇으로 나타나는지까지 잇는다. 오행 개수 하나로 한 사람의 성격을 정하지 않는다.
+
+### 읽으라고 준 말과 쓰라고 준 말은 다르다
+
+\`compatibility.tenGods\` 같은 경로는 **네가 자료를 가려 읽으라고 있는 식별자**다. 경로 이름도, 그 경로에 대응하는 전문용어도 본문에 옮기지 마라. 경로는 **맨 끝 검사용 근거 절**에만 적는다.
+
+${EVIDENCE_NOT_UP_FRONT_V3}`;
+
+/**
+ * 비공개 궁합에만 더하는 용어 안내 — 그 자료에는 운과 신살이 실린다. 이름 대신 때와 장면으로 말하라는
+ * **말하는 법**만 적고, 신살마다 뜻을 짝지은 예시는 두지 않는다(정답표가 된다).
+ */
+const PRIVATE_TERMS_V4 = `### 운과 신살도 이름이 아니라 때와 장면으로
+
+십 년 단위의 큰 흐름·올해·이번 달을 분류명으로 부르지 말고 「앞으로 몇 년은」·「올해는」·「이번 달은」처럼 때로 말한다. 신살 이름도 본문에 쓰지 말고, 그것이 두 사람 사이에서 어떤 순간으로 나타나는지로 쓴다.`;
+
+const relationshipCustomerVoiceV3 = (
+  terminology: Terminology,
+  structured = false,
+  kind: PairKind = 'match',
+): string => `${CUSTOMER_TONE}
+
+## 본문 규칙
+
+- ${termsRule(terminology)}
+- 두 사람 사이에서 **실제로 벌어지는 장면**으로 바꾼다 — 무엇이 어떻게 걸렸는지가 아니라, 그것이 둘 사이에서 어떤 순간으로 나타나는지를 쓴다.
+- 「잘 맞아요」·「충돌할 수 있어요」로 끝내지 않는다. 언제 편해지고, 언제 어긋나는지까지 쓴다. ${
+  structured
+    ? '두 사람이 무엇을 하면 달라지는지는 **실제로 도움이 되는 자리에서만** 쓴다.'
+    : '그 순간 두 사람이 무엇을 하면 달라지는지까지 쓴다.'
+}
+- 근거 경로와 기술 이름은 맨 끝 검사용 근거 절에만 적는다.
+- ${
+  kind === 'match'
+    ? '**이 글에 없는 것은 꺼내지 않는다.** 시기·운·각자의 판정처럼 자료에 없는 이야기는 쓰지 않고, 없다고 설명하는 문장도 쓰지 않는다.'
+    : '**자료에 없는 것은 꺼내지 않고, 없다고 설명하는 문장도 쓰지 않는다.**'
+} 무엇이 흔들리는지는 맨 끝 근거 칸이 든다.
+
+${MATCH_TERMS_V3}${kind === 'private' ? `\n\n${PRIVATE_TERMS_V4}` : ''}`;
+
+const NEEDS_BLOCK_V3 = (
+  meeting: string,
+  structured = false,
+  kind: PairKind = 'match',
+  scene: string | null = null,
+): string => `## 무엇을 쓸까
+
+풀이를 받는 사람이 알고 싶은 것은 **두 사람이 서로에게 어떤 사람이고, ${
+  structured ? '어디서 잘 맞고' : '어디서 끌리고'
+} 어디서 부딪히며, 함께 지내면 어떤 장면이 되풀이되고, 오래 가려면 무엇이 필요한가**다. ${meeting}도 궁금해한다.${
+  kind === 'private'
+    ? ' 각자가 가까운 사이에서 어떤 사람인지와, 지금이 이 관계에 어떤 시기인지(언제를 기준으로 한 말인지 밝힌다)도 알고 싶어 한다.'
+    : ''
+}
+
+이것을 절 목록으로 삼지 마라. 위 「이 두 사람에게서 두드러지는 이야기를 고른다」에서 고른 이야기 안에서 답한다. 두드러지는 것은 길게, 아닌 것은 짧게 지나거나 쓰지 않는다.${
+  structured ? ' 소제목과 문단을 어떻게 나눌지는 위 「글을 나누는 법」을 따른다.' : ''
+}
+
+${
+  scene === null
+    ? ''
+    : `
+
+사람·자리·방향은 어느 사이든 똑같이 정확히 읽는다. 그 사실을 **어떤 장면으로 옮길지는 두 사람의 사이가 정한다** — ${scene}. 이것은 채워야 할 목차가 아니다. 고른 이야기를 이 사이에서 실제로 일어날 장면으로 옮기는 기준이다.`
+}
+
+관계 이름(합·충·형·해 같은 분류명)은 본문에 내놓지 말고, 연락 방식·결정 속도·갈등 반응처럼 **두 사람 사이에서 실제로 보이는 말**로 쓴다. 소제목은 네가 고른 이야기가 드러나는 말로 단다 — 번호로 세지 않는다.`;
+
+type RelationKey = Relation | 'match' | 'unknown';
+
+/**
+ * **4판의 궁금증 한 줄** — 사이마다 물음이 다르다.
+ *
+ * 옛 판(`MEETING_NEED`)은 인연 궁합을 연인과 같은 「끌림」으로 물었다. 인연 궁합의 두 사람은
+ * 아직 서로를 잘 모르므로, 오래된 끌림이 아니라 알아 가는 물음이 맞다. 옛 판은 원복과
+ * 재현을 위해 그대로 둔다.
+ */
+const MEETING_NEED_V4: Record<RelationKey, string> = {
+  partner: '처음에 서로의 무엇에 끌렸고 그 마음이 오래 갈 것인지',
+  match: '처음 알아 갈 때 서로의 무엇이 먼저 눈에 들어오고, 알아 갈수록 무엇이 드러날지',
+  family: '같은 자리에서 오래 되풀이돼 온 것이 무엇인지',
+  friend: '무엇으로 이어져 있고 어디까지 가까운지',
+  unknown: '서로에게서 가장 먼저 알아보는 것과 나중에야 보이는 것',
+};
+
+/**
+ * **사이가 고르는 장면** — 사람·자리·방향 읽기는 같고, 옮기는 장면만 사이를 탄다.
+ *
+ * 목차가 아니다. 이 문장이 없으면 새 판의 생활 장면이 다시 연애 쪽으로 기운다 — 관계 블록의
+ * 「무슨 사이인가」 한 줄만으로는 모델이 장면을 바꾸지 않았다(ADR 0018).
+ */
+const RELATION_SCENE_V4: Record<RelationKey, string> = {
+  partner:
+    '연인·배우자라면 애정과 친밀감의 장면이다. 마음을 표현하는 방식, 가까이 있고 싶을 때와 혼자 있고 싶을 때, 서운함이 쌓이고 풀리는 모양으로 쓴다',
+  match:
+    '인연 찾기에서 만나 아직 서로를 잘 모르는 두 사람이다. 첫 대화의 온도와 속도, 가까워지는 방식, 알아 갈수록 드러날 차이처럼 알아 가는 장면으로 쓴다. 이미 오래 만난 사이처럼 쓰지 않는다',
+  family:
+    '가족이라면 가족 안의 기대와 경계의 장면이다. 서로에게 거는 기대, 챙김이 간섭으로 느껴지는 선, 오래 굳은 역할로 쓴다. 끌림·설렘의 말은 쓰지 않는다',
+  friend:
+    '친구라면 우정과 거리감의 장면이다. 얼마나 자주 보고 어디까지 털어놓는지, 서운할 때 멀어지는 방식으로 쓴다. 함께 일하는 사이라면 협업과 의사결정의 장면이다. 일을 나누고 정하는 속도, 의견이 갈릴 때 각자 어떻게 움직이는지로 쓴다. 어느 쪽이든 끌림·설렘의 말은 쓰지 않는다',
+  unknown:
+    '무슨 사이인지 모르므로 어느 사이에나 해당하는 장면으로 쓴다. 서로를 대하는 속도와 거리, 의견이 갈릴 때의 반응처럼 쓰고, 연인·가족·동료 어느 쪽의 장면으로도 단정하지 않는다',
+};
+
+const CLOSING_V3 = `### 근거 (검사용)
+
+본문 절마다 한 줄씩. **세 칸이다.**
+
+\`절 이름 — 결론 「…」 | 자료: 경로 [층] · 경로 [층] | 넘어간 것: …\`
+
+- **결론** — 그 절이 **실제로 주장한 것** 한 마디.
+- **자료** — 그 결론을 받친 경로와 각 경로의 층. **관계를 들 때는 자료에 있는 이름을 댄다**(\`relations ○○충\`).
+- **넘어간 것** — 자료에서 결론까지 사이에 무엇을 더했는가. 해석·생활 장면·조언을 얹었으면 그것을 적고, 자료에 없는 것에서 가져왔으면 \`자료 밖\` 이라고 여기에 적는다.
+
+본보기 — \`함께 사는 생활 — 결론 「돈과 일정을 붙잡아 두는 몫이 비어 있다」 | 자료: compatibility.elementSupport.a.stillMissing [사실] · compatibility.elementSupport.b.stillMissing [사실] | 넘어간 것: 겉글자에 없는 오행을 생활 관리의 빈자리로 읽은 것 · 역할 나누기 조언은 자료 밖\`
+
+마지막에 **가장 흔들리는 것 셋**을 덧붙인다 — 무엇을 더 알면 단단해지는지까지.
+
+**이 절은 사용자에게 안 나간다**(화면이 \`### 근거\` 앞에서 끊는다). 여기 적은 한계와 기준 설명을 본문으로 옮기지 않는다.`;
+
+const SUMMARY_SECTION_V3 = `## 한 줄 요약
+
+**본문을 다 쓴 뒤에** 쓴다. 구조화 출력의 \`metaphor\` 칸이다 — 이름만 남았고 비유가 아니다. 방금 쓴 본문에서 **가장 크게 다룬 이야기 하나**를 한 문장으로 옮긴다. 본문에 없는 말을 새로 만들지 않는다.
+
+- **${READING_POLICY.metaphorLength.target}자 안팎, 한 호흡으로.** 쉼표로 두 절을 잇거나 앞뒤를 맞춘 짝 문장(「한 사람은 …하고 다른 사람은 …해, …하면 …하는 사이」)으로 쓰지 않는다.
+- 두 사람의 차이를 다 담으려 하지 말고 하나만 남긴다.
+- 자연 풍경·오행 물상으로 돌려 말하지 않는다. 누구에게나 붙는 말이면 다시 쓴다.
+
+본문에는 이 문장을 다시 적지 않는다 — 화면이 따로 세운다.`;
+
+const OUTPUT_CONTRACT_V3 = `## 구조화 출력의 뜻
+
+응답 모양은 API의 Structured Outputs 스키마가 정한다. **\`markdown\` 에 본문을 끝까지 쓰고**, 그다음 \`score\` 에 ${READING_POLICY.scoreRange.min}~${READING_POLICY.scoreRange.max} 정수를, 마지막으로 \`metaphor\` 에 그 본문의 한 줄 요약을 넣는다.
+
+본문에 JSON 코드 감싸개를 두르지 않는다. 표는 쓰지 않는다. 소제목·문단·목록·굵게만 쓴다.`;
+
+/**
+ * 이 조립이 **궁합 새 판**(읽는 법 3·4판)인가 — 공통 조각을 갈아 끼우는 문이 이 한 곳이다.
+ *
+ * 인연 궁합은 3판(실험)·4판(운영)이고 옛 컷 입력에는 걸지 않는다. 비공개 궁합은 4판만 — 3판은 인연 궁합
+ * 실험에서만 쓰였다. 개인 풀이는 어느 판에도 해당하지 않는다.
+ */
+const isMatchV3 = (kind: ReadingKind, assembly: PromptAssembly): boolean =>
+  (kind === 'match' &&
+    (assembly.pairReading === 'guide-v3' || assembly.pairReading === 'guide-v4') &&
+    assembly.matchInput !== 'legacy-v0') ||
+  (kind === 'private' && assembly.pairReading === 'guide-v4');
+
+/** 4판 — 글을 나누는 법까지 싣는가 */
+const isMatchV4 = (kind: ReadingKind, assembly: PromptAssembly): boolean =>
+  isMatchV3(kind, assembly) && assembly.pairReading === 'guide-v4';
+
+/** 안내가 설명할 자료 범위 — 비공개 궁합은 두 원국 전체, 인연 궁합은 그 판 */
+const guideScopeOf = (kind: ReadingKind, assembly: PromptAssembly): GuideScope =>
+  kind === 'private' ? 'private' : assembly.matchInput;
+
+/**
+ * 한 줄 요약을 **본문 뒤에** 받는가 — 출력 스키마의 차례를 고르는 자리(모델 호출 쪽)가 이 답을 쓴다.
+ *
+ * 궁합 새 판(인연 궁합·비공개 궁합)만 그렇다. 개인 풀이는 운영 차례 그대로다.
+ */
+export const writesSummaryLast = (kind: ReadingKind, assembly: PromptAssembly = CONTROL): boolean =>
+  isMatchV3(kind, assembly);
+
 const relationshipCustomerVoice = (terminology: Terminology): string => `${CUSTOMER_TONE}
 
 ## 본문 규칙
@@ -836,8 +1112,8 @@ export const pairSectionTexts = (kind: PairKind, assembly: PromptAssembly): read
   if (assembly.pairShape === 'needs-v1') return [];
 
   return kind === 'private'
-    ? [...COMPAT_SHARED_SECTIONS(a, b, meeting), ...compatPrivateSections(assembly)]
-    : [...COMPAT_SHARED_SECTIONS(a, b, meeting)];
+    ? [...COMPAT_SHARED_SECTIONS(a, b, meeting, carriesEokbu(kind, assembly)), ...compatPrivateSections(assembly)]
+    : [...COMPAT_SHARED_SECTIONS(a, b, meeting, carriesEokbu(kind, assembly))];
 };
 
 /**
@@ -878,7 +1154,7 @@ export const pairSectionTexts = (kind: PairKind, assembly: PromptAssembly): read
  * 근거 칸에 적게 한다 — `COMPAT_POLICY.scoring` 이 「총점 대신 항목별 기여로 내야 한다」고
  * 적어 둔 그 조건이다.
  */
-const SCORE_SECTION = `## 점수
+const scoreSection = (eokbu: boolean): string => `## 점수
 
 **기준점에서 시작해 항목별로 더하고 뺀다.** 아래 「기준점」에 적힌 수가 출발점이다 —
 두 사람의 오행 구성만 본 값이라, 글자 사이에 실제로 무엇이 걸렸는지는 아직 안 들어 있다.
@@ -892,8 +1168,7 @@ const SCORE_SECTION = `## 점수
 | 형·해·파·원진·귀문 | \`relations\` | -1 ~ -3 |
 | 함께 이룬 삼형 | \`combinedFormations\` | -3 ~ -6 |
 | 십성이 한쪽으로만 기운 자리 | \`tenGods\` 양방향 | -2 ~ +2 |
-| 용신을 상대가 가졌다 | \`eokbuMatch\` | +1 ~ +3 |
-| 둘 다 없는 오행 | \`elementSupport.stillMissing\` | -1 ~ -3 |
+${eokbu ? '| 용신을 상대가 가졌다 | \`eokbuMatch\` | +1 ~ +3 |\n' : ''}| 둘 다 없는 오행 | \`elementSupport.stillMissing\` | -1 ~ -3 |
 
 **규칙 다섯.**
 
@@ -1005,7 +1280,7 @@ const MEETING_SECTION: Record<Relation | 'match' | 'unknown', string> = {
 마라** — 어느 사이에나 해당하는 장면으로 쓴다.`,
 };
 
-const COMPAT_SHARED_SECTIONS = (a: string, b: string, meeting: string) => [
+const COMPAT_SHARED_SECTIONS = (a: string, b: string, meeting: string, eokbu: boolean) => [
   `**1. 한 줄 요약** — 이 관계에서 실제로 반복되는 핵심 작동 방식을 한 문장으로 직접 쓴다.`,
   `**2. 서로에게 무엇인가** — ${withParticle(a, '이', '가')} ${withParticle(b, '을', '를')} 보는 자리와 그 반대가 **다르다**
 (\`tenGods.aSeesB\`·\`bSeesA\`). 한쪽이 다른 쪽을 뜻하지 않는다 — 한 사람은 기대고 한 사람은
@@ -1016,7 +1291,7 @@ const COMPAT_SHARED_SECTIONS = (a: string, b: string, meeting: string) => [
   `**5. 부딪히는 지점 셋** — 여기는 조금 더 써도 된다. 줄마다 「어디서 부딪히는가 → 어떤
 상황에서 터지는가 → 그때 각자 무엇을 하면 되는가」. 대처는 **두 사람 몫을 따로** 적는다 —
 한쪽만 참으라는 조언은 조언이 아니다.`,
-  `**6. 서로의 보완에 보탬이 되는 자리** — \`elementSupport\` 와 \`eokbuMatch\`. 한쪽에 적은 기운을 다른 쪽이
+  `**6. 서로의 보완에 보탬이 되는 자리** — ${eokbu ? '\`elementSupport\` 와 \`eokbuMatch\`' : '\`elementSupport\`'}. 한쪽에 적은 기운을 다른 쪽이
 갖고 있으면 그것이 관계에서 **무엇으로 나타나는지** 쓴다. 보완되지 않고 남는 것
 (\`stillMissing\`)도 숨기지 말고, 둘 다 없는 것은 **밖에서 구해야 하는 것**이라고 말한다.`,
   `**7. 함께일 때 더 두드러지는 관계의 특징** — \`combinedFormations\`. 혼자일 때보다 둘이 함께 있을 때
@@ -1101,7 +1376,13 @@ const relationOf = (kind: PairKind, relation: Relation | null): string =>
    * 공유 궁합은 고르는 값이 아니다 — 인연 찾기에서 만나 서로 동의한 사이라는 것을
    * **성립 방식이 이미 정한다.** 그래서 kind 가 곧 답이다.
    */
-  relationBlock(kind === 'match' ? RELATION_FROM_MATCH : relationSentence(relation));
+  relationBlock(
+    /**
+     * **사이를 넘겨받으면 그것을 쓴다** — 견주는 실험이 연인으로 고정할 때다. 운영의 인연
+     * 궁합은 사이를 안 넘기므로(`relation: null`) 늘 성립 방식 문장이 선다.
+     */
+    kind === 'match' && relation === null ? RELATION_FROM_MATCH : relationSentence(relation),
+  );
 
 /**
  * **비공개 궁합에서 사람들이 알고 싶은 것** — 절 목록이 아니라 커버리지다.
@@ -1213,14 +1494,14 @@ const compatSections = (
   const { names, relation } = about;
   const { a, b = FALLBACK_NAMES.b as string } = names ?? FALLBACK_NAMES;
   /** 공유 궁합은 고른 값이 아니라 성립 방식이 관계를 정한다 — 3번 절도 같은 자리에서 갈린다 */
-  const meeting = MEETING_SECTION[kind === 'match' ? 'match' : (relation ?? 'unknown')];
+  const meeting = MEETING_SECTION[kind === 'match' && relation === null ? 'match' : (relation ?? 'unknown')];
   const sections =
     kind === 'private'
       ? [
-          ...COMPAT_SHARED_SECTIONS(a, b, meeting),
+          ...COMPAT_SHARED_SECTIONS(a, b, meeting, carriesEokbu(kind, assembly)),
           ...compatPrivateSections(assembly),
         ]
-      : COMPAT_SHARED_SECTIONS(a, b, meeting);
+      : COMPAT_SHARED_SECTIONS(a, b, meeting, carriesEokbu(kind, assembly));
   const { min, max } = assembly.compatLength[kind];
 
   /**
@@ -1233,9 +1514,19 @@ const compatSections = (
    * 수가 두 번 서고, 둘이 갈려도 검사는 필드만 본다. 점수는 계약이고 계약은 필드다.
    */
   const needsShape = assembly.pairShape === 'needs-v1';
+  const v3 = isMatchV3(kind, assembly);
+  const relationKey: RelationKey = kind === 'match' && relation === null ? 'match' : (relation ?? 'unknown');
+  const meetingNeed = MEETING_NEED[relationKey];
+  const v4 = isMatchV4(kind, assembly);
 
   const plan = needsShape
-    ? `${NEEDS_BLOCK(kind, MEETING_NEED[kind === 'match' ? 'match' : (relation ?? 'unknown')])}
+    ? `${
+        v3
+          ? v4
+            ? NEEDS_BLOCK_V3(MEETING_NEED_V4[relationKey], true, kind, RELATION_SCENE_V4[relationKey])
+            : NEEDS_BLOCK_V3(meetingNeed, false, kind)
+          : NEEDS_BLOCK(kind, meetingNeed)
+      }
 
 ## 낼 것
 
@@ -1254,18 +1545,51 @@ ${plan}
 
 그다음에 줄을 긋고:
 
-${PROMPT_PARTS.closing}
+${v3 ? CLOSING_V3 : PROMPT_PARTS.closing}
 
 사용자 본문은 ${min}~${max}자. 검사용 근거 절은 분량에 넣지 않는다.
 
-${SCORE_SECTION}`;
+${scoreSection(carriesEokbu(kind, assembly))}`;
 };
 
-const MATCH_SCOPE = `## 이 자료의 범위
+/**
+ * 인연 궁합 자료의 범위 — **판마다 실린 것이 달라 문장도 갈린다**(ADR 0067).
+ *
+ * 두 판이 함께 지키는 것 하나: 이 글은 두 사람 사이에 대한 글이다. 개인 풀이 두 편을
+ * 붙여 놓은 글이 되면, 확장형이 실은 각자의 판정이 상대가 읽는 글에 그대로 선다.
+ */
+const matchScope = (input: MatchInput, guided: boolean): string => {
+  /** 옛 컷 — 운영 문장을 한 글자도 안 바꾼다 */
+  if (input === 'legacy-v0') {
+    return `## 이 자료의 범위
 
 두 분이 서로 동의해 열린 범위만 실려 있다(\`contract.scope: "match-consent"\`). 두 원국
 사이의 사실은 있지만 각자의 원국 하나에 대한 판정은 없다(\`contract.withheld\`).
 없는 판정을 새로 만들지 말고, 있는 관계와 보완만으로 끝까지 쓴다.`;
+  }
+
+  const carried =
+    input === 'extended-v1'
+      ? `여덟 글자와 두 원국 사이의 관계·보완에 더해, 각자의 원국 판정 가운데 **신강신약·억부 후보·
+오행 세력만** 실려 있다(\`charts.*.analysis\`·\`compatibility.eokbuMatch\`). 그 밖의 판정은
+없다(\`contract.withheld\`) — 없는 판정을 새로 만들지 마라.
+
+실린 판정은 **두 사람 사이를 설명하는 근거로만** 쓴다. 한 사람의 강약이나 억부 후보를 그
+사람 이야기로 풀지 말고, 그것 때문에 두 사람이 어디서 맞물리고 어디서 버거운지로 이어라.
+그 판정의 이름(신강·신약·억부·용신)은 본문에 쓰지 마라.${
+          guided ? '' : ` 억부 후보는 시험값
+(\`status: "experimental"\`)이라 단정하지 않는다.`
+        }`
+      : `여덟 글자와 두 원국 사이의 관계·보완은 있지만 각자의 원국 하나에 대한 판정은
+없다(\`contract.withheld\`). 없는 판정을 새로 만들지 말고, 있는 관계와 보완만으로 끝까지 쓴다.`;
+
+  return `## 이 자료의 범위
+
+두 분이 서로 동의해 열린 범위만 실려 있다(\`contract.scope: "match-consent"\`). ${carried}
+
+**이 글은 두 사람 사이에 대한 글이다.** 한 사람씩 성격·건강·재산·인생 전반을 따로 풀지
+말고, 무엇을 말하든 상대와 어떻게 맞물리는지로 이어라.`;
+};
 
 /**
  * **한 문장 비유** — 점수가 못 하는 일을 여기서 한다.
@@ -1345,14 +1669,29 @@ const bodyOf = (
 너는 두 사람 사이를 읽어 주는 사람이다. 잘 맞는다거나 안 맞는다고 끝내지 않고,
 어디서 편해지고 어디서 부딪히며 그때 무엇을 하면 되는지 말한다.`;
 
+  const v3 = isMatchV3(kind, assembly);
+  const v4 = isMatchV4(kind, assembly);
   const voice = solo
     ? selfCustomerVoice(assembly.terminology)
-    : relationshipCustomerVoice(assembly.terminology);
+    : v3
+      ? relationshipCustomerVoiceV3(assembly.terminology, v4, kind as PairKind)
+      : relationshipCustomerVoice(assembly.terminology);
 
   return [
     head,
-    PROMPT_PARTS.rules,
-    ...(kind === 'match' ? [MATCH_SCOPE] : []),
+    v3 ? pairRulesV3(kind as PairKind) : PROMPT_PARTS.rules,
+    ...(kind === 'match' ? [matchScope(assembly.matchInput, assembly.pairReading !== 'plain-v1')] : []),
+    /* 읽는 법은 필드를 고른 두 판에만 — 옛 컷은 운영 그대로 둔다 */
+    ...(kind === 'match' && assembly.pairReading === 'guide-v1' && assembly.matchInput !== 'legacy-v0'
+      ? [matchReadingGuideBlock(assembly.matchInput)]
+      : []),
+    ...(kind === 'match' && assembly.pairReading === 'guide-v2' && assembly.matchInput !== 'legacy-v0'
+      ? [matchReadingGuideV2Block(assembly.matchInput)]
+      : []),
+    ...(v3 ? [matchReadingGuideV3Block(guideScopeOf(kind, assembly), ABSORPTION_RULE, v4)] : []),
+    ...(kind === 'match' && assembly.pairWriting === 'claims-first-v1' && assembly.matchInput !== 'legacy-v0'
+      ? [CLAIMS_FIRST_BLOCK]
+      : []),
     voice,
     /*
       **「성격을 읽는 순서」는 구성·해석 지시다.** 다룰 것만 주는 판에서는 함께 내린다 —
@@ -1366,7 +1705,8 @@ const bodyOf = (
     ...(kind === 'match' || (kind === 'private' && assembly.pairShape === 'needs-v1')
       ? []
       : [PROMPT_PARTS.personality]),
-    ...(kind === 'match' ? [] : [PROMPT_PARTS.claimStrength]),
+    /* 새 판은 「말의 세기」가 이 자리를 대신한다 — 「근거가 하나면 ~경향이 있다」와 부딪혔다 */
+    ...(kind === 'match' || v3 ? [] : [PROMPT_PARTS.claimStrength]),
     /*
       **`match` 자료에는 `analysis` 가 통째로 빠져 있다**(`WITHHELD_PATHS`) — 없는 경로를
       가리키는 규칙이 되므로 안 붙인다.
@@ -1389,8 +1729,8 @@ const bodyOf = (
     ...(solo ? [JUDGEMENT_PRECEDENCE] : []),
     ...assembly.extraSections,
     solo ? selfSections(assembly) : compatSections(kind, assembly, about),
-    SUMMARY_SECTION(kind),
-    OUTPUT_CONTRACT(kind),
+    v3 ? SUMMARY_SECTION_V3 : SUMMARY_SECTION(kind),
+    v3 ? OUTPUT_CONTRACT_V3 : OUTPUT_CONTRACT(kind),
   ].join('\n\n');
 };
 
@@ -1420,10 +1760,20 @@ export function readingPromptOf(
   about: ReadingAbout = NOTHING_KNOWN,
 ): string {
   const { kind, evidence } = readingEvidence;
+  /**
+   * **자료의 판과 지시의 판이 같아야 한다.** 어긋나면 점수표가 없는 근거를 가리키거나 있는
+   * 근거를 모른 척한다 — 조용히 내보내지 않고 멈춘다.
+   */
+  if (readingEvidence.kind === 'match') {
+    const built = readingEvidence.evidence.contract.matchInput ?? 'legacy-v0';
+    if (built !== assembly.matchInput) {
+      throw new Error(`인연 궁합 자료(${built})와 프롬프트(${assembly.matchInput})의 판이 다르다`);
+    }
+  }
   const useCached =
     assembly === CONTROL && about.names === null && about.relation === null;
   const body = useCached ? READING_PROMPTS[kind] : bodyOf(kind, assembly, about);
-  const head = withSummary(body, evidence);
+  const head = withSummary(body, evidence, { positionFacts: kind === 'match' || kind === 'private' });
   /**
    * **기준점은 짝마다 다르므로 몸통에 못 굽는다.** 규칙과 조정표는 안 변하니 `bodyOf` 가
    * 들고(그래서 `READING_PROMPTS` 가 그대로 캐시된다), 수 하나만 여기서 붙인다.

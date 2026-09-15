@@ -6,6 +6,7 @@ import { ABSORPTION_RULE } from './parts';
 import { ABSORBABLE_KINDS, RELATION_KIND_KO } from '../saju/relations';
 import {
   CONTROL,
+  LEGACY_PAIR_ASSEMBLY,
   PROMPT_VARIANTS,
   selfSectionTexts,
   FALLBACK_NAMES,
@@ -263,6 +264,14 @@ describe('고객이 읽는 글의 계약', () => {
    * 자리에서는 `READING_PROMPTS` 가 그대로 답이다.
    */
   const compatPrompt = (kind: 'private' | 'match') => READING_PROMPTS[kind];
+  /** 원복용 옛 궁합 판 — 인연 궁합은 옛 컷 자료와 짝이어야 조립이 선다 */
+  const legacyCompat = (kind: 'private' | 'match') =>
+    kind === 'private'
+      ? readingPromptOf(pairEvidence(), LEGACY_PAIR_ASSEMBLY)
+      : readingPromptOf(
+          readingEvidenceOf('match', { a: chart(), b: other() }, VIEWED_AT, 'legacy-v0'),
+          LEGACY_PAIR_ASSEMBLY,
+        );
 
   /** 「낼 것」이 세우는 절의 수 — `**1. …**` 꼴로 번호가 붙은 것만 센다 */
   const sectionCountOf = (prompt: string) => (prompt.match(/^\*\*\d+\. /gm) ?? []).length;
@@ -282,9 +291,13 @@ describe('고객이 읽는 글의 계약', () => {
    * 건너뛰고, 정작 그 문장이 얼마나 단단한지는 못 읽는다.
    */
   it('흔들리는 것은 검사용 절에서 세고 본문에는 절로 세우지 않는다', () => {
-    for (const prompt of [selfPrompt(), compatPrompt('private'), compatPrompt('match')]) {
+    for (const prompt of [selfPrompt(), legacyCompat('private'), legacyCompat('match')]) {
       expect(prompt).toContain('가장 흔들리는 것 셋');
       expect(prompt).toContain('한계는 절로 세우지 말고 그 판단 옆에서 말한다');
+    }
+    // 궁합 4판도 흔들리는 것은 검사용 절에서만 센다
+    for (const prompt of [compatPrompt('private'), compatPrompt('match')]) {
+      expect(prompt).toContain('가장 흔들리는 것 셋');
     }
   });
 
@@ -320,7 +333,7 @@ describe('고객이 읽는 글의 계약', () => {
     });
 
     expect(unknown).toContain('무슨 사이인지 모른다');
-    expect(unknown).toContain('어느 쪽으로도 단정하지 말고');
+    expect(unknown).toContain('어느 쪽으로도 단정하지 말라');
   });
 
   /**
@@ -331,7 +344,7 @@ describe('고객이 읽는 글의 계약', () => {
    * 제목은 채울 빈칸이고 규칙은 추상이라, 모델은 빈칸을 고른다.
    */
   it('가족·친구 궁합에는 처음 끌리는 절을 세우지 않는다', () => {
-    const asFamily = readingPromptOf(pairEvidence(), CONTROL, {
+    const asFamily = readingPromptOf(pairEvidence(), LEGACY_PAIR_ASSEMBLY, {
       names: { a: '나', b: '엄마' },
       relation: 'family',
     });
@@ -339,7 +352,7 @@ describe('고객이 읽는 글의 계약', () => {
     expect(asFamily).not.toContain('처음에 끌리는 지점');
     expect(asFamily).toContain('이 사이에는 처음이 없다');
 
-    const asFriend = readingPromptOf(pairEvidence(), CONTROL, {
+    const asFriend = readingPromptOf(pairEvidence(), LEGACY_PAIR_ASSEMBLY, {
       names: { a: '나', b: '동료' },
       relation: 'friend',
     });
@@ -350,13 +363,14 @@ describe('고객이 읽는 글의 계약', () => {
 
   /** 모를 때가 가장 조심할 자리다 — 중립으로 읽으라 해 놓고 연애의 물음을 세우지 않는다 */
   it('무슨 사이인지 모르면 특정한 사이를 전제하는 절도 안 세운다', () => {
-    expect(compatPrompt('private')).not.toContain('처음에 끌리는 지점');
-    expect(compatPrompt('private')).toContain('특정한 사이를 전제하는 말은 쓰지');
+    expect(legacyCompat('private')).not.toContain('처음에 끌리는 지점');
+    expect(legacyCompat('private')).toContain('특정한 사이를 전제하는 말은 쓰지');
   });
 
   /** 인연 찾기에서 막 만난 두 사람은 **처음이 실제로 지금**이라 그대로 둔다 */
-  it('공유 궁합에는 처음 끌리는 물음이 선다', () => {
-    expect(compatPrompt('match')).toContain('처음에 서로의 무엇에 끌렸고');
+  it('옛 판 공유 궁합에는 처음 끌리는 물음이 선다 — 4판은 알아 가는 물음이다', () => {
+    expect(legacyCompat('match')).toContain('처음에 서로의 무엇에 끌렸고');
+    expect(compatPrompt('match')).not.toContain('처음에 서로의 무엇에 끌렸고');
   });
 
   /** 공유 궁합은 고른 값이 아니라 **성립 방식**이 관계를 정한다 */
@@ -517,17 +531,19 @@ describe('고객이 읽는 글의 계약', () => {
       '지금 두 사람이 지나는 때',
       '각자가 가까운 사이에서 어떤 사람인가',
       '지금이 이 관계에 어떤 시기인가',
+      '각자가 가까운 사이에서 어떤 사람인지',
+      '지금이 이 관계에 어떤 시기인지',
     ]) {
       expect(shared, outOfScope).not.toContain(outOfScope);
     }
 
-    // 비공개는 같은 것을 다룰 것의 목록으로 든다
-    for (const need of ['각자가 가까운 사이에서 어떤 사람인가', '지금이 이 관계에 어떤 시기인가']) {
+    // 비공개는 같은 것을 궁금증 문단으로 든다
+    for (const need of ['각자가 가까운 사이에서 어떤 사람인지', '지금이 이 관계에 어떤 시기인지']) {
       expect(own, need).toContain(need);
     }
 
-    // 둘이 함께 쓰는 것은 양쪽 모두 같은 다룰 것의 목록으로 든다
-    for (const need of ['함께일 때 더 두드러지는 관계의 특징', '서로의 보완에 보탬이 되는 것', '실제 생활에서 반복될 장면']) {
+    // 둘이 함께 쓰는 것은 양쪽 모두 같은 궁금증 문단으로 든다
+    for (const need of ['두 사람이 서로에게 어떤 사람이고', '함께 지내면 어떤 장면이 되풀이되고', '오래 가려면 무엇이 필요한가']) {
       expect(shared, need).toContain(need);
       expect(own, need).toContain(need);
     }
@@ -802,6 +818,7 @@ describe('고객이 읽는 글의 계약', () => {
     expect(CONTROL.selfPresentation).toBe('expert-v4');
     expect(CONTROL.terminology).toBe('plain');
     expect(READING_POLICY.version).toBe('reading-prompt-v10');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v11');
     expect(selfPrompt()).toContain('이 사주의 핵심');
     expect(selfPrompt()).not.toContain('살림법');
     expect(selfPrompt()).toContain('analysis.strength');
@@ -909,7 +926,7 @@ describe('고객이 읽는 글의 계약', () => {
       */
       expect(compat).toContain('이름 대신 그 이름이 가리키는 것을 쓴다');
       expect(compat).not.toContain('각자의 대운·세운이 지금 어느 자리인지');
-      expect(compat).toContain('지금이 이 관계에 어떤 시기인가');
+      expect(compat).toContain('지금이 이 관계에 어떤 시기인지');
 
       /*
         **절 문장이 갈리던 자리는 없어졌다.** 「흐름의 분류명은 쓰지 말고」는 비공개

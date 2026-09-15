@@ -73,7 +73,7 @@ describe('저장할 자리가 모자랄 때', () => {
 describe('사이는 안 골라도 값이다', () => {
   it('모른다도 프롬프트에 한 문장으로 나간다', () => {
     expect(relationSentence(null)).toContain('무슨 사이인지 모른다');
-    expect(relationSentence(null)).toContain('어느 사이에나 해당하는 장면');
+    expect(relationSentence(null)).toContain('연인·가족·동료 중 어느 쪽으로도 단정하지 말라');
   });
 
   it('고를 수 있는 갈래는 셋이고 그 밖은 없다', () => {

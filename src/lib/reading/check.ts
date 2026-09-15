@@ -17,6 +17,7 @@ import {
   type Stem,
 } from '../saju/constants';
 
+import { matchInputOfEvidenceText } from '../saju/evidence/shared';
 import { readingBody } from './display';
 import {
   READING_POLICY,
@@ -142,14 +143,15 @@ export type BirthSecret = {
  *   시키는 대로 쓴 글이 hard fail 난다.
  * - **관계 이름**(원진·귀문·형·충·파·해 …). 두 원국 **사이의** 관계는 동의 범위 안이고
  *   자료에 실제로 있다 — 재어 봤다: 공유 자료에 「사술원진」·「사술귀문」이 그대로 있다.
- * - **`억부`**. 같은 까닭인데 **처음 실호출에서야 드러났다.** `shareEvidence` 는
- *   `compatibility` 를 통째로 남기고 그 안에 `eokbuMatch` 가 있다(그 파일이 「오행 보완과
- *   억부 후보를 사실상 드러내지만 궁합 그 자체라 뺄 수 없다」고 적어 두었다). 게다가
- *   궁합 6절이 **`eokbuMatch` 를 읽으라고 시킨다.** 시키는 대로 쓴 글이 hard fail 났다.
  *
- *   `조후` 는 남는다 — 그 값은 `analysis` 에 있고 공유 자료에서 통째로 빠진다. 자료에
- *   없는 판정이므로 글에 있으면 지어낸 것이다. **둘을 가른 것은 낱말의 인상이 아니라
- *   `WITHHELD_PATHS` 가 실제로 무엇을 잘라 냈는가다.**
+ * ## `억부` 는 **다시 여기 있다** (ADR 0067)
+ *
+ * 한동안 뺐었다. 공유 자료가 `compatibility` 를 통째로 남겨 `eokbuMatch` 가 실렸고, 궁합 절이
+ * 그것을 읽으라고 시켜서 시키는 대로 쓴 글이 걸렸기 때문이다. 이제 제한형 입력에는 그 값이
+ * 없고, 확장형은 각자의 판정을 **두 사람 사이를 설명하는 근거로만** 쓰게 하고 이름은 본문에
+ * 안 부르게 한다(`matchScope`). 그러니 A·B 에서는 본문의 `억부` 를 막는다 — 확장형이
+ * 이 선을 얼마나 넘는지는 견주는 실험이 규칙 위반으로 센다. **운영인 옛 컷(`legacy-v0`)은
+ * 여전히 `eokbuMatch` 를 싣고 절이 읽게 하므로 그 판에서만 풀어 둔다**(아래 검사).
  */
 export const OUT_OF_SCOPE_TERMS: readonly string[] = [
   // 신강·신약과 그 근거
@@ -159,8 +161,9 @@ export const OUT_OF_SCOPE_TERMS: readonly string[] = [
   '득령',
   '득지',
   '득세',
-  // 용신 갈래 — **`억부` 는 여기 없다.** 아래 「여기 없는 것」이 왜인지 든다
+  // 용신 갈래
   '용신',
+  '억부',
   '기신',
   '희신',
   '구신',
@@ -666,7 +669,15 @@ export function checkReading({
      * 그건 낱말 검사가 원래 못 잡는 것과 같은 종류다 — 못 막는 것을 막는 척하지 않는다.
      */
     const body = readingBody(markdown);
-    const outOfScope = OUT_OF_SCOPE_TERMS.filter((term) => hasSajuTerm(body, term));
+    /**
+     * 옛 컷은 `eokbuMatch` 를 싣고 절이 그것을 읽게 한다 — 그 판에서는 `억부` 를 막으면 시키는
+     * 대로 쓴 글이 걸린다. A·B 는 이름을 본문에 안 쓰게 하므로 막는다(ADR 0067).
+     */
+    const terms =
+      matchInputOfEvidenceText(evidenceText) === 'legacy-v0'
+        ? OUT_OF_SCOPE_TERMS.filter((term) => term !== '억부')
+        : OUT_OF_SCOPE_TERMS;
+    const outOfScope = terms.filter((term) => hasSajuTerm(body, term));
     if (outOfScope.length > 0) {
       failures.push({ code: 'out-of-scope-judgment', detail: outOfScope.join('·') });
     }

@@ -80,8 +80,7 @@ const RELATION_FOR_PROMPT: Record<Relation, string> = {
  * 끼리의 궁합은 애초에 알 수가 없다 — 저장한 것은 「나와 그 사람」이지 「그 둘」이
  * 아니기 때문이다. 그때 자기 풀이 때처럼 조용히 넘기면 모델은 **다시 연애로 읽는다.**
  */
-const RELATION_UNKNOWN =
-  '무슨 사이인지 모른다. 연인·가족·동료 중 어느 쪽으로도 단정하지 말고, 어느 사이에나 해당하는 장면으로 읽어라';
+const RELATION_UNKNOWN = '무슨 사이인지 모른다. 연인·가족·동료 중 어느 쪽으로도 단정하지 말라';
 
 /** 인연 찾기로 만나 서로 동의한 두 사람 — 고르는 값이 아니라 **성립 방식이 정한다** */
 export const RELATION_FROM_MATCH =
