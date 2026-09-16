@@ -10,7 +10,7 @@
 -- 4. **판본을 든다.** 그래서 `revisions_in_use()` 가 이 표를 자동으로 본다(ADR 0011) —
 --    표 이름을 적어 둔 목록이 아니라 FK 에서 읽기 때문이다.
 begin;
-select plan(63);
+select plan(73);
 
 /**
  * **이 파일은 풀이권을 재지 않는다.**
@@ -573,6 +573,87 @@ select throws_ok(
   format($$select * from public.my_reading_artifacts('match', null, null, %L::uuid)$$,
     (select match_id from matched)),
   '42501', null, '익명은 근거 문을 부를 수 없다');
+set local role authenticated;
+
+-- ── 인연 궁합의 근거 절도 본문 조회로 안 나간다 (ADR 0069) ──────────────────
+
+/**
+ * ADR 0068 이 「남은 길」로 적어 둔 자리다. 근거 **자료**는 막았는데 `my_reading.output` 에
+ * 붙은 `### 근거 (검사용)` 절은 그대로 나갔다 — 그 절은 모델이 받은 경로를 인용하므로
+ * 옛 컷에서는 상대의 억부 후보가 적힐 수 있다.
+ *
+ * 저장된 원문은 그대로 두고 **내주는 자리에서만** 자른다. 그래서 여기서 원문을 근거 절이
+ * 붙은 모양으로 바꿔 놓고, 당사자가 무엇을 받는지 잰다.
+ */
+reset role;
+update public.reading
+set output = E'## 공유 궁합\n\n### 근거 (검사용)\n\n첫 절 — 결론 「서로 끌린다」 | 자료: compatibility.eokbuMatch [후보]'
+where match_id = (select match_id from matched);
+set local role authenticated;
+
+/** 이는 운영자가 아니다 — 위에서 운영자로 세운 것은 김(당사자)과 최(당사자 아님)뿐이다 */
+select pg_temp.acting((select lee from folks));
+select is(
+  (select position('### 근거' in output) > 0
+   from public.my_reading('match', null, null, (select match_id from matched))),
+  false,
+  '인연 궁합 당사자에게는 근거 절이 안 나간다');
+
+select is(
+  (select output from public.my_reading('match', null, null, (select match_id from matched))),
+  '## 공유 궁합',
+  '본문은 그대로 읽는다 — 자르는 것은 근거 절뿐이다');
+
+select is(
+  (select count(*)::int from public.match_reading_source((select match_id from matched))),
+  0,
+  '운영자가 아닌 당사자는 원문을 못 읽는다');
+
+/** **둘 다 본다** — 운영자이면서 그 Match 의 당사자일 때만 열린다 */
+select pg_temp.acting((select kim from folks));
+select is(
+  (select count(*)::int from public.match_reading_source((select match_id from matched))),
+  1,
+  '당사자인 운영자는 원문을 읽는다');
+
+select is(
+  (select position('### 근거' in output) > 0
+   from public.match_reading_source((select match_id from matched))),
+  true,
+  '그 원문에는 근거 절이 그대로 있다');
+
+select is(
+  (select position('### 근거' in output) > 0
+   from public.my_reading('match', null, null, (select match_id from matched))),
+  false,
+  '운영자라도 본문 조회로는 근거 절이 안 온다 — 문이 다르다');
+
+select pg_temp.acting((select choi from folks));
+select is(
+  (select count(*)::int from public.match_reading_source((select match_id from matched))),
+  0,
+  '당사자가 아닌 운영자는 원문을 못 읽는다');
+
+set local role anon;
+select throws_ok(
+  format($$select * from public.match_reading_source(%L::uuid)$$, (select match_id from matched)),
+  '42501', null, '익명은 원문 문을 부를 수 없다');
+set local role authenticated;
+
+/**
+ * 자르는 규칙은 앱의 `readingBody` 와 **같은 정규식**이다. 그 규칙 자체를 여기서도 재 둔다 —
+ * 두 자리에서 따로 자르면 갈리고, 갈리면 열려 있는 쪽이 사용자 쪽이다.
+ */
+reset role;
+select is(
+  public.reading_user_body(E'## 본문만 있다\n\n두 줄째'),
+  E'## 본문만 있다\n\n두 줄째',
+  '근거 절이 없으면 원문 그대로다');
+
+select is(
+  public.reading_user_body(E'## 본문\n\n한 줄\n\n### 근거\n\n- 무엇 [사실]'),
+  E'## 본문\n\n한 줄',
+  '「### 근거」도 「### 근거 (검사용)」과 같은 자리에서 자른다');
 set local role authenticated;
 
 /**

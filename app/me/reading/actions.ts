@@ -2,9 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 
+import { FEEDBACK_UNEXPECTED_NOTE } from '@/src/lib/reading';
+
 import { beginReading, type ReadingStart, type ReadingTarget } from './pipeline';
 import { lastReadingRun, type LastRun } from './current';
 import { supabaseOnServer } from '../../auth/server-client';
+import { userFacingDbMessage } from '../../db-error';
 
 /**
  * **사용자가 누른 그 순간에만 도는 문.**
@@ -77,7 +80,13 @@ export async function submitReadingFeedback(
     p_comment: answer.comment,
   });
 
-  if (error) return { ok: false, message: error.message };
+  /** 안내 문장은 DB 것을 그대로, 예상 밖 오류는 기록으로 — `pipeline.ts` 와 같은 자리 */
+  if (error) {
+    return {
+      ok: false,
+      message: userFacingDbMessage(error, 'leave_reading_feedback', FEEDBACK_UNEXPECTED_NOTE),
+    };
+  }
 
   /*
     답한 뒤에 화면이 「답해 주셔서 고맙습니다」로 서려면 `feedback_given` 이 다시

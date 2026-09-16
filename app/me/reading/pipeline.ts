@@ -4,9 +4,16 @@ import { after } from 'next/server';
 
 import { relationOf } from '@/src/lib/people';
 import type { Saju } from '@/src/lib/saju';
-import { promptVersionOf, writesSummaryLast, type ReadingAbout, type ReadingKind } from '@/src/lib/reading';
+import {
+  promptVersionOf,
+  READING_UNEXPECTED_NOTE,
+  writesSummaryLast,
+  type ReadingAbout,
+  type ReadingKind,
+} from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { userFacingDbMessage } from '../../db-error';
 import { chartOf } from '@/src/lib/input/chart';
 import { NoKeyError, keyedClient } from '../../keyed-client';
 import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '@/src/lib/input/revision';
@@ -111,7 +118,17 @@ async function openRun(
     p_prompt_version: promptVersionOf(target.kind),
   });
 
-  if (error) return { ok: false, message: error.message };
+  /**
+   * **거절은 DB 가 문장으로 낸다.** 그 문장은 그대로 세우고, 우리가 쓰지 않은 오류
+   * (스키마·정책·PostgREST)는 기록으로 보낸다 — 사용자가 할 수 있는 것이 없고 우리
+   * 스키마의 속만 말한다(`userFacingDbMessage`).
+   */
+  if (error) {
+    return {
+      ok: false,
+      message: userFacingDbMessage(error, 'start_reading_run', READING_UNEXPECTED_NOTE),
+    };
+  }
 
   // 0행은 「같은 요청이 이미 돌았다」다. 모델을 부르지 않는다.
   return { ok: true, started: ((data ?? []) as StartedRun[])[0] ?? null };

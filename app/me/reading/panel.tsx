@@ -11,6 +11,7 @@ import {
   readingNoneNote,
   READING_REPLACES_NOTE,
   READING_STALE_NOTE,
+  READING_UNEXPECTED_NOTE,
   isScored,
   readingCreditsNote,
   readingWaitNote,
@@ -236,7 +237,7 @@ export function ReadingPanel({
         showMock();
         return;
       }
-      setFailure('예상하지 못한 오류로 풀이를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+      setFailure(READING_UNEXPECTED_NOTE);
       setPhase('error');
       return;
     }

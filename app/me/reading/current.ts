@@ -252,6 +252,22 @@ export type ReadingArtifacts = {
 export async function readingGroundingOf(target: ReadingTarget): Promise<string | null> {
   const supabase = await supabaseOnServer();
 
+  /**
+   * **인연 궁합만 문이 다르다**(ADR 0069). 그 글의 근거 절은 상대 자료를 인용할 수 있어
+   * `my_reading` 이 이제 본문만 내준다. 원문은 운영자이면서 당사자일 때만 나오는 문에서
+   * 읽는다 — 화면이 「운영자인가」를 여기서 묻지 않는 것이 요점이다. 물으면 판정하는 자리가
+   * 둘이 되고, 둘은 언젠가 어긋난다.
+   */
+  if (target.kind === 'match') {
+    const { data, error } = await supabase.rpc('match_reading_source', {
+      p_match_id: target.matchId,
+    });
+    if (error) return null;
+
+    const row = ((data ?? []) as Record<string, unknown>[])[0];
+    return row === undefined ? null : readingGrounding(row.output as string);
+  }
+
   const { data, error } = await supabase.rpc('my_reading', argsOf(target));
   if (error) return null;
 
