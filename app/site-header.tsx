@@ -503,13 +503,22 @@ function AccountMenu({
           쪽이 그 화면의 길인지 사용자가 정하게 된다.
         */}
         {!ended && variant === 'mobile' && (
-          <Link
-            href="/me/survey"
-            onClick={close}
-            className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
-          >
-            서비스 설문
-          </Link>
+          <>
+            <Link
+              href="/me/people"
+              onClick={close}
+              className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
+            >
+              사람
+            </Link>
+            <Link
+              href="/me/survey"
+              onClick={close}
+              className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
+            >
+              서비스 설문
+            </Link>
+          </>
         )}
         <Link
           href="/me/settings"
