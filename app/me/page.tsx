@@ -7,7 +7,6 @@ import { unreadCount } from './requests/inbox';
 import { chartOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
 import { UNREADABLE_REVISION_NOTE, UnreadableRevisionError, queryFromRevision } from '@/src/lib/input/revision';
-import { DiscoveryBoard } from './discovery/board';
 import { AccountNotice } from './account-notice';
 import { Onboarding } from './onboarding';
 import { PillarCard } from './pillar-card';
@@ -44,8 +43,8 @@ export default async function MePage() {
       <header className="flex flex-col gap-2 border-b border-border pb-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold tracking-[-0.04em]">나의 사주와 인연</h1>
-            <p className="mt-1 text-sm text-secondary">저장한 사주를 확인하고 오늘의 인연을 만나보세요.</p>
+            <h1 className="text-3xl font-bold tracking-[-0.04em]">나의 사주</h1>
+            <p className="mt-1 text-sm text-secondary">나를 이루는 기운과 흐름을 차분히 살펴보세요.</p>
           </div>
         </div>
       </header>
@@ -58,11 +57,10 @@ export default async function MePage() {
         <>
           <Unread />
           <SelfChart personId={selfPersonId} />
-          {/*
-            **추천은 홈에 선다**(PRD §2.0). 목록이 스냅샷이 된 뒤로 여는 값이 싸졌다 —
-            전에는 방문마다 풀 전체를 줄 세우는 셈이라 이 자리에 둘 수 없었다.
-          */}
-          <DiscoveryBoard />
+          <Link href="/me/matching" className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-accent-wash px-5 py-4 text-sm text-accent">
+            <span><strong className="block font-semibold">오늘의 인연</strong><span className="mt-1 block text-xs text-secondary">예측 궁합과 보완하는 기운으로, 나의 귀인을 찾아보세요.</span></span>
+            <span aria-hidden="true">→</span>
+          </Link>
         </>
       )}
     </main>

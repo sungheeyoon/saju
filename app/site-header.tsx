@@ -40,6 +40,7 @@ const PUBLIC_LINKS = [] as const;
  */
 const MEMBER_LINKS = [
   { href: '/me', label: '내 사주' },
+  { href: '/me/matching', label: '매칭' },
   { href: '/', label: '사주·궁합' },
   { href: '/me/people', label: '사람' },
   /**
@@ -61,11 +62,11 @@ const MEMBER_LINKS = [
   { href: '/me/survey', label: '서비스 설문' },
 ] as const;
 
-/** 모바일에서 늘 보이는 다섯 길 — 나머지 둘은 전체 메뉴에 둔다. */
+/** 모바일에서 늘 보이는 다섯 길 — 나머지는 전체 메뉴에 둔다. */
 const MOBILE_LINKS = [
   { href: '/me', label: '내 사주', icon: 'home' },
   { href: '/', label: '사주·궁합', icon: 'compat' },
-  { href: '/me/people', label: '사람', icon: 'people' },
+  { href: '/me/matching', label: '매칭', icon: 'matching' },
   { href: '/me/readings', label: '풀이', icon: 'reading' },
   { href: '/me/requests', label: '소식', icon: 'news' },
 ] as const;
@@ -355,12 +356,7 @@ function MobileNavigation({ pathname }: { pathname: string }) {
 function MobileNavIcon({ name }: { name: (typeof MOBILE_LINKS)[number]['icon'] }) {
   const paths = {
     home: <path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4Z" />,
-    people: (
-      <>
-        <circle cx="9" cy="8" r="3" />
-        <path d="M3.5 19c.4-3.3 2.2-5 5.5-5s5.1 1.7 5.5 5M15 6.5a2.5 2.5 0 0 1 0 5M16 14c2.7.2 4.2 1.8 4.5 4.5" />
-      </>
-    ),
+    matching: <path d="m12 20-7-7a4.5 4.5 0 0 1 7-5.5A4.5 4.5 0 0 1 19 13Z" />,
     compat: <path d="M12 20.5 4.6 13.4A4.8 4.8 0 0 1 11.4 6l.6.7.6-.7a4.8 4.8 0 0 1 6.8 7.4Z" />,
     reading: (
       <>
