@@ -525,3 +525,44 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     await expect(receiver.page.getByRole('heading', { name: `가${tag}` })).toBeVisible();
   });
 });
+
+/**
+ * **넘기는 것과 앞으로 안 받는 것은 다른 일이다.**
+ *
+ * X 한 번에 영구 제외가 되면, 가볍게 넘긴 사람을 다시 만날 길이 없어진다. 그래서
+ * 영구 제외는 카드 전면이 아니라 **상세에서 직접 고른 자리**에만 있고, 고른 뒤에도
+ * 되돌릴 한 줄이 선다. 이 구분은 눈에 안 보여서 회귀가 조용히 난다 — 그래서 잰다.
+ */
+test.describe('넘기기와 다시 보지 않기', () => {
+  test('영구 제외는 상세에서만 나고, 실행 취소로 되돌아온다', async ({ openAs }) => {
+    const tag = freshTag();
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+    await bothParticipate(asker, receiver, tag);
+
+    await asker.page.goto('/me/matching');
+
+    const target = asker.page.getByRole('heading', { name: `나${tag}` });
+    for (let step = 0; step < 12; step += 1) {
+      if (await target.isVisible()) break;
+      const next = asker.page.getByRole('button', { name: '다음 인연으로 지나가기' });
+      if (!(await next.isEnabled())) break;
+      await next.click();
+      await asker.page.waitForTimeout(1400);
+    }
+    await expect(target).toBeVisible();
+
+    // **카드 전면에는 없다.** 주된 선택은 「다음 인연 / 궁합 요청」 둘이다.
+    await expect(asker.page.getByRole('button', { name: '이 사람 다시 보지 않기' })).toBeHidden();
+
+    await asker.page.getByRole('button', { name: '궁합의 이유 보기' }).click();
+    await asker.page.getByRole('button', { name: '이 사람 다시 보지 않기' }).click();
+
+    // 확인 창을 다시 띄우지 않는다 — 처리한 뒤에 한 줄로 알리고 되돌릴 길을 준다.
+    await expect(asker.page.getByText('앞으로 추천하지 않아요')).toBeVisible();
+    await asker.page.getByRole('button', { name: '실행 취소' }).click();
+
+    // 되돌리면 그 사람이 다시 선다.
+    await expect(target).toBeVisible();
+  });
+});

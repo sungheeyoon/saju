@@ -95,6 +95,7 @@ export async function refreshDiscoveryBoard(): Promise<SaveResult> {
   if (error) return { ok: false, message: error.message };
 
   revalidatePath('/me');
+  revalidatePath('/me/matching');
   return { ok: true };
 }
 
@@ -114,6 +115,32 @@ export async function hideCandidate(candidateUserId: string): Promise<SaveResult
   if (error) return { ok: false, message: error.message };
 
   revalidatePath('/me');
+  revalidatePath('/me/matching');
+  return { ok: true };
+}
+
+/**
+ * 방금 감춘 **한 사람**을 되돌린다 — 숨긴 직후의 「실행 취소」가 쓰는 문이다.
+ *
+ * 목록 화면에서 한 명씩 고르는 길은 여전히 없다(감춘 사람의 별명을 안 들고 있다).
+ * 여기서 되는 것은 **그 id 를 아직 손에 들고 있는 그 순간뿐**이고, 그래서 화면이
+ * 이름을 다시 읽지 않아도 된다.
+ *
+ * 기본키가 `(user_id, hidden_user_id)` 이고 정책이 `user_id = auth.uid()` 이므로
+ * 이 삭제는 **내 행 하나**에만 닿는다.
+ */
+export async function unhideCandidate(candidateUserId: string): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  const { error } = await supabase
+    .from('discovery_hidden')
+    .delete()
+    .eq('hidden_user_id', candidateUserId);
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/me');
+  revalidatePath('/me/matching');
   return { ok: true };
 }
 
@@ -133,6 +160,7 @@ export async function unhideAllCandidates(): Promise<SaveResult> {
   if (error) return { ok: false, message: error.message };
 
   revalidatePath('/me');
+  revalidatePath('/me/matching');
   return { ok: true };
 }
 
@@ -157,6 +185,7 @@ export async function requestMatch(candidateUserId: string): Promise<SaveResult>
   if (error) return { ok: false, message: error.message };
 
   revalidatePath('/me');
+  revalidatePath('/me/matching');
   revalidatePath('/me/requests');
   return { ok: true };
 }

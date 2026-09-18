@@ -8,8 +8,8 @@ import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
 import { initialOf } from '@/src/lib/profile';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 
-import { requestMatch } from '../discovery/actions';
-import { HideButton, RefreshBoard, UnhideAll } from '../discovery/manage';
+import { hideCandidate, requestMatch, unhideCandidate } from '../discovery/actions';
+import { RefreshBoard, UnhideAll } from '../discovery/manage';
 import styles from './matching.module.css';
 
 /**
@@ -88,6 +88,7 @@ export function MatchingExperience({
   const [leaving, setLeaving] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<{ id: string; nickname: string } | null>(null);
   const [working, startWorking] = useTransition();
   const start = useRef<{ x: number; y: number } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -141,6 +142,51 @@ export function MatchingExperience({
       }
       leave('right', `${profile.nickname} 님에게 상세 궁합을 요청했어요.`);
       router.refresh();
+    });
+  }
+
+  /**
+   * **넘기는 것과 다르다.** X 는 이 덱에서만 넘기고 다음 추천에 다시 설 수 있지만,
+   * 이것은 앞으로도 안 받겠다는 뜻이라 직접 고른 자리(상세)에서만 난다.
+   *
+   * **여기서 `router.refresh()` 를 안 부른다.** 부르면 그 사람이 서버 목록에서 빠지며
+   * 뒤 카드의 자리가 하나씩 당겨지고, 그러면 되돌리기가 엉뚱한 카드를 가리킨다.
+   * 행은 이미 적혔으니 덱은 다음 장으로 넘기기만 한다.
+   */
+  function hide() {
+    if (!profile || exit) return;
+    const hiding = { id: profile.candidateUserId, nickname: profile.nickname };
+    detail.current?.close();
+    if (preview) {
+      leave('left', '미리보기예요 — 실제로 감추지 않았어요.');
+      return;
+    }
+    setFailure(null);
+    startWorking(async () => {
+      const result = await hideCandidate(hiding.id);
+      if (!result.ok) {
+        setFailure(result.message);
+        return;
+      }
+      setHidden(hiding);
+      leave('left', `${hiding.nickname} 님을 앞으로 추천하지 않아요.`);
+    });
+  }
+
+  /** 방금 감춘 것을 물린다 — 한 장 뒤로 돌아가고 그 행을 지운다 */
+  function undoHide() {
+    if (hidden === null) return;
+    const back = hidden;
+    setHidden(null);
+    startWorking(async () => {
+      const result = await unhideCandidate(back.id);
+      if (!result.ok) {
+        setFailure(result.message);
+        return;
+      }
+      setIndex((n) => Math.max(0, n - 1));
+      setOffset(0);
+      setAnnouncement(`${back.nickname} 님을 다시 추천받아요.`);
     });
   }
 
@@ -260,9 +306,6 @@ export function MatchingExperience({
                 ) : (
                   <p className={`${styles.cardIntro} ${styles.introEmpty}`}>자기소개 없음</p>
                 )}
-                {!preview && (
-                  <div className={styles.hideRow}><HideButton candidateUserId={profile.candidateUserId} /></div>
-                )}
                 <button className={styles.more} disabled={!!exit} onClick={() => detail.current?.showModal()}><span>궁합의 이유 보기</span><Icon name="arrow" /></button>
               </div>
             </article>
@@ -291,6 +334,12 @@ export function MatchingExperience({
         </div>
         <p className={styles.disclaimer}>{preview ? '디자인 확인용 예시 프로필이며, 요청은 전송되지 않아요.' : teaser}</p>
         {explorationNote !== null && <p className={styles.disclaimer}>{explorationNote}</p>}
+        {hidden !== null && (
+          <p className={styles.undoBar}>
+            앞으로 추천하지 않아요
+            <button type="button" onClick={undoHide} disabled={working}>실행 취소</button>
+          </p>
+        )}
         {failure !== null && <p className={styles.failure}>{failure}</p>}
         <p role="status" className={styles.status}>{announcement}</p>
       </section>
@@ -320,6 +369,13 @@ export function MatchingExperience({
         </div>
         {profile.intro !== null && <p className={styles.dialogIntro}>{profile.intro}</p>}
         <button className={styles.dialogDone} onClick={() => { detail.current?.close(); confirming.current?.showModal(); }}>상세 궁합 요청하기</button>
+        {/*
+          **주된 선택이 아니다.** 카드의 목적은 「다음 인연 / 궁합 요청」 둘이고, 이것은
+          앞으로를 정하는 드문 누름이라 상세 아래 조용한 자리에 선다.
+        */}
+        <button className={styles.hideAction} onClick={hide} disabled={working}>
+          이 사람 다시 보지 않기
+        </button>
       </>}
     </dialog>
 

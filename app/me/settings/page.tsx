@@ -9,7 +9,7 @@ import { readAccount } from '../account';
 import { RequestDeletion } from '../leaving';
 import { ConsentControls } from '../consent-controls';
 import { SETTINGS_QUIET, SettingsCard, SettingsRow } from './card';
-import { ParticipationToggle, PreferenceForm } from '../discovery/manage';
+import { ParticipationToggle, PreferenceForm, UnhideAll } from '../discovery/manage';
 import { preferGenderOf } from '../discovery/profile';
 import { NOTICE_VERSION, OPTIONAL_CONSENT_NOTE, asKoreanDay } from '@/src/lib/consent';
 
@@ -26,7 +26,7 @@ export default async function SettingsPage() {
   if (!user) redirect('/auth');
 
   /** 온보딩을 안 묻는 화면이라 `self_person_id` 를 안 읽고, 대신 동의 칸을 함께 읽는다 */
-  const [{ state, row: account }, { data: discoveryProfile }] = await Promise.all([
+  const [{ state, row: account }, { data: discoveryProfile }, { data: hiddenRows }] = await Promise.all([
     readAccount<{
       status: string;
       improvement_consent: boolean | null;
@@ -35,6 +35,7 @@ export default async function SettingsPage() {
       notice_ack_at: string | null;
     }>(supabase, 'status, improvement_consent, contact_consent, notice_version, notice_ack_at'),
     supabase.from('discovery_profile').select('prefer_gender, opted_out_at').maybeSingle(),
+    supabase.from('discovery_hidden').select('hidden_user_id'),
   ]);
 
   const signOut = async () => {
@@ -58,6 +59,21 @@ export default async function SettingsPage() {
         <>
           <PreferenceForm current={preferGenderOf(discoveryProfile?.prefer_gender)} />
           <ParticipationToggle resting={discoveryProfile?.opted_out_at != null} />
+          {/*
+            **감춘 사람을 되돌리는 자리가 설정에 있다.** 전에는 목록이 서는 화면
+            안에만 있어서, 목록이 꽉 찬 사람은 그 줄을 영영 못 봤다 — 되돌리려면
+            먼저 목록이 비어야 하는 셈이었다.
+
+            **누구인지는 여기서도 안 적는다.** 감춘 뒤에는 그 프로필을 읽을 이유가
+            없어서 별명을 안 들고 있다(`UnhideAll`).
+          */}
+          {(hiddenRows ?? []).length > 0 && (
+            <SettingsCard title="숨긴 인연">
+              <SettingsRow>
+                <UnhideAll count={(hiddenRows ?? []).length} />
+              </SettingsRow>
+            </SettingsCard>
+          )}
         </>
       )}
 
