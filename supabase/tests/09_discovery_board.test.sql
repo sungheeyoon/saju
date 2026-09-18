@@ -409,6 +409,11 @@ reset role;
  * 첫 사람을 집으면 그 줄과 겹칠 수 있고, 그러면 이 시험은 **지나치기와 무관한 이유로**
  * 빨개진다 — 재려는 것은 지나치기가 후보 자격을 어떻게 바꾸는가다.
  */
+-- 앞의 숨김 검사가 남긴 한 명을 복원해 이 절에서는 표시 상한만 잰다.
+-- 최근 20명 중 숨긴 사람이 있으면 19명만 표시하는 계약은 30번 파일에서 별도로 잰다.
+delete from public.discovery_hidden
+where user_id = (select uid from me) and hidden_user_id in (select user_id from scores);
+
 create temporary table passer as
 select user_id from scores
 where public.discovery_eligible((select uid from me), user_id)
