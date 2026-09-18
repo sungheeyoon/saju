@@ -114,8 +114,8 @@ test.describe('동의로 열리는 흐름', () => {
     hideEveryoneExcept([asker.account.email, receiver.account.email]);
     forgetBoards([asker.account.email, receiver.account.email]);
 
-    // ── 후보를 보고 요청을 보낸다 — **목록은 홈에 선다**(ADR 0037) ──────────
-    await asker.page.goto('/me');
+    // ── 매칭에서 후보를 보고 요청을 보낸다 ──────────
+    await asker.page.goto('/me/matching');
     await expect(asker.page.getByRole('heading', { name: `받는${tag}` })).toBeVisible();
 
     /**
@@ -124,7 +124,7 @@ test.describe('동의로 열리는 흐름', () => {
      * 버튼을 잡으면 strict mode 가 물고, 그것은 **화면이 깨진 것이 아니라 시험이
      * 목록 순서를 재고 있었다는 뜻**이다.
      */
-    const card = asker.page.getByRole('listitem').filter({ hasText: `받는${tag}` });
+    const card = asker.page.getByRole('article').filter({ hasText: `받는${tag}` });
 
     /*
       **맛보기다.** 어느 오행을 채우는지는 말하고 원문은 닫는다(ADR 0003 · `prd-archive`).
@@ -139,7 +139,7 @@ test.describe('동의로 열리는 흐름', () => {
     */
     await expect(card.getByText('1990-05-15')).toHaveCount(0);
 
-    await card.getByRole('button', { name: '상세 궁합 요청하기' }).click();
+    await asker.page.getByRole('button', { name: '상세 궁합 요청하기', exact: true }).click();
     const confirmRequest = asker.page.getByRole('dialog');
     await expect(confirmRequest).toContainText('풀이권 1회가 임시로 차감됩니다');
     await expect(confirmRequest).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
@@ -343,7 +343,7 @@ test.describe('동의로 열리는 흐름', () => {
     const receiver = await openAs({ selfPerson: true });
     await bothParticipate(asker, receiver, tag);
 
-    await asker.page.goto('/me');
+    await asker.page.goto('/me/matching');
     /*
       **첫 카드로 좁힌다.** 시험들이 나란히 도는 동안 남의 후보가 목록에 함께 설 수
       있고, 여기서 재는 것은 「누가 서 있나」가 아니라 **한 카드 안의 배치**다.
@@ -398,9 +398,8 @@ test.describe('동의로 열리는 흐름', () => {
       throw new Error(`탭으로 「${name}」에 못 닿았습니다`);
     };
 
-    await asker.page.goto('/me');
-    const card = asker.page.getByRole('listitem').filter({ hasText: `나${tag}` });
-    await reach(asker, '상세 궁합 요청하기', card);
+    await asker.page.goto('/me/matching');
+    await reach(asker, '상세 궁합 요청하기');
     await asker.page.keyboard.press('Enter');
 
     const confirmRequest = asker.page.getByRole('dialog');
@@ -461,7 +460,7 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receiver.page.getByRole('heading', { name: `가${tag}` })).toHaveCount(0);
 
     // 막는 것은 한쪽이 아니다 — 보낸 쪽의 후보 목록에서도 사라진다(제재는 양방향).
-    await asker.page.goto('/me');
+    await asker.page.goto('/me/matching');
     await expect(asker.page.getByRole('heading', { name: `나${tag}` })).toHaveCount(0);
 
     // 새 요청도 서지 않는다.
@@ -578,4 +577,132 @@ test.describe('지나친 인연에 보관하기', () => {
 
     await expect(target).toBeVisible();
   });
+});
+
+test.describe('보관함 복원 회귀', () => {
+  test('새로고침 뒤 보관함에서 복원하면 실제 카드와 저장이 함께 돌아온다', async ({ openAs }) => {
+    const tag = freshTag();
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+    await bothParticipate(asker, receiver, tag);
+    await asker.page.goto('/me/matching');
+    await expect(asker.page.getByRole('heading', { name: `나${tag}` })).toBeVisible();
+    await asker.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
+    await expect(asker.page.getByRole('button', { name: '실행 취소' })).toBeVisible();
+    await asker.page.reload();
+    await asker.page.getByRole('button', { name: /지나친 인연/ }).click();
+    const panel = asker.page.getByRole('dialog', { name: /지나친 인연/ });
+    await panel.getByRole('button', { name: new RegExp(`나${tag}, 예측 궁합`) }).click();
+    await panel.getByRole('button', { name: '다시 만나보기' }).click();
+    await expect(panel).not.toBeVisible();
+    await expect(asker.page.getByRole('heading', { name: `나${tag}` })).toBeVisible();
+    expect((await asker.api.rpc('my_passed_connections')).data).toEqual([]);
+    await asker.page.reload();
+    await expect(asker.page.getByRole('heading', { name: `나${tag}` })).toBeVisible();
+  });
+});
+
+test.describe('매칭 덱 상태 회귀', () => {
+  test('두 번 지나친 뒤 연속 되돌리면 두 사람 모두 서버 보관에서 빠진다', async ({ openAs }) => {
+    const tag = freshTag();
+    const viewer = await openAs({ selfPerson: true });
+    const first = await openAs({ selfPerson: true });
+    const second = await openAs({ selfPerson: true });
+    await optIn(viewer.api, `가${tag}`);
+    await optIn(first.api, `나${tag}`);
+    await optIn(second.api, `다${tag}`);
+    hideEveryoneExcept([viewer.account.email, first.account.email, second.account.email]);
+    forgetBoards([viewer.account.email]);
+    await viewer.page.goto('/me/matching');
+    const article = viewer.page.getByRole('article');
+    const names: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      names.push((await article.getByRole('heading').textContent())!);
+      await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
+      await expect(article.getByRole('heading', { name: names[i] })).not.toBeVisible();
+    }
+    expect((await viewer.api.rpc('my_passed_connections')).data).toHaveLength(2);
+    for (const name of names.toReversed()) {
+      await viewer.page.getByRole('button', { name: '이전 인연으로 되돌리기' }).click();
+      await expect(article.getByRole('heading', { name })).toBeVisible();
+    }
+    expect((await viewer.api.rpc('my_passed_connections')).data).toEqual([]);
+    await viewer.page.reload();
+    await expect(article.getByRole('heading', { name: names[0] })).toBeVisible();
+  });
+
+  test('이동 중 취소와 복원 실패 뒤 재시도가 카드를 잃지 않는다', async ({ openAs }) => {
+    const tag = freshTag();
+    const viewer = await openAs({ selfPerson: true });
+    const partner = await openAs({ selfPerson: true });
+    await bothParticipate(viewer, partner, tag);
+    await viewer.page.goto('/me/matching');
+    const heading = viewer.page.getByRole('article').getByRole('heading', { name: `나${tag}` });
+    await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
+    const undo = viewer.page.getByRole('button', { name: '실행 취소' });
+    await expect(undo).toBeEnabled();
+    // 저장 뒤 떠나는 타이머가 살아 있는 동안 복원한다.
+    await undo.click();
+    await expect(undo).not.toBeVisible();
+    await viewer.page.waitForTimeout(1400);
+    await expect(heading).toBeVisible();
+    await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
+    await expect(undo).toBeEnabled();
+    await viewer.page.route('**/me/matching', async (route) => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({ status: 500, body: 'test restore failure' });
+      } else await route.continue();
+    });
+    await undo.click();
+    await expect(viewer.page.getByText('복원하지 못했습니다. 잠시 뒤 다시 시도해 주세요.')).toBeVisible();
+    await expect(undo).toBeEnabled();
+    expect((await viewer.api.rpc('my_passed_connections')).data).toHaveLength(1);
+    await viewer.page.unroute('**/me/matching');
+    await undo.click();
+    await expect(heading).toBeVisible();
+    await expect(undo).not.toBeVisible();
+    expect((await viewer.api.rpc('my_passed_connections')).data).toEqual([]);
+  });
+
+  test('보관함은 실제 사진을 읽고 예시 안내를 표시하지 않는다', async ({ openAs }) => {
+    const tag = freshTag();
+    const viewer = await openAs({ selfPerson: true });
+    const partner = await openAs({ selfPerson: true });
+    await bothParticipate(viewer, partner, tag);
+    const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWZkAAAAASUVORK5CYII=';
+    const uploaded = await partner.api.rpc('set_my_photo', { p_content_type: 'image/png', p_base64: png });
+    expect(uploaded.error).toBeNull();
+    await viewer.page.goto('/me/matching');
+    await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
+    await expect(viewer.page.getByRole('button', { name: '실행 취소' })).toBeVisible();
+    await viewer.page.reload();
+    await viewer.page.getByRole('button', { name: /지나친 인연/ }).click();
+    const panel = viewer.page.getByRole('dialog', { name: /지나친 인연/ });
+    const photo = panel.locator('img');
+    await expect(photo).toHaveCount(1);
+    const response = await viewer.page.request.get((await photo.getAttribute('src'))!);
+    expect(response.status()).toBe(200);
+    await expect(panel.getByText(/예시|연결 준비 중/)).toHaveCount(0);
+  });
+});
+
+test('매칭 진입과 AI 미리보기의 보관·복원은 실제 기록을 바꾸지 않는다', async ({ openAs, isMobile }) => {
+  const viewer = await openAs({ selfPerson: true });
+  await viewer.page.goto('/me');
+  await expect(viewer.page.getByRole('link', { name: /매칭에서 오늘의 인연 만나기/ })).toBeVisible();
+  await expect(viewer.page.getByRole('heading', { name: '오늘의 인연', exact: true })).toHaveCount(0);
+  if (isMobile) await expect(viewer.page.getByRole('navigation', { name: '모바일 내 메뉴' }).getByRole('link', { name: '매칭', exact: true })).toBeVisible();
+  await viewer.page.goto('/me/matching/preview');
+  const before = (await viewer.api.from('discovery_passed').select('passed_user_id')).data;
+  const name = (await viewer.page.getByRole('article').getByRole('heading').textContent())!;
+  await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
+  await expect(viewer.page.getByRole('article').getByRole('heading', { name })).not.toBeVisible();
+  await viewer.page.getByRole('button', { name: /지나친 인연/ }).click();
+  const panel = viewer.page.getByRole('dialog', { name: /지나친 인연/ });
+  await panel.getByRole('button', { name: new RegExp(`${name}, 예측 궁합`) }).click();
+  await viewer.page.screenshot({ path: `test-results/matching-panel-${isMobile ? 'mobile' : 'desktop'}.png` });
+  await panel.getByRole('button', { name: '다시 만나보기' }).click();
+  await expect(panel).not.toBeVisible();
+  await expect(viewer.page.getByRole('article').getByRole('heading', { name })).toBeVisible();
+  expect((await viewer.api.from('discovery_passed').select('passed_user_id')).data).toEqual(before);
 });

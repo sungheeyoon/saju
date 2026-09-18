@@ -20,6 +20,7 @@
 # next.js
 /.next/
 /.next-check/
+/.next-matching-test/
 /out/
 
 # production

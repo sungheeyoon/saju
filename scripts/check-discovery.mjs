@@ -122,25 +122,8 @@ const { base: BASE, stop } = await startCheckServer({
   anonKey: status.ANON_KEY,
 });
 
-/**
- * 후보 카드 목록만 잘라 낸다 — **홈에는 내 명식도 함께 서 있다.**
- *
- * 목록의 `<ul>` 을 열고 닫힌 자리까지 깊이를 세어 가른다. 카드 안에 오행 줄의 `<ul>` 이
- * 또 있어서 첫 `</ul>` 에서 끊으면 점수 칸이 창 밖으로 나간다.
- */
-const candidateListIn = (body) => {
-  const head = body.indexOf('>오늘의 인연</h2>');
-  if (head === -1) return '';
-  const start = body.indexOf('<ul', head);
-  if (start === -1) return '';
-
-  let depth = 0;
-  for (const tag of body.slice(start).matchAll(/<(\/?)ul\b/g)) {
-    depth += tag[1] === '/' ? -1 : 1;
-    if (depth === 0) return body.slice(start, start + tag.index + 5);
-  }
-  return '';
-};
+/** 매칭의 공개 카드 영역만 읽는다. 숨겨진 확인 창과 직렬화 자료는 포함하지 않는다. */
+const candidateListIn = (body) => body.match(/<article\b[^>]*>[\s\S]*?<\/article>/)?.[0] ?? '';
 
 const get = (path, cookie) => fetch(`${BASE}${path}`, { headers: { cookie }, redirect: 'manual' });
 
@@ -227,7 +210,7 @@ const isolate = (emails) => {
    */
   {
     check('참여를 켠 적이 없다', summaryOf(mine) === '', summaryOf(mine).slice(0, 40));
-    await get('/me', myCookie);
+    await get('/me/matching', myCookie);
     check('홈을 한 번 여는 것만으로 풀에 든다', summaryOf(mine) !== '', summaryOf(mine).slice(0, 40));
   }
 
@@ -248,7 +231,7 @@ const isolate = (emails) => {
   await other.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
 
   // 요약을 고치는 자리는 **목록이 서는 화면**이다. 목록이 홈으로 왔으므로 홈을 연다.
-  await get('/me', myCookie);
+  await get('/me/matching', myCookie);
   await get('/me', theirCookie);
 
   check(
@@ -263,7 +246,7 @@ const isolate = (emails) => {
     // 위에서 이미 한 번 열어 스냅샷이 섰다. 기록이 **뽑을 때** 나는 것을 재려면 지운다.
     forgetBoard(mine);
     const before = impressionsFor(mine);
-    const response = await get('/me', myCookie);
+    const response = await get('/me/matching', myCookie);
     const body = await response.text();
 
     check('참여하면 상대가 후보로 선다', body.includes(THEIR_NAME), String(response.status));
@@ -286,7 +269,7 @@ const isolate = (emails) => {
     check('점수의 이유가 보완 축까지 든다',
       /내게 적은 오행을 (크게 )?보완하(는 데 보탬이 되|지)/.test(body));
     check('첫인상 궁합 점수를 이름표와 함께 보여 준다',
-      body.includes('예측 궁합 점수') && /\d+<[^>]*>점/.test(body));
+      body.includes('예측 궁합 점수') && /<strong>\d+<\/strong><span> \/ 100<\/span>/.test(body));
     /**
      * **수는 그 자체로 높낮이를 말하지 않는다.** 만점이 몇인지 보통이 몇인지를
      * 사용자가 모르므로, 점수 옆에는 그 수를 말로 옮긴 한 줄이 함께 서야 한다.
@@ -299,7 +282,7 @@ const isolate = (emails) => {
       /(일 수 있어요|에 가까워요|편이에요|있어요)\.?</.test(body) &&
         /궁합|어울리|엇갈리|다른 부분/.test(body));
     check('상세 궁합은 서로 선택한 뒤에 열린다고 말한다',
-      body.includes('상세 궁합 요청하기를 누르면'));
+      body.includes('상세 궁합 요청하기') && body.includes('풀이권 1회가 임시로 차감됩니다'));
     check('참고 점수라는 말이 목록 머리에 선다',
       body.includes('오행 구성을 바탕으로 계산한 참고 점수'));
 
@@ -458,7 +441,7 @@ const isolate = (emails) => {
     check('사진을 올린다', 올림 === null, 올림?.message);
 
     forgetBoard(mine);
-    const response = await get('/me', myCookie);
+    const response = await get('/me/matching', myCookie);
     const body = await response.text();
 
     const theirId = (await other.auth.getUser()).data.user?.id;
@@ -509,22 +492,22 @@ const isolate = (emails) => {
     const before = hiddenCount();
     await me.from('discovery_hidden').insert({ hidden_user_id: theirUserId });
 
-    const body = await (await get('/me', myCookie)).text();
+    const body = await (await get('/me/matching', myCookie)).text();
     check('다시 보지 않기로 하면 후보에서 빠진다', !body.includes(THEIR_NAME));
     // React 는 나란한 글자 마디 사이에 `<!-- -->` 를 넣는다. 수를 견줄 때 그것을 지운다.
-    const plain = body.replace(/<!--\s*-->/g, '');
+    const plain = (await (await get('/me/settings', myCookie)).text()).replace(/<!--\s*-->/g, '');
     check('감춘 사람이 몇인지는 말하되 누구인지는 적지 않는다',
       plain.includes(`다시 보지 않기로 한 사람 ${before + 1}명`) && !body.includes(theirUserId),
       `${before + 1}명이어야 한다`);
 
     await me.from('discovery_hidden').delete().eq('hidden_user_id', theirUserId);
-    const back = await (await get('/me', myCookie)).text();
+    const back = await (await get('/me/matching', myCookie)).text();
     check('되돌리면 다시 선다', back.includes(THEIR_NAME));
   }
 
   // ── 8. 판본을 고치면 요약이 따라간다 ────────────────────────────────────────
   {
-    await other.rpc('add_person_revision', {
+    const revised = await other.rpc('add_person_revision', {
       p_person_id: theirPersonId,
       p_calendar: 'solar', p_original_date: '1992-03-03', p_solar_date: '1992-03-03',
       p_birth_time: '09:00', p_gender: 'female', p_city: '대구',
@@ -532,7 +515,8 @@ const isolate = (emails) => {
     });
 
     // RPC 를 직접 불렀으므로 요약은 아직 옛 판본의 것이다 — 그 사이에는 후보가 아니다.
-    const stale = await (await get('/me', myCookie)).text();
+    if (revised.error) throw new Error(revised.error.message);
+    const stale = await (await get('/me/matching', myCookie)).text();
     check('요약이 낡은 사람은 후보에서 빠진다', !stale.includes(THEIR_NAME));
 
     /**
@@ -543,18 +527,19 @@ const isolate = (emails) => {
      * 판본 id 가 아니라 **그때 그 요약**이고, 그래서 안 바뀐 것에는 아무 일도 안 난다.
      */
     await get('/me', theirCookie);
-    const healed = await (await get('/me', myCookie)).text();
+    const healed = await (await get('/me/matching', myCookie)).text();
     check('그 사람이 홈을 열면 요약이 따라와 다시 선다', healed.includes(THEIR_NAME));
   }
 
   // ── 8-2. 요약이 **바뀌면** 그 카드는 지금의 그 사람이 아니다 ────────────────
   {
-    await other.rpc('add_person_revision', {
+    const revised = await other.rpc('add_person_revision', {
       p_person_id: theirPersonId,
       p_calendar: 'solar', p_original_date: '1993-07-07', p_solar_date: '1993-07-07',
       p_birth_time: '21:10', p_gender: 'female', p_city: '대구',
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
     });
+    if (revised.error) throw new Error(revised.error.message);
     await get('/me', theirCookie);
 
     /**
@@ -562,20 +547,21 @@ const isolate = (emails) => {
      * 아닌 오행을 말하고, 눌러도 요청이 안 난다(`request_match` 는 요약 두 벌이 지금과
      * 같은 기록만 받는다). 그래서 읽는 자리에서 빠지고, 새로 받아야 돌아온다.
      */
-    const changed = await (await get('/me', myCookie)).text();
+    const changed = await (await get('/me/matching', myCookie)).text();
     check('요약이 바뀌면 내 목록에서 빠진다 — 카드가 옛 값을 가리킨다',
       !changed.includes(THEIR_NAME));
 
     forgetBoard(mine);
-    const again = await (await get('/me', myCookie)).text();
+    const again = await (await get('/me/matching', myCookie)).text();
     check('목록을 새로 받으면 다시 선다', again.includes(THEIR_NAME));
   }
 
   // ── 9. 참여를 끄면 풀에서 사라지고 요약도 거둬진다 ──────────────────────────
   {
-    await other.rpc('set_discovery_participation', { p_on: false, p_summary: null });
+    const stopped = await other.rpc('set_discovery_participation', { p_on: false, p_summary: null });
+    if (stopped.error) throw new Error(stopped.error.message);
 
-    const body = await (await get('/me', myCookie)).text();
+    const body = await (await get('/me/matching', myCookie)).text();
     check('참여를 끄면 후보에서 사라진다', !body.includes(THEIR_NAME));
     check('내놓은 요약도 거둬진다', summaryOf(theirs) === '', summaryOf(theirs).slice(0, 40));
 
@@ -592,7 +578,7 @@ const isolate = (emails) => {
     await get('/me', theirCookie);
     check('끈 사람은 홈을 열어도 다시 안 켜진다', summaryOf(theirs) === '', summaryOf(theirs).slice(0, 40));
 
-    const back = await (await get('/me', myCookie)).text();
+    const back = await (await get('/me/matching', myCookie)).text();
     check('끈 사람은 남의 목록에도 안 돌아온다', !back.includes(THEIR_NAME));
   }
 } finally {

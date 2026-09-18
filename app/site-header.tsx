@@ -66,7 +66,7 @@ const MEMBER_LINKS = [
 const MOBILE_LINKS = [
   { href: '/me', label: '내 사주', icon: 'home' },
   { href: '/', label: '사주·궁합', icon: 'compat' },
-  { href: '/me/people', label: '사람', icon: 'people' },
+  { href: '/me/matching', label: '매칭', icon: 'people' },
   { href: '/me/readings', label: '풀이', icon: 'reading' },
   { href: '/me/requests', label: '소식', icon: 'news' },
 ] as const;

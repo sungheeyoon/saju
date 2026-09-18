@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition, type CSSProperties, type PointerEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useReducer, useRef, useState, useTransition, type CSSProperties, type PointerEvent } from 'react';
 
 import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent/notice';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
@@ -11,6 +10,7 @@ import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
 import { RefreshBoard, UnhideAll } from '../discovery/manage';
 import styles from './matching.module.css';
+import { deckReducer, PASSED_LIMIT } from './deck-state';
 import { PassedConnections } from './passed-connections';
 
 /**
@@ -56,12 +56,13 @@ function Icon({ name }: { name: IconName }) {
 }
 
 /** 예시면 그 파일, 아니면 우리 라우트 — 사진이 없으면 이름의 첫 글자가 선다 */
-const photoOf = (card: DeckCard): string | null =>
+export const photoOf = (card: DeckCard): string | null =>
   card.photoUrl ?? (card.hasPhoto ? `/me/photo/${card.candidateUserId}` : null);
 
 // 고른 것을 읽을 시간을 주고 나서 카드가 떠난다 — CSS 도 같은 값을 쓴다.
 const CHOICE_HOLD_MS = 700;
 const CARD_EXIT_MS = 550;
+const EMPTY_CARDS: readonly DeckCard[] = [];
 
 export function MatchingExperience({
   cards,
@@ -70,7 +71,7 @@ export function MatchingExperience({
   explorationNote,
   hiddenCount,
   waitSeconds,
-  passed: passedFromServer = [],
+  passed: passedFromServer = EMPTY_CARDS,
   preview = false,
 }: {
   cards: readonly DeckCard[];
@@ -84,37 +85,41 @@ export function MatchingExperience({
   /** 디자인 확인용 — **요청이 나가지 않고**, 목록을 건드리는 누름도 서지 않는다 */
   preview?: boolean;
 }) {
-  const router = useRouter();
-  const [index, setIndex] = useState(0);
+  const [deck, dispatch] = useReducer(deckReducer, {
+    remaining: cards, passed: passedFromServer.slice(0, PASSED_LIMIT), history: [], seen: [],
+  });
+  const index = deck.seen.length;
+  const total = index + deck.remaining.length;
+  const passed = deck.passed;
+  const hidden = deck.history[0] ?? null;
+  const busy = useRef(false);
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [exit, setExit] = useState<'left' | 'right' | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
-  const [hidden, setHidden] = useState<DeckCard | null>(null);
-  /**
-   * **지나친 사람이 쌓이는 자리.**
-   *
-   * 목록을 서버에서 다시 읽지 않는다 — 감춘 사람의 프로필을 읽을 권한이 없기 때문이다
-   * (`UnhideAll` 이 「몇 명」까지만 말하는 이유와 같다). X 를 누른 그 순간 카드를 손에
-   * 들고 있으므로, 그것을 그대로 쌓아 두면 이름도 사진도 점수도 다시 안 물어도 된다.
-   * **새로 고치면 비는 목록**이라는 뜻이기도 하다 — 지나친 기록을 화면 밖에서도 남기려면
-   * 표가 하나 더 있어야 한다.
-   */
-  const [passed, setPassed] = useState<DeckCard[]>([...passedFromServer]);
   const [working, startWorking] = useTransition();
   const start = useRef<{ x: number; y: number } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const detail = useRef<HTMLDialogElement>(null);
   const confirming = useRef<HTMLDialogElement>(null);
-  const profile = cards[index];
+  const profile = deck.remaining[0];
   const tone = styles[TONE[profile?.highlights[0]?.element ?? ''] ?? 'water'];
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  const received = useRef({ cards, passed: passedFromServer });
+  useEffect(() => {
+    // 재검증 응답은 이동이 끝난 뒤 합친다. 같은 스냅샷의 숨김 해제도 새 카드로 반영한다.
+    if (working || exit || busy.current) return;
+    if (received.current.cards === cards && received.current.passed === passedFromServer) return;
+    received.current = { cards, passed: passedFromServer };
+    dispatch({ type: 'sync', cards, passed: passedFromServer });
+  }, [cards, passedFromServer, working, exit]);
+
 
   /** 카드를 떠나보낸다 — 지나가는 것은 **이 자리에서만** 없어진다(서버에 안 적는다) */
-  function leave(direction: 'left' | 'right', said: string) {
+  function leave(direction: 'left' | 'right', said: string, id: string) {
     setExit(direction);
     setDragging(false);
     setOffset(direction === 'right' ? 12 : -12);
@@ -122,7 +127,8 @@ export function MatchingExperience({
     timer.current = setTimeout(() => {
       setLeaving(true);
       timer.current = setTimeout(() => {
-        setIndex((n) => n + 1);
+        dispatch({ type: 'leave', id });
+        timer.current = null;
         setExit(null);
         setLeaving(false);
         setOffset(0);
@@ -131,14 +137,6 @@ export function MatchingExperience({
     }, CHOICE_HOLD_MS);
   }
 
-  /**
-   * **X 는 보관이다.** 그냥 넘기는 것이 아니라 「지나친 인연」에 쌓이고, 새 추천에
-   * 다시 서지 않는다 — 저장은 「다시 보지 않기」와 같은 표를 쓴다(`discovery_hidden`).
-   * 부담 없이 넘기고 나중에 다시 꺼내 보는 것이 이 누름의 뜻이다.
-   *
-   * **여기서 `router.refresh()` 를 안 부른다.** 부르면 그 사람이 서버 목록에서 빠지며
-   * 뒤 카드의 자리가 당겨지고, 그러면 되돌리기가 엉뚱한 카드를 가리킨다.
-   */
   /** 예약된 이동을 물린다 — 되돌릴 때 이 타이머가 살아 있으면 복원 직후 또 넘어간다 */
   function cancelLeave() {
     if (timer.current) clearTimeout(timer.current);
@@ -149,108 +147,74 @@ export function MatchingExperience({
   }
 
   function pass() {
-    // **저장 중에는 또 못 누른다** — 느린 응답에서 두 번 쌓이거나 다른 누름과 엉킨다.
-    if (exit || working || !profile) return;
+    if (exit || busy.current || !profile) return;
     const passing = profile;
-
-    if (preview) {
-      setPassed((list) => [passing, ...list.filter((card) => card.candidateUserId !== passing.candidateUserId)]);
-      leave('left', `${passing.nickname} 님을 지나친 인연에 두었어요.`);
-      return;
-    }
-
     setFailure(null);
-    startWorking(async () => {
-      const result = await passCandidate(passing.candidateUserId);
-      if (!result.ok) {
-        setFailure(result.message);
-        return;
-      }
-      // 같은 사람을 다시 넘겨도 겹쳐 쌓지 않고 가장 최근 자리로 옮긴다.
-      setPassed((list) => [passing, ...list.filter((card) => card.candidateUserId !== passing.candidateUserId)]);
-      setHidden(passing);
-      leave('left', `${passing.nickname} 님을 지나친 인연에 두었어요.`);
-    });
-  }
-
-  /**
-   * **요청은 확인 창을 지나야 난다**(PRD §4.x). 풀이권 1회 예약과 여덟 글자 공개,
-   * 그리고 아직 연락 기능이 없다는 것까지 읽은 뒤에 나간다 — 스와이프 한 번으로
-   * 그 셋을 건너뛰게 두지 않는다.
-   */
-  function send() {
-    if (!profile || working) return;
-    if (preview) {
-      leave('right', `미리보기예요 — ${profile.nickname} 님에게 요청은 전송되지 않았어요.`);
-      return;
-    }
-    setFailure(null);
-    startWorking(async () => {
-      const result = await requestMatch(profile.candidateUserId);
-      if (!result.ok) {
-        setFailure(result.message);
-        return;
-      }
-      leave('right', `${profile.nickname} 님에게 상세 궁합을 요청했어요.`);
-      router.refresh();
-    });
-  }
-
-  /** 방금 둔 것을 물린다 — 한 장 뒤로 돌아가고 보관도 함께 지운다 */
-  function undoHide() {
-    if (hidden === null) return;
-    const back = hidden;
-    setHidden(null);
-
-    /**
-     * **자리가 아니라 id 로 돌아간다.**
-     *
-     * 한 장 뒤로 세면 그 사이 목록이 바뀌었을 때 엉뚱한 사람이 선다. 그 사람이 덱에
-     * 있으면 그 자리로 가고, 없으면(이미 지나간 목록이면) 맨 앞에 세운다.
-     */
-    const restore = () => {
-      cancelLeave();
-      setPassed((list) => list.filter((card) => card.candidateUserId !== back.candidateUserId));
-      const at = cards.findIndex((card) => card.candidateUserId === back.candidateUserId);
-      setIndex(at >= 0 ? at : 0);
-      setOffset(0);
-      setAnnouncement(`${back.nickname} 님을 다시 추천받아요.`);
+    const finish = () => {
+      dispatch({ type: 'pass', card: passing });
+      leave('left', `${passing.nickname} 님을 지나친 인연에 두었어요.`, passing.candidateUserId);
     };
-
-    if (preview) {
-      restore();
-      return;
-    }
+    if (preview) { finish(); return; }
+    busy.current = true;
     startWorking(async () => {
-      const result = await restorePassed(back.candidateUserId);
-      if (!result.ok) {
-        setFailure(result.message);
-        return;
-      }
-      restore();
+      try {
+        const result = await passCandidate(passing.candidateUserId);
+        if (!result.ok) { setFailure(result.message); return; }
+        finish();
+      } catch {
+        setFailure('저장하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+      } finally { busy.current = false; }
     });
   }
 
-  /**
-   * 되돌리기 — **방금 둔 사람이 있으면 그것부터 물린다.**
-   *
-   * 자리만 한 장 뒤로 옮기면 이미 보관된 사람이 다시 서고, 화면은 그 사람을 추천하는데
-   * 표에는 「안 받겠다」가 적혀 있는 상태가 된다.
-   */
+  /** 하트와 오른쪽 스와이프 모두 확인 창을 거친 뒤에 요청한다. */
+  function send() {
+    if (!profile || busy.current || exit) return;
+    const sending = profile;
+    const finish = () => leave('right', preview
+      ? `미리보기예요 — ${sending.nickname} 님에게 요청은 전송되지 않았어요.`
+      : `${sending.nickname} 님에게 상세 궁합을 요청했어요.`, sending.candidateUserId);
+    if (preview) { finish(); return; }
+    setFailure(null);
+    busy.current = true;
+    startWorking(async () => {
+      try {
+        const result = await requestMatch(sending.candidateUserId);
+        if (!result.ok) { setFailure(result.message); return; }
+        finish();
+      } catch {
+        setFailure('요청 결과를 확인하지 못했습니다. 소식에서 확인해 주세요.');
+      } finally { busy.current = false; }
+    });
+  }
+
+  /** 보관함과 실행 취소가 같은 복원 경로를 사용한다. 실패하면 이력도 그대로 둔다. */
+  async function restoreCard(back: DeckCard): Promise<string | null> {
+    if (busy.current || exit === 'right') return '처리 중입니다. 잠시 뒤 다시 시도해 주세요.';
+    busy.current = true;
+    setFailure(null);
+    let message: string | null = null;
+    await new Promise<void>((resolve) => startWorking(async () => {
+      try {
+        const result = preview ? { ok: true as const, card: back, passed: undefined } : await restorePassed(back.candidateUserId);
+        if (!result.ok) { message = result.message; setFailure(message); return; }
+        cancelLeave();
+        dispatch({ type: 'restore', card: result.card, passed: result.passed });
+        setAnnouncement(`${back.nickname} 님을 카드 맨 앞으로 가져왔어요.`);
+      } catch {
+        message = '복원하지 못했습니다. 잠시 뒤 다시 시도해 주세요.';
+        setFailure(message);
+      } finally { busy.current = false; resolve(); }
+    }));
+    return message;
+  }
+
   function undo() {
-    if (exit) return;
-    if (hidden !== null) {
-      undoHide();
-      return;
-    }
-    if (index === 0) return;
-    setIndex((n) => n - 1);
-    setOffset(0);
-    setAnnouncement('이전 인연으로 돌아왔어요.');
+    if (hidden) void restoreCard(hidden);
   }
 
   function pointerDown(event: PointerEvent<HTMLElement>) {
-    if (exit || !event.isPrimary || event.button !== 0 || (event.target as HTMLElement).closest('button')) return;
+    if (exit || busy.current || !event.isPrimary || event.button !== 0 || (event.target as HTMLElement).closest('button')) return;
     setDragging(true);
     start.current = { x: event.clientX, y: event.clientY };
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -267,7 +231,7 @@ export function MatchingExperience({
     if (!start.current) return;
     start.current = null;
     // 오른쪽으로 밀어도 **바로 안 나간다** — 확인 창이 먼저 선다.
-    if (working) { setOffset(0); return; }
+    if (busy.current || exit) { setOffset(0); return; }
     if (offset > 85) { setOffset(0); confirming.current?.showModal(); return; }
     if (offset < -85) { pass(); return; }
     setOffset(0);
@@ -276,7 +240,7 @@ export function MatchingExperience({
   return <main className={`app-shell ${styles.page}`}>
     <div className={styles.topline}>
       <span><span className={styles.dot} /> 오늘의 인연</span>
-      <PassedConnections examples={passed} />
+      <PassedConnections cards={passed} preview={preview} working={working || exit === 'right'} onRestore={restoreCard} />
     </div>
     <div className={styles.layout}>
       <section className={styles.intro}>
@@ -290,7 +254,7 @@ export function MatchingExperience({
       <section className={styles.experience} aria-label="인연 카드">
         <div className={styles.deckHeader}>
           <span>나와 맞는 오늘의 인연</span>
-          <span><b>{String(Math.min(index + 1, cards.length)).padStart(2, '0')}</b> / {String(cards.length).padStart(2, '0')}</span>
+          <span><b>{String(Math.min(index + 1, total)).padStart(2, '0')}</b> / {String(total).padStart(2, '0')}</span>
         </div>
         <div className={styles.deck}>
           {profile ? <>
@@ -298,7 +262,7 @@ export function MatchingExperience({
             <article
               key={profile.candidateUserId}
               className={`${styles.card} ${tone} ${exit ? styles[exit] : ''} ${leaving ? styles.leaving : ''}`}
-              aria-busy={!!exit}
+              aria-busy={!!exit || working}
               style={{ '--swipe-start': `translateX(${offset}px) rotate(${offset / 22}deg)`, '--exit-duration': `${CARD_EXIT_MS}ms`, transform: `translateX(${offset}px) rotate(${offset / 22}deg)`, transition: dragging ? 'none' : undefined } as CSSProperties}
               onPointerDown={pointerDown}
               onPointerMove={pointerMove}
@@ -366,7 +330,7 @@ export function MatchingExperience({
             <div className={styles.empty}>
               <span className={styles.emptyArt}>緣</span>
               <h2>{cards.length === 0 ? DISCOVERY_EMPTY.title : '오늘의 인연을 모두 만났어요'}</h2>
-              <p>{cards.length === 0 ? DISCOVERY_EMPTY.line : '하루가 지나면 새로운 인연을 만나볼 수 있어요.'}</p>
+              <p>{cards.length === 0 ? DISCOVERY_EMPTY.line : '지나친 인연을 다시 살펴보거나, 나중에 새로운 인연을 확인해 보세요.'}</p>
               {!preview && (
                 <div className={styles.emptyActions}>
                   <RefreshBoard waitSeconds={waitSeconds} />
@@ -377,23 +341,23 @@ export function MatchingExperience({
           )}
         </div>
         <div className={styles.controls}>
-          <button className={styles.undo} aria-label="이전 인연으로 되돌리기" disabled={index === 0 || !!exit} onClick={undo}><Icon name="undo" /></button>
-          <button className={styles.pass} aria-label="다음 인연으로 지나가기" disabled={!profile || !!exit} onClick={pass}><Icon name="close" /></button>
+          <button className={styles.undo} aria-label="이전 인연으로 되돌리기" disabled={!hidden || working || exit === 'right'} onClick={undo}><Icon name="undo" /></button>
+          <button className={styles.pass} aria-label="다음 인연으로 지나가기" disabled={!profile || !!exit || working} onClick={pass}><Icon name="close" /></button>
           <button className={styles.like} aria-label="상세 궁합 요청하기" disabled={!profile || !!exit || working} onClick={() => confirming.current?.showModal()}><Icon name="heart" /><span>궁합 요청</span></button>
         </div>
         <p className={styles.hint}>{profile ? '← 다음 인연 · 상세 궁합이 궁금하다면 하트 →' : '되돌리기로 이전 인연을 다시 볼 수 있어요'}</p>
-        <div className={styles.progress} aria-label={`${cards.length}명 중 ${index}명 확인`}>
-          {cards.map((card, i) => <span key={card.candidateUserId} className={i < index ? styles.seen : i === index ? styles.current : ''} />)}
+        <div className={styles.progress} aria-label={`${total}명 중 ${index}명 확인`}>
+          {[...deck.seen, ...deck.remaining.map((card) => card.candidateUserId)].map((id, i) => <span key={id} className={i < index ? styles.seen : i === index ? styles.current : ''} />)}
         </div>
         <p className={styles.disclaimer}>{preview ? '디자인 확인용 예시 프로필이며, 요청은 전송되지 않아요.' : teaser}</p>
         {explorationNote !== null && <p className={styles.disclaimer}>{explorationNote}</p>}
         {hidden !== null && (
           <p className={styles.undoBar}>
-            앞으로 추천하지 않아요
-            <button type="button" onClick={undoHide} disabled={working}>실행 취소</button>
+            지나친 인연에 보관했어요
+            <button type="button" onClick={undo} disabled={working}>실행 취소</button>
           </p>
         )}
-        {failure !== null && <p className={styles.failure}>{failure}</p>}
+        {failure !== null && <p role="alert" className={styles.failure}>{failure}</p>}
         <p role="status" className={styles.status}>{announcement}</p>
       </section>
     </div>
@@ -420,7 +384,7 @@ export function MatchingExperience({
             <span className={styles.initial} aria-hidden="true">{initialOf(profile.nickname)}</span>
           )}
         </div>
-        {profile.intro !== null && <p className={styles.dialogIntro}>{profile.intro}</p>}
+        <p className={styles.dialogIntro}>{profile.intro || '자기소개 없음'}</p>
         <button className={styles.dialogDone} onClick={() => { detail.current?.close(); confirming.current?.showModal(); }}>상세 궁합 요청하기</button>
 
       </>}

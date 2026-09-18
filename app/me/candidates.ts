@@ -98,29 +98,12 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
   // 「참여를 먼저 켜 주세요」 같은 거절은 DB 가 문장으로 낸다. 여기서 다시 판정하지 않는다.
   if (error) throw new Error(error.message);
 
-  const cards = ((data ?? []) as BoardRow[]).map((row) => {
-    const suppliedElements = knownElementsOf(row.supplied_elements);
-    const balanceBand = balanceBandOf(row.balance_band);
-    /*
-      **점수는 여기서 한 번만 자른다.** 카드에 적히는 수와 그 수를 말로 옮긴 문장이
-      서로 다른 반올림을 보면, 39.5 짜리 한 사람에게 「40점」과 「잘 맞지 않는 편」이
-      같이 선다.
-    */
-    const previewScore = Math.max(0, Math.min(100, Math.round(row.preview_score)));
-
-    return {
-      candidateUserId: row.candidate_user_id,
-      nickname: row.nickname,
-      intro: row.intro,
-      hasPhoto: row.has_photo === true,
-      position: row.seat,
-      exploration: row.exploration,
-      previewScore,
-      ...cardTextFor({ suppliedElements, balanceBand, viewerCounts: mySummary.counts }),
-      ...previewSummaryFor({ previewScore, suppliedElements, balanceBand }),
-      [granted]: true as const,
-    };
-  });
+  const cards = ((data ?? []) as BoardRow[]).map((row) => ({
+    ...publicCardFromRow(row, mySummary),
+    position: row.seat,
+    exploration: row.exploration,
+    [granted]: true as const,
+  }));
 
   const notes = boardNotes({
     viewerMissingCount: ELEMENTS.filter((element) => mySummary.counts[element] === 0).length,
@@ -166,23 +149,10 @@ export async function passedForViewer(mySummary: ElementSummary): Promise<Passed
   const { data, error } = await supabase.rpc('my_passed_connections');
   if (error) throw new Error(error.message);
 
-  return ((data ?? []) as PassedRow[]).map((row) => {
-    const suppliedElements = knownElementsOf(row.supplied_elements);
-    const balanceBand = balanceBandOf(row.balance_band);
-    // 카드와 같은 반올림을 쓴다 — 같은 사람이 두 화면에서 다른 수를 들면 안 된다.
-    const previewScore = Math.max(0, Math.min(100, Math.round(row.preview_score)));
-
-    return {
-      candidateUserId: row.candidate_user_id,
-      nickname: row.nickname,
-      intro: row.intro,
-      hasPhoto: row.has_photo === true,
-      previewScore,
-      passedAt: row.passed_at,
-      ...cardTextFor({ suppliedElements, balanceBand, viewerCounts: mySummary.counts }),
-      ...previewSummaryFor({ previewScore, suppliedElements, balanceBand }),
-    };
-  });
+  return ((data ?? []) as PassedRow[]).map((row) => ({
+    ...publicCardFromRow(row, mySummary),
+    passedAt: row.passed_at,
+  }));
 }
 
 /** 목록을 언제 받았고 몇 초 뒤에 다시 받을 수 있나 — **두 값 다 DB 가 센다** */
@@ -207,4 +177,21 @@ export async function boardStamp(): Promise<BoardStamp | null> {
   if (row === undefined) return null;
 
   return { generatedAt: row.generated_at, waitSeconds: row.wait_seconds };
+}
+
+/** RPC가 허용한 공개 행을 직렬화 가능한 카드로 옮긴다. 복원도 기존 점수 문구를 쓴다. */
+export function publicCardFromRow(row: Pick<BoardRow, 'candidate_user_id' | 'nickname' | 'intro' | 'has_photo' | 'supplied_elements' | 'balance_band' | 'preview_score'>, mySummary: ElementSummary) {
+  const suppliedElements = knownElementsOf(row.supplied_elements);
+  const balanceBand = balanceBandOf(row.balance_band);
+  const previewScore = Math.max(0, Math.min(100, Math.round(row.preview_score)));
+  return {
+    candidateUserId: row.candidate_user_id,
+    nickname: row.nickname,
+    intro: row.intro,
+    hasPhoto: row.has_photo === true,
+    exploration: false,
+    previewScore,
+    ...cardTextFor({ suppliedElements, balanceBand, viewerCounts: mySummary.counts }),
+    ...previewSummaryFor({ previewScore, suppliedElements, balanceBand }),
+  };
 }

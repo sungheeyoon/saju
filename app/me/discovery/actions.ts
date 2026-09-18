@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { publicCardFromRow } from '../candidates';
 import type { SaveResult } from '../actions';
 import { selfElementSummary } from '../summary';
 import { PREFER_GENDERS, type PreferGender } from './profile';
@@ -215,18 +216,21 @@ export async function passCandidate(candidateUserId: string): Promise<SaveResult
  * 꺼내는 순간 다시 후보가 된다(`discovery_eligible`). 기본키가
  * `(user_id, passed_user_id)` 이고 정책이 `user_id = auth.uid()` 라 내 행 하나에만 닿는다.
  */
-export async function restorePassed(candidateUserId: string): Promise<SaveResult> {
+export async function restorePassed(candidateUserId: string) {
   const supabase = await supabaseOnServer();
-
-  const { error } = await supabase
-    .from('discovery_passed')
-    .delete()
-    .eq('passed_user_id', candidateUserId);
-
-  if (error) return { ok: false, message: error.message };
-
+  const self = await selfElementSummary();
+  if (!self) return { ok: false as const, message: '내 사주를 먼저 확인해 주세요.' };
+  const { data, error } = await supabase.rpc('restore_passed_connection', {
+    p_candidate_user_id: candidateUserId,
+  });
+  if (error) return { ok: false as const, message: error.message };
+  if (!data?.card) return { ok: false as const, message: '복원한 인연을 읽지 못했습니다. 목록을 새로 열어 주세요.' };
   revalidatePath('/me');
-  return { ok: true };
+  return {
+    ok: true as const,
+    card: publicCardFromRow(data.card, self.summary),
+    passed: (data.passed ?? []).map((row: Parameters<typeof publicCardFromRow>[0]) => publicCardFromRow(row, self.summary)),
+  };
 }
 
 /**

@@ -58,28 +58,21 @@ export default async function MePage() {
         <>
           <Unread />
           <SelfChart personId={selfPersonId} />
-          {/*
-            **같은 후보를 카드 한 장씩 본다.** 아래 목록과 자료가 같다
-            (`candidatesForViewer`) — 뽑는 일도 자르는 일도 한 자리에서 나므로 화면이
-            둘이라고 점수가 갈리지 않는다. 참여를 여는 문은 두 화면에 다 있다.
-          */}
+          {/* 자동 참여는 홈에서도 유지하고, 후보 탐색은 매칭에서만 한다. */}
+          <DiscoveryBoard participationOnly />
           <Link
             href="/me/matching"
             className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-accent-wash px-5 py-4 text-sm text-accent"
           >
             <span>
-              <strong className="block font-semibold">오늘의 인연</strong>
+              <strong className="block font-semibold">매칭에서 오늘의 인연 만나기</strong>
               <span className="mt-1 block text-xs text-secondary">
                 예측 궁합과 보완하는 기운으로, 나의 귀인을 찾아보세요.
               </span>
             </span>
             <span aria-hidden="true">→</span>
           </Link>
-          {/*
-            **추천은 홈에 선다**(PRD §2.0). 목록이 스냅샷이 된 뒤로 여는 값이 싸졌다 —
-            전에는 방문마다 풀 전체를 줄 세우는 셈이라 이 자리에 둘 수 없었다.
-          */}
-          <DiscoveryBoard />
+
         </>
       )}
     </main>
