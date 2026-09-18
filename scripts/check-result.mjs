@@ -154,12 +154,16 @@ try {
    * 뽑힌 목록은 **지금의 그 사람이 아니다.** 요청은 그런 기록으로는 나지 않는다
    * (ADR 0009). 목록이 스냅샷이 된 뒤로(ADR 0037) 다시 여는 것만으로는 새로 안 뽑히고,
    * 사람은 「목록 새로 고치기」를 누른다 — 그 문은 5분 쿨다운이 있어 검사는 스냅샷을 지운다.
+   *
+   * **여는 화면이 둘로 갈린다**(2026-09-18 매칭 개정, PRD §9.1). 홈은 참여를 열고 요약을
+   * 다시 계산하는 자리이고, 목록을 뽑아 **노출 기록을 남기는** 일은 `/me/matching` 으로
+   * 옮겨 갔다 — `my_discovery_board` 를 부르는 쪽이 그 화면이다.
    */
   await get('/me', cookie.a);
   await get('/me', cookie.b);
   sql(`delete from public.discovery_snapshot s using auth.users u
        where u.id = s.user_id and u.email = '${mail.a}'`);
-  await get('/me', cookie.a);
+  await get('/me/matching', cookie.a);
 
   const asked = await a.rpc('request_match', { p_candidate_user_id: userId(mail.b) });
   check('후보로 본 사람에게 청한다', !asked.error, asked.error?.message ?? '');
