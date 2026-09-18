@@ -527,14 +527,14 @@ test.describe('덱으로 보는 오늘의 인연', () => {
 });
 
 /**
- * **넘기는 것과 앞으로 안 받는 것은 다른 일이다.**
+ * **X 는 보관이다.**
  *
- * X 한 번에 영구 제외가 되면, 가볍게 넘긴 사람을 다시 만날 길이 없어진다. 그래서
- * 영구 제외는 카드 전면이 아니라 **상세에서 직접 고른 자리**에만 있고, 고른 뒤에도
- * 되돌릴 한 줄이 선다. 이 구분은 눈에 안 보여서 회귀가 조용히 난다 — 그래서 잰다.
+ * 그냥 넘기는 것이 아니라 「지나친 인연」에 쌓이고 새 추천에 다시 서지 않는다. 부담 없이
+ * 넘기되 나중에 다시 꺼내 볼 수 있어야 하므로, 누른 직후에 **되돌릴 한 줄**이 선다.
+ * 이 구분은 눈에 안 보여서 회귀가 조용히 난다 — 그래서 잰다.
  */
-test.describe('넘기기와 다시 보지 않기', () => {
-  test('영구 제외는 상세에서만 나고, 실행 취소로 되돌아온다', async ({ openAs }) => {
+test.describe('지나친 인연에 보관하기', () => {
+  test('X 로 둔 사람은 되돌릴 수 있다', async ({ openAs }) => {
     const tag = freshTag();
     const asker = await openAs({ selfPerson: true });
     const receiver = await openAs({ selfPerson: true });
@@ -543,26 +543,24 @@ test.describe('넘기기와 다시 보지 않기', () => {
     await asker.page.goto('/me/matching');
 
     const target = asker.page.getByRole('heading', { name: `나${tag}` });
+    const next = asker.page.getByRole('button', { name: '다음 인연으로 지나가기' });
     for (let step = 0; step < 12; step += 1) {
       if (await target.isVisible()) break;
-      const next = asker.page.getByRole('button', { name: '다음 인연으로 지나가기' });
       if (!(await next.isEnabled())) break;
       await next.click();
       await asker.page.waitForTimeout(1400);
     }
     await expect(target).toBeVisible();
 
-    // **카드 전면에는 없다.** 주된 선택은 「다음 인연 / 궁합 요청」 둘이다.
-    await expect(asker.page.getByRole('button', { name: '이 사람 다시 보지 않기' })).toBeHidden();
+    // 「지나친 인연」을 여는 문이 카드 위에 선다.
+    await expect(asker.page.getByRole('button', { name: /지나친 인연/ })).toBeVisible();
 
-    await asker.page.getByRole('button', { name: '궁합의 이유 보기' }).click();
-    await asker.page.getByRole('button', { name: '이 사람 다시 보지 않기' }).click();
+    await next.click();
 
     /*
-      확인 창을 다시 띄우지 않는다 — 처리한 뒤에 한 줄로 알리고 되돌릴 길을 준다.
+      확인 창을 띄우지 않는다 — 둔 다음에 한 줄로 알리고 되돌릴 길을 준다.
 
-      **되돌릴 문으로 잰다.** 「앞으로 추천하지 않아요」라는 낱말로 잡으면 그 말이
-      화면 어디에 몇 번 적혔는지를 재게 된다 — 재려는 것은 **되돌릴 수 있는가**다.
+      **되돌릴 문으로 잰다.** 낱말로 잡으면 그 말이 화면에 몇 번 적혔는지를 재게 된다.
     */
     const undo = asker.page.getByRole('button', { name: '실행 취소' });
     await expect(undo).toBeVisible();
@@ -570,12 +568,10 @@ test.describe('넘기기와 다시 보지 않기', () => {
     /*
       **카드가 다 떠난 뒤에 누른다.** 고른 것을 읽을 시간(700ms)과 떠나는 시간(550ms)이
       끝나기 전에 누르면, 되돌리는 것과 다음 장으로 넘기는 것이 같은 자리를 두고 다툰다.
-      사람은 그 줄을 읽고 나서 누르지만 시험은 뜨자마자 누른다.
     */
-    await expect(asker.page.getByRole('button', { name: '다음 인연으로 지나가기' })).toBeEnabled();
+    await expect(next).toBeEnabled();
     await undo.click();
 
-    // 되돌리면 그 사람이 다시 선다.
     await expect(target).toBeVisible();
   });
 });

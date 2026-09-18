@@ -89,7 +89,17 @@ export function MatchingExperience({
   const [leaving, setLeaving] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
-  const [hidden, setHidden] = useState<{ id: string; nickname: string } | null>(null);
+  const [hidden, setHidden] = useState<DeckCard | null>(null);
+  /**
+   * **지나친 사람이 쌓이는 자리.**
+   *
+   * 목록을 서버에서 다시 읽지 않는다 — 감춘 사람의 프로필을 읽을 권한이 없기 때문이다
+   * (`UnhideAll` 이 「몇 명」까지만 말하는 이유와 같다). X 를 누른 그 순간 카드를 손에
+   * 들고 있으므로, 그것을 그대로 쌓아 두면 이름도 사진도 점수도 다시 안 물어도 된다.
+   * **새로 고치면 비는 목록**이라는 뜻이기도 하다 — 지나친 기록을 화면 밖에서도 남기려면
+   * 표가 하나 더 있어야 한다.
+   */
+  const [passed, setPassed] = useState<DeckCard[]>([]);
   const [working, startWorking] = useTransition();
   const start = useRef<{ x: number; y: number } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,9 +128,36 @@ export function MatchingExperience({
     }, CHOICE_HOLD_MS);
   }
 
+  /**
+   * **X 는 보관이다.** 그냥 넘기는 것이 아니라 「지나친 인연」에 쌓이고, 새 추천에
+   * 다시 서지 않는다 — 저장은 「다시 보지 않기」와 같은 표를 쓴다(`discovery_hidden`).
+   * 부담 없이 넘기고 나중에 다시 꺼내 보는 것이 이 누름의 뜻이다.
+   *
+   * **여기서 `router.refresh()` 를 안 부른다.** 부르면 그 사람이 서버 목록에서 빠지며
+   * 뒤 카드의 자리가 당겨지고, 그러면 되돌리기가 엉뚱한 카드를 가리킨다.
+   */
   function pass() {
     if (exit || !profile) return;
-    leave('left', `${profile.nickname} 님을 지나쳤어요.`);
+    const passing = profile;
+
+    if (preview) {
+      setPassed((list) => [passing, ...list.filter((card) => card.candidateUserId !== passing.candidateUserId)]);
+      leave('left', `${passing.nickname} 님을 지나친 인연에 두었어요.`);
+      return;
+    }
+
+    setFailure(null);
+    startWorking(async () => {
+      const result = await hideCandidate(passing.candidateUserId);
+      if (!result.ok) {
+        setFailure(result.message);
+        return;
+      }
+      // 같은 사람을 다시 넘겨도 겹쳐 쌓지 않고 가장 최근 자리로 옮긴다.
+      setPassed((list) => [passing, ...list.filter((card) => card.candidateUserId !== passing.candidateUserId)]);
+      setHidden(passing);
+      leave('left', `${passing.nickname} 님을 지나친 인연에 두었어요.`);
+    });
   }
 
   /**
@@ -146,58 +183,46 @@ export function MatchingExperience({
     });
   }
 
-  /**
-   * **넘기는 것과 다르다.** X 는 이 덱에서만 넘기고 다음 추천에 다시 설 수 있지만,
-   * 이것은 앞으로도 안 받겠다는 뜻이라 직접 고른 자리(상세)에서만 난다.
-   *
-   * **여기서 `router.refresh()` 를 안 부른다.** 부르면 그 사람이 서버 목록에서 빠지며
-   * 뒤 카드의 자리가 하나씩 당겨지고, 그러면 되돌리기가 엉뚱한 카드를 가리킨다.
-   * 행은 이미 적혔으니 덱은 다음 장으로 넘기기만 한다.
-   */
-  function hide() {
-    if (!profile || exit) return;
-    const hiding = { id: profile.candidateUserId, nickname: profile.nickname };
-    detail.current?.close();
-    if (preview) {
-      leave('left', '미리보기예요 — 실제로 감추지 않았어요.');
-      return;
-    }
-    setFailure(null);
-    startWorking(async () => {
-      const result = await hideCandidate(hiding.id);
-      if (!result.ok) {
-        setFailure(result.message);
-        return;
-      }
-      setHidden(hiding);
-      /*
-        **화면에 선 줄과 같은 말을 하지 않는다.** 아래 실행 취소 줄이 이미
-        「앞으로 추천하지 않아요」라고 적혀 있어서, 이 안내까지 같은 문장이면
-        화면 낭독기 사용자는 한 가지 일을 두 번 듣는다.
-      */
-      leave('left', `${hiding.nickname} 님을 감췄어요.`);
-    });
-  }
-
-  /** 방금 감춘 것을 물린다 — 한 장 뒤로 돌아가고 그 행을 지운다 */
+  /** 방금 둔 것을 물린다 — 한 장 뒤로 돌아가고 보관도 함께 지운다 */
   function undoHide() {
     if (hidden === null) return;
     const back = hidden;
     setHidden(null);
+
+    const restore = () => {
+      setPassed((list) => list.filter((card) => card.candidateUserId !== back.candidateUserId));
+      setIndex((n) => Math.max(0, n - 1));
+      setOffset(0);
+      setAnnouncement(`${back.nickname} 님을 다시 추천받아요.`);
+    };
+
+    if (preview) {
+      restore();
+      return;
+    }
     startWorking(async () => {
-      const result = await unhideCandidate(back.id);
+      const result = await unhideCandidate(back.candidateUserId);
       if (!result.ok) {
         setFailure(result.message);
         return;
       }
-      setIndex((n) => Math.max(0, n - 1));
-      setOffset(0);
-      setAnnouncement(`${back.nickname} 님을 다시 추천받아요.`);
+      restore();
     });
   }
 
+  /**
+   * 되돌리기 — **방금 둔 사람이 있으면 그것부터 물린다.**
+   *
+   * 자리만 한 장 뒤로 옮기면 이미 보관된 사람이 다시 서고, 화면은 그 사람을 추천하는데
+   * 표에는 「안 받겠다」가 적혀 있는 상태가 된다.
+   */
   function undo() {
-    if (exit || index === 0) return;
+    if (exit) return;
+    if (hidden !== null) {
+      undoHide();
+      return;
+    }
+    if (index === 0) return;
     setIndex((n) => n - 1);
     setOffset(0);
     setAnnouncement('이전 인연으로 돌아왔어요.');
@@ -229,7 +254,7 @@ export function MatchingExperience({
   return <main className={`app-shell ${styles.page}`}>
     <div className={styles.topline}>
       <span><span className={styles.dot} /> 오늘의 인연</span>
-      <PassedConnections examples={preview ? cards : undefined} />
+      <PassedConnections examples={passed} />
     </div>
     <div className={styles.layout}>
       <section className={styles.intro}>
@@ -375,13 +400,7 @@ export function MatchingExperience({
         </div>
         {profile.intro !== null && <p className={styles.dialogIntro}>{profile.intro}</p>}
         <button className={styles.dialogDone} onClick={() => { detail.current?.close(); confirming.current?.showModal(); }}>상세 궁합 요청하기</button>
-        {/*
-          **주된 선택이 아니다.** 카드의 목적은 「다음 인연 / 궁합 요청」 둘이고, 이것은
-          앞으로를 정하는 드문 누름이라 상세 아래 조용한 자리에 선다.
-        */}
-        <button className={styles.hideAction} onClick={hide} disabled={working}>
-          이 사람 다시 보지 않기
-        </button>
+
       </>}
     </dialog>
 
