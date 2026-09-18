@@ -568,8 +568,12 @@ test.describe('지나친 인연에 보관하기', () => {
     /*
       **카드가 다 떠난 뒤에 누른다.** 고른 것을 읽을 시간(700ms)과 떠나는 시간(550ms)이
       끝나기 전에 누르면, 되돌리는 것과 다음 장으로 넘기는 것이 같은 자리를 두고 다툰다.
+
+      **넘김 버튼이 살아나기를 기다리면 안 된다.** 그 버튼은 `!profile || exit` 일 때
+      죽는데, 풀을 둘로 좁힌 이 시험에서는 한 장뿐인 덱이 비어 `profile` 이 없어진다 —
+      영영 안 살아난다(`f263eda` 에서 그렇게 죽었다). 시간으로만 기다린다.
     */
-    await expect(next).toBeEnabled();
+    await asker.page.waitForTimeout(1400);
     await undo.click();
 
     await expect(target).toBeVisible();
