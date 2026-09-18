@@ -368,8 +368,18 @@ export function MatchingExperience({
         <div className={styles.progress} aria-label={`${total}명 중 ${index}명 확인`}>
           {[...deck.seen, ...deck.remaining.map((card) => card.candidateUserId)].map((id, i) => <span key={id} className={i < index ? styles.seen : i === index ? styles.current : ''} />)}
         </div>
-        <p className={styles.disclaimer}>{preview ? '디자인 확인용 예시 프로필이며, 요청은 전송되지 않아요.' : teaser}</p>
-        {explorationNote !== null && <p className={styles.disclaimer}>{explorationNote}</p>}
+        {/*
+          **참고 점수라는 사실은 지우지 않고 자리를 옮긴다.** 좁은 화면에서는 이 줄을
+          접고 상세 창이 든다(`scoreNote`) — 문구 자체는 그대로 서 있어서 본문을 읽는
+          검사도 같은 것을 본다. 미리보기 안내는 접지 않는다: 그 화면에서만 서는 말이고,
+          요청이 안 나간다는 사실은 화면에 보여야 한다.
+        */}
+        {preview ? (
+          <p className={styles.disclaimer}>디자인 확인용 예시 프로필이며, 요청은 전송되지 않아요.</p>
+        ) : (
+          <p className={`${styles.disclaimer} ${styles.teaserLine}`}>{teaser}</p>
+        )}
+        {explorationNote !== null && <p className={`${styles.disclaimer} ${styles.explorationLine}`}>{explorationNote}</p>}
         {hidden !== null && (
           <p className={styles.undoBar}>
             지나친 인연에 보관했어요

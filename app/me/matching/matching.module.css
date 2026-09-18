@@ -243,3 +243,31 @@
 .undoBar { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 12px; border-radius: 20px; background: var(--surface-soft); padding: 9px 14px; font-size: 11px; color: var(--text-secondary); }
 .undoBar button { font-weight: 600; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .undoBar button:disabled { opacity: .6; cursor: default; }
+
+/*
+  **좁은 화면은 카드만 본다.**
+
+  세는 줄(01/02)·손짓 안내·진행점·참고 점수 고지가 차례로 카드를 밀어내
+  정작 볼 것이 작아져 있었다. 카드 밖의 줄을 걷고 그 높이를 사진에 준다 —
+  아래에 남는 것은 원형 버튼 줄과 전역 네비바뿐이다.
+
+  **지우는 것이 아니라 접는 것이다.** 참고 점수 고지는 DOM 에 그대로 서고
+  (`check-discovery` 가 본문에서 그 말을 읽는다) 사용자에게는 카드를 눌러 연
+  상세 창이 든다.
+*/
+@media (max-width: 760px) {
+  .deckHeader, .hint, .progress, .teaserLine, .explorationLine { display: none; }
+  .layout { max-width: 480px; margin-top: 14px; }
+  .visual { height: 380px; }
+  .controls { margin-top: 20px; }
+  .empty { min-height: 62vh; }
+}
+@media (max-width: 760px) and (max-height: 950px) {
+  .page { padding-top: 12px; }
+  .visual { height: 340px; }
+  .controls { margin-top: 14px; }
+}
+@media (max-width: 760px) and (max-height: 700px) {
+  .visual { height: 250px; }
+  .controls { margin-top: 10px; }
+}
