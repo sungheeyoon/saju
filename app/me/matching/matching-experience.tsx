@@ -11,6 +11,7 @@ import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 import { hideCandidate, requestMatch, unhideCandidate } from '../discovery/actions';
 import { RefreshBoard, UnhideAll } from '../discovery/manage';
 import styles from './matching.module.css';
+import { PassedConnections } from './passed-connections';
 
 /**
  * 덱으로 내려오는 후보 한 장 — **`CandidateCard` 에서 증표만 뗀 것**이다.
@@ -169,7 +170,12 @@ export function MatchingExperience({
         return;
       }
       setHidden(hiding);
-      leave('left', `${hiding.nickname} 님을 앞으로 추천하지 않아요.`);
+      /*
+        **화면에 선 줄과 같은 말을 하지 않는다.** 아래 실행 취소 줄이 이미
+        「앞으로 추천하지 않아요」라고 적혀 있어서, 이 안내까지 같은 문장이면
+        화면 낭독기 사용자는 한 가지 일을 두 번 듣는다.
+      */
+      leave('left', `${hiding.nickname} 님을 감췄어요.`);
     });
   }
 
@@ -223,7 +229,7 @@ export function MatchingExperience({
   return <main className={`app-shell ${styles.page}`}>
     <div className={styles.topline}>
       <span><span className={styles.dot} /> 오늘의 인연</span>
-      <span className={styles.preview}>{cards.length}명</span>
+      <PassedConnections examples={preview ? cards : undefined} />
     </div>
     <div className={styles.layout}>
       <section className={styles.intro}>

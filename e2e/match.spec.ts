@@ -558,9 +558,15 @@ test.describe('넘기기와 다시 보지 않기', () => {
     await asker.page.getByRole('button', { name: '궁합의 이유 보기' }).click();
     await asker.page.getByRole('button', { name: '이 사람 다시 보지 않기' }).click();
 
-    // 확인 창을 다시 띄우지 않는다 — 처리한 뒤에 한 줄로 알리고 되돌릴 길을 준다.
-    await expect(asker.page.getByText('앞으로 추천하지 않아요')).toBeVisible();
-    await asker.page.getByRole('button', { name: '실행 취소' }).click();
+    /*
+      확인 창을 다시 띄우지 않는다 — 처리한 뒤에 한 줄로 알리고 되돌릴 길을 준다.
+
+      **되돌릴 문으로 잰다.** 「앞으로 추천하지 않아요」라는 낱말로 잡으면 그 말이
+      화면 어디에 몇 번 적혔는지를 재게 된다 — 재려는 것은 **되돌릴 수 있는가**다.
+    */
+    const undo = asker.page.getByRole('button', { name: '실행 취소' });
+    await expect(undo).toBeVisible();
+    await undo.click();
 
     // 되돌리면 그 사람이 다시 선다.
     await expect(target).toBeVisible();
