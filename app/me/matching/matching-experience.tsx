@@ -101,6 +101,8 @@ export function MatchingExperience({
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
   const start = useRef<{ x: number; y: number } | null>(null);
+  // 끌고 나서 손을 떼면 click 이 한 번 더 온다 — 그 한 번만 삼킨다.
+  const moved = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const detail = useRef<HTMLDialogElement>(null);
   const confirming = useRef<HTMLDialogElement>(null);
@@ -214,7 +216,13 @@ export function MatchingExperience({
   }
 
   function pointerDown(event: PointerEvent<HTMLElement>) {
-    if (exit || busy.current || !event.isPrimary || event.button !== 0 || (event.target as HTMLElement).closest('button')) return;
+    if (exit || busy.current || !event.isPrimary || event.button !== 0) return;
+    /*
+      **카드 전체가 스와이프 면이다.** 예전에는 버튼 위에서 시작한 누름을 그냥 돌려보냈고,
+      카드 아래쪽이 통째로 버튼이라 사진 위에서만 끌리는 화면이 됐다. 이제는 어디서
+      시작하든 끌리고, 실제로 움직였을 때만 누름을 취소한다(`moved`).
+    */
+    moved.current = false;
     setDragging(true);
     start.current = { x: event.clientX, y: event.clientY };
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -224,6 +232,7 @@ export function MatchingExperience({
     const x = event.clientX - start.current.x;
     const y = event.clientY - start.current.y;
     if (Math.abs(y) > Math.abs(x) && Math.abs(x) < 15) { start.current = null; setDragging(false); setOffset(0); return; }
+    if (Math.abs(x) > 8) moved.current = true;
     setOffset(x);
   }
   function pointerUp() {
@@ -264,6 +273,11 @@ export function MatchingExperience({
               className={`${styles.card} ${tone} ${exit ? styles[exit] : ''} ${leaving ? styles.leaving : ''}`}
               aria-busy={!!exit || working}
               style={{ '--swipe-start': `translateX(${offset}px) rotate(${offset / 22}deg)`, '--exit-duration': `${CARD_EXIT_MS}ms`, transform: `translateX(${offset}px) rotate(${offset / 22}deg)`, transition: dragging ? 'none' : undefined } as CSSProperties}
+              onClick={() => {
+                // 끌어서 넘긴 손짓이 창을 열지 않게 한다.
+                if (moved.current) { moved.current = false; return; }
+                if (!exit) detail.current?.showModal();
+              }}
               onPointerDown={pointerDown}
               onPointerMove={pointerMove}
               onPointerUp={pointerUp}
@@ -293,7 +307,7 @@ export function MatchingExperience({
                 </span>
               </div>
               <div className={styles.cardBody}>
-                <button className={styles.compatibility} disabled={!!exit} onClick={() => detail.current?.showModal()} aria-label={`${profile.nickname} 님과의 예측 궁합 ${profile.previewScore}점, 추천 이유 보기`}>
+                <div className={styles.compatibility}>
                   <div className={styles.scoreHeading}><span>나와의 예측 궁합 점수</span><span className={styles.sampleScore}>{profile.balanceLabel}</span></div>
                   <div className={styles.scoreRow}>
                     <p className={styles.score}><strong>{profile.previewScore}</strong><span> / 100</span></p>
@@ -317,14 +331,19 @@ export function MatchingExperience({
                   ) : (
                     <p className={styles.cardReason}>{profile.reason}</p>
                   )}
-                </button>
+                </div>
                 {profile.intro !== null ? (
                   <p className={styles.cardIntro}>{profile.intro}</p>
                 ) : (
                   <p className={`${styles.cardIntro} ${styles.introEmpty}`}>자기소개 없음</p>
                 )}
-                <button className={styles.more} disabled={!!exit} onClick={() => detail.current?.showModal()}><span>궁합의 이유 보기</span><Icon name="arrow" /></button>
               </div>
+              {/*
+                카드를 누르면 열린다 — 누르는 자리를 글자 한 줄로 좁히지 않는다. 보이지
+                않는 이 단추는 **키보드와 화면 낭독기의 몫**이고, 눌린 것은 카드의
+                `onClick` 이 받는다(한 번만 열리게).
+              */}
+              <button type="button" className={styles.tapTarget} disabled={!!exit} aria-label={`${profile.nickname} 님과의 예측 궁합 자세히 보기`} />
             </article>
           </> : (
             <div className={styles.empty}>
@@ -362,9 +381,20 @@ export function MatchingExperience({
       </section>
     </div>
 
-    <dialog ref={detail} className={styles.dialog} onClick={(event) => { if (event.target === event.currentTarget) detail.current?.close(); }}>
+    <dialog ref={detail} className={`${styles.dialog} ${tone}`} onClick={(event) => { if (event.target === event.currentTarget) detail.current?.close(); }}>
       {profile && <>
-        <div className={styles.dialogTop}><span className="eyebrow">나의 귀인을 알아가는 시간</span><button aria-label="닫기" onClick={() => detail.current?.close()}><Icon name="close" /></button></div>
+        {/* **사람이 먼저다.** 얼굴을 맨 위에 두고 그 아래에서 왜 이 사람인지를 읽는다. */}
+        <div className={styles.detailPhoto}>
+          {photoOf(profile) !== null ? (
+            // eslint-disable-next-line @next/next/no-img-element -- 우리 라우트가 바이트를 낸다
+            <img src={photoOf(profile)!} alt="" className={styles.profilePhoto} />
+          ) : (
+            <span className={styles.initial} aria-hidden="true">{initialOf(profile.nickname)}</span>
+          )}
+          <strong className={styles.detailName}>{profile.nickname}</strong>
+          <button className={styles.detailClose} aria-label="닫기" onClick={() => detail.current?.close()}><Icon name="close" /></button>
+        </div>
+        <p className={`eyebrow ${styles.detailEyebrow}`}>나의 귀인을 알아가는 시간</p>
         <h2>왜 나와 잘 맞을까요?</h2>
         <section className={styles.detailCompatibility} aria-label="예측 궁합의 이유">
           <div className={styles.scoreHeading}><span>나 × {profile.nickname} · 예측 궁합</span><span className={styles.sampleScore}>{profile.balanceLabel}</span></div>
@@ -376,14 +406,6 @@ export function MatchingExperience({
           <p>{profile.reason}</p>
           <p className={styles.scoreNote}>{teaser}</p>
         </section>
-        <div className={styles.detailPhoto}>
-          {photoOf(profile) !== null ? (
-            // eslint-disable-next-line @next/next/no-img-element -- 우리 라우트가 바이트를 낸다
-            <img src={photoOf(profile)!} alt="" className={styles.profilePhoto} />
-          ) : (
-            <span className={styles.initial} aria-hidden="true">{initialOf(profile.nickname)}</span>
-          )}
-        </div>
         <p className={styles.dialogIntro}>{profile.intro || '자기소개 없음'}</p>
         <button className={styles.dialogDone} onClick={() => { detail.current?.close(); confirming.current?.showModal(); }}>상세 궁합 요청하기</button>
 
