@@ -114,8 +114,15 @@ export async function hideCandidate(candidateUserId: string): Promise<SaveResult
 
   if (error) return { ok: false, message: error.message };
 
+  /*
+    **덱을 사용자 밑에서 다시 그리지 않는다.** 서버 액션의 `revalidatePath` 는 응답에
+    새 RSC 페이로드를 실어 라우트를 다시 그린다 — 그러면 이 사람이 `cards` 에서 빠지고
+    뒤 카드가 한 칸씩 당겨지는데, 덱이 든 자리(`index`)는 `key` 가 같아 살아남아 계산이
+    어긋난다(느린 기계에서 먼저 드러났다, `74349b6`). 덱은 자기 자리를 스스로 옮기고
+    새 자료는 다음 이동에서 받는다. **`refreshDiscoveryBoard` 는 다르다** — 거기서는
+    스냅샷 시각이 바뀌어 덱이 통째로 다시 선다.
+  */
   revalidatePath('/me');
-  revalidatePath('/me/matching');
   return { ok: true };
 }
 
@@ -139,8 +146,15 @@ export async function unhideCandidate(candidateUserId: string): Promise<SaveResu
 
   if (error) return { ok: false, message: error.message };
 
+  /*
+    **덱을 사용자 밑에서 다시 그리지 않는다.** 서버 액션의 `revalidatePath` 는 응답에
+    새 RSC 페이로드를 실어 라우트를 다시 그린다 — 그러면 이 사람이 `cards` 에서 빠지고
+    뒤 카드가 한 칸씩 당겨지는데, 덱이 든 자리(`index`)는 `key` 가 같아 살아남아 계산이
+    어긋난다(느린 기계에서 먼저 드러났다, `74349b6`). 덱은 자기 자리를 스스로 옮기고
+    새 자료는 다음 이동에서 받는다. **`refreshDiscoveryBoard` 는 다르다** — 거기서는
+    스냅샷 시각이 바뀌어 덱이 통째로 다시 선다.
+  */
   revalidatePath('/me');
-  revalidatePath('/me/matching');
   return { ok: true };
 }
 
@@ -184,8 +198,15 @@ export async function requestMatch(candidateUserId: string): Promise<SaveResult>
 
   if (error) return { ok: false, message: error.message };
 
+  /*
+    **덱을 사용자 밑에서 다시 그리지 않는다.** 서버 액션의 `revalidatePath` 는 응답에
+    새 RSC 페이로드를 실어 라우트를 다시 그린다 — 그러면 이 사람이 `cards` 에서 빠지고
+    뒤 카드가 한 칸씩 당겨지는데, 덱이 든 자리(`index`)는 `key` 가 같아 살아남아 계산이
+    어긋난다(느린 기계에서 먼저 드러났다, `74349b6`). 덱은 자기 자리를 스스로 옮기고
+    새 자료는 다음 이동에서 받는다. **`refreshDiscoveryBoard` 는 다르다** — 거기서는
+    스냅샷 시각이 바뀌어 덱이 통째로 다시 선다.
+  */
   revalidatePath('/me');
-  revalidatePath('/me/matching');
   revalidatePath('/me/requests');
   return { ok: true };
 }

@@ -566,6 +566,13 @@ test.describe('넘기기와 다시 보지 않기', () => {
     */
     const undo = asker.page.getByRole('button', { name: '실행 취소' });
     await expect(undo).toBeVisible();
+
+    /*
+      **카드가 다 떠난 뒤에 누른다.** 고른 것을 읽을 시간(700ms)과 떠나는 시간(550ms)이
+      끝나기 전에 누르면, 되돌리는 것과 다음 장으로 넘기는 것이 같은 자리를 두고 다툰다.
+      사람은 그 줄을 읽고 나서 누르지만 시험은 뜨자마자 누른다.
+    */
+    await expect(asker.page.getByRole('button', { name: '다음 인연으로 지나가기' })).toBeEnabled();
     await undo.click();
 
     // 되돌리면 그 사람이 다시 선다.
