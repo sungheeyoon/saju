@@ -56,7 +56,7 @@ async function expectReadingCredits(page: Page, label: string) {
  */
 
 test.describe('초대된 사람의 로그인 흐름', () => {
-  test('모바일은 핵심 메뉴를 하단에 모두 보이고 나머지는 설정에 둔다', async ({
+  test('모바일은 매칭을 하단에 보이고 사람은 전체 메뉴에 둔다', async ({
     page,
     signedIn,
   }, testInfo) => {
@@ -68,7 +68,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(mobileNav).toBeVisible();
 
     const viewportWidth = page.viewportSize()?.width ?? 0;
-    for (const label of ['내 사주', '사주·궁합', '사람', '풀이', '소식']) {
+    for (const label of ['내 사주', '사주·궁합', '매칭', '풀이', '소식']) {
       const link = mobileNav.getByRole('link', { name: label, exact: true });
       await expect(link).toBeVisible();
       const box = await link.boundingBox();
@@ -86,6 +86,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     expect((creditBox?.x ?? 0) + (creditBox?.width ?? 0)).toBeLessThanOrEqual(menuBox?.x ?? 0);
 
     await wholeMenu.click();
+    await expect(page.getByRole('link', { name: '사람', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: '사람', exact: true })).toHaveAttribute('href', '/me/people');
     await expect(page.getByRole('link', { name: '사주 보기', exact: true })).toHaveCount(0);
     await expect(page.getByRole('link', { name: '인연 설정', exact: true })).toHaveCount(0);
   });

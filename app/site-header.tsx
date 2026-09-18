@@ -40,6 +40,7 @@ const PUBLIC_LINKS = [] as const;
  */
 const MEMBER_LINKS = [
   { href: '/me', label: '내 사주' },
+  { href: '/me/matching', label: '매칭' },
   { href: '/', label: '사주·궁합' },
   { href: '/me/people', label: '사람' },
   /**
@@ -65,7 +66,7 @@ const MEMBER_LINKS = [
 const MOBILE_LINKS = [
   { href: '/me', label: '내 사주', icon: 'home' },
   { href: '/', label: '사주·궁합', icon: 'compat' },
-  { href: '/me/people', label: '사람', icon: 'people' },
+  { href: '/me/matching', label: '매칭', icon: 'people' },
   { href: '/me/readings', label: '풀이', icon: 'reading' },
   { href: '/me/requests', label: '소식', icon: 'news' },
 ] as const;
@@ -502,13 +503,22 @@ function AccountMenu({
           쪽이 그 화면의 길인지 사용자가 정하게 된다.
         */}
         {!ended && variant === 'mobile' && (
-          <Link
-            href="/me/survey"
-            onClick={close}
-            className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
-          >
-            서비스 설문
-          </Link>
+          <>
+            <Link
+              href="/me/people"
+              onClick={close}
+              className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
+            >
+              사람
+            </Link>
+            <Link
+              href="/me/survey"
+              onClick={close}
+              className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
+            >
+              서비스 설문
+            </Link>
+          </>
         )}
         <Link
           href="/me/settings"

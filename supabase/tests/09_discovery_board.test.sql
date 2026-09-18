@@ -9,7 +9,7 @@
 -- 「가중치대로 뽑혔는가」도 잰다 — 같은 씨앗이면 같은 목록이므로 여러 씨앗으로 뽑아
 -- 등장 횟수를 세면 된다. 그 문은 `authenticated` 에게 닫혀 있고, 그것도 여기서 잰다.
 begin;
-select plan(27);
+select plan(34);
 
 /**
  * 참여자 하나를 세우는 손잡이.
@@ -393,6 +393,98 @@ select throws_ok(
   '42501',
   null,
   '씨앗을 넣는 문은 authenticated 에게 닫혀 있다');
+
+reset role;
+
+-- ── 지나친 인연 — **영구 숨김과 다른 수명** ────────────────────────────────────
+--
+-- 스물과 24시간은 다른 것을 잰다. 스물은 사용자가 다시 꺼내 볼 수 있는 목록의 길이이고,
+-- 24시간은 그 목록 밖으로 밀려난 사람이 다시 후보가 되기까지의 대기다. 그래서 여기서
+-- 재는 것은 **세 자리**다: 스물 안 · 스물 밖이지만 24시간 안 · 둘 다 아닌 자리.
+
+/**
+ * **지금 실제로 후보인 사람을 고른다.**
+ *
+ * 앞 블록이 「그 사이 자격을 잃은 사람」을 재려고 숨김 한 줄을 남겨 둔다. 점수 순으로
+ * 첫 사람을 집으면 그 줄과 겹칠 수 있고, 그러면 이 시험은 **지나치기와 무관한 이유로**
+ * 빨개진다 — 재려는 것은 지나치기가 후보 자격을 어떻게 바꾸는가다.
+ */
+-- 앞의 숨김 검사가 남긴 한 명을 복원해 이 절에서는 표시 상한만 잰다.
+-- 최근 20명 중 숨긴 사람이 있으면 19명만 표시하는 계약은 30번 파일에서 별도로 잰다.
+delete from public.discovery_hidden
+where user_id = (select uid from me) and hidden_user_id in (select user_id from scores);
+
+create temporary table passer as
+select user_id from scores
+where public.discovery_eligible((select uid from me), user_id)
+order by rnk limit 1;
+
+select is(
+  public.discovery_eligible((select uid from me), (select user_id from passer)),
+  true,
+  '지나치기 전에는 후보다');
+
+insert into public.discovery_passed (user_id, passed_user_id)
+values ((select uid from me), (select user_id from passer));
+
+select is(
+  public.discovery_eligible((select uid from me), (select user_id from passer)),
+  false,
+  '지나친 사람은 후보에서 빠진다');
+
+/** 스물 안에 있으면 **시간과 무관하다** — 목록에 서 있는 사람을 추천하지 않는다 */
+update public.discovery_passed set passed_at = now() - interval '30 days'
+where user_id = (select uid from me) and passed_user_id = (select user_id from passer);
+
+select is(
+  public.discovery_eligible((select uid from me), (select user_id from passer)),
+  false,
+  '스물 안이면 30일이 지나도 추천하지 않는다');
+
+/**
+ * **스물 밖으로 민다.** 이 사람보다 최근에 지나친 사람을 스물 채우면 목록에서 밀려난다.
+ * 그래도 마지막 넘김에서 24시간이 안 지났으면 아직 후보가 아니다 — 이 조건이 없으면
+ * 스물한 번째를 넘기는 순간 가장 오래된 사람이 바로 다음 카드로 선다.
+ */
+update public.discovery_passed set passed_at = now() - interval '2 hours'
+where user_id = (select uid from me) and passed_user_id = (select user_id from passer);
+
+insert into public.discovery_passed (user_id, passed_user_id, passed_at)
+select (select uid from me), user_id, now() - interval '1 hour'
+from scores where user_id <> (select user_id from passer) order by rnk limit 20;
+
+select is(
+  (select count(*)::int from public.discovery_passed where user_id = (select uid from me)),
+  21,
+  '스물하나가 쌓였다 — 하나는 목록 밖이다');
+
+select is(
+  public.discovery_eligible((select uid from me), (select user_id from passer)),
+  false,
+  '스물 밖이어도 24시간이 안 지났으면 추천하지 않는다');
+
+/** 스물 밖이고 24시간도 지났다 — **기록이 남아 있어도 후보로 돌아온다** */
+update public.discovery_passed set passed_at = now() - interval '25 hours'
+where user_id = (select uid from me) and passed_user_id = (select user_id from passer);
+
+select is(
+  public.discovery_eligible((select uid from me), (select user_id from passer)),
+  true,
+  '스물 밖이고 24시간이 지나면 다시 후보가 된다');
+
+-- ── 보관함을 읽는 문 ─────────────────────────────────────────────────────────
+
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
+
+/**
+ * **최근 순으로 스물까지.** 스물하나를 쌓아도 스물만 낸다 — 목록의 길이는 읽을 때 자른다.
+ * 이 호출이 서는 것으로 반환형이 맞는지도 함께 잰다.
+ */
+select is(
+  (select count(*)::int from public.my_passed_connections()),
+  20,
+  '보관함은 최근 스물까지만 낸다');
 
 reset role;
 select * from finish();

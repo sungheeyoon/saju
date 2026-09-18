@@ -1,0 +1,10 @@
+Generated with the built-in image_gen tool. Fictional adults for UI preview only.
+
+seoyeon.webp
+Use case: photorealistic-natural. Asset: fictional adult dating profile demo photo for a refined Korean app. One single portrait of a fictional 28-year-old Korean woman with shoulder-length dark hair, ivory knit cardigan, gentle smile, seated by a cafe window, soft sage greenery in background. Natural realistic skin texture, warm soft daylight, authentic approachable everyday portrait, not glamour or commercial fashion. Vertical 4:5 composition, head and upper torso, face centered horizontally with full head comfortably inside central 60% of image, generous space above head. No text, logos, collage, graphics or watermark.
+
+jiwoo.webp
+Use case: photorealistic-natural. Asset: fictional adult dating profile demo photo for a refined Korean app. One single portrait of a fictional 27-year-old Korean woman with a short dark bob, warm brown casual jacket and white top, friendly candid smile, outdoor art gallery courtyard. Natural realistic skin texture, warm soft daylight, authentic approachable everyday portrait, not glamour or commercial fashion. Vertical 4:5 composition, head and upper torso, face centered horizontally with full head comfortably inside central 60% of image, generous space above head. No text, logos, collage, graphics or watermark.
+
+harin.webp
+Use case: photorealistic-natural. Asset: fictional adult dating profile demo photo for a refined Korean app. One single portrait of a fictional 29-year-old Korean woman with long dark hair, light blue cotton shirt, relaxed smile, a softly blurred riverside park. Natural realistic skin texture, warm soft daylight, authentic approachable everyday portrait, not glamour or commercial fashion. Vertical 4:5 composition, head and upper torso, face centered horizontally with full head comfortably inside central 60% of image, generous space above head. No text, logos, collage, graphics or watermark.

@@ -19,7 +19,7 @@ import { HideButton, PreviewScorePanel, RefreshBoard, UnhideAll } from './manage
  * 설정(조건·참여 켜고 끄기)은 `/me/settings` 에 둔다. 목록과 설정은
  * 보는 빈도가 다르다 — 매번 보는 것을 매번 안 보는 것 아래에 두면 목록이 안 읽힌다.
  */
-export async function DiscoveryBoard() {
+export async function DiscoveryBoard({ participationOnly = false }: { participationOnly?: boolean } = {}) {
   const supabase = await supabaseOnServer();
 
   /*
@@ -33,7 +33,7 @@ export async function DiscoveryBoard() {
     .select('opted_out_at')
     .maybeSingle();
 
-  if (profile?.opted_out_at != null) return <Resting />;
+  if (profile?.opted_out_at != null) return participationOnly ? null : <Resting />;
 
   const self = await selfElementSummary();
   if (self === null) return null;
@@ -53,7 +53,7 @@ export async function DiscoveryBoard() {
     p_person_id: self.personId,
     p_summary: self.summary,
   });
-  if (joined !== true) return null;
+  if (joined !== true || participationOnly) return null;
 
   // 목록을 **먼저** 읽는다 — 그 호출이 하루 지난 스냅샷을 새로 만들 수 있고, 시각은
   // 그다음에 물어야 방금 만들어진 것의 시각이 된다.
