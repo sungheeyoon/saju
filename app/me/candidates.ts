@@ -135,6 +135,56 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
   };
 }
 
+/** `my_passed_connections()` 가 내주는 한 줄 — 카드와 같은 칸에 지나친 때가 붙는다 */
+type PassedRow = {
+  candidate_user_id: string;
+  nickname: string;
+  intro: string | null;
+  has_photo: boolean;
+  passed_at: string;
+  supplied_elements: string[] | null;
+  balance_band: string;
+  preview_score: number;
+};
+
+/** 보관함의 한 장 — 카드가 아는 칸에 **지나친 때**만 더한다 */
+export type PassedCard = Omit<CandidateCard, 'position' | 'exploration' | typeof granted> & {
+  readonly passedAt: string;
+};
+
+/**
+ * 내가 지나친 사람들 — **최근 스물**(ADR: `discovery_passed`).
+ *
+ * 자르는 일은 DB 가 한다. 스물이라는 수도, 자격을 잃은 사람을 빼는 일도 저쪽에 있고
+ * 여기서 하는 것은 **말로 옮기는 것**뿐이다 — 후보 목록과 같은 규율이다.
+ *
+ * 점수는 지금 값으로 다시 센 것이다. 지나칠 때의 값이 아니다.
+ */
+export async function passedForViewer(mySummary: ElementSummary): Promise<PassedCard[]> {
+  const supabase = await supabaseOnServer();
+
+  const { data, error } = await supabase.rpc('my_passed_connections');
+  if (error) throw new Error(error.message);
+
+  return ((data ?? []) as PassedRow[]).map((row) => {
+    const suppliedElements = knownElementsOf(row.supplied_elements);
+    const balanceBand = balanceBandOf(row.balance_band);
+    // 카드와 같은 반올림을 쓴다 — 같은 사람이 두 화면에서 다른 수를 들면 안 된다.
+    const previewScore = Math.max(0, Math.min(100, Math.round(row.preview_score)));
+
+    return {
+      candidateUserId: row.candidate_user_id,
+      nickname: row.nickname,
+      intro: row.intro,
+      hasPhoto: row.has_photo === true,
+      previewScore,
+      passedAt: row.passed_at,
+      ...cardTextFor({ suppliedElements, balanceBand, viewerCounts: mySummary.counts }),
+      ...previewSummaryFor({ previewScore, suppliedElements, balanceBand }),
+    };
+  });
+}
+
 /** 목록을 언제 받았고 몇 초 뒤에 다시 받을 수 있나 — **두 값 다 DB 가 센다** */
 export type BoardStamp = { generatedAt: string; waitSeconds: number };
 

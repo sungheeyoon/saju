@@ -179,6 +179,57 @@ export async function unhideAllCandidates(): Promise<SaveResult> {
 }
 
 /**
+ * 이 사람은 **지금은** 지나친다 — 「다시 보지 않기」와 다른 표다.
+ *
+ * `discovery_hidden` 은 직접 풀기 전까지 영원하고, 이쪽은 최근 스물과 24시간이 수명을
+ * 정한다(`discovery_passed_active`). 둘을 한 표에 담으면 낱말 하나가 두 뜻을 갖는다.
+ *
+ * **같은 사람을 다시 넘기면 맨 위로 옮긴다** — 겹쳐 쌓지 않는다. 그래서 `user_id` 를
+ * 손으로 싣는다: 기본값이 `auth.uid()` 라도 충돌 대상 칼럼이 payload 에 있어야 upsert
+ * 가 한 번의 왕복으로 끝난다. 정책의 `with check` 가 같은 값을 다시 묻는다.
+ */
+export async function passCandidate(candidateUserId: string): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: '로그인이 필요합니다.' };
+
+  const { error } = await supabase
+    .from('discovery_passed')
+    .upsert(
+      { user_id: user.id, passed_user_id: candidateUserId, passed_at: new Date().toISOString() },
+      { onConflict: 'user_id,passed_user_id' },
+    );
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/me');
+  return { ok: true };
+}
+
+/**
+ * 보관함에서 꺼낸다 — 「다시 만나보기」와 방금 둔 것의 「실행 취소」가 같이 쓴다.
+ *
+ * 꺼내는 순간 다시 후보가 된다(`discovery_eligible`). 기본키가
+ * `(user_id, passed_user_id)` 이고 정책이 `user_id = auth.uid()` 라 내 행 하나에만 닿는다.
+ */
+export async function restorePassed(candidateUserId: string): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  const { error } = await supabase
+    .from('discovery_passed')
+    .delete()
+    .eq('passed_user_id', candidateUserId);
+
+  if (error) return { ok: false, message: error.message };
+
+  revalidatePath('/me');
+  return { ok: true };
+}
+
+/**
  * 상세 궁합을 함께 보자고 청한다.
  *
  * **인자는 상대 하나뿐이다.** 판본도 추천 이유도 정책 버전도 RPC 가 그 자리에서 읽는다 —

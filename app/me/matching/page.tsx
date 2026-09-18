@@ -7,7 +7,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
-import { boardStamp, candidatesForViewer } from '../candidates';
+import { boardStamp, candidatesForViewer, passedForViewer } from '../candidates';
 import { selfElementSummary } from '../summary';
 import { MatchingExperience, type DeckCard } from './matching-experience';
 
@@ -71,6 +71,11 @@ export default async function MatchingPage() {
   // 목록을 **먼저** 읽는다 — 그 호출이 하루 지난 스냅샷을 새로 만들 수 있다.
   const board = await candidatesForViewer(self.summary);
   const stamp = await boardStamp();
+  /*
+    **보관함은 서버가 든다.** 화면 상태로만 쌓으면 새로 고치거나 탭을 옮긴 순간 비고,
+    그러면 추천에서는 빠져 있는데 꺼낼 자리도 없는 사람이 생긴다.
+  */
+  const passed = await passedForViewer(self.summary);
   const { data: hidden } = await supabase.from('discovery_hidden').select('hidden_user_id');
 
   /*
@@ -94,11 +99,28 @@ export default async function MatchingPage() {
     })),
   }));
 
+  const passedCards: DeckCard[] = passed.map((card) => ({
+    candidateUserId: card.candidateUserId,
+    nickname: card.nickname,
+    intro: card.intro,
+    hasPhoto: card.hasPhoto,
+    exploration: false,
+    previewScore: card.previewScore,
+    verdict: card.verdict,
+    reason: card.reason,
+    balanceLabel: card.balanceLabel,
+    highlights: card.highlights.map((highlight) => ({
+      element: highlight.element,
+      text: highlight.text,
+    })),
+  }));
+
   return (
     <MatchingExperience
       /* 새 목록이 곧 새 덱이다 — 남은 초를 세는 버튼도 여기서 다시 선다 */
       key={stamp?.generatedAt ?? 'none'}
       cards={cards}
+      passed={passedCards}
       teaser={board.teaser}
       notice={board.notice}
       explorationNote={board.explorationNote}

@@ -8,7 +8,7 @@ import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
 import { initialOf } from '@/src/lib/profile';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 
-import { hideCandidate, requestMatch, unhideCandidate } from '../discovery/actions';
+import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
 import { RefreshBoard, UnhideAll } from '../discovery/manage';
 import styles from './matching.module.css';
 import { PassedConnections } from './passed-connections';
@@ -70,9 +70,12 @@ export function MatchingExperience({
   explorationNote,
   hiddenCount,
   waitSeconds,
+  passed: passedFromServer = [],
   preview = false,
 }: {
   cards: readonly DeckCard[];
+  /** 서버가 든 보관함 — 새로 고쳐도 남는다 */
+  passed?: readonly DeckCard[];
   teaser: string;
   notice: string | null;
   explorationNote: string | null;
@@ -99,7 +102,7 @@ export function MatchingExperience({
    * **새로 고치면 비는 목록**이라는 뜻이기도 하다 — 지나친 기록을 화면 밖에서도 남기려면
    * 표가 하나 더 있어야 한다.
    */
-  const [passed, setPassed] = useState<DeckCard[]>([]);
+  const [passed, setPassed] = useState<DeckCard[]>([...passedFromServer]);
   const [working, startWorking] = useTransition();
   const start = useRef<{ x: number; y: number } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -136,8 +139,18 @@ export function MatchingExperience({
    * **여기서 `router.refresh()` 를 안 부른다.** 부르면 그 사람이 서버 목록에서 빠지며
    * 뒤 카드의 자리가 당겨지고, 그러면 되돌리기가 엉뚱한 카드를 가리킨다.
    */
+  /** 예약된 이동을 물린다 — 되돌릴 때 이 타이머가 살아 있으면 복원 직후 또 넘어간다 */
+  function cancelLeave() {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    setExit(null);
+    setLeaving(false);
+    setOffset(0);
+  }
+
   function pass() {
-    if (exit || !profile) return;
+    // **저장 중에는 또 못 누른다** — 느린 응답에서 두 번 쌓이거나 다른 누름과 엉킨다.
+    if (exit || working || !profile) return;
     const passing = profile;
 
     if (preview) {
@@ -148,7 +161,7 @@ export function MatchingExperience({
 
     setFailure(null);
     startWorking(async () => {
-      const result = await hideCandidate(passing.candidateUserId);
+      const result = await passCandidate(passing.candidateUserId);
       if (!result.ok) {
         setFailure(result.message);
         return;
@@ -166,7 +179,7 @@ export function MatchingExperience({
    * 그 셋을 건너뛰게 두지 않는다.
    */
   function send() {
-    if (!profile) return;
+    if (!profile || working) return;
     if (preview) {
       leave('right', `미리보기예요 — ${profile.nickname} 님에게 요청은 전송되지 않았어요.`);
       return;
@@ -189,9 +202,17 @@ export function MatchingExperience({
     const back = hidden;
     setHidden(null);
 
+    /**
+     * **자리가 아니라 id 로 돌아간다.**
+     *
+     * 한 장 뒤로 세면 그 사이 목록이 바뀌었을 때 엉뚱한 사람이 선다. 그 사람이 덱에
+     * 있으면 그 자리로 가고, 없으면(이미 지나간 목록이면) 맨 앞에 세운다.
+     */
     const restore = () => {
+      cancelLeave();
       setPassed((list) => list.filter((card) => card.candidateUserId !== back.candidateUserId));
-      setIndex((n) => Math.max(0, n - 1));
+      const at = cards.findIndex((card) => card.candidateUserId === back.candidateUserId);
+      setIndex(at >= 0 ? at : 0);
       setOffset(0);
       setAnnouncement(`${back.nickname} 님을 다시 추천받아요.`);
     };
@@ -201,7 +222,7 @@ export function MatchingExperience({
       return;
     }
     startWorking(async () => {
-      const result = await unhideCandidate(back.candidateUserId);
+      const result = await restorePassed(back.candidateUserId);
       if (!result.ok) {
         setFailure(result.message);
         return;
@@ -246,6 +267,7 @@ export function MatchingExperience({
     if (!start.current) return;
     start.current = null;
     // 오른쪽으로 밀어도 **바로 안 나간다** — 확인 창이 먼저 선다.
+    if (working) { setOffset(0); return; }
     if (offset > 85) { setOffset(0); confirming.current?.showModal(); return; }
     if (offset < -85) { pass(); return; }
     setOffset(0);
