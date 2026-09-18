@@ -25,6 +25,8 @@
 .wood { --art-bg: #e6ece0; --art-color: #56735b; }
 .fire { --art-bg: #f3e5d5; --art-color: #b57650; }
 .water { --art-bg: #e3eaec; --art-color: #587b89; }
+.earth { --art-bg: #efe8db; --art-color: #8a7452; }
+.metal { --art-bg: #eaeaec; --art-color: #6f7480; }
 .visual { background: var(--art-bg); color: var(--art-color); position: relative; height: 320px; overflow: hidden; }
 .visual::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, #12231925, transparent 30%, transparent 65%, #12231965); }
 .profilePhoto { object-fit: cover; object-position: 50% 18%; pointer-events: none; }
@@ -44,7 +46,7 @@
 .location { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text-secondary); }
 .location svg { width: 12px; height: 12px; }
 .job { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
-.cardIntro { font-size: 13px; line-height: 1.85; color: var(--text-secondary); margin-top: 16px; }
+.cardIntro { font-size: 13px; line-height: 1.85; color: var(--text-secondary); margin-top: 16px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-block: 16px 20px; }
 .tags span { border-radius: 20px; padding: 4px 10px; background: var(--surface-soft); font-size: 10px; color: var(--text-secondary); }
 .more { display: flex; justify-content: space-between; align-items: center; width: 100%; border-top: 1px solid var(--border); padding: 15px 0; font-size: 11px; color: var(--accent); cursor: pointer; }
@@ -111,7 +113,7 @@
   .empty { min-height: 535px; }
 }
 @media (max-width: 380px) { .visual { height: 245px; } .cardBody { padding-inline: 19px; } .location { font-size: 10px; } }
-@media (prefers-color-scheme: dark) { .wood { --art-bg: #29392e; --art-color: #a1b89a; } .fire { --art-bg: #423329; --art-color: #d5aa80; } .water { --art-bg: #283b42; --art-color: #a1bcc9; } }
+@media (prefers-color-scheme: dark) { .wood { --art-bg: #29392e; --art-color: #a1b89a; } .fire { --art-bg: #423329; --art-color: #d5aa80; } .water { --art-bg: #283b42; --art-color: #a1bcc9; } .earth { --art-bg: #3b3327; --art-color: #cbb78f; } .metal { --art-bg: #32343a; --art-color: #b9bdc7; } }
 @media (prefers-reduced-motion: reduce) { .card, .card.left.leaving, .card.right.leaving, .dialog[open], .empty { animation: none; transition: none; } }
 /* Keep the card and its decisions together on everyday phone screens. */
 @media (max-width: 760px) and (max-height: 950px) {
@@ -217,3 +219,22 @@
   .elementBadge span { display: none; }
 }
 @media (max-width: 380px) { .undo { left: 10px; } .controls { gap: 12px; padding-left: 22px; } }
+
+/* 사진은 선택이라, 없으면 이름의 첫 글자가 그 자리를 든다 */
+.initial { position: absolute; inset: 0; display: grid; place-items: center; font-size: 72px; font-weight: 600; color: var(--art-color); }
+.profilePhoto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; pointer-events: none; }
+.photoBottom h2 { font-size: 26px; }
+.elementBadge { font-family: serif; font-size: 18px; }
+.hideRow { display: flex; justify-content: flex-end; padding-top: 10px; }
+.emptyActions { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 26px; }
+.failure { margin-top: 10px; font-size: 11px; text-align: center; color: var(--danger, #b4544a); }
+.confirmNote { margin-top: 14px; border-radius: 14px; background: var(--surface-soft); padding: 14px; font-size: 12px; line-height: 1.8; color: var(--text-secondary); }
+.confirmActions { display: flex; flex-direction: column-reverse; gap: 9px; margin-top: 20px; }
+.confirmCancel { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 24px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+.dialog h2 { line-height: 1.5; }
+
+/* 보완 오행이 없는 카드에서 「왜 이 사람인가」를 드는 자리 */
+.cardReason { margin-top: 9px; font-size: 11px; line-height: 1.75; color: var(--text-secondary); }
+.detailPhoto .initial { font-size: 96px; }
+/* 소개를 안 쓴 사람 자리 — 비워 두면 카드가 덜 그려진 것으로 보인다 */
+.introEmpty { color: var(--text-muted); font-style: normal; }

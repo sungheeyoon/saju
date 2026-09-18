@@ -59,16 +59,16 @@ export default async function MePage() {
           <Unread />
           <SelfChart personId={selfPersonId} />
           {/*
-            **매칭은 아직 미리보기다.** 홈의 추천 목록(아래)이 진짜 후보를 세우고,
-            이 링크는 옮겨 갈 화면을 보여 주기만 한다 — 참여를 여는 자리는 그대로
-            목록이 서는 이 화면이다.
+            **같은 후보를 카드 한 장씩 본다.** 아래 목록과 자료가 같다
+            (`candidatesForViewer`) — 뽑는 일도 자르는 일도 한 자리에서 나므로 화면이
+            둘이라고 점수가 갈리지 않는다. 참여를 여는 문은 두 화면에 다 있다.
           */}
           <Link
             href="/me/matching"
             className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-accent-wash px-5 py-4 text-sm text-accent"
           >
             <span>
-              <strong className="block font-semibold">오늘의 인연 미리보기</strong>
+              <strong className="block font-semibold">오늘의 인연</strong>
               <span className="mt-1 block text-xs text-secondary">
                 예측 궁합과 보완하는 기운으로, 나의 귀인을 찾아보세요.
               </span>

@@ -474,3 +474,54 @@ test.describe('동의로 열리는 흐름', () => {
     expect(again.error).not.toBeNull();
   });
 });
+
+/**
+ * 덱으로 보는 오늘의 인연 — **목록과 같은 자료, 같은 문턱.**
+ *
+ * 카드 모양이 다르다고 규칙이 달라지면 안 된다. 재는 것은 둘이다: 진짜 후보가 실제로
+ * 서는가, 그리고 **하트 한 번으로 요청이 나가 버리지 않는가.** 풀이권 1회 예약과
+ * 여덟 글자 공개는 누르기 전에 읽혀야 한다.
+ */
+test.describe('덱으로 보는 오늘의 인연', () => {
+  test('진짜 후보가 서고, 확인 창을 지나야 요청이 난다', async ({ openAs }) => {
+    const tag = freshTag();
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+    await bothParticipate(asker, receiver, tag);
+
+    await asker.page.goto('/me/matching');
+
+    /*
+      **덱은 한 번에 한 장이다.** `hideEveryoneExcept` 는 부를 때 있던 프로필만 가리므로
+      나란히 도는 시험이 그 뒤에 만든 참여자가 앞에 설 수 있다. 목록이라면 이름으로
+      좁히면 되지만 덱에서는 넘겨서 찾아야 한다 — 그것이 이 화면의 사용법이기도 하다.
+    */
+    const target = asker.page.getByRole('heading', { name: `나${tag}` });
+    for (let step = 0; step < 12; step += 1) {
+      if (await target.isVisible()) break;
+      const next = asker.page.getByRole('button', { name: '다음 인연으로 지나가기' });
+      if (!(await next.isEnabled())) break;
+      await next.click();
+      // 고른 것을 읽을 시간을 준 뒤에 카드가 떠난다 — 다음 장이 설 때까지 기다린다.
+      await asker.page.waitForTimeout(1400);
+    }
+    await expect(target).toBeVisible();
+
+    // 점수는 서버가 준 값이다 — 화면이 다시 세지 않는다.
+    await expect(
+      asker.page.getByRole('button', { name: /예측 궁합 \d+점, 추천 이유 보기/ }),
+    ).toBeVisible();
+
+    // ── 하트만으로는 안 나간다 ──────────────────────────────────────────────
+    await asker.page.getByRole('button', { name: '상세 궁합 요청하기' }).click();
+    const confirming = asker.page.getByRole('dialog');
+    await expect(confirming).toContainText('풀이권 1회가 임시로 차감됩니다');
+    await expect(confirming).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
+    await expect(confirming).toContainText('상대와 연락할 수 있는 기능은 아직 지원하지 않습니다');
+    await confirming.getByRole('button', { name: '요청 보내기' }).click();
+
+    // 눌린 것이 실제로 요청이 됐는지는 **받은 쪽에서** 본다.
+    await receiver.page.goto('/me/requests');
+    await expect(receiver.page.getByRole('heading', { name: `가${tag}` })).toBeVisible();
+  });
+});
