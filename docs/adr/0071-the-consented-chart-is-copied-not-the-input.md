@@ -215,4 +215,64 @@ A 단계를 차례대로 올렸다 — DB(A1) → 앱(A2) → 백필(A3). 대상
 `supabase db query --linked`(Management API · `postgres`)로 하고 쓰기만 `set_person_chart` 가
 조건부로 했다. 이 결정이 **줄이려던 열쇠 문을 그 옆에 새로 열지 않는 것**이 요점이었다.
 
-A4(`not null` · 옛 서명 삭제)는 여기 없다 — #70 이 든다.
+## A4 — 판본 저장소를 지운 날 (2026-09-20)
+
+`20260925180000_the_revision_store_is_gone.sql` 하나가 적용됐다. 걸기 전에 **미적용
+목록이 그 하나뿐**임을 확인하고 걸었다. 대상은 `xgdeguyxgkillndraonc`.
+
+**걸기 전에 잰 값** — 마이그레이션의 가드 셋이 보는 자리다. 하나라도 0 이 아니면
+`raise exception` 으로 멈춘다.
+
+| 재는 것 | 값 |
+| --- | --- |
+| person 전체 / `current_chart` 빈 행 | 30 / 0 |
+| person `chart_engine_version` 빈 행 | 0 |
+| match 전체 / 빈 스냅샷 | 2 / 0 |
+| reading 전체 / 빈 스냅샷 | 28 / 0 |
+| reading_job `chart_a` 빈 행 | 0 |
+
+**걸고 나서 잰 값.**
+
+| 재는 것 | 값 |
+| --- | --- |
+| `person_chart_revision` 표 | 0 |
+| 이름에 `revision` 이 든 열 | 0 |
+| 판본 함수(`add_person_revision` 제외) | 0 |
+| `match_calculation_inputs` | 0 |
+| 판본·지문 트리거 | 0 |
+| 여덟 글자를 안 싣던 옛 서명 | 0 |
+| 여덟 글자 여덟 칸 중 `null` 을 허용하는 것 | 0 / 8 |
+| person / match / reading 행 | 30 / 2 / 28 |
+| `proacl` 이 비어 있는 public 함수 | 0 |
+| 내부 문 중 `anon` 에 열린 것 | 0 |
+| `service_role` 이 부를 수 있는 함수 | 13 |
+| 화면이 쓰는 RPC 중 `authenticated` 에 닫힌 것 | 0 / 16 |
+
+열셋은 이것이다 — `adopt_reading_job` · `claim_reading_job` · `fail_reading_job` ·
+`mark_reading_webhook_processed` · `match_run_awaiting_send` · `open_reading_jobs` ·
+`prepare_reading_job` · `reading_recovery_configured` · `record_reading_webhook_event` ·
+`release_reading_job` · `save_reading` · `set_person_chart` · `take_reading_job`.
+
+`may_add_revision` 은 이름에 그 낱말이 들지만 **판본 표와 무관하다** — 「이 사람의
+입력을 고칠 수 있나」를 묻는 자격 함수이고 그대로 선다. 이름으로 세는 검사가 이
+하나를 집어내므로 여기 적어 둔다.
+
+**화면.** `/` 200 · `/privacy` 200 · `/me`·`/me/readings`·`/me/people` 은 로그인 없는
+자리에서 307 로 `/auth` 를 가리킨다. 로그인한 사람의 화면은 **운영 계정 자격이 없어
+직접 못 밟았다** — 대신 그 화면들이 쓰는 RPC 열여섯이 `authenticated` 에 열려 있는지를
+값으로 재 두었다(위 표의 마지막 줄). 그 열여섯이 닫히면 화면이 빈 채로 선다.
+
+## 되짚어 적어 두는 것 — **`grant` 는 PUBLIC 을 안 걷는다**
+
+이 마이그레이션은 함수 열여섯을 `drop` 하고 다시 세운다. 그렇게 태어난 함수는 실행
+권한을 **PUBLIC 에 달고** 있고, 거기에 `grant ... to authenticated` 를 더해도 PUBLIC 의
+몫은 `proacl` 에 `=X/postgres` 로 남는다. 옛 정의가 들고 있던 `revoke` 는 `drop` 과
+함께 사라지기 때문이다.
+
+**걸기 전에 재서 알았다.** `service_role` 이 부를 수 있는 public 함수가 16 에서 24 로
+**늘었다** — 줄어야 할 자리에서. `my_reading` · `save_reading` · `reading_scope_for` ·
+`forget_user` 까지 익명이 두드릴 수 있는 채로 서 있었다. 15절이 그 열여섯을 도로 닫는다.
+
+다음에 함수를 `drop` + `create` 로 다시 세우는 마이그레이션은 **grant 와 revoke 를
+함께** 적어야 한다. 그것이 지켜지는지 값으로 드는 자리는 `13_reading` 의 두 줄이다 —
+열쇠 집합의 수와 「`proacl` 이 비어 있는 함수가 하나도 없다」.
