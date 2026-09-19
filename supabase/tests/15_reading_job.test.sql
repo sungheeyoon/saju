@@ -231,7 +231,8 @@ declare
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   perform public.save_my_profile(who, null);
   perform public.set_discovery_participation(true, summary);
   return uid;
@@ -265,7 +266,8 @@ set local role authenticated;
 
 select pg_temp.acting((select owner from folks));
 select public.create_self_person(
-  '나', 'solar', '1991-03-03', '1991-03-03', '09:00', 'male', '서울', 'jo', 'localMean');
+  '나', 'solar', '1991-03-03', '1991-03-03', '09:00', 'male', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 create temporary table started as
 select * from public.start_reading_run('self', 'job-key-0001');
@@ -475,7 +477,8 @@ select is(
 select public.add_person_revision(
   (select person_id from public.person_chart_revision r
    where r.id = (select revision_a from started)),
-  'solar', '1991-03-04', '1991-03-04', '10:00', 'male', '서울', 'jo', 'localMean');
+  'solar', '1991-03-04', '1991-03-04', '10:00', 'male', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 select ok(
   pg_temp.in_use((select revision_a from started)),

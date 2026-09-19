@@ -62,7 +62,8 @@ select is(
  */
 select throws_like(
   $$select public.create_self_person(
-      '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean')$$,
+      '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
   '%가입을 먼저%',
   '가입을 안 끝냈으면 첫 입력을 넣을 수 없다');
 
@@ -110,7 +111,8 @@ select pg_temp.acting((select kim from fresh));
 
 select lives_ok(
   $$select public.create_self_person(
-      '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean')$$,
+      '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
   '가입을 끝낸 뒤에는 첫 입력이 들어간다');
 
 /**

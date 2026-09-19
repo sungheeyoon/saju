@@ -42,7 +42,8 @@ declare
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   perform public.save_my_profile(who, null);
   perform public.set_discovery_participation(true, summary);
   return uid;
@@ -81,7 +82,8 @@ select pg_temp.acting((select kim from folks));
 create temporary table kin as
 select public.create_managed_person(
   '엄마', null, 'solar', '1962-03-02', '1962-03-02', '07:10', 'female', '부산', 'jo', 'localMean'
-) as mom;
+,
+  tests.chart(), 'chart-for-tests') as mom;
 grant select on kin to authenticated, service_role;
 
 reset role;
@@ -303,7 +305,8 @@ select is(
  */
 select isnt(
   public.add_person_revision((select mom from kin),
-    'solar', '1962-03-03', '1962-03-03', '07:10', 'female', '부산', 'jo', 'localMean'),
+    'solar', '1962-03-03', '1962-03-03', '07:10', 'female', '부산', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests'),
   null,
   '엄마의 출생 정보를 고치면 새 판본이 선다');
 

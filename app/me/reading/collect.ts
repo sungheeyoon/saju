@@ -38,8 +38,6 @@ const secretOf = (birth: StoredRevision): BirthSecret => ({
 type ClaimedJob = {
   run_id: string;
   kind: ReadingKind;
-  revision_a: string;
-  revision_b: string | null;
   prompt: string;
   evidence: string;
   prompt_version: string;

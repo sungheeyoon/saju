@@ -41,7 +41,8 @@ declare uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   return uid;
 end;
 $$;
@@ -60,10 +61,12 @@ select pg_temp.acting((select kim from folks));
 create temporary table kin as
 select public.create_managed_person(
   '엄마', null, 'solar', '1962-03-02', '1962-03-02', '07:10', 'female', '부산', 'jo', 'localMean'
-) as mom,
+,
+  tests.chart(), 'chart-for-tests') as mom,
 public.create_managed_person(
   '동생', null, 'solar', '1995-08-08', '1995-08-08', '09:20', 'male', '대구', 'jo', 'localMean'
-) as kid;
+,
+  tests.chart(), 'chart-for-tests') as kid;
 grant select on kin to authenticated, service_role;
 
 -- ── 저장한 사람의 풀이 ─────────────────────────────────────────────────────

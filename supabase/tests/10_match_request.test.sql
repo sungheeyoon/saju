@@ -21,7 +21,8 @@ declare
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   perform public.save_my_profile(who, null);
   perform public.set_discovery_participation(true, summary);
   return uid;
@@ -251,12 +252,13 @@ select pg_temp.acting((select park from folks));
 /**
  * **이름·메모를 고치는 것은 요청을 무효화하지 않는다**(`prd-archive`).
  *
- * 판본이 실제로 쌓였을 때만 무효화가 돈다. 같은 값으로 저장을 누르면 아무것도 쌓이지
- * 않으므로 여기까지 오지 않는다.
+ * 입력이 실제로 달라졌을 때만 무효화가 돈다. 같은 값으로 저장을 누르면 판이 안 오르므로
+ * 여기까지 오지 않는다.
  */
 select lives_ok(
   format($$select public.add_person_revision(%L::uuid,
-    'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean')$$,
+    'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
     (select park_person from persons)),
   '같은 값으로 다시 저장한다');
 
@@ -267,7 +269,8 @@ select is(
 
 select lives_ok(
   format($$select public.add_person_revision(%L::uuid,
-    'solar', '1990-05-15', '1990-05-15', '15:45', 'female', '서울', 'jo', 'localMean')$$,
+    'solar', '1990-05-15', '1990-05-15', '15:45', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
     (select park_person from persons)),
   '출생 시각을 고친다');
 

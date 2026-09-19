@@ -1,6 +1,6 @@
 -- 온보딩 — Person·판본·엣지·claim 이 한 사건으로 일어난다.
 begin;
-select plan(13);
+select plan(12);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -38,7 +38,8 @@ select set_config('request.jwt.claims', tests.claims((select kim from who)), tru
 
 select throws_like(
   $$select public.create_self_person(
-      '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean')$$,
+      '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
   '%가입을 먼저%',
   '가입을 안 끝냈으면 첫 입력을 넣을 수 없다');
 
@@ -50,7 +51,8 @@ select set_config('request.jwt.claims', tests.claims((select kim from who)), tru
 create temporary table target as
 select public.create_self_person(
   '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean'
-) as person_id;
+,
+  tests.chart(), 'chart-for-tests') as person_id;
 
 select isnt((select self_person_id from public.app_user where id = (select kim from who)), null,
   'selfPerson 이 지정된다');
@@ -77,17 +79,14 @@ select is(
   '새닉네임',
   '프로필 닉네임을 바꾸면 자기 사람을 부르는 이름도 따라간다');
 
-select isnt((select current_revision_id from public.person where id = (select person_id from target)), null,
-  'Person 이 현재 판본을 가리킨다');
-
+/** 입력은 그 사람의 행에 있고, 처음 적어 넣은 것이 **1판**이다(ADR 0071) */
 select is(
-  (select count(*)::int from public.person_chart_revision
-   where person_id = (select self_person_id from public.app_user where id = (select kim from who))),
+  (select input_version from public.person where id = (select person_id from target)),
   1,
-  '판본이 정확히 하나 쌓인다');
+  'Person 이 자기 입력을 1판으로 든다');
 
 select throws_ok(
-  $$select public.create_self_person('민수2','solar','1991-01-01','1991-01-01','09:00','male','서울','jo','localMean')$$,
+  $$select public.create_self_person('민수2','solar','1991-01-01','1991-01-01','09:00','male','서울','jo','localMean', tests.chart(), 'chart-for-tests')$$,
   '23505', null,
   '두 번째 selfPerson 은 조용히 덮어쓰지 않고 거절한다');
 
@@ -102,15 +101,16 @@ select set_config('request.jwt.claims', tests.claims((select lee from who)), tru
 -- 하므로 DB 가 잡을 수 있는 것은 **변환을 아예 건너뛴 쓰기**다 — 원본을 두 칸에
 -- 그대로 넣으면 음력 날짜가 양력인 척 판본으로 굳는다.
 select throws_ok(
-  $$select public.create_self_person('지영','lunar','1992-02-28','1992-02-28','09:00','female','부산','jo','localMean')$$,
+  $$select public.create_self_person('지영','lunar','1992-02-28','1992-02-28','09:00','female','부산','jo','localMean', tests.chart(), 'chart-for-tests')$$,
   '23514', null,
   '음력인데 변환값이 원본과 같으면 거절한다 — 변환을 건너뛴 쓰기다');
 
 -- 시각 미상은 정오로 메우지 않는다 — 빈 칸으로 남는다.
 select public.create_self_person(
-  '지영', 'solar', '1992-03-02', '1992-03-02', null, 'female', '부산', 'ya', 'record');
-select is((select birth_time from public.person_chart_revision r
-           join public.app_user u on u.self_person_id = r.person_id
+  '지영', 'solar', '1992-03-02', '1992-03-02', null, 'female', '부산', 'ya', 'record',
+  tests.chart('丙', false), 'chart-for-tests');
+select is((select p.birth_time from public.person p
+           join public.app_user u on u.self_person_id = p.id
            where u.id = (select lee from who)), null,
   '시각을 모르면 빈 칸으로 남는다');
 reset role;

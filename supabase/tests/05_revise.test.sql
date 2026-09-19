@@ -1,6 +1,6 @@
--- 판본 수정 — 쌓이고, 현재가 옮겨가고, 옛것은 그대로 남는다.
+-- 입력 수정 — **그 자리를 고친다.** 쌓지 않고, 되돌릴 길도 없다(ADR 0071).
 begin;
-select plan(15);
+select plan(12);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -12,73 +12,65 @@ select set_config('request.jwt.claims', tests.claims((select kim from who)), tru
 create temporary table target as
 select public.create_self_person(
   '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean'
-) as person_id;
+,
+  tests.chart(), 'chart-for-tests') as person_id;
 grant select on target to authenticated;
 
-create temporary table first_revision as
-select current_revision_id as id from public.person where id = (select person_id from target);
-grant select on first_revision to authenticated;
+create temporary table first_version as
+select input_version as n from public.person where id = (select person_id from target);
+grant select on first_version to authenticated;
 
--- ── 아무것도 안 바꾸면 쌓지 않는다 ──────────────────────────────────────────────
+-- ── 아무것도 안 바꾸면 판이 안 오른다 ────────────────────────────────────────
 select is(
   public.add_person_revision((select person_id from target),
-    'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean'),
-  (select id from first_revision),
-  '같은 값으로 저장하면 판본을 쌓지 않고 지금 것을 돌려준다');
+    'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests'),
+  (select n from first_version),
+  '같은 값으로 저장하면 판이 안 오르고 지금 판을 돌려준다');
 
-select is(
-  (select count(*)::int from public.person_chart_revision
-   where person_id = (select person_id from target)),
-  1,
-  '판본 이력은 저장 버튼을 몇 번 눌렀는지의 기록이 아니다');
-
--- ── 고치면 쌓인다 ─────────────────────────────────────────────────────────────
-create temporary table second_revision as
+-- ── 고치면 그 자리가 바뀐다 ──────────────────────────────────────────────────
+create temporary table second_version as
 select public.add_person_revision((select person_id from target),
-  'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '부산', 'jo', 'localMean') as id;
-grant select on second_revision to authenticated;
+  'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '부산', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests') as n;
+grant select on second_version to authenticated;
 
-select isnt((select id from second_revision), (select id from first_revision),
-  '값이 하나라도 다르면 새 판본이다');
+select is((select n from second_version), (select n from first_version) + 1,
+  '값이 하나라도 다르면 판이 하나 오른다');
 
+/**
+ * **옛 값은 안 남는다.** 앞서는 이 자리에서 「옛 판본의 값은 그대로다」를 쟀다 — 지금은
+ * 되돌릴 길 자체가 없는 것이 약속이라(ADR 0071), 고친 값이 그 자리에 섰는지를 잰다.
+ */
 select is(
-  (select current_revision_id from public.person where id = (select person_id from target)),
-  (select id from second_revision),
-  '현재 판본이 새것으로 옮겨간다');
-
-select is(
-  (select count(*)::int from public.person_chart_revision
-   where person_id = (select person_id from target)),
-  2,
-  '옛 판본은 지워지지 않고 남는다');
-
-select is(
-  (select city from public.person_chart_revision where id = (select id from first_revision)),
-  '서울',
-  '옛 판본의 값은 그대로다 — 덮어쓰지 않는다');
+  (select city from public.person where id = (select person_id from target)),
+  '부산',
+  '고친 값이 그 자리에 선다 — 옛 값은 어디에도 안 남는다');
 
 -- ── 자시 규칙 하나로도 갈린다 ─────────────────────────────────────────────────
-select isnt(
+select is(
   public.add_person_revision((select person_id from target),
-    'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '부산', 'ya', 'localMean'),
-  (select id from second_revision),
-  '자시 규칙 하나만 달라도 새 판본이다 — 그 하나로 일주가 바뀐다');
+    'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '부산', 'ya', 'localMean',
+  tests.chart(), 'chart-for-tests'),
+  (select n from second_version) + 1,
+  '자시 규칙 하나만 달라도 판이 오른다 — 그 하나로 일주가 바뀐다');
 
 -- ── 음력 판본 ────────────────────────────────────────────────────────────────
 select lives_ok(
   format($$select public.add_person_revision(%L,
-    'lunar', '1990-04-21', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean')$$,
+    'lunar', '1990-04-21', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
     (select person_id from target)),
-  '음력 판본을 받는다 — 변환표를 KASI 자료와 대조했다');
+  '음력 입력을 받는다 — 변환표를 KASI 자료와 대조했다');
 
 -- 원본과 변환값을 **둘 다** 든다. 원본이 있어야 사용자가 자기 입력을 알아보고,
 -- 변환값이 있어야 표가 바뀌었을 때 무엇이 달라졌는지 되짚을 수 있다(ADR 0002).
 select is(
-  (select r.calendar || ' ' || r.original_date::text || ' ' || r.solar_date::text
-   from public.person p join public.person_chart_revision r on r.id = p.current_revision_id
+  (select p.calendar || ' ' || p.original_date::text || ' ' || p.solar_date::text
+   from public.person p
    where p.id = (select person_id from target)),
   'lunar 1990-04-21 1990-05-15',
-  '음력 판본은 원본과 변환값을 둘 다 든다');
+  '음력 입력은 원본과 변환값을 둘 다 든다');
 
 reset role;
 
@@ -88,7 +80,8 @@ select set_config('request.jwt.claims', tests.claims((select lee from who)), tru
 
 select throws_ok(
   format($$select public.add_person_revision(%L,
-    'solar', '1980-01-01', '1980-01-01', '01:00', 'male', '서울', 'jo', 'localMean')$$,
+    'solar', '1980-01-01', '1980-01-01', '01:00', 'male', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
     (select person_id from target)),
   '42501', null,
   'claim 된 Person 의 출생정보는 남이 못 고친다');
@@ -121,7 +114,8 @@ grant select on version_now to authenticated;
 
 /** 지금 서 있는 입력은 **음력 판본**이다 — 같은 값을 다시 보내려면 그 달력으로 보낸다 */
 select public.add_person_revision((select person_id from target),
-  'lunar', '1990-04-21', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean');
+  'lunar', '1990-04-21', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 select is(
   (select input_version from public.person where id = (select person_id from target)),
@@ -129,7 +123,8 @@ select is(
   '같은 값으로 저장하면 버전이 안 오른다 — pending 요청도 안 죽는다');
 
 select public.add_person_revision((select person_id from target),
-  'lunar', '1990-04-21', '1990-05-15', '16:00', 'male', '서울', 'jo', 'localMean');
+  'lunar', '1990-04-21', '1990-05-15', '16:00', 'male', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 select is(
   (select input_version from public.person where id = (select person_id from target)),

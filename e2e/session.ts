@@ -201,6 +201,14 @@ export function answerReading(runId: string, email: string, said: string): void 
  * 「앞으로 N명 더」를 재려면 그 N 이 어디서 오는지 검사도 알아야 하는데, 그 수를 여기
  * 적으면 한도를 옮기는 날 **검사만 옛 수를 지킨다.**
  */
+/** 자리채움 사람의 출생 입력 — 아무도 안 읽지만 **온전해야** 행이 선다 */
+const FILLER_BIRTH = {
+  date: '1970-01-01',
+  time: '09:00',
+  gender: 'female',
+  city: '서울',
+} as const;
+
 export function personLimit(): number {
   return Number(sql('select public.person_limit()'));
 }
@@ -221,6 +229,24 @@ export function personLimit(): number {
  * `person_limit()` 은 모든 역할에 닫혀 있지만 이 문은 `postgres` 로 돈다.
  */
 export function leavePersonSlots(email: string, free: number): void {
+  /**
+   * **자리채움도 온전한 사람으로 선다** (ADR 0071 · #70).
+   *
+   * 앞서는 `insert into person (id)` 한 줄이었다 — 입력도 여덟 글자도 없는 행이다.
+   * `person.current_chart` 가 `not null` 로 좁혀지면서 그 행은 더 실재할 수 없다.
+   *
+   * 여덟 글자는 **진짜 엔진으로** 낸다. 자리만 차지하는 사람이라 아무 값이나 넣어도
+   * 이 시험은 통과하지만, 모양만 맞는 값을 심으면 검사식이 막는 자리를 한 번도 못 재게
+   * 된다 — 픽스처가 옛 길로 심으면 CI 가 새 자리를 안 본다.
+   */
+  const filler = queryFor({
+    date: FILLER_BIRTH.date,
+    time: FILLER_BIRTH.time,
+    gender: FILLER_BIRTH.gender,
+    city: FILLER_BIRTH.city,
+  });
+  const chart = JSON.stringify(chartSnapshotOf(chartOf(filler).pillars)).replace(/'/g, "''");
+
   sql(`
     with here as (
       select id as user_id from auth.users where email = '${email}'
@@ -235,8 +261,14 @@ export function leavePersonSlots(email: string, free: number): void {
         ))::int as needed
     ),
     made as (
-      insert into public.person (id)
-      select gen_random_uuid() from generate_series(1, (select needed from room))
+      insert into public.person (
+        calendar, original_date, solar_date, birth_time, gender, city,
+        late_night_rule, time_basis, input_version, current_chart, chart_engine_version)
+      select
+        'solar', date '${FILLER_BIRTH.date}', date '${FILLER_BIRTH.date}',
+        time '${FILLER_BIRTH.time}', '${FILLER_BIRTH.gender}', '${FILLER_BIRTH.city}',
+        'jo', 'localMean', 1, '${chart}'::jsonb, '${CHART_ENGINE_VERSION}'
+      from generate_series(1, (select needed from room))
       returning id
     )
     insert into public.user_person_access (user_id, person_id, local_label, role)

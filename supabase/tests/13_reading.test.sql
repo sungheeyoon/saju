@@ -101,7 +101,8 @@ select pg_temp.acting((select kim from folks));
 create temporary table mine as
 select public.create_managed_person(
   '엄마', null, 'solar', '1962-03-02', '1962-03-02', '07:10', 'female', '부산', 'jo', 'localMean'
-) as mom;
+,
+  tests.chart(), 'chart-for-tests') as mom;
 grant select on mine to authenticated, service_role;
 
 reset role;
@@ -292,7 +293,8 @@ grant select on run_stale to authenticated, service_role;
 
 select public.add_person_revision(
   (select kim_person from people),
-  'solar', '1990-05-15', '1990-05-15', '15:30', 'female', '서울', 'jo', 'localMean');
+  'solar', '1990-05-15', '1990-05-15', '15:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 /**
  * **문에서 재고 출구에서는 안 잰다** (ADR 0071).

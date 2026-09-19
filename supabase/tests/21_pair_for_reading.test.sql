@@ -30,7 +30,8 @@ declare uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   return uid;
 end;
 $$;
@@ -133,7 +134,8 @@ begin
   for at in 1..(tests.person_limit() - 1) loop
     perform public.create_managed_person(
       'ㅅ' || at, null, 'solar', '1990-05-15', '1990-05-15', '14:30',
-      'female', '서울', 'jo', 'localMean');
+      'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   end loop;
 end;
 $$;

@@ -83,7 +83,8 @@ set local role authenticated;
 
 select pg_temp.acting((select kim from folks));
 select public.create_self_person(
-  '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+  '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 -- ── 운영자가 아니면 아무것도 안 나온다 ──────────────────────────────────────
 
@@ -127,7 +128,8 @@ select pg_temp.answer('ops-kim-0002', 'reading-prompt-v10', 4, 4, 'right',
 
 select pg_temp.acting((select lee from folks));
 select public.create_self_person(
-  '너', 'solar', '1992-08-02', '1992-08-02', '09:20', 'male', '부산', 'jo', 'localMean');
+  '너', 'solar', '1992-08-02', '1992-08-02', '09:20', 'male', '부산', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 select pg_temp.answer('ops-lee-0001', 'reading-prompt-v10', 3, 5, 'right',
   array['abstract', 'repetitive'], '재물 이야기가 두 번 나와요.');

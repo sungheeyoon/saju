@@ -29,7 +29,8 @@ declare uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   perform public.save_my_profile(who, null);
   perform public.set_discovery_participation(true, summary);
   return uid;
@@ -69,10 +70,12 @@ select pg_temp.acting((select kim from folks));
 create temporary table shared as
 select public.create_managed_person(
   '엄마', null, 'solar', '1962-03-02', '1962-03-02', '07:10', 'female', '부산', 'jo', 'localMean'
-) as mom,
+,
+  tests.chart(), 'chart-for-tests') as mom,
 public.create_managed_person(
   '삼촌', null, 'solar', '1958-09-30', '1958-09-30', '16:50', 'male', '대전', 'jo', 'localMean'
-) as unc;
+,
+  tests.chart(), 'chart-for-tests') as unc;
 grant select on shared to authenticated, service_role;
 
 reset role;

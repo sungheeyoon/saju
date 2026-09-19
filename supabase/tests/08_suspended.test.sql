@@ -1,6 +1,6 @@
 -- 중지된 계정 — **읽지도 쓰지도 못한다.** 판정은 앱이 아니라 정책이 든다.
 begin;
-select plan(12);
+select plan(11);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -17,11 +17,13 @@ select set_config('request.jwt.claims', tests.claims((select kim from who)), tru
 create temporary table mine as
 select public.create_self_person(
   '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean'
-) as person_id;
+,
+  tests.chart(), 'chart-for-tests') as person_id;
 grant select on mine to authenticated;
 
 select public.create_managed_person(
-  '엄마', null, 'solar', '1962-04-15', '1962-04-15', '07:20', 'female', '부산', 'jo', 'localMean');
+  '엄마', null, 'solar', '1962-04-15', '1962-04-15', '07:20', 'female', '부산', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 select public.save_my_profile('민수', null);
 select public.set_discovery_participation(true, (select elements from summary));
@@ -39,7 +41,6 @@ select set_config('request.jwt.claims', tests.claims((select kim from who)), tru
 -- **판정이 앱에만 있었다** — ADR 0004 가 막으려던 자리다.
 
 select is((select count(*)::int from public.person), 0, '중지되면 내 Person 도 안 보인다');
-select is((select count(*)::int from public.person_chart_revision), 0, '판본도 안 보인다');
 select is((select count(*)::int from public.user_person_access), 0, '내 목록도 안 보인다');
 select is((select count(*)::int from public.discovery_profile), 0, '내 프로필도 안 보인다');
 

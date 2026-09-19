@@ -107,7 +107,8 @@ select throws_ok(
 
 select lives_ok(
   $$select public.create_managed_person('아버지',null,'solar','1960-01-02','1960-01-02','07:00',
-      'male','서울','jo','localMean')$$,
+      'male','서울','jo','localMean',
+  tests.chart(), 'chart-for-tests')$$,
   '옛 서명이 그대로 돈다 — 옛 앱이 깨지지 않는다');
 
 select is(

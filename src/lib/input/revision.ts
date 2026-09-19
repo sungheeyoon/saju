@@ -24,7 +24,11 @@ import {
 } from './query';
 
 /**
- * DB 가 내주는 판본 한 줄 — `person_chart_revision` 의 컬럼 그대로.
+ * DB 가 내주는 **입력 한 벌** — `person` 의 여덟 칸 그대로.
+ *
+ * 이름이 `StoredRevision` 인 채로 남았다. 가리키던 표는 사라졌지만(ADR 0071 · #70)
+ * 이 타입이 드는 것은 **그때나 지금이나 저장된 입력 한 벌**이고, 이름을 바꾸면 이
+ * 변경과 상관없는 자리가 스무 곳 함께 깨진다.
  *
  * 전부 `string` 인 것이 요점이다. DB 에 검사식이 걸려 있어도 여기 도착한 값의
  * **타입은 아무것도 약속하지 않는다.** 좁히는 일을 이 자리에서 한 번 한다.
@@ -56,11 +60,11 @@ export const REVISION_REPLACED_NOTE =
   '수정하면 현재 사주와 궁합은 새 입력으로 계산됩니다. 이전에 본 결과와 다를 수 있습니다.';
 
 /**
- * 지금 엔진으로는 읽을 수 없는 판본.
+ * 지금 엔진으로는 읽을 수 없는 **저장된 입력**.
  *
  * **기본값으로 메우지 않는다.** 모르는 출생지를 서울로 치면 저장할 때 본 사주와
- * 다른 사주가 같은 화면에 나온다 — 판본을 고치지 않기로 한 이유가 그대로 무너진다.
- * 판본은 남아 있고 읽는 쪽이 못 읽는 것이므로, 그렇게 말한다.
+ * 다른 사주가 같은 화면에 나온다. 값은 남아 있고 읽는 쪽이 못 읽는 것이므로,
+ * 그렇게 말한다.
  */
 export class UnreadableRevisionError extends Error {
   readonly field: keyof StoredRevision;
@@ -93,9 +97,10 @@ export const UNREADABLE_REVISION_NOTE =
  * `person` 에서 입력 한 벌을 읽을 때 고르는 열 — **여섯 화면이 같은 글자를 쓴다.**
  *
  * 앞서는 화면마다 이 여덟 이름을 손으로 들고, `person` 에서 판본 id 를 읽고 다시
- * `person_chart_revision` 을 읽는 **두 걸음**을 각자 적었다(ADR 0071 이 일곱 자리로
- * 셌다). 입력이 `person` 으로 내려오면서 **행 하나 읽기**가 됐고, 고르는 열은 한 자리에
- * 둔다 — 여덟 이름을 여섯 벌로 적으면 한 벌이 언젠가 한 칸을 빠뜨린다.
+ * 판본 표를 읽는 **두 걸음**을 각자 적었다(ADR 0071 이 일곱 자리로 셌다). 입력이
+ * `person` 으로 내려오면서 **행 하나 읽기**가 됐고 — 그리고 #70 이 그 표를 지웠다 —
+ * 고르는 열은 한 자리에 둔다: 여덟 이름을 여섯 벌로 적으면 한 벌이 언젠가 한 칸을
+ * 빠뜨린다.
  */
 export const PERSON_INPUT_COLUMNS =
   'calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis';

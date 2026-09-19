@@ -70,7 +70,8 @@ set local role authenticated;
 
 select pg_temp.acting((select kim from folks));
 select public.create_self_person(
-  '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+  '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 -- ── 아무것도 안 읽었고 잔액이 그대로일 때 ───────────────────────────────────
 
@@ -121,15 +122,20 @@ select throws_like(
 create temporary table kin as
 select
   public.create_managed_person('엄마', null, 'solar', '1962-03-02', '1962-03-02', '07:10',
-    'female', '부산', 'jo', 'localMean') as mom,
+    'female', '부산', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests') as mom,
   public.create_managed_person('아빠', null, 'solar', '1960-11-08', '1960-11-08', '05:40',
-    'male', '대구', 'jo', 'localMean') as dad,
+    'male', '대구', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests') as dad,
   public.create_managed_person('누나', null, 'solar', '1988-01-19', '1988-01-19', '22:05',
-    'female', '광주', 'jo', 'localMean') as sis,
+    'female', '광주', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests') as sis,
   public.create_managed_person('형', null, 'solar', '1986-07-23', '1986-07-23', '11:15',
-    'male', '인천', 'jo', 'localMean') as bro,
+    'male', '인천', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests') as bro,
   public.create_managed_person('삼촌', null, 'solar', '1958-09-30', '1958-09-30', '16:50',
-    'male', '대전', 'jo', 'localMean') as unc;
+    'male', '대전', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests') as unc;
 grant select on kin to authenticated, service_role;
 
 select pg_temp.burn((select mom from kin), 'svc-0001');

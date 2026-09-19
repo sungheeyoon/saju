@@ -269,18 +269,26 @@ try {
       narrowing.error?.message ?? '열려 있다');
 
     /**
-     * **판본 id 는 나가도 그 판본은 못 읽는다.**
+     * **나가는 것은 여덟 글자뿐이고, 상대의 입력은 못 읽는다** (ADR 0071).
      *
-     * 결과 화면이 서려면 매인 판본 id 둘이 브라우저 쪽 함수에서 나가야 한다. 불투명
-     * 식별자이고 접근은 정책이 잠근다 — 그 말이 참인지를 여기서 잰다.
+     * 앞서는 매인 판본 id 둘이 나갔고 「그 id 를 알아도 못 읽는다」를 쟀다. 이제 id
+     * 자체가 없다 — 보드가 서는 데 필요한 것은 동의 당시 여덟 글자이고, 그 값은
+     * 이미 베껴 둔 것이라 아무 표도 안 가리킨다.
+     *
+     * 그래서 재는 것이 하나 늘었다: **여덟 글자는 나오는데 생년월일시는 안 나온다.**
      */
     const { data: rows } = await a.rpc('my_match_scope', { p_match_id: matchId });
-    const partnerRevision = rows?.[0]?.partner_revision_id;
-    check('내 자리에서 매인 판본 id 둘이 나온다',
-      typeof partnerRevision === 'string' && typeof rows?.[0]?.my_revision_id === 'string');
+    const board = rows?.[0];
+    check('내 자리에서 두 사람의 여덟 글자가 나온다',
+      board?.my_chart?.dayMaster !== undefined && board?.partner_chart?.dayMaster !== undefined,
+      JSON.stringify({ mine: board?.my_chart?.dayMaster, theirs: board?.partner_chart?.dayMaster }));
+    check('판본 id 는 이 한 벌에 없다',
+      !('my_revision_id' in (board ?? {})) && !('partner_revision_id' in (board ?? {})),
+      Object.keys(board ?? {}).join(','));
 
-    const peek = await a.from('person_chart_revision').select('*').eq('id', partnerRevision);
-    check('그 id 를 알아도 상대의 판본은 못 읽는다', (peek.data ?? []).length === 0,
+    const { data: theirPerson } = await b.from('app_user').select('self_person_id').maybeSingle();
+    const peek = await a.from('person').select('*').eq('id', theirPerson?.self_person_id);
+    check('동의했어도 상대의 생년월일시는 못 읽는다', (peek.data ?? []).length === 0,
       `${peek.data?.length ?? '?'}줄`);
   }
 

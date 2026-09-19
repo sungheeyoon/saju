@@ -33,7 +33,8 @@ declare uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   return uid;
 end;
 $$;
@@ -49,7 +50,8 @@ select pg_temp.acting((select kim from folks));
 create temporary table kin as
 select public.create_managed_person(
   '엄마', null, 'solar', '1962-03-02', '1962-03-02', '07:10', 'female', '부산', 'jo', 'localMean'
-) as mom;
+,
+  tests.chart(), 'chart-for-tests') as mom;
 grant select on kin to authenticated, service_role;
 
 create temporary table mine as
@@ -224,7 +226,8 @@ select is(
 
 select public.add_person_revision(
   (select mom from kin),
-  'solar', '1962-03-02', '1962-03-02', '08:10', 'female', '부산', 'jo', 'localMean');
+  'solar', '1962-03-02', '1962-03-02', '08:10', 'female', '부산', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 select is(
   (select from_current_revision from public.my_reading('person', (select mom from kin))),

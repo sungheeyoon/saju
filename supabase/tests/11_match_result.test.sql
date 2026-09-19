@@ -289,7 +289,8 @@ select pg_temp.acting((select lee from folks));
 
 select lives_ok(
   format($$select public.add_person_revision(%L::uuid,
-    'solar', '1990-05-15', '1990-05-15', '15:45', 'female', '서울', 'jo', 'localMean')$$,
+    'solar', '1990-05-15', '1990-05-15', '15:45', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
     (select lee_person from pinned)),
   '이결이 출생 시각을 고친다');
 
