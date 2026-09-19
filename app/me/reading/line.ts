@@ -1,4 +1,5 @@
 import type { ReadingEntry } from './current';
+import { readingHrefOf, type ReadingTarget } from './target';
 
 /**
  * 목록 한 줄이 **뭐라고 적히고 어디로 가는가.**
@@ -38,23 +39,36 @@ export function readingTitle(entry: ReadingEntry): string {
 }
 
 /**
- * 누르면 가는 곳 — **그 풀이의 화면**이다.
+ * 목록의 한 줄을 **대상으로 되읽는다.**
  *
- * 한 사람의 명식과 풀이가 갈라졌으므로 자기·저장한 사람은 풀이 전용 주소로 간다.
- * 궁합은 이미 결과 화면이 독립되어 있어 그 주소를 그대로 쓴다.
+ * 목록 행은 네 갈래를 열 넷(`personA`·`personB`·`matchId`)에 평평하게 펴 둔 모양이라,
+ * 어느 열이 그 갈래에서 실제로 차 있는지는 `kind` 만 안다. 그 지식이 화면마다 흩어지지
+ * 않도록 여기서 한 번 세운 대상을 `target.ts` 에 넘긴다.
+ *
+ * `my_readings()` 는 갈래마다 제 열을 채워 내므로 여기까지 `null` 이 오지 않는다.
+ * 그래도 타입이 `null` 을 허용하는 한 그릴 수 있어야 해서 빈 문자열로 받아 둔다 —
+ * `called` 가 이름에 대해 하는 것과 같은 이유다.
  */
-export function readingHref(entry: ReadingEntry): string {
+const targetOf = (entry: ReadingEntry): ReadingTarget => {
   switch (entry.kind) {
     case 'self':
-      return '/me/readings/self';
+      return { kind: 'self' };
     case 'person':
-      return `/me/readings/${entry.personA}`;
+      return { kind: 'person', personId: entry.personA ?? '' };
     case 'private':
-      return `/me/compat?a=${entry.personA}&b=${entry.personB}`;
+      return { kind: 'private', personA: entry.personA ?? '', personB: entry.personB ?? '' };
     case 'match':
-      return `/me/match/${entry.matchId}`;
+      return { kind: 'match', matchId: entry.matchId ?? '' };
   }
-}
+};
+
+/**
+ * 누르면 가는 곳 — **주소를 짓는 자리는 `target.ts` 하나다.**
+ *
+ * 앞서는 목록과 파이프라인이 같은 네 주소를 따로 적었고, 그 둘이 갈리면 목록이 결과
+ * 화면과 **다른 곳으로 보낸다.** 여기는 이제 행을 대상으로 옮기는 일만 한다.
+ */
+export const readingHref = (entry: ReadingEntry): string => readingHrefOf(targetOf(entry));
 
 /**
  * 날짜만 — 목록에서 분 단위는 읽는 데 방해만 된다.

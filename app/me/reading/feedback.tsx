@@ -19,7 +19,7 @@ import {
 } from '@/src/lib/reading';
 
 import { submitReadingFeedback } from './actions';
-import type { ReadingTarget } from './pipeline';
+import type { ReadingTarget } from './target';
 
 /**
  * 읽고 나서 답하는 자리 — **글 바로 아래**다.

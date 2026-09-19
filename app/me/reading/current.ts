@@ -2,7 +2,7 @@ import type { ReadingAnswer } from '@/src/lib/reading';
 import { readingBody, readingGrounding } from '@/src/lib/reading/display';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import type { ReadingTarget } from './pipeline';
+import { readingTargetArgs, type ReadingTarget } from './target';
 
 /**
  * **현재 결과가 브라우저로 내려가는 문.**
@@ -65,23 +65,11 @@ export type LastRun = {
   readonly createdAt: string;
 };
 
-const argsOf = (target: ReadingTarget) => ({
-  p_kind: target.kind,
-  p_person_a:
-    target.kind === 'private'
-      ? target.personA
-      : target.kind === 'person'
-        ? target.personId
-        : null,
-  p_person_b: target.kind === 'private' ? target.personB : null,
-  p_match_id: target.kind === 'match' ? target.matchId : null,
-});
-
 /** @returns 아직 만들지 않았거나 못 보는 대상이면 `null` — 둘을 가르지 않는다 */
 export async function currentReading(target: ReadingTarget): Promise<CurrentReading | null> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('my_reading', argsOf(target));
+  const { data, error } = await supabase.rpc('my_reading', readingTargetArgs(target));
   if (error) return null;
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];
@@ -176,7 +164,7 @@ export async function readingCredits(): Promise<ReadingCredits | null> {
 export async function lastReadingRun(target: ReadingTarget): Promise<LastRun | null> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('my_last_reading_run', argsOf(target));
+  const { data, error } = await supabase.rpc('my_last_reading_run', readingTargetArgs(target));
   if (error) return null;
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];
@@ -277,7 +265,7 @@ export async function readingGroundingOf(target: ReadingTarget): Promise<string 
     return row === undefined ? null : readingGrounding(row.output as string);
   }
 
-  const { data, error } = await supabase.rpc('my_reading', argsOf(target));
+  const { data, error } = await supabase.rpc('my_reading', readingTargetArgs(target));
   if (error) return null;
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];
@@ -287,7 +275,7 @@ export async function readingGroundingOf(target: ReadingTarget): Promise<string 
 export async function readingArtifacts(target: ReadingTarget): Promise<ReadingArtifacts | null> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('my_reading_artifacts', argsOf(target));
+  const { data, error } = await supabase.rpc('my_reading_artifacts', readingTargetArgs(target));
   if (error) return null;
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];

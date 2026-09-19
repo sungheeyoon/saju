@@ -20,6 +20,7 @@ import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from 
 import { readingInputOf } from './generator';
 import { GENERATION } from './generation';
 import { submitBackgroundReading } from './model';
+import { readingTargetArgs, type ReadingTarget } from './target';
 
 /**
  * **결과 생성 요청** — 사용자가 눌렀을 때만 도는 길.
@@ -62,13 +63,6 @@ import { submitBackgroundReading } from './model';
  * 상대에게 간다. 열쇠가 여는 것은 **시도 하나**이고, 그 시도는 사용자 JWT 로 자격이
  * 확인된 채 기록된 것이다.
  */
-
-export type ReadingTarget =
-  | { kind: 'self' }
-  /** 내가 관리하는 저장된 사람 하나 — `self` 와 같은 자료를 쓰되 접근 판정이 다르다 */
-  | { kind: 'person'; personId: string }
-  | { kind: 'private'; personA: string; personB: string }
-  | { kind: 'match'; matchId: string };
 
 /** `start_reading_run` 이 내주는 한 줄 — 이 파일이 쓰는 것은 **시도 id 하나**다 */
 type StartedRun = { run_id: string };
@@ -114,18 +108,10 @@ async function openRun(
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('start_reading_run', {
-    p_kind: target.kind,
+    /* 대상을 인자로 푸는 일은 `target.ts` 하나가 한다 — 여기서 또 풀면 두 벌이 된다 */
+    ...readingTargetArgs(target),
     /** 같은 누름의 재전송을 알아보는 값. 무엇을 막는지는 위 주석이 든다 */
     p_idempotency_key: requestKey ?? randomUUID(),
-    /* `person` 은 한 사람만 싣는다. `self` 는 아무것도 안 싣는다 — DB 가 스스로 찾는다 */
-    p_person_a:
-      target.kind === 'private'
-        ? target.personA
-        : target.kind === 'person'
-          ? target.personId
-          : null,
-    p_person_b: target.kind === 'private' ? target.personB : null,
-    p_match_id: target.kind === 'match' ? target.matchId : null,
     p_model: GENERATION.model,
     p_prompt_version: promptVersionOf(target.kind),
   });

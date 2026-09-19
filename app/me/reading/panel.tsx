@@ -25,7 +25,7 @@ import { namedMatchBody } from '@/src/lib/reading/display';
 import { ReadingFeedback } from './feedback';
 import { ShareReadingButton } from './share-button';
 import { Markdown } from './markdown';
-import type { ReadingTarget } from './pipeline';
+import type { ReadingTarget } from './target';
 
 const MOCK_OUTPUT = `## 지금의 핵심
 
