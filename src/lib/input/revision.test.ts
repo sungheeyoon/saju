@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
+
 import { chartOf } from './chart';
 import { DEFAULT_QUERY, type Query } from './query';
 import {
@@ -279,5 +281,52 @@ describe('가족·친구를 등록할 때 함께 가는 것', () => {
   it('메모의 앞뒤 공백은 지운다 — 길이 상한이 공백을 세지 않게', () => {
     expect(noteOrNull('  엄마는 음력  ')).toBe('엄마는 음력');
     expect(NOTE_MAX).toBe(200);
+  });
+});
+
+/**
+ * 저장하는 문에 여덟 글자가 함께 간다(ADR 0071 · A2).
+ *
+ * 앱이 그것을 주장하는 자리는 **입력을 쓰는 문 하나**이고, 여기가 그 문에 실을 값을 짓는
+ * 자리다. 그래서 화면이 그리는 것과 **같은 함수**로 세는지를 여기서 잠근다.
+ */
+describe('저장하는 문에는 여덟 글자가 함께 간다', () => {
+  it('빌더 셋이 여덟 글자와 그것을 낸 판을 싣는다', () => {
+    for (const args of [
+      selfPersonArgs(submitted),
+      revisionArgs('p-1', submitted),
+      managedPersonArgs(submitted, ''),
+    ]) {
+      expect(args.p_chart).toEqual(chartSnapshotOf(chartOf(submitted).pillars));
+      expect(args.p_chart_engine_version).toBe(CHART_ENGINE_VERSION);
+    }
+  });
+
+  /** DB 가 빈 판을 거절한다(`reject_bad_chart`) — 여기서 빈 값을 지어 보내지 않는다 */
+  it('판 이름은 비어 있지 않다', () => {
+    expect(CHART_ENGINE_VERSION.trim()).not.toBe('');
+  });
+
+  it('일간은 일주의 천간이다 — DB 도 같은 것을 본다', () => {
+    const { p_chart } = selfPersonArgs(submitted);
+
+    expect(p_chart.dayMaster).toBe(p_chart.day.stem);
+  });
+
+  it('시각을 모르면 시주가 null 이다 — 문이 birth_time 과 대조한다', () => {
+    const unknown: Query = { ...submitted, hourKnown: false, time: '' };
+
+    expect(selfPersonArgs(unknown).p_chart.hour).toBeNull();
+  });
+
+  /**
+   * **여덟 글자는 `chartFields` 에 안 들어간다.**
+   *
+   * 저것은 두 입력이 같은 판본인지를 키마다 `===` 로 견주는 데 쓰인다. 거기에 객체가
+   * 끼면 같은 값을 넣어도 언제나 다르다고 답하고, 그 순간 「같은 값으로 저장하면 판본을
+   * 쌓지 않는다」가 무너진다. 갈라 둔 것이 지켜지는지를 값으로 든다.
+   */
+  it('같은 판본인가를 견주는 데는 안 끼어든다', () => {
+    expect(samePillarInput(submitted, { ...submitted, name: '다른 이름' })).toBe(true);
   });
 });

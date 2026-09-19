@@ -6,6 +6,7 @@ import {
   KST_OFFSET_MINUTES,
   LATE_NIGHT_UNKNOWN_HOUR,
   YEAR_ANCHOR,
+  chartSnapshotOf,
   dayPillarOf,
   formatPillars,
   fromCivil,
@@ -20,6 +21,7 @@ import {
   yearPillarOf,
   type CivilDate,
   type FourPillars,
+  type Pillars,
 } from '@/src/lib/saju/pillars';
 
 /** 실제로 존재하는 다음 날짜. `Date` 정규화(2월 30일 → 3월 2일)를 쓰지 않는다. */
@@ -369,5 +371,45 @@ describe('4주 통합 — 구조 불변식', () => {
       getFourPillars(kst(2025, 6, 15, h), { lateNightRule: 'ya' }).hour.branch,
     );
     expect(new Set(branches).size).toBe(12);
+  });
+});
+
+/**
+ * 되짚으려고 베껴 두는 여덟 글자(ADR 0071).
+ *
+ * **DB 가 보는 것과 같은 것을 여기서도 본다**(`is_chart_snapshot`). 저쪽은 낱자와 칸 수와
+ * 일간을 보고, 이쪽은 그 모양이 실제로 그렇게 지어지는지를 본다 — 둘이 갈리면 저장은
+ * 지나가는데 화면이 못 읽거나, 그 반대가 된다.
+ */
+describe('여덟 글자 스냅샷은 글자만 든다', () => {
+  const pillars = getFourPillars(kst(1990, 5, 15, 14, 30));
+
+  it('칸은 다섯뿐이고 기둥은 두 글자뿐이다', () => {
+    const snapshot = chartSnapshotOf(pillars);
+
+    expect(Object.keys(snapshot).sort()).toEqual(['day', 'dayMaster', 'hour', 'month', 'year']);
+    for (const key of ['year', 'month', 'day', 'hour'] as const) {
+      expect(Object.keys(snapshot[key]!).sort()).toEqual(['branch', 'stem']);
+    }
+  });
+
+  /** `meta` 에는 보정에 쓴 달력 시각이 있다 — 실리면 출생 원문을 되돌릴 자리가 된다 */
+  it('파생값도 meta 도 안 실린다', () => {
+    const snapshot = chartSnapshotOf(pillars);
+
+    expect(snapshot).not.toHaveProperty('meta');
+    expect(snapshot.year).not.toHaveProperty('name');
+    expect(snapshot.year).not.toHaveProperty('index');
+    expect(JSON.stringify(snapshot)).not.toContain('1990');
+  });
+
+  it('일간은 일주의 천간이다', () => {
+    expect(chartSnapshotOf(pillars).dayMaster).toBe(pillars.day.stem);
+  });
+
+  it('시각을 모르면 시주가 null 이다 — 정오로 메우지 않는다', () => {
+    const hourless: Pillars = { ...pillars, hour: null };
+
+    expect(chartSnapshotOf(hourless).hour).toBeNull();
   });
 });

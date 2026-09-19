@@ -44,6 +44,8 @@ export * from './solarTerms';
 export * from './stages';
 export * from './text';
 export * from './timeCorrection';
+// 여덟 글자의 판 — 스냅샷 옆에 적어 낡음을 알아보게 한다(ADR 0071)
+export * from './version';
 
 // 간지 도출 원시 함수들은 그대로 열어둔다 — 계약이랄 것이 없는 순수 표 조회다.
 export * from './pillars/day';
@@ -61,7 +63,10 @@ export * from './pillars/year';
 export {
   DEFAULT_LATE_NIGHT_RULE,
   UNKNOWN_PILLAR_MARK,
+  chartSnapshotOf,
   formatPillars,
+  type ChartPillar,
+  type ChartSnapshot,
   type FourPillars,
   type LateNightRule,
   type PillarOptions,

@@ -1,16 +1,19 @@
 import {
   CALENDARS,
+  CHART_ENGINE_VERSION,
   CITY_LONGITUDES,
   GENDERS,
   LunarConversionError,
+  chartSnapshotOf,
   type Calendar,
+  type ChartSnapshot,
   type CityName,
   type CivilDate,
   type Gender,
   type LateNightRule,
 } from '../saju';
 
-import { solarDateOf } from './chart';
+import { chartOf, solarDateOf } from './chart';
 
 import {
   DEFAULT_QUERY,
@@ -235,11 +238,30 @@ function chartFields(query: Query): ChartFields {
   };
 }
 
+/**
+ * 저장하는 문에 함께 가는 **여덟 글자와 그것을 낸 판**(ADR 0071).
+ *
+ * **`chartFields` 에 안 넣는다.** 저것은 「두 입력이 같은 판본인가」를 키마다 `===` 로
+ * 견주는 데 쓰이는데(`samePillarInput`), 거기에 객체가 끼면 같은 값을 넣어도 언제나
+ * 다르다고 답한다 — 「같은 값으로 저장하면 판본을 쌓지 않는다」가 그 자리에서 무너진다.
+ *
+ * **던질 수 있다.** 이 모듈은 이미 그랬다 — `chartFields` 가 `solarDateOf` 를 부른다.
+ * 달라지는 것은 의존의 넓이(달력 변환 → 엔진 전체)뿐이고, 네 호출부가 모두 앞에서
+ * `unsupportedForSaving` 으로 막는다.
+ */
+type ChartArgs = { p_chart: ChartSnapshot; p_chart_engine_version: string };
+
+const chartArgs = (query: Query): ChartArgs => ({
+  // 화면이 그리는 것과 **같은 함수**로 센다. 여기서 따로 세면 저장 전과 후가 갈린다.
+  p_chart: chartSnapshotOf(chartOf(query).pillars),
+  p_chart_engine_version: CHART_ENGINE_VERSION,
+});
+
 /** `create_self_person` 이 받는 인자 한 벌 — 처음 등록할 때는 부를 이름도 함께 간다 */
-export type SelfPersonArgs = ChartFields & { p_local_label: string };
+export type SelfPersonArgs = ChartFields & ChartArgs & { p_local_label: string };
 
 export function selfPersonArgs(query: Query): SelfPersonArgs {
-  return { p_local_label: query.name.trim(), ...chartFields(query) };
+  return { p_local_label: query.name.trim(), ...chartFields(query), ...chartArgs(query) };
 }
 
 /** 메모 길이 상한 — DB 검사식과 같은 수. 두 곳에 적힌 값이라 한쪽만 고치면 갈린다 */
@@ -270,7 +292,7 @@ export function managedPersonArgs(query: Query, note: string): ManagedPersonArgs
 }
 
 /** `add_person_revision` 이 받는 인자 한 벌 */
-export type RevisionArgs = ChartFields & { p_person_id: string };
+export type RevisionArgs = ChartFields & ChartArgs & { p_person_id: string };
 
 /**
  * **부를 이름이 없다.**
@@ -279,7 +301,7 @@ export type RevisionArgs = ChartFields & { p_person_id: string };
  * 새 판본이 생기면 「이 판본은 무엇이 달라진 것인가」에 답할 수 없게 된다.
  */
 export function revisionArgs(personId: string, query: Query): RevisionArgs {
-  return { p_person_id: personId, ...chartFields(query) };
+  return { p_person_id: personId, ...chartFields(query), ...chartArgs(query) };
 }
 
 /**
