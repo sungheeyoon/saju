@@ -79,7 +79,7 @@ where p.user_id not in (select uid from (
 create temporary table persons as
 select
   (select self_person_id from public.app_user where id = (select park from folks)) as park_person,
-  (select current_revision_id from public.person
+  (select input_version from public.person
    where id = (select self_person_id from public.app_user where id = (select park from folks))) as park_first;
 grant select on persons to authenticated;
 
@@ -365,9 +365,14 @@ select is(
   '받은 사람의 추천 이유도 후보 카드와 같은 규칙으로 센다');
 set local role authenticated;
 
+/**
+ * **잡아 둔 것과 지금이 다르면 무효다** — 견주는 값이 판본 id 에서 **입력 버전**으로
+ * 옮겨 갔다(ADR 0071 · #69). 여기서 옛 버전을 도로 적어 두고 수락을 눌러, 수락이
+ * 실제로 그 칸을 읽는지 잰다.
+ */
 reset role;
 update public.match_request
-set addressee_revision_id = (select park_first from persons)
+set addressee_input_version = (select park_first from persons)
 where id = (select request_id from asked_again);
 set local role authenticated;
 
@@ -375,7 +380,7 @@ select pg_temp.acting((select park from folks));
 select is(
   public.respond_to_match_request((select request_id from asked_again), true),
   'invalidated',
-  '잡아 둔 판본과 지금 판본이 다르면 수락이 아니라 무효다');
+  '잡아 둔 입력 버전과 지금 버전이 다르면 수락이 아니라 무효다');
 
 select pg_temp.acting((select kim from folks));
 select is(

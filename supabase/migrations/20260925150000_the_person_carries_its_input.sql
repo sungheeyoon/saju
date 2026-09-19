@@ -1255,3 +1255,182 @@ begin
   return new_person;
 end;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- 8. 수락도 **버전으로** 묻는다
+--
+-- 4절이 요청에 두 버전을 적어 두었는데, 정작 그것을 **읽는 자리가 없었다.** 수락은
+-- 여전히 판본 id 를 견주고 있었고, 지금은 입력을 고칠 때마다 판본도 함께 쌓여서
+-- 답이 우연히 같았다 — 판본이 사라지는 #70 에서 그 우연이 끝난다.
+--
+-- 되쓰는 바탕은 **마지막에 서 있던 정의**다(`20260925120000` 이 세운 것). 바꾼 곳은
+-- 견주는 두 줄과 그 declare 뿐이고, Match 에 판본 둘을 매는 것은 그대로다 — 그 열은
+-- 아직 `not null` 이고 #70 이 뗀다.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.respond_to_match_request(p_request_id uuid, p_accept boolean)
+returns text
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  actor uuid := (select auth.uid());
+  req public.match_request;
+  requester_now integer;
+  addressee_now integer;
+  new_match uuid;
+begin
+  if actor is null then
+    raise exception '로그인이 필요합니다.' using errcode = '28000';
+  end if;
+
+  /** **`null` 은 답이 아니다** — 명시적 동의 경계에서 「모름」이 「예」로 읽히면 안 된다. */
+  if p_accept is null then
+    raise exception '수락인지 거절인지 정해 주세요.' using errcode = '22004';
+  end if;
+
+  if not public.is_active_account() then
+    raise exception '중지된 계정입니다.' using errcode = '42501';
+  end if;
+
+  /** **읽고 → 잠그고 → 다시 읽는다.** 계정을 먼저, 요청을 나중에 — `block_user` 와 같은 차례다. */
+  select * into req from public.match_request where id = p_request_id;
+
+  -- 없는 요청과 남의 요청의 답이 **같다.**
+  if not found or req.addressee_user_id <> actor then
+    raise exception '요청을 찾지 못했습니다.' using errcode = '42501';
+  end if;
+
+  perform public.lock_users(req.requester_user_id, actor);
+
+  select * into req from public.match_request where id = p_request_id for update;
+
+  if not found or req.addressee_user_id <> actor then
+    raise exception '요청을 찾지 못했습니다.' using errcode = '42501';
+  end if;
+
+  if req.status <> 'pending' then
+    return req.status;
+  end if;
+
+  /**
+   * **기한이 지난 요청은 답이 아니라 만료다.**
+   *
+   * 미는 일은 cron 이 하지만 그것이 늦을 수 있다. 늦은 사이에 수락되면 이미 풀린
+   * 풀이권으로 Match 가 서고, 그러면 예약이 지키던 약속이 깨진다.
+   */
+  if req.expires_at <= now() then
+    update public.match_request
+    set status = 'expired', decided_at = now()
+    where id = req.id;
+
+    insert into public.notification (user_id, kind, request_id)
+    values (req.requester_user_id, 'request_expired', req.id);
+
+    return 'expired';
+  end if;
+
+  /** **양쪽 계정이 살아 있어야 한다.** 상대가 중지됐다는 것은 알리지 않는다. */
+  if exists (
+    select 1 from public.app_user u
+    where u.id in (req.requester_user_id, req.addressee_user_id) and u.status <> 'active'
+  ) then
+    raise exception '요청을 찾지 못했습니다.' using errcode = '42501';
+  end if;
+
+  /**
+   * **그 사이에 입력이 바뀌었나** — 이제 **세는 수**로 묻는다(ADR 0071 · #69).
+   *
+   * 앞서는 판본 id 를 견줬다. 뜻은 같고, 갈리는 자리가 하나 있다: 출생지만 고쳐 여덟
+   * 글자가 그대로여도 **입력은 바뀐 것이다.** 요청이 매인 것은 그때 동의하려던 입력이므로
+   * 무효가 맞다.
+   */
+  select pe.input_version into requester_now
+  from public.app_user u join public.person pe on pe.id = u.self_person_id
+  where u.id = req.requester_user_id;
+
+  select pe.input_version into addressee_now
+  from public.app_user u join public.person pe on pe.id = u.self_person_id
+  where u.id = req.addressee_user_id;
+
+  if requester_now is distinct from req.requester_input_version
+     or addressee_now is distinct from req.addressee_input_version
+  then
+    update public.match_request
+    set status = 'invalidated', decided_at = now()
+    where id = req.id;
+
+    insert into public.notification (user_id, kind, request_id)
+    values (req.requester_user_id, 'request_invalidated', req.id),
+           (req.addressee_user_id, 'request_invalidated', req.id);
+
+    return 'invalidated';
+  end if;
+
+  if p_accept is not true then
+    update public.match_request
+    set status = 'rejected', decided_at = now()
+    where id = req.id;
+
+    -- 거절은 요청한 쪽에만 알린다. 내가 거절했다는 것은 내가 안다.
+    insert into public.notification (user_id, kind, request_id)
+    values (req.requester_user_id, 'request_rejected', req.id);
+
+    return 'rejected';
+  end if;
+
+  update public.match_request
+  set status = 'accepted', decided_at = now()
+  where id = req.id;
+
+  /**
+   * 판본 둘은 그대로 매고(#70 이 뗀다), 그 옆에 **동의 당시 여덟 글자**를 베낀다.
+   * 값은 `person.current_chart` 에서 오고 앱은 한 글자도 안 댄다.
+   */
+  insert into public.match (
+    request_id, user_low, user_high, low_revision_id, high_revision_id,
+    chart_low, chart_high, chart_engine_low, chart_engine_high
+  )
+  select
+    req.id,
+    least(req.requester_user_id, req.addressee_user_id),
+    greatest(req.requester_user_id, req.addressee_user_id),
+    case when req.requester_user_id < req.addressee_user_id
+      then req.requester_revision_id else req.addressee_revision_id end,
+    case when req.requester_user_id < req.addressee_user_id
+      then req.addressee_revision_id else req.requester_revision_id end,
+    lo.current_chart,
+    hi.current_chart,
+    lo.chart_engine_version,
+    hi.chart_engine_version
+  from public.app_user low_user
+  join public.person lo on lo.id = low_user.self_person_id
+  join public.app_user high_user
+    on high_user.id = greatest(req.requester_user_id, req.addressee_user_id)
+  join public.person hi on hi.id = high_user.self_person_id
+  where low_user.id = least(req.requester_user_id, req.addressee_user_id)
+  returning id into new_match;
+
+  -- 성립은 **양쪽 다** 알아야 하는 사건이다.
+  insert into public.notification (user_id, kind, request_id, match_id)
+  values (req.requester_user_id, 'request_accepted', req.id, new_match),
+         (req.addressee_user_id, 'request_accepted', req.id, new_match);
+
+  /**
+   * **동의가 예약을 쓴다** — 시도는 **요청자 이름으로** 선다.
+   *
+   * 여기서 던지면 **수락 전체가 되돌아간다.** 시도를 못 여는 이유는 여럿이고 그중 어느
+   * 것도 「동의하지 말라」는 뜻이 아니다.
+   */
+  begin
+    perform public.start_reading_run_for(
+      req.requester_user_id, 'match', 'match-accept:' || req.id::text,
+      null, null, new_match);
+  exception
+    when others then null;
+  end;
+
+  return 'accepted';
+end;
+$$;

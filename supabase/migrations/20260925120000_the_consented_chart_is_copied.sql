@@ -138,17 +138,48 @@ alter table public.reading_job
     (chart_a is null or public.is_chart_snapshot(chart_a))
     and (chart_b is null or public.is_chart_snapshot(chart_b)));
 
+/**
+ * **도는 작업에는 지금 값을 함부로 붙이지 않는다.**
+ *
+ * `birth_a`·`birth_b` 는 시도를 열 때의 판본에서 왔다. 그 사이 사용자가 입력을 고쳤다면
+ * 지금 `person.current_chart` 는 **다른 시점의 글자**다. 그것을 붙이면 본문은 옛 입력으로
+ * 나고 보드는 새 여덟 글자로 서는 Reading 이 저장된다 — 한 화면에 두 시점이 섞이고,
+ * 그것이 바로 이 마이그레이션이 없애려는 것이다.
+ *
+ * 그래서 **같은 시점임이 증명될 때만** 채운다. 궁합은 Match 가 이미 베껴 둔 값에서,
+ * 나머지는 **매인 판본이 아직 현재일 때만.** 못 채운 것은 `null` 로 남는다 — 동결은
+ * 시도 수명(10분) 안의 값이라 그 작업은 곧 끝나고, 빈 채로 저장되면 `save_reading` 이
+ * 그대로 옮겨 적어 화면이 「이전 명식」으로 말한다. 지어내는 것보다 낫다.
+ */
+update public.reading_job j
+set chart_a = m.chart_low,
+    chart_b = m.chart_high
+from public.reading_run run
+join public.match m on m.id = run.match_id
+where run.id = j.run_id
+  and run.kind = 'match'
+  and j.chart_a is null;
+
 update public.reading_job j
 set chart_a = pa.current_chart
 from public.reading_run run
 join public.person pa on pa.id = run.person_a
-where run.id = j.run_id and j.chart_a is null and pa.current_chart is not null;
+where run.id = j.run_id
+  and run.kind <> 'match'
+  and j.chart_a is null
+  and pa.current_chart is not null
+  -- 매인 판본이 아직 현재다 — 그래야 얼린 입력과 같은 시점의 글자다
+  and j.revision_a = pa.current_revision_id;
 
 update public.reading_job j
 set chart_b = pb.current_chart
 from public.reading_run run
 join public.person pb on pb.id = run.person_b
-where run.id = j.run_id and j.chart_b is null and pb.current_chart is not null;
+where run.id = j.run_id
+  and run.kind <> 'match'
+  and j.chart_b is null
+  and pb.current_chart is not null
+  and j.revision_b = pb.current_revision_id;
 
 /**
  * 얼릴 때 여덟 글자도 함께 베낀다 — **어디서 베끼는가가 kind 로 갈린다.**
