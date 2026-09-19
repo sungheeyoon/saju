@@ -291,6 +291,34 @@ export function managedPersonArgs(query: Query, note: string): ManagedPersonArgs
   return { ...selfPersonArgs(query), p_note: noteOrNull(note) };
 }
 
+/**
+ * 「고른 사람」 쪽에 보내는 **빈 한 벌** — 키가 위 빌더와 글자 하나까지 같다.
+ *
+ * **타입이 그것을 지킨다.** `ManagedPersonArgs` 에 칸이 하나 늘면 이 객체가 그 자리에서
+ * 컴파일에 걸린다 — 사람이 기억할 일이 아니다.
+ *
+ * 기억에 맡겼다가 치른 값이 있다. A2 가 여덟 글자 둘을 빌더에 더했을 때 궁합 화면의
+ * 「고른 사람」 가지는 손으로 적은 열 칸짜리였고, 한쪽만 직접 입력한 조합이 **26키**로
+ * 나갔다. 24인자(옛)·28인자(새) 어느 서명에도 안 맞아 PostgREST 가 함수를 못 찾았고,
+ * 그 화면은 운영에서 열리지 않았다.
+ */
+export type BlankPersonArgs = { [K in keyof ManagedPersonArgs]: null };
+
+export const BLANK_PERSON_ARGS: BlankPersonArgs = {
+  p_local_label: null,
+  p_note: null,
+  p_calendar: null,
+  p_original_date: null,
+  p_solar_date: null,
+  p_birth_time: null,
+  p_gender: null,
+  p_city: null,
+  p_late_night_rule: null,
+  p_time_basis: null,
+  p_chart: null,
+  p_chart_engine_version: null,
+};
+
 /** `add_person_revision` 이 받는 인자 한 벌 */
 export type RevisionArgs = ChartFields & ChartArgs & { p_person_id: string };
 

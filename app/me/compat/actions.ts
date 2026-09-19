@@ -7,7 +7,7 @@ import { relationOf, type Relation } from '@/src/lib/people';
 import { supabaseOnServer } from '../../auth/server-client';
 import { sameChartInMyList, type SameChart } from '../same-chart';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
-import { managedPersonArgs, unsupportedForSaving } from '@/src/lib/input/revision';
+import { BLANK_PERSON_ARGS, managedPersonArgs, unsupportedForSaving } from '@/src/lib/input/revision';
 
 /**
  * 이 쌍에 적어 둔 사이 — **화면이 저장된 값을 보여 주려고 읽는다.**
@@ -186,22 +186,15 @@ export async function openPairScreen(
   return { ok: true, personA: pair.person_a, personB: pair.person_b };
 }
 
-/** 고른 사람이면 입력 자리는 비운다 — 문이 그 자리를 안 본다 */
+/**
+ * 고른 사람이면 입력 자리는 비운다 — 문이 그 자리를 안 본다.
+ *
+ * **빈 한 벌을 여기서 적지 않는다**(`BLANK_PERSON_ARGS`). 두 가지가 서로 다른 키 집합을
+ * 내면 PostgREST 가 이름으로 서명을 고르는 자리에서 **어느 문에도 안 맞는 호출**이 된다 —
+ * 실제로 그렇게 깨진 적이 있고, 그래서 빈 한 벌은 빌더 옆에서 타입이 지킨다.
+ */
 const argsFor = (side: PairSide): Record<string, unknown> =>
-  side.from === 'typed'
-    ? managedPersonArgs(side.query, '')
-    : {
-        p_local_label: null,
-        p_note: null,
-        p_calendar: null,
-        p_original_date: null,
-        p_solar_date: null,
-        p_birth_time: null,
-        p_gender: null,
-        p_city: null,
-        p_late_night_rule: null,
-        p_time_basis: null,
-      };
+  side.from === 'typed' ? managedPersonArgs(side.query, '') : BLANK_PERSON_ARGS;
 
 /**
  * 인자 한 벌에 누구 것인지를 붙인다 — **이름을 손으로 다시 적지 않는다.**
