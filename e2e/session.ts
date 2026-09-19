@@ -5,6 +5,9 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { test as base, type Page } from '@playwright/test';
 
 import { NOTICE_VERSION } from '@/src/lib/consent';
+import { chartOf } from '@/src/lib/input/chart';
+import { DEFAULT_QUERY, type Query } from '@/src/lib/input/query';
+import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 
 /**
  * 로그인한 사람의 화면을 **진짜 브라우저로** 재는 자리.
@@ -289,6 +292,29 @@ const BIRTH = {
   city: '서울',
 } as const;
 
+/**
+ * 저장하는 문에 함께 가는 **여덟 글자** (ADR 0071).
+ *
+ * 여기서는 **진짜 엔진으로 센다.** 이 층은 TypeScript 라 앱이 쓰는 함수를 그대로 부를
+ * 수 있고, 그래야 「저장된 값이 엔진이 내는 값과 같은가」를 재는 검사(`signed-in.spec`)와
+ * 같은 값을 심는다 — 흐름 검사(`.mjs`)가 모양만 맞는 한 벌을 대는 것과 갈리는 자리다.
+ *
+ * **계산 옵션을 손으로 적는다.** `DEFAULT_QUERY` 의 시간 기준은 진태양시인데(ADR 0057)
+ * 아래 저장은 `localMean` 으로 넣는다 — 기본값을 그대로 쓰면 저장한 입력과 함께 가는
+ * 여덟 글자가 서로 다른 규칙에서 나온다.
+ */
+const queryFor = (over: Partial<Query>): Query => ({
+  ...DEFAULT_QUERY,
+  rule: 'jo',
+  basis: 'localMean',
+  ...over,
+});
+
+const chartArgs = (query: Query) => ({
+  p_chart: chartSnapshotOf(chartOf(query).pillars),
+  p_chart_engine_version: CHART_ENGINE_VERSION,
+});
+
 async function seed(
   local: Local,
   wanted: Seed,
@@ -346,6 +372,9 @@ async function seed(
       p_city: BIRTH.city,
       p_late_night_rule: 'jo',
       p_time_basis: 'localMean',
+      ...chartArgs(
+        queryFor({ date: BIRTH.date, time: BIRTH.time, gender: BIRTH.gender, city: BIRTH.city }),
+      ),
     });
     if (saved.error) throw new Error(`자기 사주를 못 넣었습니다 — ${saved.error.message}`);
     selfPersonId = saved.data as string;
@@ -363,6 +392,9 @@ async function seed(
       p_city: '대구',
       p_late_night_rule: 'jo',
       p_time_basis: 'localMean',
+      ...chartArgs(
+        queryFor({ date: '1962-03-02', time: '07:10', gender: 'female', city: '대구' }),
+      ),
     });
     if (made.error) throw new Error(`${person} 을 못 넣었습니다 — ${made.error.message}`);
   }
@@ -495,7 +527,7 @@ async function saveReadingAs(
    * 때다 — 실제로 프로덕션에서 두 줄짜리 고지가 정렬을 무너뜨렸다.
    */
   sql(`select public.save_reading(
-         '${run.run_id}'::uuid, '${run.revision_a}'::uuid, null,
+         '${run.run_id}'::uuid,
          '## ${body} — 브라우저가 읽을 글입니다.', null,
          '서로 다른 속도로 달리던 두 사람이 같은 자전거를 타고 오르막길을 오르는 모습이에요.',
          '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);

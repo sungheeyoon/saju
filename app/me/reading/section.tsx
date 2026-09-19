@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { CARD } from '../../card';
 import { currentReading, improvementConsented, lastReadingRun, readingCredits } from './current';
 import { ReadingPanel } from './panel';
-import type { ReadingTarget } from './pipeline';
+import type { ReadingTarget } from './target';
 
 /**
  * 현재 결과가 서는 칸 — **자기 풀이와 공유 궁합이 같은 것을 쓴다.**

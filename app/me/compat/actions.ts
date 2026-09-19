@@ -8,6 +8,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { sameChartInMyList, type SameChart } from '../same-chart';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
 import { BLANK_PERSON_ARGS, managedPersonArgs, unsupportedForSaving } from '@/src/lib/input/revision';
+import { userFacingDbMessage } from '../../db-error';
 
 /**
  * 이 쌍에 적어 둔 사이 — **화면이 저장된 값을 보여 주려고 읽는다.**
@@ -160,7 +161,7 @@ export async function openPairScreen(
     p_listed: false,
   });
 
-  if (error) return { ok: false, kind: 'failed', message: error.message };
+  if (error) return { ok: false, kind: 'failed', message: userFacingDbMessage(error, 'create_pair_for_reading') };
 
   const pair = ((data ?? []) as { person_a: string; person_b: string }[])[0];
   if (pair === undefined) {
@@ -178,7 +179,7 @@ export async function openPairScreen(
       p_person_b: pair.person_b,
       p_relation: null,
     });
-    if (cleared.error) return { ok: false, kind: 'failed', message: cleared.error.message };
+    if (cleared.error) return { ok: false, kind: 'failed', message: userFacingDbMessage(cleared.error, 'set_pair_relation') };
   }
 
   revalidatePath('/me/compat');

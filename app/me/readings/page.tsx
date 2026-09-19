@@ -146,7 +146,7 @@ function Made({ readings }: { readings: readonly ReadingEntry[] }) {
               입력으로 본 것」과 「그 뒤에 고친 입력으로 다시 봐야 하는 것」을 같은 줄로
               보이게 된다. 색만으로 말하지 않는다 — 낱말이 함께 있어야 한다.
             */}
-            {!one.fromCurrentRevision && (
+            {!one.fromCurrentChart && (
               <span className="shrink-0 rounded-full bg-warning-wash px-2 py-0.5 text-[11px] font-semibold text-warning">
                 이전 입력
               </span>

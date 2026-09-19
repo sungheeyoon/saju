@@ -16,7 +16,7 @@ import { dirname, join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 
-import { clearMachineRunsFromToday } from './notice.mjs';
+import { clearMachineRunsFromToday, chartArgs } from './notice.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -191,6 +191,7 @@ export async function seed(local, wanted, tag) {
       p_city: BIRTH.city,
       p_late_night_rule: 'jo',
       p_time_basis: 'localMean',
+      ...chartArgs(label),
     });
     if (saved.error) throw new Error(`자기 사주를 못 넣었습니다 — ${saved.error.message}`);
     selfPersonId = saved.data;
@@ -217,6 +218,7 @@ export async function seed(local, wanted, tag) {
       p_city: person.city ?? '대구',
       p_late_night_rule: 'jo',
       p_time_basis: 'localMean',
+      ...chartArgs(person.label),
     });
     if (made.error) throw new Error(`${person.label} 을 못 넣었습니다 — ${made.error.message}`);
     managed.push({ label: person.label, personId: made.data });
@@ -241,21 +243,17 @@ function runningRun(kind, personId, matchId) {
         'r.match_id is null',
       ];
 
-  const row = sql(`select r.id || '|' || coalesce(s.revision_a::text, '')
-                          || '|' || coalesce(s.revision_b::text, '')
-                   from public.reading_run r
-                   cross join lateral public.reading_scope_for(
-                     r.user_id, r.kind, r.person_a, r.person_b, r.match_id) s
-                   where ${where.join(' and ')}
-                   order by r.created_at desc limit 1`);
-  if (row === '') return null;
+  /**
+   * **시도 id 하나면 된다**(ADR 0071). 무엇으로 계산했는지는 시도를 열 때 얼었고 저장하는
+   * 문이 얼린 작업에서 읽는다 — 판본을 집어다 넘기던 자리가 없어졌다.
+   */
+  const runId = sql(`select r.id
+                     from public.reading_run r
+                     where ${where.join(' and ')}
+                     order by r.created_at desc limit 1`);
+  if (runId === '') return null;
 
-  const [runId, revisionA, revisionB] = row.split('|');
-  return {
-    run_id: runId,
-    revision_a: revisionA === '' ? null : revisionA,
-    revision_b: revisionB === '' ? null : revisionB,
-  };
+  return { run_id: runId };
 }
 
 /**
@@ -318,8 +316,6 @@ export async function plantReading(api, { kind, personId = null, matchId = null,
 
   sql(`select public.save_reading(
          '${run.run_id}'::uuid,
-         '${run.revision_a}'::uuid,
-         ${run.revision_b ? `'${run.revision_b}'::uuid` : 'null'},
          '${quoted}',
          ${kind === 'match' ? "72::smallint" : 'null'},
          '${metaphor}',

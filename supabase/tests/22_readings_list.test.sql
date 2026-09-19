@@ -64,7 +64,7 @@ language sql
 security definer
 as $$
   select public.save_reading(
-    run, rev_a, rev_b, body, score, '두 사람이 같은 속도로 걷는 모양입니다.',
+    run, body, score, '두 사람이 같은 속도로 걷는 모양입니다.',
     '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'openai/gpt-5.6-luna',
     '{"temperature":1}'::jsonb, now());
 $$;
@@ -367,7 +367,7 @@ select is(
 select bag_eq(
   $$select unnest(array[
       'kind','person_a','person_b','match_id','label_a','label_b',
-      'score','metaphor','created_at','from_current_revision'])$$,
+      'score','metaphor','created_at','from_current_revision','from_current_chart'])$$,
   $$select p.name from unnest((
       select proargnames from pg_proc
       where oid = 'public.my_readings()'::regprocedure)) as p(name)$$,

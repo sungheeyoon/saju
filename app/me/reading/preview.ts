@@ -11,7 +11,12 @@ import { accountNoticeOf, selfPersonIdOf } from '@/src/lib/account';
 import { supabaseOnServer } from '../../auth/server-client';
 import { readAccount } from '../account';
 import { chartOf } from '@/src/lib/input/chart';
-import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '@/src/lib/input/revision';
+import {
+  PERSON_INPUT_COLUMNS,
+  UnreadableRevisionError,
+  queryFromRevision,
+  type StoredRevision,
+} from '@/src/lib/input/revision';
 import { READING_CHART_NAMES } from './pipeline';
 
 /**
@@ -76,21 +81,11 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
 
   const { data: person } = await supabase
     .from('person')
-    .select('current_revision_id')
+    .select(PERSON_INPUT_COLUMNS)
     .eq('id', selfPersonId)
     .maybeSingle();
 
-  if (!person?.current_revision_id) return { ok: false, message: '저장된 출생 정보를 찾지 못했습니다.' };
-
-  const { data: revision } = await supabase
-    .from('person_chart_revision')
-    .select(
-      'id, calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis',
-    )
-    .eq('id', person.current_revision_id)
-    .maybeSingle();
-
-  if (!revision) return { ok: false, message: '저장된 출생 정보를 찾지 못했습니다.' };
+  if (!person?.calendar) return { ok: false, message: '저장된 출생 정보를 찾지 못했습니다.' };
 
   /**
    * 이름 자리에 **파이프라인이 쓰는 말**을 넣는다(`READING_CHART_NAMES`).
@@ -102,7 +97,9 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
    */
   const viewedAt = new Date();
   try {
-    const chart = chartOf(queryFromRevision(revision as StoredRevision, READING_CHART_NAMES[0]));
+    const chart = chartOf(
+      queryFromRevision(person as unknown as StoredRevision, READING_CHART_NAMES[0]),
+    );
     const evidence = readingEvidenceOf('self', { a: chart }, viewedAt);
 
     return {

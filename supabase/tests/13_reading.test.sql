@@ -10,7 +10,7 @@
 -- 4. **판본을 든다.** 그래서 `revisions_in_use()` 가 이 표를 자동으로 본다(ADR 0011) —
 --    표 이름을 적어 둔 목록이 아니라 FK 에서 읽기 때문이다.
 begin;
-select plan(73);
+select plan(76);
 
 /**
  * **이 파일은 풀이권을 재지 않는다.**
@@ -38,7 +38,8 @@ as $$
       '木', w / 8.0, '火', f / 8.0, '土', e / 8.0, '金', g / 8.0, '水', s / 8.0));
 $$;
 
-create or replace function pg_temp.participant(mail text, who text, summary jsonb)
+create or replace function pg_temp.participant(
+  mail text, who text, summary jsonb, day_stem text default '丙')
 returns uuid
 language plpgsql
 as $$
@@ -46,8 +47,10 @@ declare
   uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
+  /** 여덟 글자를 함께 넣는다(ADR 0071) — 없으면 아래 스냅샷 시험이 `null` 끼리 견준다 */
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+    tests.chart(day_stem), 'chart-for-tests');
   perform public.save_my_profile(who, null);
   perform public.set_discovery_participation(true, summary);
   return uid;
@@ -79,7 +82,7 @@ language sql
 security definer
 as $$
   select public.save_reading(
-    run, rev_a, rev_b, body, score, '두 사람이 같은 속도로 걷는 모양입니다.',
+    run, body, score, '두 사람이 같은 속도로 걷는 모양입니다.',
     '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'openai/gpt-5.6-luna',
     '{"temperature":1}'::jsonb, now());
 $$;
@@ -88,9 +91,9 @@ set local role authenticated;
 
 create temporary table folks as
 select
-  pg_temp.participant('kim-read@example.com', '김읽', pg_temp.summary(4, 4, 0, 0, 0)) as kim,
-  pg_temp.participant('lee-read@example.com', '이읽', pg_temp.summary(0, 0, 4, 4, 0)) as lee,
-  pg_temp.participant('choi-read@example.com', '최읽', pg_temp.summary(0, 0, 0, 0, 8)) as choi;
+  pg_temp.participant('kim-read@example.com', '김읽', pg_temp.summary(4, 4, 0, 0, 0), '丙') as kim,
+  pg_temp.participant('lee-read@example.com', '이읽', pg_temp.summary(0, 0, 4, 4, 0), '戊') as lee,
+  pg_temp.participant('choi-read@example.com', '최읽', pg_temp.summary(0, 0, 0, 0, 8), '庚') as choi;
 grant select on folks to authenticated, service_role;
 
 -- 김이 가족을 하나 등록한다 — 비공개 궁합의 대상이다.
@@ -156,7 +159,7 @@ select throws_ok(
  */
 select throws_ok(
   $$select public.save_reading(
-      '00000000-0000-0000-0000-000000000000'::uuid, null, null, 'x', null, null,
+      '00000000-0000-0000-0000-000000000000'::uuid, 'x', null, null,
       '{}', 'p', 'v', 'm', '{}'::jsonb, now())$$,
   '42501', null, '결과를 저장하는 문은 로그인한 사람이 못 부른다');
 
@@ -281,7 +284,7 @@ select is(
 set local role authenticated;
 select pg_temp.acting((select kim from folks));
 
--- ── 만드는 동안 입력이 바뀌면 저장하지 않는다 ───────────────────────────────
+-- ── 동결 뒤의 수정은 이미 시작된 생성을 안 건드린다 ─────────────────────────
 
 create temporary table run_stale as
 select run_id as id from public.start_reading_run('self', 'key-self-0003');
@@ -291,32 +294,76 @@ select public.add_person_revision(
   (select kim_person from people),
   'solar', '1990-05-15', '1990-05-15', '15:30', 'female', '서울', 'jo', 'localMean');
 
-select throws_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 낡은 판본', null)$$,
-    (select id from run_stale), (select kim_revision from people)),
-  '23514', null, '만드는 동안 입력이 바뀌면 저장하지 않는다');
-
 /**
- * **거절당한 시도는 부르는 쪽이 닫는다.**
+ * **문에서 재고 출구에서는 안 잰다** (ADR 0071).
  *
- * DB 안에서 닫으면 `raise` 가 그 `update` 를 되돌린다. 안 닫으면 그 대상이 만료까지
- * 잠겨 다시 눌러도 아무 일이 일어나지 않는다 — 앱이 하는 일을 여기서도 그대로 한다.
+ * 앞서는 여기서 「만드는 동안 출생정보가 바뀌었습니다」로 거절했다. 그 검사를 걷는다 —
+ * 정상적으로 동결된 최초 생성은 그 뒤 입력이 바뀌어도 완료·저장한다.
+ *
+ * 걷는 이유는 인연 궁합에서 분명하다. 동의가 나고 풀이권까지 예약된(ADR 0038) 자리에서
+ * 완성된 글을 버리면, 그것이 바로 **「동의는 났는데 아무도 못 여는 Match」**다.
+ *
+ * 버리는 대신 **당시 입력으로 쓴 글이라고 적는다** — 그 말을 할 수 있으면 버릴 이유가 없다.
  */
 select lives_ok(
-  format($$select public.fail_reading_run(%L::uuid, 'save-rejected')$$,
-    (select id from run_stale)),
-  '거절당한 시도를 닫는다');
+  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 낡은 판본', null)$$,
+    (select id from run_stale), (select kim_revision from people)),
+  '동결 뒤에 입력을 고쳐도 이미 시작된 생성은 저장된다');
+
+select is(
+  (select output from public.my_reading('self')),
+  '## 낡은 판본',
+  '완성된 글을 버리지 않는다');
+
+select is(
+  (select from_current_revision from public.my_reading('self')),
+  false,
+  '대신 「이전 입력으로 쓴 글」이라고 적는다');
 
 select is(
   (select status from public.my_last_reading_run('self')),
-  'failed',
-  '화면이 「지난번에 실패했다」고 말할 근거가 남는다');
+  'succeeded',
+  '동결된 최초 생성은 끝까지 간다');
 
-/** 거절당해도 **직전 성공 결과는 그대로다** */
+-- ── 되짚는 것은 입력이 아니라 **여덟 글자**다 (ADR 0071 · #68) ───────────────
+
+/**
+ * **글이 생성 당시 여덟 글자를 직접 든다.**
+ *
+ * 판본 id 를 가리키던 자리다. 판본을 지우면 그 id 는 아무것도 안 가리키므로, 되짚을
+ * 값을 **값으로** 든다 — 그 값으로 하는 일은 둘뿐이다: 지금 명식과 견주는 것, 그리고
+ * 동의로 열린 여덟 글자를 보여주는 것.
+ */
+reset role;
 select is(
-  (select output from public.my_reading('self')),
-  '## 다시 썼다',
-  '실패한 저장이 현재 결과를 건드리지 않는다');
+  (select r.chart_a from public.reading r
+   where r.kind = 'self' and r.owner_user_id = (select kim from folks)),
+  tests.chart('丙'),
+  '저장이 얼린 작업의 여덟 글자를 글에 옮겨 적는다');
+set local role authenticated;
+select pg_temp.acting((select kim from folks));
+
+/**
+ * **입력 표현이 달라도 여덟 글자가 같으면 지금 명식이다.**
+ *
+ * 출생지를 서울에서 부산으로 고치면 새 판본이 서지만 여덟 글자는 그대로일 수 있다.
+ * 앞서는 그때 화면이 「이전 입력」이라 적었다 — **한쪽으로 거짓말하던 자리다.** 화면이
+ * 하려는 말은 「이전 명식」이므로 여덟 글자로 견주는 쪽이 맞다.
+ */
+select public.add_person_revision(
+  (select kim_person from people),
+  'solar', '1990-05-15', '1990-05-15', '15:30', 'female', '부산', 'jo', 'localMean',
+  tests.chart('丙'), 'chart-for-tests');
+
+select is(
+  (select from_current_revision from public.my_reading('self')),
+  false,
+  '판본으로 견주면 「이전 입력」이다 — 새 판본이 섰으므로');
+
+select is(
+  (select from_current_chart from public.my_reading('self')),
+  true,
+  '여덟 글자로 견주면 지금 명식이다 — 거짓말하던 자리가 고쳐졌다');
 
 -- ── 비공개 궁합 — 내 엣지에 있는 두 사람만 ──────────────────────────────────
 
@@ -458,13 +505,22 @@ select is(
   '동의한 쪽이 눌러도 아무것도 새로 열리지 않는다');
 
 /**
- * **매인 판본이 아니면 저장하지 않는다.** 동의한 대상이 그 판본이라 결과도 그것으로
- * 나야 한다(ADR 0010). 지금 판본을 적어 넣는 길이 있으면 그 약속이 앱 코드에만 남는다.
+ * **앱이 판본을 고르는 자리가 없어졌다** (ADR 0071).
+ *
+ * 앞서는 지금 판본을 적어 넣는 길이 있어서, 저장하는 문이 「매인 판본인가」를 출구에서
+ * 다시 재야 했다. 이제 그 값은 시도를 여는 트랜잭션에서 얼었고 문은 얼린 작업에서
+ * 읽는다 — 물음 자체가 없어졌으므로 **인자에 그 자리가 없는지**를 잰다.
+ *
+ * 옛 열두 인자짜리는 배포 창을 안 만들려고 아직 서 있다(#70 이 지운다). 그래서 새 문
+ * 하나만 집어 본다.
  */
-select throws_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, %L::uuid, '## 공유', 64::smallint)$$,
-    (select id from run_match), (select kim_revision from people), (select lee_revision from people)),
-  '23514', null, '매인 판본이 아니면 공유 결과를 저장하지 않는다');
+select is(
+  (select count(*)::int from pg_proc p
+   join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'save_reading' and p.pronargs = 10
+     and pg_get_function_arguments(p.oid) like '%revision%'),
+  0,
+  '저장하는 문은 판본을 인자로 안 받는다');
 
 select lives_ok(
   format($$select pg_temp.save(%L::uuid, %L::uuid, %L::uuid, '## 공유 궁합', 64::smallint)$$,
@@ -812,7 +868,7 @@ select throws_ok(
 
 select is(
   (select output from public.my_reading('self')),
-  '## 다시 썼다',
+  '## 낡은 판본',
   '거절당한 저장이 현재 결과를 건드리지 않는다');
 
 -- ── 시작 뒤 자격이 사라지면 저장도 멈춘다 ────────────────────────────────────
@@ -883,6 +939,8 @@ select is(
     /** 동의가 연 시도를 서버가 찾아 제출한다 — 부르는 사람은 요청자가 아니다(ADR 0038) */
     'match_run_awaiting_send',
     'open_reading_jobs',
+    /** Node 가 지은 것을 적는 문 — 계산 입력은 안 받는다(ADR 0071 · #66) */
+    'prepare_reading_job',
     'reading_recovery_configured',
     'record_reading_webhook_event',
     'release_reading_job',
@@ -892,7 +950,11 @@ select is(
 
       그동안 이 줄이 두 벌인 것을 값으로 들고 있었고, 좁히는 날 한 줄이 빠졌다.
       **지금 상태를 감추지 않고 값으로 드는 것이 그 표를 잣대로 만든다.**
+
+      **또 두 벌이다**(ADR 0071 · #66). 판본 인자 둘이 빠지면서 열 인자짜리가 새로 섰고,
+      옛 열두 인자짜리는 배포 창을 안 만들려고 그대로 둔다 — 좁히는 것은 #70 이다.
     */
+    'save_reading',
     'save_reading',
     /**
      * 엔진 판이 바뀐 뒤 **남의** Person 의 여덟 글자를 다시 채우는 운영 문(ADR 0071).
@@ -900,9 +962,11 @@ select is(
      * 아니라 영구히 남으므로 이 목록에 이름이 선다. 대신 **조건부로만 쓴다**: 읽었던
      * 판본을 함께 받아, 그 사이 입력이 바뀌었으면 쓰지 않고 `false` 로 답한다.
      */
-    'set_person_chart'
+    'set_person_chart',
+    /** 얼린 작업을 집는 문 — 조회가 아니라 `frozen` → `preparing` 전이다(ADR 0071 · #66) */
+    'take_reading_job'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 열세 개뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 열여섯 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

@@ -1,6 +1,11 @@
 import { chartFingerprint, chartOf } from '@/src/lib/input/chart';
 import type { Query } from '@/src/lib/input/query';
-import { UnreadableRevisionError, queryFromRevision } from '@/src/lib/input/revision';
+import {
+  PERSON_INPUT_COLUMNS,
+  UnreadableRevisionError,
+  queryFromRevision,
+  type StoredRevision,
+} from '@/src/lib/input/revision';
 import { supabaseOnServer } from '../auth/server-client';
 
 /**
@@ -75,28 +80,25 @@ export async function sameChartInMyList(query: Query): Promise<SameChart | null>
 
   if (!edges || edges.length === 0) return null;
 
+  /**
+   * **행 하나씩만 읽는다**(ADR 0071). 앞서는 사람마다 판본 id 를 모아 두 번째 질의를
+   * 보냈다 — 입력이 `person` 으로 내려오면서 그 걸음이 없어졌다.
+   */
   const { data: persons } = await supabase
     .from('person')
-    .select('id, current_revision_id')
+    .select(`id, ${PERSON_INPUT_COLUMNS}`)
     .in(
       'id',
       edges.map((edge) => edge.person_id as string),
     );
 
-  const currentIds = (persons ?? [])
-    .map((person) => person.current_revision_id)
-    .filter((id): id is string => id !== null);
+  const byPerson = new Map(
+    (persons ?? [])
+      .filter((person) => person.calendar !== null)
+      .map((person) => [person.id as string, person as unknown as StoredRevision]),
+  );
 
-  if (currentIds.length === 0) return null;
-
-  const { data: revisions } = await supabase
-    .from('person_chart_revision')
-    .select(
-      'person_id, calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis',
-    )
-    .in('id', currentIds);
-
-  const byPerson = new Map((revisions ?? []).map((revision) => [revision.person_id, revision]));
+  if (byPerson.size === 0) return null;
 
   /**
    * **목록에 선 사람이 먼저다.**

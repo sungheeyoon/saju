@@ -18,7 +18,7 @@ import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
-import { passNotice } from './notice.mjs';
+import { passNotice, chartArgs } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -51,6 +51,7 @@ const birth = {
   p_city: '서울',
   p_late_night_rule: 'jo',
   p_time_basis: 'localMean',
+  ...chartArgs('managed-self'),
 };
 
 // ── 1. 두 계정을 세운다 ───────────────────────────────────────────────────────
@@ -79,6 +80,7 @@ let momId;
     p_city: '부산',
     p_late_night_rule: 'jo',
     p_time_basis: 'localMean',
+    ...chartArgs('managed-mom'),
   });
   check('가족을 등록한다 (음력 입력)', typeof mom === 'string', error?.message);
   momId = mom;

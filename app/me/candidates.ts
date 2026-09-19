@@ -12,6 +12,7 @@ import {
 } from '@/src/lib/discovery';
 
 import { supabaseOnServer } from '../auth/server-client';
+import { dbFailure } from '../db-error';
 
 /**
  * **후보가 브라우저로 내려가는 유일한 문.**
@@ -96,7 +97,7 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
   const { data, error } = await supabase.rpc('my_discovery_board');
 
   // 「참여를 먼저 켜 주세요」 같은 거절은 DB 가 문장으로 낸다. 여기서 다시 판정하지 않는다.
-  if (error) throw new Error(error.message);
+  if (error) throw dbFailure(error, 'my_discovery_board');
 
   const cards = ((data ?? []) as BoardRow[]).map((row) => ({
     ...publicCardFromRow(row, mySummary),
@@ -147,7 +148,7 @@ export async function passedForViewer(mySummary: ElementSummary): Promise<Passed
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('my_passed_connections');
-  if (error) throw new Error(error.message);
+  if (error) throw dbFailure(error, 'my_passed_connections');
 
   return ((data ?? []) as PassedRow[]).map((row) => ({
     ...publicCardFromRow(row, mySummary),
@@ -171,7 +172,7 @@ export async function boardStamp(): Promise<BoardStamp | null> {
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('my_discovery_snapshot');
-  if (error) throw new Error(error.message);
+  if (error) throw dbFailure(error, 'my_discovery_snapshot');
 
   const row = (data ?? [])[0] as { generated_at: string; wait_seconds: number } | undefined;
   if (row === undefined) return null;

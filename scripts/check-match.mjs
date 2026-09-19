@@ -17,7 +17,7 @@ import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
-import { passNotice } from './notice.mjs';
+import { passNotice, chartArgs } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -67,6 +67,7 @@ const person = async (email, label, birth, city, gender) => {
     p_local_label: label, p_calendar: 'solar',
     p_original_date: birth, p_solar_date: birth, p_birth_time: '14:30',
     p_gender: gender, p_city: city, p_late_night_rule: 'jo', p_time_basis: 'localMean',
+    ...chartArgs(label),
   });
   return client;
 };
@@ -325,6 +326,7 @@ try {
       p_calendar: 'solar', p_original_date: '1988-11-20', p_solar_date: '1988-11-20',
       p_birth_time: '20:10', p_gender: 'male', p_city: '대구',
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
+      ...chartArgs('현우'),
     });
 
     const asker = plain(await body('/me/requests', aCookie));

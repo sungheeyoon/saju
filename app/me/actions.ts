@@ -13,6 +13,7 @@ import {
   selfPersonArgs,
   unsupportedForSaving,
 } from '@/src/lib/input/revision';
+import { userFacingDbMessage } from '../db-error';
 
 export type SaveResult = { ok: true } | { ok: false; message: string };
 
@@ -63,7 +64,7 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
       revalidatePath('/me');
       return { ok: true };
     }
-    return { ok: false, message: error.message };
+    return { ok: false, message: userFacingDbMessage(error, 'create_self_person') };
   }
 
   revalidatePath('/me');
@@ -105,7 +106,7 @@ export async function addManagedPerson(
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc('create_managed_person', managedPersonArgs(query, note));
 
-  if (error) return { ok: false, kind: 'failed', message: error.message };
+  if (error) return { ok: false, kind: 'failed', message: userFacingDbMessage(error, 'create_managed_person') };
   /**
    * 0행은 저장이 아니다 — 「했다」로 읽으면 없는 사람의 화면을 열러 간다. 목록만 다시
    * 그리는 화면은 이 값을 안 봐도 되지만, **못 받았다는 사실은 값으로 남는다.**
@@ -151,7 +152,7 @@ export async function updateNote(personId: string, note: string): Promise<SaveRe
     .update({ note: noteOrNull(note) })
     .eq('person_id', personId);
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'user_person_access.update') };
 
   revalidatePath('/me/people');
   return { ok: true };
@@ -168,7 +169,7 @@ export async function removeFromList(personId: string): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
   const { error } = await supabase.from('user_person_access').delete().eq('person_id', personId);
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'user_person_access.delete') };
 
   revalidatePath('/me/people');
   return { ok: true };
@@ -200,10 +201,10 @@ export async function revisePerson(personId: string, query: Query): Promise<Save
     .from('user_person_access')
     .update({ local_label: query.name.trim() })
     .eq('person_id', personId);
-  if (labelError) return { ok: false, message: labelError.message };
+  if (labelError) return { ok: false, message: userFacingDbMessage(labelError, 'user_person_access.label') };
 
   const { error } = await supabase.rpc('add_person_revision', revisionArgs(personId, query));
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'add_person_revision') };
 
   /**
    * 판본이 바뀌었으면 **매칭 풀에 내놓은 오행 요약도 따라간다.**
@@ -261,7 +262,7 @@ export async function setOptionalConsent(
     { p_consent: consent },
   );
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'set_optional_consent') };
 
   revalidatePath('/me/settings');
   revalidatePath('/me');

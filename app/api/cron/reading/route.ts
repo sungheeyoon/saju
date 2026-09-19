@@ -29,7 +29,19 @@ import { collectReadingResult } from '../../../me/reading/collect';
 /** 여러 일감을 차례로 집는다. 하나가 오래 걸려도 다음 바퀴가 있다 */
 export const maxDuration = 300;
 
-type OpenJob = { run_id: string; response_id: string | null; overdue: boolean };
+/**
+ * 손볼 일감 한 줄 — **무슨 코드로 닫을지를 DB 가 함께 낸다.**
+ *
+ * 준비 전(`frozen`·`preparing`)에 멈춘 작업은 **모델을 부른 적이 없다**(ADR 0071). 여기서
+ * 상태를 보고 코드를 고르면 그 판정이 두 자리에 생기고, 둘은 언젠가 갈린다 — 그때
+ * 모델을 부른 적 없는 실패에 `model-timeout` 이 적힌다.
+ */
+type OpenJob = {
+  run_id: string;
+  response_id: string | null;
+  overdue: boolean;
+  failure_code: string;
+};
 
 export async function GET(request: Request): Promise<Response> {
   /**
@@ -69,8 +81,11 @@ export async function GET(request: Request): Promise<Response> {
     if (job.overdue) {
       await keyed.rpc('fail_reading_job', {
         p_run_id: job.run_id,
-        p_failure_code: 'model-timeout',
-        p_failure_detail: '만드는 데 너무 오래 걸렸습니다',
+        p_failure_code: job.failure_code,
+        p_failure_detail:
+          job.failure_code === 'prepare-timeout'
+            ? '만들기를 시작하지 못했습니다'
+            : '만드는 데 너무 오래 걸렸습니다',
       });
       closed += 1;
       continue;

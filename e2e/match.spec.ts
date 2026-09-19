@@ -2,6 +2,8 @@ import type { Locator } from '@playwright/test';
 
 import { expect, forgetBoards, hideEveryoneExcept, optIn, test, type Person } from './session';
 
+import { READING_FAILED_NOTE } from '@/src/lib/reading';
+
 import { fillBirthDate } from './birth-form';
 
 /**
@@ -196,18 +198,30 @@ test.describe('동의로 열리는 흐름', () => {
       await expect(person.page.getByText('서울')).toHaveCount(0);
 
       /*
-        **누를 것이 없다** (ADR 0038).
+        **누를 것이 없다** (ADR 0038) — **성공 경로에서는.**
 
-        여기서 「아직 받아 둔 궁합풀이가 없습니다」와 「궁합풀이 받기」를 재고 있었다.
-        그 둘이 참이려면 누가 눌러야 하는데, 이제 아무도 안 누른다 — 풀이권은 요청할
-        때 예약되고 **동의가 그것을 쓴다.** 「먼저 누른 사람이 쓴다」가 사라지는 것은
-        규칙을 하나 더 세워서가 아니라 누를 것이 없어져서다.
+        풀이권은 요청할 때 예약되고 동의가 그것을 쓴다. 「먼저 누른 사람이 쓴다」가
+        사라지는 것은 규칙을 하나 더 세워서가 아니라 누를 것이 없어져서다.
 
-        무엇이 서 있는지는 시각에 달렸다(만드는 중이거나, 열쇠 없는 시험 환경에서는
-        곧 실패한다). 시각에 안 달린 것 하나를 잰다: **그 버튼은 없다.**
+        **실패 경로에서까지 없애지는 않는다.** 글도 없고 도는 시도도 없으면 그 자리는
+        막다른 골목이 되고, 그것이야말로 이 ADR 이 없애려던 자리다 — 그때는 「궁합풀이
+        받기」가 되돌아오고 누른 사람이 한 번을 쓴다(`panel.tsx`, PRD §6.2).
+
+        앞서 이 줄은 `toHaveCount(0)` 이었고 **그것이 통과한 까닭은 실패가 닫히지
+        않았기 때문**이다: 수락한 쪽 세션으로는 청한 쪽의 시도를 못 닫아
+        (`fail_reading_run` 이 `auth.uid()` 를 묻는다) 제출이 실패해도 시도가 10분간
+        `running` 으로 서 있었고, 화면은 「만드는 중」을 보였다. 이제 열쇠로 닫으므로
+        (ADR 0071 · #66) 실패가 제때 보인다. 이 시험 환경에는 모델 열쇠가 없어 자동
+        생성이 곧 실패한다.
+
+        그래서 시각에 안 달린 것을 잰다: **그 버튼은 실패한 자리에서만 선다.**
       */
       await expect(person.page.getByRole('heading', { name: `${partner} 님과의 궁합풀이` })).toBeVisible();
-      await expect(person.page.getByRole('button', { name: '궁합풀이 받기' })).toHaveCount(0);
+
+      const make = person.page.getByRole('button', { name: '궁합풀이 받기' });
+      if ((await make.count()) > 0) {
+        await expect(person.page.getByText(READING_FAILED_NOTE)).toBeVisible();
+      }
 
     }
   });

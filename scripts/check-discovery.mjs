@@ -17,7 +17,7 @@ import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
-import { passNotice } from './notice.mjs';
+import { passNotice, chartArgs } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -73,6 +73,7 @@ await me.rpc('create_self_person', {
   p_local_label: '민수', p_calendar: 'solar',
   p_original_date: '1990-05-15', p_solar_date: '1990-05-15', p_birth_time: '14:30',
   p_gender: 'male', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+  ...chartArgs('discovery-mine'),
 });
 
 const other = anon();
@@ -82,6 +83,7 @@ await other.rpc('create_self_person', {
   p_local_label: '지영', p_calendar: 'solar',
   p_original_date: '1992-03-03', p_solar_date: '1992-03-03', p_birth_time: '09:00',
   p_gender: 'female', p_city: '부산', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+  ...chartArgs('discovery-theirs'),
 });
 
 // ── 2. 참여하지 않으면 후보도 없다 ────────────────────────────────────────────
@@ -512,6 +514,7 @@ const isolate = (emails) => {
       p_calendar: 'solar', p_original_date: '1992-03-03', p_solar_date: '1992-03-03',
       p_birth_time: '09:00', p_gender: 'female', p_city: '대구',
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
+      ...chartArgs('discovery-theirs'),
     });
 
     // RPC 를 직접 불렀으므로 요약은 아직 옛 판본의 것이다 — 그 사이에는 후보가 아니다.
@@ -538,6 +541,7 @@ const isolate = (emails) => {
       p_calendar: 'solar', p_original_date: '1993-07-07', p_solar_date: '1993-07-07',
       p_birth_time: '21:10', p_gender: 'female', p_city: '대구',
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
+      ...chartArgs('discovery-theirs'),
     });
     if (revised.error) throw new Error(revised.error.message);
     await get('/me', theirCookie);

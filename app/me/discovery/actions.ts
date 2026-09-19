@@ -7,6 +7,7 @@ import { publicCardFromRow } from '../candidates';
 import type { SaveResult } from '../actions';
 import { selfElementSummary } from '../summary';
 import { PREFER_GENDERS, type PreferGender } from './profile';
+import { userFacingDbMessage } from '../../db-error';
 
 /**
  * 만나볼 상대의 조건을 저장한다.
@@ -37,7 +38,7 @@ export async function savePreferGender(value: PreferGender): Promise<SaveResult>
     ? await supabase.from('discovery_profile').update({ prefer_gender: value }).eq('user_id', existing.user_id)
     : await supabase.from('discovery_profile').insert({ prefer_gender: value });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'discovery_profile.upsert') };
 
   revalidatePath('/me/settings');
   return { ok: true };
@@ -58,7 +59,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
       p_on: false,
       p_summary: null,
     });
-    if (error) return { ok: false, message: error.message };
+    if (error) return { ok: false, message: userFacingDbMessage(error, 'set_discovery_participation') };
 
     revalidatePath('/me/settings');
     return { ok: true };
@@ -76,7 +77,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
     p_on: true,
     p_summary: self.summary,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'set_discovery_participation') };
 
   revalidatePath('/me/settings');
   return { ok: true };
@@ -93,7 +94,7 @@ export async function refreshDiscoveryBoard(): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
   const { error } = await supabase.rpc('refresh_discovery_snapshot');
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'refresh_discovery_snapshot') };
 
   revalidatePath('/me');
   revalidatePath('/me/matching');
@@ -113,7 +114,7 @@ export async function hideCandidate(candidateUserId: string): Promise<SaveResult
     .from('discovery_hidden')
     .insert({ hidden_user_id: candidateUserId });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'discovery_hidden.insert') };
 
   /*
     **덱을 사용자 밑에서 다시 그리지 않는다.** 서버 액션의 `revalidatePath` 는 응답에
@@ -145,7 +146,7 @@ export async function unhideCandidate(candidateUserId: string): Promise<SaveResu
     .delete()
     .eq('hidden_user_id', candidateUserId);
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'discovery_hidden.delete') };
 
   /*
     **덱을 사용자 밑에서 다시 그리지 않는다.** 서버 액션의 `revalidatePath` 는 응답에
@@ -172,7 +173,7 @@ export async function unhideAllCandidates(): Promise<SaveResult> {
   // 정책이 자기 행만 열어 주므로 `user_id` 를 적지 않는다. 조건은 모양만 남긴다.
   const { error } = await supabase.from('discovery_hidden').delete().not('hidden_user_id', 'is', null);
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'discovery_hidden.clear') };
 
   revalidatePath('/me');
   revalidatePath('/me/matching');
@@ -204,7 +205,7 @@ export async function passCandidate(candidateUserId: string): Promise<SaveResult
       { onConflict: 'user_id,passed_user_id' },
     );
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'discovery_passed.insert') };
 
   revalidatePath('/me');
   return { ok: true };
@@ -223,7 +224,7 @@ export async function restorePassed(candidateUserId: string) {
   const { data, error } = await supabase.rpc('restore_passed_connection', {
     p_candidate_user_id: candidateUserId,
   });
-  if (error) return { ok: false as const, message: error.message };
+  if (error) return { ok: false as const, message: userFacingDbMessage(error, 'restore_passed_connection') };
   if (!data?.card) return { ok: false as const, message: '복원한 인연을 읽지 못했습니다. 목록을 새로 열어 주세요.' };
   revalidatePath('/me');
   return {
@@ -251,7 +252,7 @@ export async function requestMatch(candidateUserId: string): Promise<SaveResult>
     p_candidate_user_id: candidateUserId,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'request_match') };
 
   /*
     **덱을 사용자 밑에서 다시 그리지 않는다.** 서버 액션의 `revalidatePath` 는 응답에

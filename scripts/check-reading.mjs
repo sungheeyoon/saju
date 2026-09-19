@@ -20,7 +20,7 @@ import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
-import { passNotice } from './notice.mjs';
+import { passNotice, chartArgs } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -77,6 +77,7 @@ const person = async (email, label, birth) => {
     p_local_label: label, p_calendar: 'solar',
     p_original_date: birth.date, p_solar_date: birth.date, p_birth_time: '14:30',
     p_gender: birth.gender, p_city: birth.city, p_late_night_rule: 'jo', p_time_basis: 'localMean',
+    ...chartArgs(label),
   });
   await client.rpc('save_my_profile', { p_nickname: label, p_intro: null });
   await client.rpc('set_discovery_participation', {
@@ -100,6 +101,7 @@ const { data: momId } = await a.rpc('create_managed_person', {
   p_local_label: '엄마', p_note: null, p_calendar: 'solar',
   p_original_date: '1962-03-02', p_solar_date: '1962-03-02', p_birth_time: '07:10',
   p_gender: 'female', p_city: '대구', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+  ...chartArgs('reading-mom'),
 });
 
 const cookieFor = async (email) => {
@@ -182,8 +184,6 @@ const saveAs = async (client, kind, target, output, score, metaphor) => {
 const saveToRun = async (run, output, score, metaphor) => {
   const saved = await keyed().rpc('save_reading', {
     p_run_id: run.run_id,
-    p_revision_a: run.revision_a,
-    p_revision_b: run.revision_b,
     p_output: output,
     p_score: score,
     p_metaphor: metaphor ?? null,
@@ -519,12 +519,11 @@ try {
         plain(waiting).includes('사주의 흐름을 이어 읽고 있어요'));
     }
 
-    const pinnedRun = {
-      run_id: openedRunId,
-      revision_a: sql(`select low_revision_id from public.match where id = '${matchId}'`),
-      revision_b: sql(`select high_revision_id from public.match where id = '${matchId}'`),
-    };
-    const saved = await saveToRun(pinnedRun, OUTPUT.match, 64, METAPHOR.match);
+    /**
+     * **판본을 안 집어 온다**(ADR 0071). 무엇으로 계산했는지는 수락이 시도를 열 때 이미
+     * 얼었고, 저장하는 문이 그 얼린 작업에서 직접 읽는다 — 부르는 쪽이 댈 값이 없다.
+     */
+    const saved = await saveToRun({ run_id: openedRunId }, OUTPUT.match, 64, METAPHOR.match);
     check('공유 궁합이 저장된다', !saved.error, saved.error?.message ?? '');
 
     const mine = plain(await body(`/me/match/${matchId}`, cookie.a));
@@ -645,8 +644,6 @@ try {
      */
     const forged = await a.rpc('save_reading', {
       p_run_id: '00000000-0000-0000-0000-000000000000',
-      p_revision_a: '00000000-0000-0000-0000-000000000000',
-      p_revision_b: null,
       p_output: '지어낸 글',
       p_score: null,
       p_metaphor: null,
@@ -682,6 +679,7 @@ try {
       p_calendar: 'solar', p_original_date: BIRTH.b.date, p_solar_date: BIRTH.b.date,
       p_birth_time: '05:20', p_gender: BIRTH.b.gender, p_city: BIRTH.b.city,
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
+      ...chartArgs(`${NAME.b}-고침`),
     });
 
     const after = plain(await body(`/me/match/${matchId}`, cookie.a));
@@ -696,6 +694,7 @@ try {
       p_calendar: 'solar', p_original_date: BIRTH.a.date, p_solar_date: BIRTH.a.date,
       p_birth_time: '09:40', p_gender: BIRTH.a.gender, p_city: BIRTH.a.city,
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
+      ...chartArgs(`${NAME.a}-고침`),
     });
 
     const mine = plain(await body('/me/readings/self', cookie.a));

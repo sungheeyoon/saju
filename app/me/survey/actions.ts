@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { PRICE_OPTIONS, type SurveyAnswers } from '@/src/lib/survey';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { userFacingDbMessage } from '../../db-error';
 
 /**
  * 답을 저장한다 — **초안과 제출이 한 문을 지난다.**
@@ -37,7 +38,7 @@ export async function saveServiceSurvey(
     p_submit: submit,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'save_service_survey') };
 
   /*
     제출한 뒤에는 화면이 「고맙습니다」로 서야 하고, 그 값은 서버가 내려주는

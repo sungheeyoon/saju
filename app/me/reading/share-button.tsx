@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { shareMyReading } from './share';
-import type { ReadingTarget } from './pipeline';
+import type { ReadingTarget } from './target';
 
 /**
  * 내 사주풀이를 **링크로 보낸다** — 누르면 주소가 클립보드에 들어간다.

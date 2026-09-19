@@ -6,7 +6,13 @@ import { readAccount } from './account';
 import { unreadCount } from './requests/inbox';
 import { chartOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
-import { UNREADABLE_REVISION_NOTE, UnreadableRevisionError, queryFromRevision } from '@/src/lib/input/revision';
+import {
+  PERSON_INPUT_COLUMNS,
+  UNREADABLE_REVISION_NOTE,
+  UnreadableRevisionError,
+  queryFromRevision,
+  type StoredRevision,
+} from '@/src/lib/input/revision';
 import { DiscoveryBoard } from './discovery/board';
 import { AccountNotice } from './account-notice';
 import { Onboarding } from './onboarding';
@@ -83,16 +89,19 @@ async function SelfChart({ personId }: { personId: string }) {
   const supabase = await supabaseOnServer();
 
   const [{ data: person }, { data: edge }] = await Promise.all([
-    supabase.from('person').select('current_revision_id').eq('id', personId).maybeSingle(),
+    supabase.from('person').select(PERSON_INPUT_COLUMNS).eq('id', personId).maybeSingle(),
     supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
   ]);
 
-  if (!person?.current_revision_id || !edge) {
+  if (!person?.calendar || !edge) {
     return <p className="text-sm text-muted">저장된 사주를 읽지 못했습니다.</p>;
   }
 
   /**
-   * **현재 입력 하나만 읽는다**(ADR 0011).
+   * **현재 입력 하나만 읽는다**(ADR 0011·0071).
+   *
+   * 입력이 `person` 으로 내려오면서 **행 하나 읽기**가 됐다 — 판본 id 를 읽고 그 id 로
+   * 판본을 다시 읽던 두 걸음이 없어졌다.
    *
    * 전에는 이 자리가 판본을 전부 가져와 이력을 그렸다. 그것이 「고친 기록은 쌓입니다」의
    * 증거라고 여겼는데, 판본을 남기는 이유는 이력을 보여주기 위해서가 아니라 이미
@@ -102,15 +111,7 @@ async function SelfChart({ personId }: { personId: string }) {
    * 가리키는 id 로 묻는다. 「가장 최근 것이 현재일 것」이라고 짐작하면 현재를 정하는
    * 자리가 둘이 된다.
    */
-  const { data: current } = await supabase
-    .from('person_chart_revision')
-    .select(
-      'id, calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis',
-    )
-    .eq('id', person.current_revision_id)
-    .maybeSingle();
-
-  if (!current) return <p className="text-sm text-muted">저장된 출생 정보를 찾지 못했습니다.</p>;
+  const current = person as unknown as StoredRevision;
 
   /**
    * 못 읽는 판본은 **메우지 않는다.**

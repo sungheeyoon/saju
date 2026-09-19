@@ -9,7 +9,7 @@ create schema if not exists tests;
 -- pg_prove 는 plan 이 없는 파일을 「망가진 시험」으로 읽는다. 도구 파일이라도
 -- 한 줄은 세워 둔다 — 손잡이가 안 서면 나머지가 전부 이유 없이 무너지므로,
 -- 그 자리를 여기서 먼저 알려 주는 것이 맞다.
-select plan(2);
+select plan(3);
 
 /**
  * 구글 로그인만 한다 — **가입은 아직 안 끝났다.**
@@ -110,6 +110,41 @@ end;
 $$;
 
 /**
+ * 여덟 글자 한 벌 — **모양만 맞으면 된다.**
+ *
+ * 입력을 쓰는 문이 스냅샷을 함께 받으면서(ADR 0071 · A1) 시험도 그 값을 대야 한다.
+ * 그런데 **DB 는 「이 여덟 글자가 저 입력에서 나왔나」를 끝내 못 본다** — 절기·자시·경도가
+ * TypeScript 엔진에 있기 때문이다. 문이 보는 것은 셋뿐이다: 낱자가 천간 열·지지 열둘
+ * 안인가, 일간이 일주의 천간인가, 시주의 유무가 입력과 맞는가.
+ *
+ * 그래서 시험은 **그 셋을 만족하는 한 벌**을 쓴다. 진짜 명식을 여기 적어 두면 엔진을
+ * 고치는 날 이 파일이 조용히 거짓이 되고, 그것을 아무도 안 본다 — 엔진이 내는 값과
+ * 저장된 값이 같은지는 **앱을 띄워 재는 자리**가 잰다(`e2e`, ADR 0071 「재는 자리」).
+ *
+ * **일간을 인자로 받는다.** 두 사람이 같은 여덟 글자를 들면 「누구 것을 베꼈나」를
+ * 재는 시험이 언제나 통과한다.
+ *
+ * @param with_hour 시각을 아는 사람인가. `false` 면 시주가 `null` 이다 — 정오로 메운
+ *   시주가 아니라 **없음**이어야 하고, 문이 `birth_time` 과 대조한다.
+ */
+create or replace function tests.chart(
+  day_stem text default '丙',
+  with_hour boolean default true
+)
+returns jsonb
+language sql
+immutable
+as $$
+  select jsonb_build_object(
+    'year', jsonb_build_object('stem', '甲', 'branch', '子'),
+    'month', jsonb_build_object('stem', '乙', 'branch', '丑'),
+    'day', jsonb_build_object('stem', day_stem, 'branch', '寅'),
+    'hour', case when with_hour
+      then jsonb_build_object('stem', '丁', 'branch', '卯') end,
+    'dayMaster', day_stem);
+$$;
+
+/**
  * 그 사람의 JWT 를 든 척하는 문장 — 시험 파일이 그대로 실행한다.
  *
  * 역할까지 바꾸는 것이 핵심이다. `postgres` 로 재면 표 소유자라 RLS 를 그냥
@@ -157,4 +192,5 @@ grant execute on all functions in schema tests to authenticated;
 
 select has_function('tests', 'signup', array['text'], '가입한 척하는 손잡이가 선다');
 select has_function('tests', 'signup_raw', array['text'], '가입을 안 끝낸 손잡이도 선다');
+select ok(public.is_chart_snapshot(tests.chart()), '손잡이가 내는 여덟 글자는 문을 지나간다');
 select * from finish();

@@ -13,7 +13,7 @@ import { CARD } from '../../../card';
 import { UUID } from '../../../uuid';
 import { CopyText } from '../copy-text';
 import { readingArtifacts, currentReading, lastReadingRun, readingGroundingOf } from '../current';
-import type { ReadingTarget } from '../pipeline';
+import type { ReadingTarget } from '../target';
 import { selfReadingPreview, type PreviewResult } from '../preview';
 
 export const metadata = {

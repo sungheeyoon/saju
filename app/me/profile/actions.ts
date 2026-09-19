@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { supabaseOnServer } from '../../auth/server-client';
 import type { SaveResult } from '../actions';
 import { PHOTO_TYPES, missingInProfile, type ProfileInput } from '@/src/lib/profile';
+import { userFacingDbMessage } from '../../db-error';
 
 /**
  * 프로필을 저장한다 — **RPC 를 지난다.**
@@ -25,7 +26,7 @@ export async function saveProfile(profile: ProfileInput): Promise<SaveResult> {
     p_intro: profile.intro.trim() || null,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'save_my_profile') };
 
   /*
     이름은 거의 모든 화면에 선다 — 후보 카드도 요청 목록도 소식도. 한 자리만 새로
@@ -56,7 +57,7 @@ export async function savePhoto(photo: {
     p_base64: photo.base64,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'set_my_photo') };
 
   revalidatePath('/me', 'layout');
   return { ok: true };
@@ -67,7 +68,7 @@ export async function clearPhoto(): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
   const { error } = await supabase.rpc('clear_my_photo');
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'clear_my_photo') };
 
   revalidatePath('/me', 'layout');
   return { ok: true };

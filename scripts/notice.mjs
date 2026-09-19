@@ -30,6 +30,53 @@ export const NOTICE_VERSION = found[1];
 /** 검사가 쓰는 종료일 — 한 자리에 두어 손잡이와 검사가 같은 값을 본다 */
 export const CHECK_ENDS_ON = '2026-10-31';
 
+/**
+ * 입력을 쓰는 문에 함께 가는 **여덟 글자** (ADR 0071).
+ *
+ * 저장하는 네 문이 스냅샷을 함께 받으면서 검사도 그 값을 대야 한다. 안 대면
+ * `person.current_chart` 가 빈 채로 남고, 그러면 **수락이 베낄 것이 없어** 궁합 결과
+ * 화면이 통째로 닫힌다 — 재어 봤다(`check-result` 7건).
+ *
+ * ## 왜 진짜로 안 세나
+ *
+ * 엔진은 TypeScript 에 있고 이 검사들은 `.mjs` 다. 그리고 **DB 는 「이 여덟 글자가 저
+ * 입력에서 나왔나」를 끝내 못 본다** — 문이 보는 것은 셋뿐이다: 낱자가 천간 열·지지
+ * 열둘 안인가, 일간이 일주의 천간인가, 시주의 유무가 입력과 맞는가.
+ *
+ * 그래서 여기서는 **그 셋을 만족하는 한 벌**을 댄다. 저장된 값이 엔진이 내는 값과 같은지는
+ * **앱을 띄워 재는 자리**가 잰다(`e2e/signed-in.spec.ts` — 화면이 아니라 `person` 행을
+ * 읽는다). 층마다 재는 것이 다르고, 이 층이 재는 것은 「화면과 문이 이어져 있는가」다.
+ *
+ * ## 사람마다 다른 글자를 준다
+ *
+ * 둘이 같은 여덟 글자를 들면 「누구 것을 베꼈나」를 가릴 수 없다. 씨앗에서 일간을
+ * 골라, 부르는 쪽이 아무것도 안 정해도 사람마다 달라진다.
+ */
+const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+
+export const chartFor = (seed = '', hasHour = true) => {
+  const at = [...String(seed)].reduce((sum, one) => sum + one.codePointAt(0), 0) % STEMS.length;
+  const dayStem = STEMS[at];
+
+  return {
+    year: { stem: '甲', branch: '子' },
+    month: { stem: '乙', branch: '丑' },
+    day: { stem: dayStem, branch: '寅' },
+    /** 시각을 모르면 **없음**이다 — 정오로 메운 시주가 아니다 */
+    hour: hasHour ? { stem: '丁', branch: '卯' } : null,
+    dayMaster: dayStem,
+  };
+};
+
+/** 그 여덟 글자를 낸 엔진 판 — 검사가 댄 값이라는 것이 이름에 드러나야 한다 */
+export const CHECK_CHART_ENGINE = 'chart-for-checks';
+
+/** 저장하는 문에 함께 가는 두 칸 — 부르는 쪽이 이름을 손으로 안 적게 */
+export const chartArgs = (seed = '', hasHour = true) => ({
+  p_chart: chartFor(seed, hasHour),
+  p_chart_engine_version: CHECK_CHART_ENGINE,
+});
+
 /** 검사가 쓰는 테스트 코드 — 오늘 하루, 넉넉한 정원 */
 export const CHECK_CODE = 'CHECKCODE';
 

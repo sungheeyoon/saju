@@ -2,7 +2,7 @@ import type { ReadingAnswer } from '@/src/lib/reading';
 import { readingBody, readingGrounding } from '@/src/lib/reading/display';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import type { ReadingTarget } from './pipeline';
+import { readingTargetArgs, type ReadingTarget } from './target';
 
 /**
  * **현재 결과가 브라우저로 내려가는 문.**
@@ -32,8 +32,16 @@ export type CurrentReading = {
   readonly createdAt: string;
   /** 공유 결과의 글이 「첫 번째 분」이라 부르는 것이 나인가 */
   readonly viewerIsFirst: boolean;
-  /** 이 글을 만든 판본이 아직 지금 판본인가 — `match` 는 언제나 참이다 */
-  readonly fromCurrentRevision: boolean;
+  /**
+   * 이 글의 **여덟 글자**가 아직 지금 명식인가 — `match` 는 언제나 참이다.
+   *
+   * **판본이 아니라 여덟 글자로 견준다**(ADR 0071). 출생지를 서울에서 부산으로 고치면
+   * 새 판본이 서지만 여덟 글자는 그대로일 수 있고, 그때 화면이 하려는 말은
+   * 「이전 명식」이지 「이전 입력」이 아니다 — 앞서는 그 자리에서 한쪽으로 거짓말했다.
+   *
+   * 견주는 일은 계속 SQL 이 한다. 화면이 재면 판정하는 자리가 둘이 된다(ADR 0033).
+   */
+  readonly fromCurrentChart: boolean;
   /**
    * 이 글을 만든 시도 — **설문이 매달릴 자리.**
    *
@@ -57,23 +65,11 @@ export type LastRun = {
   readonly createdAt: string;
 };
 
-const argsOf = (target: ReadingTarget) => ({
-  p_kind: target.kind,
-  p_person_a:
-    target.kind === 'private'
-      ? target.personA
-      : target.kind === 'person'
-        ? target.personId
-        : null,
-  p_person_b: target.kind === 'private' ? target.personB : null,
-  p_match_id: target.kind === 'match' ? target.matchId : null,
-});
-
 /** @returns 아직 만들지 않았거나 못 보는 대상이면 `null` — 둘을 가르지 않는다 */
 export async function currentReading(target: ReadingTarget): Promise<CurrentReading | null> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('my_reading', argsOf(target));
+  const { data, error } = await supabase.rpc('my_reading', readingTargetArgs(target));
   if (error) return null;
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];
@@ -88,7 +84,7 @@ export async function currentReading(target: ReadingTarget): Promise<CurrentRead
     viewedAt: row.viewed_at as string,
     createdAt: row.created_at as string,
     viewerIsFirst: row.viewer_is_first as boolean,
-    fromCurrentRevision: row.from_current_revision as boolean,
+    fromCurrentChart: row.from_current_chart as boolean,
     sourceRunId: (row.source_run_id as string | null) ?? null,
     myFeedback: (row.my_feedback as ReadingAnswer | null) ?? null,
   };
@@ -168,7 +164,7 @@ export async function readingCredits(): Promise<ReadingCredits | null> {
 export async function lastReadingRun(target: ReadingTarget): Promise<LastRun | null> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('my_last_reading_run', argsOf(target));
+  const { data, error } = await supabase.rpc('my_last_reading_run', readingTargetArgs(target));
   if (error) return null;
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];
@@ -199,7 +195,8 @@ export type ReadingEntry = {
   readonly score: number | null;
   readonly metaphor: string | null;
   readonly createdAt: string;
-  readonly fromCurrentRevision: boolean;
+  /** 그 글의 여덟 글자가 아직 지금 명식인가(ADR 0071) */
+  readonly fromCurrentChart: boolean;
 };
 
 /**
@@ -225,7 +222,7 @@ export async function myReadings(): Promise<readonly ReadingEntry[]> {
     score: (row.score as number | null) ?? null,
     metaphor: (row.metaphor as string | null) ?? null,
     createdAt: row.created_at as string,
-    fromCurrentRevision: row.from_current_revision as boolean,
+    fromCurrentChart: row.from_current_chart as boolean,
   }));
 }
 
@@ -268,7 +265,7 @@ export async function readingGroundingOf(target: ReadingTarget): Promise<string 
     return row === undefined ? null : readingGrounding(row.output as string);
   }
 
-  const { data, error } = await supabase.rpc('my_reading', argsOf(target));
+  const { data, error } = await supabase.rpc('my_reading', readingTargetArgs(target));
   if (error) return null;
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];
@@ -278,7 +275,7 @@ export async function readingGroundingOf(target: ReadingTarget): Promise<string 
 export async function readingArtifacts(target: ReadingTarget): Promise<ReadingArtifacts | null> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('my_reading_artifacts', argsOf(target));
+  const { data, error } = await supabase.rpc('my_reading_artifacts', readingTargetArgs(target));
   if (error) return null;
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];

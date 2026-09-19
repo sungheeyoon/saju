@@ -13,7 +13,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { execFileSync } from 'node:child_process';
-import { CHECK_CODE, NOTICE_VERSION, passNotice, scheduleBeta, seedSignupCode } from './notice.mjs';
+import { CHECK_CODE, NOTICE_VERSION, passNotice, scheduleBeta, seedSignupCode, chartArgs } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -72,6 +72,7 @@ const client = anon();
     p_local_label: '민수', p_calendar: 'solar',
     p_original_date: '1990-05-15', p_solar_date: '1990-05-15', p_birth_time: '14:30',
     p_gender: 'male', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+    ...chartArgs('onboarding-self'),
   });
   check('가입을 안 끝냈으면 첫 입력이 거절된다',
     error !== null && error.message.includes('가입을 먼저'), error?.message ?? '들어가 버렸다');
@@ -81,6 +82,7 @@ const client = anon();
     p_local_label: '어머니', p_note: null, p_calendar: 'solar',
     p_original_date: '1965-03-02', p_solar_date: '1965-03-02', p_birth_time: '09:00',
     p_gender: 'female', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+    ...chartArgs('onboarding-managed'),
   });
   check('가입을 안 끝냈으면 남의 사주도 거절된다',
     managed !== null && managed.message.includes('가입을 먼저'), managed?.message ?? '들어가 버렸다');
@@ -121,6 +123,7 @@ const client = anon();
     p_city: '서울',
     p_late_night_rule: 'jo',
     p_time_basis: 'localMean',
+    ...chartArgs('onboarding-self'),
   });
   check('자기 사주를 저장한다', error === null, error?.message);
 
@@ -128,6 +131,7 @@ const client = anon();
     p_local_label: '민수2', p_calendar: 'solar',
     p_original_date: '1991-01-01', p_solar_date: '1991-01-01', p_birth_time: '09:00',
     p_gender: 'male', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+    ...chartArgs('onboarding-second'),
   });
   check('두 번째는 조용히 덮어쓰지 않고 거절한다', again?.code === '23505', again?.message);
 }
@@ -197,6 +201,7 @@ const other = anon();
       p_city: '서울',
       p_late_night_rule: 'jo',
       p_time_basis: 'localMean',
+      ...chartArgs('onboarding-self'),
       ...patch,
     });
 
