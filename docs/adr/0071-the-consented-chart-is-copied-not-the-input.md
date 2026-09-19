@@ -174,3 +174,45 @@ pgTAP 30개 중 **25개가 판본을 언급한다.** `12_revision_retention.test
 
 흐름 검사(`check-*.mjs`)가 재야 할 것 하나 — **저장된 스냅샷이 엔진이 내는 여덟 글자와 같은가.**
 pgTAP 은 이걸 못 잰다. 엔진이 TypeScript 라서, 앱을 띄워 재는 자리만 그 둘을 견줄 수 있다.
+
+## 운영에서 잰 값 (2026-09-19)
+
+A 단계를 차례대로 올렸다 — DB(A1) → 앱(A2) → 백필(A3). 대상은 `xgdeguyxgkillndraonc`.
+
+**A1.** `20260924090000_the_person_carries_its_eight_characters.sql` 하나가 적용됐다(dry-run 으로
+대상이 그 하나임을 확인하고 걸었다). 적용 뒤 `person` 이 `current_chart`·`chart_engine_version`
+둘을 들고 `is_chart_pillar`·`is_chart_snapshot`·`reject_bad_chart`·`set_person_chart` 가 섰다.
+
+**옛 서명과 새 서명이 함께 선다** — `create_self_person` 9·11, `create_managed_person` 10·12,
+`add_person_revision` 9·11, `create_pair_for_reading` 24·28, `person_for_pair` 11·13. 앱이 아직 옛
+서명으로 도는 동안에도 창이 안 생겼다는 것이 이 값이다. PostgREST 는 `set_person_chart` 를
+찾았고 익명 호출은 `42501` 로 거절됐다 — 없는 함수의 `PGRST202` 와 갈린다.
+
+**A2.** PR #72 를 머지 커밋으로 병합했다(`33aae87`, 부모 `4caf36c`·`7124134`). 프로덕션 배포는
+`dpl_DwQzvhPvfF86UVqnpVTXMMXMoFwf` 이고, 그 배포가 M 의 것이라는 근거는 **GitHub Deployments 가
+적는 `sha`** 다(`33aae87` · Production). `vercel inspect` 는 사람이 읽는 출력에 SHA 를 안 싣는다 —
+배포와 커밋을 잇는 자리는 GitHub 쪽 하나다.
+
+**A3.** 백필은 한 번에 끝났다.
+
+| 대상 | 갱신 | 재시도 | 최종 실패 |
+| --- | --- | --- | --- |
+| 30 | 30 | 0 | 0 |
+
+끝난 뒤 스크립트의 보고와 **따로** DB 에 직접 물어 잰 값.
+
+| 재는 것 | 값 |
+| --- | --- |
+| person 전체 | 30 |
+| `current_chart` 빈 행 | 0 |
+| `is_chart_snapshot` 불일치 | 0 |
+| 빈 `chart_engine_version` | 0 |
+| 낡은 엔진 판을 든 행 | 0 |
+| 엔진 판 종류 | 1 — `chart-2026-09-24` |
+| 시각 미상 ↔ 시주 없음 어긋남 | 0 (시각 미상 7명) |
+
+**읽는 길에 새 문을 안 열었다.** `service_role` 은 `person` 을 못 읽으므로 읽기는
+`supabase db query --linked`(Management API · `postgres`)로 하고 쓰기만 `set_person_chart` 가
+조건부로 했다. 이 결정이 **줄이려던 열쇠 문을 그 옆에 새로 열지 않는 것**이 요점이었다.
+
+A4(`not null` · 옛 서명 삭제)는 여기 없다 — #70 이 든다.
