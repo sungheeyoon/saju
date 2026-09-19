@@ -14,6 +14,15 @@
  * 때의 코드이기도 하다.
  *
  * 걸러진 원문은 **서버 기록에 남긴다.** 사용자에게서 지우는 것이 아니라 자리를 옮기는 것이다.
+ *
+ * ## 왜 안 쓰이고 있었나 (#67)
+ *
+ * 이 함수는 잘 지어졌는데 **두 자리에서만** 불렸고, 서른 몇 자리가 `error.message` 를 그대로
+ * 사용자에게 냈다. 까닭이 서명에 있었다 — `fallback` 이 **필수**라, 쓰려면 한국어 문장을 새로 짓고
+ * 그 문장이 살 자리부터 찾아야 했다. 그래서 아무도 안 썼다.
+ *
+ * **문턱을 없앴다.** `fallback` 은 이제 선택이고, 안 주면 코드에서 지어 온다. 호출부가 할 일은
+ * 「이 오류를 사용자에게 옮긴다」고 적는 것뿐이다.
  */
 
 /** 한글 음절 하나라도 있으면 우리가 쓴 문장이다 */
@@ -22,12 +31,69 @@ const KOREAN = /[가-힣]/;
 export type DbError = { readonly message: string; readonly code?: string };
 
 /**
- * @param where 기록에 남길 자리 이름 — 「어디서 났나」를 사람이 읽을 수 있게
- * @param fallback 우리 문장이 아닐 때 사용자에게 보일 말
+ * 까닭을 못 고를 때 서는 말.
+ *
+ * **무엇이 잘못됐는지 말하지 않는다.** 여기 닿은 오류는 우리가 뜻을 모르는 것이고, 모르면서
+ * 짐작을 적으면 사용자는 있지도 않은 원인을 고치려 든다. 할 수 있는 일(다시 시도)만 적는다.
  */
-export function userFacingDbMessage(error: DbError, where: string, fallback: string): string {
+const UNKNOWN_NOTE = '요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.';
+
+/** 우리 쪽이 어긋났다 — 사용자가 고칠 것이 없다 */
+const BROKEN_NOTE = '서비스가 잠시 어긋났습니다. 잠시 뒤 다시 시도해 주세요.';
+
+/** 문이 이름 없이 막았다 — 「없는 것」과 「못 보는 것」을 여기서 가르지 않는다 */
+const DENIED_NOTE = '이 작업을 할 권한이 없습니다. 다시 로그인한 뒤 시도해 주세요.';
+
+/** 오래 걸려 끊겼다 — 다시 누르면 되는 갈래다 */
+const BUSY_NOTE = '처리가 오래 걸려 멈췄습니다. 잠시 뒤 다시 시도해 주세요.';
+
+/**
+ * 우리가 안 쓴 오류 중 **까닭을 아는 것들.**
+ *
+ * 이 표가 도는 것은 **한국어 문턱을 지난 뒤**다. 그래서 `42501` 이 여기 있어도 우리가 그 코드로
+ * 쓴 「중지된 계정입니다」를 가로채지 않는다 — 그 문장은 위에서 이미 그대로 나갔다.
+ *
+ * 표를 넓히지 않는다. 사용자가 **할 수 있는 일이 달라지는** 갈래만 든다. 코드마다 다른 문장을
+ * 지어 두면 그것은 번역이 아니라 우리 스키마의 속을 한국어로 적는 일이다.
+ */
+const BY_CODE: Readonly<Record<string, string>> = {
+  /* 함수가 없다 · 스키마 캐시가 문을 못 찾는다 — 배포가 어긋난 모양이다 */
+  '42883': BROKEN_NOTE,
+  '42P01': BROKEN_NOTE,
+  PGRST202: BROKEN_NOTE,
+  PGRST204: BROKEN_NOTE,
+
+  /* 로그인이 없거나 정책이 이름 없이 막았다 */
+  '28000': DENIED_NOTE,
+  '42501': DENIED_NOTE,
+  PGRST301: DENIED_NOTE,
+
+  /* 시간·잠금으로 끊겼다 */
+  '57014': BUSY_NOTE,
+  '55P03': BUSY_NOTE,
+};
+
+/**
+ * DB 거절을 **사용자에게 보일 한 문장으로.**
+ *
+ * @param where 기록에 남길 자리 이름 — 「어디서 났나」를 사람이 읽을 수 있게
+ * @param fallback 우리 문장이 아닐 때 보일 말. **안 주면 코드에서 지어 온다** — 호출부가
+ *   문장을 새로 짓지 않아도 쓸 수 있어야 이 문이 실제로 쓰인다(#67)
+ */
+export function userFacingDbMessage(error: DbError, where: string, fallback?: string): string {
   if (KOREAN.test(error.message)) return error.message;
 
   console.error(where, error.code ?? '', error.message);
-  return fallback;
+  return fallback ?? BY_CODE[error.code ?? ''] ?? UNKNOWN_NOTE;
+}
+
+/**
+ * 같은 번역을 **던지는 자리**에 (`throw dbFailure(error, 'my_candidates')`).
+ *
+ * 화면 몇은 거절을 값으로 안 받고 던져서 오류 경계가 받는다. 그 경계는 `error.message` 를
+ * 그대로 세우므로, 던지는 자리가 원문을 실으면 **영어가 화면에 선다** — 값으로 내는 자리만
+ * 고치면 그 길이 그대로 남는다.
+ */
+export function dbFailure(error: DbError, where: string, fallback?: string): Error {
+  return new Error(userFacingDbMessage(error, where, fallback));
 }

@@ -11,6 +11,7 @@ import {
 } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { dbFailure } from '../../db-error';
 
 /**
  * **요청·Match·알림이 브라우저로 내려가는 유일한 문.**
@@ -189,7 +190,7 @@ export async function inboxForViewer(): Promise<Inbox> {
 
   for (const { error } of [requests, matches, notifications, blocked]) {
     // 「중지된 계정입니다」 같은 거절은 DB 가 문장으로 낸다. 여기서 다시 판정하지 않는다.
-    if (error) throw new Error(error.message);
+    if (error) throw dbFailure(error, 'inbox');
   }
 
   const requestRows = (requests.data ?? []) as RequestRow[];

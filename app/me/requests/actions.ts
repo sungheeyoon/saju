@@ -8,6 +8,7 @@ import { REQUEST_STATUSES, type RequestStatus } from '@/src/lib/consent';
 import { supabaseOnServer } from '../../auth/server-client';
 import type { SaveResult } from '../actions';
 import { sendAcceptedMatchReading } from '../reading/pipeline';
+import { userFacingDbMessage } from '../../db-error';
 
 /**
  * 답한 결과는 **세 갈래**다.
@@ -39,7 +40,7 @@ export async function respondToRequest(requestId: string, accept: boolean): Prom
     p_accept: accept,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'respond_to_match_request') };
 
   const status = statusOf(data);
   if (status === null) return { ok: false, message: '답을 남기지 못했습니다.' };
@@ -79,7 +80,7 @@ export async function cancelRequest(requestId: string): Promise<RespondResult> {
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('cancel_match_request', { p_request_id: requestId });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'cancel_match_request') };
 
   const status = statusOf(data);
   if (status === null) return { ok: false, message: '요청을 거두지 못했습니다.' };
@@ -99,7 +100,7 @@ export async function blockUser(userId: string): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
   const { error } = await supabase.rpc('block_user', { p_user_id: userId });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'block_user') };
 
   revalidatePath('/me/requests');
   revalidatePath('/me');
@@ -128,7 +129,7 @@ export async function reportUser(
     // 빈 칸은 「안 적었다」다. 빈 문자열로 넘기면 「없음」이 두 값이 된다.
     p_detail: detail.trim() || null,
   });
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'report_user') };
 
   revalidatePath('/me/requests');
   return { ok: true };
@@ -144,7 +145,7 @@ export async function requestAccountDeletion(): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
   const { error } = await supabase.rpc('request_account_deletion');
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'request_account_deletion') };
 
   // 상태 하나가 모든 화면의 답을 바꾼다 — 한 자리만 다시 그리면 나머지가 낡는다.
   revalidatePath('/', 'layout');
@@ -161,7 +162,7 @@ export async function markNotificationsRead(): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
   const { error } = await supabase.rpc('mark_notifications_read');
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'mark_notifications_read') };
 
   revalidatePath('/me/requests');
   revalidatePath('/me');

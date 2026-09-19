@@ -4,6 +4,7 @@ import { sharePath, type ShareKind } from '../../share/path';
 import { supabaseOnServer } from '../../auth/server-client';
 import { currentReading } from './current';
 import { isShareable, shareTargetArgs, type ReadingTarget } from './target';
+import { userFacingDbMessage } from '../../db-error';
 
 /**
  * 풀이를 공유본으로 내놓고 **주소를 받는다.**
@@ -55,9 +56,20 @@ export async function shareMyReading(
     ...shareTargetArgs(target),
   });
 
+  /**
+   * **대체 문장은 그대로 두고 우리말 거절만 지나가게 한다.** 이 자리의 「공유 링크를
+   * 만들지 못했습니다」는 잘 지은 말이라 기본 문장보다 낫다 — 다만 DB 가 한국어로 낸
+   * 거절까지 이 말로 덮고 있었다(예: 「공유할 수 없는 풀이입니다」). 기록은 한 문이 남긴다.
+   */
   if (error) {
-    console.error('공유본을 만들지 못했다', error.message);
-    return { ok: false, message: '공유 링크를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.' };
+    return {
+      ok: false,
+      message: userFacingDbMessage(
+        error,
+        'share_my_reading',
+        '공유 링크를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+      ),
+    };
   }
 
   const token = data as string | null;

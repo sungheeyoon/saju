@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { supabaseInBrowser } from './browser-client';
+import { userFacingDbMessage } from '../db-error';
 
 /**
  * 구글 로그인 — 여기서 브라우저가 통째로 이동한다.
@@ -29,7 +30,7 @@ export function SignInButton({ returnTo = '/me' }: { returnTo?: string }) {
     // 성공하면 이 줄에 닿기 전에 화면이 떠난다. 여기 왔다면 못 떠난 것이다.
     if (error) {
       setGoing(false);
-      setFailure(error.message);
+      setFailure(userFacingDbMessage(error, 'sign_in'));
     }
   };
 

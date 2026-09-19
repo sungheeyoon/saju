@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
+import { userFacingDbMessage } from '../db-error';
 
 /**
  * 가입을 끝낸다 — **성공하면 안 돌아온다.**
@@ -45,7 +46,7 @@ export async function completeSignup(answer: {
     p_contact: answer.contact,
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'complete_signup') };
 
   revalidatePath('/me', 'layout');
 

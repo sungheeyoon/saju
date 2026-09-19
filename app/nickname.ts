@@ -1,6 +1,7 @@
 'use server';
 
 import { supabaseOnServer } from './auth/server-client';
+import { userFacingDbMessage } from './db-error';
 
 /**
  * 이 이름을 쓸 수 있나 — **참·거짓 하나만 돌려받는다.**
@@ -20,6 +21,6 @@ export async function checkNickname(
     p_nickname: nickname.trim(),
   });
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'nickname_is_available') };
   return { ok: true, available: data === true };
 }
