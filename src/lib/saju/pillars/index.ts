@@ -87,6 +87,44 @@ export type Pillars = {
 };
 
 /**
+ * **되짚으려고 베껴 두는 여덟 글자** — `Pillars` 에서 글자만 남긴 것(ADR 0071).
+ *
+ * `index`·`name`·`ko` 는 안 싣는다. 셋 다 천간과 지지에서 나오는 파생값이고(`name` 은
+ * 글자를 이어 붙인 것이다), 파생값을 함께 저장하면 그것이 어긋날 자리가 생긴다.
+ *
+ * **`meta` 는 더더욱 안 싣는다.** 거기에는 보정에 쓴 달력 시각이 들어 있어 출생 원문을
+ * 되돌릴 수 있다 — DB 검사식이 칸 수를 세는 까닭이 그것이다(`is_chart_snapshot`).
+ */
+export type ChartPillar = Pick<Pillar, 'stem' | 'branch'>;
+
+export type ChartSnapshot = {
+  readonly year: ChartPillar;
+  readonly month: ChartPillar;
+  readonly day: ChartPillar;
+  /** 시각을 모르면 `null` — 정오로 메운 시주가 아니라 **없음**이다 */
+  readonly hour: ChartPillar | null;
+  readonly dayMaster: Stem;
+};
+
+const glyphs = (pillar: Pillar): ChartPillar => ({ stem: pillar.stem, branch: pillar.branch });
+
+/**
+ * 명식에서 여덟 글자만 베낀다.
+ *
+ * 원본을 그대로 넘기면 `meta` 까지 직렬화되므로 **새 객체를 짓는다** — 빼기가 아니라
+ * 더하기로 만드는 것이 요점이다(`shareEvidence` 가 같은 이유로 그렇게 바뀌었다).
+ */
+export function chartSnapshotOf(pillars: Pillars): ChartSnapshot {
+  return {
+    year: glyphs(pillars.year),
+    month: glyphs(pillars.month),
+    day: glyphs(pillars.day),
+    hour: pillars.hour === null ? null : glyphs(pillars.hour),
+    dayMaster: pillars.dayMaster,
+  };
+}
+
+/**
  * 시주까지 확정된 4주 — `getFourPillars` 가 내는 결과.
  *
  * 타입이 곧 약속이다. 이 값을 받은 쪽은 `hour` 의 널 검사를 하지 않아도 된다.

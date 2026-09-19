@@ -172,9 +172,13 @@ try {
   /**
    * ── 1. 참여자끼리 후보로 선다 ─────────────────────────────────────────────
    *
-   * **현우는 홈을 열지 않는다.** 목록이 홈에 서므로(ADR 0037) 홈을 여는 것이 곧 목록을
-   * 처음 뽑는 일이고, 뽑는 자리가 노출 기록을 남긴다. 열어 버리면 아래에서 「후보로 본 적
-   * 없는 사람」을 한 번도 못 재게 된다. 참여는 켜 뒀으므로 남의 목록에는 선다.
+   * **현우는 매칭을 열지 않는다.** 목록을 뽑는 자리가 노출 기록을 남기므로(ADR 0009·0037),
+   * 매칭을 열면 아래에서 「후보로 본 적 없는 사람」을 한 번도 못 재게 된다. 참여는
+   * `person()` 이 이미 켜 두었으므로 남의 목록에는 선다.
+   *
+   * **홈은 참여를 여는 자리다.** `DiscoveryBoard({ participationOnly })` 가 여기서
+   * `ensure_discovery_participation` 을 부르고 — 그 호출이 자기 요약을 판본에서 다시
+   * 계산한다 — 목록을 읽기 전에 돌아선다.
    */
   for (const cookie of [aCookie, bCookie]) await get('/me', cookie);
 
@@ -185,8 +189,16 @@ try {
   */
   forgetBoard(aMail);
 
+  /**
+   * **후보와 노출 기록은 `/me/matching` 에서 난다**(2026-09-18 매칭 개정, PRD §9.1).
+   *
+   * 홈의 중복 목록을 걷으면서 목록을 뽑는 일도 그리로 옮겨 갔다. 이 검사는 홈을 재던
+   * 시절 그대로여서 **걷어낸 화면을 재고 있었고**, 첫 줄부터 빨갰다. 뒤따르던 열여섯
+   * 건은 노출 기록이 안 생겨 `request_match` 가 거절한 결과이지 따로 고장난 것이
+   * 아니었다.
+   */
   {
-    const html = await body('/me', aCookie);
+    const html = await body('/me/matching', aCookie);
     check('후보 목록에 다른 참여자가 선다', html.includes(NAME.b) && html.includes(NAME.c));
     check('요청 버튼이 후보 카드에 선다', html.includes('상세 궁합 요청하기'));
   }
@@ -211,7 +223,7 @@ try {
   check('후보로 본 사람에게는 청할 수 있다', !asked.error, asked.error?.message ?? '');
 
   {
-    const html = await body('/me', aCookie);
+    const html = await body('/me/matching', aCookie);
     check('청한 사람은 후보 목록에서 빠진다', !html.includes(NAME.b) && html.includes(NAME.c));
   }
 
@@ -383,7 +395,8 @@ try {
       있어 검사가 못 쓴다. 그래서 스냅샷을 지워 다음 열기가 새로 뽑게 한다.
     */
     forgetBoard(dMail);
-    await get('/me', dCookie);
+    /* 노출 기록은 목록을 뽑는 자리에서 난다 — 홈이 아니라 매칭이다 */
+    await get('/me/matching', dCookie);
 
     // ── 동시 수락은 Match 를 하나만 만든다 ──────────────────────────────────
     const race = await d.rpc('request_match', { p_candidate_user_id: userId(eMail) });
@@ -410,8 +423,8 @@ try {
      * 중 하나지만(요청이 거절되거나, 만들어졌다가 그 자리에서 거둬지거나), **pending 이
      * 남는 갈래는 없어야 한다.**
      */
-    // 청하려면 본 적이 있어야 한다 — 현우가 이제 홈을 연다.
-    await get('/me', cCookie);
+    // 청하려면 본 적이 있어야 한다 — 현우가 이제 매칭을 연다(노출 기록이 거기서 난다).
+    await get('/me/matching', cCookie);
 
     const clash = await Promise.all([
       e.rpc('block_user', { p_user_id: userId(cMail) }),

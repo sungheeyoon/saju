@@ -2,6 +2,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest';
 
+import { loadLocalEnv } from '@/src/lib/local-env';
 import { computeSaju } from '@/src/lib/saju';
 import {
   CONTROL,
@@ -132,25 +133,6 @@ describe('P0/P1 표본은 실제로 갈리는 명식이다', () => {
     ).not.toHaveLength(0);
   });
 });
-
-/** 로컬에서 부를 때만 — 배포에서는 플랫폼이 환경을 준다 */
-function loadLocalEnv(): void {
-  try {
-    for (const line of readFileSync('.env.development.local', 'utf8').split('\n')) {
-      const [key, ...rest] = line.split('=');
-      if (key && !key.startsWith('#') && rest.length > 0 && !process.env[key.trim()]) {
-        /**
-         * **감싼 따옴표는 값이 아니다.** Next.js 는 벗겨서 읽는데 여기서만 안 벗겨, 따옴표째
-         * 열쇠를 보내 두 콜이 「잘못된 열쇠」로 떨어졌다(토큰은 안 나갔다).
-         */
-        const raw = rest.join('=').trim();
-        process.env[key.trim()] = /^(["'])(.*)\1$/.test(raw) ? raw.slice(1, -1) : raw;
-      }
-    }
-  } catch {
-    // 파일이 없으면 이미 환경에 있다고 본다. 없는 것을 지어 채우지 않는다.
-  }
-}
 
 /**
  * **네 kind 를 다 부른다** — 하나만 불러 놓고 「배선이 이어져 있다」고 말하지 않는다.
