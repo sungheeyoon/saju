@@ -2,7 +2,7 @@ import type { Saju } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { chartOf } from '@/src/lib/input/chart';
-import { queryFromRevision } from '@/src/lib/input/revision';
+import { PERSON_INPUT_COLUMNS, queryFromRevision, type StoredRevision } from '@/src/lib/input/revision';
 import { UUID } from '../uuid';
 
 /**
@@ -38,8 +38,6 @@ const granted = Symbol('payloadForViewer');
 
 export type PersonPayload = {
   readonly personId: string;
-  /** 어느 판본을 봤는지 — 화면에 쓰지 않더라도 「무엇으로 계산했나」의 답이다 */
-  readonly revisionId: string;
   /** 이 사용자가 그 사람을 부르는 이름(`user_person_access.local_label`) */
   readonly name: string;
   /** 이미 계산된 명식 — 계산 입력 자체는 이 모듈 밖으로 나가지 않는다 */
@@ -76,7 +74,7 @@ export async function payloadForViewer(personId: string): Promise<PersonPayload 
       전부 어긋난다 — 「이게 내 selfPerson 인가」가 거짓이 되고, 그때 화면은 못 만드는
       버튼을 세운다. 정규화는 DB 가 이미 했고, 그 답을 그대로 들고 나간다.
     */
-    supabase.from('person').select('id, current_revision_id').eq('id', personId).maybeSingle(),
+    supabase.from('person').select(`id, ${PERSON_INPUT_COLUMNS}`).eq('id', personId).maybeSingle(),
     supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
   ]);
 
@@ -85,22 +83,17 @@ export async function payloadForViewer(personId: string): Promise<PersonPayload 
    * 들어가기 때문이다(`create_self_person` · `create_managed_person`). 그래도 그 상태가
    * 실재한다면 우리가 보여줄 수 있는 사람이 아니므로 같은 답으로 묶는다.
    */
-  if (!person?.current_revision_id || !edge) return null;
+  /**
+   * **입력은 그 행에 있다**(ADR 0071). 여덟 칸은 함께 차거나 함께 비므로 한 칸이 그
+   * 답을 든다 — 판본 id 를 읽고 다시 판본을 읽던 두 걸음이 한 걸음이 됐다.
+   */
+  if (!person?.calendar || !edge) return null;
 
-  const { data: revision } = await supabase
-    .from('person_chart_revision')
-    .select('calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis')
-    .eq('id', person.current_revision_id)
-    .maybeSingle();
-
-  if (!revision) return null;
-
-  const query = queryFromRevision(revision, edge.local_label);
+  const query = queryFromRevision(person as unknown as StoredRevision, edge.local_label);
 
   return {
     /** 주소에 적힌 글자가 아니라 **DB 가 정규화한 값**이다(위) */
     personId: person.id as string,
-    revisionId: person.current_revision_id,
     name: query.name,
     // 서버가 계산한다. 익명 화면과 **같은 함수**라 저장하기 전에 본 사주와
     // 저장한 뒤에 보는 사주가 다를 자리가 없다.

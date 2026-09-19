@@ -15,6 +15,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { chartOf, solarDateOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL, type Query } from '@/src/lib/input/query';
 import {
+  PERSON_INPUT_COLUMNS,
   UNREADABLE_REVISION_NOTE,
   UnreadableRevisionError,
   queryFromRevision,
@@ -187,23 +188,23 @@ async function peopleWithCharts(edges: Edge[]): Promise<Person[]> {
   const supabase = await supabaseOnServer();
   const personIds = edges.map((edge) => edge.person_id);
 
+  /**
+   * **행 하나씩만 읽는다**(ADR 0071). 앞서는 사람마다 판본 id 를 모아 두 번째 질의를
+   * 보냈다 — 입력이 `person` 으로 내려오면서 그 걸음이 없어졌다.
+   *
+   * 입력이 비어 있는 사람은 지도에 안 넣는다. 여덟 칸은 함께 차거나 함께 비므로
+   * 한 칸이 그 답을 든다.
+   */
   const { data: persons } = await supabase
     .from('person')
-    .select('id, current_revision_id')
+    .select(`id, ${PERSON_INPUT_COLUMNS}`)
     .in('id', personIds);
 
-  const currentIds = (persons ?? [])
-    .map((person) => person.current_revision_id)
-    .filter((id): id is string => id !== null);
-
-  const { data: revisions } = await supabase
-    .from('person_chart_revision')
-    .select(
-      'id, person_id, calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis',
-    )
-    .in('id', currentIds);
-
-  const byPerson = new Map((revisions ?? []).map((revision) => [revision.person_id, revision]));
+  const byPerson = new Map(
+    (persons ?? [])
+      .filter((person) => person.calendar !== null)
+      .map((person) => [person.id as string, person as unknown as StoredRevision]),
+  );
 
   return edges.map((edge) => {
     const revision = byPerson.get(edge.person_id);
@@ -217,7 +218,7 @@ async function peopleWithCharts(edges: Edge[]): Promise<Person[]> {
 }
 
 function readChart(
-  revision: (StoredRevision & { id: string }) | undefined,
+  revision: StoredRevision | undefined,
   localLabel: string,
 ): Person['chart'] {
   if (revision === undefined) {

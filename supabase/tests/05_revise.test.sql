@@ -1,6 +1,6 @@
 -- 판본 수정 — 쌓이고, 현재가 옮겨가고, 옛것은 그대로 남는다.
 begin;
-select plan(12);
+select plan(15);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -106,6 +106,43 @@ select is(public.may_add_revision((select person_id from target), (select lee fr
   '규칙 함수는 남에게 거짓을 낸다');
 select is(public.may_add_revision((select person_id from target), (select kim from who)), true,
   '규칙 함수는 claim 한 사람에게 참을 낸다');
+
+-- ── 달라진 것을 세는 수로 말한다 (ADR 0071 · #69) ───────────────────────────
+--
+-- **`input_version` 은 여덟 칸이 실제로 달라질 때만 오른다.** 지문을 안 남기는 까닭은
+-- 열쇠 없는 해시가 원문의 다른 표기일 뿐이기 때문이다 — 세는 수는 입력을 안 담는다.
+
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
+
+create temporary table version_now as
+select input_version as n from public.person where id = (select person_id from target);
+grant select on version_now to authenticated;
+
+/** 지금 서 있는 입력은 **음력 판본**이다 — 같은 값을 다시 보내려면 그 달력으로 보낸다 */
+select public.add_person_revision((select person_id from target),
+  'lunar', '1990-04-21', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean');
+
+select is(
+  (select input_version from public.person where id = (select person_id from target)),
+  (select n from version_now),
+  '같은 값으로 저장하면 버전이 안 오른다 — pending 요청도 안 죽는다');
+
+select public.add_person_revision((select person_id from target),
+  'lunar', '1990-04-21', '1990-05-15', '16:00', 'male', '서울', 'jo', 'localMean');
+
+select is(
+  (select input_version from public.person where id = (select person_id from target)),
+  (select n from version_now) + 1,
+  '한 칸이라도 달라지면 버전이 하나 오른다');
+
+/** 입력은 **그 행에 있다** — 판본을 안 읽어도 지금 값을 말할 수 있다 */
+select is(
+  (select birth_time from public.person where id = (select person_id from target)),
+  '16:00'::time,
+  '고친 입력이 Person 행에 그대로 앉는다');
+
+reset role;
 
 select * from finish();
 rollback;

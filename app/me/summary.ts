@@ -3,7 +3,7 @@ import { elementSummaryOf, type ElementSummary } from '@/src/lib/matching/elemen
 import { supabaseOnServer } from '../auth/server-client';
 import type { Query } from '@/src/lib/input/query';
 import { chartOf } from '@/src/lib/input/chart';
-import { queryFromRevision } from '@/src/lib/input/revision';
+import { PERSON_INPUT_COLUMNS, queryFromRevision, type StoredRevision } from '@/src/lib/input/revision';
 
 /**
  * 매칭 풀에 내놓을 **오행 요약**을 내 판본에서 만든다.
@@ -39,20 +39,18 @@ export async function selfElementSummary(): Promise<SelfSummary | null> {
   const personId = account.self_person_id;
 
   const [{ data: person }, { data: edge }] = await Promise.all([
-    supabase.from('person').select('current_revision_id').eq('id', personId).maybeSingle(),
+    supabase.from('person').select(PERSON_INPUT_COLUMNS).eq('id', personId).maybeSingle(),
     supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
   ]);
-  if (!person?.current_revision_id || !edge) return null;
-
-  const { data: revision } = await supabase
-    .from('person_chart_revision')
-    .select('calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis')
-    .eq('id', person.current_revision_id)
-    .maybeSingle();
-  if (!revision) return null;
+  if (!person?.calendar || !edge) return null;
 
   try {
-    return { personId, summary: elementSummaryFrom(queryFromRevision(revision, edge.local_label)) };
+    return {
+      personId,
+      summary: elementSummaryFrom(
+        queryFromRevision(person as unknown as StoredRevision, edge.local_label),
+      ),
+    };
   } catch {
     // 못 읽는 판본이면 요약도 없다. 부르는 쪽이 「참여할 수 없다」고 말한다.
     return null;

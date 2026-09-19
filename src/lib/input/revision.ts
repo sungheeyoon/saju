@@ -89,6 +89,17 @@ export class UnreadableRevisionError extends Error {
 export const UNREADABLE_REVISION_NOTE =
   '저장된 값은 그대로 있습니다. 지금 화면이 그 값을 읽지 못하는 것입니다.';
 
+/**
+ * `person` 에서 입력 한 벌을 읽을 때 고르는 열 — **여섯 화면이 같은 글자를 쓴다.**
+ *
+ * 앞서는 화면마다 이 여덟 이름을 손으로 들고, `person` 에서 판본 id 를 읽고 다시
+ * `person_chart_revision` 을 읽는 **두 걸음**을 각자 적었다(ADR 0071 이 일곱 자리로
+ * 셌다). 입력이 `person` 으로 내려오면서 **행 하나 읽기**가 됐고, 고르는 열은 한 자리에
+ * 둔다 — 여덟 이름을 여섯 벌로 적으면 한 벌이 언젠가 한 칸을 빠뜨린다.
+ */
+export const PERSON_INPUT_COLUMNS =
+  'calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis';
+
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^(\d{2}):(\d{2})(:\d{2}(\.\d+)?)?$/;
 

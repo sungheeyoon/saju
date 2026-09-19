@@ -42,14 +42,19 @@ update public.discovery_profile set prefer_gender='male' where user_id=(select i
 select is((select count(*) from public.my_passed_connections()), 0::bigint, '내 성별 조건도 보관 조회에서 검사한다');
 update public.discovery_profile set prefer_gender='any' where user_id=(select id from pass_people where n=0);
 
+/**
+ * **낡음을 말하는 방식이 바뀌었다**(ADR 0071 · #69). 앞서는 판본 id 를 남의 것으로
+ * 바꿔 「지금 판본이 아니다」를 만들었다 — 이제 신선도는 **입력 버전과 엔진 판**이
+ * 든다. 재려는 것은 그대로다: 요약이 낡으면 보관 목록에서도 빠지는가.
+ */
 create temporary table old_revision as
-select user_id, element_revision_id from public.discovery_profile where user_id=(select id from kept limit 1);
-update public.discovery_profile set element_revision_id=(select element_revision_id from public.discovery_profile where user_id=(select id from pass_people where n=0))
+select user_id, element_input_version from public.discovery_profile where user_id=(select id from kept limit 1);
+update public.discovery_profile set element_input_version = element_input_version + 1
 where user_id=(select id from kept limit 1);
 select is((select count(*) from public.my_passed_connections()), 19::bigint, '오래된 명식 요약은 보관 목록에서도 제외한다');
 select ok(not public.may_see_photo((select id from kept limit 1)), '오래된 명식 요약의 사진도 열지 않는다');
 select throws_ok(format('select public.restore_passed_connection(%L)', (select id from kept limit 1)), '42501', null, '오래된 요약을 복원하지 않는다');
-update public.discovery_profile p set element_revision_id=o.element_revision_id from old_revision o where p.user_id=o.user_id;
+update public.discovery_profile p set element_input_version=o.element_input_version from old_revision o where p.user_id=o.user_id;
 
 -- 운영에서 쓰는 역할로 복원: 덱 밖의 인물도 현재 요약과 요청 근거를 받는다.
 set local role authenticated;
