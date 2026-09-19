@@ -20,7 +20,7 @@ end;
 $$;
 
 /** 열쇠만 부르는 문이라 한 겹 감싼다(다른 풀이 시험과 같은 자리) */
-create or replace function pg_temp.save(run uuid, rev_a uuid, body text, said text)
+create or replace function pg_temp.save(run uuid, body text, said text)
 returns uuid language sql security definer as $$
   select public.save_reading(
     run, body, null, said,
@@ -49,7 +49,8 @@ declare uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   return uid;
 end;
 $$;
@@ -60,7 +61,7 @@ returns void language plpgsql as $$
 declare run record;
 begin
   select * into run from public.start_reading_run('self', gen_random_uuid()::text);
-  perform pg_temp.save(run.run_id, run.revision_a, body, said);
+  perform pg_temp.save(run.run_id, body, said);
 end;
 $$;
 

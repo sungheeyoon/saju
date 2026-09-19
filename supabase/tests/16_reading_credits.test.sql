@@ -18,7 +18,7 @@ begin;
 select plan(17);
 
 create or replace function pg_temp.save(
-  run uuid, rev_a uuid, rev_b uuid, body text, score smallint)
+  run uuid, body text, score smallint)
 returns uuid
 language sql
 security definer
@@ -41,11 +41,7 @@ begin
   select self_person_id into mine from public.app_user;
   select run_id into started
   from public.start_reading_run('private', key, other, mine);
-  perform pg_temp.save(
-    started,
-    (select p.current_revision_id from public.person p where p.id = least(other, mine)),
-    (select p.current_revision_id from public.person p where p.id = greatest(other, mine)),
-    '## 둘 사이', 71::smallint);
+  perform pg_temp.save(started, '## 둘 사이', 71::smallint);
 end;
 $$;
 
@@ -56,20 +52,26 @@ grant select on folks to authenticated, service_role;
 
 select set_config('request.jwt.claims', tests.claims((select kim from folks)), true);
 select public.create_self_person(
-  '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+  '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 create temporary table kin as
 select
   public.create_managed_person('엄마', null, 'solar', '1962-03-02', '1962-03-02', '07:10',
-    'female', '부산', 'jo', 'localMean') as mom,
+    'female', '부산', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests') as mom,
   public.create_managed_person('아빠', null, 'solar', '1960-11-08', '1960-11-08', '05:40',
-    'male', '대구', 'jo', 'localMean') as dad,
+    'male', '대구', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests') as dad,
   public.create_managed_person('누나', null, 'solar', '1988-01-19', '1988-01-19', '22:05',
-    'female', '광주', 'jo', 'localMean') as sis,
+    'female', '광주', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests') as sis,
   public.create_managed_person('형', null, 'solar', '1986-07-23', '1986-07-23', '11:15',
-    'male', '인천', 'jo', 'localMean') as bro,
+    'male', '인천', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests') as bro,
   public.create_managed_person('삼촌', null, 'solar', '1958-09-30', '1958-09-30', '16:50',
-    'male', '대전', 'jo', 'localMean') as unc;
+    'male', '대전', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests') as unc;
 grant select on kin to authenticated, service_role;
 
 -- ── 아무것도 안 했을 때 ─────────────────────────────────────────────────────
@@ -97,10 +99,8 @@ select is(
   '도는 시도가 성공할 자리를 미리 잡는다');
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 나의 풀이', null)$$,
-    (select id from run_self),
-    (select current_revision_id from public.person p
-     join public.app_user u on u.self_person_id = p.id)),
+  format($$select pg_temp.save(%L::uuid, '## 나의 풀이', null)$$,
+    (select id from run_self)),
   '자기 풀이가 저장된다');
 
 /** `running` → `succeeded` 는 자리를 **옮길** 뿐이다 — 합계가 안 움직인다 */

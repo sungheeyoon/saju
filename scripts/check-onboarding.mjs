@@ -148,10 +148,14 @@ let nickname;
   personId = account.self_person_id;
   nickname = account.nickname;
   const [{ data: person }, { data: edge }] = await Promise.all([
-    client.from('person').select('current_revision_id').eq('id', personId).maybeSingle(),
+    client
+      .from('person')
+      .select('calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis, input_version')
+      .eq('id', personId)
+      .maybeSingle(),
     client.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
   ]);
-  check('Person 이 현재 판본을 가리킨다', typeof person?.current_revision_id === 'string');
+  check('Person 이 자기 입력을 직접 든다', typeof person?.calendar === 'string');
   /**
    * **자기 자신은 저장할 때 적어 넣은 이름으로 불리지 않는다.** 계정 닉네임의 사본이
    * 엣지에 붙는다 — 같은 사람에게 이름 둘이 생기지 않게 트리거가 붙들어 둔다.
@@ -160,18 +164,13 @@ let nickname;
   check('자기 사람은 계정 닉네임으로 불린다',
     edge?.local_label === account?.nickname, `${edge?.local_label} vs ${account?.nickname}`);
 
-  const { data: revision, error } = await client
-    .from('person_chart_revision')
-    .select('calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis, created_at, fingerprint')
-    .eq('id', person.current_revision_id)
-    .maybeSingle();
-  check('판본을 되읽는다', revision !== null, error?.message);
   check('넣은 그대로 돌아온다',
-    revision?.solar_date === '1990-05-15' && revision?.city === '서울' && revision?.late_night_rule === 'jo',
-    JSON.stringify({ date: revision?.solar_date, city: revision?.city }));
+    person?.solar_date === '1990-05-15' && person?.city === '서울' && person?.late_night_rule === 'jo',
+    JSON.stringify({ date: person?.solar_date, city: person?.city }));
   // Postgres 는 `time` 을 초까지 붙여 돌려준다. 되읽기가 이걸 다룰 줄 알아야 한다.
-  check('시각은 초까지 붙어 돌아온다', revision?.birth_time === '14:30:00', revision?.birth_time);
-  check('지문이 붙어 있다', /^[0-9a-f]{64}$/.test(revision?.fingerprint ?? ''));
+  check('시각은 초까지 붙어 돌아온다', person?.birth_time === '14:30:00', person?.birth_time);
+  /** 지문은 없다 — 열쇠 없는 해시는 원문의 다른 표기일 뿐이라 세는 수만 든다(ADR 0071) */
+  check('처음 적어 넣은 입력은 1판이다', person?.input_version === 1, String(person?.input_version));
 }
 
 // ── 6. 남에게는 안 보인다 ─────────────────────────────────────────────────────
@@ -184,11 +183,12 @@ const other = anon();
   check('남의 Person 은 한 줄도 안 보인다', Array.isArray(people) && people.length === 0,
     `${people?.length ?? '?'}줄`);
 
-  const { data: revisions } = await other.from('person_chart_revision').select('id');
-  check('남의 판본도 안 보인다', Array.isArray(revisions) && revisions.length === 0);
+  const { data: theirInputs } = await other.from('person').select('calendar, city');
+  check('남의 출생 입력도 한 줄도 안 보인다',
+    Array.isArray(theirInputs) && theirInputs.length === 0);
 }
 
-// ── 7. 고치면 쌓인다 ─────────────────────────────────────────────────────────
+// ── 7. 고치면 그 자리가 바뀐다 ───────────────────────────────────────────────
 {
   const revise = (patch) =>
     client.rpc('add_person_revision', {
@@ -205,35 +205,41 @@ const other = anon();
       ...patch,
     });
 
-  const countRevisions = async () => {
-    const { data } = await client.from('person_chart_revision').select('id').eq('person_id', personId);
-    return data?.length ?? -1;
+  const readPerson = async (columns) => {
+    const { data } = await client.from('person').select(columns).eq('id', personId).maybeSingle();
+    return data;
   };
-  const currentRevision = async () => {
-    const { data } = await client.from('person').select('current_revision_id').eq('id', personId).maybeSingle();
-    return data?.current_revision_id;
-  };
+  const version = async () => (await readPerson('input_version'))?.input_version;
 
-  const before = await currentRevision();
+  const before = await version();
 
-  const { data: unchanged } = await revise({});
-  check('같은 값으로 저장하면 판본을 쌓지 않는다', unchanged === before, `${unchanged} vs ${before}`);
-  check('그래서 판본 수도 그대로다', (await countRevisions()) === 1);
+  /**
+   * **같은 값을 다시 내면 판이 안 오른다.**
+   *
+   * 시를 고쳐 적었다가 되돌린 사람의 풀이가 「이전 입력」으로 서면 안 된다. 여덟 칸을
+   * 그대로 견주므로(`write_person_input`) 달라진 것이 없으면 아무 일도 안 일어난다.
+   */
+  const { data: unchanged, error: unchangedError } = await revise({});
+  check('같은 값으로 저장하면 판이 안 오른다', unchanged === before,
+    unchangedError?.message ?? `${unchanged} vs ${before}`);
 
   const { data: next, error } = await revise({ p_city: '부산' });
-  check('고치면 새 판본이 쌓인다', typeof next === 'string' && next !== before, error?.message);
-  check('현재 판본이 새것으로 옮겨간다', (await currentRevision()) === next);
-  check('옛 판본은 남는다', (await countRevisions()) === 2);
+  check('고치면 판이 하나 오른다', next === before + 1, error?.message ?? `${next} vs ${before}`);
 
-  const { data: old } = await client
-    .from('person_chart_revision').select('city').eq('id', before).maybeSingle();
-  check('옛 판본의 값은 덮어써지지 않았다', old?.city === '서울', old?.city);
+  /**
+   * **이전 입력은 남지 않는다** (ADR 0071). 고치면 그 자리를 고치고, 사용자가 과거
+   * 값을 고르거나 되돌리는 길도 없다. 이미 나온 글은 그때의 여덟 글자를 스스로 들고
+   * 있어 안 움직인다 — 그것이 이 표를 지운 뒤에도 「이전 입력」을 말할 수 있는 까닭이다.
+   */
+  const now = await readPerson('city, input_version');
+  check('고친 값이 그 자리에 선다', now?.city === '부산', now?.city);
+  check('현재 판은 방금 오른 것이다', now?.input_version === next);
 
-  // 이름은 판본이 아니라 엣지가 든다 — 고쳐도 판본이 늘지 않는다.
+  // 이름은 입력이 아니라 엣지가 든다 — 고쳐도 판이 안 오른다.
   const { error: labelError } = await client
     .from('user_person_access').update({ local_label: '아빠' }).eq('person_id', personId);
   check('부를 이름을 고치는 쓰기는 거절되지 않는다', labelError === null, labelError?.message);
-  check('이름을 고쳐도 판본은 늘지 않는다', (await countRevisions()) === 2);
+  check('이름을 고쳐도 판은 그대로다', (await version()) === next);
 
   /**
    * **자기 사람에게는 두 번째 이름이 안 생긴다.** 쓰기는 지나가되 트리거가 닉네임으로
@@ -243,19 +249,15 @@ const other = anon();
     .from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle();
   check('그래도 자기 이름은 닉네임 그대로다', edge?.local_label === nickname, edge?.local_label);
 
-  // ── 음력 판본 — 원본과 변환값을 둘 다 든다 ─────────────────────────────────
+  // ── 음력 — 원본과 변환값을 둘 다 든다 ─────────────────────────────────────
   const { data: lunar, error: lunarError } = await revise({
     p_calendar: 'lunar',
     p_original_date: '1990-04-21',
     p_solar_date: '1990-05-15',
   });
-  check('음력 판본을 받는다', typeof lunar === 'string', lunarError?.message);
+  check('음력 입력을 받는다', typeof lunar === 'number', lunarError?.message);
 
-  const { data: stored } = await client
-    .from('person_chart_revision')
-    .select('calendar, original_date, solar_date')
-    .eq('id', lunar)
-    .maybeSingle();
+  const stored = await readPerson('calendar, original_date, solar_date');
   check(
     '사용자가 적은 음력과 변환된 양력이 둘 다 남는다',
     stored?.calendar === 'lunar' &&
@@ -273,41 +275,27 @@ const other = anon();
   check('변환을 건너뛴 음력 쓰기는 거절된다', skipped?.code === '23514', skipped?.code);
 
   /**
-   * 미참조 이전 판본은 최근 둘까지 — **앱이 부르지 않아도 돈다**(ADR 0011).
+   * **보존 기계가 없다** (ADR 0071 · #70).
    *
-   * 같은 규칙을 pgTAP 이 이미 잰다. 여기서 다시 재는 것은 질문이 다르기 때문이다:
-   * **브라우저가 쓰는 그 길로** 판본을 쌓아도 정리가 함께 도는가. 앱이 정리를 따로
-   * 불러야 하는 구조라면 그 한 줄을 잊는 배포가 언젠가 나오고, 그때 지워졌어야 할
-   * 출생 입력이 조용히 남는다.
+   * 앞서는 이 자리에서 「네 번째를 쌓아도 판본은 셋이다」를 쟀다. 아무것도 안 쌓으므로
+   * 셀 것이 없고, 정리하던 문도 사라졌다 — 그 문이 없다는 것을 값으로 든다. 남아
+   * 있으면 아무도 안 부르는 문이 열린 채 서 있는 것이다.
    */
-  check('여기까지 판본은 셋이다', (await countRevisions()) === 3);
-
-  const { data: fourth } = await revise({ p_city: '대구' });
-  check('네 번째를 쌓아도 판본은 셋이다 — 정리가 함께 돈다', (await countRevisions()) === 3);
-  check('현재 판본은 방금 쌓은 것이다', (await currentRevision()) === fourth);
-
-  const { data: oldest } = await client
-    .from('person_chart_revision').select('id').eq('id', before).maybeSingle();
-  check('가장 오래된 미참조 입력은 남지 않는다', oldest === null, JSON.stringify(oldest));
-
-  const { error: cleanup } = await client.rpc('retain_person_revisions', {
+  const { error: gone } = await client.rpc('retain_person_revisions', {
     p_person_id: personId,
   });
-  check(
-    '정리는 브라우저가 부르는 문이 아니다',
-    cleanup !== null,
-    cleanup?.message ?? '통과돼 버렸다',
-  );
+  check('판본을 정리하던 문은 없다', gone !== null, gone?.message ?? '아직 열려 있다');
 
   /**
    * **겹쳐 저장해도 죽지 않는다.**
    *
    * 저장 버튼을 두 번 누르거나 두 탭에서 고치면 같은 Person 에 두 호출이 겹친다.
-   * 새 판본을 먼저 넣고 그 다음 `person.current_revision_id` 를 고치는 차례라, 잠그지
-   * 않으면 둘이 서로가 든 것을 서로 기다려 deadlock(40P01) 이 난다 — 재현했다.
+   * 판본을 쌓던 시절에는 새 행을 먼저 넣고 `current_revision_id` 를 고치는 차례라
+   * 잠그지 않으면 deadlock(40P01) 이 났다 — 재현했었다. 쓰는 자리가 한 행으로 줄어든
+   * 지금도 **그 잠금은 그대로 있어야 한다**: 둘 다 「안 바뀌었네」를 보고 나란히
+   * 나아가면 판이 한 번만 오른다.
    *
-   * pgTAP 으로는 못 잰다. 한 파일이 한 세션·한 트랜잭션이라 겹칠 자리가 없다. 그래서
-   * **실제로 동시에 보내는** 이 자리에 회귀 검사를 둔다.
+   * pgTAP 으로는 못 잰다. 한 파일이 한 세션·한 트랜잭션이라 겹칠 자리가 없다.
    */
   const overlapping = await Promise.all(
     Array.from({ length: 12 }, (_, i) =>
@@ -322,7 +310,8 @@ const other = anon();
     broke.length === 0,
     broke.map(({ error }) => `${error.code} ${error.message}`).join(' · '),
   );
-  check('겹쳐 저장한 뒤에도 상한은 그대로다', (await countRevisions()) === 3);
+  check('겹쳐 저장한 뒤에도 사람은 하나다',
+    (await client.from('person').select('id').eq('id', personId)).data?.length === 1);
 }
 
 // ── 8. 남은 못 고친다 — RPC 는 정책을 지나가므로 스스로 물어야 한다 ───────────
@@ -332,6 +321,7 @@ const other = anon();
     p_calendar: 'solar', p_original_date: '1980-01-01', p_solar_date: '1980-01-01',
     p_birth_time: '01:00', p_gender: 'male', p_city: '서울',
     p_late_night_rule: 'jo', p_time_basis: 'localMean',
+    ...chartArgs('onboarding-stranger'),
   });
   check('claim 된 Person 의 출생 정보는 남이 못 고친다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
 }

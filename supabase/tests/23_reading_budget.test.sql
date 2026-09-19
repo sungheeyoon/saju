@@ -13,7 +13,7 @@ begin;
 select plan(21);
 
 /** 저장 문은 열쇠에만 열려 있다 — 시험은 소유자 권한으로 감싸 부른다(16번과 같은 손잡이) */
-create or replace function pg_temp.save(run uuid, rev uuid, spent jsonb)
+create or replace function pg_temp.save(run uuid, spent jsonb)
 returns uuid
 language sql
 security definer
@@ -53,15 +53,18 @@ as $$ select set_config('request.jwt.claims', tests.claims(who), true); select n
 
 select pg_temp.becomes((select kim from folks));
 select public.create_self_person(
-  '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+  '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 select pg_temp.becomes((select lee from folks));
 select public.create_self_person(
-  '나', 'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '부산', 'jo', 'localMean');
+  '나', 'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '부산', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 select pg_temp.becomes((select park from folks));
 select public.create_self_person(
-  '나', 'solar', '1988-11-20', '1988-11-20', '05:40', 'male', '대구', 'jo', 'localMean');
+  '나', 'solar', '1988-11-20', '1988-11-20', '05:40', 'male', '대구', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 
 -- ── 쓴 토큰 — 실패에도 남는다 ─────────────────────────────────────────────────
 
@@ -109,8 +112,6 @@ select run_id from public.start_reading_run('self', 'budget-ok-1');
 reset role;
 select pg_temp.save(
   (select run_id from good_run),
-  (select p.current_revision_id from public.person p
-   join public.app_user u on u.self_person_id = p.id where u.id = (select kim from folks)),
   '{"totalTokens": 2500}'::jsonb);
 
 select is(

@@ -12,7 +12,8 @@ select set_config('request.jwt.claims', tests.claims((select kim from who)), tru
 create temporary table me as
 select public.create_self_person(
   '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean'
-) as person_id;
+,
+  tests.chart(), 'chart-for-tests') as person_id;
 grant select on me to authenticated;
 
 -- ── 만들어진다 ────────────────────────────────────────────────────────────────
@@ -20,16 +21,17 @@ create temporary table mom as
 select public.create_managed_person(
   '엄마', '음력 생일만 아신다', 'lunar', '1962-03-11', '1962-04-15',
   '07:20', 'female', '부산', 'jo', 'localMean'
-) as person_id;
+,
+  tests.chart(), 'chart-for-tests') as person_id;
 grant select on mom to authenticated;
 
 select isnt((select person_id from mom), null, '관리 Person 이 만들어진다');
 
 select is(
   (select count(*)::int from public.person
-   where id = (select person_id from mom) and current_revision_id is not null),
+   where id = (select person_id from mom) and calendar is not null),
   1,
-  '만들어진 Person 은 현재 판본을 가리킨다');
+  '만들어진 Person 은 자기 입력을 든다');
 
 select is(
   (select a.local_label || '/' || a.note || '/' || a.role
@@ -47,10 +49,10 @@ select is(
 select hasnt_column('public', 'person', 'relation', '관계는 Person 에 안 붙는다');
 select hasnt_column('public', 'user_person_access', 'relation', '관계는 엣지에도 안 붙는다');
 
--- 판본은 원본과 변환값을 둘 다 든다(ADR 0002). 음력으로 등록해도 마찬가지다.
+-- 입력은 원본과 변환값을 둘 다 든다(ADR 0002). 음력으로 등록해도 마찬가지다.
 select is(
-  (select r.calendar || ' ' || r.original_date::text || ' ' || r.solar_date::text
-   from public.person p join public.person_chart_revision r on r.id = p.current_revision_id
+  (select p.calendar || ' ' || p.original_date::text || ' ' || p.solar_date::text
+   from public.person p
    where p.id = (select person_id from mom)),
   'lunar 1962-03-11 1962-04-15',
   '음력으로 등록해도 원본과 변환값을 둘 다 든다');
@@ -71,7 +73,8 @@ create temporary table dad as
 select public.create_managed_person(
   '아빠', '   ', 'solar', '1960-01-20', '1960-01-20',
   null, 'male', '서울', 'jo', 'localMean'
-) as person_id;
+,
+  tests.chart('丙', false), 'chart-for-tests') as person_id;
 grant select on dad to authenticated;
 
 select is(
@@ -137,7 +140,8 @@ select throws_ok(
 select throws_ok(
   $$select public.create_managed_person(
       '친구', repeat('가', 201), 'solar', '1991-02-03', '1991-02-03',
-      '09:00', 'female', '서울', 'jo', 'localMean')$$,
+      '09:00', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
   '23514', null,
   '메모에도 상한이 있다');
 
@@ -190,7 +194,8 @@ begin
   for i in 2..tests.person_limit() loop
     perform public.create_managed_person(
       '가족' || i, null, 'solar', '1990-05-15', '1990-05-15',
-      '14:30', 'female', '서울', 'jo', 'localMean');
+      '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   end loop;
 end;
 $$;
@@ -213,7 +218,8 @@ select is(
 select throws_ok(
   $$select public.create_managed_person(
       '한 명 더', null, 'solar', '1990-05-15', '1990-05-15',
-      '14:30', 'female', '서울', 'jo', 'localMean')$$,
+      '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
   '23514',
   format('등록할 수 있는 사람은 %s명까지입니다.', tests.person_limit()),
   '한도를 넘기는 한 명은 거절된다');

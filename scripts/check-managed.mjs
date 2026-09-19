@@ -113,20 +113,18 @@ let momId;
     JSON.stringify(managed.map((edge) => [edge.local_label, edge.note])),
   );
 
+  /** 입력은 **그 사람의 행에** 있다 — 판본을 한 번 더 읽던 걸음이 없어졌다(ADR 0071) */
   const { data: persons } = await client
     .from('person')
-    .select('id, current_revision_id')
+    .select('id, input_version, calendar, original_date, solar_date, birth_time, city')
     .in('id', managed.map((edge) => edge.person_id));
-  check('등록한 사람은 저마다 현재 판본을 가리킨다',
-    persons?.length === 2 && persons.every((person) => typeof person.current_revision_id === 'string'));
+  check('등록한 사람은 저마다 자기 입력을 든다',
+    persons?.length === 2 && persons.every((person) => typeof person.calendar === 'string'));
+  check('처음 적어 넣은 입력은 1판이다',
+    (persons ?? []).every((person) => person.input_version === 1),
+    JSON.stringify((persons ?? []).map((person) => person.input_version)));
 
-  const { data: revisions } = await client
-    .from('person_chart_revision')
-    .select('id, person_id, calendar, original_date, solar_date, birth_time, city')
-    .in('id', (persons ?? []).map((person) => person.current_revision_id));
-  check('판본을 되읽는다', revisions?.length === 2);
-
-  const mom = (revisions ?? []).find((revision) => revision.person_id === momId);
+  const mom = (persons ?? []).find((person) => person.id === momId);
   check('음력으로 등록하면 원본과 변환값이 둘 다 남는다',
     mom?.calendar === 'lunar' && mom?.original_date === '1962-03-11' && mom?.solar_date === '1962-04-15',
     JSON.stringify(mom));
@@ -153,7 +151,9 @@ let momId;
 let theirPersonId;
 {
   await passNotice(other);
-  await other.rpc('create_self_person', { p_local_label: '지영', ...birth, p_gender: 'female' });
+  await other.rpc('create_self_person', {
+    p_local_label: '지영', ...birth, p_gender: 'female', ...chartArgs('managed-theirs'),
+  });
   const { data: account } = await other.from('app_user').select('self_person_id').maybeSingle();
   theirPersonId = account?.self_person_id;
   check('상대도 자기 사주를 등록했다', typeof theirPersonId === 'string');
@@ -161,7 +161,9 @@ let theirPersonId;
   const { data: people } = await other.from('person').select('id');
   check('남이 등록한 가족은 한 줄도 안 보인다', people?.length === 1, `${people?.length ?? '?'}줄`);
 
-  const { error } = await other.rpc('add_person_revision', { p_person_id: momId, ...birth });
+  const { error } = await other.rpc('add_person_revision', {
+    p_person_id: momId, ...birth, ...chartArgs('managed-mom'),
+  });
   check('남의 가족 출생 정보는 못 고친다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
 }
 

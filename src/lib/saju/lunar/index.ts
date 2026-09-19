@@ -24,7 +24,7 @@ export type { LunarTableProvenance, NearMidnightDongji, NearMidnightNewMoon, Raw
  * 평달과 윤달 두 날이 실재하고(그 해는 윤10월이 있다) 서로 한 달 떨어져 있다.
  * 플래그로 두면 안 보내는 경로가 하나만 생겨도 조용히 평달로 떨어진다.
  *
- * DB 의 `person_chart_revision.calendar` 컬럼과 같은 낱말을 쓴다.
+ * DB 의 `person.calendar` 컬럼과 같은 낱말을 쓴다.
  */
 export type Calendar = 'solar' | 'lunar' | 'lunar_leap';
 

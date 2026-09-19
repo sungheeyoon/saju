@@ -9,7 +9,7 @@ class NoKeyError extends Error {}
 /**
  * **사용자 세션으로는 시도를 열기만 한다.**
  *
- * 앞서는 이 파일이 `person_chart_revision` 과 `user_person_access` 를 흉내 내야 했다 —
+ * 앞서는 이 파일이 판본 표와 `user_person_access` 를 흉내 내야 했다 —
  * 파이프라인이 응답 뒤에 판본과 이름표를 직접 읽었기 때문이다. 입력이 시도를 여는
  * 트랜잭션에서 얼면서(ADR 0071) 그 읽기가 전부 DB 안으로 들어갔고, 남은 것은 **얼린
  * 작업을 집어 오는 왕복 하나**다.

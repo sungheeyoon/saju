@@ -191,12 +191,14 @@ select is(
  */
 select pg_temp.acting((select kim from who));
 select public.create_self_person(
-  '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+  '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 select public.set_discovery_participation(true, pg_temp.summary(4, 4, 0, 0, 0));
 
 select pg_temp.acting((select lee from who));
 select public.create_self_person(
-  '나', 'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '서울', 'jo', 'localMean');
+  '나', 'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 select public.set_discovery_participation(true, pg_temp.summary(0, 0, 4, 4, 0));
 
 /**

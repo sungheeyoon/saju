@@ -96,7 +96,8 @@ select throws_ok(
 create temporary table mine as
 select public.create_self_person(
   '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean'
-) as person_id;
+,
+  tests.chart(), 'chart-for-tests') as person_id;
 grant select on mine to authenticated;
 
 /*
@@ -125,18 +126,18 @@ select is(
   '켠 적 없어도 요약이 들어오면 참여가 열린다');
 
 select is(
-  (select (opted_in_at is not null) and opted_out_at is null and element_revision_id = (
-     select current_revision_id from public.person where id = (select person_id from mine))
+  (select (opted_in_at is not null) and opted_out_at is null and element_input_version = (
+     select input_version from public.person where id = (select person_id from mine))
    from public.discovery_profile),
   true,
-  '자동 참여도 요약을 지금 판본에 붙인다');
+  '자동 참여도 요약을 지금 입력 판에 붙인다');
 
 -- ── 끄는 것은 사건으로 남는다 ─────────────────────────────────────────────────
 select is(public.set_discovery_participation(false, null), false, '참여를 끈다');
 
 select is(
   (select opted_in_at is null and opted_out_at is not null
-      and element_summary is null and element_revision_id is null
+      and element_summary is null and element_input_version is null
    from public.discovery_profile),
   true,
   '끄면 요약을 거두고 끈 시각이 남는다');
@@ -166,11 +167,11 @@ select lives_ok(
 
 select is(
   (select (opted_in_at is not null) and opted_out_at is null
-      and element_revision_id = (
-        select current_revision_id from public.person where id = (select person_id from mine))
+      and element_input_version = (
+        select input_version from public.person where id = (select person_id from mine))
    from public.discovery_profile),
   true,
-  '다시 켜면 끈 기록이 지워지고 요약이 지금 판본에 붙는다');
+  '다시 켜면 끈 기록이 지워지고 요약이 지금 입력 판에 붙는다');
 
 /**
  * 참여 상태는 사용자가 직접 못 옮긴다.
@@ -217,7 +218,8 @@ select set_config('request.jwt.claims', tests.claims((select lee from who)), tru
 create temporary table theirs as
 select public.create_self_person(
   '지영', 'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '서울', 'jo', 'localMean'
-) as person_id;
+,
+  tests.chart(), 'chart-for-tests') as person_id;
 grant select on theirs to authenticated;
 
 select public.save_my_profile('지영', null);
@@ -382,7 +384,8 @@ update public.discovery_profile set prefer_gender = 'any';
 
 -- 출생정보를 고치면 요약이 낡는다. 낡은 요약은 후보가 아니다.
 select public.add_person_revision((select person_id from theirs),
-  'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '부산', 'jo', 'localMean');
+  'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '부산', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
 reset role;
 
 set local role authenticated;

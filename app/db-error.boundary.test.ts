@@ -50,7 +50,6 @@ const ALLOWED: Readonly<Record<string, string>> = {
   /* 사용자 화면이 아닌 자리 */
   'app/me/reading/pipeline.ts': '화면이 아니라 DB 에 적는다(`p_failure_detail`)',
   'app/me/reading/collect.ts': 'webhook 수집기 — 사람이 보는 화면이 없다',
-  'app/me/match/inputs.ts': '열쇠 문 — #70 이 이 문을 통째로 지운다',
 };
 
 function sourceFiles(dir: string): string[] {

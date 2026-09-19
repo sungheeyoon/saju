@@ -1,6 +1,6 @@
--- Person 이 드는 여덟 글자 — 모양·문 앞의 거절·조건부 운영 문 (ADR 0071 · A1)
+-- Person 이 드는 여덟 글자 — 모양·문 앞의 거절·조건부 운영 문 (ADR 0071)
 begin;
-select plan(24);
+select plan(25);
 
 /** 모양만 맞으면 된다 — 이 값이 실제 그 입력의 답인지는 DB 가 못 본다(ADR 0071) */
 create temporary table sample as
@@ -74,7 +74,7 @@ select is(
   '쓴 값이 넘긴 값 그대로다');
 
 -- ---------------------------------------------------------------------------
--- 문 앞의 거절 — **A4 의 not null 을 기다리지 않는다**
+-- 문 앞의 거절 — `not null` 보다 **앞에서** 말한다
 -- ---------------------------------------------------------------------------
 
 select throws_ok(
@@ -102,29 +102,38 @@ select throws_ok(
   '시각을 모르는데 시주가 서면 막는다');
 
 -- ---------------------------------------------------------------------------
--- 옛 서명은 A4 까지 살아 있다
+-- 옛 서명은 **여기서 사라진다** (#70)
+--
+-- A1 은 옛 서명과 새 서명을 나란히 세워 배포 창을 막았다. 앱이 다 옮겨 왔으므로 좁힌다 —
+-- 여덟 글자를 안 싣던 문이 하나라도 남으면 스냅샷이 빈 Person 이 다시 태어난다.
 -- ---------------------------------------------------------------------------
-
-select lives_ok(
-  $$select public.create_managed_person('아버지',null,'solar','1960-01-02','1960-01-02','07:00',
-      'male','서울','jo','localMean')$$,
-  '옛 서명이 그대로 돈다 — 옛 앱이 깨지지 않는다');
 
 select is(
-  (select current_chart from public.person p
-   join public.user_person_access a on a.person_id = p.id
-   where a.local_label = '아버지'),
-  null,
-  '옛 문으로 만든 사람은 스냅샷이 비어 있다 — 백필이 채운다');
+  (select count(*)::int from pg_proc p
+   join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public'
+     and p.proname in ('create_self_person', 'create_managed_person', 'add_person_revision')
+     and pg_get_function_arguments(p.oid) not like '%jsonb%'),
+  0,
+  '여덟 글자를 안 싣던 옛 서명이 하나도 안 남았다');
+
+/** 그래서 빈 채로 태어나는 길이 없다 — 스키마가 그것을 든다 */
+select col_not_null('public', 'person', 'current_chart',
+  '여덟 글자가 빈 Person 은 실재할 수 없다');
+
+select col_not_null('public', 'person', 'chart_engine_version',
+  '판 없는 스냅샷도 실재할 수 없다 — 낡았는지 물을 수 없으므로');
 
 -- ---------------------------------------------------------------------------
--- 판만 다르면 판본을 안 쌓는다
+-- 판만 다르면 **입력 판이 안 오른다**
+--
+-- 사용자가 입력을 바꾼 것이 아니므로 `input_version` 도 안 오르고 pending 요청도 안
+-- 죽는다. 엔진을 고친 일로 남의 요청이 무효가 되면, 사용자가 한 적 없는 일로 벌을 준다.
 -- ---------------------------------------------------------------------------
 
 create temporary table mine as
 select self_person_id as person_id,
-       (select count(*)::int from public.person_chart_revision r
-        where r.person_id = u.self_person_id) as revisions
+       (select p.input_version from public.person p where p.id = u.self_person_id) as version
 from public.app_user u where u.id = (select kim from who);
 -- 역할을 service_role 로 바꾼 뒤에도 읽는다 — 임시 표는 만든 역할만 본다
 grant select on mine to authenticated, service_role;
@@ -133,14 +142,13 @@ select is(
   public.add_person_revision((select person_id from mine),
     'solar','1990-05-15','1990-05-15','14:30','male','서울','jo','localMean',
     (select ok from sample), 'engine-v2'),
-  (select current_revision_id from public.person where id = (select person_id from mine)),
-  '같은 입력에 판만 바뀌면 판본이 그대로다');
+  (select version from mine),
+  '같은 입력에 판만 바뀌면 고치는 문이 같은 입력 판을 낸다');
 
 select is(
-  (select count(*)::int from public.person_chart_revision
-   where person_id = (select person_id from mine)),
-  (select revisions from mine),
-  '판본이 하나도 안 쌓였다');
+  (select input_version from public.person where id = (select person_id from mine)),
+  (select version from mine),
+  '입력 판이 안 올랐다');
 
 select is(
   (select chart_engine_version from public.person where id = (select person_id from mine)),
@@ -152,25 +160,26 @@ select is(
 -- ---------------------------------------------------------------------------
 
 /**
- * **판본 id 는 역할을 바꾸기 전에 떠 둔다.**
+ * **읽었던 입력 판은 역할을 바꾸기 전에 떠 둔다.**
  *
  * 열쇠에게는 표를 안 연다 — `service_role` 로 `public.person` 을 읽으면 거절당한다.
  * 실제 백필 스크립트도 같은 처지라 입력을 읽는 일과 쓰는 일이 갈려 있고, 그 갈림이
- * 곧 이 문이 판본을 인자로 받는 까닭이다.
+ * 곧 이 문이 **읽었던 것**을 인자로 받는 까닭이다. 판본을 지운 뒤로 그 값은
+ * `input_version` 이다(ADR 0071).
  */
 reset role;
-create temporary table now_rev as
-select current_revision_id as id from public.person where id = (select person_id from mine);
-grant select on now_rev to authenticated, service_role;
+create temporary table now_version as
+select input_version as v from public.person where id = (select person_id from mine);
+grant select on now_version to authenticated, service_role;
 
 set local role service_role;
 
 select is(
   public.set_person_chart((select person_id from mine),
-    '00000000-0000-0000-0000-000000000000'::uuid,
+    (select v + 1 from now_version),
     (select ok from sample), 'engine-v3'),
   false,
-  '읽었던 판본이 지금 것과 다르면 안 쓴다');
+  '읽었던 입력 판이 지금 것과 다르면 안 쓴다');
 
 reset role;
 set local role authenticated;
@@ -185,10 +194,10 @@ reset role;
 set local role service_role;
 
 select is(
-  public.set_person_chart((select person_id from mine), (select id from now_rev),
+  public.set_person_chart((select person_id from mine), (select v from now_version),
     (select ok from sample), 'engine-v3'),
   true,
-  '판본이 맞으면 쓰고 썼다고 답한다');
+  '입력 판이 맞으면 쓰고 썼다고 답한다');
 
 reset role;
 set local role authenticated;
@@ -201,7 +210,7 @@ select is(
 
 select throws_ok(
   $$select public.set_person_chart('00000000-0000-0000-0000-000000000000'::uuid,
-      '00000000-0000-0000-0000-000000000000'::uuid, '{}'::jsonb, 'x')$$,
+      1, '{}'::jsonb, 'x')$$,
   '42501',
   null,
   '운영 문은 로그인한 사람에게 안 열린다');

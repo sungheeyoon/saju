@@ -158,7 +158,8 @@ select pg_temp.acting((select choi from folks));
 
 select throws_like(
   $$select public.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30',
-      'male', '서울', 'jo', 'localMean')$$,
+      'male', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
   '%가입을 먼저%',
   '가입을 안 끝냈으면 내 사주를 못 넣는다');
 
@@ -169,7 +170,8 @@ select throws_like(
  */
 select throws_like(
   $$select public.create_managed_person('어머니', null, 'solar', '1965-03-02', '1965-03-02',
-      '09:00', 'female', '서울', 'jo', 'localMean')$$,
+      '09:00', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests')$$,
   '%가입을 먼저%',
   '가입을 안 끝냈으면 남의 사주도 못 넣는다');
 

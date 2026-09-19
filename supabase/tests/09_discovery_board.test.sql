@@ -39,7 +39,8 @@ declare
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   perform public.save_my_profile(left(mail, 8), null);
   perform public.set_discovery_participation(true, pg_temp.summary(i));
   return uid;

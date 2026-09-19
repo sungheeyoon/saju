@@ -27,7 +27,8 @@ declare uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   perform public.save_my_profile(who, null);
   perform public.set_discovery_participation(true, summary);
   return uid;
@@ -42,7 +43,7 @@ end;
 $$;
 
 create or replace function pg_temp.save(
-  run uuid, rev_a uuid, rev_b uuid, body text, score smallint)
+  run uuid, body text, score smallint)
 returns uuid language sql security definer as $$
   select public.save_reading(
     run, body, score, '두 사람이 같은 속도로 걷는 모양입니다.',
@@ -87,10 +88,8 @@ select throws_ok(
   '23514', null, '완성되지 않은 풀이에는 답할 수 없다');
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 나의 풀이', null)$$,
-    (select id from run_self),
-    (select p.current_revision_id from public.person p
-     join public.app_user u on u.self_person_id = p.id and u.id = (select auth.uid()))),
+  format($$select pg_temp.save(%L::uuid, '## 나의 풀이', null)$$,
+    (select id from run_self)),
   '자기 풀이가 저장된다');
 
 /** **어느 시도가 만들었는지를 결과가 든다** — 없으면 설문이 매달릴 자리가 없다 */
@@ -284,13 +283,6 @@ select is(
 create temporary table matched as select match_id from public.my_matches();
 grant select on matched to authenticated, service_role;
 
-reset role;
-create temporary table pinned as
-select m.low_revision_id as low_rev, m.high_revision_id as high_rev
-from public.match m where m.id = (select match_id from matched);
-grant select on pinned to authenticated, service_role;
-set local role authenticated;
-
 /**
  * **아무도 안 누른다 — 동의가 시도를 연다**(ADR 0038).
  *
@@ -307,8 +299,8 @@ set local role authenticated;
 select pg_temp.acting((select lee from folks));
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, %L::uuid, '## 공유 궁합', 64::smallint)$$,
-    (select id from run_match), (select low_rev from pinned), (select high_rev from pinned)),
+  format($$select pg_temp.save(%L::uuid, '## 공유 궁합', 64::smallint)$$,
+    (select id from run_match)),
   '공유 궁합이 저장된다');
 
 /**

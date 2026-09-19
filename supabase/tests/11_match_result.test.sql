@@ -1,16 +1,22 @@
--- 공유 결과 — **동의한 그때의 판본으로 나고, 열쇠 하나만 그것을 읽는다.**
+-- 공유 결과 — **동의한 그때의 여덟 글자로 나고, 상대의 입력은 어디로도 안 나간다.**
 --
--- 여기서 재는 것은 두 문의 모양이다(ADR 0010).
+-- 여기서 재는 것은 한 문의 모양이다(ADR 0010 개정 · ADR 0071).
 --
--- 1. `my_match_scope` — 누가 볼 수 있는가. 당사자가 아니면 **없는 것과 같은 답**이고,
---    제재·차단이 걸리면 내려간다. 나가는 것은 별명과 **매인 판본 id 둘**뿐이다.
--- 2. `match_calculation_inputs` — 출생 원문이 나가는 문. `authenticated` 는 못 부르고,
---    열쇠로 불러도 **어떤 Match 가 매어 둔 판본**밖에 안 나온다.
+-- `my_match_scope` — 누가 볼 수 있는가. 당사자가 아니면 **없는 것과 같은 답**이고,
+-- 제재·차단이 걸리면 내려간다. 나가는 것은 별명과 **동의 당시 여덟 글자 둘**뿐이다.
 --
--- 그리고 이 파일이 재는 가장 중요한 하나: **한쪽이 입력을 고쳐도 매인 판본은 움직이지
--- 않는다.** 결과가 조용히 다른 값이 되면 무엇에 동의한 것인지 알 수 없다.
+-- **계산 입력을 내주던 열쇠 문이 없어졌다**(#70). 그 문이 있던 까닭은 화면이 두 사람의
+-- 명식을 서버에서 다시 계산했기 때문이고, 수락이 여덟 글자를 베껴 두면서 그 계산이
+-- 통째로 사라졌다. 문이 없다는 것은 13번이 **열쇠의 허용 집합**으로 잰다.
+--
+-- 그리고 이 파일이 재는 가장 중요한 둘.
+--
+-- 1. **한쪽이 입력을 고쳐도 베껴 둔 여덟 글자는 움직이지 않는다.** 결과가 조용히 다른
+--    값이 되면 무엇에 동의한 것인지 알 수 없다.
+-- 2. **수락이 자동 생성 시도를 연다**(ADR 0038). 아무도 안 눌렀는데 청한 사람 이름으로
+--    시도가 서 있고, 그 시도에 **얼린 한 벌**이 딸려 있다.
 begin;
-select plan(37);
+select plan(31);
 
 /** 다섯 오행 개수만 주면 요약 한 벌이 된다 */
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
@@ -88,23 +94,17 @@ where p.user_id not in (select uid from (
   union all select choi from folks) ours);
 
 /**
- * 지금 서 있는 판본 둘 — **수락이 매어 둘 값**이다.
+ * 지금 서 있는 여덟 글자 둘 — **수락이 베껴 둘 값**이다.
  *
  * `postgres` 로 잡는다. 남의 `app_user` 는 정책이 자기 행만 내주므로 시험 안에서
- * 당사자 역할로는 이 표를 만들 수 없다.
+ * 당사자 역할로는 이 표를 만들 수 없다. 당사자 역할로는 상대의 `person` 도 못 읽는다 —
+ * Match 는 엣지를 안 만들기 때문이다(US 46). 기대값을 그 자리에서 읽으려다 `null` 과
+ * 견주는 시험이 될 뻔했다.
  */
 create temporary table pinned as
 select
   kim_person.id as kim_person,
   lee_person.id as lee_person,
-  kim_person.current_revision_id as kim_revision,
-  lee_person.current_revision_id as lee_revision,
-  /**
-   * **여덟 글자도 여기서 잡아 둔다.**
-   *
-   * 당사자 역할로는 상대의 `person` 을 못 읽는다 — Match 는 엣지를 안 만들기 때문이다
-   * (US 46). 기대값을 그 자리에서 읽으려다 `null` 과 견주는 시험이 될 뻔했다.
-   */
   kim_person.current_chart as kim_chart,
   lee_person.current_chart as lee_chart
 from folks
@@ -180,10 +180,42 @@ select is(
   0,
   '수락 문은 여덟 글자를 인자로 안 받는다');
 
+-- ── 수락이 **자동 생성 시도를 연다** (ADR 0038 · ADR 0071) ───────────────────
+--
+-- 동의가 예약된 풀이권을 쓴다. 이 자리가 조용히 안 돌면 Match 는 「동의는 났는데
+-- 아무도 못 여는」 상태로 만료까지 남는다 — 누르는 화면이 없기 때문이다.
+
+select is(
+  (select count(*)::int from public.reading_run r
+   where r.match_id = (select match_id from matched) and r.status = 'running'),
+  1,
+  '수락 트랜잭션이 시도를 연다 — 아무도 안 눌렀는데');
+
+/** **청한 사람 이름으로 선다.** 받은 쪽 세션에서 일어나는 일이라 안 정해 주면 뒤집힌다 */
+select is(
+  (select r.user_id from public.reading_run r
+   where r.match_id = (select match_id from matched) and r.status = 'running'),
+  (select kim from folks),
+  '시도는 청한 사람 이름으로 선다');
+
+/**
+ * **얼린 한 벌이 함께 선다**(ADR 0071). 제출하는 쪽이 읽을 재료가 여기 없으면 그
+ * Match 는 빈 채로 남는다 — 그리고 그 값은 `person` 이 아니라 `match` 에서 온다.
+ */
+select is(
+  (select j.status = 'frozen'
+     and j.chart_a = m.chart_low and j.chart_b = m.chart_high
+   from public.reading_job j
+   join public.reading_run r on r.id = j.run_id
+   join public.match m on m.id = r.match_id
+   where r.match_id = (select match_id from matched)),
+  true,
+  '수락이 얼린 한 벌은 Match 의 여덟 글자를 그대로 든다');
+
 set local role authenticated;
 select pg_temp.acting((select lee from folks));
 
--- ── 읽는 길은 둘뿐이고, 하나는 열쇠만 연다 ───────────────────────────────────
+-- ── 읽는 길은 하나이고, 좁힘을 든 함수는 아무도 못 부른다 ───────────────────
 
 /**
  * 좁힘을 든 함수는 **아무도 직접 못 부른다.** 목록과 결과 화면이 이것 하나 위에 서므로
@@ -192,16 +224,6 @@ select pg_temp.acting((select lee from folks));
 select throws_ok(
   $$select 1 from public.visible_matches()$$,
   '42501', null, '내가 볼 수 있는 Match 를 고르는 함수는 직접 못 부른다');
-
-/**
- * **계산 입력은 로그인한 사람이 못 부른다.**
- *
- * 이 문으로 나가는 것은 출생 원문이다. 열어 두면 「상대의 생년월일시는 열리지 않는다」가
- * 화면의 약속으로만 남고, RPC 를 그대로 두드리는 경로에서 무너진다.
- */
-select throws_ok(
-  format($$select 1 from public.match_calculation_inputs(%L::uuid)$$, (select match_id from matched)),
-  '42501', null, '계산 입력은 로그인한 사람이 못 부른다');
 
 -- ── 받은 쪽이 읽는 것 ────────────────────────────────────────────────────────
 select is(
@@ -218,16 +240,6 @@ select is(
   (select partner_nickname from public.my_match_scope((select match_id from matched))),
   '김결',
   '상대는 **공개용 별명**으로 불린다 — 부를 이름도 Person 입력도 아니다');
-
-select is(
-  (select my_revision_id from public.my_match_scope((select match_id from matched))),
-  (select lee_revision from pinned),
-  '내 쪽 판본은 동의한 그때의 것이다');
-
-select is(
-  (select partner_revision_id from public.my_match_scope((select match_id from matched))),
-  (select kim_revision from pinned),
-  '상대 쪽 판본도 동의한 그때의 것이다');
 
 /**
  * **보드에 설 값은 저장된 스냅샷이다**(ADR 0071). 앞서는 서버가 열쇠로 상대의 계산
@@ -267,9 +279,9 @@ select is(
   '보낸 쪽에서 상대는 이결이다');
 
 select is(
-  (select my_revision_id from public.my_match_scope((select match_id from matched))),
-  (select kim_revision from pinned),
-  '내 쪽 판본은 언제나 나의 것이다 — 자리가 뒤집혀도 섞이지 않는다');
+  (select my_chart from public.my_match_scope((select match_id from matched))),
+  (select kim_chart from pinned),
+  '내 자리에는 언제나 내 여덟 글자가 선다 — 자리가 뒤집혀도 섞이지 않는다');
 
 -- ── 남의 Match 와 없는 Match 는 **같은 답**이다 ──────────────────────────────
 select pg_temp.acting((select choi from folks));
@@ -284,57 +296,33 @@ select is(
   0,
   '없는 Match 도 같은 답이다 — 갈라서 말하면 실재를 묻는 문이 된다');
 
--- ── 입력을 고쳐도 매인 판본은 움직이지 않는다 ────────────────────────────────
+-- ── 입력을 고쳐도 베껴 둔 여덟 글자는 움직이지 않는다 ────────────────────────
 select pg_temp.acting((select lee from folks));
 
+/** 일간까지 갈리게 고친다 — 안 그러면 「안 움직인다」를 한 번도 안 재고 통과한다 */
 select lives_ok(
   format($$select public.add_person_revision(%L::uuid,
-    'solar', '1990-05-15', '1990-05-15', '15:45', 'female', '서울', 'jo', 'localMean')$$,
+    'solar', '1990-05-15', '1990-05-15', '15:45', 'female', '서울', 'jo', 'localMean',
+  tests.chart('壬'), 'chart-for-tests')$$,
     (select lee_person from pinned)),
   '이결이 출생 시각을 고친다');
 
 select isnt(
-  (select current_revision_id from public.person where id = (select lee_person from pinned)),
-  (select lee_revision from pinned),
-  '새 판본이 실제로 쌓였다');
+  (select current_chart from public.person where id = (select lee_person from pinned)),
+  (select lee_chart from pinned),
+  '지금 Person 의 여덟 글자는 실제로 달라졌다');
 
 select is(
-  (select my_revision_id from public.my_match_scope((select match_id from matched))),
-  (select lee_revision from pinned),
-  '**결과는 여전히 동의한 그때의 판본을 가리킨다**');
+  (select my_chart from public.my_match_scope((select match_id from matched))),
+  (select lee_chart from pinned),
+  '**결과는 여전히 동의한 그때의 여덟 글자를 든다**');
 
 select is(
   (select count(*)::int from public.my_matches()),
   1,
   '성립한 Match 는 입력 수정으로 사라지지 않는다 — 무효가 되는 것은 pending 뿐이다');
 
--- ── 열쇠가 여는 것 ───────────────────────────────────────────────────────────
-set local role service_role;
-
-select is(
-  (select count(*)::int from public.match_calculation_inputs((select match_id from matched))),
-  2,
-  '열쇠로는 매인 판본 둘이 나온다');
-
-select bag_eq(
-  format($$select revision_id from public.match_calculation_inputs(%L::uuid)$$,
-    (select match_id from matched)),
-  $$select lee_revision from pinned union all select kim_revision from pinned$$,
-  '나오는 것은 **매인 둘**이다 — 새로 쌓인 판본은 이 문으로 안 나온다');
-
-select bag_eq(
-  format($$select nickname from public.match_calculation_inputs(%L::uuid)$$,
-    (select match_id from matched)),
-  $$values ('김결'::text), ('이결'::text)$$,
-  '각 판본과 공개 별명이 함께 나와 공유 풀이가 사람 이름으로 부른다');
-
-select is(
-  (select count(*)::int
-   from public.match_calculation_inputs('00000000-0000-0000-0000-000000000000'::uuid)),
-  0,
-  '어떤 Match 도 매지 않은 것은 열쇠로도 안 나온다');
-
--- ── 제재는 열쇠보다 세다 ─────────────────────────────────────────────────────
+-- ── 제재는 결과보다 세다 ─────────────────────────────────────────────────────
 reset role;
 update public.app_user set status = 'suspended' where id = (select kim from folks);
 
@@ -344,12 +332,6 @@ select is(
   (select count(*)::int from public.my_match_scope((select match_id from matched))),
   0,
   '중지된 계정과의 Match 는 내려간다');
-
-set local role service_role;
-select is(
-  (select count(*)::int from public.match_calculation_inputs((select match_id from matched))),
-  0,
-  '중지 중에는 열쇠로도 계산 입력이 안 나온다 — 자격을 묻는 자리와 읽는 자리가 갈려 있으므로 여기서 한 번 더 묻는다');
 
 reset role;
 update public.app_user set status = 'active' where id = (select kim from folks);
@@ -376,12 +358,6 @@ select is(
   (select count(*)::int from public.my_match_scope((select match_id from matched))),
   0,
   '차단당한 쪽에서도 내려간다 — 제재는 한쪽에만 거는 규칙이 아니다');
-
-set local role service_role;
-select is(
-  (select count(*)::int from public.match_calculation_inputs((select match_id from matched))),
-  0,
-  '차단이 걸린 Match 는 **열쇠로도 안 열린다**');
 
 reset role;
 select * from finish();

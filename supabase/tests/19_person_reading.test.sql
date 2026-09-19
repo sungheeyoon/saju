@@ -19,7 +19,7 @@ end;
 $$;
 
 create or replace function pg_temp.save(
-  run uuid, rev_a uuid, rev_b uuid, body text, score smallint)
+  run uuid, body text, score smallint)
 returns uuid language sql security definer as $$
   select public.save_reading(
     run, body, score, '두 사람이 같은 속도로 걷는 모양입니다.',
@@ -33,7 +33,8 @@ declare uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+  tests.chart(), 'chart-for-tests');
   return uid;
 end;
 $$;
@@ -49,7 +50,8 @@ select pg_temp.acting((select kim from folks));
 create temporary table kin as
 select public.create_managed_person(
   '엄마', null, 'solar', '1962-03-02', '1962-03-02', '07:10', 'female', '부산', 'jo', 'localMean'
-) as mom;
+,
+  tests.chart(), 'chart-for-tests') as mom;
 grant select on kin to authenticated, service_role;
 
 create temporary table mine as
@@ -64,21 +66,21 @@ select is(
   '아직 만들지 않았으면 결과가 없다');
 
 create temporary table run_mom as
-select run_id as id, revision_a as rev, person_a as who
+select run_id as id, person_a as who
 from public.start_reading_run('person', 'solo-mom-0001', (select mom from kin));
 grant select on run_mom to authenticated, service_role;
 
 select isnt((select id from run_mom), null, '저장한 사람의 풀이 요청이 선다');
 
-/** **한 사람만 실린다** — 두 번째 판본을 안 내주므로 궁합 자료를 못 만든다 */
+/** **한 사람만 실린다** — 두 번째 사람을 안 내주므로 궁합 자료를 못 만든다 */
 select is(
   (select who from run_mom),
   (select mom from kin),
-  '고른 그 사람의 판본으로 난다');
+  '고른 그 사람으로 난다');
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 엄마의 풀이', null)$$,
-    (select id from run_mom), (select rev from run_mom)),
+  format($$select pg_temp.save(%L::uuid, '## 엄마의 풀이', null)$$,
+    (select id from run_mom)),
   '저장한 사람의 풀이가 저장된다');
 
 select is(
@@ -93,8 +95,8 @@ select is(
   '점수가 없다');
 
 select throws_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 점수 붙은 풀이', 70::smallint)$$,
-    (select id from run_mom), (select rev from run_mom)),
+  format($$select pg_temp.save(%L::uuid, '## 점수 붙은 풀이', 70::smallint)$$,
+    (select id from run_mom)),
   '23514', null, '점수를 붙여 저장할 수는 없다');
 
 -- ── 내 selfPerson 은 `person` 이 아니다 ────────────────────────────────────
@@ -121,12 +123,12 @@ select is(
 
 /** 그래도 `self` 는 그대로 선다 — 닫힌 것은 한 갈래뿐이다 */
 create temporary table run_self as
-select run_id as id, revision_a as rev from public.start_reading_run('self', 'solo-self-0001');
+select run_id as id from public.start_reading_run('self', 'solo-self-0001');
 grant select on run_self to authenticated, service_role;
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 나의 풀이', null)$$,
-    (select id from run_self), (select rev from run_self)),
+  format($$select pg_temp.save(%L::uuid, '## 나의 풀이', null)$$,
+    (select id from run_self)),
   '자기 풀이는 그대로 만들어진다');
 
 select is(
@@ -163,13 +165,13 @@ select is(
   '엣지가 생겨도 남의 결과를 물려받지 않는다');
 
 create temporary table run_aunt as
-select run_id as id, revision_a as rev
+select run_id as id
 from public.start_reading_run('person', 'solo-aunt-0001', (select mom from kin));
 grant select on run_aunt to authenticated, service_role;
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 이모가 본 풀이', null)$$,
-    (select id from run_aunt), (select rev from run_aunt)),
+  format($$select pg_temp.save(%L::uuid, '## 이모가 본 풀이', null)$$,
+    (select id from run_aunt)),
   '같은 사람에 대해 자기 결과를 따로 만든다');
 
 select is(
@@ -187,13 +189,13 @@ select is(
 
 /** 다시 만들면 **통째로 갈린다** — 대상마다 결과 하나다(ADR 0013) */
 create temporary table run_again as
-select run_id as id, revision_a as rev
+select run_id as id
 from public.start_reading_run('person', 'solo-mom-0002', (select mom from kin));
 grant select on run_again to authenticated, service_role;
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 다시 쓴 엄마 풀이', null)$$,
-    (select id from run_again), (select rev from run_again)),
+  format($$select pg_temp.save(%L::uuid, '## 다시 쓴 엄마 풀이', null)$$,
+    (select id from run_again)),
   '같은 사람에 다시 만들면 저장된다');
 
 select is(
@@ -212,24 +214,26 @@ set local role authenticated;
 select pg_temp.acting((select kim from folks));
 
 /**
- * **출생정보를 고치면 이전 입력으로 쓴 글이 된다.**
+ * **여덟 글자가 달라지면 이전 명식으로 쓴 글이 된다**(ADR 0071).
  *
  * 고장이 아니라 그렇게 하기로 한 것이다. 화면이 그 사실을 말할 수 있어야 사용자가
- * 「왜 새로 안 났지」를 안 묻는다.
+ * 「왜 새로 안 났지」를 안 묻는다. 견주는 것은 입력이 아니라 **여덟 글자**다 —
+ * 그래서 여기서도 고치는 김에 명식이 달라지게 둔다(일간이 갈린다).
  */
 select is(
-  (select from_current_revision from public.my_reading('person', (select mom from kin))),
+  (select from_current_chart from public.my_reading('person', (select mom from kin))),
   true,
-  '고치기 전에는 지금 판본으로 쓴 글이다');
+  '고치기 전에는 지금 명식으로 쓴 글이다');
 
 select public.add_person_revision(
   (select mom from kin),
-  'solar', '1962-03-02', '1962-03-02', '08:10', 'female', '부산', 'jo', 'localMean');
+  'solar', '1962-03-02', '1962-03-02', '08:10', 'female', '부산', 'jo', 'localMean',
+  tests.chart('丁'), 'chart-for-tests');
 
 select is(
-  (select from_current_revision from public.my_reading('person', (select mom from kin))),
+  (select from_current_chart from public.my_reading('person', (select mom from kin))),
   false,
-  '고치고 나면 이전 입력으로 쓴 글이라고 말한다');
+  '고치고 나면 이전 명식으로 쓴 글이라고 말한다');
 
 select isnt(
   (select output from public.my_reading('person', (select mom from kin))),

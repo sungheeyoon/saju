@@ -224,19 +224,22 @@ returns integer language sql immutable as $$ select 5 $$;
 
 ```sql
 select * from public.forget_user('<user uuid>');
---  people_forgotten | revisions_forgotten
+--  people_forgotten
 ```
 
 한 문장이면 된다. `auth.users` 하나가 사라지면 `app_user` 가 따라가고 거기서 스물네
 갈래가 FK 로 따라간다 — Person 엣지·discovery·요청·Match·결과·시도·풀이 설문·서비스
 설문·알림·차단·신고. (세어 보려면 `pg_constraint` 에서 `app_user` 를 가리키는 FK 를 센다.)
-그다음 **이 사람이 관리하던 Person 중** 아무도 안 보게 된 것과 그 판본을 지운다(ADR 0023).
+그다음 **이 사람이 관리하던 Person 중** 아무도 안 보게 된 것을 지운다(ADR 0023) — 출생
+입력은 그 행에 있으므로 함께 사라진다.
 남이 놓고 간 고아는 안 건드린다 — 그것은 종료 파기의 일이다.
 
 무엇이 함께 사라지는지 **누르기 전에** 알아야 한다.
 
 - **Match 가 양쪽에서 사라진다.** 공유 결과와 알림도 함께. 상대 화면에서도 없어진다 —
-  공유 결과는 서버가 두 판본을 읽어 자르는 것이라 한쪽이 사라지면 설 수 없다(ADR 0010).
+  Match 행이 사라지면 그것을 보던 문이 0행을 낸다. (동의 당시 여덟 글자는 그 행에
+  베껴져 있으므로, 남는 쪽의 화면이 **상대의 입력을 읽어서** 서던 것은 아니다 —
+  ADR 0010 이 그 길을 걷었다.)
 - **남이 관리하는 Person 은 남는다.** 「누가 만들었나」만 비워진다.
 - **신고 기록도 사라진다.** 신고한 쪽이든 신고당한 쪽이든 계정이 사라지면 그 행이 따라간다.
   안전 운영에 남겨야 할 것이 있으면 **지우기 전에** 따로 적는다.
@@ -270,8 +273,7 @@ select public.beta_is_over(), * from public.current_beta_schedule();
 ```sql
 -- 무엇을 지울 것인지 먼저 본다. 세어 보지 않고 지우지 않는다.
 select count(*) as 계정 from auth.users;
-select count(*) as 사람, (select count(*) from public.person_chart_revision) as 판본
-from public.person;
+select count(*) as 사람 from public.person;
 ```
 
 ```sql
@@ -306,7 +308,6 @@ select
   (select count(*) from auth.flow_state)             as 로그인중간상태,
   (select count(*) from public.signup_code)          as 가입코드,
   (select count(*) from public.person)               as 사람,
-  (select count(*) from public.person_chart_revision) as 판본,
   (select count(*) from public.reading)              as 결과,
   (select count(*) from public.reading_run)          as 시도,
   (select count(*) from public.reading_job)          as 일감,
@@ -606,8 +607,8 @@ order by a.deletion_requested_at;
 아래를 지키고, 판단이 필요한 건은 남겨 둔다.
 
 - **성립한 Match 는 양쪽에서 사라진다.** 그 공유 결과와 알림도 함께. 고를 수 있는 다른
-  답이 없다 — 공유 결과는 서버가 두 판본을 읽어 자르는 것이라 한쪽이 사라지면 그 화면은
-  설 수 없다(ADR 0010·0023). 삭제 화면이 누르기 전에 이 사실을 말한다.
+  답이 없다 — Match 행이 두 사람 사이의 동의 그 자체라, 한쪽이 지워지면 남는 쪽에
+  보여 줄 동의가 없다(ADR 0023). 삭제 화면이 누르기 전에 이 사실을 말한다.
 - 계산 입력과 Person 은 지운다. 남이 함께 관리하는 Person 은 남고 「누가 만들었나」만
   비워진다.
 - **처리 기한은 영업일 3일이다.** 화면과 처리방침이 그렇게 적혀 있다.
@@ -821,13 +822,12 @@ group by i.position, i.exploration
 order by i.position, i.exploration;
 
 -- 출생시간 유무에 따른 노출 격차 (고정 표본 측정은 `src/lib/discovery/exposure.test.ts`)
-select rev.birth_time is not null as 시각_있음,
+select per.birth_time is not null as 시각_있음,
        count(distinct p.user_id) as 사람,
        count(i.candidate_user_id) as 노출
 from public.discovery_profile p
 join public.app_user a on a.id = p.user_id
 join public.person per on per.id = a.self_person_id
-join public.person_chart_revision rev on rev.id = per.current_revision_id
 left join public.discovery_impression i on i.candidate_user_id = p.user_id
 where p.opted_in_at is not null
 group by 1;
