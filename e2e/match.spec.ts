@@ -506,9 +506,18 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     }
     await expect(target).toBeVisible();
 
-    // 점수는 서버가 준 값이다 — 화면이 다시 세지 않는다.
+    /*
+      **점수는 서버가 준 값이다 — 화면이 다시 세지 않는다.**
+
+      덱으로 옮겨 오면서(2026-09-18) 점수 칸의 이름이 갈렸다. 홈 카드의 「예측 궁합 N점,
+      추천 이유 보기」는 **앱 어디에도 없다** — 덱은 카드를 여는 단추 하나와 카드 안의
+      수로 같은 것을 말한다. 재는 것은 그대로다: 서버가 준 수가 화면에 서는가.
+    */
     await expect(
-      asker.page.getByRole('button', { name: /예측 궁합 \d+점, 추천 이유 보기/ }),
+      asker.page.getByRole('button', { name: `나${tag} 님과의 예측 궁합 자세히 보기` }),
+    ).toBeVisible();
+    await expect(
+      asker.page.getByRole('region', { name: '인연 카드' }).getByText(/\d+ \/ 100/),
     ).toBeVisible();
 
     // ── 하트만으로는 안 나간다 ──────────────────────────────────────────────
