@@ -216,6 +216,59 @@ describe('두 사람으로 궁합 화면을 여는 자리', () => {
 });
 
 /**
+ * **네 조합이 같은 키 한 벌을 보낸다** — 이것이 안 지켜지면 그 조합은 운영에서 안 열린다.
+ *
+ * PostgREST 는 **보낸 키 이름의 집합**으로 서명을 고른다. 그래서 「저장한 사람 + 직접
+ * 입력」처럼 두 가지가 섞이면, 한쪽 가지가 키를 덜 실은 순간 24인자(옛)·28인자(새)
+ * 어느 쪽에도 안 맞는 호출이 된다. 실제로 그렇게 깨진 적이 있다 — A2 가 빌더에 여덟
+ * 글자 둘을 더했는데 「고른 사람」 가지가 손으로 적은 열 칸이어서 26키가 나갔고,
+ * 운영에서 `PGRST202`(함수를 못 찾음)로 떨어졌다.
+ *
+ * **그래서 수를 여기에 박아 둔다.** 「두 가지가 같다」만 재면 둘이 함께 덜 실리는 날을
+ * 못 잡고, 이름 목록까지 재야 키 하나가 이름만 바뀌는 것도 걸린다.
+ */
+describe('네 조합이 같은 인자 이름을 보낸다', () => {
+  const typed = (name: string): PairSide => ({
+    from: 'typed',
+    query: { ...DEFAULT_QUERY, name, date: '1990-05-15', time: '14:30' },
+  });
+  const saved = (personId: string): PairSide => ({ from: 'saved', personId });
+
+  const argNamesOf = async (a: PairSide, b: PairSide): Promise<string[]> => {
+    rpc.mockReset();
+    rpc.mockResolvedValue({ data: [{ person_a: 'x', person_b: 'y' }], error: null });
+    await openPairScreen(a, b, null);
+    const call = rpc.mock.calls.find(([name]) => name === 'create_pair_for_reading');
+    if (call === undefined) throw new Error('문을 부르지 않았다');
+    return Object.keys(call[1] as Record<string, unknown>).sort();
+  };
+
+  /** 새 서명이 받는 스물여덟 — 이 목록이 곧 계약이다(`20260924090000`) */
+  const EXPECTED = [
+    ...['a', 'b'].flatMap((side) =>
+      [
+        'local_label', 'note', 'calendar', 'original_date', 'solar_date', 'birth_time',
+        'gender', 'city', 'late_night_rule', 'time_basis', 'chart', 'chart_engine_version',
+      ].map((key) => `p_${side}_${key}`),
+    ),
+    'p_relation', 'p_a_person', 'p_b_person', 'p_listed',
+  ].sort();
+
+  it.each([
+    ['직접 입력 × 직접 입력', typed('민수'), typed('지영')],
+    ['저장한 사람 × 직접 입력', saved('already-there'), typed('지영')],
+    ['직접 입력 × 저장한 사람', typed('민수'), saved('already-there')],
+    ['저장한 사람 × 저장한 사람', saved('one'), saved('two')],
+  ])('%s', async (_label, a, b) => {
+    const names = await argNamesOf(a, b);
+
+    expect(names).toEqual(EXPECTED);
+    /* 스물여덟이 아니면 어느 서명에도 안 맞는다 — 26키로 나가던 고장이 그것이었다 */
+    expect(names).toHaveLength(28);
+  });
+});
+
+/**
  * **같은 명식이면 묻고 나서 저장한다** (ADR 0034).
  *
  * 막으려는 것은 중복 행이 아니라 **풀이권이 두 번 나가는 것**이다. 대상이 둘이면

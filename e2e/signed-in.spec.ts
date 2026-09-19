@@ -4,8 +4,13 @@ import {
   leavePersonSlots,
   makeOperator,
   personLimit,
+  sql,
   test,
 } from './session';
+
+import { chartOf } from '@/src/lib/input/chart';
+import { DEFAULT_QUERY } from '@/src/lib/input/query';
+import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 
 import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
 
@@ -1259,6 +1264,66 @@ test.describe('로그인한 사람의 궁합 화면', () => {
    * 서 있고 · **사람 목록은 그대로인가.** pgTAP 은 문 하나까지만 알고, 흐름 검사는
    * 브라우저가 만드는 이 걸음을 못 지난다.
    */
+  /**
+   * **한 칸은 고르고 한 칸은 적는 조합이 진짜 문에 닿는가** — 그리고 저장된 여덟 글자가
+   * 엔진이 낸 것과 같은가. 한 시험이 둘을 재는 것은 둘 다 **앱을 띄워야만** 잴 수 있기
+   * 때문이다.
+   *
+   * ## 왜 이 조합인가
+   *
+   * PostgREST 는 **보낸 키 이름의 집합**으로 서명을 고른다. 이 조합이 운영에서
+   * `PGRST202`(함수를 못 찾음)로 떨어져 있었다 — 「고른 사람」 가지가 여덟 글자 두 칸을
+   * 안 실어 **26키**로 나갔고, 24인자(옛)·28인자(새) 어느 쪽에도 안 맞았다. 자기 사주를
+   * 등록하고 저장한 사람이 한 명 이하인 계정에게는 이 조합이 **화면을 연 그대로의
+   * 기본값**이라, 그 사람들에게 궁합은 열리지 않았다.
+   *
+   * 단위시험이 키 집합을 재지만 거기서는 `rpc` 가 모킹이라 **해석 자체가 안 일어난다.**
+   * 서명을 고르는 일은 PostgREST 의 몫이므로 진짜 문에 닿는 자리가 하나 있어야 한다.
+   *
+   * ## 저장된 값을 화면이 아니라 행에서 읽는다
+   *
+   * ADR 0071 이 흐름에 요구한 것이 「저장된 스냅샷이 엔진이 내는 여덟 글자와 같은가」다.
+   * 화면과 견주면 **「화면 == 엔진」을 재는 것이지 「저장된 값 == 엔진」이 아니다** —
+   * 화면은 볼 때마다 다시 계산하므로 저장하는 문이 엉뚱한 값을 앉혀도 옳게 보인다.
+   * 그래서 `person` 행을 직접 읽는다. DB 의 `is_chart_snapshot` 은 모양까지만 보고
+   * 「이 여덟 글자가 저 입력에서 나왔나」는 끝내 못 본다.
+   */
+  test('고른 사람과 적어 넣은 사람을 섞어도 궁합이 열리고, 저장된 여덟 글자가 엔진과 같다', async ({
+    page,
+    signedIn,
+  }) => {
+    expect(signedIn.label).not.toBe('');
+    const typed = { name: '지영', date: '1992-08-20', time: '09:00' };
+
+    await page.goto('/compat');
+
+    /* 첫 칸은 고른다 — 이 계정은 자기 사주와 어머니를 들고 있어 고르는 칸에서 시작한다 */
+    await page.getByLabel('첫 번째').selectOption({ label: `${signedIn.label} (나)` });
+    await typeInto(page, '두 번째', typed);
+
+    await page.getByRole('radio', { name: '가족' }).check();
+    await page.getByRole('button', { name: '궁합 보기' }).click();
+
+    /* 26키로 나가면 여기 못 온다 — 문을 못 찾아 고르는 자리에 실패 문구가 대신 선다 */
+    await expect(page).toHaveURL(/\/me\/compat\?a=[0-9a-f-]+&b=[0-9a-f-]+$/);
+    await expect(
+      page.getByRole('heading', { name: `${signedIn.label} × ${typed.name}` }),
+    ).toBeVisible();
+
+    const personId = new URL(page.url()).searchParams.get('b') ?? '';
+    expect(personId).not.toBe('');
+
+    const stored = JSON.parse(
+      sql(`select current_chart from public.person where id = '${personId}'`),
+    );
+    const version = sql(
+      `select chart_engine_version from public.person where id = '${personId}'`,
+    );
+
+    expect(stored).toEqual(chartSnapshotOf(chartOf({ ...DEFAULT_QUERY, ...typed }).pillars));
+    expect(version).toBe(CHART_ENGINE_VERSION);
+  });
+
   test('적어 넣은 두 사람은 저장 없이 궁합풀이로 건너간다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
 

@@ -203,8 +203,20 @@ const targets = (): Target[] =>
        or p.chart_engine_version is distinct from '${CHART_ENGINE_VERSION}'
     order by p.created_at`).map(rowOf);
 
-/** 한 사람의 지금 판본을 다시 읽는다 — 경합 뒤 재시도의 근거 */
+/** uuid 말고는 SQL 에 못 들어간다 — CLI 가 값 묶기를 안 받으므로 모양을 먼저 본다 */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * 한 사람의 지금 판본을 다시 읽는다 — 경합 뒤 재시도의 근거.
+ *
+ * **id 를 글자로 끼워 넣기 전에 모양을 잰다.** `supabase db query` 도 `psql -c` 도 값을
+ * 따로 받지 않아 문장에 섞는 수밖에 없고, 그렇다면 섞기 전에 좁히는 것이 유일한 방어다.
+ * 지금 오는 값은 DB 가 준 uuid 열이라 어긋날 일이 없지만, 어긋나는 날 조용히 SQL 이 되는
+ * 자리를 열어 두지 않는다.
+ */
 const reread = (personId: string): Target | null => {
+  if (!UUID.test(personId)) throw new Error('uuid 가 아닌 id 는 질의에 넣지 않습니다.');
+
   const rows = read(`
     select ${COLUMNS}
     from public.person p

@@ -35,8 +35,12 @@ import { NOTICE_VERSION } from '@/src/lib/consent';
 
 type Local = { api: string; anonKey: string };
 
-/** 테스트 코드는 **운영자가 SQL 로 넣는다** — `service_role` 에도 이 표는 안 열려 있다. */
-const sql = (statement: string) =>
+/**
+ * 운영자가 SQL 로 하는 일 — `service_role` 에도 안 열린 표를 넣고, **저장된 행을 그대로
+ * 읽는다.** 뒤엣것 때문에 밖으로 연다: 앱이 쓴 값이 엔진이 낸 값과 같은지 견주려면
+ * 화면이 아니라 **행**을 봐야 한다(ADR 0071 「재는 자리」).
+ */
+export const sql = (statement: string) =>
   execFileSync(
     'docker',
     ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq', '-c', statement],
