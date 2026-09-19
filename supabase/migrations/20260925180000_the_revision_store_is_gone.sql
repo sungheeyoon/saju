@@ -16,8 +16,12 @@
 -- 줄만 덜어낸 것이다.
 --
 -- 서명이 그대로인 함수는 `create or replace` 로 둔다 — **권한이 유지된다.** 서명이
--- 바뀌는 것만 drop 하고, 그때마다 grant 를 손으로 다시 적는다(이 저장소는 기본 실행
--- 권한을 걷어 두었고, grant 를 빠뜨린 함수는 `proacl` 이 빈 채로 PUBLIC 에 열린다).
+-- 바뀌는 것만 drop 하고, 그때마다 grant 와 **revoke 를 함께** 손으로 다시 적는다.
+--
+-- **grant 만으로는 안 닫힌다.** 새로 만든 함수의 실행 권한은 PUBLIC 에 있고, 거기에
+-- `grant ... to authenticated` 를 더해도 PUBLIC 의 몫은 그대로 남는다(`proacl` 에
+-- `=X/postgres` 로 적힌다). 그러면 `anon` 도 그 문을 두드릴 수 있다. 재어 보고 안
+-- 것이다 — 아래 15절이 그 자리를 도로 닫는다.
 
 -- ---------------------------------------------------------------------------
 -- 1. 풀이 대상과 시도 — 판본 두 칸이 서명에서 빠진다
@@ -1570,6 +1574,23 @@ drop function if exists public.create_managed_person(
 drop function if exists public.add_person_revision(
   uuid, text, date, date, time, text, text, text, text);
 
+/**
+ * **쌍을 여는 문도 같은 자리에서 좁힌다.**
+ *
+ * 옛 서명은 안에서 옛 `create_managed_person` 을 부른다 — 위에서 그 문을 걷었으므로,
+ * 남겨 두면 **부르는 순간 없는 함수를 찾는** 문이 하나 서 있게 된다. A1 이 넓혀 둔
+ * 새 서명(28·13)이 그 자리를 잇는다.
+ *
+ * 앱은 이미 새 문으로만 간다. 「고른 사람」 쪽도 빈 한 벌을 같은 키로 보내므로
+ * (`BLANK_PERSON_ARGS`) 어느 조합이든 키가 스물여덟이고, 옛 서명에는 애초에 안 맞는다.
+ */
+drop function if exists public.create_pair_for_reading(
+  text, text, text, date, date, time, text, text, text, text,
+  text, text, text, date, date, time, text, text, text, text,
+  text, uuid, uuid, boolean);
+drop function if exists public.person_for_pair(
+  uuid, text, text, text, date, date, time, text, text, text, text);
+
 create or replace function public.create_self_person(
   p_local_label text, p_calendar text, p_original_date date, p_solar_date date,
   p_birth_time time, p_gender text, p_city text, p_late_night_rule text, p_time_basis text,
@@ -2085,3 +2106,47 @@ alter table public.reading
     kind <> 'match'
     or (owner_user_id is null and match_id is not null and person_b is not null
         and chart_b is not null));
+
+-- ---------------------------------------------------------------------------
+-- 15. 문을 도로 닫는다 — **grant 는 PUBLIC 을 안 걷는다**
+--
+-- 여기서 `create` 로 다시 세운 함수는 전부 PUBLIC 실행 권한을 달고 태어난다. 옛 정의가
+-- 들고 있던 `revoke` 는 `drop` 과 함께 사라졌으므로, 같은 자리를 다시 닫는다.
+--
+-- **재어 보고 적은 목록이다.** 이 마이그레이션을 걸기 전후로 `proacl` 을 떠서 견주었고,
+-- 아래 열여섯이 열린 채로 남던 것들이다. 닫고 나면 역할별 집합이 배포 전과 같아진다 —
+-- 없어지는 것은 이 결정이 지우기로 한 문들뿐이다.
+-- ---------------------------------------------------------------------------
+
+/** 사용자가 두드리는 문 — `authenticated` 는 남기고 PUBLIC 만 걷는다 */
+revoke execute on function public.start_reading_run(text, text, uuid, uuid, uuid, text, text)
+  from anon, public;
+revoke execute on function public.my_reading(text, uuid, uuid, uuid) from anon, public;
+revoke execute on function public.my_readings() from anon, public;
+revoke execute on function public.my_match_scope(uuid) from anon, public;
+revoke execute on function public.add_person_revision(
+  uuid, text, date, date, time, text, text, text, text, jsonb, text) from anon, public;
+
+/** 열쇠가 두드리는 문 — 로그인한 사람에게도 닫혀 있어야 한다(ADR 0013) */
+revoke execute on function public.save_reading(
+  uuid, text, smallint, text, text, text, text, text, jsonb, timestamptz)
+  from anon, public, authenticated;
+revoke execute on function public.take_reading_job(uuid) from anon, public, authenticated;
+revoke execute on function public.match_run_awaiting_send(uuid) from anon, public, authenticated;
+revoke execute on function public.claim_reading_job(text) from anon, public, authenticated;
+revoke execute on function public.set_person_chart(uuid, integer, jsonb, text)
+  from anon, public, authenticated;
+
+/** 안에서만 부르는 문 — 어느 역할에게도 열지 않는다 */
+revoke execute on function public.reading_scope(text, uuid, uuid, uuid)
+  from anon, public, authenticated;
+revoke execute on function public.reading_scope_for(uuid, text, uuid, uuid, uuid)
+  from anon, public, authenticated;
+revoke execute on function public.start_reading_run_for(
+  uuid, text, text, uuid, uuid, uuid, text, text) from anon, public, authenticated;
+revoke execute on function public.freeze_reading_input(uuid, uuid, text, uuid, uuid, uuid)
+  from anon, public, authenticated;
+revoke execute on function public.new_person_with_input(
+  text, date, date, time, text, text, text, text, jsonb, text)
+  from anon, public, authenticated;
+revoke execute on function public.forget_user(uuid) from anon, public, authenticated;
