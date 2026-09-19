@@ -290,11 +290,13 @@ const { data: momId } = await a.rpc('create_managed_person', {
   p_local_label: `엄마${tag}`, p_note: null, p_calendar: 'solar',
   p_original_date: '1962-03-02', p_solar_date: '1962-03-02', p_birth_time: '07:10',
   p_gender: 'female', p_city: '대구', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+  ...chartArgs(`엄마${tag}`),
 });
 const { data: kidId } = await a.rpc('create_managed_person', {
   p_local_label: `동생${tag}`, p_note: null, p_calendar: 'solar',
   p_original_date: '1995-08-08', p_solar_date: '1995-08-08', p_birth_time: '09:20',
   p_gender: 'male', p_city: '광주', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+  ...chartArgs(`동생${tag}`),
 });
 
 const PERSON_BODY = `## 엄마의 결` + String.fromCharCode(10) + `엄마${tag}님은 ${'오래 참고 나중에 말하는 편입니다. '.repeat(12)}`;
