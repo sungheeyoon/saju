@@ -10,7 +10,7 @@
 -- 4. **판본을 든다.** 그래서 `revisions_in_use()` 가 이 표를 자동으로 본다(ADR 0011) —
 --    표 이름을 적어 둔 목록이 아니라 FK 에서 읽기 때문이다.
 begin;
-select plan(73);
+select plan(76);
 
 /**
  * **이 파일은 풀이권을 재지 않는다.**
@@ -38,7 +38,8 @@ as $$
       '木', w / 8.0, '火', f / 8.0, '土', e / 8.0, '金', g / 8.0, '水', s / 8.0));
 $$;
 
-create or replace function pg_temp.participant(mail text, who text, summary jsonb)
+create or replace function pg_temp.participant(
+  mail text, who text, summary jsonb, day_stem text default '丙')
 returns uuid
 language plpgsql
 as $$
@@ -46,8 +47,10 @@ declare
   uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
+  /** 여덟 글자를 함께 넣는다(ADR 0071) — 없으면 아래 스냅샷 시험이 `null` 끼리 견준다 */
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+    tests.chart(day_stem), 'chart-for-tests');
   perform public.save_my_profile(who, null);
   perform public.set_discovery_participation(true, summary);
   return uid;
@@ -88,9 +91,9 @@ set local role authenticated;
 
 create temporary table folks as
 select
-  pg_temp.participant('kim-read@example.com', '김읽', pg_temp.summary(4, 4, 0, 0, 0)) as kim,
-  pg_temp.participant('lee-read@example.com', '이읽', pg_temp.summary(0, 0, 4, 4, 0)) as lee,
-  pg_temp.participant('choi-read@example.com', '최읽', pg_temp.summary(0, 0, 0, 0, 8)) as choi;
+  pg_temp.participant('kim-read@example.com', '김읽', pg_temp.summary(4, 4, 0, 0, 0), '丙') as kim,
+  pg_temp.participant('lee-read@example.com', '이읽', pg_temp.summary(0, 0, 4, 4, 0), '戊') as lee,
+  pg_temp.participant('choi-read@example.com', '최읽', pg_temp.summary(0, 0, 0, 0, 8), '庚') as choi;
 grant select on folks to authenticated, service_role;
 
 -- 김이 가족을 하나 등록한다 — 비공개 궁합의 대상이다.
@@ -321,6 +324,46 @@ select is(
   (select status from public.my_last_reading_run('self')),
   'succeeded',
   '동결된 최초 생성은 끝까지 간다');
+
+-- ── 되짚는 것은 입력이 아니라 **여덟 글자**다 (ADR 0071 · #68) ───────────────
+
+/**
+ * **글이 생성 당시 여덟 글자를 직접 든다.**
+ *
+ * 판본 id 를 가리키던 자리다. 판본을 지우면 그 id 는 아무것도 안 가리키므로, 되짚을
+ * 값을 **값으로** 든다 — 그 값으로 하는 일은 둘뿐이다: 지금 명식과 견주는 것, 그리고
+ * 동의로 열린 여덟 글자를 보여주는 것.
+ */
+reset role;
+select is(
+  (select r.chart_a from public.reading r
+   where r.kind = 'self' and r.owner_user_id = (select kim from folks)),
+  tests.chart('丙'),
+  '저장이 얼린 작업의 여덟 글자를 글에 옮겨 적는다');
+set local role authenticated;
+select pg_temp.acting((select kim from folks));
+
+/**
+ * **입력 표현이 달라도 여덟 글자가 같으면 지금 명식이다.**
+ *
+ * 출생지를 서울에서 부산으로 고치면 새 판본이 서지만 여덟 글자는 그대로일 수 있다.
+ * 앞서는 그때 화면이 「이전 입력」이라 적었다 — **한쪽으로 거짓말하던 자리다.** 화면이
+ * 하려는 말은 「이전 명식」이므로 여덟 글자로 견주는 쪽이 맞다.
+ */
+select public.add_person_revision(
+  (select kim_person from people),
+  'solar', '1990-05-15', '1990-05-15', '15:30', 'female', '부산', 'jo', 'localMean',
+  tests.chart('丙'), 'chart-for-tests');
+
+select is(
+  (select from_current_revision from public.my_reading('self')),
+  false,
+  '판본으로 견주면 「이전 입력」이다 — 새 판본이 섰으므로');
+
+select is(
+  (select from_current_chart from public.my_reading('self')),
+  true,
+  '여덟 글자로 견주면 지금 명식이다 — 거짓말하던 자리가 고쳐졌다');
 
 -- ── 비공개 궁합 — 내 엣지에 있는 두 사람만 ──────────────────────────────────
 

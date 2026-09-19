@@ -1,30 +1,33 @@
-import { analyzeCompatibility, type Compatibility, type CompatSide } from '@/src/lib/saju';
+import type { CompatSide } from '@/src/lib/saju';
 import { balanceBandOf, cardTextFor, knownElementsOf } from '@/src/lib/discovery';
 import { suppliedText } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { chartOf } from '@/src/lib/input/chart';
-import { UnreadableRevisionError, queryFromRevision } from '@/src/lib/input/revision';
-import { ResultClosedError, pinnedInputs } from './inputs';
-import { sharedPillarChartOf, type SharedPillarChart } from '../../shared-pillar';
+import { storedPillarChart, type SharedPillarChart } from '../../shared-pillar';
 import { UUID } from '../../uuid';
 
 /**
  * **공유 결과가 브라우저로 내려가는 유일한 문.**
  *
  * `payloadForViewer` · `candidatesForViewer` · `inboxForViewer` 와 같은 규율이다 —
- * 묻지 않고 답만 낸다. 다만 **자르는 자리가 여기다.**
+ * 묻지 않고 답만 낸다.
  *
- * 다른 셋은 자를 것이 이미 DB 에서 잘려 왔다. 여기는 아니다: 관계 판정이
- * TypeScript 엔진에 있어서 DB 가 잘라 줄 수 없고(ADR 0010), 그래서 서버가 두 명식을
- * 실제로 들고 계산한 뒤 잘라 내보낸다. **두 `Saju` 는 이 함수 안에서 나고 이 함수
- * 안에서 죽는다** — 나가는 것은 `Compatibility` 와 말뿐이다.
+ * ## 자르는 자리가 없어졌다 (ADR 0071)
  *
- * **베타 지표는 여기서 나가지 않는다**(9단계). 사용자에게 보이는 점수는 현재
- * Reading 의 일부이고, 한 화면에 점수가 둘이면 무엇을 믿을지 사용자가 정해야 한다.
+ * 앞서는 여기가 **자르는 자리**였다. 서버가 열쇠로 상대의 계산 입력을 읽어
+ * (`match_calculation_inputs`) 두 명식을 세우고, 여덟 글자만 새 객체로 잘라 내보냈다.
  *
- * 판정은 여전히 앱에 없다. 「누가 볼 수 있는가」는 `my_match_scope` 가 `auth.uid()`
- * 로 답하고, 그 답이 없으면 여기서는 아무것도 읽지 않는다.
+ * 이제 그 여덟 글자는 **동의하던 그 트랜잭션에서 이미 베껴져 있다.** 읽어서 그대로
+ * 내보내면 되므로 자를 것이 없고, **상대의 계산 입력을 읽는 열쇠 문이 이 길에서 빠진다**
+ * (ADR 0010 개정). 출생 원문·출생지·성별은 애초에 이 함수에 도착하지 않는다.
+ *
+ * 나가는 것이 넓어지지 않았다 — 여덟 글자는 동의로 열린 바로 그 값이다(ADR 0012).
+ *
+ * ## 관계 판정이 여기서 없어졌다
+ *
+ * `analyzeCompatibility` 를 부르고 그 결과를 `compat` 으로 실어 보냈는데 **이 화면은 그
+ * 값을 한 번도 안 썼다** — 결과 화면이 세우는 것은 풀이와 명식 보드뿐이고, 엔진 중간
+ * 관계표는 공유 결과에 안 선다(ADR 0035·0058). 자료를 못 읽게 된 김에 함께 걷는다.
  */
 
 /**
@@ -43,15 +46,12 @@ export type SharedResult = {
   /**
    * 두 사람을 부르는 말 — **`a` 가 언제나 보는 사람이다.**
    *
-   * 사실은 어느 쪽을 `a` 로 넣든 같다(오행 두 축은 다 자리 대칭이고 관계는
-   * 양쪽을 함께 본다). 갈리는 것은 부르는 말뿐이라, 읽는 사람이 자기를 어디에 놓아야
-   * 할지 헤매지 않도록 자기 자리를 앞에 둔다.
+   * 갈리는 것은 부르는 말뿐이라, 읽는 사람이 자기를 어디에 놓아야 할지 헤매지 않도록
+   * 자기 자리를 앞에 둔다.
    */
   readonly names: { readonly a: string; readonly b: string };
-  /** 정확한 출생 입력과 원국 전체 판정을 뺀, 화면에 명시적으로 공유할 여덟 글자 */
+  /** **동의 당시** 여덟 글자 — 지금 다시 세지 않는다(ADR 0071) */
   readonly charts: Record<CompatSide, SharedPillarChart>;
-  /** 두 원국 **사이**의 사실 — 각자의 원국 안에서 닫힌 것은 여기 없다 */
-  readonly compat: Compatibility;
   /** 요청이 잡아 둔 그때의 두 축 — 지금 다시 세지 않는다 */
   readonly suppliedToMe: string | null;
   readonly suppliedToThem: string | null;
@@ -63,14 +63,14 @@ export type SharedResult = {
 /**
  * 결과를 그리기 **전에** 나오는 답.
  *
- * 셋을 가르는 것이 요점이다. **없거나 못 보는 Match** 는 `null` 이고(그 둘은 갈리지
- * 않는다 — 갈리면 응답 차이만으로 실재를 알아낼 수 있다), **못 읽는 판본**과 **열지
- * 못한 결과**는 각자의 말을 든다. 뒤의 둘을 `null` 로 합치면 성립한 Match 를 두고
- * 「그런 것 없습니다」라고 말하게 된다.
+ * 둘을 가른다. **없거나 못 보는 Match** 는 `null` 이고(그 둘은 갈리지 않는다 — 갈리면
+ * 응답 차이만으로 실재를 알아낼 수 있다), **여덟 글자가 없는 Match** 는 자기 말을 든다.
+ * 뒤엣것을 `null` 로 합치면 성립한 Match 를 두고 「그런 것 없습니다」라고 말하게 된다.
+ *
+ * 「못 읽는 판본」 갈래는 없어졌다 — 이 길에서 판본을 안 읽는다.
  */
 export type ResultOutcome =
   | { kind: 'ok'; result: SharedResult }
-  | { kind: 'unreadable'; message: string }
   | { kind: 'closed'; message: string };
 
 /** `my_match_scope()` 가 내주는 한 줄 — **여기 없는 것이 안 나가는 것이다** */
@@ -79,8 +79,8 @@ type ScopeRow = {
   partner_user_id: string;
   partner_nickname: string | null;
   partner_intro: string | null;
-  my_revision_id: string;
-  partner_revision_id: string;
+  my_chart: unknown;
+  partner_chart: unknown;
   supplied_to_me: string[] | null;
   supplied_to_them: string[] | null;
   balance_band: string;
@@ -109,52 +109,22 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
   const scope = ((data ?? []) as ScopeRow[])[0];
   if (scope === undefined) return null;
 
-  let inputs;
-  try {
-    inputs = await pinnedInputs(matchId);
-  } catch (failure) {
-    if (failure instanceof ResultClosedError) {
-      // 화면은 왜 닫혔는지 말하지 않는다(내부어다). 그러니 여기서 남긴다.
-      console.error('공유 결과를 닫는다', matchId, failure.message);
-      return { kind: 'closed', message: failure.message };
-    }
-    throw failure;
-  }
+  const names = { a: '나', b: scope.partner_nickname ?? '상대' } as const;
 
-  const mine = inputs.get(scope.my_revision_id);
-  const theirs = inputs.get(scope.partner_revision_id);
+  const mine = storedPillarChart(scope.my_chart);
+  const theirs = storedPillarChart(scope.partner_chart);
 
   /**
-   * DB 가 매어 둔 판본과 열쇠가 내준 판본이 어긋났다. 일어날 수 없는 자리지만,
-   * 일어난다면 **다른 사람의 사주로 결과를 그리는 것**이라 여기서 멈춘다.
+   * **동의 당시 여덟 글자가 없다.**
+   *
+   * 백필이 아직 안 닿은 옛 Match 다. 지금 값으로 메우면 두 사람이 동의한 적 없는 명식이
+   * 보드에 서므로, 메우지 않고 그렇게 말하고 멈춘다.
    */
-  if (mine === undefined || theirs === undefined) {
-    const message = '공유 결과를 열지 못했습니다 — 매인 판본을 찾지 못했습니다';
+  if (mine === null || theirs === null) {
+    const message = '동의 당시의 여덟 글자를 찾지 못했습니다';
     console.error('공유 결과를 닫는다', matchId, message);
     return { kind: 'closed', message };
   }
-
-  const names = { a: '나', b: scope.partner_nickname ?? '상대' } as const;
-
-  let charts;
-  try {
-    charts = {
-      // 이름은 계산에 들어가지 않는다. 부를 말은 위에서 정한 것을 쓴다.
-      a: chartOf(queryFromRevision(mine, names.a)),
-      b: chartOf(queryFromRevision(theirs, names.b)),
-    };
-  } catch (failure) {
-    /**
-     * 못 읽는 판본은 **기본값으로 메우지 않는다.** 저장된 값은 그대로 있고 읽는
-     * 쪽이 못 읽는 것이므로, 그렇게 말하고 멈춘다(`/me` · `/me/compat` 과 같은 규율).
-     */
-    if (failure instanceof UnreadableRevisionError) {
-      return { kind: 'unreadable', message: failure.message };
-    }
-    throw failure;
-  }
-
-  const compat = analyzeCompatibility(charts.a, charts.b);
 
   return {
     kind: 'ok',
@@ -164,11 +134,7 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
       partnerNickname: names.b,
       partnerIntro: scope.partner_intro,
       names,
-      charts: {
-        a: sharedPillarChartOf(charts.a.pillars),
-        b: sharedPillarChartOf(charts.b.pillars),
-      },
-      compat,
+      charts: { a: mine, b: theirs },
       suppliedToMe: suppliedText(knownElementsOf(scope.supplied_to_me), 'toMe'),
       suppliedToThem: suppliedText(knownElementsOf(scope.supplied_to_them), 'toThem'),
       balanceLabel: cardTextFor({

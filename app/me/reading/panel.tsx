@@ -165,7 +165,7 @@ export function ReadingPanel({
       viewedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       viewerIsFirst: true,
-      fromCurrentRevision: true,
+      fromCurrentChart: true,
       /* 예시 결과에는 만든 시도가 없다 — 그래서 설문도 안 붙는다 */
       sourceRunId: null,
       myFeedback: null,
@@ -744,7 +744,7 @@ function Result({
         새로 만들면 지금 것이 사라진다는 경고도 이 자리를 떠났다 — 그것은 되돌릴 수
         없는 누름 **직전**에 필요한 말이라, 확인 창이 든다.
       */}
-      {target.kind !== 'match' && !reading.fromCurrentRevision && (
+      {target.kind !== 'match' && !reading.fromCurrentChart && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs leading-5 text-muted">
           <p className="text-danger">{READING_STALE_NOTE}</p>
         </div>

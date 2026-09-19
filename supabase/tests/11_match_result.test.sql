@@ -10,7 +10,7 @@
 -- 그리고 이 파일이 재는 가장 중요한 하나: **한쪽이 입력을 고쳐도 매인 판본은 움직이지
 -- 않는다.** 결과가 조용히 다른 값이 되면 무엇에 동의한 것인지 알 수 없다.
 begin;
-select plan(31);
+select plan(37);
 
 /** 다섯 오행 개수만 주면 요약 한 벌이 된다 */
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
@@ -25,7 +25,8 @@ as $$
 $$;
 
 /** 참여자 하나 — 요약을 손으로 골라 넣어 누가 누구를 채우는지가 또렷하게 갈리게 한다 */
-create or replace function pg_temp.participant(mail text, who text, summary jsonb)
+create or replace function pg_temp.participant(
+  mail text, who text, summary jsonb, day_stem text default '丙')
 returns uuid
 language plpgsql
 as $$
@@ -33,8 +34,17 @@ declare
   uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
+  /**
+   * **여덟 글자를 함께 넣는다**(ADR 0071). 안 넣으면 `person.current_chart` 가 빈 채로
+   * 남고, 그러면 아래 「수락이 베꼈는가」가 `null = null` 로 언제나 통과한다 —
+   * 아무것도 안 재는 시험이 된다.
+   *
+   * **사람마다 일간을 달리 준다.** 둘이 같은 여덟 글자를 들면 「누구 것을 베꼈나」를
+   * 가릴 수 없다.
+   */
   perform public.create_self_person(
-    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean');
+    '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+    tests.chart(day_stem), 'chart-for-tests');
   perform public.save_my_profile(who, null);
   perform public.set_discovery_participation(true, summary);
   return uid;
@@ -55,9 +65,9 @@ set local role authenticated;
 
 create temporary table folks as
 select
-  pg_temp.participant('kim-res@example.com', '김결', pg_temp.summary(4, 4, 0, 0, 0)) as kim,
-  pg_temp.participant('lee-res@example.com', '이결', pg_temp.summary(0, 0, 4, 4, 0)) as lee,
-  pg_temp.participant('choi-res@example.com', '최결', pg_temp.summary(0, 0, 0, 0, 8)) as choi;
+  pg_temp.participant('kim-res@example.com', '김결', pg_temp.summary(4, 4, 0, 0, 0), '丙') as kim,
+  pg_temp.participant('lee-res@example.com', '이결', pg_temp.summary(0, 0, 4, 4, 0), '戊') as lee,
+  pg_temp.participant('choi-res@example.com', '최결', pg_temp.summary(0, 0, 0, 0, 8), '庚') as choi;
 grant select on folks to authenticated, service_role;
 
 reset role;
@@ -88,7 +98,15 @@ select
   kim_person.id as kim_person,
   lee_person.id as lee_person,
   kim_person.current_revision_id as kim_revision,
-  lee_person.current_revision_id as lee_revision
+  lee_person.current_revision_id as lee_revision,
+  /**
+   * **여덟 글자도 여기서 잡아 둔다.**
+   *
+   * 당사자 역할로는 상대의 `person` 을 못 읽는다 — Match 는 엣지를 안 만들기 때문이다
+   * (US 46). 기대값을 그 자리에서 읽으려다 `null` 과 견주는 시험이 될 뻔했다.
+   */
+  kim_person.current_chart as kim_chart,
+  lee_person.current_chart as lee_chart
 from folks
 join public.app_user kim_user on kim_user.id = folks.kim
 join public.app_user lee_user on lee_user.id = folks.lee
@@ -114,6 +132,56 @@ select is(
 
 create temporary table matched as select match_id from public.my_matches();
 grant select on matched to authenticated, service_role;
+
+-- ── 수락이 **DB 안에서** 동의 당시 여덟 글자를 베낀다 (ADR 0071 · #68) ──────
+--
+-- 앱이 스냅샷을 수락에 넘기면 DB 는 그 값이 그 입력에서 나온 것인지 알 수 없다 —
+-- ADR 0013 이 `save_reading` 에서 막아 둔 구멍을 다른 문에 다시 내는 일이다.
+-- 그래서 값은 `person.current_chart` 에서 오고, 앱은 한 글자도 안 댄다.
+
+reset role;
+
+select is(
+  (select m.chart_low = lo.current_chart and m.chart_high = hi.current_chart
+   from public.match m
+   join public.app_user low_user on low_user.id = m.user_low
+   join public.person lo on lo.id = low_user.self_person_id
+   join public.app_user high_user on high_user.id = m.user_high
+   join public.person hi on hi.id = high_user.self_person_id
+   where m.id = (select match_id from matched)),
+  true,
+  '수락 트랜잭션이 양쪽 여덟 글자를 person 에서 그대로 베꼈다');
+
+/** 판 없는 스냅샷은 낡았는지 물을 수 없다 — 함께 적혀야 뜻이 있다 */
+select is(
+  (select chart_engine_low = 'chart-for-tests' and chart_engine_high = 'chart-for-tests'
+   from public.match where id = (select match_id from matched)),
+  true,
+  '여덟 글자를 낸 엔진 판도 함께 적힌다');
+
+/**
+ * **상수를 베낀 것이 아니다.** 두 사람의 일간을 달리 주었으므로 두 칸이 달라야 한다 —
+ * 같으면 「누구 것을 베꼈나」를 이 파일이 한 번도 안 재고 있는 것이다.
+ */
+select isnt(
+  (select chart_low from public.match where id = (select match_id from matched)),
+  (select chart_high from public.match where id = (select match_id from matched)),
+  '두 사람의 여덟 글자가 서로 다르다');
+
+/**
+ * **앱이 댈 자리가 없다.** 인자는 요청 id 와 수락 여부 둘뿐이다 — 스냅샷을 받는 칸이
+ * 생기는 순간 이 문은 「아무 여덟 글자나 매어 두는 문」이 된다.
+ */
+select is(
+  (select count(*)::int from pg_proc p
+   join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = 'respond_to_match_request'
+     and pg_get_function_arguments(p.oid) like '%chart%'),
+  0,
+  '수락 문은 여덟 글자를 인자로 안 받는다');
+
+set local role authenticated;
+select pg_temp.acting((select lee from folks));
 
 -- ── 읽는 길은 둘뿐이고, 하나는 열쇠만 연다 ───────────────────────────────────
 
@@ -160,6 +228,20 @@ select is(
   (select partner_revision_id from public.my_match_scope((select match_id from matched))),
   (select kim_revision from pinned),
   '상대 쪽 판본도 동의한 그때의 것이다');
+
+/**
+ * **보드에 설 값은 저장된 스냅샷이다**(ADR 0071). 앞서는 서버가 열쇠로 상대의 계산
+ * 입력을 읽어 여덟 글자를 계산했다 — 이제 동의 때 베껴 둔 것을 그대로 낸다.
+ */
+select is(
+  (select my_chart from public.my_match_scope((select match_id from matched))),
+  (select lee_chart from pinned),
+  '내 자리에는 내 여덟 글자가 나온다');
+
+select is(
+  (select partner_chart from public.my_match_scope((select match_id from matched))),
+  (select kim_chart from pinned),
+  '상대 자리에는 상대의 여덟 글자가 나온다');
 
 select is(
   (select supplied_to_me from public.my_match_scope((select match_id from matched))),

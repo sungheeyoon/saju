@@ -367,7 +367,7 @@ select is(
 select bag_eq(
   $$select unnest(array[
       'kind','person_a','person_b','match_id','label_a','label_b',
-      'score','metaphor','created_at','from_current_revision'])$$,
+      'score','metaphor','created_at','from_current_revision','from_current_chart'])$$,
   $$select p.name from unnest((
       select proargnames from pg_proc
       where oid = 'public.my_readings()'::regprocedure)) as p(name)$$,

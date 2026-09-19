@@ -20,7 +20,7 @@ const entry = (over: Partial<ReadingEntry>): ReadingEntry => ({
   score: null,
   metaphor: null,
   createdAt: '2026-09-03T00:00:00Z',
-  fromCurrentRevision: true,
+  fromCurrentChart: true,
   ...over,
 });
 

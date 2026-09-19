@@ -336,7 +336,7 @@ function ReadingAction({
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-1.5">
           <span className="text-sm font-bold text-accent-strong">사주풀이 보기</span>
-          {!reading.fromCurrentRevision && (
+          {!reading.fromCurrentChart && (
             <span className="rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted">이전 입력</span>
           )}
         </span>

@@ -20,7 +20,7 @@ import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
-import { passNotice } from './notice.mjs';
+import { passNotice, chartArgs } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -77,6 +77,7 @@ const person = async (email, label, birth) => {
     p_local_label: label, p_calendar: 'solar',
     p_original_date: birth.date, p_solar_date: birth.date, p_birth_time: '14:30',
     p_gender: birth.gender, p_city: birth.city, p_late_night_rule: 'jo', p_time_basis: 'localMean',
+    ...chartArgs(label),
   });
   await client.rpc('save_my_profile', { p_nickname: label, p_intro: null });
   await client.rpc('set_discovery_participation', {
@@ -100,6 +101,7 @@ const { data: momId } = await a.rpc('create_managed_person', {
   p_local_label: '엄마', p_note: null, p_calendar: 'solar',
   p_original_date: '1962-03-02', p_solar_date: '1962-03-02', p_birth_time: '07:10',
   p_gender: 'female', p_city: '대구', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+  ...chartArgs('reading-mom'),
 });
 
 const cookieFor = async (email) => {
@@ -677,6 +679,7 @@ try {
       p_calendar: 'solar', p_original_date: BIRTH.b.date, p_solar_date: BIRTH.b.date,
       p_birth_time: '05:20', p_gender: BIRTH.b.gender, p_city: BIRTH.b.city,
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
+      ...chartArgs(`${NAME.b}-고침`),
     });
 
     const after = plain(await body(`/me/match/${matchId}`, cookie.a));
@@ -691,6 +694,7 @@ try {
       p_calendar: 'solar', p_original_date: BIRTH.a.date, p_solar_date: BIRTH.a.date,
       p_birth_time: '09:40', p_gender: BIRTH.a.gender, p_city: BIRTH.a.city,
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
+      ...chartArgs(`${NAME.a}-고침`),
     });
 
     const mine = plain(await body('/me/readings/self', cookie.a));

@@ -17,7 +17,7 @@ import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
-import { passNotice } from './notice.mjs';
+import { passNotice, chartArgs } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -64,6 +64,7 @@ const person = async (email, label, birth) => {
     p_local_label: label, p_calendar: 'solar',
     p_original_date: birth.date, p_solar_date: birth.date, p_birth_time: '14:30',
     p_gender: birth.gender, p_city: birth.city, p_late_night_rule: 'jo', p_time_basis: 'localMean',
+    ...chartArgs(label),
   });
   return client;
 };
@@ -293,6 +294,7 @@ try {
       p_calendar: 'solar', p_original_date: BIRTH.b.date, p_solar_date: BIRTH.b.date,
       p_birth_time: '05:20', p_gender: BIRTH.b.gender, p_city: BIRTH.b.city,
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
+      ...chartArgs('지영-고침'),
     });
     check('상대가 출생 시각을 고친다', !revised.error, revised.error?.message ?? '');
 

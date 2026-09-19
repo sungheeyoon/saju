@@ -16,7 +16,7 @@ import { dirname, join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 
-import { clearMachineRunsFromToday } from './notice.mjs';
+import { clearMachineRunsFromToday, chartArgs } from './notice.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -191,6 +191,7 @@ export async function seed(local, wanted, tag) {
       p_city: BIRTH.city,
       p_late_night_rule: 'jo',
       p_time_basis: 'localMean',
+      ...chartArgs(label),
     });
     if (saved.error) throw new Error(`자기 사주를 못 넣었습니다 — ${saved.error.message}`);
     selfPersonId = saved.data;
@@ -217,6 +218,7 @@ export async function seed(local, wanted, tag) {
       p_city: person.city ?? '대구',
       p_late_night_rule: 'jo',
       p_time_basis: 'localMean',
+      ...chartArgs(person.label),
     });
     if (made.error) throw new Error(`${person.label} 을 못 넣었습니다 — ${made.error.message}`);
     managed.push({ label: person.label, personId: made.data });

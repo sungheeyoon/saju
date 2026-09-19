@@ -19,7 +19,7 @@ import { createClient } from '@supabase/supabase-js';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
-import { passNotice } from './notice.mjs';
+import { passNotice, chartArgs } from './notice.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -120,6 +120,7 @@ const person = async (email, label) => {
     p_local_label: label, p_calendar: 'solar',
     p_original_date: '1990-05-15', p_solar_date: '1990-05-15', p_birth_time: '14:30',
     p_gender: 'female', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',
+    ...chartArgs(label),
   });
   await client.rpc('save_my_profile', { p_nickname: label, p_intro: null });
   return client;
