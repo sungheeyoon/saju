@@ -182,8 +182,6 @@ const saveAs = async (client, kind, target, output, score, metaphor) => {
 const saveToRun = async (run, output, score, metaphor) => {
   const saved = await keyed().rpc('save_reading', {
     p_run_id: run.run_id,
-    p_revision_a: run.revision_a,
-    p_revision_b: run.revision_b,
     p_output: output,
     p_score: score,
     p_metaphor: metaphor ?? null,
@@ -519,12 +517,11 @@ try {
         plain(waiting).includes('사주의 흐름을 이어 읽고 있어요'));
     }
 
-    const pinnedRun = {
-      run_id: openedRunId,
-      revision_a: sql(`select low_revision_id from public.match where id = '${matchId}'`),
-      revision_b: sql(`select high_revision_id from public.match where id = '${matchId}'`),
-    };
-    const saved = await saveToRun(pinnedRun, OUTPUT.match, 64, METAPHOR.match);
+    /**
+     * **판본을 안 집어 온다**(ADR 0071). 무엇으로 계산했는지는 수락이 시도를 열 때 이미
+     * 얼었고, 저장하는 문이 그 얼린 작업에서 직접 읽는다 — 부르는 쪽이 댈 값이 없다.
+     */
+    const saved = await saveToRun({ run_id: openedRunId }, OUTPUT.match, 64, METAPHOR.match);
     check('공유 궁합이 저장된다', !saved.error, saved.error?.message ?? '');
 
     const mine = plain(await body(`/me/match/${matchId}`, cookie.a));
@@ -645,8 +642,6 @@ try {
      */
     const forged = await a.rpc('save_reading', {
       p_run_id: '00000000-0000-0000-0000-000000000000',
-      p_revision_a: '00000000-0000-0000-0000-000000000000',
-      p_revision_b: null,
       p_output: '지어낸 글',
       p_score: null,
       p_metaphor: null,

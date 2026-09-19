@@ -23,7 +23,7 @@ $$;
 create or replace function pg_temp.save(run uuid, rev_a uuid, body text, said text)
 returns uuid language sql security definer as $$
   select public.save_reading(
-    run, rev_a, null, body, null, said,
+    run, body, null, said,
     '{"charts":{}}', '# 역할', 'reading-prompt-v7', 'openai/gpt-5.6-luna',
     '{"temperature":1}'::jsonb, now());
 $$;

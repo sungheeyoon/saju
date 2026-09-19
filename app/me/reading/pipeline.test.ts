@@ -2,34 +2,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const rpc = vi.fn();
 const keyedRpc = vi.fn();
-const selectIn = vi.fn();
 const keyedClient = vi.fn();
 
 class NoKeyError extends Error {}
 
 /**
- * 파이프라인이 판본 말고도 둘을 더 읽는다 — 부를 이름(`user_person_access`)과
- * **이 쌍이 무슨 사이인가**(`pair_relation_of`). 관계는 사람이 아니라 쌍에 붙으므로
- * 어느 조합이든 답이 있을 수 있다.
+ * **사용자 세션으로는 시도를 열기만 한다.**
+ *
+ * 앞서는 이 파일이 `person_chart_revision` 과 `user_person_access` 를 흉내 내야 했다 —
+ * 파이프라인이 응답 뒤에 판본과 이름표를 직접 읽었기 때문이다. 입력이 시도를 여는
+ * 트랜잭션에서 얼면서(ADR 0071) 그 읽기가 전부 DB 안으로 들어갔고, 남은 것은 **얼린
+ * 작업을 집어 오는 왕복 하나**다.
  */
-const maybeSingle = vi.fn(async () => ({ data: null }));
-const edgesIn = vi.fn(async () => ({ data: [] as unknown[], error: null }));
-
 vi.mock('../../auth/server-client', () => ({
-  supabaseOnServer: async () => ({
-    rpc,
-    /**
-     * **표마다 다른 답을 낸다.** 판본과 엣지를 한 mock 으로 받으면 관계를 읽는 자리가
-     * 판본 행을 받게 되고, 그러면 「관계를 못 읽었다」와 「관계가 없다」가 같은 그림이
-     * 되어 이 시험이 그 둘을 못 가른다.
-     */
-    from: (table: string) => ({
-      select: () => ({
-        in: table === 'user_person_access' ? edgesIn : selectIn,
-        maybeSingle,
-      }),
-    }),
-  }),
+  supabaseOnServer: async () => ({ rpc }),
 }));
 
 vi.mock('../../keyed-client', () => ({
@@ -65,7 +51,7 @@ vi.mock('./model', async () => ({
 }));
 
 const { GENERATION } = await import('./generation');
-const { beginReading } = await import('./pipeline');
+const { beginReading, sendAcceptedMatchReading } = await import('./pipeline');
 
 /**
  * **파이프라인이 실제로 이어져 있는가.**
@@ -78,7 +64,6 @@ const { beginReading } = await import('./pipeline');
  */
 
 const BIRTH = {
-  id: 'rev-a',
   calendar: 'solar',
   original_date: '1990-05-12',
   solar_date: '1990-05-12',
@@ -91,43 +76,47 @@ const BIRTH = {
 
 const BIRTH_B = {
   ...BIRTH,
-  id: 'rev-b',
   original_date: '1992-03-03',
   solar_date: '1992-03-03',
   gender: 'female',
   city: '서울',
 };
 
-const started = {
+/** `take_reading_job` 이 내주는 한 줄 — 얼린 값 전부다 */
+const frozen = (over: Record<string, unknown> = {}) => ({
   run_id: 'run-1',
-  person_a: 'person-a',
-  person_b: null,
-  match_id: null,
-  revision_a: 'rev-a',
-  revision_b: null,
-  viewer_is_first: true,
-};
+  kind: 'self',
+  birth_a: BIRTH,
+  birth_b: null,
+  about: { names: null, relation: null },
+  ...over,
+});
 
-/** 이 쌍에 적어 둔 사이 — 없으면 `null` 이고 그것이 「모른다」다 */
-let relationOfPair: string | null = null;
+const started = { run_id: 'run-1' };
 
-const failedCall = () => rpc.mock.calls.find(([name]) => name === 'fail_reading_run');
+/** 이 시도가 집어 올 얼린 작업 — 시험마다 갈아 끼운다 */
+let job: Record<string, unknown> = frozen();
+
+const keyedCall = (name: string) => keyedRpc.mock.calls.find(([called]) => called === name);
+const prepared = () => keyedCall('prepare_reading_job');
+const adopted = () => keyedCall('adopt_reading_job');
+const closed = () => keyedCall('fail_reading_job');
 
 beforeEach(() => {
   rpc.mockReset();
   keyedRpc.mockReset();
-  selectIn.mockReset();
-  edgesIn.mockClear();
   keyedClient.mockReset();
 
-  relationOfPair = null;
-  rpc.mockImplementation(async (name: string) => {
-    if (name === 'start_reading_run') return { data: [started], error: null };
-    if (name === 'pair_relation_of') return { data: relationOfPair, error: null };
+  job = frozen();
+  rpc.mockImplementation(async (name: string) =>
+    name === 'start_reading_run' ? { data: [started], error: null } : { data: null, error: null },
+  );
+  keyedRpc.mockImplementation(async (name: string) => {
+    if (name === 'take_reading_job') return { data: [job], error: null };
+    if (name === 'match_run_awaiting_send') return { data: [job], error: null };
+    if (name === 'prepare_reading_job') return { data: true, error: null };
     return { data: null, error: null };
   });
-  selectIn.mockResolvedValue({ data: [BIRTH], error: null });
-  keyedRpc.mockResolvedValue({ data: 'reading-1', error: null });
   keyedClient.mockReturnValue({ rpc: keyedRpc });
   pending.length = 0;
   submit.mockReset();
@@ -135,12 +124,9 @@ beforeEach(() => {
 });
 
 /**
- * **화면이 실제로 오는 길** — 얼리고 떠나보낸다 (ADR 0020).
- *
- * 완성본을 그 자리에서 기다리던 옛 길(`requestReading`)은 걷었다. 그 길만 밀던 동안 새
- * 배선은 한 번도 안 지나간 채로 초록이었다 — 그래서 시험도 화면이 오는 이 길만 민다.
+ * **화면이 실제로 오는 길** — 집고, 적고, 떠나보낸다 (ADR 0020·0071).
  */
-describe('누름은 얼리고 떠나보낸다', () => {
+describe('누름은 얼린 작업을 집어 떠나보낸다', () => {
   /**
    * **시계를 고정한다.** 파이프라인은 기준 시각을 누른 순간(`new Date()`)으로 잡고, 그 값이
    * ISO 로 근거에 실린다. 그대로 두면 **UTC 14:30 에 도는 실행에서** 기준 시각
@@ -155,69 +141,87 @@ describe('누름은 얼리고 떠나보낸다', () => {
     vi.useRealTimers();
   });
 
-  const frozen = () => keyedRpc.mock.calls.find(([name]) => name === 'freeze_reading_job');
-  const adopted = () => keyedRpc.mock.calls.find(([name]) => name === 'adopt_reading_job');
-
-  it('얼린 뒤에 보낸다 — 순서가 뒤집히면 재료 없는 순간이 생긴다', async () => {
+  it('적은 뒤에 보낸다 — 순서가 뒤집히면 재료 없는 순간이 생긴다', async () => {
     await beginReading({ kind: 'self' });
     await settle();
 
-    expect(frozen(), '얼리지 않았다').toBeDefined();
+    expect(prepared(), '지은 것을 안 적었다').toBeDefined();
     expect(submit).toHaveBeenCalledOnce();
 
-    const froze = keyedRpc.mock.invocationCallOrder[
-      keyedRpc.mock.calls.findIndex(([name]) => name === 'freeze_reading_job')
+    const wrote = keyedRpc.mock.invocationCallOrder[
+      keyedRpc.mock.calls.findIndex(([name]) => name === 'prepare_reading_job')
     ];
-    expect(froze).toBeLessThan(submit.mock.invocationCallOrder[0]);
+    expect(wrote).toBeLessThan(submit.mock.invocationCallOrder[0]);
   });
 
-  it('얼린 것과 보낸 것이 같은 프롬프트다', async () => {
+  /**
+   * **집는 일이 적는 일보다 먼저다.** 집지 않고 적으면 두 프로세스가 같은 작업을 들고
+   * 나란히 제출한다 — 집는 문이 원자적인 까닭이 그것이다.
+   */
+  it('집고 나서 적는다', async () => {
     await beginReading({ kind: 'self' });
     await settle();
 
-    expect(submit.mock.calls[0][0]).toBe(frozen()?.[1].p_prompt);
+    const took = keyedRpc.mock.invocationCallOrder[
+      keyedRpc.mock.calls.findIndex(([name]) => name === 'take_reading_job')
+    ];
+    const wrote = keyedRpc.mock.invocationCallOrder[
+      keyedRpc.mock.calls.findIndex(([name]) => name === 'prepare_reading_job')
+    ];
+    expect(took).toBeLessThan(wrote);
+  });
+
+  /**
+   * **이미 누가 집었으면 아무 일도 안 한다.**
+   *
+   * 0행은 복구기가 먼저 집었거나 시도가 닫힌 것이다. 그때 또 제출하면 같은 시도에
+   * 두 번 나가고, 돈은 두 번 나가며 결과 하나는 미아가 된다.
+   */
+  it('집을 것이 없으면 제출하지 않는다', async () => {
+    keyedRpc.mockImplementation(async (name: string) =>
+      name === 'take_reading_job' ? { data: [], error: null } : { data: null, error: null },
+    );
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(prepared()).toBeUndefined();
+  });
+
+  it('적은 것과 보낸 것이 같은 프롬프트다', async () => {
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(submit.mock.calls[0][0]).toBe(prepared()?.[1].p_prompt);
     // 이름표를 함께 보낸다 — 우리 쪽 기록보다 먼저다.
     expect(submit.mock.calls[0][1]).toBe(started.run_id);
   });
 
-  it('공유 궁합도 두 공개 이름으로 부르고 자리 이름으로 퇴행하지 않는다', async () => {
-    const matchStarted = {
-      ...started,
-      match_id: 'match-1',
-      revision_b: 'rev-b',
-    };
-    rpc.mockImplementation(async (name: string) =>
-      name === 'start_reading_run'
-        ? { data: [matchStarted], error: null }
-        : { data: null, error: null },
-    );
-    keyedRpc.mockImplementation(async (name: string) => {
-      if (name === 'match_calculation_inputs') {
-        return {
-          data: [
-            { ...BIRTH, revision_id: 'rev-a', nickname: '민수' },
-            { ...BIRTH_B, revision_id: 'rev-b', nickname: '지영' },
-          ],
-          error: null,
-        };
-      }
-      return { data: 'reading-1', error: null };
+  /**
+   * **부르는 말도 얼려서 온다.** 앞서는 이 이름을 파이프라인이 그 자리에서 읽었고,
+   * 만드는 동안 이름표를 고치면 프롬프트가 두 이름을 섞어 썼다.
+   */
+  it('공유 궁합도 얼린 두 이름으로 부르고 자리 이름으로 퇴행하지 않는다', async () => {
+    job = frozen({
+      kind: 'match',
+      birth_b: BIRTH_B,
+      about: { names: { a: '민수', b: '지영' }, relation: null },
     });
 
-    await beginReading({ kind: 'match', matchId: 'match-1' });
-    await settle();
+    await sendAcceptedMatchReading('request-1');
 
-    const prompt = frozen()?.[1].p_prompt as string;
+    const prompt = prepared()?.[1].p_prompt as string;
     expect(prompt).toContain('`charts.a` 는 **민수**, `charts.b` 는 **지영**');
     expect(prompt).toContain('「첫 번째 분」·「두 번째 분」처럼 자리 이름으로');
     expect(prompt).toContain('부르지 마라');
   });
 
-  it('얼린 프롬프트에 출생 원문이 없다 — 자르는 자리를 실제로 지난다', async () => {
+  it('적은 프롬프트에 출생 원문이 없다 — 자르는 자리를 실제로 지난다', async () => {
     await beginReading({ kind: 'self' });
     await settle();
 
-    const sent = `${frozen()?.[1].p_prompt}${frozen()?.[1].p_evidence}`;
+    const sent = `${prepared()?.[1].p_prompt}${prepared()?.[1].p_evidence}`;
     for (const secret of [BIRTH.original_date, BIRTH.solar_date, BIRTH.city, '14:30']) {
       expect(sent, secret).not.toContain(secret);
     }
@@ -239,16 +243,25 @@ describe('누름은 얼리고 떠나보낸다', () => {
     await settle();
 
     expect(submit).not.toHaveBeenCalled();
-    expect(failedCall(), '실패를 안 적었다').toBeDefined();
+    /** 열쇠가 없으면 열쇠 문도 못 쓴다 — 남는 길은 사용자 세션 하나다 */
+    expect(
+      rpc.mock.calls.find(([name]) => name === 'fail_reading_run'),
+      '실패를 안 적었다',
+    ).toBeDefined();
   });
 
-  it('제출이 실패하면 시도를 닫는다', async () => {
+  /**
+   * **실패는 열쇠로 닫는다.** 수락이 연 시도는 청한 사람 것으로 서 있어 사용자 쪽 문
+   * (`fail_reading_run` 은 `auth.uid()` 를 건다)으로는 못 닫는다 — 그러면 실패한 인연
+   * 궁합이 만료까지 열린 채 남는다.
+   */
+  it('제출이 실패하면 열쇠로 시도를 닫는다', async () => {
     submit.mockResolvedValue({ ok: false, code: 'model-submit-failed', detail: '끊겼다' });
 
     await beginReading({ kind: 'self' });
     await settle();
 
-    expect(failedCall()?.[1]).toMatchObject({ p_failure_code: 'model-submit-failed' });
+    expect(closed()?.[1]).toMatchObject({ p_failure_code: 'model-submit-failed' });
     expect(adopted(), '보내지도 못했는데 이름표를 적었다').toBeUndefined();
   });
 });
@@ -280,12 +293,29 @@ describe('누름은 시도를 한 번만 연다', () => {
     await settle();
 
     const [, startedArgs] = rpc.mock.calls[0] as [string, Record<string, unknown>];
-    const froze = keyedRpc.mock.calls.find(([name]) => name === 'freeze_reading_job') as [
-      string,
-      Record<string, unknown>,
-    ];
     expect(startedArgs.p_model).toBe(GENERATION.model);
-    expect(froze[1].p_requested_model).toBe(GENERATION.model);
+    expect(prepared()?.[1].p_requested_model).toBe(GENERATION.model);
+  });
+
+  /**
+   * **판본을 인자로 안 보낸다**(ADR 0071).
+   *
+   * 앱이 계산 입력을 고르는 자리가 하나 남아 있었다. 그 값이 무엇이든 DB 는 그것이 이
+   * 시도의 것인지 알 수 없다 — 없애야 그 물음 자체가 사라진다.
+   */
+  it('적는 문에 판본을 싣지 않는다', async () => {
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(Object.keys(prepared()?.[1] ?? {})).toEqual([
+      'p_run_id',
+      'p_prompt',
+      'p_evidence',
+      'p_prompt_version',
+      'p_requested_model',
+      'p_generation',
+      'p_viewed_at',
+    ]);
   });
 });
 
@@ -294,49 +324,24 @@ describe('누름은 시도를 한 번만 연다', () => {
  *
  * 저장한 값은 「나와 그 사람」이지 「그 둘」이 아니다. 이 배선이 없으면 궁합풀이가
  * 두 사람이 무슨 사이인지 모른 채 쓰이고, 그 기본값은 사실상 연애다.
+ *
+ * 이제 그 값도 **시도를 열 때 얼린다** — 만드는 동안 사이를 고쳐도 이미 시작된 글은
+ * 동결값으로 끝난다.
  */
-describe('궁합은 쌍에 적어 둔 사이로 읽는다', () => {
-  const pairRun = {
-    ...started,
-    person_b: 'person-b',
-    revision_b: 'rev-b',
-  };
-
-  const askForPair = async () => {
-    rpc.mockImplementation(async (name: string) => {
-      if (name === 'start_reading_run') return { data: [pairRun], error: null };
-      if (name === 'pair_relation_of') return { data: relationOfPair, error: null };
-      return { data: null, error: null };
-    });
-    selectIn.mockResolvedValue({
-      data: [
-        { ...BIRTH, id: 'rev-a', person_id: 'person-a' },
-        { ...BIRTH, id: 'rev-b', person_id: 'person-b' },
-      ],
-      error: null,
-    });
+describe('궁합은 얼려 둔 사이로 읽는다', () => {
+  const askForPair = async (about: Record<string, unknown>) => {
+    job = frozen({ kind: 'private', birth_b: BIRTH_B, about });
 
     await beginReading({ kind: 'private', personA: 'person-a', personB: 'person-b' });
     await settle();
 
-    const froze = keyedRpc.mock.calls.find(([name]) => name === 'freeze_reading_job') as [
-      string,
-      Record<string, string>,
-    ];
-    return froze[1].p_prompt;
+    return prepared()?.[1].p_prompt as string;
   };
 
-  it('쌍에 적어 둔 사이를 프롬프트가 든다', async () => {
-    edgesIn.mockResolvedValue({
-      data: [
-        { person_id: 'person-a', local_label: '나' },
-        { person_id: 'person-b', local_label: '엄마' },
-      ],
-      error: null,
-    });
-    relationOfPair = 'family';
+  it('얼려 둔 사이를 프롬프트가 든다', async () => {
+    const prompt = await askForPair({ names: { a: '나', b: '엄마' }, relation: 'family' });
 
-    expect(await askForPair()).toContain('가족이다');
+    expect(prompt).toContain('가족이다');
   });
 
   /**
@@ -345,17 +350,16 @@ describe('궁합은 쌍에 적어 둔 사이로 읽는다', () => {
    * 같은 침묵이 되고, 모델은 그 침묵을 예전처럼 연애로 읽는다.
    */
   it('적어 둔 사이가 없으면 모른다고 넘긴다', async () => {
-    edgesIn.mockResolvedValue({
-      data: [
-        { person_id: 'person-a', local_label: '엄마' },
-        { person_id: 'person-b', local_label: '친구' },
-      ],
-      error: null,
-    });
-    relationOfPair = null;
+    const prompt = await askForPair({ names: { a: '엄마', b: '친구' }, relation: null });
 
-    const prompt = await askForPair();
     expect(prompt).toContain('무슨 사이인지 모른다');
     expect(prompt).not.toContain('가족이다');
+  });
+
+  /** 우리가 아는 갈래가 아니면 모른다로 눕힌다 — 그럴듯한 쪽으로 세우지 않는다 */
+  it('모르는 사이 이름은 모른다로 눕힌다', async () => {
+    const prompt = await askForPair({ names: { a: '나', b: '동료' }, relation: '동창' });
+
+    expect(prompt).toContain('무슨 사이인지 모른다');
   });
 });

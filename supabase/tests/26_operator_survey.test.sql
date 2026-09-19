@@ -15,7 +15,7 @@ select plan(20);
 create or replace function pg_temp.save(run uuid, rev uuid, version text)
 returns uuid language sql security definer as $$
   select public.save_reading(
-    run, rev, null, '## 풀이', null, '한 사람을 한마디로.',
+    run, '## 풀이', null, '한 사람을 한마디로.',
     '{"charts":{}}', '# 역할', version, 'openai/gpt-5.6-luna',
     '{"temperature":1}'::jsonb, now());
 $$;

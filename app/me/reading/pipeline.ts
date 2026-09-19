@@ -17,7 +17,6 @@ import { userFacingDbMessage } from '../../db-error';
 import { chartOf } from '@/src/lib/input/chart';
 import { NoKeyError, keyedClient } from '../../keyed-client';
 import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '@/src/lib/input/revision';
-import { ResultClosedError, pinnedInputs } from '../match/inputs';
 import { readingInputOf } from './generator';
 import { GENERATION } from './generation';
 import { submitBackgroundReading } from './model';
@@ -25,16 +24,27 @@ import { submitBackgroundReading } from './model';
 /**
  * **결과 생성 요청** — 사용자가 눌렀을 때만 도는 길.
  *
- * 누르면 시도를 열고(`beginReading`), 응답이 나간 뒤에 판본을 읽고 · 근거를 자르고 ·
- * 프롬프트를 얼리고 · 떠나보낸다(`sendRun`). 완성본을 가져와 검사하고 통째로 교체하는
- * 일은 webhook 과 복구기가 한다(`collect.ts`, ADR 0020). 실패하면 **직전 성공 결과를
- * 건드리지 않고** 실패만 남긴다(ADR 0017).
+ * 누르면 시도를 열고(`beginReading`), 응답이 나간 뒤에 **얼린 입력을 집어** 근거를
+ * 자르고 · 프롬프트를 짓고 · 떠나보낸다(`sendRun`). 완성본을 가져와 검사하고 통째로
+ * 교체하는 일은 webhook 과 복구기가 한다(`collect.ts`, ADR 0020). 실패하면 **직전 성공
+ * 결과를 건드리지 않고** 실패만 남긴다(ADR 0017).
  *
- * ## 세 kind 가 갈리는 자리는 둘뿐이다
+ * ## 입력은 **시도를 여는 그 트랜잭션에서** 언다 (ADR 0071)
  *
- * **어디서 판본을 읽는가** — 자기 풀이와 비공개 궁합은 RLS 가 이미 열어 준 길로 읽고,
- * 공유 궁합은 매인 판본을 열쇠로 읽는다(ADR 0010). **어디까지 자르는가** —
- * `readingEvidenceOf` 가 kind 를 받아 정한다. 나머지는 한 길이다.
+ * 앞서는 이 파일이 응답 뒤에 판본을 읽어 입력을 정했다. 그 틈에 사용자가 입력을 고치면
+ * **동의한 것과 계산한 것이 갈렸다.** 이제 `start_reading_run` 이 시도를 열면서 같은
+ * 문장 안에서 계산 입력을 값으로 얼린다.
+ *
+ * 그래서 이 파일이 **읽는 자리가 하나로 줄었다** — 얼린 작업 하나다. `person` 도 판본도
+ * 여기서 다시 안 읽고, kind 마다 갈리던 「어디서 입력을 읽는가」도 없어졌다. 공유 궁합의
+ * 계산 입력을 열쇠로 읽던 문(`match_calculation_inputs`)도 이 길에서 빠진다.
+ *
+ * ## 집는 일은 **원자적이다**
+ *
+ * `take_reading_job`(수동)과 `match_run_awaiting_send`(수락)는 조회가 아니라 **전이**다 —
+ * `frozen` 을 `preparing` 으로 옮기면서 그 행을 내준다. 복구기와 겹치거나 같은 누름이
+ * 재전송돼도 **먼저 부른 쪽 하나만** 작업을 받고, 두 번째는 0행이다. 조회와 전이가
+ * 갈리면 두 프로세스가 같은 작업을 들고 두 번 제출한다.
  *
  * ## 두 번 눌러도 한 번만 바뀐다 — 막는 것이 셋이다
  *
@@ -50,14 +60,7 @@ import { submitBackgroundReading } from './model';
  * `save_reading` 은 `authenticated` 에게 닫혀 있다(ADR 0013). 열어 두면 로그인한 사람이
  * 이 파이프라인을 통째로 건너뛰고 임의의 글을 저장할 수 있고, Match 에서는 그 글이
  * 상대에게 간다. 열쇠가 여는 것은 **시도 하나**이고, 그 시도는 사용자 JWT 로 자격이
- * 확인된 채 기록된 것이다. 행은 **대상**의 증표이지 자격을 임대하는 표가 아니다 — 저장은
- * 그 행의 사용자로 현재 계정·엣지·차단 상태를 한 번 더 묻는다.
- *
- * ## 판본을 앱이 고르지 않는다
- *
- * `start_reading_run` 이 대상과 함께 **쓸 판본을 내준다.** 앱이 스스로 고르면 만들 때
- * 쓴 판본과 저장할 때 확인하는 판본이 서로 다른 자리에서 정해지고, 그 사이에 사용자가
- * 입력을 고치면 「지금 입력으로 썼다」고 적힌 옛 글이 남는다.
+ * 확인된 채 기록된 것이다.
  */
 
 export type ReadingTarget =
@@ -67,15 +70,21 @@ export type ReadingTarget =
   | { kind: 'private'; personA: string; personB: string }
   | { kind: 'match'; matchId: string };
 
-/** `start_reading_run` 이 내주는 한 줄 */
-type StartedRun = {
+/** `start_reading_run` 이 내주는 한 줄 — 이 파일이 쓰는 것은 **시도 id 하나**다 */
+type StartedRun = { run_id: string };
+
+/**
+ * 집어 온 얼린 작업 — **이 뒤로 다시 읽는 것이 없다.**
+ *
+ * `birth_a`·`birth_b` 는 시도를 열 때 값으로 얼린 계산 입력이고, `about` 은 그때 그
+ * 사람들을 부르던 말과 두 사람의 사이다. 셋 다 DB 가 얼렸다 — 앱이 고르는 자리가 없다.
+ */
+type FrozenJob = {
   run_id: string;
-  person_a: string | null;
-  person_b: string | null;
-  match_id: string | null;
-  revision_a: string;
-  revision_b: string | null;
-  viewer_is_first: boolean;
+  kind: ReadingKind;
+  birth_a: StoredRevision;
+  birth_b: StoredRevision | null;
+  about: { names: { a: string; b?: string } | null; relation: string | null };
 };
 
 /**
@@ -93,6 +102,9 @@ export const READING_CHART_NAMES = ['첫 번째 분', '두 번째 분'] as const
  * 여는 일과 만드는 일을 가르는 것이 비동기 생성의 전부다. 여기까지는 밀리초짜리
  * DB 왕복 하나라 응답을 붙들지 않고, 만드는 일은 응답이 나간 뒤에 돈다.
  *
+ * **입력은 이 왕복 안에서 언다**(ADR 0071). 그래서 이 함수가 돌아온 뒤에 사용자가 입력을
+ * 고쳐도 이미 시작된 생성은 동결값으로 끝난다.
+ *
  * @returns 열었으면 그 시도, 이미 도는 것이 있으면 `null`, 못 열면 거절 문장.
  */
 async function openRun(
@@ -103,7 +115,7 @@ async function openRun(
 
   const { data, error } = await supabase.rpc('start_reading_run', {
     p_kind: target.kind,
-    /** 같은 누름의 재전송을 알아보는 값. 무엇을 막는지는 아래 주석이 든다 */
+    /** 같은 누름의 재전송을 알아보는 값. 무엇을 막는지는 위 주석이 든다 */
     p_idempotency_key: requestKey ?? randomUUID(),
     /* `person` 은 한 사람만 싣는다. `self` 는 아무것도 안 싣는다 — DB 가 스스로 찾는다 */
     p_person_a:
@@ -135,70 +147,76 @@ async function openRun(
 }
 
 /**
- * **떠나보낸다** — 얼리고, 제출하고, 이름표를 적는다 (ADR 0020).
+ * 집어 온 작업을 **떠나보낸다** — 짓고, 적고, 제출하고, 이름표를 붙인다 (ADR 0020).
  *
  * 완성본을 기다리지 않는다. 여기서 하는 일은 전부 밀리초짜리이거나 짧은 왕복 하나뿐이라
  * 240초 벽에 닿지 않는다.
  *
- * ## 얼리는 것이 제출보다 먼저다
+ * ## 적는 것이 제출보다 먼저다
  *
  * 순서가 뒤집히면 제출은 됐는데 재료가 없는 순간이 생기고, 그 사이에 webhook 이 오면
  * 집을 것이 없어 그대로 흘러간다.
  *
- * ## 실패는 여기서 닫는다
+ * ## 실패는 **열쇠로** 닫는다
  *
- * 얼리기 전이나 제출 전에 걸린 것은 아직 아무것도 안 떠났으므로 그 자리에서 닫는다.
- * **제출한 뒤에 실패하는 자리는 없다** — 이름표를 못 적어도 `metadata` 가 그 일감을
- * 되찾아 주고, 그마저 안 되면 복구기가 deadline 에 닫는다.
+ * `fail_reading_run` 은 `r.user_id = auth.uid()` 를 건다. 수락이 연 시도는 **청한 사람**
+ * 것으로 서 있고 이 코드는 받은 쪽 응답 뒤에서 도므로, 그 문으로는 못 닫는다 — 그러면
+ * 실패한 인연 궁합이 만료까지 열린 채 남는다. 열쇠가 여는 문은 임자를 안 묻는다.
  */
-async function sendRun(target: ReadingTarget, started: StartedRun): Promise<void> {
-  const { kind } = target;
+async function submitFrozen(
+  keyed: ReturnType<typeof keyedClient>,
+  job: FrozenJob,
+): Promise<void> {
+  const { kind } = job;
 
-  let keyed: ReturnType<typeof keyedClient>;
-  try {
-    keyed = keyedClient('결과 제출');
-  } catch (failure) {
-    await fail(started.run_id, 'unexpected', failure instanceof NoKeyError ? failure.message : '');
-    return;
-  }
-
-  let read: Awaited<ReturnType<typeof revisionsFor>>;
-  try {
-    read = await revisionsFor(kind, started);
-  } catch (failure) {
-    await fail(started.run_id, 'closed', failure instanceof Error ? failure.message : '');
-    return;
-  }
+  const close = async (code: string, detail: string): Promise<void> => {
+    await keyed.rpc('fail_reading_job', {
+      p_run_id: job.run_id,
+      p_failure_code: code,
+      p_failure_detail: detail,
+      /** 여기서 닫는 실패는 전부 **떠나보내기 전**이라 쓴 토큰이 없다(ADR 0039) */
+      p_usage: null,
+    });
+  };
 
   let charts: { a: Saju; b?: Saju };
   try {
-    const [first, second] = read.revisions;
     charts = {
-      a: chartOf(queryFromRevision(first, READING_CHART_NAMES[0])),
+      a: chartOf(queryFromRevision(job.birth_a, READING_CHART_NAMES[0])),
       b:
-        second === undefined
+        job.birth_b === null
           ? undefined
-          : chartOf(queryFromRevision(second, READING_CHART_NAMES[1])),
+          : chartOf(queryFromRevision(job.birth_b, READING_CHART_NAMES[1])),
     };
   } catch (failure) {
     if (failure instanceof UnreadableRevisionError) {
-      await fail(started.run_id, 'unreadable-revision', failure.message);
+      await close('unreadable-revision', failure.message);
       return;
     }
     throw failure;
   }
 
+  /**
+   * 얼려 둔 말을 그대로 쓴다 — **모르는 자리는 지어내지 않는다.**
+   *
+   * 이름을 하나라도 못 찾았으면 DB 가 이미 `null` 로 얼렸다(`reading_about`). 한쪽만
+   * 이름으로 부르고 다른 쪽을 자리 이름으로 부르면, 읽는 사람은 이름 없는 쪽이 덜
+   * 중요한 사람인 줄 안다.
+   */
+  const about: ReadingAbout = {
+    names: job.about?.names ?? null,
+    relation: relationOf(job.about?.relation ?? null),
+  };
+
   const viewedAt = new Date();
-  const made = readingInputOf({ kind, charts, viewedAt, about: read.about });
+  const made = readingInputOf({ kind, charts, viewedAt, about });
   if (!made.ok) {
-    await fail(started.run_id, made.code, made.detail);
+    await close(made.code, made.detail);
     return;
   }
 
-  const { error: freezeError } = await keyed.rpc('freeze_reading_job', {
-    p_run_id: started.run_id,
-    p_revision_a: started.revision_a,
-    p_revision_b: started.revision_b,
+  const { error: prepareError } = await keyed.rpc('prepare_reading_job', {
+    p_run_id: job.run_id,
     p_prompt: made.input.prompt,
     p_evidence: made.input.evidenceText,
     p_prompt_version: promptVersionOf(kind),
@@ -207,16 +225,16 @@ async function sendRun(target: ReadingTarget, started: StartedRun): Promise<void
     p_viewed_at: viewedAt.toISOString(),
   });
 
-  if (freezeError) {
-    await fail(started.run_id, 'unexpected', freezeError.message);
+  if (prepareError) {
+    await close('unexpected', prepareError.message);
     return;
   }
 
-  const submitted = await submitBackgroundReading(made.input.prompt, started.run_id, {
+  const submitted = await submitBackgroundReading(made.input.prompt, job.run_id, {
     summaryLast: writesSummaryLast(kind),
   });
   if (!submitted.ok) {
-    await fail(started.run_id, submitted.code, submitted.detail);
+    await close(submitted.code, submitted.detail);
     return;
   }
 
@@ -225,9 +243,41 @@ async function sendRun(target: ReadingTarget, started: StartedRun): Promise<void
    * 되찾는다 — 이름표를 결과에 붙여 보내는 것이 우리 쪽 기록보다 먼저인 이유다.
    */
   await keyed.rpc('adopt_reading_job', {
-    p_run_id: started.run_id,
+    p_run_id: job.run_id,
     p_response_id: submitted.responseId,
   });
+}
+
+/**
+ * 방금 연 시도를 집어 떠나보낸다.
+ *
+ * **0행이면 아무 일도 안 한다** — 이미 누가 집었거나 그 사이 시도가 닫힌 것이다. 그때
+ * 또 제출하면 같은 시도에 두 번 나간다.
+ */
+async function sendRun(runId: string): Promise<void> {
+  let keyed: ReturnType<typeof keyedClient>;
+  try {
+    keyed = keyedClient('결과 제출');
+  } catch (failure) {
+    await failAsUser(runId, 'unexpected', failure instanceof NoKeyError ? failure.message : '');
+    return;
+  }
+
+  const { data, error } = await keyed.rpc('take_reading_job', { p_run_id: runId });
+  if (error) {
+    await keyed.rpc('fail_reading_job', {
+      p_run_id: runId,
+      p_failure_code: 'unexpected',
+      p_failure_detail: error.message,
+      p_usage: null,
+    });
+    return;
+  }
+
+  const job = ((data ?? []) as FrozenJob[])[0];
+  if (job === undefined) return;
+
+  await submitFrozen(keyed, job);
 }
 
 /** 눌렀을 때 화면이 곧바로 받는 답 — **결과가 아니라 시작 여부다.** */
@@ -261,7 +311,7 @@ export async function beginReading(
   if (!opened.ok) return opened;
   if (opened.started === null) return { ok: true, started: false };
 
-  const started = opened.started;
+  const runId = opened.started.run_id;
   after(async () => {
     /**
      * **여기서 던지면 아무도 못 듣는다.** 응답은 이미 나갔고 부르는 쪽이 없다. 그래도
@@ -269,7 +319,7 @@ export async function beginReading(
      * 남는 것만은 막아야 그 대상이 10분간 잠기지 않는다.
      */
     try {
-      await sendRun(target, started);
+      await sendRun(runId);
     } catch {
       // 여기까지 온 것은 우리가 못 적은 경우다. 복구기가 deadline 에 닫는다.
     }
@@ -281,19 +331,20 @@ export async function beginReading(
 /**
  * 동의가 연 시도를 **떠나보낸다** (ADR 0038).
  *
- * 수락은 시도를 열기만 한다 — 자르기·프롬프트·제출은 Node 의 일이고, DB 트랜잭션
- * 안에서 할 수 있는 것이 아니다. 그래서 수락한 사람의 응답 뒤(`after`)에 이 함수가 돈다.
+ * 수락은 시도를 열고 입력을 얼리기만 한다 — 자르기·프롬프트·제출은 Node 의 일이고,
+ * DB 트랜잭션 안에서 할 수 있는 것이 아니다. 그래서 수락한 사람의 응답 뒤(`after`)에
+ * 이 함수가 돈다.
  *
- * ## 누른 사람이 아니라 열쇠로 읽는다
+ * ## 누른 사람이 아니라 열쇠로 집는다
  *
  * 시도는 **청한 사람** 것으로 서 있고 `reading_run` 은 당사자에게도 안 열린다. 수락을
  * 부른 사람은 받은 쪽이라 그 행을 볼 길이 없다 — 그래서 열쇠가 여는 문 하나로 찾는다
- * (`match_run_awaiting_send`). 그 문은 **아직 안 얼린 것만** 내주므로 두 번 부르거나
- * 복구기와 겹쳐도 같은 시도가 두 번 나가지 않는다.
+ * (`match_run_awaiting_send`). 그 문은 **아직 아무도 안 집은 것만** 내주므로 두 번
+ * 부르거나 복구기와 겹쳐도 같은 시도가 두 번 나가지 않는다.
  *
  * ## 못 보내도 막다른 길이 아니다
  *
- * 여기서 실패하면 시도는 `sendRun` 이 닫고(실패로), 결과 화면에는 「다시 만들기」가
+ * 여기서 실패하면 시도는 `submitFrozen` 이 닫고(실패로), 결과 화면에는 「다시 만들기」가
  * 선다. 「누를 버튼이 없다」는 성공 경로의 약속이지 실패 경로의 약속이 아니다.
  */
 export async function sendAcceptedMatchReading(requestId: string): Promise<void> {
@@ -308,21 +359,21 @@ export async function sendAcceptedMatchReading(requestId: string): Promise<void>
   const { data, error } = await keyed.rpc('match_run_awaiting_send', { p_request_id: requestId });
   if (error) return;
 
-  const started = ((data ?? []) as StartedRun[])[0];
+  const job = ((data ?? []) as FrozenJob[])[0];
   // 0행은 「보낼 것이 없다」다 — 수락이 시도를 못 열었거나 이미 떠났다.
-  if (started === undefined) return;
+  if (job === undefined) return;
 
-  await sendRun({ kind: 'match', matchId: started.match_id as string }, started);
+  await submitFrozen(keyed, job);
 }
 
 /**
- * 시도를 실패로 닫는다.
+ * 열쇠가 없을 때만 쓰는 문 — **사용자 세션으로 닫는다.**
  *
- * 여기서 닫는 실패는 전부 **떠나보내기 전**이라 쓴 토큰이 없다. 0 이 아니라 `null` 로
- * 넘긴다 — 0 으로 채우면 「안 썼다」와 「못 셌다」가 같은 값이 된다(ADR 0039). 다 돌고 나서
- * 검사가 무는 실패는 가져오는 자리(`collect.ts`)가 쓴 양과 함께 닫는다.
+ * 열쇠가 없으면 `fail_reading_job` 도 못 부르므로 남는 길이 이것뿐이다. 인연 궁합에는
+ * 안 닿지만(그 시도의 임자는 청한 사람이다) 그 자리는 애초에 열쇠 없이는 아무것도 못
+ * 하는 배포이고, 만료가 닫는다.
  */
-async function fail(runId: string, code: string, detail: string): Promise<void> {
+async function failAsUser(runId: string, code: string, detail: string): Promise<void> {
   const supabase = await supabaseOnServer();
 
   await supabase.rpc('fail_reading_run', {
@@ -331,120 +382,4 @@ async function fail(runId: string, code: string, detail: string): Promise<void> 
     p_failure_detail: detail,
     p_usage: null,
   });
-}
-
-/**
- * 그 대상의 계산 입력 — **kind 마다 읽는 문이 다르다.**
- *
- * 공유 궁합만 열쇠를 쓴다(ADR 0010). 나머지 둘은 RLS 가 이미 열어 준 길이고, 거기에
- * 열쇠를 쓰면 「무엇을 볼 수 있는가」의 답이 정책에서 앱 코드로 옮겨 간다.
- */
-/**
- * 그 시도가 읽을 판본들과, 그 사람들을 **부르는 말.**
- *
- * 둘을 함께 내는 까닭은 차례가 하나이기 때문이다. 이름을 다른 함수가 따로 구해 오면
- * 판본의 차례와 이름의 차례를 맞추는 일이 부르는 쪽 몫이 되고, **자리가 넷이면 하나는
- * 안 고쳐진다.**
- */
-async function revisionsFor(
-  kind: ReadingKind,
-  started: StartedRun,
-): Promise<{ revisions: StoredRevision[]; about: ReadingAbout }> {
-  if (kind === 'match') {
-    const inputs = await pinnedInputs(started.match_id as string);
-    const a = inputs.get(started.revision_a);
-    const b = started.revision_b === null ? undefined : inputs.get(started.revision_b);
-
-    if (a === undefined || b === undefined) {
-      throw new ResultClosedError('매인 판본을 찾지 못했습니다');
-    }
-
-    const nameA = a.nickname?.trim();
-    const nameB = b.nickname?.trim();
-
-    return {
-      revisions: [a, b],
-      about: {
-        names: nameA && nameB ? { a: nameA, b: nameB } : null,
-        /** 인연 찾기에서 성립한 사이라는 사실은 kind 가 정한다. */
-        relation: null,
-      },
-    };
-  }
-
-  const supabase = await supabaseOnServer();
-  const wanted = [started.revision_a, ...(started.revision_b === null ? [] : [started.revision_b])];
-
-  const { data } = await supabase
-    .from('person_chart_revision')
-    .select(
-      'id, person_id, calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis',
-    )
-    .in('id', wanted);
-
-  const rows = new Map(
-    (data ?? []).map((row) => [row.id as string, row as StoredRevision & { person_id: string }]),
-  );
-
-  /**
-   * 하나라도 못 읽으면 멈춘다. 한 사람 것으로 두 사람 궁합을 지어낼 수 없고,
-   * 지어낼 수 없는 것을 기본값으로 메우면 아무도 동의한 적 없는 결과가 선다.
-   */
-  const found = wanted.map((id) => {
-    const row = rows.get(id);
-    if (row === undefined) throw new ResultClosedError('계산 입력을 읽지 못했습니다');
-    return row;
-  });
-
-  return { revisions: found, about: await aboutFor(found.map((row) => row.person_id)) };
-}
-
-/**
- * 내가 그 사람을 뭐라 부르고 **이 쌍이 무슨 사이인가** — 차례는 판본이 정한다.
- *
- * 쌍의 차례를 여기서 다시 정하지 않는다. 비공개 궁합의 두 판본은 DB 가 Person id 로
- * 줄 세워 내주므로(`least`·`greatest`), 이름도 **그 판본이 들고 온 `person_id`** 를 따라
- * 붙인다. 앱이 같은 정렬 규칙을 한 번 더 적으면 자리가 둘이 되고, 둘이 갈리는 날
- * 이름과 명식이 서로 바뀐 채로 나간다.
- *
- * 못 찾은 자리는 지어내지 않는다 — 부를 말이 없다는 사실을 그대로 넘긴다.
- *
- * ## 관계는 **쌍에 물어본다**
- *
- * 사람에 붙였다면 어머니와 친구의 궁합에서는 답이 없었을 것이다 — 어머니가 나의
- * 가족인 것과 어머니가 그 친구와 무슨 사이인지는 다른 물음이기 때문이다. 궁합 화면이
- * 지금 보고 있는 두 사람에 대해 묻고, 그 답이 그 쌍에 남는다.
- *
- * **없으면 「모른다」다.** 행이 없는 것이 곧 모른다이므로, 여기서 두 가지 없음을
- * 가르지 않는다.
- */
-async function aboutFor(personIds: readonly string[]): Promise<ReadingAbout> {
-  const supabase = await supabaseOnServer();
-  const [first, second] = personIds;
-
-  const [edges, pair] = await Promise.all([
-    // 정책이 자기 목록만 내준다. 여기서 `user_id` 를 또 적지 않는다.
-    supabase
-      .from('user_person_access')
-      .select('person_id, local_label')
-      .in('person_id', [...personIds]),
-    second === undefined
-      ? Promise.resolve({ data: null })
-      : supabase.rpc('pair_relation_of', { p_person_a: first, p_person_b: second }),
-  ]);
-
-  const labels = new Map(
-    (edges.data ?? []).map((row) => [row.person_id as string, row.local_label as string]),
-  );
-  const a = labels.get(first);
-  const b = second === undefined ? undefined : labels.get(second);
-
-  /**
-   * **하나라도 못 찾으면 이름은 통째로 포기한다.** 한쪽만 이름으로 부르고 다른 쪽을
-   * 「두 번째 분」이라 부르면, 읽는 사람은 이름 없는 쪽이 덜 중요한 사람인 줄 안다.
-   */
-  const names =
-    a === undefined || (second !== undefined && b === undefined) ? null : { a, b };
-
-  return { names, relation: relationOf(pair.data as string | null) };
 }

@@ -495,7 +495,7 @@ async function saveReadingAs(
    * 때다 — 실제로 프로덕션에서 두 줄짜리 고지가 정렬을 무너뜨렸다.
    */
   sql(`select public.save_reading(
-         '${run.run_id}'::uuid, '${run.revision_a}'::uuid, null,
+         '${run.run_id}'::uuid,
          '## ${body} — 브라우저가 읽을 글입니다.', null,
          '서로 다른 속도로 달리던 두 사람이 같은 자전거를 타고 오르막길을 오르는 모습이에요.',
          '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);

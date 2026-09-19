@@ -139,8 +139,6 @@ const saveSelfReading = async (client, body, metaphor) => {
   if (!run) throw new Error('시도가 시작되지 않았다');
   const { error } = await keyed().rpc('save_reading', {
     p_run_id: run.run_id,
-    p_revision_a: run.revision_a,
-    p_revision_b: null,
     p_output: `${body}${GROUNDING}`,
     p_score: null,
     p_metaphor: metaphor,
@@ -317,8 +315,6 @@ const saveFor = async (kind, personA, personB, body, said, points) => {
 
   const saved = await keyed().rpc('save_reading', {
     p_run_id: run.run_id,
-    p_revision_a: run.revision_a,
-    p_revision_b: run.revision_b,
     p_output: `${body}${GROUNDING}`,
     p_score: points,
     p_metaphor: said,

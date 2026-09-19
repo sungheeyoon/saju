@@ -147,10 +147,13 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     return close(verdict.failures[0].code, verdict.failures.map((f) => f.detail).join(' · '), retrieved.usage);
   }
 
+  /**
+   * **판본을 인자로 안 보낸다**(ADR 0071). 무엇으로 계산했는지는 시도를 열 때 이미
+   * 얼었고, 저장하는 문이 그 얼린 작업에서 직접 읽는다 — 앱이 그 값을 대는 자리가
+   * 있으면 DB 는 그것이 이 시도의 것인지 알 수 없다.
+   */
   const { error: saveError } = await keyed.rpc('save_reading', {
     p_run_id: job.run_id,
-    p_revision_a: job.revision_a,
-    p_revision_b: job.revision_b,
     p_output: retrieved.output.markdown,
     p_score: isScored(job.kind) ? retrieved.output.score : null,
     p_metaphor: retrieved.output.metaphor,
