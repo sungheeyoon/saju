@@ -15,8 +15,9 @@
 -- 3. **상태와 여섯 열이 묶여 있다** — `frozen` 이면 비어 있고 아니면 차 있다.
 -- 4. **집는 일이 원자적이다** — 두 번 부르면 두 번째는 0행이다.
 -- 5. **준비 전 작업은 모델 탓으로 안 닫힌다** — 별도 기한, 별도 코드.
--- 6. **판본을 붙든다.** FK 라서 `revisions_in_use()` 가 자동으로 본다(ADR 0011).
--- 7. **시도가 끝나면 얼린 입력도 함께 간다** — 주인 없는 재료가 판본을 붙들면 보존이다.
+-- 6. **동결 뒤의 수정은 얼린 값을 안 건드린다** — 그리고 얼린 한 벌에는 그때의 여덟
+--    글자가 함께 든다(ADR 0071).
+-- 7. **시도가 끝나면 얼린 입력도 함께 간다** — 주인 없는 재료가 남으면 그것이 보존이다.
 -- 8. **영수증은 `event_id` 로 멱등이고 본문을 들지 않는다.**
 begin;
 select plan(60);
@@ -96,19 +97,6 @@ returns void
 language sql
 security definer
 as $$ update public.reading_job set status = next where run_id = run $$;
-
-create or replace function pg_temp.in_use(rev uuid)
-returns boolean
-language sql
-security definer
--- **후보를 넘겨 묻는다.** 전체를 훑지 않는다(`revisions_in_use(uuid[])`).
-as $$ select exists (select 1 from public.revisions_in_use(array[rev]) u where u = rev) $$;
-
-create or replace function pg_temp.drop_revision(rev uuid)
-returns void
-language sql
-security definer
-as $$ delete from public.person_chart_revision where id = rev $$;
 
 create or replace function pg_temp.receipt(ev text, resp text)
 returns void
@@ -274,7 +262,6 @@ select * from public.start_reading_run('self', 'job-key-0001');
 grant select on started to authenticated, service_role;
 
 select isnt((select run_id from started), null, '시도가 선다');
-select isnt((select revision_a from started), null, '시작하면서 판본도 함께 나온다');
 
 -- ---------------------------------------------------------------------------
 -- 1. 두 표는 안 보인다
@@ -327,6 +314,22 @@ select is(
   (select pg_temp.job((select run_id from started)) -> 'birth_a' ->> 'city'),
   '서울',
   '출생지도 값으로 든다 — 판본을 다시 읽지 않는다');
+
+/**
+ * **여덟 글자도 같은 한 벌에 언다**(ADR 0071).
+ *
+ * 저장하는 문이 이 값을 글에 옮겨 적는다 — 앱이 대지 않으므로 「그때 무엇을 보고
+ * 썼나」가 DB 안에서만 정해진다.
+ */
+select is(
+  (select pg_temp.job((select run_id from started)) -> 'chart_a'),
+  tests.chart(),
+  '얼린 한 벌이 그때의 여덟 글자를 든다');
+
+select is(
+  (select pg_temp.job((select run_id from started)) ->> 'chart_b'),
+  null,
+  '한 사람짜리에는 둘째 여덟 글자가 없다');
 
 /**
  * 부르는 말도 함께 언다. 만드는 동안 이름표를 고친 사용자의 글이 두 이름을 섞어 쓰지
@@ -464,31 +467,19 @@ select is(
   '적는 문은 판본을 인자로 안 받는다');
 
 -- ---------------------------------------------------------------------------
--- 7. 판본을 붙든다 — 그리고 그것을 재려면 **판본을 밀어내야 한다**
+-- 7. 얼린 값은 **그 뒤의 수정에 안 움직인다**
 -- ---------------------------------------------------------------------------
 
 /**
- * **밀어내지 않으면 이 시험은 헛돈다.**
+ * **고쳐 놓고 재야 이 시험이 무엇을 잰다.**
  *
- * 처음에는 시작하자마자 「쓰이는 중인가」를 물었다. 언제나 참이었다 — Person 이 그 판본을
- * 현재로 가리키고 있으니 얼린 입력이 있든 없든 쓰이는 중이다. 그래서 붙드는지 아닌지를
- * 한 번도 안 재고 있었다.
+ * 판본을 붙들던 시절에는 FK 가 그 일을 했다. 이제 붙들 행이 없고 **값이 얼어 있으므로**,
+ * 재는 자리도 「그 값이 안 움직이는가」 하나다. 고치지 않고 물으면 언제나 참이다.
  */
 select public.add_person_revision(
-  (select person_id from public.person_chart_revision r
-   where r.id = (select revision_a from started)),
+  (select self_person_id from public.app_user where id = (select owner from folks)),
   'solar', '1991-03-04', '1991-03-04', '10:00', 'male', '서울', 'jo', 'localMean',
-  tests.chart(), 'chart-for-tests');
-
-select ok(
-  pg_temp.in_use((select revision_a from started)),
-  '밀려난 판본도 얼린 입력이 들고 있으면 쓰이는 중이다 — FK 가 그렇게 말한다');
-
-select throws_ok(
-  format('select pg_temp.drop_revision(%L)', (select revision_a from started)),
-  '23503',
-  null,
-  '도는 작업이 붙든 판본은 지워지지 않는다');
+  tests.chart('丁'), 'chart-for-tests');
 
 /**
  * **동결 이후의 수정은 얼린 값을 안 건드린다**(ADR 0071).
@@ -500,6 +491,12 @@ select is(
   (select pg_temp.job((select run_id from started)) -> 'birth_a' ->> 'birth_time'),
   '09:00:00',
   '동결 뒤에 입력을 고쳐도 얼린 값은 안 움직인다');
+
+/** 여덟 글자도 같다 — 지금 Person 은 丁 을 들지만 얼린 한 벌은 丙 그대로다 */
+select is(
+  (select pg_temp.job((select run_id from started)) -> 'chart_a'),
+  tests.chart(),
+  '얼린 여덟 글자도 그 자리에 그대로 있다');
 
 -- ---------------------------------------------------------------------------
 -- 8. 도착을 적는 문 — 두 번째는 `false` 다
@@ -616,10 +613,6 @@ select is(
  * 자리가 넷이 되고 하나는 안 고쳐진다. 상태 전이에 매달아서 여기서도 그냥 지나간다.
  */
 select is(pg_temp.jobs(), 0, '실패로 닫혀도 얼린 입력은 함께 지워진다');
-
-select ok(
-  not pg_temp.in_use((select revision_a from started)),
-  '붙들던 판본도 그때 풀린다');
 
 /** 끝난 시도는 집을 것도 없다 — 집는 문이 run 의 상태를 함께 본다 */
 select is(
@@ -761,6 +754,24 @@ select isnt(
   (select job -> 'birth_b' from first_take),
   null,
   '두 번째 사람의 입력도 함께 언다');
+
+/**
+ * **수락이 얼리는 여덟 글자는 Match 가 베껴 둔 그것이다**(ADR 0071).
+ *
+ * `person.current_chart` 를 다시 읽지 않는다 — 수락과 제출 사이에 한쪽이 입력을 고치면
+ * 동의한 것과 계산한 것이 갈리기 때문이다.
+ */
+reset role;
+select is(
+  (select j.chart_a = m.chart_low and j.chart_b = m.chart_high
+   from public.reading_job j
+   join public.reading_run r on r.id = j.run_id
+   join public.match m on m.id = r.match_id
+   join public.match_request q on q.id = m.request_id
+   where q.id = (select request_id from asked)),
+  true,
+  '수락이 얼린 한 벌은 Match 의 여덟 글자를 그대로 든다');
+set local role authenticated;
 
 /**
  * **두 번째는 0행이다.**

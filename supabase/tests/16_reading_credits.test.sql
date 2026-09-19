@@ -18,7 +18,7 @@ begin;
 select plan(17);
 
 create or replace function pg_temp.save(
-  run uuid, rev_a uuid, rev_b uuid, body text, score smallint)
+  run uuid, body text, score smallint)
 returns uuid
 language sql
 security definer
@@ -41,11 +41,7 @@ begin
   select self_person_id into mine from public.app_user;
   select run_id into started
   from public.start_reading_run('private', key, other, mine);
-  perform pg_temp.save(
-    started,
-    (select p.current_revision_id from public.person p where p.id = least(other, mine)),
-    (select p.current_revision_id from public.person p where p.id = greatest(other, mine)),
-    '## 둘 사이', 71::smallint);
+  perform pg_temp.save(started, '## 둘 사이', 71::smallint);
 end;
 $$;
 
@@ -103,10 +99,8 @@ select is(
   '도는 시도가 성공할 자리를 미리 잡는다');
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 나의 풀이', null)$$,
-    (select id from run_self),
-    (select current_revision_id from public.person p
-     join public.app_user u on u.self_person_id = p.id)),
+  format($$select pg_temp.save(%L::uuid, '## 나의 풀이', null)$$,
+    (select id from run_self)),
   '자기 풀이가 저장된다');
 
 /** `running` → `succeeded` 는 자리를 **옮길** 뿐이다 — 합계가 안 움직인다 */

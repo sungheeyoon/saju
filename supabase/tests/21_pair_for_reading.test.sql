@@ -17,6 +17,16 @@
 begin;
 select plan(25);
 
+/**
+ * 여덟 글자 두 벌을 **미리 떠 둔다.**
+ *
+ * 손잡이 안에서 `tests.chart()` 를 부르면, 아래 「로그인하지 않은 자리」 시험이 재려는
+ * 문에 닿기도 전에 `tests` 스키마에서 막힌다 — 그러면 그 시험은 바깥문이 열려 있어도
+ * 계속 초록이다. 값으로 떠 두고 그 표만 익명에게 연다.
+ */
+create temporary table charts as select tests.chart('丙') as a, tests.chart('戊') as b;
+grant select on charts to authenticated, anon;
+
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
 begin
@@ -40,6 +50,10 @@ $$;
  * 두 사람을 저장하는 한 문 — 이름 말고는 다 같은 입력이라 시험이 짧아진다.
  *
  * 뒤의 둘은 「이미 저장돼 있다고 사용자가 답한 사람」이다. `null` 이면 새로 만든다.
+ *
+ * **여덟 글자를 함께 넘긴다**(ADR 0071). 옛 서명은 #70 이 걷었으므로 스물여덟을 다
+ * 채운다 — 새 문은 `p_listed` 에도 기본값을 안 둔다. 둘의 일간을 달리 주어 어느 쪽이
+ * 어디에 앉았는지가 값으로 갈리게 한다.
  */
 create or replace function pg_temp.save_pair(
   first text, second text, rel text,
@@ -48,7 +62,8 @@ returns table (person_a uuid, person_b uuid) language sql as $$
   select * from public.create_pair_for_reading(
     first,  null, 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
     second, null, 'solar', '1992-08-20', '1992-08-20', '09:00', 'male',   '부산', 'jo', 'localMean',
-    rel, have_a, have_b);
+    rel, have_a, have_b, true,
+    (select a from charts), 'chart-for-tests', (select b from charts), 'chart-for-tests');
 $$;
 
 /**
@@ -64,7 +79,8 @@ returns table (person_a uuid, person_b uuid) language sql as $$
   select * from public.create_pair_for_reading(
     first,  null, 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
     second, null, 'solar', '1992-08-20', '1992-08-20', '09:00', 'male',   '부산', 'jo', 'localMean',
-    rel, have_a, have_b, false);
+    rel, have_a, have_b, false,
+    (select a from charts), 'chart-for-tests', (select b from charts), 'chart-for-tests');
 $$;
 
 /** 목록에 든 사람 수 — selfPerson 은 한도가 안 세므로 여기서도 뺀다 */
@@ -100,13 +116,13 @@ select is(
   'family',
   '사이도 같은 누름에 적힌다');
 
-/** 판본이 없으면 궁합을 계산할 수 없다 — 등록과 같은 사건에 들어간다 */
+/** 여덟 글자가 없으면 궁합을 계산할 수 없다 — 등록과 같은 사건에 들어간다 */
 select is(
   (select count(*) from public.person p
     where p.id in (select person_a from saved union select person_b from saved)
-      and p.current_revision_id is not null),
+      and p.current_chart is not null),
   2::bigint,
-  '두 사람 다 현재 판본을 들고 있다');
+  '두 사람 다 여덟 글자를 들고 있다');
 
 /** 「모른다」는 행이 없는 것이다 — 방금 만든 쌍에 지우는 문을 부를 이유가 없다 */
 create temporary table unknown_pair as
@@ -295,19 +311,20 @@ select is(
   3,
   '숨은 사람은 자리를 안 쓴다 — 사용자가 저장한 적 없는 것이 자리를 먹지 않는다');
 
-/** 숨어도 **판본은 든다** — 풀이가 읽는 것이 그것이다 */
+/** 숨어도 **여덟 글자는 든다** — 풀이가 읽는 것이 그것이다 */
 select is(
   (select count(*) from public.person p
     where p.id in (select one from hidden union select two from hidden)
-      and p.current_revision_id is not null),
+      and p.current_chart is not null),
   2::bigint,
-  '숨은 사람도 현재 판본을 들고 있다');
+  '숨은 사람도 여덟 글자를 들고 있다');
 
 /** 사용자가 「저장된 그 사람」이라고 답한 쪽은 **그 사람 것이므로 안 숨긴다** */
 select public.create_pair_for_reading(
   '안 만들어짐', null, 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   '숨은 셋',     null, 'solar', '1992-08-20', '1992-08-20', '09:00', 'male',   '부산', 'jo', 'localMean',
-  null, (select one from already), null, false);
+  null, (select one from already), null, false,
+  (select a from charts), 'chart-for-tests', (select b from charts), 'chart-for-tests');
 
 select is(
   (select a.listed from public.user_person_access a where a.person_id = (select one from already)),

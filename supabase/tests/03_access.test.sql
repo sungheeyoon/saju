@@ -1,6 +1,6 @@
 -- 접근 판정 — 「막는다」를 잰다. 통과만 재면 한 번도 안 막혀도 다 통과한다.
 begin;
-select plan(7);
+select plan(8);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;

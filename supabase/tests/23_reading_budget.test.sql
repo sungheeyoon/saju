@@ -13,7 +13,7 @@ begin;
 select plan(21);
 
 /** 저장 문은 열쇠에만 열려 있다 — 시험은 소유자 권한으로 감싸 부른다(16번과 같은 손잡이) */
-create or replace function pg_temp.save(run uuid, rev uuid, spent jsonb)
+create or replace function pg_temp.save(run uuid, spent jsonb)
 returns uuid
 language sql
 security definer
@@ -112,8 +112,6 @@ select run_id from public.start_reading_run('self', 'budget-ok-1');
 reset role;
 select pg_temp.save(
   (select run_id from good_run),
-  (select p.current_revision_id from public.person p
-   join public.app_user u on u.self_person_id = p.id where u.id = (select kim from folks)),
   '{"totalTokens": 2500}'::jsonb);
 
 select is(

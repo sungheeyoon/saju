@@ -12,7 +12,7 @@
 begin;
 select plan(20);
 
-create or replace function pg_temp.save(run uuid, rev uuid, version text)
+create or replace function pg_temp.save(run uuid, version text)
 returns uuid language sql security definer as $$
   select public.save_reading(
     run, '## 풀이', null, '한 사람을 한마디로.',
@@ -20,16 +20,16 @@ returns uuid language sql security definer as $$
     '{"temperature":1}'::jsonb, now());
 $$;
 
-/** 자기 명식 하나를 끝까지 밀고 답까지 남긴다 — 한 사람이 한 판본에 남기는 한 바퀴 */
+/** 자기 명식 하나를 끝까지 밀고 답까지 남긴다 — 한 사람이 한 번 남기는 한 바퀴 */
 create or replace function pg_temp.answer(
   key text, version text, use_score int, fit int, felt text, tags text[], said text)
 returns void language plpgsql as $$
-declare started uuid; rev uuid;
+declare started uuid;
 begin
-  select run_id, revision_a into started, rev
+  select run_id into started
   from public.start_reading_run('self', key);
 
-  perform pg_temp.save(started, rev, version);
+  perform pg_temp.save(started, version);
   perform public.leave_reading_feedback(
     started, use_score::smallint, fit::smallint, felt, tags, said);
 end;

@@ -19,7 +19,7 @@ end;
 $$;
 
 create or replace function pg_temp.save(
-  run uuid, rev_a uuid, rev_b uuid, body text, said text, points smallint)
+  run uuid, body text, said text, points smallint)
 returns uuid language sql security definer as $$
   select public.save_reading(
     run, body, points, said,
@@ -77,7 +77,7 @@ select * from public.start_reading_run(
 grant select on person_run to authenticated, service_role;
 
 select pg_temp.save(
-  (select run_id from person_run), (select revision_a from person_run), null,
+  (select run_id from person_run),
   '## 엄마' || chr(10) || '엄마님은 오래 참는 편입니다.' || chr(10) || '### 근거' || chr(10) || '- x',
   '오래 참는 사람입니다.', null);
 
@@ -128,7 +128,7 @@ select * from public.start_reading_run(
 grant select on pair_run to authenticated, service_role;
 
 select pg_temp.save(
-  (select run_id from pair_run), (select revision_a from pair_run), (select revision_b from pair_run),
+  (select run_id from pair_run),
   '## 두 사람' || chr(10) || '둘은 속도가 다릅니다.', '속도가 다른 둘입니다.', 72::smallint);
 
 create temporary table pair_link as
@@ -158,7 +158,7 @@ select isnt((select token from pair_link), (select token from person_link),
 select is(
   (select s.name_a || ' × ' || s.name_b from public.shared_reading((select token from pair_link)) s),
   (select case when kin.mom < kin.kid then '엄마 × 동생' else '동생 × 엄마' end from kin),
-  '궁합은 두 이름을 판본과 같은 차례로 든다');
+  '궁합은 두 이름을 저장된 차례 그대로 든다');
 
 -- ── 자기 풀이는 닉네임으로 선다 ────────────────────────────────────────────
 
@@ -168,7 +168,7 @@ select * from public.start_reading_run(
 grant select on self_run to authenticated, service_role;
 
 select pg_temp.save(
-  (select run_id from self_run), (select revision_a from self_run), null,
+  (select run_id from self_run),
   '## 나' || chr(10) || '스스로 정한 기준이 있습니다.', '기준이 뚜렷한 사람입니다.', null);
 
 create temporary table self_link as

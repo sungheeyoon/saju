@@ -4,13 +4,14 @@
 --
 -- 1. **표는 한 줄도 안 보인다.** 근거와 프롬프트가 그 안에 있다.
 -- 2. **kind 마다 접근 판정이 다르고 서로를 열지 않는다.** 내 엣지에 없는 사람으로
---    비공개 궁합을 만들 수 없고, Match 는 매인 판본으로만 난다.
+--    비공개 궁합을 만들 수 없고, Match 는 동의가 연 시도로만 난다.
 -- 3. **교체는 통째로 일어난다.** 같은 대상에 두 번 저장해도 행은 하나이고 옛 값은
 --    어디에도 남지 않는다.
--- 4. **판본을 든다.** 그래서 `revisions_in_use()` 가 이 표를 자동으로 본다(ADR 0011) —
---    표 이름을 적어 둔 목록이 아니라 FK 에서 읽기 때문이다.
+-- 4. **되짚을 여덟 글자를 든다**(ADR 0071). 저장이 얼린 작업의 값을 글에 옮겨 적고,
+--    「이전 명식으로 쓴 글」인지는 그 값으로만 판정한다 — 앱은 한 글자도 안 댄다.
+-- 5. **열쇠가 부를 수 있는 문이 값으로 세어진다.** 판본을 내주던 문 둘이 여기서 빠진다.
 begin;
-select plan(76);
+select plan(73);
 
 /**
  * **이 파일은 풀이권을 재지 않는다.**
@@ -76,7 +77,7 @@ $$;
  * 대상을 인자로 받지 않는다 — 시도 하나가 곧 대상이다.
  */
 create or replace function pg_temp.save(
-  run uuid, rev_a uuid, rev_b uuid, body text, score smallint)
+  run uuid, body text, score smallint)
 returns uuid
 language sql
 security definer
@@ -120,10 +121,7 @@ where p.user_id not in (select uid from (
 create temporary table people as
 select
   kim_person.id as kim_person,
-  lee_person.id as lee_person,
-  kim_person.current_revision_id as kim_revision,
-  lee_person.current_revision_id as lee_revision,
-  (select current_revision_id from public.person where id = (select mom from mine)) as mom_revision
+  lee_person.id as lee_person
 from folks
 join public.app_user kim_user on kim_user.id = folks.kim
 join public.app_user lee_user on lee_user.id = folks.lee
@@ -145,7 +143,7 @@ select throws_ok(
 
 /**
  * 대상을 푸는 함수는 아무도 직접 못 부른다. 열어 두면 **남의 Person id 를 넣어 그
- * 사람의 지금 판본 id 를 묻는 문**이 된다.
+ * 사람이 실재하는지 묻는 문**이 된다.
  */
 select throws_ok(
   $$select 1 from public.reading_scope('self')$$,
@@ -205,8 +203,8 @@ select is(
   '앞의 시도가 도는 동안에는 다른 열쇠로도 시작되지 않는다');
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 한 줄로', null)$$,
-    (select id from run_self), (select kim_revision from people)),
+  format($$select pg_temp.save(%L::uuid, '## 한 줄로', null)$$,
+    (select id from run_self)),
   '자기 풀이가 저장된다');
 
 select is(
@@ -220,9 +218,9 @@ select is(
   '자기 풀이에는 점수가 붙지 않는다');
 
 select is(
-  (select from_current_revision from public.my_reading('self')),
+  (select from_current_chart from public.my_reading('self')),
   true,
-  '지금 판본으로 난 결과다');
+  '지금 명식으로 난 결과다');
 
 /** 근거와 프롬프트는 **다른 문**으로만 나간다 */
 select is(
@@ -237,8 +235,8 @@ select run_id as id from public.start_reading_run('self', 'key-self-0002');
 grant select on run_again to authenticated, service_role;
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 다시 썼다', null)$$,
-    (select id from run_again), (select kim_revision from people)),
+  format($$select pg_temp.save(%L::uuid, '## 다시 썼다', null)$$,
+    (select id from run_again)),
   '같은 대상을 다시 만들 수 있다');
 
 select is(
@@ -259,32 +257,6 @@ select is(
 set local role authenticated;
 select pg_temp.acting((select kim from folks));
 
--- ── 판본을 든다 — FK 가 곧 보존 선언이다 ────────────────────────────────────
-
-reset role;
-
-/**
- * ADR 0011 은 **표 이름이 아니라 FK 에** 정책을 적었다. 그래서 이 표가 생긴 것만으로
- * 참조 목록이 넓어져야 한다 — 아무도 정리 함수를 다시 고치지 않았는데도.
- */
-select is(
-  (select count(*)::int
-   from pg_constraint k
-   join pg_class c on c.oid = k.conrelid
-   where k.contype = 'f'
-     and k.confrelid = 'public.person_chart_revision'::regclass
-     and c.relname = 'reading'),
-  2,
-  '결과가 판본 둘을 FK 로 든다');
-
-select is(
-  (select count(distinct u.id)::int from public.revisions_in_use(
-     array[(select kim_revision from people)]) as u(id)),
-  1,
-  '결과가 든 판본은 참조로 잡힌다');
-set local role authenticated;
-select pg_temp.acting((select kim from folks));
-
 -- ── 동결 뒤의 수정은 이미 시작된 생성을 안 건드린다 ─────────────────────────
 
 create temporary table run_stale as
@@ -294,7 +266,7 @@ grant select on run_stale to authenticated, service_role;
 select public.add_person_revision(
   (select kim_person from people),
   'solar', '1990-05-15', '1990-05-15', '15:30', 'female', '서울', 'jo', 'localMean',
-  tests.chart(), 'chart-for-tests');
+  tests.chart('丁'), 'chart-for-tests');
 
 /**
  * **문에서 재고 출구에서는 안 잰다** (ADR 0071).
@@ -308,19 +280,19 @@ select public.add_person_revision(
  * 버리는 대신 **당시 입력으로 쓴 글이라고 적는다** — 그 말을 할 수 있으면 버릴 이유가 없다.
  */
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 낡은 판본', null)$$,
-    (select id from run_stale), (select kim_revision from people)),
+  format($$select pg_temp.save(%L::uuid, '## 낡은 명식', null)$$,
+    (select id from run_stale)),
   '동결 뒤에 입력을 고쳐도 이미 시작된 생성은 저장된다');
 
 select is(
   (select output from public.my_reading('self')),
-  '## 낡은 판본',
+  '## 낡은 명식',
   '완성된 글을 버리지 않는다');
 
 select is(
-  (select from_current_revision from public.my_reading('self')),
+  (select from_current_chart from public.my_reading('self')),
   false,
-  '대신 「이전 입력으로 쓴 글」이라고 적는다');
+  '대신 「이전 명식으로 쓴 글」이라고 적는다');
 
 select is(
   (select status from public.my_last_reading_run('self')),
@@ -348,7 +320,7 @@ select pg_temp.acting((select kim from folks));
 /**
  * **입력 표현이 달라도 여덟 글자가 같으면 지금 명식이다.**
  *
- * 출생지를 서울에서 부산으로 고치면 새 판본이 서지만 여덟 글자는 그대로일 수 있다.
+ * 출생지를 서울에서 부산으로 고치면 입력 판은 오르지만 여덟 글자는 그대로일 수 있다.
  * 앞서는 그때 화면이 「이전 입력」이라 적었다 — **한쪽으로 거짓말하던 자리다.** 화면이
  * 하려는 말은 「이전 명식」이므로 여덟 글자로 견주는 쪽이 맞다.
  */
@@ -358,14 +330,9 @@ select public.add_person_revision(
   tests.chart('丙'), 'chart-for-tests');
 
 select is(
-  (select from_current_revision from public.my_reading('self')),
-  false,
-  '판본으로 견주면 「이전 입력」이다 — 새 판본이 섰으므로');
-
-select is(
   (select from_current_chart from public.my_reading('self')),
   true,
-  '여덟 글자로 견주면 지금 명식이다 — 거짓말하던 자리가 고쳐졌다');
+  '입력을 고쳐도 여덟 글자가 같으면 지금 명식이다 — 거짓말하던 자리가 고쳐졌다');
 
 -- ── 비공개 궁합 — 내 엣지에 있는 두 사람만 ──────────────────────────────────
 
@@ -379,17 +346,12 @@ grant select on run_private to authenticated, service_role;
  * 아니면 같은 두 사람에 결과가 둘 생긴다.
  */
 /**
- * 판본은 **사람 차례**를 따라간다(작은 Person id 가 앞). 판본 id 로 줄을 세우면
- * 저장이 거절된다 — 그것이 이 시험이 한 번 걸려 본 자리다.
+ * **여덟 글자도 사람 차례를 따라간다**(작은 Person id 가 앞). 저장하는 문이 얼린
+ * 작업에서 그대로 읽으므로 부르는 쪽이 차례를 고를 자리가 없다.
  */
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid,
-      (select p.current_revision_id from public.person p where p.id = least(%L::uuid, %L::uuid)),
-      (select p.current_revision_id from public.person p where p.id = greatest(%L::uuid, %L::uuid)),
-      '## 둘 사이', 71::smallint)$$,
-    (select id from run_private),
-    (select mom from mine), (select kim_person from people),
-    (select mom from mine), (select kim_person from people)),
+  format($$select pg_temp.save(%L::uuid, '## 둘 사이', 71::smallint)$$,
+    (select id from run_private)),
   '비공개 궁합이 저장된다');
 
 select is(
@@ -444,16 +406,6 @@ select is(
 create temporary table matched as select match_id from public.my_matches();
 grant select on matched to authenticated, service_role;
 
--- 매인 판본은 `match` 행에 있다. 그 표는 당사자에게도 한 줄도 안 열리므로 여기서만
--- `postgres` 로 읽는다 — 시험이 재려는 것은 「그 판본으로만 저장된다」이지 열람이 아니다.
-reset role;
-create temporary table pinned as
-select m.low_revision_id as low_rev, m.high_revision_id as high_rev
-from public.match m where m.id = (select match_id from matched);
-grant select on pinned to authenticated, service_role;
-set local role authenticated;
-select pg_temp.acting((select lee from folks));
-
 /**
  * **수락이 시도를 이미 열었다** — 요청자 이름으로(ADR 0038).
  *
@@ -507,27 +459,24 @@ select is(
   '동의한 쪽이 눌러도 아무것도 새로 열리지 않는다');
 
 /**
- * **앱이 판본을 고르는 자리가 없어졌다** (ADR 0071).
+ * **앱이 계산 입력을 고르는 자리가 없어졌다** (ADR 0071).
  *
  * 앞서는 지금 판본을 적어 넣는 길이 있어서, 저장하는 문이 「매인 판본인가」를 출구에서
  * 다시 재야 했다. 이제 그 값은 시도를 여는 트랜잭션에서 얼었고 문은 얼린 작업에서
- * 읽는다 — 물음 자체가 없어졌으므로 **인자에 그 자리가 없는지**를 잰다.
- *
- * 옛 열두 인자짜리는 배포 창을 안 만들려고 아직 서 있다(#70 이 지운다). 그래서 새 문
- * 하나만 집어 본다.
+ * 읽는다 — 물음 자체가 없어졌으므로 **한 벌만 서 있는지**를 잰다. 두 벌이던 잠깐은
+ * #70 이 좁히면서 끝났다.
  */
 select is(
   (select count(*)::int from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.proname = 'save_reading' and p.pronargs = 10
-     and pg_get_function_arguments(p.oid) like '%revision%'),
-  0,
-  '저장하는 문은 판본을 인자로 안 받는다');
+   where n.nspname = 'public' and p.proname = 'save_reading'),
+  1,
+  '저장하는 문은 한 벌이고 판본을 인자로 안 받는다');
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, %L::uuid, '## 공유 궁합', 64::smallint)$$,
-    (select id from run_match), (select low_rev from pinned), (select high_rev from pinned)),
-  '매인 판본으로는 저장된다');
+  format($$select pg_temp.save(%L::uuid, '## 공유 궁합', 64::smallint)$$,
+    (select id from run_match)),
+  '동의가 연 시도로 저장된다');
 
 select is(
   (select output from public.my_reading('match', null, null, (select match_id from matched))),
@@ -863,14 +812,13 @@ set local role authenticated;
 select pg_temp.acting((select kim from folks));
 
 select throws_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 늦게 돌아왔다', null)$$,
-    (select id from run_first), (select current_revision_id from public.person
-      where id = (select kim_person from people))),
+  format($$select pg_temp.save(%L::uuid, '## 늦게 돌아왔다', null)$$,
+    (select id from run_first)),
   '23514', null, '그 사이에 새 시도가 열렸으면 늦은 저장을 거절한다');
 
 select is(
   (select output from public.my_reading('self')),
-  '## 낡은 판본',
+  '## 낡은 명식',
   '거절당한 저장이 현재 결과를 건드리지 않는다');
 
 -- ── 시작 뒤 자격이 사라지면 저장도 멈춘다 ────────────────────────────────────
@@ -891,9 +839,8 @@ set local role authenticated;
 select pg_temp.acting((select kim from folks));
 
 select throws_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, %L::uuid, '## 차단 뒤 결과', 63::smallint)$$,
-    (select id from run_blocked_match),
-    (select low_rev from pinned), (select high_rev from pinned)),
+  format($$select pg_temp.save(%L::uuid, '## 차단 뒤 결과', 63::smallint)$$,
+    (select id from run_blocked_match)),
   'P0002', null, '만드는 동안 차단되면 공유 결과를 저장하지 않는다');
 
 /** 계정 제재도 같은 자격 질문을 지난다. */
@@ -903,18 +850,13 @@ select run_id as id from public.start_reading_run('self', 'key-self-suspended-00
 grant select on run_suspended_self to authenticated, service_role;
 
 reset role;
-create temporary table suspended_input as
-select p.current_revision_id as revision
-from public.app_user u join public.person p on p.id = u.self_person_id
-where u.id = (select choi from folks);
-grant select on suspended_input to authenticated, service_role;
 update public.app_user set status = 'suspended' where id = (select choi from folks);
 set local role authenticated;
 select pg_temp.acting((select choi from folks));
 
 select throws_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 제재 뒤 결과', null)$$,
-    (select id from run_suspended_self), (select revision from suspended_input)),
+  format($$select pg_temp.save(%L::uuid, '## 제재 뒤 결과', null)$$,
+    (select id from run_suspended_self)),
   'P0002', null, '만드는 동안 계정이 중지되면 자기 풀이도 저장하지 않는다');
 
 -- 열쇠의 허용 집합은 설명이 아니라 실제 ACL 로 센다.
@@ -922,8 +864,12 @@ select throws_ok(
 -- 일감을 집는 문, 집었다 놓는 문 — 엔진 판을 따라가는 운영 문이 하나 더 늘었다
 -- (ADR 0071). 그 수를 여기서 세지 않으면 다음에 문이 늘어도 아무도 모른다.
 --
--- **판본 원문을 내주는 `revision_birth` 는 여기 없다.** 안에서만 쓰라고 열쇠에게도
--- 닫아 두었고, 그 사실이 이 목록에 이름이 없다는 것으로 드러난다.
+-- **여기서 셋이 빠졌다**(#70). 상대의 계산 입력을 내주던 `match_calculation_inputs`,
+-- 응답 뒤에 입력을 얼리던 옛 `freeze_reading_job`, 그리고 두 벌이던 `save_reading` 중
+-- 판본을 받던 한 벌. 열여섯이 열셋이 된 것이 **이 결정이 줄인 문의 수**다.
+--
+-- 새로 세운 문을 PUBLIC 에 열어 두지 않았는지도 이 목록이 든다 — `grant` 는 PUBLIC 의
+-- 몫을 안 걷으므로, revoke 를 빠뜨리면 여기에 이름이 우르르 늘어난다.
 reset role;
 select is(
   (select array_agg(p.proname::text order by p.proname::text)
@@ -935,9 +881,7 @@ select is(
     'adopt_reading_job',
     'claim_reading_job',
     'fail_reading_job',
-    'freeze_reading_job',
     'mark_reading_webhook_processed',
-    'match_calculation_inputs',
     /** 동의가 연 시도를 서버가 찾아 제출한다 — 부르는 사람은 요청자가 아니다(ADR 0038) */
     'match_run_awaiting_send',
     'open_reading_jobs',
@@ -947,28 +891,24 @@ select is(
     'record_reading_webhook_event',
     'release_reading_job',
     /*
-      **다시 한 벌이다.** 비유를 받는 인자가 늘면서 잠시 두 벌이 서 있었다 — 넓히고
-      (expand) 배포가 자리 잡은 뒤 좁혔다(contract, `20260913120000`).
+      **한 벌로 돌아왔다.** 비유를 받는 인자가 늘 때도, 판본 인자 둘이 빠질 때도 잠시
+      두 벌이 서 있었다 — 넓히고(expand) 배포가 자리 잡은 뒤 좁힌다(contract).
 
       그동안 이 줄이 두 벌인 것을 값으로 들고 있었고, 좁히는 날 한 줄이 빠졌다.
       **지금 상태를 감추지 않고 값으로 드는 것이 그 표를 잣대로 만든다.**
-
-      **또 두 벌이다**(ADR 0071 · #66). 판본 인자 둘이 빠지면서 열 인자짜리가 새로 섰고,
-      옛 열두 인자짜리는 배포 창을 안 만들려고 그대로 둔다 — 좁히는 것은 #70 이다.
     */
-    'save_reading',
     'save_reading',
     /**
      * 엔진 판이 바뀐 뒤 **남의** Person 의 여덟 글자를 다시 채우는 운영 문(ADR 0071).
      * RLS 가 앱 세션에 남의 입력을 안 열어 주므로 이 일은 열쇠로만 된다 — 임시 장치가
      * 아니라 영구히 남으므로 이 목록에 이름이 선다. 대신 **조건부로만 쓴다**: 읽었던
-     * 판본을 함께 받아, 그 사이 입력이 바뀌었으면 쓰지 않고 `false` 로 답한다.
+     * **입력 판**을 함께 받아, 그 사이 입력이 바뀌었으면 쓰지 않고 `false` 로 답한다.
      */
     'set_person_chart',
     /** 얼린 작업을 집는 문 — 조회가 아니라 `frozen` → `preparing` 전이다(ADR 0071 · #66) */
     'take_reading_job'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 열여섯 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 열세 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

@@ -2,17 +2,17 @@
 --
 -- 여기서 재는 것 넷.
 --
--- 1. **삭제가 실제로 돈다.** 이 시험이 서기 전에는 `person_chart_revision.created_by`
---    가 삭제를 거절했다. 종료일을 약속하려면 그날 실행할 것이 실재해야 한다.
--- 2. **한 사람이 나가면 그 사람의 것만 사라진다.** 남이 관리하는 Person 의 판본을
+-- 1. **삭제가 실제로 돈다.** 이 시험이 서기 전에는 판본 표의 `created_by` 가 삭제를
+--    거절했다. 종료일을 약속하려면 그날 실행할 것이 실재해야 한다.
+-- 2. **한 사람이 나가면 그 사람의 것만 사라진다.** 남이 관리하는 Person 의 입력을
 --    데려가지 않는다.
--- 3. **주인 없는 출생정보가 안 남는다.** 아무도 관리하지 않게 된 Person 은 판본까지
---    함께 지워진다.
+-- 3. **주인 없는 출생정보가 안 남는다.** 아무도 관리하지 않게 된 Person 은 그 행째
+--    사라진다.
 -- 4. **Match 는 양쪽에서 사라진다.** 상대 화면에도 그 결과가 안 남는다.
 -- 5. **FK 가 안 닿는 것까지 지운다.** 감사 로그·flow state·초대 명단은 사용자에 매여
 --    있지 않아 cascade 가 못 데려간다 — 그런데 감사 로그는 모든 행이 이메일을 든다.
 begin;
-select plan(19);
+select plan(17);
 
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
 returns jsonb language sql as $$
@@ -109,13 +109,6 @@ select is(
 reset role;
 
 /**
- * **이 줄이 서기 전에는 여기서 죽었다.**
- *
- *   ERROR: violates foreign key constraint "person_chart_revision_created_by_fkey"
- *
- * 화면이 없는 것이 아니라 스키마가 거절하고 있었다.
- */
-/**
  * **FK 가 안 닿는 자리를 먼저 채워 둔다.**
  *
  * 실제로는 GoTrue 가 로그인마다 쌓는다. 여기서는 손으로 한 줄 넣어 「지워지는가」만
@@ -192,12 +185,6 @@ select is(
   0,
   '아무도 관리하지 않게 된 Person 이 사라진다');
 
-select is(
-  (select count(*)::int from public.person_chart_revision
-   where person_id = (select unc from shared)),
-  0,
-  '그 Person 의 판본도 함께 사라진다');
-
 /**
  * **답하는 수는 「이 사람 때문에 사라진 것」이다.**
  *
@@ -217,7 +204,7 @@ select is(
  * **남이 관리하는 Person 은 남는다.**
  *
  * `cascade` 로 두었다면 김이 나가면서 이가 보던 「엄마」의 명식까지 데려갔을 것이다.
- * 판본은 Person 의 것이지 그것을 적어 넣은 사람의 것이 아니다.
+ * 입력은 Person 의 것이지 그것을 적어 넣은 사람의 것이 아니다.
  */
 select is(
   (select count(*)::int from public.person where id = (select mom from shared)),
@@ -225,22 +212,15 @@ select is(
   '남이 관리하는 Person 은 남는다');
 
 select isnt(
-  (select current_revision_id from public.person where id = (select mom from shared)),
+  (select current_chart from public.person where id = (select mom from shared)),
   null,
   '그 Person 의 명식도 그대로다');
-
-/** 「누가 만들었나」만 잊는다 — 떠난 사람을 계속 가리키는 것이 오히려 남기는 일이다 */
-select is(
-  (select created_by from public.person_chart_revision
-   where person_id = (select mom from shared)),
-  null,
-  '만든 사람 자리는 비워진다');
 
 -- ── Match 는 양쪽에서 사라진다 ──────────────────────────────────────────────
 
 /**
- * 고를 수 있는 다른 답이 없다. 공유 결과는 서버가 **두 판본**을 읽어 자르는 것이라
- * (ADR 0010) 한쪽 판본이 사라지면 그 화면은 설 수 없다.
+ * 고를 수 있는 다른 답이 없다. Match 는 두 계정 사이에 선 것이라(ADR 0010) 한쪽
+ * 계정이 사라지면 그 화면은 설 수 없다.
  */
 set local role authenticated;
 select pg_temp.acting((select lee from folks));
@@ -253,7 +233,12 @@ select is(
 
 /** 남이 놓고 간 고아는 이 삭제가 데려가지 않는다 — 전체 쓸기는 종료 파기의 일이다 */
 reset role;
-insert into public.person (id) values ('00000000-0000-0000-0000-0000000000aa');
+/**
+ * **온전하게 태어난다**(ADR 0071). `current_chart` 가 `not null` 이 된 뒤로 빈 행은
+ * 실재할 수 없다 — 시각을 모르는 사람이라 시주도 없는 한 벌을 든다.
+ */
+insert into public.person (id, current_chart, chart_engine_version)
+values ('00000000-0000-0000-0000-0000000000aa', tests.chart('壬', false), 'chart-for-tests');
 set local role authenticated;
 reset role;
 create temporary table stranded as

@@ -11,7 +11,7 @@
 begin;
 select plan(22);
 
-create or replace function pg_temp.save(run uuid, rev uuid)
+create or replace function pg_temp.save(run uuid)
 returns uuid language sql security definer as $$
   select public.save_reading(
     run, '## 풀이', null, '한 사람을 한마디로.',
@@ -22,11 +22,11 @@ $$;
 /** 저장한 사람 하나를 열고 끝까지 민다 — 풀이권 하나가 온전히 소모되는 한 바퀴 */
 create or replace function pg_temp.burn(who uuid, key text)
 returns void language plpgsql as $$
-declare started uuid; rev uuid;
+declare started uuid;
 begin
-  select run_id, revision_a into started, rev
+  select run_id into started
   from public.start_reading_run('person', key, who);
-  perform pg_temp.save(started, rev);
+  perform pg_temp.save(started);
 end;
 $$;
 

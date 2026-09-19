@@ -59,7 +59,7 @@ $$;
 
 /** `save_reading` 은 `authenticated` 에게 닫혀 있다 — 서버가 열쇠로 부르는 자리를 흉내낸다 */
 create or replace function pg_temp.save(
-  run uuid, rev_a uuid, rev_b uuid, body text, score smallint)
+  run uuid, body text, score smallint)
 returns uuid
 language sql
 security definer
@@ -97,10 +97,7 @@ where p.user_id not in (select kim from folks union all select lee from folks);
 
 create temporary table people as
 select
-  kim_person.id as kim_person,
-  kim_person.current_revision_id as kim_revision,
-  lee_person.current_revision_id as lee_revision,
-  (select current_revision_id from public.person where id = (select mom from kin)) as mom_revision
+  kim_person.id as kim_person
 from folks
 join public.app_user kim_user on kim_user.id = folks.kim
 join public.app_user lee_user on lee_user.id = folks.lee
@@ -129,17 +126,17 @@ create temporary table runs as select
 grant select on runs to authenticated, service_role;
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 내 풀이', null)$$,
-    (select self_run from runs), (select kim_revision from people)),
+  format($$select pg_temp.save(%L::uuid, '## 내 풀이', null)$$,
+    (select self_run from runs)),
   '내 사주 풀이가 저장된다');
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, null, '## 엄마 풀이', null)$$,
-    (select person_run from runs), (select mom_revision from people)),
+  format($$select pg_temp.save(%L::uuid, '## 엄마 풀이', null)$$,
+    (select person_run from runs)),
   '저장한 사람의 풀이가 저장된다');
 
 create temporary table pair_run as
-select run_id as id, revision_a as rev_a, revision_b as rev_b
+select run_id as id
 from public.start_reading_run(
   'private', 'list-private-0001',
   least((select mom from kin), (select kim_person from people)),
@@ -147,8 +144,8 @@ from public.start_reading_run(
 grant select on pair_run to authenticated, service_role;
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, %L::uuid, '## 둘의 궁합', 71::smallint)$$,
-    (select id from pair_run), (select rev_a from pair_run), (select rev_b from pair_run)),
+  format($$select pg_temp.save(%L::uuid, '## 둘의 궁합', 71::smallint)$$,
+    (select id from pair_run)),
   '두 사람의 궁합이 저장된다');
 
 -- 요청은 노출 기록에 매인다(ADR 0009) — 목록을 먼저 열어야 청할 수 있다.
@@ -167,15 +164,6 @@ select is(
 create temporary table matched as select match_id from public.my_matches();
 grant select on matched to authenticated, service_role;
 
--- 매인 판본은 `match` 행에 있고 그 표는 당사자에게도 안 열린다 — 여기서만 소유자로 읽는다.
-reset role;
-create temporary table pinned as
-select m.low_revision_id as low_rev, m.high_revision_id as high_rev
-from public.match m where m.id = (select match_id from matched);
-grant select on pinned to authenticated, service_role;
-set local role authenticated;
-select pg_temp.acting((select kim from folks));
-
 /**
  * **아무도 안 누른다 — 동의가 시도를 열었다**(ADR 0038). 시도는 청한 쪽(김) 이름으로
  * 이미 서 있으므로 여는 것이 아니라 찾는다. `reading_run` 은 당사자에게도 안 열린다.
@@ -189,8 +177,8 @@ set local role authenticated;
 select pg_temp.acting((select kim from folks));
 
 select lives_ok(
-  format($$select pg_temp.save(%L::uuid, %L::uuid, %L::uuid, '## 함께 보는 궁합', 64::smallint)$$,
-    (select id from match_run), (select low_rev from pinned), (select high_rev from pinned)),
+  format($$select pg_temp.save(%L::uuid, '## 함께 보는 궁합', 64::smallint)$$,
+    (select id from match_run)),
   '함께 보는 궁합이 저장된다');
 
 -- ── 넷이 한 목록에 선다 ─────────────────────────────────────────────────────
@@ -292,38 +280,41 @@ select is(
   true,
   '한 사람짜리 풀이에는 점수가 없다');
 
--- ── 「이전 입력」 ─────────────────────────────────────────────────────────────
+-- ── 「이전 명식」 ─────────────────────────────────────────────────────────────
 
 select is(
-  (select bool_and(from_current_revision) from public.my_readings()),
+  (select bool_and(from_current_chart) from public.my_readings()),
   true,
-  '방금 만든 글은 다 지금 판본의 것이다');
+  '방금 만든 글은 다 지금 명식의 것이다');
 
 /**
- * 출생 정보를 고치면 그 사람이 낀 줄이 낡는다. 목록에서도 그것을 말해야 열어 봐야
- * 아는 일이 안 생긴다.
+ * 출생 정보를 고쳐 **여덟 글자가 달라지면** 그 사람이 낀 줄이 낡는다. 목록에서도 그것을
+ * 말해야 열어 봐야 아는 일이 안 생긴다.
+ *
+ * 고치는 문은 이제 판본 id 가 아니라 **입력 판**을 낸다(ADR 0071). 처음 등록이 1 이므로
+ * 한 번 고치면 2 다 — 세는 수라 원문을 안 담는다.
  */
-select isnt(
+select is(
   public.add_person_revision((select mom from kin),
     'solar', '1962-03-03', '1962-03-03', '07:10', 'female', '부산', 'jo', 'localMean',
-  tests.chart(), 'chart-for-tests'),
-  null,
-  '엄마의 출생 정보를 고치면 새 판본이 선다');
+  tests.chart('丁'), 'chart-for-tests'),
+  2,
+  '엄마의 출생 정보를 고치면 입력 판이 오른다');
 
 select is(
-  (select bool_and(from_current_revision) from public.my_readings()
+  (select bool_and(from_current_chart) from public.my_readings()
    where kind in ('person', 'private')),
   false,
-  '입력을 고치면 그 사람이 낀 줄이 낡는다');
+  '여덟 글자가 달라지면 그 사람이 낀 줄이 낡는다');
 
 /**
- * **`match` 는 언제나 지금 것이다.** 공유 결과는 매인 판본으로 나고 그 판본이 곧
+ * **`match` 는 언제나 지금 것이다.** 공유 결과는 동의 당시 여덟 글자로 나고 그 값이 곧
  * 동의한 대상이라(ADR 0010), 「그 뒤에 고친 입력으로 다시 봐야 한다」가 성립하지 않는다.
  */
 select is(
-  (select from_current_revision from public.my_readings() where kind = 'match'),
+  (select from_current_chart from public.my_readings() where kind = 'match'),
   true,
-  '함께 보는 궁합에는 이전 입력이 없다');
+  '함께 보는 궁합에는 이전 명식이 없다');
 
 -- ── 목록에서 뺀 사람은 그 줄도 데려간다 ─────────────────────────────────────
 --
@@ -370,7 +361,7 @@ select is(
 select bag_eq(
   $$select unnest(array[
       'kind','person_a','person_b','match_id','label_a','label_b',
-      'score','metaphor','created_at','from_current_revision','from_current_chart'])$$,
+      'score','metaphor','created_at','from_current_chart'])$$,
   $$select p.name from unnest((
       select proargnames from pg_proc
       where oid = 'public.my_readings()'::regprocedure)) as p(name)$$,
