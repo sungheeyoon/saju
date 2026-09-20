@@ -1,17 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
 
 import {
-  READING_ALREADY_RUNNING_NOTE,
   READING_LEAVE_SAFE_NOTE,
-  READING_FAILED_NOTE,
   READING_NOUN,
   readingNoneNote,
   READING_REPLACES_NOTE,
   READING_STALE_NOTE,
-  READING_UNEXPECTED_NOTE,
   isScored,
   readingCreditsNote,
   readingWaitNote,
@@ -25,6 +22,7 @@ import { namedMatchBody } from '@/src/lib/reading/display';
 import { ReadingFeedback } from './feedback';
 import { ShareReadingButton } from './share-button';
 import { Markdown } from './markdown';
+import { initialFlow, readingFlow } from './reading-state';
 import type { ReadingTarget } from './target';
 
 const MOCK_OUTPUT = `## 지금의 핵심
@@ -51,7 +49,125 @@ const MOCK_OUTPUT = `## 지금의 핵심
 
 이 해석은 저장된 사주 근거를 바탕으로 현재 확인 가능한 경향을 설명합니다. 출생 시각이 없거나 계산 근거가 제한된 부분은 단정하지 않았으며, 중요한 결정을 대신하는 판단으로 사용하지 마세요.`;
 
-type Phase = 'idle' | 'loading' | 'error';
+/**
+ * **글 둘레에 무엇이 서는가.**
+ *
+ * 결과 칸의 판단 여섯이 여기 모였다. 칸 안에 흩어져 있을 때 이 여섯은 「`.tsx` 라서
+ * 시험이 못 닿는다」고 적혀 있었지만, 못 닿게 한 것은 확장자가 아니라 **뽑아내지 않은
+ * 순수 함수**였다 — 뽑고 나니 시험이 그냥 부른다(`fitsCalendar` · `isNavigationActive`
+ * 가 같은 자리에 먼저 서 있다).
+ *
+ * 부수효과도 JSX 도 안 든다. 들어오는 것은 이 화면이 이미 아는 값뿐이고, 나가는 것은
+ * 「무엇이 서고 무엇이 닫히는가」뿐이다.
+ */
+export type PanelChrome = {
+  /** 만드는 버튼이 닫혀 있는가 */
+  readonly makeDisabled: boolean;
+  /** 만드는 버튼이 아예 안 서는가 */
+  readonly hideMake: boolean;
+  /** 그 버튼이 칸 안이 아니라 머리에 서는가 */
+  readonly makeInHeader: boolean;
+  readonly makeLabel: string;
+  readonly canShare: boolean;
+  /** 다 읽은 글 아래에 설문이 붙는가 */
+  readonly asksFeedback: boolean;
+};
+
+export function panelChrome({
+  kind,
+  noun,
+  loading,
+  reading,
+  isMock,
+  credits,
+  automatic,
+  onPage,
+  expanded,
+  consented,
+}: {
+  kind: ReadingTarget['kind'];
+  /** 이 대상을 부르는 말 — 두 사람짜리 화면은 「궁합풀이」다 */
+  noun: string;
+  loading: boolean;
+  reading: CurrentReading | null;
+  isMock: boolean;
+  credits: ReadingCredits | null;
+  automatic: boolean;
+  onPage: boolean;
+  expanded: boolean;
+  consented: boolean;
+}): PanelChrome {
+  /*
+    **다 쓴 것과 기다리는 것을 가른다.** 도는 시도가 자리를 잡고 있는 동안에는 버튼을
+    닫지 않는다 — 그 사람이 누르면 DB 가 「끝나면 다시 눌러 주세요」로 답하고, 그것이
+    이 화면이 대신 말해 줄 수 없는 사실이다(다른 대상을 만들고 있을 수도 있다).
+  */
+  const spent = credits !== null && credits.available === 0 && credits.reserved === 0;
+
+  /**
+   * **누를 것이 있는가.**
+   *
+   * 동의가 만드는 글은 성공 경로에 버튼이 없다 — 이미 있는 글도, 지금 만들고 있는 것도
+   * 누를 일이 아니다. 남는 자리는 **아무것도 없는 자리** 하나이고, 그때만 버튼이 선다.
+   */
+  const hideMake = automatic && (reading !== null || loading);
+
+  return {
+    makeDisabled: loading || spent,
+    hideMake,
+
+    /**
+     * 글을 읽으러 온 화면에 **이미 글이 있으면** 만드는 버튼은 머리로 올라간다.
+     *
+     * 전에는 글 위에 칸 하나가 통째로 서 있었다 — 권하는 말·안 넘기는 것·버튼. 그런데
+     * 글이 이미 있는 사람에게 그 칸이 하는 말은 버튼 하나뿐이고, 나머지 줄은 **읽을
+     * 이유가 없는 자리**를 차지하고 있었다.
+     */
+    makeInHeader: onPage && reading !== null && !hideMake,
+
+    makeLabel: loading
+      ? `${noun} 받는 중…`
+      : reading === null
+        ? `${noun} 받기`
+        : `${noun} 다시 받기`,
+
+    /**
+     * **공유는 다 된 내 사주풀이에만 붙는다.**
+     *
+     * 없는 글과 지금 만들고 있는 글에는 보낼 것이 없다 — 그 자리에 버튼을 세우면 누른
+     * 사람이 빈 링크를 받는다. 예시 결과에도 안 붙는다. 그것은 모델이 쓴 글이 아니라
+     * 개발용으로 박아 둔 문자열이고, DB 의 문도 저장된 원문에 없는 글은 안 받는다 —
+     * 화면에서 먼저 막지 않으면 사용자는 이유를 모르는 실패를 본다.
+     *
+     * **인연 궁합만 빠진다.** 거기 있는 상대는 실재하는 계정이고, 그 사람이 동의한
+     * 것은 「이 사람에게 내 여덟 글자를 연다」이지 「누구에게든 연다」가 아니다
+     * (ADR 0012). 나머지 셋은 다 **내가 넣은 자료**라 내보낼지 말지를 넣은 사람이 정한다.
+     */
+    canShare: kind !== 'match' && reading !== null && !loading && !isMock,
+
+    /**
+     * **읽고 나서 곧바로 묻는다.** 시점이 값을 정한다 — 다 읽은 직후가 기억이 가장
+     * 선명하고, 여기를 떠난 뒤에 묻는 설문은 「대체로 괜찮았다」를 받는다. 그래서 글이
+     * 실제로 펼쳐져 있을 때만 선다.
+     *
+     * **예시 결과에는 안 붙는다.** 그 글은 모델이 쓴 것이 아니라 개발용으로 박아 둔
+     * 문자열이라, 그것에 대한 답을 세면 프롬프트 판본별 값이 조용히 오염된다.
+     *
+     * `sourceRunId` 가 없는 글에도 안 붙는다. 이 값이 생기기 전에 저장된 글들이고,
+     * 어느 시도가 만들었는지 지어 넣지 않았다 — 매달 자리가 없으면 안 묻는다.
+     *
+     * 그리고 **동의하지 않았으면 통째로 안 선다.** 「동의하면 더 답할 수 있어요」
+     * 같은 줄도 세우지 않는다 — 거절한 사람에게 거절을 다시 보여 주는 자리가 된다.
+     */
+    asksFeedback:
+      (onPage || expanded)
+      && consented
+      && !loading
+      && reading !== null
+      && !isMock
+      && reading.sourceRunId !== null,
+  };
+}
 
 export function ReadingPanel({
   target,
@@ -146,15 +262,21 @@ export function ReadingPanel({
   matchNames?: { readonly me: string; readonly partner: string };
 }) {
   const router = useRouter();
-  const [mockReading, setMockReading] = useState<CurrentReading | null>(null);
-  const [phase, setPhase] = useState<Phase>(initialRunning ? 'loading' : 'idle');
-  const [failure, setFailure] = useState(initialFailed ? READING_FAILED_NOTE : null);
-  const [isMock, setIsMock] = useState(false);
+  const [flow, dispatch] = useReducer(
+    readingFlow,
+    { running: initialRunning, failed: initialFailed },
+    initialFlow,
+  );
+  /* 접힘은 이 화면만의 것이라 흐름에 안 든다 — 서버에도 다른 기기에도 뜻이 없다 */
   const [readingExpanded, setReadingExpanded] = useState(false);
-  const reading = mockReading ?? initialReading;
+
+  const { phase, failure } = flow;
+  /* 예시 글이 서 있는 것과 `mock !== null` 은 같은 말이다 — 따로 들면 한쪽만 지운다 */
+  const isMock = flow.mock !== null;
+  const reading = flow.mock ?? initialReading;
 
   const showMock = () => {
-    setMockReading({
+    const preview: CurrentReading = {
       id: 'development-preview',
       score: isScored(target.kind) ? 78 : null,
       metaphor: isScored(target.kind)
@@ -169,10 +291,9 @@ export function ReadingPanel({
       /* 예시 결과에는 만든 시도가 없다 — 그래서 설문도 안 붙는다 */
       sourceRunId: null,
       myFeedback: null,
-    });
-    setIsMock(true);
-    setFailure('풀이를 만드는 연결을 지금 쓸 수 없어, 화면 검토용 예시 글을 대신 보이고 있습니다.');
-    setPhase('idle');
+    };
+
+    dispatch({ type: 'mock', reading: preview });
   };
 
   /**
@@ -196,8 +317,7 @@ export function ReadingPanel({
       }
       if (!alive || run === null || run.status === 'running') return;
 
-      setPhase('idle');
-      if (run.status === 'failed') setFailure(READING_FAILED_NOTE);
+      dispatch({ type: 'settled', status: run.status });
       /*
         끝난 자리에서 외친다. 성공이면 잡고 있던 자리가 쓴 자리로 옮겨 가고 실패면
         그 자리가 풀린다 — 어느 쪽이든 헤더가 들고 있는 숫자는 낡았다.
@@ -220,10 +340,7 @@ export function ReadingPanel({
   }, [phase, target, router]);
 
   const generate = async () => {
-    setPhase('loading');
-    setFailure(null);
-    setMockReading(null);
-    setIsMock(false);
+    dispatch({ type: 'press' });
     setReadingExpanded(false);
 
     let result: Awaited<ReturnType<typeof generateReading>>;
@@ -237,8 +354,7 @@ export function ReadingPanel({
         showMock();
         return;
       }
-      setFailure(READING_UNEXPECTED_NOTE);
-      setPhase('error');
+      dispatch({ type: 'threw' });
       return;
     }
 
@@ -253,7 +369,7 @@ export function ReadingPanel({
         아까 열었든 그 시도가 끝나면 새 글이 선다. 다만 **내가 방금 연 것이 아니라는
         사실**은 말해 준다 — 안 그러면 「눌렀는데 그대로」로 보인다.
       */
-      if (!result.started) setFailure(READING_ALREADY_RUNNING_NOTE);
+      dispatch({ type: 'opened', started: result.started });
       return;
     }
 
@@ -262,8 +378,7 @@ export function ReadingPanel({
       return;
     }
 
-    setFailure(result.message);
-    setPhase('error');
+    dispatch({ type: 'refused', message: result.message });
   };
 
   /**
@@ -295,36 +410,20 @@ export function ReadingPanel({
 
   /** 이 대상을 부르는 말 — 두 사람짜리 화면은 「궁합풀이」라고 적는다 */
   const noun = READING_NOUN[target.kind];
-
-  /*
-    **다 쓴 것과 기다리는 것을 가른다.** 도는 시도가 자리를 잡고 있는 동안에는 버튼을
-    닫지 않는다 — 그 사람이 누르면 DB 가 「끝나면 다시 눌러 주세요」로 답하고, 그것이
-    이 화면이 대신 말해 줄 수 없는 사실이다(다른 대상을 만들고 있을 수도 있다).
-  */
-  const spent = credits !== null && credits.available === 0 && credits.reserved === 0;
   const creditsNote = credits === null ? null : readingCreditsNote(credits);
 
-  /**
-   * **누를 것이 있는가.**
-   *
-   * 동의가 만드는 글은 성공 경로에 버튼이 없다 — 이미 있는 글도, 지금 만들고 있는 것도
-   * 누를 일이 아니다. 남는 자리는 **아무것도 없는 자리** 하나이고, 그때만 버튼이 선다.
-   */
-  const hideMake = automatic && (reading !== null || phase === 'loading');
-
-  /**
-   * **공유는 다 된 내 사주풀이에만 붙는다.**
-   *
-   * 없는 글과 지금 만들고 있는 글에는 보낼 것이 없다 — 그 자리에 버튼을 세우면 누른
-   * 사람이 빈 링크를 받는다. 예시 결과에도 안 붙는다. 그것은 모델이 쓴 글이 아니라
-   * 개발용으로 박아 둔 문자열이고, DB 의 문도 저장된 원문에 없는 글은 안 받는다 —
-   * 화면에서 먼저 막지 않으면 사용자는 이유를 모르는 실패를 본다.
-   *
-   * **인연 궁합만 빠진다.** 거기 있는 상대는 실재하는 계정이고, 그 사람이 동의한
-   * 것은 「이 사람에게 내 여덟 글자를 연다」이지 「누구에게든 연다」가 아니다
-   * (ADR 0012). 나머지 셋은 다 **내가 넣은 자료**라 내보낼지 말지를 넣은 사람이 정한다.
-   */
-  const canShare = target.kind !== 'match' && reading !== null && phase !== 'loading' && !isMock;
+  const chrome = panelChrome({
+    kind: target.kind,
+    noun,
+    loading: phase === 'loading',
+    reading,
+    isMock,
+    credits,
+    automatic,
+    onPage,
+    expanded: readingExpanded,
+    consented,
+  });
 
   /**
    * 만드는 버튼 — **두 자리에 같은 버튼이 선다.**
@@ -337,32 +436,18 @@ export function ReadingPanel({
     <button
       type="button"
       onClick={press}
-      disabled={phase === 'loading' || spent}
+      disabled={chrome.makeDisabled}
       className={
         shape === 'pill'
           ? 'inline-flex min-h-10 w-full items-center justify-center rounded-full bg-accent px-4 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60'
           : 'h-11 w-full shrink-0 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto'
       }
     >
-      {phase === 'loading'
-        ? `${noun} 받는 중…`
-        : reading === null
-          ? `${noun} 받기`
-          : `${noun} 다시 받기`}
+      {chrome.makeLabel}
     </button>
   );
 
-  /**
-   * 글을 읽으러 온 화면에 **이미 글이 있으면** 만드는 버튼은 머리로 올라간다.
-   *
-   * 전에는 글 위에 칸 하나가 통째로 서 있었다 — 권하는 말·안 넘기는 것·버튼. 그런데
-   * 글이 이미 있는 사람에게 그 칸이 하는 말은 버튼 하나뿐이고, 나머지 줄은 **읽을
-   * 이유가 없는 자리**를 차지하고 있었다. 제목 옆에 「언제 만들었나」, 그 아래 보내기와
-   * 다시 받기 — 그것이 이 화면에서 글 말고 있어야 하는 전부다.
-   */
-  const makeInHeader = onPage && reading !== null && !hideMake;
-
-  const makeBlock = hideMake ? null : (
+  const makeBlock = chrome.hideMake ? null : (
     <div
       className={`flex flex-col gap-3 ${onPage ? 'rounded-2xl border border-border bg-surface px-5 py-4' : 'border-t border-border pt-5'}`}
     >
@@ -455,7 +540,7 @@ export function ReadingPanel({
               보내기가 본문 아래에 **한 번 더** 있었다 — 같은 일에 손잡이가 셋이면 어느
               것이 무엇인지 세어 봐야 한다.
             */}
-            {(canShare || makeInHeader) && (
+            {(chrome.canShare || chrome.makeInHeader) && (
               /*
                 **둘이면 반반이다.** 글자 길이대로 두면 「사주풀이 다시 받기」가 「공유
                 링크 복사」보다 넓어서, 나란히 선 두 누름이 서로 다른 무게로 보인다.
@@ -463,17 +548,17 @@ export function ReadingPanel({
                 화면에서는 줄을 반씩 나눠 쓰고, 넓은 화면에서는 그 한 쌍이 오른쪽 끝에
                 붙는다. 하나만 설 때는 나눌 것이 없으므로 제 크기로 선다.
               */
-              <div className={canShare && makeInHeader ? 'grid grid-cols-2 gap-2' : 'flex'}>
-                {canShare && <ShareReadingButton target={target} variant="compact" />}
-                {makeInHeader && makeButton('pill')}
+              <div className={chrome.canShare && chrome.makeInHeader ? 'grid grid-cols-2 gap-2' : 'flex'}>
+                {chrome.canShare && <ShareReadingButton target={target} variant="compact" />}
+                {chrome.makeInHeader && makeButton('pill')}
               </div>
             )}
           </div>
         </div>
 
         {/* 다음 글에 대한 말은 그 버튼 아래다 — 사이 물음과 풀이권 이야기 */}
-        {makeInHeader && ask}
-        {makeInHeader && creditsNote !== null && (
+        {chrome.makeInHeader && ask}
+        {chrome.makeInHeader && creditsNote !== null && (
           <p className="text-xs leading-5 text-muted">{creditsNote}</p>
         )}
       </header>
@@ -483,7 +568,7 @@ export function ReadingPanel({
         뒤에 있으면 없는 것과 같다. 카드로 설 때는 반대다 — 거기서는 이 칸이 다른 것들
         사이에 끼어 있어서, 먼저 무엇이 있는지 보이고 나서 만들지 말지를 정한다.
       */}
-      {onPage && !makeInHeader && makeBlock}
+      {onPage && !chrome.makeInHeader && makeBlock}
       {onPage && alert}
 
       {phase === 'loading' ? (
@@ -509,19 +594,11 @@ export function ReadingPanel({
       )}
 
       {/*
-        **읽고 나서 곧바로 묻는다 — 글 바로 아래다.**
+        **읽고 나서 곧바로 묻는다 — 글 바로 아래다.** 시점이 값을 정한다.
 
-        시점이 값을 정한다. 다 읽은 직후가 기억이 가장 선명하고, 여기를 떠난 뒤에 묻는
-        설문은 「대체로 괜찮았다」를 받는다.
-
-        **예시 결과에는 안 붙는다.** 그 글은 모델이 쓴 것이 아니라 개발용으로 박아 둔
-        문자열이라, 그것에 대한 답을 세면 프롬프트 판본별 값이 조용히 오염된다.
-
-        `sourceRunId` 가 없는 글에도 안 붙는다. 이 값이 생기기 전에 저장된 글들이고,
-        어느 시도가 만들었는지 지어 넣지 않았다 — 매달 자리가 없으면 안 묻는다.
-
-        그리고 **동의하지 않았으면 통째로 안 선다.** 「동의하면 더 답할 수 있어요」
-        같은 줄도 세우지 않는다 — 거절한 사람에게 거절을 다시 보여 주는 자리가 된다.
+        무엇이 이 자리를 막는지는 `panelChrome` 의 `asksFeedback` 이 든다(예시 결과·
+        어느 시도가 만들었는지 모르는 옛 글·동의하지 않은 사람). 규칙을 여기 한 벌 더
+        적으면 **두 벌이 언젠가 갈리고, 그때 갈린 줄을 아무도 안 본다.**
       */}
       {/*
         **본문 끝에 공유 칸을 한 번 더 세우지 않는다.**
@@ -531,8 +608,8 @@ export function ReadingPanel({
         세어 봐야 한다. 머리의 두 버튼(보내기·다시 받기)이 한 자리에 있으므로, 다 읽고
         보내려는 사람은 위로 한 번 올라가면 된다.
       */}
-      {(onPage || readingExpanded) && consented && phase !== 'loading' && reading !== null && !isMock
-        && reading.sourceRunId !== null && (
+      {/* `reading` 을 한 번 더 보는 것은 타입 검사기 때문이다 — 판단은 위에서 끝났다 */}
+      {chrome.asksFeedback && reading !== null && reading.sourceRunId !== null && (
         <ReadingFeedback target={target} runId={reading.sourceRunId} given={reading.myFeedback} />
       )}
 
@@ -545,7 +622,7 @@ export function ReadingPanel({
         markup 에 실려 오면 **버튼 글자가 화면에 두 벌** 남는다 — 검사는 그 글자를 세어
         「만드는 버튼이 있나」를 재므로, 안 눌리는 창 하나가 그 답을 늘 참으로 만든다.
       */}
-      {hideMake ? null : (
+      {chrome.hideMake ? null : (
       <dialog
         ref={confirming}
         aria-labelledby="reading-confirm-title"

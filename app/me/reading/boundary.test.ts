@@ -84,22 +84,17 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
    * 들고 있다면 그 화면은 근거 절을 알아보려 하고 있다는 뜻이고, 알아보려 한다는 것은
    * 언젠가 세우려 한다는 뜻이다. 자르는 규칙은 한 자리에만 있어야 한다.
    */
-  /**
-   * **아무것도 시작하지 않은 성공을 말없이 지나가지 않는가.**
-   *
-   * 한 대상에 도는 시도는 하나다(`start_reading_run`). 이미 도는 것이 있으면 이 누름은
-   * 아무것도 열지 않고 `started: false` 로 돌아온다. 그 갈래를 안 보면 누른 사람에게는
-   * 「눌렀는데 그대로」가 된다.
-   *
-   * 갈래는 지우기 쉽다 — `result.ok` 만 보면 코드가 짧아지고 시험도 안 걸린다.
-   */
-  it('결과 칸이 열렸는지 아닌지를 갈라 본다', () => {
-    const panel = files.find(({ path }) => path === 'app/me/reading/panel.tsx');
-    expect(panel, '결과 칸을 찾지 못했다').toBeDefined();
+  /*
+    **「아무것도 시작하지 않은 성공」은 이제 여기서 안 센다.**
 
-    expect(panel!.text).toContain('result.started');
-    expect(panel!.text).toContain('READING_ALREADY_RUNNING_NOTE');
-  });
+    그 갈래를 글자로 재던 자리였다 — `panel.tsx` 가 `result.started` 와
+    `READING_ALREADY_RUNNING_NOTE` 를 들고 있는가. 재던 것이 배선이 아니라 판단이라
+    글자로밖에 못 쟀고, 그래서 **그 갈래에서 어떤 문장이 서는지는 한 번도 안 쟀다.**
+
+    판단이 `reading-state.ts` 로 내려가면서 `reading-state.test.ts` 가 그것을 직접
+    부른다. 남이 연 시도에 얹혔을 때 무엇이 서고, 그것이 끝나면 무엇이 걷히는지까지
+    잰다 — 글자를 세는 줄이 할 수 없던 일이다.
+  */
 
   /**
    * **누름이 모델을 기다리지 않는가.**
