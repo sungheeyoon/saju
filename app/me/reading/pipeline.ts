@@ -14,9 +14,8 @@ import {
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
-import { chartOf } from '@/src/lib/input/chart';
 import { NoKeyError, keyedClient } from '../../keyed-client';
-import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from '@/src/lib/input/revision';
+import { storedChartOf, type StoredInput } from '@/src/lib/input/stored';
 import { readingInputOf } from './generator';
 import { GENERATION } from './generation';
 import { submitBackgroundReading } from './model';
@@ -76,8 +75,8 @@ type StartedRun = { run_id: string };
 type FrozenJob = {
   run_id: string;
   kind: ReadingKind;
-  birth_a: StoredRevision;
-  birth_b: StoredRevision | null;
+  birth_a: StoredInput;
+  birth_b: StoredInput | null;
   about: { names: { a: string; b?: string } | null; relation: string | null };
 };
 
@@ -165,22 +164,29 @@ async function submitFrozen(
     });
   };
 
-  let charts: { a: Saju; b?: Saju };
-  try {
-    charts = {
-      a: chartOf(queryFromRevision(job.birth_a, READING_CHART_NAMES[0])),
-      b:
-        job.birth_b === null
-          ? undefined
-          : chartOf(queryFromRevision(job.birth_b, READING_CHART_NAMES[1])),
-    };
-  } catch (failure) {
-    if (failure instanceof UnreadableRevisionError) {
-      await close('unreadable-revision', failure.message);
-      return;
-    }
-    throw failure;
+  /**
+   * 얼린 입력을 세운다 — **`person` 행이 아니라 값이다**(ADR 0071).
+   *
+   * 못 읽는 입력은 시도를 닫고, 그 밖의 계산 오류는 그대로 던진다. 던진 것은 바깥의
+   * `catch` 가 `unexpected` 로 닫으므로 시도가 열린 채 남지 않는다.
+   */
+  const stood = {
+    a: storedChartOf(job.birth_a, READING_CHART_NAMES[0]),
+    b: job.birth_b === null ? null : storedChartOf(job.birth_b, READING_CHART_NAMES[1]),
+  };
+
+  const unreadable = [stood.a, stood.b].find((one) => one !== null && !one.ok);
+  if (unreadable !== undefined && unreadable !== null && !unreadable.ok) {
+    await close('unreadable-revision', unreadable.message);
+    return;
   }
+
+  if (!stood.a.ok || (stood.b !== null && !stood.b.ok)) return;
+
+  const charts: { a: Saju; b?: Saju } = {
+    a: stood.a.saju,
+    b: stood.b === null ? undefined : stood.b.saju,
+  };
 
   /**
    * 얼려 둔 말을 그대로 쓴다 — **모르는 자리는 지어내지 않는다.**

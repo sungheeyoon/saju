@@ -8,42 +8,18 @@ import {
   type Calendar,
   type ChartSnapshot,
   type CityName,
-  type CivilDate,
   type Gender,
   type LateNightRule,
 } from '../saju';
 
-import { chartOf, solarDateOf } from './chart';
+import { chartOf, isoOf, solarDateOf } from './chart';
 
 import {
-  DEFAULT_QUERY,
   LATE_NIGHT_RULES,
   TIME_BASES,
   type Query,
   type TimeBasis,
 } from './query';
-
-/**
- * DB 가 내주는 **입력 한 벌** — `person` 의 여덟 칸 그대로.
- *
- * 이름이 `StoredRevision` 인 채로 남았다. 가리키던 표는 사라졌지만(ADR 0071 · #70)
- * 이 타입이 드는 것은 **그때나 지금이나 저장된 입력 한 벌**이고, 이름을 바꾸면 이
- * 변경과 상관없는 자리가 스무 곳 함께 깨진다.
- *
- * 전부 `string` 인 것이 요점이다. DB 에 검사식이 걸려 있어도 여기 도착한 값의
- * **타입은 아무것도 약속하지 않는다.** 좁히는 일을 이 자리에서 한 번 한다.
- */
-export type StoredRevision = {
-  calendar: string;
-  original_date: string;
-  solar_date: string;
-  /** `null` 이면 시간 미상. Postgres 는 `HH:MM:SS` 로 준다 */
-  birth_time: string | null;
-  gender: string;
-  city: string;
-  late_night_rule: string;
-  time_basis: string;
-};
 
 /**
  * 입력을 고치면 무엇이 달라지는가 — **화면마다 따로 적지 않는다.**
@@ -58,167 +34,6 @@ export type StoredRevision = {
  */
 export const REVISION_REPLACED_NOTE =
   '수정하면 현재 사주와 궁합은 새 입력으로 계산됩니다. 이전에 본 결과와 다를 수 있습니다.';
-
-/**
- * 지금 엔진으로는 읽을 수 없는 **저장된 입력**.
- *
- * **기본값으로 메우지 않는다.** 모르는 출생지를 서울로 치면 저장할 때 본 사주와
- * 다른 사주가 같은 화면에 나온다. 값은 남아 있고 읽는 쪽이 못 읽는 것이므로,
- * 그렇게 말한다.
- */
-export class UnreadableRevisionError extends Error {
-  readonly field: keyof StoredRevision;
-  readonly value: unknown;
-
-  constructor(field: keyof StoredRevision, value: unknown, reason: string) {
-    super(`저장된 출생 정보를 읽지 못했습니다 — ${reason}`);
-    this.name = 'UnreadableRevisionError';
-    this.field = field;
-    this.value = value;
-  }
-}
-
-/**
- * 못 읽었을 때 **덧붙이는 한 줄** — 세 화면이 같은 것을 말한다.
- *
- * `UnreadableRevisionError` 의 메시지는 **무엇을 못 읽었는지**를 말하고(모르는 출생지,
- * 생년월일 형식이 아님…), 이 줄은 **그것이 무슨 뜻인지**를 말한다. 둘은 언제나 함께 선다.
- *
- * 내 사주·저장한 사람·저장한 사람끼리의 궁합, 세 화면에 손으로 적혀 있었다. 판본을
- * 다루는 정책이 바뀌는 날 셋 중 하나는 안 고쳐지고, 그때 화면마다 다른 약속이 남는다.
- *
- * 공유 결과는 이 줄을 쓰지 않는다 — 거기서 그대로인 것은 저장된 값이 아니라 **두 분의
- * 동의**이고, 그것은 판본이 아니라 동의의 말이다(`MATCH_RESULT_CLOSED_NOTE`).
- */
-export const UNREADABLE_REVISION_NOTE =
-  '저장된 값은 그대로 있습니다. 지금 화면이 그 값을 읽지 못하는 것입니다.';
-
-/**
- * `person` 에서 입력 한 벌을 읽을 때 고르는 열 — **여섯 화면이 같은 글자를 쓴다.**
- *
- * 앞서는 화면마다 이 여덟 이름을 손으로 들고, `person` 에서 판본 id 를 읽고 다시
- * 판본 표를 읽는 **두 걸음**을 각자 적었다(ADR 0071 이 일곱 자리로 셌다). 입력이
- * `person` 으로 내려오면서 **행 하나 읽기**가 됐고 — 그리고 #70 이 그 표를 지웠다 —
- * 고르는 열은 한 자리에 둔다: 여덟 이름을 여섯 벌로 적으면 한 벌이 언젠가 한 칸을
- * 빠뜨린다.
- */
-export const PERSON_INPUT_COLUMNS =
-  'calendar, original_date, solar_date, birth_time, gender, city, late_night_rule, time_basis';
-
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const TIME = /^(\d{2}):(\d{2})(:\d{2}(\.\d+)?)?$/;
-
-/**
- * 저장된 판본을 화면·엔진이 쓰는 입력 한 벌로 바꾼다.
- *
- * 이름은 판본에 없다 — 부를 이름은 엣지(`user_person_access.local_label`)가 든다.
- * 세운을 어느 해부터 볼지도 없다. 그건 보기 설정이지 명식이 아니라서, 저장된 값이
- * 아니라 지금의 기본값이 든다.
- */
-export function queryFromRevision(revision: StoredRevision, localLabel: string): Query {
-  if (!(CALENDARS as readonly string[]).includes(revision.calendar)) {
-    throw new UnreadableRevisionError('calendar', revision.calendar, '모르는 달력 형식입니다');
-  }
-
-  for (const field of ['original_date', 'solar_date'] as const) {
-    if (!DATE.test(revision[field])) {
-      throw new UnreadableRevisionError(field, revision[field], '생년월일 형식이 아닙니다');
-    }
-  }
-
-  /**
-   * **저장할 때 잡은 양력과 지금 표가 내는 양력이 같은가.**
-   *
-   * 판본은 고치지 않기로 했으므로 저장된 `solar_date` 가 그때의 사실이다. 그런데
-   * 화면은 사용자가 적은 원본(`original_date`)을 되돌려 보여줘야 하고, 계산은 그
-   * 원본을 다시 변환해서 한다 — 변환하는 자리를 하나로 두기 위해서다(`solarDateOf`).
-   *
-   * 그 둘이 갈리는 경우는 하나뿐이다: **변환표가 그 사이에 바뀐 것.** 그때 조용히
-   * 새 값으로 계산하면 저장 전후의 사주가 달라지고, 조용히 옛 값을 쓰면 표가 왜
-   * 바뀌었는지 아무도 모른다. 못 읽는 판본이라고 말하는 것이 맞다.
-   */
-  const restated = { ...DEFAULT_QUERY, calendar: revision.calendar as Calendar, date: revision.original_date };
-  let derived: string;
-  try {
-    derived = isoOf(solarDateOf(restated));
-  } catch (error) {
-    throw new UnreadableRevisionError(
-      'original_date',
-      revision.original_date,
-      error instanceof LunarConversionError ? error.message : '양력으로 바꾸지 못했습니다',
-    );
-  }
-
-  if (derived !== revision.solar_date) {
-    throw new UnreadableRevisionError(
-      'solar_date',
-      revision.solar_date,
-      `저장할 때 잡은 양력(${revision.solar_date})과 지금 변환표의 답(${derived})이 다릅니다`,
-    );
-  }
-
-  if (!(GENDERS as readonly string[]).includes(revision.gender)) {
-    throw new UnreadableRevisionError('gender', revision.gender, '모르는 성별입니다');
-  }
-
-  if (!Object.hasOwn(CITY_LONGITUDES, revision.city)) {
-    throw new UnreadableRevisionError('city', revision.city, `모르는 출생지입니다 (${revision.city})`);
-  }
-
-  if (!(LATE_NIGHT_RULES as readonly string[]).includes(revision.late_night_rule)) {
-    throw new UnreadableRevisionError(
-      'late_night_rule',
-      revision.late_night_rule,
-      '모르는 자시 규칙입니다',
-    );
-  }
-
-  if (!(TIME_BASES as readonly string[]).includes(revision.time_basis)) {
-    throw new UnreadableRevisionError('time_basis', revision.time_basis, '모르는 시간 기준입니다');
-  }
-
-  /**
-   * 시각을 모르는 것과 「아직 안 골랐다」는 다르다.
-   *
-   * 판본에 도착한 시점에는 이미 답한 것이므로 `hourKnown` 이 `null` 일 수 없다.
-   * `null` 은 폼에만 있는 상태다.
-   */
-  if (revision.birth_time === null) {
-    return {
-      ...DEFAULT_QUERY,
-      name: localLabel,
-      calendar: revision.calendar as Calendar,
-      // 사용자가 적은 그대로 되돌린다. 양력 변환은 화면이 다시 한다 — 위에서
-      // 저장할 때의 답과 같다는 것을 확인했다.
-      date: revision.original_date,
-      time: '',
-      hourKnown: false,
-      gender: revision.gender as Gender,
-      city: revision.city as CityName,
-      rule: revision.late_night_rule as LateNightRule,
-      basis: revision.time_basis as TimeBasis,
-    };
-  }
-
-  const clock = TIME.exec(revision.birth_time);
-  if (clock === null) {
-    throw new UnreadableRevisionError('birth_time', revision.birth_time, '출생시각 형식이 아닙니다');
-  }
-
-  return {
-    ...DEFAULT_QUERY,
-    name: localLabel,
-    calendar: revision.calendar as Calendar,
-    date: revision.original_date,
-    // 초는 버린다. 폼이 분까지만 받으므로 저장된 초가 있어도 되돌려 보일 자리가 없다.
-    time: `${clock[1]}:${clock[2]}`,
-    hourKnown: true,
-    gender: revision.gender as Gender,
-    city: revision.city as CityName,
-    rule: revision.late_night_rule as LateNightRule,
-    basis: revision.time_basis as TimeBasis,
-  };
-}
 
 /** 판본을 이루는 값 — **여덟 글자를 가르는 것 전부이고, 그 밖은 없다.** */
 export type ChartFields = {
@@ -389,10 +204,4 @@ export function unsupportedForSaving(query: Query): string | null {
     return '시간 기준을 다시 골라 주세요.';
   }
   return null;
-}
-
-/** `CivilDate` 를 DB 가 받는 `YYYY-MM-DD` 로 */
-function isoOf({ year, month, day }: CivilDate): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${year}-${pad(month)}-${pad(day)}`;
 }

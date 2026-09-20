@@ -5,7 +5,7 @@ import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { SajuResult } from '../../../saju/view';
-import { UnreadableRevisionError } from '@/src/lib/input/revision';
+import { UNREADABLE_INPUT_NOTE } from '@/src/lib/input/stored';
 import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { payloadForViewer } from '../../payload';
@@ -44,20 +44,27 @@ export default async function PersonSajuPage({
   }
 
   const { personId } = await params;
-  let person;
-  try {
-    person = await payloadForViewer(personId);
-  } catch (error) {
-    if (error instanceof UnreadableRevisionError) {
-      return (
-        <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-12">
-          <p className="rounded-[1.75rem] border border-border bg-surface p-5 text-sm">{error.message}</p>
-        </main>
-      );
-    }
-    throw error;
+  const view = await payloadForViewer(personId);
+  if (view === null) notFound();
+
+  /**
+   * 못 읽는 입력은 **메우지 않는다** — 저장된 값은 그대로 있고 읽는 쪽이 못 읽는 것이다.
+   *
+   * 앞서는 이 자리가 `instanceof` 로 예외를 받았다. 받는 것을 잊으면 500 이 되는 모양이라
+   * 문이 값으로 내주는 쪽으로 옮겼다(`PersonView`).
+   */
+  if (view.kind === 'unreadable-input') {
+    return (
+      <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-12">
+        <section className="flex flex-col gap-2 rounded-[1.75rem] border border-border bg-surface p-5">
+          <p className="text-sm">{view.message}</p>
+          <p className="text-xs text-muted">{UNREADABLE_INPUT_NOTE}</p>
+        </section>
+      </main>
+    );
   }
-  if (!person) notFound();
+
+  const person = view.payload;
 
   /**
    * 내 명식이면 풀이 칸은 `/me` 의 것이다 — 두 자리에 세우면 글이 둘 선다.

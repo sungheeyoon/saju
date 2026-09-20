@@ -26,6 +26,19 @@ export function solarDateOf(query: Query): CivilDate {
 }
 
 /**
+ * `CivilDate` 를 `YYYY-MM-DD` 로 — **한 자리에서 만든다.**
+ *
+ * 저장하는 쪽(`p_solar_date`), 저장된 입력을 되읽는 쪽(양력 대조), 화면에 적는 쪽
+ * (「계산에 쓴 양력 날짜」)이 같은 글자를 만들어야 한다. 세 벌로 적혀 있었고 그중
+ * 하나라도 자리수를 다르게 채우면 **대조가 조용히 틀린다** — 비교하는 값이지
+ * 보여주기만 하는 값이 아니다.
+ */
+export function isoOf({ year, month, day }: CivilDate): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${year}-${pad(month)}-${pad(day)}`;
+}
+
+/**
  * 입력 한 벌을 명식으로 바꾸는 **한 자리.**
  *
  * 원국 화면과 궁합 화면이 각자 들고 있었다. 그러면 한쪽만 고쳐져서 「같은 값을

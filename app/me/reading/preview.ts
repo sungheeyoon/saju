@@ -10,13 +10,8 @@ import { accountNoticeOf, selfPersonIdOf } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { readAccount } from '../account';
-import { chartOf } from '@/src/lib/input/chart';
-import {
-  PERSON_INPUT_COLUMNS,
-  UnreadableRevisionError,
-  queryFromRevision,
-  type StoredRevision,
-} from '@/src/lib/input/revision';
+import { storedChartOf } from '@/src/lib/input/stored';
+import { storedInputOf } from '../person-input';
 import { READING_CHART_NAMES } from './pipeline';
 
 /**
@@ -79,13 +74,8 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
   const selfPersonId = selfPersonIdOf(state);
   if (selfPersonId === null) return { ok: false, message: '내 사주를 먼저 등록해 주세요.' };
 
-  const { data: person } = await supabase
-    .from('person')
-    .select(PERSON_INPUT_COLUMNS)
-    .eq('id', selfPersonId)
-    .maybeSingle();
-
-  if (!person?.calendar) return { ok: false, message: '저장된 출생 정보를 찾지 못했습니다.' };
+  const person = await storedInputOf(supabase, selfPersonId);
+  if (person === null) return { ok: false, message: '저장된 출생 정보를 찾지 못했습니다.' };
 
   /**
    * 이름 자리에 **파이프라인이 쓰는 말**을 넣는다(`READING_CHART_NAMES`).
@@ -95,12 +85,12 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
    * 언젠가 이름이 계산에 닿게 되는 날 **미리보기만 조용히 다른 값을 쓰지 않게**
    * 하려는 것이다. 지금 갈려도 아무 일도 안 일어나는 자리가 가장 늦게 발견된다.
    */
+  const stood = storedChartOf(person.input, READING_CHART_NAMES[0]);
+  if (!stood.ok) return { ok: false, message: stood.message };
+
   const viewedAt = new Date();
   try {
-    const chart = chartOf(
-      queryFromRevision(person as unknown as StoredRevision, READING_CHART_NAMES[0]),
-    );
-    const evidence = readingEvidenceOf('self', { a: chart }, viewedAt);
+    const evidence = readingEvidenceOf('self', { a: stood.saju }, viewedAt);
 
     return {
       ok: true,
@@ -119,7 +109,6 @@ export async function selfReadingPreview(): Promise<PreviewResult> {
       },
     };
   } catch (failure) {
-    if (failure instanceof UnreadableRevisionError) return { ok: false, message: failure.message };
     if (failure instanceof ReadingEvidenceError) return { ok: false, message: failure.message };
     throw failure;
   }

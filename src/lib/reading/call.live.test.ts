@@ -3,7 +3,7 @@ import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest';
 
 import { loadLocalEnv } from '@/src/lib/local-env';
-import { computeSaju } from '@/src/lib/saju';
+import { computeSaju, type Saju } from '@/src/lib/saju';
 import {
   CONTROL,
   MATCH_INPUT_FIELDS,
@@ -527,14 +527,19 @@ describe.skipIf(!pairLive)('비공개 궁합 두 판이 같은 자료에서 실�
  *
  * 이 결과는 AI 설명 품질의 비교이지 실제 관계가 잘 되는지의 검증이 아니다.
  */
+/** 세워진 명식을 집는다 — 못 읽는 입력으로는 실험을 시작하지 않는다 */
+function sajuOf(result: { ok: true; saju: Saju } | { ok: false; message: string }): Saju {
+  if (!result.ok) throw new Error(`저장된 입력을 읽지 못했다: ${result.message}`);
+  return result.saju;
+}
+
 describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으로 부른다', () => {
   it('두 판을 같은 조건으로 부르고 호출·계약·사람 확인을 갈라 떨군다', { timeout: 3_600_000 }, async () => {
     const { existsSync } = await import('node:fs');
     const { createHash } = await import('node:crypto');
     const { MATCH_INPUT_FIXTURES, aggregateMatchRuns, blindPacket, chartsOf, measureMatchRun, secretsOf } =
       await import('./match-input-eval');
-    const { chartOf } = await import('@/src/lib/input/chart');
-    const { queryFromRevision } = await import('@/src/lib/input/revision');
+    const { storedChartOf } = await import('@/src/lib/input/stored');
     const { relationSentence, RELATIONS } = await import('@/src/lib/people');
 
     const dry = process.env.READING_MATCH_DRY === '1';
@@ -566,8 +571,8 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
         id: pair.id,
         asks: '저장된 명식 한 쌍 — 사람 이름 대신 A·B 로 부른다',
         charts: {
-          a: chartOf(queryFromRevision(pair.a.revision, 'A')),
-          b: chartOf(queryFromRevision(pair.b.revision, 'B')),
+          a: sajuOf(storedChartOf(pair.a.revision, 'A')),
+          b: sajuOf(storedChartOf(pair.b.revision, 'B')),
         },
         secrets: [pair.a.revision, pair.b.revision].map((revision) => ({
           originalDate: revision.original_date,

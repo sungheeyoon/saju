@@ -1,7 +1,7 @@
 import { baselineIn, checkReading, isScored, type BirthSecret, type ReadingKind } from '@/src/lib/reading';
 
 import { keyedClient } from '../../keyed-client';
-import type { StoredRevision } from '@/src/lib/input/revision';
+import type { StoredInput } from '@/src/lib/input/stored';
 
 import type { ModelUsage } from './generator';
 import { retrieveBackgroundReading } from './model';
@@ -28,7 +28,7 @@ export type CollectOutcome =
   | { done: 'pending' }
   | { done: 'skipped'; why: string };
 
-const secretOf = (birth: StoredRevision): BirthSecret => ({
+const secretOf = (birth: StoredInput): BirthSecret => ({
   originalDate: birth.original_date,
   solarDate: birth.solar_date,
   birthTime: birth.birth_time,
@@ -44,8 +44,8 @@ type ClaimedJob = {
   requested_model: string;
   generation: Record<string, unknown>;
   viewed_at: string;
-  birth_a: StoredRevision;
-  birth_b: StoredRevision | null;
+  birth_a: StoredInput;
+  birth_b: StoredInput | null;
 };
 
 export async function collectReadingResult(responseId: string): Promise<CollectOutcome> {

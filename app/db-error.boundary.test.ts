@@ -16,6 +16,13 @@ import { describe, expect, it } from 'vitest';
  * 날 때까지 아무도 모른다.
  *
  * 그래서 원본을 읽어서 잠근다. 이 시험이 재는 것은 계산이 아니라 **배선**이다.
+ *
+ * ## 목록이 줄어든 날
+ *
+ * 저장된 입력을 세우는 문이 못 읽는 입력을 **값으로** 내면서(`storedChartOf`) 화면 넷이
+ * 여기서 빠졌다 — `/me` · 사람 목록 · 사람 상세 · 궁합. 넷 다 `instanceof` 로 예외를 받아
+ * `error.message` 를 직접 집던 자리였다. **예외를 값으로 바꾸면 이 목록이 짧아진다**는
+ * 것이 그 변경이 남긴 값이다.
  */
 
 const ROOTS = ['app', 'src'];
@@ -36,16 +43,12 @@ const ALLOWED: Readonly<Record<string, string>> = {
   'app/db-error.boundary.test.ts': '이 시험이 찾는 낱말을 스스로 들고 있다',
 
   /* 오류 경계 — 여기 닿는 Error 는 이미 한 문을 지나 우리말이다(`dbFailure`) */
-  'app/me/page.tsx': '오류 경계 — 던지는 자리가 이미 번역한 Error 를 세운다',
-  'app/me/people/[personId]/page.tsx': '오류 경계 — 같다',
-  'app/me/requests/page.tsx': '오류 경계 — 같다',
+  'app/me/requests/page.tsx': '오류 경계 — 던지는 자리가 이미 번역한 Error 를 세운다',
 
   /* 엔진이 우리말로 내는 오류 — DB 거절이 아니다 */
   'app/birth-form.tsx': 'LunarConversionError — 엔진이 우리말로 낸다',
   'src/lib/input/revision.ts': 'LunarConversionError — 같다',
   'src/lib/input/chart.ts': '명식 계산 실패 — 엔진 오류지 DB 거절이 아니다',
-  'app/me/people/page.tsx': 'UnreadableRevisionError — 우리가 우리말로 지은 것',
-  'app/me/compat/page.tsx': 'UnreadableRevisionError — 같다',
 
   /* 사용자 화면이 아닌 자리 */
   'app/me/reading/pipeline.ts': '화면이 아니라 DB 에 적는다(`p_failure_detail`)',

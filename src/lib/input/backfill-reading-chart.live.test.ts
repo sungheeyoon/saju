@@ -6,8 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { loadLocalEnv } from '@/src/lib/local-env';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 
-import { chartOf } from './chart';
-import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from './revision';
+import { storedChartOf, type StoredInput } from './stored';
 
 /**
  * 이미 쌓인 Match 와 Reading 에 **동의·생성 당시 여덟 글자**를 채운다 (ADR 0071 · #68).
@@ -44,7 +43,7 @@ import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from 
  * ## 원문도 비밀값도 기록에 안 남는다
  *
  * 찍는 것은 개수와 불투명 id 뿐이다. 생년월일시·출생지·부를 이름은 한 번도 안 찍고,
- * 부를 이름은 **읽지도 않는다** — `queryFromRevision` 이 요구하므로 자리표만 넘긴다.
+ * 부를 이름은 **읽지도 않는다** — `storedChartOf` 가 요구하므로 자리표만 넘긴다.
  */
 
 const on = process.env.BACKFILL_READING_CHART === '1';
@@ -141,7 +140,7 @@ const BIRTH_COLUMNS = `r.calendar,
   r.late_night_rule,
   r.time_basis`;
 
-const birthOf = (row: Row, prefix = ''): StoredRevision => ({
+const birthOf = (row: Row, prefix = ''): StoredInput => ({
   calendar: row[`${prefix}calendar`],
   original_date: row[`${prefix}original_date`],
   solar_date: row[`${prefix}solar_date`],
@@ -157,15 +156,17 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const quoted = (value: unknown): string => `'${JSON.stringify(value).replaceAll("'", "''")}'`;
 
-/** 한 칸을 센다 — 못 읽는 판본이면 까닭만 남기고 건너뛴다 */
-function glyphsFor(birth: StoredRevision): { chart: unknown } | { why: string } {
-  try {
-    return { chart: chartSnapshotOf(chartOf(queryFromRevision(birth, PLACEHOLDER)).pillars) };
-  } catch (error) {
-    return {
-      why: error instanceof UnreadableRevisionError ? `못 읽는 판본 (${error.field})` : '계산 실패',
-    };
-  }
+/**
+ * 한 칸을 센다 — 못 읽는 입력이면 까닭만 남기고 건너뛴다.
+ *
+ * 계산 오류는 값으로 안 온다(`storedChartOf`). 그건 이 백필이 삼킬 일이 아니라
+ * 터져야 할 일이라, 여기서 `'계산 실패'` 로 뭉개지 않는다.
+ */
+function glyphsFor(birth: StoredInput): { chart: unknown } | { why: string } {
+  const stood = storedChartOf(birth, PLACEHOLDER);
+  if (!stood.ok) return { why: `못 읽는 입력 (${stood.field})` };
+
+  return { chart: chartSnapshotOf(stood.saju.pillars) };
 }
 
 const counts = () => {
