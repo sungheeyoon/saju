@@ -39,7 +39,6 @@ export default async function MatchingPreviewPage() {
       teaser={DISCOVERY_TEASER}
       notice={null}
       explorationNote={null}
-      hiddenCount={0}
       waitSeconds={0}
       preview
     />

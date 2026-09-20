@@ -100,29 +100,11 @@ export async function refreshDiscoveryBoard(): Promise<SaveResult> {
 }
 
 /**
- * 그만 보기로 한 사람을 **한꺼번에** 되돌린다.
+ * 이 사람은 **지금은** 지나친다.
  *
- * 한 명씩 되돌리는 화면을 만들려면 그 사람이 누구인지 이름으로 보여야 하는데, 우리는
- * 감춘 사람의 별명을 붙들고 있지 않다 — 감춘 뒤에는 그 프로필을 읽을 이유가 없기
- * 때문이다. 그래서 화면은 「몇 명」까지만 말하고 되돌리기는 전부다.
- */
-export async function unhideAllCandidates(): Promise<SaveResult> {
-  const supabase = await supabaseOnServer();
-
-  // 정책이 자기 행만 열어 주므로 `user_id` 를 적지 않는다. 조건은 모양만 남긴다.
-  const { error } = await supabase.from('discovery_hidden').delete().not('hidden_user_id', 'is', null);
-
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'discovery_hidden.clear') };
-
-  refresh('hidden-cleared');
-  return { ok: true };
-}
-
-/**
- * 이 사람은 **지금은** 지나친다 — 「다시 보지 않기」와 다른 표다.
- *
- * `discovery_hidden` 은 직접 풀기 전까지 영원하고, 이쪽은 최근 스물과 24시간이 수명을
- * 정한다(`discovery_passed_active`). 둘을 한 표에 담으면 낱말 하나가 두 뜻을 갖는다.
+ * 수명은 최근 스물과 24시간이 정한다(`discovery_passed_active`) — 영구 제외가 아니라
+ * **잠시 넘기고 다시 꺼낼 수 있는 보관**이다. 접촉을 끊는 차단과 한 표에 담지 않는 까닭이
+ * 그것이다: 한 낱말이 두 뜻을 갖는 순간 어느 쪽도 못 말한다.
  *
  * **같은 사람을 다시 넘기면 맨 위로 옮긴다** — 겹쳐 쌓지 않는다. 그래서 `user_id` 를
  * 손으로 싣는다: 기본값이 `auth.uid()` 라도 충돌 대상 칼럼이 payload 에 있어야 upsert

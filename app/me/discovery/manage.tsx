@@ -15,7 +15,6 @@ import {
   refreshDiscoveryBoard,
   savePreferGender,
   setDiscoveryParticipation,
-  unhideAllCandidates,
 } from './actions';
 import { PREFER_GENDER_KO, PREFER_GENDER_ORDER, type PreferGender } from './profile';
 
@@ -247,43 +246,5 @@ export function RefreshBoard({ waitSeconds }: { waitSeconds: number }) {
       )}
       {failure !== null && <span className="text-xs leading-5 text-muted">{failure}</span>}
     </span>
-  );
-}
-
-/**
- * 감춘 사람 되돌리기 — **누구인지는 적지 않는다.**
- *
- * 감춘 뒤에는 그 사람의 프로필을 읽을 이유가 없어서 별명을 붙들고 있지 않다. 그래서
- * 화면은 몇 명인지까지만 말한다.
- */
-export function UnhideAll({ count }: { count: number }) {
-  const router = useRouter();
-  const [failure, setFailure] = useState<string | null>(null);
-  const [working, startWorking] = useTransition();
-
-  if (count === 0) return null;
-
-  const unhide = () => {
-    setFailure(null);
-    startWorking(async () => {
-      const result = await unhideAllCandidates();
-      if (result.ok) router.refresh();
-      else setFailure(result.message);
-    });
-  };
-
-  return (
-    <p className="flex flex-wrap items-center gap-3 text-xs text-muted">
-      <span>다시 보지 않기로 한 사람 {count}명. 누구인지는 여기 적지 않습니다.</span>
-      <button
-        type="button"
-        onClick={unhide}
-        disabled={working}
-        className="text-accent underline underline-offset-2 disabled:opacity-60"
-      >
-        {working ? '되돌리는 중…' : '모두 되돌리기'}
-      </button>
-      {failure !== null && <span>{failure}</span>}
-    </p>
   );
 }

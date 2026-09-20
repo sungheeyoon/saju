@@ -67,8 +67,6 @@ export type Changed =
   | 'discovery-settings-changed'
   /** 목록을 새로 받았다 — 스냅샷 시각이 바뀌어 덱이 통째로 다시 선다 */
   | 'board-refreshed'
-  /** 감춘 사람을 모두 되돌렸다 */
-  | 'hidden-cleared'
   /**
    * 덱에서 지나치거나 요청했다 — **덱이 선 화면은 일부러 안 든다.**
    *
@@ -105,7 +103,6 @@ const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'consent-changed': [{ path: '/me/settings' }, { path: '/me' }],
   'discovery-settings-changed': [{ path: '/me/settings' }],
   'board-refreshed': [{ path: '/me' }, { path: '/me/matching' }],
-  'hidden-cleared': [{ path: '/me' }, { path: '/me/matching' }],
   'deck-moved': [{ path: '/me' }],
   'match-requested': [{ path: '/me' }, { path: '/me/requests' }],
   'requests-changed': [{ path: '/me/requests' }, { path: '/me' }],

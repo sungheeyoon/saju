@@ -67,10 +67,8 @@ grant select on folks to authenticated;
  * 파일은 「DB 가 비어 있는가」를 재게 된다.
  */
 reset role;
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select (select uid from folks where i = 1), p.user_id
-from public.discovery_profile p
-where p.user_id not in (select uid from folks);
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
+where user_id not in (select uid from folks);
 
 create temporary table me as select uid from folks where i = 1;
 grant select on me to authenticated;
@@ -279,8 +277,8 @@ select is(
  * 후보를 열둘로 줄이면 새로 뽑을 사람이 둘뿐이다. 그래도 열 자리를 채운다 — 못 채우면
  * 목록이 하루아침에 두 명으로 줄어든 것처럼 보인다.
  */
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select (select uid from me), user_id from scores where rnk > 12;
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
+where user_id in (select user_id from scores where rnk > 12);
 
 create temporary table shallow as
 select public.refresh_discovery_snapshot_for((select uid from me), 'shallow') as id;
@@ -291,8 +289,8 @@ select is(
   10,
   '풀이 얕으면 직전 스냅샷 사람으로 채워 열을 세운다');
 
-delete from public.discovery_hidden
-where user_id = (select uid from me) and hidden_user_id in (select user_id from scores where rnk > 12);
+update public.discovery_profile set opted_in_at = now(), opted_out_at = null
+where user_id in (select user_id from scores where rnk > 12);
 
 -- ── 읽는 함수 ─────────────────────────────────────────────────────────────────
 
@@ -313,13 +311,13 @@ select is(
   '읽기만으로는 세대가 늘지 않는다');
 
 /** 그 사이 자격을 잃은 사람은 빠진다 — 자리를 메우지 않는다. 메우는 것은 다시 뽑는 일이다 */
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select (select uid from me), candidate_user_id
-from public.discovery_snapshot_slot
-where snapshot_id = (
-  select id from public.discovery_snapshot where user_id = (select uid from me)
-  order by seq desc limit 1)
-order by position limit 1;
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
+where user_id = (
+  select candidate_user_id from public.discovery_snapshot_slot
+  where snapshot_id = (
+    select id from public.discovery_snapshot where user_id = (select uid from me)
+    order by seq desc limit 1)
+  order by position limit 1);
 
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
@@ -406,14 +404,13 @@ reset role;
 /**
  * **지금 실제로 후보인 사람을 고른다.**
  *
- * 앞 블록이 「그 사이 자격을 잃은 사람」을 재려고 숨김 한 줄을 남겨 둔다. 점수 순으로
+ * 앞 블록이 「그 사이 자격을 잃은 사람」을 재려고 한 명의 참여를 꺼 둔다. 점수 순으로
  * 첫 사람을 집으면 그 줄과 겹칠 수 있고, 그러면 이 시험은 **지나치기와 무관한 이유로**
  * 빨개진다 — 재려는 것은 지나치기가 후보 자격을 어떻게 바꾸는가다.
  */
--- 앞의 숨김 검사가 남긴 한 명을 복원해 이 절에서는 표시 상한만 잰다.
--- 최근 20명 중 숨긴 사람이 있으면 19명만 표시하는 계약은 30번 파일에서 별도로 잰다.
-delete from public.discovery_hidden
-where user_id = (select uid from me) and hidden_user_id in (select user_id from scores);
+-- 앞 절이 참여를 끈 한 명을 되살려, 이 절에서는 표시 상한만 잰다.
+update public.discovery_profile set opted_in_at = now(), opted_out_at = null
+where user_id in (select user_id from scores);
 
 create temporary table passer as
 select user_id from scores

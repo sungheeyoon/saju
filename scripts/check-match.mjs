@@ -106,12 +106,8 @@ for (const [client, nickname, intro] of [
  */
 const isolate = (emails) => {
   const list = emails.map((email) => `'${email}'`).join(', ');
-  sql(`insert into public.discovery_hidden (user_id, hidden_user_id)
-       select mine.id, p.user_id
-       from auth.users mine, public.discovery_profile p
-       where mine.email in (${list})
-         and p.user_id not in (select id from auth.users where email in (${list}))
-       on conflict do nothing`);
+  sql(`update public.discovery_profile set opted_in_at = null, opted_out_at = now()
+       where user_id not in (select id from auth.users where email in (${list}))`);
 };
 
 isolate([aMail, bMail, cMail]);
@@ -340,7 +336,7 @@ try {
       other.includes(`${NAME.a} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다`));
   }
 
-  // ── 9. 차단은 「다시 보지 않기」보다 넓다 ───────────────────────────────────
+  // ── 9. 차단은 요청과 성립한 Match 까지 거둔다 ───────────────────────────────
   {
     await a.rpc('block_user', { p_user_id: userId(bMail) });
 

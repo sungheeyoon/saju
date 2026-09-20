@@ -76,7 +76,6 @@ export default async function MatchingPage() {
     그러면 추천에서는 빠져 있는데 꺼낼 자리도 없는 사람이 생긴다.
   */
   const passed = await passedForViewer(self.summary);
-  const { data: hidden } = await supabase.from('discovery_hidden').select('hidden_user_id');
 
   /*
     **증표를 뗀 평범한 값으로 넘긴다.** `CandidateCard` 는 밖에서 지을 수 없게 심볼
@@ -124,7 +123,6 @@ export default async function MatchingPage() {
       teaser={board.teaser}
       notice={board.notice}
       explorationNote={board.explorationNote}
-      hiddenCount={(hidden ?? []).length}
       waitSeconds={stamp?.waitSeconds ?? 0}
     />
   );

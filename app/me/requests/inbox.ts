@@ -183,8 +183,8 @@ export async function inboxForViewer(): Promise<Inbox> {
     supabase.rpc('my_match_requests'),
     supabase.rpc('my_matches'),
     supabase.rpc('my_notifications'),
-    // 차단 목록은 정책이 자기 행만 연다. **누구인지는 세지 않고 몇인지만 센다**
-    // (「다시 보지 않기」와 같은 이유 — 감춘 뒤에는 그 프로필을 읽을 이유가 없다).
+    // 차단 목록은 정책이 자기 행만 연다. **누구인지는 세지 않고 몇인지만 센다** —
+    // 차단한 뒤에는 그 사람의 프로필을 읽을 이유가 없다.
     supabase.from('block').select('blocked_user_id'),
   ]);
 

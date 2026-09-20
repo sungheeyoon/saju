@@ -109,12 +109,8 @@ grant select on mine to authenticated, service_role;
 reset role;
 
 /** 다른 시험이 남긴 참여자는 이 파일의 관심 밖이다(10·11번과 같은 이유) */
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select mine.uid, p.user_id
-from (select kim as uid from folks union all select lee from folks
-      union all select choi from folks) mine,
-     public.discovery_profile p
-where p.user_id not in (select uid from (
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
+where user_id not in (select uid from (
   select kim as uid from folks union all select lee from folks
   union all select choi from folks) ours);
 

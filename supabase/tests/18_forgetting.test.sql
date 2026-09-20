@@ -53,11 +53,8 @@ select
 grant select on folks to authenticated, service_role;
 
 reset role;
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select mine.uid, p.user_id
-from (select kim as uid from folks union all select lee from folks) mine,
-     public.discovery_profile p
-where p.user_id not in (select kim from folks union all select lee from folks);
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
+where user_id not in (select kim from folks union all select lee from folks);
 set local role authenticated;
 
 /**

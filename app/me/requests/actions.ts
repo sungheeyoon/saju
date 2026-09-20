@@ -89,7 +89,7 @@ export async function cancelRequest(requestId: string): Promise<RespondResult> {
 }
 
 /**
- * 차단한다 — **「다시 보지 않기」와 다른 일이다.**
+ * 차단한다 — **양방향이고 되돌리지 않는다.**
  *
  * 살아 있던 요청까지 거두는 것은 RPC 가 한 트랜잭션에서 한다. 여기서 나눠 부르면
  * 「차단했는데 그 사람의 요청은 그대로 떠 있는」 상태가 실재하게 된다.

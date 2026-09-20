@@ -128,8 +128,8 @@ export function CancelButton({ requestId }: { requestId: string }) {
 /**
  * 차단 — **한 번 더 묻는다.**
  *
- * 「다시 보지 않기」와 달리 살아 있던 요청까지 거두고, 성립한 Match 도 목록에서
- * 내려간다. 되돌리기 쉬운 일이 아니므로 무엇이 일어나는지 읽고 누르게 한다.
+ * 살아 있던 요청까지 거두고, 성립한 Match 도 목록에서 내려간다. **되돌릴 수 없으므로**
+ * 무엇이 일어나는지 읽고 누르게 한다.
  */
 export function BlockButton({ userId }: { userId: string }) {
   const router = useRouter();
@@ -309,8 +309,8 @@ export function ReadNotificationsOnVisit({ unread }: { unread: number }) {
 /**
  * 차단한 사람이 몇인지 — **누구인지는 적지 않는다.**
  *
- * 차단한 뒤에는 그 사람의 프로필을 읽을 이유가 없어서 별명을 붙들고 있지 않다
- * (「다시 보지 않기」와 같다). 푸는 버튼도 없다 — 차단은 되돌리지 않는다(용어집).
+ * 차단한 뒤에는 그 사람의 프로필을 읽을 이유가 없어서 별명을 붙들고 있지 않다.
+ * 푸는 버튼도 없다 — 차단은 되돌리지 않는다(용어집).
  */
 export function BlockedCount({ count }: { count: number }) {
   if (count === 0) return null;

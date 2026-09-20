@@ -8,7 +8,7 @@ import { initialOf } from '@/src/lib/profile';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
-import { RefreshBoard, UnhideAll } from '../discovery/manage';
+import { RefreshBoard } from '../discovery/manage';
 import styles from './matching.module.css';
 import { deckReducer, PASSED_LIMIT } from './deck-state';
 import { PassedConnections } from './passed-connections';
@@ -69,7 +69,6 @@ export function MatchingExperience({
   teaser,
   notice,
   explorationNote,
-  hiddenCount,
   waitSeconds,
   passed: passedFromServer = EMPTY_CARDS,
   preview = false,
@@ -80,7 +79,6 @@ export function MatchingExperience({
   teaser: string;
   notice: string | null;
   explorationNote: string | null;
-  hiddenCount: number;
   waitSeconds: number;
   /** 디자인 확인용 — **요청이 나가지 않고**, 목록을 건드리는 누름도 서지 않는다 */
   preview?: boolean;
@@ -353,7 +351,6 @@ export function MatchingExperience({
               {!preview && (
                 <div className={styles.emptyActions}>
                   <RefreshBoard waitSeconds={waitSeconds} />
-                  <UnhideAll count={hiddenCount} />
                 </div>
               )}
             </div>

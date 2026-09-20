@@ -1,6 +1,6 @@
 -- 중지된 계정 — **읽지도 쓰지도 못한다.** 판정은 앱이 아니라 정책이 든다.
 begin;
-select plan(11);
+select plan(10);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -60,11 +60,6 @@ with changed as (
   update public.user_person_access set local_label = '바꿔치기' returning 1
 )
 select is((select count(*)::int from changed), 0, '부를 이름을 못 고친다');
-
-with removed as (
-  delete from public.discovery_hidden returning 1
-)
-select is((select count(*)::int from removed), 0, '감춘 목록도 못 건드린다');
 
 select throws_ok(
   $$select public.save_my_profile('새이름', null)$$,
