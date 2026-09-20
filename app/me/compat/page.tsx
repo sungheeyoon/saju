@@ -12,11 +12,8 @@ import { MatchResult } from '../../compat-match';
 import { ScoringNote } from '../../match-index';
 import { pairRelationFor } from './actions';
 import { CompatHero } from '../../compat-hero';
-import {
-  REVISION_REPLACED_NOTE,
-  UNREADABLE_REVISION_NOTE,
-  UnreadableRevisionError,
-} from '@/src/lib/input/revision';
+import { REVISION_REPLACED_NOTE } from '@/src/lib/input/revision';
+import { UNREADABLE_INPUT_NOTE } from '@/src/lib/input/stored';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { payloadForViewer, type PersonPayload } from '../payload';
@@ -215,19 +212,7 @@ async function pairOutcome(a: string | null, b: string | null): Promise<Outcome>
    */
   if (a === b) return { kind: 'same' };
 
-  let payloads;
-  try {
-    payloads = await Promise.all([payloadForViewer(a), payloadForViewer(b)]);
-  } catch (error) {
-    /**
-     * 못 읽는 판본은 **기본값으로 메우지 않는다.** 저장된 값은 그대로 있고 읽는
-     * 쪽이 못 읽는 것이므로, 그렇게 말하고 멈춘다(`/me` 와 같은 규율).
-     */
-    if (error instanceof UnreadableRevisionError) return { kind: 'unreadable', message: error.message };
-    throw error;
-  }
-
-  const [first, second] = payloads;
+  const [one, other] = await Promise.all([payloadForViewer(a), payloadForViewer(b)]);
 
   /**
    * **없는 사람과 못 보는 사람을 같은 말로 거절한다.**
@@ -237,9 +222,27 @@ async function pairOutcome(a: string | null, b: string | null): Promise<Outcome>
    * `payloadForViewer` 는 둘 다 `null` 을 내고, 그 `null` 을 응답으로 바꾸는 곳이
    * 이 한 줄뿐이다. HTTP 상태·문장·화면 종류·응답 구조 넷이 그래서 같다.
    */
-  if (first === null || second === null) notFound();
+  if (one === null || other === null) notFound();
 
-  return { kind: 'ok', first, second, pair: { personA: a, personB: b } };
+  /**
+   * 못 읽는 입력은 **기본값으로 메우지 않는다.** 저장된 값은 그대로 있고 읽는
+   * 쪽이 못 읽는 것이므로, 그렇게 말하고 멈춘다(`/me` 와 같은 규율).
+   *
+   * 한쪽만 못 읽어도 궁합은 못 선다 — 두 명식이 다 있어야 맞대어 볼 수 있다.
+   */
+  const unreadable = [one, other].find((view) => view.kind === 'unreadable-input');
+  if (unreadable !== undefined && unreadable.kind === 'unreadable-input') {
+    return { kind: 'unreadable', message: unreadable.message };
+  }
+
+  if (one.kind !== 'ok' || other.kind !== 'ok') notFound();
+
+  return {
+    kind: 'ok',
+    first: one.payload,
+    second: other.payload,
+    pair: { personA: a, personB: b },
+  };
 }
 
 async function Result({ outcome }: { outcome: Outcome }) {
@@ -263,7 +266,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
     return (
       <section className={`${CARD} flex flex-col gap-2`}>
         <p className="text-sm">{outcome.message}</p>
-        <p className="text-xs text-muted">{UNREADABLE_REVISION_NOTE}</p>
+        <p className="text-xs text-muted">{UNREADABLE_INPUT_NOTE}</p>
       </section>
     );
   }

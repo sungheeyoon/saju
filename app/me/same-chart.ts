@@ -1,12 +1,8 @@
 import { chartFingerprint, chartOf } from '@/src/lib/input/chart';
 import type { Query } from '@/src/lib/input/query';
-import {
-  PERSON_INPUT_COLUMNS,
-  UnreadableRevisionError,
-  queryFromRevision,
-  type StoredRevision,
-} from '@/src/lib/input/revision';
+import { storedChartOf } from '@/src/lib/input/stored';
 import { supabaseOnServer } from '../auth/server-client';
+import { storedInputsOf } from './person-input';
 
 /**
  * 이미 저장돼 있는 같은 명식 — **저장하기 전에 묻기 위한 값.**
@@ -36,7 +32,7 @@ export type SameChart = {
  * ## 왜 DB 에 안 묻나
  *
  * **DB 는 명식을 계산할 수 없다.** 절기·자시·경도 판정이 TypeScript 엔진에 있고, 저장하는
- * 것은 명식이 아니라 입력이다(ADR 0001). 그래서 견주려면 저장된 판본을 읽어 **같은
+ * 것은 명식이 아니라 입력이다(ADR 0001). 그래서 견주려면 저장된 입력을 읽어 **같은
  * 엔진으로 다시 계산**하는 수밖에 없다.
  *
  * 지문을 열로 저장해 두는 길도 있었다. 안 간다 — 엔진이 바뀌면 그 값은 조용히 낡고,
@@ -55,8 +51,13 @@ export type SameChart = {
  * 가족으로 한 번 더 저장하면 풀이권이 정확히 한 번 더 나간다 — 이 함수가 막으려는 바로
  * 그 일이다. 그래서 `user_person_access` 를 통째로 본다(내 엣지가 거기 있다).
  *
- * @returns 못 읽는 판본은 **없는 것으로 친다.** 여기서 하는 일은 먼저 물어보는 것이지
- *   판정이 아니고, 못 읽는 판본을 「같다」고도 「다르다」고도 말할 수 없다.
+ * @returns 못 읽는 입력은 **없는 것으로 친다.** 여기서 하는 일은 먼저 물어보는 것이지
+ *   판정이 아니고, 못 읽는 입력을 「같다」고도 「다르다」고도 말할 수 없다.
+ *
+ * **계산 오류는 안 삼킨다 — 저장이 멈춘다.** 앞서는 `catch` 가 두 갈래였는데 둘 다
+ * `continue` 라 사실상 전부 건너뛰었다. 건너뛴 대가는 「같은 명식을 못 찾아 풀이권이
+ * 두 번 나가는 것」이고, 그것이 이 함수가 존재하는 이유다. 한 사람에서 엔진이 터지면
+ * 답을 모르는 채로 저장을 밀지 않는다.
  */
 export async function sameChartInMyList(query: Query): Promise<SameChart | null> {
   let mine: string;
@@ -80,22 +81,9 @@ export async function sameChartInMyList(query: Query): Promise<SameChart | null>
 
   if (!edges || edges.length === 0) return null;
 
-  /**
-   * **행 하나씩만 읽는다**(ADR 0071). 앞서는 사람마다 판본 id 를 모아 두 번째 질의를
-   * 보냈다 — 입력이 `person` 으로 내려오면서 그 걸음이 없어졌다.
-   */
-  const { data: persons } = await supabase
-    .from('person')
-    .select(`id, ${PERSON_INPUT_COLUMNS}`)
-    .in(
-      'id',
-      edges.map((edge) => edge.person_id as string),
-    );
-
-  const byPerson = new Map(
-    (persons ?? [])
-      .filter((person) => person.calendar !== null)
-      .map((person) => [person.id as string, person as unknown as StoredRevision]),
+  const byPerson = await storedInputsOf(
+    supabase,
+    edges.map((edge) => edge.person_id as string),
   );
 
   if (byPerson.size === 0) return null;
@@ -111,19 +99,14 @@ export async function sameChartInMyList(query: Query): Promise<SameChart | null>
   let hidden: SameChart | null = null;
 
   for (const edge of edges) {
-    const revision = byPerson.get(edge.person_id);
-    if (revision === undefined) continue;
+    const stored = byPerson.get(edge.person_id as string);
+    if (stored === undefined) continue;
 
-    let theirs: string;
-    try {
-      theirs = chartFingerprint(chartOf(queryFromRevision(revision, edge.local_label as string)));
-    } catch (error) {
-      // 못 읽는 판본과 못 세는 판본은 **견주지 않는다** — 둘 다 「모른다」이지 「다르다」가 아니다.
-      if (error instanceof UnreadableRevisionError) continue;
-      continue;
-    }
+    const stood = storedChartOf(stored, edge.local_label as string);
+    // 못 읽는 입력은 **견주지 않는다** — 「모른다」이지 「다르다」가 아니다.
+    if (!stood.ok) continue;
 
-    if (theirs !== mine) continue;
+    if (chartFingerprint(stood.saju) !== mine) continue;
 
     const found: SameChart = {
       personId: edge.person_id as string,

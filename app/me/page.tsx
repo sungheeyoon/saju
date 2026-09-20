@@ -4,15 +4,10 @@ import { redirect } from 'next/navigation';
 import { supabaseOnServer } from '../auth/server-client';
 import { readAccount } from './account';
 import { unreadCount } from './requests/inbox';
-import { chartOf } from '@/src/lib/input/chart';
+import { isoOf, solarDateOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
-import {
-  PERSON_INPUT_COLUMNS,
-  UNREADABLE_REVISION_NOTE,
-  UnreadableRevisionError,
-  queryFromRevision,
-  type StoredRevision,
-} from '@/src/lib/input/revision';
+import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
+import { storedInputOf } from './person-input';
 import { DiscoveryBoard } from './discovery/board';
 import { AccountNotice } from './account-notice';
 import { Onboarding } from './onboarding';
@@ -88,53 +83,39 @@ export default async function MePage() {
 async function SelfChart({ personId }: { personId: string }) {
   const supabase = await supabaseOnServer();
 
-  const [{ data: person }, { data: edge }] = await Promise.all([
-    supabase.from('person').select(PERSON_INPUT_COLUMNS).eq('id', personId).maybeSingle(),
+  const [person, { data: edge }] = await Promise.all([
+    storedInputOf(supabase, personId),
     supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
   ]);
 
-  if (!person?.calendar || !edge) {
+  if (person === null || !edge) {
     return <p className="text-sm text-muted">저장된 사주를 읽지 못했습니다.</p>;
   }
 
   /**
    * **현재 입력 하나만 읽는다**(ADR 0011·0071).
    *
-   * 입력이 `person` 으로 내려오면서 **행 하나 읽기**가 됐다 — 판본 id 를 읽고 그 id 로
-   * 판본을 다시 읽던 두 걸음이 없어졌다.
-   *
    * 전에는 이 자리가 판본을 전부 가져와 이력을 그렸다. 그것이 「고친 기록은 쌓입니다」의
    * 증거라고 여겼는데, 판본을 남기는 이유는 이력을 보여주기 위해서가 아니라 이미
-   * 동의하고 이미 본 결과의 근거를 지키기 위해서다. 목록을 세워 두면 이제 정리되는
-   * 입력이 화면에서 하나씩 사라지고, 그때 화면은 자기가 한 약속을 어긴 것처럼 보인다.
+   * 동의하고 이미 본 결과의 근거를 지키기 위해서다. 목록을 세워 두면 정리되는 입력이
+   * 화면에서 하나씩 사라지고, 그때 화면은 자기가 한 약속을 어긴 것처럼 보인다.
    *
-   * 가리키는 id 로 묻는다. 「가장 최근 것이 현재일 것」이라고 짐작하면 현재를 정하는
-   * 자리가 둘이 된다.
+   * **못 읽는 입력은 메우지 않는다.** 모르는 출생지를 서울로 치면 저장할 때 본 사주와
+   * 다른 사주가 이 화면에 나온다. 값은 남아 있고 읽는 쪽이 못 읽는 것이므로 그렇게
+   * 말하고 멈춘다. 계산 오류는 여기 안 온다 — 세우는 문이 그대로 던지고, 그것은
+   * 사용자가 할 수 있는 것이 없는 오류다.
    */
-  const current = person as unknown as StoredRevision;
-
-  /**
-   * 못 읽는 판본은 **메우지 않는다.**
-   *
-   * 모르는 출생지를 서울로 치면 저장할 때 본 사주와 다른 사주가 이 화면에 나온다.
-   * 판본은 남아 있고 읽는 쪽이 못 읽는 것이므로, 그렇게 말하고 멈춘다.
-   */
-  let query;
-  try {
-    query = queryFromRevision(current, edge.local_label);
-  } catch (error) {
-    if (error instanceof UnreadableRevisionError) {
-      return (
-        <section className="flex flex-col gap-2 rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6">
-          <p className="text-sm">{error.message}</p>
-          <p className="text-xs text-muted">{UNREADABLE_REVISION_NOTE}</p>
-        </section>
-      );
-    }
-    throw error;
+  const stood = storedChartOf(person.input, edge.local_label);
+  if (!stood.ok) {
+    return (
+      <section className="flex flex-col gap-2 rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6">
+        <p className="text-sm">{stood.message}</p>
+        <p className="text-xs text-muted">{UNREADABLE_INPUT_NOTE}</p>
+      </section>
+    );
   }
 
-  const saju = chartOf(query);
+  const { query, saju } = stood;
 
   return (
     <section className="flex min-w-0 flex-col gap-6">
@@ -169,9 +150,9 @@ async function SelfChart({ personId }: { personId: string }) {
               */}
               <dd>
                 {query.calendar === 'solar'
-                  ? current.solar_date
-                  : `${CALENDAR_KO[query.calendar]} ${current.original_date} · 양력 ${current.solar_date}`}
-                {current.birth_time === null ? ` · ${HOUR_UNKNOWN_LABEL}` : ` ${query.time}`}
+                  ? query.date
+                  : `${CALENDAR_KO[query.calendar]} ${query.date} · 양력 ${isoOf(solarDateOf(query))}`}
+                {query.hourKnown === false ? ` · ${HOUR_UNKNOWN_LABEL}` : ` ${query.time}`}
               </dd>
               <dt className="text-muted">성별</dt>
               <dd>{GENDER_KO[query.gender]}</dd>

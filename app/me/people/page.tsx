@@ -9,18 +9,14 @@ import {
   ELEMENT_KO,
   GENDER_KO,
   STEM_INFO,
+  type Saju,
 } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { chartOf, solarDateOf } from '@/src/lib/input/chart';
+import { isoOf, solarDateOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL, type Query } from '@/src/lib/input/query';
-import {
-  PERSON_INPUT_COLUMNS,
-  UNREADABLE_REVISION_NOTE,
-  UnreadableRevisionError,
-  queryFromRevision,
-  type StoredRevision,
-} from '@/src/lib/input/revision';
+import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
+import { storedInputsOf } from '../person-input';
 import { managedEdges, personSlotsFrom } from '../../person-slots';
 import { myReadings, type ReadingEntry } from '../reading/current';
 import { AccountNotice } from '../account-notice';
@@ -179,59 +175,37 @@ type Edge = { person_id: string; local_label: string; note: string | null };
  */
 type Person = Edge & {
   personId: string;
-  chart: { ok: true; query: Query } | { ok: false; message: string };
+  chart: { ok: true; query: Query; saju: Saju } | { ok: false; message: string };
 };
 
+/**
+ * 목록에 설 사람들 — **명식까지 여기서 세운다.**
+ *
+ * 카드가 다시 `chartOf` 를 부르지 않는 것이 요점이다. 부르면 같은 입력을 두 번 세는
+ * 자리가 생기고, 그 둘은 엔진을 고치는 날 갈릴 수 있다.
+ */
 async function peopleWithCharts(edges: Edge[]): Promise<Person[]> {
   if (edges.length === 0) return [];
 
   const supabase = await supabaseOnServer();
-  const personIds = edges.map((edge) => edge.person_id);
-
-  /**
-   * **행 하나씩만 읽는다**(ADR 0071). 앞서는 사람마다 판본 id 를 모아 두 번째 질의를
-   * 보냈다 — 입력이 `person` 으로 내려오면서 그 걸음이 없어졌다.
-   *
-   * 입력이 비어 있는 사람은 지도에 안 넣는다. 여덟 칸은 함께 차거나 함께 비므로
-   * 한 칸이 그 답을 든다.
-   */
-  const { data: persons } = await supabase
-    .from('person')
-    .select(`id, ${PERSON_INPUT_COLUMNS}`)
-    .in('id', personIds);
-
-  const byPerson = new Map(
-    (persons ?? [])
-      .filter((person) => person.calendar !== null)
-      .map((person) => [person.id as string, person as unknown as StoredRevision]),
+  const byPerson = await storedInputsOf(
+    supabase,
+    edges.map((edge) => edge.person_id),
   );
 
   return edges.map((edge) => {
-    const revision = byPerson.get(edge.person_id);
+    const stored = byPerson.get(edge.person_id);
 
     return {
       ...edge,
       personId: edge.person_id,
-      chart: readChart(revision, edge.local_label),
+      /* 입력이 없는 사람 — 읽을 것이 없다는 말과 못 읽는다는 말을 여기서 합친다 */
+      chart:
+        stored === undefined
+          ? ({ ok: false, message: '저장된 출생 정보를 읽지 못했습니다.' } as const)
+          : storedChartOf(stored, edge.local_label),
     };
   });
-}
-
-function readChart(
-  revision: StoredRevision | undefined,
-  localLabel: string,
-): Person['chart'] {
-  if (revision === undefined) {
-    return { ok: false, message: '저장된 출생 정보를 읽지 못했습니다.' };
-  }
-
-  try {
-    return { ok: true, query: queryFromRevision(revision, localLabel) };
-  } catch (error) {
-    // 못 읽는 판본은 메우지 않는다 — 저장된 값은 그대로 있고 읽는 쪽이 못 읽는 것이다.
-    if (error instanceof UnreadableRevisionError) return { ok: false, message: error.message };
-    throw error;
-  }
 }
 
 /**
@@ -256,13 +230,13 @@ function PersonCard({ person, reading }: { person: Person; reading: ReadingEntry
     <section className="relative rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]">
       <div className="relative p-5 sm:p-6">
         {person.chart.ok ? (
-          <ChartSummary query={person.chart.query} />
+          <ChartSummary query={person.chart.query} saju={person.chart.saju} />
         ) : (
           <div className="flex flex-col gap-1 pr-12">
             <p className="eyebrow">저장한 사람</p>
             <h2 className="text-xl font-bold tracking-[-0.03em]">{person.local_label}</h2>
             <p className="mt-2 text-sm">{person.chart.message}</p>
-            <p className="text-xs text-muted">{UNREADABLE_REVISION_NOTE}</p>
+            <p className="text-xs text-muted">{UNREADABLE_INPUT_NOTE}</p>
           </div>
         )}
 
@@ -375,8 +349,7 @@ function CardActionIcon() {
  * 이름과 일간을 먼저 읽고, 네 기둥은 그 사람을 알아보는 두 번째 단서로 묶는다. 자세한
  * 해석은 눌러 들어간 화면의 `PillarChart` 가 맡는다.
  */
-function ChartSummary({ query }: { query: Query }) {
-  const saju = chartOf(query);
+function ChartSummary({ query, saju }: { query: Query; saju: Saju }) {
   const { pillars } = saju;
   const dayMaster = STEM_INFO[pillars.dayMaster];
   const dayTone = ELEMENT_TONE[dayMaster.element];
@@ -468,8 +441,3 @@ function ChartSummary({ query }: { query: Query }) {
   );
 }
 
-/** `CivilDate` 를 화면에 적을 `YYYY-MM-DD` 로 */
-function isoOf({ year, month, day }: { year: number; month: number; day: number }): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${year}-${pad(month)}-${pad(day)}`;
-}

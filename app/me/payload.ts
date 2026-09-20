@@ -1,8 +1,8 @@
 import type { Saju } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../auth/server-client';
-import { chartOf } from '@/src/lib/input/chart';
-import { PERSON_INPUT_COLUMNS, queryFromRevision, type StoredRevision } from '@/src/lib/input/revision';
+import { storedChartOf } from '@/src/lib/input/stored';
+import { storedInputOf } from './person-input';
 import { UUID } from '../uuid';
 
 /**
@@ -15,9 +15,8 @@ import { UUID } from '../uuid';
  *
  * 4단계에는 자를 것이 없다. 근거는 「내가 등록하고 내가 입력한 사람이라서」가
  * **아니다** — claim 이 일어나면 등록한 사람도 `viewer` 로 내려간다. 정확한 근거는
- * **`user_person_access` 엣지가 있으면 RLS 가 이미 그 Person 의 판본 전체를 읽게
- * 해 준다**는 것이고(`"Person 이 보이면 그 판본도 보인다"` 정책은 역할을 묻지 않는다),
- * 그러므로 이 payload 는 사용자가 이미 조회할 수 있는 범위를 넓히지 않는다.
+ * **`user_person_access` 엣지가 있으면 RLS 가 이미 그 Person 을 읽게 해 준다**는
+ * 것이고, 그러므로 이 payload 는 사용자가 이미 조회할 수 있는 범위를 넓히지 않는다.
  *
  * 자를 것이 생기는 것은 Match 상대다(ADR 0008). 그때 갈라지는 것이 **호출부가 아니라
  * 이 함수 안**이도록 경계를 지금 세운다.
@@ -45,18 +44,29 @@ export type PersonPayload = {
   readonly [granted]: true;
 };
 
+/**
+ * 볼 수 있는 사람에 대한 답 — **둘 중 하나다.**
+ *
+ * 앞서는 못 읽는 입력을 **던졌고**, 두 화면이 각자 `instanceof` 로 받아 각자 다른
+ * 모양으로 그렸다. 못 읽는 것은 이 문이 아는 사실이지 예외적인 사건이 아니므로
+ * 값으로 낸다 — 예외로 두면 부르는 쪽이 그것을 받는 것을 **잊을 수 있고**, 잊은
+ * 자리는 500 이 된다.
+ *
+ * 「없다」와 「못 본다」는 여전히 `null` 하나다(아래).
+ */
+export type PersonView =
+  | { readonly kind: 'ok'; readonly payload: PersonPayload }
+  | { readonly kind: 'unreadable-input'; readonly message: string };
+
 /** 주소로 들어온 값이라 모양부터 본다 — 형식이 틀린 것도 「없는 사람」과 같은 답이다 */
 /**
- * @returns 볼 수 있으면 payload, **없거나 못 보면 `null`.**
+ * @returns 볼 수 있으면 답, **없거나 못 보면 `null`.**
  *
  * 두 경우를 가르지 않는 것이 요점이다. 「그런 사람 없습니다」와 「볼 수 없습니다」가
  * 갈리면 그 차이만으로 그 Person 이 실재하는지 알아낼 수 있다. RLS 는 「안 보인다」
  * 까지만 해 주므로 그다음 한 문장을 여기서 묶는다.
- *
- * @throws {UnreadableRevisionError} 볼 수는 있는데 지금 엔진이 그 판본을 못 읽을 때.
- *   못 읽는 판본을 기본값으로 메우면 저장할 때 본 사주와 다른 사주가 나온다.
  */
-export async function payloadForViewer(personId: string): Promise<PersonPayload | null> {
+export async function payloadForViewer(personId: string): Promise<PersonView | null> {
   if (!UUID.test(personId)) return null;
 
   const supabase = await supabaseOnServer();
@@ -65,39 +75,24 @@ export async function payloadForViewer(personId: string): Promise<PersonPayload 
    * 정책이 자기 것만 내주므로 `user_id` 를 적지 않는다. 적으면 판정하는 자리가
    * 둘이 되고, 둘은 언젠가 어긋난다(ADR 0004).
    */
-  const [{ data: person }, { data: edge }] = await Promise.all([
-    /*
-      **`id` 를 함께 받는다 — 되돌려줄 값은 주소에 적힌 글자가 아니다.**
-
-      Postgres 의 `uuid` 비교도 아래 정규식도 대소문자를 안 가리므로, 대문자로 적은
-      주소가 여기까지 그대로 통과한다. 그 값을 되돌려주면 부르는 쪽의 문자열 비교가
-      전부 어긋난다 — 「이게 내 selfPerson 인가」가 거짓이 되고, 그때 화면은 못 만드는
-      버튼을 세운다. 정규화는 DB 가 이미 했고, 그 답을 그대로 들고 나간다.
-    */
-    supabase.from('person').select(`id, ${PERSON_INPUT_COLUMNS}`).eq('id', personId).maybeSingle(),
+  const [person, { data: edge }] = await Promise.all([
+    storedInputOf(supabase, personId),
     supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
   ]);
 
-  /**
-   * 현재 판본이 없는 Person 은 만들어질 수 없다 — Person·판본·엣지가 한 트랜잭션에
-   * 들어가기 때문이다(`create_self_person` · `create_managed_person`). 그래도 그 상태가
-   * 실재한다면 우리가 보여줄 수 있는 사람이 아니므로 같은 답으로 묶는다.
-   */
-  /**
-   * **입력은 그 행에 있다**(ADR 0071). 여덟 칸은 함께 차거나 함께 비므로 한 칸이 그
-   * 답을 든다 — 판본 id 를 읽고 다시 판본을 읽던 두 걸음이 한 걸음이 됐다.
-   */
-  if (!person?.calendar || !edge) return null;
+  if (person === null || !edge) return null;
 
-  const query = queryFromRevision(person as unknown as StoredRevision, edge.local_label);
+  const stood = storedChartOf(person.input, edge.local_label);
+  if (!stood.ok) return { kind: 'unreadable-input', message: stood.message };
 
   return {
-    /** 주소에 적힌 글자가 아니라 **DB 가 정규화한 값**이다(위) */
-    personId: person.id as string,
-    name: query.name,
-    // 서버가 계산한다. 익명 화면과 **같은 함수**라 저장하기 전에 본 사주와
-    // 저장한 뒤에 보는 사주가 다를 자리가 없다.
-    saju: chartOf(query),
-    [granted]: true,
+    kind: 'ok',
+    payload: {
+      /** 주소에 적힌 글자가 아니라 **DB 가 정규화한 값**이다(`StoredPerson.id`) */
+      personId: person.id,
+      name: stood.query.name,
+      saju: stood.saju,
+      [granted]: true,
+    },
   };
 }

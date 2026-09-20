@@ -7,8 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { loadLocalEnv } from '@/src/lib/local-env';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 
-import { chartOf } from './chart';
-import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from './revision';
+import { storedChartOf, type StoredInput } from './stored';
 
 /**
  * 엔진 판이 바뀐 뒤 **남의 Person 까지 여덟 글자를 다시 채우는 자리**(ADR 0071 · A3).
@@ -47,7 +46,7 @@ import { UnreadableRevisionError, queryFromRevision, type StoredRevision } from 
  * ## 원문도 비밀값도 기록에 안 남는다
  *
  * 찍는 것은 개수와 불투명 id 뿐이다. 생년월일시·출생지·부를 이름은 한 번도 안 찍고,
- * 부를 이름은 **읽지도 않는다** — `queryFromRevision` 이 요구하므로 자리표만 넘긴다
+ * 부를 이름은 **읽지도 않는다** — `storedChartOf` 가 요구하므로 자리표만 넘긴다
  * (이름은 엔진에 안 들어간다, `Query.name`). 열쇠·ref·환경변수의 **값**도 안 찍는다 —
  * 어긋났을 때 대는 것은 **어느 자리가** 어긋났나 하는 이름뿐이다.
  */
@@ -176,7 +175,7 @@ const COLUMNS = `p.id as person_id,
   r.late_night_rule,
   r.time_basis`;
 
-type Target = { personId: string; revisionId: string; revision: StoredRevision };
+type Target = { personId: string; revisionId: string; revision: StoredInput };
 
 const rowOf = (row: Row): Target => ({
   personId: row.person_id,
@@ -291,19 +290,15 @@ describe.skipIf(!on)('여덟 글자 백필', () => {
           break;
         }
 
-        let chart;
-        try {
-          chart = chartSnapshotOf(chartOf(queryFromRevision(at.revision, PLACEHOLDER)).pillars);
-        } catch (error) {
-          /* 못 읽는 판본은 메우지 않는다 — 무엇을 못 읽었는지만 남긴다(원문은 안 남는다) */
-          failed.push({
-            personId: target.personId,
-            why: error instanceof UnreadableRevisionError
-              ? `못 읽는 판본 (${error.field})`
-              : '계산 실패',
-          });
+        /* 못 읽는 입력은 메우지 않는다 — 무엇을 못 읽었는지만 남긴다(원문은 안 남는다).
+           계산 오류는 값으로 안 온다. 그건 이 백필이 삼킬 일이 아니라 터져야 할 일이다. */
+        const stood = storedChartOf(at.revision, PLACEHOLDER);
+        if (!stood.ok) {
+          failed.push({ personId: target.personId, why: `못 읽는 입력 (${stood.field})` });
           break;
         }
+
+        const chart = chartSnapshotOf(stood.saju.pillars);
 
         const { data, error } = await keyed.rpc('set_person_chart', {
           p_person_id: at.personId,
