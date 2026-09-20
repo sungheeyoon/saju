@@ -1,4 +1,24 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+/**
+ * **달력이 터지면 어떻게 되는가.**
+ *
+ * 평소에는 진짜 달력이 돈다(`boom` 이 꺼져 있다). 한 시험만 그 자리를 터뜨려서,
+ * 표 밖의 음력이 아닌 **진짜 버그**가 「못 읽는 입력」으로 둔갑하지 않는지 잰다.
+ */
+const calendar = vi.hoisted(() => ({ boom: false }));
+
+vi.mock('./chart', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./chart')>();
+
+  return {
+    ...actual,
+    solarDateOf: (query: Parameters<typeof actual.solarDateOf>[0]) => {
+      if (calendar.boom) throw new TypeError('달력 표가 깨졌다');
+      return actual.solarDateOf(query);
+    },
+  };
+});
 
 import { chartOf } from './chart';
 import { DEFAULT_QUERY, type Query } from './query';
@@ -231,5 +251,30 @@ describe('음력으로 저장된 입력', () => {
         '민수',
       ).query,
     ).toEqual(entered);
+  });
+});
+
+/**
+ * **규칙을 적은 자리에서 그 규칙이 지켜지는가.**
+ *
+ * 이 모듈은 「못 읽는 입력은 값이고 그 밖은 예외」라고 적어 뒀다. 그런데 달력 변환 자리가
+ * 모든 오류를 `UnreadableInputError` 로 바꾸고 있었다 — 달력 코드의 진짜 버그가 사용자에게
+ * 「저장된 출생 정보를 읽지 못했습니다」로 서고, 아무도 그 버그를 안 묻게 된다.
+ */
+describe('달력이 터진 것은 못 읽는 입력이 아니다', () => {
+  it('표 밖의 음력이 아닌 오류는 값으로 안 바꾸고 던진다', () => {
+    calendar.boom = true;
+
+    try {
+      expect(() => storedChartOf(stored, '민수')).toThrowError(TypeError);
+      expect(() => storedChartOf(stored, '민수')).toThrowError('달력 표가 깨졌다');
+    } finally {
+      calendar.boom = false;
+    }
+  });
+
+  /** 터뜨리기 전으로 돌아오면 다시 세워진다 — 위 시험이 뒷자리를 오염시키지 않았다 */
+  it('꺼 두면 그대로 세워진다', () => {
+    expect(storedChartOf(stored, '민수').ok).toBe(true);
   });
 });

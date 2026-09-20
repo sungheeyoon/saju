@@ -1,6 +1,7 @@
 import type { StoredInput } from '@/src/lib/input/stored';
 
-import { supabaseOnServer } from '../auth/server-client';
+import type { supabaseOnServer } from '../auth/server-client';
+import { dbFailure } from '../db-error';
 
 type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
 
@@ -15,6 +16,15 @@ type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
  *
  * **없는 것은 `null` 이고 그것이 이 문의 전부다.** 「행이 없다」와 「못 읽는다」를 한
  * 문이 함께 답하면, 부르는 쪽이 그 둘을 가르려고 다시 갈래를 만든다.
+ *
+ * **조회가 터진 것은 「없다」가 아니다.** `maybeSingle()` 은 0행일 때도 터졌을 때도
+ * `data: null` 로 오므로 둘을 가르는 유일한 값이 `error` 다(`readAccount` 가 같은 것을
+ * 잰다). 안 보면 네트워크 장애가 「저장된 사주가 없습니다」로 둔갑하고, 사람 목록은
+ * 전부 못 읽는 것처럼 선다 — 사용자가 고칠 것이 없는 일에 고칠 것이 있는 말을 붙이는 꼴이다.
+ * 그래서 **터진 것은 던진다**(`dbFailure`, `candidates.ts` 와 같은 자리).
+ *
+ * 정책이 막은 것은 여기 안 온다 — RLS 는 0행으로 답하지 오류로 답하지 않는다. 「못 보는
+ * 것」이 `null` 로 남는 이유이고, 그래서 이 던지기가 노출을 넓히지 않는다.
  */
 
 /**
@@ -62,12 +72,13 @@ export async function storedInputOf(
 ): Promise<StoredPerson | null> {
   /* 정책이 볼 수 있는 것만 내주므로 `user_id` 를 적지 않는다 — 판정하는 자리를 둘로
      만들지 않는다(ADR 0004). */
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('person')
     .select(`id, ${PERSON_INPUT_COLUMNS}`)
     .eq('id', personId)
     .maybeSingle();
 
+  if (error) throw dbFailure(error, 'person.select');
   if (!filled(data)) return null;
 
   return { id: data!.id as string, input: data as unknown as StoredInput };
@@ -85,10 +96,12 @@ export async function storedInputsOf(
 ): Promise<Map<string, StoredInput>> {
   if (personIds.length === 0) return new Map();
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('person')
     .select(`id, ${PERSON_INPUT_COLUMNS}`)
     .in('id', personIds);
+
+  if (error) throw dbFailure(error, 'person.select.in');
 
   return new Map(
     (data ?? [])

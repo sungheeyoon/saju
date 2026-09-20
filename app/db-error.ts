@@ -8,10 +8,26 @@
  * (`42501`), PostgREST 가 스키마 캐시로 거절하면(`PGRST202`) 영어 원문이 사용자 화면에 선다. 사용자는
  * 할 수 있는 것이 없고, 그 문장은 우리 스키마의 속을 말한다.
  *
- * **가르는 값은 한국어다.** 우리가 쓴 거절은 전부 한국어 문장이고(`supabase/migrations` 의
- * `raise exception`), Postgres·PostgREST 가 스스로 내는 문장은 영어다. 코드(SQLSTATE)로 가르는 길도
- * 있었는데 못 가른다 — `42501` 은 우리가 「중지된 계정입니다」로 쓰는 코드이면서 정책이 이름 없이 막을
- * 때의 코드이기도 하다.
+ * **가르는 값은 한국어다 — 다만 한국어만으로는 모자란다.** 우리가 쓴 거절은 전부 한국어 문장이고
+ * (`supabase/migrations` 의 `raise exception`), Postgres·PostgREST 가 스스로 내는 문장은 영어다.
+ * 코드(SQLSTATE)로 가르는 길도 있었는데 못 가른다 — `42501` 은 우리가 「중지된 계정입니다」로 쓰는
+ * 코드이면서 정책이 이름 없이 막을 때의 코드이기도 하다. 재어 보면 더 분명하다: 우리 `raise` 537개가
+ * **11종**의 errcode 를 세우고 그중 `42501`·`23505`·`23514`·`23502` 는 **Postgres 자신도 내는 코드**다.
+ * 코드 허용목록은 그래서 답이 아니다.
+ *
+ * ## 한국어가 들었다고 우리 것은 아니다
+ *
+ * 시스템 오류가 **사용자가 보낸 한글을 되돌려 실을 수 있다** —
+ * `invalid input syntax for type uuid: "한글"`. 한글 한 자를 근거로 통과시키면 그 영어 원문이
+ * 통째로 화면에 선다. 막으려던 바로 그 일이다.
+ *
+ * **가드는 큰따옴표다.** Postgres·PostgREST 는 값과 식별자를 `"…"` 로 감싸 되돌리고, 우리 문장은
+ * 그러지 않는다 — 재어 봤다: 마이그레이션의 **84종 중 큰따옴표가 든 것은 0개**, 한글이 없는 것도 0개다.
+ * 그래서 이 가드는 우리 것을 하나도 안 막는다.
+ *
+ * **남는 구멍을 적어 둔다.** 따옴표 없이 한글을 실어 오는 시스템 문장은 여전히 지나간다. 그것까지
+ * 닫으려면 우리 `raise` 537개에 **전용 표식**(고유 errcode나 고정 접두사)을 달아야 하고, 그건 이
+ * 함수가 아니라 마이그레이션의 일이다.
  *
  * 걸러진 원문은 **서버 기록에 남긴다.** 사용자에게서 지우는 것이 아니라 자리를 옮기는 것이다.
  *
@@ -25,8 +41,17 @@
  * 「이 오류를 사용자에게 옮긴다」고 적는 것뿐이다.
  */
 
-/** 한글 음절 하나라도 있으면 우리가 쓴 문장이다 */
+/** 우리 문장은 전부 한국어다 — 84종을 재어 확인했다 */
 const KOREAN = /[가-힣]/;
+
+/**
+ * **되돌아온 값이 실려 있다.** Postgres·PostgREST 는 값과 식별자를 큰따옴표로 감싸 내보내므로
+ * (`… uuid: "한글"`), 한글이 있어도 이것이 보이면 우리 문장이 아니다. 우리 84종에는 없다.
+ */
+const ECHOED = /"/;
+
+/** 우리가 쓴 문장인가 — **문자 종류 하나에 기대지 않는다** */
+const ours = (message: string): boolean => KOREAN.test(message) && !ECHOED.test(message);
 
 export type DbError = { readonly message: string; readonly code?: string };
 
@@ -81,7 +106,7 @@ const BY_CODE: Readonly<Record<string, string>> = {
  *   문장을 새로 짓지 않아도 쓸 수 있어야 이 문이 실제로 쓰인다(#67)
  */
 export function userFacingDbMessage(error: DbError, where: string, fallback?: string): string {
-  if (KOREAN.test(error.message)) return error.message;
+  if (ours(error.message)) return error.message;
 
   console.error(where, error.code ?? '', error.message);
   return fallback ?? BY_CODE[error.code ?? ''] ?? UNKNOWN_NOTE;

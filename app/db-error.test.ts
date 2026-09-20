@@ -52,6 +52,41 @@ describe('userFacingDbMessage', () => {
     logged.mockRestore();
   });
 
+  /**
+   * **한글이 들었다고 우리 것은 아니다.**
+   *
+   * 시스템 오류가 사용자가 보낸 한글을 되돌려 실을 수 있다. 한글 한 자를 근거로 통과시키면
+   * 영어 원문이 통째로 화면에 서고, 그것이 이 함수가 막으려던 바로 그 일이다.
+   */
+  it.each([
+    ['uuid 자리에 한글이 들어간 것', 'invalid input syntax for type uuid: "한글"', '22P02'],
+    ['표 이름과 함께 한글 값이 실린 것', 'duplicate key value violates unique constraint "닉네임_key"', '23505'],
+    ['정책 문장에 한글 표 이름이 실린 것', 'new row violates row-level security policy for table "사람"', '42501'],
+  ])('%s 은 사용자에게 안 간다', (_label, message, code) => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const shown = userFacingDbMessage({ message, code }, 'x', '대신 쓸 말');
+
+    expect(shown).toBe('대신 쓸 말');
+    expect(shown).not.toContain(message);
+    expect(logged).toHaveBeenCalledWith('x', code, message);
+
+    logged.mockRestore();
+  });
+
+  /**
+   * 가드가 **우리 것을 막지 않는가.** 마이그레이션의 84종을 재어 보니 큰따옴표가 든 것이
+   * 하나도 없었다 — 그 사실이 깨지면 여기가 먼저 빨개진다.
+   */
+  it.each([
+    '풀이권을 다 쓰셨습니다. 테스트 기간에는 5번까지 만들 수 있어요.',
+    'JPG · PNG · WebP 만 올릴 수 있습니다.',
+    '등록할 수 있는 사람은 20명까지입니다.',
+    '보낸 인연 요청이 풀이권을 잡고 있어요. 요청을 거두거나 상대의 답을 기다려 주세요.',
+  ])('우리가 쓴 %j 는 그대로 간다', (message) => {
+    expect(userFacingDbMessage({ message, code: 'P0001' }, 'x', '대신')).toBe(message);
+  });
+
   it('코드가 없어도 기록은 남는다', () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
 
