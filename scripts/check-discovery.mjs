@@ -182,12 +182,8 @@ try {
  */
 const isolate = (emails) => {
   const list = emails.map((email) => `'${email}'`).join(', ');
-  sql(`insert into public.discovery_hidden (user_id, hidden_user_id)
-       select mine.id, p.user_id
-       from auth.users mine, public.discovery_profile p
-       where mine.email in (${list})
-         and p.user_id not in (select id from auth.users where email in (${list}))
-       on conflict do nothing`);
+  sql(`update public.discovery_profile set opted_in_at = null
+       where user_id not in (select id from auth.users where email in (${list}))`);
 };
 
   isolate([mine, theirs]);
@@ -473,38 +469,12 @@ const isolate = (emails) => {
       String(anonymous.status));
   }
 
-  // ── 7. 다시 보지 않기 ───────────────────────────────────────────────────────
+  // ── 7. 남의 selfPerson 은 안 보인다 ─────────────────────────────────────────
   {
     const { data: account } = await other.from('app_user').select('self_person_id').maybeSingle();
     check('상대의 selfPerson 은 여전히 내게 안 보인다',
       (await me.from('person').select('id')).data?.length === 1,
       String(account?.self_person_id ?? '?').slice(0, 8));
-
-    const theirUserId = sql(`select id from auth.users where email = '${theirs}'`);
-    /**
-     * **몇 명인지는 세어서 견준다.**
-     *
-     * 이 검사는 목록을 좁히려고 다른 참여자들을 이미 감춰 뒀다(`isolate`). 「1명」으로
-     * 못박으면 그 격리가 늘 때마다 여기가 깨진다 — 지금 감춘 수는 DB 에 물어 본다.
-     */
-    const hiddenCount = () =>
-      Number(sql(`select count(*) from public.discovery_hidden h
-                  join auth.users u on u.id = h.user_id where u.email = '${mine}'`));
-
-    const before = hiddenCount();
-    await me.from('discovery_hidden').insert({ hidden_user_id: theirUserId });
-
-    const body = await (await get('/me/matching', myCookie)).text();
-    check('다시 보지 않기로 하면 후보에서 빠진다', !body.includes(THEIR_NAME));
-    // React 는 나란한 글자 마디 사이에 `<!-- -->` 를 넣는다. 수를 견줄 때 그것을 지운다.
-    const plain = (await (await get('/me/settings', myCookie)).text()).replace(/<!--\s*-->/g, '');
-    check('감춘 사람이 몇인지는 말하되 누구인지는 적지 않는다',
-      plain.includes(`다시 보지 않기로 한 사람 ${before + 1}명`) && !body.includes(theirUserId),
-      `${before + 1}명이어야 한다`);
-
-    await me.from('discovery_hidden').delete().eq('hidden_user_id', theirUserId);
-    const back = await (await get('/me/matching', myCookie)).text();
-    check('되돌리면 다시 선다', back.includes(THEIR_NAME));
   }
 
   // ── 8. 판본을 고치면 요약이 따라간다 ────────────────────────────────────────

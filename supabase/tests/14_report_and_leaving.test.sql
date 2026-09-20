@@ -57,18 +57,15 @@ $$;
  * 치우지 않으면 「마주쳤다」가 상위 열에 들었는지에 달리게 된다 — 그러면 이 시험이
  * 재는 것은 신고 규칙이 아니라 **DB 가 비어 있는가**다.
  *
- * 소유자 권한으로 넣는다. 재려는 것은 「다시 보지 않기」가 아니라 그 뒤의 신고다.
+ * 소유자 권한으로 돌린다. 재려는 것은 참여 규칙이 아니라 그 뒤의 신고다.
  */
-create or replace function pg_temp.only_these(viewer uuid, keep uuid[])
+create or replace function pg_temp.only_these(keep uuid[])
 returns void
 language sql
 security definer
 as $$
-  insert into public.discovery_hidden (user_id, hidden_user_id)
-  select viewer, p.user_id
-  from public.discovery_profile p
-  where p.user_id <> viewer and not (p.user_id = any (keep))
-  on conflict do nothing;
+  update public.discovery_profile set opted_in_at = null
+  where not (user_id = any (keep));
 $$;
 
 set local role authenticated;
@@ -85,11 +82,7 @@ grant select on folks to authenticated, service_role;
 -- ---------------------------------------------------------------------------
 
 select pg_temp.only_these(
-  (select kim from folks), array[(select lee from folks), (select park from folks)]);
-select pg_temp.only_these(
-  (select lee from folks), array[(select kim from folks), (select park from folks)]);
-select pg_temp.only_these(
-  (select park from folks), array[(select kim from folks), (select lee from folks)]);
+  array[(select kim from folks), (select lee from folks), (select park from folks)]);
 
 select pg_temp.acting((select kim from folks));
 

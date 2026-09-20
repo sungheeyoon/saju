@@ -106,12 +106,8 @@ for (const [client, nickname, intro] of [
  */
 const isolate = (emails) => {
   const list = emails.map((email) => `'${email}'`).join(', ');
-  sql(`insert into public.discovery_hidden (user_id, hidden_user_id)
-       select mine.id, p.user_id
-       from auth.users mine, public.discovery_profile p
-       where mine.email in (${list})
-         and p.user_id not in (select id from auth.users where email in (${list}))
-       on conflict do nothing`);
+  sql(`update public.discovery_profile set opted_in_at = null
+       where user_id not in (select id from auth.users where email in (${list}))`);
 };
 
 isolate([aMail, bMail, cMail]);

@@ -1,6 +1,6 @@
 -- discovery — 참여한 사람만 보고, 사주로는 아무도 지우지 않는다.
 begin;
-select plan(47);
+select plan(46);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim,
@@ -235,11 +235,8 @@ reset role;
  * 참여자가 열을 넘는 순간 목표가 목록 밖으로 밀린다 — 재현했다(참여자 36 명에서
  * 이 단언이 무너졌다). 이 정리는 **수를 재는 대목보다 앞에** 있어야 한다.
  */
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select mine.uid, p.user_id
-from (select kim as uid from who union select lee from who union select park from who) mine,
-     public.discovery_profile p
-where p.user_id not in (select kim from who union select lee from who union select park from who);
+update public.discovery_profile set opted_in_at = null
+where user_id not in (select kim from who union select lee from who union select park from who);
 
 /**
  * **목록은 이제 스냅샷이다** — 새 참여자는 다음 스냅샷부터 선다(ADR 0037).
@@ -344,15 +341,6 @@ select function_privs_are('public', 'discovery_supplied_elements_v1', array['jso
   'v1 보완 오행 함수는 로그인한 사람이 직접 부를 수 없다');
 
 -- ── 하드 제외 ─────────────────────────────────────────────────────────────────
-insert into public.discovery_hidden (hidden_user_id) values ((select lee from who));
-
-select is(
-  pg_temp.candidates_among((select lee from who)),
-  0,
-  '다시 보지 않기로 한 사람은 후보에서 빠진다');
-
-delete from public.discovery_hidden where hidden_user_id = (select lee from who);
-
 -- 사주와 무관한 명시적 조건 — **양쪽 것을 다 본다.**
 update public.discovery_profile set prefer_gender = 'male';
 

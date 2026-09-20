@@ -208,10 +208,8 @@ select public.set_discovery_participation(true, pg_temp.summary(0, 0, 4, 4, 0));
  * 못 들고, 그때 이 파일은 「후보로 서는가」가 아니라 「DB 가 비어 있는가」를 잰다.
  */
 reset role;
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select (select lee from who), p.user_id
-from public.discovery_profile p
-where p.user_id not in (select kim from who) and p.user_id <> (select lee from who);
+update public.discovery_profile set opted_in_at = null
+where user_id not in (select kim from who union select lee from who);
 
 set local role authenticated;
 select pg_temp.acting((select lee from who));
@@ -257,12 +255,18 @@ update public.app_user set nickname = '이프' where id = (select lee from who);
 set local role authenticated;
 select pg_temp.acting((select lee from who));
 
-/** 감추면 후보에서 빠지고 — **사진도 함께 닫힌다** */
-insert into public.discovery_hidden (hidden_user_id) values ((select kim from who));
+/**
+ * 차단하면 후보에서 빠지고 — **사진도 함께 닫힌다.**
+ *
+ * 「다시 보지 않기」가 걷히면서(ADR 0077) 이 보호를 여는 길이 차단 하나가 됐다. 사진은
+ * `may_see_photo` 가 `discovery_eligible` 을 지나 열리고, 차단은 그 아래
+ * `discovery_unavailable` 에서 참이 된다 — 같은 경로를 같은 이유로 잠근다.
+ */
+select public.block_user((select kim from who));
 select is(
   (select count(*)::int from public.photo_of((select kim from who))),
   0,
-  '그만 보기로 한 사람의 사진은 닫힌다');
+  '차단한 사람의 사진은 닫힌다');
 
 -- ── 지우는 일은 열쇠를 따라간다 ──────────────────────────────────────────────
 

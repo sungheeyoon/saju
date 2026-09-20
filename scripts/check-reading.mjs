@@ -59,14 +59,10 @@ const sql = (statement) =>
     { encoding: 'utf8' }).trim();
 
 
-/** 지난 실행이 남긴 참여자가 후보 목록을 헛디디게 하지 않는다 */
-const hideOthers = (email) => {
-  const uid = sql(`select id from auth.users where email = '${email}'`);
-  sql(`insert into public.discovery_hidden (user_id, hidden_user_id)
-       select '${uid}', p.user_id from public.discovery_profile p
-       where p.user_id <> '${uid}'
-         and p.user_id not in (select id from auth.users where email in ('${mail.a}', '${mail.b}'))
-       on conflict do nothing`);
+/** 지난 실행이 남긴 참여자가 후보 목록을 헛디디게 하지 않는다 — 그들의 참여를 끈다 */
+const hideOthers = () => {
+  sql(`update public.discovery_profile set opted_in_at = null
+       where user_id not in (select id from auth.users where email in ('${mail.a}', '${mail.b}'))`);
 };
 
 const person = async (email, label, birth) => {
@@ -93,8 +89,8 @@ const person = async (email, label, birth) => {
 
 const a = await person(mail.a, NAME.a, BIRTH.a);
 const b = await person(mail.b, NAME.b, BIRTH.b);
-hideOthers(mail.a);
-hideOthers(mail.b);
+hideOthers();
+hideOthers();
 
 /** 비공개 궁합의 대상 — 내가 등록한 사람 */
 const { data: momId } = await a.rpc('create_managed_person', {

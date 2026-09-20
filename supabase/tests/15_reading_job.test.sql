@@ -711,11 +711,8 @@ grant select on pair to authenticated, service_role;
 reset role;
 
 /** 다른 검사가 남긴 참여자는 이 시험의 관심 밖이다(11·13번과 같은 이유) */
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select mine.uid, p.user_id
-from (select kim as uid from pair union all select lee from pair) mine,
-     public.discovery_profile p
-where p.user_id not in (select kim from pair union all select lee from pair);
+update public.discovery_profile set opted_in_at = null
+where user_id not in (select kim from pair union all select lee from pair);
 
 set local role authenticated;
 

@@ -84,12 +84,8 @@ reset role;
  * `my_discovery_board` 는 `security definer` 라 RLS 로 좁혀지지 않는다. 좁히지 않으면
  * 이 파일이 「DB 가 비어 있는가」를 잰다.
  */
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select mine.uid, p.user_id
-from (select kim as uid from folks union all select lee from folks
-      union all select choi from folks) mine,
-     public.discovery_profile p
-where p.user_id not in (select uid from (
+update public.discovery_profile set opted_in_at = null
+where user_id not in (select uid from (
   select kim as uid from folks union all select lee from folks
   union all select choi from folks) ours);
 

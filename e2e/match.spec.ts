@@ -1,6 +1,6 @@
 import type { Locator } from '@playwright/test';
 
-import { expect, forgetBoards, hideEveryoneExcept, optIn, test, type Person } from './session';
+import { expect, forgetBoards, onlyTheseParticipate, optIn, test, type Person } from './session';
 
 import { READING_FAILED_NOTE } from '@/src/lib/reading';
 
@@ -34,7 +34,7 @@ const freshTag = (): string =>
 async function bothParticipate(a: Person, b: Person, tag: string): Promise<void> {
   await optIn(a.api, `가${tag}`);
   await optIn(b.api, `나${tag}`);
-  hideEveryoneExcept([a.account.email, b.account.email]);
+  onlyTheseParticipate([a.account.email, b.account.email]);
   // 참여를 켜기 전에 만들어진 목록이 있으면 그 목록에는 서로가 없다.
   forgetBoards([a.account.email, b.account.email]);
 }
@@ -113,7 +113,7 @@ test.describe('동의로 열리는 흐름', () => {
       await person.page.goto('/me');
     }
 
-    hideEveryoneExcept([asker.account.email, receiver.account.email]);
+    onlyTheseParticipate([asker.account.email, receiver.account.email]);
     forgetBoards([asker.account.email, receiver.account.email]);
 
     // ── 매칭에서 후보를 보고 요청을 보낸다 ──────────
@@ -121,7 +121,7 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(asker.page.getByRole('heading', { name: `받는${tag}` })).toBeVisible();
 
     /**
-     * **카드를 이름으로 좁힌다.** `hideEveryoneExcept` 는 부를 때 있던 프로필만 가리므로,
+     * **카드를 이름으로 좁힌다.** `onlyTheseParticipate` 는 부를 때 있던 프로필만 끄므로,
      * 나란히 도는 시험이 그 뒤에 만든 참여자는 이 목록에 함께 선다. 그때 이름 없이
      * 버튼을 잡으면 strict mode 가 물고, 그것은 **화면이 깨진 것이 아니라 시험이
      * 목록 순서를 재고 있었다는 뜻**이다.
@@ -505,7 +505,7 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     await asker.page.goto('/me/matching');
 
     /*
-      **덱은 한 번에 한 장이다.** `hideEveryoneExcept` 는 부를 때 있던 프로필만 가리므로
+      **덱은 한 번에 한 장이다.** `onlyTheseParticipate` 는 부를 때 있던 프로필만 끄므로
       나란히 도는 시험이 그 뒤에 만든 참여자가 앞에 설 수 있다. 목록이라면 이름으로
       좁히면 되지만 덱에서는 넘겨서 찾아야 한다 — 그것이 이 화면의 사용법이기도 하다.
     */
@@ -634,7 +634,7 @@ test.describe('매칭 덱 상태 회귀', () => {
     await optIn(viewer.api, `가${tag}`);
     await optIn(first.api, `나${tag}`);
     await optIn(second.api, `다${tag}`);
-    hideEveryoneExcept([viewer.account.email, first.account.email, second.account.email]);
+    onlyTheseParticipate([viewer.account.email, first.account.email, second.account.email]);
     forgetBoards([viewer.account.email]);
     await viewer.page.goto('/me/matching');
     const article = viewer.page.getByRole('article');

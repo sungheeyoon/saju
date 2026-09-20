@@ -68,12 +68,8 @@ grant select on folks to authenticated;
  * 이 파일이 「DB 가 비어 있는가」를 잰다.
  */
 reset role;
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select mine.uid, p.user_id
-from (select kim as uid from folks union all select lee from folks
-      union all select park from folks union all select choi from folks) mine,
-     public.discovery_profile p
-where p.user_id not in (select uid from (
+update public.discovery_profile set opted_in_at = null
+where user_id not in (select uid from (
   select kim as uid from folks union all select lee from folks
   union all select park from folks union all select choi from folks) ours);
 
@@ -495,10 +491,12 @@ select pg_temp.participant('han-mr@example.com', '한요', pg_temp.summary(4, 0,
 grant select on han to authenticated;
 
 reset role;
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select (select uid from han), p.user_id
-from public.discovery_profile p
-where p.user_id not in (select lee from folks) and p.user_id <> (select uid from han);
+/* **앞 무리를 계속 남긴다.** 참여 끄기는 전역이라, 여기서 좁히면 뒤에서 최가 목록을 못 연다 */
+update public.discovery_profile set opted_in_at = null
+where user_id not in (select uid from (
+  select kim as uid from folks union all select lee from folks
+  union all select park from folks union all select choi from folks
+  union all select uid from han) ours);
 set local role authenticated;
 
 select pg_temp.acting((select uid from han));
@@ -656,13 +654,13 @@ grant select on later to authenticated;
 
 /** 앞선 시험들이 남긴 사람들은 이 셋의 관심 밖이다 — 서로만 보이게 둔다 */
 reset role;
-insert into public.discovery_hidden (user_id, hidden_user_id)
-select ours.uid, p.user_id
-from (select yoon as uid from later union all select jang from later
-      union all select moon from later) ours,
-     public.discovery_profile p
-where p.user_id not in (
-  select yoon from later union all select jang from later union all select moon from later);
+update public.discovery_profile set opted_in_at = null
+where user_id not in (select uid from (
+  select kim as uid from folks union all select lee from folks
+  union all select park from folks union all select choi from folks
+  union all select uid from han
+  union all select yoon from later union all select jang from later
+  union all select moon from later) ours);
 set local role authenticated;
 
 select pg_temp.acting((select yoon from later));
