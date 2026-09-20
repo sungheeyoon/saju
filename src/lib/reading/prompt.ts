@@ -755,12 +755,32 @@ const guideScopeOf = (kind: ReadingKind, assembly: PromptAssembly): GuideScope =
   kind === 'private' ? 'private' : assembly.matchInput;
 
 /**
+ * **어느 세대의 지시를 쓰는가** — 이 파일에는 지시가 세 벌 산다.
+ *
+ * - `self` — 개인 풀이. 공통 조각(`PROMPT_PARTS`)과 용어 두 판을 그대로 쓴다.
+ * - `pair-legacy` — 읽는 법 4판 이전의 궁합. **개인 풀이와 같은 조각을 쓴다** — 옛 절판
+ *   프롬프트는 개인 풀이와 9,716자를 글자 그대로 공유한다. 원복의 길이라 살아 있다.
+ * - `pair-guided` — 지금 운영에 나가는 두 궁합(ADR 0067). 같은 자리마다 **제 벌**을
+ *   들고, 개인 풀이와 공유하는 것은 1,878자뿐이다.
+ *
+ * **한 번 정하고 슬롯마다 다시 묻지 않는다.** 이 값이 없는 동안 `bodyOf` 는 열두 자리에서
+ * 술어 다섯(`solo`·`usesPairGuide`·`kind === 'match'`·`pairShape`·`pairReading`)을 각각
+ * 다시 세웠고, **그래서 한 번 틀렸다** — 「두 사람 자료에는 `analysis` 가 없다」는 틀린
+ * 전제로 판정 서열 절을 `solo` 문에 걸어서, 비공개 궁합이 그 값을 실으면서 읽으라는
+ * 규칙만 잃은 채로 남아 있었다. 자리마다 따로 묻는 한 그런 어긋남은 다시 난다.
+ */
+type PromptVoice = 'self' | 'pair-legacy' | 'pair-guided';
+
+const voiceOf = (kind: ReadingKind, assembly: PromptAssembly): PromptVoice =>
+  isSolo(kind) ? 'self' : usesPairGuide(kind, assembly) ? 'pair-guided' : 'pair-legacy';
+
+/**
  * 한 줄 요약을 **본문 뒤에** 받는가 — 출력 스키마의 차례를 고르는 자리(모델 호출 쪽)가 이 답을 쓴다.
  *
  * 읽는 법 4판의 두 궁합만 그렇다. 개인 풀이는 운영 차례 그대로다.
  */
 export const writesSummaryLast = (kind: ReadingKind, assembly: PromptAssembly = CONTROL): boolean =>
-  usesPairGuide(kind, assembly);
+  voiceOf(kind, assembly) === 'pair-guided';
 
 const relationshipCustomerVoice = (terminology: Terminology): string => `${CUSTOMER_TONE}
 
@@ -1439,6 +1459,8 @@ const compatSections = (
   kind: PairKind,
   assembly: PromptAssembly,
   about: ReadingAbout,
+  /** 어느 세대의 궁합 지시인가 — **여기서 다시 묻지 않고 받아서 쓴다** */
+  voice: PromptVoice,
 ): string => {
   const { names, relation } = about;
   const { a, b = FALLBACK_NAMES.b as string } = names ?? FALLBACK_NAMES;
@@ -1463,7 +1485,7 @@ const compatSections = (
    * 수가 두 번 서고, 둘이 갈려도 검사는 필드만 본다. 점수는 계약이고 계약은 필드다.
    */
   const needsShape = assembly.pairShape === 'needs-v1';
-  const guided = usesPairGuide(kind, assembly);
+  const guided = voice === 'pair-guided';
   const relationKey: RelationKey = kind === 'match' && relation === null ? 'match' : (relation ?? 'unknown');
 
   const plan = needsShape
@@ -1601,77 +1623,142 @@ ${
 
 본문에 JSON 코드 감싸개를 두르지 않는다. 표는 쓰지 않는다. 소제목·문단·목록·굵게만 쓴다.`;
 
-const bodyOf = (
-  kind: ReadingKind,
-  assembly: PromptAssembly,
-  about: ReadingAbout,
-): string => {
-  const solo = isSolo(kind);
-  const head =
-    solo
-      ? `# 역할
+/**
+ * **역할 문단** — 모든 프롬프트가 이것으로 열고 그다음이 `## ` 절이다(`withSummary` 가 그 경계에 머리를 끼운다).
+ */
+const SELF_ROLE = `# 역할
 
 너는 개인 사주 하나를 보고 성격·재능·복·일·돈·연애·도움이 들어오는 자리·지금의 흐름까지
 **시원하게 끝까지 읽어 주는 사주 해석가**다. 자료 밖을 지어내지는 않지만, 자료 안에서 받쳐 주는 말은
 조심스러움 뒤에 숨기지 마라. 독자가 자기 얘기를 알아보는 맛, 몰랐던 강점을 발견하는 맛,
-궁금했던 부분의 답을 듣는 맛이 모두 있어야 한다.`
-      : `# 역할
+궁금했던 부분의 답을 듣는 맛이 모두 있어야 한다.`;
+
+const PAIR_ROLE = `# 역할
 
 너는 두 사람 사이를 읽어 주는 사람이다. 잘 맞는다거나 안 맞는다고 끝내지 않고,
 어디서 편해지고 어디서 부딪히며 그때 무엇을 하면 되는지 말한다.`;
 
-  const guided = usesPairGuide(kind, assembly);
-  const voice = solo
-    ? selfCustomerVoice(assembly.terminology)
-    : guided
-      ? pairCustomerVoice(assembly.terminology, kind as PairKind)
-      : relationshipCustomerVoice(assembly.terminology);
+/**
+ * 「성격을 읽는 순서」를 시키는가 — **구성·해석 지시라, 구성을 내리는 판에서는 함께 내린다.**
+ *
+ * 절 목록만 걷고 이 문단을 남기면 「해석은 네가 하라」면서 읽는 순서는 시키는 꼴이라, 그 판이
+ * 재려던 것이 반쯤만 재어진다.
+ *
+ * **세대가 아니라 판(`pairShape`)이 답을 낸다.** 세대로 뭉뚱그리면 옛 절판 궁합
+ * (`pair-legacy` + `sections-v1`)이 이 문단을 잃는다 — 그 판은 절과 읽는 순서를 함께 들고
+ * 서야 견줄 짝이 된다.
+ */
+const carriesPersonality = (kind: ReadingKind, assembly: PromptAssembly): boolean =>
+  !(kind === 'match' || (kind === 'private' && assembly.pairShape === 'needs-v1'));
 
-  return [
-    head,
-    guided ? pairRules(kind as PairKind) : PROMPT_PARTS.rules,
-    ...(kind === 'match' ? [matchScope(assembly.matchInput, assembly.pairReading !== 'plain-v1')] : []),
-    ...(guided ? [pairReadingGuideBlock(guideScopeOf(kind, assembly), ABSORPTION_RULE)] : []),
-    voice,
-    /*
-      **「성격을 읽는 순서」는 구성·해석 지시다.** 다룰 것만 주는 판에서는 함께 내린다 —
-      절 목록만 걷고 이 문단을 남기면 「해석은 네가 하라」면서 읽는 순서는 시키는 꼴이라,
-      그 판이 재려던 것이 반쯤만 재어진다.
+/**
+ * 「얼마나 세게 말할까」를 시키는가 — **경계이지 구성이 아니라서 내리지 않는다.**
+ *
+ * 구성을 넘기는 판에서도 이것은 쥔다. 근거가 몇 갈래냐로 말의 세기를 정하는 규율까지 놓으면
+ * 자율성이 아니라 **우리가 책임질 것을 떠넘긴 것**이고, 시험이 그 자리를 잡았다.
+ *
+ * 읽는 법 4판에는 안 붙는다 — 그 판의 「말의 세기」가 이 자리를 대신하고, 「근거가 하나면
+ * ~경향이 있다」와 부딪혔다.
+ */
+const carriesClaimStrength = (kind: ReadingKind, assembly: PromptAssembly): boolean =>
+  !(kind === 'match' || usesPairGuide(kind, assembly));
 
-      **강도(`claimStrength`)는 안 내린다.** 한 문자열에 같이 살던 것을 갈랐다 — 그쪽은
-      근거가 몇 갈래냐로 말의 세기를 정하는 **경계**이고, 그것까지 놓으면 자율성이
-      아니라 우리가 책임질 것을 떠넘긴 것이다. 시험이 그 자리를 잡았다.
-    */
-    ...(kind === 'match' || (kind === 'private' && assembly.pairShape === 'needs-v1')
-      ? []
-      : [PROMPT_PARTS.personality]),
-    /* 새 판은 「말의 세기」가 이 자리를 대신한다 — 「근거가 하나면 ~경향이 있다」와 부딪혔다 */
-    ...(kind === 'match' || guided ? [] : [PROMPT_PARTS.claimStrength]),
-    /*
-      **`match` 자료에는 `analysis` 가 통째로 빠져 있다**(`WITHHELD_PATHS`) — 없는 경로를
-      가리키는 규칙이 되므로 안 붙인다.
+/**
+ * 프롬프트가 세우는 **자리와 그 차례** — 무엇이 서는지는 표가 정하고, 어디에 서는지는 이 줄이 정한다.
+ *
+ * 차례를 슬롯마다 적지 않고 한 줄로 두는 까닭은 `bodyOf` 가 배열을 손으로 엮던 동안 **끼우는
+ * 자리와 끼울지 말지가 한 표현에 붙어 있었기** 때문이다. 갈라 두면 「이 판에 무엇이 서나」를
+ * 값으로 셀 수 있다(`promptSlotsOf`).
+ */
+const SLOT_ORDER = [
+  'role',
+  'rules',
+  'scope',
+  'guide',
+  'voice',
+  'personality',
+  'claimStrength',
+  'precedence',
+  'extra',
+  'body',
+  'summary',
+  'output',
+] as const;
 
-      이 줄은 한동안 「두 사람 자료에는 `analysis` 가 없다」고 적혀 있었다. `match` 에는
-      참이고 **`private` 에는 거짓이다** — 비공개 궁합은 두 사람 판정을 통째로 싣고
-      거기에 `precedence` 도 있다. 그런데 문이 `solo` 라 둘이 함께 잘려서, **private 은
-      값을 실으면서 그것을 읽으라는 규칙만 잃은 채로 남아 있었다.** 틀린 전제가 배제를
-      정당화하고 있던 자리다.
+export type PromptSlot = (typeof SLOT_ORDER)[number];
 
-      **그리고 재보니 이 문단은 private 에 붙일 것이 아니었다.** 여기가 서열을 매기는
-      다섯은 전부 「무엇을 쓸 것인가」(용신)에 대한 답인데, 궁합 프롬프트에는 **그 물음을
-      하는 절이 하나도 없다.** 10절은 반복하는 모양과 서운할 때의 반응을 묻는다.
+/** 자리마다 무엇이 서는가 — **안 서는 자리는 `null` 이다.** 빈 문자열로 뭉개지 않는다 */
+type PromptPlan = Readonly<Record<PromptSlot, string | null>>;
 
-      그래서 `solo` 문은 **적힌 이유는 틀렸지만 결론은 맞았다.** 10절이 자료를 더 읽게
-      하려면 서열이 아니라 그 물음에 답하는 판정을 지목해야 했다. 그런데 그 뒤에 절
-      자체를 걷는 쪽으로 갔으므로(`PairShape`) 그 자리는 이제 모델이 고른다. 이
-      라운드가 알아낸 것은 ADR 0051 에 있다.
-    */
-    ...(solo ? [JUDGEMENT_PRECEDENCE] : []),
-    ...assembly.extraSections,
-    solo ? selfSections(assembly) : compatSections(kind, assembly, about),
-    guided ? PAIR_SUMMARY_SECTION : SUMMARY_SECTION(kind),
-    guided ? PAIR_OUTPUT_CONTRACT : OUTPUT_CONTRACT(kind),
-  ].join('\n\n');
+/**
+ * 이 kind 와 조립이 세우는 **한 판의 전부** — 세대를 한 번 정하고 자리마다 무엇이 설지 답한다.
+ *
+ * 자리별 예외 둘(`personality`·`claimStrength`)은 세대가 아니라 판을 보므로 **술어를 이름으로
+ * 세워 옆에 둔다.** 세대로 접어 넣으면 표기는 짧아지지만 옛 절판이 잃는 것이 생긴다 —
+ * 편한 표기와 보장을 맞바꾸지 않는다(ADR 0074 가 같은 자리에서 한 번 걸렸다).
+ */
+const planOf = (kind: ReadingKind, assembly: PromptAssembly, about: ReadingAbout): PromptPlan => {
+  const voice = voiceOf(kind, assembly);
+  const solo = voice === 'self';
+  const guided = voice === 'pair-guided';
+
+  return {
+    role: solo ? SELF_ROLE : PAIR_ROLE,
+    rules: guided ? pairRules(kind as PairKind) : PROMPT_PARTS.rules,
+    /** 인연 궁합만 동의 범위를 적는다 — 판마다 실린 것이 달라 문장도 갈린다(ADR 0067) */
+    scope:
+      kind === 'match' ? matchScope(assembly.matchInput, assembly.pairReading !== 'plain-v1') : null,
+    guide: guided ? pairReadingGuideBlock(guideScopeOf(kind, assembly), ABSORPTION_RULE) : null,
+    voice: solo
+      ? selfCustomerVoice(assembly.terminology)
+      : guided
+        ? pairCustomerVoice(assembly.terminology, kind as PairKind)
+        : relationshipCustomerVoice(assembly.terminology),
+    personality: carriesPersonality(kind, assembly) ? PROMPT_PARTS.personality : null,
+    claimStrength: carriesClaimStrength(kind, assembly) ? PROMPT_PARTS.claimStrength : null,
+    /**
+     * **판정 서열은 한 사람짜리에만 선다.**
+     *
+     * 이 줄은 한동안 「두 사람 자료에는 `analysis` 가 통째로 빠져 있다」고 적혀 있었다.
+     * `match` 에는 참이고 **`private` 에는 거짓이다** — 비공개 궁합은 두 사람 판정을 통째로
+     * 싣고 거기에 `precedence` 도 있다. 그런데 문이 `solo` 하나라 둘이 함께 잘려서,
+     * **private 은 값을 실으면서 그것을 읽으라는 규칙만 잃은 채로** 남아 있었다.
+     *
+     * **적힌 이유는 틀렸지만 결론은 맞았다.** 서열이 매기는 다섯은 전부 「무엇을 쓸 것인가」
+     * (용신)에 대한 답인데 궁합 프롬프트에는 그 물음을 하는 절이 없다. 그 뒤에 절 자체를
+     * 걷었으므로(`PairShape`) 그 자리는 이제 모델이 고른다. ADR 0051.
+     */
+    precedence: solo ? JUDGEMENT_PRECEDENCE : null,
+    extra: assembly.extraSections.length === 0 ? null : assembly.extraSections.join('\n\n'),
+    body: solo
+      ? selfSections(assembly)
+      : compatSections(kind as PairKind, assembly, about, voice),
+    summary: guided ? PAIR_SUMMARY_SECTION : SUMMARY_SECTION(kind),
+    output: guided ? PAIR_OUTPUT_CONTRACT : OUTPUT_CONTRACT(kind),
+  };
+};
+
+/**
+ * 그 판에 **실제로 서는 자리**를 차례대로 — 시험이 표를 재는 자다.
+ *
+ * 글자를 재는 것이 아니라 **무엇이 서고 무엇이 안 서는지**를 잰다. 한 자리가 다른 세대의
+ * 조각으로 갈리는 것은 이 목록이 못 잡으므로, 그쪽은 조립된 글의 소제목 차례가 잰다.
+ */
+export const promptSlotsOf = (
+  kind: ReadingKind,
+  assembly: PromptAssembly = CONTROL,
+  about: ReadingAbout = NOTHING_KNOWN,
+): readonly PromptSlot[] => {
+  const plan = planOf(kind, assembly, about);
+  return SLOT_ORDER.filter((slot) => plan[slot] !== null);
+};
+
+const bodyOf = (kind: ReadingKind, assembly: PromptAssembly, about: ReadingAbout): string => {
+  const plan = planOf(kind, assembly, about);
+
+  return SLOT_ORDER.map((slot) => plan[slot])
+    .filter((block): block is string => block !== null)
+    .join('\n\n');
 };
 
 /** 이름도 사이도 모르는 자리 — **모른다를 한 값으로 든다** */
