@@ -64,7 +64,7 @@ returns void
 language sql
 security definer
 as $$
-  update public.discovery_profile set opted_in_at = null
+  update public.discovery_profile set opted_in_at = null, opted_out_at = now()
   where not (user_id = any (keep));
 $$;
 

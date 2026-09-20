@@ -182,7 +182,7 @@ try {
  */
 const isolate = (emails) => {
   const list = emails.map((email) => `'${email}'`).join(', ');
-  sql(`update public.discovery_profile set opted_in_at = null
+  sql(`update public.discovery_profile set opted_in_at = null, opted_out_at = now()
        where user_id not in (select id from auth.users where email in (${list}))`);
 };
 

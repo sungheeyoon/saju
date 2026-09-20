@@ -357,7 +357,7 @@ export async function participate(api, counts = EVEN_SUMMARY) {
 /** 지난 실행이 남긴 사람들을 **이 둘의 후보 목록에서 치운다** */
 export function onlyTheseTwo(emails) {
   const quoted = emails.map((one) => `'${one}'`).join(', ');
-  sql(`update public.discovery_profile set opted_in_at = null
+  sql(`update public.discovery_profile set opted_in_at = null, opted_out_at = now()
        where user_id not in (select id from auth.users where email in (${quoted}))`);
   sql(`delete from public.discovery_snapshot s using auth.users u
        where u.id = s.user_id and u.email in (${quoted})`);

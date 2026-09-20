@@ -61,7 +61,7 @@ const sql = (statement) =>
 
 /** 지난 실행이 남긴 참여자가 후보 목록을 헛디디게 하지 않는다 — 그들의 참여를 끈다 */
 const hideOthers = () => {
-  sql(`update public.discovery_profile set opted_in_at = null
+  sql(`update public.discovery_profile set opted_in_at = null, opted_out_at = now()
        where user_id not in (select id from auth.users where email in ('${mail.a}', '${mail.b}'))`);
 };
 

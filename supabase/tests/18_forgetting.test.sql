@@ -53,7 +53,7 @@ select
 grant select on folks to authenticated, service_role;
 
 reset role;
-update public.discovery_profile set opted_in_at = null
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
 where user_id not in (select kim from folks union all select lee from folks);
 set local role authenticated;
 

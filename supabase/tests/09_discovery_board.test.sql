@@ -67,7 +67,7 @@ grant select on folks to authenticated;
  * 파일은 「DB 가 비어 있는가」를 재게 된다.
  */
 reset role;
-update public.discovery_profile set opted_in_at = null
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
 where user_id not in (select uid from folks);
 
 create temporary table me as select uid from folks where i = 1;
@@ -277,7 +277,7 @@ select is(
  * 후보를 열둘로 줄이면 새로 뽑을 사람이 둘뿐이다. 그래도 열 자리를 채운다 — 못 채우면
  * 목록이 하루아침에 두 명으로 줄어든 것처럼 보인다.
  */
-update public.discovery_profile set opted_in_at = null
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
 where user_id in (select user_id from scores where rnk > 12);
 
 create temporary table shallow as
@@ -289,7 +289,7 @@ select is(
   10,
   '풀이 얕으면 직전 스냅샷 사람으로 채워 열을 세운다');
 
-update public.discovery_profile set opted_in_at = now()
+update public.discovery_profile set opted_in_at = now(), opted_out_at = null
 where user_id in (select user_id from scores where rnk > 12);
 
 -- ── 읽는 함수 ─────────────────────────────────────────────────────────────────
@@ -311,7 +311,7 @@ select is(
   '읽기만으로는 세대가 늘지 않는다');
 
 /** 그 사이 자격을 잃은 사람은 빠진다 — 자리를 메우지 않는다. 메우는 것은 다시 뽑는 일이다 */
-update public.discovery_profile set opted_in_at = null
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
 where user_id = (
   select candidate_user_id from public.discovery_snapshot_slot
   where snapshot_id = (
@@ -409,7 +409,7 @@ reset role;
  * 빨개진다 — 재려는 것은 지나치기가 후보 자격을 어떻게 바꾸는가다.
  */
 -- 앞 절이 참여를 끈 한 명을 되살려, 이 절에서는 표시 상한만 잰다.
-update public.discovery_profile set opted_in_at = now()
+update public.discovery_profile set opted_in_at = now(), opted_out_at = null
 where user_id in (select user_id from scores);
 
 create temporary table passer as

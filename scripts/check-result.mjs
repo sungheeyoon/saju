@@ -87,7 +87,7 @@ for (const [client, nickname] of [[a, NAME.a], [b, NAME.b], [c, NAME.c]]) {
 
 /** 이번 실행의 사람들만 서로의 후보가 되게 한다 — 아니면 「DB 가 비어 있는가」를 잰다 */
 const list = Object.values(mail).map((email) => `'${email}'`).join(', ');
-sql(`update public.discovery_profile set opted_in_at = null
+sql(`update public.discovery_profile set opted_in_at = null, opted_out_at = now()
      where user_id not in (select id from auth.users where email in (${list}))`);
 
 const cookieFor = async (email) => {

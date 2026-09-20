@@ -235,7 +235,7 @@ reset role;
  * 참여자가 열을 넘는 순간 목표가 목록 밖으로 밀린다 — 재현했다(참여자 36 명에서
  * 이 단언이 무너졌다). 이 정리는 **수를 재는 대목보다 앞에** 있어야 한다.
  */
-update public.discovery_profile set opted_in_at = null
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
 where user_id not in (select kim from who union select lee from who union select park from who);
 
 /**

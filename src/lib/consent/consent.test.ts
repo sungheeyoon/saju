@@ -316,7 +316,7 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
     expect(REJECTION_IS_FINAL_NOTE).toContain('다시');
   });
 
-  it('차단이 「다시 보지 않기」보다 넓고 되돌릴 수 없다는 것을 말한다', () => {
+  it('차단이 무엇을 함께 거두는지와 되돌릴 수 없다는 것을 말한다', () => {
     expect(BLOCK_NOTE).toContain('요청');
     expect(BLOCK_NOTE).toContain('함께 보던 궁합');
     // 용어집: 차단은 양방향으로 접촉을 막고 **되돌리지 않는다**. 푸는 문이 없으므로

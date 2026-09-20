@@ -156,7 +156,7 @@ export function forgetBoards(emails: readonly string[]): void {
 
 export function onlyTheseParticipate(emails: readonly string[]): void {
   const quoted = emails.map((one) => `'${one}'`).join(', ');
-  sql(`update public.discovery_profile set opted_in_at = null
+  sql(`update public.discovery_profile set opted_in_at = null, opted_out_at = now()
        where user_id not in (select id from auth.users where email in (${quoted}))`);
 }
 

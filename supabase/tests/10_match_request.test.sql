@@ -68,7 +68,7 @@ grant select on folks to authenticated;
  * 이 파일이 「DB 가 비어 있는가」를 잰다.
  */
 reset role;
-update public.discovery_profile set opted_in_at = null
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
 where user_id not in (select uid from (
   select kim as uid from folks union all select lee from folks
   union all select park from folks union all select choi from folks) ours);
@@ -492,7 +492,7 @@ grant select on han to authenticated;
 
 reset role;
 /* **앞 무리를 계속 남긴다.** 참여 끄기는 전역이라, 여기서 좁히면 뒤에서 최가 목록을 못 연다 */
-update public.discovery_profile set opted_in_at = null
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
 where user_id not in (select uid from (
   select kim as uid from folks union all select lee from folks
   union all select park from folks union all select choi from folks
@@ -654,7 +654,7 @@ grant select on later to authenticated;
 
 /** 앞선 시험들이 남긴 사람들은 이 셋의 관심 밖이다 — 서로만 보이게 둔다 */
 reset role;
-update public.discovery_profile set opted_in_at = null
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
 where user_id not in (select uid from (
   select kim as uid from folks union all select lee from folks
   union all select park from folks union all select choi from folks
