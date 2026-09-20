@@ -16,6 +16,7 @@ import {
 import { ABSORPTION_RULE } from './parts';
 import { PROMPT_PARTS } from './parts';
 import { withSummary } from './summary';
+import { termNames } from './vocabulary';
 
 import type { ReadingEvidence } from '.';
 import { READING_POLICY, isScored, isSolo, type PairKind, type ReadingKind } from './policy';
@@ -589,7 +590,7 @@ ${termsSection(terminology)}
  * 예시와 역할 본보기, 요약의 대구 본보기. 명식과 상관없이 모든 글에 같은 틀을 만들던 조각들이다.
  */
 const PAIR_DATA: Record<PairKind, string> = {
-  match: `두 사람의 원국 **사이** 관계가 실려 있고, 참여자마다 \`chartId\` 가 \`natal:a\`(첫 번째 분)·\`natal:b\`(두 번째 분)로 갈린다. 대운·세운·월운은 이 자료에 없다 — 시기는 이 글이 다루는 이야기가 아니다.`,
+  match: `두 사람의 원국 **사이** 관계가 실려 있고, 참여자마다 \`chartId\` 가 \`natal:a\`(첫 번째 분)·\`natal:b\`(두 번째 분)로 갈린다. ${termNames('luck')}은 이 자료에 없다 — 시기는 이 글이 다루는 이야기가 아니다.`,
   private: `두 사람 각자의 원국 판정·원국 안 관계·신살과, 두 원국 사이의 관계, 기준 시각(\`viewedAt\`)에 도는 운이 실려 있다. 관계 참여자의 \`chartId\` 는 \`natal:a\`·\`natal:b\`(두 원국 사이) · \`natal\`(한 사람 원국 안) · \`decade:n\`·\`annual:연도\`·\`monthly:…\`(운)로 갈린다. **어느 칸의 관계인지 섞지 마라** — 원국의 관계는 타고난 구조이고, 운에서 걸린 관계는 그 시기에 새로 걸린 것이다.`,
 };
 
@@ -1501,6 +1502,12 @@ ${scoreSection(carriesEokbu(kind, assembly))}`;
  *
  * 두 판이 함께 지키는 것 하나: 이 글은 두 사람 사이에 대한 글이다. 개인 풀이 두 편을
  * 붙여 놓은 글이 되면, 확장형이 실은 각자의 판정이 상대가 읽는 글에 그대로 선다.
+ *
+ * **쓰지 말라고 부르는 이름은 검사가 막는 표에서 읽어 온다**(`SAJU_TERMS`). 손으로 옮겨
+ * 적으면 언젠가 표만 늘고 이 문장이 안 따라온다 — 그때 열리는 것은 **모델이 지킬 방법이
+ * 없는 계약을 검사만 드는 창**이고, 그 값은 다 만든 글 한 편이다(`metaphorLength` 가 같은
+ * 자리에서 한 번 치렀다). 여기서 부르는 것은 표 전체가 아니라 **그 자료에 실제로 실린
+ * 판정의 이름**뿐이다 — 금지 목록을 길게 세우면 모델이 먼저 읽는 것이 그 목록이 된다.
  */
 const matchScope = (input: MatchInput, guided: boolean): string => {
   /** 옛 컷 — 운영 문장을 한 글자도 안 바꾼다 */
@@ -1520,7 +1527,7 @@ const matchScope = (input: MatchInput, guided: boolean): string => {
 
 실린 판정은 **두 사람 사이를 설명하는 근거로만** 쓴다. 한 사람의 강약이나 억부 후보를 그
 사람 이야기로 풀지 말고, 그것 때문에 두 사람이 어디서 맞물리고 어디서 버거운지로 이어라.
-그 판정의 이름(신강·신약·억부·용신)은 본문에 쓰지 마라.${
+그 판정의 이름(${termNames('strength', 'eokbu')})은 본문에 쓰지 마라.${
           guided ? '' : ` 억부 후보는 시험값
 (\`status: "experimental"\`)이라 단정하지 않는다.`
         }`
