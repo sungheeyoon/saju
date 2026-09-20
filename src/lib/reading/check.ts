@@ -26,6 +26,7 @@ import {
   type ReadingKind,
   type ReadingOutput,
 } from './policy';
+import { SAJU_TERMS } from './vocabulary';
 
 /**
  * 나온 글을 **저장하기 전에** 검사한다.
@@ -154,35 +155,22 @@ export type BirthSecret = {
  * 여전히 `eokbuMatch` 를 싣고 절이 읽게 하므로 그 판에서만 풀어 둔다**(아래 검사).
  */
 export const OUT_OF_SCOPE_TERMS: readonly string[] = [
-  // 신강·신약과 그 근거
-  '신강',
-  '신약',
+  // 신강·신약과 그 근거 — 앞의 둘은 프롬프트도 이름을 불러 금지한다
+  ...SAJU_TERMS.strength,
   '통근',
   '득령',
   '득지',
   '득세',
   // 용신 갈래
-  '용신',
-  '억부',
+  ...SAJU_TERMS.eokbu,
   '기신',
   '희신',
   '구신',
   '한신',
-  '조후',
-  '격국',
+  ...SAJU_TERMS.method,
   '종격',
   // 원국 하나에서만 나오는 신살
-  '신살',
-  '공망',
-  '역마',
-  '화개',
-  '도화',
-  '천을귀인',
-  '문창귀인',
-  '학당귀인',
-  '백호',
-  '괴강',
-  '양인',
+  ...SAJU_TERMS.sinsal,
   '고신',
   '과숙',
   // 12운성
@@ -191,9 +179,7 @@ export const OUT_OF_SCOPE_TERMS: readonly string[] = [
   '장생',
   '제왕',
   // 운 — 동의 범위 밖이다
-  '대운',
-  '세운',
-  '월운',
+  ...SAJU_TERMS.luck,
 ];
 
 /**
@@ -305,30 +291,15 @@ export const PLAIN_FORBIDDEN_TERMS: readonly string[] = [
   ...Object.values(TEN_GOD_GROUP_KO),
   ...Object.values(TEN_GOD_KO),
   // 별도 체계
-  '격국',
-  '조후',
-  '억부',
-  '용신',
-  '신강',
-  '신약',
+  ...SAJU_TERMS.method,
+  ...SAJU_TERMS.eokbu,
+  ...SAJU_TERMS.strength,
   // 때를 부르는 이름
-  '대운',
-  '세운',
-  '월운',
+  ...SAJU_TERMS.luck,
   // 신살 — 이름이 아니라 하는 일로 쓰게 한다
-  '신살',
-  '천을귀인',
+  ...SAJU_TERMS.sinsal,
   '천덕귀인',
   '월덕귀인',
-  '문창귀인',
-  '학당귀인',
-  '역마',
-  '도화',
-  '화개',
-  '공망',
-  '백호',
-  '괴강',
-  '양인',
   // 관계 — 이름은 표에서 짓는다
   ...RELATION_NAMES,
 ];
