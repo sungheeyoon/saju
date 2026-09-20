@@ -1,9 +1,8 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-
+import { refresh } from '../../refresh';
+import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
-import type { SaveResult } from '../actions';
 import { PHOTO_TYPES, missingInProfile, type ProfileInput } from '@/src/lib/profile';
 import { userFacingDbMessage } from '../../db-error';
 
@@ -32,7 +31,7 @@ export async function saveProfile(profile: ProfileInput): Promise<SaveResult> {
     이름은 거의 모든 화면에 선다 — 후보 카드도 요청 목록도 소식도. 한 자리만 새로
     그리면 나머지는 옛 이름을 든 채로 남는다.
   */
-  revalidatePath('/me', 'layout');
+  refresh('account-changed');
   return { ok: true };
 }
 
@@ -59,7 +58,7 @@ export async function savePhoto(photo: {
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'set_my_photo') };
 
-  revalidatePath('/me', 'layout');
+  refresh('account-changed');
   return { ok: true };
 }
 
@@ -70,6 +69,6 @@ export async function clearPhoto(): Promise<SaveResult> {
   const { error } = await supabase.rpc('clear_my_photo');
   if (error) return { ok: false, message: userFacingDbMessage(error, 'clear_my_photo') };
 
-  revalidatePath('/me', 'layout');
+  refresh('account-changed');
   return { ok: true };
 }

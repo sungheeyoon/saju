@@ -1,12 +1,12 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 
 import { REQUEST_STATUSES, type RequestStatus } from '@/src/lib/consent';
 
+import { refresh } from '../../refresh';
+import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
-import type { SaveResult } from '../actions';
 import { sendAcceptedMatchReading } from '../reading/pipeline';
 import { userFacingDbMessage } from '../../db-error';
 
@@ -65,8 +65,7 @@ export async function respondToRequest(requestId: string, accept: boolean): Prom
     });
   }
 
-  revalidatePath('/me/requests');
-  revalidatePath('/me');
+  refresh('requests-changed');
   return { ok: true, status };
 }
 
@@ -85,8 +84,7 @@ export async function cancelRequest(requestId: string): Promise<RespondResult> {
   const status = statusOf(data);
   if (status === null) return { ok: false, message: '요청을 거두지 못했습니다.' };
 
-  revalidatePath('/me/requests');
-  revalidatePath('/me');
+  refresh('requests-changed');
   return { ok: true, status };
 }
 
@@ -102,8 +100,7 @@ export async function blockUser(userId: string): Promise<SaveResult> {
   const { error } = await supabase.rpc('block_user', { p_user_id: userId });
   if (error) return { ok: false, message: userFacingDbMessage(error, 'block_user') };
 
-  revalidatePath('/me/requests');
-  revalidatePath('/me');
+  refresh('requests-changed');
   return { ok: true };
 }
 
@@ -131,7 +128,7 @@ export async function reportUser(
   });
   if (error) return { ok: false, message: userFacingDbMessage(error, 'report_user') };
 
-  revalidatePath('/me/requests');
+  refresh('report-filed');
   return { ok: true };
 }
 
@@ -148,7 +145,7 @@ export async function requestAccountDeletion(): Promise<SaveResult> {
   if (error) return { ok: false, message: userFacingDbMessage(error, 'request_account_deletion') };
 
   // 상태 하나가 모든 화면의 답을 바꾼다 — 한 자리만 다시 그리면 나머지가 낡는다.
-  revalidatePath('/', 'layout');
+  refresh('account-closed');
   return { ok: true };
 }
 
@@ -164,7 +161,6 @@ export async function markNotificationsRead(): Promise<SaveResult> {
   const { error } = await supabase.rpc('mark_notifications_read');
   if (error) return { ok: false, message: userFacingDbMessage(error, 'mark_notifications_read') };
 
-  revalidatePath('/me/requests');
-  revalidatePath('/me');
+  refresh('requests-changed');
   return { ok: true };
 }

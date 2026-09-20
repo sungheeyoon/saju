@@ -1,10 +1,9 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-
+import { refresh } from '../../refresh';
+import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
 import { publicCardFromRow } from '../candidates';
-import type { SaveResult } from '../actions';
 import { selfElementSummary } from '../summary';
 import { PREFER_GENDERS, type PreferGender } from './profile';
 import { userFacingDbMessage } from '../../db-error';
@@ -40,7 +39,7 @@ export async function savePreferGender(value: PreferGender): Promise<SaveResult>
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'discovery_profile.upsert') };
 
-  revalidatePath('/me/settings');
+  refresh('discovery-settings-changed');
   return { ok: true };
 }
 
@@ -61,7 +60,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
     });
     if (error) return { ok: false, message: userFacingDbMessage(error, 'set_discovery_participation') };
 
-    revalidatePath('/me/settings');
+    refresh('discovery-settings-changed');
     return { ok: true };
   }
 
@@ -79,7 +78,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
   });
   if (error) return { ok: false, message: userFacingDbMessage(error, 'set_discovery_participation') };
 
-  revalidatePath('/me/settings');
+  refresh('discovery-settings-changed');
   return { ok: true };
 }
 
@@ -96,67 +95,7 @@ export async function refreshDiscoveryBoard(): Promise<SaveResult> {
   const { error } = await supabase.rpc('refresh_discovery_snapshot');
   if (error) return { ok: false, message: userFacingDbMessage(error, 'refresh_discovery_snapshot') };
 
-  revalidatePath('/me');
-  revalidatePath('/me/matching');
-  return { ok: true };
-}
-
-/**
- * 이 사람은 그만 본다 — **차단이 아니다.**
- *
- * 되돌릴 수 있다. 차단은 접촉을 막는 별개의 일이고, 막을 접촉은 아직 없다.
- */
-export async function hideCandidate(candidateUserId: string): Promise<SaveResult> {
-  const supabase = await supabaseOnServer();
-
-  // `user_id` 는 적지 않는다 — 기본값이 `auth.uid()` 이고 정책이 같은 것을 묻는다.
-  const { error } = await supabase
-    .from('discovery_hidden')
-    .insert({ hidden_user_id: candidateUserId });
-
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'discovery_hidden.insert') };
-
-  /*
-    **덱을 사용자 밑에서 다시 그리지 않는다.** 서버 액션의 `revalidatePath` 는 응답에
-    새 RSC 페이로드를 실어 라우트를 다시 그린다 — 그러면 이 사람이 `cards` 에서 빠지고
-    뒤 카드가 한 칸씩 당겨지는데, 덱이 든 자리(`index`)는 `key` 가 같아 살아남아 계산이
-    어긋난다(느린 기계에서 먼저 드러났다, `74349b6`). 덱은 자기 자리를 스스로 옮기고
-    새 자료는 다음 이동에서 받는다. **`refreshDiscoveryBoard` 는 다르다** — 거기서는
-    스냅샷 시각이 바뀌어 덱이 통째로 다시 선다.
-  */
-  revalidatePath('/me');
-  return { ok: true };
-}
-
-/**
- * 방금 감춘 **한 사람**을 되돌린다 — 숨긴 직후의 「실행 취소」가 쓰는 문이다.
- *
- * 목록 화면에서 한 명씩 고르는 길은 여전히 없다(감춘 사람의 별명을 안 들고 있다).
- * 여기서 되는 것은 **그 id 를 아직 손에 들고 있는 그 순간뿐**이고, 그래서 화면이
- * 이름을 다시 읽지 않아도 된다.
- *
- * 기본키가 `(user_id, hidden_user_id)` 이고 정책이 `user_id = auth.uid()` 이므로
- * 이 삭제는 **내 행 하나**에만 닿는다.
- */
-export async function unhideCandidate(candidateUserId: string): Promise<SaveResult> {
-  const supabase = await supabaseOnServer();
-
-  const { error } = await supabase
-    .from('discovery_hidden')
-    .delete()
-    .eq('hidden_user_id', candidateUserId);
-
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'discovery_hidden.delete') };
-
-  /*
-    **덱을 사용자 밑에서 다시 그리지 않는다.** 서버 액션의 `revalidatePath` 는 응답에
-    새 RSC 페이로드를 실어 라우트를 다시 그린다 — 그러면 이 사람이 `cards` 에서 빠지고
-    뒤 카드가 한 칸씩 당겨지는데, 덱이 든 자리(`index`)는 `key` 가 같아 살아남아 계산이
-    어긋난다(느린 기계에서 먼저 드러났다, `74349b6`). 덱은 자기 자리를 스스로 옮기고
-    새 자료는 다음 이동에서 받는다. **`refreshDiscoveryBoard` 는 다르다** — 거기서는
-    스냅샷 시각이 바뀌어 덱이 통째로 다시 선다.
-  */
-  revalidatePath('/me');
+  refresh('board-refreshed');
   return { ok: true };
 }
 
@@ -175,8 +114,7 @@ export async function unhideAllCandidates(): Promise<SaveResult> {
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'discovery_hidden.clear') };
 
-  revalidatePath('/me');
-  revalidatePath('/me/matching');
+  refresh('hidden-cleared');
   return { ok: true };
 }
 
@@ -207,7 +145,7 @@ export async function passCandidate(candidateUserId: string): Promise<SaveResult
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'discovery_passed.insert') };
 
-  revalidatePath('/me');
+  refresh('deck-moved');
   return { ok: true };
 }
 
@@ -226,7 +164,7 @@ export async function restorePassed(candidateUserId: string) {
   });
   if (error) return { ok: false as const, message: userFacingDbMessage(error, 'restore_passed_connection') };
   if (!data?.card) return { ok: false as const, message: '복원한 인연을 읽지 못했습니다. 목록을 새로 열어 주세요.' };
-  revalidatePath('/me');
+  refresh('deck-moved');
   return {
     ok: true as const,
     card: publicCardFromRow(data.card, self.summary),
@@ -254,15 +192,6 @@ export async function requestMatch(candidateUserId: string): Promise<SaveResult>
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'request_match') };
 
-  /*
-    **덱을 사용자 밑에서 다시 그리지 않는다.** 서버 액션의 `revalidatePath` 는 응답에
-    새 RSC 페이로드를 실어 라우트를 다시 그린다 — 그러면 이 사람이 `cards` 에서 빠지고
-    뒤 카드가 한 칸씩 당겨지는데, 덱이 든 자리(`index`)는 `key` 가 같아 살아남아 계산이
-    어긋난다(느린 기계에서 먼저 드러났다, `74349b6`). 덱은 자기 자리를 스스로 옮기고
-    새 자료는 다음 이동에서 받는다. **`refreshDiscoveryBoard` 는 다르다** — 거기서는
-    스냅샷 시각이 바뀌어 덱이 통째로 다시 선다.
-  */
-  revalidatePath('/me');
-  revalidatePath('/me/requests');
+  refresh('match-requested');
   return { ok: true };
 }

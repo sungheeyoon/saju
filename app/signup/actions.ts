@@ -1,8 +1,8 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+import { refresh } from '../refresh';
 import { supabaseOnServer } from '../auth/server-client';
 import { userFacingDbMessage } from '../db-error';
 
@@ -48,7 +48,7 @@ export async function completeSignup(answer: {
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'complete_signup') };
 
-  revalidatePath('/me', 'layout');
+  refresh('signed-up');
 
   /* `redirect` 는 던진다 — try 안에 두지 않는다(Next 문서). 여기가 이 함수의 끝이다 */
   redirect(answer.resumeReading === true ? '/#resume-reading' : '/me');

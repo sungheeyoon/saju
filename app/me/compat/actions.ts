@@ -1,9 +1,8 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-
 import { relationOf, type Relation } from '@/src/lib/people';
 
+import { refresh } from '../../refresh';
 import { supabaseOnServer } from '../../auth/server-client';
 import { sameChartInMyList, type SameChart } from '../same-chart';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
@@ -182,7 +181,7 @@ export async function openPairScreen(
     if (cleared.error) return { ok: false, kind: 'failed', message: userFacingDbMessage(cleared.error, 'set_pair_relation') };
   }
 
-  revalidatePath('/me/compat');
+  refresh('pair-opened');
 
   return { ok: true, personA: pair.person_a, personB: pair.person_b };
 }

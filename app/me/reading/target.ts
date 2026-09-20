@@ -17,6 +17,9 @@ import type { ReadingKind } from '@/src/lib/reading';
  * 세 벌 중 하나만 모양이 달라서 **조용히 썩는다.** 한 벌이 되면 갈래가 늘 때 고칠
  * 자리가 하나다.
  *
+ * `revalidatePath` 네 줄은 이제 `refreshPaths` 로 한 문을 지나고, 나머지 액션 스무
+ * 곳도 같은 문을 지나게 됐다(ADR 0076). 여기 남는 것은 **대상이 어느 화면을 뜻하나**뿐이다.
+ *
  * ## 왜 `src/lib/reading` 이 아닌가
  *
  * 저기는 DB 도 네트워크도 모르는 순수한 절반이다(`policy.ts` 가 그 규율을 적어 뒀다).

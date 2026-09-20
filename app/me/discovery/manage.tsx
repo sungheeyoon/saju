@@ -1,10 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
-import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent';
-import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading';
 
 import {
   SETTINGS_PRIMARY,
@@ -14,9 +12,7 @@ import {
   SettingsRow,
 } from '../settings/card';
 import {
-  hideCandidate,
   refreshDiscoveryBoard,
-  requestMatch,
   savePreferGender,
   setDiscoveryParticipation,
   unhideAllCandidates,
@@ -255,42 +251,6 @@ export function RefreshBoard({ waitSeconds }: { waitSeconds: number }) {
 }
 
 /**
- * 이 사람은 그만 본다 — 되돌릴 수 있으므로 한 번 더 묻지 않는다.
- *
- * **카드 아래에서 점수 위로 옮겼다.** 아래에 있을 때는 「상세 궁합 요청하기」와 같은
- * 줄에 같은 크기로 서서, 되돌릴 수 있는 정리 하나가 이 카드의 유일한 목적과 나란히
- * 놓였다. 무게가 다른 두 누름은 같은 줄에 세우지 않는다.
- */
-export function HideButton({ candidateUserId }: { candidateUserId: string }) {
-  const router = useRouter();
-  const [failure, setFailure] = useState<string | null>(null);
-  const [working, startWorking] = useTransition();
-
-  const hide = () => {
-    setFailure(null);
-    startWorking(async () => {
-      const result = await hideCandidate(candidateUserId);
-      if (result.ok) router.refresh();
-      else setFailure(result.message);
-    });
-  };
-
-  return (
-    <span className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={hide}
-        disabled={working}
-        className="text-xs text-muted underline underline-offset-2 transition-colors hover:text-secondary disabled:opacity-60"
-      >
-        {working ? '감추는 중…' : '다시 보지 않기'}
-      </button>
-      {failure !== null && <span className="text-xs text-muted">{failure}</span>}
-    </span>
-  );
-}
-
-/**
  * 감춘 사람 되돌리기 — **누구인지는 적지 않는다.**
  *
  * 감춘 뒤에는 그 사람의 프로필을 읽을 이유가 없어서 별명을 붙들고 있지 않다. 그래서
@@ -325,115 +285,5 @@ export function UnhideAll({ count }: { count: number }) {
       </button>
       {failure !== null && <span>{failure}</span>}
     </p>
-  );
-}
-
-/**
- * 예측 점수와 상세 궁합 요청 — **한 장이다.**
- *
- * ## 왜 점수까지 여기서 그리나
- *
- * 점수는 화면(`board.tsx`)에 있었고 버튼만 여기 있었다. 둘을 한 테두리 안에 넣기로
- * 하면서 합쳤다 — 나눠 두면 「같은 한 장으로 보이게」가 두 파일의 클래스 문자열이
- * 맞아떨어질 때만 참인 약속이 된다.
- *
- * 요청은 바로 보내지 않는다. 버튼을 누르면 풀이권의 임시 차감과 현재 제공 범위를
- * 확인하는 팝업이 먼저 열린다.
- */
-export function PreviewScorePanel({
-  candidateUserId,
-  nickname,
-  previewScore,
-}: {
-  candidateUserId: string;
-  /** 확인 창이 **누구에게** 보내는지를 말해야 한다 — 카드가 부르는 그 이름으로 */
-  nickname: string;
-  previewScore: number;
-}) {
-  const router = useRouter();
-  const confirming = useRef<HTMLDialogElement>(null);
-  const [failure, setFailure] = useState<string | null>(null);
-  const [working, startWorking] = useTransition();
-
-  const send = () => {
-    setFailure(null);
-    startWorking(async () => {
-      const result = await requestMatch(candidateUserId);
-      if (result.ok) router.refresh();
-      else setFailure(result.message);
-    });
-  };
-
-  return (
-    <>
-      {/*
-        **색은 이 한 장만 든다.** 전에는 추천 이유와 점수를 한 덩이의 물감 위에 같이
-        올렸는데, 그러면 물감이 무엇을 묶는 것인지 읽히지 않는다 — 카드 안의 모든 글이
-        배경을 갖는 셈이라 강조가 아니라 얼룩이 된다.
-
-        **왼쪽 글만큼 늘어난다.** 격자 칸이라 높이를 따로 안 적어도 옆 칸을 따라가고,
-        안의 것은 가운데에 머문다.
-      */}
-      <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-accent/20 bg-accent-wash px-3 py-3 text-center">
-        <p className="text-xs font-semibold text-accent">예측 궁합 점수</p>
-        <p className="text-2xl font-bold leading-none tabular-nums text-accent">
-          {previewScore}
-          <span className="ml-0.5 text-sm font-semibold">점</span>
-        </p>
-
-        {/*
-          이 카드의 주된 누름이므로 모서리의 「다시 보지 않기」보다 강하게 보인다.
-
-          **「상세 궁합 보기」가 아니다.** 이 누름이 여는 것은 요청이고, 상대가 수락할
-          때까지 볼 것은 생기지 않는다 — 확인 창의 제목도 버튼도 줄곧 「요청」이라고
-          말하고 있었는데 정작 들어오는 문에만 「보기」가 적혀 있었다.
-        */}
-        <button
-          type="button"
-          onClick={() => confirming.current?.showModal()}
-          className="mt-0.5 h-9 w-full rounded-lg bg-accent px-2 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-strong"
-        >
-          상세 궁합 요청하기
-        </button>
-        {failure !== null && <p className="text-xs text-muted">{failure}</p>}
-      </div>
-
-      <dialog
-        ref={confirming}
-        aria-labelledby={`request-match-${candidateUserId}`}
-        className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
-      >
-        <h3 id={`request-match-${candidateUserId}`} className="text-base font-bold">
-          {nickname} 님에게 상세 궁합을 요청할까요?
-        </h3>
-        <p className="mt-2 text-sm leading-6 text-secondary">{REQUEST_RESERVES_NOTE}</p>
-        <p className="mt-3 text-sm leading-6 text-secondary">{MATCH_PILLARS_DISCLOSURE}</p>
-        <p className="mt-3 rounded-xl bg-surface-sunken p-3 text-sm leading-6 text-secondary">
-          현재는 두 사람이 궁합풀이를 함께 보는 기능까지만 제공됩니다. 채팅이나 연락처
-          교환 등 상대와 연락할 수 있는 기능은 아직 지원하지 않습니다.
-        </p>
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
-          <button
-            type="button"
-            onClick={() => {
-              confirming.current?.close();
-              send();
-            }}
-            disabled={working}
-            className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong sm:h-10"
-          >
-            요청 보내기
-          </button>
-          <button
-            type="button"
-            onClick={() => confirming.current?.close()}
-            disabled={working}
-            className="h-11 rounded-xl border border-border px-5 text-sm text-secondary hover:border-border-strong hover:text-foreground sm:h-10"
-          >
-            취소
-          </button>
-        </div>
-      </dialog>
-    </>
   );
 }
