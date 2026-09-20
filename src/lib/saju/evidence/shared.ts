@@ -42,42 +42,104 @@ export const COMPARED_MATCH_INPUTS = ['limited-v1', 'extended-v1'] as const sati
 export const DEFAULT_MATCH_INPUT: MatchInput = 'limited-v1';
 
 /**
+ * 관계 하나가 드는 **잎 전부** — `relations[]` 와 `combinedFormations[]` 가 같은 모양이다.
+ *
+ * 두 자리에 같은 목록을 손으로 두 번 적으면 한쪽만 따라오는 날이 온다. 자리 이름만 받아
+ * 같은 목록을 편다.
+ */
+const relationLeaves = (at: string): Record<string, string> => ({
+  [`${at}.{kind,tier,ko,name,scope,targetElement,full}`]: '관계 하나 — 종류·층·한글 이름·이름·범위·목표 오행·완성 여부',
+  [`${at}.participants[].{chartId,position,char}`]: '참여자 — 어느 판·어느 자리·무슨 글자',
+  [`${at}.direction.{from,to}.{chartId,position,char}`]: '방향이 있는 관계의 두 끝',
+  [`${at}.cycle[].{chartId,position,char}`]: '도는 차례(삼형)',
+  [`${at}.contested[].over.{chartId,position,char}`]: '쟁합이 걸린 글자',
+  [`${at}.contested[].rivals[].{chartId,position,char}`]: '그 글자를 함께 무는 경쟁자 — **다른 원국의 것만**',
+});
+
+/**
  * 판마다 **실제로 들어가는 필드** — 경로와 뜻.
  *
- * 시험이 이 목록과 직렬화된 자료의 키를 **양쪽으로** 맞춘다. 목록에만 있고 자료에 없거나,
- * 자료에만 있고 목록에 없으면 빨간불이다. 실험 기록(`manifest.json`)도 이 값을 그대로 적는다.
+ * **이 표가 잠금이다.** 시험이 키를 경로로 읽어 직렬화된 자료와 양쪽으로 맞춘다 — 표가 안
+ * 덮는 자리가 자료에 있거나, 표가 적은 자리를 담을 칸조차 없으면 빨간불이다
+ * (`shared.test.ts`). 한동안 이 주석은 같은 말을 적고 있었지만 **재는 자리가 없었고**,
+ * 실제로 재던 것은 시험이 손으로 쓴 정규식 셋이었다 — 같은 사실의 네 번째 표기다.
+ *
+ * ## 잎까지 적는다 — 「그 아래는 알아서」가 없다
+ *
+ * 경로를 하나 적고 그 밑을 다 덮게 두면, 엔진이 `pillars.year` 나 관계 참여자에 필드를
+ * 하나 더 얹는 날 **표를 한 줄도 안 고쳤는데 그것이 모델까지 간다.** 이 표가 막으려던 것이
+ * 정확히 그 일이다(ADR 0067: 성별·계산 옵션·억부 후보가 그렇게 실려 있었다).
+ *
+ * 그래서 **잎을 적는다.** 컨테이너 경로(`charts`·`compatibility.relations[]` …)는 적힌 잎으로
+ * **내려가는 길**로만 인정되고, 그 자리에 형제가 새로 생기면 걸린다.
+ *
+ * ## 통째로 여는 자리는 `.**` 로 **적어서** 연다
+ *
+ * 옛 컷은 `compatibility` 를 통째로 싣는 것이 정의다(`legacy-v0`). 그런 자리는 `.**` 를
+ * 붙여 **여기에 적고**, 안 적힌 자리는 열리지 않는다. 열린 것과 안 적은 것이 구별되지 않으면
+ * 이 표는 다시 설명문이 된다.
+ *
+ * 키는 경로다 — `*` 는 사람 자리(`charts.a`·`charts.b`), `[]` 는 배열 칸, `{a,b}` 는 갈래,
+ * ` · ` 는 한 줄에 적은 여러 경로, `.**` 는 그 아래를 통째로 여는 표시다.
+ *
+ * 실험 기록(`manifest.json`)도 이 값을 그대로 적는다.
  */
+const LIMITED_FIELDS: Record<string, string> = {
+  viewedAt: '이 자료에서 「지금」이 언제인가 — 운은 안 실려도 기준 시각은 남는다',
+  'charts.*.pillars.{year,month,day,hour}.{index,stem,branch,name,ko}': '여덟 글자 — 60갑자 번호·천간·지지·간지·한글',
+  'charts.*.pillars.dayMaster': '일간',
+  'charts.*.pillars.meta.hourKnown': '시각을 입력했는가',
+  'charts.*.meta.hourKnown': '같은 값 — 프롬프트가 이 경로로 부른다',
+  'charts.*.claims.{pillars,meta}.{presence,absence}': '말의 세기 상한 — 있다는 쪽과 없다는 쪽',
+  ...relationLeaves('compatibility.relations[]'),
+  ...relationLeaves('compatibility.combinedFormations[]'),
+  'compatibility.elementSupport.*.{missing,supplied,stillMissing}': '글자 수로 센 오행 보완',
+  'compatibility.tenGods.{aSeesB,bSeesA}': '두 일간 글자 사이의 십성 — 양방향',
+  'compatibility.hourKnown.*': '두 사람이 각각 시각을 입력했는가',
+  'compatibility.warnings[].{kind,text}': '시각을 몰라 적게 보이는 것',
+  'compatibility.claims.{relations,combinedFormations,elementSupport,tenGods,hourKnown,warnings}.{presence,absence}':
+    '위 항목만의 상한',
+  'limitations[].{where,kind,text}': '기둥이 경계에 걸려 달라질 수 있다는 한계(문장 하나로) · 궁합 경고',
+};
+
+/**
+ * 확장형이 **더하는** 것 — 나머지는 제한형 그대로다.
+ *
+ * 전에는 「`(limited-v1 전부)`」라고 적힌 가짜 키 하나가 그 말을 대신했다. 사람은 읽었지만
+ * 기계는 못 읽었고, 그래서 확장형 쪽은 표로 잴 수 있는 것이 반쪽이었다. 이제 상속은 값이다.
+ */
+const EXTENDED_EXTRA: Record<string, string> = {
+  /* 같은 경로인데 범위가 넓다 — 제한형의 줄을 덮어쓴다 */
+  'compatibility.relations[].contested[].rivals[].{chartId,position,char}': '그 글자를 함께 무는 경쟁자 — 원국 안 경쟁자까지',
+  'compatibility.combinedFormations[].contested[].rivals[].{chartId,position,char}': '〃',
+  'charts.*.analysis.elements.{glyphCount,strongest,weakest,missing}': '글자 수와 가장 센·약한·없는 오행',
+  'charts.*.analysis.elements.{counts,ratios}.{木,火,土,金,水}': '오행 분포와 지장간 가중 세력',
+  'charts.*.analysis.strength.{verdict,ratio,metCount}': '신강신약 판정과 그 비율',
+  'charts.*.analysis.strength.criteria[].{key,label,met}': '그 판정이 선 기준',
+  'charts.*.analysis.eokbu.{status,suggestedElement,role,confidence,presentInChart,unresolved}': '억부 후보(시험값)와 아직 못 본 것',
+  'charts.*.claims.{analysis.elements,analysis.strength,analysis.eokbu}.{presence,absence}': '위 판정의 상한',
+  'compatibility.elementSupport.*.weakest.{element,partnerRatio}': '가중 세력이 가장 약한 오행과 그것이 상대에게 차지하는 비중',
+  'compatibility.eokbuMatch.*.{status,element,role,presentInPartner,partnerRatio,unresolved}': '내 억부 후보를 상대가 가졌는가 — 시험값 딱지째',
+  'compatibility.claims.eokbuMatch.{presence,absence}': '그 항목의 상한',
+};
+
 export const MATCH_INPUT_FIELDS: Record<MatchInput, Readonly<Record<string, string>>> = {
+  /**
+   * 옛 컷은 **통째로 싣는 것이 정의**라 subtree 를 열어서 적는다(`.**`).
+   *
+   * 원복의 길이고 운영 JSON 을 한 글자도 안 바꾸는 것이 요점이라, 엔진에 필드가 늘면 그것이
+   * 그대로 따라 들어가는 것까지가 이 판의 뜻이다. 두 새 판은 그렇지 않다 — 거기서 열린 것은
+   * 위에 잎으로 적힌 자리뿐이다.
+   */
   'legacy-v0': {
-    'charts.*.{claims.pillars,claims.meta,pillars,meta}': '명식 — 여덟 글자와 `pillars.meta`·`meta` 전부(성별·계산 옵션·절입·경계 문장 포함)',
-    compatibility: '궁합 결과 **통째로** — 억부 후보·가중 세력·원국 안 쟁합 경쟁자 포함',
-    'limitations[]': '경계 경고 원문',
+    viewedAt: '이 자료에서 「지금」이 언제인가',
+    'charts.*.{pillars,meta}.**': '명식 — 여덟 글자와 `pillars.meta`·`meta` 전부(성별·계산 옵션·절입·경계 문장 포함)',
+    'charts.*.claims.{pillars,meta}.**': '그 둘의 상한',
+    'compatibility.**': '궁합 결과 **통째로** — 억부 후보·가중 세력·원국 안 쟁합 경쟁자 포함',
+    'limitations[].{where,kind,text}': '경계 경고 원문',
   },
-  'limited-v1': {
-    'charts.*.pillars.{year,month,day,hour}': '여덟 글자 — 천간·지지·간지·한글·60갑자 번호',
-    'charts.*.pillars.dayMaster': '일간',
-    'charts.*.pillars.meta.hourKnown': '시각을 입력했는가',
-    'charts.*.meta.hourKnown': '같은 값 — 프롬프트가 이 경로로 부른다',
-    'charts.*.claims.{pillars,meta}': '말의 세기 상한',
-    'compatibility.relations[]': '두 원국 사이 관계 — 종류·이름·참여자(판·자리·글자)·완성·방향·순환',
-    'compatibility.relations[].contested': '쟁합 — **다른 원국의 경쟁자만**',
-    'compatibility.combinedFormations[]': '두 사람 글자가 함께 이룬 삼합·방합·삼형 (relations 의 부분집합)',
-    'compatibility.elementSupport.*.{missing,supplied,stillMissing}': '글자 수로 센 오행 보완',
-    'compatibility.tenGods': '두 일간 글자 사이의 십성 — 양방향',
-    'compatibility.{hourKnown,warnings}': '시각을 몰라 적게 보이는 것',
-    'compatibility.claims': '위 항목만의 상한',
-    'limitations[]': '기둥이 경계에 걸려 달라질 수 있다는 한계(문장 하나로) · 궁합 경고',
-  },
-  'extended-v1': {
-    '(limited-v1 전부)': '위와 같다 — 단 쟁합은 원국 안 경쟁자까지',
-    'charts.*.analysis.elements.{glyphCount,counts,ratios,strongest,weakest,missing}': '오행 분포와 지장간 가중 세력',
-    'charts.*.analysis.strength.{verdict,ratio,criteria[].{key,label,met},metCount}': '신강신약 판정과 그 기준',
-    'charts.*.analysis.eokbu.{status,suggestedElement,role,confidence,presentInChart,unresolved}': '억부 후보(시험값)와 아직 못 본 것',
-    'charts.*.claims.{analysis.elements,analysis.strength,analysis.eokbu}': '위 판정의 상한',
-    'compatibility.relations[].contested': '쟁합 — 원국 안 경쟁자까지',
-    'compatibility.elementSupport.*.weakest': '가중 세력이 가장 약한 오행과 그것이 상대에게 차지하는 비중',
-    'compatibility.eokbuMatch': '내 억부 후보를 상대가 가졌는가 — 시험값 딱지째',
-  },
+  'limited-v1': LIMITED_FIELDS,
+  'extended-v1': { ...LIMITED_FIELDS, ...EXTENDED_EXTRA },
 };
 
 /** 두 판이 모두 빼는 자리 — 이름과 **왜 빠지는지** */
