@@ -35,6 +35,8 @@ const D = computeSaju({ year: 1994, month: 8, day: 9, hour: 7, minute: 0, second
  * 표의 줄을 지우면 자료가 조용히 좁아진다.
  */
 const E = computeSaju({ year: 1984, month: 1, day: 5, hour: 2, minute: 10, second: 0, gender: 'male' });
+/** 시각 미상 — 시주가 `null` 인 자료가 무엇을 드는지도 함께 잠근다 */
+const HOURLESS = computeSaju({ year: 1988, month: 7, day: 15, hour: null, gender: 'female' });
 const F = computeSaju({ year: 1986, month: 4, day: 5, hour: 15, minute: 10, second: 0, gender: 'female' });
 
 const redactedOf = (a: typeof A, b: typeof A) => redactEvidence(evidenceOf({ a, b }, VIEWED_AT));
@@ -62,24 +64,30 @@ function pathsOf(value: unknown, prefix = ''): Set<string> {
 }
 
 /**
- * 표를 맞대는 **자료의 자리 전부** — 짝 둘을 합쳐 본다.
+ * 표를 맞대는 **자료의 자리 전부** — 짝 셋을 합쳐 본다.
+ *
+ * 짝 하나로는 모자란다. `C`·`D` 는 `combinedFormations` 가 비어 있고, 시각을 아는 짝만
+ * 보면 시주가 `null` 인 자료가 어떤 자리를 드는지 안 본 채로 표를 잠그게 된다.
  *
  * `contract` 는 뺀다. 거기 실리는 것은 컷이 **무엇을 했는지**이지 자료의 필드가 아니다 —
  * 넣으면 `contract.withheld.…` 가 「자료에 실린 자리」로 세어져, 뺐다고 적은 것이 실린
  * 것으로 읽힌다.
  */
+const SAMPLE_PAIRS: readonly (readonly [typeof A, typeof A])[] = [
+  [C, D],
+  [E, F],
+  [A, HOURLESS],
+];
+
 const fieldPathsOf = (input: MatchInput): Set<string> =>
-  new Set([
-    ...pathsOf({ ...shared(input, C, D), contract: undefined }),
-    ...pathsOf({ ...shared(input, E, F), contract: undefined }),
-  ]);
+  new Set(SAMPLE_PAIRS.flatMap(([a, b]) => [...pathsOf({ ...shared(input, a, b), contract: undefined })]));
 
 /**
  * 표의 키를 경로로 편다 — **표기법은 `MATCH_INPUT_FIELDS` 의 주석이 적은 그대로다.**
  *
- * `{a,b}` 는 갈래(겹칠 수 있다), ` · ` 는 한 줄에 적은 여러 경로다. 여기가 표기를 읽는
- * 유일한 자리라, 표에 없는 문법을 쓰면 갈래가 안 닫혔다고 멈춘다 — 조용히 통과해서
- * 「아무것도 안 덮는 줄」이 되는 것보다 낫다.
+ * `{a,b}` 는 갈래, ` · ` 는 한 줄에 적은 여러 경로, 끝의 `.**` 는 **그 아래를 통째로
+ * 연다**는 표시다. 여기가 표기를 읽는 유일한 자리라, 표에 없는 문법을 쓰면 갈래가 안
+ * 닫혔다고 멈춘다 — 조용히 통과해서 「아무것도 안 덮는 줄」이 되는 것보다 낫다.
  */
 function expandBraces(key: string): string[] {
   const open = key.indexOf('{');
@@ -111,14 +119,72 @@ function expandBraces(key: string): string[] {
   return parts.flatMap((part) => expandBraces(`${head}${part}${tail}`));
 }
 
-const fieldsOf = (key: string): string[] => key.split(' · ').flatMap(expandBraces);
+/** 표의 한 줄이 가리키는 자리 — `open` 이면 그 아래를 통째로 연다 */
+type Field = { path: string; open: boolean };
 
-/** `path` 가 `field` 이거나 그 **밑**인가 — 적은 경로는 자기 밑을 다 덮는다 */
-const under = (path: string, field: string): boolean =>
-  path === field || path.startsWith(`${field}.`) || path.startsWith(`${field}[`);
+const OPEN_MARK = '.**';
 
-/** `path` 가 `field` 의 **위**인가 — 덮인 자리로 내려가는 길은 자료에 있어야 한다 */
-const above = (path: string, field: string): boolean => under(field, path);
+const fieldsOf = (key: string): Field[] =>
+  key
+    .split(' · ')
+    .flatMap(expandBraces)
+    .map((path) =>
+      path.endsWith(OPEN_MARK)
+        ? { path: path.slice(0, -OPEN_MARK.length), open: true }
+        : { path, open: false },
+    );
+
+const fieldsIn = (table: Readonly<Record<string, string>>): Field[] =>
+  Object.keys(table).flatMap(fieldsOf);
+
+/** `path` 가 `ancestor` 의 **밑**인가 */
+const isUnder = (path: string, ancestor: string): boolean =>
+  path.startsWith(`${ancestor}.`) || path.startsWith(`${ancestor}[`);
+
+/**
+ * 표가 안 덮는 자리 — **잎은 적힌 것만, 컨테이너는 내려가는 길로만.**
+ *
+ * 세 갈래로 통과한다. ① 표에 그대로 적힌 자리, ② `.**` 로 **열어 둔** 자리의 아래,
+ * ③ 적힌 잎으로 **내려가는 길**(컨테이너). ③ 이 그 자리에 새로 생긴 형제까지 통과시키지
+ * 않는 것이 요점이다 — `charts.*.pillars.year` 가 길이라고 해서 그 밑에 엔진이 얹은 새
+ * 필드가 열리지는 않는다.
+ */
+const strayIn = (paths: Iterable<string>, fields: readonly Field[]): string[] =>
+  [...paths].filter(
+    (path) =>
+      !fields.some(
+        (field) =>
+          field.path === path ||
+          (field.open && isUnder(path, field.path)) ||
+          isUnder(field.path, path),
+      ),
+  );
+
+/**
+ * 표가 적었는데 **담을 칸조차 없는** 자리 — 설명하는 척만 하는 줄을 잡는다.
+ *
+ * 자리가 자료에 그대로 서면 통과다. 안 서더라도 **그 자리를 담을 칸이 비어 있으면**
+ * 통과한다 — `cycle` 이 `null` 이거나 `contested` 가 `[]` 인 짝만 모였을 때가 그렇고,
+ * 그것은 표가 틀린 것이 아니라 표본이 그 자리를 안 채운 것이다.
+ *
+ * 비어 있다는 것은 **자료 어디에서도 그 아래로 내려간 적이 없다**는 뜻으로 읽는다. 그래서
+ * `compatibility.bogus.x` 같은 가짜 줄은 통과하지 못한다 — 가장 가까운 조상이
+ * `compatibility` 이고 그 밑은 비어 있지 않다.
+ */
+const phantomIn = (paths: Set<string>, fields: readonly Field[]): string[] => {
+  const all = [...paths];
+  const stands = (field: Field) =>
+    paths.has(field.path) || (field.open && all.some((path) => isUnder(path, field.path)));
+
+  const holderIsEmpty = (field: Field) => {
+    const ancestors = all.filter((path) => isUnder(field.path, path));
+    if (ancestors.length === 0) return false;
+    const nearest = ancestors.reduce((longest, path) => (path.length > longest.length ? path : longest));
+    return !all.some((path) => isUnder(path, nearest));
+  };
+
+  return fields.filter((field) => !stands(field) && !holderIsEmpty(field)).map((field) => field.path);
+};
 
 /**
  * `WITHHELD_PATHS` 에서 **부재를 기계로 못 재는 키** — 이름과 왜 못 재는지.
@@ -133,6 +199,29 @@ const WITHHELD_NOT_MEASURED: Record<string, string> = {
     '「`analysis` **밖의** 판정」이라는 뜻이라 이 경로 자체는 실린다 — 무엇이 실렸는지는 필드 표가 잰다',
 };
 
+/** 베낀 자료에 새 필드를 얹을 때 쓰는 얕은 모양 — 실제 타입은 판마다 다르다 */
+type Node = Record<string, unknown>;
+type Participant = Node;
+type StampedRelation = {
+  participants: Participant[];
+  direction: { from: Node; to: Node } | null;
+  contested: { over: Node; rivals: Node[] }[];
+};
+type StampedChart = {
+  pillars: { year: Node };
+  claims: { pillars: Node };
+  analysis?: { eokbu: Node };
+};
+type Stamped = {
+  charts: { a: StampedChart };
+  compatibility: Node & {
+    relations: StampedRelation[];
+    tenGods: Node;
+    elementSupport: { a: Node };
+  };
+  limitations: Node[];
+};
+
 describe('인연 궁합 입력은 필드를 적어서 고른다', () => {
   /**
    * **표가 안 덮는 자리가 자료에 있으면 빨간불이다.**
@@ -142,27 +231,18 @@ describe('인연 궁합 입력은 필드를 적어서 고른다', () => {
    * 잠근다 — 자료가 넓어지면 **표를 고치기 전에는 초록이 안 뜬다.**
    */
   it.each(MATCH_INPUTS)('%s — 자료의 모든 자리를 표가 덮는다', (input) => {
-    const fields = Object.keys(MATCH_INPUT_FIELDS[input]).flatMap(fieldsOf);
-    const stray = [...fieldPathsOf(input)].filter(
-      (path) => !fields.some((field) => under(path, field) || above(path, field)),
-    );
-
-    expect(stray).toEqual([]);
+    expect(strayIn(fieldPathsOf(input), fieldsIn(MATCH_INPUT_FIELDS[input]))).toEqual([]);
   });
 
   /**
-   * 반대 방향 — **표가 적은 자리는 자료에 실제로 있다.**
+   * 반대 방향 — **표가 적은 자리는 자료가 담을 수 있는 자리다.**
    *
-   * 덮는 쪽만 보면 필드가 통째로 사라져도 초록이다. 표가 「싣는다」고 적은 것이 없으면
-   * 그 줄은 동의 범위를 설명하는 척만 하는 것이고, 프롬프트가 그 경로를 가리킨다.
+   * 덮는 쪽만 보면 필드가 통째로 사라져도 초록이다. 표가 「싣는다」고 적은 자리를 담을
+   * 칸조차 없으면 그 줄은 동의 범위를 설명하는 척만 하는 것이고, 프롬프트가 그 경로를
+   * 가리킨다.
    */
-  it.each(MATCH_INPUTS)('%s — 표가 적은 자리는 자료에 실제로 있다', (input) => {
-    const paths = fieldPathsOf(input);
-    const empty = Object.keys(MATCH_INPUT_FIELDS[input])
-      .flatMap(fieldsOf)
-      .filter((field) => ![...paths].some((path) => under(path, field)));
-
-    expect(empty).toEqual([]);
+  it.each(MATCH_INPUTS)('%s — 표가 적은 자리는 자료에 담긴다', (input) => {
+    expect(phantomIn(fieldPathsOf(input), fieldsIn(MATCH_INPUT_FIELDS[input]))).toEqual([]);
   });
 
   /**
@@ -180,8 +260,8 @@ describe('인연 궁합 입력은 필드를 적어서 고른다', () => {
     const present = Object.keys(WITHHELD_PATHS[input])
       .filter((key) => !(`${input}/${key}` in WITHHELD_NOT_MEASURED))
       .flatMap(fieldsOf)
-      .map((field) => (field.startsWith('compatibility.') ? field : `charts.*.${field}`))
-      .filter((field) => paths.some((path) => under(path, field)));
+      .map(({ path }) => (path.startsWith('compatibility.') ? path : `charts.*.${path}`))
+      .filter((field) => paths.some((path) => path === field || isUnder(path, field)));
 
     expect(present).toEqual([]);
   });
@@ -192,6 +272,55 @@ describe('인연 궁합 입력은 필드를 적어서 고른다', () => {
       const [input, path] = [key.slice(0, key.indexOf('/')), key.slice(key.indexOf('/') + 1)];
       expect(Object.keys(WITHHELD_PATHS[input as MatchInput]), key).toContain(path);
     }
+  });
+
+  /**
+   * **엔진이 중첩 객체에 필드를 하나 얹는 날** — 표를 한 줄도 안 고쳤는데 그것이 모델까지
+   * 가는가.
+   *
+   * 이 시험이 처음 판에는 없었고, 그래서 처음 판은 **이 회귀를 놓아 줬다.** 표에 적힌
+   * 경로가 자기 밑을 다 덮게 두었더니 `pillars.year` 나 관계 참여자 아래에 새 필드가
+   * 생겨도 초록이었다 — 옛 정규식은 잎을 늘어놓아 그것을 잡고 있었다.
+   *
+   * 자료를 베껴 실제로 한 자리에 `hidden` 을 얹고, 그 경로가 걸리는지 본다.
+   */
+  const stamped = (input: MatchInput, at: (evidence: Stamped) => Node | undefined): string[] => {
+    const clone = JSON.parse(JSON.stringify({ ...shared(input), contract: undefined })) as Stamped;
+    const target = at(clone);
+    expect(target, '얹을 자리를 못 찾았다').toBeDefined();
+    target!.hidden = 1;
+    return strayIn(pathsOf(clone), fieldsIn(MATCH_INPUT_FIELDS[input]));
+  };
+
+  const withDirection = (evidence: Stamped) =>
+    evidence.compatibility.relations.find((relation) => relation.direction !== null)?.direction ?? undefined;
+  const withContest = (evidence: Stamped) =>
+    evidence.compatibility.relations.find((relation) => relation.contested.length > 0)?.contested[0];
+
+  it.each([
+    ['기둥', 'limited-v1', (e: Stamped) => e.charts.a.pillars.year, 'charts.*.pillars.year.hidden'],
+    ['상한', 'limited-v1', (e: Stamped) => e.charts.a.claims.pillars, 'charts.*.claims.pillars.hidden'],
+    ['관계 참여자', 'limited-v1', (e: Stamped) => e.compatibility.relations[0]?.participants[0], 'compatibility.relations[].participants[].hidden'],
+    ['관계 방향', 'limited-v1', (e: Stamped) => withDirection(e)?.from, 'compatibility.relations[].direction.from.hidden'],
+    ['쟁합', 'extended-v1', (e: Stamped) => withContest(e)?.over, 'compatibility.relations[].contested[].over.hidden'],
+    ['쟁합 경쟁자', 'extended-v1', (e: Stamped) => withContest(e)?.rivals[0], 'compatibility.relations[].contested[].rivals[].hidden'],
+    ['십성', 'limited-v1', (e: Stamped) => e.compatibility.tenGods, 'compatibility.tenGods.hidden'],
+    ['오행 보완', 'limited-v1', (e: Stamped) => e.compatibility.elementSupport.a, 'compatibility.elementSupport.*.hidden'],
+    ['한계', 'limited-v1', (e: Stamped) => e.limitations[0], 'limitations[].hidden'],
+    ['억부 후보', 'extended-v1', (e: Stamped) => e.charts.a.analysis?.eokbu, 'charts.*.analysis.eokbu.hidden'],
+  ] as const)('%s 아래에 새 필드가 생기면 걸린다', (_label, input, at, expected) => {
+    expect(stamped(input, at as (evidence: Stamped) => Node | undefined)).toEqual([expected]);
+  });
+
+  /**
+   * **열어 둔 자리는 열려 있다** — 그리고 그것은 `.**` 를 적은 판에서만이다.
+   *
+   * 옛 컷은 `compatibility` 를 통째로 싣는 것이 정의라 새 필드가 따라 들어가는 것까지가
+   * 그 판의 뜻이다. 같은 자리를 제한형에 얹으면 걸린다 — 여는 것과 안 적은 것이 구별된다.
+   */
+  it('통째로 연 자리(`.**`)는 새 필드를 받고, 안 연 판에서는 걸린다', () => {
+    expect(stamped('legacy-v0', (e) => e.compatibility)).toEqual([]);
+    expect(stamped('limited-v1', (e) => e.compatibility)).toEqual(['compatibility.hidden']);
   });
 
   /** 허용 목록만 보면 필드가 통째로 사라져도 초록이다 — 있어야 할 것을 거꾸로 잰다 */
