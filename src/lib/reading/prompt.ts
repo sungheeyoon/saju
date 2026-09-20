@@ -1705,9 +1705,15 @@ const planOf = (kind: ReadingKind, assembly: PromptAssembly, about: ReadingAbout
   return {
     role: solo ? SELF_ROLE : PAIR_ROLE,
     rules: guided ? pairRules(kind as PairKind) : PROMPT_PARTS.rules,
-    /** 인연 궁합만 동의 범위를 적는다 — 판마다 실린 것이 달라 문장도 갈린다(ADR 0067) */
-    scope:
-      kind === 'match' ? matchScope(assembly.matchInput, assembly.pairReading !== 'plain-v1') : null,
+    /**
+     * 인연 궁합만 동의 범위를 적는다 — 판마다 실린 것이 달라 문장도 갈린다(ADR 0067).
+     *
+     * **고른 세대를 그대로 넘긴다.** 여기가 `pairReading` 을 다시 읽으면 같은 사실을 두 번
+     * 세게 되고, 그것이 이 파일이 방금 걷어낸 모양이다. 두 식이 갈리는 경우는 옛 컷 하나인데
+     * `matchScope` 는 그때 먼저 돌아서므로 이 인자를 안 읽는다 — 지금은 같은 글이고,
+     * **앞으로 갈릴 자리를 안 만든다.**
+     */
+    scope: kind === 'match' ? matchScope(assembly.matchInput, guided) : null,
     guide: guided ? pairReadingGuideBlock(guideScopeOf(kind, assembly), ABSORPTION_RULE) : null,
     voice: solo
       ? selfCustomerVoice(assembly.terminology)

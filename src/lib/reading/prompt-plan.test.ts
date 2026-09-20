@@ -124,6 +124,12 @@ const CASES: readonly Case[] = [
     assembly: { ...CONTROL, pairShape: 'sections-v1' },
     slots: ['role', 'rules', 'guide', 'voice', 'personality', 'body', 'summary', 'output'],
   },
+  {
+    id: 'match/legacy-v0+guide-v4',
+    kind: 'match',
+    assembly: { ...CONTROL, matchInput: 'legacy-v0', pairReading: 'guide-v4' },
+    slots: ['role', 'rules', 'scope', 'voice', 'body', 'summary', 'output'],
+  },
 ];
 
 /**
@@ -199,6 +205,25 @@ describe('한 글에 두 세대가 섞이지 않는다', () => {
     for (const selfOnly of ['## 누구에게 쓰는가', '## 마지막 규칙']) {
       expect(head.includes(selfOnly), `${one.id} · ${selfOnly}`).toBe(isSolo(one.kind));
     }
+  });
+});
+
+/**
+ * **범위 절도 고른 세대를 따른다** — 옛 컷에 읽는 법 4판을 걸어도 세대는 옛 벌이다.
+ *
+ * `usesPairGuide` 는 인연 궁합의 옛 컷 입력에 4판을 안 건다(원복 조립은 옛 지시를 그대로
+ * 내야 한다). 그런데 범위 절만은 한동안 `pairReading` 을 **따로 읽고** 있었다 — 지금은
+ * `matchScope` 가 옛 컷에서 먼저 돌아서므로 두 식이 같은 글을 내지만, 같은 사실을 두 자리에서
+ * 세는 동안은 **갈릴 수 있는 자리**다. 고른 값을 넘기게 고치고 그것을 여기서 잠근다.
+ *
+ * **오늘은 안 문다** — 고치기 전에도 이 시험은 초록이었다. 여기 서 있는 까닭은 옛 컷의
+ * 범위 문장이 4판을 타기 시작하는 날 그것이 조용히 지나가지 않게 하는 것이다.
+ */
+describe('옛 컷에 4판을 걸어도 세대는 옛 벌이다', () => {
+  it('통째로 원복 조립과 같은 글이다', () => {
+    const combo = promptFor('match', { ...CONTROL, matchInput: 'legacy-v0', pairReading: 'guide-v4' });
+
+    expect(combo).toBe(promptFor('match', LEGACY_PAIR_ASSEMBLY));
   });
 });
 
