@@ -8,7 +8,7 @@ import { isoOf, solarDateOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
 import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
 import { storedInputOf } from './person-input';
-import { DiscoveryBoard } from './discovery/board';
+import { openDiscoveryParticipation } from './discovery/participation';
 import { AccountNotice } from './account-notice';
 import { Onboarding } from './onboarding';
 import { PillarCard } from './pillar-card';
@@ -59,8 +59,7 @@ export default async function MePage() {
         <>
           <Unread />
           <SelfChart personId={selfPersonId} />
-          {/* 자동 참여는 홈에서도 유지하고, 후보 탐색은 매칭에서만 한다. */}
-          <DiscoveryBoard participationOnly />
+          <DiscoveryDoor />
           <Link
             href="/me/matching"
             className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-accent-wash px-5 py-4 text-sm text-accent"
@@ -78,6 +77,21 @@ export default async function MePage() {
       )}
     </main>
   );
+}
+
+/**
+ * 참여를 여는 문 — **아무것도 안 그린다.**
+ *
+ * 후보 탐색은 매칭에서만 하고, 참여를 여는 일은 홈에도 남는다(ADR 0070·0076). 앞서는
+ * 후보 목록을 그리던 컴포넌트가 이 일을 겸했다.
+ *
+ * **형제로 둔다.** 페이지 본문에서 `await` 하면 이 왕복이 끝날 때까지 `Unread` 도
+ * `SelfChart` 도 시작을 못 한다 — 앞서는 셋이 겹쳐 돌았다. 아무것도 안 그리는 것과
+ * 아무 때나 돌아도 되는 것은 다르다.
+ */
+async function DiscoveryDoor() {
+  await openDiscoveryParticipation();
+  return null;
 }
 
 async function SelfChart({ personId }: { personId: string }) {

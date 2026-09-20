@@ -1,12 +1,12 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-
 import { FEEDBACK_UNEXPECTED_NOTE } from '@/src/lib/reading';
 
 import { beginReading, type ReadingStart } from './pipeline';
 import { readingPathsOf, type ReadingTarget } from './target';
 import { lastReadingRun, type LastRun } from './current';
+import { refreshPaths } from '../../refresh';
+import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
 
@@ -40,7 +40,7 @@ export async function readingRunState(target: ReadingTarget): Promise<LastRun | 
   const run = await lastReadingRun(target);
 
   if (run !== null && run.status !== 'running') {
-    for (const path of readingPathsOf(target)) revalidatePath(path);
+    refreshPaths(readingPathsOf(target));
   }
 
   return run;
@@ -66,7 +66,7 @@ export async function submitReadingFeedback(
     issueTags: readonly string[];
     comment: string | null;
   },
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
   const { error } = await supabase.rpc('leave_reading_feedback', {
@@ -90,7 +90,7 @@ export async function submitReadingFeedback(
     답한 뒤에 화면이 「답해 주셔서 고맙습니다」로 서려면 `feedback_given` 이 다시
     읽혀야 한다. 그 값은 `my_reading` 이 들고 오므로 이 화면을 무르게 한다.
   */
-  for (const path of readingPathsOf(target)) revalidatePath(path);
+  refreshPaths(readingPathsOf(target));
 
   return { ok: true };
 }

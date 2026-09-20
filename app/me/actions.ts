@@ -1,7 +1,7 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-
+import { refresh } from '../refresh';
+import type { SaveResult } from '../save-result';
 import { supabaseOnServer } from '../auth/server-client';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
 import { sameChartInMyList, type SameChart } from './same-chart';
@@ -14,8 +14,6 @@ import {
   unsupportedForSaving,
 } from '@/src/lib/input/revision';
 import { userFacingDbMessage } from '../db-error';
-
-export type SaveResult = { ok: true } | { ok: false; message: string };
 
 /**
  * 저장한 사람 하나 — **id 를 함께 낸다.**
@@ -61,13 +59,13 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
      * 그냥 새로 그려서 저장된 것을 보여주면 된다.
      */
     if (error.code === '23505') {
-      revalidatePath('/me');
+      refresh('self-person-saved');
       return { ok: true };
     }
     return { ok: false, message: userFacingDbMessage(error, 'create_self_person') };
   }
 
-  revalidatePath('/me');
+  refresh('self-person-saved');
   return { ok: true };
 }
 
@@ -115,7 +113,7 @@ export async function addManagedPerson(
     return { ok: false, kind: 'failed', message: '저장한 사람을 찾지 못했습니다.' };
   }
 
-  revalidatePath('/me/people');
+  refresh('person-list-changed');
   return { ok: true, personId: data };
 }
 
@@ -154,7 +152,7 @@ export async function updateNote(personId: string, note: string): Promise<SaveRe
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'user_person_access.update') };
 
-  revalidatePath('/me/people');
+  refresh('person-list-changed');
   return { ok: true };
 }
 
@@ -171,7 +169,7 @@ export async function removeFromList(personId: string): Promise<SaveResult> {
   const { error } = await supabase.from('user_person_access').delete().eq('person_id', personId);
   if (error) return { ok: false, message: userFacingDbMessage(error, 'user_person_access.delete') };
 
-  revalidatePath('/me/people');
+  refresh('person-list-changed');
   return { ok: true };
 }
 
@@ -237,8 +235,7 @@ export async function revisePerson(personId: string, query: Query): Promise<Save
     if (summaryError) console.error('오행 요약을 갱신하지 못했습니다', summaryError.message);
   }
 
-  revalidatePath('/me');
-  revalidatePath('/me/people');
+  refresh('person-revised');
   return { ok: true };
 }
 
@@ -264,7 +261,6 @@ export async function setOptionalConsent(
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'set_optional_consent') };
 
-  revalidatePath('/me/settings');
-  revalidatePath('/me');
+  refresh('consent-changed');
   return { ok: true };
 }

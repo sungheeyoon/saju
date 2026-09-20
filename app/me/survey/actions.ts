@@ -1,9 +1,8 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-
 import { PRICE_OPTIONS, type SurveyAnswers } from '@/src/lib/survey';
 
+import { refresh } from '../../refresh';
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
 
@@ -45,7 +44,7 @@ export async function saveServiceSurvey(
     `submitted_at` 이다. 초안 저장은 무르게 하지 않는다 — 몇 초마다 도는 자동 저장이
     화면을 다시 그리면 쓰던 칸이 흔들린다.
   */
-  if (submit) revalidatePath('/me/survey');
+  if (submit) refresh('survey-submitted');
 
   return { ok: true, submittedAt: (data as string | null) ?? null };
 }

@@ -1,0 +1,15 @@
+/**
+ * 누름 하나의 답 — **됐다, 아니면 사람이 읽을 한 문장.**
+ *
+ * 이 타입이 `app/me/actions.ts` 안에 살고 있었다. 잎 모듈이다 — 그 파일은 사람을
+ * 저장하는 일을 하고, 저장과 아무 상관 없는 세 파일(`discovery`·`requests`·`profile`)이
+ * **타입 하나 때문에** 거기로 import 하고 있었다. 가리키는 방향이 거꾸로다.
+ *
+ * **넓히지 않는다.** 성공에 값을 실어야 하는 문은 자기 타입을 따로 든다
+ * (`PersonSaved` 는 id 를, `PairOpened` 는 두 사람을, `RespondResult` 는 상태를).
+ * 여기에 선택 칸을 더하기 시작하면 부르는 쪽마다 「이번엔 뭐가 실려 오나」를 다시 묻는다.
+ *
+ * 실패 문장은 **대개 DB 가 쓴다**(`userFacingDbMessage`) — 앱이 짓는 것은 모양을 보는
+ * 자리뿐이다.
+ */
+export type SaveResult = { ok: true } | { ok: false; message: string };
