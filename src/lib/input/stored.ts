@@ -192,10 +192,17 @@ function queryOf(stored: StoredInput, localLabel: string): Query {
   try {
     derived = isoOf(solarDateOf(restated));
   } catch (failure) {
-    throw new UnreadableInputError(
-      'original_date',
-      failure instanceof LunarConversionError ? failure.message : '양력으로 바꾸지 못했습니다',
-    );
+    /**
+     * **표 밖의 음력만 「못 읽는 입력」이다.**
+     *
+     * 앞서는 여기서 모든 오류를 `UnreadableInputError` 로 바꿨다. 그러면 달력 코드의
+     * 진짜 버그가 사용자에게 「저장된 출생 정보를 읽지 못했습니다」로 서고, 이 모듈이
+     * 바로 위에 적어 둔 규칙(못 읽는 것은 값이고 그 밖은 예외)이 **그 규칙을 적은
+     * 자리에서** 깨진다.
+     */
+    if (!(failure instanceof LunarConversionError)) throw failure;
+
+    throw new UnreadableInputError('original_date', failure.message);
   }
 
   if (derived !== stored.solar_date) {
