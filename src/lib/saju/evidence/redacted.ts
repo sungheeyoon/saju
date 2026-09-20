@@ -1,4 +1,5 @@
 import { EVIDENCE_CONTRACT, type ChartEvidence, type Evidence, type Limitation } from '.';
+import { without } from './without';
 
 /**
  * 모델에 넘길 꼴로 자료를 **자른다.**
@@ -89,13 +90,6 @@ export type RedactedEvidence = Omit<Evidence, 'contract' | 'charts'> & {
   };
   charts: { a: RedactedChartEvidence; b: RedactedChartEvidence | null };
 };
-
-/** 키 몇을 뺀 사본 — 뺀 키가 부르는 자리에 이름으로 남는다(`evidence/index.ts` 와 같다) */
-function without<T extends object, K extends keyof T>(value: T, ...keys: readonly K[]): Omit<T, K> {
-  const copy = { ...value } as Record<string, unknown>;
-  for (const key of keys) delete copy[key as string];
-  return copy as Omit<T, K>;
-}
 
 function redactChart(chart: ChartEvidence): RedactedChartEvidence {
   return {

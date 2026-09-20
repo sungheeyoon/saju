@@ -21,6 +21,7 @@ import {
   type ClaimStrength,
 } from '../text';
 import type { WolunEntry } from '../wolun';
+import { without } from './without';
 
 /**
  * L2 가 낸 것을 **밖으로 넘길 꼴로** 모은다 — 해석 이전까지.
@@ -342,19 +343,6 @@ const compatClaimsFor = (
 const resolveEntry = <T extends { relations: readonly Relation[] }>(
   entry: T,
 ): WithResolvedRelations<T> => ({ ...entry, relations: entry.relations.map(resolveRelation) });
-
-/**
- * 키 몇을 뺀 사본 — **뺀 것이 이름으로 남는다.**
- *
- * 구조 분해로 버리면(`const { saeun: _saeun, ...rest }`) 쓰지 않는 이름이 남고,
- * 무엇을 왜 뺐는지는 그 이름이 말해 주지 않는다. 여기서는 부르는 자리에 뺀 키가
- * 그대로 적힌다.
- */
-function without<T extends object, K extends keyof T>(value: T, ...keys: readonly K[]): Omit<T, K> {
-  const copy = { ...value } as Record<string, unknown>;
-  for (const key of keys) delete copy[key as string];
-  return copy as Omit<T, K>;
-}
 
 function chartEvidenceOf(saju: Saju, viewedAt: Date): ChartEvidence {
   const now = currentFortuneOf(saju, viewedAt);

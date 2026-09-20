@@ -4,7 +4,9 @@ import { computeSaju } from '@/src/lib/saju';
 import { evidenceOf } from '@/src/lib/saju/evidence';
 import { redactEvidence } from '@/src/lib/saju/evidence/redacted';
 import {
-  COMPARED_MATCH_INPUTS as MATCH_INPUTS,
+  COMPARED_MATCH_INPUTS,
+  MATCH_INPUTS,
+  MATCH_INPUT_FIELDS,
   PILLAR_UNCERTAIN,
   WITHHELD_PATHS,
   shareEvidence,
@@ -24,6 +26,16 @@ const A = computeSaju({ year: 1990, month: 5, day: 12, hour: 14, minute: 30, sec
 const B = computeSaju({ year: 1993, month: 11, day: 3, hour: 8, minute: 10, second: 0, gender: 'female' });
 const C = computeSaju({ year: 1988, month: 2, day: 4, hour: 23, minute: 30, second: 0, gender: 'male' });
 const D = computeSaju({ year: 1994, month: 8, day: 9, hour: 7, minute: 0, second: 0, gender: 'female' });
+
+/**
+ * 셋째 짝 — **두 사람 글자가 함께 삼합을 이룬다.**
+ *
+ * 표를 잠그는 데 짝 하나로는 모자란다. `C`·`D` 는 `combinedFormations` 가 비어서, 표가
+ * 「싣는다」고 적은 줄이 **빈 배열인지 안 싣는 것인지** 갈리지 않는다. 빈 자리를 근거로
+ * 표의 줄을 지우면 자료가 조용히 좁아진다.
+ */
+const E = computeSaju({ year: 1984, month: 1, day: 5, hour: 2, minute: 10, second: 0, gender: 'male' });
+const F = computeSaju({ year: 1986, month: 4, day: 5, hour: 15, minute: 10, second: 0, gender: 'female' });
 
 const redactedOf = (a: typeof A, b: typeof A) => redactEvidence(evidenceOf({ a, b }, VIEWED_AT));
 const shared = (input: MatchInput, a = C, b = D): SharedEvidence => shareEvidence(redactedOf(a, b), input)!;
@@ -49,60 +61,142 @@ function pathsOf(value: unknown, prefix = ''): Set<string> {
   return out;
 }
 
-const underCharts = (paths: Set<string>) => [...paths].filter((path) => path.startsWith('charts.'));
-const underCompat = (paths: Set<string>) => [...paths].filter((path) => path.startsWith('compatibility.'));
+/**
+ * 표를 맞대는 **자료의 자리 전부** — 짝 둘을 합쳐 본다.
+ *
+ * `contract` 는 뺀다. 거기 실리는 것은 컷이 **무엇을 했는지**이지 자료의 필드가 아니다 —
+ * 넣으면 `contract.withheld.…` 가 「자료에 실린 자리」로 세어져, 뺐다고 적은 것이 실린
+ * 것으로 읽힌다.
+ */
+const fieldPathsOf = (input: MatchInput): Set<string> =>
+  new Set([
+    ...pathsOf({ ...shared(input, C, D), contract: undefined }),
+    ...pathsOf({ ...shared(input, E, F), contract: undefined }),
+  ]);
 
-/** 제한형 명식에 설 수 있는 경로 — 여기 없는 것이 자료에 있으면 빨간불이다 */
-const LIMITED_CHART = /^charts\.\*(\.(claims(\.(pillars|meta)(\.(presence|absence))?)?|pillars(\.(year|month|day|hour)(\.(index|stem|branch|name|ko))?|\.dayMaster|\.meta(\.hourKnown)?)?|meta(\.hourKnown)?))?$/;
+/**
+ * 표의 키를 경로로 편다 — **표기법은 `MATCH_INPUT_FIELDS` 의 주석이 적은 그대로다.**
+ *
+ * `{a,b}` 는 갈래(겹칠 수 있다), ` · ` 는 한 줄에 적은 여러 경로다. 여기가 표기를 읽는
+ * 유일한 자리라, 표에 없는 문법을 쓰면 갈래가 안 닫혔다고 멈춘다 — 조용히 통과해서
+ * 「아무것도 안 덮는 줄」이 되는 것보다 낫다.
+ */
+function expandBraces(key: string): string[] {
+  const open = key.indexOf('{');
+  if (open === -1) return [key];
 
-const RELATION_KEYS =
-  '(kind|tier|ko|name|scope|targetElement|full|participants(\\[\\]\\.(chartId|position|char))?|direction(\\.(from|to)(\\.(chartId|position|char))?)?|cycle(\\[\\]\\.(chartId|position|char))?|contested(\\[\\]\\.(over(\\.(chartId|position|char))?|rivals(\\[\\]\\.(chartId|position|char))?))?)';
-const COMPAT_COMMON = [
-  `relations(\\[\\]\\.${RELATION_KEYS})?`,
-  `combinedFormations(\\[\\]\\.${RELATION_KEYS})?`,
-  'elementSupport(\\.\\*(\\.(missing|supplied|stillMissing)(\\[\\])?)?)?',
-  'tenGods(\\.(aSeesB|bSeesA))?',
-  'hourKnown(\\.\\*)?',
-  'warnings(\\[\\]\\.(kind|text))?',
-  'claims(\\.(relations|combinedFormations|elementSupport|tenGods|hourKnown|warnings)(\\.(presence|absence))?)?',
-];
-const LIMITED_COMPAT = new RegExp(`^compatibility\\.(${COMPAT_COMMON.join('|')})$`);
-const EXTENDED_COMPAT = new RegExp(
-  `^compatibility\\.(${[
-    ...COMPAT_COMMON,
-    'elementSupport\\.\\*\\.weakest(\\.(element|partnerRatio))?',
-    'eokbuMatch(\\.\\*(\\.(status|element|role|presentInPartner|partnerRatio|unresolved(\\[\\])?))?)?',
-    'claims\\.eokbuMatch(\\.(presence|absence))?',
-  ].join('|')})$`,
-);
-const EXTENDED_CHART_EXTRA =
-  /^charts\.\*\.(claims\.analysis\.(elements|strength|eokbu)(\.(presence|absence))?|analysis(\.elements(\.(glyphCount|counts|ratios|strongest|weakest|missing)(\.[木火土金水]|\[\])?)?|\.strength(\.(verdict|ratio|metCount|criteria(\[\](\.(key|label|met))?)?))?|\.eokbu(\.(status|suggestedElement|role|confidence|presentInChart|unresolved(\[\])?))?)?)$/;
+  const parts: string[] = [];
+  let depth = 0;
+  let start = open + 1;
+  let close = -1;
+
+  for (let i = open; i < key.length; i += 1) {
+    const char = key[i];
+    if (char === '{') depth += 1;
+    else if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        parts.push(key.slice(start, i));
+        close = i;
+        break;
+      }
+    } else if (char === ',' && depth === 1) {
+      parts.push(key.slice(start, i));
+      start = i + 1;
+    }
+  }
+
+  if (close === -1) throw new Error(`갈래가 안 닫혔다: ${key}`);
+  const [head, tail] = [key.slice(0, open), key.slice(close + 1)];
+  return parts.flatMap((part) => expandBraces(`${head}${part}${tail}`));
+}
+
+const fieldsOf = (key: string): string[] => key.split(' · ').flatMap(expandBraces);
+
+/** `path` 가 `field` 이거나 그 **밑**인가 — 적은 경로는 자기 밑을 다 덮는다 */
+const under = (path: string, field: string): boolean =>
+  path === field || path.startsWith(`${field}.`) || path.startsWith(`${field}[`);
+
+/** `path` 가 `field` 의 **위**인가 — 덮인 자리로 내려가는 길은 자료에 있어야 한다 */
+const above = (path: string, field: string): boolean => under(field, path);
+
+/**
+ * `WITHHELD_PATHS` 에서 **부재를 기계로 못 재는 키** — 이름과 왜 못 재는지.
+ *
+ * 둘뿐이고, 둘 다 다른 시험이 값으로 잰다. 여기 없는 키는 전부 경로로 읽혀 자료에서
+ * 사라졌는지 확인된다 — 새로 못 재는 키가 생기면 이 표에 적어야 초록이 뜬다.
+ */
+const WITHHELD_NOT_MEASURED: Record<string, string> = {
+  'limited-v1/compatibility.relations[].contested[].rivals (같은 원국)':
+    '경로가 아니라 「같은 원국의 경쟁자」라는 조건이다 — 아래 쟁합 시험이 그 경쟁자를 세어 잰다',
+  'extended-v1/analysis':
+    '「`analysis` **밖의** 판정」이라는 뜻이라 이 경로 자체는 실린다 — 무엇이 실렸는지는 필드 표가 잰다',
+};
 
 describe('인연 궁합 입력은 필드를 적어서 고른다', () => {
-  it('제한형 — 명식은 여덟 글자와 시각 입력 여부만 든다', () => {
-    const stray = underCharts(pathsOf(shared('limited-v1'))).filter((path) => !LIMITED_CHART.test(path));
-    expect(stray).toEqual([]);
-  });
-
-  it('제한형 — 궁합은 사이 관계·글자 수 보완·십성·한계만 든다', () => {
-    const stray = underCompat(pathsOf(shared('limited-v1'))).filter((path) => !LIMITED_COMPAT.test(path));
-    expect(stray).toEqual([]);
-  });
-
-  it('확장형 — 더해지는 것은 신강신약·억부 후보·오행 세력과 그 보완뿐이다', () => {
-    const paths = pathsOf(shared('extended-v1'));
-    const strayChart = underCharts(paths).filter(
-      (path) => !LIMITED_CHART.test(path) && !EXTENDED_CHART_EXTRA.test(path),
+  /**
+   * **표가 안 덮는 자리가 자료에 있으면 빨간불이다.**
+   *
+   * 전에는 이 자리를 시험이 손으로 쓴 정규식 셋이 쟀다. 그러면 「무엇이 실리나」가 표와
+   * 정규식 두 곳에 적히고, 엔진에 필드가 느는 날 따라오는 것은 한쪽뿐이다. 이제 표가
+   * 잠근다 — 자료가 넓어지면 **표를 고치기 전에는 초록이 안 뜬다.**
+   */
+  it.each(MATCH_INPUTS)('%s — 자료의 모든 자리를 표가 덮는다', (input) => {
+    const fields = Object.keys(MATCH_INPUT_FIELDS[input]).flatMap(fieldsOf);
+    const stray = [...fieldPathsOf(input)].filter(
+      (path) => !fields.some((field) => under(path, field) || above(path, field)),
     );
-    const strayCompat = underCompat(paths).filter((path) => !EXTENDED_COMPAT.test(path));
 
-    expect(strayChart).toEqual([]);
-    expect(strayCompat).toEqual([]);
+    expect(stray).toEqual([]);
+  });
+
+  /**
+   * 반대 방향 — **표가 적은 자리는 자료에 실제로 있다.**
+   *
+   * 덮는 쪽만 보면 필드가 통째로 사라져도 초록이다. 표가 「싣는다」고 적은 것이 없으면
+   * 그 줄은 동의 범위를 설명하는 척만 하는 것이고, 프롬프트가 그 경로를 가리킨다.
+   */
+  it.each(MATCH_INPUTS)('%s — 표가 적은 자리는 자료에 실제로 있다', (input) => {
+    const paths = fieldPathsOf(input);
+    const empty = Object.keys(MATCH_INPUT_FIELDS[input])
+      .flatMap(fieldsOf)
+      .filter((field) => ![...paths].some((path) => under(path, field)));
+
+    expect(empty).toEqual([]);
+  });
+
+  /**
+   * **뺐다고 적은 자리는 실제로 없다** — `WITHHELD_PATHS` 의 방향.
+   *
+   * 이 표는 계약에 실려 **모델까지 간다.** 자료와 다른 말을 적으면 모델이 없는 것을
+   * 찾거나 있는 것을 못 본 척한다 — ADR 0067 이 고친 것이 정확히 그 어긋남이었고,
+   * 그때까지 이 표를 재던 시험은 「같은 객체인가」뿐이었다.
+   *
+   * 키는 명식 기준이다(`analysis` = `charts.*.analysis`). `compatibility.` 로 시작하는
+   * 것만 자료의 뿌리에서 읽는다.
+   */
+  it.each(MATCH_INPUTS)('%s — 뺐다고 적은 자리는 자료에 없다', (input) => {
+    const paths = [...fieldPathsOf(input)];
+    const present = Object.keys(WITHHELD_PATHS[input])
+      .filter((key) => !(`${input}/${key}` in WITHHELD_NOT_MEASURED))
+      .flatMap(fieldsOf)
+      .map((field) => (field.startsWith('compatibility.') ? field : `charts.*.${field}`))
+      .filter((field) => paths.some((path) => under(path, field)));
+
+    expect(present).toEqual([]);
+  });
+
+  /** 안 재는 것은 값으로 남긴다 — 사라진 키를 적어 두면 여기서 걸린다 */
+  it('경로가 아닌 `withheld` 키는 이름과 이유로 적혀 있다', () => {
+    for (const key of Object.keys(WITHHELD_NOT_MEASURED)) {
+      const [input, path] = [key.slice(0, key.indexOf('/')), key.slice(key.indexOf('/') + 1)];
+      expect(Object.keys(WITHHELD_PATHS[input as MatchInput]), key).toContain(path);
+    }
   });
 
   /** 허용 목록만 보면 필드가 통째로 사라져도 초록이다 — 있어야 할 것을 거꾸로 잰다 */
   it('두 판 모두 설명에 쓰는 자리를 실제로 든다', () => {
-    for (const input of MATCH_INPUTS) {
+    for (const input of COMPARED_MATCH_INPUTS) {
       const paths = pathsOf(shared(input));
       for (const required of [
         'charts.*.pillars.day.stem',
@@ -130,7 +224,7 @@ describe('인연 궁합 입력은 필드를 적어서 고른다', () => {
   });
 
   it('출생 입력·계산 옵션·경계 문장은 어느 판에도 없다', () => {
-    for (const input of MATCH_INPUTS) {
+    for (const input of COMPARED_MATCH_INPUTS) {
       /* 계약의 `withheld` 는 뺀 자리의 **이름**을 든다 — 값이 실렸는지는 계약 밖에서 본다 */
       const text = JSON.stringify({ ...shared(input), contract: null });
       for (const banned of ['"gender"', 'lateNightRule', 'lateNightShiftApplied', 'sajuYear', 'monthTerm', 'nextTerm', '절입 시각', '조자시', '시지 경계']) {
@@ -149,7 +243,7 @@ describe('인연 궁합 입력은 필드를 적어서 고른다', () => {
 describe('관계는 한 사실 그대로 간다', () => {
   it('참여자·완성·방향·순환이 원본과 같고 수가 늘거나 줄지 않는다', () => {
     const source = redactedOf(C, D).compatibility!;
-    for (const input of MATCH_INPUTS) {
+    for (const input of COMPARED_MATCH_INPUTS) {
       const { relations, combinedFormations } = shared(input).compatibility;
       expect(relations).toHaveLength(source.relations.length);
       expect(combinedFormations).toHaveLength(source.combinedFormations.length);
@@ -168,9 +262,7 @@ describe('관계는 한 사실 그대로 간다', () => {
 
   /** 두 사람 글자가 함께 이룬 삼합은 참여자 셋을 든 **한** 관계다 */
   it('함께 이룬 세 글자 구조는 참여자 셋을 가진 하나로 남는다', () => {
-    const a = computeSaju({ year: 1984, month: 1, day: 5, hour: 2, minute: 10, second: 0, gender: 'male' });
-    const b = computeSaju({ year: 1986, month: 4, day: 5, hour: 15, minute: 10, second: 0, gender: 'female' });
-    const { combinedFormations, relations } = shared('limited-v1', a, b).compatibility;
+    const { combinedFormations, relations } = shared('limited-v1', E, F).compatibility;
     const triple = combinedFormations.find((relation) => relation.full && relation.participants.length === 3);
 
     expect(triple).toBeDefined();
@@ -222,7 +314,7 @@ describe('한계와 계약', () => {
   });
 
   it('무엇을 왜 뺐는지와 어느 판인지를 자료가 들고 나간다', () => {
-    for (const input of MATCH_INPUTS) {
+    for (const input of COMPARED_MATCH_INPUTS) {
       const evidence = shared(input);
       expect(evidence.contract.withheld).toBe(WITHHELD_PATHS[input]);
       expect(evidence.contract.matchInput).toBe(input);
