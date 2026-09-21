@@ -1,4 +1,4 @@
-import { balanceBandOf, cardTextFor, knownElementsOf } from '@/src/lib/discovery';
+import { balanceLabelOf, knownElementsOf } from '@/src/lib/discovery';
 import { READING_KINDS, type ReadingKind } from '@/src/lib/reading';
 import {
   NOTIFICATION_KINDS,
@@ -126,10 +126,7 @@ const matchOf = (row: MatchRow): InboxMatch => ({
   intro: row.partner_intro,
   hasPhoto: row.partner_has_photo === true,
   suppliedToMe: suppliedText(knownElementsOf(row.supplied_to_me), 'toMe'),
-  balanceLabel: cardTextFor({
-    suppliedElements: [],
-    balanceBand: balanceBandOf(row.balance_band),
-  }).balanceLabel,
+  balanceLabel: balanceLabelOf(row.balance_band),
   createdAt: row.created_at,
 });
 
@@ -216,10 +213,7 @@ export async function inboxForViewer(): Promise<Inbox> {
           status,
           suppliedToMe: suppliedText(knownElementsOf(row.supplied_to_me), 'toMe'),
           suppliedToThem: suppliedText(knownElementsOf(row.supplied_to_them), 'toThem'),
-          balanceLabel: cardTextFor({
-            suppliedElements: [],
-            balanceBand: balanceBandOf(row.balance_band),
-          }).balanceLabel,
+          balanceLabel: balanceLabelOf(row.balance_band),
           createdAt: row.created_at,
           decidedAt: row.decided_at,
         },

@@ -1,5 +1,5 @@
 import type { CompatSide } from '@/src/lib/saju';
-import { balanceBandOf, cardTextFor, knownElementsOf } from '@/src/lib/discovery';
+import { balanceLabelOf, knownElementsOf } from '@/src/lib/discovery';
 import { suppliedText } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -138,10 +138,7 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
       charts: { a: mine, b: theirs },
       suppliedToMe: suppliedText(knownElementsOf(scope.supplied_to_me), 'toMe'),
       suppliedToThem: suppliedText(knownElementsOf(scope.supplied_to_them), 'toThem'),
-      balanceLabel: cardTextFor({
-        suppliedElements: [],
-        balanceBand: balanceBandOf(scope.balance_band),
-      }).balanceLabel,
+      balanceLabel: balanceLabelOf(scope.balance_band),
       createdAt: scope.created_at,
       [granted]: true,
     },
