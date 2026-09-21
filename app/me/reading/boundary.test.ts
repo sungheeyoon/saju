@@ -70,8 +70,14 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     const current = files.find(({ path }) => path === DEFINITION);
     expect(current, `${DEFINITION} 를 찾지 못했다`).toBeDefined();
 
-    const raw = current!.text.match(/row\.output as string/g) ?? [];
-    const cut = current!.text.match(/reading(?:Body|Grounding)\(row\.output as string\)/g) ?? [];
+    /*
+      **무늬가 캐스팅 글자에 매여 있었다.** 앞서는 `row.output as string` 을 셌는데,
+      생성 타입이 그 칸을 `string` 으로 말하게 되면서 캐스팅이 없어지자 **세던 것이
+      0건이 됐다** — 잠금이 조용히 풀린 것이다(ADR 0078 작업에서 실제로 그랬다).
+      이제 읽기 자체를 센다. 캐스팅이 있든 없든 같은 것을 잠근다.
+    */
+    const raw = current!.text.match(/row\.output/g) ?? [];
+    const cut = current!.text.match(/reading(?:Body|Grounding)\(row\.output\)/g) ?? [];
 
     // 원문을 읽는 자리마다 자르는 함수가 하나씩 감싸고 있어야 한다
     expect(cut.length).toBe(raw.length);
