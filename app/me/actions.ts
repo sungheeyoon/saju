@@ -14,6 +14,7 @@ import {
   unsupportedForSaving,
 } from '@/src/lib/input/revision';
 import { userFacingDbMessage } from '../db-error';
+import { rpcArgs } from '@/src/lib/db';
 
 /**
  * 저장한 사람 하나 — **id 를 함께 낸다.**
@@ -48,7 +49,7 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
   if (unsupported !== null) return { ok: false, message: unsupported };
 
   const supabase = await supabaseOnServer();
-  const { error } = await supabase.rpc('create_self_person', selfPersonArgs(query));
+  const { error } = await supabase.rpc('create_self_person', rpcArgs<'create_self_person'>(selfPersonArgs(query)));
 
   if (error) {
     /**
@@ -102,7 +103,7 @@ export async function addManagedPerson(
   }
 
   const supabase = await supabaseOnServer();
-  const { data, error } = await supabase.rpc('create_managed_person', managedPersonArgs(query, note));
+  const { data, error } = await supabase.rpc('create_managed_person', rpcArgs<'create_managed_person'>(managedPersonArgs(query, note)));
 
   if (error) return { ok: false, kind: 'failed', message: userFacingDbMessage(error, 'create_managed_person') };
   /**
@@ -201,7 +202,7 @@ export async function revisePerson(personId: string, query: Query): Promise<Save
     .eq('person_id', personId);
   if (labelError) return { ok: false, message: userFacingDbMessage(labelError, 'user_person_access.label') };
 
-  const { error } = await supabase.rpc('add_person_revision', revisionArgs(personId, query));
+  const { error } = await supabase.rpc('add_person_revision', rpcArgs<'add_person_revision'>(revisionArgs(personId, query)));
   if (error) return { ok: false, message: userFacingDbMessage(error, 'add_person_revision') };
 
   /**

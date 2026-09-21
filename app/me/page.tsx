@@ -228,7 +228,8 @@ async function SelfChart({ personId }: { personId: string }) {
  */
 async function Unread() {
   const unread = await unreadCount();
-  if (unread === 0) return null;
+  /* 못 읽었으면 띠를 안 세운다 — 「0 건」과 「못 읽음」을 가른 값이 온다(ADR 0078) */
+  if (!unread.ok || unread.value === 0) return null;
 
   return (
     <Link
@@ -243,7 +244,7 @@ async function Unread() {
           한다. 밖에서 이 배지를 재는 검사도 같은 말을 짚는다(`scripts/check-match.mjs`).
         */}
         <span className="grid size-5 place-items-center rounded-full bg-fire text-[10px] font-bold text-white">
-          {unread}
+          {unread.value}
           <span className="sr-only">건 안 읽음</span>
         </span>
         <span aria-hidden="true">→</span>

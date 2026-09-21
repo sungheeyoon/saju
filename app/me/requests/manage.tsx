@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
+import { announceIfMoved } from '../reading/credits-signal';
 
 import {
   REPORT_DETAIL_MAX,
@@ -105,6 +106,7 @@ export function CancelButton({ requestId }: { requestId: string }) {
     setFailure(null);
     startWorking(async () => {
       const result = await cancelRequest(requestId);
+      announceIfMoved(result);
       if (result.ok) router.refresh();
       else setFailure(result.message);
     });

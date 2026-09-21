@@ -1,6 +1,8 @@
 'use client';
 
 import { createBrowserClient } from '@supabase/ssr';
+import type { Database } from '@/src/lib/db';
+
 import { supabaseEnv } from './config';
 
 /**
@@ -12,5 +14,5 @@ import { supabaseEnv } from './config';
  */
 export function supabaseInBrowser() {
   const { url, publishableKey } = supabaseEnv();
-  return createBrowserClient(url, publishableKey);
+  return createBrowserClient<Database>(url, publishableKey);
 }

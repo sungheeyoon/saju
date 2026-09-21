@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { readingCreditsLabel } from '@/src/lib/reading';
 
 import { supabaseInBrowser } from './auth/browser-client';
+import { readReadingCredits } from './me/reading/credits';
 import { READING_CREDITS_MOVED } from './me/reading/credits-signal';
 import { isSharePath } from './share/path';
 
@@ -283,20 +284,18 @@ function useReadingCredits(enabled: boolean): string | null {
 
     let watching = true;
     const read = async () => {
-      const { data, error } = await supabaseInBrowser().rpc('my_reading_credits');
+      /* **서버 쪽 풀이권과 같은 문이다**(ADR 0078) — 칸 이름을 여기서 다시 안 적는다 */
+      const credits = await readReadingCredits(supabaseInBrowser());
       if (!watching) return;
 
-      const row = ((data ?? []) as Record<string, unknown>[])[0];
-      if (error || row === undefined) {
-        setLabel(null);
-        return;
-      }
-
+      /* 못 읽었거나 아직 자리가 없으면 **안 세운다** — 모르는 수를 세어 보게 하지 않는다 */
       setLabel(
-        readingCreditsLabel({
-          limit: row.credit_limit as number,
-          available: row.available as number,
-        }),
+        credits.ok && credits.value !== null
+          ? readingCreditsLabel({
+              limit: credits.value.limit,
+              available: credits.value.available,
+            })
+          : null,
       );
     };
 

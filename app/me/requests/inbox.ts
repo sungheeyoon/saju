@@ -1,4 +1,5 @@
-import { balanceBandOf, cardTextFor, knownElementsOf } from '@/src/lib/discovery';
+import { balanceLabelOf, knownElementsOf } from '@/src/lib/discovery';
+import type { RpcRow } from '@/src/lib/db';
 import { READING_KINDS, type ReadingKind } from '@/src/lib/reading';
 import {
   NOTIFICATION_KINDS,
@@ -11,7 +12,7 @@ import {
 } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { dbFailure } from '../../db-error';
+import { dbFailure, read, unread, type SkippableRead } from '../../db-error';
 
 /**
  * **요청·Match·알림이 브라우저로 내려가는 유일한 문.**
@@ -26,45 +27,12 @@ import { dbFailure } from '../../db-error';
  */
 
 /** `my_match_requests()` 가 내주는 한 줄 — **여기 없는 것이 안 나가는 것이다** */
-type RequestRow = {
-  request_id: string;
-  direction: string;
-  counterpart_user_id: string;
-  counterpart_nickname: string | null;
-  counterpart_intro: string | null;
-  counterpart_has_photo: boolean;
-  status: string;
-  supplied_to_me: string[] | null;
-  supplied_to_them: string[] | null;
-  balance_band: string;
-  created_at: string;
-  decided_at: string | null;
-};
+/** 문 셋이 내주는 한 줄 — **칸 이름은 생성 타입이 든다**(ADR 0078) */
+type RequestRow = RpcRow<'my_match_requests'>;
 
-type MatchRow = {
-  match_id: string;
-  partner_user_id: string;
-  partner_nickname: string | null;
-  partner_intro: string | null;
-  partner_has_photo: boolean;
-  supplied_to_me: string[] | null;
-  balance_band: string;
-  created_at: string;
-};
+type MatchRow = RpcRow<'my_matches'>;
 
-type NotificationRow = {
-  notification_id: string;
-  kind: string;
-  counterpart_nickname: string | null;
-  request_id: string | null;
-  match_id: string | null;
-  /** 실패한 시도가 무엇을 만들던 것인가. 실패 알림에만 있다 */
-  reading_kind: string | null;
-  reading_person_a: string | null;
-  reading_person_b: string | null;
-  created_at: string;
-  read_at: string | null;
-};
+type NotificationRow = RpcRow<'my_notifications'>;
 
 export type InboxRequest = {
   readonly requestId: string;
@@ -126,10 +94,7 @@ const matchOf = (row: MatchRow): InboxMatch => ({
   intro: row.partner_intro,
   hasPhoto: row.partner_has_photo === true,
   suppliedToMe: suppliedText(knownElementsOf(row.supplied_to_me), 'toMe'),
-  balanceLabel: cardTextFor({
-    suppliedElements: [],
-    balanceBand: balanceBandOf(row.balance_band),
-  }).balanceLabel,
+  balanceLabel: balanceLabelOf(row.balance_band),
   createdAt: row.created_at,
 });
 
@@ -137,8 +102,9 @@ const matchOf = (row: MatchRow): InboxMatch => ({
 export async function matchesForViewer(): Promise<readonly InboxMatch[]> {
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc('my_matches');
-  if (error) return [];
-  return ((data ?? []) as MatchRow[]).map(matchOf);
+  /* 풀이 탭의 본체다 — 같은 문을 읽는 `inboxForViewer` 와 같은 답을 해야 한다(ADR 0078) */
+  if (error) throw dbFailure(error, 'my_matches');
+  return (data ?? []).map(matchOf);
 }
 
 /**
@@ -193,9 +159,9 @@ export async function inboxForViewer(): Promise<Inbox> {
     if (error) throw dbFailure(error, 'inbox');
   }
 
-  const requestRows = (requests.data ?? []) as RequestRow[];
-  const matchRows = (matches.data ?? []) as MatchRow[];
-  const notificationRows = (notifications.data ?? []) as NotificationRow[];
+  const requestRows: RequestRow[] = requests.data ?? [];
+  const matchRows: MatchRow[] = matches.data ?? [];
+  const notificationRows: NotificationRow[] = notifications.data ?? [];
 
   return {
     requests: requestRows.flatMap((row) => {
@@ -215,10 +181,7 @@ export async function inboxForViewer(): Promise<Inbox> {
           status,
           suppliedToMe: suppliedText(knownElementsOf(row.supplied_to_me), 'toMe'),
           suppliedToThem: suppliedText(knownElementsOf(row.supplied_to_them), 'toThem'),
-          balanceLabel: cardTextFor({
-            suppliedElements: [],
-            balanceBand: balanceBandOf(row.balance_band),
-          }).balanceLabel,
+          balanceLabel: balanceLabelOf(row.balance_band),
           createdAt: row.created_at,
           decidedAt: row.decided_at,
         },
@@ -255,9 +218,10 @@ export async function inboxForViewer(): Promise<Inbox> {
 }
 
 /** 다른 화면이 배지 하나를 세우려고 부른다 — 목록 전체를 읽지 않는다 */
-export async function unreadCount(): Promise<number> {
+export async function unreadCount(): Promise<SkippableRead<number>> {
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc('unread_notifications');
-  if (error) return 0;
-  return typeof data === 'number' ? data : 0;
+  /* **부속 정보다** — 못 읽으면 띠를 안 세운다. `0` 은 읽어서 안 값이라 다르다(ADR 0078) */
+  if (error) return unread(error, 'unread_notifications');
+  return read(typeof data === 'number' ? data : 0);
 }

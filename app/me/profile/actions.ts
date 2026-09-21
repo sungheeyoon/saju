@@ -5,6 +5,7 @@ import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
 import { PHOTO_TYPES, missingInProfile, type ProfileInput } from '@/src/lib/profile';
 import { userFacingDbMessage } from '../../db-error';
+import { rpcArgs } from '@/src/lib/db';
 
 /**
  * 프로필을 저장한다 — **RPC 를 지난다.**
@@ -20,10 +21,10 @@ export async function saveProfile(profile: ProfileInput): Promise<SaveResult> {
 
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('save_my_profile', {
+  const { error } = await supabase.rpc('save_my_profile', rpcArgs<'save_my_profile'>({
     p_nickname: profile.nickname.trim(),
     p_intro: profile.intro.trim() || null,
-  });
+  }));
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'save_my_profile') };
 

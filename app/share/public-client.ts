@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 import { supabaseEnv } from '../auth/config';
+import type { Database } from '@/src/lib/db';
+
 
 /**
  * 공유본 화면이 드는 Supabase — **세션을 아예 안 든다.**
@@ -18,7 +20,7 @@ import { supabaseEnv } from '../auth/config';
 export function supabaseForShared() {
   const { url, publishableKey } = supabaseEnv();
 
-  return createClient(url, publishableKey, {
+  return createClient<Database>(url, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

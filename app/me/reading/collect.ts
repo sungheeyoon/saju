@@ -5,6 +5,7 @@ import type { StoredInput } from '@/src/lib/input/stored';
 
 import type { ModelUsage } from './generator';
 import { retrieveBackgroundReading } from './model';
+import { rpcArgs } from '@/src/lib/db';
 
 /**
  * 떠나보낸 일을 **가져와 닫는다** — 성공이든 실패든 (ADR 0020).
@@ -150,7 +151,7 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
    * 얼었고, 저장하는 문이 그 얼린 작업에서 직접 읽는다 — 앱이 그 값을 대는 자리가
    * 있으면 DB 는 그것이 이 시도의 것인지 알 수 없다.
    */
-  const { error: saveError } = await keyed.rpc('save_reading', {
+  const { error: saveError } = await keyed.rpc('save_reading', rpcArgs<'save_reading'>({
     p_run_id: job.run_id,
     p_output: retrieved.output.markdown,
     p_score: isScored(job.kind) ? retrieved.output.score : null,
@@ -162,7 +163,7 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     p_model: retrieved.modelId ?? job.requested_model,
     p_generation: { ...job.generation, usage: retrieved.usage },
     p_viewed_at: job.viewed_at,
-  });
+  }));
 
   if (saveError) return close('save-rejected', saveError.message, retrieved.usage);
 

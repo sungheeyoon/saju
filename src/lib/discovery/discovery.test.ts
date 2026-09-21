@@ -5,6 +5,7 @@ import {
   DISCOVERY_POLICY,
   DISCOVERY_TEASER,
   boardNotes,
+  balanceLabelOf,
   cardTextFor,
   previewSummaryFor,
   type BalanceBand,
@@ -101,6 +102,28 @@ describe('추천 이유 — 맛보기는 적극적으로 말한다', () => {
    * 82점과 79점은 절대적인 궁합 차이로 읽히지만 「고른 편」과 「대체로 고른 편」은
    * 그렇지 않다. 밖으로 나가는 것은 말이고, 그 말을 가르는 경계는 SQL 이 든다.
    */
+  /**
+   * **빈 카드를 지어 한 줄만 꺼내던 자리가 셋이었다.**
+   *
+   * 요청함·인연 결과는 채우는 오행을 안 묻는다 — 그런데도 `suppliedElements: []` 로
+   * 카드를 지어 `balanceLabel` 만 꺼냈다. 빈 배열이 「없다」가 아니라 「안 물었다」라서
+   * 읽는 사람이 카드의 규칙을 한 번 더 확인해야 했다. 두 문이 같은 말을 내는지 잠근다.
+   */
+  it('균형 한 줄만 꺼내는 문이 카드와 같은 말을 낸다', () => {
+    for (const band of ['even', 'mixed', 'skewed'] as const) {
+      expect(balanceLabelOf(band)).toBe(
+        cardTextFor({ suppliedElements: [], balanceBand: band }).balanceLabel,
+      );
+    }
+  });
+
+  /** 못 알아보는 밴드는 가장 낮은 칸이다 — 부르는 쪽이 그 규칙을 다시 안 적는다 */
+  it('모르는 밴드는 기우는 칸의 말로 나간다', () => {
+    expect(balanceLabelOf('unknown-band')).toBe(
+      cardTextFor({ suppliedElements: [], balanceBand: 'skewed' }).balanceLabel,
+    );
+  });
+
   it('균형은 세 칸의 말로만 나간다', () => {
     const labelOf = (band: 'even' | 'mixed' | 'skewed') =>
       cardTextFor({ suppliedElements: [], balanceBand: band }).balanceLabel;

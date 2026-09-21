@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { refresh } from '../refresh';
 import { supabaseOnServer } from '../auth/server-client';
 import { userFacingDbMessage } from '../db-error';
+import { rpcArgs } from '@/src/lib/db';
 
 /**
  * 가입을 끝낸다 — **성공하면 안 돌아온다.**
@@ -33,7 +34,7 @@ export async function completeSignup(answer: {
 }): Promise<{ ok: false; message: string }> {
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('complete_signup', {
+  const { error } = await supabase.rpc('complete_signup', rpcArgs<'complete_signup'>({
     /*
       **빈 칸은 `null` 로 보낸다.** 이미 이름이나 코드를 가진 사람은 그 칸을 안 보므로
       빈 문자열이 온다 — DB 가 그것을 「짓겠다」로 읽으면 2자 미만이라고 거절한다.
@@ -44,7 +45,7 @@ export async function completeSignup(answer: {
     p_schedule_id: answer.scheduleId,
     p_improvement: answer.improvement,
     p_contact: answer.contact,
-  });
+  }));
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'complete_signup') };
 

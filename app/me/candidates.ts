@@ -13,6 +13,7 @@ import {
 
 import { supabaseOnServer } from '../auth/server-client';
 import { dbFailure } from '../db-error';
+import type { RpcRow } from '@/src/lib/db';
 
 /**
  * **후보가 브라우저로 내려가는 유일한 문.**
@@ -68,18 +69,17 @@ export type CandidateBoard = {
   readonly cards: CandidateCard[];
 };
 
-/** `my_discovery_board()` 가 내주는 한 줄 — 두 축의 원값은 없고 합친 참고 점수만 있다 */
-type BoardRow = {
-  candidate_user_id: string;
-  nickname: string;
-  intro: string | null;
-  has_photo: boolean;
-  seat: number;
-  exploration: boolean;
-  supplied_elements: string[] | null;
-  balance_band: string;
-  preview_score: number;
-};
+/**
+ * `my_discovery_board()` 가 내주는 한 줄 — **이름과 칸은 생성 타입이 든다**(ADR 0078).
+ *
+ * 두 축의 원값은 없고 합친 참고 점수만 있다. 앞서는 이 아홉 칸을 손으로 적어 두어,
+ * SQL 쪽 이름이 바뀌어도 빨개지는 자리가 없었다.
+ *
+ * **다만 생성 타입은 반환의 `null` 허용을 말하지 않는다** — `intro`·`supplied_elements`
+ * 를 `string`·`string[]` 로 적는다. 그래서 그 둘을 읽는 쪽은 여전히 없음을 견딘다
+ * (`knownElementsOf` 가 `null` 을 받는 까닭이다).
+ */
+type BoardRow = RpcRow<'my_discovery_board'>;
 
 /**
  * 지금 내 후보 — **만들어 둔 목록을 읽는다**(ADR 0037).
@@ -99,7 +99,7 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
   // 「참여를 먼저 켜 주세요」 같은 거절은 DB 가 문장으로 낸다. 여기서 다시 판정하지 않는다.
   if (error) throw dbFailure(error, 'my_discovery_board');
 
-  const cards = ((data ?? []) as BoardRow[]).map((row) => ({
+  const cards = (data ?? []).map((row) => ({
     ...publicCardFromRow(row, mySummary),
     position: row.seat,
     exploration: row.exploration,
@@ -118,18 +118,6 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
     cards,
   };
 }
-
-/** `my_passed_connections()` 가 내주는 한 줄 — 카드와 같은 칸에 지나친 때가 붙는다 */
-type PassedRow = {
-  candidate_user_id: string;
-  nickname: string;
-  intro: string | null;
-  has_photo: boolean;
-  passed_at: string;
-  supplied_elements: string[] | null;
-  balance_band: string;
-  preview_score: number;
-};
 
 /** 보관함의 한 장 — 카드가 아는 칸에 **지나친 때**만 더한다 */
 export type PassedCard = Omit<CandidateCard, 'position' | 'exploration' | typeof granted> & {
@@ -150,7 +138,8 @@ export async function passedForViewer(mySummary: ElementSummary): Promise<Passed
   const { data, error } = await supabase.rpc('my_passed_connections');
   if (error) throw dbFailure(error, 'my_passed_connections');
 
-  return ((data ?? []) as PassedRow[]).map((row) => ({
+  /* 카드와 같은 칸에 **지나친 때**만 붙는다 — 칸 이름은 생성 타입이 든다 */
+  return (data ?? []).map((row) => ({
     ...publicCardFromRow(row, mySummary),
     passedAt: row.passed_at,
   }));
@@ -174,7 +163,7 @@ export async function boardStamp(): Promise<BoardStamp | null> {
   const { data, error } = await supabase.rpc('my_discovery_snapshot');
   if (error) throw dbFailure(error, 'my_discovery_snapshot');
 
-  const row = (data ?? [])[0] as { generated_at: string; wait_seconds: number } | undefined;
+  const row = (data ?? [])[0];
   if (row === undefined) return null;
 
   return { generatedAt: row.generated_at, waitSeconds: row.wait_seconds };

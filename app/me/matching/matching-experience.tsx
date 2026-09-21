@@ -12,6 +12,7 @@ import { RefreshBoard } from '../discovery/manage';
 import styles from './matching.module.css';
 import { deckReducer, PASSED_LIMIT } from './deck-state';
 import { PassedConnections } from './passed-connections';
+import { announceIfMoved } from '../reading/credits-signal';
 
 /**
  * 덱으로 내려오는 후보 한 장 — **`CandidateCard` 에서 증표만 뗀 것**이다.
@@ -180,6 +181,7 @@ export function MatchingExperience({
     startWorking(async () => {
       try {
         const result = await requestMatch(sending.candidateUserId);
+        announceIfMoved(result);
         if (!result.ok) { setFailure(result.message); return; }
         finish();
       } catch {

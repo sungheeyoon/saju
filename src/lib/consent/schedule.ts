@@ -23,7 +23,7 @@ const filled = (value: unknown): string | null => {
  * 날짜 둘뿐이고 그 둘은 처리방침이 이미 공개하는 값이다.
  */
 export async function scheduleFrom(
-  rpc: (name: string) => PromiseLike<{ data: unknown; error: unknown }>,
+  rpc: (name: 'current_beta_schedule') => PromiseLike<{ data: unknown; error: unknown }>,
 ): Promise<{ scheduleId: number; dates: BetaDates; operator: Operator } | null> {
   const { data, error } = await rpc('current_beta_schedule');
   if (error) return null;

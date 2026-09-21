@@ -20,6 +20,7 @@ import { readingInputOf } from './generator';
 import { GENERATION } from './generation';
 import { submitBackgroundReading } from './model';
 import { readingTargetArgs, type ReadingTarget } from './target';
+import { rpcArgs } from '@/src/lib/db';
 
 /**
  * **결과 생성 요청** — 사용자가 눌렀을 때만 도는 길.
@@ -106,14 +107,14 @@ async function openRun(
 ): Promise<{ ok: true; started: StartedRun | null } | { ok: false; message: string }> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('start_reading_run', {
+  const { data, error } = await supabase.rpc('start_reading_run', rpcArgs<'start_reading_run'>({
     /* 대상을 인자로 푸는 일은 `target.ts` 하나가 한다 — 여기서 또 풀면 두 벌이 된다 */
     ...readingTargetArgs(target),
     /** 같은 누름의 재전송을 알아보는 값. 무엇을 막는지는 위 주석이 든다 */
     p_idempotency_key: requestKey ?? randomUUID(),
     p_model: GENERATION.model,
     p_prompt_version: promptVersionOf(target.kind),
-  });
+  }));
 
   /**
    * **거절은 DB 가 문장으로 낸다.** 그 문장은 그대로 세우고, 우리가 쓰지 않은 오류
@@ -266,7 +267,7 @@ async function sendRun(runId: string): Promise<void> {
     return;
   }
 
-  const job = ((data ?? []) as FrozenJob[])[0];
+  const job = ((data ?? []) as unknown as FrozenJob[])[0];
   if (job === undefined) return;
 
   await submitFrozen(keyed, job);
@@ -351,7 +352,7 @@ export async function sendAcceptedMatchReading(requestId: string): Promise<void>
   const { data, error } = await keyed.rpc('match_run_awaiting_send', { p_request_id: requestId });
   if (error) return;
 
-  const job = ((data ?? []) as FrozenJob[])[0];
+  const job = ((data ?? []) as unknown as FrozenJob[])[0];
   // 0행은 「보낼 것이 없다」다 — 수락이 시도를 못 열었거나 이미 떠났다.
   if (job === undefined) return;
 

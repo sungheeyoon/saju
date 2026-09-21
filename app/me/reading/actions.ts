@@ -9,6 +9,7 @@ import { refreshPaths } from '../../refresh';
 import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
+import { rpcArgs } from '@/src/lib/db';
 
 /**
  * **사용자가 누른 그 순간에만 도는 문.**
@@ -69,14 +70,14 @@ export async function submitReadingFeedback(
 ): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('leave_reading_feedback', {
+  const { error } = await supabase.rpc('leave_reading_feedback', rpcArgs<'leave_reading_feedback'>({
     p_run_id: answer.runId,
     p_usefulness: answer.usefulness,
     p_perceived_fit: answer.perceivedFit,
     p_felt_length: answer.feltLength,
     p_issue_tags: [...answer.issueTags],
     p_comment: answer.comment,
-  });
+  }));
 
   /** 안내 문장은 DB 것을 그대로, 예상 밖 오류는 기록으로 — `pipeline.ts` 와 같은 자리 */
   if (error) {

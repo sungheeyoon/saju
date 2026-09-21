@@ -1,5 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import type { Database } from '@/src/lib/db';
+
 import { supabaseEnv } from './config';
 
 /**
@@ -27,7 +29,7 @@ export async function supabaseOnServer() {
   const store = await cookies();
   const { url, publishableKey } = supabaseEnv();
 
-  return createServerClient(url, publishableKey, {
+  return createServerClient<Database>(url, publishableKey, {
     cookies: {
       getAll: () => store.getAll(),
       setAll: (written) => {

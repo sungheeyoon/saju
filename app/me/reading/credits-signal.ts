@@ -20,3 +20,13 @@ export function announceCreditsMoved(): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new Event(READING_CREDITS_MOVED));
 }
+
+/**
+ * 액션이 「움직였다」고 말했으면 외친다 — **규칙이 한 자리에 있다.**
+ *
+ * 호출부는 결과를 이 함수에 넘기기만 한다. 무엇이 잔액을 움직이는가는 액션(서버)이
+ * 알고 있고, 그 판단이 결과에 실려 온다(ADR 0078).
+ */
+export function announceIfMoved(result: { ok: boolean; credits?: 'moved' }): void {
+  if (result.ok && result.credits === 'moved') announceCreditsMoved();
+}

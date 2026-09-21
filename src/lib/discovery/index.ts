@@ -325,6 +325,19 @@ export const DISCOVERY_DISCLOSURE = {
 } as const;
 
 /**
+ * 함께 놓았을 때의 균형 한 줄 — **카드를 짓지 않고 꺼낸다.**
+ *
+ * 요청함·인연 결과 세 자리가 `cardTextFor({ suppliedElements: [], … })` 로 **빈 카드를
+ * 지어** 그 결과에서 `balanceLabel` 하나만 꺼내고 나머지는 버리고 있었다. 빈 배열이
+ * 「채우는 오행이 없다」라는 뜻이 아니라 「그건 안 물었다」라는 뜻이라, 읽는 사람이
+ * 그 자리에서 카드의 규칙을 한 번 더 확인해야 했다.
+ *
+ * 밴드를 읽는 일까지 여기서 한다 — 못 알아보는 값이 가장 낮은 칸으로 눕는 규칙
+ * (`balanceBandOf`)을 부르는 쪽이 다시 적지 않게.
+ */
+export const balanceLabelOf = (raw: string): string => BALANCE_LABEL[balanceBandOf(raw)];
+
+/**
  * 후보 한 줄을 사람 말로 — **어느 오행의 보완에 보탬이 되는지 말한다.**
  *
  * 이름을 감추면 「왜 이 사람인가」에 답할 수 없고, 답 못 하는 추천은 궁금해지지도

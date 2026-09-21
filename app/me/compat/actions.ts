@@ -6,8 +6,15 @@ import { refresh } from '../../refresh';
 import { supabaseOnServer } from '../../auth/server-client';
 import { sameChartInMyList, type SameChart } from '../same-chart';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
-import { BLANK_PERSON_ARGS, managedPersonArgs, unsupportedForSaving } from '@/src/lib/input/revision';
+import {
+  BLANK_PERSON_ARGS,
+  managedPersonArgs,
+  unsupportedForSaving,
+  type BlankPersonArgs,
+  type ManagedPersonArgs,
+} from '@/src/lib/input/revision';
 import { userFacingDbMessage } from '../../db-error';
+import { rpcArgs } from '@/src/lib/db';
 
 /**
  * 이 쌍에 적어 둔 사이 — **화면이 저장된 값을 보여 주려고 읽는다.**
@@ -144,7 +151,7 @@ export async function openPairScreen(
 
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('create_pair_for_reading', {
+  const { data, error } = await supabase.rpc('create_pair_for_reading', rpcArgs<'create_pair_for_reading'>({
     /*
       **고른 사람 쪽에는 입력을 안 보낸다.** id 가 있으면 문이 그 사람을 쓰고 나머지
       인자를 안 본다 — 거기에 아무 값이나 채워 보내면 그 문을 읽는 사람이 「이 값이
@@ -158,7 +165,7 @@ export async function openPairScreen(
     p_b_person: use.b ?? null,
     /* 목록에 안 세운다 — 이 누름은 궁합을 보려는 것이지 사람을 저장하려는 것이 아니다 */
     p_listed: false,
-  });
+  }));
 
   if (error) return { ok: false, kind: 'failed', message: userFacingDbMessage(error, 'create_pair_for_reading') };
 
@@ -173,11 +180,11 @@ export async function openPairScreen(
    * 여기서 지운다. 안 건드렸으면(`undefined`) 적어 둔 답은 그대로 둔다.
    */
   if (relation === null) {
-    const cleared = await supabase.rpc('set_pair_relation', {
+    const cleared = await supabase.rpc('set_pair_relation', rpcArgs<'set_pair_relation'>({
       p_person_a: pair.person_a,
       p_person_b: pair.person_b,
       p_relation: null,
-    });
+    }));
     if (cleared.error) return { ok: false, kind: 'failed', message: userFacingDbMessage(cleared.error, 'set_pair_relation') };
   }
 
@@ -193,7 +200,7 @@ export async function openPairScreen(
  * 내면 PostgREST 가 이름으로 서명을 고르는 자리에서 **어느 문에도 안 맞는 호출**이 된다 —
  * 실제로 그렇게 깨진 적이 있고, 그래서 빈 한 벌은 빌더 옆에서 타입이 지킨다.
  */
-const argsFor = (side: PairSide): Record<string, unknown> =>
+const argsFor = (side: PairSide): ManagedPersonArgs | BlankPersonArgs =>
   side.from === 'typed' ? managedPersonArgs(side.query, '') : BLANK_PERSON_ARGS;
 
 /**
@@ -202,10 +209,14 @@ const argsFor = (side: PairSide): Record<string, unknown> =>
  * `p_local_label` 을 `p_a_local_label` 로 스무 번 옮겨 적으면, 등록이 받는 칸이 하나
  * 늘어나는 날 이 자리만 안 고쳐진다. 붙이는 규칙 하나만 적는다.
  */
-const prefixed = <T extends Record<string, unknown>>(
+type Prefixed<T, S extends 'a' | 'b'> = {
+  [K in keyof T & string as K extends `p_${infer Rest}` ? `p_${S}_${Rest}` : K]: T[K];
+};
+
+const prefixed = <T extends Record<string, unknown>, S extends 'a' | 'b'>(
   args: T,
-  side: 'a' | 'b',
-): Record<string, unknown> =>
+  side: S,
+): Prefixed<T, S> =>
   Object.fromEntries(
     Object.entries(args).map(([key, value]) => [key.replace(/^p_/, `p_${side}_`), value]),
-  );
+  ) as Prefixed<T, S>;

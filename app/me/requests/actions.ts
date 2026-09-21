@@ -9,6 +9,7 @@ import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
 import { sendAcceptedMatchReading } from '../reading/pipeline';
 import { userFacingDbMessage } from '../../db-error';
+import { rpcArgs } from '@/src/lib/db';
 
 /**
  * 답한 결과는 **세 갈래**다.
@@ -18,7 +19,7 @@ import { userFacingDbMessage } from '../../db-error';
  * 없는 Match 를 찾게 된다. 그래서 결과를 성공/실패가 아니라 **상태**로 돌려준다.
  */
 export type RespondResult =
-  | { ok: true; status: RequestStatus }
+  | { ok: true; status: RequestStatus; credits?: 'moved' }
   | { ok: false; message: string };
 
 function statusOf(value: unknown): RequestStatus | null {
@@ -85,7 +86,7 @@ export async function cancelRequest(requestId: string): Promise<RespondResult> {
   if (status === null) return { ok: false, message: '요청을 거두지 못했습니다.' };
 
   refresh('requests-changed');
-  return { ok: true, status };
+  return { ok: true, credits: 'moved' as const, status };
 }
 
 /**
@@ -120,12 +121,12 @@ export async function reportUser(
 ): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('report_user', {
+  const { error } = await supabase.rpc('report_user', rpcArgs<'report_user'>({
     p_user_id: userId,
     p_reason: reason,
     // 빈 칸은 「안 적었다」다. 빈 문자열로 넘기면 「없음」이 두 값이 된다.
     p_detail: detail.trim() || null,
-  });
+  }));
   if (error) return { ok: false, message: userFacingDbMessage(error, 'report_user') };
 
   refresh('report-filed');

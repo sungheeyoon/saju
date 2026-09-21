@@ -5,6 +5,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { currentReading } from './current';
 import { isShareable, shareTargetArgs, type ReadingTarget } from './target';
 import { userFacingDbMessage } from '../../db-error';
+import { rpcArgs } from '@/src/lib/db';
 
 /**
  * 풀이를 공유본으로 내놓고 **주소를 받는다.**
@@ -50,11 +51,11 @@ export async function shareMyReading(
   }
 
   const supabase = await supabaseOnServer();
-  const { data, error } = await supabase.rpc('share_my_reading', {
+  const { data, error } = await supabase.rpc('share_my_reading', rpcArgs<'share_my_reading'>({
     p_body: reading.output,
     p_metaphor: reading.metaphor,
     ...shareTargetArgs(target),
-  });
+  }));
 
   /**
    * **대체 문장은 그대로 두고 우리말 거절만 지나가게 한다.** 이 자리의 「공유 링크를

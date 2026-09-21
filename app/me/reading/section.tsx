@@ -73,8 +73,12 @@ export async function ReadingSection({
           모르면 화면이 「아무것도 안 하고 있다」고 말하게 된다.
         */
         initialRunning={run?.status === 'running'}
-        credits={credits}
-        consented={consented}
+        credits={credits.ok ? credits.value : null}
+        /*
+          **못 읽었으면 동의를 주장하지 않는다**(ADR 0078). 문은 실패를 값으로 주고,
+          좁히는 판단은 이 자리에서 한 번 보이게 한다 — 설문이 닫히는 이유가 둘이다.
+        */
+        consented={consented.ok && consented.value}
         heading={heading ?? (target.kind === 'self' ? '나의 사주풀이' : '두 사람의 궁합풀이')}
         allowMockFallback={process.env.NODE_ENV !== 'production'}
         layout={layout}

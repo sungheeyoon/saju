@@ -5,7 +5,7 @@ import { calledName } from '@/src/lib/reading/display';
 
 import { Markdown } from '../me/reading/markdown';
 import type { ShareKind } from './path';
-import { supabaseForShared } from './public-client';
+import { sharedReadingOf } from './read';
 
 /**
  * 받은 사람이 보는 화면 — **세 주소가 같은 이것을 쓴다.**
@@ -35,22 +35,15 @@ export async function SharedReadingView({
   eyebrow: string;
   invitation: { heading: string; note: string };
 }) {
-  const supabase = supabaseForShared();
-  const { data, error } = await supabase.rpc('shared_reading', { p_token: token });
-
-  const row = ((data ?? []) as Record<string, unknown>[])[0];
-
   /*
-    **없는 링크와 못 여는 링크를 안 가른다.** 문이 0행으로 답하므로 여기에는 가를
-    값 자체가 없다 — 토큰이 틀렸든 지워진 계정의 것이든 같은 화면이다.
+    **없는 링크와 못 여는 링크를 안 가른다** — 그 판단은 읽는 문이 든다(`read.ts`).
+    여기서 하는 일은 없으면 안 그리는 것뿐이다.
   */
-  if (error || row === undefined) notFound();
-  if (row.kind !== expect) notFound();
+  const shared = await sharedReadingOf(token, expect);
+  if (shared === null) notFound();
 
-  const metaphor = (row.metaphor as string | null) ?? null;
-  const score = (row.score as number | null) ?? null;
-  const body = row.body as string;
-  const whose = titleOf(expect, row.name_a as string | null, row.name_b as string | null);
+  const { metaphor, score, body } = shared;
+  const whose = titleOf(expect, shared.nameA, shared.nameB);
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-7 py-8 sm:py-12">

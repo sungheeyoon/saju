@@ -1,4 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/src/lib/db';
+
 
 /**
  * **열쇠를 드는 유일한 자리.**
@@ -32,7 +34,7 @@ export class NoKeyError extends Error {
 /**
  * @throws {NoKeyError} 접속값이나 열쇠가 없을 때.
  */
-export function keyedClient(what: string): SupabaseClient {
+export function keyedClient(what: string): SupabaseClient<Database> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   /**
@@ -49,7 +51,7 @@ export function keyedClient(what: string): SupabaseClient {
 
   if (!url || !key) throw new NoKeyError(what);
 
-  return createClient(url, key, {
+  return createClient<Database>(url, key, {
     // 이 client 에는 사용자가 없다. 쿠키도 세션도 들지 않는다 — 들면 그 세션이
     // 열쇠의 권한으로 도는 순간이 생긴다.
     auth: { persistSession: false, autoRefreshToken: false },

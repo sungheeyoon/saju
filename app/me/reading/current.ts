@@ -1,8 +1,11 @@
-import type { ReadingAnswer } from '@/src/lib/reading';
+import { READING_KINDS, type ReadingAnswer } from '@/src/lib/reading';
 import { readingBody, readingGrounding } from '@/src/lib/reading/display';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { readingTargetArgs, type ReadingTarget } from './target';
+import { rpcArgs } from '@/src/lib/db';
+import { readReadingCredits, type ReadingCredits } from './credits';
+import { dbFailure, read, unread, type SkippableRead } from '../../db-error';
 
 /**
  * **현재 결과가 브라우저로 내려가는 문.**
@@ -59,8 +62,10 @@ export type CurrentReading = {
   readonly myFeedback: ReadingAnswer | null;
 };
 
+const RUN_STATUSES = ['running', 'succeeded', 'failed'] as const;
+
 export type LastRun = {
-  readonly status: 'running' | 'succeeded' | 'failed';
+  readonly status: (typeof RUN_STATUSES)[number];
   readonly failureCode: string | null;
   readonly createdAt: string;
 };
@@ -69,23 +74,24 @@ export type LastRun = {
 export async function currentReading(target: ReadingTarget): Promise<CurrentReading | null> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('my_reading', readingTargetArgs(target));
-  if (error) return null;
+  const { data, error } = await supabase.rpc('my_reading', rpcArgs<'my_reading'>(readingTargetArgs(target)));
+  if (error) throw dbFailure(error, 'my_reading');
 
-  const row = ((data ?? []) as Record<string, unknown>[])[0];
+  const row = (data ?? [])[0];
   if (row === undefined) return null;
 
   return {
-    id: row.id as string,
-    score: (row.score as number | null) ?? null,
-    metaphor: (row.metaphor as string | null) ?? null,
-    output: readingBody(row.output as string),
-    model: row.model as string,
-    viewedAt: row.viewed_at as string,
-    createdAt: row.created_at as string,
-    viewerIsFirst: row.viewer_is_first as boolean,
-    fromCurrentChart: row.from_current_chart as boolean,
-    sourceRunId: (row.source_run_id as string | null) ?? null,
+    id: row.id,
+    score: row.score ?? null,
+    metaphor: row.metaphor ?? null,
+    output: readingBody(row.output),
+    model: row.model,
+    viewedAt: row.viewed_at,
+    createdAt: row.created_at,
+    viewerIsFirst: row.viewer_is_first,
+    fromCurrentChart: row.from_current_chart,
+    sourceRunId: row.source_run_id ?? null,
+    /* 이 칸만 `jsonb` 라 생성 타입이 `Json` 까지만 말한다 — 모양을 여기서 한 번 주장한다 */
     myFeedback: (row.my_feedback as ReadingAnswer | null) ?? null,
   };
 }
@@ -100,7 +106,7 @@ export async function currentReading(target: ReadingTarget): Promise<CurrentRead
  * **사주 서비스는 이 값을 묻지 않는다.** 명식도 궁합도 풀이 생성도 그대로 돌고, 닫히는
  * 것은 설문 하나뿐이다. 거절이 서비스를 좁히면 그것은 유효한 동의가 아니다.
  */
-export async function improvementConsented(): Promise<boolean> {
+export async function improvementConsented(): Promise<SkippableRead<boolean>> {
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase
@@ -108,50 +114,24 @@ export async function improvementConsented(): Promise<boolean> {
     .select('improvement_consent')
     .maybeSingle();
 
-  if (error || data === null) return false;
-  return data.improvement_consent === true;
+  /*
+    **못 읽은 것을 「거절했다」로 내지 않는다**(ADR 0078). 앞서는 조회 실패와 실제 거절이
+    같은 `false` 였고, 그래서 설문이 닫힌 화면이 두 가지 뜻을 가졌다.
+  */
+  if (error) return unread(error, 'app_user.improvement_consent');
+  return read(data?.improvement_consent === true);
 }
 
-export type ReadingCredits = {
-  readonly limit: number;
-  readonly used: number;
-  /** 지금 만들고 있는 것이 잡고 있는 자리 — 화면이 그 이유를 말할 수 있게 따로 든다 */
-  readonly reserved: number;
-  /**
-   * 상대의 답을 기다리는 **내 요청**이 잡고 있는 자리 (ADR 0038).
-   *
-   * `reserved` 와 합쳐 내지 않는다. 자리가 찬 것은 같지만 사용자가 할 일이 다르다 —
-   * 하나는 기다리면 되고 하나는 보낸 요청을 거두면 된다.
-   */
-  readonly requested: number;
-  readonly available: number;
-};
+export type { ReadingCredits };
 
 /**
- * 내게 남은 풀이권.
+ * 내게 남은 풀이권 — **서버 쪽 입구일 뿐이다.**
  *
- * **빼기는 DB 가 한다.** 여기서 `limit - used` 를 계산하면 `reserved` 를 잊은 화면이
- * 생기고, 두 자리가 서로 다른 숫자를 말한다.
- *
- * @returns 못 물으면 `null` — 잔액을 모르면 화면은 그 줄을 아예 안 세운다. 「알 수
- * 없음」을 세우는 것보다 낫다: 있지도 않은 숫자를 사용자가 세어 보게 된다.
+ * 읽는 일도 도메인의 말로 옮기는 일도 `credits.ts` 가 한다. 헤더는 같은 문을 브라우저
+ * client 로 부른다 — 한 값을 두 자리에서 따로 읽던 것을 그렇게 합쳤다(ADR 0078).
  */
-export async function readingCredits(): Promise<ReadingCredits | null> {
-  const supabase = await supabaseOnServer();
-
-  const { data, error } = await supabase.rpc('my_reading_credits');
-  if (error) return null;
-
-  const row = ((data ?? []) as Record<string, unknown>[])[0];
-  if (row === undefined) return null;
-
-  return {
-    limit: row.credit_limit as number,
-    used: row.used as number,
-    reserved: row.reserved as number,
-    requested: row.requested as number,
-    available: row.available as number,
-  };
+export async function readingCredits(): Promise<SkippableRead<ReadingCredits | null>> {
+  return readReadingCredits(await supabaseOnServer());
 }
 
 /**
@@ -164,16 +144,20 @@ export async function readingCredits(): Promise<ReadingCredits | null> {
 export async function lastReadingRun(target: ReadingTarget): Promise<LastRun | null> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('my_last_reading_run', readingTargetArgs(target));
-  if (error) return null;
+  const { data, error } = await supabase.rpc('my_last_reading_run', rpcArgs<'my_last_reading_run'>(readingTargetArgs(target)));
+  if (error) throw dbFailure(error, 'my_last_reading_run');
 
-  const row = ((data ?? []) as Record<string, unknown>[])[0];
+  const row = (data ?? [])[0];
   if (row === undefined) return null;
 
+  const status = RUN_STATUSES.find((known) => known === row.status);
+  /* 모르는 상태는 없는 것과 같다 — 화면이 「알 수 없음」으로 버튼을 정할 수는 없다 */
+  if (status === undefined) return null;
+
   return {
-    status: row.status as LastRun['status'],
-    failureCode: (row.failure_code as string | null) ?? null,
-    createdAt: row.created_at as string,
+    status,
+    failureCode: row.failure_code ?? null,
+    createdAt: row.created_at,
   };
 }
 
@@ -210,20 +194,28 @@ export async function myReadings(): Promise<readonly ReadingEntry[]> {
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('my_readings');
-  if (error) return [];
+  if (error) throw dbFailure(error, 'my_readings');
 
-  return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
-    kind: row.kind as ReadingTarget['kind'],
-    personA: (row.person_a as string | null) ?? null,
-    personB: (row.person_b as string | null) ?? null,
-    matchId: (row.match_id as string | null) ?? null,
-    labelA: (row.label_a as string | null) ?? null,
-    labelB: (row.label_b as string | null) ?? null,
-    score: (row.score as number | null) ?? null,
-    metaphor: (row.metaphor as string | null) ?? null,
-    createdAt: row.created_at as string,
-    fromCurrentChart: row.from_current_chart as boolean,
-  }));
+  return (data ?? []).flatMap((row) => {
+    /* 모르는 kind 는 그리지 않는다 — DB 의 `text` 를 화면의 네 갈래로 좁히는 자리다 */
+    const kind = READING_KINDS.find((known) => known === row.kind);
+    if (kind === undefined) return [];
+
+    return [
+      {
+        kind,
+        personA: row.person_a ?? null,
+        personB: row.person_b ?? null,
+        matchId: row.match_id ?? null,
+        labelA: row.label_a ?? null,
+        labelB: row.label_b ?? null,
+        score: row.score ?? null,
+        metaphor: row.metaphor ?? null,
+        createdAt: row.created_at,
+        fromCurrentChart: row.from_current_chart,
+      },
+    ];
+  });
 }
 
 export type ReadingArtifacts = {
@@ -259,32 +251,32 @@ export async function readingGroundingOf(target: ReadingTarget): Promise<string 
     const { data, error } = await supabase.rpc('match_reading_source', {
       p_match_id: target.matchId,
     });
-    if (error) return null;
+    if (error) throw dbFailure(error, 'match_reading_source');
 
-    const row = ((data ?? []) as Record<string, unknown>[])[0];
-    return row === undefined ? null : readingGrounding(row.output as string);
+    const row = (data ?? [])[0];
+    return row === undefined ? null : readingGrounding(row.output);
   }
 
-  const { data, error } = await supabase.rpc('my_reading', readingTargetArgs(target));
-  if (error) return null;
+  const { data, error } = await supabase.rpc('my_reading', rpcArgs<'my_reading'>(readingTargetArgs(target)));
+  if (error) throw dbFailure(error, 'my_reading');
 
-  const row = ((data ?? []) as Record<string, unknown>[])[0];
-  return row === undefined ? null : readingGrounding(row.output as string);
+  const row = (data ?? [])[0];
+  return row === undefined ? null : readingGrounding(row.output);
 }
 
 export async function readingArtifacts(target: ReadingTarget): Promise<ReadingArtifacts | null> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('my_reading_artifacts', readingTargetArgs(target));
-  if (error) return null;
+  const { data, error } = await supabase.rpc('my_reading_artifacts', rpcArgs<'my_reading_artifacts'>(readingTargetArgs(target)));
+  if (error) throw dbFailure(error, 'my_reading_artifacts');
 
-  const row = ((data ?? []) as Record<string, unknown>[])[0];
+  const row = (data ?? [])[0];
   if (row === undefined) return null;
 
   return {
-    evidence: row.evidence as string,
-    prompt: row.prompt as string,
-    promptVersion: row.prompt_version as string,
+    evidence: row.evidence,
+    prompt: row.prompt,
+    promptVersion: row.prompt_version,
     generation: row.generation,
   };
 }
