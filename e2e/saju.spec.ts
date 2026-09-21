@@ -660,13 +660,19 @@ test('결과 링크 복사 버튼이 지금 주소를 클립보드에 넣는다'
  * 한동안 `/evidence` 로 옮겨 두었고 그 화면은 이제 없다(ADR 0047) — 내부 검증은
  * `/me/reading/inspect` 하나다. **없앤 것이 다시 돌아오기 쉬우므로** 이 자리가 지킨다.
  */
-test('사주 결과에는 넘길 자료 패널이 서지 않는다', async ({ page }) => {
+test('사주 결과에 내부 검산 도구가 서지 않는다', async ({ page }) => {
   await page.goto('/#date=1990-05-15&hour=14:30');
 
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 
+  /*
+    여기 「풀이에 넘기는 자료」·「무엇을 시킬 것인가」도 함께 있었다. 둘 다 2026-09-06 에
+    제품을 떠난 문구라(`b7b0fed`) 그 뒤로는 **영원히 통과하는 단언 둘**이었다 — 옆에
+    살아 있는 낱말이 함께 있다고 죽은 것이 반증 가능해지지는 않는다. 낱말마다 단언이
+    따로 서기 때문이다(ADR 0079).
+  */
   const shown = await page.locator('main').innerText();
-  for (const word of ['풀이에 넘기는 자료', '무엇을 시킬 것인가', 'JSON 내려받기', 'relations-v']) {
+  for (const word of ['JSON 내려받기', 'relations-v']) {
     expect(shown).not.toContain(word);
   }
 });

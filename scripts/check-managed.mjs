@@ -19,6 +19,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
+import { createChecks } from './checks.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -26,11 +27,7 @@ const PORT = Number(process.env.CHECK_PORT ?? 3210);
 
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 
-const checks = [];
-const check = (name, pass, detail = '') => {
-  checks.push({ name, pass, detail });
-  console.log(`${pass ? 'ok  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
-};
+const { check, finish } = createChecks('check-managed');
 
 const stamp = Date.now();
 /**
@@ -241,12 +238,14 @@ try {
      *
      * 관계표를 한동안 「우리가 보려고 세운 원자료」로 보고 걷어 두었는데, 궁합을 저장
      * 없이 여는 화면이 되면서 자리가 갈렸다 — **화면은 사용자 것이고 접는 것은 분석
-     * 표뿐이다**(ADR 0053·0054). 접이칸으로는 여전히 안 돌아온다
-     * (`check-reading.mjs` 도 같은 자리를 본다).
+     * 표뿐이다**(ADR 0053·0054).
+     *
+     * 여기 「'둘의 명식 보기'가 없다」가 한 줄 더 있었다. 그 제목은 2026-09-04 에 제품에서
+     * 사라졌으므로(`a2f6ff6`) 그 뒤로는 아무것도 안 쟀다 — 접히지 않고 선다는 것은
+     * 아래 두 긍정 단언이 이미 든다.
      */
     check('두 사람의 여덟 글자가 선다', /일간/.test(body));
     check('사이의 관계표가 선다', body.includes('두 사주 사이의 관계'));
-    check('접이칸으로 돌아오지 않는다', !body.includes('둘의 명식 보기'));
     /**
      * **내부로 남는 것은 판본 이름 하나다**(ADR 0026). 「궁합 베타」 딱지는 이 수가
      * 무엇인지 말하는 사용자 화면의 말이라 서는 쪽이 맞다.
@@ -318,6 +317,4 @@ try {
   stop();
 }
 
-const failed = checks.filter((entry) => !entry.pass);
-console.log(`\n${checks.length - failed.length}/${checks.length} 통과`);
-process.exit(failed.length === 0 ? 0 : 1);
+finish();

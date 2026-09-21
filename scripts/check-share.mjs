@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
+import { createChecks } from './checks.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -84,11 +85,7 @@ process.env.VERCEL_PROJECT_PRODUCTION_URL = HOST;
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 const keyed = () => createClient(API, status.SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-const checks = [];
-const check = (name, pass, detail = '') => {
-  checks.push({ name, pass, detail });
-  console.log(`${pass ? 'ok  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
-};
+const { check, finish } = createChecks('check-share');
 
 const stamp = Date.now();
 const tag = String(stamp).slice(-4);
@@ -470,6 +467,4 @@ check('새 링크는 새 글을 연다', nextHtml.includes('다시 읽은 핵심
 
 stop();
 
-const failed = checks.filter((one) => !one.pass);
-console.log(`\n${checks.length - failed.length}/${checks.length} 통과`);
-if (failed.length > 0) process.exit(1);
+finish();

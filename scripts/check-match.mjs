@@ -18,6 +18,9 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
+import { createChecks, sql } from './checks.mjs';
+/** 공개 범위 목록의 **제품 원본** — 손으로 베끼면 문구가 바뀐 날 검사만 옛 글자를 든다 */
+import { MATCH_DISCLOSURE } from '../src/lib/consent/disclosure.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -25,11 +28,7 @@ const PORT = Number(process.env.CHECK_PORT ?? 3212);
 
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 
-const checks = [];
-const check = (name, pass, detail = '') => {
-  checks.push({ name, pass, detail });
-  console.log(`${pass ? 'ok  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
-};
+const { check, finish } = createChecks('check-match');
 
 const stamp = Date.now();
 /**
@@ -51,10 +50,6 @@ const password = `pw-${stamp}-Aa1!`;
 const aMail = `asker-${stamp}@example.com`;
 const bMail = `answerer-${stamp}@example.com`;
 const cMail = `third-${stamp}@example.com`;
-
-const sql = (statement) =>
-  execFileSync('docker', ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq', '-c', statement],
-    { encoding: 'utf8' }).trim();
 
 const userId = (email) => sql(`select id from auth.users where email = '${email}'`);
 
@@ -94,7 +89,6 @@ for (const [client, nickname, intro] of [
   await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: intro });
   await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
 }
-
 
 /**
  * **이번 실행의 사람들만 서로의 후보가 되게 한다.**
@@ -236,10 +230,16 @@ try {
     check('수락 카드가 여덟 글자 공개와 함께 보는 궁합을 한 문장으로 묻는다',
       text.includes('당신의 사주팔자 여덟 글자가 상대에게 공개됩니다')
         && text.includes('상대와 자세한 궁합을 함께 보는 데 동의하시겠어요'));
+    /**
+     * **제목이 아니라 목록을 잰다.**
+     *
+     * 여기서 「'서로에게 열리는 것'이 없다」를 재고 있었는데, 그건 2026-09-11 에 지워진
+     * `<dt>` 제목이라 그 뒤로는 무엇을 그려도 통과했다. 되풀이되면 안 되는 것은 제목이
+     * 아니라 **목록 본문**이고, 그 본문은 `MATCH_DISCLOSURE` 에 살아 있다 — 제품이
+     * 문구를 고치면 이 검사도 새 문구를 본다.
+     */
     check('수락 카드에 긴 공개 범위 목록을 되풀이하지 않는다',
-      !html.includes('서로에게 열리는 것')
-        && !html.includes('열리지 않는 것')
-        && !html.includes('상대 원국 하나에 대한 전체 판정'));
+      [...MATCH_DISCLOSURE.shown, ...MATCH_DISCLOSURE.hidden].every((line) => !html.includes(line)));
     /**
      * 문구가 「다시 서지 않고」에서 「다시 나타나지 않고」로 바뀌었는데 여기가 안
      * 따라왔다. **재는 것은 문구가 아니라 약속이므로** 갈래를 지고 있는 뒷절을 짚는다.
@@ -454,6 +454,4 @@ try {
   stop();
 }
 
-const failed = checks.filter((entry) => !entry.pass);
-console.log(`\n${checks.length - failed.length}/${checks.length} 통과`);
-process.exit(failed.length === 0 ? 0 : 1);
+finish();

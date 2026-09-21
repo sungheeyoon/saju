@@ -10,7 +10,13 @@ export default defineConfig({
     environment: 'node',
     // Playwright E2E는 별도 러너에서 실행한다.
     // app/ 은 화면이지만 주소창 코덱처럼 JSX 없는 순수 모듈은 여기서 함께 돈다.
-    include: ['src/**/*.test.ts', 'app/**/*.test.ts'],
+    /**
+     * **검사 도구 자신도 시험 사정권 안에 있다.**
+     *
+     * `scripts/` 는 여태 밖이었다. 그동안 흐름 검사를 묶는 자리에는 아무 시험도 없었고,
+     * `&&` 사슬이 뒤 검사를 통째로 건너뛰는 것을 **아무도 못 봤다**(`run-checks.test.ts`).
+     */
+    include: ['src/**/*.test.ts', 'app/**/*.test.ts', 'scripts/**/*.test.ts'],
     /**
      * **CI 는 느리다.**
      *

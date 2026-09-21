@@ -21,6 +21,17 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
+import { createChecks, sql } from './checks.mjs';
+/**
+ * **문구를 손으로 안 적는다** — 제품이 쓰는 그 상수를 그대로 든다.
+ *
+ * 여기 「이전 출생 정보로 썼습니다」가 적혀 있었다. 2026-09-20 에 제품이 그 문장을
+ * 「지금과 다른 명식으로 만들었습니다」로 바꾸자(`c77d0c3`) 긍정 단언은 빨개지고
+ * **짝인 부정 단언은 영원히 통과하게** 됐다 — 한쪽은 시끄럽게, 다른 한쪽은 조용히.
+ * 둘이 같은 상수를 보면 문구가 바뀌어도 갈라지지 않는다. `notes.ts` 는 import 가
+ * 하나도 없는 leaf 라 Node 가 그대로 읽는다.
+ */
+import { READING_STALE_NOTE } from '../src/lib/reading/notes.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -37,11 +48,7 @@ const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: 
 const keyed = () =>
   createClient(API, status.SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-const checks = [];
-const check = (name, pass, detail = '') => {
-  checks.push({ name, pass, detail });
-  console.log(`${pass ? 'ok  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
-};
+const { check, finish } = createChecks('check-reading');
 
 const stamp = Date.now();
 const tag = String(stamp).slice(-4);
@@ -53,11 +60,6 @@ const BIRTH = {
 
 const password = `pw-${stamp}-Aa1!`;
 const mail = { a: `read-a-${stamp}@example.com`, b: `read-b-${stamp}@example.com` };
-
-const sql = (statement) =>
-  execFileSync('docker', ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq', '-c', statement],
-    { encoding: 'utf8' }).trim();
-
 
 /** 지난 실행이 남긴 참여자가 후보 목록을 헛디디게 하지 않는다 — 그들의 참여를 끈다 */
 const hideOthers = () => {
@@ -391,15 +393,19 @@ try {
      * 되면서 자리가 갈렸다 — **화면은 사용자 것이고 접는 것은 분석 표뿐이다**
      * (ADR 0053·0054). 관계표는 사용자가 읽는 칸으로 그대로 선다.
      *
-     * 「둘의 명식 보기」라는 접이칸으로는 돌아오지 않는다 — 접은 칸은 결과 화면에
-     * 「펼치면 뭔가 더 있다」는 자리를 하나 만들 뿐이었다.
+     * 여기 「둘의 명식 보기가 없다」·「풀이에 넘기는 자료가 없다」가 함께 있었다. 둘 다
+     * **2026-09-04·09-06 에 제품에서 사라진 옛 제목**이라, 그 뒤로는 무엇을 하든 통과했다.
+     * 접이칸으로 안 돌아왔다는 것은 아래 두 긍정 단언이 이미 든다 — 여덟 글자와 관계표가
+     * **접히지 않고 그대로 선다**는 것이 곧 그 말이다.
      */
     check('두 사람의 여덟 글자가 선다', /일간/.test(before));
-    check('접이칸으로 돌아오지 않는다', !before.includes('둘의 명식 보기'));
     check('사이의 관계표가 선다', before.includes('두 사주 사이의 관계'));
-    check('넘길 자료 패널이 서지 않는다', !before.includes('풀이에 넘기는 자료'));
-    /** 상세 화면에서는 글을 또 펼치라고 하지 않는다 — 그 글을 읽으러 온 자리다 */
-    check('풀이 전문을 접는 버튼이 없다', !before.includes('펼쳐보기'));
+    /*
+      「'펼쳐보기' 버튼이 없다」가 여기 있었다. 그 이름은 2026-09-08 에 사라졌고(지금은
+      「자세히 보기」/「접기」다), 무엇보다 **이 화면에는 아직 풀이가 없다** — 글이 없으면
+      접을 것도 없어 버튼은 어느 쪽이든 안 그려진다. 글을 실제로 펼쳐 읽을 수 있는지는
+      HTML 문자열이 아니라 브라우저가 잴 일이라, 그 자리는 화면 시험으로 넘긴다.
+    */
     /**
      * **내부로 남는 것은 판본 이름 하나다**(ADR 0026).
      *
@@ -681,7 +687,7 @@ try {
     const after = plain(await body(`/me/match/${matchId}`, cookie.a));
     check('상대가 입력을 고쳐도 공유 결과의 글은 그대로다',
       after.includes('서로의 빈자리를 채웁니다'));
-    check('그래도 「이전 입력으로 썼다」고 말하지 않는다', !after.includes('이전 출생 정보로 썼습니다'));
+    check('그래도 「다른 명식으로 만들었다」고 말하지 않는다', !after.includes(READING_STALE_NOTE));
 
     /** 자기 풀이는 반대다 — 지금 판본이 아니면 그렇게 말한다 */
     const mineAccount = await a.from('app_user').select('self_person_id').maybeSingle();
@@ -694,7 +700,7 @@ try {
     });
 
     const mine = plain(await body('/me/readings/self', cookie.a));
-    check('자기 풀이는 이전 입력으로 썼다고 말한다', mine.includes('이전 출생 정보로 썼습니다'));
+    check('자기 풀이는 다른 명식으로 만들었다고 말한다', mine.includes(READING_STALE_NOTE));
     check('그래도 글은 그대로 서 있다', mine.includes('스스로 정한 규칙 안에서'));
   }
 
@@ -766,6 +772,4 @@ async function userIdOf(email) {
   return sql(`select id from auth.users where email = '${email}'`);
 }
 
-const failed = checks.filter((one) => !one.pass);
-console.log(`\n${checks.length - failed.length}/${checks.length} 통과`);
-if (failed.length > 0) process.exit(1);
+finish();
