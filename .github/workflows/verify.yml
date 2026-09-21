@@ -71,6 +71,17 @@ jobs:
       # 서는가」) **먼저 만들어진 남의 행에 걸린다.** 로컬에서 이것이 빨간불이었고
       # 원인이 e2e 가 남긴 계정이었다 — `supabase db reset` 뒤에 669건이 다 통과했다.
       # 뒤에 두면 CI 에서도 같은 오염을 만든다.
+      # **생성 타입은 마이그레이션과 함께 움직인다.**
+      #
+      # `Database` 가 앱이 아는 DB 의 모양 전부다(ADR 0078). 마이그레이션만 고치고 이
+      # 파일을 안 다시 지으면 앱은 **없는 열을 있다고 믿은 채로** 컴파일된다 — 그때
+      # 빨개지는 자리가 없다. 여기서 다시 지어 보고 diff 가 남으면 세운다.
+      #
+      # 이 잡에만 둘 수 있다. `gen types` 는 살아 있는 스택이 필요하고, 그것을 띄우는
+      # 곳은 `db:start` 를 부르는 여기뿐이다.
+      - run: npm run db:types
+      - run: git diff --exit-code src/lib/db/database.generated.ts
+
       - run: npm run test:db
 
       # `reuseExistingServer` 는 `CI` 에서 꺼지므로 Playwright 가 제 서버를 띄우고,

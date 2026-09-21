@@ -137,6 +137,8 @@ export async function passCandidate(candidateUserId: string): Promise<SaveResult
  * 꺼내는 순간 다시 후보가 된다(`discovery_eligible`). 기본키가
  * `(user_id, passed_user_id)` 이고 정책이 `user_id = auth.uid()` 라 내 행 하나에만 닿는다.
  */
+type BoardCardRow = Parameters<typeof publicCardFromRow>[0];
+
 export async function restorePassed(candidateUserId: string) {
   const supabase = await supabaseOnServer();
   const self = await selfElementSummary();
@@ -145,12 +147,21 @@ export async function restorePassed(candidateUserId: string) {
     p_candidate_user_id: candidateUserId,
   });
   if (error) return { ok: false as const, message: userFacingDbMessage(error, 'restore_passed_connection') };
-  if (!data?.card) return { ok: false as const, message: '복원한 인연을 읽지 못했습니다. 목록을 새로 열어 주세요.' };
+
+  /**
+   * **`jsonb` 를 내주는 문이라 생성 타입이 `Json` 까지만 말한다.**
+   *
+   * 열 이름이 붙은 문(`returns table`)은 `Database` 가 칸마다 타입을 주지만, 이 문은
+   * 덱 한 덩어리를 통째로 낸다. 그래서 **모양을 주장하는 자리를 이 한 줄로 가둔다** —
+   * 아래에서 다시 `as` 를 쓰지 않는다.
+   */
+  const deck = data as { card?: BoardCardRow; passed?: BoardCardRow[] } | null;
+  if (!deck?.card) return { ok: false as const, message: '복원한 인연을 읽지 못했습니다. 목록을 새로 열어 주세요.' };
   refresh('deck-moved');
   return {
     ok: true as const,
-    card: publicCardFromRow(data.card, self.summary),
-    passed: (data.passed ?? []).map((row: Parameters<typeof publicCardFromRow>[0]) => publicCardFromRow(row, self.summary)),
+    card: publicCardFromRow(deck.card, self.summary),
+    passed: (deck.passed ?? []).map((row) => publicCardFromRow(row, self.summary)),
   };
 }
 

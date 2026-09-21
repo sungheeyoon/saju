@@ -5,6 +5,7 @@ import { PRICE_OPTIONS, type SurveyAnswers } from '@/src/lib/survey';
 import { refresh } from '../../refresh';
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
+import { rpcArgs } from '@/src/lib/db';
 
 /**
  * 답을 저장한다 — **초안과 제출이 한 문을 지난다.**
@@ -22,7 +23,7 @@ export async function saveServiceSurvey(
 ): Promise<{ ok: true; submittedAt: string | null } | { ok: false; message: string }> {
   const supabase = await supabaseOnServer();
 
-  const { data, error } = await supabase.rpc('save_service_survey', {
+  const { data, error } = await supabase.rpc('save_service_survey', rpcArgs<'save_service_survey'>({
     p_liked: [...answers.liked],
     p_unknown: [...answers.unknown],
     p_improve: [...answers.improve],
@@ -35,7 +36,7 @@ export async function saveServiceSurvey(
     p_free_text: answers.freeText.trim() === '' ? null : answers.freeText,
     p_price_options: [...PRICE_OPTIONS],
     p_submit: submit,
-  });
+  }));
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'save_service_survey') };
 

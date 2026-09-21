@@ -9,6 +9,7 @@ import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
 import { sendAcceptedMatchReading } from '../reading/pipeline';
 import { userFacingDbMessage } from '../../db-error';
+import { rpcArgs } from '@/src/lib/db';
 
 /**
  * 답한 결과는 **세 갈래**다.
@@ -120,12 +121,12 @@ export async function reportUser(
 ): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('report_user', {
+  const { error } = await supabase.rpc('report_user', rpcArgs<'report_user'>({
     p_user_id: userId,
     p_reason: reason,
     // 빈 칸은 「안 적었다」다. 빈 문자열로 넘기면 「없음」이 두 값이 된다.
     p_detail: detail.trim() || null,
-  });
+  }));
   if (error) return { ok: false, message: userFacingDbMessage(error, 'report_user') };
 
   refresh('report-filed');
