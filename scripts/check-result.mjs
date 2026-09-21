@@ -18,6 +18,9 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
+import { createChecks, sql } from './checks.mjs';
+/** 공개 범위 목록의 **제품 원본** — 손으로 베끼면 문구가 바뀐 날 검사만 옛 글자를 든다 */
+import { MATCH_DISCLOSURE } from '../src/lib/consent/disclosure.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -25,16 +28,23 @@ const PORT = Number(process.env.CHECK_PORT ?? 3213);
 
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 
-const checks = [];
-const check = (name, pass, detail = '') => {
-  checks.push({ name, pass, detail });
-  console.log(`${pass ? 'ok  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
-};
+const { check, finish } = createChecks('check-result');
 
 const stamp = Date.now();
 /** 별명에 이번 실행의 꼬리표 — 지난 실행의 동명이인이 검사를 헛디디게 하지 않는다 */
 const tag = String(stamp).slice(-4);
 const NAME = { a: `민결${tag}`, b: `지결${tag}`, c: `현결${tag}` };
+
+/**
+ * **이 실행만의 소개 글** — 결과 화면에 소개 카드가 돌아오면 이 글자가 본문에 실린다.
+ *
+ * 제목(「함께 보기로 한 사람」)을 재던 자리를 이것으로 바꿨다. 제목은 지워지면 그만이지만
+ * 소개는 **카드가 서면 반드시 실리는 값**이라, 카드 이름이 무엇으로 바뀌어도 걸린다.
+ *
+ * **사람마다 다른 글자를 준다.** 셋이 같은 소개를 들면 화면에 그 글자가 있을 때
+ * 「누구의 소개가 샜는지」를 못 가른다 — 자기 소개가 제 화면에 서는 것은 샌 것이 아니다.
+ */
+const introOf = (nickname) => `소개-${stamp}-${nickname}`;
 
 /** 두 사람의 출생을 **또렷하게 다르게** 잡는다 — 무엇이 새는지 문자열로 잴 수 있게 */
 const BIRTH = {
@@ -49,10 +59,6 @@ const mail = {
   b: `res-b-${stamp}@example.com`,
   c: `res-c-${stamp}@example.com`,
 };
-
-const sql = (statement) =>
-  execFileSync('docker', ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq', '-c', statement],
-    { encoding: 'utf8' }).trim();
 
 const userId = (email) => sql(`select id from auth.users where email = '${email}'`);
 
@@ -81,7 +87,7 @@ const 가짜 = {
 };
 
 for (const [client, nickname] of [[a, NAME.a], [b, NAME.b], [c, NAME.c]]) {
-  await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: null });
+  await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: introOf(nickname) });
   await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
 }
 
@@ -218,9 +224,19 @@ try {
   // ── 3. 결과 화면은 풀이와 명식만 둔다 ─────────────────────────────────────
   {
     const text = plain(mine);
-    check('함께 보기로 한 사람 소개 카드는 빠진다', !mine.includes('함께 보기로 한 사람'));
+    /**
+     * **제목이 아니라 실린 값을 잰다.**
+     *
+     * 이 둘은 「'함께 보기로 한 사람'이 없다」·「'서로에게 열리는 것'이 없다」였다. 둘 다
+     * 2026-09-11 에 지워진 옛 제목이라(`1fe0783`) 그 뒤로는 아무것도 안 쟀다 — 그 커밋이
+     * 제품에서 문구를 지우면서 **같은 자리에서 긍정 단언을 부정으로 뒤집었다.**
+     *
+     * 소개 카드는 **이 실행만의 소개 글**(`INTRO`)이 본문에 실리는지로 잰다. 카드 제목이
+     * 무엇으로 바뀌든, 소개가 돌아오면 걸린다.
+     */
+    check('상대 소개 카드는 빠진다', !mine.includes(introOf(NAME.b)));
     check('동의 범위 설명 카드는 빠진다',
-      !mine.includes('서로에게 열리는 것') && !mine.includes('열리지 않는 것'));
+      [...MATCH_DISCLOSURE.shown, ...MATCH_DISCLOSURE.hidden].every((line) => !mine.includes(line)));
     check('결과 화면의 긴 판본·엔진 설명은 빠진다',
       !text.includes('동의하신 대상이 그때의 출생 정보이기 때문')
         && !text.includes('곧바로 조립한 것입니다'));
@@ -234,7 +250,12 @@ try {
     check('출생 시각이 응답에 없다', !mine.includes('14:30'));
 
     check('상대의 여덟 글자 명식은 선다', plain(mine).includes('일간 '));
-    check('근거 패널이 서지 않는다', !mine.includes('풀이에 넘기는 자료'));
+    /*
+      「'풀이에 넘기는 자료'가 없다」가 여기 있었다. 그 제목은 2026-09-06 에 제품에서
+      사라졌고(`b7b0fed`), 무엇보다 **이 검사는 근거도 프롬프트도 한 번도 안 심는다** —
+      빈 화면에 대고 「안 샌다」를 재고 있었던 셈이다. 실제로 심어 놓고 재는 자리는
+      `check-reading.mjs` 다(`evidence-v0`·「검사용 프롬프트 원문」).
+    */
     check('지금 도는 운이 서지 않는다', !mine.includes('지금 도는 운'));
     check('오행 개수표가 응답에 없다',
       !mine.includes('glyphCount') && !mine.includes('"counts"') && !mine.includes('"ratios"'));
@@ -335,6 +356,4 @@ try {
   stop();
 }
 
-const failed = checks.filter((entry) => !entry.pass);
-console.log(`\n${checks.length - failed.length}/${checks.length} 통과`);
-process.exit(failed.length === 0 ? 0 : 1);
+finish();

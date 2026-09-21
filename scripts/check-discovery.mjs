@@ -18,6 +18,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
+import { createChecks, sql } from './checks.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -25,11 +26,7 @@ const PORT = Number(process.env.CHECK_PORT ?? 3211);
 
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 
-const checks = [];
-const check = (name, pass, detail = '') => {
-  checks.push({ name, pass, detail });
-  console.log(`${pass ? 'ok  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
-};
+const { check, finish } = createChecks('check-discovery');
 
 const stamp = Date.now();
 // 별명에 이번 실행의 꼬리표를 붙인다 — 지난 실행이 남긴 동명이인이 후보로 서면 본문을
@@ -40,10 +37,6 @@ const THEIR_NAME = `지영${tag}`;
 const password = `pw-${stamp}-Aa1!`;
 const mine = `seeker-${stamp}@example.com`;
 const theirs = `sought-${stamp}@example.com`;
-
-const sql = (statement) =>
-  execFileSync('docker', ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq', '-c', statement],
-    { encoding: 'utf8' }).trim();
 
 /** 운영자만 읽는 표다. 앱이 아니라 SQL 로 본다 — 그게 이 표의 유일한 읽는 길이다 */
 const impressionsFor = (email) =>
@@ -170,7 +163,6 @@ try {
 
   await profileFor(me, MINE_NAME, '조용한 편입니다');
   await profileFor(other, THEIR_NAME, '주말엔 걷습니다');
-
 
 /**
  * **이번 실행의 사람들만 서로의 후보가 되게 한다.**
@@ -559,6 +551,4 @@ const isolate = (emails) => {
   stop();
 }
 
-const failed = checks.filter((entry) => !entry.pass);
-console.log(`\n${checks.length - failed.length}/${checks.length} 통과`);
-process.exit(failed.length === 0 ? 0 : 1);
+finish();

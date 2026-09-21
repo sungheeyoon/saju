@@ -14,17 +14,14 @@
 import { createClient } from '@supabase/supabase-js';
 import { execFileSync } from 'node:child_process';
 import { CHECK_CODE, NOTICE_VERSION, passNotice, scheduleBeta, seedSignupCode, chartArgs } from './notice.mjs';
+import { createChecks } from './checks.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
 
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 
-const checks = [];
-const check = (name, pass, detail = '') => {
-  checks.push({ name, pass, detail });
-  console.log(`${pass ? 'ok  ' : 'FAIL'} ${name}${detail ? ` — ${detail}` : ''}`);
-};
+const { check, finish } = createChecks('check-onboarding');
 
 const stamp = Date.now();
 const tester = `tester-${stamp}@example.com`;
@@ -326,6 +323,4 @@ const other = anon();
   check('claim 된 Person 의 출생 정보는 남이 못 고친다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
 }
 
-const failed = checks.filter((c) => !c.pass);
-console.log(`\n${checks.length - failed.length}/${checks.length} 통과`);
-process.exit(failed.length === 0 ? 0 : 1);
+finish();

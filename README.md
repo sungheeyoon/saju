@@ -199,14 +199,14 @@ TypeScript 라 브라우저에서도 서버에서도 그대로 돈다.
 ## 검증
 
 ```bash
-npm test          # 1,612 tests (77 files · 6 skipped)
+npm test          # 단위 시험 — 수는 실행이 찍는다
 npm run verify    # test + typecheck + lint + production build
 
 npm run db:start        # 로컬 Supabase (Docker) — test:db · test:flow · test:e2e:authed 가 쓴다
-npm run test:db         # 691 pgTAP tests (26 files) — 정책이 실제로 막는지
-npm run test:flow       # 341 checks (6 스크립트) — 가입부터 요청·수락·풀이까지 한 바퀴
-npm run test:e2e        # 47 tests (1 skipped) — 익명 화면, desktop + mobile Chromium
-npm run test:e2e:authed # 79 tests (2 skipped) — 로그인·인연·안내 관문
+npm run test:db         # pgTAP — 정책이 실제로 막는지. 수는 TAP plan 이 찍는다
+npm run test:flow       # 흐름 검사 7벌 — 가입부터 요청·수락·풀이까지. 수는 러너가 찍는다
+npm run test:e2e        # 익명 화면, desktop + mobile Chromium
+npm run test:e2e:authed # 로그인·인연·안내 관문
 ```
 
 **e2e 가 두 명령인 것은 계약이다.** 로그인하지 않은 사람을 돌려보내는 데 백엔드가 필요하면

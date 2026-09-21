@@ -1446,13 +1446,18 @@ test.describe('로그인한 사람의 궁합 화면', () => {
   });
 
   /**
-   * **궁합 결과에도 넘길 자료는 없다.**
+   * **궁합 결과에도 내부 검산 도구는 없다.**
    *
    * 결과 화면 둘 다에서 내렸다(`/` 와 여기). 옮긴 칸은 다시 돌아오기 쉬우므로 두
    * 화면이 각자 지킨다 — 익명 사주 쪽은 `e2e/saju.spec.ts` 가 같은 것을 짚는다.
+   *
+   * **짚는 것은 살아 있는 것만이다.** 여기 「풀이에 넘기는 자료」·「무엇을 시킬 것인가」가
+   * 함께 있었는데 둘 다 2026-09-06 에 제품을 떠난 문구라(`b7b0fed`) 그 뒤로는 무엇을
+   * 그려도 통과했다. 낱말마다 단언이 따로 서므로, 옆에 살아 있는 낱말이 있다고 죽은
+   * 것이 반증 가능해지지 않는다(ADR 0079).
    */
 
-  test('궁합 결과에는 넘길 자료 패널이 서지 않는다', async ({ page, signedIn }) => {
+  test('궁합 결과에 내부 검산 도구가 서지 않는다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/compat#a.name=민수&a.date=1990-05-15&a.hour=11:20&b.name=지영&b.date=1992-08-20&b.hour=09:00');
     await page.getByRole('button', { name: '궁합 보기' }).click();
@@ -1463,9 +1468,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     await expect(page.getByRole('heading', { name: '두 사주 사이의 관계' })).toBeVisible();
 
     const shown = await page.locator('main').innerText();
-    for (const word of ['풀이에 넘기는 자료', '무엇을 시킬 것인가', 'JSON 내려받기']) {
-      expect(shown).not.toContain(word);
-    }
+    expect(shown).not.toContain('JSON 내려받기');
   });
 
 
