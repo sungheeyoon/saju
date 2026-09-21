@@ -19,7 +19,7 @@ import { rpcArgs } from '@/src/lib/db';
  * 없는 Match 를 찾게 된다. 그래서 결과를 성공/실패가 아니라 **상태**로 돌려준다.
  */
 export type RespondResult =
-  | { ok: true; status: RequestStatus }
+  | { ok: true; status: RequestStatus; credits?: 'moved' }
   | { ok: false; message: string };
 
 function statusOf(value: unknown): RequestStatus | null {
@@ -86,7 +86,7 @@ export async function cancelRequest(requestId: string): Promise<RespondResult> {
   if (status === null) return { ok: false, message: '요청을 거두지 못했습니다.' };
 
   refresh('requests-changed');
-  return { ok: true, status };
+  return { ok: true, credits: 'moved' as const, status };
 }
 
 /**

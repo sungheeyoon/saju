@@ -5,6 +5,7 @@ import { suppliedText } from '@/src/lib/consent';
 import { supabaseOnServer } from '../../auth/server-client';
 import { storedPillarChart, type SharedPillarChart } from '../../shared-pillar';
 import { UUID } from '../../uuid';
+import { dbFailure } from '../../db-error';
 
 /**
  * **공유 결과가 브라우저로 내려가는 유일한 문.**
@@ -104,7 +105,7 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
    * 다만 그 문장을 결과 화면의 말로 옮기지는 않는다 — 이 자리에서는 못 보는 것과
    * 없는 것이 같은 답이어야 한다.
    */
-  if (error) return null;
+  if (error) throw dbFailure(error, 'my_match_scope');
 
   const scope = ((data ?? []) as ScopeRow[])[0];
   if (scope === undefined) return null;

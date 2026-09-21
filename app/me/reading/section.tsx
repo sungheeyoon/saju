@@ -73,7 +73,7 @@ export async function ReadingSection({
           모르면 화면이 「아무것도 안 하고 있다」고 말하게 된다.
         */
         initialRunning={run?.status === 'running'}
-        credits={credits}
+        credits={credits.ok ? credits.value : null}
         consented={consented}
         heading={heading ?? (target.kind === 'self' ? '나의 사주풀이' : '두 사람의 궁합풀이')}
         allowMockFallback={process.env.NODE_ENV !== 'production'}

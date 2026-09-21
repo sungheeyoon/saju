@@ -4,6 +4,7 @@ import { readingBody, readingGrounding } from '@/src/lib/reading/display';
 import { supabaseOnServer } from '../../auth/server-client';
 import { readingTargetArgs, type ReadingTarget } from './target';
 import { rpcArgs } from '@/src/lib/db';
+import { dbFailure, read, unread, type SkippableRead } from '../../db-error';
 
 /**
  * **현재 결과가 브라우저로 내려가는 문.**
@@ -71,7 +72,7 @@ export async function currentReading(target: ReadingTarget): Promise<CurrentRead
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('my_reading', rpcArgs<'my_reading'>(readingTargetArgs(target)));
-  if (error) return null;
+  if (error) throw dbFailure(error, 'my_reading');
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];
   if (row === undefined) return null;
@@ -137,22 +138,23 @@ export type ReadingCredits = {
  * @returns 못 물으면 `null` — 잔액을 모르면 화면은 그 줄을 아예 안 세운다. 「알 수
  * 없음」을 세우는 것보다 낫다: 있지도 않은 숫자를 사용자가 세어 보게 된다.
  */
-export async function readingCredits(): Promise<ReadingCredits | null> {
+export async function readingCredits(): Promise<SkippableRead<ReadingCredits | null>> {
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('my_reading_credits');
-  if (error) return null;
+  /* **부속 정보다** — 못 읽으면 칩을 안 세운다. 「모른다」와 「0 자리」를 가른다(ADR 0078) */
+  if (error) return unread(error, 'my_reading_credits');
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];
-  if (row === undefined) return null;
+  if (row === undefined) return read(null);
 
-  return {
+  return read({
     limit: row.credit_limit as number,
     used: row.used as number,
     reserved: row.reserved as number,
     requested: row.requested as number,
     available: row.available as number,
-  };
+  });
 }
 
 /**
@@ -166,7 +168,7 @@ export async function lastReadingRun(target: ReadingTarget): Promise<LastRun | n
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('my_last_reading_run', rpcArgs<'my_last_reading_run'>(readingTargetArgs(target)));
-  if (error) return null;
+  if (error) throw dbFailure(error, 'my_last_reading_run');
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];
   if (row === undefined) return null;
@@ -211,7 +213,7 @@ export async function myReadings(): Promise<readonly ReadingEntry[]> {
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('my_readings');
-  if (error) return [];
+  if (error) throw dbFailure(error, 'my_readings');
 
   return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
     kind: row.kind as ReadingTarget['kind'],
@@ -260,14 +262,14 @@ export async function readingGroundingOf(target: ReadingTarget): Promise<string 
     const { data, error } = await supabase.rpc('match_reading_source', {
       p_match_id: target.matchId,
     });
-    if (error) return null;
+    if (error) throw dbFailure(error, 'match_reading_source');
 
     const row = ((data ?? []) as Record<string, unknown>[])[0];
     return row === undefined ? null : readingGrounding(row.output as string);
   }
 
   const { data, error } = await supabase.rpc('my_reading', rpcArgs<'my_reading'>(readingTargetArgs(target)));
-  if (error) return null;
+  if (error) throw dbFailure(error, 'my_reading');
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];
   return row === undefined ? null : readingGrounding(row.output as string);
@@ -277,7 +279,7 @@ export async function readingArtifacts(target: ReadingTarget): Promise<ReadingAr
   const supabase = await supabaseOnServer();
 
   const { data, error } = await supabase.rpc('my_reading_artifacts', rpcArgs<'my_reading_artifacts'>(readingTargetArgs(target)));
-  if (error) return null;
+  if (error) throw dbFailure(error, 'my_reading_artifacts');
 
   const row = ((data ?? []) as Record<string, unknown>[])[0];
   if (row === undefined) return null;

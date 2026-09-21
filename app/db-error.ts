@@ -122,3 +122,27 @@ export function userFacingDbMessage(error: DbError, where: string, fallback?: st
 export function dbFailure(error: DbError, where: string, fallback?: string): Error {
   return new Error(userFacingDbMessage(error, where, fallback));
 }
+
+/**
+ * **없어도 화면이 서는 값** — 못 읽으면 그 자리만 생략한다(ADR 0078).
+ *
+ * 헤더의 남은 풀이권, 소식 배지의 수처럼 본체가 아닌 것들이 이 모양으로 온다.
+ * 본체는 이 타입을 안 쓴다 — 모든 화면이 같은 분기를 다시 적게 되고, 그러면 오류
+ * 경계가 이미 하는 일을 화면마다 손으로 한 번 더 한다.
+ *
+ * **`0` 과 「모른다」를 가르는 것이 이 타입의 전부다.** 지금까지는 `if (error) return 0`
+ * 한 줄이 「DB 가 성공했고 0 건이다」와 「DB 가 터져 못 읽었다」를 한 값으로 합쳤고,
+ * 그래서 배지가 사라진 화면과 읽을 것이 없는 화면이 같은 얼굴이었다.
+ */
+export type SkippableRead<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly reason: string };
+
+/** 읽었다 */
+export const read = <T>(value: T): SkippableRead<T> => ({ ok: true, value });
+
+/** 못 읽었다 — 까닭은 기록에 남기고, 화면은 그 자리를 비운다 */
+export const unread = (error: DbError, where: string): SkippableRead<never> => ({
+  ok: false,
+  reason: userFacingDbMessage(error, where),
+});

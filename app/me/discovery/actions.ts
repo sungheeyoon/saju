@@ -186,5 +186,6 @@ export async function requestMatch(candidateUserId: string): Promise<SaveResult>
   if (error) return { ok: false, message: userFacingDbMessage(error, 'request_match') };
 
   refresh('match-requested');
-  return { ok: true };
+  /* pending 요청이 잔액을 잡는다(ADR 0038) — 헤더가 든 수가 낡았다 */
+  return { ok: true, credits: 'moved' };
 }

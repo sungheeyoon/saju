@@ -12,4 +12,16 @@
  * 실패 문장은 **대개 DB 가 쓴다**(`userFacingDbMessage`) — 앱이 짓는 것은 모양을 보는
  * 자리뿐이다.
  */
-export type SaveResult = { ok: true } | { ok: false; message: string };
+export type SaveResult =
+  | {
+      ok: true;
+      /**
+       * 이 누름이 **남은 풀이권을 움직였다**(ADR 0078).
+       *
+       * 헤더는 잔액을 브라우저에서 한 번 읽고 들고 있으므로, 움직인 자리가 말해 주지
+       * 않으면 낡은 수를 세운 채로 남는다. **판단은 액션이 한다** — 호출부에 맡기면
+       * 다섯 번째 행동이 생기는 날 조용히 낡고, 그때 빨개지는 자리가 없다.
+       */
+      credits?: 'moved';
+    }
+  | { ok: false; message: string };

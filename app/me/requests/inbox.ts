@@ -11,7 +11,7 @@ import {
 } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { dbFailure } from '../../db-error';
+import { dbFailure, read, unread, type SkippableRead } from '../../db-error';
 
 /**
  * **요청·Match·알림이 브라우저로 내려가는 유일한 문.**
@@ -137,7 +137,8 @@ const matchOf = (row: MatchRow): InboxMatch => ({
 export async function matchesForViewer(): Promise<readonly InboxMatch[]> {
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc('my_matches');
-  if (error) return [];
+  /* 풀이 탭의 본체다 — 같은 문을 읽는 `inboxForViewer` 와 같은 답을 해야 한다(ADR 0078) */
+  if (error) throw dbFailure(error, 'my_matches');
   return ((data ?? []) as MatchRow[]).map(matchOf);
 }
 
@@ -255,9 +256,10 @@ export async function inboxForViewer(): Promise<Inbox> {
 }
 
 /** 다른 화면이 배지 하나를 세우려고 부른다 — 목록 전체를 읽지 않는다 */
-export async function unreadCount(): Promise<number> {
+export async function unreadCount(): Promise<SkippableRead<number>> {
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc('unread_notifications');
-  if (error) return 0;
-  return typeof data === 'number' ? data : 0;
+  /* **부속 정보다** — 못 읽으면 띠를 안 세운다. `0` 은 읽어서 안 값이라 다르다(ADR 0078) */
+  if (error) return unread(error, 'unread_notifications');
+  return read(typeof data === 'number' ? data : 0);
 }
