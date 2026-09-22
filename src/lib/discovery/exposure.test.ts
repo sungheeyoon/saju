@@ -5,7 +5,7 @@ import {
   elementSummaryOf,
   mutualDeficitComplementOf,
   type ElementSummary,
-} from './elementAxes';
+} from './element-axes';
 import { CITY_LONGITUDES, ELEMENTS, computeSaju, type Element } from '../saju';
 import { DISCOVERY_POLICY } from './index';
 

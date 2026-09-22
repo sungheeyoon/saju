@@ -2,7 +2,7 @@ import {
   combinedCountBalanceOf,
   mutualDeficitComplementOf,
   type ElementSummary,
-} from './elementAxes';
+} from './element-axes';
 import { ELEMENTS, ELEMENT_KO, type Element } from '../saju';
 
 /**

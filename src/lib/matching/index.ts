@@ -9,11 +9,11 @@ import {
 /**
  * **점수를 짓는 자리는 `discovery-v1` 하나다.**
  *
- * 축 둘(`elementAxes`)은 `discovery` 의 것이다 — 2026-09-22 까지 이 폴더에 살아
+ * 축 둘(`element-axes`)은 `discovery` 의 것이다 — 2026-09-22 까지 이 폴더에 살아
  * `discovery ↔ matching` 이 서로를 불렀다. 이제 방향은 `matching → discovery` 하나다(ADR 0085).
  */
 import { DISCOVERY_POLICY, previewScoreOf } from '../discovery';
-import { combinedCountBalanceOf, mutualDeficitComplementOf } from '../discovery/elementAxes';
+import { combinedCountBalanceOf, mutualDeficitComplementOf } from '../discovery/element-axes';
 
 /**
  * 궁합 결과 화면의 「궁합 베타」 지표 — `discovery-v1` 두 축을 가중치까지 공개해 보인다.

@@ -15,6 +15,13 @@
 막는다(ADR 0085) — 문서와 시험이 어긋나면 시험이 맞다. 새 파일을 놓기 전에 그 문서의
 「새 것을 놓을 때」를 본다. 도메인 lib 사이에 새 방향을 열면 시험의 허용 목록과 문서를 함께 고친다.
 
+## 어떻게 적는가는 `docs/agents/code-rules.md` 가
+
+이름 · 실패를 말하는 법 · 주석과 ADR 참조 · 탈출구 · 화면 문구 · 금지어는 **`docs/agents/code-rules.md`**
+한 장이 답한다. 잰 값이지 정한 규칙이 아니고(ADR 0086), 린트가 잡을 것은 `eslint.config.mjs` 가,
+못 잡을 것은 `scripts/code-rules.test.ts` 가 든다 — 문서와 어긋나면 그 둘이 맞다. **한글 문구는
+코드에 넣기 전에 표로 보여주고 답을 기다린다.**
+
 ## Agent skills
 
 ### Issue tracker
