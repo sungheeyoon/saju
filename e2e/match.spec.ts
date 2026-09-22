@@ -39,6 +39,27 @@ async function bothParticipate(a: Person, b: Person, tag: string): Promise<void>
   forgetBoards([a.account.email, b.account.email]);
 }
 
+/**
+ * **「보냈다」는 화면이 말한다 — 누른 것으로는 모른다.**
+ *
+ * 「요청 보내기」를 누르면 창이 닫히고 서버 액션이 **아직 가는 중**이다. 그 자리에서
+ * 다른 화면으로 옮기면 브라우저가 그 POST 를 끊고, 서버는 액션을 **한 번도 안 돈다** —
+ * 요청은 `pending` 조차 되지 못한다. 로컬에서는 액션이 먼저 끝나 안 보이고 공유 러너에서는
+ * 옮김이 먼저 와서 빨간불이 된다(#92). 그래서 카드가 「요청했어요」라고 말할 때까지 선다.
+ */
+async function sentRequest(person: Person): Promise<void> {
+  await expect(person.page.getByText(/님에게 상세 궁합을 요청했어요/)).toBeAttached();
+}
+
+/**
+ * **「답했다」도 마찬가지다.** 수락을 누르면 단추의 글자가 「보내는 중…」으로 바뀌므로
+ * 「수락하고 궁합 열기」가 사라진 것은 눌렀다는 뜻이지 답했다는 뜻이 아니다. 답이 나면
+ * 그 요청이 「끝난 요청」으로 접히고 그 줄이 성립을 말한다 — 그 문장을 기다린다.
+ */
+async function acceptedRequest(person: Person): Promise<void> {
+  await expect(person.page.getByText('수락해 함께 보는 궁합이 열렸습니다.')).toBeAttached();
+}
+
 /** 요청 하나를 pending 으로 세운다 — 화면으로 재는 자리가 아닐 때 */
 async function pendingRequest(from: Person, to: Person): Promise<void> {
   // 후보 목록을 한 번 받아야 요청의 근거(reason snapshot)가 선다(ADR 0009).
@@ -148,6 +169,7 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(confirmRequest).toContainText('정확한 생년월일시와 출생지는 공개되지 않습니다');
     await expect(confirmRequest).toContainText('상대와 연락할 수 있는 기능은 아직 지원하지 않습니다');
     await confirmRequest.getByRole('button', { name: '요청 보내기' }).click();
+    await sentRequest(asker);
 
     // ── 받은 쪽이 읽고 수락한다 ─────────────────────────────────────────────
     await receiver.page.goto('/me/requests');
@@ -420,6 +442,7 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(confirmRequest).toBeVisible();
     await expect(confirmRequest.getByRole('button', { name: '요청 보내기' })).toBeFocused();
     await asker.page.keyboard.press('Enter');
+    await sentRequest(asker);
     // 눌린 것이 실제로 요청이 됐는지는 목록에서 본다 — 초점만 닿고 안 눌리면 여기서 갈린다.
     await asker.page.goto('/me/requests');
     await expect(asker.page.getByRole('heading', { name: '보낸 요청' })).toBeVisible();
@@ -431,11 +454,14 @@ test.describe('동의로 열리는 흐름', () => {
     await receiver.page.keyboard.press('Enter');
     /**
      * **수락은 화면을 옮기지 않는다**(ADR 0058) — 성립한 궁합은 소식이 아니라 풀이
-     * 목록에 선다. 그래서 눌린 것을 이 자리에서 재고, 결과가 어디 서는지는 흐름
+     * 목록에 선다. 그래서 답이 난 것을 이 자리에서 재고, 결과가 어디 서는지는 흐름
      * 시험이 따로 잡는다. 결과 화면으로 옮겨 가는 것을 여기서 기다리면, 안 눌렸을
      * 때와 「안 옮겨 가는 것이 맞을 때」가 같은 실패로 보인다.
+     *
+     * 단추가 사라진 것으로 재면 안 된다 — 누르는 순간 글자가 바뀌어 사라진다. 그 뒤에
+     * 화면을 옮기면 가던 POST 가 끊겨 수락이 서버에 닿지 않는다(`acceptedRequest`).
      */
-    await expect(received.getByRole('button', { name: '수락하고 궁합 열기' })).toHaveCount(0);
+    await acceptedRequest(receiver);
 
     /**
      * 차단은 **한 번 더 묻는다.** 그래서 키보드로 닿아야 하는 문이 둘이다 — 여는
@@ -541,6 +567,7 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     await expect(confirming).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
     await expect(confirming).toContainText('상대와 연락할 수 있는 기능은 아직 지원하지 않습니다');
     await confirming.getByRole('button', { name: '요청 보내기' }).click();
+    await sentRequest(asker);
 
     // 눌린 것이 실제로 요청이 됐는지는 **받은 쪽에서** 본다.
     await receiver.page.goto('/me/requests');
