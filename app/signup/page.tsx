@@ -73,6 +73,7 @@ export default async function SignupPage({ searchParams }: {
       notice_version: string | null;
       notice_schedule_id: number | null;
     }>(supabase, 'status, signed_up_at, nickname, notice_version, notice_schedule_id'),
+    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
     scheduleFrom((name) => supabase.rpc(name)),
   ]);
 

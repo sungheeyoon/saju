@@ -29,24 +29,24 @@ ADR 0067 의 두 판(A 제한형 · B 확장형)을 **같은 조건**으로 부�
 
 ```bash
 # 1) 부르지 않고 프롬프트만 — 계획 호출 수와 입력 크기 확인
-READING_MATCH_INPUT_LIVE=1 READING_MATCH_DRY=1 npx vitest run src/lib/reading/call.live.test.ts
+READING_MATCH_INPUT_LIVE=1 READING_MATCH_DRY=1 npx vitest run app/me/reading/call.live.test.ts
 
 # 2) 소규모 — 표본 하나 × 두 판 × 1회 = 2콜
 READING_MATCH_INPUT_LIVE=1 READING_MATCH_REPEAT=1 READING_MATCH_FIXTURES=internal-rival \
-  npx vitest run src/lib/reading/call.live.test.ts
+  npx vitest run app/me/reading/call.live.test.ts
 
 # 3) 본 실행 — 넷 × 둘 × 3회 = 24콜
 READING_MATCH_INPUT_LIVE=1 READING_MATCH_REPEAT=3 READING_MATCH_MAX_CALLS=24 \
-  npx vitest run src/lib/reading/call.live.test.ts
+  npx vitest run app/me/reading/call.live.test.ts
 ```
 
 # 4) 같은 실행에 판마다 더 — 프롬프트 해시·생성 설정이 다르면 부르기 전에 멈춘다
 READING_MATCH_INPUT_LIVE=1 READING_MATCH_REPEAT=2 READING_MATCH_RUN_DIR=.reading-live/match-input-… \
-  npx vitest run src/lib/reading/call.live.test.ts
+  npx vitest run app/me/reading/call.live.test.ts
 
 # 5) 저장된 명식 한 쌍 — Git 밖 파일(.reading-live/private/…)에서 판본을 읽어 기존 계산 경로로 세운다
 READING_MATCH_INPUT_LIVE=1 READING_MATCH_PAIR_FILE=.reading-live/private/my-pair.json READING_MATCH_REPEAT=1 \
-  npx vitest run src/lib/reading/call.live.test.ts
+  npx vitest run app/me/reading/call.live.test.ts
 ```
 
 쌍 파일은 `{ id, relation, a: { personId, revisionId, revision }, b: … }` 이다. 모델에는 이름 대신 A·B 가 가고,

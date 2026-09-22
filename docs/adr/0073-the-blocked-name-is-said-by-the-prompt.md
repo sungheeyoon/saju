@@ -69,7 +69,7 @@ SAJU_TERMS.sinsal    신살·천을귀인·문창귀인·학당귀인·역마·�
 달라지지 않았다. 두 표의 낱말 수도 그대로다(93 · 35 · 겹침 20).
 
 **다음에 이 자리를 고치는 사람에게**: 프롬프트 본문이 바뀌는 순간 그 면제는 사라진다.
-`READING_LIVE=1 npx vitest run src/lib/reading/call.live.test.ts` 를 한 번 돌리고 올린다.
+`READING_LIVE=1 npx vitest run app/me/reading/call.live.test.ts` 를 한 번 돌리고 올린다.
 
 ## 낱말 집합은 같고, 실패 상세의 나열 순서는 달라진다
 

@@ -34,6 +34,7 @@ export default async function SettingsPage() {
       notice_version: string | null;
       notice_ack_at: string | null;
     }>(supabase, 'status, improvement_consent, contact_consent, notice_version, notice_ack_at'),
+    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
     supabase.from('discovery_profile').select('prefer_gender, opted_out_at').maybeSingle(),
   ]);
 

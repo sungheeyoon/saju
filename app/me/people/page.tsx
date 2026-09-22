@@ -62,6 +62,7 @@ export default async function PeoplePage() {
 
   /** 몇 자리 남았는지는 **DB 가 센다** — 화면이 빼기를 하면 selfPerson 을 잊는 자리가 생긴다 */
   const [slotRow, { state }, { data: edges }, made] = await Promise.all([
+    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
     supabase.rpc('my_person_slots'),
     readAccount(supabase),
     /*
@@ -71,6 +72,7 @@ export default async function PeoplePage() {
       사용자가 저장한 적 없는 사람이고, 그 사람이 여기 서면 「내가 등록한 적 없는 것이
       목록에 있다」가 된다. 그 궁합은 풀이 목록에 선다.
     */
+    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
     supabase
       .from('user_person_access')
       .select('person_id, local_label, note')

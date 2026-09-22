@@ -34,6 +34,7 @@ export default async function CompatPage() {
       **목록에 선 사람만 고를 수 있다**(`listed`): 궁합만 보려고 만든 사람은 사용자가
       이름을 관리하지 않으므로 고르는 자리에 서면 「저건 누구지」가 된다.
     */
+    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
     supabase
       .from('user_person_access')
       .select('person_id, local_label')

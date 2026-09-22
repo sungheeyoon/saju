@@ -1,4 +1,4 @@
-import { elementSummaryOf, type ElementSummary } from '@/src/lib/matching/elementAxes';
+import { elementSummaryOf, type ElementSummary } from '@/src/lib/discovery/elementAxes';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { storedChartOf } from '@/src/lib/input/stored';

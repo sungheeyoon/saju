@@ -81,6 +81,7 @@ function useSaveContext(): SaveContext {
         return;
       }
 
+      // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
       const read = await supabaseInBrowser().rpc('my_person_slots');
       if (alive) setContext({ state: 'in', slots: personSlotsFrom(read.data, read.error) });
     })();

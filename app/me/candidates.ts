@@ -1,5 +1,5 @@
 import { ELEMENTS } from '@/src/lib/saju';
-import type { ElementSummary } from '@/src/lib/matching/elementAxes';
+import type { ElementSummary } from '@/src/lib/discovery/elementAxes';
 import {
   DISCOVERY_POLICY,
   DISCOVERY_TEASER,

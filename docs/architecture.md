@@ -1,9 +1,9 @@
 # 층과 방향
 
 이 저장소가 무엇을 하는지는 `docs/prd.md` 가, 낱말은 `CONTEXT.md` 가 답한다. 이 문서는
-**코드가 어디에 살고 무엇이 무엇을 불러도 되는가** 하나만 답한다. 여기 적힌 규칙 중 린트가
-잠근 것은 `eslint.config.mjs` 에 같은 이름으로 있다(ADR 0085) — 문서와 린트가 어긋나면
-**린트가 맞다.** 문서를 고친다.
+**코드가 어디에 살고 무엇이 무엇을 불러도 되는가** 하나만 답한다. 여기 적힌 규칙 중 잠긴 것은
+`scripts/layers.test.ts` 와 `eslint.config.mjs` 에 같은 표로 있다(ADR 0085) — 문서와 시험이
+어긋나면 **시험이 맞다.** 문서를 고친다.
 
 ## 층 넷
 
@@ -14,16 +14,26 @@
 | **문과 액션** | `app/**/*.ts` | 도메인 lib, 엔진, supabase 클라이언트 넷 | — |
 | **화면** | `app/**/*.tsx` | 문과 액션, 도메인 lib 의 타입·순수 함수 | **DB 호출**(`.rpc()`·`.from()`) |
 
-방향은 아래로만 흐른다. 엔진 ← 도메인 lib ← 문·액션 ← 화면. 거꾸로 부르는 자리는 린트가
-막는다.
+방향은 아래로만 흐른다. 엔진 ← 도메인 lib ← 문·액션 ← 화면. 거꾸로 부르는 자리는 린트와
+`scripts/layers.test.ts` 가 막는다 — 별칭이든 상대경로든 `import()` 든 같은 파일이면 같은 답이다.
 
-**도메인 lib 끼리** 지금 부르는 것은 셋뿐이다 — `input`→`saju`, `matching`→`discovery`,
-`reading`→`saju`·`discovery`. 새 방향을 열 때는 여기에 적는다.
+**도메인 lib 끼리 지금 열려 있는 방향은 열하나다.** `scripts/layers.test.ts` 의 허용 목록과
+같은 표이고, 새 방향을 열면 둘을 함께 고친다. 순환은 없다 — `discovery ↔ matching` 이 서로를
+부르던 것을 2026-09-22 에 축 파일(`elementAxes`)을 `discovery` 로 옮겨 끊었다.
+
+| 부르는 쪽 | 부르는 것 |
+| --- | --- |
+| `consent` | `discovery` · `reading` · `saju` |
+| `discovery` | `saju` |
+| `input` | `saju` · `local-env` |
+| `matching` | `discovery` · `saju` |
+| `reading` | `discovery` · `people` · `saju` |
 
 **`src/lib/db` 는 타입만 낸다.** 생성된 `Database` 와 `rpcArgs` 다(ADR 0078). 호출은 없다.
 
 **예외 둘**은 이름이 말한다 — `src/lib/local-env.ts` 와 `*.live.test.ts` 는 실행 환경과
-운영 DB 를 안다. 잠긴 시험이라 CI 에서 안 돈다. 그래도 app 은 모른다.
+운영 DB 를 안다. 잠긴 시험이라 CI 에서 안 돈다. 그래도 app 은 모른다. 모델을 실호출하는
+시험(`call.live.test.ts`)은 app 의 `model.ts` 를 부르므로 **app 쪽에 산다**(`app/me/reading/`).
 
 ## 문 — DB 를 부르는 자리
 
@@ -46,9 +56,10 @@
 `SkippableRead` 로 값을 내고, 성공했는데 없는 것만 `null`·`[]`·`0` 이다(ADR 0078).
 `if (error) return []` 는 셋을 하나로 합치므로 쓰지 않는다.
 
-**옛 자리 열하나.** 잠근 날(2026-09-22)에 이미 `.tsx` 안에서 DB 를 부르고 있던 화면이다.
-`eslint.config.mjs` 의 `SCREENS_STILL_CALLING_DB` 가 그 목록이고, **줄어들기만 한다.**
-하나를 문으로 옮기면 거기서 지운다. 새 화면은 이 목록에 못 든다.
+**옛 자리 열셋.** 잠근 날(2026-09-22)에 이미 `.tsx` 안에서 DB 를 부르고 있던 호출이다.
+**호출 하나마다** 그 줄 위에 `eslint-disable-next-line no-restricted-syntax` 가 붙어 있고,
+`scripts/layers.test.ts` 가 그 수를 센다 — **줄어들기만 한다.** 하나를 문으로 옮기면 표시를
+지우고 수를 내린다. 같은 파일에 새 호출을 더해도 걸린다.
 
 ## 그 밖의 자리
 
@@ -73,17 +84,29 @@
 - **화면이면** `.tsx`. 문에서 받은 값을 그리기만 한다. 판단이 생기면 `.ts` 로 내린다 — 그래야
   vitest 가 닿는다(ADR 0080).
 
-## 린트가 잠근 것
+## 무엇이 잠겨 있나 — 그리고 무엇이 아닌가
 
-| 규칙 | 어디에 | 무엇을 막나 |
+두 자리가 같은 표를 든다. 린트는 편집기에서 알려 주고, 시험은 CI 에서 잠근다.
+
+| 무엇 | 린트 (`eslint.config.mjs`) | 시험 (`scripts/layers.test.ts`) |
 | --- | --- | --- |
-| `no-restricted-imports` | `src/lib/**` | `@/app/*` · React/Next · `@supabase/*` · `ai`/`openai` · `node:*` |
-| `no-restricted-imports` | `src/lib/saju/**` | 위 전부 + `@/src/lib/(saju 아닌 것)` |
-| `no-restricted-imports` | `scripts/**` · `e2e/**` | `@/app/*` |
-| `no-restricted-syntax` | `app/**/*.tsx` (옛 자리 열하나 제외) | `.rpc()` · `.from()` |
+| `src/lib` → `app`·`proxy.ts` | `import/no-restricted-paths` (파일로 푼다) | 네 형태의 import 전부 |
+| `src/lib/saju` → 다른 lib | 같다 | 같다 |
+| `scripts`·`e2e` → `app` | 같다 | 같다 |
+| `src/lib` → React/Next · `@supabase` · 모델 SDK · Node 내장 | `no-restricted-imports` (패키지 이름) | 같다 |
+| 도메인 lib 끼리의 방향 | — | 허용 목록과 **정확히 같은가**, 순환 없는가 |
+| 화면(`.tsx`) 안의 `.rpc()`·`.from()` | `no-restricted-syntax` | 옛 자리 수 ≤ 13, 표시가 실제 호출 위에만 |
 
-2026-09-22 에 잠그기 전 값: 방향 위반 0건, 화면 안 DB 호출 열한 파일. 규칙 아홉이 실제로
-걸리는지는 일부러 어긴 파일 넷으로 확인하고 지웠다(ADR 0085).
+**보장하는 것은 여기까지다** — 역방향 import 와 화면 안의 새 DB 호출을 막는다. 아래는 **안**
+보장한다.
 
-**잠그지 않은 것** — 도메인 lib 끼리의 방향(셋뿐이라 표로만), 문 파일의 접미사, `app` 안
-화면끼리의 import. 위반이 생기면 그때 잰다.
+- 문이 snake_case 를 한 번만 옮기는지, 실패를 셋으로 가르는지, 도메인 타입만 내주는지. 그것은
+  ADR 0072·0078 의 규약이고 코드 리뷰가 본다. `.from()` 한 줄을 `.ts` 로 옮기기만 해도 린트는
+  만족한다 — 그것은 문이 아니라 자리 옮기기다.
+- `supabase['from']()` · 구조분해한 `from` · 감싼 함수는 구문 규칙을 지나간다. 이 규칙은 뜻이
+  아니라 구문을 본다.
+- 문 파일의 접미사, `app` 안 화면끼리의 import, `.ts` 어디에 DB 호출이 있어도 되는가.
+
+2026-09-22 첫 판은 별칭의 정적 import 만 막아 상대경로·`import()`·`crypto` 같은 접두사 없는
+내장 모듈이 지나갔고, 문서의 도메인 그래프가 셋이라 적혔는데 실제는 여덟이었으며, 파일 단위
+예외는 같은 파일의 새 호출을 못 막았다. 같은 날 검토가 잡아 위 표로 고쳤다(ADR 0085 §정정).
