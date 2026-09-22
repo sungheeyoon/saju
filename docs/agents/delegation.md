@@ -6,7 +6,7 @@
 `docs/agents/code-rules.md`, 무엇을 돌리는가는 `docs/agents/test-map.md` 가 답한다.
 
 여기 적힌 것은 **2026-09-22 에 잰 값**이다(ADR 0090). 그날까지 PR 마흔이 전부 squash 로 main 에
-들었고 그중 서른셋이 ADR 을 같이 썼다. 권한을 잠그는 설정은 없었고(`.claude/` 없음, 이슈·PR 틀
+들었고 그중 스물다섯이 제목에 ADR 번호를 들었다. 권한을 잠그는 설정은 없었고(`.claude/` 없음, 이슈·PR 틀
 없음), 세션 메모 63벌(약 500KB)이 저장소 밖에 있어 다른 에이전트가 못 봤다. 권한 등급의 표와
 `.claude/settings.json` 이 같은 목록인지, 이슈 틀과 PR 틀의 칸이 이 문서에 있는지는
 `scripts/code-rules.test.ts` 가 든다 — 어긋나면 **시험이 맞다.** 문서를 고친다.
