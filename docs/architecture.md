@@ -22,7 +22,7 @@
 
 **도메인 lib 끼리 지금 열려 있는 방향은 열하나다.** `scripts/layers.test.ts` 의 허용 목록과
 같은 표이고, 새 방향을 열면 둘을 함께 고친다. 순환은 없다 — `discovery ↔ matching` 이 서로를
-부르던 것을 2026-09-22 에 축 파일(`elementAxes`)을 `discovery` 로 옮겨 끊었다.
+부르던 것을 2026-09-22 에 축 파일(`element-axes`)을 `discovery` 로 옮겨 끊었다.
 
 | 부르는 쪽 | 부르는 것 |
 | --- | --- |

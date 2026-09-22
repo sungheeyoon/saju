@@ -5,7 +5,7 @@ import {
   deficitComplementOneWay,
   mutualDeficitComplementOf,
   type ElementSummary,
-} from './elementAxes';
+} from './element-axes';
 
 /**
  * **이 두 벌은 pgTAP 에도 그대로 있다**(`supabase/tests/07_discovery.test.sql`).

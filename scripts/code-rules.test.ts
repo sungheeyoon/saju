@@ -1,0 +1,368 @@
+/**
+ * **코드 규칙은 이 시험이 든다** (ADR 0086, `docs/agents/code-rules.md`).
+ *
+ * `eslint.config.mjs` 가 구문으로 잡을 수 있는 것(enum·class·interface·console·미결 표시·default export)은
+ * 린트가 잡는다. 여기는 린트가 못 보는 것을 잰다 — **파일 이름**, **ADR 참조가 실제 파일을
+ * 가리키는가**, 그리고 **탈출구의 지문**(이중 캐스트·`!`·`if (error)` 뒤에서 실패를 지우는 자리·
+ * 예외 표시). 지문 목록은 2026-09-22 에 잰 값이고 **줄어들기만 한다** — 하나를 고치면 여기서
+ * 지우고, 새 자리는 못 든다(ADR 0085 §3 의 화면 DB 호출과 같은 결).
+ *
+ * 수가 아니라 지문으로 잠그는 까닭은 ADR 0085 정정 둘째에 있다 — 수를 세면 하나를 지운 예산을
+ * 다른 새 자리가 쓴다.
+ */
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { basename, extname, join, relative, resolve, sep } from 'node:path';
+
+import ts from 'typescript';
+import { describe, expect, it } from 'vitest';
+
+const ROOT = resolve(__dirname, '..');
+const relPath = (file: string) => relative(ROOT, file).split(sep).join('/');
+
+/** `scripts/layers.test.ts` 의 `SOURCE_EXTENSIONS` 와 같은 목록 */
+const SOURCE_EXTENSIONS = ['.ts', '.mts', '.cts', '.tsx', '.js', '.mjs', '.cjs'];
+
+function walk(dir: string, out: string[] = []): string[] {
+  for (const name of readdirSync(dir)) {
+    if (name === 'node_modules' || name.startsWith('.')) continue;
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) walk(full, out);
+    else out.push(full);
+  }
+  return out;
+}
+
+const ALL_FILES = [...walk(join(ROOT, 'src')), ...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'scripts')), ...walk(join(ROOT, 'e2e'))];
+const SOURCE_FILES = [
+  ...ALL_FILES.filter((file) => SOURCE_EXTENSIONS.includes(extname(file)) && !file.endsWith('.d.ts')),
+  join(ROOT, 'proxy.ts'),
+];
+const isTest = (rel: string) => /\.(test|spec)\.(ts|tsx|mts)$/.test(rel);
+/** 앱과 lib 의 **제품 코드** — 시험·검사 도구는 뺀다. 탈출구는 여기서만 센다 */
+const PRODUCT_FILES = SOURCE_FILES.filter((file) => {
+  const rel = relPath(file);
+  return (rel.startsWith('src/') || rel.startsWith('app/') || rel === 'proxy.ts') && !isTest(rel) && !rel.endsWith('.generated.ts');
+});
+
+function parse(file: string): ts.SourceFile {
+  const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : /\.(js|mjs|cjs)$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
+  return ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, kind);
+}
+const lineOf = (source: ts.SourceFile, node: ts.Node) => source.getLineAndCharacterOfPosition(node.getStart()).line + 1;
+const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
+
+/** `파일 :: 코드` 지문을 AST 로 모은다 — 줄 번호는 지문에 안 든다(줄이 밀려도 같은 자리다) */
+function fingerprints(files: readonly string[], pick: (node: ts.Node, source: ts.SourceFile) => string | null) {
+  const out: { file: string; line: number; fingerprint: string }[] = [];
+  for (const file of files) {
+    const source = parse(file);
+    const rel = relPath(file);
+    const visit = (node: ts.Node) => {
+      const text = pick(node, source);
+      if (text !== null) out.push({ file: rel, line: lineOf(source, node), fingerprint: `${rel} :: ${text}` });
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+  }
+  return out;
+}
+
+const say = (one: { file: string; line: number; fingerprint: string }) => `${one.file}:${one.line} ${one.fingerprint}`;
+
+/**
+ * 지문 목록과 코드가 **정확히** 같은가 — 낯선 것도, 목록에만 남은 것도 빨개진다.
+ * 같은 지문이 둘이면 목록에도 둘을 적는다 — 집합으로 비교하면 셋째가 둘째의 이름으로 지나간다.
+ */
+function expectExactly(found: readonly { file: string; line: number; fingerprint: string }[], allowed: readonly string[]) {
+  const budget = new Map<string, number>();
+  for (const one of allowed) budget.set(one, (budget.get(one) ?? 0) + 1);
+  const strangers = found.filter((one) => {
+    const left = budget.get(one.fingerprint) ?? 0;
+    if (left === 0) return true;
+    budget.set(one.fingerprint, left - 1);
+    return false;
+  });
+  expect(strangers.map(say), '목록에 없는 새 자리').toEqual([]);
+  const leftovers = [...budget].filter(([, left]) => left > 0).map(([one, left]) => `${one} ×${left}`);
+  expect(leftovers, '고쳤는데 목록에서 안 지운 자리').toEqual([]);
+}
+
+// -----------------------------------------------------------------------------
+// 이름
+// -----------------------------------------------------------------------------
+
+/** `input-form.ts` · `db-error.boundary.test.ts` · `check-share.mjs` */
+const KEBAB_FILE = /^[a-z0-9]+(-[a-z0-9]+)*(\.[a-z]+)*\.[a-z]+$/;
+/** 엔진의 옛 규약 — `solarTerms.ts` · `zoneHistory.generated.test.ts`. 하이픈이 없다 */
+const CAMEL_FILE = /^[a-z][a-zA-Z0-9]*(\.[a-z]+)*\.ts$/;
+/** 폴더 — kebab, 엔진 안은 camel 도, Next 의 `[param]`·`(group)` 은 그대로 */
+const KEBAB_DIR = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const CAMEL_DIR = /^[a-z][a-zA-Z0-9]*$/;
+const NEXT_SEGMENT = /^(\[[a-zA-Z]+\]|\([a-z-]+\))$/;
+
+const inEngine = (rel: string) => rel.startsWith('src/lib/saju/');
+
+describe('이름 (docs/agents/code-rules.md)', () => {
+  it('파일을 실제로 읽고 있다', () => {
+    expect(SOURCE_FILES.length).toBeGreaterThan(300);
+    expect(SOURCE_FILES.filter((file) => inEngine(relPath(file))).length).toBeGreaterThan(80);
+  });
+
+  it('엔진 밖의 소스 파일은 kebab-case 다', () => {
+    const wrong = SOURCE_FILES.map(relPath).filter((rel) => !inEngine(rel) && !KEBAB_FILE.test(basename(rel)));
+    expect(wrong).toEqual([]);
+  });
+
+  it('엔진 안의 소스 파일은 camelCase 다 — 두 규약이 한 폴더에 섞이지 않는다', () => {
+    const engine = SOURCE_FILES.map(relPath).filter(inEngine);
+    const wrong = engine.filter((rel) => !CAMEL_FILE.test(basename(rel)));
+    expect(wrong).toEqual([]);
+    // 규약이 실제로 쓰이고 있다 — 한 낱말짜리만 남으면 이 시험은 아무것도 안 잰다
+    expect(engine.filter((rel) => /[A-Z]/.test(basename(rel))).length).toBeGreaterThan(20);
+  });
+
+  it('폴더 이름도 같은 규약이다', () => {
+    const dirs = new Set(SOURCE_FILES.map(relPath).flatMap((rel) => {
+      const parts = rel.split('/');
+      return parts.slice(0, -1).map((_, at) => parts.slice(0, at + 1).join('/'));
+    }));
+    const wrong = [...dirs].filter((dir) => {
+      const name = basename(dir);
+      if (NEXT_SEGMENT.test(name)) return false;
+      return inEngine(`${dir}/`) ? !CAMEL_DIR.test(name) : !KEBAB_DIR.test(name);
+    });
+    expect(wrong).toEqual([]);
+  });
+
+  it('시험은 소스 옆에 `*.test.ts` 로 산다 — `__tests__` 폴더도, e2e 밖의 `*.spec.ts` 도 없다', () => {
+    const rels = ALL_FILES.map(relPath);
+    expect(rels.filter((rel) => rel.split('/').includes('__tests__'))).toEqual([]);
+    expect(rels.filter((rel) => rel.endsWith('.spec.ts') && !rel.startsWith('e2e/'))).toEqual([]);
+    expect(rels.filter((rel) => /\.test\.(ts|tsx|mts)$/.test(rel) && rel.startsWith('e2e/'))).toEqual([]);
+    expect(rels.filter((rel) => rel.endsWith('.test.tsx'))).toEqual([]);
+  });
+
+  it('시험 파일의 중간 이름은 넷뿐이다 — live · boundary · external · generated', () => {
+    const infixes = new Set<string>();
+    for (const rel of ALL_FILES.map(relPath)) {
+      const match = /\.([a-z-]+)\.test\.ts$/.exec(basename(rel));
+      if (match) infixes.add(match[1]);
+    }
+    expect([...infixes].sort()).toEqual(['boundary', 'external', 'generated', 'live']);
+  });
+
+  it('마이그레이션은 시각 + 영어 문장, pgTAP 은 두 자리 번호 + 영어 문장이다', () => {
+    const migrations = readdirSync(join(ROOT, 'supabase/migrations'));
+    expect(migrations.length).toBeGreaterThan(50);
+    expect(migrations.filter((name) => !/^\d{14}_[a-z0-9_]+\.sql$/.test(name))).toEqual([]);
+    const pgtap = readdirSync(join(ROOT, 'supabase/tests'));
+    expect(pgtap.length).toBeGreaterThan(20);
+    expect(pgtap.filter((name) => !/^\d{2}_[a-z0-9_]+(\.test)?\.sql$/.test(name))).toEqual([]);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// ADR 참조
+// -----------------------------------------------------------------------------
+
+const ADR_DIR = join(ROOT, 'docs/adr');
+const ADR_FILES = readdirSync(ADR_DIR).filter((name) => name.endsWith('.md'));
+const ADR_NUMBERS = new Set(ADR_FILES.map((name) => name.slice(0, 4)));
+
+/** ADR 참조가 사는 곳 — 코드·SQL·문서 전부 */
+const REFERRING_FILES = [
+  ...SOURCE_FILES,
+  join(ROOT, 'eslint.config.mjs'),
+  ...walk(join(ROOT, 'supabase')).filter((file) => file.endsWith('.sql')),
+  ...walk(join(ROOT, 'docs')).filter((file) => file.endsWith('.md')),
+  join(ROOT, 'CONTEXT.md'),
+  join(ROOT, 'README.md'),
+];
+
+describe('ADR 참조 (docs/agents/code-rules.md)', () => {
+  it('ADR 파일은 `NNNN-영어-문장.md` 이고 번호가 빈틈없이 이어진다', () => {
+    expect(ADR_FILES.filter((name) => !/^\d{4}-[a-z0-9]+(-[a-z0-9]+)*\.md$/.test(name))).toEqual([]);
+    const numbers = [...ADR_NUMBERS].map(Number).sort((a, b) => a - b);
+    expect(numbers[0]).toBe(1);
+    expect(numbers.at(-1)).toBe(numbers.length);
+  });
+
+  it('코드·SQL·문서의 `ADR NNNN` 은 전부 있는 파일을 가리킨다', () => {
+    const dangling: string[] = [];
+    let seen = 0;
+    for (const file of REFERRING_FILES) {
+      const text = readFileSync(file, 'utf8');
+      for (const match of text.matchAll(/\bADR (\d{4}(?:·\d{4})*)\b/g)) {
+        for (const number of match[1].split('·')) {
+          seen += 1;
+          if (!ADR_NUMBERS.has(number)) dangling.push(`${relPath(file)}: ADR ${number}`);
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(700);
+    expect(dangling).toEqual([]);
+  });
+
+  it('표기는 `ADR 0085` 하나다 — 붙여 쓰거나 하이픈으로 잇거나 자릿수를 줄이지 않는다', () => {
+    const odd: string[] = [];
+    for (const file of REFERRING_FILES) {
+      const text = readFileSync(file, 'utf8');
+      for (const match of text.matchAll(/\bADR(?:-\d|\d|\s\d{1,3}\b|\s\d{5,})/g)) {
+        odd.push(`${relPath(file)}: ${match[0]}`);
+      }
+    }
+    expect(odd).toEqual([]);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// 탈출구 — 제품 코드의 지문. 줄어들기만 한다
+// -----------------------------------------------------------------------------
+
+/** `x as unknown as T` — 타입이 못 잇는 자리를 손으로 잇는 것 */
+const DOUBLE_CASTS_STILL_THERE = [
+  'app/me/account.ts :: data as unknown as T',
+  'app/me/person-input.ts :: data as unknown as StoredInput',
+  'app/me/person-input.ts :: row as unknown as StoredInput',
+  'app/me/photo/[userId]/route.ts :: Buffer.from(row.base64, \'base64\') as unknown as BodyInit',
+  'app/me/reading/pipeline.ts :: (data ?? []) as unknown as FrozenJob[]',
+  'app/me/reading/pipeline.ts :: (data ?? []) as unknown as FrozenJob[]',
+  "app/me/reading/target.ts :: null as unknown as ReadingTarget['kind']",
+  'app/shared-pillar.ts :: chart as unknown as SharedPillarChart',
+];
+
+/** `x!` — 「있다」를 타입 대신 사람이 주장하는 것 */
+const NON_NULL_STILL_THERE = [
+  'app/me/matching/matching-experience.tsx :: photoOf(profile)!',
+  'app/me/matching/matching-experience.tsx :: photoOf(profile)!',
+  'app/me/matching/passed-connections.tsx :: photoOf(person)!',
+  'app/me/matching/passed-connections.tsx :: photoOf(selected)!',
+  'app/me/person-input.ts :: data!',
+  'app/saju-calculator.tsx :: model!',
+  'src/lib/reading/summary.ts :: pillars[position]!',
+  'src/lib/saju/analysis/effectiveElements.ts :: pillars[key]!',
+  'src/lib/saju/analysis/favorability.ts :: ELEMENTS.find((element) => !assigned.includes(element))!',
+  "src/lib/saju/analysis/structure.ts :: HIDDEN_STEMS[monthBranch].find((hidden) => hidden.role === '正氣')!",
+  "src/lib/saju/analysis/structure.ts :: candidates.find((candidate) => candidate.role === '正氣')!",
+  "src/lib/saju/analysis/structure.ts :: candidates.find((candidate) => candidate.role === '正氣')!",
+  "src/lib/saju/analysis/structure.ts :: candidates.find((candidate) => candidate.role === '正氣')!",
+  "src/lib/saju/analysis/tenGods.ts :: forPillar('day')!",
+  "src/lib/saju/analysis/tenGods.ts :: forPillar('month')!",
+  "src/lib/saju/analysis/tenGods.ts :: forPillar('year')!",
+];
+
+/**
+ * `if (error) return null` — 「DB 실패」와 「성공했는데 없음」을 한 값으로 합치는 자리(ADR 0078).
+ * 새로 쓰는 문은 `dbFailure`·`SkippableRead`·`userFacingDbMessage` 셋 중 하나로 말한다.
+ */
+const ERROR_SWALLOWS_STILL_THERE = [
+  'app/me/reading/pipeline.ts :: if (error) return;',
+  'app/person-slots.ts :: if (error) return null;',
+  'src/lib/consent/schedule.ts :: if (error) return null;',
+];
+
+/** 층 시험이 세는 화면 DB 호출 표시는 여기서 안 센다 */
+const COUNTED_BY_LAYERS = 'no-restricted-syntax';
+/** 그 밖의 예외 표시 — `파일 :: 규칙` */
+const DISABLES_STILL_THERE = [
+  'app/me/avatar.tsx :: @next/next/no-img-element',
+  'app/me/matching/matching-experience.tsx :: @next/next/no-img-element',
+  'app/me/matching/matching-experience.tsx :: @next/next/no-img-element',
+  'app/me/matching/passed-connections.tsx :: @next/next/no-img-element',
+  'app/me/profile/form.tsx :: @next/next/no-img-element',
+  'app/me/survey/form.tsx :: react-hooks/exhaustive-deps',
+];
+/** 까닭(`-- …`) 없이 선 표시 — 새 표시는 까닭을 적는다 */
+const DISABLES_WITHOUT_A_REASON = ['app/me/survey/form.tsx :: react-hooks/exhaustive-deps'];
+
+/** class 가 잇는 것 — `Error` 가 아니면 이름으로 든다 */
+const CLASSES_NOT_EXTENDING_ERROR = ['scripts/fake-clock.mjs :: Shifted extends Real'];
+
+const isAs = (node: ts.Node): node is ts.AsExpression => ts.isAsExpression(node);
+const isUnknown = (type: ts.TypeNode) => type.kind === ts.SyntaxKind.UnknownKeyword;
+
+describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 한다', () => {
+  it('제품 코드를 실제로 읽고 있다', () => {
+    expect(PRODUCT_FILES.length).toBeGreaterThan(150);
+  });
+
+  it('`as unknown as` 는 옛 자리 여덟에만 있다', () => {
+    const found = fingerprints(PRODUCT_FILES, (node, source) =>
+      isAs(node) && isAs(node.expression) && isUnknown(node.expression.type) ? oneLine(node.getText(source)) : null,
+    );
+    expectExactly(found, DOUBLE_CASTS_STILL_THERE);
+  });
+
+  it('`!` 단언은 옛 자리 열여섯에만 있다', () => {
+    const found = fingerprints(PRODUCT_FILES, (node, source) => (ts.isNonNullExpression(node) ? oneLine(node.getText(source)) : null));
+    expectExactly(found, NON_NULL_STILL_THERE);
+  });
+
+  it('`if (error)` 뒤에서 실패를 값 없이 지우는 자리는 옛 자리 셋뿐이다 (ADR 0078)', () => {
+    const swallows = (node: ts.Node, source: ts.SourceFile): string | null => {
+      if (!ts.isIfStatement(node) || !ts.isIdentifier(node.expression) || node.expression.text !== 'error') return null;
+      const body = ts.isBlock(node.thenStatement) && node.thenStatement.statements.length === 1 ? node.thenStatement.statements[0] : node.thenStatement;
+      if (!ts.isReturnStatement(body)) return null;
+      const value = body.expression;
+      const empty =
+        value === undefined ||
+        value.kind === ts.SyntaxKind.NullKeyword ||
+        value.kind === ts.SyntaxKind.UndefinedKeyword ||
+        (ts.isArrayLiteralExpression(value) && value.elements.length === 0) ||
+        ts.isNumericLiteral(value);
+      return empty ? `if (error) ${oneLine(body.getText(source))}` : null;
+    };
+    expectExactly(fingerprints(PRODUCT_FILES, swallows), ERROR_SWALLOWS_STILL_THERE);
+  });
+
+  it('예외 표시는 `eslint-disable-next-line 규칙 -- 까닭` 한 줄뿐이다 — 파일째 끄지 않는다', () => {
+    const found: { file: string; line: number; fingerprint: string }[] = [];
+    const withoutReason: string[] = [];
+    const wrongForm: string[] = [];
+    for (const file of SOURCE_FILES) {
+      const rel = relPath(file);
+      const lines = readFileSync(file, 'utf8').split('\n');
+      lines.forEach((line, at) => {
+        // tsconfig 의 target 이 ES2017 이라 이름 붙은 그룹을 못 쓴다 — 차례로 형태 · 규칙 · 까닭이다
+        const match = /(?:\/\/|\/\*|\{\/\*)\s*eslint-disable(-next-line|-line)?\s*([@\w/-]+)?(\s+--\s+\S)?/.exec(line);
+        if (!match) return;
+        const [, form, rule, reason] = match;
+        // 주석 본문이 이 표시를 **말하는** 자리(`` `eslint-disable-next-line` 을 지우고 ``)는 표시가 아니다
+        if (/[`「]\s*eslint-disable/.test(line)) return;
+        if (form !== '-next-line' || !rule) {
+          wrongForm.push(`${rel}:${at + 1} ${line.trim()}`);
+          return;
+        }
+        if (rule === COUNTED_BY_LAYERS) return;
+        const fingerprint = `${rel} :: ${rule}`;
+        found.push({ file: rel, line: at + 1, fingerprint });
+        if (!reason) withoutReason.push(fingerprint);
+      });
+    }
+    expect(wrongForm).toEqual([]);
+    expectExactly(found, DISABLES_STILL_THERE);
+    expect(withoutReason).toEqual(DISABLES_WITHOUT_A_REASON);
+  });
+
+  it('class 는 Error 를 잇는다 — 다른 것을 잇는 자리는 이름으로 든다', () => {
+    const found = fingerprints(SOURCE_FILES, (node, source) => {
+      if (!ts.isClassDeclaration(node) && !ts.isClassExpression(node)) return null;
+      const heritage = node.heritageClauses?.find((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword);
+      const parent = heritage?.types[0]?.expression.getText(source) ?? null;
+      if (parent === 'Error') return null;
+      return `${node.name?.text ?? '(이름 없음)'} extends ${parent ?? '(없음)'}`;
+    });
+    expectExactly(found, CLASSES_NOT_EXTENDING_ERROR);
+    // 규칙이 실제로 쓰이고 있다 — Error 를 잇는 클래스가 있어야 이 단언이 무엇인가를 잰 것이다
+    const errors = fingerprints(SOURCE_FILES, (node) => (ts.isClassDeclaration(node) ? node.name?.text ?? null : null));
+    expect(errors.length).toBeGreaterThan(5);
+  });
+
+  it('import 는 홑따옴표다', () => {
+    const found = fingerprints(SOURCE_FILES, (node, source) => {
+      const spec = ts.isImportDeclaration(node) || ts.isExportDeclaration(node) ? node.moduleSpecifier : undefined;
+      return spec && spec.getText(source).startsWith('"') ? oneLine(node.getText(source)) : null;
+    });
+    expect(found.map(say)).toEqual([]);
+  });
+});

@@ -88,9 +88,34 @@ const NO_DB_CALL_IN_SCREENS = [
   },
 ];
 
+// -----------------------------------------------------------------------------
+// 코드 규칙 (ADR 0086, `docs/agents/code-rules.md`) — 잰 값이 이미 참인 것만 잠근다
+// -----------------------------------------------------------------------------
+
+/**
+ * **모양은 셋뿐이다** — `type`(interface 0건), 상수 표, 함수. 2026-09-22 에 재어 보니 `enum` 0건,
+ * `class` 는 내장을 잇는 여덟뿐이었다(`Error` 일곱, 훑기용 시계가 `Date` 하나). 제 손으로 짓는
+ * 클래스가 하나 생기면 그 안의 판단은 vitest 가 닿기 어려운 자리로 들어간다(ADR 0080 의 같은 결).
+ * 어느 내장을 잇는지는 `scripts/code-rules.test.ts` 가 이름으로 든다.
+ */
+const CODE_SHAPE = [
+  { selector: "TSEnumDeclaration", message: "enum 을 쓰지 않는다 — 문자열 리터럴 유니언으로 적는다 (docs/agents/code-rules.md)" },
+  {
+    selector: "ClassDeclaration:not([superClass]), ClassExpression:not([superClass])",
+    message: "class 는 내장(Error·Date)을 잇는 자리에만 쓴다 — 나머지는 type 과 함수다 (docs/agents/code-rules.md)",
+  },
+];
+
+/** 코드에 남기는 미결은 TODO 가 아니라 ADR 의 「잠그지 않은 것」·PRD §9·이슈다 — 2026-09-22 기준 0건 */
+const NO_LOOSE_ENDS = ["error", { terms: ["todo", "fixme", "xxx", "hack"], location: "anywhere" }];
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    /** 안 걸리는 예외 표시는 지운다 — 남겨 두면 다음 사람이 그 줄을 또 끈다 */
+    linterOptions: { reportUnusedDisableDirectives: "error" },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -120,7 +145,7 @@ const eslintConfig = defineConfig([
     settings: { "import/resolver": { typescript: { project: "./tsconfig.json" }, node: true } },
     rules: {
       "import/no-restricted-paths": ["error", { zones: PATH_ZONES }],
-      "no-restricted-syntax": ["error", NO_UNKNOWN_DYNAMIC_IMPORT],
+      "no-restricted-syntax": ["error", NO_UNKNOWN_DYNAMIC_IMPORT, ...CODE_SHAPE],
     },
   },
   {
@@ -140,12 +165,39 @@ const eslintConfig = defineConfig([
   // ---------------------------------------------------------------------------
   {
     files: ["app/**/*.tsx"],
-    rules: { "no-restricted-syntax": ["error", ...NO_DB_CALL_IN_SCREENS] },
+    rules: { "no-restricted-syntax": ["error", ...NO_DB_CALL_IN_SCREENS, ...CODE_SHAPE] },
   },
   {
     /** 화면 폴더의 .ts 도 import() 대상은 문자열이다 — 라이브 시험이 여기 산다 */
-    files: [`app/**/*.${TS}`],
-    rules: { "no-restricted-syntax": ["error", NO_UNKNOWN_DYNAMIC_IMPORT] },
+    files: [`app/**/*.${TS}`, "proxy.ts"],
+    rules: { "no-restricted-syntax": ["error", NO_UNKNOWN_DYNAMIC_IMPORT, ...CODE_SHAPE] },
+  },
+
+  // ---------------------------------------------------------------------------
+  // 코드 규칙 (ADR 0086, `docs/agents/code-rules.md`)
+  // ---------------------------------------------------------------------------
+  {
+    /** 모양·미결 — 소스 전부. `no-restricted-syntax` 의 몫(enum·class)은 위 블록마다 `CODE_SHAPE` 로 든다 */
+    files: [`src/**/*.${ANY}`, `app/**/*.${ANY}`, `scripts/**/*.${ANY}`, `e2e/**/*.${ANY}`, "proxy.ts"],
+    rules: {
+      "@typescript-eslint/consistent-type-definitions": ["error", "type"],
+      "no-warning-comments": NO_LOOSE_ENDS,
+    },
+  },
+  {
+    /**
+     * 앱은 `console.log` 를 안 쓴다 — 사용자에게 못 옮긴 오류를 **기록에 남기는** `console.error` 만
+     * 있다(`app/db-error.ts`). 찍어 보는 자리는 `scripts/` 와, 사람이 읽으려고 돌리는 잠긴
+     * 실호출 시험(`*.live.test.ts`)뿐이다 — 예외는 이름이 말한다(ADR 0085).
+     */
+    files: [`src/**/*.${ANY}`, `app/**/*.${ANY}`, "proxy.ts"],
+    ignores: ["**/*.live.test.ts"],
+    rules: { "no-console": ["error", { allow: ["error", "warn"] }] },
+  },
+  {
+    /** 이름 있는 export 만 — `export default` 는 Next 가 요구하는 `app/` 과 루트 설정 파일에만 있다 */
+    files: [`src/**/*.${ANY}`, `scripts/**/*.${ANY}`, `e2e/**/*.${ANY}`],
+    rules: { "import/no-default-export": "error" },
   },
 ]);
 
