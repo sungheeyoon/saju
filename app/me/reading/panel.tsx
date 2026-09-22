@@ -9,7 +9,6 @@ import {
   readingNoneNote,
   READING_REPLACES_NOTE,
   READING_STALE_NOTE,
-  isScored,
   readingCreditsNote,
   readingWaitNote,
 } from '@/src/lib/reading';
@@ -22,32 +21,19 @@ import { namedMatchBody } from '@/src/lib/reading/display';
 import { ReadingFeedback } from './feedback';
 import { ShareReadingButton } from './share-button';
 import { Markdown } from './markdown';
-import { initialFlow, readingFlow } from './reading-state';
+import {
+  afterAsking,
+  afterPress,
+  answerOf,
+  initialFlow,
+  previewReading,
+  readingFlow,
+  type FlowDecision,
+  type PressOutcome,
+  type ReadingEvent,
+  type RunAnswer,
+} from './reading-state';
 import type { ReadingTarget } from './target';
-
-const MOCK_OUTPUT = `## 지금의 핵심
-
-당신의 사주는 **한 방향으로 빠르게 밀어붙이기보다, 주변의 흐름을 읽고 자신의 기준을 세울 때 힘이 나는 구조**로 보입니다. 겉으로는 차분하게 상황을 정리하지만, 납득할 만한 이유가 생기면 생각보다 결단이 빠른 편입니다.
-
-## 강점이 드러나는 방식
-
-목과 수의 흐름은 새로운 정보를 받아들이고 연결하는 힘으로 이어집니다. 처음부터 정답을 내기보다 여러 가능성을 살핀 뒤 공통점을 찾는 일에 강점이 있습니다. 사람 사이에서는 말의 표면보다 맥락을 읽으려는 태도로 나타날 수 있습니다.
-
-- 복잡한 일을 순서와 기준으로 정리할 때 집중력이 좋아집니다.
-- 혼자 결론을 품고 있기보다 믿을 만한 사람과 대화할 때 생각이 선명해집니다.
-- 변화가 필요한 순간에도 준비할 시간을 확보하면 훨씬 안정적으로 움직입니다.
-
-## 균형을 위한 제안
-
-생각이 충분히 정리될 때까지 행동을 미루면 좋은 타이밍을 놓칠 수 있습니다. 모든 변수를 확인하려 하기보다 **지금 확인된 사실과 나중에 보완할 부분을 나누는 방식**이 도움이 됩니다. 중요한 선택에서는 완벽한 확신보다 작은 실행으로 반응을 확인해 보세요.
-
-## 관계에서 기억할 점
-
-상대의 상황을 먼저 헤아리는 태도는 장점이지만, 내 기준을 늦게 말하면 상대는 동의한 것으로 오해할 수 있습니다. 불편함이 커진 뒤 설명하기보다 초반에 “나는 이 부분이 중요하다”라고 짧게 경계를 알려주는 편이 관계의 피로를 줄입니다.
-
----
-
-이 해석은 저장된 사주 근거를 바탕으로 현재 확인 가능한 경향을 설명합니다. 출생 시각이 없거나 계산 근거가 제한된 부분은 단정하지 않았으며, 중요한 결정을 대신하는 판단으로 사용하지 마세요.`;
 
 /**
  * **글 둘레에 무엇이 서는가.**
@@ -169,6 +155,23 @@ export function panelChrome({
   };
 }
 
+/**
+ * 흐름이 정한 것을 **실제로 한다** — 여기에는 판단이 없다.
+ *
+ * 무엇을 할지는 `afterPress` · `afterAsking` 이 이미 값으로 답했고, 이 함수가 하는 일은
+ * 그 셋을 순서대로 집행하는 것뿐이다. **칸 밖에 두는 까닭**은 지켜보는 고리의 의존성에
+ * 들지 않게 하려는 것이다 — 칸 안에서 새로 지어지면 그림마다 고리가 다시 선다.
+ */
+function apply(
+  decision: FlowDecision,
+  dispatch: (event: ReadingEvent) => void,
+  reread: () => void,
+): void {
+  if (decision.event !== null) dispatch(decision.event);
+  if (decision.announcesCredits) announceCreditsMoved();
+  if (decision.rereads) reread();
+}
+
 export function ReadingPanel({
   target,
   initialReading,
@@ -275,27 +278,6 @@ export function ReadingPanel({
   const isMock = flow.mock !== null;
   const reading = flow.mock ?? initialReading;
 
-  const showMock = () => {
-    const preview: CurrentReading = {
-      id: 'development-preview',
-      score: isScored(target.kind) ? 78 : null,
-      metaphor: isScored(target.kind)
-        ? '오래 걷던 두 사람이 같은 갈림길에서 잠깐 멈춘 모양입니다.'
-        : '늘 앞장서 걷다가 가끔 뒤를 돌아보는 사람입니다.',
-      output: MOCK_OUTPUT,
-      model: 'development-preview',
-      viewedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      viewerIsFirst: true,
-      fromCurrentChart: true,
-      /* 예시 결과에는 만든 시도가 없다 — 그래서 설문도 안 붙는다 */
-      sourceRunId: null,
-      myFeedback: null,
-    };
-
-    dispatch({ type: 'mock', reading: preview });
-  };
-
   /**
    * **도는 시도를 지켜본다.** 끝나면 화면을 다시 읽는다.
    *
@@ -308,26 +290,17 @@ export function ReadingPanel({
 
     let alive = true;
     const ask = async () => {
-      let run: Awaited<ReturnType<typeof readingRunState>>;
+      let answer: RunAnswer;
       try {
-        run = await readingRunState(target);
+        answer = answerOf(await readingRunState(target));
       } catch {
         // 한 번 못 물은 것으로 끝났다고 하지 않는다. 다음 물음에서 다시 본다.
-        return;
+        answer = { kind: 'unreachable' };
       }
-      if (!alive || run === null || run.status === 'running') return;
+      /* 떠난 칸에는 아무것도 안 세운다 — 답이 오는 사이에 화면이 바뀔 수 있다 */
+      if (!alive) return;
 
-      dispatch({ type: 'settled', status: run.status });
-      /*
-        끝난 자리에서 외친다. 성공이면 잡고 있던 자리가 쓴 자리로 옮겨 가고 실패면
-        그 자리가 풀린다 — 어느 쪽이든 헤더가 들고 있는 숫자는 낡았다.
-      */
-      announceCreditsMoved();
-      /*
-        끝난 것을 보면 **언제나 다시 읽는다.** 결과는 서버에만 있고, 이 칸이 들고 있는
-        것은 마지막으로 그린 화면이다. 다시 안 읽으면 교체로 사라진 옛 글을 계속 세운다.
-      */
-      router.refresh();
+      apply(afterAsking(answer), dispatch, () => router.refresh());
     };
 
     // 물어보는 간격은 짧게 잡지 않는다 — 4분짜리 일에 1초짜리 왕복은 값만 쓴다.
@@ -343,42 +316,37 @@ export function ReadingPanel({
     dispatch({ type: 'press' });
     setReadingExpanded(false);
 
-    let result: Awaited<ReturnType<typeof generateReading>>;
+    /*
+      **예시 글은 누르는 자리에서 짓는다.** 지을 수 있는가는 이 화면이 알고
+      (`allowMockFallback`), 세울 것인가는 흐름이 답한다 — 여기서 `null` 이면 그 갈래가
+      아예 없다는 뜻이고, 그것이 프로덕션에서 실패가 실패로 서는 까닭이다.
+    */
+    const preview = allowMockFallback ? previewReading(target.kind, new Date()) : null;
+
+    let outcome: PressOutcome;
     try {
-      [result] = await Promise.all([
+      /*
+        **답을 너무 빨리 돌려주지 않는다.** 누르자마자 제자리로 돌아온 화면은 눌린
+        것으로 안 보인다 — 기다리는 모습이 설 시간을 준다.
+      */
+      const [result] = await Promise.all([
         generateReading(target, crypto.randomUUID()),
         new Promise((resolve) => setTimeout(resolve, 900)),
       ]);
-    } catch {
-      if (allowMockFallback) {
-        showMock();
-        return;
-      }
-      dispatch({ type: 'threw' });
-      return;
-    }
 
-    if (result.ok) {
-      /* 시도가 열렸으면 그 자리를 이미 잡았다 — 성공을 기다리지 않고 알린다 */
-      announceCreditsMoved();
       /*
-        **답이 결과가 아니라 시작 여부다.** 열었으면 기다리는 화면에 그대로 머문다 —
-        만드는 일은 응답 뒤에 돌고, 위의 고리가 끝나는 것을 본다.
-
-        열지 못했으면(이미 도는 시도가 있다) 그것도 기다릴 일이다. 남이 열었든 내가
-        아까 열었든 그 시도가 끝나면 새 글이 선다. 다만 **내가 방금 연 것이 아니라는
-        사실**은 말해 준다 — 안 그러면 「눌렀는데 그대로」로 보인다.
+        **답이 결과가 아니라 시작 여부다.** 열었으면 기다리는 화면에 그대로 머물고,
+        열지 못했어도(이미 도는 시도가 있다) 기다릴 일인 것은 같다 — 그 시도가 끝나면
+        새 글이 선다. 어느 쪽에 무엇이 서는지는 `afterPress` 가 든다.
       */
-      dispatch({ type: 'opened', started: result.started });
-      return;
+      outcome = result.ok
+        ? { kind: 'opened', started: result.started }
+        : { kind: 'refused', message: result.message };
+    } catch {
+      outcome = { kind: 'threw' };
     }
 
-    if (allowMockFallback) {
-      showMock();
-      return;
-    }
-
-    dispatch({ type: 'refused', message: result.message });
+    apply(afterPress(outcome, preview), dispatch, () => router.refresh());
   };
 
   /**
