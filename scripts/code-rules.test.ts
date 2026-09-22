@@ -388,6 +388,7 @@ describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 �
 const ENTRY_DOCS = [
   join(ROOT, 'CLAUDE.md'),
   join(ROOT, 'CONTEXT.md'),
+  join(ROOT, 'docs/product/gaps.md'),
   join(ROOT, 'README.md'),
   join(ROOT, 'docs/architecture.md'),
   ...readdirSync(join(ROOT, 'docs/agents')).map((name) => join(ROOT, 'docs/agents', name)),
@@ -484,5 +485,52 @@ describe('용어집 ↔ 코드 (CONTEXT.md §9)', () => {
     expect(absent).toBeGreaterThan(0);
     expect(stale).toEqual([]);
     expect(appeared, '표는 「없다」고 하는데 코드에 생겼다').toEqual([]);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// 간극 대장 (docs/product/gaps.md)
+// -----------------------------------------------------------------------------
+
+describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
+  const ledger = readFileSync(join(ROOT, 'docs/product/gaps.md'), 'utf8');
+  const prd = readFileSync(join(ROOT, 'docs/prd.md'), 'utf8');
+  const rows = ledger
+    .split('\n')
+    .map((line) => line.split('|').map((cell) => cell.trim()))
+    .filter((cells) => cells.length >= 6 && /^G-\d{2}$/.test(cells[1]));
+
+  it('줄마다 번호가 하나씩이고 상태는 다섯 중 하나다', () => {
+    expect(rows.length).toBeGreaterThan(20);
+    const ids = rows.map((cells) => cells[1]);
+    expect(new Set(ids).size).toBe(ids.length);
+    const STATES = new Set(['정했다', '미정', '어긋남', '보류', '결정 대기']);
+    expect(rows.filter((cells) => !STATES.has(cells[4])).map((cells) => `${cells[1]} :: ${cells[4]}`)).toEqual([]);
+  });
+
+  it('출처의 § 는 PRD 본체에 실제로 있는 절이다 — 절을 옮기면 대장도 옮긴다', () => {
+    const headings = new Set([...prd.matchAll(/^#{2,3} (\d+(?:\.\d+)*)/gm)].map((match) => match[1]));
+    // §8 은 절이 아니라 번호 목록이다 — `§8.N` 은 그 목록의 N 번째 줄을 가리킨다
+    const s8 = prd.slice(prd.indexOf('\n## 8. '), prd.indexOf('\n## 9. '));
+    const s8Items = new Set([...s8.matchAll(/^(\d+)\. /gm)].map((match) => `8.${match[1]}`));
+    const missing: string[] = [];
+    let seen = 0;
+    for (const cells of rows) {
+      // `CONTEXT §10` 은 용어집의 절이다 — PRD 의 것만 잰다
+      const source = cells[3].replace(/CONTEXT §\d+/g, '');
+      for (const match of source.matchAll(/§(\d+(?:\.\d+)*)/g)) {
+        seen += 1;
+        if (!headings.has(match[1]) && !s8Items.has(match[1])) missing.push(`${cells[1]} :: §${match[1]}`);
+      }
+    }
+    expect(seen).toBeGreaterThan(15);
+    expect(missing).toEqual([]);
+  });
+
+  it('PRD 본체에는 개정 기록이 없다 — 계보와 「재어 본 값」은 changelog 에 산다', () => {
+    expect(prd).not.toMatch(/^## 10\. /m);
+    expect(prd).not.toMatch(/^### 0\.[3-8] /m);
+    const changelog = readFileSync(join(ROOT, 'docs/product/prd-changelog.md'), 'utf8');
+    expect(changelog).toMatch(/^## 10\. 이 문서의 계보/m);
   });
 });
