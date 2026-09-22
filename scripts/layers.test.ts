@@ -21,7 +21,7 @@ import { describe, expect, it } from 'vitest';
 const ROOT = resolve(__dirname, '..');
 
 /** 읽는 확장자 — `eslint.config.mjs` 의 glob 과 같은 목록이다. `tsconfig` 가 `.mts` 를 포함한다 */
-export const SOURCE_EXTENSIONS = ['.ts', '.mts', '.cts', '.tsx', '.js', '.mjs', '.cjs'];
+export const SOURCE_EXTENSIONS = ['.ts', '.mts', '.cts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
 
 /** 도메인 lib 사이에 **지금 열려 있는** 방향 — 이것 밖의 방향은 빨개진다. `db` 는 나가는 방향이 없다 */
 const ALLOWED_LIB_EDGES = new Set([
@@ -89,7 +89,7 @@ const SOURCE_FILES = [
 const relPath = (file: string) => relative(ROOT, file).split(sep).join('/');
 
 function parse(file: string): ts.SourceFile {
-  const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : file.endsWith('.js') || file.endsWith('.mjs') || file.endsWith('.cjs') ? ts.ScriptKind.JS : ts.ScriptKind.TS;
+  const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : file.endsWith('.jsx') ? ts.ScriptKind.JSX : /\.(js|mjs|cjs)$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
   return ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, kind);
 }
 
@@ -242,7 +242,7 @@ describe('화면 안의 DB 호출 (ADR 0072·0078·0085)', () => {
     return out;
   }
 
-  const screens = walk(join(ROOT, 'app')).filter((file) => file.endsWith('.tsx'));
+  const screens = walk(join(ROOT, 'app')).filter((file) => file.endsWith('.tsx') || file.endsWith('.jsx'));
   const calls = screens.flatMap(dbCallsOf);
 
   it('화면 안의 DB 호출은 옛 자리의 지문 안에만 있다 — 줄어들기만 한다', () => {

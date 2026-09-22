@@ -16,8 +16,10 @@ import importPlugin from "eslint-plugin-import";
  */
 
 /** 읽는 확장자 — `scripts/layers.test.ts` 의 `SOURCE_EXTENSIONS` 와 같은 목록. `tsconfig` 가 `.mts` 를 포함한다 */
-const TS = "{ts,mts,cts}";
-const ANY = "{ts,mts,cts,tsx,js,mjs,cjs}";
+/** 화면이 아닌 코드 — `allowJs` 라 `.js` 도 Next 가 그대로 컴파일한다. `.jsx` 는 화면이다 */
+const CODE = "{ts,mts,cts,js,mjs,cjs}";
+const SCREEN = "{tsx,jsx}";
+const ANY = "{ts,mts,cts,tsx,js,jsx,mjs,cjs}";
 
 /**
  * `import()` 의 대상은 **따옴표 문자열**로만 적는다 — 백틱·변수·식은 린트도 시험도 해석할 수
@@ -150,7 +152,7 @@ const eslintConfig = defineConfig([
   },
   {
     /** 도메인 lib — 실행 환경도, supabase 도, React 도 모른다 */
-    files: [`src/lib/**/*.${TS}`],
+    files: [`src/lib/**/*.${CODE}`],
     ignores: ["src/lib/local-env.ts", "src/lib/**/*.live.test.ts"],
     rules: { "no-restricted-imports": ["error", { patterns: [...APP_ONLY_PACKAGES, ...NO_SUPABASE, ...NO_NODE] }] },
   },
@@ -164,12 +166,12 @@ const eslintConfig = defineConfig([
   // 문의 자리 (ADR 0072·0078·0085)
   // ---------------------------------------------------------------------------
   {
-    files: ["app/**/*.tsx"],
+    files: [`app/**/*.${SCREEN}`],
     rules: { "no-restricted-syntax": ["error", ...NO_DB_CALL_IN_SCREENS, ...CODE_SHAPE] },
   },
   {
     /** 화면 폴더의 .ts 도 import() 대상은 문자열이다 — 라이브 시험이 여기 산다 */
-    files: [`app/**/*.${TS}`, "proxy.ts"],
+    files: [`app/**/*.${CODE}`, "proxy.ts"],
     rules: { "no-restricted-syntax": ["error", NO_UNKNOWN_DYNAMIC_IMPORT, ...CODE_SHAPE] },
   },
 
