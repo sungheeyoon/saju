@@ -30,6 +30,14 @@
 실호출 시험 셋, CI 차선은 **`docs/agents/test-map.md`** 가 답한다. 규칙의 원본은 `scripts/ci-plan.mjs`
 다. vitest 는 `.tsx` 에 안 닿는다 — 화면을 건드렸으면 커밋 전에 e2e 를 돌린다.
 
+## 무엇을 맡기고 무엇을 묻는가는 `docs/agents/delegation.md` 가
+
+맡길 이슈의 칸 일곱, 권한 등급 다섯(main 머지는 곧 배포이고 `db push` · 실호출 · 운영 SQL 은 사람이
+답한 뒤다), PR 이 드는 칸 여섯, 세션마다 다시 배우던 일하는 법과 로컬 환경의 함정은
+**`docs/agents/delegation.md`** 한 장이 답한다(ADR 0090). 권한 표는 `.claude/settings.json` 과 같은
+목록이고 `scripts/code-rules.test.ts` 가 둘을 견준다. 배포 순서는 `docs/ops/runbook.md` 「배포」.
+옛 세션의 판단 기록은 `docs/notes/` 에 있다 — 요구사항이 아니다. **새 기억은 저장소에 적는다.**
+
 ## Agent skills
 
 ### Issue tracker

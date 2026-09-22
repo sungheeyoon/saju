@@ -534,3 +534,66 @@ describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
     expect(changelog).toMatch(/^## 10\. 이 문서의 계보/m);
   });
 });
+
+// -----------------------------------------------------------------------------
+// 위임 규약 (docs/agents/delegation.md, ADR 0090)
+// -----------------------------------------------------------------------------
+
+describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
+  const doc = readFileSync(join(ROOT, 'docs/agents/delegation.md'), 'utf8');
+  const settings = JSON.parse(readFileSync(join(ROOT, '.claude/settings.json'), 'utf8')) as {
+    permissions?: { ask?: string[]; deny?: string[] };
+  };
+
+  /** 권한 표에서 첫 칸이 `**N ` 으로 시작하는 줄의 잠금 칸(넷째)에 적힌 `Bash(…)` 규칙 */
+  function lockedRulesOfTier(tier: string): string[] {
+    return doc
+      .split('\n')
+      .map((line) => line.split('|').map((cell) => cell.trim()))
+      .filter((cells) => cells.length >= 6 && cells[1].startsWith(`**${tier} `))
+      .flatMap((cells) => [...cells[4].matchAll(/`(Bash\([^`]+\))`/g)].map((match) => match[1]));
+  }
+
+  it('권한 표의 등급 3 은 settings 의 ask 와, 등급 4 는 deny 와 정확히 같은 목록이다', () => {
+    const ask = lockedRulesOfTier('3');
+    const deny = lockedRulesOfTier('4');
+    expect(ask.length).toBeGreaterThan(10);
+    expect(deny.length).toBeGreaterThan(5);
+    expect([...ask].sort()).toEqual([...(settings.permissions?.ask ?? [])].sort());
+    expect([...deny].sort()).toEqual([...(settings.permissions?.deny ?? [])].sort());
+    // 같은 규칙이 두 등급에 서 있으면 어느 쪽이 이기는지 도구가 정한다 — 문서가 그것을 안 든다
+    expect(ask.filter((rule) => deny.includes(rule))).toEqual([]);
+  });
+
+  it('이슈 틀과 PR 틀의 칸은 전부 위임 규약 문서에 같은 이름으로 있다', () => {
+    const templates = [
+      { file: '.github/ISSUE_TEMPLATE/ready-for-agent.md', expected: 7 },
+      { file: '.github/pull_request_template.md', expected: 6 },
+    ];
+    for (const { file, expected } of templates) {
+      const headings = [...readFileSync(join(ROOT, file), 'utf8').matchAll(/^## (.+)$/gm)].map((match) => match[1].trim());
+      expect(headings.length, file).toBe(expected);
+      expect(headings.filter((heading) => !doc.includes(`**${heading}**`)), file).toEqual([]);
+    }
+  });
+
+  it('이슈 틀이 붙이는 딱지는 triage 표에 있는 이름이다', () => {
+    const template = readFileSync(join(ROOT, '.github/ISSUE_TEMPLATE/ready-for-agent.md'), 'utf8');
+    const labels = /^labels: (.+)$/m.exec(template)?.[1].split(',').map((label) => label.trim()) ?? [];
+    expect(labels.length).toBeGreaterThan(0);
+    const triage = readFileSync(join(ROOT, 'docs/agents/triage-labels.md'), 'utf8');
+    const known = new Set([...triage.matchAll(/^\| `[^`]+` \| `([^`]+)` \|/gm)].map((match) => match[1]));
+    expect(known.size).toBe(5);
+    expect(labels.filter((label) => !known.has(label))).toEqual([]);
+  });
+
+  it('세션 기록의 차례(docs/notes/README.md)는 그 폴더의 파일 전부를 들고, 없는 파일을 들지 않는다', () => {
+    const dir = join(ROOT, 'docs/notes');
+    const readme = readFileSync(join(dir, 'README.md'), 'utf8');
+    const files = readdirSync(dir).filter((name) => name.endsWith('.md') && name !== 'README.md');
+    expect(files.length).toBeGreaterThan(10);
+    expect(files.filter((name) => !readme.includes(`| \`${name}\` |`))).toEqual([]);
+    const listed = [...readme.matchAll(/^\| `([a-z0-9-]+\.md)` \|/gm)].map((match) => match[1]);
+    expect(listed.filter((name) => !existsSync(join(dir, name)))).toEqual([]);
+  });
+});
