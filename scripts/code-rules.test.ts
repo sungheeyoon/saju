@@ -10,7 +10,7 @@
  * 수가 아니라 지문으로 잠그는 까닭은 ADR 0085 정정 둘째에 있다 — 수를 세면 하나를 지운 예산을
  * 다른 새 자리가 쓴다.
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, extname, join, relative, resolve, sep } from 'node:path';
 
 import ts from 'typescript';
@@ -377,5 +377,39 @@ describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 �
       return spec && spec.getText(source).startsWith('"') ? oneLine(node.getText(source)) : null;
     });
     expect(found.map(say)).toEqual([]);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// 에이전트가 먼저 읽는 문서 — 가리키는 파일이 있다
+// -----------------------------------------------------------------------------
+
+/** 세션마다 처음 읽히는 문서 — 여기 적힌 경로가 낡으면 에이전트가 없는 파일을 찾아 헤맨다 */
+const ENTRY_DOCS = [
+  join(ROOT, 'CLAUDE.md'),
+  join(ROOT, 'README.md'),
+  join(ROOT, 'docs/architecture.md'),
+  ...readdirSync(join(ROOT, 'docs/agents')).map((name) => join(ROOT, 'docs/agents', name)),
+];
+/** 저장소 뿌리에서 시작하는 경로만 잰다 — `person-input.ts` 같은 줄임과 `NNNN-….md` 같은 틀은 경로가 아니다 */
+const ROOTED_PATH = /^(app|src|scripts|e2e|docs|supabase|public|\.github)\/[A-Za-z0-9_.\/\[\]-]+$/;
+
+describe('입구 문서가 가리키는 경로 (docs/agents/test-map.md)', () => {
+  it('백틱 안의 뿌리 경로는 전부 있는 파일이나 폴더다 — 옮기면 문서도 옮긴다', () => {
+    const missing: string[] = [];
+    let seen = 0;
+    for (const doc of ENTRY_DOCS) {
+      const text = readFileSync(doc, 'utf8');
+      for (const match of text.matchAll(/`([^`\s]+)`/g)) {
+        const token = match[1];
+        if (!ROOTED_PATH.test(token) || token.includes('*')) continue;
+        seen += 1;
+        // 모듈 경로는 확장자 없이 적는다(`app/auth/config`) — 소스 확장자 중 하나로 있으면 된다
+        const exists = [''].concat(SOURCE_EXTENSIONS).some((ext) => existsSync(join(ROOT, token + ext)));
+        if (!exists) missing.push(`${relPath(doc)}: ${token}`);
+      }
+    }
+    expect(seen).toBeGreaterThan(60);
+    expect(missing).toEqual([]);
   });
 });
