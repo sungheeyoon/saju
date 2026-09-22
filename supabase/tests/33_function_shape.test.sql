@@ -70,12 +70,15 @@ select set_eq(
 --
 -- 정책을 아무리 잘 써도 `enable row level security` 를 안 걸면 정책은 서지 않는다.
 -- 그 한 줄을 빠뜨린 표는 **정책이 있는 채로 전부 열려 있다** — 가장 조용한 사고다.
+-- `relkind` 둘을 본다. 파티션 부모(`'p'`)도 RLS 를 켤 수 있고 켜야 한다 — 일반 표(`'r'`)만
+-- 세면 **앞으로 파티션 표가 생기는 날 이 잠금이 그것만 조용히 빼놓는다.** 지금은 27개가
+-- 전부 `'r'` 이라 세는 값이 같지만, 잠금은 오늘의 스키마가 아니라 내일의 실수를 막는 것이다.
 select is(
   (select count(*)::int
    from pg_class c join pg_namespace n on n.oid = c.relnamespace
-   where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity),
+   where n.nspname = 'public' and c.relkind in ('r', 'p') and not c.relrowsecurity),
   0,
-  'RLS 가 꺼진 public 표는 하나도 없다');
+  'RLS 가 꺼진 public 표는 하나도 없다 (파티션 부모 포함)');
 
 -- ---------------------------------------------------------------------------
 -- 4. definer 함수는 전부 search_path 가 고정돼 있다
@@ -87,11 +90,16 @@ select is(
 --
 -- 지금은 100개가 넘는 definer 가 **하나도 빠짐없이** 걸려 있다. 재서 안 것이고, 그래서
 -- 지킬 값으로 둘 수 있다. 새로 쓰는 사람이 한 줄을 잊으면 여기서 걸린다.
+-- **항목 단위로 정확히 본다.** `proconfig` 는 `{"search_path=", "app.foo=bar"}` 꼴의 배열인데,
+-- 통째로 이어 붙여 `%search_path%` 로 찾으면 `app.search_path=…` 같은 **커스텀 GUC 가
+-- 진짜 설정인 척 통과한다** — 보안 잠금에 false negative 가 생긴다. 그래서 각 항목이
+-- `search_path=` 로 시작하는지를 본다.
 select is(
   (select count(*)::int
    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.prosecdef
-     and not coalesce(array_to_string(p.proconfig, ' ') like '%search_path%', false)),
+     and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) as config
+                     where config like 'search_path=%')),
   0,
   'security definer 함수는 전부 search_path 가 고정돼 있다');
 
@@ -108,7 +116,7 @@ select ok(
 
 select ok(
   (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
-   where n.nspname = 'public' and c.relkind = 'r') > 20,
+   where n.nspname = 'public' and c.relkind in ('r', 'p')) > 20,
   '재는 대상이 실제로 있다 — public 표가 스무 개를 넘는다');
 
 select * from finish();
