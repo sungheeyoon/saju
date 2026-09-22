@@ -324,6 +324,8 @@ select
   (select count(*) from public.service_survey)       as 서비스설문,
   (select count(*) from public.notification)         as 알림,
   (select count(*) from public.report)               as 신고,
+  (select count(*) from public.chat_message)         as 메시지,
+  (select count(*) from public.chat_report_snapshot) as 신고스냅샷,
   (select count(*) from public.profile_photo)        as 프로필사진,
   (select count(*) from public.reading_webhook_event) as 영수증;
 ```
@@ -645,6 +647,118 @@ select
       or payload ->> 'actor_username' = '<지운 주소>') as 감사로그,
   (select count(*) from auth.flow_state where user_id = '<user-id>') as 로그인중간상태;
 ```
+
+---
+
+## 채팅 (ADR 0091)
+
+채팅 안전 베타의 운영자 수단은 **화면이 아니라 여기 SQL 이다**(PRD §7.0). 방은 Match 에 1:1 이고
+차단 · 중지 · 삭제 요청이 트리거로 닫는다. 운영자가 누를 것은 없다 — 중지는 위 「계정 중지와
+해제」의 그 한 줄이 방까지 닫는다.
+
+**대화방 전체를 여는 열쇠는 없다.** 운영자가 읽는 것은 신고에 붙은 스냅샷뿐이다. 아래 질의는
+전부 SQL Editor(`postgres`)에서 돈다 — 앱 역할에는 이 표들이 닫혀 있다.
+
+### 신고 스냅샷을 읽는다
+
+```sql
+-- 아직 안 본 신고 중 메시지를 고른 것 — 스냅샷이 붙어 있다
+select r.id, r.created_at, r.reason, r.detail,
+       reporter.email as 신고한_사람, reported.email as 신고당한_사람,
+       s.match_id, s.context_before, s.context_after, jsonb_array_length(s.messages) as 베낀_건수
+from public.report r
+join public.chat_report_snapshot s on s.report_id = r.id
+join auth.users reporter on reporter.id = r.reporter_user_id
+join auth.users reported on reported.id = r.reported_user_id
+where r.reviewed_at is null
+order by r.created_at;
+
+-- 한 신고의 스냅샷을 차례대로 편다. `chosen` 이 참인 줄이 고른 메시지다.
+-- 보낸 사람은 이메일로 푼다 — 계정이 이미 사라졌으면 uuid 만 남는다.
+select (e ->> 'seq')::bigint as 차례,
+       (e ->> 'created_at')::timestamptz at time zone 'Asia/Seoul' as 보낸_시각,
+       coalesce(u.email, e ->> 'sender_user_id') as 보낸_사람,
+       (e ->> 'chosen')::boolean as 고른_것,
+       e ->> 'body' as 본문
+from public.chat_report_snapshot s
+cross join lateral jsonb_array_elements(s.messages) e
+left join auth.users u on u.id = (e ->> 'sender_user_id')::uuid
+where s.report_id = '<report-id>'
+order by 차례;
+
+-- 봤다고 적는다 — 「신고와 차단」과 같은 줄. 처분은 `app_user.status` 가 든다.
+update public.report set reviewed_at = now() where id = '<report-id>';
+```
+
+스냅샷은 **불변**이다 — `update` 는 소유자에게도 막힌다(`55000`). 지워지는 길은 신고가 사라질
+때뿐이고, 신고는 계정을 따라간다(「지우기」). 안전 운영에 남길 것은 계정을 지우기 전에 따로 적는다.
+
+### 닫힌 지 90일 지난 방의 메시지를 지운다 — **손으로**
+
+크론이 아니다(PRD §7.1). 배포한 날이나 달마다 한 번 돈다. 기간은 DB 의 `chat_retention()` 이
+들고(90일), 이 함수와 pgTAP 이 같은 문을 돌린다.
+
+```sql
+-- 무엇을 지울 것인지 먼저 본다. 세어 보지 않고 지우지 않는다.
+select r.match_id, r.closed_reason, r.closed_at, count(m.id) as 메시지
+from public.chat_room r
+join public.chat_message m on m.room_id = r.id
+where r.closed_at < now() - public.chat_retention()
+group by r.match_id, r.closed_reason, r.closed_at
+order by r.closed_at;
+
+-- 지운다. 지우는 것은 메시지뿐이다 — 방은 남아 닫힌 이유를 계속 말하고, 스냅샷은 신고를 따른다.
+select public.purge_closed_chat_messages();  -- 지운 메시지 수
+```
+
+### 한도에 걸린 건수를 본다
+
+전송 한도는 계정당 1분 30건이고(`chat_policy()`), 걸린 전송은 거절되며 **한 건 한 줄**로 남는다.
+거절이 값으로 돌아오기 때문에 트랜잭션이 남는다(ADR 0091).
+
+```sql
+-- 최근 7일, 날짜 × 사람
+select (h.created_at at time zone 'Asia/Seoul')::date as 날짜, u.email, count(*) as 거절
+from public.chat_rate_limit_hit h
+join auth.users u on u.id = h.user_id
+where h.created_at > now() - interval '7 days'
+group by 1, 2
+order by 1 desc, 3 desc;
+
+-- 지금 정책의 수 다섯 — 앱의 lib 이 같은 수를 들어야 한다
+select * from public.chat_policy();
+```
+
+### 완료 조건 여섯을 프로덕션에서 밟는 순서
+
+§7.0 의 여섯을 **운영자가 지정한 테스트 계정 둘**(A · B)로 한 번씩 밟는다. 앱 PR 이 들기 전에는
+DB 층만 있으므로 아래는 **앱이 선 뒤**의 순서다. 확인은 SQL 로 한다.
+
+1. **주고받는다.** A 와 B 를 매칭시키고(요청 → 수락) 서로 한 줄씩 보낸다.
+   ```sql
+   select r.match_id, r.closed_reason, count(m.id) as 메시지
+   from public.chat_room r left join public.chat_message m on m.room_id = r.id
+   where r.user_low = least('<A>', '<B>') and r.user_high = greatest('<A>', '<B>')
+   group by r.match_id, r.closed_reason;   -- closed_reason 이 null, 메시지 2
+   ```
+2. **한도 거절.** A 가 1분 안에 31건을 보낸다(화면에서든 `send_chat_message` 를 31번 부르든).
+   31번째가 거절되고 `chat_rate_limit_hit` 에 A 의 줄이 하나 선다(위 「한도에 걸린 건수」).
+3. **신고 스냅샷.** B 가 A 의 메시지 하나를 골라 신고한다. 위 「신고 스냅샷을 읽는다」로 고른
+   메시지와 앞뒤가 베껴졌는지 본다. 이때 방은 그대로 열려 있어야 한다(신고는 닫지 않는다).
+4. **차단.** A 가 B 를 차단한다. 방의 `closed_reason` 이 `block` 이고, **둘 다** 이전 대화를 보며
+   둘 다 입력이 안 된다. 그리고 매칭 목록에서는 내려간다(§6.5).
+5. **중지.** 다른 쌍(A · C)을 세우고 C 를 중지한다(「계정 중지와 해제」의 한 줄). 방의 `closed_reason`
+   이 `suspension`, `closed_by_user_id` 가 C. A 는 방과 대화를 보고 C 는 아무것도 못 본다.
+   ```sql
+   update public.app_user set status = 'suspended' where id = '<C>';
+   select closed_reason, closed_by_user_id, closed_at from public.chat_room
+   where user_low = least('<A>', '<C>') and user_high = greatest('<A>', '<C>');
+   ```
+6. **삭제 요청.** 또 다른 쌍(A · D)을 세우고 D 가 `/me` 에서 삭제를 요청한다. `closed_reason` 이
+   `deletion_request`, `closed_at` 이 D 의 `deletion_requested_at` 과 같다. A 는 보고 D 는 못 본다.
+
+끝나면 테스트 계정을 「지우기」로 정리한다 — 방 · 메시지 · 신고 · 스냅샷이 계정을 따라 사라진다.
+지우기 전에 위 검증의 결과를 이슈 #115 에 적는다.
 
 ---
 
