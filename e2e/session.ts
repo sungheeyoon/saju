@@ -110,7 +110,7 @@ export function seedSignupCode(): void {
   sql(`insert into public.signup_code (code, note, valid_on, max_uses)
        values ('${E2E_CODE}', 'e2e', (now() at time zone 'Asia/Seoul')::date, 1000)
        on conflict (code) do update
-         set valid_on = excluded.valid_on, max_uses = excluded.max_uses`);
+         set valid_on = excluded.valid_on, valid_until = excluded.valid_on, max_uses = excluded.max_uses`);
 }
 
 /**
