@@ -8,6 +8,12 @@
 `docs/product/prd-archive.md` 는 **요구사항이 아니다.** 코드 주석이 가리키는 US 번호의
 출처로만 남겼다. 거기서 무엇을 만들지 읽지 마라.
 
+## 층은 `docs/architecture.md` 가, 잠금은 린트가
+
+코드가 어디에 살고 무엇이 무엇을 불러도 되는가는 **`docs/architecture.md`** 한 장이 답한다.
+방향 위반과 화면 안 DB 호출은 `eslint.config.mjs` 가 막는다(ADR 0085) — 문서와 린트가
+어긋나면 린트가 맞다. 새 파일을 놓기 전에 그 문서의 「새 것을 놓을 때」를 본다.
+
 ## Agent skills
 
 ### Issue tracker
