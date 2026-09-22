@@ -1,19 +1,36 @@
+import { builtinModules } from "node:module";
+
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import importPlugin from "eslint-plugin-import";
 
 /**
- * **층은 문서가 아니라 린트가 지킨다** (ADR 0085, `docs/architecture.md`).
+ * **층의 방향과 화면의 DB 호출은 린트가 막는다** (ADR 0085, `docs/architecture.md`).
  *
- * 2026-09-22 에 재어 보니 방향은 전부 지켜지고 있었다 — `src/lib`→`app` 0건, `saju`→다른
- * lib 0건, `src/lib`→supabase 런타임 0건. 그런데 그것을 막는 규칙이 **한 줄도 없었다.**
- * 지켜진 것은 사람이 알고 있어서였고, 에이전트는 세션마다 새로 배운다. 아래 규칙은
- * 새 것을 정하지 않는다 — 이미 참인 것을 값으로 잠근다.
+ * 무엇을 막는지는 `scripts/layers.test.ts` 가 **같은 표**로 다시 잰다 — 린트는 편집기에서
+ * 빠르게 알려 주는 자리이고, 시험은 상대경로·동적 import·패키지까지 한 벌로 잠그는 자리다.
+ * 첫 판(2026-09-22)은 별칭(`@/…`)의 정적 import 만 막아 상대경로와 `import()` 가 지나갔다.
+ * 그래서 경로는 `import/no-restricted-paths` 로(파일을 풀어서 본다), 패키지는
+ * `no-restricted-imports` 로 가른다.
  */
 
-/** 화면·서버가 아는 것 — 엔진과 도메인 lib 은 모른다 */
-const APP_ONLY = [
-  { group: ["@/app/*", "@/app"], message: "src/lib 은 app 을 모른다 — 방향이 거꾸로다 (docs/architecture.md)" },
+/** 파일로 푸는 경로 규칙 — 별칭이든 상대경로든 `import()` 든 같은 파일이면 같은 답이다 */
+const PATH_ZONES = [
+  { target: "./src/lib", from: "./app", message: "src/lib 은 app 을 모른다 — 방향이 거꾸로다 (docs/architecture.md)" },
+  { target: "./src/lib", from: "./proxy.ts", message: "src/lib 은 관문을 모른다" },
+  {
+    target: "./src/lib/saju",
+    from: "./src/lib",
+    except: ["./saju"],
+    message: "엔진은 다른 도메인 lib 을 모른다 — 반대 방향만 허용된다 (docs/architecture.md)",
+  },
+  { target: "./scripts", from: "./app", message: "검사 도구는 화면 모듈을 모른다 — 주소로 두드리거나 src/lib 을 부른다" },
+  { target: "./e2e", from: "./app", message: "검사 도구는 화면 모듈을 모른다 — 주소로 두드리거나 src/lib 을 부른다" },
+];
+
+/** 화면·서버가 아는 패키지 — 엔진과 도메인 lib 은 모른다 */
+const APP_ONLY_PACKAGES = [
   { group: ["next", "next/*", "react", "react/*", "react-dom", "react-dom/*"], message: "React/Next 는 app/ 에만 있다" },
   { group: ["ai", "openai", "@ai-sdk/*"], message: "모델은 app/me/reading/model.ts 만 부른다 (ADR 0047)" },
 ];
@@ -23,15 +40,27 @@ const NO_SUPABASE = [
   { group: ["@supabase/*"], message: "src/lib 은 supabase 를 부르지 않는다 — 타입은 @/src/lib/db, 호출은 app 의 문(ADR 0078)" },
 ];
 
-/** 순수 계산에는 실행 환경이 없다 */
+/**
+ * 순수 계산에는 실행 환경이 없다 — Node 내장 모듈 전부, `node:` 접두사가 있든 없든.
+ *
+ * **앞에 `/` 를 붙여 앵커한다.** 이 규칙의 패턴은 gitignore 문법이라 `constants` 라고만 적으면
+ * `../constants` 도 걸린다 — 엔진의 상수 폴더가 Node 의 `constants` 모듈과 이름이 같아서
+ * 첫 실행이 66건으로 빨개졌다. `/fs` 는 import 문자열이 `fs` 로 **시작할 때만** 맞는다.
+ */
+const NODE_BUILTINS = builtinModules.filter((name) => !name.startsWith("_") && !name.startsWith("node:"));
 const NO_NODE = [
-  { group: ["node:*", "fs", "path", "child_process", "os"], message: "src/lib 은 실행 환경을 모른다 — 예외는 local-env.ts 와 *.live.test.ts 뿐" },
+  {
+    group: [...NODE_BUILTINS.map((name) => `/${name}`), "node:*"],
+    message: "src/lib 은 실행 환경을 모른다 — 예외는 local-env.ts 와 *.live.test.ts 뿐",
+  },
 ];
 
 /**
  * 화면(.tsx)은 DB 를 직접 부르지 않는다 — **문**(.ts)이 부른다 (ADR 0072·0078).
  *
- * `.from()` 은 `Array.from` 같은 이름과 겹쳐서 객체 이름으로 거른다.
+ * 구문으로 거른다: `.rpc()` 와 `.from()`. `.from()` 은 `Array.from` 같은 이름과 겹쳐서 객체
+ * 이름으로 뺀다. 잠근 날 이미 부르고 있던 열세 자리는 **그 줄에** `eslint-disable-next-line`
+ * 이 붙어 있다 — 파일이 아니라 호출 하나가 예외이고, 그 수는 `scripts/layers.test.ts` 가 센다.
  */
 const NO_DB_CALL_IN_SCREENS = [
   {
@@ -43,25 +72,6 @@ const NO_DB_CALL_IN_SCREENS = [
       "CallExpression[callee.property.name='from']:not([callee.object.name=/^(Array|Buffer|Uint8Array|Int32Array|Float64Array|Object|Promise|Set|Map|String)$/])",
     message: "화면(.tsx)에서 .from() 을 부르지 않는다 — 읽는 문(.ts)으로 옮긴다 (docs/architecture.md)",
   },
-];
-
-/**
- * **옛 자리 열하나 — 잠근 날에 이미 부르고 있던 화면.** 좁히기만 한다 (ADR 0085 §3).
- * 하나를 문으로 옮기면 여기서 지운다. 늘리지 않는다.
- */
-const SCREENS_STILL_CALLING_DB = [
-  "app/closed/page.tsx",
-  "app/compat/page.tsx",
-  "app/me/matching/page.tsx",
-  "app/me/page.tsx",
-  "app/me/people/page.tsx",
-  "app/me/profile/page.tsx",
-  // 대괄호는 glob 의 문자 집합이라 벗긴다
-  "app/me/readings/\\[subject\\]/page.tsx",
-  "app/me/settings/page.tsx",
-  "app/privacy/page.tsx",
-  "app/save-for-reading.tsx",
-  "app/signup/page.tsx",
 ];
 
 const eslintConfig = defineConfig([
@@ -88,45 +98,24 @@ const eslintConfig = defineConfig([
   },
 
   // ---------------------------------------------------------------------------
-  // 층의 방향 (ADR 0085)
+  // 층의 방향 (ADR 0085) — 경로는 파일로 풀어서, 패키지는 이름으로
   // ---------------------------------------------------------------------------
   {
-    /** 도메인 lib — app 도, 실행 환경도 모른다 */
+    files: ["src/lib/**/*.ts", "scripts/**/*.{ts,mjs}", "e2e/**/*.ts"],
+    plugins: { import: importPlugin },
+    settings: { "import/resolver": { typescript: { project: "./tsconfig.json" }, node: true } },
+    rules: { "import/no-restricted-paths": ["error", { zones: PATH_ZONES }] },
+  },
+  {
+    /** 도메인 lib — 실행 환경도, supabase 도, React 도 모른다 */
     files: ["src/lib/**/*.ts"],
     ignores: ["src/lib/local-env.ts", "src/lib/**/*.live.test.ts"],
-    rules: { "no-restricted-imports": ["error", { patterns: [...APP_ONLY, ...NO_SUPABASE, ...NO_NODE] }] },
+    rules: { "no-restricted-imports": ["error", { patterns: [...APP_ONLY_PACKAGES, ...NO_SUPABASE, ...NO_NODE] }] },
   },
   {
-    /** 실행 환경과 운영 DB 를 아는 두 예외 — 그래도 app 은 모른다 */
+    /** 실행 환경과 운영 DB 를 아는 두 예외 — 그래도 React 와 모델은 모른다 */
     files: ["src/lib/local-env.ts", "src/lib/**/*.live.test.ts"],
-    rules: { "no-restricted-imports": ["error", { patterns: APP_ONLY }] },
-  },
-  {
-    /** 엔진 — 다른 도메인 lib 도 모른다. 순수 TypeScript 다 (README) */
-    files: ["src/lib/saju/**/*.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            ...APP_ONLY,
-            ...NO_SUPABASE,
-            ...NO_NODE,
-            { regex: "^@/src/lib/(?!saju(/|$))", message: "엔진은 다른 도메인 lib 을 모른다 — 반대 방향만 허용된다" },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    /** 검사·시험 도구 — 엔진과 도메인 lib 은 부르되 화면은 모른다 */
-    files: ["scripts/**/*.{ts,mjs}", "e2e/**/*.ts"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        { patterns: [{ group: ["@/app/*", "@/app"], message: "검사 도구는 화면 모듈을 모른다 — 주소로 두드리거나 src/lib 을 부른다" }] },
-      ],
-    },
+    rules: { "no-restricted-imports": ["error", { patterns: APP_ONLY_PACKAGES }] },
   },
 
   // ---------------------------------------------------------------------------
@@ -134,7 +123,6 @@ const eslintConfig = defineConfig([
   // ---------------------------------------------------------------------------
   {
     files: ["app/**/*.tsx"],
-    ignores: SCREENS_STILL_CALLING_DB,
     rules: { "no-restricted-syntax": ["error", ...NO_DB_CALL_IN_SCREENS] },
   },
 ]);

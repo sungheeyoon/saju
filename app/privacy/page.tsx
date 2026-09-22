@@ -31,6 +31,7 @@ export const metadata = {
 */
 export default async function PrivacyPage() {
   const supabase = await supabaseOnServer();
+  // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
   const notice = await scheduleFrom((name) => supabase.rpc(name));
 
   /*

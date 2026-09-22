@@ -56,12 +56,14 @@ export default async function MatchingPage() {
   const self = await selfElementSummary();
   if (self === null) return <Guide />;
 
+  // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
   const { data: profile } = await supabase
     .from('discovery_profile')
     .select('opted_out_at')
     .maybeSingle();
   if (profile?.opted_out_at != null) return <Resting />;
 
+  // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
   const { data: joined } = await supabase.rpc('ensure_discovery_participation', {
     p_person_id: self.personId,
     p_summary: self.summary,

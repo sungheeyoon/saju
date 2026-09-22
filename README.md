@@ -48,7 +48,7 @@ src/lib/
 ```
 
 React/Next 의존성은 `app/` 에만 있다. `src/lib/saju` 는 순수 TypeScript다. 층 넷과 방향은
-[`docs/architecture.md`](docs/architecture.md) 가 들고, 린트가 잠근다(ADR 0085).
+[`docs/architecture.md`](docs/architecture.md) 가 들고, 시험과 린트가 잠근다(ADR 0085).
 
 **로그인 없이 열리는 화면은 `/` 하나다** — 한 사람의 생년월일시를 넣어 만세력을 본다.
 거기서 시작하는 궁합(`/compat` 에서 두 사람을 정하고 `/me/compat` 에서 두 명식을 본다)과

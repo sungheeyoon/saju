@@ -99,6 +99,7 @@ async function SelfChart({ personId }: { personId: string }) {
 
   const [person, { data: edge }] = await Promise.all([
     storedInputOf(supabase, personId),
+    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
     supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
   ]);
 

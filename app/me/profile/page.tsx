@@ -50,6 +50,7 @@ export default async function ProfilePage() {
     **한 장인지 아닌지만 묻는다.** 바이트는 이 화면에 안 실린다 — 그림은 주소로 받아
     간다(`/me/photo/[userId]`).
   */
+  // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
   const { data: photo } = await supabase.rpc('photo_of', { p_user_id: user.id });
   const hasPhoto = (photo ?? []).length > 0;
 

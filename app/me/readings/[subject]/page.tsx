@@ -51,6 +51,7 @@ export default async function SingleReadingPage({
   const edge = mine
     ? null
     : (
+        // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
         await supabase
           .from('user_person_access')
           .select('person_id, local_label')

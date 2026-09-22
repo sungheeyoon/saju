@@ -112,7 +112,7 @@ const usageOf = (response: {
  *
  * **화면은 이 길로 오지 않는다** — 누름은 `submitBackgroundReading` 으로 떠나보내고
  * 완성본은 webhook 이나 복구기가 가져온다(ADR 0020). 이 함수를 부르는 것은 실호출
- * 시험(`src/lib/reading/call.live.test.ts`) 하나다. 프롬프트를 고친 뒤 기다리는 길로
+ * 시험(`app/me/reading/call.live.test.ts`) 하나다. 프롬프트를 고친 뒤 기다리는 길로
  * 한 번에 재 보는 자리라 남긴다.
  *
  * **던지지 않는다.** 실패도 값으로 낸다 — 부르는 쪽은 실패를 기록하고 직전 성공

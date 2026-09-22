@@ -11,8 +11,9 @@
 ## 층은 `docs/architecture.md` 가, 잠금은 린트가
 
 코드가 어디에 살고 무엇이 무엇을 불러도 되는가는 **`docs/architecture.md`** 한 장이 답한다.
-방향 위반과 화면 안 DB 호출은 `eslint.config.mjs` 가 막는다(ADR 0085) — 문서와 린트가
-어긋나면 린트가 맞다. 새 파일을 놓기 전에 그 문서의 「새 것을 놓을 때」를 본다.
+역방향 import 와 화면 안의 새 DB 호출은 `scripts/layers.test.ts` 와 `eslint.config.mjs` 가
+막는다(ADR 0085) — 문서와 시험이 어긋나면 시험이 맞다. 새 파일을 놓기 전에 그 문서의
+「새 것을 놓을 때」를 본다. 도메인 lib 사이에 새 방향을 열면 시험의 허용 목록과 문서를 함께 고친다.
 
 ## Agent skills
 

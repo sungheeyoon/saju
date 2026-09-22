@@ -29,9 +29,9 @@ import {
  * 없으면 안 되는 검사이기도 하다 — 나머지 시험은 전부 모델을 부르지 않으므로,
  * **OpenAI API 까지 실제로 닿는가**를 아무도 재지 않게 된다.
  *
- *   READING_LIVE=1 npx vitest run src/lib/reading/call.live.test.ts
- *   READING_VARIANTS_LIVE=1 npx vitest run src/lib/reading/call.live.test.ts
- *   READING_PAIR_LIVE=1 npx vitest run src/lib/reading/call.live.test.ts
+ *   READING_LIVE=1 npx vitest run app/me/reading/call.live.test.ts
+ *   READING_VARIANTS_LIVE=1 npx vitest run app/me/reading/call.live.test.ts
+ *   READING_PAIR_LIVE=1 npx vitest run app/me/reading/call.live.test.ts
  *
  * 재는 것은 글의 품질이 아니라 **파이프라인이 이어져 있는가**다. 품질은 사람이
  * 본다(`prd-archive`: 최종 출시 판단은 제품 담당자의 blind review).
@@ -348,7 +348,7 @@ describe.skipIf(!variantsLive)('변형들이 같은 Evidence 에서 실제 출�
 /**
  * **비공개 궁합 P0 vs P1** — 10절의 각자 읽기가 안정되는가.
  *
- *   READING_PAIR_LIVE=1 npx vitest run src/lib/reading/call.live.test.ts
+ *   READING_PAIR_LIVE=1 npx vitest run app/me/reading/call.live.test.ts
  *
  * 위 변형 실행과 갈라 둔 까닭은 `PAIR_VARIANTS` 주석에 있다 — 자기 풀이 변형들은 궁합
  * 프롬프트를 한 글자도 안 바꾸므로, 한 목록으로 묶으면 돈을 내고 같은 글을 두 번 받으면서
@@ -506,9 +506,9 @@ describe.skipIf(!pairLive)('비공개 궁합 두 판이 같은 자료에서 실�
  * **인연 궁합 입력 두 판(A 제한형 · B 확장형)을 같은 조건으로 부른다**(ADR 0067).
  *
  *   # 먼저 부르지 않고 프롬프트만 — 호출 수·입력 크기·반영 여부를 본다
- *   READING_MATCH_INPUT_LIVE=1 READING_MATCH_DRY=1 npx vitest run src/lib/reading/call.live.test.ts
+ *   READING_MATCH_INPUT_LIVE=1 READING_MATCH_DRY=1 npx vitest run app/me/reading/call.live.test.ts
  *   # 소규모 — 표본 하나 × 두 판 × 1회 = 2콜
- *   READING_MATCH_INPUT_LIVE=1 READING_MATCH_REPEAT=1 READING_MATCH_FIXTURES=internal-rival npx vitest run src/lib/reading/call.live.test.ts
+ *   READING_MATCH_INPUT_LIVE=1 READING_MATCH_REPEAT=1 READING_MATCH_FIXTURES=internal-rival npx vitest run app/me/reading/call.live.test.ts
  *   # 같은 실행에 판마다 2회 더 — 프롬프트가 한 글자라도 다르면 부르기 전에 멈춘다
  *   READING_MATCH_INPUT_LIVE=1 READING_MATCH_REPEAT=2 READING_MATCH_RUN_DIR=.reading-live/match-input-… npx vitest run …
  *   # 저장된 명식 한 쌍(Git 밖 파일)으로
@@ -538,7 +538,7 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
     const { existsSync } = await import('node:fs');
     const { createHash } = await import('node:crypto');
     const { MATCH_INPUT_FIXTURES, aggregateMatchRuns, blindPacket, chartsOf, measureMatchRun, secretsOf } =
-      await import('./match-input-eval');
+      await import('@/src/lib/reading/match-input-eval');
     const { storedChartOf } = await import('@/src/lib/input/stored');
     const { relationSentence, RELATIONS } = await import('@/src/lib/people');
 
@@ -548,7 +548,7 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
     const concurrency = Number(process.env.READING_MATCH_CONCURRENCY ?? '2');
     const pairFile = process.env.READING_MATCH_PAIR_FILE;
     const variants = MATCH_INPUT_VARIANTS;
-    const { guideFor } = await import('./match-reading-guide');
+    const { guideFor } = await import('@/src/lib/reading/match-reading-guide');
     const appendTo = process.env.READING_MATCH_RUN_DIR;
 
     type Subject = {
@@ -654,7 +654,7 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
     const dir = appendTo ?? `${OUTPUT_ROOT}/match-input-${dry ? 'dry-' : ''}${subjects.length === 1 ? `${subjects[0].id}-` : ''}${at}`;
     const hashes = Object.fromEntries([...built].map(([key, { hash }]) => [key, hash]));
 
-    type Line = import('./match-input-eval').MatchRunRecord & {
+    type Line = import('@/src/lib/reading/match-input-eval').MatchRunRecord & {
       baseline: number;
       usage: unknown;
       output: { markdown: string; score: number | null; metaphor: string } | null;
