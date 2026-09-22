@@ -140,8 +140,7 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 
 고치지 않고 적어 둔다 — 고칠 때는 이 표와 시험의 지문에서 함께 지운다.
 
-- **코드가 용어집과 다른 말을 쓰는 자리 일곱**은 `CONTEXT.md` §10 「어긋난 이름」이 든다
-  (`isSelf` · `revision` 계열 · `birthDate` · `metaphor` · `suspended` · `DiscoveryProfile` ·
-  `discovery_snapshot`). 그 표의 이름이 코드에 아직 있는지는 시험이 잰다(ADR 0088).
+- **코드가 용어집과 다른 말을 쓰는 자리 여섯**은 `CONTEXT.md` §10 「어긋난 이름」이 든다
+  (`isSelf` · `revision` 계열 · `birthDate` · `metaphor` · `DiscoveryProfile` · `discovery_snapshot`). 그 표의 이름이 코드에 아직 있는지는 시험이 잰다(ADR 0088).
 - `if (error) return null` 셋, `!` 열여섯, `as unknown as` 여덟 — 위 표. 목록은 시험에 있다.
 - `app/me/survey/form.tsx` 의 `react-hooks/exhaustive-deps` 표시에 까닭이 없다.
