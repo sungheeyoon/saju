@@ -140,12 +140,8 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 
 고치지 않고 적어 둔다 — 고칠 때는 이 표와 시험의 지문에서 함께 지운다.
 
-- `isSelf` — 화면 여섯(`app/compat-picker.tsx` · `app/save-for-reading.tsx` · `app/me/people/manage.tsx` …).
-  용어집은 `selfPerson`.
-- `revision` — `add_person_revision` · `person_chart_revision` 은 ADR 0071 뒤에 남은 DB 함수
-  이름이고, `app/me/revise.tsx` · `src/lib/input/revision.test.ts` 가 그 이름을 든다. 화면 문구에는
-  안 샌다(`consent.test.ts`).
-- `birthDate` — 엔진의 `now` · `saeun` · `wolun` 이 인자 이름으로 쓴다. 용어집은 「어느 달력인지
-  안 말한다」고 피한다 — 엔진 안에서는 변환된 양력 하나뿐이라 뜻은 안 갈리지만 이름은 어긋난다.
+- **코드가 용어집과 다른 말을 쓰는 자리 일곱**은 `CONTEXT.md` §10 「어긋난 이름」이 든다
+  (`isSelf` · `revision` 계열 · `birthDate` · `metaphor` · `suspended` · `DiscoveryProfile` ·
+  `discovery_snapshot`). 그 표의 이름이 코드에 아직 있는지는 시험이 잰다(ADR 0088).
 - `if (error) return null` 셋, `!` 열여섯, `as unknown as` 여덟 — 위 표. 목록은 시험에 있다.
 - `app/me/survey/form.tsx` 의 `react-hooks/exhaustive-deps` 표시에 까닭이 없다.

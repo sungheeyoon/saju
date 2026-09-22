@@ -387,6 +387,7 @@ describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 �
 /** 세션마다 처음 읽히는 문서 — 여기 적힌 경로가 낡으면 에이전트가 없는 파일을 찾아 헤맨다 */
 const ENTRY_DOCS = [
   join(ROOT, 'CLAUDE.md'),
+  join(ROOT, 'CONTEXT.md'),
   join(ROOT, 'README.md'),
   join(ROOT, 'docs/architecture.md'),
   ...readdirSync(join(ROOT, 'docs/agents')).map((name) => join(ROOT, 'docs/agents', name)),
@@ -411,5 +412,66 @@ describe('입구 문서가 가리키는 경로 (docs/agents/test-map.md)', () =>
     }
     expect(seen).toBeGreaterThan(60);
     expect(missing).toEqual([]);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// 용어집 ↔ 코드 (CONTEXT.md §9)
+// -----------------------------------------------------------------------------
+
+/** 용어집의 식별자를 찾는 곳 — 제품 코드와 마이그레이션. 시험과 생성 파일은 뺀다(생성 파일은 마이그레이션의 사본이다) */
+const GLOSSARY_CODE = [
+  ...SOURCE_FILES.filter((file) => {
+    const rel = relPath(file);
+    return (rel.startsWith('src/') || rel.startsWith('app/')) && !isTest(rel) && !rel.endsWith('.generated.ts');
+  }),
+  ...walk(join(ROOT, 'supabase/migrations')).filter((file) => file.endsWith('.sql')),
+];
+
+/** §9 표의 「코드」 칸 — 백틱 토큰마다 `용어 :: 식별자` */
+function glossaryIdentifiers(): { term: string; token: string }[] {
+  const text = readFileSync(join(ROOT, 'CONTEXT.md'), 'utf8');
+  const section = text.slice(text.indexOf('## 9. 용어 ↔ 코드'), text.indexOf('## 10. '));
+  const out: { term: string; token: string }[] = [];
+  for (const line of section.split('\n')) {
+    const cells = line.split('|').map((cell) => cell.trim());
+    if (cells.length < 4 || cells[1] === '용어' || cells[1].startsWith('---')) continue;
+    for (const match of cells[2].matchAll(/`([^`]+)`/g)) out.push({ term: cells[1], token: match[1] });
+  }
+  return out;
+}
+
+describe('용어집 ↔ 코드 (CONTEXT.md §9)', () => {
+  it('표의 식별자는 전부 코드나 마이그레이션에 낱말로 있다 — 이름을 바꾸면 용어집도 바꾼다', () => {
+    const wanted = glossaryIdentifiers();
+    expect(wanted.length).toBeGreaterThan(150);
+    const corpus = GLOSSARY_CODE.map((file) => readFileSync(file, 'utf8')).join('\n');
+    const missing = wanted
+      .filter(({ token }) => {
+        const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return !new RegExp(`(^|[^A-Za-z0-9_])${escaped}(?![A-Za-z0-9_])`, 'm').test(corpus);
+      })
+      .map(({ term, token }) => `${term} :: ${token}`);
+    expect(missing).toEqual([]);
+  });
+
+  it('§10 이 든 어긋난 이름은 아직 코드에 있다 — 고쳤으면 표에서 지운다', () => {
+    const text = readFileSync(join(ROOT, 'CONTEXT.md'), 'utf8');
+    const section = text.slice(text.indexOf('## 10. 어긋난 이름'));
+    const corpus = [...GLOSSARY_CODE, ...SOURCE_FILES.filter((file) => relPath(file).endsWith('.tsx'))]
+      .map((file) => readFileSync(file, 'utf8'))
+      .join('\n');
+    const stale: string[] = [];
+    let seen = 0;
+    for (const line of section.split('\n')) {
+      const cells = line.split('|').map((cell) => cell.trim());
+      if (cells.length < 5 || cells[1] === '코드의 이름' || cells[1].startsWith('---')) continue;
+      for (const match of cells[1].matchAll(/`([A-Za-z_][A-Za-z0-9_]*)`/g)) {
+        seen += 1;
+        if (!new RegExp(`(^|[^A-Za-z0-9_])${match[1]}(?![A-Za-z0-9_])`).test(corpus)) stale.push(match[1]);
+      }
+    }
+    expect(seen).toBeGreaterThan(5);
+    expect(stale).toEqual([]);
   });
 });
