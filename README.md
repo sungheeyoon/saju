@@ -206,7 +206,8 @@ npm run db:start        # 로컬 Supabase (Docker) — test:db · test:flow · t
 npm run test:db         # pgTAP — 정책이 실제로 막는지. 수는 TAP plan 이 찍는다
 npm run test:flow       # 흐름 검사 7벌 — 가입부터 요청·수락·풀이까지. 수는 러너가 찍는다
 npm run test:e2e        # 익명 화면, desktop + mobile Chromium
-npm run test:e2e:authed # 로그인·인연·안내 관문
+npm run test:e2e:authed # 로그인·인연·안내 관문 — 전부, 한 워커
+npm run test:e2e:signed-in   # 차선 하나만 — match · notice 도 같은 꼴 (CI 는 이 차선들을 나란히 돈다, ADR 0082)
 ```
 
 **e2e 가 두 명령인 것은 계약이다.** 로그인하지 않은 사람을 돌려보내는 데 백엔드가 필요하면
