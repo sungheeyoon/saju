@@ -20,7 +20,7 @@ const ROOT = resolve(__dirname, '..');
 const relPath = (file: string) => relative(ROOT, file).split(sep).join('/');
 
 /** `scripts/layers.test.ts` 의 `SOURCE_EXTENSIONS` 와 같은 목록 */
-const SOURCE_EXTENSIONS = ['.ts', '.mts', '.cts', '.tsx', '.js', '.mjs', '.cjs'];
+const SOURCE_EXTENSIONS = ['.ts', '.mts', '.cts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -45,7 +45,7 @@ const PRODUCT_FILES = SOURCE_FILES.filter((file) => {
 });
 
 function parse(file: string): ts.SourceFile {
-  const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : /\.(js|mjs|cjs)$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
+  const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : file.endsWith('.jsx') ? ts.ScriptKind.JSX : /\.(js|mjs|cjs)$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
   return ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, kind);
 }
 const lineOf = (source: ts.SourceFile, node: ts.Node) => source.getLineAndCharacterOfPosition(node.getStart()).line + 1;
@@ -142,13 +142,21 @@ describe('이름 (docs/agents/code-rules.md)', () => {
     expect(rels.filter((rel) => rel.endsWith('.test.tsx'))).toEqual([]);
   });
 
-  it('시험 파일의 중간 이름은 넷뿐이다 — live · boundary · external · generated', () => {
-    const infixes = new Set<string>();
+  it('시험 파일의 중간 이름은 넷 중 하나이거나 없다 — live · boundary · external · generated', () => {
+    // 기본 이름 뒤의 점 구간 **전체**를 뗀다 — 마지막 칸만 보면 `x.weird.live.test.ts` 가 `live` 로 지나간다
+    const ALLOWED = new Set(['boundary', 'external', 'generated', 'live']);
+    const seen = new Set<string>();
+    const wrong: string[] = [];
     for (const rel of ALL_FILES.map(relPath)) {
-      const match = /\.([a-z-]+)\.test\.ts$/.exec(basename(rel));
-      if (match) infixes.add(match[1]);
+      const name = basename(rel);
+      if (!name.endsWith('.test.ts')) continue;
+      const between = name.slice(name.indexOf('.') + 1, -'.test.ts'.length);
+      if (between === '') continue;
+      if (ALLOWED.has(between)) seen.add(between);
+      else wrong.push(rel);
     }
-    expect([...infixes].sort()).toEqual(['boundary', 'external', 'generated', 'live']);
+    expect(wrong).toEqual([]);
+    expect([...seen].sort()).toEqual([...ALLOWED].sort());
   });
 
   it('마이그레이션은 시각 + 영어 문장, pgTAP 은 두 자리 번호 + 영어 문장이다', () => {
@@ -169,10 +177,15 @@ const ADR_DIR = join(ROOT, 'docs/adr');
 const ADR_FILES = readdirSync(ADR_DIR).filter((name) => name.endsWith('.md'));
 const ADR_NUMBERS = new Set(ADR_FILES.map((name) => name.slice(0, 4)));
 
-/** ADR 참조가 사는 곳 — 코드·SQL·문서 전부 */
+/** 루트의 설정 파일 — `playwright.config.ts` 처럼 ADR 을 가리키는 것이 있다 */
+const ROOT_FILES = readdirSync(ROOT)
+  .filter((name) => SOURCE_EXTENSIONS.includes(extname(name)) && !name.endsWith('.d.ts'))
+  .map((name) => join(ROOT, name));
+
+/** ADR 참조가 사는 곳 — 코드·루트 설정·SQL·문서 전부 */
 const REFERRING_FILES = [
   ...SOURCE_FILES,
-  join(ROOT, 'eslint.config.mjs'),
+  ...ROOT_FILES.filter((file) => file !== join(ROOT, 'proxy.ts')),
   ...walk(join(ROOT, 'supabase')).filter((file) => file.endsWith('.sql')),
   ...walk(join(ROOT, 'docs')).filter((file) => file.endsWith('.md')),
   join(ROOT, 'CONTEXT.md'),
