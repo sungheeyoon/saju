@@ -76,16 +76,35 @@ describe('운 한 칸의 읽기는 한 자리에서 나온다', () => {
     expect(compared, '세 표에 겹치는 간지가 없어 아무것도 못 쟀다').toBeGreaterThan(0);
   });
 
-  /** 계통은 넘겨받는다 — 안 넘기면 세 표가 한 화면에서 갈린다 */
+  /**
+   * **계통이 실제로 값을 바꾸는 것까지 잰다.**
+   *
+   * 이 자리는 앞서 십성·신살이 **같다**는 것만 쟀다. 그 둘은 계통과 무관하므로 `stages`
+   * 를 넘기는 인자를 통째로 지워도 통과했다 — **이름이 말하는 것을 안 재던 시험**이고,
+   * ADR 0074 가 적어 둔 함정에 내가 그대로 빠진 자리다(리뷰에서 걸렸다).
+   *
+   * 열두 지지 중에는 두 계통이 같은 값을 내는 자리도 있으므로 칸마다 보지 않고
+   * **갈리는 칸을 세어** 본다 — `daeun.test.ts` 가 같은 모양으로 잰다.
+   */
   it('12운성 계통이 실제로 값을 바꾼다', () => {
-    const pillar = saju.saeun.entries[0].pillar;
+    const readings = (pillar: (typeof saju.saeun.entries)[number]['pillar'], yinReverse: boolean) =>
+      fortuneReadingsOf(saju.pillars, pillar, { yinReverse });
 
-    const forward = fortuneReadingsOf(saju.pillars, pillar, { yinReverse: false });
-    const reverse = fortuneReadingsOf(saju.pillars, pillar, { yinReverse: true });
+    const split = saju.saeun.entries.filter(
+      (entry) => readings(entry.pillar, false).stage !== readings(entry.pillar, true).stage,
+    );
 
-    /* 십성·신살은 계통과 무관하다 — 갈리는 것은 12운성뿐이다 */
-    expect(forward.tenGods).toEqual(reverse.tenGods);
-    expect(forward.spirits).toEqual(reverse.spirits);
+    expect(split.length, '일간이 음간이라 계통이 갈리는 칸이 있어야 한다').toBeGreaterThan(0);
+
+    /* 갈리는 것은 12운성뿐이다 — 십성·신살은 계통과 무관하다 */
+    for (const entry of split) {
+      expect(readings(entry.pillar, false).tenGods, entry.chartId).toEqual(
+        readings(entry.pillar, true).tenGods,
+      );
+      expect(readings(entry.pillar, false).spirits, entry.chartId).toEqual(
+        readings(entry.pillar, true).spirits,
+      );
+    }
   });
 });
 
