@@ -199,6 +199,8 @@ TypeScript 라 브라우저에서도 서버에서도 그대로 돈다.
 
 ## 검증
 
+무엇을 고쳤을 때 무엇을 돌리는가는 `docs/agents/test-map.md` 가 답한다. 아래는 명령과 엔진의 검증 근거다.
+
 ```bash
 npm test          # 단위 시험 — 수는 실행이 찍는다
 npm run verify    # test + typecheck + lint + production build

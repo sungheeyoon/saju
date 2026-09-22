@@ -22,6 +22,12 @@
 못 잡을 것은 `scripts/code-rules.test.ts` 가 든다 — 문서와 어긋나면 그 둘이 맞다. **한글 문구는
 코드에 넣기 전에 표로 보여주고 답을 기다린다.**
 
+## 무엇을 돌리는가는 `docs/agents/test-map.md` 가
+
+시험 넷(단위 · pgTAP · 흐름 · e2e)이 층마다 어디까지 닿는지, **고친 자리 → 로컬 명령** 표, 잠긴
+실호출 시험 셋, CI 차선은 **`docs/agents/test-map.md`** 가 답한다. 규칙의 원본은 `scripts/ci-plan.mjs`
+다. vitest 는 `.tsx` 에 안 닿는다 — 화면을 건드렸으면 커밋 전에 e2e 를 돌린다.
+
 ## Agent skills
 
 ### Issue tracker
