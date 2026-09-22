@@ -1,4 +1,4 @@
-import { BRANCH_INFO, type Pillar, type Stem } from '../constants';
+import { BRANCH_INFO, type Pillar } from '../constants';
 import { ageOnDate, koreaDateOf } from '../age';
 import type { CivilDate } from '../civilTime';
 import {
@@ -7,17 +7,17 @@ import {
   type DaeunAbsence,
   type DaeunSpan,
 } from '../daeun';
+import { fortuneChart, fortuneReadingsOf } from '../fortune';
 import type { Pillars } from '../pillars';
 import { monthPillarOf } from '../pillars/month';
 import { yearPillarOf } from '../pillars/year';
 import { findRelationsAmong, type LabeledPillars, type Relation } from '../relations';
 import { getSolarTerms, type SolarTerm } from '../solarTerms';
-import { twelveSpiritOf, type SpiritBasis, type TwelveSpirit } from '../sinsal';
-import { tenGodOf, tenGodOfBranch, type TenGod } from '../analysis/tenGods';
+import type { SpiritBasis, TwelveSpirit } from '../sinsal';
+import type { TenGod } from '../analysis/tenGods';
 import { saeunChartId } from '../saeun';
 import {
   DEFAULT_YIN_REVERSE,
-  twelveStageOf,
   type TwelveStage,
   type TwelveStageOptions,
 } from '../stages';
@@ -125,25 +125,18 @@ export function computeWolun(input: WolunInput, options: WolunOptions = {}): Wol
     throw new InvalidWolunRangeError(`사주년은 정수여야 합니다: ${year}`);
   }
 
-  const dayMaster: Stem = pillars.dayMaster;
   const annualPillar = yearPillarOf(year);
 
   const natal: LabeledPillars = { chartId: 'natal', pillars };
-  const annual: LabeledPillars = {
-    chartId: saeunChartId(year),
-    pillars: { year: annualPillar, month: null, day: null, hour: null },
-  };
+  const annual = fortuneChart(saeunChartId(year), 'year', annualPillar);
 
   const entries = monthSpansOf(year).map(({ startTerm, nextTerm }) => {
     const monthOrder = BRANCH_INFO[startTerm.branch].monthOrder;
     const pillar = monthPillarOf(annualPillar.stem, startTerm.branch);
     const chartId = wolunChartId(year, monthOrder);
 
-    // 월운도 기둥이 하나뿐이다. 자리는 월주라 'month' 로 적는다.
-    const monthly: LabeledPillars = {
-      chartId,
-      pillars: { year: null, month: pillar, day: null, hour: null },
-    };
+    // 자리는 월주라 'month' 다.
+    const monthly = fortuneChart(chartId, 'month', pillar);
 
     // 절입에서 다음 절입 직전까지의 만 나이. 세운이 입춘 구간을 재는 것과 같은
     // 방식이다 — 두 곳이 나이를 다르게 재면 같은 날이 다른 대운에 든다.
@@ -164,15 +157,7 @@ export function computeWolun(input: WolunInput, options: WolunOptions = {}): Wol
       pillar,
       startTerm,
       nextTerm,
-      tenGods: {
-        stem: tenGodOf(dayMaster, pillar.stem),
-        branch: tenGodOfBranch(dayMaster, pillar.branch),
-      },
-      stage: twelveStageOf(dayMaster, pillar.branch, options.stages),
-      spirits: {
-        year: twelveSpiritOf(pillars.year.branch, pillar.branch),
-        day: twelveSpiritOf(pillars.day.branch, pillar.branch),
-      },
+      ...fortuneReadingsOf(pillars, pillar, options.stages),
       // 월운이 낀 것만. 원국↔세운 관계는 세운의 몫이라 여기서 빼야 한다 —
       // scope 만 보고 거르면 그것까지 딸려 온다.
       relations: [

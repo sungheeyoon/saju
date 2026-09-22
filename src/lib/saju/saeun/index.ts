@@ -1,6 +1,7 @@
-import type { Pillar, Stem } from '../constants';
+import type { Pillar } from '../constants';
 import { ageOnDate, koreaDateOf } from '../age';
 import type { CivilDate } from '../civilTime';
+import { fortuneChart, fortuneReadingsOf } from '../fortune';
 import type { Pillars } from '../pillars';
 import { yearPillarOf } from '../pillars/year';
 import {
@@ -11,11 +12,10 @@ import {
 } from '../daeun';
 import { findRelationsAmong, type LabeledPillars, type Relation } from '../relations';
 import { getSolarTerms, type SolarTerm } from '../solarTerms';
-import { twelveSpiritOf, type SpiritBasis, type TwelveSpirit } from '../sinsal';
-import { tenGodOf, tenGodOfBranch, type TenGod } from '../analysis/tenGods';
+import type { SpiritBasis, TwelveSpirit } from '../sinsal';
+import type { TenGod } from '../analysis/tenGods';
 import {
   DEFAULT_YIN_REVERSE,
-  twelveStageOf,
   type TwelveStage,
   type TwelveStageOptions,
 } from '../stages';
@@ -159,7 +159,6 @@ export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Sae
     throw new InvalidSaeunRangeError(`시작 연도는 정수여야 합니다: ${from}`);
   }
 
-  const dayMaster: Stem = pillars.dayMaster;
   const natal: LabeledPillars = { chartId: 'natal', pillars };
   const { daeun } = input;
 
@@ -175,12 +174,8 @@ export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Sae
       koreaDateOf(new Date(nextStartTerm.date.getTime() - 1)),
     );
 
-    // 세운은 기둥이 하나뿐이다. 나머지 세 자리는 비워 둔다 — 없는 글자로
-    // 관계를 만들지 않는 것은 시간 미상 시주와 같은 규칙이다.
-    const annual: LabeledPillars = {
-      chartId,
-      pillars: { year: pillar, month: null, day: null, hour: null },
-    };
+    // 연간지라 자리는 'year' 다 — 빈 세 자리의 규칙은 `fortuneChart` 가 든다.
+    const annual = fortuneChart(chartId, 'year', pillar);
 
     // 이 해를 감싼 대운과 견준다. 원국을 함께 넘기므로 원국·대운·세운 세 판에
     // 걸쳐 서는 삼합·방합까지 잡힌다 — 두 판만 놓고는 안 보이는 것들이다.
@@ -200,15 +195,7 @@ export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Sae
       ageAtEnd,
       startTerm,
       nextStartTerm,
-      tenGods: {
-        stem: tenGodOf(dayMaster, pillar.stem),
-        branch: tenGodOfBranch(dayMaster, pillar.branch),
-      },
-      stage: twelveStageOf(dayMaster, pillar.branch, options.stages),
-      spirits: {
-        year: twelveSpiritOf(pillars.year.branch, pillar.branch),
-        day: twelveSpiritOf(pillars.day.branch, pillar.branch),
-      },
+      ...fortuneReadingsOf(pillars, pillar, options.stages),
       // 세운이 낀 것만. 원국 안에서만 닫힌 관계는 해마다 같으므로 뺀다.
       // 대운과 걸리는 것은 따로 세어 뒤에 붙인다 — 넓은 것부터 좁은 것 순서다.
       relations: [
