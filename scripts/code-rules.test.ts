@@ -565,15 +565,28 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
     expect(ask.filter((rule) => deny.includes(rule))).toEqual([]);
   });
 
-  it('이슈 틀과 PR 틀의 칸은 전부 위임 규약 문서에 같은 이름으로 있다', () => {
-    const templates = [
-      { file: '.github/ISSUE_TEMPLATE/ready-for-agent.md', expected: 7 },
-      { file: '.github/pull_request_template.md', expected: 6 },
+  /** 문서의 한 절 안에서, 표의 첫 칸이 `**이름**` 인 줄의 그 이름들 — 차례대로 */
+  function columnsOfSection(heading: string): string[] {
+    const start = doc.indexOf(`\n## ${heading}`);
+    const end = doc.indexOf('\n## ', start + 1);
+    expect(start, heading).toBeGreaterThan(-1);
+    return doc
+      .slice(start, end === -1 ? undefined : end)
+      .split('\n')
+      .map((line) => /^\| \*\*([^*]+)\*\* \|/.exec(line)?.[1].trim() ?? null)
+      .filter((name): name is string => name !== null);
+  }
+
+  it('이슈 틀과 PR 틀의 칸은 위임 규약 문서의 표와 차례까지 같다 — 어느 쪽에 더해도 붉어진다', () => {
+    const pairs = [
+      { file: '.github/ISSUE_TEMPLATE/ready-for-agent.md', section: '맡길 이슈', expected: 7 },
+      { file: '.github/pull_request_template.md', section: '끝났다는 것', expected: 6 },
     ];
-    for (const { file, expected } of templates) {
+    for (const { file, section, expected } of pairs) {
       const headings = [...readFileSync(join(ROOT, file), 'utf8').matchAll(/^## (.+)$/gm)].map((match) => match[1].trim());
-      expect(headings.length, file).toBe(expected);
-      expect(headings.filter((heading) => !doc.includes(`**${heading}**`)), file).toEqual([]);
+      const columns = columnsOfSection(section);
+      expect(columns.length, section).toBe(expected);
+      expect(headings, file).toEqual(columns);
     }
   });
 
