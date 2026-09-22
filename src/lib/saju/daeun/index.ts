@@ -1,13 +1,13 @@
 import { STEM_INFO, pillarAt, type Pillar, type Stem } from '../constants';
 import { InvalidSajuInputError, type Gender } from '../input';
-import { tenGodOf, tenGodOfBranch, type TenGod } from '../analysis/tenGods';
+import type { TenGod } from '../analysis/tenGods';
+import { fortuneChart, fortuneReadingsOf } from '../fortune';
 import type { Pillars } from '../pillars';
 import { findRelationsAmong, type LabeledPillars, type Relation } from '../relations';
-import { twelveSpiritOf, type SpiritBasis, type TwelveSpirit } from '../sinsal';
+import type { SpiritBasis, TwelveSpirit } from '../sinsal';
 import type { SolarTerm } from '../solarTerms';
 import {
   DEFAULT_YIN_REVERSE,
-  twelveStageOf,
   type TwelveStage,
   type TwelveStageOptions,
 } from '../stages';
@@ -261,7 +261,6 @@ export function computeDaeun(input: DaeunInput, options: DaeunOptions = {}): Dae
   const { pillars, instant, birthYear, gender } = input;
 
   const yearStem: Stem = pillars.year.stem;
-  const dayMaster: Stem = pillars.dayMaster;
   const direction = daeunDirectionOf(yearStem, gender);
 
   // 순행은 앞으로 올 절입까지, 역행은 지나온 절입까지의 거리를 잰다.
@@ -282,13 +281,8 @@ export function computeDaeun(input: DaeunInput, options: DaeunOptions = {}): Dae
     const pillar = daeunPillarAt(pillars.month, direction, index);
     const chartId = daeunChartId(index);
 
-    // 대운도 기둥이 하나뿐이다. 자리는 월주에서 옮긴 것이라 'month' 로 적는다 —
-    // 자리 이름은 판 안에서만 뜻이 있고 판을 가르는 것은 `chartId` 다(원국 년주와
-    // 세운 년주가 둘 다 'year' 인 것과 같다).
-    const decade: LabeledPillars = {
-      chartId,
-      pillars: { year: null, month: pillar, day: null, hour: null },
-    };
+    // 자리는 월주에서 옮긴 것이라 'month' 다 — 빈 세 자리의 규칙은 `fortuneChart` 가 든다.
+    const decade = fortuneChart(chartId, 'month', pillar);
 
     return {
       index,
@@ -297,15 +291,7 @@ export function computeDaeun(input: DaeunInput, options: DaeunOptions = {}): Dae
       endAge: from + YEARS_PER_DAEUN - 1,
       startYear: birthYear + from,
       pillar,
-      tenGods: {
-        stem: tenGodOf(dayMaster, pillar.stem),
-        branch: tenGodOfBranch(dayMaster, pillar.branch),
-      },
-      stage: twelveStageOf(dayMaster, pillar.branch, options.stages),
-      spirits: {
-        year: twelveSpiritOf(pillars.year.branch, pillar.branch),
-        day: twelveSpiritOf(pillars.day.branch, pillar.branch),
-      },
+      ...fortuneReadingsOf(pillars, pillar, options.stages),
       // 이 대운이 낀 것만. 원국 안에서 닫힌 관계는 칸마다 같으므로 뺀다.
       relations: findRelationsAmong([natal, decade]).filter((relation) =>
         relation.participants.some((participant) => participant.chartId === chartId),
@@ -419,11 +405,8 @@ export function daeunCrossingsOf(
   }));
 
   const relations = entries.flatMap((entry) => {
-    // 대운도 기둥이 하나뿐이다 — 대운 표를 뽑을 때와 같은 자리('month')를 쓴다.
-    const decade: LabeledPillars = {
-      chartId: entry.chartId,
-      pillars: { year: null, month: entry.pillar, day: null, hour: null },
-    };
+    // 대운 표를 뽑을 때와 같은 자리('month')를 쓴다.
+    const decade = fortuneChart(entry.chartId, 'month', entry.pillar);
 
     // 이 칸과 그 대운이 **둘 다** 낀 것만. 한쪽만 낀 것은 이미 다른 곳에 있다 —
     // 원국↔대운은 대운 칸이, 원국↔세운은 세운 칸이 벌써 들고 있다.
