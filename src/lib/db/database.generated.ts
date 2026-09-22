@@ -176,6 +176,220 @@ export type Database = {
           },
         ]
       }
+      chat_message: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          room_id: string
+          sender_user_id: string
+          seq: number
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          room_id: string
+          sender_user_id: string
+          seq?: never
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          room_id?: string
+          sender_user_id?: string
+          seq?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_message_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_room"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_message_sender_user_id_fkey"
+            columns: ["sender_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_rate_limit_hit: {
+        Row: {
+          created_at: string
+          id: string
+          room_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          room_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          room_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_rate_limit_hit_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_room"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_rate_limit_hit_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_read: {
+        Row: {
+          last_read_seq: number
+          read_at: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          last_read_seq?: number
+          read_at?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          last_read_seq?: number
+          read_at?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_read_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_room"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_read_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_report_snapshot: {
+        Row: {
+          captured_at: string
+          context_after: number
+          context_before: number
+          match_id: string
+          message_id: string
+          messages: Json
+          report_id: string
+        }
+        Insert: {
+          captured_at?: string
+          context_after: number
+          context_before: number
+          match_id: string
+          message_id: string
+          messages: Json
+          report_id: string
+        }
+        Update: {
+          captured_at?: string
+          context_after?: number
+          context_before?: number
+          match_id?: string
+          message_id?: string
+          messages?: Json
+          report_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_report_snapshot_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: true
+            referencedRelation: "report"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_room: {
+        Row: {
+          closed_at: string | null
+          closed_by_user_id: string | null
+          closed_reason: string | null
+          id: string
+          match_id: string
+          opened_at: string
+          user_high: string
+          user_low: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by_user_id?: string | null
+          closed_reason?: string | null
+          id?: string
+          match_id: string
+          opened_at?: string
+          user_high: string
+          user_low: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by_user_id?: string | null
+          closed_reason?: string | null
+          id?: string
+          match_id?: string
+          opened_at?: string
+          user_high?: string
+          user_low?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_room_closed_by_user_id_fkey"
+            columns: ["closed_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_room_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: true
+            referencedRelation: "match"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_room_user_high_fkey"
+            columns: ["user_high"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_room_user_low_fkey"
+            columns: ["user_low"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       discovery_impression: {
         Row: {
           candidate_summary: Json
@@ -1385,6 +1599,22 @@ export type Database = {
       beta_is_over: { Args: never; Returns: boolean }
       block_user: { Args: { p_user_id: string }; Returns: boolean }
       cancel_match_request: { Args: { p_request_id: string }; Returns: string }
+      chat_message_max_length: { Args: never; Returns: number }
+      chat_policy: {
+        Args: never
+        Returns: {
+          max_length: number
+          rate_limit: number
+          rate_window_seconds: number
+          retention_days: number
+          snapshot_context: number
+        }[]
+      }
+      chat_rate_limit: { Args: never; Returns: number }
+      chat_rate_window: { Args: never; Returns: string }
+      chat_retention: { Args: never; Returns: string }
+      chat_room_readable: { Args: { p_room_id: string }; Returns: boolean }
+      chat_snapshot_context: { Args: never; Returns: number }
       claim_reading_job: {
         Args: { p_response_id: string }
         Returns: {
@@ -1601,6 +1831,7 @@ export type Database = {
         Returns: undefined
       }
       lock_users: { Args: { a: string; b: string }; Returns: undefined }
+      mark_chat_read: { Args: { p_match_id: string }; Returns: number }
       mark_notifications_read: { Args: never; Returns: number }
       mark_reading_webhook_processed: {
         Args: { p_event_id: string }
@@ -1633,6 +1864,32 @@ export type Database = {
         Returns: boolean
       }
       may_see_photo: { Args: { p_user_id: string }; Returns: boolean }
+      my_chat_messages: {
+        Args: { p_before_seq?: number; p_limit?: number; p_match_id: string }
+        Returns: {
+          body: string
+          created_at: string
+          message_id: string
+          mine: boolean
+          sender_user_id: string
+          seq: number
+        }[]
+      }
+      my_chat_rooms: {
+        Args: never
+        Returns: {
+          closed_at: string
+          closed_reason: string
+          last_message_at: string
+          last_message_body: string
+          match_id: string
+          opened_at: string
+          partner_has_photo: boolean
+          partner_nickname: string
+          partner_user_id: string
+          unread_count: number
+        }[]
+      }
       my_discovery_board: {
         Args: never
         Returns: {
@@ -1978,6 +2235,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      purge_closed_chat_messages: { Args: never; Returns: number }
       reading_about: {
         Args: {
           p_actor: string
@@ -2068,6 +2326,10 @@ export type Database = {
         Returns: undefined
       }
       release_reading_job: { Args: { p_run_id: string }; Returns: undefined }
+      report_chat_message: {
+        Args: { p_detail?: string; p_message_id: string; p_reason: string }
+        Returns: string
+      }
       report_user: {
         Args: { p_detail?: string; p_reason: string; p_user_id: string }
         Returns: boolean
@@ -2116,6 +2378,10 @@ export type Database = {
           p_wants: string[]
           p_wants_new: string[]
         }
+        Returns: string
+      }
+      send_chat_message: {
+        Args: { p_body: string; p_match_id: string }
         Returns: string
       }
       service_survey_context: {
@@ -2236,6 +2502,7 @@ export type Database = {
           run_id: string
         }[]
       }
+      unread_chat_count: { Args: never; Returns: number }
       unread_notifications: { Args: never; Returns: number }
       visible_matches: {
         Args: never

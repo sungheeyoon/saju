@@ -86,7 +86,8 @@ _Avoid_: 차단, 숨김, 제재(제재는 운영자가 하는 것이고 신고�
 
 **차단** — `block` 표 · `blockUser` : 그 사람과의 접촉을 끊는 결정. **양방향이고 되돌리지
 않는다** — 서로의 후보 목록에서 사라지고, 살아 있던 **pending 요청**도 그 자리에서
-거둬진다. 이미 성립한 **Match** 는 목록에서 내려가되 기록은 남는다.
+거둬진다. 이미 성립한 **Match** 는 목록에서 내려가되 기록은 남는다. **대화방**은 닫히되 둘의
+목록에 남고 둘 다 이전 대화를 본다(**닫힘**, ADR 0091).
 _Avoid_: 숨김, 신고
 
 **관계**
@@ -497,6 +498,38 @@ _Avoid_: 상세 궁합 리포트, 해석, Reading
 동의한 것이 그때의 값이라서다(ADR 0012·0071).
 _Avoid_: 매인 판본, 현재 명식, 최신 입력
 
+**대화방** — `chat_room` 표 · `my_chat_rooms` : 성립한 **Match** 한 쌍에 하나씩 서는 방(PRD §7.1).
+**Match 에 1:1** 이고 Match 가 서는 순간 트리거가 세운다 — 앱이 만들지 않는다. 방을 여는 열쇠는
+Match 의 id 다. 목록은 **탭**이고, 안 읽은 수(`unread_chat_count`)는 그 탭이 든다 — **앱 내 알림**
+일곱에 새 메시지는 들지 않는다. DB 층만 있다(ADR 0091, 화면은 G-10).
+_Avoid_: 채팅방, 대화(메시지의 묶음을 뜻할 때만), 스레드
+
+**메시지** — `chat_message` 표 · `send_chat_message` · `my_chat_messages` : 대화방 안의 한 줄.
+보낸 사람 · 본문 · 시각 · **차례(`seq`)** 를 든다. 한 건은 1,000자까지이고 **삭제 · 수정은 없다** —
+신고 스냅샷이 불변이라는 규칙과 맞물린다. 지워지는 길은 **닫힘** 뒤 90일이 지나 운영자가 지우는
+것뿐이다(runbook 「채팅」).
+_Avoid_: 채팅, 글(풀이의 글과 헷갈림), 댓글
+
+**닫힘** — `chat_room.closed_reason` · `closed_by_user_id` · `closed_at` · `chat_room_readable` :
+대화방의 **입력이 양쪽 다 안 되는 상태**. 방이 사라지거나 기록이 지워지는 것이 아니다. 이유는 셋
+— `block` · `suspension` · `deletion_request` — 이고 **닫힌 이유가 누가 이전 대화를 보는지를
+정한다**: 차단은 둘 다, 중지 · 삭제 요청은 그 사람이 아닌 쪽만. 닫는 자리는 전부 트리거이고
+되돌리지 않는다. 닫힌 시각은 이유마다 출처가 다르다 — 차단 행 · 삭제 요청 시각 · 그리고 중지는
+**이 칸이 유일한 출처**다(ADR 0091).
+_Avoid_: 삭제, 나가기, 차단(닫힘의 한 이유일 뿐이다)
+
+**전송 한도** — `chat_rate_limit` · `chat_policy` · `chat_rate_limit_hit` 표 : **계정당 1분 30건**.
+방 · 상대와 무관하게 계정 단위로 세고 **함수 안에서** 센다(ADR 0039). 걸린 전송은 거절되고
+값으로 돌아오며(`rate_limited`), 한 건 한 줄로 남는다 — 던지면 트랜잭션이 되돌아가 세지 못한다.
+수의 원본은 DB 의 `chat_policy()` 다.
+_Avoid_: 도배 방지, 스팸 필터, 쿨다운
+
+**신고 스냅샷** — `chat_report_snapshot` 표 · `report_chat_message` : **메시지 하나를 고른 신고**에
+붙는 불변 사본. 고른 것과 앞 5 · 뒤 5 를 그때의 본문 그대로 jsonb 한 칸에 베낀다. **메시지에 FK 로
+매지 않는다** — 메시지가 지워져도 남고, 수명은 **신고**를 따른다. 운영자만 runbook 의 SQL 로
+읽는다 — 대화방 전체를 여는 열쇠는 없다. 사람을 신고하는 `report_user` 는 그대로다.
+_Avoid_: 증거(법의 말), 캡처, 로그
+
 **관계**
 - 한 **User** 는 **DiscoveryProfile** 을 하나 갖거나 갖지 않는다
 - **매칭 참여** 중인 User 의 **selfPerson** 만 **후보**가 된다 — 대신 등록한 Person 은 아니다
@@ -701,6 +734,11 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | Match | `match` · `my_matches` · `visible_matches` | 표 · 함수 |
 | 공유 결과 | `matchResultForViewer` | `app/me/match/result.ts` |
 | 동의 당시 여덟 글자 | `chart_high` · `chart_low` · `freeze_reading_input` | `match` 칸 · 함수 |
+| 대화방 | `chat_room` · `my_chat_rooms` · `unread_chat_count` | 표 · 함수 |
+| 메시지 | `chat_message` · `send_chat_message` · `my_chat_messages` · `mark_chat_read` | 표 · 함수 |
+| 닫힘 | `closed_reason` · `closed_by_user_id` · `closed_at` · `chat_room_readable` | `chat_room` 칸 · 함수 |
+| 전송 한도 | `chat_rate_limit` · `chat_policy` · `chat_rate_limit_hit` | 함수 · 표 |
+| 신고 스냅샷 | `chat_report_snapshot` · `report_chat_message` · `purge_closed_chat_messages` | 표 · 함수 |
 | 풀이권 | `my_reading_credits` · `reading_credit_limit_for` · `readingCredits` | 함수 · 읽는 문 |
 | 풀이권 예외 | `reading_credit_grant` | 표 |
 | Person 한도 | `person_limit` · `my_person_slots` · `PersonSlots` | 함수 · `src/lib/people` |
