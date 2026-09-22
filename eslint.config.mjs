@@ -15,6 +15,19 @@ import importPlugin from "eslint-plugin-import";
  * `no-restricted-imports` 로 가른다.
  */
 
+/** 읽는 확장자 — `scripts/layers.test.ts` 의 `SOURCE_EXTENSIONS` 와 같은 목록. `tsconfig` 가 `.mts` 를 포함한다 */
+const TS = "{ts,mts,cts}";
+const ANY = "{ts,mts,cts,tsx,js,mjs,cjs}";
+
+/**
+ * `import()` 의 대상은 **따옴표 문자열**로만 적는다 — 백틱·변수·식은 린트도 시험도 해석할 수
+ * 없어 모르는 것이고, 모르는 것은 막는다(ADR 0082 의 CI 계획과 같은 결).
+ */
+const NO_UNKNOWN_DYNAMIC_IMPORT = {
+  selector: "ImportExpression > :not(Literal)",
+  message: "import() 대상은 따옴표 문자열 하나로 적는다 — 백틱·변수·식은 층 검사가 못 읽는다 (ADR 0085)",
+};
+
 /** 파일로 푸는 경로 규칙 — 별칭이든 상대경로든 `import()` 든 같은 파일이면 같은 답이다 */
 const PATH_ZONES = [
   { target: "./src/lib", from: "./app", message: "src/lib 은 app 을 모른다 — 방향이 거꾸로다 (docs/architecture.md)" },
@@ -60,7 +73,8 @@ const NO_NODE = [
  *
  * 구문으로 거른다: `.rpc()` 와 `.from()`. `.from()` 은 `Array.from` 같은 이름과 겹쳐서 객체
  * 이름으로 뺀다. 잠근 날 이미 부르고 있던 열세 자리는 **그 줄에** `eslint-disable-next-line`
- * 이 붙어 있다 — 파일이 아니라 호출 하나가 예외이고, 그 수는 `scripts/layers.test.ts` 가 센다.
+ * 이 붙어 있다. 그 표시는 줄 하나를 통째로 끄므로, **어느 호출인지는 `scripts/layers.test.ts`
+ * 가 지문으로 잠근다** — 같은 줄의 둘째 호출도, 지운 자리의 예산을 쓰는 새 호출도 거기서 빨개진다.
  */
 const NO_DB_CALL_IN_SCREENS = [
   {
@@ -101,14 +115,17 @@ const eslintConfig = defineConfig([
   // 층의 방향 (ADR 0085) — 경로는 파일로 풀어서, 패키지는 이름으로
   // ---------------------------------------------------------------------------
   {
-    files: ["src/lib/**/*.ts", "scripts/**/*.{ts,mjs}", "e2e/**/*.ts"],
+    files: [`src/lib/**/*.${ANY}`, `scripts/**/*.${ANY}`, `e2e/**/*.${ANY}`],
     plugins: { import: importPlugin },
     settings: { "import/resolver": { typescript: { project: "./tsconfig.json" }, node: true } },
-    rules: { "import/no-restricted-paths": ["error", { zones: PATH_ZONES }] },
+    rules: {
+      "import/no-restricted-paths": ["error", { zones: PATH_ZONES }],
+      "no-restricted-syntax": ["error", NO_UNKNOWN_DYNAMIC_IMPORT],
+    },
   },
   {
     /** 도메인 lib — 실행 환경도, supabase 도, React 도 모른다 */
-    files: ["src/lib/**/*.ts"],
+    files: [`src/lib/**/*.${TS}`],
     ignores: ["src/lib/local-env.ts", "src/lib/**/*.live.test.ts"],
     rules: { "no-restricted-imports": ["error", { patterns: [...APP_ONLY_PACKAGES, ...NO_SUPABASE, ...NO_NODE] }] },
   },
@@ -124,6 +141,11 @@ const eslintConfig = defineConfig([
   {
     files: ["app/**/*.tsx"],
     rules: { "no-restricted-syntax": ["error", ...NO_DB_CALL_IN_SCREENS] },
+  },
+  {
+    /** 화면 폴더의 .ts 도 import() 대상은 문자열이다 — 라이브 시험이 여기 산다 */
+    files: [`app/**/*.${TS}`],
+    rules: { "no-restricted-syntax": ["error", NO_UNKNOWN_DYNAMIC_IMPORT] },
   },
 ]);
 

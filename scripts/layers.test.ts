@@ -2,23 +2,28 @@
  * **층의 방향은 이 시험이 잠근다** (ADR 0085, `docs/architecture.md`).
  *
  * `eslint.config.mjs` 가 같은 규칙을 편집기에서 알려 주지만, 린트는 규칙마다 사각이 있다 —
- * 첫 판은 별칭의 정적 import 만 봐서 상대경로·`import()` 가 지나갔다. 여기는 import 문을
- * **네 형태 다** 문자열로 집어 와(정적 · `export … from` · `import()` · `require()`) 파일로
- * 풀고, 규칙 하나에 단언 하나를 둔다. 린트가 바뀌어도 이 시험은 그대로 잰다.
+ * 첫 판은 별칭의 정적 import 만 봐서 상대경로·`import()` 가 지나갔고, 둘째 판은 문자열
+ * 정규식이라 `.mts` 와 백틱 `import(\`…\`)` 이 지나갔다. 여기는 **TypeScript AST** 로
+ * import 를 읽는다 — 정적 · `export … from` · `import()` · `require()` 넷을 같은 자리에서
+ * 집고, 대상이 문자열 리터럴이 아닌 `import()` 는 **모르는 것이라 막는다.**
  *
  * 도메인 lib 끼리의 방향은 **허용 목록과 같은가**로 잰다 — 새 방향이 생기면 여기와
- * `docs/architecture.md` 를 함께 고친다. 문서가 코드와 어긋난 채로 남지 않게 하려는 것이다
- * (첫 판의 문서가 셋이라고 적은 방향이 실제로는 여덟이었다).
+ * `docs/architecture.md` 를 함께 고친다. 화면 안의 DB 호출은 **호출마다 지문**을 잠근다 —
+ * 표시 수를 세면 같은 줄의 둘째 호출과 예산 재사용을 못 본다.
  */
-import { builtinModules } from 'node:module';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { builtinModules } from 'node:module';
+import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = resolve(__dirname, '..');
 
-/** 도메인 lib 사이에 **지금 열려 있는** 방향 — 이것 밖의 방향은 빨개진다 */
+/** 읽는 확장자 — `eslint.config.mjs` 의 glob 과 같은 목록이다. `tsconfig` 가 `.mts` 를 포함한다 */
+export const SOURCE_EXTENSIONS = ['.ts', '.mts', '.cts', '.tsx', '.js', '.mjs', '.cjs'];
+
+/** 도메인 lib 사이에 **지금 열려 있는** 방향 — 이것 밖의 방향은 빨개진다. `db` 는 나가는 방향이 없다 */
 const ALLOWED_LIB_EDGES = new Set([
   'consent → discovery',
   'consent → reading',
@@ -34,11 +39,28 @@ const ALLOWED_LIB_EDGES = new Set([
 ]);
 
 /**
- * 화면 안에서 아직 DB 를 부르는 자리의 수 — **줄어들기만 한다.**
- * 한 자리를 문으로 옮기면 그 `eslint-disable-next-line` 을 지우고 이 수를 하나 내린다.
+ * 화면 안에서 아직 DB 를 부르는 호출의 **지문** — `파일 :: 호출부`. **줄어들기만 한다.**
+ * 하나를 문으로 옮기면 그 `eslint-disable-next-line` 을 지우고 여기서도 지운다. 여기 없는
+ * 호출은 표시가 있어도 빨개진다 — 같은 줄의 둘째 호출도, 지운 자리의 예산을 쓰는 새 호출도.
  */
-const SCREEN_DB_CALLS_STILL_THERE = 13;
+const SCREEN_DB_CALLS_STILL_THERE = new Set([
+  "app/closed/page.tsx :: supabase.rpc(name)",
+  "app/compat/page.tsx :: supabase.from('user_person_access')",
+  "app/me/matching/page.tsx :: supabase.from('discovery_profile')",
+  "app/me/matching/page.tsx :: supabase.rpc('ensure_discovery_participation', …)",
+  "app/me/page.tsx :: supabase.from('user_person_access')",
+  "app/me/people/page.tsx :: supabase.from('user_person_access')",
+  "app/me/people/page.tsx :: supabase.rpc('my_person_slots')",
+  "app/me/profile/page.tsx :: supabase.rpc('photo_of', …)",
+  "app/me/readings/[subject]/page.tsx :: supabase.from('user_person_access')",
+  "app/me/settings/page.tsx :: supabase.from('discovery_profile')",
+  "app/privacy/page.tsx :: supabase.rpc(name)",
+  "app/save-for-reading.tsx :: supabaseInBrowser().rpc('my_person_slots')",
+  "app/signup/page.tsx :: supabase.rpc(name)",
+]);
 const SCREEN_EXCEPTION = 'eslint-disable-next-line no-restricted-syntax';
+/** `.from()` 이름이 겹치는 내장 — `eslint.config.mjs` 의 셀렉터와 같은 목록 */
+const NOT_A_DB_OBJECT = /^(Array|Buffer|Uint8Array|Int32Array|Float64Array|Object|Promise|Set|Map|String)$/;
 
 const APP_ONLY_PACKAGES = /^(react|react-dom|next|ai|openai)(\/|$)|^@ai-sdk\//;
 const SUPABASE = /^@supabase\//;
@@ -51,7 +73,7 @@ function walk(dir: string, out: string[] = []): string[] {
     if (name === 'node_modules' || name.startsWith('.')) continue;
     const full = join(dir, name);
     if (statSync(full).isDirectory()) walk(full, out);
-    else if (/\.(ts|tsx|mjs)$/.test(name) && !name.endsWith('.d.ts')) out.push(full);
+    else if (SOURCE_EXTENSIONS.includes(extname(name)) && !name.endsWith('.d.ts')) out.push(full);
   }
   return out;
 }
@@ -64,24 +86,41 @@ const SOURCE_FILES = [
   join(ROOT, 'proxy.ts'),
 ];
 
-/** import 문 네 형태의 문자열 — 주석 안의 것은 안 센다 */
-const IMPORT_SPEC =
-  /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|^\s*import\s+)['"]([^'"]+)['"]/gm;
+const relPath = (file: string) => relative(ROOT, file).split(sep).join('/');
 
-type Edge = { file: string; spec: string; target: string | null };
+function parse(file: string): ts.SourceFile {
+  const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : file.endsWith('.js') || file.endsWith('.mjs') || file.endsWith('.cjs') ? ts.ScriptKind.JS : ts.ScriptKind.TS;
+  return ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, kind);
+}
+
+/** `spec` 이 `null` 이면 대상을 **정적으로 알 수 없는** import 다 */
+type Edge = { file: string; spec: string | null; target: string | null; line: number };
+
+const literalOf = (node: ts.Node | undefined): string | null =>
+  node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : null;
 
 function edgesOf(file: string): Edge[] {
-  const text = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-  const rel = relative(ROOT, file).split(sep).join('/');
+  const source = parse(file);
+  const rel = relPath(file);
   const out: Edge[] = [];
-  for (const match of text.matchAll(IMPORT_SPEC)) {
-    const spec = match[1];
+  const push = (specNode: ts.Node | undefined, at: ts.Node) => {
+    const spec = literalOf(specNode);
     let target: string | null = null;
-    if (spec.startsWith('@/')) target = spec.slice(2);
-    else if (spec.startsWith('.'))
-      target = relative(ROOT, resolve(dirname(file), spec)).split(sep).join('/');
-    out.push({ file: rel, spec, target });
-  }
+    if (spec?.startsWith('@/')) target = spec.slice(2);
+    else if (spec?.startsWith('.')) target = relPath(resolve(dirname(file), spec));
+    out.push({ file: rel, spec, target, line: source.getLineAndCharacterOfPosition(at.getStart()).line + 1 });
+  };
+  const visit = (node: ts.Node) => {
+    if (ts.isImportDeclaration(node)) push(node.moduleSpecifier, node);
+    else if (ts.isExportDeclaration(node) && node.moduleSpecifier) push(node.moduleSpecifier, node);
+    else if (ts.isCallExpression(node)) {
+      const callee = node.expression;
+      if (callee.kind === ts.SyntaxKind.ImportKeyword) push(node.arguments[0], node);
+      else if (ts.isIdentifier(callee) && callee.text === 'require') push(node.arguments[0], node);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
   return out;
 }
 
@@ -90,9 +129,9 @@ const EDGES = SOURCE_FILES.flatMap(edgesOf);
 const under = (path: string | null, dir: string) => path !== null && (path === dir || path.startsWith(`${dir}/`));
 const libModuleOf = (path: string | null) => {
   if (!under(path, 'src/lib')) return null;
-  const rest = path!.slice('src/lib/'.length);
-  return rest.split('/')[0].replace(/\.ts$/, '');
+  return path!.slice('src/lib/'.length).split('/')[0].replace(/\.(m|c)?ts$/, '');
 };
+const say = (edge: Edge) => `${edge.file}:${edge.line} → ${edge.spec ?? '<정적으로 모르는 대상>'}`;
 
 describe('층의 방향 (ADR 0085)', () => {
   it('import 를 실제로 읽고 있다 — 빈 목록으로 통과하지 않는다', () => {
@@ -102,36 +141,43 @@ describe('층의 방향 (ADR 0085)', () => {
     expect(EDGES.some((edge) => edge.file === 'app/me/reading/call.live.test.ts' && edge.target === 'app/me/reading/model')).toBe(true);
   });
 
+  it('src/lib·scripts·e2e 의 import() 대상은 문자열 리터럴이다 — 모르는 대상은 막는다', () => {
+    const unknown = EDGES.filter(
+      (edge) => edge.spec === null && (under(edge.file, 'src/lib') || under(edge.file, 'scripts') || under(edge.file, 'e2e')),
+    );
+    expect(unknown.map(say)).toEqual([]);
+  });
+
   it('src/lib 은 app 과 관문을 모른다 — 상대경로·동적 import 포함', () => {
     const wrong = EDGES.filter(
       (edge) => under(edge.file, 'src/lib') && (under(edge.target, 'app') || edge.target === 'proxy'),
     );
-    expect(wrong.map((edge) => `${edge.file} → ${edge.spec}`)).toEqual([]);
+    expect(wrong.map(say)).toEqual([]);
   });
 
   it('엔진(src/lib/saju)은 다른 도메인 lib 을 모른다', () => {
     const wrong = EDGES.filter(
       (edge) => under(edge.file, 'src/lib/saju') && under(edge.target, 'src/lib') && !under(edge.target, 'src/lib/saju'),
     );
-    expect(wrong.map((edge) => `${edge.file} → ${edge.spec}`)).toEqual([]);
+    expect(wrong.map(say)).toEqual([]);
   });
 
   it('scripts 와 e2e 는 화면 모듈을 모른다', () => {
     const wrong = EDGES.filter(
       (edge) => (under(edge.file, 'scripts') || under(edge.file, 'e2e')) && under(edge.target, 'app'),
     );
-    expect(wrong.map((edge) => `${edge.file} → ${edge.spec}`)).toEqual([]);
+    expect(wrong.map(say)).toEqual([]);
   });
 
   it('src/lib 은 React·Next·supabase·모델 SDK·실행 환경을 모른다 — 예외는 이름이 말한다', () => {
     const exempt = (file: string) => file === 'src/lib/local-env.ts' || file.endsWith('.live.test.ts');
     const wrong = EDGES.filter((edge) => {
-      if (!under(edge.file, 'src/lib') || edge.target !== null) return false;
+      if (!under(edge.file, 'src/lib') || edge.spec === null || edge.target !== null) return false;
       if (APP_ONLY_PACKAGES.test(edge.spec)) return true;
       if (exempt(edge.file)) return false;
       return SUPABASE.test(edge.spec) || isNodeBuiltin(edge.spec);
     });
-    expect(wrong.map((edge) => `${edge.file} → ${edge.spec}`)).toEqual([]);
+    expect(wrong.map(say)).toEqual([]);
   });
 
   it('도메인 lib 끼리의 방향은 허용 목록과 정확히 같다 — 문서(docs/architecture.md)가 이 목록이다', () => {
@@ -139,9 +185,14 @@ describe('층의 방향 (ADR 0085)', () => {
     for (const edge of EDGES) {
       const from = libModuleOf(edge.file);
       const to = libModuleOf(edge.target);
-      if (from && to && from !== to && from !== 'db') found.add(`${from} → ${to}`);
+      if (from && to && from !== to) found.add(`${from} → ${to}`);
     }
     expect([...found].sort()).toEqual([...ALLOWED_LIB_EDGES].sort());
+  });
+
+  it('src/lib/db 는 타입만 낸다 — 나가는 방향이 없다', () => {
+    const out = EDGES.filter((edge) => libModuleOf(edge.file) === 'db' && edge.target !== null && libModuleOf(edge.target) !== 'db');
+    expect(out.map(say)).toEqual([]);
   });
 
   it('허용 목록에 순환이 없다', () => {
@@ -162,19 +213,58 @@ describe('층의 방향 (ADR 0085)', () => {
 });
 
 describe('화면 안의 DB 호출 (ADR 0072·0078·0085)', () => {
-  const screens = walk(join(ROOT, 'app')).filter((file) => file.endsWith('.tsx'));
+  type Call = { file: string; line: number; fingerprint: string };
 
-  it('옛 자리의 수는 줄어들기만 한다', () => {
+  /** `.rpc()`·`.from()` 호출 — 린트 셀렉터와 같은 뜻을 AST 로 센다 */
+  function dbCallsOf(file: string): Call[] {
+    const source = parse(file);
+    const rel = relPath(file);
+    const out: Call[] = [];
+    const visit = (node: ts.Node) => {
+      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+        const name = node.expression.name.text;
+        const object = node.expression.expression;
+        const objectName = ts.isIdentifier(object) ? object.text : null;
+        if ((name === 'rpc' || name === 'from') && !(objectName !== null && NOT_A_DB_OBJECT.test(objectName))) {
+          const first = node.arguments[0];
+          const arg = first ? (literalOf(first) !== null ? `'${literalOf(first)}'` : first.getText(source)) : '';
+          const rest = node.arguments.length > 1 ? ', …' : '';
+          out.push({
+            file: rel,
+            line: source.getLineAndCharacterOfPosition(node.getStart()).line + 1,
+            fingerprint: `${rel} :: ${object.getText(source).replace(/\s+/g, '')}.${name}(${arg}${rest})`,
+          });
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return out;
+  }
+
+  const screens = walk(join(ROOT, 'app')).filter((file) => file.endsWith('.tsx'));
+  const calls = screens.flatMap(dbCallsOf);
+
+  it('화면 안의 DB 호출은 옛 자리의 지문 안에만 있다 — 줄어들기만 한다', () => {
+    const strangers = calls.filter((call) => !SCREEN_DB_CALLS_STILL_THERE.has(call.fingerprint));
+    expect(strangers.map((call) => `${call.file}:${call.line} ${call.fingerprint}`)).toEqual([]);
+    // 지문 목록이 코드보다 길면 옮긴 자리를 여기서 안 지운 것이다 — 예산이 남는다
+    const present = new Set(calls.map((call) => call.fingerprint));
+    expect([...SCREEN_DB_CALLS_STILL_THERE].filter((one) => !present.has(one))).toEqual([]);
+  });
+
+  it('예외 표시는 실제 호출 바로 위에만 서고, 호출마다 하나다', () => {
     const markers = screens.flatMap((file) => {
       const lines = readFileSync(file, 'utf8').split('\n');
-      return lines.flatMap((line, at) => (line.includes(SCREEN_EXCEPTION) ? [{ file: relative(ROOT, file), at, lines }] : []));
+      return lines.flatMap((line, at) => (line.includes(SCREEN_EXCEPTION) ? [{ file: relPath(file), line: at + 1 }] : []));
     });
-    expect(markers.length).toBeLessThanOrEqual(SCREEN_DB_CALLS_STILL_THERE);
-
-    // 예외 표시는 **실제 DB 호출 바로 위에만** 선다 — 다른 것을 끄는 데 쓰지 않는다
+    // 표시 아래 두 줄 안에 이 파일의 호출 하나가 시작한다
     for (const marker of markers) {
-      const window = marker.lines.slice(marker.at + 1, marker.at + 3).join('\n');
-      expect(window, `${marker.file}:${marker.at + 1} 아래에 .rpc()/.from() 이 없다`).toMatch(/\.(rpc|from)\(/);
+      const covered = calls.some((call) => call.file === marker.file && call.line > marker.line && call.line <= marker.line + 2);
+      expect(covered, `${marker.file}:${marker.line} 아래에 DB 호출이 없다`).toBe(true);
     }
+    // 그리고 호출 수와 표시 수가 같다 — 같은 줄에 둘을 두면 표시 하나로 둘을 끄게 된다
+    expect(markers.length).toBe(calls.length);
+    expect(calls.length).toBe(SCREEN_DB_CALLS_STILL_THERE.size);
   });
 });
