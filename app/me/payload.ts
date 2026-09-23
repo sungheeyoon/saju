@@ -54,7 +54,7 @@ export type PersonPayload = {
  *
  * 「없다」와 「못 본다」는 여전히 `null` 하나다(아래).
  */
-export type PersonView =
+type PersonView =
   | { readonly kind: 'ok'; readonly payload: PersonPayload }
   | { readonly kind: 'unreadable-input'; readonly message: string };
 

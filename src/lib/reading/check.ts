@@ -76,28 +76,33 @@ import { SAJU_TERMS } from './vocabulary';
  */
 const METAPHOR_MAX = READING_POLICY.metaphorLength.max;
 
-export const READING_FAILURES = {
+/**
+ * 실패 코드 — DB 의 `reading.failure_code` 에 이 이름이 적힌다.
+ *
+ * 2026-09-23 까지 코드마다 한국어 문장을 붙인 표(`READING_FAILURES`)였다. 그 문장은 어디서도
+ * 안 읽혔고 표는 이름을 내주는 데만 쓰였다 — 값이 타입으로만 쓰인다고 린트가 경고하는
+ * 모양이라 이름의 유니언으로 줄였다(G-46). 옛 마이그레이션 머리말이 그 표의 이름으로 이
+ * 목록을 가리킨다(`20260826090000_reading.sql`).
+ */
+type ReadingFailureCode =
   /** 자료에 없는 간지를 썼다 — 조심성이 아니라 참·거짓의 문제다 */
-  'invented-characters': '자료에 없는 간지가 글에 나왔습니다',
+  | 'invented-characters'
   /** 출생 원문·출생지가 글에 나왔다. 모델에 넣지도 않은 값이다 */
-  'birth-input-leaked': '출생 원문이나 출생지가 글에 나왔습니다',
+  | 'birth-input-leaked'
   /** Match 동의 범위 밖의 원국 판정을 만들었다(ADR 0012) */
-  'out-of-scope-judgment': '동의 범위 밖의 원국 판정이 글에 나왔습니다',
+  | 'out-of-scope-judgment'
   /** 점수의 모양이나 범위가 계약과 다르다 */
-  'score-out-of-contract': '점수가 계약한 모양이나 범위를 벗어났습니다',
+  | 'score-out-of-contract'
   /** 본문이 계약한 길이 밖이다 — 빈 글도 실패다 */
-  'length-out-of-contract': '본문 길이가 계약을 벗어났습니다',
+  | 'length-out-of-contract'
   /** 개인 풀이 화면에 생한자나 외국 문자가 섞였다 */
-  'non-korean-self-body': '개인 풀이 본문에 한글이 아닌 문자가 섞였습니다',
+  | 'non-korean-self-body'
   /** 자료를 가려 읽으라고 준 경로 이름이 사용자 본문에 그대로 나왔다 */
-  'evidence-path-leaked': '자료 경로 이름이 본문에 나왔습니다',
+  | 'evidence-path-leaked'
   /** 한 문장 비유가 비었거나 화면이 감당하는 길이를 넘었다 */
-  'metaphor-out-of-contract': '한 줄 요약이 계약을 벗어났습니다',
-} as const;
+  | 'metaphor-out-of-contract';
 
-export type ReadingFailureCode = keyof typeof READING_FAILURES;
-
-export type ReadingFailure = {
+type ReadingFailure = {
   code: ReadingFailureCode;
   /** 무엇이 걸렸는가 — 운영 로그에 남는다. 원문은 여기 적지 않는다 */
   detail: string;
@@ -471,7 +476,7 @@ export function secretForms(secret: BirthSecret): string[] {
   ];
 }
 
-export type ReadingCheck =
+type ReadingCheck =
   | { ok: true }
   | { ok: false; failures: readonly ReadingFailure[] };
 

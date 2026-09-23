@@ -376,3 +376,23 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   `app/me/reading/preview.ts` 는 DB 를 읽는 문이라 단위로 안 잰다 — 앞의 것은 e2e `saju.spec.ts` ·
   `reading-entry.spec.ts` 가, 뒤의 것은 흐름 `check-reading.mjs` · e2e `signed-in.spec.ts` 가 이미 든다.
   「흐름도 안 두드린다」던 옛 문장은 e2e 를 빠뜨린 것이었다. `docs/agents/test-map.md` 「커버리지」 · 「재지 않는 것」
+
+- **2026-09-23** — **G-46 을 다시 재고 여섯 중 넷을 닫았다.** #88 의 문장은 이번에도 반쯤 틀렸다.
+  **죽은 export** — TypeScript 검사기로 모든 export 의 원본 심볼을 import 가 가리키는지 셌다(되내보내기는
+  쓰임으로 안 친다). `app/` · `src/` · `scripts/` · 루트에서 Next 가 이름을 정한 것을 빼고 셌고, 「75/543」과는
+  세는 법이 달라 수가 안 맞는다. 셋으로 갈라 **시험에서만 쓰는 것은 그대로 두고**, `export` 만 떼면 되는 것은
+  떼고(타입이 대부분), 아무 데서도 안 쓰는 것은 하나씩 봤다 — 2026-09-11 에 화면에서 내린 공유 풀이 문장 둘
+  (`READING_PINNED_NOTE` · `readingOrderNote`), 머리말만 남은 `EVIDENCE_SECTION`, 「여섯 자리가 쓴다」던
+  `TableRow`(0 자리), DB 가 스스로 적는 `SURVEY_VERSION` 등을 지웠다. 문장을 한 번도 안 읽힌 채 이름만 내주던
+  `READING_FAILURES` 는 이름의 유니언이 됐다. `READING_REDACTION_NOTE` 는 머리말이 남겨 둔다고 적은 대로 둔다.
+  **골든 인용** — 옛 수(30벌 · 31건 · 서른)를 든 자리는 셋이 아니라 **일곱**(README · ADR 0002 · ADR 0071 ·
+  `test-map.md` · `version.ts` · `pillars/index.ts` · `evidence/index.ts`)이었다. 수를 다시 적지 않고 지웠다 —
+  건수는 `golden.snapshot.txt` 머리의 「케이스 N건」을 시험이 찍는다. 그날 잰 비교 둘은 날짜를 달았다.
+  **후보 카드 문구 조립** — 날값에서 카드 말 한 벌을 짓는 걸음이 `app/me/candidates.ts` 와 미리보기 예시에
+  두 벌, 요청함·인연 결과의 `suppliedText(knownElementsOf(…))` 가 다섯 자리였다. 앞의 것은
+  `candidateCardText` 하나로, 뒤의 것은 `suppliedText` 가 날값을 받게 해 모았다 — 옛 조립과 새 조립이 입력
+  215,605 가지에서 같은 글자를 내는 것을 견줬고 e2e 가 덱·보관함·요청함·결과를 밟았다. **`src/lib/matching`
+  삭제 시험** — 틀렸다. 부르는 쪽은 하나(`app/compat-match.tsx`)지만 지우면 판단과 문장이 vitest 가 못 닿는
+  `.tsx` 로 옮겨 가고 그것을 재는 시험 셋이 갈 곳을 잃는다(ADR 0080) — 복잡함이 사라지지 않고 옮겨 간다.
+  그대로 둔다. **린트 경고 둘** — `emptiness.ts` 의 안 쓰는 import 를 지웠다. 남은 하나는 `src/lib/account`
+  라 G-27 뒤로 미뤘고, 풀이권 칩 위치는 사람이 답할 화면 결정이라 G-46 에 남겼다

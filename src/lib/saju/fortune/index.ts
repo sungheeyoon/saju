@@ -20,7 +20,7 @@ import { twelveStageOf, type TwelveStage, type TwelveStageOptions } from '../sta
  *
  * 그래서 값이 아니라 **자리**를 하나로 만든다. 이제 셋이 같은 것은 우연이 아니라 구조다.
  */
-export type FortuneReadings = {
+type FortuneReadings = {
   /** 일간에서 본 이 기둥 천간·지지의 십성 */
   tenGods: { stem: TenGod; branch: TenGod };
   /** 일간이 이 기둥 지지에서 어떤 상태인가 */
@@ -79,7 +79,7 @@ export function fortuneReadingsOf(
  * 이름은 판 안에서만 뜻이 있고, 판을 가르는 것은 `chartId` 다** — 원국 년주와 세운
  * 년주가 둘 다 `'year'` 인 것이 그 증거다.
  */
-export type FortuneSeat = 'year' | 'month';
+type FortuneSeat = 'year' | 'month';
 
 /**
  * 기둥 하나짜리 명식 — **나머지 세 자리는 비운다.**

@@ -15,7 +15,7 @@
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-export type SupabaseEnv = { url: string; publishableKey: string };
+type SupabaseEnv = { url: string; publishableKey: string };
 
 /**
  * 없으면 그 자리에서 멈춘다.

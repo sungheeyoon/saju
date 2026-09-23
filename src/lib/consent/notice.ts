@@ -75,7 +75,7 @@ export const asKoreanDay = (day: string): string => {
 };
 
 /** 처리 안내 한 절 — 제목과 줄들 */
-export type NoticeSection = {
+type NoticeSection = {
   readonly title: string;
   readonly lines: readonly string[];
 };
@@ -239,7 +239,7 @@ export function noticeFor(dates: BetaDates, operator: Operator): readonly Notice
  * 되는가**다. 한 문장에 이어 붙여 두었더니 세 화면(가입·처리방침·계정 관리)에서 그
  * 덩어리가 통째로 안 읽혔고, 정작 누르기 직전에 읽어야 하는 것은 뒤쪽이다(ADR 0022·0028).
  */
-export type OptionalConsent = {
+type OptionalConsent = {
   readonly key: 'improvement' | 'contact';
   readonly label: string;
   readonly detail: string;

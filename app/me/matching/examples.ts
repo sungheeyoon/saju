@@ -1,4 +1,4 @@
-import { balanceBandOf, cardTextFor, knownElementsOf, previewSummaryFor } from '@/src/lib/discovery';
+import { candidateCardText } from '@/src/lib/discovery';
 
 import harinPhoto from '../../../public/matching/harin.webp';
 import jiwooPhoto from '../../../public/matching/jiwoo.webp';
@@ -12,7 +12,7 @@ import type { DeckCard } from './matching-experience';
  * 셋을 대신 세우면 사용자는 없는 사람을 본다. 오직 미리보기 경로만 이것을 읽는다.
  *
  * **문구는 여기서 짓지 않는다.** 판정·이유·보완 문장은 실데이터와 똑같이 정책
- * 함수를 지나서 나온다(`previewSummaryFor`·`cardTextFor`). 손으로 적어 두면 정책이
+ * 함수를 지나서 나온다(`candidateCardText` — 후보 카드와 같은 한 벌). 손으로 적어 두면 정책이
  * 바뀐 날 예시만 옛말을 하고, 디자인 확인이 거짓 화면 위에서 이뤄진다.
  */
 const SEEDS = [
@@ -51,19 +51,16 @@ const SEEDS = [
   },
 ] as const;
 
-export const EXAMPLE_CARDS: readonly DeckCard[] = SEEDS.map((seed) => {
-  const suppliedElements = knownElementsOf([...seed.suppliedElements]);
-  const balanceBand = balanceBandOf(seed.balanceBand);
-
-  return {
-    candidateUserId: seed.candidateUserId,
-    nickname: seed.nickname,
-    intro: seed.intro,
-    hasPhoto: true,
-    photoUrl: seed.photo.src,
-    exploration: seed.exploration,
+export const EXAMPLE_CARDS: readonly DeckCard[] = SEEDS.map((seed) => ({
+  candidateUserId: seed.candidateUserId,
+  nickname: seed.nickname,
+  intro: seed.intro,
+  hasPhoto: true,
+  photoUrl: seed.photo.src,
+  exploration: seed.exploration,
+  ...candidateCardText({
+    suppliedElements: seed.suppliedElements,
+    balanceBand: seed.balanceBand,
     previewScore: seed.previewScore,
-    ...cardTextFor({ suppliedElements, balanceBand }),
-    ...previewSummaryFor({ previewScore: seed.previewScore, suppliedElements, balanceBand }),
-  };
-});
+  }),
+}));

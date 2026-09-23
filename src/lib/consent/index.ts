@@ -3,7 +3,8 @@ export * from './notice';
 export * from './schedule';
 export * from './disclosure';
 
-import { ELEMENT_KO, type Element } from '../saju';
+import { ELEMENT_KO } from '../saju';
+import { knownElementsOf } from '../discovery';
 import type { ReadingKind } from '../reading';
 
 /**
@@ -127,7 +128,7 @@ export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
  * 아니라 대상으로 알아본다.** 자기 풀이도 비공개 궁합도 상대가 없으므로, 별명만으로는
  * 「무엇을 다시 눌러야 하는지」가 문장에 안 실린다.
  */
-export type NotificationEvent = {
+type NotificationEvent = {
   readonly kind: NotificationKind;
   /** 상대의 별명. 상대가 없는 사건이거나 프로필을 못 읽으면 `null` */
   readonly nickname: string | null;
@@ -320,7 +321,7 @@ export const MATCH_RESULT_CLOSED_NOTE =
  * 후보 카드는 한 방향뿐이다(상대가 내게 채우는 것). 요청은 서로 무엇을 채우는지가
  * 함께 읽혀야 동의가 무엇에 대한 것인지 알 수 있다.
  */
-export type SupplyDirection = 'toMe' | 'toThem';
+type SupplyDirection = 'toMe' | 'toThem';
 
 /**
  * 요청 한 줄이 드는 이유 — **후보 카드가 이미 말한 것과 같은 종류다.**
@@ -330,11 +331,16 @@ export type SupplyDirection = 'toMe' | 'toThem';
  *
  * **두 방향을 여기서 다 짓는다.** 화면이 한 문장을 받아 낱말을 바꿔 쓰면 그때부터 문구는
  * 화면이 쓰는 것이 되고, 고칠 자리가 둘이 된다.
+ *
+ * **DB 가 준 날값을 받는다** — 모르는 글자를 버리는 규칙(`knownElementsOf`)을 부르는 쪽이
+ * 다시 적지 않게(`balanceLabelOf` 와 같은 결). 2026-09-23 까지 요청함·인연 결과의 다섯
+ * 자리가 `suppliedText(knownElementsOf(…))` 를 저마다 적었다(G-46).
  */
 export function suppliedText(
-  elements: readonly Element[],
+  raw: readonly string[] | null,
   direction: SupplyDirection,
 ): string | null {
+  const elements = knownElementsOf(raw);
   if (elements.length === 0) return null;
 
   const named = elements.map((element) => `${ELEMENT_KO[element]}(${element})`).join(' · ');

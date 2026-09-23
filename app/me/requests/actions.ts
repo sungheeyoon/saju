@@ -18,7 +18,7 @@ import { rpcArgs } from '@/src/lib/db';
  * 실재하고(그 사이에 낀 판본 수정), 그때 화면이 「수락했습니다」라고 말하면 사용자는
  * 없는 Match 를 찾게 된다. 그래서 결과를 성공/실패가 아니라 **상태**로 돌려준다.
  */
-export type RespondResult =
+type RespondResult =
   | { ok: true; status: RequestStatus; credits?: 'moved' }
   | { ok: false; message: string };
 

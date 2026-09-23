@@ -31,8 +31,6 @@
  * 보는 것이 그 자리를 잡는 장치다 — 풀이 설문의 태그와 같은 규율이다.
  */
 
-export const SURVEY_VERSION = 'service-survey-v1';
-
 // ---------------------------------------------------------------------------
 // 기능 — Q1 과 Q1b 가 같은 목록을 쓴다
 // ---------------------------------------------------------------------------
@@ -43,16 +41,16 @@ export const SURVEY_VERSION = 'service-survey-v1';
  * 「인연 추천」과 「인연 궁합」을 가른다. 후보를 훑는 일과 성립한 인연의 궁합을 읽는 일은
  * 다른 경험이고, 한 낱말로 묶으면 매칭이 값어치가 있었는지를 영영 못 가른다.
  */
-export const FEATURES = [
+const FEATURES = [
   'self_reading',
   'person_reading',
   'pair_reading',
   'discovery',
   'match_reading',
 ] as const;
-export type Feature = (typeof FEATURES)[number];
+type Feature = (typeof FEATURES)[number];
 
-export const FEATURE_LABEL: Record<Feature, string> = {
+const FEATURE_LABEL: Record<Feature, string> = {
   self_reading: '내 사주풀이',
   person_reading: '다른 사람의 사주풀이',
   pair_reading: '궁합 (내가 고른 두 사람)',
@@ -219,8 +217,7 @@ export const PRICE_LABEL: Record<PriceOption, string> = {
 };
 
 /** 값을 묻는 상품 — **읽어 본 종류만** 선다 */
-export const PRICE_SUBJECTS = ['solo', 'pair'] as const;
-export type PriceSubject = (typeof PRICE_SUBJECTS)[number];
+export type PriceSubject = 'solo' | 'pair';
 
 /**
  * **묻는 문장은 하나고, 상품이 그 아래에 선다.**

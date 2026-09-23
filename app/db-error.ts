@@ -53,7 +53,7 @@ const ECHOED = /"/;
 /** 우리가 쓴 문장인가 — **문자 종류 하나에 기대지 않는다** */
 const ours = (message: string): boolean => KOREAN.test(message) && !ECHOED.test(message);
 
-export type DbError = { readonly message: string; readonly code?: string };
+type DbError = { readonly message: string; readonly code?: string };
 
 /**
  * 까닭을 못 고를 때 서는 말.

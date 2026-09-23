@@ -5,10 +5,7 @@ import {
   DISCOVERY_POLICY,
   DISCOVERY_TEASER,
   boardNotes,
-  balanceBandOf,
-  cardTextFor,
-  knownElementsOf,
-  previewSummaryFor,
+  candidateCardText,
   type CandidateHighlight,
 } from '@/src/lib/discovery';
 
@@ -40,7 +37,7 @@ import type { RpcRow } from '@/src/lib/db';
  */
 const granted = Symbol('candidatesForViewer');
 
-export type CandidateCard = {
+type CandidateCard = {
   readonly candidateUserId: string;
   readonly nickname: string;
   readonly intro: string | null;
@@ -64,7 +61,7 @@ export type CandidateCard = {
   readonly [granted]: true;
 };
 
-export type CandidateBoard = {
+type CandidateBoard = {
   readonly policyVersion: string;
   readonly teaser: string;
   readonly explorationNote: string | null;
@@ -124,7 +121,7 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
 }
 
 /** 보관함의 한 장 — 카드가 아는 칸에 **지나친 때**만 더한다 */
-export type PassedCard = Omit<CandidateCard, 'position' | 'exploration' | 'activity' | typeof granted> & {
+type PassedCard = Omit<CandidateCard, 'position' | 'exploration' | 'activity' | typeof granted> & {
   readonly passedAt: string;
 };
 
@@ -150,7 +147,7 @@ export async function passedForViewer(mySummary: ElementSummary): Promise<Passed
 }
 
 /** 목록을 언제 받았고 몇 초 뒤에 다시 받을 수 있나 — **두 값 다 DB 가 센다** */
-export type BoardStamp = { generatedAt: string; waitSeconds: number };
+type BoardStamp = { generatedAt: string; waitSeconds: number };
 
 /**
  * 새로고침 버튼이 언제 눌리는지를 **여기서 세지 않는다.**
@@ -175,17 +172,17 @@ export async function boardStamp(): Promise<BoardStamp | null> {
 
 /** RPC가 허용한 공개 행을 직렬화 가능한 카드로 옮긴다. 복원도 기존 점수 문구를 쓴다. */
 export function publicCardFromRow(row: Pick<BoardRow, 'candidate_user_id' | 'nickname' | 'intro' | 'has_photo' | 'supplied_elements' | 'balance_band' | 'preview_score'>, mySummary: ElementSummary) {
-  const suppliedElements = knownElementsOf(row.supplied_elements);
-  const balanceBand = balanceBandOf(row.balance_band);
-  const previewScore = Math.max(0, Math.min(100, Math.round(row.preview_score)));
   return {
     candidateUserId: row.candidate_user_id,
     nickname: row.nickname,
     intro: row.intro,
     hasPhoto: row.has_photo === true,
     exploration: false,
-    previewScore,
-    ...cardTextFor({ suppliedElements, balanceBand, viewerCounts: mySummary.counts }),
-    ...previewSummaryFor({ previewScore, suppliedElements, balanceBand }),
+    ...candidateCardText({
+      suppliedElements: row.supplied_elements,
+      balanceBand: row.balance_band,
+      previewScore: row.preview_score,
+      viewerCounts: mySummary.counts,
+    }),
   };
 }

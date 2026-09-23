@@ -15,7 +15,7 @@ import { storedInputOf } from './person-input';
  * 요약은 각자가 참여할 때 내놓은 것이고, 우리는 그것을 읽지도 않는다(DB 안에서
  * 두 축으로 바뀌어 나온다).
  */
-export type SelfSummary = { personId: string; summary: ElementSummary };
+type SelfSummary = { personId: string; summary: ElementSummary };
 
 /**
  * 지금 저장된 내 입력에서 요약 한 벌.

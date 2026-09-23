@@ -41,8 +41,6 @@ export const REDACTED_PATHS = {
   'daeun.startAgeExact': '같은 값을 사흘에 한 살로 나눈 것이다',
 } as const;
 
-export type RedactedPath = keyof typeof REDACTED_PATHS;
-
 /**
  * 글에 남은 분 단위 거리 — **값이 아니라 문장에 실려 나가는 자리.**
  *

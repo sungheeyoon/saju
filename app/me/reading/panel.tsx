@@ -46,7 +46,7 @@ import type { ReadingTarget } from './target';
  * 부수효과도 JSX 도 안 든다. 들어오는 것은 이 화면이 이미 아는 값뿐이고, 나가는 것은
  * 「무엇이 서고 무엇이 닫히는가」뿐이다.
  */
-export type PanelChrome = {
+type PanelChrome = {
   /** 만드는 버튼이 닫혀 있는가 */
   readonly makeDisabled: boolean;
   /** 만드는 버튼이 아예 안 서는가 */

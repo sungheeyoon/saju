@@ -15,7 +15,7 @@ import type { Database } from './database.generated';
 export type { Database };
 
 /** 문 이름 하나 — `Database` 가 아는 것만 쓴다 */
-export type RpcName = keyof Database['public']['Functions'];
+type RpcName = keyof Database['public']['Functions'];
 
 /**
  * 문이 내주는 행 하나.
@@ -29,11 +29,7 @@ export type RpcRow<N extends RpcName> =
     : Database['public']['Functions'][N]['Returns'];
 
 /** 문이 받는 인자 한 벌 */
-export type RpcArgs<N extends RpcName> = Database['public']['Functions'][N]['Args'];
-
-/** 표 한 줄 — `.from()` 으로 읽는 여섯 자리가 쓴다 */
-export type TableRow<N extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][N]['Row'];
+type RpcArgs<N extends RpcName> = Database['public']['Functions'][N]['Args'];
 
 /**
  * **생성 타입이 말하지 못하는 것 하나 — 인자의 `null` 허용.**
@@ -49,7 +45,7 @@ export type TableRow<N extends keyof Database['public']['Tables']> =
  * 그래서 **그 하나만 우리가 주장하고, 주장하는 자리를 이 함수로 모은다.** 이름은
  * 여전히 생성 타입이 잠근다 — 없는 인자를 적으면 여기서 걸린다.
  */
-export type NullableArgs<N extends RpcName> = {
+type NullableArgs<N extends RpcName> = {
   [K in keyof RpcArgs<N>]: RpcArgs<N>[K] | null;
 };
 
