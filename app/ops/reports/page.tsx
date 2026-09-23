@@ -6,7 +6,7 @@ import { REPORT_REASONS } from '@/src/lib/account';
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { filtersOf, hrefOf, isFiltered, type ReportFilters } from './filters';
-import { EVIDENCE_LABEL, NO_NICKNAME, REVIEW_LABEL, evidenceTime, reasonLabel } from './labels';
+import { EVIDENCE_LABEL, NO_NICKNAME, REVIEW_LABEL, evidenceTime, reasonLabel, reviewOutcomeLabel } from './labels';
 import { DENIED, operatorReports, type Account, type ReportRow } from './read';
 
 export const metadata = {
@@ -174,6 +174,7 @@ function Row({ row }: { row: ReportRow }) {
       <p className="flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full bg-surface-soft px-2.5 py-1 font-semibold text-secondary">
           {row.reviewedAt === null ? REVIEW_LABEL.unreviewed : REVIEW_LABEL.reviewed}
+          {row.reviewOutcome !== null && ` · ${reviewOutcomeLabel(row.reviewOutcome)}`}
         </span>
         <span className="rounded-full bg-surface-soft px-2.5 py-1 text-secondary">
           {row.snapshotMessages === null

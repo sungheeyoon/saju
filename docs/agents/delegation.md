@@ -88,8 +88,16 @@ git 이 줄 단위로 합친다 — 부딪히는 것은 끝에 덧붙이는 chan
 | **1 로컬에서 고친다** | 작업 가지에서 파일을 고치고 시험을 돌린다. 로컬 스택은 마음껏 되돌린다 | `npm run db:reset` · `npm run test:e2e:authed` | 없음 |
 | **2 밖으로 낸다 — 되돌릴 수 있게** | 가지를 밀고 PR 을 열고 이슈에 적는다. 리뷰 뒤 `--auto` 머지를 건다(gate 가 초록이 될 때까지 기다린다, ADR 0082) | `git push -u origin <가지>` · `gh pr create` · `gh pr merge --auto --squash` | 없음 — 단 아래 등급 3 의 예외 |
 | **3 사람이 답한 뒤에** | **main 머지는 곧 프로덕션 배포다.** 운영 DB 에 마이그레이션을 올리거나 임의 SQL 을 보내는 것, 토큰이 나가는 실호출, Vercel 변수, 원격 가지 삭제, 프로덕션 확인이 든 걸음 — **공식 운영에 들어간 뒤에 켠다(ADR 0093).** 운영 베타에서는 등급 2 처럼 밟고 값을 적는다 | `db push` · `db query --linked` · `READING_LIVE=1` · `vercel env` · `gh pr merge`(auto 아닌 즉시 머지) | 없음 — 공식 운영 전. 켤 목록은 아래 절 |
-| **3 사람이 답한 뒤에 — 도구 밖** | 새 한글 문구는 표로 보이고 답을 기다린다(`docs/agents/code-rules.md`). 남이 띄운 dev 서버는 죽이기 전에 묻는다. 운영 SQL Editor 의 문장을 건네기만 하는 것은 공식 운영 뒤의 일이다(ADR 0093) — 지금은 `db query --linked` 로 직접 돌리고 값을 적는다 | 버튼 문구 · dev 서버 | 사람 |
+| **3 사람이 답한 뒤에 — 도구 밖** | 새 한글 문구는 표로 보이고 답을 기다린다(`docs/agents/code-rules.md`). 남이 띄운 dev 서버는 죽이기 전에 묻는다. 운영 SQL Editor 의 문장을 건네기만 하는 것은 공식 운영 뒤의 일이다(ADR 0093) — 지금은 `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 직접 돌리고 값을 적는다. **단 운영 개인정보는 예외 없이 직접 조회하지 않는다**(아래, ADR 0105) — 질의를 써서 건네고 사람이 검토해 돈다 | 버튼 문구 · dev 서버 · 운영 개인정보 조회 | 사람 |
 | **4 안 한다** | 되돌릴 수 없는 것. main 에 force push, `supabase config push`(원격의 구글 설정을 지운다), main 가지 삭제, Vercel 변수 삭제, 비밀 값을 커밋 | | `Bash(git push --force:*)` · `Bash(git push -f:*)` · `Bash(git push --force-with-lease:*)` · `Bash(npx supabase config push:*)` · `Bash(supabase config push:*)` · `Bash(./node_modules/.bin/supabase config push:*)` · `Bash(git push origin :main)` · `Bash(git push origin --delete main)` · `Bash(vercel env rm:*)` · `Bash(npx vercel env rm:*)` |
+
+**운영 개인정보 — 에이전트는 예외 없이 직접 조회하지 않는다(2026-09-24, ADR 0105).** 운영 베타에서 등급 3 을 묻지 않고
+밟는 것(ADR 0093)과 따로 선 경계이고, 공개 출시 전부터 지킨다. 이메일 · 닉네임과 계정의 짝 · 메시지 본문 · 출생정보 ·
+풀이를 운영 DB 에서 읽는 SQL 을 에이전트가 보내지 않는다 — 필요하면 질의를 써 주고 사람이 검토해 break-glass 로 돈다
+(`docs/ops/runbook.md` 「개인정보는 화면으로만」). 에이전트가 보내도 되는 원격 질의는 **개인을 가리키지 않는 것**뿐이다 —
+건수 · 집계 · `migration list` · 크론 · advisor · 설정 한 칸. 그것도 `npm run db:remote -- --purpose "<목적>" "<sql>"` 로만
+보낸다 — 목적과 SQL 해시가 접속기록에 `(agent)` 로 남는다. `.claude/settings.json` 은 SQL 의 내용을 못 가르므로 이 경계는
+도구가 아니라 이 문장이 든다.
 
 **`gh pr merge --auto` 는 등급 2 다** — gate 가 필수 검사라 초록까지 기다린다(2026-09-22 부터,
 ADR 0082). 보호 규칙이 strict 라(2026-09-23) 가지가 최신 main 위에 있어야 든다 — 여러 세션이 나란히
@@ -238,7 +246,8 @@ squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 �
 
   받은 번호는 이슈의 「공유 자원 · 병렬」 칸에 적는다(`로컬 스택: 자리 3`). 끝나면 `npm run db:stop`.
   main 체크아웃은 자리 0(기본값)이다.
-- **원격 DB 에 닿는 명령은 `npm run db:push` · `npm run db:remote -- "<sql>"` 로 부른다.** 운영 DB 는
+- **원격 DB 에 닿는 명령은 `npm run db:push` · `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 부른다.** 목적 없이는
+  `db:remote` 가 안 돌고, 목적과 SQL 의 sha256 이 운영 접속기록에 남는다(ADR 0105). 운영 DB 는
   하나라 격리할 수 없다 — 둘 다 기계 전체의 잠금 하나를 잡고 돌며, 다른 세션이 쥐고 있으면 누가 무엇을
   하는지 찍고 기다린다(ADR 0096). `npx supabase db push` 를 직접 부르면 잠금을 지나친다. **남은 잠금은
   스스로 걷지 않는다** — 쥐었던 쪽이 없으면 멈춰서 걷는 법을 말한다. 걷기 전에 `migration list` 의 remote 칸을 본다.
@@ -266,7 +275,7 @@ squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 �
 | `db query` 가 `cannot insert multiple commands` | prepared statement 라 `begin; … rollback;` 을 못 받는다 | 트랜잭션이 필요하면 `docker exec -i supabase_db_<SAJU_STACK_ID> psql -U postgres -d postgres` |
 | `db diff --linked` 가 비밀번호를 묻는다 | 다른 인증 경로다(`db query --linked` 는 된다) | 양쪽에 같은 질의를 돌려 손으로 견준다 |
 | `timeout` 이 없다 | macOS | coreutils 의 `gtimeout` |
-| `db query --linked` 를 여럿이 동시에 부르면 `Initialising login role...` 뒤에 실패한다 | CLI 가 부를 때마다 로그인 역할을 세운다 — 나란히 부르면 서로 부딪힌다 | `npm run db:remote -- "<sql>"` 로 부른다 — 기계 전체에서 한 번에 하나만 돌고 나머지는 기다린다(ADR 0096) |
+| `db query --linked` 를 여럿이 동시에 부르면 `Initialising login role...` 뒤에 실패한다 | CLI 가 부를 때마다 로그인 역할을 세운다 — 나란히 부르면 서로 부딪힌다 | `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 부른다 — 기계 전체에서 한 번에 하나만 돌고 나머지는 기다린다(ADR 0096). 부를 때마다 로그인 역할을 두 번 세운다(기록 한 번 · SQL 한 번) |
 | 프로덕션 확인에 계정이 필요하다 | 기존 계정은 실제 사용자다 | `.env.development.local` 의 `SUPABASE_SECRET_KEY` 로 `auth.admin.createUser({ email_confirm: true })` — 주소는 `@example.com`, 전용 코드로 `complete_signup` 을 지난다. 끝나면 `forget_user` 로 지우고 코드도 지운다(2026-09-23 #115 · #121) |
 | `gh pr merge --auto` 가 `BLOCKED` 로 선다 | gate 가 아직 안 끝났다 — 실패가 아니다 | `gh pr checks <n>` 으로 갈라 본다. `UNSTABLE` 도 도는 중일 수 있다 |
 | `gh pr view <n> --json mergeStateStatus` 가 `BEHIND` 이고 `--auto` 가 안 든다 | 보호 규칙이 strict 다 — 가지가 최신 main 을 품어야 든다(2026-09-23, #143). auto-merge 는 가지를 스스로 올리지 않는다 | `gh pr update-branch <n>` — main 을 merge 하므로 force push 가 없다. gate 가 다시 돌고 초록이면 든다 |

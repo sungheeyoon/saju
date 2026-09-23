@@ -5,14 +5,16 @@ import { supabaseOnServer } from '../../../auth/server-client';
 import { CARD } from '../../../card';
 import {
   NO_NICKNAME,
+  NO_REVIEW_RECORD,
   REVIEW_LABEL,
   SIDE_LABEL,
   UNKNOWN_SIDE_LABEL,
   accountStatusLabel,
   evidenceTime,
   reasonLabel,
+  reviewOutcomeLabel,
 } from '../labels';
-import { DENIED, operatorReport, type AccountNow, type Snapshot } from '../read';
+import { DENIED, operatorReport, type AccountNow, type Review, type Snapshot } from '../read';
 
 export const metadata = {
   title: '신고 내용 — 만세력',
@@ -26,7 +28,8 @@ export const metadata = {
  * 않고, 대화방으로 가는 링크도 없다 — 문이 방과 메시지의 id 를 아예 안 내준다. 두 계정의 지금 상태는
  * 상단에만 서고 스냅샷 안에 섞지 않는다: 근거는 그때의 것이고 상태는 지금의 것이다.
  *
- * 읽기 전용이다. 스냅샷을 고치거나 지우는 길, 검토 완료를 적는 누름은 없다.
+ * 읽기 전용이다. 스냅샷을 고치거나 지우는 길, 검토 완료를 적는 누름은 없다. 검토 기록(결과 · 근거 · 제재를 받은
+ * 쪽)은 runbook 의 검토 SQL 이 적고 여기서는 읽기만 한다(ADR 0105). 이 화면을 여는 것 자체가 접속기록에 남는다.
  */
 export default async function OperatorReportPage({
   params,
@@ -87,6 +90,7 @@ export default async function OperatorReportPage({
                   </>
                 )}
               </Item>
+              {found.value.reviewedAt !== null && <ReviewRecord review={found.value.review} />}
             </dl>
           </section>
 
@@ -111,6 +115,31 @@ function Item({
       <dt className="text-xs text-muted">{title}</dt>
       <dd className="mt-0.5 font-semibold">{children}</dd>
     </div>
+  );
+}
+
+/** 검토 기록 — 검토 SQL 이 채운 칸. 기록이 생기기 전에 본 신고는 결과가 없다 */
+function ReviewRecord({ review }: { review: Review | null }) {
+  if (review === null) {
+    return (
+      <Item title="검토 결과" wide>
+        <span className="text-muted">{NO_REVIEW_RECORD}</span>
+      </Item>
+    );
+  }
+  return (
+    <>
+      <Item title="검토 결과">{reviewOutcomeLabel(review.outcome)}</Item>
+      <Item title="검토한 운영자">{review.reviewerNickname ?? NO_NICKNAME}</Item>
+      <Item title="판단 근거" wide>
+        {review.note === null ? (
+          <span className="text-muted">없음</span>
+        ) : (
+          <span className="whitespace-pre-wrap leading-6">{review.note}</span>
+        )}
+      </Item>
+      {review.sanctioned !== null && <Item title="제재를 받은 쪽">{SIDE_LABEL[review.sanctioned]}</Item>}
+    </>
   );
 }
 

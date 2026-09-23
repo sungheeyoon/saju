@@ -3,7 +3,7 @@ import { rpcArgs, type RpcRow } from '@/src/lib/db';
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
 import { argsOf, isReportId, type ReportFilters } from './filters';
-import { sideOf } from './labels';
+import { sideOf, type Side } from './labels';
 import { chosenOnce, type SnapshotMessage } from './snapshot';
 
 export type { SnapshotMessage };
@@ -14,8 +14,9 @@ export type { SnapshotMessage };
  * `/ops/survey` 의 문(`../survey/read.ts`)과 같은 규율이다. **운영자인지 여기서 안 묻는다** — 묻는
  * 자리는 DB 의 `is_operator()` 하나고, 이 문은 자료를 청해서 **거절당하는 것으로 안다**(`42501`).
  *
- * 읽기만 한다. 이 폴더에는 `actions.ts` 가 없다 — 검토 완료 · 제재는 1차판에 없고, 검토 완료는
- * runbook 의 SQL 한 줄이다.
+ * 읽기만 한다. 이 폴더에는 `actions.ts` 가 없다 — 검토 완료 · 제재는 1차판에 없고, 검토 기록은
+ * runbook 의 검토 SQL 이 적는다(ADR 0105). **문이 읽을 때마다 DB 가 접속기록에 한 줄을 적는다**(G-23 ⑩) —
+ * 성공은 문 안에서, 거절은 아래 `noteDenial` 이.
  *
  * 생성 타입은 반환 칸을 전부 `null` 이 아닌 것으로 적는다(`returns table` 의 한계). 닉네임 · 덧붙인
  * 말 · 검토 시각 · 스냅샷 칸은 실제로 비므로 여기서 한 번 `null` 로 받아 옮긴다.
@@ -29,6 +30,25 @@ type Asked = { readonly error: { readonly code?: string } | null };
 const denied = (answers: readonly Asked[]): boolean =>
   answers.some((answer) => answer.error?.code === '42501');
 
+type DeniedAction = 'reports.list' | 'reports.detail';
+
+/**
+ * **거절을 적는다** — 운영자 문은 거절하며 던지고, 던진 트랜잭션에 적은 줄은 되감긴다. 그래서 거절을 받은 뒤
+ * 제 트랜잭션에서 따로 적는다(`note_operator_denial`, G-23 ⑩ · ADR 0105). 적지 못해도 화면은 404 그대로다 —
+ * 거절을 적는 일이 거절의 답을 바꾸지 않는다. 못 적은 것은 기록으로만 남긴다.
+ */
+async function noteDenial(
+  supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
+  action: DeniedAction,
+  reportId: string | null,
+): Promise<void> {
+  const { error } = await supabase.rpc(
+    'note_operator_denial',
+    rpcArgs<'note_operator_denial'>({ p_action: action, p_report_id: reportId ?? undefined }),
+  );
+  if (error) console.error('note_operator_denial', error);
+}
+
 export type Account = {
   readonly userId: string;
   readonly nickname: string | null;
@@ -41,6 +61,8 @@ export type ReportRow = {
   readonly reporter: Account;
   readonly reported: Account;
   readonly reviewedAt: string | null;
+  /** 검토 결과 — runbook 의 검토 SQL 이 적는다(ADR 0105). 없으면 `null` */
+  readonly reviewOutcome: string | null;
   /** 저장된 메시지 수 — 대화 근거가 없으면 `null`(0 이 아니다) */
   readonly snapshotMessages: number | null;
 };
@@ -58,6 +80,7 @@ const rowOf = (row: RpcRow<'operator_reports'>): ReportRow => ({
   reporter: { userId: row.reporter_user_id, nickname: row.reporter_nickname ?? null },
   reported: { userId: row.reported_user_id, nickname: row.reported_nickname ?? null },
   reviewedAt: row.reviewed_at ?? null,
+  reviewOutcome: row.review_outcome ?? null,
   snapshotMessages: row.snapshot_messages ?? null,
 });
 
@@ -71,7 +94,10 @@ export async function operatorReports(
   const supabase = await supabaseOnServer();
   const answer = await supabase.rpc('operator_reports', rpcArgs<'operator_reports'>(argsOf(filters)));
 
-  if (denied([answer])) return DENIED;
+  if (denied([answer])) {
+    await noteDenial(supabase, 'reports.list', null);
+    return DENIED;
+  }
   if (answer.error) return unread(answer.error, 'operator_reports');
 
   const rows = answer.data ?? [];
@@ -87,6 +113,14 @@ export type Snapshot = {
   readonly messages: readonly SnapshotMessage[];
 };
 
+export type Review = {
+  readonly outcome: string;
+  readonly note: string | null;
+  /** 제재를 받은 쪽 — 신고 안의 자리. 제재가 없으면 `null` */
+  readonly sanctioned: Side | null;
+  readonly reviewerNickname: string | null;
+};
+
 export type ReportDetail = {
   readonly reportId: string;
   readonly createdAt: string;
@@ -95,6 +129,8 @@ export type ReportDetail = {
   readonly reporter: AccountNow;
   readonly reported: AccountNow;
   readonly reviewedAt: string | null;
+  /** 검토 기록(ADR 0105) — 검토 SQL 이 채운다. 결과가 없으면 `null` */
+  readonly review: Review | null;
   /** 대화 신고가 아니면 `null` — 「대화 근거 없음」 */
   readonly snapshot: Snapshot | null;
 };
@@ -116,7 +152,10 @@ export async function operatorReport(
     supabase.rpc('operator_report_snapshot', { p_report_id: reportId }),
   ]);
 
-  if (denied([head, copied])) return DENIED;
+  if (denied([head, copied])) {
+    await noteDenial(supabase, 'reports.detail', reportId);
+    return DENIED;
+  }
   if (head.error) return unread(head.error, 'operator_report');
   if (copied.error) return unread(copied.error, 'operator_report_snapshot');
 
@@ -140,6 +179,15 @@ export async function operatorReport(
       status: row.reported_status ?? null,
     },
     reviewedAt: row.reviewed_at ?? null,
+    review:
+      (row.review_outcome ?? null) === null
+        ? null
+        : {
+            outcome: row.review_outcome,
+            note: row.review_note ?? null,
+            sanctioned: sideOf(row.sanctioned_side ?? null),
+            reviewerNickname: row.reviewer_nickname ?? null,
+          },
     snapshot:
       capturedAt === null
         ? null

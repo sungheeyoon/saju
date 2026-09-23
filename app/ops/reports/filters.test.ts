@@ -5,6 +5,7 @@ import {
   accountStatusLabel,
   evidenceTime,
   reasonLabel,
+  reviewOutcomeLabel,
   sideOf,
 } from './labels';
 import { chosenOnce } from './snapshot';
@@ -78,6 +79,16 @@ describe('신고 화면이 값을 부르는 말', () => {
     expect(sideOf('reported')).toBe('reported');
     expect(sideOf(null)).toBeNull();
     expect(sideOf('someone')).toBeNull();
+  });
+
+  it('검토 결과는 운영자가 정한 네 이름이고, 모르는 값은 그대로 선다', () => {
+    expect(['no_action', 'warning', 'suspension', 'needs_more'].map(reviewOutcomeLabel)).toEqual([
+      '조치 없음',
+      '경고',
+      '이용 정지',
+      '추가 확인',
+    ]);
+    expect(reviewOutcomeLabel('later')).toBe('later');
   });
 
   it('계정 상태는 PRD 의 이름으로 부른다', () => {
