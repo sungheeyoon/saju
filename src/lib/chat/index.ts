@@ -48,10 +48,33 @@ const CLOSED_ROOM_TEXT: Record<ClosedReason, string> = {
 export const closedRoomText = (reason: ClosedReason): string => CLOSED_ROOM_TEXT[reason];
 
 /**
- * 처분이 끝난 상대의 이름 자리(PRD §5.3 「탈퇴」). 지금 처분은 방을 계정과 함께 지우므로 이
- * 글자가 서는 화면은 아직 없다(G-27) — 문구만 정해 두었다.
+ * 처분이 끝난 상대의 이름 자리(PRD §5.3 「탈퇴」). 처분은 방을 남기고 떠난 쪽의 자리만 비운다
+ * (ADR 0094) — 읽는 문이 `partner_left` 로 그것을 말하면 닉네임 대신 이 글자가 선다.
  */
 export const LEFT_USER_LABEL = '탈퇴한 사용자';
+
+/**
+ * 닫힌 방 안내의 넷째 줄 — 상대가 **탈퇴**했다(PRD §7.1 의 표, 2026-09-23).
+ *
+ * 닫힌 이유보다 앞선다. 탈퇴를 신청해 닫힌 방이든, 그 전에 차단 · 이용 정지로 닫힌 방이든,
+ * 상대가 떠난 뒤에는 이 한 줄이 맞는 말이다 — 앞의 셋은 상대가 아직 있을 때의 말이다.
+ */
+export const LEFT_ROOM_TEXT = '탈퇴한 사용자입니다. 더 이상 대화할 수 없습니다.';
+
+/** 방이 사람에게 하는 한 줄 — 열린 방은 할 말이 없다 */
+export const roomNoticeOf = (room: {
+  readonly closedReason: ClosedReason | null;
+  readonly partnerLeft: boolean;
+}): string | null => {
+  if (room.partnerLeft) return LEFT_ROOM_TEXT;
+  return room.closedReason === null ? null : CLOSED_ROOM_TEXT[room.closedReason];
+};
+
+/** 상대의 이름 자리 — 떠났으면 닉네임 대신 「탈퇴한 사용자」(PRD §5.3) */
+export const partnerNameOf = (room: {
+  readonly partnerNickname: string;
+  readonly partnerLeft: boolean;
+}): string => (room.partnerLeft ? LEFT_USER_LABEL : room.partnerNickname);
 
 /** `send_chat_message` 가 값으로 내는 셋 — 던지는 것은 문(`db-error`)이 옮긴다(ADR 0091) */
 export const SEND_OUTCOMES = ['sent', 'closed', 'rate_limited'] as const;
@@ -74,6 +97,15 @@ export const CHAT_SEND_LABEL = '보내기';
 
 /** 방 제목 — `{닉네임} 님` */
 export const roomTitleOf = (nickname: string): string => `${nickname} 님`;
+
+/**
+ * 방 안의 제목 — 상대가 떠났으면 **「탈퇴한 사용자」 그대로** 선다. 「님」을 붙이지 않는다 —
+ * 이름 자리에 서는 것이 사람의 이름이 아니라 상태의 이름이라서다(PRD §5.3 의 글자 그대로).
+ */
+export const roomHeadingOf = (room: {
+  readonly partnerNickname: string;
+  readonly partnerLeft: boolean;
+}): string => (room.partnerLeft ? LEFT_USER_LABEL : roomTitleOf(room.partnerNickname));
 
 /**
  * 보내기 전에 앱이 막는 것 둘 — 빈 본문과 너무 긴 본문. DB 도 같은 둘을 막지만(`22023`) 그

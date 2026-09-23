@@ -273,8 +273,8 @@ select set_eq(
   $$values ('match_id'), ('partner_user_id'), ('partner_nickname'), ('partner_has_photo'),
            ('opened_at'), ('closed_reason'), ('closed_at'),
            ('last_message_at'), ('last_message_body'), ('unread_count'),
-           ('partner_activity')$$,
-  '방 목록이 내주는 칸은 이 열하나뿐이다 — 상대의 접속 상태는 구간 하나로 나간다(ADR 0092)');
+           ('partner_activity'), ('partner_left')$$,
+  '방 목록이 내주는 칸은 이 열둘뿐이다 — 상대의 접속 상태는 구간 하나로, 떠났는지는 참 · 거짓 하나로 나간다(ADR 0092 · 0094)');
 
 select set_eq(
   $$select a.name from pg_proc p
@@ -712,14 +712,20 @@ select is(
 reset role;
 
 -- ---------------------------------------------------------------------------
--- 지우기 — 계정이 사라지면 방 · 메시지 · 신고 · 스냅샷이 따라간다
+-- 지우기 — 계정이 사라져도 방은 남고, 신고 · 스냅샷은 신고를 따라간다
 -- ---------------------------------------------------------------------------
+--
+-- 방이 계정을 따라 사라지던 것은 2026-09-23 까지다. 처분(ADR 0094)은 떠난 쪽의 자리만 비우고 방은
+-- 남는 쪽에 남긴다 — 남는 쪽이 보는지는 37 이 잰다(여기서 김은 이미 정지돼 있다).
 select public.forget_user((select park from folks));
 
 select is(
-  (select count(*)::int from public.chat_room where match_id = (select kim_park from rooms)),
-  0,
-  '계정이 사라지면 Match 를 따라 방도 사라진다');
+  (select count(*)::int from public.chat_room
+   where match_id = (select kim_park from rooms)
+     and user_low is distinct from (select park from folks)
+     and user_high is distinct from (select park from folks)),
+  1,
+  '계정이 사라져도 방은 남고 그 사람의 자리만 빈다(ADR 0094)');
 
 select is(
   (select count(*)::int from public.chat_report_snapshot s
