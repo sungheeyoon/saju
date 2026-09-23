@@ -877,8 +877,9 @@ provider 쪽에 있다.
 |---|---|---|
 | 사람당 풀이권 | 5 | `reading_credit_limit()` |
 | 사람당 시간당 | 20 (실패한 시도도 든다) | `reading_rate_limit()` |
-| **전체 하루** | **100** | `reading_daily_budget()` |
-| 운영자 경고 | 상한의 80% | `reading_budget_warning()` |
+| **전체 하루** | **500**(2026-09-23 에 100 → 500, G-03) | `reading_daily_budget()` |
+| 운영자 경고 | 상한의 80% — 400 | `reading_budget_warning()` |
+| 운영 검증 계정 | 세되 따로 낸다 | `verification_account` 표 · `reading_spend_daily` 의 `verification_*` 칸 |
 | 바깥 벽 | 월 예산·자동 충전 끔 | OpenAI 대시보드 |
 
 ### 얼마나 썼나
@@ -887,11 +888,29 @@ provider 쪽에 있다.
 -- 날짜·종류별 시도와 토큰. `usage_unknown` 이 크면 토큰 합이 실제보다 작다는 뜻이다.
 select * from public.reading_spend_daily order by day desc, kind;
 
+-- 실제 사용자의 수 — 운영 검증 계정의 시도를 뺀다(상한은 둘 다 센다)
+select day, sum(attempts - verification_attempts) as 사용자_시도,
+       sum(verification_attempts) as 검증_시도
+from public.reading_spend_daily group by day order by day desc;
+
 -- 오늘 몇 번 썼나 (상한이 보는 바로 그 수)
 select public.reading_spend_today() as 오늘, public.reading_daily_budget() as 상한;
 ```
 
 **금액은 여기 없다.** 단가는 provider 가 정하므로 토큰까지만 낸다 — 원 단위는 대시보드다.
+
+### 운영 검증 계정 — 누구의 시도를 따로 세나
+
+제품을 확인하려고 누르는 계정이다. **세는 것은 그대로이고**(토큰은 누가 눌렀든 나간다) 지출 표가
+그 계정의 수를 `verification_*` 칸에 따로 낸다. 주소는 저장소에 안 적는다 — 운영 DB 에만 둔다.
+
+```sql
+insert into public.verification_account (user_id, note)
+select id, '운영 검증 — <누가 언제>' from auth.users where email = '<주소>';
+
+-- 지금 몇이 서 있나 (주소는 찍지 않는다)
+select count(*) from public.verification_account;
+```
 
 ### 막혔을 때 — **하루 봉쇄를 푸는 한 줄**
 
@@ -900,7 +919,7 @@ OpenAI 장애로 실패가 쌓여 상한이 찼는데 사람들이 아직 못 �
 
 ```sql
 create or replace function public.reading_daily_budget()
-returns integer language sql immutable set search_path = '' as $$ select 300 $$;
+returns integer language sql immutable set search_path = '' as $$ select 800 $$;
 ```
 
 **올리기 전에 셋을 본다.**
@@ -912,7 +931,7 @@ returns integer language sql immutable set search_path = '' as $$ select 300 $$;
    안쪽을 바깥보다 높이 올리면 이 문서의 첫 줄이 거짓이 된다
 3. 장애가 끝났는가. 실패가 계속 나는 중에 올리면 **새는 구멍을 넓히는 것**이다
 
-**그날 안에 되돌린다.** 되돌리는 것도 같은 한 줄이고, 값만 100 이다. 안 되돌리면 다음
+**그날 안에 되돌린다.** 되돌리는 것도 같은 한 줄이고, 값만 500 이다. 안 되돌리면 다음
 사고 때 이 벽은 없는 것과 같다.
 
 ### 운영자 알림 배선
@@ -1012,6 +1031,55 @@ left join public.discovery_impression i on i.candidate_user_id = p.user_id
 where p.opted_in_at is not null
 group by 1;
 ```
+
+### 풀이 재사용 — 최소 측정 (G-37)
+
+로그인 사용자의 풀이 생성만 센다 — 외부 분석 도구 · 쿠키 · 익명 식별자는 없다(2026-09-23 사람의 결정).
+읽는 것은 `reading_run` 의 **사용자 ID · 상태 · 시각뿐**이고, 이메일 · 닉네임 · 출생정보 · 풀이 본문은 안 읽는다.
+복사해 두는 표도 없다 — 매번 이 질의가 센다. 운영 검증 계정(`verification_account`)은 뺀다.
+
+- **요청**은 시도 행 하나다 — 상한(G-03)이 세는 것과 같다. 개인 · 저장한 사람 · 직접 궁합 · 수락 뒤 자동 궁합 · 다시 받기가
+  다 들고, 자동 궁합은 그 행의 사용자에게 센다
+- **성공률**은 끝난 시도(성공 + 실패) 중 성공이다 — 도는 중인 것은 분모에 안 넣는다
+- **재사용률**은 첫 성공 뒤 30일이 **다 지난** 사람만 분모에 든다. 창이 아직 열린 사람은 따로 센다 — 섞으면 막 온
+  사람이 「안 돌아왔다」로 세어져 비율이 낮게 읽힌다
+- **탈퇴하면 빠진다.** `reading_run.user_id` 가 `on delete cascade` 라 처분 때 그 사람의 행이 지워진다(ADR 0094) —
+  비율은 남은 사용자의 것이다. 사용자별 화면은 만들지 않는다
+
+```sql
+with runs as (
+  select r.user_id, r.status, r.created_at
+  from public.reading_run r
+  where not exists (select 1 from public.verification_account v where v.user_id = r.user_id)
+),
+firsts as (
+  select user_id, min(created_at) as first_success
+  from runs where status = 'succeeded' group by user_id
+),
+again as (
+  select f.first_success,
+         exists (select 1 from runs r
+                 where r.user_id = f.user_id and r.status = 'succeeded'
+                   and r.created_at > f.first_success
+                   and r.created_at <= f.first_success + interval '30 days') as reused
+  from firsts f
+)
+select
+  (select count(*) from runs) as 요청,
+  (select count(*) from runs where status = 'succeeded') as 성공,
+  (select count(*) from runs where status = 'failed') as 실패,
+  round(100.0 * (select count(*) from runs where status = 'succeeded')
+        / nullif((select count(*) from runs where status <> 'running'), 0), 1) as 성공률,
+  (select count(*) from again where first_success <= now() - interval '30 days') as 창_닫힌_사람,
+  (select count(*) from again where first_success <= now() - interval '30 days' and reused) as 그중_다시_성공,
+  round(100.0 * (select count(*) from again where first_success <= now() - interval '30 days' and reused)
+        / nullif((select count(*) from again where first_success <= now() - interval '30 days'), 0), 1) as 재사용률,
+  (select count(*) from again where first_success > now() - interval '30 days') as 창_열린_사람,
+  (select count(*) from again where first_success > now() - interval '30 days' and reused) as 그중_이미_다시_성공;
+```
+
+2026-09-23 에 운영에서 한 번 돌린 값: 요청 29 · 성공 28 · 실패 1 · 성공률 96.6% · 창이 닫힌 사람 0(재사용률은 아직 없다) ·
+창이 열린 사람 12 중 이미 다시 성공한 사람 10. 검증 계정 1개를 뺀 수다.
 
 ---
 
