@@ -61,9 +61,12 @@ export function positionSlips(markdown: string, evidence: Checked): PositionSlip
   for (const match of markdown.matchAll(PLACED)) {
     const [whole, place, tier, char] = match;
     const position = PLACE[place];
-    const found = charts.map((chart) => chart.pillars[position]).filter((pillar) => pillar != null);
+    const found = charts.flatMap((chart) => {
+      const pillar = chart.pillars[position];
+      return pillar == null ? [] : [tier === '간' ? pillar.stem : pillar.branch];
+    });
     if (found.length === 0) continue;
-    const ok = found.some((pillar) => (tier === '간' ? pillar!.stem : pillar!.branch) === char);
+    const ok = found.includes(char);
     if (!ok) slips.push({ code: 'wrong-place', detail: whole });
   }
 

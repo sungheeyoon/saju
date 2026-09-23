@@ -301,9 +301,7 @@ function sinsalLines(chart: SummarizedChart, who: '' | 'A ' | 'B '): Omit<FactLi
   return [...stars, ...empties];
 }
 
-/*
-  색인이 드는 새 글자 셋 — **2026-09-23 승인 대기**(G-33). 사람의 답을 받기 전에는 머지하지 않는다.
-*/
+/* 색인이 드는 새 글자 셋 — 2026-09-23 에 사람이 승인했다(G-33) */
 const INDEX_TITLE = '자리 색인';
 const INDEX_NOTE = (numbers: string) =>
   `줄 앞의 ${numbers} 은 사실의 번호다. 맨 아래 **${INDEX_TITLE}**은 자리마다 걸린 사실의 번호만 모은 것이다 — 새 사실이 아니고, 번호 하나는 사실 하나다.`;
