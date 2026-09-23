@@ -808,7 +808,8 @@ where p.pronamespace = 'public'::regnamespace
 6. **삭제 요청.** 또 다른 쌍(A · D)을 세우고 D 가 `/me/settings` 의 「탈퇴」→「탈퇴를 신청합니다」로 신청한다. `closed_reason` 이
    `deletion_request`, `closed_at` 이 D 의 `deletion_requested_at` 과 같다. A 는 보고 D 는 못 본다.
 
-끝나면 테스트 계정을 「지우기」로 정리한다 — 방 · 메시지 · 신고 · 스냅샷이 계정을 따라 사라진다.
+끝나면 테스트 계정을 「지우기」로 정리한다 — **쌍의 두 계정을 다** 지운다. 한쪽만 지우면 방과 메시지는
+남는 쪽에 남는다(ADR 0094). 둘 다 지우면 Match 째 사라지고, 신고 · 스냅샷은 신고를 따라 사라진다.
 지우기 전에 위 검증의 결과를 이슈 #115 에 적는다.
 
 ---
