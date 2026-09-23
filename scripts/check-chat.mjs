@@ -7,6 +7,7 @@ import { passNotice, chartArgs } from './notice.mjs';
 import { createChecks, sql } from './checks.mjs';
 import { CHAT_POLICY, RATE_LIMITED_TEXT, closedRoomText } from '../src/lib/chat/index.ts';
 import { PRESENCE_POLICY } from '../src/lib/presence/index.ts';
+import { worktreeStack } from '../src/lib/local-env.ts';
 
 /**
  * 채팅 — 문과 액션과 화면을 실제 스택에 대고 두드린다(PRD §7.1, ADR 0091).
@@ -18,7 +19,7 @@ import { PRESENCE_POLICY } from '../src/lib/presence/index.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
-const PORT = Number(process.env.CHECK_PORT ?? 3216);
+const PORT = Number(process.env.CHECK_PORT ?? worktreeStack().checkPort + 7);
 
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 

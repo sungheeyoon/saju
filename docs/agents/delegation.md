@@ -101,6 +101,8 @@ ADR 0082). `--auto` 없는 즉시 머지가 등급 3 인 까닭은 그것이 검
 - `Bash(npx supabase db query --linked:*)`
 - `Bash(supabase db query --linked:*)`
 - `Bash(./node_modules/.bin/supabase db query --linked:*)`
+- `Bash(npm run db:push:*)`
+- `Bash(npm run db:remote:*)`
 - `Bash(READING_LIVE=1:*)`
 - `Bash(READING_PAIR_LIVE=1:*)`
 - `Bash(READING_MATCH_INPUT_LIVE=1:*)`
@@ -183,6 +185,21 @@ squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 �
 
 - **다른 에이전트나 사용자가 같은 폴더에 있을 수 있다 — 작업 가지는 worktree 로 연다.** 2026-09-22
   에 HEAD 가 남의 가지 위에 있어 PR 에 남의 커밋이 섞였다.
+- **워크트리는 소스만 가른다 — 스택 자리를 따로 받는다(ADR 0096).** 이름과 포트가 같으면 한 워크트리의
+  `db:reset` 이 다른 워크트리의 데이터를 지우고 e2e 는 남의 dev 서버를 잰다. 여는 순서는 넷이다:
+
+  ```bash
+  git worktree add ../saju-<일> -b <가지> origin/main
+  cp -Rc node_modules ../saju-<일>/        # 복제다(APFS). 심볼릭 링크는 Turbopack 이 거절한다
+  cd ../saju-<일> && npm run stack:slot -- <1~9>   # 이 기계에서 안 쓰는 번호
+  npm run db:start
+  ```
+
+  번호는 `docker ps --format '{{.Names}}' | grep supabase_db_` 로 쓰는 것을 본다. 끝나면 `npm run db:stop`.
+  main 체크아웃은 자리 0(기본값)이다.
+- **원격 DB 에 닿는 명령은 `npm run db:push` · `npm run db:remote -- "<sql>"` 로 부른다.** 운영 DB 는
+  하나라 격리할 수 없다 — 둘 다 기계 전체의 잠금 하나를 잡고 돌며, 다른 세션이 쥐고 있으면 누가 무엇을
+  하는지 찍고 기다린다(ADR 0096). `npx supabase db push` 를 직접 부르면 잠금을 지나친다.
 - **담기 전에 `git diff` 를 본다.** 한 파일 안에 사용자의 배선이 섞여 있을 수 있고, 로컬
   타입체크는 디스크를 보지 git 을 안 본다 — 추적 안 된 모듈을 부르는 커밋이 CI 에서만 깨진다.
   커밋 뒤 `git status` 의 `??` 를 흘려보지 않는다.
@@ -201,13 +218,13 @@ squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 �
 | 모든 주소가 500 이고 `globals.css` 파싱 오류가 뜬다 | `.next` 의 Turbopack CSS 캐시가 깨졌다. **원본은 멀쩡하다** | `lsof -ti tcp:3000 \| xargs kill -9 ; rm -rf .next ; npm run dev`. 다른 dist(`.next-check`)도 같다 |
 | `Another next dev server is already running` | Next 16 은 한 디렉터리에 dev 서버 하나다 — 포트를 옮겨도 안 된다 | 3000 을 끄거나(사람이 쓰는 중이면 묻는다) `PLAYWRIGHT_PORT=3100 NEXT_DIST_DIR=.next-check` 로 `next start` 를 쓴다 |
 | 로그인 e2e 74건이 전부 로그인 화면을 받는다 | 3000 의 dev 서버를 재사용해 운영 DB 를 봤다 | 위와 같다. CI 는 `CI=true` 라 이 함정이 없다 |
-| 픽스처가 `Something went wrong` 으로 죽는다 | 로컬 스택의 하루 풀이 한도 100 이 찼다. 도구가 제 줄을 어제로 밀지만 다른 표식의 줄은 안 민다 | `docker logs supabase_db_saju --tail 30 \| grep -i error` 로 확인, `npm run db:reset` |
+| 픽스처가 `Something went wrong` 으로 죽는다 | 로컬 스택의 하루 풀이 한도 100 이 찼다. 도구가 제 줄을 어제로 밀지만 다른 표식의 줄은 안 민다 | `docker logs supabase_db_<SAJU_STACK_ID> --tail 30 \| grep -i error` 로 확인(main 은 `saju`, 워크트리는 `saju_wtN`), `npm run db:reset` |
 | pgTAP 이 e2e 뒤에 붉다 | 표를 전역으로 세는 자리가 남은 계정에 걸린다 | `npm run db:reset` 뒤 다시. 새로 쓰는 시험은 자기가 만든 행만 센다 |
 | `supabase: command not found` | PATH 에 없다 | `npx supabase` 나 `./node_modules/.bin/supabase` |
-| `db query` 가 `cannot insert multiple commands` | prepared statement 라 `begin; … rollback;` 을 못 받는다 | 트랜잭션이 필요하면 `docker exec -i supabase_db_saju psql -U postgres -d postgres` |
+| `db query` 가 `cannot insert multiple commands` | prepared statement 라 `begin; … rollback;` 을 못 받는다 | 트랜잭션이 필요하면 `docker exec -i supabase_db_<SAJU_STACK_ID> psql -U postgres -d postgres` |
 | `db diff --linked` 가 비밀번호를 묻는다 | 다른 인증 경로다(`db query --linked` 는 된다) | 양쪽에 같은 질의를 돌려 손으로 견준다 |
 | `timeout` 이 없다 | macOS | coreutils 의 `gtimeout` |
-| `db query --linked` 를 여럿이 동시에 부르면 `Initialising login role...` 뒤에 실패한다 | CLI 가 부를 때마다 로그인 역할을 세운다 — 나란히 부르면 서로 부딪힌다 | 한 번씩 부르거나, 부르는 쪽이 몇 초 쉬고 다시 부른다. 혼자 부르면 된다 |
+| `db query --linked` 를 여럿이 동시에 부르면 `Initialising login role...` 뒤에 실패한다 | CLI 가 부를 때마다 로그인 역할을 세운다 — 나란히 부르면 서로 부딪힌다 | `npm run db:remote -- "<sql>"` 로 부른다 — 기계 전체에서 한 번에 하나만 돌고 나머지는 기다린다(ADR 0096) |
 | 프로덕션 확인에 계정이 필요하다 | 기존 계정은 실제 사용자다 | `.env.development.local` 의 `SUPABASE_SECRET_KEY` 로 `auth.admin.createUser({ email_confirm: true })` — 주소는 `@example.com`, 전용 코드로 `complete_signup` 을 지난다. 끝나면 `forget_user` 로 지우고 코드도 지운다(2026-09-23 #115 · #121) |
 | `gh pr merge --auto` 가 `BLOCKED` 로 선다 | gate 가 아직 안 끝났다 — 실패가 아니다 | `gh pr checks <n>` 으로 갈라 본다. `UNSTABLE` 도 도는 중일 수 있다 |
 | `.env.development.local` 의 값이 `"[SENSITIVE]"` 다 | Vercel 이 Secret 은 안 내려 준다. 그대로 두면 「있는」 값으로 세어져 401 로 떨어진다 | 주석 처리해 두면 오류가 이름을 대 준다. 실호출은 `OPENAI_API_KEY` 한 줄을 손으로 붙인다 |

@@ -38,6 +38,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# 로컬 스택의 이름과 포트 기본값 — 비밀이 아니다(ADR 0096). 워크트리 값은 supabase/.env.local
+!supabase/.env
 
 # vercel
 .vercel

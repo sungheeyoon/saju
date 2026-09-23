@@ -2,7 +2,10 @@ import { execFileSync } from 'node:child_process';
 
 import { defineConfig, devices } from '@playwright/test';
 
-const port = Number(process.env.PLAYWRIGHT_PORT ?? 3000);
+import { worktreeStack } from './src/lib/local-env';
+
+/** 워크트리마다 제 포트다 — `supabase/.env(.local)` 의 `SAJU_WEB_PORT` (ADR 0096) */
+const port = Number(process.env.PLAYWRIGHT_PORT ?? worktreeStack().webPort);
 const baseURL = `http://localhost:${port}`;
 
 /**

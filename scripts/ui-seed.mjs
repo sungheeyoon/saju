@@ -17,6 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 
 import { clearMachineRunsFromToday, chartArgs } from './notice.mjs';
+import { worktreeStack } from '../src/lib/local-env.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -59,7 +60,7 @@ export function localStack() {
 export const sql = (statement) =>
   execFileSync(
     'docker',
-    ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq', '-c', statement],
+    ['exec', '-i', worktreeStack().dbContainer, 'psql', '-U', 'postgres', '-tAq', '-c', statement],
     { encoding: 'utf8' },
   ).trim();
 
