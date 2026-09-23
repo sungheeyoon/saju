@@ -41,7 +41,7 @@ import type { Participant, ResolvedRelation } from '../saju/relations';
  * `SharedEvidence`)가 이 함수를 못 부른다. 그러면 머리를 짓는 자리가 둘이 되고,
  * 둘은 언젠가 갈린다 — 갈리면 「한눈에」가 아래 자료와 다른 말을 하게 된다.
  */
-export type SummarizedChart = {
+type SummarizedChart = {
   pillars: Pick<ChartEvidence['pillars'], 'year' | 'month' | 'day' | 'hour' | 'dayMaster'> & {
     /** 인연 궁합 자료는 절입·사주년을 안 싣는다 — 없으면 머리에도 안 적는다 */
     meta: Partial<Pick<ChartEvidence['pillars']['meta'], 'monthTerm' | 'sajuYear' | 'hourKnown'>>;
@@ -54,7 +54,7 @@ export type SummarizedChart = {
 };
 
 /** 머리를 지을 수 있는 자료 — `Evidence` 도, 잘린 것도 이 모양을 만족한다 */
-export type Summarizable = {
+type Summarizable = {
   viewedAt: string;
   charts: { a: SummarizedChart; b: SummarizedChart | null };
   /** 두 원국 사이의 관계 — 한 사람짜리 자료에는 없다 */
@@ -62,7 +62,7 @@ export type Summarizable = {
 };
 
 /** 목록이 실제로 읽는 관계의 자리 — 인연 궁합 자료는 `id`·거리를 안 싣는다 */
-export type FactRelation = Pick<
+type FactRelation = Pick<
   ResolvedRelation,
   'tier' | 'ko' | 'name' | 'full' | 'participants' | 'direction' | 'cycle' | 'contested'
 >;

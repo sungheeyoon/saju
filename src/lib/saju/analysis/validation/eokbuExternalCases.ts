@@ -1,7 +1,7 @@
 import type { Element } from '../../constants';
 import type { ElementRole } from '../yongsin';
 
-export type ExternalStrengthClaim =
+type ExternalStrengthClaim =
   | 'strong'
   | 'weak'
   | 'borderline'
@@ -13,7 +13,7 @@ export type ExternalStrengthClaim =
  * 같은 사이트에 올라 있기도 하다(《적천수천미》와 《천리명고》가 그렇다). 계통이
  * 갈리는 자리에서 성적이 갈리는 것이 이 데이터셋의 요점이므로 손으로 적어 둔다.
  */
-export type EokbuLineage =
+type EokbuLineage =
   /** 현대 한국 상담·강의 글 */
   | 'korean-modern'
   /** 청대 고전 주석 (《적천수천미》 임철초) */
@@ -21,7 +21,7 @@ export type EokbuLineage =
   /** 민국 시대 실전 명리 (《천리명고》 위천리) */
   | 'republican-chinese';
 
-export type ExternalEokbuCase = {
+type ExternalEokbuCase = {
   id: string;
   pillars: {
     year: string;

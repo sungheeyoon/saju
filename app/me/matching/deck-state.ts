@@ -7,7 +7,7 @@ export type DeckState = {
   history: readonly DeckCard[];
   seen: readonly string[];
 };
-export type DeckEvent =
+type DeckEvent =
   | { type: 'sync'; cards: readonly DeckCard[]; passed: readonly DeckCard[] }
   | { type: 'pass'; card: DeckCard }
   | { type: 'leave'; id: string }

@@ -25,7 +25,7 @@ import { rpcArgs } from '@/src/lib/db';
  * **셋째 갈래가 「아직 저장 안 했고 물어봐야 한다」다.** `ok: false` 안에서 `kind` 로
  * 가른다 — 거절과 물음은 화면이 할 일이 다르다(하나는 문장을 세우고 하나는 칸을 연다).
  */
-export type PersonSaved =
+type PersonSaved =
   | { ok: true; personId: string }
   | { ok: false; kind: 'failed'; message: string }
   | { ok: false; kind: 'same-chart'; same: SameChart };

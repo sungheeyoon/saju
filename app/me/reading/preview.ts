@@ -37,7 +37,7 @@ import { READING_CHART_NAMES } from './pipeline';
  * 딱 하나 다른 것은 기준 시각이다. 운은 부르는 순간으로 짚으므로, 실제 생성은 그때의
  * `viewedAt` 으로 다시 짓는다. 그래서 **돌려주는 값에 그 시각을 함께 싣는다.**
  */
-export type ReadingPreview = {
+type ReadingPreview = {
   readonly prompt: string;
   readonly evidence: string;
   readonly viewedAt: string;

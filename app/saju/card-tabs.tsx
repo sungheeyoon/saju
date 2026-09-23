@@ -14,7 +14,7 @@ import { CARD } from '../card';
  * 볼까」 하나뿐이다. 판을 자식으로 부르면 그 안의 표와 계산이 전부 따라간다 — 지금은
  * 공개 화면에서 브라우저로 가는 것이 이 파일 하나다.
  */
-export type CardTab = {
+type CardTab = {
   readonly key: string;
   readonly label: string;
   readonly panel: React.ReactNode;

@@ -40,7 +40,7 @@ export const KASI_LEAP_MONTHS: Readonly<Record<number, number>> = {
  *
  * `solar` 는 **한국** 음력 초하루의 양력 날짜다(중국은 그 전날).
  */
-export type KasiMonthFirstDay = {
+type KasiMonthFirstDay = {
   year: number;
   month: number;
   leap: boolean;

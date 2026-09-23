@@ -28,7 +28,7 @@ if (found === null) {
 export const NOTICE_VERSION = found[1];
 
 /** 검사가 쓰는 종료일 — 한 자리에 두어 손잡이와 검사가 같은 값을 본다 */
-export const CHECK_ENDS_ON = '2026-10-31';
+const CHECK_ENDS_ON = '2026-10-31';
 
 /**
  * 입력을 쓰는 문에 함께 가는 **여덟 글자** (ADR 0071).
@@ -54,7 +54,7 @@ export const CHECK_ENDS_ON = '2026-10-31';
  */
 const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 
-export const chartFor = (seed = '', hasHour = true) => {
+const chartFor = (seed = '', hasHour = true) => {
   const at = [...String(seed)].reduce((sum, one) => sum + one.codePointAt(0), 0) % STEMS.length;
   const dayStem = STEMS[at];
 
@@ -69,7 +69,7 @@ export const chartFor = (seed = '', hasHour = true) => {
 };
 
 /** 그 여덟 글자를 낸 엔진 판 — 검사가 댄 값이라는 것이 이름에 드러나야 한다 */
-export const CHECK_CHART_ENGINE = 'chart-for-checks';
+const CHECK_CHART_ENGINE = 'chart-for-checks';
 
 /** 저장하는 문에 함께 가는 두 칸 — 부르는 쪽이 이름을 손으로 안 적게 */
 export const chartArgs = (seed = '', hasHour = true) => ({
@@ -126,7 +126,7 @@ export function seedSignupCode(code = CHECK_CODE, maxUses = 100) {
  * `scripts/ui-seed.mjs` 와 `e2e/session.ts` 가 같은 일을 한다. 세 층이 각자 돌 수 있어야
  * 하므로 같은 규칙을 각자 들되, 표식의 목록은 여기 한 벌이다.
  */
-export const MACHINE_MODELS = ['gpt-e2e', 'gpt-ui-walk', 'gpt-5.6-luna', 'x'];
+const MACHINE_MODELS = ['gpt-e2e', 'gpt-ui-walk', 'gpt-5.6-luna', 'x'];
 
 /**
  * **표식은 모델 이름만으로 모자랐다.** 동의가 여는 시도(`match`)는 그 자리에서 모델을

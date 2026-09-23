@@ -1,4 +1,4 @@
-import { balanceLabelOf, knownElementsOf } from '@/src/lib/discovery';
+import { balanceLabelOf } from '@/src/lib/discovery';
 import type { RpcRow } from '@/src/lib/db';
 import { READING_KINDS, type ReadingKind } from '@/src/lib/reading';
 import {
@@ -63,7 +63,7 @@ export type InboxMatch = {
   readonly createdAt: string;
 };
 
-export type InboxNotification = {
+type InboxNotification = {
   readonly notificationId: string;
   readonly text: string;
   /**
@@ -93,7 +93,7 @@ const matchOf = (row: MatchRow): InboxMatch => ({
   nickname: row.partner_nickname ?? '',
   intro: row.partner_intro,
   hasPhoto: row.partner_has_photo === true,
-  suppliedToMe: suppliedText(knownElementsOf(row.supplied_to_me), 'toMe'),
+  suppliedToMe: suppliedText(row.supplied_to_me, 'toMe'),
   balanceLabel: balanceLabelOf(row.balance_band),
   createdAt: row.created_at,
 });
@@ -179,8 +179,8 @@ export async function inboxForViewer(): Promise<Inbox> {
           intro: row.counterpart_intro,
           hasPhoto: row.counterpart_has_photo === true,
           status,
-          suppliedToMe: suppliedText(knownElementsOf(row.supplied_to_me), 'toMe'),
-          suppliedToThem: suppliedText(knownElementsOf(row.supplied_to_them), 'toThem'),
+          suppliedToMe: suppliedText(row.supplied_to_me, 'toMe'),
+          suppliedToThem: suppliedText(row.supplied_to_them, 'toThem'),
           balanceLabel: balanceLabelOf(row.balance_band),
           createdAt: row.created_at,
           decidedAt: row.decided_at,

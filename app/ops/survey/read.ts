@@ -82,7 +82,7 @@ export type ServiceText = {
   readonly submittedAt: string;
 };
 
-export type OperatorSurvey = {
+type OperatorSurvey = {
   readonly overview: SurveyOverview;
   readonly versions: readonly VersionRow[];
   readonly tags: readonly TagRow[];

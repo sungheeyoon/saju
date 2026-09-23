@@ -25,7 +25,7 @@ import { supabaseForShared } from './public-client';
  * 노출은 안 넓어진다 — 던지는 말은 한 문을 지나 우리 문장으로만 나가고(`dbFailure`),
  * 토큰이 실재하는지는 여전히 아무 답도 안 한다.
  */
-export type SharedReading = {
+type SharedReading = {
   readonly metaphor: string | null;
   readonly score: number | null;
   readonly body: string;

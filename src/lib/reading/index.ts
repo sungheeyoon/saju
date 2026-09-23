@@ -132,32 +132,20 @@ export {
   selfSectionCount,
   selfSectionTexts,
   type PromptSlot,
-  type PairShape,
   type PromptAssembly,
   type ReadingAbout,
-  type ReadingNames,
-  type SelfPresentation,
-  type Terminology,
 } from './prompt';
 export {
-  EVIDENCE_SECTION,
   measureMarkdown,
   outputDeviations,
   pairOutputDeviations,
-  type Answered,
-  type DeviationKind,
-  type Measured,
   type OutputDeviation,
 } from './measure';
 export {
   MATCH_INPUT_VARIANTS,
   PAIR_VARIANTS,
   PROMPT_VARIANTS,
-  type MatchInputVariant,
-  type MatchInputVariantId,
   type PairVariant,
-  type PairVariantId,
-  type PromptVariant,
   type PromptVariantId,
 } from './variants';
 export {
@@ -166,9 +154,5 @@ export {
   secretForms,
   OUT_OF_SCOPE_TERMS,
   PLAIN_FORBIDDEN_TERMS,
-  READING_FAILURES,
   type BirthSecret,
-  type ReadingCheck,
-  type ReadingFailure,
-  type ReadingFailureCode,
 } from './check';

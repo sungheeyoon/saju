@@ -48,7 +48,7 @@ export type ReadingKind = (typeof READING_KINDS)[number];
  * 같은 문장이었기 때문이다.
  */
 export const SOLO_KINDS = ['self', 'person'] as const;
-export type SoloKind = (typeof SOLO_KINDS)[number];
+type SoloKind = (typeof SOLO_KINDS)[number];
 export const isSolo = (kind: ReadingKind): kind is SoloKind =>
   (SOLO_KINDS as readonly string[]).includes(kind);
 

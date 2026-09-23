@@ -45,7 +45,7 @@ const PERSON_INPUT_COLUMNS =
  * 되돌려주면 부르는 쪽의 문자열 비교가 전부 어긋난다 — 「이게 내 selfPerson 인가」가
  * 거짓이 되고, 그때 화면은 못 만드는 버튼을 세운다. 정규화는 DB 가 이미 했다.
  */
-export type StoredPerson = { readonly id: string; readonly input: StoredInput };
+type StoredPerson = { readonly id: string; readonly input: StoredInput };
 
 /**
  * 여덟 칸이 **함께 차거나 함께 빈다** — 한 칸이 그 답을 든다.

@@ -57,13 +57,13 @@ void _kindsAgree;
  * **규칙이지 누락이 아니므로 타입이 그것을 말한다.** 런타임 검사 하나로 두면 그 검사를
  * 잊은 호출부가 컴파일된다.
  */
-export type ShareableTarget = Exclude<ReadingTarget, { kind: 'match' }>;
+type ShareableTarget = Exclude<ReadingTarget, { kind: 'match' }>;
 
 export const isShareable = (target: ReadingTarget): target is ShareableTarget =>
   target.kind !== 'match';
 
 /** 네 kind 가 대상을 대는 한 벌 — `my_reading` 계열이 그대로 받는다 */
-export type ReadingTargetArgs = {
+type ReadingTargetArgs = {
   readonly p_kind: ReadingTarget['kind'];
   readonly p_person_a: string | null;
   readonly p_person_b: string | null;
@@ -91,7 +91,7 @@ export function readingTargetArgs(target: ReadingTarget): ReadingTargetArgs {
 }
 
 /** 공유하는 문이 받는 한 벌 — **`p_match_id` 자리가 아예 없다** */
-export type ShareTargetArgs = {
+type ShareTargetArgs = {
   readonly p_kind: ShareableTarget['kind'];
   readonly p_person_a: string | null;
   readonly p_person_b: string | null;

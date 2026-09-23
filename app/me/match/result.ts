@@ -1,5 +1,5 @@
 import type { CompatSide } from '@/src/lib/saju';
-import { balanceLabelOf, knownElementsOf } from '@/src/lib/discovery';
+import { balanceLabelOf } from '@/src/lib/discovery';
 import { suppliedText } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -70,7 +70,7 @@ export type SharedResult = {
  *
  * 「못 읽는 판본」 갈래는 없어졌다 — 이 길에서 판본을 안 읽는다.
  */
-export type ResultOutcome =
+type ResultOutcome =
   | { kind: 'ok'; result: SharedResult }
   | { kind: 'closed'; message: string };
 
@@ -136,8 +136,8 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
       partnerIntro: scope.partner_intro,
       names,
       charts: { a: mine, b: theirs },
-      suppliedToMe: suppliedText(knownElementsOf(scope.supplied_to_me), 'toMe'),
-      suppliedToThem: suppliedText(knownElementsOf(scope.supplied_to_them), 'toThem'),
+      suppliedToMe: suppliedText(scope.supplied_to_me, 'toMe'),
+      suppliedToThem: suppliedText(scope.supplied_to_them, 'toThem'),
       balanceLabel: balanceLabelOf(scope.balance_band),
       createdAt: scope.created_at,
       [granted]: true,

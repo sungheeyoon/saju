@@ -1,6 +1,5 @@
 import {
   BRANCHES,
-  SEXAGENARY_CYCLE_LENGTH,
   STEMS,
   type Branch,
   type Pillar,

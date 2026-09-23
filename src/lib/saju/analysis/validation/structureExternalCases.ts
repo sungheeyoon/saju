@@ -35,7 +35,7 @@
 
 import type { StructureKind } from '../structure';
 
-export type StructureExternalCase = {
+type StructureExternalCase = {
   id: string;
   pillars: { year: string; month: string; day: string; hour: string };
   /** 이 책 하나뿐이다 — 위 머리말의 「계통이 하나다」를 값으로 든다 */

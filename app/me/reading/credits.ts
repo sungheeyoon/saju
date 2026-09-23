@@ -31,7 +31,7 @@ export type ReadingCredits = {
 };
 
 /** DB 의 말을 도메인의 말로 — **칸 이름은 생성 타입이 든다** */
-export const readingCreditsFromDb = (row: RpcRow<'my_reading_credits'>): ReadingCredits => ({
+const readingCreditsFromDb = (row: RpcRow<'my_reading_credits'>): ReadingCredits => ({
   limit: row.credit_limit,
   used: row.used,
   reserved: row.reserved,

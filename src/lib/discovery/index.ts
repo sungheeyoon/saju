@@ -147,7 +147,7 @@ const BALANCE_BANDS: readonly BalanceBand[] = ['even', 'mixed', 'skewed'];
  * 모르는 값을 좋은 쪽으로 눕히지 않는다. 후보 카드·요청함·인연 결과 세 자리가 이 읽기를
  * 한 벌씩 적고 있었다.
  */
-export const balanceBandOf = (raw: string): BalanceBand =>
+const balanceBandOf = (raw: string): BalanceBand =>
   BALANCE_BANDS.find((band) => band === raw) ?? 'skewed';
 
 /** DB 가 준 오행 글자를 읽는다 — 모르는 글자는 버린다. 그럴듯한 것으로 눕히지 않는다 */
@@ -157,7 +157,7 @@ export const knownElementsOf = (raw: readonly string[] | null): Element[] =>
   );
 
 /** `discovery_board()` 가 내주는 한 줄 — **여기 없는 것이 안 나가는 것이다** */
-export type BoardRow = {
+type BoardRow = {
   candidateUserId: string;
   nickname: string;
   intro: string | null;
@@ -368,6 +368,38 @@ export function cardTextFor(
       };
     }),
     balanceLabel: BALANCE_LABEL[row.balanceBand],
+  };
+}
+
+/**
+ * 후보 카드가 드는 말 한 벌 — **DB 가 준 날값에서 곧장 짓는다.**
+ *
+ * 날값을 읽고(`knownElementsOf` · `balanceBandOf`) 점수를 0~100 정수로 묶은 뒤
+ * `cardTextFor` 와 `previewSummaryFor` 를 차례로 부르는 넷째 걸음까지가 한 벌이다.
+ * 2026-09-23 까지 그 한 벌이 `app/me/candidates.ts` 와 미리보기 예시(`examples.ts`)에
+ * 따로 적혀 있었다(G-46) — 예시가 실데이터와 같은 말을 한다는 약속을 손으로 지키고
+ * 있었던 셈이다. 이제 둘 다 이것을 부른다.
+ */
+export function candidateCardText(row: {
+  suppliedElements: readonly string[] | null;
+  balanceBand: string;
+  previewScore: number;
+  /** 내 개수는 문구 강도만 가른다. 예시처럼 모르면 비운다 */
+  viewerCounts?: Readonly<Record<Element, number>>;
+}): {
+  previewScore: number;
+  highlights: CandidateHighlight[];
+  balanceLabel: string;
+  verdict: string;
+  reason: string;
+} {
+  const suppliedElements = knownElementsOf(row.suppliedElements);
+  const balanceBand = balanceBandOf(row.balanceBand);
+  const previewScore = Math.max(0, Math.min(100, Math.round(row.previewScore)));
+  return {
+    previewScore,
+    ...cardTextFor({ suppliedElements, balanceBand, viewerCounts: row.viewerCounts }),
+    ...previewSummaryFor({ previewScore, suppliedElements, balanceBand }),
   };
 }
 
