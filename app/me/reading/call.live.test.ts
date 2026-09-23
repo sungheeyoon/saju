@@ -18,6 +18,8 @@ import {
   readingEvidenceOf,
   readingPromptOf,
   outputDeviations,
+  positionSlips,
+  promptVersionOf,
   writesSummaryLast,
   type OutputDeviation,
 } from '@/src/lib/reading';
@@ -151,23 +153,34 @@ describe('P0/P1 표본은 실제로 갈리는 명식이다', () => {
  *   드러난다.** 조립만 재는 시험으로는 영영 안 잡히는 자리다.
  */
 const kinds = [
-  { kind: 'self', pair: false },
-  { kind: 'person', pair: false },
-  { kind: 'private', pair: true },
-  { kind: 'match', pair: true },
+  { kind: 'self', pair: false, hourless: false },
+  { kind: 'person', pair: false, hourless: false },
+  { kind: 'private', pair: true, hourless: false },
+  { kind: 'match', pair: true, hourless: false },
+  /**
+   * **시간 미상 한 편** — 9/1 실험의 hard 실패 하나가 「시간 미상의 반방합을 단정한 것」이었다(ADR 0099).
+   * 일부만 선 합이 있는 명식이라야 그 자리가 발동한다 — `position-check.test.ts` 가 같은 명식을 잰다.
+   */
+  { kind: 'self', pair: false, hourless: true },
+] as const;
+
+/** 시간 미상 표본 — 일부만 선 합(반방합 · 반합)이 서는 명식 */
+const HOURLESS = { year: 1991, month: 6, day: 2, hour: null, gender: 'female' } as const;
+const HOURLESS_SECRETS = [
+  { originalDate: '1991-06-02', solarDate: '1991-06-02', birthTime: null, city: '서울' },
 ] as const;
 
 describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
   it.each(kinds)(
-    '$kind — 한 편이 나오고 검사를 지난다',
+    '$kind (시간 미상 $hourless) — 한 편이 나오고 검사를 지난다',
     { timeout: 300_000 },
-    async ({ kind, pair }) => {
+    async ({ kind, pair, hourless }) => {
       loadLocalEnv();
       const { callModel } = await import('@/app/me/reading/model');
 
       const charts = pair
         ? { a: computeSaju(INPUT), b: computeSaju(OTHER) }
-        : { a: computeSaju(INPUT) };
+        : { a: computeSaju(hourless ? HOURLESS : INPUT) };
       const viewedAt = new Date();
       const evidence = readingEvidenceOf(kind, charts, viewedAt);
       const called = await callModel(readingPromptOf(evidence));
@@ -198,14 +211,19 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
        */
       const { GENERATION } = await import('@/app/me/reading/generation');
 
+      /** 자리 검사(G-33) — 원문과 함께 떨군 뒤 판정한다 */
+      const slips = positionSlips(called.output.markdown, evidence.evidence);
+
       writeFileSync(
-        `${dir}/${kind}-${viewedAt.toISOString().replace(/[:.]/g, '-')}.json`,
+        `${dir}/${kind}${hourless ? '-hourless' : ''}-${viewedAt.toISOString().replace(/[:.]/g, '-')}.json`,
         JSON.stringify(
           {
             kind,
             /** 기준판으로 부른다 — 변형을 견주는 것은 `READING_VARIANTS_LIVE` 쪽이다 */
             variant: 'control',
-            promptVersion: READING_POLICY.version,
+            /** 궁합은 판본 칸이 따로다 — 저장되는 Reading 과 같은 함수로 고른다 */
+            promptVersion: promptVersionOf(kind),
+            positionSlips: slips,
             /** 운은 부르는 순간으로 짚는다 — 그 시각이 없으면 같은 입력도 다른 글이 난다 */
             viewedAt: viewedAt.toISOString(),
             generation: GENERATION,
@@ -220,10 +238,11 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
         kind,
         output: called.output,
         evidenceText: JSON.stringify(evidence.evidence),
-        secrets: pair ? PAIR_SECRETS : SECRETS,
+        secrets: pair ? PAIR_SECRETS : hourless ? HOURLESS_SECRETS : SECRETS,
       });
 
       expect(verdict.ok ? [] : verdict.failures).toEqual([]);
+      expect(slips).toEqual([]);
 
       /**
        * **점수는 있어야 할 때 있고 없어야 할 때 없다** — 구조화 출력 스키마가 그 자리를

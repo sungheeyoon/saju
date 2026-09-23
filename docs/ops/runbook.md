@@ -1050,6 +1050,55 @@ where p.opted_in_at is not null
 group by 1;
 ```
 
+### 풀이 재사용 — 최소 측정 (G-37)
+
+로그인 사용자의 풀이 생성만 센다 — 외부 분석 도구 · 쿠키 · 익명 식별자는 없다(2026-09-23 사람의 결정).
+읽는 것은 `reading_run` 의 **사용자 ID · 상태 · 시각뿐**이고, 이메일 · 닉네임 · 출생정보 · 풀이 본문은 안 읽는다.
+복사해 두는 표도 없다 — 매번 이 질의가 센다. 운영 검증 계정(`verification_account`)은 뺀다.
+
+- **요청**은 시도 행 하나다 — 상한(G-03)이 세는 것과 같다. 개인 · 저장한 사람 · 직접 궁합 · 수락 뒤 자동 궁합 · 다시 받기가
+  다 들고, 자동 궁합은 그 행의 사용자에게 센다
+- **성공률**은 끝난 시도(성공 + 실패) 중 성공이다 — 도는 중인 것은 분모에 안 넣는다
+- **재사용률**은 첫 성공 뒤 30일이 **다 지난** 사람만 분모에 든다. 창이 아직 열린 사람은 따로 센다 — 섞으면 막 온
+  사람이 「안 돌아왔다」로 세어져 비율이 낮게 읽힌다
+- **탈퇴하면 빠진다.** `reading_run.user_id` 가 `on delete cascade` 라 처분 때 그 사람의 행이 지워진다(ADR 0094) —
+  비율은 남은 사용자의 것이다. 사용자별 화면은 만들지 않는다
+
+```sql
+with runs as (
+  select r.user_id, r.status, r.created_at
+  from public.reading_run r
+  where not exists (select 1 from public.verification_account v where v.user_id = r.user_id)
+),
+firsts as (
+  select user_id, min(created_at) as first_success
+  from runs where status = 'succeeded' group by user_id
+),
+again as (
+  select f.first_success,
+         exists (select 1 from runs r
+                 where r.user_id = f.user_id and r.status = 'succeeded'
+                   and r.created_at > f.first_success
+                   and r.created_at <= f.first_success + interval '30 days') as reused
+  from firsts f
+)
+select
+  (select count(*) from runs) as 요청,
+  (select count(*) from runs where status = 'succeeded') as 성공,
+  (select count(*) from runs where status = 'failed') as 실패,
+  round(100.0 * (select count(*) from runs where status = 'succeeded')
+        / nullif((select count(*) from runs where status <> 'running'), 0), 1) as 성공률,
+  (select count(*) from again where first_success <= now() - interval '30 days') as 창_닫힌_사람,
+  (select count(*) from again where first_success <= now() - interval '30 days' and reused) as 그중_다시_성공,
+  round(100.0 * (select count(*) from again where first_success <= now() - interval '30 days' and reused)
+        / nullif((select count(*) from again where first_success <= now() - interval '30 days'), 0), 1) as 재사용률,
+  (select count(*) from again where first_success > now() - interval '30 days') as 창_열린_사람,
+  (select count(*) from again where first_success > now() - interval '30 days' and reused) as 그중_이미_다시_성공;
+```
+
+2026-09-23 에 운영에서 한 번 돌린 값: 요청 29 · 성공 28 · 실패 1 · 성공률 96.6% · 창이 닫힌 사람 0(재사용률은 아직 없다) ·
+창이 열린 사람 12 중 이미 다시 성공한 사람 10. 검증 계정 1개를 뺀 수다.
+
 ---
 
 ## 배포
