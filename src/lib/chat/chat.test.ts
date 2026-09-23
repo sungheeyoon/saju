@@ -3,10 +3,15 @@ import { describe, expect, it } from 'vitest';
 import {
   CHAT_POLICY,
   CLOSED_REASONS,
+  LEFT_ROOM_TEXT,
+  LEFT_USER_LABEL,
   checkBody,
   closedReasonOf,
   closedRoomText,
   messageTimeLabel,
+  partnerNameOf,
+  roomHeadingOf,
+  roomNoticeOf,
   roomTitleOf,
   sendOutcomeOf,
 } from '.';
@@ -28,6 +33,36 @@ describe('닫힌 방의 이유 셋은 저마다 다른 말을 한다', () => {
     expect(closedReasonOf('block')).toBe('block');
     expect(closedReasonOf('left')).toBeNull();
     expect(closedReasonOf(null)).toBeNull();
+  });
+});
+
+/**
+ * 상대가 **탈퇴**하면 방은 닫힌 채 남고 떠난 쪽의 자리만 빈다(ADR 0094). 그 방이 하는 말은 이유
+ * 셋이 아니라 넷째 줄이다 — 탈퇴 신청으로 닫혔든, 그 전에 차단 · 이용 정지로 닫혔든.
+ */
+describe('상대가 떠난 방', () => {
+  it('넷째 줄이 닫힌 이유보다 앞선다 — 이유가 무엇이든 같은 한 줄이다', () => {
+    for (const closedReason of CLOSED_REASONS) {
+      expect(roomNoticeOf({ closedReason, partnerLeft: true })).toBe(LEFT_ROOM_TEXT);
+    }
+    expect(LEFT_ROOM_TEXT).toBe('탈퇴한 사용자입니다. 더 이상 대화할 수 없습니다.');
+  });
+
+  it('상대가 있으면 이유가 말을 정하고, 열린 방은 할 말이 없다', () => {
+    for (const closedReason of CLOSED_REASONS) {
+      expect(roomNoticeOf({ closedReason, partnerLeft: false })).toBe(closedRoomText(closedReason));
+    }
+    expect(roomNoticeOf({ closedReason: null, partnerLeft: false })).toBeNull();
+  });
+
+  it('이름 자리에는 닉네임 대신 「탈퇴한 사용자」가 서고, 방 제목에는 「님」이 안 붙는다', () => {
+    const left = { partnerNickname: '', partnerLeft: true };
+    expect(partnerNameOf(left)).toBe(LEFT_USER_LABEL);
+    expect(roomHeadingOf(left)).toBe('탈퇴한 사용자');
+
+    const here = { partnerNickname: '지영', partnerLeft: false };
+    expect(partnerNameOf(here)).toBe('지영');
+    expect(roomHeadingOf(here)).toBe(roomTitleOf('지영'));
   });
 });
 
