@@ -16,6 +16,8 @@ import { basename, extname, join, relative, resolve, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
+import { LAUNCHED, stagesOf } from './release-stage.mjs';
+
 const ROOT = resolve(__dirname, '..');
 const relPath = (file: string) => relative(ROOT, file).split(sep).join('/');
 
@@ -571,28 +573,9 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
     expect(ask.filter((rule) => deny.includes(rule))).toEqual([]);
   });
 
-  /**
-   * 출시 단계마다 등급 3 을 잠그는가 — **모르는 단계는 없다.** 이름이 「공개 출시」가 아니면 비우라고 하던 동안,
-   * 공개 출시 뒤의 단계(「정식 운영」 같은)를 더하면 시험이 잠금을 **끄라고** 요구했다(#155). PRD §7.0 에 단계를
-   * 더하면 여기에도 더한다 — 제품 문서에 도구 속성을 두지 않는다 (ADR 0093 추기)
-   */
-  const TIER_THREE_LOCKED: Record<string, boolean> = {
-    '운영 베타': false,
-    '채팅 안전 베타': false,
-    '공개 출시': true,
-  };
-
-  /** `docs/prd.md` §7.0 표의 단계 — 이름과 「(지금)」 표시. 출시 단계가 적힌 곳은 여기 하나다 (ADR 0093 추기) */
-  function stagesOfPrd(): { name: string; current: boolean }[] {
-    const prd = readFileSync(join(ROOT, 'docs/prd.md'), 'utf8');
-    const start = prd.indexOf('\n### 7.0 ');
-    expect(start).toBeGreaterThan(-1);
-    const end = prd.indexOf('\n### ', start + 1);
-    return [...prd.slice(start, end).matchAll(/^\| \*\*([^*]+)\*\*( \(지금\))? \|/gm)].map((match) => ({
-      name: match[1].trim(),
-      current: match[2] !== undefined,
-    }));
-  }
+  /** 출시 단계의 표와 PRD 읽기는 `scripts/release-stage.mjs` 한 곳이다 — CI 계획도 같은 것을 읽는다 (ADR 0093 · 0097) */
+  const TIER_THREE_LOCKED: Record<string, boolean> = LAUNCHED;
+  const stagesOfPrd = () => stagesOf(readFileSync(join(ROOT, 'docs/prd.md'), 'utf8'));
 
   it('PRD §7.0 의 단계는 전부 잠금 여부가 정해져 있다 — 모르는 단계는 잠금을 켜라고도 끄라고도 안 한다', () => {
     const names = stagesOfPrd().map((stage) => stage.name);

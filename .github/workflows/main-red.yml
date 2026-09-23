@@ -1,0 +1,38 @@
+name: main-red
+
+# main 의 verify 가 끝나면 그 결과로 `ci-main-red` 이슈를 열거나 · 댓글을 달거나 · 닫는다 (#161, ADR 0097).
+# 판단은 `scripts/main-red.mjs` 한 곳에 있다. **`issues: write` 는 이 워크플로에만 준다** — PR 을 도는 verify 는
+# 이슈를 못 건드린다. 손으로 켤 때는 판단할 verify 실행의 id 를 준다(흉내가 아니라 그 실행의 실제 결과로 판단한다).
+on:
+  workflow_run:
+    workflows: [verify]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 판단할 verify 실행의 id
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+concurrency:
+  group: main-red
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: node scripts/main-red.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id || github.event.workflow_run.id }}

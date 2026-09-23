@@ -36,6 +36,18 @@
  * (#141)은 모르는 파일이라 전부(약 5분)를 돌았다. 그 둘을 한 단계로 묶었다 — `scripts/` 의 시험 · 타입 ·
  * 린트다. `scripts/*.test.ts` 만 바뀐 PR 도 여기다: 시험 파일은 저 자신의 결과만 바꾼다.
  *
+ * ## 공개 출시 전에는 빠른 검사만 머지를 막는다 (2026-09-23, #161, ADR 0097)
+ *
+ * 운영 베타에는 실제 사용자가 없다. PR 마다 전부(약 5분)를 돌리고 strict 가 뒤에 선 PR 을 다시 돌리는 값이
+ * 다치는 사람을 막는 값보다 컸다. 그래서 단계가 공개 뒤의 규율을 켜지 않았으면(`release-stage.mjs`) PR 은
+ * `fast`(단위 · 타입 · 린트) 하나만 탄다 — 정책 파일만 바뀌었으면 전처럼 `policy`. 전체 검증은 main 푸시가
+ * 최신 커밋 하나에서 비차단으로 돌고, 붉으면 `ci-main-red` 이슈가 든다.
+ *
+ * - **`supabase/**` 는 단계와 상관없이 전부다.** 마이그레이션 · pgTAP · `config.toml` 은 DB 차선에서만 재어지고,
+ *   `db:start` 가 깨지면 main 의 DB 차선이 다 선다. 라벨에 기대지 않는다 — 에이전트는 라벨을 잊는다.
+ * - **단계를 모르면 전부다.** 「(지금)」이 없거나 둘이거나 표에 없는 이름이면 안전 쪽으로 간다.
+ * - **공개 출시면 아래 세 단계로 돌아간다.** 단계를 옮기는 PR 은 그 PR 에서부터 새 단계로 계획된다.
+ *
  * ## 원칙
  *
  * - 라벨(`full-ci`)은 **더할 수만 있고 뺄 수 없다.**
@@ -46,6 +58,8 @@
 import { readFileSync, appendFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { LAUNCHED, currentStageOf } from './release-stage.mjs';
+
 export const FULL_LABEL = 'full-ci';
 
 /** 이 이름들로만 판단한다 — 워크플로가 `github.event_name` 을 그대로 넘긴다 */
@@ -54,6 +68,8 @@ const PLANNED_EVENTS = new Set(['pull_request']);
 /** 정책 — 사람과 에이전트가 읽는 규약, 그리고 그것을 견주는 시험. 코드가 아니라 `scripts/` 시험이 잰다 */
 const POLICY = [/^docs\//, /\.md$/, /^\.claude\//, /^scripts\/[^/]+\.test\.ts$/];
 const ENGINE = [/^src\/lib\/saju\//, /^app\/saju\//];
+/** DB 차선에서만 재어지는 자리 — 단계와 상관없이 전부를 돈다 */
+const DATABASE = [/^supabase\//];
 /** 엔진 안에서 DB 의 검사식이 보는 파일 — 여기가 바뀌면 로그인 뒤 자리도 재야 한다 */
 export const ENGINE_DB_FACING = ['src/lib/saju/version.ts', 'src/lib/saju/pillars/index.ts'];
 
@@ -64,27 +80,39 @@ const isEngine = (file) => matches(ENGINE, file) && !ENGINE_DB_FACING.includes(f
 
 /** 단계마다 켜는 차선 — `verify.yml` 의 job 이름과 같다 */
 const LANES = {
-  // `verify` 가 도는 단계는 `npm test` 가 scripts 시험을 이미 돈다 — policy 는 그것이 안 도는 단계에만 켠다
-  policy: { policy: true, verify: false, authed: false, flow: false },
-  engine: { policy: false, verify: true, authed: false, flow: false },
-  full: { policy: false, verify: true, authed: true, flow: true },
+  // `verify` · `fast` 가 도는 단계는 `npm test` 가 scripts 시험을 이미 돈다 — policy 는 그것이 안 도는 단계에만 켠다
+  policy: { policy: true, fast: false, verify: false, authed: false, flow: false },
+  fast: { policy: false, fast: true, verify: false, authed: false, flow: false },
+  engine: { policy: false, fast: false, verify: true, authed: false, flow: false },
+  full: { policy: false, fast: false, verify: true, authed: true, flow: true },
 };
 
 /**
- * @param {{ files: readonly string[], labels?: readonly string[], event?: string }} input
- * @returns {{ tier: 'policy' | 'engine' | 'full', reason: string, lanes: typeof LANES.full }}
+ * `stage` 는 `release-stage.mjs` 의 `currentStageOf` 가 낸 값이다 — `null` 이나 빠진 값은 모르는 단계다.
+ *
+ * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null }} input
+ * @returns {{ tier: 'policy' | 'fast' | 'engine' | 'full', reason: string, lanes: typeof LANES.full }}
  */
-export function planFor({ files, labels = [], event = 'pull_request' }) {
-  const decided = decide({ files, labels, event });
+export function planFor({ files, labels = [], event = 'pull_request', stage = null }) {
+  const decided = decide({ files, labels, event, stage });
   return { ...decided, lanes: LANES[decided.tier] };
 }
 
-function decide({ files, labels, event }) {
+function decide({ files, labels, event, stage }) {
   if (!PLANNED_EVENTS.has(event)) return { tier: 'full', reason: `\`${event}\` 은 계획을 안 본다` };
   if (labels.includes(FULL_LABEL)) return { tier: 'full', reason: `\`${FULL_LABEL}\` 라벨` };
 
   const changed = files.map((one) => one.trim()).filter((one) => one !== '');
   if (changed.length === 0) return { tier: 'full', reason: '바뀐 파일 목록을 못 받았다' };
+
+  const database = changed.find((one) => matches(DATABASE, one));
+  if (database) return { tier: 'full', reason: `\`${database}\` 은 DB 차선에서만 재어진다` };
+  if (stage === null || !(stage in LAUNCHED)) return { tier: 'full', reason: '출시 단계를 모른다 — PRD §7.0 의 「(지금)」' };
+
+  if (!LAUNCHED[stage]) {
+    if (changed.every(isPolicy)) return { tier: 'policy', reason: `${stage} — 정책만 바뀌었다` };
+    return { tier: 'fast', reason: `${stage} — 빠른 검사만 머지를 막고 전체는 main 에서 돈다` };
+  }
 
   const unknown = changed.filter((one) => !isPolicy(one) && !isEngine(one));
   if (unknown.length > 0) return { tier: 'full', reason: `\`${unknown[0]}\` 은 정책도 엔진도 아니다` };
@@ -120,7 +148,13 @@ function main() {
   const labels = (argOf('--labels') ?? '').split(',').map((one) => one.trim()).filter(Boolean);
   const event = argOf('--event') ?? 'pull_request';
 
-  const plan = planFor({ files, labels, event });
+  let stage = null;
+  try {
+    stage = currentStageOf(readFileSync(new URL('../docs/prd.md', import.meta.url), 'utf8'));
+  } catch {
+    // PRD 를 못 읽으면 모르는 단계다 — 전부로 간다
+  }
+  const plan = planFor({ files, labels, event, stage });
 
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(
@@ -131,7 +165,7 @@ function main() {
   }
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryOf(plan, files));
 
-  console.log(JSON.stringify({ ...plan, files: files.length }, null, 2));
+  console.log(JSON.stringify({ ...plan, stage, files: files.length }, null, 2));
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) main();
