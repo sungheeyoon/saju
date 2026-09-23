@@ -68,8 +68,27 @@ export function calledName(name: string): string {
 }
 
 /**
+ * **자리 이름** — 이름을 모르는 두 사람 글에서 `charts.a`·`charts.b` 를 부르는 말.
+ *
+ * 프롬프트가 이 말을 쓰라고 시키고(`FALLBACK_NAMES`), 이 파일이 이 말을 다시 찾아
+ * 이름으로 바꾼다(`namedMatchBody`). 한때 두 자리가 각자 글자를 들고 있었다 — 프롬프트는
+ * 값으로, 이 파일은 정규식 안의 `'첫 번째'` 로. 한쪽만 고치면 화면이 조용히 자리 이름을
+ * 그대로 내보낸다(G-44). 그래서 말은 여기 하나에 두고 프롬프트가 읽어 간다 — 화면이
+ * 부르는 이 파일이 프롬프트 몸통을 끌고 가지 않게 방향을 이쪽으로 둔다.
+ *
+ * 2026-09-23 에 잰 값: 이름을 모르는 공유 궁합 프롬프트에 「첫 번째 분」 넷 · 「두 번째 분」
+ * 셋이 서는데 이 값에서 오는 것은 한 쌍뿐이고 나머지 다섯은 지시 본문의 글자다
+ * (`match-reading-guide.ts` 셋 · 자료 설명 둘). 그 글자가 이 값과 같은지는
+ * `display.test.ts` 가 프롬프트를 통째로 되읽어 잰다.
+ */
+export const SEAT_NAMES = { first: '첫 번째 분', second: '두 번째 분' } as const;
+
+const escaped = (said: string): string => said.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
  * 공개 이름을 받기 전에 만든 공유 궁합의 자리 호칭을 현재 화면의 두 이름으로 바꾼다.
- * 새 풀이에는 자리 호칭이 없으므로 그대로 돌아간다.
+ * 새 풀이에는 자리 호칭이 없으므로 그대로 돌아간다 — 다만 한쪽 별명이 비어 있으면
+ * 지금도 프롬프트가 자리 이름으로 쓰게 한다(`reading_about` 이 `names` 를 `null` 로 둔다).
  */
 export function namedMatchBody(
   markdown: string,
@@ -78,16 +97,16 @@ export function namedMatchBody(
 ): string {
   const first = viewerIsFirst ? names.me : names.partner;
   const second = viewerIsFirst ? names.partner : names.me;
-  const replace = (source: string, seat: '첫 번째' | '두 번째', name: string) => {
+  const replace = (source: string, seat: string, name: string) => {
     const called = calledName(name);
     const particle: Record<string, string> =
       name === '나' ? { 은: '는', 이: '가', 을: '를', 과: '와' } : {};
 
     return source.replace(
-      new RegExp(`${seat} 분(에게|은|이|을|과|의|도|만)?`, 'g'),
+      new RegExp(`${escaped(seat)}(에게|은|이|을|과|의|도|만)?`, 'g'),
       (_, suffix: string | undefined) => `${called}${suffix === undefined ? '' : (particle[suffix] ?? suffix)}`,
     );
   };
 
-  return replace(replace(markdown, '첫 번째', first), '두 번째', second);
+  return replace(replace(markdown, SEAT_NAMES.first, first), SEAT_NAMES.second, second);
 }
