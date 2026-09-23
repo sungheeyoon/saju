@@ -1292,13 +1292,13 @@ node scripts/remote-lock.mjs npx supabase db advisors --linked --type security -
 macOS 키체인에 둔 것, 문서에 적지 않는다). **로컬 스택의 `--local` 은 0028 · 0029 와 인증 경고를 안 낸다** —
 판본이 다르다. 운영에 대고 잰다.
 
-**2026-09-24 에 잰 값(운영).**
+**2026-09-24 에 잰 값(운영).** 합계 WARN 87 → 71, INFO 26 → 26. 고친 뒤 값은 `20261009120000` 을 올린 다음 다시 불러 쟀고, 발행 키로 `rpc/beta_is_over` 를 부르면 `42501` 이다.
 
 | lint | 고치기 전 | 고친 뒤 | 무엇을 했나 |
 | --- | --- | --- | --- |
 | WARN `function_search_path_mutable`(0011) | 15 | 0 | 상수 함수 열다섯에 `search_path = ''` — `20261009120000` |
 | WARN `anon_security_definer_function_executable`(0028) | 3 | 2 | `beta_is_over()` 를 닫았다 — 화면이 안 부르고 definer 안에서만 불린다 |
-| WARN `authenticated_security_definer_function_executable`(0029) | 68 | 65 | `claimed_by` · `may_edit_person_input`(남의 claim · 편집권을 묻는 신탁) · `beta_is_over` 를 닫았다 |
+| WARN `authenticated_security_definer_function_executable`(0029) | 68 | 68 | `claimed_by` · `may_edit_person_input`(남의 claim · 편집권을 묻는 신탁) · `beta_is_over` 를 닫아 65 가 됐고, 같은 날 G-24 가 `/ops/reports` 의 운영자 문 셋(`operator_reports` · `operator_report` · `operator_report_snapshot`, `is_operator()` 검사)을 더했다 |
 | WARN `auth_leaked_password_protection` | 1 | 1 | **남긴다 — Pro 플랜부터다**(아래) |
 | INFO `rls_enabled_no_policy` | 26 | 26 | **남긴다 — 의도다**(아래) |
 
@@ -1307,7 +1307,7 @@ macOS 키체인에 둔 것, 문서에 적지 않는다). **로컬 스택의 `--l
 
 **남긴 것과 까닭.**
 
-- **0028 둘 · 0029 예순다섯은 앱이 부르라고 연 문이다.** 이 저장소의 쓰기와 읽기는 `security definer` RPC 가
+- **0028 둘 · 0029 예순여덟은 앱이 부르라고 연 문이다.** 이 저장소의 쓰기와 읽기는 `security definer` RPC 가
   들고(`docs/notes/rpc-and-exposure-rules.md`), 각 문은 `auth.uid()` 나 그것을 묻는 범위 함수(`reading_scope` · `is_operator` ·
   `visible_notifications` · `may_see_photo`)로 좁힌다 — 2026-09-24 에 `auth.uid()` 를 직접 안 묻는 열여섯의
   몸을 열어 범위 함수 · 운영자 검사 · 상수 · 공유 토큰임을 봤다.
