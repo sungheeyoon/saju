@@ -2,8 +2,22 @@ import { describe, expect, it } from 'vitest';
 
 import { EVIDENCE_CONTRACT } from '../saju/evidence';
 import { CLAIM_STRENGTH_KO, CLAIM_STRENGTH_ORDER } from '../saju/text/policy';
-import { PROMPT_PARTS } from './parts';
-import { READING_KINDS, READING_POLICY, READING_PROMPTS, isSolo } from '.';
+import { computeSaju } from '../saju';
+import { ABSORPTION_RULE, PROMPT_PARTS } from './parts';
+import {
+  CONTROL,
+  LEGACY_PAIR_ASSEMBLY,
+  READING_KINDS,
+  READING_POLICY,
+  READING_PROMPTS,
+  isSolo,
+  measureMarkdown,
+  outputDeviations,
+  pairOutputDeviations,
+  promptVersionOf,
+  readingEvidenceOf,
+  readingPromptOf,
+} from '.';
 
 /**
  * 지시문 조각을 잰다 — **이 시험이 재는 대상이 바뀌었다**(ADR 0047).
@@ -287,5 +301,107 @@ describe('시키는 값과 막는 값', () => {
       expect(READING_PROMPTS[kind], kind).not.toContain('맨 마지막 대목은 **점수**다');
       expect(READING_PROMPTS[kind], kind).toContain('본문에 점수 대목을 따로 세우지 말고');
     }
+  });
+});
+
+/**
+ * **지시문이 쓰는 말이 곧 모델이 쓰는 말이다**(G-55).
+ *
+ * 개인 풀이의 본문에 「명식」·「원국」이 남던 자리는 절 본문이 아니라 공통 규칙 조각이었다 —
+ * 지시문이 스스로 그 말로 가르쳤고, 모델은 그 말을 빌려 썼다. 그래서 금지 목록을 늘리는 대신
+ * 가르치는 말 자체를 사용자에게 쓸 말로 바꾸고 본보기 한 쌍을 세웠다. 그 두 가지가 실제로
+ * 나가는 글에 닿는지 잰다.
+ */
+describe('개인 풀이는 쉬운 말로 가르친다', () => {
+  const OLD_LINES = [
+    '`natal`(원국)',
+    '원국에 있던 충을',
+    '올해 걸린 것을 타고난 성향으로',
+    '운은 원국을 다시 쓰지 않는다',
+    '원국의 무엇과 만나',
+    '시각을 모르는 명식의',
+    '완성된 명식에 대한 주장',
+    '남의 명식 이야기',
+    '이 명식에 무엇이 필요한지',
+  ];
+
+  const NEW_LINES = [
+    '`natal`(타고난 구조)',
+    '타고난 구조에서 이미 서로 맞부딪히던 자리를 「올해 생긴 일」로 옮겨 적으면',
+    '반대로 올해 새로 생긴 맞부딪힘을 타고난 성향으로 적으면',
+    '**운은 타고난 구조 자체를 바꾸지 않는다.**',
+    '원래 가진 무엇과 만나 무엇을 드러내거나 누르는지로 이어라.',
+    '**태어난 시각을 모르는 사주의 반쪽 합은 사라질 수 있다.**',
+    '네 기둥이 다 선 사주에 대한 주장이 되어',
+    '전부 남의 사주 이야기가 된다',
+    '이 사주에 무엇이 필요한지를 보는 길이 여럿이고',
+  ];
+
+  const DONT = '- 이렇게 쓰지 마라 — 「올해 흐름이 원국의 불을 다시 건드려요. 이 명식은 쉽게 꺼지지 않아요.」';
+  const DO = '- 이렇게 써라 — 「타고나기를 불이 센 사주인데, 올해 그 불이 한 번 더 붙어요. 쉽게 꺼지는 불은 아니에요.」';
+
+  const solo = READING_KINDS.filter(isSolo);
+
+  it.each(solo)('%s — 옛 문장이 하나도 안 남고 새 문장이 선다', (kind) => {
+    for (const line of OLD_LINES) expect(READING_PROMPTS[kind], line).not.toContain(line);
+    for (const line of NEW_LINES) expect(READING_PROMPTS[kind], line).toContain(line);
+  });
+
+  it.each(solo)('%s — 본보기 한 쌍이 짝으로 선다', (kind) => {
+    expect(READING_PROMPTS[kind]).toContain(`${DONT}\n${DO}`);
+  });
+
+  /** 본보기의 「쓰지 마라」 줄은 그 말을 보여 주려고 부른다 — 그 밖에서는 가르치지 않는다 */
+  it.each(solo)('%s — 본보기 밖에서는 명식 · 원국을 부르지 않는다', (kind) => {
+    const outside = READING_PROMPTS[kind].replace(DONT, '');
+    expect(outside).not.toContain('명식');
+    expect(outside).not.toContain('원국');
+  });
+
+  it('시간 미상 명식에도 같은 지시가 나간다', () => {
+    const hourless = computeSaju({ year: 1991, month: 6, day: 2, hour: null, gender: 'female' });
+    const prompt = readingPromptOf(readingEvidenceOf('self', { a: hourless }, new Date('2026-09-23T00:00:00Z')));
+    expect(prompt).toContain(ABSORPTION_RULE);
+    expect(prompt).toContain(DO);
+  });
+
+  /** 시간 미상 규칙은 궁합 읽는 법에도 실린다 — 두 궁합도 바뀐 문장을 받는다 */
+  it.each(['private', 'match'] as const)('%s — 궁합 읽는 법도 바뀐 시간 미상 규칙을 싣는다', (kind) => {
+    expect(READING_PROMPTS[kind]).toContain(ABSORPTION_RULE);
+    expect(READING_PROMPTS[kind]).toContain('태어난 시각을 모르는 사주의 반쪽 합');
+    expect(READING_PROMPTS[kind]).not.toContain('시각을 모르는 명식의');
+    // 본보기는 개인 풀이 몫이다 — 궁합 지시는 이번에 안 건드린다
+    expect(READING_PROMPTS[kind]).not.toContain(DO);
+  });
+
+  it('원복용 궁합 조립은 여전히 개인 풀이 조각을 쓰고 읽는 법 4판을 안 싣는다', () => {
+    const at = new Date('2026-09-23T00:00:00Z');
+    const a = computeSaju({ year: 1990, month: 5, day: 12, hour: 14, minute: 30, second: 0, gender: 'male' });
+    const b = computeSaju({ year: 1993, month: 11, day: 3, hour: 8, minute: 10, second: 0, gender: 'female' });
+    const legacy = readingPromptOf(readingEvidenceOf('private', { a, b }, at), LEGACY_PAIR_ASSEMBLY);
+
+    expect(legacy).toContain(PROMPT_PARTS.rules);
+    expect(legacy).not.toContain('## 이 자료를 읽는 법');
+  });
+
+  it('두 판본 칸과 저장 판본이 모두 v14 다', () => {
+    expect(READING_POLICY.version).toBe('reading-prompt-v14');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v14');
+    for (const kind of READING_KINDS) expect(promptVersionOf(kind), kind).toBe('reading-prompt-v14');
+  });
+
+  /** 막는 계약으로 올리지 않았다 — 새어도 저장되고, 수만 적힌다 */
+  it('남은 명식 · 원국은 여전히 목표로만 적힌다', () => {
+    const text = `## 하나\n\n${'가'.repeat(200)} 이 명식은 원국이 세요.`;
+    const self = outputDeviations(measureMarkdown(text), CONTROL).find(
+      (one) => one.code === 'plain-terms-exposed',
+    );
+    const pair = pairOutputDeviations('private', measureMarkdown(text), CONTROL).find(
+      (one) => one.code === 'plain-terms-exposed',
+    );
+
+    expect(self?.kind).toBe('target');
+    expect(pair?.kind).toBe('target');
+    expect(self?.detail).toContain('원국·명식');
   });
 });

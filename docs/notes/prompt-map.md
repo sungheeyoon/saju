@@ -5,7 +5,7 @@
 > **코드와 어긋나면 코드가 맞다.** 날짜가 붙은 문단은 그날의 사정이고 커밋 해시는 그날의 자리다.
 > 여기 적힌 경로가 실재하는지는 시험이 재지 않는다.
 >
-> **지금은:** 실제로 나가는 것은 `CONTROL` 하나이고 세대는 `planOf` 가 한 번 고른다(ADR 0075). 개인 풀이 `reading-prompt-v10`, 두 궁합 `v12`(`promptVersionOf`). 조립은 `src/lib/reading/prompt.ts` · `parts.ts` · `vocabulary.ts`. 프롬프트 본문을 고치면 실호출 한 번(`docs/agents/test-map.md`).
+> **지금은:** 실제로 나가는 것은 `CONTROL` 하나이고 세대는 `planOf` 가 한 번 고른다(ADR 0075). 개인 풀이와 두 궁합이 함께 `reading-prompt-v14`(`promptVersionOf`, 2026-09-23 G-55). 조립은 `src/lib/reading/prompt.ts` · `parts.ts` · `vocabulary.ts`. 프롬프트 본문을 고치면 실호출 한 번(`docs/agents/test-map.md`).
 >
 > **낡은 경로:** `src/lib/saju/evidence/prompt.ts` 는 없다 — 그 바탕은 `src/lib/reading/prompt.ts` 와 `parts.ts` 로 옮겨 갔다(ADR 0047·0075).
 
