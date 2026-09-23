@@ -54,7 +54,7 @@ const impressionsFor = (email) =>
  * 없게 된다). 그래서 검사는 **스냅샷을 지운다** — 다음 열기가 스스로 새로 만든다.
  */
 const forgetBoard = (email) =>
-  sql(`delete from public.discovery_snapshot s using auth.users u
+  sql(`delete from public.discovery_candidate s using auth.users u
        where u.id = s.user_id and u.email = '${email}'`);
 
 // ── 1. 두 사람이 사주를 등록한다 ──────────────────────────────────────────────
