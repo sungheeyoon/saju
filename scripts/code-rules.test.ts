@@ -571,13 +571,30 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
     expect(ask.filter((rule) => deny.includes(rule))).toEqual([]);
   });
 
-  it('등급 3 의 잠금은 공식 운영 뒤에 켠다 — 켤 목록은 문서가 들고, ask 에 든 것은 그 목록에서만 온다 (ADR 0093)', () => {
+  /** `docs/prd.md` §7.0 표에서 「(지금)」이 붙은 단계 — 출시 단계가 적힌 곳은 여기 하나다 (ADR 0093 추기) */
+  function currentStages(): string[] {
+    const prd = readFileSync(join(ROOT, 'docs/prd.md'), 'utf8');
+    const start = prd.indexOf('\n### 7.0 ');
+    expect(start).toBeGreaterThan(-1);
+    const end = prd.indexOf('\n### ', start + 1);
+    return [...prd.slice(start, end).matchAll(/^\| \*\*([^*]+)\*\* \(지금\) \|/gm)].map((match) => match[1].trim());
+  }
+
+  it('등급 3 의 잠금은 공개 출시에 켠다 — 그 전에는 ask 가 비어 있고, 그 뒤에는 켤 목록과 같다 (ADR 0093)', () => {
     const deferred = deferredAskRules();
     const deny = lockedRulesOfTier('4');
     const ask = settings.permissions?.ask ?? [];
     expect(deferred.length).toBeGreaterThan(10);
     expect(deferred.filter((rule) => deny.includes(rule))).toEqual([]);
-    expect(ask.filter((rule) => !deferred.includes(rule))).toEqual([]);
+
+    const stages = currentStages();
+    expect(stages, 'PRD §7.0 표의 「(지금)」은 하나다').toHaveLength(1);
+    if (stages[0] === '공개 출시') {
+      expect([...ask].sort(), 'delegation.md 「공식 운영에 들어가면 켜는 잠금」의 걸음을 밟는다').toEqual([...deferred].sort());
+    } else {
+      // #134 는 켤 목록 전부를 ask 와 등급 3 칸에 함께 넣어 초록이었다 — 단계를 안 옮기고는 못 켠다
+      expect(ask, `지금은 ${stages[0]}다 — 등급 3 은 공개 출시 전까지 묻지 않는다`).toEqual([]);
+    }
   });
 
   /** 문서의 한 절 안에서, 표의 첫 칸이 `**이름**` 인 줄의 그 이름들 — 차례대로 */
