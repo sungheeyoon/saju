@@ -10,11 +10,19 @@
  * 고르는 것은 서로를 모르는 일이다. 쥔 것은 둘에서 센다 — 다른 워크트리의 `supabase/.env.local`, 그리고
  * 어느 워크트리도 안 쥐었는데 떠 있는 `supabase_db_saju_wtN`(지워진 워크트리가 남긴 스택도 포트를 잡고 있다).
  *
+ * **보는 것부터 적는 것까지는 기계 전체에서 한 번에 하나다(#158).** 둘이 동시에 `--auto` 를 부르면 같은 빈 목록을
+ * 보고 같은 번호를 적었다. 할당하는 동안만 잠금 하나(`mkdir`)를 쥔다 — 자리마다 잡아 두면 워크트리를 지울 때
+ * 잡힌 자리가 남고, 남은 것을 걷는 순간 원격 잠금이 겪은 경쟁(ADR 0096 추기)이 돌아온다. 잠금이 남아 있고 쥔
+ * 쪽이 없으면 걷지 않고 멈춘다.
+ *
+ * **자리 0 은 main 체크아웃만 받는다.** 보조 워크트리가 0 을 받으면 main 의 `saju` · 54321 과 다시 부딪힌다.
+ *
  * `supabase/.env.local` 의 `SAJU_` 줄만 고쳐 쓴다 — 그 밖의 줄은 사람의 것이라 남긴다. 원격에 붙는
  * 명령이 이 워크트리에서도 돌도록, main 체크아웃의 `supabase/.temp`(연결된 프로젝트)가 없으면 옮겨 온다.
  */
-import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -100,7 +108,62 @@ function look(cwd) {
   };
 }
 
+const LOCK = process.env.SAJU_SLOT_LOCK ?? join(homedir(), '.cache', 'saju', 'slot.lock');
+
+function alive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return error.code === 'EPERM';
+  }
+}
+
+/** 할당하는 동안만 쥔다 — 몇십 ms 다. 남은 잠금은 걷지 않고 멈춘다 */
+function withSlotLock(work) {
+  mkdirSync(join(LOCK, '..'), { recursive: true });
+  const started = Date.now();
+  for (;;) {
+    try {
+      mkdirSync(LOCK);
+      break;
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+    }
+    let owner = null;
+    try {
+      owner = JSON.parse(readFileSync(join(LOCK, 'owner.json'), 'utf8'));
+    } catch {
+      // 막 잡혀 owner 가 아직 안 적혔다
+    }
+    if ((owner && !alive(owner.pid)) || Date.now() - started > 10_000) {
+      console.error(`자리 할당 잠금이 남아 있다${owner ? ` — pid ${owner.pid} (${owner.cwd})` : ''}. 도는 \`stack:slot\` 이 없으면 손으로 걷는다: rm -rf ${LOCK}`);
+      process.exit(1);
+    }
+    execFileSync('sleep', ['0.05']);
+  }
+  try {
+    writeFileSync(join(LOCK, 'owner.json'), JSON.stringify({ pid: process.pid, cwd: process.cwd() }));
+    return work();
+  } finally {
+    rmSync(LOCK, { recursive: true, force: true });
+  }
+}
+
+/** 할당을 거절한다 — 잠금을 놓은 뒤에 말하고 끝내도록 던진다(`process.exit` 는 `finally` 를 건너뛴다) */
+class Refusal extends Error {}
+
 function main() {
+  try {
+    withSlotLock(allocate);
+  } catch (error) {
+    if (!(error instanceof Refusal)) throw error;
+    console.error(error.message);
+    process.exitCode = 1;
+  }
+}
+
+function allocate() {
   const cwd = process.cwd();
   const arg = process.argv[2];
   const { main: mainPath, seen } = look(cwd);
@@ -110,18 +173,18 @@ function main() {
   if (arg === '--auto') {
     slot = SLOTS.find((n) => !taken.has(n));
     if (slot === undefined) {
-      console.error(`빈 자리가 없다 — ${[...taken].map(([n, who]) => `${n}: ${who}`).join(' · ')}`);
-      process.exit(1);
+      throw new Refusal(`빈 자리가 없다 — ${[...taken].map(([n, who]) => `${n}: ${who}`).join(' · ')}`);
     }
   } else {
     slot = Number(arg);
     if (!Number.isInteger(slot) || slot < 0 || slot > 9) {
-      console.error('`npm run stack:slot -- --auto` 로 빈 자리를 받거나 1~9 를 준다. 0 은 기본값(main 체크아웃)으로 되돌린다.');
-      process.exit(1);
+      throw new Refusal('`npm run stack:slot -- --auto` 로 빈 자리를 받거나 1~9 를 준다. 0 은 기본값(main 체크아웃)으로 되돌린다.');
+    }
+    if (slot === 0 && resolve(cwd) !== mainPath) {
+      throw new Refusal(`자리 0 은 main 체크아웃(${mainPath})의 기본 스택이다 — 보조 워크트리는 \`--auto\` 로 제 자리를 받는다.`);
     }
     if (taken.has(slot)) {
-      console.error(`자리 ${slot} 은 이미 쥐었다 — ${taken.get(slot)}. \`--auto\` 로 빈 자리를 받는다.`);
-      process.exit(1);
+      throw new Refusal(`자리 ${slot} 은 이미 쥐었다 — ${taken.get(slot)}. \`--auto\` 로 빈 자리를 받는다.`);
     }
   }
 
