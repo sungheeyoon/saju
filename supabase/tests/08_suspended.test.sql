@@ -37,7 +37,7 @@ select set_config('request.jwt.claims', tests.claims((select kim from who)), tru
 
 -- ── 읽기 ──────────────────────────────────────────────────────────────────────
 --
--- 여태 막힌 것은 쓰기뿐이었다. 화면은 「중지된 계정입니다」라고 말하고 있었으므로
+-- 여태 막힌 것은 쓰기뿐이었다. 화면은 「이용이 정지된 계정입니다」라고 말하고 있었으므로
 -- **판정이 앱에만 있었다** — ADR 0004 가 막으려던 자리다.
 
 select is((select count(*)::int from public.person), 0, '중지되면 내 Person 도 안 보인다');
@@ -47,7 +47,7 @@ select is((select count(*)::int from public.discovery_profile), 0, '내 프로�
 /**
  * `app_user` 만은 그대로 읽힌다.
  *
- * 자기 상태를 못 읽으면 화면이 「중지된 계정입니다」라고 말할 근거를 잃고, 로그인은
+ * 자기 상태를 못 읽으면 화면이 「이용이 정지된 계정입니다」라고 말할 근거를 잃고, 로그인은
  * 됐는데 아무 설명도 없는 화면이 남는다.
  */
 select is(
