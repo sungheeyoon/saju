@@ -1402,7 +1402,12 @@ export type Database = {
           reason: string
           reported_user_id: string
           reporter_user_id: string
+          review_note: string | null
+          review_outcome: string | null
           reviewed_at: string | null
+          reviewed_by: string | null
+          sanctioned_by: string | null
+          sanctioned_user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1411,7 +1416,12 @@ export type Database = {
           reason: string
           reported_user_id: string
           reporter_user_id: string
+          review_note?: string | null
+          review_outcome?: string | null
           reviewed_at?: string | null
+          reviewed_by?: string | null
+          sanctioned_by?: string | null
+          sanctioned_user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1420,7 +1430,12 @@ export type Database = {
           reason?: string
           reported_user_id?: string
           reporter_user_id?: string
+          review_note?: string | null
+          review_outcome?: string | null
           reviewed_at?: string | null
+          reviewed_by?: string | null
+          sanctioned_by?: string | null
+          sanctioned_user_id?: string | null
         }
         Relationships: [
           {
@@ -1540,6 +1555,27 @@ export type Database = {
           note?: string | null
           valid_on?: string
           valid_until?: string
+        }
+        Relationships: []
+      }
+      signup_pause: {
+        Row: {
+          id: number
+          paused_at: string
+          reason: string
+          resumed_at: string | null
+        }
+        Insert: {
+          id?: never
+          paused_at?: string
+          reason: string
+          resumed_at?: string | null
+        }
+        Update: {
+          id?: never
+          paused_at?: string
+          reason?: string
+          resumed_at?: string | null
         }
         Relationships: []
       }
@@ -1666,6 +1702,34 @@ export type Database = {
       adopt_reading_job: {
         Args: { p_response_id: string; p_run_id: string }
         Returns: boolean
+      }
+      audit_export_batch: {
+        Args: { p_limit?: number }
+        Returns: {
+          action: string
+          actor_name: string
+          actor_user_id: string
+          after_id: number
+          at: string
+          channel: string
+          filter_summary: string
+          id: number
+          outcome: string
+          purpose: string
+          sql_sha256: string
+          target_report_id: string
+        }[]
+      }
+      audit_export_done: {
+        Args: {
+          p_after_id: number
+          p_first_id: number
+          p_last_id: number
+          p_object_key: string
+          p_rows: number
+          p_sha256: string
+        }
+        Returns: undefined
       }
       beta_is_over: { Args: never; Returns: boolean }
       block_user: { Args: { p_user_id: string }; Returns: boolean }
@@ -2196,6 +2260,10 @@ export type Database = {
       }
       nickname_is_available: { Args: { p_nickname: string }; Returns: boolean }
       nickname_key: { Args: { p_nickname: string }; Returns: string }
+      note_operator_denial: {
+        Args: { p_action: string; p_report_id?: string }
+        Returns: undefined
+      }
       notify_ops: {
         Args: { p_detail: string; p_kind: string }
         Returns: boolean
@@ -2225,7 +2293,11 @@ export type Database = {
           reporter_nickname: string
           reporter_status: string
           reporter_user_id: string
+          review_note: string
+          review_outcome: string
           reviewed_at: string
+          reviewer_nickname: string
+          sanctioned_side: string
         }[]
       }
       operator_report_snapshot: {
@@ -2254,6 +2326,7 @@ export type Database = {
           reported_user_id: string
           reporter_nickname: string
           reporter_user_id: string
+          review_outcome: string
           reviewed_at: string
           snapshot_messages: number
         }[]

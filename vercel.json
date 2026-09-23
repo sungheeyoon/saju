@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/reading",
       "schedule": "17 4 * * *"
+    },
+    {
+      "path": "/api/cron/audit-export",
+      "schedule": "37 18 * * *"
     }
   ]
 }

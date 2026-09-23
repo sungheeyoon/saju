@@ -23,6 +23,32 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 
 > **`supabase config push` 를 쓰지 않는다.** 원격의 구글 설정을 지운다.
 
+### 개인정보는 화면으로만 — 원격 SQL 의 경계 (ADR 0105)
+
+**이용자 개인정보(이메일 · 닉네임과 사람의 짝 · 메시지 본문 · 출생정보 · 풀이)를 읽는 것은 `/ops/**` 화면으로만 한다.**
+화면의 문은 읽을 때마다 접속기록(`audit.operator_access`)에 한 줄을 적는다. 이 문서의 SQL 은 둘로 갈린다.
+
+| 갈래 | 무엇 | 누가 · 어떻게 |
+| --- | --- | --- |
+| **보통** | 개인을 가리키지 않는 것 — 건수 · 집계 · 마이그레이션 상태 · 크론 · 설정 한 칸 · 신고 id 로 적는 검토 기록 | 사람이든 에이전트든 `npm run db:remote -- --purpose "<목적>" "<sql>"`. 목적과 SQL 의 sha256 이 접속기록에 남는다 |
+| **break-glass** | 이메일 · 닉네임과 계정의 짝 · 메시지 본문 · 출생정보를 **SQL 로** 읽는 것 — 아래 「break-glass」 | **사람만.** 장애 · 수사기관의 적법한 요청처럼 화면으로 못 하는 때에만, 밖의 대장에 먼저 적고 |
+
+**에이전트는 운영 개인정보를 예외 없이 직접 조회하지 않는다**(`docs/agents/delegation.md` 등급 3). 필요하면 질의를 써서
+건네고 사람이 검토해 실행한다. 이 문서에서 `auth.users` 의 이메일이나 메시지 본문을 읽는 질의에는 **break-glass** 라고
+적혀 있다. 대시보드 SQL Editor 는 접속기록이 안 남는 자리다 — 거기서 개인정보를 읽지 않는다. 빈도가 늘면 `pgaudit` 로
+옮긴다.
+
+#### break-glass — 사람만, 대장 먼저
+
+1. **까닭을 가른다.** 화면(`/ops/reports`)으로 되는 일이면 화면으로 한다. break-glass 는 장애(화면이 안 열리는데 지금
+   봐야 한다) · 수사기관의 적법한 요청(「수사기관의 요청이 오면」) · 떠난 사람의 신고(`retention.report`, 화면에 없다)뿐이다
+2. **대장에 먼저 적는다** — 저장소 밖의 운영 문서(수사기관 요청 대장과 같은 자리). 칸은 다섯이다:
+   **목적**(무엇을 왜) · **실행자** · **대상**(신고 id · 계정 UUID — 이메일이 아니라) · **시각**(시작 · 끝) · **결과**(무엇을
+   봤고 어디에 썼나, 밖으로 나갔으면 누구에게)
+3. **`npm run db:remote -- --purpose "break-glass: <대장의 번호>" "<sql>"`** 로 보낸다 — 대시보드가 아니라. 목적과 해시가
+   접속기록에 남아 대장과 이어진다
+4. 결과를 저장소 · 이슈 · 채팅에 붙이지 않는다
+
 ### 접속값은 여섯이고 넣는 손은 하나다
 
 서울로 옮기면서 **Vercel 마켓플레이스 통합을 끊었다.** 그 통합이 같은 값을 이름 두 벌로
@@ -48,7 +74,10 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
   값이 「있는」 것으로 세어져 `keyed-client.ts` 의 「열쇠가 없습니다」 검사를 지나가고 401 로
   떨어진다. 주석 처리해 두면 오류가 이름을 대 준다. 실호출에 드는 것은 `OPENAI_API_KEY` 한 줄이고
   손으로 붙인다.
-- **CLI 로 임의 SQL 이 된다** — `npm run db:remote -- "<sql>"`(= `npx supabase db query --linked`, 기계 전체에서 한 번에 하나, ADR 0096). Management API 로 붙고
+- **CLI 로 임의 SQL 이 된다** — `npm run db:remote -- --purpose "<목적>" "<sql>"`(= 접속기록에 목적 · 해시를 적고
+  `npx supabase db query --linked`, 기계 전체에서 한 번에 하나, ADR 0096 · 0105). 목적 없이는 안 돈다. 적는 함수(`audit.note_cli_query`)가
+  원격에 없으면 SQL 을 안 보낸다 — 그 함수를 올리는 `db push` 앞의 확인만 `node scripts/remote-lock.mjs npx supabase db query --linked "<sql>"`
+  로 직접 보냈다(2026-09-24 한 번, 함수 정의의 md5). Management API 로 붙고
   `postgres` 로 돌므로 비밀번호도 `psql` 도 필요 없다. 다만 `postgres` 라 「비운영자 당사자에게
   무엇이 보이나」는 못 잰다 — 역할별 조회는 대시보드 SQL Editor(마지막 문장의 결과만 준다 — 역할을
   바꿔 가며 잰 줄은 임시 표에 모아 끝에서 한 번에 낸다)나 `SUPABASE_SECRET_KEY` 가 필요하고, 익명
@@ -90,6 +119,7 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 | `OPENAI_API_KEY` | platform.openai.com → API keys. **같은 프로젝트**에 만든다 — 회수는 제출한 작업을 그 프로젝트에서 찾는다 | Vercel **Production · Preview** · 로컬(실호출) → 재배포 | 제출(`model-submit-failed`)과 **이미 떠난 작업의 회수** — 못 가져온 작업은 8분 deadline 에 닫히고, 토큰은 나갔는데 글은 없다 | 새 배포 Ready 뒤 `select count(*) from public.open_reading_jobs();` 가 0 일 때 옛 키를 끈다 |
 | `OPENAI_WEBHOOK_SECRET` | platform.openai.com → Settings → Webhooks. 서명 비밀은 만들 때 한 번만 보이므로 **같은 주소로 endpoint 를 새로 만든다** | Vercel **Production** → 재배포 | webhook 이 401 이다. **결과는 안 잃는다** — 복구기가 1분마다 줍는다(ADR 0020). 늦어질 뿐이다. 두 endpoint 가 겹쳐 같은 결과가 두 번 와도 회수는 일감을 한 번만 집는다(`claim_reading_job`) | 새 배포 Ready 뒤 옛 endpoint 를 지운다. `CRON_SECRET` 과 같은 값을 쓰지 않는다 |
 | `CRON_SECRET` = Vault `reading_recovery_secret` | 우리가 짓는다 — `openssl rand -base64 32` | **두 자리가 같은 값이다** — Vercel **Production**(Vercel Cron 이 이 값을 `Authorization: Bearer` 로 싣는다) → 재배포, 그리고 Vault `reading_recovery_secret` | 둘이 갈린 동안 1분 복구기가 403 이다 → `net-request-failed` 알림. webhook 이 살아 있으면 결과는 그대로 붙는다 | 새 배포 Ready 직후 Vault 를 바꾼다(창이 그만큼 짧다). `select status_code, created from net._http_response order by created desc limit 3;` 가 200. 두 자리를 다 바꾸면 옛 값은 끊긴 것이다 |
+| `AUDIT_EXPORT_ACCESS_KEY_ID` · `AUDIT_EXPORT_SECRET_ACCESS_KEY` | AWS IAM → 반출 사용자(`saju-audit-export`) → Security credentials → Create access key. 한 사용자에 키가 둘까지 함께 선다 | Vercel **Production** → 재배포. `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` 은 비밀이 아니다(같은 자리에 넣는다) | 그날 반출이 실패한다(500, Vercel 로그). **기록은 안 잃는다** — DB 에 남아 있고 다음 반출이 이어 올린다 | 새 배포 Ready 뒤 크론을 손으로 한 번 부르거나 다음 날 `select max(exported_at) from audit.operator_access_export` 가 오늘이면 옛 키를 Deactivate → Delete. **키가 새도 올린 객체는 못 지운다** — 권한이 `s3:PutObject` 뿐이고 Object Lock 이 잠갔다. 새 객체를 쓸 수는 있으므로 교체가 먼저다 |
 | Vault `reading_recovery_url` | 비밀이 아니다 — 공개 주소(`/api/cron/reading`). 도메인이 바뀔 때만 고친다 | Vault | — | — |
 | Vault `ops_alert_url` | **주소 자체가 열쇠다** — 가진 사람은 운영 채널에 글을 넣는다. Slack 앱의 Incoming Webhooks 나 Discord 채널의 연동 → 웹후크에서 새 주소를 만든다 | Vault(재배포 없음) | 알림이 채널로 안 나간다. `ops_alert` 표에는 그대로 적힌다 | 「운영자 알림 배선」의 `notify_ops('ops-alert-test', …)` 가 닿으면 옛 웹후크를 지운다 |
 | Vault `ops_alert_secret` | 넣었을 때만 있다 — 받는 쪽이 `Authorization` 을 볼 때 | Vault 와 받는 쪽을 함께 | 받는 쪽이 알림을 거절한다 | 위와 같다 |
@@ -615,25 +645,26 @@ order by submitted_at desc;
 `status` 하나가 모든 문을 막는다 — 읽기까지 막는다(`is_active_account()`). 새 관문을
 두지 않았으므로 이 값만 옮기면 discovery·요청·수락·AI 생성이 한꺼번에 닫힌다.
 
+계정은 **UUID 로** 가리킨다 — `/ops/reports` 의 계정 이름 아래 회색 글자다. 이메일로 찾는 것은 break-glass 다(맨 위
+「개인정보는 화면으로만」). 신고로 정지하는 것이면 「신고와 차단」의 검토 SQL 이 받은 쪽과 실행한 사람을 함께 적는다.
+
 ```sql
 -- 이용 정지
-update public.app_user
-set status = 'suspended'
-where id = (select id from auth.users where lower(email) = 'someone@example.com');
+update public.app_user set status = 'suspended' where id = '<계정 UUID>';
 
 -- 해제
 update public.app_user
 set status = 'active', deletion_requested_at = null
-where id = (select id from auth.users where lower(email) = 'someone@example.com');
+where id = '<계정 UUID>';
 ```
 
 > 탈퇴 대기(`deletion_requested`)를 해제할 때도 같은 문을 쓴다. 검사식이 상태와 시각을
 > 함께 묶고 있으므로 `deletion_requested_at` 을 같이 비워야 한다.
 
 ```sql
--- 지금 살아 있지 않은 계정들
-select u.email, a.status, a.deletion_requested_at
-from public.app_user a join auth.users u on u.id = a.id
+-- 지금 살아 있지 않은 계정들 — 이메일 없이
+select a.id, a.status, a.deletion_requested_at
+from public.app_user a
 where a.status <> 'active'
 order by a.deletion_requested_at desc nulls last;
 ```
@@ -647,39 +678,71 @@ order by a.deletion_requested_at desc nulls last;
 
 **읽는 것은 화면이 있다 — `/ops/reports`**(ADR 0103). 운영자로 로그인해 주소를 직접 친다(메뉴에 없다).
 목록은 최신부터 30건씩이고 검토 상태 · 사유 · 대화 근거로 거른다. 「신고 내용 보기」가 신고 한 건과 신고
-당시의 스냅샷을 연다. 화면은 읽기만 한다 — **봤다고 적는 것(`reviewed_at`)과 처분은 아래 SQL 이다.** 화면에는
-이메일이 없다 — 이메일이 필요한 일(수사기관 요청 등)과 떠난 사람의 신고는 아래와 「떠난 사람의 신고 기록」의
-SQL 로 읽는다. 아래의 읽는 질의는 화면이 안 열리거나 그 값을 의심할 때 쓴다.
+당시의 스냅샷을 연다. **여는 것마다 접속기록에 남는다**(ADR 0105). 화면은 읽기만 한다 — **검토 기록과 처분은 아래
+SQL 이다.** 화면에는 이메일이 없다 — 이메일이 필요한 일(수사기관 요청 등)과 떠난 사람의 신고는 break-glass 다(맨 위
+「개인정보는 화면으로만」). 언제 보는가는 「운영 주기」.
 
 ```sql
--- 아직 안 본 신고
-select r.id, r.created_at, r.reason, r.detail,
-       reporter.email as 신고한_사람, reported.email as 신고당한_사람
-from public.report r
-join auth.users reporter on reporter.id = r.reporter_user_id
-join auth.users reported on reported.id = r.reported_user_id
-where r.reviewed_at is null
-order by r.created_at;
+-- 아직 안 본 신고 — 건수와 가장 오래된 것. 내용은 화면에서 읽는다
+select count(*) as 미검토,
+       min(created_at) at time zone 'Asia/Seoul' as 가장_오래된_접수
+from public.report where reviewed_at is null;
 
--- 한 사람에게 쌓인 신고 — 처분을 정하는 자리
-select reported.email, r.reason, count(*), max(r.created_at) as 마지막
-from public.report r
-join auth.users reported on reported.id = r.reported_user_id
-group by reported.email, r.reason
+-- 3영업일을 넘긴 미검토(주말만 뺀 어림 — 공휴일은 눈으로)
+select id, created_at at time zone 'Asia/Seoul' as 접수, reason
+from public.report
+where reviewed_at is null
+  and (select count(*) from generate_series(created_at::date + 1, current_date, interval '1 day') d
+       where extract(isodow from d) < 6) > 3
+order by created_at;
+
+-- 한 계정에 쌓인 신고 — UUID 로 센다(화면의 「신고받은 계정」 아래 회색 글자). 처분을 정하는 자리
+select reported_user_id, reason, count(*), max(created_at) as 마지막
+from public.report
+group by reported_user_id, reason
 order by count(*) desc;
-
--- 봤다고 적는다. 처분 자체는 여기 안 적는다 — 제재는 `app_user.status` 가 든다.
-update public.report set reviewed_at = now() where id = '<report-id>';
 ```
+
+**검토를 적는다 — 한 문장, 신고 id 로.** 화면에서 읽고 판단한 뒤 적는다. 결과는 넷 중 하나다 — `no_action`(조치
+없음) · `warning`(경고) · `suspension`(이용 정지) · `needs_more`(추가 확인). 판단 근거는 500자 안에서 **이메일 · 실명 ·
+연락처 없이** 적는다. 검토한 사람은 `public.operator` 의 운영자 UUID 다 — 한 번 보고 적어 둔다
+(`select user_id, note, added_at from public.operator;`, 이메일 없이). 이 SQL 도 `npm run db:remote -- --purpose "신고 검토
+<신고 id 앞 8자>" "<sql>"` 로 보낸다 — 목적과 해시가 남는다.
+
+```sql
+-- 조치 없음 · 경고 · 추가 확인
+update public.report
+set reviewed_at = now(),
+    reviewed_by = '<운영자 UUID>',
+    review_outcome = 'no_action',          -- 'warning' · 'needs_more'
+    review_note = '<짧은 판단 근거>'
+where id = '<report-id>';
+
+-- 이용 정지 — 제재를 받은 쪽과 실행한 사람을 함께 적고, 같은 요청에서 정지를 건다(「이용 정지와 해제」)
+update public.report
+set reviewed_at = now(),
+    reviewed_by = '<운영자 UUID>',
+    review_outcome = 'suspension',
+    review_note = '<짧은 판단 근거>',
+    sanctioned_user_id = reported_user_id,   -- 신고한 쪽이 받는 드문 경우는 reporter_user_id
+    sanctioned_by = '<운영자 UUID>'
+where id = '<report-id>';
+
+update public.app_user set status = 'suspended'
+where id = (select sanctioned_user_id from public.report where id = '<report-id>');
+```
+
+검사식이 틀린 모양을 막는다 — 결과만 있고 검토한 사람 · 시각이 없거나, 이용 정지인데 받은 쪽이 없거나, 신고의 두
+계정이 아닌 사람에게 제재를 적으면 `23514` 다. 신고한 사람은 제 신고의 원래 칸만 읽는다 — 검토 결과 · 근거 · 제재는
+안 보인다. **지금** 정지인가는 여전히 `app_user.status` 가 답한다 — 해제해도 검토 기록은 그대로 남는다.
 
 차단은 참고로만 본다. 누가 누구를 차단했는지는 사용자에게 보이지 않으며, 여기서도
 집계로만 읽는다.
 
 ```sql
-select blocked.email, count(*) as 차단당한_수
+select b.blocked_user_id, count(*) as 차단당한_수
 from public.block b
-join auth.users blocked on blocked.id = b.blocked_user_id
-group by blocked.email
+group by b.blocked_user_id
 having count(*) > 1
 order by count(*) desc;
 ```
@@ -699,18 +762,24 @@ order by count(*) desc;
 - **언제 사라지나** — 먼저 떠난 쪽의 처분일(`retained_at`)부터 6개월. 크론 `report-retention-purge`(매시 47분)가
   지운다. 남은 쪽이 나중에 떠나면 그 사람의 탈퇴일만 채워지고 시계는 그대로다. 실패는 `cron-watch` 가
   `cron-failed:report-retention-purge` 로 알린다
-- **증거는 못 고친다** — 적을 수 있는 것은 검토 상태와 보류 두 칸뿐이다. 나머지는 `55000` 으로 막힌다
+- **증거는 못 고친다** — 적을 수 있는 것은 검토 기록(시각 · 누가 · 결과 · 근거 · 제재 둘, ADR 0105)과 보류 두 칸뿐이다.
+  나머지는 `55000` 으로 막힌다
+- **읽는 것은 break-glass 다** — 화면에 없고 이메일과 본문이 든다. 맨 위 「개인정보는 화면으로만」의 대장을 먼저 적고
+  사람이 돈다. 이메일 · 본문이 안 드는 첫 질의(파기 예정과 보류)는 보통 질의다
 
 ```sql
--- 따로 둔 신고 — 파기 예정일과 보류
-select report_id, reported_at, reason, reviewed_at,
-       reporter_email, reporter_left_at, reported_email, reported_left_at,
+-- 따로 둔 신고 — 파기 예정일과 보류(이메일 없이)
+select report_id, reported_at, reason, reviewed_at, review_outcome,
+       reporter_left_at, reported_left_at,
        retained_at, retained_at + retention.report_period() as 파기_예정,
        hold_reason, held_at
 from retention.report
 order by retained_at desc;
 
--- 한 건의 스냅샷을 편다 — 「채팅 — 신고 스냅샷을 읽는다」와 같은 모양
+-- break-glass — 두 계정의 당시 이메일
+select report_id, reporter_email, reported_email from retention.report where report_id = '<report-id>';
+
+-- break-glass — 한 건의 스냅샷을 편다(본문이 든다)
 select (e ->> 'seq')::bigint as 차례,
        (e ->> 'created_at')::timestamptz at time zone 'Asia/Seoul' as 보낸_시각,
        e ->> 'sender_user_id' as 보낸_사람,
@@ -721,8 +790,10 @@ cross join lateral jsonb_array_elements(k.snapshot -> 'messages') e
 where k.report_id = '<report-id>'
 order by 차례;
 
--- 봤다고 적는다 — 떠난 뒤에도 검토는 이어진다
-update retention.report set reviewed_at = now() where report_id = '<report-id>';
+-- 검토를 적는다 — 떠난 뒤에도 검토는 이어진다. 칸과 값은 「신고와 차단」의 검토 SQL 과 같다
+update retention.report
+set reviewed_at = now(), reviewed_by = '<운영자 UUID>', review_outcome = 'no_action', review_note = '<짧은 판단 근거>'
+where report_id = '<report-id>';
 
 -- 크론이 도는가
 select jobname, schedule, active from cron.job where jobname = 'report-retention-purge';
@@ -868,36 +939,22 @@ where m.id in ('<match-id>');
 
 **화면이 먼저다 — `/ops/reports/<report-id>`**(ADR 0103). 스냅샷을 차례대로 펴고, 고른 메시지에 「신고한
 메시지」가 서고, 보낸 쪽을 「신고한 사용자」 · 「신고받은 사용자」로 적는다. 목록에서 「대화 근거 있음」으로
-거르면 스냅샷이 붙은 신고만 남는다. 아래 SQL 은 화면이 안 열릴 때, 보낸 사람의 이메일이 필요할 때, 그리고
-검토 완료를 적을 때 쓴다.
+거르면 스냅샷이 붙은 신고만 남는다. 여는 것마다 접속기록에 남는다(ADR 0105). **아래 SQL 은 break-glass 다** — 메시지
+본문과 이메일이 든다. 화면이 안 열리는 장애나 수사기관의 요청일 때만, 맨 위 「개인정보는 화면으로만」의 대장을 먼저 적고
+사람이 돈다. 검토를 적는 것은 「신고와 차단」의 검토 SQL 이다.
 
 ```sql
--- 아직 안 본 신고 중 메시지를 고른 것 — 스냅샷이 붙어 있다
-select r.id, r.created_at, r.reason, r.detail,
-       reporter.email as 신고한_사람, reported.email as 신고당한_사람,
-       s.match_id, s.context_before, s.context_after, jsonb_array_length(s.messages) as 베낀_건수
-from public.report r
-join public.chat_report_snapshot s on s.report_id = r.id
-join auth.users reporter on reporter.id = r.reporter_user_id
-join auth.users reported on reported.id = r.reported_user_id
-where r.reviewed_at is null
-order by r.created_at;
-
--- 한 신고의 스냅샷을 차례대로 편다. `chosen` 이 참인 줄이 고른 메시지다.
--- 보낸 사람은 이메일로 푼다 — 계정이 이미 사라졌으면 uuid 만 남는다.
+-- break-glass — 한 신고의 스냅샷을 차례대로 편다. `chosen` 이 참인 줄이 고른 메시지다.
+-- 보낸 사람은 UUID 로 둔다 — 이메일이 필요하면 그것도 대장에 적은 목적 안에서만 푼다.
 select (e ->> 'seq')::bigint as 차례,
        (e ->> 'created_at')::timestamptz at time zone 'Asia/Seoul' as 보낸_시각,
-       coalesce(u.email, e ->> 'sender_user_id') as 보낸_사람,
+       e ->> 'sender_user_id' as 보낸_사람,
        (e ->> 'chosen')::boolean as 고른_것,
        e ->> 'body' as 본문
 from public.chat_report_snapshot s
 cross join lateral jsonb_array_elements(s.messages) e
-left join auth.users u on u.id = (e ->> 'sender_user_id')::uuid
 where s.report_id = '<report-id>'
 order by 차례;
-
--- 봤다고 적는다 — 「신고와 차단」과 같은 줄. 처분은 `app_user.status` 가 든다.
-update public.report set reviewed_at = now() where id = '<report-id>';
 ```
 
 스냅샷은 **불변**이다 — `update` 는 소유자에게도 막힌다(`55000`). 지워지는 길은 신고가 사라질
@@ -1177,6 +1234,8 @@ group by 1, 2 order by 1, 2;
 
 지금 서 있는 잡은 넷이다 — `reading-recovery`(1분) · `match-request-expiry`(매시 7분) ·
 `account-disposal`(매시 23분, G-53) · `cron-watch`(10분, G-42).
+Vercel Cron 은 둘이다(`vercel.json`) — 복구기의 하루 청소(`/api/cron/reading`)와 접속기록 반출(`/api/cron/audit-export`,
+ADR 0105). 둘은 `cron-watch` 가 못 본다 — 반출은 월 점검이 본다.
 **`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**
 
 ---
@@ -1298,9 +1357,9 @@ macOS 키체인에 둔 것, 문서에 적지 않는다). **로컬 스택의 `--l
 | --- | --- | --- | --- |
 | WARN `function_search_path_mutable`(0011) | 15 | 0 | 상수 함수 열다섯에 `search_path = ''` — `20261009120000` |
 | WARN `anon_security_definer_function_executable`(0028) | 3 | 2 | `beta_is_over()` 를 닫았다 — 화면이 안 부르고 definer 안에서만 불린다 |
-| WARN `authenticated_security_definer_function_executable`(0029) | 68 | 68 | `claimed_by` · `may_edit_person_input`(남의 claim · 편집권을 묻는 신탁) · `beta_is_over` 를 닫아 65 가 됐고, 같은 날 G-24 가 `/ops/reports` 의 운영자 문 셋(`operator_reports` · `operator_report` · `operator_report_snapshot`, `is_operator()` 검사)을 더했다 |
+| WARN `authenticated_security_definer_function_executable`(0029) | 68 | 68 → 69(ADR 0105 의 `note_operator_denial`, 2026-09-24 운영에서 잼) | `claimed_by` · `may_edit_person_input`(남의 claim · 편집권을 묻는 신탁) · `beta_is_over` 를 닫아 65 가 됐고, 같은 날 G-24 가 `/ops/reports` 의 운영자 문 셋(`operator_reports` · `operator_report` · `operator_report_snapshot`, `is_operator()` 검사)을 더했다 |
 | WARN `auth_leaked_password_protection` | 1 | 1 | **남긴다 — Pro 플랜부터다**(아래) |
-| INFO `rls_enabled_no_policy` | 26 | 26 | **남긴다 — 의도다**(아래) |
+| INFO `rls_enabled_no_policy` | 26 | 26 → 29(ADR 0105 의 `audit.operator_access` · `audit.operator_access_export` · `signup_pause`, 운영에서 잼) | **남긴다 — 의도다**(아래) |
 
 잠금은 pgTAP `44_advisor_lints`(invoker 까지 search_path · 닫은 셋) 와 `33_function_shape`(anon 에 열린 문은
 둘 — `current_beta_schedule()` · `shared_reading(text)`).
@@ -1328,43 +1387,163 @@ macOS 키체인에 둔 것, 문서에 적지 않는다). **로컬 스택의 `--l
 TOTP MFA 켜짐, 전화 공급자 꺼짐, 익명 로그인 꺼짐, refresh 회전 켜짐. `supabase/config.toml` 은 advisor 가
 보는 값과 어긋남이 없다.
 
-### 운영자 접속기록 — **어디에 며칠 남나** (G-23 ⑩ · G-25 ③)
+### 운영자 접속기록 — **어디에 며칠 남나** (G-23 ⑩ · G-25 ③ · ADR 0105)
 
-G-25 ③ 이 운영자의 개인정보처리시스템 접속기록을 **1년 이상** 두기로 했다(안전성 확보조치 기준 제8조).
-2026-09-24 에 자리마다 잰 값이다. 플랜은 CLI · API 로 읽었다 — Supabase 조직 `free`, Vercel 팀
+G-25 ③ 이 운영자의 개인정보처리시스템 접속기록을 **1년 이상** 두기로 했다(「개인정보의 안전성 확보조치 기준」 제8조 —
+원칙 1년, 정보주체 5만 명 이상 · 고유식별정보 · 민감정보 처리 등은 2년. CI 가 고유식별정보인지와 2년 여부는 G-25 변호사
+확인 목록이다). 2026-09-24 에 자리마다 잰 값이다. 플랜은 CLI · API 로 읽었다 — Supabase 조직 `free`, Vercel 팀
 `sungheeyoons-projects` `hobby`, GitHub 개인 계정(`User`, 저장소 공개).
 
 | 자리 | 기록 종류 — 누가 · 언제 · 무엇 | 보존 | 근거 · 확인 날짜 |
 | --- | --- | --- | --- |
-| Supabase SQL Editor · Table Editor · `db query --linked`(`npm run db:remote`) | Postgres 로그. **`log_statement = ddl` 이라 읽기(select)는 안 남는다**, `pgaudit` 은 설치 안 됨 | **읽기 0일** · DDL 1일 | 운영에서 `current_setting('log_statement')` · `pg_extension`(2026-09-24) · 로그 보존 Free 1일 <https://supabase.com/pricing> |
+| 앱의 운영자 화면 `/ops/reports` | **DB 의 `audit.operator_access`** — 운영자 id · 시각 · 동작(목록 · 상세 · 스냅샷) · 대상 신고 id(목록이면 거른 조건) · 성공/거절. 문이 읽을 때 같은 트랜잭션에서 적고, 거절은 앱의 문이 따로 적는다 | DB 에 쌓이고 **매일 S3 로 반출, Object Lock 400일** — 아래 「반출」. AWS 가 켜지기 전에는 DB 에만 있다 | ADR 0105 · pgTAP `46_operator_access_log` |
+| `npm run db:remote` | **같은 표** — 실행자(git 이름, 에이전트면 `(agent)`) · 시각 · **목적 · SQL 의 sha256**. 원문은 안 적는다 | 위와 같다 | `scripts/db-remote.mjs` · `db-remote.test.ts` |
+| `/ops/survey` | 안 적는다 — 집계뿐이고 누가 썼는지와 본문이 안 실린다(ADR 0061) | — | |
+| Supabase SQL Editor · Table Editor · `db query --linked` 를 직접 부르는 것 | Postgres 로그. **`log_statement = ddl` 이라 읽기(select)는 안 남는다**, `pgaudit` 은 설치 안 됨 | **읽기 0일** · DDL 1일 | 운영에서 `current_setting('log_statement')` · `pg_extension`(2026-09-24) · 로그 보존 Free 1일 <https://supabase.com/pricing>. **그래서 여기서 개인정보를 읽지 않는다**(맨 위 「개인정보는 화면으로만」) |
 | Supabase 조직 · 프로젝트 설정(Management API 행위 포함) | Platform Audit Logs | **없음** — Team · Enterprise 만 | <https://supabase.com/docs/guides/security/platform-audit-logs>(2026-09-24) |
 | Supabase 계정 | Account Audit Logs(<https://supabase.com/dashboard/account/audit>) — 제 계정의 행위 | **모름** — 문서에 일수가 없고 API(PAT)로는 못 읽는다(`401`) | 같은 문서(2026-09-24). 사람이 화면에서 가장 오래된 줄을 본다 |
-| 앱의 운영자 화면 `/ops/**` | Vercel 런타임 로그(요청 경로 · 시각). 누가 봤는지는 없다. DB 는 `operator_*` 호출을 안 적는다 | **1시간** | <https://vercel.com/docs/logs/runtime> Hobby(2026-09-24) |
 | Vercel 팀 | Activity Log — 환경변수 복호화(`env-variable-read`, 사용자 이름) · 배포 · 설정 변경. **로그인은 안 남는다**(SSO 만) | **1년 넘음** — 2025-08-09 줄이 보인다(13달+) | <https://vercel.com/docs/activity-log> 「since its creation」 · `vercel activity -a --until 2026-01-01`(2026-09-24). Audit Log 는 Enterprise |
 | GitHub 개인 계정 | Security log — 로그인 · 토큰 · 설정 | **90일** — JSON · CSV 로 내보내기는 화면에서만 | <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/reviewing-your-security-log>(2026-09-24). **개인정보처리시스템이 아니다** — 저장소에 이용자 자료가 없고 Actions 비밀값도 0(`gh secret list`) |
+| AWS(반출 버킷) | CloudTrail 관리 이벤트(버킷 · IAM 변경) — 기본 90일. 객체 읽기(데이터 이벤트)는 켜야 남는다 | 90일 | 계정을 연 뒤 잰다 |
 | PortOne 관리자 콘솔 | — | **계약 전이라 못 잼** | G-21 에서 가맹할 때 콘솔 접속기록 보존 기간을 묻는다 |
 
-**1년에 못 미치는 자리 — 이용자 자료에 닿는 둘이 다 0 이다.** Supabase 의 SQL · 표 편집기와 앱의 `/ops`
-화면은 누가 무엇을 읽었는지가 아무 데도 1년 남지 않는다. 돈이 드는 길(Team 플랜)도 로그 28일 · Platform
-Audit 이라 **읽기는 여전히 안 남는다** — 플랜으로 풀리는 틈이 아니다. 무료 길 셋을 견줬다.
+**기록이 추가만 되는 것** — 모든 역할(소유자 `postgres` 포함)에서 `update` · `delete` · `truncate` 를 걷었고 트리거가 한
+번 더 막는다. 소유자는 트리거를 끌 수 있다 — DB 안에서는 그 이상 못 지키고, 그래서 **밖의 사본(Object Lock)이 지워지지
+않는 기록**이다. 월 점검의 「반출이 이어지는가」가 끊긴 자리를 드러낸다.
 
-| 길 | 무엇을 덮나 | 약한 곳 |
-| --- | --- | --- |
-| ① `pgaudit`(`postgres` 역할 read · write) + 매일 로그를 받아 밖에 쌓는 크론 | SQL Editor · `db:remote` · 대시보드 표 편집 | 로그가 하루면 사라져 **크론이 하루 빠지면 그날이 없다**. 크론이 Management 열쇠를 들어야 하고, SQL 본문에 이용자 자료가 섞인 채 밖에 쌓인다 |
-| ② **DB 안 운영자 접속기록 표** — `/ops` 의 `operator_*` 문이 한 줄씩 적고, `npm run db:remote` 도 돌기 전에 한 줄 적는다 | `/ops` 화면 전부 · CLI 로 보내는 SQL 전부 | 대시보드 SQL Editor 는 안 덮는다 — 그 자리에서 이용자 자료를 읽지 않는 것을 규약으로 둔다. `postgres` 는 표를 고칠 수 있다 |
-| ③ 손으로 적는 장부 | 전부 | 잊으면 없다 |
+#### 반출 — 매일 S3, 켜는 값 넷
 
-**권하는 것은 ②다** — 하루 틈이 없고, 열쇠가 밖으로 안 나가고, 저장소 안에서 끝난다. G-24 가 `/ops/reports`
-에 새 운영자 문을 여는 중이라 **그 머지 뒤에 한 번에 만든다**(그 문들도 함께 적게). 정할 것 하나 — CLI SQL 의
-**본문을 적는가**(이용자 자료가 섞인다) **목적과 해시만 적는가**. G-23 줄에 남겼다.
+Vercel Cron `/api/cron/audit-export`(`vercel.json`, 매일 18:37 UTC = 서울 03:37 전후 — Hobby 는 ±59분)가 지난 반출 뒤의
+줄을 번호 차례로 읽어 한 파일로 올리고, **올린 뒤에** 범위를 `audit.operator_access_export` 에 적는다. 적는 문은 앞 반출에서
+이어지지 않거나 범위 안의 행 수가 틀리면 거절한다 — 빠짐도 겹침도 없다. 방금(10분 안) 적힌 줄은 다음 날로 미룬다.
 
-**사람이 할 걸음.**
+- **파일** — `operator-access/<첫 줄의 서울 날짜 YYYY/MM/DD>/<첫 번호 12자리>-<마지막 번호 12자리>.jsonl`. 첫 줄이 머리
+  (`rows` · `first_id` · `last_id` · `after_id` · 본문 `sha256` · `exported_at`), 그 뒤가 한 줄에 한 행이다. 해시는 머리를 뗀
+  나머지의 sha256 이다. 올릴 때 본문 전체의 `ChecksumSHA256` 을 싣는다(Object Lock 버킷이 요구한다)
+- **담기는 것** — 운영자 id · 시각 · 채널 · 동작 · 대상 신고 id · 거른 조건 · CLI 의 목적 · 해시 · 실행자 이름 · 성공/거절.
+  **이용자 닉네임 · 메시지 본문 · 이메일은 없다** — Compliance 는 되돌릴 수 없다. git 에도 로그 원문을 넣지 않는다
+- **켜는 값** — `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` · `AUDIT_EXPORT_ACCESS_KEY_ID` · `AUDIT_EXPORT_SECRET_ACCESS_KEY`
+  (Vercel Production). 하나라도 없으면 크론은 `{"configured":false}` 로 200 을 내고 끝난다 — 알림도 실패도 없다.
+  **2026-09-24 에는 AWS 계정이 없어 꺼져 있다**
+- **실패** — 켜진 뒤의 실패는 500 이고 Vercel 로그(1시간)에만 선다. 기록은 DB 에 남아 다음 날 이어 올라간다. 월 점검이
+  마지막 반출 시각을 본다
+
+**사람이 켜는 걸음 — AWS (한 번)**
+
+1. **계정을 연다.** 루트 사용자에 MFA 를 건다(G-23 ⑨ 목록에 AWS 가 있다). 루트로는 아래 2 ~ 4 만 하고 그 뒤로 안 쓴다
+2. **버킷을 만든다** — 서울(`ap-northeast-2`), 이름 예 `saju-audit-<무작위 몇 자>`. 만들 때 **Object Lock 을 켠다**(켜면
+   Versioning 이 함께 켜지고 끌 수 없다). Block Public Access 넷 다 켠다. 암호화는 기본(SSE-S3)
+3. **Governance 로 잰다.** 버킷 → Properties → Object Lock → Default retention: **Governance, 1일.** 반출을 켜고(아래 5 ·
+   6) 하루 돌려 객체가 서는지, 머리의 `sha256` 이 본문과 맞는지, 지우기가 막히는지(`DeleteObject` 에 버전 id → AccessDenied)를
+   본다. Governance 는 `s3:BypassGovernanceRetention` 권한으로 풀 수 있다 — 잘못 올린 시험 객체는 이때 지운다
+4. **Compliance 400일로 옮긴다.** Default retention: **Compliance, 400 days.** 이 뒤에 올라온 객체는 루트도 못 지우고
+   400일 전에는 못 줄인다. **Governance 동안 올라간 객체는 Governance 그대로다** — 필요하면 객체마다 보존을 Compliance 로
+   올린다(늘리기만 된다). G-25 가 2년이라 하면 만료 전에 이미 있는 객체의 보존일을 늘리고(`PutObjectRetention`) 기본값을
+   730일로 바꾼다
+5. **반출 사용자를 만든다** — IAM → Users → `saju-audit-export`, 콘솔 접근 없음. 인라인 정책은 이 버킷에 넣기 하나다:
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       { "Effect": "Allow", "Action": "s3:PutObject", "Resource": "arn:aws:s3:::<버킷>/operator-access/*" }
+     ]
+   }
+   ```
+
+   읽기 · 지우기 · 보존 변경 권한이 없다 — 키가 새도 올린 객체를 못 지우고 못 읽는다. Access key 를 하나 만든다
+6. **Vercel 에 넣는다** — Settings → Environment Variables → **Production** 에 넷(키 둘은 Sensitive). Deployments 의 최신
+   Production 을 Redeploy 하고 Ready 를 본다. 넣는 값은 문서 · 채팅 · 커밋에 적지 않는다
+7. **확인한다** — 다음 날 `select first_id, last_id, rows, object_key, exported_at from audit.operator_access_export order by
+   first_id desc limit 3;` 에 줄이 서고, S3 콘솔에 같은 키의 객체가 있고 Object Lock 이 걸려 있다
+8. **교체** — 「비밀이 새면」 표의 `AUDIT_EXPORT_*` 줄. 90일마다 한 번 새 키로 바꾸는 것을 권한다(월 점검의 셋째 달)
+
+**사람이 할 걸음(그 밖).**
 
 1. Supabase <https://supabase.com/dashboard/account/audit> 에서 가장 오래된 줄의 날짜를 보고 위 표의 「모름」을
    값으로 바꾼다
 2. GitHub 보안 로그는 90일이라 **분기마다 한 번** <https://github.com/settings/security-log> → Export → JSON 을
    저장소 밖(개인 보관소)에 쌓는다 — 개인정보처리시스템은 아니지만 비밀값이 생기는 날 필요해진다
 3. PortOne 가맹 때 콘솔 접속기록 보존 기간을 묻는다(G-21)
+
+## 운영 주기 — 신고 · 접속기록 · 부재 (ADR 0105)
+
+**내부 운영 목표다 — 이용자에게 약속한 것이 아니다.** 화면과 처리방침은 이 주기를 말하지 않는다.
+
+| 무엇 | 언제 | 어떻게 |
+| --- | --- | --- |
+| 신고 | **영업일마다** 미검토 목록을 본다. 접수 뒤 **늦어도 3영업일 안에 1차 판단** | `/ops/reports?review=unreviewed` → 판단 → 「신고와 차단」의 검토 SQL. 3영업일 넘긴 것은 같은 절의 둘째 질의 |
+| 접속기록 | **매월 1회 이상** | 아래 「월 점검」 |
+| 자리를 비울 때 | **3영업일을 넘기면 새 가입을 닫는다** — 신고를 볼 사람이 없는 동안 새 사람을 들이지 않는다 | 아래 「가입을 닫고 연다」 |
+
+### 월 점검 — 개인정보 없이
+
+넷을 본다 — 이상 접근 · 대량 열람 · 업무시간 밖 열람 · 연속 거절. 질의는 전부 **보통 질의**다(id · 수 · 시각뿐, 이메일과
+본문이 없다). `npm run db:remote -- --purpose "접속기록 월 점검 <YYYY-MM>" "<sql>"` 로 부른다. 결과는 저장소 밖 점검 기록에
+날짜 · 본 사람 · 이상 여부 · 조치를 한 줄씩 적는다.
+
+```sql
+-- 1. 누가 얼마나 — 운영자 id(또는 CLI 실행자)별 지난달 동작 수와 성공/거절
+select coalesce(actor_user_id::text, actor_name) as 누구, channel, action, outcome, count(*)
+from audit.operator_access
+where at >= date_trunc('month', now() at time zone 'Asia/Seoul') - interval '1 month'
+  and at <  date_trunc('month', now() at time zone 'Asia/Seoul')
+group by 1, 2, 3, 4 order by 5 desc;
+
+-- 2. 대량 열람 — 한 사람이 한 시간에 상세 · 스냅샷을 서른 건 넘게 연 때
+select coalesce(actor_user_id::text, actor_name) as 누구, date_trunc('hour', at) as 시각,
+       count(distinct target_report_id) as 연_신고
+from audit.operator_access
+where action in ('reports.detail', 'reports.snapshot') and at > now() - interval '31 days'
+group by 1, 2 having count(distinct target_report_id) > 30 order by 3 desc;
+
+-- 3. 업무시간 밖 — 서울 22시 ~ 07시 · 주말의 열람
+select coalesce(actor_user_id::text, actor_name) as 누구, at at time zone 'Asia/Seoul' as 서울, action, target_report_id
+from audit.operator_access
+where at > now() - interval '31 days'
+  and (extract(hour from at at time zone 'Asia/Seoul') not between 7 and 21
+       or extract(isodow from at at time zone 'Asia/Seoul') > 5)
+order by at;
+
+-- 4. 연속 거절 — 운영자가 아닌 계정이 운영자 문을 두드린 흔적
+select actor_user_id, count(*) as 거절, min(at) as 처음, max(at) as 마지막
+from audit.operator_access
+where outcome = 'denied' and at > now() - interval '31 days'
+group by 1 order by 2 desc;
+
+-- 5. 반출이 이어지는가 — 마지막 반출 시각, 범위의 틈, 아직 안 나간 줄
+select max(exported_at) as 마지막_반출,
+       (select count(*) from audit.operator_access a
+        where a.id > coalesce((select max(last_id) from audit.operator_access_export), 0)) as 안_나간_줄
+from audit.operator_access_export;
+select e.first_id, lag(e.last_id) over (order by e.first_id) as 앞_끝
+from audit.operator_access_export e order by e.first_id;   -- 앞_끝보다 한참 큰 first_id 는 되감긴 번호다 — 행 수는 반출 때 견줬다
+```
+
+**이상이면** — 운영자 본인이 한 것이 아니면 곧 「비밀이 새면」으로 간다(Supabase · 구글 계정 세션 끊기, 운영자 표에서 그
+계정 내리기). 4 에 같은 계정이 여럿이면 그 UUID 로 신고 · 이용 정지를 본다. 5 의 마지막 반출이 이틀보다 오래면 Vercel 의
+Cron 실행 기록과 환경변수를 본다. 처리 결과를 점검 기록에 적는다.
+
+### 가입을 닫고 연다
+
+운영자가 **3영업일을 넘게** 자리를 비우면 떠나기 전에 닫는다. 닫힌 동안 새 사람은 코드가 살아 있어도 가입이 안 끝나고
+「지금 쓸 수 있는 코드가 아닙니다.」를 본다(기존 문장). 이미 가입한 사람은 그대로 쓴다 — 바뀐 안내의 재확인도 된다.
+
+```bash
+# 닫는다 — 까닭에 이용자 개인정보를 적지 않는다
+npm run db:remote -- --purpose "가입 닫기 — 운영자 부재" \
+  "insert into public.signup_pause (reason) values ('운영자 부재 <시작일>~<돌아올 날>')"
+
+# 지금 닫혀 있나
+npm run db:remote -- --purpose "가입 닫힘 확인" \
+  "select id, paused_at, reason, resumed_at from public.signup_pause order by id desc limit 3"
+
+# 연다 — 돌아와서 밀린 신고를 본 뒤에
+npm run db:remote -- --purpose "가입 열기 — 운영자 복귀" \
+  "update public.signup_pause set resumed_at = now() where resumed_at is null"
+```
+
+열린 줄은 하나뿐이다 — 이미 닫혀 있는데 또 닫으면 `23505` 다. 줄은 지우지 않고 쌓는다(언제 · 왜 닫았는지가 남는다).
 
 ## 배포
 

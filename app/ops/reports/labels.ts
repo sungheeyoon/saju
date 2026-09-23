@@ -13,6 +13,23 @@ export const REVIEW_LABEL = {
   reviewed: '검토함',
 } as const;
 
+/**
+ * 검토 결과 — runbook 의 검토 SQL 이 적는 값(`report.review_outcome`, ADR 0105). 글자는 2026-09-24 운영자가
+ * 결정에 적은 그대로다(「조치 없음 / 경고 / 이용 정지 / 추가 확인」) — 제재 결과의 말이라 `/ops/**` 예외가 아니다.
+ * 모르는 값은 값 그대로 세운다 — 검사식이 넷만 받으므로 새 값이 서면 여기 먼저 더한다.
+ */
+const REVIEW_OUTCOME_LABEL: Readonly<Record<string, string>> = {
+  no_action: '조치 없음',
+  warning: '경고',
+  suspension: '이용 정지',
+  needs_more: '추가 확인',
+};
+
+export const reviewOutcomeLabel = (outcome: string): string => REVIEW_OUTCOME_LABEL[outcome] ?? outcome;
+
+/** 검토 시각만 있고 결과가 없는 신고 — 검토 기록이 생기기 전(2026-09-24 전)에 본 것이다 */
+export const NO_REVIEW_RECORD = '결과 기록 없음';
+
 export const EVIDENCE_LABEL = {
   chat: '대화 근거 있음',
   none: '대화 근거 없음',
