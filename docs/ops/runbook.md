@@ -1455,6 +1455,60 @@ macOS 키체인에 둔 것, 문서에 적지 않는다). **로컬 스택의 `--l
 TOTP MFA 켜짐, 전화 공급자 꺼짐, 익명 로그인 꺼짐, refresh 회전 켜짐. `supabase/config.toml` 은 advisor 가
 보는 값과 어긋남이 없다.
 
+### 성능 advisor — 외래키 인덱스와 안 쓰인 인덱스 (G-23 ⑪ 곁)
+
+같은 명령에서 `--type performance` 로 바꿔 부른다.
+
+```bash
+node scripts/remote-lock.mjs npx supabase db advisors --linked --type performance --level info --output-format json \
+  | jq -r '.results | group_by(.name) | .[] | "\(.[0].level) \(.[0].name) \(length)"'
+```
+
+**2026-09-24 에 잰 값(운영).** 전 값은 G-23 ⑪ 때 적은 23 · 7 에서 `20261010100000`(접속기록) · `20261011090000`(결제 표)이
+하나 · 다섯을 더한 것이다. 후 값은 `20261012090000` 을 올린 다음 다시 불렀다.
+
+| lint | 고치기 전 | 고친 뒤 | 무엇을 했나 |
+| --- | --- | --- | --- |
+| INFO `unindexed_foreign_keys` | 24 | 1 | 외래키 스물셋에 인덱스 — `20261012090000` |
+| INFO `unused_index` | 12 | 35 | 하나도 안 지웠다. 새로 세운 스물셋이 아직 안 쓰여 더해졌다 — 탈퇴 처분 · 사람 지우기가 한 번 돌면 준다 |
+
+**더한 스물셋 — 탈퇴 처분의 사슬.** `forget_user` 가 `auth.users` 를 지우면 `app_user` 를 거쳐 매칭 · 신청 · 노출 ·
+채팅 · 주문이 cascade/`set null` 로 따라 지워지고, 같은 함수가 지우는 `person` 은 접근 · 풀이 · 시도 · 관계를,
+`match_without_its_pair_is_cleared` 가 지우는 `match` · `reading_run` 은 알림 · 시도를 끌고 간다. 외래키에 인덱스가
+없으면 부모 한 줄마다 자식 표를 통째로 훑는다. 스물셋 대부분은 그 칼럼으로 거르는 문도 있다(`forget_orphan_people` 의
+`person_id`, `visible_matches` 의 `user_high`, `reading_scope_for` 의 `blocked_user_id`, `keep_payments_of_leaver` 의
+`order_id`). 기존 복합 인덱스의 앞 칼럼으로 덮인 것은 없었다 — advisor 가 잘못 본 것은 없다. 로컬에서 `user_person_access`
+에 2만 줄을 넣고 `delete … where person_id = …` 가 `user_person_access_by_person` 으로 도는 것, `match` 의
+`user_low = … or user_high = …` 가 두 인덱스의 `BitmapOr` 로 도는 것을 `EXPLAIN` 으로 봤다.
+
+**건너뛴 하나 — `app_user.notice_schedule_id`.** 부모 `beta_schedule` 은 운영자가 손으로 넣는 표(운영 2줄)이고 지우는
+코드가 없다. 지울 때 `app_user` 를 한 번 훑는 값이 쓰기마다 인덱스를 고치는 값보다 싸다.
+
+**`concurrently` 를 안 쓴 까닭.** `db push` 는 마이그레이션을 트랜잭션 안에서 돌리고 `create index concurrently` 는
+트랜잭션 안에서 못 돈다. 대상 표는 운영에서 가장 큰 것이 수백 줄 · 2MB 아래라 SHARE 잠금이 밀리초로 끝났다. 표가 커진
+뒤 같은 일을 하면 `concurrently` 로 먼저 세우고 마이그레이션에는 `if not exists` 로 적는다.
+
+잠금은 pgTAP `49_foreign_key_indexes` — advisor 와 같은 셈(외래키 칼럼이 어느 인덱스의 앞 칼럼들과 같은 집합)으로
+덮이지 않은 외래키를 이름으로 내고, 목록이 건너뛴 하나와 같은지 잰다. 새 외래키를 인덱스 없이 들이면 붉다.
+
+**안 쓰인 인덱스 열둘 — 지우지 않았다.** 통계가 한 달치(2026-08-25 초기화)이고 결제는 아직 운영에 안 들었다. 다른
+인덱스 · 제약과 완전히 겹치는 것(같은 앞 칼럼들)은 없었다. 무엇을 위해 있나:
+
+| 인덱스 | 받치는 질의 |
+| --- | --- |
+| `report_by_reporter` | 신고 하루 한도 — 신고한 사람의 오늘 건수(`report_user` · `report_chat_message`) |
+| `report_unreviewed_by_pair` | 검토 전 같은 대상 · 같은 사유의 중복 신고(같은 두 문) |
+| `report_unreviewed` | 운영자 신고 목록의 검토 전 줄(`operator_reports`) |
+| `chat_report_snapshot_by_message` | 같은 메시지의 중복 신고 |
+| `chat_room_closed` | 닫힌 지 90일 지난 방의 메시지 지우기(`purge_closed_chat_messages`) |
+| `chat_rate_limit_hit_by_time` | 「한도에 걸린 건수를 본다」의 기간 집계 |
+| `reading_job_open_idx` | 복구기가 못 끝낸 일감을 오래된 차례로 집기(`open_reading_jobs`) |
+| `operator_access_by_actor` | 운영자 거절 기록의 시간당 빗장(`note_operator_denial`) |
+| `operator_access_by_time` | 접속기록의 시각 범위 조회 · 1년 보존 뒤 정리. 반출은 번호로 돈다 |
+| `reading_order_by_user` | 한 사람의 주문 차례(판매 스위치가 꺼져 아직 부르는 문이 없다). `user_id` 만의 찾기는 유일 제약 `(user_id, idempotency_key)` 가 받는다 — 판매가 켜진 뒤에도 `created_at` 차례로 읽는 문이 없으면 그때 지운다 |
+| `reading_credit_use_by_bundle` | 묶음별 쓰임(환불 셈 `operator_reading_refund_basis`) · 묶음 지울 때 |
+| `retention_payment_expiry` | 5년 지난 결제 기록 지우기(`retention.purge_expired_payments`) |
+
 ### 운영자 접속기록 — **어디에 며칠 남나** (G-23 ⑩ · G-25 ③ · ADR 0105)
 
 G-25 ③ 이 운영자의 개인정보처리시스템 접속기록을 **1년 이상** 두기로 했다(「개인정보의 안전성 확보조치 기준」 제8조 —
