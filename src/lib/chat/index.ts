@@ -61,8 +61,7 @@ export const sendOutcomeOf = (value: unknown): SendOutcome | null =>
   SEND_OUTCOMES.find((known) => known === value) ?? null;
 
 /**
- * 한도에 걸린 전송에 하는 말. **후보다** — 사용자가 아직 답하지 않았다(PR 본문의 표). 정해지면
- * 이 한 줄만 바뀐다.
+ * 한도에 걸린 전송에 하는 말 — 사용자가 2026-09-23 에 승인했다(PRD §7.1).
  */
 export const RATE_LIMITED_TEXT = '메시지를 너무 빠르게 보내고 있습니다. 잠시 뒤에 다시 보내 주세요.';
 
