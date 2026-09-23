@@ -8,7 +8,8 @@ import {
   STRUCTURE_POLICY,
   structureOf,
 } from '@/src/lib/saju/analysis/structure';
-import { computeSaju } from '@/src/lib/saju';
+import type { SajuInput } from '@/src/lib/saju/input';
+import { getFourPillars, type Pillars } from '@/src/lib/saju/pillars';
 import { randomInputs } from '@/src/lib/saju/population';
 import { eokbuAssessmentOf } from '@/src/lib/saju/analysis/yongsin';
 import { GENERATED_BY, CONTROLLED_BY, HIDDEN_STEMS, pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
@@ -29,10 +30,23 @@ const chart = (year: string, month: string, day: string, hour: string) => {
   };
 };
 
-const structure = (year: string, month: string, day: string, hour: string) => {
-  const pillars = chart(year, month, day, hour);
-  return structureOf(pillars, effectiveElementsOf(pillars).distribution);
-};
+/** `analyzePillars` 가 격국을 잡는 식 그대로 — 여덟 글자와 그 실효 분포만 본다 */
+const structureOfChart = (pillars: Pick<Pillars, 'year' | 'month' | 'day' | 'hour' | 'dayMaster'>) =>
+  structureOf(pillars, effectiveElementsOf(pillars).distribution);
+
+const structure = (year: string, month: string, day: string, hour: string) =>
+  structureOfChart(chart(year, month, day, hour));
+
+/**
+ * 모집단 한 건의 격국 — **`computeSaju` 를 지나지 않는다.**
+ *
+ * 격국은 여덟 글자만 본다. `computeSaju` 는 그 위에 대운 · 세운 · 월운과 그 관계를 다
+ * 세우느라 한 건에 열 배 넘게 쓰는데(2026-09-24 에 1000건 1.0초 대 0.07초로 잼), 이
+ * 시험은 그중 아무것도 안 읽는다. 1500건을 그렇게 돌려 기계가 붐비면 제 시간을 넘겼다.
+ * 시각은 한국 표준시 벽시계 그대로 읽는다 — 보정 없이도 실재하는 순간이라 실재하는 원국이다.
+ */
+const populationStructureOf = ({ year, month, day, hour }: SajuInput) =>
+  structureOfChart(getFourPillars(new Date(Date.UTC(year, month - 1, day, (hour ?? 12) - 9))));
 
 /**
  * 조건 이름의 정적 목록이 판정과 어긋나지 않는가.
@@ -47,7 +61,7 @@ describe('성패 조건 이름', () => {
     const produced = new Set<string>();
 
     for (const input of randomInputs(1500)) {
-      const { structure } = computeSaju(input).analysis;
+      const structure = populationStructureOf(input);
       for (const factor of [...structure.formingFactors, ...structure.breakingFactors]) {
         produced.add(factor.name);
       }
@@ -61,7 +75,7 @@ describe('성패 조건 이름', () => {
 
   it('이름마다 왜 그렇게 보았는지가 함께 나온다', () => {
     for (const input of randomInputs(200)) {
-      const { structure } = computeSaju(input).analysis;
+      const structure = populationStructureOf(input);
       for (const factor of [...structure.formingFactors, ...structure.breakingFactors]) {
         expect(factor.detail.length, factor.name).toBeGreaterThan(5);
       }
