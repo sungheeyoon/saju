@@ -339,7 +339,7 @@ _Avoid_: 공유 링크(주소를 뜻할 때만 쓴다), 공유 결과(그것은 
 이야기였는지** 말한다. **점수보다 이것이 크다** — 점수가 늘 좁은 폭 안에 몰려 두 관계를 못
 가르므로 뜻을 이쪽에 옮겼다(ADR 0052). 40자 안팎의 권장 길이와 120자 상한을 지킨다.
 한동안 비유를 시켰는데 누구에게나 붙는 풍경 문구만 남아 접었다(ADR 0056 개정). 칸 이름
-`metaphor` 는 옛 결과와의 호환 때문에 남았다 — §10.
+`metaphor` 는 그대로 둔다 — 까닭은 §10.
 _Avoid_: 비유, 한마디(옛 이름), 총평, 캐치프레이즈
 
 **다룰 것** — `PairShape` 의 `needs-v1` : 비공개 궁합 프롬프트가 절 대신 주는 **커버리지
@@ -790,10 +790,8 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 
 | 코드의 이름 | 용어집의 말 | 어디 | 왜 남았나 |
 | --- | --- | --- | --- |
-| `isSelf` | selfPerson | `app/compat-picker.tsx` · `app/save-for-reading.tsx` · `app/me/people/manage.tsx` 등 여섯 | 화면의 판정 변수 이름. 뜻은 「이 Person 이 내 selfPerson 인가」 |
 | `add_person_revision` · `may_add_revision` · `RevisionArgs` · `app/me/revise.tsx` | 저장된 입력을 고친다 | DB 함수 · `src/lib/input` · 화면 | 「판본」을 걷은 뒤(ADR 0071) 남은 이름. 화면 문구에는 안 샌다(`consent.test.ts`) |
-| `birthDate` | 원본 생일 / 변환된 양력 | 엔진 `now` · `saeun` · `wolun` 의 인자 | 엔진 안에서는 변환된 양력 하나뿐이라 뜻은 안 갈리지만 달력을 말하지 않는다 |
-| `metaphor` | 한 줄 요약 | `reading` 칸 · 구조화 출력 필드 | 옛 결과와의 호환. 비유를 접은 뒤에도(ADR 0056) 칸 이름은 남았다 |
+| `metaphor` · `metaphorLength` | 한 줄 요약 | `reading` · `reading_share` 칸 · RPC 다섯 · 구조화 출력 필드 · `READING_POLICY` | 그대로 둔다 — 구조화 출력의 키는 프롬프트의 일부라 바꾸면 프롬프트를 바꾸는 일이고(실호출이 들고, 배포 순간 돌던 생성은 옛 키로 돌아온다), 칸 이름은 RPC 의 반환 열 · 인자라 바꾸면 떠 있는 옛 앱이 깨진다. 비유를 접은 뒤에도(ADR 0056) 이름만 남았다(2026-09-23 결정) |
 | 이름 없음 | DiscoveryProfile | TS | 표만 있고 도메인 타입이 없다 — 읽는 문이 칸을 그대로 든다 |
 | `discovery_snapshot` | 후보 목록 | 표 | 「스냅샷」이 **여덟 글자 스냅샷**과 겹친다 — 용어집은 여덟 글자 쪽에 이 말을 남겼고 추천 목록은 「후보 목록」이라 부르는데, 표 이름이 아직 그 말을 든다 |
 | `requestAccountDeletion` · `request_account_deletion` · `deletion_requested` · `DELETION_NOTE` | 탈퇴 대기 | 액션 · 함수 · `app_user.status` 값 · `src/lib/account` | 식별자는 그대로 둔다 — DB 값을 바꾸면 마이그레이션이고 뜻은 안 갈린다. 화면 문구는 2026-09-23 에 옮겼다(카드 「탈퇴」 · 버튼 「탈퇴를 신청합니다」) |

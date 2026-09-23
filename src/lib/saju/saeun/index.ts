@@ -121,8 +121,8 @@ type SaeunInput = {
   pillars: Pick<Pillars, 'year' | 'month' | 'day' | 'hour' | 'dayMaster'>;
   /** 출생 시각이 속한 사주년 — 기본 세운 시작 */
   birthSajuYear: number;
-  /** 세운 구간 안에서 생일 전후의 실제 만 나이를 계산한다 */
-  birthDate: CivilDate;
+  /** 세운 구간 안에서 생일 전후의 실제 만 나이를 계산한다 — 보정된 출생 시각(`meta.resolvedTime`)의 양력 날짜 */
+  solarBirthDate: CivilDate;
   /**
    * 그 해를 감싼 대운을 찾을 표.
    *
@@ -148,7 +148,7 @@ function startTermOf(year: number): SolarTerm {
 }
 
 export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Saeun {
-  const { pillars, birthSajuYear, birthDate } = input;
+  const { pillars, birthSajuYear, solarBirthDate } = input;
   const from = options.fromYear ?? birthSajuYear;
   const count = options.count ?? DEFAULT_SAEUN_COUNT;
 
@@ -168,9 +168,9 @@ export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Sae
     const startTerm = startTermOf(year);
     const nextStartTerm = startTermOf(year + 1);
     const chartId = saeunChartId(year);
-    const ageAtStart = ageOnDate(birthDate, koreaDateOf(startTerm.date));
+    const ageAtStart = ageOnDate(solarBirthDate, koreaDateOf(startTerm.date));
     const ageAtEnd = ageOnDate(
-      birthDate,
+      solarBirthDate,
       koreaDateOf(new Date(nextStartTerm.date.getTime() - 1)),
     );
 

@@ -273,7 +273,7 @@ export function SavePersonForReading({ query }: { query: Query }) {
         label: same.label,
         answer: async (sameperson) => {
           if (!sameperson) return savePerson(true);
-          router.push(same.isSelf ? '/me/readings/self' : `/me/readings/${same.personId}`);
+          router.push(same.isSelfPerson ? '/me/readings/self' : `/me/readings/${same.personId}`);
           return { done: true };
         },
       },

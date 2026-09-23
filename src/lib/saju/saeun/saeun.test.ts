@@ -36,7 +36,7 @@ const chart = (year: string, month: string, day: string, hour: string) => {
 /** 1992-11-17 05:20 남 — 壬申 辛亥 丁酉 壬寅 */
 const NATAL = chart('壬申', '辛亥', '丁酉', '壬寅');
 const BIRTH_YEAR = 1992;
-const BIRTH_DATE = { year: 1992, month: 11, day: 17 };
+const SOLAR_BIRTH_DATE = { year: 1992, month: 11, day: 17 };
 
 /**
  * 같은 사람의 대운 표.
@@ -51,7 +51,7 @@ const DAEUN = computeSaju({
 
 const saeun = (options = {}) =>
   computeSaeun(
-    { pillars: NATAL, birthSajuYear: BIRTH_YEAR, birthDate: BIRTH_DATE, daeun: DAEUN },
+    { pillars: NATAL, birthSajuYear: BIRTH_YEAR, solarBirthDate: SOLAR_BIRTH_DATE, daeun: DAEUN },
     options,
   );
 
@@ -144,7 +144,7 @@ describe('원국에서 본 세운', () => {
       {
         pillars: NATAL,
         birthSajuYear: 1990,
-        birthDate: { year: 1990, month: 5, day: 15 },
+        solarBirthDate: { year: 1990, month: 5, day: 15 },
         daeun: DAEUN,
       },
       { fromYear: 2026, count: 1 },
