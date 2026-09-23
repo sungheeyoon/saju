@@ -32,10 +32,7 @@ const evidenceFor = (kind: ReadingKind) =>
 
 const promptFor = (kind: ReadingKind) => readingPromptOf(evidenceFor(kind));
 
-/**
- * 한 사람 명식의 사실 줄 — **목록 자체**를 잰다. 개인 풀이 프롬프트는 목록을 싣지 않으므로
- * (`withSummary` 의 `positionFacts`) 운영 프롬프트가 아니라 목록을 짓는 자리를 부른다.
- */
+/** 한 사람 명식의 사실 줄 — **목록 자체**를 잰다. 개인 풀이 몸통 없이 목록을 짓는 자리를 부른다 */
 const factsOf = (saju: ReturnType<typeof computeSaju>) =>
   withSummary('# 역할\n\n## 사실에 관한 단 하나의 금지', readingEvidenceOf('self', { a: saju }, VIEWED_AT).evidence);
 
@@ -113,27 +110,67 @@ describe('자료와 한 덩어리로 나간다', () => {
 });
 
 /**
- * 자리가 붙은 사실 목록(`reading-prompt-v11`, PRD §8.5).
+ * 자리가 붙은 사실 목록(`reading-prompt-v11`, PRD §8.5)과 그 번호 · 자리 색인(`v13`, G-33).
  *
- * 재는 것은 셋이다 — 천간과 지지가 줄에서 갈리는가, 공유 궁합에서 자료가 자른 것을 목록이
- * 뒷문으로 싣지 않는가, 경로 이름이 줄에 안 실리는가.
+ * 재는 것은 넷이다 — 천간과 지지가 줄에서 갈리는가, 공유 궁합에서 자료가 자른 것을 목록이
+ * 뒷문으로 싣지 않는가, 경로 이름이 줄에 안 실리는가, 색인이 번호만 들고 사실을 다시 적지 않는가.
  */
 describe('자리가 붙은 사실', () => {
-  const blockOf = (text: string): string => {
+  /** 섹션 전체 — 번호와 색인까지 */
+  const rawBlockOf = (text: string): string => {
     const start = text.indexOf('## 자리가 붙은 사실');
     expect(start).toBeGreaterThan(-1);
     return text.slice(start, text.indexOf('\n## ', start + 1));
   };
+  /** 사실 줄만 — 색인 앞까지, 번호를 벗겨서. 줄의 모양은 v11 그대로다 */
+  const blockOf = (text: string): string => {
+    const raw = rawBlockOf(text);
+    const end = raw.indexOf('\n자리 색인\n');
+    return (end === -1 ? raw : raw.slice(0, end)).replace(/^- \[[RS]\d+\] /gm, '- ');
+  };
 
-  it('한눈에 다음, 규칙 앞에 선다 — 두 궁합에만 선다', () => {
-    expect(promptFor('self')).not.toContain('## 자리가 붙은 사실');
-    expect(promptFor('person')).not.toContain('## 자리가 붙은 사실');
-    const text = promptFor('private');
+  it('한눈에 다음, 규칙 앞에 선다 — 모든 풀이에 선다', () => {
+    for (const kind of READING_KINDS) {
+      const text = promptFor(kind);
+      expect(text.indexOf('## 한눈에'), kind).toBeLessThan(text.indexOf('## 자리가 붙은 사실'));
+      expect(text.indexOf('## 자리가 붙은 사실'), kind).toBeLessThan(
+        text.indexOf('## 사실에 관한 단 하나의 금지'),
+      );
+    }
+  });
 
-    expect(text.indexOf('## 한눈에')).toBeLessThan(text.indexOf('## 자리가 붙은 사실'));
-    expect(text.indexOf('## 자리가 붙은 사실')).toBeLessThan(
-      text.indexOf('## 사실에 관한 단 하나의 금지'),
-    );
+  /**
+   * **색인은 참조다** — 사실을 다시 적으면 한 사실이 자리 수만큼 세어진다(PRD §8.5 의 9/1 실험).
+   * 줄마다 번호 하나, 색인은 그 번호가 **실제로 걸린 자리에만, 빠짐없이** 선다. 판정 기준 글자는
+   * 걸린 자리가 아니므로 색인에 안 선다.
+   */
+  it.each(READING_KINDS)('%s — 색인은 번호만 들고, 번호는 걸린 자리에만 선다', (kind) => {
+    const raw = rawBlockOf(promptFor(kind));
+    const [list, index] = raw.split('\n자리 색인\n');
+    expect(index, kind).toBeDefined();
+
+    const facts = list.split('\n').filter((line) => /^- \[[RS]\d+\] /.test(line));
+    const ids = facts.map((line) => line.match(/^- \[([RS]\d+)\] /)![1]);
+    expect(new Set(ids).size).toBe(ids.length);
+
+    const indexLines = index.split('\n').filter((line) => line.startsWith('- '));
+    const placesOf = new Map<string, Set<string>>();
+    for (const line of indexLines) {
+      expect(line).toMatch(/^- (?:[AB] )?[년월일시][간지주] \S+ : [RS]\d+(?: · [RS]\d+)*$/);
+      const [place, refs] = line.slice(2).split(' : ');
+      for (const ref of refs.split(' · ')) {
+        expect(ids).toContain(ref);
+        placesOf.set(ref, (placesOf.get(ref) ?? new Set()).add(place));
+      }
+    }
+
+    for (const [at, line] of facts.entries()) {
+      const body = line.replace(/^- \[[RS]\d+\] /, '');
+      const spots = ids[at].startsWith('R')
+        ? body.split(' : ')[0].split(/ ↔ | → /)
+        : body.split(' : ')[1].split(' · ');
+      expect([...(placesOf.get(ids[at]) ?? [])].sort(), line).toEqual([...new Set(spots)].sort());
+    }
   });
 
   /** 천간에 걸린 신살을 같은 기둥 지지의 일과 묶는 것이 옛 실험의 대표 오조인이었다 */
@@ -237,8 +274,8 @@ describe('자리가 붙은 사실', () => {
   });
 
   it('줄에 자료 경로 이름을 싣지 않는다', () => {
-    for (const kind of READING_KINDS.filter((one) => !isSolo(one))) {
-      const facts = blockOf(promptFor(kind)).split('\n').filter((line) => line.startsWith('- '));
+    for (const kind of READING_KINDS) {
+      const facts = rawBlockOf(promptFor(kind)).split('\n').filter((line) => line.startsWith('- '));
       for (const line of facts) expect(line, kind).not.toMatch(/[a-z.`]/);
     }
   });
