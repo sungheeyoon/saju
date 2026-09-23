@@ -146,6 +146,8 @@ select throws_ok(
   '메모에도 상한이 있다');
 
 -- ── 관리 Person 의 출생정보는 내가 고친다 — 아직 아무도 claim 하지 않았다 ─────
+-- 규칙 함수는 밖의 역할에 닫혀 있다(G-23 ⑪) — 판정만 postgres 로 잰다
+reset role;
 select is(
   public.may_edit_person_input((select person_id from mom), (select kim from who)), true,
   'claim 되지 않은 관리 Person 은 등록한 사람이 고친다');
@@ -153,6 +155,7 @@ select is(
 select is(
   public.may_edit_person_input((select person_id from mom), (select lee from who)), false,
   '엣지가 없는 사람에게는 거짓이다');
+set local role authenticated;
 
 -- ── 라벨과 메모만 고칠 수 있다 ────────────────────────────────────────────────
 update public.user_person_access
