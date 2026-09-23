@@ -276,6 +276,7 @@ squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 �
 | `db diff --linked` 가 비밀번호를 묻는다 | 다른 인증 경로다(`db query --linked` 는 된다) | 양쪽에 같은 질의를 돌려 손으로 견준다 |
 | `timeout` 이 없다 | macOS | coreutils 의 `gtimeout` |
 | `db query --linked` 를 여럿이 동시에 부르면 `Initialising login role...` 뒤에 실패한다 | CLI 가 부를 때마다 로그인 역할을 세운다 — 나란히 부르면 서로 부딪힌다 | `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 부른다 — 기계 전체에서 한 번에 하나만 돌고 나머지는 기다린다(ADR 0096). 부를 때마다 로그인 역할을 두 번 세운다(기록 한 번 · SQL 한 번) |
+| 워크트리에서 운영에 닿는 CLI(`db push` · `db:remote` · advisor)를 처음 부를 때 macOS 가 「supabase 가 키체인의 `Supabase CLI` 를 쓰려 한다」고 묻는다 | CLI 토큰은 로그인 키체인에 있고, CLI 바이너리가 임시 서명(`adhoc`)이라 키체인은 **경로**로 허락을 기억한다. 워크트리마다 `node_modules/@supabase/cli-darwin-arm64/bin/supabase` 가 새 경로다(내용은 같다, 2026-09-24) | 사람이 경로가 이 저장소의 `.claude/worktrees/…/supabase` 인지 보고 「항상 허용」. 거부하면 그 세션의 원격 걸음이 실패한다. 워크트리를 새로 세우면 다시 묻는다 |
 | 프로덕션 확인에 계정이 필요하다 | 기존 계정은 실제 사용자다 | `.env.development.local` 의 `SUPABASE_SECRET_KEY` 로 `auth.admin.createUser({ email_confirm: true })` — 주소는 `@example.com`, 전용 코드로 `complete_signup` 을 지난다. 끝나면 `forget_user` 로 지우고 코드도 지운다(2026-09-23 #115 · #121) |
 | `gh pr merge --auto` 가 `BLOCKED` 로 선다 | gate 가 아직 안 끝났다 — 실패가 아니다 | `gh pr checks <n>` 으로 갈라 본다. `UNSTABLE` 도 도는 중일 수 있다 |
 | `gh pr view <n> --json mergeStateStatus` 가 `BEHIND` 이고 `--auto` 가 안 든다 | 보호 규칙이 strict 다 — 가지가 최신 main 을 품어야 든다(2026-09-23, #143). auto-merge 는 가지를 스스로 올리지 않는다 | `gh pr update-branch <n>` — main 을 merge 하므로 force push 가 없다. gate 가 다시 돌고 초록이면 든다 |
