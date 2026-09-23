@@ -317,7 +317,7 @@ try {
     check('현우에게도 청한다', !asked2.error, asked2.error?.message ?? '');
 
     const { data: account } = await c.from('app_user').select('self_person_id').maybeSingle();
-    await c.rpc('add_person_revision', {
+    await c.rpc('edit_person_input', {
       p_person_id: account.self_person_id,
       p_calendar: 'solar', p_original_date: '1988-11-20', p_solar_date: '1988-11-20',
       p_birth_time: '20:10', p_gender: 'male', p_city: '대구',

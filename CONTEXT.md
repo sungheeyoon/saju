@@ -434,10 +434,10 @@ _Avoid_: 매칭 점수, 상성
 앱이 넣지 않으면 켜질 수 없다.
 _Avoid_: 공개, 활성화
 
-**DiscoveryProfile** — `discovery_profile` 표 : **매칭 참여**에 관한 한 벌 — 참여 상태,
+**DiscoveryProfile** — `discovery_profile` 표 · `DiscoveryProfile` · `myDiscoveryProfile` : **매칭 참여**에 관한 한 벌 — 참여 상태,
 내놓은 **오행 요약**, 그리고 사주와 무관한 명시적 조건(`prefer_gender`). **이름과 소개는
 여기 없다** — 그 둘은 계정의 것이고 참여를 꺼도 살아 있다(**닉네임**). 참여를 끄면 여기
-있는 것만 거둬진다. TS 에는 이 이름의 타입이 없다 — §10.
+있는 것만 거둬진다. TS 타입은 `DiscoveryProfile`, 읽는 문은 `myDiscoveryProfile` 하나다.
 _Avoid_: 프로필(Person·프로필 화면과 헷갈림), 공개 정보
 
 **오행 요약** — `ElementSummary` · `elementSummaryOf` · `discovery_profile.element_summary` :
@@ -718,7 +718,7 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | 신고 | `report` · `report_user` · `reportUser` | 표 · 함수 · 액션 |
 | 차단 | `block` · `blockUser` | 표 · 액션 |
 | 입력 | `SajuInput` | 엔진 |
-| 저장된 입력 | `StoredInput` · `write_person_input` · `storedInputOf` · `storedChartOf` | `src/lib/input` · 함수 · 읽는 문 · 세우는 문 |
+| 저장된 입력 | `StoredInput` · `write_person_input` · `edit_person_input` · `storedInputOf` · `storedChartOf` | `src/lib/input` · 함수 · 읽는 문 · 세우는 문 |
 | 옵션 | `SajuOptions` · `TimeBasis` · `LATE_NIGHT_RULES` | 엔진 · `src/lib/input` |
 | 원본 생일 | `original_date` · `calendar` · `solar_date` | `person` 칸 |
 | 윤달 | `lunar_leap` · `CALENDAR_KO` | `Calendar` 값 · 엔진 |
@@ -751,7 +751,7 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | 체감 적합성 | `reading_feedback` · `FEEDBACK_QUESTIONS` · `leave_reading_feedback` | 표 · `src/lib/reading` · 함수 |
 | 자리 대칭 | `COMPAT_SIDES` | 엔진 `compat/` |
 | 매칭 참여 | `opted_in_at` · `opted_out_at` · `set_discovery_participation` · `ensure_discovery_participation` | `discovery_profile` 칸 · 함수 |
-| DiscoveryProfile | `discovery_profile` · `prefer_gender` | 표 · 칸 |
+| DiscoveryProfile | `discovery_profile` · `prefer_gender` · `DiscoveryProfile` · `myDiscoveryProfile` | 표 · 칸 · `src/lib/discovery` · 읽는 문 |
 | 오행 요약 | `ElementSummary` · `elementSummaryOf` · `element_summary` | `src/lib/discovery` · 칸 |
 | 후보 | `BoardRow` · `my_discovery_board` · `candidatesForViewer` · `discovery_candidate` | `src/lib/discovery` · 함수 · 읽는 문 · 표 |
 | 탐색 후보 | `exploration` · `DISCOVERY_POLICY` | `discovery_impression` 칸 · `src/lib/discovery` |
@@ -790,8 +790,7 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 
 | 코드의 이름 | 용어집의 말 | 어디 | 왜 남았나 |
 | --- | --- | --- | --- |
-| `add_person_revision` · `may_add_revision` · `RevisionArgs` · `app/me/revise.tsx` | 저장된 입력을 고친다 | DB 함수 · `src/lib/input` · 화면 | 「판본」을 걷은 뒤(ADR 0071) 남은 이름. 화면 문구에는 안 샌다(`consent.test.ts`) |
+| 사유값 `unreadable-revision` | 저장된 입력을 못 읽었다 | `fail_reading_job` 의 `p_failure_code` 로 적히는 값 · `app/me/reading/pipeline.ts` | 그대로 둔다 — DB 에 이미 적힌 값이라 바꾸면 옛 행과 새 행이 갈린다. 화면에 안 나간다(2026-09-23 결정) |
 | `metaphor` · `metaphorLength` | 한 줄 요약 | `reading` · `reading_share` 칸 · RPC 다섯 · 구조화 출력 필드 · `READING_POLICY` | 그대로 둔다 — 구조화 출력의 키는 프롬프트의 일부라 바꾸면 프롬프트를 바꾸는 일이고(실호출이 들고, 배포 순간 돌던 생성은 옛 키로 돌아온다), 칸 이름은 RPC 의 반환 열 · 인자라 바꾸면 떠 있는 옛 앱이 깨진다. 비유를 접은 뒤에도(ADR 0056) 이름만 남았다(2026-09-23 결정) |
-| 이름 없음 | DiscoveryProfile | TS | 표만 있고 도메인 타입이 없다 — 읽는 문이 칸을 그대로 든다 |
 | `my_discovery_snapshot` · `refresh_discovery_snapshot` · `refresh_discovery_snapshot_for` · `snapshot_id` | 후보 목록 | 함수 · `discovery_candidate_slot` 칸 | 그대로 둔다 — 표 둘은 2026-09-23 에 `discovery_candidate` · `discovery_candidate_slot` 으로 옮겼다. RPC 둘은 앱이 불러 이름을 바꾸면 넓히고 좁히는 세 걸음이고 뜻은 안 갈린다. 칸은 표를 따라 읽힌다(2026-09-23 결정) |
 | `requestAccountDeletion` · `request_account_deletion` · `deletion_requested` · `DELETION_NOTE` | 탈퇴 대기 | 액션 · 함수 · `app_user.status` 값 · `src/lib/account` | 식별자는 그대로 둔다 — DB 값을 바꾸면 마이그레이션이고 뜻은 안 갈린다. 화면 문구는 2026-09-23 에 옮겼다(카드 「탈퇴」 · 버튼 「탈퇴를 신청합니다」) |

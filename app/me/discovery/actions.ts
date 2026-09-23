@@ -5,7 +5,7 @@ import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
 import { publicCardFromRow } from '../candidates';
 import { selfElementSummary } from '../summary';
-import { PREFER_GENDERS, type PreferGender } from './profile';
+import { PREFER_GENDERS, type PreferGender } from '@/src/lib/discovery';
 import { userFacingDbMessage } from '../../db-error';
 
 /**

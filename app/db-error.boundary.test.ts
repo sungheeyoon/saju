@@ -47,7 +47,7 @@ const ALLOWED: Readonly<Record<string, string>> = {
 
   /* 엔진이 우리말로 내는 오류 — DB 거절이 아니다 */
   'app/birth-form.tsx': 'LunarConversionError — 엔진이 우리말로 낸다',
-  'src/lib/input/revision.ts': 'LunarConversionError — 같다',
+  'src/lib/input/edit.ts': 'LunarConversionError — 같다',
   'src/lib/input/chart.ts': '명식 계산 실패 — 엔진 오류지 DB 거절이 아니다',
 
   /* 사용자 화면이 아닌 자리 */

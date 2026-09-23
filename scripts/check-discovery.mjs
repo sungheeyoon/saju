@@ -472,7 +472,7 @@ const isolate = (emails) => {
 
   // ── 8. 판본을 고치면 요약이 따라간다 ────────────────────────────────────────
   {
-    const revised = await other.rpc('add_person_revision', {
+    const edited = await other.rpc('edit_person_input', {
       p_person_id: theirPersonId,
       p_calendar: 'solar', p_original_date: '1992-03-03', p_solar_date: '1992-03-03',
       p_birth_time: '09:00', p_gender: 'female', p_city: '대구',
@@ -481,7 +481,7 @@ const isolate = (emails) => {
     });
 
     // RPC 를 직접 불렀으므로 요약은 아직 옛 판본의 것이다 — 그 사이에는 후보가 아니다.
-    if (revised.error) throw new Error(revised.error.message);
+    if (edited.error) throw new Error(edited.error.message);
     const stale = await (await get('/me/matching', myCookie)).text();
     check('요약이 낡은 사람은 후보에서 빠진다', !stale.includes(THEIR_NAME));
 
@@ -499,14 +499,14 @@ const isolate = (emails) => {
 
   // ── 8-2. 요약이 **바뀌면** 그 카드는 지금의 그 사람이 아니다 ────────────────
   {
-    const revised = await other.rpc('add_person_revision', {
+    const edited = await other.rpc('edit_person_input', {
       p_person_id: theirPersonId,
       p_calendar: 'solar', p_original_date: '1993-07-07', p_solar_date: '1993-07-07',
       p_birth_time: '21:10', p_gender: 'female', p_city: '대구',
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
       ...chartArgs('discovery-theirs'),
     });
-    if (revised.error) throw new Error(revised.error.message);
+    if (edited.error) throw new Error(edited.error.message);
     await get('/me', theirCookie);
 
     /**

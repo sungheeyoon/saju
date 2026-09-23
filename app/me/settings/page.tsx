@@ -10,7 +10,7 @@ import { RequestDeletion } from '../leaving';
 import { ConsentControls } from '../consent-controls';
 import { SETTINGS_QUIET, SettingsCard, SettingsRow } from './card';
 import { ParticipationToggle, PreferenceForm } from '../discovery/manage';
-import { preferGenderOf } from '../discovery/profile';
+import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { OPTIONAL_CONSENT_NOTE, asKoreanDay, noticeAckHolds } from '@/src/lib/consent';
 
 export const metadata = {
@@ -26,7 +26,7 @@ export default async function SettingsPage() {
   if (!user) redirect('/auth');
 
   /** 온보딩을 안 묻는 화면이라 `self_person_id` 를 안 읽고, 대신 동의 칸을 함께 읽는다 */
-  const [{ state, row: account }, { data: discoveryProfile }] = await Promise.all([
+  const [{ state, row: account }, discoveryProfile] = await Promise.all([
     readAccount<{
       status: string;
       improvement_consent: boolean | null;
@@ -34,8 +34,7 @@ export default async function SettingsPage() {
       notice_version: string | null;
       notice_ack_at: string | null;
     }>(supabase, 'status, improvement_consent, contact_consent, notice_version, notice_ack_at'),
-    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-    supabase.from('discovery_profile').select('prefer_gender, opted_out_at').maybeSingle(),
+    myDiscoveryProfile(),
   ]);
 
   const signOut = async () => {
@@ -55,10 +54,11 @@ export default async function SettingsPage() {
 
       {isBlocked(state) && <AccountNotice state={state} />}
 
-      {state.kind === 'active' && (
+      {/* 못 읽었으면 두 칸을 비운다 — 기본값으로 메우면 끈 사람에게 「켜져 있다」고 말한다(ADR 0078) */}
+      {state.kind === 'active' && discoveryProfile.ok && (
         <>
-          <PreferenceForm current={preferGenderOf(discoveryProfile?.prefer_gender)} />
-          <ParticipationToggle resting={discoveryProfile?.opted_out_at != null} />
+          <PreferenceForm current={discoveryProfile.value?.preferGender ?? 'any'} />
+          <ParticipationToggle resting={discoveryProfile.value?.optedOut ?? false} />
         </>
       )}
 

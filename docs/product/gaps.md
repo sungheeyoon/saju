@@ -37,6 +37,7 @@
 | G-22 | 무엇을 파는가 — 단건 풀이 · 풀이권 묶음 · 구독 | §8.7 | 미정 | 판매 단위를 정하고 ADR 0021·0038 을 다시 본다 | 「세는 것이지 갖는 것이 아니다」와 「요청 때 예약한다」가 걸린다 |
 | G-23 | 공개 모집에 견딜 보안 점검 | §7.0 | 정했다 | 크기 미정 | |
 | G-24 | 확장된 관리자·제재 화면 | §7.0 | 정했다 | 신고 근거 스냅샷을 읽는 자리가 화면으로 선다 | 채팅 안전 베타까지는 runbook SQL |
+| G-50 | 등급 3 의 잠금을 다시 켠다 — `db push` · 실호출 · `gh pr merge` · 운영 SQL 을 사람이 답한 뒤에 | ADR 0093 · `docs/agents/delegation.md` | 정했다 | 공식 운영에 들어가는 날 delegation.md 「공식 운영에 들어가면 켜는 잠금」 목록을 `.claude/settings.json` 의 `ask` 에 되돌리고 등급 3 의 잠금 칸에 옮겨 적는다. `.claude/settings.local.json` 의 넓은 `allow`(`gh pr *` · `npx supabase *` · `git push *` 같은 것)를 걷고, `gh pr merge --help` 로 창이 뜨는지 잰다. 시험이 둘을 견준다 | 운영 베타(2026-09-23)에는 실제 사용자가 없어 껐다 |
 | G-25 | 개인정보 정책 · 약관 · 고객 대응 | §7.0 | 정했다 | 크기 미정. 메시지 보존 기간은 §7.1 에 정했고(2026-09-23) 정책 문서가 그 수를 옮겨 적는다 | |
 | G-52 | 신고 기록의 보존 — 신고한 쪽이든 당한 쪽이든 떠나면 신고와 스냅샷이 따라 사라진다 | §5.3 · ADR 0023 · 0091 · 0094 | 미정 | 보존할 근거 · 기간 · 가명처리를 정하고 `report` 의 FK 를 그것에 맞춘다 | 떠나는 것으로 제재의 근거를 지울 수 있다. 폐쇄 베타는 runbook 이 「처분 전에 적는다」로 든다 |
 | G-53 | 탈퇴의 자동 처분 — 영업일 3일이 지난 탈퇴 대기를 운영자 없이 처분한다 | §5.3 · ADR 0094 · runbook 「탈퇴 신청의 처리」 | 미정 | 공휴일을 아는 영업일 계산과, 되돌릴 수 없는 일을 사람 없이 돌려도 되는지를 정한다 | 지금은 운영자가 `forget_user` 한 줄로 처분한다 |
@@ -60,7 +61,6 @@
 | # | 무엇 | 출처 | 상태 | 끝났다고 말할 조건 | 메모 |
 | --- | --- | --- | --- | --- | --- |
 | G-42 | 운영 관측 — 분석 · 오류 추적 | 2026-09-22 진단 | 미정 | 무엇을 볼지부터 정한다 | 지금 0. 크론 실패는 `cron.job_run_details` 에만 남는다 |
-| G-43 | 코드가 용어집과 다른 이름 둘 — `revision` 계열 · `DiscoveryProfile` 타입 없음 | CONTEXT §10 · #88 후보 8 | 어긋남 | 이름을 바꾸고 §10 에서 지운다. 정한 이름(2026-09-23): `add_person_revision`→`edit_person_input` · `may_add_revision`→`may_edit_person_input` · `RevisionArgs`→`PersonInputArgs` · `input/revision.ts`→`input/edit.ts` · `revise.tsx`→`edit-input.tsx` · `revisePerson`→`editPersonInput` · `REVISION_*`→`INPUT_EDIT_*`(넓히기 · 앱 · 좁히기 셋), `DiscoveryProfile` 타입과 읽는 문 하나(실패는 `SkippableRead`). 사유값 `unreadable-revision` 은 §10 에 「그대로 둔다」 | 시험이 §10 의 이름이 아직 있는지 잰다(ADR 0088). `isSelf` · `birthDate` 는 고쳤고 `metaphor` 는 그대로 둔다. 후보 목록의 표 둘은 `discovery_candidate` · `_slot` 으로 옮겼고 RPC 셋 · `snapshot_id` 는 그대로 둔다(2026-09-23). |
 
 ## 닫힌 것은 여기 없다
 

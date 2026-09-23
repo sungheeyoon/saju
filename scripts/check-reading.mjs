@@ -676,7 +676,7 @@ try {
   // ── 7. 공유 결과는 매인 판본에 서 있다 ───────────────────────────────────
   {
     const { data: account } = await b.from('app_user').select('self_person_id').maybeSingle();
-    await b.rpc('add_person_revision', {
+    await b.rpc('edit_person_input', {
       p_person_id: account.self_person_id,
       p_calendar: 'solar', p_original_date: BIRTH.b.date, p_solar_date: BIRTH.b.date,
       p_birth_time: '05:20', p_gender: BIRTH.b.gender, p_city: BIRTH.b.city,
@@ -691,7 +691,7 @@ try {
 
     /** 자기 풀이는 반대다 — 지금 판본이 아니면 그렇게 말한다 */
     const mineAccount = await a.from('app_user').select('self_person_id').maybeSingle();
-    await a.rpc('add_person_revision', {
+    await a.rpc('edit_person_input', {
       p_person_id: mineAccount.data.self_person_id,
       p_calendar: 'solar', p_original_date: BIRTH.a.date, p_solar_date: BIRTH.a.date,
       p_birth_time: '09:40', p_gender: BIRTH.a.gender, p_city: BIRTH.a.city,

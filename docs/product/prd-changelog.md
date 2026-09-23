@@ -464,6 +464,26 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   따라 옮겼다). 앱은 표를 직접 안 읽고 정책도 없어 한 마이그레이션으로 된다 — 표를 부르는 함수 여섯을 살아
   있는 정의에서 떠 표 이름만 갈았다. 앱이 부르는 RPC 셋과 `snapshot_id` 칸은 §10 에 「그대로 둔다」
 
+- **2026-09-23** — **G-43 일부 — DiscoveryProfile 이 타입과 읽는 문 하나를 얻었다.** `src/lib/discovery` 의
+  `DiscoveryProfile`(`preferGender` · `optedOut`)과 `app/me/discovery/discovery-profile.ts` 의 `myDiscoveryProfile`.
+  못 읽으면 값으로 말한다(`SkippableRead`) — 홈과 매칭은 미리 거르지 않고 RPC 에 맡기고(전과 같다), 설정은 두 칸을
+  비운다(전에는 기본값으로 메워 끈 사람에게 「켜져 있다」고 말할 수 있었다). 화면 안의 옛 자리 둘이 빠져 열셋이
+  열하나가 됐다. 값의 목록 `PREFER_GENDERS` 는 lib 로 내려갔다. 저장 액션의 「처음인가」 확인은 쓰기의 앞자리라 그대로 둔다
+
+- **2026-09-23** — **G-43 닫힘 — 코드가 용어집과 다른 이름 여섯을 고치거나 까닭과 함께 남겼다.** 좁히기
+  `20261002090000_the_old_edit_name_is_gone.sql` 이 옛 겉 `add_person_revision` 을 지웠다 — 앱(#137)과 스크립트 · pgTAP
+  에서 부르는 자리 0, DB 안에서 부르는 함수 0 을 재고 썼다(운영 호출 수는 `track_functions = none` 이라 못 쟀다).
+  여섯의 끝: `isSelf` → `isSelfPerson` · `birthDate` → `solarBirthDate`(#130), revision 계열 → `edit_person_input` ·
+  `may_edit_person_input` · `input/edit.ts` · `edit-input.tsx`(#135 넓히기 · #137 앱 · 이 좁히기), 후보 목록 표 →
+  `discovery_candidate`(#136), `DiscoveryProfile` 타입과 읽는 문(#139). **그대로 둔 것**은 §10 이 까닭과 든다 —
+  `metaphor`, 후보 목록의 RPC 셋 · `snapshot_id`, 사유값 `unreadable-revision`
+
+- **2026-09-23** — **G-50 을 다시 열었다 — 등급 3 의 잠금은 공개 출시 전까지 꺼 둔다.** 같은 날 #134 가 잠금을 켰는데,
+  「G-50 진행」을 「지금 켜라」로 잘못 읽은 것이었다. 사람의 뜻은 ADR 0093 그대로였다. `ask` 를 비우고 delegation.md 의
+  「공식 운영에 들어가면 켜는 잠금」 절과 시험을 되살렸다. 켜 있던 동안 잰 것 둘 — 사용자 `allow` 가 `ask` 를 이긴다,
+  `deny` 가 앞에 `cd` 가 붙은 force push 를 못 막는다 — 은 delegation.md 「잠그지 않은 것」과 ADR 0093 에 남겼고,
+  G-50 의 조건에 넓은 `allow` 걷기와 창이 뜨는지 재기를 더했다
+
 - **2026-09-23** — **G-46 닫힘 — 남은 둘.** ① G-27(#129)이 든 뒤 계정·채팅 쪽을 같은 잣대로 다시 쟀다.
   `export` 만 떼면 되는 것 여섯(`AccountStatus` · `ScreenAccount` · `AccountRead` · `SEND_OUTCOMES` ·
   `BodyCheck` · `SendResult`)은 뗐고, 아무 데서도 안 부르던 서버 쪽 `unreadChatCount` 는 지웠다 — 헤더는

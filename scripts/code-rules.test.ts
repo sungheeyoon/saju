@@ -465,13 +465,11 @@ describe('용어집 ↔ 코드 (CONTEXT.md §9)', () => {
     const stale: string[] = [];
     const appeared: string[] = [];
     let seen = 0;
-    let absent = 0;
     for (const line of section.split('\n')) {
       const cells = line.split('|').map((cell) => cell.trim());
       if (cells.length < 5 || cells[1] === '코드의 이름' || cells[1].startsWith('---')) continue;
       if (cells[1] === '이름 없음') {
         // 반대 방향 — 용어집의 말이 TS 타입으로 **아직 없어야** 한다. 생기면 이 행을 지운다
-        absent += 1;
         const name = cells[2].trim();
         if (new RegExp(`\\b(type|interface|class|function|const) ${name}\\b`).test(corpus)) appeared.push(name);
         continue;
@@ -482,7 +480,8 @@ describe('용어집 ↔ 코드 (CONTEXT.md §9)', () => {
       }
     }
     expect(seen).toBeGreaterThan(5);
-    expect(absent).toBeGreaterThan(0);
+    // 「이름 없음」 행의 수는 단언하지 않는다 — 2026-09-23 에 마지막 하나(DiscoveryProfile)가 타입을 얻어
+    // 지워졌다. 다시 생기면 위 갈래가 그 행을 잰다
     expect(stale).toEqual([]);
     expect(appeared, '표는 「없다」고 하는데 코드에 생겼다').toEqual([]);
   });
@@ -554,6 +553,14 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
       .flatMap((cells) => [...cells[4].matchAll(/`(Bash\([^`]+\))`/g)].map((match) => match[1]));
   }
 
+  /** 「공식 운영에 들어가면 켜는 잠금」 절의 `Bash(…)` 규칙 — 공식 운영 뒤 `ask` 로 되돌릴 목록 (ADR 0093) */
+  function deferredAskRules(): string[] {
+    const start = doc.indexOf('\n### 공식 운영에 들어가면 켜는 잠금');
+    expect(start).toBeGreaterThan(-1);
+    const end = doc.indexOf('\n## ', start + 1);
+    return [...doc.slice(start, end).matchAll(/^- `(Bash\([^`]+\))`$/gm)].map((match) => match[1]);
+  }
+
   it('권한 표의 등급 3 은 settings 의 ask 와, 등급 4 는 deny 와 정확히 같은 목록이다', () => {
     const ask = lockedRulesOfTier('3');
     const deny = lockedRulesOfTier('4');
@@ -564,12 +571,13 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
     expect(ask.filter((rule) => deny.includes(rule))).toEqual([]);
   });
 
-  it('등급 3 의 잠금은 켜져 있다 — ask 가 비면 붉어진다 (ADR 0093 을 되돌림, G-50)', () => {
+  it('등급 3 의 잠금은 공식 운영 뒤에 켠다 — 켤 목록은 문서가 들고, ask 에 든 것은 그 목록에서만 온다 (ADR 0093)', () => {
+    const deferred = deferredAskRules();
+    const deny = lockedRulesOfTier('4');
     const ask = settings.permissions?.ask ?? [];
-    expect(ask.length).toBeGreaterThan(10);
-    for (const rule of ['Bash(npx supabase db push:*)', 'Bash(gh pr merge:*)', 'Bash(READING_LIVE=1:*)']) {
-      expect(ask, rule).toContain(rule);
-    }
+    expect(deferred.length).toBeGreaterThan(10);
+    expect(deferred.filter((rule) => deny.includes(rule))).toEqual([]);
+    expect(ask.filter((rule) => !deferred.includes(rule))).toEqual([]);
   });
 
   /** 문서의 한 절 안에서, 표의 첫 칸이 `**이름**` 인 줄의 그 이름들 — 차례대로 */

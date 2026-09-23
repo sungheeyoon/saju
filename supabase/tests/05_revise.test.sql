@@ -1,6 +1,6 @@
 -- 입력 수정 — **그 자리를 고친다.** 쌓지 않고, 되돌릴 길도 없다(ADR 0071).
 begin;
-select plan(15);
+select plan(14);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -139,25 +139,13 @@ select is(
 
 reset role;
 
--- ── 옛 이름은 **두 벌인 동안** 새 문을 부르는 겉이다 (G-43 넓히기) ──────────────
+-- ── 옛 이름은 **지웠다** (G-43 좁히기) ─────────────────────────────────────────
 --
--- 앱이 `edit_person_input` 으로 옮기기 전까지 떠 있는 앱은 옛 이름을 부른다. 좁히는
--- 마이그레이션이 옛 이름을 지우는 날 아래 두 줄을 「없다」로 뒤집는다.
+-- 넓히는 동안 여기 있던 「옛 이름도 같은 문을 부른다」 · 「옛 이름이 남아 있다」 두 줄을
+-- 좁히는 날 뒤집었다. 관문의 옛 이름은 넓히는 날 이미 지웠다.
 
-set local role authenticated;
-select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
-
-select is(
-  public.add_person_revision((select person_id from target),
-    'lunar', '1990-04-21', '1990-05-15', '17:00', 'male', '서울', 'jo', 'localMean',
-    tests.chart(), 'chart-for-tests'),
-  (select n from version_now) + 2,
-  '옛 이름으로 불러도 같은 문이 고친다 — 판이 하나 더 오른다');
-
-reset role;
-
-select has_function('public', 'add_person_revision',
-  '옛 이름은 좁히기 전까지 남는다 — 떠 있는 앱이 부른다');
+select hasnt_function('public', 'add_person_revision',
+  '옛 이름은 좁혀졌다 — 앱은 edit_person_input 만 부른다');
 
 select hasnt_function('public', 'may_add_revision',
   '옛 관문은 부르는 것이 없어 이미 지웠다');

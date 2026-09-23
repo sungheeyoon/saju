@@ -39,7 +39,7 @@ type RpcArgs<N extends RpcName> = Database['public']['Functions'][N]['Args'];
  *
  * 생략으로 바꾸면 안 되는 자리가 있다. **기본값이 없는 인자를 빼면 PostgREST 가 함수
  * 자체를 못 찾는다** — `create_managed_person` 이 26키로 나가 운영에서 화면이 안 열린
- * 적이 있다(`src/lib/input/revision.ts`). `default null` 이 붙은 인자만 생략과 `null` 이
+ * 적이 있다(`src/lib/input/edit.ts`). `default null` 이 붙은 인자만 생략과 `null` 이
  * 같은 뜻이고, 그 판정은 마이그레이션에 있지 여기에 없다.
  *
  * 그래서 **그 하나만 우리가 주장하고, 주장하는 자리를 이 함수로 모은다.** 이름은

@@ -32,7 +32,7 @@ import {
  * 「내가 본 것이 사라졌다」로 읽는다. Match 의 공유 결과는 반대다 — 그쪽은 **매인
  * 판본**으로 나므로 움직이지 않는다(`MATCH_RESULT_PINNED_NOTE`).
  */
-export const REVISION_REPLACED_NOTE =
+export const INPUT_EDIT_REPLACED_NOTE =
   '수정하면 현재 사주와 궁합은 새 입력으로 계산됩니다. 이전에 본 결과와 다를 수 있습니다.';
 
 /** 판본을 이루는 값 — **여덟 글자를 가르는 것 전부이고, 그 밖은 없다.** */
@@ -150,8 +150,8 @@ export const BLANK_PERSON_ARGS: BlankPersonArgs = {
   p_chart_engine_version: null,
 };
 
-/** `add_person_revision` 이 받는 인자 한 벌 */
-type RevisionArgs = ChartFields & ChartArgs & { p_person_id: string };
+/** `edit_person_input` 이 받는 인자 한 벌 */
+type PersonInputArgs = ChartFields & ChartArgs & { p_person_id: string };
 
 /**
  * **부를 이름이 없다.**
@@ -159,7 +159,7 @@ type RevisionArgs = ChartFields & ChartArgs & { p_person_id: string };
  * 이름은 판본이 아니라 엣지가 들고, 여덟 글자를 바꾸지 않는다. 이름을 고쳤다고
  * 새 판본이 생기면 「이 판본은 무엇이 달라진 것인가」에 답할 수 없게 된다.
  */
-export function revisionArgs(personId: string, query: Query): RevisionArgs {
+export function personInputArgs(personId: string, query: Query): PersonInputArgs {
   return { p_person_id: personId, ...chartFields(query), ...chartArgs(query) };
 }
 
