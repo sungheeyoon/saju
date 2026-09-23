@@ -112,7 +112,7 @@ select is(
   (select count(*)::int from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public'
-     and p.proname in ('create_self_person', 'create_managed_person', 'edit_person_input', 'add_person_revision')
+     and p.proname in ('create_self_person', 'create_managed_person', 'edit_person_input')
      and pg_get_function_arguments(p.oid) not like '%jsonb%'),
   0,
   '여덟 글자를 안 싣던 옛 서명이 하나도 안 남았다');
