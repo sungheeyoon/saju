@@ -1203,6 +1203,96 @@ select
 
 ---
 
+## 보안 점검 — advisor 와 접속기록 (G-23 ⑩ ⑪)
+
+### 보안 advisor — **부르는 명령 하나** (G-23 ⑪)
+
+Supabase 가 스키마와 인증 설정을 훑어 내는 경고다(splinter). 다시 잴 때는 이 한 줄이다 — 원격에 닿으므로
+잠금을 지난다(ADR 0096).
+
+```bash
+node scripts/remote-lock.mjs npx supabase db advisors --linked --type security --level info --output-format json \
+  | jq -r '.results | group_by(.name) | .[] | "\(.[0].level) \(.[0].name) \(length)"'
+```
+
+같은 것을 Management API 로도 받는다 — `GET /v1/projects/xgdeguyxgkillndraonc/advisors/security`(열쇠는 CLI 가
+macOS 키체인에 둔 것, 문서에 적지 않는다). **로컬 스택의 `--local` 은 0028 · 0029 와 인증 경고를 안 낸다** —
+판본이 다르다. 운영에 대고 잰다.
+
+**2026-09-24 에 잰 값(운영).**
+
+| lint | 고치기 전 | 고친 뒤 | 무엇을 했나 |
+| --- | --- | --- | --- |
+| WARN `function_search_path_mutable`(0011) | 15 | 0 | 상수 함수 열다섯에 `search_path = ''` — `20261008120000` |
+| WARN `anon_security_definer_function_executable`(0028) | 3 | 2 | `beta_is_over()` 를 닫았다 — 화면이 안 부르고 definer 안에서만 불린다 |
+| WARN `authenticated_security_definer_function_executable`(0029) | 68 | 65 | `claimed_by` · `may_edit_person_input`(남의 claim · 편집권을 묻는 신탁) · `beta_is_over` 를 닫았다 |
+| WARN `auth_leaked_password_protection` | 1 | 1 | **남긴다 — Pro 플랜부터다**(아래) |
+| INFO `rls_enabled_no_policy` | 26 | 26 | **남긴다 — 의도다**(아래) |
+
+잠금은 pgTAP `44_advisor_lints`(invoker 까지 search_path · 닫은 셋) 와 `33_function_shape`(anon 에 열린 문은
+둘 — `current_beta_schedule()` · `shared_reading(text)`).
+
+**남긴 것과 까닭.**
+
+- **0028 둘 · 0029 예순다섯은 앱이 부르라고 연 문이다.** 이 저장소의 쓰기와 읽기는 `security definer` RPC 가
+  들고(`docs/notes/rpc-and-exposure-rules.md`), 각 문은 `auth.uid()` 나 그것을 묻는 범위 함수(`reading_scope` · `is_operator` ·
+  `visible_notifications` · `may_see_photo`)로 좁힌다 — 2026-09-24 에 `auth.uid()` 를 직접 안 묻는 열여섯의
+  몸을 열어 범위 함수 · 운영자 검사 · 상수 · 공유 토큰임을 봤다.
+  advisor 문서도 「일부러 연 문이면 그 대상에 대해 무시해도 된다」고 적는다(lint 0029 의 세 번째 길). 대상별로
+  끄는 장치는 없고, 규칙째 끄면 **의도하지 않은 새 문도 함께 숨는다** — 끄지 않는다. 이 중 다섯은 정책 · invoker
+  함수 · 흐름 검사가 사용자 역할로 불러 닫을 수 없다: `is_active_account` · `chat_room_readable`(RLS 정책) ·
+  `set_person_listed`(invoker `create_pair_for_reading`) · `chat_policy` · `presence_policy`(흐름 검사가
+  사용자 열쇠로 수를 대조한다). **글자 그대로 0 으로 만드는 길**은 definer 몸을 노출 안 된 스키마로 옮기고
+  `public` 에 invoker 껍데기를 두는 것인데, 열리는 문이 같아 막는 것이 없다 — 하지 않았다.
+- **유출 비밀번호 검사(HaveIBeenPwned)는 Pro 플랜부터다**(<https://supabase.com/docs/guides/auth/password-security>,
+  2026-09-24). 조직 플랜은 `free`(Management API `GET /v1/organizations/{id}` 의 `plan`). 앱의 로그인은 구글
+  하나지만 이메일 공급자가 켜져 있다(`external_email_enabled: true`, 확인 메일 필요) — e2e 와 운영 확인 계정이
+  비밀번호로 들어오는 길이다. 끌지는 G-23 줄에 남겼다.
+- **정책 없는 RLS 표 스물여섯은 의도다** — 앱은 표를 직접 읽지 않고 definer 문으로만 닿는다. 정책이 없으면
+  anon · authenticated 는 한 줄도 못 본다. 등급이 INFO 라 경고가 아니다.
+
+**인증 설정 — 바꾼 것 없음(2026-09-24).** 운영 값: OTP 만료 3600초(`mailer_otp_exp`, advisor 의 한도 안),
+TOTP MFA 켜짐, 전화 공급자 꺼짐, 익명 로그인 꺼짐, refresh 회전 켜짐. `supabase/config.toml` 은 advisor 가
+보는 값과 어긋남이 없다.
+
+### 운영자 접속기록 — **어디에 며칠 남나** (G-23 ⑩ · G-25 ③)
+
+G-25 ③ 이 운영자의 개인정보처리시스템 접속기록을 **1년 이상** 두기로 했다(안전성 확보조치 기준 제8조).
+2026-09-24 에 자리마다 잰 값이다. 플랜은 CLI · API 로 읽었다 — Supabase 조직 `free`, Vercel 팀
+`sungheeyoons-projects` `hobby`, GitHub 개인 계정(`User`, 저장소 공개).
+
+| 자리 | 기록 종류 — 누가 · 언제 · 무엇 | 보존 | 근거 · 확인 날짜 |
+| --- | --- | --- | --- |
+| Supabase SQL Editor · Table Editor · `db query --linked`(`npm run db:remote`) | Postgres 로그. **`log_statement = ddl` 이라 읽기(select)는 안 남는다**, `pgaudit` 은 설치 안 됨 | **읽기 0일** · DDL 1일 | 운영에서 `current_setting('log_statement')` · `pg_extension`(2026-09-24) · 로그 보존 Free 1일 <https://supabase.com/pricing> |
+| Supabase 조직 · 프로젝트 설정(Management API 행위 포함) | Platform Audit Logs | **없음** — Team · Enterprise 만 | <https://supabase.com/docs/guides/security/platform-audit-logs>(2026-09-24) |
+| Supabase 계정 | Account Audit Logs(<https://supabase.com/dashboard/account/audit>) — 제 계정의 행위 | **모름** — 문서에 일수가 없고 API(PAT)로는 못 읽는다(`401`) | 같은 문서(2026-09-24). 사람이 화면에서 가장 오래된 줄을 본다 |
+| 앱의 운영자 화면 `/ops/**` | Vercel 런타임 로그(요청 경로 · 시각). 누가 봤는지는 없다. DB 는 `operator_*` 호출을 안 적는다 | **1시간** | <https://vercel.com/docs/logs/runtime> Hobby(2026-09-24) |
+| Vercel 팀 | Activity Log — 환경변수 복호화(`env-variable-read`, 사용자 이름) · 배포 · 설정 변경. **로그인은 안 남는다**(SSO 만) | **1년 넘음** — 2025-08-09 줄이 보인다(13달+) | <https://vercel.com/docs/activity-log> 「since its creation」 · `vercel activity -a --until 2026-01-01`(2026-09-24). Audit Log 는 Enterprise |
+| GitHub 개인 계정 | Security log — 로그인 · 토큰 · 설정 | **90일** — JSON · CSV 로 내보내기는 화면에서만 | <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/reviewing-your-security-log>(2026-09-24). **개인정보처리시스템이 아니다** — 저장소에 이용자 자료가 없고 Actions 비밀값도 0(`gh secret list`) |
+| PortOne 관리자 콘솔 | — | **계약 전이라 못 잼** | G-21 에서 가맹할 때 콘솔 접속기록 보존 기간을 묻는다 |
+
+**1년에 못 미치는 자리 — 이용자 자료에 닿는 둘이 다 0 이다.** Supabase 의 SQL · 표 편집기와 앱의 `/ops`
+화면은 누가 무엇을 읽었는지가 아무 데도 1년 남지 않는다. 돈이 드는 길(Team 플랜)도 로그 28일 · Platform
+Audit 이라 **읽기는 여전히 안 남는다** — 플랜으로 풀리는 틈이 아니다. 무료 길 셋을 견줬다.
+
+| 길 | 무엇을 덮나 | 약한 곳 |
+| --- | --- | --- |
+| ① `pgaudit`(`postgres` 역할 read · write) + 매일 로그를 받아 밖에 쌓는 크론 | SQL Editor · `db:remote` · 대시보드 표 편집 | 로그가 하루면 사라져 **크론이 하루 빠지면 그날이 없다**. 크론이 Management 열쇠를 들어야 하고, SQL 본문에 이용자 자료가 섞인 채 밖에 쌓인다 |
+| ② **DB 안 운영자 접속기록 표** — `/ops` 의 `operator_*` 문이 한 줄씩 적고, `npm run db:remote` 도 돌기 전에 한 줄 적는다 | `/ops` 화면 전부 · CLI 로 보내는 SQL 전부 | 대시보드 SQL Editor 는 안 덮는다 — 그 자리에서 이용자 자료를 읽지 않는 것을 규약으로 둔다. `postgres` 는 표를 고칠 수 있다 |
+| ③ 손으로 적는 장부 | 전부 | 잊으면 없다 |
+
+**권하는 것은 ②다** — 하루 틈이 없고, 열쇠가 밖으로 안 나가고, 저장소 안에서 끝난다. G-24 가 `/ops/reports`
+에 새 운영자 문을 여는 중이라 **그 머지 뒤에 한 번에 만든다**(그 문들도 함께 적게). 정할 것 하나 — CLI SQL 의
+**본문을 적는가**(이용자 자료가 섞인다) **목적과 해시만 적는가**. G-23 줄에 남겼다.
+
+**사람이 할 걸음.**
+
+1. Supabase <https://supabase.com/dashboard/account/audit> 에서 가장 오래된 줄의 날짜를 보고 위 표의 「모름」을
+   값으로 바꾼다
+2. GitHub 보안 로그는 90일이라 **분기마다 한 번** <https://github.com/settings/security-log> → Export → JSON 을
+   저장소 밖(개인 보관소)에 쌓는다 — 개인정보처리시스템은 아니지만 비밀값이 생기는 날 필요해진다
+3. PortOne 가맹 때 콘솔 접속기록 보존 기간을 묻는다(G-21)
+
 ## 배포
 
 `main` 에 푸시하면 자동 배포된다 — https://saju-snowy.vercel.app

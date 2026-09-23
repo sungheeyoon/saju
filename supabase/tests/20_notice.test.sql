@@ -239,7 +239,9 @@ set local role authenticated;
  * 있어서 다음 날에도 그대로 돌았다 — 「10월 31일에 끝납니다」라고 적어 두고 안 끝나면
  * 그 문장은 지키는 것이 없다.
  */
+reset role;  -- 밖의 역할에는 닫힌 함수다(G-23 ⑪) — 판정만 잰다
 select is(public.beta_is_over(), false, '종료일 전에는 안 끝났다');
+set local role authenticated;
 
 reset role;
 insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
@@ -247,7 +249,9 @@ values ('2020-01-01', '지난 날', '운영자', '담당', 'ops@example.com');
 set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 
+reset role;  -- 밖의 역할에는 닫힌 함수다(G-23 ⑪) — 판정만 잰다
 select is(public.beta_is_over(), true, '종료일이 지나면 끝난 것이다');
+set local role authenticated;
 
 /** **한 자리에 걸어 모든 문이 닫힌다** — 문마다 날짜를 적으면 하나는 안 고쳐진다 */
 select is(public.is_active_account(), false, '끝나면 계정이 활성이 아니다');
@@ -294,7 +298,9 @@ values ('2099-12-31', '연장', '운영자', '담당', 'ops@example.com');
 set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 
+reset role;  -- 밖의 역할에는 닫힌 함수다(G-23 ⑪) — 판정만 잰다
 select is(public.beta_is_over(), false, '날짜를 미루면 다시 열린다');
+set local role authenticated;
 
 /** 공백은 「있다」가 아니다 — 빈 문자열이 든 안내는 화면에 아무것도 안 적히는 자리를 만든다 */
 reset role;
