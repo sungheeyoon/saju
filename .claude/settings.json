@@ -1,28 +1,6 @@
 {
   "permissions": {
-    "ask": [
-      "Bash(npx supabase db push:*)",
-      "Bash(supabase db push:*)",
-      "Bash(./node_modules/.bin/supabase db push:*)",
-      "Bash(npx supabase db query --linked:*)",
-      "Bash(supabase db query --linked:*)",
-      "Bash(./node_modules/.bin/supabase db query --linked:*)",
-      "Bash(READING_LIVE=1:*)",
-      "Bash(READING_PAIR_LIVE=1:*)",
-      "Bash(READING_MATCH_INPUT_LIVE=1:*)",
-      "Bash(BACKFILL_CHART=1:*)",
-      "Bash(BACKFILL_READING_CHART=1:*)",
-      "Bash(vercel env:*)",
-      "Bash(npx vercel env:*)",
-      "Bash(vercel --prod:*)",
-      "Bash(npx vercel --prod:*)",
-      "Bash(vercel deploy:*)",
-      "Bash(npx vercel deploy:*)",
-      "Bash(gh pr merge:*)",
-      "Bash(git push origin --delete:*)",
-      "Bash(git push --delete:*)",
-      "Bash(git branch -D:*)"
-    ],
+    "ask": [],
     "deny": [
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",

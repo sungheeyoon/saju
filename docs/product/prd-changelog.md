@@ -477,3 +477,10 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   `may_edit_person_input` · `input/edit.ts` · `edit-input.tsx`(#135 넓히기 · #137 앱 · 이 좁히기), 후보 목록 표 →
   `discovery_candidate`(#136), `DiscoveryProfile` 타입과 읽는 문(#139). **그대로 둔 것**은 §10 이 까닭과 든다 —
   `metaphor`, 후보 목록의 RPC 셋 · `snapshot_id`, 사유값 `unreadable-revision`
+
+- **2026-09-23** — **G-50 을 다시 열었다 — 등급 3 의 잠금은 공개 출시 전까지 꺼 둔다.** 같은 날 #134 가 잠금을 켰는데,
+  「G-50 진행」을 「지금 켜라」로 잘못 읽은 것이었다. 사람의 뜻은 ADR 0093 그대로였다. `ask` 를 비우고 delegation.md 의
+  「공식 운영에 들어가면 켜는 잠금」 절과 시험을 되살렸다. 켜 있던 동안 잰 것 둘 — 사용자 `allow` 가 `ask` 를 이긴다,
+  `deny` 가 앞에 `cd` 가 붙은 force push 를 못 막는다 — 은 delegation.md 「잠그지 않은 것」과 ADR 0093 에 남겼고,
+  G-50 의 조건에 넓은 `allow` 걷기와 창이 뜨는지 재기를 더했다
+
