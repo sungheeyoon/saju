@@ -1,6 +1,6 @@
 -- 입력 수정 — **그 자리를 고친다.** 쌓지 않고, 되돌릴 길도 없다(ADR 0071).
 begin;
-select plan(12);
+select plan(15);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim, tests.signup('lee@example.com') as lee;
@@ -22,7 +22,7 @@ grant select on first_version to authenticated;
 
 -- ── 아무것도 안 바꾸면 판이 안 오른다 ────────────────────────────────────────
 select is(
-  public.add_person_revision((select person_id from target),
+  public.edit_person_input((select person_id from target),
     'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests'),
   (select n from first_version),
@@ -30,7 +30,7 @@ select is(
 
 -- ── 고치면 그 자리가 바뀐다 ──────────────────────────────────────────────────
 create temporary table second_version as
-select public.add_person_revision((select person_id from target),
+select public.edit_person_input((select person_id from target),
   'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '부산', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests') as n;
 grant select on second_version to authenticated;
@@ -49,7 +49,7 @@ select is(
 
 -- ── 자시 규칙 하나로도 갈린다 ─────────────────────────────────────────────────
 select is(
-  public.add_person_revision((select person_id from target),
+  public.edit_person_input((select person_id from target),
     'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '부산', 'ya', 'localMean',
   tests.chart(), 'chart-for-tests'),
   (select n from second_version) + 1,
@@ -57,7 +57,7 @@ select is(
 
 -- ── 음력 판본 ────────────────────────────────────────────────────────────────
 select lives_ok(
-  format($$select public.add_person_revision(%L,
+  format($$select public.edit_person_input(%L,
     'lunar', '1990-04-21', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
     (select person_id from target)),
@@ -79,7 +79,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select lee from who)), true);
 
 select throws_ok(
-  format($$select public.add_person_revision(%L,
+  format($$select public.edit_person_input(%L,
     'solar', '1980-01-01', '1980-01-01', '01:00', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
     (select person_id from target)),
@@ -95,9 +95,9 @@ reset role;
  * 그 자리를 지키는 유일한 시험이라, 아래에서 그 규칙 함수를 직접 한 번 더 잰다 —
  * 정책과 RPC 가 같은 답을 보는지가 요점이므로.
  */
-select is(public.may_add_revision((select person_id from target), (select lee from who)), false,
+select is(public.may_edit_person_input((select person_id from target), (select lee from who)), false,
   '규칙 함수는 남에게 거짓을 낸다');
-select is(public.may_add_revision((select person_id from target), (select kim from who)), true,
+select is(public.may_edit_person_input((select person_id from target), (select kim from who)), true,
   '규칙 함수는 claim 한 사람에게 참을 낸다');
 
 -- ── 달라진 것을 세는 수로 말한다 (ADR 0071 · #69) ───────────────────────────
@@ -113,7 +113,7 @@ select input_version as n from public.person where id = (select person_id from t
 grant select on version_now to authenticated;
 
 /** 지금 서 있는 입력은 **음력 판본**이다 — 같은 값을 다시 보내려면 그 달력으로 보낸다 */
-select public.add_person_revision((select person_id from target),
+select public.edit_person_input((select person_id from target),
   'lunar', '1990-04-21', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 
@@ -122,7 +122,7 @@ select is(
   (select n from version_now),
   '같은 값으로 저장하면 버전이 안 오른다 — pending 요청도 안 죽는다');
 
-select public.add_person_revision((select person_id from target),
+select public.edit_person_input((select person_id from target),
   'lunar', '1990-04-21', '1990-05-15', '16:00', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 
@@ -138,6 +138,29 @@ select is(
   '고친 입력이 Person 행에 그대로 앉는다');
 
 reset role;
+
+-- ── 옛 이름은 **두 벌인 동안** 새 문을 부르는 겉이다 (G-43 넓히기) ──────────────
+--
+-- 앱이 `edit_person_input` 으로 옮기기 전까지 떠 있는 앱은 옛 이름을 부른다. 좁히는
+-- 마이그레이션이 옛 이름을 지우는 날 아래 두 줄을 「없다」로 뒤집는다.
+
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
+
+select is(
+  public.add_person_revision((select person_id from target),
+    'lunar', '1990-04-21', '1990-05-15', '17:00', 'male', '서울', 'jo', 'localMean',
+    tests.chart(), 'chart-for-tests'),
+  (select n from version_now) + 2,
+  '옛 이름으로 불러도 같은 문이 고친다 — 판이 하나 더 오른다');
+
+reset role;
+
+select has_function('public', 'add_person_revision',
+  '옛 이름은 좁히기 전까지 남는다 — 떠 있는 앱이 부른다');
+
+select hasnt_function('public', 'may_add_revision',
+  '옛 관문은 부르는 것이 없어 이미 지웠다');
 
 select * from finish();
 rollback;

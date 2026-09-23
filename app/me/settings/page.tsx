@@ -11,7 +11,7 @@ import { ConsentControls } from '../consent-controls';
 import { SETTINGS_QUIET, SettingsCard, SettingsRow } from './card';
 import { ParticipationToggle, PreferenceForm } from '../discovery/manage';
 import { preferGenderOf } from '../discovery/profile';
-import { NOTICE_VERSION, OPTIONAL_CONSENT_NOTE, asKoreanDay } from '@/src/lib/consent';
+import { OPTIONAL_CONSENT_NOTE, asKoreanDay, noticeAckHolds } from '@/src/lib/consent';
 
 export const metadata = {
   title: '계정 관리 — 만세력',
@@ -81,7 +81,7 @@ export default async function SettingsPage() {
                 : `${asKoreanDay(account.notice_ack_at.slice(0, 10))} 처리 안내를 확인했습니다.`
             }
             note={
-              account.notice_version !== NOTICE_VERSION
+              !noticeAckHolds(account.notice_version)
                 ? '안내가 새로 바뀌어 다시 보여 드립니다.'
                 : undefined
             }

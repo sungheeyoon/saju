@@ -371,7 +371,7 @@ select set_config('request.jwt.claims', tests.claims((select lee from who)), tru
 update public.discovery_profile set prefer_gender = 'any';
 
 -- 출생정보를 고치면 요약이 낡는다. 낡은 요약은 후보가 아니다.
-select public.add_person_revision((select person_id from theirs),
+select public.edit_person_input((select person_id from theirs),
   'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '부산', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 reset role;

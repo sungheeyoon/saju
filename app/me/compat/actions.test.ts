@@ -280,7 +280,7 @@ describe('같은 명식을 묻는 자리', () => {
     query: { ...DEFAULT_QUERY, name, date: '1990-05-15', time: '14:30' },
   });
   const saveCall = () => rpc.mock.calls.find(([name]) => name === 'create_pair_for_reading');
-  const same = { personId: 'already-there', label: '엄마', isSelf: false, listed: true };
+  const same = { personId: 'already-there', label: '엄마', isSelfPerson: false, listed: true };
 
   beforeEach(() => {
     rpc.mockResolvedValue({ data: [{ person_a: 'saved-a', person_b: 'saved-b' }], error: null });

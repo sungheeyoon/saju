@@ -18,8 +18,14 @@ type RoomRow = RpcRow<'my_chat_rooms'>;
 
 export type ChatRoom = {
   readonly matchId: string;
-  readonly partnerUserId: string;
+  /** 상대가 떠났으면 `null` — 사진도 차단도 걸 사람이 없다(ADR 0094) */
+  readonly partnerUserId: string | null;
   readonly partnerNickname: string;
+  /**
+   * 상대가 **탈퇴**했다 — 처분이 떠난 쪽의 자리를 비웠다(ADR 0094). 화면은 이 칸 하나로 닉네임
+   * 대신 「탈퇴한 사용자」를, 닫힌 까닭 대신 넷째 줄을 세운다(`partnerNameOf` · `roomNoticeOf`).
+   */
+  readonly partnerLeft: boolean;
   readonly partnerHasPhoto: boolean;
   readonly openedAt: string;
   /** `null` 이면 열려 있다. 모르는 이유로 닫힌 방은 목록에서 그리지 않는다 */
@@ -37,8 +43,9 @@ const roomOf = (row: RoomRow): ChatRoom | null => {
   if (row.closed_reason !== null && reason === null) return null;
   return {
     matchId: row.match_id,
-    partnerUserId: row.partner_user_id,
+    partnerUserId: row.partner_user_id ?? null,
     partnerNickname: row.partner_nickname ?? '',
+    partnerLeft: row.partner_left === true,
     partnerHasPhoto: row.partner_has_photo === true,
     openedAt: row.opened_at,
     closedReason: reason,

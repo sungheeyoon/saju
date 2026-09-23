@@ -182,7 +182,7 @@ export type Database = {
           created_at: string
           id: string
           room_id: string
-          sender_user_id: string
+          sender_user_id: string | null
           seq: number
         }
         Insert: {
@@ -190,7 +190,7 @@ export type Database = {
           created_at?: string
           id?: string
           room_id: string
-          sender_user_id: string
+          sender_user_id?: string | null
           seq?: never
         }
         Update: {
@@ -198,7 +198,7 @@ export type Database = {
           created_at?: string
           id?: string
           room_id?: string
-          sender_user_id?: string
+          sender_user_id?: string | null
           seq?: never
         }
         Relationships: [
@@ -336,8 +336,8 @@ export type Database = {
           id: string
           match_id: string
           opened_at: string
-          user_high: string
-          user_low: string
+          user_high: string | null
+          user_low: string | null
         }
         Insert: {
           closed_at?: string | null
@@ -346,8 +346,8 @@ export type Database = {
           id?: string
           match_id: string
           opened_at?: string
-          user_high: string
-          user_low: string
+          user_high?: string | null
+          user_low?: string | null
         }
         Update: {
           closed_at?: string | null
@@ -356,8 +356,8 @@ export type Database = {
           id?: string
           match_id?: string
           opened_at?: string
-          user_high?: string
-          user_low?: string
+          user_high?: string | null
+          user_low?: string | null
         }
         Relationships: [
           {
@@ -609,37 +609,37 @@ export type Database = {
       }
       match: {
         Row: {
-          chart_engine_high: string
-          chart_engine_low: string
-          chart_high: Json
-          chart_low: Json
+          chart_engine_high: string | null
+          chart_engine_low: string | null
+          chart_high: Json | null
+          chart_low: Json | null
           created_at: string
           id: string
-          request_id: string
-          user_high: string
-          user_low: string
+          request_id: string | null
+          user_high: string | null
+          user_low: string | null
         }
         Insert: {
-          chart_engine_high: string
-          chart_engine_low: string
-          chart_high: Json
-          chart_low: Json
+          chart_engine_high?: string | null
+          chart_engine_low?: string | null
+          chart_high?: Json | null
+          chart_low?: Json | null
           created_at?: string
           id?: string
-          request_id: string
-          user_high: string
-          user_low: string
+          request_id?: string | null
+          user_high?: string | null
+          user_low?: string | null
         }
         Update: {
-          chart_engine_high?: string
-          chart_engine_low?: string
-          chart_high?: Json
-          chart_low?: Json
+          chart_engine_high?: string | null
+          chart_engine_low?: string | null
+          chart_high?: Json | null
+          chart_low?: Json | null
           created_at?: string
           id?: string
-          request_id?: string
-          user_high?: string
-          user_low?: string
+          request_id?: string | null
+          user_high?: string | null
+          user_low?: string | null
         }
         Relationships: [
           {
@@ -1793,6 +1793,22 @@ export type Database = {
         Args: { actor: string; other: string }
         Returns: boolean
       }
+      edit_person_input: {
+        Args: {
+          p_birth_time: string
+          p_calendar: string
+          p_chart: Json
+          p_chart_engine_version: string
+          p_city: string
+          p_gender: string
+          p_late_night_rule: string
+          p_original_date: string
+          p_person_id: string
+          p_solar_date: string
+          p_time_basis: string
+        }
+        Returns: number
+      }
       ensure_discovery_participation: {
         Args: { p_person_id: string; p_summary: Json }
         Returns: boolean
@@ -1883,7 +1899,7 @@ export type Database = {
           viewer_is_first: boolean
         }[]
       }
-      may_add_revision: {
+      may_edit_person_input: {
         Args: { actor: string; target_person: string }
         Returns: boolean
       }
@@ -1910,6 +1926,7 @@ export type Database = {
           opened_at: string
           partner_activity: string
           partner_has_photo: boolean
+          partner_left: boolean
           partner_nickname: string
           partner_user_id: string
           unread_count: number
@@ -2545,15 +2562,15 @@ export type Database = {
       visible_matches: {
         Args: never
         Returns: {
-          chart_engine_high: string
-          chart_engine_low: string
-          chart_high: Json
-          chart_low: Json
+          chart_engine_high: string | null
+          chart_engine_low: string | null
+          chart_high: Json | null
+          chart_low: Json | null
           created_at: string
           id: string
-          request_id: string
-          user_high: string
-          user_low: string
+          request_id: string | null
+          user_high: string | null
+          user_low: string | null
         }[]
         SetofOptions: {
           from: "*"
