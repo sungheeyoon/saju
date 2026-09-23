@@ -554,14 +554,6 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
       .flatMap((cells) => [...cells[4].matchAll(/`(Bash\([^`]+\))`/g)].map((match) => match[1]));
   }
 
-  /** 「공식 운영에 들어가면 켜는 잠금」 절의 `Bash(…)` 규칙 — 공식 운영 뒤 `ask` 로 되돌릴 목록 (ADR 0093) */
-  function deferredAskRules(): string[] {
-    const start = doc.indexOf('\n### 공식 운영에 들어가면 켜는 잠금');
-    expect(start).toBeGreaterThan(-1);
-    const end = doc.indexOf('\n## ', start + 1);
-    return [...doc.slice(start, end).matchAll(/^- `(Bash\([^`]+\))`$/gm)].map((match) => match[1]);
-  }
-
   it('권한 표의 등급 3 은 settings 의 ask 와, 등급 4 는 deny 와 정확히 같은 목록이다', () => {
     const ask = lockedRulesOfTier('3');
     const deny = lockedRulesOfTier('4');
@@ -572,13 +564,12 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
     expect(ask.filter((rule) => deny.includes(rule))).toEqual([]);
   });
 
-  it('등급 3 의 잠금은 공식 운영 뒤에 켠다 — 켤 목록은 문서가 들고, ask 에 든 것은 그 목록에서만 온다 (ADR 0093)', () => {
-    const deferred = deferredAskRules();
-    const deny = lockedRulesOfTier('4');
+  it('등급 3 의 잠금은 켜져 있다 — ask 가 비면 붉어진다 (ADR 0093 을 되돌림, G-50)', () => {
     const ask = settings.permissions?.ask ?? [];
-    expect(deferred.length).toBeGreaterThan(10);
-    expect(deferred.filter((rule) => deny.includes(rule))).toEqual([]);
-    expect(ask.filter((rule) => !deferred.includes(rule))).toEqual([]);
+    expect(ask.length).toBeGreaterThan(10);
+    for (const rule of ['Bash(npx supabase db push:*)', 'Bash(gh pr merge:*)', 'Bash(READING_LIVE=1:*)']) {
+      expect(ask, rule).toContain(rule);
+    }
   });
 
   /** 문서의 한 절 안에서, 표의 첫 칸이 `**이름**` 인 줄의 그 이름들 — 차례대로 */
