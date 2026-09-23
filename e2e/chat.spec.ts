@@ -1,4 +1,13 @@
-import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Person } from './session';
+import {
+  expect,
+  forgetBoards,
+  makeOperator,
+  onlyTheseParticipate,
+  optIn,
+  sql,
+  test,
+  type Person,
+} from './session';
 
 import {
   CHAT_EMPTY_TITLE,
@@ -267,5 +276,83 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     const messages = JSON.parse(snapshot) as { body: string; chosen: boolean }[];
     expect(messages.map((m) => m.body)).toEqual(['하나', '둘', `셋 ${tag}`, '넷']);
     expect(messages.filter((m) => m.chosen).map((m) => m.body)).toEqual([`셋 ${tag}`]);
+  });
+
+  /**
+   * 그 스냅샷을 **운영자가 화면에서 읽는다**(G-24 1차판, ADR 0103). 재는 것 셋 — 운영자가 아니면 목록도
+   * 한 건도 없는 화면(404)이다 · 운영자는 목록에서 그 신고를 열어 고른 메시지와 앞뒤 문맥을 차례대로
+   * 읽는다 · 화면에 데이터를 바꾸는 누름도, 방으로 가는 길도, 이메일도 없다.
+   */
+  test('운영자는 신고 목록에서 신고를 열어 고른 메시지와 앞뒤 문맥을 차례대로 읽는다', async ({ openAs }) => {
+    const { a, b, tag, room, matchId } = await pair(openAs);
+    const said = [
+      { from: a, body: `하나 ${tag}` },
+      { from: b, body: `둘 ${tag}` },
+      { from: a, body: `셋 ${tag}` },
+      { from: a, body: `넷 ${tag}` },
+      { from: b, body: `다섯 ${tag}` },
+    ];
+    for (const { from, body } of said) {
+      const sent = await from.api.rpc('send_chat_message', { p_match_id: matchId, p_body: body });
+      if (sent.error || sent.data !== 'sent') throw new Error(`못 보냈습니다 — ${sent.error?.message}`);
+    }
+
+    await b.page.goto(room);
+    const chosen = b.page.getByRole('listitem').filter({ hasText: `셋 ${tag}` });
+    await chosen.getByRole('button', { name: '신고' }).click();
+    await chosen.getByRole('button', { name: '신고합니다' }).click();
+    await expect(chosen.getByText('신고를 접수했습니다')).toBeVisible();
+
+    const reportId = sql(`select s.report_id from public.chat_report_snapshot s
+      join public.chat_message m on m.id = s.message_id
+      where s.match_id = '${matchId}' and m.body = '셋 ${tag}'`);
+    expect(reportId).toMatch(/^[0-9a-f-]{36}$/);
+
+    // 운영자가 아니면 없는 화면이다 — 신고한 사람 자신에게도
+    for (const path of ['/ops/reports', `/ops/reports/${reportId}`]) {
+      const closed = await b.page.goto(path);
+      expect(closed?.status()).toBe(404);
+    }
+    await expect(b.page.getByText(`둘 ${tag}`)).toHaveCount(0);
+
+    const ops = await openAs({ selfPerson: true });
+    makeOperator(ops.account.email);
+
+    await ops.page.goto('/ops/reports?evidence=chat');
+    await expect(ops.page.getByRole('heading', { name: '신고', exact: true })).toBeVisible();
+    const row = ops.page.getByRole('listitem').filter({
+      has: ops.page.locator(`a[href="/ops/reports/${reportId}"]`),
+    });
+    await expect(row.getByText('검토 전', { exact: true })).toBeVisible();
+    await expect(row.getByText('대화 근거 있음 · 메시지 5건')).toBeVisible();
+    await expect(row.getByText(`나${tag}`)).toBeVisible();
+    await expect(row.getByText(`가${tag}`)).toBeVisible();
+
+    await row.getByRole('link', { name: '신고 내용 보기' }).click();
+    await expect(ops.page).toHaveURL(new RegExp(`/ops/reports/${reportId}$`));
+    await expect(ops.page.getByRole('heading', { name: '신고 내용' })).toBeVisible();
+
+    const talk = ops.page.getByRole('list', { name: '신고 당시 대화' }).getByRole('listitem');
+    await expect(talk).toHaveCount(5);
+    for (const [at, { body }] of said.entries()) {
+      await expect(talk.nth(at)).toContainText(body);
+    }
+    // 보낸 쪽은 신고 안의 자리로 — b 가 a 를 신고했다
+    await expect(talk.nth(0)).toContainText('신고받은 사용자');
+    await expect(talk.nth(1)).toContainText('신고한 사용자');
+    // 고른 메시지는 정확히 하나다
+    await expect(ops.page.getByText('신고한 메시지', { exact: true })).toHaveCount(1);
+    await expect(talk.nth(2)).toContainText('신고한 메시지');
+    await expect(
+      ops.page.getByText('신고 당시 저장된 대화 일부입니다. 전체 대화는 열 수 없습니다.'),
+    ).toBeVisible();
+
+    // 읽기 전용이다 — 누름도 폼도 없고, 방으로 가는 길도, 이메일도 없다
+    const main = ops.page.getByRole('main');
+    await expect(main.getByRole('button')).toHaveCount(0);
+    await expect(main.locator('form')).toHaveCount(0);
+    await expect(main.locator('a[href^="/me/chat"]')).toHaveCount(0);
+    await expect(main.getByText(a.account.email)).toHaveCount(0);
+    await expect(main.getByText(b.account.email)).toHaveCount(0);
   });
 });

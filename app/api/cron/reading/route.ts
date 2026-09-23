@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { keyedClient } from '@/app/keyed-client';
 
 import { collectReadingResult } from '../../../me/reading/collect';

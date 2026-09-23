@@ -1,9 +1,19 @@
+import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
     // tsconfig.json 의 paths ("@/*") 를 그대로 사용
     tsconfigPaths: true,
+    /**
+     * **`server-only` 은 Next 가 풀어 주는 이름이다**(G-23 ⑧). 비밀을 읽는 모듈 셋이 첫 줄에
+     * 들고, Next 는 서버 층에서 빈 모듈로, 브라우저 층에서 빌드 오류로 푼다. vitest 는 그 층을
+     * 모르므로 Next 의 빈 모듈을 그대로 가리킨다 — 시험은 서버에서 도는 코드를 잰다.
+     */
+    alias: {
+      'server-only': fileURLToPath(new URL('./node_modules/next/dist/compiled/server-only/empty.js', import.meta.url)),
+    },
   },
   test: {
     // 순수 TS 로직 테스트 — DOM 불필요
