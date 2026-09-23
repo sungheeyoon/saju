@@ -119,10 +119,22 @@ function alive(pid) {
   }
 }
 
-/** 할당하는 동안만 쥔다 — 몇십 ms 다. 남은 잠금은 걷지 않고 멈춘다 */
+/** 쥔 쪽이 안 적힌 잠금을 남은 것으로 보기까지 — `mkdir` 과 `owner.json` 사이는 한 줄이다 */
+const UNOWNED_LIMIT_MS = 10_000;
+/** 살아 있는 쥔 쪽을 기다리는 끝 — pid 가 재사용됐거나 쥔 쪽이 멈춘 경우만 여기 닿는다 */
+const WAIT_LIMIT_MS = 120_000;
+
+/**
+ * 할당하는 동안만 쥔다 — 한가하면 몇십 ms 다. 남은 잠금은 걷지 않고 멈춘다.
+ *
+ * **살아 있는 쥔 쪽은 기다린다.** 한때는 쥔 쪽이 살아 있어도 10초가 지나면 「남아 있다」며 멈췄다. 쥔 동안
+ * 워크트리 목록과 `docker ps` 를 읽는데, 에이전트 여럿이 한 기계에서 돌면 그것이 한 번에 몇 초씩 걸려 다섯째
+ * 줄이 10초를 넘겼다 — 남은 잠금이 아니라 줄이 길었을 뿐이다(2026-09-24).
+ */
 function withSlotLock(work) {
   mkdirSync(join(LOCK, '..'), { recursive: true });
   const started = Date.now();
+  let unownedSince = null;
   for (;;) {
     try {
       mkdirSync(LOCK);
@@ -136,7 +148,10 @@ function withSlotLock(work) {
     } catch {
       // 막 잡혀 owner 가 아직 안 적혔다
     }
-    if ((owner && !alive(owner.pid)) || Date.now() - started > 10_000) {
+    const now = Date.now();
+    unownedSince = owner ? null : (unownedSince ?? now);
+    const stale = owner ? !alive(owner.pid) : now - unownedSince > UNOWNED_LIMIT_MS;
+    if (stale || now - started > WAIT_LIMIT_MS) {
       console.error(`자리 할당 잠금이 남아 있다${owner ? ` — pid ${owner.pid} (${owner.cwd})` : ''}. 도는 \`stack:slot\` 이 없으면 손으로 걷는다: rm -rf ${LOCK}`);
       process.exit(1);
     }

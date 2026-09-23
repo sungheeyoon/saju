@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeSaju } from '@/src/lib/saju';
+import { computeSaju, type Saju } from '@/src/lib/saju';
 import { pillarIndexOf } from '@/src/lib/saju/constants';
 import { daysInMonth, type SajuInput } from '@/src/lib/saju/input';
 import {
@@ -250,9 +250,22 @@ function mulberry32(seed: number): () => number {
   };
 }
 
+/**
+ * **무작위 1,000건 — 시드가 박혀 있어 늘 같은 1,000건이다.**
+ *
+ * 그래서 이것은 돌 때마다 새 표본을 뽑는 탐색이 아니라 **고정된 1,000건의 회귀 표**다.
+ * 실패하면 그 번호로 어디서든 되살릴 수 있고, CI 와 로컬이 같은 수를 돌아야 「로컬 초록이면
+ * CI 초록」이 선다 — 한쪽만 줄이면 줄인 쪽에 없는 건이 한쪽에서만 붉어진다.
+ *
+ * **100건씩 나눠 시험 하나로 세운다.** 한 건이 대운 · 세운 · 월운과 그 관계까지 세우느라
+ * 약 1ms 라, 1,000건을 시험 하나가 들면 한가한 기계에서도 1~2초였고 에이전트 여럿이 한
+ * 기계에서 돌 때(부하 13~40) 기본 5초를 넘겼다(2026-09-24). 일의 양은 그대로 두고 한
+ * 시험이 드는 몫을 기본 예산 안으로 나눈 것이다 — 한 조각이 멈추면 여전히 5초에 잡힌다.
+ */
 describe('속성 테스트 — 무작위 1,000건', () => {
   const SEED = 20260815;
   const CASES = 1_000;
+  const SLICE = 100;
 
   const random = mulberry32(SEED);
   const pick = (min: number, max: number) => min + Math.floor(random() * (max - min + 1));
@@ -271,106 +284,142 @@ describe('속성 테스트 — 무작위 1,000건', () => {
     };
   });
 
-  it('언제나 성립하는 간지 네 개와 일관된 메타를 낸다', () => {
-    for (const input of inputs) {
-      const label = `${input.year}-${input.month}-${input.day} ${input.hour}:${input.minute}`;
-      const saju = computeSaju(input);
-      const { pillars } = saju;
+  /**
+   * 옵션 조합도 미리 편다 — 난수를 입력 순서대로 뽑으므로 조각으로 나눠도 건마다 같은 조합이다.
+   * 보정 조합·자시 규칙·시간 미상을 섞는다. 조합이 늘어나면 "이 옵션에서만 터진다"가 생기기
+   * 쉬운데, 그런 것은 사용자가 먼저 밟게 된다.
+   */
+  const fuzz = mulberry32(SEED + 1);
+  const flip = () => fuzz() < 0.5;
+  const longitudes = Object.values(CITY_LONGITUDES);
+  const fuzzed = inputs.map(() => {
+    const unknownHour = fuzz() < 0.2;
+    const options = {
+      useLongitude: flip(),
+      useEquationOfTime: flip(),
+      useDst: flip(),
+      longitude: longitudes[Math.floor(fuzz() * longitudes.length)],
+      lateNightRule: flip() ? ('jo' as const) : ('ya' as const),
+    };
+    return { unknownHour, options };
+  });
 
-      for (const key of ['year', 'month', 'day', 'hour'] as const) {
-        const pillar = pillars[key]!;
-        expect(pillar, `${label} ${key}`).not.toBeNull();
-        expect(pillarIndexOf(pillar.stem, pillar.branch), `${label} ${key}`).toBe(pillar.index);
+  /**
+   * **한 입력은 한 번만 계산한다.** 아래 셋이 같은 입력을 저마다 `computeSaju` 로 다시 돌려
+   * 파일 하나가 7천 번을 불렀다. 처음 읽는 시험이 채우므로 `-t` 로 하나만 돌려도 선다.
+   */
+  const computed: Saju[] = [];
+  const sajuAt = (index: number) => (computed[index] ??= computeSaju(inputs[index]));
+
+  const slices = Array.from({ length: CASES / SLICE }, (_, n) => ({
+    from: n * SLICE,
+    to: (n + 1) * SLICE,
+    label: `${n * SLICE + 1}~${(n + 1) * SLICE}번째`,
+  }));
+
+  describe.each(slices)('$label', ({ from, to }) => {
+    const indexes = Array.from({ length: to - from }, (_, offset) => from + offset);
+
+    it('언제나 성립하는 간지 네 개와 일관된 메타를 낸다', () => {
+      for (const index of indexes) {
+        const input = inputs[index];
+        const label = `${input.year}-${input.month}-${input.day} ${input.hour}:${input.minute}`;
+        const saju = sajuAt(index);
+        const { pillars } = saju;
+
+        for (const key of ['year', 'month', 'day', 'hour'] as const) {
+          const pillar = pillars[key]!;
+          expect(pillar, `${label} ${key}`).not.toBeNull();
+          expect(pillarIndexOf(pillar.stem, pillar.branch), `${label} ${key}`).toBe(pillar.index);
+        }
+
+        // 일간은 일주의 천간이다
+        expect(pillars.dayMaster, label).toBe(pillars.day.stem);
+
+        // 연주는 사주년이, 월지는 절기 구간이, 시지는 달력 시각이 정한다
+        expect(pillars.year.name, label).toBe(yearPillarOf(pillars.meta.sajuYear).name);
+        expect(pillars.month.branch, label).toBe(pillars.meta.monthTerm.branch);
+        expect(pillars.hour!.branch, label).toBe(hourBranchOf(pillars.meta.civilTime.hour));
+
+        // 절입 시각과 다음 절입 사이에 놓여 있다
+        expect(pillars.meta.monthTerm.date.getTime(), label).toBeLessThanOrEqual(
+          saju.meta.instant.getTime(),
+        );
+        expect(pillars.meta.nextTerm.date.getTime(), label).toBeGreaterThan(
+          saju.meta.instant.getTime(),
+        );
+
+        // 사주년은 달력연도이거나 그 직전 해다 (입춘 이전 출생)
+        expect([input.year - 1, input.year], label).toContain(pillars.meta.sajuYear);
       }
+    });
 
-      // 일간은 일주의 천간이다
-      expect(pillars.dayMaster, label).toBe(pillars.day.stem);
+    it('오행 분포와 십성 개수의 합이 언제나 여덟·일곱이다', () => {
+      for (const index of indexes) {
+        const input = inputs[index];
+        const { elements, tenGodCounts } = sajuAt(index).analysis;
+        const label = `${input.year}-${input.month}-${input.day}`;
 
-      // 연주는 사주년이, 월지는 절기 구간이, 시지는 달력 시각이 정한다
-      expect(pillars.year.name, label).toBe(yearPillarOf(pillars.meta.sajuYear).name);
-      expect(pillars.month.branch, label).toBe(pillars.meta.monthTerm.branch);
-      expect(pillars.hour!.branch, label).toBe(hourBranchOf(pillars.meta.civilTime.hour));
+        expect(elements.glyphCount, label).toBe(8);
+        expect(Object.values(elements.counts).reduce((a, b) => a + b, 0), label).toBe(8);
+        expect(Object.values(elements.ratios).reduce((a, b) => a + b, 0), label).toBeCloseTo(1, 10);
+        expect(Object.values(tenGodCounts).reduce((a, b) => a + b, 0), label).toBe(7);
+      }
+    });
 
-      // 절입 시각과 다음 절입 사이에 놓여 있다
-      expect(pillars.meta.monthTerm.date.getTime(), label).toBeLessThanOrEqual(
-        saju.meta.instant.getTime(),
-      );
-      expect(pillars.meta.nextTerm.date.getTime(), label).toBeGreaterThan(
-        saju.meta.instant.getTime(),
-      );
+    it('같은 입력은 언제나 같은 결과를 낸다', () => {
+      // 앞의 계산과 새 계산을 견준다 — 둘 다 `computeSaju` 가 낸 것이라 뜻은 같다.
+      for (const index of indexes) {
+        const input = inputs[index];
+        const first = sajuAt(index);
+        const second = computeSaju(input);
+        expect(JSON.stringify(second), JSON.stringify(input)).toBe(JSON.stringify(first));
+      }
+    });
 
-      // 사주년은 달력연도이거나 그 직전 해다 (입춘 이전 출생)
-      expect([input.year - 1, input.year], label).toContain(pillars.meta.sajuYear);
-    }
+    it('옵션을 뒤섞어도 던지지 않고 메타가 서로 어긋나지 않는다', () => {
+      for (const index of indexes) {
+        const input = inputs[index];
+        const { unknownHour, options } = fuzzed[index];
+        const label = `#${index} ${JSON.stringify(options)}`;
+
+        const saju = computeSaju(
+          unknownHour
+            ? { year: input.year, month: input.month, day: input.day, hour: null, gender: 'male' as const }
+            : input,
+          options,
+        );
+
+        // hour · hourKnown · glyphCount 는 한 사실의 세 표현이다. 갈리면 안 된다.
+        expect(saju.meta.hourKnown, label).toBe(!unknownHour);
+        expect(saju.pillars.hour === null, label).toBe(unknownHour);
+        expect(saju.analysis.tenGods.hour === null, label).toBe(unknownHour);
+        expect(saju.analysis.elements.glyphCount, label).toBe(unknownHour ? 6 : 8);
+        expect(saju.pillars.meta.hourKnown, label).toBe(saju.meta.hourKnown);
+      }
+    });
+
+    it('시간 미상 계산도 연·월·일주는 정오 계산과 같다', () => {
+      for (const index of indexes) {
+        const input = inputs[index];
+        const label = `${input.year}-${input.month}-${input.day}`;
+        const { year, month, day } = input;
+
+        const unknown = computeSaju({ year, month, day, hour: null, gender: 'male' });
+        const noon = computeSaju({ year, month, day, hour: 12, minute: 0, second: 0, gender: 'male' });
+
+        expect(unknown.pillars.hour, label).toBeNull();
+        expect(unknown.pillars.year.name, label).toBe(noon.pillars.year.name);
+        expect(unknown.pillars.month.name, label).toBe(noon.pillars.month.name);
+        expect(unknown.pillars.day.name, label).toBe(noon.pillars.day.name);
+      }
+    });
   });
 
-  it('오행 분포와 십성 개수의 합이 언제나 여덟·일곱이다', () => {
-    for (const input of inputs) {
-      const { elements, tenGodCounts } = computeSaju(input).analysis;
-      const label = `${input.year}-${input.month}-${input.day}`;
-
-      expect(elements.glyphCount, label).toBe(8);
-      expect(Object.values(elements.counts).reduce((a, b) => a + b, 0), label).toBe(8);
-      expect(Object.values(elements.ratios).reduce((a, b) => a + b, 0), label).toBeCloseTo(1, 10);
-      expect(Object.values(tenGodCounts).reduce((a, b) => a + b, 0), label).toBe(7);
-    }
-  });
-
-  it('같은 입력은 언제나 같은 결과를 낸다', () => {
-    for (const input of inputs) {
-      const first = computeSaju(input);
-      const second = computeSaju(input);
-      expect(JSON.stringify(second), JSON.stringify(input)).toBe(JSON.stringify(first));
-    }
-  });
-
-  it('옵션을 뒤섞어도 던지지 않고 메타가 서로 어긋나지 않는다', () => {
-    // 보정 조합·자시 규칙·시간 미상을 섞는다. 조합이 늘어나면 "이 옵션에서만
-    // 터진다"가 생기기 쉬운데, 그런 것은 사용자가 먼저 밟게 된다.
-    const fuzz = mulberry32(SEED + 1);
-    const flip = () => fuzz() < 0.5;
-    const longitudes = Object.values(CITY_LONGITUDES);
-
-    for (const [index, input] of inputs.entries()) {
-      const unknownHour = fuzz() < 0.2;
-      const options = {
-        useLongitude: flip(),
-        useEquationOfTime: flip(),
-        useDst: flip(),
-        longitude: longitudes[Math.floor(fuzz() * longitudes.length)],
-        lateNightRule: flip() ? ('jo' as const) : ('ya' as const),
-      };
-      const label = `#${index} ${JSON.stringify(options)}`;
-
-      const saju = computeSaju(
-        unknownHour
-          ? { year: input.year, month: input.month, day: input.day, hour: null, gender: 'male' as const }
-          : input,
-        options,
-      );
-
-      // hour · hourKnown · glyphCount 는 한 사실의 세 표현이다. 갈리면 안 된다.
-      expect(saju.meta.hourKnown, label).toBe(!unknownHour);
-      expect(saju.pillars.hour === null, label).toBe(unknownHour);
-      expect(saju.analysis.tenGods.hour === null, label).toBe(unknownHour);
-      expect(saju.analysis.elements.glyphCount, label).toBe(unknownHour ? 6 : 8);
-      expect(saju.pillars.meta.hourKnown, label).toBe(saju.meta.hourKnown);
-    }
-  });
-
-  it('시간 미상 계산도 연·월·일주는 정오 계산과 같다', () => {
-    for (const input of inputs) {
-      const label = `${input.year}-${input.month}-${input.day}`;
-      const { year, month, day } = input;
-
-      const unknown = computeSaju({ year, month, day, hour: null, gender: 'male' });
-      const noon = computeSaju({ year, month, day, hour: 12, minute: 0, second: 0, gender: 'male' });
-
-      expect(unknown.pillars.hour, label).toBeNull();
-      expect(unknown.pillars.year.name, label).toBe(noon.pillars.year.name);
-      expect(unknown.pillars.month.name, label).toBe(noon.pillars.month.name);
-      expect(unknown.pillars.day.name, label).toBe(noon.pillars.day.name);
-    }
+  it('조각이 1,000건을 빈틈없이 덮는다', () => {
+    expect(slices.flatMap(({ from, to }) => Array.from({ length: to - from }, (_, offset) => from + offset))).toEqual(
+      inputs.map((_, index) => index),
+    );
   });
 });
 
