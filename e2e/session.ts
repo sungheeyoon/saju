@@ -4,6 +4,8 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { test as base, type Page } from '@playwright/test';
 
+import { watchCsp } from './csp';
+
 import { NOTICE_VERSION } from '@/src/lib/consent';
 import { worktreeStack } from '@/src/lib/local-env';
 import { chartOf } from '@/src/lib/input/chart';
@@ -591,9 +593,21 @@ type Fixtures = {
    * 무엇이 보이는가」를 한 번도 못 잰다 — 그 답이 이 제품의 절반이다.
    */
   openAs: (wanted: Seed) => Promise<Person>;
+  /** 어느 창에서든 CSP 를 어긴 자리 — 시험이 끝날 때 비어 있어야 한다(G-23 ②) */
+  cspViolations: string[];
 };
 
 export const test = base.extend<Fixtures, { local: Local }>({
+  cspViolations: [
+    async ({ context }, use) => {
+      const seen: string[] = [];
+      await watchCsp(context, seen);
+      await use(seen);
+      if (seen.length > 0) throw new Error(`CSP 를 어긴 자리가 있다:\n${seen.join('\n')}`);
+    },
+    { auto: true },
+  ],
+
   local: [
     async ({}, use) => {
       let status: { API_URL?: string; ANON_KEY?: string };
@@ -674,7 +688,7 @@ export const test = base.extend<Fixtures, { local: Local }>({
     await use(account);
   },
 
-  openAs: async ({ local, browser, baseURL }, use, testInfo) => {
+  openAs: async ({ local, browser, baseURL, cspViolations }, use, testInfo) => {
     /**
      * 프로젝트가 정한 화면을 **그대로 물려준다.** 새 context 는 기본값으로 열리므로,
      * 물려주지 않으면 모바일 프로젝트에서 상대의 창만 데스크톱이 된다.
@@ -694,6 +708,7 @@ export const test = base.extend<Fixtures, { local: Local }>({
         hasTouch,
       });
       opened.push(context);
+      await watchCsp(context, cspViolations);
       await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
 
       return { account, page: await context.newPage(), api };

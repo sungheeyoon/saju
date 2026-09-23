@@ -1898,6 +1898,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      hold_report_quota: { Args: { p_actor: string }; Returns: undefined }
       invalidate_pending_requests: {
         Args: { p_user_id: string }
         Returns: number
@@ -2307,6 +2308,8 @@ export type Database = {
         Returns: string
       }
       person_limit: { Args: never; Returns: number }
+      person_save_daily_limit: { Args: never; Returns: number }
+      person_save_hourly_limit: { Args: never; Returns: number }
       photo_of: {
         Args: { p_user_id: string }
         Returns: {
@@ -2432,6 +2435,7 @@ export type Database = {
         Args: { p_detail?: string; p_message_id: string; p_reason: string }
         Returns: string
       }
+      report_daily_limit: { Args: never; Returns: number }
       report_user: {
         Args: { p_detail?: string; p_reason: string; p_user_id: string }
         Returns: boolean

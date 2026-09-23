@@ -1,5 +1,32 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV !== 'production';
+
+/**
+ * **브라우저가 부를 수 있는 곳** — 아직 막지 않고 어긴 자리만 알린다(G-23 ②).
+ *
+ * `Report-Only` 로 먼저 세운다. 강제하려면 Next 가 페이지에 심는 인라인 스크립트마다 nonce 가
+ * 필요하고, nonce 를 쓰면 지금 미리 만들어 두는 화면이 요청마다 다시 그려진다 — 성능과 비용이
+ * 바뀌는 결정이라 PG · 본인인증 도메인이 정해질 때 함께 정한다. 그래서 `script-src` 의
+ * `'unsafe-inline'` 은 **지금 이 정책이 재는 것이 아니다.** 지금 재는 것은 스크립트 밖의
+ * 출처 — 연결 · 이미지 · 글꼴 · 틀 · 폼 — 이고, e2e 가 어긴 자리 0 을 지킨다(`e2e/csp.ts`).
+ *
+ * 개발 서버는 `eval` 과 웹소켓(HMR)을 쓴다 — 그 둘은 개발에서만 연다.
+ */
+const reportOnlyPolicy = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  `connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''}${isDev ? ' ws: wss:' : ''}`.trimEnd(),
+  "frame-src 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join('; ');
+
 const nextConfig: NextConfig = {
   // The in-app preview reaches the dev server through IPv4 loopback.
   allowedDevOrigins: ['127.0.0.1', 'localhost'],
@@ -25,7 +52,19 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/:path*',
-        headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          /**
+           * **강제하는 것 셋** — 남의 틀 안에 못 들어가고(클릭재킹), 파일 종류를 추측하지 않고,
+           * 쓰지 않는 기기 권한을 닫는다. `frame-ancestors` 는 `Report-Only` 에서 무시되므로
+           * 강제 정책에 따로 한 줄로 선다. 결제(`payment`)는 PG 가 정해질 때 본다.
+           */
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' },
+          { key: 'Content-Security-Policy-Report-Only', value: reportOnlyPolicy },
+        ],
       },
     ];
   },

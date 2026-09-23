@@ -13,7 +13,7 @@
 -- 한 번도 못 잰 채 전부 통과한다. 세는 것은 **이 파일이 만든 행**뿐이다 — 로컬 DB 에는 흐름·e2e
 -- 검사가 남긴 계정이 있다.
 begin;
-select plan(101);
+select plan(102);
 
 /** 다섯 오행 개수만 주면 요약 한 벌이 된다 */
 create or replace function pg_temp.summary(w int, f int, e int, g int, s int)
@@ -623,6 +623,13 @@ select lives_ok(
          (select m.message_id from public.my_chat_messages((select kim_park from rooms), null, 200) m
           where m.body = '도배 1')),
   '같은 사람을 다시 신고할 수 있다 — 신고는 사건이다');
+
+select throws_ok(
+  format($$select public.report_chat_message(%L, 'inappropriate', null)$$,
+         (select m.message_id from public.my_chat_messages((select kim_park from rooms), null, 200) m
+          where m.body = '도배 1')),
+  '23505', '이미 같은 사유로 신고했습니다. 검토가 끝날 때까지 기다려 주세요.',
+  '같은 메시지를 같은 사유로 또 신고하지 않는다 — 검토 전까지 (G-23 ⑤)');
 
 reset role;
 select is(
