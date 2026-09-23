@@ -390,6 +390,86 @@ export type Database = {
           },
         ]
       }
+      discovery_candidate: {
+        Row: {
+          generated_at: string
+          id: string
+          policy_version: string
+          seq: number
+          user_id: string
+          viewer_summary: Json
+        }
+        Insert: {
+          generated_at?: string
+          id?: string
+          policy_version: string
+          seq?: never
+          user_id: string
+          viewer_summary: Json
+        }
+        Update: {
+          generated_at?: string
+          id?: string
+          policy_version?: string
+          seq?: never
+          user_id?: string
+          viewer_summary?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discovery_candidate_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discovery_candidate_slot: {
+        Row: {
+          balance_band: string
+          candidate_summary: Json
+          candidate_user_id: string
+          exploration: boolean
+          position: number
+          snapshot_id: string
+          supplied_elements: string[]
+        }
+        Insert: {
+          balance_band: string
+          candidate_summary: Json
+          candidate_user_id: string
+          exploration: boolean
+          position: number
+          snapshot_id: string
+          supplied_elements: string[]
+        }
+        Update: {
+          balance_band?: string
+          candidate_summary?: Json
+          candidate_user_id?: string
+          exploration?: boolean
+          position?: number
+          snapshot_id?: string
+          supplied_elements?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discovery_candidate_slot_candidate_user_id_fkey"
+            columns: ["candidate_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discovery_candidate_slot_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "discovery_candidate"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       discovery_impression: {
         Row: {
           candidate_summary: Json
@@ -523,86 +603,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "app_user"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      discovery_snapshot: {
-        Row: {
-          generated_at: string
-          id: string
-          policy_version: string
-          seq: number
-          user_id: string
-          viewer_summary: Json
-        }
-        Insert: {
-          generated_at?: string
-          id?: string
-          policy_version: string
-          seq?: never
-          user_id: string
-          viewer_summary: Json
-        }
-        Update: {
-          generated_at?: string
-          id?: string
-          policy_version?: string
-          seq?: never
-          user_id?: string
-          viewer_summary?: Json
-        }
-        Relationships: [
-          {
-            foreignKeyName: "discovery_snapshot_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "app_user"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      discovery_snapshot_slot: {
-        Row: {
-          balance_band: string
-          candidate_summary: Json
-          candidate_user_id: string
-          exploration: boolean
-          position: number
-          snapshot_id: string
-          supplied_elements: string[]
-        }
-        Insert: {
-          balance_band: string
-          candidate_summary: Json
-          candidate_user_id: string
-          exploration: boolean
-          position: number
-          snapshot_id: string
-          supplied_elements: string[]
-        }
-        Update: {
-          balance_band?: string
-          candidate_summary?: Json
-          candidate_user_id?: string
-          exploration?: boolean
-          position?: number
-          snapshot_id?: string
-          supplied_elements?: string[]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "discovery_snapshot_slot_candidate_user_id_fkey"
-            columns: ["candidate_user_id"]
-            isOneToOne: false
-            referencedRelation: "app_user"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "discovery_snapshot_slot_snapshot_id_fkey"
-            columns: ["snapshot_id"]
-            isOneToOne: false
-            referencedRelation: "discovery_snapshot"
             referencedColumns: ["id"]
           },
         ]

@@ -114,7 +114,7 @@ isolate([aMail, bMail, cMail]);
  * 지워 다음 열기가 새로 뽑게 한다.
  */
 const forgetBoard = (email) =>
-  sql(`delete from public.discovery_snapshot s using auth.users u
+  sql(`delete from public.discovery_candidate s using auth.users u
        where u.id = s.user_id and u.email = '${email}'`);
 
 const cookieFor = async (email) => {

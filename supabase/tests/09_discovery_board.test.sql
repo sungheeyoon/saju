@@ -101,10 +101,10 @@ create temporary table first_id as
 select public.refresh_discovery_snapshot_for((select uid from me), 'seed-a') as id;
 
 create temporary table board as
-select * from public.discovery_snapshot_slot where snapshot_id = (select id from first_id);
+select * from public.discovery_candidate_slot where snapshot_id = (select id from first_id);
 
 select is(
-  (select policy_version from public.discovery_snapshot where id = (select id from first_id)),
+  (select policy_version from public.discovery_candidate where id = (select id from first_id)),
   'discovery-v1',
   '새 스냅샷은 discovery-v1 정책을 기록한다');
 
@@ -175,7 +175,7 @@ select is(
 -- ── 씨앗 ──────────────────────────────────────────────────────────────────────
 
 /** 같은 씨앗이면 같은 목록이다 — 직전 스냅샷을 지우고 같은 자리에서 다시 뽑는다 */
-delete from public.discovery_snapshot where user_id = (select uid from me);
+delete from public.discovery_candidate where user_id = (select uid from me);
 
 /*
   뽑아 두고 나서 읽는다. 볼러틸 함수가 심은 행은 **그 행을 심은 질의 자신에게는 안
@@ -186,18 +186,18 @@ select public.refresh_discovery_snapshot_for((select uid from me), 'seed-a') as 
 
 select is(
   (select array_agg(candidate_user_id order by position)
-   from public.discovery_snapshot_slot where snapshot_id = (select id from again)),
+   from public.discovery_candidate_slot where snapshot_id = (select id from again)),
   (select array_agg(candidate_user_id order by position) from board),
   '같은 씨앗이면 같은 목록이다');
 
-delete from public.discovery_snapshot where user_id = (select uid from me);
+delete from public.discovery_candidate where user_id = (select uid from me);
 
 create temporary table other_seed as
 select public.refresh_discovery_snapshot_for((select uid from me), 'seed-b') as id;
 
 select isnt(
   (select array_agg(candidate_user_id order by position)
-   from public.discovery_snapshot_slot where snapshot_id = (select id from other_seed)),
+   from public.discovery_candidate_slot where snapshot_id = (select id from other_seed)),
   (select array_agg(candidate_user_id order by position) from board),
   '씨앗이 다르면 목록이 달라진다');
 
@@ -210,7 +210,7 @@ select isnt(
  * 매번 직전 스냅샷을 지우는 것은 「직전에 있던 사람 제외」가 등장 횟수를 반씩 깎기
  * 때문이다 — 그 규칙은 따로 잰다. 여기서 재려는 것은 **뽑기의 기울기** 하나다.
  */
-delete from public.discovery_snapshot where user_id = (select uid from me);
+delete from public.discovery_candidate where user_id = (select uid from me);
 
 create temporary table draws (user_id uuid, exploration boolean);
 do $$
@@ -220,11 +220,11 @@ declare
   made uuid;
 begin
   for s in 1..1000 loop
-    delete from public.discovery_snapshot where user_id = actor;
+    delete from public.discovery_candidate where user_id = actor;
     made := public.refresh_discovery_snapshot_for(actor, 'weights-' || s);
     insert into draws
     select candidate_user_id, exploration
-    from public.discovery_snapshot_slot where snapshot_id = made;
+    from public.discovery_candidate_slot where snapshot_id = made;
   end loop;
 end
 $$;
@@ -251,7 +251,7 @@ select cmp_ok(
 
 -- ── 직전 스냅샷 ───────────────────────────────────────────────────────────────
 
-delete from public.discovery_snapshot where user_id = (select uid from me);
+delete from public.discovery_candidate where user_id = (select uid from me);
 
 create temporary table one as
 select public.refresh_discovery_snapshot_for((select uid from me), 'gen-1') as id;
@@ -260,14 +260,14 @@ select public.refresh_discovery_snapshot_for((select uid from me), 'gen-2') as i
 
 select is(
   (select count(*)::int
-   from public.discovery_snapshot_slot a
-   join public.discovery_snapshot_slot b on b.candidate_user_id = a.candidate_user_id
+   from public.discovery_candidate_slot a
+   join public.discovery_candidate_slot b on b.candidate_user_id = a.candidate_user_id
    where a.snapshot_id = (select id from one) and b.snapshot_id = (select id from two)),
   0,
   '직전 스냅샷에 있던 사람은 다시 서지 않는다');
 
 select is(
-  (select count(*)::int from public.discovery_snapshot where user_id = (select uid from me)),
+  (select count(*)::int from public.discovery_candidate where user_id = (select uid from me)),
   2,
   '두 세대만 남는다');
 
@@ -284,7 +284,7 @@ create temporary table shallow as
 select public.refresh_discovery_snapshot_for((select uid from me), 'shallow') as id;
 
 select is(
-  (select count(*)::int from public.discovery_snapshot_slot
+  (select count(*)::int from public.discovery_candidate_slot
    where snapshot_id = (select id from shallow)),
   10,
   '풀이 얕으면 직전 스냅샷 사람으로 채워 열을 세운다');
@@ -306,16 +306,16 @@ select is(
 
 reset role;
 select is(
-  (select count(*)::int from public.discovery_snapshot where user_id = (select uid from me)),
+  (select count(*)::int from public.discovery_candidate where user_id = (select uid from me)),
   2,
   '읽기만으로는 세대가 늘지 않는다');
 
 /** 그 사이 자격을 잃은 사람은 빠진다 — 자리를 메우지 않는다. 메우는 것은 다시 뽑는 일이다 */
 update public.discovery_profile set opted_in_at = null, opted_out_at = now()
 where user_id = (
-  select candidate_user_id from public.discovery_snapshot_slot
+  select candidate_user_id from public.discovery_candidate_slot
   where snapshot_id = (
-    select id from public.discovery_snapshot where user_id = (select uid from me)
+    select id from public.discovery_candidate where user_id = (select uid from me)
     order by seq desc limit 1)
   order by position limit 1);
 
@@ -329,7 +329,7 @@ select is(
 
 /** 스물네 시간이 지나면 읽는 함수가 스스로 새로 만든다 */
 reset role;
-update public.discovery_snapshot set generated_at = now() - interval '25 hours'
+update public.discovery_candidate set generated_at = now() - interval '25 hours'
 where user_id = (select uid from me);
 
 set local role authenticated;
@@ -338,7 +338,7 @@ create temporary table drained as select * from public.my_discovery_board();
 
 reset role;
 select cmp_ok(
-  (select max(generated_at) from public.discovery_snapshot where user_id = (select uid from me)),
+  (select max(generated_at) from public.discovery_candidate where user_id = (select uid from me)),
   '>',
   now() - interval '1 minute',
   '스물네 시간이 지나면 읽을 때 새로 만들어진다');
@@ -355,7 +355,7 @@ select throws_ok(
   '만든 지 5분 안이면 새로고침이 거절된다');
 
 reset role;
-update public.discovery_snapshot set generated_at = now() - interval '6 minutes'
+update public.discovery_candidate set generated_at = now() - interval '6 minutes'
 where user_id = (select uid from me);
 
 set local role authenticated;
@@ -366,9 +366,9 @@ select lives_ok(
   '5분이 지나면 새로 받는다');
 
 reset role;
-update public.discovery_snapshot set policy_version = 'discovery-v0'
+update public.discovery_candidate set policy_version = 'discovery-v0'
 where id = (
-  select id from public.discovery_snapshot where user_id = (select uid from me)
+  select id from public.discovery_candidate where user_id = (select uid from me)
   order by seq desc limit 1
 );
 
@@ -378,7 +378,7 @@ create temporary table upgraded as select * from public.my_discovery_board();
 
 reset role;
 select is(
-  (select policy_version from public.discovery_snapshot where user_id = (select uid from me)
+  (select policy_version from public.discovery_candidate where user_id = (select uid from me)
    order by seq desc limit 1),
   'discovery-v1',
   '이전 정책 스냅샷은 읽을 때 즉시 다시 만든다');

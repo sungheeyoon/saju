@@ -359,7 +359,7 @@ export function onlyTheseTwo(emails) {
   const quoted = emails.map((one) => `'${one}'`).join(', ');
   sql(`update public.discovery_profile set opted_in_at = null, opted_out_at = now()
        where user_id not in (select id from auth.users where email in (${quoted}))`);
-  sql(`delete from public.discovery_snapshot s using auth.users u
+  sql(`delete from public.discovery_candidate s using auth.users u
        where u.id = s.user_id and u.email in (${quoted})`);
 }
 

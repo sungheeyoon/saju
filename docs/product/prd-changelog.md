@@ -421,3 +421,8 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   양력 날짜). `metaphor` 는 §10 에서 「그대로 둔다」로 옮겼다 — 구조화 출력 키는 프롬프트의 일부이고 칸 이름은
   RPC 의 반환 열 · 인자다. 남은 셋(`revision` 계열 · `DiscoveryProfile` · `discovery_snapshot`)은 정한 이름과 함께
   G-43 줄에 남았다 — 마이그레이션이 들어 G-27 뒤에 간다
+
+- **2026-09-23** — **G-43 일부 — 후보 목록의 표가 「스냅샷」을 내려놓는다.** `discovery_snapshot` ·
+  `discovery_snapshot_slot` → `discovery_candidate` · `discovery_candidate_slot`(제약 · 인덱스 · 시퀀스 이름도
+  따라 옮겼다). 앱은 표를 직접 안 읽고 정책도 없어 한 마이그레이션으로 된다 — 표를 부르는 함수 여섯을 살아
+  있는 정의에서 떠 표 이름만 갈았다. 앱이 부르는 RPC 셋과 `snapshot_id` 칸은 §10 에 「그대로 둔다」

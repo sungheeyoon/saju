@@ -133,7 +133,7 @@ try {
   // ── 2. 후보 → 요청 → 수락 → 방 ────────────────────────────────────────────
   await get('/me', cookie.a);
   await get('/me', cookie.b);
-  sql(`delete from public.discovery_snapshot s using auth.users u
+  sql(`delete from public.discovery_candidate s using auth.users u
        where u.id = s.user_id and u.email = '${mail.a}'`);
   await get('/me/matching', cookie.a);
 
