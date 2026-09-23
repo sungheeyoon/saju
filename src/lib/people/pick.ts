@@ -1,5 +1,5 @@
 /**
- * 저장한 사람을 **이름으로 찾아 고르는** 판단 — 궁합의 두 칸이 쓴다.
+ * 저장한 사람을 **이름으로 찾아 고르는** 판단 — 궁합의 두 칸과 사람 목록 위의 찾는 칸이 쓴다.
  *
  * ## 왜 `select` 가 아닌가
  *
@@ -77,4 +77,29 @@ export const stepTo = (active: number, count: number, step: Step): number => {
     case 'previous':
       return inside && active > 0 ? active - 1 : count - 1;
   }
+};
+
+/**
+ * 사람 목록(`/me/people`) 위에 **찾는 칸이 서는 수** — 여섯부터다(ADR 0102, G-21).
+ *
+ * 2026-09-24 에 재 보니 카드 하나가 데스크톱 254px · 휴대폰 334px 이라 첫 화면에 온전히 서는
+ * 카드는 수와 상관없이 **하나**였다. 끝의 사람까지 휴대폰에서 스물여섯이면 13화면, 백이면
+ * 48화면을 내려야 닿았다. 다섯까지는 두세 화면이라 눈으로 찾고, 칸이 서면 그만큼 첫 카드가
+ * 밀린다 — 그래서 궁합 칸이 한 번에 보이는 다섯 줄 반을 넘는 수에서 선다.
+ */
+export const FIND_FROM = 6;
+
+export const findsInList = (count: number): boolean => count >= FIND_FROM;
+
+/**
+ * 찾는 칸이 결과를 말하는 모양 — 문구는 화면이 든다.
+ *
+ * 안 쳤으면 말하지 않는다(`idle`) — 치지도 않았는데 수를 말하면 화면낭독기가 목록을 열 때마다
+ * 그 수를 읽는다. 쳤는데 없으면 없다고(`none`), 있으면 몇 명인지(`some`) 말한다.
+ */
+export type FindStatus = { kind: 'idle' } | { kind: 'none' } | { kind: 'some'; count: number };
+
+export const findStatus = (typed: string, shown: number): FindStatus => {
+  if (typed.trim() === '') return { kind: 'idle' };
+  return shown === 0 ? { kind: 'none' } : { kind: 'some', count: shown };
 };

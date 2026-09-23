@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { matchesName, pickable, stepTo } from './pick';
+import { FIND_FROM, findStatus, findsInList, matchesName, pickable, stepTo } from './pick';
 
 const people = [
   { personId: 'me', label: '서연' },
@@ -91,5 +91,36 @@ describe('키보드로 옮기기', () => {
   it('목록이 줄어 자리를 벗어났으면 처음부터 다시 센다', () => {
     expect(stepTo(7, 3, 'next')).toBe(0);
     expect(stepTo(7, 3, 'previous')).toBe(2);
+  });
+});
+
+/** **사람 목록 위의 찾는 칸** — 백 명이어도 이름 몇 글자로 닿게(ADR 0102, G-21) */
+describe('사람 목록에서 찾기', () => {
+  it('여섯부터 칸이 선다 — 다섯까지는 눈으로 찾는다', () => {
+    expect(FIND_FROM).toBe(6);
+    expect(findsInList(0)).toBe(false);
+    expect(findsInList(1)).toBe(false);
+    expect(findsInList(5)).toBe(false);
+    expect(findsInList(6)).toBe(true);
+    expect(findsInList(100)).toBe(true);
+  });
+
+  it('안 쳤으면 말하지 않고, 쳤으면 몇 명인지 · 없으면 없다고 말한다', () => {
+    expect(findStatus('', 26)).toEqual({ kind: 'idle' });
+    expect(findStatus('  ', 26)).toEqual({ kind: 'idle' });
+    expect(findStatus('ㅈ', 4)).toEqual({ kind: 'some', count: 4 });
+    expect(findStatus('없는이름', 0)).toEqual({ kind: 'none' });
+  });
+
+  it('백 명 중 끝의 사람도 이름 몇 글자로 하나가 된다 — 차례는 들어온 그대로다', () => {
+    const surnames = '김이박최정강조윤장임';
+    const given = ['민준', '서연', '지우', '하은', '도윤', '서윤', '예준', '지호', '수아', '유진'];
+    const many = Array.from({ length: 100 }, (_, index) => ({
+      personId: `p${index}`,
+      label: `${surnames[Math.floor(index / 10)]}${given[index % 10]}`,
+    }));
+    expect(pickable(many, 'ㅇㅇ진', null).map((one) => one.label)).toEqual(['이유진', '윤유진', '임유진']);
+    expect(pickable(many, '임유진', null).map((one) => one.personId)).toEqual(['p99']);
+    expect(pickable(many, '', null)).toHaveLength(100);
   });
 });
