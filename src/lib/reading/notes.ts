@@ -37,6 +37,12 @@ export const readingNoneNote = (noun: string) =>
  */
 
 /**
+ * 풀이를 만들기 전 확인 창의 약속 — 쓰이는 것과 실패하면 돌아오는 것. 글자 그대로가 계약이다
+ * (`scripts/copy-contracts.test.ts`, #147). 화면(`panel.tsx`)에만 있던 문장을 여기로 옮겼다 — 글자는 같다.
+ */
+export const READING_USES_TICKET_NOTE = '계속하면 풀이권 1회가 사용됩니다. 생성에 실패하면 풀이권이 복구됩니다.';
+
+/**
  * 새로 만들면 지금 것은 사라진다 — **누르는 그때 읽힌다.**
  *
  * 만드는 버튼 옆에 늘 적혀 있었다. 늘 서 있는 경고는 **누르지 않을 사람에게** 하는

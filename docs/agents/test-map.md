@@ -121,6 +121,14 @@ CI=1 npx vitest run --coverage --coverage.reporter=text \
 | `app/hash-query.ts` | `'use client'` 훅 — `window.location` · `history` · `sessionStorage` 를 구독한다. 코덱은 `src/lib/input/query.ts` 에 있고 그쪽은 이미 단위가 잰다 | **단위로 안 잰다.** 남는 것이 브라우저 구독뿐이라 jsdom 없이는 흉내가 된다. e2e 가 잰다 — `saju.spec.ts`(`#` 링크를 읽고 쓴다) · `reading-entry.spec.ts`(`#resume-reading`) |
 | `app/me/reading/preview.ts` | 서버에서 계정 · 사람 행을 읽어 자기 풀이 프롬프트를 짓는 문. 조립은 `readingPromptOf` 가 하고 그쪽은 단위가 잰다 | **단위로 안 잰다.** 판단이 DB 를 읽은 값에 매여 있다. 흐름 `check-reading.mjs`(`/me/reading/inspect?kind=self`) · e2e `signed-in.spec.ts` 가 실제 스택에서 연다 |
 
+## 계약 문구 — 글자가 곧 결정인 것
+
+동의 확인문 · 설문 동의 철회의 삭제 결과 · 수락 때 공개되는 것과 안 되는 것 · 요청만으로 열리는 것이 없다는 약속 ·
+풀이권의 임시 차감과 복구 · 승인된 채팅 한도 거절 문장은 **`scripts/copy-contracts.test.ts` 가 독립 리터럴로** 든다
+(#147). 제품 상수를 가져와 견주면 둘이 함께 틀려도 초록이라서다. 화면에 뜨는지는 e2e 가 따로 잰다. 그 밖의 한글
+단언(역할 이름 · 본문)은 일부러 남겼다 — 문구는 거의 안 바뀌고, 버튼 이름이 바뀌어 깨지는 것은 대개 옳은 신호다.
+탈퇴 안내는 G-51 과 함께 이 표에 든다.
+
 ## 재지 않는 것
 
 - **모델이 낸 글** — 실호출뿐이고 잠겨 있다. 프롬프트 본문이 바뀌면 사람이 한 번 돌리고 읽는다

@@ -431,17 +431,14 @@ export function MatchingExperience({
 
     {/*
       **요청 확인 창은 목록과 같은 말을 한다.** 문구가 화면마다 갈리면 어느 쪽이
-      실제로 나가는 약속인지 알 수 없다 — 셋 다 정책이 지어 온 문장이다.
+      실제로 나가는 약속인지 알 수 없다 — 둘 다 정책이 지어 온 문장이다. 「채팅은 아직 없다」는
+      제한문은 채팅이 선 뒤(ADR 0091) 걷었다 — 대화방은 수락하는 순간 열린다(#147).
     */}
     <dialog ref={confirming} className={styles.dialog} aria-labelledby="matching-confirm">
       {profile && <>
         <h2 id="matching-confirm">{profile.nickname} 님에게 상세 궁합을 요청할까요?</h2>
         <p className={styles.dialogIntro}>{REQUEST_RESERVES_NOTE}</p>
         <p className={styles.dialogIntro}>{MATCH_PILLARS_DISCLOSURE}</p>
-        <p className={styles.confirmNote}>
-          현재는 두 사람이 궁합풀이를 함께 보는 기능까지만 제공됩니다. 채팅이나 연락처
-          교환 등 상대와 연락할 수 있는 기능은 아직 지원하지 않습니다.
-        </p>
         <div className={styles.confirmActions}>
           <button className={styles.dialogDone} disabled={working} onClick={() => { confirming.current?.close(); send(); }}>요청 보내기</button>
           <button className={styles.confirmCancel} disabled={working} onClick={() => confirming.current?.close()}>취소</button>
