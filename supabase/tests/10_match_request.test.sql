@@ -252,7 +252,7 @@ select pg_temp.acting((select park from folks));
  * 여기까지 오지 않는다.
  */
 select lives_ok(
-  format($$select public.add_person_revision(%L::uuid,
+  format($$select public.edit_person_input(%L::uuid,
     'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
     (select park_person from persons)),
@@ -264,7 +264,7 @@ select is(
   '아무것도 안 바뀌었으면 요청은 그대로 산다');
 
 select lives_ok(
-  format($$select public.add_person_revision(%L::uuid,
+  format($$select public.edit_person_input(%L::uuid,
     'solar', '1990-05-15', '1990-05-15', '15:45', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
     (select park_person from persons)),

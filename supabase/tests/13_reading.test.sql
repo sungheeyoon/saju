@@ -259,7 +259,7 @@ create temporary table run_stale as
 select run_id as id from public.start_reading_run('self', 'key-self-0003');
 grant select on run_stale to authenticated, service_role;
 
-select public.add_person_revision(
+select public.edit_person_input(
   (select kim_person from people),
   'solar', '1990-05-15', '1990-05-15', '15:30', 'female', '서울', 'jo', 'localMean',
   tests.chart('丁'), 'chart-for-tests');
@@ -320,7 +320,7 @@ select pg_temp.acting((select kim from folks));
  * 앞서는 그때 화면이 「이전 입력」이라 적었다 — **한쪽으로 거짓말하던 자리다.** 화면이
  * 하려는 말은 「이전 명식」이므로 여덟 글자로 견주는 쪽이 맞다.
  */
-select public.add_person_revision(
+select public.edit_person_input(
   (select kim_person from people),
   'solar', '1990-05-15', '1990-05-15', '15:30', 'female', '부산', 'jo', 'localMean',
   tests.chart('丙'), 'chart-for-tests');

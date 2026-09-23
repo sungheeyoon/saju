@@ -297,7 +297,7 @@ select pg_temp.acting((select lee from folks));
 
 /** 일간까지 갈리게 고친다 — 안 그러면 「안 움직인다」를 한 번도 안 재고 통과한다 */
 select lives_ok(
-  format($$select public.add_person_revision(%L::uuid,
+  format($$select public.edit_person_input(%L::uuid,
     'solar', '1990-05-15', '1990-05-15', '15:45', 'female', '서울', 'jo', 'localMean',
   tests.chart('壬'), 'chart-for-tests')$$,
     (select lee_person from pinned)),

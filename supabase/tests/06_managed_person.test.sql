@@ -147,11 +147,11 @@ select throws_ok(
 
 -- ── 관리 Person 의 출생정보는 내가 고친다 — 아직 아무도 claim 하지 않았다 ─────
 select is(
-  public.may_add_revision((select person_id from mom), (select kim from who)), true,
+  public.may_edit_person_input((select person_id from mom), (select kim from who)), true,
   'claim 되지 않은 관리 Person 은 등록한 사람이 고친다');
 
 select is(
-  public.may_add_revision((select person_id from mom), (select lee from who)), false,
+  public.may_edit_person_input((select person_id from mom), (select lee from who)), false,
   '엣지가 없는 사람에게는 거짓이다');
 
 -- ── 라벨과 메모만 고칠 수 있다 ────────────────────────────────────────────────
