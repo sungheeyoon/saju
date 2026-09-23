@@ -40,7 +40,11 @@ export async function POST(request: Request): Promise<Response> {
   if (!event.ok) {
     // 401 이다. 서명이 안 맞는 것은 우리 잘못이 아니라 그 요청이 우리 것이 아니라는 뜻이고,
     // 재전송을 부르지 않아야 한다.
-    return new Response(event.detail, { status: 401 });
+    //
+    // **까닭은 기록에만 남기고 답에는 안 싣는다**(G-23 ⑧). SDK 의 오류 문장은 「서명 비밀이
+    // 비었다」·「열쇠가 없다」처럼 서버의 설정 상태를 말하는데, 이 주소는 아무나 두드린다.
+    console.error('webhook 서명 검증', event.detail);
+    return new Response('invalid signature', { status: 401 });
   }
 
   let keyed: ReturnType<typeof keyedClient>;

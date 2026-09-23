@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { openai } from '@ai-sdk/openai';
 import OpenAI from 'openai';
 import { NoOutputGeneratedError, Output, generateText, jsonSchema, type JSONSchema7 } from 'ai';
