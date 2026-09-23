@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { isBlocked } from '@/src/lib/account';
 import { CHAT_TAB_LABEL, closedRoomText, messageTimeLabel, roomTitleOf } from '@/src/lib/chat';
+import { activityText } from '@/src/lib/presence';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { CARD } from '../../../card';
@@ -65,9 +66,15 @@ export default async function ChatRoomPage({
           {CHAT_TAB_LABEL}
         </Link>
         <Avatar userId={room.partnerUserId} nickname={room.partnerNickname} hasPhoto={room.partnerHasPhoto} />
-        <h1 className="min-w-0 flex-1 truncate text-xl font-bold tracking-[-0.03em]">
-          {roomTitleOf(room.partnerNickname)}
-        </h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-xl font-bold tracking-[-0.03em]">
+            {roomTitleOf(room.partnerNickname)}
+          </h1>
+          {/* 접속 상태는 구간 하나다 — 열린 방에만 오고, 시각은 오지 않는다(PRD §7.2, ADR 0092) */}
+          {room.partnerActivity !== null && (
+            <p className="text-xs text-secondary">{activityText(room.partnerActivity)}</p>
+          )}
+        </div>
       </header>
 
       <Messages messages={messages} room={room} />

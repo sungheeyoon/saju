@@ -74,12 +74,22 @@ export async function proxy(request: NextRequest) {
     계정을 못 읽은 것은 안내를 안 본 것과 다르다. `gateFor` 가 그때 아무 데도 안
     보내고, 화면이 「계정을 읽지 못했습니다」라고 말한다.
   */
+  /*
+    **활동은 로그인된 요청이 서버에 온 것이다**(PRD §7.2). 여기가 앱 안 이동에도 매번 도는 유일한
+    자리라 적는 문도 여기서 부른다. 1분에 한 번만 실제로 적히고(ADR 0092), 답은 안 쓴다 — 부속
+    정보라 실패해도 길을 가리키는 판정에는 안 낀다. prefetch 는 사람이 연 것이 아니라 안 센다.
+  */
+  const prefetch =
+    request.headers.get('next-router-prefetch') === '1' ||
+    request.headers.get('purpose') === 'prefetch';
+
   const [{ data: account }, notice] = await Promise.all([
     supabase
       .from('app_user')
       .select('signed_up_at, notice_version, notice_schedule_id')
       .maybeSingle(),
     scheduleFrom((name) => supabase.rpc(name)),
+    prefetch ? Promise.resolve() : supabase.rpc('touch_activity'),
   ]);
 
   const where = gateFor(

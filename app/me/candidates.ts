@@ -1,4 +1,5 @@
 import { ELEMENTS } from '@/src/lib/saju';
+import { activityBandOf, type ActivityBand } from '@/src/lib/presence';
 import type { ElementSummary } from '@/src/lib/discovery/element-axes';
 import {
   DISCOVERY_POLICY,
@@ -58,6 +59,8 @@ export type CandidateCard = {
   readonly reason: string;
   /** 두 사람의 오행 구성을 단순 비교한 discovery-v1 참고값 */
   readonly previewScore: number;
+  /** 접속 상태 — 구간 하나. 시각은 오지 않는다(ADR 0092). 모르는 값이면 안 세운다 */
+  readonly activity: ActivityBand | null;
   readonly [granted]: true;
 };
 
@@ -103,6 +106,7 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
     ...publicCardFromRow(row, mySummary),
     position: row.seat,
     exploration: row.exploration,
+    activity: activityBandOf(row.activity),
     [granted]: true as const,
   }));
 
@@ -120,7 +124,7 @@ export async function candidatesForViewer(mySummary: ElementSummary): Promise<Ca
 }
 
 /** 보관함의 한 장 — 카드가 아는 칸에 **지나친 때**만 더한다 */
-export type PassedCard = Omit<CandidateCard, 'position' | 'exploration' | typeof granted> & {
+export type PassedCard = Omit<CandidateCard, 'position' | 'exploration' | 'activity' | typeof granted> & {
   readonly passedAt: string;
 };
 

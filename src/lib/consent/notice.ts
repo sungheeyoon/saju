@@ -1,4 +1,5 @@
 import { DISCOVERY_DISCLOSURE } from '../discovery';
+import { ACTIVITY_PRIVACY_LINE } from '../presence';
 
 /**
  * 처리 안내 — **일정 하나만 비어 있다.**
@@ -153,6 +154,7 @@ export function noticeFor(dates: BetaDates, operator: Operator): readonly Notice
         '로그인에 쓰는 구글 계정 이메일을 받습니다. 계정을 만들고 알아보는 데 씁니다.',
         '생년월일과 태어난 시각, 태어난 지역, 사주 계산에 쓰는 성별을 받습니다. 명식과 궁합을 계산하고 그 결과를 저장하는 데 씁니다.',
         '가족·친구를 직접 등록하시면 그분들의 같은 정보도 함께 받습니다.',
+        ACTIVITY_PRIVACY_LINE,
         '이 정보가 없으면 사주를 계산할 수 없어 서비스를 제공하지 못합니다.',
       ],
     },

@@ -6,6 +6,7 @@ import {
   RATE_LIMITED_TEXT,
   closedRoomText,
 } from '@/src/lib/chat';
+import { activityText } from '@/src/lib/presence';
 
 /**
  * 채팅 안전 베타의 완료 조건 여섯을 브라우저에서 밟는다(PRD §7.0) — 주고받음 · 차단 · 이용 정지 ·
@@ -102,6 +103,36 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     // 보낸 쪽이 다시 열면 답이 보인다 — 실시간이 아니라 다시 읽는 것이다
     await a.page.goto(room);
     await expect(a.page.getByText(reply)).toBeVisible();
+  });
+
+  test('상대의 접속 상태가 방 안과 후보 카드에 구간으로 선다 — 시각은 없다', async ({ openAs }) => {
+    const { a, b, room } = await pair(openAs);
+
+    // 상대가 앱을 연다 — 로그인된 요청 하나가 곧 활동이다(PRD §7.2). 화면은 무엇이든 된다
+    await b.page.goto('/me/chat');
+
+    await a.page.goto(room);
+    await expect(a.page.getByText(activityText('now'))).toBeVisible();
+
+    // 시각을 25시간 전으로 옮기면 「24시간 이전 활동」 — 화면에 시각은 한 자리도 안 선다
+    sql(
+      `update public.user_activity set last_active_at = now() - interval '25 hours'
+       where user_id = '${userIdOf(b.account.email)}'`,
+    );
+    await a.page.reload();
+    await expect(a.page.getByText(activityText('earlier'))).toBeVisible();
+    await expect(a.page.getByText(activityText('now'))).toHaveCount(0);
+
+    // 후보 카드 — 아직 매칭되지 않은 다른 두 사람. 한쪽이 앱을 열면 상대의 카드에 「지금 활동 중」
+    const tag = freshTag();
+    const c = await openAs({ selfPerson: true });
+    const d = await openAs({ selfPerson: true });
+    await bothParticipate(c, d, tag);
+    await d.page.goto('/me/chat');
+
+    await c.page.goto('/me/matching');
+    const card = c.page.getByRole('article').filter({ hasText: `나${tag}` });
+    await expect(card.getByText(activityText('now'))).toBeVisible();
   });
 
   test('전송 한도에 걸린 한 건이 거절된다 — 30건은 되고 31번째가 막힌다', async ({ openAs }) => {

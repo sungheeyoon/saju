@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useReducer, useRef, useState, useTransition, type CSSProperties, type PointerEvent } from 'react';
+import { activityText, type ActivityBand } from '@/src/lib/presence';
 
 import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent/notice';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
@@ -28,6 +29,8 @@ export type DeckCard = {
   /** 예시 카드만 쓴다 — 실제 후보는 비워 두고 `/me/photo/{id}` 로 받는다 */
   readonly photoUrl?: string | null;
   readonly exploration: boolean;
+  /** 접속 상태의 구간 — 후보 목록의 카드에만 온다. 지나친 인연과 예시 카드는 비운다(PRD §7.2) */
+  readonly activity?: ActivityBand | null;
   readonly previewScore: number;
   readonly verdict: string;
   readonly reason: string;
@@ -300,7 +303,12 @@ export function MatchingExperience({
                   <span className={styles.serial}>緣 · {String(index + 1).padStart(2, '0')}</span>
                 </div>
                 <div className={styles.photoBottom}>
-                  <div><h2>{profile.nickname}</h2></div>
+                  <div>
+                    <h2>{profile.nickname}</h2>
+                    {profile.activity != null && (
+                      <p className={styles.activity}>{activityText(profile.activity)}</p>
+                    )}
+                  </div>
                 </div>
                 <span className={`${styles.swipeStamp} ${offset < 0 || exit === 'left' ? styles.passStamp : ''}`} style={{ opacity: exit ? 1 : Math.min(Math.abs(offset) / 85, 1) }}>
                   {offset < 0 || exit === 'left' ? '다음 인연' : '궁합이 궁금해요'}
