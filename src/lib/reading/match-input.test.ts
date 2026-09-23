@@ -277,7 +277,7 @@ describe('인연 궁합 4판의 읽는 법', () => {
     expect(head).toContain('**본문을 다 쓴 뒤에** 쓴다');
     expect(head).toContain('`markdown` 에 본문을 끝까지 쓰고');
     expect(head).toContain('## 틀리면 안 되는 것');
-    expect(head).toContain('시각을 모르는 명식의 반쪽 합은 사라질 수 있다');
+    expect(head).toContain('태어난 시각을 모르는 사주의 반쪽 합은 사라질 수 있다');
   });
 });
 
