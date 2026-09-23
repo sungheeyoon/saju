@@ -29,7 +29,7 @@
 | 화면 | `app/**/*.tsx` | 없음 | | | **여기만** — 88 건 |
 | 관문 | `proxy.ts` · `src/lib/consent` | `gate.test.ts` · `notice.test.ts` | `20_notice` | | `notice.spec.ts` 9 |
 | DB | `supabase/migrations/` | | **32 파일** · 모양 잠금 넷(`33_function_shape`) | 위 | |
-| 검사 도구 | `scripts/` · `eslint.config.mjs` | **5 파일** — `ci-plan` · `run-checks` · `layers` · `code-rules` · `worktree-stack` | | | |
+| 검사 도구 | `scripts/` · `eslint.config.mjs` | **6 파일** — `ci-plan` · `run-checks` · `layers` · `code-rules` · `worktree-stack` · `secret-env`(비밀의 갈래 · `server-only` 잠금 · runbook 절, G-23 ⑧) | | | |
 
 ## 무엇을 고쳤으면 무엇을 돌리나
 
@@ -95,6 +95,10 @@
 `main-red.yml` 이 `ci-main-red` 이슈 하나를 열고(이미 있으면 댓글), 지금 main 머리가 초록이 되면 닫는다.
 PRD 의 「(지금)」을 공개 출시로 옮기면 아래 세 단계로 저절로 돌아간다 — 실제 사용자 데이터가 들어오는 날에는
 사람이 그날 옮긴다(`docs/ops/runbook.md` 「초대」).
+
+**빌드는 끝에 비밀 검사를 돈다**(`npm run build` = `next build && node scripts/secret-env.mjs`, G-23 ⑧) — 브라우저로 가는 파일에
+비밀 이름이나 그 빌드의 비밀 값이 있으면 빌드가 선다. CI 는 빌드가 드는 차선(머지 뒤 main 의 `verify`)에서, **Vercel 은 배포
+빌드마다 진짜 값을 들고** 돈다. 새 차선은 없다.
 
 **공개 출시 뒤 — 머지 전에 전체를 잰다**
 
