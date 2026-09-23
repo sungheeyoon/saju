@@ -617,6 +617,15 @@ _Avoid_: 온라인/오프라인(실시간이 아니다), 마지막 접속 시각
 길이 없다.
 _Avoid_: 추가 지급, 보너스, 무제한
 
+**산 묶음** — `reading_bundle` · `reading_order` : 결제 주문 하나에 매인 풀이권 묶음(1 · 3 · 5 · 20회). 한도 위에
+**산 수 − 걷은 수**가 얹힌다. 주문을 승인으로 만드는 것은 서버뿐이다(ADR 0100 · 0106). 판매는 아직 닫혀 있다.
+_Avoid_: 충전, 포인트, 캐시
+
+**사용 이력** — `reading_credit_use` : 어느 풀이 시도 · 인연 요청이 어느 **몫**(무료 · 예외 · 어느 산 묶음 · 몫 밖)을
+썼는지. 예약 → 확정 · 풀림. **잔액을 정하지 않는다** — 잔액은 여전히 센다(ADR 0021). 환불 셈의 입력이다(ADR 0106).
+**몫 밖**(`outside`)은 지운 대상의 시도가 셈에서 빠져 되돌아온 자리로 쓴 것 — 환불 대상이 아니다.
+_Avoid_: 차감 내역, 잔고
+
 **Person 한도** — `person_limit` · `my_person_slots` · `PersonSlots` : 사용자가 직접 만들어
 관리하는 가족·친구 Person 에만 걸리는 수(10). **후보와 Match 상대는 세지 않는다** —
 `user_person_access` 에 들어가지 않기 때문이다. 이 수는 언제나 **풀이권 총량보다 크다**
@@ -784,6 +793,8 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | 접속 상태 | `user_activity` · `touch_activity` · `activity_band_of` · `presence_policy` · `ActivityBand` · `activityText` | 표 · 함수 · `src/lib/presence` |
 | 풀이권 | `my_reading_credits` · `reading_credit_limit_for` · `readingCredits` | 함수 · 읽는 문 |
 | 풀이권 예외 | `reading_credit_grant` | 표 |
+| 산 묶음 | `reading_bundle` · `reading_order` · `approve_reading_order` · `READING_BUNDLES` | 표 · 함수 · `src/lib/reading` |
+| 사용 이력 | `reading_credit_use` · `operator_reading_refund_basis` · `refundableCredits` | 표 · 함수 · `src/lib/reading` |
 | Person 한도 | `person_limit` · `my_person_slots` · `PersonSlots` | 함수 · `src/lib/people` |
 | 운영 베타 | `beta_schedule` · `BetaDates` | 표 · `src/lib/consent` |
 | 테스트 코드 | `signup_code` · `valid_on` · `max_uses` | 표 · 칸 |

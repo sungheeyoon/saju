@@ -17,9 +17,10 @@ select plan(10);
 /**
  * **한도를 묻는 자리는 하나뿐이다.**
  *
- * 상수를 그대로 읽는 함수는 상수 자신 말고는 없어야 하고, 예외를 지나는
- * `reading_credit_limit_for` 만 그것을 부른다. 역할을 바꾸기 전에 잰다 — 카탈로그를
- * 읽는 일이지 사용자가 하는 일이 아니다.
+ * 상수를 그대로 읽는 함수는 상수 자신 말고는 없어야 하고, 몫 셋(무료 · 예외 · 산 것)을 내는
+ * `reading_credit_shares` 만 그것을 부른다 — 산 몫이 들면서(ADR 0106) 그 자리가
+ * `reading_credit_limit_for` 에서 한 칸 안으로 옮겼다. 한도는 그 몫 셋을 더할 뿐이다.
+ * 역할을 바꾸기 전에 잰다 — 카탈로그를 읽는 일이지 사용자가 하는 일이 아니다.
  */
 select is(
   (select array_agg(p.proname::text order by p.proname)
@@ -27,10 +28,10 @@ select is(
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public'
      and p.prokind = 'f'
-     and p.proname <> 'reading_credit_limit_for'
+     and p.proname <> 'reading_credit_shares'
      and pg_get_functiondef(p.oid) ~ 'reading_credit_limit\s*\('),
   array['reading_credit_limit'],
-  '상수를 직접 읽는 자리는 예외를 지나는 함수 하나뿐이다');
+  '상수를 직접 읽는 자리는 몫 셋을 내는 함수 하나뿐이다');
 
 create or replace function pg_temp.save(run uuid)
 returns uuid language sql security definer as $$

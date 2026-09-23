@@ -876,11 +876,17 @@ select is(
   array[
     'adopt_reading_job',
     /**
+     * 풀이권 결제의 서버 문 셋(G-21 ⑤, ADR 0106) — 결제 확인은 서버가 PG 에서 받아 적는다. 승인은 금액이
+     * 주문과 다르면 거절하고, 환불은 안 쓴 회차만 걷는다. 로그인한 사람은 셋 다 못 부른다.
+     */
+    'approve_reading_order',
+    /**
      * 운영자 접속기록을 밖으로 내보내는 크론의 두 문(G-23 ⑩, ADR 0105) — 읽는 것은 운영자 id · 동작 ·
      * 신고 id 뿐이고 이용자 개인정보가 없다. 적는 문은 앞 반출에 이어지지 않으면 거절한다.
      */
     'audit_export_batch',
     'audit_export_done',
+    'cancel_reading_order',
     'claim_reading_job',
     'fail_reading_job',
     'mark_reading_webhook_processed',
@@ -891,6 +897,7 @@ select is(
     'prepare_reading_job',
     'reading_recovery_configured',
     'record_reading_webhook_event',
+    'refund_reading_order',
     'release_reading_job',
     /*
       **한 벌로 돌아왔다.** 비유를 받는 인자가 늘 때도, 판본 인자 둘이 빠질 때도 잠시
@@ -910,7 +917,7 @@ select is(
     /** 얼린 작업을 집는 문 — 조회가 아니라 `frozen` → `preparing` 전이다(ADR 0071 · #66) */
     'take_reading_job'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 열다섯 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 열여덟 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**
