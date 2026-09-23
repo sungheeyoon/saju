@@ -321,7 +321,7 @@ function useReadingCredits(enabled: boolean): string | null {
 
 /**
  * 안 읽은 메시지 수 — 채팅 탭에 붙는다. **새 메시지는 소식이 아니다**(PRD §7.1) — 소식의 수와
- * 섞지 않는다. 서버의 `unreadChatCount` 와 같은 문이다(ADR 0078). 못 읽었거나 0 이면 안 세운다 —
+ * 섞지 않는다. 문은 `app/me/chat/unread.ts` 하나다(ADR 0078). 못 읽었거나 0 이면 안 세운다 —
  * 모르는 수를 세어 보게 하지 않는다. 화면을 옮길 때마다, 그리고 방에서 읽음 처리가 끝났다고
  * 알릴 때(`CHAT_UNREAD_MOVED`) 다시 센다 — 실시간은 아니다.
  */

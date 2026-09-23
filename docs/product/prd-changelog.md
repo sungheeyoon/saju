@@ -484,3 +484,11 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   `deny` 가 앞에 `cd` 가 붙은 force push 를 못 막는다 — 은 delegation.md 「잠그지 않은 것」과 ADR 0093 에 남겼고,
   G-50 의 조건에 넓은 `allow` 걷기와 창이 뜨는지 재기를 더했다
 
+- **2026-09-23** — **G-46 닫힘 — 남은 둘.** ① G-27(#129)이 든 뒤 계정·채팅 쪽을 같은 잣대로 다시 쟀다.
+  `export` 만 떼면 되는 것 여섯(`AccountStatus` · `ScreenAccount` · `AccountRead` · `SEND_OUTCOMES` ·
+  `BodyCheck` · `SendResult`)은 뗐고, 아무 데서도 안 부르던 서버 쪽 `unreadChatCount` 는 지웠다 — 헤더는
+  같은 문(`app/me/chat/unread.ts`)을 브라우저에서 부른다. `LEFT_USER_LABEL` 은 그사이 시험과 e2e 가 쓰게 돼
+  그대로 둔다. 린트 경고 `ACCOUNT_STATUSES` 는 배열이 타입을 내주는 데만 쓰여 유니언으로 적었다 — 린트 경고 0.
+  남은 것은 생성 파일(`database.generated.ts`)과 머리말이 일부러 남긴 `READING_REDACTION_NOTE` 뿐이다.
+  ② 풀이권 칩은 **헤더(`app/site-header.tsx`)에 그대로 둔다** — 2026-09-23 사용자 답. `/` 를 정적으로 두려고
+  브라우저에서 읽는다(ADR 0078)

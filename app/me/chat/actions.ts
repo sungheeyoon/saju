@@ -17,7 +17,7 @@ import type { SaveResult } from '../../save-result';
  * `userFacingDbMessage` 가 우리 문장만 옮긴다(ADR 0078).
  */
 
-export type SendResult = { ok: true; outcome: SendOutcome } | { ok: false; message: string };
+type SendResult = { ok: true; outcome: SendOutcome } | { ok: false; message: string };
 
 /** 방 안의 주소는 방마다 다르다 — 표에 미리 못 적고 목록과 그 방을 함께 무른다 */
 const chatPaths = (matchId: string): readonly string[] => ['/me/chat', `/me/chat/${matchId}`];

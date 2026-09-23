@@ -12,9 +12,13 @@
  * 문이 묻고 있고, 여기 다시 적으면 판정하는 자리가 둘이 된다.
  */
 
-/** 이름은 DB 의 검사식과 같다(`app_user_status_check`) */
-const ACCOUNT_STATUSES = ['active', 'suspended', 'deletion_requested'] as const;
-export type AccountStatus = (typeof ACCOUNT_STATUSES)[number];
+/**
+ * 이름은 DB 의 검사식과 같다(`app_user_status_check`).
+ *
+ * 2026-09-23 까지 값 배열(`ACCOUNT_STATUSES`)에서 뽑은 타입이었는데 배열은 타입을 내주는 데만
+ * 쓰였다 — 린트가 그 모양을 경고해 유니언으로 적는다(G-46).
+ */
+type AccountStatus = 'active' | 'suspended' | 'deletion_requested';
 
 const isActiveAccount = (status: string): boolean => status === 'active';
 
@@ -79,7 +83,7 @@ const ACCOUNT_UNREADABLE_TEXT: Record<
  * `gateFor` 와 같은 규율이다. 표의 열 이름이 순수 함수까지 들어오면, 열 이름을 고치는
  * 날 판정까지 따라 고쳐야 한다.
  */
-export type ScreenAccount = {
+type ScreenAccount = {
   readonly status: string;
   /**
    * 자기 사주를 등록했는가.
@@ -97,7 +101,7 @@ export type ScreenAccount = {
  * `maybeSingle()` 이 세 가지로 온다: 행이 있거나 · 0행이거나(`data: null`, 오류 없음) ·
  * 터졌거나(`error`). 열넷 중 열셋이 `error` 를 안 봐서 뒤의 둘이 한 덩어리였다.
  */
-export type AccountRead =
+type AccountRead =
   | { readonly ok: true; readonly account: ScreenAccount }
   | { readonly ok: false; readonly reason: 'missing' | 'unreachable' };
 

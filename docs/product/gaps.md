@@ -61,7 +61,6 @@
 | # | 무엇 | 출처 | 상태 | 끝났다고 말할 조건 | 메모 |
 | --- | --- | --- | --- | --- | --- |
 | G-42 | 운영 관측 — 분석 · 오류 추적 | 2026-09-22 진단 | 미정 | 무엇을 볼지부터 정한다 | 지금 0. 크론 실패는 `cron.job_run_details` 에만 남는다 |
-| G-46 | 작지만 잰 것의 남은 둘 — ① G-27 영역의 죽은 export 여덟과 린트 경고 하나: `src/lib/account` 의 `AccountStatus` · `ScreenAccount` · `AccountRead`(경고는 `ACCOUNT_STATUSES` 가 타입으로만 쓰인다), `src/lib/chat` 의 `SEND_OUTCOMES` · `BodyCheck` · `LEFT_USER_LABEL`, `app/me/chat` 의 `SendResult` · `unreadChatCount` ② 풀이권 칩을 헤더에서 `/me` 안으로 옮길지 | #88 「작지만 잰 것」, 2026-09-23 에 다시 잼 | 어긋남 | ① G-27 이 main 에 든 뒤 같은 잣대(시험에서만 · `export` 만 떼면 · 아무 데서도)로 다시 재고 가른다 ② 사람이 답한다 — 화면 모양이 바뀐다 | 나머지 넷은 닫았다(changelog 2026-09-23). 칩은 지금 계정 메뉴 옆이고(`app/site-header.tsx`, 2026-09-01), `/` 를 정적으로 두려고 브라우저에서 읽는다(ADR 0078). 시험에서만 쓰는 export 는 안 건드린다 |
 
 ## 닫힌 것은 여기 없다
 
