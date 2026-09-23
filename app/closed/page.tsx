@@ -45,9 +45,9 @@ export default async function ClosedPage() {
           </Link>
           에 적힌 연락처로 알려 주세요.
         </p>
-        {/* 파기 전까지는 자료가 아직 남아 있다. 그동안 철회와 삭제 요청이 닿아야 한다 */}
+        {/* 파기 전까지는 자료가 아직 남아 있다. 그동안 철회와 탈퇴 신청이 닿아야 한다 */}
         <p className="text-sm leading-6 text-secondary">
-          선택 동의 철회와 계정 삭제 요청은{' '}
+          선택 동의 철회와 탈퇴 신청은{' '}
           <Link
             href="/me/settings"
             className="font-semibold text-accent underline underline-offset-4"

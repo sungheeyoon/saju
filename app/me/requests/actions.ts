@@ -134,7 +134,7 @@ export async function reportUser(
 }
 
 /**
- * 계정 삭제를 요청한다.
+ * 탈퇴를 신청한다 — 계정이 탈퇴 대기가 된다(PRD §5.3).
  *
  * **지우지 않는다.** 폐쇄 MVP 에서 실제 삭제는 운영자가 처리하고, 이 문이 즉시 하는
  * 일은 상태를 옮겨 바깥으로 나가는 길을 다 막는 것이다(`request_account_deletion`).

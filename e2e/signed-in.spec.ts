@@ -1035,11 +1035,11 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '계정 관리' })).toBeVisible();
     const account = page.getByRole('main');
     await expect(account.getByRole('button', { name: '로그아웃' })).toBeVisible();
-    await expect(account.getByRole('button', { name: '계정 삭제', exact: true })).toBeVisible();
+    await expect(account.getByRole('button', { name: '탈퇴', exact: true })).toBeVisible();
     const cardTitles = await account.getByRole('heading', { level: 2 }).allTextContents();
     expect(cardTitles.indexOf('선택 동의')).toBeLessThan(cardTitles.indexOf('로그인 정보'));
-    expect(cardTitles.indexOf('로그인 정보')).toBeLessThan(cardTitles.indexOf('계정 삭제'));
-    expect(cardTitles.at(-1)).toBe('계정 삭제');
+    expect(cardTitles.indexOf('로그인 정보')).toBeLessThan(cardTitles.indexOf('탈퇴'));
+    expect(cardTitles.at(-1)).toBe('탈퇴');
 
     /*
       **누르고 나면 판이 닫힌다.** `<details>` 는 안의 링크를 눌러도 스스로 안 닫히고,

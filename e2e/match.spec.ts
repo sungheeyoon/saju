@@ -314,7 +314,7 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receiver.page.getByText('차단한 사람', { exact: false })).toHaveCount(0);
   });
 
-  test('삭제를 요청하면 그 자리에서 모든 화면이 닫히고 이유를 갈라서 말한다', async ({
+  test('탈퇴를 신청하면 그 자리에서 모든 화면이 닫히고 이유를 갈라서 말한다', async ({
     openAs,
   }) => {
     const tag = freshTag();
@@ -325,7 +325,7 @@ test.describe('동의로 열리는 흐름', () => {
     await pendingRequest(other, leaver);
 
     await leaver.page.goto('/me/settings');
-    await leaver.page.getByRole('button', { name: '계정 삭제', exact: true }).click();
+    await leaver.page.getByRole('button', { name: '탈퇴', exact: true }).click();
 
     /*
       **누르기 전에 읽는 말이 실제와 같아야 한다.**
@@ -344,19 +344,19 @@ test.describe('동의로 열리는 흐름', () => {
       leaver.page.getByText('상대 화면에서도 함께 사라집니다', { exact: false }),
     ).toBeVisible();
 
-    await leaver.page.getByRole('button', { name: '삭제를 요청합니다' }).click();
+    await leaver.page.getByRole('button', { name: '탈퇴를 신청합니다' }).click();
 
     /*
-      **이유를 갈라서 말한다.** 자기가 요청해서 그렇게 된 사람에게 「중지되었습니다」는
-      거짓이다 — 상태 하나에 문장 하나가 매여 있다(`src/lib/account`).
+      **이유를 갈라서 말한다.** 자기가 신청해서 그렇게 된 사람에게 「이용이 정지된 계정입니다」는
+      거짓이다 — 상태 하나에 문장 하나가 매여 있다(`src/lib/account`). 이름은 PRD §5.3 의 표.
     */
-    await expect(leaver.page.getByText('삭제를 요청한 계정입니다')).toBeVisible();
-    await expect(leaver.page.getByText('중지된 계정입니다')).toHaveCount(0);
+    await expect(leaver.page.getByText('탈퇴를 신청한 계정입니다')).toBeVisible();
+    await expect(leaver.page.getByText('이용이 정지된 계정입니다')).toHaveCount(0);
 
     // 새 관문을 두지 않았으므로 다른 화면도 같은 값을 보고 같은 말을 한다.
     for (const path of ['/me/people', '/me/discovery', '/me/requests']) {
       await leaver.page.goto(path);
-      await expect(leaver.page.getByText('삭제를 요청한 계정입니다')).toBeVisible();
+      await expect(leaver.page.getByText('탈퇴를 신청한 계정입니다')).toBeVisible();
     }
 
     // 답을 기다리던 요청은 정리된다 — 상대가 답할 수 없는 요청을 계속 보지 않는다.

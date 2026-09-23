@@ -104,7 +104,7 @@ export default async function SettingsPage() {
       </SettingsCard>
 
       {state.kind === 'active' && (
-        <SettingsCard title="계정 삭제">
+        <SettingsCard title="탈퇴">
           <RequestDeletion />
         </SettingsCard>
       )}

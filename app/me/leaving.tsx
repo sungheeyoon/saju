@@ -31,7 +31,7 @@ export function RequestDeletion() {
     setFailure(null);
     startWorking(async () => {
       const result = await requestAccountDeletion();
-      // 성공하면 이 화면이 통째로 「삭제를 요청한 계정입니다」로 바뀐다(`AccountNotice`).
+      // 성공하면 이 화면이 통째로 「탈퇴를 신청한 계정입니다」로 바뀐다(`AccountNotice`).
       if (result.ok) router.refresh();
       else setFailure(result.message);
     });
@@ -41,19 +41,20 @@ export function RequestDeletion() {
     return (
       /*
         **이 누름은 아무것도 안 지운다.** 자세한 내용을 펴는 것이고, 되돌릴 수 없는
-        누름은 그 안의 「삭제를 요청합니다」다. 카드의 둘째 줄이 그렇게 말한다.
+        누름은 그 안의 「탈퇴를 신청합니다」다. 카드의 둘째 줄이 그렇게 말한다.
+        이름은 PRD §5.3 의 표(2026-09-23) — 계정 상태에 「삭제」를 안 쓴다.
       */
       <SettingsRow
         help={
           <>
-            계정을 삭제하면 저장한 정보와 이용 기록이 삭제됩니다.
+            탈퇴하면 저장한 정보와 이용 기록이 삭제됩니다.
             <br />
-            삭제 전에 자세한 내용을 확인할 수 있습니다.
+            탈퇴 전에 자세한 내용을 확인할 수 있습니다.
           </>
         }
       >
         <button type="button" onClick={() => setAsking(true)} className={SETTINGS_DANGER}>
-          계정 삭제
+          탈퇴
         </button>
       </SettingsRow>
     );
@@ -79,7 +80,7 @@ export function RequestDeletion() {
           그만두기
         </button>
         <button type="button" onClick={leave} disabled={working} className={SETTINGS_DANGER}>
-          {working ? '보내는 중…' : '삭제를 요청합니다'}
+          {working ? '보내는 중…' : '탈퇴를 신청합니다'}
         </button>
       </div>
       {failure !== null && (
