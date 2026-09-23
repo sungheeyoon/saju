@@ -11,6 +11,7 @@ import {
   NOTICE_VERSION,
   betaIsOver,
   scheduleFrom,
+  signupDone,
 } from '@/src/lib/consent';
 
 import { SignupForm } from './form';
@@ -97,13 +98,17 @@ export default async function SignupPage({ searchParams }: {
    * **관문과 같은 것을 본다.**
    *
    * 판본과 그 줄까지 견주지 않으면, 일정을 옮기는 순간 이 화면과 관문이 서로에게 공을
-   * 넘긴다 — 관문은 여기로 보내고 여기는 돌려보낸다. 답을 한 모양으로 맞춘다(`gateFor`).
+   * 넘긴다 — 관문은 여기로 보내고 여기는 돌려보낸다. 조건을 여기 한 벌 더 적지 않고
+   * 관문의 것을 부른다(`signupDone`, ADR 0095).
    */
-  const done =
-    account.signed_up_at !== null &&
-    notice !== null &&
-    account.notice_version === NOTICE_VERSION &&
-    account.notice_schedule_id === notice.scheduleId;
+  const done = signupDone(
+    {
+      signedUp: account.signed_up_at !== null,
+      noticeVersion: account.notice_version,
+      noticeScheduleId: account.notice_schedule_id,
+    },
+    notice,
+  );
 
   if (done) redirect(resumeReading ? '/#resume-reading' : '/me');
 

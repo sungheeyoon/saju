@@ -1,4 +1,4 @@
-import { NOTICE_VERSION } from './notice';
+import { noticeAckHolds } from './notice';
 import type { BetaDates } from './notice';
 
 /**
@@ -116,14 +116,21 @@ export function gateFor(
    * 일정이 아직 없으면(`notice === null`) 그때도 보낸다. 그 화면이 「아직 시작할 수
    * 없습니다」를 말할 자리다.
    */
-  if (
-    !account.signedUp ||
-    notice === null ||
-    account.noticeVersion !== NOTICE_VERSION ||
-    account.noticeScheduleId !== notice.scheduleId
-  ) {
-    return SIGNUP_PATH;
-  }
+  return signupDone(account, notice) ? null : SIGNUP_PATH;
+}
 
-  return null;
+/**
+ * **가입이 끝났는가** — 관문과 가입 화면이 같은 답을 본다.
+ *
+ * 가입 화면이 이 조건을 한 벌 더 적고 있었다. 둘이 갈리면 관문은 가입 화면으로 보내고
+ * 가입 화면은 돌려보낸다. 판본은 `noticeAckHolds` 가 견준다 — 지금 판본과 같은가가 아니라
+ * 재확인 기준 이상인가다(ADR 0095).
+ */
+export function signupDone(account: GateAccount, notice: GateNotice | null): boolean {
+  return (
+    account.signedUp &&
+    notice !== null &&
+    noticeAckHolds(account.noticeVersion) &&
+    account.noticeScheduleId === notice.scheduleId
+  );
 }
