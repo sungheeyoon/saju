@@ -156,3 +156,4 @@ export {
   PLAIN_FORBIDDEN_TERMS,
   type BirthSecret,
 } from './check';
+export { positionSlips, type PositionSlip } from './position-check';

@@ -1812,7 +1812,7 @@ export function readingPromptOf(
   const useCached =
     assembly === CONTROL && about.names === null && about.relation === null;
   const body = useCached ? READING_PROMPTS[kind] : bodyOf(kind, assembly, about);
-  const head = withSummary(body, evidence, { positionFacts: kind === 'match' || kind === 'private' });
+  const head = withSummary(body, evidence);
   /**
    * **기준점은 짝마다 다르므로 몸통에 못 굽는다.** 규칙과 조정표는 안 변하니 `bodyOf` 가
    * 들고(그래서 `READING_PROMPTS` 가 그대로 캐시된다), 수 하나만 여기서 붙인다.
