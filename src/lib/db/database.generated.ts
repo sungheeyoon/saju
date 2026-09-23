@@ -927,6 +927,47 @@ export type Database = {
           },
         ]
       }
+      payment_event: {
+        Row: {
+          amount: number | null
+          id: number
+          kind: string
+          order_id: string | null
+          outcome: string
+          provider: string
+          provider_event_id: string
+          received_at: string
+        }
+        Insert: {
+          amount?: number | null
+          id?: never
+          kind: string
+          order_id?: string | null
+          outcome: string
+          provider: string
+          provider_event_id: string
+          received_at?: string
+        }
+        Update: {
+          amount?: number | null
+          id?: never
+          kind?: string
+          order_id?: string | null
+          outcome?: string
+          provider?: string
+          provider_event_id?: string
+          received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_event_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "reading_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       person: {
         Row: {
           birth_time: string | null
@@ -1109,6 +1150,54 @@ export type Database = {
           },
         ]
       }
+      reading_bundle: {
+        Row: {
+          acquired_at: string
+          credits: number
+          currency: string
+          id: string
+          order_id: string
+          price: number
+          refunded_credits: number
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string
+          credits: number
+          currency?: string
+          id?: string
+          order_id: string
+          price: number
+          refunded_credits?: number
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string
+          credits?: number
+          currency?: string
+          id?: string
+          order_id?: string
+          price?: number
+          refunded_credits?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_bundle_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "reading_order"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_bundle_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reading_credit_grant: {
         Row: {
           extra: number
@@ -1129,6 +1218,77 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      reading_credit_use: {
+        Row: {
+          bundle_id: string | null
+          confirmed_at: string | null
+          id: number
+          released_at: string | null
+          request_id: string | null
+          reserved_at: string
+          run_id: string | null
+          share: string
+          source: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          bundle_id?: string | null
+          confirmed_at?: string | null
+          id?: never
+          released_at?: string | null
+          request_id?: string | null
+          reserved_at?: string
+          run_id?: string | null
+          share: string
+          source: string
+          state?: string
+          user_id: string
+        }
+        Update: {
+          bundle_id?: string | null
+          confirmed_at?: string | null
+          id?: never
+          released_at?: string | null
+          request_id?: string | null
+          reserved_at?: string
+          run_id?: string | null
+          share?: string
+          source?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_credit_use_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "reading_bundle"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_credit_use_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "match_request"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_credit_use_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "reading_run"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reading_credit_use_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reading_feedback: {
         Row: {
@@ -1236,6 +1396,109 @@ export type Database = {
             columns: ["run_id"]
             isOneToOne: true
             referencedRelation: "reading_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_order: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          bundle_credits: number
+          close_reason: string | null
+          closed_at: string | null
+          created_at: string
+          currency: string
+          id: string
+          idempotency_key: string
+          last_refunded_at: string | null
+          provider: string
+          provider_order_id: string
+          provider_payment_id: string | null
+          refunded_amount: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          bundle_credits: number
+          close_reason?: string | null
+          closed_at?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          idempotency_key: string
+          last_refunded_at?: string | null
+          provider: string
+          provider_order_id: string
+          provider_payment_id?: string | null
+          refunded_amount?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          bundle_credits?: number
+          close_reason?: string | null
+          closed_at?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          idempotency_key?: string
+          last_refunded_at?: string | null
+          provider?: string
+          provider_order_id?: string
+          provider_payment_id?: string | null
+          refunded_amount?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_order_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_order_refund: {
+        Row: {
+          amount: number
+          credits: number
+          id: string
+          order_id: string
+          provider_refund_id: string | null
+          reason: string
+          refunded_at: string
+        }
+        Insert: {
+          amount: number
+          credits: number
+          id?: string
+          order_id: string
+          provider_refund_id?: string | null
+          reason: string
+          refunded_at?: string
+        }
+        Update: {
+          amount?: number
+          credits?: number
+          id?: string
+          order_id?: string
+          provider_refund_id?: string | null
+          reason?: string
+          refunded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reading_order_refund_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "reading_order"
             referencedColumns: ["id"]
           },
         ]
@@ -1703,6 +1966,15 @@ export type Database = {
         Args: { p_response_id: string; p_run_id: string }
         Returns: boolean
       }
+      approve_reading_order: {
+        Args: {
+          p_amount: number
+          p_event_id?: string
+          p_order_id: string
+          p_provider_payment_id: string
+        }
+        Returns: string
+      }
       audit_export_batch: {
         Args: { p_limit?: number }
         Returns: {
@@ -1734,6 +2006,10 @@ export type Database = {
       beta_is_over: { Args: never; Returns: boolean }
       block_user: { Args: { p_user_id: string }; Returns: boolean }
       cancel_match_request: { Args: { p_request_id: string }; Returns: string }
+      cancel_reading_order: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: string
+      }
       chat_message_max_length: { Args: never; Returns: number }
       chat_policy: {
         Args: never
@@ -2277,6 +2553,41 @@ export type Database = {
           run_id: string
         }[]
       }
+      open_reading_order: {
+        Args: {
+          p_bundle_credits: number
+          p_idempotency_key: string
+          p_provider: string
+        }
+        Returns: {
+          amount: number
+          order_id: string
+          provider_order_id: string
+        }[]
+      }
+      operator_reading_refund_basis: {
+        Args: { p_order_id: string }
+        Returns: {
+          amount: number
+          approved_at: string
+          asked: boolean
+          credits: number
+          currency: string
+          first_used_at: string
+          last_used_at: string
+          order_id: string
+          ordered_at: string
+          provider: string
+          provider_order_id: string
+          provider_payment_id: string
+          refunded_amount: number
+          refunded_credits: number
+          reserved: number
+          status: string
+          unused: number
+          used: number
+        }[]
+      }
       operator_report: {
         Args: { p_report_id: string }
         Returns: {
@@ -2439,6 +2750,10 @@ export type Database = {
           content_type: string
         }[]
       }
+      pick_reading_credit_share: {
+        Args: { p_user: string }
+        Returns: Record<string, unknown>
+      }
       prepare_reading_job: {
         Args: {
           p_evidence: string
@@ -2474,8 +2789,17 @@ export type Database = {
         Returns: Json
       }
       reading_budget_warning: { Args: never; Returns: number }
+      reading_bundle_price: { Args: { p_credits: number }; Returns: number }
       reading_credit_limit: { Args: never; Returns: number }
       reading_credit_limit_for: { Args: { p_user: string }; Returns: number }
+      reading_credit_shares: {
+        Args: { p_user: string }
+        Returns: {
+          bought_credits: number
+          free_credits: number
+          granted_credits: number
+        }[]
+      }
       reading_credits_used: {
         Args: { p_actor: string }
         Returns: {
@@ -2496,6 +2820,7 @@ export type Database = {
         }[]
       }
       reading_run_timeout: { Args: never; Returns: string }
+      reading_sale_is_open: { Args: never; Returns: boolean }
       reading_scope: {
         Args: {
           p_kind: string
@@ -2542,6 +2867,16 @@ export type Database = {
       refresh_discovery_snapshot: { Args: never; Returns: string }
       refresh_discovery_snapshot_for: {
         Args: { p_actor: string; p_seed: string }
+        Returns: string
+      }
+      refund_reading_order: {
+        Args: {
+          p_amount: number
+          p_credits: number
+          p_order_id: string
+          p_provider_refund_id?: string
+          p_reason: string
+        }
         Returns: string
       }
       reject_bad_chart: {
@@ -2651,6 +2986,10 @@ export type Database = {
       }
       set_person_listed: {
         Args: { p_listed: boolean; p_person: string }
+        Returns: undefined
+      }
+      settle_reading_credit_uses: {
+        Args: { p_user: string }
         Returns: undefined
       }
       share_my_reading: {
