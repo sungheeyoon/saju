@@ -476,7 +476,7 @@ select is(
  * 판본을 붙들던 시절에는 FK 가 그 일을 했다. 이제 붙들 행이 없고 **값이 얼어 있으므로**,
  * 재는 자리도 「그 값이 안 움직이는가」 하나다. 고치지 않고 물으면 언제나 참이다.
  */
-select public.add_person_revision(
+select public.edit_person_input(
   (select self_person_id from public.app_user where id = (select owner from folks)),
   'solar', '1991-03-04', '1991-03-04', '10:00', 'male', '서울', 'jo', 'localMean',
   tests.chart('丁'), 'chart-for-tests');

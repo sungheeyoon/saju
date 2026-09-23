@@ -1793,6 +1793,22 @@ export type Database = {
         Args: { actor: string; other: string }
         Returns: boolean
       }
+      edit_person_input: {
+        Args: {
+          p_birth_time: string
+          p_calendar: string
+          p_chart: Json
+          p_chart_engine_version: string
+          p_city: string
+          p_gender: string
+          p_late_night_rule: string
+          p_original_date: string
+          p_person_id: string
+          p_solar_date: string
+          p_time_basis: string
+        }
+        Returns: number
+      }
       ensure_discovery_participation: {
         Args: { p_person_id: string; p_summary: Json }
         Returns: boolean
@@ -1883,7 +1899,7 @@ export type Database = {
           viewer_is_first: boolean
         }[]
       }
-      may_add_revision: {
+      may_edit_person_input: {
         Args: { actor: string; target_person: string }
         Returns: boolean
       }

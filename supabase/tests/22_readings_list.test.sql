@@ -292,7 +292,7 @@ select is(
  * 한 번 고치면 2 다 — 세는 수라 원문을 안 담는다.
  */
 select is(
-  public.add_person_revision((select mom from kin),
+  public.edit_person_input((select mom from kin),
     'solar', '1962-03-03', '1962-03-03', '07:10', 'female', '부산', 'jo', 'localMean',
   tests.chart('丁'), 'chart-for-tests'),
   2,
