@@ -158,7 +158,7 @@ const kinds = [
   { kind: 'private', pair: true, hourless: false },
   { kind: 'match', pair: true, hourless: false },
   /**
-   * **시간 미상 한 편** — 9/1 실험의 hard 실패 하나가 「시간 미상의 반방합을 단정한 것」이었다(PRD §8.5).
+   * **시간 미상 한 편** — 9/1 실험의 hard 실패 하나가 「시간 미상의 반방합을 단정한 것」이었다(ADR 0099).
    * 일부만 선 합이 있는 명식이라야 그 자리가 발동한다 — `position-check.test.ts` 가 같은 명식을 잰다.
    */
   { kind: 'self', pair: false, hourless: true },

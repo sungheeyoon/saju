@@ -1,4 +1,5 @@
 import type { PillarPosition } from '../saju/position';
+import { readingBody } from './display';
 
 /**
  * **자리 검사** — 나온 글이 자리를 잘못 이었는가를 기계가 잴 수 있는 만큼만 잰다(G-33).
@@ -7,7 +8,7 @@ import type { PillarPosition } from '../saju/position';
  * 재려고 세운 것이고, 운영 파이프라인은 이것을 안 부른다 — 문장 안에서 두 낱말이 함께 서는
  * 것은 오조인일 수도, 맞는 대비일 수도 있어 막는 계약으로 쓰기엔 거칠다.
  *
- * 재는 넷은 9/1 실험의 hard 실패 둘(PRD §8.5)과 색인이 새로 연 틈 둘이다.
+ * 재는 넷은 9/1 실험의 hard 실패 둘(ADR 0099)과 색인이 새로 연 틈 둘이다.
  * - `wrong-place` — `월지 巳` 처럼 자리와 글자를 함께 적었는데 그 자리의 글자가 아니다
  * - `number-leak` — 목록의 번호(`R3` · `S1`)나 「자리 색인」이 글에 샜다. 번호는 모델에게 준 참조다
  * - `stem-sinsal-with-branch-relation` — 천간에만 걸린 신살과, 같은 기둥 지지의 관계를 한 문장에 묶었다
@@ -49,22 +50,18 @@ const STEMS = '甲乙丙丁戊己庚辛壬癸';
 const BRANCHES = '子丑寅卯辰巳午未申酉戌亥';
 const PLACED = new RegExp(`([년월일시])(간|지)\\s*(?:의\\s*)?([${STEMS}${BRANCHES}])`, 'g');
 
-/**
- * 글을 문장으로 — 마침표 · 물음표 · 느낌표 · 줄바꿈에서 자른다.
- *
- * **근거 줄은 뺀다**(`절 이름 — 결론 「…」 | 자료: … | 넘어간 것: …`, `parts.ts`). 그 줄은 한 결론이 기댄
- * 사실을 늘어놓는 목록이지 두 사실을 한 자리에서 겹쳐 읽은 문장이 아니다. 2026-09-23 첫 실호출에서
- * self · person 이 그 줄 때문에만 잡혔다 — 본문에는 천덕귀인 · 월덕귀인이 한 번도 안 나왔다.
- */
+/** 글을 문장으로 — 마침표 · 물음표 · 느낌표 · 줄바꿈에서 자른다 */
 const sentencesOf = (markdown: string): string[] =>
-  markdown
-    .split('\n')
-    .filter((line) => !line.includes(' | 자료: '))
-    .flatMap((line) => line.split(/(?<=[.!?。])\s+/))
-    .map((one) => one.trim())
-    .filter((one) => one.length > 0);
+  markdown.split(/(?<=[.!?。])\s+|\n+/).map((one) => one.trim()).filter((one) => one.length > 0);
 
-export function positionSlips(markdown: string, evidence: Checked): PositionSlip[] {
+/**
+ * **사용자가 읽는 본문만 잰다**(`readingBody`). 검토용 근거 절(`### 근거`)은 화면에 안 나가고, 그 줄은 한
+ * 결론이 기댄 사실을 늘어놓는 목록이지 두 사실을 한 자리에서 겹쳐 읽은 문장이 아니다. 2026-09-23 실호출에서
+ * self · person 은 근거 줄 때문에만 잡혔고(본문에는 천덕귀인이 한 번도 안 나왔다), 인연 궁합은 번호를
+ * 근거 칸과 점수 줄에만 적었다.
+ */
+export function positionSlips(output: string, evidence: Checked): PositionSlip[] {
+  const markdown = readingBody(output);
   const charts = [evidence.charts.a, evidence.charts.b].filter((one): one is CheckedChart => one !== null);
   const slips: PositionSlip[] = [];
 
