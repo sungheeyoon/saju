@@ -75,7 +75,9 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
   떨어진다. 주석 처리해 두면 오류가 이름을 대 준다. 실호출에 드는 것은 `OPENAI_API_KEY` 한 줄이고
   손으로 붙인다.
 - **CLI 로 임의 SQL 이 된다** — `npm run db:remote -- --purpose "<목적>" "<sql>"`(= 접속기록에 목적 · 해시를 적고
-  `npx supabase db query --linked`, 기계 전체에서 한 번에 하나, ADR 0096 · 0105). 목적 없이는 안 돈다. Management API 로 붙고
+  `npx supabase db query --linked`, 기계 전체에서 한 번에 하나, ADR 0096 · 0105). 목적 없이는 안 돈다. 적는 함수(`audit.note_cli_query`)가
+  원격에 없으면 SQL 을 안 보낸다 — 그 함수를 올리는 `db push` 앞의 확인만 `node scripts/remote-lock.mjs npx supabase db query --linked "<sql>"`
+  로 직접 보냈다(2026-09-24 한 번, 함수 정의의 md5). Management API 로 붙고
   `postgres` 로 돌므로 비밀번호도 `psql` 도 필요 없다. 다만 `postgres` 라 「비운영자 당사자에게
   무엇이 보이나」는 못 잰다 — 역할별 조회는 대시보드 SQL Editor(마지막 문장의 결과만 준다 — 역할을
   바꿔 가며 잰 줄은 임시 표에 모아 끝에서 한 번에 낸다)나 `SUPABASE_SECRET_KEY` 가 필요하고, 익명
@@ -1355,9 +1357,9 @@ macOS 키체인에 둔 것, 문서에 적지 않는다). **로컬 스택의 `--l
 | --- | --- | --- | --- |
 | WARN `function_search_path_mutable`(0011) | 15 | 0 | 상수 함수 열다섯에 `search_path = ''` — `20261009120000` |
 | WARN `anon_security_definer_function_executable`(0028) | 3 | 2 | `beta_is_over()` 를 닫았다 — 화면이 안 부르고 definer 안에서만 불린다 |
-| WARN `authenticated_security_definer_function_executable`(0029) | 68 | 68 → 69(ADR 0105 의 `note_operator_denial`) | `claimed_by` · `may_edit_person_input`(남의 claim · 편집권을 묻는 신탁) · `beta_is_over` 를 닫아 65 가 됐고, 같은 날 G-24 가 `/ops/reports` 의 운영자 문 셋(`operator_reports` · `operator_report` · `operator_report_snapshot`, `is_operator()` 검사)을 더했다 |
+| WARN `authenticated_security_definer_function_executable`(0029) | 68 | 68 → 69(ADR 0105 의 `note_operator_denial`, 2026-09-24 운영에서 잼) | `claimed_by` · `may_edit_person_input`(남의 claim · 편집권을 묻는 신탁) · `beta_is_over` 를 닫아 65 가 됐고, 같은 날 G-24 가 `/ops/reports` 의 운영자 문 셋(`operator_reports` · `operator_report` · `operator_report_snapshot`, `is_operator()` 검사)을 더했다 |
 | WARN `auth_leaked_password_protection` | 1 | 1 | **남긴다 — Pro 플랜부터다**(아래) |
-| INFO `rls_enabled_no_policy` | 26 | 26 | **남긴다 — 의도다**(아래) |
+| INFO `rls_enabled_no_policy` | 26 | 26 → 29(ADR 0105 의 `audit.operator_access` · `audit.operator_access_export` · `signup_pause`, 운영에서 잼) | **남긴다 — 의도다**(아래) |
 
 잠금은 pgTAP `44_advisor_lints`(invoker 까지 search_path · 닫은 셋) 와 `33_function_shape`(anon 에 열린 문은
 둘 — `current_beta_schedule()` · `shared_reading(text)`).
