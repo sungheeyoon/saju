@@ -1,4 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+
+import { expect, test } from './anon';
 
 import { BIRTH_YEAR_MAX } from '@/src/lib/input/query';
 

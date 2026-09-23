@@ -1,4 +1,4 @@
-import type { BrowserContext } from '@playwright/test';
+import { test as base, type BrowserContext } from '@playwright/test';
 
 /**
  * 콘텐츠 보안 정책을 **어긴 자리**를 모은다 (G-23 ②).
@@ -18,3 +18,22 @@ export async function watchCsp(context: BrowserContext, sink: string[]): Promise
     });
   });
 }
+
+/**
+ * 시험 하나가 끝날 때 **어긴 자리가 비어 있어야 한다** — 모든 익명 · 로그인 시험이 이 손잡이를
+ * 자동으로 지난다. 로그인 쪽은 `session.ts` 가 이것을 이어받고, 익명 쪽은 `anon.ts` 가 든다.
+ */
+export const cspFixture = [
+  async ({ context }: { context: BrowserContext }, use: (seen: string[]) => Promise<void>) => {
+    const seen: string[] = [];
+    await watchCsp(context, seen);
+    await use(seen);
+    if (seen.length > 0) throw new Error(`CSP 를 어긴 자리가 있다:\n${seen.join('\n')}`);
+  },
+  { auto: true },
+] as const;
+
+/** 로그인하지 않은 시험의 `test` — CSP 를 어긴 자리를 자동으로 모은다 */
+export const anonTest = base.extend<{ cspViolations: string[] }>({
+  cspViolations: [cspFixture[0], cspFixture[1]],
+});

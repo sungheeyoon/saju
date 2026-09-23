@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './anon';
 
 test('풀이 입구는 사주 아래에 작게 보이고 로그인에 출생 정보를 보내지 않는다', async ({ page }) => {
   await page.goto('/#name=민수&date=1990-05-15&hour=14:30');

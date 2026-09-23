@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { test as base, type Page } from '@playwright/test';
 
-import { watchCsp } from './csp';
+import { cspFixture, watchCsp } from './csp';
 
 import { NOTICE_VERSION } from '@/src/lib/consent';
 import { worktreeStack } from '@/src/lib/local-env';
@@ -598,15 +598,7 @@ type Fixtures = {
 };
 
 export const test = base.extend<Fixtures, { local: Local }>({
-  cspViolations: [
-    async ({ context }, use) => {
-      const seen: string[] = [];
-      await watchCsp(context, seen);
-      await use(seen);
-      if (seen.length > 0) throw new Error(`CSP 를 어긴 자리가 있다:\n${seen.join('\n')}`);
-    },
-    { auto: true },
-  ],
+  cspViolations: [cspFixture[0], cspFixture[1]],
 
   local: [
     async ({}, use) => {

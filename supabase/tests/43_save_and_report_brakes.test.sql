@@ -7,13 +7,13 @@
 --   3. **나 자신은 안 센다**
 --   4. **신고는 하루 스물까지다**
 --   5. **아직 검토되지 않은 같은 대상 · 같은 사유의 신고는 또 쌓지 않는다** — 사유가 다르거나
---      검토가 끝났으면 된다
+--      검토가 끝났으면 된다. 중복은 하루 수보다 먼저 판정한다
 --   6. **가입이 안 끝난 계정은 저장도 신고도 못 한다** — 공개 출시에서 가입은 본인인증을
 --      품으므로(ADR 0101) 이것이 「인증을 마친 계정만」이 된다
 --
 -- 채팅 메시지 신고의 중복은 방이 서야 재므로 `34_chat` 이 잰다.
 begin;
-select plan(13);
+select plan(14);
 
 create temporary table who as
 select tests.signup('brake-kim@example.com') as kim,
@@ -105,7 +105,7 @@ select lives_ok(
 
 select throws_ok(
   format('select public.report_user(%L, %L, null)', (select lee from who), 'harassment'),
-  '23505', '이미 같은 사유로 신고했습니다. 검토가 끝날 때까지 기다려 주세요.',
+  '23505', '같은 사유의 신고가 이미 접수되어 검토 중입니다.',
   '같은 사람 · 같은 사유는 검토 전까지 또 쌓지 않는다');
 
 select lives_ok(
@@ -125,6 +125,11 @@ select throws_ok(
   format('select public.report_user(%L, %L, null)', (select lee from who), 'harassment'),
   '53400', '신고는 하루에 20건까지 할 수 있습니다. 내일 다시 해 주세요.',
   '하루 스물을 넘기면 거절된다 — 검토가 끝난 같은 사유라도');
+
+select throws_ok(
+  format('select public.report_user(%L, %L, null)', (select lee from who), 'impersonation'),
+  '23505', '같은 사유의 신고가 이미 접수되어 검토 중입니다.',
+  '한도에 닿아도 같은 신고를 다시 낸 사람에게는 「이미 접수」가 먼저 선다');
 
 reset role;
 update public.report set created_at = now() - interval '2 days'

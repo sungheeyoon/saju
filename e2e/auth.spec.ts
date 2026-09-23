@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './anon';
 
 /**
  * 로그인 흐름 중 **살아 있는 Supabase 없이 잴 수 있는 부분**만 여기서 잰다.

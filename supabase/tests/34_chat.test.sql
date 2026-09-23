@@ -628,7 +628,7 @@ select throws_ok(
   format($$select public.report_chat_message(%L, 'inappropriate', null)$$,
          (select m.message_id from public.my_chat_messages((select kim_park from rooms), null, 200) m
           where m.body = '도배 1')),
-  '23505', '이미 같은 사유로 신고했습니다. 검토가 끝날 때까지 기다려 주세요.',
+  '23505', '같은 사유의 신고가 이미 접수되어 검토 중입니다.',
   '같은 메시지를 같은 사유로 또 신고하지 않는다 — 검토 전까지 (G-23 ⑤)');
 
 reset role;
