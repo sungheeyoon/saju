@@ -49,6 +49,24 @@ import {
  */
 const OUTPUT_ROOT = '.reading-live';
 
+/**
+ * 파일 · 폴더 이름에 붙는 시각 토막 — **시각만으로는 겹친다.**
+ *
+ * 같은 시험을 셋 동시에 돌렸더니 두 편이 같은 밀리초에 떨어져 하나가 다른 것을 덮었다(#190).
+ * 프로세스 id 와 무작위 토막을 붙여 같은 시각에 지어도 이름이 갈리게 한다.
+ */
+const runStamp = (at: Date): string =>
+  `${at.toISOString().replace(/[:.]/g, '-')}-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
+
+describe('실호출 원문의 이름은 같은 시각에 지어도 겹치지 않는다', () => {
+  it('같은 viewedAt 으로 두 번 지으면 서로 다른 이름이 나온다', () => {
+    const at = new Date('2026-09-23T10:44:09.912Z');
+
+    expect(runStamp(at)).not.toBe(runStamp(at));
+    expect(runStamp(at)).toMatch(/^2026-09-23T10-44-09-912Z-/);
+  });
+});
+
 const live = process.env.READING_LIVE === '1';
 const variantsLive = process.env.READING_VARIANTS_LIVE === '1';
 /** 비공개 궁합 P0/P1 만 부른다 — 위 둘과 재는 축이 달라 문도 따로다 */
@@ -215,7 +233,7 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
       const slips = positionSlips(called.output.markdown, evidence.evidence);
 
       writeFileSync(
-        `${dir}/${kind}${hourless ? '-hourless' : ''}-${viewedAt.toISOString().replace(/[:.]/g, '-')}.json`,
+        `${dir}/${kind}${hourless ? '-hourless' : ''}-${runStamp(viewedAt)}.json`,
         JSON.stringify(
           {
             kind,
@@ -298,7 +316,7 @@ describe.skipIf(!variantsLive)('변형들이 같은 Evidence 에서 실제 출�
      * **먼저 적고 나서 판정한다.** 호출은 돈이 들었고, 판정하다 던지면 그 원문이
      * 사라진다 — 무엇이 어긋났는지 보려고 값을 치른 호출을 다시 하게 된다.
      */
-    const at = new Date().toISOString().replace(/[:.]/g, '-');
+    const at = runStamp(new Date());
     const dir = `${OUTPUT_ROOT}/${at}`;
     mkdirSync(dir, { recursive: true });
 
@@ -423,7 +441,7 @@ describe.skipIf(!pairLive)('비공개 궁합 두 판이 같은 자료에서 실�
     );
 
     /** 먼저 적고 나서 판정한다 — 판정하다 던지면 값을 치른 원문이 사라진다 */
-    const at = new Date().toISOString().replace(/[:.]/g, '-');
+    const at = runStamp(new Date());
     const dir = `${OUTPUT_ROOT}/pair-${at}`;
     mkdirSync(dir, { recursive: true });
 
@@ -670,7 +688,7 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
 
     loadLocalEnv();
     const { GENERATION } = await import('@/app/me/reading/generation');
-    const at = new Date().toISOString().replace(/[:.]/g, '-');
+    const at = runStamp(new Date());
     const dir = appendTo ?? `${OUTPUT_ROOT}/match-input-${dry ? 'dry-' : ''}${subjects.length === 1 ? `${subjects[0].id}-` : ''}${at}`;
     const hashes = Object.fromEntries([...built].map(([key, { hash }]) => [key, hash]));
 
