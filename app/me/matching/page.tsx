@@ -8,6 +8,7 @@ import { CARD } from '../../card';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
 import { boardStamp, candidatesForViewer, passedForViewer } from '../candidates';
+import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { selfElementSummary } from '../summary';
 import { MatchingExperience, type DeckCard } from './matching-experience';
 
@@ -56,12 +57,9 @@ export default async function MatchingPage() {
   const self = await selfElementSummary();
   if (self === null) return <Guide />;
 
-  // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-  const { data: profile } = await supabase
-    .from('discovery_profile')
-    .select('opted_out_at')
-    .maybeSingle();
-  if (profile?.opted_out_at != null) return <Resting />;
+  /** 못 읽으면 미리 안 거른다 — 끈 사람이면 아래 RPC 가 참여를 안 연다 */
+  const profile = await myDiscoveryProfile();
+  if (profile.ok && profile.value?.optedOut) return <Resting />;
 
   // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
   const { data: joined } = await supabase.rpc('ensure_discovery_participation', {

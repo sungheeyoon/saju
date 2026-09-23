@@ -59,7 +59,7 @@
 `SkippableRead` 로 값을 내고, 성공했는데 없는 것만 `null`·`[]`·`0` 이다(ADR 0078).
 `if (error) return []` 는 셋을 하나로 합치므로 쓰지 않는다.
 
-**옛 자리 열셋.** 잠근 날(2026-09-22)에 이미 `.tsx` 안에서 DB 를 부르고 있던 호출이다.
+**옛 자리 열하나.** 잠근 날(2026-09-22)에 열셋이었고, 2026-09-23 에 `discovery_profile` 둘이 문(`app/me/discovery/discovery-profile.ts`)으로 옮겼다. 잠근 날 이미 `.tsx` 안에서 DB 를 부르고 있던 호출이다.
 **호출 하나마다** 그 줄 위에 `eslint-disable-next-line no-restricted-syntax` 가 붙어 있고,
 `scripts/layers.test.ts` 가 **호출의 지문**(`파일 :: supabase.from('표')`)을 목록으로 든다 —
 **줄어들기만 한다.** 하나를 문으로 옮기면 표시와 지문을 함께 지운다. 표시는 줄 하나를 통째로
@@ -101,7 +101,7 @@
 | `src/lib` → React/Next · `@supabase` · 모델 SDK · Node 내장 | `no-restricted-imports` (패키지 이름) | 같다 |
 | 문자열이 아닌 `import()` 대상 | `no-restricted-syntax` | 대상을 모르는 import 0건 |
 | 도메인 lib 끼리의 방향 | — | 허용 목록과 **정확히 같은가**, 순환 없는가, `db` 는 나가는 방향 0 |
-| 화면(`.tsx`) 안의 `.rpc()`·`.from()` | `no-restricted-syntax` | 호출 지문이 옛 자리 열셋 안에만, 표시 수 = 호출 수 |
+| 화면(`.tsx`) 안의 `.rpc()`·`.from()` | `no-restricted-syntax` | 호출 지문이 옛 자리 열하나 안에만, 표시 수 = 호출 수 |
 
 **보장하는 것은 여기까지다** — 역방향 import 와 화면 안의 새 DB 호출을 막는다. 아래는 **안**
 보장한다.

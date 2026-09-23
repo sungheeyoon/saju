@@ -465,13 +465,11 @@ describe('용어집 ↔ 코드 (CONTEXT.md §9)', () => {
     const stale: string[] = [];
     const appeared: string[] = [];
     let seen = 0;
-    let absent = 0;
     for (const line of section.split('\n')) {
       const cells = line.split('|').map((cell) => cell.trim());
       if (cells.length < 5 || cells[1] === '코드의 이름' || cells[1].startsWith('---')) continue;
       if (cells[1] === '이름 없음') {
         // 반대 방향 — 용어집의 말이 TS 타입으로 **아직 없어야** 한다. 생기면 이 행을 지운다
-        absent += 1;
         const name = cells[2].trim();
         if (new RegExp(`\\b(type|interface|class|function|const) ${name}\\b`).test(corpus)) appeared.push(name);
         continue;
@@ -482,7 +480,8 @@ describe('용어집 ↔ 코드 (CONTEXT.md §9)', () => {
       }
     }
     expect(seen).toBeGreaterThan(5);
-    expect(absent).toBeGreaterThan(0);
+    // 「이름 없음」 행의 수는 단언하지 않는다 — 2026-09-23 에 마지막 하나(DiscoveryProfile)가 타입을 얻어
+    // 지워졌다. 다시 생기면 위 갈래가 그 행을 잰다
     expect(stale).toEqual([]);
     expect(appeared, '표는 「없다」고 하는데 코드에 생겼다').toEqual([]);
   });
