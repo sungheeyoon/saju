@@ -100,8 +100,9 @@ select is(
   array['detail', 'held_at', 'hold_reason', 'reason', 'report_id', 'reported_at',
         'reported_email', 'reported_joined_at', 'reported_left_at', 'reported_user_id',
         'reporter_email', 'reporter_joined_at', 'reporter_left_at', 'reporter_user_id',
-        'retained_at', 'reviewed_at', 'snapshot'],
-  '남는 칸은 ADR 0098 의 목록과 보류뿐이다 — IP · 실명 · 전화번호의 자리가 없다');
+        'retained_at', 'review_note', 'review_outcome', 'reviewed_at', 'reviewed_by',
+        'sanctioned_by', 'sanctioned_user_id', 'snapshot'],
+  '남는 칸은 ADR 0098 의 목록 · 보류 · 검토 기록(ADR 0105)뿐이다 — IP · 실명 · 전화번호의 자리가 없다');
 
 -- ── 2. 떠나지 않은 두 사람의 신고는 옮기지 않는다 ─────────────────────────────
 
