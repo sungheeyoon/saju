@@ -374,3 +374,10 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   「저장한 사람의 풀이」이고 궁합도 궁합풀이라 「남아 있지 않은 풀이」는 셋 다에 맞는 말이다. §4.8 「이유를 안 가른다 ·
   같은 화면이다」대로 `app/share/not-found.tsx` 한 파일로 모았고 문구는 그대로다. `scripts/check-share.mjs` 는
   `readings` 하나만 재던 것을 세 주소 다 잰다
+- **2026-09-23** — **G-47 닫힘 — vitest 가 안 닿던 셋을 다시 쟀다.** 셋 다 여전히 0% 였다. `src/lib/survey` 는
+  「표라 시험이 없다」가 아니었다 — 폼과 운영 화면이 부르는 순수 판단 넷(`afterPicking` · `isAnswered` ·
+  `withoutHidden` · `choiceLabel`)이 있어 `src/lib/survey/index.test.ts` 25건을 세웠고 100% 가 됐다(구현은
+  그대로, 판단마다 한 줄을 일부러 틀리게 해 빨개지는 것을 봤다). `app/hash-query.ts` 는 브라우저 구독 훅이고
+  `app/me/reading/preview.ts` 는 DB 를 읽는 문이라 단위로 안 잰다 — 앞의 것은 e2e `saju.spec.ts` ·
+  `reading-entry.spec.ts` 가, 뒤의 것은 흐름 `check-reading.mjs` · e2e `signed-in.spec.ts` 가 이미 든다.
+  「흐름도 안 두드린다」던 옛 문장은 e2e 를 빠뜨린 것이었다. `docs/agents/test-map.md` 「커버리지」 · 「재지 않는 것」
