@@ -94,6 +94,13 @@ _Avoid_: 삭제된 계정, 떠난 사용자(2026-09-23 까지의 후보), 탈퇴
 곧 풀이권을 더 받는 것이 된다.
 _Avoid_: 관리자, 어드민, 운영자 권한(무엇이 열리는지 말하지 않는다)
 
+**운영 검증 계정** — `verification_account` 표 : 제품을 확인하려고 누르는 계정. **「이 시도가
+검증용인가」에만 답하고 아무 문도 열지 않는다** — 하루 상한은 이 계정의 시도도 세고(토큰은 나간다),
+지출 표가 그 수를 따로 낸다. 운영자와 다른 표인 까닭은 풀이권 예외와 같다 — 지금은 같은 사람이지만
+운영자가 실제로 써 보는 날, 또는 운영자가 아닌 시험 계정을 세우는 날 두 물음이 갈린다(G-03).
+주소는 저장소에 안 적고 운영자가 SQL 로 넣는다.
+_Avoid_: 테스트 계정(픽스처 계정과 헷갈린다), 관리자 계정
+
 **신고** — `report` 표 · `report_user` · `reportUser` : 운영자가 봐야 할 일이 있었다고
 남기는 **기록**. **차단이 아니다** — 상대에게 알리지 않고, 후보 목록에서 사라지게 하지도
 않는다. 되돌릴 수 없는 개인적 결정인 차단과 달리 **사건이라 여러 번 쌓인다** — 같은
@@ -715,6 +722,7 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | 계정을 못 읽음 | `AccountRead` · `readAccount` | `app/me/account.ts` |
 | 탈퇴 대기 | `deletion_requested` · `requestAccountDeletion` | `app_user.status` 값 · 액션 |
 | 운영자 | `operator` · `Operator` | 표 · `src/lib/consent` |
+| 운영 검증 계정 | `verification_account` | 표 |
 | 신고 | `report` · `report_user` · `reportUser` | 표 · 함수 · 액션 |
 | 차단 | `block` · `blockUser` | 표 · 액션 |
 | 입력 | `SajuInput` | 엔진 |

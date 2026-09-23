@@ -1581,6 +1581,24 @@ export type Database = {
           },
         ]
       }
+      verification_account: {
+        Row: {
+          added_at: string
+          note: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          note: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          note?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       reading_spend_daily: {
@@ -1594,6 +1612,10 @@ export type Database = {
           succeeded: number | null
           total_tokens: number | null
           usage_unknown: number | null
+          verification_attempts: number | null
+          verification_failed: number | null
+          verification_succeeded: number | null
+          verification_total_tokens: number | null
         }
         Relationships: []
       }
