@@ -376,3 +376,10 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   `app/me/reading/preview.ts` 는 DB 를 읽는 문이라 단위로 안 잰다 — 앞의 것은 e2e `saju.spec.ts` ·
   `reading-entry.spec.ts` 가, 뒤의 것은 흐름 `check-reading.mjs` · e2e `signed-in.spec.ts` 가 이미 든다.
   「흐름도 안 두드린다」던 옛 문장은 e2e 를 빠뜨린 것이었다. `docs/agents/test-map.md` 「커버리지」 · 「재지 않는 것」
+
+- **2026-09-23** — **G-05 닫힘 — 판본은 보인 것을 적고, 다시 보여 줄지는 기준이 정한다**(ADR 0095). 재확인 판단은
+  앱에만 있었고 세 곳(관문 · 가입 화면 · 계정 관리)이 `NOTICE_VERSION` 을 각자 견줬다 — DB 는 판본을 적기만 한다.
+  `NOTICE_ACK_FLOOR`(이 판본 이상을 확인했으면 유효하다)를 두고 판단을 `noticeAckHolds` 하나로 모았다. 차례는
+  `notice-v<수>` 의 수로 센다. 처리방침의 「사주풀이 만들기」(한 번)를 「사주풀이 받기」로 맞춘 것이 첫 시연이다 —
+  판본만 `notice-v5` 로 오르고 기준은 `notice-v4` 라, 운영의 확인자 열넷은 다시 안 보고 기록은 `notice-v4` 로
+  남는다. 재다가 찾은 OpenAI 줄의 좁은 사실은 G-54 로 남겼다(내용 개정이라 기준이 오른다). 마이그레이션 없음
