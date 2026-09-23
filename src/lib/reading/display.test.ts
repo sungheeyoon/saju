@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { calledName, namedMatchBody, readingBody, readingGrounding } from './display';
+import { computeSaju } from '../saju';
+import { CONTROL, FALLBACK_NAMES, READING_PROMPTS, readingEvidenceOf, readingPromptOf } from '.';
+import { SEAT_NAMES, calledName, namedMatchBody, readingBody, readingGrounding } from './display';
 
 describe('옛 공유 궁합의 자리 호칭', () => {
   const names = { me: '나', partner: '지영' } as const;
@@ -20,6 +22,51 @@ describe('옛 공유 궁합의 자리 호칭', () => {
   it('새 풀이처럼 자리 호칭이 없으면 손대지 않는다', () => {
     const body = '민수님은 빠르고 지영님은 차분해요.';
     expect(namedMatchBody(body, true, names)).toBe(body);
+  });
+});
+
+/**
+ * **프롬프트가 쓰라고 한 자리 이름을 화면이 빠짐없이 되읽는가**(G-44).
+ *
+ * 두 자리가 각자 글자를 들던 때가 있었다 — 프롬프트는 `FALLBACK_NAMES` 에, 화면은 정규식
+ * 안의 `'첫 번째'` 에. 이제 말은 `SEAT_NAMES` 하나이지만 프롬프트 본문에는 그 값을 안 읽고
+ * **손으로 적은 자리 이름**이 더 있다(이름을 모를 때 지시문 셋 · 자료 설명 둘, 이름을 알 때
+ * 금하는 문장 하나). 그래서 값만 견주지 않고 **보내는 프롬프트를 통째로 화면에 돌려** 남는
+ * 자리 이름이 없는지 잰다 — 한쪽만 고치면 여기서 빨개진다.
+ */
+describe('프롬프트의 자리 이름과 화면이 되읽는 자리 이름', () => {
+  const names = { me: '나', partner: '지영' } as const;
+  const seats = [SEAT_NAMES.first, SEAT_NAMES.second];
+  const viewedAt = new Date('2026-08-26T04:00:00Z');
+  const chart = (year: number) =>
+    computeSaju({ year, month: 5, day: 15, hour: 14, minute: 30, second: 0, gender: 'male' });
+  const unnamed = (kind: 'match' | 'private') =>
+    readingPromptOf(readingEvidenceOf(kind, { a: chart(1990), b: chart(1992) }, viewedAt), CONTROL);
+
+  it('프롬프트가 이름 대신 쓰는 말이 화면이 찾는 말이다', () => {
+    expect(FALLBACK_NAMES).toEqual({ a: SEAT_NAMES.first, b: SEAT_NAMES.second });
+  });
+
+  it('이름을 모르는 두 사람 프롬프트에 서는 자리 이름을 화면이 하나도 안 남긴다', () => {
+    for (const prompt of [READING_PROMPTS.match, unnamed('match'), unnamed('private')]) {
+      for (const seat of seats) expect(prompt).toContain(seat);
+
+      const shown = namedMatchBody(prompt, true, names);
+      for (const seat of seats) expect(shown).not.toContain(seat);
+      /* 값과 다른 글자로 적힌 자리 이름 — 「첫째 분」처럼 한쪽만 고친 것 — 도 남기지 않는다 */
+      expect(shown).not.toMatch(/째 분/);
+    }
+  });
+
+  /** 이름을 아는 프롬프트는 자리 이름으로 부르지 말라고 한다 — 그때 드는 말도 같은 값이다 */
+  it('이름을 아는 프롬프트가 금하는 자리 이름이 같은 말이다', () => {
+    const named = readingPromptOf(
+      readingEvidenceOf('match', { a: chart(1990), b: chart(1992) }, viewedAt),
+      CONTROL,
+      { names: { a: '동생', b: '형' }, relation: null },
+    );
+
+    expect(named).toContain(`「${SEAT_NAMES.first}」·「${SEAT_NAMES.second}」처럼 자리 이름으로`);
   });
 });
 
