@@ -158,7 +158,7 @@ let theirPersonId;
   const { data: people } = await other.from('person').select('id');
   check('남이 등록한 가족은 한 줄도 안 보인다', people?.length === 1, `${people?.length ?? '?'}줄`);
 
-  const { error } = await other.rpc('add_person_revision', {
+  const { error } = await other.rpc('edit_person_input', {
     p_person_id: momId, ...birth, ...chartArgs('managed-mom'),
   });
   check('남의 가족 출생 정보는 못 고친다', error?.code === '42501', error?.message ?? '통과돼 버렸다');

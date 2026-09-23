@@ -16,7 +16,7 @@ import {
   REJECTION_IS_FINAL_NOTE,
   REQUEST_STATUSES,
   REQUEST_STATUS_TEXT,
-  REVISION_CHANGE_CONFIRM,
+  INPUT_EDIT_CHANGE_CONFIRM,
   notificationText,
   suppliedText,
 } from './index';
@@ -276,8 +276,8 @@ describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
       CONSENT_FLOW_CAVEAT,
       ...MATCH_DISCLOSURE.shown,
       ...MATCH_DISCLOSURE.hidden,
-      REVISION_CHANGE_CONFIRM.title,
-      ...REVISION_CHANGE_CONFIRM.body,
+      INPUT_EDIT_CHANGE_CONFIRM.title,
+      ...INPUT_EDIT_CHANGE_CONFIRM.body,
       REJECTION_IS_FINAL_NOTE,
       BLOCK_NOTE,
       MATCH_RESULT_PINNED_NOTE,
@@ -303,7 +303,7 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
    * 사고처럼 읽힌다.
    */
   it('출생 정보를 바꾸기 전에 요청이 취소된다는 것을 먼저 말한다', () => {
-    const said = [REVISION_CHANGE_CONFIRM.title, ...REVISION_CHANGE_CONFIRM.body].join(' ');
+    const said = [INPUT_EDIT_CHANGE_CONFIRM.title, ...INPUT_EDIT_CHANGE_CONFIRM.body].join(' ');
     expect(said).toContain('출생 정보');
     expect(said).toContain('취소');
     // 취소는 막다른 길이 아니다 — 그다음에 할 일을 함께 적는다.

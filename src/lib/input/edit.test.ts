@@ -8,11 +8,11 @@ import {
   NOTE_MAX,
   managedPersonArgs,
   noteOrNull,
-  revisionArgs,
+  personInputArgs,
   samePillarInput,
   selfPersonArgs,
   unsupportedForSaving,
-} from './revision';
+} from './edit';
 
 /**
  * **저장된 것을 되읽는 쪽은 여기 없다**(`stored.test.ts`).
@@ -78,7 +78,7 @@ describe('무엇이 새 판본을 만드는가', () => {
   });
 
   it('수정 인자에는 부를 이름이 없다', () => {
-    expect(Object.keys(revisionArgs('p-1', submitted))).not.toContain('p_local_label');
+    expect(Object.keys(personInputArgs('p-1', submitted))).not.toContain('p_local_label');
   });
 });
 
@@ -125,7 +125,7 @@ describe('저장하는 문에는 여덟 글자가 함께 간다', () => {
   it('빌더 셋이 여덟 글자와 그것을 낸 판을 싣는다', () => {
     for (const args of [
       selfPersonArgs(submitted),
-      revisionArgs('p-1', submitted),
+      personInputArgs('p-1', submitted),
       managedPersonArgs(submitted, ''),
     ]) {
       expect(args.p_chart).toEqual(chartSnapshotOf(chartOf(submitted).pillars));

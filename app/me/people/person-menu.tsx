@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { Query } from '@/src/lib/input/query';
 
-import { ReviseForm } from '../revise';
+import { EditInputForm } from '../edit-input';
 import { NoteEditor, RemoveConfirm } from './manage';
 
 /**
@@ -23,7 +23,7 @@ import { NoteEditor, RemoveConfirm } from './manage';
  * **버튼은 카드 오른쪽 위 모서리에 떠 있고, 열린 칸은 흐름 안에 선다.** 아래 띠는 이제
  * 사주풀이가 쓰고, 손대는 자리는 읽는 것 위에 얹히지 않는 구석으로 물러난다.
  */
-type Panel = 'revise' | 'note' | 'remove';
+type Panel = 'edit-input' | 'note' | 'remove';
 
 export function PersonActions({
   personId,
@@ -78,7 +78,7 @@ export function PersonActions({
 
         <div className="absolute right-0 top-12 z-40 w-56 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-float)]">
           {current !== null && (
-            <MenuItem icon="pencil" onClick={() => choose('revise')}>
+            <MenuItem icon="pencil" onClick={() => choose('edit-input')}>
               출생 정보 수정
             </MenuItem>
           )}
@@ -97,8 +97,8 @@ export function PersonActions({
       */}
       {panel !== null && (
         <div className="mt-5">
-          {panel === 'revise' && current !== null && (
-            <ReviseForm
+          {panel === 'edit-input' && current !== null && (
+            <EditInputForm
               personId={personId}
               current={current}
               onDone={() => setPanel(null)}

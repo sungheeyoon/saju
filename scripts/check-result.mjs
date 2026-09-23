@@ -314,14 +314,14 @@ try {
     const before = pillarsOf(mine);
 
     const { data: account } = await b.from('app_user').select('self_person_id').maybeSingle();
-    const revised = await b.rpc('add_person_revision', {
+    const edited = await b.rpc('edit_person_input', {
       p_person_id: account.self_person_id,
       p_calendar: 'solar', p_original_date: BIRTH.b.date, p_solar_date: BIRTH.b.date,
       p_birth_time: '05:20', p_gender: BIRTH.b.gender, p_city: BIRTH.b.city,
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
       ...chartArgs('지영-고침'),
     });
-    check('상대가 출생 시각을 고친다', !revised.error, revised.error?.message ?? '');
+    check('상대가 출생 시각을 고친다', !edited.error, edited.error?.message ?? '');
 
     const reopened = await get(`/me/match/${matchId}`, cookie.a);
     const after = await reopened.text();

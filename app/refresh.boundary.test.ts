@@ -79,7 +79,7 @@ describe('무르게 하는 일은 한 문을 지난다', () => {
  * **누름마다 무엇을 바꿨는지, 그리고 무엇이라고 말하는가.**
  *
  * 이것이 이 장부의 본체다. 앞선 판은 「`refresh` 를 부르느냐」만 봤다 — 그래서
- * `revisePerson` 이 `refresh('survey-submitted')` 로 바뀌어도 **초록이었다.** 부르는 것은
+ * `editPersonInput` 이 `refresh('survey-submitted')` 로 바뀌어도 **초록이었다.** 부르는 것은
  * 배선이고 **고른 이름이 의미**인데, 의미 쪽이 안 잠겨 있었다.
  *
  * 그래서 기대값을 **시험이 소유한다.** 액션마다 어떤 이름을 골라야 하는지를 여기 적고,
@@ -114,7 +114,7 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
     'app/me/actions.ts::addManagedPerson': 'person-list-changed',
     'app/me/actions.ts::updateNote': 'person-list-changed',
     'app/me/actions.ts::removeFromList': 'person-list-changed',
-    'app/me/actions.ts::revisePerson': 'person-revised',
+    'app/me/actions.ts::editPersonInput': 'person-input-edited',
     'app/me/actions.ts::setOptionalConsent': 'consent-changed',
     'app/me/compat/actions.ts::openPairScreen': 'pair-opened',
     'app/me/discovery/actions.ts::savePreferGender': 'discovery-settings-changed',
@@ -333,7 +333,7 @@ describe('표가 가리키는 것', () => {
 describe('표의 값은 계약과 글자까지 같다', () => {
   const EXPECTED: Readonly<Record<Changed, readonly { path: string; scope?: 'layout' }[]>> = {
     'self-person-saved': [{ path: '/me' }],
-    'person-revised': [{ path: '/me' }, { path: '/me/people' }],
+    'person-input-edited': [{ path: '/me' }, { path: '/me/people' }],
     'person-list-changed': [{ path: '/me/people' }],
     'account-changed': [{ path: '/me', scope: 'layout' }],
     'account-closed': [{ path: '/', scope: 'layout' }],

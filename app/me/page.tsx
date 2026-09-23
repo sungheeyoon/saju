@@ -12,7 +12,7 @@ import { openDiscoveryParticipation } from './discovery/participation';
 import { AccountNotice } from './account-notice';
 import { Onboarding } from './onboarding';
 import { PillarCard } from './pillar-card';
-import { ReviseChart } from './revise';
+import { EditInput } from './edit-input';
 import { ReadingTabs } from './reading-tabs';
 import { isBlocked } from '@/src/lib/account';
 import { CALENDAR_KO, GENDER_KO } from '@/src/lib/saju';
@@ -145,7 +145,7 @@ async function SelfChart({ personId }: { personId: string }) {
         saju={saju}
         /* 고치는 손잡이는 카드 모서리에 뜬다 — 저장한 사람 카드의 관리 메뉴와 같은 자리다 */
         corner={
-          <ReviseChart
+          <EditInput
             personId={personId}
             current={query}
             variant="corner"

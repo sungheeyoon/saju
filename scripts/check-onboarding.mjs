@@ -187,8 +187,8 @@ const other = anon();
 
 // ── 7. 고치면 그 자리가 바뀐다 ───────────────────────────────────────────────
 {
-  const revise = (patch) =>
-    client.rpc('add_person_revision', {
+  const editInput = (patch) =>
+    client.rpc('edit_person_input', {
       p_person_id: personId,
       p_calendar: 'solar',
       p_original_date: '1990-05-15',
@@ -216,11 +216,11 @@ const other = anon();
    * 시를 고쳐 적었다가 되돌린 사람의 풀이가 「이전 입력」으로 서면 안 된다. 여덟 칸을
    * 그대로 견주므로(`write_person_input`) 달라진 것이 없으면 아무 일도 안 일어난다.
    */
-  const { data: unchanged, error: unchangedError } = await revise({});
+  const { data: unchanged, error: unchangedError } = await editInput({});
   check('같은 값으로 저장하면 판이 안 오른다', unchanged === before,
     unchangedError?.message ?? `${unchanged} vs ${before}`);
 
-  const { data: next, error } = await revise({ p_city: '부산' });
+  const { data: next, error } = await editInput({ p_city: '부산' });
   check('고치면 판이 하나 오른다', next === before + 1, error?.message ?? `${next} vs ${before}`);
 
   /**
@@ -247,7 +247,7 @@ const other = anon();
   check('그래도 자기 이름은 닉네임 그대로다', edge?.local_label === nickname, edge?.local_label);
 
   // ── 음력 — 원본과 변환값을 둘 다 든다 ─────────────────────────────────────
-  const { data: lunar, error: lunarError } = await revise({
+  const { data: lunar, error: lunarError } = await editInput({
     p_calendar: 'lunar',
     p_original_date: '1990-04-21',
     p_solar_date: '1990-05-15',
@@ -264,7 +264,7 @@ const other = anon();
   );
 
   // 변환은 앱이 한다. DB 가 잡을 수 있는 것은 변환을 아예 건너뛴 쓰기다.
-  const { error: skipped } = await revise({
+  const { error: skipped } = await editInput({
     p_calendar: 'lunar',
     p_original_date: '1990-04-21',
     p_solar_date: '1990-04-21',
@@ -296,7 +296,7 @@ const other = anon();
    */
   const overlapping = await Promise.all(
     Array.from({ length: 12 }, (_, i) =>
-      revise({
+      editInput({
         p_birth_time: `${String(i % 24).padStart(2, '0')}:${String((i * 5) % 60).padStart(2, '0')}`,
       }),
     ),
@@ -313,7 +313,7 @@ const other = anon();
 
 // ── 8. 남은 못 고친다 — RPC 는 정책을 지나가므로 스스로 물어야 한다 ───────────
 {
-  const { error } = await other.rpc('add_person_revision', {
+  const { error } = await other.rpc('edit_person_input', {
     p_person_id: personId,
     p_calendar: 'solar', p_original_date: '1980-01-01', p_solar_date: '1980-01-01',
     p_birth_time: '01:00', p_gender: 'male', p_city: '서울',
