@@ -1693,9 +1693,11 @@ type PromptPlan = Readonly<Record<PromptSlot, string | null>>;
 /**
  * 이 kind 와 조립이 세우는 **한 판의 전부** — 세대를 한 번 정하고 자리마다 무엇이 설지 답한다.
  *
- * 자리별 예외 둘(`personality`·`claimStrength`)은 세대가 아니라 판을 보므로 **술어를 이름으로
- * 세워 옆에 둔다.** 세대로 접어 넣으면 표기는 짧아지지만 옛 절판이 잃는 것이 생긴다 —
- * 편한 표기와 보장을 맞바꾸지 않는다(ADR 0074 가 같은 자리에서 한 번 걸렸다).
+ * 자리별 예외 둘(`personality`·`claimStrength`)은 **술어를 이름으로 세워 옆에 둔다.** 세대에서
+ * 정말로 벗어나는 것은 `personality` 하나다 — 판(`pairShape`)을 보므로 세대로 접어 넣으면 옛
+ * 절판이 잃는다. `claimStrength` 는 「세대 + `match` 빼기」와 논리로 같고, 까닭을 적을 자리로
+ * 이름을 받았다. 편한 표기와 보장을 맞바꾸지 않는다(ADR 0074 가 같은 자리에서 한 번 걸렸다,
+ * 다시 잰 값은 ADR 0075).
  */
 const planOf = (kind: ReadingKind, assembly: PromptAssembly, about: ReadingAbout): PromptPlan => {
   const voice = voiceOf(kind, assembly);
