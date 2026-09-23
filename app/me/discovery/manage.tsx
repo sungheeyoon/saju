@@ -16,7 +16,9 @@ import {
   savePreferGender,
   setDiscoveryParticipation,
 } from './actions';
-import { PREFER_GENDER_KO, PREFER_GENDER_ORDER, type PreferGender } from './profile';
+import type { PreferGender } from '@/src/lib/discovery';
+
+import { PREFER_GENDER_KO, PREFER_GENDER_ORDER } from './profile';
 
 /**
  * 보고 싶은 상대 — **이 화면에 남은 유일한 칸.**

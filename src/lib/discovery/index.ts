@@ -420,3 +420,31 @@ export function boardNotes({
     explorationNote: hasExploration ? EXPLORATION_NOTE : null,
   };
 }
+
+// -----------------------------------------------------------------------------
+// DiscoveryProfile — 매칭 참여에 관한 한 벌 (CONTEXT.md)
+// -----------------------------------------------------------------------------
+
+/** 만나볼 상대의 성별 — 저장되는 값의 목록이라 차례를 바꿀 수 없다(화면의 차례는 `PREFER_GENDER_ORDER`) */
+export const PREFER_GENDERS = ['any', 'female', 'male'] as const;
+export type PreferGender = (typeof PREFER_GENDERS)[number];
+
+/** 모르는 값은 가장 넓은 쪽으로 읽는다 — 좁은 쪽으로 눕히면 조용히 사람이 빠진다 */
+export function preferGenderOf(value: string | null | undefined): PreferGender {
+  return (PREFER_GENDERS as readonly string[]).includes(value ?? '')
+    ? (value as PreferGender)
+    : 'any';
+}
+
+/**
+ * **DiscoveryProfile** — `discovery_profile` 표 한 줄 중 앱이 읽는 것.
+ *
+ * 참여 상태와 사주와 무관한 명시적 조건이다. **이름과 소개는 여기 없다** — 계정의 것이다.
+ * 내놓은 **오행 요약**(`element_summary`)도 표에는 있지만 앱이 읽지 않는다 — 후보를 뽑는
+ * SQL 만 읽으므로 여기 싣지 않는다. 읽는 문은 `app/me/discovery/discovery-profile.ts` 하나다.
+ */
+export type DiscoveryProfile = {
+  readonly preferGender: PreferGender;
+  /** 직접 끈 사람인가 — 참여는 기본으로 켜지므로 남은 상태는 「껐다」 하나다(PRD §4.1) */
+  readonly optedOut: boolean;
+};

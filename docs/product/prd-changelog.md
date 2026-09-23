@@ -463,3 +463,9 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   `discovery_snapshot_slot` → `discovery_candidate` · `discovery_candidate_slot`(제약 · 인덱스 · 시퀀스 이름도
   따라 옮겼다). 앱은 표를 직접 안 읽고 정책도 없어 한 마이그레이션으로 된다 — 표를 부르는 함수 여섯을 살아
   있는 정의에서 떠 표 이름만 갈았다. 앱이 부르는 RPC 셋과 `snapshot_id` 칸은 §10 에 「그대로 둔다」
+
+- **2026-09-23** — **G-43 일부 — DiscoveryProfile 이 타입과 읽는 문 하나를 얻었다.** `src/lib/discovery` 의
+  `DiscoveryProfile`(`preferGender` · `optedOut`)과 `app/me/discovery/discovery-profile.ts` 의 `myDiscoveryProfile`.
+  못 읽으면 값으로 말한다(`SkippableRead`) — 홈과 매칭은 미리 거르지 않고 RPC 에 맡기고(전과 같다), 설정은 두 칸을
+  비운다(전에는 기본값으로 메워 끈 사람에게 「켜져 있다」고 말할 수 있었다). 화면 안의 옛 자리 둘이 빠져 열셋이
+  열하나가 됐다. 값의 목록 `PREFER_GENDERS` 는 lib 로 내려갔다. 저장 액션의 「처음인가」 확인은 쓰기의 앞자리라 그대로 둔다

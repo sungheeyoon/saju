@@ -1,5 +1,6 @@
 import { supabaseOnServer } from '../../auth/server-client';
 import { selfElementSummary } from '../summary';
+import { myDiscoveryProfile } from './discovery-profile';
 
 /**
  * 참여가 열리는 문 — **화면이 아니라 문이다.**
@@ -34,11 +35,8 @@ export async function openDiscoveryParticipation(): Promise<void> {
     **묻는 것이 「켰는가」에서 「껐는가」로 바뀌었다**(PRD §4.1). 참여가 기본으로 켜지면서
     안 켠 사람이라는 상태가 없어졌다. 남은 것은 직접 끈 사람이고, 그 하나만 안 연다.
   */
-  const { data: profile } = await supabase
-    .from('discovery_profile')
-    .select('opted_out_at')
-    .maybeSingle();
-  if (profile?.opted_out_at != null) return;
+  const profile = await myDiscoveryProfile();
+  if (profile.ok && profile.value?.optedOut) return;
 
   const self = await selfElementSummary();
   if (self === null) return;
