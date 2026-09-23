@@ -780,7 +780,7 @@ where p.pronamespace = 'public'::regnamespace
    select closed_reason, closed_by_user_id, closed_at from public.chat_room
    where user_low = least('<A>', '<C>') and user_high = greatest('<A>', '<C>');
    ```
-6. **삭제 요청.** 또 다른 쌍(A · D)을 세우고 D 가 `/me` 에서 삭제를 요청한다. `closed_reason` 이
+6. **삭제 요청.** 또 다른 쌍(A · D)을 세우고 D 가 `/me/settings` 의 「탈퇴」→「탈퇴를 신청합니다」로 신청한다. `closed_reason` 이
    `deletion_request`, `closed_at` 이 D 의 `deletion_requested_at` 과 같다. A 는 보고 D 는 못 본다.
 
 끝나면 테스트 계정을 「지우기」로 정리한다 — 방 · 메시지 · 신고 · 스냅샷이 계정을 따라 사라진다.
