@@ -6,6 +6,7 @@ import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
 import { createChecks, sql } from './checks.mjs';
 import { CHAT_POLICY, RATE_LIMITED_TEXT, closedRoomText } from '../src/lib/chat/index.ts';
+import { PRESENCE_POLICY } from '../src/lib/presence/index.ts';
 
 /**
  * 채팅 — 문과 액션과 화면을 실제 스택에 대고 두드린다(PRD §7.1, ADR 0091).
@@ -109,6 +110,15 @@ try {
         && policy?.snapshot_context === CHAT_POLICY.snapshotContext
         && policy?.retention_days === CHAT_POLICY.retentionDays,
       JSON.stringify(policy));
+
+    const presence = await a.rpc('presence_policy');
+    const bands = presence.data?.[0];
+    check('presence_policy() 가 한 벌을 내준다', !presence.error && bands !== undefined, presence.error?.message ?? '');
+    check('「지금」 창 · 억제 창 · 하루가 lib 의 수와 같다',
+      bands?.now_window_seconds === PRESENCE_POLICY.nowWindowSeconds
+        && bands?.write_window_seconds === PRESENCE_POLICY.writeWindowSeconds
+        && bands?.day_window_seconds === PRESENCE_POLICY.dayWindowSeconds,
+      JSON.stringify(bands));
   }
 
   // ── 1. 방이 없을 때의 목록, 로그인 없이의 목록 ────────────────────────────

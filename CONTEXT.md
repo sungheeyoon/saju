@@ -551,6 +551,14 @@ _Avoid_: 도배 방지, 스팸 필터, 쿨다운
 읽는다 — 대화방 전체를 여는 열쇠는 없다. 사람을 신고하는 `report_user` 는 그대로다.
 _Avoid_: 증거(법의 말), 캡처, 로그
 
+**접속 상태** — `user_activity` 표 · `touch_activity` · `activity_band_of` · `presence_policy` · `ActivityBand` ·
+`activityText` : 상대의 **마지막 활동을 구간 셋으로 접은 것**(PRD §7.2). **활동**은 로그인된 요청이 서버에
+온 것이고 `proxy.ts` 가 1분에 한 번 적는다. 구간은 **지금 활동 중**(5분 미만) · **최근 24시간 내 활동** ·
+**24시간 이전 활동** 셋이고 화면 문구도 그 말이다(2026-09-23, 사용자가 정했다). 시각은 브라우저로 안
+나간다 — 구간은 DB 가 접는다(ADR 0092). 열린 대화방과 후보 카드에 선다. 볼 수 있는 조건은 프로필
+사진과 같다 — 지금 그 사람의 이름이 내게 보이는가. 거르는 데는 안 쓴다.
+_Avoid_: 온라인/오프라인(실시간이 아니다), 마지막 접속 시각(시각은 안 나간다), 프레즌스
+
 **관계**
 - 한 **User** 는 **DiscoveryProfile** 을 하나 갖거나 갖지 않는다
 - **매칭 참여** 중인 User 의 **selfPerson** 만 **후보**가 된다 — 대신 등록한 Person 은 아니다
@@ -760,6 +768,7 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | 닫힘 | `closed_reason` · `closed_by_user_id` · `closed_at` · `chat_room_readable` · `closedRoomText` | `chat_room` 칸 · 함수 · `src/lib/chat` |
 | 전송 한도 | `chat_rate_limit` · `chat_policy` · `chat_rate_limit_hit` · `CHAT_POLICY` · `RATE_LIMITED_TEXT` | 함수 · 표 · `src/lib/chat` |
 | 신고 스냅샷 | `chat_report_snapshot` · `report_chat_message` · `purge_closed_chat_messages` · `reportChatMessage` | 표 · 함수 · 액션 |
+| 접속 상태 | `user_activity` · `touch_activity` · `activity_band_of` · `presence_policy` · `ActivityBand` · `activityText` | 표 · 함수 · `src/lib/presence` |
 | 풀이권 | `my_reading_credits` · `reading_credit_limit_for` · `readingCredits` | 함수 · 읽는 문 |
 | 풀이권 예외 | `reading_credit_grant` | 표 |
 | Person 한도 | `person_limit` · `my_person_slots` · `PersonSlots` | 함수 · `src/lib/people` |

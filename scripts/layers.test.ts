@@ -26,6 +26,7 @@ export const SOURCE_EXTENSIONS = ['.ts', '.mts', '.cts', '.tsx', '.js', '.jsx', 
 /** 도메인 lib 사이에 **지금 열려 있는** 방향 — 이것 밖의 방향은 빨개진다. `db` 는 나가는 방향이 없다 */
 const ALLOWED_LIB_EDGES = new Set([
   'consent → discovery',
+  'consent → presence',
   'consent → reading',
   'consent → saju',
   'discovery → saju',

@@ -1,4 +1,5 @@
 import { closedReasonOf, type ClosedReason } from '@/src/lib/chat';
+import { activityBandOf, type ActivityBand } from '@/src/lib/presence';
 import type { RpcRow } from '@/src/lib/db';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -26,6 +27,8 @@ export type ChatRoom = {
   readonly lastMessageAt: string | null;
   readonly lastMessageBody: string | null;
   readonly unread: number;
+  /** 상대의 접속 상태 — 열린 방에만 온다. 닫힌 방과 모르는 값은 `null`(ADR 0092) */
+  readonly partnerActivity: ActivityBand | null;
 };
 
 const roomOf = (row: RoomRow): ChatRoom | null => {
@@ -42,6 +45,7 @@ const roomOf = (row: RoomRow): ChatRoom | null => {
     lastMessageAt: row.last_message_at,
     lastMessageBody: row.last_message_body,
     unread: row.unread_count ?? 0,
+    partnerActivity: activityBandOf(row.partner_activity),
   };
 };
 
