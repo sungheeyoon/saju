@@ -3,6 +3,8 @@ import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Pers
 import {
   CHAT_EMPTY_TITLE,
   CHAT_POLICY,
+  LEFT_ROOM_TEXT,
+  LEFT_USER_LABEL,
   RATE_LIMITED_TEXT,
   closedRoomText,
 } from '@/src/lib/chat';
@@ -10,7 +12,7 @@ import { activityText } from '@/src/lib/presence';
 
 /**
  * 채팅 안전 베타의 완료 조건 여섯을 브라우저에서 밟는다(PRD §7.0) — 주고받음 · 차단 · 이용 정지 ·
- * 탈퇴 신청 · 신고 스냅샷 · 한도. DB 층은 pgTAP 34 가 같은 여섯을 재고, 여기는 **화면이 그 값을
+ * 탈퇴 신청 · 신고 스냅샷 · 한도. 그리고 탈퇴의 처분 뒤에 남는 쪽이 보는 방(ADR 0094). DB 층은 pgTAP 34 가 같은 여섯을 재고, 여기는 **화면이 그 값을
  * 사람에게 어떻게 말하는가**를 잰다. 두 계정은 `match.spec.ts` 와 같은 픽스처로 세운다.
  */
 
@@ -208,6 +210,39 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await leaving.b.page.goto('/me/chat');
     await expect(leaving.b.page.getByText('탈퇴를 신청한 계정입니다')).toBeVisible();
     await expect(leaving.b.page.getByText(`탈퇴 전 ${leaving.tag}`)).toHaveCount(0);
+  });
+
+  /**
+   * 탈퇴의 처분(ADR 0094) — 방과 메시지는 남는 쪽에 남고 떠난 쪽의 자리만 빈다. 처분은 운영자가
+   * SQL 한 줄로 한다(runbook 「탈퇴 신청의 처리」). 여기서 재는 것은 **남는 쪽의 화면**이다 — 이름 자리의
+   * 「탈퇴한 사용자」, 닫힌 까닭 대신 넷째 줄, 떠난 사람의 메시지에 신고가 안 서는 것.
+   */
+  test('탈퇴의 처분 뒤에도 남는 쪽은 방을 보고, 이름 자리에 「탈퇴한 사용자」가 선다', async ({ openAs }) => {
+    const { a, b, tag, room, matchId } = await pair(openAs);
+    const theirs = `떠나기 전 ${tag}`;
+    const mine = `남는 쪽 ${tag}`;
+    await b.api.rpc('send_chat_message', { p_match_id: matchId, p_body: theirs });
+    await a.api.rpc('send_chat_message', { p_match_id: matchId, p_body: mine });
+
+    const asked = await b.api.rpc('request_account_deletion');
+    if (asked.error) throw new Error(`탈퇴를 못 신청했습니다 — ${asked.error.message}`);
+    sql(`select public.forget_user('${userIdOf(b.account.email)}')`);
+
+    await a.page.goto('/me/chat');
+    const row = a.page.getByRole('link').filter({ hasText: LEFT_ROOM_TEXT });
+    await expect(row).toBeVisible();
+    await expect(row.getByText(LEFT_USER_LABEL, { exact: true })).toBeVisible();
+
+    await a.page.goto(room);
+    await expect(a.page.getByRole('heading', { level: 1 })).toHaveText(LEFT_USER_LABEL);
+    await expect(a.page.getByText(theirs)).toBeVisible();
+    await expect(a.page.getByText(mine)).toBeVisible();
+    await expect(a.page.getByRole('status')).toHaveText(LEFT_ROOM_TEXT);
+    await expect(a.page.getByPlaceholder('메시지를 입력해 주세요')).toHaveCount(0);
+    // 떠난 사람의 메시지에는 신고가 안 선다 — 신고당할 계정이 없다
+    await expect(
+      a.page.getByRole('listitem').filter({ hasText: theirs }).getByRole('button', { name: '신고' }),
+    ).toHaveCount(0);
   });
 
   test('신고 한 건이 고른 메시지와 앞뒤 문맥의 스냅샷과 함께 남는다', async ({ openAs }) => {

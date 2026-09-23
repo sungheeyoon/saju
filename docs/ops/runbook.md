@@ -237,18 +237,23 @@ select * from public.forget_user('<user uuid>');
 ```
 
 한 문장이면 된다. `auth.users` 하나가 사라지면 `app_user` 가 따라가고 거기서 서른 갈래
-남짓이 FK 로 따라간다(2026-09-23 에 31) — Person 엣지·discovery·요청·Match·결과·시도·풀이 설문·서비스
-설문·알림·차단·신고·대화방·활동 시각. (세어 보려면 `pg_constraint` 에서 `app_user` 를 가리키는 FK 를 센다.)
+남짓이 FK 로 따라간다(2026-09-23 에 31) — Person 엣지·discovery·요청·결과·시도·풀이 설문·서비스
+설문·알림·차단·신고·활동 시각. **Match · 대화방 · 메시지는 따라가지 않고 그 사람의 칸만 빈다**
+(ADR 0094, 아래). (세어 보려면 `pg_constraint` 에서 `app_user` 를 가리키는 FK 를 센다 — `confdeltype`
+이 `n` 인 여섯이 자리만 비는 칸이다.)
 그다음 **이 사람이 관리하던 Person 중** 아무도 안 보게 된 것을 지운다(ADR 0023) — 출생
 입력은 그 행에 있으므로 함께 사라진다.
 남이 놓고 간 고아는 안 건드린다 — 그것은 종료 파기의 일이다.
 
 무엇이 함께 사라지는지 **누르기 전에** 알아야 한다.
 
-- **Match 가 양쪽에서 사라진다.** 공유 결과와 알림도 함께. 상대 화면에서도 없어진다 —
-  Match 행이 사라지면 그것을 보던 문이 0행을 낸다. (동의 당시 여덟 글자는 그 행에
-  베껴져 있으므로, 남는 쪽의 화면이 **상대의 입력을 읽어서** 서던 것은 아니다 —
-  ADR 0010 이 그 길을 걷었다.)
+- **함께 보던 궁합이 상대 화면에서도 사라진다.** 그 사람의 동의 당시 여덟 글자가 비고 그 Match 의
+  궁합풀이와 시도가 지워진다(트리거 둘, ADR 0094). 상대의 Match 목록과 공유 결과에는 이미 없다 —
+  `visible_matches()` 가 상대가 `active` 인지 묻는다. **Match 행은 대화방의 닻으로 남는다.**
+- **대화방과 메시지는 상대에게 남는다.** 그 사람의 자리(참여자 · 닫은 사람 · 보낸 사람)만 빈다.
+  상대는 방을 계속 보고 이름 자리에 「탈퇴한 사용자」가 선다. 열려 있던 방은 이 순간 닫힌다
+  (`deletion_request`, 지금) — 보존 90일은 닫힌 날부터다(아래 「채팅」). **둘 다 떠나면** Match 째
+  사라지고 방 · 메시지가 따라간다.
 - **남이 관리하는 Person 은 남는다.** 「누가 만들었나」만 비워진다.
 - **신고 기록도 사라진다.** 신고한 쪽이든 신고당한 쪽이든 계정이 사라지면 그 행이 따라간다.
   안전 운영에 남겨야 할 것이 있으면 **지우기 전에** 따로 적는다.
@@ -323,6 +328,8 @@ select
   (select count(*) from public.reading_feedback)     as 풀이설문,
   (select count(*) from public.service_survey)       as 서비스설문,
   (select count(*) from public.notification)         as 알림,
+  (select count(*) from public.match)                as 매치,
+  (select count(*) from public.chat_room)            as 대화방,
   (select count(*) from public.report)               as 신고,
   (select count(*) from public.chat_message)         as 메시지,
   (select count(*) from public.chat_report_snapshot) as 신고스냅샷,
@@ -607,23 +614,31 @@ order by count(*) desc;
 **탈퇴**다(PRD §5.3). 이름은 2026-09-23 의 표를 따른다.
 
 ```sql
--- 처리할 요청
-select u.email, a.deletion_requested_at,
-       (select count(*) from public.match m where m.user_low = a.id or m.user_high = a.id) as 성립한_match
+-- 처리할 요청 — 신청한 지 영업일 3일이 지난 것부터
+select u.email, a.id, a.deletion_requested_at,
+       (select count(*) from public.match m where m.user_low = a.id or m.user_high = a.id) as 성립한_match,
+       (select count(*) from public.chat_room r where a.id in (r.user_low, r.user_high)) as 대화방,
+       (select count(*) from public.report r where a.id in (r.reporter_user_id, r.reported_user_id)) as 신고
 from public.app_user a join auth.users u on u.id = a.id
 where a.status = 'deletion_requested'
 order by a.deletion_requested_at;
 ```
 
-무엇을 지우고 무엇을 남길지는 **공개 출시 전에 확정하기로 한 항목**이다(`prd-archive`). 지금은
-아래를 지키고, 판단이 필요한 건은 남겨 둔다.
+**무엇이 지워지고 무엇이 남는가**(2026-09-23, ADR 0094 · PRD §5.3). 처분은 아래 한 줄이고, 무엇을
+지우고 남기는지는 FK 와 트리거가 든다 — 운영자가 표마다 지우지 않는다.
 
-- **성립한 Match 는 양쪽에서 사라진다.** 그 공유 결과와 알림도 함께. 고를 수 있는 다른
-  답이 없다 — Match 행이 두 사람 사이의 동의 그 자체라, 한쪽이 지워지면 남는 쪽에
-  보여 줄 동의가 없다(ADR 0023). 삭제 화면이 누르기 전에 이 사실을 말한다.
-- 계산 입력과 Person 은 지운다. 남이 함께 관리하는 Person 은 남고 「누가 만들었나」만
-  비워진다.
-- **처리 기한은 영업일 3일이다.** 화면과 처리방침이 그렇게 적혀 있다.
+| 무엇 | 처분 |
+| --- | --- |
+| 계정 · 닉네임 · 사진 · 활동 · Person 과 입력 · 풀이 · 설문 · 동의 · 요청 · 소식 · 차단 · 공유 링크 | **지운다.** 남이 함께 관리하는 Person 은 남는다(ADR 0023) |
+| 함께 보던 궁합 — 그 사람의 동의 당시 여덟 글자, 그 Match 의 궁합풀이와 시도 | **지운다.** 상대 화면에서는 신청 때부터 내려가 있었다 |
+| 대화방 · 메시지 | **남는다.** 그 사람의 자리만 비고 상대가 닫힌 날부터 90일까지 본다. 상대 화면의 이름은 「탈퇴한 사용자」 |
+| Match 행 | **남는다** — 대화방을 매단 자리로만. 상대도 떠나면 방째 사라진다 |
+| 신고 · 신고 스냅샷 | **사라진다**(신고를 따라간다). 안전 운영에 남길 것이 있으면 **처분 전에** 위 「채팅 — 신고 스냅샷을 읽는다」로 떠 둔다(G-52) |
+
+- **처리 기한은 영업일 3일이다.** 화면과 처리방침이 그렇게 적혀 있다. 기한을 세는 크론은 없다 —
+  운영자가 위 질의로 보고 처분한다(G-53).
+- **되돌리려면 처분 전에** 상태를 `active` 로 되돌린다 — 닫힌 대화방은 다시 안 열린다(ADR 0091).
+  처분 뒤에는 되돌릴 길이 없다.
 
 ```sql
 -- **`delete from auth.users` 를 직접 쓰지 않는다.**
@@ -634,9 +649,9 @@ order by a.deletion_requested_at;
 select * from public.forget_user('<user-id>');
 ```
 
-지운 뒤에는 **아래 「베타 종료 — 전부」의 검증 질의를 그대로** 돌려 그 사람의 흔적이
+지운 뒤에는 **위 「베타 종료 — 전부」의 검증 질의를 그대로** 돌려 그 사람의 흔적이
 없는지 본다. 한 사람을 지운 뒤라 전체가 0일 수는 없으므로, 그 사람의 이메일과 id 로
-좁혀 본다.
+좁혀 본다. 대화방이 남았는지와 그 사람의 여덟 글자가 비었는지도 함께 본다.
 
 ```sql
 select
@@ -647,6 +662,16 @@ select
    where payload ->> 'actor_id' = '<user-id>'
       or payload ->> 'actor_username' = '<지운 주소>') as 감사로그,
   (select count(*) from auth.flow_state where user_id = '<user-id>') as 로그인중간상태;
+
+-- 남는 것 — 처분 전에 적어 둔 Match id 들로 본다. 상대의 칸과 여덟 글자는 그대로, 그 사람의
+-- 칸 · 여덟 글자 · 궁합풀이는 비고, 방은 닫힌 채 남는다.
+select m.id, m.user_low, m.user_high,
+       m.chart_low is not null as 낮은쪽_여덟글자, m.chart_high is not null as 높은쪽_여덟글자,
+       (select count(*) from public.reading r where r.match_id = m.id) as 궁합풀이,
+       r.closed_reason, r.closed_at,
+       (select count(*) from public.chat_message x where x.room_id = r.id and x.sender_user_id is null) as 떠난쪽_메시지
+from public.match m join public.chat_room r on r.match_id = m.id
+where m.id in ('<match-id>');
 ```
 
 ---

@@ -6,8 +6,9 @@ import {
   CHAT_EMPTY_DETAIL,
   CHAT_EMPTY_TITLE,
   CHAT_TAB_LABEL,
-  closedRoomText,
   messageTimeLabel,
+  partnerNameOf,
+  roomNoticeOf,
 } from '@/src/lib/chat';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -74,11 +75,13 @@ async function Rooms() {
 }
 
 function RoomRow({ room }: { room: ChatRoom }) {
-  /* 닫힌 방은 마지막 메시지 대신 닫힌 까닭이 선다 — 누르기 전에 무엇이 안 되는지 읽힌다 */
-  const line =
-    room.closedReason !== null
-      ? closedRoomText(room.closedReason)
-      : (room.lastMessageBody ?? '');
+  /*
+    닫힌 방은 마지막 메시지 대신 닫힌 까닭이 선다 — 누르기 전에 무엇이 안 되는지 읽힌다. 상대가
+    떠난 방은 까닭 대신 넷째 줄이다(PRD §7.1).
+  */
+  const notice = roomNoticeOf(room);
+  const line = notice ?? room.lastMessageBody ?? '';
+  const name = partnerNameOf(room);
   const at = room.lastMessageAt ?? room.openedAt;
 
   return (
@@ -86,13 +89,13 @@ function RoomRow({ room }: { room: ChatRoom }) {
       href={`/me/chat/${room.matchId}`}
       className={`${CARD} flex items-center gap-4 hover:border-accent`}
     >
-      <Avatar userId={room.partnerUserId} nickname={room.partnerNickname} hasPhoto={room.partnerHasPhoto} />
+      <Avatar userId={room.partnerUserId ?? ''} nickname={name} hasPhoto={room.partnerHasPhoto} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-center justify-between gap-3">
-          <span className="truncate text-base font-semibold">{room.partnerNickname}</span>
+          <span className="truncate text-base font-semibold">{name}</span>
           <span className="shrink-0 text-xs text-muted">{messageTimeLabel(at)}</span>
         </span>
-        <span className={`truncate text-sm ${room.closedReason !== null ? 'text-muted' : 'text-secondary'}`}>
+        <span className={`truncate text-sm ${notice !== null ? 'text-muted' : 'text-secondary'}`}>
           {line}
         </span>
       </span>
