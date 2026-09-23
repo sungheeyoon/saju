@@ -52,7 +52,7 @@
 `CONTEXT.md` 「입력」 항목이 그 경계다.
 
 **`console`** — 앱(`src/` · `app/`)에 `console.log` 는 없다. `console.error` 는 못 옮긴 오류를
-기록하는 자리 셋뿐이다. 찍어 보는 자리는 `scripts/` 와, 사람이 읽으려고 돌리는 `*.live.test.ts` 다.
+기록하는 자리 넷뿐이다(넷째는 webhook 의 서명 거절 — 까닭을 답에 안 싣고 기록에만 둔다, G-23 ⑧). 찍어 보는 자리는 `scripts/` 와, 사람이 읽으려고 돌리는 `*.live.test.ts` 다.
 
 ## 주석과 ADR 참조
 
