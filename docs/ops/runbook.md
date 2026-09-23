@@ -260,8 +260,9 @@ select * from public.forget_user('<user uuid>');
   (`deletion_request`, 지금) — 보존 90일은 닫힌 날부터다(아래 「채팅」). **둘 다 떠나면** Match 째
   사라지고 방 · 메시지가 따라간다.
 - **남이 관리하는 Person 은 남는다.** 「누가 만들었나」만 비워진다.
-- **신고 기록도 사라진다.** 신고한 쪽이든 신고당한 쪽이든 계정이 사라지면 그 행이 따라간다.
-  안전 운영에 남겨야 할 것이 있으면 **지우기 전에** 따로 적는다.
+- **신고 기록은 따로 남는다**(ADR 0098). 신고한 쪽이든 신고당한 쪽이든, 지워지기 **전에** 트리거가
+  그 사람이 든 신고와 스냅샷을 `retention.report` 로 옮기고 일반 표에서는 사라진다. 처분일부터 6개월
+  뒤 크론이 지운다 — 아래 「떠난 사람의 신고 기록」.
 
 **다시 못 들어오게 하는 것은 이 문이 아니다.** 삭제는 접근 회수가 아니고(위의 초대 절과
 같은 구분), 코드는 사람에 매여 있지 않다 — 지운 사람이 같은 코드를 아직 들고 있으면 그
@@ -340,6 +341,11 @@ select
   (select count(*) from public.chat_report_snapshot) as 신고스냅샷,
   (select count(*) from public.profile_photo)        as 프로필사진,
   (select count(*) from public.reading_webhook_event) as 영수증;
+
+-- **0 이 아닌 것이 맞는 자리 하나** — 떠난 사람의 신고 기록. 종료 파기도 탈퇴와 같은 문이라 처분일부터
+-- 6개월 남고 크론이 지운다(ADR 0098). 크론을 끄지 않는다.
+select count(*) as 따로둔_신고, min(retained_at) + retention.report_period() as 가장_이른_파기
+from retention.report;
 ```
 
 **프로필 사진은 손으로 안 지운다.** 바이트가 Postgres 안에 있고 `app_user` 에 cascade 로
@@ -610,6 +616,88 @@ having count(*) > 1
 order by count(*) desc;
 ```
 
+## 떠난 사람의 신고 기록 — **처분일부터 6개월, 운영자만** (ADR 0098)
+
+신고한 쪽이든 당한 쪽이든 떠나면, 그 사람이 든 신고는 지워지기 **전에** `retention.report` 로 옮겨진다
+(`auth.users` 의 트리거 `reports_outlive_the_leaver` — 크론의 처분이든 `forget_user` 든 같다). 처리방침의 절
+「신고 기록은 따로 둡니다」가 이것을 알린다(`notice-v6`).
+
+- **남는 것** — 사유와 상세 · 신고 시각과 검토 상태 · 불변 스냅샷(jsonb) · 두 계정의 UUID · 옮긴 순간의 로그인
+  이메일 · 가입일(`auth.users.created_at`) · 탈퇴일. **IP · 실명 · 주민등록번호 · 전화번호 · 주소는 없다** —
+  받은 적이 없다
+- **누가 읽나** — 이 SQL 을 도는 운영자(`postgres`)뿐이다. `retention` 스키마는 API 에 안 나가고 `anon` ·
+  `authenticated` · `service_role` 이 못 쓴다 — 앱 서버의 비밀 열쇠로도 못 읽는다. **신고한 사람이 요구해도
+  상대의 신원을 알려 주지 않는다**
+- **언제 사라지나** — 먼저 떠난 쪽의 처분일(`retained_at`)부터 6개월. 크론 `report-retention-purge`(매시 47분)가
+  지운다. 남은 쪽이 나중에 떠나면 그 사람의 탈퇴일만 채워지고 시계는 그대로다. 실패는 `cron-watch` 가
+  `cron-failed:report-retention-purge` 로 알린다
+- **증거는 못 고친다** — 적을 수 있는 것은 검토 상태와 보류 두 칸뿐이다. 나머지는 `55000` 으로 막힌다
+
+```sql
+-- 따로 둔 신고 — 파기 예정일과 보류
+select report_id, reported_at, reason, reviewed_at,
+       reporter_email, reporter_left_at, reported_email, reported_left_at,
+       retained_at, retained_at + retention.report_period() as 파기_예정,
+       hold_reason, held_at
+from retention.report
+order by retained_at desc;
+
+-- 한 건의 스냅샷을 편다 — 「채팅 — 신고 스냅샷을 읽는다」와 같은 모양
+select (e ->> 'seq')::bigint as 차례,
+       (e ->> 'created_at')::timestamptz at time zone 'Asia/Seoul' as 보낸_시각,
+       e ->> 'sender_user_id' as 보낸_사람,
+       (e ->> 'chosen')::boolean as 고른_것,
+       e ->> 'body' as 본문
+from retention.report k
+cross join lateral jsonb_array_elements(k.snapshot -> 'messages') e
+where k.report_id = '<report-id>'
+order by 차례;
+
+-- 봤다고 적는다 — 떠난 뒤에도 검토는 이어진다
+update retention.report set reviewed_at = now() where report_id = '<report-id>';
+
+-- 크론이 도는가
+select jobname, schedule, active from cron.job where jobname = 'report-retention-purge';
+```
+
+### 수사기관의 요청이 오면
+
+주는 것은 **확인된 수사기관의 적법한 요청**에만, **가진 범위 안에서**다(ADR 0098 「정한 것」). 근거는
+전기통신사업법 제83조③ · 형사소송법의 영장이고, 개인정보 보호법 제18조②2 가 제3자 제공을 연다.
+
+1. **서면을 받는다.** 제83조④ — 요청사유 · 가입자와의 연관성 · 필요한 자료의 범위를 적은 서면. 긴급해서 서면
+   없이 왔으면 사유가 끝나는 대로 서면을 받는다. 서면이 없으면 주지 않는다
+2. **기관을 확인한다.** 공문의 발신 기관 대표 번호로 되걸어 요청자를 확인한다 — 전화나 메일로 온 요청의 번호로
+   되걸지 않는다
+3. **범위를 좁힌다.** 요청서가 가리키는 계정 · 신고만 뽑는다. 줄 수 있는 것은 위 「남는 것」뿐이고, 그중
+   요청서가 적은 항목만이다. 살아 있는 계정의 것이면 `public.report` · `auth.users` 에서, 떠난 사람의 것이면
+   `retention.report` 에서 뽑는다
+4. **대장에 적는다.** 제83조⑤ — 제공한 날 · 요청 기관 · 요청서 번호 · 제공한 자료의 범위를 적고 요청서를 함께
+   보관한다. 대장은 이 DB 밖의 운영 문서에 둔다(요청서가 종이이거나 PDF 다)
+5. **반기마다 보고한다.** 제83조⑥ — 제공 현황을 연 2회 과기정통부에 보고한다. 제공이 없던 반기에는 할 것이 없다
+
+### 보존 요청 — 보류를 걸고 푼다
+
+6개월 안에 수사기관이 **보존**을 요청하면(적법한 서면) 그 줄에 보류를 건다. 걸린 줄은 크론이 안 지운다.
+보류는 요청서가 가리킨 줄에만 건다 — 한 사람의 신고 전부에 거는 것이 아니다.
+
+```sql
+-- 건다 — 무엇을 근거로 걸었는지 남긴다: 기관 · 문서 번호 · 받은 날
+update retention.report
+set hold_reason = '<기관> <문서 번호> <받은 날> 보존 요청', held_at = now()
+where report_id = '<report-id>';
+
+-- 걸린 줄
+select report_id, hold_reason, held_at, retained_at + retention.report_period() as 원래_파기_예정
+from retention.report where hold_reason is not null;
+
+-- 푼다 — 사유가 끝났을 때(수사 종결 통보 · 요청 철회). 6개월이 이미 지났으면 다음 실행(매시 47분)이 지운다
+update retention.report set hold_reason = null, held_at = null where report_id = '<report-id>';
+```
+
+**보류는 연장이 아니라 미룸이다.** 풀면 원래 처분일부터 센 6개월로 돌아간다. 보류를 걸어 둔 채 잊지 않도록
+분기마다 위 「걸린 줄」 질의를 한 번 돈다.
+
 ---
 
 ## 탈퇴 신청의 처리
@@ -656,7 +744,7 @@ select jobname, schedule, active from cron.job where jobname = 'account-disposal
 | 함께 보던 궁합 — 그 사람의 동의 당시 여덟 글자, 그 Match 의 궁합풀이와 시도 | **지운다.** 상대 화면에서는 신청 때부터 내려가 있었다 |
 | 대화방 · 메시지 | **남는다.** 그 사람의 자리만 비고 상대가 닫힌 날부터 90일까지 본다. 상대 화면의 이름은 「탈퇴한 사용자」 |
 | Match 행 | **남는다** — 대화방을 매단 자리로만. 상대도 떠나면 방째 사라진다 |
-| 신고 · 신고 스냅샷 | **사라진다**(신고를 따라간다). 안전 운영에 남길 것이 있으면 **처분 전에** 위 「채팅 — 신고 스냅샷을 읽는다」로 떠 둔다(G-52) |
+| 신고 · 신고 스냅샷 | **따로 6개월 남는다.** 지워지기 전에 `retention.report` 로 옮겨지고 일반 표에서는 사라진다 — 위 「떠난 사람의 신고 기록」(ADR 0098) |
 
 - **처리 기한은 신청 뒤 3일이고 크론이 센다**(위). 화면과 처리방침의 「영업일 3일」 문장은 #165 가
   `notice-v6` 으로 한 번에 고친다 — 그 사이에는 약속보다 빨리 지우는 쪽이다.
@@ -740,7 +828,8 @@ update public.report set reviewed_at = now() where id = '<report-id>';
 ```
 
 스냅샷은 **불변**이다 — `update` 는 소유자에게도 막힌다(`55000`). 지워지는 길은 신고가 사라질
-때뿐이고, 신고는 계정을 따라간다(「지우기」). 안전 운영에 남길 것은 계정을 지우기 전에 따로 적는다.
+때뿐이고, 신고는 계정을 따라간다(「지우기」). 그 전에 트리거가 신고째 `retention.report` 로 옮긴다 —
+떠난 사람의 신고는 위 「떠난 사람의 신고 기록」에서 읽는다.
 
 ### 닫힌 지 90일 지난 방의 메시지를 지운다 — **손으로**
 
