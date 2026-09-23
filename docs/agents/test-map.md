@@ -56,6 +56,7 @@
 | `supabase/migrations/**` | `npm run db:reset` → `npm run test:db` → `npm run db:types` → `npm run typecheck` → `npm run test:flow` | 생성 타입을 다시 안 지으면 앱은 없는 열을 있다고 믿은 채 컴파일된다(ADR 0078). CI 의 `authed` 가 diff 를 본다 |
 | 프롬프트(`src/lib/reading/prompt*` · `parts.ts` · `vocabulary.ts`) | `npm test`, 본문이 바뀌면 `READING_LIVE=1 npx vitest run app/me/reading/call.live.test.ts` | 조립 스냅샷은 단위가 든다. **본문이 한 글자라도 바뀌면 실호출 한 번**(ADR 0073). 경로 이름이 본문에 샌 적이 있다 |
 | `scripts/ci-plan.mjs` · `release-stage.mjs` · `verify.yml` · `main-red.yml` | `npm test` | `ci-plan.test.ts` 가 단계별 계획을, `main-red.test.ts` 가 이슈의 판단을 든다. YAML 에 `paths` 를 적지 않는다 |
+| `package.json` · `package-lock.json` | `npm audit --omit=dev --audit-level=high` → `npm test` · `npm run typecheck` · `npm run lint` · `npm run build` | CI 는 `fast` 와 `audit` 만 돈다. 의존성은 화면과 DB 도구에도 닿으니 큰 판 올림이면 e2e · pgTAP 도 한 번 |
 | `eslint.config.mjs` · `scripts/*.test.ts` | `npm run lint` → `npm test`, 그리고 **일부러 어긴 파일**로 걸리는지 | 「규칙을 넣었다」와 「규칙이 건다」는 다른 문장이다(ADR 0085·0086) |
 
 **워크트리에서는 제 자리의 포트다** — `npm run stack:slot -- N` 이 스택 이름 · Supabase 포트 · dev 서버(`3000+10N`) ·
@@ -90,6 +91,12 @@
 | `supabase/**` 가 하나라도 | 전부 — 라벨 없이 | 약 5분 |
 | 그 밖 전부 | `fast`(단위 · 타입 · 린트, 빌드 없음) | 1분 55초(#162) — 전에는 전부 약 5분 |
 | 단계를 모른다(「(지금)」이 없거나 둘 · 표에 없는 이름) | 전부 | |
+
+**운영 의존성 감사 `audit` 은 단계와 따로 켠다**(G-23 ①, ADR 0103) — `npm audit --omit=dev --audit-level=high`. 결과를 바꾸는
+것이 바뀐 파일이 아니라 밖의 advisory DB 라서, PR 에서는 **`package.json` · `package-lock.json` 을 바꾼 PR 에만** 머지를
+막는다(라벨 · 빈 diff 도 켠다). 아무것도 안 바꾼 PR 이 어느 날 붉어지는 일이 없다. 새로 뜬 advisory 는 main 푸시와 하루
+한 번의 일정이 잡고, `ci-main-red` 가 「`audit` 만 붉다」고 적는다. 절차는 runbook 「운영 의존성 취약점」. 개발 의존성은
+CI 가 안 막는다.
 
 전체(빌드 · 익명 e2e · `authed` 일곱 · `flow`)는 **머지 뒤 최신 main 하나**에서 비차단으로 돈다. 붉으면
 `main-red.yml` 이 `ci-main-red` 이슈 하나를 열고(이미 있으면 댓글), 지금 main 머리가 초록이 되면 닫는다.
@@ -167,7 +174,7 @@ CI=1 npx vitest run --coverage --coverage.reporter=text \
 ## 어디를 봐야 하나
 
 - `scripts/ci-plan.mjs` — 세 단계와 예외 둘. 규칙의 원본
-- `.github/workflows/verify.yml` — 차선 다섯과 `gate`
+- `.github/workflows/verify.yml` — 차선 여섯(`policy` · `fast` · `verify` · `authed` · `flow` · `audit`)과 `gate`
 - `playwright.config.ts` — 프로젝트 다섯(`desktop-chromium` · `mobile-chromium` · `authed-desktop` · `authed-mobile` · `notice-gate`), 서버 띄우기
 - `scripts/run-checks.mjs` — 흐름 일곱 벌을 **전부** 돌리고 끝에 한 번 답한다(사슬이면 첫 실패가 나머지를 삼킨다)
 - `e2e/session.ts` — 로컬 스택에 초대된 계정을 만든다

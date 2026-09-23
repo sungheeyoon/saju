@@ -1308,3 +1308,25 @@ npm run test:e2e:authed   # `npm run db:start` 를 요구한다
 **e2e 가 두 명령인 것은 계약이다.** 로그인하지 않은 사람을 돌려보내는 데 백엔드가
 필요하면 그것부터 잘못이라, 그쪽은 CI 의 껍데기 접속값으로도 돈다. 로그인 흐름만
 로컬 스택을 요구한다.
+
+## 운영 의존성 취약점 — CI 의 `audit` 이 붉을 때 (G-23 ①, ADR 0103)
+
+`audit` 차선은 `npm audit --omit=dev --audit-level=high` 다. **의존성 목록을 바꾼 PR** 과 **main 푸시 · 하루 한 번의
+일정**에서 돈다. PR 에서 붉으면 그 PR 이 들인 것이고, main 에서 붉으면 `ci-main-red` 이슈가 「붉은 차선」을 적는다 —
+`audit` 만이면 커밋이 아니라 새로 뜬 advisory 다. 어느 쪽이든 새 작업보다 먼저 한다.
+
+```bash
+npm audit --omit=dev                 # 무엇이 · 어느 판에서 · 고친 판이 있나
+npm ls <패키지>                       # 누가 끌어왔나 — 직접 의존이면 package.json, 아니면 부모
+npm install <패키지>@<고친 판>        # 직접 의존. 간접이면 부모를 올리거나 package.json 의 overrides
+npm audit --omit=dev --audit-level=high ; echo $?   # 0 이어야 한다
+```
+
+1. **올린다.** 같은 메이저 안이면 올리고 끝이다. 메이저를 넘거나 `overrides` 로 누르면 그 판이 부모와 맞는지
+   `npm run build` 와 e2e 로 본다 — `next` 가 그런 자리다(`1e1f6c8` 은 16.3.1 → 16.3.6).
+2. **PR 은 `fix(deps): ...`** 로 낸다. 잠금 파일이 바뀌므로 그 PR 에서 `audit` 이 다시 돌아 0 을 잰다.
+3. **고친 판이 아직 없으면** 막을 자리를 본다 — 그 경로를 우리가 부르나(`npm audit` 의 advisory 본문). 안 부르면
+   간극 대장 G-23 ① 에 패키지 · advisory · 까닭 · 다시 볼 날을 적고, 그동안 붉은 main 은 이슈가 들고 있다.
+   `--audit-level` 을 critical 로 올리거나 차선을 끄지 않는다.
+
+개발 의존성(`npm audit` 전체)은 CI 가 안 막는다 — 운영에 안 실린다. 같은 절차로 손으로 정리한다(G-23 ⑫).

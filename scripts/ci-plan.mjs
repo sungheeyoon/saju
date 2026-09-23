@@ -48,6 +48,14 @@
  * - **단계를 모르면 전부다.** 「(지금)」이 없거나 둘이거나 표에 없는 이름이면 안전 쪽으로 간다.
  * - **공개 출시면 아래 세 단계로 돌아간다.** 단계를 옮기는 PR 은 그 PR 에서부터 새 단계로 계획된다.
  *
+ * ## 운영 의존성 감사는 단계와 따로 켠다 (2026-09-23, G-23 ①, ADR 0103)
+ *
+ * `audit` 차선은 `npm audit --omit=dev --audit-level=high` 하나다. 위 단계들과 달리 **바뀐 파일이 아니라 밖의
+ * advisory DB 가 결과를 바꾼다** — 모든 PR 에 걸면 아무것도 안 바꾼 PR 이 어느 날 붉어지고, 나란히 선 세션이
+ * 그것을 제 빨간불로 읽는다. 그래서 PR 에서는 **의존성 목록(`package.json` · `package-lock.json`)을 바꾼 PR 에만**
+ * 머지를 막고, 새로 뜬 advisory 는 main 푸시 · 하루 한 번의 일정이 잡아 `ci-main-red` 이슈로 알린다.
+ * 라벨 · 빈 diff · 계획 밖 이벤트는 「전부」와 같이 켠다.
+ *
  * ## 원칙
  *
  * - 라벨(`full-ci`)은 **더할 수만 있고 뺄 수 없다.**
@@ -68,6 +76,8 @@ const PLANNED_EVENTS = new Set(['pull_request']);
 /** 정책 — 사람과 에이전트가 읽는 규약, 그리고 그것을 견주는 시험. 코드가 아니라 `scripts/` 시험이 잰다 */
 const POLICY = [/^docs\//, /\.md$/, /^\.claude\//, /^scripts\/[^/]+\.test\.ts$/];
 const ENGINE = [/^src\/lib\/saju\//, /^app\/saju\//];
+/** 의존성 목록 — 이것을 바꾼 PR 만 `audit` 이 머지를 막는다 */
+export const DEPENDENCY_LISTS = ['package.json', 'package-lock.json'];
 /** DB 차선에서만 재어지는 자리 — 단계와 상관없이 전부를 돈다 */
 const DATABASE = [/^supabase\//];
 /** 엔진 안에서 DB 의 검사식이 보는 파일 — 여기가 바뀌면 로그인 뒤 자리도 재야 한다 */
@@ -91,11 +101,18 @@ const LANES = {
  * `stage` 는 `release-stage.mjs` 의 `currentStageOf` 가 낸 값이다 — `null` 이나 빠진 값은 모르는 단계다.
  *
  * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null }} input
- * @returns {{ tier: 'policy' | 'fast' | 'engine' | 'full', reason: string, lanes: typeof LANES.full }}
+ * @returns {{ tier: 'policy' | 'fast' | 'engine' | 'full', reason: string, lanes: typeof LANES.full & { audit: boolean } }}
  */
 export function planFor({ files, labels = [], event = 'pull_request', stage = null }) {
   const decided = decide({ files, labels, event, stage });
-  return { ...decided, lanes: LANES[decided.tier] };
+  return { ...decided, lanes: { ...LANES[decided.tier], audit: audits({ files, labels, event }) } };
+}
+
+/** 단계와 상관없다 — 위 「운영 의존성 감사」 */
+function audits({ files, labels, event }) {
+  if (!PLANNED_EVENTS.has(event) || labels.includes(FULL_LABEL)) return true;
+  const changed = files.map((one) => one.trim()).filter((one) => one !== '');
+  return changed.length === 0 || changed.some((one) => DEPENDENCY_LISTS.includes(one));
 }
 
 function decide({ files, labels, event, stage }) {
