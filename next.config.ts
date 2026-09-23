@@ -3,17 +3,26 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV !== 'production';
 
 /**
- * **브라우저가 부를 수 있는 곳** — 아직 막지 않고 어긴 자리만 알린다(G-23 ②).
+ * **브라우저가 부를 수 있는 곳** — 강제한다(G-23 ②).
  *
- * `Report-Only` 로 먼저 세운다. 강제하려면 Next 가 페이지에 심는 인라인 스크립트마다 nonce 가
- * 필요하고, nonce 를 쓰면 지금 미리 만들어 두는 화면이 요청마다 다시 그려진다 — 성능과 비용이
- * 바뀌는 결정이라 PG · 본인인증 도메인이 정해질 때 함께 정한다. 그래서 `script-src` 의
- * `'unsafe-inline'` 은 **지금 이 정책이 재는 것이 아니다.** 지금 재는 것은 스크립트 밖의
- * 출처 — 연결 · 이미지 · 글꼴 · 틀 · 폼 — 이고, e2e 가 어긴 자리 0 을 지킨다(`e2e/csp.ts`).
+ * `Report-Only` 로 먼저 세워 e2e 전부(익명 · 로그인 · 관문)에서 어긴 자리 0 을 확인한 뒤 강제로
+ * 올렸다(2026-09-23). 운영 화면이 부르는 출처도 브라우저로 열어 쟀다 — 홈 · 로그인 · 처리방침 · 궁합(로그인으로
+ * 튕긴다)에서 스크립트 58 · 글꼴 60 · 요청 14 가 전부 제 출처였고, Vercel Analytics · 툴바처럼 운영에서만 붙는
+ * 스크립트는 없다(쓰지 않고, 미리보기 배포도 없다). 그래서 **바깥으로 열린 곳은 Supabase 하나다.**
+ *
+ * **아직 강제하지 않는 것 — `script-src` 의 `'unsafe-inline'`.** 그것을 빼려면 Next 가 페이지에
+ * 심는 인라인 스크립트마다 nonce 가 필요하고, nonce 를 쓰면 지금 미리 만들어 두는 화면이 요청마다
+ * 다시 그려진다. PG · 본인인증 도메인과 함께 정한다 — 잰 값은 G-23 ② 와
+ * `docs/notes/csp-nonce-2026-09-23.md`. `style-src` 의 `'unsafe-inline'` 도 같은 결정을 기다린다.
+ *
+ * `frame-ancestors` 는 `Report-Only` 에서 무시돼 따로 한 줄로 강제하던 것을 이 정책 하나에 합쳤다.
+ * 어긴 자리를 받는 `report-uri` 는 두지 않았다 — 받을 서버가 곧 누구나 쓸 수 있는 공개 POST 가 되고,
+ * 어긴 자리는 곧 깨진 화면이라 e2e 의 손잡이(`e2e/csp.ts`)가 먼저 본다. 운영에서 깨지면 되돌리는
+ * 법은 `docs/ops/runbook.md` 「CSP 가 화면을 막을 때」.
  *
  * 개발 서버는 `eval` 과 웹소켓(HMR)을 쓴다 — 그 둘은 개발에서만 연다.
  */
-const reportOnlyPolicy = [
+const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
@@ -55,15 +64,14 @@ const nextConfig: NextConfig = {
         headers: [
           { key: 'Referrer-Policy', value: 'no-referrer' },
           /**
-           * **강제하는 것 셋** — 남의 틀 안에 못 들어가고(클릭재킹), 파일 종류를 추측하지 않고,
-           * 쓰지 않는 기기 권한을 닫는다. `frame-ancestors` 는 `Report-Only` 에서 무시되므로
-           * 강제 정책에 따로 한 줄로 선다. 결제(`payment`)는 PG 가 정해질 때 본다.
+           * **강제하는 것 넷** — 부를 수 있는 출처(CSP, 위), 남의 틀 안에 못 들어가고(클릭재킹 —
+           * CSP 의 `frame-ancestors` 를 모르는 옛 브라우저에는 `X-Frame-Options`), 파일 종류를
+           * 추측하지 않고, 쓰지 않는 기기 권한을 닫는다. 결제(`payment`)는 PG 가 정해질 때 본다.
            */
-          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'Content-Security-Policy', value: contentSecurityPolicy },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' },
-          { key: 'Content-Security-Policy-Report-Only', value: reportOnlyPolicy },
         ],
       },
     ];

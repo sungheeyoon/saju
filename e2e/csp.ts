@@ -3,9 +3,10 @@ import { test as base, type BrowserContext } from '@playwright/test';
 /**
  * 콘텐츠 보안 정책을 **어긴 자리**를 모은다 (G-23 ②).
  *
- * CSP 는 아직 `Report-Only` 로 선다 — 브라우저는 막지 않고 `securitypolicyviolation` 사건만
+ * CSP 는 강제다(`next.config.ts`) — 어긴 것은 브라우저가 막고 `securitypolicyviolation` 사건을
  * 낸다. 받을 서버를 두지 않았으므로 그 사건을 시험이 듣는다. 시험 하나가 끝날 때 모은 것이
- * 비어 있어야 한다 — 비어 있지 않으면 **강제로 바꾸는 날 그 화면이 깨진다**는 뜻이다.
+ * 비어 있어야 한다 — 비어 있지 않으면 **그 화면의 무엇인가가 이미 막혀 깨졌다**는 뜻이다.
+ * 줄 머리의 `disposition` 이 막았는지(`enforce`) 보고만 했는지(`report`)를 말한다.
  */
 export async function watchCsp(context: BrowserContext, sink: string[]): Promise<void> {
   await context.exposeBinding('__cspViolation', (_source, line: string) => {
@@ -14,7 +15,9 @@ export async function watchCsp(context: BrowserContext, sink: string[]): Promise
   await context.addInitScript(() => {
     document.addEventListener('securitypolicyviolation', (event) => {
       const report = (window as unknown as { __cspViolation?: (line: string) => void }).__cspViolation;
-      report?.(`${event.effectiveDirective} ← ${event.blockedURI || '(inline)'} @ ${event.documentURI}`);
+      report?.(
+        `${event.disposition} ${event.effectiveDirective} ← ${event.blockedURI || '(inline)'} @ ${event.documentURI}`,
+      );
     });
   });
 }
