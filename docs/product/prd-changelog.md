@@ -376,3 +376,9 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   `app/me/reading/preview.ts` 는 DB 를 읽는 문이라 단위로 안 잰다 — 앞의 것은 e2e `saju.spec.ts` ·
   `reading-entry.spec.ts` 가, 뒤의 것은 흐름 `check-reading.mjs` · e2e `signed-in.spec.ts` 가 이미 든다.
   「흐름도 안 두드린다」던 옛 문장은 e2e 를 빠뜨린 것이었다. `docs/agents/test-map.md` 「커버리지」 · 「재지 않는 것」
+
+- **2026-09-23** — **G-43 일부 — 어긋난 이름 여섯 중 둘을 고치고 하나는 그대로 둔다.** 화면의 `isSelf` →
+  `isSelfPerson`(여섯 파일), 엔진 `saeun` · `wolun` 입력의 `birthDate` → `solarBirthDate`(보정된 출생 시각의
+  양력 날짜). `metaphor` 는 §10 에서 「그대로 둔다」로 옮겼다 — 구조화 출력 키는 프롬프트의 일부이고 칸 이름은
+  RPC 의 반환 열 · 인자다. 남은 셋(`revision` 계열 · `DiscoveryProfile` · `discovery_snapshot`)은 정한 이름과 함께
+  G-43 줄에 남았다 — 마이그레이션이 들어 G-27 뒤에 간다

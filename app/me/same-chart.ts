@@ -14,7 +14,7 @@ export type SameChart = {
   readonly personId: string;
   readonly label: string;
   /** 나 자신이면 갈 곳이 사람 상세가 아니라 `/me` 다 */
-  readonly isSelf: boolean;
+  readonly isSelfPerson: boolean;
   /**
    * 사람 목록에 서 있는 사람인가.
    *
@@ -111,7 +111,7 @@ export async function sameChartInMyList(query: Query): Promise<SameChart | null>
     const found: SameChart = {
       personId: edge.person_id as string,
       label: edge.local_label as string,
-      isSelf: edge.person_id === account?.self_person_id,
+      isSelfPerson: edge.person_id === account?.self_person_id,
       listed: edge.listed as boolean,
     };
 

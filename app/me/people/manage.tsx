@@ -71,7 +71,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
         label: same.label,
         answer: async (sameperson) => {
           if (!sameperson) return attempt(true);
-          router.push(same.isSelf ? '/me' : `/me/people/${same.personId}`);
+          router.push(same.isSelfPerson ? '/me' : `/me/people/${same.personId}`);
           return { done: true };
         },
       },
