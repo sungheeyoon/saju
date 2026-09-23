@@ -161,6 +161,47 @@ ${lines.join('\n\n')}
 const PLACE_KO: Record<PillarPosition, string> = { year: '년', month: '월', day: '일', hour: '시' };
 const TARGET_KO = { stem: '간', branch: '지', pillar: '주' } as const;
 
+/** 사실 하나가 걸린 자리 — 색인의 열쇠다. 판정 기준 글자는 걸린 자리가 아니라 여기 안 든다 */
+type Spot = {
+  readonly who: '' | 'A ' | 'B ';
+  readonly position: PillarPosition;
+  readonly target: keyof typeof TARGET_KO;
+  readonly label: string;
+};
+
+/** 목록의 한 줄 — 번호와 걸린 자리를 함께 든다 */
+type FactLine = { readonly text: string; readonly id: string; readonly spots: readonly Spot[] };
+
+const WHO_ORDER = { '': 0, 'A ': 0, 'B ': 1 } as const;
+const POSITION_ORDER: Record<PillarPosition, number> = { year: 0, month: 1, day: 2, hour: 3 };
+const TARGET_ORDER: Record<keyof typeof TARGET_KO, number> = { stem: 0, branch: 1, pillar: 2 };
+
+/**
+ * **자리 색인** — 자리마다 걸린 사실의 **번호만** 모은다(G-33, 2026-09-23).
+ *
+ * 사실을 다시 적지 않는다. 색인이 사실을 되풀이하면 한 사실이 자리 수만큼 세어지고, 그것이
+ * 9/1 실험의 색인이 못 막은 것이다(ADR 0099). 여기 줄은 목록 줄을 가리키는 참조뿐이다.
+ * 한 자리에 같은 번호가 두 번 서지 않는다.
+ */
+function positionIndexOf(lines: readonly FactLine[]): string[] {
+  const byPlace = new Map<string, { spot: Spot; ids: string[] }>();
+  for (const line of lines) {
+    for (const spot of line.spots) {
+      const found = byPlace.get(spot.label) ?? { spot, ids: [] };
+      if (!found.ids.includes(line.id)) found.ids.push(line.id);
+      byPlace.set(spot.label, found);
+    }
+  }
+  return [...byPlace.values()]
+    .sort(
+      (x, y) =>
+        WHO_ORDER[x.spot.who] - WHO_ORDER[y.spot.who] ||
+        POSITION_ORDER[x.spot.position] - POSITION_ORDER[y.spot.position] ||
+        TARGET_ORDER[x.spot.target] - TARGET_ORDER[y.spot.target],
+    )
+    .map(({ spot, ids }) => `- ${spot.label} : ${ids.join(' · ')}`);
+}
+
 /**
  * 계산판 이름을 사람 표시로 — **모르는 판은 멈춘다.**
  *
@@ -168,7 +209,7 @@ const TARGET_KO = { stem: '간', branch: '지', pillar: '주' } as const;
  * 판), 두 원국 사이는 `natal:a`·`natal:b` 다. 운의 판(`decade:3` 같은 것)은 이 목록에 안
  * 싣는다 — 들어오면 원국의 같은 자리명과 섞이므로 A 로 적지 않고 던진다.
  */
-function whoOf(chartId: string, own: '' | 'A ' | 'B '): string {
+function whoOf(chartId: string, own: '' | 'A ' | 'B '): '' | 'A ' | 'B ' {
   if (chartId === 'natal') return own;
   if (chartId === 'natal:a') return 'A ';
   if (chartId === 'natal:b') return 'B ';
@@ -181,9 +222,15 @@ function whoOf(chartId: string, own: '' | 'A ' | 'B '): string {
  * 자리마다 줄을 쪼개면 한 사실이 여러 번 세어진다. 완성 여부·형의 이름·방향·순환·쟁합은
  * 자료에 있는 그대로 붙인다.
  */
-function relationLine(relation: FactRelation, own: '' | 'A ' | 'B '): string {
+function relationLine(relation: FactRelation, own: '' | 'A ' | 'B ', id: string): FactLine {
   const tier = relation.tier === 'stem' ? '간' : '지';
   const place = (p: Participant) => `${whoOf(p.chartId, own)}${PLACE_KO[p.position]}${tier} ${p.char}`;
+  const spot = (p: Participant): Spot => ({
+    who: whoOf(p.chartId, own),
+    position: p.position,
+    target: relation.tier === 'stem' ? 'stem' : 'branch',
+    label: place(p),
+  });
 
   const sides =
     relation.direction === null
@@ -200,7 +247,11 @@ function relationLine(relation: FactRelation, own: '' | 'A ' | 'B '): string {
     ),
   ].filter((note) => note !== null);
 
-  return `- ${sides} : ${name}${notes.length > 0 ? ` (${notes.join(' / ')})` : ''}`;
+  return {
+    text: `- [${id}] ${sides} : ${name}${notes.length > 0 ? ` (${notes.join(' / ')})` : ''}`,
+    id,
+    spots: relation.participants.map(spot),
+  };
 }
 
 /**
@@ -212,38 +263,58 @@ function relationLine(relation: FactRelation, own: '' | 'A ' | 'B '): string {
  *
  * 12신살은 네 자리마다 늘 하나씩 서므로 여기 안 싣는다 — 자료에는 그대로 있다.
  */
-function sinsalLines(chart: SummarizedChart, who: '' | 'A ' | 'B '): string[] {
+function sinsalLines(chart: SummarizedChart, who: '' | 'A ' | 'B '): Omit<FactLine, 'id'>[] {
   const { sinsal, pillars } = chart;
   if (sinsal === undefined) return [];
 
   const stars = sinsal.stars.map((star) => {
     const basis = star.basis === null ? '' : ` [기준 ${who}${star.basis.label} ${star.basis.char}]`;
-    const hits = star.hits
-      .map((hit) => `${who}${PLACE_KO[hit.position]}${TARGET_KO[hit.target]} ${hit.char}`)
-      .join(' · ');
-    return `- ${star.ko}${basis} : ${hits}`;
+    const spots = star.hits.map(
+      (hit): Spot => ({
+        who,
+        position: hit.position,
+        target: hit.target,
+        label: `${who}${PLACE_KO[hit.position]}${TARGET_KO[hit.target]} ${hit.char}`,
+      }),
+    );
+    return { text: `${star.ko}${basis} : ${spots.map((one) => one.label).join(' · ')}`, spots };
   });
 
   /* 공망은 원국에 그 지지가 실제로 놓였을 때만 줄이 선다 — 걸린 자리가 없으면 걸린 것이 없다 */
   const empties = sinsal.emptiness
     .filter((empty) => empty.positions.length > 0)
     .map((empty) => {
-      const hits = empty.positions
-        .map((position) => `${who}${PLACE_KO[position]}지 ${pillars[position]!.branch}`)
-        .join(' · ');
-      return `- 공망 [기준 ${who}${PLACE_KO[empty.basis]}주 ${empty.basisPillar} → ${empty.branches.join('·')}] : ${hits}`;
+      const spots = empty.positions.map(
+        (position): Spot => ({
+          who,
+          position,
+          target: 'branch',
+          label: `${who}${PLACE_KO[position]}지 ${pillars[position]!.branch}`,
+        }),
+      );
+      return {
+        text: `공망 [기준 ${who}${PLACE_KO[empty.basis]}주 ${empty.basisPillar} → ${empty.branches.join('·')}] : ${spots.map((one) => one.label).join(' · ')}`,
+        spots,
+      };
     });
 
   return [...stars, ...empties];
 }
 
+/* 색인이 드는 새 글자 셋 — 2026-09-23 에 사람이 승인했다(G-33) */
+const INDEX_TITLE = '자리 색인';
+const INDEX_NOTE = (numbers: string) =>
+  `줄 앞의 ${numbers} 은 사실의 번호다. 맨 아래 **${INDEX_TITLE}**은 자리마다 걸린 사실의 번호만 모은 것이다 — 새 사실이 아니고, 번호 하나는 사실 하나다.`;
+const INDEX_RULE =
+  '한 자리에 번호가 여럿 서도 사실마다 한 번만 해석하고, 같은 번호를 자리마다 되풀이해 세지 마라.';
+
 /**
  * **자리가 붙은 사실 목록** — 관계와 신살을 어느 기둥의 천간·지지에 걸렸는지와 함께.
  *
  * 한눈에와 같은 규율이다 — **다시 세지 않고 모으지도 않는다.** 원본 사실 하나를 한 줄로
- * 옮길 뿐이다. 자리별로 묶은 색인은 만들지 않는다 — 모델 입력에 색인을 더한 실험에서
- * 실익이 확인되지 않았고(PRD §8.5), 그 까닭으로 자료구조 자체를 버린 것은 아니다
- * (`now.overlaps` 는 화면과 프롬프트가 쓴다).
+ * 옮길 뿐이다. 줄마다 번호가 붙고, 맨 아래 자리 색인이 그 번호를 자리별로 모은다
+ * (G-33, 2026-09-23 — 사람의 새 결정이다. 9/1 실험은 색인의 실익을 못 보였다, ADR 0099).
+ * 색인은 번호만 들고 사실을 다시 적지 않는다.
  *
  * **자료가 든 만큼만 싣는다.** 공유 궁합 자료에는 원국 안 관계와 신살이 아예 없고
  * (`WITHHELD_PATHS`), 그러면 여기에도 두 원국 사이의 관계만 선다. 목록이 자료보다 넓으면
@@ -257,20 +328,28 @@ function positionFactsOf(evidence: Summarizable): string | null {
   const charts: ['' | 'A ' | 'B ', SummarizedChart][] = solo ? [['', a]] : [['A ', a], ['B ', b]];
 
   /* 두 사람이면 원국 안과 사이를 갈라 적는다 — 섞이면 A 끼리의 합이 두 사람 사이 일로 읽힌다 */
+  const facts: FactLine[] = [];
   const relations: string[] = [];
-  const group = (title: string, lines: string[]) => {
+  const nextRelation = () => `R${facts.filter((line) => line.id.startsWith('R')).length + 1}`;
+  const group = (title: string, found: readonly FactRelation[], own: '' | 'A ' | 'B ') => {
+    const lines = found.map((relation) => {
+      const line = relationLine(relation, own, nextRelation());
+      facts.push(line);
+      return line.text;
+    });
     if (lines.length === 0) return;
     relations.push(...(solo ? lines : [title, ...lines]));
   };
-  for (const [who, chart] of charts) {
-    group(`(${who.trim()} 원국 안)`, (chart.relations ?? []).map((relation) => relationLine(relation, who)));
-  }
-  group(
-    '(두 사람 사이)',
-    (evidence.compatibility?.relations ?? []).map((relation) => relationLine(relation, '')),
-  );
+  for (const [who, chart] of charts) group(`(${who.trim()} 원국 안)`, chart.relations ?? [], who);
+  group('(두 사람 사이)', evidence.compatibility?.relations ?? [], '');
 
-  const sinsal = charts.flatMap(([who, chart]) => sinsalLines(chart, who));
+  const sinsal = charts
+    .flatMap(([who, chart]) => sinsalLines(chart, who))
+    .map((line, at) => {
+      const numbered = { ...line, id: `S${at + 1}`, text: `- [S${at + 1}] ${line.text}` };
+      facts.push(numbered);
+      return numbered.text;
+    });
 
   const carriesRelations =
     charts.some(([, chart]) => chart.relations !== undefined) ||
@@ -279,16 +358,19 @@ function positionFactsOf(evidence: Summarizable): string | null {
   if (!carriesRelations && !carriesSinsal) return null;
 
   const people = solo ? '' : '\nA 는 `charts.a`, B 는 `charts.b` 다.';
+  const index = positionIndexOf(facts);
   const blocks = [
     carriesRelations ? `관계\n${relations.length > 0 ? relations.join('\n') : '- 없음'}` : null,
     carriesSinsal ? `신살\n${sinsal.length > 0 ? sinsal.join('\n') : '- 없음'}` : null,
+    index.length > 0 ? `${INDEX_TITLE}\n${index.join('\n')}` : null,
   ].filter((block) => block !== null);
+  const numbers = carriesSinsal ? '`[R1]`·`[S1]`' : '`[R1]`';
 
   return `## 자리가 붙은 사실
 
-아래 자료의 ${carriesSinsal ? '관계와 신살(12신살 제외)·공망을' : '관계를'} **한 사실에 한 줄로, 걸린 자리와 함께** 옮긴 것이다. 간은 천간, 지는 지지, 주는 기둥 전체다.${carriesSinsal ? ' 신살의 \`[기준 …]\` 은 판정에 쓴 글자이고 \`:\` 뒤가 실제로 걸린 자리다 — 기준 글자는 걸린 자리가 아니다.' : ''}${people}
+아래 자료의 ${carriesSinsal ? '관계와 신살(12신살 제외)·공망을' : '관계를'} **한 사실에 한 줄로, 걸린 자리와 함께** 옮긴 것이다. 간은 천간, 지는 지지, 주는 기둥 전체다. ${INDEX_NOTE(numbers)}${carriesSinsal ? ' 신살의 \`[기준 …]\` 은 판정에 쓴 글자이고 \`:\` 뒤가 실제로 걸린 자리다 — 기준 글자는 걸린 자리가 아니다.' : ''}${people}
 
-${carriesSinsal ? '관계나 신살을' : '관계를'} 해석할 때 **어느 기둥의 천간인지 지지인지 확인하고, 서로 다른 자리의 사실을 임의로 잇지 마라.** 두 사실을 겹쳐 읽을 수 있는 것은 같은 자리 — 같은 사람, 같은 기둥, 같은 천간 또는 지지 — 에 실제로 함께 걸렸을 때뿐이다.
+${carriesSinsal ? '관계나 신살을' : '관계를'} 해석할 때 **어느 기둥의 천간인지 지지인지 확인하고, 서로 다른 자리의 사실을 임의로 잇지 마라.** 두 사실을 겹쳐 읽을 수 있는 것은 같은 자리 — 같은 사람, 같은 기둥, 같은 천간 또는 지지 — 에 실제로 함께 걸렸을 때뿐이다. ${INDEX_RULE}
 
 ${blocks.join('\n\n')}`;
 }
@@ -303,10 +385,8 @@ export function withSummary(
   body: string,
   evidence: Summarizable,
   /**
-   * 자리가 붙은 사실 목록을 싣는가 — **지금은 두 궁합만**(2026-09-15).
-   *
-   * 목록은 모든 kind 에 맞게 지었지만 운영에 올린 것은 인연 궁합과 비공개 궁합이다. 개인 풀이 프롬프트는
-   * 바꾸지 않기로 했으므로 그 kind 에서는 끈다.
+   * 자리가 붙은 사실 목록을 싣는가 — **모든 kind 가 싣는다**(G-33, 2026-09-23). 2026-09-15 부터는 두 궁합만
+   * 실었다. 끄는 자리는 목록 자체를 재는 시험만 쓴다.
    */
   options: { positionFacts: boolean } = { positionFacts: true },
 ): string {

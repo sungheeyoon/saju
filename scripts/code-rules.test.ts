@@ -503,7 +503,7 @@ describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
 
   it('줄마다 번호가 하나씩이고 상태는 다섯 중 하나다', () => {
     // 파싱이 0 으로 떨어지는 것을 막는 문턱이다 — 줄이 닫혀 줄어드는 것은 정상이다. 수를 걸면 닫을 때마다
-    // 문턱을 내려야 한다(2026-09-23 에 21 → 16 → 13줄)
+    // 문턱을 내려야 한다(2026-09-23 에 21 → 16 → 12줄, § 17 → 10)
     expect(rows.length).toBeGreaterThan(0);
     const ids = rows.map((cells) => cells[1]);
     expect(new Set(ids).size).toBe(ids.length);
