@@ -21,10 +21,11 @@ import { passNotice, chartArgs } from './notice.mjs';
 import { createChecks, sql } from './checks.mjs';
 /** 공개 범위 목록의 **제품 원본** — 손으로 베끼면 문구가 바뀐 날 검사만 옛 글자를 든다 */
 import { MATCH_DISCLOSURE } from '../src/lib/consent/disclosure.ts';
+import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
-const PORT = Number(process.env.CHECK_PORT ?? 3213);
+const PORT = Number(process.env.CHECK_PORT ?? worktreeStack().checkPort + 3);
 
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 

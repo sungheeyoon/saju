@@ -32,10 +32,11 @@ import { createChecks, sql } from './checks.mjs';
  * 하나도 없는 leaf 라 Node 가 그대로 읽는다.
  */
 import { READING_STALE_NOTE } from '../src/lib/reading/notes.ts';
+import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
-const PORT = Number(process.env.CHECK_PORT ?? 3214);
+const PORT = Number(process.env.CHECK_PORT ?? worktreeStack().checkPort + 4);
 
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 

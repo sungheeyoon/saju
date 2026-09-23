@@ -21,10 +21,11 @@ import { execFileSync } from 'node:child_process';
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
 import { createChecks } from './checks.mjs';
+import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
-const PORT = Number(process.env.CHECK_PORT ?? 3216);
+const PORT = Number(process.env.CHECK_PORT ?? worktreeStack().checkPort + 6);
 
 /**
  * 프로덕션 배포인 척한다 — **미리보기 그림이 절대 주소여야 하기 때문**이다.

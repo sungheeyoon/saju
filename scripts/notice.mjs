@@ -11,6 +11,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { worktreeStack } from '../src/lib/local-env.ts';
 
 const source = readFileSync(new URL('../src/lib/consent/notice.ts', import.meta.url), 'utf8');
 
@@ -81,7 +82,7 @@ export const chartArgs = (seed = '', hasHour = true) => ({
 export const CHECK_CODE = 'CHECKCODE';
 
 const psql = (statement) =>
-  execFileSync('docker', ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq',
+  execFileSync('docker', ['exec', '-i', worktreeStack().dbContainer, 'psql', '-U', 'postgres', '-tAq',
     '-c', statement], { encoding: 'utf8' });
 
 /**
