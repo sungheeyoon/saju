@@ -49,9 +49,20 @@ const STEMS = '甲乙丙丁戊己庚辛壬癸';
 const BRANCHES = '子丑寅卯辰巳午未申酉戌亥';
 const PLACED = new RegExp(`([년월일시])(간|지)\\s*(?:의\\s*)?([${STEMS}${BRANCHES}])`, 'g');
 
-/** 글을 문장으로 — 마침표 · 물음표 · 느낌표 · 줄바꿈에서 자른다 */
+/**
+ * 글을 문장으로 — 마침표 · 물음표 · 느낌표 · 줄바꿈에서 자른다.
+ *
+ * **근거 줄은 뺀다**(`절 이름 — 결론 「…」 | 자료: … | 넘어간 것: …`, `parts.ts`). 그 줄은 한 결론이 기댄
+ * 사실을 늘어놓는 목록이지 두 사실을 한 자리에서 겹쳐 읽은 문장이 아니다. 2026-09-23 첫 실호출에서
+ * self · person 이 그 줄 때문에만 잡혔다 — 본문에는 천덕귀인 · 월덕귀인이 한 번도 안 나왔다.
+ */
 const sentencesOf = (markdown: string): string[] =>
-  markdown.split(/(?<=[.!?。])\s+|\n+/).map((one) => one.trim()).filter((one) => one.length > 0);
+  markdown
+    .split('\n')
+    .filter((line) => !line.includes(' | 자료: '))
+    .flatMap((line) => line.split(/(?<=[.!?。])\s+/))
+    .map((one) => one.trim())
+    .filter((one) => one.length > 0);
 
 export function positionSlips(markdown: string, evidence: Checked): PositionSlip[] {
   const charts = [evidence.charts.a, evidence.charts.b].filter((one): one is CheckedChart => one !== null);

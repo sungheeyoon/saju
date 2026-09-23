@@ -33,6 +33,10 @@ describe('자리 검사', () => {
   it('천간에만 걸린 신살과 같은 기둥 지지의 관계를 한 문장에 묶으면 잡는다', () => {
     expect(codes('천덕귀인이 사오미 화방의 기운을 받쳐 줍니다.')).toEqual(['stem-sinsal-with-branch-relation']);
     expect(codes('천덕귀인이 있습니다. 사오미 화방도 섭니다.')).toEqual([]);
+    /* 근거 줄은 결론이 기댄 사실의 목록이다 — 묶어 읽은 문장이 아니다 */
+    expect(
+      codes('귀인과 기회 — 결론 「…」 | 자료: charts.a.sinsal.stars 천덕귀인 [사실] · charts.a.relations 사오미 화방 [사실] | 넘어간 것: …'),
+    ).toEqual([]);
   });
 
   it('시간 미상에서 일부만 선 합을 이뤘다고 단정하면 잡는다', () => {
