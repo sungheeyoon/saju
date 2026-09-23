@@ -124,3 +124,16 @@ main 에 직접 미는 일이 있다.
   자리다.
 - **`docs/test-strategy.md`.** 이슈가 가리켰지만 없던 파일이다. 원칙은 이 ADR 과
   `ci-plan.mjs` 머리말에 있고, 매트릭스 본체는 코드다 — 셋째 자리를 만들지 않았다.
+
+## 머지는 한 줄로 선다 (2026-09-23, #143)
+
+여러 세션이 나란히 머지하자 두 구멍이 드러났다. 보호 규칙의 `strict` 가 `false` 라 PR 은 **제 기준 main**
+위에서만 gate 를 지났다 — 둘이 연달아 들면 합쳐진 상태는 머지 전에 아무도 안 쟀다. 그리고 그 뒤의 검증인
+main 푸시 실행은 `cancel-in-progress` 로 다음 푸시에 끊겼다. 그날 main 실행 넷이 `cancelled` 였다.
+
+- **strict 를 켰다.** PR 은 최신 main 을 품어야 든다. auto-merge 는 가지를 스스로 올리지 않으므로 `BEHIND`
+  인 PR 은 `gh pr update-branch` 로 main 을 merge 하고(force push 없음) gate 를 다시 지난다. 나란히 선
+  PR 마다 차선 한 벌(약 5분)이 더 도는 값이다.
+- **머지 큐는 못 쓴다.** 개인 계정의 저장소라 GitHub 이 주지 않는다(조직 소유여야 한다). strict 가 그 자리다.
+- **main 푸시의 실행은 커밋마다 제 그룹이다.** `cancel-in-progress: false` 만으로는 모자란다 — 같은 그룹에서
+  기다리던 실행은 새 실행이 오면 취소된다. PR 은 전처럼 끊는다.
