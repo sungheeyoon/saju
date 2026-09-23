@@ -366,8 +366,9 @@ const isolate = (emails) => {
     check('반환에 0~100 첫인상 궁합이 있다',
       Number.isInteger(rows?.[0]?.preview_score) && rows[0].preview_score >= 0 && rows[0].preview_score <= 100,
       String(rows?.[0]?.preview_score));
+    /* `activity` 는 구간 셋 중 하나다 — 시각이 아니다(ADR 0092). 카드에 서는 값이라 여기 든다 */
     check('반환은 카드에 설 값뿐이다',
-      keys.join(',') === 'balance_band,candidate_user_id,exploration,has_photo,intro,nickname,preview_score,seat,supplied_elements',
+      keys.join(',') === 'activity,balance_band,candidate_user_id,exploration,has_photo,intro,nickname,preview_score,seat,supplied_elements',
       keys.join(','));
 
     const axis = await me.rpc('discovery_count_balance_v1', { a: {}, b: {} });

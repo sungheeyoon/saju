@@ -1513,6 +1513,29 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activity: {
+        Row: {
+          last_active_at: string
+          user_id: string
+        }
+        Insert: {
+          last_active_at?: string
+          user_id: string
+        }
+        Update: {
+          last_active_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_person_access: {
         Row: {
           created_at: string
@@ -1576,6 +1599,7 @@ export type Database = {
       }
     }
     Functions: {
+      activity_band_of: { Args: { p_user_id: string }; Returns: string }
       add_person_revision: {
         Args: {
           p_birth_time: string
@@ -1884,6 +1908,7 @@ export type Database = {
           last_message_body: string
           match_id: string
           opened_at: string
+          partner_activity: string
           partner_has_photo: boolean
           partner_nickname: string
           partner_user_id: string
@@ -1893,6 +1918,7 @@ export type Database = {
       my_discovery_board: {
         Args: never
         Returns: {
+          activity: string
           balance_band: string
           candidate_user_id: string
           exploration: boolean
@@ -2235,6 +2261,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      presence_day_window: { Args: never; Returns: string }
+      presence_now_window: { Args: never; Returns: string }
+      presence_policy: {
+        Args: never
+        Returns: {
+          day_window_seconds: number
+          now_window_seconds: number
+          write_window_seconds: number
+        }[]
+      }
+      presence_write_window: { Args: never; Returns: string }
       purge_closed_chat_messages: { Args: never; Returns: number }
       reading_about: {
         Args: {
@@ -2502,6 +2539,7 @@ export type Database = {
           run_id: string
         }[]
       }
+      touch_activity: { Args: never; Returns: boolean }
       unread_chat_count: { Args: never; Returns: number }
       unread_notifications: { Args: never; Returns: number }
       visible_matches: {
