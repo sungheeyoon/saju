@@ -1,5 +1,5 @@
 /**
- * 원격 DB 에 닿는 명령을 **기계 전체에서 한 번에 하나만** 돌린다 — `npm run db:push` · `npm run db:remote -- "<sql>"`.
+ * 원격 DB 에 닿는 명령을 **기계 전체에서 한 번에 하나만** 돌린다 — `npm run db:push` · `npm run db:remote -- --purpose "<목적>" "<sql>"`(목적과 해시를 접속기록에 먼저 적는다, `db-remote.mjs`).
  *
  * 로컬 스택은 워크트리마다 가를 수 있지만(ADR 0096) 운영 DB 는 하나다. 두 세션이 나란히 `db push` 를 하면
  * 서로 다른 가지의 마이그레이션이 섞여 오르고, `db query --linked` 는 나란히 부르면 로그인 역할을 세우다

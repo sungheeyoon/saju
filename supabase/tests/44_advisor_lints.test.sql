@@ -18,7 +18,7 @@ select ok(
 select is(
   (select coalesce(array_agg(n.nspname || '.' || p.proname order by 1), '{}')
    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname in ('public', 'retention')
+   where n.nspname in ('public', 'retention', 'audit')
      and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
      and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%')),
   '{}'::text[],

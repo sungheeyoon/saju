@@ -76,7 +76,7 @@
 | `scripts/` | 흐름 검사·생성기·UI 훑기. **화면 모듈을 안 부른다** — 주소로 두드린다 | `src/lib` |
 | `e2e/` | Playwright. 같다 | `src/lib` |
 | `app/me/reading/model.ts` | **모델을 부르는 유일한 자리**(ADR 0047) | `ai` · `openai` |
-| 비밀을 읽는 모듈 | `app/keyed-client.ts` · `app/me/reading/model.ts` · `app/api/cron/reading/route.ts` — 첫 줄이 `import 'server-only'` 라 화면 층이 부르면 빌드가 선다. 새 비밀은 `scripts/secret-env.mjs` 의 갈래에 먼저 서고, `scripts/secret-env.test.ts` 가 둘을 견준다(G-23 ⑧) | 서버 환경변수 |
+| 비밀을 읽는 모듈 | `app/keyed-client.ts` · `app/me/reading/model.ts` · `app/api/cron/reading/route.ts` · `app/api/cron/audit-export/route.ts`(접속기록 반출, ADR 0105) — 첫 줄이 `import 'server-only'` 라 화면 층이 부르면 빌드가 선다. 새 비밀은 `scripts/secret-env.mjs` 의 갈래에 먼저 서고, `scripts/secret-env.test.ts` 가 둘을 견준다(G-23 ⑧) | 서버 환경변수 |
 
 ## 새 것을 놓을 때
 

@@ -37,6 +37,9 @@ export const SECRET_ENV = [
   /** `openai` 의 `webhooks.unwrap` 이 제 안에서 읽는다 */
   'OPENAI_WEBHOOK_SECRET',
   'CRON_SECRET',
+  /** 접속기록 반출(S3) 의 IAM 키 둘 — 그 버킷에 `s3:PutObject` 만 할 수 있다 (G-23 ⑩, ADR 0105) */
+  'AUDIT_EXPORT_ACCESS_KEY_ID',
+  'AUDIT_EXPORT_SECRET_ACCESS_KEY',
 ];
 
 /** 브라우저가 본다 — 빌드 때 번들에 박힌다. 비밀을 여기 두는 순간 공개된다 */
@@ -51,6 +54,9 @@ export const CONFIG_ENV = [
   'VERCEL_ENV',
   'VERCEL_URL',
   'VERCEL_PROJECT_PRODUCTION_URL',
+  /** 접속기록 반출의 버킷 이름과 지역 — 비밀이 아니다. 넷 중 하나라도 없으면 반출은 「설정 안 됨」이다 */
+  'AUDIT_EXPORT_BUCKET',
+  'AUDIT_EXPORT_REGION',
 ];
 
 /** 제 안에서 비밀을 읽는 패키지 — 이것을 부르는 모듈도 비밀을 읽는 모듈이다 */

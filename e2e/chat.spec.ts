@@ -97,7 +97,11 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     // 상대의 목록에 안 읽은 수가 서고, 들어가면 읽은 것이 된다
     await b.page.goto('/me/chat');
     await expect(b.page.getByText(hello)).toBeVisible();
-    await expect(b.page.getByText('1건 안 읽음')).toBeVisible();
+    // 목록의 그 방 줄에 선 수를 본다 — 헤더 · 모바일 탭의 배지도 같은 글자라 페이지 전체로 찾으면 셋에 걸린다
+    // (운영 빌드에서는 헤더가 먼저 읽어 셋이 함께 선다)
+    await expect(
+      b.page.getByRole('link', { name: new RegExp(`가${tag}`) }).getByText('1건 안 읽음'),
+    ).toBeVisible();
     await b.page.getByRole('link', { name: new RegExp(`가${tag}`) }).click();
     await expect(b.page.getByText(hello)).toBeVisible();
     // 방 안에서 읽음이 끝나면 **주소를 안 옮겨도** 헤더의 배지가 내려간다
