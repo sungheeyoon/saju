@@ -441,10 +441,13 @@ for (const [label, address, said] of [
     `적힘 ${metaIn(said, 'og:image:width')}x${metaIn(said, 'og:image:height')} · 파일 ${real?.width}x${real?.height}`);
 }
 
-const missing = await get('/share/readings/0123456789abcdef0123456789abcdef');
-const missingHtml = await missing.text();
-check('없는 토큰은 404 로 안내한다',
-  missing.status === 404 && missingHtml.includes('열 수 없는 링크입니다'), `HTTP ${missing.status}`);
+/* 세 주소가 `app/share/not-found.tsx` 한 화면으로 온다 — 하나만 재면 둘이 빠져도 모른다(G-45) */
+for (const kind of ['readings', 'people', 'compat']) {
+  const missing = await get(`/share/${kind}/0123456789abcdef0123456789abcdef`);
+  const missingHtml = await missing.text();
+  check(`${kind} — 없는 토큰은 404 로 안내한다`,
+    missing.status === 404 && missingHtml.includes('열 수 없는 링크입니다'), `HTTP ${missing.status}`);
+}
 
 // ── 다시 만들어도 보낸 글은 그대로 ─────────────────────────────────────────
 

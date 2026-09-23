@@ -368,3 +368,9 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   견줬다). `share_my_reading` 은 errcode 없이(`P0001`) 던지던 그대로 둔다. `supabase/tests/36_suspended_sentence`
   가 옛 문장이 남은 함수 0 과 대표 함수 아홉의 새 문장을 잰다. `app/db-error.ts` 는 문장을 그대로 내보내므로
   코드는 안 바뀌고 주석과 시험의 예문만 옮겼다
+- **2026-09-23** — **G-45 닫힘 — 공유 링크의 열 수 없는 화면이 하나가 됐다.** 잰 값: `app/share/{readings,people,compat}/[token]/not-found.tsx`
+  셋이 md5 까지 같았고(`e5b80ba4…`), 세 주소 다 같은 `SharedReadingView` 가 같은 조건(`sharedReadingOf` 가 `null`)에서
+  `notFound()` 를 던졌다. 대장의 가설 「사람 공유 링크가 풀이라고 말한다」는 어긋남이 아니었다 — 사람 공유도 §4.8 의
+  「저장한 사람의 풀이」이고 궁합도 궁합풀이라 「남아 있지 않은 풀이」는 셋 다에 맞는 말이다. §4.8 「이유를 안 가른다 ·
+  같은 화면이다」대로 `app/share/not-found.tsx` 한 파일로 모았고 문구는 그대로다. `scripts/check-share.mjs` 는
+  `readings` 하나만 재던 것을 세 주소 다 잰다
