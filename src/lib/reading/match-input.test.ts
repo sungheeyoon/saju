@@ -83,7 +83,8 @@ describe('두 판이 제각기 앞뒤가 맞는다', () => {
   /** 요약의 쟁합 줄은 자료의 쟁합과 같은 수다 — 요약이 자료보다 넓거나 좁지 않다 */
   it.each(built)('$variant.id — 자리 목록의 관계 줄과 쟁합은 자료와 같다', ({ reading, head }) => {
     const facts = blockOf(head, '## 자리가 붙은 사실');
-    const lines = facts.split('\n').filter((line) => line.startsWith('- '));
+    /* 맨 아래 자리 색인은 번호만 드는 참조라 사실 줄로 세지 않는다 */
+    const lines = facts.slice(0, facts.indexOf('\n자리 색인\n')).split('\n').filter((line) => line.startsWith('- '));
     const { relations } = reading.evidence.compatibility;
 
     expect(lines).toHaveLength(relations.length);

@@ -34,6 +34,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_disposal: {
+        Row: {
+          attempts: number
+          disposed_at: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          requested_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          disposed_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          requested_at: string
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          disposed_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          requested_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       app_user: {
         Row: {
           contact_consent: boolean | null
@@ -1581,6 +1611,24 @@ export type Database = {
           },
         ]
       }
+      verification_account: {
+        Row: {
+          added_at: string
+          note: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          note: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          note?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       reading_spend_daily: {
@@ -1594,11 +1642,26 @@ export type Database = {
           succeeded: number | null
           total_tokens: number | null
           usage_unknown: number | null
+          verification_attempts: number | null
+          verification_failed: number | null
+          verification_succeeded: number | null
+          verification_total_tokens: number | null
         }
         Relationships: []
       }
     }
     Functions: {
+      account_disposal_deadline: { Args: never; Returns: string }
+      account_disposal_grace: { Args: never; Returns: string }
+      account_residue: {
+        Args: {
+          p_mail: string
+          p_matches: string[]
+          p_sides: string[]
+          p_user_id: string
+        }
+        Returns: string[]
+      }
       activity_band_of: { Args: { p_user_id: string }; Returns: string }
       adopt_reading_job: {
         Args: { p_response_id: string; p_run_id: string }
@@ -1777,6 +1840,7 @@ export type Database = {
         Args: { actor: string; other: string }
         Returns: boolean
       }
+      dispose_requested_accounts: { Args: never; Returns: number }
       edit_person_input: {
         Args: {
           p_birth_time: string
@@ -2583,6 +2647,7 @@ export type Database = {
         }
       }
       wake_reading_recovery: { Args: never; Returns: undefined }
+      watch_cron: { Args: never; Returns: number }
       write_person_input: {
         Args: {
           p_actor: string

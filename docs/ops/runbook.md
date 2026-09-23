@@ -615,19 +615,37 @@ order by count(*) desc;
 ## 탈퇴 신청의 처리
 
 사용자가 `/me/settings` 의 「탈퇴」에서 신청하면 상태가 **탈퇴 대기**(`deletion_requested`)로 옮겨지고,
-그 순간 후보 노출이 꺼지고 살아 있던 요청이 정리된다. **실제 처분은 사람이 한다** — 처분이 끝난 계정이
-**탈퇴**다(PRD §5.3). 이름은 2026-09-23 의 표를 따른다.
+그 순간 후보 노출이 꺼지고 살아 있던 요청이 정리된다. **처분은 크론이 한다**(2026-09-23, G-53, ADR 0094 덧) —
+처분이 끝난 계정이 **탈퇴**다(PRD §5.3).
+
+- **기한은 신청 뒤 3일이다** — 달력의 날이고 주말 · 공휴일을 안 가른다. 시계는 앱이 적은
+  `deletion_requested_at` 하나다. **연락처로 요청하는 경로는 없다.**
+- 크론 `account-disposal`(매시 23분)이 **신청 뒤 하루가 지난** 대기를 집어 `forget_user` 를 돌리고, 바로
+  흔적을 잰다(`account_residue`). 흔적이 남으면 처분째 되감기고 계정은 대기에 남아 다음 시간에 다시 집힌다.
+  하루를 두는 것은 되돌릴 틈이고, 남은 이틀은 다시 시도할 여유다.
+- **운영자가 할 일은 알림이 왔을 때뿐이다.** `account-disposal-failed`(실패) · `account-disposal-overdue`
+  (신청 뒤 3일이 지난 대기가 있다). 성공은 안 알린다.
 
 ```sql
--- 처리할 요청 — 신청한 지 영업일 3일이 지난 것부터
-select u.email, a.id, a.deletion_requested_at,
-       (select count(*) from public.match m where m.user_low = a.id or m.user_high = a.id) as 성립한_match,
-       (select count(*) from public.chat_room r where a.id in (r.user_low, r.user_high)) as 대화방,
-       (select count(*) from public.report r where a.id in (r.reporter_user_id, r.reported_user_id)) as 신고
-from public.app_user a join auth.users u on u.id = a.id
+-- 기다리는 계정과 그 시도 — 실패한 줄만 id 를 든다
+select a.id, a.deletion_requested_at, d.attempts, d.last_attempt_at, d.last_error
+from public.app_user a
+left join public.account_disposal d on d.user_id = a.id
 where a.status = 'deletion_requested'
 order by a.deletion_requested_at;
+
+-- 처분된 것 — 누구였는지는 안 남는다. 신청 · 처분 시각과 시도 수만
+select requested_at, disposed_at, attempts from public.account_disposal
+where disposed_at is not null order by disposed_at desc limit 20;
+
+-- 크론이 도는가
+select jobname, schedule, active from cron.job where jobname = 'account-disposal';
 ```
+
+**실패했을 때.** `last_error` 가 원인을 든다 — 「처분 뒤 흔적이 남았다: <자리>」면 그 자리가
+`forget_user` 가 모르는 새 흔적이다. 그 자리를 `forget_user` 에 더하는 마이그레이션이 해법이고, 그때까지는
+크론이 한 시간마다 다시 실패하고 알린다(같은 종류는 하루 한 번). 손으로 급히 처분해야 하면 아래 한 줄과
+흔적 질의를 그대로 쓴다 — 크론과 같은 문이다.
 
 **무엇이 지워지고 무엇이 남는가**(2026-09-23, ADR 0094 · PRD §5.3). 처분은 아래 한 줄이고, 무엇을
 지우고 남기는지는 FK 와 트리거가 든다 — 운영자가 표마다 지우지 않는다.
@@ -640,8 +658,8 @@ order by a.deletion_requested_at;
 | Match 행 | **남는다** — 대화방을 매단 자리로만. 상대도 떠나면 방째 사라진다 |
 | 신고 · 신고 스냅샷 | **사라진다**(신고를 따라간다). 안전 운영에 남길 것이 있으면 **처분 전에** 위 「채팅 — 신고 스냅샷을 읽는다」로 떠 둔다(G-52) |
 
-- **처리 기한은 영업일 3일이다.** 화면과 처리방침이 그렇게 적혀 있다. 기한을 세는 크론은 없다 —
-  운영자가 위 질의로 보고 처분한다(G-53).
+- **처리 기한은 신청 뒤 3일이고 크론이 센다**(위). 화면과 처리방침의 「영업일 3일」 문장은 #165 가
+  `notice-v6` 으로 한 번에 고친다 — 그 사이에는 약속보다 빨리 지우는 쪽이다.
 - **되돌리려면 처분 전에** 상태를 `active` 로 되돌린다 — 닫힌 대화방은 다시 안 열린다(ADR 0091).
   처분 뒤에는 되돌릴 길이 없다.
 
@@ -877,8 +895,9 @@ provider 쪽에 있다.
 |---|---|---|
 | 사람당 풀이권 | 5 | `reading_credit_limit()` |
 | 사람당 시간당 | 20 (실패한 시도도 든다) | `reading_rate_limit()` |
-| **전체 하루** | **100** | `reading_daily_budget()` |
-| 운영자 경고 | 상한의 80% | `reading_budget_warning()` |
+| **전체 하루** | **500**(2026-09-23 에 100 → 500, G-03) | `reading_daily_budget()` |
+| 운영자 경고 | 상한의 80% — 400 | `reading_budget_warning()` |
+| 운영 검증 계정 | 세되 따로 낸다 | `verification_account` 표 · `reading_spend_daily` 의 `verification_*` 칸 |
 | 바깥 벽 | 월 예산·자동 충전 끔 | OpenAI 대시보드 |
 
 ### 얼마나 썼나
@@ -887,11 +906,29 @@ provider 쪽에 있다.
 -- 날짜·종류별 시도와 토큰. `usage_unknown` 이 크면 토큰 합이 실제보다 작다는 뜻이다.
 select * from public.reading_spend_daily order by day desc, kind;
 
+-- 실제 사용자의 수 — 운영 검증 계정의 시도를 뺀다(상한은 둘 다 센다)
+select day, sum(attempts - verification_attempts) as 사용자_시도,
+       sum(verification_attempts) as 검증_시도
+from public.reading_spend_daily group by day order by day desc;
+
 -- 오늘 몇 번 썼나 (상한이 보는 바로 그 수)
 select public.reading_spend_today() as 오늘, public.reading_daily_budget() as 상한;
 ```
 
 **금액은 여기 없다.** 단가는 provider 가 정하므로 토큰까지만 낸다 — 원 단위는 대시보드다.
+
+### 운영 검증 계정 — 누구의 시도를 따로 세나
+
+제품을 확인하려고 누르는 계정이다. **세는 것은 그대로이고**(토큰은 누가 눌렀든 나간다) 지출 표가
+그 계정의 수를 `verification_*` 칸에 따로 낸다. 주소는 저장소에 안 적는다 — 운영 DB 에만 둔다.
+
+```sql
+insert into public.verification_account (user_id, note)
+select id, '운영 검증 — <누가 언제>' from auth.users where email = '<주소>';
+
+-- 지금 몇이 서 있나 (주소는 찍지 않는다)
+select count(*) from public.verification_account;
+```
 
 ### 막혔을 때 — **하루 봉쇄를 푸는 한 줄**
 
@@ -900,7 +937,7 @@ OpenAI 장애로 실패가 쌓여 상한이 찼는데 사람들이 아직 못 �
 
 ```sql
 create or replace function public.reading_daily_budget()
-returns integer language sql immutable set search_path = '' as $$ select 300 $$;
+returns integer language sql immutable set search_path = '' as $$ select 800 $$;
 ```
 
 **올리기 전에 셋을 본다.**
@@ -912,7 +949,7 @@ returns integer language sql immutable set search_path = '' as $$ select 300 $$;
    안쪽을 바깥보다 높이 올리면 이 문서의 첫 줄이 거짓이 된다
 3. 장애가 끝났는가. 실패가 계속 나는 중에 올리면 **새는 구멍을 넓히는 것**이다
 
-**그날 안에 되돌린다.** 되돌리는 것도 같은 한 줄이고, 값만 100 이다. 안 되돌리면 다음
+**그날 안에 되돌린다.** 되돌리는 것도 같은 한 줄이고, 값만 500 이다. 안 되돌리면 다음
 사고 때 이 벽은 없는 것과 같다.
 
 ### 운영자 알림 배선
@@ -952,7 +989,19 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 실패**하고 있었고(`extensions.http_get` 은 없다 — `pg_net` 은 `net` 에 산다), 알림 배선을
 쏴 보다가 같은 착각을 발견해서야 드러났다(ADR 0039).
 
-**배포한 날과, 잡을 건드린 날에 한 번씩 본다.**
+**이제 감시기가 본다**(2026-09-23, G-42). 크론 `cron-watch`(10분마다)가 `watch_cron()` 으로 지난 한 시간을
+보고, 셋 중 하나면 `notify_ops` 로 한 줄을 보낸다 — 정상 실행은 아무것도 안 적는다. 같은 종류는 하루 한 번이다.
+
+| 종류 | 뜻 | 할 일 |
+| --- | --- | --- |
+| `cron-failed:<잡>` | 그 잡의 SQL 이 실패했다. 알림에 마지막 오류가 붙는다 | 아래 질의로 `return_message` 를 보고 함수를 고친다 |
+| `net-request-failed` | 크론이 밖으로 부른 요청이 2xx 가 아니었다 — 대부분 복구기다. 잡은 초록이어도 이것이 온다 | 403 이면 `CRON_SECRET` 과 Vault 의 `reading_recovery_secret` 이 갈렸다, 503 이면 Vercel 쪽 열쇠 · DB 문 |
+| `cron-inactive:<잡>` | 잡이 꺼져 있다 | 일부러 끈 것이 아니면 `select cron.alter_job(<jobid>, active := true)` |
+
+재시도 소진은 잡이 스스로 알린다 — `account-disposal-overdue`(G-53) · `reading-budget-reached`.
+
+**감시기가 못 보는 것 둘** — 감시기 자신이 계속 실패하는 것, `pg_cron` 이 통째로 멈춘 것. 그래서
+**배포한 날과, 잡을 건드린 날에 한 번씩은 여전히 본다.**
 
 ```sql
 select j.jobname, d.status, count(*) as 횟수,
@@ -964,7 +1013,8 @@ where d.start_time > now() - interval '24 hours'
 group by 1, 2 order by 1, 2;
 ```
 
-지금 서 있는 잡은 둘이다 — `reading-recovery`(1분)와 `match-request-expiry`(매시 7분).
+지금 서 있는 잡은 넷이다 — `reading-recovery`(1분) · `match-request-expiry`(매시 7분) ·
+`account-disposal`(매시 23분, G-53) · `cron-watch`(10분, G-42).
 **`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**
 
 ---
@@ -1012,6 +1062,55 @@ left join public.discovery_impression i on i.candidate_user_id = p.user_id
 where p.opted_in_at is not null
 group by 1;
 ```
+
+### 풀이 재사용 — 최소 측정 (G-37)
+
+로그인 사용자의 풀이 생성만 센다 — 외부 분석 도구 · 쿠키 · 익명 식별자는 없다(2026-09-23 사람의 결정).
+읽는 것은 `reading_run` 의 **사용자 ID · 상태 · 시각뿐**이고, 이메일 · 닉네임 · 출생정보 · 풀이 본문은 안 읽는다.
+복사해 두는 표도 없다 — 매번 이 질의가 센다. 운영 검증 계정(`verification_account`)은 뺀다.
+
+- **요청**은 시도 행 하나다 — 상한(G-03)이 세는 것과 같다. 개인 · 저장한 사람 · 직접 궁합 · 수락 뒤 자동 궁합 · 다시 받기가
+  다 들고, 자동 궁합은 그 행의 사용자에게 센다
+- **성공률**은 끝난 시도(성공 + 실패) 중 성공이다 — 도는 중인 것은 분모에 안 넣는다
+- **재사용률**은 첫 성공 뒤 30일이 **다 지난** 사람만 분모에 든다. 창이 아직 열린 사람은 따로 센다 — 섞으면 막 온
+  사람이 「안 돌아왔다」로 세어져 비율이 낮게 읽힌다
+- **탈퇴하면 빠진다.** `reading_run.user_id` 가 `on delete cascade` 라 처분 때 그 사람의 행이 지워진다(ADR 0094) —
+  비율은 남은 사용자의 것이다. 사용자별 화면은 만들지 않는다
+
+```sql
+with runs as (
+  select r.user_id, r.status, r.created_at
+  from public.reading_run r
+  where not exists (select 1 from public.verification_account v where v.user_id = r.user_id)
+),
+firsts as (
+  select user_id, min(created_at) as first_success
+  from runs where status = 'succeeded' group by user_id
+),
+again as (
+  select f.first_success,
+         exists (select 1 from runs r
+                 where r.user_id = f.user_id and r.status = 'succeeded'
+                   and r.created_at > f.first_success
+                   and r.created_at <= f.first_success + interval '30 days') as reused
+  from firsts f
+)
+select
+  (select count(*) from runs) as 요청,
+  (select count(*) from runs where status = 'succeeded') as 성공,
+  (select count(*) from runs where status = 'failed') as 실패,
+  round(100.0 * (select count(*) from runs where status = 'succeeded')
+        / nullif((select count(*) from runs where status <> 'running'), 0), 1) as 성공률,
+  (select count(*) from again where first_success <= now() - interval '30 days') as 창_닫힌_사람,
+  (select count(*) from again where first_success <= now() - interval '30 days' and reused) as 그중_다시_성공,
+  round(100.0 * (select count(*) from again where first_success <= now() - interval '30 days' and reused)
+        / nullif((select count(*) from again where first_success <= now() - interval '30 days'), 0), 1) as 재사용률,
+  (select count(*) from again where first_success > now() - interval '30 days') as 창_열린_사람,
+  (select count(*) from again where first_success > now() - interval '30 days' and reused) as 그중_이미_다시_성공;
+```
+
+2026-09-23 에 운영에서 한 번 돌린 값: 요청 29 · 성공 28 · 실패 1 · 성공률 96.6% · 창이 닫힌 사람 0(재사용률은 아직 없다) ·
+창이 열린 사람 12 중 이미 다시 성공한 사람 10. 검증 계정 1개를 뺀 수다.
 
 ---
 

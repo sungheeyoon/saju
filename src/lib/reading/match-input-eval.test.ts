@@ -84,6 +84,38 @@ describe('재는 법', () => {
     expect(one.relationCoverage.cited).toBe(1);
   });
 
+  /** 근거 칸에 자리 색인의 번호가 붙어도 같은 인용이다 — 2026-09-23 실호출의 인연 궁합이 그렇게 적었다(ADR 0099) */
+  describe('사실 번호가 붙은 인용', () => {
+    const measure = (cell: string) =>
+      measureMatchRun({
+        evidence: reading.evidence,
+        output: { markdown: `본문\n\n### 근거 (검사용)\n\n줄 | 자료: ${cell}`, score: null, metaphor: '요약' },
+        baseline: reading.baseline,
+        secrets: secretsOf(fixture),
+      });
+    const name = reading.evidence.compatibility.relations[0].ko;
+
+    it('번호가 있든 없든 같은 관계 인용으로 센다', () => {
+      for (const cell of [`relations ${name} [사실]`, `relations R4 ${name} [사실]`, `관계 S2 ${name} 2건 [사실]`]) {
+        const one = measure(cell);
+        expect(one.relationCoverage.cited, cell).toBe(1);
+        expect(one.unknownRelations, cell).toEqual([]);
+      }
+    });
+
+    it('번호가 붙어도 자료에 없는 관계는 여전히 잡는다', () => {
+      expect(measure('relations R9 없는충 [사실]').unknownRelations).toEqual(['없는충']);
+    });
+
+    it('번호가 아닌 토큰은 받지 않는다 — 관계명으로 삼키지도, 번호로 넘기지도 않는다', () => {
+      for (const cell of [`relations 4 ${name} [사실]`, `relations R ${name} [사실]`, `relations X4 ${name} [사실]`, `relations R4S2 ${name} [사실]`]) {
+        const one = measure(cell);
+        expect(one.relationCoverage.cited, cell).toBe(0);
+        expect(one.unknownRelations, cell).toEqual([]);
+      }
+    });
+  });
+
   it('자료에 없는 관계 이름과 경로를 근거 오류 후보로 센다', () => {
     expect(metrics.unknownRelations).toEqual(['없는충']);
     expect(metrics.absentPaths).toEqual(['analysis.eokbu']);
