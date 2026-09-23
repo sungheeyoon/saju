@@ -3,8 +3,7 @@ import { activityBandOf, type ActivityBand } from '@/src/lib/presence';
 import type { RpcRow } from '@/src/lib/db';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { dbFailure, type SkippableRead } from '../../db-error';
-import { readUnreadChat } from './unread';
+import { dbFailure } from '../../db-error';
 
 /**
  * 대화방 목록 — `my_chat_rooms` 하나가 내주는 것이 곧 화면이 보는 것이다(ADR 0091).
@@ -74,9 +73,4 @@ export async function chatRoomsForViewer(): Promise<readonly ChatRoom[]> {
 export async function chatRoomForViewer(matchId: string): Promise<ChatRoom | null> {
   const rooms = await chatRoomsForViewer();
   return rooms.find((room) => room.matchId === matchId) ?? null;
-}
-
-/** 서버 쪽 — 같은 문(`./unread`)에 쿠키 클라이언트를 넘긴다 */
-export async function unreadChatCount(): Promise<SkippableRead<number>> {
-  return readUnreadChat(await supabaseOnServer());
 }

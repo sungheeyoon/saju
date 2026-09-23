@@ -77,7 +77,7 @@ export const partnerNameOf = (room: {
 }): string => (room.partnerLeft ? LEFT_USER_LABEL : room.partnerNickname);
 
 /** `send_chat_message` 가 값으로 내는 셋 — 던지는 것은 문(`db-error`)이 옮긴다(ADR 0091) */
-export const SEND_OUTCOMES = ['sent', 'closed', 'rate_limited'] as const;
+const SEND_OUTCOMES = ['sent', 'closed', 'rate_limited'] as const;
 export type SendOutcome = (typeof SEND_OUTCOMES)[number];
 
 export const sendOutcomeOf = (value: unknown): SendOutcome | null =>
@@ -111,7 +111,7 @@ export const roomHeadingOf = (room: {
  * 보내기 전에 앱이 막는 것 둘 — 빈 본문과 너무 긴 본문. DB 도 같은 둘을 막지만(`22023`) 그
  * 문장은 「요청을 처리하지 못했습니다」로 바뀌어 사람에게 뜻이 없다. 그래서 앱이 먼저 본다.
  */
-export type BodyCheck = 'ok' | 'blank' | 'too_long';
+type BodyCheck = 'ok' | 'blank' | 'too_long';
 
 export const checkBody = (body: string): BodyCheck => {
   if (body.trim() === '') return 'blank';
