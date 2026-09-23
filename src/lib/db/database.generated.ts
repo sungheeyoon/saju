@@ -34,6 +34,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_disposal: {
+        Row: {
+          attempts: number
+          disposed_at: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          requested_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          disposed_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          requested_at: string
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          disposed_at?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          requested_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       app_user: {
         Row: {
           contact_consent: boolean | null
@@ -1621,6 +1651,17 @@ export type Database = {
       }
     }
     Functions: {
+      account_disposal_deadline: { Args: never; Returns: string }
+      account_disposal_grace: { Args: never; Returns: string }
+      account_residue: {
+        Args: {
+          p_mail: string
+          p_matches: string[]
+          p_sides: string[]
+          p_user_id: string
+        }
+        Returns: string[]
+      }
       activity_band_of: { Args: { p_user_id: string }; Returns: string }
       adopt_reading_job: {
         Args: { p_response_id: string; p_run_id: string }
@@ -1799,6 +1840,7 @@ export type Database = {
         Args: { actor: string; other: string }
         Returns: boolean
       }
+      dispose_requested_accounts: { Args: never; Returns: number }
       edit_person_input: {
         Args: {
           p_birth_time: string

@@ -615,19 +615,37 @@ order by count(*) desc;
 ## 탈퇴 신청의 처리
 
 사용자가 `/me/settings` 의 「탈퇴」에서 신청하면 상태가 **탈퇴 대기**(`deletion_requested`)로 옮겨지고,
-그 순간 후보 노출이 꺼지고 살아 있던 요청이 정리된다. **실제 처분은 사람이 한다** — 처분이 끝난 계정이
-**탈퇴**다(PRD §5.3). 이름은 2026-09-23 의 표를 따른다.
+그 순간 후보 노출이 꺼지고 살아 있던 요청이 정리된다. **처분은 크론이 한다**(2026-09-23, G-53, ADR 0094 덧) —
+처분이 끝난 계정이 **탈퇴**다(PRD §5.3).
+
+- **기한은 신청 뒤 3일이다** — 달력의 날이고 주말 · 공휴일을 안 가른다. 시계는 앱이 적은
+  `deletion_requested_at` 하나다. **연락처로 요청하는 경로는 없다.**
+- 크론 `account-disposal`(매시 23분)이 **신청 뒤 하루가 지난** 대기를 집어 `forget_user` 를 돌리고, 바로
+  흔적을 잰다(`account_residue`). 흔적이 남으면 처분째 되감기고 계정은 대기에 남아 다음 시간에 다시 집힌다.
+  하루를 두는 것은 되돌릴 틈이고, 남은 이틀은 다시 시도할 여유다.
+- **운영자가 할 일은 알림이 왔을 때뿐이다.** `account-disposal-failed`(실패) · `account-disposal-overdue`
+  (신청 뒤 3일이 지난 대기가 있다). 성공은 안 알린다.
 
 ```sql
--- 처리할 요청 — 신청한 지 영업일 3일이 지난 것부터
-select u.email, a.id, a.deletion_requested_at,
-       (select count(*) from public.match m where m.user_low = a.id or m.user_high = a.id) as 성립한_match,
-       (select count(*) from public.chat_room r where a.id in (r.user_low, r.user_high)) as 대화방,
-       (select count(*) from public.report r where a.id in (r.reporter_user_id, r.reported_user_id)) as 신고
-from public.app_user a join auth.users u on u.id = a.id
+-- 기다리는 계정과 그 시도 — 실패한 줄만 id 를 든다
+select a.id, a.deletion_requested_at, d.attempts, d.last_attempt_at, d.last_error
+from public.app_user a
+left join public.account_disposal d on d.user_id = a.id
 where a.status = 'deletion_requested'
 order by a.deletion_requested_at;
+
+-- 처분된 것 — 누구였는지는 안 남는다. 신청 · 처분 시각과 시도 수만
+select requested_at, disposed_at, attempts from public.account_disposal
+where disposed_at is not null order by disposed_at desc limit 20;
+
+-- 크론이 도는가
+select jobname, schedule, active from cron.job where jobname = 'account-disposal';
 ```
+
+**실패했을 때.** `last_error` 가 원인을 든다 — 「처분 뒤 흔적이 남았다: <자리>」면 그 자리가
+`forget_user` 가 모르는 새 흔적이다. 그 자리를 `forget_user` 에 더하는 마이그레이션이 해법이고, 그때까지는
+크론이 한 시간마다 다시 실패하고 알린다(같은 종류는 하루 한 번). 손으로 급히 처분해야 하면 아래 한 줄과
+흔적 질의를 그대로 쓴다 — 크론과 같은 문이다.
 
 **무엇이 지워지고 무엇이 남는가**(2026-09-23, ADR 0094 · PRD §5.3). 처분은 아래 한 줄이고, 무엇을
 지우고 남기는지는 FK 와 트리거가 든다 — 운영자가 표마다 지우지 않는다.
@@ -640,8 +658,8 @@ order by a.deletion_requested_at;
 | Match 행 | **남는다** — 대화방을 매단 자리로만. 상대도 떠나면 방째 사라진다 |
 | 신고 · 신고 스냅샷 | **사라진다**(신고를 따라간다). 안전 운영에 남길 것이 있으면 **처분 전에** 위 「채팅 — 신고 스냅샷을 읽는다」로 떠 둔다(G-52) |
 
-- **처리 기한은 영업일 3일이다.** 화면과 처리방침이 그렇게 적혀 있다. 기한을 세는 크론은 없다 —
-  운영자가 위 질의로 보고 처분한다(G-53).
+- **처리 기한은 신청 뒤 3일이고 크론이 센다**(위). 화면과 처리방침의 「영업일 3일」 문장은 #165 가
+  `notice-v6` 으로 한 번에 고친다 — 그 사이에는 약속보다 빨리 지우는 쪽이다.
 - **되돌리려면 처분 전에** 상태를 `active` 로 되돌린다 — 닫힌 대화방은 다시 안 열린다(ADR 0091).
   처분 뒤에는 되돌릴 길이 없다.
 
