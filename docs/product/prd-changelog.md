@@ -369,6 +369,14 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   가 옛 문장이 남은 함수 0 과 대표 함수 아홉의 새 문장을 잰다. `app/db-error.ts` 는 문장을 그대로 내보내므로
   코드는 안 바뀌고 주석과 시험의 예문만 옮겼다
 
+- **2026-09-23** — **G-47 닫힘 — vitest 가 안 닿던 셋을 다시 쟀다.** 셋 다 여전히 0% 였다. `src/lib/survey` 는
+  「표라 시험이 없다」가 아니었다 — 폼과 운영 화면이 부르는 순수 판단 넷(`afterPicking` · `isAnswered` ·
+  `withoutHidden` · `choiceLabel`)이 있어 `src/lib/survey/index.test.ts` 25건을 세웠고 100% 가 됐다(구현은
+  그대로, 판단마다 한 줄을 일부러 틀리게 해 빨개지는 것을 봤다). `app/hash-query.ts` 는 브라우저 구독 훅이고
+  `app/me/reading/preview.ts` 는 DB 를 읽는 문이라 단위로 안 잰다 — 앞의 것은 e2e `saju.spec.ts` ·
+  `reading-entry.spec.ts` 가, 뒤의 것은 흐름 `check-reading.mjs` · e2e `signed-in.spec.ts` 가 이미 든다.
+  「흐름도 안 두드린다」던 옛 문장은 e2e 를 빠뜨린 것이었다. `docs/agents/test-map.md` 「커버리지」 · 「재지 않는 것」
+
 - **2026-09-23** — **G-44 닫힘 — 프롬프트의 자리 이름과 화면이 되읽는 자리 이름이 한 값이고, 시험이 둘을
   함께 잰다.** 재니 대장 문장은 반만 맞았다 — 글자가 두 벌이었다(`prompt.ts` 의 `FALLBACK_NAMES` 값과
   `display.ts` 정규식 안의 `'첫 번째'`). 그리고 이름을 모르는 공유 궁합 프롬프트에 서는 자리 이름 일곱 중
