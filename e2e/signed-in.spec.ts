@@ -912,17 +912,21 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
     await expect(page.getByText('점수에는 쓰지 않습니다')).toBeVisible();
 
-    await page.getByLabel('첫 번째').selectOption({ label: `${signedIn.label} (나)` });
+    /* 목록의 카드가 연 길이라 첫 칸에는 그 사람이 이미 앉아 있다 — 찾아 고르는 칸이 그 이름을 든다 */
+    await expect(page.getByRole('combobox', { name: '첫 번째' })).not.toHaveValue('');
+
+    await choosePerson(page, '첫 번째', `${signedIn.label} (나)`);
 
     /*
       **두 칸이 서로를 안다.** 첫 번째에서 고른 사람은 두 번째 목록에서 빠진다 —
       같은 사람 둘을 고를 수 있게 두면 누르고 나서야 거절을 만난다.
     */
-    await expect(page.getByLabel('두 번째').locator('option')).not.toContainText([
+    await page.getByRole('combobox', { name: '두 번째' }).click();
+    await expect(page.getByRole('listbox', { name: '두 번째' }).getByRole('option')).not.toContainText([
       `${signedIn.label} (나)`,
     ]);
 
-    await page.getByLabel('두 번째').selectOption({ label: '어머니' });
+    await choosePerson(page, '두 번째', '어머니');
     await page.getByRole('radio', { name: '가족' }).check();
 
     /* 고르는 자리에는 결과가 없다 — 지표도 명식도 다음 화면의 것이다 */
@@ -1144,6 +1148,75 @@ const slotCard = (page: Page, side: '첫 번째' | '두 번째') =>
     .nth(side === '첫 번째' ? 0 : 1);
 
 /**
+ * 저장한 사람을 **찾아 고르는 칸**에서 고른다(ADR 0102) — 눌러서 목록을 열고 이름을 누른다.
+ *
+ * `select` 였을 때는 `selectOption` 한 줄이었다. 지금은 사람이 하듯 칸을 누르고 목록의
+ * 이름을 누른다 — 고른 뒤 칸에 그 이름이 서고 목록이 닫히는 것까지가 한 걸음이다.
+ */
+async function choosePerson(page: Page, side: '첫 번째' | '두 번째', name: string): Promise<void> {
+  const box = page.getByRole('combobox', { name: side });
+  await box.click();
+  await page.getByRole('listbox', { name: side }).getByRole('option', { name, exact: true }).click();
+  await expect(box).toHaveValue(name);
+  await expect(box).toHaveAttribute('aria-expanded', 'false');
+}
+
+/**
+ * 저장한 사람을 **한도 너머까지** 넣는다 — 스물 · 백이 들어온 고르는 칸을 재려고(ADR 0102).
+ *
+ * 한도 10 은 공개 출시에서 걷히고(ADR 0102) 이 시험이 재는 것은 그 뒤의 칸이다. 그래서
+ * `leavePersonSlots` 처럼 SQL 로 넣되, `person_limit` 트리거를 **이 트랜잭션에서만** 끈다
+ * (`session_replication_role = replica` 를 `set local` 로). 한도를 옮기는 일이 아니다 —
+ * 제품의 `person_limit()` 은 그대로이고, 다른 시험은 이 계정을 못 본다.
+ *
+ * 사람은 이 계정의 「어머니」를 본떠 만든다 — 명식이 온전해야 행이 서고, 자기 사주와
+ * 같은 명식이면 궁합을 열 때 같은 사람인지 묻는 물음(ADR 0034)이 끼어든다.
+ */
+function saveManyPeople(email: string, names: readonly string[]): Map<string, string> {
+  const labels = names.map((name) => `'${name.replace(/'/g, "''")}'`).join(', ');
+  sql(`
+    begin;
+    set local session_replication_role = replica;
+    with here as (
+      select id as user_id from auth.users where email = '${email}'
+    ),
+    model as (
+      select p.* from public.person p
+      join public.user_person_access a on a.person_id = p.id
+      where a.user_id = (select user_id from here) and a.local_label = '어머니'
+    ),
+    made as (
+      insert into public.person (
+        calendar, original_date, solar_date, birth_time, gender, city,
+        late_night_rule, time_basis, input_version, current_chart, chart_engine_version)
+      select
+        calendar, original_date, solar_date, birth_time, gender, city,
+        late_night_rule, time_basis, input_version, current_chart, chart_engine_version
+      from model, generate_series(1, ${names.length})
+      returning id
+    ),
+    numbered as (
+      select id, row_number() over () as n from made
+    )
+    insert into public.user_person_access (user_id, person_id, local_label, role)
+    select (select user_id from here), numbered.id, wanted.label, 'owner'
+    from numbered
+    join unnest(array[${labels}]) with ordinality as wanted(label, n) using (n);
+    commit;`);
+
+  const rows = sql(`
+    select a.local_label || '|' || a.person_id
+    from public.user_person_access a join auth.users u on u.id = a.user_id
+    where u.email = '${email}'`);
+  return new Map(
+    rows
+      .split('\n')
+      .filter((row) => row !== '')
+      .map((row) => row.split('|') as [string, string]),
+  );
+}
+
+/**
  * 궁합의 첫 걸음을 **적어 넣어** 지나간다 — 여러 시험이 이 걸음을 함께 쓴다.
  *
  * 칸마다 어디서 올지를 고르는 화면이라(ADR 0054), 직접 적으려면 그 칸을 먼저
@@ -1299,7 +1372,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     await page.goto('/compat');
 
     /* 첫 칸은 고른다 — 이 계정은 자기 사주와 어머니를 들고 있어 고르는 칸에서 시작한다 */
-    await page.getByLabel('첫 번째').selectOption({ label: `${signedIn.label} (나)` });
+    await choosePerson(page, '첫 번째', `${signedIn.label} (나)`);
     await typeInto(page, '두 번째', typed);
 
     await page.getByRole('radio', { name: '가족' }).check();
@@ -1470,6 +1543,133 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 
     const shown = await page.locator('main').innerText();
     expect(shown).not.toContain('JSON 내려받기');
+  });
+
+  /**
+   * **저장한 사람이 스물을 넘어도 고르는 칸이 읽힌다**(ADR 0102).
+   *
+   * 한도 10 은 고르는 칸이 `select` 둘이던 동안 **목록이 읽히는 동안의 수**였다(ADR 0032).
+   * 공개 출시에서 그 10 을 걷으므로 칸이 먼저 바뀐다 — 쳐서 좁히고, 키보드로 오르내리고,
+   * 주소로 미리 골라져 들어오는 길과 두 칸이 서로를 아는 규칙은 그대로다.
+   *
+   * 스물넷을 더 넣어 스물여섯에서 잰다. 넣은 행끼리는 `created_at` 이 같아 차례가 안 정해지므로,
+   * 차례에 기대지 않고 **지금 선 줄**을 읽어 견준다.
+   */
+  test('저장한 사람이 많아도 이름을 쳐서 좁히고 키보드로 고른다', async ({ page, signedIn }) => {
+    const names = [...Array.from({ length: 20 }, (_, index) => `이웃${index + 1}`), '지영', '지수', '민지', '수정'];
+    const ids = saveManyPeople(signedIn.email, names);
+    expect(ids.size).toBe(names.length + 2);
+
+    /* 사람 상세 · 목록이 여는 길 — 주소에 담긴 사람이 그 칸에 앉은 채로 선다(ADR 0054) */
+    await page.goto(`/compat#b.person=${ids.get('지영')}`);
+    const first = page.getByRole('combobox', { name: '첫 번째' });
+    const second = page.getByRole('combobox', { name: '두 번째' });
+    await expect(first).toHaveValue(`${signedIn.label} (나)`);
+    await expect(second).toHaveValue('지영');
+
+    /* 누르면 전부가 선다 — 다른 칸에서 고른 사람(나)만 빠진다 */
+    await second.click();
+    const list = page.getByRole('listbox', { name: '두 번째' });
+    const options = list.getByRole('option');
+    await expect(second).toHaveAttribute('aria-expanded', 'true');
+    await expect(options).toHaveCount(names.length + 1);
+    await expect(options.filter({ hasText: `${signedIn.label} (나)` })).toHaveCount(0);
+
+    /* 열려도 화면을 가로로 밀지 않는다 — 목록은 칸 폭 안에서 세로로만 흐른다 */
+    const width = await page.evaluate(() => ({
+      client: document.documentElement.clientWidth,
+      scroll: document.documentElement.scrollWidth,
+    }));
+    expect(width.scroll).toBeLessThanOrEqual(width.client);
+    const listBox = await list.boundingBox();
+    expect((listBox?.x ?? 0) + (listBox?.width ?? 0)).toBeLessThanOrEqual(width.client);
+
+    /* 치면 좁혀진다 — 초성만 쳐도 된다(「수정」의 정까지) */
+    await second.fill('ㅈ');
+    await expect(options).toHaveCount(4);
+    await second.fill('지');
+    await expect(options).toHaveCount(3);
+
+    /*
+      **키보드로 오르내린다.** 친 뒤에는 첫 줄에 서 있고, 초점은 칸에 남은 채 서 있는 줄을
+      `aria-activedescendant` 가 가리킨다. 끝에서 한 번 더 누르면 반대 끝으로 돈다.
+    */
+    await expect(options.nth(0)).toHaveAttribute('aria-selected', 'true');
+    await second.press('ArrowDown');
+    await expect(options.nth(1)).toHaveAttribute('aria-selected', 'true');
+    await expect(second).toHaveAttribute('aria-activedescendant', (await options.nth(1).getAttribute('id')) ?? '');
+    const picked = await options.nth(1).innerText();
+
+    await second.press('ArrowUp');
+    await second.press('ArrowUp');
+    await expect(options.nth(2)).toHaveAttribute('aria-selected', 'true');
+    await second.press('ArrowDown');
+    await second.press('ArrowDown');
+    await expect(options.nth(1)).toHaveAttribute('aria-selected', 'true');
+    await second.press('Enter');
+
+    await expect(second).toHaveValue(picked);
+    await expect(list).toBeHidden();
+    await expect(second).toHaveAttribute('aria-expanded', 'false');
+
+    /* 치다가 물리면 고른 사람이 그대로다 */
+    await second.fill('ㅁㅈ');
+    await expect(options).toHaveText(['민지']);
+    await second.press('Escape');
+    await expect(second).toHaveValue(picked);
+
+    /* 맞는 사람이 없으면 없다고 말한다 — 빈 목록을 세우지 않는다 */
+    await second.fill('없는이름');
+    await expect(page.getByText('맞는 이름이 없습니다')).toBeVisible();
+    await expect(second).toHaveAttribute('aria-expanded', 'false');
+    await second.press('Escape');
+    await expect(page.getByText('맞는 이름이 없습니다')).toHaveCount(0);
+
+    /* **두 칸이 서로를 안다** — 두 번째에서 고른 사람은 첫 번째 목록에 안 선다 */
+    await first.click();
+    await expect(
+      page.getByRole('listbox', { name: '첫 번째' }).getByRole('option', { name: picked, exact: true }),
+    ).toHaveCount(0);
+    await first.press('Escape');
+
+    await page.getByRole('button', { name: '궁합 보기' }).click();
+    await expect(page).toHaveURL(/\/me\/compat\?a=[0-9a-f-]+&b=[0-9a-f-]+$/);
+    await expect(page.getByRole('heading', { name: `${signedIn.label} × ${picked}` })).toBeVisible();
+  });
+
+  /**
+   * **사람이 적을 때도 지금처럼 선다.** 고를 사람이 없으면 두 칸 다 적는 칸이고, 「저장한
+   * 사람」은 눌러도 빈 목록이라 잠겨 있다 — 찾아 고르는 칸은 아예 안 선다.
+   */
+  test('저장한 사람이 없으면 두 칸 다 적는 칸으로 선다', async ({ page, newcomer }) => {
+    expect(newcomer.email).not.toBe('');
+    await page.goto('/compat');
+
+    for (const side of ['첫 번째', '두 번째'] as const) {
+      await expect(slotCard(page, side).getByRole('button', { name: '저장한 사람' })).toBeDisabled();
+      await expect(slotCard(page, side).getByLabel('이름', { exact: true })).toBeVisible();
+      await expect(page.getByRole('combobox', { name: side })).toHaveCount(0);
+    }
+  });
+
+  /**
+   * 한 사람(자기 사주)만 있으면 첫 칸에 앉고 두 번째는 적는 칸으로 선다. 두 번째를 고르는
+   * 칸으로 돌려도 고를 사람이 없으므로 **빈 상자도 「없다」는 말도 안 선다** — 치지도 않았는데
+   * 없다고 말하면 사용자가 무엇을 잘못했는지 찾는다.
+   */
+  test('저장한 사람이 하나면 첫 칸에 앉고 두 번째는 적는 칸이다', async ({ page, reader }) => {
+    await page.goto('/compat');
+
+    await expect(page.getByRole('combobox', { name: '첫 번째' })).toHaveValue(`${reader.account.label} (나)`);
+    await expect(page.getByRole('combobox', { name: '두 번째' })).toHaveCount(0);
+
+    await slotCard(page, '두 번째').getByRole('button', { name: '저장한 사람' }).click();
+    const second = page.getByRole('combobox', { name: '두 번째' });
+    await second.click();
+    await expect(second).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('listbox')).toHaveCount(0);
+    await expect(page.getByText('맞는 이름이 없습니다')).toHaveCount(0);
+    await expect(page.getByText('두 번째 사람을 골라 주세요.')).toBeVisible();
   });
 
 

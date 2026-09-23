@@ -15,11 +15,12 @@ import {
 } from '@/src/lib/input/query';
 import type { CompatSide } from '@/src/lib/saju';
 
-import { BirthFields, FIELD, SelectShell } from './birth-form';
+import { BirthFields } from './birth-form';
 import { CARD } from './card';
 import { SIDE_LABEL, SIDES } from './compat-view';
 import { useHashParams, writeParams } from './hash-query';
 import { openPairScreen, pairRelationFor, type PairAnswers, type PairSide } from './me/compat/actions';
+import { PersonCombobox, type Choosable } from './person-combobox';
 import { RelationChoice } from './relation-choice';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
 
@@ -47,8 +48,6 @@ import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-c
  * 글은 여기서 안 만든다. 이 누름이 여는 것은 두 명식이 나란히 선 화면이고, 풀이권을
  * 쓰는 누름은 거기 있다(ADR 0028).
  */
-type Choosable = { personId: string; label: string; isSelfPerson: boolean };
-
 /** 한 칸이 들고 있는 것 — 고른 사람이거나 적어 넣은 입력이다 */
 type Slot = { from: 'saved'; personId: string } | { from: 'typed'; query: Query };
 
@@ -302,31 +301,19 @@ function SlotCard({
       </div>
 
       {slot.from === 'saved' ? (
-        <label className="flex min-w-0 flex-col gap-1.5">
-          <span className="text-xs font-semibold text-secondary">{SIDE_LABEL[side]}</span>
-          <SelectShell>
-            <select
-              value={slot.personId}
-              onChange={(event) => onChange({ from: 'saved', personId: event.target.value })}
-              className={`${FIELD} w-full appearance-none pr-8`}
-            >
-              <option value="" disabled>
-                고르기
-              </option>
-              {people
-                .filter((one) => one.personId !== taken)
-                .map((one) => (
-                  <option key={one.personId} value={one.personId}>
-                    {one.label}
-                    {one.isSelfPerson ? ' (나)' : ''}
-                  </option>
-                ))}
-            </select>
-          </SelectShell>
+        <>
+          {/* 찾아 고르는 칸 — 저장한 사람이 스물 · 백이어도 읽히게(ADR 0102) */}
+          <PersonCombobox
+            label={SIDE_LABEL[side]}
+            people={people}
+            taken={taken}
+            chosenId={slot.personId}
+            onChoose={(personId) => onChange({ from: 'saved', personId })}
+          />
           {people.length === 0 && (
             <span className="text-xs text-muted">저장한 사람이 아직 없습니다.</span>
           )}
-        </label>
+        </>
       ) : (
         <BirthFields
           value={slot.query}
