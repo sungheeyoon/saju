@@ -28,9 +28,12 @@ export type Choosable = { personId: string; label: string; isSelfPerson: boolean
 const shownLabel = (one: Choosable): string =>
   one.isSelfPerson ? `${one.label} (나)` : one.label;
 
-/** 문구 둘 — 운영자가 2026-09-24 에 승인했다(#193) */
-const PLACEHOLDER = '이름으로 찾기';
-const NO_MATCH = '찾는 사람이 없습니다';
+/**
+ * 문구 둘 — 운영자가 2026-09-24 에 승인했다(#193). 사람 목록의 찾는 칸(`me/people/finder.tsx`)도
+ * 같은 사실을 말하므로 이 둘을 그대로 쓴다 — 한 사실 한 표기.
+ */
+export const PLACEHOLDER = '이름으로 찾기';
+export const NO_MATCH = '찾는 사람이 없습니다';
 
 /**
  * 목록의 높이 — **다섯 줄과 여섯째의 반.** 한 줄이 `min-h-11`(44px), 목록 안 여백이 위 4px 라
