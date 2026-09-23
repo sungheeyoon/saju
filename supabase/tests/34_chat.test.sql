@@ -438,8 +438,8 @@ select is(public.unread_chat_count(), 0, '안 읽은 수도 0이다');
 
 select throws_ok(
   format($$select public.send_chat_message(%L, '아직 되나')$$, (select kim_park from rooms)),
-  '42501', '중지된 계정입니다.',
-  '중지된 쪽은 보내지 못한다');
+  '42501', '이용이 정지된 계정입니다.',
+  '이용이 정지된 쪽은 보내지 못한다');
 
 select pg_temp.acting((select kim from folks));
 

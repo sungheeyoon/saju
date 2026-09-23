@@ -155,7 +155,7 @@ export async function inboxForViewer(): Promise<Inbox> {
   ]);
 
   for (const { error } of [requests, matches, notifications, blocked]) {
-    // 「중지된 계정입니다」 같은 거절은 DB 가 문장으로 낸다. 여기서 다시 판정하지 않는다.
+    // 「이용이 정지된 계정입니다」 같은 거절은 DB 가 문장으로 낸다. 여기서 다시 판정하지 않는다.
     if (error) throw dbFailure(error, 'inbox');
   }
 

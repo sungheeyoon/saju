@@ -36,14 +36,14 @@ describe('userFacingDbMessage', () => {
   });
 
   /**
-   * **코드로는 못 가른다.** `42501` 은 우리가 「중지된 계정입니다」로 쓰는 코드이면서 정책이
+   * **코드로는 못 가른다.** `42501` 은 우리가 「이용이 정지된 계정입니다」로 쓰는 코드이면서 정책이
    * 이름 없이 막을 때의 코드이기도 하다 — 두 줄이 같은 코드를 들고 갈린다.
    */
   it('같은 코드라도 우리말이면 옮기고 아니면 막는다', () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    expect(userFacingDbMessage({ message: '중지된 계정입니다.', code: '42501' }, 'x', '대신')).toBe(
-      '중지된 계정입니다.',
+    expect(userFacingDbMessage({ message: '이용이 정지된 계정입니다.', code: '42501' }, 'x', '대신')).toBe(
+      '이용이 정지된 계정입니다.',
     );
     expect(userFacingDbMessage({ message: 'permission denied', code: '42501' }, 'x', '대신')).toBe(
       '대신',
@@ -163,12 +163,12 @@ describe('대신 쓸 말을 안 줬을 때', () => {
   });
 
   /**
-   * **코드 표는 한국어 문턱 뒤에 있다.** `42501` 은 우리가 「중지된 계정입니다」로 쓰는
+   * **코드 표는 한국어 문턱 뒤에 있다.** `42501` 은 우리가 「이용이 정지된 계정입니다」로 쓰는
    * 코드이기도 해서, 표가 앞서면 우리 문장을 가로챈다.
    */
   it('우리가 쓴 문장은 코드 표가 가로채지 않는다', () => {
-    expect(userFacingDbMessage({ message: '중지된 계정입니다.', code: '42501' }, 'x')).toBe(
-      '중지된 계정입니다.',
+    expect(userFacingDbMessage({ message: '이용이 정지된 계정입니다.', code: '42501' }, 'x')).toBe(
+      '이용이 정지된 계정입니다.',
     );
   });
 

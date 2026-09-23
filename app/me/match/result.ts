@@ -101,7 +101,7 @@ export async function matchResultForViewer(matchId: string): Promise<ResultOutco
   const { data, error } = await supabase.rpc('my_match_scope', { p_match_id: matchId });
 
   /**
-   * 「중지된 계정입니다」 같은 거절은 DB 가 문장으로 낸다. 여기서 다시 판정하지 않는다.
+   * 「이용이 정지된 계정입니다」 같은 거절은 DB 가 문장으로 낸다. 여기서 다시 판정하지 않는다.
    * 다만 그 문장을 결과 화면의 말로 옮기지는 않는다 — 이 자리에서는 못 보는 것과
    * 없는 것이 같은 답이어야 한다.
    */

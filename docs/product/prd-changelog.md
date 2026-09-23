@@ -360,3 +360,11 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   §7.2 「없다」→「선다」와 경계 표, §7.1 의 한 줄. `e2e/chat.spec.ts` 가 방과 카드에서 구간을 밟고
   `scripts/check-chat.mjs` 가 `presence_policy()` 와 lib 의 수를 견준다. 프로덕션 확인 셋은 사람의 걸음
   (runbook 「채팅」 「접속 상태」)
+
+- **2026-09-23** — **G-49 닫힘 — DB 도 「이용이 정지된 계정입니다.」로 거절한다.** 로컬과 운영의 살아 있는
+  함수 정의(`pg_proc.prosrc`)를 재니 옛 문장을 던지는 함수가 **21개**(던지는 자리 24)였고 두 곳의 본문이
+  같았다. 마이그레이션 `20260929090000_the_suspended_account_is_told_in_one_sentence.sql` 이 각 함수를 살아
+  있는 정의에서 떠 문장만 갈았다 — 서명 · 보안 · errcode · 나머지 본문은 그대로다(적용 전후 본문 md5 를
+  견줬다). `share_my_reading` 은 errcode 없이(`P0001`) 던지던 그대로 둔다. `supabase/tests/36_suspended_sentence`
+  가 옛 문장이 남은 함수 0 과 대표 함수 아홉의 새 문장을 잰다. `app/db-error.ts` 는 문장을 그대로 내보내므로
+  코드는 안 바뀌고 주석과 시험의 예문만 옮겼다
