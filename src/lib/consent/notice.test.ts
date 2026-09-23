@@ -227,7 +227,24 @@ describe('선택 항목', () => {
 
 /** 문구가 바뀌면 판본도 바뀐다 — 「보여 준 적 있다」가 아니라 「무엇을 보여 줬나」다 */
 it('안내 판본이 값으로 서 있다', () => {
-  expect(NOTICE_VERSION).toBe('notice-v5');
+  expect(NOTICE_VERSION).toBe('notice-v6');
+});
+
+/** v6 의 내용 개정 넷 — 한 판본에 다 서야 확인자가 한 번만 불려 온다(#165) */
+it('안내가 대화 90일 · OpenAI 의 때 셋 · 3일 자동 처분 · 신고 기록 6개월을 말한다', () => {
+  const text = noticeFor(
+    { endsOn: '2026-11-30', purgeBy: '2026-12-30', purgeWithinDays: 30 },
+    { name: '만세력 운영자', officer: '홍길동', contact: 'ops@example.com' },
+  )
+    .flatMap((section) => section.lines)
+    .join(' ');
+
+  expect(text).toContain('닫힌 날부터 90일');
+  expect(text).toContain('궁합풀이가 자동으로 만들어질 때');
+  expect(text).toContain('신청 후 3일 이내에 파기합니다');
+  expect(text).toContain('탈퇴 처리일부터 6개월');
+  expect(text).not.toContain('영업일');
+  expect(text).not.toContain('운영자가 확인한 뒤');
 });
 
 it('가입 안내도 상세 궁합의 양방향 여덟 글자 공개를 직접 알린다', () => {
