@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { NOTICE_VERSION } from './notice';
-import { betaIsOver, gateFor, type GateAccount, type GateNotice } from './gate';
+import { NOTICE_ACK_FLOOR, NOTICE_VERSION, noticeEdition } from './notice';
+import {
+  betaIsOver,
+  gateFor,
+  signupDone,
+  type GateAccount,
+  type GateNotice,
+} from './gate';
 
 /**
  * 관문 — **브라우저 없이 전부 밟는다.**
@@ -90,7 +96,7 @@ describe('가입', () => {
    * 빼면 「11월에 지운다」를 읽고 확인한 사람을 이듬해까지 들고 있게 된다. 그때 폼은
    * 코드와 이름을 다시 안 묻고 확인만 받는다.
    */
-  it('판본이 다르면 이미 가입한 사람도 다시 보낸다', () => {
+  it('기준보다 낮은 판본이면 이미 가입한 사람도 다시 보낸다', () => {
     expect(gateFor('/me', { ...ready, noticeVersion: 'notice-v1' }, notice, during)).toBe('/signup');
   });
 
@@ -109,6 +115,52 @@ describe('가입', () => {
   it('다 맞으면 안 보낸다', () => {
     expect(gateFor('/me', ready, notice, during)).toBeNull();
     expect(gateFor('/me/people', ready, notice, during)).toBeNull();
+  });
+});
+
+/**
+ * **다시 보여 줄지는 기준이 정한다**(ADR 0095).
+ *
+ * 판본이 곧 문턱이던 때는 낱말 하나를 맞춰도 확인한 사람 전원이 가입 폼으로 돌아왔다(G-05).
+ * 표현만 고친 개정은 화면에 보인 판본만 올리고, 기준 이상을 본 사람은 그대로 지나간다.
+ */
+describe('재확인 기준', () => {
+  const floor = noticeEdition(NOTICE_ACK_FLOOR) as number;
+
+  it('기준 이상 판본을 확인한 사람은 다시 안 보낸다', () => {
+    for (const seen of [NOTICE_ACK_FLOOR, NOTICE_VERSION, `notice-v${floor + 1}`]) {
+      expect(gateFor('/me', { ...ready, noticeVersion: seen }, notice, during)).toBeNull();
+    }
+  });
+
+  it('기준보다 낮은 판본을 확인한 사람은 다시 보낸다', () => {
+    for (const seen of [`notice-v${floor - 1}`, 'notice-v1']) {
+      expect(gateFor('/me', { ...ready, noticeVersion: seen }, notice, during)).toBe('/signup');
+    }
+  });
+
+  /**
+   * **지나가게 두는 것이지 고쳐 적는 것이 아니다.** 판정은 기록을 읽기만 하고, 그 사람이
+   * 본 판본은 원래 값 그대로 남는다 — 새 판본을 본 것으로 적지 않는다.
+   */
+  it('확인 기록의 판본은 원래 본 판본 그대로 남는다', () => {
+    const seenFloor: GateAccount = { ...ready, noticeVersion: NOTICE_ACK_FLOOR };
+    expect(signupDone(seenFloor, notice)).toBe(true);
+    expect(seenFloor.noticeVersion).toBe(NOTICE_ACK_FLOOR);
+  });
+
+  /** 글자째 견주면 `notice-v10` 이 `notice-v9` 보다 앞서고, 모르는 모양은 확인한 것이 아니다 */
+  it('판본의 차례는 수로 센다', () => {
+    expect(noticeEdition('notice-v10')).toBeGreaterThan(noticeEdition('notice-v9') as number);
+    for (const unread of [null, '', 'notice-for-tests', 'notice-v0', 'notice-v04']) {
+      expect(gateFor('/me', { ...ready, noticeVersion: unread }, notice, during)).toBe('/signup');
+    }
+  });
+
+  /** 기준이 화면의 판본보다 높으면 방금 확인한 사람도 못 지나간다 — 가입 폼이 끝없이 돈다 */
+  it('기준은 화면에 보인 판본을 넘지 않는다', () => {
+    expect(noticeEdition(NOTICE_VERSION)).not.toBeNull();
+    expect(noticeEdition(NOTICE_VERSION) as number).toBeGreaterThanOrEqual(floor);
   });
 });
 

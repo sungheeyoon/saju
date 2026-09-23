@@ -27,7 +27,7 @@ const root = join(here, '..');
  * 여기 문자열로 적으면 판본을 올리는 날 이 스크립트만 옛 값을 들고, 그때 가입이
  * 「안내가 바뀌었습니다」로 막힌다 — 화면이 아니라 도구가 틀린 것인데 화면을 의심하게 된다.
  */
-export function noticeVersion() {
+function noticeVersion() {
   const source = readFileSync(join(root, 'src/lib/consent/notice.ts'), 'utf8');
   const found = /NOTICE_VERSION\s*=\s*'([^']+)'/.exec(source);
   if (!found) throw new Error('NOTICE_VERSION 을 못 읽었습니다.');
@@ -79,7 +79,7 @@ const CODE = 'UIWALK';
  *
  * 파기 기한은 `purge_within_days` 기본값(30일)에서 DB 가 짓는다.
  */
-export const BETA_ENDS_ON = '2026-10-31';
+const BETA_ENDS_ON = '2026-10-31';
 
 /**
  * **훑기가 만든 시도를 오늘에서 비켜 둔다.**

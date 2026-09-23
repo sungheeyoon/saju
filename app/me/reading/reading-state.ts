@@ -27,7 +27,7 @@ import type { ReadingTarget } from './target';
  * `isMock` 은 안 든다. 예시 글이 서 있는 것과 `mock !== null` 은 언제나 같은 말이었고,
  * 둘을 따로 들면 **한쪽만 지우는 갈래**가 생긴다.
  */
-export type ReadingPhase = 'idle' | 'loading' | 'error';
+type ReadingPhase = 'idle' | 'loading' | 'error';
 
 export type ReadingFlow = {
   readonly phase: ReadingPhase;

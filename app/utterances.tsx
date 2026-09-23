@@ -60,7 +60,7 @@ export const TOPIC_TABLE_FOOTNOTE = 'relation.coverage';
  * **지우지 않고 걸러 낸다.** 카드째 걷어내면 나중에 생길 다른 경고까지 조용히
  * 사라진다 — 아는 종류만 빼고 모르는 것은 그대로 선다.
  */
-export const WARNINGS_SAID_BY_UTTERANCES: readonly CompatWarningKind[] = [
+const WARNINGS_SAID_BY_UTTERANCES: readonly CompatWarningKind[] = [
   'hour-unknown-relations',
   'hour-unknown-elements',
 ];

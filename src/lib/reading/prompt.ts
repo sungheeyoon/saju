@@ -32,7 +32,7 @@ import { READING_POLICY, isScored, isSolo, type PairKind, type ReadingKind } fro
  * 이름은 자료가 아니라 **부르는 말**이라 따로 다닌다. 근거에 실리지 않고 프롬프트에만
  * 선다 — 이름으로 판정하는 일은 없어야 하고, 그러려면 이름이 근거 안에 있으면 안 된다.
  */
-export type ReadingNames = { readonly a: string; readonly b?: string };
+type ReadingNames = { readonly a: string; readonly b?: string };
 
 /**
  * 프롬프트에만 실리는 것 — **자료가 아니라 부르는 말과 사이.**
@@ -68,8 +68,8 @@ export type ReadingAbout = {
 export const FALLBACK_NAMES: ReadingNames = { a: SEAT_NAMES.first, b: SEAT_NAMES.second };
 
 /** 사용자에게 나가는 결과를 만드는 프롬프트 조립 옵션. */
-export type Length = { readonly min: number; readonly max: number };
-export type SelfPresentation =
+type Length = { readonly min: number; readonly max: number };
+type SelfPresentation =
   | 'expert-v3'
   /**
    * expert-v3 에서 **절 수는 그대로 두고** 세 절이 용신 계열 값을 읽게 한 판.
@@ -108,7 +108,7 @@ export type SelfPresentation =
  * 오행(목·화·토·금·수)은 여기서 빠진다 — 「금이 셋이에요」는 한국어에서 자연스럽고,
  * 「쇠가 셋이에요」로 바꾸는 것이 오히려 어색하다. 억지로 바꾸지 않는다.
  */
-export type Terminology = 'annotated' | 'plain';
+type Terminology = 'annotated' | 'plain';
 
 
 /**
@@ -155,7 +155,7 @@ export type Terminology = 'annotated' | 'plain';
  * (ADR 0012) 목록에서 각자의 원국 판정과 운을 묻는 두 항목은 빠진다. 같은 처리 방식과
  * 같은 자료 범위는 다른 말이다.
  */
-export type PairShape = 'sections-v1' | 'needs-v1';
+type PairShape = 'sections-v1' | 'needs-v1';
 
 export type PromptAssembly = {
   /** 검사용 근거 절을 제외한 자기 풀이 본문 목표 길이 */
@@ -1197,7 +1197,7 @@ export function baselineIn(prompt: string): number | null {
   return found === null ? null : Number(found[1]);
 }
 
-export const baselineBlock = (baseline: number): string => `${BASELINE_HEADING}
+const baselineBlock = (baseline: number): string => `${BASELINE_HEADING}
 
 ${baseline}
 

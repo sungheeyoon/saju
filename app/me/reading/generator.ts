@@ -11,13 +11,6 @@ import {
   type ReadingOutput,
 } from '@/src/lib/reading';
 
-/** 저장된 Reading 하나를 재현할 수 있는 생성기 설정. */
-export type ReadingGeneration = {
-  readonly model: string;
-  readonly provider: string;
-  readonly settings: Readonly<Record<string, unknown>>;
-};
-
 /**
  * 한 번의 호출이 무엇을 썼는가 — **비용을 세려면 이것이 결과와 함께 와야 한다.**
  *
@@ -79,9 +72,9 @@ export type ModelRetrieval =
   | { ok: false; code: string; detail: string; usage: ModelUsage | null };
 
 /** 자르고 프롬프트를 지은 것까지 — **모델은 안 부른다** */
-export type ReadingInput = { prompt: string; evidenceText: string };
+type ReadingInput = { prompt: string; evidenceText: string };
 
-export type InputResult =
+type InputResult =
   | { ok: true; input: ReadingInput }
   | { ok: false; code: string; detail: string };
 

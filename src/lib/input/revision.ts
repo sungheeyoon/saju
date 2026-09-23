@@ -36,7 +36,7 @@ export const REVISION_REPLACED_NOTE =
   '수정하면 현재 사주와 궁합은 새 입력으로 계산됩니다. 이전에 본 결과와 다를 수 있습니다.';
 
 /** 판본을 이루는 값 — **여덟 글자를 가르는 것 전부이고, 그 밖은 없다.** */
-export type ChartFields = {
+type ChartFields = {
   p_calendar: Calendar;
   p_original_date: string;
   p_solar_date: string;
@@ -89,7 +89,7 @@ const chartArgs = (query: Query): ChartArgs => ({
 });
 
 /** `create_self_person` 이 받는 인자 한 벌 — 처음 등록할 때는 부를 이름도 함께 간다 */
-export type SelfPersonArgs = ChartFields & ChartArgs & { p_local_label: string };
+type SelfPersonArgs = ChartFields & ChartArgs & { p_local_label: string };
 
 export function selfPersonArgs(query: Query): SelfPersonArgs {
   return { p_local_label: query.name.trim(), ...chartFields(query), ...chartArgs(query) };
@@ -151,7 +151,7 @@ export const BLANK_PERSON_ARGS: BlankPersonArgs = {
 };
 
 /** `add_person_revision` 이 받는 인자 한 벌 */
-export type RevisionArgs = ChartFields & ChartArgs & { p_person_id: string };
+type RevisionArgs = ChartFields & ChartArgs & { p_person_id: string };
 
 /**
  * **부를 이름이 없다.**

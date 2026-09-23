@@ -42,7 +42,7 @@ export type PromptVariantId =
   | 'annotated-terms-v1'
   | 'recency-check-v1';
 
-export type PromptVariant = {
+type PromptVariant = {
   readonly id: PromptVariantId;
   readonly label: string;
   /** control 에서 **무엇 하나가** 달라졌는가 */
@@ -105,7 +105,7 @@ export const PROMPT_VARIANTS: readonly PromptVariant[] = [
   },
 ];
 
-export type PairVariantId = 'control' | 'pair-sections-v1';
+type PairVariantId = 'control' | 'pair-sections-v1';
 
 /** 같은 계약을 쓰되 id 만 갈린다 — 재는 축이 다르므로 목록도 다르다 */
 export type PairVariant = Omit<PromptVariant, 'id'> & { readonly id: PairVariantId };
@@ -188,7 +188,7 @@ export const PAIR_VARIANTS: readonly PairVariant[] = [
   },
 ];
 
-export type MatchInputVariantId = 'match-limited-v1' | 'match-extended-v1';
+type MatchInputVariantId = 'match-limited-v1' | 'match-extended-v1';
 
 /**
  * **인연 궁합 입력 두 판** — 자료를 많이 넣는 쪽이 낫다고 가정하지 않고 견준다(ADR 0067).
@@ -205,7 +205,7 @@ export type MatchInputVariantId = 'match-limited-v1' | 'match-extended-v1';
  * 두 판이 **같이 쓰는 것**: 기준점 계산(`previewScoreOf`)·조정 상한·재량 폭·분량·모델·
  * 생성 설정·말투·출력 계약. `assembly` 가 `matchInput` 한 칸만 다르다.
  */
-export type MatchInputVariant = {
+type MatchInputVariant = {
   readonly id: MatchInputVariantId;
   readonly label: string;
   readonly assembly: PromptAssembly;

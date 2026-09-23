@@ -218,7 +218,7 @@ export async function myReadings(): Promise<readonly ReadingEntry[]> {
   });
 }
 
-export type ReadingArtifacts = {
+type ReadingArtifacts = {
   readonly evidence: string;
   readonly prompt: string;
   readonly promptVersion: string;

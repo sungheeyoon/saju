@@ -21,9 +21,9 @@ import { combinedCountBalanceOf, mutualDeficitComplementOf } from '../discovery/
  * 명리의 정답이나 관계의 좋고 나쁨을 판정하지 않는다. 억부·종격·격국은 이 지표의
  * 입력이 아니므로 그 판정이 바뀌어도 수는 흔들리지 않는다.
  */
-export type MatchDimensionKey = keyof typeof DISCOVERY_POLICY.weights;
+type MatchDimensionKey = keyof typeof DISCOVERY_POLICY.weights;
 
-export type MatchDimension = {
+type MatchDimension = {
   key: MatchDimensionKey;
   label: string;
   score: number;

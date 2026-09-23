@@ -22,7 +22,6 @@ export const PHOTO_MAX_BYTES = 512 * 1024;
 
 /** 받아 주는 형식 — DB 검사식과 같은 목록 */
 export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
-export type PhotoType = (typeof PHOTO_TYPES)[number];
 
 /** 올린 사진을 이 변으로 줄여서 보낸다 — 카드와 프로필에 서는 크기 */
 export const PHOTO_MAX_EDGE = 512;

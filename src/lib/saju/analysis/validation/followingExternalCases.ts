@@ -23,7 +23,7 @@
  * 오자둔에 맞고, 테스트가 손으로 적은 값을 믿지 않고 다시 센다.
  */
 
-export type FollowingClaim =
+type FollowingClaim =
   /** 저자가 종격이라 판정 */
   | 'following'
   /** 저자가 가종이라 판정 */
@@ -32,7 +32,7 @@ export type FollowingClaim =
   | 'not-following';
 
 /** 자료의 계통 — 억부 데이터셋의 `EokbuLineage` 와 같은 이유로 손으로 적는다. */
-export type FollowingLineage =
+type FollowingLineage =
   /** 현대 중화권 격국 정리 사이트 */
   | 'modern-chinese'
   /** 청대 고전 주석 (《적천수천미》 임철초) */
@@ -40,7 +40,7 @@ export type FollowingLineage =
   /** 민국 실전 명조 (《천리명고》 위천리) — 억부 자료와 같은 계통 이름을 쓴다 */
   | 'republican-chinese';
 
-export type FollowingExternalCase = {
+type FollowingExternalCase = {
   id: string;
   pillars: { year: string; month: string; day: string; hour: string };
   lineage: FollowingLineage;

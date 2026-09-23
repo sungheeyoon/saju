@@ -71,7 +71,7 @@ export function chartOf(query: Query): Saju {
   );
 }
 
-export type ChartResult = { ok: true; saju: Saju } | { ok: false; message: string };
+type ChartResult = { ok: true; saju: Saju } | { ok: false; message: string };
 
 /** 못 계산할 입력을 문장으로 돌려준다 — 던지지 않는다. 화면이 그대로 보여준다. */
 export function calculateChart(query: Query): ChartResult {

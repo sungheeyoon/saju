@@ -3,7 +3,6 @@ import { readingBody } from './display';
 import { type PairKind } from './policy';
 import { selfSectionCount, type PromptAssembly } from './prompt';
 
-export { EVIDENCE_SECTION } from './display';
 
 /**
  * 출력에서 **셀 수 있는 것**을 센다.
@@ -22,7 +21,7 @@ export { EVIDENCE_SECTION } from './display';
  */
 
 /** 아직 안 본 것과 보고 나서 아니었던 것은 다르다 */
-export type Answered = 'unknown' | 'yes' | 'no';
+type Answered = 'unknown' | 'yes' | 'no';
 
 /**
  * 근거 칸이 시작하는 자리 — `CLOSING` 이 세우는 제목이다.
@@ -31,7 +30,7 @@ export type Answered = 'unknown' | 'yes' | 'no';
  * 세면 분량을 재려는 바로 그 값이 오염된다 — 근거 칸이 길게 나온 글이 본문을 길게 쓴
  * 글로 보인다. 잘라서 센다.
  */
-export type Measured = {
+type Measured = {
   /** 붙여 넣은 것에서 뽑아낸 본문 */
   readonly markdown: string;
   /**
@@ -106,7 +105,7 @@ export function measureMarkdown(markdown: string, scoreIsNull: Answered = 'unkno
  * **이 구별을 부르는 쪽마다 다시 짓지 않는다.** 어느 코드가 막는 것인지 호출부가
  * 기억해야 하면 자리가 늘어난 만큼 갈린다. 값이 스스로 말한다(`kind`).
  */
-export type DeviationKind = 'contract' | 'target';
+type DeviationKind = 'contract' | 'target';
 
 export type OutputDeviation = {
   readonly code: 'length-off-target' | 'plain-terms-exposed' | 'section-count-mismatch';

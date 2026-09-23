@@ -54,10 +54,6 @@ export const READING_REPLACES_NOTE =
 export const READING_STALE_NOTE =
   '이 풀이는 지금과 다른 명식으로 만들었습니다. 현재 명식으로 보려면 새로 만들어 주세요.';
 
-/** 공유 결과는 **매인 판본**으로 난다 — 뒤의 수정이 이 글을 흔들지 않는다 */
-export const READING_PINNED_NOTE =
-  '이 풀이는 두 분이 동의한 그때의 입력으로 썼습니다. 어느 쪽이 나중에 입력을 고쳐도 이 결과는 움직이지 않습니다.';
-
 /** 지난 시도가 끝나지 못했다 */
 export const READING_FAILED_NOTE =
   '지난번 만들기가 끝나지 못했습니다. 지금 보이는 풀이는 그 전에 성공한 결과입니다.';
@@ -74,18 +70,6 @@ export const READING_UNEXPECTED_NOTE =
 
 /** 같은 자리의 설문 쪽 — 화면이 「답을 남기지 못했습니다.」 뒤에 이어 붙인다 */
 export const FEEDBACK_UNEXPECTED_NOTE = '잠시 뒤 다시 시도해 주세요.';
-
-/**
- * 두 사람 글에서 「첫 번째 분」이 누구인가.
- *
- * 공유 결과는 **양쪽이 같은 글 하나**를 읽는다(용어집: 중립 문체 하나). 그래서 글
- * 안에서 사람을 부르는 말이 보는 사람마다 뒤집힐 수 없고, 대신 화면이 자기 자리를
- * 한 줄로 알려 준다. 뒤집어 그리면 두 사람이 서로 다른 글을 읽는 것이 된다.
- */
-export const readingOrderNote = (viewerIsFirst: boolean): string =>
-  viewerIsFirst
-    ? '아래 글에서 「첫 번째 분」이 나이고 「두 번째 분」이 상대입니다.'
-    : '아래 글에서 「첫 번째 분」이 상대이고 「두 번째 분」이 나입니다.';
 
 /**
  * 넘기지 않은 것 — **화면에서 내렸다.**

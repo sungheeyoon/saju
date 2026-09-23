@@ -1,4 +1,4 @@
-import type { ChartEvidence, Limitation } from '.';
+import type { Limitation } from '.';
 import type { RedactedChartEvidence, RedactedEvidence } from './redacted';
 
 /**
@@ -189,7 +189,7 @@ export const PILLAR_UNCERTAIN =
 type Relation = NonNullable<RedactedEvidence['compatibility']>['relations'][number];
 type Analysis = RedactedChartEvidence['analysis'];
 
-export type SharedRelation = Pick<
+type SharedRelation = Pick<
   Relation,
   'kind' | 'tier' | 'ko' | 'name' | 'scope' | 'targetElement' | 'full' | 'participants' | 'direction' | 'cycle' | 'contested'
 >;
@@ -199,7 +199,7 @@ type SharedPillars = Pick<RedactedChartEvidence['pillars'], 'year' | 'month' | '
 };
 
 /** 확장형이 더하는 각자의 판정 — 필드를 적어서 고른다 */
-export type SharedAnalysis = {
+type SharedAnalysis = {
   elements: Pick<Analysis['elements'], 'glyphCount' | 'counts' | 'ratios' | 'strongest' | 'weakest' | 'missing'>;
   strength: Pick<Analysis['strength'], 'verdict' | 'ratio' | 'metCount'> & {
     criteria: readonly Pick<Analysis['strength']['criteria'][number], 'key' | 'label' | 'met'>[];
@@ -210,7 +210,7 @@ export type SharedAnalysis = {
   >;
 };
 
-export type SharedChartEvidence = {
+type SharedChartEvidence = {
   claims: Partial<RedactedChartEvidence['claims']>;
   pillars: SharedPillars;
   meta: { hourKnown: boolean };
@@ -221,7 +221,7 @@ export type SharedChartEvidence = {
 type Compat = NonNullable<RedactedEvidence['compatibility']>;
 type Support = Compat['elementSupport']['a'];
 
-export type SharedCompatibility = {
+type SharedCompatibility = {
   claims: Partial<Compat['claims']>;
   relations: readonly SharedRelation[];
   combinedFormations: readonly SharedRelation[];
@@ -237,7 +237,7 @@ export type SharedCompatibility = {
 };
 
 /** 옛 컷 — 명식 세 칸을 고르고 궁합은 통째로 남긴다 */
-export type LegacySharedEvidence = Omit<RedactedEvidence, 'charts' | 'contract'> & {
+type LegacySharedEvidence = Omit<RedactedEvidence, 'charts' | 'contract'> & {
   contract: RedactedEvidence['contract'] & {
     withheld: Readonly<Record<string, string>>;
     scope: 'match-consent';
@@ -254,7 +254,7 @@ export type LegacySharedEvidence = Omit<RedactedEvidence, 'charts' | 'contract'>
 export type SharedEvidence = LegacySharedEvidence | CutSharedEvidence;
 
 /** 필드를 적어서 고른 두 판(A·B) */
-export type CutSharedEvidence = {
+type CutSharedEvidence = {
   contract: Omit<RedactedEvidence['contract'], never> & {
     /** 이 판이 빼 둔 자리와 그 이유 */
     withheld: Readonly<Record<string, string>>;
@@ -436,6 +436,3 @@ export function matchInputOfEvidenceText(evidenceText: string): MatchInput {
     return 'legacy-v0';
   }
 }
-
-/** 이 파일이 넣지 않기로 한 키가 원본에 있는지 볼 때 쓴다 */
-export type WithheldChartKey = Exclude<keyof ChartEvidence, keyof SharedChartEvidence>;

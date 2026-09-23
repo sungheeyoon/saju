@@ -324,7 +324,7 @@ export function missingAnswer(query: Query): string | null {
  * 원국 한 사람짜리 화면은 접두사가 없다(`date`) — 이미 나눠 준 링크가 그대로
  * 열려야 하기 때문이다.
  */
-export type QueryPrefix = '' | 'a.' | 'b.';
+type QueryPrefix = '' | 'a.' | 'b.';
 
 /**
  * 어느 쪽이 어느 접두사인가 — **코덱 옆에 둔다.**
