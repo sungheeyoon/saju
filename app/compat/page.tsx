@@ -45,7 +45,7 @@ export default async function CompatPage() {
   const people = (edges ?? []).map((edge) => ({
     personId: edge.person_id as string,
     label: edge.local_label as string,
-    isSelf: edge.person_id === selfPersonIdOf(state),
+    isSelfPerson: edge.person_id === selfPersonIdOf(state),
   }));
 
   return (

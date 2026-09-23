@@ -102,8 +102,8 @@ type WolunInput = {
   year: number;
   /** 그 달을 감싼 대운을 찾을 표 — 선택값으로 두지 않는 이유는 `SaeunInput` 과 같다 */
   daeun: Daeun;
-  /** 절입 시각의 만 나이를 재는 기준 */
-  birthDate: CivilDate;
+  /** 절입 시각의 만 나이를 재는 기준 — 보정된 출생 시각(`meta.resolvedTime`)의 양력 날짜 */
+  solarBirthDate: CivilDate;
 };
 
 /** 한 해의 열두 절과 각 구간의 끝 */
@@ -119,7 +119,7 @@ function monthSpansOf(year: number): { startTerm: SolarTerm; nextTerm: SolarTerm
 }
 
 export function computeWolun(input: WolunInput, options: WolunOptions = {}): Wolun {
-  const { pillars, year, daeun, birthDate } = input;
+  const { pillars, year, daeun, solarBirthDate } = input;
 
   if (!Number.isInteger(year)) {
     throw new InvalidWolunRangeError(`사주년은 정수여야 합니다: ${year}`);
@@ -140,8 +140,8 @@ export function computeWolun(input: WolunInput, options: WolunOptions = {}): Wol
 
     // 절입에서 다음 절입 직전까지의 만 나이. 세운이 입춘 구간을 재는 것과 같은
     // 방식이다 — 두 곳이 나이를 다르게 재면 같은 날이 다른 대운에 든다.
-    const ageAtStart = ageOnDate(birthDate, koreaDateOf(startTerm.date));
-    const ageAtEnd = ageOnDate(birthDate, koreaDateOf(new Date(nextTerm.date.getTime() - 1)));
+    const ageAtStart = ageOnDate(solarBirthDate, koreaDateOf(startTerm.date));
+    const ageAtEnd = ageOnDate(solarBirthDate, koreaDateOf(new Date(nextTerm.date.getTime() - 1)));
 
     const crossing = daeunCrossingsOf(
       daeun,
