@@ -11,6 +11,7 @@ import {
 import { chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY } from '@/src/lib/input/query';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
+import { PROMPT_VARIANTS } from '@/src/lib/reading';
 
 import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
 
@@ -568,15 +569,14 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('button', { name: '자료만 복사' })).toBeVisible();
 
     /*
-      **실험판은 따로 선다.** 위의 「지금 보낼 프롬프트」를 토글로 갈아 끼우면 기준판이
-      무엇이었는지 화면에서 사라지고, 그러면 견주는 사람이 무엇과 무엇을 견주는지 잊는다.
+      **실험판은 서지 않는다**(G-32). 기준판 곁에 나란히 세웠던 변형들이 운영판처럼 읽혔다 —
+      판을 고르는 자리가 없으니 화면에 설 까닭이 없다. 글자가 아니라 **판의 id** 로 잰다:
+      머리 문구를 세면 문구가 바뀌는 날 영원히 통과한다. `control` 은 기준판이라 뺀다.
     */
-    await expect(
-      page.getByRole('heading', { name: '실험용 변형 — 실제 생성에는 쓰지 않습니다' }),
-    ).toBeVisible();
-    for (const id of ['control', 'longer-v1', 'recency-check-v1', 'no-yongsin-v1']) {
-      await expect(page.getByText(id, { exact: true })).toBeVisible();
-    }
+    const shown = await page.locator('main').innerText();
+    const variantIds = PROMPT_VARIANTS.map((one) => one.id).filter((id) => id !== 'control');
+    expect(variantIds.length).toBeGreaterThan(0);
+    expect(variantIds.filter((id) => shown.includes(id))).toEqual([]);
 
     // 세 kind 의 몸통도 복사할 수 있다 — 자료 없이 몸통만 고쳐 볼 때의 자리다.
     // 접혀 있으므로 펴고 본다. 접힌 채로 세면 「없다」와 「안 보인다」가 같은 답이 된다.
