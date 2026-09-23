@@ -167,7 +167,6 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(confirmRequest).toContainText('풀이권 1회가 임시로 차감됩니다');
     await expect(confirmRequest).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
     await expect(confirmRequest).toContainText('정확한 생년월일시와 출생지는 공개되지 않습니다');
-    await expect(confirmRequest).toContainText('상대와 연락할 수 있는 기능은 아직 지원하지 않습니다');
     await confirmRequest.getByRole('button', { name: '요청 보내기' }).click();
     await sentRequest(asker);
 
@@ -565,7 +564,6 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     const confirming = asker.page.getByRole('dialog');
     await expect(confirming).toContainText('풀이권 1회가 임시로 차감됩니다');
     await expect(confirming).toContainText('내 사주팔자 여덟 글자가 상대에게 공개');
-    await expect(confirming).toContainText('상대와 연락할 수 있는 기능은 아직 지원하지 않습니다');
     await confirming.getByRole('button', { name: '요청 보내기' }).click();
     await sentRequest(asker);
 

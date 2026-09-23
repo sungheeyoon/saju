@@ -9,6 +9,7 @@ import {
   readingNoneNote,
   READING_REPLACES_NOTE,
   READING_STALE_NOTE,
+  READING_USES_TICKET_NOTE,
   readingCreditsNote,
   readingWaitNote,
 } from '@/src/lib/reading';
@@ -604,9 +605,7 @@ export function ReadingPanel({
         <h3 id="reading-confirm-title" className="text-base font-bold">
           풀이권 1회를 사용하시겠어요?
         </h3>
-        <p className="mt-2 text-sm leading-6 text-secondary">
-          계속하면 풀이권 1회가 사용됩니다. 생성에 실패하면 풀이권이 복구됩니다.
-        </p>
+        <p className="mt-2 text-sm leading-6 text-secondary">{READING_USES_TICKET_NOTE}</p>
         {reading !== null && (
           <p className="mt-2 text-sm font-medium leading-6 text-danger">{READING_REPLACES_NOTE}</p>
         )}

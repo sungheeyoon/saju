@@ -230,7 +230,6 @@
 .elementBadge { font-family: serif; font-size: 18px; }
 .emptyActions { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 26px; }
 .failure { margin-top: 10px; font-size: 11px; text-align: center; color: var(--danger, #b4544a); }
-.confirmNote { margin-top: 14px; border-radius: 14px; background: var(--surface-soft); padding: 14px; font-size: 12px; line-height: 1.8; color: var(--text-secondary); }
 .confirmActions { display: flex; flex-direction: column-reverse; gap: 9px; margin-top: 20px; }
 .confirmCancel { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 24px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
 .dialog h2 { line-height: 1.5; }
