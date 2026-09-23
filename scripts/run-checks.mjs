@@ -25,6 +25,7 @@ import { join } from 'node:path';
 
 /** 도는 차례 — 가벼운 것부터, 서버를 띄우는 것은 뒤로 */
 export const SCRIPTS = [
+  'check-db-races.mjs',
   'check-onboarding.mjs',
   'check-managed.mjs',
   'check-discovery.mjs',
