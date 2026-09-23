@@ -9,10 +9,10 @@ import { selfElementSummary } from './summary';
 import {
   managedPersonArgs,
   noteOrNull,
-  revisionArgs,
+  personInputArgs,
   selfPersonArgs,
   unsupportedForSaving,
-} from '@/src/lib/input/revision';
+} from '@/src/lib/input/edit';
 import { userFacingDbMessage } from '../db-error';
 import { rpcArgs } from '@/src/lib/db';
 
@@ -182,11 +182,11 @@ export async function removeFromList(personId: string): Promise<SaveResult> {
  * - 부를 이름은 엣지를 고친다. 여덟 글자를 바꾸지 않으므로 판본이 되지 않는다.
  * - 나머지는 판본을 쌓는다. 하나라도 다르면 새것이고, 다 같으면 아무것도 안 쌓인다.
  *
- * 아무것도 안 쌓였는지는 DB 가 정한다(`add_person_revision` 이 지문으로 판정한다).
+ * 아무것도 안 쌓였는지는 DB 가 정한다(`edit_person_input` 이 지문으로 판정한다).
  * 여기서 미리 걸러 보내지 않는 이유는, 화면이 든 「지금 값」이 그 사이에 다른 기기에서
  * 바뀌었을 수 있기 때문이다 — 판정은 값을 들고 있는 쪽이 한다.
  */
-export async function revisePerson(personId: string, query: Query): Promise<SaveResult> {
+export async function editPersonInput(personId: string, query: Query): Promise<SaveResult> {
   const missing = missingAnswer(query);
   if (missing !== null) return { ok: false, message: missing };
 
@@ -202,8 +202,8 @@ export async function revisePerson(personId: string, query: Query): Promise<Save
     .eq('person_id', personId);
   if (labelError) return { ok: false, message: userFacingDbMessage(labelError, 'user_person_access.label') };
 
-  const { error } = await supabase.rpc('add_person_revision', rpcArgs<'add_person_revision'>(revisionArgs(personId, query)));
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'add_person_revision') };
+  const { error } = await supabase.rpc('edit_person_input', rpcArgs<'edit_person_input'>(personInputArgs(personId, query)));
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'edit_person_input') };
 
   /**
    * 판본이 바뀌었으면 **매칭 풀에 내놓은 오행 요약도 따라간다.**
@@ -236,7 +236,7 @@ export async function revisePerson(personId: string, query: Query): Promise<Save
     if (summaryError) console.error('오행 요약을 갱신하지 못했습니다', summaryError.message);
   }
 
-  refresh('person-revised');
+  refresh('person-input-edited');
   return { ok: true };
 }
 

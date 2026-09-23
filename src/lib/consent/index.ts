@@ -211,7 +211,7 @@ export function notificationText({ kind, nickname, readingKind }: NotificationEv
  *
  * 「판본」은 여기 서지 않는다 — 개념을 처음 만나는 자리에서 우리 내부 낱말로 설명할 수는
  * 없다. 출생 정보를 바꾸면 요청이 취소된다는 사실은 바꾸기 직전의 확인 창이 든다
- * (`REVISION_CHANGE_CONFIRM`).
+ * (`INPUT_EDIT_CHANGE_CONFIRM`).
  */
 export const CONSENT_FLOW_STEPS = [
   {
@@ -231,7 +231,7 @@ export const CONSENT_FLOW_STEPS = [
 /**
  * 흐름 아래에 붙는 한 줄 — **답을 기다리는 동안 무엇이 요청을 깨뜨리는가.**
  *
- * `REVISION_CHANGE_CONFIRM` 과 같은 사실이지만 **먼저 읽히는 자리**라 낱말이 다르다.
+ * `INPUT_EDIT_CHANGE_CONFIRM` 과 같은 사실이지만 **먼저 읽히는 자리**라 낱말이 다르다.
  * 저쪽은 출생 정보를 바꾸려는 사람에게 지금 걸린 요청이 어떻게 되는지 말하고, 여기는
  * 아직 요청을 보내지도 않은 사람에게 규칙 하나를 알려 준다.
  */
@@ -252,7 +252,7 @@ export const MATCH_CONSENT_QUESTION =
  * 이미 만든 풀이와 성립한 인연 궁합이 그대로라는 것도 함께 말한다. 안 적으면 「바꾸면
  * 다 사라진다」로 읽혀 고칠 것을 못 고친다(`MATCH_RESULT_PINNED_NOTE`).
  */
-export const REVISION_CHANGE_CONFIRM = {
+export const INPUT_EDIT_CHANGE_CONFIRM = {
   title: '출생 정보를 바꿀까요?',
   body: [
     '사주와 궁합이 새 입력으로 다시 계산됩니다.',

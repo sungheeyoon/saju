@@ -12,7 +12,7 @@ import { MatchResult } from '../../compat-match';
 import { ScoringNote } from '../../match-index';
 import { pairRelationFor } from './actions';
 import { CompatHero } from '../../compat-hero';
-import { REVISION_REPLACED_NOTE } from '@/src/lib/input/revision';
+import { INPUT_EDIT_REPLACED_NOTE } from '@/src/lib/input/edit';
 import { UNREADABLE_INPUT_NOTE } from '@/src/lib/input/stored';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
@@ -345,9 +345,9 @@ async function Result({ outcome }: { outcome: Outcome }) {
           (`CompatView`)의 자식 배열로 건너간다. 경계를 넘어온 원소는 `jsx` 가 달아 두는
           「검사했다」 표시를 잃으므로, 정적인 자리에 서 있어도 React 가 키를 찾는다.
         */
-        <p key="revision-notice" className="text-xs text-muted">
+        <p key="input-edit-notice" className="text-xs text-muted">
           <strong className="font-medium">현재 저장된 출생 정보 기준입니다.</strong>{' '}
-          {REVISION_REPLACED_NOTE}
+          {INPUT_EDIT_REPLACED_NOTE}
         </p>
       }
     />

@@ -7,7 +7,7 @@ import type { PersonSlots } from '@/src/lib/people';
 
 import { BirthFields } from '../../birth-form';
 import { DEFAULT_QUERY, missingAnswer, type Query } from '@/src/lib/input/query';
-import { NOTE_MAX } from '@/src/lib/input/revision';
+import { NOTE_MAX } from '@/src/lib/input/edit';
 import { addManagedPerson, removeFromList, updateNote } from '../actions';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from '../../same-chart-ask';
 

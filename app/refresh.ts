@@ -54,7 +54,7 @@ export type Changed =
   /** 내 사주를 처음 저장했다 */
   | 'self-person-saved'
   /** 저장된 출생 정보를 새 판본으로 쌓았다 — 홈의 명식과 목록의 줄이 함께 갈린다 */
-  | 'person-revised'
+  | 'person-input-edited'
   /** 저장한 사람이 늘거나 줄거나, 그 사람에 적은 메모가 바뀌었다 */
   | 'person-list-changed'
   /** 이름·사진 — **거의 모든 화면에 선다**, 그래서 레이아웃째 무른다 */
@@ -96,7 +96,7 @@ export type Changed =
  */
 const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'self-person-saved': [{ path: '/me' }],
-  'person-revised': [{ path: '/me' }, { path: '/me/people' }],
+  'person-input-edited': [{ path: '/me' }, { path: '/me/people' }],
   'person-list-changed': [{ path: '/me/people' }],
   'account-changed': [{ path: '/me', scope: 'layout' }],
   'account-closed': [{ path: '/', scope: 'layout' }],

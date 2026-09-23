@@ -3,15 +3,15 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 
-import { REVISION_CHANGE_CONFIRM } from '@/src/lib/consent';
+import { INPUT_EDIT_CHANGE_CONFIRM } from '@/src/lib/consent';
 
 import { BirthFields } from '../birth-form';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
 import {
-  REVISION_REPLACED_NOTE,
+  INPUT_EDIT_REPLACED_NOTE,
   samePillarInput,
-} from '@/src/lib/input/revision';
-import { revisePerson } from './actions';
+} from '@/src/lib/input/edit';
+import { editPersonInput } from './actions';
 
 /**
  * 저장된 출생 정보를 고치는 자리.
@@ -21,7 +21,7 @@ import { revisePerson } from './actions';
  *
  * 여기서도 익명 화면과 **같은 폼**을 쓴다.
  */
-export function ReviseChart({
+export function EditInput({
   personId,
   current,
   embedded = false,
@@ -77,7 +77,7 @@ export function ReviseChart({
         </button>
         {open && (
           <div className="mt-5">
-            <ReviseForm
+            <EditInputForm
               personId={personId}
               current={current}
               editableName={editableName}
@@ -93,7 +93,7 @@ export function ReviseChart({
 
   if (open) {
     return (
-      <ReviseForm
+      <EditInputForm
         personId={personId}
         current={current}
         embedded={embedded}
@@ -124,10 +124,10 @@ export function ReviseChart({
 /**
  * 고치는 폼 그 자체 — **여는 자리를 밖에서 정한다.**
  *
- * `/me` 는 버튼 하나로 열고(`ReviseChart`), 저장한 사람 목록은 카드의 관리 메뉴에서
+ * `/me` 는 버튼 하나로 열고(`EditInput`), 저장한 사람 목록은 카드의 관리 메뉴에서
  * 연다(`PersonActions`). 여는 방법이 둘이라고 폼이 둘이면 한쪽만 고쳐진다.
  */
-export function ReviseForm({
+export function EditInputForm({
   personId,
   current,
   embedded = false,
@@ -158,7 +158,7 @@ export function ReviseForm({
     setConfirming(false);
     setFailure(null);
     startSaving(async () => {
-      const result = await revisePerson(personId, query);
+      const result = await editPersonInput(personId, query);
       if (result.ok) {
         onDone();
         router.refresh();
@@ -172,7 +172,7 @@ export function ReviseForm({
     <section className={`flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 ${embedded ? 'col-span-full' : ''}`}>
       <header className="flex flex-col gap-1">
         <h2 className="text-base font-semibold">수정하기</h2>
-        <p className="text-sm text-secondary">{REVISION_REPLACED_NOTE}</p>
+        <p className="text-sm text-secondary">{INPUT_EDIT_REPLACED_NOTE}</p>
       </header>
 
       {!editableName && (
@@ -183,7 +183,7 @@ export function ReviseForm({
         </div>
       )}
 
-      <BirthFields value={query} onChange={setQuery} idPrefix="revise" showName={editableName} />
+      <BirthFields value={query} onChange={setQuery} idPrefix="edit-input" showName={editableName} />
 
       {/*
         무엇이 일어날지 누르기 전에 말한다. 이름은 여덟 글자를 바꾸지 않으므로
@@ -221,7 +221,7 @@ export function ReviseForm({
       {failure !== null && <p className="text-sm text-muted">저장하지 못했습니다 — {failure}</p>}
 
       {confirming && (
-        <RevisionConfirm personId={personId} onConfirm={save} onCancel={() => setConfirming(false)} />
+        <EditInputConfirm personId={personId} onConfirm={save} onCancel={() => setConfirming(false)} />
       )}
     </section>
   );
@@ -231,9 +231,9 @@ export function ReviseForm({
  * 내 출생 정보를 바꾸기 직전의 확인 — **경고는 되돌릴 수 없는 누름 직전에 선다**(ADR 0028).
  *
  * 바꾸면 답을 기다리던 인연 요청이 취소된다. 그 사실을 바꾼 뒤에 소식으로만 알면 사고처럼
- * 읽힌다. 문구는 `REVISION_CHANGE_CONFIRM` 한 자리에서 읽는다.
+ * 읽힌다. 문구는 `INPUT_EDIT_CHANGE_CONFIRM` 한 자리에서 읽는다.
  */
-function RevisionConfirm({
+function EditInputConfirm({
   personId,
   onConfirm,
   onCancel,
@@ -251,15 +251,15 @@ function RevisionConfirm({
   return (
     <dialog
       ref={confirming}
-      aria-labelledby={`revise-confirm-${personId}`}
+      aria-labelledby={`edit-input-confirm-${personId}`}
       onClose={onCancel}
       className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
     >
-      <h3 id={`revise-confirm-${personId}`} className="text-base font-bold">
-        {REVISION_CHANGE_CONFIRM.title}
+      <h3 id={`edit-input-confirm-${personId}`} className="text-base font-bold">
+        {INPUT_EDIT_CHANGE_CONFIRM.title}
       </h3>
       <div className="mt-2 flex flex-col gap-1.5 text-sm leading-6 text-secondary">
-        {REVISION_CHANGE_CONFIRM.body.map((line) => (
+        {INPUT_EDIT_CHANGE_CONFIRM.body.map((line) => (
           <p key={line}>{line}</p>
         ))}
       </div>
@@ -269,14 +269,14 @@ function RevisionConfirm({
           onClick={onConfirm}
           className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm sm:h-10"
         >
-          {REVISION_CHANGE_CONFIRM.confirm}
+          {INPUT_EDIT_CHANGE_CONFIRM.confirm}
         </button>
         <button
           type="button"
           onClick={() => confirming.current?.close()}
           className="h-11 rounded-xl border border-border px-5 text-sm text-secondary hover:border-border-strong hover:text-foreground sm:h-10"
         >
-          {REVISION_CHANGE_CONFIRM.cancel}
+          {INPUT_EDIT_CHANGE_CONFIRM.cancel}
         </button>
       </div>
     </dialog>

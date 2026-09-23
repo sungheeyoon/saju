@@ -12,7 +12,7 @@ import {
   unsupportedForSaving,
   type BlankPersonArgs,
   type ManagedPersonArgs,
-} from '@/src/lib/input/revision';
+} from '@/src/lib/input/edit';
 import { userFacingDbMessage } from '../../db-error';
 import { rpcArgs } from '@/src/lib/db';
 

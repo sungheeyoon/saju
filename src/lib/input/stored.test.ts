@@ -22,7 +22,7 @@ vi.mock('./chart', async (importOriginal) => {
 
 import { chartOf } from './chart';
 import { DEFAULT_QUERY, type Query } from './query';
-import { selfPersonArgs } from './revision';
+import { selfPersonArgs } from './edit';
 import { storedChartOf, type StoredInput } from './stored';
 
 const stored: StoredInput = {
