@@ -4,6 +4,7 @@ import { computeSaju, type Saju } from '@/src/lib/saju';
 import { ELEMENT_ROLE_KO, TEN_GOD_KO } from '@/src/lib/saju/analysis';
 import { analyzeCompatibility } from '@/src/lib/saju/compat';
 import { absorbableByUnknownHour, type Relation } from '@/src/lib/saju/relations';
+import type { SajuInput } from '@/src/lib/saju/input';
 import { randomInputs, withoutHour } from '@/src/lib/saju/population';
 import {
   ASSEMBLE_POLICY,
@@ -71,6 +72,46 @@ const CLASH = male(2000, 1, 1, 14);
 const BARE = male(1989, 5, 11, 9);
 /** 같은 명식의 시간 미상 판 */
 const HOURLESS = male(1990, 5, 20, null);
+
+/** 시험 하나가 고친 명식을 다음 시험이 읽지 않도록 얼린다 — 모집단은 파일 전체가 나눠 쓴다 */
+const frozen = <T>(value: T): T => {
+  if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const inner of Object.values(value)) frozen(inner);
+  }
+  return value;
+};
+
+type Member = { input: SajuInput; saju: Saju; readonly hourless: Saju };
+
+const POPULATION_SIZE = 1200;
+const population: Member[] = [];
+
+/**
+ * 모집단의 앞 `count` 건 — **한 명식은 한 번만 계산한다.**
+ *
+ * 아래 열두 곳이 같은 시드의 앞자리(200~1200건)를 저마다 `computeSaju` 로 다시 돌려 이 파일
+ * 하나가 약 7천 번을 불렀다. 한 번이 대운 · 세운 · 월운과 그 관계까지 세우느라 약 1ms 라
+ * 전체 단위 시험에서 가장 긴 파일이었고, 에이전트 여럿이 한 기계에서 돌 때(부하 30~40)
+ * 1초 남짓하던 시험들이 기본 5초를 넘겼다(2026-09-24). `randomInputs` 는 같은 시드면 늘
+ * 같은 앞자리를 내므로 표본은 그대로다. 시간 미상 판은 부르는 시험이 있을 때만 센다.
+ */
+const populationOf = (count: number): readonly Member[] => {
+  if (count > POPULATION_SIZE) throw new Error(`모집단은 ${POPULATION_SIZE}건까지다: ${count}`);
+  if (population.length < count) {
+    for (const input of randomInputs(count).slice(population.length)) {
+      let hourless: Saju | undefined;
+      population.push({
+        input,
+        saju: frozen(computeSaju(input)),
+        get hourless() {
+          return (hourless ??= frozen(computeSaju(withoutHour(input))));
+        },
+      });
+    }
+  }
+  return population.slice(0, count);
+};
 
 const topicsOf = (saju: Saju) => findUtterances(saju).map((request) => request.topic);
 
@@ -204,9 +245,7 @@ describe('조립기', () => {
       let checked = 0;
       const lost: { key: string; relation: Relation }[] = [];
 
-      for (const input of randomInputs(1200)) {
-        const hourless = computeSaju(withoutHour(input));
-        const withHour = computeSaju(input);
+      for (const { saju: withHour, hourless } of populationOf(1200)) {
 
         // 세 기둥이 갈리면 다른 명식이라 "관계가 사라졌다"고 셀 수 없다.
         const three = (saju: Saju) =>
@@ -291,8 +330,7 @@ describe('조립기', () => {
     it('미정 한 칸이 섞임과 둘 다 없음으로 갈린다', () => {
       const seen = new Map<string, number>();
 
-      for (const input of randomInputs(400)) {
-        const saju = computeSaju(input);
+      for (const { saju } of populationOf(400)) {
         const request = findUtterances(saju).find(
           (candidate) => candidate.topic === 'structure.outcome',
         )!;
@@ -334,8 +372,7 @@ describe('조립기', () => {
     it('금지 표현인 조건 이름이 그 명식의 근거로 담긴다', () => {
       let opened = 0;
 
-      for (const input of randomInputs(400)) {
-        const saju = computeSaju(input);
+      for (const { saju } of populationOf(400)) {
         const { structure } = saju.analysis;
         const names = [...structure.formingFactors, ...structure.breakingFactors].map(
           (factor) => factor.name,
@@ -372,8 +409,7 @@ describe('조립기', () => {
     it('무근이면 뽑혔다고 말하지 않는다', () => {
       let rootless = 0;
 
-      for (const input of randomInputs(400)) {
-        const saju = computeSaju(input);
+      for (const { saju } of populationOf(400)) {
         if (saju.analysis.rootedness.dayMaster.rooted) continue;
 
         rootless += 1;
@@ -396,8 +432,7 @@ describe('조립기', () => {
     it('뽑힌 뿌리는 언제나 충이나 국에 깎여 있다', () => {
       let pulled = 0;
 
-      for (const input of randomInputs(600)) {
-        const saju = computeSaju(input);
+      for (const { input, saju } of populationOf(600)) {
         const quality = saju.analysis.rootQuality.dayMaster;
         if (!saju.analysis.rootedness.dayMaster.rooted || !quality.effectivelyRootless) continue;
 
@@ -416,8 +451,8 @@ describe('조립기', () => {
      * 실제로 뒤집힌다. `rootedness.rootless` 와 같은 자리다.
      */
     it('뽑혔다는 말은 시각을 모르면 입을 닫는다', () => {
-      const pulled = randomInputs(600)
-        .map((input) => computeSaju(input))
+      const pulled = populationOf(600)
+        .map(({ saju }) => saju)
         .find(
           (saju) =>
             saju.analysis.rootedness.dayMaster.rooted &&
@@ -437,8 +472,8 @@ describe('조립기', () => {
      */
     it('여섯 좌표가 모두 실제로 조회된다', () => {
       const seen = new Set(
-        randomInputs(900)
-          .map((input) => computeSaju(input))
+        populationOf(900)
+          .map(({ saju }) => saju)
           .flatMap((saju) =>
             findUtterances(saju)
               .filter((request) => request.topic.startsWith('rootQuality.'))
@@ -513,7 +548,7 @@ describe('조립기', () => {
       const seen = new Set([
         ...variantsOf(TRANSFORMED),
         ...variantsOf(DAY_MASTER),
-        ...randomInputs(200).flatMap((input) => variantsOf(computeSaju(input))),
+        ...populationOf(200).flatMap(({ saju }) => variantsOf(saju)),
       ]);
 
       expect([...seen].sort()).toEqual([
@@ -543,8 +578,7 @@ describe('조립기', () => {
       let span = 0;
       let inTable = 0;
 
-      for (const input of randomInputs(400)) {
-        const saju = computeSaju(input);
+      for (const { saju } of populationOf(400)) {
         const names = new Set(saju.relations.map((relation) => relation.ko));
 
         for (const bureau of saju.analysis.bureaus) {
@@ -570,8 +604,7 @@ describe('조립기', () => {
      * 이름**이기 때문이다(`groundedScope: 'chart-produced-only'`).
      */
     it('국 이름이 근거 목록에 담긴다', () => {
-      for (const input of randomInputs(200)) {
-        const saju = computeSaju(input);
+      for (const { saju } of populationOf(200)) {
         const grounded = groundedTermsOf(saju);
 
         for (const bureau of saju.analysis.bureaus) {
@@ -588,8 +621,7 @@ describe('조립기', () => {
       let moved = 0;
       let still = 0;
 
-      for (const input of randomInputs(200)) {
-        const saju = computeSaju(input);
+      for (const { input, saju } of populationOf(200)) {
         const said = topicsOf(saju).includes('elements.heaviest');
 
         expect(said, JSON.stringify(input)).toBe(saju.analysis.effectiveElements.adjusted);
@@ -608,8 +640,8 @@ describe('조립기', () => {
      */
     it('모집단이 갈리는 쪽도 밟는다', () => {
       const variants = new Set(
-        randomInputs(400)
-          .map((input) => computeSaju(input))
+        populationOf(400)
+          .map(({ saju }) => saju)
           .flatMap((saju) =>
             findUtterances(saju)
               .filter((request) => request.topic === 'elements.heaviest')
@@ -986,8 +1018,8 @@ describe('조립기', () => {
    * 않으므로, 시각 있는 쪽만 돌리면 절반이 그대로 안 보인다.
    */
   it('무작위 모집단의 발화가 모두 계약을 지킨다', () => {
-    for (const input of randomInputs(400)) {
-      for (const saju of [computeSaju(input), computeSaju(withoutHour(input))]) {
+    for (const { input, saju: withHour, hourless } of populationOf(400)) {
+      for (const saju of [withHour, hourless]) {
         for (const utterance of assembleText(saju)) {
           expect(utterance.violations, `${JSON.stringify(input)} ${utterance.key}`).toHaveLength(0);
         }

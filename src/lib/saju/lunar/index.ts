@@ -178,6 +178,18 @@ export function solarFromLunar(date: LunarDate): CivilDate {
 }
 
 /**
+ * 해마다 음력 정월 초하루의 양력 일련번호와 그 해의 날 수 — 표에서 한 번만 편다.
+ *
+ * 부를 때마다 펴면 한 번의 변환이 201해의 날짜 글자를 다시 읽는다. 한 번은 싸지만
+ * 전수 왕복 시험(6만 9천 날)에서는 그것이 제곱이 되어, 기계가 붐비면 시험이 제 시간을
+ * 넘겼다(2026-09-24).
+ */
+const YEAR_SPANS: readonly { start: number; length: number }[] = LUNAR_YEARS_RAW.map((record) => ({
+  start: dayNumberOf(parseIso(record.startSolar)),
+  length: record.monthDays.reduce((sum, days) => sum + days, 0),
+}));
+
+/**
  * 양력 날짜를 음력으로 — 저장된 원본 형식을 되짚어 보여주는 쪽에서 쓴다.
  *
  * 표가 덮는 양력 구간은 음력 1912년 정월 초하루부터 음력 2100년 섣달 그믐까지이고,
@@ -185,9 +197,8 @@ export function solarFromLunar(date: LunarDate): CivilDate {
  */
 export function lunarFromSolar(date: CivilDate): LunarDate {
   const target = dayNumberOf(date);
-  const first = dayNumberOf(parseIso(LUNAR_YEARS_RAW[0].startSolar));
 
-  if (target < first) {
+  if (target < YEAR_SPANS[0].start) {
     throw new LunarConversionError(
       'out-of-range',
       date,
@@ -195,11 +206,10 @@ export function lunarFromSolar(date: CivilDate): LunarDate {
     );
   }
 
-  for (let year = LUNAR_SUPPORTED_YEAR_RANGE.min; year <= LUNAR_SUPPORTED_YEAR_RANGE.max; year += 1) {
-    const record = LUNAR_YEARS_RAW[year - LUNAR_SUPPORTED_YEAR_RANGE.min];
-    const start = dayNumberOf(parseIso(record.startSolar));
-    const length = record.monthDays.reduce((sum, days) => sum + days, 0);
+  for (const [index, { start, length }] of YEAR_SPANS.entries()) {
     if (target >= start + length) continue;
+    const year = LUNAR_SUPPORTED_YEAR_RANGE.min + index;
+    const record = LUNAR_YEARS_RAW[index];
 
     let offset = start;
     for (const month of monthsOf(record)) {

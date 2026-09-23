@@ -992,6 +992,96 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
+   * **사람 목록도 스물이 넘으면 이름으로 찾는다**(ADR 0102, G-21).
+   *
+   * 2026-09-24 에 쟀다 — 카드가 커서 첫 화면에 온전히 서는 카드는 수와 상관없이 하나였고, 스물여섯이면
+   * 휴대폰에서 열세 화면을 내려야 끝의 사람에 닿았다. 그래서 여섯부터 목록 위에 찾는 칸이 선다.
+   * 궁합 칸과 같은 규칙(초성도)으로 좁히고, 몇 명인지 · 없다는 것을 `role="status"` 가 말한다.
+   */
+  test('저장한 사람이 스물여섯이면 목록 위의 칸에 이름을 쳐서 좁힌다', async ({ page, signedIn }) => {
+    const names = [...Array.from({ length: 20 }, (_, index) => `이웃${index + 1}`), '지영', '지수', '민지', '수정'];
+    saveManyPeople(signedIn.email, names);
+    await page.goto('/me/people');
+
+    const cards = page.locator('main ul > li');
+    const find = page.getByRole('searchbox', { name: '이름으로 찾기' });
+    /* 결과를 말하는 칸 — 찾는 칸이 `aria-describedby` 로 가리키는 그 칸이다 */
+    const status = page.locator(`[id="${await find.getAttribute('aria-describedby')}"]`);
+    await expect(cards).toHaveCount(names.length + 1);
+    await expect(cards.filter({ visible: true })).toHaveCount(names.length + 1);
+    await expect(find).toBeVisible();
+    await expect(status).toHaveAttribute('role', 'status');
+    /* 안 쳤으면 말하지 않는다 */
+    await expect(status).toHaveText('');
+
+    /* 초성만 쳐도 좁혀진다 — 「수정」의 정까지 넷, 차례는 저장한 그대로다 */
+    await find.fill('ㅈ');
+    await expect(cards.filter({ visible: true })).toHaveCount(4);
+    await expect(status).toHaveText('4명');
+    await find.fill('민지');
+    const shown = cards.filter({ visible: true });
+    await expect(shown).toHaveCount(1);
+    await expect(shown.getByRole('heading', { name: '민지', exact: true })).toBeInViewport();
+
+    /* 좁혀진 카드도 그대로 쓴다 — 관리 메뉴가 열린다 */
+    await shown.getByLabel('민지 관리', { exact: true }).click();
+    await expect(shown.getByRole('button', { name: '목록에서 빼기' })).toBeVisible();
+
+    await find.fill('없는이름');
+    await expect(cards.filter({ visible: true })).toHaveCount(0);
+    await expect(status).toHaveText('찾는 사람이 없습니다');
+
+    /* 지우면 전부가 다시 선다 */
+    await find.fill('');
+    await expect(cards.filter({ visible: true })).toHaveCount(names.length + 1);
+    await expect(status).toHaveText('');
+
+    /* 열려도 화면을 가로로 밀지 않는다 */
+    const width = await page.evaluate(() => ({
+      client: document.documentElement.clientWidth,
+      scroll: document.documentElement.scrollWidth,
+    }));
+    expect(width.scroll).toBeLessThanOrEqual(width.client);
+  });
+
+  /**
+   * **백 명이어도 끝의 사람에 몇 글자로 닿는다.** 칸 없이는 휴대폰에서 마흔여덟 화면을 내려야
+   * 했던 사람이 이름을 치면 스크롤 없이 첫 화면에 선다. 서버는 수와 상관없이 같은 문을 부른다 —
+   * 그것은 PR 에서 쟀고 여기서는 화면만 본다.
+   */
+  test('저장한 사람이 백이어도 끝의 사람이 이름을 치면 첫 화면에 선다', async ({ page, signedIn }) => {
+    const names = Array.from({ length: 99 }, (_, index) => `사람${String(index + 1).padStart(3, '0')}`);
+    saveManyPeople(signedIn.email, names);
+    await page.goto('/me/people');
+
+    const cards = page.locator('main ul > li');
+    await expect(cards).toHaveCount(100);
+    const last = names[names.length - 1];
+    await expect(page.getByRole('heading', { name: last, exact: true })).not.toBeInViewport();
+
+    const find = page.getByRole('searchbox', { name: '이름으로 찾기' });
+    await find.click();
+    await find.pressSequentially(last);
+    await expect(page.locator('main [role="status"]')).toHaveText('1명');
+    await expect(cards.filter({ visible: true })).toHaveCount(1);
+    await expect(page.getByRole('heading', { name: last, exact: true })).toBeInViewport();
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  });
+
+  /** 적을 때는 칸이 안 선다 — 눈으로 찾는 수에 쓸 일 없는 칸이 첫 카드를 밀지 않게 */
+  test('저장한 사람이 없거나 하나면 찾는 칸이 안 선다', async ({ page, signedIn, openAs }) => {
+    await page.goto('/me/people');
+    await expect(page.getByRole('heading', { name: signedIn.managed[0], exact: true })).toBeVisible();
+    await expect(page.getByRole('searchbox')).toHaveCount(0);
+
+    const alone = await openAs({ selfPerson: true });
+    await alone.page.goto('/me/people');
+    await expect(alone.page.getByText('아직 저장한 사람이 없습니다', { exact: false })).toBeVisible();
+    await expect(alone.page.getByRole('searchbox')).toHaveCount(0);
+    await expect(alone.page.locator('main ul > li')).toHaveCount(0);
+  });
+
+  /**
    * **만든 글이 사는 자리는 메뉴에 있다**(ADR 0033).
    *
    * 풀이가 네 화면에 흩어져 있어서, 만든 글에 닿으려면 그것이 어느 화면의 것인지를

@@ -22,6 +22,7 @@ import { myReadings, type ReadingEntry } from '../reading/current';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { AddPerson } from './manage';
+import { PeopleFinder } from './finder';
 import { PersonActions } from './person-menu';
 import { ELEMENT_TONE } from '../../element-tone';
 import { PILLAR_COLUMNS } from '../../saju/shared';
@@ -155,13 +156,14 @@ function PeopleList({
           아직 저장한 사람이 없습니다. 이름과 출생 정보를 입력해 사람을 추가해 보세요.
         </p>
       ) : (
-        <ul className="flex flex-col gap-4">
-          {people.map((person) => (
-            <li key={person.personId}>
-              <PersonCard person={person} reading={readings.get(person.personId) ?? null} />
-            </li>
-          ))}
-        </ul>
+        /* 여섯부터 목록 위에 찾는 칸이 선다 — 카드는 여기서 그리고 칸은 숨기기만 한다(`finder.tsx`) */
+        <PeopleFinder
+          people={people.map((person) => ({
+            personId: person.personId,
+            label: person.local_label,
+            card: <PersonCard person={person} reading={readings.get(person.personId) ?? null} />,
+          }))}
+        />
       )}
     </>
   );

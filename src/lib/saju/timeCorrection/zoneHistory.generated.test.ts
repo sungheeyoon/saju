@@ -82,8 +82,16 @@ describe('생성된 표 ↔ 실행 환경 tzdb 대조', () => {
     const to = Date.UTC(ZONE_HISTORY_PROVENANCE.toYear + 1, 0, 1);
 
     // 비교 지점은 절대 시각이므로 전환 당일이라고 봐줄 것이 없다. 정확히 같아야 한다.
+    //
+    // 어긋난 지점을 모아 한 번에 견준다. 14만 6천 번 `expect` 를 부르면 대조보다 단언이
+    // 더 비싸서, 기계가 붐비면 이 시험이 제 시간을 넘겼다(2026-09-24). 모으면 첫
+    // 어긋남에서 멈추지 않고 빠뜨린 전환 전부가 한 번에 드러난다.
+    const mismatches: string[] = [];
     for (let time = from; time < to; time += DAY_MS / 2) {
-      expect(tableOffsetAt(time), new Date(time).toISOString()).toBe(icuOffsetAt(time));
+      const table = tableOffsetAt(time);
+      const icu = icuOffsetAt(time);
+      if (table !== icu) mismatches.push(`${new Date(time).toISOString()} 표 ${table} · tzdb ${icu}`);
     }
+    expect(mismatches).toEqual([]);
   });
 });
