@@ -571,14 +571,34 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
     expect(ask.filter((rule) => deny.includes(rule))).toEqual([]);
   });
 
-  /** `docs/prd.md` §7.0 표에서 「(지금)」이 붙은 단계 — 출시 단계가 적힌 곳은 여기 하나다 (ADR 0093 추기) */
-  function currentStages(): string[] {
+  /**
+   * 출시 단계마다 등급 3 을 잠그는가 — **모르는 단계는 없다.** 이름이 「공개 출시」가 아니면 비우라고 하던 동안,
+   * 공개 출시 뒤의 단계(「정식 운영」 같은)를 더하면 시험이 잠금을 **끄라고** 요구했다(#155). PRD §7.0 에 단계를
+   * 더하면 여기에도 더한다 — 제품 문서에 도구 속성을 두지 않는다 (ADR 0093 추기)
+   */
+  const TIER_THREE_LOCKED: Record<string, boolean> = {
+    '운영 베타': false,
+    '채팅 안전 베타': false,
+    '공개 출시': true,
+  };
+
+  /** `docs/prd.md` §7.0 표의 단계 — 이름과 「(지금)」 표시. 출시 단계가 적힌 곳은 여기 하나다 (ADR 0093 추기) */
+  function stagesOfPrd(): { name: string; current: boolean }[] {
     const prd = readFileSync(join(ROOT, 'docs/prd.md'), 'utf8');
     const start = prd.indexOf('\n### 7.0 ');
     expect(start).toBeGreaterThan(-1);
     const end = prd.indexOf('\n### ', start + 1);
-    return [...prd.slice(start, end).matchAll(/^\| \*\*([^*]+)\*\* \(지금\) \|/gm)].map((match) => match[1].trim());
+    return [...prd.slice(start, end).matchAll(/^\| \*\*([^*]+)\*\*( \(지금\))? \|/gm)].map((match) => ({
+      name: match[1].trim(),
+      current: match[2] !== undefined,
+    }));
   }
+
+  it('PRD §7.0 의 단계는 전부 잠금 여부가 정해져 있다 — 모르는 단계는 잠금을 켜라고도 끄라고도 안 한다', () => {
+    const names = stagesOfPrd().map((stage) => stage.name);
+    expect(names.length).toBeGreaterThan(2);
+    expect(names.filter((name) => !(name in TIER_THREE_LOCKED)), '단계 표에 더한다').toEqual([]);
+  });
 
   it('등급 3 의 잠금은 공개 출시에 켠다 — 그 전에는 ask 가 비어 있고, 그 뒤에는 켤 목록과 같다 (ADR 0093)', () => {
     const deferred = deferredAskRules();
@@ -587,9 +607,10 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
     expect(deferred.length).toBeGreaterThan(10);
     expect(deferred.filter((rule) => deny.includes(rule))).toEqual([]);
 
-    const stages = currentStages();
+    const stages = stagesOfPrd().filter((stage) => stage.current).map((stage) => stage.name);
     expect(stages, 'PRD §7.0 표의 「(지금)」은 하나다').toHaveLength(1);
-    if (stages[0] === '공개 출시') {
+    expect(stages[0] in TIER_THREE_LOCKED, `${stages[0]} 은 모르는 단계다 — 단계 표에 더한다`).toBe(true);
+    if (TIER_THREE_LOCKED[stages[0]]) {
       expect([...ask].sort(), 'delegation.md 「공식 운영에 들어가면 켜는 잠금」의 걸음을 밟는다').toEqual([...deferred].sort());
     } else {
       // #134 는 켤 목록 전부를 ask 와 등급 3 칸에 함께 넣어 초록이었다 — 단계를 안 옮기고는 못 켠다
