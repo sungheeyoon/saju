@@ -1547,6 +1547,14 @@ npm run db:remote -- --purpose "가입 열기 — 운영자 복귀" \
 
 `main` 에 푸시하면 자동 배포된다 — https://saju-snowy.vercel.app
 
+**Preview 는 앱이 바뀐 커밋만 빌드한다**(2026-09-24 운영자 결정). `vercel.json` 의 `ignoreCommand` 가
+`scripts/vercel-ignore.mjs` 를 부르고, 지난 성공 배포(`VERCEL_GIT_PREVIOUS_SHA`, 가지의 첫 배포면 `main` 과의 갈림점)
+뒤에 바뀐 파일이 **전부** 문서(`docs/**` · `*.md`) · 마이그레이션 · pgTAP · `src`/`scripts` 의 단위 시험이면 건너뛴다.
+Production 은 늘 빌드하고, 기준을 못 찾거나 git 이 실패하면 빌드한다. Vercel 은 **0 이면 건너뛰고 1 이면 빌드한다** —
+`scripts/vercel-ignore.test.ts` 가 그 반대 의미를 든다. 건너뛴 배포는 `CANCELED` 로 서고 **하루 배포 수에는 여전히
+센다**(Vercel 문서 「Ignored Build Step」의 note) — 아끼는 것은 빌드 시간과 동시 빌드 자리다. 건너뛴 가지를 굳이
+빌드하려면 Deployments → Redeploy 에서 「Use project's Ignore Build Step」을 끈다.
+
 마이그레이션은 따로 올린다.
 
 ```bash
