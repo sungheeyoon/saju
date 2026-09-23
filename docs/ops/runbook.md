@@ -34,7 +34,7 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 | `NEXT_PUBLIC_SUPABASE_URL` | 브라우저와 서버 양쪽 |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | 브라우저 |
 | `SUPABASE_SECRET_KEY` | 서버 전용 — `definer` 함수를 부르는 자리 |
-| `OPENAI_API_KEY` · `OPENAI_WEBHOOK_SECRET` | 풀이 생성과 webhook (Production·Preview 둘 다) |
+| `OPENAI_API_KEY` · `OPENAI_WEBHOOK_SECRET` | 풀이 생성과 webhook. 키는 Production · Preview, 서명 비밀은 Production 만(2026-09-24 `vercel env ls`) |
 | `CRON_SECRET` | 복구기를 깨우는 자리 |
 
 - **`NEXT_PUBLIC_` 이 붙으면 브라우저가 본다.** 열쇠를 그 접두사로 넣는 순간 공개된다.
@@ -56,6 +56,66 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
   못 받는다(`begin; … rollback;` 이 죽는다).
 - **`.env.development.local` 은 이름과 달리 운영 DB 를 가리킨다.** 로컬 스택에 대고
   돌릴 것을 여기 대고 돌리지 않는다.
+
+### 비밀이 새면 — **교체가 먼저다** (G-23 ⑧)
+
+비밀은 **서버 환경변수(Vercel)와 Supabase Vault 에만 있다.** 브라우저로 가는 파일에 비밀 이름이나
+그 빌드의 비밀 값이 있으면 `npm run build` 끝의 `scripts/secret-env.mjs` 가 빌드를 세운다 — Vercel 의
+운영 빌드도 진짜 값을 들고 이 검사를 지나며, 값은 찍지 않고 이름과 파일만 말한다. 코드가 읽는 이름의
+갈래(비밀 · 공개 · 설정)와 비밀을 읽는 모듈의 `import 'server-only'` 는 `scripts/secret-env.test.ts` 가
+잰다. **그 시험이 이 절도 읽는다** — 앱의 비밀과 마이그레이션이 Vault 에서 읽는 이름마다 아래 표에 줄이
+있어야 초록이다. 새 비밀은 이 표에 줄이 서야 들어온다.
+
+**순서는 넷이고 늘 같다.**
+
+1. **새 값을 만든다 — 옛 값을 끄기 전에.** 둘이 함께 유효한 동안에는 아무것도 안 멈춘다.
+2. **넣는다.** Vercel 은 대시보드 Settings → Environment Variables 에서 그 이름의 값을 고친다(표가
+   말하는 환경 전부). **Vercel 변수는 새 배포부터 읽힌다** — Deployments 의 최신 Production 에서
+   Redeploy 하고 Ready 를 본다. 값 교체는 사람이 대시보드에서 한다(에이전트에게 `vercel env rm` 은
+   등급 4 다, `docs/agents/delegation.md`). Vault 는 SQL Editor 에서 고치고 재배포가 없다 — 다음 호출이 읽는다:
+
+   ```sql
+   select vault.update_secret((select id from vault.secrets where name = '<이름>'), '<새 값>');
+   select name, updated_at from vault.secrets order by name;   -- 값은 안 본다
+   ```
+
+   로컬 `.env.development.local` 에 그 이름이 있으면 손으로 고친다(Secret 은 `vercel env pull` 로 안 온다).
+3. **확인한다** — 표의 「확인」.
+4. **옛 값을 끊는다.** 끊기 전에 3 을 본다 — 끊는 순간부터 옛 값을 든 자리는 멈춘다.
+
+| 비밀 | 새 값은 어디서 | 넣는 자리 | 옛 값이 먼저 끊기면 멈추는 것 | 확인 · 끊기 |
+| --- | --- | --- | --- | --- |
+| `SUPABASE_SECRET_KEY` | Supabase 대시보드 → Project Settings → API Keys → Secret keys 에서 새 키. 여럿이 함께 선다 | Vercel **Production** · 로컬 → 재배포 | 열쇠를 쓰는 자리 전부(`app/keyed-client.ts`) — 풀이 생성의 계산 입력과 저장, webhook 영수증(503 이라 provider 가 72시간 다시 보낸다), 복구기(503 → `net-request-failed` 알림) | 새 배포에서 풀이 하나가 끝나는가. 그 뒤 옛 키를 지운다 |
+| `SUPABASE_SERVICE_ROLE_KEY` | 운영에 없다 — 로컬 스택의 옛 이름 갈래이고 그 값은 `supabase status` 가 내는 개발 키다 | — | — | 운영 프로젝트의 **legacy `service_role` JWT** 가 켜져 있으면 같은 힘이다. 새면 API Keys 의 legacy 키를 끈다 — 앱은 발행 키와 새 비밀 키만 쓴다 |
+| `OPENAI_API_KEY` | platform.openai.com → API keys. **같은 프로젝트**에 만든다 — 회수는 제출한 작업을 그 프로젝트에서 찾는다 | Vercel **Production · Preview** · 로컬(실호출) → 재배포 | 제출(`model-submit-failed`)과 **이미 떠난 작업의 회수** — 못 가져온 작업은 8분 deadline 에 닫히고, 토큰은 나갔는데 글은 없다 | 새 배포 Ready 뒤 `select count(*) from public.open_reading_jobs();` 가 0 일 때 옛 키를 끈다 |
+| `OPENAI_WEBHOOK_SECRET` | platform.openai.com → Settings → Webhooks. 서명 비밀은 만들 때 한 번만 보이므로 **같은 주소로 endpoint 를 새로 만든다** | Vercel **Production** → 재배포 | webhook 이 401 이다. **결과는 안 잃는다** — 복구기가 1분마다 줍는다(ADR 0020). 늦어질 뿐이다. 두 endpoint 가 겹쳐 같은 결과가 두 번 와도 회수는 일감을 한 번만 집는다(`claim_reading_job`) | 새 배포 Ready 뒤 옛 endpoint 를 지운다. `CRON_SECRET` 과 같은 값을 쓰지 않는다 |
+| `CRON_SECRET` = Vault `reading_recovery_secret` | 우리가 짓는다 — `openssl rand -base64 32` | **두 자리가 같은 값이다** — Vercel **Production**(Vercel Cron 이 이 값을 `Authorization: Bearer` 로 싣는다) → 재배포, 그리고 Vault `reading_recovery_secret` | 둘이 갈린 동안 1분 복구기가 403 이다 → `net-request-failed` 알림. webhook 이 살아 있으면 결과는 그대로 붙는다 | 새 배포 Ready 직후 Vault 를 바꾼다(창이 그만큼 짧다). `select status_code, created from net._http_response order by created desc limit 3;` 가 200. 두 자리를 다 바꾸면 옛 값은 끊긴 것이다 |
+| Vault `reading_recovery_url` | 비밀이 아니다 — 공개 주소(`/api/cron/reading`). 도메인이 바뀔 때만 고친다 | Vault | — | — |
+| Vault `ops_alert_url` | **주소 자체가 열쇠다** — 가진 사람은 운영 채널에 글을 넣는다. Slack 앱의 Incoming Webhooks 나 Discord 채널의 연동 → 웹후크에서 새 주소를 만든다 | Vault(재배포 없음) | 알림이 채널로 안 나간다. `ops_alert` 표에는 그대로 적힌다 | 「운영자 알림 배선」의 `notify_ops('ops-alert-test', …)` 가 닿으면 옛 웹후크를 지운다 |
+| Vault `ops_alert_secret` | 넣었을 때만 있다 — 받는 쪽이 `Authorization` 을 볼 때 | Vault 와 받는 쪽을 함께 | 받는 쪽이 알림을 거절한다 | 위와 같다 |
+| 구글 로그인 client secret | 코드에 없다 — Supabase Auth 가 든다. Google Cloud Console → Credentials → 그 OAuth client 에서 secret 을 더한다 | Supabase 대시보드 Authentication → Providers → Google(재배포 없음). **`supabase config push` 로 넣지 않는다**(맨 위 경고) | 구글 로그인 전부 | 새 창에서 로그인이 되면 Google 에서 옛 secret 을 끈다 |
+
+- **운영자 자격**(Supabase access token · DB 비밀번호 · Vercel · GitHub 토큰)은 코드에 없다. 각 대시보드에서
+  폐기하고 다시 만든다. MFA 는 G-23 ⑨ 가 든다.
+- **무료 지급 HMAC 키는 아직 코드에 없다**(G-20 이 만든다). 들어오는 PR 이 이 표에 줄을 더한다. 미리 적어 둘
+  사실 하나 — **키를 바꾸면 저장된 식별값 전부와 대조가 끊긴다.** 원문(CI)을 안 남기므로 새 키로 옮길 길이
+  없다(ADR 0101). 끊기면 그날 전에 떠난 사람이 다시 들어와 무료 몫을 또 받는다. 새었을 때 교체할지와 옛
+  식별값의 처분은 그 PR 이 G-25 ⑧ 과 함께 정한다.
+- **PG · 본인확인 키도 아직 없다** — 들어올 때 이 표에 줄을 더한다.
+
+**git 기록에 새었을 때.** 푸시된 순간 샌 것으로 본다 — 클론 · 포크 · CI 로그가 이미 들고 있다.
+
+1. **교체가 먼저다** — 위 표대로. 기록을 먼저 지우면 그동안 값은 살아 있다.
+2. 어디에 있는지 찾는다 — 값을 화면에 찍지 않도록 앞 몇 글자로 센다:
+   `git log --all -S '<앞 8글자>' --oneline`
+3. 기록 정리(`git filter-repo` · main force push)는 **사람이 한다** — 에이전트에게 등급 4 다. 교체가 끝났으면
+   남은 것은 끊긴 값이라 정리는 급하지 않다.
+
+로그 · 에러 응답에 새었을 때도 교체가 먼저다. 2026-09-24 에 잰 값 — git 역사 전체에 비밀 모양의 문자열
+(`sk-` · `sb_secret_` · `whsec_` · JWT · Slack · Discord 웹후크)은 없다(CI 의 껍데기 발행 키
+`sb_publishable_ci_placeholder` 뿐). `.env*` 는 `.gitignore` 가 막고 추적되는 것은 `supabase/.env`(포트,
+비밀 아님) 하나다. 앱의 `console.error` 넷 중 환경변수를 싣는 것은 없고, webhook 의 401 은 SDK 오류 문장을
+답에 싣지 않는다(그날 고쳤다 — 「서명 비밀이 비었다」가 아무에게나 갔다).
 
 ---
 
@@ -416,8 +476,10 @@ delete from public.operator where user_id =
   (select id from auth.users where email = '<그 사람의 구글 계정>');
 ```
 
-**운영자라는 이름으로 열리는 문은 그 이름을 묻는 자리의 개수다.** 지금은 설문을 읽는 함수
-넷뿐이고, 풀이권 예외는 여기 안 딸려 온다 — 그것은 별개의 표다(위 「풀이권」).
+**운영자라는 이름으로 열리는 문은 그 이름을 묻는 자리의 개수다.** 지금은 설문을 읽는 함수들과
+신고를 읽는 함수 셋(`operator_reports` · `operator_report` · `operator_report_snapshot`, ADR 0103)이고 전부
+읽기만 한다. 풀이권 예외는 여기 안 딸려 온다 — 그것은 별개의 표다(위 「풀이권」). 이 줄이 사라지면
+`/ops/reports` 도 그 사람에게 없는 화면이 된다.
 
 ### 두 설문이 한 화면에 선다
 
@@ -582,6 +644,12 @@ order by a.deletion_requested_at desc nulls last;
 
 신고는 **운영자가 봐야 하는 기록**이고 차단은 사용자의 개인적 결정이다. 차단 기록을
 운영 근거로 쓰지 않는다 — 「보기 싫다」와 「규칙을 어겼다」는 다른 일이다.
+
+**읽는 것은 화면이 있다 — `/ops/reports`**(ADR 0103). 운영자로 로그인해 주소를 직접 친다(메뉴에 없다).
+목록은 최신부터 30건씩이고 검토 상태 · 사유 · 대화 근거로 거른다. 「신고 내용 보기」가 신고 한 건과 신고
+당시의 스냅샷을 연다. 화면은 읽기만 한다 — **봤다고 적는 것(`reviewed_at`)과 처분은 아래 SQL 이다.** 화면에는
+이메일이 없다 — 이메일이 필요한 일(수사기관 요청 등)과 떠난 사람의 신고는 아래와 「떠난 사람의 신고 기록」의
+SQL 로 읽는다. 아래의 읽는 질의는 화면이 안 열리거나 그 값을 의심할 때 쓴다.
 
 ```sql
 -- 아직 안 본 신고
@@ -797,6 +865,11 @@ where m.id in ('<match-id>');
 전부 SQL Editor(`postgres`)에서 돈다 — 앱 역할에는 이 표들이 닫혀 있다.
 
 ### 신고 스냅샷을 읽는다
+
+**화면이 먼저다 — `/ops/reports/<report-id>`**(ADR 0103). 스냅샷을 차례대로 펴고, 고른 메시지에 「신고한
+메시지」가 서고, 보낸 쪽을 「신고한 사용자」 · 「신고받은 사용자」로 적는다. 목록에서 「대화 근거 있음」으로
+거르면 스냅샷이 붙은 신고만 남는다. 아래 SQL 은 화면이 안 열릴 때, 보낸 사람의 이메일이 필요할 때, 그리고
+검토 완료를 적을 때 쓴다.
 
 ```sql
 -- 아직 안 본 신고 중 메시지를 고른 것 — 스냅샷이 붙어 있다

@@ -19,6 +19,14 @@ test('로그인하지 않으면 내 계정 화면에 들어가지 못한다', as
   await expect(page.getByRole('button', { name: '구글로 로그인' })).toBeVisible();
 });
 
+/** 운영자 신고 화면도 같다 — 로그인하지 않으면 운영자인지 물을 것도 없이 로그인으로 간다(G-24) */
+test('로그인하지 않으면 운영자 신고 화면에 들어가지 못한다', async ({ page }) => {
+  for (const path of ['/ops/reports', '/ops/reports/3f0b8f5e-2c1d-4b7a-9e2f-0a1b2c3d4e5f']) {
+    await page.goto(path);
+    await expect(page).toHaveURL(/\/auth$/);
+  }
+});
+
 test('로그인 화면은 코드가 한 번 필요하다고 미리 말한다', async ({ page }) => {
   await page.goto('/auth');
 
