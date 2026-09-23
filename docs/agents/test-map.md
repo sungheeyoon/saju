@@ -33,8 +33,17 @@
 
 ## 무엇을 고쳤으면 무엇을 돌리나
 
-로컬에서 돌릴 **최소**다. CI 는 아래 「CI」 절대로 더 돈다. 화면이나 라우트를 건드렸으면
-커밋 전에 e2e 를 돌린다 — 단위 시험은 화면이 사라진 것을 모른다.
+**공개 출시 전(지금)에는 로컬 최소가 `npm test` · `npm run typecheck` · `npm run lint` 셋이다**(#161, ADR 0097).
+화면 · 흐름 · DB 는 머지 뒤 main 의 전체 검증이 재고, 붉으면 `ci-main-red` 이슈가 든다. 예외 넷은 CI 가 대신
+못 하거나 머지 전에 알아야 하는 것이라 남긴다:
+
+- **e2e · 흐름 시험 자체를 고쳤으면** 그 시험을 한 번 돌린다 — 시험이 도는지는 시험을 돌려야 안다
+- **새 잠금 · 계약 시험을 세웠으면** 일부러 깨뜨려 붉어지는지 본다(PR 의 「잠금이면 일부러 어긴 것」)
+- **마이그레이션은** 아래 표의 줄 그대로(pgTAP · 생성 타입) — `supabase/**` PR 은 CI 도 머지 전에 전부를 돈다
+- **프롬프트 본문을 바꿨으면** 실호출 한 번 — CI 는 모델을 안 부른다
+
+아래 표는 **공개 출시 뒤의 로컬 최소**이고, 지금은 「이 자리를 고치면 무엇이 재나」를 찾는 지도다. 그때는 화면이나
+라우트를 건드렸으면 커밋 전에 e2e 를 돌린다 — 단위 시험은 화면이 사라진 것을 모른다.
 
 | 고친 것 | 돌리는 것 | 왜 그것만 |
 | --- | --- | --- |
@@ -46,7 +55,7 @@
 | `proxy.ts` · `src/lib/consent` | `npm test` → `npm run test:e2e:notice` | 관문은 링크를 눌러야 밟힌다 — `page.goto` 로는 못 잰다(ADR 0041) |
 | `supabase/migrations/**` | `npm run db:reset` → `npm run test:db` → `npm run db:types` → `npm run typecheck` → `npm run test:flow` | 생성 타입을 다시 안 지으면 앱은 없는 열을 있다고 믿은 채 컴파일된다(ADR 0078). CI 의 `authed` 가 diff 를 본다 |
 | 프롬프트(`src/lib/reading/prompt*` · `parts.ts` · `vocabulary.ts`) | `npm test`, 본문이 바뀌면 `READING_LIVE=1 npx vitest run app/me/reading/call.live.test.ts` | 조립 스냅샷은 단위가 든다. **본문이 한 글자라도 바뀌면 실호출 한 번**(ADR 0073). 경로 이름이 본문에 샌 적이 있다 |
-| `scripts/ci-plan.mjs` · `verify.yml` | `npm test` | `ci-plan.test.ts` 가 세 단계를 든다. YAML 에 `paths` 를 적지 않는다 |
+| `scripts/ci-plan.mjs` · `release-stage.mjs` · `verify.yml` · `main-red.yml` | `npm test` | `ci-plan.test.ts` 가 단계별 계획을, `main-red.test.ts` 가 이슈의 판단을 든다. YAML 에 `paths` 를 적지 않는다 |
 | `eslint.config.mjs` · `scripts/*.test.ts` | `npm run lint` → `npm test`, 그리고 **일부러 어긴 파일**로 걸리는지 | 「규칙을 넣었다」와 「규칙이 건다」는 다른 문장이다(ADR 0085·0086) |
 
 **워크트리에서는 제 자리의 포트다** — `npm run stack:slot -- N` 이 스택 이름 · Supabase 포트 · dev 서버(`3000+10N`) ·
@@ -70,19 +79,36 @@
 
 ## CI
 
-`scripts/ci-plan.mjs` 가 바뀐 파일로 세 단계 중 하나를 고르고, `verify.yml` 은 그 답을 읽을
-뿐이다. `gate` 가 필수 검사라 `--auto` 머지는 초록까지 기다린다.
+`scripts/ci-plan.mjs` 가 **출시 단계**(PRD §7.0 의 「(지금)」, `scripts/release-stage.mjs`)와 바뀐 파일로 계획을
+고르고, `verify.yml` 은 그 답을 읽을 뿐이다. `gate` 가 필수 검사라 `--auto` 머지는 초록까지 기다린다.
+
+**공개 출시 전(지금) — 빠른 검사만 머지를 막는다**(#161, ADR 0097)
+
+| 바뀐 것 | 도는 차선 | 시간 |
+| --- | --- | --- |
+| 정책만(문서 · `.claude/**` · `scripts/*.test.ts`) | `policy` | 31초(#153) |
+| `supabase/**` 가 하나라도 | 전부 — 라벨 없이 | 약 5분 |
+| 그 밖 전부 | `fast`(단위 · 타입 · 린트, 빌드 없음) | #161 머지 뒤 첫 코드 PR 이 찍는다 |
+| 단계를 모른다(「(지금)」이 없거나 둘 · 표에 없는 이름) | 전부 | |
+
+전체(빌드 · 익명 e2e · `authed` 일곱 · `flow`)는 **머지 뒤 최신 main 하나**에서 비차단으로 돈다. 붉으면
+`main-red.yml` 이 `ci-main-red` 이슈 하나를 열고(이미 있으면 댓글), 지금 main 머리가 초록이 되면 닫는다.
+PRD 의 「(지금)」을 공개 출시로 옮기면 아래 세 단계로 저절로 돌아간다 — 실제 사용자 데이터가 들어오는 날에는
+사람이 그날 옮긴다(`docs/ops/runbook.md` 「초대」).
+
+**공개 출시 뒤 — 머지 전에 전체를 잰다**
 
 | 바뀐 것이 이 안에만 있으면 | 도는 차선 | 2026-09-22 의 시간 |
 | --- | --- | --- |
-| 정책(문서 · `.claude/**` · `scripts/*.test.ts`) | `policy`(scripts 시험 · 타입 · 린트) | 로컬 12초 — CI 값은 #145 머지 뒤 첫 PR 이 찍는다 |
+| 정책(문서 · `.claude/**` · `scripts/*.test.ts`) | `policy`(scripts 시험 · 타입 · 린트) | 31초(#153) |
 | 엔진 · `app/saju/**` | `verify`(단위 · 타입 · 린트 · 빌드 + 익명 e2e) | 3분 55초 |
 | 그 밖 전부 · 모르는 파일 | `verify` + `authed` 일곱(`signed-in` · `match` · `chat` × 기기 둘, `notice`) + `flow` | 병렬, 가장 긴 차선 4분 53초 |
 
 `authed` 는 `db:start` 를 하고 pgTAP 과 **생성 타입 diff** 를 본 뒤 e2e 차선 하나를 돈다.
 `full-ci` 라벨은 더할 수만 있다. `main` 푸시와 손으로 켠 실행은 계획을 안 보고 전부 돈다.
-**main 푸시의 실행은 다음 푸시에 끊기지 않는다** — 커밋마다 제 그룹이다. 보호 규칙은 strict 라 PR 은
-최신 main 을 품어야 든다(`BEHIND` 면 `gh pr update-branch`, 2026-09-23 · #143).
+**main 푸시는 최신 하나만 끝까지 돈다** — 새 푸시가 앞 실행을 끊는다(#161 이 #143 의 「커밋마다 제 그룹」을
+되돌렸다). 끊긴 실행은 실패가 아니다. 하루 한 번의 일정은 제 그룹이라 안 끊긴다. 보호 규칙은 strict 라 PR 은
+최신 main 을 품어야 든다(`BEHIND` 면 `gh pr update-branch`).
 
 ## 커버리지 — 한 번 쟀다
 

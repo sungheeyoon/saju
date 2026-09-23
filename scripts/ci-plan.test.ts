@@ -5,18 +5,73 @@
  * 「문서만 바뀌면 건너뛰는가」보다 「모르는 파일이 하나라도 있으면 전부 도는가」와
  * 「라벨이 검사를 뺄 수 없는가」다.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import { ENGINE_DB_FACING, FULL_LABEL, planFor, summaryOf } from './ci-plan.mjs';
+import { currentStageOf } from './release-stage.mjs';
 
-const pr = (files: string[], labels: string[] = []) => planFor({ files, labels, event: 'pull_request' });
+/** 공개 출시 — 머지 전에 전체를 재는 단계. 아래 「CI 계획」은 이 단계의 세 단계를 잰다 */
+const pr = (files: string[], labels: string[] = []) => planFor({ files, labels, event: 'pull_request', stage: '공개 출시' });
+const beta = (files: string[], labels: string[] = []) => planFor({ files, labels, event: 'pull_request', stage: '운영 베타' });
 
-describe('CI 계획', () => {
+describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
+  it('코드 PR 은 fast 하나만 탄다 — 전체는 main 에서 돈다', () => {
+    for (const files of [['app/page.tsx'], ['src/lib/saju/strength/index.ts'], ['e2e/match.spec.ts', 'app/me/matching/x.tsx'], ['.github/workflows/verify.yml']]) {
+      const plan = beta(files);
+      expect(plan.tier, files[0]).toBe('fast');
+      expect(plan.lanes, files[0]).toEqual({ policy: false, fast: true, verify: false, authed: false, flow: false });
+    }
+  });
+
+  it('정책만 바뀌면 전처럼 policy 다', () => {
+    expect(beta(['docs/prd.md', '.claude/settings.json']).tier).toBe('policy');
+  });
+
+  it('supabase/ 가 하나라도 섞이면 단계와 상관없이 전부다 — 라벨 없이', () => {
+    for (const file of ['supabase/migrations/20260923000000_x.sql', 'supabase/tests/40_x.test.sql', 'supabase/config.toml', 'supabase/.env']) {
+      expect(beta(['app/page.tsx', file]).tier, file).toBe('full');
+      expect(pr(['docs/prd.md', file]).tier, file).toBe('full');
+    }
+  });
+
+  it('단계를 모르면 전부다 — 없는 단계 · 빠진 값', () => {
+    expect(planFor({ files: ['app/page.tsx'], stage: '정식 운영' }).tier).toBe('full');
+    expect(planFor({ files: ['app/page.tsx'], stage: null }).tier).toBe('full');
+    expect(planFor({ files: ['app/page.tsx'] }).tier).toBe('full');
+  });
+
+  it('라벨은 베타에서도 더할 수만 있다', () => {
+    expect(beta(['app/page.tsx'], [FULL_LABEL]).tier).toBe('full');
+  });
+
+  it('PRD 의 「(지금)」을 공개 출시로 옮기면 머지 전 전체로 돌아간다', () => {
+    const prd = readFileSync(resolve(__dirname, '../docs/prd.md'), 'utf8');
+    const now = currentStageOf(prd);
+    expect(now).not.toBeNull();
+    const launched = prd.replace(/\| \*\*([^*]+)\*\* \(지금\) \|/, '| **$1** |').replace('| **공개 출시** |', '| **공개 출시** (지금) |');
+    expect(currentStageOf(launched)).toBe('공개 출시');
+    const files = ['app/page.tsx'];
+    expect(planFor({ files, stage: currentStageOf(launched) }).tier).toBe('full');
+    expect(planFor({ files, stage: now }).tier).toBe('fast');
+  });
+
+  it('「(지금)」이 둘이거나 없으면 모르는 단계다', () => {
+    const prd = readFileSync(resolve(__dirname, '../docs/prd.md'), 'utf8');
+    expect(currentStageOf(prd.replace(/ \(지금\) \|/, ' |'))).toBeNull();
+    expect(currentStageOf(prd.replace('| **공개 출시** |', '| **공개 출시** (지금) |'))).toBeNull();
+    expect(currentStageOf('')).toBeNull();
+  });
+});
+
+describe('CI 계획 — 공개 출시', () => {
   it('정책만 바뀌면 policy 차선만 돈다 — 문서도 scripts 시험이 읽으므로 아무것도 안 도는 단계는 없다', () => {
     const plan = pr(['docs/adr/0082-x.md', 'CONTEXT.md', 'docs/prd.md']);
 
     expect(plan.tier).toBe('policy');
-    expect(plan.lanes).toEqual({ policy: true, verify: false, authed: false, flow: false });
+    expect(plan.lanes).toEqual({ policy: true, fast: false, verify: false, authed: false, flow: false });
   });
 
   it('도구 설정 · 이슈와 PR 틀 · scripts 의 시험 파일도 정책이다 (#141 은 설정 하나로 전부를 돌았다)', () => {
@@ -47,7 +102,7 @@ describe('CI 계획', () => {
     const plan = pr(['src/lib/saju/strength/index.ts', 'app/saju/fortune.tsx', 'docs/prd.md']);
 
     expect(plan.tier).toBe('engine');
-    expect(plan.lanes).toEqual({ policy: false, verify: true, authed: false, flow: false });
+    expect(plan.lanes).toEqual({ policy: false, fast: false, verify: true, authed: false, flow: false });
   });
 
   it('모르는 파일이 하나라도 섞이면 전부 돈다', () => {
@@ -63,7 +118,7 @@ describe('CI 계획', () => {
       const plan = pr(['src/lib/saju/strength/index.ts', stranger]);
 
       expect(plan.tier, stranger).toBe('full');
-      expect(plan.lanes, stranger).toEqual({ policy: false, verify: true, authed: true, flow: true });
+      expect(plan.lanes, stranger).toEqual({ policy: false, fast: false, verify: true, authed: true, flow: true });
     }
   });
 
