@@ -17,6 +17,11 @@ export type ChatMessage = {
   readonly messageId: string;
   readonly seq: number;
   readonly mine: boolean;
+  /**
+   * 보낸 사람이 떠났다 — 보낸 사람 칸이 비었다(ADR 0094). 그 줄에는 신고가 안 선다 — 신고당할
+   * 계정이 없고, DB 도 받지 않는다.
+   */
+  readonly fromLeftPartner: boolean;
   readonly body: string;
   readonly createdAt: string;
 };
@@ -25,6 +30,7 @@ const messageOf = (row: MessageRow): ChatMessage => ({
   messageId: row.message_id,
   seq: row.seq,
   mine: row.mine === true,
+  fromLeftPartner: row.mine !== true && row.sender_user_id === null,
   body: row.body,
   createdAt: row.created_at,
 });
