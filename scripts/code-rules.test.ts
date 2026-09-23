@@ -611,7 +611,7 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
 
   it('이슈 틀과 PR 틀의 칸은 위임 규약 문서의 표와 차례까지 같다 — 어느 쪽에 더해도 붉어진다', () => {
     const pairs = [
-      { file: '.github/ISSUE_TEMPLATE/ready-for-agent.md', section: '맡길 이슈', expected: 7 },
+      { file: '.github/ISSUE_TEMPLATE/ready-for-agent.md', section: '맡길 이슈', expected: 9 },
       { file: '.github/pull_request_template.md', section: '끝났다는 것', expected: 6 },
     ];
     for (const { file, section, expected } of pairs) {
@@ -620,6 +620,21 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
       expect(columns.length, section).toBe(expected);
       expect(headings, file).toEqual(columns);
     }
+  });
+
+  it('「나란히 맡길 때」 표가 드는 공유 자원의 경로는 전부 있다 — 옮겨진 파일을 두고 병렬을 판단하지 않는다', () => {
+    const start = doc.indexOf('\n## 나란히 맡길 때');
+    expect(start).toBeGreaterThan(-1);
+    const rows = doc
+      .slice(start, doc.indexOf('\n**', start))
+      .split('\n')
+      .filter((line) => /^\| \*\*[^*]+\*\* \|/.test(line));
+    expect(rows.length).toBeGreaterThan(5);
+    const paths = rows.flatMap((line) =>
+      [...line.split('|')[2].matchAll(/`([^`\s]+\.[a-z]+|[^`\s]+\/)`/g)].map((match) => match[1]),
+    );
+    expect(paths.length).toBeGreaterThan(8);
+    expect(paths.filter((path) => !existsSync(join(ROOT, path)))).toEqual([]);
   });
 
   it('이슈 틀이 붙이는 딱지는 triage 표에 있는 이름이다', () => {
