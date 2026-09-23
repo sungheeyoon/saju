@@ -554,15 +554,31 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
       .flatMap((cells) => [...cells[4].matchAll(/`(Bash\([^`]+\))`/g)].map((match) => match[1]));
   }
 
+  /** 「공식 운영에 들어가면 켜는 잠금」 절의 `Bash(…)` 규칙 — 공식 운영 뒤 `ask` 로 되돌릴 목록 (ADR 0093) */
+  function deferredAskRules(): string[] {
+    const start = doc.indexOf('\n### 공식 운영에 들어가면 켜는 잠금');
+    expect(start).toBeGreaterThan(-1);
+    const end = doc.indexOf('\n## ', start + 1);
+    return [...doc.slice(start, end).matchAll(/^- `(Bash\([^`]+\))`$/gm)].map((match) => match[1]);
+  }
+
   it('권한 표의 등급 3 은 settings 의 ask 와, 등급 4 는 deny 와 정확히 같은 목록이다', () => {
     const ask = lockedRulesOfTier('3');
     const deny = lockedRulesOfTier('4');
-    expect(ask.length).toBeGreaterThan(10);
     expect(deny.length).toBeGreaterThan(5);
     expect([...ask].sort()).toEqual([...(settings.permissions?.ask ?? [])].sort());
     expect([...deny].sort()).toEqual([...(settings.permissions?.deny ?? [])].sort());
     // 같은 규칙이 두 등급에 서 있으면 어느 쪽이 이기는지 도구가 정한다 — 문서가 그것을 안 든다
     expect(ask.filter((rule) => deny.includes(rule))).toEqual([]);
+  });
+
+  it('등급 3 의 잠금은 공식 운영 뒤에 켠다 — 켤 목록은 문서가 들고, ask 에 든 것은 그 목록에서만 온다 (ADR 0093)', () => {
+    const deferred = deferredAskRules();
+    const deny = lockedRulesOfTier('4');
+    const ask = settings.permissions?.ask ?? [];
+    expect(deferred.length).toBeGreaterThan(10);
+    expect(deferred.filter((rule) => deny.includes(rule))).toEqual([]);
+    expect(ask.filter((rule) => !deferred.includes(rule))).toEqual([]);
   });
 
   /** 문서의 한 절 안에서, 표의 첫 칸이 `**이름**` 인 줄의 그 이름들 — 차례대로 */

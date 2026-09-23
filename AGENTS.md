@@ -10,8 +10,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## 무엇을 맡기고 무엇을 묻는가는 `docs/agents/delegation.md` 가
 
-맡길 이슈의 칸 일곱, 권한 등급 다섯(main 머지는 곧 배포이고 `db push` · 실호출 · 운영 SQL 은 사람이
-답한 뒤다), PR 이 드는 칸 여섯, 세션마다 다시 배우던 일하는 법과 로컬 환경의 함정은
+맡길 이슈의 칸 일곱, 권한 등급 다섯(main 머지 · `db push` · 실호출 · 운영 SQL 을 사람이 답한 뒤에
+하는 등급 3 은 **공식 운영에 들어간 뒤에 켠다** — 운영 베타에서는 밟고 값을 적는다, ADR 0093), PR 이 드는 칸 여섯, 세션마다 다시 배우던 일하는 법과 로컬 환경의 함정은
 **`docs/agents/delegation.md`** 한 장이 답한다(ADR 0090). 이 문서는 에이전트 전부의
 입구다. 권한 표는 `.claude/settings.json` 과 같은 목록인데 **그 파일은 Claude Code 만 읽는다** — 다른
 에이전트에게는 표가 전부다. 시험은 `scripts/code-rules.test.ts` 가 둘을 견준다. 배포 순서는 `docs/ops/runbook.md` 「배포」.
