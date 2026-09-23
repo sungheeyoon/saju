@@ -92,7 +92,7 @@
 | 그 밖 전부 | `fast`(단위 · 타입 · 린트, 빌드 없음) | 1분 55초(#162) — 전에는 전부 약 5분 |
 | 단계를 모른다(「(지금)」이 없거나 둘 · 표에 없는 이름) | 전부 | |
 
-**운영 의존성 감사 `audit` 은 단계와 따로 켠다**(G-23 ①, ADR 0103) — `npm audit --omit=dev --audit-level=high`. 결과를 바꾸는
+**운영 의존성 감사 `audit` 은 단계와 따로 켠다**(G-23 ①, ADR 0104) — `npm audit --omit=dev --audit-level=high`. 결과를 바꾸는
 것이 바뀐 파일이 아니라 밖의 advisory DB 라서, PR 에서는 **`package.json` · `package-lock.json` 을 바꾼 PR 에만** 머지를
 막는다(라벨 · 빈 diff 도 켠다). 아무것도 안 바꾼 PR 이 어느 날 붉어지는 일이 없다. 새로 뜬 advisory 는 main 푸시와 하루
 한 번의 일정이 잡고, `ci-main-red` 가 「`audit` 만 붉다」고 적는다. 절차는 runbook 「운영 의존성 취약점」. 개발 의존성은

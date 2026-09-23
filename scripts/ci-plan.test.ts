@@ -66,7 +66,7 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
   });
 });
 
-describe('CI 계획 — 운영 의존성 감사 (G-23 ①, ADR 0103)', () => {
+describe('CI 계획 — 운영 의존성 감사 (G-23 ①, ADR 0104)', () => {
   it('의존성 목록을 바꾼 PR 만 audit 이 머지를 막는다 — 어느 단계든', () => {
     for (const file of DEPENDENCY_LISTS) {
       expect(beta(['app/page.tsx', file]).lanes.audit, file).toBe(true);

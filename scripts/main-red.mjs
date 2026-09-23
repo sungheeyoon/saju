@@ -42,7 +42,7 @@ const failedLanesOf = (jobs) => jobs.filter((one) => one !== 'gate');
 /**
  * 댓글과 이슈 본문 — 사람이 읽고 바로 범위를 좁히게.
  *
- * `audit` 만 붉으면 커밋이 아니라 밖의 advisory DB 가 바뀌었을 수 있다(G-23 ①, ADR 0103) — 범위의 커밋을
+ * `audit` 만 붉으면 커밋이 아니라 밖의 advisory DB 가 바뀌었을 수 있다(G-23 ①, ADR 0104) — 범위의 커밋을
  * 뒤지기 전에 그것부터 보게 한다.
  *
  * @param {{ runUrl: string, sha: string, lastGreen: string | null, failedJobs?: string[] }} run
