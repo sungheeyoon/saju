@@ -61,10 +61,8 @@
 | --- | --- | --- | --- | --- | --- |
 | G-42 | 운영 관측 — 분석 · 오류 추적 | 2026-09-22 진단 | 미정 | 무엇을 볼지부터 정한다 | 지금 0. 크론 실패는 `cron.job_run_details` 에만 남는다 |
 | G-43 | 코드가 용어집과 다른 이름 셋 — `revision` 계열 · `DiscoveryProfile` 타입 없음 · `discovery_snapshot` | CONTEXT §10 · #88 후보 8 | 어긋남 | 이름을 바꾸고 §10 에서 지운다. 정한 이름(2026-09-23): `add_person_revision`→`edit_person_input` · `may_add_revision`→`may_edit_person_input` · `RevisionArgs`→`PersonInputArgs` · `input/revision.ts`→`input/edit.ts` · `revise.tsx`→`edit-input.tsx` · `revisePerson`→`editPersonInput` · `REVISION_*`→`INPUT_EDIT_*`(넓히기 · 앱 · 좁히기 셋), 표 `discovery_snapshot`·`_slot`→`discovery_candidate`·`_slot`(마이그레이션 하나), `DiscoveryProfile` 타입과 읽는 문 하나(실패는 `SkippableRead`). 사유값 `unreadable-revision` · RPC 셋(`*_snapshot`) · `snapshot_id` 칸은 §10 에 「그대로 둔다」 | 시험이 §10 의 이름이 아직 있는지 잰다(ADR 0088). `isSelf` · `birthDate` 는 고쳤고 `metaphor` 는 그대로 둔다(2026-09-23). 마이그레이션과 `settings/page.tsx` 는 G-27 뒤 |
-| G-44 | 프롬프트가 쓴 호칭(「첫 번째 분」)을 `display.ts` 가 정규식으로 되읽는다 | #88 후보 7 | 어긋남 | 양쪽을 함께 재는 시험이 서거나, 호칭이 값으로 오간다 | 화면·공유·복사에서 혼동 없으면 유지(2026-09-15) |
 | G-45 | 공유 not-found 셋이 md5 까지 같은 파일이라 사람 공유 링크가 「남아 있지 않은 풀이입니다」라고 말한다 | #88 후보 8 | 어긋남 | 셋이 각자의 말을 하거나 하나가 된다 | |
 | G-46 | 작지만 잰 것 — 죽은 export 75(543의 14%) · 골든 39건인데 세 파일이 「30벌·31건·서른」을 인용 · 후보 카드 문구 조립 5곳 · `src/lib/matching` 삭제 시험 통과 못 함 · 린트 경고 2 · 풀이권 칩 위치 | #88 「작지만 잰 것」 | 어긋남 | 항목마다 값을 다시 재고 닫는다 — #88 의 후보 문장은 연속 다섯이 반쯤 틀렸다 | 시험에서만 쓰는 export 는 안 건드린다 |
-| G-48 | 지시가 세 벌이던 프롬프트의 예외 둘 · 운영만 보는 표는 옛 판을 못 지킨다 | ADR 0075 | 어긋남 | 그대로 둔 채 문서에 남긴다 — 고칠 것이 아니다 | 기록용 |
 
 ## 닫힌 것은 여기 없다
 
