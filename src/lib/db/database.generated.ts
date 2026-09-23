@@ -2209,6 +2209,55 @@ export type Database = {
           run_id: string
         }[]
       }
+      operator_report: {
+        Args: { p_report_id: string }
+        Returns: {
+          captured_at: string
+          context_after: number
+          context_before: number
+          created_at: string
+          detail: string
+          reason: string
+          report_id: string
+          reported_nickname: string
+          reported_status: string
+          reported_user_id: string
+          reporter_nickname: string
+          reporter_status: string
+          reporter_user_id: string
+          reviewed_at: string
+        }[]
+      }
+      operator_report_snapshot: {
+        Args: { p_report_id: string }
+        Returns: {
+          body: string
+          chosen: boolean
+          sent_at: string
+          seq: number
+          side: string
+        }[]
+      }
+      operator_reports: {
+        Args: {
+          p_has_snapshot?: boolean
+          p_page?: number
+          p_reason?: string
+          p_reviewed?: boolean
+        }
+        Returns: {
+          created_at: string
+          pages: number
+          reason: string
+          report_id: string
+          reported_nickname: string
+          reported_user_id: string
+          reporter_nickname: string
+          reporter_user_id: string
+          reviewed_at: string
+          snapshot_messages: number
+        }[]
+      }
       operator_service_survey_counts: {
         Args: never
         Returns: {
