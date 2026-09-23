@@ -11,7 +11,7 @@
 | --- | --- | --- | --- | --- |
 | **단위**(vitest) | `npm test` | 순수 함수 — 엔진 · 도메인 lib · `app/**/*.ts` 의 판단 · `scripts/` 의 검사 도구 자신 | 없음 | 103 파일 · 1,978 · 12초 |
 | **pgTAP** | `npm run test:db` | 표 · 함수 · 정책이 **역할을 갈아입고** 실제로 막는가, 함수와 표의 모양(ADR 0084) | Docker + `npm run db:start` | 32 파일 · plan 805 |
-| **흐름**(`scripts/check-*.mjs`) | `npm run test:flow` | 가입 → 저장 → 요청 · 수락 → 풀이 · 공유를 **실제 스택에 대고**, 모델만 빼고 | Docker + `db:start`. 제 안에서 Next 서버를 띄운다 | 8 벌 · 단언 약 400 |
+| **흐름**(`scripts/check-*.mjs`) | `npm run test:flow` | 가입 → 저장 → 요청 · 수락 → 풀이 · 공유를 **실제 스택에 대고**, 모델만 빼고 | Docker + `db:start`. 제 안에서 Next 서버를 띄운다(`check-db-races` 는 안 띄우고 psql 둘 · 셋으로 DB 의 두 세션 경합을 일으킨다) | 9 벌 · 단언 약 400 |
 | **e2e**(Playwright) | `npm run test:e2e` / `test:e2e:authed` | 화면 — 비로그인 · 로그인 · 둘이 있어야 성립하는 흐름 · 가입 관문 | 익명은 없음(CI 의 껍데기 접속값으로 돈다). 로그인 뒤는 Docker + `db:start` | 7 파일 · 익명 28 × 2 기기, 로그인 58 × 2 기기, 관문 9 |
 
 **vitest 가 닿는 자리는 `.ts` 뿐이다** — `vitest.config.mts` 의 include 가 `src/**` · `app/**` ·
@@ -59,7 +59,7 @@
 | `vercel.json` · `scripts/vercel-ignore.mjs` | `npx vitest run scripts/vercel-ignore.test.ts` | Vercel 이 Preview 를 건너뛸지. **0 이면 건너뛰고 1 이면 빌드한다** — 시험이 그 반대 의미와 「모르면 빌드」를 든다(runbook 「배포」) |
 | `package.json` · `package-lock.json` | `npm audit --omit=dev --audit-level=high` → `npm test` · `npm run typecheck` · `npm run lint` · `npm run build` | CI 는 `fast` 와 `audit` 만 돈다. 의존성은 화면과 DB 도구에도 닿으니 큰 판 올림이면 e2e · pgTAP 도 한 번 |
 | `eslint.config.mjs` · `scripts/*.test.ts` | `npm run lint` → `npm test`, 그리고 **일부러 어긴 파일**로 걸리는지 | 「규칙을 넣었다」와 「규칙이 건다」는 다른 문장이다(ADR 0085·0086) |
-| `app/api/cron/audit-export/**` · `scripts/db-remote.mjs` | `npx vitest run app/api/cron/audit-export scripts/db-remote.test.ts`, 표 · 함수면 `npm run test:db`(`46_operator_access_log`) | 접속기록 반출과 CLI 기록(ADR 0105). S3 는 가짜로 대신한다 — 진짜 버킷은 AWS 계정이 서는 날 runbook 「반출」의 7 이 잰다 |
+| `app/api/cron/audit-export/**` · `scripts/db-remote.mjs` | `npx vitest run app/api/cron/audit-export scripts/db-remote.test.ts`, 표 · 함수면 `npm run test:db`(`46_operator_access_log`) · `node scripts/check-db-races.mjs`(반출과 늦은 커밋 · 거절 한도 · 같은 열쇠의 주문 — 두 세션 경합, `20261013090000`) | 접속기록 반출과 CLI 기록(ADR 0105). S3 는 가짜로 대신한다 — 진짜 버킷은 AWS 계정이 서는 날 runbook 「반출」의 7 이 잰다 |
 
 **워크트리에서는 제 자리의 포트다** — `npm run stack:slot -- N` 이 스택 이름 · Supabase 포트 · dev 서버(`3000+10N`) ·
 흐름 검사(`3210+10N` 부터 여덟)를 함께 옮긴다(ADR 0096). 아래는 main 체크아웃(자리 0)의 이야기다.

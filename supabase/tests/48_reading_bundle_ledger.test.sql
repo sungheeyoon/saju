@@ -4,12 +4,14 @@
 --
 -- 1. **지금 동작이 그대로다.** 산 몫이 없는 계정은 한도 · 잔액이 전과 같다 — 이 DB 의 모든 계정에 대고 잰다.
 -- 2. **몫을 만드는 길은 서버의 문뿐이다.** 판매는 닫혀 있고, 로그인한 사람은 표에도 승인 문에도 못 닿는다.
+--    같은 열쇠를 다른 묶음에 쓰면 거절하고, 금액이 다른 알림은 **던지지 않고 거절을 돌려주며 남는다**
+--    (`20261013090000`). 두 세션이 같은 열쇠로 나란히 여는 경우는 여기서 못 만든다 — `scripts/check-db-races.mjs`
 -- 3. **쓴 순서.** 무료 → 예외 → 오래된 묶음. 예약 → 확정 · 풀림, 수락은 요청의 예약을 이어 받는다.
 -- 4. **환불은 안 쓴 것만.** 예약 중인 것은 풀릴 때까지 안 쓴 것이 아니다. 운영자의 읽기는 적힌다.
 -- 5. **두 문이 마지막 한 번을 다투면 하나만** — 두 문이 같은 자물쇠 안에서 센다.
 -- 6. **떠나면** 결제 기록이 따로 5년 남고 일반 표에서는 사라진다.
 begin;
-select plan(52);
+select plan(60);
 
 create or replace function pg_temp.participant(mail text, who text, summary jsonb)
 returns uuid
@@ -218,28 +220,68 @@ select is(
   (select order_id from public.open_reading_order(3, 'dev', 'ledger-order-0001')),
   (select order_id from ord),
   '같은 열쇠로 다시 누르면 같은 주문이다');
+select throws_ok(
+  $$select * from public.open_reading_order(5, 'dev', 'ledger-order-0001')$$,
+  '22023', 'reading_order: the idempotency key belongs to another order',
+  '같은 열쇠로 다른 묶음을 누르면 옛 주문을 돌려주지 않고 거절한다');
+select throws_ok(
+  $$select * from public.open_reading_order(3, 'other', 'ledger-order-0001')$$,
+  '22023', 'reading_order: the idempotency key belongs to another order',
+  '같은 열쇠로 다른 제공자도 거절한다');
 select is(
   (select credit_limit from public.my_reading_credits()),
   tests.reading_credit_limit() + 1,
   '대기 주문은 아무것도 얹지 않는다');
 
 set local role service_role;
-select throws_ok(
-  format($$select public.approve_reading_order(%L, 'dev-pay-0001', 4900)$$, (select order_id from ord)),
-  '22023', null, '낸 금액이 주문과 다르면 승인하지 않는다');
+select is(
+  (select array[r.outcome, r.bundle_id::text]
+   from public.approve_reading_order((select order_id from ord), 'dev-pay-0001', 4900) r),
+  array['refused', null],
+  '낸 금액이 주문과 다르면 승인하지 않고 거절을 돌려준다 — 던지지 않는다');
+select is(
+  (select array[r.outcome, r.bundle_id::text]
+   from public.approve_reading_order((select order_id from ord), 'dev-pay-0001', 4900, 'dev-evt-0000') r),
+  array['refused', null],
+  '금액이 다른 알림도 거절을 돌려준다');
+select is(
+  (select array[r.outcome, r.bundle_id::text]
+   from public.approve_reading_order((select order_id from ord), 'dev-pay-0001', 4900, 'dev-evt-0000') r),
+  array['refused', null],
+  '같은 거절 알림이 다시 와도 처음의 결과 그대로다');
+
+reset role;
+select is(
+  (select array_agg(e.outcome || ':' || e.amount order by e.id) from public.payment_event e
+   where e.provider_event_id = 'dev-evt-0000'),
+  array['refused:4900'],
+  '거절한 알림은 되감기지 않고 한 줄로 남는다 — 두 번 와도 한 줄');
+select is(
+  (select array[o.status, (select count(*)::text from public.reading_bundle b where b.order_id = o.id)]
+   from public.reading_order o where o.id = (select order_id from ord)),
+  array['pending', '0'],
+  '거절은 주문을 움직이지 않고 묶음도 세우지 않는다');
+set local role service_role;
 
 create temporary table bought as
-select public.approve_reading_order((select order_id from ord), 'dev-pay-0001', 12900, 'dev-evt-0001') as bundle_id;
+select r.bundle_id
+from public.approve_reading_order((select order_id from ord), 'dev-pay-0001', 12900, 'dev-evt-0001') r;
 grant select on bought to authenticated, service_role;
 
 select is(
-  public.approve_reading_order((select order_id from ord), 'dev-pay-0001', 12900, 'dev-evt-0001'),
-  (select bundle_id from bought),
+  (select array[r.outcome, r.bundle_id::text]
+   from public.approve_reading_order((select order_id from ord), 'dev-pay-0001', 12900, 'dev-evt-0001') r),
+  array['applied', (select bundle_id::text from bought)],
   '같은 알림이 두 번 와도 묶음은 하나다');
 select is(
-  public.approve_reading_order((select order_id from ord), 'dev-pay-0001', 12900),
+  (select r.bundle_id from public.approve_reading_order((select order_id from ord), 'dev-pay-0001', 12900) r),
   (select bundle_id from bought),
   '같은 거래 번호로 다시 와도 묶음은 하나다');
+select is(
+  (select array[r.outcome, r.bundle_id::text]
+   from public.approve_reading_order((select order_id from ord), 'dev-pay-0001', 4900, 'dev-evt-0000') r),
+  array['refused', null],
+  '승인 뒤에 그 거절 알림이 다시 와도 거절 그대로다 — 묶음 id 를 내주지 않는다');
 select throws_ok(
   format($$select public.approve_reading_order(%L, 'dev-pay-9999', 12900)$$, (select order_id from ord)),
   '55000', null, '승인된 주문에 다른 거래가 붙지 않는다');
@@ -431,8 +473,14 @@ select is(
                 jsonb_array_length(k.bundle -> 'uses'), jsonb_array_length(k.refunds),
                 jsonb_array_length(k.events)]
    from retention.reading_payment k where k.order_id = (select order_id from ord)),
-  array[12900, 4900, 3, 5, 1, 1],
+  array[12900, 4900, 3, 5, 1, 2],
   '떠나면 결제 · 묶음 · 쓰임 · 환불 · 알림이 따로 옮겨진다');
+select is(
+  (select array_agg((e ->> 'provider_event_id') || ':' || (e ->> 'outcome') order by e ->> 'received_at')
+   from retention.reading_payment k, jsonb_array_elements(k.events) e
+   where k.order_id = (select order_id from ord)),
+  array['dev-evt-0000:refused', 'dev-evt-0001:applied'],
+  '거절한 알림도 결과째 옮겨진다');
 select ok(
   (select k.keep_until = k.last_refunded_at + interval '5 years'
    from retention.reading_payment k where k.order_id = (select order_id from ord)),

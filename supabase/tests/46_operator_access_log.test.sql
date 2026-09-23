@@ -9,11 +9,13 @@
 --   3. **아무도 못 고친다** — 소유자 `postgres` 도 권한이 없고, 권한을 다시 줘도 트리거가 막는다. 비우기도
 --   4. **운영자를 포함해 API 역할은 표를 못 읽는다** — 읽는 손은 반출 문(`service_role`) 과 운영 SQL 뿐
 --   5. **CLI 는 목적과 해시만 적는다** — 이메일처럼 생긴 목적은 거절한다. API 역할은 그 함수를 못 부른다
---   6. **반출은 이어 붙인다** — 앞 반출에서 이어지지 않거나 줄 수가 틀리면 적히지 않고, 방금 적힌 줄에서 멈춘다
+--   6. **반출은 이어 붙인다** — 앞 반출에서 이어지지 않거나 줄 수가 틀리면 적히지 않는다. 방금 적힌 줄도 바로
+--      나가고, 늦게 커밋된 줄을 건너뛰지 않게 **쓰기는 공유 · 반출은 배타로 같은 자물쇠를 쥔다**(`20261013090000`).
+--      두 세션의 실제 경합은 `scripts/check-db-races.mjs` 가 재고, 여기서는 같은 자물쇠를 쥐는가를 잰다
 --   7. **advisor 가 보는 모양** — 새 문은 전부 search_path 가 고정됐고, 로그인한 사람에게 열린 새 definer 는
 --      거절을 적는 문 하나다(lint 0029 가 하나 는다 — runbook 「보안 advisor」)
 begin;
-select plan(37);
+select plan(42);
 
 create temporary table folks as
 select
@@ -59,10 +61,37 @@ language sql security definer as $$
 $$;
 grant execute on function pg_temp.lines(uuid) to authenticated, service_role, anon;
 
--- ── 6. 반출 — 먼저 잰다(방금 적힌 줄이 반출을 멈추게 하므로 다른 줄보다 앞서) ─────────────
+-- ── 6. 반출 ─────────────────────────────────────────────────────────────────
 
 create temporary table before_export as
 select coalesce(max(last_id), 0) as after_id from audit.operator_access_export;
+
+/** 이 세션이 쥔 advisory 자물쇠 — 열쇠와 모드 */
+create or replace function pg_temp.holds(key bigint)
+returns text language sql as $$
+  select string_agg(l.mode, ',' order by l.mode) from pg_locks l
+  where l.locktype = 'advisory' and l.pid = pg_backend_pid() and l.granted and l.objsubid = 1
+    and ((l.classid::bigint << 32) | l.objid::bigint) = key
+$$;
+
+insert into audit.operator_access (channel, actor_user_id, action, target_report_id, outcome)
+select 'app', f.reporter, 'reports.detail', c.one, 'allowed' from folks f, cases c;
+
+select is(pg_temp.holds(audit.export_lock_key()), 'ShareLock',
+  '쓰는 문장은 반출의 자물쇠를 공유로 쥔다 — 커밋까지');
+select is(
+  (select array_agg(b.at > now() - interval '1 minute') from public.audit_export_batch(100) b
+   where b.actor_user_id = (select reporter from folks)),
+  array[true],
+  '방금 적힌 줄도 바로 나간다 — 10분을 기다리지 않는다');
+select is(pg_temp.holds(audit.export_lock_key()), 'ExclusiveLock,ShareLock',
+  '반출은 같은 자물쇠를 배타로 쥔 뒤에 읽는다 — 그 전에 번호를 받은 쓰기가 다 끝나야 한다');
+select is(
+  (select array[t.tgname::text, (t.tgtype & 1)::text, (t.tgtype & 2)::text, (t.tgtype & 4)::text]
+   from pg_trigger t where t.tgrelid = 'audit.operator_access'::regclass
+     and t.tgfoid = 'audit.hold_for_export()'::regprocedure),
+  array['operator_access_waits_for_export', '0', '2', '4'],
+  '자물쇠는 문장 트리거가 insert 앞에서 잡는다 — 줄 트리거면 번호를 받은 뒤라 늦다');
 
 insert into audit.operator_access (channel, actor_user_id, action, target_report_id, outcome, at)
 select 'app', f.operator, 'reports.detail', c.one, 'allowed', now() - make_interval(hours => n)
@@ -161,6 +190,8 @@ select throws_ok($$select public.note_operator_denial('cli.query')$$, '22023', n
 
 select lives_ok($$select public.note_operator_denial('reports.list') from generate_series(1, 40)$$,
   '마흔 번 불러도 넘어지지 않는다');
+select is(pg_temp.holds(hashtextextended('audit:denial:' || (select stranger from folks)::text, 0)), 'ExclusiveLock',
+  '거절을 세기 전에 그 사람의 자물쇠를 쥔다 — 나란히 온 둘이 같은 수를 보지 않는다');
 select is((select count(*)::integer from pg_temp.lines((select stranger from folks))), 30,
   '한 사람의 거절은 한 시간에 서른 줄에서 멈춘다 — 표를 채우는 도구가 되지 않는다');
 
