@@ -96,7 +96,7 @@ CI=1 npx vitest run --coverage --coverage.reporter=text \
 | `src/lib/saju` | 70 | 2,023 | **99.0%** |
 | `src/lib/reading` | 14 | 578 | 97.4% |
 | `src/lib/{input,consent,discovery,matching,people,profile,account,db}` | 16 | 312 | 91~100% |
-| `src/lib/survey` | 1 | 36 | 0% — 표 하나, 시험 없음 |
+| `src/lib/survey` | 1 | 36 | 0% → **100%**(2026-09-23, `index.test.ts` — 판단 넷) |
 | `app/**/*.ts` | 61 | 899 | **31.4%** — 34 파일이 0% |
 | `app/**/*.tsx` | 89 | 2,088 | **1.8%** |
 | `proxy.ts` | 1 | 17 | 0% |
@@ -108,8 +108,13 @@ CI=1 npx vitest run --coverage --coverage.reporter=text \
 그래서 CI 에 문턱을 안 건다 — 문턱은 `.tsx` 를 `.ts` 로 억지로 옮기거나 화면 시험을 흉내 내게
 만든다.
 
-**정말로 비는 자리 셋**은 적어 둔다 — `src/lib/survey`(표라 시험이 없다), `app/hash-query.ts`
-35줄(주소 초안 코덱, 흐름도 안 두드린다), `app/me/reading/preview.ts` 18줄.
+**정말로 비던 자리 셋**은 2026-09-23 에 다시 쟀다(G-47). 셋 다 vitest 0% 였다.
+
+| 자리 | 무엇인가 | 이제 |
+| --- | --- | --- |
+| `src/lib/survey` | 표만이 아니었다 — 폼과 운영 화면이 부르는 **순수 판단 넷**(`afterPicking` · `isAnswered` · `withoutHidden` · `choiceLabel`) | **단위가 잰다** — `index.test.ts` 25건, 100%. 슬러그와 DB 검사식은 pgTAP `27_service_survey`, 폼을 누르는 것은 `signed-in.spec.ts` |
+| `app/hash-query.ts` | `'use client'` 훅 — `window.location` · `history` · `sessionStorage` 를 구독한다. 코덱은 `src/lib/input/query.ts` 에 있고 그쪽은 이미 단위가 잰다 | **단위로 안 잰다.** 남는 것이 브라우저 구독뿐이라 jsdom 없이는 흉내가 된다. e2e 가 잰다 — `saju.spec.ts`(`#` 링크를 읽고 쓴다) · `reading-entry.spec.ts`(`#resume-reading`) |
+| `app/me/reading/preview.ts` | 서버에서 계정 · 사람 행을 읽어 자기 풀이 프롬프트를 짓는 문. 조립은 `readingPromptOf` 가 하고 그쪽은 단위가 잰다 | **단위로 안 잰다.** 판단이 DB 를 읽은 값에 매여 있다. 흐름 `check-reading.mjs`(`/me/reading/inspect?kind=self`) · e2e `signed-in.spec.ts` 가 실제 스택에서 연다 |
 
 ## 재지 않는 것
 
@@ -117,6 +122,7 @@ CI=1 npx vitest run --coverage --coverage.reporter=text \
 - **구글 로그인 화면** — 남의 화면. e2e 는 세션을 만들어 쥐여 주고 가입 관문부터 밟는다
 - **운영 DB** — `*.live.test.ts` 셋만, 손으로
 - **화면 단위** — jsdom 이 없다. 화면의 판단은 `.ts` 로 내린다
+- **`app/hash-query.ts` · `app/me/reading/preview.ts` 의 단위** — 브라우저 구독과 DB 를 읽는 문이라 위 「커버리지」 표대로 e2e · 흐름이 든다
 - **커버리지 문턱** — 위 표가 까닭이다
 
 ## 어디를 봐야 하나
