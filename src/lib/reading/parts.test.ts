@@ -358,6 +358,20 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
     expect(outside).not.toContain('원국');
   });
 
+  /** G-56 — 일간 · 대운도 같은 모양으로 걷는다. 「성격을 읽는 순서」의 일간은 생각용이라 남긴다 */
+  const DONT_DAY = '- 이렇게 쓰지 마라 — 「일간인 물은 뿌리가 약해요. 대운의 불이 들어와 힘이 붙어요.」';
+  const DO_DAY =
+    '- 이렇게 써라 — 「이 사주의 중심은 물인데, 기댈 뿌리가 약해 혼자 오래 밀어붙이는 쪽은 아니에요. 앞으로 몇 년은 불의 기운이 들어와 일과 돈이 움직이기 쉬워요.」';
+
+  it.each(solo)('%s — 규칙이 일간 · 대운을 스스로 부르지 않고 본보기 한 쌍이 더 선다', (kind) => {
+    const prompt = READING_PROMPTS[kind];
+    expect(prompt).not.toContain('「일간은 庚이다」');
+    expect(prompt).not.toContain('`decade:n`(대운)');
+    expect(prompt).toContain('「金이 셋이다」를 흐릴 이유가 없다');
+    expect(prompt).toContain('`decade:n`(십 년 단위의 큰 흐름)·`annual:연도`(그해의 흐름)·`monthly:…`(그달의 흐름)');
+    expect(prompt).toContain(`${DONT_DAY}\n${DO_DAY}`);
+  });
+
   it('시간 미상 명식에도 같은 지시가 나간다', () => {
     const hourless = computeSaju({ year: 1991, month: 6, day: 2, hour: null, gender: 'female' });
     const prompt = readingPromptOf(readingEvidenceOf('self', { a: hourless }, new Date('2026-09-23T00:00:00Z')));
@@ -384,10 +398,12 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
     expect(legacy).not.toContain('## 이 자료를 읽는 법');
   });
 
-  it('두 판본 칸과 저장 판본이 모두 v14 다', () => {
-    expect(READING_POLICY.version).toBe('reading-prompt-v14');
+  it('개인 풀이는 v15, 궁합은 v14 다', () => {
+    expect(READING_POLICY.version).toBe('reading-prompt-v15');
     expect(READING_POLICY.pairVersion).toBe('reading-prompt-v14');
-    for (const kind of READING_KINDS) expect(promptVersionOf(kind), kind).toBe('reading-prompt-v14');
+    for (const kind of READING_KINDS) {
+      expect(promptVersionOf(kind), kind).toBe(isSolo(kind) ? 'reading-prompt-v15' : 'reading-prompt-v14');
+    }
   });
 
   /** 막는 계약으로 올리지 않았다 — 새어도 저장되고, 수만 적힌다 */
