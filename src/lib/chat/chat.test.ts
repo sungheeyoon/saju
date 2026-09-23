@@ -54,9 +54,12 @@ describe('화면의 글자', () => {
     expect(roomTitleOf('지영')).toBe('지영 님');
   });
 
-  it('오늘은 시각, 다른 날은 날짜', () => {
+  /** 기계의 시간대가 무엇이든 한국 시각이다 — CI 와 Vercel 은 UTC 다 */
+  it('오늘은 시각, 다른 날은 날짜 — 한국 시간대로', () => {
     const now = new Date('2026-09-23T15:24:00+09:00');
-    expect(messageTimeLabel('2026-09-23T06:24:00Z', now)).toMatch(/3:24/);
-    expect(messageTimeLabel('2026-09-01T06:24:00Z', now)).toContain('9월 1일');
+    expect(messageTimeLabel('2026-09-23T06:24:00Z', now)).toBe('오후 3:24');
+    expect(messageTimeLabel('2026-09-01T06:24:00Z', now)).toBe('2026년 9월 1일');
+    // UTC 로는 22일 밤이지만 한국으로는 23일 새벽 — 「오늘」이다
+    expect(messageTimeLabel('2026-09-22T16:30:00Z', now)).toBe('오전 1:30');
   });
 });

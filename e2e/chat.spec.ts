@@ -88,6 +88,8 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(b.page.getByText('1건 안 읽음')).toBeVisible();
     await b.page.getByRole('link', { name: new RegExp(`가${tag}`) }).click();
     await expect(b.page.getByText(hello)).toBeVisible();
+    // 방 안에서 읽음이 끝나면 **주소를 안 옮겨도** 헤더의 배지가 내려간다
+    await expect(b.page.getByText('1건 안 읽음')).toHaveCount(0);
 
     const reply = `반갑습니다 ${tag}`;
     await b.page.getByPlaceholder('메시지를 입력해 주세요').fill(reply);

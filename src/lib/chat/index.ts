@@ -94,14 +94,19 @@ export const TOO_LONG_TEXT = '적어 주신 내용이 너무 깁니다.';
 /**
  * 목록의 시각 — 오늘이면 시각, 아니면 날짜. **한 사실에는 한 표기**라 풀이 목록의 날짜 표기
  * (`readingDate`)와 같은 모양을 쓴다.
+ *
+ * **시간대는 한국이다.** 서버(Vercel · CI)는 UTC 라 기계의 시간대로 재면 「오후 3:24」가 「오전 6:24」로
+ * 서고, 「오늘」의 경계도 아홉 시간 어긋난다 — 이 화면을 읽는 사람은 한국에 있다(PRD §7.1).
  */
+const KST = 'Asia/Seoul';
+
+const dayIn = (at: Date): string =>
+  at.toLocaleDateString('ko-KR', { timeZone: KST, year: 'numeric', month: 'long', day: 'numeric' });
+
 export const messageTimeLabel = (iso: string, now: Date = new Date()): string => {
   const at = new Date(iso);
-  const sameDay =
-    at.getFullYear() === now.getFullYear() &&
-    at.getMonth() === now.getMonth() &&
-    at.getDate() === now.getDate();
-  return sameDay
-    ? at.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })
-    : at.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+  const day = dayIn(at);
+  return day === dayIn(now)
+    ? at.toLocaleTimeString('ko-KR', { timeZone: KST, hour: 'numeric', minute: '2-digit' })
+    : day;
 };

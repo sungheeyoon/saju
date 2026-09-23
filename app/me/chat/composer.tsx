@@ -13,6 +13,7 @@ import {
 } from '@/src/lib/chat';
 
 import { markChatRead, sendChatMessage } from './actions';
+import { announceChatUnreadMoved } from './unread-signal';
 
 const PRIMARY =
   'h-11 shrink-0 rounded-lg bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-60 sm:h-10';
@@ -122,7 +123,10 @@ export function ReadOnVisit({ matchId, unread }: { matchId: string; unread: numb
 
     void (async () => {
       const result = await markChatRead(matchId);
-      if (result.ok) router.refresh();
+      if (!result.ok) return;
+      router.refresh();
+      // 주소가 안 바뀌므로 헤더가 스스로 다시 세지 않는다 — 알린다.
+      announceChatUnreadMoved();
     })();
   }, [matchId, router, unread]);
 
