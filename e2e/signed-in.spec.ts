@@ -1572,8 +1572,46 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     const list = page.getByRole('listbox', { name: '두 번째' });
     const options = list.getByRole('option');
     await expect(second).toHaveAttribute('aria-expanded', 'true');
+    /* listbox 는 닫히면 숨어 역할로는 안 잡힌다 — id 를 지금 쥐어 두고 뒤에서 그 id 로 본다 */
+    const listId = (await list.getAttribute('id')) ?? '';
+    expect(listId).not.toBe('');
+    await expect(second).toHaveAttribute('aria-controls', listId);
     await expect(options).toHaveCount(names.length + 1);
     await expect(options.filter({ hasText: `${signedIn.label} (나)` })).toHaveCount(0);
+
+    /*
+      **치지 않고 누르기만 해도 전체가 서고, 스크롤로 고른다.** 한 번에 다섯 줄과 여섯째의 반이
+      보인다 — 반쯤 걸친 줄이 더 있다는 것을 말한다. 목록 안에서만 흐르고 화면 밖으로 안 넘친다.
+    */
+    const rows = await list.evaluate((node) => {
+      const first = node.querySelector('[role="option"]') as HTMLElement;
+      return { client: node.clientHeight, scroll: node.scrollHeight, row: first.offsetHeight };
+    });
+    expect(rows.scroll).toBeGreaterThan(rows.client);
+    expect(rows.client / rows.row).toBeGreaterThan(5.2);
+    expect(rows.client / rows.row).toBeLessThan(5.8);
+
+    await list.evaluate((node) => node.scrollTo({ top: node.scrollHeight }));
+    const last = options.last();
+    await expect(last).toBeInViewport();
+    /*
+      목록의 끝이 **보이는 자리 안**이다 — 화면 아래, 휴대폰 폭이면 아래 고정 메뉴의 위.
+      화면은 부드럽게 스크롤하므로(`scroll-behavior: smooth`) 멈출 때까지 기다려 잰다.
+    */
+    const bottomMenu = page.getByRole('navigation', { name: '모바일 내 메뉴' });
+    const floor = (await bottomMenu.isVisible())
+      ? ((await bottomMenu.boundingBox())?.y ?? 0)
+      : (page.viewportSize()?.height ?? 0);
+    await expect
+      .poll(async () => {
+        const box = await list.boundingBox();
+        return (box?.y ?? 0) + (box?.height ?? 0);
+      })
+      .toBeLessThanOrEqual(floor + 1); // 소수점 반 픽셀은 반올림 차이다
+    if (test.info().project.name === 'authed-mobile') {
+      await page.screenshot({ path: test.info().outputPath('compat-list-mobile.png') });
+    }
+    await list.evaluate((node) => node.scrollTo({ top: 0 }));
 
     /* 열려도 화면을 가로로 밀지 않는다 — 목록은 칸 폭 안에서 세로로만 흐른다 */
     const width = await page.evaluate(() => ({
@@ -1618,12 +1656,25 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     await second.press('Escape');
     await expect(second).toHaveValue(picked);
 
-    /* 맞는 사람이 없으면 없다고 말한다 — 빈 목록을 세우지 않는다 */
+    /*
+      **맞는 사람이 없으면 없다고 말한다** — 펼친 것이 아니다(`aria-expanded=false`). listbox 는
+      숨은 채 그대로 있어 `aria-controls` 가 여전히 그것을 가리키고, 문구는 늘 붙어 있는 status 칸이 든다.
+    */
     await second.fill('없는이름');
-    await expect(page.getByText('맞는 이름이 없습니다')).toBeVisible();
+    const status = page.getByRole('status').filter({ hasText: '찾는 사람이 없습니다' });
+    await expect(status).toBeVisible();
     await expect(second).toHaveAttribute('aria-expanded', 'false');
+    await expect(second).toHaveAttribute('aria-controls', listId);
+    await expect(page.locator(`[id="${listId}"]`)).toBeHidden();
+    await expect(page.locator(`[id="${listId}"]`)).toHaveAttribute('role', 'listbox');
+    expect(await status.getAttribute('id')).not.toBe(listId);
+
+    /* 다시 맞는 이름이 되면 펼친다 */
+    await second.fill('수정');
+    await expect(second).toHaveAttribute('aria-expanded', 'true');
+    await expect(options).toHaveText(['수정']);
+    await expect(page.getByText('찾는 사람이 없습니다')).toHaveCount(0);
     await second.press('Escape');
-    await expect(page.getByText('맞는 이름이 없습니다')).toHaveCount(0);
 
     /* **두 칸이 서로를 안다** — 두 번째에서 고른 사람은 첫 번째 목록에 안 선다 */
     await first.click();
@@ -1668,7 +1719,8 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     await second.click();
     await expect(second).toHaveAttribute('aria-expanded', 'false');
     await expect(page.getByRole('listbox')).toHaveCount(0);
-    await expect(page.getByText('맞는 이름이 없습니다')).toHaveCount(0);
+    await expect(second).toHaveAttribute('aria-controls', /.+/);
+    await expect(page.getByText('찾는 사람이 없습니다')).toHaveCount(0);
     await expect(page.getByText('두 번째 사람을 골라 주세요.')).toBeVisible();
   });
 

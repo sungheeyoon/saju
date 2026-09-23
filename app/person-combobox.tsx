@@ -28,9 +28,16 @@ export type Choosable = { personId: string; label: string; isSelfPerson: boolean
 const shownLabel = (one: Choosable): string =>
   one.isSelfPerson ? `${one.label} (나)` : one.label;
 
-/** 승인 전 후보 문구 — PR 의 「승인할 문구」 표 */
+/** 문구 둘 — 운영자가 2026-09-24 에 승인했다(#193) */
 const PLACEHOLDER = '이름으로 찾기';
-const NO_MATCH = '맞는 이름이 없습니다';
+const NO_MATCH = '찾는 사람이 없습니다';
+
+/**
+ * 목록의 높이 — **다섯 줄과 여섯째의 반.** 한 줄이 `min-h-11`(44px), 목록 안 여백이 위 4px 라
+ * 4 + 44 × 5.5 = 246px ≈ `15.5rem`(248px). 여섯째가 반쯤 걸쳐 있어야 더 있다는 것이 스크롤
+ * 막대 없이도 보인다 — 딱 다섯에서 자르면 목록이 거기서 끝난 것처럼 읽힌다.
+ */
+const LIST_HEIGHT = 'max-h-[15.5rem]';
 
 const KEY_STEP: Partial<Record<string, Step>> = { ArrowDown: 'next', ArrowUp: 'previous' };
 
@@ -51,6 +58,7 @@ export function PersonCombobox({
   const base = useId();
   const inputId = `${base}-input`;
   const listId = `${base}-list`;
+  const statusId = `${base}-status`;
   const optionId = (index: number) => `${base}-option-${index}`;
 
   const [open, setOpen] = useState(false);
@@ -62,9 +70,18 @@ export function PersonCombobox({
   const choices = pickable(people, typed ?? '', taken);
   const chosen = people.find((one) => one.personId === chosenId);
   const current = active < choices.length ? active : -1;
-  /* 칠 것도 고를 것도 없으면 빈 상자를 세우지 않는다 — 치지 않았는데 「없다」고 말하게 된다 */
-  const showing = open && (choices.length > 0 || (typed ?? '').trim() !== '');
-  const listed = showing && choices.length > 0;
+  /* 옵션이 보일 때만 펼친 것이다 — 결과 없음은 펼친 것이 아니다(APG 자동완성 combobox) */
+  const listed = open && choices.length > 0;
+  /* 친 것이 있는데 맞는 사람이 없을 때만 「없다」고 말한다 — 치지 않았는데 없다고 하면 무엇을 잘못했는지 찾는다 */
+  const nothing = open && choices.length === 0 && (typed ?? '').trim() !== '';
+
+  /*
+    펼치면 목록 전체가 화면 안에 서게 — 칸이 화면 아래쪽이면 목록의 끝이 화면 밖으로 잘린다.
+    휴대폰 폭에서는 아래 고정 메뉴(`site-header.tsx`)에 가리지 않게 그만큼 띄운다(`scroll-mb-24`).
+  */
+  useEffect(() => {
+    if (listed) list.current?.scrollIntoView({ block: 'nearest' });
+  }, [listed]);
 
   /* 오르내린 자리가 목록 밖으로 밀려 있으면 보이게 끌어온다 — 백 명이면 곧 밖이다 */
   useEffect(() => {
@@ -147,46 +164,57 @@ export function PersonCombobox({
           className={`${FIELD} w-full pr-8`}
         />
 
-        {showing && (
-          <div className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-border bg-surface shadow-lg">
-            {listed ? (
-              <ul
-                ref={list}
-                id={listId}
-                role="listbox"
-                aria-label={label}
-                className="max-h-64 overflow-y-auto p-1"
+        {/*
+          listbox 는 **늘 DOM 에 있다** — `aria-controls` 가 없는 id 를 가리키지 않게. 옵션이 없으면 숨긴다.
+        */}
+        <ul
+          ref={list}
+          id={listId}
+          role="listbox"
+          aria-label={label}
+          hidden={!listed}
+          className={`absolute inset-x-0 top-full z-20 mt-1 ${LIST_HEIGHT} scroll-mb-24 overflow-y-auto sm:scroll-mb-2 overscroll-contain rounded-xl border border-border bg-surface p-1 shadow-lg`}
+        >
+          {listed &&
+            choices.map((one, index) => (
+              <li
+                key={one.personId}
+                id={optionId(index)}
+                role="option"
+                aria-selected={index === current}
+                data-index={index}
+                /* 누르는 동안 입력 칸이 초점을 잃지 않게 — 잃으면 닫히며 누름이 사라진다 */
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => choose(one)}
+                className={`flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-lg px-3 text-sm ${
+                  index === current ? 'bg-accent-wash text-foreground' : 'text-foreground hover:bg-surface-sunken'
+                }`}
               >
-                {choices.map((one, index) => (
-                  <li
-                    key={one.personId}
-                    id={optionId(index)}
-                    role="option"
-                    aria-selected={index === current}
-                    data-index={index}
-                    /* 누르는 동안 입력 칸이 초점을 잃지 않게 — 잃으면 닫히며 누름이 사라진다 */
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => choose(one)}
-                    className={`flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-lg px-3 text-sm ${
-                      index === current ? 'bg-accent-wash text-foreground' : 'text-foreground hover:bg-surface-sunken'
-                    }`}
-                  >
-                    <span className="min-w-0 truncate">{shownLabel(one)}</span>
-                    {one.personId === chosenId && (
-                      <svg viewBox="0 0 12 12" aria-hidden="true" className="size-3 shrink-0 text-accent">
-                        <path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p id={listId} role="status" className="px-3 py-2.5 text-sm text-muted">
-                {NO_MATCH}
-              </p>
-            )}
-          </div>
-        )}
+                <span className="min-w-0 truncate">{shownLabel(one)}</span>
+                {one.personId === chosenId && (
+                  <svg viewBox="0 0 12 12" aria-hidden="true" className="size-3 shrink-0 text-accent">
+                    <path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </li>
+            ))}
+        </ul>
+
+        {/*
+          결과 없음은 listbox 와 **다른 칸**이 말한다. 이 칸은 늘 마운트해 두고 글자만 바꾼다 —
+          새로 붙은 live 영역은 화면낭독기가 흘려보내는 일이 있어서다. 보이는 상자는 없을 때만 선다.
+        */}
+        <p
+          id={statusId}
+          role="status"
+          className={
+            nothing
+              ? 'absolute inset-x-0 top-full z-20 mt-1 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted shadow-lg'
+              : 'sr-only'
+          }
+        >
+          {nothing ? NO_MATCH : ''}
+        </p>
       </SelectShell>
     </div>
   );
