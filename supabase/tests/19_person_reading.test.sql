@@ -225,7 +225,7 @@ select is(
   true,
   '고치기 전에는 지금 명식으로 쓴 글이다');
 
-select public.add_person_revision(
+select public.edit_person_input(
   (select mom from kin),
   'solar', '1962-03-02', '1962-03-02', '08:10', 'female', '부산', 'jo', 'localMean',
   tests.chart('丁'), 'chart-for-tests');

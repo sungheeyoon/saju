@@ -112,7 +112,7 @@ select is(
   (select count(*)::int from pg_proc p
    join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public'
-     and p.proname in ('create_self_person', 'create_managed_person', 'add_person_revision')
+     and p.proname in ('create_self_person', 'create_managed_person', 'edit_person_input', 'add_person_revision')
      and pg_get_function_arguments(p.oid) not like '%jsonb%'),
   0,
   '여덟 글자를 안 싣던 옛 서명이 하나도 안 남았다');
@@ -139,7 +139,7 @@ from public.app_user u where u.id = (select kim from who);
 grant select on mine to authenticated, service_role;
 
 select is(
-  public.add_person_revision((select person_id from mine),
+  public.edit_person_input((select person_id from mine),
     'solar','1990-05-15','1990-05-15','14:30','male','서울','jo','localMean',
     (select ok from sample), 'engine-v2'),
   (select version from mine),
