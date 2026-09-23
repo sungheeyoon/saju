@@ -32,6 +32,7 @@ export const SCRIPTS = [
   'check-result.mjs',
   'check-reading.mjs',
   'check-share.mjs',
+  'check-chat.mjs',
 ];
 
 /**

@@ -50,7 +50,7 @@ function localStack(): Record<string, string> {
  * 함께 쓰기 때문이다. 옮겨 두면 상대 경로가 길어지고, 길어진 경로는 어느 쪽이
  * 백엔드를 요구하는지 말해 주지 않는다.
  */
-const AUTHED = ['**/signed-in.spec.ts', '**/match.spec.ts'];
+const AUTHED = ['**/signed-in.spec.ts', '**/match.spec.ts', '**/chat.spec.ts'];
 
 /**
  * 안내 관문은 **혼자 돈다.**

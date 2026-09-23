@@ -73,7 +73,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(mobileNav).toBeVisible();
 
     const viewportWidth = page.viewportSize()?.width ?? 0;
-    for (const label of ['내 사주', '사주·궁합', '매칭', '풀이', '소식']) {
+    // 탭 여섯(PRD §7.4.1) — 채팅이 2026-09-23 에 더해졌다. 여섯이 폰 폭에 다 서는지도 여기서 잰다
+    for (const label of ['내 사주', '사주·궁합', '매칭', '풀이', '채팅', '소식']) {
       const link = mobileNav.getByRole('link', { name: label, exact: true });
       await expect(link).toBeVisible();
       const box = await link.boundingBox();

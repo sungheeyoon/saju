@@ -1,5 +1,7 @@
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
+import { CHAT_TAB_LABEL } from '@/src/lib/chat';
 import { MATCH_RESULT_CLOSED_NOTE } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../../auth/server-client';
@@ -129,6 +131,13 @@ function Result({ result }: { result: SharedResult }) {
       />
 
       <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4">
+        {/* 동의가 나면 방이 열린다(PRD §7.1) — 결과에서 바로 그 방으로 간다 */}
+        <Link
+          href={`/me/chat/${result.matchId}`}
+          className="text-sm font-semibold text-accent underline underline-offset-2"
+        >
+          {CHAT_TAB_LABEL}
+        </Link>
         <BlockButton userId={result.partnerUserId} />
       </div>
     </>

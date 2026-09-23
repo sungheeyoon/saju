@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+import { CHAT_TAB_LABEL } from '@/src/lib/chat';
 import { readingCreditsLabel } from '@/src/lib/reading';
 
 import { supabaseInBrowser } from './auth/browser-client';
+import { readUnreadChat } from './me/chat/unread';
 import { readReadingCredits } from './me/reading/credits';
 import { READING_CREDITS_MOVED } from './me/reading/credits-signal';
 import { isSharePath } from './share/path';
@@ -51,6 +53,8 @@ const MEMBER_LINKS = [
    * 먼저 기억해야 했다. 저장돼 있는데 닿을 수 없는 것은 사용자에게 없는 것과 같다.
    */
   { href: '/me/readings', label: '풀이' },
+  /** 대화방 목록은 탭이다(PRD §7.1 · §7.4.1, 2026-09-23) */
+  { href: '/me/chat', label: CHAT_TAB_LABEL },
   { href: '/me/requests', label: '소식' },
   /**
    * **서비스 설문은 늘 열려 있다**(ADR 0062).
@@ -69,6 +73,7 @@ const MOBILE_LINKS = [
   { href: '/', label: '사주·궁합', icon: 'compat' },
   { href: '/me/matching', label: '매칭', icon: 'people' },
   { href: '/me/readings', label: '풀이', icon: 'reading' },
+  { href: '/me/chat', label: CHAT_TAB_LABEL, icon: 'chat' },
   { href: '/me/requests', label: '소식', icon: 'news' },
 ] as const;
 
@@ -142,6 +147,7 @@ export function SiteHeader() {
   const links = ended || shared ? [] : memberNavigation ? MEMBER_LINKS : PUBLIC_LINKS;
   /* 남은 풀이권은 끝난 뒤에 셀 것이 아니다 — 쓸 자리가 없다 */
   const creditsLabel = useReadingCredits(session === 'in' && !ended);
+  const unreadChat = useUnreadChat(memberNavigation && !ended, pathname);
   /** 로그인 화면에서 「로그인」은 지금 보고 있는 화면으로 가는 버튼이다 */
   const onAuthScreen = pathname.startsWith('/auth');
 
@@ -206,6 +212,7 @@ export function SiteHeader() {
                       className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${active ? 'bg-accent-wash text-accent-strong' : 'text-secondary hover:bg-surface-soft hover:text-foreground'}`}
                     >
                       {link.label}
+                      {link.href === '/me/chat' && <UnreadBadge count={unreadChat} />}
                     </Link>
                   );
                 })}
@@ -247,7 +254,7 @@ export function SiteHeader() {
           )}
         </div>
       </header>
-      {memberNavigation && !ended && <MobileNavigation pathname={pathname} />}
+      {memberNavigation && !ended && <MobileNavigation pathname={pathname} unreadChat={unreadChat} />}
     </>
   );
 }
@@ -311,6 +318,41 @@ function useReadingCredits(enabled: boolean): string | null {
   return enabled ? label : null;
 }
 
+/**
+ * 안 읽은 메시지 수 — 채팅 탭에 붙는다. **새 메시지는 소식이 아니다**(PRD §7.1) — 소식의 수와
+ * 섞지 않는다. 서버의 `unreadChatCount` 와 같은 문이다(ADR 0078). 못 읽었거나 0 이면 안 세운다 —
+ * 모르는 수를 세어 보게 하지 않는다. 화면을 옮길 때마다 다시 센다 — 실시간은 아니다.
+ */
+function useUnreadChat(enabled: boolean, pathname: string): number {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    let watching = true;
+    void (async () => {
+      const unread = await readUnreadChat(supabaseInBrowser());
+      if (watching) setCount(unread.ok ? unread.value : 0);
+    })();
+
+    return () => {
+      watching = false;
+    };
+  }, [enabled, pathname]);
+
+  return enabled ? count : 0;
+}
+
+function UnreadBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+  return (
+    <span className="ml-1.5 inline-grid size-4.5 place-items-center rounded-full bg-fire align-middle text-[10px] font-bold text-white">
+      {count}
+      <span className="sr-only">건 안 읽음</span>
+    </span>
+  );
+}
+
 function Credits({ label }: { label: string }) {
   return (
     <span className="inline-flex shrink-0 items-center rounded-full bg-accent-wash px-2.5 py-1.5 text-xs font-semibold tabular-nums text-accent">
@@ -319,14 +361,15 @@ function Credits({ label }: { label: string }) {
   );
 }
 
-function MobileNavigation({ pathname }: { pathname: string }) {
+function MobileNavigation({ pathname, unreadChat }: { pathname: string; unreadChat: number }) {
   return (
     <nav
       id="mobile-member-navigation"
       aria-label="모바일 내 메뉴"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-xl sm:hidden"
     >
-      <div className="mx-auto grid max-w-md grid-cols-5 px-1">
+      {/* 탭 여섯(PRD §7.4.1) — 채팅이 2026-09-23 에 더해졌다 */}
+      <div className="mx-auto grid max-w-md grid-cols-6 px-1">
         {MOBILE_LINKS.map((link) => {
           const active = isNavigationActive(pathname, link.href);
           return (
@@ -338,6 +381,12 @@ function MobileNavigation({ pathname }: { pathname: string }) {
             >
               <MobileNavIcon name={link.icon} />
               <span className="truncate">{link.label}</span>
+              {link.href === '/me/chat' && unreadChat > 0 && (
+                <span className="absolute right-1 top-2 grid size-4.5 place-items-center rounded-full bg-fire text-[10px] font-bold text-white">
+                  {unreadChat}
+                  <span className="sr-only">건 안 읽음</span>
+                </span>
+              )}
               {active && (
                 <span
                   aria-hidden="true"
@@ -372,6 +421,9 @@ function MobileNavIcon({ name }: { name: (typeof MOBILE_LINKS)[number]['icon'] }
         <path d="M6 9a6 6 0 0 1 12 0c0 7 2 7 2 8H4c0-1 2-1 2-8Z" />
         <path d="M9.5 20h5" />
       </>
+    ),
+    chat: (
+      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V17H6.5A2.5 2.5 0 0 1 4 14.5Z" />
     ),
   } as const;
 

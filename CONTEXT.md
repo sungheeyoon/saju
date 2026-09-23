@@ -521,14 +521,15 @@ _Avoid_: 매인 판본, 현재 명식, 최신 입력
 **대화방** — `chat_room` 표 · `my_chat_rooms` : 성립한 **Match** 한 쌍에 하나씩 서는 방(PRD §7.1).
 **Match 에 1:1** 이고 Match 가 서는 순간 트리거가 세운다 — 앱이 만들지 않는다. 방을 여는 열쇠는
 Match 의 id 다. 목록은 **탭**이고, 안 읽은 수(`unread_chat_count`)는 그 탭이 든다 — **앱 내 알림**
-일곱에 새 메시지는 들지 않는다. DB 층만 있다(ADR 0091, 화면은 G-10).
-_Avoid_: 채팅방, 대화(메시지의 묶음을 뜻할 때만), 스레드
+일곱에 새 메시지는 들지 않는다. 화면은 `app/me/chat`(2026-09-23) — **화면의 이름은 「채팅」**이고 빈 목록은
+「아직 채팅방이 없습니다」다(사용자가 정했다). 낱말은 대화방, 화면과 탭은 채팅 — 한 화면에는 한 이름이다.
+_Avoid_: 채팅방 · 채팅(문서와 식별자에서 — 화면 문구는 위의 둘뿐), 대화(메시지의 묶음을 뜻할 때만), 스레드
 
 **메시지** — `chat_message` 표 · `send_chat_message` · `my_chat_messages` : 대화방 안의 한 줄.
 보낸 사람 · 본문 · 시각 · **차례(`seq`)** 를 든다. 한 건은 1,000자까지이고 **삭제 · 수정은 없다** —
 신고 스냅샷이 불변이라는 규칙과 맞물린다. 지워지는 길은 **닫힘** 뒤 90일이 지나 운영자가 지우는
 것뿐이다(runbook 「채팅」).
-_Avoid_: 채팅, 글(풀이의 글과 헷갈림), 댓글
+_Avoid_: 채팅(화면의 이름으로만 쓴다), 글(풀이의 글과 헷갈림), 댓글
 
 **닫힘** — `chat_room.closed_reason` · `closed_by_user_id` · `closed_at` · `chat_room_readable` :
 대화방의 **입력이 양쪽 다 안 되는 상태**. 방이 사라지거나 기록이 지워지는 것이 아니다. 이유는 셋
@@ -754,11 +755,11 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | Match | `match` · `my_matches` · `visible_matches` | 표 · 함수 |
 | 공유 결과 | `matchResultForViewer` | `app/me/match/result.ts` |
 | 동의 당시 여덟 글자 | `chart_high` · `chart_low` · `freeze_reading_input` | `match` 칸 · 함수 |
-| 대화방 | `chat_room` · `my_chat_rooms` · `unread_chat_count` | 표 · 함수 |
-| 메시지 | `chat_message` · `send_chat_message` · `my_chat_messages` · `mark_chat_read` | 표 · 함수 |
-| 닫힘 | `closed_reason` · `closed_by_user_id` · `closed_at` · `chat_room_readable` | `chat_room` 칸 · 함수 |
-| 전송 한도 | `chat_rate_limit` · `chat_policy` · `chat_rate_limit_hit` | 함수 · 표 |
-| 신고 스냅샷 | `chat_report_snapshot` · `report_chat_message` · `purge_closed_chat_messages` | 표 · 함수 |
+| 대화방 | `chat_room` · `my_chat_rooms` · `unread_chat_count` · `chatRoomsForViewer` · `CHAT_TAB_LABEL` | 표 · 함수 · `app/me/chat` · `src/lib/chat` |
+| 메시지 | `chat_message` · `send_chat_message` · `my_chat_messages` · `mark_chat_read` · `sendChatMessage` · `messagesForViewer` | 표 · 함수 · 액션 · 읽는 문 |
+| 닫힘 | `closed_reason` · `closed_by_user_id` · `closed_at` · `chat_room_readable` · `closedRoomText` | `chat_room` 칸 · 함수 · `src/lib/chat` |
+| 전송 한도 | `chat_rate_limit` · `chat_policy` · `chat_rate_limit_hit` · `CHAT_POLICY` · `RATE_LIMITED_TEXT` | 함수 · 표 · `src/lib/chat` |
+| 신고 스냅샷 | `chat_report_snapshot` · `report_chat_message` · `purge_closed_chat_messages` · `reportChatMessage` | 표 · 함수 · 액션 |
 | 풀이권 | `my_reading_credits` · `reading_credit_limit_for` · `readingCredits` | 함수 · 읽는 문 |
 | 풀이권 예외 | `reading_credit_grant` | 표 |
 | Person 한도 | `person_limit` · `my_person_slots` · `PersonSlots` | 함수 · `src/lib/people` |

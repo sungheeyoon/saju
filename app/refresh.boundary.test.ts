@@ -147,6 +147,10 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
       '끝난 것을 확인한 자리에서 그 대상의 화면을 무른다 — 주소가 대상마다 다르다',
     'app/me/reading/actions.ts::submitReadingFeedback':
       '답한 뒤 `feedback_given` 이 다시 읽혀야 한다 — 역시 대상이 주소를 정한다',
+    'app/me/chat/actions.ts::sendChatMessage':
+      '방 안의 주소가 방마다 다르다(`/me/chat/<matchId>`) — 목록과 그 방을 함께 무른다',
+    'app/me/chat/actions.ts::markChatRead':
+      '안 읽은 수가 목록과 그 방에 선다 — 같은 둘을 무른다',
   };
 
   /**
@@ -164,6 +168,8 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
     'app/me/reading/share.ts::shareMyReading':
       '링크 하나를 내줄 뿐 서버가 그리는 화면은 안 바뀐다 — 주소는 브라우저가 세운다',
     'app/nickname.ts::checkNickname': '읽기만 한다 — 참·거짓 하나',
+    'app/me/chat/actions.ts::reportChatMessage':
+      '신고는 방을 닫지 않는다(PRD §7.1) — 서버가 그리는 화면이 안 바뀐다. 접수됐다는 말은 누른 자리가 든다',
   };
 
   /** `'use server'` 를 든 파일에서 내보낸 액션을 그 몸통과 함께 집어 온다 */
