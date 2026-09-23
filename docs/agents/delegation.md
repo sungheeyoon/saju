@@ -39,18 +39,17 @@
 (Codex 처럼 `AGENTS.md` 를 입구로 삼는 것)에게는 이 표가 전부다. `deny` 는 도구가 막고, `ask` 는
 **어느 모드에서도 묻는다** — bypass 모드도 지나가지 않는다(2026-09-23 에 공식 문서로 확인).
 
-**등급 3 의 잠금은 공식 운영에 들어간 뒤에 켠다(ADR 0093).** 지금은 운영 베타라 실제 사용자가 없고,
-운영 DB 와 배포는 되돌려도 다치는 사람이 없다. 그래서 등급 3 의 잠금 칸은 비어 있고 에이전트는
-`db push` · 실호출 · `gh pr merge` · 운영 SQL 을 묻지 않고 밟되 **밟고 나서 본 값을 적는다**(아래).
-켤 목록은 「공식 운영에 들어가면 켜는 잠금」 절이 든다 — 그때 `ask` 에 그대로 되돌린다(G-50).
+**등급 3 의 잠금은 켜져 있다(G-50).** 2026-09-23 에 운영 베타에서 껐다가(ADR 0093) 같은 날 사람이
+앞당겨 다시 켰다 — 공개 출시를 기다리지 않는다. 에이전트는 `db push` · 실호출 · `gh pr merge` · 운영
+SQL 을 **사람이 답한 뒤에** 밟고, 밟고 나서 본 값을 적는다(아래).
 
 | 등급 | 무엇 | 예 | 잠금 |
 | --- | --- | --- | --- |
 | **0 읽는다** | 저장소·로컬 스택·CI 로그·이슈를 읽는다 | `git log` · `npm test` · `gh run view` · 로컬 DB 질의 | 없음 |
 | **1 로컬에서 고친다** | 작업 가지에서 파일을 고치고 시험을 돌린다. 로컬 스택은 마음껏 되돌린다 | `npm run db:reset` · `npm run test:e2e:authed` | 없음 |
 | **2 밖으로 낸다 — 되돌릴 수 있게** | 가지를 밀고 PR 을 열고 이슈에 적는다. 리뷰 뒤 `--auto` 머지를 건다(gate 가 초록이 될 때까지 기다린다, ADR 0082) | `git push -u origin <가지>` · `gh pr create` · `gh pr merge --auto --squash` | 없음 — 단 아래 등급 3 의 예외 |
-| **3 사람이 답한 뒤에** | **main 머지는 곧 프로덕션 배포다.** 운영 DB 에 마이그레이션을 올리거나 임의 SQL 을 보내는 것, 토큰이 나가는 실호출, Vercel 변수, 원격 가지 삭제, 프로덕션 확인이 든 걸음 — **공식 운영에 들어간 뒤에 켠다(ADR 0093).** 운영 베타에서는 등급 2 처럼 밟고 값을 적는다 | `db push` · `db query --linked` · `READING_LIVE=1` · `vercel env` · `gh pr merge`(auto 아닌 즉시 머지) | 없음 — 공식 운영 전. 켤 목록은 아래 절 |
-| **3 사람이 답한 뒤에 — 도구 밖** | 새 한글 문구는 표로 보이고 답을 기다린다(`docs/agents/code-rules.md`). 남이 띄운 dev 서버는 죽이기 전에 묻는다. 운영 SQL Editor 의 문장을 건네기만 하는 것은 공식 운영 뒤의 일이다(ADR 0093) — 지금은 `db query --linked` 로 직접 돌리고 값을 적는다 | 버튼 문구 · dev 서버 | 사람 |
+| **3 사람이 답한 뒤에** | **main 머지는 곧 프로덕션 배포다.** 운영 DB 에 마이그레이션을 올리거나 임의 SQL 을 보내는 것, 토큰이 나가는 실호출, Vercel 변수, 원격 가지 삭제, 프로덕션 확인이 든 걸음 | `db push` · `db query --linked` · `READING_LIVE=1` · `vercel env` · `gh pr merge`(auto 아닌 즉시 머지) | `Bash(npx supabase db push:*)` · `Bash(supabase db push:*)` · `Bash(./node_modules/.bin/supabase db push:*)` · `Bash(npx supabase db query --linked:*)` · `Bash(supabase db query --linked:*)` · `Bash(./node_modules/.bin/supabase db query --linked:*)` · `Bash(READING_LIVE=1:*)` · `Bash(READING_PAIR_LIVE=1:*)` · `Bash(READING_MATCH_INPUT_LIVE=1:*)` · `Bash(BACKFILL_CHART=1:*)` · `Bash(BACKFILL_READING_CHART=1:*)` · `Bash(vercel env:*)` · `Bash(npx vercel env:*)` · `Bash(vercel --prod:*)` · `Bash(npx vercel --prod:*)` · `Bash(vercel deploy:*)` · `Bash(npx vercel deploy:*)` · `Bash(gh pr merge:*)` · `Bash(git push origin --delete:*)` · `Bash(git push --delete:*)` · `Bash(git branch -D:*)` |
+| **3 사람이 답한 뒤에 — 도구 밖** | 새 한글 문구는 표로 보이고 답을 기다린다(`docs/agents/code-rules.md`). 남이 띄운 dev 서버는 죽이기 전에 묻는다. 운영 SQL Editor 에서 돌릴 문장은 건네기만 한다(가입 코드 INSERT · 상한 올리기) | 버튼 문구 · dev 서버 | 사람 |
 | **4 안 한다** | 되돌릴 수 없는 것. main 에 force push, `supabase config push`(원격의 구글 설정을 지운다), main 가지 삭제, Vercel 변수 삭제, 비밀 값을 커밋 | | `Bash(git push --force:*)` · `Bash(git push -f:*)` · `Bash(git push --force-with-lease:*)` · `Bash(npx supabase config push:*)` · `Bash(supabase config push:*)` · `Bash(./node_modules/.bin/supabase config push:*)` · `Bash(git push origin :main)` · `Bash(git push origin --delete main)` · `Bash(vercel env rm:*)` · `Bash(npx vercel env rm:*)` |
 
 **`gh pr merge --auto` 는 등급 2 다** — gate 가 필수 검사라 초록까지 기다린다(2026-09-22 부터,
@@ -61,8 +60,7 @@ ADR 0082). `--auto` 없는 즉시 머지가 등급 3 인 까닭은 그것이 검
 **예외 — 마이그레이션이 든 PR 은 `--auto` 도 등급 3 이다.** `supabase/migrations/**` 가 바뀐 PR 에
 `--auto` 를 걸면 gate 초록 즉시 앱이 나가고 DB 는 그대로라, runbook 의 「마이그레이션이 먼저, 앱이
 나중」이 뒤집힌다(`docs/ops/runbook.md` 「배포」 규약 넷). 그런 PR 은 `db push` 와 확인이 끝난 뒤에만
-머지를 건다 — 운영 베타에서는 에이전트가 그 걸음을 직접 밟고 값을 적으며, 공식 운영 뒤에는 사람이
-끝냈다고 답한 뒤다(ADR 0093). 순서 자체는 언제나 지킨다. 앱이 새 함수를 부르는 변경이면 **넓히는 마이그레이션 PR 과 앱 PR 로 나눈다** —
+머지를 건다 — 사람이 끝냈다고 답한 뒤다. 순서 자체는 언제나 지킨다. 앱이 새 함수를 부르는 변경이면 **넓히는 마이그레이션 PR 과 앱 PR 로 나눈다** —
 앞 PR 은 옛 앱에 안전하니 먼저 들고 `db push` 를 지나며, 뒤 PR 이 그 뒤에 든다(ADR 0071 의 A 단계가
 그 모양이다). 이 예외는 시험이 안 잰다 — `ci-plan.mjs` 가 그 경로를 아니까 잠글 자리는 있다.
 
@@ -74,36 +72,6 @@ ADR 0082). `--auto` 없는 즉시 머지가 등급 3 인 까닭은 그것이 검
 묻고 `cd x && supabase db push` 처럼 앞에 다른 명령이 와도 잡는다(공식 문서, 2026-09-23) — 그래서
 2026-09-22 까지 서브에이전트가 자꾸 물었다. 그래도 이 표는 도구가 지키는 담이 아니라 **에이전트가
 읽는 규약**이고, 설정은 그 규약을 도구가 아는 데까지 옮긴 것이다.
-
-### 공식 운영에 들어가면 켜는 잠금 (ADR 0093)
-
-공식 운영에 들어가는 날 이 목록을 `.claude/settings.json` 의 `ask` 에 그대로 되돌리고 등급 3 의 잠금
-칸에 옮겨 적는다(G-50). 시험은 이 목록이 열 개를 넘고 `deny` 와 겹치지 않는지, 그리고 `ask` 에 든
-것은 전부 이 목록에서 온 것인지 잰다.
-
-- `Bash(npx supabase db push:*)`
-- `Bash(supabase db push:*)`
-- `Bash(./node_modules/.bin/supabase db push:*)`
-- `Bash(npx supabase db query --linked:*)`
-- `Bash(supabase db query --linked:*)`
-- `Bash(./node_modules/.bin/supabase db query --linked:*)`
-- `Bash(READING_LIVE=1:*)`
-- `Bash(READING_PAIR_LIVE=1:*)`
-- `Bash(READING_MATCH_INPUT_LIVE=1:*)`
-- `Bash(BACKFILL_CHART=1:*)`
-- `Bash(BACKFILL_READING_CHART=1:*)`
-- `Bash(vercel env:*)`
-- `Bash(npx vercel env:*)`
-- `Bash(vercel --prod:*)`
-- `Bash(npx vercel --prod:*)`
-- `Bash(vercel deploy:*)`
-- `Bash(npx vercel deploy:*)`
-- `Bash(gh pr merge:*)`
-- `Bash(git push origin --delete:*)`
-- `Bash(git push --delete:*)`
-- `Bash(git branch -D:*)`
-
-도구 밖에서는 운영 SQL Editor 에서 돌릴 문장을 건네기만 한다(가입 코드 INSERT · 상한 올리기).
 
 ## 끝났다는 것 — PR 이 드는 칸
 
