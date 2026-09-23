@@ -272,8 +272,9 @@ select set_eq(
     where n.nspname = 'public' and p.proname = 'my_chat_rooms' and a.mode = 't'$$,
   $$values ('match_id'), ('partner_user_id'), ('partner_nickname'), ('partner_has_photo'),
            ('opened_at'), ('closed_reason'), ('closed_at'),
-           ('last_message_at'), ('last_message_body'), ('unread_count')$$,
-  '방 목록이 내주는 칸은 이 열뿐이다');
+           ('last_message_at'), ('last_message_body'), ('unread_count'),
+           ('partner_activity')$$,
+  '방 목록이 내주는 칸은 이 열하나뿐이다 — 상대의 접속 상태는 구간 하나로 나간다(ADR 0092)');
 
 select set_eq(
   $$select a.name from pg_proc p

@@ -236,9 +236,9 @@ select * from public.forget_user('<user uuid>');
 --  people_forgotten
 ```
 
-한 문장이면 된다. `auth.users` 하나가 사라지면 `app_user` 가 따라가고 거기서 스물네
-갈래가 FK 로 따라간다 — Person 엣지·discovery·요청·Match·결과·시도·풀이 설문·서비스
-설문·알림·차단·신고. (세어 보려면 `pg_constraint` 에서 `app_user` 를 가리키는 FK 를 센다.)
+한 문장이면 된다. `auth.users` 하나가 사라지면 `app_user` 가 따라가고 거기서 서른 갈래
+남짓이 FK 로 따라간다(2026-09-23 에 31) — Person 엣지·discovery·요청·Match·결과·시도·풀이 설문·서비스
+설문·알림·차단·신고·대화방·활동 시각. (세어 보려면 `pg_constraint` 에서 `app_user` 를 가리키는 FK 를 센다.)
 그다음 **이 사람이 관리하던 Person 중** 아무도 안 보게 된 것을 지운다(ADR 0023) — 출생
 입력은 그 행에 있으므로 함께 사라진다.
 남이 놓고 간 고아는 안 건드린다 — 그것은 종료 파기의 일이다.
@@ -728,6 +728,31 @@ order by 1 desc, 3 desc;
 
 -- 지금 정책의 수 다섯 — 앱의 lib 이 같은 수를 들어야 한다
 select * from public.chat_policy();
+```
+
+### 접속 상태 — 구간만 나간다 (ADR 0092)
+
+로그인된 요청마다 `proxy.ts` 가 `touch_activity()` 를 부르고, 그 문은 **1분에 한 번**만
+`user_activity.last_active_at` 을 적는다. 상대에게 나가는 것은 구간 셋(`now` 5분 미만 · `day` 24시간
+미만 · `earlier`)뿐이고 시각은 어느 읽는 문에도 없다. 표는 앱 역할에 닫혀 있어 여기서만 읽는다.
+
+```sql
+-- 지금 정책의 수 셋(초) — 앱의 lib 이 같은 수를 들어야 한다
+select * from public.presence_policy();
+
+-- 한 사람의 마지막 활동과 구간
+select a.last_active_at, public.activity_band_of(a.user_id) as 구간
+from public.user_activity a where a.user_id = '<user uuid>';
+
+-- 프로덕션 확인 — 구간을 바꿔 본다(#121 의 끝났다고 말할 조건 2)
+update public.user_activity set last_active_at = now() - interval '25 hours' where user_id = '<B>';
+
+-- 읽는 문 둘의 반환에 활동 시각이 없다(pgTAP 35 와 같은 질의 — 0 이어야 한다)
+select count(*) from pg_proc p
+cross join lateral unnest(p.proargnames, p.proargmodes) as a(name, mode)
+where p.pronamespace = 'public'::regnamespace
+  and p.proname in ('my_chat_rooms', 'my_discovery_board')
+  and a.mode = 't' and a.name like '%active_at%';
 ```
 
 ### 완료 조건 여섯을 프로덕션에서 밟는 순서
