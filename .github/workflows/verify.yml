@@ -14,11 +14,16 @@ on:
     - cron: '0 20 * * *' # 05:00 KST
   workflow_dispatch:
 
-# 같은 가지에 새 커밋이 오면 대체된 실행을 끊는다. force-push 뒤 옛 실행이 끝까지 도는
+# PR 가지에 새 커밋이 오면 대체된 실행을 끊는다. force-push 뒤 옛 실행이 끝까지 도는
 # 낭비가 사라진다. 벽시계는 안 준다.
+#
+# **main 푸시는 끊지 않는다.** main 에 드는 커밋은 곧 배포이고, 이 실행이 그 뒤의 검증이다.
+# 2026-09-23 에 여러 세션이 연달아 머지하자 main 실행 넷이 다음 푸시에 끊겼다. 그룹을
+# 커밋마다 따로 두는 까닭은 `cancel-in-progress: false` 로도 **기다리던 실행은 새 실행에
+# 밀려 취소되기** 때문이다. 머지 전의 검증은 보호 규칙의 strict 가 든다(ADR 0082 추기).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # ---------------------------------------------------------------------------

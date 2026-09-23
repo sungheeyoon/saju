@@ -78,6 +78,8 @@
 
 `authed` 는 `db:start` 를 하고 pgTAP 과 **생성 타입 diff** 를 본 뒤 e2e 차선 하나를 돈다.
 `full-ci` 라벨은 더할 수만 있다. `main` 푸시와 손으로 켠 실행은 계획을 안 보고 전부 돈다.
+**main 푸시의 실행은 다음 푸시에 끊기지 않는다** — 커밋마다 제 그룹이다. 보호 규칙은 strict 라 PR 은
+최신 main 을 품어야 든다(`BEHIND` 면 `gh pr update-branch`, 2026-09-23 · #143).
 
 ## 커버리지 — 한 번 쟀다
 
