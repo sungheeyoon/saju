@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { worktreeStack } from '../src/lib/local-env';
 
-import { valuesOf } from './stack-slot.mjs';
+import { SLOTS, takenSlots, valuesOf } from './stack-slot.mjs';
 
 const ROOT = resolve(__dirname, '..');
 
@@ -39,7 +39,7 @@ describe('워크트리마다 제 스택 (ADR 0096)', () => {
     const clashes: string[] = [];
     slots.forEach((values, slot) => {
       for (const [key, value] of Object.entries(values)) {
-        if (key === 'SAJU_STACK_ID') continue;
+        if (!/^\d+$/.test(value)) continue; // 이름과 주소는 포트가 아니다 — 주소는 웹 포트를 따라간다
         const width = key === 'SAJU_CHECK_PORT' ? 8 : 1;
         for (let offset = 0; offset < width; offset += 1) {
           const port = Number(value) + offset;
@@ -61,6 +61,30 @@ function worktree(files: Record<string, string>): string {
 }
 
 const BASE = 'SAJU_STACK_ID=saju\nSAJU_WEB_PORT=3000\nSAJU_CHECK_PORT=3210\n';
+
+describe('누가 어느 자리를 쥐었나 — takenSlots (#154)', () => {
+  const here = 'saju_wt3';
+
+  it('다른 워크트리의 .env.local 이 쥔 자리는 쥔 것이다 — 두 세션이 같은 번호를 못 고른다', () => {
+    const taken = takenSlots({ worktrees: [{ path: '/w/a', stackId: 'saju_wt1' }, { path: '/w/b', stackId: null }], containers: [], here });
+    expect([...taken.keys()]).toEqual([1]);
+    expect(taken.get(1)).toBe('/w/a');
+  });
+
+  it('어느 워크트리도 안 쥐었는데 떠 있는 스택도 쥔 것이다 — 포트를 잡고 있다', () => {
+    const taken = takenSlots({ worktrees: [], containers: ['supabase_db_saju', 'supabase_db_saju_wt5'], here });
+    expect([...taken.keys()]).toEqual([5]);
+  });
+
+  it('제 스택은 제 자리를 막지 않는다 — 다시 불러도 같은 번호를 받는다', () => {
+    const taken = takenSlots({ worktrees: [], containers: ['supabase_db_saju_wt3'], here });
+    expect(taken.size).toBe(0);
+  });
+
+  it('자리 번호와 스택 이름이 한 목록이다', () => {
+    expect(SLOTS.map((n: number) => valuesOf(n).SAJU_STACK_ID)).toEqual(SLOTS.map((n: number) => `saju_wt${n}`));
+  });
+});
 
 describe('worktreeStack — CLI 와 같은 차례로 읽는다 (ADR 0096)', () => {
   afterEach(() => {

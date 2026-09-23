@@ -36,7 +36,7 @@
 
 | 공유 자원 | 무엇이 한 벌인가 | 나란히 돌리려면 |
 | --- | --- | --- |
-| **로컬 스택** | Supabase 컨테이너 · dev 서버 포트 · 흐름 검사 포트 | 워크트리마다 `npm run stack:slot -- N`(ADR 0096). 자리를 안 받은 두 워크트리는 **순차**다 |
+| **로컬 스택** | Supabase 컨테이너 · dev 서버 포트 · 흐름 검사 포트 | 워크트리마다 `npm run stack:slot -- --auto`(ADR 0096). 자리를 안 받은 두 워크트리는 **순차**다 |
 | **원격 DB** | 운영 DB 하나 — `npm run db:push` · `npm run db:remote` | 격리가 없다. 잠금이 한 번에 하나로 세우지만, 마이그레이션이 드는 두 이슈는 **순차**다 — 번호 순서가 곧 적용 순서다 |
 | **마이그레이션 사슬** | `supabase/migrations/` 의 시각 순서 · `src/lib/db/database.generated.ts` | 한 에이전트가 넓히기 → 앱 → 좁히기를 끝까지 쥔다(ADR 0071). 두 사슬은 **순차** |
 | **중앙 문서** | `docs/product/gaps.md` · `docs/product/prd-changelog.md` · `docs/prd.md` · `docs/agents/delegation.md` · `CONTEXT.md` | 각 PR 은 **제가 바꾼 줄만** 고친다. 나란히 돌려도 되지만 **머지는 하나씩** — strict 가 뒤 PR 을 `BEHIND` 로 세운다. changelog 는 끝에 덧붙이므로 늘 같은 자리에서 부딪혀 `merge=union` 을 걸었다(`.gitattributes`). **union 은 끝에 덧붙이는 PR 에만 믿는다** — 이미 있는 기록을 고치는 두 PR 은 상반된 문장이 조용히 둘 다 남으므로 **순차**(#155) |
@@ -223,15 +223,16 @@ squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 �
   ```bash
   git worktree add ../saju-<일> -b <가지> origin/main
   cp -Rc node_modules ../saju-<일>/        # 복제다(APFS). 심볼릭 링크는 Turbopack 이 거절한다
-  cd ../saju-<일> && npm run stack:slot -- <1~9>   # 이 기계에서 안 쓰는 번호
+  cd ../saju-<일> && npm run stack:slot -- --auto   # 빈 번호를 받는다. 쥔 번호를 달라면 거절한다
   npm run db:start
   ```
 
-  번호는 `docker ps --format '{{.Names}}' | grep supabase_db_` 로 쓰는 것을 본다. 끝나면 `npm run db:stop`.
+  받은 번호는 이슈의 「공유 자원 · 병렬」 칸에 적는다(`로컬 스택: 자리 3`). 끝나면 `npm run db:stop`.
   main 체크아웃은 자리 0(기본값)이다.
 - **원격 DB 에 닿는 명령은 `npm run db:push` · `npm run db:remote -- "<sql>"` 로 부른다.** 운영 DB 는
   하나라 격리할 수 없다 — 둘 다 기계 전체의 잠금 하나를 잡고 돌며, 다른 세션이 쥐고 있으면 누가 무엇을
-  하는지 찍고 기다린다(ADR 0096). `npx supabase db push` 를 직접 부르면 잠금을 지나친다.
+  하는지 찍고 기다린다(ADR 0096). `npx supabase db push` 를 직접 부르면 잠금을 지나친다. **남은 잠금은
+  스스로 걷지 않는다** — 쥐었던 쪽이 없으면 멈춰서 걷는 법을 말한다. 걷기 전에 `migration list` 의 remote 칸을 본다.
 - **담기 전에 `git diff` 를 본다.** 한 파일 안에 사용자의 배선이 섞여 있을 수 있고, 로컬
   타입체크는 디스크를 보지 git 을 안 본다 — 추적 안 된 모듈을 부르는 커밋이 CI 에서만 깨진다.
   커밋 뒤 `git status` 의 `??` 를 흘려보지 않는다.
