@@ -1406,6 +1406,22 @@ ADR 0093).
 **`db push` 뒤에 새 함수를 손으로 다시 적을 때는 프로덕션의 살아 있는 정의에서 뜬다** — 옮겨
 적으면 그 사이에 바뀐 것을 되돌린다(ADR 0043 의 풀이권 함수가 그랬다).
 
+### CSP 가 화면을 막을 때 — **보고만 하는 정책으로 되돌린다** (G-23 ②)
+
+CSP 는 2026-09-23 부터 강제다(`next.config.ts` 의 `contentSecurityPolicy`). 강제에서 어긴 것은 곧 깨진
+화면이다 — 스크립트 · 요청 · 이미지가 막히고, 브라우저 콘솔에 `Refused to …because it violates the
+following Content Security Policy directive` 가 선다. 받는 서버(`report-uri`)는 두지 않았으므로 **운영에서
+알 길은 사용자의 제보와 콘솔뿐이다.**
+
+1. **먼저 되돌린다.** 이 커밋 앞의 배포를 Vercel 에서 **Promote** 하거나(가장 빠르다, 코드 안 바꿈), `next.config.ts`
+   의 헤더 키 `Content-Security-Policy` 를 `Content-Security-Policy-Report-Only` 로 바꾸고 `frame-ancestors 'none'`
+   한 줄짜리 강제 헤더를 다시 세워 main 에 민다 — `frame-ancestors` 는 보고만 하는 정책에서 무시된다.
+2. **원인을 본다.** 콘솔 문장의 지시어(`connect-src` · `img-src` …)와 막힌 주소가 답이다. 새 외부 출처면
+   그 지시어에 **그 출처 하나만** 더한다 — `*` 이나 `https:` 로 넓히지 않는다. 우리 코드가 인라인 `eval`
+   이나 `data:` 스크립트를 새로 부른 것이면 코드를 고친다.
+3. **다시 강제한다.** 고친 가지에서 e2e 전부를 돌린다 — 자동 손잡이(`e2e/csp.ts`)가 어긴 자리 0 을 든다.
+   `curl -sI https://saju-snowy.vercel.app/ | grep -i content-security` 로 운영 헤더를 확인한다.
+
 ### 가입 코드 배포 — **훅을 먼저 끈다** (ADR 0042, 한 번만)
 
 `20260911090000_the_code_opens_the_signup.sql` 이 `gate_signup_by_invite` 를 지운다.

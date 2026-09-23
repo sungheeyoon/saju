@@ -609,6 +609,10 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
 - **2026-09-23** — **G-23 ① ⑫ 를 닫았다.** 운영 의존성 감사가 CI 차선 `audit`(`npm audit --omit=dev --audit-level=high`)이 됐다 —
   의존성 목록을 바꾼 PR 만 막고, 새 advisory 는 main 푸시 · 하루 한 번의 일정이 `ci-main-red` 로 알린다(ADR 0104). 2026-09-23
   값은 운영 0. 개발 의존성은 vitest 4.1.11 · js-yaml 4.3.2 로 올려 `npm audit` 전체 3 → 0
+- **2026-09-23** — **G-23 ② CSP 를 강제로 올렸다**(`next.config.ts`). 보고만 하던 정책과 `frame-ancestors` 한 줄을 강제
+  정책 하나로 합치고 `Report-Only` 를 걷었다. `script-src` · `style-src` 의 `'unsafe-inline'` 은 남겼다 — nonce 는
+  돌지만 정적 넷이 동적이 되고, SRI 는 인라인 조각에 막힌다(값은 `docs/notes/csp-nonce-2026-09-23.md`). 되돌리는 법은
+  runbook 「CSP 가 화면을 막을 때」
 - **2026-09-24** — **G-24 관리자 화면 1차판 「신고 증거 열람대」가 섰다**(ADR 0103, `20261009090000`). `/ops/reports` 는 현재 계정에
   연결된 신고를 최신부터 30건씩 내고 검토 상태 · 사유 · 대화 근거로 거른다. `/ops/reports/[reportId]` 는 신고 내용 · 두 계정의
   닉네임 · UUID · 지금 상태와 신고 당시의 불변 스냅샷을 시간순으로 세우고 고른 메시지 하나를 「신고한 메시지」로 강조한다.
