@@ -877,8 +877,9 @@ provider 쪽에 있다.
 |---|---|---|
 | 사람당 풀이권 | 5 | `reading_credit_limit()` |
 | 사람당 시간당 | 20 (실패한 시도도 든다) | `reading_rate_limit()` |
-| **전체 하루** | **100** | `reading_daily_budget()` |
-| 운영자 경고 | 상한의 80% | `reading_budget_warning()` |
+| **전체 하루** | **500**(2026-09-23 에 100 → 500, G-03) | `reading_daily_budget()` |
+| 운영자 경고 | 상한의 80% — 400 | `reading_budget_warning()` |
+| 운영 검증 계정 | 세되 따로 낸다 | `verification_account` 표 · `reading_spend_daily` 의 `verification_*` 칸 |
 | 바깥 벽 | 월 예산·자동 충전 끔 | OpenAI 대시보드 |
 
 ### 얼마나 썼나
@@ -887,11 +888,29 @@ provider 쪽에 있다.
 -- 날짜·종류별 시도와 토큰. `usage_unknown` 이 크면 토큰 합이 실제보다 작다는 뜻이다.
 select * from public.reading_spend_daily order by day desc, kind;
 
+-- 실제 사용자의 수 — 운영 검증 계정의 시도를 뺀다(상한은 둘 다 센다)
+select day, sum(attempts - verification_attempts) as 사용자_시도,
+       sum(verification_attempts) as 검증_시도
+from public.reading_spend_daily group by day order by day desc;
+
 -- 오늘 몇 번 썼나 (상한이 보는 바로 그 수)
 select public.reading_spend_today() as 오늘, public.reading_daily_budget() as 상한;
 ```
 
 **금액은 여기 없다.** 단가는 provider 가 정하므로 토큰까지만 낸다 — 원 단위는 대시보드다.
+
+### 운영 검증 계정 — 누구의 시도를 따로 세나
+
+제품을 확인하려고 누르는 계정이다. **세는 것은 그대로이고**(토큰은 누가 눌렀든 나간다) 지출 표가
+그 계정의 수를 `verification_*` 칸에 따로 낸다. 주소는 저장소에 안 적는다 — 운영 DB 에만 둔다.
+
+```sql
+insert into public.verification_account (user_id, note)
+select id, '운영 검증 — <누가 언제>' from auth.users where email = '<주소>';
+
+-- 지금 몇이 서 있나 (주소는 찍지 않는다)
+select count(*) from public.verification_account;
+```
 
 ### 막혔을 때 — **하루 봉쇄를 푸는 한 줄**
 
@@ -900,7 +919,7 @@ OpenAI 장애로 실패가 쌓여 상한이 찼는데 사람들이 아직 못 �
 
 ```sql
 create or replace function public.reading_daily_budget()
-returns integer language sql immutable set search_path = '' as $$ select 300 $$;
+returns integer language sql immutable set search_path = '' as $$ select 800 $$;
 ```
 
 **올리기 전에 셋을 본다.**
@@ -912,7 +931,7 @@ returns integer language sql immutable set search_path = '' as $$ select 300 $$;
    안쪽을 바깥보다 높이 올리면 이 문서의 첫 줄이 거짓이 된다
 3. 장애가 끝났는가. 실패가 계속 나는 중에 올리면 **새는 구멍을 넓히는 것**이다
 
-**그날 안에 되돌린다.** 되돌리는 것도 같은 한 줄이고, 값만 100 이다. 안 되돌리면 다음
+**그날 안에 되돌린다.** 되돌리는 것도 같은 한 줄이고, 값만 500 이다. 안 되돌리면 다음
 사고 때 이 벽은 없는 것과 같다.
 
 ### 운영자 알림 배선
