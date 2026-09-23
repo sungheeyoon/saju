@@ -14,6 +14,7 @@ import {
   pairReadingGuideBlock,
 } from './match-reading-guide';
 import { ABSORPTION_RULE } from './parts';
+import { SEAT_NAMES } from './display';
 import { PROMPT_PARTS } from './parts';
 import { withSummary } from './summary';
 import { termNames } from './vocabulary';
@@ -60,8 +61,11 @@ export type ReadingAbout = {
  * **이름이 없다는 것은 `null` 로 말한다.** 이 값과 견주어 알아내게 하면, 자기 어머니를
  * 「첫 번째 분」이라고 저장해 둔 사람에게서 조용히 틀린다 — 판별자를 값으로 두면
  * 부르는 쪽이 그것을 손으로 다시 짓게 된다.
+ *
+ * **말 자체는 `display.ts` 가 든다** — 화면이 그 말을 다시 찾아 이름으로 바꾸므로 두 자리가
+ * 한 값을 읽어야 한다(G-44).
  */
-export const FALLBACK_NAMES: ReadingNames = { a: '첫 번째 분', b: '두 번째 분' };
+export const FALLBACK_NAMES: ReadingNames = { a: SEAT_NAMES.first, b: SEAT_NAMES.second };
 
 /** 사용자에게 나가는 결과를 만드는 프롬프트 조립 옵션. */
 export type Length = { readonly min: number; readonly max: number };
