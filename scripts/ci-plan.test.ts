@@ -10,7 +10,7 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { ENGINE_DB_FACING, FULL_LABEL, planFor, summaryOf } from './ci-plan.mjs';
+import { DEPENDENCY_LISTS, ENGINE_DB_FACING, FULL_LABEL, planFor, summaryOf } from './ci-plan.mjs';
 import { currentStageOf } from './release-stage.mjs';
 
 /** 공개 출시 — 머지 전에 전체를 재는 단계. 아래 「CI 계획」은 이 단계의 세 단계를 잰다 */
@@ -22,7 +22,7 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
     for (const files of [['app/page.tsx'], ['src/lib/saju/strength/index.ts'], ['e2e/match.spec.ts', 'app/me/matching/x.tsx'], ['.github/workflows/verify.yml']]) {
       const plan = beta(files);
       expect(plan.tier, files[0]).toBe('fast');
-      expect(plan.lanes, files[0]).toEqual({ policy: false, fast: true, verify: false, authed: false, flow: false });
+      expect(plan.lanes, files[0]).toEqual({ policy: false, fast: true, verify: false, authed: false, flow: false, audit: false });
     }
   });
 
@@ -66,12 +66,45 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
   });
 });
 
+describe('CI 계획 — 운영 의존성 감사 (G-23 ①, ADR 0104)', () => {
+  it('의존성 목록을 바꾼 PR 만 audit 이 머지를 막는다 — 어느 단계든', () => {
+    for (const file of DEPENDENCY_LISTS) {
+      expect(beta(['app/page.tsx', file]).lanes.audit, file).toBe(true);
+      expect(pr([file]).lanes.audit, file).toBe(true);
+      expect(beta(['docs/prd.md', file]).lanes.audit, file).toBe(true);
+    }
+  });
+
+  it('의존성을 안 바꾼 PR 은 밖의 advisory 로 붉어지지 않는다 — DB · 정책 · 코드 PR 모두', () => {
+    for (const files of [['app/page.tsx'], ['docs/prd.md'], ['supabase/migrations/20260923000000_x.sql'], ['src/lib/saju/strength/index.ts'], ['scripts/package.json'], ['e2e/package-lock.json']]) {
+      expect(beta(files).lanes.audit, files[0]).toBe(false);
+      expect(pr(files).lanes.audit, files[0]).toBe(false);
+    }
+  });
+
+  it('main 푸시 · 일정 · 손으로 켠 실행 · 라벨 · 빈 diff 는 켠다 — 새 advisory 는 거기서 잡힌다', () => {
+    for (const event of ['push', 'schedule', 'workflow_dispatch']) {
+      expect(planFor({ files: [], event }).lanes.audit, event).toBe(true);
+    }
+    expect(beta(['app/page.tsx'], [FULL_LABEL]).lanes.audit).toBe(true);
+    expect(beta([]).lanes.audit).toBe(true);
+  });
+
+  it('verify.yml 이 audit 차선을 계획대로 켜고 gate 가 그것을 물린다', () => {
+    const yml = readFileSync(resolve(__dirname, '../.github/workflows/verify.yml'), 'utf8');
+    expect(yml).toContain("audit: ${{ steps.plan.outputs.audit }}");
+    expect(yml).toContain("if: needs.plan.outputs.audit == 'true'");
+    expect(yml).toContain('npm audit --omit=dev --audit-level=high');
+    expect(yml).toMatch(/gate:\n\s+needs: \[[^\]]*\baudit\b/);
+  });
+});
+
 describe('CI 계획 — 공개 출시', () => {
   it('정책만 바뀌면 policy 차선만 돈다 — 문서도 scripts 시험이 읽으므로 아무것도 안 도는 단계는 없다', () => {
     const plan = pr(['docs/adr/0082-x.md', 'CONTEXT.md', 'docs/prd.md']);
 
     expect(plan.tier).toBe('policy');
-    expect(plan.lanes).toEqual({ policy: true, fast: false, verify: false, authed: false, flow: false });
+    expect(plan.lanes).toEqual({ policy: true, fast: false, verify: false, authed: false, flow: false, audit: false });
   });
 
   it('도구 설정 · 이슈와 PR 틀 · scripts 의 시험 파일도 정책이다 (#141 은 설정 하나로 전부를 돌았다)', () => {
@@ -102,7 +135,7 @@ describe('CI 계획 — 공개 출시', () => {
     const plan = pr(['src/lib/saju/strength/index.ts', 'app/saju/fortune.tsx', 'docs/prd.md']);
 
     expect(plan.tier).toBe('engine');
-    expect(plan.lanes).toEqual({ policy: false, fast: false, verify: true, authed: false, flow: false });
+    expect(plan.lanes).toEqual({ policy: false, fast: false, verify: true, authed: false, flow: false, audit: false });
   });
 
   it('모르는 파일이 하나라도 섞이면 전부 돈다', () => {
@@ -118,7 +151,7 @@ describe('CI 계획 — 공개 출시', () => {
       const plan = pr(['src/lib/saju/strength/index.ts', stranger]);
 
       expect(plan.tier, stranger).toBe('full');
-      expect(plan.lanes, stranger).toEqual({ policy: false, fast: false, verify: true, authed: true, flow: true });
+      expect(plan.lanes, stranger).toEqual({ policy: false, fast: false, verify: true, authed: true, flow: true, audit: stranger === 'package.json' });
     }
   });
 

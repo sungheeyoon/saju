@@ -36,15 +36,31 @@ export function decide({ branch, conclusion, sha, mainHead, openIssue }) {
   return { action: 'none', reason: `${conclusion} 은 실패가 아니다` };
 }
 
-/** 댓글과 이슈 본문 — 사람이 읽고 바로 범위를 좁히게 */
-export function reportOf({ runUrl, sha, lastGreen }) {
+/** `gate` 는 다른 차선이 붉어서 붉다 — 원인이 아니므로 적지 않는다 */
+const failedLanesOf = (jobs) => jobs.filter((one) => one !== 'gate');
+
+/**
+ * 댓글과 이슈 본문 — 사람이 읽고 바로 범위를 좁히게.
+ *
+ * `audit` 만 붉으면 커밋이 아니라 밖의 advisory DB 가 바뀌었을 수 있다(G-23 ①, ADR 0104) — 범위의 커밋을
+ * 뒤지기 전에 그것부터 보게 한다.
+ *
+ * @param {{ runUrl: string, sha: string, lastGreen: string | null, failedJobs?: string[] }} run
+ */
+export function reportOf({ runUrl, sha, lastGreen, failedJobs = [] }) {
+  const lanes = failedLanesOf(failedJobs);
+  const onlyAudit = lanes.length === 1 && lanes[0] === 'audit';
   return [
     `main 의 전체 검증이 붉다 — ${runUrl}`,
     '',
     `- 커밋: \`${sha}\``,
+    ...(lanes.length > 0 ? [`- 붉은 차선: ${lanes.map((one) => `\`${one}\``).join(' · ')}`] : []),
     lastGreen
       ? `- 범위: 마지막 초록 \`${lastGreen.slice(0, 7)}\` 뒤부터 — \`git log --oneline ${lastGreen.slice(0, 7)}..${sha.slice(0, 7)}\``
       : '- 범위: 마지막 초록을 못 찾았다',
+    ...(onlyAudit
+      ? ['', '**`audit` 만 붉다** — 범위의 커밋이 아니라 새로 뜬 advisory 일 수 있다. `docs/ops/runbook.md` 「운영 의존성 취약점」대로 한다.']
+      : []),
     '',
     '**새 작업보다 먼저 고친다**(`docs/agents/delegation.md`). 최신 main 이 초록이 되면 이 이슈는 저절로 닫힌다.',
   ].join('\n');
@@ -64,7 +80,10 @@ function main() {
 
   if (decided.action === 'open' || decided.action === 'comment') {
     const lastGreen = gh('run', 'list', '--repo', repo, '--workflow', run.workflow_id.toString(), '--branch', 'main', '--status', 'success', '--limit', '1', '--json', 'headSha', '--jq', '.[0].headSha // empty') || null;
-    const body = reportOf({ runUrl: run.html_url, sha: run.head_sha, lastGreen });
+    const failedJobs = gh('api', '--paginate', `repos/${repo}/actions/runs/${runId}/jobs`, '--jq', '.jobs[] | select(.conclusion == "failure" or .conclusion == "timed_out") | .name')
+      .split('\n')
+      .filter(Boolean);
+    const body = reportOf({ runUrl: run.html_url, sha: run.head_sha, lastGreen, failedJobs });
     if (decided.action === 'open') {
       gh('issue', 'create', '--repo', repo, '--label', LABEL, '--title', `main 이 붉다 — ${run.head_sha.slice(0, 7)}`, '--body', body);
     } else {

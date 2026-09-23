@@ -42,6 +42,7 @@ jobs:
       verify: ${{ steps.plan.outputs.verify }}
       authed: ${{ steps.plan.outputs.authed }}
       flow: ${{ steps.plan.outputs.flow }}
+      audit: ${{ steps.plan.outputs.audit }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -256,6 +257,26 @@ jobs:
         run: npm run db:stop
 
   # ---------------------------------------------------------------------------
+  # 운영 의존성 감사 — high 이상이 하나라도 있으면 붉다 (G-23 ①, ADR 0104)
+  # ---------------------------------------------------------------------------
+  #
+  # **이 차선만 밖의 advisory DB 가 결과를 바꾼다.** 그래서 PR 에서는 의존성 목록을 바꾼 PR 에만 켜고
+  # (`ci-plan.mjs`), 새로 뜬 advisory 는 main 푸시와 하루 한 번의 일정이 잡아 `ci-main-red` 이슈로 든다 —
+  # 아무것도 안 바꾼 PR 이 어느 날 붉어져 남의 빨간불을 제 것으로 읽는 일이 없게. 잠금 파일만 읽으므로
+  # `npm ci` 가 없다. 개발 의존성은 운영에 안 실려 여기서 안 막는다(G-23 ⑫).
+  audit:
+    needs: plan
+    if: needs.plan.outputs.audit == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm audit --omit=dev --audit-level=high
+
+  # ---------------------------------------------------------------------------
   # 필수 검사는 **이것 하나** — 건너뛴 차선은 통과, 실패·취소는 실패
   # ---------------------------------------------------------------------------
   #
@@ -263,7 +284,7 @@ jobs:
   # job 을 필수로 걸면 머지가 막힌다. 그래서 `gate` 는 항상 돌고, 위 job 전부를 물린다.
   # main 보호 규칙의 필수 검사는 `gate` 하나다 — 그래서 `gh pr merge --auto` 가 기다린다.
   gate:
-    needs: [plan, policy, fast, verify, authed, flow]
+    needs: [plan, policy, fast, verify, authed, flow, audit]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2

@@ -606,6 +606,9 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   사람 · 미검토 쌍 · 스냅샷 메시지 인덱스 셋을 더했다. 익명 e2e 도 CSP 자동 손잡이(`e2e/anon.ts`)를 지나 증거가 「시험 전부」가
   됐다. 사람 저장 문구 둘과 신고 하루 한도 문구 · 「가입을 먼저 끝내 주세요.」는 승인됐다. 운영 반영: remote 칸 `20261008090000` ·
   인덱스 셋 있음 · `report_user` 캐시 `42501`
+- **2026-09-23** — **G-23 ① ⑫ 를 닫았다.** 운영 의존성 감사가 CI 차선 `audit`(`npm audit --omit=dev --audit-level=high`)이 됐다 —
+  의존성 목록을 바꾼 PR 만 막고, 새 advisory 는 main 푸시 · 하루 한 번의 일정이 `ci-main-red` 로 알린다(ADR 0104). 2026-09-23
+  값은 운영 0. 개발 의존성은 vitest 4.1.11 · js-yaml 4.3.2 로 올려 `npm audit` 전체 3 → 0
 - **2026-09-23** — **G-23 ② CSP 를 강제로 올렸다**(`next.config.ts`). 보고만 하던 정책과 `frame-ancestors` 한 줄을 강제
   정책 하나로 합치고 `Report-Only` 를 걷었다. `script-src` · `style-src` 의 `'unsafe-inline'` 은 남겼다 — nonce 는
   돌지만 정적 넷이 동적이 되고, SRI 는 인라인 조각에 막힌다(값은 `docs/notes/csp-nonce-2026-09-23.md`). 되돌리는 법은

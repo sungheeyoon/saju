@@ -34,4 +34,17 @@ describe('ci-main-red — main 의 결과로 이슈 하나를 든다 (ADR 0097)'
     expect(text).toContain(`git log --oneline ${OLD.slice(0, 7)}..${MAIN.slice(0, 7)}`);
     expect(text).toContain('새 작업보다 먼저');
   });
+
+  it('붉은 차선을 적고, audit 만 붉으면 밖의 advisory 부터 보게 한다 (G-23 ①)', () => {
+    const onlyAudit = reportOf({ runUrl: 'https://x/run/1', sha: MAIN, lastGreen: OLD, failedJobs: ['audit', 'gate'] });
+    expect(onlyAudit).toContain('붉은 차선: `audit`');
+    expect(onlyAudit).not.toContain('`gate`');
+    expect(onlyAudit).toContain('새로 뜬 advisory');
+
+    const withOthers = reportOf({ runUrl: 'https://x/run/1', sha: MAIN, lastGreen: OLD, failedJobs: ['audit', 'verify', 'gate'] });
+    expect(withOthers).toContain('`audit` · `verify`');
+    expect(withOthers).not.toContain('새로 뜬 advisory');
+
+    expect(reportOf({ runUrl: 'https://x/run/1', sha: MAIN, lastGreen: OLD })).not.toContain('붉은 차선');
+  });
 });
