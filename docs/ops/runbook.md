@@ -1283,7 +1283,7 @@ macOS 키체인에 둔 것, 문서에 적지 않는다). **로컬 스택의 `--l
 
 | lint | 고치기 전 | 고친 뒤 | 무엇을 했나 |
 | --- | --- | --- | --- |
-| WARN `function_search_path_mutable`(0011) | 15 | 0 | 상수 함수 열다섯에 `search_path = ''` — `20261008120000` |
+| WARN `function_search_path_mutable`(0011) | 15 | 0 | 상수 함수 열다섯에 `search_path = ''` — `20261009120000` |
 | WARN `anon_security_definer_function_executable`(0028) | 3 | 2 | `beta_is_over()` 를 닫았다 — 화면이 안 부르고 definer 안에서만 불린다 |
 | WARN `authenticated_security_definer_function_executable`(0029) | 68 | 65 | `claimed_by` · `may_edit_person_input`(남의 claim · 편집권을 묻는 신탁) · `beta_is_over` 를 닫았다 |
 | WARN `auth_leaked_password_protection` | 1 | 1 | **남긴다 — Pro 플랜부터다**(아래) |
