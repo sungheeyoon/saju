@@ -250,13 +250,13 @@ export function currentFortuneOf(saju: Saju, viewedAt: Date): CurrentFortune {
   const viewedOn = koreaDateOf(viewedAt);
   const { resolvedTime, hourKnown } = saju.meta;
 
-  const birthDate: CivilDate = {
+  const solarBirthDate: CivilDate = {
     year: resolvedTime.year,
     month: resolvedTime.month,
     day: resolvedTime.day,
   };
 
-  const age = ageOnDate(birthDate, viewedOn);
+  const age = ageOnDate(solarBirthDate, viewedOn);
 
   // 사주년과 절기 구간을 한 번에 얻는다. 월주 도출이 쓰는 그 함수라 세운의 해와
   // 월운의 달이 같은 곳에서 갈린다 — 입춘·절입을 여기서 다시 찾으면 그 둘이
@@ -266,8 +266,8 @@ export function currentFortuneOf(saju: Saju, viewedAt: Date): CurrentFortune {
   const daeun = daeunAtAge(saju.daeun, age);
   const first = saju.daeun.entries[0];
 
-  const saeun = saeunEntryOf(saju, sajuYear, birthDate);
-  const wolun = wolunEntryOf(saju, sajuYear, monthTerm, birthDate);
+  const saeun = saeunEntryOf(saju, sajuYear, solarBirthDate);
+  const wolun = wolunEntryOf(saju, sajuYear, monthTerm, solarBirthDate);
 
   const relations = [
     ...(daeun?.relations ?? []),
@@ -331,7 +331,7 @@ const inDaeun =
  * **다른 함수로 뽑지 않는 것**이 요점이다. 12운성 계통(`yinReverse`)까지 표에서
  * 그대로 물려받으므로 새로 뽑은 칸이 표의 칸과 다른 계통으로 나오지 않는다.
  */
-function saeunEntryOf(saju: Saju, sajuYear: number, birthDate: CivilDate): SaeunEntry {
+function saeunEntryOf(saju: Saju, sajuYear: number, solarBirthDate: CivilDate): SaeunEntry {
   const found = saju.saeun.entries.find((entry) => entry.year === sajuYear);
   if (found) return found;
 
@@ -339,7 +339,7 @@ function saeunEntryOf(saju: Saju, sajuYear: number, birthDate: CivilDate): Saeun
     {
       pillars: saju.pillars,
       birthSajuYear: saju.pillars.meta.sajuYear,
-      birthDate,
+      solarBirthDate,
       // 표를 만든 그 대운을 그대로 넘긴다. 여기서 다시 뽑으면 대운수 계통이
       // 갈릴 수 있고, 그러면 표 밖의 한 해만 다른 대운과 견주게 된다.
       daeun: saju.daeun,
@@ -353,7 +353,7 @@ function wolunEntryOf(
   saju: Saju,
   sajuYear: number,
   monthTerm: SolarTerm,
-  birthDate: CivilDate,
+  solarBirthDate: CivilDate,
 ): WolunEntry {
   const monthOrder = BRANCH_INFO[monthTerm.branch].monthOrder;
 
@@ -361,7 +361,7 @@ function wolunEntryOf(
     saju.wolun.year === sajuYear
       ? saju.wolun
       : computeWolun(
-          { pillars: saju.pillars, year: sajuYear, daeun: saju.daeun, birthDate },
+          { pillars: saju.pillars, year: sajuYear, daeun: saju.daeun, solarBirthDate },
           { stages: { yinReverse: saju.wolun.yinReverse } },
         );
 

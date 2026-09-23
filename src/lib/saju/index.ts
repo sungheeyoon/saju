@@ -197,7 +197,7 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     0,
   );
 
-  const birthDate = {
+  const solarBirthDate = {
     year: resolvedTime.year,
     month: resolvedTime.month,
     day: resolvedTime.day,
@@ -222,7 +222,7 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     {
       pillars,
       birthSajuYear: pillars.meta.sajuYear,
-      birthDate,
+      solarBirthDate,
       daeun,
     },
     { stages: stageOptions, ...saeunOptions },
@@ -236,7 +236,7 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
     sinsal: analyzeSinsal(pillars, sinsalOptions),
     saeun,
     wolun: computeWolun(
-      { pillars, year: wolunOptions?.year ?? saeun.entries[0].year, daeun, birthDate },
+      { pillars, year: wolunOptions?.year ?? saeun.entries[0].year, daeun, solarBirthDate },
       { stages: stageOptions, ...wolunOptions },
     ),
     daeun,

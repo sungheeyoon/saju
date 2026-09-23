@@ -47,7 +47,7 @@ import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-c
  * 글은 여기서 안 만든다. 이 누름이 여는 것은 두 명식이 나란히 선 화면이고, 풀이권을
  * 쓰는 누름은 거기 있다(ADR 0028).
  */
-export type Choosable = { personId: string; label: string; isSelf: boolean };
+export type Choosable = { personId: string; label: string; isSelfPerson: boolean };
 
 /** 한 칸이 들고 있는 것 — 고른 사람이거나 적어 넣은 입력이다 */
 type Slot = { from: 'saved'; personId: string } | { from: 'typed'; query: Query };
@@ -72,7 +72,7 @@ function slotFrom(params: URLSearchParams, side: CompatSide, people: Choosable[]
  * 적는 칸으로 선다.
  */
 const firstSlot = (people: Choosable[]): Slot => {
-  const self = people.find((one) => one.isSelf) ?? people[0];
+  const self = people.find((one) => one.isSelfPerson) ?? people[0];
   return self === undefined ? { from: 'typed', query: DEFAULT_QUERY } : { from: 'saved', personId: self.personId };
 };
 
@@ -318,7 +318,7 @@ function SlotCard({
                 .map((one) => (
                   <option key={one.personId} value={one.personId}>
                     {one.label}
-                    {one.isSelf ? ' (나)' : ''}
+                    {one.isSelfPerson ? ' (나)' : ''}
                   </option>
                 ))}
             </select>

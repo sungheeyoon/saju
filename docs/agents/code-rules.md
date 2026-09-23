@@ -27,7 +27,7 @@
 **식별자는 영어, 뜻은 용어집.** `CONTEXT.md` 의 _Avoid_ 는 화면 문구만이 아니라 식별자에도
 적용된다 — DB 를 읽는 함수는 **문**이지 `query` · `fetch` · `repository` 가 아니고, 이름은
 **무엇을 내주는가**로 짓는다(`inbox` · `current` · `candidates`). 사람은 `selfPerson` 이지
-`isSelf` 가 아니다. 지금 새어 있는 자리 셋은 아래 「알려진 어긋남」에 있다.
+`isSelf` 가 아니다. 지금 새어 있는 자리는 아래 「알려진 어긋남」에 있다.
 
 ## 실패를 말하는 법
 
@@ -140,7 +140,7 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 
 고치지 않고 적어 둔다 — 고칠 때는 이 표와 시험의 지문에서 함께 지운다.
 
-- **코드가 용어집과 다른 말을 쓰는 자리 여섯**은 `CONTEXT.md` §10 「어긋난 이름」이 든다
-  (`isSelf` · `revision` 계열 · `birthDate` · `metaphor` · `DiscoveryProfile` · `discovery_snapshot`). 그 표의 이름이 코드에 아직 있는지는 시험이 잰다(ADR 0088).
+- **코드가 용어집과 다른 말을 쓰는 자리 셋**은 `CONTEXT.md` §10 「어긋난 이름」이 든다
+  (`revision` 계열 · `DiscoveryProfile` · `discovery_snapshot`, 그리고 「그대로 둔다」로 정한 `metaphor` · 탈퇴 대기). 그 표의 이름이 코드에 아직 있는지는 시험이 잰다(ADR 0088).
 - `if (error) return null` 셋, `!` 열여섯, `as unknown as` 여덟 — 위 표. 목록은 시험에 있다.
 - `app/me/survey/form.tsx` 의 `react-hooks/exhaustive-deps` 표시에 까닭이 없다.
