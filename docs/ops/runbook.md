@@ -530,13 +530,13 @@ order by submitted_at desc;
 
 ---
 
-## 계정 중지와 해제
+## 이용 정지와 해제
 
 `status` 하나가 모든 문을 막는다 — 읽기까지 막는다(`is_active_account()`). 새 관문을
 두지 않았으므로 이 값만 옮기면 discovery·요청·수락·AI 생성이 한꺼번에 닫힌다.
 
 ```sql
--- 중지
+-- 이용 정지
 update public.app_user
 set status = 'suspended'
 where id = (select id from auth.users where lower(email) = 'someone@example.com');
@@ -547,7 +547,7 @@ set status = 'active', deletion_requested_at = null
 where id = (select id from auth.users where lower(email) = 'someone@example.com');
 ```
 
-> `deletion_requested` 상태를 해제할 때도 같은 문을 쓴다. 검사식이 상태와 시각을
+> 탈퇴 대기(`deletion_requested`)를 해제할 때도 같은 문을 쓴다. 검사식이 상태와 시각을
 > 함께 묶고 있으므로 `deletion_requested_at` 을 같이 비워야 한다.
 
 ```sql
@@ -600,10 +600,11 @@ order by count(*) desc;
 
 ---
 
-## 계정 삭제 요청
+## 탈퇴 신청의 처리
 
-사용자가 `/me` 에서 요청하면 상태가 `deletion_requested` 로 옮겨지고, 그 순간
-후보 노출이 꺼지고 살아 있던 요청이 정리된다. **실제 삭제는 사람이 한다.**
+사용자가 `/me/settings` 의 「탈퇴」에서 신청하면 상태가 **탈퇴 대기**(`deletion_requested`)로 옮겨지고,
+그 순간 후보 노출이 꺼지고 살아 있던 요청이 정리된다. **실제 처분은 사람이 한다** — 처분이 끝난 계정이
+**탈퇴**다(PRD §5.3). 이름은 2026-09-23 의 표를 따른다.
 
 ```sql
 -- 처리할 요청
@@ -747,7 +748,7 @@ DB 층만 있으므로 아래는 **앱이 선 뒤**의 순서다. 확인은 SQL 
    메시지와 앞뒤가 베껴졌는지 본다. 이때 방은 그대로 열려 있어야 한다(신고는 닫지 않는다).
 4. **차단.** A 가 B 를 차단한다. 방의 `closed_reason` 이 `block` 이고, **둘 다** 이전 대화를 보며
    둘 다 입력이 안 된다. 그리고 매칭 목록에서는 내려간다(§6.5).
-5. **중지.** 다른 쌍(A · C)을 세우고 C 를 중지한다(「계정 중지와 해제」의 한 줄). 방의 `closed_reason`
+5. **이용 정지.** 다른 쌍(A · C)을 세우고 C 를 정지한다(「이용 정지와 해제」의 한 줄). 방의 `closed_reason`
    이 `suspension`, `closed_by_user_id` 가 C. A 는 방과 대화를 보고 C 는 아무것도 못 본다.
    ```sql
    update public.app_user set status = 'suspended' where id = '<C>';
