@@ -790,7 +790,6 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 
 | 코드의 이름 | 용어집의 말 | 어디 | 왜 남았나 |
 | --- | --- | --- | --- |
-| `add_person_revision` | 저장된 입력을 고친다 | DB 함수(옛 이름의 겉) | 두 벌인 동안만 남는다 — 2026-09-23 에 `edit_person_input` 을 세우고 앱이 옮겼다. 좁히는 마이그레이션이 지운다 |
 | 사유값 `unreadable-revision` | 저장된 입력을 못 읽었다 | `fail_reading_job` 의 `p_failure_code` 로 적히는 값 · `app/me/reading/pipeline.ts` | 그대로 둔다 — DB 에 이미 적힌 값이라 바꾸면 옛 행과 새 행이 갈린다. 화면에 안 나간다(2026-09-23 결정) |
 | `metaphor` · `metaphorLength` | 한 줄 요약 | `reading` · `reading_share` 칸 · RPC 다섯 · 구조화 출력 필드 · `READING_POLICY` | 그대로 둔다 — 구조화 출력의 키는 프롬프트의 일부라 바꾸면 프롬프트를 바꾸는 일이고(실호출이 들고, 배포 순간 돌던 생성은 옛 키로 돌아온다), 칸 이름은 RPC 의 반환 열 · 인자라 바꾸면 떠 있는 옛 앱이 깨진다. 비유를 접은 뒤에도(ADR 0056) 이름만 남았다(2026-09-23 결정) |
 | `my_discovery_snapshot` · `refresh_discovery_snapshot` · `refresh_discovery_snapshot_for` · `snapshot_id` | 후보 목록 | 함수 · `discovery_candidate_slot` 칸 | 그대로 둔다 — 표 둘은 2026-09-23 에 `discovery_candidate` · `discovery_candidate_slot` 으로 옮겼다. RPC 둘은 앱이 불러 이름을 바꾸면 넓히고 좁히는 세 걸음이고 뜻은 안 갈린다. 칸은 표를 따라 읽힌다(2026-09-23 결정) |

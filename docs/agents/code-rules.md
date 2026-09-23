@@ -140,7 +140,7 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 
 고치지 않고 적어 둔다 — 고칠 때는 이 표와 시험의 지문에서 함께 지운다.
 
-- **코드가 용어집과 다른 말을 쓰는 자리 하나**은 `CONTEXT.md` §10 「어긋난 이름」이 든다
-  (옛 이름의 겉 `add_person_revision` — 좁히기 전까지, 그리고 「그대로 둔다」로 정한 `metaphor` · 후보 목록의 RPC 이름 · 사유값 `unreadable-revision` · 탈퇴 대기). 그 표의 이름이 코드에 아직 있는지는 시험이 잰다(ADR 0088).
+- **코드가 용어집과 다른 말을 쓰는 자리**는 `CONTEXT.md` §10 「어긋난 이름」이 든다 — 고칠 것은 2026-09-23 에 다 고쳤고(G-43),
+  「그대로 둔다」로 정한 넷(`metaphor` · 후보 목록의 RPC 이름 · 사유값 `unreadable-revision` · 탈퇴 대기)이 까닭과 함께 남았다. 그 표의 이름이 코드에 아직 있는지는 시험이 잰다(ADR 0088).
 - `if (error) return null` 셋, `!` 열여섯, `as unknown as` 여덟 — 위 표. 목록은 시험에 있다.
 - `app/me/survey/form.tsx` 의 `react-hooks/exhaustive-deps` 표시에 까닭이 없다.

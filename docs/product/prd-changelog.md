@@ -469,3 +469,11 @@ pgTAP **25파일** · ADR **0001~0055** · 마이그레이션 **54개**. 브라�
   못 읽으면 값으로 말한다(`SkippableRead`) — 홈과 매칭은 미리 거르지 않고 RPC 에 맡기고(전과 같다), 설정은 두 칸을
   비운다(전에는 기본값으로 메워 끈 사람에게 「켜져 있다」고 말할 수 있었다). 화면 안의 옛 자리 둘이 빠져 열셋이
   열하나가 됐다. 값의 목록 `PREFER_GENDERS` 는 lib 로 내려갔다. 저장 액션의 「처음인가」 확인은 쓰기의 앞자리라 그대로 둔다
+
+- **2026-09-23** — **G-43 닫힘 — 코드가 용어집과 다른 이름 여섯을 고치거나 까닭과 함께 남겼다.** 좁히기
+  `20261002090000_the_old_edit_name_is_gone.sql` 이 옛 겉 `add_person_revision` 을 지웠다 — 앱(#137)과 스크립트 · pgTAP
+  에서 부르는 자리 0, DB 안에서 부르는 함수 0 을 재고 썼다(운영 호출 수는 `track_functions = none` 이라 못 쟀다).
+  여섯의 끝: `isSelf` → `isSelfPerson` · `birthDate` → `solarBirthDate`(#130), revision 계열 → `edit_person_input` ·
+  `may_edit_person_input` · `input/edit.ts` · `edit-input.tsx`(#135 넓히기 · #137 앱 · 이 좁히기), 후보 목록 표 →
+  `discovery_candidate`(#136), `DiscoveryProfile` 타입과 읽는 문(#139). **그대로 둔 것**은 §10 이 까닭과 든다 —
+  `metaphor`, 후보 목록의 RPC 셋 · `snapshot_id`, 사유값 `unreadable-revision`

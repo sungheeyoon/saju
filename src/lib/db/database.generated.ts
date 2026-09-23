@@ -1600,22 +1600,6 @@ export type Database = {
     }
     Functions: {
       activity_band_of: { Args: { p_user_id: string }; Returns: string }
-      add_person_revision: {
-        Args: {
-          p_birth_time: string
-          p_calendar: string
-          p_chart: Json
-          p_chart_engine_version: string
-          p_city: string
-          p_gender: string
-          p_late_night_rule: string
-          p_original_date: string
-          p_person_id: string
-          p_solar_date: string
-          p_time_basis: string
-        }
-        Returns: number
-      }
       adopt_reading_job: {
         Args: { p_response_id: string; p_run_id: string }
         Returns: boolean
