@@ -115,7 +115,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: ['signed-in:desktop', 'signed-in:mobile', 'match:desktop', 'match:mobile', notice]
+        lane: ['signed-in:desktop', 'signed-in:mobile', 'match:desktop', 'match:mobile', 'chat:desktop', 'chat:mobile', notice]
 
     steps:
       - uses: actions/checkout@v4

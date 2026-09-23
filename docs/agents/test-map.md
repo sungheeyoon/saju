@@ -11,8 +11,8 @@
 | --- | --- | --- | --- | --- |
 | **단위**(vitest) | `npm test` | 순수 함수 — 엔진 · 도메인 lib · `app/**/*.ts` 의 판단 · `scripts/` 의 검사 도구 자신 | 없음 | 103 파일 · 1,978 · 12초 |
 | **pgTAP** | `npm run test:db` | 표 · 함수 · 정책이 **역할을 갈아입고** 실제로 막는가, 함수와 표의 모양(ADR 0084) | Docker + `npm run db:start` | 32 파일 · plan 805 |
-| **흐름**(`scripts/check-*.mjs`) | `npm run test:flow` | 가입 → 저장 → 요청 · 수락 → 풀이 · 공유를 **실제 스택에 대고**, 모델만 빼고 | Docker + `db:start`. 제 안에서 Next 서버를 띄운다 | 7 벌 · 단언 약 370 |
-| **e2e**(Playwright) | `npm run test:e2e` / `test:e2e:authed` | 화면 — 비로그인 · 로그인 · 둘이 있어야 성립하는 흐름 · 가입 관문 | 익명은 없음(CI 의 껍데기 접속값으로 돈다). 로그인 뒤는 Docker + `db:start` | 6 파일 · 익명 28 × 2 기기, 로그인 53 × 2 기기, 관문 7 |
+| **흐름**(`scripts/check-*.mjs`) | `npm run test:flow` | 가입 → 저장 → 요청 · 수락 → 풀이 · 공유를 **실제 스택에 대고**, 모델만 빼고 | Docker + `db:start`. 제 안에서 Next 서버를 띄운다 | 8 벌 · 단언 약 400 |
+| **e2e**(Playwright) | `npm run test:e2e` / `test:e2e:authed` | 화면 — 비로그인 · 로그인 · 둘이 있어야 성립하는 흐름 · 가입 관문 | 익명은 없음(CI 의 껍데기 접속값으로 돈다). 로그인 뒤는 Docker + `db:start` | 7 파일 · 익명 28 × 2 기기, 로그인 58 × 2 기기, 관문 7 |
 
 **vitest 가 닿는 자리는 `.ts` 뿐이다** — `vitest.config.mts` 의 include 가 `src/**` · `app/**` ·
 `scripts/**` 의 `*.test.ts` 다. `.tsx` 는 밖이고 jsdom 을 안 들였다(`<dialog>` 때문, ADR 0080).
@@ -24,7 +24,7 @@
 | 층 | 자리 | 단위 | pgTAP | 흐름 | e2e |
 | --- | --- | --- | --- | --- | --- |
 | 엔진 | `src/lib/saju/` | **46 파일** — 골든 31건 · 외부 대조(억부 37 · 종격 41) · 모집단 3000 · 절기 · 음력 왕복 | | | 명식 화면(`saju.spec.ts` 20) |
-| 도메인 lib | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey}` | **29 파일** — 프롬프트 조립 · 검사 · 점수 · 동의 · 관문 | | | |
+| 도메인 lib | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat}` | **29 파일** — 프롬프트 조립 · 검사 · 점수 · 동의 · 관문 | | | |
 | 문 · 액션 | `app/**/*.ts` | **24 파일** — 어댑터 · 파이프라인 · 오류 번역 · 주소 코덱 · 장부 둘(`*.boundary.test.ts`) | 문이 부르는 함수 전부 | **여기가 본거지** — 문·액션·라우트를 주소로 두드린다 | 로그인 뒤 화면이 지나간다 |
 | 화면 | `app/**/*.tsx` | 없음 | | | **여기만** — 88 건 |
 | 관문 | `proxy.ts` · `src/lib/consent` | `gate.test.ts` · `notice.test.ts` | `20_notice` | | `notice.spec.ts` 7 |
@@ -42,7 +42,7 @@
 | `src/lib/saju/**` · `app/saju/**` | `npm test` → `npm run typecheck` · `npm run lint` | 로그인 뒤 화면과 흐름 검사는 같은 엔진으로 기대값을 짓는다. **예외** — `version.ts` · `pillars/index.ts` 는 DB 검사식이 보므로 전부 |
 | `src/lib/*` (엔진 밖) | `npm test`, 프롬프트면 아래 「프롬프트」 | 순수 함수. 문이 부르는 모양이 바뀌면 `typecheck` 가 잡는다 |
 | `app/**/*.ts` — 문 · 액션 · 라우트 | `npm test` → `npm run test:flow` | 문의 실패 셋과 액션의 값은 단위가, 실제 스택에서 문이 여는가는 흐름이 |
-| `app/**/*.tsx` — 화면 | 비로그인 화면 `npm run test:e2e`, 로그인 뒤 `npm run test:e2e:signed-in` · 요청·수락이면 `test:e2e:match` | vitest 가 안 닿는다. 문구만 바뀐 라운드는 안 돌린다 |
+| `app/**/*.tsx` — 화면 | 비로그인 화면 `npm run test:e2e`, 로그인 뒤 `npm run test:e2e:signed-in` · 요청·수락이면 `test:e2e:match` · 채팅이면 `test:e2e:chat` | vitest 가 안 닿는다. 문구만 바뀐 라운드는 안 돌린다 |
 | `proxy.ts` · `src/lib/consent` | `npm test` → `npm run test:e2e:notice` | 관문은 링크를 눌러야 밟힌다 — `page.goto` 로는 못 잰다(ADR 0041) |
 | `supabase/migrations/**` | `npm run db:reset` → `npm run test:db` → `npm run db:types` → `npm run typecheck` → `npm run test:flow` | 생성 타입을 다시 안 지으면 앱은 없는 열을 있다고 믿은 채 컴파일된다(ADR 0078). CI 의 `authed` 가 diff 를 본다 |
 | 프롬프트(`src/lib/reading/prompt*` · `parts.ts` · `vocabulary.ts`) | `npm test`, 본문이 바뀌면 `READING_LIVE=1 npx vitest run app/me/reading/call.live.test.ts` | 조립 스냅샷은 단위가 든다. **본문이 한 글자라도 바뀌면 실호출 한 번**(ADR 0073). 경로 이름이 본문에 샌 적이 있다 |
@@ -74,7 +74,7 @@
 | --- | --- | --- |
 | 문서 | `gate` | 16초 |
 | 엔진 · `app/saju/**` | `verify`(단위 · 타입 · 린트 · 빌드 + 익명 e2e) | 3분 55초 |
-| 그 밖 전부 · 모르는 파일 | `verify` + `authed` 다섯(`signed-in` · `match` × 기기 둘, `notice`) + `flow` | 병렬, 가장 긴 차선 4분 53초 |
+| 그 밖 전부 · 모르는 파일 | `verify` + `authed` 일곱(`signed-in` · `match` · `chat` × 기기 둘, `notice`) + `flow` | 병렬, 가장 긴 차선 4분 53초 |
 
 `authed` 는 `db:start` 를 하고 pgTAP 과 **생성 타입 diff** 를 본 뒤 e2e 차선 하나를 돈다.
 `full-ci` 라벨은 더할 수만 있다. `main` 푸시와 손으로 켠 실행은 계획을 안 보고 전부 돈다.
