@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
 
-import { loadLocalEnv } from '@/src/lib/local-env';
+import { loadLocalEnv, worktreeStack } from '@/src/lib/local-env';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 
 import { storedChartOf, type StoredInput } from './stored';
@@ -89,7 +89,7 @@ const rowsOf = (raw: unknown): Row[] =>
 const localRows = (statement: string): Row[] =>
   rowsOf(JSON.parse(execFileSync(
     'docker',
-    ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-d', 'postgres', '-At',
+    ['exec', '-i', worktreeStack().dbContainer, 'psql', '-U', 'postgres', '-d', 'postgres', '-At',
      '-c', `select coalesce(json_agg(src), '[]'::json) from (${statement}) src`],
     { encoding: 'utf8' },
   ).trim()));

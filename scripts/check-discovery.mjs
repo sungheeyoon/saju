@@ -19,10 +19,11 @@ import { execFileSync } from 'node:child_process';
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
 import { createChecks, sql } from './checks.mjs';
+import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
-const PORT = Number(process.env.CHECK_PORT ?? 3211);
+const PORT = Number(process.env.CHECK_PORT ?? worktreeStack().checkPort + 1);
 
 const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
 
