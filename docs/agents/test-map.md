@@ -38,7 +38,7 @@
 
 | 고친 것 | 돌리는 것 | 왜 그것만 |
 | --- | --- | --- |
-| `docs/**` · `*.md` | 없음 | CI 도 `gate` 만 돈다 |
+| `docs/**` · `*.md` · `.claude/**` · `scripts/*.test.ts` | `npx vitest run scripts/` | `code-rules.test.ts` 가 대장 · PRD · 위임 규약 · ADR · 설정을 읽는다. CI 는 `policy` 차선이다 |
 | `src/lib/saju/**` · `app/saju/**` | `npm test` → `npm run typecheck` · `npm run lint` | 로그인 뒤 화면과 흐름 검사는 같은 엔진으로 기대값을 짓는다. **예외** — `version.ts` · `pillars/index.ts` 는 DB 검사식이 보므로 전부 |
 | `src/lib/*` (엔진 밖) | `npm test`, 프롬프트면 아래 「프롬프트」 | 순수 함수. 문이 부르는 모양이 바뀌면 `typecheck` 가 잡는다 |
 | `app/**/*.ts` — 문 · 액션 · 라우트 | `npm test` → `npm run test:flow` | 문의 실패 셋과 액션의 값은 단위가, 실제 스택에서 문이 여는가는 흐름이 |
@@ -75,7 +75,7 @@
 
 | 바뀐 것이 이 안에만 있으면 | 도는 차선 | 2026-09-22 의 시간 |
 | --- | --- | --- |
-| 문서 | `gate` | 16초 |
+| 정책(문서 · `.claude/**` · `scripts/*.test.ts`) | `policy`(scripts 시험 · 타입 · 린트) | 로컬 12초 — CI 값은 #145 머지 뒤 첫 PR 이 찍는다 |
 | 엔진 · `app/saju/**` | `verify`(단위 · 타입 · 린트 · 빌드 + 익명 e2e) | 3분 55초 |
 | 그 밖 전부 · 모르는 파일 | `verify` + `authed` 일곱(`signed-in` · `match` · `chat` × 기기 둘, `notice`) + `flow` | 병렬, 가장 긴 차선 4분 53초 |
 

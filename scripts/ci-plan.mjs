@@ -13,7 +13,7 @@
  *
  * | 변경이 이 안에만 있으면 | 도는 것 |
  * |---|---|
- * | 문서(`docs/**` · `*.md`) | `gate` 만 |
+ * | 정책(`docs/**` · `*.md` · `.claude/**` · `scripts/*.test.ts`) | `policy` (scripts 시험 · 타입 · 린트, 1분 안) |
  * | 엔진(`src/lib/saju/**`) · 엔진을 그리는 칸(`app/saju/**`) | `verify` (단위·타입·린트·빌드 + 익명 e2e) |
  * | 그 밖 전부 · **모르는 파일** | 전부 |
  *
@@ -27,6 +27,14 @@
  *
  * 홈(`app/page.tsx`)과 출생 입력 폼(`app/birth-form.tsx`)은 **익명 화면이 아니다** — 홈은
  * 로그인 e2e 세 건이 회원으로 열고, 폼은 온보딩·수정·사람 관리가 같이 쓴다. 그래서 목록에 없다.
+ *
+ * ## 문서도 시험이 읽는다 — 정책 단계 (2026-09-23, #145)
+ *
+ * 문서만 바뀌면 `gate` 만 돌던 동안 구멍이 났다. `scripts/code-rules.test.ts` 는 간극 대장 · PRD ·
+ * 위임 규약 · ADR · `.claude/settings.json` 을 **읽고** 견주므로, 문서 PR 이 그 시험을 깨도 그 PR 에서는
+ * 아무것도 안 돌고 다음에 오는 남의 PR 에서 터졌다. 반대로 `.claude/settings.json` 과 문서만 바꾼 PR
+ * (#141)은 모르는 파일이라 전부(약 5분)를 돌았다. 그 둘을 한 단계로 묶었다 — `scripts/` 의 시험 · 타입 ·
+ * 린트다. `scripts/*.test.ts` 만 바뀐 PR 도 여기다: 시험 파일은 저 자신의 결과만 바꾼다.
  *
  * ## 원칙
  *
@@ -43,26 +51,28 @@ export const FULL_LABEL = 'full-ci';
 /** 이 이름들로만 판단한다 — 워크플로가 `github.event_name` 을 그대로 넘긴다 */
 const PLANNED_EVENTS = new Set(['pull_request']);
 
-const DOCS = [/^docs\//, /\.md$/];
+/** 정책 — 사람과 에이전트가 읽는 규약, 그리고 그것을 견주는 시험. 코드가 아니라 `scripts/` 시험이 잰다 */
+const POLICY = [/^docs\//, /\.md$/, /^\.claude\//, /^scripts\/[^/]+\.test\.ts$/];
 const ENGINE = [/^src\/lib\/saju\//, /^app\/saju\//];
 /** 엔진 안에서 DB 의 검사식이 보는 파일 — 여기가 바뀌면 로그인 뒤 자리도 재야 한다 */
 export const ENGINE_DB_FACING = ['src/lib/saju/version.ts', 'src/lib/saju/pillars/index.ts'];
 
 const matches = (rules, file) => rules.some((rule) => rule.test(file));
 
-const isDocs = (file) => matches(DOCS, file);
+const isPolicy = (file) => matches(POLICY, file);
 const isEngine = (file) => matches(ENGINE, file) && !ENGINE_DB_FACING.includes(file);
 
 /** 단계마다 켜는 차선 — `verify.yml` 의 job 이름과 같다 */
 const LANES = {
-  docs: { verify: false, authed: false, flow: false },
-  engine: { verify: true, authed: false, flow: false },
-  full: { verify: true, authed: true, flow: true },
+  // `verify` 가 도는 단계는 `npm test` 가 scripts 시험을 이미 돈다 — policy 는 그것이 안 도는 단계에만 켠다
+  policy: { policy: true, verify: false, authed: false, flow: false },
+  engine: { policy: false, verify: true, authed: false, flow: false },
+  full: { policy: false, verify: true, authed: true, flow: true },
 };
 
 /**
  * @param {{ files: readonly string[], labels?: readonly string[], event?: string }} input
- * @returns {{ tier: 'docs' | 'engine' | 'full', reason: string, lanes: typeof LANES.full }}
+ * @returns {{ tier: 'policy' | 'engine' | 'full', reason: string, lanes: typeof LANES.full }}
  */
 export function planFor({ files, labels = [], event = 'pull_request' }) {
   const decided = decide({ files, labels, event });
@@ -76,10 +86,10 @@ function decide({ files, labels, event }) {
   const changed = files.map((one) => one.trim()).filter((one) => one !== '');
   if (changed.length === 0) return { tier: 'full', reason: '바뀐 파일 목록을 못 받았다' };
 
-  const unknown = changed.filter((one) => !isDocs(one) && !isEngine(one));
-  if (unknown.length > 0) return { tier: 'full', reason: `\`${unknown[0]}\` 은 문서도 엔진도 아니다` };
+  const unknown = changed.filter((one) => !isPolicy(one) && !isEngine(one));
+  if (unknown.length > 0) return { tier: 'full', reason: `\`${unknown[0]}\` 은 정책도 엔진도 아니다` };
 
-  if (changed.every(isDocs)) return { tier: 'docs', reason: '문서만 바뀌었다' };
+  if (changed.every(isPolicy)) return { tier: 'policy', reason: '정책(문서 · 도구 설정 · scripts 시험)만 바뀌었다' };
   return { tier: 'engine', reason: '엔진과 그것을 그리는 칸만 바뀌었다' };
 }
 
