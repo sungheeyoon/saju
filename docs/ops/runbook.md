@@ -989,7 +989,19 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 실패**하고 있었고(`extensions.http_get` 은 없다 — `pg_net` 은 `net` 에 산다), 알림 배선을
 쏴 보다가 같은 착각을 발견해서야 드러났다(ADR 0039).
 
-**배포한 날과, 잡을 건드린 날에 한 번씩 본다.**
+**이제 감시기가 본다**(2026-09-23, G-42). 크론 `cron-watch`(10분마다)가 `watch_cron()` 으로 지난 한 시간을
+보고, 셋 중 하나면 `notify_ops` 로 한 줄을 보낸다 — 정상 실행은 아무것도 안 적는다. 같은 종류는 하루 한 번이다.
+
+| 종류 | 뜻 | 할 일 |
+| --- | --- | --- |
+| `cron-failed:<잡>` | 그 잡의 SQL 이 실패했다. 알림에 마지막 오류가 붙는다 | 아래 질의로 `return_message` 를 보고 함수를 고친다 |
+| `net-request-failed` | 크론이 밖으로 부른 요청이 2xx 가 아니었다 — 대부분 복구기다. 잡은 초록이어도 이것이 온다 | 403 이면 `CRON_SECRET` 과 Vault 의 `reading_recovery_secret` 이 갈렸다, 503 이면 Vercel 쪽 열쇠 · DB 문 |
+| `cron-inactive:<잡>` | 잡이 꺼져 있다 | 일부러 끈 것이 아니면 `select cron.alter_job(<jobid>, active := true)` |
+
+재시도 소진은 잡이 스스로 알린다 — `account-disposal-overdue`(G-53) · `reading-budget-reached`.
+
+**감시기가 못 보는 것 둘** — 감시기 자신이 계속 실패하는 것, `pg_cron` 이 통째로 멈춘 것. 그래서
+**배포한 날과, 잡을 건드린 날에 한 번씩은 여전히 본다.**
 
 ```sql
 select j.jobname, d.status, count(*) as 횟수,
@@ -1001,7 +1013,8 @@ where d.start_time > now() - interval '24 hours'
 group by 1, 2 order by 1, 2;
 ```
 
-지금 서 있는 잡은 둘이다 — `reading-recovery`(1분)와 `match-request-expiry`(매시 7분).
+지금 서 있는 잡은 넷이다 — `reading-recovery`(1분) · `match-request-expiry`(매시 7분) ·
+`account-disposal`(매시 23분, G-53) · `cron-watch`(10분, G-42).
 **`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**
 
 ---

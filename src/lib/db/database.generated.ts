@@ -2647,6 +2647,7 @@ export type Database = {
         }
       }
       wake_reading_recovery: { Args: never; Returns: undefined }
+      watch_cron: { Args: never; Returns: number }
       write_person_input: {
         Args: {
           p_actor: string
