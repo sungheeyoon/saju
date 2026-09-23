@@ -14,6 +14,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
+import { worktreeStack } from '../src/lib/local-env.ts';
 
 /**
  * 재는 자리 하나를 연다.
@@ -53,5 +54,5 @@ export function createChecks(name) {
 
 /** 운영자만 읽는 표를 SQL 로 본다 — 앱이 아니라 그게 그 표의 유일한 읽는 길이다 */
 export const sql = (statement) =>
-  execFileSync('docker', ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq', '-c', statement],
+  execFileSync('docker', ['exec', '-i', worktreeStack().dbContainer, 'psql', '-U', 'postgres', '-tAq', '-c', statement],
     { encoding: 'utf8' }).trim();

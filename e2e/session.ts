@@ -5,6 +5,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { test as base, type Page } from '@playwright/test';
 
 import { NOTICE_VERSION } from '@/src/lib/consent';
+import { worktreeStack } from '@/src/lib/local-env';
 import { chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY, type Query } from '@/src/lib/input/query';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
@@ -46,7 +47,7 @@ type Local = { api: string; anonKey: string };
 export const sql = (statement: string) =>
   execFileSync(
     'docker',
-    ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-tAq', '-c', statement],
+    ['exec', '-i', worktreeStack().dbContainer, 'psql', '-U', 'postgres', '-tAq', '-c', statement],
     { encoding: 'utf8' },
   ).trim();
 

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { loadLocalEnv } from '@/src/lib/local-env';
+import { loadLocalEnv, worktreeStack } from '@/src/lib/local-env';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 
 import { storedChartOf, type StoredInput } from './stored';
@@ -68,7 +68,7 @@ const rowsOf = (raw: unknown): Row[] =>
 const localSql = (statement: string): string =>
   execFileSync(
     'docker',
-    ['exec', '-i', 'supabase_db_saju', 'psql', '-U', 'postgres', '-d', 'postgres', '-At',
+    ['exec', '-i', worktreeStack().dbContainer, 'psql', '-U', 'postgres', '-d', 'postgres', '-At',
      '-c', statement],
     { encoding: 'utf8' },
   ).trim();

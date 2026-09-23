@@ -29,7 +29,7 @@
 | 화면 | `app/**/*.tsx` | 없음 | | | **여기만** — 88 건 |
 | 관문 | `proxy.ts` · `src/lib/consent` | `gate.test.ts` · `notice.test.ts` | `20_notice` | | `notice.spec.ts` 9 |
 | DB | `supabase/migrations/` | | **32 파일** · 모양 잠금 넷(`33_function_shape`) | 위 | |
-| 검사 도구 | `scripts/` · `eslint.config.mjs` | **4 파일** — `ci-plan` · `run-checks` · `layers` · `code-rules` | | | |
+| 검사 도구 | `scripts/` · `eslint.config.mjs` | **5 파일** — `ci-plan` · `run-checks` · `layers` · `code-rules` · `worktree-stack` | | | |
 
 ## 무엇을 고쳤으면 무엇을 돌리나
 
@@ -48,6 +48,9 @@
 | 프롬프트(`src/lib/reading/prompt*` · `parts.ts` · `vocabulary.ts`) | `npm test`, 본문이 바뀌면 `READING_LIVE=1 npx vitest run app/me/reading/call.live.test.ts` | 조립 스냅샷은 단위가 든다. **본문이 한 글자라도 바뀌면 실호출 한 번**(ADR 0073). 경로 이름이 본문에 샌 적이 있다 |
 | `scripts/ci-plan.mjs` · `verify.yml` | `npm test` | `ci-plan.test.ts` 가 세 단계를 든다. YAML 에 `paths` 를 적지 않는다 |
 | `eslint.config.mjs` · `scripts/*.test.ts` | `npm run lint` → `npm test`, 그리고 **일부러 어긴 파일**로 걸리는지 | 「규칙을 넣었다」와 「규칙이 건다」는 다른 문장이다(ADR 0085·0086) |
+
+**워크트리에서는 제 자리의 포트다** — `npm run stack:slot -- N` 이 스택 이름 · Supabase 포트 · dev 서버(`3000+10N`) ·
+흐름 검사(`3210+10N` 부터 여덟)를 함께 옮긴다(ADR 0096). 아래는 main 체크아웃(자리 0)의 이야기다.
 
 **먼저 죽여야 하는 것** — 3000 의 dev 서버. 로그인 e2e 와 흐름 검사는 제 서버를 띄우고,
 남의 서버를 재사용하면 옛 코드를 잰다. `lsof -i :3000` 로 본다.

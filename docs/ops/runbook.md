@@ -18,7 +18,7 @@ Supabase 대시보드의 SQL Editor 에서 **원격 프로젝트**에 대고 실
 로컬에서 연습하려면 `npm run db:start` 뒤에:
 
 ```bash
-docker exec -i supabase_db_saju psql -U postgres -c "<문장>"
+docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리면 supabase_db_saju_wtN
 ```
 
 > **`supabase config push` 를 쓰지 않는다.** 원격의 구글 설정을 지운다.
@@ -48,7 +48,7 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"
   값이 「있는」 것으로 세어져 `keyed-client.ts` 의 「열쇠가 없습니다」 검사를 지나가고 401 로
   떨어진다. 주석 처리해 두면 오류가 이름을 대 준다. 실호출에 드는 것은 `OPENAI_API_KEY` 한 줄이고
   손으로 붙인다.
-- **CLI 로 임의 SQL 이 된다** — `npx supabase db query --linked "<sql>"`. Management API 로 붙고
+- **CLI 로 임의 SQL 이 된다** — `npm run db:remote -- "<sql>"`(= `npx supabase db query --linked`, 기계 전체에서 한 번에 하나, ADR 0096). Management API 로 붙고
   `postgres` 로 돌므로 비밀번호도 `psql` 도 필요 없다. 다만 `postgres` 라 「비운영자 당사자에게
   무엇이 보이나」는 못 잰다 — 역할별 조회는 대시보드 SQL Editor(마지막 문장의 결과만 준다 — 역할을
   바꿔 가며 잰 줄은 임시 표에 모아 끝에서 한 번에 낸다)나 `SUPABASE_SECRET_KEY` 가 필요하고, 익명
@@ -1018,7 +1018,7 @@ group by 1;
 
 ```bash
 npx supabase migration list   # remote 칸이 빈 줄이 밀린 것이다 — 먼저 본다
-npx supabase db push          # 밀린 것 전부를 원격에 적용한다
+npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 잠금 하나를 잡고 돈다(ADR 0096)
 ```
 
 ### 규약 넷 — 앱과 DB 는 따로 간다 (ADR 0090)
@@ -1077,7 +1077,7 @@ ADR 0093).
 **2. 마이그레이션을 올린다**
 
 ```bash
-npx supabase db push
+npm run db:push
 ```
 
 **3. 앱을 배포한다** — `main` 에 머지하면 자동으로 나간다.
