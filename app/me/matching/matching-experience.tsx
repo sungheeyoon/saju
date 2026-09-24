@@ -81,23 +81,26 @@ const CHOICE_HOLD_MS = 700;
 const CARD_EXIT_MS = 550;
 const SWIPE_AT = 85;
 const EMPTY_CARDS: readonly DeckCard[] = [];
+/** 사진 · 단추의 그림자 — 새 색을 짓지 않고 글자색을 옅게 쓴다 */
+const SOFT_SHADOW = 'color-mix(in srgb, var(--foreground) 45%, transparent)';
+/** 이보다 긴 소개는 세 줄로 접어 두고 「더 보기」로 편다 — 소개가 카드를 늘어뜨리지 않게 */
+const LETTER_FOLD_AT = 90;
 
 type View = 'today' | 'passed';
 
 /*
-  **오늘의 인연 — 한 사람을 한 장의 편지처럼**(5차 부드러움, 시안 warm 매칭 3 · 4차에서 옮겼다).
+  **오늘의 인연 — 한 사람을 한 장의 편지처럼**(부드러움, ADR 0109).
 
-  넓은 화면은 두 열이다. **왼쪽 = 그 사람**(사진 위의 이름과 점수 → 누를 것 → 판정 → 편지), **오른쪽 = 「내 궤도로
-  다가오는 인연」 지도**와 그 사람이 채워 주는 기운. 시안 4차는 이름과 점수를 오른쪽 위에 두었는데, 사람이 두 열로
-  갈라져 읽혔다 — 관계 지도처럼 사람은 한 열에 모았다. 두 판은 같은 크림 종이이고 윗선과 아랫선이 맞는다.
+  넓은 화면은 두 열이다. **왼쪽 = 그 사람**: 4:5 세로 사진(이름은 사진 아래 끝) → 큰 점수와 판정 → 누를 것 → 이유 한 줄 →
+  접힌 편지. **오른쪽 = 「내 궤도로 다가오는 인연」**: 지도와, 그 사람이 채워 주는 기운을 글로 말하는 띠. 글을 짧게 두어
+  사진의 비율이 카드를 정하고, 두 열의 윗선 · 아랫선이 맞는다.
 
-  폰은 한 열이다 — 사진(이름 · 점수) → 누를 것 → 해돋이 띠 → 판정 → 기운 → 편지. 사진 · 점수 · 「궁합 요청」이 첫
-  화면 안에 든다.
+  폰은 한 열이다 — 6:5 사진(이름 · 점수 숫자) → 누를 것 → 해돋이 띠 → 판정 · 이유 → 기운 → 편지. 사진 · 점수 ·
+  「궁합 요청」이 첫 화면 안에 든다. 「참고 점수」라는 고지는 카드마다 되풀이하지 않고 목록 머리 한 줄이 든다(PRD §6.1).
 
   동작은 옛 덱 그대로다: 넘기면 서버 보관함에 적고(`passCandidate`), 요청은 확인 창을 지나야 나가며(`requestMatch`),
   되돌리기와 지나친 인연의 「다시 만나보기」는 같은 복원 경로를 쓴다(`restorePassed`). 미리보기(`preview`)는 셋 다
-  서버를 부르지 않는다. 옛 화면의 상세 창(「왜 나와 잘 맞을까요?」)은 걷었다 — 그 창이 들던 점수 · 판정 · 이유 ·
-  보완 전부 · 소개가 이제 카드 위에 펼쳐져 있다.
+  서버를 부르지 않는다.
 */
 export function MatchingExperience({
   cards,
@@ -311,7 +314,14 @@ export function MatchingExperience({
         </div>
       </header>
 
-      {notice !== null && view === 'today' && <p className={`${TYPE_META} -mt-2 max-w-prose`}>{notice}</p>}
+      {/* 목록 머리 — 참고 점수라는 사실과(PRD §6.1) 목록이 비슷한 까닭. 카드마다 되풀이하지 않는다 */}
+      {view === 'today' && profile !== undefined && (
+        <div className="-mt-2 flex max-w-3xl flex-col gap-1 sm:-mt-4">
+          <p className="text-[12px] leading-5 text-secondary">{teaser}</p>
+          {notice !== null && <p className={TYPE_META}>{notice}</p>}
+        </div>
+      )}
+      {view === 'today' && profile === undefined && notice !== null && <p className={`${TYPE_META} -mt-2 max-w-prose`}>{notice}</p>}
 
       {view === 'passed' ? (
         <PassedConnections
@@ -347,12 +357,15 @@ export function MatchingExperience({
           feedback={feedback}
         />
       ) : (
-        <section aria-label="인연 카드" className="grid gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,6fr)] lg:items-stretch lg:gap-6">
-          {/* 왼쪽(넓은 화면) — 그 사람. 폰에서는 이 한 장이 화면 전부다 */}
+        <section aria-label="인연 카드" className="grid gap-5 lg:grid-cols-[minmax(0,25rem)_minmax(0,1fr)] lg:items-stretch lg:gap-8 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+          {/*
+            왼쪽(넓은 화면) — 그 사람 한 장. 폰에서는 이 한 장이 화면 전부이고, 너무 넓어지지 않게 가운데 선다.
+            읽는 차례는 사진 위 이름 → 큰 점수와 판정 → 누를 것 → 이유 → 소개다. 글은 짧게 두어 사진의 비율이 카드를 정한다.
+          */}
           <article
             aria-label={`${profile.nickname} 님`}
             aria-busy={!!exit || working}
-            className={`${elementScope(elementOf(profile))} flex min-w-0 flex-col gap-4 rounded-[2rem] bg-cream p-3 sm:p-4 lg:p-5`}
+            className={`${elementScope(elementOf(profile))} mx-auto flex w-full min-w-0 max-w-[34rem] flex-col gap-4 lg:mx-0 lg:max-w-none`}
           >
             <div className="relative px-1.5 pt-1.5">
               {/* 뒤에 다음 사람들의 색이 한 장씩 비친다 — 「아직 더 있다」 */}
@@ -360,11 +373,12 @@ export function MatchingExperience({
                 <span
                   key={card.candidateUserId}
                   aria-hidden="true"
-                  className={`${elementScope(elementOf(card))} absolute inset-x-4 bottom-2 top-3 rounded-[1.75rem] bg-[var(--tile)] ring-1 ring-border ${
+                  className={`${elementScope(elementOf(card))} absolute inset-x-4 bottom-2 top-3 rounded-[2rem] bg-[var(--tile)] ring-1 ring-border ${
                     at === 0 ? 'translate-x-1.5 rotate-[3.5deg]' : '-translate-x-1 -rotate-[2.5deg]'
                   }`}
                 />
               ))}
+              {/* 사진 — 폰은 6:5(점수 · 요청이 첫 화면에 들도록), 넓은 화면은 4:5 세로 사진 */}
               <div
                 key={profile.candidateUserId}
                 onPointerDown={pointerDown}
@@ -378,8 +392,9 @@ export function MatchingExperience({
                     : `translateX(${offset}px) rotate(${offset / 24}deg)`,
                   transition: dragging ? 'none' : `transform ${CARD_EXIT_MS}ms cubic-bezier(.2,.7,.3,1), opacity ${CARD_EXIT_MS}ms`,
                   opacity: leaving ? 0 : 1,
+                  boxShadow: `0 24px 48px -24px ${SOFT_SHADOW}`,
                 }}
-                className={`${styles.arrive} relative aspect-[5/4] cursor-grab touch-pan-y select-none overflow-hidden rounded-[1.75rem] bg-[var(--tile)] shadow-[0_24px_48px_-24px_color-mix(in_srgb,var(--foreground)_55%,transparent)] active:cursor-grabbing sm:aspect-[3/2]`}
+                className={`${styles.arrive} relative aspect-[6/5] cursor-grab touch-pan-y select-none overflow-hidden rounded-[2rem] bg-[var(--tile)] active:cursor-grabbing lg:aspect-[4/5]`}
               >
                 <CandidatePhoto card={profile} initialClass="text-[7rem]" />
 
@@ -392,22 +407,34 @@ export function MatchingExperience({
 
                 <Stamp offset={offset} exit={exit} />
 
-                {/* 이름과 점수는 사진 아래 끝에 — 사람과 숫자가 한 눈에 든다 */}
-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-5 pb-4 pt-16 text-white sm:px-6 sm:pb-5">
+                {/* 사진 아래 끝 — 이름. 폰은 점수 숫자도 여기 선다(넓은 화면은 사진 아래 큰 숫자) */}
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-black/65 via-black/25 to-transparent px-5 pb-4 pt-14 text-white lg:px-6 lg:pb-5">
                   <div className="min-w-0">
-                    <h2 className="font-rounded truncate text-[2.25rem] leading-tight sm:text-[2.75rem]">{profile.nickname}</h2>
+                    <h2 className="font-rounded truncate text-[2.25rem] leading-tight lg:text-[2.625rem]">{profile.nickname}</h2>
                     {profile.activity != null && <p className="text-[13px] font-semibold text-white/90">{activityText(profile.activity)}</p>}
                   </div>
-                  <p className="flex shrink-0 items-baseline">
+                  <p className="flex shrink-0 items-baseline lg:hidden">
                     <span className="sr-only">나와의 예측 궁합 점수 </span>
-                    <strong className="text-[3rem] font-bold leading-none tracking-[-0.04em] tabular-nums sm:text-[4rem]">{profile.previewScore}</strong>
-                    <span className="ml-1 text-[15px] font-semibold text-white/90"> / 100</span>
+                    <strong className="text-[3rem] font-bold leading-none tracking-[-0.04em] tabular-nums">{profile.previewScore}</strong>
+                    <span className="ml-1 text-[14px] font-semibold text-white/90"> / 100</span>
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* 누를 것 — 사진 바로 아래. 한 화면에 채움 단추는 「궁합 요청」 하나 */}
+            {/* 넓은 화면 — 사진 아래 큰 점수와 판정 한 줄. 이름(사진 위) 다음 위계다 */}
+            <div className="hidden flex-col gap-1 px-1 lg:flex">
+              <p className="text-[13px] font-semibold text-secondary">나와의 예측 궁합 점수</p>
+              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="flex items-baseline">
+                  <strong className="text-[4rem] font-bold leading-none tracking-[-0.04em] text-foreground tabular-nums">{profile.previewScore}</strong>
+                  <span className="ml-1 text-[15px] font-semibold text-secondary"> / 100</span>
+                </span>
+                <span className="font-rounded text-[1.375rem] leading-snug text-[var(--ink)]">{profile.verdict}</span>
+              </p>
+            </div>
+
+            {/* 누를 것 — 한 화면에 채움 단추는 「궁합 요청」 하나 */}
             <div className="flex flex-col gap-2 px-1">
               <div className="flex items-center gap-3">
                 <button
@@ -424,7 +451,8 @@ export function MatchingExperience({
                   aria-label="다음 인연으로 지나가기"
                   disabled={!!exit || working}
                   onClick={pass}
-                  className="grid size-14 shrink-0 place-items-center rounded-full bg-surface text-foreground shadow-[0_6px_16px_-10px_color-mix(in_srgb,var(--foreground)_60%,transparent)] ring-1 ring-border hover:ring-border-strong active:scale-95 disabled:opacity-55"
+                  className="grid size-14 shrink-0 place-items-center rounded-full bg-surface text-foreground ring-1 ring-border hover:ring-border-strong active:scale-95 disabled:opacity-55"
+                  style={{ boxShadow: `0 6px 16px -10px ${SOFT_SHADOW}` }}
                 >
                   <Icon name="close" className="size-6" />
                 </button>
@@ -439,13 +467,13 @@ export function MatchingExperience({
                   궁합 요청
                 </button>
               </div>
-              <p className="text-center text-[12px] font-medium text-secondary">← 다음 인연 · 상세 궁합이 궁금하다면 하트 →</p>
+              <p className="hidden text-center text-[12px] font-medium text-secondary sm:block">← 다음 인연 · 상세 궁합이 궁금하다면 하트 →</p>
               {feedback}
             </div>
 
             <div key={profile.candidateUserId} className={`flex flex-col gap-4 transition-opacity duration-500 ${leaving ? 'opacity-40' : ''}`}>
               {/* 폰 — 해돋이 띠. 넘김 · 요청 · 되돌리기의 움직임이 폰에서도 보인다 */}
-              <div className="relative overflow-hidden rounded-[1.75rem] bg-surface px-2 pt-3 lg:hidden">
+              <div className="relative overflow-hidden rounded-[1.75rem] bg-cream px-2 pt-3 lg:hidden">
                 <p className="absolute right-4 top-3 text-[12px] font-semibold tabular-nums text-secondary">
                   <span className="sr-only">나와 맞는 오늘의 인연 </span>
                   {counter}
@@ -462,36 +490,28 @@ export function MatchingExperience({
                 />
               </div>
 
-              {/* 판정 — 참고 점수라는 사실은 숫자 바로 곁에 둔다 */}
-              <div className="flex flex-col gap-2 px-1">
-                <p className="text-[13px] font-semibold text-secondary">나와의 예측 궁합 점수</p>
-                <p className="font-rounded text-[1.375rem] leading-snug text-[var(--ink)]">{profile.verdict}</p>
-                <p className="max-w-prose text-[15px] leading-6 text-foreground">{profile.reason}</p>
-                <p className="max-w-prose text-[12px] leading-5 text-secondary">{teaser}</p>
+              {/* 판정(폰) · 이유 — 점수의 말과 그 까닭 한 줄 */}
+              <div className="flex flex-col gap-1.5 px-1">
+                <p className="font-rounded text-[1.375rem] leading-snug text-[var(--ink)] lg:hidden">{profile.verdict}</p>
+                <p className="max-w-prose text-[14px] leading-6 text-foreground">{profile.reason}</p>
               </div>
 
-              {/* 폰 — 채워 주는 기운은 글 칸으로. 넓은 화면은 지도 아래가 든다 */}
-              <div className="flex flex-col gap-3 rounded-[1.75rem] bg-[var(--tile)] p-4 lg:hidden">
+              {/* 폰 — 채워 주는 기운. 넓은 화면은 지도 아래가 든다 */}
+              <div className="flex flex-col gap-2 rounded-[1.5rem] bg-surface p-4 ring-1 ring-border lg:hidden">
                 <SupplyBody card={profile} explorationNote={explorationNote} />
               </div>
 
-              {/* 소개 — 편지지. 비었으면 비었다고 말한다 */}
-              <figure className="flex flex-col gap-3 rounded-[1.5rem] bg-surface p-5 sm:p-6">
-                <Icon name="quote" className="size-5 text-cream-ink" />
-                {profile.intro !== null ? (
-                  <blockquote className="font-rounded text-[1.1875rem] leading-[1.75] text-foreground">{profile.intro}</blockquote>
-                ) : (
-                  <p className="text-[15px] font-medium text-secondary">자기소개 없음</p>
-                )}
-                <figcaption className="font-rounded self-end text-[1.0625rem] text-cream-ink">— {profile.nickname}</figcaption>
-              </figure>
+              <Letter key={profile.candidateUserId} nickname={profile.nickname} intro={profile.intro} />
             </div>
           </article>
 
-          {/* 오른쪽(넓은 화면) — 나와 그 사람: 지도 한 장, 그 아래 채워 주는 기운 */}
+          {/*
+            오른쪽(넓은 화면) — 「내 궤도로 다가오는 인연」. 그림이 주인공이고 색은 채워지는 한 자리에만 선다.
+            아래 띠가 같은 뜻을 글로 말한다(누가 · 어느 빈 자리를).
+          */}
           <section
             aria-labelledby="matching-map"
-            className={`${elementScope(elementOf(profile))} hidden min-w-0 flex-col overflow-hidden rounded-[2rem] bg-cream lg:flex`}
+            className="hidden min-w-0 flex-col overflow-hidden rounded-[2rem] bg-cream lg:flex"
           >
             <div className="flex items-baseline justify-between gap-3 px-6 pt-6">
               <h2 id="matching-map" className="font-rounded text-[1.375rem] leading-8 text-foreground">
@@ -501,7 +521,7 @@ export function MatchingExperience({
                 나와 맞는 오늘의 인연 <span className="tabular-nums text-foreground">{counter}</span>
               </p>
             </div>
-            <div className="flex flex-1 items-center px-12 py-6">
+            <div className="flex flex-1 items-center px-8 py-4">
               <ApproachMap
                 shape="round"
                 me={me}
@@ -510,11 +530,11 @@ export function MatchingExperience({
                 faceOf={faceOf}
                 pull={pull}
                 dragging={dragging}
-                className="mx-auto max-w-[26rem]"
+                className="mx-auto max-w-[37rem]"
               />
             </div>
             <Legend className="px-6 pb-4" />
-            <div key={profile.candidateUserId} className="flex flex-col gap-3 bg-[var(--tile)] p-5">
+            <div key={profile.candidateUserId} className="flex flex-col gap-2 border-t border-border bg-surface/70 px-6 py-5">
               <SupplyBody card={profile} explorationNote={explorationNote} />
             </div>
           </section>
@@ -572,24 +592,24 @@ function todayLabel(): string {
   return new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long', timeZone: 'Asia/Seoul' });
 }
 
-/** 채워 주는 기운 — 상징 + 이름 + 문장. 색 혼자 말하지 않는다 */
+/** 채워 주는 기운 — 상징 + 이름 + 문장. 색 혼자 말하지 않고, 색은 상징의 동그라미에만 둔다 */
 function SupplyBody({ card, explorationNote }: { card: DeckCard; explorationNote: string | null }) {
   return (
     <>
-      <p className="text-[13px] font-bold text-[var(--ink)]">이 사람이 채워 주는 기운</p>
+      <p className="text-[13px] font-bold text-foreground">이 사람이 채워 주는 기운</p>
       {card.highlights.length > 0 ? (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2.5">
           {card.highlights.map((highlight) => (
             <Supply key={highlight.element} element={highlight.element} text={highlight.text} />
           ))}
         </ul>
       ) : (
-        <p className="text-[15px] leading-6 text-foreground">{card.reason}</p>
+        <p className="text-[14px] leading-6 text-foreground">{card.reason}</p>
       )}
       <p className="text-[13px] leading-5 text-secondary">{card.balanceLabel}</p>
       {card.exploration && explorationNote !== null && (
-        <p className="flex gap-1.5 border-t border-[color-mix(in_srgb,var(--ink)_15%,transparent)] pt-3 text-[12px] leading-5 text-secondary">
-          <Icon name="spark" className="mt-0.5 size-3.5 shrink-0 text-[var(--ink)]" />
+        <p className="flex gap-1.5 border-t border-border pt-3 text-[12px] leading-5 text-secondary">
+          <Icon name="spark" className="mt-0.5 size-3.5 shrink-0 text-foreground" />
           {explorationNote}
         </p>
       )}
@@ -600,15 +620,46 @@ function SupplyBody({ card, explorationNote }: { card: DeckCard; explorationNote
 function Supply({ element, text }: { element: string; text: string }) {
   const known = ELEMENTS.find((one) => one === element) ?? null;
   return (
-    <li className={`${elementScope(known)} flex items-center gap-3 rounded-[1.25rem] bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] p-3`}>
-      <span className="grid size-12 shrink-0 place-items-center rounded-full bg-[var(--tile)] ring-1 ring-[color-mix(in_srgb,var(--ink)_20%,transparent)]">
-        <ElementSymbol element={known} className="size-7" />
+    <li className={`${elementScope(known)} flex items-center gap-3`}>
+      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] ring-1 ring-[color-mix(in_srgb,var(--ink)_20%,transparent)]">
+        <ElementSymbol element={known} className="size-6" />
       </span>
       <span className="flex min-w-0 flex-col">
-        {known !== null && <span className="font-rounded text-[1.25rem] leading-tight text-[var(--ink)]">{ELEMENT_PICTURE_KO[known]}</span>}
+        {known !== null && <span className="font-rounded text-[1.125rem] leading-tight text-[var(--ink)]">{ELEMENT_PICTURE_KO[known]}</span>}
         <span className="text-[14px] leading-5 text-foreground">{text}</span>
       </span>
     </li>
+  );
+}
+
+/**
+ * 소개 — 편지지 한 장. 길면 세 줄로 접어 두고 펴는 단추를 준다(소개가 카드를 늘어뜨리지 않게). 비었으면 비었다고 말한다.
+ * 접혀 있어도 글은 그대로 문서에 있다 — 보조기기는 끝까지 읽는다.
+ */
+function Letter({ nickname, intro }: { nickname: string; intro: string | null }) {
+  const [open, setOpen] = useState(false);
+  const long = intro !== null && intro.length > LETTER_FOLD_AT;
+  return (
+    <figure className="flex flex-col gap-2 rounded-[1.5rem] bg-surface px-5 py-4 ring-1 ring-border">
+      {intro !== null ? (
+        <blockquote className={`font-rounded text-[1rem] leading-7 text-foreground ${long && !open ? 'line-clamp-3' : ''}`}>
+          <Icon name="quote" className="mr-1.5 inline size-4 -translate-y-0.5 text-cream-ink" />
+          {intro}
+        </blockquote>
+      ) : (
+        <p className="text-[14px] font-medium text-secondary">자기소개 없음</p>
+      )}
+      <div className="flex items-center justify-between gap-3">
+        {long ? (
+          <button type="button" aria-expanded={open} onClick={() => setOpen((was) => !was)} className={BUTTON_TERTIARY}>
+            {open ? '접기' : '더 보기'}
+          </button>
+        ) : (
+          <span />
+        )}
+        <figcaption className="font-rounded text-[0.9375rem] text-cream-ink">— {nickname}</figcaption>
+      </div>
+    </figure>
   );
 }
 

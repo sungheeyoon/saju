@@ -16,7 +16,11 @@ import styles from './orbit.module.css';
   지금 보는 한 사람만 안으로 다가와 그 자리에 휘어진 빛 한 줄을 댄다 — 닿은 빈 원은 아래에서부터 그 파스텔로 차오른다.
   선은 자료에 있는 관계(「이 기운을 채워 준다」) 하나뿐이고, 후보의 명식은 안 보이므로 후보 점은 사진이다.
 
-  넘기면 궤도 밖으로 날아가고, 요청하면 가운데(나)로 빨려 든다. 사진을 끄는 만큼(`pull`) 미리 따라 움직인다.
+  그림의 문법은 둘이다. **거리는 관계다** — 바깥 궤도는 기다림, 안으로 들어온 자리는 다가옴, 가운데는 나. 그래서 지금
+  후보는 바깥의 제 자리에서 안으로 들어와 서고(지나온 길이 옅은 점선으로 남는다), 넘기면 궤도 밖으로 날아가고, 요청하면
+  가운데(나)로 빨려 든다. 사진을 끄는 만큼(`pull`) 미리 따라 움직인다. **각도는 무엇을 채우는가다** — 후보는 제가 채워
+  주는 오행의 방향에 서므로, 기다리는 사람들의 자리만 봐도 내 어느 빈 곳으로 누가 오는지가 읽힌다. 색은 절제한다:
+  채워지는 한 자리(선 · 차오르는 알 · 지금 후보의 테)에만 오행 색이 서고, 기다리는 얼굴은 채도를 낮춘다.
   모양은 둘이다: `round` 는 넓은 화면의 온 궤도, `arc` 는 폰의 **해돋이 띠**(궤도의 위쪽 반만 가로로 펴고 나는 띠 아래
   끝에 반쯤 떠오른 해처럼 선다). 좌표는 상자의 백분율이고 SVG 는 상자와 같은 비로 그려 선이 찌그러지지 않는다.
 
@@ -40,8 +44,10 @@ const GEOMETRY: Record<
     angle: Record<Element, number>;
     /** 보완 오행이 없는 후보가 설 빈 각도 */
     spare: readonly number[];
-    /** 같은 오행을 채우는 후보끼리 벌리는 각도 */
-    spread: number;
+    /** 바깥 궤도에서 이웃한 두 후보가 떨어져 설 가장 좁은 각도 — 얼굴과 이름이 겹치지 않게 */
+    gap: number;
+    /** 지금 후보가 제 자리에서 비켜 서는 각도 */
+    aside: number;
     ring: Record<'element' | 'current' | 'waiting' | 'passed', Ring>;
   }
 > = {
@@ -50,16 +56,18 @@ const GEOMETRY: Record<
     center: { x: 50, y: 50 },
     angle: { 木: -90, 火: -18, 土: 54, 金: 126, 水: 198 },
     spare: [-54, 162, 90, 18],
-    spread: 24,
-    ring: { element: [19, 19], current: [41, 41], waiting: [45, 45], passed: [66, 66] },
+    gap: 22,
+    aside: 36,
+    ring: { element: [19, 19], current: [34, 34], waiting: [45, 45], passed: [66, 66] },
   },
   arc: {
-    aspect: 5 / 2,
+    aspect: 2.15,
     center: { x: 50, y: 100 },
     angle: { 木: -152, 火: -121, 土: -90, 金: -59, 水: -28 },
     spare: [-105, -75, -136, -44],
-    spread: 13,
-    ring: { element: [24, 52], current: [43, 86], waiting: [46.5, 87], passed: [70, 140] },
+    gap: 13,
+    aside: 14,
+    ring: { element: [24, 52], current: [42, 80], waiting: [46.5, 87], passed: [70, 140] },
   },
 };
 
@@ -85,27 +93,57 @@ export const supplyOf = (card: DeckCard): Element | null => {
   return isElement(element) ? element : null;
 };
 
-/** 같은 오행을 채우는 후보가 겹치지 않게 좌우로 벌린다 — 자리는 덱이 바뀌어도 사람마다 같다 */
-function anglesOf(shape: Shape, cards: readonly DeckCard[]): Record<string, number> {
-  const { angle, spare, spread } = GEOMETRY[shape];
-  const used = new Map<number, number>();
+/**
+ * 바깥 궤도의 자리 — 저마다 **자기가 채워 주는 오행의 각도**를 원하고, 이웃과 `gap` 보다 가까우면 서로 밀어 벌린다.
+ *
+ * 지금 후보는 제 자리에서 한 걸음 옆(`stepAside`)으로 비켜 안쪽으로 들어온다(바로 바깥이면 선이 사진과 알 사이에 묻힌다).
+ * 그 자리는 움직이지 않는 이웃으로 셈에 넣는다 — 기다리는 사람이 그 뒤에 숨으면 「누가 기다리는지」가 가려진다.
+ * 보완 오행이 없는 후보는 오행 사이의 빈 각도를 원한다.
+ */
+function anglesOf(shape: Shape, cards: readonly DeckCard[], currentId: string | null): Record<string, number> {
+  const { angle, spare, gap } = GEOMETRY[shape];
   const spares = [...spare];
-  const out: Record<string, number> = {};
-  for (const card of cards) {
+  const circular = shape === 'round';
+  const seats = cards.map((card) => {
     const supply = supplyOf(card);
-    const base = supply !== null ? angle[supply] : (spares.shift() ?? angle.土);
-    const seen = used.get(base) ?? 0;
-    used.set(base, seen + 1);
-    out[card.candidateUserId] = base + (seen === 0 ? 0 : (seen % 2 === 1 ? 1 : -1) * spread * Math.ceil(seen / 2));
+    const want = supply !== null ? angle[supply] : (spares.shift() ?? angle.土);
+    return { id: card.candidateUserId, want, at: want, fixed: false };
+  });
+  const current = seats.find((seat) => seat.id === currentId);
+  /* 지금 후보가 비켜 선 자리 — 기다리는 사람이 이 각도를 피한다 */
+  const ghost = current !== undefined ? [{ id: '', want: 0, at: stepAside(shape, current.want), fixed: true }] : [];
+  const moving = seats.filter((seat) => seat !== current);
+  const all = [...moving, ...ghost];
+  for (let round = 0; round < 40; round += 1) {
+    all.sort((x, y) => x.at - y.at);
+    let moved = false;
+    const pairs = all.length > 1 ? all.length - (circular ? 0 : 1) : 0;
+    for (let i = 0; i < pairs; i += 1) {
+      const left = all[i];
+      const right = all[(i + 1) % all.length];
+      const between = (right.at - left.at + (i + 1 === all.length ? 360 : 0));
+      /* 지금 후보 곁은 더 넓게 비운다 — 그 얼굴은 크고 이름표 알약을 단다 */
+      const need = left.fixed || right.fixed ? gap * 1.6 : gap;
+      if (between >= need - 0.01) continue;
+      const push = need - between;
+      moved = true;
+      if (left.fixed) right.at += push;
+      else if (right.fixed) left.at -= push;
+      else {
+        left.at -= push / 2;
+        right.at += push / 2;
+      }
+    }
+    if (!moved) break;
   }
+  const out: Record<string, number> = {};
+  for (const seat of seats) out[seat.id] = seat.at;
   return out;
 }
 
-/**
- * 지금 후보는 제 오행의 바로 바깥이 아니라 **한 걸음 옆**에 선다 — 바로 바깥이면 선이 사진과 알 사이에 묻혀
- * 안 보였다. 옆으로 비켜 서면 선이 휘어 들어가는 길이가 생긴다. 띠에서는 가장자리 쪽으로 비킨다.
- */
-const stepAside = (shape: Shape, angle: number) => (shape === 'round' ? angle + 30 : angle + (angle < -90 ? -14 : 14));
+/** 온 궤도는 시계 방향으로, 띠는 가장자리 쪽으로 비킨다 — 띠의 가운데는 내 오행 알들이 붐벼 선이 묻힌다 */
+const stepAside = (shape: Shape, angle: number) =>
+  angle + (shape === 'round' || angle >= -90 ? 1 : -1) * GEOMETRY[shape].aside;
 
 const mix = (a: Ring, b: Ring, t: number): Ring => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 
@@ -154,8 +192,8 @@ export function ApproachMap({
   const geometry = compact ? { ...base, ring: { ...base.ring, element: COMPACT_ELEMENT_RING } } : base;
   const arc = shape === 'arc';
   const small = arc || compact;
-  const angles = anglesOf(shape, cards);
   const current = cards.find((card) => statusOf(card) === 'current') ?? null;
+  const angles = anglesOf(shape, cards, current?.candidateUserId ?? null);
   const lit = current !== null ? supplyOf(current) : null;
 
   const ringOf = (status: MapStatus): Ring => {
@@ -189,6 +227,18 @@ export function ApproachMap({
         )
       : null;
 
+  /*
+    지금 후보가 **어디서 왔는가** — 바깥 궤도의 제 자리에서 지금 선 곳까지 옅은 점선 한 줄. 궤도의 거리가 곧 관계의
+    거리라서(밖 = 기다림, 안 = 다가옴, 가운데 = 나), 이 한 줄이 「다가오고 있다」를 멈춘 그림에서도 말한다.
+  */
+  const trail =
+    current !== null
+      ? {
+          from: pointOf(shape, angles[current.candidateUserId], geometry.ring.waiting),
+          to: pointOf(shape, angleOf(current, 'current'), ringOf('current')),
+        }
+      : null;
+
   return (
     <div aria-hidden="true" className={`relative w-full ${className}`} style={{ aspectRatio: String(geometry.aspect) }}>
       {/* 지금 후보가 채워 주는 기운의 빛 — 가운데에서 번진다 */}
@@ -201,7 +251,7 @@ export function ApproachMap({
           width: '84%',
           top: arc ? '20%' : '8%',
           height: arc ? '160%' : '84%',
-          background: 'radial-gradient(closest-side, color-mix(in srgb, var(--tile) 95%, transparent), transparent)',
+          background: 'radial-gradient(closest-side, color-mix(in srgb, var(--tile) 70%, transparent), transparent)',
         }}
       />
 
@@ -222,6 +272,20 @@ export function ApproachMap({
           strokeDasharray={small ? '0.01 4.2' : '0.01 2.4'}
           strokeLinecap="round"
         />
+        {trail !== null && (
+          <line
+            key={`trail-${current?.candidateUserId}`}
+            x1={trail.from.x * geometry.aspect}
+            y1={trail.from.y}
+            x2={trail.to.x * geometry.aspect}
+            y2={trail.to.y}
+            stroke="color-mix(in srgb, var(--foreground) 30%, transparent)"
+            strokeWidth={arc ? 1.2 : 0.6}
+            strokeDasharray={arc ? '0.01 3' : '0.01 1.8'}
+            strokeLinecap="round"
+            className={dragging ? 'opacity-0' : 'opacity-100 transition-opacity duration-700'}
+          />
+        )}
         {current !== null && lit !== null && curve !== null && (
           <g key={current.candidateUserId} className={elementScope(lit)}>
             <path
@@ -281,7 +345,7 @@ export function ApproachMap({
           >
             <span
               className={`relative block overflow-hidden rounded-full bg-[var(--tile)] transition-[width,height,box-shadow,filter,opacity] duration-700 motion-reduce:transition-none ${
-                now ? (arc ? 'size-12' : 'size-[4.75rem]') : `${small ? 'size-9' : 'size-12'} opacity-85 saturate-[.55]`
+                now ? (arc ? 'size-12' : 'size-[4.25rem]') : `${small ? 'size-9' : 'size-12'} opacity-85 saturate-[.55]`
               }`}
               style={{
                 boxShadow: now
@@ -294,6 +358,13 @@ export function ApproachMap({
             {card.exploration && (
               <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[var(--card)] text-[var(--ink)] shadow-sm ring-1 ring-[var(--line)]">
                 <Spark />
+              </span>
+            )}
+            {!arc && !now && status === 'waiting' && (
+              <span
+                className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[12px] font-semibold text-secondary ${above ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+              >
+                {card.nickname}
               </span>
             )}
             {!arc && (now || status === 'kept') && (
