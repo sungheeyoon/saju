@@ -88,11 +88,11 @@ export function SiteHeader() {
   const [session, setSession] = useState<Session>('unknown');
   const [email, setEmail] = useState<string | null>(null);
   /**
-   * **끝난 뒤에는 길을 안 세운다.** 베타가 끝나면 모든 화면이 `/closed` 로 되돌려진다(`proxy.ts`).
-   * 탭 · 종 · 풀이권은 누르면 전부 이 화면으로 되돌아오는 죽은 길이라 걷고, **아직 할 수 있는 일** —
-   * 톱니 안의 계정 관리 · 로그아웃 — 만 남는다.
+   * **관문이 되돌리는 자리에서는 길을 안 세운다.** 베타가 끝나면 모든 화면이 `/closed` 로, 가입을 마치지 않은
+   * 사람은 `/signup` 으로 되돌려진다(`proxy.ts`). 탭 · 종 · 풀이권은 누르면 전부 그 화면으로 되돌아오는 죽은
+   * 길이라 걷고, **아직 할 수 있는 일** — 톱니 안의 계정 관리 · 로그아웃 — 만 남는다.
    */
-  const ended = pathname === '/closed';
+  const ended = pathname === '/closed' || pathname === '/signup';
   /**
    * **공유본 화면에서는 머리글이 접힌다** — 링크를 받고 들어온 사람에게 남의 회원 메뉴와 풀이권 잔액은
    * 길이 아니다. 보낸 사람이 자기 링크를 열어 확인할 때도 같아야 한다. 로고 한 줄만 남는다.

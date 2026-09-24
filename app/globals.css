@@ -160,8 +160,9 @@
   --color-earth-mid: var(--earth-mid);
   --color-metal-mid: var(--metal-mid);
   --color-water-mid: var(--water-mid);
-  --color-none: var(--none);
-  --color-none-soft: var(--none-soft);
+  /* `none` 이라 부르면 Tailwind 의 fill-none · border-none · bg-none 이 이 색이 된다 — 그래서 모르는 기운은 unknown 이다 */
+  --color-unknown: var(--none);
+  --color-unknown-soft: var(--none-soft);
   --color-cream: var(--cream);
   --color-cream-ink: var(--cream-ink);
   --color-badge: var(--badge);
