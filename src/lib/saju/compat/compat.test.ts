@@ -107,11 +107,14 @@ describe('궁합 결과의 계약', () => {
     );
 
   it('합쳐서 이룬 것은 전체 목록에서 골라낸 것이지 따로 센 것이 아니다', () => {
+    // 두 사람 글자가 함께 삼합을 이루는 짝이다(`evidence/shared.test.ts` 의 E · F).
+    // 합쳐 이룬 것이 없는 짝을 고르면 아래 돌기가 한 번도 안 돌아 아무것도 안 잰다.
     const compat = analyzeCompatibility(
-      computeSajuOf(1990, 5, 15, 14),
-      computeSajuOf(1992, 8, 20, 9),
+      computeSaju({ year: 1984, month: 1, day: 5, hour: 2, minute: 10, second: 0, gender: 'male' }),
+      computeSaju({ year: 1986, month: 4, day: 5, hour: 15, minute: 10, second: 0, gender: 'female' }),
     );
 
+    expect(compat.combinedFormations.length).toBeGreaterThan(0);
     for (const formation of compat.combinedFormations) {
       expect(compat.relations).toContain(formation);
       expect(formation.scope).toBe('combinedFormation');

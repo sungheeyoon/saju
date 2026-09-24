@@ -196,6 +196,44 @@ const saveToRun = async (run, output, score, metaphor) => {
   return { error: saved.error, run };
 };
 
+/**
+ * 천간 → 오행의 판 이름 — **손으로 적는다.** 화면이 쓰는 표(`STEM_INFO` · `ELEMENT_TONE`)를 가져오면 둘이 함께
+ * 틀려도 초록이다. 판 이름은 `app/globals.css` 의 `.tone-*` 다.
+ */
+const TONE_OF_STEM = {
+  甲: 'tone-wood', 乙: 'tone-wood', 丙: 'tone-fire', 丁: 'tone-fire', 戊: 'tone-earth',
+  己: 'tone-earth', 庚: 'tone-metal', 辛: 'tone-metal', 壬: 'tone-water', 癸: 'tone-water',
+};
+
+/** 글 화면 머리의 일간 딱지 — 제목(`reading-subject`) 앞의 마지막 둥근 딱지 안의 판과 글자 */
+const headerChipOf = (html) => {
+  const head = html.slice(0, html.indexOf('id="reading-subject"'));
+  const found = /ring-1 ring-border"><span class="(tone-[a-z]+)[^"]*">.*?class="glyph font-bold">(.)</s.exec(
+    head.slice(head.lastIndexOf('ring-1 ring-border"')),
+  );
+  return found === null ? null : { tone: found[1], stem: found[2] };
+};
+
+/**
+ * 글 화면 머리의 첫 「사주풀이 다시 받기」가 주 단추(`bg-accent`)인가 — 못 찾으면 `null`.
+ * 아래 만드는 칸의 같은 이름 단추는 늘 주 단추라, 머리의 것 하나만 본다.
+ */
+const headerMakeIsPrimary = (html) => {
+  const found = /<button[^>]*class="([^"]*)"[^>]*>(?:(?!<\/button>).)*?사주풀이 다시 받기/s.exec(html);
+  return found === null ? null : found[1].split(/\s+/).includes('bg-accent');
+};
+
+/** 책장의 한 권 — 그 주소로 가는 표지 링크의 판과 글자 */
+const bookOf = (html, href) => {
+  const found = /<a [^>]*>.*?<\/a>/gs;
+  for (const [link] of html.matchAll(found)) {
+    if (!link.includes(`href="${href}"`)) continue;
+    const tone = /class="(tone-[a-z]+)/.exec(link)?.[1] ?? null;
+    return { tone, text: link.replace(/<[^>]+>/g, '') };
+  }
+  return null;
+};
+
 try {
   // ── 1. 조회는 모델을 부르지 않는다 ───────────────────────────────────────
   {
@@ -692,17 +730,70 @@ try {
 
     /** 자기 풀이는 반대다 — 지금 판본이 아니면 그렇게 말한다 */
     const mineAccount = await a.from('app_user').select('self_person_id').maybeSingle();
+    const selfId = mineAccount.data.self_person_id;
+    /**
+     * 풀이를 만들 때의 일간 — 저장이 그때 명식에서 베낀 글자라, 고치기 전의 명식에서 DB 가 든 값을 그대로
+     * 읽는다. 검사가 댄 여덟 글자라(`chartArgs`) 씨앗의 번호마다 다르다.
+     */
+    const stemBefore = sql(`select current_chart->>'dayMaster' from public.person where id = '${selfId}'`);
+
+    /** 고치기 전 — 글이 지금 명식으로 만든 것이라 머리의 다시 받기는 주 단추가 아니다 */
+    const current = await body('/me/readings/self', cookie.a);
+    check('지금 명식으로 만든 글이면 머리의 다시 받기가 주 단추가 아니다',
+      headerMakeIsPrimary(current) === false, String(headerMakeIsPrimary(current)));
+
+    /*
+      **고친 뒤의 일간이 다른 오행이어야 아래가 무엇을 잰다.** 화면이 세우는 지금 일간은 저장된 출생 정보를
+      엔진이 다시 푼 값이고, 1990-05-15 는 庚(쇠)의 날이다. 그때 글자도 쇠면 표지 색이 지금 것이든 그때
+      것이든 같아 아무것도 안 잰다 — 그럴 때만 날을 壬(물)의 날인 1990-05-17 로 옮긴다. 두 날의 일간은
+      만세력의 값을 손으로 적은 것이다.
+    */
+    const edit = TONE_OF_STEM[stemBefore] === 'tone-metal'
+      ? { date: '1990-05-17', stem: '壬' }
+      : { date: BIRTH.a.date, stem: '庚' };
     await a.rpc('edit_person_input', {
-      p_person_id: mineAccount.data.self_person_id,
-      p_calendar: 'solar', p_original_date: BIRTH.a.date, p_solar_date: BIRTH.a.date,
+      p_person_id: selfId,
+      p_calendar: 'solar', p_original_date: edit.date, p_solar_date: edit.date,
       p_birth_time: '09:40', p_gender: BIRTH.a.gender, p_city: BIRTH.a.city,
       p_late_night_rule: 'jo', p_time_basis: 'localMean',
       ...chartArgs(`${NAME.a}-고침`),
     });
+    const stemAfter = edit.stem;
+    check('고친 명식의 일간은 그때와 다른 오행이다',
+      TONE_OF_STEM[stemBefore] !== undefined && TONE_OF_STEM[stemBefore] !== TONE_OF_STEM[stemAfter],
+      `${stemBefore} → ${stemAfter}`);
 
-    const mine = plain(await body('/me/readings/self', cookie.a));
+    const edited = await body('/me/readings/self', cookie.a);
+    const mine = plain(edited);
     check('자기 풀이는 다른 명식으로 만들었다고 말한다', mine.includes(READING_STALE_NOTE));
     check('그래도 글은 그대로 서 있다', mine.includes('스스로 정한 규칙 안에서'));
+
+    /**
+     * **수정 전 글을 보는 동안에는 딱지 · 표지가 그 글을 만들 때의 일간이다**(2026-09-25). 지금 명식의 일간을
+     * 세우면 글과 머리가 다른 사람을 말한다. 기대값은 고치기 전에 DB 에서 읽은 글자와 이 파일의 표다.
+     */
+    const chip = headerChipOf(edited);
+    check('머리의 일간 딱지는 풀이를 만들 때의 글자다', chip?.stem === stemBefore,
+      `${chip?.stem ?? '딱지 없음'} — 그때 ${stemBefore}, 지금 ${stemAfter}`);
+    check('머리의 일간 딱지는 그때의 오행 색이다', chip?.tone === TONE_OF_STEM[stemBefore],
+      `${chip?.tone ?? '딱지 없음'} — 그때 ${TONE_OF_STEM[stemBefore]}`);
+    const cover = /class="(tone-[a-z]+) relative overflow-hidden rounded-\[2rem\]/.exec(edited)?.[1];
+    check('글 표지는 풀이를 만들 때의 오행 색이다', cover === TONE_OF_STEM[stemBefore],
+      `${cover ?? '표지 없음'} — 그때 ${TONE_OF_STEM[stemBefore]}, 지금 ${TONE_OF_STEM[stemAfter]}`);
+    check('수정 전 글이면 머리의 다시 받기가 주 단추다',
+      headerMakeIsPrimary(edited) === true, String(headerMakeIsPrimary(edited)));
+
+    /** 책장 — 고친 사람의 책에만 「수정 전」이 서고, 안 고친 사람의 책에는 안 선다 */
+    const shelf = await body('/me/readings', cookie.a);
+    const selfBook = bookOf(shelf, '/me/readings/self');
+    const momBook = bookOf(shelf, `/me/readings/${momId}`);
+    check('책장의 내 책에 「수정 전」 딱지가 선다', selfBook?.text.includes('수정 전') === true,
+      selfBook?.text ?? '책 없음');
+    check('책장의 안 고친 사람 책에는 「수정 전」이 없다',
+      momBook !== null && !momBook.text.includes('수정 전'), momBook?.text ?? '책 없음');
+    check('책장의 내 책 표지도 풀이를 만들 때의 일간이다',
+      selfBook?.tone === TONE_OF_STEM[stemBefore] && selfBook?.text.includes(stemBefore) === true,
+      `${selfBook?.tone ?? '책 없음'} · ${selfBook?.text ?? ''}`);
   }
 
   // ── 8. 실패는 알림함에 서고 다시 누를 자리까지 닿는다 ────────────────────
