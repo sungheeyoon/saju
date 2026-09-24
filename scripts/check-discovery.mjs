@@ -259,8 +259,9 @@ const isolate = (emails) => {
     // **점수를 만든 두 축이 다 나온다** — 뒤 축만 말하면 낮은 점수의 이유가 화면에 없다
     check('점수의 이유가 보완 축까지 든다',
       /내게 적은 오행을 (크게 )?보완하(는 데 보탬이 되|지)/.test(body));
+    /* 숫자 칸과 「/ 100」 칸이 짝으로 선다. 칸에 붙는 class 는 모양이라 재지 않는다 — 6차 카드(3ba986a)가 class 를 달았다 */
     check('첫인상 궁합 점수를 이름표와 함께 보여 준다',
-      body.includes('예측 궁합 점수') && /<strong>\d+<\/strong><span> \/ 100<\/span>/.test(body));
+      body.includes('예측 궁합 점수') && /<strong[^>]*>\d+<\/strong><span[^>]*> \/ 100<\/span>/.test(body));
     /**
      * **수는 그 자체로 높낮이를 말하지 않는다.** 만점이 몇인지 보통이 몇인지를
      * 사용자가 모르므로, 점수 옆에는 그 수를 말로 옮긴 한 줄이 함께 서야 한다.
@@ -367,9 +368,10 @@ const isolate = (emails) => {
     check('반환에 0~100 첫인상 궁합이 있다',
       Number.isInteger(rows?.[0]?.preview_score) && rows[0].preview_score >= 0 && rows[0].preview_score <= 100,
       String(rows?.[0]?.preview_score));
-    /* `activity` 는 구간 셋 중 하나다 — 시각이 아니다(ADR 0092). 카드에 서는 값이라 여기 든다 */
+    /* `activity` 는 구간 셋 중 하나다 — 시각이 아니다(ADR 0092). 카드에 서는 값이라 여기 든다.
+       `avatar_element` 는 사진 없는 아바타의 일간 오행 한 글자(사진이면 null) — 원국이 아니다(ADR 0109) */
     check('반환은 카드에 설 값뿐이다',
-      keys.join(',') === 'activity,balance_band,candidate_user_id,exploration,has_photo,intro,nickname,preview_score,seat,supplied_elements',
+      keys.join(',') === 'activity,avatar_element,balance_band,candidate_user_id,exploration,has_photo,intro,nickname,preview_score,seat,supplied_elements',
       keys.join(','));
 
     const axis = await me.rpc('discovery_count_balance_v1', { a: {}, b: {} });
