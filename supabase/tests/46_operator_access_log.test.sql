@@ -66,6 +66,13 @@ grant execute on function pg_temp.lines(uuid) to authenticated, service_role, an
 create temporary table before_export as
 select coalesce(max(last_id), 0) as after_id from audit.operator_access_export;
 
+/**
+ * 반출 한 번에 가져갈 줄 수 — 함수의 상한(50000)이다. 표는 전역이고 로컬 스택에는 e2e 가 남긴, 아직 반출 안 된
+ * 줄이 쌓인다. 100 으로 부르면 그 줄이 100 을 넘는 날 이 파일이 만든 줄이 배치 밖으로 밀려 셋(2 · 5 · 11)이
+ * 붉었다(#219, 공유 로컬 DB). 깨끗한 DB 에서는 같은 답이다 — 무엇을 재는지는 안 바뀐다.
+ */
+create or replace function pg_temp.export_limit() returns integer language sql as $$ select 50000 $$;
+
 /** 이 세션이 쥔 advisory 자물쇠 — 열쇠와 모드 */
 create or replace function pg_temp.holds(key bigint)
 returns text language sql as $$
@@ -80,7 +87,7 @@ select 'app', f.reporter, 'reports.detail', c.one, 'allowed' from folks f, cases
 select is(pg_temp.holds(audit.export_lock_key()), 'ShareLock',
   '쓰는 문장은 반출의 자물쇠를 공유로 쥔다 — 커밋까지');
 select is(
-  (select array_agg(b.at > now() - interval '1 minute') from public.audit_export_batch(100) b
+  (select array_agg(b.at > now() - interval '1 minute') from public.audit_export_batch(pg_temp.export_limit()) b
    where b.actor_user_id = (select reporter from folks)),
   array[true],
   '방금 적힌 줄도 바로 나간다 — 10분을 기다리지 않는다');
@@ -98,7 +105,7 @@ select 'app', f.operator, 'reports.detail', c.one, 'allowed', now() - make_inter
 from folks f, cases c, generate_series(3, 1, -1) n;
 
 create temporary table batch as
-select * from public.audit_export_batch(100);
+select * from public.audit_export_batch(pg_temp.export_limit());
 
 select is(
   (select count(*)::integer from batch),
@@ -135,7 +142,7 @@ select throws_ok(
   '23514', null, '같은 범위를 두 번 적지 못한다 — 겹침');
 
 select is(
-  (select count(*)::integer from public.audit_export_batch(100)),
+  (select count(*)::integer from public.audit_export_batch(pg_temp.export_limit())),
   0,
   '적은 뒤에는 다음 반출이 그 뒤에서 시작한다');
 
