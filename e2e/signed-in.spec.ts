@@ -161,13 +161,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
     await expect(page.getByText('사주 자세히 보기')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: '사주팔자' })).toHaveCount(0);
-    const readingTabs = page.getByRole('navigation', { name: '내 사주의 사주와 사주풀이' });
-    await expect(readingTabs.getByRole('link')).toHaveText(['사주', '사주풀이']);
-    await expect(readingTabs.getByRole('link', { name: '사주풀이', exact: true })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    await expect(readingTabs.getByRole('link', { name: '사주', exact: true })).toHaveAttribute('href', '/me');
+    /* 풀이 화면에는 사주/사주풀이 탭이 없다 — 두 자리는 각 화면의 입구에서 연다 */
+    await expect(page.getByRole('navigation', { name: '내 사주의 사주와 사주풀이' })).toHaveCount(0);
 
     /*
       **풀이권은 머리글에 선다 — 설정 옆이다.**
@@ -311,15 +306,11 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await expect(page.getByRole('heading', { name: '어머니의 사주풀이' })).toBeVisible();
 
-    /* 풀이 전용 페이지에는 글만 서고, 명식은 별도 탭으로 간다. */
+    /* 풀이 전용 페이지에는 글만 선다 — 명식으로 가는 탭도 없다 */
     await expect(page.getByText('어머니의 결')).toBeVisible();
     await expect(page.getByText('사주 자세히 보기')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: '사주팔자' })).toHaveCount(0);
-    const tabs = page.getByRole('navigation', { name: '어머니의 사주와 사주풀이' });
-    await expect(tabs.getByRole('link', { name: '사주', exact: true })).toHaveAttribute(
-      'href',
-      `/me/people/${personReader.personId}`,
-    );
+    await expect(page.getByRole('navigation', { name: '어머니의 사주와 사주풀이' })).toHaveCount(0);
 
     /* 한 사람짜리라 궁합 점수가 안 선다 */
     await expect(page.getByText('궁합풀이 점수')).toBeHidden();
@@ -561,7 +552,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /** 사람 카드의 단일 진입점이 풀이로 가고, 명식은 그 화면의 탭으로 오간다. */
-  test('저장한 사람의 풀이 화면에서 명식 탭으로 오갈 수 있다', async ({
+  test('저장한 사람의 풀이 화면에는 탭이 없고, 명식 화면에서 풀이로 돌아온다', async ({
     page,
     signedIn,
   }) => {
@@ -577,14 +568,15 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: `${kin}의 사주풀이`, exact: true }).first()).toBeVisible();
     await expect(page.getByText('아직 받아 둔 사주풀이가 없습니다')).toBeVisible();
 
-    const tabs = page.getByRole('navigation', { name: `${kin}의 사주와 사주풀이` });
-    await expect(tabs.getByRole('link', { name: '사주풀이', exact: true })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    await tabs.getByRole('link', { name: '사주', exact: true }).click();
+    await expect(page.getByRole('navigation', { name: `${kin}의 사주와 사주풀이` })).toHaveCount(0);
+
+    /* 명식은 목록의 이름에서 열고, 명식 화면의 탭이 풀이로 돌려보낸다 */
+    const readingUrl = page.url();
+    await page.goto('/me/people');
+    await page.getByRole('link', { name: kin, exact: true }).first().click();
     await expect(page.getByRole('heading', { name: `${kin}의 사주`, exact: true })).toBeVisible();
     await page.getByRole('link', { name: '사주풀이', exact: true }).click();
+    await expect(page).toHaveURL(readingUrl);
 
     const make = page.getByRole('button', { name: '사주풀이 받기' });
     await expect(make).toBeVisible();
@@ -952,8 +944,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       (cardBox?.x ?? 0) + (cardBox?.width ?? 0) + 0.5,
     );
 
-    await readingLink.click();
-    await page.getByRole('link', { name: '사주', exact: true }).click();
+    /* 명식은 카드의 이름에서 연다 — 풀이 화면에는 사주로 가는 탭이 없다 */
+    await friendCard.getByRole('link', { name: '친구', exact: true }).click();
     await expect(
       page.getByRole('heading', { name: '친구의 사주', exact: true }),
     ).toBeVisible();
