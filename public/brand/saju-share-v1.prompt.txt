@@ -1,4 +1,5 @@
 이 파일은 참고 자료다 — OG 이미지로 연결되지 않는다.
+2026-09-24 부터 나가는 그림은 v2 다 — 이 v1 의 삽화 위에 로고 · 이름(`src/lib/brand`)을 다시 구웠다(`scripts/brand-share-images.mjs`, G-58 ㉢). v1 은 그 도구의 원재료로 남는다.
 실제로 나가는 그림은 `saju-share-v1.jpg` (1200x628, 224KB) 이고, 여기 적힌 프롬프트가
 낸 1733x907 PNG 2.1MB 를 줄인 것이다. 원본 PNG 는 커밋 e9e2fe8 에 있다 —
 `git show e9e2fe8:public/brand/saju-share-v1.png > 원본.png`

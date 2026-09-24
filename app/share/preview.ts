@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 
-import { SERVICE_NAME } from '@/src/lib/brand';
+import { SERVICE_NAME, SERVICE_TAGLINE } from '@/src/lib/brand';
 
 import type { ShareKind } from './path';
+
+/** 그림 속 글자는 셋 다 로고 · 이름 · 소개 한 줄이다(G-58 ㉢) — 대체 글도 그것을 말한다 */
+const ALT = `${SERVICE_NAME} — ${SERVICE_TAGLINE}`;
 
 /**
  * 공유본 세 화면의 **미리보기** — 상수로 둔다.
@@ -22,20 +25,20 @@ const PREVIEW: Record<ShareKind, { title: string; description: string; image: st
   self: {
     title: `사주풀이가 도착했어요 | ${SERVICE_NAME}`,
     description: '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
-    image: '/brand/reading-share-v1.jpg',
-    alt: `${SERVICE_NAME} — 사주풀이가 도착했어요`,
+    image: '/brand/reading-share-v2.jpg',
+    alt: ALT,
   },
   person: {
     title: `사주풀이가 도착했어요 | ${SERVICE_NAME}`,
     description: '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
-    image: '/brand/saju-share-v1.jpg',
-    alt: `${SERVICE_NAME} — 나를 이루는 흐름을 읽다`,
+    image: '/brand/saju-share-v2.jpg',
+    alt: ALT,
   },
   private: {
     title: `두 사람의 궁합이 도착했어요 | ${SERVICE_NAME}`,
     description: '공유된 궁합풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
-    image: '/brand/compat-share-v1.jpg',
-    alt: `${SERVICE_NAME} — 두 사람의 궁합이 도착했어요`,
+    image: '/brand/compat-share-v2.jpg',
+    alt: ALT,
   },
 };
 
