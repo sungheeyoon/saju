@@ -20,7 +20,7 @@
 | ADR | `NNNN-english-sentence.md`, 제목은 한국어 문장, 번호는 빈틈없이 | 85 |
 | 타입 | `type`, PascalCase. `interface` 는 안 쓴다 | 398 / 0 |
 | 값 | 정책 표·상수는 SCREAMING_CASE(`STRENGTH_POLICY` · `HOUR_UNKNOWN_LABEL`), 함수는 camelCase. Next 가 이름을 정한 것(`metadata` · `maxDuration`)만 예외 | 336 · 63 |
-| `enum` · `class` | `enum` 은 없다 — 문자열 리터럴 유니언이다. `class` 는 내장을 잇는 자리뿐(`InvalidSajuInputError extends Error`) — 상태를 가진 클래스는 없다 | 0 · 8 |
+| `enum` · `class` | `enum` 은 없다 — 문자열 리터럴 유니언이다. `class` 는 내장을 잇는 자리뿐(`InvalidSajuInputError extends Error`) — 상태를 가진 클래스는 없다 | 0 · 10 |
 | export | 이름 있는 export. `export default` 는 Next 가 요구하는 `app/` 과 루트 설정 파일에만 | src·scripts·e2e 0 |
 | 따옴표 | 홑따옴표 | import 1203 / 0 |
 
