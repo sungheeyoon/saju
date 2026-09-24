@@ -6,25 +6,26 @@ import { ELEMENTS, type Element } from '@/src/lib/saju';
 
 import type { VariantProps } from '..';
 import type { ReadingEntry } from '../../../reading/current';
-import { readingDate, readingHref, readingTitle } from '../../../reading/line';
 import { PERSON_LIMIT, type FixturePerson } from '../../fixtures';
 import { previewHref } from '../../shared/preview-href';
 import { PRIMARY, ROUND_ICON, SECONDARY, TERTIARY } from './buttons';
 import { rounded } from './fonts';
+import { RelationMap } from './map/relation-map';
+import { mapModelOf } from './map/model';
 import { PersonTile } from './person-tile';
 import { SelfCard } from './self-card';
 import { ELEMENT_CLASS, ElementSymbol, Icon, ROOT_CLASS, type IconName } from './symbols';
 
 /*
-  **2차 · 라이프스타일 — 부드러움.** 「오늘」 아침에 여는 앱처럼 인사 한 줄 → 최근 풀이의 비유 한 문장 → 나 →
-  사람들 차례로 내려온다. 오행은 파스텔 면과 다섯 상징(나무 · 불꽃 · 흙 · 쇠 · 물)으로, 사람마다 제 일간의 색을
+  **2차 · 라이프스타일 — 부드러움.** 「오늘」 아침에 여는 앱처럼 인사 한 줄 → 관계 지도 → 나 → 사람들 차례로
+  내려온다. 4차에서 최근 풀이의 인용 카드 자리에 orbit 의 지도를 이 시안의 말투로 다시 그려 넣었다(`map/`) —
+  최근 풀이는 지도 아래 「이어서 읽기」 한 줄과 내 카드의 비유 줄로 남는다. 오행은 파스텔 면과 다섯 상징(나무 · 불꽃 · 흙 · 쇠 · 물)으로, 사람마다 제 일간의 색을
   입은 2열 타일로 선다. 단추는 먹색 채움 · 흰 알약 · 밑줄 글자 세 층뿐이다(`buttons.ts`).
   메뉴는 폰에서 화면 맨 아래의 둥근 독(dock) 모형으로, 넓은 화면에서는 맨 위의 알약 탭으로 선다 — 둘 다 `fixed` 가 아니다.
 */
 export default function Variant({ state }: VariantProps) {
   const { self, people } = state;
   const selfId = self?.personId ?? null;
-  const quote = state.readings.find((entry) => entry.metaphor !== null) ?? null;
   const full = people.length >= PERSON_LIMIT;
 
   return (
@@ -40,16 +41,10 @@ export default function Variant({ state }: VariantProps) {
         </div>
       )}
 
-      {self === null ? (
-        <RegisterSelf />
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-stretch lg:gap-6">
-          {quote !== null && <Quote entry={quote} />}
-          <div className={quote === null ? 'lg:col-span-2' : ''}>
-            <SelfCard self={self} showMetaphor={quote?.kind !== 'self'} />
-          </div>
-        </div>
-      )}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-6">
+        <RelationMap model={mapModelOf(state)} addHref={previewHref('/me/people')} registerHref={previewHref('/me')} canAdd={!full} />
+        {self === null ? <RegisterSelf /> : <SelfCard self={self} showMetaphor />}
+      </div>
 
       <section aria-labelledby="warm-people" className="flex flex-col gap-4">
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
@@ -245,45 +240,6 @@ function Greeting({ name }: { name: string | null }) {
         {name === null ? '반가워요' : `${name}님, 오늘도 반가워요`}
       </h2>
     </header>
-  );
-}
-
-/** 최근 풀이의 비유 — 인용구처럼 크게. 누르면 그 글로 간다 */
-function Quote({ entry }: { entry: ReadingEntry }) {
-  return (
-    <figure className="relative flex flex-col justify-between gap-6 overflow-hidden rounded-[2rem] bg-[var(--cream)] p-6 sm:p-8">
-      <div className="relative flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <p className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--cream-ink)]">
-            <Icon name="quote" className="size-4" />
-            최근 풀이
-          </p>
-          <span aria-hidden="true" className="flex -space-x-1.5">
-            {ELEMENTS.map((element) => (
-              <span key={element} className={`${ELEMENT_CLASS[element]} grid size-7 place-items-center rounded-full bg-[var(--tile)] ring-2 ring-[var(--cream)]`}>
-                <ElementSymbol element={element} className="size-4" />
-              </span>
-            ))}
-          </span>
-        </div>
-        <blockquote className={`${rounded.className} text-[1.625rem] leading-[1.45] tracking-[-0.02em] text-foreground sm:text-[2rem] lg:text-[2.375rem]`}>
-          {entry.metaphor}
-        </blockquote>
-      </div>
-      <figcaption className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <span className="flex flex-col">
-          <span className="text-[15px] font-semibold text-foreground">
-            {readingTitle(entry)}
-            {entry.score !== null && <span className="ml-1.5 tabular-nums text-[var(--cream-ink)]">{entry.score}점</span>}
-          </span>
-          <span className="text-[13px] text-secondary">{readingDate(entry.createdAt)}</span>
-        </span>
-        <Link href={previewHref(readingHref(entry))} className={TERTIARY}>
-          이어서 읽기
-          <Icon name="arrow" className="size-4" />
-        </Link>
-      </figcaption>
-    </figure>
   );
 }
 
