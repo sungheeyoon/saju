@@ -18,6 +18,8 @@ import {
   type ReadingAnswer,
 } from '@/src/lib/reading';
 
+import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
+
 import { submitReadingFeedback } from './actions';
 import type { ReadingTarget } from './target';
 
@@ -58,13 +60,9 @@ export function ReadingFeedback({
 
   if (answer !== null && !open) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-surface-sunken px-5 py-4">
-        <p className="text-sm text-secondary">{FEEDBACK_THANKS}</p>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="text-sm font-semibold text-accent underline underline-offset-4"
-        >
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-[1.5rem] bg-cream px-5 py-3">
+        <p className="text-[15px] text-cream-ink">{FEEDBACK_THANKS}</p>
+        <button type="button" onClick={() => setOpen(true)} className={BUTTON_TERTIARY}>
           답 고치기
         </button>
       </div>
@@ -108,13 +106,13 @@ export function ReadingFeedback({
   };
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-surface-raised">
-      <header className="border-b border-border px-5 py-4 sm:px-6">
-        <p className="text-sm font-bold">이 풀이는 어떠셨어요?</p>
-        <p className="mt-0.5 text-xs leading-5 text-muted">{FEEDBACK_SCOPE_NOTE}</p>
+    <section className="overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]">
+      <header className="px-5 pt-6 sm:px-7">
+        <p className="font-rounded text-[1.3rem] leading-7 text-foreground">이 풀이는 어떠셨어요?</p>
+        <p className="mt-1 text-[13px] leading-5 text-secondary">{FEEDBACK_SCOPE_NOTE}</p>
       </header>
 
-      <div className="flex flex-col gap-7 px-5 py-5 sm:px-6 sm:py-6">
+      <div className="flex flex-col gap-7 px-5 py-5 sm:px-7 sm:py-6">
         <div className="flex flex-col gap-4">
           <Scale
             name={`useful-${runId}`}
@@ -132,7 +130,7 @@ export function ReadingFeedback({
 
         <div className="flex flex-col gap-6 border-t border-border pt-6">
           <fieldset>
-            <legend className="float-left mb-4 w-full text-sm font-semibold">분량은 어땠나요?</legend>
+            <legend className="float-left mb-4 w-full text-[15px] font-semibold">분량은 어땠나요?</legend>
             <div className="grid grid-cols-3 gap-2 clear-both">
               {FELT_LENGTHS.map((choice) => (
                 <Chip
@@ -150,9 +148,9 @@ export function ReadingFeedback({
           </fieldset>
 
           <fieldset className="border-t border-border pt-6">
-            <legend className="float-left mb-4 w-full text-sm font-semibold">
+            <legend className="float-left mb-4 w-full text-[15px] font-semibold">
               아쉬운 점이 있다면요?
-              <span className="ml-1.5 text-xs font-medium text-muted">중복 선택 가능</span>
+              <span className="ml-1.5 text-[13px] font-medium text-secondary">중복 선택 가능</span>
             </legend>
             <div className="flex flex-wrap gap-2 clear-both">
               {ISSUE_TAGS.map((tag) => (
@@ -180,19 +178,19 @@ export function ReadingFeedback({
           이미 동의했고, 이 칸만 따로 잠글 일이 없다.
         */}
         <div className="flex flex-col gap-2 border-t border-border pt-6">
-          <label htmlFor={`comment-${runId}`} className="text-sm font-semibold">
+          <label htmlFor={`comment-${runId}`} className="text-[15px] font-semibold">
             {FEEDBACK_COMMENT.label}
           </label>
-          <p className="text-xs leading-5 text-muted">{FEEDBACK_COMMENT.hint}</p>
+          <p className="text-[13px] leading-5 text-secondary">{FEEDBACK_COMMENT.hint}</p>
           <textarea
             id={`comment-${runId}`}
             value={comment}
             onChange={(event) => setComment(event.target.value.slice(0, FEEDBACK_COMMENT.limit))}
             maxLength={FEEDBACK_COMMENT.limit}
             rows={3}
-            className="mt-1.5 rounded-xl border border-border bg-surface px-3 py-2 text-sm focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-soft"
+            className="mt-1.5 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] leading-6 focus-visible:outline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-accent-soft"
           />
-          <p className="text-right text-xs tabular-nums text-muted">
+          <p className="text-right text-[12px] tabular-nums text-secondary">
             {comment.length} / {FEEDBACK_COMMENT.limit}자
           </p>
         </div>
@@ -203,13 +201,8 @@ export function ReadingFeedback({
           </p>
         )}
 
-        <div className="-mx-5 -mb-5 flex flex-col gap-3 border-t border-border bg-surface-soft px-5 py-4 sm:-mx-6 sm:-mb-6 sm:flex-row sm:items-center sm:justify-end sm:px-6">
-          <button
-            type="button"
-            onClick={send}
-            disabled={!ready || saving}
-            className="h-11 w-full rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto"
-          >
+        <div className="-mx-5 -mb-5 flex flex-col gap-3 border-t border-border bg-surface-soft px-5 py-4 sm:-mx-7 sm:-mb-6 sm:flex-row sm:items-center sm:justify-end sm:px-7">
+          <button type="button" onClick={send} disabled={!ready || saving} className={`${BUTTON_PRIMARY} w-full sm:w-auto`}>
             {saving ? '보내는 중…' : '의견 보내기'}
           </button>
         </div>
@@ -236,8 +229,8 @@ function Scale({
       혼자 서 있으면 그것이 5번 칸의 이름인지 이 칸 전체의 말인지 알 수 없다. 사이드바가
       없어지며 이 칸이 화면 폭만큼 넓어져 그 둘이 벌어졌다 — 폭을 눈금에 맞춰 잡는다.
     */
-    <fieldset className="rounded-xl border border-border bg-surface p-4">
-      <legend className="float-left mb-4 w-full text-sm font-semibold">{question.label}</legend>
+    <fieldset className="rounded-[1.25rem] bg-surface-soft p-4">
+      <legend className="float-left mb-4 w-full text-[15px] font-semibold">{question.label}</legend>
       <div className="grid max-w-md grid-cols-5 gap-2 clear-both">
         {FEEDBACK_SCALE.map((score) => (
           <Chip
@@ -260,7 +253,7 @@ function Scale({
           </Chip>
         ))}
       </div>
-      <div className="mt-1.5 flex max-w-md justify-between text-xs text-muted">
+      <div className="mt-1.5 flex max-w-md justify-between text-[12px] text-secondary">
         <span>{question.low}</span>
         <span>{question.high}</span>
       </div>
@@ -294,10 +287,10 @@ function Chip({
   return (
     <label
       htmlFor={id}
-      className={`relative flex min-h-10 min-w-11 cursor-pointer items-center justify-center rounded-xl border px-3 py-2 text-center text-sm has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft ${
+      className={`relative flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border px-3.5 py-2 text-center text-[14px] active:scale-[0.97] has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft ${
         picked
-          ? 'border-accent bg-accent-wash font-medium text-accent'
-          : 'border-border bg-surface text-secondary hover:border-accent'
+          ? 'border-accent bg-accent font-semibold text-on-accent'
+          : 'border-border bg-surface text-foreground hover:border-border-strong'
       }`}
     >
       <input

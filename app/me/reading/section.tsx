@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import type { Element } from '@/src/lib/saju';
+
 import { CARD } from '../../card';
 import { currentReading, improvementConsented, lastReadingRun, readingCredits } from './current';
 import { ReadingPanel } from './panel';
@@ -24,6 +26,7 @@ export async function ReadingSection({
   betweenSummaryAndBody,
   bare = false,
   matchNames,
+  tones,
 }: {
   target: ReadingTarget;
   /**
@@ -48,6 +51,8 @@ export async function ReadingSection({
   bare?: boolean;
   /** 옛 공유 풀이의 자리 호칭을 화면의 이름으로 옮길 때만 사용한다. */
   matchNames?: { readonly me: string; readonly partner: string };
+  /** 표지의 색 — 대상의 일간 오행(`ReadingPanel`). 부르는 화면이 이미 명식을 들고 있을 때만 넘긴다 */
+  tones?: readonly (Element | null)[];
 }) {
   /*
     **잔액은 대상을 모른다.** 사람마다 하나뿐이라 세 화면이 같은 값을 읽는다 — 그래서
@@ -62,7 +67,7 @@ export async function ReadingSection({
   ]);
 
   return (
-    <section className={`${bare ? '' : CARD} flex flex-col gap-5`}>
+    <section className={`${bare ? '' : CARD} flex flex-col gap-6`}>
       <ReadingPanel
         target={target}
         initialReading={reading}
@@ -86,6 +91,7 @@ export async function ReadingSection({
         ask={ask}
         betweenSummaryAndBody={betweenSummaryAndBody}
         matchNames={matchNames}
+        tones={tones}
       />
     </section>
   );

@@ -13,6 +13,13 @@ import type { ReactNode } from 'react';
  * 세우는 것은 프롬프트가 쓰라고 한 것과 같다 — 소제목·문단·목록·굵게·인라인 코드.
  * 표를 안 세우는 것은 게을러서가 아니라 **쓰지 말라고 적었기 때문**이고, 둘이 갈리면
  * 사용자에게 파이프 문자가 그대로 보인다.
+ *
+ * ## 에세이처럼 읽힌다 (5차 warm)
+ *
+ * 짜임은 모델이 낸 그대로이고 **글자의 단만** 에세이 앱의 것이다 — 본문 17px · 행간 1.85, 한 줄은
+ * 36rem(약 34자)에서 끊는다. 한국어 긴 글은 한 줄이 40자를 넘으면 다음 줄 머리를 찾는 눈이 헤맨다.
+ * 첫 문단은 리드로 한 단 크게, 소제목은 둥근 서체에 오행 색 막대가 붙는다 — 막대의 색은 감싼 판의
+ * `--mid` 이고(`panel.tsx` 가 대상의 일간을 입힌다), 판이 없는 자리(공유본)에서는 테 색이다.
  */
 
 /** `**굵게**` 와 `` `코드` `` 만 — 나머지는 글자 그대로 */
@@ -32,7 +39,7 @@ function inline(text: string, key: string): ReactNode[] {
           {found[1]}
         </strong>
       ) : (
-        <code key={`${key}-${index}`} className="rounded bg-surface-sunken px-1 py-0.5 text-[0.9em]">
+        <code key={`${key}-${index}`} className="rounded-md bg-surface-sunken px-1 py-0.5 text-[0.9em]">
           {found[2]}
         </code>
       ),
@@ -51,13 +58,14 @@ export function Markdown({ source }: { source: string }) {
   const lines = source.split('\n');
   let bullets: string[] = [];
   let paragraph: string[] = [];
+  let ledOff = false;
 
   const flushBullets = () => {
     if (bullets.length === 0) return;
     const items = bullets;
     bullets = [];
     blocks.push(
-      <ul key={`ul-${blocks.length}`} className="flex list-disc flex-col gap-1.5 pl-5">
+      <ul key={`ul-${blocks.length}`} className="flex list-disc flex-col gap-2.5 pl-5 marker:text-[var(--ink,var(--muted))]">
         {items.map((item, at) => (
           <li key={at}>{inline(item, `li-${blocks.length}-${at}`)}</li>
         ))}
@@ -69,8 +77,14 @@ export function Markdown({ source }: { source: string }) {
     if (paragraph.length === 0) return;
     const text = paragraph.join(' ');
     paragraph = [];
+    /* 글의 첫 문단이 리드다 — 이 글이 무엇을 말하려는지를 한 단 크게 먼저 건넨다 */
+    const lead = !ledOff;
+    ledOff = true;
     blocks.push(
-      <p key={`p-${blocks.length}`} className="leading-relaxed">
+      <p
+        key={`p-${blocks.length}`}
+        className={lead ? 'text-[1.1875rem] font-medium leading-[1.75] tracking-[-0.01em] text-foreground' : undefined}
+      >
         {inline(text, `p-${blocks.length}`)}
       </p>,
     );
@@ -91,7 +105,7 @@ export function Markdown({ source }: { source: string }) {
 
     if (/^-{3,}$/.test(trimmed)) {
       flush();
-      blocks.push(<hr key={`hr-${blocks.length}`} className="border-border" />);
+      blocks.push(<hr key={`hr-${blocks.length}`} className="my-4 border-border" />);
       continue;
     }
 
@@ -99,12 +113,21 @@ export function Markdown({ source }: { source: string }) {
     if (heading) {
       flush();
       const depth = heading[1].length;
-      const size = depth <= 2 ? 'text-lg font-bold tracking-tight' : 'text-base font-semibold';
-      const separation = blocks.length === 0 ? '' : 'mt-2 border-t border-border pt-6';
+      const separation = blocks.length === 0 ? '' : 'mt-8';
       blocks.push(
-        <h3 key={`h-${blocks.length}`} className={`${size} ${separation}`}>
-          {inline(heading[2], `h-${blocks.length}`)}
-        </h3>,
+        depth <= 2 ? (
+          <h3
+            key={`h-${blocks.length}`}
+            className={`flex items-center gap-2.5 font-rounded text-[1.5rem] leading-[1.35] text-foreground ${separation}`}
+          >
+            <span aria-hidden="true" className="h-6 w-1.5 shrink-0 rounded-full bg-[var(--mid,var(--border-strong))]" />
+            <span>{inline(heading[2], `h-${blocks.length}`)}</span>
+          </h3>
+        ) : (
+          <h4 key={`h-${blocks.length}`} className={`text-[17px] font-bold text-foreground ${blocks.length === 0 ? '' : 'mt-3'}`}>
+            {inline(heading[2], `h-${blocks.length}`)}
+          </h4>
+        ),
       );
       continue;
     }
@@ -122,5 +145,9 @@ export function Markdown({ source }: { source: string }) {
 
   flush();
 
-  return <div className="mx-auto flex w-full max-w-[72ch] flex-col gap-4 text-[0.95rem] leading-7 text-secondary [&_h3]:text-foreground [&_strong]:text-foreground">{blocks}</div>;
+  return (
+    <div className="mx-auto flex w-full max-w-[36rem] flex-col gap-5 text-[17px] leading-[1.85] text-foreground/90 [&_strong]:text-foreground">
+      {blocks}
+    </div>
+  );
 }

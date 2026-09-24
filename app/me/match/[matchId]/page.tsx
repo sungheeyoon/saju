@@ -3,10 +3,13 @@ import { notFound, redirect } from 'next/navigation';
 
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
 import { MATCH_RESULT_CLOSED_NOTE } from '@/src/lib/consent';
+import { STEM_INFO } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../../auth/server-client';
-import { CARD } from '../../../card';
 import { PillarPair } from '../../../compat-view';
+import { BUTTON_SECONDARY, BUTTON_TERTIARY } from '../../../ui/buttons';
+import { Icon } from '../../../ui/icon';
+import { EMPTY_SLOT, TYPE_TITLE } from '../../../ui/surfaces';
 import { BlockButton } from '../../requests/manage';
 import { ReadingSection } from '../../reading/section';
 import { matchResultForViewer, type SharedResult } from '../result';
@@ -67,12 +70,16 @@ export default async function MatchResultPage({
       **다른 화면과 같은 폭·같은 머리를 쓴다.** 여기만 제 손으로 여백과 제목을 그리고
       있어서, 소식에서 이 화면으로 들어오면 앱이 한 번 갈아 끼워지는 것처럼 보였다.
     */
-    <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">
-      <header className="border-b border-border pb-6">
-        <div>
-          <p className="eyebrow">인연</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">함께 보는 궁합</h1>
-          <p className="mt-1 text-sm text-secondary">
+    <main className="app-shell flex w-full flex-1 flex-col gap-8 py-8 sm:py-12">
+      <header className="flex flex-col gap-5">
+        <Link href="/me/readings" className={`${BUTTON_TERTIARY} self-start`}>
+          <Icon name="back" className="size-4" />
+          만든 풀이 목록
+        </Link>
+        <div className="flex flex-col gap-1.5">
+          <p className="text-[13px] font-semibold text-secondary">인연</p>
+          <h1 className={TYPE_TITLE}>함께 보는 궁합</h1>
+          <p className="text-[15px] leading-6 text-secondary">
             서로 동의한 두 분에게 같은 글과 같은 점수가 보입니다.
           </p>
         </div>
@@ -93,8 +100,8 @@ export default async function MatchResultPage({
           이 문장이 이미 「무엇이 그대로이고 무엇이 지금 안 되는지」를 다 말한다. 어느
           갈래로 닫혔는지는 서버 로그가 든다.
         */
-        <section className={CARD}>
-          <p className="text-sm text-secondary">{MATCH_RESULT_CLOSED_NOTE}</p>
+        <section className={EMPTY_SLOT}>
+          <p className="text-[15px] leading-7 text-secondary">{MATCH_RESULT_CLOSED_NOTE}</p>
         </section>
       )}
     </main>
@@ -128,14 +135,21 @@ function Result({ result }: { result: SharedResult }) {
         bare
         matchNames={{ me: '나', partner: result.partnerNickname }}
         betweenSummaryAndBody={<PillarPair charts={result.charts} names={result.names} />}
+        /*
+          표지는 두 사람의 일간이 비스듬히 만난다 — 동의로 열린 여덟 글자에서 읽으므로 새로 열리는 것이 없다
+          (ADR 0012). 앞자리가 늘 보는 사람이다(`names.a`).
+        */
+        tones={[STEM_INFO[result.charts.a.dayMaster].element, STEM_INFO[result.charts.b.dayMaster].element]}
       />
 
-      <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4">
+      {/*
+        **다 읽은 사람이 하는 일 둘** — 방으로 가기와 끊기. 무게가 다르므로 모양도 다르다: 대화는 보조
+        단추, 차단은 한 번 더 묻는 조용한 글자다(ADR 0058, `BlockButton`).
+      */}
+      <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         {/* 동의가 나면 방이 열린다(PRD §7.1) — 결과에서 바로 그 방으로 간다 */}
-        <Link
-          href={`/me/chat/${result.matchId}`}
-          className="text-sm font-semibold text-accent underline underline-offset-2"
-        >
+        <Link href={`/me/chat/${result.matchId}`} className={`${BUTTON_SECONDARY} self-start`}>
+          <Icon name="chat" className="size-[18px]" />
           {CHAT_TAB_LABEL}
         </Link>
         <BlockButton userId={result.partnerUserId} />
