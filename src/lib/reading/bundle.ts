@@ -20,12 +20,13 @@ export const READING_BUNDLES = [
 const SINGLE_PRICE = READING_BUNDLES[0].price;
 
 /**
- * 1회권을 같은 횟수만큼 살 때와 견준 할인율(%) — **반올림**, 사람이 정한 표(12 · 19 · 40)가 그렇게 셌다.
- * 실제 값은 12.2 · 18.8 · 39.8 이라 5회 · 20회는 표시가 실제보다 크다 — 판매를 열기 전에 사람이
- * 정한다(G-21, 2026-09-24 에 잼). 화면은 기준을 함께 적는다.
+ * 1회권을 같은 횟수만큼 살 때와 견준 할인율(%) — **정수 내림**(운영자 결정 2026-09-24, G-21). 실제 값은
+ * 12.2 · 18.8 · 39.8 이고 표시는 12 · 18 · 39 다. 반올림(12 · 19 · 40)은 5회 · 20회에서 표시가 실제보다 커서
+ * 걷었다 — 할인 표시는 실제보다 크게 말하지 않는다. 가격은 그대로다. 상품 화면 · 결제 전 고지 · 문서가
+ * 할인율을 말하면 이 값 하나를 쓴다. 화면은 기준(1회권 대비)을 함께 적는다.
  */
 export const discountAgainstSingles = (credits: number, price: number): number =>
-  Math.round((1 - price / (credits * SINGLE_PRICE)) * 100);
+  Math.floor((1 - price / (credits * SINGLE_PRICE)) * 100);
 
 /** 쓰임이 든 몫 — 무료 · 예외 · 산 묶음 · 몫 밖(셈이 되돌려 준 자리) */
 export type CreditShare = 'free' | 'grant' | 'bundle' | 'outside';

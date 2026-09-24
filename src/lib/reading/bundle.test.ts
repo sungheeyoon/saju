@@ -17,13 +17,18 @@ describe('풀이권 묶음', () => {
     ]);
   });
 
-  it('1회권과 견준 할인율은 반올림으로 0 · 12 · 19 · 40 이다 — 사람이 정한 표와 같다', () => {
-    expect(READING_BUNDLES.map((b) => discountAgainstSingles(b.credits, b.price))).toEqual([0, 12, 19, 40]);
+  it('1회권과 견준 할인율은 정수 내림으로 0 · 12 · 18 · 39 다 — 운영자가 정한 표와 같다', () => {
+    expect(READING_BUNDLES.map((b) => discountAgainstSingles(b.credits, b.price))).toEqual([0, 12, 18, 39]);
   });
 
-  it('5회 · 20회의 실제 할인율은 표시보다 작다 — 18.8 · 39.8', () => {
-    const exact = READING_BUNDLES.map((b) => Math.round((1 - b.price / (b.credits * 4900)) * 1000) / 10);
-    expect(exact).toEqual([0, 12.2, 18.8, 39.8]);
+  it('실제 할인율은 12.2 · 18.8 · 39.8 이고 표시는 어느 묶음에서도 실제보다 크지 않다', () => {
+    const exact = READING_BUNDLES.map((b) => (1 - b.price / (b.credits * 4900)) * 100);
+    expect(exact.map((one) => Math.round(one * 10) / 10)).toEqual([0, 12.2, 18.8, 39.8]);
+    READING_BUNDLES.forEach((b, i) => {
+      const shown = discountAgainstSingles(b.credits, b.price);
+      expect(shown).toBeLessThanOrEqual(exact[i]);
+      expect(exact[i] - shown).toBeLessThan(1);
+    });
   });
 
   it('많이 사는 묶음일수록 한 회가 싸다', () => {
