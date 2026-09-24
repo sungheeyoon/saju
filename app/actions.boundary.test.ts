@@ -26,7 +26,17 @@ import { describe, expect, it } from 'vitest';
  * 재는 것은 DB 를 읽는 문이다.
  *
  * 이름으로 잇는다 — 같은 이름이 두 파일에 있으면 하나만 던져도 던지는 것으로 친다. 넘치게 세는
- * 쪽이지 모자라게 세는 쪽이 아니다.
+ * 쪽이지 모자라게 세는 쪽이 아니다. `import { a as b }` 로 바꾼 이름은 원래 이름으로 되돌려 잇는다.
+ *
+ * ## 무엇을 「액션」으로 치나
+ *
+ * `'use server'`(홑 · 겹따옴표) 파일이 내보낸 `export function f` 와 `export const f = async (…) =>`,
+ * 그리고 `.ts` · `.tsx` 어디서든 몸통 첫 줄이 `'use server'` 인 함수(화면 안에 적은 액션).
+ *
+ * ## 못 재는 것
+ *
+ * **`객체.메서드()` 로 부르는 문은 안 잇는다** — 이름만으로는 어느 함수인지 모른다. 지금 문은 전부
+ * 맨 이름으로 불리고 있다. 문을 객체에 담아 부르기 시작하면 여기를 넓힌다.
  */
 
 const ROOT = 'app';
@@ -37,7 +47,7 @@ function sourceFiles(dir: string): string[] {
     if (entry === 'node_modules' || entry.startsWith('.')) return [];
     if (statSync(path).isDirectory()) return sourceFiles(path);
 
-    return /\.ts$/.test(entry) && !/\.test\.ts$/.test(entry) ? [path] : [];
+    return /\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry) ? [path] : [];
   });
 }
 
@@ -46,8 +56,24 @@ const asPosix = (path: string) => relative(process.cwd(), path).split(sep).join(
 
 const sources = sourceFiles(ROOT).map((path) => {
   const text = readFileSync(path, 'utf8');
-  return { path: asPosix(path), text, source: ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true) };
+  const kind = path.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  return { path: asPosix(path), text, source: ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, kind) };
 });
+
+/** `import { a as b }` — 바꾼 이름 `b` 에서 원래 이름 `a` 로 */
+const ORIGINAL_NAME: ReadonlyMap<string, string> = new Map(
+  sources.flatMap(({ source }) =>
+    source.statements.flatMap((statement) => {
+      const bindings = ts.isImportDeclaration(statement) ? statement.importClause?.namedBindings : undefined;
+      if (!bindings || !ts.isNamedImports(bindings)) return [];
+      return bindings.elements.flatMap((element) =>
+        element.propertyName ? [[element.name.text, element.propertyName.text] as const] : [],
+      );
+    }),
+  ),
+);
+
+const originalOf = (name: string) => ORIGINAL_NAME.get(name) ?? name;
 
 /**
  * **던져도 문으로 안 치는 것과 그 까닭.** 목록이지 예외가 아니다.
@@ -121,12 +147,12 @@ function unguarded(body: ts.Node, throwing: ReadonlySet<string>): string[] {
     if (
       ts.isCallExpression(node) &&
       ts.isIdentifier(node.expression) &&
-      throwing.has(node.expression.text) &&
+      throwing.has(originalOf(node.expression.text)) &&
       !caughtWithin(node, body) &&
       !chainedCatch(node) &&
       !insideAfter(node, body)
     ) {
-      out.push(node.expression.text);
+      out.push(originalOf(node.expression.text));
     }
     ts.forEachChild(node, visit);
   };
@@ -149,20 +175,62 @@ function throwingNames(): Set<string> {
   return throwing;
 }
 
-/** `'use server'` 파일이 내보낸 액션 */
+/** 몸통 첫 줄이 `'use server'` 인가 */
+const USE_SERVER = /^['"]use server['"];?\s*$/m;
+const startsWithUseServer = (body: ts.Node | undefined) =>
+  body !== undefined &&
+  ts.isBlock(body) &&
+  body.statements[0] !== undefined &&
+  ts.isExpressionStatement(body.statements[0]) &&
+  ts.isStringLiteral(body.statements[0].expression) &&
+  body.statements[0].expression.text === 'use server';
+
+const exported = (node: ts.Node) =>
+  ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword);
+
+/** 액션 — `'use server'` 파일이 내보낸 함수, 그리고 몸통에 `'use server'` 를 적은 함수 */
 function serverActions(): { id: string; body: ts.Node }[] {
-  return sources
-    .filter(({ text }) => /^'use server';/m.test(text))
+  const fromFiles = sources
+    .filter(({ source }) => {
+      const first = source.statements[0];
+      return first !== undefined && ts.isExpressionStatement(first) && ts.isStringLiteral(first.expression) && USE_SERVER.test(`'${first.expression.text}'`);
+    })
     .flatMap(({ path, source }) =>
-      source.statements.flatMap((statement) =>
-        ts.isFunctionDeclaration(statement) &&
-        statement.name &&
-        statement.body &&
-        statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)
-          ? [{ id: `${path}::${statement.name.text}`, body: statement.body as ts.Node }]
-          : [],
-      ),
+      source.statements.flatMap((statement) => {
+        if (!exported(statement)) return [];
+        if (ts.isFunctionDeclaration(statement) && statement.name && statement.body) {
+          return [{ id: `${path}::${statement.name.text}`, body: statement.body as ts.Node }];
+        }
+        if (!ts.isVariableStatement(statement)) return [];
+        return statement.declarationList.declarations.flatMap((declaration) =>
+          ts.isIdentifier(declaration.name) &&
+          declaration.initializer &&
+          (ts.isArrowFunction(declaration.initializer) || ts.isFunctionExpression(declaration.initializer))
+            ? [{ id: `${path}::${declaration.name.text}`, body: declaration.initializer.body as ts.Node }]
+            : [],
+        );
+      }),
     );
+
+  const inline = sources.flatMap(({ path, source }) => {
+    const out: { id: string; body: ts.Node }[] = [];
+    const visit = (node: ts.Node) => {
+      if ((ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isArrowFunction(node)) && startsWithUseServer(node.body)) {
+        const name = ts.isFunctionDeclaration(node) && node.name
+          ? node.name.text
+          : ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)
+            ? node.parent.name.text
+            : `(이름 없음 ${source.getLineAndCharacterOfPosition(node.getStart()).line + 1}행)`;
+        out.push({ id: `${path}::${name}`, body: node.body as ts.Node });
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return out;
+  });
+
+  const seen = new Set<string>();
+  return [...fromFiles, ...inline].filter(({ id }) => !seen.has(id) && seen.add(id) !== undefined);
 }
 
 /**
@@ -181,6 +249,8 @@ describe('서버 액션은 던지지 않는다', () => {
   /** 아무것도 못 찾았으면 이 시험은 아무것도 안 잰 것이다 */
   it('던지는 문과 액션을 실제로 읽어 왔다', () => {
     expect(actions.length).toBeGreaterThan(20);
+    // 화면 안에 적은 액션도 액션이다 — 설정의 로그아웃이 그 모양이다
+    expect(actions.map(({ id }) => id)).toContain('app/me/settings/page.tsx::signOut');
     // 이 셋은 `throw dbFailure(…)` 를 직접 · 한 다리 건너 든다 — 못 찾으면 잇는 셈이 깨졌다
     expect([...throwing]).toEqual(expect.arrayContaining(['sameChartInMyList', 'storedInputsOf', 'currentReading']));
   });
