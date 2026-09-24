@@ -26,7 +26,7 @@ export function SignOutLink() {
         router.replace('/');
         router.refresh();
       }}
-      className="self-start text-sm text-secondary underline underline-offset-4 hover:text-foreground disabled:opacity-60"
+      className="inline-flex min-h-11 items-center self-center px-1 text-sm font-semibold text-secondary underline decoration-border-strong decoration-2 underline-offset-[6px] hover:text-foreground hover:decoration-foreground disabled:opacity-55 sm:self-start"
     >
       {leaving ? '로그아웃하는 중…' : '다른 계정으로 로그인하기'}
     </button>

@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
+import { BUTTON_PRIMARY } from '../../ui/buttons';
 import { setOptionalConsent } from '../actions';
 
 /**
@@ -35,11 +36,11 @@ export function ConsentSwitch() {
             setFailure(result.message);
           });
         }}
-        className="h-11 self-start rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent hover:bg-accent-strong disabled:opacity-60"
+        className={`${BUTTON_PRIMARY} self-stretch sm:self-start`}
       >
         {saving ? '켜는 중…' : '동의하고 설문 열기'}
       </button>
-      <p className="text-xs leading-5 text-muted">
+      <p className="text-[13px] leading-5 text-muted">
         계정 관리 화면에서 언제든 다시 끄실 수 있습니다. 끄시면 지금까지 남기신 설문 답도 함께
         지웁니다.
       </p>

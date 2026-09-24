@@ -34,7 +34,7 @@ import {
   type SurveyAnswers,
 } from '@/src/lib/survey';
 
-import { CARD } from '../../card';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { saveServiceSurvey } from './actions';
 import type { MySurvey, SurveyContext } from './read';
 
@@ -54,6 +54,19 @@ import type { MySurvey, SurveyContext } from './read';
  * 보내면 안 물어본 문항의 답이 저장된다. 서버도 같은 것을 하지만(그쪽이 진짜 문이다)
  * 여기서도 하는 것은, 화면에 안 보이는 값이 요청에 실려 나가지 않게 하기 위해서다.
  */
+/** 문항 한 장 — 무리 지은 목록과 같은 흰 판 */
+const PANEL = 'flex flex-col gap-3 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
+
+/** 문항의 물음 — 본문보다 확실히 크고 굵게. 긴 문장이라 둥근 서체 대신 Pretendard 다 */
+const ASK = 'block text-[17px] font-bold leading-7 text-foreground';
+
+/**
+ * 고르는 줄 — 줄 전체가 누를 자리(48px)이고, 고르면 먹색 테와 크림 면이 선다. 상자 자체도 남아
+ * 있어 고른 것이 색만으로 말해지지 않는다.
+ */
+const CHOICE =
+  'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 text-[15px] leading-6 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-focus-visible:outline has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent-soft';
+
 export function SurveyForm({ context, given }: { context: SurveyContext; given: MySurvey | null }) {
   const [answers, setAnswers] = useState<SurveyAnswers>(given?.answers ?? EMPTY_ANSWERS);
   const [submittedAt, setSubmittedAt] = useState<string | null>(given?.submittedAt ?? null);
@@ -107,15 +120,15 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
 
   if (!open) {
     return (
-      <section className={`${CARD} flex flex-col gap-4`}>
-        <div>
-          <h2 className="text-base font-bold">{SURVEY_COPY.thanks}</h2>
-          <p className="mt-1 text-sm text-secondary">{SURVEY_COPY.editable}</p>
+      <section className="flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6">
+        <div className="flex flex-col gap-1">
+          <h2 className="font-rounded text-[1.5rem] leading-8">{SURVEY_COPY.thanks}</h2>
+          <p className="text-sm leading-6 text-secondary">{SURVEY_COPY.editable}</p>
         </div>
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="h-11 self-start rounded-xl border border-border-strong px-4 text-sm font-semibold hover:border-accent hover:text-accent"
+          className={`${BUTTON_SECONDARY} self-stretch sm:self-start`}
         >
           답 고치기
         </button>
@@ -203,19 +216,16 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
         문장에서 낱말 하나만 갈려서 **같은 질문이 두 번 서 있는 것으로 읽혔다.**
       */}
       {asked.length > 0 && (
-        <section className={`${CARD} flex flex-col gap-3`}>
-          <p className="text-base font-bold">{PRICE_STEM}</p>
-          <p className="text-xs leading-5 text-secondary">{PRICE_NOTE}</p>
+        <section className={PANEL}>
+          <p className={ASK}>{PRICE_STEM}</p>
+          <p className="text-[13px] leading-5 text-secondary">{PRICE_NOTE}</p>
           {asked.map((subject) => (
             <fieldset key={subject} className="flex flex-col gap-2 border-t border-border pt-4">
               <legend className="contents">
-                <span className="block text-sm font-semibold">{PRICE_SUBJECT_LABEL[subject]}</span>
+                <span className="block text-[15px] font-semibold">{PRICE_SUBJECT_LABEL[subject]}</span>
               </legend>
               {PRICE_OPTIONS.map((option) => (
-                <label
-                  key={option}
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3.5 py-3 text-sm hover:border-accent has-checked:border-accent has-checked:bg-accent-wash"
-                >
+                <label key={option} className={CHOICE}>
                   <input
                     type="radio"
                     checked={
@@ -229,7 +239,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
                       const now = subject === 'solo' ? answers.priceSolo : answers.pricePair;
                       if (now === option) pick(subject === 'solo' ? 'priceSolo' : 'pricePair', null);
                     }}
-                    className="size-4 accent-[var(--accent)]"
+                    className="size-5 shrink-0 accent-[var(--accent)]"
                   />
                   <span>{PRICE_LABEL[option]}</span>
                 </label>
@@ -251,7 +261,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
         />
       )}
 
-      <section className={`${CARD} flex flex-col gap-3`}>
+      <section className={PANEL}>
         <Writing
           label={QUESTION.freeText}
           limit={TEXT_LIMIT.free}
@@ -260,14 +270,14 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
         />
       </section>
 
-      <section className={`${CARD} flex flex-col gap-3`}>
-        <p className="text-xs leading-5 text-muted">{SURVEY_COPY.drafting}</p>
-        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">
+      <section className="flex flex-col gap-3 px-1">
+        <p className="text-[13px] leading-5 text-muted">{SURVEY_COPY.drafting}</p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
           <button
             type="button"
             onClick={send}
             disabled={sending || !isAnswered(answers)}
-            className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent hover:bg-accent-strong disabled:opacity-60"
+            className={BUTTON_PRIMARY}
           >
             {submittedAt === null ? SURVEY_COPY.submit : SURVEY_COPY.resubmit}
           </button>
@@ -294,14 +304,14 @@ function DraftMark({ state }: { state: 'idle' | 'saving' | 'saved' | 'failed' })
 
   if (state === 'failed') {
     return (
-      <span role="status" className="text-xs font-semibold text-danger">
+      <span role="status" className="text-[13px] font-semibold text-danger">
         {SURVEY_COPY.draftFailed} 다시 고치시면 한 번 더 시도합니다.
       </span>
     );
   }
 
   return (
-    <span role="status" className="text-xs text-muted">
+    <span role="status" className="text-[13px] text-muted">
       {state === 'saving' ? '임시 저장하는 중…' : SURVEY_COPY.draftSaved}
     </span>
   );
@@ -332,23 +342,20 @@ function Picks<T extends string>({
   children?: React.ReactNode;
 }) {
   return (
-    <fieldset className={nested ? 'flex flex-col gap-3 border-t border-border pt-4' : `${CARD} flex flex-col gap-3`}>
+    <fieldset className={nested ? 'flex flex-col gap-3 border-t border-border pt-4' : PANEL}>
       <legend className="contents">
-        <span className="block text-base font-bold">{question}</span>
+        <span className={nested ? 'block text-[15px] font-bold leading-6' : ASK}>{question}</span>
       </legend>
-      <p className="text-xs text-muted">{hint}</p>
-      {note !== undefined && <p className="text-xs leading-5 text-secondary">{note}</p>}
+      <p className="text-[13px] text-muted">{hint}</p>
+      {note !== undefined && <p className="text-[13px] leading-5 text-secondary">{note}</p>}
       <div className="flex flex-col gap-2">
         {options.map((option) => (
-          <label
-            key={option}
-            className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-3.5 py-3 text-sm hover:border-accent has-checked:border-accent has-checked:bg-accent-wash"
-          >
+          <label key={option} className={CHOICE}>
             <input
               type="checkbox"
               checked={picked.includes(option)}
               onChange={() => onPick(afterPicking(picked, option, sole))}
-              className="size-4 accent-[var(--accent)]"
+              className="size-5 shrink-0 accent-[var(--accent)]"
             />
             <span>{label[option]}</span>
           </label>
@@ -373,10 +380,10 @@ function Writing({
 }) {
   return (
     <div className="flex flex-col gap-2 border-t border-border pt-4 first:border-0 first:pt-0">
-      <label className="text-sm font-semibold" htmlFor={`writing-${limit}`}>
+      <label className="text-[15px] font-semibold leading-6" htmlFor={`writing-${limit}`}>
         {label}
       </label>
-      <p className="text-xs text-muted">
+      <p className="text-[13px] text-muted">
         {SURVEY_COPY.optional} · 최대 {limit}자
       </p>
       <textarea
@@ -385,7 +392,7 @@ function Writing({
         maxLength={limit}
         rows={4}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-border bg-surface px-3.5 py-3 text-sm leading-6 focus:border-accent focus:outline-none"
+        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-[15px] leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
       />
     </div>
   );

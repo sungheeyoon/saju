@@ -65,6 +65,8 @@ export type InboxMatch = {
 
 type InboxNotification = {
   readonly notificationId: string;
+  /** 사건의 갈래 — 화면이 줄 머리의 그림을 고른다. 문장은 `text` 가 든다 */
+  readonly kind: NotificationKind;
   readonly text: string;
   /**
    * 가서 볼 자리 — **실패 알림에만 있다.**
@@ -199,6 +201,7 @@ export async function inboxForViewer(): Promise<Inbox> {
       return [
         {
           notificationId: row.notification_id,
+          kind: kind as NotificationKind,
           // **문장은 DB 가 저장하지 않는다.** 사건과 상대만 오고 말은 정책이 짓는다.
           text: notificationText({
             kind: kind as NotificationKind,

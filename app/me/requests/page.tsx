@@ -6,10 +6,12 @@ import {
   CONSENT_FLOW_CAVEAT,
   CONSENT_FLOW_STEPS,
   REQUEST_STATUS_TEXT,
+  type NotificationKind,
 } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { CARD } from '../../card';
+import { Icon, type IconName } from '../../ui/icon';
+import { BADGE, ROW_CARD, TYPE_META, TYPE_NAME, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
 import { Avatar } from '../avatar';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
@@ -47,6 +49,14 @@ export const metadata = {
  *
  * 이 화면이 요청에 대해 아는 것은 별명·소개·상태·채우는 오행·균형뿐이다. 여덟 글자도
  * 생년월일시도 점수도 `my_match_requests()` 의 반환형에 없다.
+ *
+ * ## 답할 일이 위, 알림이 아래 (5차, 부드러움)
+ *
+ * 알림 목록이 맨 위에 서 있었고 받은 요청은 그 아래였다. 알림은 이 화면에 들어오는 순간 전부
+ * 읽음이 되므로(`ReadNotificationsOnVisit`) 다시 볼 일이 적고, 받은 요청은 **내가 답할 때까지
+ * 남는** 유일한 것이다. 그래서 차례를 뒤집었다 — 답할 일은 크게 위에, 지나간 일은 시간순 한 장의
+ * 목록으로 아래에. 숫자 타일 셋(새 소식 · 받은 요청 · 답변 대기)은 뺐다. 읽는 순간 0 이 되는 수와
+ * 바로 아래 절의 수를 한 번 더 세우는 판이었다 — 수는 절 제목 옆 딱지가 든다.
  */
 export default async function RequestsPage() {
   const supabase = await supabaseOnServer();
@@ -60,14 +70,8 @@ export default async function RequestsPage() {
   const { state } = await readAccount(supabase, 'status');
 
   return (
-    <main className="app-shell flex w-full flex-1 flex-col gap-8 py-9 sm:py-14">
-      <header className="flex max-w-2xl flex-col gap-2">
-        <p className="eyebrow">소식</p>
-        <h1 className="text-3xl font-bold tracking-[-0.04em] sm:text-4xl">궁합 요청과 새 소식</h1>
-        <p className="text-sm leading-6 text-secondary">
-          답해야 할 요청부터 새로 열린 궁합까지, 지금 확인할 일을 한곳에 모았습니다.
-        </p>
-      </header>
+    <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-8 py-8 sm:py-12">
+      <h1 className={TYPE_TITLE}>소식</h1>
 
       {isBlocked(state) ? <AccountNotice state={state} /> : <InboxSections />}
     </main>
@@ -96,180 +100,122 @@ async function InboxSections() {
   const decided = inbox.requests.filter((request) => request.status !== 'pending');
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       <ReadNotificationsOnVisit unread={inbox.unread} />
-      <InboxSummary unread={inbox.unread} received={received.length} sent={sent.length} />
+
+      <section className="flex flex-col gap-3">
+        <SectionHead title="받은 요청" count={received.length} />
+        {received.length === 0 ? (
+          <Nothing>답할 요청이 없습니다.</Nothing>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {received.map((request) => (
+              <li
+                key={request.requestId}
+                className="flex flex-col gap-4 rounded-[1.75rem] border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6"
+              >
+                <RequestHead request={request} large />
+                {/*
+                  **동의 화면이다.** 무엇이 열리는지는 눌러야 나타나는 것이 아니라
+                  카드가 열릴 때부터 버튼 위에 서 있다 — 읽지 않고 누른 수락은 동의가
+                  아니고, 눌러야 나타나는 고지는 밖에서 잴 수도 없다.
+                */}
+                <MatchConsentQuestion />
+                <RespondButtons requestId={request.requestId} />
+                {/*
+                  신고는 **상대가 나에게 한 일**이 있는 자리에만 둔다 — 받은 요청과
+                  성립한 Match. 내가 보낸 요청 카드에는 두지 않는다.
+                */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-2">
+                  <BlockButton userId={request.counterpartUserId} />
+                  <ReportButton userId={request.counterpartUserId} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <SectionHead title="보낸 요청" count={sent.length} />
+        {sent.length === 0 ? (
+          <Nothing>기다리는 중인 요청이 없습니다.</Nothing>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {sent.map((request) => (
+              <li key={request.requestId} className={`${ROW_CARD} flex flex-col gap-2`}>
+                <RequestHead request={request} />
+                <p className="text-sm leading-6 text-secondary">{REQUEST_STATUS_TEXT.pending.sent}</p>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-1">
+                  <CancelButton requestId={request.requestId} />
+                  <BlockButton userId={request.counterpartUserId} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <Notifications inbox={inbox} />
 
       {/*
-        **한 줄로 내려온다.** 오른쪽에 곁줄이 있었고 그 안에 「빠른 이동」(내 사주·계정
-        관리)이 서 있었다. 그 둘은 **머리글의 메뉴가 이미 드는 길**이라, 화면 안에 또
-        세우면 같은 길이 두 자리에 있는 셈이다 — 소식 화면이 하는 일은 요청에 답하는 것
-        하나다.
-
-        안내 접이칸은 **맨 아래**로 내려갔다. 읽어야 할 요청보다 먼저 설 이유가 없고,
-        처음 온 사람은 답하고 나서 「이게 어떻게 되는 거지」를 묻는다.
+        끝난 요청도 남긴다. **왜 사라졌는지**를 말할 수 있어야 하기 때문이다 —
+        무효와 거둠은 둘 다 「성립하지 않았다」지만 이유가 다르다(US 43).
       */}
-      <div className="flex flex-col gap-8">
-          <section className="flex flex-col gap-3">
-            <SectionHead
-              title="받은 요청"
-              count={received.length}
-              description="내 답을 기다리고 있는 요청입니다."
-            />
-            {received.length === 0 ? (
-              <Nothing>답할 요청이 없습니다.</Nothing>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {received.map((request) => (
-                  <li
-                    key={request.requestId}
-                    className={`${CARD} flex flex-col gap-4 border-accent/30`}
-                  >
-                    <RequestHead request={request} />
-                    {/*
-                      **동의 화면이다.** 무엇이 열리는지는 눌러야 나타나는 것이 아니라
-                      카드가 열릴 때부터 버튼 위에 서 있다 — 읽지 않고 누른 수락은 동의가
-                      아니고, 눌러야 나타나는 고지는 밖에서 잴 수도 없다.
-                    */}
-                    <MatchConsentQuestion />
-                    <RespondButtons requestId={request.requestId} />
-                    {/*
-                      신고는 **상대가 나에게 한 일**이 있는 자리에만 둔다 — 받은 요청과
-                      성립한 Match. 내가 보낸 요청 카드에는 두지 않는다.
-                    */}
-                    <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
-                      <BlockButton userId={request.counterpartUserId} />
-                      <ReportButton userId={request.counterpartUserId} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+      {decided.length > 0 && <DecidedRequests requests={decided} />}
 
-          <section className="flex flex-col gap-3">
-            <SectionHead
-              title="보낸 요청"
-              count={sent.length}
-              description="상대의 답을 기다리고 있는 요청입니다."
-            />
-            {sent.length === 0 ? (
-              <Nothing>기다리는 중인 요청이 없습니다.</Nothing>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {sent.map((request) => (
-                  <li key={request.requestId} className={`${CARD} flex flex-col gap-3`}>
-                    <RequestHead request={request} />
-                    <p className="rounded-xl bg-surface-soft px-4 py-3 text-sm text-secondary">
-                      {REQUEST_STATUS_TEXT.pending.sent}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-4 border-t border-border pt-3">
-                      <CancelButton requestId={request.requestId} />
-                      <BlockButton userId={request.counterpartUserId} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {/*
-            끝난 요청도 남긴다. **왜 사라졌는지**를 말할 수 있어야 하기 때문이다 —
-            무효와 거둠은 둘 다 「성립하지 않았다」지만 이유가 다르다(US 43).
-          */}
-          {decided.length > 0 && <DecidedRequests requests={decided} />}
-
-          <BlockedCount count={inbox.blocked} />
-          <ConsentGuide />
+      <div className="flex flex-col gap-3">
+        <ConsentGuide />
+        <BlockedCount count={inbox.blocked} />
       </div>
     </div>
   );
 }
 
-function InboxSummary({
-  unread,
-  received,
-  sent,
-}: {
-  unread: number;
-  received: number;
-  sent: number;
-}) {
-  const items = [
-    { label: '새 소식', value: unread, tone: 'bg-accent text-on-accent' },
-    { label: '받은 요청', value: received, tone: 'bg-accent-wash text-accent' },
-    { label: '답변 대기', value: sent, tone: 'bg-earth-soft text-earth' },
-  ] as const;
-
+/** 절 제목 — 수는 딱지로. 0 이면 딱지를 안 세운다(빈 자리가 바로 아래에서 말한다) */
+function SectionHead({ title, count }: { title: string; count: number }) {
   return (
-    <section aria-label="소식 요약" className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="flex min-h-24 flex-col justify-between rounded-2xl border border-border bg-surface p-4 shadow-[var(--shadow-card)]"
-        >
-          <span className="text-xs font-medium text-secondary">{item.label}</span>
-          <span
-            className={`mt-3 grid size-9 place-items-center self-end rounded-full text-base font-bold tabular-nums ${item.tone}`}
-          >
-            {item.value}
-          </span>
-        </div>
-      ))}
-    </section>
+    <div className="flex items-center gap-2">
+      <h2 className={TYPE_SECTION}>{title}</h2>
+      {count > 0 && <span className={BADGE}>{count}</span>}
+    </div>
   );
 }
 
-function SectionHead({
-  title,
-  count,
-  description,
-}: {
-  title: string;
-  count: number;
-  description: string;
-}) {
+/** 접이칸 한 줄 — 제목 줄이 44px 을 넘고 끝의 셰브론이 펴지면 아래를 본다 */
+const FOLD = `${ROW_CARD} group py-0`;
+const FOLD_SUMMARY =
+  'flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden';
+
+function FoldMark() {
   return (
-    <div className="flex items-end justify-between gap-4">
-      <div>
-        <h2 className="text-lg font-bold tracking-tight">{title}</h2>
-        <p className="mt-0.5 text-xs text-muted">{description}</p>
-      </div>
-      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-sunken text-xs font-semibold tabular-nums text-secondary">
-        {count}
-      </span>
-    </div>
+    <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-90">
+      <Icon name="chevron" className="size-4" />
+    </span>
   );
 }
 
 function ConsentGuide() {
   return (
-    <details className={`${CARD} group`}>
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold [&::-webkit-details-marker]:hidden">
+    <details className={FOLD}>
+      <summary className={FOLD_SUMMARY}>
         궁합 요청은 어떻게 진행되나요?
-        <span
-          aria-hidden="true"
-          className="grid size-7 shrink-0 place-items-center rounded-full bg-surface-soft text-lg font-normal text-secondary group-open:rotate-45"
-        >
-          +
-        </span>
+        <FoldMark />
       </summary>
-      <ol className="mt-5 flex flex-col gap-4 border-t border-border pt-5">
+      <ol className="flex flex-col gap-4 border-t border-border py-4">
         {CONSENT_FLOW_STEPS.map((step, index) => (
           <li key={step.title} className="grid grid-cols-[1.75rem_1fr] gap-3">
-            <span className="grid size-7 place-items-center rounded-full bg-accent-wash text-xs font-bold text-accent-strong">
+            <span className="grid size-7 place-items-center rounded-full bg-cream text-[13px] font-bold text-cream-ink">
               {index + 1}
             </span>
             <div>
               <p className="text-sm font-semibold">{step.title}</p>
-              <p className="mt-1 text-xs leading-5 text-secondary">{step.body}</p>
+              <p className="mt-1 text-[13px] leading-5 text-secondary">{step.body}</p>
             </div>
           </li>
         ))}
       </ol>
-      <p className="mt-4 border-t border-border pt-4 text-xs leading-5 text-muted">
+      <p className="border-t border-border py-4 text-[13px] leading-5 text-muted">
         {CONSENT_FLOW_CAVEAT}
       </p>
     </details>
@@ -278,23 +224,24 @@ function ConsentGuide() {
 
 function DecidedRequests({ requests }: { requests: readonly InboxRequest[] }) {
   return (
-    <details className="rounded-2xl border border-border bg-surface px-5 py-4">
-      <summary className="cursor-pointer text-sm font-medium text-secondary">
+    <details className={FOLD}>
+      <summary className={`${FOLD_SUMMARY} text-secondary`}>
         끝난 요청 {requests.length}개
+        <FoldMark />
       </summary>
-      <ul className="mt-4 flex flex-col divide-y divide-border border-t border-border text-sm">
+      <ul className="flex flex-col divide-y divide-border border-t border-border text-sm">
         {requests.map((request) => (
-          <li key={request.requestId} className="flex flex-col gap-1 py-3 first:pt-4 last:pb-0">
-            <span className="flex flex-wrap items-baseline gap-2">
-              <strong className="font-medium">{request.nickname}</strong>
-              <span className="rounded-full bg-surface-soft px-2 py-0.5 text-[11px] text-muted">
+          <li key={request.requestId} className="flex flex-col gap-1 py-3">
+            <span className="flex flex-wrap items-center gap-2">
+              <strong className="font-semibold">{request.nickname}</strong>
+              <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-[12px] font-medium text-secondary">
                 {REQUEST_STATUS_TEXT[request.status].label}
               </span>
-              <span className="ml-auto text-xs text-muted">
+              <span className={`ml-auto ${TYPE_META}`}>
                 {when(request.decidedAt ?? request.createdAt)}
               </span>
             </span>
-            <span className="text-xs text-secondary">
+            <span className="text-[13px] leading-5 text-secondary">
               {request.direction === 'sent'
                 ? REQUEST_STATUS_TEXT[request.status].sent
                 : REQUEST_STATUS_TEXT[request.status].received}
@@ -306,72 +253,115 @@ function DecidedRequests({ requests }: { requests: readonly InboxRequest[] }) {
   );
 }
 
+/**
+ * 사건마다 줄 머리의 그림 — **색이 아니라 모양이 갈래를 말한다.** 문장이 이미 사건을 말하므로
+ * 그림은 훑어볼 때의 손잡이일 뿐이고, 그래서 늘 `aria-hidden` 이다.
+ */
+const NOTIFICATION_ICON: Record<NotificationKind, IconName> = {
+  request_received: 'heart',
+  request_accepted: 'heart',
+  request_rejected: 'close',
+  request_invalidated: 'alert',
+  request_expired: 'ticket',
+  reading_ready: 'reading',
+  reading_failed: 'alert',
+};
+
+/** 되돌아볼 일이 난 사건 — 그림 자리가 위험 색을 입는다(문장이 따로 말하므로 색만으로 말하지 않는다) */
+const NOTIFICATION_WARNS: readonly NotificationKind[] = ['request_invalidated', 'reading_failed'];
+
+/**
+ * 알림 — **한 장의 목록에 시간순으로.** 알림함처럼 줄 사이는 실선 하나이고, 안 읽은 줄은 크림 면과
+ * 점으로 선다. 갈 자리가 있는 줄은 줄 전체가 링크이고 끝에 셰브론이 선다.
+ */
 function Notifications({ inbox }: { inbox: Inbox }) {
   return (
-    <section className={`${CARD} flex flex-col gap-4 overflow-hidden`}>
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="grid size-9 place-items-center rounded-full bg-accent-wash text-accent">
-            <BellIcon />
-          </span>
-          <div>
-            <h2 className="text-lg font-bold tracking-tight">새 소식</h2>
-            <p className="text-xs text-muted">최근 활동과 풀이 상태를 확인하세요.</p>
-          </div>
-        </div>
-      </div>
+    <section className="flex flex-col gap-3">
+      <h2 className={TYPE_SECTION}>새 소식</h2>
 
       {inbox.notifications.length === 0 ? (
-        <div className="rounded-2xl bg-surface-soft px-5 py-6 text-center">
-          <p className="text-sm font-medium">새로 도착한 소식이 없습니다</p>
-          <p className="mt-1 text-xs text-muted">새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.</p>
+        <div className="flex flex-col items-center gap-2 rounded-[1.5rem] border-2 border-dashed border-border-strong px-5 py-7 text-center">
+          <span
+            aria-hidden="true"
+            className="grid size-11 place-items-center rounded-full bg-surface-sunken text-muted"
+          >
+            <Icon name="bell" />
+          </span>
+          <p className="text-sm font-semibold">새로 도착한 소식이 없습니다</p>
+          <p className={TYPE_META}>새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.</p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {inbox.notifications.map((notification) => (
-            <li
-              key={notification.notificationId}
-              className={`grid grid-cols-[0.5rem_minmax(0,1fr)] gap-3 rounded-xl px-4 py-3 text-sm sm:grid-cols-[0.5rem_minmax(0,1fr)_auto] ${
-                notification.unread ? 'bg-accent-wash/70' : 'bg-surface-soft'
-              }`}
-            >
-              {/* 읽지 않은 것만 표시한다 — 읽은 것에 「읽음」을 붙이면 목록이 시끄럽다 */}
-              <span
-                className={`mt-2 size-1.5 rounded-full ${notification.unread ? 'bg-accent' : 'bg-border-strong'}`}
-                aria-label={notification.unread ? '읽지 않음' : undefined}
-                aria-hidden={notification.unread ? undefined : true}
-              />
-              {/*
-                **갈 자리가 있으면 링크로 세운다.** 실패 알림은 「무엇이 안 됐다」로
-                끝나면 안 되고 다시 누를 자리까지 닿아야 한다 — 비공개 궁합은 두
-                사람을 다시 골라야 가는 자리다. 갈 곳이 없으면 글자로만 선다.
-              */}
-              {notification.href === null ? (
-                <span className={`leading-6 ${notification.unread ? 'font-medium' : 'text-secondary'}`}>
-                  {notification.text}
-                </span>
-              ) : (
-                <Link
-                  href={notification.href}
-                  className={`leading-6 underline underline-offset-2 ${
-                    notification.unread ? 'font-medium text-accent' : 'text-secondary'
+        <ul className="overflow-hidden rounded-[1.5rem] border border-border bg-surface">
+          {inbox.notifications.map((notification) => {
+            const warns = NOTIFICATION_WARNS.includes(notification.kind);
+            const inner = (
+              <>
+                <span
+                  aria-hidden="true"
+                  className={`grid size-10 shrink-0 place-items-center rounded-full ${
+                    warns
+                      ? 'bg-danger-wash text-danger'
+                      : notification.unread
+                        ? 'bg-cream text-cream-ink'
+                        : 'bg-surface-sunken text-secondary'
                   }`}
                 >
-                  {notification.text}
-                </Link>
-              )}
-              <time
-                dateTime={notification.createdAt}
-                className="col-start-2 text-xs text-muted sm:col-start-3 sm:row-start-1 sm:mt-1"
+                  <Icon name={NOTIFICATION_ICON[notification.kind]} className="size-[1.15rem]" />
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span
+                    className={`text-[15px] leading-6 ${
+                      notification.unread ? 'font-semibold text-foreground' : 'text-secondary'
+                    }`}
+                  >
+                    {notification.text}
+                  </span>
+                  <time dateTime={notification.createdAt} className={TYPE_META}>
+                    {when(notification.createdAt)}
+                  </time>
+                </span>
+                {/* 읽지 않은 것만 표시한다 — 읽은 것에 「읽음」을 붙이면 목록이 시끄럽다 */}
+                {notification.unread && (
+                  <span
+                    role="img"
+                    aria-label="읽지 않음"
+                    className="mt-2 size-2 shrink-0 rounded-full bg-badge"
+                  />
+                )}
+                {notification.href !== null && (
+                  <span aria-hidden="true" className="mt-2 text-muted">
+                    <Icon name="chevron" className="size-4" />
+                  </span>
+                )}
+              </>
+            );
+            const row = `flex items-start gap-3 px-4 py-3.5 sm:px-5 ${
+              notification.unread ? 'bg-cream/60' : ''
+            }`;
+            return (
+              <li
+                key={notification.notificationId}
+                className="border-t border-border first:border-t-0"
               >
-                {when(notification.createdAt)}
-              </time>
-            </li>
-          ))}
+                {/*
+                  **갈 자리가 있으면 링크로 세운다.** 실패 알림은 「무엇이 안 됐다」로
+                  끝나면 안 되고 다시 누를 자리까지 닿아야 한다 — 비공개 궁합은 두
+                  사람을 다시 골라야 가는 자리다. 갈 곳이 없으면 글자로만 선다.
+                */}
+                {notification.href === null ? (
+                  <div className={row}>{inner}</div>
+                ) : (
+                  <Link href={notification.href} className={`${row} hover:bg-surface-soft`}>
+                    {inner}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
-      <p className="text-xs text-muted">
+      <p className={TYPE_META}>
         소식은 앱 안에서만 확인할 수 있습니다. 이메일·문자·카카오로는 보내지 않습니다.
       </p>
     </section>
@@ -379,30 +369,20 @@ function Notifications({ inbox }: { inbox: Inbox }) {
 }
 
 /**
- * 성립한 Match.
- *
- * **여기서 나가는 것은 후보 카드가 이미 말한 것뿐이다.** 궁합과 지표는 이 목록이
- * 아니라 결과 화면에 선다 — 목록이 결과를 미리 조금 보여주기 시작하면, 무엇이
- * 동의로 열린 것인지가 두 자리로 갈린다.
- */
-/**
- * 절이 비었을 때 — **카드 자리에 카드가 선다.**
- *
- * 「받은 요청」·「보낸 요청」·「함께 보는 궁합」이 비면 회색 문장 한 줄만 바탕에 떠 있었다.
- * 그런데 같은 절이 차면 그 자리에 카드가 서므로, 한 화면 안에서 같은 층의 절들이 있고
- * 없고에 따라 다른 모양으로 보였다 — 빈 것과 카드 밖의 것은 다른 말이다.
+ * 절이 비었을 때 — **카드 자리에 점선 자리가 선다.** 같은 절이 차면 그 자리에 카드가 서므로,
+ * 빈 것도 같은 층의 자리로 말한다. 회색 문장 한 줄만 바탕에 떠 있으면 빈 것과 카드 밖의 것이
+ * 같은 모양이 된다.
  */
 function Nothing({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border-strong bg-surface/60 px-5 py-5">
-      <span aria-hidden="true" className="size-2 rounded-full bg-border-strong" />
-      <p className="text-sm text-muted">{children}</p>
+    <div className="rounded-[1.25rem] border-2 border-dashed border-border-strong px-5 py-4">
+      <p className="text-sm text-secondary">{children}</p>
     </div>
   );
 }
 
 /** 요청 한 장의 머리 — 닉네임·사진·소개와 **양쪽 방향의 오행** */
-function RequestHead({ request }: { request: InboxRequest }) {
+function RequestHead({ request, large = false }: { request: InboxRequest; large?: boolean }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
@@ -410,10 +390,11 @@ function RequestHead({ request }: { request: InboxRequest }) {
           userId={request.counterpartUserId}
           nickname={request.nickname}
           hasPhoto={request.hasPhoto}
+          size={large ? 52 : 40}
         />
         <div className="min-w-0 flex-1">
-          <h3 className="text-base font-semibold">{request.nickname}</h3>
-          <time dateTime={request.createdAt} className="mt-0.5 block text-xs text-muted">
+          <h3 className={large ? TYPE_NAME : 'text-base font-semibold'}>{request.nickname}</h3>
+          <time dateTime={request.createdAt} className={`block ${TYPE_META}`}>
             {when(request.createdAt)}
           </time>
         </div>
@@ -433,25 +414,9 @@ function RequestHead({ request }: { request: InboxRequest }) {
 
 function InfoChip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full border border-border bg-surface-soft px-3 py-1 text-xs leading-5 text-secondary">
+    <span className="rounded-xl bg-surface-sunken px-3 py-1.5 text-[13px] font-medium leading-5 text-secondary">
       {children}
     </span>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="size-5 fill-none stroke-current"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M6 9a6 6 0 0 1 12 0c0 7 2 7 2 8H4c0-1 2-1 2-8Z" />
-      <path d="M9.5 20h5" />
-    </svg>
   );
 }
 

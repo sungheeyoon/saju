@@ -14,13 +14,18 @@ import {
 import { NICKNAME_MAX, NICKNAME_MIN, missingNickname, nicknameKey } from '@/src/lib/profile';
 
 import { checkNickname } from '../nickname';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
 import { completeSignup } from './actions';
 
+/** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
 const FIELD =
-  'h-11 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash sm:h-10';
+  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
 
+/** 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다) */
 const BOX =
-  'flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft';
+  'flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft';
+
+const LABEL = 'text-[15px] font-semibold';
 
 /**
  * 가입 폼 — **한 번 눌러 셋을 적는다** (ADR 0042).
@@ -114,7 +119,7 @@ export function SignupForm({
     <div className="flex flex-col gap-6">
       {needsCode && (
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="signup-code" className="text-sm font-semibold">
+          <label htmlFor="signup-code" className={LABEL}>
             테스트 코드
           </label>
           <input
@@ -127,9 +132,9 @@ export function SignupForm({
             /* 대문자 하나로만 산다 — DB 검사식과 같은 규칙이라 여기서 미리 맞춘다 */
             onChange={(event) => setCode(event.target.value.toUpperCase().slice(0, 24))}
             placeholder="예: SAJU1001"
-            className={`${FIELD} w-56 tracking-[0.08em]`}
+            className={`${FIELD} w-full tracking-[0.08em] sm:max-w-64`}
           />
-          <p className="text-xs leading-5 text-muted">{SIGNUP_CODE_NOTE}</p>
+          <p className="text-[13px] leading-5 text-muted">{SIGNUP_CODE_NOTE}</p>
         </div>
       )}
 
@@ -139,10 +144,10 @@ export function SignupForm({
             **버튼을 라벨 밖에 둔다.** 안에 넣으면 `<label>` 이 칸과 버튼 둘을 함께 물고,
             읽어 주는 도구가 「닉네임」을 어느 것의 이름으로 부를지 사람마다 달라진다.
           */}
-          <label htmlFor="signup-nickname" className="text-sm font-semibold">
+          <label htmlFor="signup-nickname" className={LABEL}>
             닉네임
           </label>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <input
               id="signup-nickname"
               type="text"
@@ -150,13 +155,13 @@ export function SignupForm({
               onChange={(event) => setNickname(event.target.value.slice(0, NICKNAME_MAX))}
               maxLength={NICKNAME_MAX}
               placeholder={`${NICKNAME_MIN}~${NICKNAME_MAX}자`}
-              className={`${FIELD} w-40`}
+              className={`${FIELD} min-w-0 flex-1 sm:max-w-64`}
             />
             <button
               type="button"
               onClick={check}
               disabled={checking || missing !== null}
-              className="h-11 rounded-lg border border-border px-3 text-sm text-secondary transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-60 sm:h-10"
+              className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0`}
             >
               {checking ? '확인하는 중…' : '중복 확인'}
             </button>
@@ -167,33 +172,33 @@ export function SignupForm({
             이미 바뀐 이름 옆에 남아 있으면 그 말이 무엇을 가리키는지 알 수 없다.
           */}
           {answer !== null && (
-            <p className="text-sm text-secondary">
+            <p role="status" className={`text-sm ${answer.available ? 'text-secondary' : 'text-danger'}`}>
               {answer.available
                 ? '사용할 수 있는 닉네임입니다.'
                 : '이미 사용 중인 닉네임입니다.'}
             </p>
           )}
 
-          <p className="text-xs leading-5 text-muted">
+          <p className="text-[13px] leading-5 text-muted">
             앱에서는 이 닉네임을 사용합니다. 프로필 사진과 소개는 가입 후에 추가할 수
             있습니다.
           </p>
         </div>
       )}
 
-      <div className="rounded-2xl bg-surface-soft p-4" aria-labelledby="signup-notice">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="signup-notice" className="text-sm font-bold">
+      <div className="rounded-[1.25rem] bg-surface-sunken p-4 sm:p-5" aria-labelledby="signup-notice">
+        <div className="flex flex-wrap items-center justify-between gap-x-3">
+          <h2 id="signup-notice" className="text-[15px] font-bold">
             가입 전에 확인해 주세요
           </h2>
           <Link
             href="/privacy"
-            className="text-xs font-semibold text-accent underline underline-offset-4"
+            className="inline-flex min-h-11 items-center text-[13px] font-semibold text-foreground underline decoration-border-strong decoration-2 underline-offset-[6px] hover:decoration-foreground"
           >
             개인정보 처리방침
           </Link>
         </div>
-        <ul className="mt-2 flex flex-col gap-1 text-xs leading-5 text-secondary sm:text-sm sm:leading-6">
+        <ul className="mt-1 flex list-disc flex-col gap-1.5 pl-5 text-sm leading-6 text-secondary marker:text-muted">
           <li>구글 이메일과 닉네임, 직접 저장한 사주 정보는 서비스 제공에 사용합니다.</li>
           <li>
             베타는{' '}
@@ -227,8 +232,8 @@ export function SignupForm({
         동의라고 부를 수 없다.
       */}
       <fieldset className="flex flex-col gap-3">
-        <legend className="float-left w-full text-sm font-semibold">선택 항목</legend>
-        <p className="mt-1 text-sm leading-6 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
+        <legend className={`float-left w-full ${LABEL}`}>선택 항목</legend>
+        <p className="text-[13px] leading-5 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
 
         {OPTIONAL_CONSENTS.map((one) => (
           <label key={one.key} htmlFor={`consent-${one.key}`} className={BOX}>
@@ -245,7 +250,7 @@ export function SignupForm({
               <span className="block text-sm font-semibold">{one.label}</span>
               <span className="mt-1 block text-sm leading-6 text-secondary">{one.detail}</span>
               {/* 끄면 어떻게 되는지는 **켜기 전에도** 읽힌다 — 세 화면이 같은 줄을 쓴다 */}
-              <span className="mt-1 block text-xs leading-5 text-muted">{one.erasure}</span>
+              <span className="mt-1 block text-[13px] leading-5 text-muted">{one.erasure}</span>
             </span>
           </label>
         ))}
@@ -257,16 +262,11 @@ export function SignupForm({
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={send}
-          disabled={blocked}
-          className="h-11 rounded-xl bg-accent px-6 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
-        >
+      <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:gap-3">
+        <button type="button" onClick={send} disabled={blocked} className={BUTTON_PRIMARY}>
           {working ? '가입하는 중…' : needsCode ? '가입하고 시작하기' : '확인하고 계속하기'}
         </button>
-        {missing !== null && <span className="text-xs text-muted">{missing}</span>}
+        {missing !== null && <span className="text-[13px] text-muted">{missing}</span>}
       </div>
     </div>
   );
