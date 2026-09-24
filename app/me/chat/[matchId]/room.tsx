@@ -6,18 +6,23 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { BLOCK_NOTE } from '@/src/lib/consent';
 import { activityText, type ActivityBand } from '@/src/lib/presence';
+import { ELEMENT_KO, STEM_INFO, type Stem } from '@/src/lib/saju';
 
-import { NO_ELEMENT_SCOPE } from '../../../element-tone';
+import { elementScope } from '../../../element-tone';
 import {
   BUTTON_DANGER,
   BUTTON_SECONDARY,
   BUTTON_SECONDARY_SMALL,
 } from '../../../ui/buttons';
+import { ElementSymbol } from '../../../ui/element-symbol';
 import { Icon } from '../../../ui/icon';
+import { TYPE_META } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
+import { DayMasterChip } from '../../people/chart-bits';
 import { blockUser } from '../../requests/actions';
 import { ChatIcon } from '../chat-icon';
 import { Composer, ReadOnVisit } from '../composer';
+import type { RoomTones } from '../tones';
 import type { Bubble, BubbleDay } from './bubbles';
 import { ReportPanel } from './report';
 import styles from './room.module.css';
@@ -41,7 +46,16 @@ export type RoomView = {
   readonly days: readonly BubbleDay[];
   /** 읽는 문이 준 것이 방의 처음부터다(200건 아래) — 그때만 첫머리를 세운다 */
   readonly fromBeginning: boolean;
+  /** 두 사람의 일간 — 함께 보는 궁합이 연 값이 있을 때만(`roomTonesForViewer`). 없으면 중립 색이다 */
+  readonly tones: RoomTones | null;
 };
+
+/**
+ * 상대의 파스텔을 입은 알약 — 원본 시안의 궁합 알약이다. 보조 단추와 같은 44px · 같은 글자 크기이고, 면과 글자가
+ * 한 오행 한 벌이라(글자 `--ink` · 면 `--tile`, 대비 5.6:1 이상) 어느 오행이어도 읽힌다.
+ */
+const TONED_PILL =
+  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--tile)] px-4 text-sm font-semibold text-[var(--ink)] ring-1 ring-[color-mix(in_srgb,var(--ink)_18%,transparent)] hover:ring-[var(--ink)] active:scale-[0.97]';
 
 /** 머리의 아이콘 단추 — 판 위에 테 없이 선다. 누를 자리는 44px 그대로다 */
 const GHOST_ICON =
@@ -56,9 +70,10 @@ type Slot = { kind: 'compose' } | { kind: 'block' } | { kind: 'report'; messageI
  * 움직인다. 대화 칸은 거꾸로 쌓는다(`flex-col-reverse`) — 스크롤의 시작점이 맨 아래라 들어오면 가장
  * 최근 말이 먼저 보이고, 보낸 뒤 다시 읽어도 그 자리에 남는다.
  *
- * **색은 아는 값만 입는다.** 방의 문(`my_chat_rooms`)은 상대의 오행을 주지 않는다 — 상대 말풍선은 오행을
- * 모를 때의 회색 한 벌(`NO_ELEMENT_SCOPE`)이고, 내 말은 주 단추와 같은 먹색이다. 지어낸 색은 그 사람에
- * 대해 거짓을 말한다.
+ * **대화가 두 사람의 색으로 짜인다** — 내 말은 내 일간 오행의 진한 색으로 채우고, 상대 말은 상대 일간
+ * 오행의 파스텔을 입는다(홈의 「사람 한 명 = 그 오행의 파스텔 한 장」을 대화로 옮겼다). 색은 함께 보는 궁합이
+ * 이미 연 두 일간에서만 온다(`tones.ts`). 그 값이 없는 방(닫힌 방 · 떠난 상대 · 옛 Match)은 내 말이 먹색,
+ * 상대 말이 회색 한 벌이다 — 지어낸 색은 그 사람에 대해 거짓을 말한다.
  *
  * 신고 · 차단은 머리의 「⋯」 안에 있다 — 말풍선마다 「신고」가 서 있으면 대화가 신고 목록처럼 읽힌다.
  * 신고는 고르는 걸음이 있어(PRD §7.1) 누르면 상대 말풍선 곁에 깃발이 서고, 하나를 고르면 입력 자리에
@@ -71,6 +86,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   const hasPartner = room.partnerUserId !== null;
   const picking = slot.kind === 'report';
   const picked = slot.kind === 'report' ? slot.messageId : null;
+  const theirTone = room.tones?.theirs.element ?? null;
 
   return (
     <section
@@ -84,7 +100,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           <Icon name="back" />
         </Link>
         <span className={closed ? 'opacity-60 grayscale' : ''}>
-          <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={44} />
+          <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={44} tone={theirTone} />
         </span>
         <div className="min-w-0 flex-1">
           {/* 상대가 떠났으면 닉네임 자리에 「탈퇴한 사용자」가 선다(PRD §5.3, ADR 0094) */}
@@ -92,11 +108,14 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           {/* 접속 상태는 구간 하나다 — 열린 방에만 오고, 시각은 오지 않는다(PRD §7.2, ADR 0092) */}
           {room.activity !== null && <Activity band={room.activity} />}
         </div>
-        {/* 폰에서는 이름에 자리를 준다 — 같은 길이 대화의 첫머리에 있다 */}
-        {hasPartner && (
+        {/*
+          폰에서는 이름에 자리를 준다 — 같은 길이 대화의 첫머리에 있다. 닫힌 방에는 안 선다: 차단 · 정지 · 탈퇴 신청으로
+          닫히면 함께 보는 궁합도 그 쌍에게 닫힌다(`visible_matches()`) — 누르면 없는 화면이다.
+        */}
+        {hasPartner && !closed && (
           <span className="hidden shrink-0 sm:block">
-            <Link href={`/me/match/${room.matchId}`} className={BUTTON_SECONDARY_SMALL}>
-              <Icon name="heart" className="size-[18px] text-danger" />
+            <Link href={`/me/match/${room.matchId}`} className={room.tones === null ? BUTTON_SECONDARY_SMALL : `${elementScope(theirTone)} ${TONED_PILL}`}>
+              <Icon name="heart" className={`size-[18px] ${room.tones === null ? 'text-danger' : ''}`} />
               함께 보는 궁합
             </Link>
           </span>
@@ -249,22 +268,59 @@ function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: ()
 }
 
 /**
- * 대화의 첫머리 — 누구와 이야기하는지와 함께 보는 궁합으로 가는 길. 점수 · 궁합 한 줄은 방의 문이 주지
- * 않으므로 싣지 않는다(지어낸 점수는 함께 보는 궁합의 점수와 갈린다). 열린 빈 방에도 설명 문장은 안 선다.
+ * 대화의 첫머리 — 누구와 이야기하는지와 함께 보는 궁합으로 가는 길.
+ *
+ * 두 일간을 아는 방은 **두 사람의 카드**다: 나와 상대가 제 일간 오행의 파스텔 한 장씩으로 나란히 서고(결과 화면의
+ * 「각자의 사주」와 같은 조각 `DayMasterChip`), 아래로 함께 보는 궁합이 이어진다. 「이 사람과 왜 이야기하게
+ * 됐나」를 두 색이 되짚는다. 점수 · 궁합 한 줄은 방의 문이 주지 않으므로 싣지 않는다(지어낸 점수는 함께 보는
+ * 궁합의 점수와 갈린다). 두 일간을 모르는 방은 상대의 사진과 이름만 선다.
  */
 function RoomStart({ room }: { room: RoomView }) {
+  const tones = room.tones;
+  const toMatch = room.partnerUserId !== null && room.notice === null && (
+    <Link href={`/me/match/${room.matchId}`} className={BUTTON_SECONDARY_SMALL}>
+      <Icon name="heart" className="size-4 text-danger" />
+      함께 보는 궁합
+      <Icon name="arrow" className="size-4" />
+    </Link>
+  );
+
+  if (tones === null) {
+    return (
+      <div className="flex flex-col items-center gap-3 pb-2 pt-4 text-center">
+        <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={72} />
+        <p className="font-rounded text-[1.3rem] leading-7 text-foreground">{room.heading}</p>
+        {toMatch}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center gap-3 pb-2 pt-4 text-center">
-      <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={72} />
-      <p className="font-rounded text-[1.3rem] leading-7 text-foreground">{room.heading}</p>
-      {room.partnerUserId !== null && (
-        <Link href={`/me/match/${room.matchId}`} className={BUTTON_SECONDARY_SMALL}>
-          <Icon name="heart" className="size-4 text-danger" />
-          함께 보는 궁합
-          <Icon name="arrow" className="size-4" />
-        </Link>
-      )}
+    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3 pt-2">
+      <div className="grid w-full grid-cols-2 gap-2">
+        <StartSide label="나" stem={tones.mine.stem} />
+        <StartSide label={room.name} stem={tones.theirs.stem} />
+      </div>
+      {toMatch}
     </div>
+  );
+}
+
+/** 첫머리 카드의 한 사람 — 제 일간 오행의 파스텔 한 장. 색만으로 말하지 않게 딱지(상징 · 글자 · 이름)와 「갑목 일간」이 함께 선다 */
+function StartSide({ label, stem }: { label: string; stem: Stem }) {
+  const info = STEM_INFO[stem];
+  return (
+    <section className={`${elementScope(info.element)} relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-[1.5rem] bg-[var(--tile)] p-4`}>
+      <ElementSymbol element={info.element} className="pointer-events-none absolute -bottom-4 -right-4 size-20 opacity-20" />
+      <DayMasterChip stem={stem} className="relative self-start" />
+      <div className="relative min-w-0">
+        <p className="truncate font-rounded text-[1.125rem] leading-6 text-foreground">{label}</p>
+        <p className={TYPE_META}>
+          {info.ko}
+          {ELEMENT_KO[info.element]} 일간
+        </p>
+      </div>
+    </section>
   );
 }
 
@@ -282,8 +338,17 @@ function BubbleRow({
   onPick: () => void;
 }) {
   const mine = bubble.mine;
-  /* 내 말은 먹색, 상대 말은 오행을 모를 때의 회색 한 벌 — 위 머리말 「색은 아는 값만」 */
-  const tone = mine ? 'bg-accent text-on-accent' : `${NO_ELEMENT_SCOPE} bg-[var(--tile)] text-foreground ring-1 ring-border`;
+  /*
+    내 말 = 내 일간 오행의 진한 색 면 + 그 파스텔 글자(한 벌의 두 끝이라 대비 5.6:1 이상, 어두운 화면에서 뒤집힌다).
+    상대 말 = 상대 일간의 파스텔 + 본문색. 모르면 먹색 · 회색 한 벌 — 위 머리말
+  */
+  const tone = mine
+    ? room.tones === null
+      ? 'bg-accent text-on-accent'
+      : `${elementScope(room.tones.mine.element)} bg-[var(--ink)] text-[var(--tile)]`
+    : room.tones === null
+      ? `${elementScope(null)} bg-[var(--tile)] text-foreground ring-1 ring-border`
+      : `${elementScope(room.tones.theirs.element)} bg-[var(--tile)] text-foreground`;
   /* 묶음의 첫 말은 머리 쪽 모서리만 뾰족하다 — 누가 말을 시작했는지 모양으로 읽힌다 */
   const corner = bubble.first ? (mine ? 'rounded-tr-md' : 'rounded-tl-md') : '';
 
@@ -292,7 +357,13 @@ function BubbleRow({
       {!mine &&
         (bubble.first ? (
           <span className="shrink-0 self-start">
-            <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={36} />
+            <Avatar
+              userId={room.partnerUserId ?? ''}
+              nickname={room.name}
+              hasPhoto={room.partnerHasPhoto}
+              size={36}
+              tone={room.tones?.theirs.element ?? null}
+            />
           </span>
         ) : (
           <span aria-hidden="true" className="w-9 shrink-0" />

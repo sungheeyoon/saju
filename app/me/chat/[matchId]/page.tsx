@@ -8,6 +8,7 @@ import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { ChatFrame, RoomList } from '../room-list';
 import { chatRoomsForViewer } from '../rooms';
+import { roomTonesForViewer } from '../tones';
 import { bubbleDaysOf } from './bubbles';
 import { MESSAGE_WINDOW, messagesForViewer } from './messages';
 import { ChatRoomView } from './room';
@@ -52,13 +53,13 @@ export default async function ChatRoomPage({
   const room = rooms.find((one) => one.matchId === matchId) ?? null;
   if (room === null) notFound();
 
-  const messages = await messagesForViewer(matchId);
+  const [messages, tones] = await Promise.all([messagesForViewer(matchId), roomTonesForViewer(rooms)]);
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col py-3 md:py-6 lg:py-8">
       <ChatFrame
         opened
-        list={<RoomList rooms={rooms} activeId={matchId} titleLevel="h2" />}
+        list={<RoomList rooms={rooms} activeId={matchId} titleLevel="h2" tones={tones} />}
         pane={
           <ChatRoomView
             room={{
@@ -72,6 +73,7 @@ export default async function ChatRoomPage({
               unread: room.unread,
               days: bubbleDaysOf(messages),
               fromBeginning: messages.length < MESSAGE_WINDOW,
+              tones: tones.get(matchId) ?? null,
             }}
           />
         }
