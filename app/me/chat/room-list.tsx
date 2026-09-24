@@ -1,11 +1,14 @@
 import Link from 'next/link';
 
 import { CHAT_TAB_LABEL, messageTimeLabel, partnerNameOf, roomNoticeOf } from '@/src/lib/chat';
+import type { Element } from '@/src/lib/saju';
 
+import { elementScope } from '../../element-tone';
 import { BADGE, TYPE_TITLE } from '../../ui/surfaces';
 import { Avatar } from '../avatar';
 import { ChatIcon } from './chat-icon';
 import type { ChatRoom } from './rooms';
+import type { RoomTones } from './tones';
 
 /**
  * **목록과 방이 한 틀에 선다** — 넓은 화면(lg)은 왼쪽 목록 + 오른쪽 방 두 칸, 폰은 주소마다 한 칸이다.
@@ -43,9 +46,12 @@ export function RoomList({
   rooms,
   activeId,
   titleLevel,
+  tones,
 }: {
   rooms: readonly ChatRoom[];
   activeId: string | null;
+  /** 방마다 두 사람의 색(`roomTonesForViewer`) — 없는 방은 회색 고리다 */
+  tones: ReadonlyMap<string, RoomTones>;
   /** 목록 화면에서는 화면 제목(h1), 방 화면에서는 곁의 칸이라 h2 다 — 방 화면의 h1 은 상대의 이름이다 */
   titleLevel: 'h1' | 'h2';
 }) {
@@ -59,7 +65,7 @@ export function RoomList({
       <ul className="-mx-2 flex min-h-0 flex-col gap-0.5 overflow-y-auto lg:mx-0 lg:p-2">
         {rooms.map((room) => (
           <li key={room.matchId}>
-            <RoomRow room={room} active={room.matchId === activeId} />
+            <RoomRow room={room} active={room.matchId === activeId} tone={tones.get(room.matchId)?.theirs.element ?? null} />
           </li>
         ))}
       </ul>
@@ -67,7 +73,7 @@ export function RoomList({
   );
 }
 
-function RoomRow({ room, active }: { room: ChatRoom; active: boolean }) {
+function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone: Element | null }) {
   /*
     닫힌 방은 마지막 메시지 대신 닫힌 까닭이 자물쇠와 함께 선다 — 누르기 전에 무엇이 안 되는지 읽힌다.
     상대가 떠난 방은 까닭 대신 넷째 줄이다(PRD §7.1).
@@ -83,12 +89,13 @@ function RoomRow({ room, active }: { room: ChatRoom; active: boolean }) {
     <Link
       href={`/me/chat/${room.matchId}`}
       aria-current={active ? 'page' : undefined}
-      className={`flex min-h-[4.5rem] items-center gap-3 rounded-[1.25rem] px-2 py-2.5 active:scale-[0.99] lg:px-3 ${
-        active ? 'bg-surface-soft' : 'hover:bg-surface-soft'
+      /* 지금 열린 방은 그 사람의 파스텔이 깔린다 — 목록의 사진 고리와 같은 색이라 어느 방인지 색으로도 이어진다 */
+      className={`${elementScope(tone)} flex min-h-[4.5rem] items-center gap-3 rounded-[1.25rem] px-2 py-2.5 active:scale-[0.99] lg:px-3 ${
+        active ? (tone === null ? 'bg-surface-soft' : 'bg-[var(--tile)]') : 'hover:bg-surface-soft'
       }`}
     >
       <span className={closed ? 'opacity-60 grayscale' : ''}>
-        <Avatar userId={room.partnerUserId ?? ''} nickname={name} hasPhoto={room.partnerHasPhoto} size={52} />
+        <Avatar userId={room.partnerUserId ?? ''} nickname={name} hasPhoto={room.partnerHasPhoto} size={56} tone={tone} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-baseline justify-between gap-2">

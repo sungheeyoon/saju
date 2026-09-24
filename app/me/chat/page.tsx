@@ -10,6 +10,7 @@ import { readAccount } from '../account';
 import { EmptyChat, NoRoomChosen } from './empty';
 import { ChatFrame, RoomList } from './room-list';
 import { chatRoomsForViewer } from './rooms';
+import { roomTonesForViewer } from './tones';
 
 export const metadata = {
   title: CHAT_TAB_LABEL,
@@ -61,7 +62,7 @@ async function Rooms({ hasSelf }: { hasSelf: boolean }) {
   return (
     <ChatFrame
       opened={false}
-      list={<RoomList rooms={rooms} activeId={null} titleLevel="h1" />}
+      list={<RoomList rooms={rooms} activeId={null} titleLevel="h1" tones={await roomTonesForViewer(rooms)} />}
       pane={<NoRoomChosen />}
     />
   );
