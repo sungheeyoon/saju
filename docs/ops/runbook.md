@@ -124,6 +124,8 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 | `CRON_SECRET` = Vault `reading_recovery_secret` | 우리가 짓는다 — `openssl rand -base64 32` | **두 자리가 같은 값이다** — Vercel **Production**(Vercel Cron 이 이 값을 `Authorization: Bearer` 로 싣는다) → 재배포, 그리고 Vault `reading_recovery_secret` | 둘이 갈린 동안 1분 복구기가 403 이다 → `net-request-failed` 알림. webhook 이 살아 있으면 결과는 그대로 붙는다 | 새 배포 Ready 직후 Vault 를 바꾼다(창이 그만큼 짧다). `select status_code, created from net._http_response order by created desc limit 3;` 가 200. 두 자리를 다 바꾸면 옛 값은 끊긴 것이다 |
 | `VERCEL_OIDC_TOKEN` | **우리가 만들지 않는다** — Vercel 이 함수 호출마다 짓고 짧게 산다(반출의 기본안, 아래 「반출」). `AUDIT_EXPORT_ROLE_ARN` 은 비밀이 아니다 | 없다 — Vercel 프로젝트 Settings → Security → OIDC Federation 이 켜져 있으면 선다 | 토큰 하나가 새도 그 수명 동안만 역할의 자격이다(`s3:PutObject` 하나) | 새면 AWS IAM 역할의 신뢰 정책에서 조건(`sub`)을 좁히거나 역할의 세션을 끊는다(IAM → Roles → Revoke active sessions). 반출은 다음 호출의 새 토큰으로 이어진다 |
 | `AUDIT_EXPORT_ACCESS_KEY_ID` · `AUDIT_EXPORT_SECRET_ACCESS_KEY` | **역할을 못 세운 날의 대안이다**(기본은 위 OIDC 역할). AWS IAM → 반출 사용자(`saju-audit-export`) → Security credentials → Create access key. 한 사용자에 키가 둘까지 함께 선다 | Vercel **Production** → 재배포. `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` 은 비밀이 아니다(같은 자리에 넣는다) | 그날 반출이 실패한다(500, Vercel 로그). **기록은 안 잃는다** — DB 에 남아 있고 다음 반출이 이어 올린다 | 새 배포 Ready 뒤 크론을 손으로 한 번 부르거나 다음 날 `select max(exported_at) from audit.operator_access_export` 가 오늘이면 옛 키를 Deactivate → Delete. **키가 새도 올린 객체는 못 지운다** — 권한이 `s3:PutObject` 뿐이고 Object Lock 이 잠갔다. 새 객체를 쓸 수는 있으므로 교체가 먼저다 |
+| `PORTONE_WEBHOOK_SECRET` | PortOne 관리자 콘솔 → 결제 연동 → 웹훅 → 그 주소의 시크릿(`whsec_…`). 새 시크릿을 발급하면 옛 것과 함께 설 수 있는지는 가맹 때 본다(G-23 ⑥) | Vercel **Production** → 재배포 | 결제 알림이 401 이다. **돈은 들어왔는데 묶음이 안 선다** — PortOne 은 다섯 번까지(0 → 256분) 다시 보내므로 그 안에 새 값이 서면 붙는다. 넘기면 콘솔의 재전송으로 다시 보낸다(`approve_reading_order` 는 같은 알림 · 같은 거래 번호를 한 번만 적는다) | 새 배포 Ready 뒤 콘솔의 「웹훅 테스트 호출」이 200 인지 본다. 서명이 여럿이면 하나만 맞아도 되므로(`signature.ts`) 옛 시크릿은 그 뒤에 끈다 |
+| `PORTONE_API_SECRET` | PortOne 관리자 콘솔 → 결제 연동 → 연동 정보 → V2 API 시크릿 재발급 | Vercel **Production** → 재배포. `PORTONE_STORE_ID` 는 비밀이 아니다(같은 자리에 넣는다) | 결제 알림이 금액을 못 받아 503 이다 — 위와 같이 PortOne 이 다시 보낸다. **키가 새면 남이 결제를 조회 · 취소할 수 있다** — 교체가 먼저다 | 새 배포 Ready 뒤 콘솔의 테스트 호출이 200 이면 옛 시크릿을 폐기한다 |
 | Vault `reading_recovery_url` | 비밀이 아니다 — 공개 주소(`/api/cron/reading`). 도메인이 바뀔 때만 고친다 | Vault | — | — |
 | Vault `ops_alert_url` | **주소 자체가 열쇠다** — 가진 사람은 운영 채널에 글을 넣는다. Slack 앱의 Incoming Webhooks 나 Discord 채널의 연동 → 웹후크에서 새 주소를 만든다 | Vault(재배포 없음) | 알림이 채널로 안 나간다. `ops_alert` 표에는 그대로 적힌다 | 「운영자 알림 배선」의 `notify_ops('ops-alert-test', …)` 가 닿으면 옛 웹후크를 지운다 |
 | Vault `ops_alert_secret` | 넣었을 때만 있다 — 받는 쪽이 `Authorization` 을 볼 때 | Vault 와 받는 쪽을 함께 | 받는 쪽이 알림을 거절한다 | 위와 같다 |
@@ -138,7 +140,7 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
   같은 사람을 다시 알아보는 값이라 키가 새면 식별값이 곧 그 사람을 가리킨다. 그래서 식별값은 서버 열쇠의 문만
   읽고(API 역할에 닫는다), 운영자는 SQL 로 읽지 않으며(읽어야 하면 break-glass), 키는 서버 환경변수 · Vault 에만 둔다.
   교체는 위 순서 넷을 따르되 옛 키로 지은 식별값을 새 키로 옮길 길이 없다는 것을 먼저 정한다.
-- **PG · 본인확인 키도 아직 없다** — 들어올 때 이 표에 줄을 더한다.
+- **PG 키는 위 두 줄이다**(PortOne V2, 2026-09-24 — 코드는 섰고 값은 가맹 뒤에 넣는다). **본인확인 키는 아직 없다** — 들어올 때 이 표에 줄을 더한다.
 
 **git 기록에 새었을 때.** 푸시된 순간 샌 것으로 본다 — 클론 · 포크 · CI 로그가 이미 들고 있다.
 
@@ -391,10 +393,30 @@ update retention.reading_payment set hold_reason = '<사유> <문서 번호> <�
 update retention.reading_payment set hold_reason = null, held_at = null where order_id = '<order-id>';
 ```
 
-**PG 를 붙일 때 할 일** — 웹훅 라우트가 서명을 검증하고(G-23 ⑥) `approve_reading_order(주문, 거래 번호, 낸 금액, 알림 id)` 를
-부르고 돌아온 한 줄 `(outcome, bundle_id)` 을 본다. 금액이 주문과 다르면 문이 던지지 않고 `refused` 를 돌려준다 — 그래야 그 알림의
-거절 기록(`payment_event`)이 남는다. 같은 알림이 다시 오면 처음의 결과가 돌아간다(`20261013090000`). 판매를 여는 것은 `reading_sale_is_open()` 을 `true` 로 바꾸는 마이그레이션이다 —
-결제 전 고지 · 철회 기준(G-25) · 탈퇴 판의 남은 수량(G-25 ⑦) · 환불 셈 화면이 먼저 선다.
+#### 결제 알림 — PortOne 웹훅 (G-23 ⑥)
+
+**문은 섰고 꺼져 있다.** `POST /api/portone/webhook`(`app/api/portone/webhook/`)이 PortOne V2 의 결제 알림을 받는다. 켜는 값
+셋(`PORTONE_WEBHOOK_SECRET` · `PORTONE_API_SECRET` · `PORTONE_STORE_ID`)이 없으면 503 이고, 판매가 닫혀 있는 동안에는 주문이 없어
+값을 넣어도 세울 것이 없다. 한 알림에 하는 일은 넷이다.
+
+1. **서명** — Standard Webhooks(`webhook-id` · `webhook-timestamp` · `webhook-signature`), 시각은 앞뒤 5분. 틀리면 401
+2. **`Transaction.Paid` 만** — 나머지(실패 · 취소 · 환불)는 200 으로 받고 아무것도 안 한다. 실패에 주문을 닫지 않는다(같은 결제
+   번호로 다시 낼 수 있다). 환불은 위 「수동 환불」이다
+3. **결제를 PortOne 에서 다시 받는다** — `GET https://api.portone.io/payments/{paymentId}`. 알림 본문에는 금액이 없고, 있어도 안
+   믿는다. 상태 `PAID` · 우리 상점 · `KRW` 가 아니면 승인하지 않는다(200, 기록에만)
+4. **승인 문** — `approve_reading_order(주문, 거래 번호 = PortOne transactionId, 받은 금액, 알림 번호 = webhook-id)`. 주문은 결제
+   번호(`rdo_…`)에서 되짚는다. 금액 대조와 「같은 알림은 한 번」은 DB 가 한다 — 금액이 다르면 `refused` 가 `payment_event` 에
+   남고(200), 이미 닫힌 주문의 결제(`55000`)는 **돈이 들어왔는데 묶음이 없다** — PG 콘솔에서 환불한다
+
+답은 다시 보내도 같을 것이면 2xx · 401 · 400, 우리 쪽이 잠깐 못 한 것(설정 · PortOne · DB)이면 503 이다 — PortOne 이 다섯 번까지
+다시 보낸다. 까닭은 답에 안 싣고 Vercel 로그의 `portone webhook` 줄에만 남는다.
+
+**켜는 날**(가맹 · 샌드박스 뒤, 사람) — ① Vercel **Production** 에 위 셋을 넣고 재배포 ② PortOne 콘솔 → 웹훅에 `https://<도메인>/api/portone/webhook`
+을 넣는다(버전 V2) ③ 샌드박스 채널로 1회권 하나를 결제하고 묶음이 선 것을 본다 — 판매 스위치는 운영에서 켜지 않는다(로컬 스택 + 터널이나
+별도 프로젝트에서) ④ 콘솔의 테스트
+호출이 200 인지 본다. 판매를 여는 것은 `reading_sale_is_open()` 을 `true` 로 바꾸는 마이그레이션이다 — 결제 전 고지 · 철회
+기준(G-25) · 탈퇴 판의 남은 수량(G-25 ⑦) · 환불 셈 화면이 먼저 선다. **샌드박스에서 볼 것** — 알림 본문과 결제 조회의 모양이
+문서대로인가, 환불 번호를 주문 사이에 겹쳐 쓰는가(`20261015090000`), 거래 번호로 `transactionId` 와 `pgTxId` 중 무엇을 남길까.
 
 ---
 

@@ -45,6 +45,9 @@ export const SECRET_ENV = [
    * `20261014090000`). 짧게 살지만 그동안은 역할의 자격이다
    */
   'VERCEL_OIDC_TOKEN',
+  /** PortOne V2 — 결제 알림의 서명 비밀(`whsec_…`)과 결제 단건 조회의 API 비밀 (G-23 ⑥, `app/api/portone/webhook`) */
+  'PORTONE_WEBHOOK_SECRET',
+  'PORTONE_API_SECRET',
 ];
 
 /** 브라우저가 본다 — 빌드 때 번들에 박힌다. 비밀을 여기 두는 순간 공개된다 */
@@ -64,6 +67,8 @@ export const CONFIG_ENV = [
   'AUDIT_EXPORT_REGION',
   /** 반출이 받는 AWS 역할의 ARN — 비밀이 아니다. 믿는 쪽은 AWS 의 신뢰 정책이다(Vercel OIDC 의 이 프로젝트만) */
   'AUDIT_EXPORT_ROLE_ARN',
+  /** PortOne 의 상점 번호 — 비밀이 아니다(브라우저의 결제 창도 든다). 없으면 결제 알림은 503 이다 */
+  'PORTONE_STORE_ID',
 ];
 
 /** 제 안에서 비밀을 읽는 패키지 — 이것을 부르는 모듈도 비밀을 읽는 모듈이다 */
