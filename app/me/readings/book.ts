@@ -1,4 +1,5 @@
 import { READING_NOUN } from '@/src/lib/reading';
+import { STEM_INFO, type Stem } from '@/src/lib/saju';
 
 import type { ReadingEntry } from '../reading/current';
 import { readingDate, readingHref, readingTitle } from '../reading/line';
@@ -30,27 +31,16 @@ export type Book = {
   readonly href: string;
 };
 
-export function bookOf(
-  entry: ReadingEntry,
-  dayMasters: ReadonlyMap<string, DayMaster>,
-  selfPersonId: string | null,
-): Book {
+export function bookOf(entry: ReadingEntry): Book {
   const single = READING_NOUN[entry.kind] === '사주풀이';
-  const of = (personId: string | null) => (personId === null ? null : (dayMasters.get(personId) ?? null));
+  const of = (stem: Stem | null): DayMaster | null => (stem === null ? null : { stem, element: STEM_INFO[stem].element });
 
   /*
-    **인연 궁합의 앞자리는 늘 나다.** 행이 든 `personA` 는 match 에서 비어 있고(가는 길이 `matchId`),
-    상대의 명식은 이 목록에서 읽을 수 없다 — 동의로 열린 여덟 글자는 결과 화면의 문만 낸다(ADR 0012).
-    그래서 상대 자리는 회색으로 둔다.
+    **두 일간은 목록 문이 준다**(G-59). 앞서는 표지 색 하나를 위해 여기서 명식을 다시 읽었다. 앞자리 ·
+    뒷자리를 누가 차지하는가도 문이 정한다 — `match` 의 앞자리는 나, 뒷자리는 동의 당시 사본의 상대다.
+    한 사람짜리는 뒷자리를 안 그린다. 모르는 자리는 `null`(회색 표지)이다.
   */
-  const subjects =
-    entry.kind === 'self'
-      ? [of(selfPersonId)]
-      : entry.kind === 'person'
-        ? [of(entry.personA)]
-        : entry.kind === 'private'
-          ? [of(entry.personA), of(entry.personB)]
-          : [of(selfPersonId), null];
+  const subjects = single ? [of(entry.dayMasterA)] : [of(entry.dayMasterA), of(entry.dayMasterB)];
 
   return {
     key: `${entry.kind}:${entry.matchId ?? entry.personA ?? 'me'}:${entry.personB ?? ''}`,
@@ -64,17 +54,4 @@ export function bookOf(
     subjects,
     href: readingHref(entry),
   };
-}
-
-/** 표지 색을 세우려면 명식을 읽어야 하는 사람들 — 목록에 선 사람만 */
-export function coverPersonIds(entries: readonly ReadingEntry[], selfPersonId: string | null): string[] {
-  const ids = new Set<string>();
-  for (const entry of entries) {
-    if ((entry.kind === 'self' || entry.kind === 'match') && selfPersonId !== null) ids.add(selfPersonId);
-    if (entry.kind === 'person' || entry.kind === 'private') {
-      if (entry.personA !== null) ids.add(entry.personA);
-      if (entry.personB !== null) ids.add(entry.personB);
-    }
-  }
-  return [...ids];
 }

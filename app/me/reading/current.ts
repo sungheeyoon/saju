@@ -1,4 +1,5 @@
 import { READING_KINDS, type ReadingAnswer } from '@/src/lib/reading';
+import { STEMS, type Stem } from '@/src/lib/saju';
 import { readingBody, readingGrounding } from '@/src/lib/reading/display';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -181,7 +182,22 @@ export type ReadingEntry = {
   readonly createdAt: string;
   /** 그 글의 여덟 글자가 아직 지금 명식인가(ADR 0071) */
   readonly fromCurrentChart: boolean;
+  /**
+   * 표지 앞자리의 일간 — `self` · `person` 은 그 사람, `private` 은 `personA`, **`match` 는 나**다.
+   * 내가 주인인 글은 그 사람의 지금 명식, `match` 는 동의 당시 사본에서 난다(G-59). 모르면 `null`(회색 표지).
+   */
+  readonly dayMasterA: Stem | null;
+  /** 뒷자리 — `private` 은 `personB`, `match` 는 상대. 한 사람짜리는 `null` */
+  readonly dayMasterB: Stem | null;
 };
+
+/**
+ * 천간 열 중 하나가 아니면 `null`.
+ *
+ * **칸이 없어도 `null` 이다.** 앱이 DB 보다 먼저 배포되면 옛 문은 두 칸을 안 준다 — 그때 표지는
+ * 회색으로 서고 나머지는 그대로 돈다.
+ */
+const stemOf = (value: string | null | undefined): Stem | null => STEMS.find((stem) => stem === value) ?? null;
 
 /**
  * 내가 만든 글 전부 — **최근 것이 앞이다.**
@@ -213,6 +229,8 @@ export async function myReadings(): Promise<readonly ReadingEntry[]> {
         metaphor: row.metaphor ?? null,
         createdAt: row.created_at,
         fromCurrentChart: row.from_current_chart,
+        dayMasterA: stemOf(row.day_master_a),
+        dayMasterB: stemOf(row.day_master_b),
       },
     ];
   });

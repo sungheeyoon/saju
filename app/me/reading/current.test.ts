@@ -49,6 +49,31 @@ describe('화면의 본체는 던진다', () => {
   });
 });
 
+/**
+ * 표지의 두 일간(G-59) — **천간 열 중 하나만 받는다.** 옛 DB 가 칸을 안 주면(앱이 먼저 배포됐을 때)
+ * 회색 표지로 선다.
+ */
+describe('표지의 일간', () => {
+  const row = {
+    kind: 'match', person_a: null, person_b: null, match_id: 'm1', label_a: '서하', label_b: null,
+    score: 70, metaphor: null, created_at: '2026-09-24T00:00:00Z', from_current_chart: true,
+  };
+
+  it('천간 한 글자를 그대로 옮긴다', async () => {
+    answering({ data: [{ ...row, day_master_a: '甲', day_master_b: '庚' }], error: null });
+
+    const [entry] = await myReadings();
+    expect([entry?.dayMasterA, entry?.dayMasterB]).toEqual(['甲', '庚']);
+  });
+
+  it('모르는 글자와 없는 칸은 null 이다', async () => {
+    answering({ data: [{ ...row, day_master_a: '木' }], error: null });
+
+    const [entry] = await myReadings();
+    expect([entry?.dayMasterA, entry?.dayMasterB]).toEqual([null, null]);
+  });
+});
+
 describe('부속 정보는 값으로 말한다', () => {
   it('풀이권을 못 읽으면 던지지 않고 못 읽었다고 답한다', async () => {
     answering(BROKEN);

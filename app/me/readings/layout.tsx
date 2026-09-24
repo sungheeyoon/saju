@@ -9,10 +9,9 @@ import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { myReadings } from '../reading/current';
 import { matchesForViewer } from '../requests/inbox';
-import { bookOf, coverPersonIds } from './book';
+import { bookOf } from './book';
 import { ReadingsFrame, type NextBook } from './frame';
 import { BlankBook, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from './shelf';
-import { dayMastersOf } from './subject';
 
 /**
  * 만든 글이 **한 목록에** 서는 자리 (ADR 0033) — 그리고 그 목록 옆에서 글을 읽는 자리.
@@ -42,8 +41,8 @@ import { dayMastersOf } from './subject';
  * 한쪽이 덜 자른다. 그 경계는 함수가 이미 들지만(반환형에 `output` 이 없다) 화면도
  * 같은 것을 지킨다 — 열지 않는 것과 못 여는 것은 다르다. 옆 칸의 글은 제 주소의 화면이 따로 읽는다.
  *
- * 표지 색은 대상의 일간이다. 그 색 하나를 위해 명식을 읽는다: 사람 목록이 쓰는 문(`storedInputsOf`)을
- * 한 번 더 부르고, 못 읽으면 회색 표지다.
+ * 표지 색은 대상의 일간이다. **그 값도 목록 문이 준다**(G-59) — 명식을 다시 읽지도 엔진을 돌리지도 않는다.
+ * 인연 궁합의 상대 쪽 반은 결과 화면이 이미 연 동의 당시 사본의 일간이다. 문이 모르면 회색 표지다.
  */
 export default async function ReadingsLayout({ children }: { children: ReactNode }) {
   const supabase = await supabaseOnServer();
@@ -53,7 +52,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  /** 표지 색과 빈 상태의 길이 내 사주 등록 여부를 묻는다 — 온보딩으로 보내지는 않는다 */
+  /** 빈 상태의 길이 내 사주 등록 여부를 묻는다 — 온보딩으로 보내지는 않는다 */
   const { state } = await readAccount(supabase);
   if (isBlocked(state)) {
     return (
@@ -72,8 +71,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   );
   const making = matches.filter((match) => !madeMatchIds.has(match.matchId));
 
-  const dayMasters = await dayMastersOf(supabase, coverPersonIds(readings, selfPersonId));
-  const books = readings.map((entry) => bookOf(entry, dayMasters, selfPersonId));
+  const books = readings.map(bookOf);
   /* 구역 안의 차례는 DB 가 준 그대로다 — 가르기만 하고 다시 세우지 않는다 */
   const singles = books.filter((book) => book.single);
   const pairs = books.filter((book) => !book.single);

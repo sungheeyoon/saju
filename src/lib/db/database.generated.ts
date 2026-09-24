@@ -2555,6 +2555,8 @@ export type Database = {
         Args: never
         Returns: {
           created_at: string
+          day_master_a: string
+          day_master_b: string
           from_current_chart: boolean
           kind: string
           label_a: string

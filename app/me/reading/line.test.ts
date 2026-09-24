@@ -21,6 +21,8 @@ const entry = (over: Partial<ReadingEntry>): ReadingEntry => ({
   metaphor: null,
   createdAt: '2026-09-03T00:00:00Z',
   fromCurrentChart: true,
+  dayMasterA: null,
+  dayMasterB: null,
   ...over,
 });
 
