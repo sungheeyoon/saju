@@ -308,11 +308,12 @@ squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 �
 | `gh pr view <n> --json mergeStateStatus` 가 `BEHIND` 이고 `--auto` 가 안 든다 | 보호 규칙이 strict 다 — 가지가 최신 main 을 품어야 든다(2026-09-23, #143). auto-merge 는 가지를 스스로 올리지 않는다 | `gh pr update-branch <n>` — main 을 merge 하므로 force push 가 없다. gate 가 다시 돌고 초록이면 든다 |
 | `.env.development.local` 의 값이 `"[SENSITIVE]"` 다 | Vercel 이 Secret 은 안 내려 준다. 그대로 두면 「있는」 값으로 세어져 401 로 떨어진다 | 주석 처리해 두면 오류가 이름을 대 준다. 실호출은 `OPENAI_API_KEY` 한 줄을 손으로 붙인다 |
 | 실호출 첫 콜이 `Incorrect API key` | `.env.development.local` 값이 `"…"` 로 감싸여 있다 | `loadLocalEnv` 가 벗긴다 — 새 읽는 자리를 만들면 같은 것을 한다 |
+| Production 배포가 전부 `Error` 인데 typecheck · lint · 단위 · e2e 는 초록이다 | `next build` 만 잡는 것이 있다 — 예: `app/**/icon.tsx` 는 Next 가 파비콘 메타데이터 라우트로 읽어 기본 내보내기가 없으면 「Export default doesn't exist」로 선다(2026-09-24, 두 시간 동안 배포가 멈췄다). 파일 이름 `icon` · `apple-icon` · `opengraph-image` · `sitemap` · `robots` · `manifest` 는 `app/` 아래 어디서나 특별하다 | 화면을 바꾼 병합 뒤에 `npm run build` 를 한 번 돈다. 공용 아이콘은 `app/ui/icons.tsx` 다. 배포 상태는 `vercel ls --prod` |
 
 ## 세션 기록 — `docs/notes/`
 
 세션 메모리에만 있던 것은 2026-09-22 에 저장소로 옮겼다. 규약이 된 것은 이 문서에, 절차가 된
-것은 `docs/ops/runbook.md` 에, 결정이 된 것은 ADR 에 있고, **그 밖의 판단 기록 열셋**은
+것은 `docs/ops/runbook.md` 에, 결정이 된 것은 ADR 에 있고, **그 밖의 판단 기록 열다섯**은
 `docs/notes/` 에 그날의 사정째로 있다(차례는 `docs/notes/README.md`). 노트는 요구사항도 규칙도
 아니다 — 코드가 왜 이 모양인지 되짚을 때 연다. **새 기억은 저장소에 적는다** — 규약이면 여기,
 틈이면 `docs/product/gaps.md`, 사정이면 노트에 날짜와 함께.
