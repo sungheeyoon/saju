@@ -10,10 +10,11 @@
  *   2. **같은 열쇠로 동시에 연 주문은 하나다** — 뒤 세션이 `unique_violation` 대신 같은 주문을 받는다
  *   3. **거절 기록 한 시간 서른 줄은 동시에 불러도 서른이다**
  *   4. **두 반출 실행이 나란히 시작하면 하나만 돈다** — 뒤는 「도는 중」(`20261014090000`)
+ *   5. **CLI 질의 하나의 결과는 두 세션이 나란히 적어도 한 줄이다** — 같은 결과면 뒤는 앞 줄의 번호를, 다른 결과면
+ *      거절을 받는다(`20261015090000`)
  *
- * 남는 것 — 접속기록 표는 추가만 되므로 이 검사가 적은 줄(무작위 actor, 1 · 3)과 반출 시도 둘(4, 「설정 없음」으로
- * 끝낸다)은 로컬 DB 에 남는다. 주문을 연
- * 계정은 끝에 지운다. 판매 스위치는 2 동안만 켜고 `finally` 에서 끈다.
+ * 남는 것 — 접속기록 표는 추가만 되므로 이 검사가 적은 줄(무작위 actor, 1 · 3 · CLI 질의와 결과, 5)과 반출 시도
+ * 둘(4, 「설정 없음」으로 끝낸다)은 로컬 DB 에 남는다. 주문을 연 계정은 끝에 지운다. 판매 스위치는 2 동안만 켜고 `finally` 에서 끈다.
  */
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -169,6 +170,41 @@ const accessRow = (actor, outcome = 'allowed') => `
     const [attempt, busy] = (run ?? '').split(':');
     if (attempt && busy === 'false') sql(`select public.audit_export_finish(${Number(attempt)}, 'not_configured')`);
   }
+}
+
+// ── 5. CLI 결과 한 줄 ───────────────────────────────────────────────────────────
+
+{
+  const note = (at, result, tail = '') =>
+    (query) => session(at, `begin;
+      select 'WROTE=' || audit.note_cli_result(${query}, '${result}'${result === 'failed' ? ", 'sql'" : ''});
+      ${tail} commit;`);
+  const resultRows = (query) =>
+    sql(`select count(*) from audit.operator_access where result_of = ${query}`);
+
+  // 같은 결과를 두 세션이 — 앞이 적고 커밋하기 전에 뒤가 적는다
+  const same = sql(`select audit.note_cli_query('race-check', '결과 경합 확인', repeat('a', 64))`);
+  const [first, second] = await Promise.all([
+    note(0, 'succeeded', 'select pg_sleep(2);')(same),
+    note(600, 'succeeded')(same),
+  ]);
+  check('같은 결과를 적는 두 세션이 끝까지 돈다', first.code === 0 && second.code === 0,
+    `${first.err}${second.err}`.trim());
+  check('두 세션이 나란히 적어도 결과는 한 줄이다', resultRows(same) === '1', `${resultRows(same)}줄`);
+  check('뒤 세션은 앞 세션이 적은 줄의 번호를 받는다', marked(first, 'WROTE') !== null
+    && marked(first, 'WROTE') === marked(second, 'WROTE'), `${marked(first, 'WROTE')} · ${marked(second, 'WROTE')}`);
+  check('뒤 세션은 앞 세션의 커밋을 기다렸다', second.ms >= 1000, `${second.ms}ms`);
+
+  // 다른 결과를 두 세션이 — 뒤는 거절된다
+  const differ = sql(`select audit.note_cli_query('race-check', '결과 경합 확인', repeat('b', 64))`);
+  const [kept, refused] = await Promise.all([
+    note(0, 'succeeded', 'select pg_sleep(2);')(differ),
+    note(600, 'failed')(differ),
+  ]);
+  check('다른 결과를 적는 앞 세션은 끝까지 돈다', kept.code === 0, kept.err.trim());
+  check('다른 결과를 적는 뒤 세션은 거절된다 — 23505', refused.code !== 0 && /already written/.test(refused.err),
+    refused.err.trim() || '거절되지 않았다');
+  check('다른 결과가 나란히 와도 결과는 한 줄이다', resultRows(differ) === '1', `${resultRows(differ)}줄`);
 }
 
 finish();
