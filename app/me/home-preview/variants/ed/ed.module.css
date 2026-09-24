@@ -1,0 +1,270 @@
+/*
+  편집 디자인 시안의 활자 · 단추 · 선 — 색은 전부 `globals.css` 토큰이라 어두운 화면에서 저절로 뒤집힌다.
+  잉크 = `--foreground`, 종이 = `--background`. 새 색은 없다 — 한 가지 별색 대신 잉크의 농담으로만 말한다.
+*/
+
+.root {
+  --ed-ink: var(--foreground);
+  --ed-paper: var(--background);
+  --ed-rule: var(--foreground);
+  --ed-hair: var(--border-strong);
+  color: var(--ed-ink);
+}
+
+/* ── 활자 여섯 단 ───────────────────────────── */
+
+/* T1 표지 글자 — 여덟 글자. 화면에서 가장 먼저 읽힌다 */
+.cover {
+  font-family: var(--ed-serif), 'Noto Serif KR', serif;
+  font-weight: 700;
+  font-size: clamp(3.25rem, 16vw, 7.5rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+/* T2 표제 — 이름 · 칸 제목 */
+.display {
+  font-family: var(--ed-serif), 'Noto Serif KR', serif;
+  font-weight: 600;
+  font-size: clamp(2rem, 4.2vw, 3rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+}
+
+/* T3 목차 제목 — 사람 이름 · 뒷면 길 */
+.entry {
+  font-family: var(--ed-serif), 'Noto Serif KR', serif;
+  font-weight: 600;
+  font-size: 1.375rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+/* T4 인용 — 사주풀이의 비유 한 줄 */
+.quote {
+  font-family: var(--ed-serif), 'Noto Serif KR', serif;
+  font-weight: 400;
+  font-size: 1.25rem;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+/* T5 본문 — Pretendard 15/24 */
+.body {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* T6 캡션 — 12px, 넓은 자간. 대비를 위해 muted 가 아니라 secondary */
+.caption {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary);
+}
+
+/* 제호 */
+.wordmark {
+  font-family: var(--ed-serif), 'Noto Serif KR', serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+/* 숫자 — 번호 · 개수 · 점수 */
+.figure {
+  font-family: var(--ed-figure), Georgia, serif;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-weight: 400;
+}
+
+/* 작은 한자 — 목차 줄의 여덟 글자 */
+.hanja {
+  font-family: var(--ed-serif), 'Noto Serif KR', serif;
+  font-weight: 600;
+}
+
+@media (min-width: 640px) {
+  .entry {
+    font-size: 1.5rem;
+  }
+  .quote {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* 뒷면은 세 칸이라 한 줄에 들게 한 단 낮춘다 */
+  .back {
+    font-size: 1.25rem;
+  }
+}
+
+/* ── 선 ─────────────────────────────────────── */
+
+.ruleHeavy {
+  border-top: 3px solid var(--ed-rule);
+}
+.rule {
+  border-top: 1px solid var(--ed-rule);
+}
+.hair {
+  border-top: 1px solid var(--ed-hair);
+}
+
+/* ── 단추 셋 ────────────────────────────────── */
+
+.primary,
+.secondary,
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    text-decoration-thickness 120ms ease,
+    transform 80ms ease;
+}
+
+.primary:focus-visible,
+.secondary:focus-visible,
+.link:focus-visible,
+.icon:focus-visible {
+  outline: 2px solid var(--ed-ink);
+  outline-offset: 3px;
+}
+
+/* 주 — 잉크 채움 알약 48px */
+.primary {
+  min-height: 3rem;
+  padding-inline: 1.5rem;
+  border-radius: 999px;
+  background: var(--ed-ink);
+  color: var(--ed-paper);
+  font-size: 0.9375rem;
+}
+.primary:hover {
+  background: color-mix(in oklab, var(--ed-ink) 84%, var(--ed-paper));
+}
+.primary:active {
+  transform: scale(0.98);
+}
+
+/* 보조 — 잉크 테두리 알약 44px */
+.secondary {
+  padding-inline: 1.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--ed-ink);
+  color: var(--ed-ink);
+  font-size: 0.875rem;
+}
+.secondary:hover {
+  background: color-mix(in oklab, var(--ed-ink) 7%, transparent);
+}
+.secondary:active {
+  background: color-mix(in oklab, var(--ed-ink) 14%, transparent);
+  transform: scale(0.98);
+}
+
+/* 셋째 — 밑줄 + 화살표, 누를 자리는 44px */
+.link {
+  color: var(--ed-ink);
+  font-size: 0.875rem;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+}
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+.link:active {
+  color: var(--text-secondary);
+}
+
+.arrow {
+  transition: transform 120ms ease;
+}
+.primary:hover .arrow,
+.secondary:hover .arrow,
+.link:hover .arrow,
+.row:hover .arrow {
+  transform: translateX(3px);
+}
+
+/* 아이콘 단추 — 종 · 톱니, 44px */
+.icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  color: var(--ed-ink);
+}
+.icon:hover {
+  background: color-mix(in oklab, var(--ed-ink) 7%, transparent);
+}
+.icon:active {
+  background: color-mix(in oklab, var(--ed-ink) 14%, transparent);
+}
+
+/* 목차의 이름 — 제목이 곧 링크다 */
+.title {
+  text-decoration-line: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+  transition: text-decoration-color 120ms ease;
+}
+.title:hover {
+  text-decoration-color: currentColor;
+}
+.title:focus-visible,
+.row:focus-visible {
+  outline: 2px solid var(--ed-ink);
+  outline-offset: 2px;
+}
+
+/* 뒷면의 한 줄 전체가 링크 */
+.row {
+  transition: background-color 120ms ease;
+}
+.row:hover {
+  background: color-mix(in oklab, var(--ed-ink) 4%, transparent);
+}
+.row:active {
+  background: color-mix(in oklab, var(--ed-ink) 9%, transparent);
+}
+
+/* 톱니 안의 차림표 */
+.menuItem {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: 1rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.menuItem:hover {
+  background: color-mix(in oklab, var(--ed-ink) 6%, transparent);
+}
+
+.summary {
+  list-style: none;
+  cursor: pointer;
+}
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 비어 있는 표지 칸 — 등록 전 */
+.blank {
+  border: 1px dashed var(--ed-hair);
+}
