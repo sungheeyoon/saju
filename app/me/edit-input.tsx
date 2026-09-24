@@ -12,6 +12,8 @@ import {
   samePillarInput,
 } from '@/src/lib/input/edit';
 import { editPersonInput } from './actions';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON } from '../ui/buttons';
+import { TYPE_META, TYPE_NAME } from '../ui/surfaces';
 
 /**
  * 저장된 출생 정보를 고치는 자리.
@@ -63,7 +65,7 @@ export function EditInput({
           onClick={() => setOpen((now) => !now)}
           aria-expanded={open}
           aria-label="출생 정보 수정"
-          className="absolute right-4 top-4 grid size-10 place-items-center rounded-full border border-border bg-surface text-secondary hover:border-accent hover:text-accent sm:right-5 sm:top-5"
+          className={`${ICON_BUTTON} absolute right-4 top-4 text-secondary hover:text-foreground sm:right-5 sm:top-5`}
         >
           <svg
             aria-hidden="true"
@@ -114,7 +116,7 @@ export function EditInput({
         `self-start` 가 그 줄의 `items-center` 를 이겨서 **혼자만 위로 솟아 있었다.**
         늘어나는 것을 막아야 하는 자리(`embedded`)에서만 단다.
       */
-      className={`text-sm text-accent underline underline-offset-2 ${embedded ? 'self-start' : ''}`}
+      className={`${BUTTON_TERTIARY} ${embedded ? 'self-start' : ''}`}
     >
       출생 정보 수정
     </button>
@@ -169,17 +171,19 @@ export function EditInputForm({
   };
 
   return (
-    <section className={`flex flex-col gap-4 rounded-xl border border-border bg-surface p-4 ${embedded ? 'col-span-full' : ''}`}>
+    <section
+      className={`flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-4 text-foreground shadow-[var(--shadow-card)] sm:p-5 ${embedded ? 'col-span-full' : ''}`}
+    >
       <header className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold">수정하기</h2>
-        <p className="text-sm text-secondary">{INPUT_EDIT_REPLACED_NOTE}</p>
+        <h2 className={TYPE_NAME}>수정하기</h2>
+        <p className="text-[15px] leading-6 text-secondary">{INPUT_EDIT_REPLACED_NOTE}</p>
       </header>
 
       {!editableName && (
-        <div className="rounded-lg bg-surface-soft px-3 py-2 text-sm">
-          <span className="text-muted">닉네임</span>{' '}
-          <strong className="font-medium">{current.name}</strong>
-          <p className="mt-0.5 text-xs text-muted">내 이름은 프로필 닉네임으로 표시됩니다.</p>
+        <div className="rounded-2xl bg-surface-sunken px-3.5 py-2.5 text-[15px]">
+          <span className="text-secondary">닉네임</span>{' '}
+          <strong className="font-semibold">{current.name}</strong>
+          <p className={`mt-0.5 ${TYPE_META}`}>내 이름은 프로필 닉네임으로 표시됩니다.</p>
         </div>
       )}
 
@@ -190,35 +194,36 @@ export function EditInputForm({
         판본이 되지 않는데, 그걸 안 말해 주면 「고쳤는데 판본이 안 늘었다」로 보인다.
       */}
       {pillarsSame && (
-        <p className="text-xs text-muted">
+        <p className={TYPE_META}>
           {nameChanged
             ? '이름만 바뀌었습니다. 부르는 이름은 여덟 글자를 바꾸지 않으므로 저장된 출생 정보는 그대로입니다.'
             : '바뀐 것이 없습니다.'}
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          /* 여덟 글자가 바뀌는 누름만 묻는다 — 이름만 고치는 것은 요청을 안 건드린다 */
-          onClick={confirmsRequests && !pillarsSame ? () => setConfirming(true) : save}
-          disabled={missing !== null || saving || (pillarsSame && !nameChanged)}
-          className="h-11 rounded-lg bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-60 sm:h-10"
-        >
-          {saving ? '저장하는 중…' : pillarsSame ? '이름 저장' : '변경 사항 저장'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={saving}
-          className="text-sm text-secondary underline underline-offset-2"
-        >
-          그만두기
-        </button>
-        {missing !== null && <span className="text-xs text-muted">{missing}</span>}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            /* 여덟 글자가 바뀌는 누름만 묻는다 — 이름만 고치는 것은 요청을 안 건드린다 */
+            onClick={confirmsRequests && !pillarsSame ? () => setConfirming(true) : save}
+            disabled={missing !== null || saving || (pillarsSame && !nameChanged)}
+            className={BUTTON_PRIMARY}
+          >
+            {saving ? '저장하는 중…' : pillarsSame ? '이름 저장' : '변경 사항 저장'}
+          </button>
+          <button type="button" onClick={onCancel} disabled={saving} className={BUTTON_TERTIARY}>
+            그만두기
+          </button>
+        </div>
+        {missing !== null && <p className={TYPE_META}>{missing}</p>}
       </div>
 
-      {failure !== null && <p className="text-sm text-muted">저장하지 못했습니다 — {failure}</p>}
+      {failure !== null && (
+        <p role="alert" className="text-sm text-danger">
+          저장하지 못했습니다 — {failure}
+        </p>
+      )}
 
       {confirming && (
         <EditInputConfirm personId={personId} onConfirm={save} onCancel={() => setConfirming(false)} />
@@ -253,29 +258,21 @@ function EditInputConfirm({
       ref={confirming}
       aria-labelledby={`edit-input-confirm-${personId}`}
       onClose={onCancel}
-      className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
+      className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
     >
-      <h3 id={`edit-input-confirm-${personId}`} className="text-base font-bold">
+      <h3 id={`edit-input-confirm-${personId}`} className="font-rounded text-[1.3rem] leading-7">
         {INPUT_EDIT_CHANGE_CONFIRM.title}
       </h3>
-      <div className="mt-2 flex flex-col gap-1.5 text-sm leading-6 text-secondary">
+      <div className="mt-2 flex flex-col gap-1.5 text-[15px] leading-6 text-secondary">
         {INPUT_EDIT_CHANGE_CONFIRM.body.map((line) => (
           <p key={line}>{line}</p>
         ))}
       </div>
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
-        <button
-          type="button"
-          onClick={onConfirm}
-          className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm sm:h-10"
-        >
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
+        <button type="button" onClick={onConfirm} className={BUTTON_PRIMARY}>
           {INPUT_EDIT_CHANGE_CONFIRM.confirm}
         </button>
-        <button
-          type="button"
-          onClick={() => confirming.current?.close()}
-          className="h-11 rounded-xl border border-border px-5 text-sm text-secondary hover:border-border-strong hover:text-foreground sm:h-10"
-        >
+        <button type="button" onClick={() => confirming.current?.close()} className={BUTTON_SECONDARY}>
           {INPUT_EDIT_CHANGE_CONFIRM.cancel}
         </button>
       </div>

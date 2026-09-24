@@ -875,13 +875,26 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       .locator('section')
       .filter({ has: page.getByRole('heading', { name: '친구' }) });
 
-    /* 새 사람 카드에는 풀이로 가는 길 하나만 선다. 명식은 다음 화면의 탭으로 간다. */
+    /*
+      **타일이 내는 길은 셋이다** — 이름(타일 전체)은 그 사람의 사주로, 먹색 단추는 사주풀이로, 하트는
+      나와의 궁합으로. 사주와 풀이는 다음 화면의 탭으로도 오가므로 같은 길을 두 번 세우지 않는다.
+    */
     const readingLink = friendCard.getByRole('link', { name: /사주풀이 받기/ });
     await expect(readingLink).toHaveAttribute(
       'href',
       /\/me\/readings\/[0-9a-f-]+$/,
     );
-    await expect(friendCard.getByRole('link')).toHaveCount(1);
+    await expect(friendCard.getByRole('link', { name: '친구', exact: true })).toHaveAttribute(
+      'href',
+      /\/me\/people\/[0-9a-f-]+$/,
+    );
+    /* 궁합으로 가는 길은 person id 만 싣는다 — 출생 원문이 주소에 안 실린다(ADR 0007) */
+    const compatLink = friendCard.getByRole('link', { name: '나와 궁합' });
+    await expect(compatLink).toHaveAttribute(
+      'href',
+      /^\/compat#a\.person=[0-9a-f-]+&b\.person=[0-9a-f-]+$/,
+    );
+    await expect(friendCard.getByRole('link')).toHaveCount(3);
 
     /* 설명이 긴 버튼도 카드의 최소 너비를 밀어내지 않는다 — 320px에서 실제로 넘쳤다. */
     const cardBox = await friendCard.boundingBox();
@@ -908,11 +921,15 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     ).toHaveAttribute('href', /^\/compat#a\.person=.+/);
 
     await page.getByRole('link', { name: '사람 목록으로' }).click();
+    await expect(page).toHaveURL(/\/me\/people$/);
 
-    // 저장 자리 한도를 세는 것도 이 목록이다(US 18).
-    await page.getByRole('link', { name: '궁합 보러 가기' }).click();
-    /* 목록의 카드도 상세와 같은 길을 낸다 — 그 사람이 첫 칸에 앉은 채로 열린다 */
-    await expect(page).toHaveURL(/\/compat#a\.person=[0-9a-f-]+$/);
+    /*
+      **목록의 타일도 상세와 같은 길을 낸다** — 나와 그 사람이 두 칸에 앉은 채로 열린다(주소에는 id 만).
+      홈의 「나와 궁합」도 이 모양의 주소를 쓴다.
+    */
+    await compatLink.click();
+    await expect(page).toHaveURL(/\/compat#a\.person=[0-9a-f-]+&b\.person=[0-9a-f-]+$/);
+    await expect(page.getByRole('combobox', { name: '두 번째' })).toHaveValue('친구');
 
     /*
       **사이는 여기서 묻는다**(ADR 0019·0054). 읽기 전에 물어야 뜻이 있고, 다음 화면은

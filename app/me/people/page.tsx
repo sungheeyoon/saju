@@ -3,14 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 
-import {
-  BRANCH_INFO,
-  CALENDAR_KO,
-  ELEMENT_KO,
-  GENDER_KO,
-  STEM_INFO,
-  type Saju,
-} from '@/src/lib/saju';
+import { CALENDAR_KO, GENDER_KO, STEM_INFO, type Saju } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { isoOf, solarDateOf } from '@/src/lib/input/chart';
@@ -19,13 +12,19 @@ import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
 import { storedInputsOf } from '../person-input';
 import { managedEdges, personSlotsFrom } from '../../person-slots';
 import { myReadings, type ReadingEntry } from '../reading/current';
+import { readingHref } from '../reading/line';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { AddPerson } from './manage';
 import { PeopleFinder } from './finder';
 import { PersonActions } from './person-menu';
-import { ELEMENT_TONE } from '../../element-tone';
-import { PILLAR_COLUMNS } from '../../saju/shared';
+import { DayMasterChip, PillarStrip } from './chart-bits';
+import { compatHrefFor } from './compat-href';
+import { elementScope } from '../../element-tone';
+import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+import { ElementSymbol } from '../../ui/element-symbol';
+import { Icon } from '../../ui/icon';
+import { EMPTY_SLOT, TILE, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../ui/surfaces';
 
 /*
   **이 화면의 이름은 「저장한 사람」 하나다.**
@@ -52,6 +51,7 @@ export const metadata = {
  * 싣는데(`/me` 가 자기 것에 그렇게 한다), 남이 등록해 준 가족의 생년월일시가
  * 주소창에 실리는 것은 ADR 0007 이 익명 링크에서 막으려던 것과 같은 일이다.
  * 여덟 글자는 서버가 계산해 여기 놓고, 두 사람을 함께 보는 것은 `/me/compat` 이다.
+ * 궁합으로 넘기는 링크도 **person id 만** 싣는다(`compatHrefFor`).
  */
 export default async function PeoplePage() {
   const supabase = await supabaseOnServer();
@@ -87,11 +87,27 @@ export default async function PeoplePage() {
     myReadings(),
   ]);
 
+  const selfPersonId = selfPersonIdOf(state);
+
   const readings = new Map(
     made
       .filter((one) => one.kind === 'person' && one.personA !== null)
       .map((one) => [one.personA as string, one]),
   );
+
+  /**
+   * 나 × 그 사람의 궁합풀이 — 최근 것이 앞이라 **처음 만난 것이 가장 최근이다.** 있으면 타일의 궁합 단추가
+   * 점수를 달고 그 글로 곧장 간다. 같은 한 번(`my_readings`)에서 꺼낸다.
+   */
+  const pairs = new Map<string, ReadingEntry>();
+  if (selfPersonId !== null) {
+    for (const one of made) {
+      if (one.kind !== 'private') continue;
+      const other =
+        one.personA === selfPersonId ? one.personB : one.personB === selfPersonId ? one.personA : null;
+      if (other !== null && !pairs.has(other)) pairs.set(other, one);
+    }
+  }
 
   /**
    * 중지된 계정에는 목록이 **비어서** 온다(정책이 막는다). 빈 목록과 「등록한 사람이
@@ -103,28 +119,25 @@ export default async function PeoplePage() {
   const blocked = isBlocked(state);
 
   /** 온보딩이면 `null` 이고, 그때는 뺄 자기 것이 없다 — 목록은 그대로 선다 */
-  const managed = managedEdges(edges, selfPersonIdOf(state) ?? undefined);
+  const managed = managedEdges(edges, selfPersonId ?? undefined);
   const people = blocked ? [] : await peopleWithCharts(managed);
 
   return (
-    <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow">사람</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">저장한 사람</h1>
-          <p className="mt-1 text-sm text-secondary">
+    <main className="app-shell flex w-full flex-1 flex-col gap-6 py-8 sm:gap-8 sm:py-12">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <h1 className={TYPE_TITLE}>저장한 사람</h1>
+          <p className="text-[15px] leading-6 text-secondary">
             가족이나 친구의 출생 정보를 저장하고 관리하세요.
             {slots !== null && (
-              <span className="ml-2 text-muted">
+              <span className="ml-2 whitespace-nowrap text-[13px] font-semibold tabular-nums">
                 {slots.used}/{slots.limit}명
               </span>
             )}
           </p>
         </div>
-        <Link
-          href="/compat"
-          className="rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent"
-        >
+        <Link href="/compat" className={`${BUTTON_SECONDARY_SMALL} self-start sm:self-auto`}>
+          <Icon name="heart" className="size-4" />
           궁합 보러 가기
         </Link>
       </header>
@@ -134,7 +147,7 @@ export default async function PeoplePage() {
       ) : (
         <>
           <AddPerson slots={slots} />
-          <PeopleList people={people} readings={readings} />
+          <PeopleList people={people} readings={readings} pairs={pairs} selfPersonId={selfPersonId} />
         </>
       )}
     </main>
@@ -144,28 +157,39 @@ export default async function PeoplePage() {
 function PeopleList({
   people,
   readings,
+  pairs,
+  selfPersonId,
 }: {
   people: Person[];
   /** 사람 하나에 지금 글 하나 — 대상별로 묶어 두고 카드마다 한 번 꺼낸다 */
   readings: ReadonlyMap<string, ReadingEntry>;
+  pairs: ReadonlyMap<string, ReadingEntry>;
+  selfPersonId: string | null;
 }) {
+  if (people.length === 0) {
+    return (
+      <p className={`${EMPTY_SLOT} text-[15px] leading-6 text-secondary`}>
+        아직 저장한 사람이 없습니다. 이름과 출생 정보를 입력해 사람을 추가해 보세요.
+      </p>
+    );
+  }
+
+  /* 여섯부터 목록 위에 찾는 칸이 선다 — 카드는 여기서 그리고 칸은 숨기기만 한다(`finder.tsx`) */
   return (
-    <>
-      {people.length === 0 ? (
-        <p className="rounded-[1.75rem] border border-border bg-surface-sunken p-5 text-sm text-muted">
-          아직 저장한 사람이 없습니다. 이름과 출생 정보를 입력해 사람을 추가해 보세요.
-        </p>
-      ) : (
-        /* 여섯부터 목록 위에 찾는 칸이 선다 — 카드는 여기서 그리고 칸은 숨기기만 한다(`finder.tsx`) */
-        <PeopleFinder
-          people={people.map((person) => ({
-            personId: person.personId,
-            label: person.local_label,
-            card: <PersonCard person={person} reading={readings.get(person.personId) ?? null} />,
-          }))}
-        />
-      )}
-    </>
+    <PeopleFinder
+      people={people.map((person) => ({
+        personId: person.personId,
+        label: person.local_label,
+        card: (
+          <PersonCard
+            person={person}
+            reading={readings.get(person.personId) ?? null}
+            pair={pairs.get(person.personId) ?? null}
+            selfPersonId={selfPersonId}
+          />
+        ),
+      }))}
+    />
   );
 }
 
@@ -213,235 +237,132 @@ async function peopleWithCharts(edges: Edge[]): Promise<Person[]> {
 }
 
 /**
- * 한 사람 — **읽는 자리와 손대는 자리가 갈려 있다.**
+ * 한 사람 = **그 사람의 일간 오행 색을 입은 한 장의 타일**(부드러움, 홈의 사람 타일과 같은 말투).
  *
- * 카드 아래에 조작 넷이 나란히 서 있었다(상세 · 수정 · 빼기 · 메모). 그중 늘 쓰는 것은
- * 하나뿐인데 넷이 같은 무게로 서서, 카드마다 그 줄이 반복되며 목록이 링크밭이 됐다.
+ * 열 명이 모이면 색의 배열만으로 누가 어느 기운인지 갈린다. 그래도 색 혼자 말하지 않게 딱지에 상징 · 일간 글자 ·
+ * 오행 이름을 함께 둔다(`DayMasterChip`).
  *
- * 지금 카드는 두 층이다. **누구이고 어떤 명식인가**(본문) · **풀이를 읽거나 만드는 길**.
- * 명식은 풀이 화면의 탭에서 바로 오갈 수 있으므로 같은 카드에 두 번째 길을 반복하지
- * 않는다. 손대는 것들은 오른쪽 위 구석의 관리 메뉴 하나로 물러난다 — 읽는 자리
- * 위에 얹히지 않게.
+ * **타일이 곧 상세로 가는 길이다** — 이름 링크의 `after:` 가 타일 전체를 덮는다. 그 위로 뜨는 것은 셋이다:
+ * 풀이 · 궁합 단추 줄, 오른쪽 위 구석의 관리 메뉴, 메뉴가 연 칸. 손대는 것(수정 · 메모 · 빼기)은 여전히 그
+ * 구석 하나로 물러나 읽는 자리 위에 얹히지 않는다.
  *
- * `overflow-hidden` 은 걷었다 — 메뉴가 카드 밖으로 열리는데 그것이 잘렸다. 둥근 모서리는
- * 아래 띠가 스스로 든다.
+ * 홈의 타일보다 한 겹 더 든다 — 이 화면은 관리하는 자리라 **태어난 날과 곳 · 메모**를 타일이 직접 보인다.
+ * 적어 둔 메모를 여는 버튼 이름으로만 말하면 접힌 것이 빈 것으로 읽힌다.
  */
-function PersonCard({ person, reading }: { person: Person; reading: ReadingEntry | null }) {
-  /** 적어 둔 메모는 **카드가 직접 보인다** — 여는 버튼 이름으로만 말하면 접힌 것이 빈 것이 된다 */
+function PersonCard({
+  person,
+  reading,
+  pair,
+  selfPersonId,
+}: {
+  person: Person;
+  reading: ReadingEntry | null;
+  /** 나 × 이 사람의 궁합풀이 — 있으면 궁합 단추가 점수를 달고 그 글로 간다 */
+  pair: ReadingEntry | null;
+  selfPersonId: string | null;
+}) {
   const note = person.note?.trim() ?? '';
+  const element = person.chart.ok ? STEM_INFO[person.chart.saju.pillars.dayMaster].element : null;
 
   return (
-    <section className="relative rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]">
-      <div className="relative p-5 sm:p-6">
-        {person.chart.ok ? (
-          <ChartSummary query={person.chart.query} saju={person.chart.saju} />
-        ) : (
-          <div className="flex flex-col gap-1 pr-12">
-            <p className="eyebrow">저장한 사람</p>
-            <h2 className="text-xl font-bold tracking-[-0.03em]">{person.local_label}</h2>
-            <p className="mt-2 text-sm">{person.chart.message}</p>
-            <p className="text-xs text-muted">{UNREADABLE_INPUT_NOTE}</p>
-          </div>
-        )}
-
-        {note !== '' && (
-          <p className="mt-5 rounded-2xl border border-border bg-surface-soft/60 px-4 py-3 text-sm text-secondary">
-            <span className="mr-2 text-xs font-semibold tracking-[0.08em] text-muted">메모</span>
-            {note}
-          </p>
-        )}
-
-        {/* 못 읽는 판본은 고치는 폼도 못 채운다 — 빈 폼을 주면 그 값이 새 판본으로 굳는다 */}
-        <PersonActions
-          personId={person.personId}
-          label={person.local_label}
-          note={person.note ?? ''}
-          current={person.chart.ok ? person.chart.query : null}
-        />
+    <section className={`${elementScope(element)} ${TILE} relative flex h-full flex-col gap-3 sm:p-5`}>
+      {/* 큰 상징 하나가 모서리에 옅게 번진다 — 장식이라 누름도 보조기기도 지나간다 */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-[1.5rem]">
+        <ElementSymbol element={element} className="absolute -bottom-6 -right-6 size-32 opacity-[0.14]" />
       </div>
 
-      {person.chart.ok && (
-        <div className="min-w-0 rounded-b-[1.75rem] border-t border-border bg-surface-soft/70 p-3 sm:p-4">
-          <ReadingAction personId={person.personId} reading={reading} />
+      <div className="flex min-h-11 items-center pr-14">
+        {person.chart.ok ? (
+          <DayMasterChip stem={person.chart.saju.pillars.dayMaster} />
+        ) : (
+          <span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_srgb,var(--surface)_72%,transparent)]">
+            <ElementSymbol element={null} className="size-5" />
+          </span>
+        )}
+      </div>
+
+      <div className="min-w-0">
+        <h2 className={`${TYPE_NAME} truncate`}>
+          <Link
+            href={`/me/people/${person.personId}`}
+            className="after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_45%,transparent)]"
+          >
+            {person.local_label}
+          </Link>
+        </h2>
+        {person.chart.ok && <BirthLines query={person.chart.query} />}
+      </div>
+
+      {note !== '' && (
+        <p className="rounded-2xl bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] px-3 py-2 text-[13px] leading-5 text-foreground">
+          <span className="mr-1.5 text-[12px] font-semibold text-[var(--ink)]">메모</span>
+          {note}
+        </p>
+      )}
+
+      {person.chart.ok ? (
+        <>
+          <PillarStrip pillars={person.chart.saju.pillars} name={person.local_label} />
+          {reading !== null && (
+            <p className="line-clamp-2 text-[13px] leading-5">
+              {!reading.fromCurrentChart && (
+                <span className="mr-1 rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning">
+                  이전 명식
+                </span>
+              )}
+              {reading.metaphor ?? '만들어 둔 풀이를 이어서 읽어보세요'}
+            </p>
+          )}
+          <div className="relative z-10 mt-auto grid grid-cols-[minmax(0,1fr)_auto] gap-2 pt-1">
+            <Link
+              href={`/me/readings/${person.personId}`}
+              className={`${reading === null ? BUTTON_ON_TILE_PRIMARY : BUTTON_ON_TILE} min-w-0`}
+            >
+              <Icon name="reading" className="size-4 shrink-0" />
+              <span className="truncate">{reading === null ? '사주풀이 받기' : '사주풀이 보기'}</span>
+            </Link>
+            <Link
+              href={pair !== null ? readingHref(pair) : compatHrefFor(selfPersonId, person.personId)}
+              className={`${BUTTON_ON_TILE} px-3.5`}
+              aria-label={pair?.score != null ? `나와 궁합 ${pair.score}점` : '나와 궁합'}
+            >
+              <Icon name="heart" className="size-4" />
+              {pair?.score != null ? <span className="tabular-nums">{pair.score}점</span> : '궁합'}
+            </Link>
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-col gap-1">
+          <p className="text-sm">{person.chart.message}</p>
+          <p className={TYPE_META}>{UNREADABLE_INPUT_NOTE}</p>
         </div>
       )}
+
+      {/* 못 읽는 판본은 고치는 폼도 못 채운다 — 빈 폼을 주면 그 값이 새 판본으로 굳는다 */}
+      <PersonActions
+        personId={person.personId}
+        label={person.local_label}
+        note={person.note ?? ''}
+        current={person.chart.ok ? person.chart.query : null}
+      />
     </section>
   );
 }
 
-/**
- * 그 사람의 사주풀이 — **목록에서 한 줄로 읽고, 누르면 글로 간다**(ADR 0033 의 결).
- *
- * 만든 글에 닿으려면 사주 상세를 한 겹 지나야 했다. 카드가 그 사람의 표지라면 그 사람의
- * 글이 있는지도 표지가 말해야 한다 — 없으면 사용자는 매번 눌러 봐야 안다.
- *
- * **본문은 안 싣는다.** 서는 것은 비유 한 줄과 가는 길뿐이고, 글이 사는 자리는 여전히
- * 그 사람의 화면 하나다 — 결과가 두 곳에 서면 「무엇이 나가는가」의 답이 둘이 된다.
- * 옛 글에는 비유가 없어서(`null`) 그때는 이어 읽을 수 있다는 안내가 대신 선다.
- */
-function ReadingAction({
-  personId,
-  reading,
-}: {
-  personId: string;
-  reading: ReadingEntry | null;
-}) {
-  if (reading === null) {
-    return (
-      <Link
-        href={`/me/readings/${personId}`}
-        className="group flex min-h-[4.75rem] w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl bg-accent px-4 py-3 text-on-accent shadow-sm hover:bg-accent-strong"
-      >
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/14">
-          <CardActionIcon />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-bold">사주풀이 받기</span>
-          <span className="mt-0.5 line-clamp-2 block text-xs text-on-accent/75">기질과 삶의 흐름을 읽어보세요</span>
-        </span>
-        <span className="shrink-0 text-sm text-on-accent/70 group-hover:translate-x-0.5 group-hover:text-on-accent" aria-hidden="true">→</span>
-      </Link>
-    );
-  }
-
+/** 태어난 날 · 시각, 그리고 성별 · 곳 — 관리하는 화면이라 그 사람을 다시 알아보는 단서를 타일이 든다 */
+function BirthLines({ query }: { query: Query }) {
   return (
-    <Link
-      href={`/me/readings/${personId}`}
-      className="group flex min-h-[4.75rem] w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl border border-accent/25 bg-accent-wash px-4 py-3 hover:border-accent"
-    >
-      <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface text-accent shadow-sm">
-        <CardActionIcon />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-1.5">
-          <span className="text-sm font-bold text-accent-strong">사주풀이 보기</span>
-          {!reading.fromCurrentChart && (
-            <span className="rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted">이전 명식</span>
-          )}
-        </span>
-        <span className="mt-0.5 block truncate text-xs text-secondary">
-          {reading.metaphor ?? '만들어 둔 풀이를 이어서 읽어보세요'}
-        </span>
-      </span>
-      <span className="shrink-0 text-sm text-accent group-hover:translate-x-0.5" aria-hidden="true">→</span>
-    </Link>
-  );
-}
-
-function CardActionIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="size-[1.15rem] fill-none stroke-current"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <>
-        <path d="M5 5.5c2.8-.7 5-.1 7 1.5v12c-2-1.6-4.2-2.2-7-1.5Z" />
-        <path d="M19 5.5c-2.8-.7-5-.1-7 1.5v12c2-1.6 4.2-2.2 7-1.5Z" />
-      </>
-    </svg>
-  );
-}
-
-/**
- * 저장 목록의 한 사람 — **작은 원국 결과가 아니라 사람을 다시 찾는 표지**로 그린다.
- *
- * 여덟 글자를 한 줄짜리 표로만 두면 궁합의 두 사람 카드와 같은 모양이 된다. 여기서는
- * 이름과 일간을 먼저 읽고, 네 기둥은 그 사람을 알아보는 두 번째 단서로 묶는다. 자세한
- * 해석은 눌러 들어간 화면의 `PillarChart` 가 맡는다.
- */
-function ChartSummary({ query, saju }: { query: Query; saju: Saju }) {
-  const { pillars } = saju;
-  const dayMaster = STEM_INFO[pillars.dayMaster];
-  const dayTone = ELEMENT_TONE[dayMaster.element];
-
-  return (
-    <div className="grid gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(22rem,1.1fr)] md:items-center md:gap-8">
-      <div className="flex items-start gap-4">
-        {/*
-          **일간은 그 글자 아래에 붙는다.** 오른쪽 위에 따로 세웠더니 같은 한 가지를
-          카드의 두 끝이 나눠 말했고, 그 자리는 이제 관리 메뉴가 쓴다.
-        */}
-        <div className="flex shrink-0 flex-col items-center gap-1.5">
-          <div
-            className={`grid size-16 place-items-center rounded-2xl border ${dayTone.border} ${dayTone.surface}`}
-            aria-label={`일간 ${pillars.dayMaster}, ${dayMaster.ko}${ELEMENT_KO[dayMaster.element]}`}
-          >
-            <span className={`glyph text-[2rem] font-bold leading-none ${dayTone.text}`} aria-hidden="true">
-              {pillars.dayMaster}
-            </span>
-          </div>
-          <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${dayTone.surface} ${dayTone.text}`}>
-            {dayMaster.ko}{ELEMENT_KO[dayMaster.element]} 일간
-          </span>
-        </div>
-
-        <div className="min-w-0 flex-1 pt-0.5 pr-12">
-          <div>
-            <p className="eyebrow">저장한 사람</p>
-            <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">{query.name}</h2>
-          </div>
-          <p className="mt-1.5 text-sm text-secondary">
-            {query.calendar === 'solar'
-              ? query.date
-              : `${CALENDAR_KO[query.calendar]} ${query.date}`}
-            {query.hourKnown === false ? ` · ${HOUR_UNKNOWN_LABEL}` : ` · ${query.time}`}
-          </p>
-          <p className="mt-0.5 text-xs text-muted">
-            {GENDER_KO[query.gender]} · {query.city}
-          </p>
-        </div>
-      </div>
-
-      <table className="w-full table-fixed border-separate border-spacing-x-1.5 text-center sm:border-spacing-x-2">
-        <caption className="sr-only">{query.name}의 시주, 일주, 월주, 년주</caption>
-        <thead>
-          <tr className="text-xs text-muted">
-            {PILLAR_COLUMNS.map(({ key, label }) => (
-              <th key={key} className={`pb-1.5 font-medium ${key === 'day' ? 'text-accent' : ''}`}>
-                {label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {PILLAR_COLUMNS.map(({ key, label }) => {
-              const pillar = pillars[key];
-              if (pillar === null) {
-                return (
-                  <td key={key} className="rounded-xl bg-surface-sunken px-1 py-3 text-xs text-muted">
-                    {HOUR_UNKNOWN_LABEL}
-                  </td>
-                );
-              }
-
-              const stemTone = ELEMENT_TONE[STEM_INFO[pillar.stem].element];
-              const branchTone = ELEMENT_TONE[BRANCH_INFO[pillar.branch].element];
-              return (
-                <td
-                  key={key}
-                  aria-label={`${label} ${pillar.name}`}
-                  className={`rounded-xl border px-1 py-2.5 ${
-                    key === 'day' ? 'border-accent/30 bg-accent-wash/50' : 'border-border bg-surface-soft'
-                  }`}
-                >
-                  <span className={`glyph text-2xl font-semibold ${stemTone.text}`}>{pillar.stem}</span>
-                  <span className={`glyph text-2xl font-semibold ${branchTone.text}`}>{pillar.branch}</span>
-                </td>
-              );
-            })}
-          </tr>
-        </tbody>
-      </table>
-
+    <>
+      <p className={`${TYPE_META} mt-0.5 tabular-nums`}>
+        {query.calendar === 'solar' ? query.date : `${CALENDAR_KO[query.calendar]} ${query.date}`}
+        {query.hourKnown === false ? ` · ${HOUR_UNKNOWN_LABEL}` : ` · ${query.time}`}
+      </p>
+      <p className={TYPE_META}>
+        {GENDER_KO[query.gender]} · {query.city}
+      </p>
       {query.calendar !== 'solar' && (
-        <p className="-mt-2 text-xs text-muted">계산에 쓴 양력 날짜 · {isoOf(solarDateOf(query))}</p>
+        <p className={`${TYPE_META} tabular-nums`}>계산에 쓴 양력 날짜 · {isoOf(solarDateOf(query))}</p>
       )}
-    </div>
+    </>
   );
 }
-

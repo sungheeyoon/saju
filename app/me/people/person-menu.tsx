@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import type { Query } from '@/src/lib/input/query';
 
+import { ICON_BUTTON } from '../../ui/buttons';
 import { EditInputForm } from '../edit-input';
 import { NoteEditor, RemoveConfirm } from './manage';
 
@@ -22,6 +23,9 @@ import { NoteEditor, RemoveConfirm } from './manage';
  *
  * **버튼은 카드 오른쪽 위 모서리에 떠 있고, 열린 칸은 흐름 안에 선다.** 아래 띠는 이제
  * 사주풀이가 쓰고, 손대는 자리는 읽는 것 위에 얹히지 않는 구석으로 물러난다.
+ *
+ * 타일은 통째로 상세로 가는 링크라(이름 링크의 `after:` 덮개) 여기 서는 것은 전부 그 덮개보다 **위**에
+ * 뜬다(`z-*`). 고치는 칸 · 메모 칸은 `data-panel` 을 달아 목록이 그 타일을 줄 전체로 넓히게 한다(`finder.tsx`).
  */
 type Panel = 'edit-input' | 'note' | 'remove';
 
@@ -68,15 +72,15 @@ export function PersonActions({
 
   return (
     <>
-      <details ref={menu} className="absolute right-4 top-4 sm:right-5 sm:top-5">
+      <details ref={menu} className="absolute right-3 top-3 z-20 sm:right-4 sm:top-4">
         <summary
-          className="grid size-10 cursor-pointer list-none place-items-center rounded-full border border-border bg-surface text-secondary hover:border-accent hover:text-accent [&::-webkit-details-marker]:hidden"
+          className={`${ICON_BUTTON} list-none text-secondary hover:text-foreground [&::-webkit-details-marker]:hidden`}
           aria-label={`${label} 관리`}
         >
           <Icon name="manage" />
         </summary>
 
-        <div className="absolute right-0 top-12 z-40 w-56 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-float)]">
+        <div className="absolute right-0 top-13 z-40 w-56 rounded-[1.25rem] border border-border bg-surface p-1.5 shadow-[var(--shadow-float)]">
           {current !== null && (
             <MenuItem icon="pencil" onClick={() => choose('edit-input')}>
               출생 정보 수정
@@ -96,7 +100,7 @@ export function PersonActions({
         컴포넌트로 가르지 않으려고 한 자리에 둔다.
       */}
       {panel !== null && (
-        <div className="mt-5">
+        <div className="relative z-10 mt-1" data-panel={panel === 'remove' ? undefined : panel}>
           {panel === 'edit-input' && current !== null && (
             <EditInputForm
               personId={personId}
@@ -137,7 +141,7 @@ function MenuItem({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-surface-soft ${
+      className={`flex min-h-11 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-[15px] font-semibold hover:bg-surface-sunken ${
         tone === 'danger' ? 'text-danger' : 'text-foreground'
       }`}
     >
