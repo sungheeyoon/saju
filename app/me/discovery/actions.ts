@@ -66,7 +66,8 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
     return { ok: true };
   }
 
-  const self = await selfElementSummary();
+  // 요약의 문은 DB 실패를 던진다. 액션은 던지지 않고 값으로 말한다 — 못 읽은 것도 같은 거절이다
+  const self = await selfElementSummary().catch(() => null);
   if (self === null) {
     return {
       ok: false,
@@ -143,7 +144,8 @@ type BoardCardRow = Parameters<typeof publicCardFromRow>[0];
 
 export async function restorePassed(candidateUserId: string) {
   const supabase = await supabaseOnServer();
-  const self = await selfElementSummary();
+  // 위와 같다 — 요약을 못 읽었으면 던지지 않고 같은 거절을 값으로 낸다
+  const self = await selfElementSummary().catch(() => null);
   if (!self) return { ok: false as const, message: '내 사주를 먼저 확인해 주세요.' };
   const { data, error } = await supabase.rpc('restore_passed_connection', {
     p_candidate_user_id: candidateUserId,

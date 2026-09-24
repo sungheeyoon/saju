@@ -215,7 +215,8 @@ export async function editPersonInput(personId: string, query: Query): Promise<S
    * 참여가 기본으로 켜진 뒤로 이 호출은 **참여를 열기도 한다**(PRD §4.1). 끈 사람은
    * 그대로 쉰다 — 그 판정도 RPC 안에 있다(`opted_out_at`).
    */
-  const self = await selfElementSummary();
+  // 저장은 이미 끝났다. 요약을 못 읽은 것도 아래 RPC 실패처럼 홈이 목록을 열 때 고친다 — 던지지 않는다
+  const self = await selfElementSummary().catch(() => null);
   /*
     **「내 사주인가」를 여기서 묻지 않는다.**
 
