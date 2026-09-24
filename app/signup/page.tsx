@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
+import { currentSchedule } from '../beta-schedule';
 import { readAccount } from '../me/account';
 import { AccountNotice } from '../me/account-notice';
 import { CARD } from '../card';
@@ -13,7 +14,6 @@ import {
   NOTICE_NOT_READY,
   NOTICE_VERSION,
   betaIsOver,
-  scheduleFrom,
   signupDone,
 } from '@/src/lib/consent';
 
@@ -77,8 +77,7 @@ export default async function SignupPage({ searchParams }: {
       notice_version: string | null;
       notice_schedule_id: number | null;
     }>(supabase, 'status, signed_up_at, nickname, notice_version, notice_schedule_id'),
-    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-    scheduleFrom((name) => supabase.rpc(name)),
+    currentSchedule(supabase),
   ]);
 
   if (account === null) {

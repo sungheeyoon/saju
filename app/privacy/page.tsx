@@ -8,10 +8,10 @@ import {
   OPTIONAL_CONSENTS,
   OPTIONAL_CONSENT_NOTE,
   noticeFor,
-  scheduleFrom,
 } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../auth/server-client';
+import { currentSchedule } from '../beta-schedule';
 
 /** 조항의 한 줄 — 앞에 작은 점을 찍는다. 목록이 길어도 줄의 머리가 보인다 */
 const DOT_LINE =
@@ -37,8 +37,7 @@ export const metadata = {
 */
 export default async function PrivacyPage() {
   const supabase = await supabaseOnServer();
-  // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-  const notice = await scheduleFrom((name) => supabase.rpc(name));
+  const notice = await currentSchedule(supabase);
 
   /*
     **둘 다 있어야 안내가 선다.** 날짜가 없으면 보유기간을 말할 수 없고, 처리자와

@@ -1,7 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseEnv } from '@/app/auth/config';
-import { gateFor, scheduleFrom } from '@/src/lib/consent';
+import { currentSchedule } from '@/app/beta-schedule';
+import { gateFor } from '@/src/lib/consent';
 
 /**
  * 세션을 갱신하고, **`/me` 아래로 들어오는 사람에게 길을 가리킨다.**
@@ -88,7 +89,7 @@ export async function proxy(request: NextRequest) {
       .from('app_user')
       .select('signed_up_at, notice_version, notice_schedule_id')
       .maybeSingle(),
-    scheduleFrom((name) => supabase.rpc(name)),
+    currentSchedule(supabase),
     prefetch ? Promise.resolve() : supabase.rpc('touch_activity'),
   ]);
 

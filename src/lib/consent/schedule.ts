@@ -1,5 +1,29 @@
 import type { BetaDates, Operator } from './notice';
 
+/** 지금 안내 한 벌 — 날짜와 **누가 약속하는가** */
+export type BetaSchedule = {
+  readonly scheduleId: number;
+  readonly dates: BetaDates;
+  readonly operator: Operator;
+};
+
+/**
+ * 문이 읽어 온 일정 한 줄 — 이름은 이미 도메인의 말이다.
+ *
+ * DB 를 부르는 일과 snake_case 를 옮기는 일은 앱의 문(`app/beta-schedule.ts`)이 한다.
+ * 여기 남는 것은 **셋이 다 있어야 안내가 선다**는 규칙 하나다. 운영자 칸이 `string` 만이
+ * 아닌 것은 그 규칙이 빈 값과 `undefined` 를 재기 때문이다.
+ */
+export type ScheduleRow = {
+  readonly scheduleId: number;
+  readonly endsOn: string;
+  readonly purgeBy: string;
+  readonly purgeWithinDays: number;
+  readonly operatorName: string | null | undefined;
+  readonly operatorOfficer: string | null | undefined;
+  readonly operatorContact: string | null | undefined;
+};
+
 /**
  * 적힌 값인가 — **`null` 만 보면 안 된다.**
  *
@@ -14,38 +38,27 @@ const filled = (value: unknown): string | null => {
 };
 
 /**
- * 지금 안내를 서버에서 읽는다 — 날짜와 **누가 약속하는가**. 하나라도 없으면 `null`.
+ * 일정 한 줄을 안내로 — 날짜와 **누가 약속하는가**. 하나라도 없으면 `null`.
  *
  * `null` 을 「모른다」로 흘려보내지 않는다. 부르는 화면은 날짜를 못 받으면 안내를 세울
  * 수 없고, 그러면 스스로 「아직 시작할 수 없습니다」를 말한다(ADR 0024).
- *
- * 로그인 없이도 읽힌다 — 처리방침은 초대 메일에 실리므로 그래야 한다. 내주는 것은
- * 날짜 둘뿐이고 그 둘은 처리방침이 이미 공개하는 값이다.
  */
-export async function scheduleFrom(
-  rpc: (name: 'current_beta_schedule') => PromiseLike<{ data: unknown; error: unknown }>,
-): Promise<{ scheduleId: number; dates: BetaDates; operator: Operator } | null> {
-  const { data, error } = await rpc('current_beta_schedule');
-  if (error) return null;
-
-  const row = ((data ?? []) as Record<string, unknown>[])[0];
-  if (row === undefined) return null;
-
+export function scheduleOf(row: ScheduleRow): BetaSchedule | null {
   /*
     **셋이 다 있어야 안내가 선다.** 날짜만 있고 연락처가 없으면 열람·정정·삭제를
     어디에 요구하는지 말할 수 없다 — 지키는 것이 없는 문장만 남는다. 반쪽은 안 낸다.
   */
-  const name = filled(row.operator_name);
-  const officer = filled(row.operator_officer);
-  const contact = filled(row.operator_contact);
+  const name = filled(row.operatorName);
+  const officer = filled(row.operatorOfficer);
+  const contact = filled(row.operatorContact);
   if (name === null || officer === null || contact === null) return null;
 
   return {
-    scheduleId: row.schedule_id as number,
+    scheduleId: row.scheduleId,
     dates: {
-      endsOn: row.ends_on as string,
-      purgeBy: row.purge_by as string,
-      purgeWithinDays: row.purge_within_days as number,
+      endsOn: row.endsOn,
+      purgeBy: row.purgeBy,
+      purgeWithinDays: row.purgeWithinDays,
     },
     operator: { name, officer, contact },
   };
