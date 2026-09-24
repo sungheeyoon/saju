@@ -96,7 +96,7 @@
 
 | 무엇 | 린트 (`eslint.config.mjs`) | 시험 (`scripts/layers.test.ts`) |
 | --- | --- | --- |
-| `src/lib` → `app`·`proxy.ts` | `import/no-restricted-paths` (파일로 푼다) | 네 형태의 import 전부 |
+| `src/lib` → `app`·`proxy.ts` | `import/no-restricted-paths` (파일로 푼다) | 다섯 형태의 import 전부(정적 · `export … from` · `import()` · `require()` · 타입 자리의 `import('…').X`), 확장자를 뗀 대상 |
 | `src/lib/saju` → 다른 lib | 같다 | 같다 |
 | `scripts`·`e2e` → `app` | 같다 | 같다 |
 | `src/lib` → React/Next · `@supabase` · 모델 SDK · Node 내장 | `no-restricted-imports` (패키지 이름) | 같다 |
