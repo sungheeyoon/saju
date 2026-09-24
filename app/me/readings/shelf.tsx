@@ -7,20 +7,22 @@ import { elementScope } from '../../element-tone';
 import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icon';
-import { PAPER, TYPE_SECTION } from '../../ui/surfaces';
+import { EMPTY_SLOT, PAPER, TYPE_SECTION } from '../../ui/surfaces';
 import { Avatar } from '../avatar';
 import { coverFace } from '../reading/essay';
 import flow from '../reading/flow.module.css';
 import type { InboxMatch } from '../requests/inbox';
 import type { Book } from './book';
+import { CoverLink } from './frame';
 import type { DayMaster } from './subject';
 
 /**
  * **책장** — 만든 글이 한 권씩 꽂힌다(시안 3차 warm).
  *
- * 한 편이 한 권이고, 표지는 그 글의 비유 한 줄, 색은 대상의 일간 오행이다. 시안은 폰에서 목록과 글을 한
- * 화면 안에서 갈아 끼웠는데, 그러면 뒤로 가기가 목록으로 안 돌아온다(시안 NOTES 약점 2). 여기서는 표지가
- * **제 주소로 가는 링크**다 — 한 사람 풀이는 `/me/readings/[subject]`, 궁합은 제 결과 화면.
+ * 한 편이 한 권이고, 표지는 그 글의 비유 한 줄, 색은 대상의 일간 오행이다. 표지는 **제 주소로 가는
+ * 링크**다 — 한 사람 풀이는 `/me/readings/[subject]` 라 넓은 화면에서는 책장 옆 칸에 펼쳐지고(`frame.tsx`),
+ * 궁합은 제 결과 화면으로 간다. 그 화면에는 두 사람의 명식 · 동의 · 차단처럼 글 밖의 것이 함께 서서
+ * 책장 옆 칸에 담기지 않는다 — 표지 오른쪽 아래의 동그란 화살표가 「여기서 떠난다」는 차이를 말한다.
  *
  * 누를 자리는 표지 전체다. 표지 안에 단추를 따로 두면 한 권에 손잡이가 둘이 된다.
  */
@@ -35,7 +37,7 @@ export function Shelf({ title, description, children }: { title: string; descrip
         <h2 className={TYPE_SECTION}>{title}</h2>
         <p className="mt-0.5 text-[13px] leading-5 text-secondary">{description}</p>
       </div>
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{children}</ul>
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2">{children}</ul>
     </section>
   );
 }
@@ -45,7 +47,7 @@ export function SingleCover({ book }: { book: Book }) {
   const subject = book.subjects[0] ?? null;
   const face = coverFace([subject?.element ?? null]);
   return (
-    <Link href={book.href} className={`${elementScope(subject?.element ?? null)} ${COVER}`} style={{ background: face.background }}>
+    <CoverLink href={book.href} className={`${elementScope(subject?.element ?? null)} ${COVER}`} style={{ background: face.background }}>
       <Spine background={face.spine} />
       <ElementSymbol
         element={subject?.element ?? null}
@@ -65,7 +67,7 @@ export function SingleCover({ book }: { book: Book }) {
           {book.date}
         </time>
       </span>
-    </Link>
+    </CoverLink>
   );
 }
 
@@ -122,7 +124,7 @@ export function PairCover({ book }: { book: Book }) {
 export function BlankBook({ href, element, label }: { href: string; element: Element; label: string }) {
   return (
     <li>
-      <Link
+      <CoverLink
         href={href}
         className={`${elementScope(element)} flex h-full min-h-[14rem] flex-col items-center justify-center gap-3 rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] p-4 text-center hover:bg-surface active:scale-[0.98]`}
       >
@@ -130,7 +132,7 @@ export function BlankBook({ href, element, label }: { href: string; element: Ele
           <ElementSymbol element={element} className="size-7" />
         </span>
         <span className="text-[15px] font-semibold text-foreground">{label}</span>
-      </Link>
+      </CoverLink>
     </li>
   );
 }
@@ -148,7 +150,7 @@ export function MakingShelf({ matches }: { matches: readonly InboxMatch[] }) {
         <h2 className={TYPE_SECTION}>함께 보는 궁합</h2>
         <p className="mt-0.5 text-[13px] leading-5 text-secondary">서로 동의한 궁합풀이를 만들고 있습니다.</p>
       </div>
-      <ul className="grid gap-3 lg:grid-cols-2">
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
         {matches.map((match) => {
           const supplied = ELEMENTS.find((one) => one === match.suppliedToMe) ?? null;
           return (
@@ -274,4 +276,16 @@ export function SubjectTag({ subject }: { subject: DayMaster | null }) {
 
 function StaleChip() {
   return <span className="rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning">이전 명식</span>;
+}
+
+/**
+ * 넓은 화면에서 목록 주소만 열었고 펼칠 한 사람 풀이가 없을 때의 오른쪽 칸 — 비워 두면 고장으로 읽힌다.
+ * 한 사람 풀이가 있으면 이 칸은 잠깐만 선다(`frame.tsx` 가 가장 최근 글로 옮긴다).
+ */
+export function EmptyReader() {
+  return (
+    <div className={`${EMPTY_SLOT} grid min-h-80 place-items-center p-8 text-center`}>
+      <p className="text-[15px] leading-6 text-secondary">표지를 누르면 여기에 풀이가 펼쳐집니다.</p>
+    </div>
+  );
 }

@@ -328,10 +328,13 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       **점수가 없어도 비유는 선다.** 그 칸은 둘 중 하나만 있어도 열린다 — 자기 풀이와
       저장한 사람 풀이에는 점수가 없고 비유만 있다.
 
-      길게 심어 둔 문장을 그대로 잰다. 화면이 줄여 쓰거나 자르면 여기서 걸린다.
+      길게 심어 둔 문장을 그대로 잰다. 화면이 줄여 쓰거나 자르면 여기서 걸린다. **`exact` 로 글의 표지만
+      잡는다** — 넓은 화면에서는 옆 칸 책장의 표지도 같은 비유를 따옴표에 넣어 든다(거기서는 잘려도 된다).
     */
     await expect(
-      page.getByText('서로 다른 속도로 달리던 두 사람이 같은 자전거를 타고 오르막길을 오르는 모습이에요.'),
+      page.getByText('서로 다른 속도로 달리던 두 사람이 같은 자전거를 타고 오르막길을 오르는 모습이에요.', {
+        exact: true,
+      }),
     ).toBeVisible();
 
     /* 만든 것이 하나이므로 풀이권도 하나 줄어 있다 — kind 를 안 묻는다 */
@@ -1188,6 +1191,43 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       'href',
       '/me/people',
     );
+  });
+
+  /**
+   * **책장 옆에서 읽는다**(6차 warm). 넓은 화면은 왼쪽 책장 · 오른쪽 글의 두 칸이고 목록만 열면 가장 최근
+   * 글이 펼쳐진다. 폰은 같은 두 칸을 주소로 갈아 끼운다 — 그래서 뒤로 가기가 책장으로 돌아온다.
+   * 어느 쪽이든 **주소가 한 글을 가리킨다.**
+   */
+  test('풀이 목록은 넓은 화면에서 책장 옆에 글을 펴고 폰에서는 글과 책장을 오간다', async ({ page, personReader }, testInfo) => {
+    const reading = `/me/readings/${personReader.personId}`;
+    const shelfTitle = page.getByRole('heading', { name: '만든 풀이', exact: true });
+    const cover = page.getByRole('link', { name: /어머니 사주/ });
+    await page.goto('/me/readings');
+
+    if (!testInfo.project.name.includes('mobile')) {
+      await expect(page).toHaveURL(new RegExp(`${reading}$`));
+      await expect(shelfTitle).toBeVisible();
+      await expect(page.getByRole('heading', { name: '어머니의 사주풀이' })).toBeVisible();
+      await expect(cover).toHaveAttribute('aria-current', 'page');
+      /* 책장이 옆에 있으니 돌아가는 길은 안 선다 */
+      await expect(page.getByRole('link', { name: '만든 풀이 목록' })).toBeHidden();
+      return;
+    }
+
+    await expect(page).toHaveURL(/\/me\/readings$/);
+    await cover.click();
+    await expect(page).toHaveURL(new RegExp(`${reading}$`));
+    await expect(page.getByRole('heading', { name: '어머니의 사주풀이' })).toBeVisible();
+    await expect(shelfTitle).toBeHidden();
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\/me\/readings$/);
+    await expect(shelfTitle).toBeVisible();
+
+    await cover.click();
+    await page.getByRole('link', { name: '만든 풀이 목록' }).click();
+    await expect(page).toHaveURL(/\/me\/readings$/);
+    await expect(shelfTitle).toBeVisible();
   });
 
   test('계정 작업은 우측 계정 메뉴의 계정 관리에 모여 있다', async ({ page, signedIn }) => {
