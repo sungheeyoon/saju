@@ -42,10 +42,10 @@ const MEMBER_TABS = [
 /**
  * 지금 보고 있는 화면이 **어느 탭의 것인가.**
  *
- * - **홈**은 `/me` 와 거기서 뻗는 길이다 — 저장한 사람(`/me/people/*`), 내 사주풀이 탭(`/me/readings/self`),
+ * - **홈**은 `/me` 와 거기서 뻗는 길이다 — 저장한 사람(`/me/people/*`),
  *   궁합(`/compat` · `/me/compat`), 그리고 로그인한 사람이 보는 사주 계산(`/`). 사람 · 사주·궁합 탭이 빠지며
  *   그 길이 홈 안에 섰다 — 거기 있는 동안 불은 홈에 있어야 사용자가 어디서 왔는지 안다.
- * - **풀이**는 만든 글의 목록과 그 목록에서 열리는 글(`/me/readings/*`, 함께 보는 궁합 `/me/match/*`)이다.
+ * - **풀이**는 만든 글의 목록과 그 목록에서 열리는 글(`/me/readings/*` — 내 사주풀이도 목록 옆에서 열린다, 함께 보는 궁합 `/me/match/*`)이다.
  *   내 사주풀이는 목록에도 서지만 닿는 길이 대개 홈이라 홈 쪽이다(탭 안에서 움직이면 메뉴는 안 움직인다).
  * - 채팅 · 매칭 · 종(`/me/requests`)은 제 주소와 그 아래다.
  */
@@ -53,7 +53,6 @@ export function isNavigationActive(pathname: string, href: string): boolean {
   if (href === '/me') {
     return (
       pathname === '/me' ||
-      pathname === '/me/readings/self' ||
       pathname === '/me/people' ||
       pathname.startsWith('/me/people/') ||
       pathname === '/compat' ||
@@ -62,7 +61,6 @@ export function isNavigationActive(pathname: string, href: string): boolean {
     );
   }
   if (href === '/me/readings') {
-    if (pathname === '/me/readings/self') return false;
     return pathname === href || pathname.startsWith(`${href}/`) || pathname.startsWith('/me/match/');
   }
   return pathname === href || pathname.startsWith(`${href}/`);

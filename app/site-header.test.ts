@@ -20,8 +20,8 @@ describe('회원 내비게이션 활성 상태', () => {
    * `/me/readings` 아래지만 그 탭을 누른 사람은 홈에 있다.
    */
   it('내 사주의 사주풀이 탭은 홈에 귀속된다', () => {
-    expect(isNavigationActive('/me/readings/self', '/me')).toBe(true);
-    expect(isNavigationActive('/me/readings/self', '/me/readings')).toBe(false);
+    expect(isNavigationActive('/me/readings/self', '/me')).toBe(false);
+    expect(isNavigationActive('/me/readings/self', '/me/readings')).toBe(true);
     /* 목록과 저장한 사람의 풀이는 그대로 「풀이」다 */
     expect(isNavigationActive('/me/readings', '/me/readings')).toBe(true);
     expect(isNavigationActive('/me/readings', '/me')).toBe(false);
