@@ -110,7 +110,7 @@ select throws_ok(format($$select * from public.operator_report_snapshot(%L)$$, (
 
 reset role;
 select ok(
-  not has_function_privilege('anon', 'public.operator_reports(boolean, text, boolean, integer)', 'EXECUTE')
+  not has_function_privilege('anon', 'public.operator_reports(boolean, text, boolean, integer, text)', 'EXECUTE')
   and not has_function_privilege('service_role', 'public.operator_report(uuid)', 'EXECUTE')
   and not has_function_privilege('service_role', 'public.operator_report_snapshot(uuid)', 'EXECUTE')
   and has_function_privilege('authenticated', 'public.operator_report_snapshot(uuid)', 'EXECUTE'),
@@ -278,14 +278,14 @@ select throws_ok($$select 1 from retention.report$$,
 
 reset role;
 select unalike(
-  pg_get_function_result('public.operator_reports(boolean, text, boolean, integer)'::regprocedure)
+  pg_get_function_result('public.operator_reports(boolean, text, boolean, integer, text)'::regprocedure)
     || pg_get_function_result('public.operator_report(uuid)'::regprocedure)
     || pg_get_function_result('public.operator_report_snapshot(uuid)'::regprocedure),
   '%email%',
   '세 문 어디에도 이메일이 안 실린다');
 
 select ok(
-  (pg_get_function_result('public.operator_reports(boolean, text, boolean, integer)'::regprocedure)
+  (pg_get_function_result('public.operator_reports(boolean, text, boolean, integer, text)'::regprocedure)
     || pg_get_function_result('public.operator_report(uuid)'::regprocedure)
     || pg_get_function_result('public.operator_report_snapshot(uuid)'::regprocedure))
   !~ '(birth|solar|lunar|chart|reading|person|match_id|message_id|room|sender)',
