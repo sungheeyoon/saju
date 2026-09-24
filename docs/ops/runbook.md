@@ -375,15 +375,18 @@ select public.refund_reading_order('<order-id>', <amount>, <credits>, 'unused', 
 6. 위 「주문 조회」의 상태별 집계로 `partially_refunded` · `refunded` 가 는 것을 본다
 
 **떠난 사람의 결제 기록 — 5년, 앱은 못 읽는다**(G-25 ②). 떠날 때 `auth.users` 의 트리거가 승인된 적 있는 주문을
-`retention.reading_payment` 로 옮긴다(묶음 · 쓰임 · 환불 · 알림은 jsonb). 크론 `payment-retention-purge`(매일 04:53 UTC)가
-`keep_until`(마지막 승인 · 환불 + 5년)이 지난 줄을 지운다. 분쟁이나 수사기관의 요청이 걸리면 보류를 건다 — 신고 기록의 보류
-(「떠난 사람의 신고 기록」)와 같은 모양이다.
+`retention.reading_payment` 로 옮긴다(묶음 · 쓰임 · 환불 · 알림은 jsonb). 승인된 적 없는 주문은 **거절한 알림이 있을 때만**
+`retention.refused_reading_payment` 로 최소 칸(주문 번호 · 계정 내부 번호 · 제공자 · 가맹점 주문 번호 · 주문 금액 · 주문 시각 ·
+거절 알림)만 옮긴다(`20261018090000`, ADR 0106 추기 — 법적 범위는 변호사 검토 B-8). 크론 `payment-retention-purge`(매일 04:53 UTC)의
+`retention.purge_expired_payments()` 가 두 표에서 `keep_until`(앞은 마지막 승인 · 환불, 뒤는 마지막 거절 알림 + 5년)이 지난 줄을
+함께 지운다. 분쟁이나 수사기관의 요청이 걸리면 보류를 건다 — 신고 기록의 보류(「떠난 사람의 신고 기록」)와 같은 모양이다.
 
 ```sql
 -- 몇 줄 · 가장 이른 파기 예정 — 개인을 가리키지 않는다
 select count(*), min(keep_until) from retention.reading_payment;
+select count(*), min(keep_until) from retention.refused_reading_payment;
 
--- 건다 · 푼다 — 대상은 주문 id 로
+-- 건다 · 푼다 — 대상은 주문 id 로. 거절 기록이면 표 이름만 retention.refused_reading_payment 로
 update retention.reading_payment set hold_reason = '<사유> <문서 번호> <받은 날>', held_at = now() where order_id = '<order-id>';
 update retention.reading_payment set hold_reason = null, held_at = null where order_id = '<order-id>';
 ```
