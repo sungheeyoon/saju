@@ -84,7 +84,7 @@ export async function proxy(request: NextRequest) {
     request.headers.get('next-router-prefetch') === '1' ||
     request.headers.get('purpose') === 'prefetch';
 
-  const [{ data: account }, notice] = await Promise.all([
+  const [{ data: account, error: accountError }, notice] = await Promise.all([
     supabase
       .from('app_user')
       .select('signed_up_at, notice_version, notice_schedule_id')
@@ -93,9 +93,14 @@ export async function proxy(request: NextRequest) {
     prefetch ? Promise.resolve() : supabase.rpc('touch_activity'),
   ]);
 
+  /*
+    **조회가 터진 것도 「못 읽었다」다**(ADR 0078) — 위에 적은 그 갈래로 넘긴다. 던지면 `/me` 아래가
+    통째로 500 이고, 「가입 전」으로 읽으면 가입한 사람을 `/signup` 으로 튕긴다. 같은 계정을 읽는
+    화면(`readAccount`)이 그 실패를 말하고, 여기는 접근 판정을 안 하므로 안 보내서 열리는 문은 없다.
+  */
   const where = gateFor(
     request.nextUrl.pathname,
-    account === null
+    accountError !== null || account === null
       ? null
       : {
           signedUp: account.signed_up_at !== null,

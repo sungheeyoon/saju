@@ -38,7 +38,8 @@ export async function openDiscoveryParticipation(): Promise<void> {
   const profile = await myDiscoveryProfile();
   if (profile.ok && profile.value?.optedOut) return;
 
-  const self = await selfElementSummary();
+  // 홈을 열며 곁들이는 일이다. 요약을 못 읽었으면 이번에는 안 열고 넘어간다 — 홈을 오류로 세우지 않는다
+  const self = await selfElementSummary().catch(() => null);
   if (self === null) return;
 
   await supabase.rpc('ensure_discovery_participation', {

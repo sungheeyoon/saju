@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { isBlocked } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { dbFailure } from '../../db-error';
 import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
@@ -52,7 +53,9 @@ export default async function ProfilePage() {
     간다(`/me/photo/[userId]`).
   */
   // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-  const { data: photo } = await supabase.rpc('photo_of', { p_user_id: user.id });
+  const { data: photo, error: photoError } = await supabase.rpc('photo_of', { p_user_id: user.id });
+  /* 못 읽은 것은 「사진이 없다」가 아니다 — 그 칸만 비울 말이 없어 화면째 오류 경계로 간다(ADR 0078) */
+  if (photoError) throw dbFailure(photoError, 'photo_of');
   const hasPhoto = (photo ?? []).length > 0;
 
   return (

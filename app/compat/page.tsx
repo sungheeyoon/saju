@@ -8,6 +8,7 @@ import { STEM_INFO, type Element } from '@/src/lib/saju';
 import { readAccount } from '../me/account';
 import { storedInputsOf } from '../me/person-input';
 import { supabaseOnServer } from '../auth/server-client';
+import { dbFailure } from '../db-error';
 import { CompatPicker } from '../compat-picker';
 import { CompatHero } from '../compat-hero';
 
@@ -30,7 +31,7 @@ export default async function CompatPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth?next=%2Fcompat');
 
-  const [{ state }, { data: edges }] = await Promise.all([
+  const [{ state }, { data: edges, error: edgesError }] = await Promise.all([
     readAccount(supabase),
     /*
       정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
@@ -45,6 +46,8 @@ export default async function CompatPage() {
       .order('created_at', { ascending: true }),
   ]);
 
+  /* 고를 사람이 이 화면의 본체다 — 못 읽은 것을 「저장한 사람이 없다」로 세우지 않는다(ADR 0078) */
+  if (edgesError) throw dbFailure(edgesError, 'user_person_access.listed');
   const listed = edges ?? [];
 
   /**

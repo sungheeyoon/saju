@@ -31,7 +31,9 @@ export async function savePreferGender(value: PreferGender): Promise<SaveResult>
    * 그 값은 **기본값이 `auth.uid()` 라 앱이 적을 이유가 없는 값**이다. 적기 시작하면
    * 남의 id 를 적을 수 있는 자리가 생긴다(정책이 막지만, 열지 않는 편이 낫다).
    */
-  const { data: existing } = await supabase.from('discovery_profile').select('user_id').maybeSingle();
+  const { data: existing, error: readError } = await supabase.from('discovery_profile').select('user_id').maybeSingle();
+  /* 못 읽은 것은 「처음이다」가 아니다 — 넣으러 가면 폼에 엉뚱한 거절이 선다(ADR 0078) */
+  if (readError) return { ok: false, message: userFacingDbMessage(readError, 'discovery_profile.select') };
 
   const { error } = existing
     ? await supabase.from('discovery_profile').update({ prefer_gender: value }).eq('user_id', existing.user_id)
@@ -64,7 +66,8 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
     return { ok: true };
   }
 
-  const self = await selfElementSummary();
+  // 요약의 문은 DB 실패를 던진다. 액션은 던지지 않고 값으로 말한다 — 못 읽은 것도 같은 거절이다
+  const self = await selfElementSummary().catch(() => null);
   if (self === null) {
     return {
       ok: false,
@@ -141,7 +144,8 @@ type BoardCardRow = Parameters<typeof publicCardFromRow>[0];
 
 export async function restorePassed(candidateUserId: string) {
   const supabase = await supabaseOnServer();
-  const self = await selfElementSummary();
+  // 위와 같다 — 요약을 못 읽었으면 던지지 않고 같은 거절을 값으로 낸다
+  const self = await selfElementSummary().catch(() => null);
   if (!self) return { ok: false as const, message: '내 사주를 먼저 확인해 주세요.' };
   const { data, error } = await supabase.rpc('restore_passed_connection', {
     p_candidate_user_id: candidateUserId,
