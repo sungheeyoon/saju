@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react';
 
 import {
-  BRANCH_INFO,
   ELEMENT_KO,
   GENDER_KO,
   STEM_INFO,
@@ -14,9 +13,11 @@ import {
 
 import { BetweenSections } from './between-view';
 
-import { PILLAR_COLUMNS } from './saju/shared';
-import { ELEMENT_TONE } from './element-tone';
+import { elementScope } from './element-tone';
+import { DayMasterChip, PillarStrip } from './me/people/chart-bits';
 import { sharedPillarChartOf, type SharedPillarChart } from './shared-pillar';
+import { ElementSymbol } from './ui/element-symbol';
+import { TILE, TYPE_META, TYPE_NAME } from './ui/surfaces';
 
 /**
  * 궁합 **결과 영역** — 입력을 어디서 받았는지 모른다.
@@ -147,16 +148,19 @@ function FoldedAnalysis({
         기본 삼각형을 지우고, 그러면 눌러야 하는 자리인지가 화면에 안 남는다. 펼침
         상태는 `<summary>` 가 스스로 알리므로 이 글자는 화면에만 선다.
       */}
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-[1.75rem] border border-border bg-surface-sunken px-5 py-4 hover:border-accent sm:px-6 [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-[1.5rem] border border-border bg-surface px-5 py-4 hover:border-border-strong active:scale-[0.99] sm:px-6 [&::-webkit-details-marker]:hidden">
         <span>
-          <span className="text-base font-semibold">두 사주를 맞대어 본 표</span>
-          <span className="mt-0.5 block text-xs leading-5 text-muted">
+          <span className="font-rounded text-[1.3rem] leading-7">두 사주를 맞대어 본 표</span>
+          <span className="mt-0.5 block text-[13px] leading-5 text-secondary">
             사이에 걸리는 관계와, 그 표에서 말할 수 있는 것.
           </span>
         </span>
-        <span aria-hidden className="shrink-0 text-sm text-secondary">
+        <span aria-hidden className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-secondary">
           <span className="group-open:hidden">펼치기</span>
           <span className="hidden group-open:inline">접기</span>
+          <svg viewBox="0 0 12 12" className="size-3 group-open:rotate-180">
+            <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </span>
       </summary>
 
@@ -171,7 +175,8 @@ function FoldedAnalysis({
  * 두 명식을 **한 쌍의 보드** 안에 놓는다.
  *
  * 독립 카드 두 장은 저장한 사람 목록과 같은 인상을 줬다. 이 화면의 주어는 사람 둘이
- * 아니라 **둘 사이**이므로, 공통 외곽 하나 안에 각 사람을 좌우 면으로 나눈다.
+ * 아니라 **둘 사이**이므로, 공통 외곽 하나(크림 종이) 안에 각 사람을 좌우 면으로 나눈다.
+ * 면은 그 사람의 일간 색을 입어 목록의 타일과 같은 사람으로 읽힌다.
  *
  * 가운데에 `×` 표식을 한 번 두었다가 걷었다. 묶여 있다는 것은 이미 외곽이 말하고,
  * 그 위에 얹은 기호는 두 면 사이에서 읽을 것이 없는 자리를 하나 더 만들었다.
@@ -184,12 +189,10 @@ export function PillarPair({
   names: Record<CompatSide, string>;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-[1.75rem] border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
+    <section className="rounded-[2rem] bg-cream p-4 sm:p-6">
       <header className="px-1 pb-4 sm:px-2">
-        <div>
-          <p className="eyebrow">각자의 사주</p>
-          <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">궁합의 출발점</h2>
-        </div>
+        <p className="text-[13px] font-semibold text-cream-ink">각자의 사주</p>
+        <h2 className="mt-0.5 font-rounded text-[1.5rem] leading-8">궁합의 출발점</h2>
       </header>
 
       <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
@@ -202,11 +205,10 @@ export function PillarPair({
 }
 
 /**
- * 한 사람의 면 — **저장한 사람 카드와 같은 머리를 쓴다.**
+ * 한 사람의 면 — **저장한 사람 타일과 같은 조각을 쓴다**(`DayMasterChip` · `PillarStrip`).
  *
- * 같은 한 사람을 목록에서는 네모 타일과 그 아래 일간으로 보고, 여기서는 동그란 원과
- * 옆줄의 일간으로 봤다. 두 화면을 오가는 사람에게는 같은 것이 두 번 다르게 서는 셈이라,
- * 머리의 모양을 한 벌로 맞춘다 — 타일은 이 면이 카드 안이라 한 치수 작다.
+ * 같은 한 사람을 목록에서는 타일로, 여기서는 다른 모양으로 보면 두 화면을 오가는 사람에게
+ * 같은 것이 두 번 다르게 서는 셈이라 조각을 한 벌로 맞춘다.
  */
 function PairSide({
   side,
@@ -218,75 +220,29 @@ function PairSide({
   chart: SharedPillarChart;
 }) {
   const dayMaster = STEM_INFO[chart.dayMaster];
-  const dayTone = ELEMENT_TONE[dayMaster.element];
 
   return (
-    <section className="rounded-[1.5rem] border border-border bg-surface-soft/75 p-4 sm:p-5">
-      <div className="flex items-start gap-3.5">
-        <div className="flex shrink-0 flex-col items-center gap-1.5">
-          <div
-            className={`grid size-14 place-items-center rounded-2xl border ${dayTone.border} ${dayTone.surface}`}
-            aria-label={`일간 ${chart.dayMaster}, ${dayMaster.ko}${ELEMENT_KO[dayMaster.element]}`}
-          >
-            <span className={`glyph text-[1.75rem] font-bold leading-none ${dayTone.text}`} aria-hidden="true">
-              {chart.dayMaster}
-            </span>
-          </div>
-          <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${dayTone.surface} ${dayTone.text}`}>
-            {dayMaster.ko}{ELEMENT_KO[dayMaster.element]} 일간
-          </span>
-        </div>
-
-        <div className="min-w-0 flex-1 pt-0.5">
-          <p className="eyebrow">{side === 'a' ? '첫 번째 사람' : '두 번째 사람'}</p>
-          <h3 className="mt-0.5 truncate text-lg font-bold tracking-[-0.02em]">{name}</h3>
-          {chart.gender !== undefined && (
-            <p className="mt-0.5 text-xs text-secondary">{GENDER_KO[chart.gender]}</p>
-          )}
+    <section className={`${elementScope(dayMaster.element)} ${TILE} relative flex flex-col gap-3 overflow-hidden sm:p-5`}>
+      <ElementSymbol
+        element={dayMaster.element}
+        className="pointer-events-none absolute -right-5 -top-5 size-28 opacity-[0.14]"
+      />
+      <div className="relative flex min-w-0 flex-col gap-2">
+        <DayMasterChip stem={chart.dayMaster} className="self-start" />
+        <div className="min-w-0">
+          <p className={TYPE_META}>{side === 'a' ? '첫 번째 사람' : '두 번째 사람'}</p>
+          <h3 className={`${TYPE_NAME} truncate`}>{name}</h3>
+          <p className={TYPE_META}>
+            {chart.gender !== undefined && `${GENDER_KO[chart.gender]} · `}
+            {dayMaster.ko}
+            {ELEMENT_KO[dayMaster.element]} 일간
+          </p>
         </div>
       </div>
 
-      <table className="mt-4 w-full table-fixed border-separate border-spacing-x-1 text-center sm:border-spacing-x-1.5">
-        <caption className="sr-only">{name}의 시주, 일주, 월주, 년주</caption>
-        <thead>
-          <tr>
-            {PILLAR_COLUMNS.map(({ key, label }) => (
-              <th key={key} className={`pb-1.5 text-[10px] font-medium ${key === 'day' ? 'text-accent' : 'text-muted'}`}>
-                {label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {PILLAR_COLUMNS.map(({ key, label }) => {
-              const pillar = chart[key];
-              if (pillar === null) {
-                return (
-                  <td key={key} className="rounded-xl bg-surface-sunken px-1 py-2.5 text-xs text-muted">
-                    —
-                  </td>
-                );
-              }
-
-              const stemTone = ELEMENT_TONE[STEM_INFO[pillar.stem].element];
-              const branchTone = ELEMENT_TONE[BRANCH_INFO[pillar.branch].element];
-              return (
-                <td
-                  key={key}
-                  aria-label={`${label} ${pillar.stem}${pillar.branch}`}
-                  className={`rounded-xl border px-1 py-2 ${
-                    key === 'day' ? 'border-accent/30 bg-accent-wash/50' : 'border-border bg-surface'
-                  }`}
-                >
-                  <span className={`glyph text-xl font-semibold ${stemTone.text}`}>{pillar.stem}</span>
-                  <span className={`glyph text-xl font-semibold ${branchTone.text}`}>{pillar.branch}</span>
-                </td>
-              );
-            })}
-          </tr>
-        </tbody>
-      </table>
+      <div className="relative">
+        <PillarStrip pillars={chart} name={name} size="lg" />
+      </div>
     </section>
   );
 }

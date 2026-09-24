@@ -1,6 +1,7 @@
 import type { MatchPreview } from '@/src/lib/matching';
 
 import { CARD } from './card';
+import { Icon } from './ui/icon';
 
 /**
  * 「궁합 베타」 지표를 화면에 세우는 자리 — **여기서는 아무것도 계산하지 않는다.**
@@ -26,8 +27,8 @@ export function MatchIndexCard({
   children?: React.ReactNode;
 }) {
   return (
-    <section className={CARD}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className={`${CARD} flex flex-col gap-6`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
         {/*
           **`preview.policyVersion` 은 여기 안 선다.** ADR 0026 이 「딱지에서 뺀다」고
           적어 두고 각주만 고쳤다 — 정작 이 줄이 남아 `궁합 베타 · match-v0` 으로 서
@@ -35,54 +36,62 @@ export function MatchIndexCard({
           아무 뜻이 없다(ADR 0026). 값은 `preview` 에 그대로 실려
           있으므로 되짚을 때는 자료에서 읽는다.
         */}
-        <span className="inline-flex rounded-full bg-accent-wash px-2.5 py-1 text-xs font-medium text-accent">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-cream px-3 py-1 text-[13px] font-semibold text-cream-ink">
+          <Icon name="heart" className="size-4" />
           궁합 베타
         </span>
-        <span className="text-xs text-muted">검증 중인 판정은 지표에서 제외</span>
+        <span className="text-[13px] text-secondary">검증 중인 판정은 지표에서 제외</span>
       </div>
 
-      <div className="mt-5 grid gap-6 lg:grid-cols-[14rem_1fr] lg:items-center">
-        <div className="rounded-xl bg-surface-sunken p-5 text-center">
-          <p className="text-sm text-secondary">
+      <div className="grid gap-6 lg:grid-cols-[15rem_1fr] lg:items-center">
+        {/*
+          수 하나가 크게 서되 **「베타 탐색 지표」라는 이름이 늘 곁에 붙는다** — 정답처럼 읽히지 않게.
+          크림 원은 홈 · 지도의 「나와 궁합 ♥78」과 같은 말투다.
+        */}
+        <div className="flex flex-col items-center gap-1 rounded-[1.75rem] bg-cream px-5 py-6 text-center">
+          <p className="text-[13px] font-semibold text-cream-ink">
             {names.a} × {names.b}
           </p>
-          <p className="mt-2 text-5xl font-semibold tracking-tight tabular-nums">{preview.index}</p>
-          <p className="mt-1 text-xs text-muted">100점 만점 베타 탐색 지표</p>
+          <p className="font-rounded text-[3.5rem] leading-none tabular-nums text-foreground">{preview.index}</p>
+          <p className="text-[13px] text-cream-ink">100점 만점 베타 탐색 지표</p>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           {preview.dimensions.map((dimension) => (
             <div key={dimension.key}>
-              <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="font-medium">{dimension.label}</span>
-                <span className="tabular-nums text-secondary">{dimension.score}</span>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[15px] font-semibold">{dimension.label}</span>
+                <span className="text-[15px] font-semibold tabular-nums">{dimension.score}</span>
               </div>
               {/*
                 막대는 값을 다시 읽는 그림일 뿐이다. 옆의 숫자가 원본이고, 폭은
                 거기서 나온다 — 눈으로 어림한 길이를 값으로 읽지 않게 한다.
               */}
-              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-track">
+              <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-track">
                 <div
                   className="h-full rounded-full bg-accent"
                   style={{ width: `${dimension.score}%` }}
                 />
               </div>
-              <p className="mt-1.5 text-xs text-muted">{dimension.description}</p>
+              <p className="mt-1.5 text-[13px] leading-5 text-secondary">{dimension.description}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="mt-6 border-t border-border pt-5">
-        <h3 className="text-sm font-semibold">먼저 보이는 신호</h3>
-        <ul className="mt-2 flex flex-col gap-1.5 text-sm text-secondary">
+      <div className="border-t border-border pt-5">
+        <h3 className="font-rounded text-[1.3rem] leading-7">먼저 보이는 신호</h3>
+        <ul className="mt-2 flex flex-col gap-2 text-[15px] leading-6">
           {preview.highlights.map((highlight) => (
-            <li key={highlight}>· {highlight}</li>
+            <li key={highlight} className="flex gap-2.5">
+              <span aria-hidden="true" className="mt-[0.6rem] size-1.5 shrink-0 rounded-full bg-foreground/40" />
+              <span>{highlight}</span>
+            </li>
           ))}
         </ul>
       </div>
 
-      <p className="mt-4 text-xs text-muted">{preview.caveat}</p>
+      <p className="text-[13px] leading-5 text-secondary">{preview.caveat}</p>
 
       {children}
     </section>
@@ -97,8 +106,8 @@ export function MatchIndexCard({
  */
 export function ScoringNote() {
   return (
-    <p className="text-xs text-muted">
-      <strong className="font-medium">사주 엔진은 점수를 내지 않습니다.</strong> 위 베타 지표는
+    <p className="text-[13px] leading-5 text-secondary">
+      <strong className="font-semibold text-foreground">사주 엔진은 점수를 내지 않습니다.</strong> 위 베타 지표는
       엔진이 낸 사실에 공개된 가중치를 얹은 제품용 비교값입니다. 맞춰볼 외부 기준이 아직
       없으므로 궁합의 정답이나 관계의 좋고 나쁨으로 읽지 않습니다.
     </p>

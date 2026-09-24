@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { isBlocked } from '@/src/lib/account';
 import { RELATION_LABEL } from '@/src/lib/people';
-import { analyzeCompatibility } from '@/src/lib/saju';
+import { analyzeCompatibility, STEM_INFO, type Element } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
@@ -18,6 +18,11 @@ import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { payloadForViewer, type PersonPayload } from '../payload';
 import { ReadingSection } from '../reading/section';
+import { elementScope } from '../../element-tone';
+import { BUTTON_TERTIARY } from '../../ui/buttons';
+import { ElementSymbol } from '../../ui/element-symbol';
+import { Icon } from '../../ui/icon';
+import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 
 /**
  * 모델 240초 상한이 먼저 끝나 실패를 기록하고, DB 600초 만료보다는 먼저 닫는다.
@@ -85,7 +90,7 @@ export default async function ManagedCompatPage({
 
   if (blocked) {
     return (
-      <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
+      <main className="app-shell flex flex-1 flex-col gap-6 py-8 sm:gap-8 sm:py-12">
         <CompatHero />
         <AccountNotice state={state} />
       </main>
@@ -122,16 +127,14 @@ export default async function ManagedCompatPage({
    * 사용자는 **왜 되돌아왔는지 모른 채** 같은 주소를 다시 누른다.
    */
   return (
-    <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
-      <header className="flex flex-col gap-2">
-        <Link
-          href="/compat"
-          className="self-start text-sm text-secondary underline underline-offset-2 hover:text-accent"
-        >
-          ← 궁합 보러 가기
+    <main className="app-shell flex flex-1 flex-col gap-6 py-8 sm:py-12">
+      <header className="flex flex-col gap-3">
+        <Link href="/compat" className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
+          <Icon name="back" className="size-4" />
+          궁합 보러 가기
         </Link>
-        <p className="eyebrow">궁합</p>
-        <h1 className="text-3xl font-bold tracking-[-0.04em] sm:text-4xl">궁합을 볼 수 없습니다</h1>
+        <p className="text-[13px] font-semibold text-secondary">궁합</p>
+        <h1 className={TYPE_TITLE}>궁합을 볼 수 없습니다</h1>
       </header>
 
       <Result outcome={outcome} />
@@ -153,23 +156,49 @@ export default async function ManagedCompatPage({
  */
 async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' }> }) {
   return (
-    <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
-      <header className="flex flex-col gap-2">
+    <main className="app-shell flex flex-1 flex-col gap-6 py-8 sm:py-12">
+      <header className="flex flex-col gap-3">
         {/* 되돌아가는 자리는 **만든 풀이 목록**이다 — 이 궁합도 거기 한 줄로 선다 */}
-        <Link
-          href="/me/readings"
-          className="self-start text-sm text-secondary underline underline-offset-2 hover:text-accent"
-        >
-          ← 만든 풀이 목록
+        <Link href="/me/readings" className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
+          <Icon name="back" className="size-4" />
+          만든 풀이 목록
         </Link>
-        <p className="eyebrow">궁합</p>
-        <h1 className="text-3xl font-bold tracking-[-0.04em] sm:text-4xl">
-          {outcome.first.name} <span className="text-muted">×</span> {outcome.second.name}
-        </h1>
+        <div className="flex items-center gap-4">
+          <PairMark elements={[elementOf(outcome.first), elementOf(outcome.second)]} />
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-secondary">궁합</p>
+            <h1 className={`${TYPE_TITLE} break-words`}>
+              {outcome.first.name} <span className="text-secondary">×</span> {outcome.second.name}
+            </h1>
+          </div>
+        </div>
       </header>
 
       <Result outcome={outcome} />
     </main>
+  );
+}
+
+const elementOf = (payload: PersonPayload): Element => STEM_INFO[payload.saju.pillars.dayMaster].element;
+
+/**
+ * **두 사람의 표식** — 두 원이 살짝 겹쳐 선다(홈의 관계 지도에서 두 사람을 잇는 말투). 각 원은 그 사람의 일간
+ * 색과 상징이다. 그림이라 보조기기에는 안 읽히고, 누구와 누구인지는 바로 옆 제목이 든다.
+ */
+function PairMark({ elements }: { elements: readonly [Element, Element] }) {
+  return (
+    <span aria-hidden="true" className="flex shrink-0 items-center">
+      {elements.map((element, index) => (
+        <span
+          key={index}
+          className={`${elementScope(element)} grid size-12 place-items-center rounded-full bg-[var(--tile)] ring-4 ring-background sm:size-14 ${
+            index === 1 ? '-ml-3' : ''
+          }`}
+        >
+          <ElementSymbol element={element} className="size-7 sm:size-8" />
+        </span>
+      ))}
+    </span>
   );
 }
 
@@ -256,7 +285,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
 
   if (outcome.kind === 'same') {
     return (
-      <p role="alert" className={`${CARD} text-sm`}>
+      <p role="alert" className={`${CARD} text-[15px] leading-6`}>
         같은 사람을 두 번 고를 수는 없습니다. 서로 다른 두 사람을 골라 주세요.
       </p>
     );
@@ -265,8 +294,8 @@ async function Result({ outcome }: { outcome: Outcome }) {
   if (outcome.kind === 'unreadable') {
     return (
       <section className={`${CARD} flex flex-col gap-2`}>
-        <p className="text-sm">{outcome.message}</p>
-        <p className="text-xs text-muted">{UNREADABLE_INPUT_NOTE}</p>
+        <p className="text-[15px]">{outcome.message}</p>
+        <p className={TYPE_META}>{UNREADABLE_INPUT_NOTE}</p>
       </section>
     );
   }
@@ -328,8 +357,8 @@ async function Result({ outcome }: { outcome: Outcome }) {
              */
             ask={
               stored.ok && stored.relation !== null ? (
-                <p key="relation-line" className="text-xs leading-5 text-muted">
-                  <strong className="font-medium text-secondary">
+                <p key="relation-line" className="text-[13px] leading-5 text-secondary">
+                  <strong className="font-semibold text-foreground">
                     {RELATION_LABEL[stored.relation]}
                   </strong>{' '}
                   사이로 읽어 드립니다. 바꾸시려면 두 사람을 고르는 자리에서 다시 고르세요.
@@ -345,8 +374,8 @@ async function Result({ outcome }: { outcome: Outcome }) {
           (`CompatView`)의 자식 배열로 건너간다. 경계를 넘어온 원소는 `jsx` 가 달아 두는
           「검사했다」 표시를 잃으므로, 정적인 자리에 서 있어도 React 가 키를 찾는다.
         */
-        <p key="input-edit-notice" className="text-xs text-muted">
-          <strong className="font-medium">현재 저장된 출생 정보 기준입니다.</strong>{' '}
+        <p key="input-edit-notice" className="text-[13px] leading-5 text-secondary">
+          <strong className="font-semibold text-foreground">현재 저장된 출생 정보 기준입니다.</strong>{' '}
           {INPUT_EDIT_REPLACED_NOTE}
         </p>
       }

@@ -212,7 +212,9 @@ test.describe('동의로 열리는 흐름', () => {
       await expect(person.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
       await expect(person.page.getByRole('heading', { name: '궁합의 출발점' })).toBeVisible();
       await expect(person.page.getByText('각자의 여덟 글자를 한자리에서 견줍니다')).toHaveCount(0);
-      await expect(person.page.getByRole('table')).toHaveCount(2);
+      /* 두 사람의 여덟 글자가 각자의 네 기둥 띠로 선다(`PillarPair`) — 관계 표는 없다 */
+      await expect(person.page.getByRole('group', { name: /의 네 기둥$/ })).toHaveCount(2);
+      await expect(person.page.getByRole('table')).toHaveCount(0);
       await expect(person.page.getByText('두 사주 사이의 관계')).toHaveCount(0);
 
       /*

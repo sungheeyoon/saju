@@ -2,8 +2,11 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { selfPersonIdOf } from '@/src/lib/account';
+import { storedChartOf } from '@/src/lib/input/stored';
+import { STEM_INFO, type Element } from '@/src/lib/saju';
 
 import { readAccount } from '../me/account';
+import { storedInputsOf } from '../me/person-input';
 import { supabaseOnServer } from '../auth/server-client';
 import { CompatPicker } from '../compat-picker';
 import { CompatHero } from '../compat-hero';
@@ -42,14 +45,33 @@ export default async function CompatPage() {
       .order('created_at', { ascending: true }),
   ]);
 
-  const people = (edges ?? []).map((edge) => ({
+  const listed = edges ?? [];
+
+  /**
+   * **고를 사람마다 그 사람의 일간 오행 하나만** 접어 넘긴다 — 고르는 칸의 줄과 두 원이 그 사람의 상징을 든다.
+   * 명식이나 출생 입력은 브라우저로 안 넘긴다. 저장한 사람 목록과 같은 문(`storedInputsOf`)을 한 번 부르고,
+   * 못 읽은 사람은 `null`(물음표 원)이다 — 없는 오행을 지어내지 않는다.
+   */
+  const stored = await storedInputsOf(
+    supabase,
+    listed.map((edge) => edge.person_id as string),
+  );
+  const elementOf = (personId: string, label: string): Element | null => {
+    const input = stored.get(personId);
+    if (input === undefined) return null;
+    const chart = storedChartOf(input, label);
+    return chart.ok ? STEM_INFO[chart.saju.pillars.dayMaster].element : null;
+  };
+
+  const people = listed.map((edge) => ({
     personId: edge.person_id as string,
     label: edge.local_label as string,
     isSelfPerson: edge.person_id === selfPersonIdOf(state),
+    element: elementOf(edge.person_id as string, edge.local_label as string),
   }));
 
   return (
-    <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:py-14">
+    <main className="app-shell flex flex-1 flex-col gap-6 py-8 sm:gap-8 sm:py-12">
       <CompatHero />
 
       {/*
@@ -60,13 +82,13 @@ export default async function CompatPage() {
         그 버튼을 걷으면서 짚을 사람도 없어졌다.
       */}
       <section>
-        <Suspense fallback={<div className="h-72 rounded-[1.75rem] border border-border bg-surface" />}>
+        <Suspense fallback={<div className="h-72 rounded-[2rem] bg-cream" />}>
           <CompatPicker people={people} />
         </Suspense>
       </section>
 
-      <footer className="border-t border-border py-6 text-xs leading-6 text-muted">
-        직접 입력한 사람은 <strong className="font-medium">사람 목록에 저장되지 않습니다.</strong>
+      <footer className="border-t border-border py-5 text-[13px] leading-6 text-secondary">
+        직접 입력한 사람은 <strong className="font-semibold text-foreground">사람 목록에 저장되지 않습니다.</strong>
       </footer>
     </main>
   );

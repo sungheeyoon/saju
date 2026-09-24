@@ -8,8 +8,18 @@ import type { PersonSlots } from '@/src/lib/people';
 import { BirthFields } from '../../birth-form';
 import { DEFAULT_QUERY, missingAnswer, type Query } from '@/src/lib/input/query';
 import { NOTE_MAX } from '@/src/lib/input/edit';
+import { useHashParams } from '../../hash-query';
 import { addManagedPerson, removeFromList, updateNote } from '../actions';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from '../../same-chart-ask';
+import {
+  BUTTON_DANGER,
+  BUTTON_PRIMARY,
+  BUTTON_SECONDARY,
+  BUTTON_SECONDARY_SMALL,
+  BUTTON_TERTIARY,
+} from '../../ui/buttons';
+import { Icon } from '../../ui/icon';
+import { EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
 
 /**
  * 목록을 손대는 세 자리 — 추가·메모·빼기.
@@ -21,8 +31,12 @@ import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from '../../sa
  * 들고 있고, 여기 있는 것은 그 답을 사람에게 보여주는 일뿐이다.
  */
 
-const BUTTON =
-  'h-11 rounded-lg bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-60 sm:h-10';
+/**
+ * 홈의 「사람 추가」가 여는 주소 — `/me/people#add` 로 오면 추가 칸이 펼쳐진 채 선다. 한 번 더 누르게 하지
+ * 않으려는 것이다. 조각은 서버에 안 가므로 브라우저가 읽는다(`useHashParams`).
+ */
+export const ADD_PERSON_HASH = '#add';
+const ADD_PERSON_KEY = ADD_PERSON_HASH.slice(1);
 
 /**
  * 가족·친구 한 사람을 등록한다.
@@ -39,15 +53,29 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   // 못 읽었으면 `null` — 그때는 막지도 않고 수를 말하지도 않는다.
   const remaining = slots?.remaining ?? null;
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [opened, setOpened] = useState(false);
+  /** 주소가 펼치라고 했어도 사용자가 한 번 닫았으면(그만두기 · 등록) 다시 안 편다 */
+  const [dismissed, setDismissed] = useState(false);
+  const asked = useHashParams().has(ADD_PERSON_KEY);
+  const open = opened || (asked && !dismissed);
+  const setOpen = (next: boolean) => {
+    setOpened(next);
+    if (!next) setDismissed(true);
+  };
   const [query, setQuery] = useState<Query>({ ...DEFAULT_QUERY, name: '' });
   const [note, setNote] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
   /** 같은 명식이 이미 있으면 여기 선다 — 서 있는 동안 등록 버튼은 자리를 비운다 */
   const [question, setQuestion] = useState<SameChartQuestion | null>(null);
   const [saving, startSaving] = useTransition();
+  const form = useRef<HTMLElement>(null);
 
   const missing = missingAnswer(query);
+
+  /* 펼치면 그 칸으로 데려간다 — 폰에서는 폼 머리가 화면 아래에 걸려 열린 줄 모른다 */
+  useEffect(() => {
+    if (open) form.current?.scrollIntoView({ block: 'nearest' });
+  }, [open]);
 
   /**
    * 「맞다」면 **아무것도 등록하지 않고** 그 사람에게 간다 — 자리도 안 쓰고 대상도 안 는다.
@@ -95,7 +123,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   // 못 읽었으면(`null`) 막지 않는다 — 막는 것은 DB 이고 화면은 먼저 말해 줄 뿐이다.
   if (remaining !== null && remaining <= 0) {
     return (
-      <p className="rounded-[1.75rem] border border-border bg-surface-sunken p-5 text-sm text-muted">
+      <p className={`${EMPTY_SLOT} text-[15px] leading-6 text-secondary`}>
         등록할 수 있는 {slots?.limit}명을 다 채웠습니다. 목록에서 누군가를 빼면 다시 등록할 수
         있습니다.
       </p>
@@ -104,17 +132,27 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className={`${BUTTON} self-start`}>
-        사람 추가
-      </button>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <button type="button" onClick={() => setOpen(true)} className={BUTTON_PRIMARY}>
+          <Icon name="plus" className="size-[18px]" />
+          사람 추가
+        </button>
+        {remaining !== null && remaining <= 5 && (
+          <span className={TYPE_META}>앞으로 {remaining}명 더 등록할 수 있습니다.</span>
+        )}
+      </div>
     );
   }
 
   return (
-    <section className="flex flex-col gap-4 rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6">
-      <header className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold">사람 추가</h2>
-        <p className="text-sm text-secondary">
+    <section
+      ref={form}
+      id="add"
+      className="flex scroll-mt-24 scroll-mb-28 flex-col gap-5 rounded-[1.75rem] border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-7"
+    >
+      <header className="flex flex-col gap-1.5">
+        <h2 className={TYPE_SECTION}>사람 추가</h2>
+        <p className="text-[15px] leading-6 text-secondary">
           부를 이름은 <strong className="font-medium">나만 봅니다.</strong> 같은 사람을 다른
           사람은 다르게 부를 수 있으므로, 이름은 그 사람이 아니라 나와 그 사람 사이에 붙습니다.
           {remaining !== null && remaining <= 5 && ` 앞으로 ${remaining}명 더 등록할 수 있습니다.`}
@@ -139,24 +177,25 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
           }}
         />
       ) : (
-        <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON}>
-            {saving ? '저장하는 중…' : '등록'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            disabled={saving}
-            className="text-sm text-secondary underline underline-offset-2"
-          >
-            그만두기
-          </button>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+              {saving ? '저장하는 중…' : '등록'}
+            </button>
+            <button type="button" onClick={() => setOpen(false)} disabled={saving} className={BUTTON_TERTIARY}>
+              그만두기
+            </button>
+          </div>
           {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-          {missing !== null && <span className="text-xs text-muted">{missing}</span>}
+          {missing !== null && <p className={TYPE_META}>{missing}</p>}
         </div>
       )}
 
-      {failure !== null && <p className="text-sm text-muted">저장하지 못했습니다 — {failure}</p>}
+      {failure !== null && (
+        <p role="alert" className="text-sm text-danger">
+          저장하지 못했습니다 — {failure}
+        </p>
+      )}
     </section>
   );
 }
@@ -172,7 +211,7 @@ function NoteField({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs text-secondary">메모 (선택)</span>
+      <span className="text-[13px] font-semibold text-secondary">메모 (선택)</span>
       <textarea
         id={`${idPrefix}-note`}
         value={value}
@@ -180,7 +219,7 @@ function NoteField({
         maxLength={NOTE_MAX}
         rows={2}
         placeholder="기억해 둘 것 — 이 사람의 사주에는 들어가지 않습니다"
-        className="rounded-md border border-border bg-surface px-2.5 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash"
+        className="rounded-2xl border border-border bg-surface px-3.5 py-2.5 text-[15px] leading-6 outline-none placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
       />
     </label>
   );
@@ -234,26 +273,20 @@ export function NoteEditor({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3 rounded-[1.25rem] bg-surface p-4 shadow-[var(--shadow-card)]">
       <NoteField value={value} onChange={setValue} idPrefix={personId} />
       <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={save}
-          disabled={!changed || saving}
-          className="h-9 rounded-md border border-border px-3 text-xs text-secondary transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-50"
-        >
+        <button type="button" onClick={save} disabled={!changed || saving} className={BUTTON_SECONDARY_SMALL}>
           {saving ? '저장하는 중…' : '메모 저장'}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={saving}
-          className="text-xs text-secondary underline underline-offset-2"
-        >
+        <button type="button" onClick={onCancel} disabled={saving} className={BUTTON_TERTIARY}>
           닫기
         </button>
-        {failure !== null && <span className="text-xs text-muted">{failure}</span>}
+        {failure !== null && (
+          <span role="alert" className="text-[13px] text-danger">
+            {failure}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -300,29 +333,24 @@ export function RemoveConfirm({
         if (removing) event.preventDefault();
       }}
       onClose={onCancel}
-      className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
+      className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
     >
-      <h3 id={`remove-person-${personId}`} className="text-base font-bold">
+      <h3 id={`remove-person-${personId}`} className="font-rounded text-[1.3rem] leading-7">
         {label} 님을 목록에서 뺄까요?
       </h3>
-      <p className="mt-2 text-sm leading-6 text-secondary">
+      <p className="mt-2 text-[15px] leading-6 text-secondary">
         저장한 출생 정보와 이 사람의 풀이는 목록에서 사라지며 되돌릴 수 없습니다.
       </p>
       {failure !== null && <p className="mt-3 text-sm text-danger">빼지 못했습니다 — {failure}</p>}
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
-        <button
-          type="button"
-          onClick={remove}
-          disabled={removing}
-          className="h-11 rounded-xl bg-danger px-5 text-sm font-semibold text-white shadow-sm disabled:opacity-60 sm:h-10"
-        >
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
+        <button type="button" onClick={remove} disabled={removing} className={BUTTON_DANGER}>
           {removing ? '빼는 중…' : '목록에서 빼기'}
         </button>
         <button
           type="button"
           onClick={() => confirming.current?.close()}
           disabled={removing}
-          className="h-11 rounded-xl border border-border px-5 text-sm text-secondary hover:border-border-strong hover:text-foreground sm:h-10"
+          className={BUTTON_SECONDARY}
         >
           취소
         </button>

@@ -4,8 +4,8 @@ import { useId, useState, type ReactNode } from 'react';
 
 import { findStatus, findsInList, pickable } from '@/src/lib/people/pick';
 
-import { FIELD } from '../../birth-form';
 import { NO_MATCH, PLACEHOLDER } from '../../person-combobox';
+import { Icon } from '../../ui/icon';
 
 /**
  * 사람 목록 위의 **찾는 칸** — 이름(초성도)을 치면 목록이 그 사람들로 좁혀진다(ADR 0102, G-21).
@@ -41,33 +41,40 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
           <label htmlFor={inputId} className="sr-only">
             {PLACEHOLDER}
           </label>
-          <input
-            id={inputId}
-            type="search"
-            enterKeyHint="search"
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck={false}
-            placeholder={PLACEHOLDER}
-            aria-describedby={statusId}
-            value={typed}
-            onChange={(event) => setTyped(event.target.value)}
-            className={`${FIELD} w-full sm:max-w-xs`}
-          />
+          <div className="relative w-full sm:max-w-sm">
+            <Icon name="search" className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-secondary" />
+            <input
+              id={inputId}
+              type="search"
+              enterKeyHint="search"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              placeholder={PLACEHOLDER}
+              aria-describedby={statusId}
+              value={typed}
+              onChange={(event) => setTyped(event.target.value)}
+              className="h-12 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-[15px] outline-none placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+            />
+          </div>
           {/*
             결과는 **늘 마운트된 칸**이 말한다 — 새로 붙은 live 영역은 화면낭독기가 흘려보내는 일이 있다.
             안 쳤으면 비어 있다.
           */}
-          <p id={statusId} role="status" className={status.kind === 'idle' ? 'sr-only' : 'text-xs text-muted'}>
+          <p id={statusId} role="status" className={status.kind === 'idle' ? 'sr-only' : 'px-2 text-[13px] text-secondary'}>
             {status.kind === 'none' ? NO_MATCH : status.kind === 'some' ? `검색 결과 ${status.count}명` : ''}
           </p>
         </div>
       )}
 
-      <ul className="flex flex-col gap-4">
+      {/*
+        폰은 한 줄에 한 장, 넓어지면 둘 · 셋. 관리 메뉴가 고치는 칸이나 메모 칸을 열면 그 한 장이 줄 전체로
+        넓어진다(`data-panel`) — 폼이 타일 폭에 끼어 세로로 길어지지 않게.
+      */}
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {people.map((one) => (
-          <li key={one.personId} hidden={!shown.has(one.personId)}>
+          <li key={one.personId} hidden={!shown.has(one.personId)} className="min-w-0 has-[[data-panel]]:col-span-full">
             {one.card}
           </li>
         ))}

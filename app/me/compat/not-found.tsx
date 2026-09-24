@@ -1,5 +1,8 @@
 import Link from 'next/link';
 
+import { BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+import { TYPE_TITLE } from '../../ui/surfaces';
+
 /**
  * **없는 사람과 못 보는 사람이 도착하는 같은 자리.**
  *
@@ -11,16 +14,16 @@ import Link from 'next/link';
  */
 export default function PersonNotFound() {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-5 py-12 sm:px-6 sm:py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">찾을 수 없습니다</h1>
-      <p className="text-sm text-secondary">
+    <main className="app-shell flex w-full flex-1 flex-col gap-4 py-10 sm:py-14">
+      <h1 className={TYPE_TITLE}>찾을 수 없습니다</h1>
+      <p className="text-[15px] leading-6 text-secondary">
         주소에 적힌 사람을 찾지 못했습니다. 목록에서 다시 골라 주세요.
       </p>
-      <p className="flex flex-wrap gap-4 text-sm">
-        <Link href="/compat" className="text-accent underline underline-offset-2">
+      <p className="flex flex-wrap gap-2">
+        <Link href="/compat" className={BUTTON_PRIMARY_SMALL}>
           궁합 보러 가기
         </Link>
-        <Link href="/me/people" className="text-accent underline underline-offset-2">
+        <Link href="/me/people" className={BUTTON_SECONDARY_SMALL}>
           저장한 사람
         </Link>
       </p>
