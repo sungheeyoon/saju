@@ -60,20 +60,26 @@ const sources = sourceFiles(ROOT).map((path) => {
   return { path: asPosix(path), text, source: ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, kind) };
 });
 
-/** `import { a as b }` — 바꾼 이름 `b` 에서 원래 이름 `a` 로 */
-const ORIGINAL_NAME: ReadonlyMap<string, string> = new Map(
-  sources.flatMap(({ source }) =>
-    source.statements.flatMap((statement) => {
-      const bindings = ts.isImportDeclaration(statement) ? statement.importClause?.namedBindings : undefined;
-      if (!bindings || !ts.isNamedImports(bindings)) return [];
-      return bindings.elements.flatMap((element) =>
-        element.propertyName ? [[element.name.text, element.propertyName.text] as const] : [],
-      );
-    }),
-  ),
+/**
+ * `import { a as b }` — 바꾼 이름 `b` 에서 원래 이름 `a` 로. **파일마다 따로 든다** — 한 파일의 별칭이 다른 파일에서 같은
+ * 이름으로 적은 함수를 덮으면, 그 파일의 던지는 부름이 엉뚱한 이름으로 읽혀 빠진다.
+ */
+const ORIGINAL_NAME: ReadonlyMap<string, ReadonlyMap<string, string>> = new Map(
+  sources.map(({ path, source }) => [
+    path,
+    new Map(
+      source.statements.flatMap((statement) => {
+        const bindings = ts.isImportDeclaration(statement) ? statement.importClause?.namedBindings : undefined;
+        if (!bindings || !ts.isNamedImports(bindings)) return [];
+        return bindings.elements.flatMap((element) =>
+          element.propertyName ? [[element.name.text, element.propertyName.text] as const] : [],
+        );
+      }),
+    ),
+  ]),
 );
 
-const originalOf = (name: string) => ORIGINAL_NAME.get(name) ?? name;
+const originalOf = (file: string, name: string) => ORIGINAL_NAME.get(file)?.get(name) ?? name;
 
 /**
  * **던져도 문으로 안 치는 것과 그 까닭.** 목록이지 예외가 아니다.
@@ -140,19 +146,19 @@ function insideAfter(node: ts.Node, stop: ts.Node): boolean {
 }
 
 /** 몸통에서 **받지 않은** 던짐 — `throw` 문과, 던지는 이름을 부르는 자리 */
-function unguarded(body: ts.Node, throwing: ReadonlySet<string>): string[] {
+function unguarded(file: string, body: ts.Node, throwing: ReadonlySet<string>): string[] {
   const out: string[] = [];
   const visit = (node: ts.Node) => {
     if (ts.isThrowStatement(node) && !caughtWithin(node, body) && !insideAfter(node, body)) out.push('throw');
     if (
       ts.isCallExpression(node) &&
       ts.isIdentifier(node.expression) &&
-      throwing.has(originalOf(node.expression.text)) &&
+      throwing.has(originalOf(file, node.expression.text)) &&
       !caughtWithin(node, body) &&
       !chainedCatch(node) &&
       !insideAfter(node, body)
     ) {
-      out.push(originalOf(node.expression.text));
+      out.push(originalOf(file, node.expression.text));
     }
     ts.forEachChild(node, visit);
   };
@@ -165,9 +171,9 @@ function throwingNames(): Set<string> {
   const throwing = new Set<string>();
   for (let grew = true; grew; ) {
     grew = false;
-    for (const { name, body } of functions) {
+    for (const { file, name, body } of functions) {
       if (throwing.has(name) || name in NOT_DOORS) continue;
-      if (unguarded(body, throwing).length === 0) continue;
+      if (unguarded(file, body, throwing).length === 0) continue;
       throwing.add(name);
       grew = true;
     }
@@ -257,7 +263,8 @@ describe('서버 액션은 던지지 않는다', () => {
 
   it('액션이 받지 않은 채 부르는 던지는 문은 까닭이 적힌 것들뿐이다', () => {
     const found = actions
-      .flatMap(({ id, body }) => unguarded(body, throwing).map((callee) => `${id} -> ${callee}`))
+      // id 는 `파일::이름` — 별칭은 그 파일의 것으로 되돌린다
+      .flatMap(({ id, body }) => unguarded(id.split('::')[0], body, throwing).map((callee) => `${id} -> ${callee}`))
       .sort();
 
     expect(found).toEqual(Object.keys(MAY_THROW).sort());
