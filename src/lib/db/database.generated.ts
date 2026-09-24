@@ -1973,7 +1973,10 @@ export type Database = {
           p_order_id: string
           p_provider_payment_id: string
         }
-        Returns: string
+        Returns: {
+          bundle_id: string
+          outcome: string
+        }[]
       }
       audit_export_batch: {
         Args: { p_limit?: number }

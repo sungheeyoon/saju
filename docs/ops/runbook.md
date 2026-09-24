@@ -382,7 +382,8 @@ update retention.reading_payment set hold_reason = null, held_at = null where or
 ```
 
 **PG 를 붙일 때 할 일** — 웹훅 라우트가 서명을 검증하고(G-23 ⑥) `approve_reading_order(주문, 거래 번호, 낸 금액, 알림 id)` 를
-부른다. 금액이 주문과 다르면 문이 거절한다. 판매를 여는 것은 `reading_sale_is_open()` 을 `true` 로 바꾸는 마이그레이션이다 —
+부르고 돌아온 한 줄 `(outcome, bundle_id)` 을 본다. 금액이 주문과 다르면 문이 던지지 않고 `refused` 를 돌려준다 — 그래야 그 알림의
+거절 기록(`payment_event`)이 남는다. 같은 알림이 다시 오면 처음의 결과가 돌아간다(`20261013090000`). 판매를 여는 것은 `reading_sale_is_open()` 을 `true` 로 바꾸는 마이그레이션이다 —
 결제 전 고지 · 철회 기준(G-25) · 탈퇴 판의 남은 수량(G-25 ⑦) · 환불 셈 화면이 먼저 선다.
 
 ---
@@ -1625,7 +1626,8 @@ G-25 ③ 이 운영자의 개인정보처리시스템 접속기록을 **1년 이
 
 Vercel Cron `/api/cron/audit-export`(`vercel.json`, 매일 18:37 UTC = 서울 03:37 전후 — Hobby 는 ±59분)가 지난 반출 뒤의
 줄을 번호 차례로 읽어 한 파일로 올리고, **올린 뒤에** 범위를 `audit.operator_access_export` 에 적는다. 적는 문은 앞 반출에서
-이어지지 않거나 범위 안의 행 수가 틀리면 거절한다 — 빠짐도 겹침도 없다. 방금(10분 안) 적힌 줄은 다음 날로 미룬다.
+이어지지 않거나 범위 안의 행 수가 틀리면 거절한다 — 빠짐도 겹침도 없다. 방금 적힌 줄도 나간다 — 반출은 쓰기와 같은 advisory
+자물쇠를 배타로 쥔 뒤에 읽으므로(쓰기는 번호를 받기 전에 공유로 쥔다) 늦게 커밋된 낮은 번호를 건너뛰지 않는다(`20261013090000`).
 
 - **파일** — `operator-access/<첫 줄의 서울 날짜 YYYY/MM/DD>/<첫 번호 12자리>-<마지막 번호 12자리>.jsonl`. 첫 줄이 머리
   (`rows` · `first_id` · `last_id` · `after_id` · 본문 `sha256` · `exported_at`), 그 뒤가 한 줄에 한 행이다. 해시는 머리를 뗀
