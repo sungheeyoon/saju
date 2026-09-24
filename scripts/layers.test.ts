@@ -4,8 +4,9 @@
  * `eslint.config.mjs` 가 같은 규칙을 편집기에서 알려 주지만, 린트는 규칙마다 사각이 있다 —
  * 첫 판은 별칭의 정적 import 만 봐서 상대경로·`import()` 가 지나갔고, 둘째 판은 문자열
  * 정규식이라 `.mts` 와 백틱 `import(\`…\`)` 이 지나갔다. 여기는 **TypeScript AST** 로
- * import 를 읽는다 — 정적 · `export … from` · `import()` · `require()` 넷을 같은 자리에서
- * 집고, 대상이 문자열 리터럴이 아닌 `import()` 는 **모르는 것이라 막는다.**
+ * import 를 읽는다 — 정적 · `export … from` · `import()` · `require()` · 타입 자리의 `import('…').X`
+ * 다섯을 같은 자리에서 집고, 대상이 문자열 리터럴이 아닌 `import()` 는 **모르는 것이라 막는다.**
+ * 대상은 확장자를 떼고 견준다 — `@/proxy.js` 가 `proxy` 와 다른 이름으로 지나가지 않게.
  *
  * 도메인 lib 끼리의 방향은 **허용 목록과 같은가**로 잰다 — 새 방향이 생기면 여기와
  * `docs/architecture.md` 를 함께 고친다. 화면 안의 DB 호출은 **호출마다 지문**을 잠근다 —
@@ -92,7 +93,10 @@ function parse(file: string): ts.SourceFile {
 }
 
 /** `spec` 이 `null` 이면 대상을 **정적으로 알 수 없는** import 다 */
-type Edge = { file: string; spec: string | null; target: string | null; line: number };
+type Edge = { file: string; spec: string | null; target: string | null; line: number; typeOnly: boolean };
+
+/** 대상 경로 끝의 소스 확장자 — `SOURCE_EXTENSIONS` 와 같은 목록이다 */
+const SOURCE_EXTENSION_AT_END = /\.(ts|mts|cts|tsx|js|jsx|mjs|cjs)$/;
 
 const literalOf = (node: ts.Node | undefined): string | null =>
   node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : null;
@@ -101,12 +105,14 @@ function edgesOf(file: string): Edge[] {
   const source = parse(file);
   const rel = relPath(file);
   const out: Edge[] = [];
-  const push = (specNode: ts.Node | undefined, at: ts.Node) => {
+  const push = (specNode: ts.Node | undefined, at: ts.Node, typeOnly = false) => {
     const spec = literalOf(specNode);
     let target: string | null = null;
     if (spec?.startsWith('@/')) target = spec.slice(2);
     else if (spec?.startsWith('.')) target = relPath(resolve(dirname(file), spec));
-    out.push({ file: rel, spec, target, line: source.getLineAndCharacterOfPosition(at.getStart()).line + 1 });
+    // `@/proxy.js` 와 `@/proxy` 는 같은 파일이다 — 확장자를 떼고 견준다
+    if (target !== null) target = target.replace(SOURCE_EXTENSION_AT_END, '');
+    out.push({ file: rel, spec, target, line: source.getLineAndCharacterOfPosition(at.getStart()).line + 1, typeOnly });
   };
   const visit = (node: ts.Node) => {
     if (ts.isImportDeclaration(node)) push(node.moduleSpecifier, node);
@@ -115,6 +121,11 @@ function edgesOf(file: string): Edge[] {
       const callee = node.expression;
       if (callee.kind === ts.SyntaxKind.ImportKeyword) push(node.arguments[0], node);
       else if (ts.isIdentifier(callee) && callee.text === 'require') push(node.arguments[0], node);
+    }
+    // 타입 자리의 `import('…').X` — 값은 안 불러도 그 모듈의 모양에 기대는 방향이다
+    else if (ts.isImportTypeNode(node)) {
+      const argument = node.argument;
+      push(ts.isLiteralTypeNode(argument) ? argument.literal : undefined, node, true);
     }
     ts.forEachChild(node, visit);
   };
@@ -137,6 +148,10 @@ describe('층의 방향 (ADR 0085)', () => {
     expect(EDGES.length).toBeGreaterThan(500);
     // 동적 import 도 집는다 — 옮긴 라이브 시험이 그 형태로 app 을 부른다
     expect(EDGES.some((edge) => edge.file === 'app/me/reading/call.live.test.ts' && edge.target === 'app/me/reading/model')).toBe(true);
+    // 타입 자리의 import() 도 집는다 — 같은 시험이 그 형태로 lib 의 타입을 부른다
+    expect(
+      EDGES.some((edge) => edge.typeOnly && edge.file === 'app/me/reading/call.live.test.ts' && edge.target === 'src/lib/reading/match-input-eval'),
+    ).toBe(true);
   });
 
   it('src/lib·scripts·e2e 의 import() 대상은 문자열 리터럴이다 — 모르는 대상은 막는다', () => {
