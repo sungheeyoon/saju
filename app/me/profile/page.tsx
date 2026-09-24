@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { isBlocked } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { ProfileForm } from './form';
@@ -40,7 +41,7 @@ export default async function ProfilePage() {
 
   if (isBlocked(state) || account === null) {
     return (
-      <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
+      <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-7 py-8 sm:py-12">
         <AccountNotice state={state} />
       </main>
     );
@@ -55,13 +56,10 @@ export default async function ProfilePage() {
   const hasPhoto = (photo ?? []).length > 0;
 
   return (
-    <main className="app-shell flex w-full flex-1 flex-col gap-7 py-9 sm:py-12">
-      <header className="flex flex-col gap-1.5 border-b border-border pb-6">
-        <p className="eyebrow">프로필</p>
-        <h1 className="text-3xl font-bold tracking-[-0.04em]">프로필</h1>
-        <p className="max-w-xl text-sm text-secondary">
-          앱에서 사용할 닉네임과 프로필을 관리합니다.
-        </p>
+    <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
+      <header className="flex flex-col gap-1">
+        <h1 className={TYPE_TITLE}>프로필</h1>
+        <p className={TYPE_META}>앱에서 사용할 닉네임과 프로필을 관리합니다.</p>
       </header>
 
       <ProfileForm

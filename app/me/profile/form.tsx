@@ -17,15 +17,18 @@ import {
   type ProfileInput,
 } from '@/src/lib/profile';
 
-import { CARD } from '../../card';
 import { checkNickname } from '../../nickname';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL, BUTTON_TERTIARY } from '../../ui/buttons';
 import { clearPhoto, savePhoto, saveProfile } from './actions';
 
+/** 입력 칸 — 48px, 크림 바탕 위에서도 칸임이 보이게 흰 면과 테 */
 const FIELD =
-  'h-11 rounded-md border border-border bg-surface px-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash sm:h-10';
+  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
 
-const BUTTON =
-  'h-11 rounded-lg bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-60 sm:h-10';
+/** 판 한 장 — 무리 지은 목록과 같은 흰 판 */
+const PANEL = 'flex flex-col gap-5 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
+
+const LABEL = 'text-[13px] font-semibold text-secondary';
 
 /**
  * 올린 사진을 줄여서 보낸다 — **폰으로 찍은 사진은 그대로 못 올린다.**
@@ -139,16 +142,19 @@ export function ProfileForm({
 
   return (
     <div className="flex flex-col gap-5">
-      <section className={`${CARD} flex flex-col gap-4`}>
+      {/* 사진이 맨 위다 — 프로필을 여는 사람이 먼저 보는 것이 얼굴이고, 고르면 바로 올라간다 */}
+      <PhotoField userId={userId} nickname={profile.nickname} hasPhoto={hasPhoto} />
+
+      <section className={PANEL}>
         <div className="flex flex-col gap-1.5">
           {/*
             **버튼을 라벨 밖에 둔다.** 안에 넣으면 `<label>` 이 칸과 버튼 둘을 함께 물고,
             읽어 주는 도구가 「닉네임」을 어느 것의 이름으로 부를지 사람마다 달라진다.
           */}
-          <label htmlFor="nickname" className="text-xs text-secondary">
+          <label htmlFor="nickname" className={LABEL}>
             닉네임
           </label>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
             <input
               id="nickname"
               type="text"
@@ -158,13 +164,13 @@ export function ProfileForm({
               }
               maxLength={NICKNAME_MAX}
               placeholder={`${NICKNAME_MIN}~${NICKNAME_MAX}자`}
-              className={`${FIELD} w-40`}
+              className={`${FIELD} min-w-0 flex-1 sm:max-w-64`}
             />
             <button
               type="button"
               onClick={check}
               disabled={checking || missing !== null}
-              className="h-11 rounded-lg border border-border px-3 text-sm text-secondary transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-60 sm:h-10"
+              className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0`}
             >
               {checking ? '확인하는 중…' : '중복 확인'}
             </button>
@@ -176,13 +182,13 @@ export function ProfileForm({
           이미 바뀐 이름 옆에 남아 있으면 그 말이 무엇을 가리키는지 알 수 없다.
         */}
         {answer !== null && (
-          <p className="text-sm text-secondary">
+          <p role="status" className={`-mt-3 text-sm ${answer.available ? 'text-secondary' : 'text-danger'}`}>
             {answer.available ? '쓸 수 있는 닉네임입니다.' : '이미 쓰고 있는 닉네임입니다.'}
           </p>
         )}
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs text-secondary">소개 (선택)</span>
+          <span className={LABEL}>소개 (선택)</span>
           <textarea
             value={profile.intro}
             onChange={(event) =>
@@ -191,27 +197,33 @@ export function ProfileForm({
             maxLength={INTRO_MAX}
             rows={3}
             placeholder="간단한 소개를 입력해 주세요"
-            className="rounded-md border border-border bg-surface px-2.5 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash"
+            className={`${FIELD} py-3 leading-6`}
           />
         </label>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:gap-3">
           <button
             type="button"
             onClick={save}
             disabled={missing !== null || saving || !changed}
-            className={BUTTON}
+            className={BUTTON_PRIMARY}
           >
             {saving ? '저장하는 중…' : '프로필 저장'}
           </button>
-          {missing !== null && <span className="text-xs text-muted">{missing}</span>}
-          {saved && !changed && <span className="text-xs text-muted">저장했습니다</span>}
+          {missing !== null && <span className="text-[13px] text-muted">{missing}</span>}
+          {saved && !changed && (
+            <span role="status" className="text-[13px] text-secondary">
+              저장했습니다
+            </span>
+          )}
         </div>
 
-        {failure !== null && <p className="text-sm text-muted">저장하지 못했습니다 — {failure}</p>}
+        {failure !== null && (
+          <p role="alert" className="text-sm text-danger">
+            저장하지 못했습니다 — {failure}
+          </p>
+        )}
       </section>
-
-      <PhotoField userId={userId} nickname={profile.nickname} hasPhoto={hasPhoto} />
     </div>
   );
 }
@@ -268,29 +280,30 @@ function PhotoField({
   };
 
   return (
-    <section className={`${CARD} flex flex-col gap-4`}>
-      <div className="flex items-center gap-4">
-        <span
-          aria-hidden="true"
-          className="inline-flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-sunken text-3xl font-semibold text-secondary"
-        >
-          {hasPhoto ? (
-            // eslint-disable-next-line @next/next/no-img-element -- 바이트를 우리 라우트가 내준다
-            <img
-              src={`/me/photo/${userId}${stamp === 0 ? '' : `?v=${stamp}`}`}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            initialOf(nickname)
-          )}
-        </span>
+    <section className="flex flex-col items-center gap-4 rounded-[2rem] bg-cream px-5 py-7 text-center sm:flex-row sm:gap-6 sm:px-8 sm:text-left">
+      <span
+        aria-hidden="true"
+        className="inline-flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface text-4xl font-semibold text-cream-ink ring-4 ring-surface"
+      >
+        {hasPhoto ? (
+          // eslint-disable-next-line @next/next/no-img-element -- 바이트를 우리 라우트가 내준다
+          <img
+            src={`/me/photo/${userId}${stamp === 0 ? '' : `?v=${stamp}`}`}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          initialOf(nickname)
+        )}
+      </span>
 
-        <div className="flex flex-col gap-2">
-          <label className="inline-flex">
-            <span className="h-11 cursor-pointer rounded-lg border border-border px-3 text-sm leading-[2.75rem] text-secondary transition-colors hover:border-border-strong hover:text-foreground sm:h-10 sm:leading-10">
-              {working ? '올리는 중…' : hasPhoto ? '사진 바꾸기' : '사진 올리기'}
-            </span>
+      <div className="flex min-w-0 flex-col items-center gap-3 sm:items-start">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {/* 파일 칸은 숨기고 라벨이 단추가 된다 — 포커스 테는 안의 칸이 받으면 라벨이 보인다 */}
+          <label
+            className={`${BUTTON_SECONDARY_SMALL} cursor-pointer has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft`}
+          >
+            {working ? '올리는 중…' : hasPhoto ? '사진 바꾸기' : '사진 올리기'}
             <input
               type="file"
               accept={PHOTO_TYPES.join(',')}
@@ -300,21 +313,18 @@ function PhotoField({
             />
           </label>
           {hasPhoto && (
-            <button
-              type="button"
-              onClick={remove}
-              disabled={working}
-              className="self-start text-sm text-secondary underline underline-offset-2 disabled:opacity-60"
-            >
+            <button type="button" onClick={remove} disabled={working} className={BUTTON_TERTIARY}>
               사진 지우기
             </button>
           )}
         </div>
+        <p className="text-[13px] leading-5 text-cream-ink">{PHOTO_NOTE}</p>
+        {failure !== null && (
+          <p role="alert" className="text-sm text-danger">
+            {failure}
+          </p>
+        )}
       </div>
-
-      <p className="text-xs leading-5 text-muted">{PHOTO_NOTE}</p>
-
-      {failure !== null && <p className="text-sm text-muted">{failure}</p>}
     </section>
   );
 }

@@ -4,6 +4,8 @@ import { supabaseOnServer } from '../auth/server-client';
 import { readAccount } from '../me/account';
 import { AccountNotice } from '../me/account-notice';
 import { CARD } from '../card';
+import { Logo } from '../ui/logo';
+import { TYPE_TITLE } from '../ui/surfaces';
 import { SignOutLink } from './sign-out-link';
 import { SERVICE_NAME } from '@/src/lib/brand';
 import {
@@ -116,13 +118,20 @@ export default async function SignupPage({ searchParams }: {
   const again = account.signed_up_at !== null;
 
   return (
-    <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-7 py-9 sm:py-12">
-      <header className="border-b border-border pb-6">
-        <p className="eyebrow">{again ? '한 번 더 확인해 주세요' : '가입하기'}</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">
+    <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
+      {/*
+        **첫 화면이라 크림 판이 맞는다.** 로그인 뒤 처음 서는 자리이고, 서비스의 표지(점들이 모여
+        관계를 이루는 로고)가 여기서 처음 얼굴을 보인다. 폼은 그 아래 흰 판 한 장이다.
+      */}
+      <header className="flex flex-col gap-3 rounded-[2rem] bg-cream p-6 sm:p-8">
+        <Logo className="size-11" />
+        <p className="text-[13px] font-semibold text-cream-ink">
+          {again ? '한 번 더 확인해 주세요' : '가입하기'}
+        </p>
+        <h1 className={TYPE_TITLE}>
           {again ? '개인정보 처리방침이 바뀌었습니다' : '테스트 코드와 닉네임을 입력해 주세요'}
         </h1>
-        <p className="mt-1 text-sm leading-6 text-secondary">
+        <p className="text-[15px] leading-7 text-cream-ink">
           {again
             ? NOTICE_AGAIN_NOTE
             : '초대받은 분만 이용할 수 있는 비공개 베타입니다. 가입에 필요한 정보만 간단히 확인해 주세요.'}
@@ -136,7 +145,7 @@ export default async function SignupPage({ searchParams }: {
         */
         <p className={`${CARD} text-sm leading-6`}>{NOTICE_NOT_READY}</p>
       ) : (
-        <section className={CARD}>
+        <section className="rounded-[1.5rem] border border-border bg-surface p-5 sm:p-7">
           <SignupForm
             resumeReading={resumeReading}
             needsCode={account.signed_up_at === null}

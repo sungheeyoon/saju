@@ -4,7 +4,7 @@ import { isBlocked } from '@/src/lib/account';
 import { SURVEY_COPY } from '@/src/lib/survey';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { CARD } from '../../card';
+import { TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { ConsentSwitch } from './consent-switch';
@@ -44,7 +44,7 @@ export default async function SurveyPage() {
   const { state } = await readAccount(supabase, 'status');
   if (isBlocked(state)) {
     return (
-      <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
+      <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
         <AccountNotice state={state} />
       </main>
     );
@@ -53,16 +53,19 @@ export default async function SurveyPage() {
   const [context, given] = await Promise.all([surveyContext(), mySurvey()]);
 
   return (
-    <main className="app-shell flex w-full flex-1 flex-col gap-5 py-9 sm:py-12">
-      <header className="border-b border-border pb-6">
-        <p className="eyebrow">{SURVEY_COPY.tab}</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-[-0.04em]">{SURVEY_COPY.title}</h1>
-        <p className="mt-2 text-sm leading-6 text-secondary">{SURVEY_COPY.intro}</p>
-        <p className="mt-1 text-xs text-muted">{SURVEY_COPY.editable}</p>
+    <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
+      {/*
+        머리는 크림 판 한 장이다 — 설문은 메뉴에서 빠져 톱니 안에 있으므로, 들어온 사람에게 「무엇을
+        왜 묻는지」를 먼저 건넨다. 문항은 그 아래 흰 판들로 선다.
+      */}
+      <header className="flex flex-col gap-2 rounded-[2rem] bg-cream p-6 sm:p-8">
+        <h1 className={TYPE_TITLE}>{SURVEY_COPY.title}</h1>
+        <p className="text-[15px] leading-7 text-cream-ink">{SURVEY_COPY.intro}</p>
+        <p className="text-[13px] leading-5 text-cream-ink">{SURVEY_COPY.editable}</p>
       </header>
 
       {context === null ? (
-        <p role="alert" className={`${CARD} text-sm text-danger`}>
+        <p role="alert" className="rounded-[1.5rem] border border-border bg-surface p-5 text-sm text-danger">
           설문을 열지 못했습니다. 잠시 뒤에 새로고침해 주세요.
         </p>
       ) : context.consented ? (
@@ -73,10 +76,10 @@ export default async function SurveyPage() {
           헤더는 브라우저에서 세션만 읽는다. 그 값을 물으려고 문을 하나 더 여는 대신,
           화면이 이유를 말하고 그 자리에서 켜게 한다.
         */
-        <section className={`${CARD} flex flex-col gap-4`}>
-          <div>
-            <h2 className="text-base font-bold">먼저 동의가 필요합니다</h2>
-            <p className="mt-1 text-sm leading-6 text-secondary">{SURVEY_COPY.consentNeeded}</p>
+        <section className="flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6">
+          <div className="flex flex-col gap-1">
+            <h2 className={TYPE_SECTION}>먼저 동의가 필요합니다</h2>
+            <p className="text-sm leading-6 text-secondary">{SURVEY_COPY.consentNeeded}</p>
           </div>
           <ConsentSwitch />
         </section>

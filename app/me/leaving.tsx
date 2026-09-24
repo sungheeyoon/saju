@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { DELETION_IRREVERSIBLE_NOTE, DELETION_NOTE } from '@/src/lib/account';
 
+import { BUTTON_DANGER } from '../ui/buttons';
 import { requestAccountDeletion } from './requests/actions';
 import { SETTINGS_DANGER, SETTINGS_QUIET, SettingsRow } from './settings/card';
 
@@ -70,7 +71,12 @@ export function RequestDeletion() {
         제목)가 서서, 되돌리기 어려운 자리가 **다른 화면에서 온 것처럼** 보였다. 같은 줄
         모양을 쓰고 무게는 글과 버튼의 색이 든다.
       */}
-      <div className="flex flex-wrap items-center gap-3">
+      {/*
+        되돌릴 수 없는 마지막 누름만 **채운 위험 색**이다(`BUTTON_DANGER`). 여는 단추는 흰 알약에
+        붉은 글자였으니, 한 번 더 물은 뒤에야 무게가 오른다. 폰에서는 그만두기가 아래로 내려가
+        엄지가 먼저 닿는 자리를 위험한 누름에 내주지 않는다 — 두 단추가 같은 폭으로 쌓인다.
+      */}
+      <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
         <button
           type="button"
           onClick={() => setAsking(false)}
@@ -79,12 +85,12 @@ export function RequestDeletion() {
         >
           그만두기
         </button>
-        <button type="button" onClick={leave} disabled={working} className={SETTINGS_DANGER}>
+        <button type="button" onClick={leave} disabled={working} className={BUTTON_DANGER}>
           {working ? '보내는 중…' : '탈퇴를 신청합니다'}
         </button>
       </div>
       {failure !== null && (
-        <p role="alert" className="text-sm text-danger">
+        <p role="alert" className="w-full text-sm text-danger">
           {failure}
         </p>
       )}

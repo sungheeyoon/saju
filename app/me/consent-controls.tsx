@@ -59,7 +59,14 @@ export function ConsentControls({
         const on = now[one.key] === true;
         return (
           <SettingsRow key={one.key} label={one.label} help={one.detail} note={one.erasure}>
-            <span className="text-sm text-secondary">{on ? '현재 동의 중' : '현재 동의하지 않음'}</span>
+            {/* 지금 값은 글자로 선다 — 점의 색만으로 켜짐을 말하지 않는다 */}
+            <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-secondary">
+              <span
+                aria-hidden="true"
+                className={`size-2 rounded-full ${on ? 'bg-foreground' : 'border border-border-strong'}`}
+              />
+              {on ? '현재 동의 중' : '현재 동의하지 않음'}
+            </span>
             <button
               type="button"
               onClick={() => flip(one.key, !on)}

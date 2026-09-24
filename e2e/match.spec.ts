@@ -175,9 +175,11 @@ test.describe('동의로 열리는 흐름', () => {
     /*
       **화면이 자기가 무엇을 하는 곳인지부터 말한다.** 제목 한 줄과 세 걸음이 함께
       서지 않으면 「동의」라는 낱말만 남고, 받은 쪽은 자기가 무엇을 정하는 중인지
-      모른 채 버튼을 고른다(`CONSENT_FLOW_STEPS`).
+      모른 채 버튼을 고른다(`CONSENT_FLOW_STEPS`). 5차부터 제목은 메뉴의 이름(「소식」) 그대로이고,
+      답할 일이 무엇인지는 바로 아래 첫 절 「받은 요청」이 말한다.
     */
-    await expect(receiver.page.getByRole('heading', { name: '궁합 요청과 새 소식' })).toBeVisible();
+    await expect(receiver.page.getByRole('heading', { level: 1, name: '소식' })).toBeVisible();
+    await expect(receiver.page.getByRole('heading', { level: 2, name: '받은 요청' })).toBeVisible();
     await receiver.page.getByText('궁합 요청은 어떻게 진행되나요?').click();
     await expect(receiver.page.getByRole('listitem').filter({ hasText: '요청을 보냅니다' })).toBeVisible();
     await expect(receiver.page.getByText('보내는 것만으로 상대에게 열리는 것은 없고')).toBeVisible();
@@ -194,6 +196,8 @@ test.describe('동의로 열리는 흐름', () => {
 
     await receivedCard.getByRole('button', { name: '수락하고 궁합 열기' }).click();
     await expect(receivedCard.getByRole('button', { name: '수락하고 궁합 열기' })).toHaveCount(0);
+    // 단추가 사라진 것은 눌렀다는 뜻이지 답했다는 뜻이 아니다 — 곧바로 옮기면 가던 수락이 끊긴다
+    await acceptedRequest(receiver);
 
     // ── 양쪽이 같은 결과 화면에 선다 ────────────────────────────────────────
     for (const [person, partner] of [
