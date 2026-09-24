@@ -40,6 +40,11 @@ export const SECRET_ENV = [
   /** 접속기록 반출(S3) 의 IAM 키 둘 — 그 버킷에 `s3:PutObject` 만 할 수 있다 (G-23 ⑩, ADR 0105) */
   'AUDIT_EXPORT_ACCESS_KEY_ID',
   'AUDIT_EXPORT_SECRET_ACCESS_KEY',
+  /**
+   * Vercel 이 함수마다 주는 OIDC 토큰 — 반출이 AWS 역할을 받는 데 쓴다(`@vercel/oidc` 가 제 안에서 읽는다,
+   * `20261014090000`). 짧게 살지만 그동안은 역할의 자격이다
+   */
+  'VERCEL_OIDC_TOKEN',
 ];
 
 /** 브라우저가 본다 — 빌드 때 번들에 박힌다. 비밀을 여기 두는 순간 공개된다 */
@@ -57,12 +62,15 @@ export const CONFIG_ENV = [
   /** 접속기록 반출의 버킷 이름과 지역 — 비밀이 아니다. 넷 중 하나라도 없으면 반출은 「설정 안 됨」이다 */
   'AUDIT_EXPORT_BUCKET',
   'AUDIT_EXPORT_REGION',
+  /** 반출이 받는 AWS 역할의 ARN — 비밀이 아니다. 믿는 쪽은 AWS 의 신뢰 정책이다(Vercel OIDC 의 이 프로젝트만) */
+  'AUDIT_EXPORT_ROLE_ARN',
 ];
 
 /** 제 안에서 비밀을 읽는 패키지 — 이것을 부르는 모듈도 비밀을 읽는 모듈이다 */
 export const SECRET_READING_PACKAGES = {
   openai: ['OPENAI_API_KEY', 'OPENAI_WEBHOOK_SECRET'],
   '@ai-sdk/openai': ['OPENAI_API_KEY'],
+  '@vercel/oidc': ['VERCEL_OIDC_TOKEN'],
 };
 
 /** 이보다 짧은 값은 대조하지 않는다 — 우연히 겹치는 낱말이 걸린다. 진짜 비밀은 전부 이보다 길다 */

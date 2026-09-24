@@ -14,6 +14,9 @@
  *
  * - **목적 없이는 안 돈다.** 4~200자, `@` 가 들면(이메일) 거절한다 — 목적도 반출된다.
  * - **적지 못하면 안 보낸다.** 적는 호출이 실패하면 SQL 은 나가지 않는다.
+ * - **끝난 뒤 결과를 한 줄 더 적는다**(`audit.note_cli_result`, `20261014090000`) — 앞 줄을 고치지 않고 새 줄이 그
+ *   번호를 가리킨다. 성공/실패와 **오류 분류**(`sql` · `connection` · `unknown`)만 — 오류 문장에는 이용자 자료가
+ *   섞일 수 있어 안 적는다. 결과를 적지 못하면 경고만 한다(SQL 은 이미 나갔다).
  * - 실행자는 git 의 `user.name`, 없으면 OS 사용자다. 에이전트 세션(`CLAUDECODE` · `AI_AGENT`)이면 뒤에 `(agent)` 가
  *   붙는다 — **에이전트는 운영 개인정보를 직접 조회하지 않는다**(ADR 0105, `docs/agents/delegation.md` 등급 3).
  *
@@ -71,6 +74,34 @@ export function noteSqlOf({ actor, purpose, sha256 }) {
   return `select audit.note_cli_query(${textOf(actor)}, ${textOf(purpose)}, '${sha256}') as access_log_id`;
 }
 
+/** `db query` 의 JSON 출력에서 적은 줄의 번호를 집는다. 못 집으면 null */
+export function accessIdOf(stdout) {
+  try {
+    const parsed = JSON.parse(stdout.slice(stdout.indexOf('{')));
+    const id = Number(parsed?.rows?.[0]?.access_log_id);
+    return Number.isSafeInteger(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 실패의 분류 — 문장은 안 적는다. 분류는 DB 의 검사식 `^[a-z0-9_.:-]{1,60}$` 안에 든다 */
+export function errorClassOf({ status, signal, output }) {
+  if (status === 0) return null;
+  if (signal) return 'signal';
+  if (/failed to execute query/i.test(output)) return 'sql';
+  if (/connect|dial tcp|timeout|timed out|password|login role|network|refused/i.test(output)) return 'connection';
+  return 'unknown';
+}
+
+export function resultSqlOf({ id, errorClass }) {
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('번호 모양이 아니다');
+  if (errorClass !== null && !/^[a-z0-9_.:-]{1,60}$/.test(errorClass)) throw new Error('분류 모양이 아니다');
+  return errorClass === null
+    ? `select audit.note_cli_result(${id}, 'succeeded') as result_log_id`
+    : `select audit.note_cli_result(${id}, 'failed', '${errorClass}') as result_log_id`;
+}
+
 function gitUserName() {
   try {
     return execFileSync('git', ['config', 'user.name'], { encoding: 'utf8' }).trim() || null;
@@ -100,7 +131,21 @@ function main() {
   }
   console.error(`접속기록에 적었다 — 목적 「${parsed.purpose}」 · sha256 ${sha256.slice(0, 12)}… · ${actor}`);
 
-  const ran = supabase(parsed.sql, 'inherit');
+  const accessId = accessIdOf(noted.stdout ?? '');
+
+  // 결과를 가르려면 출력을 봐야 한다 — 받아서 그대로 다시 낸다
+  const ran = supabase(parsed.sql, ['inherit', 'pipe', 'pipe']);
+  if (ran.stdout) process.stdout.write(ran.stdout);
+  if (ran.stderr) process.stderr.write(ran.stderr);
+
+  const errorClass = errorClassOf({ status: ran.status, signal: ran.signal, output: `${ran.stdout}${ran.stderr}` });
+  if (accessId === null) {
+    console.error('경고: 적은 줄의 번호를 못 읽어 결과를 적지 않았다.');
+  } else {
+    const told = supabase(resultSqlOf({ id: accessId, errorClass }), ['ignore', 'pipe', 'pipe']);
+    if (told.status !== 0) console.error('경고: 접속기록에 결과를 적지 못했다 — SQL 은 이미 나갔다.');
+    else console.error(`접속기록에 결과를 적었다 — ${errorClass === null ? '성공' : `실패(${errorClass})`}`);
+  }
   process.exit(ran.status ?? 1);
 }
 

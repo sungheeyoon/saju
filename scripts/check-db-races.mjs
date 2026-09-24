@@ -9,8 +9,10 @@
  *      커밋을 기다리고, 기다린 뒤 두 줄을 함께 가져간다. 번호는 문장 트리거가 자물쇠를 쥔 **뒤에** 받는다
  *   2. **같은 열쇠로 동시에 연 주문은 하나다** — 뒤 세션이 `unique_violation` 대신 같은 주문을 받는다
  *   3. **거절 기록 한 시간 서른 줄은 동시에 불러도 서른이다**
+ *   4. **두 반출 실행이 나란히 시작하면 하나만 돈다** — 뒤는 「도는 중」(`20261014090000`)
  *
- * 남는 것 — 접속기록 표는 추가만 되므로 이 검사가 적은 줄(무작위 actor, 1 · 3)은 로컬 DB 에 남는다. 주문을 연
+ * 남는 것 — 접속기록 표는 추가만 되므로 이 검사가 적은 줄(무작위 actor, 1 · 3)과 반출 시도 둘(4, 「설정 없음」으로
+ * 끝낸다)은 로컬 DB 에 남는다. 주문을 연
  * 계정은 끝에 지운다. 판매 스위치는 2 동안만 켜고 `finally` 에서 끈다.
  */
 import { spawn } from 'node:child_process';
@@ -144,6 +146,29 @@ const accessRow = (actor, outcome = 'allowed') => `
   check('스물아홉에서 두 세션이 함께 불러도 서른에서 멈춘다',
     sql(`select count(*) from audit.operator_access where actor_user_id = '${stranger}'`) === '30',
     `${sql(`select count(*) from audit.operator_access where actor_user_id = '${stranger}'`)}줄`);
+}
+
+// ── 4. 두 반출 실행 ─────────────────────────────────────────────────────────────
+
+{
+  const begin = `set local role service_role;
+    select 'RUN=' || attempt_id || ':' || busy from public.audit_export_begin();`;
+  const [first, second] = await Promise.all([
+    session(0, `begin; ${begin} select pg_sleep(2); commit;`),
+    session(600, `begin; ${begin} commit;`),
+  ]);
+  const runs = [marked(first, 'RUN'), marked(second, 'RUN')];
+
+  check('두 시작 세션이 끝까지 돈다', first.code === 0 && second.code === 0, `${first.err}${second.err}`.trim());
+  check('나란히 시작한 두 반출 중 하나만 돈다 — 뒤는 「도는 중」', runs[0]?.endsWith(':false') && runs[1]?.endsWith(':true'),
+    runs.join(' · '));
+  check('뒤 시작은 앞 시작의 커밋을 기다렸다', second.ms >= 1000, `${second.ms}ms`);
+
+  // 앞 실행을 끝내 둔다 — 남은 임대가 다음 시험의 시작을 막지 않게
+  for (const run of runs) {
+    const [attempt, busy] = (run ?? '').split(':');
+    if (attempt && busy === 'false') sql(`select public.audit_export_finish(${Number(attempt)}, 'not_configured')`);
+  }
 }
 
 finish();

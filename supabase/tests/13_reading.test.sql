@@ -885,7 +885,10 @@ select is(
      * 신고 id 뿐이고 이용자 개인정보가 없다. 적는 문은 앞 반출에 이어지지 않으면 거절한다.
      */
     'audit_export_batch',
+    /** 반출 실행 하나를 여닫는 두 문 — 겹쳐 돌면 뒤는 「도는 중」, 결과는 시도마다 한 줄(`20261014090000`) */
+    'audit_export_begin',
     'audit_export_done',
+    'audit_export_finish',
     'cancel_reading_order',
     'claim_reading_job',
     'fail_reading_job',
