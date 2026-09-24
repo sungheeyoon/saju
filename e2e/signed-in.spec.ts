@@ -16,6 +16,7 @@ import { PROMPT_VARIANTS } from '@/src/lib/reading';
 import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
 
 import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
+import { expectTargets, focusedOutline } from './target';
 import type { Page } from '@playwright/test';
 
 /** 익명 파일에서 함께 옮겨 온 손잡이 — 그 시험이 쓰던 것과 같은 값이다 */
@@ -198,7 +199,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * 나와 궁합을 아직 안 봤으면 궁합 화면으로 가되 **두 칸이 찬 채로**(`a.person` · `b.person`) 간다.
    * 지도의 원을 누르면 작은 카드가 열리고, 그 카드도 같은 세 길을 든다.
    */
-  test('홈은 저장한 사람을 지도와 타일에 세우고 원을 누르면 그 사람의 길이 열린다', async ({ page, signedIn }) => {
+  test('홈은 저장한 사람을 지도와 타일에 세우고 원을 누르면 그 사람의 길이 열린다', async ({ page, signedIn }, testInfo) => {
     await page.goto('/me');
 
     const tile = page.locator('li[id^="person-"]').filter({ has: page.getByRole('link', { name: '어머니', exact: true }) });
@@ -232,6 +233,32 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(more.getByRole('link', { name: '다른 사람 사주 보기' })).toHaveAttribute('href', '/');
     await expect(more.getByRole('link', { name: '궁합 보러 가기' })).toHaveAttribute('href', '/compat');
     await expect(more.getByRole('link', { name: /매칭에서 오늘의 인연 만나기/ })).toHaveAttribute('href', '/me/matching');
+
+    /*
+      **초점 테두리는 타일이 두른 한 겹이다.** 이름 링크의 `::after` 가 타일 전체를 덮고 초점도 그
+      자리에 두른다 — 링크 자신은 `outline-none` 이다. 전역 테두리가 층 밖에 있을 때는 그것을 눌러
+      이름 글자 둘레에 한 겹이 더 섰다(2026-09-25 운영에서 잰 것). 사람 화면의 타일도 같은 모양이다.
+    */
+    for (const at of ['/me', '/me/people']) {
+      await page.goto(at);
+      const name = page.getByRole('main').getByRole('link', { name: '어머니', exact: true }).first();
+      const focused = await focusedOutline(name);
+      expect.soft(focused.own, `${at} 이름 링크`).toBe('none');
+      expect.soft(focused.after, `${at} 타일 테두리`).toBe('solid');
+    }
+
+    /* 넓은 화면의 머리글 탭 넷 — 칸이 40px 이었다 */
+    if (testInfo.project.name.includes('desktop')) {
+      const nav = page.getByRole('navigation', { name: '내 메뉴' });
+      await expectTargets(
+        Object.fromEntries(
+          ['홈', '매칭', '풀이', '채팅'].map((label) => [
+            label,
+            nav.getByRole('link', { name: new RegExp(`^${label}`) }),
+          ]),
+        ),
+      );
+    }
   });
 
   /**
@@ -1242,6 +1269,16 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     expect(cardTitles.indexOf('선택 동의')).toBeLessThan(cardTitles.indexOf('로그인 정보'));
     expect(cardTitles.indexOf('로그인 정보')).toBeLessThan(cardTitles.indexOf('탈퇴'));
     expect(cardTitles.at(-1)).toBe('탈퇴');
+
+    /* 인연 찾기의 성별 칸 셋 — 높이가 36px 이었다 */
+    await expectTargets(
+      Object.fromEntries(
+        ['남성', '여성', '상관없음'].map((label) => [
+          label,
+          account.locator('label', { has: page.getByRole('radio', { name: label, exact: true }) }),
+        ]),
+      ),
+    );
 
     /*
       **누르고 나면 판이 닫힌다.** `<details>` 는 안의 링크를 눌러도 스스로 안 닫히고,

@@ -111,9 +111,13 @@ function WeightShifts({ saju }: { saju: Saju }) {
       **접는다.** 이 칸이 답하는 것은 「왜 이 숫자냐」이고, 그것은 표를 보다가 걸렸을 때
       찾는 물음이지 표를 열자마자 하는 물음이 아니다. 접은 칸도 자리를 하나 만들지만
       (ADR 0025), 여기서는 그 자리 하나가 스무 줄보다 싸다.
+
+      **머리의 눌리는 높이는 44px 이고 자리는 전과 같다.** 글자 한 줄(20px)이던 머리를 `min-h-11`
+      로 키우고 위아래 `-my-3` 으로 그만큼을 돌려준다 — 위의 `pt-3` 과 아래 판 사이로 내밀 뿐,
+      글자와 판은 한 픽셀도 안 움직인다.
     */
     <details className="group mt-4 border-t border-border pt-3">
-      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium [&::-webkit-details-marker]:hidden">
+      <summary className="relative -my-3 flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-medium [&::-webkit-details-marker]:hidden">
         <span
           aria-hidden="true"
           className="text-xs text-muted transition-transform group-open:rotate-90"

@@ -32,12 +32,20 @@ import {
 /**
  * 카드 밑단의 조용한 누름(차단 · 신고 · 거두기 · 그만두기) — 셋째 단추의 기하에 보조 글자색.
  * 수락 · 거절보다 한 층 아래로 읽혀야 한다: 같은 무게로 서면 차단이 답처럼 보인다.
+ *
+ * **눌리는 자리는 글자보다 좌우로 8px 씩 넓다**(`after:`). 「차단」 · 「신고」는 글자 둘이라 폭이 32px 로
+ * 손가락 과녁 44px 에 못 미쳤다. 여백을 키우면 글자가 옆으로 밀리므로 모양은 두고 투명한 덮개만 내민다 —
+ * 나란히 선 둘 사이가 `gap-x-4`(16px)라 덮개 둘이 가운데서 맞닿고 겹치지 않는다.
  */
 const QUIET_LINK =
-  'inline-flex min-h-11 items-center rounded-lg px-1 text-sm font-semibold text-secondary underline decoration-border-strong decoration-2 underline-offset-[6px] hover:text-foreground hover:decoration-foreground active:opacity-70 disabled:opacity-55';
+  'relative inline-flex min-h-11 items-center rounded-lg px-1 text-sm font-semibold text-secondary underline decoration-border-strong decoration-2 underline-offset-[6px] after:absolute after:inset-y-0 after:-inset-x-2 hover:text-foreground hover:decoration-foreground active:opacity-70 disabled:opacity-55';
 
+/**
+ * 신고의 사유 · 덧붙임 칸. **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-soft`)과 한 단계 짙은
+ * 테두리뿐이라 그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
+ */
 const FIELD =
-  'min-h-11 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-border-strong focus:ring-2 focus:ring-accent-soft';
+  'min-h-11 rounded-xl border border-border bg-surface px-3 text-sm focus:border-border-strong focus:ring-2 focus:ring-accent-soft';
 
 /** 받은 요청 카드의 동의 질문 — 공개 범위 목록 대신 결정에 필요한 한 문장만 둔다. */
 export function MatchConsentQuestion() {

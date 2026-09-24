@@ -43,6 +43,10 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
           </label>
           <div className="relative w-full sm:max-w-sm">
             <Icon name="search" className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-secondary" />
+            {/*
+              **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
+              그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
+            */}
             <input
               id={inputId}
               type="search"
@@ -55,7 +59,7 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
               aria-describedby={statusId}
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
-              className="h-12 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-[15px] outline-none placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+              className="h-12 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-[15px] placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
             />
           </div>
           {/*

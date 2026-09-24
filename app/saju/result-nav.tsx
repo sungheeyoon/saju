@@ -11,6 +11,9 @@
  * 주소가 `#stars` 가 되고, 계산기는 그것을 빈 입력으로 읽어 방금 선 결과를 걷는다. 다른 하나는 5차에서 분석
  * 표가 **접혀 선다**는 것이다(`fold.tsx`) — 접힌 칸으로 옮기기만 하면 제목 한 줄에 닿고 끝난다. 그래서 누르면
  * 목적지 안의 접이칸을 열고, 주소를 건드리지 않고 스크롤만 한다. 자바스크립트가 없으면 링크가 제 일을 한다.
+ *
+ * **칸은 적어도 44px 폭이다**(`min-w-11`). 「운」은 글자 하나라 여백을 더해도 39.9px 이었다 — 손가락
+ * 과녁에 못 미친다. 글자는 칸 가운데에 선다.
  */
 const RESULT_LINKS = [
   ['chart', '여덟 글자'],
@@ -46,7 +49,7 @@ export function ResultNav() {
             <a
               href={`#${target}`}
               onClick={(event) => go(event, target)}
-              className="flex min-h-11 items-center rounded-full px-3.5 text-sm font-semibold text-secondary hover:bg-surface-sunken hover:text-foreground"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-full px-3.5 text-sm font-semibold text-secondary hover:bg-surface-sunken hover:text-foreground"
             >
               {label}
             </a>
