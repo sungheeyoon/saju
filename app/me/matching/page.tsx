@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { isBlocked } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { dbFailure } from '../../db-error';
 import { BUTTON_PRIMARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { TYPE_DISPLAY } from '../../ui/surfaces';
@@ -73,10 +74,12 @@ export default async function MatchingPage() {
   if (profile.ok && profile.value?.optedOut) return <Resting me={me} />;
 
   // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-  const { data: joined } = await supabase.rpc('ensure_discovery_participation', {
+  const { data: joined, error: joinError } = await supabase.rpc('ensure_discovery_participation', {
     p_person_id: self.personId,
     p_summary: self.summary,
   });
+  /* 부름이 터진 것은 「자격이 없다」가 아니다 — 안내를 세우면 사주가 있는 사람에게 채우라고 한다(ADR 0078) */
+  if (joinError) throw dbFailure(joinError, 'ensure_discovery_participation');
   if (joined !== true) return <Guide me={me} />;
 
   // 목록을 **먼저** 읽는다 — 그 호출이 하루 지난 스냅샷을 새로 만들 수 있다.

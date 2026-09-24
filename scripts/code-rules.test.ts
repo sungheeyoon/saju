@@ -277,22 +277,9 @@ const ERROR_SWALLOWS_STILL_THERE = [
 /**
  * `const { data } = await supabase.from(…)` — `error` 를 **꺼내지도 않는** 자리. `if (error) return null` 보다
  * 한 걸음 더 간다 — 실패가 `data: null` 이 되어 「없음」과 같은 길로 흐른다(ADR 0078).
- * 지문은 `파일 :: 꺼내는 모양 ← DB 호출` 이다. 2026-09-25 에 잰 열둘이고 줄어들기만 한다.
+ * 지문은 `파일 :: 꺼내는 모양 ← DB 호출` 이다. 2026-09-25 에 잰 열둘을 같은 날 다 고쳤다 — 예산 0 이다.
  */
-const ERRORS_NEVER_READ_STILL_THERE = [
-  "app/compat/page.tsx :: { data: edges } ← supabase.from('user_person_access')",
-  "app/me/discovery/actions.ts :: { data: existing } ← supabase.from('discovery_profile')",
-  "app/me/matching/page.tsx :: { data: joined } ← supabase.rpc('ensure_discovery_participation', …)",
-  "app/me/payload.ts :: { data: edge } ← supabase.from('user_person_access')",
-  "app/me/people/page.tsx :: { data: edges } ← supabase.from('user_person_access')",
-  "app/me/profile/page.tsx :: { data: photo } ← supabase.rpc('photo_of', …)",
-  "app/me/reading/collect.ts :: { data: adopted } ← keyed.rpc('adopt_reading_job', …)",
-  "app/me/same-chart.ts :: { data: account } ← supabase.from('app_user')",
-  "app/me/same-chart.ts :: { data: edges } ← supabase.from('user_person_access')",
-  "app/me/summary.ts :: { data: account } ← supabase.from('app_user')",
-  "app/me/summary.ts :: { data: edge } ← supabase.from('user_person_access')",
-  "proxy.ts :: { data: account } ← supabase.from('app_user')",
-];
+const ERRORS_NEVER_READ_STILL_THERE: readonly string[] = [];
 /** `.from()` 이름이 겹치는 내장 — `scripts/layers.test.ts` 의 `NOT_A_DB_OBJECT` 와 같은 목록 */
 const NOT_A_DB_OBJECT = /^(Array|Buffer|Uint8Array|Int32Array|Float64Array|Object|Promise|Set|Map|String)$/;
 
@@ -382,7 +369,7 @@ describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 �
     expectExactly(fingerprints(PRODUCT_FILES, swallows), ERROR_SWALLOWS_STILL_THERE);
   });
 
-  it('DB 결과에서 `error` 를 꺼내지 않는 자리는 옛 자리 열둘뿐이다 (ADR 0078)', () => {
+  it('DB 결과에서 `error` 를 꺼내지 않는 자리는 없다 (ADR 0078)', () => {
     // `const { data } = await …from(…)` 과 `const [{ data }] = await Promise.all([…from(…)])` 의 한 칸
     const unread = (pattern: ts.BindingName, value: ts.Expression | undefined, source: ts.SourceFile): string | null => {
       if (!ts.isObjectBindingPattern(pattern) || value === undefined || !leavesErrorBehind(pattern)) return null;

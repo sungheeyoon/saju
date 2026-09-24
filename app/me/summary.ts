@@ -1,6 +1,7 @@
 import { elementSummaryOf, type ElementSummary } from '@/src/lib/discovery/element-axes';
 
 import { supabaseOnServer } from '../auth/server-client';
+import { dbFailure } from '../db-error';
 import { storedChartOf } from '@/src/lib/input/stored';
 import { storedInputOf } from './person-input';
 
@@ -26,19 +27,25 @@ type SelfSummary = { personId: string; summary: ElementSummary };
  * **계산 오류는 안 삼킨다.** 앞서는 맨 `catch` 가 명식 계산까지 함께 감쌌고, 그래서
  * 엔진이 터져도 조용히 `null` 이 났다 — 사용자는 자기가 매칭 풀에서 빠진 줄 모르고,
  * 그 사실은 어디에도 안 남는다. 못 읽는 입력만 `null` 이고 그 밖은 던진다.
+ *
+ * **조회가 터진 것도 던진다**(ADR 0078). 계정과 엣지의 `error` 를 안 꺼내던 때는 그것이
+ * 「selfPerson 이 없다」와 같은 `null` 이 되어, 매칭 화면이 사주가 있는 사람에게 채우러 가는
+ * 길을 세웠다. 입력을 읽는 `storedInputOf` 와 같은 길이다.
  */
 export async function selfElementSummary(): Promise<SelfSummary | null> {
   const supabase = await supabaseOnServer();
 
-  const { data: account } = await supabase.from('app_user').select('self_person_id').maybeSingle();
+  const { data: account, error: accountError } = await supabase.from('app_user').select('self_person_id').maybeSingle();
+  if (accountError) throw dbFailure(accountError, 'app_user.self_person_id');
   if (!account?.self_person_id) return null;
 
   const personId = account.self_person_id;
 
-  const [person, { data: edge }] = await Promise.all([
+  const [person, { data: edge, error: edgeError }] = await Promise.all([
     storedInputOf(supabase, personId),
     supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
   ]);
+  if (edgeError) throw dbFailure(edgeError, 'user_person_access.self');
   if (person === null || !edge) return null;
 
   const stood = storedChartOf(person.input, edge.local_label);
