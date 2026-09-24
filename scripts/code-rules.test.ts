@@ -270,8 +270,8 @@ const NON_NULL_STILL_THERE = [
  */
 const ERROR_SWALLOWS_STILL_THERE = [
   'app/me/reading/pipeline.ts :: if (error) return;',
+  'app/beta-schedule.ts :: if (error) return null;',
   'app/person-slots.ts :: if (error) return null;',
-  'src/lib/consent/schedule.ts :: if (error) return null;',
 ];
 
 /**

@@ -46,16 +46,13 @@ const ALLOWED_LIB_EDGES = new Set([
  * 호출은 표시가 있어도 빨개진다 — 같은 줄의 둘째 호출도, 지운 자리의 예산을 쓰는 새 호출도.
  */
 const SCREEN_DB_CALLS_STILL_THERE = new Set([
-  "app/closed/page.tsx :: supabase.rpc(name)",
   "app/compat/page.tsx :: supabase.from('user_person_access')",
   "app/me/matching/page.tsx :: supabase.rpc('ensure_discovery_participation', …)",
   "app/me/people/page.tsx :: supabase.from('user_person_access')",
   "app/me/people/page.tsx :: supabase.rpc('my_person_slots')",
   "app/me/profile/page.tsx :: supabase.rpc('photo_of', …)",
   "app/me/readings/[subject]/page.tsx :: supabase.from('user_person_access')",
-  "app/privacy/page.tsx :: supabase.rpc(name)",
   "app/save-for-reading.tsx :: supabaseInBrowser().rpc('my_person_slots')",
-  "app/signup/page.tsx :: supabase.rpc(name)",
 ]);
 const SCREEN_EXCEPTION = 'eslint-disable-next-line no-restricted-syntax';
 /** `.from()` 이름이 겹치는 내장 — `eslint.config.mjs` 의 셀렉터와 같은 목록 */
@@ -224,6 +221,68 @@ describe('층의 방향 (ADR 0085)', () => {
     for (const node of next.keys()) visit(node, []);
   });
 });
+
+/**
+ * 생성된 `Database` 가 아는 **DB 함수의 이름** — `public.Functions` 의 키.
+ *
+ * 표 이름은 안 든다. `person` · `match` · `reading` 은 도메인의 낱말이기도 해서 문자열로
+ * 견주면 lib 이 제 말을 하는 자리마다 빨개진다. 함수 이름은 `current_beta_schedule` 처럼
+ * DB 에서만 쓰는 이름이다.
+ */
+function dbFunctionNames(): Set<string> {
+  const source = parse(join(ROOT, 'src/lib/db/database.generated.ts'));
+  const names = new Set<string>();
+  const membersOf = (node: ts.Node | undefined): readonly ts.TypeElement[] =>
+    node && ts.isTypeLiteralNode(node) ? node.members : [];
+  const named = (members: readonly ts.TypeElement[], name: string) =>
+    members.find((member): member is ts.PropertySignature => ts.isPropertySignature(member) && member.name.getText(source) === name);
+  ts.forEachChild(source, (node) => {
+    if (!ts.isTypeAliasDeclaration(node) || node.name.text !== 'Database') return;
+    const functions = named(membersOf(named(membersOf(node.type), 'public')?.type), 'Functions');
+    for (const member of membersOf(functions?.type)) {
+      if (ts.isPropertySignature(member)) names.add(member.name.getText(source));
+    }
+  });
+  return names;
+}
+
+describe('src/lib 은 DB 를 부르지 않는다 (ADR 0078·0085)', () => {
+  const functions = dbFunctionNames();
+
+  it('생성된 DB 함수 이름을 실제로 읽고 있다', () => {
+    expect(functions.size).toBeGreaterThan(50);
+    expect(functions.has('current_beta_schedule')).toBe(true);
+  });
+
+  /**
+   * 부를 문을 콜백으로 받아도 **이름을 드는 쪽이 부르는 쪽**이다 — `scheduleFrom(rpc)` 이 그렇게
+   * `current_beta_schedule` 을 들고 `if (error) return null` 을 lib 안에 두었다(2026-09-25).
+   * 호출 인자로 쓰인 문자열이 DB 함수 이름이면 빨개진다. 타입 인자(`rpcArgs<'…'>`)는 안 센다.
+   * 예외는 위의 것과 같다 — `*.live.test.ts` 는 운영 DB 를 안다(`docs/architecture.md`).
+   */
+  it('src/lib 의 호출 인자에 DB 함수 이름이 없다', () => {
+    const found = walk(join(ROOT, 'src/lib')).filter((file) => !file.endsWith('.live.test.ts')).flatMap((file) => {
+      const source = parse(file);
+      const out: string[] = [];
+      const visit = (node: ts.Node) => {
+        if (ts.isCallExpression(node)) {
+          for (const argument of node.arguments) {
+            const text = literalOf(argument);
+            if (text !== null && functions.has(text)) {
+              out.push(`${relPath(file)}:${source.getLineAndCharacterOfPosition(argument.getStart()).line + 1} ${oneCall(node, source)}`);
+            }
+          }
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(source);
+      return out;
+    });
+    expect(found).toEqual([]);
+  });
+});
+
+const oneCall = (node: ts.CallExpression, source: ts.SourceFile) => node.getText(source).replace(/\s+/g, ' ');
 
 describe('화면 안의 DB 호출 (ADR 0072·0078·0085)', () => {
   type Call = { file: string; line: number; fingerprint: string };

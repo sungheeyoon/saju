@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
+import { currentSchedule } from '../beta-schedule';
 import { Logo } from '../ui/logo';
 import { PAPER, TYPE_TITLE } from '../ui/surfaces';
-import { betaIsOver, betaOverNote, scheduleFrom } from '@/src/lib/consent';
+import { betaIsOver, betaOverNote } from '@/src/lib/consent';
 
 export const metadata = {
   title: '비공개 테스트가 끝났습니다',
@@ -32,8 +33,7 @@ const INLINE_LINK =
 
 export default async function ClosedPage() {
   const supabase = await supabaseOnServer();
-  // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-  const notice = await scheduleFrom((name) => supabase.rpc(name));
+  const notice = await currentSchedule(supabase);
 
   if (notice === null || !betaIsOver(notice.dates, new Date())) redirect('/me');
 

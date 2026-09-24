@@ -8,35 +8,28 @@ import {
   OPTIONAL_CONSENTS,
   noticeFor,
 } from './notice';
-import { scheduleFrom } from './schedule';
+import { scheduleOf } from './schedule';
 
 /**
  * 일정은 **표에서 온다.** 코드 상수였다가 옮겼다 — 상수는 바꾸려면 배포해야 하고,
  * 그건 「언제든」이 아니다. 날짜 계산(파기 기한)도 함께 DB 로 갔으므로 여기서 재는
- * 것은 **못 읽었을 때 무엇이 되는가**다.
+ * 것은 **반쪽 줄이 무엇이 되는가**다. 못 읽은 것과 없는 줄은 문이 잰다(`app/beta-schedule.test.ts`).
  */
-describe('지금 일정 읽기', () => {
-  const answering = (data: unknown, error: unknown = null) => async () => ({ data, error });
-
+describe('일정 한 줄을 안내로', () => {
   const full = {
-    ends_on: '2026-10-31',
-    purge_by: '2026-11-30',
-    purge_within_days: 30,
-    operator_name: '만세력 운영자',
-    operator_officer: '홍길동',
-    operator_contact: 'ops@example.com',
+    scheduleId: 7,
+    endsOn: '2026-10-31',
+    purgeBy: '2026-11-30',
+    purgeWithinDays: 30,
+    operatorName: '만세력 운영자',
+    operatorOfficer: '홍길동',
+    operatorContact: 'ops@example.com',
   };
 
-  /** 못 읽으면 `null` — 「모른다」를 날짜인 척 흘려보내지 않는다 */
-  it('못 읽으면 없는 것으로 답한다', async () => {
-    expect(await scheduleFrom(answering(null, new Error('끊김')))).toBeNull();
-    expect(await scheduleFrom(answering([]))).toBeNull();
-    expect(await scheduleFrom(answering(null))).toBeNull();
-  });
-
   /** 파기 기한을 **여기서 짓지 않는다** — DB 가 낸 값을 그대로 든다 */
-  it('DB 가 낸 값을 그대로 든다', async () => {
-    expect(await scheduleFrom(answering([full]))).toEqual({
+  it('DB 가 낸 값을 그대로 든다', () => {
+    expect(scheduleOf(full)).toEqual({
+      scheduleId: 7,
       dates: { endsOn: '2026-10-31', purgeBy: '2026-11-30', purgeWithinDays: 30 },
       operator: { name: '만세력 운영자', officer: '홍길동', contact: 'ops@example.com' },
     });
@@ -46,9 +39,11 @@ describe('지금 일정 읽기', () => {
    * **반쪽은 안 낸다.** 날짜만 있고 연락처가 없으면 열람·정정·삭제를 어디에 요구하는지
    * 말할 수 없다 — 그런 안내는 지키는 것이 없는 문장만 남는다.
    */
-  it('운영자가 비어 있으면 안내가 안 선다', async () => {
-    expect(await scheduleFrom(answering([{ ...full, operator_contact: null }]))).toBeNull();
-    expect(await scheduleFrom(answering([{ ...full, operator_name: null }]))).toBeNull();
+  it('운영자가 비어 있으면 안내가 안 선다', () => {
+    expect(scheduleOf({ ...full, operatorContact: null })).toBeNull();
+    expect(scheduleOf({ ...full, operatorName: null })).toBeNull();
+    expect(scheduleOf({ ...full, operatorOfficer: '  ' })).toBeNull();
+    expect(scheduleOf({ ...full, operatorOfficer: undefined })).toBeNull();
   });
 });
 

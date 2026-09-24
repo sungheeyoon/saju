@@ -82,7 +82,7 @@
 | `x!` | 12 | 좁히기(`if (x === null) return …`), 아니면 없음을 값으로 |
 | `if (error) return null` (`if (x.error)` · `if (error \|\| …)` · `{ return false; }` 도 같다) | 3 | 위 「실패를 말하는 법」 |
 | `const { data } = await ….from(…)` — `error` 를 꺼내지도 않는다(`Promise.all` 의 한 칸 포함) | 12 | `{ data, error }` 로 꺼내고 위 「실패를 말하는 법」 |
-| `eslint-disable` | 화면 DB 호출 10(층 시험이 든다) + 4 | `// eslint-disable-next-line 규칙 -- 까닭` 한 줄. 파일째 끄지 않는다. 까닭 없는 것은 하나 남았다 |
+| `eslint-disable` | 화면 DB 호출 7(층 시험이 든다) + 4 | `// eslint-disable-next-line 규칙 -- 까닭` 한 줄. 파일째 끄지 않는다. 까닭 없는 것은 하나 남았다 |
 | `any` · `@ts-ignore` | 0 · 0 | 린트가 막는다 |
 | `@ts-expect-error` | 0 | 시험이 예산 0 으로 든다 |
 | 안 걸리는 예외 표시 | 0 | `reportUnusedDisableDirectives` 가 오류로 세운다 |
