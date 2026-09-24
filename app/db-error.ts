@@ -108,9 +108,23 @@ const BY_CODE: Readonly<Record<string, string>> = {
 export function userFacingDbMessage(error: DbError, where: string, fallback?: string): string {
   if (ours(error.message)) return error.message;
 
-  console.error(where, error.code ?? '', error.message);
+  record(where, error.code ?? '', error.message);
   return fallback ?? BY_CODE[error.code ?? ''] ?? UNKNOWN_NOTE;
 }
+
+/** 못 옮긴 원문을 **서버 기록에** — 이 파일의 `console.error` 는 여기 하나다 */
+function record(where: string, code: string, message: string): void {
+  console.error(where, code, message);
+}
+
+/**
+ * 문이 던진 거절 — **`message` 가 이미 사용자에게 보일 우리말이다**(`dbFailure` 만 짓는다).
+ *
+ * 이름으로 가르는 까닭은 서버 액션이다. 액션이 던지면 운영의 Next 는 그 문장을 지우고 영어
+ * 안내로 바꿔 보낸다 — 오류 경계는 그래도 되지만 폼은 아니다. 그래서 액션은 받아서 값으로
+ * 내야 하고(`answerOfThrown`), 받은 것 중 **옮겨도 되는 것은 이것뿐이다.**
+ */
+export class DbFailure extends Error {}
 
 /**
  * 같은 번역을 **던지는 자리**에 (`throw dbFailure(error, 'my_candidates')`).
@@ -119,8 +133,27 @@ export function userFacingDbMessage(error: DbError, where: string, fallback?: st
  * 그대로 세우므로, 던지는 자리가 원문을 실으면 **영어가 화면에 선다** — 값으로 내는 자리만
  * 고치면 그 길이 그대로 남는다.
  */
-export function dbFailure(error: DbError, where: string, fallback?: string): Error {
-  return new Error(userFacingDbMessage(error, where, fallback));
+export function dbFailure(error: DbError, where: string, fallback?: string): DbFailure {
+  return new DbFailure(userFacingDbMessage(error, where, fallback));
+}
+
+/**
+ * 서버 액션이 **받은 예외를 사용자에게 보일 한 문장으로** — 던지지 않고 값으로 답하려고.
+ *
+ * 문(`sameChartInMyList` · `currentReading` 처럼 `throw dbFailure(…)` 하는 것)이 터지면 액션은
+ * `catch (thrown) { return { ok: false, message: answerOfThrown(thrown, '자리') } }` 로 낸다.
+ * `DbFailure` 는 이미 번역됐고 기록도 남았으니 그대로 옮긴다. 나머지 — 엔진 · 망 · 모르는
+ * 것 — 는 한국어가 들었어도 **옮기지 않는다**: 우리가 사용자에게 쓴 문장이라는 보증이 없다
+ * (접속값이 없다는 안내처럼 운영자에게 쓴 한국어도 있다). 기록에 남기고 `fallback` 이 선다.
+ *
+ * **Next 의 `redirect` 는 여기 들여보내지 않는다.** 그것도 던지는 것이라, 받는 `try` 는 문
+ * 하나만 감싼다 — 액션 몸통 전체를 감싸지 않는다.
+ */
+export function answerOfThrown(thrown: unknown, where: string, fallback?: string): string {
+  if (thrown instanceof DbFailure) return thrown.message;
+
+  record(where, thrown instanceof Error ? thrown.name : '', thrown instanceof Error ? thrown.message : String(thrown));
+  return fallback ?? UNKNOWN_NOTE;
 }
 
 /**

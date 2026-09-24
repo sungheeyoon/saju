@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { dbFailure, userFacingDbMessage } from './db-error';
+import { answerOfThrown, dbFailure, userFacingDbMessage } from './db-error';
 
 describe('userFacingDbMessage', () => {
   it('DB 가 우리말로 쓴 거절은 그대로 옮긴다', () => {
@@ -214,6 +214,38 @@ describe('dbFailure', () => {
 
     expect(failure.message).toBe('이 작업을 할 권한이 없습니다. 다시 로그인한 뒤 시도해 주세요.');
     expect(failure.message).not.toContain('permission denied');
+
+    logged.mockRestore();
+  });
+});
+
+/**
+ * 서버 액션이 받은 예외를 **값으로 낼 문장으로.** 액션이 던지면 운영의 Next 가 문장을 영어
+ * 안내로 바꾸므로, 액션은 받아서 이 문을 지난다(ADR 0078).
+ */
+describe('answerOfThrown', () => {
+  it('문이 지은 거절은 그대로 옮긴다 — 이미 번역됐다', () => {
+    const thrown = dbFailure({ message: '이미 보낸 요청이 있습니다.', code: 'P0001' }, 'x');
+
+    expect(answerOfThrown(thrown, 'y')).toBe('이미 보낸 요청이 있습니다.');
+  });
+
+  it('문을 안 지난 예외는 한국어가 들었어도 옮기지 않고 기록에 남긴다', () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const thrown = new Error('Supabase 접속값이 없습니다 — NEXT_PUBLIC_SUPABASE_URL 을 확인하세요');
+
+    expect(answerOfThrown(thrown, 'same_chart')).toBe('요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+    expect(answerOfThrown(thrown, 'share_my_reading', '대신 쓸 말')).toBe('대신 쓸 말');
+    expect(logged).toHaveBeenCalledWith('same_chart', 'Error', thrown.message);
+
+    logged.mockRestore();
+  });
+
+  it('Error 가 아닌 것을 던져도 문장이 선다', () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    expect(answerOfThrown('boom', 'x')).toBe('요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
 
     logged.mockRestore();
   });

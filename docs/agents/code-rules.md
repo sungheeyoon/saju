@@ -20,7 +20,7 @@
 | ADR | `NNNN-english-sentence.md`, 제목은 한국어 문장, 번호는 빈틈없이 | 85 |
 | 타입 | `type`, PascalCase. `interface` 는 안 쓴다 | 398 / 0 |
 | 값 | 정책 표·상수는 SCREAMING_CASE(`STRENGTH_POLICY` · `HOUR_UNKNOWN_LABEL`), 함수는 camelCase. Next 가 이름을 정한 것(`metadata` · `maxDuration`)만 예외 | 336 · 63 |
-| `enum` · `class` | `enum` 은 없다 — 문자열 리터럴 유니언이다. `class` 는 내장을 잇는 자리뿐(`InvalidSajuInputError extends Error`) — 상태를 가진 클래스는 없다 | 0 · 8 |
+| `enum` · `class` | `enum` 은 없다 — 문자열 리터럴 유니언이다. `class` 는 내장을 잇는 자리뿐(`InvalidSajuInputError extends Error`) — 상태를 가진 클래스는 없다 | 0 · 10 |
 | export | 이름 있는 export. `export default` 는 Next 가 요구하는 `app/` 과 루트 설정 파일에만 | src·scripts·e2e 0 |
 | 따옴표 | 홑따옴표 | import 1203 / 0 |
 
@@ -40,7 +40,10 @@
 | 문은 성공했고 자료가 없음 | `null` · `[]` · `0` | |
 
 **서버 액션은 값으로 낸다** — `{ ok: false, message: userFacingDbMessage(error, '문 이름') }`.
-폼이 그 문장을 세운다.
+폼이 그 문장을 세운다. **던지는 문을 부르면 그 부름 하나를 `try` 로 받아**
+`{ ok: false, message: answerOfThrown(thrown, '자리') }` 로 낸다 — 액션이 던지면 운영의 Next 가 문장을
+영어 안내로 바꾼다. `answerOfThrown` 은 `DbFailure`(`dbFailure` 가 지은 우리말)만 옮기고 나머지는 기록에
+보낸 뒤 일반 문장을 세운다. `app/actions.boundary.test.ts` 가 받지 않은 부름을 센다.
 
 넷 다 한 가지를 지킨다: **`error.message` 를 사용자에게 그대로 내지 않는다.** 우리가 쓴 한국어
 거절만 옮기고 나머지는 `console.error` 로 기록에 보낸다 — `app/db-error.boundary.test.ts` 가
