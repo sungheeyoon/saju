@@ -1,0 +1,50 @@
+/*
+  정보 디자인 시안의 눈금 토큰 — 색은 `globals.css` 의 토큰만 빌려 쓴다(다크 모드가 거기서 따라온다).
+  축은 흐리게, 기준선(나)은 전경색으로 진하게: 차트에서 가장 진한 선이 「나」다.
+*/
+.root {
+  --viz-axis: var(--border-strong);
+  --viz-grid: var(--track);
+  --viz-ref: var(--foreground);
+}
+
+.glyph {
+  font-family: var(--viz-serif), 'Noto Serif KR', 'Apple SD Gothic Neo', serif;
+  font-weight: 600;
+  font-feature-settings: normal;
+  letter-spacing: 0;
+}
+
+/* 비교 표의 한 줄 — 폰에서는 두 칸(이름 · 글자 · 풀이 | 차트), 넓으면 다섯 칸 */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name chart'
+    'glyphs chart'
+    'status chart'
+    'actions actions';
+  column-gap: 16px;
+  row-gap: 4px;
+  align-items: center;
+}
+.row > [data-area='name'] { grid-area: name; }
+.row > [data-area='glyphs'] { grid-area: glyphs; }
+.row > [data-area='status'] { grid-area: status; }
+.row > [data-area='chart'] { grid-area: chart; }
+.row > [data-area='actions'] { grid-area: actions; margin-top: 8px; }
+
+@media (min-width: 64rem) {
+  .row {
+    grid-template-columns: minmax(0, 8rem) 11.5rem auto minmax(0, 1fr) auto;
+    grid-template-areas: 'name glyphs chart status actions';
+    column-gap: 24px;
+  }
+  .row > [data-area='actions'] { margin-top: 0; }
+}
+
+/* 표 머리 — 폰에서는 차트 칸의 오행 이름만 남는다 */
+.hideNarrow { display: none; }
+@media (min-width: 64rem) {
+  .hideNarrow { display: block; }
+}
