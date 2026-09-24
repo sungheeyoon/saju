@@ -29,6 +29,7 @@
     "db:types": "supabase gen types typescript --local > src/lib/db/database.generated.ts",
     "db:push": "node scripts/remote-lock.mjs npx supabase db push",
     "db:remote": "node scripts/remote-lock.mjs node scripts/db-remote.mjs",
+    "audit:verify": "node scripts/audit-verify.mjs",
     "stack:slot": "node scripts/stack-slot.mjs",
     "test:flow": "node scripts/run-checks.mjs",
     "verify": "npm test && npm run typecheck && npm run lint && npm run build"
@@ -36,8 +37,10 @@
   "dependencies": {
     "@ai-sdk/openai": "^4.0.50",
     "@aws-sdk/client-s3": "^3.1138.0",
+    "@aws-sdk/credential-provider-web-identity": "^3.972.78",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
+    "@vercel/oidc": "^3.2.0",
     "ai": "^7.0.79",
     "astronomy-engine": "^2.1.19",
     "next": "16.3.6",

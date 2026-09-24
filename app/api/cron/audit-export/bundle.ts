@@ -28,11 +28,16 @@ export type AccessLine = {
   readonly purpose: string | null;
   readonly sql_sha256: string | null;
   readonly outcome: string;
+  /** CLI 결과 줄이면 그 결과가 가리키는 질의 줄의 번호 · 성공/실패 · 오류 분류(`20261014090000`) */
+  readonly result_of: number | null;
+  readonly result: string | null;
+  readonly error_class: string | null;
 };
 
 export type BundleHead = {
   readonly kind: 'saju-operator-access';
-  readonly version: 1;
+  /** 2 — CLI 결과 칸 셋이 더해졌다(`20261014090000`). 1 은 그 전의 파일이다 */
+  readonly version: 2;
   readonly rows: number;
   readonly first_id: number;
   readonly last_id: number;
@@ -76,6 +81,9 @@ const lineOf = (line: AccessLine): string =>
     purpose: line.purpose,
     sql_sha256: line.sql_sha256,
     outcome: line.outcome,
+    result_of: line.result_of,
+    result: line.result,
+    error_class: line.error_class,
   });
 
 export const sha256Hex = (text: string): string => createHash('sha256').update(text, 'utf8').digest('hex');
@@ -96,7 +104,7 @@ export function bundleOf(lines: readonly AccessLine[], afterId: number, exported
   const last = lines[lines.length - 1];
   const head: BundleHead = {
     kind: 'saju-operator-access',
-    version: 1,
+    version: 2,
     rows: lines.length,
     first_id: first.id,
     last_id: last.id,

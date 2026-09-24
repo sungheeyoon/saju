@@ -46,7 +46,10 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
    **목적**(무엇을 왜) · **실행자** · **대상**(신고 id · 계정 UUID — 이메일이 아니라) · **시각**(시작 · 끝) · **결과**(무엇을
    봤고 어디에 썼나, 밖으로 나갔으면 누구에게)
 3. **`npm run db:remote -- --purpose "break-glass: <대장의 번호>" "<sql>"`** 로 보낸다 — 대시보드가 아니라. 목적과 해시가
-   접속기록에 남아 대장과 이어진다
+   접속기록에 남아 대장과 이어진다. **대장과 접속기록은 따로 선다** — 보통 질의의 CLI 기록(목적 · SQL 해시 · 실행자 ·
+   시각 · 성공/실패)은 「무엇을 보냈나」만 들고, 대장의 다섯 칸(대상 · 사유 · 결과 · 실행자 · 시각)은 「누구 것을 왜 봤고
+   어디에 썼나」를 든다. break-glass 는 **둘 다** 있어야 한 건이다 — 접속기록만 있고 대장이 없으면 그것이 이상 신호다
+   (월 점검의 1 에서 `break-glass:` 목적의 줄을 대장과 맞춘다)
 4. 결과를 저장소 · 이슈 · 채팅에 붙이지 않는다
 
 ### 접속값은 여섯이고 넣는 손은 하나다
@@ -119,7 +122,8 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 | `OPENAI_API_KEY` | platform.openai.com → API keys. **같은 프로젝트**에 만든다 — 회수는 제출한 작업을 그 프로젝트에서 찾는다 | Vercel **Production · Preview** · 로컬(실호출) → 재배포 | 제출(`model-submit-failed`)과 **이미 떠난 작업의 회수** — 못 가져온 작업은 8분 deadline 에 닫히고, 토큰은 나갔는데 글은 없다 | 새 배포 Ready 뒤 `select count(*) from public.open_reading_jobs();` 가 0 일 때 옛 키를 끈다 |
 | `OPENAI_WEBHOOK_SECRET` | platform.openai.com → Settings → Webhooks. 서명 비밀은 만들 때 한 번만 보이므로 **같은 주소로 endpoint 를 새로 만든다** | Vercel **Production** → 재배포 | webhook 이 401 이다. **결과는 안 잃는다** — 복구기가 1분마다 줍는다(ADR 0020). 늦어질 뿐이다. 두 endpoint 가 겹쳐 같은 결과가 두 번 와도 회수는 일감을 한 번만 집는다(`claim_reading_job`) | 새 배포 Ready 뒤 옛 endpoint 를 지운다. `CRON_SECRET` 과 같은 값을 쓰지 않는다 |
 | `CRON_SECRET` = Vault `reading_recovery_secret` | 우리가 짓는다 — `openssl rand -base64 32` | **두 자리가 같은 값이다** — Vercel **Production**(Vercel Cron 이 이 값을 `Authorization: Bearer` 로 싣는다) → 재배포, 그리고 Vault `reading_recovery_secret` | 둘이 갈린 동안 1분 복구기가 403 이다 → `net-request-failed` 알림. webhook 이 살아 있으면 결과는 그대로 붙는다 | 새 배포 Ready 직후 Vault 를 바꾼다(창이 그만큼 짧다). `select status_code, created from net._http_response order by created desc limit 3;` 가 200. 두 자리를 다 바꾸면 옛 값은 끊긴 것이다 |
-| `AUDIT_EXPORT_ACCESS_KEY_ID` · `AUDIT_EXPORT_SECRET_ACCESS_KEY` | AWS IAM → 반출 사용자(`saju-audit-export`) → Security credentials → Create access key. 한 사용자에 키가 둘까지 함께 선다 | Vercel **Production** → 재배포. `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` 은 비밀이 아니다(같은 자리에 넣는다) | 그날 반출이 실패한다(500, Vercel 로그). **기록은 안 잃는다** — DB 에 남아 있고 다음 반출이 이어 올린다 | 새 배포 Ready 뒤 크론을 손으로 한 번 부르거나 다음 날 `select max(exported_at) from audit.operator_access_export` 가 오늘이면 옛 키를 Deactivate → Delete. **키가 새도 올린 객체는 못 지운다** — 권한이 `s3:PutObject` 뿐이고 Object Lock 이 잠갔다. 새 객체를 쓸 수는 있으므로 교체가 먼저다 |
+| `VERCEL_OIDC_TOKEN` | **우리가 만들지 않는다** — Vercel 이 함수 호출마다 짓고 짧게 산다(반출의 기본안, 아래 「반출」). `AUDIT_EXPORT_ROLE_ARN` 은 비밀이 아니다 | 없다 — Vercel 프로젝트 Settings → Security → OIDC Federation 이 켜져 있으면 선다 | 토큰 하나가 새도 그 수명 동안만 역할의 자격이다(`s3:PutObject` 하나) | 새면 AWS IAM 역할의 신뢰 정책에서 조건(`sub`)을 좁히거나 역할의 세션을 끊는다(IAM → Roles → Revoke active sessions). 반출은 다음 호출의 새 토큰으로 이어진다 |
+| `AUDIT_EXPORT_ACCESS_KEY_ID` · `AUDIT_EXPORT_SECRET_ACCESS_KEY` | **역할을 못 세운 날의 대안이다**(기본은 위 OIDC 역할). AWS IAM → 반출 사용자(`saju-audit-export`) → Security credentials → Create access key. 한 사용자에 키가 둘까지 함께 선다 | Vercel **Production** → 재배포. `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` 은 비밀이 아니다(같은 자리에 넣는다) | 그날 반출이 실패한다(500, Vercel 로그). **기록은 안 잃는다** — DB 에 남아 있고 다음 반출이 이어 올린다 | 새 배포 Ready 뒤 크론을 손으로 한 번 부르거나 다음 날 `select max(exported_at) from audit.operator_access_export` 가 오늘이면 옛 키를 Deactivate → Delete. **키가 새도 올린 객체는 못 지운다** — 권한이 `s3:PutObject` 뿐이고 Object Lock 이 잠갔다. 새 객체를 쓸 수는 있으므로 교체가 먼저다 |
 | Vault `reading_recovery_url` | 비밀이 아니다 — 공개 주소(`/api/cron/reading`). 도메인이 바뀔 때만 고친다 | Vault | — | — |
 | Vault `ops_alert_url` | **주소 자체가 열쇠다** — 가진 사람은 운영 채널에 글을 넣는다. Slack 앱의 Incoming Webhooks 나 Discord 채널의 연동 → 웹후크에서 새 주소를 만든다 | Vault(재배포 없음) | 알림이 채널로 안 나간다. `ops_alert` 표에는 그대로 적힌다 | 「운영자 알림 배선」의 `notify_ops('ops-alert-test', …)` 가 닿으면 옛 웹후크를 지운다 |
 | Vault `ops_alert_secret` | 넣었을 때만 있다 — 받는 쪽이 `Authorization` 을 볼 때 | Vault 와 받는 쪽을 함께 | 받는 쪽이 알림을 거절한다 | 위와 같다 |
@@ -130,7 +134,10 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 - **무료 지급 HMAC 키는 아직 코드에 없다**(G-20 이 만든다). 들어오는 PR 이 이 표에 줄을 더한다. 미리 적어 둘
   사실 하나 — **키를 바꾸면 저장된 식별값 전부와 대조가 끊긴다.** 원문(CI)을 안 남기므로 새 키로 옮길 길이
   없다(ADR 0101). 끊기면 그날 전에 떠난 사람이 다시 들어와 무료 몫을 또 받는다. 새었을 때 교체할지와 옛
-  식별값의 처분은 그 PR 이 G-25 ⑧ 과 함께 정한다.
+  식별값의 처분은 그 PR 이 G-25 ⑧ 과 함께 정한다. **CI 의 HMAC 식별값도 개인정보로 다룬다**(2026-09-24 확인) —
+  같은 사람을 다시 알아보는 값이라 키가 새면 식별값이 곧 그 사람을 가리킨다. 그래서 식별값은 서버 열쇠의 문만
+  읽고(API 역할에 닫는다), 운영자는 SQL 로 읽지 않으며(읽어야 하면 break-glass), 키는 서버 환경변수 · Vault 에만 둔다.
+  교체는 위 순서 넷을 따르되 옛 키로 지은 식별값을 새 키로 옮길 길이 없다는 것을 먼저 정한다.
 - **PG · 본인확인 키도 아직 없다** — 들어올 때 이 표에 줄을 더한다.
 
 **git 기록에 새었을 때.** 푸시된 순간 샌 것으로 본다 — 클론 · 포크 · CI 로그가 이미 들고 있다.
@@ -1520,7 +1527,7 @@ G-25 ③ 이 운영자의 개인정보처리시스템 접속기록을 **1년 이
 | 자리 | 기록 종류 — 누가 · 언제 · 무엇 | 보존 | 근거 · 확인 날짜 |
 | --- | --- | --- | --- |
 | 앱의 운영자 화면 `/ops/reports` | **DB 의 `audit.operator_access`** — 운영자 id · 시각 · 동작(목록 · 상세 · 스냅샷) · 대상 신고 id(목록이면 거른 조건) · 성공/거절. 문이 읽을 때 같은 트랜잭션에서 적고, 거절은 앱의 문이 따로 적는다 | DB 에 쌓이고 **매일 S3 로 반출, Object Lock 400일** — 아래 「반출」. AWS 가 켜지기 전에는 DB 에만 있다 | ADR 0105 · pgTAP `46_operator_access_log` |
-| `npm run db:remote` | **같은 표** — 실행자(git 이름, 에이전트면 `(agent)`) · 시각 · **목적 · SQL 의 sha256**. 원문은 안 적는다 | 위와 같다 | `scripts/db-remote.mjs` · `db-remote.test.ts` |
+| `npm run db:remote` | **같은 표** — 실행자(git 이름, 에이전트면 `(agent)`) · 시각 · **목적 · SQL 의 sha256**. 원문은 안 적는다. 끝난 뒤 **결과 줄 하나**(`cli.result` — 앞 줄의 번호 · 성공/실패 · 오류 분류 `sql` · `connection` · `unknown`, `20261014090000`)가 더해진다 | 위와 같다 | `scripts/db-remote.mjs` · `db-remote.test.ts` |
 | `/ops/survey` | 안 적는다 — 집계뿐이고 누가 썼는지와 본문이 안 실린다(ADR 0061) | — | |
 | Supabase SQL Editor · Table Editor · `db query --linked` 를 직접 부르는 것 | Postgres 로그. **`log_statement = ddl` 이라 읽기(select)는 안 남는다**, `pgaudit` 은 설치 안 됨 | **읽기 0일** · DDL 1일 | 운영에서 `current_setting('log_statement')` · `pg_extension`(2026-09-24) · 로그 보존 Free 1일 <https://supabase.com/pricing>. **그래서 여기서 개인정보를 읽지 않는다**(맨 위 「개인정보는 화면으로만」) |
 | Supabase 조직 · 프로젝트 설정(Management API 행위 포함) | Platform Audit Logs | **없음** — Team · Enterprise 만 | <https://supabase.com/docs/guides/security/platform-audit-logs>(2026-09-24) |
@@ -1534,53 +1541,122 @@ G-25 ③ 이 운영자의 개인정보처리시스템 접속기록을 **1년 이
 번 더 막는다. 소유자는 트리거를 끌 수 있다 — DB 안에서는 그 이상 못 지키고, 그래서 **밖의 사본(Object Lock)이 지워지지
 않는 기록**이다. 월 점검의 「반출이 이어지는가」가 끊긴 자리를 드러낸다.
 
-#### 반출 — 매일 S3, 켜는 값 넷
+#### 반출 — 매일 S3, 한 번에 하나, 결과는 DB 에
 
 Vercel Cron `/api/cron/audit-export`(`vercel.json`, 매일 18:37 UTC = 서울 03:37 전후 — Hobby 는 ±59분)가 지난 반출 뒤의
 줄을 번호 차례로 읽어 한 파일로 올리고, **올린 뒤에** 범위를 `audit.operator_access_export` 에 적는다. 적는 문은 앞 반출에서
-이어지지 않거나 범위 안의 행 수가 틀리면 거절한다 — 빠짐도 겹침도 없다. 방금 적힌 줄도 나간다 — 반출은 쓰기와 같은 advisory
-자물쇠를 배타로 쥔 뒤에 읽으므로(쓰기는 번호를 받기 전에 공유로 쥔다) 늦게 커밋된 낮은 번호를 건너뛰지 않는다(`20261013090000`).
+이어지지 않거나 범위 안의 행 수가 틀리면 거절한다 — 빠짐도 겹침도 없다. **같은 범위를 그대로 두 번 적으면 조용히 받는다** —
+적고 응답을 잃은 실행의 자리(`20261014090000`). 방금 적힌 줄도 나간다 — 반출은 쓰기와 같은 advisory 자물쇠를 배타로 쥔 뒤에
+읽으므로(쓰기는 번호를 받기 전에 공유로 쥔다) 늦게 커밋된 낮은 번호를 건너뛰지 않는다(`20261013090000`).
 
+- **한 번에 하나** — 실행은 시작할 때 `audit.operator_access_export_attempt` 에 한 줄을 적고 5분 임대를 건다. 임대가 살아 있는
+  실행이 있으면 뒤 실행은 **「도는 중」(`busy`)으로 적히고 아무것도 안 올린 채 200 `{"busy":true}`** 로 끝난다. 죽은 실행의
+  임대는 5분 뒤 풀린다
+- **결과는 DB 에** — 실행마다 `audit.operator_access_export_result` 에 한 줄: `succeeded` · `failed` · `not_configured` ·
+  `misconfigured` · `busy`, 끝난 시각, 행 수 · 객체 수 · 번호 범위, 실패면 **분류**(`upload:accessdenied` ·
+  `batch:57014` · `missing:region` 처럼 걸음과 이름뿐 — 오류 문장은 열쇠 · 버킷 · ARN 이 섞일 수 있어 안 적는다). 추가만 된다
+- **알림** — 실패 · 설정 오류로 끝나면 그 자리에서 `audit-export-failed`(연속 실패 수 · 분류). 매일 06:29 UTC 의 감시
+  `audit-export-watch` 가 **이틀 넘게 시도가 없으면** `audit-export-silent`(Vercel Cron 이 멈췄다), **설정이 켜졌는데 이틀 넘게
+  성공이 없으면** `audit-export-no-success`. 길은 `notify_ops`(Vault `ops_alert_url`, 하루 한 종류 한 번)다. 설정이 없는
+  동안과 시도가 한 번도 없는 동안은 조용하다
+- **상태를 본다** — 개인을 가리키는 값이 없는 보통 질의다:
+
+  ```bash
+  npm run db:remote -- --purpose "접속기록 반출 상태" "select * from audit.export_status()"
+  ```
+
+  마지막 시도 · 결과 · 분류, **마지막 성공 시각 · 연속 실패 수 · 밀린 행 수**, 7일의 시도와 실패. 운영자 화면이 서면
+  `public.operator_audit_export_status()`(운영자만, 읽으면 접속기록에 남는다)를 부른다
 - **파일** — `operator-access/<첫 줄의 서울 날짜 YYYY/MM/DD>/<첫 번호 12자리>-<마지막 번호 12자리>.jsonl`. 첫 줄이 머리
-  (`rows` · `first_id` · `last_id` · `after_id` · 본문 `sha256` · `exported_at`), 그 뒤가 한 줄에 한 행이다. 해시는 머리를 뗀
-  나머지의 sha256 이다. 올릴 때 본문 전체의 `ChecksumSHA256` 을 싣는다(Object Lock 버킷이 요구한다)
-- **담기는 것** — 운영자 id · 시각 · 채널 · 동작 · 대상 신고 id · 거른 조건 · CLI 의 목적 · 해시 · 실행자 이름 · 성공/거절.
-  **이용자 닉네임 · 메시지 본문 · 이메일은 없다** — Compliance 는 되돌릴 수 없다. git 에도 로그 원문을 넣지 않는다
-- **켜는 값** — `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` · `AUDIT_EXPORT_ACCESS_KEY_ID` · `AUDIT_EXPORT_SECRET_ACCESS_KEY`
-  (Vercel Production). 하나라도 없으면 크론은 `{"configured":false}` 로 200 을 내고 끝난다 — 알림도 실패도 없다.
+  (`version` 2 · `rows` · `first_id` · `last_id` · `after_id` · 본문 `sha256` · `exported_at`), 그 뒤가 한 줄에 한 행이다.
+  해시는 머리를 뗀 나머지의 sha256 이다. 올릴 때 본문 전체의 `ChecksumSHA256` 을 싣는다(Object Lock 버킷이 요구한다).
+  `version` 1 은 CLI 결과 칸(`result_of` · `result` · `error_class`)이 서기 전의 파일이다
+- **담기는 것** — 운영자 id · 시각 · 채널 · 동작 · 대상 신고 id · 거른 조건 · CLI 의 목적 · 해시 · 실행자 이름 · 성공/거절 ·
+  CLI 결과. **이용자 닉네임 · 메시지 본문 · 이메일은 없다** — Compliance 는 되돌릴 수 없다. 저장소에도 로그 원문을 넣지 않는다.
+  **반출 파일의 운영자 UUID · 신고 id 도 개인정보에 준해 다룬다** — 다른 표와 이으면 사람을 가리킨다. 그래서 파일을 저장소 ·
+  이슈 · 채팅에 붙이지 않고, 버킷의 읽기는 검증 역할 하나에만 연다(아래 9)
+- **켜는 값 — 셋으로 갈린다**(Vercel Production)
+
+  | 상태 | 값 | 크론 | DB 의 결과 |
+  | --- | --- | --- | --- |
+  | **꺼짐** | 다섯이 **모두** 비었다 | 200 `{"configured":false}` | `not_configured`, 알림 없음 |
+  | **켜짐 — 역할(기본안)** | `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` · `AUDIT_EXPORT_ROLE_ARN` | 올린다 | `succeeded` / `failed` |
+  | **켜짐 — 접근 키(대안)** | `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` · `AUDIT_EXPORT_ACCESS_KEY_ID` · `AUDIT_EXPORT_SECRET_ACCESS_KEY` | 올린다 | 같다 |
+  | **오설정** | 그 밖 전부 — 하나라도 넣었는데 모자라거나, 역할과 접근 키를 함께 넣었다 | 500 | `misconfigured` + 분류(`missing:region` · `conflict:credentials`), 알림 |
+
   **2026-09-24 에는 AWS 계정이 없어 꺼져 있다**
-- **실패** — 켜진 뒤의 실패는 500 이고 Vercel 로그(1시간)에만 선다. 기록은 DB 에 남아 다음 날 이어 올라간다. 월 점검이
-  마지막 반출 시각을 본다
+- **실패** — 500 이고, Vercel 로그(1시간)만이 아니라 위 결과 표 · 알림 · 상태 질의에 선다. 기록은 DB 에 남아 다음 실행이
+  이어 올린다
 
 **사람이 켜는 걸음 — AWS (한 번)**
 
 1. **계정을 연다.** 루트 사용자에 MFA 를 건다(G-23 ⑨ 목록에 AWS 가 있다). 루트로는 아래 2 ~ 4 만 하고 그 뒤로 안 쓴다
-2. **버킷을 만든다** — 서울(`ap-northeast-2`), 이름 예 `saju-audit-<무작위 몇 자>`. 만들 때 **Object Lock 을 켠다**(켜면
+2. **버킷을 만든다 — 서울 `ap-northeast-2`**, 이름 예 `saju-audit-<무작위 몇 자>`. 만들 때 **Object Lock 을 켠다**(켜면
    Versioning 이 함께 켜지고 끌 수 없다). Block Public Access 넷 다 켠다. 암호화는 기본(SSE-S3)
 3. **Governance 로 잰다.** 버킷 → Properties → Object Lock → Default retention: **Governance, 1일.** 반출을 켜고(아래 5 ·
-   6) 하루 돌려 객체가 서는지, 머리의 `sha256` 이 본문과 맞는지, 지우기가 막히는지(`DeleteObject` 에 버전 id → AccessDenied)를
+   6) 하루 돌려 객체가 서는지, 아래 9 의 검증이 초록인지, 지우기가 막히는지(`DeleteObject` 에 버전 id → AccessDenied)를
    본다. Governance 는 `s3:BypassGovernanceRetention` 권한으로 풀 수 있다 — 잘못 올린 시험 객체는 이때 지운다
-4. **Compliance 400일로 옮긴다.** Default retention: **Compliance, 400 days.** 이 뒤에 올라온 객체는 루트도 못 지우고
-   400일 전에는 못 줄인다. **Governance 동안 올라간 객체는 Governance 그대로다** — 필요하면 객체마다 보존을 Compliance 로
-   올린다(늘리기만 된다). G-25 가 2년이라 하면 만료 전에 이미 있는 객체의 보존일을 늘리고(`PutObjectRetention`) 기본값을
-   730일로 바꾼다
-5. **반출 사용자를 만든다** — IAM → Users → `saju-audit-export`, 콘솔 접근 없음. 인라인 정책은 이 버킷에 넣기 하나다:
+4. **Compliance 400일로 옮긴다 — 3 의 검증이 끝난 뒤에만.** Default retention: **Compliance, 400 days.** 이 뒤에 올라온
+   객체는 루트도 못 지우고 400일 전에는 못 줄인다. **Governance 동안 올라간 객체는 Governance 그대로다** — 필요하면 객체마다
+   보존을 Compliance 로 올린다(늘리기만 된다). G-25 가 2년이라 하면 만료 전에 이미 있는 객체의 보존일을 늘리고
+   (`PutObjectRetention`) 기본값을 730일로 바꾼다
+5. **반출 역할을 만든다 — 기본안: Vercel OIDC → IAM 역할(단기 자격).** 오래 사는 키가 어디에도 없다.
+   1. Vercel 프로젝트 Settings → Security → **OIDC Federation** 을 켠다(Team 발급자 `https://oidc.vercel.com/<팀 슬러그>`)
+   2. AWS IAM → Identity providers → OpenID Connect 로 그 발급자를 더한다. Audience 는 `https://vercel.com/<팀 슬러그>`
+   3. IAM → Roles → `saju-audit-export` 를 만든다. **신뢰 정책**은 그 발급자의 이 프로젝트 · Production 만 믿는다:
 
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       { "Effect": "Allow", "Action": "s3:PutObject", "Resource": "arn:aws:s3:::<버킷>/operator-access/*" }
-     ]
-   }
+      ```json
+      {
+        "Version": "2012-10-17",
+        "Statement": [{
+          "Effect": "Allow",
+          "Principal": { "Federated": "arn:aws:iam::<계정>:oidc-provider/oidc.vercel.com/<팀 슬러그>" },
+          "Action": "sts:AssumeRoleWithWebIdentity",
+          "Condition": {
+            "StringEquals": {
+              "oidc.vercel.com/<팀 슬러그>:aud": "https://vercel.com/<팀 슬러그>",
+              "oidc.vercel.com/<팀 슬러그>:sub": "owner:<팀 슬러그>:project:<프로젝트 이름>:environment:production"
+            }
+          }
+        }]
+      }
+      ```
+
+   4. **권한 정책은 그 버킷의 그 prefix 에 넣기 하나다:**
+
+      ```json
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          { "Effect": "Allow", "Action": "s3:PutObject", "Resource": "arn:aws:s3:::<버킷>/operator-access/*" }
+        ]
+      }
+      ```
+
+      읽기 · 지우기 · 보존 변경 권한이 없다 — 자격이 새도 올린 객체를 못 지우고 못 읽는다
+   5. 발급자 · audience · `sub` 의 정확한 모양은 켜는 날 Vercel 문서(<https://vercel.com/docs/oidc/aws>)로 다시 본다 —
+      2026-09-24 에는 계정이 없어 못 쟀다. 코드는 `@vercel/oidc` 의 토큰을 `AssumeRoleWithWebIdentity`(세션 이름
+      `saju-audit-export`)로 바꾼다(`app/api/cron/audit-export/s3.ts`)
+
+   **대안 — 접근 키.** 역할을 못 세운 날만. IAM → Users → `saju-audit-export`(콘솔 접근 없음)에 위 4 의 정책을 인라인으로
+   걸고 Access key 를 하나 만든다. 90일마다 바꾼다(「비밀이 새면」 표의 `AUDIT_EXPORT_*` 줄)
+6. **Vercel 에 넣는다** — Settings → Environment Variables → **Production**: 기본안은 `AUDIT_EXPORT_BUCKET` ·
+   `AUDIT_EXPORT_REGION`(`ap-northeast-2`) · `AUDIT_EXPORT_ROLE_ARN` 셋, 대안은 역할 대신 접근 키 둘(Sensitive). **둘을 함께
+   넣으면 오설정이다.** Deployments 의 최신 Production 을 Redeploy 하고 Ready 를 본다. 넣는 값은 문서 · 채팅 · 커밋에 적지 않는다
+7. **확인한다** — 다음 날 위 상태 질의의 `last_outcome` 이 `succeeded` 이고 `pending_rows` 가 작으며, S3 콘솔에 같은 키의
+   객체가 있고 Object Lock 이 걸려 있다
+8. **교체** — 역할은 교체할 열쇠가 없다. 접근 키면 「비밀이 새면」 표의 `AUDIT_EXPORT_*` 줄
+9. **검증 역할과 검증** — 반출의 쓰기 역할과 **따로** 읽기 역할 `saju-audit-verify` 를 둔다: `s3:GetObject` ·
+   `s3:ListBucket` 을 그 버킷의 `operator-access/*` 에만, 사람의 AWS 프로필(SSO 나 MFA 가 걸린 사용자)에서만 받는다. Vercel 에는
+   넣지 않는다. 그리고 **월 점검마다 한 번**(그리고 3 의 Governance 확인 때):
+
+   ```bash
+   AWS_PROFILE=saju-audit-verify AUDIT_VERIFY_BUCKET=<버킷> AUDIT_VERIFY_REGION=ap-northeast-2 npm run audit:verify
    ```
 
-   읽기 · 지우기 · 보존 변경 권한이 없다 — 키가 새도 올린 객체를 못 지우고 못 읽는다. Access key 를 하나 만든다
-6. **Vercel 에 넣는다** — Settings → Environment Variables → **Production** 에 넷(키 둘은 Sensitive). Deployments 의 최신
-   Production 을 Redeploy 하고 Ready 를 본다. 넣는 값은 문서 · 채팅 · 커밋에 적지 않는다
-7. **확인한다** — 다음 날 `select first_id, last_id, rows, object_key, exported_at from audit.operator_access_export order by
-   first_id desc limit 3;` 에 줄이 서고, S3 콘솔에 같은 키의 객체가 있고 Object Lock 이 걸려 있다
-8. **교체** — 「비밀이 새면」 표의 `AUDIT_EXPORT_*` 줄. 90일마다 한 번 새 키로 바꾸는 것을 권한다(월 점검의 셋째 달)
+   `scripts/audit-verify.mjs` 가 `npm run db:remote` 로 반출 기록(범위 · 행 수 · sha256 · 객체 키)을 읽고, 객체마다 내려받아
+   머리와 기록 · 본문 해시 · 줄 수 · 번호 차례 · 범위 이음을 견준다. 어긋나면 키와 어긋남의 이름만 찍고 1 로 끝난다(본문은 안
+   찍는다). `-- --since <첫 번호>` 로 그 뒤만 본다
 
 **사람이 할 걸음(그 밖).**
 
@@ -1602,7 +1678,9 @@ Vercel Cron `/api/cron/audit-export`(`vercel.json`, 매일 18:37 UTC = 서울 03
 
 ### 월 점검 — 개인정보 없이
 
-넷을 본다 — 이상 접근 · 대량 열람 · 업무시간 밖 열람 · 연속 거절. 질의는 전부 **보통 질의**다(id · 수 · 시각뿐, 이메일과
+넷을 본다 — 이상 접근 · 대량 열람 · 업무시간 밖 열람 · 연속 거절. 그리고 **반출이 이어지는가** — 「반출」의 상태 질의
+(`audit.export_status()` — 마지막 성공 · 연속 실패 · 밀린 행 수)와, AWS 가 켜진 뒤에는 검증(`npm run audit:verify`).
+CLI 질의 가운데 결과 줄(`cli.result`)이 없는 `cli.query` 는 중간에 끊긴 실행이다. 질의는 전부 **보통 질의**다(id · 수 · 시각뿐, 이메일과
 본문이 없다). `npm run db:remote -- --purpose "접속기록 월 점검 <YYYY-MM>" "<sql>"` 로 부른다. 결과는 저장소 밖 점검 기록에
 날짜 · 본 사람 · 이상 여부 · 조치를 한 줄씩 적는다.
 

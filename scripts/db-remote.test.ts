@@ -9,7 +9,7 @@ import { join, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { actorOf, noteSqlOf, parseArgs, sqlHashOf } from './db-remote.mjs';
+import { accessIdOf, actorOf, errorClassOf, noteSqlOf, parseArgs, resultSqlOf, sqlHashOf } from './db-remote.mjs';
 
 const SQL = 'select count(*) from public.report where reviewed_at is null';
 
@@ -71,5 +71,32 @@ describe('잠금 안에서 부른다', () => {
       scripts: Record<string, string>;
     };
     expect(scripts['db:remote']).toBe('node scripts/remote-lock.mjs node scripts/db-remote.mjs');
+  });
+});
+
+describe('끝난 뒤의 결과 (`20261014090000`)', () => {
+  const noted = JSON.stringify({ boundary: 'b', rows: [{ access_log_id: 42 }], warning: 'w' }, null, 2);
+
+  it('적은 줄의 번호를 db query 의 JSON 에서 집는다', () => {
+    expect(accessIdOf(`Connecting to remote database...\n${noted}`)).toBe(42);
+    expect(accessIdOf('')).toBeNull();
+    expect(accessIdOf('{"rows":[]}')).toBeNull();
+  });
+
+  it('성공은 분류가 없고, 실패는 문장이 아니라 분류만 — SQL 오류 · 접속 · 그 밖', () => {
+    expect(errorClassOf({ status: 0, signal: null, output: '' })).toBeNull();
+    expect(errorClassOf({ status: 1, signal: null,
+      output: '{"_tag":"Error","error":{"message":"failed to execute query: error: division by zero"}}' })).toBe('sql');
+    expect(errorClassOf({ status: 1, signal: null, output: 'failed to connect: dial tcp: i/o timeout' })).toBe('connection');
+    expect(errorClassOf({ status: 1, signal: null, output: '???' })).toBe('unknown');
+    expect(errorClassOf({ status: null, signal: 'SIGINT', output: '' })).toBe('signal');
+  });
+
+  it('결과를 적는 SQL 은 번호와 분류만 싣는다 — 모양이 아니면 짓지 않는다', () => {
+    expect(resultSqlOf({ id: 42, errorClass: null })).toBe("select audit.note_cli_result(42, 'succeeded') as result_log_id");
+    expect(resultSqlOf({ id: 42, errorClass: 'sql' })).toBe(
+      "select audit.note_cli_result(42, 'failed', 'sql') as result_log_id");
+    expect(() => resultSqlOf({ id: 0, errorClass: null })).toThrow();
+    expect(() => resultSqlOf({ id: 42, errorClass: "sql'); drop table x; --" })).toThrow();
   });
 });

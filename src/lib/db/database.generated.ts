@@ -1987,12 +1987,22 @@ export type Database = {
           after_id: number
           at: string
           channel: string
+          error_class: string
           filter_summary: string
           id: number
           outcome: string
           purpose: string
+          result: string
+          result_of: number
           sql_sha256: string
           target_report_id: string
+        }[]
+      }
+      audit_export_begin: {
+        Args: never
+        Returns: {
+          attempt_id: number
+          busy: boolean
         }[]
       }
       audit_export_done: {
@@ -2003,6 +2013,18 @@ export type Database = {
           p_object_key: string
           p_rows: number
           p_sha256: string
+        }
+        Returns: undefined
+      }
+      audit_export_finish: {
+        Args: {
+          p_attempt_id: number
+          p_error_class?: string
+          p_first_id?: number
+          p_last_id?: number
+          p_objects?: number
+          p_outcome: string
+          p_rows?: number
         }
         Returns: undefined
       }
@@ -2566,6 +2588,20 @@ export type Database = {
           amount: number
           order_id: string
           provider_order_id: string
+        }[]
+      }
+      operator_audit_export_status: {
+        Args: never
+        Returns: {
+          attempts_7d: number
+          consecutive_failures: number
+          failures_7d: number
+          last_attempt_at: string
+          last_error_class: string
+          last_exported_id: number
+          last_outcome: string
+          last_success_at: string
+          pending_rows: number
         }[]
       }
       operator_reading_refund_basis: {
