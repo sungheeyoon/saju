@@ -133,6 +133,7 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
     'app/me/requests/actions.ts::requestAccountDeletion': 'account-closed',
     'app/me/requests/actions.ts::markNotificationsRead': 'requests-changed',
     'app/me/survey/actions.ts::saveServiceSurvey': 'survey-submitted',
+    'app/me/warning/actions.ts::acknowledgeWarning': 'warning-acknowledged',
     'app/signup/actions.ts::completeSignup': 'signed-up',
   };
 
@@ -280,7 +281,7 @@ describe('표가 가리키는 것', () => {
    * 있어서, 한 화면만 다시 그리면 나머지가 옛 이름을 든 채로 남는다. `scope` 하나가
    * 빠지면 그 침묵이 그대로 돌아온다.
    */
-  it.each(['account-changed', 'signed-up'] as const)('%s 는 `/me` 아래를 다 데려간다', (changed) => {
+  it.each(['account-changed', 'signed-up', 'warning-acknowledged'] as const)('%s 는 `/me` 아래를 다 데려간다', (changed) => {
     expect(REFRESH_SCREENS[changed].find((screen) => screen.path === '/me')?.scope).toBe('layout');
   });
 
@@ -347,6 +348,7 @@ describe('표의 값은 계약과 글자까지 같다', () => {
     'survey-submitted': [{ path: '/me/survey' }],
     'pair-opened': [{ path: '/me/compat' }],
     'signed-up': [{ path: '/me', scope: 'layout' }],
+    'warning-acknowledged': [{ path: '/me', scope: 'layout' }],
   };
 
   it('경로도 순서도 scope 도 계약 그대로다', () => {

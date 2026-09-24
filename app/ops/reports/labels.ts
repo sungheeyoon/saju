@@ -75,6 +75,18 @@ export const reasonLabel = (reason: string): string =>
 export const NO_NICKNAME = '닉네임 없음';
 
 /**
+ * 경고의 안내 — 이용자에게 간 번호와 이용자가 확인했는가(ADR 0108). 「안내번호」는 이용자가 받은 글자(승인된 문구)와 같게
+ * 부른다 — 이의 제기 메일이 그 낱말로 온다. 나머지 셋은 운영자에게만 보이는 제목이다(ADR 0103 의 `/ops/**` 예외).
+ */
+export const WARNING_LABEL = {
+  ref: '안내번호',
+  category: '경고 갈래',
+  acknowledged: '이용자 확인',
+  notYet: '확인 전',
+  search: '찾기',
+} as const;
+
+/**
  * 근거의 시각 — **초까지, 한국 시간으로.**
  *
  * 채팅 목록의 시각(`messageTimeLabel`)은 오늘이면 시각만 적는다. 여기서는 그러면 안 된다 — 신고를

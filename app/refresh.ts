@@ -86,7 +86,9 @@ export type Changed =
   /** 두 사람으로 궁합 화면을 열었다 */
   | 'pair-opened'
   /** 가입을 끝냈다 */
-  | 'signed-up';
+  | 'signed-up'
+  /** 경고 안내를 확인했다 — 안내는 `/me` 의 레이아웃에 서므로 그 아래가 전부 따라간다(ADR 0108) */
+  | 'warning-acknowledged';
 
 /**
  * 바뀐 것 → 무를 화면.
@@ -110,6 +112,7 @@ const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'survey-submitted': [{ path: '/me/survey' }],
   'pair-opened': [{ path: '/me/compat' }],
   'signed-up': [{ path: '/me', scope: 'layout' }],
+  'warning-acknowledged': [{ path: '/me', scope: 'layout' }],
 };
 
 /** 표를 시험이 읽는다 — 적힌 경로가 실재하는 라우트인가를 거기서 잰다 */

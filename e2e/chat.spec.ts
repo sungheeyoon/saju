@@ -18,6 +18,7 @@ import {
   closedRoomText,
 } from '@/src/lib/chat';
 import { activityText } from '@/src/lib/presence';
+import { WARNING_NOTICE_TITLE, warningNoticeLines } from '@/src/lib/account';
 
 /**
  * 채팅 안전 베타의 완료 조건 여섯을 브라우저에서 밟는다(PRD §7.0) — 주고받음 · 차단 · 이용 정지 ·
@@ -417,5 +418,97 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(value('처리 상태')).toContainText('처리 필요');
     await expect(value('검토 결과')).toHaveText('추가 확인 필요');
     await expect(value('당시 제재 대상')).toHaveCount(0);
+  });
+  /**
+   * **경고는 갈래 · 날 · 이의 제기의 길 · 안내번호만 들고 경고받은 사람의 화면 맨 위에 선다**(ADR 0108, G-57). 재는 것:
+   * 로그인한 화면을 옮겨 다녀도 남는다 · 「확인했습니다」를 누르면 내려가고 다음 경고가 선다 · 이의 제기를 인정하면 사라진다 ·
+   * 신고한 사람과 이용이 정지된 계정에는 안 선다 · 운영자는 안내번호로 찾고 상세에서 확인했는가를 본다.
+   */
+  test('경고받은 사람은 확인할 때까지 안내를 보고, 운영자는 안내번호로 그 경고를 찾는다', async ({ openAs }) => {
+    const a = await openAs({ selfPerson: true });
+    const b = await openAs({ selfPerson: true });
+    const c = await openAs({ selfPerson: true });
+    const ops = await openAs({ selfPerson: true });
+    makeOperator(ops.account.email);
+    const [aId, bId, cId, opsId] = [a, b, c, ops].map((one) => userIdOf(one.account.email));
+
+    const report = (reporter: string, reported: string, reason: string): string =>
+      sql(`insert into public.report (reporter_user_id, reported_user_id, reason)
+           values ('${reporter}', '${reported}', '${reason}') returning id`);
+    const warn = (id: string, target: string, category?: string): string => {
+      sql(`select public.review_report('${id}', '${opsId}', 'warning', '판단 근거 — 이용자에게 안 간다', '${target}'
+           ${category === undefined ? '' : `, '${category}'`})`);
+      return sql(`select warning_ref from public.report where id = '${id}'`);
+    };
+    const warnedOn = (id: string): string =>
+      sql(`select to_char((reviewed_at at time zone 'Asia/Seoul')::date, 'YYYY-MM-DD') from public.report where id = '${id}'`);
+
+    const first = report(aId, bId, 'harassment');
+    const second = report(aId, bId, 'other');
+    const firstRef = warn(first, bId, 'inappropriate');
+    sql(`update public.report set reviewed_at = reviewed_at - interval '1 minute' where id = '${first}'`);
+    const secondRef = warn(second, bId);
+    expect(firstRef).toMatch(/^W-[2-9A-HJKMNP-TV-Z]{4}$/);
+
+    const notice = (person: Person) => person.page.getByRole('region', { name: WARNING_NOTICE_TITLE });
+
+    await b.page.goto('/me');
+    await expect(notice(b)).toBeVisible();
+    for (const line of warningNoticeLines({ ref: firstRef, category: 'inappropriate', warnedOn: warnedOn(first) })) {
+      await expect(notice(b).getByText(line, { exact: true })).toBeVisible();
+    }
+    // 줄은 그 넷뿐이다 — 판단 근거 · 신고한 사람 · 횟수를 싣지 않는다
+    await expect(notice(b).locator('p')).toHaveCount(4);
+    await expect(notice(b)).not.toContainText('판단 근거');
+
+    // 화면을 옮겨도 남는다 — 레이아웃에 선다
+    await b.page.goto('/me/chat');
+    await expect(notice(b)).toBeVisible();
+
+    // 신고한 사람에게는 안 선다
+    await a.page.goto('/me');
+    await expect(a.page.getByRole('main').first()).toBeVisible();
+    await expect(notice(a)).toHaveCount(0);
+
+    // 운영자는 안내번호로 찾는다 — 소문자로 쳐도
+    await ops.page.goto('/ops/reports');
+    await ops.page.getByLabel('안내번호').fill(firstRef.toLowerCase());
+    await ops.page.getByRole('button', { name: '찾기' }).click();
+    // 주소는 친 글자 그대로 싣고, 찾는 것은 표의 모양으로 고쳐서다
+    await expect(ops.page).toHaveURL(new RegExp(`/ops/reports\\?ref=${firstRef}$`, 'i'));
+    await expect(ops.page.getByLabel('안내번호')).toHaveValue(firstRef);
+    const found = ops.page.getByRole('list', { name: '신고 목록' }).getByRole('listitem');
+    await expect(found).toHaveCount(1);
+    await expect(found.getByText(`안내번호 ${firstRef}`)).toBeVisible();
+
+    const value = (title: string) => ops.page.locator(`dt:text-is("${title}") + dd`);
+    await found.getByRole('link', { name: '신고 내용 보기' }).click();
+    await expect(value('안내번호')).toHaveText(firstRef);
+    await expect(value('경고 갈래')).toHaveText('부적절한 내용');
+    await expect(value('이용자 확인')).toHaveText('확인 전');
+
+    // 확인하면 내려가고 다음 경고가 선다
+    await b.page.getByRole('button', { name: '확인했습니다' }).click();
+    await expect(notice(b)).toContainText(secondRef);
+    await expect(notice(b)).not.toContainText(firstRef);
+    expect(sql(`select warning_acknowledged_at is not null from public.report where id = '${first}'`)).toBe('t');
+
+    await ops.page.reload();
+    await expect(value('이용자 확인')).not.toHaveText('확인 전');
+
+    // 이의 제기를 인정하면(조치 없음으로 다시 적으면) 확인 전이어도 사라진다 — 안내번호로는 여전히 찾는다
+    sql(`select public.review_report('${second}', '${opsId}', 'no_action', '이의 제기 인정')`);
+    await b.page.goto('/me');
+    await expect(b.page.getByRole('main').first()).toBeVisible();
+    await expect(notice(b)).toHaveCount(0);
+    await ops.page.goto(`/ops/reports?ref=${secondRef}`);
+    await expect(ops.page.getByRole('list', { name: '신고 목록' }).getByRole('listitem')).toHaveCount(1);
+
+    // 이용이 정지된 계정에는 안 선다 — 제 상태만 본다
+    warn(report(aId, cId, 'impersonation'), cId);
+    sql(`update public.app_user set status = 'suspended' where id = '${cId}'`);
+    await c.page.goto('/me');
+    await expect(c.page.getByText('이용이 정지된 계정입니다')).toBeVisible();
+    await expect(notice(c)).toHaveCount(0);
   });
 });

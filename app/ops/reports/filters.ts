@@ -1,4 +1,4 @@
-import { REPORT_REASONS, type ReportReason } from '@/src/lib/account';
+import { REPORT_REASONS, warningRefOf, type ReportReason } from '@/src/lib/account';
 
 /**
  * 신고 목록의 **거르는 칸 셋과 쪽** — 주소가 곧 상태다.
@@ -22,11 +22,16 @@ export type ReportFilters = {
   readonly review: ReviewFilter;
   readonly reason: ReportReason | null;
   readonly evidence: EvidenceFilter;
+  /**
+   * 안내번호로 찾기 — 이의 제기 메일에 적힌 `W-7K3F` 를 이메일 없이 경고로 잇는다(ADR 0108). 모양이 맞으면 표의 모양으로
+   * 고쳐 두고, 안 맞으면 친 글자(대문자 · 앞 16자)를 그대로 보낸다 — 걸러지지 않은 목록을 세우면 운영자가 찾은 줄로 읽는다
+   */
+  readonly ref: string | null;
   /** 1 부터 센다 — 주소에 서는 수다 */
   readonly page: number;
 };
 
-export const NO_FILTERS: ReportFilters = { review: 'all', reason: null, evidence: 'all', page: 1 };
+export const NO_FILTERS: ReportFilters = { review: 'all', reason: null, evidence: 'all', ref: null, page: 1 };
 
 /**
  * 쪽의 윗끝 — 주소에 아무 수나 적어 DB 에 큰 `offset` 을 보내지 않게. 한 쪽이 30건이니
@@ -45,6 +50,12 @@ const EVIDENCES: readonly EvidenceFilter[] = ['all', 'chat', 'none'];
 const reasonOf = (value: string | undefined): ReportReason | null =>
   REPORT_REASONS.find((reason) => reason.value === value)?.value ?? null;
 
+const refOf = (value: string | undefined): string | null => {
+  const typed = value?.trim() ?? '';
+  if (typed === '') return null;
+  return warningRefOf(typed) ?? typed.toUpperCase().slice(0, 16);
+};
+
 export function filtersOf(params: SearchParams): ReportFilters {
   const review = one(params.review);
   const evidence = one(params.evidence);
@@ -53,6 +64,7 @@ export function filtersOf(params: SearchParams): ReportFilters {
     review: REVIEWS.find((known) => known === review) ?? 'all',
     reason: reasonOf(one(params.reason)),
     evidence: EVIDENCES.find((known) => known === evidence) ?? 'all',
+    ref: refOf(one(params.ref)),
     page: Number.isInteger(page) && page >= 1 && page <= LAST_PAGE ? page : 1,
   };
 }
@@ -67,6 +79,7 @@ export function hrefOf(filters: ReportFilters, change: Partial<ReportFilters>): 
   if (next.review !== 'all') query.set('review', next.review);
   if (next.reason !== null) query.set('reason', next.reason);
   if (next.evidence !== 'all') query.set('evidence', next.evidence);
+  if (next.ref !== null) query.set('ref', next.ref);
   if (next.page !== 1) query.set('page', String(next.page));
   const said = query.toString();
   return said === '' ? '/ops/reports' : `/ops/reports?${said}`;
@@ -79,11 +92,12 @@ export function argsOf(filters: ReportFilters) {
     p_reason: filters.reason,
     p_has_snapshot: filters.evidence === 'all' ? null : filters.evidence === 'chat',
     p_page: filters.page - 1,
+    p_warning_ref: filters.ref,
   };
 }
 
 export const isFiltered = (filters: ReportFilters): boolean =>
-  filters.review !== 'all' || filters.reason !== null || filters.evidence !== 'all';
+  filters.review !== 'all' || filters.reason !== null || filters.evidence !== 'all' || filters.ref !== null;
 
 /**
  * 신고 id 로 읽을 수 있는 모양인가 — **DB 에 묻기 전에** 가른다.

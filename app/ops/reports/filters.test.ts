@@ -19,7 +19,7 @@ describe('신고 목록의 주소', () => {
 
   it('주소의 칸 셋과 쪽을 읽고 같은 주소로 다시 짓는다', () => {
     const filters = filtersOf({ review: 'open', reason: 'harassment', evidence: 'chat', page: '3' });
-    expect(filters).toEqual({ review: 'open', reason: 'harassment', evidence: 'chat', page: 3 });
+    expect(filters).toEqual({ review: 'open', reason: 'harassment', evidence: 'chat', ref: null, page: 3 });
     expect(hrefOf(filters, { page: 3 })).toBe(
       '/ops/reports?review=open&reason=harassment&evidence=chat&page=3',
     );
@@ -44,17 +44,33 @@ describe('신고 목록의 주소', () => {
   });
 
   it('목록 문의 인자는 전체면 null, 쪽은 0 부터다', () => {
-    expect(argsOf(NO_FILTERS)).toEqual({ p_reviewed: null, p_reason: null, p_has_snapshot: null, p_page: 0 });
-    expect(argsOf({ review: 'done', reason: 'other', evidence: 'none', page: 2 })).toEqual({
+    expect(argsOf(NO_FILTERS)).toEqual({
+      p_reviewed: null,
+      p_reason: null,
+      p_has_snapshot: null,
+      p_page: 0,
+      p_warning_ref: null,
+    });
+    expect(argsOf({ review: 'done', reason: 'other', evidence: 'none', ref: 'W-7K3F', page: 2 })).toEqual({
       p_reviewed: true,
       p_reason: 'other',
       p_has_snapshot: false,
       p_page: 1,
+      p_warning_ref: 'W-7K3F',
     });
     expect(argsOf({ ...NO_FILTERS, review: 'open', evidence: 'chat' })).toMatchObject({
       p_reviewed: false,
       p_has_snapshot: true,
     });
+  });
+
+  it('안내번호는 친 모양을 표의 모양으로 고쳐 읽고 주소에 다시 싣는다 — 안 맞는 것은 친 글자 그대로 찾는다', () => {
+    expect(filtersOf({ ref: ' w7k3f ' }).ref).toBe('W-7K3F');
+    expect(hrefOf(filtersOf({ ref: 'w-7k3f', page: '2' }), {})).toBe('/ops/reports?ref=W-7K3F');
+    expect(filtersOf({ ref: 'w-0oil' }).ref).toBe('W-0OIL');
+    expect(filtersOf({ ref: 'x'.repeat(40) }).ref).toHaveLength(16);
+    expect(filtersOf({ ref: '   ' }).ref).toBeNull();
+    expect(isFiltered(filtersOf({ ref: 'W-7K3F' }))).toBe(true);
   });
 
   it('쪽만 옮긴 것은 거른 것이 아니다', () => {

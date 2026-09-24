@@ -800,8 +800,10 @@ UUID 면 문이 `42501` 로 거절한다. 실행한 운영자는 검토한 운�
 -- 조치 없음 · 추가 확인 필요 — 제재 대상 없이
 select public.review_report('<report-id>', '<운영자 UUID>', 'no_action', '<짧은 판단 근거>');     -- 'needs_more'
 
--- 경고 — 제재 대상(신고의 두 계정 중 하나)이 있어야 한다. 계정은 그대로다
+-- 경고 — 제재 대상(신고의 두 계정 중 하나)이 있어야 한다. 계정은 그대로다. 갈래를 안 주면 신고 사유가 갈래다(ADR 0108)
 select public.review_report('<report-id>', '<운영자 UUID>', 'warning', '<짧은 판단 근거>', '<대상 계정 UUID>');
+-- 경고의 갈래를 신고 사유와 다르게 — harassment · impersonation · inappropriate · other 중 하나
+select public.review_report('<report-id>', '<운영자 UUID>', 'warning', '<짧은 판단 근거>', '<대상 계정 UUID>', 'inappropriate');
 
 -- 이용 정지 결정 — 같은 트랜잭션에서 대상 계정이 정지된다. 따로 app_user 를 고치지 않는다
 select public.review_report('<report-id>', '<운영자 UUID>', 'suspension', '<짧은 판단 근거>', '<대상 계정 UUID>');
@@ -809,6 +811,8 @@ select public.review_report('<report-id>', '<운영자 UUID>', 'suspension', '<�
 
 대상은 보통 신고받은 계정(화면의 「신고받은 계정」 아래 회색 글자)이고, 신고한 쪽이 받는 드문 경우는 그 계정이다. 돌려주는 값은
 적은 표다 — `report`(지금 계정의 신고) · `retention`(떠난 사람의 신고). 다시 부르면 덮어쓴다(추가 확인 필요 → 결론).
+**경고의 갈래는 이용자에게 가는 말이다** — 신고한 사람이 고른 사유가 운영자가 본 위반과 다르면(제재 대상이 신고한 쪽이면 더 그렇다)
+여섯째 인자로 고른다. 경고가 아닌데 갈래를 주면 `22023`. 경고로 적히면 안내번호(`W-` 와 네 글자)가 붙고 상세 화면에 선다.
 
 틀린 모양은 거절된다 — 조치 없음 · 추가 확인 필요에 대상을 주거나, 경고 · 이용 정지 결정에 대상이 없거나, 대상이 신고의 두
 계정이 아니거나, 판단 근거가 500자를 넘으면 `23514` 다. **이용 정지 결정은 기록과 정지가 함께 되거나 함께 안 된다** — 탈퇴를
@@ -833,34 +837,64 @@ order by count(*) desc;
 자동 정지는 없다. **중대한 위반은 횟수를 안 보고 즉시** 검토한다. 결과를 `warning` 으로 적기 전에 셋을 밟는다.
 
 1. **무게를 본다.** 처리 필요를 볼 때 `harassment`(괴롭힘이나 위협) 사유를 먼저 연다(`/ops/reports?review=open` 에서 사유로
-   거른다). 무엇이 중대한가는 운영자가 판단한다 — 신고 사유에는 무게가 없다. 보기(닫힌 목록이 아니다): 신체에 대한 위해 위협 ·
-   원치 않는 성적 내용이나 성적 괴롭힘 · 금전 요구나 사기 · 다른 사람의 개인정보나 사진을 퍼뜨리는 것 · 만 19세 미만으로 보이는
-   정황. 중대하면 앞선 경고가 없어도 `suspension` 으로 가고, 까닭을 판단 근거에 적는다
-2. **대상 계정의 앞선 경고를 센다** — 두 표에서 UUID 로. 신고한 사람이 떠나 옮겨진 신고(`retention.report`)의 경고도 대상의
-   것이다. 이메일 · 닉네임 · 판단 근거 · 본문을 꺼내지 않으므로 보통 질의다(`--purpose "경고 셈 <신고 id 앞 8자>"`)
+   거른다). 무엇이 중대한가는 운영자가 판단한다 — 신고 사유에는 무게가 없다. 보기는 약관 초안 제21조(금지 행위)에 맞춘 것이다
+   (닫힌 목록이 아니다, ADR 0108 추기): 신체에 대한 위해를 알리거나 공포심 · 불안감을 반복해 일으키는 것 · 원치 않는 음란한
+   내용이나 성적 괴롭힘 · 성매매 · 성적 착취의 권유나 알선 · 금전 · 투자 권유나 다른 연락처로 옮기게 하는 사기 · 다른 사람의
+   출생 정보를 스토킹 · 신상 파악에 쓰거나 개인정보 · 사진을 퍼뜨리는 것 · 다른 사람의 명의로 본인확인을 하거나 계정을 넘기는 것 ·
+   만 19세 미만으로 보이는 정황(이용 자격, ADR 0101). 중대하면 앞선 경고가 없어도 `suspension` 으로 가고, 까닭을 판단 근거에 적는다
+2. **대상 계정의 최근 12개월 경고를 센다** — 두 표에서 UUID 로. 12개월보다 오래된 경고는 표에 남아도 셈에 안 든다(운영자 결정
+   2026-09-24). 신고한 사람이 떠나 옮겨진 신고(`retention.report`)의 경고도 대상의 것이다. 이메일 · 닉네임 · 판단 근거 · 본문을
+   꺼내지 않으므로 보통 질의다(`--purpose "경고 셈 <신고 id 앞 8자>"`)
 3. **이번이 3회째 이상이면 이용 정지 결정을 검토한다.** 같은 일을 가리키는 신고 여럿에 적은 경고는 한 번으로 본다 — 날짜와 신고
-   id 로 가른다. 검토 끝에 경고로 두는 것도 된다. 경고로 적으면 판단 근거에 「경고 N회째 — 정지 검토함」처럼 남긴다
+   id 로 가른다. 검토 끝에 경고로 두는 것도 된다. 경고로 적으면 판단 근거에 「경고 N회째 — 정지 검토함」처럼 남긴다. **횟수는
+   이용자에게 말하지 않는다** — 안내 · 이메일 · 답장 어디에도
 
 ```sql
--- 대상 계정의 앞선 경고 — 표 · 신고 id · 사유 · 경고한 때. 판단 근거는 안 꺼낸다(필요하면 화면의 상세에서)
-select '지금 계정' as 표, id as 신고, reason, reviewed_at at time zone 'Asia/Seoul' as 경고한_때
+-- 대상 계정의 최근 12개월 경고 — 표 · 신고 id · 안내번호 · 갈래 · 경고한 때 · 이용자가 확인했는가. 판단 근거는 안 꺼낸다
+select '지금 계정' as 표, id as 신고, warning_ref as 안내번호, warning_category as 갈래,
+       reviewed_at at time zone 'Asia/Seoul' as 경고한_때, warning_acknowledged_at is not null as 확인함
 from public.report
 where review_outcome = 'warning' and sanctioned_user_id = '<대상 계정 UUID>'
+  and reviewed_at > now() - interval '12 months'
 union all
-select '떠난 사람의 신고', report_id, reason, reviewed_at at time zone 'Asia/Seoul'
+select '떠난 사람의 신고', report_id, warning_ref, warning_category,
+       reviewed_at at time zone 'Asia/Seoul', warning_acknowledged_at is not null
 from retention.report
 where review_outcome = 'warning' and sanctioned_user_id = '<대상 계정 UUID>'
+  and reviewed_at > now() - interval '12 months'
 order by 경고한_때;
 ```
 
-**이용자에게 알리는 길은 아직 없다 — 미구현(G-57).** 앱 안 안내도 이메일 발송도 없고, 운영자가 이메일 주소를 SQL 로 꺼내 손으로
-보내지 않는다(이메일 열람은 break-glass 다 — 맨 위 「개인정보는 화면으로만」). 그때까지 적는 경고는 이용자에게 가지 않고, 안내가
-서는 날 안 읽은 안내로 선다. 그러므로 3회째의 검토에서는 **앞선 경고가 알려지지 않았다는 것**을 판단에 넣는다.
+**이용자에게 알리는 길 — 앱 안 안내는 섰고, 이메일은 아직이다(G-57 · G-26).** 경고를 적으면 대상 계정이 다음에 로그인한 화면의
+머리 아래에 안내가 선다 — 갈래 · 경고한 날 · 이의 제기의 길 · 안내번호뿐이고, 「확인했습니다」를 누르면 확인한 때가 남는다. 이용이
+정지된 계정 · 탈퇴 대기에는 안 서고, 신고한 사람이 떠나 옮겨진 경고도 안 선다(ADR 0108 추기). **이메일은 안 간다** — 발송 칸
+(`warning_emailed_at` · `warning_email_result`)은 G-26 의 잡을 기다리며 비어 있고, 운영자가 이메일 주소를 SQL 로 꺼내 손으로
+보내지 않는다(이메일 열람은 break-glass 다 — 맨 위 「개인정보는 화면으로만」). 3회째의 검토에서는 위 질의의 「확인함」을 보고
+**앞선 경고가 이용자에게 닿았는가**를 판단에 넣는다. 안내가 서기 전(2026-09-24 전)에 적힌 경고는 없다(그날 운영 DB 는 0줄).
 
-**이의 제기 — 고객 문의 이메일로 받는다**(G-25 ④, 첫 답 3영업일 안 · 주소는 사업자등록 뒤). 메일에는 신고 id 가 없다 — 보낸
-주소로 계정을 찾는 것은 break-glass 이므로, 답장으로 **닉네임과 경고를 받은 날**을 묻고 `/ops/reports?review=done` 에서
-그 날의 경고를 눈으로 찾아 계정 UUID 를 얻은 뒤 위 질의로 그 경고를 고른다(찾는 길을 더 줄일지는 G-57 의 열린 물음). 받아들이면 같은 문을 다시 불러 결과를 덮어쓴다 — 그 경고는 셈에서 빠진다.
-답장에도 판단 근거 · 신고한 사람 · 고른 메시지를 옮기지 않는다.
+「알렸는가」를 셀 때 — 개인을 가리키지 않는 집계다.
+
+```sql
+select count(*) filter (where warning_acknowledged_at is not null) as 확인함,
+       count(*) filter (where warning_acknowledged_at is null) as 확인_전,
+       count(*) filter (where warning_email_result = 'sent') as 이메일_보냄,
+       count(*) filter (where warning_email_result = 'failed') as 이메일_실패
+from public.report
+where review_outcome = 'warning';
+```
+
+**이의 제기 · 이용 정지의 소명 — 고객 문의 이메일로 받는다**(G-25 ④ · ㉤, 첫 답 3영업일 안 · 주소는 사업자등록 뒤). 안내와
+이메일이 **안내번호**(`W-7K3F` 꼴)를 함께 적어 달라고 말한다 — 받으면 `/ops/reports?ref=<안내번호>` 로 그 경고를 연다(소문자 ·
+앞뒤 빈칸은 괜찮다). 보낸 주소로 계정을 찾지 않는다(break-glass). 번호가 없으면 답장으로 안내번호를 묻는다. 목록에 없으면 신고한
+사람이 떠나 옮겨진 경고다 — 아래 질의로 신고 id 를 얻는다. 받아들이면 같은 문을 다시 불러 결과를 덮어쓴다 — 그 경고는 셈에서
+빠지고, 아직 확인 전이었으면 안내도 사라진다. 안내번호는 남아 나중에도 그 번호로 찾는다. 답장에도 판단 근거 · 신고한 사람 · 고른
+메시지 · 경고 횟수를 옮기지 않는다.
+
+```sql
+-- 안내번호로 떠난 사람의 신고에서 찾는다 — 신고 id 와 경고한 때만
+select report_id, review_outcome, reviewed_at at time zone 'Asia/Seoul' as 경고한_때
+from retention.report where warning_ref = upper('<안내번호>');
+```
 
 ```sql
 select public.review_report('<report-id>', '<운영자 UUID>', 'no_action', '이의 제기 인정 — <짧은 까닭>');
