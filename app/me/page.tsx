@@ -1,28 +1,37 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { supabaseOnServer } from '../auth/server-client';
-import { readAccount } from './account';
-import { unreadCount } from './requests/inbox';
-import { isoOf, solarDateOf } from '@/src/lib/input/chart';
-import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
-import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
-import { storedInputOf } from './person-input';
-import { openDiscoveryParticipation } from './discovery/participation';
-import { AccountNotice } from './account-notice';
-import { Onboarding } from './onboarding';
-import { PillarCard } from './pillar-card';
-import { EditInput } from './edit-input';
-import { ReadingTabs } from './reading-tabs';
 import { isBlocked } from '@/src/lib/account';
-import { CALENDAR_KO, GENDER_KO } from '@/src/lib/saju';
+import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
+import type { PersonSlots } from '@/src/lib/people';
+import type { Element } from '@/src/lib/saju';
+
+import { supabaseOnServer } from '../auth/server-client';
+import { elementScope } from '../element-tone';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../ui/buttons';
+import { Icon, type IconName } from '../ui/icon';
+import { BADGE, EMPTY_SLOT, TYPE_DISPLAY, TYPE_META, TYPE_SECTION } from '../ui/surfaces';
+import { readAccount } from './account';
+import { AccountNotice } from './account-notice';
+import { openDiscoveryParticipation } from './discovery/participation';
+import { myCircle } from './home/circle';
+import { compatHrefOf, mapModelOf, pairWithSelf, readingOf, selfReadingOf, type HomePerson } from './home/map/model';
+import { RelationMap } from './home/map/relation-map';
+import { PersonTile } from './home/person-tile';
+import { SelfCard } from './home/self-card';
+import { Onboarding } from './onboarding';
+import { storedInputOf, storedInputsOf } from './person-input';
+import { myReadings } from './reading/current';
+import { unreadCount } from './requests/inbox';
 
 /**
- * 로그인한 사람이 도착하는 자리.
+ * 로그인한 사람이 도착하는 자리 — **홈.**
  *
- * 저장된 판본으로 **서버에서 계산한다.** 익명 화면은 브라우저에서 계산하지만 부르는
- * 함수는 같다(`chartOf`) — 엔진이 순수 TypeScript 라 양쪽에서 그대로 돈다. 저장하기
- * 전에 본 사주와 저장한 뒤에 보는 사주가 다를 자리를 만들지 않으려는 것이다.
+ * 인사 → 관계 지도와 내 사주 → 저장한 사람 → 다른 길 셋 차례로 내려온다(2026-09-24, 부드러움 5차).
+ * 머리글에서 「사주·궁합」 · 「사람」 탭이 빠졌으므로 그 길(다른 사람 사주 · 궁합 · 사람 전체 관리)은 여기 선다.
+ *
+ * 저장된 입력으로 **서버에서 계산한다.** 익명 화면은 브라우저에서 계산하지만 부르는 함수는 같다(`chartOf`)
+ * — 저장하기 전에 본 사주와 저장한 뒤에 보는 사주가 다를 자리를 만들지 않으려는 것이다.
  */
 export default async function MePage() {
   const supabase = await supabaseOnServer();
@@ -39,40 +48,24 @@ export default async function MePage() {
     nickname: string | null;
   }>(supabase, 'status, self_person_id, nickname');
   const selfPersonId = state.kind === 'active' ? state.selfPersonId : null;
+  const nickname = account?.nickname?.trim() ?? '';
 
   return (
-    <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
-      <header className="flex flex-col gap-2 border-b border-border pb-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-bold tracking-[-0.04em]">나의 사주와 인연</h1>
-            <p className="mt-1 text-sm text-secondary">저장한 사주를 확인하고 오늘의 인연을 만나보세요.</p>
-          </div>
-        </div>
-      </header>
-
+    <main className="app-shell flex min-w-0 flex-1 flex-col gap-8 py-8 sm:gap-12 sm:py-12">
       {isBlocked(state) ? (
         <AccountNotice state={state} />
-      ) : selfPersonId === null ? (
-        <Onboarding nickname={account?.nickname ?? ''} />
       ) : (
         <>
-          <Unread />
-          <SelfChart personId={selfPersonId} />
-          <DiscoveryDoor />
-          <Link
-            href="/me/matching"
-            className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-accent-wash px-5 py-4 text-sm text-accent"
-          >
-            <span>
-              <strong className="block font-semibold">매칭에서 오늘의 인연 만나기</strong>
-              <span className="mt-1 block text-xs text-secondary">
-                예측 궁합과 보완하는 기운으로, 나의 귀인을 찾아보세요.
-              </span>
-            </span>
-            <span aria-hidden="true">→</span>
-          </Link>
-
+          <Greeting name={nickname} />
+          {selfPersonId === null ? (
+            <Onboarding nickname={account?.nickname ?? ''} />
+          ) : (
+            <>
+              <Unread />
+              <Home selfPersonId={selfPersonId} />
+              <DiscoveryDoor />
+            </>
+          )}
         </>
       )}
     </main>
@@ -82,148 +75,248 @@ export default async function MePage() {
 /**
  * 참여를 여는 문 — **아무것도 안 그린다.**
  *
- * 후보 탐색은 매칭에서만 하고, 참여를 여는 일은 홈에도 남는다(ADR 0070·0076). 앞서는
- * 후보 목록을 그리던 컴포넌트가 이 일을 겸했다.
+ * 후보 탐색은 매칭에서만 하고, 참여를 여는 일은 홈에도 남는다(ADR 0070·0076).
  *
- * **형제로 둔다.** 페이지 본문에서 `await` 하면 이 왕복이 끝날 때까지 `Unread` 도
- * `SelfChart` 도 시작을 못 한다 — 앞서는 셋이 겹쳐 돌았다. 아무것도 안 그리는 것과
- * 아무 때나 돌아도 되는 것은 다르다.
+ * **형제로 둔다.** 페이지 본문에서 `await` 하면 이 왕복이 끝날 때까지 `Unread` 도 `Home` 도 시작을 못
+ * 한다. 아무것도 안 그리는 것과 아무 때나 돌아도 되는 것은 다르다.
  */
 async function DiscoveryDoor() {
   await openDiscoveryParticipation();
   return null;
 }
 
-async function SelfChart({ personId }: { personId: string }) {
+/** 인사 한 줄 — 이 화면에서 가장 먼저 읽히는 글자. 날짜는 한국 시각이다(서버의 시계는 UTC 다) */
+function Greeting({ name }: { name: string }) {
+  const today = new Date().toLocaleDateString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+    timeZone: 'Asia/Seoul',
+  });
+  return (
+    <header className="flex flex-col gap-1">
+      <p className={TYPE_META}>{today}</p>
+      <h1 className={TYPE_DISPLAY}>{name === '' ? '반가워요' : `${name}님, 오늘도 반가워요`}</h1>
+    </header>
+  );
+}
+
+/**
+ * 홈의 본체 — 내 사주 · 저장한 사람 · 만든 풀이를 **한 번에** 읽는다.
+ *
+ * 옛 홈은 내 사주 하나만 읽었다. 관계 지도와 사람 타일이 들어오며 읽을 것이 셋 늘었다(엣지 · 자리 수 ·
+ * 풀이 목록) — 넷을 한 `Promise.all` 로 겹쳐 돌리고, 사람들의 입력만 엣지를 알아야 하므로 뒤에 한 번 더
+ * 묶어 읽는다. 왕복은 둘이다.
+ */
+async function Home({ selfPersonId }: { selfPersonId: string }) {
   const supabase = await supabaseOnServer();
 
-  const [person, { data: edge }] = await Promise.all([
-    storedInputOf(supabase, personId),
-    // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-    supabase.from('user_person_access').select('local_label').eq('person_id', personId).maybeSingle(),
+  const [circle, self, readings] = await Promise.all([
+    myCircle(supabase, selfPersonId),
+    storedInputOf(supabase, selfPersonId),
+    myReadings(),
   ]);
+  const inputs = await storedInputsOf(
+    supabase,
+    circle.people.map((person) => person.personId),
+  );
 
-  if (person === null || !edge) {
-    return <p className="text-sm text-muted">저장된 사주를 읽지 못했습니다.</p>;
-  }
+  const people: HomePerson[] = circle.people.map((edge) => {
+    const stored = inputs.get(edge.personId);
+    /* 입력이 없는 사람 — 읽을 것이 없다는 말과 못 읽는다는 말을 여기서 합친다(저장한 사람 화면과 같다) */
+    const stood =
+      stored === undefined
+        ? ({ ok: false, message: '저장된 출생 정보를 읽지 못했습니다.' } as const)
+        : storedChartOf(stored, edge.label);
+    return {
+      personId: edge.personId,
+      label: edge.label,
+      note: edge.note,
+      chart: stood.ok ? { ok: true, saju: stood.saju } : { ok: false, message: stood.message },
+    };
+  });
 
   /**
-   * **현재 입력 하나만 읽는다**(ADR 0011·0071).
-   *
-   * 전에는 이 자리가 판본을 전부 가져와 이력을 그렸다. 그것이 「고친 기록은 쌓입니다」의
-   * 증거라고 여겼는데, 판본을 남기는 이유는 이력을 보여주기 위해서가 아니라 이미
-   * 동의하고 이미 본 결과의 근거를 지키기 위해서다. 목록을 세워 두면 정리되는 입력이
-   * 화면에서 하나씩 사라지고, 그때 화면은 자기가 한 약속을 어긴 것처럼 보인다.
-   *
-   * **못 읽는 입력은 메우지 않는다.** 모르는 출생지를 서울로 치면 저장할 때 본 사주와
-   * 다른 사주가 이 화면에 나온다. 값은 남아 있고 읽는 쪽이 못 읽는 것이므로 그렇게
-   * 말하고 멈춘다. 계산 오류는 여기 안 온다 — 세우는 문이 그대로 던지고, 그것은
-   * 사용자가 할 수 있는 것이 없는 오류다.
+   * **못 읽는 입력은 메우지 않는다.** 모르는 출생지를 서울로 치면 저장할 때 본 사주와 다른 사주가 이
+   * 화면에 나온다. 값은 남아 있고 읽는 쪽이 못 읽는 것이므로 그렇게 말하고 멈춘다 — 사람들은 그대로 선다.
    */
-  const stood = storedChartOf(person.input, edge.local_label);
-  if (!stood.ok) {
-    return (
-      <section className="flex flex-col gap-2 rounded-[1.75rem] border border-border bg-surface p-5 sm:p-6">
-        <p className="text-sm">{stood.message}</p>
-        <p className="text-xs text-muted">{UNREADABLE_INPUT_NOTE}</p>
-      </section>
-    );
-  }
-
-  const { query, saju } = stood;
+  const stood = self !== null && circle.self !== null ? storedChartOf(self.input, circle.self.label) : null;
 
   return (
-    <section className="flex min-w-0 flex-col gap-6">
-      <ReadingTabs
-        current="chart"
-        chartHref="/me"
-        readingHref="/me/readings/self"
-        label="내 사주"
-      />
-      <PillarCard
-        label={edge.local_label}
-        saju={saju}
-        /* 고치는 손잡이는 카드 모서리에 뜬다 — 저장한 사람 카드의 관리 메뉴와 같은 자리다 */
-        corner={
-          <EditInput
-            personId={personId}
-            current={query}
-            variant="corner"
-            editableName={false}
-            confirmsRequests
+    <>
+      {stood === null ? (
+        <p className="text-sm text-muted">저장된 사주를 읽지 못했습니다.</p>
+      ) : !stood.ok ? (
+        <section className="flex flex-col gap-2 rounded-[2rem] border border-border bg-surface p-5 sm:p-6">
+          <p className="text-sm">{stood.message}</p>
+          <p className="text-[13px] text-muted">{UNREADABLE_INPUT_NOTE}</p>
+        </section>
+      ) : (
+        /*
+          넓은 화면에서 지도(5)와 내 카드(7)가 한 줄에 서고 **같은 높이로 늘어난다**(`items-stretch`) — 두
+          카드가 저마다 단추 · 범례 띠를 바닥에 붙여 아랫선까지 맞는다.
+        */
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-stretch lg:gap-6">
+          <RelationMap
+            model={mapModelOf({ self: { personId: selfPersonId, label: stood.query.name, saju: stood.saju }, people, readings })}
+            addHref="/me/people"
+            canAdd={circle.slots === null || circle.slots.remaining > 0}
           />
-        }
-        details={
-          <section className="mt-5 rounded-2xl border border-border bg-surface-soft/60 px-4 py-3">
-            <h3 className="text-xs font-semibold tracking-[0.08em] text-muted">저장된 출생 정보</h3>
-            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-5 gap-y-1.5 text-sm">
-              <dt className="text-muted">생년월일</dt>
-              {/*
-                음력으로 넣었으면 **적은 그대로와 바뀐 양력을 함께** 보여준다. 양력만
-                보이면 사용자가 자기 입력을 못 알아보고, 원본만 보이면 우리가 무엇으로
-                계산했는지 모른다(ADR 0002).
-              */}
-              <dd>
-                {query.calendar === 'solar'
-                  ? query.date
-                  : `${CALENDAR_KO[query.calendar]} ${query.date} · 양력 ${isoOf(solarDateOf(query))}`}
-                {query.hourKnown === false ? ` · ${HOUR_UNKNOWN_LABEL}` : ` ${query.time}`}
-              </dd>
-              <dt className="text-muted">성별</dt>
-              <dd>{GENDER_KO[query.gender]}</dd>
-              <dt className="text-muted">출생지</dt>
-              <dd>{query.city}</dd>
-              <dt className="text-muted">자시 규칙</dt>
-              <dd>{query.rule === 'jo' ? '조자시 (23:00 경계)' : '야자시 (자정 경계)'}</dd>
-            </dl>
-          </section>
-        }
-        footer={
-          /*
-            사주 상세는 저장한 사람의 `사주` 탭과 같은 화면이 그린다. 내 입력을
-            공개 계산 화면의 「모르는 사람」으로 다시 만들지 않고, 이미 저장된 Person 을
-            그대로 연다.
+          <SelfCard
+            personId={selfPersonId}
+            label={stood.query.name}
+            query={stood.query}
+            saju={stood.saju}
+            reading={selfReadingOf(readings)}
+          />
+        </div>
+      )}
 
-            **이 화면에 남은 유일한 길이다.** 사람·궁합·인연 찾기·소식으로 가는 목록이
-            여기 따로 서 있었는데, 그 넷은 이미 머리글의 메뉴가 든다 — 같은 길을 두 자리에
-            세우면 하나를 고칠 때 다른 하나가 낡는다. 이 링크만 남는 것은 저쪽이 **이
-            사주의 이어 보기**라서다. 메뉴에는 그런 자리가 없다.
-
-            떠 있던 버튼을 카드 아래 띠로 들인다 — 저장한 사람 카드가 그 자리에 풀이를
-            들고 서는 것과 같은 층이다.
-          */
-          <div className="flex flex-col gap-3 rounded-b-[1.75rem] border-t border-border bg-surface-soft/70 px-5 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
-            <div className="min-w-0 flex-1">
-              <p className="eyebrow">사주 상세</p>
-              <p className="mt-0.5 text-sm text-secondary">
-                지장간 · 공망 · 신살과 운의 흐름까지 이어서 봅니다.
-              </p>
-            </div>
-            <Link
-              href={`/me/people/${personId}`}
-              className="inline-flex min-h-10 shrink-0 items-center gap-2 self-start rounded-full border border-border-strong bg-surface px-4 py-2 text-sm font-semibold hover:border-accent hover:text-accent sm:self-auto"
-            >
-              사주 자세히 보기 <span aria-hidden="true">→</span>
-            </Link>
-          </div>
-        }
+      <SavedPeople
+        people={people}
+        slots={circle.slots}
+        tileOf={(person) => {
+          const pair = pairWithSelf(readings, selfPersonId, person.personId);
+          return {
+            reading: readingOf(readings, person.personId),
+            compat: { href: compatHrefOf(pair, selfPersonId, person.personId), score: pair?.score ?? null },
+          };
+        }}
       />
 
+      <MoreWays />
+    </>
+  );
+}
+
+/**
+ * 저장한 사람 — 사람마다 제 일간 색의 타일 한 장. 폰 2열 · 태블릿 3열 · 넓은 화면 4열.
+ *
+ * 몇 자리를 썼는지는 **DB 가 센다**(`my_person_slots`) — 못 읽었으면 수를 안 세운다. 빼기를 화면이 하면
+ * 내 사주를 잊는 자리가 생긴다.
+ */
+function SavedPeople({
+  people,
+  slots,
+  tileOf,
+}: {
+  people: readonly HomePerson[];
+  slots: PersonSlots | null;
+  tileOf: (person: HomePerson) => Omit<Parameters<typeof PersonTile>[0], 'person'>;
+}) {
+  const full = slots !== null && slots.remaining <= 0;
+
+  return (
+    <section aria-labelledby="home-people" className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+        <h2 id="home-people" className={`${TYPE_SECTION} flex items-baseline gap-2`}>
+          저장한 사람
+          {slots !== null && (
+            <span className="font-sans text-[13px] font-semibold tabular-nums text-secondary">
+              {slots.used}/{slots.limit}명
+            </span>
+          )}
+        </h2>
+        {people.length > 0 && (
+          <Link href="/me/people" className={BUTTON_TERTIARY}>
+            전체 관리
+            <Icon name="arrow" className="size-4" />
+          </Link>
+        )}
+      </div>
+
+      {people.length === 0 ? (
+        <div className={`${EMPTY_SLOT} flex flex-col items-start gap-4`}>
+          <p className="text-[15px] leading-6 text-secondary">가족이나 친구의 출생 정보를 저장하고 관리하세요.</p>
+          <Link href="/me/people" className={BUTTON_PRIMARY}>
+            <Icon name="plus" className="size-[18px]" />
+            사람 추가
+          </Link>
+        </div>
+      ) : (
+        <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+          {people.map((person) => (
+            <PersonTile key={person.personId} person={person} {...tileOf(person)} />
+          ))}
+          {!full && <AddTile slots={slots} />}
+        </ul>
+      )}
+      {slots !== null && full && <p className="text-[13px] text-secondary">등록할 수 있는 {slots.limit}명을 다 채웠습니다.</p>}
     </section>
+  );
+}
+
+/** 목록 끝의 빈 타일 — 다른 타일과 같은 크기라 「한 자리 더」로 읽힌다 */
+function AddTile({ slots }: { slots: PersonSlots | null }) {
+  return (
+    <li>
+      <Link
+        href="/me/people"
+        className="flex h-full min-h-44 flex-col items-center justify-center gap-2 rounded-[1.5rem] border-2 border-dashed border-border-strong p-4 text-center text-foreground hover:bg-surface active:scale-[0.98]"
+      >
+        <span className="grid size-12 place-items-center rounded-full bg-accent text-on-accent">
+          <Icon name="plus" />
+        </span>
+        <span className="text-[15px] font-semibold">사람 추가</span>
+        {slots !== null && (
+          <span className="text-[13px] tabular-nums text-secondary">
+            {slots.used}/{slots.limit}명
+          </span>
+        )}
+      </Link>
+    </li>
+  );
+}
+
+/**
+ * 홈에서 떠나는 길 셋 — 머리글의 탭에서 빠진 「사주·궁합」의 두 길과 매칭.
+ *
+ * 매칭은 머리글의 탭에도 있지만 홈의 이 줄이 **무엇을 하는 곳인가**를 한 줄로 말한다 — 탭 이름만으로는
+ * 처음 온 사람이 「매칭」에서 무엇을 하는지 모른다.
+ */
+const MORE_WAYS: readonly { href: string; label: string; note?: string; icon: IconName; element: Element }[] = [
+  {
+    href: '/me/matching',
+    label: '매칭에서 오늘의 인연 만나기',
+    note: '예측 궁합과 보완하는 기운으로, 나의 귀인을 찾아보세요.',
+    icon: 'people',
+    element: '木',
+  },
+  { href: '/', label: '다른 사람 사주 보기', icon: 'search', element: '水' },
+  { href: '/compat', label: '궁합 보러 가기', icon: 'heart', element: '火' },
+];
+
+function MoreWays() {
+  return (
+    <nav aria-label="더 해 보기" className="grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+      {MORE_WAYS.map((way) => (
+        <Link
+          key={way.href}
+          href={way.href}
+          className={`${elementScope(way.element)} group flex min-h-16 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-foreground hover:border-[color-mix(in_srgb,var(--ink)_40%,transparent)] active:scale-[0.98] ${
+            way.note === undefined ? '' : 'sm:col-span-2 lg:col-span-1'
+          }`}
+        >
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] text-[var(--ink)]">
+            <Icon name={way.icon} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold">{way.label}</span>
+            {way.note !== undefined && <span className="mt-0.5 block text-[13px] leading-5 text-secondary">{way.note}</span>}
+          </span>
+          <Icon name="arrow" className="size-4 shrink-0 text-secondary transition group-hover:translate-x-0.5" />
+        </Link>
+      ))}
+    </nav>
   );
 }
 
 /**
  * 안 읽은 알림 — **있을 때만 선다.**
  *
- * 알림은 앱 안에서만 온다(용어집). 그러니 들어왔을 때 **여기서** 눈에 띄어야 한다 —
- * 요청 화면까지 들어가야 알 수 있으면 앱 내 알림은 아무에게도 닿지 않는다. 로그인한
- * 사람이 도착하는 자리가 이 화면이라 더 그렇다.
- *
- * 전에는 옆의 빠른 메뉴 안에 「새 소식 →」 한 줄로 늘 서 있었다. 그 목록을 걷어 내면서
- * 배지까지 같이 사라질 뻔했다 — **목록에서 숨긴 것을 배지에서도 숨기면** 알림이 닿는
- * 길이 없어진다. 그래서 길은 메뉴에 두고, **띠는 알림이 실제로 있을 때만** 세운다.
- * 늘 서 있는 줄은 곧 안 읽히고, 그때 정작 무언가 왔을 때도 안 읽힌다.
+ * 알림은 앱 안에서만 온다(용어집). 그러니 들어왔을 때 **여기서** 눈에 띄어야 한다 — 로그인한 사람이
+ * 도착하는 자리가 이 화면이라 더 그렇다. 길은 머리글의 종에 늘 있고, **띠는 알림이 실제로 있을 때만**
+ * 세운다. 늘 서 있는 줄은 곧 안 읽히고, 그때 정작 무언가 왔을 때도 안 읽힌다.
  *
  * 목록 전체를 읽지 않고 개수만 묻는다. 이 화면은 알림의 내용을 그리지 않는다.
  */
@@ -235,21 +328,21 @@ async function Unread() {
   return (
     <Link
       href="/me/requests"
-      className="flex items-center justify-between gap-3 rounded-2xl border border-accent bg-accent-wash px-4 py-3 text-sm font-semibold text-accent-strong hover:border-accent-strong"
+      className="-mt-4 flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.99] sm:-mt-6"
     >
-      <span>아직 확인하지 않은 새 소식이 있습니다.</span>
-      <span className="flex shrink-0 items-center gap-2">
-        {/*
-          수만 그리면 화면 밖에서는 **아무 뜻이 없다.** 「1」을 읽어 주는 것으로는 그것이
-          무엇의 1인지 알 수 없어서, 보이지 않는 말을 붙여 배지가 스스로 무엇인지 말하게
-          한다. 밖에서 이 배지를 재는 검사도 같은 말을 짚는다(`scripts/check-match.mjs`).
-        */}
-        <span className="grid size-5 place-items-center rounded-full bg-fire text-[10px] font-bold text-white">
-          {unread.value}
-          <span className="sr-only">건 안 읽음</span>
-        </span>
-        <span aria-hidden="true">→</span>
+      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-fire-soft text-fire">
+        <Icon name="bell" className="size-[18px]" />
       </span>
+      <span className="min-w-0 flex-1">아직 확인하지 않은 새 소식이 있습니다.</span>
+      {/*
+        수만 그리면 화면 밖에서는 **아무 뜻이 없다.** 보이지 않는 말을 붙여 배지가 스스로 무엇인지 말하게
+        한다. 밖에서 이 배지를 재는 검사도 같은 말을 짚는다(`scripts/check-match.mjs`).
+      */}
+      <span className={BADGE}>
+        {unread.value}
+        <span className="sr-only">건 안 읽음</span>
+      </span>
+      <Icon name="arrow" className="size-4 shrink-0 text-secondary" />
     </Link>
   );
 }
