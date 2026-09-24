@@ -2,7 +2,7 @@
  * **선 아이콘 한 벌** — `currentColor` 하나로 서서 다크 화면에서 글자색을 따라간다.
  *
  * 이모지를 안 쓴다. 이모지는 기기마다 그림이 다르고 색을 못 바꾼다. 머리글 · 하단 독 · 화면 단추가 같은
- * 그림을 쓰도록 여기 한 곳에 둔다(시안 `home-preview/variants/warm/symbols.tsx` 에서 옮겼다).
+ * 그림을 쓰도록 여기 한 곳에 둔다(채택한 부드러움 시안에서 옮겼다 — ADR 0109).
  * 늘 `aria-hidden` 이다 — 이름은 곁의 글자나 단추의 `aria-label` 이 든다.
  */
 export type IconName =
