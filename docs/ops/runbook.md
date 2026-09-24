@@ -1593,7 +1593,7 @@ node scripts/remote-lock.mjs npx supabase db advisors --linked --type performanc
 | 인덱스 | 받치는 질의 |
 | --- | --- |
 | `report_by_reporter` | 신고 하루 한도 — 신고한 사람의 오늘 건수(`report_user` · `report_chat_message`) |
-| `report_unreviewed_by_pair` | 검토 전 같은 대상 · 같은 사유의 중복 신고(같은 두 문) |
+| `report_by_pair` | 처리 필요인 같은 대상 · 같은 사유의 중복 신고(같은 두 문, `report_is_open`) — `20261017090000` 이 `reviewed_at is null` 부분 인덱스 `report_unreviewed_by_pair` 를 술어 없는 것으로 바꿨다(ADR 0107 정정) |
 | `report_unreviewed` | 안 본 신고(`reviewed_at is null`) — 운영자 목록의 처리 필요는 추가 확인 필요까지라(ADR 0107) 이것만으로 다 짚지는 않는다(`operator_reports`) |
 | `chat_report_snapshot_by_message` | 같은 메시지의 중복 신고 |
 | `chat_room_closed` | 닫힌 지 90일 지난 방의 메시지 지우기(`purge_closed_chat_messages`) |
