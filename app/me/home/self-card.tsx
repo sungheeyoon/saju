@@ -99,7 +99,7 @@ export function SelfCard({
           <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
           {reading === null ? '사주풀이 받기' : '사주풀이 보기'}
           {reading !== null && !reading.fromCurrentChart && (
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">이전 명식</span>
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">수정 전</span>
           )}
         </Link>
         <Link href={`/me/people/${personId}`} className={BUTTON_SECONDARY}>

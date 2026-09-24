@@ -275,7 +275,7 @@ export function SubjectTag({ subject }: { subject: DayMaster | null }) {
 }
 
 function StaleChip() {
-  return <span className="rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning">이전 명식</span>;
+  return <span className="rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning">수정 전</span>;
 }
 
 /**

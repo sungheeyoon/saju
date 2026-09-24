@@ -430,7 +430,7 @@ export function ReadingPanel({
   );
 
   /**
-   * **이전 명식으로 만든 글이면 다시 받기가 주 단추가 된다.** 평소 글을 다 읽은 사람이 먼저 하는 일은
+   * **수정 전 정보로 만든 글이면 다시 받기가 주 단추가 된다.** 평소 글을 다 읽은 사람이 먼저 하는 일은
    * 보내기지만, 지금 명식과 다른 글을 들고 있는 사람에게는 새로 받는 것이 먼저다(시안 3차 warm).
    * 한 영역에 주 단추는 하나다.
    */
@@ -802,13 +802,13 @@ function Result({
       {/*
         **늘 참인 사실은 여기 안 적는다.** 여기 서는 것은 **실제로 갈리는** 한 줄뿐이다 — 지금과 다른
         명식으로 만든 글. 새로 만들면 지금 것이 사라진다는 경고는 되돌릴 수 없는 누름 **직전**에 필요한
-        말이라 확인 창이 든다. 색만으로 말하지 않는다 — 「이전 명식」 낱말이 함께 선다.
+        말이라 확인 창이 든다. 색만으로 말하지 않는다 — 「수정 전」 낱말이 함께 선다.
       */}
       {target.kind !== 'match' && !reading.fromCurrentChart && (
         <p className="flex gap-2.5 rounded-[1.25rem] bg-warning-wash px-4 py-3.5 text-[14px] leading-6 text-foreground">
           <Icon name="alert" className="mt-0.5 size-5 text-warning" />
           <span>
-            <span className="mr-1.5 font-semibold text-warning">이전 명식</span>
+            <span className="mr-1.5 font-semibold text-warning">수정 전</span>
             {READING_STALE_NOTE}
           </span>
         </p>

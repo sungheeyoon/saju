@@ -31,7 +31,7 @@ import { storedChartOf, type StoredInput } from './stored';
  *
  * #70 이 `person_chart_revision` 을 지우면 이 계산의 재료가 없어진다. 그때까지 안 채운
  * 행은 영영 못 채운다 — Match 는 보드를 못 세우고(화면이 「동의 당시 여덟 글자를 찾지
- * 못했습니다」로 닫힌다), Reading 은 「이전 명식」으로 굳는다.
+ * 못했습니다」로 닫힌다), Reading 은 「수정 전」으로 굳는다.
  *
  * ## **새 문을 안 연다**
  *

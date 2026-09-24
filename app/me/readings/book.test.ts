@@ -66,7 +66,7 @@ describe('표지의 주인', () => {
     expect(bookOf(entry({ kind: 'match', matchId: 'm1' })).subjects).toEqual([null, null]);
   });
 
-  it('지금 명식이 아니면 이전 명식으로 표시한다', () => {
+  it('지금 명식이 아니면 수정 전으로 표시한다', () => {
     expect(bookOf(entry({ fromCurrentChart: false })).stale).toBe(true);
   });
 });

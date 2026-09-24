@@ -66,7 +66,7 @@ export function ShareReadingButton({
   /** 무엇을 보내는가 — 글은 서버가 이 대상으로 다시 읽는다 */
   target: ReadingTarget;
   /**
-   * 주 단추인가 보조인가 — 곁의 「다시 받기」와 짝을 이룬다. 평소엔 보내기가 주이고, 이전 명식으로 만든
+   * 주 단추인가 보조인가 — 곁의 「다시 받기」와 짝을 이룬다. 평소엔 보내기가 주이고, 수정 전 정보로 만든
    * 글이면 다시 받기가 주로 올라온다(`panel.tsx`). 한 영역에 주 단추는 하나다.
    */
   emphasis: 'primary' | 'secondary';

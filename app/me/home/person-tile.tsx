@@ -114,7 +114,7 @@ export function PersonTile({
         ) : (
           <>
             {!reading.fromCurrentChart && (
-              <span className="mr-1 rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning">이전 명식</span>
+              <span className="mr-1 rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning">수정 전</span>
             )}
             <span className="text-foreground">{reading.metaphor ?? '만들어 둔 풀이를 이어서 읽어보세요'}</span>
           </>
