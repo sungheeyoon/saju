@@ -7,7 +7,6 @@ import { BUTTON_TERTIARY } from '../../../ui/buttons';
 import { TYPE_TITLE } from '../../../ui/surfaces';
 import { readAccount } from '../../account';
 import { ReadingSection } from '../../reading/section';
-import { ReadingTabs } from '../../reading-tabs';
 import { BackToShelf } from '../frame';
 import { SubjectTag } from '../shelf';
 import { dayMastersOf } from '../subject';
@@ -24,7 +23,7 @@ export const metadata = {
  * 한 사람의 사주풀이가 사는 **독립된 결과 화면.**
  *
  * `/me` 와 `/me/people/[id]` 는 명식을 보는 자리다. 이 화면에는 풀이만 두고 두 자리는
- * 탭으로 오간다. `self` 만 사람이 기억할 수 있는 이름이고 저장한 사람은 불투명 Person id 다.
+ * 각 화면의 입구에서 연다. `self` 만 사람이 기억할 수 있는 이름이고 저장한 사람은 불투명 Person id 다.
  *
  * **책장 옆 칸에 펼쳐진다**(6차 warm). 넓은 화면에서는 레이아웃(`../layout.tsx`)의 책장이 왼쪽에 그대로
  * 서고 이 화면이 오른쪽 칸을 채운다. 폰은 이 화면만 서고, 「← 만든 풀이 목록」이 책장으로 돌아간다.
@@ -72,7 +71,6 @@ export default async function SingleReadingPage({
   if (!mine && selfPersonId === personId) redirect('/me/readings/self');
 
   const name = mine ? '내 사주' : (edge?.local_label as string);
-  const chartHref = mine ? '/me' : `/me/people/${personId}`;
   const readingTitle = mine ? '내 사주풀이' : `${name}의 사주풀이`;
   /* 못 읽는 명식이면 표지가 회색이다 — 색을 지어 넣지 않는다 */
   const dayMaster = (await dayMastersOf(supabase, [personId])).get(personId) ?? null;
@@ -81,10 +79,6 @@ export default async function SingleReadingPage({
     <article aria-labelledby="reading-subject" className="flex min-w-0 flex-col gap-8">
       <header className="flex flex-col gap-5">
         <BackToShelf className={`${BUTTON_TERTIARY} self-start`} />
-        {/*
-          **왼쪽은 누구의 글인가, 오른쪽은 그 사람의 두 자리.** 넓은 화면에서 한 줄, 폰에서는 이름 아래에
-          탭이 선다 — 탭은 글 위에 있어야 「사주로 돌아가기」가 8천 자 뒤로 밀리지 않는다.
-        */}
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="flex min-w-0 flex-col gap-1.5">
             <p className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-secondary">
@@ -100,14 +94,7 @@ export default async function SingleReadingPage({
               {name}
             </h2>
           </div>
-          <div className="w-full sm:w-auto sm:min-w-56">
-            <ReadingTabs
-              current="reading"
-              chartHref={chartHref}
-              readingHref={mine ? '/me/readings/self' : `/me/readings/${personId}`}
-              label={name}
-            />
-          </div>
+
         </div>
       </header>
 

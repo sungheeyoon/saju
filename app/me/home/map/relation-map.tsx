@@ -38,7 +38,10 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
     event.preventDefault();
     setSelectedId((now) => (now === id ? null : id));
     /* 폰에서 카드는 지도 아래다 — 누른 결과가 화면 밖(하단 독 뒤)에서 일어나지 않게 끌어온다 */
-    requestAnimationFrame(() => card.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+    if (selectedId !== id) requestAnimationFrame(() => card.current?.scrollIntoView({
+      block: 'nearest',
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+    }));
   };
 
   return (
@@ -76,7 +79,7 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
 
           {/* 점수 알약은 사람 원보다 뒤에 둔다 — 겹치면 알약이 위에 선다 */}
           {model.links.map((link) => (
-            <LinkScore key={`${link.a}-${link.b}`} link={link} placed={placed.at} />
+            <LinkScore key={`${link.a}-${link.b}`} link={link} placed={placed.at} chosenId={chosen?.id ?? null} />
           ))}
 
           {empty && canAdd && <AddDot href={addHref} />}
@@ -85,10 +88,12 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
 
       <div ref={card} id="home-map-card" className="scroll-mt-4 scroll-mb-28 md:scroll-mb-4" aria-live="polite">
         {chosen !== null ? (
-          <PersonCard person={chosen} onClose={() => setSelectedId(null)} />
-        ) : (
-          <Legend empty={empty} />
-        )}
+          <PersonCard person={chosen} onClose={() => {
+            setSelectedId(null);
+            card.current?.closest('section')?.querySelector<HTMLAnchorElement>('a[aria-expanded="true"]')?.focus({ preventScroll: true });
+          }} />
+        ) : null}
+        <Legend empty={empty} />
       </div>
     </section>
   );
@@ -135,7 +140,7 @@ function Orbits({
             stroke="var(--foreground)"
             strokeWidth={lit ? 2.5 : 1.5}
             strokeLinecap="round"
-            opacity={lit ? 1 : 0.7}
+            opacity={lit ? 1 : chosenId === null ? 0.55 : 0.16}
             vectorEffect="non-scaling-stroke"
           />
         );
@@ -152,7 +157,8 @@ function Orbits({
             d={arcBetween(a, b).d}
             fill="none"
             stroke="var(--text-secondary)"
-            strokeWidth="1.5"
+            strokeWidth={chosenId === link.a || chosenId === link.b ? 2 : 1.5}
+            opacity={chosenId === null || chosenId === link.a || chosenId === link.b ? 1 : 0.2}
             strokeDasharray="1 4"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
@@ -248,7 +254,7 @@ function PersonDot({
 }
 
 /** 저장한 두 사람의 궁합 점수 — 누르면 그 글. 보이는 알약은 작아도 누를 자리는 44px 이다 */
-function LinkScore({ link, placed }: { link: MapLink; placed: Record<string, Point> }) {
+function LinkScore({ link, placed, chosenId }: { link: MapLink; placed: Record<string, Point>; chosenId: string | null }) {
   const a = placed[link.a];
   const b = placed[link.b];
   if (a === undefined || b === undefined) return null;
@@ -258,7 +264,7 @@ function LinkScore({ link, placed }: { link: MapLink; placed: Record<string, Poi
       href={link.href}
       aria-label={`${link.label} 궁합${link.score === null ? '' : ` ${link.score}점`}`}
       style={{ left: `${mid.x}%`, top: `${mid.y}%` }}
-      className="group absolute grid min-h-11 min-w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full"
+      className={`group absolute grid min-h-11 min-w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full transition-opacity ${chosenId !== null && chosenId !== link.a && chosenId !== link.b ? 'opacity-35 hover:opacity-100 focus-visible:opacity-100' : 'opacity-100'}`}
     >
       <span className="rounded-full border border-border-strong bg-surface px-2 py-0.5 text-[12px] font-bold tabular-nums text-secondary group-hover:border-foreground group-hover:text-foreground group-active:scale-95">
         {link.score === null ? '궁합' : `${link.score}점`}
@@ -371,7 +377,7 @@ function PersonCard({ person, onClose }: { person: MapPerson; onClose: () => voi
         </Link>
       ) : (
         <div className="grid grid-cols-3 gap-1.5">
-          <Link href={person.readingHref} className={person.reading === null ? CARD_PRIMARY : CARD_SECONDARY}>
+          <Link href={person.readingHref} className={CARD_PRIMARY}>
             {person.reading === null ? '풀이 받기' : '풀이 보기'}
           </Link>
           <Link href={person.compat.href} className={CARD_SECONDARY} aria-label={score !== null ? `나와 궁합 ${score}점` : '나와 궁합'}>

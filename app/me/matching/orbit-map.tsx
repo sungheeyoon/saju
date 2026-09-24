@@ -13,14 +13,14 @@ import styles from './orbit.module.css';
 
   나는 가운데, 안쪽 궤도에 내 오행 다섯이 상생 차례(木 → 火 → 土 → 金 → 水)로 돌고, 여덟 글자의 20% 에 못 미치는
   기운은 점선의 빈 원이다(`me-mark.ts`). 오늘의 후보는 바깥 궤도에서 **자기가 채워 주는 오행의 각도**에 서서 기다리고,
-  지금 보는 한 사람만 안으로 다가와 그 자리에 휘어진 빛 한 줄을 댄다 — 닿은 빈 원은 아래에서부터 그 파스텔로 차오른다.
-  선은 자료에 있는 관계(「이 기운을 채워 준다」) 하나뿐이고, 후보의 명식은 안 보이므로 후보 점은 사진이다.
+  지금 보는 한 사람만 안으로 다가와 채워 주는 자리마다 휘어진 빛을 댄다 — 닿은 빈 원은 아래에서부터 그 파스텔로 차오른다.
+  선은 자료에 있는 보완 기운만 나타내고, 후보의 명식은 안 보이므로 후보 점은 사진이다.
 
   그림의 문법은 둘이다. **거리는 관계다** — 바깥 궤도는 기다림, 안으로 들어온 자리는 다가옴, 가운데는 나. 그래서 지금
   후보는 바깥의 제 자리에서 안으로 들어와 서고(지나온 길이 옅은 점선으로 남는다), 넘기면 궤도 밖으로 날아가고, 요청하면
   가운데(나)로 빨려 든다. 사진을 끄는 만큼(`pull`) 미리 따라 움직인다. **각도는 무엇을 채우는가다** — 후보는 제가 채워
   주는 오행의 방향에 서므로, 기다리는 사람들의 자리만 봐도 내 어느 빈 곳으로 누가 오는지가 읽힌다. 색은 절제한다:
-  채워지는 한 자리(선 · 차오르는 알 · 지금 후보의 테)에만 오행 색이 서고, 기다리는 얼굴은 채도를 낮춘다.
+  채워지는 자리(선 · 차오르는 알 · 지금 후보의 테)에만 오행 색이 서고, 기다리는 얼굴은 채도를 낮춘다.
   모양은 둘이다: `round` 는 넓은 화면의 온 궤도, `arc` 는 폰의 **해돋이 띠**(궤도의 위쪽 반만 가로로 펴고 나는 띠 아래
   끝에 반쯤 떠오른 해처럼 선다). 좌표는 상자의 백분율이고 SVG 는 상자와 같은 비로 그려 선이 찌그러지지 않는다.
 
@@ -46,8 +46,6 @@ const GEOMETRY: Record<
     spare: readonly number[];
     /** 바깥 궤도에서 이웃한 두 후보가 떨어져 설 가장 좁은 각도 — 얼굴과 이름이 겹치지 않게 */
     gap: number;
-    /** 지금 후보가 제 자리에서 비켜 서는 각도 */
-    aside: number;
     ring: Record<'element' | 'current' | 'waiting' | 'passed', Ring>;
   }
 > = {
@@ -57,8 +55,7 @@ const GEOMETRY: Record<
     angle: { 木: -90, 火: -18, 土: 54, 金: 126, 水: 198 },
     spare: [-54, 162, 90, 18],
     gap: 22,
-    aside: 36,
-    ring: { element: [19, 19], current: [34, 34], waiting: [45, 45], passed: [66, 66] },
+    ring: { element: [19, 19], current: [36, 36], waiting: [45, 45], passed: [66, 66] },
   },
   arc: {
     aspect: 2.15,
@@ -66,7 +63,6 @@ const GEOMETRY: Record<
     angle: { 木: -152, 火: -121, 土: -90, 金: -59, 水: -28 },
     spare: [-105, -75, -136, -44],
     gap: 13,
-    aside: 14,
     ring: { element: [24, 52], current: [42, 80], waiting: [46.5, 87], passed: [70, 140] },
   },
 };
@@ -96,43 +92,32 @@ export const supplyOf = (card: DeckCard): Element | null => {
 /**
  * 바깥 궤도의 자리 — 저마다 **자기가 채워 주는 오행의 각도**를 원하고, 이웃과 `gap` 보다 가까우면 서로 밀어 벌린다.
  *
- * 지금 후보는 제 자리에서 한 걸음 옆(`stepAside`)으로 비켜 안쪽으로 들어온다(바로 바깥이면 선이 사진과 알 사이에 묻힌다).
- * 그 자리는 움직이지 않는 이웃으로 셈에 넣는다 — 기다리는 사람이 그 뒤에 숨으면 「누가 기다리는지」가 가려진다.
+ * 지금 후보는 제 각도를 유지하며 안쪽으로 들어온다. 기다리는 이웃 사이에 빈 자기 자리를 남겨 얼굴이 겹치지 않는다.
+ * 후보가 바뀌어도 바깥의 자리는 그대로다 — 한 사람이 다가올 때 나머지 사람까지 움직이지 않는다.
  * 보완 오행이 없는 후보는 오행 사이의 빈 각도를 원한다.
  */
-function anglesOf(shape: Shape, cards: readonly DeckCard[], currentId: string | null): Record<string, number> {
+function anglesOf(shape: Shape, cards: readonly DeckCard[]): Record<string, number> {
   const { angle, spare, gap } = GEOMETRY[shape];
   const spares = [...spare];
   const circular = shape === 'round';
   const seats = cards.map((card) => {
     const supply = supplyOf(card);
     const want = supply !== null ? angle[supply] : (spares.shift() ?? angle.土);
-    return { id: card.candidateUserId, want, at: want, fixed: false };
+    return { id: card.candidateUserId, at: want };
   });
-  const current = seats.find((seat) => seat.id === currentId);
-  /* 지금 후보가 비켜 선 자리 — 기다리는 사람이 이 각도를 피한다 */
-  const ghost = current !== undefined ? [{ id: '', want: 0, at: stepAside(shape, current.want), fixed: true }] : [];
-  const moving = seats.filter((seat) => seat !== current);
-  const all = [...moving, ...ghost];
   for (let round = 0; round < 40; round += 1) {
-    all.sort((x, y) => x.at - y.at);
+    seats.sort((x, y) => x.at - y.at);
     let moved = false;
-    const pairs = all.length > 1 ? all.length - (circular ? 0 : 1) : 0;
+    const pairs = seats.length > 1 ? seats.length - (circular ? 0 : 1) : 0;
     for (let i = 0; i < pairs; i += 1) {
-      const left = all[i];
-      const right = all[(i + 1) % all.length];
-      const between = (right.at - left.at + (i + 1 === all.length ? 360 : 0));
-      /* 지금 후보 곁은 더 넓게 비운다 — 그 얼굴은 크고 이름표 알약을 단다 */
-      const need = left.fixed || right.fixed ? gap * 1.6 : gap;
-      if (between >= need - 0.01) continue;
-      const push = need - between;
+      const left = seats[i];
+      const right = seats[(i + 1) % seats.length];
+      const between = (right.at - left.at + (i + 1 === seats.length ? 360 : 0));
+      if (between >= gap - 0.01) continue;
+      const push = gap - between;
       moved = true;
-      if (left.fixed) right.at += push;
-      else if (right.fixed) left.at -= push;
-      else {
-        left.at -= push / 2;
-        right.at += push / 2;
-      }
+      left.at -= push / 2;
+      right.at += push / 2;
     }
     if (!moved) break;
   }
@@ -140,10 +125,6 @@ function anglesOf(shape: Shape, cards: readonly DeckCard[], currentId: string | 
   for (const seat of seats) out[seat.id] = seat.at;
   return out;
 }
-
-/** 온 궤도는 시계 방향으로, 띠는 가장자리 쪽으로 비킨다 — 띠의 가운데는 내 오행 알들이 붐벼 선이 묻힌다 */
-const stepAside = (shape: Shape, angle: number) =>
-  angle + (shape === 'round' || angle >= -90 ? 1 : -1) * GEOMETRY[shape].aside;
 
 const mix = (a: Ring, b: Ring, t: number): Ring => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
 
@@ -159,7 +140,7 @@ function curveOf(from: { x: number; y: number }, to: { x: number; y: number }, a
   return `M ${round2(a.x)} ${round2(a.y)} Q ${round2(c.x)} ${round2(c.y)} ${round2(b.x)} ${round2(b.y)}`;
 }
 
-const MOVE = 'transition-[left,top,opacity,transform] duration-700 ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none';
+const MOVE = 'transition-[left,top,opacity,transform] duration-[460ms] ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none';
 
 /**
  * 지도 한 장. `pull` 은 사진을 끄는 만큼(-1 ~ 1): 왼쪽으로 끌면 지금 후보가 궤도 밖으로 물러나고, 오른쪽으로 끌면
@@ -193,8 +174,9 @@ export function ApproachMap({
   const arc = shape === 'arc';
   const small = arc || compact;
   const current = cards.find((card) => statusOf(card) === 'current') ?? null;
-  const angles = anglesOf(shape, cards, current?.candidateUserId ?? null);
-  const lit = current !== null ? supplyOf(current) : null;
+  const angles = anglesOf(shape, cards);
+  const supplied = current?.highlights.map((highlight) => highlight.element).filter(isElement) ?? [];
+  const lit = supplied[0] ?? null;
 
   const ringOf = (status: MapStatus): Ring => {
     const { ring } = geometry;
@@ -215,17 +197,8 @@ export function ApproachMap({
     ry: ring[1],
   });
 
-  const angleOf = (card: DeckCard, status: MapStatus) =>
-    status === 'current' ? stepAside(shape, angles[card.candidateUserId]) : angles[card.candidateUserId];
+  const angleOf = (card: DeckCard) => angles[card.candidateUserId];
 
-  const curve =
-    current !== null && lit !== null
-      ? curveOf(
-          pointOf(shape, angleOf(current, 'current'), ringOf('current')),
-          pointOf(shape, geometry.angle[lit], geometry.ring.element),
-          geometry.aspect,
-        )
-      : null;
 
   /*
     지금 후보가 **어디서 왔는가** — 바깥 궤도의 제 자리에서 지금 선 곳까지 옅은 점선 한 줄. 궤도의 거리가 곧 관계의
@@ -235,7 +208,7 @@ export function ApproachMap({
     current !== null
       ? {
           from: pointOf(shape, angles[current.candidateUserId], geometry.ring.waiting),
-          to: pointOf(shape, angleOf(current, 'current'), ringOf('current')),
+          to: pointOf(shape, angleOf(current), ringOf('current')),
         }
       : null;
 
@@ -286,20 +259,19 @@ export function ApproachMap({
             className={dragging ? 'opacity-0' : 'opacity-100 transition-opacity duration-700'}
           />
         )}
-        {current !== null && lit !== null && curve !== null && (
-          <g key={current.candidateUserId} className={elementScope(lit)}>
-            <path
-              d={curve}
-              fill="none"
-              stroke="var(--mid)"
-              strokeOpacity={0.5}
-              strokeWidth={arc ? 7 : 4}
-              strokeLinecap="round"
-              className={`${styles.draw} blur-[3px]`}
-            />
-            <path d={curve} fill="none" stroke="var(--ink)" strokeWidth={arc ? 1.5 : 0.8} strokeLinecap="round" className={styles.draw} />
-          </g>
-        )}
+        {current !== null && supplied.map((element) => {
+          const curve = curveOf(
+            pointOf(shape, angleOf(current), ringOf('current')),
+            pointOf(shape, geometry.angle[element], geometry.ring.element),
+            geometry.aspect,
+          );
+          return (
+            <g key={`${current.candidateUserId}-${element}`} className={elementScope(element)}>
+              <path d={curve} fill="none" stroke="var(--mid)" strokeOpacity={0.4} strokeWidth={arc ? 5 : 3} strokeLinecap="round" className={`${styles.draw} blur-[3px]`} />
+              <path d={curve} fill="none" stroke="var(--ink)" strokeWidth={arc ? 1.5 : 0.8} strokeLinecap="round" className={styles.draw} />
+            </g>
+          );
+        })}
       </svg>
 
       <Me me={me} arc={arc} small={small} />
@@ -314,7 +286,7 @@ export function ApproachMap({
             className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
             style={{ left: `${at.x}%`, top: `${at.y}%` }}
           >
-            <Bead element={element} low={mine === null || mine.low} lit={lit === element} unknown={mine === null} small={small} />
+            <Bead element={element} low={mine === null || mine.low} lit={supplied.includes(element)} unknown={mine === null} small={small} />
             {mine !== null && !compact && (
               <span
                 className={`absolute top-full whitespace-nowrap font-semibold tabular-nums text-secondary ${arc ? 'mt-0.5 text-[12px]' : 'mt-1 text-[12px]'}`}
@@ -329,12 +301,12 @@ export function ApproachMap({
       {/* 바깥 — 오늘의 후보. 자리는 덱의 상태가 정한다 */}
       {cards.map((card) => {
         const status = statusOf(card);
-        const at = pointOf(shape, angleOf(card, status), ringOf(status));
+        const at = pointOf(shape, angleOf(card), ringOf(status));
         const supply = supplyOf(card);
         const gone = status === 'passed' || status === 'requested';
         const now = status === 'current';
         /* 위쪽 반에 선 사람은 이름표를 위에 단다 — 아래에 달면 안쪽 궤도의 오행 자리에 얹힌다 */
-        const above = Math.sin((angleOf(card, status) * Math.PI) / 180) < -0.3;
+        const above = Math.sin((angleOf(card) * Math.PI) / 180) < -0.3;
         return (
           <span
             key={card.candidateUserId}

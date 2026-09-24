@@ -4,13 +4,13 @@
   설정이면 멈추고 끝 모습만 선다.
 */
 .arrive {
-  animation: arrive 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: arrive 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @keyframes arrive {
   from {
     opacity: 0;
-    translate: 0 12px;
+    translate: 0 6px;
   }
 }
 
@@ -41,6 +41,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .swipe {
+    transition: none !important;
+    transform: none !important;
+  }
   .arrive {
     animation: none;
   }

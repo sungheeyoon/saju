@@ -92,8 +92,8 @@ export function CandidatePhoto({ card, initialClass = 'text-[1.2em]' }: { card: 
 const faceOf = (card: DeckCard) => <CandidatePhoto card={card} />;
 
 // 고른 것을 읽을 시간을 주고 나서 카드가 떠난다.
-const CHOICE_HOLD_MS = 700;
-const CARD_EXIT_MS = 550;
+const CHOICE_HOLD_MS = 100;
+const CARD_EXIT_MS = 360;
 const SWIPE_AT = 85;
 const EMPTY_CARDS: readonly DeckCard[] = [];
 /** 사진 · 단추의 그림자 — 새 색을 짓지 않고 글자색을 옅게 쓴다 */
@@ -155,7 +155,7 @@ export function MatchingExperience({
   const [announcement, setAnnouncement] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
-  const start = useRef<{ x: number; y: number } | null>(null);
+  const start = useRef<{ x: number; y: number; moved: number } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const confirming = useRef<HTMLDialogElement>(null);
   const profile = deck.remaining[0];
@@ -174,7 +174,9 @@ export function MatchingExperience({
   function leave(direction: 'left' | 'right', said: string, id: string) {
     setExit(direction);
     setDragging(false);
-    setOffset(direction === 'right' ? 12 : -12);
+    // 손을 놓은 자리에서 같은 방향으로 이어 간다. 가운데로 되감지 않는다.
+    setOffset((now) => direction === 'right' ? Math.max(now, 12) : Math.min(now, -12));
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     setAnnouncement(said);
     timer.current = setTimeout(() => {
       setLeaving(true);
@@ -185,8 +187,8 @@ export function MatchingExperience({
         setLeaving(false);
         setOffset(0);
         start.current = null;
-      }, CARD_EXIT_MS);
-    }, CHOICE_HOLD_MS);
+      }, reduced ? 0 : CARD_EXIT_MS);
+    }, reduced ? 0 : CHOICE_HOLD_MS);
   }
 
   /** 예약된 이동을 물린다 — 되돌릴 때 이 타이머가 살아 있으면 복원 직후 또 넘어간다 */
@@ -211,10 +213,11 @@ export function MatchingExperience({
     startWorking(async () => {
       try {
         const result = await passCandidate(passing.candidateUserId);
-        if (!result.ok) { setFailure(result.message); return; }
+        if (!result.ok) { setFailure(result.message); setOffset(0); return; }
         finish();
       } catch {
         setFailure('저장하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+        setOffset(0);
       } finally { busy.current = false; }
     });
   }
@@ -233,7 +236,7 @@ export function MatchingExperience({
       try {
         const result = await requestMatch(sending.candidateUserId);
         announceIfMoved(result);
-        if (!result.ok) { setFailure(result.message); return; }
+        if (!result.ok) { setFailure(result.message); setOffset(0); return; }
         finish();
       } catch {
         setFailure('요청 결과를 확인하지 못했습니다. 소식에서 확인해 주세요.');
@@ -269,7 +272,7 @@ export function MatchingExperience({
   function pointerDown(event: PointerEvent<HTMLElement>) {
     if (exit || busy.current || !event.isPrimary || event.button !== 0) return;
     setDragging(true);
-    start.current = { x: event.clientX, y: event.clientY };
+    start.current = { x: event.clientX, y: event.clientY, moved: 0 };
     event.currentTarget.setPointerCapture(event.pointerId);
   }
   function pointerMove(event: PointerEvent<HTMLElement>) {
@@ -278,16 +281,18 @@ export function MatchingExperience({
     const y = event.clientY - start.current.y;
     // 세로로 먼저 움직이면 화면을 내리는 손짓이다 — 카드를 놓아준다.
     if (Math.abs(y) > Math.abs(x) && Math.abs(x) < 15) { start.current = null; setDragging(false); setOffset(0); return; }
+    start.current.moved = x;
     setOffset(x);
   }
   function pointerUp() {
     setDragging(false);
     if (!start.current) return;
+    const distance = start.current.moved;
     start.current = null;
     // 오른쪽으로 밀어도 **바로 안 나간다** — 확인 창이 먼저 선다.
     if (busy.current || exit) { setOffset(0); return; }
-    if (offset > SWIPE_AT) { setOffset(0); confirming.current?.showModal(); return; }
-    if (offset < -SWIPE_AT) { pass(); return; }
+    if (distance > SWIPE_AT) { setOffset(0); confirming.current?.showModal(); return; }
+    if (distance < -SWIPE_AT) { pass(); return; }
     setOffset(0);
   }
 
@@ -383,12 +388,12 @@ export function MatchingExperience({
             className={`${elementScope(supplyOf(profile))} mx-auto flex w-full min-w-0 max-w-[34rem] flex-col gap-4 lg:mx-0 lg:max-w-none`}
           >
             <div className="relative px-1.5 pt-1.5">
-              {/* 뒤에 다음 사람들의 색이 한 장씩 비친다 — 「아직 더 있다」 */}
+              {/* 뒤에 다음 편지가 한 장씩 비친다 — 「아직 더 있다」 */}
               {deck.remaining.slice(1, 3).map((card, at) => (
                 <span
                   key={card.candidateUserId}
                   aria-hidden="true"
-                  className={`${elementScope(supplyOf(card))} absolute inset-x-4 bottom-2 top-3 rounded-[2rem] bg-[var(--tile)] ring-1 ring-border ${
+                  className={`absolute inset-x-4 bottom-2 top-3 rounded-[2rem] bg-surface ring-1 ring-border ${
                     at === 0 ? 'translate-x-1.5 rotate-[3.5deg]' : '-translate-x-1 -rotate-[2.5deg]'
                   }`}
                 />
@@ -400,16 +405,16 @@ export function MatchingExperience({
                 onPointerMove={pointerMove}
                 onPointerUp={pointerUp}
                 onPointerCancel={() => { start.current = null; setDragging(false); setOffset(0); }}
-                onLostPointerCapture={() => { start.current = null; setDragging(false); if (!exit) setOffset(0); }}
+                onLostPointerCapture={() => { if (start.current) { start.current = null; setDragging(false); setOffset(0); } }}
                 style={{
                   transform: leaving
                     ? `translateX(${exit === 'right' ? 115 : -115}%) rotate(${exit === 'right' ? 12 : -12}deg)`
-                    : `translateX(${offset}px) rotate(${offset / 24}deg)`,
+                    : `translateX(${offset}px) rotate(${Math.max(-12, Math.min(12, offset / 24))}deg)`,
                   transition: dragging ? 'none' : `transform ${CARD_EXIT_MS}ms cubic-bezier(.2,.7,.3,1), opacity ${CARD_EXIT_MS}ms`,
                   opacity: leaving ? 0 : 1,
                   boxShadow: `0 24px 48px -24px ${SOFT_SHADOW}`,
                 }}
-                className={`${styles.arrive} relative aspect-[6/5] cursor-grab touch-pan-y select-none overflow-hidden rounded-[2rem] bg-[var(--tile)] active:cursor-grabbing lg:aspect-[4/5]`}
+                className={`${styles.arrive} ${styles.swipe} relative aspect-[6/5] cursor-grab touch-pan-y select-none overflow-hidden rounded-[2rem] bg-[var(--tile)] active:cursor-grabbing lg:aspect-[4/5]`}
               >
                 <CandidatePhoto card={profile} initialClass="text-[7rem]" />
 
@@ -486,10 +491,11 @@ export function MatchingExperience({
               {feedback}
             </div>
 
-            <div key={profile.candidateUserId} className={`flex flex-col gap-4 transition-opacity duration-500 ${leaving ? 'opacity-40' : ''}`}>
+            <div className={`flex flex-col gap-4 transition-opacity duration-500 ${leaving ? 'opacity-40' : ''}`}>
               {/* 폰 — 해돋이 띠. 넘김 · 요청 · 되돌리기의 움직임이 폰에서도 보인다 */}
               <div className="relative overflow-hidden rounded-[1.75rem] bg-cream px-2 pt-3 lg:hidden">
-                <p className="absolute right-4 top-3 text-[12px] font-semibold tabular-nums text-secondary">
+                <p className="relative z-10 flex items-center justify-between gap-3 px-3 pb-2 text-[12px] font-semibold tabular-nums text-secondary">
+                  <span className="font-rounded text-[15px] text-foreground">{profile.nickname}</span>
                   <span className="sr-only">나와 맞는 오늘의 인연 </span>
                   {counter}
                 </p>

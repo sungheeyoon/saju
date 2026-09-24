@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { elementScope } from '../../element-tone';
-import { BUTTON_ON_TILE, BUTTON_TERTIARY } from '../../ui/buttons';
+import { BUTTON_SECONDARY_SMALL, BUTTON_TERTIARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
 import type { DeckCard } from './matching-experience';
@@ -73,17 +73,17 @@ export function PassedConnections({
       ) : (
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
           {cards.map((card) => (
-            <li key={card.candidateUserId} className={`${elementScope(supplyOf(card))} flex flex-col overflow-hidden rounded-[1.5rem] bg-[var(--tile)]`}>
+            <li key={card.candidateUserId} className="flex flex-col overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-[var(--shadow-card)]">
               <span className="relative block aspect-square text-[3rem]">
                 {faceOf(card)}
-                <span className="absolute bottom-2 left-2 grid size-9 place-items-center rounded-full bg-[var(--tile)] ring-2 ring-surface">
+                <span className={`${elementScope(supplyOf(card))} absolute bottom-2 left-2 grid size-9 place-items-center rounded-full bg-[var(--tile)] ring-2 ring-surface`}>
                   <ElementSymbol element={supplyOf(card)} className="size-5" />
                 </span>
               </span>
               <span className="flex flex-1 flex-col gap-2 p-3">
                 <span className="flex flex-wrap items-baseline justify-between gap-x-2">
                   <span className="font-rounded truncate text-[1.25rem] text-foreground">{card.nickname}</span>
-                  <span className="shrink-0 text-[13px] font-bold tabular-nums text-[var(--ink)]">궁합 {card.previewScore}점</span>
+                  <span className="shrink-0 text-[13px] font-bold tabular-nums text-foreground">궁합 {card.previewScore}점</span>
                 </span>
                 <span className="line-clamp-2 text-[13px] leading-5 text-secondary">{card.highlights[0]?.text ?? card.reason}</span>
                 <button
@@ -94,7 +94,7 @@ export function PassedConnections({
                     await onRestore(card);
                     setRestoring(null);
                   }}
-                  className={`${BUTTON_ON_TILE} mt-auto w-full disabled:opacity-55`}
+                  className={`${BUTTON_SECONDARY_SMALL} mt-auto w-full disabled:opacity-55`}
                 >
                   <UndoIcon className="size-4" />
                   {restoring === card.candidateUserId ? '복원하는 중…' : '다시 만나보기'}
