@@ -48,6 +48,14 @@
  * - **단계를 모르면 전부다.** 「(지금)」이 없거나 둘이거나 표에 없는 이름이면 안전 쪽으로 간다.
  * - **공개 출시면 아래 세 단계로 돌아간다.** 단계를 옮기는 PR 은 그 PR 에서부터 새 단계로 계획된다.
  *
+ * ## 빠른 검사에도 빌드가 든다 (2026-09-24, #219)
+ *
+ * `fast` 는 처음에 빌드를 뺐다 — 빌드가 깨지면 Vercel 이 이전 배포를 그대로 세우므로 머지 뒤 main 의 `verify` 로
+ * 넉넉하다고 봤다. 그런데 `next build` 만 잡는 실패가 있다: `app/…/icon.tsx` 는 Next 가 파비콘 라우트로 읽어
+ * 빌드가 섰고, 단위 · 타입 · 린트는 다 초록이었다(3d54d56). Production 이 두 시간 멈췄다. 그래서 `FAST_STEPS` 에
+ * `npm run build` 를 넣는다 — 빌드는 끝에 비밀 검사도 돈다(G-23 ⑧). `verify.yml` 의 `fast` job 은 이 목록을
+ * 그대로 돌고, 시험이 둘을 견준다.
+ *
  * ## 운영 의존성 감사는 단계와 따로 켠다 (2026-09-23, G-23 ①, ADR 0104)
  *
  * `audit` 차선은 `npm audit --omit=dev --audit-level=high` 하나다. 위 단계들과 달리 **바뀐 파일이 아니라 밖의
@@ -82,6 +90,9 @@ export const DEPENDENCY_LISTS = ['package.json', 'package-lock.json'];
 const DATABASE = [/^supabase\//];
 /** 엔진 안에서 DB 의 검사식이 보는 파일 — 여기가 바뀌면 로그인 뒤 자리도 재야 한다 */
 export const ENGINE_DB_FACING = ['src/lib/saju/version.ts', 'src/lib/saju/pillars/index.ts'];
+
+/** `fast` job 이 `npm ci` 뒤에 차례로 도는 명령 — `verify.yml` 이 이 목록과 같아야 한다(위 「빠른 검사에도 빌드가 든다」) */
+export const FAST_STEPS = ['npm test', 'npm run typecheck', 'npm run lint', 'npm run build'];
 
 const matches = (rules, file) => rules.some((rule) => rule.test(file));
 

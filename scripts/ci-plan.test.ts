@@ -10,7 +10,7 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { DEPENDENCY_LISTS, ENGINE_DB_FACING, FULL_LABEL, planFor, summaryOf } from './ci-plan.mjs';
+import { DEPENDENCY_LISTS, ENGINE_DB_FACING, FAST_STEPS, FULL_LABEL, planFor, summaryOf } from './ci-plan.mjs';
 import { currentStageOf } from './release-stage.mjs';
 
 /** 공개 출시 — 머지 전에 전체를 재는 단계. 아래 「CI 계획」은 이 단계의 세 단계를 잰다 */
@@ -56,6 +56,18 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
     const files = ['app/page.tsx'];
     expect(planFor({ files, stage: currentStageOf(launched) }).tier).toBe('full');
     expect(planFor({ files, stage: now }).tier).toBe('fast');
+  });
+
+  /**
+   * **빠른 검사에 빌드가 든다**(#219). `next build` 만 잡는 실패(`app/…/icon.tsx` 가 파비콘 라우트로 읽힌다)가
+   * 단위 · 타입 · 린트를 초록으로 지나 main 에 들어갔고, Production 이 두 시간 섰다.
+   */
+  it('verify.yml 의 fast job 은 FAST_STEPS 를 차례로 돌고, 거기 빌드가 든다', () => {
+    const yml = readFileSync(resolve(__dirname, '../.github/workflows/verify.yml'), 'utf8');
+    const job = /\n  fast:\n([\s\S]*?)\n  [a-z]+:\n/.exec(yml)?.[1] ?? '';
+    const runs = [...job.matchAll(/^\s+- run: (.+)$/gm)].map((one) => one[1].trim());
+    expect(runs).toEqual(['npm ci', ...FAST_STEPS]);
+    expect(FAST_STEPS).toContain('npm run build');
   });
 
   it('「(지금)」이 둘이거나 없으면 모르는 단계다', () => {
