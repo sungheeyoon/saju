@@ -57,11 +57,12 @@ function reading(fields: Partial<ReadingEntry> & Pick<ReadingEntry, 'kind' | 'cr
 
 const SELF_READING = reading({
   kind: 'self',
-  metaphor: '이른 봄 새벽, 막 물이 오른 버드나무',
+  metaphor: '서리 내린 가을 아침, 맑게 울리는 쇠종',
   createdAt: '2026-09-20T10:12:00+09:00',
 });
 
-const SELF_QUERY = query('서하', { date: '1994-03-17', time: '07:40', gender: 'female' });
+/* 목(木) 0 · 화(火) 1 · 수(水) 1 — 예시 후보 셋(木 · 火 · 水를 채워 줌)이 실제로 모자란 기운을 채우는 명식이다 */
+const SELF_QUERY = query('서하', { date: '1992-10-09', time: '15:20', gender: 'female' });
 
 export const SELF: FixtureSelf = {
   personId: 'preview-self',

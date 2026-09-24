@@ -27,20 +27,20 @@ export type Style = {
 };
 
 /**
- * 채택 후보 둘 — **한 스타일이 화면 넷을 든다.**
+ * 스타일 둘 — **한 스타일이 화면 넷을 든다.** 채택한 부드러움이 기본이고, 관계 지도는 지도를 빌려 온 참고본으로 남는다.
  *
  * 홈은 2차 라운드에서 고른 것이고, 매칭 · 풀이 · 채팅은 그 스타일로 새로 그린다. 화면마다 `variants/<스타일>/<화면>/`
  * 에 살아서 에이전트 여럿이 나란히 고쳐도 겹치지 않는다.
  */
 export const STYLES: readonly Style[] = [
   {
-    key: 'orbit',
-    label: '관계 지도 — 나를 중심으로',
-    screens: { home: OrbitHome, matching: OrbitMatching, readings: OrbitReadings, chat: OrbitChat },
+    key: 'warm',
+    label: '라이프스타일 — 부드러움 (채택)',
+    screens: { home: WarmHome, matching: WarmMatching, readings: WarmReadings, chat: WarmChat },
   },
   {
-    key: 'warm',
-    label: '라이프스타일 — 부드러움',
-    screens: { home: WarmHome, matching: WarmMatching, readings: WarmReadings, chat: WarmChat },
+    key: 'orbit',
+    label: '관계 지도 — 나를 중심으로 (참고)',
+    screens: { home: OrbitHome, matching: OrbitMatching, readings: OrbitReadings, chat: OrbitChat },
   },
 ];
