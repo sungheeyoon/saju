@@ -13,7 +13,7 @@ import {
   selfPersonArgs,
   unsupportedForSaving,
 } from '@/src/lib/input/edit';
-import { userFacingDbMessage } from '../db-error';
+import { answerOfThrown, userFacingDbMessage } from '../db-error';
 import { rpcArgs } from '@/src/lib/db';
 
 /**
@@ -98,7 +98,16 @@ export async function addManagedPerson(
   if (unsupported !== null) return { ok: false, kind: 'failed', message: unsupported };
 
   if (!evenIfSameChart) {
-    const same = await sameChartInMyList(query);
+    /*
+      **못 물었으면 저장하지 않는다 — 다만 던지지 않고 값으로 멈춘다.** 액션이 던지면 운영의
+      Next 가 문이 지은 우리말을 영어 안내로 바꾼다(ADR 0078). 폼은 `failed` 를 세울 줄 안다.
+    */
+    let same: SameChart | null;
+    try {
+      same = await sameChartInMyList(query);
+    } catch (thrown) {
+      return { ok: false, kind: 'failed', message: answerOfThrown(thrown, 'same_chart') };
+    }
     if (same !== null) return { ok: false, kind: 'same-chart', same };
   }
 

@@ -40,7 +40,10 @@
 | 문은 성공했고 자료가 없음 | `null` · `[]` · `0` | |
 
 **서버 액션은 값으로 낸다** — `{ ok: false, message: userFacingDbMessage(error, '문 이름') }`.
-폼이 그 문장을 세운다.
+폼이 그 문장을 세운다. **던지는 문을 부르면 그 부름 하나를 `try` 로 받아**
+`{ ok: false, message: answerOfThrown(thrown, '자리') }` 로 낸다 — 액션이 던지면 운영의 Next 가 문장을
+영어 안내로 바꾼다. `answerOfThrown` 은 `DbFailure`(`dbFailure` 가 지은 우리말)만 옮기고 나머지는 기록에
+보낸 뒤 일반 문장을 세운다. `app/actions.boundary.test.ts` 가 받지 않은 부름을 센다.
 
 넷 다 한 가지를 지킨다: **`error.message` 를 사용자에게 그대로 내지 않는다.** 우리가 쓴 한국어
 거절만 옮기고 나머지는 `console.error` 로 기록에 보낸다 — `app/db-error.boundary.test.ts` 가

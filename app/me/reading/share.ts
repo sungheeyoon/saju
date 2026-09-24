@@ -2,10 +2,13 @@
 
 import { sharePath, type ShareKind } from '../../share/path';
 import { supabaseOnServer } from '../../auth/server-client';
-import { currentReading } from './current';
+import { currentReading, type CurrentReading } from './current';
 import { isShareable, shareTargetArgs, type ReadingTarget } from './target';
-import { userFacingDbMessage } from '../../db-error';
+import { answerOfThrown, userFacingDbMessage } from '../../db-error';
 import { rpcArgs } from '@/src/lib/db';
+
+/** 링크를 못 냈다 — 까닭을 우리가 못 고를 때 이 버튼이 세우는 한 문장 */
+const NOT_ISSUED = '공유 링크를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.';
 
 /**
  * 풀이를 공유본으로 내놓고 **주소를 받는다.**
@@ -45,7 +48,14 @@ export async function shareMyReading(
     return { ok: false, message: '인연 궁합은 공유 링크를 만들 수 없습니다.' };
   }
 
-  const reading = await currentReading(target);
+  /* 풀이를 못 읽으면 문이 던진다 — 던지지 않고 값으로 낸다. 액션이 던지면 운영의 Next 가
+     그 문장을 영어 안내로 바꾼다(ADR 0078) */
+  let reading: CurrentReading | null;
+  try {
+    reading = await currentReading(target);
+  } catch (thrown) {
+    return { ok: false, message: answerOfThrown(thrown, 'share_my_reading', NOT_ISSUED) };
+  }
   if (reading === null) {
     return { ok: false, message: '공유할 풀이가 없습니다.' };
   }
@@ -68,14 +78,14 @@ export async function shareMyReading(
       message: userFacingDbMessage(
         error,
         'share_my_reading',
-        '공유 링크를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+        NOT_ISSUED,
       ),
     };
   }
 
   const token = data as string | null;
   if (token === null || token === '') {
-    return { ok: false, message: '공유 링크를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.' };
+    return { ok: false, message: NOT_ISSUED };
   }
 
   return { ok: true, path: sharePath(target.kind as ShareKind, token) };

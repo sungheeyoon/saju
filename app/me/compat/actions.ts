@@ -13,7 +13,7 @@ import {
   type BlankPersonArgs,
   type ManagedPersonArgs,
 } from '@/src/lib/input/edit';
-import { userFacingDbMessage } from '../../db-error';
+import { answerOfThrown, userFacingDbMessage } from '../../db-error';
 import { rpcArgs } from '@/src/lib/db';
 
 /**
@@ -142,7 +142,13 @@ export async function openPairScreen(
     }
     if (use[key] !== undefined) continue;
 
-    const same = await sameChartInMyList(side.query);
+    // 못 물었으면 궁합을 열지 않는다 — 던지지 않고 값으로 멈춘다(ADR 0078, `addManagedPerson` 과 같다)
+    let same: SameChart | null;
+    try {
+      same = await sameChartInMyList(side.query);
+    } catch (thrown) {
+      return { ok: false, kind: 'failed', message: answerOfThrown(thrown, 'same_chart') };
+    }
     if (same === null) continue;
     if (same.listed) return { ok: false, kind: 'same-chart', side: key, same };
 

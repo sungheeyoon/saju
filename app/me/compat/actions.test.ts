@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_QUERY } from '@/src/lib/input/query';
 
+import { dbFailure } from '../../db-error';
+
 import type { PairSide } from './actions';
 
 const rpc = vi.fn();
@@ -345,5 +347,43 @@ describe('같은 명식을 묻는 자리', () => {
 
     expect(result).toEqual({ ok: true, personA: 'saved-a', personB: 'saved-b' });
     expect(saveCall()?.[1]).toMatchObject({ p_a_person: null, p_b_person: 'already-there' });
+  });
+});
+
+/**
+ * **같은 명식을 못 물어도 던지지 않는다**(ADR 0078). 액션이 던지면 운영의 Next 가 문장을
+ * 영어 안내로 바꾼다 — 폼이 세울 줄 아는 `kind: 'failed'` 로 낸다. 궁합은 열지 않는다.
+ */
+describe('같은 명식을 못 물으면', () => {
+  const typed: PairSide = {
+    from: 'typed',
+    query: { ...DEFAULT_QUERY, name: '민수', date: '1990-05-15', time: '14:30' },
+  };
+  const opened = () => rpc.mock.calls.filter(([name]) => name === 'create_pair_for_reading');
+
+  it('문이 지은 우리말 문장을 값으로 낸다 — 궁합을 열지 않는다', async () => {
+    sameChart.mockRejectedValue(
+      dbFailure({ message: '이용이 정지된 계정입니다', code: '42501' }, 'user_person_access.same_chart'),
+    );
+
+    await expect(openPairScreen(typed, typed, 'family')).resolves.toEqual({
+      ok: false,
+      kind: 'failed',
+      message: '이용이 정지된 계정입니다',
+    });
+    expect(opened()).toEqual([]);
+  });
+
+  it('우리가 안 쓴 오류는 안 옮긴다', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    sameChart.mockRejectedValue(new RangeError('Invalid time value'));
+
+    await expect(openPairScreen(typed, typed, 'family')).resolves.toEqual({
+      ok: false,
+      kind: 'failed',
+      message: '요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+    });
+    expect(opened()).toEqual([]);
+    logged.mockRestore();
   });
 });
