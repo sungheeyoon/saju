@@ -23,6 +23,14 @@ import { describe, expect, it } from 'vitest';
  * 여기서 빠졌다 — `/me` · 사람 목록 · 사람 상세 · 궁합. 넷 다 `instanceof` 로 예외를 받아
  * `error.message` 를 직접 집던 자리였다. **예외를 값으로 바꾸면 이 목록이 짧아진다**는
  * 것이 그 변경이 남긴 값이다.
+ *
+ * ## 이름이 `error` 가 아니어도 (2026-09-25)
+ *
+ * 처음 낱말은 `error.message` 하나였다. 공유 버튼은 받은 거절을 `failure` 라고 부르고
+ * `failure.message` 를 화면에 세웠는데 이 시험을 지나갔다 — 서버 액션이 **던지면** 운영의
+ * Next 는 그 문장을 영어 안내로 바꿔 보내므로, 그 영어가 그대로 섰다. 그래서 이름을 안 보고
+ * **잡은 것**을 본다: `catch (x)` · `.catch((x) => …)` 로 받은 이름의 `.message` 를 센다.
+ * 액션이 값으로 낸 `result.message` 는 우리가 쓴 문장이라 세지 않는다.
  */
 
 const ROOTS = ['app', 'src'];
@@ -30,6 +38,17 @@ const CODE = /\.tsx?$/;
 
 /** 우리가 안 쓴 문장이 사용자에게 가는 모양 — 오류의 `message` 를 직접 집는다 */
 const RAW = /\berror\.message\b|\bError\.message\b/;
+
+/** 잡은 것에 붙인 이름 — `catch (failure)` · `.catch((thrown) => …)` · `.catch(reason => …)` */
+const CAUGHT = /\bcatch\s*\(\s*([A-Za-z_$][\w$]*)\s*\)|\.catch\(\s*\(?\s*([A-Za-z_$][\w$]*)/g;
+
+/** 그 파일에서 잡은 이름의 `message` 를 집는가 — 이름이 무엇이든 */
+function readsCaughtMessage(text: string): boolean {
+  const names = new Set([...text.matchAll(CAUGHT)].map((match) => match[1] ?? match[2]));
+  return [...names].some((name) => new RegExp(`\\b${name.replaceAll('$', '\\$')}\\.message\\b`).test(text));
+}
+
+const rawIn = (text: string) => RAW.test(text) || readsCaughtMessage(text);
 
 /**
  * **그대로 집어도 되는 자리와 그 까닭.**
@@ -49,9 +68,13 @@ const ALLOWED: Readonly<Record<string, string>> = {
   'app/birth-form.tsx': 'LunarConversionError — 엔진이 우리말로 낸다',
   'src/lib/input/edit.ts': 'LunarConversionError — 같다',
   'src/lib/input/chart.ts': '명식 계산 실패 — 엔진 오류지 DB 거절이 아니다',
+  'src/lib/input/stored.ts': 'UnreadableInputError · LunarConversionError 만 옮긴다 — 둘 다 우리말이다',
+  'app/me/reading/preview.ts': 'ReadingEvidenceError 만 옮긴다 — `src/lib/reading` 이 우리말로 낸다',
 
   /* 사용자 화면이 아닌 자리 */
   'app/me/reading/pipeline.ts': '화면이 아니라 DB 에 적는다(`p_failure_detail`)',
+  'app/me/reading/generator.ts': '`detail` 은 화면이 아니라 DB 에 적힌다(`pipeline.ts`)',
+  'app/me/reading/model.ts': 'provider 의 문장 — `detail` 로 DB 에만 간다',
   'app/me/reading/collect.ts': 'webhook 수집기 — 사람이 보는 화면이 없다',
   'app/api/portone/webhook/settle.ts': '결제 알림 — 사람이 보는 화면이 없고, 까닭은 답이 아니라 기록에만 간다(G-23 ⑥)',
 };
@@ -77,7 +100,7 @@ describe('DB 거절은 한 문을 지난다', () => {
 
   it('오류 원문을 직접 집는 파일은 까닭이 적힌 것들뿐이다', () => {
     const raw = files
-      .filter(({ text }) => RAW.test(text))
+      .filter(({ text }) => rawIn(text))
       .map(({ path }) => path)
       .sort();
 

@@ -91,7 +91,8 @@ export function ShareReadingButton({
      * **여기서 시작해 두고 기다리지 않는다.** 이 약속을 클립보드에 그대로 넘겨야
      * 누른 자리에서 잡을 수 있다.
      */
-    const issued = shareMyReading(target).then((result) => {
+    const answered = shareMyReading(target);
+    const issued = answered.then((result) => {
       if (!result.ok) throw new Error(result.message);
       return new URL(result.path, window.location.origin).toString();
     });
@@ -113,11 +114,17 @@ export function ShareReadingButton({
     let url: string;
     try {
       url = await issued;
-    } catch (failure) {
+    } catch {
+      /*
+        **옮기는 것은 액션이 값으로 낸 거절뿐이다.** 액션이 던지면(망 · 서버 오류) 운영의 Next 는
+        그 문장을 영어 안내로 바꿔 보낸다 — 그것을 세우면 영어가 화면에 선다
+        (`app/db-error.boundary.test.ts`). 그때는 우리 문장 하나로 선다.
+      */
+      const answer = await answered.catch(() => null);
       setPhase('failed');
       setNotice(
-        failure instanceof Error && failure.message !== ''
-          ? failure.message
+        answer !== null && !answer.ok
+          ? answer.message
           : '공유 링크를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
       );
       return;
