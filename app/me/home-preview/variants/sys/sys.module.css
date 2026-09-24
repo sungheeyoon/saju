@@ -1,0 +1,43 @@
+/*
+  **시안 sys 의 보정 토큰** — `globals.css` 는 이 라운드에 안 고친다. 그래서 고칠 값을 여기 먼저 세운다.
+
+  잰 값(WCAG 대비, 본문 `--surface` #fffefa · 다크 #1d211e 위):
+  - `--text-muted` #7b8079 = 4.00 · `--surface-soft` 위 3.57 — 작은 글씨 AA(4.5) 미달. → #676c65 = 5.32 · 4.75
+  - 오행 글자색이 다크에서 안 바뀐다(`--wood` 등은 밝은 화면 값 하나뿐) — 3.10~3.75. → 밝힌 값 6.8~7.9
+  - 밝은 화면의 土 #a77d3d = 3.69, 火 #bd5d4c = 4.30 — 작은 글씨 미달. → 土 #86611f · 火 #a84b3b
+  - 다크의 `--accent-strong` #4f8068 은 **어두운 바탕에서 더 어두워진다** — 글자로 쓰면 3.6.
+    그런데 `text-accent-strong` 이 링크 · 「사주풀이 보기」 글자로 쓰인다. → 링크색을 따로 둔다
+  - 다크의 주 버튼 hover 가 `--accent-strong` 으로 가면 글자(#102019)와의 대비가 무너진다. → hover 를 밝힌다
+  - 소식 배지 흰 글자 on `--fire` = 4.34. → #a84b3b 위 5.62
+*/
+.root {
+  --sys-muted: #676c65;
+  --sys-link: var(--accent-strong);
+  --sys-primary-hover: var(--accent-strong);
+  --sys-alert: #a84b3b;
+  --sys-on-alert: #ffffff;
+  --sys-warning-ink: #7a5518;
+
+  --sys-wood: #41704f;
+  --sys-fire: #a84b3b;
+  --sys-earth: #86611f;
+  --sys-metal: #5b646c;
+  --sys-water: #45677f;
+}
+
+@media (prefers-color-scheme: dark) {
+  .root {
+    --sys-muted: var(--text-muted);
+    --sys-link: var(--accent);
+    --sys-primary-hover: color-mix(in srgb, var(--accent) 82%, #ffffff);
+    --sys-alert: #ec9383;
+    --sys-on-alert: #2a120e;
+    --sys-warning-ink: var(--warning);
+
+    --sys-wood: #7fb394;
+    --sys-fire: #ec9383;
+    --sys-earth: #d9ad6a;
+    --sys-metal: #aab4bc;
+    --sys-water: #8fb4cf;
+  }
+}
