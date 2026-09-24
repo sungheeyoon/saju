@@ -4,7 +4,7 @@
  * `eslint.config.mjs` 가 구문으로 잡을 수 있는 것(enum·class·interface·console·미결 표시·default export)은
  * 린트가 잡는다. 여기는 린트가 못 보는 것을 잰다 — **파일 이름**, **ADR 참조가 실제 파일을
  * 가리키는가**, 그리고 **탈출구의 지문**(이중 캐스트·`!`·`if (error)` 뒤에서 실패를 지우는 자리·
- * 예외 표시). 지문 목록은 2026-09-22 에 잰 값이고 **줄어들기만 한다** — 하나를 고치면 여기서
+ * `error` 를 꺼내지도 않는 자리·예외 표시). 지문 목록은 2026-09-22 에 잰 값이고 **줄어들기만 한다** — 하나를 고치면 여기서
  * 지우고, 새 자리는 못 든다(ADR 0085 §3 의 화면 DB 호출과 같은 결).
  *
  * 수가 아니라 지문으로 잠그는 까닭은 ADR 0085 정정 둘째에 있다 — 수를 세면 하나를 지운 예산을
@@ -236,7 +236,7 @@ describe('ADR 참조 (docs/agents/code-rules.md)', () => {
 // 탈출구 — 제품 코드의 지문. 줄어들기만 한다
 // -----------------------------------------------------------------------------
 
-/** `x as unknown as T` — 타입이 못 잇는 자리를 손으로 잇는 것 */
+/** `x as unknown as T` — 타입이 못 잇는 자리를 손으로 잇는 것. `as never as` · `as any as` 도 같은 예산이다 */
 const DOUBLE_CASTS_STILL_THERE = [
   'app/me/account.ts :: data as unknown as T',
   'app/me/person-input.ts :: data as unknown as StoredInput',
@@ -274,6 +274,52 @@ const ERROR_SWALLOWS_STILL_THERE = [
   'src/lib/consent/schedule.ts :: if (error) return null;',
 ];
 
+/**
+ * `const { data } = await supabase.from(…)` — `error` 를 **꺼내지도 않는** 자리. `if (error) return null` 보다
+ * 한 걸음 더 간다 — 실패가 `data: null` 이 되어 「없음」과 같은 길로 흐른다(ADR 0078).
+ * 지문은 `파일 :: 꺼내는 모양 ← DB 호출` 이다. 2026-09-25 에 잰 열둘이고 줄어들기만 한다.
+ */
+const ERRORS_NEVER_READ_STILL_THERE = [
+  "app/compat/page.tsx :: { data: edges } ← supabase.from('user_person_access')",
+  "app/me/discovery/actions.ts :: { data: existing } ← supabase.from('discovery_profile')",
+  "app/me/matching/page.tsx :: { data: joined } ← supabase.rpc('ensure_discovery_participation', …)",
+  "app/me/payload.ts :: { data: edge } ← supabase.from('user_person_access')",
+  "app/me/people/page.tsx :: { data: edges } ← supabase.from('user_person_access')",
+  "app/me/profile/page.tsx :: { data: photo } ← supabase.rpc('photo_of', …)",
+  "app/me/reading/collect.ts :: { data: adopted } ← keyed.rpc('adopt_reading_job', …)",
+  "app/me/same-chart.ts :: { data: account } ← supabase.from('app_user')",
+  "app/me/same-chart.ts :: { data: edges } ← supabase.from('user_person_access')",
+  "app/me/summary.ts :: { data: account } ← supabase.from('app_user')",
+  "app/me/summary.ts :: { data: edge } ← supabase.from('user_person_access')",
+  "proxy.ts :: { data: account } ← supabase.from('app_user')",
+];
+/** `.from()` 이름이 겹치는 내장 — `scripts/layers.test.ts` 의 `NOT_A_DB_OBJECT` 와 같은 목록 */
+const NOT_A_DB_OBJECT = /^(Array|Buffer|Uint8Array|Int32Array|Float64Array|Object|Promise|Set|Map|String)$/;
+
+/** 식 안의 첫 `.rpc()`·`.from()` 호출 — 층 시험의 화면 DB 호출 지문과 같은 모양으로 적는다 */
+function dbCallIn(node: ts.Node, source: ts.SourceFile): string | null {
+  if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+    const name = node.expression.name.text;
+    const object = node.expression.expression;
+    const objectName = ts.isIdentifier(object) ? object.text : null;
+    if ((name === 'rpc' || name === 'from') && !(objectName !== null && NOT_A_DB_OBJECT.test(objectName))) {
+      const first = node.arguments[0];
+      const arg = first ? (ts.isStringLiteral(first) ? `'${first.text}'` : first.getText(source)) : '';
+      const rest = node.arguments.length > 1 ? ', …' : '';
+      return `${object.getText(source).replace(/\s+/g, '')}.${name}(${arg}${rest})`;
+    }
+  }
+  return ts.forEachChild(node, (child) => dbCallIn(child, source) ?? undefined) ?? null;
+}
+
+/** `{ data }` 가 `error` 를 꺼내지 않는다 — `...rest` 는 `error` 를 들고 가므로 꺼낸 것으로 친다 */
+const leavesErrorBehind = (pattern: ts.ObjectBindingPattern) =>
+  !pattern.elements.some((element) => {
+    if (element.dotDotDotToken) return true;
+    const key = element.propertyName ?? element.name;
+    return (ts.isIdentifier(key) || ts.isStringLiteral(key)) && key.text === 'error';
+  });
+
 /** 층 시험이 세는 화면 DB 호출 표시는 여기서 안 센다 */
 const COUNTED_BY_LAYERS = 'no-restricted-syntax';
 /** 그 밖의 예외 표시 — `파일 :: 규칙` */
@@ -290,14 +336,16 @@ const DISABLES_WITHOUT_A_REASON = ['app/me/survey/form.tsx :: react-hooks/exhaus
 const CLASSES_NOT_EXTENDING_ERROR = ['scripts/fake-clock.mjs :: Shifted extends Real'];
 
 const isAs = (node: ts.Node): node is ts.AsExpression => ts.isAsExpression(node);
-const isUnknown = (type: ts.TypeNode) => type.kind === ts.SyntaxKind.UnknownKeyword;
+/** 이중 캐스트의 가운데 — `unknown` · `never` · `any` 셋 다 타입 검사를 건너뛴다 */
+const isUnknown = (type: ts.TypeNode) =>
+  type.kind === ts.SyntaxKind.UnknownKeyword || type.kind === ts.SyntaxKind.NeverKeyword || type.kind === ts.SyntaxKind.AnyKeyword;
 
 describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 한다', () => {
   it('제품 코드를 실제로 읽고 있다', () => {
     expect(PRODUCT_FILES.length).toBeGreaterThan(150);
   });
 
-  it('`as unknown as` 는 옛 자리 여덟에만 있다', () => {
+  it('`as unknown as` 는 옛 자리 여덟에만 있다 — `as never as` · `as any as` 도 같은 예산이다', () => {
     const found = fingerprints(PRODUCT_FILES, (node, source) =>
       isAs(node) && isAs(node.expression) && isUnknown(node.expression.type) ? oneLine(node.getText(source)) : null,
     );
@@ -310,20 +358,76 @@ describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 �
   });
 
   it('`if (error)` 뒤에서 실패를 값 없이 지우는 자리는 옛 자리 셋뿐이다 (ADR 0078)', () => {
+    // `error` · `x.error` 를 조건으로, 또는 `error || …` 의 한 갈래로 드는 if 다
+    const isError = (node: ts.Expression): boolean =>
+      (ts.isIdentifier(node) && node.text === 'error') || (ts.isPropertyAccessExpression(node) && node.name.text === 'error');
+    const namesError = (node: ts.Expression): boolean =>
+      isError(node) ||
+      (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.BarBarToken && (namesError(node.left) || namesError(node.right))) ||
+      (ts.isParenthesizedExpression(node) && namesError(node.expression));
     const swallows = (node: ts.Node, source: ts.SourceFile): string | null => {
-      if (!ts.isIfStatement(node) || !ts.isIdentifier(node.expression) || node.expression.text !== 'error') return null;
+      if (!ts.isIfStatement(node) || !namesError(node.expression)) return null;
       const body = ts.isBlock(node.thenStatement) && node.thenStatement.statements.length === 1 ? node.thenStatement.statements[0] : node.thenStatement;
       if (!ts.isReturnStatement(body)) return null;
       const value = body.expression;
       const empty =
         value === undefined ||
         value.kind === ts.SyntaxKind.NullKeyword ||
-        value.kind === ts.SyntaxKind.UndefinedKeyword ||
+        value.kind === ts.SyntaxKind.FalseKeyword ||
+        (ts.isIdentifier(value) && value.text === 'undefined') ||
         (ts.isArrayLiteralExpression(value) && value.elements.length === 0) ||
         ts.isNumericLiteral(value);
-      return empty ? `if (error) ${oneLine(body.getText(source))}` : null;
+      return empty ? `if (${oneLine(node.expression.getText(source))}) ${oneLine(body.getText(source))}` : null;
     };
     expectExactly(fingerprints(PRODUCT_FILES, swallows), ERROR_SWALLOWS_STILL_THERE);
+  });
+
+  it('DB 결과에서 `error` 를 꺼내지 않는 자리는 옛 자리 열둘뿐이다 (ADR 0078)', () => {
+    // `const { data } = await …from(…)` 과 `const [{ data }] = await Promise.all([…from(…)])` 의 한 칸
+    const unread = (pattern: ts.BindingName, value: ts.Expression | undefined, source: ts.SourceFile): string | null => {
+      if (!ts.isObjectBindingPattern(pattern) || value === undefined || !leavesErrorBehind(pattern)) return null;
+      const call = dbCallIn(value, source);
+      return call === null ? null : `${oneLine(pattern.getText(source))} ← ${call}`;
+    };
+    const found = PRODUCT_FILES.flatMap((file) => {
+      const source = parse(file);
+      const rel = relPath(file);
+      const out: { file: string; line: number; fingerprint: string }[] = [];
+      const note = (at: ts.Node, text: string | null) => {
+        if (text !== null) out.push({ file: rel, line: lineOf(source, at), fingerprint: `${rel} :: ${text}` });
+      };
+      const visit = (node: ts.Node) => {
+        if (ts.isVariableDeclaration(node) && node.initializer && ts.isAwaitExpression(node.initializer)) {
+          const awaited = node.initializer.expression;
+          if (ts.isObjectBindingPattern(node.name)) note(node, unread(node.name, awaited, source));
+          else if (
+            ts.isArrayBindingPattern(node.name) &&
+            ts.isCallExpression(awaited) &&
+            awaited.expression.getText(source) === 'Promise.all' &&
+            awaited.arguments[0] !== undefined &&
+            ts.isArrayLiteralExpression(awaited.arguments[0])
+          ) {
+            const slots = awaited.arguments[0].elements;
+            node.name.elements.forEach((element, at) => {
+              if (ts.isBindingElement(element)) note(element, unread(element.name, slots[at], source));
+            });
+          }
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(source);
+      return out;
+    });
+    expectExactly(found, ERRORS_NEVER_READ_STILL_THERE);
+  });
+
+  it('`@ts-expect-error` 는 없다 — 타입 오류를 끄는 표시도 예산 0 이다', () => {
+    const found = PRODUCT_FILES.flatMap((file) =>
+      readFileSync(file, 'utf8')
+        .split('\n')
+        .flatMap((line, at) => (/(\/\/|\/\*)\s*@ts-expect-error/.test(line) ? [`${relPath(file)}:${at + 1} ${line.trim()}`] : [])),
+    );
+    expect(found).toEqual([]);
   });
 
   it('예외 표시는 `eslint-disable-next-line 규칙 -- 까닭` 한 줄뿐이다 — 파일째 끄지 않는다', () => {
