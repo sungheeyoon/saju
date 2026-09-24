@@ -231,7 +231,7 @@ textarea:focus-visible, summary:focus-visible {
 .app-shell { width: min(100% - 2.5rem, 72rem); margin-inline: auto; }
 .eyebrow {
   color: var(--accent);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
