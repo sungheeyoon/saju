@@ -1,15 +1,16 @@
 import Link from 'next/link';
 
 import { DISCOVERY_TEASER, boardNotes } from '@/src/lib/discovery';
-import { ELEMENTS } from '@/src/lib/saju';
+import { ELEMENTS, STEM_INFO } from '@/src/lib/saju';
 
 import type { VariantProps } from '../..';
 import { previewHref } from '../../../shared/preview-href';
 import { PRIMARY } from '../buttons';
 import { rounded } from '../fonts';
-import { ELEMENT_CLASS, ElementSymbol, Icon, ROOT_CLASS } from '../symbols';
-import { Deck } from './deck';
+import { Icon, ROOT_CLASS } from '../symbols';
+import { Deck, QuietOrbit } from './deck';
 import { Dock, TopBar } from './menu';
+import type { MeMark } from './orbit-map';
 
 /*
   **3차 · warm 매칭 — 「오늘의 인연」 한 사람이 주인공.**
@@ -23,22 +24,28 @@ import { Dock, TopBar } from './menu';
   되돌리기는 테두리만. 데이팅 앱의 손짓(오른쪽 = 요청 확인, 왼쪽 = 넘기기)은 사진 위에서 흉내만 낸다 — 요청은 나가지 않는다.
 
   내 사주가 없으면 덱 대신 참여 안내가 선다(실제 화면의 `Guide` 와 같은 문장).
+
+  **4차 · 지도를 섞다.** 관계 지도(orbit)의 「내 궤도로 다가오는 인연」을 부드러움으로 다시 그려(`orbit-map.tsx`)
+  카드와 같은 상태를 읽게 했다. 넓은 화면은 카드 옆 온 궤도, 폰은 사진 위의 해돋이 띠. 빈 날 · 다 만난 날 ·
+  내 사주 없음은 아무도 다가오지 않는 작은 궤도로 선다.
 */
 export default function Screen({ state }: VariantProps) {
+  const me = meOf(state);
   const exploring = state.cards.some((card) => card.exploration);
   const { explorationNote } = boardNotes({ viewerMissingCount: 1, hasExploration: exploring });
 
   return (
-    <div className={`${ROOT_CLASS} flex min-w-0 flex-col gap-6 break-keep sm:gap-8`}>
+    <div className={`${ROOT_CLASS} flex min-w-0 flex-col gap-5 break-keep sm:gap-8`}>
       <TopBar active="/me/matching" unread={state.unread} unreadChat={state.unreadChat} />
 
-      {state.self === null ? (
+      {me === null ? (
         <>
           <Heading />
           <Guide />
         </>
       ) : (
         <Deck
+          me={me}
           cards={state.cards}
           teaser={DISCOVERY_TEASER}
           explorationNote={explorationNote}
@@ -49,6 +56,22 @@ export default function Screen({ state }: VariantProps) {
       <Dock active="/me/matching" unreadChat={state.unreadChat} />
     </div>
   );
+}
+
+/** 지도의 가운데와 안쪽 궤도 — 내 일간과 오행 다섯. 문턱은 후보를 뽑는 셈과 같다(여덟 글자의 20% 보다 적으면 적은 기운) */
+function meOf({ self }: VariantProps['state']): MeMark | null {
+  if (self === null) return null;
+  const stem = self.saju.pillars.dayMaster;
+  const { counts, glyphCount } = self.saju.analysis.elements;
+  return {
+    stem,
+    element: STEM_INFO[stem].element,
+    elements: ELEMENTS.map((element) => ({
+      element,
+      count: counts[element],
+      low: glyphCount > 0 && counts[element] / glyphCount < 0.2,
+    })),
+  };
 }
 
 /** 날짜 한 줄 + 「오늘의 인연」 — 홈의 인사와 같은 단(고운돋움 표시 단) */
@@ -67,14 +90,9 @@ function Heading() {
 /** 참여가 열릴 자리가 아직 아니다 — 실제 화면의 문장 그대로, 모양만 홈의 「내 사주 등록」 카드로 */
 function Guide() {
   return (
-    <section className="relative flex flex-col gap-5 overflow-hidden rounded-[2rem] bg-[var(--cream)] p-6 sm:p-10">
-      <span aria-hidden="true" className="flex gap-2">
-        {ELEMENTS.map((element) => (
-          <span key={element} className={`${ELEMENT_CLASS[element]} grid size-12 place-items-center rounded-full bg-[var(--tile)]`}>
-            <ElementSymbol element={element} className="size-7" />
-          </span>
-        ))}
-      </span>
+    <section className="grid items-center gap-6 overflow-hidden rounded-[2rem] bg-[var(--cream)] p-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-10 sm:p-10">
+      <QuietOrbit me={null} />
+      <div className="flex min-w-0 flex-col items-start gap-5">
       <div className="flex flex-col gap-2">
         <h3 className={`${rounded.className} text-[1.625rem] leading-[1.35] text-foreground sm:text-[2rem]`}>
           먼저 내 사주와 이름이 필요해요
@@ -87,6 +105,7 @@ function Guide() {
         내 사주로 가기
         <Icon name="arrow" className="size-4" />
       </Link>
+      </div>
     </section>
   );
 }
