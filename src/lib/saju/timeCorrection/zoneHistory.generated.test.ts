@@ -14,6 +14,12 @@ import {
  *
  * 단, 실행 환경의 판본이 생성 당시와 다르면 대조는 의미가 없다. 그때는
  * 건너뛰고 그 사실을 남긴다 — 실패로 위장하지 않는다.
+ *
+ * **CI 에서는 건너뛰지 않는다(2026-09-25).** `.nvmrc` 가 `24` 로 떠 있던 동안 CI 는 Node 24.21.0
+ * (tzdb 2026c)을 받았고, 표는 24.12.0(2025b)에서 뽑혀 아래 대조 둘이 **CI 에서 늘 건너뛰어졌다** —
+ * 로컬은 건너뜀 10, CI 는 12. 아무도 몰랐다. 그래서 `.nvmrc` 를 생성한 Node 로 박고, CI 에서
+ * 판본이 어긋나면 건너뛰는 대신 빨갛게 선다. 로컬은 여전히 알리고 건너뛴다. 표를 다시 뽑으면
+ * `.nvmrc` 도 그 Node 판으로 올린다 — 안 올리면 이 시험이 CI 에서 먼저 말한다.
  */
 
 const ZONE = ZONE_HISTORY_PROVENANCE.zone;
@@ -58,6 +64,14 @@ describe('표준시 표의 출처(provenance)', () => {
   it(`실행 환경 tzdb 판본을 알려준다 (기록 ${ZONE_HISTORY_PROVENANCE.tzdb} · 현재 ${process.versions.tz ?? '미상'})`, () => {
     // 정보성 확인 — 판본이 달라도 실패시키지 않는다. 다르면 아래 대조가 skip 된다.
     expect(typeof (process.versions.tz ?? '')).toBe('string');
+  });
+});
+
+describe('CI 는 표를 뽑은 tzdb 로 돈다', () => {
+  /* 로컬은 알리기만 한다(위). 건너뛴 수를 늘리지 않으려고 `runIf` 대신 값으로 가른다 */
+  it('CI 의 tzdb 는 표의 판본과 같다 — 다르면 아래 대조가 건너뛰어진다', () => {
+    const expected = process.env.CI ? ZONE_HISTORY_PROVENANCE.tzdb : process.versions.tz;
+    expect(process.versions.tz).toBe(expected);
   });
 });
 
