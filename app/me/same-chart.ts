@@ -2,6 +2,7 @@ import { chartFingerprint, chartOf } from '@/src/lib/input/chart';
 import type { Query } from '@/src/lib/input/query';
 import { storedChartOf } from '@/src/lib/input/stored';
 import { supabaseOnServer } from '../auth/server-client';
+import { dbFailure } from '../db-error';
 import { storedInputsOf } from './person-input';
 
 /**
@@ -58,6 +59,10 @@ export type SameChart = {
  * `continue` 라 사실상 전부 건너뛰었다. 건너뛴 대가는 「같은 명식을 못 찾아 풀이권이
  * 두 번 나가는 것」이고, 그것이 이 함수가 존재하는 이유다. 한 사람에서 엔진이 터지면
  * 답을 모르는 채로 저장을 밀지 않는다.
+ *
+ * **조회가 터진 것도 같다**(ADR 0078). 계정과 엣지의 `error` 를 안 꺼내던 때는 목록을 못
+ * 읽은 것이 「같은 사람이 없다」(`null`)로 흘러, 묻지 않은 채 저장이 밀렸다. 사람 입력을 못
+ * 읽을 때(`storedInputsOf`)와 같은 길로 던진다.
  */
 export async function sameChartInMyList(query: Query): Promise<SameChart | null> {
   let mine: string;
@@ -70,7 +75,7 @@ export async function sameChartInMyList(query: Query): Promise<SameChart | null>
 
   const supabase = await supabaseOnServer();
 
-  const [{ data: account }, { data: edges }] = await Promise.all([
+  const [{ data: account, error: accountError }, { data: edges, error: edgesError }] = await Promise.all([
     supabase.from('app_user').select('self_person_id').maybeSingle(),
     // 정책이 자기 목록만 내준다 — `user_id` 를 여기서 또 적지 않는다.
     supabase
@@ -79,6 +84,8 @@ export async function sameChartInMyList(query: Query): Promise<SameChart | null>
       .order('created_at', { ascending: true }),
   ]);
 
+  if (accountError) throw dbFailure(accountError, 'app_user.self_person_id');
+  if (edgesError) throw dbFailure(edgesError, 'user_person_access.same_chart');
   if (!edges || edges.length === 0) return null;
 
   const byPerson = await storedInputsOf(

@@ -6,6 +6,7 @@ import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 import { CALENDAR_KO, GENDER_KO, STEM_INFO, type Saju } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { dbFailure } from '../../db-error';
 import { isoOf, solarDateOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL, type Query } from '@/src/lib/input/query';
 import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
@@ -63,7 +64,7 @@ export default async function PeoplePage() {
   if (!user) redirect('/auth');
 
   /** 몇 자리 남았는지는 **DB 가 센다** — 화면이 빼기를 하면 selfPerson 을 잊는 자리가 생긴다 */
-  const [slotRow, { state }, { data: edges }, made] = await Promise.all([
+  const [slotRow, { state }, { data: edges, error: edgesError }, made] = await Promise.all([
     // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
     supabase.rpc('my_person_slots'),
     readAccount(supabase),
@@ -87,6 +88,8 @@ export default async function PeoplePage() {
     */
     myReadings(),
   ]);
+  /* 목록이 이 화면의 본체다 — 못 읽은 것을 빈 목록으로 세우면 내 사람들이 지워진 것으로 읽힌다(ADR 0078) */
+  if (edgesError) throw dbFailure(edgesError, 'user_person_access.listed');
 
   const selfPersonId = selfPersonIdOf(state);
 

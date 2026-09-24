@@ -82,10 +82,12 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
       const runId = orphan.ok === true ? orphan.runId : null;
 
       if (runId !== null) {
-        const { data: adopted } = await keyed.rpc('adopt_reading_job', {
+        const { data: adopted, error: adoptError } = await keyed.rpc('adopt_reading_job', {
           p_run_id: runId,
           p_response_id: responseId,
         });
+        /* 되찾기가 터진 것은 「되찾을 것이 없다」가 아니다 — 집기와 같이 까닭을 싣고 건너뛴다(ADR 0078) */
+        if (adoptError) throw new Error(adoptError.message);
         if (adopted === true) job = await claim();
       }
     }

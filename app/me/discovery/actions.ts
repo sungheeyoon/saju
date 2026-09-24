@@ -31,7 +31,9 @@ export async function savePreferGender(value: PreferGender): Promise<SaveResult>
    * 그 값은 **기본값이 `auth.uid()` 라 앱이 적을 이유가 없는 값**이다. 적기 시작하면
    * 남의 id 를 적을 수 있는 자리가 생긴다(정책이 막지만, 열지 않는 편이 낫다).
    */
-  const { data: existing } = await supabase.from('discovery_profile').select('user_id').maybeSingle();
+  const { data: existing, error: readError } = await supabase.from('discovery_profile').select('user_id').maybeSingle();
+  /* 못 읽은 것은 「처음이다」가 아니다 — 넣으러 가면 폼에 엉뚱한 거절이 선다(ADR 0078) */
+  if (readError) return { ok: false, message: userFacingDbMessage(readError, 'discovery_profile.select') };
 
   const { error } = existing
     ? await supabase.from('discovery_profile').update({ prefer_gender: value }).eq('user_id', existing.user_id)
