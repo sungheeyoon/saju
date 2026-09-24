@@ -1,0 +1,28 @@
+/*
+  「함께 보는 궁합」의 진행 띠 — 끝을 모르는 기다림이라 몇 % 가 아니라 **흐르는 빛**으로 말한다.
+  움직임을 줄인 사람에게는 멈춘 띠 하나만 선다(글자 「만드는 중…」이 이미 같은 말을 한다).
+*/
+.flow {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--wood-mid) 30%,
+    var(--water-mid) 50%,
+    var(--fire-mid) 70%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: flow 2.4s ease-in-out infinite;
+}
+
+@keyframes flow {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow {
+    animation: none;
+    background-position: 50% 0;
+  }
+}
