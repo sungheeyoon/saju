@@ -66,11 +66,3 @@ export async function chatRoomsForViewer(): Promise<readonly ChatRoom[]> {
   });
 }
 
-/**
- * 방 하나 — 같은 문을 읽고 하나를 집는다. 방 목록의 문이 이미 「내가 볼 수 있는 방」만 내주므로
- * 없는 방과 남의 방은 여기서 `null` 이고, 화면은 그것을 404 로 세운다.
- */
-export async function chatRoomForViewer(matchId: string): Promise<ChatRoom | null> {
-  const rooms = await chatRoomsForViewer();
-  return rooms.find((room) => room.matchId === matchId) ?? null;
-}

@@ -13,6 +13,9 @@ import { dbFailure } from '../../../db-error';
 
 type MessageRow = RpcRow<'my_chat_messages'>;
 
+/** 한 번에 읽는 최근 메시지 수 — 이보다 적게 왔으면 방의 처음부터 다 읽은 것이다 */
+export const MESSAGE_WINDOW = 200;
+
 export type ChatMessage = {
   readonly messageId: string;
   readonly seq: number;
@@ -39,7 +42,7 @@ export async function messagesForViewer(matchId: string): Promise<readonly ChatM
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc('my_chat_messages', {
     p_match_id: matchId,
-    p_limit: 200,
+    p_limit: MESSAGE_WINDOW,
   });
   /* 방 화면의 본체다 — 못 읽으면 빈 방이 아니라 실패다(ADR 0078) */
   if (error) throw dbFailure(error, 'my_chat_messages');

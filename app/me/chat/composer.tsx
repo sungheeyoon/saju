@@ -13,10 +13,11 @@ import {
 } from '@/src/lib/chat';
 
 import { markChatRead, sendChatMessage } from './actions';
+import { ChatIcon } from './chat-icon';
 import { announceChatUnreadMoved } from './unread-signal';
 
-const PRIMARY =
-  'h-11 shrink-0 rounded-lg bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-60 sm:h-10';
+/** 글자 수는 한도에 가까워질 때만 선다 — 늘 서 있는 「0/1,000」은 읽을 것 없는 숫자다 */
+const COUNT_FROM = Math.floor(CHAT_POLICY.maxLength * 0.9);
 
 /**
  * 입력 칸 — 보내고 나면 화면을 다시 읽는다. 실시간 갱신은 채팅 안전 베타에 없다(PRD §7.1).
@@ -64,14 +65,15 @@ export function Composer({ matchId }: { matchId: string }) {
 
   return (
     <form
-      className="flex flex-col gap-2"
+      className="flex flex-col gap-1.5"
       onSubmit={(event) => {
         event.preventDefault();
         send();
       }}
     >
-      <div className="flex items-end gap-2">
-        <label className="flex min-w-0 flex-1 flex-col">
+      {/* 둥근 알약 하나 — 칸과 보내기가 한 몸이라 엄지가 닿는 자리에 둘이 함께 선다 */}
+      <div className="flex items-end gap-2 rounded-[1.75rem] bg-surface-soft p-1.5 pl-4 ring-1 ring-border focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]">
+        <label className="flex min-w-0 flex-1">
           <span className="sr-only">메시지</span>
           <textarea
             ref={field}
@@ -86,18 +88,37 @@ export function Composer({ matchId }: { matchId: string }) {
             }}
             placeholder={CHAT_INPUT_PLACEHOLDER}
             maxLength={CHAT_POLICY.maxLength}
-            rows={2}
+            rows={1}
             disabled={working}
-            className="min-h-11 w-full resize-none rounded-md border border-border bg-surface px-3 py-2.5 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash"
+            className="field-sizing-content max-h-36 min-h-11 w-full resize-none bg-transparent py-2.5 text-[15px] leading-6 text-foreground outline-none placeholder:text-secondary"
           />
         </label>
-        <button type="submit" disabled={working} className={PRIMARY}>
-          {working ? '보내는 중…' : CHAT_SEND_LABEL}
+        <button
+          type="submit"
+          disabled={working}
+          aria-label={working ? '보내는 중…' : CHAT_SEND_LABEL}
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-accent px-3 text-[15px] font-semibold text-on-accent hover:bg-accent-strong active:scale-95 disabled:opacity-55 sm:px-4"
+        >
+          <ChatIcon name="send" className="size-[18px]" />
+          <span aria-hidden="true" className="hidden sm:inline">
+            {CHAT_SEND_LABEL}
+          </span>
         </button>
       </div>
-      {failure !== null && failure !== '' && (
-        <p role="alert" className="text-sm text-danger">
-          {failure}
+      {(body.length >= COUNT_FROM || (failure !== null && failure !== '')) && (
+        <p className="flex items-start justify-between gap-3 px-4 text-[13px]">
+          {failure !== null && failure !== '' ? (
+            <span role="alert" className="text-danger">
+              {failure}
+            </span>
+          ) : (
+            <span />
+          )}
+          {body.length >= COUNT_FROM && (
+            <span className="shrink-0 tabular-nums text-secondary">
+              {body.length.toLocaleString('ko-KR')}/{CHAT_POLICY.maxLength.toLocaleString('ko-KR')}
+            </span>
+          )}
         </p>
       )}
     </form>
