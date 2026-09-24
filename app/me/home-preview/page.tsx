@@ -28,11 +28,15 @@ export default async function HomePreviewPage({ searchParams }: PageProps<'/me/h
   const search = await searchParams;
   const params = paramsFrom(search);
   /* 「모아 보기」는 시안 전부를 한 화면에 차례로 세운다 — 액자(iframe)는 `X-Frame-Options: DENY` 가 막는다 */
-  const all = search.v === 'all';
+  const allRound = search.v === 'all2' ? 2 : search.v === 'all' || search.v === 'all1' ? 1 : null;
   const current = VARIANTS.find((variant) => variant.key === search.v) ?? VARIANTS[0];
-  const currentKey = all ? 'all' : current.key;
+  const currentKey = allRound === null ? current.key : `all${allRound}`;
   const state = stateOf(params);
-  const tabs = [{ key: 'all', label: '모아 보기' }, ...VARIANTS];
+  const rounds = ([2, 1] as const).map((round) => ({
+    round,
+    tabs: [{ key: `all${round}`, label: '모아 보기' }, ...VARIANTS.filter((variant) => variant.round === round)],
+  }));
+  const shown = allRound === null ? [] : VARIANTS.filter((variant) => variant.round === allRound);
 
   const hrefOf = (key: string, next: Partial<StateParams>) => {
     const merged = { ...params, ...next };
@@ -55,28 +59,31 @@ export default async function HomePreviewPage({ searchParams }: PageProps<'/me/h
           </p>
         </div>
 
-        <nav aria-label="시안" className="-mx-4 overflow-x-auto px-4">
-          <ul className="flex w-max gap-2">
-            {tabs.map((variant) => {
-              const active = variant.key === currentKey;
-              return (
-                <li key={variant.key}>
-                  <Link
-                    href={hrefOf(variant.key, {})}
-                    aria-current={active ? 'page' : undefined}
-                    className={`inline-flex whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold ${
-                      active
-                        ? 'border-accent bg-accent text-on-accent'
-                        : 'border-border-strong bg-surface hover:border-accent hover:text-accent'
-                    }`}
-                  >
-                    {variant.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        {rounds.map(({ round, tabs }) => (
+          <nav key={round} aria-label={`${round}차 시안`} className="-mx-4 flex items-center gap-2 overflow-x-auto px-4">
+            <span className="shrink-0 text-xs font-bold text-muted">{round}차</span>
+            <ul className="flex w-max gap-2">
+              {tabs.map((variant) => {
+                const active = variant.key === currentKey;
+                return (
+                  <li key={variant.key}>
+                    <Link
+                      href={hrefOf(variant.key, {})}
+                      aria-current={active ? 'page' : undefined}
+                      className={`inline-flex whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold ${
+                        active
+                          ? 'border-accent bg-accent text-on-accent'
+                          : 'border-border-strong bg-surface hover:border-accent hover:text-accent'
+                      }`}
+                    >
+                      {variant.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        ))}
 
         <div aria-label="상태" className="flex flex-wrap gap-x-5 gap-y-2 text-xs">
           <Choice
@@ -111,16 +118,16 @@ export default async function HomePreviewPage({ searchParams }: PageProps<'/me/h
         </div>
       </header>
 
-      {all ? (
+      {allRound !== null ? (
         <>
           <nav aria-label="시안으로 건너뛰기" className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
-            {VARIANTS.map((variant) => (
+            {shown.map((variant) => (
               <a key={variant.key} href={`#variant-${variant.key}`} className="font-semibold text-accent underline underline-offset-2">
                 {variant.label}
               </a>
             ))}
           </nav>
-          {VARIANTS.map(({ key, label, Component }) => (
+          {shown.map(({ key, label, Component }) => (
             <section
               key={key}
               id={`variant-${key}`}
