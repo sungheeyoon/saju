@@ -9,6 +9,7 @@ import C from './c';
 import D from './d';
 import E from './e';
 import F from './f';
+import R from './r';
 
 export type VariantProps = { state: PreviewState };
 
@@ -19,6 +20,7 @@ export type VariantProps = { state: PreviewState };
  * 다 박아 두고 각자는 `variants/<자기 것>/` 안만 고친다.
  */
 export const VARIANTS: readonly { key: string; label: string; Component: ComponentType<VariantProps> }[] = [
+  { key: 'r', label: 'R · 추천 조합', Component: R },
   { key: 'a1', label: 'A1 · 통합 홈 요약형', Component: A1 },
   { key: 'a2', label: 'A2 · 통합 홈 명식형', Component: A2 },
   { key: 'a3', label: 'A3 · 통합 홈 전체 사람형', Component: A3 },

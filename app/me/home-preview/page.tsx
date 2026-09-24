@@ -27,8 +27,12 @@ export default async function HomePreviewPage({ searchParams }: PageProps<'/me/h
 
   const search = await searchParams;
   const params = paramsFrom(search);
+  /* 「모아 보기」는 시안 전부를 한 화면에 차례로 세운다 — 액자(iframe)는 `X-Frame-Options: DENY` 가 막는다 */
+  const all = search.v === 'all';
   const current = VARIANTS.find((variant) => variant.key === search.v) ?? VARIANTS[0];
-  const Variant = current.Component;
+  const currentKey = all ? 'all' : current.key;
+  const state = stateOf(params);
+  const tabs = [{ key: 'all', label: '모아 보기' }, ...VARIANTS];
 
   const hrefOf = (key: string, next: Partial<StateParams>) => {
     const merged = { ...params, ...next };
@@ -53,8 +57,8 @@ export default async function HomePreviewPage({ searchParams }: PageProps<'/me/h
 
         <nav aria-label="시안" className="-mx-4 overflow-x-auto px-4">
           <ul className="flex w-max gap-2">
-            {VARIANTS.map((variant) => {
-              const active = variant.key === current.key;
+            {tabs.map((variant) => {
+              const active = variant.key === currentKey;
               return (
                 <li key={variant.key}>
                   <Link
@@ -78,36 +82,61 @@ export default async function HomePreviewPage({ searchParams }: PageProps<'/me/h
           <Choice
             title="내 사주"
             options={[
-              { text: '등록됨', href: hrefOf(current.key, { self: true }), on: params.self },
-              { text: '없음', href: hrefOf(current.key, { self: false }), on: !params.self },
+              { text: '등록됨', href: hrefOf(currentKey, { self: true }), on: params.self },
+              { text: '없음', href: hrefOf(currentKey, { self: false }), on: !params.self },
             ]}
           />
           <Choice
             title="저장한 사람"
             options={PEOPLE_COUNTS.map((count) => ({
               text: `${count}명`,
-              href: hrefOf(current.key, { people: count }),
+              href: hrefOf(currentKey, { people: count }),
               on: params.people === count,
             }))}
           />
           <Choice
             title="새 소식"
             options={[
-              { text: '없음', href: hrefOf(current.key, { unread: false }), on: !params.unread },
-              { text: '있음', href: hrefOf(current.key, { unread: true }), on: params.unread },
+              { text: '없음', href: hrefOf(currentKey, { unread: false }), on: !params.unread },
+              { text: '있음', href: hrefOf(currentKey, { unread: true }), on: params.unread },
             ]}
           />
           <Choice
             title="경고 안내"
             options={[
-              { text: '없음', href: hrefOf(current.key, { warning: false }), on: !params.warning },
-              { text: '있음', href: hrefOf(current.key, { warning: true }), on: params.warning },
+              { text: '없음', href: hrefOf(currentKey, { warning: false }), on: !params.warning },
+              { text: '있음', href: hrefOf(currentKey, { warning: true }), on: params.warning },
             ]}
           />
         </div>
       </header>
 
-      <Variant state={stateOf(params)} />
+      {all ? (
+        <>
+          <nav aria-label="시안으로 건너뛰기" className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
+            {VARIANTS.map((variant) => (
+              <a key={variant.key} href={`#variant-${variant.key}`} className="font-semibold text-accent underline underline-offset-2">
+                {variant.label}
+              </a>
+            ))}
+          </nav>
+          {VARIANTS.map(({ key, label, Component }) => (
+            <section
+              key={key}
+              id={`variant-${key}`}
+              aria-labelledby={`variant-${key}-title`}
+              className="flex scroll-mt-20 flex-col gap-5 rounded-[2rem] border-2 border-dashed border-border-strong p-3 sm:p-6"
+            >
+              <h2 id={`variant-${key}-title`} className="text-xl font-bold tracking-[-0.03em] text-accent-strong">
+                {label}
+              </h2>
+              <Component state={state} />
+            </section>
+          ))}
+        </>
+      ) : (
+        <current.Component state={state} />
+      )}
     </main>
   );
 }
