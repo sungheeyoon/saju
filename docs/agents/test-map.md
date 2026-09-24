@@ -3,16 +3,18 @@
 이 문서는 **무엇을 고쳤을 때 무엇을 돌리는가** 하나만 답한다. 어디에 놓는가는
 `docs/architecture.md`, 어떻게 적는가는 `docs/agents/code-rules.md`. CI 가 무엇을 돌리는가의
 **규칙은 `scripts/ci-plan.mjs` 한 곳**이고(ADR 0082), 이 문서는 그 규칙을 사람이 읽는 표로
-옮긴 것이다 — 어긋나면 `ci-plan.mjs` 가 맞다. 값은 **2026-09-22 에 잰 것**이다(ADR 0087).
+옮긴 것이다 — 어긋나면 `ci-plan.mjs` 가 맞다. 값은 **2026-09-22 에 잰 것**이다(ADR 0087). 아래 두 표의 파일 수 ·
+시험 수는 **2026-09-25 에 다시 쟀다** — 단위는 `npm test` 의 끝 줄, pgTAP 은 `npm run test:db` 의 끝 줄과
+`select plan(N)` 의 합, e2e 는 `npx playwright test --list`, 파일 수는 `find … -name '*.test.ts'` 다.
 
 ## 시험은 넷이고, 층마다 닿는 것이 다르다
 
 | 시험 | 명령 | 무엇을 재나 | 필요한 것 | 수 |
 | --- | --- | --- | --- | --- |
-| **단위**(vitest) | `npm test` | 순수 함수 — 엔진 · 도메인 lib · `app/**/*.ts` 의 판단 · `scripts/` 의 검사 도구 자신 | 없음 | 103 파일 · 1,978 · 12초 |
-| **pgTAP** | `npm run test:db` | 표 · 함수 · 정책이 **역할을 갈아입고** 실제로 막는가, 함수와 표의 모양(ADR 0084) | Docker + `npm run db:start` | 32 파일 · plan 805 |
-| **흐름**(`scripts/check-*.mjs`) | `npm run test:flow` | 가입 → 저장 → 요청 · 수락 → 풀이 · 공유를 **실제 스택에 대고**, 모델만 빼고 | Docker + `db:start`. 제 안에서 Next 서버를 띄운다(`check-db-races` 는 안 띄우고 psql 둘 · 셋으로 DB 의 두 세션 경합을 일으킨다) | 9 벌 · 단언 약 400 |
-| **e2e**(Playwright) | `npm run test:e2e` / `test:e2e:authed` | 화면 — 비로그인 · 로그인 · 둘이 있어야 성립하는 흐름 · 가입 관문 | 익명은 없음(CI 의 껍데기 접속값으로 돈다). 로그인 뒤는 Docker + `db:start` | 7 파일 · 익명 28 × 2 기기, 로그인 58 × 2 기기, 관문 9 |
+| **단위**(vitest) | `npm test` | 순수 함수 — 엔진 · 도메인 lib · `app/**/*.ts` 의 판단 · `scripts/` 의 검사 도구 자신 | 없음 | 133 파일(그중 둘은 통째로 건너뜀 — 실호출 백필) · 2,381 통과 + 10 건너뜀 · 12초 |
+| **pgTAP** | `npm run test:db` | 표 · 함수 · 정책이 **역할을 갈아입고** 실제로 막는가, 함수와 표의 모양(ADR 0084) | Docker + `npm run db:start` | 57 파일 · 1,453 건(고정 plan 1,424 + `no_plan` 둘) |
+| **흐름**(`scripts/check-*.mjs`) | `npm run test:flow` | 가입 → 저장 → 요청 · 수락 → 풀이 · 공유를 **실제 스택에 대고**, 모델만 빼고 | Docker + `db:start`. 제 안에서 Next 서버를 띄운다(`check-db-races` 는 안 띄우고 psql 둘 · 셋으로 DB 의 두 세션 경합을 일으킨다) | 9 벌 · 단언 464(2026-09-25) |
+| **e2e**(Playwright) | `npm run test:e2e` / `test:e2e:authed` | 화면 — 비로그인 · 로그인 · 둘이 있어야 성립하는 흐름 · 가입 관문 | 익명은 없음(CI 의 껍데기 접속값으로 돈다). 로그인 뒤는 Docker + `db:start` | 8 파일 · 익명 33 × 2 기기, 로그인 73 × 2 기기, 관문 9 — 합 221 |
 
 **vitest 가 닿는 자리는 `.ts` 뿐이다** — `vitest.config.mts` 의 include 가 `src/**` · `app/**` ·
 `scripts/**` 의 `*.test.ts` 다. `.tsx` 는 밖이고 jsdom 을 안 들였다(`<dialog>` 때문, ADR 0080).
@@ -23,13 +25,13 @@
 
 | 층 | 자리 | 단위 | pgTAP | 흐름 | e2e |
 | --- | --- | --- | --- | --- | --- |
-| 엔진 | `src/lib/saju/` | **46 파일** — 골든 스냅샷(건수는 스냅샷 머리가 찍는다) · 외부 대조(억부 37 · 종격 41) · 모집단 3000 · 절기 · 음력 왕복 | | | 명식 화면(`saju.spec.ts` 20) |
-| 도메인 lib | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat}` | **29 파일** — 프롬프트 조립 · 검사 · 점수 · 동의 · 관문 | | | |
-| 문 · 액션 | `app/**/*.ts` | **24 파일** — 어댑터 · 파이프라인 · 오류 번역 · 주소 코덱 · 장부 둘(`*.boundary.test.ts`) | 문이 부르는 함수 전부 | **여기가 본거지** — 문·액션·라우트를 주소로 두드린다 | 로그인 뒤 화면이 지나간다 |
-| 화면 | `app/**/*.tsx` | 없음 | | | **여기만** — 88 건 |
+| 엔진 | `src/lib/saju/` | **46 파일** — 골든 스냅샷(건수는 스냅샷 머리가 찍는다) · 외부 대조(억부 37 · 종격 41) · 모집단 3000 · 절기 · 음력 왕복 | | | 명식 화면(`saju.spec.ts` 21) |
+| 도메인 lib | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat,presence}` | **34 파일**(+ 실호출 백필 둘) — 프롬프트 조립 · 검사 · 점수 · 동의 · 관문 | | | |
+| 문 · 액션 | `app/**/*.ts` | **36 파일**(+ 실호출 하나) — 어댑터 · 파이프라인 · 오류 번역 · 주소 코덱 · 장부(`*.boundary.test.ts`) · 크론 두 주소의 `CRON_SECRET` 자격(`app/api/cron/*/route.test.ts` — 주소를 두드려 403 과 열쇠를 안 꺼냈는가를 본다) | 문이 부르는 함수 전부 | **여기가 본거지** — 문·액션·라우트를 주소로 두드린다 | 로그인 뒤 화면이 지나간다 |
+| 화면 | `app/**/*.tsx` | 없음 | | 서버 HTML 만 — `check-reading` 이 「수정 전」 풀이의 딱지 · 표지 색 · 주 단추를 읽는다 | **여기서 누른다** — 115 건(기기 둘을 겹치면 221) |
 | 관문 | `proxy.ts` · `src/lib/consent` | `gate.test.ts` · `notice.test.ts` | `20_notice` | | `notice.spec.ts` 9 |
-| DB | `supabase/migrations/` | | **32 파일** · 모양 잠금 넷(`33_function_shape`) | 위 | |
-| 검사 도구 | `scripts/` · `eslint.config.mjs` | **7 파일** — `ci-plan` · `run-checks` · `layers` · `code-rules` · `worktree-stack` · `secret-env`(비밀의 갈래 · `server-only` 잠금 · runbook 절, G-23 ⑧) · `vercel-ignore`(Preview 를 건너뛸지 — 0 이 건너뜀) | | | |
+| DB | `supabase/migrations/` | | **57 파일** · 모양 잠금 넷(`33_function_shape`) | 위 | |
+| 검사 도구 | `scripts/` · `eslint.config.mjs` | **14 파일** — `ci-plan` · `run-checks` · `layers` · `code-rules` · `worktree-stack` · `secret-env`(비밀의 갈래 · `server-only` 잠금 · runbook 절, G-23 ⑧) · `vercel-ignore`(Preview 를 건너뛸지 — 0 이 건너뜀) · `copy-contracts` · `main-red` · `stack-slot` · `remote-lock` · `db-remote` · `audit-verify` · `brand-share-images` | | | |
 
 ## 무엇을 고쳤으면 무엇을 돌리나
 
@@ -51,15 +53,16 @@
 | `src/lib/saju/**` · `app/saju/**` | `npm test` → `npm run typecheck` · `npm run lint` | 로그인 뒤 화면과 흐름 검사는 같은 엔진으로 기대값을 짓는다. **예외** — `version.ts` · `pillars/index.ts` 는 DB 검사식이 보므로 전부 |
 | `src/lib/*` (엔진 밖) | `npm test`, 프롬프트면 아래 「프롬프트」 | 순수 함수. 문이 부르는 모양이 바뀌면 `typecheck` 가 잡는다 |
 | `app/**/*.ts` — 문 · 액션 · 라우트 | `npm test` → `npm run test:flow` | 문의 실패 셋과 액션의 값은 단위가, 실제 스택에서 문이 여는가는 흐름이 |
+| `app/api/cron/reading/**` | `npx vitest run app/api/cron` | 복구기의 자격 — 머리 없음 · 다른 비밀 · `Basic` · 비밀이 없는 배포는 403 이고 열쇠를 안 꺼낸다, 맞는 비밀만 일감을 줍는다(`route.test.ts`). 소스를 훑는 정규식(`app/me/reading/boundary.test.ts`)은 조건이 헐거워져도 초록이었다 |
 | `app/**/*.tsx` — 화면 | 비로그인 화면 `npm run test:e2e`, 로그인 뒤 `npm run test:e2e:signed-in` · 요청·수락이면 `test:e2e:match` · 채팅이면 `test:e2e:chat` | vitest 가 안 닿는다. 문구만 바뀐 라운드는 안 돌린다 |
 | `proxy.ts` · `src/lib/consent` | `npm test` → `npm run test:e2e:notice` | 관문은 링크를 눌러야 밟힌다 — `page.goto` 로는 못 잰다(ADR 0041) |
-| `supabase/migrations/**` | `npm run db:reset` → `npm run test:db` → `npm run db:types` → `npm run typecheck` → `npm run test:flow` | 생성 타입을 다시 안 지으면 앱은 없는 열을 있다고 믿은 채 컴파일된다(ADR 0078). CI 의 `authed` 가 diff 를 본다 |
+| `supabase/migrations/**` | `npm run db:reset` → `npm run test:db` → `npm run db:types` → `npm run typecheck` → `npm run test:flow` | 생성 타입을 다시 안 지으면 앱은 없는 열을 있다고 믿은 채 컴파일된다(ADR 0078). CI 의 `authed` 중 `notice` 차선이 diff 를 본다 |
 | 프롬프트(`src/lib/reading/prompt*` · `parts.ts` · `vocabulary.ts`) | `npm test`, 본문이 바뀌면 `READING_LIVE=1 npx vitest run app/me/reading/call.live.test.ts` | 조립 스냅샷은 단위가 든다. **본문이 한 글자라도 바뀌면 실호출 한 번**(ADR 0073). 경로 이름이 본문에 샌 적이 있다 |
 | `scripts/ci-plan.mjs` · `release-stage.mjs` · `verify.yml` · `main-red.yml` | `npm test` | `ci-plan.test.ts` 가 단계별 계획을, `main-red.test.ts` 가 이슈의 판단을 든다. YAML 에 `paths` 를 적지 않는다 |
 | `vercel.json` · `scripts/vercel-ignore.mjs` | `npx vitest run scripts/vercel-ignore.test.ts` | Vercel 이 Preview 를 건너뛸지. **0 이면 건너뛰고 1 이면 빌드한다** — 시험이 그 반대 의미와 「모르면 빌드」를 든다(runbook 「배포」) |
 | `package.json` · `package-lock.json` | `npm audit --omit=dev --audit-level=high` → `npm test` · `npm run typecheck` · `npm run lint` · `npm run build` | CI 는 `fast` 와 `audit` 만 돈다. 의존성은 화면과 DB 도구에도 닿으니 큰 판 올림이면 e2e · pgTAP 도 한 번 |
 | `eslint.config.mjs` · `scripts/*.test.ts` | `npm run lint` → `npm test`, 그리고 **일부러 어긴 파일**로 걸리는지 | 「규칙을 넣었다」와 「규칙이 건다」는 다른 문장이다(ADR 0085·0086) |
-| `app/api/cron/audit-export/**` · `scripts/db-remote.mjs` · `scripts/audit-verify.mjs` | `npx vitest run app/api/cron/audit-export scripts/db-remote.test.ts scripts/audit-verify.test.ts`, 표 · 함수면 `npm run test:db`(`46_operator_access_log` · `50_audit_export_runs`) · `node scripts/check-db-races.mjs`(반출과 늦은 커밋 · 거절 한도 · 같은 열쇠의 주문 · 두 반출 실행 · CLI 결과 한 줄 — 두 세션 경합, `20261013090000` · `20261014090000` · `20261015090000`) | 접속기록 반출과 CLI 기록(ADR 0105). S3 는 가짜로 대신한다 — 진짜 버킷은 AWS 계정이 서는 날 runbook 「반출」의 7 이 잰다 |
+| `app/api/cron/audit-export/**` · `scripts/db-remote.mjs` · `scripts/audit-verify.mjs` | `npx vitest run app/api/cron/audit-export scripts/db-remote.test.ts scripts/audit-verify.test.ts`(자격은 복구기와 같은 모양으로 `route.test.ts` 가 든다), 표 · 함수면 `npm run test:db`(`46_operator_access_log` · `50_audit_export_runs`) · `node scripts/check-db-races.mjs`(반출과 늦은 커밋 · 거절 한도 · 같은 열쇠의 주문 · 두 반출 실행 · CLI 결과 한 줄 — 두 세션 경합, `20261013090000` · `20261014090000` · `20261015090000`) | 접속기록 반출과 CLI 기록(ADR 0105). S3 는 가짜로 대신한다 — 진짜 버킷은 AWS 계정이 서는 날 runbook 「반출」의 7 이 잰다 |
 
 **워크트리에서는 제 자리의 포트다** — `npm run stack:slot -- N` 이 스택 이름 · Supabase 포트 · dev 서버(`3000+10N`) ·
 흐름 검사(`3210+10N` 부터 여덟)를 함께 옮긴다(ADR 0096). 아래는 main 체크아웃(자리 0)의 이야기다.
@@ -69,11 +72,13 @@
 
 ## 잠긴 시험 셋 — `*.live.test.ts`
 
-이름이 말한다. **운영 DB 나 모델을 실제로 두드리고**, 환경변수를 켜야만 돈다. CI 밖이다.
+이름이 말한다. **운영 DB 나 모델을 실제로 두드리는 블록**은 환경변수를 켜야만 돈다(`describe.skipIf`). CI 밖이다.
+다만 `call.live.test.ts` 에는 `skipIf` 가 없는 블록 둘(실호출 원문의 이름이 겹치지 않는가 · P0/P1 표본이 실제로 갈리는
+명식인가)이 있어 **`npm test` 에서 늘 돈다** — 모델을 안 부르고 돈을 안 쓴다. 그래서 단위의 건너뛴 파일은 셋이 아니라 백필 둘이다.
 
 | 파일 | 켜는 값 | 무엇을 |
 | --- | --- | --- |
-| `app/me/reading/call.live.test.ts` | `READING_LIVE=1` | 네 kind 의 풀이를 실제로 한 번 만든다 — 토큰이 나간다 |
+| `app/me/reading/call.live.test.ts` | `READING_LIVE=1` (변형 · 두 판 · 인연 입력은 `READING_VARIANTS_LIVE` · `READING_PAIR_LIVE` · `READING_MATCH_INPUT_LIVE`) | 네 kind 의 풀이를 실제로 한 번 만든다 — 토큰이 나간다 |
 | `src/lib/input/backfill-chart.live.test.ts` | `BACKFILL_CHART=1` (+ `BACKFILL_TARGET=remote` 와 ref 확인) | 명식 없는 사람 행을 채운다 |
 | `src/lib/input/backfill-reading-chart.live.test.ts` | `BACKFILL_READING_CHART=1` | 풀이 행의 여덟 글자를 채운다 |
 
@@ -118,7 +123,8 @@ PRD 의 「(지금)」을 공개 출시로 옮기면 아래 세 단계로 저절
 | 엔진 · `app/saju/**` | `verify`(단위 · 타입 · 린트 · 빌드 + 익명 e2e) | 3분 55초 |
 | 그 밖 전부 · 모르는 파일 | `verify` + `authed` 일곱(`signed-in` · `match` · `chat` × 기기 둘, `notice`) + `flow` | 병렬, 가장 긴 차선 4분 53초 |
 
-`authed` 는 `db:start` 를 하고 pgTAP 과 **생성 타입 diff** 를 본 뒤 e2e 차선 하나를 돈다.
+`authed` 는 `db:start` 를 하고 e2e 차선 하나를 돈다. pgTAP 과 **생성 타입 diff** 는 그 일곱 중 **`notice` 차선만** 본다
+(`verify.yml` 의 `if: matrix.lane == 'notice'` — e2e 가 남긴 계정이 전역으로 세는 pgTAP 을 흐리므로 e2e 앞, 가장 짧은 차선에 둔다).
 `full-ci` 라벨은 더할 수만 있다. `main` 푸시와 손으로 켠 실행은 계획을 안 보고 전부 돈다.
 **main 푸시는 최신 하나만 끝까지 돈다** — 새 푸시가 앞 실행을 끊는다(#161 이 #143 의 「커밋마다 제 그룹」을
 되돌렸다). 끊긴 실행은 실패가 아니다. 하루 한 번의 일정은 제 그룹이라 안 끊긴다. 보호 규칙은 strict 라 PR 은
@@ -183,7 +189,7 @@ CI=1 npx vitest run --coverage --coverage.reporter=text \
 - `scripts/ci-plan.mjs` — 세 단계와 예외 둘. 규칙의 원본
 - `.github/workflows/verify.yml` — 차선 여섯(`policy` · `fast` · `verify` · `authed` · `flow` · `audit`)과 `gate`
 - `playwright.config.ts` — 프로젝트 다섯(`desktop-chromium` · `mobile-chromium` · `authed-desktop` · `authed-mobile` · `notice-gate`), 서버 띄우기
-- `scripts/run-checks.mjs` — 흐름 일곱 벌을 **전부** 돌리고 끝에 한 번 답한다(사슬이면 첫 실패가 나머지를 삼킨다)
+- `scripts/run-checks.mjs` — 흐름 아홉 벌(`SCRIPTS`)을 **전부** 돌리고 끝에 한 번 답한다(사슬이면 첫 실패가 나머지를 삼킨다)
 - `e2e/session.ts` — 로컬 스택에 초대된 계정을 만든다
 - `supabase/tests/00_helpers.sql` — 역할을 갈아입는 헬퍼. `32_test_isolation` 이 순서 의존을 잰다
 - `docs/ops/runbook.md` — 로컬 스택 · 접속값 여섯 · 코드 · 날짜
