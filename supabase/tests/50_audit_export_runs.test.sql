@@ -7,10 +7,10 @@
 --      두 세션이 나란히 시작하는 경우는 `scripts/check-db-races.mjs` 가 잰다
 --   B. **결과 · 집계** — 시도마다 결과 한 줄, 마지막 성공 · 연속 실패 · 밀린 줄, 운영자만 읽고 읽으면 남는다
 --   B'. **알림** — 실패하면 그 자리에서, 이틀 넘게 시도가 없거나 성공이 없으면 감시가. 설정이 없는 동안은 조용하다
---   F. **CLI 결과** — 새 줄 하나가 앞 줄을 가리키고, 한 번만, 반출에 함께 나간다
+--   F. **CLI 결과** — 새 줄 하나가 앞 줄을 가리키고, 한 번만(같은 결과면 그 줄의 번호, `20261015090000`), 반출에 함께 나간다
 --   ·. **아무도 못 고친다** — 두 새 표도 추가만 된다
 begin;
-select plan(35);
+select plan(37);
 
 create temporary table folks as
 select tests.signup('aer-operator@example.com') as operator, tests.signup('aer-stranger@example.com') as stranger;
@@ -188,7 +188,15 @@ select is(
   array['cli.result', 'failed', 'sql', 'sungheeyoon', '반출 상태 확인', repeat('e', 64)],
   '결과 줄은 앞 줄의 실행자 · 목적 · 해시를 옮겨 든다');
 select throws_ok(format($$select audit.note_cli_result(%s, 'succeeded')$$, (select query_id from cli)),
-  '23505', null, '같은 질의의 결과는 한 번만');
+  '23505', null, '같은 질의의 결과는 한 번만 — 다른 결과는 거절한다');
+select is(
+  audit.note_cli_result((select query_id from cli), 'failed', 'sql'),
+  (select a.id from audit.operator_access a where a.result_of = (select query_id from cli)),
+  '같은 결과를 다시 적으면 이미 적힌 줄의 번호가 돌아온다 — 줄은 하나 (`20261015090000`)');
+select ok(
+  (select i.indisunique and pg_get_expr(i.indpred, i.indrelid) = '(result_of IS NOT NULL)'
+   from pg_index i where i.indexrelid = 'audit.operator_access_result_of'::regclass),
+  '결과 한 줄은 부분 유일 인덱스가 든다 — 나란히 적는 두 세션은 `scripts/check-db-races.mjs` 5');
 select throws_ok(
   $$insert into audit.operator_access (channel, actor_name, action, purpose, sql_sha256, outcome, result_of, result)
     values ('cli', 'x', 'cli.result', '목적 넷자', repeat('e', 64), 'allowed', 1, 'failed')$$,
