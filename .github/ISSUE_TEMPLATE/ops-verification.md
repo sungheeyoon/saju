@@ -19,7 +19,7 @@ assignees: ''
 ## 전제
 
 - [ ] 관련 마이그레이션이 운영에 올라 있다 (`migration list` remote 칸)
-- [ ] 최신 main 이 Production 에서 Ready 다 — runbook 「한도가 풀린 뒤 — 최신 main 을 Production 으로」
+- [ ] 최신 main 이 Production 에서 Ready 다 — runbook 「묶음 배포 — 최신 main 을 Production 으로 한 번」
 - [ ] 실제 개인정보가 없는 전용 테스트 계정이다 (`@example.com`)
 - [ ] 테스트 메시지 · 설명에 실제 이름 · 연락처 · 출생정보가 없다
 

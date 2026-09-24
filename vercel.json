@@ -1,4 +1,7 @@
 {
+  "git": {
+    "deploymentEnabled": false
+  },
   "ignoreCommand": "node scripts/vercel-ignore.mjs",
   "crons": [
     {

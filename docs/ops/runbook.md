@@ -931,7 +931,7 @@ select public.review_report('<report-id>', '<운영자 UUID>', 'no_action', '이
 
 1. **마이그레이션이 운영에 올라 있다** — 적어도 `20261009090000`(운영자 문 셋) · `20261010090000`(검토 기록) ·
    `20261010100000`(접속기록) · `20261010110000`(가입 닫기). `npx supabase migration list` 의 remote 칸이 이 넷에서 비지 않는다
-2. **최신 main 이 Production 에서 Ready 다** — 아래 「배포」의 「한도가 풀린 뒤 — 최신 main 을 Production 으로」를 먼저
+2. **최신 main 이 Production 에서 Ready 다** — 아래 「배포」의 「묶음 배포 — 최신 main 을 Production 으로 한 번」을 먼저
    밟는다. 배포 커밋이 main HEAD 가 아니면 옛 화면을 재는 것이다
 3. **실제 개인정보가 없는 전용 테스트 계정** — 주소는 `@example.com`, 닉네임은 `검증A-<날짜>` 처럼 누가 봐도 시험인 것.
    운영자 계정(구글)은 제 것을 쓴다
@@ -1941,9 +1941,12 @@ npm run db:remote -- --purpose "가입 열기 — 운영자 복귀" \
 
 ## 배포
 
-`main` 에 푸시하면 자동 배포된다 — https://saju-snowy.vercel.app
+**`main` 에 머지해도 배포되지 않는다**(ADR 0110). `vercel.json` 의 `git.deploymentEnabled: false` 가 가지 · `main` 의 푸시로
+생기는 배포를 전부 끈다 — Preview 도 Production 도 없다. 운영(https://saju-snowy.vercel.app)에는 **기능 묶음이 끝났을 때
+`main` 의 정확한 SHA 를 손으로 한 번** 올린다(아래 「묶음 배포」). 화면 확인은 로컬 e2e 와 스크린샷으로 하고, 밖에서 열어 볼
+주소가 꼭 필요할 때만 Preview 를 손으로 하나 만든다(`vercel deploy`, `--prod` 없이).
 
-**Preview 는 앱이 바뀐 커밋만 빌드한다**(2026-09-24 운영자 결정). `vercel.json` 의 `ignoreCommand` 가
+**손으로 만든 배포도 앱이 바뀐 커밋만 빌드한다**(2026-09-24 운영자 결정 — Git 배포를 끈 뒤에도 남겨 둔다). `vercel.json` 의 `ignoreCommand` 가
 `scripts/vercel-ignore.mjs` 를 부르고, 지난 성공 배포(`VERCEL_GIT_PREVIOUS_SHA`, 가지의 첫 배포면 `main` 과의 갈림점)
 뒤에 바뀐 파일이 **전부** 문서(`docs/**` · `*.md`) · 마이그레이션 · pgTAP · `src`/`scripts` 의 단위 시험이면 건너뛴다.
 Production 은 늘 빌드하고, 기준을 못 찾거나 git 이 실패하면 빌드한다. Vercel 은 **0 이면 건너뛰고 1 이면 빌드한다** —
@@ -1958,19 +1961,21 @@ npx supabase migration list   # remote 칸이 빈 줄이 밀린 것이다 — �
 npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 잠금 하나를 잡고 돈다(ADR 0096)
 ```
 
-**`ignoreCommand` 는 빌드만 건너뛰고 하루 배포 횟수는 줄이지 못한다.** Hobby 의 한도는 **하루 100번**(86400초 창, 그
-밖에 한 시간 100 · 5분 60)이고 가지의 푸시 하나가 Preview 배포 하나다 — 건너뛴 배포도 센다(Vercel 「Limits」, 2026-09-24
-에 읽음). **운영 베타 동안은 Preview 편의를 우선한다**(운영자 결정 2026-09-24) — `git.deploymentEnabled` 로 가지별 배포를
-끄지 않고 `ignoreCommand` 는 지금대로 둔다. 한도에 닿으면 그날의 새 배포는 main 의 Production 까지 서지 않는다. 풀리면
-아래 절차로 따라잡는다. 공개 출시 전에 다시 본다(G-24).
+**`ignoreCommand` 는 빌드만 건너뛰고 배포 횟수는 줄이지 못한다.** Hobby 의 한도는 **24시간 이동 창에 100번**(그 밖에 한 시간
+100 · 5분 60)이고 건너뛴 · 실패한 · 취소된 배포도 센다(Vercel 「Limits」). 2026-09-24 에는 Preview 편의를 우선해 Git 배포를
+켜 두었는데(가지의 푸시 하나가 Preview 하나, 머지 하나가 Production 하나), 2026-09-25 에 하루 두 번 한도에 닿아 머지된 수정이
+운영에 못 들었다. 그래서 끄고 **여러 PR 머지 → 운영 배포 한 번**으로 옮겼다(ADR 0110). 긴급 장애 수정만 곧바로 올린다.
 
-#### 한도가 풀린 뒤 — 최신 main 을 Production 으로
+#### 묶음 배포 — 최신 main 을 Production 으로 한 번
 
-한도에 걸린 동안 main 에 든 커밋은 **저절로 다시 배포되지 않는다.** 풀리면 사람이 한 번 올린다.
+머지는 운영에 아무것도 안 올린다. 묶음이 끝났을 때(하루 한 번, 또는 한 라운드를 닫을 때) 한 번 올린다.
 
-1. **최신 main 을 Production 으로 재배포한다.** Vercel → Deployments 에서 **main HEAD 커밋의** 배포가 있으면 그것을
-   Redeploy, 없으면 「Create Deployment」에 `main` 을 넣는다. Production 은 `ignoreCommand` 가 건너뛰지 않는다. 빈 커밋을
-   밀어 깨우지 않는다 — 그것도 배포 하나를 쓴다
+0. **올리기 전에.** 머지를 기다리는 PR 이 없는지(`gh pr list`), 최신 `main` 의 CI(`verify` · `main-red`)가 초록인지, 지난
+   배포 뒤 `supabase/migrations/**` 가 바뀌었으면 **DB 를 먼저** 올리고 확인했는지(아래 규약 넷의 2 · 4) 본다. 올릴
+   `main` 의 SHA 를 적는다. 한도 창의 남은 자리를 본다 — 모자라면 기다린다
+1. **최신 main 을 Production 으로 올린다.** 깨끗한 `main` 체크아웃(또는 그 SHA 의 워크트리)에서 `vercel deploy --prod`, 아니면
+   Vercel → Deployments → 「Create Deployment」에 `main` 을 넣는다. Production 은 `ignoreCommand` 가 건너뛰지 않는다. 빈 커밋을
+   밀어 깨우지 않는다 — Git 배포는 꺼져 있어 아무 일도 안 일어난다
 2. **배포 커밋 = main HEAD 인지 본다** — `git ls-remote origin main` 의 SHA 와 대시보드의 Source 커밋(또는
    `vercel inspect <배포 URL>`)이 같아야 한다. 다르면 옛 코드가 Production 이다 — 1 로 돌아간다
 3. **Ready 를 본다** — `vercel ls saju` 에서 그 배포가 `● Ready` · `Production` 이고, `vercel inspect` 의 Aliases 에
@@ -1981,14 +1986,16 @@ npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 
 5. **적는다** — 배포 SHA · Production URL · Ready 시각(서울) · smoke 다섯의 통과/실패를 그 일의 이슈에(G-24 검증이면
    `ops-verification` 이슈). 실패가 있으면 「CSP 가 화면을 막을 때」의 1 처럼 앞 배포를 Promote 해 되돌린다
 
+한도에 걸려 올리지 못했으면 창이 비는 시각(가장 오래된 배포 + 24시간)을 적고 그 뒤에 0 부터 다시 밟는다.
+
 ### 규약 넷 — 앱과 DB 는 따로 간다 (ADR 0090)
 
 세션 메모에만 있던 것을 2026-09-22 에 옮겼다. 에이전트가 이 절을 밟는 걸음은 공식 운영에 들어간 뒤에는
 사람이 답한 뒤고, 운영 베타에서는 직접 밟고 본 값을 적는다(`docs/agents/delegation.md` 권한 등급 3,
 ADR 0093).
 
-1. **앱 배포 ≠ DB 마이그레이션.** main 머지는 앱만 내보낸다. 마이그레이션이 든 PR 이 머지돼도
-   원격 DB 는 그대로다 — 2026-09-12 에 마이그레이션 넷이 안 오른 채 최신 앱이 돌아 후보 카드의
+1. **앱 배포 ≠ DB 마이그레이션.** main 머지는 아무것도 내보내지 않고, 묶음 배포는 앱만 내보낸다. 마이그레이션이 든 PR 이
+   머지돼도 원격 DB 는 그대로다 — 2026-09-12 에 마이그레이션 넷이 안 오른 채 최신 앱이 돌아 후보 카드의
    점수는 SQL 이, 궁합풀이의 기준점은 TS 가 서로 다른 셈으로 냈다. 그리고 **마이그레이션을 쓴 그
    순간부터 이 기계의 dev 화면은 깨져 있다** — dev 서버가 `.env.development.local` 로 운영 DB 를
    보므로 새 함수를 부르는 화면이 `PGRST202` 로 죽는다. pgTAP 도 CI 도 못 잡는다(둘 다 로컬 DB 다).

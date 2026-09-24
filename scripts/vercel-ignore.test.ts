@@ -5,7 +5,7 @@
  * 지어 기준 커밋이 있는 경우 · 없는 경우 · git 밖인 경우를 밟는다 — 네트워크를 안 쓴다.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 
@@ -144,5 +144,33 @@ describe('진입점', () => {
   it('git 저장소 밖이면 1', () => {
     const outside = mkdtempSync(join(tmpdir(), 'vercel-ignore-none-'));
     expect(run(outside, { VERCEL_ENV: 'preview', VERCEL_GIT_PREVIOUS_SHA: 'a'.repeat(40) })).toBe(1);
+  });
+});
+
+/**
+ * **머지는 배포가 아니다**(ADR 0110) — 설정과 문서가 같은 말을 하는가.
+ *
+ * 설정만 바꾸면 다음 사람이 「머지했으니 배포됐겠지」로 읽고, 문서만 바꾸면 한도가 다시 바닥난다. 둘을 한 자리에서 잰다.
+ */
+describe('Git 배포는 꺼져 있고 문서가 그것을 말한다', () => {
+  const read = (path: string) => readFileSync(resolve(__dirname, '..', path), 'utf8');
+
+  it('vercel.json 이 가지 · main 의 푸시로 배포를 만들지 않는다', () => {
+    const config = JSON.parse(read('vercel.json')) as { git?: { deploymentEnabled?: unknown } };
+    expect(config.git?.deploymentEnabled).toBe(false);
+  });
+
+  it('runbook 은 손으로 올리는 묶음 배포를 말하고 「푸시하면 자동 배포」를 말하지 않는다', () => {
+    const runbook = read('docs/ops/runbook.md');
+    expect(runbook).not.toMatch(/푸시하면 자동 배포/);
+    expect(runbook).toMatch(/묶음 배포 — 최신 main 을 Production 으로 한 번/);
+    expect(runbook).toMatch(/vercel deploy --prod/);
+  });
+
+  it('위임 문서는 「머지는 곧 배포」를 말하지 않는다', () => {
+    const delegation = read('docs/agents/delegation.md');
+    expect(delegation).not.toMatch(/머지는 곧 프로덕션 배포/);
+    expect(delegation).not.toMatch(/머지가 곧 배포인데/);
+    expect(delegation).toMatch(/머지는 배포가 아니다/);
   });
 });

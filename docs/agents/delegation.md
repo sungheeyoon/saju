@@ -87,8 +87,9 @@ git 이 줄 단위로 합친다 — 부딪히는 것은 끝에 덧붙이는 chan
   pgTAP 파일 번호, 마이그레이션 타임스탬프(머지 직전 main 의 마지막 뒤), gaps 의 같은 줄(제 조각만 다시 얹기).
 - **보고를 그대로 옮기지 않는다.** 에이전트 · 외부 리뷰의 주장은 조율자가 코드에서 확인한 뒤 사람에게 전하고,
   동의 · 이견을 한 줄로 말한다. 사람이 붙여 넣은 외부 리뷰도 같다.
-- **Vercel 하루 배포 한도**(Hobby 100, 건너뛴 배포도 센다)에 병렬 PR 이 금방 닿는다. 에이전트는 Ready 를 기다리지
-  않는다. 한도가 풀린 뒤 조율자가 runbook 「한도가 풀린 뒤」로 main HEAD = Production 과 smoke 를 확인하고 이슈에 적는다.
+- **머지는 배포가 아니다**(ADR 0110). Git 배포가 꺼져 있어 PR 도 머지도 Vercel 자리를 안 쓴다. 에이전트는 Ready 를
+  기다리지 않는다. 라운드가 끝나면 조율자가 runbook 「묶음 배포」로 최신 main 을 한 번 올리고, main HEAD = Production 과
+  smoke 를 확인해 적는다 — 그 한 번은 등급 3 이라 사람이 답한 뒤다.
 - 워크트리마다 운영 CLI 첫 호출에 키체인 창이 뜬다 — 아래 「로컬 환경의 함정」.
 - **나란히 도는 세션의 일을 먼저 본다(2026-09-25).** 맡기기 전에 `git worktree list` 의 각 워크트리가 무엇을 고치는지 보고,
   같은 일을 두 번 맡기지 않는다. 사람의 화면 세션 보고를 머지할 때 **e2e 가 빠졌으면 머지 전에 돌린다** — 걷은 화면
@@ -116,7 +117,7 @@ git 이 줄 단위로 합친다 — 부딪히는 것은 끝에 덧붙이는 chan
 | **0 읽는다** | 저장소·로컬 스택·CI 로그·이슈를 읽는다 | `git log` · `npm test` · `gh run view` · 로컬 DB 질의 | 없음 |
 | **1 로컬에서 고친다** | 작업 가지에서 파일을 고치고 시험을 돌린다. 로컬 스택은 마음껏 되돌린다 | `npm run db:reset` · `npm run test:e2e:authed` | 없음 |
 | **2 밖으로 낸다 — 되돌릴 수 있게** | 가지를 밀고 PR 을 열고 이슈에 적는다. 리뷰 뒤 `--auto` 머지를 건다(gate 가 초록이 될 때까지 기다린다, ADR 0082) | `git push -u origin <가지>` · `gh pr create` · `gh pr merge --auto --squash` | 없음 — 단 아래 등급 3 의 예외 |
-| **3 사람이 답한 뒤에** | **main 머지는 곧 프로덕션 배포다.** 운영 DB 에 마이그레이션을 올리거나 임의 SQL 을 보내는 것, 토큰이 나가는 실호출, Vercel 변수, 원격 가지 삭제, 프로덕션 확인이 든 걸음 — **공식 운영에 들어간 뒤에 켠다(ADR 0093).** 운영 베타에서는 등급 2 처럼 밟고 값을 적는다 | `db push` · `db query --linked` · `READING_LIVE=1` · `vercel env` · `gh pr merge`(auto 아닌 즉시 머지) | 없음 — 공식 운영 전. 켤 목록은 아래 절 |
+| **3 사람이 답한 뒤에** | **프로덕션 배포**(`vercel deploy --prod` · 대시보드의 Create Deployment — 머지는 배포가 아니다, ADR 0110). 운영 DB 에 마이그레이션을 올리거나 임의 SQL 을 보내는 것, 토큰이 나가는 실호출, Vercel 변수, 원격 가지 삭제, 프로덕션 확인이 든 걸음 — **공식 운영에 들어간 뒤에 켠다(ADR 0093).** 운영 베타에서는 등급 2 처럼 밟고 값을 적는다 | `db push` · `db query --linked` · `READING_LIVE=1` · `vercel env` · `gh pr merge`(auto 아닌 즉시 머지) | 없음 — 공식 운영 전. 켤 목록은 아래 절 |
 | **3 사람이 답한 뒤에 — 도구 밖** | 새 한글 문구는 표로 보이고 답을 기다린다(`docs/agents/code-rules.md`). 남이 띄운 dev 서버는 죽이기 전에 묻는다. 운영 SQL Editor 의 문장을 건네기만 하는 것은 공식 운영 뒤의 일이다(ADR 0093) — 지금은 `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 직접 돌리고 값을 적는다. **단 운영 개인정보는 예외 없이 직접 조회하지 않는다**(아래, ADR 0105) — 질의를 써서 건네고 사람이 검토해 돈다 | 버튼 문구 · dev 서버 · 운영 개인정보 조회 | 사람 |
 | **4 안 한다** | 되돌릴 수 없는 것. main 에 force push, `supabase config push`(원격의 구글 설정을 지운다), main 가지 삭제, Vercel 변수 삭제, 비밀 값을 커밋 | | `Bash(git push --force:*)` · `Bash(git push -f:*)` · `Bash(git push --force-with-lease:*)` · `Bash(npx supabase config push:*)` · `Bash(supabase config push:*)` · `Bash(./node_modules/.bin/supabase config push:*)` · `Bash(git push origin :main)` · `Bash(git push origin --delete main)` · `Bash(vercel env rm:*)` · `Bash(npx vercel env rm:*)` |
 
@@ -131,21 +132,21 @@ git 이 줄 단위로 합친다 — 부딪히는 것은 끝에 덧붙이는 chan
 **`gh pr merge --auto` 는 등급 2 다** — gate 가 필수 검사라 초록까지 기다린다(2026-09-22 부터,
 ADR 0082). 보호 규칙이 strict 라(2026-09-23) 가지가 최신 main 위에 있어야 든다 — 여러 세션이 나란히
 머지해도 main 에 드는 상태는 그 main 위에서 gate 를 지난 것이다.
-`--auto` 없는 즉시 머지가 등급 3 인 까닭은 그것이 검사 전 배포이기 때문이다(2026-09-20
-에 한 번 그랬다). 잠금이 `gh pr merge` 전체를 묻는 것은 규칙이 인자를 못 가르기 때문이고, 물으면
+`--auto` 없는 즉시 머지가 등급 3 인 까닭은 검사를 안 지난 코드가 main 에 들고, 다음 묶음 배포가 그것을
+그대로 싣기 때문이다(2026-09-20 에 한 번 그랬다 — 그때는 머지가 곧 배포였다). 잠금이 `gh pr merge` 전체를 묻는 것은 규칙이 인자를 못 가르기 때문이고, 물으면
 「`--auto` 다」로 답이 된다.
 
-**예외 — 마이그레이션이 든 PR 은 `--auto` 도 등급 3 이다.** `supabase/migrations/**` 가 바뀐 PR 에
-`--auto` 를 걸면 gate 초록 즉시 앱이 나가고 DB 는 그대로라, runbook 의 「마이그레이션이 먼저, 앱이
-나중」이 뒤집힌다(`docs/ops/runbook.md` 「배포」 규약 넷). 그런 PR 은 `db push` 와 확인이 끝난 뒤에만
-머지를 건다 — 운영 베타에서는 에이전트가 그 걸음을 직접 밟고 값을 적으며, 공식 운영 뒤에는 사람이
+**예외 — 마이그레이션이 든 PR 은 `--auto` 도 등급 3 이다.** 머지가 곧 배포이던 때(ADR 0110 전)는 gate 초록 즉시
+앱이 나가 runbook 의 「마이그레이션이 먼저, 앱이 나중」이 뒤집혔다. 지금은 머지가 앱을 안 내보내지만, **그 main 을 올리는
+다음 묶음 배포가 DB 보다 먼저 나가지 않게** 순서를 머지에서부터 지킨다(`docs/ops/runbook.md` 「배포」 규약 넷 · 「묶음 배포」 0).
+그런 PR 은 `db push` 와 확인이 끝난 뒤에만 머지를 건다 — 운영 베타에서는 에이전트가 그 걸음을 직접 밟고 값을 적으며, 공식 운영 뒤에는 사람이
 끝냈다고 답한 뒤다(ADR 0093). 순서 자체는 언제나 지킨다. 앱이 새 함수를 부르는 변경이면 **넓히는 마이그레이션 PR 과 앱 PR 로 나눈다** —
 앞 PR 은 옛 앱에 안전하니 먼저 들고 `db push` 를 지나며, 뒤 PR 이 그 뒤에 든다(ADR 0071 의 A 단계가
 그 모양이다). 이 예외는 시험이 안 잰다 — `ci-plan.mjs` 가 그 경로를 아니까 잠글 자리는 있다.
 
 **등급 3 을 밟고 나면 무엇을 봤는지 값으로 적는다.** `db push` 뒤에는 `migration list` 의 remote
 칸과 PostgREST 캐시(`docs/ops/runbook.md` 「배포」), 실호출 뒤에는 저장된 판본과 검사 결과,
-머지 뒤에는 Vercel 의 Ready.
+묶음 배포 뒤에는 Vercel 의 Ready 와 배포 SHA = main HEAD.
 
 **잠그지 않은 것 — 2026-09-23 에 잰 값.** 규칙이 서 있다고 도구가 지키는 것이 아니다. 두 가지를 밟았다.
 ① **사용자의 `allow` 가 프로젝트의 `ask` 를 이겼다.** `.claude/settings.local.json` 에 확인 창의 「항상 허용」으로
@@ -208,7 +209,7 @@ PR 틀(`.github/pull_request_template.md`)의 칸이다. 칸 이름은 이 표�
 | **돌린 것** | `docs/agents/test-map.md` 의 명령과 결과(수까지) — 공개 출시 전의 최소는 단위 · 타입 · 린트와 예외 넷이다. 화면·라우트면 e2e, 프롬프트 본문이면 실호출, 마이그레이션이면 `db:types` diff. **안 돌린 것과 그 까닭** | 단위 시험은 화면이 사라진 것을 모른다 |
 | **잠금이면 일부러 어긴 것** | 린트·시험·pgTAP 을 새로 세웠으면 **옛 상태를 되살리거나 일부러 어긴 파일**로 빨개지는 것을 본 기록. 같은 뜻의 다른 표기(별칭/상대경로, 정적/동적, `.ts`/`.jsx`)까지 | 「규칙을 넣었다」와 「규칙이 건다」는 다른 문장이다(ADR 0085·0086) |
 | **문서** | 결정이 있으면 ADR(같은 PR). 낱말이 생기면 `CONTEXT.md`, 모양이 바뀌면 `docs/prd.md` 와 changelog, 틈이 생기거나 닫히면 `docs/product/gaps.md`, 돌리는 것이 바뀌면 `docs/agents/test-map.md` | 문서와 코드가 어긋나면 시험이 있는 쪽만 산다 |
-| **사람이 할 걸음** | 등급 3 — `db push` · 실호출 · 문구 확인 · 운영 SQL. **앱 배포 ≠ DB 마이그레이션**(`docs/ops/runbook.md` 「배포」) | 머지가 곧 배포인데 DB 는 따로 간다 |
+| **사람이 할 걸음** | 등급 3 — `db push` · 실호출 · 문구 확인 · 운영 SQL. **앱 배포 ≠ DB 마이그레이션**(`docs/ops/runbook.md` 「배포」) | 앱은 묶음 배포로, DB 는 그보다 먼저 따로 간다 |
 
 **커밋과 PR 제목**은 `type(scope): 한국어 문장 (ADR NNNN)` 이다(`docs/agents/code-rules.md`).
 squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 것**이라(저장소 설정
