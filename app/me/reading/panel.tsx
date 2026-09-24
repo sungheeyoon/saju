@@ -8,6 +8,7 @@ import {
   READING_NOUN,
   readingNoneNote,
   READING_REPLACES_NOTE,
+  READING_STALE_LABEL,
   READING_STALE_NOTE,
   READING_USES_TICKET_NOTE,
   readingCreditsNote,
@@ -19,7 +20,7 @@ import { elementScope } from '../../element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
-import { EMPTY_SLOT } from '../../ui/surfaces';
+import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_NAME } from '../../ui/surfaces';
 import { generateReading, readingRunState } from './actions';
 import { announceCreditsMoved } from './credits-signal';
 import { GENERATION } from './generation';
@@ -496,7 +497,7 @@ export function ReadingPanel({
           폰에서는 반쪽에 「사주풀이 다시 받기」가 두 줄로 꺾이므로 위아래로 쌓는다.
         */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-          <h2 className="font-rounded text-[1.3rem] leading-7 text-foreground">{heading}</h2>
+          <h2 className={TYPE_NAME}>{heading}</h2>
 
           {/*
             **보내기와 다시 받기가 나란히 선다.** 글을 다 읽은 사람이 하는 일이 그 둘이고, 같은 일에
@@ -584,7 +585,7 @@ export function ReadingPanel({
           **`m-auto` 는 장식이 아니다.** 브라우저 기본 스타일은 열린 `<dialog>` 를 `margin: auto` 로
           가운데에 놓는데, Tailwind 의 preflight 이 모든 요소의 여백을 0 으로 되돌린다.
         */
-        className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
+        className={DIALOG}
       >
         <span aria-hidden="true" className="grid size-11 place-items-center rounded-full bg-cream text-cream-ink">
           <Icon name="ticket" className="size-5" />
@@ -599,7 +600,7 @@ export function ReadingPanel({
         {/*
           **누르는 쪽이 오른쪽이다.** 좁은 화면에서는 위아래로 서고, 그때도 확인이 위에 온다.
         */}
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
+        <div className={DIALOG_ACTIONS}>
           <button type="button" onClick={confirmGenerate} className={BUTTON_PRIMARY}>
             {reading === null ? `${noun} 받기` : `${noun} 다시 받기`}
           </button>
@@ -808,7 +809,7 @@ function Result({
         <p className="flex gap-2.5 rounded-[1.25rem] bg-warning-wash px-4 py-3.5 text-[14px] leading-6 text-foreground">
           <Icon name="alert" className="mt-0.5 size-5 text-warning" />
           <span>
-            <span className="mr-1.5 font-semibold text-warning">수정 전</span>
+            <span className="mr-1.5 font-semibold text-warning">{READING_STALE_LABEL}</span>
             {READING_STALE_NOTE}
           </span>
         </p>

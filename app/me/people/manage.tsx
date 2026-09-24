@@ -19,7 +19,7 @@ import {
   BUTTON_TERTIARY,
 } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
-import { EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
+import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
 
 /**
  * 목록을 손대는 세 자리 — 추가·메모·빼기.
@@ -333,7 +333,7 @@ export function RemoveConfirm({
         if (removing) event.preventDefault();
       }}
       onClose={onCancel}
-      className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
+      className={DIALOG}
     >
       <h3 id={`remove-person-${personId}`} className="font-rounded text-[1.3rem] leading-7">
         {label} 님을 목록에서 뺄까요?
@@ -342,7 +342,7 @@ export function RemoveConfirm({
         저장한 출생 정보와 이 사람의 풀이는 목록에서 사라지며 되돌릴 수 없습니다.
       </p>
       {failure !== null && <p className="mt-3 text-sm text-danger">빼지 못했습니다 — {failure}</p>}
-      <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
+      <div className={DIALOG_ACTIONS}>
         <button type="button" onClick={remove} disabled={removing} className={BUTTON_DANGER}>
           {removing ? '빼는 중…' : '목록에서 빼기'}
         </button>

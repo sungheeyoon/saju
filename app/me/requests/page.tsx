@@ -11,6 +11,7 @@ import {
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { Icon, type IconName } from '../../ui/icons';
+import { CARD } from '../../card';
 import { BADGE, ROW_CARD, TYPE_META, TYPE_NAME, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
 import { Avatar } from '../avatar';
 import { AccountNotice } from '../account-notice';
@@ -112,7 +113,7 @@ async function InboxSections() {
             {received.map((request) => (
               <li
                 key={request.requestId}
-                className="flex flex-col gap-4 rounded-[1.75rem] border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6"
+                className={`flex flex-col gap-4 ${CARD}`}
               >
                 <RequestHead request={request} large />
                 {/*

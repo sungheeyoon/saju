@@ -39,6 +39,12 @@ import {
 import {
   ClaimStrengthLegend,
 } from '../utterances';
+import {
+  DISCLOSURE_SUMMARY,
+} from '../ui/surfaces';
+
+/** 근거의 갈래 딱지 — 「참고표」 · 「시험」 · 「사실」의 작은 테두리 글자. 이 화면에서만 일곱 자리가 쓴다 */
+const FACT_TAG = 'rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted';
 
 
 /**
@@ -464,7 +470,7 @@ function JohuNote({ johu }: { johu: Saju['analysis']['johu'] }) {
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
+        <span className={FACT_TAG}>
           참고표
         </span>
         <span className="text-xs text-muted">조후 후보 천간</span>
@@ -519,7 +525,7 @@ function EokbuNote({
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
+        <span className={FACT_TAG}>
           시험
         </span>
         <span className="text-xs text-muted">억부 관점의 후보</span>
@@ -599,7 +605,7 @@ function PrecedenceTable({ precedence }: { precedence: Saju['analysis']['precede
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
+        <span className={FACT_TAG}>
           사실
         </span>
         <span className="text-xs text-muted">판정이 어긋날 때</span>
@@ -668,7 +674,7 @@ function TonggwanFacts({ tonggwan }: { tonggwan: Saju['analysis']['tonggwan'] })
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
+        <span className={FACT_TAG}>
           사실
         </span>
         <span className="text-xs text-muted">가장 팽팽한 대치</span>
@@ -729,13 +735,13 @@ function RootingNote({ saju }: { saju: Saju }) {
 
   return (
     <details className="group mt-4 border-t border-border pt-1">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+      <summary className={DISCLOSURE_SUMMARY}>
         뿌리와 투출 자세히 보기
         <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">⌄</span>
       </summary>
       <div className="pb-2 pt-2">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">사실</span>
+          <span className={FACT_TAG}>사실</span>
           <span className="text-xs text-muted">일간 {dayMaster.stem}의 뿌리</span>
           {dayMaster.rooted ? (
             <>
@@ -797,7 +803,7 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
+        <span className={FACT_TAG}>
           시험
         </span>
         <span className="text-xs text-muted">종격</span>
@@ -819,7 +825,7 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
       </div>
 
       <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
+        <span className={FACT_TAG}>
           사실
         </span>
         <span className="text-xs text-muted">판정의 재료</span>

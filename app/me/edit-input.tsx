@@ -13,7 +13,7 @@ import {
 } from '@/src/lib/input/edit';
 import { editPersonInput } from './actions';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON } from '../ui/buttons';
-import { TYPE_META, TYPE_NAME } from '../ui/surfaces';
+import { DIALOG, DIALOG_ACTIONS, TYPE_META, TYPE_NAME } from '../ui/surfaces';
 
 /**
  * 저장된 출생 정보를 고치는 자리.
@@ -258,7 +258,7 @@ function EditInputConfirm({
       ref={confirming}
       aria-labelledby={`edit-input-confirm-${personId}`}
       onClose={onCancel}
-      className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
+      className={DIALOG}
     >
       <h3 id={`edit-input-confirm-${personId}`} className="font-rounded text-[1.3rem] leading-7">
         {INPUT_EDIT_CHANGE_CONFIRM.title}
@@ -268,7 +268,7 @@ function EditInputConfirm({
           <p key={line}>{line}</p>
         ))}
       </div>
-      <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
+      <div className={DIALOG_ACTIONS}>
         <button type="button" onClick={onConfirm} className={BUTTON_PRIMARY}>
           {INPUT_EDIT_CHANGE_CONFIRM.confirm}
         </button>

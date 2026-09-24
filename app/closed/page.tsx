@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { Logo } from '../ui/logo';
-import { TYPE_TITLE } from '../ui/surfaces';
+import { PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { betaIsOver, betaOverNote, scheduleFrom } from '@/src/lib/consent';
 
 export const metadata = {
@@ -40,7 +40,7 @@ export default async function ClosedPage() {
   return (
     <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
       {/* 인사하는 자리라 크림 판 한 장이다. 링크는 글 안에 두되 밑줄 굵기로 누를 것임을 말한다 */}
-      <section className="flex flex-col gap-4 rounded-[2rem] bg-cream p-6 sm:p-8">
+      <section className={`flex flex-col gap-4 ${PAPER}`}>
         <Logo className="size-11" />
         <h1 className={TYPE_TITLE}>비공개 테스트가 끝났습니다</h1>
         <p className="text-[15px] leading-7 text-cream-ink">{betaOverNote(notice.dates)}</p>

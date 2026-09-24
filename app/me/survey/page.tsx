@@ -4,7 +4,7 @@ import { isBlocked } from '@/src/lib/account';
 import { SURVEY_COPY } from '@/src/lib/survey';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
+import { PAPER, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { ConsentSwitch } from './consent-switch';
@@ -58,7 +58,7 @@ export default async function SurveyPage() {
         머리는 크림 판 한 장이다 — 설문은 메뉴에서 빠져 톱니 안에 있으므로, 들어온 사람에게 「무엇을
         왜 묻는지」를 먼저 건넨다. 문항은 그 아래 흰 판들로 선다.
       */}
-      <header className="flex flex-col gap-2 rounded-[2rem] bg-cream p-6 sm:p-8">
+      <header className={`flex flex-col gap-2 ${PAPER}`}>
         <h1 className={TYPE_TITLE}>{SURVEY_COPY.title}</h1>
         <p className="text-[15px] leading-7 text-cream-ink">{SURVEY_COPY.intro}</p>
         <p className="text-[13px] leading-5 text-cream-ink">{SURVEY_COPY.editable}</p>

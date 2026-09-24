@@ -19,6 +19,7 @@ import {
 } from '@/src/lib/reading';
 
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
+import { TYPE_NAME } from '../../ui/surfaces';
 
 import { submitReadingFeedback } from './actions';
 import type { ReadingTarget } from './target';
@@ -108,7 +109,7 @@ export function ReadingFeedback({
   return (
     <section className="overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]">
       <header className="px-5 pt-6 sm:px-7">
-        <p className="font-rounded text-[1.3rem] leading-7 text-foreground">이 풀이는 어떠셨어요?</p>
+        <p className={TYPE_NAME}>이 풀이는 어떠셨어요?</p>
         <p className="mt-1 text-[13px] leading-5 text-secondary">{FEEDBACK_SCOPE_NOTE}</p>
       </header>
 

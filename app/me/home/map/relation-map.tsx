@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { useRef, useState, type MouseEvent } from 'react';
 
+import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
+
 import { elementScope } from '../../../element-tone';
 import { ICON_BUTTON } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
-import { TYPE_META, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
+import { STALE_CHIP, TYPE_META, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
 import type { MapLink, MapModel, MapPerson } from './model';
 import { arcBetween, placeOnOrbit, type Point } from './placement';
 
@@ -364,7 +366,7 @@ function PersonCard({ person, onClose }: { person: MapPerson; onClose: () => voi
         ) : (
           <>
             {!person.reading.current && (
-              <span className="mr-1 rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning">수정 전</span>
+              <span className={`mr-1 ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>
             )}
             <span className="text-foreground">{person.reading.metaphor ?? '만들어 둔 풀이를 이어서 읽어보세요'}</span>
           </>

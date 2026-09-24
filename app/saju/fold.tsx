@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { Icon } from '../ui/icons';
+import { TYPE_NAME } from '../ui/surfaces';
 
 /**
  * **분석 표 한 장 — 접힌 채 선다**(5차, 부드러움).
@@ -40,7 +41,7 @@ export function Fold({
       <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 rounded-[1.75rem] px-5 py-4 hover:bg-surface-soft group-open/fold:rounded-b-none sm:px-6 [&::-webkit-details-marker]:hidden">
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-            <h2 className="font-rounded text-[1.3rem] leading-7 text-foreground">{title}</h2>
+            <h2 className={TYPE_NAME}>{title}</h2>
             {meta !== undefined && <span className="text-sm font-semibold text-secondary">{meta}</span>}
           </span>
           {note !== undefined && <span className="text-[13px] leading-5 text-secondary">{note}</span>}
@@ -58,7 +59,7 @@ export function Fold({
 export function SectionTitle({ children, meta }: { readonly children: ReactNode; readonly meta?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-      <h2 className="font-rounded text-[1.3rem] leading-7 text-foreground">{children}</h2>
+      <h2 className={TYPE_NAME}>{children}</h2>
       {meta !== undefined && <span className="text-sm font-semibold text-secondary">{meta}</span>}
     </div>
   );

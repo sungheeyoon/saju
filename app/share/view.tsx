@@ -7,6 +7,7 @@ import { Markdown } from '../me/reading/markdown';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { Logo } from '../ui/logo';
+import { TYPE_SECTION } from '../ui/surfaces';
 import { CARD } from '../card';
 import type { ShareKind } from './path';
 import { sharedReadingOf } from './read';
@@ -119,7 +120,7 @@ export async function SharedReadingView({
         <span className="grid size-14 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]">
           <Logo className="size-9" />
         </span>
-        <h2 className="font-rounded text-[1.5rem] leading-8 text-foreground">{invitation.heading}</h2>
+        <h2 className={TYPE_SECTION}>{invitation.heading}</h2>
         <p className="text-[15px] leading-7 text-secondary">{invitation.note}</p>
         <div className="mt-1">
           <StartButton variant="loud" />

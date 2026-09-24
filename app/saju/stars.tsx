@@ -11,6 +11,9 @@ import {
 import {
   PILLAR_COLUMNS,
 } from './shared';
+import {
+  DISCLOSURE_SUMMARY,
+} from '../ui/surfaces';
 
 
 /**
@@ -149,7 +152,7 @@ export function StarTable({ saju }: { saju: Saju }) {
       )}
 
       <details className="group mt-4 border-t border-border pt-1">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+        <summary className={DISCLOSURE_SUMMARY}>
           전통 분류와 산출 기준
           <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">⌄</span>
         </summary>

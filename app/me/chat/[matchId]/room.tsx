@@ -16,7 +16,7 @@ import {
 } from '../../../ui/buttons';
 import { ElementSymbol } from '../../../ui/element-symbol';
 import { Icon } from '../../../ui/icons';
-import { TYPE_META } from '../../../ui/surfaces';
+import { TYPE_META, TYPE_NAME } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { DayMasterChip } from '../../people/chart-bits';
 import { blockUser } from '../../requests/actions';
@@ -289,7 +289,7 @@ function RoomStart({ room }: { room: RoomView }) {
     return (
       <div className="flex flex-col items-center gap-3 pb-2 pt-4 text-center">
         <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={72} />
-        <p className="font-rounded text-[1.3rem] leading-7 text-foreground">{room.heading}</p>
+        <p className={TYPE_NAME}>{room.heading}</p>
         {toMatch}
       </div>
     );

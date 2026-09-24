@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { CARD } from '../card';
 import { BUTTON_TERTIARY } from '../ui/buttons';
-import { TYPE_TITLE } from '../ui/surfaces';
+import { TYPE_NAME, TYPE_TITLE } from '../ui/surfaces';
 import {
   NOTICE_NOT_READY,
   OPTIONAL_CONSENTS,
@@ -71,7 +71,7 @@ export default async function PrivacyPage() {
         <>
           {noticeFor(ready.dates, ready.operator).map((section) => (
             <section key={section.title} className={`${CARD} flex flex-col gap-3`}>
-              <h2 className="font-rounded text-[1.3rem] leading-7 text-foreground">{section.title}</h2>
+              <h2 className={TYPE_NAME}>{section.title}</h2>
               <ul className="flex flex-col gap-2">
                 {section.lines.map((line) => (
                   <li key={line} className={DOT_LINE}>
@@ -83,7 +83,7 @@ export default async function PrivacyPage() {
           ))}
 
           <section className={`${CARD} flex flex-col gap-3`}>
-            <h2 className="font-rounded text-[1.3rem] leading-7 text-foreground">선택 항목</h2>
+            <h2 className={TYPE_NAME}>선택 항목</h2>
             <p className="text-[15px] leading-7 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
             <ul className="flex flex-col gap-3">
               {OPTIONAL_CONSENTS.map((one) => (
@@ -97,7 +97,7 @@ export default async function PrivacyPage() {
           </section>
 
           <section className={`${CARD} flex flex-col gap-3`}>
-            <h2 className="font-rounded text-[1.3rem] leading-7 text-foreground">확인하고 고치고 지우는 방법</h2>
+            <h2 className={TYPE_NAME}>확인하고 고치고 지우는 방법</h2>
             <ul className="flex flex-col gap-2">
               <li className={DOT_LINE}>저장된 출생 정보는 내 사주 화면에서 언제든 고칠 수 있습니다.</li>
               <li className={DOT_LINE}>선택 동의는 계정 관리 화면에서 켜고 끌 수 있습니다.</li>
