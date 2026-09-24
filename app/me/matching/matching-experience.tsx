@@ -35,6 +35,11 @@ export type DeckCard = {
   readonly nickname: string;
   readonly intro: string | null;
   readonly hasPhoto: boolean;
+  /**
+   * 기본 아바타의 색 — **그 사람 일간의 오행**(운영자 2026-09-24). 사진이 있거나 모르면 `null`(회색).
+   * 아바타만 쓴다 — 카드 · 기운 칸 · 지도는 채워 주는 기운(`supplyOf`)을 입는다. 글자로는 말하지 않는다
+   */
+  readonly avatarElement: Element | null;
   /** 예시 카드만 쓴다 — 실제 후보는 비워 두고 `/me/photo/{id}` 로 받는다 */
   readonly photoUrl?: string | null;
   readonly exploration: boolean;
@@ -52,16 +57,28 @@ export const photoOf = (card: DeckCard): string | null =>
   card.photoUrl ?? (card.hasPhoto ? `/me/photo/${card.candidateUserId}` : null);
 
 /**
+ * 기본 아바타가 입는 오행 — **그 사람 일간의 오행이다. 채워 주는 기운이 아니다.**
+ *
+ * 전에는 아바타도 카드처럼 `supplyOf` 를 입어, 내 모자란 기운으로 골라 온 후보들이 한 화면에서 거의 다 같은 색이었다.
+ * 운영자가 둘을 갈랐다(2026-09-24) — 아바타만 이것, 카드 · 기운 칸 · 지도는 `supplyOf`. 이름부터 갈라 섞이지 않게 한다.
+ */
+const avatarToneOf = (card: DeckCard): Element | null => card.avatarElement;
+
+/**
  * 후보의 얼굴 한 자리 — 덱 · 지도 · 확인 창 · 지나친 인연이 모두 이것을 쓴다.
  *
  * **사진은 선택이다**(§5.1). 안 올린 사람 자리에는 이름의 첫 글자가 선다 — 빈 자리가 아니라 그 사람의 자리로
- * 보이게. 부모가 크기와 모양을 정하고, 이것은 그 안을 채운다.
+ * 보이게. 부모가 크기와 모양을 정하고, 이것은 그 안을 채운다. 첫 글자의 판은 **제 색**(`avatarToneOf`)을 스스로 입는다 —
+ * 부모의 판(채워 주는 기운)을 물려받지 않는다. 색만 말하고, 일간 · 오행의 이름은 어디에도 적지 않는다.
  */
 export function CandidatePhoto({ card, initialClass = 'text-[1.2em]' }: { card: DeckCard; initialClass?: string }) {
   const src = photoOf(card);
   if (src === null) {
     return (
-      <span aria-hidden="true" className={`font-rounded absolute inset-0 grid place-items-center text-[var(--ink)] ${initialClass}`}>
+      <span
+        aria-hidden="true"
+        className={`${elementScope(avatarToneOf(card))} font-rounded absolute inset-0 grid place-items-center bg-[var(--tile)] text-[var(--ink)] ${initialClass}`}
+      >
         {initialOf(card.nickname)}
       </span>
     );
@@ -73,8 +90,6 @@ export function CandidatePhoto({ card, initialClass = 'text-[1.2em]' }: { card: 
 }
 
 const faceOf = (card: DeckCard) => <CandidatePhoto card={card} />;
-
-const elementOf = (card: DeckCard): Element | null => supplyOf(card);
 
 // 고른 것을 읽을 시간을 주고 나서 카드가 떠난다.
 const CHOICE_HOLD_MS = 700;
@@ -365,7 +380,7 @@ export function MatchingExperience({
           <article
             aria-label={`${profile.nickname} 님`}
             aria-busy={!!exit || working}
-            className={`${elementScope(elementOf(profile))} mx-auto flex w-full min-w-0 max-w-[34rem] flex-col gap-4 lg:mx-0 lg:max-w-none`}
+            className={`${elementScope(supplyOf(profile))} mx-auto flex w-full min-w-0 max-w-[34rem] flex-col gap-4 lg:mx-0 lg:max-w-none`}
           >
             <div className="relative px-1.5 pt-1.5">
               {/* 뒤에 다음 사람들의 색이 한 장씩 비친다 — 「아직 더 있다」 */}
@@ -373,7 +388,7 @@ export function MatchingExperience({
                 <span
                   key={card.candidateUserId}
                   aria-hidden="true"
-                  className={`${elementScope(elementOf(card))} absolute inset-x-4 bottom-2 top-3 rounded-[2rem] bg-[var(--tile)] ring-1 ring-border ${
+                  className={`${elementScope(supplyOf(card))} absolute inset-x-4 bottom-2 top-3 rounded-[2rem] bg-[var(--tile)] ring-1 ring-border ${
                     at === 0 ? 'translate-x-1.5 rotate-[3.5deg]' : '-translate-x-1 -rotate-[2.5deg]'
                   }`}
                 />
@@ -555,13 +570,13 @@ export function MatchingExperience({
         className="m-auto w-[min(100%-2rem,28rem)] rounded-[2rem] bg-surface p-0 text-foreground shadow-2xl backdrop:bg-black/40"
       >
         {profile && (
-          <div className={`${elementScope(elementOf(profile))} flex flex-col gap-4 p-6`}>
+          <div className={`${elementScope(supplyOf(profile))} flex flex-col gap-4 p-6`}>
             <div className="flex items-center gap-3">
               <span className="relative size-14 shrink-0 overflow-hidden rounded-full bg-[var(--tile)] text-[1.5rem] ring-2 ring-[var(--tile)]">
                 <CandidatePhoto card={profile} />
               </span>
               <span className="grid size-10 place-items-center rounded-full bg-[var(--tile)]">
-                <ElementSymbol element={elementOf(profile)} className="size-6" />
+                <ElementSymbol element={supplyOf(profile)} className="size-6" />
               </span>
             </div>
             <h2 id="matching-confirm" className="font-rounded text-[1.5rem] leading-[1.35]">

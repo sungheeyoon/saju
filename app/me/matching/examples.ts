@@ -57,6 +57,7 @@ export const EXAMPLE_CARDS: readonly DeckCard[] = SEEDS.map((seed) => ({
   nickname: seed.nickname,
   intro: seed.intro,
   hasPhoto: true,
+  avatarElement: null,
   photoUrl: seed.photo.src,
   exploration: seed.exploration,
   ...candidateCardText({

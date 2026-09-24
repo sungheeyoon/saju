@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { deckReducer, type DeckState } from './deck-state';
 import type { DeckCard } from './matching-experience';
-const card = (id: string): DeckCard => ({ candidateUserId: id, nickname: id, intro: null, hasPhoto: false, exploration: false, previewScore: 70, verdict: '', reason: '', balanceLabel: '', highlights: [] });
+const card = (id: string): DeckCard => ({ candidateUserId: id, nickname: id, intro: null, hasPhoto: false, avatarElement: null, exploration: false, previewScore: 70, verdict: '', reason: '', balanceLabel: '', highlights: [] });
 const initial = (): DeckState => ({ remaining: ['a','b','c'].map(card), passed: [], history: [], seen: [] });
 
 describe('지나침과 복원의 덱 순서', () => {

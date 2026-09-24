@@ -1,6 +1,6 @@
 import type { Locator } from '@playwright/test';
 
-import { expect, forgetBoards, onlyTheseParticipate, optIn, test, type Person } from './session';
+import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Person } from './session';
 
 import { READING_FAILED_NOTE } from '@/src/lib/reading';
 
@@ -573,6 +573,52 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     // 눌린 것이 실제로 요청이 됐는지는 **받은 쪽에서** 본다.
     await receiver.page.goto('/me/requests');
     await expect(receiver.page.getByRole('heading', { name: `가${tag}` })).toBeVisible();
+  });
+});
+
+/**
+ * **기본 아바타는 그 사람 일간의 색이다 — 채워 주는 기운의 색이 아니다**(운영자 2026-09-24).
+ *
+ * 전에는 아바타가 카드처럼 채워 주는 기운을 입어, 한 화면의 사진 없는 후보가 거의 다 같은 색이었다. 재는 것은 셋이다:
+ * 일간이 다른 두 사람의 아바타가 **다른 색**을 입는가, 그 색이 그 사람 일간의 오행인가, 아바타에 **첫 글자 밖의 글자가
+ * 없는가**(일간 · 오행을 글로 말하지 않는다). 두 사람의 여덟 글자는 같게 태어나므로 일주의 천간만 SQL 로 갈아 끼운다.
+ */
+test.describe('사진 없는 후보의 기본 아바타', () => {
+  test('일간이 다른 두 사람은 서로 다른 색을 입고, 그 색을 글로 말하지 않는다', async ({ openAs }, testInfo) => {
+    const tag = freshTag();
+    const asker = await openAs({ selfPerson: true });
+    const wood = await openAs({ selfPerson: true });
+    const fire = await openAs({ selfPerson: true });
+    await optIn(asker.api, `가${tag}`);
+    await optIn(wood.api, `라${tag}`);
+    await optIn(fire.api, `마${tag}`);
+    for (const [person, stem] of [[wood, '甲'], [fire, '丙']] as const) {
+      sql(`update public.person p
+           set current_chart = jsonb_set(jsonb_set(p.current_chart, '{day,stem}', '"${stem}"'), '{dayMaster}', '"${stem}"')
+           from public.app_user u join auth.users a on a.id = u.id
+           where u.self_person_id = p.id and a.email = '${person.account.email}'`);
+    }
+    const emails = [asker, wood, fire].map((person) => person.account.email);
+    onlyTheseParticipate(emails);
+    forgetBoards(emails);
+
+    await asker.page.goto('/me/matching');
+    await expect(asker.page.getByRole('region', { name: '인연 카드' })).toBeVisible();
+
+    /* 첫 글자가 선 자리 — 덱 · 지도가 같은 얼굴(`CandidatePhoto`)을 쓴다. 판의 색은 클래스 이름이 든다 */
+    const avatarOf = (initial: string) =>
+      asker.page.locator('span[aria-hidden="true"][class*="tone-"]').filter({ hasText: new RegExp(`^${initial}$`) }).first();
+    await expect(avatarOf('라')).toHaveClass(/\btone-wood\b/);
+    await expect(avatarOf('마')).toHaveClass(/\btone-fire\b/);
+
+    for (const initial of ['라', '마']) {
+      const avatar = avatarOf(initial);
+      await expect(avatar).toHaveText(initial);
+      await expect(avatar).not.toHaveAttribute('title');
+      await expect(avatar).not.toHaveAttribute('aria-label');
+    }
+
+    await asker.page.screenshot({ path: testInfo.outputPath('avatars.png'), fullPage: true });
   });
 });
 

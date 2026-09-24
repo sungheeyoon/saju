@@ -1,4 +1,4 @@
-import { ELEMENTS } from '@/src/lib/saju';
+import { ELEMENTS, type Element } from '@/src/lib/saju';
 import { activityBandOf, type ActivityBand } from '@/src/lib/presence';
 import type { ElementSummary } from '@/src/lib/discovery/element-axes';
 import {
@@ -43,6 +43,11 @@ type CandidateCard = {
   readonly intro: string | null;
   /** 사진이 있는가 — **바이트는 여기 없다.** 그림은 주소로 받아 간다 */
   readonly hasPhoto: boolean;
+  /**
+   * 기본 아바타의 색 — 그 사람 일간의 오행(운영자 2026-09-24). **색에만 쓰고 글자로 말하지 않는다.**
+   * 사진이 있거나 명식을 모르면 `null`. 카드 · 기운 칸 · 지도의 색(채워 주는 기운)과는 다른 값이다
+   */
+  readonly avatarElement: Element | null;
   /** 0부터 — 화면의 차례이자 노출 기록이 든 자리 */
   readonly position: number;
   readonly exploration: boolean;
@@ -170,13 +175,27 @@ export async function boardStamp(): Promise<BoardStamp | null> {
   return { generatedAt: row.generated_at, waitSeconds: row.wait_seconds };
 }
 
+/**
+ * 기본 아바타의 오행 — 다섯 중 하나가 아니면 `null`(회색).
+ *
+ * **칸이 없어도 `null` 이다.** 앱이 DB 보다 먼저 배포되면 옛 문은 `avatar_element` 를 안 준다 —
+ * 그때 아바타는 회색으로 서고 나머지는 그대로 돈다. 배포 순서가 어느 쪽이어도 창이 안 생긴다.
+ */
+const avatarElementOf = (value: string | null | undefined): Element | null =>
+  ELEMENTS.find((element) => element === value) ?? null;
+
 /** RPC가 허용한 공개 행을 직렬화 가능한 카드로 옮긴다. 복원도 기존 점수 문구를 쓴다. */
-export function publicCardFromRow(row: Pick<BoardRow, 'candidate_user_id' | 'nickname' | 'intro' | 'has_photo' | 'supplied_elements' | 'balance_band' | 'preview_score'>, mySummary: ElementSummary) {
+export function publicCardFromRow(
+  row: Pick<BoardRow, 'candidate_user_id' | 'nickname' | 'intro' | 'has_photo' | 'supplied_elements' | 'balance_band' | 'preview_score'>
+    & Partial<Pick<BoardRow, 'avatar_element'>>,
+  mySummary: ElementSummary,
+) {
   return {
     candidateUserId: row.candidate_user_id,
     nickname: row.nickname,
     intro: row.intro,
     hasPhoto: row.has_photo === true,
+    avatarElement: avatarElementOf(row.avatar_element),
     exploration: false,
     ...candidateCardText({
       suppliedElements: row.supplied_elements,

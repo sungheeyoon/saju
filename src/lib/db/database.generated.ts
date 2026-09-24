@@ -2198,6 +2198,7 @@ export type Database = {
           schedule_id: number
         }[]
       }
+      day_master_element_of: { Args: { p_user_id: string }; Returns: string }
       discovery_balance_band: {
         Args: { combined_balance: number }
         Returns: string
@@ -2388,6 +2389,7 @@ export type Database = {
         Args: never
         Returns: {
           activity: string
+          avatar_element: string
           balance_band: string
           candidate_user_id: string
           exploration: boolean
@@ -2484,6 +2486,7 @@ export type Database = {
       my_passed_connections: {
         Args: never
         Returns: {
+          avatar_element: string
           balance_band: string
           candidate_user_id: string
           has_photo: boolean
