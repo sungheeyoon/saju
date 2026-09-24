@@ -2,7 +2,7 @@
 --
 -- `my_readings()` 가 끝에 `day_master_a` · `day_master_b` 를 낸다. 여기서 잠그는 것 넷.
 --
---   1. 내가 주인인 셋은 그 사람의 **지금 명식** 일간이다 — 고치면 따라 바뀐다
+--   1. 내가 주인인 셋은 **그 풀이를 만들 때의** 일간이다 — 뒤에 출생 정보를 고쳐도 안 바뀐다(2026-09-25)
 --   2. `private` 은 행의 `person_a` · `person_b` 와 같은 차례다
 --   3. `match` 는 **앞자리가 보는 사람, 뒷자리가 상대**다 — 두 사람이 같은 줄을 서로 반대로 본다
 --   4. `match` 의 상대 일간은 **동의 당시 사본**이다 — 상대가 뒤에 입력을 고쳐도 안 바뀐다.
@@ -175,9 +175,9 @@ select is(
   '엄마의 출생 정보를 고친다');
 
 select is(
-  (select day_master_a from public.my_readings() where kind = 'person'),
-  '丁',
-  '내가 주인인 풀이의 표지는 지금 명식을 따른다');
+  (select array[day_master_a, from_current_chart::text] from public.my_readings() where kind = 'person'),
+  array['壬', 'false'],
+  '고쳐도 표지는 그때의 일간이다 — 「수정 전」 글이 고친 뒤의 색을 입지 않는다');
 
 -- ── 칸에는 천간 한 글자뿐이다 ─────────────────────────────────────────────
 
