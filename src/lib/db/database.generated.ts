@@ -1671,6 +1671,11 @@ export type Database = {
           reviewed_by: string | null
           sanctioned_by: string | null
           sanctioned_user_id: string | null
+          warning_acknowledged_at: string | null
+          warning_category: string | null
+          warning_email_result: string | null
+          warning_emailed_at: string | null
+          warning_ref: string | null
         }
         Insert: {
           created_at?: string
@@ -1685,6 +1690,11 @@ export type Database = {
           reviewed_by?: string | null
           sanctioned_by?: string | null
           sanctioned_user_id?: string | null
+          warning_acknowledged_at?: string | null
+          warning_category?: string | null
+          warning_email_result?: string | null
+          warning_emailed_at?: string | null
+          warning_ref?: string | null
         }
         Update: {
           created_at?: string
@@ -1699,6 +1709,11 @@ export type Database = {
           reviewed_by?: string | null
           sanctioned_by?: string | null
           sanctioned_user_id?: string | null
+          warning_acknowledged_at?: string | null
+          warning_category?: string | null
+          warning_email_result?: string | null
+          warning_emailed_at?: string | null
+          warning_ref?: string | null
         }
         Relationships: [
           {
@@ -1961,6 +1976,7 @@ export type Database = {
         }
         Returns: string[]
       }
+      acknowledge_warning: { Args: { p_ref: string }; Returns: boolean }
       activity_band_of: { Args: { p_user_id: string }; Returns: string }
       adopt_reading_job: {
         Args: { p_response_id: string; p_run_id: string }
@@ -2544,6 +2560,14 @@ export type Database = {
         }[]
       }
       my_summary_is_current: { Args: { p_actor: string }; Returns: boolean }
+      my_warning_notice: {
+        Args: never
+        Returns: {
+          category: string
+          warned_on: string
+          warning_ref: string
+        }[]
+      }
       new_person_with_input: {
         Args: {
           p_birth_time: string
@@ -2559,6 +2583,7 @@ export type Database = {
         }
         Returns: string
       }
+      new_warning_ref: { Args: never; Returns: string }
       nickname_is_available: { Args: { p_nickname: string }; Returns: boolean }
       nickname_key: { Args: { p_nickname: string }; Returns: string }
       note_operator_denial: {
@@ -2649,6 +2674,9 @@ export type Database = {
           reviewed_at: string
           reviewer_nickname: string
           sanctioned_side: string
+          warning_acknowledged_at: string
+          warning_category: string
+          warning_ref: string
         }[]
       }
       operator_report_snapshot: {
@@ -2667,6 +2695,7 @@ export type Database = {
           p_page?: number
           p_reason?: string
           p_reviewed?: boolean
+          p_warning_ref?: string
         }
         Returns: {
           created_at: string
@@ -2681,6 +2710,7 @@ export type Database = {
           review_outcome: string
           reviewed_at: string
           snapshot_messages: number
+          warning_ref: string
         }[]
       }
       operator_service_survey_counts: {
@@ -2959,6 +2989,7 @@ export type Database = {
           p_report_id: string
           p_reviewer: string
           p_sanctioned_user_id?: string
+          p_warning_category?: string
         }
         Returns: string
       }
