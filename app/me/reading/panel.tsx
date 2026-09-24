@@ -13,7 +13,13 @@ import {
   readingCreditsNote,
   readingWaitNote,
 } from '@/src/lib/reading';
+import { ELEMENTS, type Element } from '@/src/lib/saju';
 
+import { elementScope } from '../../element-tone';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { ElementSymbol } from '../../ui/element-symbol';
+import { Icon } from '../../ui/icon';
+import { EMPTY_SLOT } from '../../ui/surfaces';
 import { generateReading, readingRunState } from './actions';
 import { announceCreditsMoved } from './credits-signal';
 import { GENERATION } from './generation';
@@ -22,6 +28,8 @@ import { namedMatchBody } from '@/src/lib/reading/display';
 import { ReadingFeedback } from './feedback';
 import { ShareReadingButton } from './share-button';
 import { Markdown } from './markdown';
+import { coverFace, readingMinutes } from './essay';
+import flow from './flow.module.css';
 import {
   afterAsking,
   afterPress,
@@ -187,6 +195,7 @@ export function ReadingPanel({
   ask,
   betweenSummaryAndBody,
   matchNames,
+  tones,
 }: {
   target: ReadingTarget;
   initialReading: CurrentReading | null;
@@ -264,6 +273,11 @@ export function ReadingPanel({
   ask?: ReactNode;
   betweenSummaryAndBody?: ReactNode;
   matchNames?: { readonly me: string; readonly partner: string };
+  /**
+   * 표지의 색 — 대상의 일간 오행. 한 사람이면 하나, 두 사람이면 둘이고 못 읽은 사람은 `null`(회색).
+   * 안 넘기면 크림 한 장이다(`Result`).
+   */
+  tones?: readonly (Element | null)[];
 }) {
   const router = useRouter();
   const [flow, dispatch] = useReducer(
@@ -401,79 +415,75 @@ export function ReadingPanel({
    * 버튼 옆에**(`pill`) 선다. 뒤엣것이 이 화면에서 사용자가 글을 읽고 나서 하는 두
    * 가지 — 보내기와 다시 받기 — 이고, 그 둘은 나란히 있어야 고르기가 된다.
    */
-  const makeButton = (shape: 'block' | 'pill') => (
+  const makeButton = (shape: 'block' | 'pill', emphasis: 'primary' | 'secondary') => (
     <button
       type="button"
       onClick={press}
       disabled={chrome.makeDisabled}
-      className={
-        shape === 'pill'
-          ? 'inline-flex min-h-10 w-full items-center justify-center rounded-full bg-accent px-4 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60'
-          : 'h-11 w-full shrink-0 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:-translate-y-0.5 hover:bg-accent-strong disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto'
-      }
+      className={`${emphasis === 'primary' ? BUTTON_PRIMARY : BUTTON_SECONDARY} ${
+        shape === 'pill' ? 'w-full whitespace-nowrap px-3 sm:w-auto sm:px-5' : 'w-full shrink-0 sm:w-auto'
+      }`}
     >
+      <Icon name="spark" className="size-[18px]" />
       {chrome.makeLabel}
     </button>
   );
 
+  /**
+   * **이전 명식으로 만든 글이면 다시 받기가 주 단추가 된다.** 평소 글을 다 읽은 사람이 먼저 하는 일은
+   * 보내기지만, 지금 명식과 다른 글을 들고 있는 사람에게는 새로 받는 것이 먼저다(시안 3차 warm).
+   * 한 영역에 주 단추는 하나다.
+   */
+  const stale = reading !== null && target.kind !== 'match' && !reading.fromCurrentChart;
+
   const makeBlock = chrome.hideMake ? null : (
     <div
-      className={`flex flex-col gap-3 ${onPage ? 'rounded-2xl border border-border bg-surface px-5 py-4' : 'border-t border-border pt-5'}`}
+      className={`flex flex-col gap-3 ${onPage ? 'rounded-[1.75rem] border border-border bg-surface px-5 py-5 sm:px-6' : 'border-t border-border pt-5'}`}
     >
       {/* 먼저 정할 것이 있으면 버튼보다 앞에 선다 — 정하고 나서 누르는 차례다 */}
       {ask}
       {/*
-        **버튼 옆에 남는 것은 한 줄뿐이다.**
-
-        여기에 넉 줄이 서 있었다 — 「지금 풀이를 새로 받을 수 있어요」·「새로 만들면 지금
-        것을 대신합니다」·「언어 모델이 씁니다」·「넘기지 않습니다」. 앞 둘은 각각 버튼을
-        한국어로 옮겨 적은 것과 **누르지 않을 사람에게 하는 경고**였고, 그 둘을 걷고 나니
-        남은 둘도 한 덩어리로 읽히지 않았다.
-
-        남긴 것은 **무엇을 안 넘기는가** 하나다. 누를지 정하는 시점에 사용자가 실제로
-        알아야 하는 사실이고, 그 자리가 여기다. 아직 글이 없을 때만 권하는 말이 위에
-        붙는다.
+        **버튼 옆에 남는 것은 한 줄뿐이다** — 무엇을 안 넘기는가. 누를지 정하는 시점에 사용자가 실제로
+        알아야 하는 사실이고, 그 자리가 여기다. 아직 글이 없을 때만 권하는 말이 위에 붙는다.
       */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1">
           {reading === null && (
             <>
-              <p className="text-sm font-semibold">사주를 바탕으로 {noun}를 받아 보세요</p>
-              <p className="text-xs leading-5 text-muted">{readingNoneNote(noun)}</p>
+              <p className="text-[17px] font-semibold text-foreground">사주를 바탕으로 {noun}를 받아 보세요</p>
+              <p className="text-[13px] leading-5 text-secondary">{readingNoneNote(noun)}</p>
             </>
           )}
         </div>
 
         {/*
-          **숫자는 여기 없다 — 머리글에 있다.**
-
-          한동안 이 버튼 아래에 세웠다. 「누를지 정할 때 눈이 가 있는 곳」이라는 이유였고
-          그건 지금도 맞다. 그런데 풀이권은 **이 글의 성질이 아니라 계정의 성질**이다.
-          화면마다 세우면 자기 풀이·저장한 사람·비공개 궁합·공유 궁합 넷에 같은 숫자가
-          네 번 서고, 그중 하나를 안 고치는 날이 온다.
-
-          대신 **말할 것이 있을 때는 여기서 말한다**(`creditsNote`). 「지금 만들고 있는
-          하나가 한 번을 쓰고 있어요」와 「새로 만들 수는 없지만…」은 이 누름에 대한
-          말이라 누르는 자리에 있어야 한다.
+          **숫자는 여기 없다 — 머리글에 있다.** 풀이권은 이 글의 성질이 아니라 계정의 성질이라, 화면마다
+          세우면 같은 숫자가 네 번 선다. 대신 이 누름에 대해 **말할 것이 있을 때는** 여기서 말한다.
         */}
-        {makeButton('block')}
+        {makeButton('block', 'primary')}
       </div>
-      {/* 풀이권에 대해 말할 것이 있을 때만 한 줄 더 선다 — 이 누름에 대한 말이라 여기다 */}
-      {creditsNote !== null && <p className="text-xs leading-5 text-muted">{creditsNote}</p>}
+      {creditsNote !== null && <p className="text-[13px] leading-5 text-secondary">{creditsNote}</p>}
     </div>
   );
 
   const alert = failure === null ? null : (
     <div
       role={phase === 'error' ? 'alert' : 'status'}
-      className={`rounded-xl px-4 py-3 text-sm leading-6 ${phase === 'error' ? 'bg-danger-wash text-danger' : 'bg-warning-wash text-warning'}`}
+      className={`flex gap-2.5 rounded-[1.25rem] px-4 py-3.5 text-[14px] leading-6 ${phase === 'error' ? 'bg-danger-wash text-danger' : 'bg-warning-wash text-warning'}`}
     >
-      <p>{failure}</p>
-      {phase === 'error' && (
-        <button type="button" onClick={generate} className="mt-2 font-semibold underline underline-offset-4">
-          다시 시도하기
-        </button>
-      )}
+      <Icon name="alert" className="mt-0.5 size-5" />
+      <div className="min-w-0">
+        <p>{failure}</p>
+        {phase === 'error' && (
+          <button
+            type="button"
+            onClick={generate}
+            className="-ml-1 mt-1 inline-flex min-h-11 items-center px-1 font-semibold underline underline-offset-4"
+          >
+            다시 시도하기
+          </button>
+        )}
+      </div>
     </div>
   );
 
@@ -481,61 +491,43 @@ export function ReadingPanel({
     <>
       <header className="flex flex-col gap-3">
         {/*
-          **왼쪽은 이름, 오른쪽은 이 글에 대해 할 수 있는 것.**
-
-          제목과 「언제 만들었나」와 누름 둘이 한 덩이를 이룬다. 넓은 화면에서는 제목이
-          왼쪽에 서고 나머지가 **오른쪽 끝으로 한 줄**을 이룬다(날짜 아래에 버튼 둘).
-          좁은 화면에서는 위에서 아래로 쌓이고, 그때 버튼 둘은 **줄을 반씩 나눠 쓴다** —
-          가운데에 모아 두면 누르는 자리가 화면마다 옮겨 다닌다.
+          **왼쪽은 이름, 오른쪽은 이 글에 대해 할 수 있는 것.** 좁은 화면에서는 위에서 아래로 쌓이고, 그때
+          버튼 둘은 **줄을 반씩 나눠 쓴다** — 가운데에 모아 두면 누르는 자리가 화면마다 옮겨 다닌다. 400px 아래
+          폰에서는 반쪽에 「사주풀이 다시 받기」가 두 줄로 꺾이므로 위아래로 쌓는다.
         */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-          <h2 className="text-xl font-bold tracking-tight">{heading}</h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+          <h2 className="font-rounded text-[1.3rem] leading-7 text-foreground">{heading}</h2>
 
-          <div className="flex flex-col gap-2 sm:shrink-0 sm:items-end">
-            {reading !== null && (
-              <span className="flex flex-wrap items-center gap-2">
-                {isMock && (
-                  <span className="rounded-full bg-warning-wash px-2.5 py-1 text-[11px] font-semibold text-warning">
-                    예시 결과
-                  </span>
-                )}
-                <span className="text-xs text-muted">{when(reading.createdAt)} 생성</span>
-              </span>
-            )}
-
-            {/*
-              **보내기와 다시 받기가 나란히 선다.** 글을 다 읽은 사람이 하는 일이 그
-              둘이다. 전에는 보내기만 제목 옆에 있고 다시 받기는 글 위의 칸에, 그리고
-              보내기가 본문 아래에 **한 번 더** 있었다 — 같은 일에 손잡이가 셋이면 어느
-              것이 무엇인지 세어 봐야 한다.
-            */}
-            {(chrome.canShare || chrome.makeInHeader) && (
-              /*
-                **둘이면 반반이다.** 글자 길이대로 두면 「사주풀이 다시 받기」가 「공유
-                링크 복사」보다 넓어서, 나란히 선 두 누름이 서로 다른 무게로 보인다.
-                격자로 나누면 **긴 쪽이 폭을 정하고 짧은 쪽이 그것을 따른다** — 좁은
-                화면에서는 줄을 반씩 나눠 쓰고, 넓은 화면에서는 그 한 쌍이 오른쪽 끝에
-                붙는다. 하나만 설 때는 나눌 것이 없으므로 제 크기로 선다.
-              */
-              <div className={chrome.canShare && chrome.makeInHeader ? 'grid grid-cols-2 gap-2' : 'flex'}>
-                {chrome.canShare && <ShareReadingButton target={target} variant="compact" />}
-                {chrome.makeInHeader && makeButton('pill')}
-              </div>
-            )}
-          </div>
+          {/*
+            **보내기와 다시 받기가 나란히 선다.** 글을 다 읽은 사람이 하는 일이 그 둘이고, 같은 일에
+            손잡이가 여럿이면 어느 것이 무엇인지 세어 봐야 한다.
+          */}
+          {(chrome.canShare || chrome.makeInHeader) && (
+            <div
+              className={
+                chrome.canShare && chrome.makeInHeader
+                  ? 'grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 sm:flex sm:shrink-0'
+                  : 'flex sm:shrink-0'
+              }
+            >
+              {chrome.canShare && (
+                <ShareReadingButton target={target} emphasis={stale ? 'secondary' : 'primary'} />
+              )}
+              {chrome.makeInHeader && makeButton('pill', stale || !chrome.canShare ? 'primary' : 'secondary')}
+            </div>
+          )}
         </div>
 
         {/* 다음 글에 대한 말은 그 버튼 아래다 — 사이 물음과 풀이권 이야기 */}
         {chrome.makeInHeader && ask}
         {chrome.makeInHeader && creditsNote !== null && (
-          <p className="text-xs leading-5 text-muted">{creditsNote}</p>
+          <p className="text-[13px] leading-5 text-secondary">{creditsNote}</p>
         )}
       </header>
 
       {/*
-        **다시 받는 버튼이 글 위에 선다.** 그것은 글을 읽기 전에 정하는 일이라, 8천 자
-        뒤에 있으면 없는 것과 같다. 카드로 설 때는 반대다 — 거기서는 이 칸이 다른 것들
-        사이에 끼어 있어서, 먼저 무엇이 있는지 보이고 나서 만들지 말지를 정한다.
+        **다시 받는 버튼이 글 위에 선다.** 그것은 글을 읽기 전에 정하는 일이라, 8천 자 뒤에 있으면 없는
+        것과 같다. 카드로 설 때는 반대다 — 먼저 무엇이 있는지 보이고 나서 만들지 말지를 정한다.
       */}
       {onPage && !chrome.makeInHeader && makeBlock}
       {onPage && alert}
@@ -554,6 +546,8 @@ export function ReadingPanel({
         <Result
           reading={reading}
           target={target}
+          isMock={isMock}
+          tones={tones}
           alwaysOpen={onPage}
           expanded={readingExpanded}
           onExpandedChange={setReadingExpanded}
@@ -563,69 +557,53 @@ export function ReadingPanel({
       )}
 
       {/*
-        **읽고 나서 곧바로 묻는다 — 글 바로 아래다.** 시점이 값을 정한다.
-
-        무엇이 이 자리를 막는지는 `panelChrome` 의 `asksFeedback` 이 든다(예시 결과·
-        어느 시도가 만들었는지 모르는 옛 글·동의하지 않은 사람). 규칙을 여기 한 벌 더
-        적으면 **두 벌이 언젠가 갈리고, 그때 갈린 줄을 아무도 안 본다.**
-      */}
-      {/*
-        **본문 끝에 공유 칸을 한 번 더 세우지 않는다.**
-
-        「이 풀이를 보내 보세요」와 채운 버튼이 여기 서 있었다. 글이 길어서 맨 위의 것이
-        안 보인다는 까닭이었는데, 같은 문 앞의 손잡이가 둘이면 **어느 것이 무엇인지**
-        세어 봐야 한다. 머리의 두 버튼(보내기·다시 받기)이 한 자리에 있으므로, 다 읽고
-        보내려는 사람은 위로 한 번 올라가면 된다.
+        **읽고 나서 곧바로 묻는다 — 글 바로 아래다.** 시점이 값을 정한다. 무엇이 이 자리를 막는지는
+        `panelChrome` 의 `asksFeedback` 이 든다 — 규칙을 여기 한 벌 더 적으면 두 벌이 언젠가 갈린다.
+        본문 끝에 공유 칸을 한 번 더 세우지 않는다 — 같은 문 앞의 손잡이가 둘이 된다.
       */}
       {/* `reading` 을 한 번 더 보는 것은 타입 검사기 때문이다 — 판단은 위에서 끝났다 */}
       {chrome.asksFeedback && reading !== null && reading.sourceRunId !== null && (
-        <ReadingFeedback target={target} runId={reading.sourceRunId} given={reading.myFeedback} />
+        <div className="mx-auto w-full max-w-[40rem]">
+          <ReadingFeedback target={target} runId={reading.sourceRunId} given={reading.myFeedback} />
+        </div>
       )}
 
       {!onPage && alert}
       {!onPage && makeBlock}
 
       {/*
-        **누를 수 없는 자리에는 창도 없다.** 이 창은 만드는 버튼이 여는 것이라, 버튼이
-        없는 화면(동의가 만드는 글의 성공 경로)에서는 열릴 길이 없다. 그런데도 닫힌 채
-        markup 에 실려 오면 **버튼 글자가 화면에 두 벌** 남는다 — 검사는 그 글자를 세어
-        「만드는 버튼이 있나」를 재므로, 안 눌리는 창 하나가 그 답을 늘 참으로 만든다.
+        **누를 수 없는 자리에는 창도 없다.** 이 창은 만드는 버튼이 여는 것이라, 버튼이 없는 화면(동의가
+        만드는 글의 성공 경로)에서는 열릴 길이 없다. 닫힌 채 실려 오면 버튼 글자가 화면에 두 벌 남고,
+        검사가 그 글자를 세어 「만드는 버튼이 있나」를 늘 참으로 만든다.
       */}
       {chrome.hideMake ? null : (
       <dialog
         ref={confirming}
         aria-labelledby="reading-confirm-title"
         /*
-          **`m-auto` 는 장식이 아니다.** 브라우저 기본 스타일은 열린 `<dialog>` 를
-          `margin: auto` 로 가운데에 놓는데, Tailwind 의 preflight 이 모든 요소의
-          여백을 0 으로 되돌린다 — 그대로 두면 이 창이 화면 왼쪽 위 구석에 붙는다.
+          **`m-auto` 는 장식이 아니다.** 브라우저 기본 스타일은 열린 `<dialog>` 를 `margin: auto` 로
+          가운데에 놓는데, Tailwind 의 preflight 이 모든 요소의 여백을 0 으로 되돌린다.
         */
-        className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-2xl border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
+        className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40"
       >
-        <h3 id="reading-confirm-title" className="text-base font-bold">
+        <span aria-hidden="true" className="grid size-11 place-items-center rounded-full bg-cream text-cream-ink">
+          <Icon name="ticket" className="size-5" />
+        </span>
+        <h3 id="reading-confirm-title" className="mt-4 font-rounded text-[1.3rem] leading-7">
           풀이권 1회를 사용하시겠어요?
         </h3>
-        <p className="mt-2 text-sm leading-6 text-secondary">{READING_USES_TICKET_NOTE}</p>
+        <p className="mt-2 text-[15px] leading-6 text-secondary">{READING_USES_TICKET_NOTE}</p>
         {reading !== null && (
-          <p className="mt-2 text-sm font-medium leading-6 text-danger">{READING_REPLACES_NOTE}</p>
+          <p className="mt-2 text-[15px] font-medium leading-6 text-danger">{READING_REPLACES_NOTE}</p>
         )}
         {/*
-          **누르는 쪽이 오른쪽이다.** 좁은 화면에서는 위아래로 서고, 그때도 확인이
-          위에 온다(`flex-col-reverse` 가 아니라 순서를 그대로 뒤집는다).
+          **누르는 쪽이 오른쪽이다.** 좁은 화면에서는 위아래로 서고, 그때도 확인이 위에 온다.
         */}
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
-          <button
-            type="button"
-            onClick={confirmGenerate}
-            className="h-11 rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong sm:h-10"
-          >
+        <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
+          <button type="button" onClick={confirmGenerate} className={BUTTON_PRIMARY}>
             {reading === null ? `${noun} 받기` : `${noun} 다시 받기`}
           </button>
-          <button
-            type="button"
-            onClick={() => confirming.current?.close()}
-            className="h-11 rounded-xl border border-border px-5 text-sm text-secondary hover:border-border-strong hover:text-foreground sm:h-10"
-          >
+          <button type="button" onClick={() => confirming.current?.close()} className={BUTTON_SECONDARY}>
             그만두기
           </button>
         </div>
@@ -637,11 +615,15 @@ export function ReadingPanel({
 
 function EmptyState() {
   return (
-    <div className="grid min-h-56 place-items-center rounded-2xl border border-dashed border-border-strong bg-surface-soft px-5 py-10 text-center">
+    <div className={`${EMPTY_SLOT} grid min-h-56 place-items-center text-center`}>
       <div className="max-w-sm">
-        <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-accent-wash text-xl text-accent" aria-hidden="true">✦</span>
-        <h3 className="mt-4 text-base font-bold">아직 받아 둔 풀이가 없어요</h3>
-        <p className="mt-2 text-sm leading-6 text-secondary">복잡한 사주 정보를 핵심 성향, 강점, 균형을 위한 제안으로 나누어 읽기 쉽게 정리합니다.</p>
+        <span aria-hidden="true" className="mx-auto flex justify-center gap-1.5">
+          {ELEMENTS.map((element) => (
+            <ElementSymbol key={element} element={element} className="size-6" />
+          ))}
+        </span>
+        <h3 className="mt-4 font-rounded text-[1.3rem] leading-7">아직 받아 둔 풀이가 없어요</h3>
+        <p className="mt-2 text-[15px] leading-6 text-secondary">복잡한 사주 정보를 핵심 성향, 강점, 균형을 위한 제안으로 나누어 읽기 쉽게 정리합니다.</p>
       </div>
     </div>
   );
@@ -656,7 +638,7 @@ function EmptyState() {
  * 올라가는 숫자는 다르다. 초가 늘어나는 것은 **브라우저가 이 화면을 아직 붙들고
  * 있다**는 증거이고, 사람은 그것을 그렇게 읽는다. 그래서 여기서 세는 것을 「진행률」이라
  * 부르지 않는다 — 서버가 지금 어느 단계인지 우리는 모르고, 시간만 보고 단계를 지어
- * 보이면 그건 꾸며 낸 진행이다. 이 저장소가 값에 대고 지켜 온 규율을 화면에서 깰 이유가 없다.
+ * 보이면 그건 꾸며 낸 진행이다. 흐르는 띠(`flow.module.css`)도 차오르지 않는다 — 끝을 모른다는 말이다.
  */
 function LoadingState() {
   const [elapsed, setElapsed] = useState(0);
@@ -673,29 +655,34 @@ function LoadingState() {
   }, []);
 
   return (
-    <div role="status" aria-live="polite" className="rounded-2xl bg-accent-wash p-5 sm:p-6">
+    <div role="status" aria-live="polite" className="rounded-[1.75rem] bg-cream p-5 sm:p-7">
       <div className="flex items-center gap-3">
-        <span className="grid size-10 animate-pulse place-items-center rounded-full bg-accent text-on-accent" aria-hidden="true">✦</span>
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-surface text-cream-ink" aria-hidden="true">
+          <Icon name="spark" className="size-5" />
+        </span>
         <div className="min-w-0">
-          <p className="font-semibold">사주의 흐름을 이어 읽고 있어요</p>
-          <p className="text-xs text-secondary">근거를 확인하고, 단정하지 않는 문장으로 옮깁니다.</p>
+          <p className="text-[17px] font-semibold text-foreground">사주의 흐름을 이어 읽고 있어요</p>
+          <p className="text-[13px] leading-5 text-cream-ink">근거를 확인하고, 단정하지 않는 문장으로 옮깁니다.</p>
         </div>
         {/*
           **읽어 주지 않는다.** 바깥이 `aria-live` 라 이 숫자가 매초 낭독되면 화면
           낭독기를 쓰는 사람에게는 글을 읽을 수 없는 칸이 된다. 살아 있다는 신호는
           눈으로 보는 사람에게 필요한 것이고, 낭독되는 문장은 위의 한 줄로 족하다.
         */}
-        <p aria-hidden="true" className="ml-auto shrink-0 text-sm font-semibold tabular-nums text-accent">
+        <p aria-hidden="true" className="ml-auto shrink-0 text-[15px] font-semibold tabular-nums text-cream-ink">
           {elapsed}초
         </p>
       </div>
-      <div className="mt-6 flex flex-col gap-3" aria-hidden="true">
+      <div aria-hidden="true" className="mt-5 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--cream-ink)_14%,transparent)]">
+        <div className={`${flow.flow} h-full w-full rounded-full`} />
+      </div>
+      <div className="mt-6 flex max-w-[36rem] flex-col gap-3" aria-hidden="true">
         <div className="reading-skeleton h-4 w-2/5 rounded-full" />
         <div className="reading-skeleton h-3 w-full rounded-full" />
         <div className="reading-skeleton h-3 w-11/12 rounded-full" />
         <div className="reading-skeleton h-3 w-4/5 rounded-full" />
       </div>
-      <p className="mt-5 text-xs leading-5 text-muted">
+      <p className="mt-5 text-[13px] leading-5 text-cream-ink">
         {readingWaitNote(GENERATION.settings.timeout)} {READING_LEAVE_SAFE_NOTE}
       </p>
     </div>
@@ -705,6 +692,8 @@ function LoadingState() {
 function Result({
   reading,
   target,
+  isMock,
+  tones,
   alwaysOpen,
   expanded,
   onExpandedChange,
@@ -713,6 +702,8 @@ function Result({
 }: {
   reading: CurrentReading;
   target: ReadingTarget;
+  isMock: boolean;
+  tones: readonly (Element | null)[] | undefined;
   /** 상세 화면에서는 접지 않는다 — 그 글을 읽으러 온 자리다 */
   alwaysOpen: boolean;
   expanded: boolean;
@@ -721,99 +712,125 @@ function Result({
   matchNames?: { readonly me: string; readonly partner: string };
 }) {
   const open = alwaysOpen || expanded;
+  const body =
+    target.kind === 'match' && matchNames !== undefined
+      ? namedMatchBody(reading.output, reading.viewerIsFirst, matchNames)
+      : reading.output;
+
+  /*
+    **표지의 색은 부르는 화면이 정한다** — 대상의 일간이다. 모르면(부르는 화면이 안 넘기면) 크림 한 장이다:
+    회색 표지는 「못 읽은 명식」의 뜻이라, 몰라서 안 넘긴 자리에 쓰면 거짓말이 된다.
+  */
+  const face = tones === undefined ? null : coverFace(tones);
+  const firstTone = tones?.[0] ?? null;
+
   const detailButton = !alwaysOpen && (
     <button
       type="button"
       onClick={() => onExpandedChange(!expanded)}
       aria-expanded={expanded}
       aria-controls={`reading-${reading.id}`}
-      className="inline-flex min-h-10 shrink-0 items-center gap-1.5 self-start rounded-full border border-accent/25 bg-surface px-4 text-sm font-semibold text-accent shadow-sm hover:border-accent sm:self-auto"
+      className={`${BUTTON_SECONDARY} self-start`}
     >
       {expanded ? '접기' : '자세히 보기'}
-      <span aria-hidden="true">{expanded ? '↑' : '→'}</span>
+      <Icon name="chevron" className={`size-4 ${expanded ? '-rotate-90' : 'rotate-90'}`} />
     </button>
   );
 
-  return (
-    <div className="flex flex-col gap-5">
-      {/*
-        **결론과 점수는 한 카드의 서로 다른 면이다.**
-
-        결론은 왼쪽의 넓은 면에서 글 흐름대로 시작하고, 점수는 오른쪽의 작은 면 중앙에
-        둔다. 숫자가 긴 결론을 밀어내지 않으면서도 같은 결과의 요약임은 외곽 하나가
-        말한다. 좁은 화면에서는 위아래로 쌓여 문장이 눌리지 않는다.
-
-        ## 한 줄 요약은 길이가 들쭉날쭉하다
-
-        마흔 자 안팎을 시키지만 지키는 값은 아니고, 막는 자리는 120자다. 그래서 한 줄을
-        전제하지 않는다 — `text-pretty` 로 줄을 고르게 나누고, 칸은 세로로 자란다.
-      */}
-      {(reading.score !== null || reading.metaphor !== null) && (
-        <section className="grid overflow-hidden rounded-[1.75rem] border border-border bg-surface-raised shadow-[var(--shadow-card)] sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="flex min-w-0 flex-col justify-center px-5 py-5 sm:px-6 sm:py-6">
-            {reading.score === null && <p className="eyebrow">풀이 결과</p>}
-            {reading.metaphor !== null && (
-              <p
-                className={`${reading.score === null ? 'mt-1.5' : ''} max-w-2xl text-pretty text-lg font-semibold leading-7 sm:text-xl sm:leading-8`}
-              >
-                {reading.metaphor}
-              </p>
-            )}
-          </div>
-          {(reading.score !== null || detailButton) && (
-            <div className="flex min-w-40 flex-col items-center justify-center gap-3 border-t border-border bg-accent-wash/45 px-5 py-4 text-center sm:border-l sm:border-t-0 sm:px-6">
-              {reading.score !== null && (
-                <div>
-                  <p className="text-xs font-semibold text-accent">궁합풀이 점수</p>
-                  <p className="mt-1 flex items-baseline justify-center gap-1">
-                    <span className="text-3xl font-bold tabular-nums">{reading.score}</span>
-                    <span className="text-xs font-medium text-secondary">/ 100</span>
-                  </p>
-                </div>
-              )}
-              {detailButton}
-            </div>
-          )}
-        </section>
+  const meta = (
+    <>
+      {isMock && (
+        <span className="rounded-full bg-warning-wash px-2.5 py-1 text-[11px] font-semibold text-warning">
+          예시 결과
+        </span>
       )}
-      {reading.score === null && reading.metaphor === null && detailButton}
+      <time dateTime={reading.createdAt} className="tabular-nums">
+        {when(reading.createdAt)} 생성
+      </time>
+      <span aria-hidden="true">·</span>
+      <span>읽는 데 약 {readingMinutes(body)}분</span>
+    </>
+  );
+
+  return (
+    <div className="flex flex-col gap-6">
       {/*
-        **늘 참인 사실은 여기 안 적는다.**
-
-        「화면을 다시 열어도 이 풀이는 그대로입니다」가 이 줄에 있었다. 참이지만 이
-        화면에서 **한 번도 틀린 적이 없는** 사실이라, 읽는 사람에게는 늘 서 있는 배경이
-        된다. 그 배경이 두꺼워질수록 옆에 선 「지금과 다른 명식으로 만들었습니다」처럼 **실제로
-        갈리는** 한 줄이 같이 안 읽힌다.
-
-        새로 만들면 지금 것이 사라진다는 경고도 이 자리를 떠났다 — 그것은 되돌릴 수
-        없는 누름 **직전**에 필요한 말이라, 확인 창이 든다.
+        **비유 한 줄이 이 글의 표지다** — 에세이 앱의 표지처럼 가장 크게 세운다(시안 3차 warm). 점수는 표지의
+        오른쪽 아래, 비유가 흐르는 자리를 밀어내지 않는 곳에 선다. 비유는 길이가 들쭉날쭉하다(마흔 자 안팎을
+        시키지만 막는 자리는 120자) — 한 줄을 전제하지 않고 `text-pretty` 로 고르게 나눈다.
+      */}
+      {reading.score !== null || reading.metaphor !== null ? (
+        <figure
+          className={`${elementScope(firstTone)} relative overflow-hidden rounded-[2rem] px-6 pb-6 pt-7 sm:px-10 sm:pb-8 sm:pt-10 ${face === null ? 'bg-cream' : ''}`}
+          style={face === null ? undefined : { background: face.background }}
+        >
+          {tones !== undefined && tones.length === 1 && (
+            <ElementSymbol
+              element={firstTone}
+              className="pointer-events-none absolute -right-10 -top-10 size-48 opacity-20 sm:size-64"
+            />
+          )}
+          {reading.metaphor !== null ? (
+            <>
+              <span aria-hidden="true" className="relative block h-10 font-rounded text-[5rem] leading-none text-[var(--ink)] opacity-70">
+                “
+              </span>
+              <blockquote className="relative mt-2 max-w-[18em] text-pretty font-rounded text-[1.75rem] leading-[1.4] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
+                {reading.metaphor}
+              </blockquote>
+            </>
+          ) : (
+            <p className="relative text-[13px] font-semibold text-secondary">풀이 결과</p>
+          )}
+          <figcaption className="relative mt-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-t border-[color-mix(in_srgb,var(--foreground)_12%,transparent)] pt-4">
+            <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-secondary">{meta}</span>
+            {reading.score !== null && (
+              <span className="flex flex-col items-end">
+                <span className="text-[13px] font-semibold text-secondary">궁합풀이 점수</span>
+                <span className="flex items-baseline gap-1">
+                  <span className="text-[2.5rem] font-bold leading-none tabular-nums text-foreground">{reading.score}</span>
+                  <span className="text-[13px] font-semibold text-secondary">/ 100</span>
+                </span>
+              </span>
+            )}
+          </figcaption>
+        </figure>
+      ) : (
+        <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-secondary">{meta}</p>
+      )}
+      {detailButton}
+      {/*
+        **늘 참인 사실은 여기 안 적는다.** 여기 서는 것은 **실제로 갈리는** 한 줄뿐이다 — 지금과 다른
+        명식으로 만든 글. 새로 만들면 지금 것이 사라진다는 경고는 되돌릴 수 없는 누름 **직전**에 필요한
+        말이라 확인 창이 든다. 색만으로 말하지 않는다 — 「이전 명식」 낱말이 함께 선다.
       */}
       {target.kind !== 'match' && !reading.fromCurrentChart && (
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs leading-5 text-muted">
-          <p className="text-danger">{READING_STALE_NOTE}</p>
-        </div>
+        <p className="flex gap-2.5 rounded-[1.25rem] bg-warning-wash px-4 py-3.5 text-[14px] leading-6 text-foreground">
+          <Icon name="alert" className="mt-0.5 size-5 text-warning" />
+          <span>
+            <span className="mr-1.5 font-semibold text-warning">이전 명식</span>
+            {READING_STALE_NOTE}
+          </span>
+        </p>
       )}
       {betweenSummaryAndBody}
       {open && (
-        <div className="overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-[var(--shadow-card)]">
+        <div className={`${elementScope(firstTone)} flex flex-col gap-2 pt-4 sm:pt-8`}>
           {target.kind === 'match' && (
-            <header className="border-b border-border px-5 py-4 sm:px-7 sm:py-5 lg:px-8">
-              <p className="eyebrow">두 사람의 풀이</p>
-              <h2 className="mt-0.5 text-xl font-bold tracking-[-0.03em]">궁합풀이 결과</h2>
+            <header className="mx-auto w-full max-w-[36rem]">
+              <p className="text-[13px] font-semibold text-secondary">두 사람의 풀이</p>
+              <h2 className="mt-1 font-rounded text-[1.5rem] leading-8">궁합풀이 결과</h2>
             </header>
           )}
-          <article
-            id={`reading-${reading.id}`}
-            className="p-5 sm:p-7 lg:p-8"
-          >
-            <Markdown
-              source={
-                target.kind === 'match' && matchNames !== undefined
-                  ? namedMatchBody(reading.output, reading.viewerIsFirst, matchNames)
-                  : reading.output
-              }
-            />
+          <article id={`reading-${reading.id}`}>
+            <Markdown source={body} />
           </article>
+          {/* 글의 끝 — 다섯 상징이 마침표 자리에 선다 */}
+          <span aria-hidden="true" className="mt-12 flex justify-center gap-3 opacity-80">
+            {ELEMENTS.map((element) => (
+              <ElementSymbol key={element} element={element} className="size-5" />
+            ))}
+          </span>
         </div>
       )}
     </div>

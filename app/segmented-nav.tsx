@@ -9,6 +9,9 @@ import Link from 'next/link';
  *
  * 모양을 여기 한 벌만 두는 것이 요점이다. 같은 뜻의 부품이 두 파일에 따로 있으면
  * 한쪽만 고쳐지는 날이 오고, 그때 사용자는 **같은 것을 두 모양으로** 본다.
+ *
+ * 모양은 머리글 메뉴와 같은 **알약 분할**이다 — 켜진 쪽이 먹색으로 채워진다(5차 warm). 색만으로 말하지
+ * 않는다: 켜진 쪽은 `aria-current` 가 함께 든다.
  */
 export function SegmentedNav({
   label,
@@ -21,7 +24,7 @@ export function SegmentedNav({
   return (
     <nav
       aria-label={label}
-      className={`grid gap-1 rounded-2xl border border-border bg-surface-sunken p-1 ${
+      className={`grid gap-1 rounded-full bg-surface p-1 ring-1 ring-border ${
         items.length === 3 ? 'grid-cols-3' : 'grid-cols-2'
       }`}
     >
@@ -30,10 +33,8 @@ export function SegmentedNav({
           key={one.href}
           href={one.href}
           aria-current={one.current ? 'page' : undefined}
-          className={`flex min-h-10 flex-1 items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
-            one.current
-              ? 'bg-surface text-accent shadow-sm'
-              : 'text-secondary hover:bg-surface/70 hover:text-foreground'
+          className={`flex min-h-11 flex-1 items-center justify-center rounded-full px-5 text-[15px] font-semibold transition-colors active:scale-[0.97] ${
+            one.current ? 'bg-accent text-on-accent' : 'text-secondary hover:text-foreground'
           }`}
         >
           {one.text}

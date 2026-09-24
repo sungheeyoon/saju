@@ -1,0 +1,29 @@
+/*
+  끝을 모르는 기다림의 띠 — 몇 % 가 아니라 **흐르는 빛**으로 말한다(시안 3차 warm 「함께 보는 궁합」).
+  서버가 지금 어느 단계인지 모르므로 차오르는 막대를 세우면 꾸며 낸 진행이 된다(`panel.tsx` 의 `LoadingState`).
+  움직임을 줄인 사람에게는 멈춘 띠 하나만 선다 — 곁의 글자가 이미 같은 말을 한다.
+*/
+.flow {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--wood-mid) 30%,
+    var(--water-mid) 50%,
+    var(--fire-mid) 70%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: flow 2.4s ease-in-out infinite;
+}
+
+@keyframes flow {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow {
+    animation: none;
+    background-position: 50% 0;
+  }
+}

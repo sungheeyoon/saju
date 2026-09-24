@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { shareMyReading } from './share';
 import type { ReadingTarget } from './target';
 
@@ -60,11 +61,15 @@ const IDLE = '공유 링크 복사';
 
 export function ShareReadingButton({
   target,
-  variant,
+  emphasis,
 }: {
   /** 무엇을 보내는가 — 글은 서버가 이 대상으로 다시 읽는다 */
   target: ReadingTarget;
-  variant: 'compact' | 'block';
+  /**
+   * 주 단추인가 보조인가 — 곁의 「다시 받기」와 짝을 이룬다. 평소엔 보내기가 주이고, 이전 명식으로 만든
+   * 글이면 다시 받기가 주로 올라온다(`panel.tsx`). 한 영역에 주 단추는 하나다.
+   */
+  emphasis: 'primary' | 'secondary';
 }) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [link, setLink] = useState<string | null>(null);
@@ -144,28 +149,28 @@ export function ShareReadingButton({
    */
   const label = phase === 'working' ? '만드는 중…' : phase === 'copied' ? '복사했습니다' : IDLE;
 
-  const shape =
-    variant === 'compact'
-      ? 'inline-flex min-h-10 w-full items-center justify-center rounded-full border border-accent/25 bg-surface px-4 text-sm font-semibold text-accent shadow-sm hover:border-accent disabled:opacity-60'
-      : 'inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto';
-
-  /*
-    **세로로 쌓되 늘이지는 않는다.** `items-start` 가 없으면 세로 flex 의 기본
-    `stretch` 가 버튼을 칸 너비만큼 늘여 버린다 — 좁은 화면에서는 그것이 맞지만
-    (`w-full`), 넓은 화면에서 1100px 짜리 버튼이 서는 것은 실수다. 예전에는 버튼을
-    감싼 가로 flex 가 그것을 막고 있었는데, 두 번째 버튼이 없어지면서 그 칸도 걷혔다.
-  */
   return (
     /*
-      **`compact` 는 담긴 칸을 채운다.** 옆의 「다시 받기」와 **반반으로** 서기 때문이다
-      (`panel.tsx` 의 머리가 격자로 나눈다). 폭을 스스로 정하지 않으므로 그 칸이 정한다.
+      **담긴 칸을 채운다.** 좁은 화면에서 옆의 「다시 받기」와 **반반으로** 서기 때문이다(`panel.tsx` 의
+      머리가 격자로 나눈다). 폭을 스스로 정하지 않으므로 그 칸이 정한다.
     */
-    <div
-      className={`flex flex-col gap-2 ${
-        variant === 'block' ? 'items-start' : 'w-full items-stretch'
-      }`}
-    >
-      <button type="button" onClick={start} disabled={phase === 'working'} className={shape}>
+    <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto">
+      <button
+        type="button"
+        onClick={start}
+        disabled={phase === 'working'}
+        className={`${emphasis === 'primary' ? BUTTON_PRIMARY : BUTTON_SECONDARY} w-full px-3 sm:px-5`}
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="size-[18px] shrink-0 fill-none stroke-current"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2" />
+        </svg>
         {/*
           **안 보이는 한 벌이 폭을 잡는다.** 두 글자를 같은 칸에 겹쳐 놓고 아래 것을
           숨기면, 칸의 너비는 늘 평소의 말이 정하고 위의 글자만 갈린다.
@@ -187,7 +192,7 @@ export function ShareReadingButton({
         말이고, 읽으라고 자리를 만드는 것이다. 잘 된 일은 버튼이 혼자 말한다.
       */}
       {phase === 'failed' && notice !== null && (
-        <p role="alert" className="text-xs leading-5 text-danger">
+        <p role="alert" className="text-[13px] leading-5 text-danger">
           {notice}
         </p>
       )}
@@ -199,7 +204,7 @@ export function ShareReadingButton({
           value={link}
           aria-label="공유 주소"
           onFocus={() => address.current?.select()}
-          className="w-full rounded-md border border-border bg-surface-sunken px-2 py-1.5 text-xs text-secondary"
+          className="min-h-11 w-full rounded-xl border border-border bg-surface-sunken px-3 text-[13px] text-secondary"
         />
       )}
     </div>

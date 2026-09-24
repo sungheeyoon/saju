@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+
 /**
  * 긴 글 한 덩어리를 클립보드로 — **내부 테스트 화면의 손잡이.**
  *
@@ -33,7 +35,7 @@ export function CopyText({ text, label }: { text: string; label: string }) {
           setState('failed');
         }
       }}
-      className="h-8 shrink-0 rounded-md border border-border px-2.5 text-xs text-secondary transition-colors hover:border-border-strong hover:text-foreground"
+      className={`${BUTTON_SECONDARY_SMALL} shrink-0`}
     >
       {state === 'copied' ? '복사했습니다' : state === 'failed' ? '복사 실패 — 아래에서 긁어 주세요' : label}
     </button>

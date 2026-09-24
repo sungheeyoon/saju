@@ -1161,10 +1161,16 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       말을 대신해 줄 것이 없다.
     */
     await expect(page.getByRole('heading', { name: '아직 만든 풀이가 없습니다' })).toBeVisible();
-    // 머리글에도 같은 이름의 길이 있으므로 본문 안에서 찾는다.
-    await expect(
-      page.getByRole('main').getByRole('link', { name: '내 사주', exact: true }),
-    ).toBeVisible();
+    /*
+      「내 사주」 탭이 없어진 뒤로(메뉴: 홈 · 매칭 · 풀이 · 채팅) 빈 화면은 만드는 자리로 **곧장** 가는
+      표지를 세운다 — 내 사주가 있는 사람에게는 내 사주풀이 화면이다.
+    */
+    const mine = page.getByRole('main').getByRole('link', { name: '내 사주풀이', exact: true });
+    await expect(mine).toHaveAttribute('href', '/me/readings/self');
+    await expect(page.getByRole('main').getByRole('link', { name: '저장한 사람', exact: true })).toHaveAttribute(
+      'href',
+      '/me/people',
+    );
   });
 
   test('계정 작업은 우측 계정 메뉴의 계정 관리에 모여 있다', async ({ page, signedIn }) => {
