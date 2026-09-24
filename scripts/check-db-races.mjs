@@ -12,9 +12,13 @@
  *   4. **두 반출 실행이 나란히 시작하면 하나만 돈다** — 뒤는 「도는 중」(`20261014090000`)
  *   5. **CLI 질의 하나의 결과는 두 세션이 나란히 적어도 한 줄이다** — 같은 결과면 뒤는 앞 줄의 번호를, 다른 결과면
  *      거절을 받는다(`20261015090000`)
+ *   6. **두 표에 나란히 적는 경고는 같은 안내번호를 못 받는다** — 지금 계정의 신고(`public.report`)와 떠난 사람의
+ *      신고(`retention.report`)에 같은 씨앗으로 경고를 적으면 둘 다 같은 번호를 뽑는다. 뒤 세션은 앞 세션의 커밋을
+ *      기다렸다가 다른 번호를 받는다(`20261020090000`, ADR 0108 추기)
  *
  * 남는 것 — 접속기록 표는 추가만 되므로 이 검사가 적은 줄(무작위 actor, 1 · 3 · CLI 질의와 결과, 5)과 반출 시도
  * 둘(4, 「설정 없음」으로 끝낸다)은 로컬 DB 에 남는다. 주문을 연 계정은 끝에 지운다. 판매 스위치는 2 동안만 켜고 `finally` 에서 끈다.
+ * 6 의 계정과 신고는 끝에 지우고, 안내번호 대장의 두 줄은 남는다 — 한 번 쓴 번호는 다시 안 쓰는 것이 그 대장의 뜻이다.
  */
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -205,6 +209,62 @@ const accessRow = (actor, outcome = 'allowed') => `
   check('다른 결과를 적는 뒤 세션은 거절된다 — 23505', refused.code !== 0 && /already written/.test(refused.err),
     refused.err.trim() || '거절되지 않았다');
   check('다른 결과가 나란히 와도 결과는 한 줄이다', resultRows(differ) === '1', `${resultRows(differ)}줄`);
+}
+
+// ── 6. 두 표의 안내번호 ─────────────────────────────────────────────────────────
+
+{
+  const stamp = Date.now();
+  const person = (label) => sql(`insert into auth.users (instance_id, id, aud, role, email, created_at, updated_at)
+    values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
+            'race-${label}-${stamp}@example.com', now(), now()) returning id`);
+  const reporter = person('reporter');
+  const warned = person('warned');
+  const operator = person('operator');
+  sql(`insert into public.operator (user_id, note) values ('${operator}', '경합 검사 — 안내번호')`);
+  const current = sql(`insert into public.report (reporter_user_id, reported_user_id, reason)
+    values ('${reporter}', '${warned}', 'harassment') returning id`);
+  // 떠난 사람의 신고 — 옮기는 트리거를 거치지 않고 그 모양 그대로 넣는다
+  const retained = sql(`insert into retention.report
+      (report_id, reason, reported_at, reporter_user_id, reported_user_id, reporter_left_at)
+    values (gen_random_uuid(), 'other', now(), gen_random_uuid(), '${warned}', now()) returning report_id`);
+
+  // 같은 씨앗이면 두 세션의 첫 번호가 같다 — 드문 우연을 매번 일으킨다. 씨앗은 돌 때마다 새로 고른다 — 대장이 쓴 번호를
+  // 남기므로 같은 씨앗을 다시 쓰면 두 번째 실행의 첫 번호는 이미 잡혀 있다
+  const seed = Math.random().toFixed(6);
+  const warn = (at, report, tail = '') => session(at, `begin; select setseed(${seed}) is null;
+    select public.review_report('${report}', '${operator}', 'warning', null, '${warned}') is null;
+    select 'REF=' || coalesce(
+      (select warning_ref from public.report where id = '${report}'),
+      (select warning_ref from retention.report where report_id = '${report}'));
+    ${tail} commit;`);
+
+  try {
+    const [first, second] = await Promise.all([warn(0, current, 'select pg_sleep(2);'), warn(600, retained)]);
+    const refs = [marked(first, 'REF'), marked(second, 'REF')];
+
+    check('두 표에 경고를 적는 두 세션이 끝까지 돈다', first.code === 0 && second.code === 0,
+      `${first.err}${second.err}`.trim());
+    check('앞 세션은 씨앗의 첫 번호를 받았다 — 같은 씨앗의 뒤 세션도 처음엔 그 번호를 뽑는다, 경합이 성립한다',
+      sql(`select setseed(${seed}) is null; select 'W-' || string_agg(
+             substr('23456789ABCDEFGHJKMNPQRSTVWXYZ', 1 + floor(random() * 30)::integer, 1), '')
+           from generate_series(1, 4)`).split('\n').pop() === refs[0],
+      refs.join(' · '));
+    check('두 표의 경고가 같은 안내번호를 받지 않는다', refs[0] !== null && refs[1] !== null && refs[0] !== refs[1],
+      refs.join(' · '));
+    check('뒤 세션은 앞 세션의 커밋을 기다렸다 — 번호를 잡는 자리가 두 표에 하나다', second.ms >= 1000, `${second.ms}ms`);
+    const doubled = sql(`select count(*) from (
+        select w.warning_ref from (select warning_ref from public.report
+                                   union all select warning_ref from retention.report) w
+        where w.warning_ref in ('${refs[0]}', '${refs[1]}') group by w.warning_ref having count(*) > 1) d`);
+    check('두 표를 합쳐 두 번 선 번호가 없다', doubled === '0', `${doubled}개`);
+  } finally {
+    sql(`delete from retention.report where report_id = '${retained}'`);
+    sql(`delete from public.operator where user_id = '${operator}'`);
+    sql(`delete from auth.users where id in ('${reporter}', '${warned}', '${operator}')`);
+    // 신고한 사람이 떠나며 옮겨진 줄도 걷는다
+    sql(`delete from retention.report where report_id = '${current}'`);
+  }
 }
 
 finish();

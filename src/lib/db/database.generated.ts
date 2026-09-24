@@ -1730,6 +1730,13 @@ export type Database = {
             referencedRelation: "app_user"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "warning_ref_is_registered"
+            columns: ["warning_ref", "id"]
+            isOneToOne: false
+            referencedRelation: "warning_reference"
+            referencedColumns: ["ref", "report_id"]
+          },
         ]
       }
       service_survey: {
@@ -1940,6 +1947,21 @@ export type Database = {
           added_at?: string
           note?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      warning_reference: {
+        Row: {
+          ref: string
+          report_id: string
+        }
+        Insert: {
+          ref: string
+          report_id: string
+        }
+        Update: {
+          ref?: string
+          report_id?: string
         }
         Relationships: []
       }
@@ -2583,7 +2605,7 @@ export type Database = {
         }
         Returns: string
       }
-      new_warning_ref: { Args: never; Returns: string }
+      new_warning_ref: { Args: { p_report_id: string }; Returns: string }
       nickname_is_available: { Args: { p_nickname: string }; Returns: boolean }
       nickname_key: { Args: { p_nickname: string }; Returns: string }
       note_operator_denial: {
