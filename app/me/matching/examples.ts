@@ -4,6 +4,7 @@ import harinPhoto from '../../../public/matching/harin.webp';
 import jiwooPhoto from '../../../public/matching/jiwoo.webp';
 import seoyeonPhoto from '../../../public/matching/seoyeon.webp';
 import type { DeckCard } from './matching-experience';
+import { meMarkOf } from './me-mark';
 
 /**
  * 디자인을 확인하려고 남겨 둔 **AI 예시 얼굴 셋**.
@@ -64,3 +65,11 @@ export const EXAMPLE_CARDS: readonly DeckCard[] = SEEDS.map((seed) => ({
     previewScore: seed.previewScore,
   }),
 }));
+
+/**
+ * 미리보기 지도의 가운데 — **예시 명식 하나**(戊 일간, 목 0 · 화 1 · 토 2 · 금 4 · 수 1).
+ *
+ * 보는 사람의 명식을 쓰지 않는 까닭: 예시 셋은 木 · 火 · 水 를 채운다고 적혀 있는데, 보는 사람에게 그 기운이 넉넉하면
+ * 지도는 「빈 자리를 채운다」는 선을 찬 원에 긋는 거짓 그림이 된다. 이 명식에서는 셋이 모두 실제로 빈 원을 채운다.
+ */
+export const EXAMPLE_ME = meMarkOf('戊', { glyphCount: 8, counts: { 木: 0, 火: 1, 土: 2, 金: 4, 水: 1 } });

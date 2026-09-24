@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { DISCOVERY_TEASER } from '@/src/lib/discovery';
 
 import { supabaseOnServer } from '../../../auth/server-client';
-import { EXAMPLE_CARDS } from '../examples';
+import { EXAMPLE_CARDS, EXAMPLE_ME } from '../examples';
 import { MatchingExperience } from '../matching-experience';
 
 export const metadata = {
@@ -36,6 +36,7 @@ export default async function MatchingPreviewPage() {
   return (
     <MatchingExperience
       cards={EXAMPLE_CARDS}
+      me={EXAMPLE_ME}
       teaser={DISCOVERY_TEASER}
       notice={null}
       explorationNote={null}

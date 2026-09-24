@@ -548,13 +548,9 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     /*
       **점수는 서버가 준 값이다 — 화면이 다시 세지 않는다.**
 
-      덱으로 옮겨 오면서(2026-09-18) 점수 칸의 이름이 갈렸다. 홈 카드의 「예측 궁합 N점,
-      추천 이유 보기」는 **앱 어디에도 없다** — 덱은 카드를 여는 단추 하나와 카드 안의
-      수로 같은 것을 말한다. 재는 것은 그대로다: 서버가 준 수가 화면에 서는가.
+      상세 창을 걷은 뒤로(5차) 점수와 판정과 이유가 카드 위에 펼쳐져 있다. 재는 것은
+      그대로다: 서버가 준 수가 그 사람의 카드에 서는가.
     */
-    await expect(
-      asker.page.getByRole('button', { name: `나${tag} 님과의 예측 궁합 자세히 보기` }),
-    ).toBeVisible();
     await expect(
       asker.page.getByRole('region', { name: '인연 카드' }).getByText(/\d+ \/ 100/),
     ).toBeVisible();
@@ -639,9 +635,8 @@ test.describe('보관함 복원 회귀', () => {
     await expect(asker.page.getByRole('button', { name: '실행 취소' })).toBeVisible();
     await asker.page.reload();
     await asker.page.getByRole('button', { name: /지나친 인연/ }).click();
-    const panel = asker.page.getByRole('dialog', { name: /지나친 인연/ });
-    await panel.getByRole('button', { name: new RegExp(`나${tag}, 예측 궁합`) }).click();
-    await panel.getByRole('button', { name: '다시 만나보기' }).click();
+    const panel = asker.page.getByRole('region', { name: /지나친 인연/ });
+    await panel.getByRole('listitem').filter({ hasText: `나${tag}` }).getByRole('button', { name: '다시 만나보기' }).click();
     await expect(panel).not.toBeVisible();
     await expect(asker.page.getByRole('heading', { name: `나${tag}` })).toBeVisible();
     expect((await asker.api.rpc('my_passed_connections')).data).toEqual([]);
@@ -671,7 +666,12 @@ test.describe('매칭 덱 상태 회귀', () => {
     }
     expect((await viewer.api.rpc('my_passed_connections')).data).toHaveLength(2);
     for (const name of names.toReversed()) {
-      await viewer.page.getByRole('button', { name: '이전 인연으로 되돌리기' }).click();
+      /*
+        덱이 비면 카드 아래의 되돌리기 단추도 카드와 함께 걷히고 「실행 취소」 한 줄만 남는다 —
+        둘은 같은 복원 경로다. 첫 번은 빈 덱에서, 둘째 번은 돌아온 카드 아래에서 누른다.
+      */
+      const control = (await article.count()) > 0 ? '이전 인연으로 되돌리기' : '실행 취소';
+      await viewer.page.getByRole('button', { name: control }).click();
       await expect(article.getByRole('heading', { name })).toBeVisible();
     }
     expect((await viewer.api.rpc('my_passed_connections')).data).toEqual([]);
@@ -725,8 +725,9 @@ test.describe('매칭 덱 상태 회귀', () => {
     await expect(viewer.page.getByRole('button', { name: '실행 취소' })).toBeVisible();
     await viewer.page.reload();
     await viewer.page.getByRole('button', { name: /지나친 인연/ }).click();
-    const panel = viewer.page.getByRole('dialog', { name: /지나친 인연/ });
-    const photo = panel.locator('img');
+    const panel = viewer.page.getByRole('region', { name: /지나친 인연/ });
+    // 목록 위의 궤도 띠도 같은 얼굴을 그린다 — 재는 것은 목록의 한 줄이다.
+    const photo = panel.getByRole('listitem').locator('img');
     await expect(photo).toHaveCount(1);
     const response = await viewer.page.request.get((await photo.getAttribute('src'))!);
     expect(response.status()).toBe(200);
@@ -746,10 +747,9 @@ test('매칭 진입과 AI 미리보기의 보관·복원은 실제 기록을 바
   await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
   await expect(viewer.page.getByRole('article').getByRole('heading', { name })).not.toBeVisible();
   await viewer.page.getByRole('button', { name: /지나친 인연/ }).click();
-  const panel = viewer.page.getByRole('dialog', { name: /지나친 인연/ });
-  await panel.getByRole('button', { name: new RegExp(`${name}, 예측 궁합`) }).click();
+  const panel = viewer.page.getByRole('region', { name: /지나친 인연/ });
   await viewer.page.screenshot({ path: `test-results/matching-panel-${isMobile ? 'mobile' : 'desktop'}.png` });
-  await panel.getByRole('button', { name: '다시 만나보기' }).click();
+  await panel.getByRole('listitem').filter({ hasText: name }).getByRole('button', { name: '다시 만나보기' }).click();
   await expect(panel).not.toBeVisible();
   await expect(viewer.page.getByRole('article').getByRole('heading', { name })).toBeVisible();
   expect((await viewer.api.from('discovery_passed').select('passed_user_id')).data).toEqual(before);

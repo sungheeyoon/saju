@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 
+import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 
 import {
   SETTINGS_PRIMARY,
@@ -237,16 +238,16 @@ export function RefreshBoard({ waitSeconds }: { waitSeconds: number }) {
         type="button"
         onClick={refresh}
         disabled={working || left > 0}
-        className="h-10 rounded-lg border border-border px-3.5 text-sm text-secondary transition-colors hover:border-border-strong hover:text-foreground disabled:opacity-60"
+        className={BUTTON_SECONDARY_SMALL}
       >
         {working ? '새로 고치는 중…' : '목록 새로 고치기'}
       </button>
       {left > 0 && (
-        <span className="text-xs leading-5 text-muted">
+        <span className="text-[12px] leading-5 text-secondary">
           {left >= 60 ? `${Math.ceil(left / 60)}분` : `${left}초`} 후 다시 시도할 수 있어요.
         </span>
       )}
-      {failure !== null && <span className="text-xs leading-5 text-muted">{failure}</span>}
+      {failure !== null && <span className="text-[12px] leading-5 text-secondary">{failure}</span>}
     </span>
   );
 }
