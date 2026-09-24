@@ -1,16 +1,14 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { BUTTON_TERTIARY } from '../../../ui/buttons';
-import { Icon } from '../../../ui/icon';
 import { TYPE_TITLE } from '../../../ui/surfaces';
-import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { ReadingSection } from '../../reading/section';
 import { ReadingTabs } from '../../reading-tabs';
+import { BackToShelf } from '../frame';
 import { SubjectTag } from '../shelf';
 import { dayMastersOf } from '../subject';
 
@@ -28,6 +26,9 @@ export const metadata = {
  * `/me` 와 `/me/people/[id]` 는 명식을 보는 자리다. 이 화면에는 풀이만 두고 두 자리는
  * 탭으로 오간다. `self` 만 사람이 기억할 수 있는 이름이고 저장한 사람은 불투명 Person id 다.
  *
+ * **책장 옆 칸에 펼쳐진다**(6차 warm). 넓은 화면에서는 레이아웃(`../layout.tsx`)의 책장이 왼쪽에 그대로
+ * 서고 이 화면이 오른쪽 칸을 채운다. 폰은 이 화면만 서고, 「← 만든 풀이 목록」이 책장으로 돌아간다.
+ *
  * **에세이처럼 읽는다**(5차 warm). 글의 짜임(모델이 낸 소제목 · 문단)은 `ReadingPanel` 과 `Markdown` 이
  * 그대로 들고, 이 화면은 표지 색을 정해 넘긴다 — 대상의 일간 오행이다. 목록의 책 표지와 같은 색이라
  * 표지를 누르고 들어온 사람이 같은 책을 펼친 것으로 읽는다.
@@ -44,13 +45,8 @@ export default async function SingleReadingPage({
   if (!user) redirect('/auth');
 
   const { state } = await readAccount(supabase);
-  if (isBlocked(state)) {
-    return (
-      <main className="app-shell flex flex-1 flex-col gap-6 py-9 sm:py-14">
-        <AccountNotice state={state} />
-      </main>
-    );
-  }
+  /* 막힌 계정의 안내는 레이아웃이 한 장으로 세운다 — 이 칸은 아무것도 읽지 않는다 */
+  if (isBlocked(state)) return null;
 
   const selfPersonId = selfPersonIdOf(state);
   const { subject } = await params;
@@ -82,12 +78,9 @@ export default async function SingleReadingPage({
   const dayMaster = (await dayMastersOf(supabase, [personId])).get(personId) ?? null;
 
   return (
-    <main className="app-shell flex flex-1 flex-col gap-8 py-8 sm:py-12">
+    <article aria-labelledby="reading-subject" className="flex min-w-0 flex-col gap-8">
       <header className="flex flex-col gap-5">
-        <Link href="/me/readings" className={`${BUTTON_TERTIARY} self-start`}>
-          <Icon name="back" className="size-4" />
-          만든 풀이 목록
-        </Link>
+        <BackToShelf className={`${BUTTON_TERTIARY} self-start`} />
         {/*
           **왼쪽은 누구의 글인가, 오른쪽은 그 사람의 두 자리.** 넓은 화면에서 한 줄, 폰에서는 이름 아래에
           탭이 선다 — 탭은 글 위에 있어야 「사주로 돌아가기」가 8천 자 뒤로 밀리지 않는다.
@@ -102,9 +95,12 @@ export default async function SingleReadingPage({
                 </span>
               )}
             </p>
-            <h1 className={TYPE_TITLE}>{name}</h1>
+            {/* 넓은 화면에서는 옆 칸의 「만든 풀이」가 이 화면의 h1 이다 — 글의 이름은 그 아래 단이다 */}
+            <h2 id="reading-subject" className={TYPE_TITLE}>
+              {name}
+            </h2>
           </div>
-          <div className="w-full sm:w-auto sm:min-w-64">
+          <div className="w-full sm:w-auto sm:min-w-56">
             <ReadingTabs
               current="reading"
               chartHref={chartHref}
@@ -122,6 +118,6 @@ export default async function SingleReadingPage({
         bare
         tones={[dayMaster?.element ?? null]}
       />
-    </main>
+    </article>
   );
 }
