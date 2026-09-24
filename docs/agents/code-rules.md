@@ -79,9 +79,9 @@
 | 탈출구 | 잰 값 | 대신 |
 | --- | --- | --- |
 | `x as unknown as T` | 8 | 생성 타입 `Database` 와 `rpcArgs`. `jsonb` 를 내주는 문만 어댑터 안에서 한 번 |
-| `x!` | 16 | 좁히기(`if (x === null) return …`), 아니면 없음을 값으로 |
+| `x!` | 12 | 좁히기(`if (x === null) return …`), 아니면 없음을 값으로 |
 | `if (error) return null` | 3 | 위 「실패를 말하는 법」 |
-| `eslint-disable` | 화면 DB 호출 13(층 시험이 든다) + 6 | `// eslint-disable-next-line 규칙 -- 까닭` 한 줄. 파일째 끄지 않는다. 까닭 없는 것은 하나 남았다 |
+| `eslint-disable` | 화면 DB 호출 13(층 시험이 든다) + 4 | `// eslint-disable-next-line 규칙 -- 까닭` 한 줄. 파일째 끄지 않는다. 까닭 없는 것은 하나 남았다 |
 | `any` · `@ts-ignore` | 0 · 0 | 린트가 막는다 |
 | 안 걸리는 예외 표시 | 0 | `reportUnusedDisableDirectives` 가 오류로 세운다 |
 
@@ -130,7 +130,7 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 | `no-console` | `src/` · `app/` · `proxy.ts`(`*.live.test.ts` 제외) | `console.log` |
 | `import/no-default-export` | `src/` · `scripts/` · `e2e/` | `export default` |
 | `reportUnusedDisableDirectives` | 전부 | 안 걸리는 예외 표시 |
-| `scripts/code-rules.test.ts` | — | 파일·폴더 이름 두 규약, 시험의 자리와 중간 이름, 마이그레이션·pgTAP·ADR 이름, ADR 참조 806 건이 실제 파일, 탈출구 지문(8 · 16 · 3 · 6 · 1 · 1), import 홑따옴표 |
+| `scripts/code-rules.test.ts` | — | 파일·폴더 이름 두 규약, 시험의 자리와 중간 이름, 마이그레이션·pgTAP·ADR 이름, ADR 참조 806 건이 실제 파일, 탈출구 지문(8 · 12 · 3 · 4 · 1 · 1), import 홑따옴표 |
 
 규칙마다 일부러 어긴 파일로 걸리는 것을 확인하고 지웠다(ADR 0086).
 
@@ -144,5 +144,5 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 
 - **코드가 용어집과 다른 말을 쓰는 자리**는 `CONTEXT.md` §10 「어긋난 이름」이 든다 — 고칠 것은 2026-09-23 에 다 고쳤고(G-43),
   「그대로 둔다」로 정한 넷(`metaphor` · 후보 목록의 RPC 이름 · 사유값 `unreadable-revision` · 탈퇴 대기)이 까닭과 함께 남았다. 그 표의 이름이 코드에 아직 있는지는 시험이 잰다(ADR 0088).
-- `if (error) return null` 셋, `!` 열여섯, `as unknown as` 여덟 — 위 표. 목록은 시험에 있다.
+- `if (error) return null` 셋, `!` 열둘, `as unknown as` 여덟 — 위 표. 목록은 시험에 있다.
 - `app/me/survey/form.tsx` 의 `react-hooks/exhaustive-deps` 표시에 까닭이 없다.

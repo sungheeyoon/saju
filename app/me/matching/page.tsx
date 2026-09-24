@@ -4,13 +4,18 @@ import { redirect } from 'next/navigation';
 import { isBlocked } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { CARD } from '../../card';
+import { BUTTON_PRIMARY } from '../../ui/buttons';
+import { Icon } from '../../ui/icon';
+import { TYPE_DISPLAY } from '../../ui/surfaces';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
 import { boardStamp, candidatesForViewer, passedForViewer } from '../candidates';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
+import { payloadForViewer } from '../payload';
 import { selfElementSummary } from '../summary';
 import { MatchingExperience, type DeckCard } from './matching-experience';
+import { meMarkOf, type MeMark } from './me-mark';
+import { QuietOrbit } from './orbit-map';
 
 export const metadata = {
   title: '오늘의 인연',
@@ -55,18 +60,24 @@ export default async function MatchingPage() {
     읽히고, 실제 이유(내 것이 없다)는 화면 어디에도 안 적힌다.
   */
   const self = await selfElementSummary();
-  if (self === null) return <Guide />;
+  if (self === null) return <Guide me={null} />;
+
+  /*
+    **지도의 가운데는 내 일간이다.** 요약에는 오행 개수만 있어서 일간 글자는 내 명식을 내주는 문
+    (`payloadForViewer`)에서 한 번 더 읽는다. 못 읽으면 가운데만 「나」로 비고 다섯 알은 요약대로 선다.
+  */
+  const [profile, mine] = await Promise.all([myDiscoveryProfile(), payloadForViewer(self.personId)]);
+  const me = meMarkOf(mine?.kind === 'ok' ? mine.payload.saju.pillars.dayMaster : null, self.summary);
 
   /** 못 읽으면 미리 안 거른다 — 끈 사람이면 아래 RPC 가 참여를 안 연다 */
-  const profile = await myDiscoveryProfile();
-  if (profile.ok && profile.value?.optedOut) return <Resting />;
+  if (profile.ok && profile.value?.optedOut) return <Resting me={me} />;
 
   // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
   const { data: joined } = await supabase.rpc('ensure_discovery_participation', {
     p_person_id: self.personId,
     p_summary: self.summary,
   });
-  if (joined !== true) return <Guide />;
+  if (joined !== true) return <Guide me={me} />;
 
   // 목록을 **먼저** 읽는다 — 그 호출이 하루 지난 스냅샷을 새로 만들 수 있다.
   const board = await candidatesForViewer(self.summary);
@@ -121,6 +132,7 @@ export default async function MatchingPage() {
       /* 새 목록이 곧 새 덱이다 — 남은 초를 세는 버튼도 여기서 다시 선다 */
       key={stamp?.generatedAt ?? 'none'}
       cards={cards}
+      me={me}
       passed={passedCards}
       teaser={board.teaser}
       notice={board.notice}
@@ -130,44 +142,53 @@ export default async function MatchingPage() {
   );
 }
 
-/** 참여가 열릴 자리가 아직 아니다 — 이름이나 내 사주가 비어 있다 */
-function Guide() {
+/**
+ * 덱이 서지 않는 자리 — 아무도 다가오지 않는 작은 궤도 곁에 이유 한 줄과 갈 길 하나.
+ * 내 사주가 없으면(`me: null`) 궤도의 가운데도 비어 있다.
+ */
+function Quiet({ me, title, line, href, action }: { me: MeMark | null; title: string; line: string; href: string; action: string }) {
   return (
-    <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
-      <section className={`${CARD} flex flex-col items-start gap-2`}>
-        <h1 className="text-base font-semibold">먼저 내 사주와 이름이 필요해요</h1>
-        <p className="text-sm leading-6 text-secondary">
-          나와 맞는 인연을 찾으려면 내 사주의 오행 구성이 있어야 해요. 내 사주를 저장하고
-          닉네임을 지으면 오늘의 인연이 섭니다.
-        </p>
-        <Link
-          href="/me"
-          className="self-start text-sm font-semibold text-accent underline underline-offset-4"
-        >
-          내 사주로 가기
-        </Link>
+    <main className="app-shell flex flex-1 flex-col gap-5 py-6 sm:gap-7 sm:py-10">
+      <h1 className={TYPE_DISPLAY}>오늘의 인연</h1>
+      <section className="grid items-center gap-6 overflow-hidden rounded-[2rem] bg-cream p-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-10 sm:p-10">
+        <QuietOrbit me={me} />
+        <div className="flex min-w-0 flex-col items-start gap-5">
+          <div className="flex flex-col gap-2">
+            <h2 className="font-rounded text-[1.625rem] leading-[1.35] text-foreground sm:text-[2rem]">{title}</h2>
+            <p className="max-w-prose text-[15px] leading-6 text-secondary">{line}</p>
+          </div>
+          <Link href={href} className={BUTTON_PRIMARY}>
+            {action}
+            <Icon name="arrow" className="size-4" />
+          </Link>
+        </div>
       </section>
     </main>
   );
 }
 
-/** 쉬기로 한 사람에게 서는 자리 — 홈의 목록과 같은 말을 한다 */
-function Resting() {
+/** 참여가 열릴 자리가 아직 아니다 — 이름이나 내 사주가 비어 있다 */
+function Guide({ me }: { me: MeMark | null }) {
   return (
-    <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
-      <section className={`${CARD} flex flex-col items-start gap-2`}>
-        <h1 className="text-base font-semibold">인연 찾기를 쉬고 있습니다</h1>
-        <p className="text-sm leading-6 text-secondary">
-          지금은 다른 참여자에게 내 프로필이 공개되지 않으며, 새로운 사람도 소개받지 않습니다.
-          내 사주와 저장한 사람은 그대로 남아 있습니다.
-        </p>
-        <Link
-          href="/me/settings"
-          className="self-start text-sm font-semibold text-accent underline underline-offset-4"
-        >
-          계정 관리 열기
-        </Link>
-      </section>
-    </main>
+    <Quiet
+      me={me}
+      title="먼저 내 사주와 이름이 필요해요"
+      line="나와 맞는 인연을 찾으려면 내 사주의 오행 구성이 있어야 해요. 내 사주를 저장하고 닉네임을 지으면 오늘의 인연이 섭니다."
+      href="/me"
+      action="내 사주로 가기"
+    />
+  );
+}
+
+/** 쉬기로 한 사람에게 서는 자리 — 홈의 목록과 같은 말을 한다 */
+function Resting({ me }: { me: MeMark }) {
+  return (
+    <Quiet
+      me={me}
+      title="인연 찾기를 쉬고 있습니다"
+      line="지금은 다른 참여자에게 내 프로필이 공개되지 않으며, 새로운 사람도 소개받지 않습니다. 내 사주와 저장한 사람은 그대로 남아 있습니다."
+      href="/me/settings"
+      action="계정 관리 열기"
+    />
   );
 }

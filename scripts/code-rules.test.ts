@@ -250,10 +250,6 @@ const DOUBLE_CASTS_STILL_THERE = [
 
 /** `x!` — 「있다」를 타입 대신 사람이 주장하는 것 */
 const NON_NULL_STILL_THERE = [
-  'app/me/matching/matching-experience.tsx :: photoOf(profile)!',
-  'app/me/matching/matching-experience.tsx :: photoOf(profile)!',
-  'app/me/matching/passed-connections.tsx :: photoOf(person)!',
-  'app/me/matching/passed-connections.tsx :: photoOf(selected)!',
   'app/me/person-input.ts :: data!',
   'app/saju-calculator.tsx :: model!',
   'src/lib/reading/summary.ts :: pillars[position]!',
@@ -284,8 +280,6 @@ const COUNTED_BY_LAYERS = 'no-restricted-syntax';
 const DISABLES_STILL_THERE = [
   'app/me/avatar.tsx :: @next/next/no-img-element',
   'app/me/matching/matching-experience.tsx :: @next/next/no-img-element',
-  'app/me/matching/matching-experience.tsx :: @next/next/no-img-element',
-  'app/me/matching/passed-connections.tsx :: @next/next/no-img-element',
   'app/me/profile/form.tsx :: @next/next/no-img-element',
   'app/me/survey/form.tsx :: react-hooks/exhaustive-deps',
 ];
@@ -310,7 +304,7 @@ describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 �
     expectExactly(found, DOUBLE_CASTS_STILL_THERE);
   });
 
-  it('`!` 단언은 옛 자리 열여섯에만 있다', () => {
+  it('`!` 단언은 옛 자리 열둘에만 있다', () => {
     const found = fingerprints(PRODUCT_FILES, (node, source) => (ts.isNonNullExpression(node) ? oneLine(node.getText(source)) : null));
     expectExactly(found, NON_NULL_STILL_THERE);
   });
