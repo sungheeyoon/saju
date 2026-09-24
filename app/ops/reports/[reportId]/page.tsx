@@ -25,7 +25,7 @@ import {
 } from '../read';
 
 export const metadata = {
-  title: '신고 내용 — 만세력',
+  title: '신고 내용',
   description: '신고 내용과 신고 당시 저장된 대화 일부를 봅니다.',
 };
 

@@ -7,7 +7,7 @@ import { EXAMPLE_CARDS } from '../examples';
 import { MatchingExperience } from '../matching-experience';
 
 export const metadata = {
-  title: '오늘의 인연 (예시) — 만세력',
+  title: '오늘의 인연 (예시)',
   description: '카드 디자인을 확인하는 예시 화면입니다.',
   robots: { index: false, follow: false },
 };

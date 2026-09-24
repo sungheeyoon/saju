@@ -9,7 +9,7 @@ import { CompatPicker } from '../compat-picker';
 import { CompatHero } from '../compat-hero';
 
 export const metadata = {
-  title: '궁합 — 만세력',
+  title: '궁합',
   description: '두 사주 사이에 성립하는 관계와 오행 보완을 사실 그대로 봅니다.',
 };
 

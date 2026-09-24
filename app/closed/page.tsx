@@ -6,7 +6,7 @@ import { CARD } from '../card';
 import { betaIsOver, betaOverNote, scheduleFrom } from '@/src/lib/consent';
 
 export const metadata = {
-  title: '비공개 테스트가 끝났습니다 — 만세력',
+  title: '비공개 테스트가 끝났습니다',
   description: '언제 끝났고 언제까지 파기하는지 알려 드립니다.',
 };
 

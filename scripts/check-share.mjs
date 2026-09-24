@@ -259,7 +259,7 @@ const namedIn = (source, name) =>
 const meta = (property) => metaIn(html, property);
 const named = (name) => namedIn(html, name);
 
-check('첫 HTML 에 미리보기 제목이 있다', meta('og:title') === '사주풀이가 도착했어요 | 만세력', meta('og:title'));
+check('첫 HTML 에 미리보기 제목이 있다', meta('og:title') === '사주풀이가 도착했어요 | 점점', meta('og:title'));
 check('첫 HTML 에 미리보기 설명이 있다',
   meta('og:description') === '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.', meta('og:description'));
 check('공유본은 풀이 전용 그림을 쓴다', meta('og:image') === READING_IMAGE, meta('og:image'));
@@ -379,7 +379,7 @@ check('궁합 화면이 두 사람 이름을 든다',
 check('궁합 화면은 궁합 전용 그림을 쓴다',
   metaIn(compatHtml, 'og:image') === COMPAT_IMAGE, metaIn(compatHtml, 'og:image'));
 check('궁합 화면은 제 제목을 쓴다',
-  metaIn(compatHtml, 'og:title') === '두 사람의 궁합이 도착했어요 | 만세력',
+  metaIn(compatHtml, 'og:title') === '두 사람의 궁합이 도착했어요 | 점점',
   metaIn(compatHtml, 'og:title'));
 
 /**
@@ -406,7 +406,7 @@ for (const [label, address] of [
 const home = await get('/');
 const homeHtml = await home.text();
 check('첫 화면에도 미리보기가 선다',
-  metaIn(homeHtml, 'og:title') === '만세력 — 나와 사람 사이를 이해하는 사주',
+  metaIn(homeHtml, 'og:title') === '점점 — 나와 사람 사이를 이해하는 사주',
   metaIn(homeHtml, 'og:title'));
 check('첫 화면은 서비스 소개 그림을 쓴다', metaIn(homeHtml, 'og:image') === SITE_IMAGE,
   metaIn(homeHtml, 'og:image'));

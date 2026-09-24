@@ -19,7 +19,7 @@ import { Avatar } from '../avatar';
 import { chatRoomsForViewer, type ChatRoom } from './rooms';
 
 export const metadata = {
-  title: `${CHAT_TAB_LABEL} — 만세력`,
+  title: CHAT_TAB_LABEL,
   description: '매칭된 상대와 주고받은 메시지를 확인합니다.',
 };
 

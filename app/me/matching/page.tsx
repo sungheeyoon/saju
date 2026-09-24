@@ -13,7 +13,7 @@ import { selfElementSummary } from '../summary';
 import { MatchingExperience, type DeckCard } from './matching-experience';
 
 export const metadata = {
-  title: '오늘의 인연 — 만세력',
+  title: '오늘의 인연',
   description: '예측 궁합 점수와 서로 보완하는 기운으로 나에게 맞는 인연을 발견하세요.',
   robots: { index: false, follow: false },
 };

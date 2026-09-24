@@ -24,7 +24,7 @@ import {
 } from './read';
 
 export const metadata = {
-  title: '설문 요약 — 만세력',
+  title: '설문 요약',
   description: '풀이마다 받은 답을 판본별로 봅니다.',
 };
 

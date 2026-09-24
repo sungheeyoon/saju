@@ -13,7 +13,7 @@ import { ReadingTabs } from '../../reading-tabs';
 export const maxDuration = 300;
 
 export const metadata = {
-  title: '사주풀이 — 만세력',
+  title: '사주풀이',
   description: '내 사주 또는 저장한 사람의 사주풀이를 읽습니다.',
 };
 

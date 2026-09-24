@@ -17,7 +17,7 @@ import type { ReadingTarget } from '../target';
 import { selfReadingPreview, type PreviewResult } from '../preview';
 
 export const metadata = {
-  title: '해석 내부 보기 — 만세력',
+  title: '해석 내부 보기',
   description: '실제로 보낸 프롬프트와 근거, 그리고 마지막 시도의 결과를 봅니다.',
 };
 

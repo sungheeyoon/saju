@@ -17,11 +17,31 @@ import type { Element } from '@/src/lib/saju';
  */
 export const ELEMENT_TONE: Record<
   Element,
-  { readonly text: string; readonly surface: string; readonly border: string; readonly bar: string }
+  {
+    readonly text: string;
+    readonly surface: string;
+    readonly border: string;
+    readonly bar: string;
+    /** 상징의 속 — 파스텔보다 한 단 진한 면(`ElementSymbol` 이 쓴다) */
+    readonly mid: string;
+    /**
+     * 한 판 전체가 이 오행을 입는 자리 — 안에서 `var(--tile)` · `var(--ink)` · `var(--mid)` 가 이 오행의 것이 된다
+     * (`app/globals.css` 의 `.tone-*`). 사람 타일처럼 한 사람이 한 색인 판에 단다.
+     */
+    readonly scope: string;
+  }
 > = {
-  木: { text: 'text-wood', surface: 'bg-wood-soft', border: 'border-wood/30', bar: 'bg-wood' },
-  火: { text: 'text-fire', surface: 'bg-fire-soft', border: 'border-fire/30', bar: 'bg-fire' },
-  土: { text: 'text-earth', surface: 'bg-earth-soft', border: 'border-earth/30', bar: 'bg-earth' },
-  金: { text: 'text-metal', surface: 'bg-metal-soft', border: 'border-metal/30', bar: 'bg-metal' },
-  水: { text: 'text-water', surface: 'bg-water-soft', border: 'border-water/30', bar: 'bg-water' },
+  木: { text: 'text-wood', surface: 'bg-wood-soft', border: 'border-wood/30', bar: 'bg-wood', mid: 'bg-wood-mid', scope: 'tone-wood' },
+  火: { text: 'text-fire', surface: 'bg-fire-soft', border: 'border-fire/30', bar: 'bg-fire', mid: 'bg-fire-mid', scope: 'tone-fire' },
+  土: { text: 'text-earth', surface: 'bg-earth-soft', border: 'border-earth/30', bar: 'bg-earth', mid: 'bg-earth-mid', scope: 'tone-earth' },
+  金: { text: 'text-metal', surface: 'bg-metal-soft', border: 'border-metal/30', bar: 'bg-metal', mid: 'bg-metal-mid', scope: 'tone-metal' },
+  水: { text: 'text-water', surface: 'bg-water-soft', border: 'border-water/30', bar: 'bg-water', mid: 'bg-water-mid', scope: 'tone-water' },
 };
+
+/** 오행을 모를 때(시주 모름 · 아직 명식이 없는 사람)의 판 — 같은 세 이름이 회색 한 벌이 된다 */
+export const NO_ELEMENT_SCOPE = 'tone-none';
+
+/** 오행 → `tone-*` 이름. 모르면 회색 한 벌 */
+export function elementScope(element: Element | null): string {
+  return element === null ? NO_ELEMENT_SCOPE : ELEMENT_TONE[element].scope;
+}

@@ -5,6 +5,7 @@ import { readAccount } from '../me/account';
 import { AccountNotice } from '../me/account-notice';
 import { CARD } from '../card';
 import { SignOutLink } from './sign-out-link';
+import { SERVICE_NAME } from '@/src/lib/brand';
 import {
   NOTICE_AGAIN_NOTE,
   NOTICE_NOT_READY,
@@ -17,8 +18,8 @@ import {
 import { SignupForm } from './form';
 
 export const metadata = {
-  title: '가입하기 — 만세력',
-  description: '테스트 코드와 닉네임을 입력하고 만세력을 시작합니다.',
+  title: '가입하기',
+  description: `테스트 코드와 닉네임을 입력하고 ${SERVICE_NAME}을 시작합니다.`,
 };
 
 /**

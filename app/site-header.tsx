@@ -4,100 +4,63 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+import { SERVICE_NAME } from '@/src/lib/brand';
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
 import { readingCreditsLabel } from '@/src/lib/reading';
+import { SURVEY_COPY } from '@/src/lib/survey';
 
 import { supabaseInBrowser } from './auth/browser-client';
 import { readUnreadChat } from './me/chat/unread';
 import { CHAT_UNREAD_MOVED } from './me/chat/unread-signal';
 import { readReadingCredits } from './me/reading/credits';
 import { READING_CREDITS_MOVED } from './me/reading/credits-signal';
+import { readUnreadNotifications } from './me/requests/unread';
+import { NOTIFICATIONS_UNREAD_MOVED } from './me/requests/unread-signal';
 import { isSharePath } from './share/path';
+import { BUTTON_SECONDARY_SMALL, ICON_BUTTON } from './ui/buttons';
+import { Icon, type IconName } from './ui/icon';
+import { BrandMark } from './ui/logo';
+import { BADGE } from './ui/surfaces';
 
 /**
- * 로그인하지 않은 사람의 메뉴 — **비어 있다.**
+ * 로그인한 사람의 탭 — **홈 · 매칭 · 풀이 · 채팅 넷**(2026-09-24 사용자 결정, 5차).
  *
- * 「궁합 보기」가 먼저 빠졌다. `/compat` 은 로그인해야 열리는 자리라, 메뉴에서 그것을
- * 누른 사람은 로그인 화면을 만난다 — **메뉴는 지금 갈 수 있는 곳의 목록이지 제품
- * 기능의 목록이 아니다.** 그 길은 사주 화면의 머리에 「로그인 필요」를 달고 서 있다
- * (`compat-entry.tsx`).
+ * 일곱 줄(내 사주 · 매칭 · 사주·궁합 · 사람 · 풀이 · 채팅 · 소식 · 서비스 설문)이 폰에서 여섯 칸과 전체 메뉴로
+ * 갈라져 있었다. 이제 **홈이 사람 · 다른 사람 사주 · 궁합으로 가는 길을 품고**, 소식은 종으로, 프로필 · 계정
+ * 관리 · 서비스 설문은 톱니 안으로 들어간다. 주소는 그대로다 — 홈은 `/me` 이고 이름만 바뀌었다(관문 ·
+ * 동의 · 경고 안내 · 로그인 복귀가 전부 `/me` 기준이다).
  *
- * 남은 「사주 보기」 하나도 뺀다. 로그인하지 않은 사람이 볼 수 있는 화면은 `/` 뿐이라
- * **그 탭은 언제나 지금 보고 있는 화면을 가리켰다** — 눌러도 아무 데도 안 가는 줄은
- * 길이 아니라 라벨이다. 돌아오는 길은 로고가 든다(같은 `/` 로 간다).
- *
- * 회원 메뉴에는 그 이름이 그대로 남는다. 거기서는 여러 화면 사이에서 **고르는 자리**라
- * 이름이 일을 한다.
+ * **만든 글이 사는 자리는 메뉴에 있다**(ADR 0033) — 「풀이」. 대화방 목록도 탭이다(PRD §7.1 · §7.4.1).
  */
-const PUBLIC_LINKS = [] as const;
-
-/**
- * 로그인한 사람의 메뉴 — **「내 사주」가 홈이고, 계산기는 메뉴 안에 있다.**
- *
- * 로고는 이미 `/me` 로 가고 로그인도 거기로 떨어진다(`safeReturnPath`). 그런데 회원
- * 메뉴에는 `/` 로 가는 길이 한 줄도 없었다 — 저장하지 않은 남의 생년월일시로 한 번
- * 계산해 보는 자리를, 로그인하고 나면 주소를 직접 쳐야만 열 수 있었다.
- *
- * 사주 계산과 궁합은 한 흐름이다. 궁합은 사주 화면 안의 「궁합 보기」로도 시작하고
- * 별도 `/compat` 메뉴도 같은 곳으로 가므로, 회원 메뉴에서는 `사주·궁합` 한 이름으로
- * 묶는다. 실제 화면 주소는 그대로라 직접 입력과 저장한 사람 흐름을 잃지 않는다.
- */
-const MEMBER_LINKS = [
-  { href: '/me', label: '내 사주' },
-  { href: '/me/matching', label: '매칭' },
-  { href: '/', label: '사주·궁합' },
-  { href: '/me/people', label: '사람' },
-  /**
-   * **만든 글이 사는 자리는 메뉴에 있다**(ADR 0033).
-   *
-   * 풀이가 네 화면에 흩어져 있어서, 만든 글에 닿으려면 그것이 어느 화면의 것인지를
-   * 먼저 기억해야 했다. 저장돼 있는데 닿을 수 없는 것은 사용자에게 없는 것과 같다.
-   */
-  { href: '/me/readings', label: '풀이' },
-  /** 대화방 목록은 탭이다(PRD §7.1 · §7.4.1, 2026-09-23) */
-  { href: '/me/chat', label: CHAT_TAB_LABEL },
-  { href: '/me/requests', label: '소식' },
-  /**
-   * **서비스 설문은 늘 열려 있다**(ADR 0062).
-   *
-   * 잔액이 0이 된 사람이나 종료 3일 전에 띠를 세우는 안이 있었는데, 그러면 답할 사람을
-   * 우리가 고르는 것이 되고 표본이 「다 써 본 사람」 쪽으로 기운다. 길을 하나 두고 할
-   * 사람이 자기 때에 하게 한다 — **메뉴는 지금 갈 수 있는 곳의 목록**이고, 이 자리는
-   * 언제나 갈 수 있다.
-   */
-  { href: '/me/survey', label: '서비스 설문' },
-] as const;
-
-/** 모바일에서 늘 보이는 다섯 길 — 나머지 둘은 전체 메뉴에 둔다. */
-const MOBILE_LINKS = [
-  { href: '/me', label: '내 사주', icon: 'home' },
-  { href: '/', label: '사주·궁합', icon: 'compat' },
+const MEMBER_TABS = [
+  { href: '/me', label: '홈', icon: 'home' },
   { href: '/me/matching', label: '매칭', icon: 'people' },
   { href: '/me/readings', label: '풀이', icon: 'reading' },
   { href: '/me/chat', label: CHAT_TAB_LABEL, icon: 'chat' },
-  { href: '/me/requests', label: '소식', icon: 'news' },
-] as const;
-
-/** 헤더 오른쪽 끝에 서는 것 — 셋이 같은 자리를 쓰므로 크기가 흔들리지 않는다 */
-const TRAILING =
-  'shrink-0 rounded-full border border-border-strong bg-surface px-3.5 py-1.5 text-sm font-semibold hover:border-accent hover:text-accent';
+] as const satisfies readonly { href: string; label: string; icon: IconName }[];
 
 /**
- * 지금 보고 있는 화면이 **어느 줄의 것인가.**
+ * 지금 보고 있는 화면이 **어느 탭의 것인가.**
  *
- * ## 탭 안에서 움직이면 메뉴는 안 움직인다
- *
- * 내 사주는 화면 둘을 탭으로 나눠 쓴다 — 사주(`/me`)와 사주풀이(`/me/readings/self`).
- * 주소가 `/me/readings` 아래라서 그 탭을 누르면 **메뉴의 불이 「내 사주」에서 「풀이」로
- * 옮겨 갔다.** 사용자는 탭 하나를 눌렀는데 화면이 다른 줄로 건너간 것처럼 보인다.
- *
- * 「풀이」는 **만든 글 전부가 시간순으로 서는 목록**(`/me/readings`)과 그 목록에서
- * 열리는 글들의 줄이다. 자기 풀이는 그 목록에도 서지만, 사용자가 그 화면에 닿는 길은
- * 대개 내 사주의 탭이다 — 그 자리에 있는 동안 불은 내 사주에 있어야 한다.
+ * - **홈**은 `/me` 와 거기서 뻗는 길이다 — 저장한 사람(`/me/people/*`), 내 사주풀이 탭(`/me/readings/self`),
+ *   궁합(`/compat` · `/me/compat`), 그리고 로그인한 사람이 보는 사주 계산(`/`). 사람 · 사주·궁합 탭이 빠지며
+ *   그 길이 홈 안에 섰다 — 거기 있는 동안 불은 홈에 있어야 사용자가 어디서 왔는지 안다.
+ * - **풀이**는 만든 글의 목록과 그 목록에서 열리는 글(`/me/readings/*`, 함께 보는 궁합 `/me/match/*`)이다.
+ *   내 사주풀이는 목록에도 서지만 닿는 길이 대개 홈이라 홈 쪽이다(탭 안에서 움직이면 메뉴는 안 움직인다).
+ * - 채팅 · 매칭 · 종(`/me/requests`)은 제 주소와 그 아래다.
  */
 export function isNavigationActive(pathname: string, href: string): boolean {
-  if (href === '/') return pathname === '/' || pathname === '/compat' || pathname === '/me/compat';
-  if (href === '/me') return pathname === href || pathname === '/me/readings/self';
+  if (href === '/me') {
+    return (
+      pathname === '/me' ||
+      pathname === '/me/readings/self' ||
+      pathname === '/me/people' ||
+      pathname.startsWith('/me/people/') ||
+      pathname === '/compat' ||
+      pathname === '/me/compat' ||
+      pathname === '/'
+    );
+  }
   if (href === '/me/readings') {
     if (pathname === '/me/readings/self') return false;
     return pathname === href || pathname.startsWith(`${href}/`) || pathname.startsWith('/me/match/');
@@ -125,30 +88,22 @@ export function SiteHeader() {
   const [session, setSession] = useState<Session>('unknown');
   const [email, setEmail] = useState<string | null>(null);
   /**
-   * **끝난 뒤에는 길을 안 세운다.**
-   *
-   * 베타가 끝나면 모든 화면이 `/closed` 로 되돌려진다(`proxy.ts`). 그런데 헤더는 그대로
-   * 일곱 길과 풀이권 배지를 이고 있었다 — 누르면 전부 이 화면으로 되돌아오는 죽은 길
-   * 일곱 개다. 남는 것은 **아직 할 수 있는 일**뿐이다: 계정 메뉴(계정 관리·로그아웃).
+   * **끝난 뒤에는 길을 안 세운다.** 베타가 끝나면 모든 화면이 `/closed` 로 되돌려진다(`proxy.ts`).
+   * 탭 · 종 · 풀이권은 누르면 전부 이 화면으로 되돌아오는 죽은 길이라 걷고, **아직 할 수 있는 일** —
+   * 톱니 안의 계정 관리 · 로그아웃 — 만 남는다.
    */
   const ended = pathname === '/closed';
   /**
-   * **공유본 화면에서는 헤더가 접힌다.**
-   *
-   * `/closed` 와 같은 자리에 같은 까닭으로 선다 — 거기서는 길이 죽어서 걷었고,
-   * 여기서는 **이 화면의 것이 아니어서** 걷는다. 링크를 받고 들어온 사람에게 남의
-   * 회원 메뉴와 풀이권 잔액은 길이 아니다. 그리고 보낸 사람이 자기 링크를 열어
-   * 확인할 때도 같아야 한다 — 받는 사람이 볼 화면을 보러 온 것이기 때문이다.
-   *
-   * 화면 자신이 이름과 시작하는 길을 이미 세우므로(`share/readings/[token]`),
-   * 여기서는 로고 한 줄만 남는다.
+   * **공유본 화면에서는 머리글이 접힌다** — 링크를 받고 들어온 사람에게 남의 회원 메뉴와 풀이권 잔액은
+   * 길이 아니다. 보낸 사람이 자기 링크를 열어 확인할 때도 같아야 한다. 로고 한 줄만 남는다.
    */
   const shared = isSharePath(pathname);
   const memberNavigation = !shared && (protectedPath || session === 'in');
-  const links = ended || shared ? [] : memberNavigation ? MEMBER_LINKS : PUBLIC_LINKS;
+  const live = memberNavigation && !ended;
   /* 남은 풀이권은 끝난 뒤에 셀 것이 아니다 — 쓸 자리가 없다 */
   const creditsLabel = useReadingCredits(session === 'in' && !ended);
-  const unreadChat = useUnreadChat(memberNavigation && !ended, pathname);
+  const unreadChat = useUnreadCount(live, pathname, readUnreadChat, CHAT_UNREAD_MOVED);
+  const unreadNews = useUnreadCount(live, pathname, readUnreadNotifications, NOTIFICATIONS_UNREAD_MOVED);
   /** 로그인 화면에서 「로그인」은 지금 보고 있는 화면으로 가는 버튼이다 */
   const onAuthScreen = pathname.startsWith('/auth');
 
@@ -163,7 +118,7 @@ export function SiteHeader() {
       }
     });
 
-    // 계정 메뉴나 계정 관리 화면에서 로그아웃하면 헤더도 바로 공개 메뉴로 돌아간다.
+    // 톱니 메뉴나 계정 관리 화면에서 로그아웃하면 머리글도 바로 공개 모양으로 돌아간다.
     const { data } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next === null ? 'out' : 'in');
       setEmail(next?.user.email ?? null);
@@ -177,112 +132,90 @@ export function SiteHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-border bg-background/88 backdrop-blur-xl">
-        <div className="app-shell flex h-16 items-center gap-5">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl">
+        <div className="app-shell flex h-16 items-center gap-2 md:gap-5">
           <Link
             href={memberNavigation ? '/me' : '/'}
-            className="flex shrink-0 items-center gap-2.5"
-            aria-label="만세력 홈"
+            className="flex min-h-11 shrink-0 items-center rounded-full pr-1"
+            aria-label={`${SERVICE_NAME} 홈`}
           >
-            <span className="grid size-8 place-items-center rounded-xl bg-accent text-sm font-bold text-on-accent shadow-sm">
-              命
-            </span>
-            <span className="hidden text-sm font-bold tracking-[-0.03em] sm:inline">만세력</span>
+            {/* 폰 폭 360px 에서는 풀이권 · 종 · 톱니가 자리를 먼저 쓴다 — 이름은 로고가 대신한다 */}
+            <BrandMark nameClassName="hidden min-[380px]:inline" />
           </Link>
+
           {/*
-          **줄이 하나도 없으면 `<nav>` 를 안 세운다.** 빈 길잡이는 보조기기에 「메뉴가
-          있다」고 알리고 열어 보면 아무것도 없다. 자리는 남긴다 — 오른쪽 끝이 헤더
-          바깥으로 붙어 서지 않게.
+            **탭이 없으면 `<nav>` 를 안 세운다.** 빈 길잡이는 보조기기에 「메뉴가 있다」고 알리고 열어 보면
+            아무것도 없다. 자리는 남긴다 — 오른쪽 끝이 머리글 바깥으로 붙어 서지 않게.
           */}
-          {links.length === 0 ? (
-            <div className="min-w-0 flex-1" />
-          ) : (
-            <>
-              <div aria-hidden="true" className="min-w-0 flex-1 sm:hidden" />
-              <nav
-                aria-label={memberNavigation ? '내 메뉴' : '주요 메뉴'}
-                className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] sm:flex"
-              >
-                {links.map((link) => {
-                  const active = isNavigationActive(pathname, link.href);
+          {live ? (
+            <nav aria-label="내 메뉴" className="hidden min-w-0 flex-1 justify-center md:flex">
+              <ul className="flex items-center gap-1 rounded-full bg-surface p-1 ring-1 ring-border">
+                {MEMBER_TABS.map((tab) => {
+                  const active = isNavigationActive(pathname, tab.href);
                   return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      aria-current={active ? 'page' : undefined}
-                      className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${active ? 'bg-accent-wash text-accent-strong' : 'text-secondary hover:bg-surface-soft hover:text-foreground'}`}
-                    >
-                      {link.label}
-                      {link.href === '/me/chat' && <UnreadBadge count={unreadChat} />}
-                    </Link>
+                    <li key={tab.href}>
+                      <Link
+                        href={tab.href}
+                        aria-current={active ? 'page' : undefined}
+                        className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[15px] font-semibold active:scale-[0.97] ${
+                          active ? 'bg-accent text-on-accent' : 'text-secondary hover:bg-surface-soft hover:text-foreground'
+                        }`}
+                      >
+                        <Icon name={tab.icon} className="hidden size-[18px] lg:block" />
+                        {tab.label}
+                        {tab.href === '/me/chat' && <UnreadBadge count={unreadChat} />}
+                      </Link>
+                    </li>
                   );
                 })}
-              </nav>
-            </>
-          )}
+              </ul>
+            </nav>
+          ) : null}
+          <div aria-hidden="true" className={`min-w-0 flex-1 ${live ? 'md:hidden' : ''}`} />
+
           {/*
-          **익명 화면이라고 로그아웃된 것이 아니다.**
-
-          로그인한 사람도 공개 사주 계산 화면으로 올 수 있다. 그런데 그 자리에
-          「로그인」이 서 있으면 세션이 풀린 것처럼 보이고 내 메뉴로 돌아갈 길도 없다.
-
-          아직 모르는 동안에는 **둘 다 안 보인다.** 「로그인」을 먼저 세우면 로그인한
-          사람이 한 번 깜빡이는 거짓말을 보고, 계정 메뉴를 먼저 세우면 그 반대다.
-          자리만 잡아 두면 글자가 늦게 오는 것으로 끝난다.
+            **익명 화면이라고 로그아웃된 것이 아니다.** 로그인한 사람도 공개 사주 계산 화면으로 올 수 있다.
+            아직 모르는 동안에는 **둘 다 안 보인다** — 「로그인」을 먼저 세우면 로그인한 사람이 한 번 깜빡이는
+            거짓말을 보고, 톱니를 먼저 세우면 그 반대다. 자리만 잡아 두면 글자가 늦게 오는 것으로 끝난다.
           */}
           {memberNavigation ? (
-            <>
+            <div className="flex shrink-0 items-center gap-2">
               {/*
-              **세션을 확인한 뒤에만 세운다.** 아직 모르는 동안 세우면 로그인 없는
-              질의가 한 번 나가고, 로그인 뒤에도 그 실패한 자리에 그대로 머문다.
-              달렸다 떨어지는 것으로 그 둘을 가른다 — 붙어 있는 칸이 스스로 「지금은
-              아니다」를 판정하면 그 판정이 또 한 자리가 된다.
+                **세션을 확인한 뒤에만 세운다.** 풀이권은 이 글의 성질이 아니라 **계정의 성질**이라 계정이
+                사는 자리(톱니 옆)에 선다. 못 물었거나 아직 안 물은 동안에는 빈 자리다.
               */}
               {creditsLabel !== null && <Credits label={creditsLabel} />}
-              <AccountMenu email={email} variant="mobile" ended={ended} />
-              <AccountMenu email={email} variant="desktop" ended={ended} />
-            </>
+              {live && <NewsBell count={unreadNews} active={isNavigationActive(pathname, '/me/requests')} />}
+              <SettingsMenu email={email} ended={ended} />
+            </div>
+          ) : session === 'unknown' || onAuthScreen || shared ? (
+            <span aria-hidden="true" className={`${BUTTON_SECONDARY_SMALL} invisible`}>
+              로그인
+            </span>
           ) : (
-            session === 'unknown' || onAuthScreen || shared ? (
-              <span aria-hidden="true" className={`${TRAILING} invisible`}>
-                로그인
-              </span>
-            ) : (
-              <Link href="/auth" className={TRAILING}>
-                로그인
-              </Link>
-            )
+            <Link href="/auth" className={BUTTON_SECONDARY_SMALL}>
+              로그인
+            </Link>
           )}
         </div>
       </header>
-      {memberNavigation && !ended && <MobileNavigation pathname={pathname} unreadChat={unreadChat} />}
+      {live && <Dock pathname={pathname} unreadChat={unreadChat} />}
     </>
   );
 }
 
 /**
- * 남은 풀이권 — **화면 크기와 관계없이 계정 메뉴 옆에 선다.**
- *
- * 한동안 만드는 버튼 아래에 있었다. 「누를지 정할 때 눈이 가 있는 곳」이라는 이유였고
- * 그건 지금도 맞다. 그런데 풀이권은 **이 글의 성질이 아니라 계정의 성질**이다. 화면마다
- * 세우면 넷에 같은 숫자가 네 번 서고, 그중 하나를 안 고치는 날이 온다. 계정에 딸린 것은
- * 계정이 사는 자리에 둔다.
+ * 남은 풀이권 — **화면 크기와 관계없이 톱니 옆에 선다.**
  *
  * ## 서버에 안 묻는다
  *
- * 이 파일이 세션을 브라우저에서 읽는 것과 같은 까닭이다. 헤더는 `/` 와 `/compat` 에도
- * 서는데 그 둘은 정적으로 미리 그려진다 — 서버에서 잔액을 읽으면 세션도 없는 방문마다
- * 화면이 요청마다 도는 것이 된다.
- *
- * ## 그래서 `router.refresh()` 로는 안 바뀐다
- *
- * 서버가 다시 그리는 것은 서버 컴포넌트뿐이고 이 `useEffect` 는 다시 돌지 않는다.
- * 잔액이 움직이는 자리가 한 마디 외치고(`announceCreditsMoved`) 여기서 듣는다.
+ * 머리글은 `/` 와 `/compat` 에도 서는데 그 둘은 정적으로 미리 그려진다 — 서버에서 잔액을 읽으면 세션도
+ * 없는 방문마다 화면이 요청마다 도는 것이 된다. 그래서 `router.refresh()` 로는 안 바뀐다 — 잔액이 움직이는
+ * 자리가 한 마디 외치고(`announceCreditsMoved`) 여기서 듣는다.
  *
  * ## 모르면 안 세운다
  *
- * 못 물었거나 아직 안 물은 동안에는 빈 자리다. 「—」이나 「불러오는 중」을 세우면
- * 사용자가 있지도 않은 숫자를 세어 보게 되고, 그 자리는 대부분의 시간 동안 거짓말이다.
+ * 「—」이나 「불러오는 중」을 세우면 사용자가 있지도 않은 숫자를 세어 보게 된다.
  */
 function useReadingCredits(enabled: boolean): string | null {
   const [label, setLabel] = useState<string | null>(null);
@@ -296,7 +229,6 @@ function useReadingCredits(enabled: boolean): string | null {
       const credits = await readReadingCredits(supabaseInBrowser());
       if (!watching) return;
 
-      /* 못 읽었거나 아직 자리가 없으면 **안 세운다** — 모르는 수를 세어 보게 하지 않는다 */
       setLabel(
         credits.ok && credits.value !== null
           ? readingCreditsLabel({
@@ -320,12 +252,18 @@ function useReadingCredits(enabled: boolean): string | null {
 }
 
 /**
- * 안 읽은 메시지 수 — 채팅 탭에 붙는다. **새 메시지는 소식이 아니다**(PRD §7.1) — 소식의 수와
- * 섞지 않는다. 문은 `app/me/chat/unread.ts` 하나다(ADR 0078). 못 읽었거나 0 이면 안 세운다 —
- * 모르는 수를 세어 보게 하지 않는다. 화면을 옮길 때마다, 그리고 방에서 읽음 처리가 끝났다고
- * 알릴 때(`CHAT_UNREAD_MOVED`) 다시 센다 — 실시간은 아니다.
+ * 안 읽은 수 — 채팅 탭의 메시지 수와 종의 소식 수, **둘은 섞지 않는다**(PRD §7.1: 새 메시지는 소식이 아니다).
+ *
+ * 문은 각각 하나다(`me/chat/unread.ts` · `me/requests/unread.ts`, ADR 0078). 못 읽었거나 0 이면 안 세운다 —
+ * 모르는 수를 세어 보게 하지 않는다. 화면을 옮길 때마다, 그리고 그 화면이 읽음 처리가 끝났다고 창에
+ * 알릴 때(`*_UNREAD_MOVED`) 다시 센다 — 실시간은 아니다.
  */
-function useUnreadChat(enabled: boolean, pathname: string): number {
+function useUnreadCount(
+  enabled: boolean,
+  pathname: string,
+  door: typeof readUnreadChat,
+  signal: string,
+): number {
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -333,18 +271,18 @@ function useUnreadChat(enabled: boolean, pathname: string): number {
 
     let watching = true;
     const read = async () => {
-      const unread = await readUnreadChat(supabaseInBrowser());
+      const unread = await door(supabaseInBrowser());
       if (watching) setCount(unread.ok ? unread.value : 0);
     };
 
     void read();
-    window.addEventListener(CHAT_UNREAD_MOVED, read);
+    window.addEventListener(signal, read);
 
     return () => {
       watching = false;
-      window.removeEventListener(CHAT_UNREAD_MOVED, read);
+      window.removeEventListener(signal, read);
     };
-  }, [enabled, pathname]);
+  }, [enabled, pathname, door, signal]);
 
   return enabled ? count : 0;
 }
@@ -352,7 +290,7 @@ function useUnreadChat(enabled: boolean, pathname: string): number {
 function UnreadBadge({ count }: { count: number }) {
   if (count === 0) return null;
   return (
-    <span className="ml-1.5 inline-grid size-4.5 place-items-center rounded-full bg-fire align-middle text-[10px] font-bold text-white">
+    <span className={BADGE}>
       {count}
       <span className="sr-only">건 안 읽음</span>
     </span>
@@ -361,117 +299,97 @@ function UnreadBadge({ count }: { count: number }) {
 
 function Credits({ label }: { label: string }) {
   return (
-    <span className="inline-flex shrink-0 items-center rounded-full bg-accent-wash px-2.5 py-1.5 text-xs font-semibold tabular-nums text-accent">
-      {label}
+    <span className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-cream px-3 text-[12px] font-semibold tabular-nums text-cream-ink ring-1 ring-border">
+      <Icon name="ticket" className="hidden size-4 md:block" />
+      <span>{label}</span>
     </span>
   );
 }
 
-function MobileNavigation({ pathname, unreadChat }: { pathname: string; unreadChat: number }) {
+/**
+ * 소식 — **종 하나와 안 읽은 수.** 탭에서 빠졌지만 1클릭은 그대로다. 수는 딱지로, 이름은 보조기기에게
+ * 「소식」으로 선다(글자는 안 보이고 그림이 말한다).
+ */
+function NewsBell({ count, active }: { count: number; active: boolean }) {
   return (
-    <nav
-      id="mobile-member-navigation"
-      aria-label="모바일 내 메뉴"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-xl sm:hidden"
+    <Link
+      href="/me/requests"
+      aria-current={active ? 'page' : undefined}
+      title="소식"
+      className={`${ICON_BUTTON} ${active ? 'bg-accent text-on-accent ring-accent' : ''}`}
     >
-      {/* 탭 여섯(PRD §7.4.1) — 채팅이 2026-09-23 에 더해졌다 */}
-      <div className="mx-auto grid max-w-md grid-cols-6 px-1">
-        {MOBILE_LINKS.map((link) => {
-          const active = isNavigationActive(pathname, link.href);
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              aria-current={active ? 'page' : undefined}
-              className={`relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-[11px] font-semibold ${active ? 'text-accent' : 'text-muted hover:text-foreground'}`}
-            >
-              <MobileNavIcon name={link.icon} />
-              <span className="truncate">{link.label}</span>
-              {link.href === '/me/chat' && unreadChat > 0 && (
-                <span className="absolute right-1 top-2 grid size-4.5 place-items-center rounded-full bg-fire text-[10px] font-bold text-white">
-                  {unreadChat}
-                  <span className="sr-only">건 안 읽음</span>
-                </span>
-              )}
-              {active && (
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-accent"
-                />
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
-  );
-}
-
-function MobileNavIcon({ name }: { name: (typeof MOBILE_LINKS)[number]['icon'] }) {
-  const paths = {
-    home: <path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4Z" />,
-    people: (
-      <>
-        <circle cx="9" cy="8" r="3" />
-        <path d="M3.5 19c.4-3.3 2.2-5 5.5-5s5.1 1.7 5.5 5M15 6.5a2.5 2.5 0 0 1 0 5M16 14c2.7.2 4.2 1.8 4.5 4.5" />
-      </>
-    ),
-    compat: <path d="M12 20.5 4.6 13.4A4.8 4.8 0 0 1 11.4 6l.6.7.6-.7a4.8 4.8 0 0 1 6.8 7.4Z" />,
-    reading: (
-      <>
-        <path d="M4 5.5A3.5 3.5 0 0 1 7.5 4H12v16H7.5A3.5 3.5 0 0 0 4 21.5ZM20 5.5A3.5 3.5 0 0 0 16.5 4H12v16h4.5a3.5 3.5 0 0 1 3.5 1.5Z" />
-      </>
-    ),
-    news: (
-      <>
-        <path d="M6 9a6 6 0 0 1 12 0c0 7 2 7 2 8H4c0-1 2-1 2-8Z" />
-        <path d="M9.5 20h5" />
-      </>
-    ),
-    chat: (
-      <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V17H6.5A2.5 2.5 0 0 1 4 14.5Z" />
-    ),
-  } as const;
-
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="size-5 fill-none stroke-current"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {paths[name]}
-    </svg>
+      <Icon name="bell" />
+      <span className="sr-only">소식</span>
+      {count > 0 && (
+        <span className="absolute -right-1 -top-1">
+          <UnreadBadge count={count} />
+        </span>
+      )}
+    </Link>
   );
 }
 
 /**
- * 계정 메뉴 — **모바일에서는 전체 메뉴, 데스크톱에서는 설정 메뉴다.**
- *
- * 모바일은 위 내비게이션에서 빠진 길까지 품으므로 삼선 아이콘을 쓰고, 데스크톱은
- * 내비게이션이 이미 모두 서 있으므로 계정 설정이라는 본래 역할의 톱니바퀴를 쓴다.
- *
- * `<details>` 는 안의 링크를 눌러도 스스로 안 닫힌다. 앱 안 이동은 화면만 갈아 끼우므로
- * 펼쳐진 판이 새 화면 위에 그대로 얹혀 있었다 — 사용자가 기어를 한 번 더 눌러야 치워졌다.
- *
- * 닫는 자리를 셋 둔다. **주소가 바뀌면**(다른 화면으로 갔다), **눌렀으면**(같은 화면으로
- * 가는 누름은 주소를 안 바꾼다 — 계정 관리에서 계정 관리를 누르는 경우), 그리고 **바깥을
- * 누르거나 Esc 를 누르면.** 마지막은 열어 두면 같은 불평이 한 걸음 뒤에 다시 온다 —
- * 펼친 판이 안 닫히는 것은 어느 쪽이든 같은 고장이다.
+ * 폰의 하단 독 — **탭 넷, 둥근 판.** 화면 가장자리에서 조금 떠 있고, 켜진 탭은 아이콘 뒤에 파스텔 알약이
+ * 깔린다. 아래 여백은 `globals.css` 가 이 판의 `id` 를 보고 비운다.
  */
-function AccountMenu({
+function Dock({ pathname, unreadChat }: { pathname: string; unreadChat: number }) {
+  return (
+    <nav
+      id="mobile-member-navigation"
+      aria-label="모바일 내 메뉴"
+      className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 md:hidden"
+    >
+      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-[1.75rem] bg-surface/95 p-1.5 shadow-[0_10px_30px_-12px_rgba(60,48,30,0.45)] ring-1 ring-border backdrop-blur-xl">
+        {MEMBER_TABS.map((tab) => {
+          const active = isNavigationActive(pathname, tab.href);
+          return (
+            <li key={tab.href} className="min-w-0">
+              <Link
+                href={tab.href}
+                aria-current={active ? 'page' : undefined}
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-[1.25rem] text-[12px] font-semibold active:scale-95 ${
+                  active ? 'text-foreground' : 'text-secondary hover:text-foreground'
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`grid h-8 w-14 place-items-center rounded-full ${active ? 'bg-wood-soft text-wood' : ''}`}
+                >
+                  <Icon name={tab.icon} />
+                </span>
+                {tab.label}
+                {tab.href === '/me/chat' && unreadChat > 0 && (
+                  <span className="absolute right-[calc(50%-1.75rem)] top-0.5">
+                    <UnreadBadge count={unreadChat} />
+                  </span>
+                )}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
+/**
+ * 톱니 — **프로필 · 계정 관리 · 서비스 설문 · 로그아웃.** 폰과 넓은 화면이 같은 판이다.
+ *
+ * 서비스 설문은 탭에서 빠졌지만 주소와 기능은 그대로고 늘 열려 있다(ADR 0062) — 답할 사람이 자기 때에
+ * 하게 길을 하나 둔다.
+ *
+ * `<details>` 는 안의 링크를 눌러도 스스로 안 닫힌다. 닫는 자리를 셋 둔다. **주소가 바뀌면**, **눌렀으면**
+ * (같은 화면으로 가는 누름은 주소를 안 바꾼다), 그리고 **바깥을 누르거나 Esc 를 누르면.**
+ */
+function SettingsMenu({
   email,
-  variant,
   ended = false,
 }: {
   email: string | null;
-  variant: 'mobile' | 'desktop';
   /**
-   * 베타가 끝난 화면인가 — 그때 **아직 열려 있는 길은 계정 관리 하나**다
-   * (`gateFor`: 끝난 뒤 지나가는 것은 `/me/settings` 뿐이다). 프로필도 다른 설정도
-   * 누르면 이 화면으로 되돌아온다.
+   * 베타가 끝난 화면인가 — 그때 **아직 열려 있는 길은 계정 관리 하나**다(`gateFor`: 끝난 뒤 지나가는 것은
+   * `/me/settings` 뿐이다). 프로필도 설문도 누르면 이 화면으로 되돌아온다.
    */
   ended?: boolean;
 }) {
@@ -517,82 +435,52 @@ function AccountMenu({
     router.refresh();
   };
 
+  const links = ended
+    ? [{ href: '/me/settings', label: '계정 관리' }]
+    : [
+        /* 이름은 앱 전체의 것이라 길도 앱 전체의 자리(톱니)에 선다 */
+        { href: '/me/profile', label: '프로필' },
+        { href: '/me/settings', label: '계정 관리' },
+        { href: '/me/survey', label: SURVEY_COPY.tab },
+      ];
+
   return (
-    <details
-      ref={panel}
-      className={`group relative shrink-0 ${variant === 'mobile' ? 'sm:hidden' : 'hidden sm:block'}`}
-    >
+    <details ref={panel} className="group relative shrink-0">
       <summary
-        className="grid size-10 cursor-pointer list-none place-items-center rounded-full border border-border-strong bg-surface text-secondary hover:border-accent hover:text-accent [&::-webkit-details-marker]:hidden"
-        aria-label={variant === 'mobile' ? '전체 메뉴' : '설정 메뉴'}
+        className={`${ICON_BUTTON} list-none [&::-webkit-details-marker]:hidden`}
+        aria-label="설정 메뉴"
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4.5 fill-none stroke-current" strokeWidth="1.8">
-          {variant === 'mobile' ? (
-            <path d="M4 6.5h16M4 12h16M4 17.5h16" strokeLinecap="round" />
-          ) : (
-            <>
-              <path d="M12 8.25A3.75 3.75 0 1 0 12 15.75 3.75 3.75 0 0 0 12 8.25Z" />
-              <path d="M19.2 13.1a7.7 7.7 0 0 0 0-2.2l2-1.55-2-3.45-2.48 1a8 8 0 0 0-1.9-1.1L14.45 3h-4.1l-.38 2.8a8 8 0 0 0-1.9 1.1l-2.48-1-2 3.45 2 1.55a7.7 7.7 0 0 0 0 2.2l-2 1.55 2 3.45 2.48-1a8 8 0 0 0 1.9 1.1l.38 2.8h4.1l.38-2.8a8 8 0 0 0 1.9-1.1l2.48 1 2-3.45-2.01-1.55Z" />
-            </>
-          )}
-        </svg>
+        <Icon name="gear" />
       </summary>
-      <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-border bg-surface p-2 shadow-[var(--shadow-float)]">
-        {email && <p className="truncate border-b border-border px-3 py-2 text-xs text-muted">{email}</p>}
-        {/*
-          **프로필로 가는 길은 여기다.** 가입할 때 한 번 짓고 나면 그 화면을 다시 찾을
-          자리가 없었다 — 예전 인연 설정 안의 한 줄로만 닿았고, 인연에 참여하지 않는 사람은
-          그 화면에 갈 이유가 없다. 이름은 앱 전체의 것이므로 길도 앱 전체의 자리에 선다.
-        */}
-        {!ended && (
-          <Link
-            href="/me/profile"
-            onClick={close}
-            className="mt-1 block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
-          >
-            프로필
-          </Link>
-        )}
-        {/*
-          **모바일에서는 이 판이 전체 메뉴다.** 하단 다섯 자리는 안 건드리고 나머지 길을
-          여기 둔다는 규칙이 이미 있고, 서비스 설문도 그 나머지다. 데스크톱은 위 줄에
-          이미 서 있으므로 여기 또 세우지 않는다 — 한 화면에 같은 길이 두 번 서면 어느
-          쪽이 그 화면의 길인지 사용자가 정하게 된다.
-        */}
-        {!ended && variant === 'mobile' && (
-          <>
-            <Link
-              href="/me/people"
-              onClick={close}
-              className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
-            >
-              사람
-            </Link>
-            <Link
-              href="/me/survey"
-              onClick={close}
-              className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
-            >
-              서비스 설문
-            </Link>
-          </>
-        )}
-        <Link
-          href="/me/settings"
-          onClick={close}
-          className="block rounded-xl px-3 py-2.5 text-sm font-semibold hover:bg-surface-soft"
-        >
-          계정 관리
-        </Link>
+      <div className="absolute right-0 top-13 z-50 w-60 rounded-[1.25rem] bg-surface p-2 shadow-[var(--shadow-float)] ring-1 ring-border">
+        {email && <p className="truncate border-b border-border px-3 pb-2 pt-1 text-[13px] text-muted">{email}</p>}
+        <ul className="mt-1 flex flex-col">
+          {links.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                onClick={close}
+                aria-current={pathname === link.href ? 'page' : undefined}
+                className="flex min-h-11 items-center rounded-xl px-3 text-[15px] font-semibold hover:bg-surface-soft active:bg-surface-sunken aria-[current=page]:bg-accent-wash"
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
         <button
           type="button"
           onClick={signOut}
           disabled={leaving}
-          className="w-full rounded-xl px-3 py-2.5 text-left text-sm text-secondary hover:bg-surface-soft hover:text-foreground disabled:opacity-60"
+          className="mt-1 flex min-h-11 w-full items-center rounded-xl border-t border-border px-3 text-left text-[15px] text-secondary hover:bg-surface-soft hover:text-foreground disabled:opacity-60"
         >
           {leaving ? '로그아웃하는 중…' : '로그아웃'}
         </button>
-        {failure && <p role="alert" className="px-3 py-2 text-xs text-danger">{failure}</p>}
+        {failure && (
+          <p role="alert" className="px-3 py-2 text-[13px] text-danger">
+            {failure}
+          </p>
+        )}
       </div>
     </details>
   );

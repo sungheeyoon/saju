@@ -2,71 +2,124 @@
 @import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
 :root {
+  /*
+    **부드러움(warm)의 팔레트** — 크림 종이 위에 먹색 단추, 오행 다섯은 파스텔 면과 진한 글자 한 벌씩이다
+    (2026-09-24 사용자 결정, 5차). 화면 180 곳이 이미 이 토큰 이름을 부르므로 이름은 그대로 두고 값만 옮겼다.
+
+    잰 값(WCAG 대비, 글자/면): `--text-muted` 는 바탕 5.4 · 가라앉은 면 5.0 · 오행 면 위 4.8 이상 — 옛 값은
+    4.0 이었다. 오행 글자(`--wood` …)는 제 면(`--wood-soft` …) 위 5.6~7.2, 어두운 화면 8.5~9.6 — 옛 어두운
+    화면은 밝은 화면의 색을 그대로 써서 3:1 대였다. 먹색 단추 위 글자는 두 화면 모두 14.9:1 이다.
+
+    `--accent` 는 이제 초록이 아니라 **먹색**이다 — 주 단추(`bg-accent`)가 파스텔 위 어디서든 가장 먼저
+    보이도록 오행 색을 안 입는다. 강조 글자(`text-accent`)도 그래서 먹색으로 선다.
+  */
   color-scheme: light;
-  --background: #f7f5ef;
-  --foreground: #20221f;
-  --surface: #fffefa;
+  --background: #faf6ef;
+  --foreground: #26241f;
+  --surface: #fffdf9;
   --surface-raised: #ffffff;
-  --surface-sunken: #efede6;
-  --surface-soft: #f3f1ea;
-  --border: rgba(45, 49, 43, 0.12);
-  --border-strong: rgba(45, 49, 43, 0.24);
-  --text-secondary: #5f645d;
-  --text-muted: #7b8079;
-  --accent: #356b57;
-  --accent-strong: #285444;
-  --on-accent: #ffffff;
-  --accent-wash: #e5eee9;
-  --accent-soft: #d6e4dc;
+  --surface-sunken: #f2ece2;
+  --surface-soft: #f6f0e7;
+  --border: rgba(60, 48, 30, 0.1);
+  --border-strong: rgba(60, 48, 30, 0.22);
+  --text-secondary: #5c564d;
+  --text-muted: #6b6459;
+  --accent: #26241f;
+  --accent-strong: #45413a;
+  --on-accent: #fffaf2;
+  --accent-wash: #fff4e6;
+  --accent-soft: #f3e3cc;
   --danger: #a3473f;
   --danger-wash: #faeae7;
-  --warning: #956c28;
+  --warning: #8a6320;
   --warning-wash: #fbf0d8;
-  --success: #356b57;
-  --track: rgba(45, 49, 43, 0.09);
-  --wood: #4f8063;
-  --wood-soft: #e4eee7;
-  --fire: #bd5d4c;
-  --fire-soft: #f7e5df;
-  --earth: #a77d3d;
-  --earth-soft: #f3ead9;
-  --metal: #69727a;
-  --metal-soft: #e8ebed;
-  --water: #4d7089;
-  --water-soft: #e1eaf0;
-  --shadow-card: 0 1px 2px rgba(34, 39, 33, 0.04), 0 12px 36px rgba(34, 39, 33, 0.05);
-  --shadow-float: 0 18px 50px rgba(34, 39, 33, 0.12);
+  --success: #2e5b3f;
+  --track: rgba(60, 48, 30, 0.09);
+  /* 오행 — 글자(`--wood`) · 면(`--wood-soft`) · 상징의 속(`--wood-mid`) */
+  --wood: #2e5b3f;
+  --wood-soft: #e3f1dc;
+  --wood-mid: #8cc49a;
+  --fire: #9c3b27;
+  --fire-soft: #fde4da;
+  --fire-mid: #f0957a;
+  --earth: #72500f;
+  --earth-soft: #f8ecd2;
+  --earth-mid: #deb35f;
+  --metal: #444d59;
+  --metal-soft: #e9ecf1;
+  --metal-mid: #a9b4c4;
+  --water: #2a5575;
+  --water-soft: #dfecf7;
+  --water-mid: #86b4db;
+  /* 오행을 모를 때(시주 모름 · 아직 없는 사람) */
+  --none: #5f645d;
+  --none-soft: #efede6;
+  --none-mid: #c9c6bc;
+  /* 크림 종이 — 관계 지도 · 등록 카드처럼 한 화면의 주인공 판 */
+  --cream: #fff4e6;
+  --cream-ink: #6b4a2b;
+  /* 안 읽은 수 딱지 — 오행의 불과 뜻이 달라 따로 둔다(어두운 화면에서 흰 글자가 안 읽혔다) */
+  --badge: #c0442c;
+  --on-badge: #ffffff;
+  --shadow-card: 0 1px 2px rgba(60, 48, 30, 0.04), 0 12px 32px -12px rgba(60, 48, 30, 0.14);
+  --shadow-float: 0 18px 50px -12px rgba(60, 48, 30, 0.28);
+
+  /* warm 시안의 이름 — 옮겨 오는 화면이 `var(--btn)` 을 그대로 써도 같은 값이 선다 */
+  --btn: var(--accent);
+  --on-btn: var(--on-accent);
+  --btn-press: var(--accent-strong);
+  --card: var(--surface);
+  --line: var(--border);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --background: #151815;
-    --foreground: #f2f1eb;
-    --surface: #1d211e;
-    --surface-raised: #232824;
-    --surface-sunken: #171a18;
-    --surface-soft: #202521;
-    --border: rgba(242, 241, 235, 0.12);
-    --border-strong: rgba(242, 241, 235, 0.24);
-    --text-secondary: #b5b9b2;
-    --text-muted: #939990;
-    --accent: #8db9a3;
-    --accent-strong: #4f8068;
-    --on-accent: #102019;
-    --accent-wash: #26372f;
-    --accent-soft: #30473b;
+    --background: #161513;
+    --foreground: #f2efe8;
+    --surface: #1e1d1a;
+    --surface-raised: #25231f;
+    --surface-sunken: #121110;
+    --surface-soft: #221f1b;
+    --border: rgba(242, 236, 222, 0.12);
+    --border-strong: rgba(242, 236, 222, 0.24);
+    --text-secondary: #bdb7ab;
+    --text-muted: #a39d91;
+    --accent: #f4efe4;
+    --accent-strong: #d8d1c2;
+    --on-accent: #1d1b17;
+    --accent-wash: #2b2620;
+    --accent-soft: #3a3229;
     --danger: #ef9a8e;
     --danger-wash: #462925;
     --warning: #e8bf74;
     --warning-wash: #44371f;
-    --track: rgba(242, 241, 235, 0.1);
-    --wood-soft: #24372a;
-    --fire-soft: #402925;
-    --earth-soft: #3d3322;
-    --metal-soft: #2e3337;
-    --water-soft: #24343f;
+    --success: #b3dfbf;
+    --track: rgba(242, 236, 222, 0.1);
+    --wood: #b3dfbf;
+    --wood-soft: #1f3326;
+    --wood-mid: #5f9c72;
+    --fire: #f6bba9;
+    --fire-soft: #3c2520;
+    --fire-mid: #c56a52;
+    --earth: #ecd197;
+    --earth-soft: #372d1c;
+    --earth-mid: #b08a45;
+    --metal: #d2dae5;
+    --metal-soft: #2a2f36;
+    --metal-mid: #7f8a9b;
+    --water: #b0d3f0;
+    --water-soft: #1d2e3c;
+    --water-mid: #5689b3;
+    --none: #b5b9b2;
+    --none-soft: #242824;
+    --none-mid: #545a53;
+    --cream: #2b2620;
+    --cream-ink: #eed6b8;
+    --badge: #f09a84;
+    --on-badge: #22120d;
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.16), 0 16px 44px rgba(0, 0, 0, 0.14);
+    --shadow-float: 0 18px 50px rgba(0, 0, 0, 0.45);
   }
 }
 
@@ -102,8 +155,33 @@
   --color-metal-soft: var(--metal-soft);
   --color-water: var(--water);
   --color-water-soft: var(--water-soft);
+  --color-wood-mid: var(--wood-mid);
+  --color-fire-mid: var(--fire-mid);
+  --color-earth-mid: var(--earth-mid);
+  --color-metal-mid: var(--metal-mid);
+  --color-water-mid: var(--water-mid);
+  --color-none: var(--none);
+  --color-none-soft: var(--none-soft);
+  --color-cream: var(--cream);
+  --color-cream-ink: var(--cream-ink);
+  --color-badge: var(--badge);
+  --color-on-badge: var(--on-badge);
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* 제목 전용 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
+  --font-rounded: var(--font-gowun-dodum), "Pretendard Variable", Pretendard, system-ui, sans-serif;
 }
+
+/*
+  **오행 한 벌을 한 자리에 입힌다** — `tone-wood` 를 단 요소 안에서 `var(--tile)` · `var(--ink)` · `var(--mid)`
+  가 그 오행의 면 · 글자 · 상징 속이 된다. 사람 타일처럼 **한 사람이 한 색**인 판을 짤 때, 안의 단추 ·
+  딱지 · 상징(`ElementSymbol`)이 같은 세 이름만 부르면 된다. `app/element-tone.ts` 의 `scope` 가 이 이름이다.
+*/
+.tone-wood { --tile: var(--wood-soft); --ink: var(--wood); --mid: var(--wood-mid); }
+.tone-fire { --tile: var(--fire-soft); --ink: var(--fire); --mid: var(--fire-mid); }
+.tone-earth { --tile: var(--earth-soft); --ink: var(--earth); --mid: var(--earth-mid); }
+.tone-metal { --tile: var(--metal-soft); --ink: var(--metal); --mid: var(--metal-mid); }
+.tone-water { --tile: var(--water-soft); --ink: var(--water); --mid: var(--water-mid); }
+.tone-none { --tile: var(--none-soft); --ink: var(--none); --mid: var(--none-mid); }
 
 /*
   테두리 기본색 — **`@layer base` 안에 둔다.**
@@ -121,14 +199,17 @@ html { scroll-behavior: smooth; }
 
 body {
   background:
-    radial-gradient(circle at 12% -8%, color-mix(in srgb, var(--wood-soft) 72%, transparent) 0, transparent 27rem),
-    radial-gradient(circle at 94% 18%, color-mix(in srgb, var(--earth-soft) 62%, transparent) 0, transparent 24rem),
+    radial-gradient(circle at 10% -6%, color-mix(in srgb, var(--cream) 90%, transparent) 0, transparent 28rem),
+    radial-gradient(circle at 96% 16%, color-mix(in srgb, var(--earth-soft) 55%, transparent) 0, transparent 24rem),
     var(--background);
   color: var(--foreground);
   font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   font-feature-settings: "ss05" 1, "ss06" 1;
   letter-spacing: -0.012em;
   line-height: 1.65;
+  /* 한국어는 낱말 가운데서 안 끊는다 — 1차 스크린샷에서 「서로/를」 「있습니/다」로 끊겼다 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 button, a, input, select, textarea, summary { -webkit-tap-highlight-color: transparent; }
@@ -138,7 +219,7 @@ button, a, summary {
 }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
 textarea:focus-visible, summary:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
   outline-offset: 3px;
 }
 ::selection { background: var(--accent-soft); }
@@ -150,7 +231,7 @@ textarea:focus-visible, summary:focus-visible {
 .app-shell { width: min(100% - 2.5rem, 72rem); margin-inline: auto; }
 .eyebrow {
   color: var(--accent);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -173,7 +254,10 @@ textarea:focus-visible, summary:focus-visible {
 }
 @media (max-width: 640px) {
   .app-shell { width: min(100% - 2rem, 72rem); }
+}
+/* 하단 독(`site-header.tsx`)이 서는 폭 — 떠 있는 판의 높이와 아래 틈만큼 본문 끝을 비운다 */
+@media (max-width: 767px) {
   body:has(#mobile-member-navigation) {
-    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
   }
 }

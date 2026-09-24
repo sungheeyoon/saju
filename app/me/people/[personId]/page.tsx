@@ -12,7 +12,7 @@ import { payloadForViewer } from '../../payload';
 import { ReadingTabs } from '../../reading-tabs';
 
 export const metadata = {
-  title: '사주 상세 — 만세력',
+  title: '사주 상세',
   description: '저장한 사람의 사주와 운의 흐름을 자세히 봅니다.',
 };
 

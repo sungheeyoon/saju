@@ -8,7 +8,7 @@ import { readAccount } from '../account';
 import { ProfileForm } from './form';
 
 export const metadata = {
-  title: '프로필 — 만세력',
+  title: '프로필',
   description: '앱 안에서 불릴 이름과 프로필 사진을 정합니다.',
 };
 

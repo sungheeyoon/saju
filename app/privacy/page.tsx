@@ -12,7 +12,7 @@ import {
 import { supabaseOnServer } from '../auth/server-client';
 
 export const metadata = {
-  title: '개인정보 처리방침 — 만세력',
+  title: '개인정보 처리방침',
   description: '무엇을 받고, 무엇에 쓰고, 언제까지 두는지 적어 둡니다.',
 };
 

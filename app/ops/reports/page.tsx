@@ -19,7 +19,7 @@ import {
 import { DENIED, operatorReports, type Account, type ReportRow } from './read';
 
 export const metadata = {
-  title: '신고 — 만세력',
+  title: '신고',
   description: '접수된 신고와 신고 당시 저장된 대화 일부를 봅니다.',
 };
 

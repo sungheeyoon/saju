@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 export const metadata = {
-  title: '인연 찾기 설정 — 만세력',
+  title: '인연 찾기 설정',
   description: '인연 목록에 어떻게 서고, 무엇이 공개되는지 정합니다.',
 };
 

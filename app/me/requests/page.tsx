@@ -34,7 +34,7 @@ import {
 export const maxDuration = 300;
 
 export const metadata = {
-  title: '소식 — 만세력',
+  title: '소식',
   description: '궁합 요청과 함께 보는 궁합의 새 소식을 확인합니다.',
 };
 

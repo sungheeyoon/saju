@@ -62,7 +62,7 @@ async function expectReadingCredits(page: Page, label: string) {
  */
 
 test.describe('초대된 사람의 로그인 흐름', () => {
-  test('모바일은 매칭을 하단에 보이고 사람은 전체 메뉴에 둔다', async ({
+  test('모바일은 탭 넷을 하단 독에 보이고 나머지 길은 종과 톱니에 둔다', async ({
     page,
     signedIn,
   }, testInfo) => {
@@ -74,27 +74,38 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(mobileNav).toBeVisible();
 
     const viewportWidth = page.viewportSize()?.width ?? 0;
-    // 탭 여섯(PRD §7.4.1) — 채팅이 2026-09-23 에 더해졌다. 여섯이 폰 폭에 다 서는지도 여기서 잰다
-    for (const label of ['내 사주', '사주·궁합', '매칭', '풀이', '채팅', '소식']) {
+    // 탭 넷(2026-09-24, 5차) — 넷이 폰 폭에 다 서는지도 여기서 잰다
+    for (const label of ['홈', '매칭', '풀이', '채팅']) {
       const link = mobileNav.getByRole('link', { name: label, exact: true });
       await expect(link).toBeVisible();
       const box = await link.boundingBox();
       expect(box?.x).toBeGreaterThanOrEqual(0);
       expect((box?.x ?? viewportWidth) + (box?.width ?? 0)).toBeLessThanOrEqual(viewportWidth);
     }
+    await expect(mobileNav.getByRole('link', { name: '홈', exact: true })).toHaveAttribute('aria-current', 'page');
 
-    const mobileCredit = page
-      .getByRole('banner')
-      .getByText('풀이권 5번 중 5번 남음', { exact: true });
-    const wholeMenu = page.getByLabel('전체 메뉴');
+    /* 소식은 머리글의 종 — 탭에서 빠져도 1클릭이다 */
+    const banner = page.getByRole('banner');
+    await expect(banner.getByRole('link', { name: /^소식/ })).toHaveAttribute('href', '/me/requests');
+
+    const mobileCredit = banner.getByText('풀이권 5번 중 5번 남음', { exact: true });
+    const settingsMenu = page.getByLabel('설정 메뉴');
     await expect(mobileCredit).toBeVisible();
     const creditBox = await mobileCredit.boundingBox();
-    const menuBox = await wholeMenu.boundingBox();
+    const menuBox = await settingsMenu.boundingBox();
     expect((creditBox?.x ?? 0) + (creditBox?.width ?? 0)).toBeLessThanOrEqual(menuBox?.x ?? 0);
+    /* 머리글도 폰 폭을 안 넘는다 */
+    expect((menuBox?.x ?? viewportWidth) + (menuBox?.width ?? 0)).toBeLessThanOrEqual(viewportWidth);
 
-    await wholeMenu.click();
-    await expect(page.getByRole('link', { name: '사람', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: '사람', exact: true })).toHaveAttribute('href', '/me/people');
+    await settingsMenu.click();
+    for (const [name, href] of [
+      ['프로필', '/me/profile'],
+      ['계정 관리', '/me/settings'],
+      ['서비스 설문', '/me/survey'],
+    ] as const) {
+      await expect(banner.getByRole('link', { name, exact: true })).toHaveAttribute('href', href);
+    }
+    await expect(banner.getByRole('button', { name: '로그아웃' })).toBeVisible();
     await expect(page.getByRole('link', { name: '사주 보기', exact: true })).toHaveCount(0);
     await expect(page.getByRole('link', { name: '인연 설정', exact: true })).toHaveCount(0);
   });
@@ -362,14 +373,12 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   test('서비스 설문은 읽은 종류만 값을 묻고, 쓰던 답이 남았다가 제출된다', async ({
     page,
     reader,
-  }, testInfo) => {
+  }) => {
     expect(reader.runId).not.toBe('');
     await page.goto('/me');
 
-    /* 길은 데스크톱 메뉴에 서고, 모바일에서는 하단 다섯 자리를 안 건드리고 전체 메뉴에 든다 */
-    if (testInfo.project.name.includes('mobile')) {
-      await page.getByLabel('전체 메뉴').click();
-    }
+    /* 길은 폰이든 넓은 화면이든 톱니 안에 든다 — 탭에서는 빠졌다(5차) */
+    await page.getByLabel('설정 메뉴').click();
     await page
       .getByRole('link', { name: SURVEY_COPY.tab, exact: true })
       .first()
@@ -1117,10 +1126,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
 
-    const menuName = (await page.getByRole('navigation', { name: '모바일 내 메뉴' }).isVisible())
-      ? '전체 메뉴'
-      : '설정 메뉴';
-    await page.locator(`summary[aria-label="${menuName}"]`).click();
+    /* 폰과 넓은 화면이 같은 톱니다 */
+    await page.locator('summary[aria-label="설정 메뉴"]').click();
 
     /* 프로필도 같은 메뉴에서 닿는다 — 이름은 앱 전체의 것이라 길도 앱 전체의 자리에 선다 */
     await expect(page.getByRole('link', { name: '프로필' })).toBeVisible();
@@ -1140,7 +1147,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       **누르고 나면 판이 닫힌다.** `<details>` 는 안의 링크를 눌러도 스스로 안 닫히고,
       앱 안 이동은 화면만 갈아 끼우므로 펼친 판이 새 화면 위에 그대로 얹혀 있었다.
     */
-    await expect(page.locator(`details:has(summary[aria-label="${menuName}"])`)).not.toHaveAttribute(
+    await expect(page.locator('details:has(summary[aria-label="설정 메뉴"])')).not.toHaveAttribute(
       'open',
       /.*/,
     );
@@ -1852,7 +1859,7 @@ test.describe('가입 관문', () => {
       newcomer.page.getByRole('heading', { name: '출생 정보를 입력해 주세요' }),
     ).toBeVisible();
 
-    await newcomer.page.getByRole('link', { name: '만세력 홈' }).first().click();
+    await newcomer.page.getByRole('link', { name: '점점 홈' }).first().click();
 
     await expect(newcomer.page).toHaveURL(/\/signup$/);
     await expect(

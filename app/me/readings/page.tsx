@@ -14,7 +14,7 @@ import { readingDate, readingHref, readingTitle } from '../reading/line';
 import { matchesForViewer, type InboxMatch } from '../requests/inbox';
 
 export const metadata = {
-  title: '풀이 — 만세력',
+  title: '풀이',
   description: '내가 만든 사주풀이와 궁합풀이를 종류별로 확인합니다.',
 };
 

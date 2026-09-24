@@ -14,7 +14,7 @@ import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { OPTIONAL_CONSENT_NOTE, asKoreanDay, noticeAckHolds } from '@/src/lib/consent';
 
 export const metadata = {
-  title: '계정 관리 — 만세력',
+  title: '계정 관리',
   description: '로그인 정보와 계정 상태를 확인하고 계정을 관리합니다.',
 };
 

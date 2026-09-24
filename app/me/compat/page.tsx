@@ -29,7 +29,7 @@ import { ReadingSection } from '../reading/section';
 export const maxDuration = 300;
 
 export const metadata = {
-  title: '궁합 — 만세력',
+  title: '궁합',
   description: '저장해 둔 두 사람을 골라 사이에 성립하는 관계를 봅니다.',
 };
 

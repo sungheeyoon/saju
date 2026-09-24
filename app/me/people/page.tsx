@@ -38,7 +38,7 @@ import { PILLAR_COLUMNS } from '../../saju/shared';
   이름과 그 목록에 넣는 동작은 다른 말이라 같은 낱말일 이유가 없다.
 */
 export const metadata = {
-  title: '저장한 사람 — 만세력',
+  title: '저장한 사람',
   description: '가족·친구의 사주를 한 계정에서 관리합니다.',
 };
 

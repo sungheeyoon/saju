@@ -10,7 +10,7 @@
 | 층 | 자리 | 아는 것 | 모르는 것 |
 | --- | --- | --- | --- |
 | **엔진** | `src/lib/saju/` | 자기 자신뿐 | 다른 lib · app · React/Next · supabase · 실행 환경(`node:*`) |
-| **도메인 lib** | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat,presence,db}/` | 엔진, 서로(아래 표) | app · React/Next · supabase 런타임 · 모델 SDK · 실행 환경 |
+| **도메인 lib** | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat,presence,brand,db}/` | 엔진, 서로(아래 표) | app · React/Next · supabase 런타임 · 모델 SDK · 실행 환경 |
 | **문과 액션** | `app/**/*.ts` | 도메인 lib, 엔진, supabase 클라이언트 넷 | — |
 | **화면** | `app/**/*.tsx` | 문과 액션, 도메인 lib 의 타입·순수 함수 | **DB 호출**(`.rpc()`·`.from()`) |
 

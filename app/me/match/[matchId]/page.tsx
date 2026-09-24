@@ -15,7 +15,7 @@ import { matchResultForViewer, type SharedResult } from '../result';
 export const maxDuration = 300;
 
 export const metadata = {
-  title: '함께 보는 궁합 — 만세력',
+  title: '함께 보는 궁합',
   description: '서로 동의한 두 사람의 궁합과 그 위에 선 사주풀이를 봅니다.',
 };
 

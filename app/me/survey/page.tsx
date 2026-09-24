@@ -12,7 +12,7 @@ import { SurveyForm } from './form';
 import { mySurvey, surveyContext } from './read';
 
 export const metadata = {
-  title: '서비스 설문 — 만세력',
+  title: '서비스 설문',
   description: '지금까지 이용하면서 좋았던 점과 아쉬웠던 점을 알려주세요.',
 };
 

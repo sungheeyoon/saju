@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .paper { fill: #fff4e6; }
+    .line { stroke: #26241f; }
+    .me { fill: #f0957a; }
+    .one { fill: #86b4db; }
+    .two { fill: #8cc49a; }
+    @media (prefers-color-scheme: dark) {
+      .paper { fill: #2b2620; }
+      .line { stroke: #f2efe8; }
+      .me { fill: #c56a52; }
+      .one { fill: #5689b3; }
+      .two { fill: #5f9c72; }
+    }
+  </style>
+  <rect class="paper" width="32" height="32" rx="8" />
+  <circle class="line" cx="16" cy="16.5" r="11" fill="none" stroke-opacity="0.5" stroke-width="1.8" stroke-dasharray="0.1 3.3" stroke-linecap="round" />
+  <circle class="me line" cx="16" cy="16.5" r="6" stroke-width="1.6" />
+  <circle class="one line" cx="17.4" cy="5.6" r="2" stroke-width="1.3" />
+  <circle class="two line" cx="24.9" cy="10" r="3" stroke-width="1.5" />
+</svg>

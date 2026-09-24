@@ -1,5 +1,10 @@
 import Link from 'next/link';
 
+import { SERVICE_NAME } from '@/src/lib/brand';
+
+import { BUTTON_PRIMARY } from '../ui/buttons';
+import { Logo } from '../ui/logo';
+
 /**
  * 열리지 않는 공유 링크 — **세 주소(`readings` · `people` · `compat`)가 이 한 화면으로 온다.**
  *
@@ -18,11 +23,11 @@ import Link from 'next/link';
 export default function SharedReadingNotFound() {
   return (
     <main className="app-shell flex flex-1 flex-col items-center justify-center gap-5 py-16 text-center sm:py-24">
-      <span className="grid size-12 place-items-center rounded-2xl bg-surface-sunken text-xl text-muted" aria-hidden="true">
-        ✦
+      <span className="grid size-16 place-items-center rounded-full bg-cream">
+        <Logo className="size-10" />
       </span>
       <div className="flex max-w-sm flex-col gap-2">
-        <h1 className="text-xl font-bold tracking-[-0.03em]">열 수 없는 링크입니다</h1>
+        <h1 className="font-rounded text-[1.75rem] leading-[1.3] tracking-[-0.02em]">열 수 없는 링크입니다</h1>
         <p className="text-sm leading-6 text-secondary">
           주소가 잘못됐거나 더 이상 남아 있지 않은 풀이입니다. 보낸 분에게 링크를 다시
           받아 주세요.
@@ -30,9 +35,9 @@ export default function SharedReadingNotFound() {
       </div>
       <Link
         href="/"
-        className="inline-flex h-11 items-center rounded-xl bg-accent px-5 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong"
+        className={BUTTON_PRIMARY}
       >
-        만세력 둘러보기
+        {SERVICE_NAME} 둘러보기
       </Link>
     </main>
   );

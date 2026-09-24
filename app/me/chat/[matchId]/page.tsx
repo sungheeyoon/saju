@@ -23,7 +23,7 @@ import { messagesForViewer, type ChatMessage } from './messages';
 import { ReportMessageButton } from './report';
 
 export const metadata = {
-  title: `${CHAT_TAB_LABEL} — 만세력`,
+  title: CHAT_TAB_LABEL,
   description: '매칭된 상대와 메시지를 주고받습니다.',
 };
 
