@@ -27,7 +27,7 @@ export function SelfStrip({ self }: { self: FixtureSelf }) {
       aria-label="내 사주"
       className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[1.75rem] border border-border bg-surface px-4 py-3 shadow-[var(--shadow-card)] sm:px-5"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="flex min-w-[9rem] flex-1 items-center gap-3">
         <div
           className="flex shrink-0 items-center gap-1"
           aria-label={`${day.ko} 일주, 천간 ${stem.ko}${ELEMENT_KO[stem.element]}, 지지 ${branch.ko}${ELEMENT_KO[branch.element]}`}
@@ -51,7 +51,8 @@ export function SelfStrip({ self }: { self: FixtureSelf }) {
         </div>
       </div>
 
-      <ol aria-label="여덟 글자" className="flex shrink-0 items-center gap-1.5">
+      {/* 폰에서는 여덟 글자가 둘째 줄로 내려가고 이름과 「자세히」가 첫 줄을 나눠 쓴다 */}
+      <ol aria-label="여덟 글자" className="order-last flex w-full items-center gap-1.5 sm:order-none sm:w-auto sm:shrink-0">
         {PILLAR_COLUMNS.map(({ key, label }) => {
           const pillar = pillars[key];
           if (pillar === null) {
