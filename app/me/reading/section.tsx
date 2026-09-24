@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { STEM_INFO, type Element } from '@/src/lib/saju';
 
 import { CARD } from '../../card';
-import { currentReading, improvementConsented, lastReadingRun, readingCredits } from './current';
+import { currentReading, improvementConsented, lastReadingRun, readingCredits, type CurrentReading } from './current';
 import { ReadingPanel } from './panel';
 import type { ReadingTarget } from './target';
 
@@ -27,6 +27,7 @@ export async function ReadingSection({
   bare = false,
   matchNames,
   tones,
+  reading: preloaded,
 }: {
   target: ReadingTarget;
   /**
@@ -56,6 +57,11 @@ export async function ReadingSection({
    * **글이 있으면 그 글을 만들 때의 일간이 이긴다** — 「수정 전」 글이 고친 뒤의 색을 입지 않는다(2026-09-25).
    */
   tones?: readonly (Element | null)[];
+  /**
+   * 부르는 화면이 이미 읽은 글 — 머리에 그 글의 일간을 세우려고 먼저 읽은 화면이 넘긴다. 같은 글을 두 번 묻지 않는다.
+   * `null` 은 「읽었고 글이 없다」이고, 안 넘기면 여기서 읽는다.
+   */
+  reading?: CurrentReading | null;
 }) {
   /*
     **잔액은 대상을 모른다.** 사람마다 하나뿐이라 세 화면이 같은 값을 읽는다 — 그래서
@@ -63,7 +69,7 @@ export async function ReadingSection({
     아니라 **만들지 말지를 정할 때**이고, 그 자리가 이 칸이기 때문이다.
   */
   const [reading, run, credits, consented] = await Promise.all([
-    currentReading(target),
+    preloaded === undefined ? currentReading(target) : preloaded,
     lastReadingRun(target),
     readingCredits(),
     improvementConsented(),

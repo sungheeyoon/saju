@@ -1,11 +1,13 @@
 import { notFound, redirect } from 'next/navigation';
 
 import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
+import { STEM_INFO } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { BUTTON_TERTIARY } from '../../../ui/buttons';
 import { TYPE_TITLE } from '../../../ui/surfaces';
 import { readAccount } from '../../account';
+import { currentReading } from '../../reading/current';
 import { ReadingSection } from '../../reading/section';
 import { BackToShelf } from '../frame';
 import { SubjectTag } from '../shelf';
@@ -72,8 +74,17 @@ export default async function SingleReadingPage({
 
   const name = mine ? '내 사주' : (edge?.local_label as string);
   const readingTitle = mine ? '내 사주풀이' : `${name}의 사주풀이`;
-  /* 못 읽는 명식이면 표지가 회색이다 — 색을 지어 넣지 않는다 */
-  const dayMaster = (await dayMastersOf(supabase, [personId])).get(personId) ?? null;
+  const target = mine ? ({ kind: 'self' } as const) : ({ kind: 'person', personId } as const);
+  /*
+    **글이 있으면 머리 딱지도 그 글을 만들 때의 일간이다**(2026-09-25) — 「수정 전」 글을 보는 동안에는 책장 표지 ·
+    글 표지 · 딱지가 모두 그때의 값이다. 지금 일간은 새로 받은 글부터 선다. 글이 없으면 지금 명식이고, 못 읽는
+    명식이면 표지가 회색이다 — 색을 지어 넣지 않는다.
+  */
+  const reading = await currentReading(target);
+  const dayMaster =
+    reading?.dayMasterA != null
+      ? { stem: reading.dayMasterA, element: STEM_INFO[reading.dayMasterA].element }
+      : ((await dayMastersOf(supabase, [personId])).get(personId) ?? null);
 
   return (
     <article aria-labelledby="reading-subject" className="flex min-w-0 flex-col gap-8">
@@ -99,7 +110,8 @@ export default async function SingleReadingPage({
       </header>
 
       <ReadingSection
-        target={mine ? { kind: 'self' } : { kind: 'person', personId }}
+        target={target}
+        reading={reading}
         heading={readingTitle}
         layout="page"
         bare
