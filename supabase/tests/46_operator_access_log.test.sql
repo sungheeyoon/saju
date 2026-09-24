@@ -152,7 +152,7 @@ select ok((select count(*) = 1 from public.operator_report_snapshot((select one 
 select results_eq(
   $$select action, target, filter, outcome from pg_temp.lines((select operator from folks))
     where action in ('reports.list', 'reports.snapshot')$$,
-  $$values ('reports.list', null::uuid, 'review=unreviewed reason=harassment evidence=all page=0', 'allowed'),
+  $$values ('reports.list', null::uuid, 'review=open reason=harassment evidence=all page=0', 'allowed'),
            ('reports.snapshot', (select one from cases), null::text, 'allowed')$$,
   '목록은 거른 조건을, 스냅샷은 신고 id 를 적는다');
 

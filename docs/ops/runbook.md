@@ -722,7 +722,9 @@ order by submitted_at desc;
 두지 않았으므로 이 값만 옮기면 discovery·요청·수락·AI 생성이 한꺼번에 닫힌다.
 
 계정은 **UUID 로** 가리킨다 — `/ops/reports` 의 계정 이름 아래 회색 글자다. 이메일로 찾는 것은 break-glass 다(맨 위
-「개인정보는 화면으로만」). 신고로 정지하는 것이면 「신고와 차단」의 검토 SQL 이 받은 쪽과 실행한 사람을 함께 적는다.
+「개인정보는 화면으로만」). **신고로 정지하는 것이면 아래 UPDATE 대신 「신고와 차단」의 검토 문을 `suspension` 으로 부른다** —
+검토 기록과 정지가 한 트랜잭션이다(ADR 0107). 아래 정지 SQL 은 신고와 무관한 정지에만 쓴다. 해제는 어느 쪽이든 아래 SQL 이고,
+해제해도 「이용 정지 결정」 기록은 그대로 남는다.
 
 ```sql
 -- 이용 정지
@@ -753,21 +755,26 @@ order by a.deletion_requested_at desc nulls last;
 운영 근거로 쓰지 않는다 — 「보기 싫다」와 「규칙을 어겼다」는 다른 일이다.
 
 **읽는 것은 화면이 있다 — `/ops/reports`**(ADR 0103). 운영자로 로그인해 주소를 직접 친다(메뉴에 없다).
-목록은 최신부터 30건씩이고 검토 상태 · 사유 · 대화 근거로 거른다. 「신고 내용 보기」가 신고 한 건과 신고
+목록은 최신부터 30건씩이고 처리 상태 · 사유 · 대화 근거로 거른다. 「신고 내용 보기」가 신고 한 건과 신고
 당시의 스냅샷을 연다. **여는 것마다 접속기록에 남는다**(ADR 0105). 화면은 읽기만 한다 — **검토 기록과 처분은 아래
-SQL 이다.** 화면에는 이메일이 없다 — 이메일이 필요한 일(수사기관 요청 등)과 떠난 사람의 신고는 break-glass 다(맨 위
+검토 문이다.** 화면에는 이메일이 없다 — 이메일이 필요한 일(수사기관 요청 등)과 떠난 사람의 신고는 break-glass 다(맨 위
 「개인정보는 화면으로만」). 언제 보는가는 「운영 주기」.
 
-```sql
--- 아직 안 본 신고 — 건수와 가장 오래된 것. 내용은 화면에서 읽는다
-select count(*) as 미검토,
-       min(created_at) at time zone 'Asia/Seoul' as 가장_오래된_접수
-from public.report where reviewed_at is null;
+**처리 필요 = 아직 안 봤거나 추가 확인 필요(`needs_more`)다**(ADR 0107). 정의는 `public.report_is_open` 하나이고 화면의
+「처리 필요」 거르기와 아래 질의가 같은 것을 부른다. 3영업일은 **처음 접수한 시각부터** 센다 — 추가 확인 필요로 보류해도 시계는
+처음으로 안 돌아간다.
 
--- 3영업일을 넘긴 미검토(주말만 뺀 어림 — 공휴일은 눈으로)
-select id, created_at at time zone 'Asia/Seoul' as 접수, reason
+```sql
+-- 처리 필요 — 건수와 가장 오래된 접수. 내용은 화면(`/ops/reports?review=open`)에서 읽는다
+select count(*) as 처리_필요,
+       count(*) filter (where review_outcome = 'needs_more') as 그중_추가_확인_필요,
+       min(created_at) at time zone 'Asia/Seoul' as 가장_오래된_접수
+from public.report where public.report_is_open(reviewed_at, review_outcome);
+
+-- 접수 뒤 3영업일을 넘긴 처리 필요(주말만 뺀 어림 — 공휴일은 눈으로). 보류해도 접수 시각부터 센다
+select id, created_at at time zone 'Asia/Seoul' as 접수, reason, review_outcome
 from public.report
-where reviewed_at is null
+where public.report_is_open(reviewed_at, review_outcome)
   and (select count(*) from generate_series(created_at::date + 1, current_date, interval '1 day') d
        where extract(isodow from d) < 6) > 3
 order by created_at;
@@ -779,38 +786,32 @@ group by reported_user_id, reason
 order by count(*) desc;
 ```
 
-**검토를 적는다 — 한 문장, 신고 id 로.** 화면에서 읽고 판단한 뒤 적는다. 결과는 넷 중 하나다 — `no_action`(조치
-없음) · `warning`(경고) · `suspension`(이용 정지) · `needs_more`(추가 확인). 판단 근거는 500자 안에서 **이메일 · 실명 ·
-연락처 없이** 적는다. 검토한 사람은 `public.operator` 의 운영자 UUID 다 — 한 번 보고 적어 둔다
-(`select user_id, note, added_at from public.operator;`, 이메일 없이). 이 SQL 도 `npm run db:remote -- --purpose "신고 검토
+**검토를 적는다 — 문 하나, 신고 id 로**(`public.review_report`, ADR 0107). 화면에서 읽고 판단한 뒤 적는다. 표를 직접
+UPDATE 하지 않는다. 결과는 넷 중 하나다 — `no_action`(조치 없음) · `warning`(경고) · `suspension`(이용 정지 결정) ·
+`needs_more`(추가 확인 필요). 판단 근거는 500자 안에서 **이메일 · 실명 · 연락처 없이** 적는다. 검토한 사람은 `public.operator` 의
+운영자 UUID 다 — 한 번 보고 적어 둔다(`select user_id, note, added_at from public.operator;`, 이메일 없이). 운영자 표에 없는
+UUID 면 문이 `42501` 로 거절한다. 실행한 운영자는 검토한 운영자로 적힌다. 이 호출도 `npm run db:remote -- --purpose "신고 검토
 <신고 id 앞 8자>" "<sql>"` 로 보낸다 — 목적과 해시가 남는다.
 
 ```sql
--- 조치 없음 · 경고 · 추가 확인
-update public.report
-set reviewed_at = now(),
-    reviewed_by = '<운영자 UUID>',
-    review_outcome = 'no_action',          -- 'warning' · 'needs_more'
-    review_note = '<짧은 판단 근거>'
-where id = '<report-id>';
+-- 조치 없음 · 추가 확인 필요 — 제재 대상 없이
+select public.review_report('<report-id>', '<운영자 UUID>', 'no_action', '<짧은 판단 근거>');     -- 'needs_more'
 
--- 이용 정지 — 제재를 받은 쪽과 실행한 사람을 함께 적고, 같은 요청에서 정지를 건다(「이용 정지와 해제」)
-update public.report
-set reviewed_at = now(),
-    reviewed_by = '<운영자 UUID>',
-    review_outcome = 'suspension',
-    review_note = '<짧은 판단 근거>',
-    sanctioned_user_id = reported_user_id,   -- 신고한 쪽이 받는 드문 경우는 reporter_user_id
-    sanctioned_by = '<운영자 UUID>'
-where id = '<report-id>';
+-- 경고 — 제재 대상(신고의 두 계정 중 하나)이 있어야 한다. 계정은 그대로다
+select public.review_report('<report-id>', '<운영자 UUID>', 'warning', '<짧은 판단 근거>', '<대상 계정 UUID>');
 
-update public.app_user set status = 'suspended'
-where id = (select sanctioned_user_id from public.report where id = '<report-id>');
+-- 이용 정지 결정 — 같은 트랜잭션에서 대상 계정이 정지된다. 따로 app_user 를 고치지 않는다
+select public.review_report('<report-id>', '<운영자 UUID>', 'suspension', '<짧은 판단 근거>', '<대상 계정 UUID>');
 ```
 
-검사식이 틀린 모양을 막는다 — 결과만 있고 검토한 사람 · 시각이 없거나, 이용 정지인데 받은 쪽이 없거나, 신고의 두
-계정이 아닌 사람에게 제재를 적으면 `23514` 다. 신고한 사람은 제 신고의 원래 칸만 읽는다 — 검토 결과 · 근거 · 제재는
-안 보인다. **지금** 정지인가는 여전히 `app_user.status` 가 답한다 — 해제해도 검토 기록은 그대로 남는다.
+대상은 보통 신고받은 계정(화면의 「신고받은 계정」 아래 회색 글자)이고, 신고한 쪽이 받는 드문 경우는 그 계정이다. 돌려주는 값은
+적은 표다 — `report`(지금 계정의 신고) · `retention`(떠난 사람의 신고). 다시 부르면 덮어쓴다(추가 확인 필요 → 결론).
+
+틀린 모양은 거절된다 — 조치 없음 · 추가 확인 필요에 대상을 주거나, 경고 · 이용 정지 결정에 대상이 없거나, 대상이 신고의 두
+계정이 아니거나, 판단 근거가 500자를 넘으면 `23514` 다. **이용 정지 결정은 기록과 정지가 함께 되거나 함께 안 된다** — 탈퇴를
+신청한 계정은 계정 검사식이 정지를 거절하므로 기록도 안 남는다(탈퇴 대기는 「탈퇴 신청의 처리」). 신고한 사람은 제 신고의 원래
+칸만 읽는다 — 검토 결과 · 근거 · 제재는 안 보인다. **지금** 정지인가는 여전히 `app_user.status` 가 답한다 — 해제해도 「이용 정지
+결정」 기록은 그대로 남는다(해제는 「이용 정지와 해제」). 경고를 이용자에게 알리는 길은 아직 없다(G-57).
 
 차단은 참고로만 본다. 누가 누구를 차단했는지는 사용자에게 보이지 않으며, 여기서도
 집계로만 읽는다.
@@ -849,12 +850,12 @@ SQL 은 전부 `npm run db:remote -- --purpose "G-24 검증 <걸음 번호>" "<s
 | ② | 둘 사이의 테스트 대화 | 둘 다 자기 사주를 저장하고 닉네임을 세운 뒤(인연 찾기에 든다) A 가 `request_match(B)`, B 가 `respond_to_match_request(요청, true)`. 방이 열리면 서로 세 줄 넘게 보낸다(`send_chat_message`) — 신고할 줄 하나는 「G-24 검증용 신고 대상 메시지」처럼 누가 봐도 시험인 글 | 1 번 질의의 `closed_reason` 이 비고 메시지 수가 보낸 수와 같다 |
 | ③ | 신고 1건 | B 가 ② 의 「신고 대상」 메시지를 골라 신고한다 — 화면(방의 신고)이나 `report_chat_message(메시지 id, 'other', 'G-24 검증')`. 돌아온 신고 id 를 적는다 | 2 번 질의에 신고 한 줄 · 스냅샷 한 줄 |
 | ④ | 목록에서 보인다 | 운영자 계정으로 `/ops/reports` 를 연다(메뉴에 없다 — 주소를 친다) | 맨 위 근처에 그 신고가 서고, 신고한 사용자 · 신고받은 사용자가 두 테스트 닉네임이다. 이메일 · 출생정보가 화면 어디에도 없다 |
-| ⑤ | 거르기 셋 | `?review=unreviewed` · `?reason=other` · `?evidence=chat` 을 하나씩 연다(화면의 거르기 링크와 같다). 그리고 `?review=reviewed` · `?evidence=none` | 앞의 셋에서는 그 신고가 보이고, 뒤의 둘에서는 안 보인다 |
+| ⑤ | 거르기 셋 | `?review=open`(처리 필요) · `?reason=other` · `?evidence=chat` 을 하나씩 연다(화면의 거르기 링크와 같다). 그리고 `?review=done`(처리 완료) · `?evidence=none` | 앞의 셋에서는 그 신고가 보이고, 뒤의 둘에서는 안 보인다 |
 | ⑥ | 상세 — 신고 내용과 스냅샷 | 「신고 내용 보기」로 `/ops/reports/<신고 id>` 를 연다 | 사유 · 설명 · 접수 시각이 ③ 과 같고, 대화 근거 절이 선다 |
 | ⑦ | 고른 메시지와 앞뒤의 차례 | 화면의 스냅샷을 위에서 아래로 읽고 3 번 질의(**break-glass — 사람이**)와 견준다 | 「신고한 메시지」로 강조된 줄이 **하나**이고 ③ 에서 고른 글이다. 앞뒤 줄이 보낸 차례(`seq`)대로 서고 앞 · 뒤 각각 최대 다섯이다. 보낸 쪽이 「신고한 사용자」 · 「신고받은 사용자」로 맞게 붙는다 |
 | ⑧ | 접속기록에 셋이 남는다 | 4 번 질의 | ④ ⑤ 의 `reports.list`(거른 조건이 `filter_summary` 에), ⑥ 의 `reports.detail` 과 `reports.snapshot` 이 **각각** `allowed` 로, 운영자 UUID 와 그 신고 id(목록은 비어 있다)로 선다. 줄 id 를 적는다 |
-| ⑨ | 검토를 적는다 | 「신고와 차단」의 검토 SQL — 결과 `no_action`, 근거 `G-24 운영 검증 — 테스트 신고`. 이용 정지를 시험하려면 `suspension` 과 제재 칸까지(그러면 B 의 방이 닫힌다 — 「이용 정지와 해제」로 푼다) | `update 1` |
-| ⑩ | 화면과 DB 가 같다 | 상세를 새로 고치고 5 번 질의와 견준다 | 검토 결과 · 검토 운영자(닉네임) · 판단 근거 · 제재 대상(없으면 없음)이 DB 값과 한 글자도 다르지 않다. 목록의 `?review=reviewed` 에 그 신고가 옮겨 선다 |
+| ⑨ | 검토를 적는다 | 「신고와 차단」의 검토 문 — `select public.review_report('<신고 id>', '<운영자 UUID>', 'no_action', 'G-24 운영 검증 — 테스트 신고')`. 처리 필요에 남는 것을 보려면 먼저 `needs_more` 로 한 번 부르고 목록의 `?review=open` 에 그대로 서는지 본 뒤 `no_action` 으로 다시 부른다. 이용 정지 결정을 시험하려면 `suspension` 과 대상 A 의 UUID 까지(같은 트랜잭션에서 A 가 정지되고 방이 닫힌다 — 「이용 정지와 해제」로 푼다) | 돌려준 값 `report`. 정지를 시험했으면 1 번 질의에서 A 가 `suspended` |
+| ⑩ | 화면과 DB 가 같다 | 상세를 새로 고치고 5 번 질의와 견준다 | 처리 상태 · 검토 결과(`no_action` → 「조치 없음」, `suspension` → 「이용 정지 결정」) · 검토한 운영자(닉네임) · 판단 근거 · 당시 제재 대상(없으면 항목 없음)이 DB 값과 한 글자도 다르지 않다. 목록의 `?review=done` 에 그 신고가 옮겨 서고 배지가 `처리 완료 · 조치 없음` 이다 |
 | ⑪ | 비운영자는 못 읽는다 | A(또는 B)의 세션으로 `/ops/reports` 와 `/ops/reports/<신고 id>` 를 연다 | 둘 다 404 이고 자료가 한 줄도 안 선다. 6 번 질의에 그 계정의 `denied` 줄이 `reports.list` · `reports.detail` 로 선다 |
 | ⑫ | 이슈에 적는다 | `ops-verification` 틀로 이슈를 연다 | 배포 SHA · Production URL · Ready 시각 · 신고 id · 실행 시각 · 접속기록 줄 id(⑧ ⑪) · 검토 결과(⑨) · 화면 확인 결과(④ ~ ⑦ ⑩ ⑪ 각각 통과/실패)가 다 있다. **이메일 · 메시지 본문은 적지 않는다** |
 | ⑬ | 테스트 자료를 정리하거나 보존 방식을 적는다 | 아래 「정리」 | 이슈에 무엇을 지웠고 무엇이 왜 남는지(아래) 적혀 있다 |
@@ -891,7 +892,7 @@ order by id;
 
 -- 5. 검토 기록 — 화면과 견줄 값 (⑩)
 select reviewed_at at time zone 'Asia/Seoul' as 검토, reviewed_by, review_outcome, review_note,
-       sanctioned_user_id, sanctioned_by
+       sanctioned_user_id, sanctioned_by, public.report_is_open(reviewed_at, review_outcome) as 처리_필요
 from public.report where id = '<신고 id>';
 
 -- 6. 비운영자의 거절이 남았나 (⑪)
@@ -926,7 +927,7 @@ where actor_user_id = '<A>' and outcome = 'denied' and at > now() - interval '2 
 - **언제 사라지나** — 먼저 떠난 쪽의 처분일(`retained_at`)부터 6개월. 크론 `report-retention-purge`(매시 47분)가
   지운다. 남은 쪽이 나중에 떠나면 그 사람의 탈퇴일만 채워지고 시계는 그대로다. 실패는 `cron-watch` 가
   `cron-failed:report-retention-purge` 로 알린다
-- **증거는 못 고친다** — 적을 수 있는 것은 검토 기록(시각 · 누가 · 결과 · 근거 · 제재 둘, ADR 0105)과 보류 두 칸뿐이다.
+- **증거는 못 고친다** — 적을 수 있는 것은 검토 기록(시각 · 누가 · 결과 · 근거 · 제재 둘, ADR 0105 — 검토 문으로, ADR 0107)과 보류 두 칸뿐이다.
   나머지는 `55000` 으로 막힌다
 - **읽는 것은 break-glass 다** — 화면에 없고 이메일과 본문이 든다. 맨 위 「개인정보는 화면으로만」의 대장을 먼저 적고
   사람이 돈다. 이메일 · 본문이 안 드는 첫 질의(파기 예정과 보류)는 보통 질의다
@@ -954,10 +955,9 @@ cross join lateral jsonb_array_elements(k.snapshot -> 'messages') e
 where k.report_id = '<report-id>'
 order by 차례;
 
--- 검토를 적는다 — 떠난 뒤에도 검토는 이어진다. 칸과 값은 「신고와 차단」의 검토 SQL 과 같다
-update retention.report
-set reviewed_at = now(), reviewed_by = '<운영자 UUID>', review_outcome = 'no_action', review_note = '<짧은 판단 근거>'
-where report_id = '<report-id>';
+-- 검토를 적는다 — 떠난 뒤에도 검토는 이어진다. 「신고와 차단」의 검토 문 그대로다(돌려준 값이 `retention`).
+-- 같은 제약이 걸린다(ADR 0107). 이용 정지 결정은 남은 쪽에만 된다 — 떠난 계정에는 정지할 계정이 없어 거절된다
+select public.review_report('<report-id>', '<운영자 UUID>', 'no_action', '<짧은 판단 근거>');
 
 -- 크론이 도는가
 select jobname, schedule, active from cron.job where jobname = 'report-retention-purge';
@@ -1105,7 +1105,7 @@ where m.id in ('<match-id>');
 메시지」가 서고, 보낸 쪽을 「신고한 사용자」 · 「신고받은 사용자」로 적는다. 목록에서 「대화 근거 있음」으로
 거르면 스냅샷이 붙은 신고만 남는다. 여는 것마다 접속기록에 남는다(ADR 0105). **아래 SQL 은 break-glass 다** — 메시지
 본문과 이메일이 든다. 화면이 안 열리는 장애나 수사기관의 요청일 때만, 맨 위 「개인정보는 화면으로만」의 대장을 먼저 적고
-사람이 돈다. 검토를 적는 것은 「신고와 차단」의 검토 SQL 이다.
+사람이 돈다. 검토를 적는 것은 「신고와 차단」의 검토 문이다.
 
 ```sql
 -- break-glass — 한 신고의 스냅샷을 차례대로 편다. `chosen` 이 참인 줄이 고른 메시지다.
@@ -1594,7 +1594,7 @@ node scripts/remote-lock.mjs npx supabase db advisors --linked --type performanc
 | --- | --- |
 | `report_by_reporter` | 신고 하루 한도 — 신고한 사람의 오늘 건수(`report_user` · `report_chat_message`) |
 | `report_unreviewed_by_pair` | 검토 전 같은 대상 · 같은 사유의 중복 신고(같은 두 문) |
-| `report_unreviewed` | 운영자 신고 목록의 검토 전 줄(`operator_reports`) |
+| `report_unreviewed` | 안 본 신고(`reviewed_at is null`) — 운영자 목록의 처리 필요는 추가 확인 필요까지라(ADR 0107) 이것만으로 다 짚지는 않는다(`operator_reports`) |
 | `chat_report_snapshot_by_message` | 같은 메시지의 중복 신고 |
 | `chat_room_closed` | 닫힌 지 90일 지난 방의 메시지 지우기(`purge_closed_chat_messages`) |
 | `chat_rate_limit_hit_by_time` | 「한도에 걸린 건수를 본다」의 기간 집계 |
@@ -1760,7 +1760,7 @@ Vercel Cron `/api/cron/audit-export`(`vercel.json`, 매일 18:37 UTC = 서울 03
 
 | 무엇 | 언제 | 어떻게 |
 | --- | --- | --- |
-| 신고 | **영업일마다** 미검토 목록을 본다. 접수 뒤 **늦어도 3영업일 안에 1차 판단** | `/ops/reports?review=unreviewed` → 판단 → 「신고와 차단」의 검토 SQL. 3영업일 넘긴 것은 같은 절의 둘째 질의 |
+| 신고 | **영업일마다** 처리 필요(안 봤거나 추가 확인 필요) 목록을 본다. **접수 뒤** 늦어도 3영업일 안에 1차 판단 — 추가 확인 필요로 보류해도 시계는 접수부터다(ADR 0107) | `/ops/reports?review=open` → 판단 → 「신고와 차단」의 검토 문. 3영업일 넘긴 것은 같은 절의 둘째 질의 |
 | 접속기록 | **매월 1회 이상** | 아래 「월 점검」 |
 | 자리를 비울 때 | **3영업일을 넘기면 새 가입을 닫는다** — 신고를 볼 사람이 없는 동안 새 사람을 들이지 않는다 | 아래 「가입을 닫고 연다」 |
 
@@ -1808,6 +1808,12 @@ select max(exported_at) as 마지막_반출,
 from audit.operator_access_export;
 select e.first_id, lag(e.last_id) over (order by e.first_id) as 앞_끝
 from audit.operator_access_export e order by e.first_id;   -- 앞_끝보다 한참 큰 first_id 는 되감긴 번호다 — 행 수는 반출 때 견줬다
+
+-- 6. 신고가 밀렸나 — 처리 필요와 그중 접수 뒤 3영업일을 넘긴 수(ADR 0107). 0 이 아니면 「신고와 차단」의 둘째 질의로 본다
+select count(*) as 처리_필요,
+       count(*) filter (where (select count(*) from generate_series(created_at::date + 1, current_date, interval '1 day') d
+                               where extract(isodow from d) < 6) > 3) as 삼영업일_넘김
+from public.report where public.report_is_open(reviewed_at, review_outcome);
 ```
 
 **이상이면** — 운영자 본인이 한 것이 아니면 곧 「비밀이 새면」으로 간다(Supabase · 구글 계정 세션 끊기, 운영자 표에서 그

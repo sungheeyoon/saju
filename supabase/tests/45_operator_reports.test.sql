@@ -155,13 +155,13 @@ select is(
    from public.operator_reports(p_reviewed => false) l, cases c
    where l.report_id in (c.chat, c.plain, c.reviewed)),
   (select array[chat, plain] from cases),
-  '「검토 전」은 검토 시각이 없는 것만');
+  '「처리 필요」는 안 본 것 — 결과 없는 옛 검토는 빠진다(ADR 0107)');
 
 select is(
   (select array_agg(l.report_id) from public.operator_reports(p_reviewed => true) l, cases c
    where l.report_id in (c.chat, c.plain, c.reviewed)),
   (select array[reviewed] from cases),
-  '「검토함」은 검토 시각이 있는 것만');
+  '「처리 완료」는 결과 없는 옛 검토를 든다(ADR 0107)');
 
 select is(
   (select array_agg(l.report_id) from public.operator_reports(p_reason => 'other') l, cases c

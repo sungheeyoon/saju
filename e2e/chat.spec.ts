@@ -327,7 +327,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     const row = ops.page.getByRole('listitem').filter({
       has: ops.page.locator(`a[href="/ops/reports/${reportId}"]`),
     });
-    await expect(row.getByText('검토 전', { exact: true })).toBeVisible();
+    await expect(row.getByText('처리 필요', { exact: true })).toBeVisible();
     await expect(row.getByText('대화 근거 있음 · 메시지 5건')).toBeVisible();
     await expect(row.getByText(`나${tag}`)).toBeVisible();
     await expect(row.getByText(`가${tag}`)).toBeVisible();
@@ -358,5 +358,64 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(main.locator('a[href^="/me/chat"]')).toHaveCount(0);
     await expect(main.getByText(a.account.email)).toHaveCount(0);
     await expect(main.getByText(b.account.email)).toHaveCount(0);
+  });
+
+  /**
+   * **처리 필요 · 처리 완료로 가른다**(ADR 0107). 검토는 운영자가 CLI 로 부르는 문(`review_report`)이 적고 화면은 읽기만
+   * 한다 — 여기서도 그 문을 SQL 로 부른다. 재는 것 셋: 추가 확인 필요는 처리 필요에 남는다 · 배지는 처리 상태와 결과를
+   * 함께 말한다 · 상세는 결과를 「이용 정지 결정」으로, 제재 대상을 「당시 제재 대상」으로 적는다.
+   */
+  test('운영자 목록은 처리 필요와 처리 완료로 가르고, 추가 확인 필요는 처리 필요에 남는다', async ({ openAs }) => {
+    const a = await openAs({ selfPerson: true });
+    const b = await openAs({ selfPerson: true });
+    const ops = await openAs({ selfPerson: true });
+    makeOperator(ops.account.email);
+    const [aId, bId, opsId] = [a, b, ops].map((one) => userIdOf(one.account.email));
+
+    const report = (reason: string): string =>
+      sql(`insert into public.report (reporter_user_id, reported_user_id, reason)
+           values ('${aId}', '${bId}', '${reason}') returning id`);
+    const fresh = report('harassment');
+    const held = report('inappropriate');
+    const decided = report('other');
+    sql(`select public.review_report('${held}', '${opsId}', 'needs_more', '상대 쪽 이야기를 더 볼 것')`);
+    sql(`select public.review_report('${decided}', '${opsId}', 'suspension', '같은 말 반복', '${bId}')`);
+
+    const rowOf = (id: string) =>
+      ops.page.getByRole('listitem').filter({ has: ops.page.locator(`a[href="/ops/reports/${id}"]`) });
+    const filters = ops.page.getByRole('navigation', { name: '신고 거르기' });
+
+    await ops.page.goto('/ops/reports');
+    await expect(filters.getByText('처리 상태', { exact: true })).toBeVisible();
+    await expect(rowOf(fresh).getByText('처리 필요', { exact: true })).toBeVisible();
+    await expect(rowOf(held).getByText('처리 필요 · 추가 확인 필요', { exact: true })).toBeVisible();
+    await expect(rowOf(decided).getByText('처리 완료 · 이용 정지 결정', { exact: true })).toBeVisible();
+
+    await filters.getByRole('link', { name: '처리 필요', exact: true }).click();
+    await expect(ops.page).toHaveURL(/\/ops\/reports\?review=open$/);
+    await expect(rowOf(fresh)).toBeVisible();
+    await expect(rowOf(held)).toBeVisible();
+    await expect(rowOf(decided)).toHaveCount(0);
+
+    await filters.getByRole('link', { name: '처리 완료', exact: true }).click();
+    await expect(ops.page).toHaveURL(/\/ops\/reports\?review=done$/);
+    await expect(rowOf(decided)).toBeVisible();
+    await expect(rowOf(fresh)).toHaveCount(0);
+    await expect(rowOf(held)).toHaveCount(0);
+
+    const value = (title: string) => ops.page.locator(`dt:text-is("${title}") + dd`);
+
+    await ops.page.goto(`/ops/reports/${decided}`);
+    await expect(value('처리 상태')).toContainText('처리 완료');
+    await expect(value('검토 결과')).toHaveText('이용 정지 결정');
+    await expect(value('판단 근거')).toHaveText('같은 말 반복');
+    await expect(value('검토한 운영자')).toBeVisible();
+    await expect(value('당시 제재 대상')).toHaveText('신고받은 사용자');
+    await expect(ops.page.getByText('지금 계정 상태 · 이용 정지')).toBeVisible();
+
+    await ops.page.goto(`/ops/reports/${held}`);
+    await expect(value('처리 상태')).toContainText('처리 필요');
+    await expect(value('검토 결과')).toHaveText('추가 확인 필요');
+    await expect(value('당시 제재 대상')).toHaveCount(0);
   });
 });

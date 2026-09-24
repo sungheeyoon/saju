@@ -11,7 +11,11 @@ import { REPORT_REASONS, type ReportReason } from '@/src/lib/account';
  * 깨뜨리고, 그 화면은 운영자가 가장 급할 때 여는 자리다.
  */
 
-export type ReviewFilter = 'all' | 'unreviewed' | 'reviewed';
+/**
+ * 처리 상태 — `open` 은 처리 필요(안 봤거나 추가 확인 필요), `done` 은 처리 완료다. 무엇이 처리 필요인가는 DB 의
+ * `report_is_open` 하나가 정한다(ADR 0107) — 여기서는 어느 쪽을 청하는지만 적는다.
+ */
+export type ReviewFilter = 'all' | 'open' | 'done';
 export type EvidenceFilter = 'all' | 'chat' | 'none';
 
 export type ReportFilters = {
@@ -35,7 +39,7 @@ type SearchParams = Readonly<Record<string, string | readonly string[] | undefin
 const one = (value: string | readonly string[] | undefined): string | undefined =>
   typeof value === 'string' ? value : value?.[0];
 
-const REVIEWS: readonly ReviewFilter[] = ['all', 'unreviewed', 'reviewed'];
+const REVIEWS: readonly ReviewFilter[] = ['all', 'open', 'done'];
 const EVIDENCES: readonly EvidenceFilter[] = ['all', 'chat', 'none'];
 
 const reasonOf = (value: string | undefined): ReportReason | null =>
@@ -68,10 +72,10 @@ export function hrefOf(filters: ReportFilters, change: Partial<ReportFilters>): 
   return said === '' ? '/ops/reports' : `/ops/reports?${said}`;
 }
 
-/** 목록 문의 인자 — 이름은 마이그레이션의 것이다(`operator_reports`) */
+/** 목록 문의 인자 — 이름은 마이그레이션의 것이다(`operator_reports`). `p_reviewed` 는 「처리 완료인가」다 */
 export function argsOf(filters: ReportFilters) {
   return {
-    p_reviewed: filters.review === 'all' ? null : filters.review === 'reviewed',
+    p_reviewed: filters.review === 'all' ? null : filters.review === 'done',
     p_reason: filters.reason,
     p_has_snapshot: filters.evidence === 'all' ? null : filters.evidence === 'chat',
     p_page: filters.page - 1,

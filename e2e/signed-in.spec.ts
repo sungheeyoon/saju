@@ -1017,7 +1017,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     /* 초성만 쳐도 좁혀진다 — 「수정」의 정까지 넷, 차례는 저장한 그대로다 */
     await find.fill('ㅈ');
     await expect(cards.filter({ visible: true })).toHaveCount(4);
-    await expect(status).toHaveText('4명');
+    await expect(status).toHaveText('검색 결과 4명');
     await find.fill('민지');
     const shown = cards.filter({ visible: true });
     await expect(shown).toHaveCount(1);
@@ -1062,7 +1062,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     const find = page.getByRole('searchbox', { name: '이름으로 찾기' });
     await find.click();
     await find.pressSequentially(last);
-    await expect(page.locator('main [role="status"]')).toHaveText('1명');
+    await expect(page.locator('main [role="status"]')).toHaveText('검색 결과 1명');
     await expect(cards.filter({ visible: true })).toHaveCount(1);
     await expect(page.getByRole('heading', { name: last, exact: true })).toBeInViewport();
     expect(await page.evaluate(() => window.scrollY)).toBe(0);

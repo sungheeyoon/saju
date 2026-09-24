@@ -6,7 +6,15 @@ import { REPORT_REASONS } from '@/src/lib/account';
 import { supabaseOnServer } from '../../auth/server-client';
 import { CARD } from '../../card';
 import { filtersOf, hrefOf, isFiltered, type ReportFilters } from './filters';
-import { EVIDENCE_LABEL, NO_NICKNAME, REVIEW_LABEL, evidenceTime, reasonLabel, reviewOutcomeLabel } from './labels';
+import {
+  EVIDENCE_LABEL,
+  NO_NICKNAME,
+  REVIEW_LABEL,
+  evidenceTime,
+  reasonLabel,
+  reviewOutcomeLabel,
+  reviewStateLabel,
+} from './labels';
 import { DENIED, operatorReports, type Account, type ReportRow } from './read';
 
 export const metadata = {
@@ -81,18 +89,18 @@ function Filters({ filters }: { filters: ReportFilters }) {
   return (
     <nav aria-label="신고 거르기" className={`${CARD} flex flex-col gap-4`}>
       <Choices
-        title="검토 상태"
+        title="처리 상태"
         options={[
           { label: '전체', href: hrefOf(filters, { review: 'all' }), current: filters.review === 'all' },
           {
-            label: REVIEW_LABEL.unreviewed,
-            href: hrefOf(filters, { review: 'unreviewed' }),
-            current: filters.review === 'unreviewed',
+            label: REVIEW_LABEL.open,
+            href: hrefOf(filters, { review: 'open' }),
+            current: filters.review === 'open',
           },
           {
-            label: REVIEW_LABEL.reviewed,
-            href: hrefOf(filters, { review: 'reviewed' }),
-            current: filters.review === 'reviewed',
+            label: REVIEW_LABEL.done,
+            href: hrefOf(filters, { review: 'done' }),
+            current: filters.review === 'done',
           },
         ]}
       />
@@ -173,7 +181,7 @@ function Row({ row }: { row: ReportRow }) {
 
       <p className="flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full bg-surface-soft px-2.5 py-1 font-semibold text-secondary">
-          {row.reviewedAt === null ? REVIEW_LABEL.unreviewed : REVIEW_LABEL.reviewed}
+          {reviewStateLabel(row.isOpen)}
           {row.reviewOutcome !== null && ` · ${reviewOutcomeLabel(row.reviewOutcome)}`}
         </span>
         <span className="rounded-full bg-surface-soft px-2.5 py-1 text-secondary">

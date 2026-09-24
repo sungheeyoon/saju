@@ -6,6 +6,7 @@ import {
   evidenceTime,
   reasonLabel,
   reviewOutcomeLabel,
+  reviewStateLabel,
   sideOf,
 } from './labels';
 import { chosenOnce } from './snapshot';
@@ -17,10 +18,10 @@ describe('신고 목록의 주소', () => {
   });
 
   it('주소의 칸 셋과 쪽을 읽고 같은 주소로 다시 짓는다', () => {
-    const filters = filtersOf({ review: 'unreviewed', reason: 'harassment', evidence: 'chat', page: '3' });
-    expect(filters).toEqual({ review: 'unreviewed', reason: 'harassment', evidence: 'chat', page: 3 });
+    const filters = filtersOf({ review: 'open', reason: 'harassment', evidence: 'chat', page: '3' });
+    expect(filters).toEqual({ review: 'open', reason: 'harassment', evidence: 'chat', page: 3 });
     expect(hrefOf(filters, { page: 3 })).toBe(
-      '/ops/reports?review=unreviewed&reason=harassment&evidence=chat&page=3',
+      '/ops/reports?review=open&reason=harassment&evidence=chat&page=3',
     );
   });
 
@@ -33,7 +34,7 @@ describe('신고 목록의 주소', () => {
   });
 
   it('같은 이름이 둘이면 앞의 것을 읽는다', () => {
-    expect(filtersOf({ review: ['reviewed', 'unreviewed'] }).review).toBe('reviewed');
+    expect(filtersOf({ review: ['done', 'open'] }).review).toBe('done');
   });
 
   it('거르는 칸을 바꾸면 첫 쪽으로 돌아간다', () => {
@@ -44,13 +45,13 @@ describe('신고 목록의 주소', () => {
 
   it('목록 문의 인자는 전체면 null, 쪽은 0 부터다', () => {
     expect(argsOf(NO_FILTERS)).toEqual({ p_reviewed: null, p_reason: null, p_has_snapshot: null, p_page: 0 });
-    expect(argsOf({ review: 'reviewed', reason: 'other', evidence: 'none', page: 2 })).toEqual({
+    expect(argsOf({ review: 'done', reason: 'other', evidence: 'none', page: 2 })).toEqual({
       p_reviewed: true,
       p_reason: 'other',
       p_has_snapshot: false,
       p_page: 1,
     });
-    expect(argsOf({ ...NO_FILTERS, review: 'unreviewed', evidence: 'chat' })).toMatchObject({
+    expect(argsOf({ ...NO_FILTERS, review: 'open', evidence: 'chat' })).toMatchObject({
       p_reviewed: false,
       p_has_snapshot: true,
     });
@@ -85,10 +86,16 @@ describe('신고 화면이 값을 부르는 말', () => {
     expect(['no_action', 'warning', 'suspension', 'needs_more'].map(reviewOutcomeLabel)).toEqual([
       '조치 없음',
       '경고',
-      '이용 정지',
-      '추가 확인',
+      '이용 정지 결정',
+      '추가 확인 필요',
     ]);
     expect(reviewOutcomeLabel('later')).toBe('later');
+  });
+
+  it('처리 상태는 문이 낸 처리 필요 여부 그대로다 — 결정은 계정의 지금 상태와 다른 글자다', () => {
+    expect(reviewStateLabel(true)).toBe('처리 필요');
+    expect(reviewStateLabel(false)).toBe('처리 완료');
+    expect(reviewOutcomeLabel('suspension')).not.toBe(accountStatusLabel('suspended'));
   });
 
   it('계정 상태는 PRD 의 이름으로 부른다', () => {
