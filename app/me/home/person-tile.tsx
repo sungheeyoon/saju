@@ -2,13 +2,14 @@ import Link from 'next/link';
 
 import { ELEMENT_PICTURE_KO, STEM_INFO } from '@/src/lib/saju';
 import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
+import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 
 import { elementScope } from '../../element-tone';
 import { PILLAR_COLUMNS } from '../../saju/shared';
 import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
-import { TYPE_NAME } from '../../ui/surfaces';
+import { STALE_CHIP, TYPE_NAME } from '../../ui/surfaces';
 import type { ReadingEntry } from '../reading/current';
 import { tileAnchor, type HomePerson } from './map/model';
 
@@ -114,7 +115,7 @@ export function PersonTile({
         ) : (
           <>
             {!reading.fromCurrentChart && (
-              <span className="mr-1 rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning">수정 전</span>
+              <span className={`mr-1 ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>
             )}
             <span className="text-foreground">{reading.metaphor ?? '만들어 둔 풀이를 이어서 읽어보세요'}</span>
           </>

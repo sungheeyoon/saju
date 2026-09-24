@@ -5,7 +5,7 @@ import { readAccount } from '../me/account';
 import { AccountNotice } from '../me/account-notice';
 import { CARD } from '../card';
 import { Logo } from '../ui/logo';
-import { TYPE_TITLE } from '../ui/surfaces';
+import { PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { SignOutLink } from './sign-out-link';
 import { SERVICE_NAME } from '@/src/lib/brand';
 import {
@@ -123,7 +123,7 @@ export default async function SignupPage({ searchParams }: {
         **첫 화면이라 크림 판이 맞는다.** 로그인 뒤 처음 서는 자리이고, 서비스의 표지(점들이 모여
         관계를 이루는 로고)가 여기서 처음 얼굴을 보인다. 폼은 그 아래 흰 판 한 장이다.
       */}
-      <header className="flex flex-col gap-3 rounded-[2rem] bg-cream p-6 sm:p-8">
+      <header className={`flex flex-col gap-3 ${PAPER}`}>
         <Logo className="size-11" />
         <p className="text-[13px] font-semibold text-cream-ink">
           {again ? '한 번 더 확인해 주세요' : '가입하기'}

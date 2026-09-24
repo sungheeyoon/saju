@@ -64,6 +64,9 @@ export const READING_REPLACES_NOTE =
  */
 export const READING_STALE_NOTE = '출생 정보를 수정하기 전에 만든 풀이입니다.';
 
+/** 같은 사실의 딱지 — 홈 · 관계 지도 · 사람 목록 · 책장 · 풀이 화면이 이 두 글자로 적는다 */
+export const READING_STALE_LABEL = '수정 전';
+
 /** 지난 시도가 끝나지 못했다 */
 export const READING_FAILED_NOTE =
   '지난번 만들기가 끝나지 못했습니다. 지금 보이는 풀이는 그 전에 성공한 결과입니다.';

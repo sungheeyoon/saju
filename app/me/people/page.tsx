@@ -9,6 +9,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { isoOf, solarDateOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL, type Query } from '@/src/lib/input/query';
 import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
+import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 import { storedInputsOf } from '../person-input';
 import { managedEdges, personSlotsFrom } from '../../person-slots';
 import { myReadings, type ReadingEntry } from '../reading/current';
@@ -24,7 +25,7 @@ import { elementScope } from '../../element-tone';
 import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
-import { EMPTY_SLOT, TILE, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../ui/surfaces';
+import { EMPTY_SLOT, STALE_CHIP, TILE, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../ui/surfaces';
 
 /*
   **이 화면의 이름은 「저장한 사람」 하나다.**
@@ -306,9 +307,7 @@ function PersonCard({
           {reading !== null && (
             <p className="line-clamp-2 text-[13px] leading-5">
               {!reading.fromCurrentChart && (
-                <span className="mr-1 rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning">
-                  수정 전
-                </span>
+                <span className={`mr-1 ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>
               )}
               {reading.metaphor ?? '만들어 둔 풀이를 이어서 읽어보세요'}
             </p>

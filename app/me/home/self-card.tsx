@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { isoOf, solarDateOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL, type Query } from '@/src/lib/input/query';
+import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 import {
   BRANCH_INFO,
   CALENDAR_KO,
@@ -99,7 +100,7 @@ export function SelfCard({
           <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
           {reading === null ? '사주풀이 받기' : '사주풀이 보기'}
           {reading !== null && !reading.fromCurrentChart && (
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">수정 전</span>
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">{READING_STALE_LABEL}</span>
           )}
         </Link>
         <Link href={`/me/people/${personId}`} className={BUTTON_SECONDARY}>

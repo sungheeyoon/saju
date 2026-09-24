@@ -26,6 +26,7 @@ import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-c
 import { BUTTON_PRIMARY } from './ui/buttons';
 import { ElementSymbol } from './ui/element-symbol';
 import { Icon } from './ui/icons';
+import { CARD } from './card';
 import { PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
 
 /**
@@ -212,7 +213,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
         ))}
       </div>
 
-      <div className="rounded-[1.75rem] border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
+      <div className={CARD}>
         <RelationChoice
           value={relation}
           onChange={(next) => {
@@ -286,7 +287,7 @@ function SlotCard({
   const name = slot.from === 'typed' ? slot.query.name.trim() : labelOf(people, slot.personId);
 
   return (
-    <fieldset className="flex min-w-0 flex-col gap-4 rounded-[1.75rem] border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
+    <fieldset className={`flex min-w-0 flex-col gap-4 ${CARD}`}>
       {/*
         묶음의 이름은 **그 칸이 든 사람**이다 — 비어 있을 때만 「첫 번째 사람」. 몇 번째 칸인지는 이름이 찬 뒤에도
         보이게 위에 작게 적되(이름이 찼을 때만) 보조기기에는 이름만 읽힌다. `float-left w-full` — 안 두면 legend 가 판 위 가장자리에

@@ -36,6 +36,10 @@ import {
   PillarDetails,
   type PillarDetailTab,
 } from './pillar-details';
+import {
+  DISCLOSURE_SUMMARY,
+  TYPE_SECTION,
+} from '../ui/surfaces';
 
 
 /**
@@ -186,7 +190,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
   return (
     <section id="chart" className={`${CARD} scroll-mt-36`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-rounded text-[1.5rem] leading-8 text-foreground">사주팔자</h2>
+        <h2 className={TYPE_SECTION}>사주팔자</h2>
         <p
           className={`${ELEMENT_TONE[STEM_INFO[pillars.dayMaster].element].scope} inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[var(--tile)] py-1 pl-1.5 pr-3 text-[13px] font-semibold text-[var(--ink)]`}
         >
@@ -223,7 +227,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
       <PillarDetails tabs={detailTabs} />
 
       <details className="group mt-5 border-t border-border pt-4 sm:mx-auto sm:max-w-3xl">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+        <summary className={DISCLOSURE_SUMMARY}>
           네 기둥은 무엇을 뜻하나요?
           <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-surface-sunken text-secondary transition-transform group-open:rotate-180"><Icon name="chevron" className="size-4 rotate-90" /></span>
         </summary>
@@ -241,7 +245,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
       </details>
 
       <details className="group border-t border-border pt-1 sm:mx-auto sm:max-w-3xl">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+        <summary className={DISCLOSURE_SUMMARY}>
           계산 기준과 출생 정보
           <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-surface-sunken text-secondary transition-transform group-open:rotate-180"><Icon name="chevron" className="size-4 rotate-90" /></span>
         </summary>

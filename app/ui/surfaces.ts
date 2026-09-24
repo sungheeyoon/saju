@@ -43,3 +43,25 @@ export const TYPE_META = 'text-[13px] font-medium leading-5 text-secondary';
 /** 딱지 — 안 읽은 수 · 짧은 상태 표시. 12px 아래가 허락되는 유일한 자리 */
 export const BADGE =
   'inline-grid h-5 min-w-5 place-items-center rounded-full bg-badge px-1 text-[11px] font-bold leading-none tabular-nums text-on-badge';
+
+/*
+  **여러 화면이 같은 글자로 적던 모양.** 2026-09-25 에 재어 보니 아래 셋은 화면마다 한 글자도 다르지 않게
+  다시 적혀 있었다 — 확인 창 셋, 「수정 전」 딱지 넷, 펼침 줄 넷. 한쪽만 고치면 같은 것이 두 벌로 선다.
+*/
+
+/**
+ * 확인 창 — 되돌리기 어려운 누름 앞의 `<dialog>`. `m-auto` 는 장식이 아니다 — Tailwind 의 preflight 이
+ * 여백을 0 으로 되돌려, 브라우저가 가운데에 놓던 `margin: auto` 를 다시 세운다
+ */
+export const DIALOG =
+  'm-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40';
+
+/** 확인 창의 단추 줄 — 누르는 쪽이 오른쪽이고, 좁은 화면에서는 위아래로 서며 그때도 확인이 위다 */
+export const DIALOG_ACTIONS = 'mt-6 flex flex-col gap-2 sm:flex-row-reverse';
+
+/** 「수정 전」 딱지 — 출생 정보를 고치기 전에 만든 풀이. 11px 딱지 단이다 */
+export const STALE_CHIP = 'rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning';
+
+/** 펼침 줄 — 명식 화면 안 `<details>` 의 `<summary>`. 누를 자리 44px, 기본 삼각표는 숨긴다 */
+export const DISCLOSURE_SUMMARY =
+  'flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden';

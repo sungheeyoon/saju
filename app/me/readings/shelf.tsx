@@ -2,12 +2,13 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { ELEMENTS, ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
+import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 
 import { elementScope } from '../../element-tone';
 import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
-import { EMPTY_SLOT, PAPER, TYPE_SECTION } from '../../ui/surfaces';
+import { EMPTY_SLOT, PAPER, STALE_CHIP, TYPE_SECTION } from '../../ui/surfaces';
 import { Avatar } from '../avatar';
 import { coverFace } from '../reading/essay';
 import flow from '../reading/flow.module.css';
@@ -275,7 +276,7 @@ export function SubjectTag({ subject }: { subject: DayMaster | null }) {
 }
 
 function StaleChip() {
-  return <span className="rounded-full bg-warning-wash px-1.5 py-0.5 text-[11px] font-semibold text-warning">수정 전</span>;
+  return <span className={STALE_CHIP}>{READING_STALE_LABEL}</span>;
 }
 
 /**
