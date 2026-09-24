@@ -38,46 +38,9 @@ import {
   TimeCorrections,
   Warnings,
 } from './corrections';
-
-
-/**
- * 바로가기 — **화면에 선 차례와 같다.**
- *
- * 다르면 이 줄은 목차가 아니라 또 하나의 메뉴가 된다. 신살이 위로 올라갔으므로 여기서도
- * 위로 온다.
- */
-const RESULT_LINKS = [
-  ['chart', '여덟 글자'],
-  ['stars', '신살'],
-  ['analysis', '분석'],
-  ['yongsin', '용신'],
-  ['relations', '관계'],
-  ['fortune', '운'],
-  ['corrections', '보정'],
-] as const;
-
-
-function ResultNav() {
-  return (
-    <nav
-      aria-label="결과 바로가기"
-      className="sticky top-20 z-20 -my-2 overflow-x-auto rounded-xl border border-border bg-surface/95 px-2 py-2 shadow-sm backdrop-blur"
-    >
-      <ul className="flex min-w-max items-center gap-1">
-        {RESULT_LINKS.map(([target, label]) => (
-          <li key={target}>
-            <a
-              href={`#${target}`}
-              className="flex min-h-10 items-center rounded-lg px-3 text-sm text-secondary hover:bg-surface-sunken hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              {label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  );
-}
+import {
+  ResultNav,
+} from './result-nav';
 
 
 /**
@@ -146,7 +109,7 @@ function asOf(now: CurrentFortune): string {
 
 export function SajuView({ saju, utterances, now, afterChart }: SajuViewModel & { afterChart?: ReactNode }) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <ResultNav />
       <PillarChart saju={saju} />
       {afterChart}
@@ -176,7 +139,7 @@ export function SajuView({ saju, utterances, now, afterChart }: SajuViewModel & 
         그 세 배로 길어서, 둘이 같은 무게로 읽히라고 만든 배치가 오히려 한쪽을 빈칸으로
         만들었다. 폭을 다 쓰면 오행 표의 막대도 길어진다 — 그 막대가 이 카드의 본문이다.
       */}
-      <div id="analysis" className="scroll-mt-20 flex flex-col gap-6">
+      <div id="analysis" className="scroll-mt-36 flex flex-col gap-4">
         <ElementChart saju={saju} />
         <StrengthMeter saju={saju} />
       </div>
@@ -190,7 +153,7 @@ export function SajuView({ saju, utterances, now, afterChart }: SajuViewModel & 
         들었는데 그 카드가 없어졌고, 남은 겹침 칸은 겹칠 것이 없으면 안 선다 — 없을 수
         있는 것에 앵커를 걸면 어떤 명식에서는 바로가기가 아무 데도 안 간다.
       */}
-      <div id="fortune" className="scroll-mt-20 flex flex-col gap-6">
+      <div id="fortune" className="scroll-mt-36 flex flex-col gap-4">
         <NowOverlaps now={now} />
         {/*
           **표 셋을 여기서 그려서 넘긴다.** 탭은 고르는 일만 하므로 브라우저로 가야 하지만,

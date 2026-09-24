@@ -1,5 +1,9 @@
 import Link from 'next/link';
 
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { Logo } from '../../ui/logo';
+import { TYPE_TITLE } from '../../ui/surfaces';
+
 /**
  * 로그인이 끝나지 못한 자리.
  *
@@ -13,27 +17,32 @@ import Link from 'next/link';
  */
 export default function DeniedPage() {
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 py-16 sm:px-6">
-      <header className="flex flex-col gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">로그인하지 못했습니다</h1>
-        <p className="text-sm text-secondary">
-          구글 로그인이 끝나지 못했습니다. 취소하셨거나 중간에 끊긴 것일 수 있습니다. 다시
-          시도해 주세요.
+    <main className="app-shell grid flex-1 place-items-center py-12 sm:py-20">
+      <section className="flex w-full max-w-lg flex-col gap-6 rounded-[2rem] bg-cream p-6 sm:p-10">
+        <header className="flex flex-col gap-2">
+          <span className="grid size-16 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]">
+            <Logo className="size-10" />
+          </span>
+          <h1 className={`mt-3 ${TYPE_TITLE}`}>로그인하지 못했습니다</h1>
+          <p className="text-[15px] leading-7 text-secondary">
+            구글 로그인이 끝나지 못했습니다. 취소하셨거나 중간에 끊긴 것일 수 있습니다. 다시
+            시도해 주세요.
+          </p>
+        </header>
+
+        <p className="text-sm leading-6 text-secondary">
+          사주 계산은 로그인 없이 이용할 수 있고, 궁합과 저장 기능은 로그인 후 이용할 수 있습니다.
         </p>
-      </header>
 
-      <p className="text-sm text-secondary">
-        사주 계산은 로그인 없이 이용할 수 있고, 궁합과 저장 기능은 로그인 후 이용할 수 있습니다.
-      </p>
-
-      <p className="flex gap-4 text-sm">
-        <Link href="/auth" className="text-accent underline underline-offset-2">
-          다시 로그인
-        </Link>
-        <Link href="/" className="text-accent underline underline-offset-2">
-          사주 보러 가기
-        </Link>
-      </p>
+        <p className="flex flex-col gap-2 sm:flex-row">
+          <Link href="/auth" className={BUTTON_PRIMARY}>
+            다시 로그인
+          </Link>
+          <Link href="/" className={BUTTON_SECONDARY}>
+            사주 보러 가기
+          </Link>
+        </p>
+      </section>
     </main>
   );
 }

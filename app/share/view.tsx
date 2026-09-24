@@ -4,6 +4,10 @@ import { notFound } from 'next/navigation';
 import { calledName } from '@/src/lib/reading/display';
 
 import { Markdown } from '../me/reading/markdown';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
+import { Icon } from '../ui/icon';
+import { Logo } from '../ui/logo';
+import { CARD } from '../card';
 import type { ShareKind } from './path';
 import { sharedReadingOf } from './read';
 
@@ -52,9 +56,9 @@ export async function SharedReadingView({
         좁은 화면에서 같은 것이 위아래로 두 줄 선다. 이 자리가 맡는 것은 브랜드 표시가
         아니라 **여기가 무엇을 하는 곳인가** 한 줄이다.
       */}
-      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
-        <div className="flex min-w-0 flex-col gap-1">
-          <p className="eyebrow">{eyebrow}</p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <p className="text-[13px] font-semibold text-cream-ink">{eyebrow}</p>
           {/*
             **누구 것인지가 제목이다.**
 
@@ -66,34 +70,40 @@ export async function SharedReadingView({
             머리에 한 번 세우는 것뿐이고, **미리보기에는 안 싣는다**(ADR 0063) —
             대화창 목록에, 열어 보기도 전에 남의 이름이 서는 일은 없어야 한다.
           */}
-          <h1 className="text-pretty text-xl font-bold tracking-[-0.03em] sm:text-2xl">{whose}</h1>
+          <h1 className="text-pretty font-rounded text-[1.75rem] leading-[1.3] tracking-[-0.02em] sm:text-[2rem]">{whose}</h1>
         </div>
         <StartButton variant="quiet" />
       </header>
 
       {(metaphor !== null || score !== null) && (
-        <section className="grid overflow-hidden rounded-[1.75rem] border border-border bg-surface-raised shadow-[var(--shadow-card)] sm:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="flex min-w-0 flex-col justify-center px-5 py-6 sm:px-7">
+        <section className="grid overflow-hidden rounded-[2rem] bg-cream sm:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex min-w-0 gap-3 px-5 py-7 sm:px-8 sm:py-9">
             {metaphor !== null && (
-              <p className="max-w-2xl text-pretty text-lg font-semibold leading-7 sm:text-xl sm:leading-8">
-                {metaphor}
-              </p>
+              <>
+                <Icon name="quote" className="mt-1 size-6 text-cream-ink" />
+                <p className="max-w-2xl text-pretty font-rounded text-[1.5rem] leading-[1.45] tracking-[-0.01em] text-foreground sm:text-[1.75rem]">
+                  {metaphor}
+                </p>
+              </>
             )}
           </div>
           {/* 궁합에서는 **점수가 그 글의 일부다.** 빼면 받은 사람이 다른 글을 본다 */}
           {score !== null && (
-            <div className="flex min-w-40 flex-col items-center justify-center border-t border-border bg-accent-wash/45 px-5 py-4 text-center sm:border-l sm:border-t-0 sm:px-6">
-              <p className="text-xs font-semibold text-accent">궁합풀이 점수</p>
+            <div className="tone-fire m-3 flex min-w-40 flex-col items-center justify-center rounded-[1.5rem] bg-[var(--tile)] px-5 py-4 text-center sm:ml-0">
+              <p className="flex items-center gap-1 text-[13px] font-semibold text-[var(--ink)]">
+                <Icon name="heart" className="size-4" />
+                궁합풀이 점수
+              </p>
               <p className="mt-1 flex items-baseline justify-center gap-1">
-                <span className="text-3xl font-bold tabular-nums">{score}</span>
-                <span className="text-xs font-medium text-secondary">/ 100</span>
+                <span className="text-[2.5rem] font-bold leading-none tabular-nums text-foreground">{score}</span>
+                <span className="text-[13px] font-semibold text-secondary">/ 100</span>
               </p>
             </div>
           )}
         </section>
       )}
 
-      <article className="overflow-hidden rounded-2xl border border-border bg-surface-raised p-5 shadow-[var(--shadow-card)] sm:p-7 lg:p-8">
+      <article className={`${CARD} overflow-hidden sm:p-8 lg:p-10`}>
         <Markdown source={body} />
       </article>
 
@@ -105,13 +115,16 @@ export async function SharedReadingView({
         **가입은 아직 코드로만 열린다**(ADR 0042) — 누르고 나서 알게 하면, 그 사람은
         읽은 글이 좋아서 눌렀다가 막힌 문을 만난다.
       */}
-      <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface px-5 py-6 shadow-[var(--shadow-card)] sm:px-7">
-        <h2 className="text-lg font-bold tracking-[-0.03em]">{invitation.heading}</h2>
-        <p className="text-sm leading-6 text-secondary">{invitation.note}</p>
+      <section className="flex flex-col gap-3 rounded-[2rem] bg-cream px-5 py-7 sm:px-8">
+        <span className="grid size-14 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]">
+          <Logo className="size-9" />
+        </span>
+        <h2 className="font-rounded text-[1.5rem] leading-8 text-foreground">{invitation.heading}</h2>
+        <p className="text-[15px] leading-7 text-secondary">{invitation.note}</p>
         <div className="mt-1">
           <StartButton variant="loud" />
         </div>
-        <p className="text-xs leading-5 text-muted">
+        <p className="text-[13px] leading-5 text-secondary">
           지금은 비공개 테스트 기간이라 가입에 테스트 코드가 필요합니다.
         </p>
       </section>
@@ -153,11 +166,7 @@ function StartButton({ variant }: { variant: 'quiet' | 'loud' }) {
   return (
     <Link
       href="/auth"
-      className={
-        variant === 'loud'
-          ? 'inline-flex h-12 w-full items-center justify-center rounded-xl bg-accent px-6 text-sm font-semibold text-on-accent shadow-sm hover:bg-accent-strong sm:w-auto'
-          : 'inline-flex h-10 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-surface px-4 text-sm font-semibold text-accent shadow-sm hover:border-accent'
-      }
+      className={variant === 'loud' ? `${BUTTON_PRIMARY} w-full sm:w-auto` : `${BUTTON_SECONDARY_SMALL} shrink-0`}
     >
       로그인하고 시작하기
     </Link>

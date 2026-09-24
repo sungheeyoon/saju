@@ -1,6 +1,6 @@
 import {
-  CARD,
-} from '../card';
+  Fold,
+} from './fold';
 import {
   UtteranceList,
 } from '../utterances';
@@ -25,22 +25,20 @@ export function RelationTable({ saju, coverage }: { saju: Saju; coverage: Uttera
   const { relations } = saju;
 
   return (
-    <section id="relations" className={`${CARD} scroll-mt-20`}>
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-base font-semibold">원국의 관계</h2>
-        <p className="text-sm text-secondary">
-          {relations.length === 0 ? '성립하는 관계가 없습니다' : `${relations.length}개`}
-        </p>
-      </div>
+    <Fold
+      id="relations"
+      title="원국의 관계"
+      meta={relations.length === 0 ? '성립하는 관계가 없습니다' : `${relations.length}개`}
+    >
 
       {relations.length > 0 && (
         <>
-          <div className="mt-4 overflow-x-auto">
+          <div className="overflow-x-auto">
           <table className="w-full min-w-[30rem] border-collapse text-sm">
             <caption className="sr-only">
               여덟 글자 사이에 성립하는 합·충·형·해·파·원진·귀문
             </caption>
-            <thead className="text-xs text-muted">
+            <thead className="text-xs font-semibold text-secondary">
               <tr>
                 <th className="pb-1.5 text-left font-normal whitespace-nowrap">종류</th>
                 <th className="pb-1.5 pl-3 text-left font-normal whitespace-nowrap">글자</th>
@@ -148,6 +146,6 @@ export function RelationTable({ saju, coverage }: { saju: Saju; coverage: Uttera
         성립 여부만 적습니다. 합이 이뤄지는지, 충이 합을 깨는지는 학파마다 갈려 판정하지 않습니다.
         원진과 귀문은 네 쌍이 겹치므로 같은 두 글자에 두 줄이 함께 나올 수 있습니다.
       </p>
-    </section>
+    </Fold>
   );
 }

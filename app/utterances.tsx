@@ -136,7 +136,7 @@ export function UtteranceList({ utterances }: { utterances: readonly Utterance[]
               className="flex flex-wrap items-baseline gap-x-2 gap-y-1"
             >
               <span
-                className={`shrink-0 rounded-sm border px-1.5 py-0.5 text-[10px] ${STRENGTH_TONE[strength]}`}
+                className={`shrink-0 rounded-sm border px-1.5 py-0.5 text-xs ${STRENGTH_TONE[strength]}`}
               >
                 {CLAIM_STRENGTH_KO[strength]}
               </span>

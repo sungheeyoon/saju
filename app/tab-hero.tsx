@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import { TYPE_TITLE } from './ui/surfaces';
+
 /**
  * 「사주·궁합」 탭의 머리 — **한 탭이면 한 얼굴이다.**
  *
@@ -19,16 +21,20 @@ import type { ReactNode } from 'react';
  * 시작하는 누름은 그 칸 안에 하나뿐이다(`/compat` 의 「궁합 보기」). 지금 버튼 줄을
  * 드는 것은 `/` 하나다(출생 정보 입력하기 · 궁합 보러 가기).
  */
-export const TAB_HERO_CARD =
-  'relative overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]';
+export const TAB_HERO_CARD = 'relative overflow-hidden rounded-[2rem] bg-cream';
 
-/** 카드 오른쪽 위의 번짐 — 두 화면이 같은 색을 쓴다(전에는 목/화로 갈려 있었다) */
+/**
+ * 카드 오른쪽 위의 번짐 — 두 화면이 같은 색을 쓴다(전에는 목/화로 갈려 있었다).
+ *
+ * 부드러움(5차)에서는 크림 종이 위에 나무의 파스텔이 스민다 — 관계 지도의 가운데가 내 일간 색으로 번지는 것과
+ * 같은 말투다. 흐림을 걸지 않고 면 두 겹으로 둔다: `blur-3xl` 은 폰에서 스크롤마다 다시 그려 무거웠다.
+ */
 export function TabHeroGlow() {
   return (
-    <div
-      className="absolute -right-12 -top-16 size-64 rounded-full bg-wood-soft blur-3xl"
-      aria-hidden="true"
-    />
+    <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20">
+      <div className="size-64 rounded-full bg-wood-soft opacity-80" />
+      <div className="absolute left-10 top-16 size-40 rounded-full bg-water-soft opacity-70" />
+    </div>
   );
 }
 
@@ -55,16 +61,14 @@ export function TabHeroBody({
   return (
     <div className="relative flex flex-col gap-6 px-6 py-7 sm:flex-row sm:items-end sm:justify-between sm:gap-8 sm:px-10 sm:py-9">
       <div className="min-w-0">
-        <p className="eyebrow">{eyebrow}</p>
-        <h1 className="mt-2 text-2xl font-bold leading-[1.35] tracking-[-0.04em] sm:text-[1.875rem]">
-          {title}
-        </h1>
+        <p className="text-[13px] font-semibold text-cream-ink">{eyebrow}</p>
+        <h1 className={`mt-2 ${TYPE_TITLE}`}>{title}</h1>
         {/*
           **문단이 여럿일 수 있다.** 궁합 쪽은 「무엇을 보는가」와 「어떻게 말하는가」를
           따로 적는다 — 한 덩어리로 붙이면 둘째 문장이 첫째의 꼬리처럼 읽힌다.
           그래서 `<p>` 가 아니라 칸이고, 부르는 쪽이 문단을 넣는다.
         */}
-        <div className="mt-2.5 flex max-w-lg flex-col gap-2 text-sm leading-6 text-secondary sm:text-[0.95rem] sm:leading-7">
+        <div className="mt-3 flex max-w-lg flex-col gap-2 text-[15px] leading-7 text-secondary">
           {lede}
         </div>
       </div>
@@ -95,11 +99,17 @@ export function TabActions({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * 두 갈래는 공용 단추 두 층(`app/ui/buttons.ts`)의 모양을 입는다 — 먹색 채움이 「여기서 시작」, 흰 알약이
+ * 「나머지 반쪽」. 공용 문자열을 이어 붙이지 않고 여기 다시 적는 것은 **여백이 갈리기 때문**이다: 폰 360px 에서
+ * 두 알약이 한 줄을 나눠 쓰려면 좌우 여백이 `px-3` 이어야 하는데, 공용 `px-5` 뒤에 붙이면 둘 중 무엇이 이기는지를
+ * 클래스 순서가 아니라 CSS 가 정한다.
+ */
 const ACTION =
-  'flex min-h-11 flex-1 items-center justify-center rounded-full px-3 py-2.5 text-center text-[0.8125rem] font-semibold leading-5 sm:flex-none sm:px-5 sm:text-sm';
+  'inline-flex min-h-12 flex-1 items-center justify-center rounded-full px-3 text-center text-[15px] font-semibold leading-5 active:scale-[0.97] sm:flex-none sm:px-5';
 
 /** 이 화면에서 시작하는 길 */
-export const TAB_ACTION_PRIMARY = `${ACTION} bg-accent text-on-accent hover:bg-accent-strong`;
+export const TAB_ACTION_PRIMARY = `${ACTION} gap-2 bg-accent text-on-accent shadow-[0_8px_18px_-10px_rgba(38,36,31,0.7)] hover:bg-accent-strong`;
 
 /** 이 탭의 나머지 반쪽으로 가는 길 — 「로그인 필요」가 붙을 수 있어 세로로 쌓는다 */
-export const TAB_ACTION_SECONDARY = `${ACTION} flex-col border border-border-strong bg-surface hover:border-accent hover:text-accent`;
+export const TAB_ACTION_SECONDARY = `${ACTION} flex-col border border-border bg-surface py-1.5 text-foreground hover:border-border-strong`;

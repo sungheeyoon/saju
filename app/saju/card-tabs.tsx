@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { CARD } from '../card';
+import { Fold } from './fold';
 
 /**
  * 한 카드 안에서 **한 판씩 골라 보는 자리.**
@@ -62,58 +62,49 @@ export function CardTabs({
   };
 
   return (
-    <section
-      id={anchorId}
-      className={`${CARD} flex flex-col gap-5 ${anchorId === undefined ? '' : 'scroll-mt-20'}`}
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-base font-semibold">{title}</h2>
-          {note !== undefined && <p className="mt-0.5 text-xs text-secondary">{note}</p>}
-        </div>
-        <div
-          role="tablist"
-          aria-label={tablistLabel}
-          className="grid min-h-11 auto-cols-fr grid-flow-col rounded-lg bg-surface-sunken p-1"
-        >
-          {tabs.map((tab, index) => {
-            const selected = shown.key === tab.key;
-            return (
-              <button
-                key={tab.key}
-                id={`${id}-tab-${tab.key}`}
-                type="button"
-                role="tab"
-                aria-selected={selected}
-                aria-controls={`${id}-panel`}
-                tabIndex={selected ? 0 : -1}
-                onClick={() => setView(tab.key)}
-                onKeyDown={(event) => selectByKeyboard(event, index)}
-                className={`min-h-9 rounded-md px-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                  selected
-                    ? 'bg-surface text-foreground shadow-sm'
-                    : 'text-secondary hover:text-foreground'
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+    <Fold id={anchorId} title={title} note={note}>
+      <div
+        role="tablist"
+        aria-label={tablistLabel}
+        className="grid auto-cols-fr grid-flow-col rounded-full bg-surface-sunken p-1"
+      >
+        {tabs.map((tab, index) => {
+          const selected = shown.key === tab.key;
+          return (
+            <button
+              key={tab.key}
+              id={`${id}-tab-${tab.key}`}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              aria-controls={`${id}-panel`}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => setView(tab.key)}
+              onKeyDown={(event) => selectByKeyboard(event, index)}
+              className={`min-h-11 rounded-full px-2 text-sm font-semibold sm:px-4 ${
+                selected
+                  ? 'bg-surface text-foreground shadow-sm'
+                  : 'text-secondary hover:text-foreground'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       <div
         id={`${id}-panel`}
         role="tabpanel"
         aria-labelledby={`${id}-tab-${shown.key}`}
-        className="border-t border-border pt-5"
+        className="pt-5"
       >
         {shown.panel}
       </div>
 
       {footnote !== undefined && (
-        <div className="border-t border-border pt-4 text-xs text-muted">{footnote}</div>
+        <div className="mt-5 border-t border-border pt-4 text-xs leading-5 text-secondary">{footnote}</div>
       )}
-    </section>
+    </Fold>
   );
 }

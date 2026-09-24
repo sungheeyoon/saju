@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { BUTTON_SECONDARY } from './ui/buttons';
+
 /**
  * 지금 보고 있는 결과의 주소를 복사한다.
  *
@@ -51,19 +53,19 @@ export function CopyLinkButton() {
       <button
         type="button"
         onClick={copy}
-        className="h-9 rounded-md border border-border px-3 text-xs text-secondary transition-colors hover:border-border-strong hover:text-foreground"
+        className={BUTTON_SECONDARY}
       >
         {state === 'copied' ? '복사했습니다' : '결과 링크 복사'}
       </button>
       {state !== 'idle' && (
-        <span className="text-xs text-muted">
+        <span className="text-[13px] text-secondary">
           {state === 'failed'
             ? '복사에 실패했습니다. 주소창의 주소를 그대로 쓰세요.'
             : '링크에 입력한 출생 정보가 담겨 있습니다 — 받은 사람은 볼 수 있습니다.'}
         </span>
       )}
       {state === 'failed' && (
-        <code className="w-full overflow-x-auto rounded-sm bg-surface-sunken px-2 py-1 text-[10px] text-secondary">
+        <code className="w-full overflow-x-auto rounded-sm bg-surface-sunken px-2 py-1 text-xs text-secondary">
           {href}
         </code>
       )}

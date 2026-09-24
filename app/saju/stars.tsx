@@ -1,6 +1,6 @@
 import {
-  CARD,
-} from '../card';
+  Fold,
+} from './fold';
 import {
   SPIRIT_BASIS_KO,
   type PillarPosition,
@@ -82,49 +82,44 @@ export function StarTable({ saju }: { saju: Saju }) {
     );
 
   return (
-    <section id="stars" className={`${CARD} scroll-mt-20`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-base font-semibold">신살</h2>
-            {stars.length > 0 && <span className="text-sm text-secondary">{stars.length}개</span>}
-          </div>
-          <p className="mt-0.5 text-xs text-secondary">어떤 신살이 어느 자리에 걸렸는지 모아봅니다</p>
-        </div>
-
-      </div>
+    <Fold
+      id="stars"
+      title="신살"
+      meta={stars.length > 0 ? `${stars.length}개` : undefined}
+      note="어떤 신살이 어느 자리에 걸렸는지 모아봅니다"
+    >
 
       {stars.length === 0 ? (
-        <div className="mt-4 rounded-xl bg-surface-soft px-4 py-5 text-center text-sm text-secondary">
+        <div className="rounded-[1.25rem] bg-surface-soft px-4 py-5 text-center text-sm text-secondary">
           걸린 신살이 없습니다
         </div>
       ) : (
-        <div className="mt-4 grid items-start gap-2 lg:grid-cols-4">
+        <div className="grid items-start gap-2 lg:grid-cols-4">
           {PILLAR_COLUMNS.map(({ key, label }) => {
             const found = at(key);
             return (
               <section
                 key={key}
                 aria-label={`${label}에 걸린 신살`}
-                className={`min-w-0 rounded-xl border p-2.5 sm:p-3 ${
-                  key === 'day' ? 'border-accent/35 bg-accent-wash/40' : 'border-border bg-surface-soft'
+                className={`min-w-0 rounded-[1.25rem] border p-3 ${
+                  key === 'day' ? 'border-border-strong bg-cream' : 'border-transparent bg-surface-soft'
                 }`}
               >
                 <div className="mb-2 flex items-baseline justify-between gap-1">
-                  <h3 className={`text-sm font-semibold ${key === 'day' ? 'text-accent' : 'text-foreground'}`}>
+                  <h3 className="text-sm font-semibold text-foreground">
                     {label}
                   </h3>
-                  <span className="text-[10px] text-muted">{found.length}개</span>
+                  <span className="text-xs text-secondary">{found.length}개</span>
                 </div>
 
                 {found.length === 0 ? (
-                  <p className="py-3 text-center text-xs text-muted">걸린 항목 없음</p>
+                  <p className="py-3 text-center text-[13px] text-secondary">걸린 항목 없음</p>
                 ) : (
                   <ul className="flex flex-col gap-1.5">
                     {found.map(({ star, hit }) => (
-                      <li key={`${star.id}:${hit.target}:${hit.char}`} className="rounded-lg bg-surface-raised px-2 py-2 shadow-sm">
-                        <span className="text-xs font-medium text-foreground sm:text-sm">{star.ko}</span>
-                        <p className="mt-0.5 text-[9px] leading-4 text-muted sm:text-[10px]">
+                      <li key={`${star.id}:${hit.target}:${hit.char}`} className="rounded-xl bg-surface-raised px-3 py-2 shadow-sm">
+                        <span className="text-sm font-semibold text-foreground">{star.ko}</span>
+                        <p className="mt-0.5 text-xs leading-5 text-secondary">
                           {HIT_POSITION_KO[hit.position][hit.target]} <span className="glyph">{hit.char}</span>
                           {star.basis && <> · {star.basis.label} <span className="glyph">{star.basis.char}</span></>}
                         </p>
@@ -159,7 +154,7 @@ export function StarTable({ saju }: { saju: Saju }) {
           <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">⌄</span>
         </summary>
         <div className="pb-2 pt-2 text-xs leading-5 text-secondary">
-          <dl className="mb-3 flex flex-col gap-1 rounded-xl bg-surface-soft p-3">
+          <dl className="mb-3 flex flex-col gap-1 rounded-2xl bg-surface-soft p-3">
             {(Object.keys(STAR_NATURE_KO) as StarNature[]).map((nature) => {
               const named = [...new Set(stars.filter((star) => star.nature === nature).map((star) => star.ko))];
               if (named.length === 0) return null;
@@ -175,7 +170,7 @@ export function StarTable({ saju }: { saju: Saju }) {
             길신·흉신·특수는 전통적 분류일 뿐, 좋고 나쁨의 판정이 아닙니다.
           </p>
           {missingSpirits.length > 0 && (
-            <ul className="mb-3 flex flex-col gap-0.5 rounded-xl bg-surface-soft p-3">
+            <ul className="mb-3 flex flex-col gap-0.5 rounded-2xl bg-surface-soft p-3">
               {missingSpirits.map((note) => <li key={note}>{note}</li>)}
             </ul>
           )}
@@ -190,6 +185,6 @@ export function StarTable({ saju }: { saju: Saju }) {
           </p>
         </div>
       </details>
-    </section>
+    </Fold>
   );
 }

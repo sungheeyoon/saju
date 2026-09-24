@@ -1,5 +1,9 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+
+import { BUTTON_TERTIARY } from '../ui/buttons';
+import { Logo } from '../ui/logo';
+import { TYPE_TITLE } from '../ui/surfaces';
 import { SignInButton } from './sign-in-button';
 import { supabaseOnServer } from './server-client';
 import { safeReturnPath } from './return-path';
@@ -19,13 +23,15 @@ export default async function SignInPage({
 
   return (
     <main className="app-shell grid flex-1 place-items-center py-12 sm:py-20">
-      <section className="flex w-full max-w-lg flex-col gap-6 rounded-[1.75rem] border border-border bg-surface p-6 shadow-[var(--shadow-float)] sm:p-10">
+      <section className="flex w-full max-w-lg flex-col gap-6 rounded-[2rem] bg-cream p-6 sm:p-10">
       <header className="flex flex-col gap-2">
-        <span className="grid size-11 place-items-center rounded-2xl bg-accent-wash font-bold text-accent">命</span>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight">
+        <span className="grid size-16 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]">
+          <Logo className="size-10" />
+        </span>
+        <h1 className={`mt-3 ${TYPE_TITLE}`}>
           {forCompat ? '궁합은 로그인 후 이용할 수 있습니다' : forReading ? '내 사주풀이로 이어갈까요?' : '로그인'}
         </h1>
-        <p className="text-sm leading-6 text-secondary">
+        <p className="text-[15px] leading-7 text-secondary">
           {/*
             궁합 쪽은 제목이 이미 「왜 여기 섰는가」를 다 말한다 — 본문이 그 이유를 한 번 더
             적으면 바로 아래 선 베타 안내까지 같이 안 읽힌다.
@@ -39,7 +45,7 @@ export default async function SignInPage({
 
       <SignInButton returnTo={returnTo} />
 
-      <Link href="/" className="text-sm text-accent underline underline-offset-2">
+      <Link href="/" className={`${BUTTON_TERTIARY} w-fit`}>
         사주로 돌아가기
       </Link>
       </section>

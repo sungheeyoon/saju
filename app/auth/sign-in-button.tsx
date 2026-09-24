@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { supabaseInBrowser } from './browser-client';
 import { userFacingDbMessage } from '../db-error';
+import { BUTTON_PRIMARY } from '../ui/buttons';
 
 /**
  * 구글 로그인 — 여기서 브라우저가 통째로 이동한다.
@@ -35,17 +36,17 @@ export function SignInButton({ returnTo = '/me' }: { returnTo?: string }) {
   };
 
   return (
-    <div className="flex flex-col items-start gap-2">
+    <div className="flex flex-col items-stretch gap-2 sm:items-start">
       <button
         type="button"
         onClick={signIn}
         disabled={going}
-        className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-on-accent disabled:opacity-60"
+        className={`${BUTTON_PRIMARY} w-full sm:w-auto`}
       >
         {going ? '구글로 이동하는 중…' : '구글로 로그인'}
       </button>
       {failure !== null && (
-        <p className="text-xs text-muted">로그인을 시작하지 못했습니다 — {failure}</p>
+        <p role="alert" className="text-[13px] font-medium text-danger">로그인을 시작하지 못했습니다 — {failure}</p>
       )}
     </div>
   );

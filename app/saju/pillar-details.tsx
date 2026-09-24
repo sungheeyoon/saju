@@ -42,7 +42,7 @@ export function PillarDetails({ tabs }: { readonly tabs: readonly PillarDetailTa
       <div
         role="tablist"
         aria-label="사주팔자 상세 정보"
-        className="grid grid-cols-4 rounded-xl bg-surface-sunken p-1"
+        className="grid grid-cols-4 rounded-full bg-surface-sunken p-1"
       >
         {tabs.map((tab, index) => {
           const selected = shown.key === tab.key;
@@ -57,10 +57,10 @@ export function PillarDetails({ tabs }: { readonly tabs: readonly PillarDetailTa
               tabIndex={selected ? 0 : -1}
               onClick={() => setView(tab.key)}
               onKeyDown={(event) => selectByKeyboard(event, index)}
-              className={`min-h-11 rounded-lg px-1 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent sm:px-3 sm:text-sm ${
+              className={`min-h-11 rounded-full px-1 text-[13px] font-semibold sm:px-3 sm:text-sm ${
                 selected
                   ? 'bg-surface text-foreground shadow-sm'
-                  : 'text-muted hover:text-foreground'
+                  : 'text-secondary hover:text-foreground'
               }`}
             >
               {tab.label}

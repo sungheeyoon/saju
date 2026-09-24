@@ -30,6 +30,13 @@ import {
   CardTabs,
 } from './card-tabs';
 import {
+  Fold,
+  SectionTitle,
+} from './fold';
+import {
+  ElementSymbol,
+} from '../ui/element-symbol';
+import {
   ClaimStrengthLegend,
 } from '../utterances';
 
@@ -191,7 +198,7 @@ export function ElementChart({ saju }: { saju: Saju }) {
 
   return (
     <section className={CARD}>
-      <h2 className="text-base font-semibold">오행 분포</h2>
+      <SectionTitle>오행 분포</SectionTitle>
       {/*
         **여기는 설명하는 자리가 아니라 자료를 내는 자리다.**
 
@@ -221,9 +228,14 @@ export function ElementChart({ saju }: { saju: Saju }) {
         <tbody>
           {ELEMENTS.map((element) => (
             <tr key={element}>
-              <td className="py-1 whitespace-nowrap">
-                <span className={`glyph inline-grid size-7 place-items-center rounded-lg ${ELEMENT_TONE[element].surface} ${ELEMENT_TONE[element].text}`}>{element}</span>{' '}
-                <span className="text-secondary">{ELEMENT_KO[element]}</span>
+              <td className="py-1.5 whitespace-nowrap">
+                <span className={`inline-flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 align-middle ${ELEMENT_TONE[element].surface}`}>
+                  <span className="grid size-7 place-items-center rounded-full bg-surface">
+                    <ElementSymbol element={element} className="size-5" />
+                  </span>
+                  <span className={`glyph text-base font-bold ${ELEMENT_TONE[element].text}`}>{element}</span>
+                  <span className={`text-[13px] font-semibold ${ELEMENT_TONE[element].text}`}>{ELEMENT_KO[element]}</span>
+                </span>
                 {element === strongest && <span className="ml-1.5 text-xs text-muted">최강</span>}
               </td>
               <td
@@ -246,7 +258,7 @@ export function ElementChart({ saju }: { saju: Saju }) {
               </td>
               <td className="py-1 pl-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-2.5 min-w-0 flex-1 rounded-sm bg-track">
+                  <div className="h-3 min-w-0 flex-1 rounded-full bg-track">
                     <div
                       className={`h-full rounded-full ${ELEMENT_TONE[element].bar}`}
                       style={{ width: `${(ratios[element] / max) * 100}%` }}
@@ -291,13 +303,12 @@ export function StrengthMeter({ saju }: { saju: Saju }) {
   const isStrong = strength.verdict === 'strong';
 
   return (
-    <section className={`${CARD} flex flex-col`}>
-      <div>
-        <h2 className="text-base font-semibold">신강 · 신약</h2>
-        <p className="mt-0.5 text-xs text-secondary">보조세력과 득령·득지·득세를 함께 봅니다</p>
-      </div>
-
-      <div className="mt-4 rounded-2xl bg-surface-soft p-4 sm:flex sm:items-center sm:justify-between sm:gap-6">
+    <Fold
+      title="신강 · 신약"
+      meta={isStrong ? '신강' : '신약'}
+      note="보조세력과 득령·득지·득세를 함께 봅니다"
+    >
+      <div className="rounded-2xl bg-surface-soft p-4 sm:flex sm:items-center sm:justify-between sm:gap-6">
         <div>
           <p className="text-xs font-medium text-muted">현재 판정</p>
           <div className="mt-1 flex items-baseline gap-2">
@@ -328,7 +339,7 @@ export function StrengthMeter({ saju }: { saju: Saju }) {
             aria-hidden="true"
           />
         </div>
-        <div className="mt-1.5 flex justify-between text-[10px] text-muted sm:text-xs">
+        <div className="mt-1.5 flex justify-between text-xs text-muted">
           <span>소모 우세</span>
           <span>신강 기준 {threshold}%</span>
           <span>보조 우세</span>
@@ -337,14 +348,14 @@ export function StrengthMeter({ saju }: { saju: Saju }) {
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
         <div className="rounded-xl border border-border px-3 py-2.5">
-          <p className="text-[11px] text-muted">일간을 돕는 힘</p>
+          <p className="text-xs text-muted">일간을 돕는 힘</p>
           <p className="mt-0.5 text-lg font-semibold tabular-nums">{strength.supportScore.toFixed(2)}</p>
-          <p className="text-[10px] text-secondary">비겁·인성</p>
+          <p className="text-xs text-secondary">비겁·인성</p>
         </div>
         <div className="rounded-xl border border-border px-3 py-2.5">
-          <p className="text-[11px] text-muted">일간을 소모하는 힘</p>
+          <p className="text-xs text-muted">일간을 소모하는 힘</p>
           <p className="mt-0.5 text-lg font-semibold tabular-nums">{strength.opposeScore.toFixed(2)}</p>
-          <p className="text-[10px] text-secondary">식상·재성·관성</p>
+          <p className="text-xs text-secondary">식상·재성·관성</p>
         </div>
       </div>
 
@@ -370,7 +381,7 @@ export function StrengthMeter({ saju }: { saju: Saju }) {
                 것처럼 보이는 초록이 여기만 남으면 그 판단이 반만 적용된 것이 된다.
                 가르는 일은 채움의 세기가 한다.
               */}
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                 criterion.met
                   ? 'bg-foreground/85 text-background'
                   : 'bg-surface-sunken text-muted'
@@ -394,7 +405,7 @@ export function StrengthMeter({ saju }: { saju: Saju }) {
       </p>
 
       <RootingNote saju={saju} />
-    </section>
+    </Fold>
   );
 }
 
@@ -453,7 +464,7 @@ function JohuNote({ johu }: { johu: Saju['analysis']['johu'] }) {
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
           참고표
         </span>
         <span className="text-xs text-muted">조후 후보 천간</span>
@@ -508,7 +519,7 @@ function EokbuNote({
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
           시험
         </span>
         <span className="text-xs text-muted">억부 관점의 후보</span>
@@ -588,7 +599,7 @@ function PrecedenceTable({ precedence }: { precedence: Saju['analysis']['precede
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
           사실
         </span>
         <span className="text-xs text-muted">판정이 어긋날 때</span>
@@ -657,7 +668,7 @@ function TonggwanFacts({ tonggwan }: { tonggwan: Saju['analysis']['tonggwan'] })
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
           사실
         </span>
         <span className="text-xs text-muted">가장 팽팽한 대치</span>
@@ -724,7 +735,7 @@ function RootingNote({ saju }: { saju: Saju }) {
       </summary>
       <div className="pb-2 pt-2">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">사실</span>
+          <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">사실</span>
           <span className="text-xs text-muted">일간 {dayMaster.stem}의 뿌리</span>
           {dayMaster.rooted ? (
             <>
@@ -786,7 +797,7 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
           시험
         </span>
         <span className="text-xs text-muted">종격</span>
@@ -808,7 +819,7 @@ function FollowingCandidacyNote({ saju }: { saju: Saju }) {
       </div>
 
       <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <span className="rounded-sm border border-border px-1.5 py-0.5 text-[10px] text-muted">
+        <span className="rounded-sm border border-border px-1.5 py-0.5 text-xs text-muted">
           사실
         </span>
         <span className="text-xs text-muted">판정의 재료</span>

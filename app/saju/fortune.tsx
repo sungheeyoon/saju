@@ -2,7 +2,15 @@ import {
   CARD,
 } from '../card';
 import {
+  ELEMENT_TONE,
+} from '../element-tone';
+import {
+  SectionTitle,
+} from './fold';
+import {
+  BRANCH_INFO,
   DAEUN_DIRECTION_KO,
+  STEM_INFO,
   PILLAR_POSITIONS,
   PILLAR_POSITION_KO,
   TEN_GOD_KO,
@@ -131,7 +139,7 @@ export function NowOverlaps({ now }: { now: CurrentFortune }) {
 
   return (
     <section className={CARD}>
-      <h2 className="text-base font-semibold">지금이 원국의 같은 자리를 다시 밟는 것</h2>
+      <SectionTitle>지금이 원국의 같은 자리를 다시 밟는 것</SectionTitle>
       {/*
         **글자로 묶는다.** 운이 데려온 한 자가 원국의 어느 글자와 같으면 그 자리의
         관계가 통째로 겹치므로, 줄로 풀면 다섯 줄이 한 사실을 다섯 번 말한다. 겹치게
@@ -178,7 +186,7 @@ export function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
   return (
     <section>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-base font-semibold">세운</h2>
+        <h3 className="text-base font-semibold">세운</h3>
         <p className="text-sm text-secondary">
           {entries[0].year}년 ~ {entries[entries.length - 1].year}년
         </p>
@@ -201,8 +209,8 @@ export function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                     className={`px-1 pb-2 text-xs font-normal ${current ? 'text-accent' : 'text-secondary'}`}
                   >
                     {entry.year}
-                    {current && <span className="ml-1 text-[10px] font-medium">현재</span>}
-                    <span className="block text-[11px] text-muted">
+                    {current && <span className="ml-1 text-xs font-medium">현재</span>}
+                    <span className="block text-xs text-muted">
                       {ageRangeLabel(entry.ageAtStart, entry.ageAtEnd)}
                     </span>
                     {/*
@@ -210,7 +218,7 @@ export function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                       함께 내므로, 어느 대운인지가 여기 없으면 딱지만 있고 대상이 없다.
                       한 해가 대운 경계를 넘으면 둘이 적힌다 — 실제로 두 대운이 지난다.
                     */}
-                    <span className="block text-[10px] text-muted">
+                    <span className="block text-xs text-muted">
                       {daeunSpanLabel(entry.daeunSpans) ??
                         (entry.daeunAbsence ? DAEUN_ABSENCE_KO[entry.daeunAbsence] : '')}
                     </span>
@@ -226,30 +234,30 @@ export function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                 return (
                   <td key={entry.year} className="snap-start px-1 align-top">
                     <div
-                      className={`mx-auto flex min-h-[7.25rem] w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
+                      className={`mx-auto flex min-h-[7.25rem] w-full max-w-28 flex-col items-center gap-0.5 rounded-2xl border py-2.5 ${
                         current
-                          ? 'border-accent bg-accent-wash'
-                          : 'border-border bg-surface-sunken'
+                          ? 'border-foreground bg-cream'
+                          : 'border-transparent bg-surface-soft'
                       }`}
                     >
-                    <span className="text-[10px] text-muted">
+                    <span className="text-xs text-muted">
                       {TEN_GOD_KO[entry.tenGods.stem]}
                     </span>
-                    <span className="glyph text-2xl leading-none">{entry.pillar.stem}</span>
-                    <span className="glyph text-2xl leading-none">{entry.pillar.branch}</span>
-                    <span className="text-[10px] text-muted">
+                    <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[STEM_INFO[entry.pillar.stem].element].text}`}>{entry.pillar.stem}</span>
+                    <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[BRANCH_INFO[entry.pillar.branch].element].text}`}>{entry.pillar.branch}</span>
+                    <span className="text-xs text-muted">
                       {TEN_GOD_KO[entry.tenGods.branch]}
                     </span>
-                    <span className="mt-1 text-[11px] text-secondary">
+                    <span className="mt-1 text-xs text-secondary">
                       {TWELVE_STAGE_KO[entry.stage]}
                     </span>
-                    <span className="text-[10px] text-muted">
+                    <span className="text-xs text-muted">
                       {TWELVE_SPIRIT_ALIAS[entry.spirits.year] ??
                         TWELVE_SPIRIT_KO[entry.spirits.year]}
                     </span>
                     </div>
 
-                    <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
+                    <ul className="mt-1.5 flex flex-col gap-0.5 text-xs text-secondary">
                       {entry.relations.map((relation) => {
                         const crossed = crossedChartsKo(relation, entry.chartId);
                         return (
@@ -304,7 +312,7 @@ export function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
   return (
     <section>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-base font-semibold">월운</h2>
+        <h3 className="text-base font-semibold">월운</h3>
         <p className="text-sm text-secondary">{year}년 (사주년)</p>
       </div>
 
@@ -327,9 +335,9 @@ export function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                 >
                   {entry.startTerm.name}
                   {entry.chartId === currentChartId && (
-                    <span className="ml-1 text-[10px] font-medium">현재</span>
+                    <span className="ml-1 text-xs font-medium">현재</span>
                   )}
-                  <span className="block text-[11px] text-muted">
+                  <span className="block text-xs text-muted">
                     {koreaMonthDay(entry.startTerm.date)}
                   </span>
                 </th>
@@ -341,26 +349,26 @@ export function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
               {entries.map((entry) => (
                 <td key={entry.chartId} className="snap-start px-1 align-top">
                   <div
-                    className={`mx-auto flex min-h-[7.25rem] w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
+                    className={`mx-auto flex min-h-[7.25rem] w-full max-w-28 flex-col items-center gap-0.5 rounded-2xl border py-2.5 ${
                       entry.chartId === currentChartId
-                        ? 'border-accent bg-accent-wash'
-                        : 'border-border bg-surface-sunken'
+                        ? 'border-foreground bg-cream'
+                        : 'border-transparent bg-surface-soft'
                     }`}
                   >
-                    <span className="text-[10px] text-muted">
+                    <span className="text-xs text-muted">
                       {TEN_GOD_KO[entry.tenGods.stem]}
                     </span>
-                    <span className="glyph text-2xl leading-none">{entry.pillar.stem}</span>
-                    <span className="glyph text-2xl leading-none">{entry.pillar.branch}</span>
-                    <span className="text-[10px] text-muted">
+                    <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[STEM_INFO[entry.pillar.stem].element].text}`}>{entry.pillar.stem}</span>
+                    <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[BRANCH_INFO[entry.pillar.branch].element].text}`}>{entry.pillar.branch}</span>
+                    <span className="text-xs text-muted">
                       {TEN_GOD_KO[entry.tenGods.branch]}
                     </span>
-                    <span className="mt-1 text-[11px] text-secondary">
+                    <span className="mt-1 text-xs text-secondary">
                       {TWELVE_STAGE_KO[entry.stage]}
                     </span>
                   </div>
 
-                  <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
+                  <ul className="mt-1.5 flex flex-col gap-0.5 text-xs text-secondary">
                     {entry.relations.map((relation) => {
                       const crossed = crossedChartsKo(relation, entry.chartId);
                       return (
@@ -404,7 +412,7 @@ export function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
   return (
     <section>
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="text-base font-semibold">대운</h2>
+        <h3 className="text-base font-semibold">대운</h3>
         <p className="text-sm">
           <span className="font-medium">{DAEUN_DIRECTION_KO[daeun.direction]}</span>
           <span className="mx-1.5 text-muted">·</span>
@@ -431,8 +439,8 @@ export function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                     className={`px-1 pb-2 text-xs font-normal ${current ? 'text-accent' : 'text-secondary'}`}
                   >
                     {entry.startAge}세
-                    {current && <span className="ml-1 text-[10px] font-medium">현재</span>}
-                    <span className="block text-[11px] text-muted">{entry.startYear}년</span>
+                    {current && <span className="ml-1 text-xs font-medium">현재</span>}
+                    <span className="block text-xs text-muted">{entry.startYear}년</span>
                   </th>
                 );
               })}
@@ -445,28 +453,28 @@ export function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                 return (
                   <td key={entry.chartId} className="snap-start px-1 align-top">
                     <div
-                      className={`mx-auto flex min-h-[7.25rem] w-full max-w-24 flex-col items-center gap-0.5 rounded-lg border py-2.5 ${
-                        current ? 'border-accent bg-accent-wash' : 'border-border bg-surface-sunken'
+                      className={`mx-auto flex min-h-[7.25rem] w-full max-w-28 flex-col items-center gap-0.5 rounded-2xl border py-2.5 ${
+                        current ? 'border-foreground bg-cream' : 'border-transparent bg-surface-soft'
                       }`}
                     >
-                      <span className="text-[10px] text-muted">
+                      <span className="text-xs text-muted">
                         {TEN_GOD_KO[entry.tenGods.stem]}
                       </span>
-                      <span className="glyph text-2xl leading-none">{entry.pillar.stem}</span>
-                      <span className="glyph text-2xl leading-none">{entry.pillar.branch}</span>
-                      <span className="text-[10px] text-muted">
+                      <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[STEM_INFO[entry.pillar.stem].element].text}`}>{entry.pillar.stem}</span>
+                      <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[BRANCH_INFO[entry.pillar.branch].element].text}`}>{entry.pillar.branch}</span>
+                      <span className="text-xs text-muted">
                         {TEN_GOD_KO[entry.tenGods.branch]}
                       </span>
-                      <span className="mt-1 text-[11px] text-secondary">
+                      <span className="mt-1 text-xs text-secondary">
                         {TWELVE_STAGE_KO[entry.stage]}
                       </span>
-                      <span className="text-[10px] text-muted">
+                      <span className="text-xs text-muted">
                         {TWELVE_SPIRIT_ALIAS[entry.spirits.year] ??
                           TWELVE_SPIRIT_KO[entry.spirits.year]}
                       </span>
                     </div>
 
-                    <ul className="mt-1.5 flex flex-col gap-0.5 text-[10px] text-secondary">
+                    <ul className="mt-1.5 flex flex-col gap-0.5 text-xs text-secondary">
                       {entry.relations.map((relation) => (
                         <li key={relationKey(relation)}>
                           {relation.ko}

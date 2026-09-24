@@ -9,6 +9,7 @@ import { calculateChart } from '@/src/lib/input/chart';
 import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
 import { useSignedIn } from './signed-in';
+import { BUTTON_PRIMARY } from './ui/buttons';
 import { SajuView, sajuViewModelOf } from './saju/view';
 import {
   DEFAULT_QUERY,
@@ -37,7 +38,7 @@ import {
  * 세션은 문을 여는 값이 아니라 **화면이 누구를 부를지**를 정한다. 로그인하지
  * 않은 사람이 `/` 에서 넣는 것은 대개 자기 것이다 — 현관이 그렇게 묻는다. 회원이
  * 여기 넣는 것은 대개 **남의 것**이다: 자기 사주는 이미 저장돼 있고 「내 사주」가 열며,
- * 이 화면은 메뉴에서 「사주·궁합」으로 따로 걸어와야 닿는다(`home-hero.tsx`).
+ * 이 화면은 홈의 「다른 사람 사주 보기」로 따로 걸어와야 닿는다(`home-hero.tsx`).
  *
  * **그래도 버튼은 갈리지 않는다.** 한동안 갈렸다 — 회원에게 「사주 보기」, 그 밖에는
  * 「내 사주 먼저 살펴보기」. 사람 지칭을 버튼에서 걷으면 남는 것은 이 누름이 하는 일
@@ -140,7 +141,7 @@ export function SajuCalculator() {
           setTried(false);
           submit(form);
         }}
-        className={`${CARD} flex flex-col gap-4`}
+        className={`${CARD} flex flex-col gap-5`}
       >
         <BirthFields value={form} onChange={setForm} idPrefix="natal" />
 
@@ -148,7 +149,7 @@ export function SajuCalculator() {
           <button
             type="submit"
             aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
-            className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 sm:h-10 sm:w-auto"
+            className={`${BUTTON_PRIMARY} w-full sm:w-auto`}
           >
             {query !== null ? '수정하고 다시 보기' : '사주 보기'}
           </button>
@@ -189,7 +190,7 @@ export function SajuCalculator() {
           (`save-for-reading.tsx`).
         */}
         {!signedIn && (
-          <p className="text-xs leading-5 text-secondary">
+          <p className="text-[13px] leading-5 text-secondary">
             로그인 없이 사주와 오행을 확인할 수 있어요. 자세한 사주풀이는 로그인 후 받을 수 있어요.
           </p>
         )}

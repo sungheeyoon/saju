@@ -2,6 +2,10 @@ import {
   CARD,
 } from '../card';
 import {
+  Fold,
+  SectionTitle,
+} from './fold';
+import {
   TIME_BASIS,
 } from '@/src/lib/input/query';
 import {
@@ -31,20 +35,24 @@ export function TimeCorrections({ saju }: { saju: Saju }) {
       : 'record';
 
   return (
-    <section id="corrections" className={`${CARD} scroll-mt-20`}>
-      <h2 className="text-base font-semibold">
-        적용된 보정
-        <span className="ml-2 text-secondary normal-case">{TIME_BASIS[basis].label}</span>
-      </h2>
+    <Fold
+      id="corrections"
+      title={
+        <>
+          적용된 보정
+          <span className="ml-2 text-secondary">{TIME_BASIS[basis].label}</span>
+        </>
+      }
+    >
 
       {meta.inputTime.hour === null ? (
-        <p className="mt-2 mb-3 text-sm text-secondary">
+        <p className="mb-3 text-sm text-secondary">
           출생 시각을 몰라 정오를 기준으로 계산했습니다. 아래는 그 시각에 적용된 보정
           기록일 뿐입니다 — 시주는 뽑지 않았고, 연·월주는 절대 시각으로 판정하며,
           일주는 정오라 이 보정으로는 넘어가지 않습니다.
         </p>
       ) : (
-        <p className="mt-2 mb-3 text-sm">
+        <p className="mb-3 text-sm">
           <span className="tabular-nums">
             {pad(meta.inputTime.hour)}:{pad(meta.inputTime.minute)}
           </span>
@@ -75,7 +83,7 @@ export function TimeCorrections({ saju }: { saju: Saju }) {
           ))}
         </tbody>
       </table>
-    </section>
+    </Fold>
   );
 }
 
@@ -84,8 +92,8 @@ export function Warnings({ saju }: { saju: Saju }) {
   if (saju.meta.warnings.length === 0) return null;
 
   return (
-    <section className={`${CARD} bg-surface-sunken`}>
-      <h2 className="text-base font-semibold">경계 주의</h2>
+    <section className={`${CARD} border-warning/25 bg-warning-wash`}>
+      <SectionTitle>경계 주의</SectionTitle>
       <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-4 text-sm text-secondary">
         {saju.meta.warnings.map((warning) => (
           <li key={warning}>{warning}</li>

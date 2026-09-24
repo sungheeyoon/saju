@@ -3,7 +3,11 @@ import {
 } from '../card';
 import {
   ELEMENT_TONE,
+  elementScope,
 } from '../element-tone';
+import {
+  ElementSymbol,
+} from '../ui/element-symbol';
 import {
   HOUR_UNKNOWN_LABEL,
 } from '@/src/lib/input/query';
@@ -25,6 +29,9 @@ import {
 import {
   PILLAR_COLUMNS,
 } from './shared';
+import {
+  Icon,
+} from '../ui/icon';
 import {
   PillarDetails,
   type PillarDetailTab,
@@ -177,13 +184,16 @@ export function PillarChart({ saju }: { saju: Saju }) {
   ];
 
   return (
-    <section id="chart" className={`${CARD} scroll-mt-20`}>
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h2 className="text-base font-semibold">사주팔자</h2>
-        </div>
-        <p className="rounded-full bg-accent-wash px-3 py-1 text-xs font-medium text-accent">
-          일간 <span className="glyph">{pillars.dayMaster}</span> ·{' '}
+    <section id="chart" className={`${CARD} scroll-mt-36`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-rounded text-[1.5rem] leading-8 text-foreground">사주팔자</h2>
+        <p
+          className={`${ELEMENT_TONE[STEM_INFO[pillars.dayMaster].element].scope} inline-flex min-h-9 items-center gap-1.5 rounded-full bg-[var(--tile)] py-1 pl-1.5 pr-3 text-[13px] font-semibold text-[var(--ink)]`}
+        >
+          <span className="grid size-7 place-items-center rounded-full bg-surface">
+            <ElementSymbol element={STEM_INFO[pillars.dayMaster].element} className="size-5" />
+          </span>
+          일간 <span className="glyph text-base font-bold">{pillars.dayMaster}</span> ·{' '}
           {STEM_INFO[pillars.dayMaster].ko}{ELEMENT_KO[STEM_INFO[pillars.dayMaster].element]}
         </p>
       </div>
@@ -193,7 +203,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
       {(pillars.meta.sajuYear !== saju.meta.inputTime.year || pillars.meta.lateNightShiftApplied) && (
         <ul
           aria-label="사주를 바꾼 입력 안내"
-          className="mt-4 flex flex-col gap-1.5 rounded-xl border border-warning/25 bg-warning-wash px-3 py-2.5 text-xs text-secondary sm:mx-auto sm:max-w-3xl"
+          className="mt-4 flex flex-col gap-1.5 rounded-2xl border border-warning/25 bg-warning-wash px-4 py-3 text-[13px] leading-5 text-secondary sm:mx-auto sm:max-w-3xl"
         >
           {pillars.meta.sajuYear !== saju.meta.inputTime.year && (
             <li>
@@ -215,17 +225,17 @@ export function PillarChart({ saju }: { saju: Saju }) {
       <details className="group mt-5 border-t border-border pt-4 sm:mx-auto sm:max-w-3xl">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
           네 기둥은 무엇을 뜻하나요?
-          <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">⌄</span>
+          <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-surface-sunken text-secondary transition-transform group-open:rotate-180"><Icon name="chevron" className="size-4 rotate-90" /></span>
         </summary>
         <div className="grid grid-cols-2 gap-2 pb-2 pt-2 sm:grid-cols-4">
           {PILLAR_COLUMNS.map(({ key, label }) => (
-            <div key={key} className="rounded-xl bg-surface-soft p-3">
-              <p className="text-xs font-semibold text-foreground">{label} · {PALACE[key].period}</p>
-              <p className="mt-1 text-xs text-secondary">{PALACE[key].meaning}</p>
+            <div key={key} className="rounded-2xl bg-surface-soft p-3">
+              <p className="text-[13px] font-semibold text-foreground">{label} · {PALACE[key].period}</p>
+              <p className="mt-1 text-[13px] leading-5 text-secondary">{PALACE[key].meaning}</p>
             </div>
           ))}
         </div>
-        <p className="pb-2 pt-1 text-xs text-muted">
+        <p className="pb-2 pt-1 text-xs leading-5 text-secondary">
           궁은 계산값이 아니라 자리에 붙는 전통적 상징입니다. 관계와 연령 구간은 넓게 참고해 주세요.
         </p>
       </details>
@@ -233,7 +243,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
       <details className="group border-t border-border pt-1 sm:mx-auto sm:max-w-3xl">
         <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
           계산 기준과 출생 정보
-          <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-180">⌄</span>
+          <span aria-hidden="true" className="grid size-8 place-items-center rounded-full bg-surface-sunken text-secondary transition-transform group-open:rotate-180"><Icon name="chevron" className="size-4 rotate-90" /></span>
         </summary>
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 pb-2 pt-2 text-sm">
           {saju.meta.gender && (
@@ -270,17 +280,25 @@ export function PillarChart({ saju }: { saju: Saju }) {
   );
 }
 
-/** 결과 화면과 회원 홈이 함께 쓰는 네 기둥의 핵심 표. */
+/**
+ * 결과 화면과 회원 홈이 함께 쓰는 네 기둥의 핵심 표 — **여덟 글자가 이 화면의 주인공이다**(5차, 부드러움).
+ *
+ * 글자마다 제 오행의 파스텔 판 위에 크게 선다(폰 40px · 넓은 화면 60px). 색은 혼자 말하지 않는다 — 판 아래에
+ * 상징(`ElementSymbol`)과 「갑·목」 같은 이름이 함께 붙는다. 일주는 두꺼운 먹색 테로 짚고, 위 글자에 「나」
+ * 딱지, 아래 글자에 「관계 자리」가 선다(일간과 일지의 뜻을 가르는 것이 이 표의 일이다).
+ *
+ * 표(`table`)로 남는다. 칸 이름(시주 · 일주 …)이 열 머리이고, 낭독기는 칸마다 「일주 천간과 지지」로 부른다.
+ */
 export function PillarTable({ saju }: { readonly saju: Saju }) {
   const { pillars, analysis } = saju;
 
   return (
-    <table className="mt-5 w-full table-fixed border-separate border-spacing-x-1 text-center sm:mx-auto sm:max-w-3xl sm:border-spacing-x-2">
+    <table className="mt-5 w-full table-fixed border-separate border-spacing-x-1.5 text-center sm:mx-auto sm:max-w-3xl sm:border-spacing-x-3">
       <caption className="sr-only">시주, 일주, 월주, 년주의 천간과 지지</caption>
       <thead>
         <tr>
           {PILLAR_COLUMNS.map(({ key }) => (
-            <th key={`${key}-period`} className="pb-0.5 text-[10px] font-normal text-muted sm:text-xs">
+            <th key={`${key}-period`} className="pb-0.5 text-xs font-medium text-secondary">
               {PALACE[key].period}
             </th>
           ))}
@@ -290,9 +308,7 @@ export function PillarTable({ saju }: { readonly saju: Saju }) {
             <th
               key={key}
               scope="col"
-              className={`pb-2 text-xs font-semibold sm:text-sm ${
-                key === 'day' ? 'text-accent' : 'text-secondary'
-              }`}
+              className={`pb-2 text-sm font-bold ${key === 'day' ? 'text-foreground' : 'text-secondary'}`}
             >
               {label}
             </th>
@@ -308,8 +324,8 @@ export function PillarTable({ saju }: { readonly saju: Saju }) {
               <td key={key} className="align-top">
                 <div
                   aria-label={`${label} 천간과 지지`}
-                  className={`overflow-hidden rounded-xl border bg-surface-raised ${
-                    key === 'day' ? 'border-accent/35 shadow-sm' : 'border-border'
+                  className={`flex flex-col gap-1.5 rounded-[1.4rem] p-1 sm:gap-2 sm:p-1.5 ${
+                    key === 'day' ? 'bg-foreground/[0.06] ring-2 ring-foreground' : ''
                   }`}
                 >
                   <PillarGlyph
@@ -323,7 +339,6 @@ export function PillarTable({ saju }: { readonly saju: Saju }) {
                     tenGod={tenGods?.stem ?? null}
                     dayMaster={key === 'day'}
                   />
-                  <div className="mx-2 border-t border-border" />
                   <PillarGlyph
                     glyph={pillar && pillar.branch}
                     element={pillar ? BRANCH_INFO[pillar.branch].element : null}
@@ -346,6 +361,12 @@ export function PillarTable({ saju }: { readonly saju: Saju }) {
 }
 
 
+/**
+ * 글자 한 판 — 위에서부터 십성(일간이면 「나」) · 큰 글자 · 상징과 이름.
+ *
+ * 폰 360px 에서 한 칸은 약 64px 이다. 글자 40px 과 12px 이름은 그 안에 들어가지만 「출생 시각 모름」은 안
+ * 들어가서, 모를 때만 두 줄로 접는다(어절 단위 줄바꿈이 전역이다).
+ */
 function PillarGlyph({
   glyph,
   caption,
@@ -361,19 +382,37 @@ function PillarGlyph({
   readonly dayMaster?: boolean;
   readonly relationshipSeat?: boolean;
 }) {
-  const tone = element === null ? null : ELEMENT_TONE[element];
   return (
-    <div className={`flex min-h-28 flex-col items-center justify-center px-0.5 py-2.5 sm:min-h-32 sm:py-3 ${tone?.surface ?? ''}`}>
-      <span className={`mb-1 min-h-4 text-[9px] font-medium leading-4 sm:text-[11px] ${dayMaster ? 'rounded-full bg-accent px-1.5 text-on-accent' : 'text-secondary'}`}>
+    <div
+      className={`${elementScope(element)} flex min-h-[8.5rem] flex-col items-center justify-center gap-1 rounded-[1.1rem] bg-[var(--tile)] px-0.5 py-2.5 sm:min-h-[10.5rem] sm:py-3.5 ${
+        glyph === null ? 'border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_30%,transparent)]' : ''
+      }`}
+    >
+      <span
+        className={`min-h-5 text-xs font-semibold leading-5 ${
+          dayMaster ? 'rounded-full bg-foreground px-2 text-background' : 'text-[var(--ink)]'
+        }`}
+      >
         {dayMaster ? '나' : tenGod ? TEN_GOD_KO[tenGod] : glyph === null ? '—' : ''}
       </span>
-      <span className={`glyph text-[1.9rem] font-semibold leading-none sm:text-4xl ${glyph === null ? 'text-muted' : tone?.text}`}>
+      <span
+        className={`glyph text-[2.5rem] font-bold leading-none tracking-normal sm:text-[3.75rem] ${
+          glyph === null ? 'text-muted' : 'text-[var(--ink)]'
+        }`}
+      >
         {glyph ?? '?'}
       </span>
-      <span className="mt-1 whitespace-nowrap text-[9px] leading-4 text-secondary sm:text-[11px]">{caption}</span>
-      <span className={`mt-0.5 min-h-4 whitespace-nowrap text-[9px] leading-4 sm:text-[10px] ${relationshipSeat ? 'font-medium text-accent' : 'invisible'}`}>
-        {relationshipSeat ? '관계 자리' : '자리'}
+      <span
+        className={`flex items-center justify-center gap-0.5 text-xs font-semibold leading-4 text-[var(--ink)] ${
+          glyph === null ? 'px-1 text-center' : 'whitespace-nowrap'
+        }`}
+      >
+        {glyph !== null && <ElementSymbol element={element} className="size-3.5 sm:size-4" />}
+        {caption}
       </span>
+      {relationshipSeat && (
+        <span className="rounded-full bg-surface px-1.5 text-xs font-semibold leading-5 text-foreground">관계 자리</span>
+      )}
     </div>
   );
 }
@@ -393,7 +432,7 @@ function DetailPanel({
 }) {
   return (
     <div>
-      <p className="mb-3 text-xs text-muted">{note}</p>
+      <p className="mb-3 text-[13px] leading-5 text-secondary">{note}</p>
       {children}
     </div>
   );
@@ -410,8 +449,8 @@ function PillarValueGrid({
       {PILLAR_COLUMNS.map(({ key, label }) => {
         const value = values(key);
         return (
-          <div key={key} className={`min-w-0 rounded-lg px-0.5 py-2 text-[10px] sm:px-2 sm:text-xs ${key === 'day' ? 'bg-accent-wash text-accent' : 'bg-surface-soft text-secondary'}`}>
-            <p className="mb-1 text-[9px] font-medium opacity-70 sm:text-[10px]">{label}</p>
+          <div key={key} className={`min-w-0 rounded-xl px-0.5 py-2 text-xs sm:px-2 sm:text-[13px] ${key === 'day' ? 'bg-cream text-foreground ring-1 ring-border-strong' : 'bg-surface-soft text-secondary'}`}>
+            <p className="mb-1 text-xs font-semibold text-secondary">{label}</p>
             {value ?? <span className="opacity-40">·</span>}
           </div>
         );
@@ -424,7 +463,7 @@ function PillarValueGrid({
 function BasisBlock({ label, children }: { readonly label: string; readonly children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-1.5 text-[11px] font-medium text-secondary">{label}</p>
+      <p className="mb-1.5 text-xs font-semibold text-secondary">{label}</p>
       <div>
         {children}
       </div>

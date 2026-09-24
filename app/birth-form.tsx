@@ -51,7 +51,7 @@ import {
  */
 
 export const FIELD =
-  'h-11 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent-wash';
+  'h-12 rounded-2xl border border-border-strong bg-surface px-3 text-base outline-none placeholder:text-muted focus:border-foreground focus:ring-[3px] focus:ring-accent-soft';
 
 /**
  * 세그먼트 하나 — 라디오 둘·셋이 한 줄에 서는 자리.
@@ -63,9 +63,9 @@ export const FIELD =
  *
  * 투명해진 만큼 초점 테두리도 안 보이므로 라벨이 대신 두른다(`has-[:focus-visible]`).
  */
-const SEGMENT = 'grid rounded-xl bg-surface-sunken p-1';
+const SEGMENT = 'grid rounded-full bg-surface-sunken p-1';
 const SEGMENT_ITEM =
-  'relative cursor-pointer rounded-lg px-2 py-2 text-center text-sm font-medium transition-colors' +
+  'relative flex min-h-10 cursor-pointer items-center justify-center rounded-full px-3 text-center text-sm font-semibold transition-colors' +
   ' has-[:focus-visible]:outline has-[:focus-visible]:outline-3' +
   ' has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft';
 /** 칸 전체를 덮는 라디오 — 보이지는 않지만 이것이 눌린다 */
@@ -78,7 +78,7 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-xs font-semibold text-secondary">{label}</span>
+      <span className="text-[13px] font-semibold text-secondary">{label}</span>
       {children}
     </label>
   );
@@ -94,7 +94,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <span className="text-xs font-semibold text-secondary">{label}</span>
+      <span className="text-[13px] font-semibold text-secondary">{label}</span>
       {children}
     </div>
   );
@@ -116,14 +116,14 @@ function BasisRadio({
   const { label, hint } = TIME_BASIS[basis];
 
   return (
-    <label className="flex cursor-pointer items-center gap-1.5">
+    <label className="flex min-h-11 cursor-pointer items-center gap-2">
       <input
         type="radio"
         name={name}
         value={basis}
         checked={checked}
         onChange={onChange}
-        className="accent-accent"
+        className="size-4 accent-accent"
       />
       <span>{label}</span>
       <span className="text-xs text-muted">{hint}</span>
@@ -377,7 +377,7 @@ function DateFields({
               <label
                 key={calendar}
                 className={`${SEGMENT_ITEM} whitespace-nowrap ${
-                  value.calendar === calendar ? 'bg-surface text-foreground shadow-sm' : 'text-muted'
+                  value.calendar === calendar ? 'bg-surface text-foreground shadow-sm' : 'text-secondary hover:text-foreground'
                 }`}
               >
                 <input
@@ -508,7 +508,7 @@ function TimeFields({
 
   return (
     <fieldset className="flex min-w-0 flex-col gap-2 sm:col-span-2">
-      <legend className="text-xs font-semibold text-secondary">출생 시각</legend>
+      <legend className="text-[13px] font-semibold text-secondary">출생 시각</legend>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className={`${SEGMENT} grid-cols-2`}>
@@ -531,7 +531,7 @@ function TimeFields({
             <label
               key={option.label}
               className={`${SEGMENT_ITEM} whitespace-nowrap ${
-                value.hourKnown === option.known ? 'bg-surface text-foreground shadow-sm' : 'text-muted'
+                value.hourKnown === option.known ? 'bg-surface text-foreground shadow-sm' : 'text-secondary hover:text-foreground'
               }`}
             >
               <input
@@ -714,7 +714,7 @@ export function BirthFields({
         그래서 「기본값과 다른가」로 편다. 기본값을 옮겨도 이 규칙은 따라온다.
       */}
       <details className="border-t border-border pt-3" open={value.basis !== DEFAULT_QUERY.basis}>
-        <summary className="flex min-h-10 cursor-pointer items-center text-sm font-medium text-secondary">
+        <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-foreground">
           고급 설정
           <span className="ml-2 text-xs font-normal text-muted">자시 · 시간 기준 · 세운 연도</span>
         </summary>
@@ -746,7 +746,7 @@ export function BirthFields({
         </div>
 
         <fieldset className="mt-4">
-          <legend className="text-xs uppercase tracking-wide text-muted">시간 기준</legend>
+          <legend className="text-[13px] font-semibold text-secondary">시간 기준</legend>
           <div className="mt-2 flex flex-col gap-2 text-sm sm:flex-row sm:flex-wrap sm:gap-x-5">
             {TIME_BASES.map((basis) => (
               <BasisRadio

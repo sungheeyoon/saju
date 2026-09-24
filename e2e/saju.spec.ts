@@ -30,6 +30,25 @@ const fortunePanel = (page: Page) => page.getByRole('tabpanel', { name: /대운|
 const sharedParams = (page: Page): URLSearchParams =>
   new URLSearchParams(new URL(page.url()).hash.slice(1));
 
+/**
+ * 접힌 분석 표 하나를 편다 — **사용자가 하는 일을 검사도 한다.**
+ *
+ * 5차(부드러움)에서 여덟 글자와 오행만 펴 두고 신살 · 강약 · 용신 · 관계 · 운 · 보정은 접혀 선다
+ * (`app/saju/fold.tsx`). 접힌 칸의 판은 보조기기 트리에도 `innerText` 에도 없으므로, 그 안을 재는
+ * 검사는 먼저 제목 머리를 눌러 편다. 제목은 접힌 채로도 서 있다 — 그것도 여기서 함께 잰다.
+ */
+const unfold = async (page: Page, title: string | RegExp) => {
+  const heading = page.getByRole('heading', { name: title });
+  await expect(heading).toBeVisible();
+  await page.locator('summary').filter({ has: heading }).click();
+};
+
+/** 화면 전체의 글을 재는 검사는 접이칸을 다 편 뒤에 읽는다 — 접힌 곳에 샌 것도 잡도록 */
+const unfoldAll = (page: Page) =>
+  page.locator('details[data-fold]').evaluateAll((folds) => {
+    for (const fold of folds) (fold as HTMLDetailsElement).open = true;
+  });
+
 const enterKnownBirth = async (page: Page, name = '민수') => {
   await page.getByLabel('이름', { exact: true }).fill(name);
   await fillBirthDate(page, '1990-05-15');
@@ -56,6 +75,9 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
   await expect(page.getByRole('navigation', { name: '결과 바로가기' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '오행 분포' })).toBeVisible();
   await expect(page.getByRole('heading', { name: '신강 · 신약' })).toBeVisible();
+  /* 분석 표는 접혀 선다 — 판은 펴야 보이고, 펴면 운 표가 그 자리에 있다 */
+  await expect(fortunePanel(page)).toHaveCount(0);
+  await unfold(page, '운 흐름');
   await expect(fortunePanel(page)).toContainText('세운');
   await expect(consoleErrors).toEqual([]);
 
@@ -67,6 +89,7 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
     보지 않고 근거만 읽어도 일간과 년간이 서로 다른 적중이라는 것을 알 수 있어야 한다.
   */
   const stars = page.locator('#stars');
+  await unfold(page, '신살');
   await expect(stars.getByText('일간 庚 · 월지 巳')).toBeVisible();
   await expect(stars.getByText('년간 庚 · 월지 巳')).toBeVisible();
   await expect(stars.getByLabel('신살 전통 분류별 개수')).toHaveCount(0);
@@ -81,6 +104,7 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
     시험이 잠갔고(`assemble.test.ts`), 여기서는 **화면에 중괄호가 남는 일이
     없다**만 본다 — 무엇이 새든 이 모양으로 나타난다.
   */
+  await unfoldAll(page);
   expect(await page.locator('main').innerText()).not.toMatch(/\{[a-zA-Z]+\}/);
 
   /*
@@ -318,6 +342,7 @@ test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한�
 
   // 아무것도 안 고른 사람이 진태양시로 선다 — 고급 설정을 편 적이 없다(ADR 0057).
   await expect(page.getByRole('heading', { name: /적용된 보정.*진태양시/ })).toBeVisible();
+  await unfold(page, /적용된 보정/);
   await expect(page.getByText('균시차', { exact: true })).toBeVisible();
 
   // 기준은 여전히 사용자가 옮긴다 — 옮기면 균시차 줄이 빠진다.
@@ -327,6 +352,7 @@ test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한�
   await expect(page.getByRole('heading', { name: /적용된 보정.*지방평균태양시/ })).toBeVisible();
   await expect(page.getByText('균시차', { exact: true })).toHaveCount(0);
 
+  await unfold(page, '운 흐름');
   await page.getByRole('tab', { name: '월운' }).click();
   await expect(fortunePanel(page)).toContainText('월운');
   await page.getByRole('tab', { name: '월운' }).press('ArrowRight');
@@ -382,8 +408,8 @@ test('운 표는 기준 시각을 밝히고 원국을 다시 밟는 자리를 �
   ).toBeVisible();
   expect(text).toMatch(/원국 [년월일시]주.*의 같은 자리를 다시 밟습니다/);
 
-  // 표는 그대로 아래에 있다.
-  await expect(page.getByRole('heading', { name: '운 흐름' })).toBeVisible();
+  // 표는 그대로 아래에 있다 — 접혀 있고, 펴면 선다.
+  await unfold(page, '운 흐름');
   await expect(page.getByRole('tab', { name: '세운' })).toBeVisible();
 
   expect(consoleErrors).toEqual([]);
@@ -402,6 +428,7 @@ test('시간 미상이면 대운 표가 대운수가 흔들린다고 말한다',
   await chooseHourUnknown(page);
   await page.getByRole('button', { name: '사주 보기' }).click();
 
+  await unfold(page, '운 흐름');
   await page.getByRole('tab', { name: '대운' }).click();
 
   await expect(fortunePanel(page)).toContainText(
@@ -463,6 +490,7 @@ test('대운 표가 칸 안을 채우고 지금 도는 칸을 짚는다', async 
   await enterKnownBirth(page);
   await page.getByRole('button', { name: '사주 보기' }).click();
 
+  await unfold(page, '운 흐름');
   await page.getByRole('tab', { name: '대운' }).click();
   const panel = fortunePanel(page);
   const text = await panel.innerText();
@@ -504,6 +532,7 @@ test('세운·월운 표가 대운과 걸리는 것을 딱지와 함께 낸다',
   await page.getByRole('button', { name: '사주 보기' }).click();
 
   const panel = fortunePanel(page);
+  await unfold(page, '운 흐름');
 
   // 세운 — 머리에 몇 대운을 지나는지가 서고, 대운과 걸린 줄에 딱지가 붙는다.
   await page.getByRole('tab', { name: '세운' }).click();
@@ -742,6 +771,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }));
   expect(resultOverflow.scroll).toBeLessThanOrEqual(resultOverflow.client);
 
+  await unfold(page, '신살');
   const starsOverflow = await page.locator('#stars').evaluate((card) => ({
     client: card.clientWidth,
     scroll: card.scrollWidth,
@@ -765,4 +795,32 @@ test('로그인하지 않은 사주 결과에는 저장 버튼 대신 로그인 
     page.getByRole('button', { name: '저장하고 계속하기' }),
   ).toHaveCount(0);
   await expect(page.getByRole('link', { name: '로그인하고 계속하기' })).toBeVisible();
+});
+
+
+/**
+ * **바로가기는 접힌 표를 열고, 주소의 입력을 지킨다.**
+ *
+ * 링크를 그대로 따라가면 주소가 `#stars` 가 되는데, 이 화면에서 `#` 뒤는 입력이다 — 계산기가 그것을 빈
+ * 입력으로 읽어 방금 선 결과를 걷는다. 5차에서 분석 표가 접혀 서면서 옮기기만 하는 것도 모자라게 됐다:
+ * 접힌 칸으로 가면 제목 한 줄에 닿고 끝난다. 그래서 누르면 열고 스크롤만 한다(`app/saju/result-nav.tsx`).
+ */
+test('결과 바로가기는 접힌 표를 열고 주소의 입력을 그대로 둔다', async ({ page }) => {
+  await page.goto('/#date=1990-05-15&hour=14:30');
+  await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+
+  const nav = page.getByRole('navigation', { name: '결과 바로가기' });
+  const stars = page.locator('#stars');
+  await expect(stars).not.toHaveAttribute('open');
+
+  await nav.getByRole('link', { name: '신살', exact: true }).click();
+  await expect(stars).toHaveAttribute('open');
+  await expect(stars.getByLabel('일주에 걸린 신살')).toBeVisible();
+
+  await nav.getByRole('link', { name: '운', exact: true }).click();
+  await expect(fortunePanel(page)).toBeVisible();
+
+  // 입력은 주소에 그대로 있고, 결과도 그대로 서 있다.
+  expect(sharedParams(page).get('date')).toBe('1990-05-15');
+  await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 });
