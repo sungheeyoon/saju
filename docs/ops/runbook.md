@@ -823,6 +823,94 @@ having count(*) > 1
 order by count(*) desc;
 ```
 
+### 신고 열람대의 운영 검증 — G-24 를 닫는 열네 걸음 (ADR 0103 · 0105)
+
+`/ops/reports` 가 프로덕션에서 실제로 신고 한 건을 끝까지 보여 주는지 **누구나 그대로 따라 밟을 수 있게** 적었다.
+결과는 이슈 하나에 모은다 — 틀은 `.github/ISSUE_TEMPLATE/ops-verification.md`. 열넷을 다 채웠을 때만 G-24 를 닫는다.
+
+**전제 넷 — 하나라도 거짓이면 시작하지 않는다.**
+
+1. **마이그레이션이 운영에 올라 있다** — 적어도 `20261009090000`(운영자 문 셋) · `20261010090000`(검토 기록) ·
+   `20261010100000`(접속기록) · `20261010110000`(가입 닫기). `npx supabase migration list` 의 remote 칸이 이 넷에서 비지 않는다
+2. **최신 main 이 Production 에서 Ready 다** — 아래 「배포」의 「한도가 풀린 뒤 — 최신 main 을 Production 으로」를 먼저
+   밟는다. 배포 커밋이 main HEAD 가 아니면 옛 화면을 재는 것이다
+3. **실제 개인정보가 없는 전용 테스트 계정** — 주소는 `@example.com`, 닉네임은 `검증A-<날짜>` 처럼 누가 봐도 시험인 것.
+   운영자 계정(구글)은 제 것을 쓴다
+4. **테스트 메시지 · 신고 설명에도 실제 이름 · 연락처 · 출생정보를 쓰지 않는다** — 스냅샷은 불변이고 접속기록은 지울 수
+   없다. 출생정보는 가짜(예: 1990-05-15 14:30 서울)로 넣는다
+
+SQL 은 전부 `npm run db:remote -- --purpose "G-24 검증 <걸음 번호>" "<sql>"` 로 보낸다(목적과 해시가 접속기록에 남는다).
+**아래 질의는 테스트 계정 둘의 UUID 와 신고 id 로만 좁혀 두었다** — 그래도 메시지 본문이 나오는 ⑦ 은 break-glass 규율로
+사람이 돈다. 에이전트는 질의를 건네기만 한다(`docs/agents/delegation.md`, ADR 0105).
+
+| # | 걸음 | 어떻게 | 통과 |
+| --- | --- | --- | --- |
+| ① | 테스트 계정 A · B 준비 | `auth.admin.createUser({ email: 'g24-a-<날짜>@example.com', password, email_confirm: true })` 로 둘을 만들고(비밀 키 `SUPABASE_SECRET_KEY`), 「초대」의 SQL 로 **전용 코드**(`max_uses = 2`, 오늘 하루)를 넣어 `complete_signup` 을 지난다. 둘을 「운영 검증 계정」 표에 넣는다 — 수락하면 궁합풀이가 자동으로 만들어져 토큰이 나간다. 로그인은 구글이 아니라 비밀번호 세션이다(`scripts/check-chat.mjs` 의 `person` · `cookieFor` 와 같은 모양) | ⓐ 아래 질의가 둘 다 `active` · 가입 완료 ⓑ `verification_account` 에 둘 |
+| ② | 둘 사이의 테스트 대화 | 둘 다 자기 사주를 저장하고 닉네임을 세운 뒤(인연 찾기에 든다) A 가 `request_match(B)`, B 가 `respond_to_match_request(요청, true)`. 방이 열리면 서로 세 줄 넘게 보낸다(`send_chat_message`) — 신고할 줄 하나는 「G-24 검증용 신고 대상 메시지」처럼 누가 봐도 시험인 글 | 1 번 질의의 `closed_reason` 이 비고 메시지 수가 보낸 수와 같다 |
+| ③ | 신고 1건 | B 가 ② 의 「신고 대상」 메시지를 골라 신고한다 — 화면(방의 신고)이나 `report_chat_message(메시지 id, 'other', 'G-24 검증')`. 돌아온 신고 id 를 적는다 | 2 번 질의에 신고 한 줄 · 스냅샷 한 줄 |
+| ④ | 목록에서 보인다 | 운영자 계정으로 `/ops/reports` 를 연다(메뉴에 없다 — 주소를 친다) | 맨 위 근처에 그 신고가 서고, 신고한 사용자 · 신고받은 사용자가 두 테스트 닉네임이다. 이메일 · 출생정보가 화면 어디에도 없다 |
+| ⑤ | 거르기 셋 | `?review=unreviewed` · `?reason=other` · `?evidence=chat` 을 하나씩 연다(화면의 거르기 링크와 같다). 그리고 `?review=reviewed` · `?evidence=none` | 앞의 셋에서는 그 신고가 보이고, 뒤의 둘에서는 안 보인다 |
+| ⑥ | 상세 — 신고 내용과 스냅샷 | 「신고 내용 보기」로 `/ops/reports/<신고 id>` 를 연다 | 사유 · 설명 · 접수 시각이 ③ 과 같고, 대화 근거 절이 선다 |
+| ⑦ | 고른 메시지와 앞뒤의 차례 | 화면의 스냅샷을 위에서 아래로 읽고 3 번 질의(**break-glass — 사람이**)와 견준다 | 「신고한 메시지」로 강조된 줄이 **하나**이고 ③ 에서 고른 글이다. 앞뒤 줄이 보낸 차례(`seq`)대로 서고 앞 · 뒤 각각 최대 다섯이다. 보낸 쪽이 「신고한 사용자」 · 「신고받은 사용자」로 맞게 붙는다 |
+| ⑧ | 접속기록에 셋이 남는다 | 4 번 질의 | ④ ⑤ 의 `reports.list`(거른 조건이 `filter_summary` 에), ⑥ 의 `reports.detail` 과 `reports.snapshot` 이 **각각** `allowed` 로, 운영자 UUID 와 그 신고 id(목록은 비어 있다)로 선다. 줄 id 를 적는다 |
+| ⑨ | 검토를 적는다 | 「신고와 차단」의 검토 SQL — 결과 `no_action`, 근거 `G-24 운영 검증 — 테스트 신고`. 이용 정지를 시험하려면 `suspension` 과 제재 칸까지(그러면 B 의 방이 닫힌다 — 「이용 정지와 해제」로 푼다) | `update 1` |
+| ⑩ | 화면과 DB 가 같다 | 상세를 새로 고치고 5 번 질의와 견준다 | 검토 결과 · 검토 운영자(닉네임) · 판단 근거 · 제재 대상(없으면 없음)이 DB 값과 한 글자도 다르지 않다. 목록의 `?review=reviewed` 에 그 신고가 옮겨 선다 |
+| ⑪ | 비운영자는 못 읽는다 | A(또는 B)의 세션으로 `/ops/reports` 와 `/ops/reports/<신고 id>` 를 연다 | 둘 다 404 이고 자료가 한 줄도 안 선다. 6 번 질의에 그 계정의 `denied` 줄이 `reports.list` · `reports.detail` 로 선다 |
+| ⑫ | 이슈에 적는다 | `ops-verification` 틀로 이슈를 연다 | 배포 SHA · Production URL · Ready 시각 · 신고 id · 실행 시각 · 접속기록 줄 id(⑧ ⑪) · 검토 결과(⑨) · 화면 확인 결과(④ ~ ⑦ ⑩ ⑪ 각각 통과/실패)가 다 있다. **이메일 · 메시지 본문은 적지 않는다** |
+| ⑬ | 테스트 자료를 정리하거나 보존 방식을 적는다 | 아래 「정리」 | 이슈에 무엇을 지웠고 무엇이 왜 남는지(아래) 적혀 있다 |
+| ⑭ | 닫는다 | 위 열셋이 전부 통과일 때만 | G-24 줄을 gaps 에서 지우고 changelog 에 날짜 · 이슈 번호와 함께 옮긴다. 하나라도 실패면 이슈에 실패한 걸음을 적고 **닫지 않는다** |
+
+```sql
+-- 1. 두 계정의 상태 · 가입 완료 · 방 (① ②) — 이메일을 찍지 않는다
+select u.id, u.status, u.nickname is not null as 닉네임, u.notice_version,
+       exists (select 1 from public.verification_account v where v.user_id = u.id) as 검증계정
+from public.app_user u where u.id in ('<A>', '<B>');
+select r.match_id, r.closed_reason, count(m.id) as 메시지
+from public.chat_room r left join public.chat_message m on m.room_id = r.id
+where r.user_low = least('<A>'::uuid, '<B>'::uuid) and r.user_high = greatest('<A>'::uuid, '<B>'::uuid)
+group by r.match_id, r.closed_reason;
+
+-- 2. 신고와 스냅샷이 한 줄씩 (③)
+select r.id, r.reason, r.created_at, r.reviewed_at,
+       s.context_before, s.context_after, jsonb_array_length(s.messages) as 스냅샷_줄
+from public.report r left join public.chat_report_snapshot s on s.report_id = r.id
+where r.reporter_user_id = '<B>' and r.reported_user_id = '<A>' order by r.created_at desc;
+
+-- 3. break-glass(사람이, 대장 먼저) — 스냅샷의 차례. 테스트 계정의 시험 글만 든다 (⑦)
+select (e ->> 'seq')::bigint as 차례, (e ->> 'chosen')::boolean as 고른_것,
+       case e ->> 'sender_user_id' when '<B>' then '신고한 사용자' when '<A>' then '신고받은 사용자' end as 보낸_쪽,
+       e ->> 'body' as 본문
+from public.chat_report_snapshot s cross join lateral jsonb_array_elements(s.messages) e
+where s.report_id = '<신고 id>' order by 차례;
+
+-- 4. 운영자의 열람이 셋 다 남았나 (⑧)
+select id, at at time zone 'Asia/Seoul' as 서울, action, target_report_id, filter_summary, outcome
+from audit.operator_access
+where channel = 'app' and actor_user_id = '<운영자 UUID>' and at > now() - interval '2 hours'
+order by id;
+
+-- 5. 검토 기록 — 화면과 견줄 값 (⑩)
+select reviewed_at at time zone 'Asia/Seoul' as 검토, reviewed_by, review_outcome, review_note,
+       sanctioned_user_id, sanctioned_by
+from public.report where id = '<신고 id>';
+
+-- 6. 비운영자의 거절이 남았나 (⑪)
+select id, at at time zone 'Asia/Seoul' as 서울, action, target_report_id, outcome
+from audit.operator_access
+where actor_user_id = '<A>' and outcome = 'denied' and at > now() - interval '2 hours' order by id;
+```
+
+**정리(⑬) — 무엇이 지워지고 무엇이 남나.** 두 테스트 계정을 「지우기」의 `forget_user` 로 **둘 다** 지우고 전용 코드를 닫는다
+(`update public.signup_code set max_uses = 0 where code = '<코드>'`). 그러면 방 · 메시지 · 궁합은 사라진다. 남는 것은 둘이다.
+
+- **신고와 스냅샷** — 지우기 전에 트리거가 `retention.report` 로 옮긴다(ADR 0098). 처분일부터 6개월 뒤 크론이 지운다.
+  테스트 자료라 그 전에 지워도 되지만, 그 표를 손으로 지우는 길은 문서에 두지 않았다 — **6개월 뒤 자동 파기에 맡기고**
+  신고 id 와 「테스트 — 6개월 뒤 자동 파기」를 이슈에 적는 것을 기본으로 한다
+- **접속기록 줄** — 추가만 되는 표라 지울 수 없고(ADR 0105), AWS 가 켜져 있으면 S3 에도 나간다. 줄 id 를 이슈에 「G-24 운영
+  검증」으로 적어 월 점검에서 이상 접근으로 읽히지 않게 한다
+
+`verification_account` 의 줄은 계정을 따라 사라진다.
+
 ## 떠난 사람의 신고 기록 — **처분일부터 6개월, 운영자만** (ADR 0098)
 
 신고한 쪽이든 당한 쪽이든 떠나면, 그 사람이 든 신고는 지워지기 **전에** `retention.report` 로 옮겨진다
@@ -1765,6 +1853,29 @@ Production 은 늘 빌드하고, 기준을 못 찾거나 git 이 실패하면 �
 npx supabase migration list   # remote 칸이 빈 줄이 밀린 것이다 — 먼저 본다
 npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 잠금 하나를 잡고 돈다(ADR 0096)
 ```
+
+**`ignoreCommand` 는 빌드만 건너뛰고 하루 배포 횟수는 줄이지 못한다.** Hobby 의 한도는 **하루 100번**(86400초 창, 그
+밖에 한 시간 100 · 5분 60)이고 가지의 푸시 하나가 Preview 배포 하나다 — 건너뛴 배포도 센다(Vercel 「Limits」, 2026-09-24
+에 읽음). **운영 베타 동안은 Preview 편의를 우선한다**(운영자 결정 2026-09-24) — `git.deploymentEnabled` 로 가지별 배포를
+끄지 않고 `ignoreCommand` 는 지금대로 둔다. 한도에 닿으면 그날의 새 배포는 main 의 Production 까지 서지 않는다. 풀리면
+아래 절차로 따라잡는다. 공개 출시 전에 다시 본다(G-24).
+
+#### 한도가 풀린 뒤 — 최신 main 을 Production 으로
+
+한도에 걸린 동안 main 에 든 커밋은 **저절로 다시 배포되지 않는다.** 풀리면 사람이 한 번 올린다.
+
+1. **최신 main 을 Production 으로 재배포한다.** Vercel → Deployments 에서 **main HEAD 커밋의** 배포가 있으면 그것을
+   Redeploy, 없으면 「Create Deployment」에 `main` 을 넣는다. Production 은 `ignoreCommand` 가 건너뛰지 않는다. 빈 커밋을
+   밀어 깨우지 않는다 — 그것도 배포 하나를 쓴다
+2. **배포 커밋 = main HEAD 인지 본다** — `git ls-remote origin main` 의 SHA 와 대시보드의 Source 커밋(또는
+   `vercel inspect <배포 URL>`)이 같아야 한다. 다르면 옛 코드가 Production 이다 — 1 로 돌아간다
+3. **Ready 를 본다** — `vercel ls saju` 에서 그 배포가 `● Ready` · `Production` 이고, `vercel inspect` 의 Aliases 에
+   `https://saju-snowy.vercel.app` 이 선다
+4. **smoke — 다섯 화면.** 홈(`/`) · 로그인(`/auth`) · 궁합(두 사람을 고르는 칸이 서는 화면) · 사람 목록(`/me/people`) ·
+   운영자 신고 화면(`/ops/reports`). 로그인이 드는 셋은 운영자 계정으로 본다. 각각 제 제목이 서고 500 · 빈 화면 ·
+   브라우저 콘솔의 CSP 위반이 없어야 통과다
+5. **적는다** — 배포 SHA · Production URL · Ready 시각(서울) · smoke 다섯의 통과/실패를 그 일의 이슈에(G-24 검증이면
+   `ops-verification` 이슈). 실패가 있으면 「CSP 가 화면을 막을 때」의 1 처럼 앞 배포를 Promote 해 되돌린다
 
 ### 규약 넷 — 앱과 DB 는 따로 간다 (ADR 0090)
 
