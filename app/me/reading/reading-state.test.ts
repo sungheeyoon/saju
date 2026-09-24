@@ -30,6 +30,8 @@ const preview: CurrentReading = {
   fromCurrentChart: true,
   sourceRunId: null,
   myFeedback: null,
+  dayMasterA: null,
+  dayMasterB: null,
 };
 
 const idle = (): ReadingFlow => initialFlow({ running: false, failed: false });

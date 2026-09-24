@@ -61,6 +61,12 @@ export type CurrentReading = {
    * 이것은 **보고 있는 사람의 답**이다.
    */
   readonly myFeedback: ReadingAnswer | null;
+  /**
+   * 표지의 일간 — **그 글을 만들 때의** 사본에서 난다(2026-09-25). 「수정 전」 글도 그때의 색이다.
+   * `match` 는 `null` 이다 — 결과 화면이 동의 당시 사본으로 따로 칠한다.
+   */
+  readonly dayMasterA: Stem | null;
+  readonly dayMasterB: Stem | null;
 };
 
 const RUN_STATUSES = ['running', 'succeeded', 'failed'] as const;
@@ -94,6 +100,8 @@ export async function currentReading(target: ReadingTarget): Promise<CurrentRead
     sourceRunId: row.source_run_id ?? null,
     /* 이 칸만 `jsonb` 라 생성 타입이 `Json` 까지만 말한다 — 모양을 여기서 한 번 주장한다 */
     myFeedback: (row.my_feedback as ReadingAnswer | null) ?? null,
+    dayMasterA: stemOf(row.day_master_a),
+    dayMasterB: stemOf(row.day_master_b),
   };
 }
 
@@ -184,7 +192,7 @@ export type ReadingEntry = {
   readonly fromCurrentChart: boolean;
   /**
    * 표지 앞자리의 일간 — `self` · `person` 은 그 사람, `private` 은 `personA`, **`match` 는 나**다.
-   * 내가 주인인 글은 그 사람의 지금 명식, `match` 는 동의 당시 사본에서 난다(G-59). 모르면 `null`(회색 표지).
+   * 내가 주인인 글은 그 글을 만들 때의 사본, `match` 는 동의 당시 사본에서 난다(G-59). 모르면 `null`(회색 표지).
    */
   readonly dayMasterA: Stem | null;
   /** 뒷자리 — `private` 은 `personB`, `match` 는 상대. 한 사람짜리는 `null` */

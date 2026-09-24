@@ -286,6 +286,8 @@ export function previewReading(kind: ReadingTarget['kind'], at: Date): CurrentRe
     fromCurrentChart: true,
     sourceRunId: null,
     myFeedback: null,
+    dayMasterA: null,
+    dayMasterB: null,
   };
 }
 

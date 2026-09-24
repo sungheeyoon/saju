@@ -15,6 +15,8 @@ const reading = (over: Partial<CurrentReading> = {}): CurrentReading => ({
   fromCurrentChart: true,
   sourceRunId: 'run-1',
   myFeedback: null,
+  dayMasterA: null,
+  dayMasterB: null,
   ...over,
 });
 

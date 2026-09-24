@@ -2514,6 +2514,8 @@ export type Database = {
         }
         Returns: {
           created_at: string
+          day_master_a: string
+          day_master_b: string
           from_current_chart: boolean
           id: string
           kind: string

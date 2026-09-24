@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import type { Element } from '@/src/lib/saju';
+import { STEM_INFO, type Element } from '@/src/lib/saju';
 
 import { CARD } from '../../card';
 import { currentReading, improvementConsented, lastReadingRun, readingCredits } from './current';
@@ -51,7 +51,10 @@ export async function ReadingSection({
   bare?: boolean;
   /** 옛 공유 풀이의 자리 호칭을 화면의 이름으로 옮길 때만 사용한다. */
   matchNames?: { readonly me: string; readonly partner: string };
-  /** 표지의 색 — 대상의 일간 오행(`ReadingPanel`). 부르는 화면이 이미 명식을 들고 있을 때만 넘긴다 */
+  /**
+   * 표지의 색 — 대상의 일간 오행(`ReadingPanel`). 부르는 화면이 이미 명식을 들고 있을 때만 넘긴다.
+   * **글이 있으면 그 글을 만들 때의 일간이 이긴다** — 「수정 전」 글이 고친 뒤의 색을 입지 않는다(2026-09-25).
+   */
   tones?: readonly (Element | null)[];
 }) {
   /*
@@ -65,6 +68,13 @@ export async function ReadingSection({
     readingCredits(),
     improvementConsented(),
   ]);
+
+  const cover =
+    tones !== undefined && reading?.dayMasterA != null
+      ? [reading.dayMasterA, reading.dayMasterB]
+          .slice(0, tones.length)
+          .map((stem) => (stem === null ? null : STEM_INFO[stem].element))
+      : tones;
 
   return (
     <section className={`${bare ? '' : CARD} flex flex-col gap-6`}>
@@ -91,7 +101,7 @@ export async function ReadingSection({
         ask={ask}
         betweenSummaryAndBody={betweenSummaryAndBody}
         matchNames={matchNames}
-        tones={tones}
+        tones={cover}
       />
     </section>
   );

@@ -10,7 +10,7 @@
 --
 -- 사람마다 일간을 다르게 준다(`tests.chart(day_stem)`). 모두 같은 일간이면 「누구의 것인가」를 못 가른다.
 begin;
-select plan(12);
+select plan(13);
 
 /** 풀이권은 여기서 안 잰다 — 대상 넷에 시도를 여는 것이 목적이다(22번과 같은 손잡이) */
 create or replace function public.reading_credit_limit()
@@ -178,6 +178,11 @@ select is(
   (select array[day_master_a, from_current_chart::text] from public.my_readings() where kind = 'person'),
   array['壬', 'false'],
   '고쳐도 표지는 그때의 일간이다 — 「수정 전」 글이 고친 뒤의 색을 입지 않는다');
+
+select is(
+  (select array[day_master_a, day_master_b] from public.my_reading('person', (select mom from kin))),
+  array['壬', null],
+  '글 화면의 표지도 그때의 일간이다 — 책장과 같은 색');
 
 -- ── 칸에는 천간 한 글자뿐이다 ─────────────────────────────────────────────
 
