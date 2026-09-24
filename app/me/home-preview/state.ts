@@ -77,7 +77,8 @@ export function stateOf(params: StateParams): PreviewState {
         : ids.has(entry.personA ?? '') && (entry.personB === null || ids.has(entry.personB)),
     ),
     unread: params.unread ? 2 : 0,
-    unreadChat: params.unread ? 3 : 0,
+    /* 방 목록의 안 읽은 수와 같은 값이어야 탭 배지와 목록이 같은 말을 한다 */
+    unreadChat: params.empty ? 0 : ROOMS.reduce((sum, room) => sum + room.unread, 0),
     warning: params.warning ? WARNING : null,
     cards: params.empty ? [] : CARDS,
     making: params.empty ? [] : MAKING,
