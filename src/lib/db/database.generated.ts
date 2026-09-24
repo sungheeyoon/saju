@@ -2635,6 +2635,7 @@ export type Database = {
           context_before: number
           created_at: string
           detail: string
+          is_open: boolean
           reason: string
           report_id: string
           reported_nickname: string
@@ -2669,6 +2670,7 @@ export type Database = {
         }
         Returns: {
           created_at: string
+          is_open: boolean
           pages: number
           reason: string
           report_id: string
@@ -2932,6 +2934,10 @@ export type Database = {
         Returns: string
       }
       report_daily_limit: { Args: never; Returns: number }
+      report_is_open: {
+        Args: { p_outcome: string; p_reviewed_at: string }
+        Returns: boolean
+      }
       report_user: {
         Args: { p_detail?: string; p_reason: string; p_user_id: string }
         Returns: boolean
@@ -2945,6 +2951,16 @@ export type Database = {
       restore_passed_connection: {
         Args: { p_candidate_user_id: string }
         Returns: Json
+      }
+      review_report: {
+        Args: {
+          p_note: string
+          p_outcome: string
+          p_report_id: string
+          p_reviewer: string
+          p_sanctioned_user_id?: string
+        }
+        Returns: string
       }
       save_my_profile: {
         Args: { p_intro: string; p_nickname: string }

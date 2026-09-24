@@ -109,6 +109,7 @@ describe('사람 목록에서 찾기', () => {
     expect(findStatus('', 26)).toEqual({ kind: 'idle' });
     expect(findStatus('  ', 26)).toEqual({ kind: 'idle' });
     expect(findStatus('ㅈ', 4)).toEqual({ kind: 'some', count: 4 });
+    expect(findStatus('민지', 1)).toEqual({ kind: 'some', count: 1 });
     expect(findStatus('없는이름', 0)).toEqual({ kind: 'none' });
   });
 

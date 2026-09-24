@@ -60,7 +60,7 @@ export function PeopleFinder({ people }: { people: Findable[] }) {
             안 쳤으면 비어 있다.
           */}
           <p id={statusId} role="status" className={status.kind === 'idle' ? 'sr-only' : 'text-xs text-muted'}>
-            {status.kind === 'none' ? NO_MATCH : status.kind === 'some' ? `${status.count}명` : ''}
+            {status.kind === 'none' ? NO_MATCH : status.kind === 'some' ? `검색 결과 ${status.count}명` : ''}
           </p>
         </div>
       )}

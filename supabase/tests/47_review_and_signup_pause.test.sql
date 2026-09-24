@@ -64,7 +64,7 @@ select lives_ok(
   format($$update public.report set reviewed_at = now(), reviewed_by = %1$L, review_outcome = 'suspension',
              review_note = '같은 말을 반복해 보냄', sanctioned_user_id = %2$L, sanctioned_by = %1$L where id = %3$L$$,
          (select operator from folks), (select reported from folks), (select judged from cases)),
-  '검토 SQL 의 모양 — 누가 · 언제 · 결과 · 근거 · 받은 쪽 · 실행한 사람');
+  '검토 기록의 모양 — 누가 · 언제 · 결과 · 근거 · 받은 쪽 · 실행한 사람');
 
 update public.report set reviewed_at = now(), reviewed_by = (select operator from folks),
   review_outcome = 'needs_more', review_note = '상대 쪽 이야기를 더 볼 것'

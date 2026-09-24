@@ -15,7 +15,7 @@ export type { SnapshotMessage };
  * 자리는 DB 의 `is_operator()` 하나고, 이 문은 자료를 청해서 **거절당하는 것으로 안다**(`42501`).
  *
  * 읽기만 한다. 이 폴더에는 `actions.ts` 가 없다 — 검토 완료 · 제재는 1차판에 없고, 검토 기록은
- * runbook 의 검토 SQL 이 적는다(ADR 0105). **문이 읽을 때마다 DB 가 접속기록에 한 줄을 적는다**(G-23 ⑩) —
+ * 운영자가 CLI 로 부르는 검토 문(`review_report`)이 적는다(ADR 0105 · 0107). **문이 읽을 때마다 DB 가 접속기록에 한 줄을 적는다**(G-23 ⑩) —
  * 성공은 문 안에서, 거절은 아래 `noteDenial` 이.
  *
  * 생성 타입은 반환 칸을 전부 `null` 이 아닌 것으로 적는다(`returns table` 의 한계). 닉네임 · 덧붙인
@@ -61,7 +61,9 @@ export type ReportRow = {
   readonly reporter: Account;
   readonly reported: Account;
   readonly reviewedAt: string | null;
-  /** 검토 결과 — runbook 의 검토 SQL 이 적는다(ADR 0105). 없으면 `null` */
+  /** 처리 필요인가 — 정의는 DB 의 `report_is_open` 하나다(ADR 0107) */
+  readonly isOpen: boolean;
+  /** 검토 결과 — 검토 문(`review_report`)이 적는다(ADR 0105 · 0107). 없으면 `null` */
   readonly reviewOutcome: string | null;
   /** 저장된 메시지 수 — 대화 근거가 없으면 `null`(0 이 아니다) */
   readonly snapshotMessages: number | null;
@@ -80,6 +82,7 @@ const rowOf = (row: RpcRow<'operator_reports'>): ReportRow => ({
   reporter: { userId: row.reporter_user_id, nickname: row.reporter_nickname ?? null },
   reported: { userId: row.reported_user_id, nickname: row.reported_nickname ?? null },
   reviewedAt: row.reviewed_at ?? null,
+  isOpen: row.is_open,
   reviewOutcome: row.review_outcome ?? null,
   snapshotMessages: row.snapshot_messages ?? null,
 });
@@ -116,7 +119,7 @@ export type Snapshot = {
 export type Review = {
   readonly outcome: string;
   readonly note: string | null;
-  /** 제재를 받은 쪽 — 신고 안의 자리. 제재가 없으면 `null` */
+  /** 당시 제재 대상 — 기록된 `sanctioned_user_id` 의 신고 안의 자리. 제재가 없으면 `null` */
   readonly sanctioned: Side | null;
   readonly reviewerNickname: string | null;
 };
@@ -129,7 +132,9 @@ export type ReportDetail = {
   readonly reporter: AccountNow;
   readonly reported: AccountNow;
   readonly reviewedAt: string | null;
-  /** 검토 기록(ADR 0105) — 검토 SQL 이 채운다. 결과가 없으면 `null` */
+  /** 처리 필요인가 — 목록과 같은 정의(`report_is_open`, ADR 0107) */
+  readonly isOpen: boolean;
+  /** 검토 기록(ADR 0105) — 검토 문이 채운다. 결과가 없으면 `null` */
   readonly review: Review | null;
   /** 대화 신고가 아니면 `null` — 「대화 근거 없음」 */
   readonly snapshot: Snapshot | null;
@@ -179,6 +184,7 @@ export async function operatorReport(
       status: row.reported_status ?? null,
     },
     reviewedAt: row.reviewed_at ?? null,
+    isOpen: row.is_open,
     review:
       (row.review_outcome ?? null) === null
         ? null

@@ -8,21 +8,28 @@ import { REPORT_REASONS } from '@/src/lib/account';
  * (`REPORT_REASONS`)를 그대로 쓴다 — 운영자가 읽는 말과 신고한 사람이 누른 말이 갈리면 안 된다.
  */
 
+/**
+ * 처리 상태 — 처리 필요는 안 봤거나 추가 확인 필요, 처리 완료는 그 밖의 검토다. 어느 쪽인가는 DB 의 `report_is_open` 이
+ * 정해 문이 `is_open` 으로 내준다(ADR 0107). 글자는 2026-09-24 운영자가 승인한 그대로다.
+ */
 export const REVIEW_LABEL = {
-  unreviewed: '검토 전',
-  reviewed: '검토함',
+  open: '처리 필요',
+  done: '처리 완료',
 } as const;
 
+export const reviewStateLabel = (isOpen: boolean): string => (isOpen ? REVIEW_LABEL.open : REVIEW_LABEL.done);
+
 /**
- * 검토 결과 — runbook 의 검토 SQL 이 적는 값(`report.review_outcome`, ADR 0105). 글자는 2026-09-24 운영자가
- * 결정에 적은 그대로다(「조치 없음 / 경고 / 이용 정지 / 추가 확인」) — 제재 결과의 말이라 `/ops/**` 예외가 아니다.
+ * 검토 결과 — 검토 문(`review_report`)이 적는 값(`report.review_outcome`, ADR 0105 · 0107). 글자는 2026-09-24 운영자가
+ * 승인한 그대로다(「조치 없음 / 경고 / 이용 정지 결정 / 추가 확인 필요」) — 제재 결과의 말이라 `/ops/**` 예외가 아니다.
+ * 「이용 정지 결정」은 그때 내린 판단이다 — 계정의 **지금** 상태(「이용 정지」, 아래)와 같은 글자가 되지 않게 했다.
  * 모르는 값은 값 그대로 세운다 — 검사식이 넷만 받으므로 새 값이 서면 여기 먼저 더한다.
  */
 const REVIEW_OUTCOME_LABEL: Readonly<Record<string, string>> = {
   no_action: '조치 없음',
   warning: '경고',
-  suspension: '이용 정지',
-  needs_more: '추가 확인',
+  suspension: '이용 정지 결정',
+  needs_more: '추가 확인 필요',
 };
 
 export const reviewOutcomeLabel = (outcome: string): string => REVIEW_OUTCOME_LABEL[outcome] ?? outcome;
