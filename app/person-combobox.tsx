@@ -171,6 +171,10 @@ export function PersonCombobox({
             className="pointer-events-none absolute left-3 top-1/2 size-6 -translate-y-1/2"
           />
         )}
+        {/*
+          **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
+          그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
+        */}
         <input
           id={inputId}
           type="text"
@@ -198,7 +202,7 @@ export function PersonCombobox({
           }}
           onKeyDown={onKeyDown}
           onBlur={close}
-          className={`h-12 w-full rounded-2xl border border-border bg-surface pr-10 text-[15px] font-semibold outline-none placeholder:font-normal placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash ${
+          className={`h-12 w-full rounded-2xl border border-border bg-surface pr-10 text-[15px] font-semibold placeholder:font-normal placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash ${
             chosen !== undefined && typed === null ? 'pl-11' : 'pl-4'
           }`}
         />

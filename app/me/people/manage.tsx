@@ -212,6 +212,10 @@ function NoteField({
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-[13px] font-semibold text-secondary">메모 (선택)</span>
+      {/*
+        **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
+        그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
+      */}
       <textarea
         id={`${idPrefix}-note`}
         value={value}
@@ -219,7 +223,7 @@ function NoteField({
         maxLength={NOTE_MAX}
         rows={2}
         placeholder="기억해 둘 것 — 이 사람의 사주에는 들어가지 않습니다"
-        className="rounded-2xl border border-border bg-surface px-3.5 py-2.5 text-[15px] leading-6 outline-none placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+        className="rounded-2xl border border-border bg-surface px-3.5 py-2.5 text-[15px] leading-6 placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
       />
     </label>
   );

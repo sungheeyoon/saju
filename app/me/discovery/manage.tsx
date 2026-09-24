@@ -78,12 +78,16 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
           **칸 셋이 같은 폭이다.** 글자 길이대로 두면 「상관없음」이 「남성」의 두 배가
           되어, 고를 것이 셋인데 하나가 더 중요한 것처럼 보인다. 격자로 나누면 가장 긴
           글자가 폭을 정하고 나머지가 그것을 따른다.
+
+          **눌리는 자리는 칸보다 위아래로 4px 씩 넓다**(`after:`). 칸은 36px 이고 손가락 과녁은
+          44px 이다. 칸을 키우면 고른 칸의 흰 바탕도 커지므로, 모양은 두고 투명한 덮개만 격자의
+          안쪽 여백(`p-1`)까지 내민다.
         */}
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-surface-sunken p-1 sm:shrink-0">
           {PREFER_GENDER_ORDER.map((value) => (
             <label
               key={value}
-              className="flex min-h-9 cursor-pointer items-center justify-center rounded-lg px-3 text-sm font-medium text-secondary transition-colors hover:text-foreground has-checked:bg-surface has-checked:text-foreground has-checked:shadow-sm has-focus-visible:ring-2 has-focus-visible:ring-accent"
+              className="relative flex min-h-9 cursor-pointer items-center justify-center rounded-lg px-3 text-sm font-medium text-secondary transition-colors after:absolute after:inset-x-0 after:-inset-y-1 hover:text-foreground has-checked:bg-surface has-checked:text-foreground has-checked:shadow-sm has-focus-visible:ring-2 has-focus-visible:ring-accent"
             >
               <input
                 type="radio"

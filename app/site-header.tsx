@@ -152,10 +152,15 @@ export function SiteHeader() {
                   const active = isNavigationActive(pathname, tab.href);
                   return (
                     <li key={tab.href}>
+                      {/*
+                        **눌리는 자리는 알약보다 위아래로 2px 씩 넓다**(`after:`). 알약은 40px 이고 손가락
+                        과녁은 44px 이다. 알약을 키우면 고른 탭의 색 바탕도 커지므로, 모양은 두고 투명한
+                        덮개만 판의 안쪽 여백(`p-1`)으로 내민다.
+                      */}
                       <Link
                         href={tab.href}
                         aria-current={active ? 'page' : undefined}
-                        className={`inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[15px] font-semibold active:scale-[0.97] ${
+                        className={`relative inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[15px] font-semibold active:scale-[0.97] after:absolute after:inset-x-0 after:-inset-y-0.5 ${
                           active ? 'bg-accent text-on-accent' : 'text-secondary hover:bg-surface-soft hover:text-foreground'
                         }`}
                       >

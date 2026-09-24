@@ -11,6 +11,7 @@ import {
   fillBirthDate,
   fillBirthTime,
 } from './birth-form';
+import { expectTargets, focusedOutline, seamRows } from './target';
 
 /**
  * 운 표가 서는 판 — **이름으로 좁힌다.**
@@ -777,6 +778,58 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
     scroll: card.scrollWidth,
   }));
   expect(starsOverflow.scroll).toBeLessThanOrEqual(starsOverflow.client);
+});
+
+/**
+ * **작은 과녁 · 두 겹 초점 · 바탕의 금** — 셋 다 운영 화면에서 잰 것이다(2026-09-25).
+ *
+ * - 입력 폼의 두 세그먼트(달력 기준 · 출생 시각)는 칸 높이가 40px 이었다. 결과의 바로가기
+ *   「운」은 글자 하나라 폭이 39.9px, 합 설명을 펴는 머리는 높이가 20px 이었다.
+ * - 전역 초점 테두리가 층 밖에 있어서 `outline-none` 을 단 칸에도 한 겹 더 섰다 — 칸은 제
+ *   테두리(`ring`)를 두르므로 두 겹이었다.
+ * - `<html>` 이 한 화면 높이라 바탕의 빛이 그 높이마다 다시 깔렸다.
+ *
+ * 폭 · 높이는 **글자로 적은 44** 와 견준다 — 구현의 상수를 읽어 오면 둘이 함께 줄어도 초록이다.
+ */
+test('입력 폼과 결과의 누르는 자리가 44px 이상이고, 초점은 한 겹이며, 바탕은 되풀이되지 않는다', async ({
+  page,
+}) => {
+  await page.goto('/');
+
+  const radio = (name: string) =>
+    page.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
+  await expectTargets({
+    양력: radio('양력'),
+    음력: radio('음력'),
+    '음력 윤달': radio('음력 윤달'),
+    '출생 시각 입력': radio('출생 시각 입력'),
+    '출생 시각 모름': radio('출생 시각 모름'),
+  });
+
+  const focused = await focusedOutline(page.getByLabel('출생연도'));
+  expect.soft(focused.own).toBe('none');
+  expect.soft(focused.ring).not.toBe('none');
+
+  await page.goto('/#date=1990-05-15&hour=14:30');
+  const jump = page.getByRole('navigation', { name: '결과 바로가기' });
+  await expect(jump).toBeVisible();
+  await expectTargets(
+    Object.fromEntries(
+      ['여덟 글자', '신살', '분석', '용신', '관계', '운', '보정'].map((name) => [
+        name,
+        jump.getByRole('link', { name, exact: true }),
+      ]),
+    ),
+  );
+
+  await unfoldAll(page);
+  await expectTargets({
+    '세력에 반영한 합과 안 한 합': page.locator('summary', { hasText: '세력에 반영한 합과 안 한 합' }),
+  });
+
+  await page.emulateMedia({ colorScheme: 'dark' });
+  const rows = await seamRows(page);
+  expect.soft(rows.below.equals(rows.above), '첫 화면 높이 바로 아래 줄이 위 줄과 다르다 — 바탕이 되풀이된다').toBe(true);
 });
 
 

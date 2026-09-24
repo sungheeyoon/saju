@@ -5,6 +5,7 @@ import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Pers
 import { READING_FAILED_NOTE } from '@/src/lib/reading';
 
 import { fillBirthDate } from './birth-form';
+import { expectTargets } from './target';
 
 /**
  * 둘이 있어야 성립하는 흐름 — **창을 둘 열고 잰다.**
@@ -455,6 +456,11 @@ test.describe('동의로 열리는 흐름', () => {
 
     await receiver.page.goto('/me/requests');
     const received = receiver.page.getByRole('listitem').filter({ hasText: `가${tag}` });
+    /* 카드 밑단의 조용한 글자 둘 — 「차단」은 글자 둘이라 폭이 31.8px 이었다(2026-09-25) */
+    await expectTargets({
+      '요청 카드의 차단': received.getByRole('button', { name: '차단', exact: true }),
+      '요청 카드의 신고': received.getByRole('button', { name: '신고', exact: true }),
+    });
     await reach(receiver, '수락하고 궁합 열기', received);
     await receiver.page.keyboard.press('Enter');
     /**
@@ -477,6 +483,7 @@ test.describe('동의로 열리는 흐름', () => {
      */
     await receiver.page.goto('/me/readings');
     await receiver.page.getByRole('link', { name: new RegExp(`가${tag} 님과의 궁합풀이`) }).click();
+    await expectTargets({ '결과 화면의 차단': receiver.page.getByRole('button', { name: '차단', exact: true }) });
     await reach(receiver, '차단');
     await receiver.page.keyboard.press('Enter');
     await reach(receiver, '차단합니다');

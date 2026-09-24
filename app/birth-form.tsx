@@ -68,8 +68,13 @@ const SEGMENT_ITEM =
   'relative flex min-h-10 cursor-pointer items-center justify-center rounded-full px-3 text-center text-sm font-semibold transition-colors' +
   ' has-[:focus-visible]:outline has-[:focus-visible]:outline-3' +
   ' has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft';
-/** 칸 전체를 덮는 라디오 — 보이지는 않지만 이것이 눌린다 */
-const SEGMENT_INPUT = 'absolute inset-0 cursor-pointer appearance-none opacity-0';
+/**
+ * 칸 전체를 덮는 라디오 — 보이지는 않지만 이것이 눌린다.
+ *
+ * **칸보다 위아래로 2px 씩 넓다.** 칸은 40px 이고 손가락 과녁은 44px 이다. 칸을 키우면 고른 칸의
+ * 흰 바탕도 함께 커지므로, 모양은 두고 눌리는 자리만 세그먼트의 안쪽 여백(`p-1`)으로 내민다.
+ */
+const SEGMENT_INPUT = 'absolute inset-x-0 -inset-y-0.5 cursor-pointer appearance-none opacity-0';
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
