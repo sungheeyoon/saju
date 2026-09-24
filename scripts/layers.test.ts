@@ -48,7 +48,6 @@ const SCREEN_DB_CALLS_STILL_THERE = new Set([
   "app/closed/page.tsx :: supabase.rpc(name)",
   "app/compat/page.tsx :: supabase.from('user_person_access')",
   "app/me/matching/page.tsx :: supabase.rpc('ensure_discovery_participation', …)",
-  "app/me/page.tsx :: supabase.from('user_person_access')",
   "app/me/people/page.tsx :: supabase.from('user_person_access')",
   "app/me/people/page.tsx :: supabase.rpc('my_person_slots')",
   "app/me/profile/page.tsx :: supabase.rpc('photo_of', …)",
