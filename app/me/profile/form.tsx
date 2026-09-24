@@ -41,7 +41,9 @@ const LABEL = 'text-[13px] font-semibold text-secondary';
  * **잘라 내지 않는다.** 비율을 지켜 줄이기만 한다 — 얼굴이 잘리는 자리를 우리가 고르면
  * 그것은 사용자가 고른 사진이 아니다. 동그란 자리에 담을 때만 CSS 가 가운데를 보인다.
  */
-async function shrink(file: File): Promise<{ contentType: string; base64: string }> {
+async function shrink(
+  file: File,
+): Promise<{ ok: true; contentType: string; base64: string } | { ok: false; message: string }> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, PHOTO_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
 
@@ -50,7 +52,7 @@ async function shrink(file: File): Promise<{ contentType: string; base64: string
   canvas.height = Math.max(1, Math.round(bitmap.height * scale));
 
   const context = canvas.getContext('2d');
-  if (context === null) throw new Error('사진을 줄이지 못했습니다.');
+  if (context === null) return { ok: false, message: '사진을 줄이지 못했습니다.' };
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
 
@@ -68,14 +70,17 @@ async function shrink(file: File): Promise<{ contentType: string; base64: string
     : 'image/jpeg';
 
   if (chosen.size > PHOTO_MAX_BYTES) {
-    throw new Error(`사진이 너무 큽니다 — ${Math.round(PHOTO_MAX_BYTES / 1024)}KB까지입니다.`);
+    return {
+      ok: false,
+      message: `사진이 너무 큽니다 — ${Math.round(PHOTO_MAX_BYTES / 1024)}KB까지입니다.`,
+    };
   }
 
   const buffer = new Uint8Array(await chosen.arrayBuffer());
   let binary = '';
   for (const byte of buffer) binary += String.fromCharCode(byte);
 
-  return { contentType, base64: btoa(binary) };
+  return { ok: true, contentType, base64: btoa(binary) };
 }
 
 /**
@@ -254,16 +259,25 @@ function PhotoField({
     setFailure(null);
     startWorking(async () => {
       try {
-        const photo = await shrink(file);
-        const result = await savePhoto(photo);
+        const shrunk = await shrink(file);
+        if (!shrunk.ok) {
+          setFailure(shrunk.message);
+          return;
+        }
+        const result = await savePhoto({ contentType: shrunk.contentType, base64: shrunk.base64 });
         if (!result.ok) {
           setFailure(result.message);
           return;
         }
         setStamp(Date.now());
         router.refresh();
-      } catch (thrown) {
-        setFailure(thrown instanceof Error ? thrown.message : '사진을 읽지 못했습니다.');
+      } catch {
+        /*
+          여기 닿는 것은 우리가 안 쓴 문장이다 — 브라우저가 못 읽은 사진(`createImageBitmap`)이나
+          액션이 던진 오류(운영의 Next 는 영어 안내로 바꿔 보낸다). 우리 문장 하나로 선다
+          (`app/db-error.boundary.test.ts`).
+        */
+        setFailure('사진을 읽지 못했습니다.');
       }
     });
   };
