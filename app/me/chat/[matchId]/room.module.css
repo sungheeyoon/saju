@@ -1,0 +1,22 @@
+/*
+  방의 높이 — 화면에서 머리글과 (폰이면) 하단 독을 뺀 만큼이다. 그래야 방의 머리와 입력칸이 제자리에 붙고
+  대화 칸만 스크롤한다.
+
+  Tailwind 의 임의 값(`h-[calc(...)]`)으로 못 적는다 — 그 안의 `-` 를 빼기로 읽어 `env(safe-area-inset-bottom)`
+  을 `env(safe - area - …)` 로 벌려 놓는다. 그래서 이 한 줄만 여기 둔다.
+
+  폰(767px 까지): 머리글 4rem + 본문 위아래 여백 1.5rem + 독 자리 6rem(`globals.css` 가 비우는 만큼) + 기기 아래 틈.
+  그 위(md): 머리글 4rem + 여백 3rem. 넓은 화면(lg)은 두 칸 틀(`ChatFrame`)이 높이를 정하고 방은 그 칸을 채운다.
+*/
+.room {
+  height: calc(100dvh - 11.5rem - env(safe-area-inset-bottom));
+  min-height: 24rem;
+}
+
+@media (min-width: 768px) {
+  .room { height: calc(100dvh - 7rem); }
+}
+
+@media (min-width: 1024px) {
+  .room { height: 100%; min-height: 0; }
+}
