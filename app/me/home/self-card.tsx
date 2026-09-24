@@ -27,10 +27,10 @@ import type { ReadingEntry } from '../reading/current';
   색에 **상징과 이름**을 붙여 색만으로 말하지 않는다.
 
   **넓은 화면에서는 관계 지도와 한 줄에 서고 두 카드의 윗선 · 아랫선이 같다.** 격자가 두 칸을 같은 높이로
-  늘이고, 이 카드는 네 덩어리(이름 · 여덟 글자 · 출생 정보 · 단추)를 위아래로 고르게 편다(`justify-between`) —
-  단추 줄이 지도의 범례 띠와 같은 바닥선에 선다. 남는 높이가 한 틈에 몰리지 않고 덩어리 사이에 나뉜다.
+  늘이고, 이 카드는 네 덩어리를 위아래로 고르게 편다(`justify-between`) — 이름과 한 줄 평 → 저장된 출생 정보 →
+  여덟 글자와 오행 분포 → 단추. 무엇으로 계산했나가 결과 앞에 선다. 단추 줄이 지도의 범례 띠와 같은 바닥선에 선다. 남는 높이가 한 틈에 몰리지 않고 덩어리 사이에 나뉜다.
 
-  고치는 손잡이(「출생 정보 수정」)는 오른쪽 위 모서리에 뜨고, 펴지는 폼은 이름 바로 아래에 선다 — 누르는
+  고치는 손잡이(「출생 정보 수정」)는 오른쪽 맨 위 모서리에 뜨고, 펴지는 폼은 머리 바로 아래에 선다 — 누르는
   곳과 펴지는 곳이 멀면 폰에서 눌러도 아무 일이 없는 것처럼 보였다.
 */
 
@@ -57,27 +57,17 @@ export function SelfCard({
     >
       <ElementSymbol element={dayElement} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
 
-      <header className="relative min-w-0 pr-14">
-        <p className="flex items-center gap-2 text-[13px] font-semibold text-[var(--ink)]">
-          <span className="rounded-full bg-[var(--ink)] px-2 py-0.5 text-[11px] font-bold text-[var(--tile)]">나</span>
-          내 사주
-        </p>
-        <h2 className="mt-2 break-all font-rounded text-[2rem] leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
-          {label}
-        </h2>
-      </header>
-
-      {/* 모서리 손잡이 — 단추는 카드의 오른쪽 위에 뜨고, 펴지는 폼은 여기(이름 아래)에 선다 */}
-      <EditInput personId={personId} current={query} variant="corner" editableName={false} confirmsRequests />
-
-      <div className="relative grid gap-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:items-end md:gap-8">
-        <Pillars saju={saju} />
-        <ElementCounts saju={saju} />
-      </div>
-
-      <BirthLine query={query} />
-
-      <div className="relative flex flex-col gap-4">
+      {/* 이름(가장 크게)과 바로 아래 한 줄 평 — 내 사주풀이의 비유. 풀이가 없으면 그 줄은 서지 않는다 */}
+      <header className="relative flex min-w-0 flex-col gap-3 pr-14">
+        <div>
+          <p className="flex items-center gap-2 text-[13px] font-semibold text-[var(--ink)]">
+            <span className="rounded-full bg-[var(--ink)] px-2 py-0.5 text-[11px] font-bold text-[var(--tile)]">나</span>
+            내 사주
+          </p>
+          <h2 className="mt-2 break-all font-rounded text-[2rem] leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
+            {label}
+          </h2>
+        </div>
         {reading?.metaphor != null && (
           <p className="font-rounded text-lg leading-[1.5] text-foreground sm:text-xl">
             <span className="sr-only">내 사주풀이의 비유 </span>
@@ -86,19 +76,36 @@ export function SelfCard({
             <span aria-hidden="true" className="text-[var(--ink)]">”</span>
           </p>
         )}
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <Link href="/me/readings/self" className={`${BUTTON_PRIMARY} sm:min-w-52`}>
-            <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
-            {reading === null ? '사주풀이 받기' : '사주풀이 보기'}
-            {reading !== null && !reading.fromCurrentChart && (
-              <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">이전 명식</span>
-            )}
-          </Link>
-          <Link href={`/me/people/${personId}`} className={BUTTON_SECONDARY}>
-            사주 자세히 보기
-            <Icon name="arrow" className="size-4" />
-          </Link>
-        </div>
+      </header>
+
+      {/* 모서리 손잡이 — 단추는 카드의 오른쪽 맨 위에 뜨고, 펴지는 폼은 여기(머리 아래)에 선다 */}
+      {/*
+        `display: contents` 라 이 상자는 판에 자리를 안 차지한다 — 단추만 판의 오른쪽 맨 위로 띄운다(공용
+        `ICON_BUTTON` 의 `relative` 가 손잡이의 `absolute` 를 이겨 단추가 흐름에 떨어지던 것을 여기서 누른다).
+      */}
+      <div className="contents [&>button]:absolute [&>button]:right-4 [&>button]:top-4 sm:[&>button]:right-5 sm:[&>button]:top-5">
+        <EditInput personId={personId} current={query} variant="corner" editableName={false} confirmsRequests />
+      </div>
+
+      <BirthLine query={query} />
+
+      <div className="relative grid gap-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:items-end md:gap-8">
+        <Pillars saju={saju} />
+        <ElementCounts saju={saju} />
+      </div>
+
+      <div className="relative flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <Link href="/me/readings/self" className={`${BUTTON_PRIMARY} sm:min-w-52`}>
+          <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
+          {reading === null ? '사주풀이 받기' : '사주풀이 보기'}
+          {reading !== null && !reading.fromCurrentChart && (
+            <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">이전 명식</span>
+          )}
+        </Link>
+        <Link href={`/me/people/${personId}`} className={BUTTON_SECONDARY}>
+          사주 자세히 보기
+          <Icon name="arrow" className="size-4" />
+        </Link>
       </div>
     </section>
   );

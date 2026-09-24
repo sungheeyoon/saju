@@ -4,28 +4,27 @@ import Link from 'next/link';
 import { useRef, useState, type MouseEvent } from 'react';
 
 import { elementScope } from '../../../element-tone';
-import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY } from '../../../ui/buttons';
-import { ElementSymbol } from '../../../ui/element-symbol';
+import { ICON_BUTTON } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icon';
-import { TILE, TYPE_META, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
-import { softCurve } from './curve';
+import { TYPE_META, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
 import type { MapLink, MapModel, MapPerson } from './model';
 import { arcBetween, placeOnOrbit, type Point } from './placement';
 
 /*
   **관계 지도 — 나를 가운데 두고 저장한 사람이 두 궤도에 앉는다.**
 
-  안쪽 궤도는 풀이나 궁합을 본 사람, 바깥 궤도는 저장만 한 사람이다. 선은 이미 본 궁합에만 긋는다
-  (`model.ts`). 사람 원을 누르면 지도 아래에 그 사람의 작은 카드(풀이 · 나와 궁합 · 자세히)가 열린다.
-
-  **색은 화면의 한 벌 안에서만 쓴다.** 시안은 지도 판에 크림과 갈색 잉크를 섞은 띠를 깔았는데, 그 두 색이
-  홈의 다른 어디에도 없어 지도만 딴 종이 위에 선 것처럼 보였다(2026-09-24 사용자 지적). 지금 판은 다른
-  카드와 같은 종이(`--surface`)이고, 안쪽 궤도는 그 종이의 옅은 면(`--surface-soft`), 바깥 궤도와
-  선은 테두리 · 보조 글자색이다. 색을 입는 것은 사람뿐이다 — 원이 아래 사람 타일과 같은 오행 파스텔이라
-  지도와 타일이 한 벌로 읽힌다.
+  이 그림이 말하는 것은 넷뿐이고, 그 넷만 눈에 띄게 한다.
+  1. **가운데의 나가 가장 무겁다** — 가장 큰 원 · 가장 큰 글자 · 이름표만 먹색으로 채운다.
+  2. **두 궤도는 사용자가 한 일의 기록이다** — 안쪽 실선은 「풀이나 궁합을 본 사람」, 바깥 점선은 「저장만
+     한 사람」. 가깝다는 판정이 아니므로 궤도는 가는 중립 선 한 줄이다(면 · 띠를 깔지 않는다).
+  3. **선은 이미 본 궁합에만** — 나와의 궁합은 가운데서 뻗는 곧은 먹선 + 점 위의 점수 딱지, 저장한 두
+     사람의 궁합은 바깥으로 휜 점선 + 점수 알약(누르면 그 글). 없는 관계를 지어내지 않는다(`model.ts`).
+  4. **색은 사람에게만 있다.** 판 · 궤도 · 선은 종이와 먹의 중립 토큰이고, 오행 파스텔은 사람 원(나 포함)
+     안에만 든다 — 그래서 색이 곧 「그 사람의 일간」으로 읽힌다. 색만으로 말하지 않게 원에는 일간 글자가,
+     보조기기에는 「일간 庚 쇠」가 선다.
 
   **자바스크립트 없이도 길이 돈다.** 사람 원은 아래 그 사람의 타일로 가는 링크(`#person-…`)이고, 타일이
-  모든 길을 든다. 자바스크립트가 돌면 같은 누름이 작은 카드를 연다.
+  모든 길을 든다. 자바스크립트가 돌면 같은 누름이 지도 아래에 그 사람의 작은 카드를 연다.
 */
 
 export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHref: string; canAdd: boolean }) {
@@ -45,7 +44,7 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
   return (
     <section
       aria-labelledby="home-map"
-      className="flex h-full min-w-0 flex-col rounded-[2rem] border border-border bg-surface shadow-[var(--shadow-card)]"
+      className="flex h-full min-w-0 flex-col overflow-hidden rounded-[2rem] border border-border bg-surface shadow-[var(--shadow-card)]"
     >
       <header className="flex items-center justify-between gap-3 px-5 pt-5 sm:px-7 sm:pt-7">
         <h2 id="home-map" className={TYPE_SECTION}>
@@ -55,9 +54,9 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
       </header>
 
       {/* 판이 옆 카드보다 길어지면 지도가 가운데로 모인다 — 둘의 윗선 · 아랫선은 격자가 맞춘다 */}
-      <div className="grid flex-1 place-items-center px-[7%] pb-9 pt-5">
+      <div className="grid flex-1 place-items-center px-[5%] pb-8 pt-6 sm:px-[8%]">
         <div className="relative aspect-square w-full max-w-[26rem]">
-          <Paper model={model} placed={placed.at} radius={placed.radius} chosenId={chosen?.id ?? null} />
+          <Orbits model={model} placed={placed.at} radius={placed.radius} chosenId={chosen?.id ?? null} />
 
           <Center self={model.self} />
 
@@ -75,6 +74,7 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
             );
           })}
 
+          {/* 점수 알약은 사람 원보다 뒤에 둔다 — 겹치면 알약이 위에 선다 */}
           {model.links.map((link) => (
             <LinkScore key={`${link.a}-${link.b}`} link={link} placed={placed.at} />
           ))}
@@ -83,7 +83,7 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
         </div>
       </div>
 
-      <div ref={card} id="home-map-card" className="scroll-mt-4 scroll-mb-28 px-3 pb-3 sm:px-4 sm:pb-4 md:scroll-mb-4" aria-live="polite">
+      <div ref={card} id="home-map-card" className="scroll-mt-4 scroll-mb-28 md:scroll-mb-4" aria-live="polite">
         {chosen !== null ? (
           <PersonCard person={chosen} onClose={() => setSelectedId(null)} />
         ) : (
@@ -94,8 +94,8 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
   );
 }
 
-/** 종이 위의 그림 — 궤도 · 선. 누를 것은 없다 */
-function Paper({
+/** 궤도 둘과 이미 본 궁합의 선 — 전부 중립색. 누를 것은 없다 */
+function Orbits({
   model,
   placed,
   radius,
@@ -106,36 +106,38 @@ function Paper({
   radius: { inner: number; outer: number };
   chosenId: string | null;
 }) {
-  const center = { x: 50, y: 50 };
   return (
-    <svg aria-hidden="true" viewBox="0 0 100 100" className={`${elementScope(model.self.element)} absolute inset-0 size-full overflow-visible`}>
-      {/* 가운데 — 내 일간의 파스텔이 종이에 스민다(내 사주 카드와 같은 색) */}
-      <circle cx="50" cy="50" r={radius.inner - 6} fill="var(--tile)" />
-      {/* 안쪽 궤도 — 종이의 옅은 면으로 그은 띠(어두운 화면에서도 판보다 한 단 밝다) */}
-      <circle cx="50" cy="50" r={radius.inner} fill="none" stroke="var(--surface-soft)" strokeWidth="8" />
-      {/* 바깥 궤도 — 동글동글한 점선 */}
+    <svg aria-hidden="true" viewBox="0 0 100 100" className="absolute inset-0 size-full overflow-visible">
+      <circle cx="50" cy="50" r={radius.inner} fill="none" stroke="var(--border-strong)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
       <circle
         cx="50"
         cy="50"
         r={radius.outer}
         fill="none"
         stroke="var(--border-strong)"
-        strokeWidth="1.1"
-        strokeDasharray="0 3"
-        strokeLinecap="round"
+        strokeWidth="1"
+        strokeDasharray="3 5"
+        vectorEffect="non-scaling-stroke"
       />
 
-      {/* 나와 이미 본 궁합 — 연필 선 둘을 겹친다 */}
-      {model.people.map((person, index) => {
+      {/* 나와 이미 본 궁합 — 가운데서 곧게 뻗는 먹선. 고른 사람의 선만 굵어진다 */}
+      {model.people.map((person) => {
         const point = placed[person.id];
         if (!person.compat.seen || point === undefined) return null;
-        const bend = index % 2 === 0 ? 0.1 : -0.1;
         const lit = chosenId === person.id;
         return (
-          <g key={person.id} fill="none" strokeLinecap="round" stroke={lit ? 'var(--foreground)' : 'var(--text-secondary)'}>
-            <path d={softCurve(center, point, bend)} strokeWidth={lit ? 1.2 : 0.8} opacity={lit ? 0.9 : 0.6} />
-            <path d={softCurve(center, point, bend * 1.5)} strokeWidth="0.4" opacity="0.3" />
-          </g>
+          <line
+            key={person.id}
+            x1="50"
+            y1="50"
+            x2={point.x}
+            y2={point.y}
+            stroke="var(--foreground)"
+            strokeWidth={lit ? 2.5 : 1.5}
+            strokeLinecap="round"
+            opacity={lit ? 1 : 0.7}
+            vectorEffect="non-scaling-stroke"
+          />
         );
       })}
 
@@ -150,10 +152,10 @@ function Paper({
             d={arcBetween(a, b).d}
             fill="none"
             stroke="var(--text-secondary)"
-            strokeWidth="0.8"
-            strokeDasharray="0 2.2"
+            strokeWidth="1.5"
+            strokeDasharray="1 4"
             strokeLinecap="round"
-            opacity="0.8"
+            vectorEffect="non-scaling-stroke"
           />
         );
       })}
@@ -167,19 +169,17 @@ function Center({ self }: { self: MapModel['self'] }) {
     <div
       role="img"
       aria-label={`나 ${self.label}, 일간 ${self.stem} ${self.picture}`}
-      className={`${elementScope(self.element)} absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-[2rem] flex-col items-center sm:-translate-y-[2.75rem]`}
+      className={`${elementScope(self.element)} absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-[2.125rem] flex-col items-center sm:-translate-y-[2.75rem]`}
     >
-      <span className="relative grid size-16 place-items-center rounded-full bg-[var(--tile)] shadow-[var(--shadow-card)] ring-4 ring-surface sm:size-[5.5rem]">
-        <span aria-hidden="true" className="glyph text-[1.8rem] font-bold leading-none text-[var(--ink)] sm:text-[2.5rem]">
+      <span className="grid size-[4.25rem] place-items-center rounded-full border-2 border-[color-mix(in_srgb,var(--ink)_30%,transparent)] bg-[var(--tile)] shadow-[var(--shadow-card)] sm:size-[5.5rem]">
+        <span aria-hidden="true" className="glyph text-[2.25rem] font-bold leading-none text-[var(--ink)] sm:text-[2.875rem]">
           {self.stem}
         </span>
-        <span className="absolute -right-1.5 -top-1 grid size-7 place-items-center rounded-full bg-surface ring-2 ring-[var(--tile)] sm:size-8">
-          <ElementSymbol element={self.element} className="size-5 sm:size-6" />
-        </span>
       </span>
+      {/* 이름표는 원의 아랫단에 걸친다 — 안쪽 궤도의 사람(과 점수 딱지)에 닿지 않게 원 밖으로 덜 나온다 */}
       <span
         aria-hidden="true"
-        className="relative -mt-2.5 flex max-w-[7rem] items-center gap-1 whitespace-nowrap rounded-full bg-accent px-2.5 py-0.5 text-[12px] font-bold text-on-accent"
+        className="relative -mt-3 flex max-w-[6.5rem] items-center gap-1 whitespace-nowrap rounded-full bg-foreground px-2.5 py-0.5 text-[12px] font-bold text-background"
       >
         나<span className="truncate font-semibold opacity-80">· {self.label}</span>
       </span>
@@ -209,40 +209,39 @@ function PersonDot({
         score !== null ? `, 나와 궁합 ${score}점` : ''
       }`}
       style={{ left: `${at.x}%`, top: `${at.y}%` }}
-      className={`${elementScope(person.day?.element ?? null)} group absolute flex w-[4.5rem] -translate-x-1/2 -translate-y-[1.375rem] flex-col items-center gap-1 rounded-2xl pb-1 sm:w-[5.25rem] sm:-translate-y-[1.625rem]`}
+      className={`${elementScope(person.day?.element ?? null)} group absolute flex w-[4.5rem] -translate-x-1/2 -translate-y-[1.5rem] flex-col items-center gap-1 rounded-2xl pb-1 sm:w-[5.75rem] sm:-translate-y-[1.75rem]`}
     >
       <span
-        className={`relative grid size-11 place-items-center rounded-full bg-[var(--tile)] transition group-hover:-translate-y-0.5 group-active:scale-95 sm:size-[3.25rem] ${
-          person.day === null ? 'border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_35%,transparent)]' : ''
-        } ${active ? 'ring-[3px] ring-accent ring-offset-2 ring-offset-surface' : 'shadow-[var(--shadow-card)] ring-2 ring-surface'}`}
+        className={`relative grid size-12 place-items-center rounded-full border-2 transition group-hover:-translate-y-0.5 group-active:scale-95 sm:size-14 ${
+          person.day === null
+            ? 'border-dashed border-border-strong bg-surface-sunken'
+            : 'border-[color-mix(in_srgb,var(--ink)_30%,transparent)] bg-[var(--tile)]'
+        } ${active ? 'shadow-[0_0_0_3px_var(--foreground)]' : 'shadow-[var(--shadow-card)]'}`}
       >
-        {person.day === null ? (
-          <ElementSymbol element={null} className="size-6" />
-        ) : (
-          <>
-            <span aria-hidden="true" className="glyph text-[1.3rem] font-bold leading-none text-[var(--ink)] sm:text-[1.5rem]">
-              {person.day.stem}
-            </span>
-            <span className="absolute -bottom-1 -left-1 grid size-5 place-items-center rounded-full bg-surface ring-1 ring-[var(--tile)]">
-              <ElementSymbol element={person.day.element} className="size-3.5" />
-            </span>
-          </>
-        )}
-      </span>
-      {/* 이름표 — 이름은 폭에서 말줄임하고 점수는 늘 선다. 전체 이름은 카드와 아래 타일이 든다 */}
-      <span
-        aria-hidden="true"
-        className={`flex max-w-full items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold leading-tight sm:text-[13px] ${
-          active ? 'bg-accent text-on-accent' : 'bg-surface text-foreground ring-1 ring-border'
-        }`}
-      >
-        <span className="min-w-0 truncate">{person.label}</span>
+        <span
+          aria-hidden="true"
+          className={`glyph font-bold leading-none ${person.day === null ? 'text-lg text-muted' : 'text-[1.4rem] text-[var(--ink)] sm:text-[1.6rem]'}`}
+        >
+          {person.day?.stem ?? '?'}
+        </span>
+        {/* 점수 딱지는 원의 위, 가운데에서 먼 쪽 모서리에 — 나의 이름표 · 선 쪽으로 붙지 않고 아래 이름표와도 안 겹친다 */}
         {score !== null && (
-          <span className="flex shrink-0 items-center gap-px tabular-nums">
-            <Icon name="heart" className={`size-3 ${active ? '' : 'text-fire'}`} />
+          <span
+            aria-hidden="true"
+            className={`absolute ${at.x < 50 ? '-left-2.5' : '-right-2.5'} -top-1.5 rounded-full bg-foreground px-1.5 py-0.5 text-[11px] font-bold leading-none tabular-nums text-background`}
+          >
             {score}
           </span>
         )}
+      </span>
+      {/* 이름표 — 폭에서 말줄임한다. 전체 이름은 카드와 아래 타일이 든다 */}
+      <span
+        aria-hidden="true"
+        className={`max-w-full truncate rounded-full px-2 py-0.5 text-[12px] font-semibold leading-tight sm:text-[13px] ${
+          active ? 'bg-foreground text-background' : 'bg-surface text-foreground'
+        }`}
+      >
+        {person.label}
       </span>
     </a>
   );
@@ -261,9 +260,8 @@ function LinkScore({ link, placed }: { link: MapLink; placed: Record<string, Poi
       style={{ left: `${mid.x}%`, top: `${mid.y}%` }}
       className="group absolute grid min-h-11 min-w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full"
     >
-      <span className="flex items-center gap-0.5 rounded-full bg-surface py-1 pl-1.5 pr-2 text-[12px] font-bold tabular-nums text-foreground shadow-sm ring-1 ring-border-strong group-hover:ring-foreground group-active:scale-95">
-        <Icon name="heart" className="size-3 text-fire" />
-        {link.score === null ? '궁합' : link.score}
+      <span className="rounded-full border border-border-strong bg-surface px-2 py-0.5 text-[12px] font-bold tabular-nums text-secondary group-hover:border-foreground group-hover:text-foreground group-active:scale-95">
+        {link.score === null ? '궁합' : `${link.score}점`}
       </span>
     </Link>
   );
@@ -275,80 +273,84 @@ function AddDot({ href }: { href: string }) {
     <Link
       href={href}
       style={{ left: '50%', top: '6%' }}
-      className="group absolute flex -translate-x-1/2 -translate-y-[1.375rem] flex-col items-center gap-1 rounded-2xl sm:-translate-y-[1.625rem]"
+      className="group absolute flex -translate-x-1/2 -translate-y-[1.5rem] flex-col items-center gap-1 rounded-2xl sm:-translate-y-[1.75rem]"
     >
-      <span className="grid size-11 place-items-center rounded-full border-2 border-dashed border-border-strong bg-surface text-foreground group-hover:bg-surface-soft group-active:scale-95 sm:size-[3.25rem]">
+      <span className="grid size-12 place-items-center rounded-full border-2 border-dashed border-border-strong bg-surface text-foreground group-hover:bg-surface-soft group-active:scale-95 sm:size-14">
         <Icon name="plus" />
       </span>
-      <span className="whitespace-nowrap rounded-full bg-surface px-2 py-0.5 text-[13px] font-semibold text-foreground ring-1 ring-border">
-        사람 추가
-      </span>
+      <span className="whitespace-nowrap rounded-full bg-surface px-2 py-0.5 text-[13px] font-semibold text-foreground">사람 추가</span>
     </Link>
   );
 }
 
-/** 아무도 안 눌렀을 때 — 궤도의 뜻 */
+/** 아무도 안 눌렀을 때 — 궤도와 선의 뜻. 판 바닥에 가는 띠 하나로 물러난다 */
 function Legend({ empty }: { empty: boolean }) {
   return (
-    <div className="flex flex-col gap-3 rounded-[1.5rem] bg-surface-soft px-4 py-3.5">
+    <div className="border-t border-border px-5 py-3.5 sm:px-7">
       {empty ? (
         <p className="text-[13px] leading-5 text-secondary">저장한 사람이 이 둘레에 앉아요.</p>
       ) : (
-        <>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] font-medium text-secondary">
-            <li className="flex items-center gap-2">
-              <span aria-hidden="true" className="h-2.5 w-5 rounded-full bg-surface-soft ring-1 ring-border-strong" />
-              풀이나 궁합을 본 사람
-            </li>
-            <li className="flex items-center gap-2">
-              <svg aria-hidden="true" viewBox="0 0 20 4" className="h-1 w-5">
-                <path d="M2 2h16" stroke="var(--text-secondary)" strokeWidth="2" strokeDasharray="0 4" strokeLinecap="round" />
-              </svg>
-              저장만 한 사람
-            </li>
-            <li className="flex items-center gap-2">
-              <svg aria-hidden="true" viewBox="0 0 20 8" className="h-2 w-5">
-                <path d="M1 6Q10 0 19 4" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-              이미 본 궁합과 점수
-            </li>
-          </ul>
-          <p className="text-[13px] leading-5 text-foreground">사람을 누르면 갈 수 있는 곳이 열려요.</p>
-        </>
+        <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] font-medium text-secondary">
+          <li className="flex items-center gap-2">
+            <span aria-hidden="true" className="inline-block size-3 rounded-full border border-border-strong" />
+            풀이나 궁합을 본 사람
+          </li>
+          <li className="flex items-center gap-2">
+            <span aria-hidden="true" className="inline-block size-3 rounded-full border border-dashed border-border-strong" />
+            저장만 한 사람
+          </li>
+          <li className="flex items-center gap-2">
+            <span aria-hidden="true" className="inline-block h-0.5 w-4 rounded-full bg-foreground opacity-70" />
+            이미 본 궁합과 점수
+          </li>
+        </ul>
       )}
     </div>
   );
 }
 
-/** 누른 사람의 작은 카드 — 그 사람의 오행 색을 입고 행동 셋을 든다 */
+/* 카드 안 단추 셋 — 한 줄 셋이 360px 에 서도록 옆 여백을 줄인 작은 단추(누를 자리 44px) */
+const CARD_BUTTON = 'inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full px-2 text-[13px] font-semibold active:scale-[0.96]';
+const CARD_PRIMARY = `${CARD_BUTTON} bg-accent text-on-accent hover:bg-accent-strong`;
+const CARD_SECONDARY = `${CARD_BUTTON} border border-border-strong bg-surface text-foreground hover:border-foreground`;
+
+/**
+ * 누른 사람의 작은 카드 — 판 바닥의 범례 자리에 선다. 카드는 중립 면이고 색은 머리의 일간 원에만 있다
+ * (지도의 원과 같은 모양이라 「방금 누른 그 사람」으로 읽힌다).
+ */
 function PersonCard({ person, onClose }: { person: MapPerson; onClose: () => void }) {
   const score = person.compat.score;
   return (
-    <article className={`${elementScope(person.day?.element ?? null)} ${TILE} relative flex flex-col gap-3 overflow-hidden`}>
-      <ElementSymbol element={person.day?.element ?? null} className="pointer-events-none absolute -right-3 -top-3 size-20 opacity-20" />
-      <div className="relative flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          {person.day !== null && (
-            <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_70%,transparent)] py-1 pl-1 pr-2.5 text-[12px] font-semibold text-[var(--ink)]">
-              <ElementSymbol element={person.day.element} className="size-5" />
-              <span className="glyph text-[15px] font-bold leading-none">{person.day.stem}</span>
-              {person.day.picture}
-            </span>
-          )}
-          <h3 className={`${TYPE_NAME} break-all`}>{person.label}</h3>
-          {person.note !== null && <p className="mt-0.5 truncate text-[12px] text-secondary">{person.note}</p>}
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="닫기"
-          className="grid size-11 shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--surface)_78%,transparent)] text-[var(--ink)] hover:bg-surface active:scale-95"
+    <article className="flex flex-col gap-3 border-t border-border bg-surface-soft px-4 py-4 sm:px-6">
+      <div className="flex items-start gap-3">
+        <span
+          aria-hidden="true"
+          className={`${elementScope(person.day?.element ?? null)} grid size-12 shrink-0 place-items-center rounded-full border-2 ${
+            person.day === null
+              ? 'border-dashed border-border-strong bg-surface-sunken text-muted'
+              : 'border-[color-mix(in_srgb,var(--ink)_30%,transparent)] bg-[var(--tile)] text-[var(--ink)]'
+          }`}
         >
+          <span className="glyph text-[1.4rem] font-bold leading-none">{person.day?.stem ?? '?'}</span>
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className={`${TYPE_NAME} break-all`}>{person.label}</h3>
+          <p className="truncate text-[13px] leading-5 text-secondary">
+            {person.day !== null && (
+              <span>
+                일간 <span className="glyph">{person.day.stem}</span> {person.day.picture}
+              </span>
+            )}
+            {person.day !== null && person.note !== null && ' · '}
+            {person.note}
+          </p>
+        </div>
+        <button type="button" onClick={onClose} aria-label="닫기" className={ICON_BUTTON}>
           <Icon name="close" className="size-5" />
         </button>
       </div>
 
-      <p className="relative line-clamp-2 text-[13px] leading-5">
+      <p className="line-clamp-2 text-[13px] leading-5">
         {person.unreadable !== null ? (
           <span className="text-secondary">{person.unreadable}</span>
         ) : person.reading === null ? (
@@ -364,19 +366,19 @@ function PersonCard({ person, onClose }: { person: MapPerson; onClose: () => voi
       </p>
 
       {person.unreadable !== null ? (
-        <Link href={person.detailHref} className={`${BUTTON_ON_TILE} relative`}>
+        <Link href={person.detailHref} className={`${CARD_SECONDARY} self-start px-4`}>
           자세히
         </Link>
       ) : (
-        <div className="relative grid grid-cols-3 gap-1.5">
-          <Link href={person.readingHref} className={person.reading === null ? BUTTON_ON_TILE_PRIMARY : BUTTON_ON_TILE}>
+        <div className="grid grid-cols-3 gap-1.5">
+          <Link href={person.readingHref} className={person.reading === null ? CARD_PRIMARY : CARD_SECONDARY}>
             {person.reading === null ? '풀이 받기' : '풀이 보기'}
           </Link>
-          <Link href={person.compat.href} className={BUTTON_ON_TILE} aria-label={score !== null ? `나와 궁합 ${score}점` : '나와 궁합'}>
-            <Icon name="heart" className="size-4" />
-            {score !== null ? <span className="tabular-nums">{score}점</span> : '나와 궁합'}
+          <Link href={person.compat.href} className={CARD_SECONDARY} aria-label={score !== null ? `나와 궁합 ${score}점` : '나와 궁합'}>
+            <Icon name="heart" className="size-4 shrink-0" />
+            {score !== null ? <span className="tabular-nums">{score}점</span> : <span className="truncate">나와 궁합</span>}
           </Link>
-          <Link href={person.detailHref} className={BUTTON_ON_TILE}>
+          <Link href={person.detailHref} className={CARD_SECONDARY}>
             자세히
           </Link>
         </div>
