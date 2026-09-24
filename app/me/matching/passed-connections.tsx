@@ -122,7 +122,7 @@ export function PassedConnections({
   );
 }
 
-/** 되돌리기 — 아이콘 한 벌(`app/ui/icon.tsx`)에 없는 그림이라 이 화면이 든다 */
+/** 되돌리기 — 아이콘 한 벌(`app/ui/icons.tsx`)에 없는 그림이라 이 화면이 든다 */
 export function UndoIcon({ className = 'size-5' }: { className?: string }) {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className={`${className} shrink-0`} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

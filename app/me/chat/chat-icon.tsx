@@ -1,7 +1,7 @@
 /**
  * **채팅에만 쓰는 선 아이콘 다섯** — 보내기 · 자물쇠 · ⋯ · 깃발 · 차단.
  *
- * 공용 `Icon`(`app/ui/icon.tsx`)에 없는 것만 같은 격자(24 · 선 1.8 · 둥근 끝)로 여기 그렸다. 다른 화면이 쓰게
+ * 공용 `Icon`(`app/ui/icons.tsx`)에 없는 것만 같은 격자(24 · 선 1.8 · 둥근 끝)로 여기 그렸다. 다른 화면이 쓰게
  * 되면 그때 공용으로 옮긴다. 늘 `aria-hidden` 이다 — 이름은 곁의 글자나 단추의 `aria-label` 이 든다.
  */
 export type ChatIconName = 'send' | 'lock' | 'more' | 'flag' | 'block';
