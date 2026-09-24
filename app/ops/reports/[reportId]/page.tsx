@@ -8,13 +8,21 @@ import {
   NO_REVIEW_RECORD,
   SIDE_LABEL,
   UNKNOWN_SIDE_LABEL,
+  WARNING_LABEL,
   accountStatusLabel,
   evidenceTime,
   reasonLabel,
   reviewOutcomeLabel,
   reviewStateLabel,
 } from '../labels';
-import { DENIED, operatorReport, type AccountNow, type Review, type Snapshot } from '../read';
+import {
+  DENIED,
+  operatorReport,
+  type AccountNow,
+  type Review,
+  type Snapshot,
+  type WarningRecord,
+} from '../read';
 
 export const metadata = {
   title: '신고 내용 — 만세력',
@@ -85,6 +93,7 @@ export default async function OperatorReportPage({
                 )}
               </Item>
               {found.value.reviewedAt !== null && <ReviewRecord review={found.value.review} />}
+              {found.value.warning !== null && <WarningItems warning={found.value.warning} />}
             </dl>
           </section>
 
@@ -136,6 +145,28 @@ function ReviewRecord({ review }: { review: Review | null }) {
         )}
       </Item>
       {review.sanctioned !== null && <Item title="당시 제재 대상">{SIDE_LABEL[review.sanctioned]}</Item>}
+    </>
+  );
+}
+
+/**
+ * 경고의 안내 — 이용자에게 간 안내번호 · 갈래와 이용자가 확인했는가(ADR 0108). 이의 제기를 인정해 결과가 바뀌어도 안내번호는
+ * 남는다 — 그때는 갈래가 비어 있어 그 줄이 안 선다. 이메일 발송 결과는 발송 잡(G-26)이 서면 더한다.
+ */
+function WarningItems({ warning }: { warning: WarningRecord }) {
+  return (
+    <>
+      <Item title={WARNING_LABEL.ref}>
+        <span className="font-mono">{warning.ref}</span>
+      </Item>
+      {warning.category !== null && <Item title={WARNING_LABEL.category}>{reasonLabel(warning.category)}</Item>}
+      <Item title={WARNING_LABEL.acknowledged}>
+        {warning.acknowledgedAt === null ? (
+          <span className="text-muted">{WARNING_LABEL.notYet}</span>
+        ) : (
+          <span className="tabular-nums">{evidenceTime(warning.acknowledgedAt)}</span>
+        )}
+      </Item>
     </>
   );
 }

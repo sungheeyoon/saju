@@ -10,6 +10,7 @@ import {
   EVIDENCE_LABEL,
   NO_NICKNAME,
   REVIEW_LABEL,
+  WARNING_LABEL,
   evidenceTime,
   reasonLabel,
   reviewOutcomeLabel,
@@ -84,10 +85,38 @@ export default async function OperatorReportsPage({
   );
 }
 
-/** 거르는 칸 셋 — 누름이 아니라 링크다. 지금 고른 것은 `aria-current` 가 든다 */
+/**
+ * 거르는 칸 셋 — 누름이 아니라 링크다. 지금 고른 것은 `aria-current` 가 든다. 안내번호 칸은 주소(`?ref=`)로 가는 GET 폼이다 —
+ * 자료를 바꾸는 누름이 아니다(ADR 0108). 다른 거르기는 그대로 싣고 쪽만 처음으로 돌아간다.
+ */
 function Filters({ filters }: { filters: ReportFilters }) {
   return (
     <nav aria-label="신고 거르기" className={`${CARD} flex flex-col gap-4`}>
+      <form action="/ops/reports" className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+        <label htmlFor="warning-ref" className="shrink-0 text-xs font-semibold text-muted sm:w-20">
+          {WARNING_LABEL.ref}
+        </label>
+        <div className="flex gap-2">
+          {filters.review !== 'all' && <input type="hidden" name="review" value={filters.review} />}
+          {filters.reason !== null && <input type="hidden" name="reason" value={filters.reason} />}
+          {filters.evidence !== 'all' && <input type="hidden" name="evidence" value={filters.evidence} />}
+          <input
+            id="warning-ref"
+            name="ref"
+            defaultValue={filters.ref ?? ''}
+            placeholder="W-7K3F"
+            autoComplete="off"
+            spellCheck={false}
+            className="min-h-9 w-32 rounded-full border border-border bg-surface-soft px-3 font-mono text-sm uppercase"
+          />
+          <button
+            type="submit"
+            className="inline-flex min-h-9 items-center rounded-full border border-border bg-surface-soft px-3 text-sm text-secondary"
+          >
+            {WARNING_LABEL.search}
+          </button>
+        </div>
+      </form>
       <Choices
         title="처리 상태"
         options={[
@@ -189,6 +218,11 @@ function Row({ row }: { row: ReportRow }) {
             ? EVIDENCE_LABEL.none
             : `${EVIDENCE_LABEL.chat} · 메시지 ${row.snapshotMessages}건`}
         </span>
+        {row.warningRef !== null && (
+          <span className="rounded-full bg-surface-soft px-2.5 py-1 font-mono text-secondary">
+            {WARNING_LABEL.ref} {row.warningRef}
+          </span>
+        )}
       </p>
 
       <Link

@@ -221,3 +221,6 @@ export const REPORT_NOTE =
   '신고는 운영자에게 기록을 남기는 것입니다. 상대에게는 알리지 않고, 이 사람이 인연 목록에서 사라지지도 않습니다 — 보이지 않게 하려면 차단을 함께 눌러 주세요.';
 
 export const REPORT_DETAIL_MAX = 1000;
+
+/** 경고를 받은 사람에게 하는 말과 안내번호의 모양 — 따로 둔 파일이다(ADR 0108) */
+export * from './warning';

@@ -67,6 +67,8 @@ export type ReportRow = {
   readonly reviewOutcome: string | null;
   /** 저장된 메시지 수 — 대화 근거가 없으면 `null`(0 이 아니다) */
   readonly snapshotMessages: number | null;
+  /** 안내번호 — 경고로 적힌 적이 있으면 있다(이의 제기를 인정한 뒤에도 남는다, ADR 0108) */
+  readonly warningRef: string | null;
 };
 
 export type ReportPage = {
@@ -85,6 +87,7 @@ const rowOf = (row: RpcRow<'operator_reports'>): ReportRow => ({
   isOpen: row.is_open,
   reviewOutcome: row.review_outcome ?? null,
   snapshotMessages: row.snapshot_messages ?? null,
+  warningRef: row.warning_ref ?? null,
 });
 
 /**
@@ -124,6 +127,14 @@ export type Review = {
   readonly reviewerNickname: string | null;
 };
 
+/** 경고로 적힌 적이 있는 신고의 안내 — 이용자에게 간 것(갈래 · 안내번호)과 이용자가 확인했는가(ADR 0108) */
+export type WarningRecord = {
+  readonly ref: string;
+  /** 지금 경고면 갈래가 있고, 이의 제기를 인정해 결과가 바뀌었으면 `null` */
+  readonly category: string | null;
+  readonly acknowledgedAt: string | null;
+};
+
 export type ReportDetail = {
   readonly reportId: string;
   readonly createdAt: string;
@@ -136,6 +147,8 @@ export type ReportDetail = {
   readonly isOpen: boolean;
   /** 검토 기록(ADR 0105) — 검토 문이 채운다. 결과가 없으면 `null` */
   readonly review: Review | null;
+  /** 경고의 안내 — 경고로 적힌 적이 없으면 `null` */
+  readonly warning: WarningRecord | null;
   /** 대화 신고가 아니면 `null` — 「대화 근거 없음」 */
   readonly snapshot: Snapshot | null;
 };
@@ -193,6 +206,14 @@ export async function operatorReport(
             note: row.review_note ?? null,
             sanctioned: sideOf(row.sanctioned_side ?? null),
             reviewerNickname: row.reviewer_nickname ?? null,
+          },
+    warning:
+      (row.warning_ref ?? null) === null
+        ? null
+        : {
+            ref: row.warning_ref,
+            category: row.warning_category ?? null,
+            acknowledgedAt: row.warning_acknowledged_at ?? null,
           },
     snapshot:
       capturedAt === null

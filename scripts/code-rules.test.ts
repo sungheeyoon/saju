@@ -16,6 +16,8 @@ import { basename, extname, join, relative, resolve, sep } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
+import { SUPPORT_EMAIL } from '../src/lib/account';
+
 import { LAUNCHED, stagesOf } from './release-stage.mjs';
 
 const ROOT = resolve(__dirname, '..');
@@ -600,6 +602,21 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
     } else {
       // #134 는 켤 목록 전부를 ask 와 등급 3 칸에 함께 넣어 초록이었다 — 단계를 안 옮기고는 못 켠다
       expect(ask, `지금은 ${stages[0]}다 — 등급 3 은 공개 출시 전까지 묻지 않는다`).toEqual([]);
+    }
+  });
+
+  /**
+   * 경고 안내는 이의 제기의 길로 고객 문의 이메일을 이용자에게 말한다(ADR 0108). 그 주소는 사업자등록 뒤에 서므로(G-25 ㉡)
+   * 지금은 자리 표시다 — 공개 출시로 옮기는 날 채우지 않았으면 여기서 붉다.
+   */
+  it('공개 출시에는 고객 문의 이메일이 자리 표시가 아니라 주소다 (ADR 0108)', () => {
+    const [stage] = stagesOfPrd().filter((one) => one.current).map((one) => one.name);
+    if (TIER_THREE_LOCKED[stage]) {
+      expect(SUPPORT_EMAIL, 'src/lib/account/warning.ts 의 SUPPORT_EMAIL 을 채운다(G-25 ㉡)').toMatch(
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      );
+    } else {
+      expect(SUPPORT_EMAIL.length).toBeGreaterThan(0);
     }
   });
 
