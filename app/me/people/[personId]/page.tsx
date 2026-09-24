@@ -14,7 +14,7 @@ import { ReadingTabs } from '../../reading-tabs';
 import { elementScope } from '../../../element-tone';
 import { BUTTON_ON_TILE, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { ElementSymbol } from '../../../ui/element-symbol';
-import { Icon } from '../../../ui/icon';
+import { Icon } from '../../../ui/icons';
 import { TYPE_META, TYPE_TITLE } from '../../../ui/surfaces';
 import { DayMasterChip } from '../chart-bits';
 import { compatHrefFor } from '../compat-href';

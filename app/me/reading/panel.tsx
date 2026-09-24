@@ -18,7 +18,7 @@ import { ELEMENTS, type Element } from '@/src/lib/saju';
 import { elementScope } from '../../element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT } from '../../ui/surfaces';
 import { generateReading, readingRunState } from './actions';
 import { announceCreditsMoved } from './credits-signal';

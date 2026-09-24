@@ -5,7 +5,7 @@ import { isBlocked } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { BUTTON_PRIMARY } from '../../ui/buttons';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 import { TYPE_DISPLAY } from '../../ui/surfaces';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';

@@ -5,7 +5,7 @@ import { calledName } from '@/src/lib/reading/display';
 
 import { Markdown } from '../me/reading/markdown';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
-import { Icon } from '../ui/icon';
+import { Icon } from '../ui/icons';
 import { Logo } from '../ui/logo';
 import { CARD } from '../card';
 import type { ShareKind } from './path';

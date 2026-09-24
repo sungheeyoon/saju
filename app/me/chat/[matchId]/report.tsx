@@ -10,7 +10,7 @@ import {
 } from '@/src/lib/account';
 
 import { BUTTON_PRIMARY_SMALL, ICON_BUTTON } from '../../../ui/buttons';
-import { Icon } from '../../../ui/icon';
+import { Icon } from '../../../ui/icons';
 import { reportChatMessage } from '../actions';
 import { ChatIcon } from '../chat-icon';
 

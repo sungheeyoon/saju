@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { isBlocked } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';

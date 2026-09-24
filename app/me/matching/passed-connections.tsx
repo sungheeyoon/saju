@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { elementScope } from '../../element-tone';
 import { BUTTON_ON_TILE, BUTTON_TERTIARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 import type { DeckCard } from './matching-experience';
 import { supplyOf } from './orbit-map';
 

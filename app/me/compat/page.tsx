@@ -21,7 +21,7 @@ import { ReadingSection } from '../reading/section';
 import { elementScope } from '../../element-tone';
 import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 
 /**

@@ -5,7 +5,7 @@ import { useRef, useState, type MouseEvent } from 'react';
 
 import { elementScope } from '../../../element-tone';
 import { ICON_BUTTON } from '../../../ui/buttons';
-import { Icon } from '../../../ui/icon';
+import { Icon } from '../../../ui/icons';
 import { TYPE_META, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
 import type { MapLink, MapModel, MapPerson } from './model';
 import { arcBetween, placeOnOrbit, type Point } from './placement';

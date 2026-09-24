@@ -25,7 +25,7 @@ import { RelationChoice } from './relation-choice';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
 import { BUTTON_PRIMARY } from './ui/buttons';
 import { ElementSymbol } from './ui/element-symbol';
-import { Icon } from './ui/icon';
+import { Icon } from './ui/icons';
 import { PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
 
 /**

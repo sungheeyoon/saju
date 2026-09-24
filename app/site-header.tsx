@@ -18,7 +18,7 @@ import { readUnreadNotifications } from './me/requests/unread';
 import { NOTIFICATIONS_UNREAD_MOVED } from './me/requests/unread-signal';
 import { isSharePath } from './share/path';
 import { BUTTON_SECONDARY_SMALL, ICON_BUTTON } from './ui/buttons';
-import { Icon, type IconName } from './ui/icon';
+import { Icon, type IconName } from './ui/icons';
 import { BrandMark } from './ui/logo';
 import { BADGE } from './ui/surfaces';
 

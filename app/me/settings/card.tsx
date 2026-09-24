@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 
 /**
  * 계정 관리의 **무리 지은 목록 한 벌.**

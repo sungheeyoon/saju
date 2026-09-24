@@ -17,7 +17,7 @@ import { elementScope } from '../../element-tone';
 import { PILLAR_COLUMNS } from '../../saju/shared';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 import { EditInput } from '../edit-input';
 import type { ReadingEntry } from '../reading/current';
 

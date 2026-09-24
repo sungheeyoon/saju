@@ -6,7 +6,7 @@ import { ELEMENTS, ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
 import { elementScope } from '../../element-tone';
 import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT, PAPER, TYPE_SECTION } from '../../ui/surfaces';
 import { Avatar } from '../avatar';
 import { coverFace } from '../reading/essay';

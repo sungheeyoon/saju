@@ -2,7 +2,7 @@ import type { Element } from '@/src/lib/saju';
 
 import { elementScope } from './element-tone';
 import { ElementSymbol } from './ui/element-symbol';
-import { Icon } from './ui/icon';
+import { Icon } from './ui/icons';
 
 /**
  * 현관의 그림 — **점으로 이루어지는 관계**를 한 장으로 보여 준다(5차, 부드러움).

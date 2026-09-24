@@ -15,7 +15,7 @@ import {
   BUTTON_SECONDARY_SMALL,
 } from '../../../ui/buttons';
 import { ElementSymbol } from '../../../ui/element-symbol';
-import { Icon } from '../../../ui/icon';
+import { Icon } from '../../../ui/icons';
 import { TYPE_META } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { DayMasterChip } from '../../people/chart-bits';

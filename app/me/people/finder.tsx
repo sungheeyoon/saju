@@ -5,7 +5,7 @@ import { useId, useState, type ReactNode } from 'react';
 import { findStatus, findsInList, pickable } from '@/src/lib/people/pick';
 
 import { NO_MATCH, PLACEHOLDER } from '../../person-combobox';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 
 /**
  * 사람 목록 위의 **찾는 칸** — 이름(초성도)을 치면 목록이 그 사람들로 좁혀진다(ADR 0102, G-21).

@@ -18,7 +18,7 @@ import {
   BUTTON_SECONDARY_SMALL,
   BUTTON_TERTIARY,
 } from '../../ui/buttons';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
 
 /**

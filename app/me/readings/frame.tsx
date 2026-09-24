@@ -8,7 +8,7 @@ import type { Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../element-tone';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 
 /**
  * **책장과 읽는 자리 — 두 칸, 주소 하나에 글 하나.**

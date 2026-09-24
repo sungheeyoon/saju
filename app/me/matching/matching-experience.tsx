@@ -13,7 +13,7 @@ import { ELEMENT_PICTURE_KO, ELEMENTS, type Element } from '@/src/lib/saju';
 import { elementScope } from '../../element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { Icon, type IconName } from '../../ui/icon';
+import { Icon, type IconName } from '../../ui/icons';
 import { TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
 import { RefreshBoard } from '../discovery/manage';

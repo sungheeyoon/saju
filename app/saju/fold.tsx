@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { Icon } from '../ui/icon';
+import { Icon } from '../ui/icons';
 
 /**
  * **분석 표 한 장 — 접힌 채 선다**(5차, 부드러움).

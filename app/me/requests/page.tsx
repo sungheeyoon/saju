@@ -10,7 +10,7 @@ import {
 } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { Icon, type IconName } from '../../ui/icon';
+import { Icon, type IconName } from '../../ui/icons';
 import { BADGE, ROW_CARD, TYPE_META, TYPE_NAME, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
 import { Avatar } from '../avatar';
 import { AccountNotice } from '../account-notice';

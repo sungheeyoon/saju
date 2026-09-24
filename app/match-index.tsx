@@ -1,7 +1,7 @@
 import type { MatchPreview } from '@/src/lib/matching';
 
 import { CARD } from './card';
-import { Icon } from './ui/icon';
+import { Icon } from './ui/icons';
 
 /**
  * 「궁합 베타」 지표를 화면에 세우는 자리 — **여기서는 아무것도 계산하지 않는다.**

@@ -8,7 +8,7 @@ import { STEM_INFO } from '@/src/lib/saju';
 import { supabaseOnServer } from '../../../auth/server-client';
 import { PillarPair } from '../../../compat-view';
 import { BUTTON_SECONDARY, BUTTON_TERTIARY } from '../../../ui/buttons';
-import { Icon } from '../../../ui/icon';
+import { Icon } from '../../../ui/icons';
 import { EMPTY_SLOT, TYPE_TITLE } from '../../../ui/surfaces';
 import { BlockButton } from '../../requests/manage';
 import { ReadingSection } from '../../reading/section';

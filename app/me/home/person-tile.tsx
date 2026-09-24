@@ -7,7 +7,7 @@ import { elementScope } from '../../element-tone';
 import { PILLAR_COLUMNS } from '../../saju/shared';
 import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { Icon } from '../../ui/icon';
+import { Icon } from '../../ui/icons';
 import { TYPE_NAME } from '../../ui/surfaces';
 import type { ReadingEntry } from '../reading/current';
 import { tileAnchor, type HomePerson } from './map/model';

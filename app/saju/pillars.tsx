@@ -31,7 +31,7 @@ import {
 } from './shared';
 import {
   Icon,
-} from '../ui/icon';
+} from '../ui/icons';
 import {
   PillarDetails,
   type PillarDetailTab,

@@ -9,7 +9,7 @@ import type { Element } from '@/src/lib/saju';
 import { supabaseOnServer } from '../auth/server-client';
 import { elementScope } from '../element-tone';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../ui/buttons';
-import { Icon, type IconName } from '../ui/icon';
+import { Icon, type IconName } from '../ui/icons';
 import { BADGE, EMPTY_SLOT, TYPE_DISPLAY, TYPE_META, TYPE_SECTION } from '../ui/surfaces';
 import { readAccount } from './account';
 import { AccountNotice } from './account-notice';

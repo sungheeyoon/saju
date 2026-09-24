@@ -21,7 +21,7 @@ import {
   TabHeroGlow,
 } from './tab-hero';
 import { ElementSymbol } from './ui/element-symbol';
-import { Icon } from './ui/icon';
+import { Icon } from './ui/icons';
 import { BrandMark } from './ui/logo';
 import { TYPE_META, TYPE_SECTION } from './ui/surfaces';
 
