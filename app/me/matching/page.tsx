@@ -14,7 +14,8 @@ import { boardStamp, candidatesForViewer, passedForViewer } from '../candidates'
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { payloadForViewer } from '../payload';
 import { selfElementSummary } from '../summary';
-import { MatchingExperience, type DeckCard } from './matching-experience';
+import type { DeckCard } from './deck-card';
+import { MatchingExperience } from './matching-experience';
 import { meMarkOf, type MeMark } from './me-mark';
 import { QuietOrbit } from './orbit-map';
 
@@ -92,48 +93,10 @@ export default async function MatchingPage() {
   */
   const passed = await passedForViewer(self.summary);
 
-  /*
-    **증표를 뗀 평범한 값으로 넘긴다.** `CandidateCard` 는 밖에서 지을 수 없게 심볼
-    키를 들고 있는데, 심볼은 서버에서 브라우저로 건너가지 못한다 — 그대로 넘기면
-    조용히 빠지거나 직렬화가 막힌다. 넘길 칸을 여기서 한 번 적는다.
-  */
-  const cards: DeckCard[] = board.cards.map((card) => ({
-    candidateUserId: card.candidateUserId,
-    nickname: card.nickname,
-    intro: card.intro,
-    hasPhoto: card.hasPhoto,
-    avatarElement: card.avatarElement,
-    photoUrls: card.photoUrls,
-    exploration: card.exploration,
-    activity: card.activity,
-    previewScore: card.previewScore,
-    verdict: card.verdict,
-    reason: card.reason,
-    balanceLabel: card.balanceLabel,
-    highlights: card.highlights.map((highlight) => ({
-      element: highlight.element,
-      text: highlight.text,
-    })),
-  }));
-
-  const passedCards: DeckCard[] = passed.map((card) => ({
-    candidateUserId: card.candidateUserId,
-    nickname: card.nickname,
-    intro: card.intro,
-    hasPhoto: card.hasPhoto,
-    avatarElement: card.avatarElement,
-    photoUrls: card.photoUrls,
-    exploration: false,
-    activity: null,
-    previewScore: card.previewScore,
-    verdict: card.verdict,
-    reason: card.reason,
-    balanceLabel: card.balanceLabel,
-    highlights: card.highlights.map((highlight) => ({
-      element: highlight.element,
-      text: highlight.text,
-    })),
-  }));
+  const cards = board.cards.map((card) =>
+    deckCardOf(card, { exploration: card.exploration, activity: card.activity }),
+  );
+  const passedCards = passed.map((card) => deckCardOf(card, { exploration: false, activity: null }));
 
   return (
     <MatchingExperience
@@ -148,6 +111,31 @@ export default async function MatchingPage() {
       waitSeconds={stamp?.waitSeconds ?? 0}
     />
   );
+}
+
+/**
+ * **증표를 뗀 평범한 값으로 넘긴다.** `CandidateCard` 는 밖에서 지을 수 없게 심볼
+ * 키를 들고 있는데, 심볼은 서버에서 브라우저로 건너가지 못한다 — 그대로 넘기면
+ * 조용히 빠지거나 직렬화가 막힌다. 넘길 칸을 여기서 한 번 적는다 — 후보와 지나친 인연이 같은 칸이다.
+ */
+function deckCardOf(
+  card: Omit<DeckCard, 'exploration' | 'activity'>,
+  extra: Pick<DeckCard, 'exploration' | 'activity'>,
+): DeckCard {
+  return {
+    candidateUserId: card.candidateUserId,
+    nickname: card.nickname,
+    intro: card.intro,
+    hasPhoto: card.hasPhoto,
+    avatarElement: card.avatarElement,
+    photoUrls: card.photoUrls,
+    ...extra,
+    previewScore: card.previewScore,
+    verdict: card.verdict,
+    reason: card.reason,
+    balanceLabel: card.balanceLabel,
+    highlights: card.highlights.map((highlight) => ({ element: highlight.element, text: highlight.text })),
+  };
 }
 
 /**
