@@ -293,7 +293,7 @@ export function PillarChart({ saju }: { saju: Saju }) {
  *
  * 표(`table`)로 남는다. 칸 이름(시주 · 일주 …)이 열 머리이고, 낭독기는 칸마다 「일주 천간과 지지」로 부른다.
  */
-export function PillarTable({ saju }: { readonly saju: Saju }) {
+function PillarTable({ saju }: { readonly saju: Saju }) {
   const { pillars, analysis } = saju;
 
   return (

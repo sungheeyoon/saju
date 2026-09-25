@@ -4,6 +4,7 @@ import { SERVICE_NAME } from '@/src/lib/brand';
 
 import { BUTTON_PRIMARY } from '../ui/buttons';
 import { Logo } from '../ui/logo';
+import { TYPE_TITLE } from '../ui/surfaces';
 
 /**
  * 열리지 않는 공유 링크 — **세 주소(`readings` · `people` · `compat`)가 이 한 화면으로 온다.**
@@ -27,7 +28,7 @@ export default function SharedReadingNotFound() {
         <Logo className="size-10" />
       </span>
       <div className="flex max-w-sm flex-col gap-2">
-        <h1 className="font-rounded text-[1.75rem] leading-[1.3] tracking-[-0.02em]">열 수 없는 링크입니다</h1>
+        <h1 className={TYPE_TITLE}>열 수 없는 링크입니다</h1>
         <p className="text-sm leading-6 text-secondary">
           주소가 잘못됐거나 더 이상 남아 있지 않은 풀이입니다. 보낸 분에게 링크를 다시
           받아 주세요.

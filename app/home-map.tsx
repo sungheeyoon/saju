@@ -31,11 +31,10 @@ const DOTS: readonly Dot[] = [
 
 const round = (value: number) => Math.round(value * 100) / 100;
 
-/** 두 점 사이를 살짝 휜 선 — `bend` 는 길이에 대한 옆 밀기 비율(부호가 방향) */
+/** 두 점 사이를 살짝 휜 선 — 가운데에서 선에 수직으로 길이의 `bend` 만큼 민다(부호가 방향) */
 function pencil(a: { x: number; y: number }, b: { x: number; y: number }, bend: number): string {
-  const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-  const cx = (a.x + b.x) / 2 - ((b.y - a.y) / length) * length * bend;
-  const cy = (a.y + b.y) / 2 + ((b.x - a.x) / length) * length * bend;
+  const cx = (a.x + b.x) / 2 - (b.y - a.y) * bend;
+  const cy = (a.y + b.y) / 2 + (b.x - a.x) * bend;
   return `M ${round(a.x)} ${round(a.y)} Q ${round(cx)} ${round(cy)} ${round(b.x)} ${round(b.y)}`;
 }
 
@@ -55,7 +54,8 @@ export function HomeMap({ className = '' }: { className?: string }) {
           cx="50"
           cy="50"
           r={INNER}
-          fill="none" className="stroke-[color-mix(in_srgb,var(--cream-ink)_11%,transparent)]"
+          fill="none"
+          className="stroke-[color-mix(in_srgb,var(--cream-ink)_11%,transparent)]"
           strokeWidth="7"
         />
         {/* 바깥 궤도 — 동글동글한 점선 */}
@@ -63,7 +63,8 @@ export function HomeMap({ className = '' }: { className?: string }) {
           cx="50"
           cy="50"
           r={OUTER}
-          fill="none" className="stroke-[color-mix(in_srgb,var(--cream-ink)_40%,transparent)]"
+          fill="none"
+          className="stroke-[color-mix(in_srgb,var(--cream-ink)_40%,transparent)]"
           strokeWidth="1"
           strokeDasharray="0 2.8"
           strokeLinecap="round"

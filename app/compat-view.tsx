@@ -17,7 +17,7 @@ import { elementScope } from './element-tone';
 import { DayMasterChip, PillarStrip } from './me/people/chart-bits';
 import { sharedPillarChartOf, type SharedPillarChart } from './shared-pillar';
 import { ElementSymbol } from './ui/element-symbol';
-import { TILE, TYPE_META, TYPE_NAME } from './ui/surfaces';
+import { TILE, TYPE_META, TYPE_NAME, TYPE_SECTION } from './ui/surfaces';
 
 /**
  * 궁합 **결과 영역** — 입력을 어디서 받았는지 모른다.
@@ -150,7 +150,7 @@ function FoldedAnalysis({
       */}
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-[1.5rem] border border-border bg-surface px-5 py-4 hover:border-border-strong active:scale-[0.99] sm:px-6 [&::-webkit-details-marker]:hidden">
         <span>
-          <span className="font-rounded text-[1.3rem] leading-7">두 사주를 맞대어 본 표</span>
+          <span className={TYPE_NAME}>두 사주를 맞대어 본 표</span>
           <span className="mt-0.5 block text-[13px] leading-5 text-secondary">
             사이에 걸리는 관계와, 그 표에서 말할 수 있는 것.
           </span>
@@ -192,7 +192,7 @@ export function PillarPair({
     <section className="rounded-[2rem] bg-cream p-4 sm:p-6">
       <header className="px-1 pb-4 sm:px-2">
         <p className="text-[13px] font-semibold text-cream-ink">각자의 사주</p>
-        <h2 className="mt-0.5 font-rounded text-[1.5rem] leading-8">궁합의 출발점</h2>
+        <h2 className={`mt-0.5 ${TYPE_SECTION}`}>궁합의 출발점</h2>
       </header>
 
       <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">

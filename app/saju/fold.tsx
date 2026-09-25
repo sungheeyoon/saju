@@ -16,7 +16,7 @@ import { TYPE_NAME } from '../ui/surfaces';
  * **자바스크립트가 없어도 열린다** — 브라우저의 `<details>` 다. 결과 바로가기는 목적지가 접혀 있으면 열고
  * 나서 옮긴다(`result-nav.tsx`). 표시 `data-fold` 가 그 짝이다.
  */
-export const FOLD_CARD = 'group/fold rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]';
+const FOLD_CARD = 'group/fold rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]';
 
 export function Fold({
   id,

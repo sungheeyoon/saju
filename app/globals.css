@@ -64,10 +64,7 @@
   --shadow-card: 0 1px 2px rgba(60, 48, 30, 0.04), 0 12px 32px -12px rgba(60, 48, 30, 0.14);
   --shadow-float: 0 18px 50px -12px rgba(60, 48, 30, 0.28);
 
-  /* warm 시안의 이름 — 옮겨 오는 화면이 `var(--btn)` 을 그대로 써도 같은 값이 선다 */
-  --btn: var(--accent);
-  --on-btn: var(--on-accent);
-  --btn-press: var(--accent-strong);
+  /* warm 시안의 이름 — 관계 지도(`app/me/matching/orbit-map.tsx` · `today-card.tsx`)가 아직 부른다. 새 자리는 `--surface` · `--border` */
   --card: var(--surface);
   --line: var(--border);
 }
@@ -160,9 +157,6 @@
   --color-earth-mid: var(--earth-mid);
   --color-metal-mid: var(--metal-mid);
   --color-water-mid: var(--water-mid);
-  /* `none` 이라 부르면 Tailwind 의 fill-none · border-none · bg-none 이 이 색이 된다 — 그래서 모르는 기운은 unknown 이다 */
-  --color-unknown: var(--none);
-  --color-unknown-soft: var(--none-soft);
   --color-cream: var(--cream);
   --color-cream-ink: var(--cream-ink);
   --color-badge: var(--badge);
