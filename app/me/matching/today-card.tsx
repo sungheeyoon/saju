@@ -3,16 +3,17 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react';
 
 import { activityText } from '@/src/lib/presence';
-import { ELEMENT_PICTURE_KO, ELEMENTS, type Element } from '@/src/lib/saju';
+import { ELEMENT_PICTURE_KO } from '@/src/lib/saju';
 
 import { elementScope } from '../../element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
 import { CardPhotos, pagesPhotos } from './card-photos';
-import { CandidatePhoto, type DeckCard } from './matching-experience';
+import { CandidatePhoto } from './candidate-photo';
+import { elementOf, supplyOf, type DeckCard } from './deck-card';
+import { reducedMotion } from './motion';
 import styles from './orbit.module.css';
-import { supplyOf } from './orbit-map';
 import { UndoIcon } from './passed-connections';
 
 /*
@@ -34,9 +35,7 @@ const EXIT_MS = 360;
 /** 사진 없는 카드의 첫 글자 — 카드가 낮은 폰(375×667)에서도 이름 · 점수 줄에 안 얹히게 높이를 따라 줄고, 글 판 위쪽에 선다 */
 const INITIAL_ON_CARD = 'pb-[min(55%,50dvh-8rem)] text-[min(9rem,18dvh)] lg:pb-[45%] lg:text-[9rem]';
 
-const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-export type DeckActions = { undo: () => void; pass: () => void; request: () => void; canUndo: boolean; busy: boolean };
+type DeckActions = { undo: () => void; pass: () => void; request: () => void; canUndo: boolean; busy: boolean };
 
 /**
  * 사진 판 — 지금 사람과 그 뒤에서 기다리는 다음 사람. `exit` 은 누른 쪽(`left` 넘김 · `right` 요청), `leaving` 은 빠지는 중.
@@ -177,8 +176,6 @@ function FaceText({ card }: { card: DeckCard }) {
   );
 }
 
-const knownOf = (element: string): Element | null => ELEMENTS.find((one) => one === element) ?? null;
-
 /**
  * 사진 위의 「채워 주는 기운」 — 기운 칸(`Supply`)의 동그란 알을 사진 위로 옮긴 것. 색은 알에만 두고 글은 흰 글자,
  * 이름은 둥근 서체. 둘이면 알이 동전처럼 포개지고 이름은 「나무 · 불」. 알의 테는 궤도 지도 위 얼굴처럼 판 색 한 겹이다.
@@ -187,14 +184,14 @@ const knownOf = (element: string): Element | null => ELEMENTS.find((one) => one 
 function SupplyOnPhoto({ card }: { card: DeckCard }) {
   if (card.highlights.length === 0) return null;
   const names = card.highlights.map((highlight) => {
-    const known = knownOf(highlight.element);
+    const known = elementOf(highlight.element);
     return known !== null ? ELEMENT_PICTURE_KO[known] : highlight.element;
   });
   return (
     <div className="flex items-center gap-3">
       <span aria-hidden="true" className="flex shrink-0 -space-x-2.5 pl-1">
         {card.highlights.map((highlight) => {
-          const known = knownOf(highlight.element);
+          const known = elementOf(highlight.element);
           return (
             <span key={highlight.element} className={`${elementScope(known)} ${styles.breathe} grid size-11 place-items-center rounded-full`}>
               <span className="grid size-full place-items-center rounded-full bg-[var(--tile)]" style={{ boxShadow: '0 0 0 2px var(--card)' }}>
