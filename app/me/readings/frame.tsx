@@ -101,7 +101,7 @@ export function CoverLink({
     <Link
       href={href}
       aria-current={current ? 'page' : undefined}
-      className={`${className} ${current ? 'ring-[3px] ring-[var(--btn)] ring-offset-2 ring-offset-background' : ''}`}
+      className={`${className} ${current ? 'ring-[3px] ring-accent ring-offset-2 ring-offset-background' : ''}`}
       style={style}
     >
       {children}

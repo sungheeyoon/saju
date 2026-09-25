@@ -7,7 +7,7 @@ import { Markdown } from '../me/reading/markdown';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { Logo } from '../ui/logo';
-import { TYPE_SECTION } from '../ui/surfaces';
+import { TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
 import { CARD } from '../card';
 import type { ShareKind } from './path';
 import { sharedReadingOf } from './read';
@@ -71,7 +71,7 @@ export async function SharedReadingView({
             머리에 한 번 세우는 것뿐이고, **미리보기에는 안 싣는다**(ADR 0063) —
             대화창 목록에, 열어 보기도 전에 남의 이름이 서는 일은 없어야 한다.
           */}
-          <h1 className="text-pretty font-rounded text-[1.75rem] leading-[1.3] tracking-[-0.02em] sm:text-[2rem]">{whose}</h1>
+          <h1 className={`text-pretty ${TYPE_TITLE}`}>{whose}</h1>
         </div>
         <StartButton variant="quiet" />
       </header>

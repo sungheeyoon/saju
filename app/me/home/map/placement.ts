@@ -16,7 +16,7 @@
 export type Ring = 'inner' | 'outer';
 export type Point = { x: number; y: number };
 
-export const RADIUS = { inner: 29, outer: 44 } as const;
+const RADIUS = { inner: 29, outer: 44 } as const;
 const INNER_ROOM = 6;
 
 export type Placed = { radius: Record<Ring, number>; at: Record<string, Point> };
