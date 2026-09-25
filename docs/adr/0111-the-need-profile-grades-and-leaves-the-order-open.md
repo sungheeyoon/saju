@@ -34,3 +34,19 @@
 - `precedence: 'unresolved'` 면 `unresolvedBecause` 가 비지 않는다.
 - `needProfileOf` 는 한 사람만 본다 — 두 사람의 순서를 바꿔도 각자의 프로필이 같다.
 - 근거 스냅샷 · 골든 스냅샷은 이 일로 바뀌지 않는다.
+
+## 구현 (2026-09-25)
+
+- `eokbuJudgementOf`(`eokbuJudgement.ts`) — 1순위는 `eokbuAssessmentOf` 그대로(표본 1200 전부 같다). 불균형은
+  강약 기준 셋이 한쪽이면 `high`, 둘 대 하나면 `low` 뿐이다. 신뢰도는 `low` · `medium` 둘. 외부 억부 20건에서
+  1순위 10/20, 1순위 또는 대안 15/20(맞춘 수), `medium` 6건은 6건 다 맞고 `low` 14건은 4건.
+- `johuJudgementOf`(`johuJudgement.ts`) — 급함은 늘 `unresolved`, 신뢰도는 늘 `low`. 국 · 세력 문턱 · 적히지
+  않은 조건은 판정하지 않는다.
+- `eokbuJohuRelationOf` · `needProfileOf`(`needProfile.ts`) — 충돌은 조후 활성 글자가 억부의 가장 무거운 쪽일
+  때만, 같은 쪽은 활성 글자가 **모두** 억부 1순위 오행일 때만(대안은 세지 않는다), 억부가 말하지 않은
+  오행만 권하면 `not-comparable` 이다. `reinforced` 는 같은 쪽이면서 종격이 안 서고 조후 조건을 다 판정한
+  때뿐이다. 무작위 1000건(시드 20260821): 충돌 373 · 일부 390 · 견줄 수 없음 199 · 같은 쪽 38 · 모자람 0,
+  서열 `unresolved` 975 · `reinforced` 25. 외부 억부 20건: 충돌 4 · 일부 7 · 견줄 수 없음 9, 스물 다 `unresolved`.
+  기존 `yongsinAgreement.aligned` 와 견주면 `aligned` 578 건 중 188 건이 충돌이다 — 겹치는 글자가 있어도
+  조후가 무거운 쪽을 함께 보태는 명식이다. 프로필 신뢰도는 조후가 늘 `low` 라 지금 늘 `low` 다.
+- `COMPAT_POLICY.scoring: 'not-scored'` · `discovery-v1` 은 그대로다. 근거 · 골든 스냅샷은 바뀌지 않았다.

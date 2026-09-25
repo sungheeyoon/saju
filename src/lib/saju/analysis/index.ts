@@ -27,6 +27,7 @@ import { tenGodChartOf, tenGodCountsOf, type TenGod, type TenGodChart } from './
 
 export * from './bureau';
 export * from './effectiveElements';
+export * from './eokbuJudgement';
 export * from './fiveElements';
 export * from './followingPatterns';
 export * from './johu';
@@ -34,6 +35,8 @@ export * from './johuConditions';
 export * from './johuJudgement';
 export * from './favorability';
 export * from './hiddenRelations';
+export * from './needProfile';
+export * from './needProfileTypes';
 export * from './rootedness';
 export * from './rootQuality';
 export * from './structure';
