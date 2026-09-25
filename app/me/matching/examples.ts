@@ -3,7 +3,7 @@ import { candidateCardText } from '@/src/lib/discovery';
 import harinPhoto from '../../../public/matching/harin.webp';
 import jiwooPhoto from '../../../public/matching/jiwoo.webp';
 import seoyeonPhoto from '../../../public/matching/seoyeon.webp';
-import type { DeckCard } from './matching-experience';
+import type { DeckCard } from './deck-card';
 import { meMarkOf } from './me-mark';
 
 /**

@@ -11,6 +11,12 @@
 
 const API = 'https://api.portone.io';
 
+/**
+ * 조회를 기다리는 한도. `fetch` 는 스스로 끊지 않아서, PortOne 이 답을 안 하면 함수가 제 수명(기본 300초)까지 붙들린다.
+ * 끊으면 던지고 라우트가 503 으로 답해 PortOne 이 다시 보낸다 — 알림의 답도 몇 초 안에 가야 재전송이 겹치지 않는다.
+ */
+const LOOKUP_TIMEOUT_MS = 10_000;
+
 export type PortoneConfig = { webhookSecret: string; apiSecret: string; storeId: string };
 
 /** 결제 단건 — 승인에 드는 칸만 */
@@ -58,7 +64,7 @@ export function paymentOf(json: unknown): PortonePayment {
 }
 
 /**
- * @throws 닿지 못했거나 404 가 아닌 실패 — 라우트가 503 으로 답해 PortOne 이 다시 보낸다
+ * @throws 닿지 못했거나 · 한도 안에 답이 없거나 · 404 가 아닌 실패 — 라우트가 503 으로 답해 PortOne 이 다시 보낸다
  */
 export async function portonePayment(
   paymentId: string,
@@ -69,6 +75,7 @@ export async function portonePayment(
   const response = await fetchImpl(url, {
     headers: { authorization: `PortOne ${config.apiSecret}` },
     cache: 'no-store',
+    signal: AbortSignal.timeout(LOOKUP_TIMEOUT_MS),
   });
   if (response.status === 404) return { kind: 'missing' };
   if (!response.ok) throw new Error(`portone payment: ${response.status}`);

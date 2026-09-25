@@ -229,6 +229,9 @@ describe('PortOne 결제 단건 조회 — 가짜 fetch (G-23 ⑥)', () => {
     });
     expect(calls[0].url).toBe(`https://api.portone.io/payments/${PAYMENT_ID}?storeId=${CONFIG.storeId}`);
     expect(calls[0].init?.headers).toEqual({ authorization: `PortOne ${CONFIG.apiSecret}` });
+    // 답이 없으면 끊는다 — 한도 없는 fetch 는 함수를 제 수명까지 붙든다
+    expect(calls[0].init?.signal).toBeInstanceOf(AbortSignal);
+    expect(calls[0].init?.signal?.aborted).toBe(false);
   });
 
   it('404 는 없음이고, 다른 실패는 던진다', async () => {
