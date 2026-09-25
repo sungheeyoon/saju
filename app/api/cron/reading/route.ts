@@ -81,7 +81,7 @@ export async function GET(request: Request): Promise<Response> {
      * 여기서 더 기다리지 않는다 — 기다리면 DB 만료가 먼저 와서 이유 없는 실패가 된다.
      */
     if (job.overdue) {
-      await keyed.rpc('fail_reading_job', {
+      const { error: notClosed } = await keyed.rpc('fail_reading_job', {
         p_run_id: job.run_id,
         p_failure_code: job.failure_code,
         p_failure_detail:
@@ -89,7 +89,9 @@ export async function GET(request: Request): Promise<Response> {
             ? '만들기를 시작하지 못했습니다'
             : '만드는 데 너무 오래 걸렸습니다',
       });
-      closed += 1;
+      // 못 닫았으면 센 수에 넣지 않고 기록에 남긴다 — 다음 바퀴가 같은 일감을 다시 집는다
+      if (notClosed) console.error('cron reading: fail_reading_job', notClosed.code);
+      else closed += 1;
       continue;
     }
 

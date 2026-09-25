@@ -1,10 +1,9 @@
-import type { ReactNode } from 'react';
-
 import { ELEMENTS, ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../element-tone';
 import { ElementSymbol } from '../../ui/element-symbol';
-import type { DeckCard } from './matching-experience';
+import { CandidatePhoto } from './candidate-photo';
+import { elementOf, supplyOf, type DeckCard } from './deck-card';
 import type { MeMark } from './me-mark';
 import styles from './orbit.module.css';
 
@@ -18,7 +17,7 @@ import styles from './orbit.module.css';
 
   그림의 문법은 둘이다. **거리는 관계다** — 바깥 궤도는 기다림, 안으로 들어온 자리는 다가옴, 가운데는 나. 그래서 지금
   후보는 바깥의 제 자리에서 안으로 들어와 서고(지나온 길이 옅은 점선으로 남는다), 넘기면 궤도 밖으로 날아가고, 요청하면
-  가운데(나)로 빨려 든다. 사진을 끄는 만큼(`pull`) 미리 따라 움직인다. **각도는 무엇을 채우는가다** — 후보는 제가 채워
+  가운데(나)로 빨려 든다. **각도는 무엇을 채우는가다** — 후보는 제가 채워
   주는 오행의 방향에 서므로, 기다리는 사람들의 자리만 봐도 내 어느 빈 곳으로 누가 오는지가 읽힌다. 색은 절제한다:
   채워지는 자리(선 · 차오르는 알 · 지금 후보의 테)에만 오행 색이 서고, 기다리는 얼굴은 채도를 낮춘다.
   모양은 둘이다: `round` 는 넓은 화면의 온 궤도, `arc` 는 폰의 **해돋이 띠**(궤도의 위쪽 반만 가로로 펴고 나는 띠 아래
@@ -87,15 +86,6 @@ function pointOf(shape: Shape, angle: number, [rx, ry]: Ring) {
   return { x: round2(center.x + rx * Math.cos(rad)), y: round2(center.y + ry * Math.sin(rad)) };
 }
 
-const isElement = (value: string | undefined): value is Element =>
-  value !== undefined && (ELEMENTS as readonly string[]).includes(value);
-
-/** 그 사람이 채워 주는 첫 기운 — 서버가 준 차례 그대로다(「가장 강한」이라고 읽지 않는다) */
-export const supplyOf = (card: DeckCard): Element | null => {
-  const element = card.highlights[0]?.element;
-  return isElement(element) ? element : null;
-};
-
 /**
  * 바깥 궤도의 자리 — 저마다 **자기가 채워 주는 오행의 각도**를 원하고, 이웃과 `gap` 보다 가까우면 서로 밀어 벌린다.
  *
@@ -133,8 +123,6 @@ function anglesOf(shape: Shape, cards: readonly DeckCard[]): Record<string, numb
   return out;
 }
 
-const mix = (a: Ring, b: Ring, t: number): Ring => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-
 /** 후보 → 채워 줄 오행 자리. 곧은 선 대신 한쪽으로 살짝 휜 곡선 — 중점을 수직으로 민다 */
 function curveOf(from: { x: number; y: number }, to: { x: number; y: number }, aspect: number) {
   const a = { x: from.x * aspect, y: from.y };
@@ -150,17 +138,13 @@ function curveOf(from: { x: number; y: number }, to: { x: number; y: number }, a
 const MOVE = 'transition-[left,top,opacity,transform] duration-[460ms] ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none';
 
 /**
- * 지도 한 장. `pull` 은 사진을 끄는 만큼(-1 ~ 1): 왼쪽으로 끌면 지금 후보가 궤도 밖으로 물러나고, 오른쪽으로 끌면
- * 나에게로 다가온다. `faceOf` 는 후보 점에 설 얼굴 — 사진은 덱이 한 자리에서 그린다(`CandidatePhoto`).
+ * 지도 한 장. 후보 점에 서는 얼굴은 덱 · 지나친 인연과 같은 `CandidatePhoto` 다.
  */
 export function ApproachMap({
   shape,
   me,
   cards,
   statusOf,
-  faceOf,
-  pull = 0,
-  dragging = false,
   compact = false,
   className = '',
 }: {
@@ -168,9 +152,6 @@ export function ApproachMap({
   me: MeMark | null;
   cards: readonly DeckCard[];
   statusOf: (card: DeckCard) => MapStatus;
-  faceOf: (card: DeckCard) => ReactNode;
-  pull?: number;
-  dragging?: boolean;
   /** 빈 날 · 내 사주 없음의 작은 궤도 — 알이 작아지고 이름표가 빠진다 */
   compact?: boolean;
   className?: string;
@@ -182,14 +163,12 @@ export function ApproachMap({
   const small = arc || compact;
   const current = cards.find((card) => statusOf(card) === 'current') ?? null;
   const angles = anglesOf(shape, cards);
-  const supplied = current?.highlights.map((highlight) => highlight.element).filter(isElement) ?? [];
+  const supplied = current?.highlights.map((highlight) => elementOf(highlight.element)).filter((element) => element !== null) ?? [];
   const lit = supplied[0] ?? null;
 
   const ringOf = (status: MapStatus): Ring => {
     const { ring } = geometry;
     if (status === 'current') {
-      if (pull > 0) return mix(ring.current, [ring.element[0] * 0.6, ring.element[1] * 0.6], pull * 0.5);
-      if (pull < 0) return mix(ring.current, ring.passed, -pull * 0.35);
       return ring.current;
     }
     if (status === 'waiting' || status === 'kept') return ring.waiting;
@@ -263,7 +242,7 @@ export function ApproachMap({
             strokeWidth={arc ? 1.2 : 0.6}
             strokeDasharray={arc ? '0.01 3' : '0.01 1.8'}
             strokeLinecap="round"
-            className={dragging ? 'opacity-0' : 'opacity-100 transition-opacity duration-700'}
+            className="transition-opacity duration-700"
           />
         )}
         {current !== null && supplied.map((element) => {
@@ -317,7 +296,7 @@ export function ApproachMap({
         return (
           <span
             key={card.candidateUserId}
-            className={`${elementScope(supply)} absolute -translate-x-1/2 -translate-y-1/2 ${dragging && now ? '' : MOVE} ${
+            className={`${elementScope(supply)} absolute -translate-x-1/2 -translate-y-1/2 ${MOVE} ${
               gone ? 'scale-50 opacity-0' : 'scale-100 opacity-100'
             } ${now ? 'z-10' : ''}`}
             style={{ left: `${at.x}%`, top: `${at.y}%` }}
@@ -332,7 +311,7 @@ export function ApproachMap({
                   : `0 0 0 2.5px var(--card), 0 6px 14px -8px ${SHADOW_SOFT}`,
               }}
             >
-              {faceOf(card)}
+              <CandidatePhoto card={card} />
             </span>
             {card.exploration && (
               <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[var(--card)] text-[var(--ink)] shadow-sm ring-1 ring-[var(--line)]">
@@ -459,7 +438,7 @@ export function Legend({ className = '' }: { className?: string }) {
 export function QuietOrbit({ me }: { me: MeMark | null }) {
   return (
     <div className="mx-auto w-full max-w-[13rem] sm:max-w-[14rem]">
-      <ApproachMap shape="round" me={me} cards={[]} statusOf={() => 'waiting'} faceOf={() => null} compact />
+      <ApproachMap shape="round" me={me} cards={[]} statusOf={() => 'waiting'} compact />
     </div>
   );
 }

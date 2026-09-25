@@ -6,8 +6,9 @@ import { elementScope } from '../../element-tone';
 import { BUTTON_SECONDARY_SMALL, BUTTON_TERTIARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
-import type { DeckCard } from './matching-experience';
-import { supplyOf } from './orbit-map';
+import { CandidatePhoto } from './candidate-photo';
+import { supplyOf, type DeckCard } from './deck-card';
+import { PASSED_LIMIT } from './deck-state';
 
 /*
   **지나친 인연 — 「오늘의 인연」 옆의 두 번째 보기.**
@@ -25,7 +26,6 @@ export function PassedConnections({
   working,
   onRestore,
   onBack,
-  faceOf,
   map,
   feedback,
 }: {
@@ -34,7 +34,6 @@ export function PassedConnections({
   working: boolean;
   onRestore: (card: DeckCard) => Promise<string | null>;
   onBack: () => void;
-  faceOf: (card: DeckCard) => ReactNode;
   map: ReactNode;
   feedback: ReactNode;
 }) {
@@ -51,7 +50,7 @@ export function PassedConnections({
       <div className="flex flex-col gap-1">
         <h2 id="passed-title" ref={heading} tabIndex={-1} className="font-rounded flex items-baseline gap-2 text-[1.5rem] leading-8 text-foreground outline-none">
           지나친 인연
-          {cards.length > 0 && <span className="font-sans text-[13px] font-semibold tabular-nums text-secondary">{cards.length} / 20</span>}
+          {cards.length > 0 && <span className="font-sans text-[13px] font-semibold tabular-nums text-secondary">{cards.length} / {PASSED_LIMIT}</span>}
         </h2>
         {cards.length > 0 && <p className="text-[15px] text-secondary">잠깐 지나쳤어도, 다시 궁금해질 수 있으니까요.</p>}
       </div>
@@ -75,7 +74,7 @@ export function PassedConnections({
           {cards.map((card) => (
             <li key={card.candidateUserId} className="flex flex-col overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-[var(--shadow-card)]">
               <span className="relative block aspect-square text-[3rem]">
-                {faceOf(card)}
+                <CandidatePhoto card={card} />
                 <span className={`${elementScope(supplyOf(card))} absolute bottom-2 left-2 grid size-9 place-items-center rounded-full bg-[var(--tile)] ring-2 ring-surface`}>
                   <ElementSymbol element={supplyOf(card)} className="size-5" />
                 </span>
@@ -115,7 +114,7 @@ export function PassedConnections({
         <p className="text-[12px] leading-5 text-secondary">
           {preview
             ? '미리보기에서는 실제 보관 기록을 바꾸지 않아요.'
-            : '최근 20명을 보관해요. 목록에서 빠진 인연은 마지막으로 넘긴 뒤 하루가 지나면 다시 추천될 수 있어요.'}
+            : `최근 ${PASSED_LIMIT}명을 보관해요. 목록에서 빠진 인연은 마지막으로 넘긴 뒤 하루가 지나면 다시 추천될 수 있어요.`}
         </p>
       </div>
     </section>
