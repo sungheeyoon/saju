@@ -51,7 +51,7 @@ export default async function MePage() {
   const nickname = account?.nickname?.trim() ?? '';
 
   return (
-    <main className="app-shell flex min-w-0 flex-1 flex-col gap-8 py-8 sm:gap-12 sm:py-12">
+    <main className="app-shell flex min-w-0 flex-1 flex-col gap-6 py-5 sm:gap-12 sm:py-12">
       {isBlocked(state) ? (
         <AccountNotice state={state} />
       ) : (
@@ -85,7 +85,13 @@ async function DiscoveryDoor() {
   return null;
 }
 
-/** 인사 한 줄 — 이 화면에서 가장 먼저 읽히는 글자. 날짜는 한국 시각이다(서버의 시계는 UTC 다) */
+/**
+ * 인사 한 줄 — 넓은 화면에서 가장 먼저 읽히는 글자. 날짜는 한국 시각이다(서버의 시계는 UTC 다).
+ *
+ * **폰에서는 눈에 안 보이고 제목으로만 남는다**(2026-09-25). 폰의 첫 화면은 카드 한 장이 다 들어야 하는데
+ * 인사가 그 앞에서 100px 가까이 썼고, 매일 오는 사람에게 인사는 이틀째부터 안 읽힌다. 내 사주 카드의 이름
+ * 줄이 그 자리를 맡는다. 지우지 않는 것은 이 줄이 화면의 하나뿐인 `h1` 이라서다.
+ */
 function Greeting({ name }: { name: string }) {
   const today = new Date().toLocaleDateString('ko-KR', {
     month: 'long',
@@ -94,7 +100,7 @@ function Greeting({ name }: { name: string }) {
     timeZone: 'Asia/Seoul',
   });
   return (
-    <header className="flex flex-col gap-1">
+    <header className="sr-only flex flex-col gap-1 sm:not-sr-only">
       <p className={TYPE_META}>{today}</p>
       <h1 className={TYPE_DISPLAY}>{name === '' ? '반가워요' : `${name}님, 오늘도 반가워요`}</h1>
     </header>
@@ -153,21 +159,22 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
         </section>
       ) : (
         /*
-          넓은 화면에서 지도(5)와 내 카드(7)가 한 줄에 서고 **같은 높이로 늘어난다**(`items-stretch`) — 두
-          카드가 저마다 단추 · 범례 띠를 바닥에 붙여 아랫선까지 맞는다.
+          **내 사주가 먼저 선다**(2026-09-25) — 이 앱의 첫 얼굴은 나이고, 관계 지도는 그 둘레다. 폰에서는 위,
+          넓은 화면에서는 왼쪽의 넓은 칸(7)이다. 두 카드는 한 줄에 서고 **같은 높이로 늘어난다**(`items-stretch`)
+          — 저마다 단추 · 범례 띠를 바닥에 붙여 아랫선까지 맞는다.
         */
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-stretch lg:gap-6">
-          <RelationMap
-            model={mapModelOf({ self: { personId: selfPersonId, label: stood.query.name, saju: stood.saju }, people, readings })}
-            addHref="/me/people"
-            canAdd={circle.slots === null || circle.slots.remaining > 0}
-          />
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-stretch lg:gap-6">
           <SelfCard
             personId={selfPersonId}
             label={stood.query.name}
             query={stood.query}
             saju={stood.saju}
             reading={selfReadingOf(readings)}
+          />
+          <RelationMap
+            model={mapModelOf({ self: { personId: selfPersonId, label: stood.query.name, saju: stood.saju }, people, readings })}
+            addHref="/me/people"
+            canAdd={circle.slots === null || circle.slots.remaining > 0}
           />
         </div>
       )}
@@ -328,7 +335,7 @@ async function Unread() {
   return (
     <Link
       href="/me/requests"
-      className="-mt-4 flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.99] sm:-mt-6"
+      className="flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.99] sm:-mt-6"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-fire-soft text-fire">
         <Icon name="bell" className="size-[18px]" />

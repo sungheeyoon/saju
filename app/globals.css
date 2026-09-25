@@ -278,4 +278,11 @@ button, a, summary {
   body:has(#mobile-member-navigation) {
     padding-bottom: calc(6rem + env(safe-area-inset-bottom));
   }
+  /*
+    **스크롤해 데려가는 자리도 독을 비켜 선다** — 앵커(`#person-…`) · 키보드 초점 · 스크롤해 보여주기가 화면
+    바닥에 세운 것을 독이 덮었다. 홈에서 관계 지도가 내 사주 아래로 내려간 뒤(2026-09-25) 지도의 원이 그 자리에 섰다.
+  */
+  html:has(#mobile-member-navigation) {
+    scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
 }

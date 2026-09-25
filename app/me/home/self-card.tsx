@@ -54,23 +54,23 @@ export function SelfCard({
   return (
     <section
       aria-label="내 사주"
-      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between gap-6 overflow-hidden rounded-[2rem] bg-[var(--tile)] p-5 sm:p-8`}
+      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between gap-4 overflow-hidden rounded-[2rem] bg-[var(--tile)] p-5 sm:gap-6 sm:p-8`}
     >
       <ElementSymbol element={dayElement} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
 
       {/* 이름(가장 크게)과 바로 아래 한 줄 평 — 내 사주풀이의 비유. 풀이가 없으면 그 줄은 서지 않는다 */}
-      <header className="relative flex min-w-0 flex-col gap-3 pr-14">
+      <header className="relative flex min-w-0 flex-col gap-2 pr-14 sm:gap-3">
         <div>
           <p className="flex items-center gap-2 text-[13px] font-semibold text-[var(--ink)]">
             <span className="rounded-full bg-[var(--ink)] px-2 py-0.5 text-[11px] font-bold text-[var(--tile)]">나</span>
             내 사주
           </p>
-          <h2 className="mt-2 break-all font-rounded text-[2rem] leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
+          <h2 className="mt-1 break-all font-rounded text-[1.75rem] leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
             {label}
           </h2>
         </div>
         {reading?.metaphor != null && (
-          <p className="font-rounded text-lg leading-[1.5] text-foreground sm:text-xl">
+          <p className="font-rounded text-[1.0625rem] leading-[1.5] text-foreground sm:text-xl">
             <span className="sr-only">내 사주풀이의 비유 </span>
             <span aria-hidden="true" className="text-[var(--ink)]">“</span>
             {reading.metaphor}
@@ -90,22 +90,23 @@ export function SelfCard({
 
       <BirthLine query={query} />
 
-      <div className="relative grid gap-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:items-end md:gap-8">
+      <div className="relative grid gap-4 sm:gap-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:items-end md:gap-8">
         <Pillars saju={saju} />
         <ElementCounts saju={saju} />
       </div>
 
-      <div className="relative flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <Link href="/me/readings/self" className={`${BUTTON_PRIMARY} sm:min-w-52`}>
+      {/* 폰에서도 두 단추가 한 줄을 나눠 쓴다 — 세로로 쌓으면 단추 줄만 110px 였다 */}
+      <div className="relative flex flex-wrap items-center gap-2">
+        <Link href="/me/readings/self" className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}>
           <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
           {reading === null ? '사주풀이 받기' : '사주풀이 보기'}
           {reading !== null && !reading.fromCurrentChart && (
             <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">{READING_STALE_LABEL}</span>
           )}
         </Link>
-        <Link href={`/me/people/${personId}`} className={BUTTON_SECONDARY}>
+        <Link href={`/me/people/${personId}`} className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}>
           사주 자세히 보기
-          <Icon name="arrow" className="size-4" />
+          <Icon name="arrow" className="hidden size-4 sm:block" />
         </Link>
       </div>
     </section>
@@ -125,7 +126,7 @@ function Pillars({ saju }: { saju: Saju }) {
               {label}
             </span>
             {pillar === null ? (
-              <span className="grid min-h-[7.25rem] place-items-center rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--ink)_30%,transparent)] px-1 text-center text-[12px] leading-tight text-secondary sm:min-h-[8.5rem]">
+              <span className="grid min-h-[6.25rem] place-items-center rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--ink)_30%,transparent)] px-1 text-center text-[12px] leading-tight text-secondary sm:min-h-[8.5rem]">
                 {HOUR_UNKNOWN_LABEL}
               </span>
             ) : (
@@ -150,7 +151,7 @@ function Glyph({ char, element }: { char: string; element: Element }) {
   return (
     <span
       aria-hidden="true"
-      className={`${elementScope(element)} glyph grid h-[3.25rem] place-items-center rounded-xl bg-[var(--tile)] text-[2.1rem] font-bold leading-none text-[var(--ink)] sm:h-16 sm:text-[2.6rem]`}
+      className={`${elementScope(element)} glyph grid h-11 place-items-center rounded-xl bg-[var(--tile)] text-[1.85rem] font-bold leading-none text-[var(--ink)] sm:h-16 sm:text-[2.6rem]`}
     >
       {char}
     </span>
@@ -169,11 +170,11 @@ function ElementCounts({ saju }: { saju: Saju }) {
           return (
             <li
               key={element}
-              className={`${elementScope(element)} flex flex-col items-center gap-0.5 rounded-2xl px-1 py-2.5 ${
+              className={`${elementScope(element)} flex flex-col items-center gap-0.5 rounded-2xl px-1 py-2 sm:py-2.5 ${
                 count === 0 ? 'border border-dashed border-[color-mix(in_srgb,var(--foreground)_22%,transparent)]' : 'bg-surface'
               }`}
             >
-              <ElementSymbol element={element} className="size-7" />
+              <ElementSymbol element={element} className="size-6 sm:size-7" />
               <span className="text-[12px] font-medium text-secondary">{ELEMENT_PICTURE_KO[element]}</span>
               <span className={`text-[1.25rem] font-bold leading-none tabular-nums ${count === 0 ? 'text-secondary' : 'text-[var(--ink)]'}`}>
                 {count}
@@ -188,7 +189,9 @@ function ElementCounts({ saju }: { saju: Saju }) {
 }
 
 /**
- * 저장된 출생 정보 — **이 사주가 무엇으로 계산됐나.**
+ * 저장된 출생 정보 — **이 사주가 무엇으로 계산됐나.** 폰에서는 상자를 벗고 한 줄(생년월일 · 출생지)로 선다
+ * (2026-09-25) — 카드 한 장이 첫 화면에 들어야 해서다. 아예 빼면 고친 입력이 홈 어디에도 안 보인다. 성별과 자시
+ * 규칙은 넓은 화면에만 서고, 폰에서는 「사주 자세히 보기」에 있다. 두 폭이 **같은 글 한 벌**을 입는다.
  *
  * 음력으로 넣었으면 적은 그대로와 바뀐 양력을 함께 보여준다. 양력만 보이면 사용자가 자기 입력을 못
  * 알아보고, 원본만 보이면 우리가 무엇으로 계산했는지 모른다(ADR 0002).
@@ -207,13 +210,13 @@ function BirthLine({ query }: { query: Query }) {
   ] as const;
 
   return (
-    <section className="relative rounded-[1.25rem] bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] px-4 py-3">
-      <h3 className="text-[13px] font-semibold text-secondary">저장된 출생 정보</h3>
-      <dl className="mt-1.5 grid grid-cols-[auto_1fr] gap-x-5 gap-y-1 text-[14px] leading-6 sm:grid-cols-[auto_1fr_auto_1fr]">
-        {rows.map(([term, value]) => (
-          <div key={term} className="contents">
-            <dt className="text-secondary">{term}</dt>
-            <dd className="min-w-0 tabular-nums text-foreground">{value}</dd>
+    <section className="relative -mt-2 sm:mt-0 sm:rounded-[1.25rem] sm:bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] sm:px-4 sm:py-3">
+      <h3 className="sr-only text-[13px] font-semibold text-secondary sm:not-sr-only">저장된 출생 정보</h3>
+      <dl className="flex flex-wrap gap-x-1.5 text-[13px] leading-5 text-secondary sm:mt-1.5 sm:grid sm:grid-cols-[auto_1fr_auto_1fr] sm:gap-x-5 sm:gap-y-1 sm:text-[14px] sm:leading-6">
+        {rows.map(([term, value], at) => (
+          <div key={term} className={at === 0 || at === 2 ? 'contents' : 'hidden sm:contents'}>
+            <dt className="sr-only text-secondary sm:not-sr-only">{term}</dt>
+            <dd className={`min-w-0 tabular-nums sm:text-foreground ${at === 2 ? "before:mr-1.5 before:content-['·'] sm:before:content-none" : ''}`}>{value}</dd>
           </div>
         ))}
       </dl>
