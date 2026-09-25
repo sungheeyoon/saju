@@ -94,6 +94,7 @@ const faceOf = (card: DeckCard) => <CandidatePhoto card={card} />;
 // 고른 것을 읽을 시간을 주고 나서 카드가 떠난다.
 const CHOICE_HOLD_MS = 100;
 const CARD_EXIT_MS = 360;
+const FLASH_MS = 2000;
 const EMPTY_CARDS: readonly DeckCard[] = [];
 /** 이보다 긴 소개는 세 줄로 접어 두고 「더 보기」로 편다 — 소개가 카드를 늘어뜨리지 않게 */
 const LETTER_FOLD_AT = 90;
@@ -148,6 +149,16 @@ export function MatchingExperience({
   const [exit, setExit] = useState<'left' | 'right' | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [announcement, setAnnouncement] = useState('');
+  /**
+   * 눈에 잠깐 서는 한 줄 — 되돌려 온 일 · 요청을 보낸 일. **2초 뒤 걷힌다**(운영자 2026-09-25). 넘긴 일은 눈에 안 띄운다 —
+   * 카드가 빠지는 것이 이미 말하고, 되돌릴 길은 카드 아래 ↶ 다. 보조기기에는 `announcement` 가 늘 읽힌다.
+   */
+  const [flash, setFlash] = useState('');
+  useEffect(() => {
+    if (flash === '') return;
+    const clear = setTimeout(() => setFlash(''), FLASH_MS);
+    return () => clearTimeout(clear);
+  }, [flash]);
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -168,6 +179,7 @@ export function MatchingExperience({
   /** 카드를 떠나보낸다 — 지나가는 것은 **이 자리에서만** 없어진다(서버에 안 적는다) */
   function leave(direction: 'left' | 'right', said: string, id: string) {
     setExit(direction);
+    if (direction === 'right') setFlash(said);
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     setAnnouncement(said);
     timer.current = setTimeout(() => {
@@ -245,6 +257,7 @@ export function MatchingExperience({
         cancelLeave();
         dispatch({ type: 'restore', card: result.card, passed: result.passed });
         setAnnouncement(`${back.nickname} 님을 카드 맨 앞으로 가져왔어요.`);
+        setFlash(`${back.nickname} 님을 카드 맨 앞으로 가져왔어요.`);
       } catch {
         message = '복원하지 못했습니다. 잠시 뒤 다시 시도해 주세요.';
         setFailure(message);
@@ -278,6 +291,18 @@ export function MatchingExperience({
       working={working}
       failure={failure}
       announcement={announcement}
+      flash={flash}
+    />
+  );
+
+  /** 카드 위 — 되돌리기 줄이 없다(카드 아래 ↶ 가 같은 일을 한다). 줄은 덱이 비었을 때만 선다 */
+  const cardFeedback = (
+    <Feedback
+      undo={null}
+      working={working}
+      failure={failure}
+      announcement={announcement}
+      flash={flash}
     />
   );
 
@@ -389,7 +414,7 @@ export function MatchingExperience({
               next={deck.remaining[1]}
               exit={exit}
               leaving={leaving}
-              feedback={feedback}
+              feedback={cardFeedback}
               onInfo={() => openSheet(sheet.current)}
             />
             <DeckButtons
@@ -588,19 +613,21 @@ function ViewButton({ on, onClick, icon, label, count }: { on: boolean; onClick:
 }
 
 /**
- * 누른 뒤의 한 줄 — 넘긴 직후 되돌릴 길, 실패, 방금 한 일. 확인 창을 띄우지 않고 둔 다음에 알린다.
- * 한 화면에 한 자리에만 선다(카드 아래 · 빈 날 · 지나친 인연).
+ * 누른 뒤의 한 줄 — 되돌릴 길(덱이 빈 뒤 · 지나친 인연), 실패, 방금 한 일(2초). 확인 창을 띄우지 않고 둔 다음에 알린다.
+ * 한 화면에 한 자리에만 선다(카드 위 · 빈 날 · 지나친 인연).
  */
 function Feedback({
   undo,
   working,
   failure,
   announcement,
+  flash,
 }: {
   undo: (() => void) | null;
   working: boolean;
   failure: string | null;
   announcement: string;
+  flash: string;
 }) {
   return (
     <>
@@ -613,7 +640,15 @@ function Feedback({
         </p>
       )}
       {failure !== null && <p role="alert" className="rounded-[1.25rem] bg-surface px-4 py-3 text-[14px] font-medium text-danger ring-1 ring-border">{failure}</p>}
-      <p role="status" className={undo === null && announcement !== '' ? 'text-center text-[13px] font-medium text-secondary' : 'sr-only'}>
+      {/* 한 줄이 둘을 한다 — 보조기기에는 늘 읽히고, 눈에는 잠깐(`flash`)만 선다 */}
+      <p
+        role="status"
+        className={
+          flash !== '' && flash === announcement
+            ? 'self-center rounded-full bg-surface px-3 py-1.5 text-center text-[13px] font-medium text-foreground ring-1 ring-border'
+            : 'sr-only'
+        }
+      >
         {announcement}
       </p>
     </>

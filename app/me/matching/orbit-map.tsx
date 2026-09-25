@@ -69,6 +69,13 @@ const GEOMETRY: Record<
 
 const COMPACT_ELEMENT_RING: Ring = [31, 31];
 
+/**
+ * 글자 받침 — 지도의 글자(오행 자리 · 기다리는 사람 이름) 밑에 지도 바탕색(`--cream`)을 한 겹 깐다. 채워 주는 기운의 선과
+ * 지나온 점선이 글자를 지나가도 선이 받침 뒤로 숨어 글자가 끊기지 않는다(지도 제작의 글자 후광과 같은 일, 2026-09-25).
+ * 지도는 어디서나 크림 판 위에 선다.
+ */
+const LABEL_PAD = 'rounded-full bg-[color-mix(in_srgb,var(--cream)_90%,transparent)] px-1.5 leading-5';
+
 /** 그림자 — 새 색을 짓지 않고 글자색을 옅게 쓴다 */
 const SHADOW_SOFT = 'color-mix(in srgb, var(--foreground) 45%, transparent)';
 
@@ -289,7 +296,7 @@ export function ApproachMap({
             <Bead element={element} low={mine === null || mine.low} lit={supplied.includes(element)} unknown={mine === null} small={small} />
             {mine !== null && !compact && (
               <span
-                className={`absolute top-full whitespace-nowrap font-semibold tabular-nums text-secondary ${arc ? 'mt-0.5 text-[12px]' : 'mt-1 text-[12px]'}`}
+                className={`${LABEL_PAD} absolute top-full whitespace-nowrap text-[12px] font-semibold tabular-nums text-secondary ${arc ? 'mt-0.5' : 'mt-1'}`}
               >
                 {ELEMENT_PICTURE_KO[element]} {mine.count}
               </span>
@@ -334,7 +341,7 @@ export function ApproachMap({
             )}
             {!arc && !now && status === 'waiting' && (
               <span
-                className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[12px] font-semibold text-secondary ${above ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+                className={`${LABEL_PAD} absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[12px] font-semibold text-secondary ${above ? 'bottom-full mb-1' : 'top-full mt-1'}`}
               >
                 {card.nickname}
               </span>

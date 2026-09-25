@@ -747,13 +747,17 @@ test.describe('매칭 덱 상태 회귀', () => {
     await viewer.page.goto('/me/matching');
     const heading = viewer.page.getByRole('article').getByRole('heading', { name: `나${tag}` });
     await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
-    const undo = viewer.page.getByRole('button', { name: '실행 취소' });
-    await expect(undo).toBeEnabled();
-    // 저장 뒤 떠나는 타이머가 살아 있는 동안 복원한다.
-    await undo.click();
-    await expect(undo).not.toBeVisible();
+    /*
+      저장 뒤 떠나는 타이머가 살아 있는 동안 복원한다. 그동안 카드는 아직 서 있으므로 되돌리는 길은 카드 아래의 ↶ 다 —
+      카드 위에는 되돌리기 줄이 없고(2026-09-25), 「실행 취소」 줄은 덱이 빈 뒤에만 선다.
+    */
+    const back = viewer.page.getByRole('button', { name: '이전 인연으로 되돌리기' });
+    await expect(back).toBeEnabled();
+    await back.click();
     await viewer.page.waitForTimeout(1400);
     await expect(heading).toBeVisible();
+    const undo = viewer.page.getByRole('button', { name: '실행 취소' });
+    await expect(undo).not.toBeVisible();
     await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
     await expect(undo).toBeEnabled();
     await viewer.page.route('**/me/matching', async (route) => {

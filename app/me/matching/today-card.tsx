@@ -121,7 +121,7 @@ export function TodayCard({
           type="button"
           aria-label="자세히 보기"
           onClick={onInfo}
-          className="absolute right-3 top-3 grid size-11 place-items-center rounded-full bg-black/35 text-white ring-1 ring-white/25 backdrop-blur-sm lg:hidden"
+          className="absolute right-3 top-3 grid size-11 place-items-center rounded-full bg-black/50 text-white shadow-[0_2px_8px_rgb(0_0_0/0.25)] ring-1 ring-white/30 backdrop-blur-sm lg:hidden"
         >
           <span aria-hidden="true" className="font-serif text-[1.2rem] font-bold italic">i</span>
         </button>
@@ -130,20 +130,29 @@ export function TodayCard({
       </div>
 
       {/*
-        되돌리기 · 실패 · 안내 — 흐름 밖, 카드 위쪽에 뜬다. 흐름 안에 두면 폰에서 카드 아래로 삐져나와 한 화면이 깨진다.
-        안내 한 줄은 사진 위에서 읽히게 판 색 알약을 입힌다
+        실패 · 잠깐 서는 안내 — 흐름 밖, 카드 위쪽에 뜬다. 흐름 안에 두면 폰에서 카드 아래로 삐져나와 한 화면이 깨진다
       */}
-      <div className="pointer-events-none absolute inset-x-3 top-16 z-20 flex flex-col items-stretch gap-2 *:pointer-events-auto *:shadow-lg [&>[role=status]:not(.sr-only)]:self-center [&>[role=status]:not(.sr-only)]:rounded-full [&>[role=status]:not(.sr-only)]:bg-surface [&>[role=status]:not(.sr-only)]:px-3 [&>[role=status]:not(.sr-only)]:py-1.5 [&>[role=status]:not(.sr-only)]:text-foreground">
+      <div className="pointer-events-none absolute inset-x-3 top-16 z-20 flex flex-col items-stretch gap-2 *:pointer-events-auto *:shadow-lg">
         {feedback}
       </div>
     </div>
   );
 }
 
+/**
+ * 글 밑의 어둠막 — **흰 사진 위에서도 흰 글자가 읽히게**(2026-09-25). 막이 글보다 한참 위에서 옅게 시작해 글이 서는 자리에서는
+ * 이미 짙다: 이름 줄 뒤가 검정 55% 이상이라 새하얀 사진이어도 큰 글자의 대비(3:1)를 넘고, 판정 · 소개 줄 뒤는 70~85% 다.
+ * 멈춤이 여럿인 것은 막의 윗끝이 띠처럼 보이지 않게 하려는 것이다. 틴더 · 머티리얼의 「글 보호막」과 같은 방법이고,
+ * 글자마다 옅은 그림자(`FACE_SHADOW`)를 한 겹 더 둔다 — 막이 얇은 윗줄의 가장자리를 세운다.
+ */
+const FACE_SCRIM =
+  'linear-gradient(to top, rgb(0 0 0 / .86) 0%, rgb(0 0 0 / .78) 30%, rgb(0 0 0 / .62) 55%, rgb(0 0 0 / .38) 72%, rgb(0 0 0 / .14) 86%, transparent 100%)';
+const FACE_SHADOW = '[text-shadow:0_1px_2px_rgb(0_0_0/0.45),0_0_14px_rgb(0_0_0/0.3)]';
+
 /** 사진 아래 끝의 글 — 이름 · 접속 · 점수, 판정, 채워 주는 기운, 소개 한 줄 */
 function FaceText({ card }: { card: DeckCard }) {
   return (
-    <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2.5 bg-gradient-to-t from-black/85 via-black/55 to-transparent px-5 pb-5 pt-24 text-white">
+    <div style={{ backgroundImage: FACE_SCRIM }} className={`${FACE_SHADOW} absolute inset-x-0 bottom-0 flex flex-col gap-2.5 px-5 pb-5 pt-32 text-white`}>
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <h2 className="font-rounded truncate text-[2.25rem] leading-tight">{card.nickname}</h2>
