@@ -93,10 +93,9 @@ export function ProfileForm({
     <div className="flex flex-col gap-5">
       {/*
         사진이 맨 위다 — 프로필을 여는 사람이 먼저 보는 것이 얼굴이고, 고르면 바로 올라간다.
-        장 **모음**이 바뀔 때만 칸을 새로 세운다 — 순서만 바뀐 새로 그림은 칸이 이미 먼저 옮겨 그렸다
+        칸은 서버가 새로 준 사진을 그대로 따른다(`useOptimistic`) — 새로 세우지 않아 초점을 잃지 않는다
       */}
       <PhotoGrid
-        key={photos.map((photo) => photo.version).sort((a, b) => a - b).join('-')}
         userId={userId}
         photos={photos}
       />
