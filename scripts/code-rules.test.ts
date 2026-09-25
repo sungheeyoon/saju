@@ -329,7 +329,7 @@ const COUNTED_BY_LAYERS = 'no-restricted-syntax';
 /** 그 밖의 예외 표시 — `파일 :: 규칙` */
 const DISABLES_STILL_THERE = [
   'app/me/avatar.tsx :: @next/next/no-img-element',
-  'app/me/matching/matching-experience.tsx :: @next/next/no-img-element',
+  'app/me/matching/candidate-photo.tsx :: @next/next/no-img-element',
   'app/me/profile/photo-grid.tsx :: @next/next/no-img-element',
   'app/me/survey/form.tsx :: react-hooks/exhaustive-deps',
 ];

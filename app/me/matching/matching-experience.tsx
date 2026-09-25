@@ -5,10 +5,8 @@ import { useEffect, useReducer, useRef, useState, useTransition, type ReactNode 
 
 import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent/notice';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
-import type { ActivityBand } from '@/src/lib/presence';
-import { initialOf } from '@/src/lib/profile';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
-import { ELEMENT_PICTURE_KO, ELEMENTS, type Element } from '@/src/lib/saju';
+import { ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY } from '../../ui/buttons';
@@ -18,82 +16,15 @@ import { TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
 import { RefreshBoard } from '../discovery/manage';
 import { announceIfMoved } from '../reading/credits-signal';
+import { CandidatePhoto } from './candidate-photo';
+import { elementOf, supplyOf, type DeckCard } from './deck-card';
 import { deckReducer, PASSED_LIMIT } from './deck-state';
 import type { MeMark } from './me-mark';
-import { ApproachMap, Legend, QuietOrbit, supplyOf, type MapStatus } from './orbit-map';
+import { reducedMotion } from './motion';
+import { ApproachMap, Legend, QuietOrbit, type MapStatus } from './orbit-map';
 import { PassedConnections, UndoIcon } from './passed-connections';
 import { DeckButtons, DeckDots, DetailSheet, openSheet, TodayCard } from './today-card';
 
-/**
- * 덱으로 내려오는 후보 한 장 — **`CandidateCard` 에서 증표만 뗀 것**이다.
- *
- * 칸을 늘리지 않는다. 카드가 무엇을 말할 수 있는지는 `candidates.ts` 가 정하고,
- * 여기서 더할 수 있으면 자르는 자리가 둘이 된다.
- */
-export type DeckCard = {
-  readonly candidateUserId: string;
-  readonly nickname: string;
-  readonly intro: string | null;
-  readonly hasPhoto: boolean;
-  /**
-   * 기본 아바타의 색 — **그 사람 일간의 오행**(운영자 2026-09-24). 사진이 있거나 모르면 `null`(회색).
-   * 아바타만 쓴다 — 카드 · 기운 칸 · 지도는 채워 주는 기운(`supplyOf`)을 입는다. 글자로는 말하지 않는다
-   */
-  readonly avatarElement: Element | null;
-  /**
-   * 사진 주소들 — 첫 장이 대표다(G-60, `/me/photo/{id}/{n}`). 사진이 없으면 빈 목록. 후보 · 지나친 인연은
-   * `candidates.ts` 가 채우고, 예시 카드는 제 파일을 넣는다. 비워 두면 `hasPhoto` 로 대표 한 장을 짓는다
-   */
-  readonly photoUrls?: readonly string[];
-  readonly exploration: boolean;
-  /** 접속 상태의 구간 — 후보 목록의 카드에만 온다. 지나친 인연과 예시 카드는 비운다(PRD §7.2) */
-  readonly activity?: ActivityBand | null;
-  readonly previewScore: number;
-  readonly verdict: string;
-  readonly reason: string;
-  readonly balanceLabel: string;
-  readonly highlights: readonly { readonly element: string; readonly text: string }[];
-};
-
-/** 그 사람의 사진 전부, 대표가 먼저 — 목록이 없으면 `hasPhoto` 로 한 장. 비면 이름의 첫 글자가 선다 */
-export const photosOf = (card: DeckCard): readonly string[] =>
-  card.photoUrls ?? (card.hasPhoto ? [`/me/photo/${card.candidateUserId}`] : []);
-
-/**
- * 기본 아바타가 입는 오행 — **그 사람 일간의 오행이다. 채워 주는 기운이 아니다.**
- *
- * 전에는 아바타도 카드처럼 `supplyOf` 를 입어, 내 모자란 기운으로 골라 온 후보들이 한 화면에서 거의 다 같은 색이었다.
- * 운영자가 둘을 갈랐다(2026-09-24) — 아바타만 이것, 카드 · 기운 칸 · 지도는 `supplyOf`. 이름부터 갈라 섞이지 않게 한다.
- */
-const avatarToneOf = (card: DeckCard): Element | null => card.avatarElement;
-
-/**
- * 후보의 얼굴 한 자리 — 덱 · 지도 · 확인 창 · 지나친 인연이 모두 이것을 쓴다.
- *
- * **사진은 선택이다**(§5.1). 안 올린 사람 자리에는 이름의 첫 글자가 선다 — 빈 자리가 아니라 그 사람의 자리로
- * 보이게. 부모가 크기와 모양을 정하고, 이것은 그 안을 채운다. 첫 글자의 판은 **제 색**(`avatarToneOf`)을 스스로 입는다 —
- * 부모의 판(채워 주는 기운)을 물려받지 않는다. 색만 말하고, 일간 · 오행의 이름은 어디에도 적지 않는다.
- * `at` 은 몇째 장인가(0 = 대표) — 오늘의 인연 카드가 넘길 때만 쓴다(`CardPhotos`).
- */
-export function CandidatePhoto({ card, initialClass = 'text-[1.2em]', at = 0 }: { card: DeckCard; initialClass?: string; at?: number }) {
-  const src = photosOf(card)[at] ?? null;
-  if (src === null) {
-    return (
-      <span
-        aria-hidden="true"
-        className={`${elementScope(avatarToneOf(card))} font-rounded absolute inset-0 grid place-items-center bg-[var(--tile)] text-[var(--ink)] ${initialClass}`}
-      >
-        {initialOf(card.nickname)}
-      </span>
-    );
-  }
-  return (
-    // eslint-disable-next-line @next/next/no-img-element -- 우리 라우트가 로그인한 사람에게만 바이트를 내주므로 최적화기가 받아 갈 원본이 없다
-    <img src={src} alt="" draggable={false} className="pointer-events-none absolute inset-0 size-full object-cover object-[50%_28%]" />
-  );
-}
-
-const faceOf = (card: DeckCard) => <CandidatePhoto card={card} />;
 
 // 고른 것을 읽을 시간을 주고 나서 카드가 떠난다.
 const CHOICE_HOLD_MS = 100;
@@ -184,7 +115,7 @@ export function MatchingExperience({
   function leave(direction: 'left' | 'right', said: string, id: string) {
     setExit(direction);
     if (direction === 'right') setFlash(said);
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduced = reducedMotion();
     setAnnouncement(said);
     timer.current = setTimeout(() => {
       setLeaving(true);
@@ -380,7 +311,6 @@ export function MatchingExperience({
             return message;
           }}
           onBack={() => setView('today')}
-          faceOf={faceOf}
           map={
             passed.length > 0 ? (
               <ApproachMap
@@ -388,7 +318,6 @@ export function MatchingExperience({
                 me={me}
                 cards={passed.slice(0, 6)}
                 statusOf={() => 'kept'}
-                faceOf={faceOf}
                 className="mx-auto max-w-[28rem]"
               />
             ) : null
@@ -447,7 +376,7 @@ export function MatchingExperience({
                 </p>
               </div>
               <div className="flex items-center px-8 py-4">
-                <ApproachMap shape="round" me={me} cards={mapCards} statusOf={statusOf} faceOf={faceOf} className="mx-auto max-w-[32rem]" />
+                <ApproachMap shape="round" me={me} cards={mapCards} statusOf={statusOf} className="mx-auto max-w-[32rem]" />
               </div>
               <Legend className="px-6 pb-4" />
             </section>
@@ -464,7 +393,7 @@ export function MatchingExperience({
           <div className={`${elementScope(supplyOf(profile))} flex flex-col gap-4`}>
             {details}
             <div className="overflow-hidden rounded-[1.75rem] bg-cream px-2 pt-3">
-              <ApproachMap shape="arc" me={me} cards={mapCards} statusOf={statusOf} faceOf={faceOf} className="mx-auto max-w-[28rem]" />
+              <ApproachMap shape="arc" me={me} cards={mapCards} statusOf={statusOf} className="mx-auto max-w-[28rem]" />
             </div>
             <p className="text-[12px] leading-5 text-secondary">{teaser}</p>
             {notice !== null && <p className={TYPE_META}>{notice}</p>}
@@ -522,7 +451,7 @@ function todayLabel(): string {
 }
 
 /** 채워 주는 기운 — 상징 + 이름 + 문장. 색 혼자 말하지 않고, 색은 상징의 동그라미에만 둔다 */
-export function SupplyBody({ card, explorationNote }: { card: DeckCard; explorationNote: string | null }) {
+function SupplyBody({ card, explorationNote }: { card: DeckCard; explorationNote: string | null }) {
   return (
     <>
       <p className="text-[13px] font-bold text-foreground">이 사람이 채워 주는 기운</p>
@@ -547,7 +476,7 @@ export function SupplyBody({ card, explorationNote }: { card: DeckCard; explorat
 }
 
 function Supply({ element, text }: { element: string; text: string }) {
-  const known = ELEMENTS.find((one) => one === element) ?? null;
+  const known = elementOf(element);
   return (
     <li className={`${elementScope(known)} flex items-center gap-3`}>
       <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] ring-1 ring-[color-mix(in_srgb,var(--ink)_20%,transparent)]">
