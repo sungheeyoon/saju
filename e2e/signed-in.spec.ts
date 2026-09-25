@@ -1003,7 +1003,9 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       이 답이 정해진 채로 선다.
     */
     await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
-    await expect(page.getByText('점수에는 쓰지 않습니다')).toBeVisible();
+    /* 사이가 점수의 눈금도 고른다(ADR 0113) — 안내가 옛 약속 「점수에는 쓰지 않습니다」를 말하지 않는다 */
+    await expect(page.getByText('점수의 기준도 이 답을 따릅니다')).toBeVisible();
+    await expect(page.getByText('점수에는 쓰지 않습니다')).toHaveCount(0);
 
     /* 목록의 카드가 연 길이라 첫 칸에는 그 사람이 이미 앉아 있다 — 찾아 고르는 칸이 그 이름을 든다 */
     await expect(page.getByRole('combobox', { name: '첫 번째' })).not.toHaveValue('');
