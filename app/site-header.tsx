@@ -424,10 +424,13 @@ function SettingsMenu({
     };
   }, []);
 
+  /*
+    판은 누른 뒤에도 열어 둔다 — 「로그아웃하는 중…」과 실패 문장이 이 판 안에 선다. 먼저 닫으면 실패가 닫힌 판 안에
+    서서 아무에게도 안 보였다. 되면 주소가 바뀌며 닫힌다(위의 `useEffect`).
+  */
   const signOut = async () => {
     setLeaving(true);
     setFailure(null);
-    close();
     const { error } = await supabaseInBrowser().auth.signOut();
     if (error) {
       setLeaving(false);
