@@ -45,10 +45,16 @@ export type ElementWeights = {
    * 무게에 반영한 것이다. 寅의 戊 7일과 丙 7일이 같은 몫을 받는 것은 일수만
    * 보았기 때문이지 둘이 같은 자리여서가 아니다.
    *
+   * `sixty-thirty-ten` 은 일수를 버리고 역할로만 나눈다 — 정기 60 · 중기 30 · 여기 10, 중기가 없는
+   * 두 글자 지지(子 · 卯 · 酉)는 정기 100 이다. 중국어권 점수 체계(李洪成 계열)의 몫을 옮긴 **후보 값**
+   * 이다(`docs/notes/2026-09-25-research-cn-strength-scoring.md`). 그 체계는 午 丁70 己30 · 亥 壬70 甲30
+   * 으로 여기를 빼는데 여기서는 두 지지도 60:30:10 으로 둔다 — 역할 하나의 규칙으로 두려고 고른 것이다.
+   * 오프라인 궁합 비교기(`src/lib/matching/formula-comparison`)만 부른다.
+   *
    * 기본은 `days` 다 — 이 저장소가 여태 세어 온 방식이고, 골든과 외부 대조가
    * 전부 그 위에 찍혀 있다. 바꿀 때는 두 대조를 함께 다시 재고 근거를 남긴다.
    */
-  hiddenStemWeighting: 'days' | 'principal-weighted';
+  hiddenStemWeighting: 'days' | 'principal-weighted' | 'sixty-thirty-ten';
 };
 
 /**
@@ -62,6 +68,13 @@ const HIDDEN_STEM_ROLE_FACTOR: Record<HiddenStemRole, number> = {
   正氣: 1,
   中氣: 0.5,
   餘氣: 0.25,
+};
+
+/** 역할로만 나누는 몫 — 중기가 있는 세 글자 지지에서. 합이 1 이다 */
+const SIXTY_THIRTY_TEN: Record<HiddenStemRole, number> = {
+  正氣: 0.6,
+  中氣: 0.3,
+  餘氣: 0.1,
 };
 
 export const DEFAULT_ELEMENT_WEIGHTS: ElementWeights = {
@@ -83,6 +96,12 @@ export function hiddenStemShares(
 ): number[] {
   if (weighting === 'days') {
     return hiddens.map(hiddenStemWeight);
+  }
+  if (weighting === 'sixty-thirty-ten') {
+    const hasMiddle = hiddens.some((hidden) => hidden.role === '中氣');
+    return hiddens.map((hidden) =>
+      hasMiddle ? SIXTY_THIRTY_TEN[hidden.role] : hidden.role === '正氣' ? 1 : 0,
+    );
   }
 
   const weighted = hiddens.map((hidden) => hidden.days * HIDDEN_STEM_ROLE_FACTOR[hidden.role]);

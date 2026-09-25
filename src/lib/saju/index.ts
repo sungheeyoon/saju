@@ -157,21 +157,20 @@ export type Saju = {
   };
 };
 
-/**
- * @throws {InvalidSajuInputError} 존재하지 않는 날짜이거나 지원 범위(1900~2100) 밖일 때
- * @throws {InvalidLocalTimeError} `dstTransitionPolicy: 'throw'` 이고 서머타임 전환에 걸릴 때
- */
-export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Saju {
-  const {
-    lateNightRule,
-    analysis: analysisOptions,
-    daeun: daeunOptions,
-    stages: stageOptions,
-    sinsal: sinsalOptions,
-    saeun: saeunOptions,
-    wolun: wolunOptions,
-    ...correctionOptions
-  } = options;
+type ResolvedPillars = {
+  resolvedTime: CivilDateTime;
+  hourKnown: boolean;
+  gender: Gender;
+  corrected: CorrectedTime;
+  pillars: Pillars;
+};
+
+/** 입력 검증 → 시간 보정 → 4주. `computeSaju` 와 `computePillars` 가 같은 길을 탄다 */
+function resolvePillars(
+  inputTime: SajuInput,
+  options: TimeCorrectionOptions & { lateNightRule?: LateNightRule },
+): ResolvedPillars {
+  const { lateNightRule, ...correctionOptions } = options;
 
   // 계산 코어는 아무 숫자나 받으면 아무 답이나 낸다. 2월 30일이 3월 2일로
   // 조용히 흘러가기 전에 여기서 막는다.
@@ -191,6 +190,48 @@ export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Sa
   const pillars: Pillars = hourKnown
     ? getFourPillars(corrected.instant, pillarOptions)
     : getPillarsWithoutHour(corrected.instant, pillarOptions);
+
+  return { resolvedTime, hourKnown, gender, corrected, pillars };
+}
+
+/**
+ * 4주와 보정된 시각만 — 대운 · 세운 · 월운 · 신살 · 분석 없이.
+ *
+ * `computeSaju` 한 번이 약 1ms 인데 그중 4주까지는 약 0.01ms 다(2026-09-25, 2000건). 수만 명을 도는
+ * 오프라인 비교기(`src/lib/matching/formula-comparison`)가 4주만 쓰므로 앞 절반을 따로 낸다. 보정을
+ * 여기서 하므로 `getFourPillars` 를 밖에 내지 않는 까닭(위)은 그대로 지켜진다 — 같은 `resolvePillars`
+ * 를 타서 `computeSaju(input).pillars` 와 늘 같다.
+ *
+ * @throws {InvalidSajuInputError} `computeSaju` 와 같다
+ */
+export function computePillars(
+  inputTime: SajuInput,
+  options: TimeCorrectionOptions & { lateNightRule?: LateNightRule } = {},
+): { pillars: Pillars; instant: Date; hourKnown: boolean } {
+  const { pillars, corrected, hourKnown } = resolvePillars(inputTime, options);
+  return { pillars, instant: corrected.instant, hourKnown };
+}
+
+/**
+ * @throws {InvalidSajuInputError} 존재하지 않는 날짜이거나 지원 범위(1900~2100) 밖일 때
+ * @throws {InvalidLocalTimeError} `dstTransitionPolicy: 'throw'` 이고 서머타임 전환에 걸릴 때
+ */
+export function computeSaju(inputTime: SajuInput, options: SajuOptions = {}): Saju {
+  const {
+    lateNightRule,
+    analysis: analysisOptions,
+    daeun: daeunOptions,
+    stages: stageOptions,
+    sinsal: sinsalOptions,
+    saeun: saeunOptions,
+    wolun: wolunOptions,
+    ...correctionOptions
+  } = options;
+
+  const { resolvedTime, hourKnown, gender, corrected, pillars } = resolvePillars(inputTime, {
+    lateNightRule,
+    ...correctionOptions,
+  });
 
   const totalCorrectionMinutes = corrected.corrections.reduce(
     (sum, correction) => sum + correction.minutes,
