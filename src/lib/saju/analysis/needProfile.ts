@@ -1,7 +1,6 @@
-import { HIDDEN_STEMS, principalStem, type Element, type Stem } from '../constants';
+import type { Element, Stem } from '../constants';
 import type { Pillars } from '../pillars';
-import type { PillarPosition } from '../position';
-import { eokbuJudgementOf, type EokbuJudgementOptions } from './eokbuJudgement';
+import { eokbuJudgementOf, glyphSeatOf, type EokbuJudgementOptions } from './eokbuJudgement';
 import type { FollowingAssessment } from './followingPatterns';
 import { johuJudgementOf } from './johuJudgement';
 import type {
@@ -172,32 +171,14 @@ export function eokbuJohuRelationOf(
 
 // ─── 프로필 ─────────────────────────────────────────────────────────────────
 
-const STEM_POSITIONS = ['year', 'month', 'hour'] as const satisfies readonly PillarPosition[];
-const BRANCH_POSITIONS = [
-  'year',
-  'month',
-  'day',
-  'hour',
-] as const satisfies readonly PillarPosition[];
-
 /**
  * 조후 글자 하나가 원국 어디에 앉았는가 — `ElementSeat` 의 선(일간 제외)으로 **글자대로** 센다.
  *
  * 조후 판정의 `presence` 는 일간까지 보고 본기 · 여기를 가르지 않아 그대로 옮기지 않는다.
  * 같은 오행의 다른 글자는 세지 않는다 — 丙 자리에 丁이 있어도 丙은 `absent` 다.
  */
-function seatOfStem(pillars: ProfileInput, stem: Stem): ElementSeat {
-  if (STEM_POSITIONS.some((position) => pillars[position]?.stem === stem)) return 'revealed';
-  const branches = BRANCH_POSITIONS.flatMap((position) => {
-    const pillar = pillars[position];
-    return pillar === null ? [] : [pillar.branch];
-  });
-  if (branches.some((branch) => principalStem(branch) === stem)) return 'branch-main';
-  if (branches.some((branch) => HIDDEN_STEMS[branch].some((hidden) => hidden.stem === stem))) {
-    return 'hidden-only';
-  }
-  return 'absent';
-}
+const seatOfStem = (pillars: ProfileInput, stem: Stem): ElementSeat =>
+  glyphSeatOf(pillars, (other) => other === stem).seat;
 
 const JOHU_CONDITION_KO: Record<JohuConditionKind, string> = {
   'half-month': '상 · 하반월',
