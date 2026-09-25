@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { deckReducer, type DeckState } from './deck-state';
-import type { DeckCard } from './matching-experience';
+import type { DeckCard } from './deck-card';
 const card = (id: string): DeckCard => ({ candidateUserId: id, nickname: id, intro: null, hasPhoto: false, avatarElement: null, exploration: false, previewScore: 70, verdict: '', reason: '', balanceLabel: '', highlights: [] });
 const initial = (): DeckState => ({ remaining: ['a','b','c'].map(card), passed: [], history: [], seen: [] });
 

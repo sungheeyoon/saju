@@ -189,6 +189,24 @@ describe('층의 방향 (ADR 0085)', () => {
     expect(wrong.map(say)).toEqual([]);
   });
 
+  /**
+   * **공용 부품(`app/ui`)은 화면 층의 바닥이다**(G-58) — 여러 화면이 부르므로, 거기서 문 · 액션 · 클라이언트를 부르면
+   * 부르는 화면 전부가 DB 와 서버에 묶인다. `app` 안에서는 제 폴더와 아래 목록의 순수 모듈만 안다. 목록에 더할 때는
+   * 그 모듈이 DB · 비밀 · `'use server'` 를 모르는지 보고 `docs/architecture.md` 「그 밖의 자리」와 함께 고친다.
+   */
+  it('공용 부품(app/ui)은 app 안에서 제 폴더와 순수 모듈만 안다 — supabase 도 모른다', () => {
+    const UI_KNOWS_IN_APP = new Set(['app/element-tone']);
+    const wrong = EDGES.filter(
+      (edge) =>
+        under(edge.file, 'app/ui') &&
+        ((under(edge.target, 'app') && !under(edge.target, 'app/ui') && !UI_KNOWS_IN_APP.has(edge.target!)) ||
+          (edge.spec !== null && SUPABASE.test(edge.spec))),
+    );
+    expect(wrong.map(say)).toEqual([]);
+    // 빈 폴더로 통과하지 않는다 — 부품이 lib 과 순수 모듈을 실제로 부르고 있다
+    expect(EDGES.some((edge) => under(edge.file, 'app/ui') && edge.target === 'app/element-tone')).toBe(true);
+  });
+
   it('도메인 lib 끼리의 방향은 허용 목록과 정확히 같다 — 문서(docs/architecture.md)가 이 목록이다', () => {
     const found = new Set<string>();
     for (const edge of EDGES) {
