@@ -1,7 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useTransition, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useEffect,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 
 import {
   PHOTO_MAX_BYTES,
@@ -87,13 +94,20 @@ type Lift = { from: number; over: number; dx: number; dy: number };
  * **고르면 바로 올라간다.** 「고르기」와 「저장」을 갈라 두면 고르고 저장을 안 한 사람이 생기고,
  * 그 사람은 사진을 올렸다고 알고 있다. 올라간 사진이 곧 미리보기다.
  *
- * 순서는 서버 답을 기다리지 않고 먼저 옮겨 그린다. 서버가 거절하면 앞 순서로 돌아간다. 이 칸은
- * 서버가 준 장 **모음**이 바뀔 때만 새로 선다(`form.tsx` 의 `key`) — 순서만 바뀐 새로 그림에는
- * 초점을 잃지 않는다.
+ * 순서는 서버 답을 기다리지 않고 먼저 옮겨 그린다(`useOptimistic`). 서버가 거절하면 서버가 준 순서로
+ * 돌아가고, 받아들이면 새로 받은 순서가 그 자리를 잇는다.
+ *
+ * **그림 주소는 서버가 준 자리로 짓는다**(`photo.position`) — 칸의 자리가 아니다. 주소가 자리 번호라
+ * (`/me/photo/{id}/{n}?v=`), 옮긴 칸의 새 주소를 서버가 옮기기 전에 받아 가면 **옛 장의 바이트가 새
+ * 주소에 1분 캐시된다** — `?v=` 는 맞는데 눈에는 안 옮겨진 그림이 선다. 누름을 600ms 늦춘 e2e 에서
+ * 대표 칸이 옛 장을 보였다(2026-09-25). 서버가 준 자리의 주소는 이미 받아 둔 그 장이라 곧바로 선다.
  */
 export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly MyPhoto[] }) {
   const router = useRouter();
-  const [order, setOrder] = useState<readonly MyPhoto[]>(photos);
+  const [order, moveInView] = useOptimistic(
+    photos,
+    (current: readonly MyPhoto[], step: { from: number; to: number }) => movedPhotos(current, step.from, step.to),
+  );
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
   const [lift, setLift] = useState<Lift | null>(null);
@@ -116,6 +130,14 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     focusAfter.current = null;
   }, [order]);
 
+  /* 누르는 중에 화면을 떠나면 들어 올릴 타이머를 거둔다 */
+  useEffect(
+    () => () => {
+      if (press.current?.timer != null) window.clearTimeout(press.current.timer);
+    },
+    [],
+  );
+
   /*
     들린 사진을 끄는 동안 폰이 페이지를 스크롤하지 않게 한다. `touch-action` 은 손이 닿는 순간에 정해져
     길게 누른 뒤에는 못 바꾼다 — 그래서 `touchmove` 를 비수동으로 받아 들린 동안만 막는다.
@@ -133,14 +155,12 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
 
   const move = (from: number, to: number) => {
     if (from === to || to < 1 || to > total) return;
-    const before = order;
     setFailure(null);
     focusAfter.current = to;
-    setOrder(movedPhotos(order, from, to));
     startWorking(async () => {
+      moveInView({ from, to });
       const result = await movePhoto(from, to);
       if (!result.ok) {
-        setOrder(before);
         setFailure(result.message);
         return;
       }
@@ -280,7 +300,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- 바이트를 우리 라우트가 내준다 */}
             <img
-              src={`/me/photo/${userId}/${position}?v=${photo.version}`}
+              src={`/me/photo/${userId}/${photo.position}?v=${photo.version}`}
               alt=""
               draggable={false}
               className="h-full w-full rounded-2xl object-cover"
