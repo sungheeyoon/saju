@@ -236,7 +236,7 @@ function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: ()
         <ChatIcon name="more" />
       </button>
       {open && (
-        <div className="absolute right-0 top-12 z-20 flex w-48 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-[0_14px_36px_-16px_rgba(60,48,30,0.45)] ring-1 ring-border">
+        <div className="absolute right-0 top-12 z-20 flex w-48 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-[var(--shadow-float)] ring-1 ring-border">
           <button
             type="button"
             className={`${item} text-foreground`}
