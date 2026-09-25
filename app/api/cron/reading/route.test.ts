@@ -85,3 +85,32 @@ describe('복구기의 자격', () => {
     expect(await response.json()).toEqual({ open: 1, collected: 1, closed: 0 });
   });
 });
+
+describe('기한이 지난 일감을 닫는다', () => {
+  const overdue = { run_id: 'run-1', response_id: null, overdue: true, failure_code: 'model-timeout' };
+
+  it('닫았으면 센다', async () => {
+    rpc.mockImplementation(async (name: string) =>
+      name === 'open_reading_jobs' ? { data: [overdue], error: null } : { data: null, error: null },
+    );
+
+    const response = await GET(request(`Bearer ${SECRET}`));
+
+    expect(rpc).toHaveBeenCalledWith('fail_reading_job', expect.objectContaining({ p_run_id: 'run-1', p_failure_code: 'model-timeout' }));
+    expect(await response.json()).toEqual({ open: 1, collected: 0, closed: 1 });
+  });
+
+  /** supabase 는 거절을 던지지 않는다 — 결과를 버리던 동안 못 닫은 것도 닫은 것으로 셌다 */
+  it('못 닫았으면 세지 않고 기록에 남긴다', async () => {
+    rpc.mockImplementation(async (name: string) =>
+      name === 'open_reading_jobs' ? { data: [overdue], error: null } : { data: null, error: { code: '57014', message: 'timeout' } },
+    );
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const response = await GET(request(`Bearer ${SECRET}`));
+
+    expect(await response.json()).toEqual({ open: 1, collected: 0, closed: 0 });
+    expect(logged).toHaveBeenCalledWith('cron reading: fail_reading_job', '57014');
+    logged.mockRestore();
+  });
+});
