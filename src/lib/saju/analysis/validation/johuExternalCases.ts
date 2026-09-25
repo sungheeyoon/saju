@@ -3,13 +3,21 @@ import type { Element, Stem } from '../../constants';
 /**
  * 자료의 계통 — `eokbuExternalCases.ts` 와 같은 뜻이다. 호스트 이름으로 세지 않는다.
  * 현대 한국 자료는 조후 판정을 적은 **공개 명식**을 찾지 못해 이 데이터셋에 없다(급함 기준만
- * `docs/notes/2026-09-25-research-johu.md` 에 적었다).
+ * `docs/notes/2026-09-25-research-johu.md` 에 적었다). 현대 중국 자료는
+ * `docs/notes/2026-09-25-research-cn-johu.md` 가 더했다 — 대만 · 소프트웨어 계통은 급함 기준만 찾고
+ * 조후 판정을 적은 공개 명식은 못 찾았다(HeiGe-SuanMing 의 「조후 우선」 명식은 虛構 생시이고
+ * 시주가 오자둔에 안 맞아 싣지 않았다).
  */
 type JohuLineage =
   /** 청대 고전 주석 — 《滴天髓闡微》 任鐵樵 */
   | 'classical-chinese'
   /** 민국 시대 — 《千里命稿》 韋千里 · 《子平眞詮評註》 徐樂吾 */
-  | 'republican-chinese';
+  | 'republican-chinese'
+  /**
+   * 현대 중국(대륙) — 朱祖夏 《八字与用神》(책, 공신력 A) · 謝咏 · 中天易 張永紅 블로그 · 算準網 글(B).
+   * 공신력 등급은 `docs/notes/2026-09-25-research-cn-johu.md` 1 이 든다.
+   */
+  | 'modern-chinese';
 
 /**
  * 출처가 조후를 어떻게 다루었는가 — **출처의 말로만** 가른다.
@@ -74,6 +82,42 @@ const QLMG = {
 const ZPZQ = {
   title: '《子平眞詮評註》 論用神配氣候得失 — 徐樂吾 주',
   url: 'https://www.suanzhun.net/book/326.html',
+  retrievedAt: '2026-09-25',
+} as const;
+
+const ZZX = {
+  title: '朱祖夏 《八字与用神》 取用神的原则和方法 (算準網 전재)',
+  url: 'https://www.suanzhun.net/book/1290_3.html',
+  retrievedAt: '2026-09-25',
+} as const;
+
+const XY_URGENT = {
+  title: '謝咏 「八字调候用神重要还是格局重要」(2021-11-26, 新浪 전재)',
+  url: 'https://k.sina.cn/article_3887250546_e7b2bc7200100yubt.html',
+  retrievedAt: '2026-09-25',
+} as const;
+
+const XY_CONFLICT = {
+  title: '謝咏 「喜用神与调候用神相背，忌神为调候用神怎么办」(2019-12-16, 新浪 전재)',
+  url: 'https://k.sina.cn/article_3887250546_e7b2bc7200100lywd.html',
+  retrievedAt: '2026-09-25',
+} as const;
+
+const ZYH = {
+  title: '中天易 張永紅 「四柱八字调候用法绝招讲解」(2023-05-15, 網易)',
+  url: 'https://www.163.com/dy/article/I4P3OGMJ0548IPZ9.html',
+  retrievedAt: '2026-09-25',
+} as const;
+
+const SZ_DECLINE = {
+  title: '算準網 「调候用神一定有用吗？什么情况不适合用调候？」(2025-06-07)',
+  url: 'https://www.suanzhun.net/article/2783.html',
+  retrievedAt: '2026-09-25',
+} as const;
+
+const SZ_CONFLICT = {
+  title: '算準網 「当格局用神与调候用神矛盾冲突的时候，该如何取用神？」(2025-03-02)',
+  url: 'https://www.suanzhun.net/article/2673.html',
   retrievedAt: '2026-09-25',
 } as const;
 
@@ -977,5 +1021,254 @@ export const JOHU_EXTERNAL_CASES: readonly ExternalJohuCase[] = [
         '火旺木焚인데 원국에 물(인성)이 없어 「부득이」 土로 불을 설한다 — 인성 운에도 土가 막아 나쁘다.',
     },
     caveats: ['조후 글자가 **원국에 없어서** 못 쓴 사례다 — 뿌리 없음과 다른 까닭이다.'],
+  },
+  // ─── 현대 중국 (modern-chinese) — 2026-09-25 CN-1 조사 ─────────────────────
+  {
+    id: 'zzx-sinhae-sinchuk',
+    pillars: { year: '辛亥', month: '辛丑', day: '己亥', hour: '庚午' },
+    lineage: 'modern-chinese',
+    source: {
+      ...ZZX,
+      locator:
+        '坤造 — 日主己土生在丑月，水冷金寒，湿泥寒冻，最喜时支有午火调候生身为用神……午火为用可以一举两得',
+    },
+    claim: {
+      climate: 'cold-wet',
+      verdict: 'johu-first',
+      remedy: { stems: null, element: '火' },
+      yongsinElement: '火',
+      saysUrgent: false,
+      eokbuReasonAlso: true,
+      summary: '丑월 己土에 시지 午火가 조후와 생신을 함께 한다 — 「一举两得」.',
+    },
+    caveats: [
+      '저자는 같은 장에서 「调候和通关用神只起辅助作用」이라 한다 — 조후와 억부가 같은 글자라 용신이 된 사례다.',
+      '처방을 지지(午)로 말해 천간이 없다.',
+    ],
+  },
+  {
+    id: 'zzx-byeongo-gihae',
+    pillars: { year: '丙午', month: '己亥', day: '庚寅', hour: '丙戌' },
+    lineage: 'modern-chinese',
+    source: {
+      ...ZZX,
+      locator:
+        '乾造 — 有的人认为冬天金寒水冷须以调候为主……以扶抑和通关取用都要取己土印星为用神，不可取火调候',
+    },
+    claim: {
+      climate: null,
+      verdict: 'johu-declined',
+      remedy: { stems: null, element: '火' },
+      yongsinElement: '土',
+      saysUrgent: false,
+      eokbuReasonAlso: false,
+      summary:
+        '初冬 庚金이지만 殺(火)이 이미 「杀气腾腾」 — 조후로 불을 쓰면 「火上浇油」이라 己土 인성으로 통관한다.',
+    },
+    caveats: [
+      '물린 까닭이 **처방 오행이 이미 넘친다**는 것이다 — 뿌리가 없어 못 쓴 任鐵樵 사례들과 반대 방향이다.',
+      '「金寒水冷」은 저자가 아니라 「有的人」의 말로 적었다 — 저자 자신의 기후 판단은 없다.',
+    ],
+  },
+  {
+    id: 'xy-sinyu-sinchuk',
+    pillars: { year: '辛酉', month: '辛丑', day: '壬辰', hour: '癸卯' },
+    lineage: 'modern-chinese',
+    source: {
+      ...XY_URGENT,
+      locator:
+        '坤造 — 天寒地冻，任何一草一木……都迫切的需要太阳之光来温暖与解寒除冻……本命格最迫切的需要两种五行就是木火',
+    },
+    claim: {
+      climate: 'cold',
+      verdict: 'johu-first',
+      remedy: { stems: ['丙'], element: '火' },
+      yongsinElement: null,
+      saysUrgent: false,
+      eokbuReasonAlso: false,
+      summary:
+        '身旺印旺인 겨울 壬水 — 강약으로는 木으로 설하고, 조후로 「太阳」(丙)이 가장 절박하다. 결론은 木火 둘.',
+    },
+    caveats: [
+      '「急」 대신 「迫切」을 쓴다 — `saysUrgent` 는 낱말 「急」만 센다.',
+      '「太阳」을 丙으로 옮겼다. 용신을 木火 두 오행으로 말해 `yongsinElement` 는 비웠다.',
+    ],
+  },
+  {
+    id: 'xy-jeongyu-gyechuk',
+    pillars: { year: '丁酉', month: '癸丑', day: '癸亥', hour: '癸丑' },
+    lineage: 'modern-chinese',
+    source: {
+      ...XY_CONFLICT,
+      locator:
+        '身旺择取「克泄耗」的五行为喜用神，也就是「木火土」……出生于冬天就需要考虑调侯了，冬天调侯五行就是火……如果仅仅是火的话，还难以生存',
+    },
+    claim: {
+      climate: 'cold',
+      verdict: 'climate-diagnosis',
+      remedy: { stems: null, element: '火' },
+      yongsinElement: null,
+      saysUrgent: false,
+      eokbuReasonAlso: true,
+      summary: '억부 희용(木火土)이 조후 火를 이미 품는다 — 서열을 가를 자리가 없어 진단으로 둔다.',
+    },
+    caveats: ['글의 제목은 희용과 조후가 「相背」할 때인데 이 명식은 둘이 같은 쪽이다.'],
+  },
+  {
+    id: 'xy-musul-muo',
+    pillars: { year: '戊戌', month: '戊午', day: '戊寅', hour: '甲寅' },
+    lineage: 'modern-chinese',
+    source: {
+      ...XY_CONFLICT,
+      locator:
+        '身旺以「克泄耗」的五行为喜神和用神，也就是水木金为喜用神……火炎土燥的命格格局……你说是先温暖烤火重要还是先逃命重要呢',
+    },
+    claim: {
+      climate: 'hot-dry',
+      verdict: 'climate-diagnosis',
+      remedy: { stems: null, element: '水' },
+      yongsinElement: null,
+      saysUrgent: false,
+      eokbuReasonAlso: true,
+      summary:
+        '火炎土燥 — 억부 희용(水木金)이 조후 水를 이미 품는다. 비유(「先逃命」)는 희용이 앞선다는 쪽이다.',
+    },
+    caveats: [
+      '저자는 일반론으로 「在某些时候五行生克之喜用神还是要重要一些」라 한다 — 이 명식에서 둘은 부딪치지 않는다.',
+    ],
+  },
+  {
+    id: 'zyh-gihae-jeongchuk',
+    pillars: { year: '己亥', month: '丁丑', day: '丁未', hour: '壬寅' },
+    lineage: 'modern-chinese',
+    source: {
+      ...ZYH,
+      locator: '坤造 — 应是调候用暖。丁火本身对季节不敏感，但它所依赖的寅木却太寒不长，故喜行暖地',
+    },
+    claim: {
+      climate: 'cold',
+      verdict: 'johu-first',
+      remedy: { stems: null, element: '火' },
+      yongsinElement: null,
+      saysUrgent: false,
+      eokbuReasonAlso: false,
+      summary:
+        '丑월 丁火 — 丁은 계절에 둔하지만 기대는 寅木이 추워 「调候用暖」, 따뜻한 운이 좋다.',
+    },
+    caveats: ['처방을 「暖」으로만 말한다 — 火로 옮겼고 용신 오행은 비웠다.'],
+  },
+  {
+    id: 'zyh-jeongmi-imja',
+    pillars: { year: '丁未', month: '壬子', day: '丁巳', hour: '辛亥' },
+    lineage: 'modern-chinese',
+    source: {
+      ...ZYH,
+      locator: '甲造 — 甲造用神应该是木火（与乙造「用神是调候」对举）',
+    },
+    claim: {
+      climate: null,
+      verdict: 'not-invoked',
+      remedy: null,
+      yongsinElement: null,
+      saysUrgent: false,
+      eokbuReasonAlso: false,
+      summary: '子월 丁火인데 용신을 조후가 아니라 木火(생부)로 잡는다 — 바로 뒤 乙造와 대비한다.',
+    },
+    caveats: [
+      '용신 木火는 불이 들어 있어 조후와 오행이 겹친다 — 저자가 「조후가 아니다」로 가른 것만 옮겼다.',
+      '다음 zyh-jeongmi-sinhae 와 짝이다 — 같은 해 · 같은 겨울에 일간(丁 ↔ 乙)이 조후를 켜고 끈다.',
+    ],
+  },
+  {
+    id: 'zyh-jeongmi-sinhae',
+    pillars: { year: '丁未', month: '辛亥', day: '乙巳', hour: '丁丑' },
+    lineage: 'modern-chinese',
+    source: {
+      ...ZYH,
+      locator: '乙造 — 乙造的用神是调候……从98年之后渐暖，逐年好转',
+    },
+    claim: {
+      climate: 'cold',
+      verdict: 'johu-first',
+      remedy: { stems: null, element: '火' },
+      yongsinElement: null,
+      saysUrgent: false,
+      eokbuReasonAlso: false,
+      summary: '亥월 乙木 — 용신이 조후다. 따뜻한 운부터 해마다 나아진다.',
+    },
+    caveats: [
+      '저자는 甲乙木이 한난에 가장 민감하다고 한다 — 짝의 차이를 일간의 민감도로 설명한다.',
+    ],
+  },
+  {
+    id: 'sz-gyemi-jeongsa',
+    pillars: { year: '癸未', month: '丁巳', day: '丙午', hour: '癸巳' },
+    lineage: 'modern-chinese',
+    source: {
+      ...SZ_DECLINE,
+      locator:
+        '生于巳月已经逐渐转热，地支巳午未三会火局……虚透无根，反被旺火熬干，是燥暖过极的命格，此时不能用水调候',
+    },
+    claim: {
+      climate: 'hot-dry',
+      verdict: 'johu-declined',
+      remedy: { stems: ['癸'], element: '水' },
+      yongsinElement: null,
+      saysUrgent: false,
+      eokbuReasonAlso: false,
+      summary: '巳午未 방국에 癸 둘이 뿌리 없이 떠 있다 — 물로 조후할 수 없다.',
+    },
+    caveats: ['같은 글에서 조후가 쓸모 있으려면 「有调候用神且健旺有根气」여야 한다고 한다.'],
+  },
+  {
+    id: 'sz-eulmyo-gimyo',
+    pillars: { year: '乙卯', month: '己卯', day: '甲寅', hour: '丙寅' },
+    lineage: 'modern-chinese',
+    source: { ...SZ_CONFLICT, locator: '春木 — 二月甲木，寒气未除，先丙后庚' },
+    claim: {
+      climate: 'cold',
+      verdict: 'johu-first',
+      remedy: { stems: ['丙'], element: '火' },
+      yongsinElement: '火',
+      saysUrgent: false,
+      eokbuReasonAlso: false,
+      summary: '卯월 甲木 — 「寒气未除」라 丙을 먼저, 庚을 다음으로 쓴다.',
+    },
+    caveats: [
+      '**卯월(봄)에 조후를 앞세운다** — 謝咏 · 張永紅의 「春秋不用调候」와 정면으로 갈린다. 엔진 계절은 `mild` 다.',
+      '처방 문장은 《窮通寶鑑》 二月甲木 칸을 옮긴 것이다 — 명식을 풀었다기보다 표를 붙였다.',
+    ],
+  },
+  {
+    id: 'sz-jeongsa-byeongo',
+    pillars: { year: '丁巳', month: '丙午', day: '丙戌', hour: '壬辰' },
+    lineage: 'modern-chinese',
+    source: { ...SZ_CONFLICT, locator: '夏火 — 三夏丙丁，首用壬癸' },
+    claim: {
+      climate: 'hot',
+      verdict: 'johu-first',
+      remedy: { stems: ['壬'], element: '水' },
+      yongsinElement: '水',
+      saysUrgent: false,
+      eokbuReasonAlso: false,
+      summary: '午월 丙火 — 불이 성해도 壬水를 먼저 쓴다.',
+    },
+    caveats: ['시 壬辰 — 壬이 辰에 뿌리를 둔다.'],
+  },
+  {
+    id: 'sz-imja-sinhae',
+    pillars: { year: '壬子', month: '辛亥', day: '壬子', hour: '丙午' },
+    lineage: 'modern-chinese',
+    source: { ...SZ_CONFLICT, locator: '冬水 — 冬月壬水，丙解寒冻' },
+    claim: {
+      climate: 'cold',
+      verdict: 'johu-first',
+      remedy: { stems: ['丙'], element: '火' },
+      yongsinElement: '火',
+      saysUrgent: false,
+      eokbuReasonAlso: false,
+      summary: '亥월 壬水 — 시의 丙午가 추위를 푼다.',
+    },
+    caveats: ['身旺한 물에 재(火)는 억부로도 설명된다 — 글은 조후로만 말한다.'],
   },
 ];

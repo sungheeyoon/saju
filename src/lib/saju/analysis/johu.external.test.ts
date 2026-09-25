@@ -18,7 +18,9 @@ import { JOHU_EXTERNAL_CASES, type JohuVerdict } from './validation/johuExternal
 /**
  * 조후 외부 대조 — **관찰만 한다.** 엔진 규칙을 이 자료에 맞추지 않는다(ADR 0111 「정한 것」 5).
  *
- * 세 저자의 서열 판단이 서로 다르다. 수는 「지금 엔진이 저자들의 말과 어디서 만나고 갈리는가」를
+ * 세 저자의 서열 판단이 서로 다르다. 2026-09-25 CN-1 조사가 현대 중국 사례 열둘(`modern-chinese`)을
+ * 더했다(`docs/notes/2026-09-25-research-cn-johu.md`) — 아래 잠긴 수가 44 건에서 56 건으로 바뀐 까닭이다.
+ * 수는 「지금 엔진이 저자들의 말과 어디서 만나고 갈리는가」를
  * 고정해, 뒤에 급함 · 서열 규칙을 넣을 때 무엇이 움직였는지 보이게 하려는 것이다.
  */
 
@@ -144,10 +146,10 @@ function measure(testCase: Case) {
 }
 
 describe('조후 외부 대조 데이터셋', () => {
-  it('계통이 다른 자료의 완전한 네 기둥만 싣고, 서른일곱 건이 서열을 말한다', () => {
+  it('계통이 다른 자료의 완전한 네 기둥만 싣고, 마흔일곱 건이 서열을 말한다', () => {
     expect(new Set(JOHU_EXTERNAL_CASES.map(({ id }) => id)).size).toBe(JOHU_EXTERNAL_CASES.length);
     expect(new Set(JOHU_EXTERNAL_CASES.map(({ lineage }) => lineage))).toEqual(
-      new Set(['classical-chinese', 'republican-chinese']),
+      new Set(['classical-chinese', 'republican-chinese', 'modern-chinese']),
     );
     for (const testCase of JOHU_EXTERNAL_CASES) {
       expect(() => chartOf(testCase.pillars), testCase.id).not.toThrow();
@@ -175,16 +177,18 @@ describe('조후 외부 대조 데이터셋', () => {
       ]),
     );
     expect(byVerdict).toEqual({
-      'johu-first': 20,
+      'johu-first': 27,
       'johu-auxiliary': 8,
-      'johu-declined': 6,
-      'climate-diagnosis': 7,
-      'not-invoked': 3,
+      'johu-declined': 8,
+      'climate-diagnosis': 9,
+      'not-invoked': 4,
     });
-    // 서열을 말한 사례가 서른일곱 — 진단 일곱은 서열 대조에서 뺀다
-    expect(JOHU_EXTERNAL_CASES.filter((c) => RANKED.includes(c.claim.verdict))).toHaveLength(37);
+    // 서열을 말한 사례가 마흔일곱 — 진단 아홉은 서열 대조에서 뺀다
+    // (현대 중국 열둘: 우선 7 · 물림 2 · 진단 2 · 강약만 1)
+    expect(JOHU_EXTERNAL_CASES.filter((c) => RANKED.includes(c.claim.verdict))).toHaveLength(47);
     expect(JOHU_EXTERNAL_CASES.filter((c) => c.lineage === 'classical-chinese')).toHaveLength(27);
     expect(JOHU_EXTERNAL_CASES.filter((c) => c.lineage === 'republican-chinese')).toHaveLength(17);
+    expect(JOHU_EXTERNAL_CASES.filter((c) => c.lineage === 'modern-chinese')).toHaveLength(12);
   });
 
   /** 월간은 연간에서, 시간은 일간에서 — 실재할 수 있는 명식만 싣는다 */
@@ -261,6 +265,19 @@ describe('조후 외부 대조 데이터셋', () => {
       'zpzq-gapja-byeongja': '丙辛 土 not-comparable revealed-unrooted stem',
       'zpzq-gimi-eulhae': '庚辛戊丁 土 partial revealed-rooted element-only',
       'zpzq-musul-jeongsa': '癸庚丁 木 not-comparable absent -',
+      // 현대 중국(CN-1)
+      'zzx-sinhae-sinchuk': '丙甲戊 火 partial hidden-only -',
+      'zzx-byeongo-gihae': '丁丙 土 conflict revealed-rooted -',
+      'xy-sinyu-sinchuk': '丙丁甲 金 conflict absent stem',
+      'xy-jeongyu-gyechuk': '丙丁 土 not-comparable revealed-unrooted -',
+      'xy-musul-muo': '壬甲丙 木 partial absent -',
+      'zyh-gihae-jeongchuk': '甲庚 木 partial revealed-rooted -',
+      'zyh-jeongmi-imja': '甲庚 木 partial - -',
+      'zyh-jeongmi-sinhae': '丙戊 水 conflict revealed-rooted -',
+      'sz-gyemi-jeongsa': '壬癸庚 水 partial revealed-unrooted stem',
+      'sz-eulmyo-gimyo': '庚丙丁戊己 火 partial revealed-rooted stem',
+      'sz-jeongsa-byeongo': '壬庚 水 partial revealed-rooted stem',
+      'sz-imja-sinhae': '戊丙庚 土 partial revealed-rooted stem',
     });
   });
 
@@ -273,12 +290,19 @@ describe('조후 외부 대조 데이터셋', () => {
   });
 
   /**
-   * 사례는 모두 亥子丑 · 巳午未 달이고, 월지 계절표(`JOHU_SEASON_BY_MONTH`)는 저자가 적은 한 · 열과
-   * 늘 같다. 그런데 같은 달의 `not-invoked` 셋은 조후를 말하지 않는다 — **달만으로는 조후를 부를지
-   * 못 가른다.**
+   * 사례는 한 건만 빼고 亥子丑 · 巳午未 달이고, 월지 계절표(`JOHU_SEASON_BY_MONTH`)는 그 사례들에서
+   * 저자가 적은 한 · 열과 늘 같다. 그런데 같은 달의 `not-invoked` 넷은 조후를 말하지 않는다 —
+   * **달만으로는 조후를 부를지 못 가른다.**
+   *
+   * 예외 하나(CN-1): 算準網이 卯월 甲木에 「寒气未除，先丙后庚」로 조후를 앞세운다. 엔진은 卯를
+   * `mild` 로 둔다 — 謝咏 · 張永紅의 「春秋不用调候」 쪽이다. 두 현대 계통이 봄을 두고 갈린다.
    */
   it('월지 계절은 저자의 한 · 열과 같지만 조후를 부를지는 못 가른다', () => {
-    for (const testCase of JOHU_EXTERNAL_CASES) {
+    const mild = JOHU_EXTERNAL_CASES.filter(
+      (c) => johuJudgementOf(chartOf(c.pillars)).season.temperature === 'mild',
+    ).map((c) => c.id);
+    expect(mild).toEqual(['sz-eulmyo-gimyo']);
+    for (const testCase of JOHU_EXTERNAL_CASES.filter((c) => !mild.includes(c.id))) {
       const season = johuJudgementOf(chartOf(testCase.pillars)).season.temperature;
       expect(['cold', 'hot'], testCase.id).toContain(season);
       const climate = testCase.claim.climate;
@@ -288,7 +312,7 @@ describe('조후 외부 대조 데이터셋', () => {
       JOHU_EXTERNAL_CASES.filter((c) => c.claim.verdict === 'not-invoked').map(
         (c) => johuJudgementOf(chartOf(c.pillars)).season.temperature,
       ),
-    ).toEqual(['cold', 'hot', 'cold']);
+    ).toEqual(['cold', 'hot', 'cold', 'cold']);
   });
 
   /**
@@ -301,8 +325,12 @@ describe('조후 외부 대조 데이터셋', () => {
     const withRemedy = JOHU_EXTERNAL_CASES.map(measure).filter(
       (row) => row.remedyElementActive !== null,
     );
-    expect(withRemedy).toHaveLength(38);
-    expect(withRemedy.filter((row) => row.remedyElementActive === false)).toHaveLength(0);
+    expect(withRemedy).toHaveLength(49);
+    // CN-1 에서 처음 갈렸다: 張永紅은 丑월 丁火에 「暖」을 처방하고, 표(丁丑)는 甲庚만 권한다 —
+    // 저자는 丁이 기대는 寅木이 춥다는 까닭으로 불을 부르는데 표는 나무 자체를 준다.
+    expect(
+      withRemedy.filter((row) => row.remedyElementActive === false).map((row) => row.id),
+    ).toEqual(['zyh-gihae-jeongchuk']);
     expect(withRemedy.filter((row) => row.remedyStemActive === false).map((row) => row.id)).toEqual(
       [
         'dtsm-seongjeong-jeongsa',
@@ -315,7 +343,7 @@ describe('조후 외부 대조 데이터셋', () => {
     );
     expect(
       withRemedy.filter((row) => row.verdict === 'johu-declined' && row.remedyElementActive),
-    ).toHaveLength(6);
+    ).toHaveLength(8);
   });
 
   /**
@@ -331,9 +359,11 @@ describe('조후 외부 대조 데이터셋', () => {
       return [named.filter((row) => row.eokbuMatchesYongsin).length, named.length];
     };
     expect(Object.fromEntries(RANKED.map((verdict) => [verdict, tally(verdict)]))).toEqual({
-      'johu-first': [5, 18],
+      // CN-1 전 5/18 · 1/3 이었다. 현대 중국 우선 넷 중 셋이 억부와 같은 오행이다 — 현대 저자들은
+      // 조후와 억부가 겹치는 명식을 골라 싣는 경향이 있다(`docs/notes/2026-09-25-research-cn-johu.md` 3).
+      'johu-first': [8, 22],
       'johu-auxiliary': [3, 7],
-      'johu-declined': [1, 3],
+      'johu-declined': [2, 4],
       'not-invoked': [2, 2],
     });
 
@@ -345,20 +375,24 @@ describe('조후 외부 대조 데이터셋', () => {
       return counts;
     };
     expect(Object.fromEntries(RANKED.map((verdict) => [verdict, relations(verdict)]))).toEqual({
-      'johu-first': { 'not-comparable': 9, partial: 6, conflict: 5 },
+      'johu-first': { 'not-comparable': 9, partial: 11, conflict: 7 },
       'johu-auxiliary': { 'not-comparable': 4, conflict: 3, partial: 1 },
-      'johu-declined': { 'not-comparable': 2, partial: 2, conflict: 2 },
-      'not-invoked': { conflict: 1, partial: 2 },
+      'johu-declined': { 'not-comparable': 2, partial: 3, conflict: 3 },
+      'not-invoked': { conflict: 1, partial: 3 },
     });
   });
 
   /**
-   * 처방 오행이 천간에 드러나 뿌리를 두었는가(문턱 없는 사실). 조후를 물린 여섯은 **하나도**
+   * 처방 오행이 천간에 드러나 뿌리를 두었는가(문턱 없는 사실). CN-1 전에는 조후를 물린 여섯이 **하나도**
    * 뿌리 있게 드러나지 않았다 — 任鐵樵의 「寒甚而暖無氣」 · 「寒無根」, 徐樂吾의 「四柱無印」과 같다.
    * 거꾸로는 서지 않는다: 뿌리 없는 처방으로도 조후를 앞세운 사례가 여섯이다(대개 「필요하나
    * 채워지지 않았다」는 진단).
+   *
+   * CN-1 이 반례 하나를 더했다: 朱祖夏의 丙午 己亥 庚寅 丙戌 은 처방 火가 뿌리 있게 드러났는데 조후를
+   * 물린다 — 불이 이미 넘쳐 「火上浇油」라서다. 물림의 까닭이 둘이다: **못 쓴다**(뿌리 없음 · 원국에
+   * 없음, 7/8)와 **이미 넘친다**(1/8). 앞쪽만 「드러나 뿌리 둠」이 가른다.
    */
-  it('조후를 물린 사례에는 뿌리 있게 드러난 처방이 없다', () => {
+  it('조후를 물린 사례는 대개 뿌리 있게 드러난 처방이 없다 — 넘쳐서 물린 한 건만 예외다', () => {
     const rows = JOHU_EXTERNAL_CASES.map(measure);
     const seats = (verdict: JohuVerdict) => {
       const counts: Record<string, number> = {};
@@ -373,19 +407,24 @@ describe('조후 외부 대조 데이터셋', () => {
       declined: seats('johu-declined'),
     }).toEqual({
       first: {
-        'revealed-rooted': 12,
+        'revealed-rooted': 17,
         'revealed-unrooted': 6,
-        'hidden-only': 1,
-        absent: 1,
+        'hidden-only': 2,
+        absent: 2,
       },
       auxiliary: { 'revealed-rooted': 3, 'revealed-unrooted': 4, absent: 1 },
-      declined: { 'revealed-unrooted': 5, absent: 1 },
+      declined: { 'revealed-rooted': 1, 'revealed-unrooted': 6, absent: 1 },
     });
+    expect(
+      rows
+        .filter((r) => r.verdict === 'johu-declined' && r.remedySeat === 'revealed-rooted')
+        .map((r) => r.id),
+    ).toEqual(['zzx-byeongo-gihae']);
   });
 
   /**
    * 현대 한국 한 계통의 셈 체크리스트(청목서원)를 사례에 대 본다. 좁게 읽으면(壬癸亥子 · 丙丁巳午)
-   * 거의 안 걸리고, 넓게 읽으면 조후를 말한 사례에 대부분 걸리지만 **조후를 물린 여섯에 여섯 다**
+   * 거의 안 걸리고, 넓게 읽으면 조후를 말한 사례에 대부분 걸리지만 **조후를 물린 여덟에 여덟 다**
    * 걸린다 — 셈이 많을수록 극단이고, 극단은 任鐵樵에게 순세(順勢)의 자리다. 셈은 「조후를 말할
    * 명식인가」에 가깝고 「조후가 앞서는가」를 가르지 못한다.
    */
@@ -408,18 +447,19 @@ describe('조후 외부 대조 데이터셋', () => {
         ]),
       );
     expect(fired('strict')).toEqual({
-      'johu-first': 2,
+      'johu-first': 3,
       'johu-auxiliary': 1,
-      'johu-declined': 3,
+      'johu-declined': 4,
       'not-invoked': 0,
       'climate-diagnosis': 0,
     });
+    // CN-1 뒤: 물림 8/8 이 다 걸린다(넘쳐서 물린 朱祖夏 한 건까지). 강약만 넷은 여전히 0.
     expect(fired('broad')).toEqual({
-      'johu-first': 16,
+      'johu-first': 21,
       'johu-auxiliary': 7,
-      'johu-declined': 6,
+      'johu-declined': 8,
       'not-invoked': 0,
-      'climate-diagnosis': 5,
+      'climate-diagnosis': 7,
     });
     // 넓은 읽기는 寅 · 戌 · 未를 「따뜻한 글자」로 세어 겨울 명식 둘을 「덥다」로 뒤집는다
     expect(
