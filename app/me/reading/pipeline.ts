@@ -156,13 +156,15 @@ async function submitFrozen(
   const { kind } = job;
 
   const close = async (code: string, detail: string): Promise<void> => {
-    await keyed.rpc('fail_reading_job', {
+    const { error: notClosed } = await keyed.rpc('fail_reading_job', {
       p_run_id: job.run_id,
       p_failure_code: code,
       p_failure_detail: detail,
       /** 여기서 닫는 실패는 전부 **떠나보내기 전**이라 쓴 토큰이 없다(ADR 0039) */
       p_usage: null,
     });
+    /* 못 닫아도 기한이 지나면 복구기가 닫는다 — 그래도 조용히 넘기지 않고 기록에 남긴다(ADR 0078) */
+    if (notClosed) console.error('submit: fail_reading_job', notClosed.code, notClosed.message);
   };
 
   /**
@@ -246,10 +248,11 @@ async function submitFrozen(
    * **못 적어도 잃지 않는다.** 요청에 실어 보낸 `metadata.reading_run_id` 로 webhook 이
    * 되찾는다 — 이름표를 결과에 붙여 보내는 것이 우리 쪽 기록보다 먼저인 이유다.
    */
-  await keyed.rpc('adopt_reading_job', {
+  const { error: notAdopted } = await keyed.rpc('adopt_reading_job', {
     p_run_id: job.run_id,
     p_response_id: submitted.responseId,
   });
+  if (notAdopted) console.error('submit: adopt_reading_job', notAdopted.code, notAdopted.message);
 }
 
 /**
@@ -269,12 +272,13 @@ async function sendRun(runId: string): Promise<void> {
 
   const { data, error } = await keyed.rpc('take_reading_job', { p_run_id: runId });
   if (error) {
-    await keyed.rpc('fail_reading_job', {
+    const { error: notClosed } = await keyed.rpc('fail_reading_job', {
       p_run_id: runId,
       p_failure_code: 'unexpected',
       p_failure_detail: error.message,
       p_usage: null,
     });
+    if (notClosed) console.error('send: fail_reading_job', notClosed.code, notClosed.message);
     return;
   }
 
@@ -380,10 +384,12 @@ export async function sendAcceptedMatchReading(requestId: string): Promise<void>
 async function failAsUser(runId: string, code: string, detail: string): Promise<void> {
   const supabase = await supabaseOnServer();
 
-  await supabase.rpc('fail_reading_run', {
+  const { error } = await supabase.rpc('fail_reading_run', {
     p_run_id: runId,
     p_failure_code: code,
     p_failure_detail: detail,
     p_usage: null,
   });
+  /* 이 자리는 만료가 닫는다 — 못 닫은 것은 기록에만 남긴다 */
+  if (error) console.error('send: fail_reading_run', error.code, error.message);
 }
