@@ -1,14 +1,11 @@
 import { DISCOVERY_V1, legacyPreviewScoreOf } from '../../discovery';
 import {
-  DAY_PILLAR_AXIS,
-  NEED_COMPLEMENT_AXIS,
-  STRENGTH_VARIANTS,
   dayPillarAxisOf,
   needComplementDirectional,
+  needComplementSymmetric,
   needSupplyOf,
   needTargetsOf,
   type NeedTargets,
-  type StrengthVariant,
 } from '../../discovery/compat-axes';
 import {
   combinedCountBalanceOf,
@@ -39,7 +36,7 @@ import { collisionRate, mean, quantile, sd, spearman, topOverlap } from './stats
  *
  * 축 넷은 모두 0~100 이다.
  * - `dayPillar` — 일주 · 일지 관계(`dayPillarAxisOf`)
- * - `need` — 필요한 기운의 보완, 두 방향 평균(`needComplementDirectional`)
+ * - `need` — 필요한 기운의 보완, 두 방향 평균(`needComplementSymmetric`)
  * - `balance` — `discovery-v1` 의 합산 균형 그대로
  * - `countComplement` — `discovery-v1` 의 20% 미만 부족분 보완 그대로
  *
@@ -49,16 +46,15 @@ import { collisionRate, mean, quantile, sd, spearman, topOverlap } from './stats
 export type AxisKey = 'dayPillar' | 'need' | 'balance' | 'countComplement';
 
 /**
- * 비교기가 재는 세기 — `discovery/compat-axes` 의 넷에 옛 엔진 기본(`legacy`)을 더한다.
+ * 비교기가 재는 세기 — 옛 엔진 기본(`legacy`) · 지금 엔진 기본(`engine`) · 옛 기본에 하나씩 더한 둘 · 둘 다.
  *
- * 무게는 **여기서 다 적는다.** `compat-axes` 의 `STRENGTH_VARIANT_WEIGHTS` 는 한 가지만 바꾼 부분 무게라 엔진
- * 기본 위에 얹히는데, 기본이 월지 ×2 · 60:30:10 이 된 뒤로(ADR 0114) `month-x2` · `hidden-60-30-10` 이 둘 다
- * `both` 와 같아졌다. 여기서는 둘을 **옛 기본에 하나씩 더한 것**으로 다시 적어 「어느 하나가 얼마를 바꾸는가」를
- * 계속 잰다. `legacy` 는 되돌아갈 문(`LEGACY_ELEMENT_WEIGHTS`)이다.
+ * 무게는 **여기서 다 적는다.** 기본이 월지 ×2 · 60:30:10 이 된 뒤로(ADR 0114) `engine` 은 `both` 와 같다.
+ * `month-x2` · `hidden-60-30-10` 은 **옛 기본에 하나씩 더한 것**이라 「어느 하나가 얼마를 바꾸는가」를 계속 잰다.
+ * `legacy` 는 되돌아갈 문(`LEGACY_ELEMENT_WEIGHTS`)이다.
  */
-export type ComparisonStrength = StrengthVariant | 'legacy';
+export const COMPARISON_STRENGTHS = ['legacy', 'engine', 'month-x2', 'hidden-60-30-10', 'both'] as const;
 
-export const COMPARISON_STRENGTHS: readonly ComparisonStrength[] = ['legacy', ...STRENGTH_VARIANTS];
+export type ComparisonStrength = (typeof COMPARISON_STRENGTHS)[number];
 
 export const COMPARISON_STRENGTH_WEIGHTS: Record<ComparisonStrength, ElementWeights> = {
   legacy: LEGACY_ELEMENT_WEIGHTS,
@@ -68,13 +64,12 @@ export const COMPARISON_STRENGTH_WEIGHTS: Record<ComparisonStrength, ElementWeig
   both: { ...LEGACY_ELEMENT_WEIGHTS, monthBranchMultiplier: 2, hiddenStemWeighting: 'sixty-thirty-ten' },
 };
 
-/** 한 사람의 필요 대상 — 세기 하나로 */
+/** 한 사람의 필요 대상 — 세기 하나로. 억부만 읽으므로 출생 시각(조후의 상 · 하반월)은 안 든다 */
 export function targetsFor(
   pillars: Parameters<typeof needProfileOf>[0],
   variant: ComparisonStrength,
-  instant?: Date,
 ): NeedTargets {
-  return needTargetsOf(needProfileOf(pillars, { instant, weights: COMPARISON_STRENGTH_WEIGHTS[variant] }));
+  return needTargetsOf(needProfileOf(pillars, { weights: COMPARISON_STRENGTH_WEIGHTS[variant] }));
 }
 
 export type Formula = {
@@ -146,7 +141,7 @@ export type Person = {
 };
 
 export function personOf(input: SajuInput): Person {
-  const { pillars, instant, hourKnown } = computePillars(input);
+  const { pillars, hourKnown } = computePillars(input);
   const distribution = elementDistributionOf(pillars);
   return {
     input,
@@ -154,7 +149,7 @@ export function personOf(input: SajuInput): Person {
     hourKnown,
     summary: { glyphCount: distribution.glyphCount, counts: distribution.counts, ratios: distribution.ratios },
     targets: Object.fromEntries(
-      COMPARISON_STRENGTHS.map((variant) => [variant, targetsFor(pillars, variant, instant)]),
+      COMPARISON_STRENGTHS.map((variant) => [variant, targetsFor(pillars, variant)]),
     ) as Record<ComparisonStrength, NeedTargets>,
   };
 }
@@ -169,15 +164,16 @@ export type PairAxes = {
 
 export function axesOf(a: Person, b: Person): PairAxes {
   return {
-    dayPillar: dayPillarAxisOf(a.pillars, b.pillars, DAY_PILLAR_AXIS),
+    dayPillar: dayPillarAxisOf(a.pillars, b.pillars),
     balance: combinedCountBalanceOf(a.summary, b.summary),
     countComplement: mutualDeficitComplementOf(a.summary, b.summary),
     need: Object.fromEntries(
       COMPARISON_STRENGTHS.map((variant) => [
         variant,
-        (needComplementDirectional(a.targets[variant], b.summary, NEED_COMPLEMENT_AXIS) +
-          needComplementDirectional(b.targets[variant], a.summary, NEED_COMPLEMENT_AXIS)) /
-          2,
+        needComplementSymmetric(
+          { targets: a.targets[variant], summary: a.summary },
+          { targets: b.targets[variant], summary: b.summary },
+        ),
       ]),
     ) as Record<ComparisonStrength, number>,
   };

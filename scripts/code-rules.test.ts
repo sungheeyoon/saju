@@ -286,10 +286,9 @@ const ERRORS_NEVER_READ_STILL_THERE: readonly string[] = [];
  *
  * 남은 자리는 전부 **뒤에 복구기가 받치는 쓰기**다(`fail_reading_job` 이 실패하면 기한이 지나 복구기가 닫는다). 그래도
  * 조용하다 — 고칠 때 `error` 를 꺼내 기록(`console.error`)에 남기고 여기서 지운다. **넘김:** `app/me/reading/*` 는
- * 풀이 화면 담당, `app/me/discovery/participation.ts` 는 매칭 화면 담당이다.
+ * 풀이 화면 담당이다. `app/me/discovery/participation.ts` 는 2026-09-26 에 기록을 남기게 고쳐 지웠다.
  */
 const DB_RESULTS_DROPPED_STILL_THERE = [
-  "app/me/discovery/participation.ts :: supabase.rpc('ensure_discovery_participation', …)",
   "app/me/reading/collect.ts :: keyed.rpc('fail_reading_job', …)",
   "app/me/reading/collect.ts :: keyed.rpc('release_reading_job', …)",
   "app/me/reading/pipeline.ts :: keyed.rpc('fail_reading_job', …)",
