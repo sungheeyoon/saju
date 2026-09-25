@@ -236,7 +236,6 @@ export const MATCH_INPUT_VARIANTS: readonly MatchInputVariant[] = [
       'compatibility.relations[].contested (원국 안 경쟁자)',
     ],
     promptChanges: [
-      '점수표에 「용신을 상대가 가졌다 | eokbuMatch | +1~+3」 줄이 선다',
       '범위 절이 실린 판정(신강신약·억부 후보·오행 세력)을 사이 설명의 근거로만 쓰고 이름은 본문에 안 쓰라고 말한다',
     ],
   },

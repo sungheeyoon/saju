@@ -674,7 +674,8 @@ describe.skipIf(!matchInputLive)('인연 궁합 입력 A/B 를 같은 조건으�
           if (!json.includes(`"${leaf}"`)) throw new Error(`${key}: 읽는 법의 ${entry.path} 가 자료에 없다`);
         }
       }
-      if (json.includes('"eokbuMatch"') !== extended || head.includes('용신을 상대가 가졌다') !== extended) {
+      /* 점수표의 억부 줄은 v17 에서 걷었다 — 기준점이 이미 담는다(ADR 0113) */
+      if (json.includes('"eokbuMatch"') !== extended || head.includes('용신을 상대가 가졌다')) {
         throw new Error(`${key}: 억부 근거와 점수표가 판과 어긋난다`);
       }
       /* 계약의 `withheld` 는 뺀 자리의 이름을 든다 — 값이 실렸는지는 계약 밖에서 본다 */

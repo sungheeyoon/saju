@@ -7,6 +7,7 @@ import { ABSORPTION_RULE, PROMPT_PARTS } from './parts';
 import {
   CONTROL,
   LEGACY_PAIR_ASSEMBLY,
+  MATCH_INPUT_VARIANTS,
   READING_KINDS,
   READING_POLICY,
   READING_PROMPTS,
@@ -225,22 +226,45 @@ describe('시키는 값과 막는 값', () => {
       const prompt = READING_PROMPTS[kind];
       expect(prompt, kind).toContain('## 점수');
       expect(prompt, kind).toContain('기준점에서 시작해 항목별로 더하고 뺀다');
-      // 조정표의 여덟 항목이 다 선다 — 하나가 빠지면 모델은 그 자료를 안 본다
+      // 조정표의 항목이 다 선다 — 하나가 빠지면 모델은 그 자료를 안 본다
       for (const item of [
         '육합·삼합·방합',
         '두 사람이 함께 이룬 삼합·방합',
         '형·해·파·원진·귀문',
         '함께 이룬 삼형',
         '십성이 한쪽으로만 기운 자리',
-        '용신을 상대가 가졌다',
-        '둘 다 없는 오행',
       ]) {
-        // 제한형 A 인연 궁합에는 억부 후보가 없어 그 줄을 세우지 않는다
-        if (kind === 'match' && item === '용신을 상대가 가졌다') {
-          expect(prompt, `${kind}/${item}`).not.toContain(item);
-          continue;
-        }
         expect(prompt, `${kind}/${item}`).toContain(item);
+      }
+    }
+  });
+
+  /**
+   * **기준점에 든 사실은 조정에서 다시 세지 않는다**(ADR 0113, `reading-prompt-v17`).
+   * `v2-beta` 기준점이 필요한 기운 보완 · 함께 없는 오행 · 연인 · 배우자의 일간 · 일지 관계를
+   * 이미 담으므로, 조정표에 그 줄이 서거나 재량이 일지 충을 무겁게 보면 두 번 세진다.
+   */
+  it('궁합 조정표는 기준점에 든 사실을 다시 세지 않는다', () => {
+    const at = new Date('2026-09-23T00:00:00Z');
+    const a = computeSaju({ year: 1990, month: 5, day: 12, hour: 14, minute: 30, second: 0, gender: 'male' });
+    const b = computeSaju({ year: 1993, month: 11, day: 3, hour: 8, minute: 10, second: 0, gender: 'female' });
+    const extended = MATCH_INPUT_VARIANTS.find((v) => v.id === 'match-extended-v1')!.assembly;
+    for (const assembly of [CONTROL, LEGACY_PAIR_ASSEMBLY, extended]) {
+      for (const kind of ['private', 'match'] as const) {
+        const prompt = readingPromptOf(readingEvidenceOf(kind, { a, b }, at, assembly.matchInput), assembly);
+        const start = prompt.indexOf('## 점수');
+        const score = prompt.slice(start, prompt.indexOf('\n## 기준점', start));
+        expect(score, kind).toContain('최종 64');
+        expect(score, kind).not.toContain('eokbuMatch');
+        expect(score, kind).not.toContain('stillMissing');
+        expect(score, kind).not.toContain('| 용신을 상대가 가졌다');
+        expect(score, kind).not.toContain('| 둘 다 없는 오행');
+        expect(score, kind).not.toContain('일지에 걸린 충과');
+        expect(score, kind).toContain('**규칙 여섯.**');
+        expect(score, kind).toContain(
+          '기준점 산출에 사용한 사실은 항목 조정이나 재량 조정에서 다시 반영하지 않는다.',
+        );
+        expect(score, kind).toContain('년·월·시가 하나 이상 걸린 별도 관계만 조정 근거로 사용할 수 있다.');
       }
     }
   });
@@ -398,11 +422,11 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
     expect(legacy).not.toContain('## 이 자료를 읽는 법');
   });
 
-  it('개인 풀이는 v15, 궁합은 v16 이다', () => {
+  it('개인 풀이는 v15, 궁합은 v17 이다', () => {
     expect(READING_POLICY.version).toBe('reading-prompt-v15');
-    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v16');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v17');
     for (const kind of READING_KINDS) {
-      expect(promptVersionOf(kind), kind).toBe(isSolo(kind) ? 'reading-prompt-v15' : 'reading-prompt-v16');
+      expect(promptVersionOf(kind), kind).toBe(isSolo(kind) ? 'reading-prompt-v15' : 'reading-prompt-v17');
     }
   });
 

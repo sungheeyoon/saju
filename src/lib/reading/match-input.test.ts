@@ -51,10 +51,11 @@ describe('두 판이 제각기 앞뒤가 맞는다', () => {
     expect(limited.assembly).toEqual({ ...CONTROL, matchInput: 'limited-v1', pairReading: 'plain-v1' });
   });
 
-  it.each(built)('$variant.id — 점수표와 절이 가리키는 억부 근거가 자료에 있을 때만 선다', ({ json, head }) => {
+  /* 점수표에는 어느 판에서도 안 선다 — 기준점이 필요한 기운 보완을 이미 담는다(ADR 0113, v17) */
+  it.each(built)('$variant.id — 절이 가리키는 억부 근거는 자료에 있을 때만 서고, 점수표에는 안 선다', ({ json, head }) => {
     const carried = json.includes('"eokbuMatch"');
     expect(head.includes('eokbuMatch')).toBe(carried);
-    expect(head.includes('용신을 상대가 가졌다')).toBe(carried);
+    expect(head.includes('용신을 상대가 가졌다')).toBe(false);
   });
 
   it.each(built)('$variant.id — 점수표가 가리키는 자료 이름은 전부 자료에 있다', ({ json, head }) => {
@@ -139,14 +140,15 @@ describe('운영 기본값은 제한형 A 와 읽는 법 4판이다', () => {
     expect(legacy.evidence.compatibility).toEqual(full.compatibility);
   });
 
-  it('기본 지시는 4판이고, 원복 조립은 옛 범위 문장과 용신 줄을 그대로 든다', () => {
+  it('기본 지시는 4판이고, 원복 조립은 옛 범위 문장을 그대로 든다', () => {
     expect(readingPromptOf(reading)).toBe(readingPromptOf(reading, CONTROL));
     expect(READING_PROMPTS.match).toContain('## 글을 나누는 법');
     expect(READING_PROMPTS.match).not.toContain('용신을 상대가 가졌다');
 
     const old = readingPromptOf(legacy, LEGACY_PAIR_ASSEMBLY);
     expect(old).toContain('두 원국\n사이의 사실은 있지만 각자의 원국 하나에 대한 판정은 없다');
-    expect(old).toContain('용신을 상대가 가졌다');
+    // 점수표의 용신 줄은 원복 조립에서도 걷혔다 — 기준점이 이미 담는다(ADR 0113, v17)
+    expect(old).not.toContain('용신을 상대가 가졌다');
     expect(old).not.toContain('## 글을 나누는 법');
   });
 
@@ -177,7 +179,7 @@ describe('다른 kind 는 그대로다', () => {
     const full = redactEvidence(evidenceOf({ a: A, b: B }, VIEWED_AT));
 
     expect(reading.evidence).toEqual(full);
-    expect(READING_PROMPTS.private).toContain('용신을 상대가 가졌다');
+    expect(READING_PROMPTS.private).not.toContain('용신을 상대가 가졌다');
     expect(READING_PROMPTS.private).not.toContain('## 이 자료의 범위');
   });
 
