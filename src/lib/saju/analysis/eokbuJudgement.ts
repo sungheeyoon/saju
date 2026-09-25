@@ -5,6 +5,7 @@ import {
   STEM_INFO,
   principalStem,
   type Element,
+  type Stem,
 } from '../constants';
 import type { Pillars } from '../pillars';
 import { hourPillarOf } from '../pillars/hour';
@@ -72,27 +73,27 @@ const BRANCH_POSITIONS = [
 type SeatFacts = Pick<EokbuCandidate, 'seat' | 'revealedAt' | 'hiddenAt'>;
 
 /**
- * 오행 하나가 여덟 글자 어디에 앉았는가 — **글자 그대로** 센다. 합화 · 국으로 바뀐 무게는
+ * 글자가 여덟 글자 어디에 앉았는가 — **글자 그대로** 센다(일간 제외). 합화 · 국으로 바뀐 무게는
  * 「쓸 수 있는 글자가 있는가」와 다른 물음이라 여기 섞지 않는다.
  *
- * `hiddenAt` 은 지장간(정기 포함) 어디에든 그 오행이 있는 지지 자리다. 지지의 오행은 늘
- * 그 정기의 오행이므로 `branch-main` 은 「지지 글자로 보인다」와 같은 말이다.
+ * 무엇을 찾는지는 `test` 가 정한다 — 억부 후보는 오행으로, 조후 글자는 천간 그대로(`needProfile.ts`).
+ * `ElementSeat` 의 선을 한 자리에서만 긋는다.
+ *
+ * `hiddenAt` 은 지장간(정기 포함) 어디에든 그 글자가 있는 지지 자리다. 지지의 오행은 늘
+ * 그 정기의 오행이므로 오행으로 찾을 때 `branch-main` 은 「지지 글자로 보인다」와 같은 말이다.
  */
-function seatOf(pillars: JudgementInput, element: Element): SeatFacts {
+export function glyphSeatOf(pillars: JudgementInput, test: (stem: Stem) => boolean): SeatFacts {
   const revealedAt = STEM_POSITIONS.filter((position) => {
     const pillar = pillars[position];
-    return pillar !== null && STEM_INFO[pillar.stem].element === element;
+    return pillar !== null && test(pillar.stem);
   });
   const hiddenAt = BRANCH_POSITIONS.filter((position) => {
     const pillar = pillars[position];
-    return (
-      pillar !== null &&
-      HIDDEN_STEMS[pillar.branch].some((hidden) => STEM_INFO[hidden.stem].element === element)
-    );
+    return pillar !== null && HIDDEN_STEMS[pillar.branch].some((hidden) => test(hidden.stem));
   });
   const branchMain = BRANCH_POSITIONS.some((position) => {
     const pillar = pillars[position];
-    return pillar !== null && STEM_INFO[principalStem(pillar.branch)].element === element;
+    return pillar !== null && test(principalStem(pillar.branch));
   });
 
   const seat: ElementSeat =
@@ -106,6 +107,9 @@ function seatOf(pillars: JudgementInput, element: Element): SeatFacts {
 
   return { seat, revealedAt, hiddenAt };
 }
+
+const seatOf = (pillars: JudgementInput, element: Element): SeatFacts =>
+  glyphSeatOf(pillars, (stem) => STEM_INFO[stem].element === element);
 
 /**
  * 불균형의 단계 — **강약 기준 셋(득령 · 득지 · 득세) 중 몇이 한쪽을 가리켰는가**에서만 낸다.

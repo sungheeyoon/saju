@@ -1124,7 +1124,8 @@ export const pairSectionTexts = (kind: PairKind, assembly: PromptAssembly): read
  *
  * 기준점 65 에서 25 를 깎아 40 을 만들 수 있으면 기준점을 준 보람이 없다. ±15 로 자른다 —
  * 기준점이 p5~p95 로 50~77 이므로 최종은 35~92 가 되고, 후보 카드의 밴드(78·72·66·60·
- * 54·46)와 **같은 축에서** 움직인다.
+ * 54·46)와 **같은 축에서** 움직인다. 이 수는 `discovery-v1` 의 것이다 — `v2-beta` 는 `READING_POLICY.scoreAdjustment`
+ * 옆에 적었다.
  *
  * ## 조정은 **반드시 한 항목 이상** 일어난다
  *
