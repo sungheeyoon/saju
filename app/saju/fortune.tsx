@@ -1,9 +1,6 @@
 import {
-  CARD,
-} from '../card';
-import {
   ELEMENT_TONE,
-} from '../element-tone';
+} from '../ui/element-tone';
 import {
   SectionTitle,
 } from './fold';
@@ -32,6 +29,7 @@ import {
   round1,
   subjectParticle,
 } from './shared';
+import { CARD } from '../ui/surfaces';
 
 const ageRangeLabel = (from: number, to: number) =>
   from === to ? `만 ${from}세` : `만 ${from}→${to}세`;

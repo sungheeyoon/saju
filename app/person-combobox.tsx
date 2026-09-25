@@ -224,7 +224,7 @@ export function PersonCombobox({
         role="listbox"
         aria-label={label}
         hidden={!listed}
-        className={`${LIST_HEIGHT} relative scroll-mb-28 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface p-1 shadow-[var(--shadow-card)] sm:scroll-mb-2`}
+        className={`${LIST_HEIGHT} relative scroll-mb-28 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface p-1 shadow-card sm:scroll-mb-2`}
       >
         {listed &&
           choices.map((one, index) => (

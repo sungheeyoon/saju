@@ -8,7 +8,7 @@ import { BLOCK_NOTE } from '@/src/lib/consent';
 import { activityText, type ActivityBand } from '@/src/lib/presence';
 import { ELEMENT_KO, STEM_INFO, type Stem } from '@/src/lib/saju';
 
-import { elementScope } from '../../../element-tone';
+import { elementScope } from '../../../ui/element-tone';
 import {
   BUTTON_DANGER,
   BUTTON_SECONDARY,
@@ -20,7 +20,6 @@ import { TYPE_META, TYPE_NAME } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { DayMasterChip } from '../../people/chart-bits';
 import { blockUser } from '../../requests/actions';
-import { ChatIcon } from '../chat-icon';
 import { Composer, ReadOnVisit } from '../composer';
 import type { RoomTones } from '../tones';
 import type { Bubble, BubbleDay } from './bubbles';
@@ -179,7 +178,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         ) : closed ? (
           /* 닫힌 까닭 한 줄 — 상대가 떠났으면 넷째 줄(PRD §7.1) */
           <p role="status" className="flex items-center gap-2.5 rounded-[1.25rem] bg-surface-soft px-4 py-3 text-[14px] text-secondary">
-            <ChatIcon name="lock" className="size-4" />
+            <Icon name="lock" className="size-4" />
             {room.notice}
           </p>
         ) : (
@@ -233,10 +232,10 @@ function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: ()
         onClick={() => setOpen((was) => !was)}
         className={GHOST_ICON}
       >
-        <ChatIcon name="more" />
+        <Icon name="more" />
       </button>
       {open && (
-        <div className="absolute right-0 top-12 z-20 flex w-48 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-[var(--shadow-float)] ring-1 ring-border">
+        <div className="absolute right-0 top-12 z-20 flex w-48 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-float ring-1 ring-border">
           <button
             type="button"
             className={`${item} text-foreground`}
@@ -245,7 +244,7 @@ function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: ()
               onReport();
             }}
           >
-            <ChatIcon name="flag" className="size-[18px]" />
+            <Icon name="flag" className="size-[18px]" />
             신고
           </button>
           {!closed && (
@@ -257,7 +256,7 @@ function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: ()
                 onBlock();
               }}
             >
-              <ChatIcon name="block" className="size-[18px]" />
+              <Icon name="block" className="size-[18px]" />
               차단
             </button>
           )}
@@ -386,7 +385,7 @@ function BubbleRow({
               chosen ? 'bg-danger text-surface ring-danger' : 'bg-surface text-danger ring-danger/45'
             }`}
           >
-            <ChatIcon name="flag" className="size-[18px]" />
+            <Icon name="flag" className="size-[18px]" />
           </button>
         ) : (
           bubble.last && (
@@ -422,7 +421,7 @@ function BlockAsk({ userId, onCancel }: { userId: string; onCancel: () => void }
   return (
     <div className="flex flex-col gap-3 rounded-[1.5rem] bg-danger-wash p-4 ring-1 ring-danger/30">
       <p className="flex items-center gap-2 text-[15px] font-bold text-danger">
-        <ChatIcon name="block" className="size-[18px]" />
+        <Icon name="block" className="size-[18px]" />
         차단
       </p>
       <p className="text-[14px] leading-6 text-foreground">{BLOCK_NOTE}</p>

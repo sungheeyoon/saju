@@ -25,7 +25,7 @@ export default async function SignInPage({
     <main className="app-shell grid flex-1 place-items-center py-12 sm:py-20">
       <section className="flex w-full max-w-lg flex-col gap-6 rounded-[2rem] bg-cream p-6 sm:p-10">
       <header className="flex flex-col gap-2">
-        <span className="grid size-16 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]">
+        <span className="grid size-16 place-items-center rounded-full bg-surface shadow-card">
           <Logo className="size-10" />
         </span>
         <h1 className={`mt-3 ${TYPE_TITLE}`}>

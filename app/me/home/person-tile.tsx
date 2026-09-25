@@ -4,7 +4,7 @@ import { ELEMENT_PICTURE_KO, STEM_INFO } from '@/src/lib/saju';
 import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { PILLAR_COLUMNS } from '../../saju/shared';
 import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';

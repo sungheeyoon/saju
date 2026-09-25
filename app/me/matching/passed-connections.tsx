@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { BUTTON_SECONDARY_SMALL, BUTTON_TERTIARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
@@ -64,7 +64,7 @@ export function PassedConnections({
       {cards.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-[1.75rem] border-2 border-dashed border-border-strong p-6">
           <span className="grid size-12 place-items-center rounded-full bg-cream text-cream-ink">
-            <UndoIcon />
+            <Icon name="undo" />
           </span>
           <h3 className="font-rounded text-[1.25rem] text-foreground">지나친 인연이 여기에 모여요</h3>
           <p className="text-[15px] leading-6 text-secondary">다시 궁금해진 사람을 살펴보고, 한 번 더 알아갈 수 있는 자리예요.</p>
@@ -72,7 +72,7 @@ export function PassedConnections({
       ) : (
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
           {cards.map((card) => (
-            <li key={card.candidateUserId} className="flex flex-col overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-[var(--shadow-card)]">
+            <li key={card.candidateUserId} className="flex flex-col overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-card">
               <span className="relative block aspect-square text-[3rem]">
                 <CandidatePhoto card={card} />
                 <span className={`${elementScope(supplyOf(card))} absolute bottom-2 left-2 grid size-9 place-items-center rounded-full bg-[var(--tile)] ring-2 ring-surface`}>
@@ -95,7 +95,7 @@ export function PassedConnections({
                   }}
                   className={`${BUTTON_SECONDARY_SMALL} mt-auto w-full disabled:opacity-55`}
                 >
-                  <UndoIcon className="size-4" />
+                  <Icon name="undo" className="size-4" />
                   {restoring === card.candidateUserId ? '복원하는 중…' : '다시 만나보기'}
                 </button>
               </span>
@@ -118,15 +118,5 @@ export function PassedConnections({
         </p>
       </div>
     </section>
-  );
-}
-
-/** 되돌리기 — 아이콘 한 벌(`app/ui/icons.tsx`)에 없는 그림이라 이 화면이 든다 */
-export function UndoIcon({ className = 'size-5' }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className={`${className} shrink-0`} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 14 4.5 9.5 9 5" />
-      <path d="M4.5 9.5H14a5.5 5.5 0 0 1 0 11h-3" />
-    </svg>
   );
 }

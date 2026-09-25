@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { SERVICE_NAME } from '@/src/lib/brand';
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
@@ -19,6 +19,7 @@ import { readUnreadNotifications } from './me/requests/unread';
 import { NOTIFICATIONS_UNREAD_MOVED } from './me/requests/unread-signal';
 import { isSharePath } from './share/path';
 import { BUTTON_SECONDARY_SMALL, ICON_BUTTON } from './ui/buttons';
+import { useDetailsMenu } from './ui/details-menu';
 import { Icon, type IconName } from './ui/icons';
 import { BrandMark } from './ui/logo';
 import { BADGE } from './ui/surfaces';
@@ -311,7 +312,7 @@ function Dock({ pathname, unreadChat }: { pathname: string; unreadChat: number }
       aria-label="모바일 내 메뉴"
       className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 md:hidden"
     >
-      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-[1.75rem] bg-surface/95 p-1.5 shadow-[0_10px_30px_-12px_rgba(60,48,30,0.45)] ring-1 ring-border backdrop-blur-xl">
+      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-[1.75rem] bg-surface/95 p-1.5 shadow-raise ring-1 ring-border backdrop-blur-xl">
         {MEMBER_TABS.map((tab) => {
           const active = isNavigationActive(pathname, tab.href);
           return (
@@ -351,7 +352,7 @@ function Dock({ pathname, unreadChat }: { pathname: string; unreadChat: number }
  * 하게 길을 하나 둔다.
  *
  * `<details>` 는 안의 링크를 눌러도 스스로 안 닫힌다. 닫는 자리를 셋 둔다. **주소가 바뀌면**, **눌렀으면**
- * (같은 화면으로 가는 누름은 주소를 안 바꾼다), 그리고 **바깥을 누르거나 Esc 를 누르면.**
+ * (같은 화면으로 가는 누름은 주소를 안 바꾼다), 그리고 **바깥을 누르거나 Esc 를 누르면**(`useDetailsMenu`).
  */
 function SettingsMenu({
   email,
@@ -366,31 +367,11 @@ function SettingsMenu({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const panel = useRef<HTMLDetailsElement>(null);
+  const { menu: panel, close } = useDetailsMenu();
   const [leaving, setLeaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
-  const close = () => {
-    if (panel.current !== null) panel.current.open = false;
-  };
-
-  useEffect(close, [pathname]);
-
-  useEffect(() => {
-    const outside = (event: MouseEvent) => {
-      if (panel.current !== null && !panel.current.contains(event.target as Node)) close();
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') close();
-    };
-
-    document.addEventListener('mousedown', outside);
-    document.addEventListener('keydown', escape);
-    return () => {
-      document.removeEventListener('mousedown', outside);
-      document.removeEventListener('keydown', escape);
-    };
-  }, []);
+  useEffect(close, [pathname, close]);
 
   /*
     판은 누른 뒤에도 열어 둔다 — 「로그아웃하는 중…」과 실패 문장이 이 판 안에 선다. 먼저 닫으면 실패가 닫힌 판 안에
@@ -426,7 +407,7 @@ function SettingsMenu({
       >
         <Icon name="gear" />
       </summary>
-      <div className="absolute right-0 top-13 z-50 w-60 rounded-[1.25rem] bg-surface p-2 shadow-[var(--shadow-float)] ring-1 ring-border">
+      <div className="absolute right-0 top-13 z-50 w-60 rounded-[1.25rem] bg-surface p-2 shadow-float ring-1 ring-border">
         {email && <p className="truncate border-b border-border px-3 pb-2 pt-1 text-[13px] text-muted">{email}</p>}
         <ul className="mt-1 flex flex-col">
           {links.map((link) => (

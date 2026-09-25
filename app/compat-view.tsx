@@ -11,7 +11,7 @@ import {
 
 import { BetweenSections } from './between-view';
 
-import { elementScope } from './element-tone';
+import { elementScope } from './ui/element-tone';
 import { DayMasterChip, PillarStrip } from './me/people/chart-bits';
 import { sharedPillarChartOf, type SharedPillarChart } from './shared-pillar';
 import { ElementSymbol } from './ui/element-symbol';

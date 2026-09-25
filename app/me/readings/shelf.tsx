@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { ELEMENTS, ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
@@ -29,7 +29,7 @@ import type { DayMaster } from './subject';
  */
 
 const COVER =
-  'group relative flex h-full min-h-[14rem] flex-col gap-3 overflow-hidden rounded-[0.5rem_1.5rem_1.5rem_0.5rem] py-4 pl-6 pr-4 text-left shadow-[0_10px_22px_-16px_rgba(60,48,30,0.55)] transition-transform hover:-translate-y-0.5 active:scale-[0.97]';
+  'group relative flex h-full min-h-[14rem] flex-col gap-3 overflow-hidden rounded-[0.5rem_1.5rem_1.5rem_0.5rem] py-4 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]';
 
 export function Shelf({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
@@ -225,7 +225,7 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
           <li key={slot.href}>
             <Link
               href={slot.href}
-              className={`${elementScope(slot.element)} relative flex h-full min-h-36 flex-col items-center justify-center gap-3 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] bg-[var(--tile)] py-3 pl-4 pr-2 text-center shadow-[0_10px_22px_-16px_rgba(60,48,30,0.55)] transition-transform hover:-translate-y-0.5 active:scale-[0.97]`}
+              className={`${elementScope(slot.element)} relative flex h-full min-h-36 flex-col items-center justify-center gap-3 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] bg-[var(--tile)] py-3 pl-4 pr-2 text-center shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]`}
             >
               <Spine background="var(--mid)" />
               <ElementSymbol element={slot.element} className="size-9" />

@@ -14,7 +14,7 @@ import {
   type Saju,
 } from '@/src/lib/saju';
 
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { PILLAR_COLUMNS } from '../../saju/shared';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
@@ -133,7 +133,7 @@ function Pillars({ saju }: { saju: Saju }) {
               <span
                 aria-label={`${label} ${pillar.name}`}
                 className={`flex flex-col gap-1 rounded-2xl p-1 ${
-                  day ? 'bg-surface shadow-[var(--shadow-card)] ring-2 ring-[var(--ink)]' : 'bg-[color-mix(in_srgb,var(--surface)_55%,transparent)]'
+                  day ? 'bg-surface shadow-card ring-2 ring-[var(--ink)]' : 'bg-[color-mix(in_srgb,var(--surface)_55%,transparent)]'
                 }`}
               >
                 <Glyph char={pillar.stem} element={STEM_INFO[pillar.stem].element} />

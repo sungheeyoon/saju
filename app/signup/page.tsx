@@ -4,9 +4,8 @@ import { supabaseOnServer } from '../auth/server-client';
 import { currentSchedule } from '../beta-schedule';
 import { readAccount } from '../me/account';
 import { AccountNotice } from '../me/account-notice';
-import { CARD } from '../card';
 import { Logo } from '../ui/logo';
-import { PAPER, TYPE_TITLE } from '../ui/surfaces';
+import { CARD, PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { SignOutLink } from './sign-out-link';
 import { SERVICE_NAME } from '@/src/lib/brand';
 import {

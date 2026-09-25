@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { CHAT_EMPTY_DETAIL, CHAT_EMPTY_TITLE } from '@/src/lib/chat';
 
-import { ELEMENT_TONE } from '../../element-tone';
+import { ELEMENT_TONE } from '../../ui/element-tone';
 import { BUTTON_PRIMARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { PAPER, TYPE_DISPLAY } from '../../ui/surfaces';

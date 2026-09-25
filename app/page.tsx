@@ -20,7 +20,7 @@ export default function Home() {
     <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:gap-10 sm:py-14">
       <HomeHero
         calculator={
-          <Suspense fallback={<div className="h-56 rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]" />}>
+          <Suspense fallback={<div className="h-56 rounded-[1.75rem] border border-border bg-surface shadow-card" />}>
             <SajuCalculator />
           </Suspense>
         }

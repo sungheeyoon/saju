@@ -9,7 +9,6 @@ import {
 import { PRICE_LABEL, SURVEY_QUESTION_TITLE, choiceLabel, type PriceOption } from '@/src/lib/survey';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { CARD } from '../../card';
 import { readingDate } from '../../me/reading/line';
 import {
   DENIED,
@@ -22,6 +21,7 @@ import {
   type TagRow,
   type VersionRow,
 } from './read';
+import { CARD } from '../../ui/surfaces';
 
 export const metadata = {
   title: '설문 요약',

@@ -4,6 +4,9 @@
  * 이모지를 안 쓴다. 이모지는 기기마다 그림이 다르고 색을 못 바꾼다. 머리글 · 하단 독 · 화면 단추가 같은
  * 그림을 쓰도록 여기 한 곳에 둔다(채택한 부드러움 시안에서 옮겼다 — ADR 0109).
  * 늘 `aria-hidden` 이다 — 이름은 곁의 글자나 단추의 `aria-label` 이 든다.
+ *
+ * 채팅(`chat-icon.tsx` 다섯) · 사람 메뉴(`person-menu.tsx` 넷) · 지나친 인연(`UndoIcon`)이 같은 격자의 그림을 따로 들고
+ * 있었다(2026-09-26 에 모았다). 새 그림은 여기 더한다 — 화면마다 `<svg>` 를 다시 세우지 않는다.
  */
 export type IconName =
   | 'home'
@@ -22,7 +25,17 @@ export type IconName =
   | 'spark'
   | 'alert'
   | 'quote'
-  | 'ticket';
+  | 'ticket'
+  | 'undo'
+  | 'send'
+  | 'lock'
+  | 'more'
+  | 'flag'
+  | 'block'
+  | 'manage'
+  | 'pencil'
+  | 'note'
+  | 'remove';
 
 const PATHS: Record<IconName, React.ReactNode> = {
   home: <path d="M4 11 12 4.5l8 6.5v8.5a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1Z" />,
@@ -70,6 +83,53 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5V14a2 2 0 0 0 0-4Z" />
       <path d="M14.5 6.5v11" strokeDasharray="1.6 2" />
+    </>
+  ),
+  undo: (
+    <>
+      <path d="M9 14 4.5 9.5 9 5" />
+      <path d="M4.5 9.5H14a5.5 5.5 0 0 1 0 11h-3" />
+    </>
+  ),
+  send: <path d="M12 19.5V5m-6 6 6-6 6 6" />,
+  lock: (
+    <>
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2.5" />
+      <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+    </>
+  ),
+  more: (
+    <>
+      <circle cx="6" cy="12" r="1.2" />
+      <circle cx="12" cy="12" r="1.2" />
+      <circle cx="18" cy="12" r="1.2" />
+    </>
+  ),
+  flag: <path d="M5.5 21V4.5m0 0c4-2 7 2 13 0v9c-6 2-9-2-13 0" />,
+  block: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="m6 6 12 12" />
+    </>
+  ),
+  /** 연필과 점 둘 — 「고칠 것들이 여기 있다」 */
+  manage: (
+    <>
+      <path d="M4 16.2 14.1 6.1a1.9 1.9 0 0 1 2.7 2.7L6.7 18.9l-3.2.5Z" />
+      <path d="M20 15.5h.01M20 19h.01" strokeWidth="2.4" />
+    </>
+  ),
+  pencil: <path d="M4 16.2 14.1 6.1a1.9 1.9 0 0 1 2.7 2.7L6.7 18.9l-3.2.5Z" />,
+  note: (
+    <>
+      <path d="M5 4.5h14v15H5Z" />
+      <path d="M8.5 9h7M8.5 12.5h7M8.5 16h4" />
+    </>
+  ),
+  remove: (
+    <>
+      <path d="M5 7h14M9.5 7V4.8h5V7M7 7l.9 12.2h8.2L17 7" />
+      <path d="M10.5 10.5v6M13.5 10.5v6" />
     </>
   ),
 };

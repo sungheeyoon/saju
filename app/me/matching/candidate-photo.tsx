@@ -1,6 +1,6 @@
 import { initialOf } from '@/src/lib/profile';
 
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { photosOf, type DeckCard } from './deck-card';
 
 /**

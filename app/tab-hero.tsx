@@ -109,7 +109,7 @@ const ACTION =
   'inline-flex min-h-12 flex-1 items-center justify-center rounded-full px-3 text-center text-[15px] font-semibold leading-5 active:scale-[0.97] sm:flex-none sm:px-5';
 
 /** 이 화면에서 시작하는 길 */
-export const TAB_ACTION_PRIMARY = `${ACTION} gap-2 bg-accent text-on-accent shadow-[0_8px_18px_-10px_rgba(38,36,31,0.7)] hover:bg-accent-strong`;
+export const TAB_ACTION_PRIMARY = `${ACTION} gap-2 bg-accent text-on-accent shadow-lift hover:bg-accent-strong`;
 
 /** 이 탭의 나머지 반쪽으로 가는 길 — 「로그인 필요」가 붙을 수 있어 세로로 쌓는다 */
 export const TAB_ACTION_SECONDARY = `${ACTION} flex-col border border-border bg-surface py-1.5 text-foreground hover:border-border-strong`;

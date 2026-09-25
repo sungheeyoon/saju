@@ -148,7 +148,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
     <section
       ref={form}
       id="add"
-      className="flex scroll-mt-24 scroll-mb-28 flex-col gap-5 rounded-[1.75rem] border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-7"
+      className="flex scroll-mt-24 scroll-mb-28 flex-col gap-5 rounded-[1.75rem] border border-border bg-surface p-5 shadow-card sm:p-7"
     >
       <header className="flex flex-col gap-1.5">
         <h2 className={TYPE_SECTION}>사람 추가</h2>
@@ -277,7 +277,7 @@ export function NoteEditor({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-[1.25rem] bg-surface p-4 shadow-[var(--shadow-card)]">
+    <div className="flex flex-col gap-3 rounded-[1.25rem] bg-surface p-4 shadow-card">
       <NoteField value={value} onChange={setValue} idPrefix={personId} />
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={save} disabled={!changed || saving} className={BUTTON_SECONDARY_SMALL}>

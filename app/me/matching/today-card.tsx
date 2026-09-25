@@ -5,16 +5,15 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type R
 import { activityText } from '@/src/lib/presence';
 import { ELEMENT_PICTURE_KO } from '@/src/lib/saju';
 
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
 import { CardPhotos, pagesPhotos } from './card-photos';
 import { CandidatePhoto } from './candidate-photo';
 import { elementOf, supplyOf, type DeckCard } from './deck-card';
-import { reducedMotion } from './motion';
+import { reducedMotion } from '../../ui/motion';
 import styles from './orbit.module.css';
-import { UndoIcon } from './passed-connections';
 
 /*
   **오늘의 인연 한 장 — 사진이 주인공이고, 넘기는 일은 단추가 한다**(운영자 2026-09-25, 시안 A · 기운 1안 · 끌기 없음).
@@ -229,7 +228,7 @@ export function DeckButtons({ actions }: { actions: DeckActions }) {
         onClick={actions.undo}
         className="grid size-14 shrink-0 place-items-center rounded-full bg-surface text-foreground ring-1 ring-border active:scale-95 disabled:text-muted disabled:opacity-60"
       >
-        <UndoIcon />
+        <Icon name="undo" />
       </button>
       <button
         type="button"
