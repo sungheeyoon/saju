@@ -11,8 +11,10 @@ import type { Element } from '../../constants';
  * 적기도 한다(`caveats` 에 적었다). 시험은 엔진과 맞추는 채점이 아니라 **관찰**을 잠근다 — 전문가의 판정과
  * 주는 쪽 자리(`ProviderPresence`)가 어떻게 겹치는가.
  *
- * 모은 것은 31 쌍이고 계통은 둘이다.
- * - 중국 현대 상담 글 28 쌍 — 剑桥易学文化 13 · 华人易 10 · 一德老师 2 · 史老师 1 · 三生石 1 · 刘老师 1.
+ * 모은 것은 34 쌍이고 계통은 둘이다(31 쌍은 첫 조사, 3 쌍은 같은 날 CN-2 보충 —
+ * `docs/notes/2026-09-25-research-cn-yongsin-supply.md`).
+ * - 중국 현대 상담 글 31 쌍 — 剑桥易学文化 13 · 华人易 10 · 一德老师 2 · 刘老师 2 · 史老师 1 · 三生石 1 ·
+ *   蒲云星命 1 · 吉言网 1.
  *   상담 의뢰에 답한 글이라 두 사람의 사주가 다 있고 방향마다 판정이 선다.
  * - 한국 현대 카페 글 3 쌍 — 조은(원리학당, 2003). 한국어 자료에서 두 명식과 방향별 판정이 함께 선 글은
  *   이것밖에 못 찾았다. 조은의 2017 년 글 하나는 남명의 연주가 한 글 안에서 甲寅 · 乙卯 로 갈리고, 그 판정이
@@ -29,6 +31,16 @@ export type CompatLineage =
   | 'chinese-modern-consult'
   /** 한국 현대 명리 카페 */
   | 'korean-modern-forum';
+
+/**
+ * 공신력 등급 — 자료가 **누구의 어떤 글인가**로 매긴다(판정이 맞는가가 아니다).
+ *
+ * - `S` — 고전 원문, 또는 이름난 대가의 출간 저서 · 주석(任鐵樵 · 徐樂吾 · 韋千里 · 梁湘润 같은)
+ * - `A` — 저서 · 강의가 있는 식별 가능한 실무자, 학술 논문, 가중치를 읽을 수 있는 공개 코드
+ * - `B` — 실무자의 블로그 · 포럼 글로 풀이 예가 있는 것, 앱 자신의 방법 페이지
+ * - `C` — 익명 글 · 광고 문안 · 검색 요약으로만 본 것
+ */
+export type SourceCredibility = 'S' | 'A' | 'B' | 'C';
 
 /** 한 방향의 판정 — 받는 쪽의 필요를 주는 쪽이 채우는가 */
 export type CompatVerdict =
@@ -116,6 +128,8 @@ export type ExternalCompatCase = {
   lineage: CompatLineage;
   /** 글쓴이 — 같은 사람의 글은 서로 독립이 아니므로 따로 센다 */
   practitioner: string;
+  /** 공신력(`SourceCredibility`) — 2026-09-25 에 옮긴이가 매겼다 */
+  credibility: SourceCredibility;
   source: {
     title: string;
     url: string;
@@ -139,6 +153,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-vdnf',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '合婚实例分解',
       url: 'https://blog.sina.com.cn/s/blog_68801e410100vdnf.html',
@@ -193,6 +208,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-stju',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '命理分析与合婚',
       url: 'https://blog.sina.com.cn/s/blog_68801e410100stju.html',
@@ -246,6 +262,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-yn5g',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '合婚分析',
       url: 'https://blog.sina.com.cn/s/blog_68801e410102yn5g.html',
@@ -298,6 +315,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-gwav',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '合婚分析',
       url: 'https://blog.sina.com.cn/s/blog_68801e410101gwav.html',
@@ -348,6 +366,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-zld0',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '婚恋合婚：有姻缘吗？',
       url: 'https://blog.sina.com.cn/s/blog_68801e410100zld0.html',
@@ -398,6 +417,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-yfeh',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '与男朋友相处不和谐，我们会有姻缘吗',
       url: 'https://blog.sina.com.cn/s/blog_68801e410102yfeh.html',
@@ -453,6 +473,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-v8i7',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '格局论命与合婚（印局与财局）',
       url: 'https://blog.sina.com.cn/s/blog_68801e410100v8i7.html',
@@ -504,6 +525,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-v5zc-wife',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '婚姻感情如何选择',
       url: 'https://blog.sina.com.cn/s/blog_68801e410102v5zc.html',
@@ -555,6 +577,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-v5zc-f',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '婚姻感情如何选择',
       url: 'https://blog.sina.com.cn/s/blog_68801e410102v5zc.html',
@@ -608,6 +631,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-zk2i',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '婚恋感情合婚',
       url: 'https://blog.sina.com.cn/s/blog_68801e410100zk2i.html',
@@ -660,6 +684,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-zlbm-f1',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '这两个女子，我与谁有姻缘？',
       url: 'https://blog.sina.com.cn/s/blog_68801e410100zlbm.html',
@@ -710,6 +735,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-zlbm-f2',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '这两个女子，我与谁有姻缘？',
       url: 'https://blog.sina.com.cn/s/blog_68801e410100zlbm.html',
@@ -760,6 +786,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'jq-agbu',
     lineage: 'chinese-modern-consult',
     practitioner: JIANQIAO,
+    credibility: 'B',
     source: {
       title: '婚姻何去何从呢？',
       url: 'https://blog.sina.com.cn/s/blog_68801e410101agbu.html',
@@ -815,6 +842,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'hr-ye5z',
     lineage: 'chinese-modern-consult',
     practitioner: HUAREN,
+    credibility: 'B',
     source: {
       title: '两人具有互补性，会给彼此带来好运',
       url: 'https://blog.sina.com.cn/s/blog_172f97cfb0102ye5z.html',
@@ -865,6 +893,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'hr-wxtf-m1',
     lineage: 'chinese-modern-consult',
     practitioner: HUAREN,
+    credibility: 'B',
     source: {
       title: '天合地合，二人缘分不错的八字',
       url: 'https://blog.sina.com.cn/s/blog_172f97cfb0102wxtf.html',
@@ -919,6 +948,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'hr-wxtf-m2',
     lineage: 'chinese-modern-consult',
     practitioner: HUAREN,
+    credibility: 'B',
     source: {
       title: '天合地合，二人缘分不错的八字',
       url: 'https://blog.sina.com.cn/s/blog_172f97cfb0102wxtf.html',
@@ -971,6 +1001,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'hr-xkkn',
     lineage: 'chinese-modern-consult',
     practitioner: HUAREN,
+    credibility: 'B',
     source: {
       title: '两人在一起可以互补，感情根基稳',
       url: 'https://blog.sina.com.cn/s/blog_172f97cfb0102xkkn.html',
@@ -1021,6 +1052,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'hr-xld9',
     lineage: 'chinese-modern-consult',
     practitioner: HUAREN,
+    credibility: 'B',
     source: {
       title: '婚配不合，不会为对方带来好处',
       url: 'https://blog.sina.com.cn/s/blog_172f97cfb0102xld9.html',
@@ -1075,6 +1107,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'hr-ybds',
     lineage: 'chinese-modern-consult',
     practitioner: HUAREN,
+    credibility: 'B',
     source: {
       title: '这两人在一起，相合指数不高',
       url: 'https://blog.sina.com.cn/s/blog_172f97cfb0102ybds.html',
@@ -1125,6 +1158,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'hr-yfqi',
     lineage: 'chinese-modern-consult',
     practitioner: HUAREN,
+    credibility: 'B',
     source: {
       title: '夫妻在一起工作，是好还是坏',
       url: 'https://blog.sina.com.cn/s/blog_172f97cfb0102yfqi.html',
@@ -1178,6 +1212,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'hr-ygrh',
     lineage: 'chinese-modern-consult',
     practitioner: HUAREN,
+    credibility: 'B',
     source: {
       title: '离婚后有望复婚',
       url: 'https://blog.sina.com.cn/s/blog_172f97cfb0102ygrh.html',
@@ -1230,6 +1265,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'hr-yr48',
     lineage: 'chinese-modern-consult',
     practitioner: HUAREN,
+    credibility: 'B',
     source: {
       title: '露水夫妻，以后难免分手',
       url: 'https://blog.sina.com.cn/s/blog_172f97cfb0102yr48.html',
@@ -1282,6 +1318,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'hr-yr6w',
     lineage: 'chinese-modern-consult',
     practitioner: HUAREN,
+    credibility: 'B',
     source: {
       title: '二人以后的缘分很深，相伴到老的几率大',
       url: 'https://blog.sina.com.cn/s/blog_172f97cfb0102yr6w.html',
@@ -1338,6 +1375,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'shi-sohu-455050996',
     lineage: 'chinese-modern-consult',
     practitioner: '史老师(一玄堂)',
+    credibility: 'B',
     source: {
       title: '现代八字合婚：最不般配的婚姻配对',
       url: 'https://m.sohu.com/n/455050996/',
@@ -1392,6 +1430,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'sss-douban-104824127',
     lineage: 'chinese-modern-consult',
     practitioner: '三生石',
+    credibility: 'B',
     source: {
       title: '什么是真正的旺夫命？',
       url: 'https://www.douban.com/group/topic/104824127/',
@@ -1442,6 +1481,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'yide-az',
     lineage: 'chinese-modern-consult',
     practitioner: '一德老师',
+    credibility: 'B',
     source: {
       title: '八字看夫妻喜用神一致：什么样的两口子能一起走远',
       url: 'https://www.yidelaoshi.com/articles/bazi-fuqi-xiyongshen-yizhi.html',
@@ -1494,6 +1534,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'yide-busan',
     lineage: 'chinese-modern-consult',
     practitioner: '一德老师',
+    credibility: 'B',
     source: {
       title: '八字合婚:命局互补的"拆不散的姻缘"',
       url: 'https://www.yidelaoshi.com/articles/bazi-hehun-mingju-hubu-chai-busan-yinyuan.html',
@@ -1547,6 +1588,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'liu-ksina-7453756075',
     lineage: 'chinese-modern-consult',
     practitioner: '奇门风水刘老师',
+    credibility: 'B',
     source: {
       title: '彼此喜忌互补，在一起可以增旺对方的运势，利于事业提升',
       url: 'https://k.sina.cn/article_7453756075_1bc474aab0010121p1.html',
@@ -1601,6 +1643,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'joeun-2003-2',
     lineage: 'korean-modern-forum',
     practitioner: '조은(원리학당)',
+    credibility: 'B',
     source: {
       title: '용신이 같으면 궁합이 좋다?',
       url: 'https://m.cafe.daum.net/jounsaju/NC7/77',
@@ -1652,6 +1695,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'joeun-2003-3',
     lineage: 'korean-modern-forum',
     practitioner: '조은(원리학당)',
+    credibility: 'B',
     source: {
       title: '용신이 같으면 궁합이 좋다?',
       url: 'https://m.cafe.daum.net/jounsaju/NC7/77',
@@ -1706,6 +1750,7 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     id: 'joeun-2003-4',
     lineage: 'korean-modern-forum',
     practitioner: '조은(원리학당)',
+    credibility: 'B',
     source: {
       title: '용신이 같으면 궁합이 좋다?',
       url: 'https://m.cafe.daum.net/jounsaju/NC7/77',
@@ -1753,5 +1798,180 @@ export const COMPAT_EXTERNAL_CASES: readonly ExternalCompatCase[] = [
     ],
     inferred: ['여명의 기신 水는 「수왕하여」에서 옮겼다.'],
     caveats: ['명식은 원문의 시 · 일 · 월 · 연 순 세로쓰기를 연 · 월 · 일 · 시로 옮겼다.'],
+  },
+  // ─── 2026-09-25 보충(CN-2) — 새 글쓴이 둘 · 기존 글쓴이의 다른 글 하나 ──────────────────
+  // `docs/notes/2026-09-25-research-cn-yongsin-supply.md`. 출처의 생년월일 · 상담 사연은 옮기지 않았다.
+  {
+    id: 'puyun-sohu-224270400',
+    lineage: 'chinese-modern-consult',
+    practitioner: '蒲云星命',
+    credibility: 'B',
+    source: {
+      title: '八字五行旺衰喜忌互补，及喜用神和谐属于好婚配',
+      url: 'https://www.sohu.com/a/224270400_310486',
+      locator: '综合两个八字合婚 二，喜用神五行对比互补方面',
+      published: '2018-02-27',
+      retrievedAt: '2026-09-25',
+    },
+    people: [
+      {
+        label: 'M',
+        pillars: { year: '癸亥', month: '甲子', day: '戊寅', hour: '丙辰' },
+        needs: ['火', '土'],
+        avoids: ['水', '木'],
+        needsAsStated: '八字身弱，五行喜火土；忌水木。……八字五行水木旺，火土弱。最喜火。',
+      },
+      {
+        label: 'F',
+        pillars: { year: '丁卯', month: '辛亥', day: '庚午', hour: '戊寅' },
+        needs: ['火', '土', '金'],
+        avoids: ['水'],
+        needsAsStated: '五行喜火土金；忌金水。',
+      },
+    ],
+    directions: [
+      {
+        receiver: 'M',
+        provider: 'F',
+        verdict: 'supplies',
+        scope: 'directional',
+        cited: ['abundance'],
+        citedCharacters: [],
+        quote: '女子火偏旺，正是男命所喜之神，女可助男而旺夫。',
+      },
+      {
+        receiver: 'F',
+        provider: 'M',
+        verdict: 'partial',
+        scope: 'directional',
+        cited: ['abundance'],
+        citedCharacters: [],
+        quote: '女命喜土金火，而男命八字五行水木旺，在五行上男命对女命没有太大助力。',
+      },
+    ],
+    inferred: [
+      '「没有太大助力」를 `does-not` 이 아니라 `partial` 로 적었다 — 「큰 도움은 없다」이지 「없다」가 아니다.',
+    ],
+    caveats: [
+      '여명의 기신을 원문이 「金水」라 적어 희신 金과 겹친다 — 水만 옮겼다.',
+      '여명에게 「火偏旺」이라 했지만 드러난 火는 丁 · 午 둘뿐이다. 거꾸로 남명에는 여명이 바란 土 · 火가 일간 戊 · 시간 丙 · 辰(본기 戊)으로 셋 드러나 있는데 「水木旺」으로 덮였다 — 출처는 **개수보다 상대의 세력 전체**를 본다.',
+      '같은 글이 「两个八字同时喜土」를 따로 좋게 든다(필요가 겹쳐도 깎지 않는다).',
+    ],
+  },
+  {
+    id: 'liu-ksina-r1uq',
+    lineage: 'chinese-modern-consult',
+    practitioner: '奇门风水刘老师',
+    credibility: 'B',
+    source: {
+      title: '合婚：彼此互补性不强，婚姻中会磕磕绊绊',
+      url: 'https://k.sina.cn/article_7453756075_1bc474aab00100r1uq.html',
+      locator: '分析两人合婚',
+      published: '2020-11-24',
+      retrievedAt: '2026-09-25',
+    },
+    people: [
+      {
+        label: 'F',
+        pillars: { year: '甲子', month: '乙亥', day: '丙寅', hour: '癸巳' },
+        needs: ['木', '火'],
+        avoids: ['金', '水'],
+        needsAsStated: '以木火为用，且喜火最好，忌讳金水五行。',
+      },
+      {
+        label: 'M',
+        pillars: { year: '乙丑', month: '癸未', day: '癸酉', hour: '庚申' },
+        needs: ['水', '木'],
+        avoids: [],
+        needsAsStated: '他八字土金水木流通相生，而水木稍弱',
+      },
+    ],
+    directions: [
+      {
+        receiver: 'F',
+        provider: 'M',
+        verdict: 'does-not',
+        scope: 'directional',
+        cited: ['abundance'],
+        citedCharacters: [],
+        quote:
+          '你喜木火的五行，他的八字土金旺，且金生水，八字木火相对较弱，他八字没有旺到和平衡你八字的作用',
+      },
+      {
+        receiver: 'M',
+        provider: 'F',
+        verdict: 'supplies',
+        scope: 'directional',
+        cited: ['abundance'],
+        citedCharacters: [],
+        quote: '他八字土金水木流通相生，而水木稍弱，你八字水木旺，对他八字有平衡五行的作用。',
+      },
+    ],
+    inferred: [
+      '남명의 필요 水木은 「水木稍弱」에서 옮겼다 — 출처는 남명의 용신을 따로 이름 짓지 않았다.',
+    ],
+    caveats: [
+      '쌍의 결론은 「两人五行方面，只有一方旺另一方，没有达到彼此互补，八字合婚匹配度不高」 — **한 방향만 채우면 낮게 친다.**',
+      '남명 시는 출처가 받은 생시에서 스스로 세운 것이다(庚申).',
+    ],
+  },
+  {
+    id: 'jieyan-341',
+    lineage: 'chinese-modern-consult',
+    practitioner: '吉言网(서명 없음)',
+    credibility: 'C',
+    source: {
+      title: '八字合婚实例：男女日柱相同组合相似，有矛盾隐患容易不欢而散',
+      url: 'https://www.58jieyan.com/bzfx/341.html',
+      locator: '八字合婚 문단',
+      published: '2020-08-18',
+      retrievedAt: '2026-09-25',
+    },
+    people: [
+      {
+        label: 'F',
+        pillars: { year: '丙子', month: '丙申', day: '辛丑', hour: '己亥' },
+        needs: ['火', '水', '木'],
+        avoids: ['土', '金'],
+        needsAsStated: '所以八字最终天干乙木火为用神，地支水木为用神，而土金为忌神。',
+      },
+      {
+        label: 'M',
+        pillars: { year: '乙亥', month: '丙戌', day: '辛丑', hour: '己亥' },
+        needs: ['木', '火'],
+        avoids: ['土', '金'],
+        needsAsStated: '因此八字以财官为用神，以印比为忌神。',
+      },
+    ],
+    directions: [
+      {
+        receiver: 'F',
+        provider: 'M',
+        verdict: 'partial',
+        scope: 'pair',
+        cited: [],
+        citedCharacters: [],
+        quote:
+          '同时都是以财官为喜用神，且八字地支又带食伤，两人八字喜用神的组合也是一样的，代表你们八字有一定的互补性的',
+      },
+      {
+        receiver: 'M',
+        provider: 'F',
+        verdict: 'partial',
+        scope: 'pair',
+        cited: [],
+        citedCharacters: [],
+        quote:
+          '同时都是以财官为喜用神，且八字地支又带食伤，两人八字喜用神的组合也是一样的，代表你们八字有一定的互补性的',
+      },
+    ],
+    inferred: [
+      '남명의 필요 木火 · 기신 土金은 辛金 일간의 「财官」 · 「印比」에서 옮겼다.',
+      '여명의 「天干乙木火」에서 乙은 원국 천간에 없다 — 원문의 오기로 보고 火 · 水 · 木으로 적었다.',
+    ],
+    caveats: [
+      '서명 없는 작명 · 상담 업체 글이라 `C` 다. 문체가 奇门风水刘老师의 글과 비슷하나 같은 사람인지 확인하지 못했다.',
+      '필요가 같은 쌍을 「有一定的互补性」으로 읽는다 — 필요가 겹쳐도 공급을 인정하는 쪽의 예다. 쌍의 결론은 「合婚结果比较一般」.',
+    ],
   },
 ];
