@@ -1,7 +1,7 @@
 import { ELEMENT_PICTURE_KO, STEM_INFO, BRANCH_INFO, type Branch, type Stem } from '@/src/lib/saju';
 import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
 
-import { ELEMENT_TONE, elementScope } from '../../element-tone';
+import { ELEMENT_TONE, elementScope } from '../../ui/element-tone';
 import { PILLAR_COLUMNS } from '../../saju/shared';
 import { ElementSymbol } from '../../ui/element-symbol';
 

@@ -17,7 +17,7 @@ import type { CompatSide, Element } from '@/src/lib/saju';
 
 import { BirthFields } from './birth-form';
 import { SIDE_LABEL, SIDES } from './compat-view';
-import { elementScope } from './element-tone';
+import { elementScope } from './ui/element-tone';
 import { useHashParams, writeParams } from './hash-query';
 import { openPairScreen, pairRelationFor, type PairAnswers, type PairSide } from './me/compat/actions';
 import { PersonCombobox, type Choosable } from './person-combobox';
@@ -26,8 +26,7 @@ import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-c
 import { BUTTON_PRIMARY } from './ui/buttons';
 import { ElementSymbol } from './ui/element-symbol';
 import { Icon } from './ui/icons';
-import { CARD } from './card';
-import { PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
+import { CARD, PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
 
 /**
  * 궁합의 **첫 걸음** — 두 사람을 정하고 사이를 답하는 자리.
@@ -319,7 +318,7 @@ function SlotCard({
             }
             className={`min-h-11 rounded-full px-3 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-45 ${
               slot.from === from
-                ? 'bg-surface text-foreground shadow-[0_2px_8px_-4px_rgba(60,48,30,0.45)] ring-1 ring-border'
+                ? 'bg-surface text-foreground shadow-soft ring-1 ring-border'
                 : 'text-secondary hover:text-foreground'
             }`}
           >
@@ -390,7 +389,7 @@ function PairStage({ sides }: { sides: Record<CompatSide, StageSide> }) {
       </svg>
       <div className="relative grid grid-cols-[1fr_auto_1fr] items-start gap-2">
         <StageOne one={sides.a} />
-        <span className="mt-5 grid size-11 place-items-center rounded-full bg-surface text-foreground shadow-[0_6px_16px_-10px_rgba(60,48,30,0.6)] ring-1 ring-border sm:mt-7">
+        <span className="mt-5 grid size-11 place-items-center rounded-full bg-surface text-foreground shadow-lift ring-1 ring-border sm:mt-7">
           <Icon name="heart" className="size-5" />
         </span>
         <StageOne one={sides.b} />
@@ -405,7 +404,7 @@ function StageOne({ one }: { one: StageSide }) {
       <span
         className={`${elementScope(one.element)} grid size-20 place-items-center rounded-full sm:size-24 ${
           one.filled
-            ? 'bg-[var(--tile)] shadow-[0_10px_24px_-14px_rgba(60,48,30,0.7)] ring-4 ring-surface'
+            ? 'bg-[var(--tile)] shadow-raise ring-4 ring-surface'
             : 'border-2 border-dashed border-border-strong bg-[color-mix(in_srgb,var(--surface)_60%,transparent)]'
         }`}
       >

@@ -7,7 +7,7 @@ import type { PersonSlots } from '@/src/lib/people';
 import type { Element } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../auth/server-client';
-import { elementScope } from '../element-tone';
+import { elementScope } from '../ui/element-tone';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../ui/buttons';
 import { Icon, type IconName } from '../ui/icons';
 import { BADGE, EMPTY_SLOT, TYPE_DISPLAY, TYPE_META, TYPE_SECTION } from '../ui/surfaces';

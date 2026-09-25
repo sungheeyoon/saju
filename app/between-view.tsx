@@ -11,7 +11,6 @@ import {
   type Utterance,
 } from '@/src/lib/saju';
 
-import { CARD } from './card';
 import {
   TOPICS_THE_TABLE_HOLDS,
   TOPIC_TABLE_FOOTNOTE,
@@ -20,7 +19,7 @@ import {
   said,
   warningsToShow,
 } from './utterances';
-import { TYPE_NAME } from './ui/surfaces';
+import { CARD, TYPE_NAME } from './ui/surfaces';
 
 /**
  * 두 사람 **사이**에 대해 말할 수 있는 것 — 명식은 받지 않는다.

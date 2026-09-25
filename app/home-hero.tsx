@@ -9,7 +9,7 @@ import type { Element } from '@/src/lib/saju';
 
 import { useBrowserSession } from './auth/browser-session';
 import { CompatEntry } from './compat-entry';
-import { ELEMENT_TONE } from './element-tone';
+import { ELEMENT_TONE } from './ui/element-tone';
 import { HomeMap } from './home-map';
 import { SignedInProvider } from './signed-in';
 import { SajuCompatTabs } from './segmented-nav';

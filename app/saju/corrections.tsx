@@ -1,7 +1,4 @@
 import {
-  CARD,
-} from '../card';
-import {
   Fold,
   SectionTitle,
 } from './fold';
@@ -14,6 +11,7 @@ import {
 import {
   round1,
 } from './shared';
+import { CARD } from '../ui/surfaces';
 
 
 

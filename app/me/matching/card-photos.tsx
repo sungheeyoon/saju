@@ -4,7 +4,7 @@ import { useEffect, useState, type RefObject } from 'react';
 
 import { CandidatePhoto } from './candidate-photo';
 import { photosOf, type DeckCard } from './deck-card';
-import { reducedMotion } from './motion';
+import { reducedMotion } from '../../ui/motion';
 
 /*
   **오늘의 인연 카드의 사진들 — 넘겨 보되 글은 그대로다**(G-60, 운영자 2026-09-25 시안).

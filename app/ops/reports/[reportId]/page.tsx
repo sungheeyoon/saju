@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../../../auth/server-client';
-import { CARD } from '../../../card';
 import {
   NO_NICKNAME,
   NO_REVIEW_RECORD,
@@ -23,6 +22,7 @@ import {
   type Snapshot,
   type WarningRecord,
 } from '../read';
+import { CARD } from '../../../ui/surfaces';
 
 export const metadata = {
   title: '신고 내용',

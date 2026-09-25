@@ -61,8 +61,18 @@
   /* 안 읽은 수 딱지 — 오행의 불과 뜻이 달라 따로 둔다(어두운 화면에서 흰 글자가 안 읽혔다) */
   --badge: #c0442c;
   --on-badge: #ffffff;
-  --shadow-card: 0 1px 2px rgba(60, 48, 30, 0.04), 0 12px 32px -12px rgba(60, 48, 30, 0.14);
-  --shadow-float: 0 18px 50px -12px rgba(60, 48, 30, 0.28);
+  /*
+    **그림자 다섯 단** — 화면은 `shadow-card` · `shadow-float` · `shadow-soft` · `shadow-lift` · `shadow-raise` 로 부른다
+    (아래 `@theme`). 갈색 그림자 `rgba(60,48,30,…)` 가 네 화면에 아홉 번 따로 적혀 어두운 화면에서도 갈색이었다(2026-09-26).
+  */
+  --elevation-card: 0 1px 2px rgba(60, 48, 30, 0.04), 0 12px 32px -12px rgba(60, 48, 30, 0.14);
+  --elevation-float: 0 18px 50px -12px rgba(60, 48, 30, 0.28);
+  /* 작은 알약 · 고른 칸 */
+  --elevation-soft: 0 2px 8px -4px rgba(60, 48, 30, 0.45);
+  /* 주 단추 · 표지 · 작은 원 */
+  --elevation-lift: 0 8px 18px -10px rgba(60, 48, 30, 0.6);
+  /* 떠 있는 판(하단 독) · 가운데 큰 원 */
+  --elevation-raise: 0 12px 28px -12px rgba(60, 48, 30, 0.5);
 
   /* warm 시안의 이름 — 관계 지도(`app/me/matching/orbit-map.tsx` · `today-card.tsx`)가 아직 부른다. 새 자리는 `--surface` · `--border` */
   --card: var(--surface);
@@ -115,8 +125,11 @@
     --cream-ink: #eed6b8;
     --badge: #f09a84;
     --on-badge: #22120d;
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.16), 0 16px 44px rgba(0, 0, 0, 0.14);
-    --shadow-float: 0 18px 50px rgba(0, 0, 0, 0.45);
+    --elevation-card: 0 1px 2px rgba(0, 0, 0, 0.16), 0 16px 44px rgba(0, 0, 0, 0.14);
+    --elevation-float: 0 18px 50px rgba(0, 0, 0, 0.45);
+    --elevation-soft: 0 2px 8px -4px rgba(0, 0, 0, 0.5);
+    --elevation-lift: 0 8px 18px -10px rgba(0, 0, 0, 0.6);
+    --elevation-raise: 0 12px 28px -12px rgba(0, 0, 0, 0.55);
   }
 }
 
@@ -161,6 +174,11 @@
   --color-cream-ink: var(--cream-ink);
   --color-badge: var(--badge);
   --color-on-badge: var(--on-badge);
+  --shadow-card: var(--elevation-card);
+  --shadow-float: var(--elevation-float);
+  --shadow-soft: var(--elevation-soft);
+  --shadow-lift: var(--elevation-lift);
+  --shadow-raise: var(--elevation-raise);
   --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   /* 제목 전용 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
   --font-rounded: var(--font-gowun-dodum), "Pretendard Variable", Pretendard, system-ui, sans-serif;
@@ -169,7 +187,7 @@
 /*
   **오행 한 벌을 한 자리에 입힌다** — `tone-wood` 를 단 요소 안에서 `var(--tile)` · `var(--ink)` · `var(--mid)`
   가 그 오행의 면 · 글자 · 상징 속이 된다. 사람 타일처럼 **한 사람이 한 색**인 판을 짤 때, 안의 단추 ·
-  딱지 · 상징(`ElementSymbol`)이 같은 세 이름만 부르면 된다. `app/element-tone.ts` 의 `scope` 가 이 이름이다.
+  딱지 · 상징(`ElementSymbol`)이 같은 세 이름만 부르면 된다. `app/ui/element-tone.ts` 의 `scope` 가 이 이름이다.
 */
 .tone-wood { --tile: var(--wood-soft); --ink: var(--wood); --mid: var(--wood-mid); }
 .tone-fire { --tile: var(--fire-soft); --ink: var(--fire); --mid: var(--fire-mid); }

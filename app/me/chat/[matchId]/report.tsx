@@ -12,7 +12,6 @@ import {
 import { BUTTON_PRIMARY_SMALL, ICON_BUTTON } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
 import { reportChatMessage } from '../actions';
-import { ChatIcon } from '../chat-icon';
 
 const FIELD =
   'rounded-xl bg-surface px-3 text-[15px] text-foreground ring-1 ring-border outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]';
@@ -52,7 +51,7 @@ export function ReportPanel({
     <div className="flex max-h-[55dvh] flex-col gap-3 overflow-y-auto rounded-[1.5rem] bg-surface-soft p-4 ring-1 ring-border">
       <div className="flex items-start justify-between gap-3">
         <p className="flex items-center gap-2 pt-2.5 text-[15px] font-bold text-foreground">
-          <ChatIcon name="flag" className="size-[18px] text-danger" />
+          <Icon name="flag" className="size-[18px] text-danger" />
           {messageId === null ? '신고할 메시지를 골라 주세요' : '메시지 신고'}
         </p>
         <button type="button" aria-label="그만두기" onClick={onCancel} disabled={working} className={ICON_BUTTON}>

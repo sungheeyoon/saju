@@ -131,6 +131,27 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page).toHaveURL(/\/me$/);
   });
 
+  test('톱니 판은 Esc 로 닫히고 초점이 톱니로 돌아온다 — 바깥을 눌러도 닫힌다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me');
+
+    const banner = page.getByRole('banner');
+    const gear = page.getByLabel('설정 메뉴');
+    const profile = banner.getByRole('link', { name: '프로필', exact: true });
+
+    await gear.click();
+    await expect(profile).toBeVisible();
+    await profile.focus();
+    await page.keyboard.press('Escape');
+    await expect(profile).toBeHidden();
+    await expect(gear).toBeFocused();
+
+    await gear.click();
+    await expect(profile).toBeVisible();
+    await page.mouse.click(5, 300);
+    await expect(profile).toBeHidden();
+  });
+
   test('온보딩에서 내 사주를 저장하면 그 자리에서 저장된 명식으로 바뀐다', async ({
     page,
     newcomer,

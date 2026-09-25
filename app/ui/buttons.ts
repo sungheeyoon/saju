@@ -15,7 +15,7 @@
 
 const PRESS = 'active:scale-[0.97] disabled:pointer-events-none disabled:opacity-55';
 
-export const BUTTON_PRIMARY = `inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-5 text-[15px] font-semibold text-on-accent shadow-[0_8px_18px_-10px_rgba(38,36,31,0.7)] hover:bg-accent-strong ${PRESS}`;
+export const BUTTON_PRIMARY = `inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-accent px-5 text-[15px] font-semibold text-on-accent shadow-lift hover:bg-accent-strong ${PRESS}`;
 
 export const BUTTON_SECONDARY = `inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-border bg-surface px-5 text-[15px] font-semibold text-foreground hover:border-border-strong ${PRESS}`;
 

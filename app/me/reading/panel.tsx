@@ -16,7 +16,7 @@ import {
 } from '@/src/lib/reading';
 import { ELEMENTS, type Element } from '@/src/lib/saju';
 
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';

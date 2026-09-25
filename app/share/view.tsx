@@ -7,8 +7,7 @@ import { Markdown } from '../me/reading/markdown';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { Logo } from '../ui/logo';
-import { TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
-import { CARD } from '../card';
+import { CARD, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
 import type { ShareKind } from './path';
 import { sharedReadingOf } from './read';
 
@@ -117,7 +116,7 @@ export async function SharedReadingView({
         읽은 글이 좋아서 눌렀다가 막힌 문을 만난다.
       */}
       <section className="flex flex-col gap-3 rounded-[2rem] bg-cream px-5 py-7 sm:px-8">
-        <span className="grid size-14 place-items-center rounded-full bg-surface shadow-[var(--shadow-card)]">
+        <span className="grid size-14 place-items-center rounded-full bg-surface shadow-card">
           <Logo className="size-9" />
         </span>
         <h2 className={TYPE_SECTION}>{invitation.heading}</h2>

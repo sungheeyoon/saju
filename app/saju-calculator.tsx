@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { BirthFields } from './birth-form';
-import { CARD } from './card';
 import { CopyLinkButton } from './copy-link';
 import { calculateChart } from '@/src/lib/input/chart';
 import { useHashParams, writeParams } from './hash-query';
@@ -18,6 +17,7 @@ import {
   toSearchParams,
   type Query,
 } from '@/src/lib/input/query';
+import { CARD } from './ui/surfaces';
 
 /**
  * 익명 계산기 — **엔진이 순수 함수라 서버 없이 브라우저에서 그대로 돈다.**

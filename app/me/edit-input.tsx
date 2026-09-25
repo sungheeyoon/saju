@@ -172,7 +172,7 @@ export function EditInputForm({
 
   return (
     <section
-      className={`flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-4 text-foreground shadow-[var(--shadow-card)] sm:p-5 ${embedded ? 'col-span-full' : ''}`}
+      className={`flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-4 text-foreground shadow-card sm:p-5 ${embedded ? 'col-span-full' : ''}`}
     >
       <header className="flex flex-col gap-1">
         <h2 className={TYPE_NAME}>수정하기</h2>

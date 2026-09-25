@@ -1,7 +1,7 @@
 import { initialOf } from '@/src/lib/profile';
 import type { Element } from '@/src/lib/saju';
 
-import { elementScope } from '../element-tone';
+import { elementScope } from '../ui/element-tone';
 
 /**
  * 사람 하나가 서는 자리 — **없으면 없는 대로 선다.**
