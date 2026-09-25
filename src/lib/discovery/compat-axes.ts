@@ -2,7 +2,6 @@ import {
   findCompatRelations,
   needProfileOf,
   type Element,
-  type ElementWeights,
   type NeedProfile,
   type Pillars,
   type RelationKind,
@@ -46,39 +45,19 @@ export type NeedComplementParams = { supplyCap: number; counterWeight: number };
 export type NeedTargets = {
   primary: Element;
   heaviest: Element;
-  /** 억부가 판정을 거두었다 — 그래도 1순위는 들고 있으므로 셈은 한다. 비교기가 몫을 센다 */
-  withheld: boolean;
 };
 
 export const needTargetsOf = (profile: Pick<NeedProfile, 'eokbu'>): NeedTargets => ({
   primary: profile.eokbu.candidates[0].element,
   heaviest: profile.eokbu.heaviest.element,
-  withheld: profile.eokbu.verdict === 'withheld',
 });
 
 /**
- * 세기의 후보 셋 — **엔진 기본은 바꾸지 않는다**(옵션으로만 연다). 월지 ×2 · 지장간 60:30:10 은 방향은 합의,
- * 수는 후보다(`docs/notes/2026-09-25-research-cn-strength-scoring.md`).
+ * 한 사람의 필요 대상 — 엔진 기본 세기(월지 ×2 · 지장간 60:30:10, ADR 0114)로 잰다. 억부가 판정을 거두어도
+ * 1순위는 들고 있으므로 셈은 한다. 다른 세기로 재는 일은 비교기의 몫이다(`formula-comparison`).
  */
-export type StrengthVariant = 'engine' | 'month-x2' | 'hidden-60-30-10' | 'both';
-
-export const STRENGTH_VARIANTS: readonly StrengthVariant[] = ['engine', 'month-x2', 'hidden-60-30-10', 'both'];
-
-export const STRENGTH_VARIANT_WEIGHTS: Record<StrengthVariant, Partial<ElementWeights>> = {
-  engine: {},
-  'month-x2': { monthBranchMultiplier: 2 },
-  'hidden-60-30-10': { hiddenStemWeighting: 'sixty-thirty-ten' },
-  both: { monthBranchMultiplier: 2, hiddenStemWeighting: 'sixty-thirty-ten' },
-};
-
-/** 한 사람의 필요 대상 — 세기 후보 하나로 */
-export function needTargetsFor(
-  pillars: Parameters<typeof needProfileOf>[0],
-  variant: StrengthVariant = 'engine',
-  instant?: Date,
-): NeedTargets {
-  return needTargetsOf(needProfileOf(pillars, { instant, weights: STRENGTH_VARIANT_WEIGHTS[variant] }));
-}
+export const needTargetsFor = (pillars: Parameters<typeof needProfileOf>[0]): NeedTargets =>
+  needTargetsOf(needProfileOf(pillars));
 
 const visibleShare = (summary: ElementSummary, element: Element): number =>
   summary.glyphCount > 0 ? summary.counts[element] / summary.glyphCount : 0;
