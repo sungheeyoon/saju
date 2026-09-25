@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 import { SERVICE_TAGLINE } from '@/src/lib/brand';
 import { HOUR_UNKNOWN_CHOICE } from '@/src/lib/input/query';
 import type { Element } from '@/src/lib/saju';
 
-import { supabaseInBrowser } from './auth/browser-client';
+import { useBrowserSession } from './auth/browser-session';
 import { CompatEntry } from './compat-entry';
 import { ELEMENT_TONE } from './element-tone';
 import { HomeMap } from './home-map';
@@ -55,29 +55,8 @@ import { TYPE_META, TYPE_SECTION } from './ui/surfaces';
  * 다른 답을 들 수 있고, 그러면 **회원의 화면에 「로그인 필요」가 한 번 깜빡인다** —
  * 그 파일이 없애려던 바로 그 거짓말이다.
  */
-type Session = 'unknown' | 'in' | 'out';
-
 export function HomeHero({ calculator }: { calculator: ReactNode }) {
-  const [session, setSession] = useState<Session>('unknown');
-
-  useEffect(() => {
-    const supabase = supabaseInBrowser();
-    let watching = true;
-
-    void supabase.auth.getSession().then(({ data }) => {
-      if (watching) setSession(data.session === null ? 'out' : 'in');
-    });
-
-    /* 이 화면에서 로그아웃하면(계정 메뉴) 현관으로 되돌아온다 */
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next === null ? 'out' : 'in');
-    });
-
-    return () => {
-      watching = false;
-      data.subscription.unsubscribe();
-    };
-  }, []);
+  const { session } = useBrowserSession();
 
   const member = session === 'in';
 
