@@ -32,6 +32,7 @@ const preview: CurrentReading = {
   myFeedback: null,
   dayMasterA: null,
   dayMasterB: null,
+  scoreScale: { baseline: null, version: null, relation: null },
 };
 
 const idle = (): ReadingFlow => initialFlow({ running: false, failed: false });

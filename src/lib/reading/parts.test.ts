@@ -398,11 +398,11 @@ describe('개인 풀이는 쉬운 말로 가르친다', () => {
     expect(legacy).not.toContain('## 이 자료를 읽는 법');
   });
 
-  it('개인 풀이는 v15, 궁합은 v14 다', () => {
+  it('개인 풀이는 v15, 궁합은 v16 이다', () => {
     expect(READING_POLICY.version).toBe('reading-prompt-v15');
-    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v14');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v16');
     for (const kind of READING_KINDS) {
-      expect(promptVersionOf(kind), kind).toBe(isSolo(kind) ? 'reading-prompt-v15' : 'reading-prompt-v14');
+      expect(promptVersionOf(kind), kind).toBe(isSolo(kind) ? 'reading-prompt-v15' : 'reading-prompt-v16');
     }
   });
 

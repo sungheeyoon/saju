@@ -17,6 +17,7 @@ const reading = (over: Partial<CurrentReading> = {}): CurrentReading => ({
   myFeedback: null,
   dayMasterA: null,
   dayMasterB: null,
+  scoreScale: { baseline: null, version: null, relation: null },
   ...over,
 });
 

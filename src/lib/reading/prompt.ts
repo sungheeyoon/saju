@@ -1135,9 +1135,8 @@ export const pairSectionTexts = (kind: PairKind, assembly: PromptAssembly): read
  */
 const scoreSection = (eokbu: boolean): string => `## 점수
 
-**기준점에서 시작해 항목별로 더하고 뺀다.** 아래 「기준점」에 적힌 수가 출발점이다 —
-두 사람의 오행 구성만 본 값이라, 글자 사이에 실제로 무엇이 걸렸는지는 아직 안 들어 있다.
-그것을 네가 얹는다.
+**기준점에서 시작해 항목별로 더하고 뺀다.** 아래 「기준점」에 적힌 수가 출발점이다.
+\`baseline\` 은 사이에 맞는 정책으로 계산한 베타 기준점이다. 연인·배우자는 일주·일지 관계 40%, 필요한 기운 보완 40%, 오행 균형 20% 를 반영한다. 가족·친구·동료·모름은 필요한 기운 보완 60%, 오행 균형 40%만 반영하며 일주·일지 관계는 점수에 포함하지 않는다.
 
 | 항목 | 자료 | 폭 |
 | --- | --- | --- |
@@ -1203,13 +1202,13 @@ export function baselineIn(prompt: string): number | null {
   return found === null ? null : Number(found[1]);
 }
 
+/**
+ * 수 하나만 싣는다 — **무엇을 반영한 수인지는 점수 절이 말한다**(ADR 0113). 여기 두 축의 설명이 서 있었는데
+ * 사이마다 눈금이 갈린 뒤로는 한 문단이 두 정책을 다 참으로 말할 수 없다.
+ */
 const baselineBlock = (baseline: number): string => `${BASELINE_HEADING}
 
-${baseline}
-
-두 사람의 보이는 글자 수를 합친 오행 균형과, 서로의 부족분에 상대 오행이 닿는 정도를
-합친 수다. 후보 카드가 「예측 궁합 점수」로 보여 주는 것과 **같은 자로 잰 같은 수**다.
-글자 사이에 걸린 관계는 아직 안 들어 있다.`;
+${baseline}`;
 
 /**
  * 두 kind가 **함께 쓰는** 궁합 절들.

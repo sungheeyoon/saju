@@ -1064,6 +1064,9 @@ export type Database = {
           prompt: string
           prompt_version: string
           score: number | null
+          score_baseline: number | null
+          score_relation: string | null
+          score_version: string | null
           source_run_id: string | null
           target_key: string | null
           viewed_at: string
@@ -1086,6 +1089,9 @@ export type Database = {
           prompt: string
           prompt_version: string
           score?: number | null
+          score_baseline?: number | null
+          score_relation?: string | null
+          score_version?: string | null
           source_run_id?: string | null
           target_key?: string | null
           viewed_at: string
@@ -1108,6 +1114,9 @@ export type Database = {
           prompt?: string
           prompt_version?: string
           score?: number | null
+          score_baseline?: number | null
+          score_relation?: string | null
+          score_version?: string | null
           source_run_id?: string | null
           target_key?: string | null
           viewed_at?: string
@@ -1353,6 +1362,9 @@ export type Database = {
           requested_model: string | null
           response_id: string | null
           run_id: string
+          score_baseline: number | null
+          score_relation: string | null
+          score_version: string | null
           status: string
           viewed_at: string | null
         }
@@ -1370,6 +1382,9 @@ export type Database = {
           requested_model?: string | null
           response_id?: string | null
           run_id: string
+          score_baseline?: number | null
+          score_relation?: string | null
+          score_version?: string | null
           status?: string
           viewed_at?: string | null
         }
@@ -1387,6 +1402,9 @@ export type Database = {
           requested_model?: string | null
           response_id?: string | null
           run_id?: string
+          score_baseline?: number | null
+          score_relation?: string | null
+          score_version?: string | null
           status?: string
           viewed_at?: string | null
         }
@@ -2524,6 +2542,9 @@ export type Database = {
           my_feedback: Json
           output: string
           score: number
+          score_baseline: number
+          score_relation: string
+          score_version: string
           source_run_id: string
           viewed_at: string
           viewer_is_first: boolean
@@ -2862,6 +2883,9 @@ export type Database = {
           p_prompt_version: string
           p_requested_model: string
           p_run_id: string
+          p_score_baseline?: number
+          p_score_relation?: string
+          p_score_version?: string
           p_viewed_at: string
         }
         Returns: boolean

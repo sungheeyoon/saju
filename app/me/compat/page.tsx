@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 
 import { isBlocked } from '@/src/lib/account';
+import { matchBasisOf } from '@/src/lib/matching';
 import { RELATION_LABEL } from '@/src/lib/people';
 import { analyzeCompatibility, STEM_INFO, type Element } from '@/src/lib/saju';
 
@@ -17,6 +18,7 @@ import { UNREADABLE_INPUT_NOTE } from '@/src/lib/input/stored';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { payloadForViewer, type PersonPayload } from '../payload';
+import { currentReading } from '../reading/current';
 import { ReadingSection } from '../reading/section';
 import { elementScope } from '../../element-tone';
 import { BUTTON_TERTIARY } from '../../ui/buttons';
@@ -308,7 +310,21 @@ async function Result({ outcome }: { outcome: Outcome }) {
    * 못 읽으면 칸을 안 세운다. 「모른다」로 세워 두면 화면이 저장된 값과 다른 말을
    * 하게 되고, 사용자는 자기가 답한 적 없는 값을 보고 답한 줄 안다.
    */
-  const stored = await pairRelationFor(outcome.pair.personA, outcome.pair.personB);
+  const target = { kind: 'private', ...outcome.pair } as const;
+  const [stored, reading] = await Promise.all([
+    pairRelationFor(outcome.pair.personA, outcome.pair.personB),
+    currentReading(target),
+  ]);
+
+  /**
+   * **지표의 눈금은 풀이가 정한다**(ADR 0113). 이 쌍에 풀이가 있으면 그 풀이를 잰 판 · 기준점 · 그때의 사이로
+   * 그리고 — 옛 풀이 옆에 새 판의 수를 세우면 한 화면에 눈금이 둘이다 — 없을 때만 지금 적어 둔 사이로 지금 잰다.
+   * 새 풀이는 그 사이로 기준점을 받는다. 사이를 못 읽었으면 모른다로 잰다.
+   */
+  const basis = matchBasisOf(reading?.scoreScale ?? null, {
+    matched: false,
+    relation: stored.ok ? stored.relation : null,
+  });
 
   return (
     <CompatView
@@ -338,11 +354,13 @@ async function Result({ outcome }: { outcome: Outcome }) {
             charts={{ a: first.saju, b: second.saju }}
             compat={analyzeCompatibility(first.saju, second.saju)}
             names={{ a: first.name, b: second.name }}
+            basis={basis}
           />
           <ScoringNote key="scoring-note" />
           <ReadingSection
             key="private-reading"
-            target={{ kind: 'private', ...outcome.pair }}
+            target={target}
+            reading={reading}
             layout="page"
             /**
              * **여기서는 사이를 다시 묻지 않는다**(ADR 0054).

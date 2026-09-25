@@ -94,8 +94,10 @@ export const READING_POLICY = {
    * - 비공개 궁합: 입력은 그대로(두 원국 전체) + 같은 목록·읽는 법 4판(그 자료에 맞춘 안내)·요약 차례
    * - v13: 목록 줄의 번호와 자리 색인(G-33, 2026-09-23). 궁합 몸통은 그대로다
    * - v14: 읽는 법에 실린 시간 미상 규칙이 「명식」 대신 「사주」로 적힌다(G-55, 2026-09-23). 나머지 궁합 지시는 그대로다
+   * - v16: 점수 절이 기준점을 「사이에 맞는 정책으로 계산한 베타 기준점」으로 설명하고(연인 · 배우자 40 · 40 · 20,
+   *   그 밖 60 · 40), 기준점 블록의 옛 두 축 설명을 걷었다(ADR 0113, 2026-09-25). v15 는 개인 풀이가 쓴 이름이라 건너뛴다
    */
-  pairVersion: 'reading-prompt-v14',
+  pairVersion: 'reading-prompt-v16',
   /**
    * 엔진과 AI 의 경계 — **기준점 위에서 항목별로 움직인다**(ADR 0060).
    *
@@ -114,10 +116,10 @@ export const READING_POLICY = {
    *
    * 기준점은 후보 카드의 스냅샷이 아니라 **풀이 때 두 명식에서 다시 잰 값**이다
    * (`previewScoreOf`). 넘겨받으면 카드를 안 거치는 `private` 에만 기준점이 없어서 두
-   * kind 가 다른 길을 탄다.
+   * kind 가 다른 길을 탄다. 눈금은 사이가 고르고(ADR 0113), 무슨 눈금이었는지는 풀이와 함께 저장된다.
    */
   boundary: 'model-adjusts-a-computed-baseline',
-  index: 'discovery-v1-baseline-in-prompt',
+  index: 'v2-beta-baseline-in-prompt',
   /**
    * **항목으로 설명되는 폭** — 프롬프트가 시키고 검사가 막는 같은 수.
    *

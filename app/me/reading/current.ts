@@ -1,3 +1,4 @@
+import type { StoredScore } from '@/src/lib/matching';
 import { READING_KINDS, type ReadingAnswer } from '@/src/lib/reading';
 import { STEMS, type Stem } from '@/src/lib/saju';
 import { readingBody, readingGrounding } from '@/src/lib/reading/display';
@@ -67,6 +68,13 @@ export type CurrentReading = {
    */
   readonly dayMasterA: Stem | null;
   readonly dayMasterB: Stem | null;
+  /**
+   * 이 글의 점수를 잰 **눈금** — 기준점 · 판 · 그때의 사이(ADR 0113). 궁합 지표는 이것으로 그린다.
+   *
+   * 셋 다 `null` 인 글은 이 칸이 생기기 전 것이고 옛 판(`discovery-v1`)으로 났다. 앱이 DB 보다 먼저 배포되어
+   * 칸이 안 와도 `null` 이라 옛 판으로 읽힌다.
+   */
+  readonly scoreScale: StoredScore;
 };
 
 const RUN_STATUSES = ['running', 'succeeded', 'failed'] as const;
@@ -102,6 +110,11 @@ export async function currentReading(target: ReadingTarget): Promise<CurrentRead
     myFeedback: (row.my_feedback as ReadingAnswer | null) ?? null,
     dayMasterA: stemOf(row.day_master_a),
     dayMasterB: stemOf(row.day_master_b),
+    scoreScale: {
+      baseline: row.score_baseline ?? null,
+      version: row.score_version ?? null,
+      relation: row.score_relation ?? null,
+    },
   };
 }
 

@@ -71,8 +71,17 @@ export type ModelRetrieval =
   /** **실패도 쓴 양을 들고 온다** — 다 돌고 나서 끝난 갈래가 있다(ADR 0039) */
   | { ok: false; code: string; detail: string; usage: ModelUsage | null };
 
-/** 자르고 프롬프트를 지은 것까지 — **모델은 안 부른다** */
-type ReadingInput = { prompt: string; evidenceText: string };
+/**
+ * 자르고 프롬프트를 지은 것까지 — **모델은 안 부른다**.
+ *
+ * 궁합이면 프롬프트에 실은 기준점과 그 눈금(`score`)이 함께 온다 — 프롬프트와 같은 걸음에 얼려 풀이에
+ * 저장된다(ADR 0113). 한 사람 풀이는 `null` 이다.
+ */
+type ReadingInput = {
+  prompt: string;
+  evidenceText: string;
+  score: { baseline: number; version: string; relation: string | null } | null;
+};
 
 type InputResult =
   | { ok: true; input: ReadingInput }
@@ -103,7 +112,8 @@ export function readingInputOf({
 }): InputResult {
   let evidence;
   try {
-    evidence = readingEvidenceOf(kind, charts, viewedAt, assembly.matchInput);
+    /* 사이가 기준점의 눈금을 고른다(ADR 0113) — 프롬프트에 싣는 사이와 같은 값이다 */
+    evidence = readingEvidenceOf(kind, charts, viewedAt, assembly.matchInput, about?.relation ?? null);
   } catch (failure) {
     if (failure instanceof ReadingEvidenceError) {
       return { ok: false, code: 'evidence-incomplete', detail: failure.message };
@@ -116,6 +126,14 @@ export function readingInputOf({
     input: {
       prompt: readingPromptOf(evidence, assembly, about ?? NOTHING_KNOWN),
       evidenceText: JSON.stringify(evidence.evidence),
+      score:
+        'scoring' in evidence
+          ? {
+              baseline: evidence.baseline,
+              version: evidence.scoring.version,
+              relation: evidence.scoring.relation,
+            }
+          : null,
     },
   };
 }

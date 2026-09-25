@@ -1,12 +1,15 @@
 'use client';
 
-import { buildMatchPreview } from '@/src/lib/matching';
+import { buildMatchPreview, type MatchBasis } from '@/src/lib/matching';
 import type { Compatibility, Saju } from '@/src/lib/saju';
 
 import { MatchIndexCard } from './match-index';
 
 /**
- * 궁합 결과 화면의 「궁합 베타」 칸 — `discovery-v1` 두 축으로 낸 수를 그린다.
+ * 궁합 결과 화면의 「궁합 베타」 칸 — 받은 눈금(`basis`)으로 낸 수를 그린다.
+ *
+ * **눈금은 부르는 화면이 정한다**(`matchBasisOf`). 저장된 풀이가 있으면 그 풀이를 잰 판과 기준점이고, 없을 때만
+ * 지금의 판을 사이로 고른다 — 옛 풀이 옆에 새 판의 수를 세우지 않는다(ADR 0113).
  *
  * **셈은 여기서 부르고 그리기는 `MatchIndexCard` 가 한다.** 이 화면은 두 명식을
  * 브라우저가 들고 있어도 되는 자리라(사용자가 스스로 넣었거나 자기 사람들이다)
@@ -27,12 +30,14 @@ export function MatchResult({
   charts,
   compat,
   names,
+  basis,
 }: {
   charts: Record<'a' | 'b', Saju>;
   compat: Compatibility;
   names: Record<'a' | 'b', string>;
+  basis: MatchBasis;
 }) {
-  const preview = buildMatchPreview(charts, compat, names);
+  const preview = buildMatchPreview(charts, compat, names, basis);
 
   return <MatchIndexCard preview={preview} names={names} />;
 }

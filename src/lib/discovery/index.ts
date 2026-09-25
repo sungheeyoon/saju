@@ -3,13 +3,14 @@ import {
   mutualDeficitComplementOf,
   type ElementSummary,
 } from './element-axes';
-import { ELEMENTS, ELEMENT_KO, type Element } from '../saju';
+import { dayPillarAxisOf, needComplementSymmetric, needTargetsFor, type NeedTargets } from './compat-axes';
+import { ELEMENTS, ELEMENT_KO, type Element, type Pillars } from '../saju';
 
 /**
- * `discovery-v1` — 아직 선택되지 않은 후보의 **노출 순서와 오행 첫인상**.
+ * 인연 찾기 — 아직 선택되지 않은 후보의 **노출 순서와 예측 궁합 점수**.
  *
- * 옛 `match-v0` 의 네 축 중 둘을 **일부러 뺐다**(ADR 0003) — 까닭은 아래 둘이다. 남은 두
- * 축이 낸 수는 궁합풀이 점수의 기준점으로도 쓰인다(ADR 0060).
+ * 옛 `match-v0` 의 네 축 중 둘을 **일부러 뺐다**(ADR 0003) — 까닭은 아래 둘이다. 점수는
+ * 궁합풀이의 기준점으로도 쓰인다(ADR 0060). 지금 판은 `v2-beta` 다(ADR 0113).
  *
  * - `dataCompleteness` — 사람의 적합성이 아니라 **우리 자료의 완성도**다. 순위에
  *   넣으면 출생시간을 모르는 사람이 사주가 안 맞아서가 아니라 입력이 덜 차서 덜
@@ -40,37 +41,51 @@ import { ELEMENTS, ELEMENT_KO, type Element } from '../saju';
  */
 
 /**
+ * 점수 정책 — 사이에 따라 둘로 나뉜다(ADR 0113).
+ *
+ * - `romantic`(연인용): 후보 카드 · 성립한 인연 궁합 · 사이가 연인 · 배우자인 궁합
+ * - `general`(일반): 가족 · 친구 · 동료 · 모름
+ *
+ * 둘 중 무엇을 쓸지는 `scorePolicyOf` 가 정한다.
+ */
+export const SCORE_POLICIES = ['romantic', 'general'] as const;
+export type ScorePolicy = (typeof SCORE_POLICIES)[number];
+
+/**
  * 정책 — **축·가중치·탐색 비율·버전을 값으로 선언한다**(`prd-archive`).
  *
- * `discovery-v1` 은 눈에 보이는 글자 수의 합산 균형 70%와, 20% 미만 부족분에 상대
- * 오행이 닿는 정도로 잰 상호보완 30%를 쓴다. 상대 오행은 20%에서 포화해 과다 보유를
- * 추가 가점으로 만들지 않는다. 상세 궁합이나 명리의 정답이 아니라 오행 구성을 단순
- * 비교한 첫인상이다.
+ * `v2-beta`(ADR 0113)는 사이로 가른 두 공식이다. 무게는 근거가 아니라 **가설**이다 — 조사가 받친 것은
+ * 서열(일주 · 일지 > 필요한 기운 보완 > 오행 균형)이고 수가 아니다. 비교기(`src/lib/matching/formula-comparison`)가
+ * 분포를 재고 사후에 고친다.
  *
- * **줄 세우기는 SQL 이 한다.** 여기 적힌 수는 그 셈의 선언이고, `09_discovery_board`
- * 가 같은 수로 기대값을 만든다. 그 수는 후보 카드에서 `예측 궁합 점수`로 보인다.
+ * - **연인용** — 일주 · 일지 관계 40 · 필요한 기운 보완(양방향) 40 · 오행 균형 20
+ * - **일반** — 필요한 기운 보완 60 · 오행 균형 40(운영자가 2026-09-25 에 70 · 30 에서 고쳤다). 일주 · 일지는 풀이 글에서만 쓴다
+ *
+ * 세 축의 셈은 `compat-axes.ts`(일주 · 일지 · 필요한 기운 보완)와 `element-axes.ts`(오행 균형)에 있다.
+ * 옛 `discovery-v1`(균형 70 · 개수 보완 30)은 저장된 옛 풀이를 읽는 자리에만 남는다(`DISCOVERY_V1`).
+ *
+ * **줄 세우기는 SQL 이 한다.** 그 셈은 후보 카드에서 `예측 궁합 점수`로 보인다.
  *
  * **이름은 세게 쓰고 면책은 작게 붙인다.** 「오행 첫인상 점수」라고 부르면 사용자가
  * 「그래서 이게 궁합 점수인가 아닌가」에서 멈춘다 — 이름이 제품을 설명하지 못하면
  * 카드 전체가 무엇을 위한 것인지 읽히지 않는다. 대신 목록 머리에 `DISCOVERY_TEASER`
- * 한 줄이 오행 구성만 본 참고 점수라고 밝힌다. 정확성은 그 한 줄이 들고, 이름은
- * 무엇인지 말하는 일만 한다.
+ * 한 줄이 참고 점수라고 밝힌다. 정확성은 그 한 줄이 들고, 이름은 무엇인지 말하는 일만 한다.
  */
 export const DISCOVERY_POLICY = {
-  version: 'discovery-v1',
+  version: 'v2-beta',
   status: 'beta',
   /** 정렬만 하고 사람을 지우지 않는다 */
   behavior: 'rank-only',
   hardThreshold: 'none',
+  /** 정책마다 합이 1 인 무게 — 화면이 축 옆에 `점수 반영 40%` 로 그대로 옮긴다 */
   weights: {
-    complement: 0.3,
-    combinedBalance: 0.7,
+    romantic: { dayPillar: 0.4, needComplement: 0.4, combinedBalance: 0.2 },
+    general: { needComplement: 0.6, combinedBalance: 0.4 },
   },
   /** 순위에 쓰지 않는 것 — 뺀 이유는 위 주석과 ADR 0003 에 있다 */
   excluded: [
     'dataCompleteness',
     'connectionDensity',
-    'eokbu',
     'following-pattern',
     'structure',
     'johu-conditions',
@@ -93,7 +108,7 @@ export const DISCOVERY_POLICY = {
    *
    * 경계를 값으로 든다. 주석으로 적으면 아무것도 잠그지 않고, 화면마다 조금씩
    * 넓어진다. 오른쪽은 서로 동의한 뒤에 열리는 것들이고, 생년월일시와 출생지는
-   * 그때도 열리지 않는다(ADR 0008).
+   * 그때도 열리지 않는다(ADR 0008). 일주 · 일지는 점수 계산에 쓰지만 원문은 내지 않는다(ADR 0113).
    */
   discloses: ['supplied-elements', 'balance-band', 'preview-score'] as const,
   withholds: [
@@ -111,25 +126,105 @@ export const DISCOVERY_POLICY = {
 } as const;
 
 /**
- * 두 축을 정책의 가중치로 합친다 — **카드와 풀이가 같은 자를 쓰게 하는 자리.**
+ * **옛 판 `discovery-v1`** — 오행 균형 70 · 개수 보완 30.
  *
- * 줄 세우기는 SQL 이 하고 카드의 수도 거기서 온다. 이 함수는 그 셈을 **TS 에서 한 번 더**
- * 하는 것인데, 베끼려고 둔 것이 아니라 **SQL 이 못 서는 자리** 때문이다.
- *
- * 궁합풀이의 기준점이 그 자리다. 후보 카드를 거치지 않는 `private`(내가 저장한 두 사람)
- * 에는 스냅샷이 아예 없고, 있는 `match` 도 그 값은 하루짜리라 풀이 시각과 다를 수 있다.
- * **스냅샷을 파이프로 넘기면 두 kind 가 다른 길을 탄다** — 그러면 출력 검사가 한 갈래에서만
- * 돈다(`reading/policy.ts`).
- *
- * 그래서 넘기지 않고 **두 명식에서 그 자리에서 다시 잰다.** 두 축이 모두 `counts` 와
- * `glyphCount` 만 보므로(`ratios` 는 안 본다) 재는 데 드는 것이 없고, `analysis.elements`
- * 가 이미 그 모양이다.
- *
- * 가중치는 `DISCOVERY_POLICY.weights` 에서 읽는다 — 손으로 옮겨 적으면 정책만 바뀌고
- * 이 함수가 안 따라오는 날이 온다.
+ * ADR 0113 이 근거가 잘못됐다고 보고 내렸다. 남은 자리는 **이 판으로 만든 궁합풀이를 다시 여는 화면** 하나다 —
+ * 풀이는 만든 때의 점수를 들고 있고(ADR 0060), 그 옆에 새 판의 수를 세우면 같은 화면에 점수가 둘이 된다.
+ * 새 점수를 이것으로 내지 않는다.
  */
-export function previewScoreOf(a: ElementSummary, b: ElementSummary): number {
-  const { complement, combinedBalance } = DISCOVERY_POLICY.weights;
+export const DISCOVERY_V1 = {
+  version: 'discovery-v1',
+  weights: {
+    complement: 0.3,
+    combinedBalance: 0.7,
+  },
+} as const;
+
+/** 점수 판의 이름 — 풀이에 적힌 값을 읽는 자리가 모르는 이름을 옛 판으로 눕힌다 */
+export type ScoreVersion = typeof DISCOVERY_POLICY.version | typeof DISCOVERY_V1.version;
+
+/**
+ * 한 사람 몫 — 점수가 읽는 셋.
+ *
+ * 일주(일주 · 일지 관계) · 오행 요약(드러난 글자 수 — 공급과 균형) · 필요 대상(억부 1순위와 가장 무거운 오행).
+ */
+export type ScoreSide = {
+  pillars: Pick<Pillars, 'day'>;
+  summary: ElementSummary;
+  need: NeedTargets;
+};
+
+/** 명식 하나에서 점수가 읽는 몫을 꺼낸다 — 필요 대상은 엔진 기본 세기로 잰다 */
+export const scoreSideOf = (saju: {
+  pillars: Pillars;
+  analysis: { elements: ElementSummary };
+}): ScoreSide => ({
+  pillars: saju.pillars,
+  summary: saju.analysis.elements,
+  need: needTargetsFor(saju.pillars),
+});
+
+/** 세 축, 0~100 — 반올림하지 않은 값 */
+export type ScoreAxes = { dayPillar: number; needComplement: number; combinedBalance: number };
+
+export const scoreAxesOf = (a: ScoreSide, b: ScoreSide): ScoreAxes => ({
+  dayPillar: dayPillarAxisOf(a.pillars, b.pillars),
+  needComplement: needComplementSymmetric(
+    { targets: a.need, summary: a.summary },
+    { targets: b.need, summary: b.summary },
+  ),
+  combinedBalance: combinedCountBalanceOf(a.summary, b.summary),
+});
+
+/**
+ * 사이 → 점수 정책 — **이 한 자리에서만 정한다**(ADR 0113).
+ *
+ * 성립한 인연(`matched`)은 사이를 묻지 않고 연인용이다 — 「아직 서로 모르는 두 사람」을 성별 조건으로 이은
+ * 자리라서다. 직접 고른 사이는 연인 · 배우자만 연인용이고, 가족 · 친구 · 동료 · 모름(`null`)은 일반이다.
+ * 모르는 이름도 일반으로 눕힌다 — 연인 근거를 모든 관계에 쓰지 않는다.
+ */
+const POLICY_OF_RELATION: Readonly<Record<string, ScorePolicy>> = {
+  partner: 'romantic',
+  family: 'general',
+  friend: 'general',
+};
+
+export const scorePolicyOf = (pair: { matched: boolean; relation: string | null }): ScorePolicy =>
+  pair.matched ? 'romantic' : (POLICY_OF_RELATION[pair.relation ?? ''] ?? 'general');
+
+/**
+ * 예측 궁합 점수 — **카드와 풀이가 같은 자를 쓰게 하는 자리.** 진입점은 이것 하나다(ADR 0113).
+ *
+ * 사이로 가른 두 공식을 둘로 흩지 않고 정책을 받는다. 후보 카드의 줄 세우기는 SQL 이 하고, 이 함수는
+ * **SQL 이 못 서는 자리** — 궁합풀이의 기준점과 궁합 화면의 지표 — 에서 그 셈을 TS 로 한 번 더 한다.
+ * `private`(내가 저장한 두 사람)에는 카드 스냅샷이 아예 없고, 있는 `match` 도 그 값은 하루짜리라 풀이
+ * 시각과 다를 수 있다. 그래서 넘겨받지 않고 **두 명식에서 그 자리에서 다시 잰다**(ADR 0060).
+ *
+ * 가중치는 `DISCOVERY_POLICY.weights` 에서 읽는다 — 손으로 옮겨 적으면 정책만 바뀌고 이 함수가 안
+ * 따라오는 날이 온다.
+ */
+export function previewScoreOf(
+  a: ScoreSide,
+  b: ScoreSide,
+  { policy }: { policy: ScorePolicy },
+): number {
+  const axes = scoreAxesOf(a, b);
+  const weights: Partial<Record<keyof ScoreAxes, number>> = DISCOVERY_POLICY.weights[policy];
+  return Math.round(
+    (Object.keys(axes) as (keyof ScoreAxes)[]).reduce(
+      (sum, key) => sum + (weights[key] ?? 0) * axes[key],
+      0,
+    ),
+  );
+}
+
+/**
+ * 옛 판(`discovery-v1`)의 수 — **저장된 옛 풀이를 다시 여는 자리만 부른다.**
+ *
+ * 두 축이 `counts` 와 `glyphCount` 만 본다. 새 점수를 이것으로 내지 않는다.
+ */
+export function legacyPreviewScoreOf(a: ElementSummary, b: ElementSummary): number {
+  const { complement, combinedBalance } = DISCOVERY_V1.weights;
 
   return Math.round(
     combinedBalance * combinedCountBalanceOf(a, b) + complement * mutualDeficitComplementOf(a, b),
@@ -168,7 +263,7 @@ type BoardRow = {
   /** 내 비율이 20%보다 낮은 오행 중 이 후보가 가진 것. 상대의 전체 구성이 아니다 */
   suppliedElements: readonly Element[];
   balanceBand: BalanceBand;
-  /** 오행 보완 30% + 함께 놓은 균형 70% — 단순 비교 참고값 */
+  /** 예측 궁합 점수 — 연인용 정책(ADR 0113)의 참고값 */
   previewScore: number;
 };
 
@@ -192,31 +287,33 @@ const BALANCE_LABEL: Record<BalanceBand, string> = {
  * 여기는 반대다 — 점수가 이미 카드에 65점으로 적혀 있고, 이 문턱은 그 수를 다시
  * 말로 적을 뿐이다. 고쳐도 줄 세우기는 한 자리도 안 움직인다.
  *
- * ## 경계가 90·80·70 이 아닌 까닭
+ * ## 경계는 분포를 일곱으로 나눈 자리다
  *
- * 이 점수는 100점이 만점인 시험이 아니라 **두 축의 가중합**이다. 균형 70%는 다섯
- * 오행이 완전히 고를 때만 100 이 되고, 보완 30%는 서로의 부족분이 정확히 맞물릴 때만
- * 100 이 된다. 실제로 나는 값은 중앙값 65 언저리에 몰리고 80 을 넘는 쌍이 서른에
- * 하나다. 그 분포 위에 90·80·70 을 그으면 **위의 두 칸은 영영 안 뜨고** 넷 중 하나가
- * 아쉬운 말로 읽힌다 — 센 문구를 두고도 아무도 못 본다.
+ * **좋은 궁합의 객관적인 경계가 아니다.** 이 점수는 100점이 만점인 시험이 아니라 세 축의 가중합이고,
+ * 실제로 나는 값이 가운데에 몰린다. 90·80·70 을 그으면 위의 두 칸은 영영 안 뜬다. 그래서 경계는 **분포에서**
+ * 왔다 — 일곱 칸이 저마다 대략 같은 몫의 쌍을 받도록 자른 자리다.
  *
- * 그래서 경계는 분포에서 왔다. 위에서부터 대략 5% · 17% · 28% · 26% · 16% · 7% · 2%.
- * **점수 계산을 고치면 이 일곱 수도 다시 재야 한다** — 말이 분포를 따라가지 못하면
- * 같은 카드에서 수와 문장이 서로 다른 말을 한다.
+ * `discovery-v1`(중앙값 64 · sd 8.8)에서 잰 옛 경계 78·72·66·60·54·46 은 위에서부터
+ * 4.4% · 15.7% · 24.7% · 24.8% · 17.8% · 9.8% · 2.8% 를 받았다. `v2-beta` 연인용(중앙값 56 · sd 11.3 — 카드의
+ * 점수다)에 그 몫을 그대로 옮기면 75·66·58·50·43·33 이고, 받는 몫은 4.4% · 15.3% · 24.5% · 26.4% · 16.6% ·
+ * 10.3% · 2.5% 다. 잰 곳은 비교기의 `adults` 시나리오 5000 쌍(시드 20260925), 세기는 엔진 기본과
+ * 월지 ×2 · 지장간 60:30:10 두 벌이 같은 경계를 냈다(`docs/notes/2026-09-25-compat-formula-comparison.md`).
+ * **점수 계산을 고치면 이 일곱 수도 다시 잰다** — 말이 분포를 따라가지 못하면 같은 카드에서 수와 문장이
+ * 서로 다른 말을 한다. 문장은 그대로다.
  *
  * 문장은 모두 「-일 수 있어요 / -에 가까워요 / -편이에요」로 닫는다. 88점이 객관적인
  * 최고 궁합이라는 확정 판정은 이 제품이 낼 수 있는 말이 아니다.
  *
- * 경계는 **위쪽이 닫힌다**(78 이상, 72 이상 …) — 일곱 칸이 모두 한쪽 방향으로 읽히도록.
+ * 경계는 **위쪽이 닫힌다**(75 이상, 66 이상 …) — 일곱 칸이 모두 한쪽 방향으로 읽히도록.
  * 위에서 아래로 읽으니 `find` 가 처음 걸리는 칸이 곧 그 점수의 칸이다.
  */
 const PREVIEW_VERDICT: readonly (readonly [number, string])[] = [
-  [78, '아주 좋은 궁합일 수 있어요.'],
-  [72, '좋은 궁합에 가까워요.'],
-  [66, '꽤 잘 맞는 편이에요.'],
-  [60, '무난하게 어울리는 편이에요.'],
-  [54, '조금 엇갈리는 부분이 있어요.'],
-  [46, '잘 맞지 않는 부분이 있는 편이에요.'],
+  [75, '아주 좋은 궁합일 수 있어요.'],
+  [66, '좋은 궁합에 가까워요.'],
+  [58, '꽤 잘 맞는 편이에요.'],
+  [50, '무난하게 어울리는 편이에요.'],
+  [43, '조금 엇갈리는 부분이 있어요.'],
+  [33, '잘 맞지 않는 부분이 있는 편이에요.'],
   [0, '서로 다른 부분이 많은 편이에요.'],
 ];
 /** 이유 문장의 뒷 절 — 균형을 **어우러짐의 말로** 옮긴다 */
@@ -232,8 +329,8 @@ const BALANCE_CLAUSE: Record<BalanceBand, string> = {
  * ## 왜 균형 문장만으로는 안 됐나
  *
  * 카드는 「34점」 옆에 「균형이 고른 편이에요」를 세우고 있었다. 둘 다 참인데 같이
- * 읽으면 어긋난다 — 점수는 두 축의 합이고(보완 30% + 균형 70%), 균형 문장은 그중
- * 뒤 축 하나만 말하기 때문이다. **낮은 점수를 만든 축이 화면에 한 번도 안 나왔다.**
+ * 읽으면 어긋난다 — 점수는 여러 축의 합이고(그때는 보완 30% + 균형 70%), 균형 문장은 그중
+ * 한 축만 말하기 때문이다. **낮은 점수를 만든 축이 화면에 한 번도 안 나왔다.**
  *
  * 그래서 이유는 두 축을 한 문장에 접속으로 묶는다. 두 축의 방향이 같으면 「-고 …도」,
  * 다르면 「-지만 …은」 — 그 접속사가 곧 점수가 왜 그 자리인지의 설명이다.
@@ -316,7 +413,7 @@ export const DISCOVERY_DISCLOSURE = {
     '닉네임, 프로필 사진, 소개 — 사진을 등록하지 않으면 닉네임의 첫 글자가 표시됩니다.',
     '나에게 20%보다 적은 오행 중 소개받은 사람이 가지고 있는 오행의 이름.',
     '함께 놓았을 때의 오행 균형을 말로 옮긴 설명.',
-    '오행의 보완과 두 사람의 균형을 합친 예측 궁합 점수.',
+    '두 사람의 태어난 날 기둥 사이 관계, 서로 채우는 기운, 오행 균형을 반영한 예측 궁합 점수. 계산에 사용한 사주팔자 글자는 수락 전에는 공개되지 않습니다.',
   ],
   hidden: [
     '생년월일시와 출생지.',

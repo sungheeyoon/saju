@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CITY_LONGITUDES, computeSaju } from '@/src/lib/saju';
-import { previewScoreOf } from '@/src/lib/discovery';
+import { previewScoreOf, scoreSideOf } from '@/src/lib/discovery';
 import {
   READING_KINDS,
   SOLO_KINDS,
@@ -172,8 +172,44 @@ describe('프롬프트는 출생 원문을 들고 나가지 않는다', () => {
     if (!('baseline' in evidence)) throw new Error('궁합에는 기준점이 있어야 합니다.');
 
     expect(evidence.baseline).toBe(
-      previewScoreOf(A.analysis.elements, B.analysis.elements),
+      previewScoreOf(scoreSideOf(A), scoreSideOf(B), { policy: 'romantic' }),
     );
+  });
+
+  /**
+   * **눈금은 사이가 고른다**(ADR 0113) — 인연 궁합과 연인 · 배우자는 연인용, 가족 · 친구 · 동료 · 모름은 일반.
+   * 무슨 자로 쟀는지(`scoring`)가 기준점과 함께 와서 풀이에 저장된다.
+   */
+  it('기준점은 사이에 맞는 정책으로 재고, 그 정책을 함께 든다', () => {
+    const cases = [
+      ['match', null, 'romantic'],
+      ['match', 'family', 'romantic'],
+      ['private', 'partner', 'romantic'],
+      ['private', 'family', 'general'],
+      ['private', 'friend', 'general'],
+      ['private', null, 'general'],
+    ] as const;
+
+    for (const [kind, relation, policy] of cases) {
+      const evidence = readingEvidenceOf(kind, { a: A, b: B }, VIEWED_AT, undefined, relation);
+      if (!('scoring' in evidence)) throw new Error('궁합에는 눈금이 있어야 합니다.');
+
+      expect(evidence.scoring, `${kind} ${relation}`).toEqual({ version: 'v2-beta', policy, relation });
+      expect(evidence.baseline, `${kind} ${relation}`).toBe(
+        previewScoreOf(scoreSideOf(A), scoreSideOf(B), { policy }),
+      );
+    }
+  });
+
+  /** 기준점이 무엇을 반영한 수인지 점수 절이 말한다 — 운영자 확정 문구 #11(2026-09-25, 일반 60 · 40) */
+  it('점수 절이 사이별 정책으로 기준점을 설명한다', () => {
+    const prompt = readingPromptOf(evidenceFor('private'));
+
+    expect(prompt).toContain(
+      '`baseline` 은 사이에 맞는 정책으로 계산한 베타 기준점이다. 연인·배우자는 일주·일지 관계 40%, 필요한 기운 보완 40%, 오행 균형 20% 를 반영한다. 가족·친구·동료·모름은 필요한 기운 보완 60%, 오행 균형 40%만 반영하며 일주·일지 관계는 점수에 포함하지 않는다.',
+    );
+    expect(prompt).not.toContain('오행 구성만 본 값');
+    expect(prompt).not.toContain('같은 자로 잰 같은 수');
   });
 
   it('머리는 운이 없는 자료에서도 선다 — 없는 줄을 지어 적지 않는다', () => {

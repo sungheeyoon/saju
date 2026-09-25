@@ -216,6 +216,17 @@ async function submitFrozen(
     p_requested_model: GENERATION.model,
     p_generation: { ...GENERATION.settings, provider: GENERATION.provider },
     p_viewed_at: viewedAt.toISOString(),
+    /**
+     * **프롬프트에 실은 기준점과 그 눈금** — 풀이를 다시 여는 화면이 만든 때의 눈금으로 지표를 그린다(ADR 0113).
+     * 저장하는 문이 얼린 작업에서 옮긴다. 한 사람 풀이는 싣지 않는다 — 인자가 빠지면 DB 기본값 `null` 이다.
+     */
+    ...(made.input.score === null
+      ? {}
+      : {
+          p_score_baseline: made.input.score.baseline,
+          p_score_version: made.input.score.version,
+          ...(made.input.score.relation === null ? {} : { p_score_relation: made.input.score.relation }),
+        }),
   });
 
   if (prepareError) {

@@ -818,7 +818,7 @@ describe('고객이 읽는 글의 계약', () => {
     expect(CONTROL.selfPresentation).toBe('expert-v4');
     expect(CONTROL.terminology).toBe('plain');
     expect(READING_POLICY.version).toBe('reading-prompt-v15');
-    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v14');
+    expect(READING_POLICY.pairVersion).toBe('reading-prompt-v16');
     expect(selfPrompt()).toContain('이 사주의 핵심');
     expect(selfPrompt()).not.toContain('살림법');
     expect(selfPrompt()).toContain('analysis.strength');

@@ -1,7 +1,14 @@
+import type { ScorePolicy } from '@/src/lib/discovery';
 import type { MatchPreview } from '@/src/lib/matching';
 
 import { CARD } from './card';
 import { Icon } from './ui/icons';
+
+/** 카드 위 딱지 — 운영자 확정 문구 #7(2026-09-25) */
+const POLICY_BADGE: Record<ScorePolicy, string> = {
+  romantic: '연인·배우자 기준',
+  general: '일반 관계 기준',
+};
 
 /**
  * 「궁합 베타」 지표를 화면에 세우는 자리 — **여기서는 아무것도 계산하지 않는다.**
@@ -40,7 +47,18 @@ export function MatchIndexCard({
           <Icon name="heart" className="size-4" />
           궁합 베타
         </span>
-        <span className="text-[13px] text-secondary">검증 중인 판정은 지표에서 제외</span>
+        {/*
+          **무슨 눈금으로 쟀는지 딱지가 말한다**(ADR 0113) — 연인 · 배우자와 그 밖의 사이는 축과 무게가 다르다.
+          옛 판(`discovery-v1`)으로 난 풀이를 다시 열 때는 사이를 몰랐던 판이라 딱지가 없고, 그 판에서 참이던
+          「검증 중인 판정은 지표에서 제외」가 그대로 선다 — 새 판은 필요한 기운(억부)을 쓰므로 그 말이 거짓이 된다.
+        */}
+        {preview.policy === null ? (
+          <span className="text-[13px] text-secondary">검증 중인 판정은 지표에서 제외</span>
+        ) : (
+          <span className="rounded-full border border-border px-3 py-1 text-[13px] font-semibold text-secondary">
+            {POLICY_BADGE[preview.policy]}
+          </span>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[15rem_1fr] lg:items-center">
@@ -60,7 +78,16 @@ export function MatchIndexCard({
           {preview.dimensions.map((dimension) => (
             <div key={dimension.key}>
               <div className="flex items-baseline justify-between gap-3">
-                <span className="text-[15px] font-semibold">{dimension.label}</span>
+                {/*
+                  무게는 **이 축이 점수에 들어간 몫**이다 — 단독 퍼센트로 두면 축 점수로 읽혀서 「점수 반영」을 붙인다
+                  (운영자 확정 문구 #6). 까닭은 적지 않는다.
+                */}
+                <span className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-[15px] font-semibold">{dimension.label}</span>
+                  <span className="text-[13px] text-secondary tabular-nums">
+                    점수 반영 {Math.round(dimension.weight * 100)}%
+                  </span>
+                </span>
                 <span className="text-[15px] font-semibold tabular-nums">{dimension.score}</span>
               </div>
               {/*
@@ -105,11 +132,13 @@ export function MatchIndexCard({
  * 곳에 손으로 적으면 한쪽만 고쳐지고, 그때 더 세게 말하는 쪽이 남는다.
  */
 export function ScoringNote() {
+  /*
+    운영자 확정 문구 #8(2026-09-25). **판본 이름(`v2`)을 쓰지 않는다** — 내부 이름은 사용자에게 뜻이 없다(ADR 0026).
+  */
   return (
     <p className="text-[13px] leading-5 text-secondary">
-      <strong className="font-semibold text-foreground">사주 엔진은 점수를 내지 않습니다.</strong> 위 베타 지표는
-      엔진이 낸 사실에 공개된 가중치를 얹은 제품용 비교값입니다. 맞춰볼 외부 기준이 아직
-      없으므로 궁합의 정답이나 관계의 좋고 나쁨으로 읽지 않습니다.
+      이 점수는 명리 자료에서 자주 다루는 기준을 조합한 베타 참고값입니다. 실제 관계의 결과를 예측하거나 두 사람의
+      좋고 나쁨을 판정하지 않습니다.
     </p>
   );
 }

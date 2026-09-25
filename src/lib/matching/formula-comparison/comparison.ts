@@ -1,4 +1,4 @@
-import { DISCOVERY_POLICY, previewScoreOf } from '../../discovery';
+import { DISCOVERY_V1, legacyPreviewScoreOf } from '../../discovery';
 import {
   DAY_PILLAR_AXIS,
   NEED_COMPLEMENT_AXIS,
@@ -88,7 +88,7 @@ export type Formula = {
   strength: ComparisonStrength;
 };
 
-const { combinedBalance, complement } = DISCOVERY_POLICY.weights;
+const { combinedBalance, complement } = DISCOVERY_V1.weights;
 
 /**
  * 공식 표 — **값이다.** 한 줄을 더하면 모든 표에 한 칸이 선다.
@@ -193,8 +193,8 @@ export function scoreOf(formula: Formula, axes: PairAxes, strength = formula.str
   );
 }
 
-/** `current` 가 `previewScoreOf` 와 한 점도 다르지 않은가 — 시험이 든다 */
-export const previewOf = (a: Person, b: Person) => previewScoreOf(a.summary, b.summary);
+/** `current` 가 옛 판의 셈(`legacyPreviewScoreOf`)과 한 점도 다르지 않은가 — 시험이 든다 */
+export const previewOf = (a: Person, b: Person) => legacyPreviewScoreOf(a.summary, b.summary);
 
 /** 시나리오의 쌍 — 시험이 `current` 를 `previewScoreOf` 와 견줄 때 쓴다 */
 export const scenarioPeople = (scenario: PairScenario, count: number, seed = 20260925) =>

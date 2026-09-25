@@ -4,14 +4,22 @@ import {
   DISCOVERY_DISCLOSURE,
   DISCOVERY_POLICY,
   DISCOVERY_TEASER,
+  DISCOVERY_V1,
+  SCORE_POLICIES,
   boardNotes,
   balanceLabelOf,
   cardTextFor,
+  legacyPreviewScoreOf,
+  previewScoreOf,
   previewSummaryFor,
+  scoreAxesOf,
+  scorePolicyOf,
+  scoreSideOf,
   type BalanceBand,
 } from './index';
+import { combinedCountBalanceOf, mutualDeficitComplementOf } from './element-axes';
 
-import type { Element } from '../saju';
+import { computeSaju, type Element } from '../saju';
 
 /**
  * **줄 세우기는 여기서 재지 않는다.**
@@ -20,20 +28,33 @@ import type { Element } from '../saju';
  * `supabase/tests/09_discovery_board.test.sql` 이 잰다. 여기 남은 것은 정책의 선언과
  * 말이다 — 값(가중치·밴드 경계)은 SQL 에도 하나씩 있어서 양쪽이 같은 수를 든다.
  */
-describe('discovery-v1 는 정책을 값으로 든다', () => {
+describe('v2-beta 는 정책을 값으로 든다', () => {
   /**
-   * `match-v0` 의 두 축(0.35 · 0.30)을 남기고 합이 1이 되게 다시 나눈 값이다.
-   * **거기서 왔을 뿐 지금부터는 따로 산다** — `match-v0` 가 가중치를 고치면 이 기대값은
-   * 그대로 두고 `discovery-v1` 을 만들지 말지를 따로 정한다.
+   * 사이로 가른 두 공식(ADR 0113). 연인용 40 · 40 · 20, 일반 60 · 40(운영자 2026-09-25).
+   * 무게는 근거가 아니라 가설이라 **값으로 여기 붙든다** — 고치면 이 기대값이 깨져 사람이 한 번 본다.
    */
-  it('균형 70%, 상호보완 30%를 쓴다', () => {
-    expect(DISCOVERY_POLICY.weights).toEqual({ complement: 0.3, combinedBalance: 0.7 });
-    expect(DISCOVERY_POLICY.weights.complement + DISCOVERY_POLICY.weights.combinedBalance).toBe(1);
-    expect(DISCOVERY_POLICY.version).toBe('discovery-v1');
+  it('연인용은 일주 40 · 보완 40 · 균형 20, 일반은 보완 60 · 균형 40 을 쓴다', () => {
+    expect(DISCOVERY_POLICY.version).toBe('v2-beta');
+    expect(DISCOVERY_POLICY.weights).toEqual({
+      romantic: { dayPillar: 0.4, needComplement: 0.4, combinedBalance: 0.2 },
+      general: { needComplement: 0.6, combinedBalance: 0.4 },
+    });
+    for (const policy of SCORE_POLICIES) {
+      const sum = Object.values(DISCOVERY_POLICY.weights[policy]).reduce((total, w) => total + w, 0);
+      expect(sum, policy).toBeCloseTo(1, 10);
+    }
 
     // 뺀 둘이 값으로 적혀 있다 — 「안 쓴다」가 주석이 아니라 값이어야 한다.
     expect(DISCOVERY_POLICY.excluded).toContain('dataCompleteness');
     expect(DISCOVERY_POLICY.excluded).toContain('connectionDensity');
+  });
+
+  /** 옛 판은 저장된 옛 풀이를 읽는 자리에만 남는다 — 값은 그대로다 */
+  it('옛 판 discovery-v1 은 균형 70 · 개수 보완 30 그대로 남는다', () => {
+    expect(DISCOVERY_V1).toEqual({
+      version: 'discovery-v1',
+      weights: { complement: 0.3, combinedBalance: 0.7 },
+    });
   });
 
   it('정렬만 한다 — 문턱이 없다', () => {
@@ -180,24 +201,24 @@ describe('previewSummaryFor 는 점수를 말로 옮긴다', () => {
     previewSummaryFor({ previewScore, suppliedElements: ['木'], balanceBand: 'even' }).verdict;
 
   /**
-   * **경계는 분포에서 왔다.** 이 점수는 중앙값 65 언저리에 몰리고 80 을 넘는 쌍이
-   * 서른에 하나다 — 90·80·70 에 금을 그으면 맨 위 두 칸이 영영 안 뜬다. 점수 계산을
-   * 고치면 이 일곱 수도 다시 재야 하므로, 경계를 값으로 여기 붙든다.
+   * **경계는 분포를 일곱으로 나눈 자리다** — 좋은 궁합의 객관적 경계가 아니다. `v2-beta` 연인용 점수(중앙값 56 ·
+   * sd 11.3)를 옛 `discovery-v1` 경계가 받던 몫대로 잘랐다(`adults` 5000 쌍). 점수 계산을 고치면 이 일곱 수도
+   * 다시 재야 하므로, 경계를 값으로 여기 붙든다.
    */
   it('일곱 구간을 분포에 맞춘 경계로 가른다', () => {
     expect(verdictAt(100)).toBe('아주 좋은 궁합일 수 있어요.');
-    expect(verdictAt(78)).toBe('아주 좋은 궁합일 수 있어요.');
-    expect(verdictAt(77)).toBe('좋은 궁합에 가까워요.');
-    expect(verdictAt(72)).toBe('좋은 궁합에 가까워요.');
-    expect(verdictAt(71)).toBe('꽤 잘 맞는 편이에요.');
-    expect(verdictAt(66)).toBe('꽤 잘 맞는 편이에요.');
-    expect(verdictAt(65)).toBe('무난하게 어울리는 편이에요.');
-    expect(verdictAt(60)).toBe('무난하게 어울리는 편이에요.');
-    expect(verdictAt(59)).toBe('조금 엇갈리는 부분이 있어요.');
-    expect(verdictAt(54)).toBe('조금 엇갈리는 부분이 있어요.');
-    expect(verdictAt(53)).toBe('잘 맞지 않는 부분이 있는 편이에요.');
-    expect(verdictAt(46)).toBe('잘 맞지 않는 부분이 있는 편이에요.');
-    expect(verdictAt(45)).toBe('서로 다른 부분이 많은 편이에요.');
+    expect(verdictAt(75)).toBe('아주 좋은 궁합일 수 있어요.');
+    expect(verdictAt(74)).toBe('좋은 궁합에 가까워요.');
+    expect(verdictAt(66)).toBe('좋은 궁합에 가까워요.');
+    expect(verdictAt(65)).toBe('꽤 잘 맞는 편이에요.');
+    expect(verdictAt(58)).toBe('꽤 잘 맞는 편이에요.');
+    expect(verdictAt(57)).toBe('무난하게 어울리는 편이에요.');
+    expect(verdictAt(50)).toBe('무난하게 어울리는 편이에요.');
+    expect(verdictAt(49)).toBe('조금 엇갈리는 부분이 있어요.');
+    expect(verdictAt(43)).toBe('조금 엇갈리는 부분이 있어요.');
+    expect(verdictAt(42)).toBe('잘 맞지 않는 부분이 있는 편이에요.');
+    expect(verdictAt(33)).toBe('잘 맞지 않는 부분이 있는 편이에요.');
+    expect(verdictAt(32)).toBe('서로 다른 부분이 많은 편이에요.');
     expect(verdictAt(0)).toBe('서로 다른 부분이 많은 편이에요.');
   });
 
@@ -209,7 +230,7 @@ describe('previewSummaryFor 는 점수를 말로 옮긴다', () => {
    * 단정형으로 새도 나머지 여섯의 조심이 무너진다.
    */
   it('일곱 칸 모두 단정하지 않는 꼴로 닫는다', () => {
-    for (const score of [100, 78, 72, 66, 60, 54, 46, 0]) {
+    for (const score of [100, 75, 66, 58, 50, 43, 33, 0]) {
       expect(verdictAt(score), String(score)).toMatch(
         /(일 수 있어요|에 가까워요|편이에요|부분이 있어요)\.$/,
       );
@@ -239,5 +260,76 @@ describe('previewSummaryFor 는 점수를 말로 옮긴다', () => {
     expect(reasonOf([], 'skewed')).toBe(
       '내게 적은 오행을 크게 보완하지 않고, 두 사람의 오행도 한쪽으로 기우는 편이에요.',
     );
+  });
+});
+
+/**
+ * **진입점은 하나다**(ADR 0113) — 사이로 가른 두 공식이 흩어진 두 함수가 아니다.
+ *
+ * 수를 손으로 적지 않는다. 엔진의 세기(월지 배수 · 지장간 몫)가 바뀌면 필요 대상이 바뀌어 점수가 움직이므로,
+ * 기대값은 같은 축에서 무게만 곱해 짓는다.
+ */
+describe('previewScoreOf 는 정책을 받아 한 자로 잰다', () => {
+  const chartOf = (year: number, month: number, day: number, hour: number | null) =>
+    computeSaju(
+      hour === null
+        ? { year, month, day, hour: null, gender: 'female' }
+        : { year, month, day, hour, minute: 0, second: 0, gender: 'female' },
+    );
+  const pairs = [
+    [chartOf(1990, 5, 17, 14), chartOf(1992, 11, 3, 8)],
+    [chartOf(1985, 1, 9, null), chartOf(1988, 7, 21, 23)],
+    [chartOf(2000, 2, 29, 6), chartOf(1999, 12, 31, 12)],
+  ] as const;
+
+  it('연인용은 세 축에 40 · 40 · 20, 일반은 두 축에 60 · 40 을 곱한다', () => {
+    for (const [a, b] of pairs) {
+      const axes = scoreAxesOf(scoreSideOf(a), scoreSideOf(b));
+      expect(previewScoreOf(scoreSideOf(a), scoreSideOf(b), { policy: 'romantic' })).toBe(
+        Math.round(0.4 * axes.dayPillar + 0.4 * axes.needComplement + 0.2 * axes.combinedBalance),
+      );
+      expect(previewScoreOf(scoreSideOf(a), scoreSideOf(b), { policy: 'general' })).toBe(
+        Math.round(0.6 * axes.needComplement + 0.4 * axes.combinedBalance),
+      );
+    }
+  });
+
+  /** 두 사람에게 같은 수를 낸다 — 보완 축이 두 방향의 평균이라서다 */
+  it('두 사람의 차례를 바꿔도 같은 수다', () => {
+    for (const [a, b] of pairs) {
+      for (const policy of SCORE_POLICIES) {
+        expect(previewScoreOf(scoreSideOf(a), scoreSideOf(b), { policy })).toBe(
+          previewScoreOf(scoreSideOf(b), scoreSideOf(a), { policy }),
+        );
+      }
+    }
+  });
+
+  it('옛 판의 수는 균형 70 · 개수 보완 30 으로만 난다', () => {
+    for (const [a, b] of pairs) {
+      const x = a.analysis.elements;
+      const y = b.analysis.elements;
+      expect(legacyPreviewScoreOf(x, y)).toBe(
+        Math.round(0.7 * combinedCountBalanceOf(x, y) + 0.3 * mutualDeficitComplementOf(x, y)),
+      );
+    }
+  });
+});
+
+describe('사이 → 점수 정책은 한 자리에서 정한다', () => {
+  it('성립한 인연과 연인 · 배우자는 연인용, 가족 · 친구 · 동료 · 모름은 일반이다', () => {
+    expect(scorePolicyOf({ matched: true, relation: null })).toBe('romantic');
+    expect(scorePolicyOf({ matched: true, relation: 'family' })).toBe('romantic');
+    expect(scorePolicyOf({ matched: false, relation: 'partner' })).toBe('romantic');
+    expect(scorePolicyOf({ matched: false, relation: 'family' })).toBe('general');
+    expect(scorePolicyOf({ matched: false, relation: 'friend' })).toBe('general');
+    expect(scorePolicyOf({ matched: false, relation: null })).toBe('general');
+  });
+
+  /** 모르는 이름을 연인으로 눕히지 않는다 — 연인 근거를 모든 관계에 쓰지 않는다(ADR 0113) */
+  it('모르는 사이는 일반으로 눕힌다', () => {
+    for (const raw of ['', 'other', '연인']) {
+      expect(scorePolicyOf({ matched: false, relation: raw }), raw).toBe('general');
+    }
   });
 });

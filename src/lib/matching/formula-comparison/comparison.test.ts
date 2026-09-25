@@ -83,7 +83,7 @@ describe('모집단 — 시나리오의 가설', () => {
 });
 
 describe('공식 표', () => {
-  it('current 는 discovery-v1 의 previewScoreOf 와 한 점도 다르지 않다', () => {
+  it('current 는 discovery-v1 의 legacyPreviewScoreOf 와 한 점도 다르지 않다', () => {
     const current = FORMULAS.find((f) => f.id === 'current');
     if (!current) throw new Error('current 가 없다');
     for (const [a, b] of scenarioPeople('adults', 300)) {

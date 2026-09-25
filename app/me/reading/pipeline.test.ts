@@ -52,6 +52,7 @@ vi.mock('./model', async () => ({
 
 const { GENERATION } = await import('./generation');
 const { beginReading, sendAcceptedMatchReading } = await import('./pipeline');
+const { baselineIn } = await import('@/src/lib/reading');
 
 /**
  * **파이프라인이 실제로 이어져 있는가.**
@@ -316,6 +317,36 @@ describe('누름은 시도를 한 번만 연다', () => {
       'p_generation',
       'p_viewed_at',
     ]);
+  });
+});
+
+/**
+ * **궁합은 기준점의 눈금을 프롬프트와 같은 걸음에 얼린다**(ADR 0113) — 풀이를 다시 여는 화면이 만든 때의 눈금으로
+ * 지표를 그린다. 실은 기준점은 프롬프트에 적힌 수와 같다.
+ */
+describe('궁합은 기준점의 눈금을 함께 얼린다', () => {
+  const scaleOf = async (about: Record<string, unknown>) => {
+    job = frozen({ kind: 'private', birth_b: BIRTH_B, about });
+
+    await beginReading({ kind: 'private', personA: 'person-a', personB: 'person-b' });
+    await settle();
+
+    return prepared()?.[1] as Record<string, unknown> | undefined;
+  };
+
+  it('가족 사이는 일반 눈금이고, 실은 기준점은 프롬프트의 수다', async () => {
+    const args = await scaleOf({ names: null, relation: 'family' });
+
+    expect(args?.p_score_version).toBe('v2-beta');
+    expect(args?.p_score_relation).toBe('family');
+    expect(args?.p_score_baseline).toBe(baselineIn(args?.p_prompt as string));
+  });
+
+  it('사이를 모르면 사이 칸을 싣지 않는다 — DB 기본값 null 이 모른다이다', async () => {
+    const args = await scaleOf({ names: null, relation: null });
+
+    expect(args?.p_score_version).toBe('v2-beta');
+    expect(args).not.toHaveProperty('p_score_relation');
   });
 });
 

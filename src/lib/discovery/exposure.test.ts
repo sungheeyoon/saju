@@ -7,7 +7,7 @@ import {
   type ElementSummary,
 } from './element-axes';
 import { CITY_LONGITUDES, ELEMENTS, computeSaju, type Element } from '../saju';
-import { DISCOVERY_POLICY } from './index';
+import { DISCOVERY_POLICY, DISCOVERY_V1 } from './index';
 
 /**
  * **노출 분포를 재어 남긴다** — 문턱을 옮기지는 않는다.
@@ -106,7 +106,7 @@ const participants: Participant[] = SAMPLE.map((one) => {
 
 /** `discovery-v1` 의 점수 — SQL 이 하는 셈과 같은 두 축·같은 가중치 */
 function scoreFor(viewer: ElementSummary, candidate: ElementSummary): number {
-  const { complement, combinedBalance } = DISCOVERY_POLICY.weights;
+  const { complement, combinedBalance } = DISCOVERY_V1.weights;
   return (
     mutualDeficitComplementOf(viewer, candidate) * complement +
     combinedCountBalanceOf(viewer, candidate) * combinedBalance

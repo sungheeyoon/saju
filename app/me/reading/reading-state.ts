@@ -288,6 +288,8 @@ export function previewReading(kind: ReadingTarget['kind'], at: Date): CurrentRe
     myFeedback: null,
     dayMasterA: null,
     dayMasterB: null,
+    /* 예시 글은 잰 눈금이 없다 — 지어 넣지 않는다 */
+    scoreScale: { baseline: null, version: null, relation: null },
   };
 }
 

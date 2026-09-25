@@ -1053,6 +1053,17 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.locator('main')).toContainText('가족 사이로 읽어 드립니다');
 
     /*
+      **사이가 점수의 눈금을 고른다**(ADR 0113) — 가족은 일반 정책이라 축이 둘(서로 채우는 기운 60 · 함께 놓은 균형 40)이고
+      일주 · 일지 축은 안 선다. 판본 이름은 화면 어디에도 없다.
+    */
+    await expect(page.getByText('일반 관계 기준', { exact: true })).toBeVisible();
+    await expect(page.getByText('서로 채우는 기운', { exact: true })).toBeVisible();
+    await expect(page.getByText('점수 반영 60%', { exact: true })).toBeVisible();
+    await expect(page.getByText('점수 반영 40%', { exact: true })).toBeVisible();
+    await expect(page.getByText('생활의 맞물림')).toHaveCount(0);
+    await expect(page.locator('main')).not.toContainText('v2');
+
+    /*
       **도착한 자리가 그 글을 부르는 말로 적는다.** 궁합 화면에서 「사주풀이 받기」라고
       적으면 눌러 온 사람이 다른 것을 보고 있다고 읽는다(ADR 0026·0027).
       누르지 않는다 — 누르면 4분과 돈이 든다.
