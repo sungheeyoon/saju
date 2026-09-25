@@ -5,6 +5,7 @@ import {
   needComplementDirectional,
   type NeedTargets,
 } from '../../discovery/compat-axes';
+import { previewScoreOf, scoreSideOf } from '../../discovery';
 import type { ElementSummary } from '../../discovery/element-axes';
 import { pillarOf, type Branch, type Stem } from '../../saju';
 import { ageOnEvaluationDate, scenarioPairs } from '../../saju/population';
@@ -52,7 +53,7 @@ describe('축 — 가설 값이 말한 대로 선다', () => {
   });
 
   it('필요 보완은 드러난 글자 20% 에서 가득 차고, 가장 무거운 오행을 보태면 줄어든다', () => {
-    const receiver: NeedTargets = { primary: '水', heaviest: '火', withheld: false };
+    const receiver: NeedTargets = { primary: '水', heaviest: '火' };
     expect(needComplementDirectional(receiver, summary({ 水: 2, 土: 6 }))).toBe(100);
     expect(needComplementDirectional(receiver, summary({ 水: 1, 土: 7 }))).toBeCloseTo(62.5);
     expect(needComplementDirectional(receiver, summary({ 水: 2, 火: 2, 土: 4 }))).toBe(70);
@@ -83,6 +84,28 @@ describe('모집단 — 시나리오의 가설', () => {
 });
 
 describe('공식 표', () => {
+  /**
+   * 비교기의 v2 두 줄은 무게를 손으로 적었다 — 운영 셈(`previewScoreOf`)과 한 점이라도 갈리면 비교기가 재는 것이
+   * 카드 · 풀이의 점수가 아니게 된다. 사람은 운영과 같은 길(`scoreSideOf`)로 한 번 더 세워 필요 대상까지 견준다.
+   */
+  it('v2 두 줄은 운영의 previewScoreOf(연인용 · 일반)와 한 점도 다르지 않다', () => {
+    const formula = (id: string) => {
+      const found = FORMULAS.find((f) => f.id === id);
+      if (!found) throw new Error(`${id} 가 없다`);
+      return found;
+    };
+    const sideOf = (person: (typeof people)[number][number]) =>
+      scoreSideOf({ pillars: person.pillars, analysis: { elements: person.summary } });
+    const people = scenarioPeople('adults', 200);
+    for (const [a, b] of people) {
+      const axes = axesOf(a, b);
+      const [x, y] = [sideOf(a), sideOf(b)];
+      expect(x.need).toEqual(a.targets.engine);
+      expect(scoreOf(formula('v2-romantic'), axes)).toBe(previewScoreOf(x, y, { policy: 'romantic' }));
+      expect(scoreOf(formula('v2-general'), axes)).toBe(previewScoreOf(x, y, { policy: 'general' }));
+    }
+  });
+
   it('current 는 discovery-v1 의 legacyPreviewScoreOf 와 한 점도 다르지 않다', () => {
     const current = FORMULAS.find((f) => f.id === 'current');
     if (!current) throw new Error('current 가 없다');
