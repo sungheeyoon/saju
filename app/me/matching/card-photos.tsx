@@ -2,7 +2,9 @@
 
 import { useEffect, useState, type RefObject } from 'react';
 
-import { CandidatePhoto, photosOf, type DeckCard } from './matching-experience';
+import { CandidatePhoto } from './candidate-photo';
+import { photosOf, type DeckCard } from './deck-card';
+import { reducedMotion } from './motion';
 
 /*
   **오늘의 인연 카드의 사진들 — 넘겨 보되 글은 그대로다**(G-60, 운영자 2026-09-25 시안).
@@ -20,8 +22,6 @@ import { CandidatePhoto, photosOf, type DeckCard } from './matching-experience';
 
 const BOUNCE_PX = 14;
 const BOUNCE_MS = 280;
-
-const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** 막대가 서는 카드인가 — 서면 사진 위의 딱지 · ⓘ 가 막대 아래로 내려선다 */
 export const pagesPhotos = (card: DeckCard): boolean => photosOf(card).length > 1;

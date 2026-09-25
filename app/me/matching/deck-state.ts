@@ -1,4 +1,4 @@
-import type { DeckCard } from './matching-experience';
+import type { DeckCard } from './deck-card';
 
 export const PASSED_LIMIT = 20;
 export type DeckState = {
