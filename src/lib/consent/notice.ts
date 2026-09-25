@@ -56,8 +56,14 @@ import { ACTIVITY_PRIVACY_LINE } from '../presence';
  * ADR 0038). ③ 탈퇴는 앱의 신청 뒤 3일 안에 크론이 처분한다 — 운영자의 확인을 기다리지 않고
  * 날은 달력으로 센다(G-53). ④ 떠난 사람의 신고 기록을 6개월 따로 둔다(G-52, ADR 0098).
  * 처리하는 것이 달라졌으므로 기준도 `notice-v6` 으로 오른다.
+ *
+ * `v6` → `v7`: **표현 개정** — 예측 궁합 점수의 입력이 v2-beta 로 바뀌어(ADR 0113) 매칭 고지
+ * (`DISCOVERY_DISCLOSURE`)가 「태어난 날 기둥 사이 관계 · 서로 채우는 기운 · 오행 균형」을 말한다.
+ * 상대에게 보이는 것 · 처리 항목 · 목적은 그대로라(여덟 글자는 이미 들고 있다, ADR 0071) 기준은
+ * `notice-v6` 에 둔다 — 확인한 사람은 다시 안 본다(운영자 2026-09-25). 공개 출시용 처리방침
+ * 초안은 그래서 `notice-v8` 이 된다(`docs/legal/privacy-v8-draft.md`).
  */
-export const NOTICE_VERSION = 'notice-v6';
+export const NOTICE_VERSION = 'notice-v7';
 
 /**
  * 재확인 기준 — **이 판본 이상을 확인했으면 유효하다**(ADR 0095).
