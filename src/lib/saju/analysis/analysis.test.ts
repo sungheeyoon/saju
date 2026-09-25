@@ -192,6 +192,33 @@ describe('오행 분포(fiveElements)', () => {
     expect(LEGACY_ELEMENT_WEIGHTS).toEqual({ stem: 1, branch: 1, monthBranchMultiplier: 1, hiddenStemWeighting: 'days' });
   });
 
+  /**
+   * ADR 0114 가 「두 글자면 70:30 — 구현이 정하고 시험이 잠근다」고 남겼다. 구현은 중기가 없는 지지를 정기 100 으로
+   * 둔다 — 그 지지의 두 글자가 같은 오행이라 어떻게 나눠도 오행 점수가 같기 때문이다. 그 전제를 여기서 잰다.
+   */
+  it('60:30:10 — 중기가 있으면 역할대로, 없으면 정기 100 이고 그 지지는 한 오행이다', () => {
+    const withoutMiddle: string[] = [];
+    for (const [branch, hiddens] of Object.entries(HIDDEN_STEMS)) {
+      const shares = hiddenStemShares(hiddens, 'sixty-thirty-ten');
+      expect(shares.reduce((sum, share) => sum + share, 0), branch).toBeCloseTo(1, 10);
+      if (hiddens.some((hidden) => hidden.role === '中氣')) {
+        expect(
+          hiddens.map((hidden, index) => [hidden.role, shares[index]]),
+          branch,
+        ).toEqual(
+          hiddens.map((hidden) => [hidden.role, { 正氣: 0.6, 中氣: 0.3, 餘氣: 0.1 }[hidden.role]]),
+        );
+      } else {
+        withoutMiddle.push(branch);
+        expect(hiddens.map((hidden, index) => [hidden.role, shares[index]]), branch).toEqual(
+          hiddens.map((hidden) => [hidden.role, hidden.role === '正氣' ? 1 : 0]),
+        );
+        expect(new Set(hiddens.map((hidden) => STEM_INFO[hidden.stem].element)).size, branch).toBe(1);
+      }
+    }
+    expect(withoutMiddle.sort()).toEqual(['卯', '子', '酉'].sort());
+  });
+
   it('비율의 합이 1이다', () => {
     const { ratios } = elementDistributionOf(pillars);
     const total = ELEMENTS.reduce((sum, e) => sum + ratios[e], 0);

@@ -70,7 +70,6 @@ const dayOf = (glyphs: string) => {
 const targetsOf = (two: string) => ({
   primary: two[0] as Element,
   heaviest: two[1] as Element,
-  withheld: false,
 });
 
 describe('일주 관계 이름 — SQL 표와 엔진이 같다', () => {
