@@ -748,10 +748,13 @@ test.describe('매칭 덱 상태 회귀', () => {
     const heading = viewer.page.getByRole('article').getByRole('heading', { name: `나${tag}` });
     await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
     /*
-      저장 뒤 떠나는 타이머가 살아 있는 동안 복원한다. 그동안 카드는 아직 서 있으므로 되돌리는 길은 카드 아래의 ↶ 다 —
-      카드 위에는 되돌리기 줄이 없고(2026-09-25), 「실행 취소」 줄은 덱이 빈 뒤에만 선다.
+      저장 뒤 떠나는 동안 복원한다. 되돌리는 길은 **그때 서 있는 쪽**이다 — 카드가 아직 서 있으면 카드 아래의 ↶, 한 장뿐인
+      덱이 이미 비었으면 「실행 취소」 줄(카드 위에는 되돌리기 줄이 없다, 2026-09-25). 둘은 같은 복원 경로다. ↶ 는 저장이 끝날
+      때까지 잠기고 카드는 그 뒤 0.46초면 떠나므로, 한쪽만 기다리면 느린 러너에서 그 틈을 놓친다(CI 36085813111).
     */
-    const back = viewer.page.getByRole('button', { name: '이전 인연으로 되돌리기' });
+    const back = viewer.page
+      .getByRole('button', { name: '이전 인연으로 되돌리기' })
+      .or(viewer.page.getByRole('button', { name: '실행 취소' }));
     await expect(back).toBeEnabled();
     await back.click();
     await viewer.page.waitForTimeout(1400);
