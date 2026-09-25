@@ -40,8 +40,11 @@ export type DeckCard = {
    * 아바타만 쓴다 — 카드 · 기운 칸 · 지도는 채워 주는 기운(`supplyOf`)을 입는다. 글자로는 말하지 않는다
    */
   readonly avatarElement: Element | null;
-  /** 예시 카드만 쓴다 — 실제 후보는 비워 두고 `/me/photo/{id}` 로 받는다 */
-  readonly photoUrl?: string | null;
+  /**
+   * 사진 주소들 — 첫 장이 대표다(G-60, `/me/photo/{id}/{n}`). 사진이 없으면 빈 목록. 후보 · 지나친 인연은
+   * `candidates.ts` 가 채우고, 예시 카드는 제 파일을 넣는다. 비워 두면 `hasPhoto` 로 대표 한 장을 짓는다
+   */
+  readonly photoUrls?: readonly string[];
   readonly exploration: boolean;
   /** 접속 상태의 구간 — 후보 목록의 카드에만 온다. 지나친 인연과 예시 카드는 비운다(PRD §7.2) */
   readonly activity?: ActivityBand | null;
@@ -52,9 +55,9 @@ export type DeckCard = {
   readonly highlights: readonly { readonly element: string; readonly text: string }[];
 };
 
-/** 예시면 그 파일, 아니면 우리 라우트 — 사진이 없으면 이름의 첫 글자가 선다 */
-export const photoOf = (card: DeckCard): string | null =>
-  card.photoUrl ?? (card.hasPhoto ? `/me/photo/${card.candidateUserId}` : null);
+/** 그 사람의 사진 전부, 대표가 먼저 — 목록이 없으면 `hasPhoto` 로 한 장. 비면 이름의 첫 글자가 선다 */
+export const photosOf = (card: DeckCard): readonly string[] =>
+  card.photoUrls ?? (card.hasPhoto ? [`/me/photo/${card.candidateUserId}`] : []);
 
 /**
  * 기본 아바타가 입는 오행 — **그 사람 일간의 오행이다. 채워 주는 기운이 아니다.**
@@ -70,9 +73,10 @@ const avatarToneOf = (card: DeckCard): Element | null => card.avatarElement;
  * **사진은 선택이다**(§5.1). 안 올린 사람 자리에는 이름의 첫 글자가 선다 — 빈 자리가 아니라 그 사람의 자리로
  * 보이게. 부모가 크기와 모양을 정하고, 이것은 그 안을 채운다. 첫 글자의 판은 **제 색**(`avatarToneOf`)을 스스로 입는다 —
  * 부모의 판(채워 주는 기운)을 물려받지 않는다. 색만 말하고, 일간 · 오행의 이름은 어디에도 적지 않는다.
+ * `at` 은 몇째 장인가(0 = 대표) — 오늘의 인연 카드가 넘길 때만 쓴다(`CardPhotos`).
  */
-export function CandidatePhoto({ card, initialClass = 'text-[1.2em]' }: { card: DeckCard; initialClass?: string }) {
-  const src = photoOf(card);
+export function CandidatePhoto({ card, initialClass = 'text-[1.2em]', at = 0 }: { card: DeckCard; initialClass?: string; at?: number }) {
+  const src = photosOf(card)[at] ?? null;
   if (src === null) {
     return (
       <span

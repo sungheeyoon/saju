@@ -9,6 +9,7 @@ import { elementScope } from '../../element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
+import { CardPhotos, pagesPhotos } from './card-photos';
 import { CandidatePhoto, type DeckCard } from './matching-experience';
 import styles from './orbit.module.css';
 import { supplyOf } from './orbit-map';
@@ -75,6 +76,8 @@ export function TodayCard({
   }, [profile.candidateUserId]);
 
   const dir = exit === 'right' ? 1 : -1;
+  /** 사진 막대가 서면 딱지 · ⓘ 가 그 아래로 내려선다 */
+  const belowBars = pagesPhotos(profile);
   const cardStyle: CSSProperties = leaving
     ? { transform: `translateX(${dir * 10}%) scale(.96)`, opacity: 0, transition: `transform ${EXIT_MS}ms cubic-bezier(.4,0,.2,1), opacity 300ms ease` }
     : exit !== null
@@ -108,10 +111,10 @@ export function TodayCard({
         style={cardStyle}
         className={`${elementScope(supplyOf(profile))} ${styles.arrive} absolute inset-0 select-none overflow-hidden rounded-[2rem] bg-[var(--tile)] shadow-[0_24px_48px_-24px_rgba(0,0,0,0.45)] motion-reduce:transition-none`}
       >
-        <CandidatePhoto card={profile} initialClass={INITIAL_ON_CARD} />
+        <CardPhotos card={profile} bounce={panel} initialClass={INITIAL_ON_CARD} />
 
         {profile.exploration && (
-          <span className="absolute left-4 top-4 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-surface/95 px-3 text-[13px] font-semibold text-foreground shadow-sm">
+          <span className={`${belowBars ? 'top-8' : 'top-4'} absolute left-4 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-surface/95 px-3 text-[13px] font-semibold text-foreground shadow-sm`}>
             <Icon name="spark" className="size-4 text-[var(--ink)]" />
             색다른 인연
           </span>
@@ -121,7 +124,7 @@ export function TodayCard({
           type="button"
           aria-label="자세히 보기"
           onClick={onInfo}
-          className="absolute right-3 top-3 grid size-11 place-items-center rounded-full bg-black/50 text-white shadow-[0_2px_8px_rgb(0_0_0/0.25)] ring-1 ring-white/30 backdrop-blur-sm lg:hidden"
+          className={`${belowBars ? 'top-8' : 'top-3'} absolute right-3 grid size-11 place-items-center rounded-full bg-black/50 text-white shadow-[0_2px_8px_rgb(0_0_0/0.25)] ring-1 ring-white/30 backdrop-blur-sm lg:hidden`}
         >
           <span aria-hidden="true" className="font-serif text-[1.2rem] font-bold italic">i</span>
         </button>
@@ -149,10 +152,13 @@ const FACE_SCRIM =
   'linear-gradient(to top, rgb(0 0 0 / .86) 0%, rgb(0 0 0 / .78) 30%, rgb(0 0 0 / .62) 55%, rgb(0 0 0 / .38) 72%, rgb(0 0 0 / .14) 86%, transparent 100%)';
 const FACE_SHADOW = '[text-shadow:0_1px_2px_rgb(0_0_0/0.45),0_0_14px_rgb(0_0_0/0.3)]';
 
-/** 사진 아래 끝의 글 — 이름 · 접속 · 점수, 판정, 채워 주는 기운, 소개 한 줄 */
+/**
+ * 사진 아래 끝의 글 — 이름 · 접속 · 점수, 판정, 채워 주는 기운, 소개 한 줄. 누름은 뒤의 사진으로 흘려보낸다 —
+ * 글 위를 눌러도 사진이 넘어간다(`CardPhotos`). 글은 사진의 장 번호를 모른다
+ */
 function FaceText({ card }: { card: DeckCard }) {
   return (
-    <div style={{ backgroundImage: FACE_SCRIM }} className={`${FACE_SHADOW} absolute inset-x-0 bottom-0 flex flex-col gap-2.5 px-5 pb-5 pt-32 text-white`}>
+    <div style={{ backgroundImage: FACE_SCRIM }} className={`${FACE_SHADOW} pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-2.5 px-5 pb-5 pt-32 text-white`}>
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <h2 className="font-rounded truncate text-[2.25rem] leading-tight">{card.nickname}</h2>

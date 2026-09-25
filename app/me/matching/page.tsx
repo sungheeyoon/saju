@@ -103,6 +103,7 @@ export default async function MatchingPage() {
     intro: card.intro,
     hasPhoto: card.hasPhoto,
     avatarElement: card.avatarElement,
+    photoUrls: card.photoUrls,
     exploration: card.exploration,
     activity: card.activity,
     previewScore: card.previewScore,
@@ -121,6 +122,7 @@ export default async function MatchingPage() {
     intro: card.intro,
     hasPhoto: card.hasPhoto,
     avatarElement: card.avatarElement,
+    photoUrls: card.photoUrls,
     exploration: false,
     activity: null,
     previewScore: card.previewScore,
@@ -198,3 +200,4 @@ function Resting({ me }: { me: MeMark }) {
     />
   );
 }
+

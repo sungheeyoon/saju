@@ -821,3 +821,137 @@ test('매칭 진입과 AI 미리보기의 보관·복원은 실제 기록을 바
   await expect(viewer.page.getByRole('article').getByRole('heading', { name })).toBeVisible();
   expect((await viewer.api.from('discovery_passed').select('passed_user_id')).data).toEqual(before);
 });
+
+/**
+ * **카드의 사진은 넘겨 보되 글은 그대로다**(G-60, 운영자 2026-09-25 시안).
+ *
+ * 사진 맨 위에 장 수만큼의 막대(단추, 「사진 2 / 4」), 사진 오른쪽 반 = 다음 · 왼쪽 반 = 이전. **끝에서는 돌지 않는다** —
+ * 마지막 장에서 더 눌러도 첫 장으로 안 간다. 장이 바뀌어도 이름 · 점수 · 판정 · 기운 · 소개는 한 글자도 안 바뀐다.
+ * 한 장이거나 없으면 막대도 누를 자리도 없다.
+ */
+test.describe('사진 여러 장을 넘겨 보는 카드', () => {
+  const PNG_1PX = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWZkAAAAASUVORK5CYII=';
+  const barsOf = (card: Locator) => card.getByRole('button', { name: /^사진 \d+ \/ \d+$/ });
+
+  /** 덱을 넘겨 그 사람의 카드를 세운다 — 나란히 도는 시험이 만든 참여자가 앞에 설 수 있다 */
+  async function showCandidate(person: Person, nickname: string): Promise<Locator> {
+    await person.page.goto('/me/matching');
+    const target = person.page.getByRole('heading', { name: nickname });
+    for (let step = 0; step < 12; step += 1) {
+      if (await target.isVisible()) break;
+      const next = person.page.getByRole('button', { name: '다음 인연으로 지나가기' });
+      if (!(await next.isEnabled())) break;
+      await next.click();
+      await person.page.waitForTimeout(1400);
+    }
+    await expect(target).toBeVisible();
+    return person.page.getByRole('article', { name: `${nickname} 님` });
+  }
+
+  /** 빨강 · 초록 · 파랑 한 점 — 장마다 바이트가 달라야 넘긴 것이 보인다 */
+  const COLOR_PNGS = [
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGM4YWMDAAMQAUEiFmcFAAAAAElFTkSuQmCC',
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOwWRAFAAJSATfQrk7zAAAAAElFTkSuQmCC',
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGOwiToBAAI0AV8p3ELTAAAAAElFTkSuQmCC',
+  ];
+
+  /** 사진을 뒤에 한 장씩 붙인다 — 첫 장이 대표다 */
+  async function addPhotos(person: Person, count: number): Promise<void> {
+    for (const png of COLOR_PNGS.slice(0, count)) {
+      expect((await person.api.rpc('add_my_photo', { p_content_type: 'image/png', p_base64: png })).error).toBeNull();
+    }
+  }
+
+  /** 사진의 한쪽 반을 누른다 — 글 판 위라도 누름은 사진으로 흘러간다 */
+  async function tapPhoto(card: Locator, side: 'left' | 'right'): Promise<void> {
+    const photos = card.locator('[data-card-photos]');
+    const box = (await photos.boundingBox())!;
+    await photos.click({ position: { x: box.width * (side === 'left' ? 0.2 : 0.8), y: box.height * 0.5 } });
+  }
+
+  test('한 장이거나 없으면 막대도 누를 자리도 없다', async ({ openAs }) => {
+    const tag = freshTag();
+    const viewer = await openAs({ selfPerson: true });
+    const withPhoto = await openAs({ selfPerson: true });
+    const without = await openAs({ selfPerson: true });
+    await optIn(viewer.api, `가${tag}`);
+    await optIn(withPhoto.api, `사${tag}`);
+    await optIn(without.api, `아${tag}`);
+    expect((await withPhoto.api.rpc('set_my_photo', { p_content_type: 'image/png', p_base64: PNG_1PX })).error).toBeNull();
+    const emails = [viewer, withPhoto, without].map((person) => person.account.email);
+    onlyTheseParticipate(emails);
+    forgetBoards(emails);
+
+    /* 덱을 한 번 지나며 두 사람을 다 본다 — 넘긴 사람은 덱에 다시 안 선다 */
+    await viewer.page.goto('/me/matching');
+    const card = viewer.page.getByRole('region', { name: '인연 카드' }).getByRole('article');
+    const seen = new Set<string>();
+    for (let step = 0; step < 12 && seen.size < 2; step += 1) {
+      const nickname = (await card.getByRole('heading').first().textContent()) ?? '';
+      if (nickname === `사${tag}` || nickname === `아${tag}`) {
+        await expect(barsOf(card)).toHaveCount(0);
+        await expect(card.locator('[data-card-photos]')).toHaveCount(0);
+        // 뒤에서 기다리는 다음 카드(`aria-hidden`)의 사진은 세지 않는다
+        await expect(card.locator('img:not([aria-hidden="true"] img)')).toHaveCount(nickname === `사${tag}` ? 1 : 0);
+        seen.add(nickname);
+      }
+      const next = viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' });
+      if (seen.size === 2 || !(await next.isVisible())) break;
+      await next.click();
+      await viewer.page.waitForTimeout(1400);
+    }
+    expect([...seen].sort()).toEqual([`사${tag}`, `아${tag}`]);
+  });
+
+  test('오른쪽 반은 다음 · 왼쪽 반은 이전, 끝에서 돌지 않고 글은 그대로다', async ({ openAs }, testInfo) => {
+    const tag = freshTag();
+    const viewer = await openAs({ selfPerson: true });
+    const partner = await openAs({ selfPerson: true });
+    await bothParticipate(viewer, partner, tag);
+    await addPhotos(partner, 3);
+
+    const card = await showCandidate(viewer, `나${tag}`);
+    const bars = barsOf(card);
+    await expect(bars).toHaveCount(3);
+    const current = bars.and(card.locator('[aria-current="true"]'));
+    const text = await card.innerText();
+    const shown = async () => (await card.locator('[data-card-photos] img').getAttribute('src'))!;
+
+    await expect(current).toHaveAccessibleName('사진 1 / 3');
+    const first = await shown();
+    await viewer.page.screenshot({ path: testInfo.outputPath('photos.png') });
+
+    // 첫 장에서 왼쪽 — 끝 장으로 돌지 않는다
+    await tapPhoto(card, 'left');
+    await expect(current).toHaveAccessibleName('사진 1 / 3');
+    expect(await shown()).toBe(first);
+
+    await tapPhoto(card, 'right');
+    await expect(current).toHaveAccessibleName('사진 2 / 3');
+    expect(await shown()).not.toBe(first);
+    expect(await card.innerText()).toBe(text);
+
+    await tapPhoto(card, 'right');
+    await expect(current).toHaveAccessibleName('사진 3 / 3');
+    const last = await shown();
+
+    // 끝 장에서 오른쪽 — 첫 장으로 돌지 않는다
+    await tapPhoto(card, 'right');
+    await expect(current).toHaveAccessibleName('사진 3 / 3');
+    expect(await shown()).toBe(last);
+    expect(await card.innerText()).toBe(text);
+
+    await tapPhoto(card, 'left');
+    await expect(current).toHaveAccessibleName('사진 2 / 3');
+
+    // 키보드 — 막대는 단추다
+    await bars.nth(0).focus();
+    await viewer.page.keyboard.press('Enter');
+    await expect(current).toHaveAccessibleName('사진 1 / 3');
+    await viewer.page.keyboard.press('Tab');
+    await expect(bars.nth(1)).toBeFocused();
+    await viewer.page.keyboard.press('Space');
+    await expect(current).toHaveAccessibleName('사진 2 / 3');
+    expect(await card.innerText()).toBe(text);
+  });
+});
