@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useReducer, useRef, useState, useTransition, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useReducer, useRef, useState, useTransition, type ReactNode } from 'react';
 
 import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent/notice';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
-import { activityText, type ActivityBand } from '@/src/lib/presence';
+import type { ActivityBand } from '@/src/lib/presence';
 import { initialOf } from '@/src/lib/profile';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 import { ELEMENT_PICTURE_KO, ELEMENTS, type Element } from '@/src/lib/saju';
@@ -20,9 +20,9 @@ import { RefreshBoard } from '../discovery/manage';
 import { announceIfMoved } from '../reading/credits-signal';
 import { deckReducer, PASSED_LIMIT } from './deck-state';
 import type { MeMark } from './me-mark';
-import styles from './orbit.module.css';
 import { ApproachMap, Legend, QuietOrbit, supplyOf, type MapStatus } from './orbit-map';
 import { PassedConnections, UndoIcon } from './passed-connections';
+import { DeckButtons, DeckDots, DetailSheet, openSheet, TodayCard } from './today-card';
 
 /**
  * 덱으로 내려오는 후보 한 장 — **`CandidateCard` 에서 증표만 뗀 것**이다.
@@ -94,10 +94,7 @@ const faceOf = (card: DeckCard) => <CandidatePhoto card={card} />;
 // 고른 것을 읽을 시간을 주고 나서 카드가 떠난다.
 const CHOICE_HOLD_MS = 100;
 const CARD_EXIT_MS = 360;
-const SWIPE_AT = 85;
 const EMPTY_CARDS: readonly DeckCard[] = [];
-/** 사진 · 단추의 그림자 — 새 색을 짓지 않고 글자색을 옅게 쓴다 */
-const SOFT_SHADOW = 'color-mix(in srgb, var(--foreground) 45%, transparent)';
 /** 이보다 긴 소개는 세 줄로 접어 두고 「더 보기」로 편다 — 소개가 카드를 늘어뜨리지 않게 */
 const LETTER_FOLD_AT = 90;
 
@@ -106,12 +103,12 @@ type View = 'today' | 'passed';
 /*
   **오늘의 인연 — 한 사람을 한 장의 편지처럼**(부드러움, ADR 0109).
 
-  넓은 화면은 두 열이다. **왼쪽 = 그 사람**: 4:5 세로 사진(이름은 사진 아래 끝) → 큰 점수와 판정 → 누를 것 → 이유 한 줄 →
-  접힌 편지. **오른쪽 = 「내 궤도로 다가오는 인연」**: 지도와, 그 사람이 채워 주는 기운을 글로 말하는 띠. 글을 짧게 두어
-  사진의 비율이 카드를 정하고, 두 열의 윗선 · 아랫선이 맞는다.
+  **카드 한 장은 폰과 넓은 화면이 같다**(`today-card.tsx`, 운영자 2026-09-25) — 사진이 주인공이고 그 위에 이름 · 점수 ·
+  판정 · 채워 주는 기운 · 소개 한 줄, 사진 아래에 글자 단추 줄. 끌어서 넘기지 않는다.
 
-  폰은 한 열이다 — 6:5 사진(이름 · 점수 숫자) → 누를 것 → 해돋이 띠 → 판정 · 이유 → 기운 → 편지. 사진 · 점수 ·
-  「궁합 요청」이 첫 화면 안에 든다. 「참고 점수」라는 고지는 카드마다 되풀이하지 않고 목록 머리 한 줄이 든다(PRD §6.1).
+  **폰은 한 화면에 그 한 장이다.** 페이지는 위아래로 안 움직이고, 까닭 · 기운의 문장 · 소개 전문 · 궤도 · 「참고 점수」
+  고지는 ⓘ 시트가 든다. **넓은 화면은 두 열이다** — 왼쪽에 같은 카드, 오른쪽에 「내 궤도로 다가오는 인연」 지도와 폰의
+  시트가 들던 것을 펼쳐 둔다. 참고 점수 고지는 넓은 화면에서는 목록 머리 한 줄이다.
 
   동작은 옛 덱 그대로다: 넘기면 서버 보관함에 적고(`passCandidate`), 요청은 확인 창을 지나야 나가며(`requestMatch`),
   되돌리기와 지나친 인연의 「다시 만나보기」는 같은 복원 경로를 쓴다(`restorePassed`). 미리보기(`preview`)는 셋 다
@@ -148,16 +145,14 @@ export function MatchingExperience({
   const hidden = deck.history[0] ?? null;
   const busy = useRef(false);
   const [view, setView] = useState<View>('today');
-  const [offset, setOffset] = useState(0);
-  const [dragging, setDragging] = useState(false);
   const [exit, setExit] = useState<'left' | 'right' | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [failure, setFailure] = useState<string | null>(null);
   const [working, startWorking] = useTransition();
-  const start = useRef<{ x: number; y: number; moved: number } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const confirming = useRef<HTMLDialogElement>(null);
+  const sheet = useRef<HTMLDialogElement>(null);
   const profile = deck.remaining[0];
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
@@ -173,9 +168,6 @@ export function MatchingExperience({
   /** 카드를 떠나보낸다 — 지나가는 것은 **이 자리에서만** 없어진다(서버에 안 적는다) */
   function leave(direction: 'left' | 'right', said: string, id: string) {
     setExit(direction);
-    setDragging(false);
-    // 손을 놓은 자리에서 같은 방향으로 이어 간다. 가운데로 되감지 않는다.
-    setOffset((now) => direction === 'right' ? Math.max(now, 12) : Math.min(now, -12));
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     setAnnouncement(said);
     timer.current = setTimeout(() => {
@@ -185,8 +177,6 @@ export function MatchingExperience({
         timer.current = null;
         setExit(null);
         setLeaving(false);
-        setOffset(0);
-        start.current = null;
       }, reduced ? 0 : CARD_EXIT_MS);
     }, reduced ? 0 : CHOICE_HOLD_MS);
   }
@@ -197,7 +187,6 @@ export function MatchingExperience({
     timer.current = null;
     setExit(null);
     setLeaving(false);
-    setOffset(0);
   }
 
   function pass() {
@@ -213,11 +202,10 @@ export function MatchingExperience({
     startWorking(async () => {
       try {
         const result = await passCandidate(passing.candidateUserId);
-        if (!result.ok) { setFailure(result.message); setOffset(0); return; }
+        if (!result.ok) { setFailure(result.message); return; }
         finish();
       } catch {
         setFailure('저장하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
-        setOffset(0);
       } finally { busy.current = false; }
     });
   }
@@ -236,7 +224,7 @@ export function MatchingExperience({
       try {
         const result = await requestMatch(sending.candidateUserId);
         announceIfMoved(result);
-        if (!result.ok) { setFailure(result.message); setOffset(0); return; }
+        if (!result.ok) { setFailure(result.message); return; }
         finish();
       } catch {
         setFailure('요청 결과를 확인하지 못했습니다. 소식에서 확인해 주세요.');
@@ -269,33 +257,6 @@ export function MatchingExperience({
     if (hidden) void restoreCard(hidden);
   }
 
-  function pointerDown(event: PointerEvent<HTMLElement>) {
-    if (exit || busy.current || !event.isPrimary || event.button !== 0) return;
-    setDragging(true);
-    start.current = { x: event.clientX, y: event.clientY, moved: 0 };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-  function pointerMove(event: PointerEvent<HTMLElement>) {
-    if (!start.current || exit) return;
-    const x = event.clientX - start.current.x;
-    const y = event.clientY - start.current.y;
-    // 세로로 먼저 움직이면 화면을 내리는 손짓이다 — 카드를 놓아준다.
-    if (Math.abs(y) > Math.abs(x) && Math.abs(x) < 15) { start.current = null; setDragging(false); setOffset(0); return; }
-    start.current.moved = x;
-    setOffset(x);
-  }
-  function pointerUp() {
-    setDragging(false);
-    if (!start.current) return;
-    const distance = start.current.moved;
-    start.current = null;
-    // 오른쪽으로 밀어도 **바로 안 나간다** — 확인 창이 먼저 선다.
-    if (busy.current || exit) { setOffset(0); return; }
-    if (distance > SWIPE_AT) { setOffset(0); confirming.current?.showModal(); return; }
-    if (distance < -SWIPE_AT) { pass(); return; }
-    setOffset(0);
-  }
-
   /*
     **지도는 덱과 같은 상태를 읽는다.** 오늘 받은 사람에 되돌려 온 사람을 더한 것이 궤도 위의 사람이고,
     떠나는 중인 카드는 이미 떠난 쪽으로 움직인다.
@@ -308,7 +269,6 @@ export function MatchingExperience({
     if (deck.remaining.some((one) => one.candidateUserId === card.candidateUserId)) return 'waiting';
     return passed.some((one) => one.candidateUserId === card.candidateUserId) ? 'passed' : 'requested';
   };
-  const pull = exit === null ? Math.max(-1, Math.min(1, offset / SWIPE_AT)) : 0;
   const counter = `${String(Math.min(index + 1, total)).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
 
   /** 되돌릴 한 줄 · 실패 · 방금 한 일 — 한 화면에 한 자리에만 선다 */
@@ -321,22 +281,59 @@ export function MatchingExperience({
     />
   );
 
+  /** 폰의 ⓘ 시트와 넓은 화면의 옆 열이 함께 드는 것 — 판정의 까닭 · 채워 주는 기운의 문장 · 소개 전문 */
+  const details = profile && (
+    <>
+      <div className="flex flex-col gap-1">
+        <p className="font-rounded text-[1.25rem] leading-snug text-[var(--ink)]">{profile.verdict}</p>
+        <p className="max-w-prose text-[14px] leading-6 text-foreground">{profile.reason}</p>
+      </div>
+      <div className="flex flex-col gap-2 rounded-[1.5rem] bg-surface p-4 ring-1 ring-border">
+        <SupplyBody card={profile} explorationNote={explorationNote} />
+      </div>
+      <Letter key={profile.candidateUserId} nickname={profile.nickname} intro={profile.intro} />
+    </>
+  );
+
   return (
     <main className="app-shell flex min-w-0 flex-1 flex-col gap-5 py-6 sm:gap-7 sm:py-10">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1">
+      {/*
+        **폰에서는 제목과 보기 전환이 한 줄에 선다**(2026-09-25). 두 칸짜리 토글이 폰에서 한 줄을 통째로 썼다 — 폰에는
+        「지금 아닌 쪽」으로 가는 알약 하나와, 그 위에 덱 순번 점이 선다. 지나친 인연은 가끔 여는 보관함이라 오늘의 인연과
+        같은 무게일 까닭이 없다.
+      */}
+      <header className="flex flex-row items-end justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
           <p className={TYPE_META} suppressHydrationWarning>{todayLabel()}</p>
           <h1 className={TYPE_DISPLAY}>오늘의 인연</h1>
         </div>
-        <div role="group" aria-label="보기" className="grid grid-cols-2 gap-1 self-start rounded-full bg-surface p-1 ring-1 ring-border sm:self-auto">
+        <div className="flex shrink-0 flex-col items-end gap-2 sm:hidden">
+          {view === 'today' && profile !== undefined && <DeckDots at={index} total={total} counter={counter} />}
+          <button
+            type="button"
+            onClick={() => setView(view === 'today' ? 'passed' : 'today')}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-surface px-3.5 text-[13px] font-semibold text-foreground ring-1 ring-border hover:ring-border-strong active:scale-[0.97]"
+          >
+            {view === 'today' ? <UndoIcon className="size-4" /> : <Icon name="heart" className="size-4" />}
+            {view === 'today' ? '지나친 인연' : '오늘의 인연'}
+            <span className="tabular-nums text-secondary">
+              {view === 'today' ? passed.length : deck.remaining.length}
+              <span className="sr-only">명</span>
+            </span>
+          </button>
+        </div>
+        <div role="group" aria-label="보기" className="hidden grid-cols-2 gap-1 rounded-full bg-surface p-1 ring-1 ring-border sm:grid">
           <ViewButton on={view === 'today'} onClick={() => setView('today')} icon="heart" label="오늘의 인연" count={deck.remaining.length} />
           <ViewButton on={view === 'passed'} onClick={() => setView('passed')} icon="undo" label="지나친 인연" count={passed.length} />
         </div>
       </header>
 
-      {/* 목록 머리 — 참고 점수라는 사실과(PRD §6.1) 목록이 비슷한 까닭. 카드마다 되풀이하지 않는다 */}
+      {/*
+        목록 머리 — 참고 점수라는 사실과(PRD §6.1) 목록이 비슷한 까닭. 카드마다 되풀이하지 않는다.
+        **폰은 이 줄을 ⓘ 시트가 든다** — 한 화면을 그 사람에게 준다(2026-09-25).
+      */}
       {view === 'today' && profile !== undefined && (
-        <div className="-mt-2 flex max-w-3xl flex-col gap-1 sm:-mt-4">
+        <div className="-mt-4 hidden max-w-3xl flex-col gap-1 lg:flex">
           <p className="text-[12px] leading-5 text-secondary">{teaser}</p>
           {notice !== null && <p className={TYPE_META}>{notice}</p>}
         </div>
@@ -377,192 +374,74 @@ export function MatchingExperience({
           feedback={feedback}
         />
       ) : (
-        <section aria-label="인연 카드" className="grid gap-5 lg:grid-cols-[minmax(0,25rem)_minmax(0,1fr)] lg:items-stretch lg:gap-8 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-          {/*
-            왼쪽(넓은 화면) — 그 사람 한 장. 폰에서는 이 한 장이 화면 전부이고, 너무 넓어지지 않게 가운데 선다.
-            읽는 차례는 사진 위 이름 → 큰 점수와 판정 → 누를 것 → 이유 → 소개다. 글은 짧게 두어 사진의 비율이 카드를 정한다.
-          */}
+        <section
+          aria-label="인연 카드"
+          className="flex min-h-0 flex-1 flex-col lg:grid lg:flex-none lg:grid-cols-[minmax(0,25rem)_minmax(0,1fr)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]"
+        >
+          {/* 그 사람 한 장 — 폰은 남는 높이를 다 쓰고, 넓은 화면은 4:5 */}
           <article
             aria-label={`${profile.nickname} 님`}
             aria-busy={!!exit || working}
-            className={`${elementScope(supplyOf(profile))} mx-auto flex w-full min-w-0 max-w-[34rem] flex-col gap-4 lg:mx-0 lg:max-w-none`}
+            className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 lg:flex-none lg:gap-4"
           >
-            <div className="relative px-1.5 pt-1.5">
-              {/* 뒤에 다음 편지가 한 장씩 비친다 — 「아직 더 있다」 */}
-              {deck.remaining.slice(1, 3).map((card, at) => (
-                <span
-                  key={card.candidateUserId}
-                  aria-hidden="true"
-                  className={`absolute inset-x-4 bottom-2 top-3 rounded-[2rem] bg-surface ring-1 ring-border ${
-                    at === 0 ? 'translate-x-1.5 rotate-[3.5deg]' : '-translate-x-1 -rotate-[2.5deg]'
-                  }`}
-                />
-              ))}
-              {/* 사진 — 폰은 6:5(점수 · 요청이 첫 화면에 들도록), 넓은 화면은 4:5 세로 사진 */}
-              <div
-                key={profile.candidateUserId}
-                onPointerDown={pointerDown}
-                onPointerMove={pointerMove}
-                onPointerUp={pointerUp}
-                onPointerCancel={() => { start.current = null; setDragging(false); setOffset(0); }}
-                onLostPointerCapture={() => { if (start.current) { start.current = null; setDragging(false); setOffset(0); } }}
-                style={{
-                  transform: leaving
-                    ? `translateX(${exit === 'right' ? 115 : -115}%) rotate(${exit === 'right' ? 12 : -12}deg)`
-                    : `translateX(${offset}px) rotate(${Math.max(-12, Math.min(12, offset / 24))}deg)`,
-                  transition: dragging ? 'none' : `transform ${CARD_EXIT_MS}ms cubic-bezier(.2,.7,.3,1), opacity ${CARD_EXIT_MS}ms`,
-                  opacity: leaving ? 0 : 1,
-                  boxShadow: `0 24px 48px -24px ${SOFT_SHADOW}`,
-                }}
-                className={`${styles.arrive} ${styles.swipe} relative aspect-[6/5] cursor-grab touch-pan-y select-none overflow-hidden rounded-[2rem] bg-[var(--tile)] active:cursor-grabbing lg:aspect-[4/5]`}
-              >
-                <CandidatePhoto card={profile} initialClass="text-[7rem]" />
-
-                {profile.exploration && (
-                  <span className="absolute left-4 top-4 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-surface px-3 text-[13px] font-semibold text-foreground shadow-sm">
-                    <Icon name="spark" className="size-4 text-[var(--ink)]" />
-                    색다른 인연
-                  </span>
-                )}
-
-                <Stamp offset={offset} exit={exit} />
-
-                {/* 사진 아래 끝 — 이름. 폰은 점수 숫자도 여기 선다(넓은 화면은 사진 아래 큰 숫자) */}
-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-black/65 via-black/25 to-transparent px-5 pb-4 pt-14 text-white lg:px-6 lg:pb-5">
-                  <div className="min-w-0">
-                    <h2 className="font-rounded truncate text-[2.25rem] leading-tight lg:text-[2.625rem]">{profile.nickname}</h2>
-                    {profile.activity != null && <p className="text-[13px] font-semibold text-white/90">{activityText(profile.activity)}</p>}
-                  </div>
-                  <p className="flex shrink-0 items-baseline lg:hidden">
-                    <span className="sr-only">나와의 예측 궁합 점수 </span>
-                    <strong className="text-[3rem] font-bold leading-none tracking-[-0.04em] tabular-nums">{profile.previewScore}</strong>
-                    <span className="ml-1 text-[14px] font-semibold text-white/90"> / 100</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 넓은 화면 — 사진 아래 큰 점수와 판정 한 줄. 이름(사진 위) 다음 위계다 */}
-            <div className="hidden flex-col gap-1 px-1 lg:flex">
-              <p className="text-[13px] font-semibold text-secondary">나와의 예측 궁합 점수</p>
-              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="flex items-baseline">
-                  <strong className="text-[4rem] font-bold leading-none tracking-[-0.04em] text-foreground tabular-nums">{profile.previewScore}</strong>
-                  <span className="ml-1 text-[15px] font-semibold text-secondary"> / 100</span>
-                </span>
-                <span className="font-rounded text-[1.375rem] leading-snug text-[var(--ink)]">{profile.verdict}</span>
-              </p>
-            </div>
-
-            {/* 누를 것 — 한 화면에 채움 단추는 「궁합 요청」 하나 */}
-            <div className="flex flex-col gap-2 px-1">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  aria-label="이전 인연으로 되돌리기"
-                  disabled={!hidden || working || exit === 'right'}
-                  onClick={undo}
-                  className="grid size-11 shrink-0 place-items-center rounded-full bg-surface text-secondary ring-1 ring-border hover:text-foreground active:scale-95 disabled:opacity-40"
-                >
-                  <UndoIcon />
-                </button>
-                <button
-                  type="button"
-                  aria-label="다음 인연으로 지나가기"
-                  disabled={!!exit || working}
-                  onClick={pass}
-                  className="grid size-14 shrink-0 place-items-center rounded-full bg-surface text-foreground ring-1 ring-border hover:ring-border-strong active:scale-95 disabled:opacity-55"
-                  style={{ boxShadow: `0 6px 16px -10px ${SOFT_SHADOW}` }}
-                >
-                  <Icon name="close" className="size-6" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="상세 궁합 요청하기"
-                  disabled={!!exit || working}
-                  onClick={() => confirming.current?.showModal()}
-                  className={`${BUTTON_PRIMARY} min-h-14 flex-1 text-[17px]`}
-                >
-                  <Icon name="heart" className="size-[22px]" />
-                  궁합 요청
-                </button>
-              </div>
-              <p className="hidden text-center text-[12px] font-medium text-secondary sm:block">← 다음 인연 · 상세 궁합이 궁금하다면 하트 →</p>
-              {feedback}
-            </div>
-
-            <div className={`flex flex-col gap-4 transition-opacity duration-500 ${leaving ? 'opacity-40' : ''}`}>
-              {/* 폰 — 해돋이 띠. 넘김 · 요청 · 되돌리기의 움직임이 폰에서도 보인다 */}
-              <div className="relative overflow-hidden rounded-[1.75rem] bg-cream px-2 pt-3 lg:hidden">
-                <p className="relative z-10 flex items-center justify-between gap-3 px-3 pb-2 text-[12px] font-semibold tabular-nums text-secondary">
-                  <span className="font-rounded text-[15px] text-foreground">{profile.nickname}</span>
-                  <span className="sr-only">나와 맞는 오늘의 인연 </span>
-                  {counter}
-                </p>
-                <ApproachMap
-                  shape="arc"
-                  me={me}
-                  cards={mapCards}
-                  statusOf={statusOf}
-                  faceOf={faceOf}
-                  pull={pull}
-                  dragging={dragging}
-                  className="mx-auto max-w-[28rem]"
-                />
-              </div>
-
-              {/* 판정(폰) · 이유 — 점수의 말과 그 까닭 한 줄 */}
-              <div className="flex flex-col gap-1.5 px-1">
-                <p className="font-rounded text-[1.375rem] leading-snug text-[var(--ink)] lg:hidden">{profile.verdict}</p>
-                <p className="max-w-prose text-[14px] leading-6 text-foreground">{profile.reason}</p>
-              </div>
-
-              {/* 폰 — 채워 주는 기운. 넓은 화면은 지도 아래가 든다 */}
-              <div className="flex flex-col gap-2 rounded-[1.5rem] bg-surface p-4 ring-1 ring-border lg:hidden">
-                <SupplyBody card={profile} explorationNote={explorationNote} />
-              </div>
-
-              <Letter key={profile.candidateUserId} nickname={profile.nickname} intro={profile.intro} />
-            </div>
+            <TodayCard
+              profile={profile}
+              next={deck.remaining[1]}
+              exit={exit}
+              leaving={leaving}
+              feedback={feedback}
+              onInfo={() => openSheet(sheet.current)}
+            />
+            <DeckButtons
+              actions={{
+                undo,
+                pass,
+                request: () => confirming.current?.showModal(),
+                canUndo: !!hidden && !working && exit !== 'right',
+                busy: !!exit || working,
+              }}
+            />
           </article>
 
           {/*
-            오른쪽(넓은 화면) — 「내 궤도로 다가오는 인연」. 그림이 주인공이고 색은 채워지는 한 자리에만 선다.
-            아래 띠가 같은 뜻을 글로 말한다(누가 · 어느 빈 자리를).
+            오른쪽(넓은 화면) — 「내 궤도로 다가오는 인연」과, 폰에서 ⓘ 시트가 들던 것. 그림이 주인공이고 색은 채워지는 한
+            자리에만 선다.
           */}
-          <section
-            aria-labelledby="matching-map"
-            className="hidden min-w-0 flex-col overflow-hidden rounded-[2rem] bg-cream lg:flex"
-          >
-            <div className="flex items-baseline justify-between gap-3 px-6 pt-6">
-              <h2 id="matching-map" className="font-rounded text-[1.375rem] leading-8 text-foreground">
-                내 궤도로 다가오는 인연
-              </h2>
-              <p className="shrink-0 text-[13px] font-semibold text-secondary">
-                나와 맞는 오늘의 인연 <span className="tabular-nums text-foreground">{counter}</span>
-              </p>
+          <div className="hidden min-w-0 flex-col gap-4 lg:flex">
+            <section aria-labelledby="matching-map" className="flex flex-col overflow-hidden rounded-[2rem] bg-cream">
+              <div className="flex items-baseline justify-between gap-3 px-6 pt-6">
+                <h2 id="matching-map" className="font-rounded text-[1.375rem] leading-8 text-foreground">
+                  내 궤도로 다가오는 인연
+                </h2>
+                <p className="shrink-0 text-[13px] font-semibold text-secondary">
+                  나와 맞는 오늘의 인연 <span className="tabular-nums text-foreground">{counter}</span>
+                </p>
+              </div>
+              <div className="flex items-center px-8 py-4">
+                <ApproachMap shape="round" me={me} cards={mapCards} statusOf={statusOf} faceOf={faceOf} className="mx-auto max-w-[32rem]" />
+              </div>
+              <Legend className="px-6 pb-4" />
+            </section>
+            <div key={profile.candidateUserId} className={`${elementScope(supplyOf(profile))} flex flex-col gap-4`}>
+              {details}
             </div>
-            <div className="flex flex-1 items-center px-8 py-4">
-              <ApproachMap
-                shape="round"
-                me={me}
-                cards={mapCards}
-                statusOf={statusOf}
-                faceOf={faceOf}
-                pull={pull}
-                dragging={dragging}
-                className="mx-auto max-w-[37rem]"
-              />
-            </div>
-            <Legend className="px-6 pb-4" />
-            <div key={profile.candidateUserId} className="flex flex-col gap-2 border-t border-border bg-surface/70 px-6 py-5">
-              <SupplyBody card={profile} explorationNote={explorationNote} />
-            </div>
-          </section>
+          </div>
         </section>
       )}
 
-      {preview && <p className="text-center text-[12px] text-secondary">디자인 확인용 예시 프로필이며, 요청은 전송되지 않아요.</p>}
+      {/* 폰의 ⓘ — 사진 위에 못 둔 것 전부와 궤도 · 참고 점수 고지 */}
+      {profile && (
+        <DetailSheet sheet={sheet} nickname={profile.nickname}>
+          <div className={`${elementScope(supplyOf(profile))} flex flex-col gap-4`}>
+            {details}
+            <div className="overflow-hidden rounded-[1.75rem] bg-cream px-2 pt-3">
+              <ApproachMap shape="arc" me={me} cards={mapCards} statusOf={statusOf} faceOf={faceOf} className="mx-auto max-w-[28rem]" />
+            </div>
+            <p className="text-[12px] leading-5 text-secondary">{teaser}</p>
+            {notice !== null && <p className={TYPE_META}>{notice}</p>}
+          </div>
+        </DetailSheet>
+      )}
 
       {/*
         **요청 확인 창은 목록과 같은 말을 한다.** 문구가 화면마다 갈리면 어느 쪽이
@@ -614,7 +493,7 @@ function todayLabel(): string {
 }
 
 /** 채워 주는 기운 — 상징 + 이름 + 문장. 색 혼자 말하지 않고, 색은 상징의 동그라미에만 둔다 */
-function SupplyBody({ card, explorationNote }: { card: DeckCard; explorationNote: string | null }) {
+export function SupplyBody({ card, explorationNote }: { card: DeckCard; explorationNote: string | null }) {
   return (
     <>
       <p className="text-[13px] font-bold text-foreground">이 사람이 채워 주는 기운</p>
@@ -705,24 +584,6 @@ function ViewButton({ on, onClick, icon, label, count }: { on: boolean; onClick:
         <span className="sr-only">명</span>
       </span>
     </button>
-  );
-}
-
-/** 끄는 동안 사진 위에 뜨는 말 — 고른 뒤 떠나기 전에도 그대로 서서 무엇을 골랐는지 읽힌다 */
-function Stamp({ offset, exit }: { offset: number; exit: 'left' | 'right' | null }) {
-  const left = offset < 0 || exit === 'left';
-  const strength = exit !== null ? 1 : Math.min(Math.abs(offset) / SWIPE_AT, 1);
-  if (strength === 0) return null;
-  return (
-    <span
-      aria-hidden="true"
-      style={{ opacity: strength }}
-      className={`absolute top-6 rounded-full px-4 py-2 text-[15px] font-bold shadow-lg ${
-        left ? 'right-5 rotate-[8deg] bg-surface text-foreground' : 'left-5 -rotate-[8deg] bg-accent text-on-accent'
-      }`}
-    >
-      {left ? '다음 인연' : '궁합이 궁금해요'}
-    </span>
   );
 }
 

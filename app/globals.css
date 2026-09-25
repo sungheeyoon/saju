@@ -286,3 +286,17 @@ button, a, summary {
     scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
   }
 }
+/*
+  **오늘의 인연 — 폰은 한 화면에 카드 한 장**(`app/me/matching/today-card.tsx`, 2026-09-25). 카드(`data-deck-fit`)가 서 있는
+  동안만, 두 열이 서기 전의 폭에서만 문서를 뷰포트 높이에 묶어 페이지가 위아래로 안 움직인다. 카드는 제목 줄과 독 사이의
+  남는 높이를 다 쓴다. 독을 비키던 `body` 의 아래 여백(위 규칙은 id 를 `:has` 에 들어 우선순위가 높다 — 그래서 `!important`)을
+  `main` 의 아래 여백으로 옮긴다. ⓘ 시트는 제 안에서 스크롤한다.
+*/
+@media (max-width: 1023.98px) {
+  html:has([data-deck-fit]) { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  html:has([data-deck-fit]) body { height: 100dvh; min-height: 0; overflow: hidden; padding-bottom: 0 !important; }
+  html:has([data-deck-fit]) main:has([data-deck-fit]) { flex: 1 1 0; min-height: 0; padding-bottom: 1.5rem; }
+}
+@media (max-width: 767.98px) {
+  html:has([data-deck-fit]) main:has([data-deck-fit]) { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+}
