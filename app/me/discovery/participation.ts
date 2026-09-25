@@ -42,9 +42,14 @@ export async function openDiscoveryParticipation(): Promise<void> {
   const self = await selfElementSummary().catch(() => null);
   if (self === null) return;
 
-  await supabase.rpc('ensure_discovery_participation', {
+  /*
+    홈을 오류로 세우지 않는 것은 그대로다 — 다만 조용히 버리지 않는다. 못 열면 매칭(`/me/matching`)이 같은 RPC 를
+    다시 부르고 그쪽은 던진다. 여기서는 기록에만 남긴다.
+  */
+  const { error } = await supabase.rpc('ensure_discovery_participation', {
     p_person_id: self.personId,
     p_summary: self.summary,
     p_need: self.need,
   });
+  if (error) console.error('ensure_discovery_participation (home)', error);
 }
