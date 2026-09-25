@@ -172,16 +172,22 @@ export const FOLLOWING_PATTERN_POLICY = {
        * 그래도 자릿수가 고전과 다르므로 이 판정은 억부를 뒤집지 않는다.
        */
       observedRates: {
-        'true-following': 0.0537,
-        'pseudo-following': 0.0573,
-        candidate: 0.0793,
+        'true-following': 0.046,
+        'pseudo-following': 0.072,
+        candidate: 0.0923,
         note: 'looser-than-classical-rarity',
         /**
          * 2026-09-05 에 다시 쟀다. 앞의 값(5.2 · 5.43 · 7.7)은 왕지 월령을 정기 하나로
          * 보게 고치기 전의 것이라 낡아 있었다 — 격을 잡는 규칙이 바뀌면 국·뿌리를 거쳐
          * 이 값도 움직인다. **재는 값은 규칙이 바뀔 때마다 다시 재야 한다.**
          */
-        remeasuredAt: '2026-09-05',
+        remeasuredAt: '2026-09-25',
+        /**
+         * 2026-09-25 에 또 쟀다 — 월지 ×2 · 지장간 60:30:10(ADR 0114). 앞의 값은 5.37 · 5.73 · 7.93 이었다.
+         * 진종 + 가종은 11.1% → 11.8% 로 자릿수가 그대로다 — 진종이 줄고 가종 · 후보가 늘었다. 어느 입력이
+         * 그 이동을 만들었는지는 가르지 않았다(월지 배수와 지장간 몫을 따로 켜 보지 않았다).
+         */
+        previousRates: { 'true-following': 0.0537, 'pseudo-following': 0.0573, candidate: 0.0793 },
       },
     },
     /**
@@ -247,7 +253,8 @@ export const FOLLOWING_PATTERN_POLICY = {
        */
       lineages: 3,
       claimedFollowing: 33,
-      caught: 18,
+      /** 월지 ×2 · 60:30:10(ADR 0114) 전에는 18 — `kill-6` · `dtsm-congxiang-2` 가 가종으로 올라왔다 */
+      caught: 20,
       falsePositives: 2,
       /**
        * 계통별로 성적이 갈린다 — 한쪽만 보면 문턱이 맞아 보인다. 고전 쪽이
@@ -256,8 +263,9 @@ export const FOLLOWING_PATTERN_POLICY = {
        * 보는 동안 고전 쪽 성적만 낮게 나오고 있었다.
        */
       recallByLineage: {
-        'modern-chinese': '10/14',
-        'classical-chinese': '7/16',
+        // ADR 0114 전 10/14 · 7/16
+        'modern-chinese': '11/14',
+        'classical-chinese': '8/16',
         'republican-chinese': '1/3',
       },
       passed: false,

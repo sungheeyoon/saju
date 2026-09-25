@@ -15,7 +15,7 @@ import type { SajuInput } from './input';
  * 고정 시드 난수 — 시드를 박아두어야 실패를 재현할 수 있다.
  * (mulberry32: 32비트 상태 하나로 도는 작은 PRNG)
  */
-function mulberry32(seed: number): () => number {
+export function mulberry32(seed: number): () => number {
   let state = seed >>> 0;
 
   return () => {

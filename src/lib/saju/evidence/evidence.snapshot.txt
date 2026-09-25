@@ -26,7 +26,10 @@
   "incompleteInput": "observable-facts-survive · completeness-and-absence-do-not",
   "ruleSets": {
     "relations": "visible-relations-v2",
-    "compatibility": "compat-facts-v1"
+    "compatibility": "compat-facts-v1",
+    "elementWeights": "month-x2-hidden-60-30-10-v1",
+    "strength": "seasonal-roots-v3",
+    "yongsin": "eokbu-with-johu-reference-v5"
   },
   "excluded": {
     "saeun": "해마다의 표는 싣지 않는다 — 지금 도는 해는 `now.saeun` 이 든다",

@@ -11,6 +11,7 @@ import {
 import { effectiveElementsOf } from './effectiveElements';
 import type { JohuAssessment } from './johu';
 import {
+  ELEMENT_WEIGHTS_POLICY,
   elementDistributionOf,
   type DistributionInput,
   type ElementDistribution,
@@ -206,7 +207,9 @@ export function elementRolesOf(dayMasterElement: Element): Record<ElementRole, E
  * 채택한 규칙. `STRENGTH_POLICY` 와 짝이다 — 골든 스냅샷이 함께 찍는다.
  */
 export const YONGSIN_POLICY = {
-  ruleSet: 'eokbu-with-johu-reference-v4',
+  /** v5 — 억부가 읽는 분포의 무게가 월지 ×2 · 지장간 60:30:10 이 됐다(ADR 0114). 고르는 규칙은 v4 그대로다 */
+  ruleSet: 'eokbu-with-johu-reference-v5',
+  elementWeights: ELEMENT_WEIGHTS_POLICY.ruleSet,
   /** 확정값이 아니라 시험값으로 낸다 */
   status: 'experimental',
   /** 억부는 시험 판정, 조후는 원문 참고표로 함께 낸다 */

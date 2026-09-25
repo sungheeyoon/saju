@@ -6,6 +6,7 @@ import { COMPAT_POLICY } from '../compat';
 import { hourPillarOf } from '../pillars/hour';
 import { randomInputs, withoutHour } from '../population';
 import { eokbuJudgementOf } from './eokbuJudgement';
+import { LEGACY_ELEMENT_WEIGHTS } from './fiveElements';
 import { johuJudgementOf } from './johuJudgement';
 import { eokbuJohuRelationOf, needProfileOf } from './needProfile';
 import { NEED_PROFILE_POLICY, type Grade, type NeedEntry, type NeedProfile } from './needProfileTypes';
@@ -97,7 +98,9 @@ describe('관계 — 억부와 조후가 같은 쪽을 가리키는가', () => {
   /**
    * 乙酉 辛巳 乙巳 辛巳(무작위 표본 12번) — 위의 乙巳 명식처럼 억부 水 · 조후 癸로 같은 쪽을
    * 가리키지만 종격 판정이 선다. 그 쪽 자체가 뒤집힐 수 있어 `reinforced` 가 못 된다.
-   * `8ja-149`(己未 丙子 戊辰 丙辰)는 외부 사례 쪽 — 종격이 `true-following` 으로 서는 명식이다.
+   * `8ja-149`(己未 丙子 戊辰 丙辰)는 외부 사례 쪽 — 옛 무게(월지 ×1 · 사령 일수)에서 종격이
+   * `true-following` 으로 서는 명식이다. 월지 ×2 · 60:30:10(ADR 0114)에서는 종격이 안 서므로 옛 무게로 잰다
+   * (`eokbuJudgement.test.ts` 의 같은 자리).
    */
   it('종격이 억부를 뒤집을 수 있으면 같은 쪽이어도 서열은 unresolved 이고 그 까닭을 든다', () => {
     const profile = needProfileOf(chart('乙酉', '辛巳', '乙巳', '辛巳'));
@@ -108,9 +111,13 @@ describe('관계 — 억부와 조후가 같은 쪽을 가리키는가', () => {
     expect(profile.relation.unresolvedBecause).toContain('종격이 억부를 뒤집을 수 있음');
 
     const stagnant = externalChart('8ja-149-stagnant-muto');
-    const relation = eokbuJohuRelationOf(eokbuJudgementOf(stagnant), johuJudgementOf(stagnant), {
-      verdict: 'true-following',
-    });
+    const relation = eokbuJohuRelationOf(
+      eokbuJudgementOf(stagnant, { weights: LEGACY_ELEMENT_WEIGHTS }),
+      johuJudgementOf(stagnant),
+      {
+        verdict: 'true-following',
+      },
+    );
     expect(relation.signals).toContain('following-may-reverse');
     expect(relation.precedence).toBe('unresolved');
     expect(relation.unresolvedBecause).toContain(
@@ -165,11 +172,18 @@ describe('합화 · 국과 시 미상', () => {
    * `qlmg-jiang`(丁亥 庚戌 己巳 庚午, 己土 일간) — 실효 분포로 보면 신강에 인성 火가 가장 무거워
    * 억부 1순위가 재성 水이고, 조후 丙이 그 무거운 火를 보태 `conflict` 다. 합화 · 국을 끄면
    * 1순위가 관성 木으로 바뀌고 조후 甲이 그 木이라 `partial` 로 넘어간다. 조후 줄은 그대로다.
+   *
+   * 이 갈림은 옛 무게(월지 ×1 · 사령 일수)에서 선다. 월지 ×2 · 60:30:10(ADR 0114)에서는 합화 · 국을
+   * 꺼도 1순위가 水 그대로라 둘 다 `conflict` 다 — 그래서 규칙은 옛 무게로 잰다.
    */
   it('합화 · 국을 끄면 억부 줄과 관계가 바뀌고 조후 줄은 그대로다', () => {
     const jiang = externalChart('qlmg-jiang-unstated-gito');
-    const effective = needProfileOf(jiang);
-    const literal = needProfileOf(jiang, { distribution: 'literal', strength: { basis: 'literal' } });
+    const weights = LEGACY_ELEMENT_WEIGHTS;
+    const effective = needProfileOf(jiang, { weights });
+    const literal = needProfileOf(jiang, { weights, distribution: 'literal', strength: { basis: 'literal' } });
+    expect(needProfileOf(jiang, { distribution: 'literal', strength: { basis: 'literal' } }).relation.kind).toBe(
+      'conflict',
+    );
 
     expect(effective.relation.kind).toBe('conflict');
     expect(literal.relation.kind).toBe('partial');
@@ -182,13 +196,20 @@ describe('합화 · 국과 시 미상', () => {
    * `qlmg-chen`(壬子 丙午 癸亥 戊午) — 시를 알면 억부 1순위 水에 조후 壬 · 癸가 겹쳐 `partial`,
    * 시를 지우면 1순위가 土로 바뀌어 `conflict` 다. 시 미상의 신뢰도는 어느 시를 넣은 것보다도
    * 높지 않다.
+   *
+   * 관계가 바뀌는 것은 옛 무게(월지 ×1 · 사령 일수)에서다. 월지 ×2 · 60:30:10(ADR 0114)에서는 시를 지워도
+   * 1순위가 水 그대로라 둘 다 `partial` 이다 — 그래서 갈림은 옛 무게로 재고, 신뢰도
+   * 부등식은 기본 무게로 잰다.
    */
   it('시를 모르면 관계가 바뀔 수 있고 신뢰도는 시를 넣은 어느 판정보다도 높지 않다', () => {
     const known = externalChart('qlmg-chen-weak-gyesu');
-    const hourless = needProfileOf({ ...known, hour: null });
+    const weights = LEGACY_ELEMENT_WEIGHTS;
+    expect(needProfileOf(known, { weights }).relation.kind).toBe('partial');
+    expect(needProfileOf({ ...known, hour: null }, { weights }).relation.kind).toBe('conflict');
+    expect(needProfileOf({ ...known, hour: null }).relation.kind).toBe('partial');
 
+    const hourless = needProfileOf({ ...known, hour: null });
     expect(needProfileOf(known).relation.kind).toBe('partial');
-    expect(hourless.relation.kind).toBe('conflict');
     expect(hourless.eokbu.hour).toMatchObject({ hourKnown: false });
 
     for (const branch of BRANCHES) {
@@ -273,14 +294,17 @@ describe('무작위 표본 1000건 (시드 20260821)', () => {
 
       expect(unresolvedWithoutReason).toBe(0);
       expect(primaryMismatch).toBe(0);
-      expect(kinds).toEqual({ conflict: 373, partial: 390, 'not-comparable': 199, 'same-direction': 38 });
-      expect(precedence).toEqual({ unresolved: 975, reinforced: 25 });
+      // 월지 ×2 · 60:30:10(ADR 0114) 전: conflict 373 · partial 390 · not-comparable 199 · same 38, 서열
+      // unresolved 975 · reinforced 25, 교차 188 · 185 · 352 · 38 · 199 · 38. 억부 1순위가 바뀌어 conflict 가
+      // 12 줄고 not-comparable 이 10 늘었다 — 조후와 같은 쪽(same-direction 38)은 그대로다.
+      expect(kinds).toEqual({ conflict: 361, partial: 392, 'not-comparable': 209, 'same-direction': 38 });
+      expect(precedence).toEqual({ unresolved: 974, reinforced: 26 });
       expect(cross).toEqual({
-        'conflict:aligned': 188,
-        'conflict:apart': 185,
-        'partial:aligned': 352,
-        'partial:apart': 38,
-        'not-comparable:apart': 199,
+        'conflict:aligned': 196,
+        'conflict:apart': 165,
+        'partial:aligned': 362,
+        'partial:apart': 30,
+        'not-comparable:apart': 209,
         'same-direction:aligned': 38,
       });
       expect(signals['johu-urgent']).toBeUndefined();
@@ -317,11 +341,15 @@ describe('외부 억부 사례 회귀 (억부 논리 20건)', () => {
     ).toBe(15);
   });
 
-  it('관계는 conflict 4 · partial 7 · not-comparable 9 이고 서열은 스물 다 unresolved 다', () => {
+  /**
+   * 월지 ×2 · 60:30:10(ADR 0114) 전에는 conflict 4 · not-comparable 9 였다. `qlmg-wang` 하나가 1순위
+   * 木 → 水 로 옮기며 not-comparable 에서 conflict 로 갔다.
+   */
+  it('관계는 conflict 5 · partial 7 · not-comparable 8 이고 서열은 스물 다 unresolved 다', () => {
     const kinds: Record<string, number> = {};
     for (const { profile } of scored) kinds[profile.relation.kind] = (kinds[profile.relation.kind] ?? 0) + 1;
 
-    expect(kinds).toEqual({ conflict: 4, partial: 7, 'not-comparable': 9 });
+    expect(kinds).toEqual({ conflict: 5, partial: 7, 'not-comparable': 8 });
     expect(scored.every(({ profile }) => profile.relation.precedence === 'unresolved')).toBe(true);
   });
 

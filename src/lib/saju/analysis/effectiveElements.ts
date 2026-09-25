@@ -4,6 +4,7 @@ import type { PillarPosition } from '../position';
 import { bureausOf, type Bureau } from './bureau';
 import {
   DEFAULT_ELEMENT_WEIGHTS,
+  ELEMENT_WEIGHTS_POLICY,
   elementDistributionOf,
   hiddenStemShares,
   type ElementDistribution,
@@ -29,7 +30,9 @@ import { stemTransformationsOf, type StemTransformation } from './transformation
  */
 
 export const EFFECTIVE_ELEMENTS_POLICY = {
-  ruleSet: 'effective-elements-v1',
+  /** v2 — 바탕 분포의 무게가 월지 ×2 · 지장간 60:30:10 이 됐다(ADR 0114). 옮기는 규칙은 v1 그대로다 */
+  ruleSet: 'effective-elements-v2',
+  elementWeights: ELEMENT_WEIGHTS_POLICY.ruleSet,
   status: 'experimental',
   /** 바탕 분포를 지우지 않고 함께 낸다 */
   keepsBase: true,

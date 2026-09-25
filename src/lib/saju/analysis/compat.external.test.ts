@@ -316,7 +316,7 @@ describe('궁합 외부 사례 — 전문가 판정과 주는 쪽 자리(관찰)
 
   /**
    * 엔진의 세 기준(ADR 0112)과 전문가 판정. `any` 는 64 중 63 이 `mixed` 라 판정과 무관하다.
-   * `stems` 의 `supportive` 는 「채운다」 38 중 14, 「해친다」 16 중 1 이다.
+   * `stems` 의 `supportive` 는 「채운다」 38 중 16, 「해친다」 16 중 2 다(ADR 0114 전 14 · 1).
    */
   it('엔진의 any 기준은 판정을 가르지 못하고 stems 기준만 조금 기운다', () => {
     const relationTally = (rows: typeof MEASURED, basis: 'any' | 'visible' | 'stems') =>
@@ -325,20 +325,24 @@ describe('궁합 외부 사례 — 전문가 판정과 주는 쪽 자리(관찰)
         return acc;
       }, {});
     expect(MEASURED.filter((m) => m.relation.any === 'mixed')).toHaveLength(63);
+    // 월지 ×2 · 60:30:10(ADR 0114) 전에는 「채운다」 supportive 14 · mixed 21, 「해친다」 mixed 13 · supportive 1
+    // 이었다. 받는 쪽의 억부 1순위가 바뀌어 셋이 mixed 에서 supportive 로 옮겼다 — 「채운다」 둘 · 「해친다」 하나라
+    // 가르는 힘은 그대로다.
     expect(relationTally(SUPPLIES, 'stems')).toEqual({
-      supportive: 14,
-      mixed: 21,
+      supportive: 16,
+      mixed: 19,
       conflicting: 2,
       'not-comparable': 1,
     });
     expect(relationTally(ofVerdict('harms'), 'stems')).toEqual({
-      mixed: 13,
+      mixed: 12,
       conflicting: 2,
-      supportive: 1,
+      supportive: 2,
     });
+    // ADR 0114 전 mixed 31 · supportive 5.
     expect(relationTally(SUPPLIES, 'visible')).toEqual({
-      mixed: 31,
-      supportive: 5,
+      mixed: 30,
+      supportive: 6,
       conflicting: 1,
       'not-comparable': 1,
     });

@@ -1,3 +1,4 @@
+import { ELEMENT_WEIGHTS_POLICY, STRENGTH_POLICY, YONGSIN_POLICY } from '../analysis';
 import {
   COMPAT_POLICY,
   analyzeCompatibility,
@@ -285,6 +286,13 @@ export const EVIDENCE_CONTRACT = {
   ruleSets: {
     relations: RELATION_POLICY.ruleSet,
     compatibility: COMPAT_POLICY.ruleSet,
+    /**
+     * 오행 분포 · 강약 · 억부가 어느 무게로 셌는가 — 저장된 근거가 월지 ×2 · 지장간 60:30:10
+     * 이전의 것인지 이 세 이름으로 가린다(ADR 0114). 판본 문자열은 안 올렸다 — 모양은 그대로고 칸만 늘었다.
+     */
+    elementWeights: ELEMENT_WEIGHTS_POLICY.ruleSet,
+    strength: STRENGTH_POLICY.ruleSet,
+    yongsin: YONGSIN_POLICY.ruleSet,
   },
   /** 안 실은 근거와 그 이유 */
   excluded: EXCLUDED_PATHS,

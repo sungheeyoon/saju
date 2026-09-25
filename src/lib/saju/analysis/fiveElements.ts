@@ -17,8 +17,9 @@ import { PILLAR_KEYS, type PillarKey } from './tenGods';
  * 두 가지로 센다.
  * - `counts` 는 눈에 보이는 글자만 센다. "팔자에 없는 오행"은 이 기준이다.
  *   시간 미상이면 시주가 빠져 여섯 글자가 되므로, 없는 오행이 늘어날 수 있다.
- * - `scores` 는 지지를 지장간으로 펼쳐 사령 일수로 나눠 담는다. 예를 들어 寅은
- *   戊 7일·丙 7일·甲 16일이므로 목에 16/30, 화에 7/30, 토에 7/30이 간다.
+ * - `scores` 는 지지를 지장간으로 펼쳐 역할 몫(정기 60 · 중기 30 · 여기 10)으로 나눠 담고, 월지는
+ *   두 배로 센다(ADR 0114). 예를 들어 寅은 목에 0.6, 화에 0.3, 토에 0.1 이 가고, 월지의 寅이면 그 두 배다.
+ *   옛 셈(월지 ×1 · 사령 일수, 寅이면 목 16/30 · 화 7/30 · 토 7/30)은 `LEGACY_ELEMENT_WEIGHTS` 로 남는다.
  */
 
 export type ElementWeights = {
@@ -29,8 +30,8 @@ export type ElementWeights = {
   /**
    * 월지에 추가로 곱하는 계수.
    *
-   * 월지는 계절을 정하므로 다른 자리보다 무겁게 보는 계통이 많다.
-   * 배수를 얼마로 할지는 정해진 값이 없어 기본은 1(가중 없음)로 둔다.
+   * 월지는 계절을 정하므로 다른 자리보다 무겁게 보는 계통이 많다 — 수를 밝힌 체계는 모두 그렇다.
+   * 배수는 체계마다 2~4 로 갈려 가장 널리 쓰인 공개 코드 둘의 2 를 기본으로 골랐다(ADR 0114).
    */
   monthBranchMultiplier: number;
   /**
@@ -49,10 +50,9 @@ export type ElementWeights = {
    * 두 글자 지지(子 · 卯 · 酉)는 정기 100 이다. 중국어권 점수 체계(李洪成 계열)의 몫을 옮긴 **후보 값**
    * 이다(`docs/notes/2026-09-25-research-cn-strength-scoring.md`). 그 체계는 午 丁70 己30 · 亥 壬70 甲30
    * 으로 여기를 빼는데 여기서는 두 지지도 60:30:10 으로 둔다 — 역할 하나의 규칙으로 두려고 고른 것이다.
-   * 오프라인 궁합 비교기(`src/lib/matching/formula-comparison`)만 부른다.
    *
-   * 기본은 `days` 다 — 이 저장소가 여태 세어 온 방식이고, 골든과 외부 대조가
-   * 전부 그 위에 찍혀 있다. 바꿀 때는 두 대조를 함께 다시 재고 근거를 남긴다.
+   * 기본은 `sixty-thirty-ten` 이다(ADR 0114). 사령 일수는 월률분야 — 월지의 개념이지 다른 자리에 쓰는
+   * 출처가 없다. 2026-09-25 까지의 기본이던 `days` 는 `LEGACY_ELEMENT_WEIGHTS` 가 든다.
    */
   hiddenStemWeighting: 'days' | 'principal-weighted' | 'sixty-thirty-ten';
 };
@@ -77,12 +77,40 @@ const SIXTY_THIRTY_TEN: Record<HiddenStemRole, number> = {
   餘氣: 0.1,
 };
 
+/**
+ * 엔진의 기본 무게 — 월지 ×2 · 지장간 60:30:10 (ADR 0114).
+ *
+ * 무작위 3000 명식(시드 20260821)에서 옛 셈과 견주면 신강 · 신약이 4.5%(135 건), 억부 1순위가
+ * 13.8%(414 건) 바뀐다. 외부 억부 사례의 강약 일치는 26 건 중 25 건, 억부 오행 일치 12 건 그대로다.
+ * 이 값이 바뀌면 `ELEMENT_WEIGHTS_POLICY.ruleSet` 을 올린다 — 강약 · 억부 · 실효 분포가 그 값을 싣는다.
+ */
 export const DEFAULT_ELEMENT_WEIGHTS: ElementWeights = {
+  stem: 1,
+  branch: 1,
+  monthBranchMultiplier: 2,
+  hiddenStemWeighting: 'sixty-thirty-ten',
+};
+
+/**
+ * 옛 기본 — 여덟 자리 같은 무게 · 사령 일수(2026-09-25 까지). 되돌아갈 문이다(ADR 0114).
+ * `weights: LEGACY_ELEMENT_WEIGHTS` 를 넘기면 옛 판정이 그대로 나온다.
+ */
+export const LEGACY_ELEMENT_WEIGHTS: ElementWeights = {
   stem: 1,
   branch: 1,
   monthBranchMultiplier: 1,
   hiddenStemWeighting: 'days',
 };
+
+/**
+ * 어느 무게로 셌는가 — 강약(`STRENGTH_POLICY`) · 억부(`YONGSIN_POLICY`) · 실효 분포가 이 이름을
+ * 함께 든다. 저장된 근거가 어느 셈에서 나왔는지 이 값으로 가린다. 옛 셈은 `days-flat-v1` 이었다.
+ */
+export const ELEMENT_WEIGHTS_POLICY = {
+  ruleSet: 'month-x2-hidden-60-30-10-v1',
+  weights: DEFAULT_ELEMENT_WEIGHTS,
+  legacy: { ruleSet: 'days-flat-v1', weights: LEGACY_ELEMENT_WEIGHTS },
+} as const;
 
 /**
  * 한 지지의 지장간 몫 — 합이 언제나 1 이다.
@@ -114,7 +142,7 @@ export type ElementDistribution = {
   glyphCount: number;
   /** 글자의 단순 개수 (지지는 본기 오행) — 합은 `glyphCount` */
   counts: Record<Element, number>;
-  /** 지장간 일수로 가중한 점수 */
+  /** 지장간 몫(`hiddenStemWeighting`)과 월지 배수로 가중한 점수 */
   scores: Record<Element, number>;
   /** `scores` 를 합 1로 정규화 */
   ratios: Record<Element, number>;
@@ -161,7 +189,7 @@ export function elementDistributionOf(
     counts[STEM_INFO[pillar.stem].element] += 1;
     scores[STEM_INFO[pillar.stem].element] += stem;
 
-    // 지지는 본기로 세되, 점수는 지장간에 일수 비율로 나눠 담는다
+    // 지지는 본기로 세되, 점수는 지장간에 몫대로 나눠 담는다
     counts[BRANCH_INFO[pillar.branch].element] += 1;
     const hiddens = HIDDEN_STEMS[pillar.branch];
     const shares = hiddenStemShares(hiddens, hiddenStemWeighting);

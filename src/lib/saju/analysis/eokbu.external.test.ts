@@ -282,10 +282,12 @@ describe('억부용신 외부 대조 데이터셋', () => {
         engineStrength: 'weak',
         strengthAgrees: null,
         sourceElement: '金',
-        engineElement: '木',
+        // ADR 0114 전에는 木 · 比劫. 신약은 그대로고 무게가 바뀌어 억부 1순위만 인성(水)으로 옮겼다 —
+        // 출처의 金 과는 전에도 지금도 어긋난다.
+        engineElement: '水',
         elementAgrees: false,
         sourceRole: '官星',
-        engineRole: '比劫',
+        engineRole: '印星',
         roleAgrees: false,
       },
       {
@@ -567,10 +569,12 @@ describe('억부용신 외부 대조 데이터셋', () => {
         engineStrength: 'weak',
         strengthAgrees: true,
         sourceElement: '水',
-        engineElement: '土',
+        // ADR 0114 전에는 土 · 印星. 신약은 그대로고 억부 1순위만 비겁(金)으로 옮겼다 — 衰極 논리의 답(水)과는
+        // 전에도 지금도 어긋난다.
+        engineElement: '金',
         elementAgrees: false,
         sourceRole: '食傷',
-        engineRole: '印星',
+        engineRole: '比劫',
         roleAgrees: false,
       },
     ]);

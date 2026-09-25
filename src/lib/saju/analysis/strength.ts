@@ -13,6 +13,7 @@ import type { Pillars } from '../pillars';
 import { bureausOf } from './bureau';
 import { effectiveElementsOf } from './effectiveElements';
 import {
+  ELEMENT_WEIGHTS_POLICY,
   elementDistributionOf,
   type DistributionInput,
   type ElementDistribution,
@@ -57,7 +58,7 @@ import { TEN_GOD_GROUP, TEN_GOD_KO, tenGodOfBranch, type TenGodGroup } from './t
  *
  * 반대로 `甲`의 건록 `寅`·제왕 `卯`가 실제로 강한 근거인 것은 이름이 건록·제왕이라서가
  * 아니라 지장간에 木이 있어 통근하기 때문이다. 그 몫은 아래 `elementDistributionOf`
- * 가 지장간을 사령 일수로 펼치면서 이미 세고 있다. 12운성으로 한 번 더 더하면
+ * 가 지장간을 역할 몫으로 펼치면서 이미 세고 있다. 12운성으로 한 번 더 더하면
  * 같은 사실을 두 번 세는 것이 된다.
  *
  * 그래서 12운성은 계산 결과를 설명하는 보조 문구로만 쓴다 — "甲은 寅에 통근한다.
@@ -71,10 +72,13 @@ import { TEN_GOD_GROUP, TEN_GOD_KO, tenGodOfBranch, type TenGodGroup } from './t
  * 골든 스냅샷이 찍으므로 계산법이 바뀌면 diff 맨 위에서 먼저 드러난다.
  */
 export const STRENGTH_POLICY = {
-  ruleSet: 'seasonal-roots-v2',
+  /** v3 — 득세 점수의 무게가 월지 ×2 · 지장간 60:30:10 이 됐다(ADR 0114). v2 는 월지 ×1 · 사령 일수 */
+  ruleSet: 'seasonal-roots-v3',
+  /** 득세 점수를 어느 무게로 셌는가 — `ELEMENT_WEIGHTS_POLICY` */
+  elementWeights: ELEMENT_WEIGHTS_POLICY.ruleSet,
   /** 월지가 일간 편인가 — 득령 */
   useMonthCommand: true,
-  /** 지장간을 사령 일수로 펼쳐 뿌리를 센다 — 득세 점수의 바탕 */
+  /** 지장간을 펼쳐 뿌리를 센다 — 득세 점수의 바탕. 몫은 `elementWeights` 가 정한다 */
   useHiddenStemRoots: true,
   /** 비겁·인성을 아군, 식상·재성·관성을 상대 세력으로 본다 */
   useSupportingAndDrainingElements: true,

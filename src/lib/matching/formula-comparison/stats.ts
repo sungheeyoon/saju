@@ -1,5 +1,8 @@
+import { mulberry32 } from '../../saju/population';
+
 /**
- * 비교기의 통계 — 평균 · 표준편차 · 분위 · 순위 상관 · 상위 겹침 · 동점률 · AUC. 의존 없이 여기 한 벌만 둔다.
+ * 비교기의 통계 — 평균 · 표준편차 · 분위 · 순위 상관 · 상위 겹침 · 동점률 · AUC · 부트스트랩 구간. 의존 없이 여기
+ * 한 벌만 둔다.
  */
 
 export const mean = (xs: readonly number[]): number =>
@@ -79,4 +82,22 @@ export function auc(positives: readonly number[], negatives: readonly number[]):
   let wins = 0;
   for (const p of positives) for (const n of negatives) wins += p > n ? 1 : p === n ? 0.5 : 0;
   return wins / (positives.length * negatives.length);
+}
+
+/**
+ * AUC 의 부트스트랩 95% 구간 — 양성 · 음성을 **따로** 복원 추출한다(층화). 표본이 양성 19 · 음성 9 처럼 작고
+ * 한쪽으로 기울어 있으면 한데 섞어 뽑을 때 음성이 둘셋만 든 표본이 나와 구간이 제 크기보다 넓어진다. 분위는
+ * 백분위(2.5 · 97.5)이고 시드를 박아 다시 돌려도 같은 값이 나온다.
+ */
+export function bootstrapAucInterval(
+  positives: readonly number[],
+  negatives: readonly number[],
+  draws = 2000,
+  seed = 20260925,
+): { low: number; high: number } {
+  if (positives.length === 0 || negatives.length === 0) return { low: Number.NaN, high: Number.NaN };
+  const random = mulberry32(seed);
+  const resample = (xs: readonly number[]) => xs.map(() => xs[Math.floor(random() * xs.length)]);
+  const aucs = Array.from({ length: draws }, () => auc(resample(positives), resample(negatives)));
+  return { low: quantile(aucs, 0.025), high: quantile(aucs, 0.975) };
 }

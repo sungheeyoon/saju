@@ -88,6 +88,11 @@ describe('종격 외부 명조 대조', () => {
    * 그 둘만으로 열넷에서 열일곱이 되었다. 문턱을 자료에 맞춰 내리는 것과는
    * 다른 일이고, 그 차이가 이 행렬에서 보인다 — `selfShare` 칸이 움직인 자리가
    * 세는 법이 바뀐 자리다.
+   *
+   * **2026-09-25 에 무게가 바뀌었다**(월지 ×2 · 지장간 60:30:10, ADR 0114). 문턱은 또 그대로고
+   * `selfShare` 는 거의 모든 줄에서 움직였다. 판정이 바뀐 여덟 줄에 옛 값을 적었다 — 일곱은 자당 몫이
+   * 30% 문턱 밑으로 내려와 종격 쪽으로 왔고(출처가 종격이라 한 것 일곱 · 셋은 가종까지, 넷은 뿌리로 후보),
+   * 하나(`qlmg-yan-father`, 출처는 종격 아님)는 28 → 30.6 으로 올라가 후보에서 빠졌다. 오검출 둘은 그대로다.
    */
   it('출처 판정과 엔진 판정의 행렬을 회귀 고정한다', () => {
     const matrix = FOLLOWING_EXTERNAL_CASES.map((testCase) => {
@@ -102,92 +107,64 @@ describe('종격 외부 명조 대조', () => {
     });
 
     expect(matrix).toEqual([
-      { id: 'kill-1', claim: 'following', engine: 'not-following', direction: null, selfShare: 31.7 },
-      { id: 'kill-2', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 12.5 },
-      { id: 'kill-3', claim: 'following', engine: 'candidate', direction: 'outward', selfShare: 18.8 },
-      { id: 'kill-4', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 25 },
-      { id: 'kill-5', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 26.9 },
-      { id: 'kill-6', claim: 'following', engine: 'not-following', direction: null, selfShare: 31.2 },
-      { id: 'kill-7', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 16.9 },
-      { id: 'kill-8-broken', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 37.5 },
-      { id: 'kill-9-similar', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 41.5 },
-      { id: 'money-1', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 20.6 },
-      { id: 'money-2', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 25.6 },
-      { id: 'money-3', claim: 'pseudo-following', engine: 'pseudo-following', direction: 'outward', selfShare: 22.5 },
-      { id: 'money-4', claim: 'pseudo-following', engine: 'pseudo-following', direction: 'outward', selfShare: 27.9 },
-      { id: 'money-5-excluded', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 40.1 },
-      { id: 'money-6', claim: 'following', engine: 'not-following', direction: null, selfShare: 30.2 },
-      { id: 'money-7', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 14.7 },
-      { id: 'money-8', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 17.7 },
-      { id: 'money-9-excluded', claim: 'not-following', engine: 'pseudo-following', direction: 'outward', selfShare: 18.8 },
-      { id: 'dtsm-following-strong', claim: 'following', engine: 'pseudo-following', direction: 'inward', selfShare: 72.9 },
-      { id: 'dtsm-following-weak', claim: 'following', engine: 'not-following', direction: null, selfShare: 34.6 },
+      // ADR 0114 전: not-following · 31.7
+      { id: 'kill-1', claim: 'following', engine: 'candidate', direction: 'outward', selfShare: 29.4 },
+      { id: 'kill-2', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 11.1 },
+      { id: 'kill-3', claim: 'following', engine: 'candidate', direction: 'outward', selfShare: 18.9 },
+      { id: 'kill-4', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 22.2 },
+      { id: 'kill-5', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 23.3 },
+      // ADR 0114 전: not-following · 31.2
+      { id: 'kill-6', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 26.5 },
+      { id: 'kill-7', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 17.8 },
+      { id: 'kill-8-broken', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 33.3 },
+      { id: 'kill-9-similar', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 41.7 },
+      { id: 'money-1', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 16.7 },
+      { id: 'money-2', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 23.9 },
+      { id: 'money-3', claim: 'pseudo-following', engine: 'pseudo-following', direction: 'outward', selfShare: 21.1 },
+      { id: 'money-4', claim: 'pseudo-following', engine: 'pseudo-following', direction: 'outward', selfShare: 28.9 },
+      { id: 'money-5-excluded', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 40.7 },
+      // ADR 0114 전: not-following · 30.2
+      { id: 'money-6', claim: 'following', engine: 'candidate', direction: 'outward', selfShare: 29.4 },
+      { id: 'money-7', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 16.1 },
+      { id: 'money-8', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 15 },
+      { id: 'money-9-excluded', claim: 'not-following', engine: 'pseudo-following', direction: 'outward', selfShare: 17.8 },
+      { id: 'dtsm-following-strong', claim: 'following', engine: 'pseudo-following', direction: 'inward', selfShare: 75.3 },
+      { id: 'dtsm-following-weak', claim: 'following', engine: 'not-following', direction: null, selfShare: 32.2 },
       // 從象 열 — 안으로 종하는 둘에 더해, 삼합국을 반영하자 넷째가 진종으로 올라온다.
-      { id: 'dtsm-congxiang-1', claim: 'following', engine: 'candidate', direction: 'outward', selfShare: 18.8 },
-      { id: 'dtsm-congxiang-2', claim: 'following', engine: 'not-following', direction: null, selfShare: 36.7 },
-      { id: 'dtsm-congxiang-3', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 27.9 },
-      { id: 'dtsm-congxiang-4', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 20.7 },
-      { id: 'dtsm-congxiang-5', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 26.9 },
-      { id: 'dtsm-congxiang-6-wang', claim: 'following', engine: 'true-following', direction: 'inward', selfShare: 92 },
-      { id: 'dtsm-congxiang-7-qiang', claim: 'following', engine: 'true-following', direction: 'inward', selfShare: 85 },
-      { id: 'dtsm-congxiang-8-qi', claim: 'following', engine: 'not-following', direction: null, selfShare: 41.1 },
-      { id: 'dtsm-congxiang-9-shi', claim: 'following', engine: 'not-following', direction: null, selfShare: 32.9 },
-      { id: 'dtsm-congxiang-10', claim: 'following', engine: 'not-following', direction: null, selfShare: 37.5 },
-      // 假從 다섯 — 하나가 잡힌다. 여기(餘氣) 뿌리 둘을 정기 둘처럼 세던 것을 고친 몫이다.
-      { id: 'dtsm-jiacong-1', claim: 'pseudo-following', engine: 'pseudo-following', direction: 'outward', selfShare: 23.9 },
-      { id: 'dtsm-jiacong-2', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 37.9 },
-      { id: 'dtsm-jiacong-3', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 34.7 },
-      { id: 'dtsm-jiacong-4-misprint', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 33 },
-      { id: 'dtsm-jiacong-5', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 32.1 },
-          {
-        id: 'qlmg-xu-shiying',
-        claim: 'not-following',
-        engine: 'pseudo-following',
-        direction: 'outward',
-        selfShare: 26.9,
-      },
-      {
-        id: 'qlmg-qian-weng',
-        claim: 'not-following',
-        engine: 'candidate',
-        direction: 'outward',
-        selfShare: 29.5,
-      },
-      {
-        id: 'qlmg-xuantong',
-        claim: 'following',
-        engine: 'pseudo-following',
-        direction: 'outward',
-        selfShare: 25,
-      },
-      {
-        id: 'qlmg-yan-father',
-        claim: 'not-following',
-        engine: 'candidate',
-        direction: 'outward',
-        selfShare: 28,
-      },
-      {
-        id: 'qlmg-abandon-hurt',
-        claim: 'following',
-        engine: 'candidate',
-        direction: 'outward',
-        selfShare: 18.8,
-      },
-      {
-        id: 'qlmg-yanfeng-2nd',
-        claim: 'following',
-        engine: 'candidate',
-        direction: 'outward',
-        selfShare: 17.5,
-      },
+      { id: 'dtsm-congxiang-1', claim: 'following', engine: 'candidate', direction: 'outward', selfShare: 23.3 },
+      // ADR 0114 전: not-following · 36.7
+      { id: 'dtsm-congxiang-2', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 27.8 },
+      { id: 'dtsm-congxiang-3', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 25.6 },
+      { id: 'dtsm-congxiang-4', claim: 'following', engine: 'true-following', direction: 'outward', selfShare: 17.2 },
+      { id: 'dtsm-congxiang-5', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 23.3 },
+      { id: 'dtsm-congxiang-6-wang', claim: 'following', engine: 'true-following', direction: 'inward', selfShare: 94.7 },
+      { id: 'dtsm-congxiang-7-qiang', claim: 'following', engine: 'true-following', direction: 'inward', selfShare: 83.3 },
+      { id: 'dtsm-congxiang-8-qi', claim: 'following', engine: 'not-following', direction: null, selfShare: 34.2 },
+      { id: 'dtsm-congxiang-9-shi', claim: 'following', engine: 'not-following', direction: null, selfShare: 33.3 },
+      { id: 'dtsm-congxiang-10', claim: 'following', engine: 'not-following', direction: null, selfShare: 33.3 },
+      // 假從 다섯 — 옛 무게에서는 하나가 잡혔다(여기 뿌리 둘을 정기 둘처럼 세던 것을 고친 몫). 지금은 둘.
+      { id: 'dtsm-jiacong-1', claim: 'pseudo-following', engine: 'pseudo-following', direction: 'outward', selfShare: 19.3 },
+      { id: 'dtsm-jiacong-2', claim: 'pseudo-following', engine: 'not-following', direction: null, selfShare: 43.2 },
+      // ADR 0114 전: not-following · 34.7
+      { id: 'dtsm-jiacong-3', claim: 'pseudo-following', engine: 'candidate', direction: 'outward', selfShare: 29.7 },
+      // ADR 0114 전: not-following · 33
+      { id: 'dtsm-jiacong-4-misprint', claim: 'pseudo-following', engine: 'pseudo-following', direction: 'outward', selfShare: 26.1 },
+      // ADR 0114 전: not-following · 32.1
+      { id: 'dtsm-jiacong-5', claim: 'pseudo-following', engine: 'candidate', direction: 'outward', selfShare: 26.7 },
+      { id: 'qlmg-xu-shiying', claim: 'not-following', engine: 'pseudo-following', direction: 'outward', selfShare: 22.8 },
+      { id: 'qlmg-qian-weng', claim: 'not-following', engine: 'candidate', direction: 'outward', selfShare: 26.1 },
+      { id: 'qlmg-xuantong', claim: 'following', engine: 'pseudo-following', direction: 'outward', selfShare: 22.2 },
+      // ADR 0114 전: candidate · 28
+      { id: 'qlmg-yan-father', claim: 'not-following', engine: 'not-following', direction: null, selfShare: 30.6 },
+      { id: 'qlmg-abandon-hurt', claim: 'following', engine: 'candidate', direction: 'outward', selfShare: 22.2 },
+      { id: 'qlmg-yanfeng-2nd', claim: 'following', engine: 'candidate', direction: 'outward', selfShare: 16.1 },
     ]);
   });
 
   /**
    * 자료를 열다섯 건 넓히자 계통별로 성적이 갈리는 것이 드러난다. 밖으로 종하는
    * 계열은 자당 몫이 문턱 근처(25~40%)에 촘촘히 몰려 있어 ≤30% 한 줄로는 절반쯤만
-   * 걸린다. 반대로 **안으로 종하는 계열은 85~92% 로 문턱에서 멀찍이 떨어져 있다** —
+   * 걸린다. 반대로 **안으로 종하는 계열은 75~95% 로 문턱에서 멀찍이 떨어져 있다**(ADR 0114 전 73~92%) —
    * 축을 자당 몫 하나로 다시 세운 판단이 여기서 값을 낸다.
    */
   it('안으로 종하는 계열은 문턱에서 멀고 밖으로 종하는 계열은 붙어 있다', () => {
@@ -203,7 +180,11 @@ describe('종격 외부 명조 대조', () => {
   });
 
   /**
-   * **假從 다섯 중 하나가 잡힌다.** 넷은 여전히 못 잡는다.
+   * **假從 다섯 중 둘이 잡힌다**(ADR 0114 전에는 하나). 셋은 못 잡는다.
+   *
+   * 아래 네 문단은 옛 무게(월지 ×1 · 사령 일수)에서 적은 것이다. 월지 ×2 · 60:30:10 에서는
+   * `dtsm-jiacong-4-misprint`(판본 오배라 채점에서 빠지는 줄)가 자당 26.1% 로 가종이 되고, `-3` · `-5` 는
+   * 자당이 문턱 안(29.7 · 26.7%)으로 들어왔으나 뿌리로 후보에 머문다. 문 밖에 남은 것은 `-2`(43.2%) 하나다.
    *
    * 잡힌 하나(`dtsm-jiacong-1`)가 무엇 때문에 잡혔는지가 요점이다. 문턱을
    * 내려서가 아니다 — 이 명조의 己土는 巳와 亥의 **여기(餘氣) 戊** 둘에 걸려
@@ -220,23 +201,28 @@ describe('종격 외부 명조 대조', () => {
     expect(jiacong).toHaveLength(5);
 
     const caught = jiacong.filter((c) => engineFollows(assess(c.pillars).verdict));
-    expect(caught.map((c) => c.id)).toEqual(['dtsm-jiacong-1']);
+    expect(caught.map((c) => c.id)).toEqual(['dtsm-jiacong-1', 'dtsm-jiacong-4-misprint']);
 
     // 뿌리를 개수로 세면 문턱 밖, 질로 세면 문턱 안이다.
     const one = assess(jiacong[0].pillars);
     expect(one.rootScore).toBeLessThan(FOLLOWING_PATTERN_POLICY.classification.pseudoMaxRootScore * 3);
     expect(one.facts.dayMasterRootless).toBe(false);
 
-    // 못 잡는 넷은 전부 자당 몫이 문턱 위에 있다 — 뿌리 문제가 아니다.
-    for (const testCase of jiacong.slice(1)) {
-      expect(assess(testCase.pillars).selfShare, testCase.id).toBeGreaterThan(
-        FOLLOWING_PATTERN_POLICY.dominance.outwardMaxSelfShare,
-      );
-    }
+    // 못 잡는 셋 — 하나는 자당 몫이 문턱 위, 둘은 문턱 안인데 뿌리로 후보에 머문다.
+    const missed = jiacong.filter((c) => !engineFollows(assess(c.pillars).verdict));
+    expect(
+      missed.map((c) => {
+        const found = assess(c.pillars);
+        return `${c.id}:${found.selfShare > FOLLOWING_PATTERN_POLICY.dominance.outwardMaxSelfShare ? 'outside' : found.verdict}`;
+      }),
+    ).toEqual(['dtsm-jiacong-2:outside', 'dtsm-jiacong-3:candidate', 'dtsm-jiacong-5:candidate']);
   });
 
   /**
    * 재현율 **14/30 → 17/30.** 오검출은 그대로 1/4 이다.
+   *
+   * 자료가 마흔으로 넓어진 뒤 18/33 · 오검출 2/7 이었고, 월지 ×2 · 60:30:10(ADR 0114)에서 **20/33** 이 됐다 —
+   * 오검출은 2/7 그대로다(`kill-6` · `dtsm-congxiang-2` 가 가종으로 올라왔다).
    *
    * 문턱을 만지지 않고 얻은 값이다. 세는 법을 셋 고쳤다 — 국(局)과 합화를
    * 세력에 반영했고, 뿌리를 개수가 아니라 질로 재고, 충에 뽑히거나 국에 끌려간
@@ -252,7 +238,7 @@ describe('종격 외부 명조 대조', () => {
     const rejected = results.filter((r) => !r.claimed);
 
     expect(claimed).toHaveLength(33);
-    expect(claimed.filter((r) => r.engine)).toHaveLength(18);
+    expect(claimed.filter((r) => r.engine)).toHaveLength(20);
     expect(rejected).toHaveLength(7);
     expect(rejected.filter((r) => r.engine)).toHaveLength(2);
   });
@@ -304,8 +290,9 @@ describe('종격 외부 명조 대조', () => {
       return [claimed.filter((c) => engineFollows(assess(c.pillars).verdict)).length, claimed.length];
     };
 
-    expect(recall('modern-chinese')).toEqual([10, 14]);
-    expect(recall('classical-chinese')).toEqual([7, 16]);
+    // ADR 0114 전 10/14 · 7/16 — 현대는 `kill-6`, 고전은 `dtsm-congxiang-2` 가 하나씩 더 잡혔다.
+    expect(recall('modern-chinese')).toEqual([11, 14]);
+    expect(recall('classical-chinese')).toEqual([8, 16]);
   });
 
   /**
@@ -353,7 +340,9 @@ describe('종격 외부 명조 대조', () => {
         claimsFollowing(testCase.claim.verdict) && !engineFollows(assess(testCase.pillars).verdict),
     );
 
-    expect(missed).toHaveLength(15);
+    // ADR 0114 전 15 — 문 밖 11 · 뿌리 4. 월지 ×2 · 60:30:10 에서 자당 몫이 문턱 밑으로 내려온 여섯 중
+    // 둘은 잡혔고(`kill-6` · `dtsm-congxiang-2`) 넷(`kill-1` · `money-6` · `dtsm-jiacong-3` · `-5`)은 뿌리 무리로 옮겼다.
+    expect(missed).toHaveLength(13);
 
     const { outwardMaxSelfShare } = FOLLOWING_PATTERN_POLICY.dominance;
 
@@ -368,10 +357,14 @@ describe('종격 외부 명조 대조', () => {
       return one.selfShare <= outwardMaxSelfShare && one.verdict === 'candidate';
     });
 
-    expect(outsideDoor).toHaveLength(11);
+    expect(outsideDoor).toHaveLength(5);
     expect(heldByRoot.map((testCase) => testCase.id)).toEqual([
+      'kill-1',
       'kill-3',
+      'money-6',
       'dtsm-congxiang-1',
+      'dtsm-jiacong-3',
+      'dtsm-jiacong-5',
       // 셋째 계통이 이 무리를 둘 더 데려왔다 — 문 안인데 뿌리가 0.52·0.64 다.
       'qlmg-abandon-hurt',
       'qlmg-yanfeng-2nd',
@@ -381,11 +374,12 @@ describe('종격 외부 명조 대조', () => {
     expect(outsideDoor.length + heldByRoot.length).toBe(missed.length);
 
     /**
-     * 문 밖 열하나 가운데 하나(`dtsm-congxiang-8-qi`)는 **從氣**다 — 기세를 따르는 것이라
-     * 자당 축으로 재는 자리가 아니다. 자당이 41.1% 로 가장 높은 것이 그 표시다.
+     * 문 밖 다섯 가운데 하나(`dtsm-congxiang-8-qi`)는 **從氣**다 — 기세를 따르는 것이라
+     * 자당 축으로 재는 자리가 아니다. 옛 무게에서는 자당이 41.1% 로 가장 높았고, 지금은 34.2% 로
+     * `dtsm-jiacong-2`(43.2%) 다음이다 — 「가장 높다」는 표시는 무게를 따라 사라졌다.
      */
     const qi = outsideDoor.find((testCase) => testCase.id === 'dtsm-congxiang-8-qi')!;
-    expect(assess(qi.pillars).selfShare).toBeGreaterThan(0.4);
+    expect(assess(qi.pillars).selfShare).toBeGreaterThan(0.34);
   });
 
   /**
@@ -399,8 +393,21 @@ describe('종격 외부 명조 대조', () => {
    * 함께 낡는다. 그래서 표가 아니라 **구성**을 여기서 잠근다 — 숫자는 규칙이 바뀌면 다시
    * 재면 되지만, 「무엇 때문에 못 넘어오는가」가 달라지면 그 표를 읽는 방법 자체가 달라진다.
    */
+  /*
+   * 월지 ×2 · 60:30:10(ADR 0114)에서 이 무리에 넷이 더 들었다(`kill-1` · `money-6` · `dtsm-jiacong-3` · `-5`).
+   * 넷 다 **충 없는 묘고의 정기 뿌리**(未 · 丑 · 辰 의 己 · 戊)로 버틴다 — 옛 넷의 중기와 다른 자리라 따로 잠근다.
+   */
   it('뿌리로 막힌 자리가 무엇으로 버티는지 고정한다', () => {
-    const held = ['kill-3', 'dtsm-congxiang-1', 'qlmg-abandon-hurt', 'qlmg-yanfeng-2nd'];
+    const held = [
+      'kill-3',
+      'dtsm-congxiang-1',
+      'qlmg-abandon-hurt',
+      'qlmg-yanfeng-2nd',
+      'kill-1',
+      'money-6',
+      'dtsm-jiacong-3',
+      'dtsm-jiacong-5',
+    ];
 
     const rooted = held.map((id) => {
       const testCase = FOLLOWING_EXTERNAL_CASES.find((one) => one.id === id)!;
@@ -424,6 +431,11 @@ describe('종격 외부 명조 대조', () => {
       { id: 'qlmg-abandon-hurt', branchClass: 'storage', role: '中氣', clashed: false },
       // 넷째만 다르다 — 亥의 정기 壬은 壬의 녹이라 묘고 이야기가 아니다.
       { id: 'qlmg-yanfeng-2nd', branchClass: 'birth', role: '正氣', clashed: false },
+      // 새로 든 넷 — 묘고의 정기.
+      { id: 'kill-1', branchClass: 'storage', role: '正氣', clashed: false },
+      { id: 'money-6', branchClass: 'storage', role: '正氣', clashed: false },
+      { id: 'dtsm-jiacong-3', branchClass: 'storage', role: '正氣', clashed: false },
+      { id: 'dtsm-jiacong-5', branchClass: 'storage', role: '正氣', clashed: false },
     ]);
   });
 });

@@ -15,7 +15,10 @@ import {
 } from '@/src/lib/saju/constants';
 import { twelveStageOf } from '@/src/lib/saju/stages';
 import {
+  DEFAULT_ELEMENT_WEIGHTS,
   FAVORABILITY_POLICY,
+  LEGACY_ELEMENT_WEIGHTS,
+  hiddenStemShares,
   TEN_GOD_GROUP,
   TEN_GOD_KO,
   analyzePillars,
@@ -168,10 +171,25 @@ describe('오행 분포(fiveElements)', () => {
     expect(total).toBe(8);
   });
 
-  it('가중 점수의 합이 여덟이다 (천간 4 + 지지 4)', () => {
+  it('가중 점수의 합이 아홉이다 (천간 4 + 지지 4 + 월지 한 번 더)', () => {
+    // 월지 ×2 가 기본이라(ADR 0114) 지지 넷의 무게가 5 다. 옛 셈은 8 이었다.
     const { scores } = elementDistributionOf(pillars);
     const total = ELEMENTS.reduce((sum, e) => sum + scores[e], 0);
-    expect(total).toBeCloseTo(8, 10);
+    expect(total).toBeCloseTo(9, 10);
+
+    const legacy = elementDistributionOf(pillars, LEGACY_ELEMENT_WEIGHTS);
+    expect(ELEMENTS.reduce((sum, e) => sum + legacy.scores[e], 0)).toBeCloseTo(8, 10);
+  });
+
+  it('지장간은 역할로 나눈다 — 寅은 목 0.6 · 화 0.3 · 토 0.1, 옛 셈은 사령 일수', () => {
+    const shares = (weighting: 'days' | 'sixty-thirty-ten') =>
+      hiddenStemShares(HIDDEN_STEMS['寅'], weighting).map((share) => Math.round(share * 1000) / 1000);
+    // 寅의 지장간은 여기 戊 · 중기 丙 · 정기 甲 순이다.
+    expect(shares('sixty-thirty-ten')).toEqual([0.1, 0.3, 0.6]);
+    expect(shares('days')).toEqual([0.233, 0.233, 0.533]);
+    expect(DEFAULT_ELEMENT_WEIGHTS.hiddenStemWeighting).toBe('sixty-thirty-ten');
+    expect(DEFAULT_ELEMENT_WEIGHTS.monthBranchMultiplier).toBe(2);
+    expect(LEGACY_ELEMENT_WEIGHTS).toEqual({ stem: 1, branch: 1, monthBranchMultiplier: 1, hiddenStemWeighting: 'days' });
   });
 
   it('비율의 합이 1이다', () => {
@@ -407,7 +425,9 @@ describe('12운성은 신강·신약 점수에 들어가지 않는다', () => {
 
   it('채택한 계산법을 결과 곁에 남긴다', () => {
     expect(STRENGTH_POLICY.twelveStageContribution).toBe('none');
-    expect(STRENGTH_POLICY.ruleSet).toBe('seasonal-roots-v2');
+    expect(STRENGTH_POLICY.ruleSet).toBe('seasonal-roots-v3');
+    // v3 에서 바뀐 것은 무게 하나다 — 월지 ×2 · 지장간 60:30:10(ADR 0114).
+    expect(STRENGTH_POLICY.elementWeights).toBe('month-x2-hidden-60-30-10-v1');
     // v2 에서 바뀐 것은 세력의 바탕 하나다 — 국과 합화를 반영한 분포로 잰다.
     expect(STRENGTH_POLICY.basis).toBe('effective-distribution');
     // 재어 보고 켜지 않은 것들은 값으로 남는다.

@@ -5,6 +5,7 @@ import { BRANCHES, pillarOf, type Branch, type Stem } from '../constants';
 import { hourPillarOf } from '../pillars/hour';
 import { randomInputs, withoutHour } from '../population';
 import { eokbuJudgementOf } from './eokbuJudgement';
+import { LEGACY_ELEMENT_WEIGHTS } from './fiveElements';
 import type { Grade } from './needProfileTypes';
 import { EOKBU_EXTERNAL_CASES } from './validation/eokbuExternalCases';
 
@@ -103,15 +104,15 @@ describe('억부 판정은 기존 억부 오행을 1순위로 편다', () => {
 
   /**
    * `8ja-160`(己未 乙亥 丁酉 甲辰) — 시를 알면 `medium` 조건이 다 선다(대안 없음 · 1순위 木이
-   * 월간 乙 · 시간 甲에 투간 · 강약 기준 셋이 한쪽 · 종격 안 섬). 시를 지우면 열두 시 중 여덟만
-   * 같은 木을 내므로 `low` 로 내려간다. 반대로 `qlmg-lu`(癸未 甲子 丙戌 己亥)는 열두 시가 다
+   * 월간 乙 · 시간 甲에 투간 · 강약 기준 셋이 한쪽 · 종격 안 섬). 시를 지우면 열두 시 중 아홉만
+   * 같은 木을 내므로 `low` 로 내려간다(월지 ×2 · 60:30:10 전에는 여덟, ADR 0114). 반대로 `qlmg-lu`(癸未 甲子 丙戌 己亥)는 열두 시가 다
    * 같은 답이고 그 열두 판정이 모두 `medium` 이라 시를 지워도 그대로다.
    */
   it('시를 모르면 열두 시가 같은 답일 때만 신뢰도를 지킨다', () => {
     const lowered = chartOf('8ja-160-weak-jeonghwa').chart;
     expect(eokbuJudgementOf(lowered).confidence).toBe('medium');
     const loweredHourless = eokbuJudgementOf({ ...lowered, hour: null });
-    expect(loweredHourless.hour).toEqual({ hourKnown: false, sameAnswerHours: 8 });
+    expect(loweredHourless.hour).toEqual({ hourKnown: false, sameAnswerHours: 9 });
     expect(loweredHourless.confidence).toBe('low');
 
     const kept = chartOf('qlmg-lu-weak-byeonghwa').chart;
@@ -163,12 +164,20 @@ describe('후보가 앉은 자리', () => {
 
 describe('종격 · 합화', () => {
   /**
-   * `8ja-149`(己未 丙子 戊辰 丙辰) — 엔진의 종격 판정이 `true-following` 으로 서는 억부 논리
-   * 사례다. 1순위는 여전히 억부의 木이지만(서열은 억부) 방향이 뒤집힐 수 있다고 알린다.
-   * 출처도 木을 안 쓰고 水를 쓴다.
+   * `8ja-149`(己未 丙子 戊辰 丙辰) — 옛 무게(월지 ×1 · 사령 일수)에서는 엔진의 종격 판정이
+   * `true-following` 으로 서는 억부 논리 사례다. 1순위는 여전히 억부의 木이지만(서열은 억부) 방향이
+   * 뒤집힐 수 있다고 알린다. 출처도 木을 안 쓰고 水를 쓴다.
+   *
+   * 월지 ×2 · 60:30:10(ADR 0114)에서는 월지 子의 水(재성)가 두 배로 세어져 자당 몫이 줄고 종격이
+   * 안 선다 — 1순위 木은 그대로다. 그래서 규칙은 옛 무게로 재고, 기본 무게에서 이 알림을
+   * 드는 억부 논리 사례는 `qlmg-pan`(壬子 癸丑 庚子 丁亥 · 종격 후보) · `qlmg-ma` 둘이다.
    */
   it('종격이 서면 followingMayReverse 가 선다', () => {
-    const judgement = eokbuJudgementOf(chartOf('8ja-149-stagnant-muto').chart);
+    const judgement = eokbuJudgementOf(chartOf('8ja-149-stagnant-muto').chart, {
+      weights: LEGACY_ELEMENT_WEIGHTS,
+    });
+    expect(eokbuJudgementOf(chartOf('8ja-149-stagnant-muto').chart).followingMayReverse).toBe(false);
+    expect(eokbuJudgementOf(chartOf('qlmg-pan-weak-geumgeum').chart).followingMayReverse).toBe(true);
 
     expect(judgement.followingMayReverse).toBe(true);
     expect(judgement.verdict).toBe('judged');
@@ -243,11 +252,15 @@ describe('외부 억부 사례 회귀 (억부 논리 20건)', () => {
   });
 
   /**
-   * `medium` 여섯은 여섯 다 출처와 1순위가 맞고, `low` 열넷은 넷만 맞는다. `medium` 조건은
+   * `medium` 일곱 중 여섯이 출처와 1순위가 맞고, `low` 열셋은 넷만 맞는다. `medium` 조건은
    * 측정 노트의 사실(투간 16/20 · 대안이 모인 자리 · 종격)에서 골랐지 이 스무 건에 하나씩
    * 맞춘 것이 아니지만, 같은 스무 건을 본 뒤라 이것도 표본 안의 수다.
+   *
+   * 월지 ×2 · 60:30:10(ADR 0114) 전에는 `medium` 6 · 6 다 맞음이었다. 새로 `medium` 에 든 하나가
+   * `qlmg-wang`(1순위가 木 → 水 로 옮기며 `medium` 조건이 섰다)인데 출처는 金 이라 어긋난다 —
+   * `medium` 이 「다 맞는다」는 문장은 이 무게에서 참이 아니다.
    */
-  it('신뢰도 medium 은 6건이고 6건 다 1순위가 맞는다', () => {
+  it('신뢰도 medium 은 7건이고 그중 6건이 1순위가 맞는다', () => {
     const tally = (confidence: Grade) => {
       const rows = scored.filter(({ judgement }) => judgement.confidence === confidence);
       return {
@@ -259,18 +272,24 @@ describe('외부 억부 사례 회귀 (억부 논리 20건)', () => {
       };
     };
 
-    expect(tally('medium')).toEqual({ total: 6, agree: 6 });
-    expect(tally('low')).toEqual({ total: 14, agree: 4 });
+    expect(tally('medium')).toEqual({ total: 7, agree: 6 });
+    expect(tally('low')).toEqual({ total: 13, agree: 4 });
     expect(tally('high')).toEqual({ total: 0, agree: 0 });
   });
 
-  /** 측정 노트 7 의 「열두 시를 다 넣어도 억부 오행이 하나 — 8/20」을 이 판정이 다시 센다 */
-  it('시를 지우면 열두 시가 모두 같은 1순위인 사례는 8/20 이다', () => {
+  /**
+   * 측정 노트 7 의 「열두 시를 다 넣어도 억부 오행이 하나 — 8/20」을 이 판정이 다시 센다.
+   *
+   * 월지 ×2 · 60:30:10(ADR 0114)에서 7/20 이 됐다 — 열두 시 중 같은 답이 는 사례 셋 · 준 사례 여섯이다.
+   * 옛 줄은
+   * `[5, 12, 12, 8, 9, 8, 6, 6, 6, 12, 12, 11, 6, 6, 12, 12, 12, 12, 9, 10]` 이었다.
+   */
+  it('시를 지우면 열두 시가 모두 같은 1순위인 사례는 7/20 이다', () => {
     const sameHours = scored.map(({ hourless }) =>
       hourless.hour.hourKnown ? null : hourless.hour.sameAnswerHours,
     );
 
-    expect(sameHours).toEqual([5, 12, 12, 8, 9, 8, 6, 6, 6, 12, 12, 11, 6, 6, 12, 12, 12, 12, 9, 10]);
-    expect(sameHours.filter((count) => count === 12)).toHaveLength(8);
+    expect(sameHours).toEqual([9, 12, 12, 5, 7, 9, 3, 3, 6, 12, 12, 10, 7, 6, 12, 12, 12, 11, 9, 10]);
+    expect(sameHours.filter((count) => count === 12)).toHaveLength(7);
   });
 });

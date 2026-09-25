@@ -8,7 +8,16 @@ import {
 import type { ElementSummary } from '../../discovery/element-axes';
 import { pillarOf, type Branch, type Stem } from '../../saju';
 import { ageOnEvaluationDate, scenarioPairs } from '../../saju/population';
-import { FORMULAS, axesOf, previewOf, runScenario, scenarioPeople, scoreOf } from './comparison';
+import {
+  COMPARISON_STRENGTH_WEIGHTS,
+  FORMULAS,
+  axesOf,
+  previewOf,
+  runScenario,
+  scenarioPeople,
+  scoreOf,
+} from './comparison';
+import { DEFAULT_ELEMENT_WEIGHTS, LEGACY_ELEMENT_WEIGHTS } from '../../saju';
 
 /**
  * 비교기의 약속과 **작은 표본의 머리 수** — 수가 움직이면 무엇이 움직였는지 드러난다.
@@ -82,6 +91,16 @@ describe('공식 표', () => {
     }
   });
 
+  it('엔진 세기는 v2(월지 ×2 · 60:30:10)이고, 옛 기본은 legacy 로 남는다 — ADR 0114', () => {
+    expect(COMPARISON_STRENGTH_WEIGHTS.engine).toEqual(COMPARISON_STRENGTH_WEIGHTS.both);
+    expect(COMPARISON_STRENGTH_WEIGHTS.engine).toEqual(DEFAULT_ELEMENT_WEIGHTS);
+    expect(COMPARISON_STRENGTH_WEIGHTS.legacy).toEqual(LEGACY_ELEMENT_WEIGHTS);
+    for (const [a, b] of scenarioPeople('adults', 50)) {
+      const axes = axesOf(a, b);
+      expect(axes.need.engine).toBe(axes.need.both);
+    }
+  });
+
   it('공식마다 무게의 합이 1 이다', () => {
     for (const formula of FORMULAS) {
       const { dayPillar, need, balance, countComplement } = formula.weights;
@@ -111,21 +130,31 @@ describe('작은 표본의 머리 수 — 성인 시나리오', () => {
   });
 });
 
-/** 2026-09-25 에 잰 값 — [평균, 표준편차, 중앙값, 62~68 몫] · [상위 10 겹침, Spearman 중앙값] · 억부 1순위가 바뀐 몫 */
+/**
+ * 2026-09-25 에 잰 값 — [평균, 표준편차, 중앙값, 62~68 몫] · [상위 10 겹침, Spearman 중앙값] · 억부 1순위가 바뀐 몫.
+ *
+ * 엔진 기본이 월지 ×2 · 60:30:10 이 된 뒤(ADR 0114) 다시 쟀다. v2 둘 · current 는 한 점도 안 움직였다 — v2 는
+ * 처음부터 `both` 로 쟀고 current 는 필요 보완을 안 쓴다. 움직인 것은 엔진 세기로 재는 B(57.32 · 12.43 · 58 · 0.19 /
+ * 2.8 · 0.257 → 아래)뿐이다. C(60 · 40, 엔진 세기)는 이제 v2 일반과 한 점도 다르지 않아 빼고 v2 일반을 60 · 40 으로
+ * 바꿨다(ADR 0113 개정) — 옛 C 줄은 62.05 · 14.7 · 63 · 0.17 / 3.8 · 0.276 로 새 v2 일반(61.98 · 14.64 · 63 · 0.15 /
+ * 3 · 0.224)과 가깝다. 차이는 C 가 옛 엔진 세기였던 몫이다. 억부 1순위가 바뀐 몫은 이제 `legacy` 대비라 옛
+ * `engine` 대비 표(0 · 0.13 · 0.048 · 0.158)와 같은 값이 `legacy` · `month-x2` · `hidden-60-30-10` · `both` 에
+ * 선다 — 되돌아갈 문이 옛 셈을 그대로 낸다는 뜻이다.
+ */
 const LOCKED = {
   distribution: {
     'v2-romantic': [56.96, 11, 57, 0.18],
-    'v2-general': [60.03, 16.21, 61, 0.173],
+    'v2-general': [61.98, 14.64, 63, 0.15],
+    'v2-general-70-30': [60.03, 16.21, 61, 0.173],
     current: [63.82, 8.9, 64, 0.283],
-    B: [57.32, 12.43, 58, 0.19],
-    C: [62.05, 14.7, 63, 0.17],
+    B: [57.25, 12.21, 57, 0.177],
   },
   viewers: {
     'v2-romantic': [3.2, 0.147],
-    'v2-general': [2.8, 0.163],
+    'v2-general': [3, 0.224],
+    'v2-general-70-30': [2.8, 0.163],
     current: [10, 1],
-    B: [2.8, 0.257],
-    C: [3.8, 0.276],
+    B: [3, 0.126],
   },
-  primaryChanged: { engine: 0, 'month-x2': 0.13, 'hidden-60-30-10': 0.048, both: 0.158 },
+  primaryChanged: { legacy: 0, engine: 0.158, 'month-x2': 0.13, 'hidden-60-30-10': 0.048, both: 0.158 },
 };

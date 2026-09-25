@@ -233,20 +233,25 @@ describe('무작위 3000쌍 (시드 20260821, 6000 명식을 둘씩 짝)', () =>
         }
       }
 
+      // 월지 ×2 · 60:30:10(ADR 0114)으로 억부 1순위가 명식의 13.8% 에서 바뀌어 다시 찍었다. 전의 값 —
+      // any 5786 · 198 · 16 / visible 4780 · 991 · 202 · 27 / stems 2924 · 2148 · 631 · 297,
+      // 자리 day-master 1212 · other-stem 2317 · branch-main 1426 · hidden-only 798 · absent 247,
+      // 갈림 200 · 966 · 1748, 반대 신호 5802. 움직임은 칸마다 2% 안팎이고 모양(mixed 가 가장 많다 ·
+      // stems 가 가장 잘 갈린다)은 그대로다.
       expect(relations).toEqual({
-        any: { mixed: 5786, supportive: 198, conflicting: 16 },
-        visible: { mixed: 4780, supportive: 991, conflicting: 202, 'not-comparable': 27 },
-        stems: { mixed: 2924, supportive: 2148, conflicting: 631, 'not-comparable': 297 },
+        any: { mixed: 5780, supportive: 204, conflicting: 16 },
+        visible: { mixed: 4748, supportive: 1012, conflicting: 213, 'not-comparable': 27 },
+        stems: { mixed: 2901, supportive: 2170, conflicting: 645, 'not-comparable': 284 },
       });
       expect(primarySeat).toEqual({
-        'day-master': 1212,
-        'other-stem': 2317,
-        'branch-main': 1426,
-        'hidden-only': 798,
-        absent: 247,
+        'day-master': 1194,
+        'other-stem': 2343,
+        'branch-main': 1425,
+        'hidden-only': 803,
+        absent: 235,
       });
-      expect(differ).toEqual({ any: 200, visible: 966, stems: 1748 });
-      expect(counterSignals).toBe(5802);
+      expect(differ).toEqual({ any: 200, visible: 981, stems: 1784 });
+      expect(counterSignals).toBe(5796);
     },
     POPULATION_TIMEOUT_MS,
   );

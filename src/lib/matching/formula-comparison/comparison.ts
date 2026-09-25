@@ -6,7 +6,7 @@ import {
   dayPillarAxisOf,
   needComplementDirectional,
   needSupplyOf,
-  needTargetsFor,
+  needTargetsOf,
   type NeedTargets,
   type StrengthVariant,
 } from '../../discovery/compat-axes';
@@ -15,7 +15,16 @@ import {
   mutualDeficitComplementOf,
   type ElementSummary,
 } from '../../discovery/element-axes';
-import { computePillars, elementDistributionOf, type Pillars, type SajuInput } from '../../saju';
+import {
+  DEFAULT_ELEMENT_WEIGHTS,
+  LEGACY_ELEMENT_WEIGHTS,
+  computePillars,
+  elementDistributionOf,
+  needProfileOf,
+  type ElementWeights,
+  type Pillars,
+  type SajuInput,
+} from '../../saju';
 import { scenarioDraw, scenarioPairs, withoutHour, type PairScenario } from '../../saju/population';
 import { collisionRate, mean, quantile, sd, spearman, topOverlap } from './stats';
 
@@ -23,8 +32,10 @@ import { collisionRate, mean, quantile, sd, spearman, topOverlap } from './stats
  * **오프라인 궁합 공식 비교기** — 같은 모집단에서 공식 여럿을 나란히 잰다. 결정하지 않는다.
  *
  * 2026-09-25 에 v2 공식(연인용 · 일반)을 베타 전체에 쓰기로 정했고(운영자), 이 비교기는 그 뒤의 **보정 도구**다
- * — 관문이 아니다. 화면 · DB · 프롬프트 · `discovery-v1` 의 SQL 은 건드리지 않는다. 엔진 기본값도 안 바꾼다(세기
- * 후보는 `STRENGTH_VARIANT_WEIGHTS` 옵션으로만).
+ * — 관문이 아니다. 화면 · DB · 프롬프트 · `discovery-v1` 의 SQL 은 건드리지 않는다.
+ *
+ * 같은 날 엔진 기본이 월지 ×2 · 지장간 60:30:10 이 됐다(ADR 0114). 그래서 세기 `engine` 은 이제 `both` 와 같고,
+ * 옛 기본(월지 ×1 · 사령 일수)은 `legacy` 로 따로 잰다 — 세기 후보의 표는 `legacy` 대비다.
  *
  * 축 넷은 모두 0~100 이다.
  * - `dayPillar` — 일주 · 일지 관계(`dayPillarAxisOf`)
@@ -37,6 +48,35 @@ import { collisionRate, mean, quantile, sd, spearman, topOverlap } from './stats
 
 export type AxisKey = 'dayPillar' | 'need' | 'balance' | 'countComplement';
 
+/**
+ * 비교기가 재는 세기 — `discovery/compat-axes` 의 넷에 옛 엔진 기본(`legacy`)을 더한다.
+ *
+ * 무게는 **여기서 다 적는다.** `compat-axes` 의 `STRENGTH_VARIANT_WEIGHTS` 는 한 가지만 바꾼 부분 무게라 엔진
+ * 기본 위에 얹히는데, 기본이 월지 ×2 · 60:30:10 이 된 뒤로(ADR 0114) `month-x2` · `hidden-60-30-10` 이 둘 다
+ * `both` 와 같아졌다. 여기서는 둘을 **옛 기본에 하나씩 더한 것**으로 다시 적어 「어느 하나가 얼마를 바꾸는가」를
+ * 계속 잰다. `legacy` 는 되돌아갈 문(`LEGACY_ELEMENT_WEIGHTS`)이다.
+ */
+export type ComparisonStrength = StrengthVariant | 'legacy';
+
+export const COMPARISON_STRENGTHS: readonly ComparisonStrength[] = ['legacy', ...STRENGTH_VARIANTS];
+
+export const COMPARISON_STRENGTH_WEIGHTS: Record<ComparisonStrength, ElementWeights> = {
+  legacy: LEGACY_ELEMENT_WEIGHTS,
+  engine: DEFAULT_ELEMENT_WEIGHTS,
+  'month-x2': { ...LEGACY_ELEMENT_WEIGHTS, monthBranchMultiplier: 2 },
+  'hidden-60-30-10': { ...LEGACY_ELEMENT_WEIGHTS, hiddenStemWeighting: 'sixty-thirty-ten' },
+  both: { ...LEGACY_ELEMENT_WEIGHTS, monthBranchMultiplier: 2, hiddenStemWeighting: 'sixty-thirty-ten' },
+};
+
+/** 한 사람의 필요 대상 — 세기 하나로 */
+export function targetsFor(
+  pillars: Parameters<typeof needProfileOf>[0],
+  variant: ComparisonStrength,
+  instant?: Date,
+): NeedTargets {
+  return needTargetsOf(needProfileOf(pillars, { instant, weights: COMPARISON_STRENGTH_WEIGHTS[variant] }));
+}
+
 export type Formula = {
   id: string;
   label: string;
@@ -45,7 +85,7 @@ export type Formula = {
   /** 합이 1 인 무게 */
   weights: Record<AxisKey, number>;
   /** 필요 보완을 어느 세기로 재는가 */
-  strength: StrengthVariant;
+  strength: ComparisonStrength;
 };
 
 const { combinedBalance, complement } = DISCOVERY_POLICY.weights;
@@ -53,8 +93,10 @@ const { combinedBalance, complement } = DISCOVERY_POLICY.weights;
 /**
  * 공식 표 — **값이다.** 한 줄을 더하면 모든 표에 한 칸이 선다.
  *
- * v2 둘은 운영자가 2026-09-25 에 정한 것이고 엔진 기본을 월지 ×2 · 지장간 60:30:10 으로 바꾸기로 했으므로
- * `both` 로 잰다. 옛 후보 A(40 · 40 · 20)는 v2 연인용과 같은 무게라 따로 두지 않았다.
+ * v2 둘은 운영자가 2026-09-25 에 정한 것이고 엔진 기본이 월지 ×2 · 지장간 60:30:10 이 됐으므로(ADR 0114)
+ * `both` 로 잰다. 일반용은 ADR 0113 개정에서 보완 60 · 균형 40 이 됐다 — 처음 판의 70 · 30 은 참고 줄로 남긴다.
+ * 옛 후보 A(40 · 40 · 20)는 v2 연인용과, C(60 · 40)는 v2 일반과 같은 무게라 따로 두지 않았다 — C 는 엔진 세기로
+ * 쟀는데 엔진 세기가 이제 `both` 라 한 점도 다르지 않다.
  */
 export const FORMULAS: readonly Formula[] = [
   {
@@ -66,7 +108,14 @@ export const FORMULAS: readonly Formula[] = [
   },
   {
     id: 'v2-general',
-    label: 'v2 일반 (보완 70 · 균형 30)',
+    label: 'v2 일반 (보완 60 · 균형 40)',
+    families: ['general'],
+    weights: { dayPillar: 0, need: 0.6, balance: 0.4, countComplement: 0 },
+    strength: 'both',
+  },
+  {
+    id: 'v2-general-70-30',
+    label: 'v2 일반 처음 판 (보완 70 · 균형 30) — 참고',
     families: ['general'],
     weights: { dayPillar: 0, need: 0.7, balance: 0.3, countComplement: 0 },
     strength: 'both',
@@ -85,13 +134,6 @@ export const FORMULAS: readonly Formula[] = [
     weights: { dayPillar: 0.3, need: 0.5, balance: 0.2, countComplement: 0 },
     strength: 'engine',
   },
-  {
-    id: 'C',
-    label: 'C (보완 60 · 균형 40)',
-    families: ['general'],
-    weights: { dayPillar: 0, need: 0.6, balance: 0.4, countComplement: 0 },
-    strength: 'engine',
-  },
 ];
 
 /** 한 사람 — 비교기가 쓰는 것만 */
@@ -100,7 +142,7 @@ export type Person = {
   pillars: Pillars;
   hourKnown: boolean;
   summary: ElementSummary;
-  targets: Record<StrengthVariant, NeedTargets>;
+  targets: Record<ComparisonStrength, NeedTargets>;
 };
 
 export function personOf(input: SajuInput): Person {
@@ -112,8 +154,8 @@ export function personOf(input: SajuInput): Person {
     hourKnown,
     summary: { glyphCount: distribution.glyphCount, counts: distribution.counts, ratios: distribution.ratios },
     targets: Object.fromEntries(
-      STRENGTH_VARIANTS.map((variant) => [variant, needTargetsFor(pillars, variant, instant)]),
-    ) as Record<StrengthVariant, NeedTargets>,
+      COMPARISON_STRENGTHS.map((variant) => [variant, targetsFor(pillars, variant, instant)]),
+    ) as Record<ComparisonStrength, NeedTargets>,
   };
 }
 
@@ -122,7 +164,7 @@ export type PairAxes = {
   dayPillar: number;
   balance: number;
   countComplement: number;
-  need: Record<StrengthVariant, number>;
+  need: Record<ComparisonStrength, number>;
 };
 
 export function axesOf(a: Person, b: Person): PairAxes {
@@ -131,13 +173,13 @@ export function axesOf(a: Person, b: Person): PairAxes {
     balance: combinedCountBalanceOf(a.summary, b.summary),
     countComplement: mutualDeficitComplementOf(a.summary, b.summary),
     need: Object.fromEntries(
-      STRENGTH_VARIANTS.map((variant) => [
+      COMPARISON_STRENGTHS.map((variant) => [
         variant,
         (needComplementDirectional(a.targets[variant], b.summary, NEED_COMPLEMENT_AXIS) +
           needComplementDirectional(b.targets[variant], a.summary, NEED_COMPLEMENT_AXIS)) /
           2,
       ]),
-    ) as Record<StrengthVariant, number>,
+    ) as Record<ComparisonStrength, number>,
   };
 }
 
@@ -193,13 +235,13 @@ export type ScenarioReport = {
   viewers: Record<string, ViewerMetrics>;
   /** 두 사람 다 시를 지우면 5 점 넘게 움직이는 쌍의 몫(시를 아는 사람이 있는 쌍 중), 그리고 쌍 순위의 Spearman */
   hourDrop: Record<string, { moved5: number; spearman: number }>;
-  /** 필요 보완 한 방향 점수의 비대칭 — 엔진 세기에서 */
+  /** 필요 보완 한 방향 점수의 비대칭 — 엔진 세기(ADR 0114 뒤로는 `both` 와 같다)에서 */
   asymmetry: { meanAbsDiff: number; diff50OrMore: number };
   /** D — 점수는 지금 그대로, 「상대가 나에게 채워 주는 것」 이유가 서는 쌍의 몫(보는 쪽 방향, 엔진 세기) */
   reasonShare: { anySupply: number; saturated: number };
-  /** 세기 후보마다: 억부 1순위가 바뀐 사람의 몫, 보는 사람의 상위 10 · Spearman(엔진 세기 대비, 공식별) */
+  /** 세기 후보마다: 억부 1순위가 바뀐 사람의 몫, 보는 사람의 상위 10 · Spearman(옛 기본 `legacy` 대비, 공식별) */
   strength: Record<
-    StrengthVariant,
+    ComparisonStrength,
     { primaryChanged: number; formulas: Record<string, { top10Overlap: number; spearmanP50: number }> }
   >;
 };
@@ -302,17 +344,17 @@ export function runScenario(
 
   const people = pairs.flat();
   const strength = Object.fromEntries(
-    STRENGTH_VARIANTS.map((variant) => [
+    COMPARISON_STRENGTHS.map((variant) => [
       variant,
       {
         primaryChanged: round(
-          people.filter((p) => p.targets[variant].primary !== p.targets.engine.primary).length / people.length,
+          people.filter((p) => p.targets[variant].primary !== p.targets.legacy.primary).length / people.length,
         ),
         formulas: Object.fromEntries(
           formulas
             .filter((f) => f.weights.need > 0)
             .map((f) => {
-              const base = viewerScores(f, 'engine');
+              const base = viewerScores(f, 'legacy');
               const moved = viewerScores(f, variant);
               return [
                 f.id,

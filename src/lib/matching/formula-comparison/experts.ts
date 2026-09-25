@@ -1,10 +1,8 @@
 import {
   NEED_COMPLEMENT_AXIS,
   needComplementDirectional,
-  needTargetsFor,
   type NeedComplementParams,
   type NeedTargets,
-  type StrengthVariant,
 } from '../../discovery/compat-axes';
 import type { ElementSummary } from '../../discovery/element-axes';
 import { elementDistributionOf, pillarOf, type Branch, type Stem } from '../../saju';
@@ -13,7 +11,8 @@ import {
   type CasePillars,
   type ExternalCompatCase,
 } from '../../saju/analysis/validation/compatExternalCases';
-import { auc, mean } from './stats';
+import { targetsFor, type ComparisonStrength } from './comparison';
+import { auc, bootstrapAucInterval, mean } from './stats';
 
 /**
  * **전문가 판정 합치도** — 정확도가 아니다.
@@ -60,7 +59,7 @@ type CaseDirections = {
   directions: { label: Label; receiver: NeedTargets; provider: ElementSummary }[];
 };
 
-function casesWith(variant: StrengthVariant): CaseDirections[] {
+function casesWith(variant: ComparisonStrength): CaseDirections[] {
   return COMPAT_EXTERNAL_CASES.map((testCase) => ({
     testCase,
     directions: testCase.directions.flatMap((direction) => {
@@ -74,7 +73,7 @@ function casesWith(variant: StrengthVariant): CaseDirections[] {
       return [
         {
           label,
-          receiver: needTargetsFor(chartOf(person(direction.receiver).pillars), variant),
+          receiver: targetsFor(chartOf(person(direction.receiver).pillars), variant),
           provider: summaryOf(person(direction.provider).pillars),
         },
       ];
@@ -89,6 +88,11 @@ export type Agreement = {
   splitPairs: number;
   /** 양성 쌍이 음성 쌍보다 높을 확률 — 0.5 가 무작위 */
   auc: number;
+  /**
+   * AUC 의 부트스트랩 95% 구간(양성 · 음성 따로 복원 추출 2000 번). 양성 19 · 음성 9 에서는 구간이 넓다 — 0.5 를
+   * 품으면 이 축이 판정을 가른다고 말할 수 없다.
+   */
+  aucInterval: { low: number; high: number };
   /** 양성 쌍 평균 − 음성 쌍 평균 */
   meanDiff: number;
   /** 갈린 쌍 안에서 「채운다」 방향이 더 높은 몫(같으면 반) */
@@ -123,6 +127,9 @@ function agreementOf(
     negativePairs: neg.length,
     splitPairs: split.length,
     auc: Number(auc(pos, neg).toFixed(3)),
+    aucInterval: (({ low, high }) => ({ low: Number(low.toFixed(3)), high: Number(high.toFixed(3)) }))(
+      bootstrapAucInterval(pos, neg),
+    ),
     meanDiff: Number((mean(pos) - mean(neg)).toFixed(1)),
     splitConcordance: split.length === 0 ? Number.NaN : Number(mean(split).toFixed(3)),
   };
@@ -149,7 +156,7 @@ function fit(cases: readonly CaseDirections[]): NeedComplementParams {
 }
 
 export type ExpertReport = {
-  variant: StrengthVariant;
+  variant: ComparisonStrength;
   overall: Agreement;
   byCredibility: Record<string, Agreement>;
   byAuthor: Record<string, Agreement>;
@@ -159,7 +166,7 @@ export type ExpertReport = {
   leaveOneAuthorOut: { agreement: Agreement; chosen: Record<string, NeedComplementParams> };
 };
 
-export function expertAgreement(variant: StrengthVariant = 'engine'): ExpertReport {
+export function expertAgreement(variant: ComparisonStrength = 'engine'): ExpertReport {
   const cases = casesWith(variant);
   const groupBy = (key: (c: CaseDirections) => string) =>
     cases.reduce<Record<string, CaseDirections[]>>((acc, c) => {

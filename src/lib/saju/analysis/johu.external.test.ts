@@ -206,6 +206,10 @@ describe('조후 외부 대조 데이터셋', () => {
    * 사례마다 한 줄: `엔진 활성 조후 글자 · 억부 1순위 오행 · 관계 · 처방 오행의 자리 · 처방 대조`.
    * 처방 대조는 `stem`(저자 천간이 활성 글자에 있다) · `element-only`(오행만 같다) · `-`(저자가
    * 천간을 안 적었거나 처방이 없다). 오행이 어긋난 사례는 없다(아래 시험).
+   *
+   * 월지 ×2 · 60:30:10(ADR 0114)에서 쉰여섯 중 일곱 줄이 바뀌었다 — 조후 글자와 처방 자리는 한 줄도 안
+   * 움직였고, 억부 1순위가 바뀐 다섯 줄과 1순위는 같은데 관계만 달라진 두 줄(`dtsm-joseup-jeongmi` ·
+   * `xy-sinyu-sinchuk`)이다. 옛 줄은 그 위에 적었다.
    */
   it('엔진의 조후 · 억부 · 관계를 사례마다 고정한다', () => {
     const lines = Object.fromEntries(
@@ -226,24 +230,28 @@ describe('조후 외부 대조 데이터셋', () => {
       'dtsm-handan-jeongchuk': '壬庚 水 partial revealed-rooted stem',
       'dtsm-handan-gyemi': '壬癸庚 水 partial revealed-unrooted stem',
       'dtsm-joseup-byeongjin': '丙丁甲 火 partial revealed-unrooted stem',
-      'dtsm-joseup-jeongmi': '丁甲丙 土 conflict revealed-rooted stem',
+      // ADR 0114 전: 丁甲丙 土 conflict revealed-rooted stem
+      'dtsm-joseup-jeongmi': '丁甲丙 土 not-comparable revealed-rooted stem',
       'dtsm-joseup-gyemi': '癸庚丁 水 conflict revealed-unrooted stem',
       'dtsm-joseup-gyechuk': '癸庚丁 水 conflict revealed-rooted stem',
       'dtsm-gasin-byeongja': '壬丙 土 conflict revealed-unrooted stem',
       'dtsm-jindae-sinyu': '丁庚丙 土 not-comparable revealed-rooted stem',
       'dtsm-bucheo-gyemyo': '丙丁甲 火 partial revealed-unrooted stem',
-      'dtsm-hajijang-byeongsin': '丁丙 木 not-comparable revealed-rooted stem',
+      // ADR 0114 전: 丁丙 木 not-comparable revealed-rooted stem
+      'dtsm-hajijang-byeongsin': '丁丙 土 not-comparable revealed-rooted stem',
       'dtsm-yeomyeong-jeongmi': '丙丁甲 土 not-comparable revealed-rooted stem',
       'dtsm-yeomyeong-jeongchuk': '丙丁甲 土 not-comparable revealed-unrooted stem',
       'dtsm-bangug-gapsin': '丙 水 conflict revealed-rooted stem',
       'dtsm-seongjeong-gichuk': '戊丙 金 conflict revealed-unrooted stem',
       'dtsm-seongjeong-gapja': '丁甲丙 土 not-comparable revealed-unrooted stem',
       'dtsm-seongjeong-jeongsa': '丙戊壬甲 土 conflict revealed-rooted element-only',
-      'dtsm-jilbyeong-jeonghae': '癸丙 水 conflict hidden-only -',
+      // ADR 0114 전: 癸丙 水 conflict hidden-only -
+      'dtsm-jilbyeong-jeonghae': '癸丙 火 partial hidden-only -',
       'dtsm-jilbyeong-gichuk': '丙戊壬甲 土 conflict revealed-unrooted stem',
       'dtsm-chulsin-jeonghae': '丁甲丙 土 not-comparable revealed-rooted stem',
       'dtsm-hajijang-sinchuk': '丙丁 火 same-direction - -',
-      'dtsm-jaedeok-byeongin': '丙甲戊 火 conflict revealed-rooted stem',
+      // ADR 0114 전: 丙甲戊 火 conflict revealed-rooted stem
+      'dtsm-jaedeok-byeongin': '丙甲戊 土 partial revealed-rooted stem',
       'dtsm-jaedeok-byeongsul': '丙甲戊 火 conflict revealed-rooted stem',
       'dtsm-bunul-gyechuk': '丙丁 金 not-comparable - -',
       'dtsm-jilbyeong-imjin': '丙戊壬甲 土 conflict - -',
@@ -254,7 +262,8 @@ describe('조후 외부 대조 데이터셋', () => {
       'qlmg-gaek-jeonghae': '丙丁甲 土 not-comparable revealed-unrooted stem',
       'qlmg-gonmyeong-gisa': '丙 水 not-comparable revealed-rooted element-only',
       'qlmg-byeongsul-eulmi': '壬庚 木 not-comparable absent -',
-      'qlmg-sinhae-gyeongja': '丁甲丙 火 partial revealed-rooted stem',
+      // ADR 0114 전: 丁甲丙 火 partial revealed-rooted stem
+      'qlmg-sinhae-gyeongja': '丁甲丙 土 not-comparable revealed-rooted stem',
       'qlmg-musul-muo': '壬庚癸 土 not-comparable absent -',
       'qlmg-muja-eulchuk': '丙壬戊己 木 conflict absent -',
       'qlmg-gabo-jeongchuk': '丙壬戊己 火 partial - -',
@@ -264,11 +273,13 @@ describe('조후 외부 대조 데이터셋', () => {
       'zpzq-gyeongjin-imo': '癸庚丁 水 conflict revealed-rooted element-only',
       'zpzq-gapja-byeongja': '丙辛 土 not-comparable revealed-unrooted stem',
       'zpzq-gimi-eulhae': '庚辛戊丁 土 partial revealed-rooted element-only',
-      'zpzq-musul-jeongsa': '癸庚丁 木 not-comparable absent -',
+      // ADR 0114 전: 癸庚丁 木 not-comparable absent -
+      'zpzq-musul-jeongsa': '癸庚丁 水 conflict absent -',
       // 현대 중국(CN-1)
       'zzx-sinhae-sinchuk': '丙甲戊 火 partial hidden-only -',
       'zzx-byeongo-gihae': '丁丙 土 conflict revealed-rooted -',
-      'xy-sinyu-sinchuk': '丙丁甲 金 conflict absent stem',
+      // ADR 0114 전: 丙丁甲 金 conflict absent stem
+      'xy-sinyu-sinchuk': '丙丁甲 金 not-comparable absent stem',
       'xy-jeongyu-gyechuk': '丙丁 土 not-comparable revealed-unrooted -',
       'xy-musul-muo': '壬甲丙 木 partial absent -',
       'zyh-gihae-jeongchuk': '甲庚 木 partial revealed-rooted -',
@@ -361,7 +372,9 @@ describe('조후 외부 대조 데이터셋', () => {
     expect(Object.fromEntries(RANKED.map((verdict) => [verdict, tally(verdict)]))).toEqual({
       // CN-1 전 5/18 · 1/3 이었다. 현대 중국 우선 넷 중 셋이 억부와 같은 오행이다 — 현대 저자들은
       // 조후와 억부가 겹치는 명식을 골라 싣는 경향이 있다(`docs/notes/2026-09-25-research-cn-johu.md` 3).
-      'johu-first': [8, 22],
+      // 월지 ×2 · 60:30:10(ADR 0114) 전 8/22 — `dtsm-jilbyeong-jeonghae` 의 억부 1순위가 水 → 火 로 옮겨
+      // 저자의 용신(水)에서 멀어졌다.
+      'johu-first': [7, 22],
       'johu-auxiliary': [3, 7],
       'johu-declined': [2, 4],
       'not-invoked': [2, 2],
@@ -375,9 +388,11 @@ describe('조후 외부 대조 데이터셋', () => {
       return counts;
     };
     expect(Object.fromEntries(RANKED.map((verdict) => [verdict, relations(verdict)]))).toEqual({
-      'johu-first': { 'not-comparable': 9, partial: 11, conflict: 7 },
-      'johu-auxiliary': { 'not-comparable': 4, conflict: 3, partial: 1 },
-      'johu-declined': { 'not-comparable': 2, partial: 3, conflict: 3 },
+      // ADR 0114 전: 우선 n-c 9 · partial 11 · conflict 7 / 보조 n-c 4 · conflict 3 · partial 1 /
+      // 물림 n-c 2 · partial 3 · conflict 3. 위 행렬의 일곱 줄이 옮긴 몫이다.
+      'johu-first': { 'not-comparable': 11, partial: 12, conflict: 4 },
+      'johu-auxiliary': { 'not-comparable': 5, conflict: 3 },
+      'johu-declined': { 'not-comparable': 1, partial: 3, conflict: 4 },
       'not-invoked': { conflict: 1, partial: 3 },
     });
   });
