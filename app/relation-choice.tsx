@@ -1,5 +1,3 @@
-'use client';
-
 import { RELATIONS, RELATION_LABEL, type Relation } from '@/src/lib/people';
 
 import { TYPE_NAME } from './ui/surfaces';
@@ -10,13 +8,11 @@ import { TYPE_NAME } from './ui/surfaces';
  * 묻는 까닭은 「무슨 사이인지에 따라 해석의 방향을 달리 잡아 드리겠다」는 것이다.
  * 그러니 읽고 난 뒤에 묻는 것은 아무 뜻이 없다 — 이미 나온 글은 그 답을 못 쓴다.
  *
- * **두 궁합 입구가 같은 칸을 같은 자리에 쓴다** — 두 사람 카드 아래(`CompatCalculator`),
- * 고르는 칸 아래(`PairPicker`). 한 탭 안에서 같은 물음이 서로 다른 자리에 서면 사용자는
- * 그것을 두 가지 물음으로 읽는다. 따로 그리면 한쪽만 고쳐지고, 그때 두 화면이 서로 다른
- * 것을 약속한다.
+ * **묻는 자리는 하나다** — 두 사람을 고르는 칸 아래(`compat-picker.tsx`). 결과 화면(`/me/compat`)은 다시 묻지
+ * 않고 무엇으로 읽는지만 한 줄로 적는다(ADR 0054).
  *
- * 결과 화면에도 한 번 더 선다(`RelationForNext`). 그것은 지금 글이 아니라 **다음 글**을
- * 위한 자리다 — ADR 0019 는 그대로다.
+ * 답은 글의 방향만이 아니라 **점수의 눈금도 고른다**(ADR 0113) — 연인 · 배우자는 연인용, 그 밖과 모름은 일반.
+ * 그래서 안내가 「점수에는 쓰지 않습니다」를 더는 말하지 않는다(2026-09-26).
  *
  * 고른 것은 먹색으로 채우고 체크 표시를 단다 — 색만으로 「골랐다」를 말하지 않는다.
  *
@@ -40,7 +36,7 @@ export function RelationChoice({
       <legend className={`float-left w-full ${TYPE_NAME}`}>두 분은 무슨 사이인가요?</legend>
       <p className="mt-1.5 text-[13px] leading-5 text-secondary">
         사이에 따라 읽어 드릴 방향이 달라집니다. 가족에게 할 말과 연인에게 할 말이 다르기
-        때문입니다. <strong className="font-semibold text-foreground">점수에는 쓰지 않습니다.</strong>
+        때문입니다. <strong className="font-semibold text-foreground">점수의 기준도 이 답을 따릅니다.</strong>
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">
