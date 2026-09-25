@@ -107,7 +107,7 @@ export function ReadingFeedback({
   };
 
   return (
-    <section className="overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-[var(--shadow-card)]">
+    <section className="overflow-hidden rounded-[1.75rem] border border-border bg-surface shadow-card">
       <header className="px-5 pt-6 sm:px-7">
         <p className={TYPE_NAME}>이 풀이는 어떠셨어요?</p>
         <p className="mt-1 text-[13px] leading-5 text-secondary">{FEEDBACK_SCOPE_NOTE}</p>

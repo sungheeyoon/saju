@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { SERVICE_NAME } from '@/src/lib/brand';
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
@@ -10,6 +10,7 @@ import { readingCreditsLabel } from '@/src/lib/reading';
 import { SURVEY_COPY } from '@/src/lib/survey';
 
 import { supabaseInBrowser } from './auth/browser-client';
+import { useBrowserSession } from './auth/browser-session';
 import { readUnreadChat } from './me/chat/unread';
 import { CHAT_UNREAD_MOVED } from './me/chat/unread-signal';
 import { readReadingCredits } from './me/reading/credits';
@@ -18,6 +19,7 @@ import { readUnreadNotifications } from './me/requests/unread';
 import { NOTIFICATIONS_UNREAD_MOVED } from './me/requests/unread-signal';
 import { isSharePath } from './share/path';
 import { BUTTON_SECONDARY_SMALL, ICON_BUTTON } from './ui/buttons';
+import { useDetailsMenu } from './ui/details-menu';
 import { Icon, type IconName } from './ui/icons';
 import { BrandMark } from './ui/logo';
 import { BADGE } from './ui/surfaces';
@@ -66,25 +68,15 @@ export function isNavigationActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/**
- * 로그인했는지 — **문을 지키는 값이 아니라 길을 가리키는 값이다.**
- *
- * 쿠키를 브라우저에서 그냥 읽는다(`getSession`). 서버에 물어 JWT 를 검증하지 않는
- * 것은 이 값으로 무엇을 열고 닫지 않기 때문이다 — 무엇을 볼 수 있는지는 DB 정책이
- * 정하고, `/me` 는 자기 자리에서 다시 묻는다(`proxy.ts` 와 같은 규율: 판정하는
- * 자리를 둘로 만들지 않는다). 여기서 정하는 것은 「어느 쪽으로 가는 길을 보일까」뿐이다.
- *
- * 서버에서 읽지 않는 이유는 더 단순하다. `/` 와 `/compat` 은 **정적으로 미리 그려지고**
- * proxy 도 일부러 안 지나간다. 헤더 하나 때문에 그 두 화면이 요청마다 도는 화면이 되면,
- * 세션도 없는 방문마다 Supabase 를 두드리게 된다.
- */
-type Session = 'unknown' | 'in' | 'out';
-
+/*
+  로그인했는지는 `useBrowserSession` 이 읽는다 — 서버에서 읽지 않는다. `/` 와 `/compat` 은
+  **정적으로 미리 그려지고** proxy 도 일부러 안 지나간다. 헤더 하나 때문에 그 두 화면이 요청마다 도는 화면이 되면,
+  세션도 없는 방문마다 Supabase 를 두드리게 된다.
+*/
 export function SiteHeader() {
   const pathname = usePathname();
   const protectedPath = pathname.startsWith('/me') || pathname === '/compat';
-  const [session, setSession] = useState<Session>('unknown');
-  const [email, setEmail] = useState<string | null>(null);
+  const { session, email } = useBrowserSession();
   /**
    * **관문이 되돌리는 자리에서는 길을 안 세운다.** 베타가 끝나면 모든 화면이 `/closed` 로, 가입을 마치지 않은
    * 사람은 `/signup` 으로 되돌려진다(`proxy.ts`). 탭 · 종 · 풀이권은 누르면 전부 그 화면으로 되돌아오는 죽은
@@ -104,29 +96,6 @@ export function SiteHeader() {
   const unreadNews = useUnreadCount(live, pathname, readUnreadNotifications, NOTIFICATIONS_UNREAD_MOVED);
   /** 로그인 화면에서 「로그인」은 지금 보고 있는 화면으로 가는 버튼이다 */
   const onAuthScreen = pathname.startsWith('/auth');
-
-  useEffect(() => {
-    const supabase = supabaseInBrowser();
-    let watching = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (watching) {
-        setSession(data.session === null ? 'out' : 'in');
-        setEmail(data.session?.user.email ?? null);
-      }
-    });
-
-    // 톱니 메뉴나 계정 관리 화면에서 로그아웃하면 머리글도 바로 공개 모양으로 돌아간다.
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
-      setSession(next === null ? 'out' : 'in');
-      setEmail(next?.user.email ?? null);
-    });
-
-    return () => {
-      watching = false;
-      data.subscription.unsubscribe();
-    };
-  }, []);
 
   return (
     <>
@@ -343,7 +312,7 @@ function Dock({ pathname, unreadChat }: { pathname: string; unreadChat: number }
       aria-label="모바일 내 메뉴"
       className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 md:hidden"
     >
-      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-[1.75rem] bg-surface/95 p-1.5 shadow-[0_10px_30px_-12px_rgba(60,48,30,0.45)] ring-1 ring-border backdrop-blur-xl">
+      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-[1.75rem] bg-surface/95 p-1.5 shadow-raise ring-1 ring-border backdrop-blur-xl">
         {MEMBER_TABS.map((tab) => {
           const active = isNavigationActive(pathname, tab.href);
           return (
@@ -383,7 +352,7 @@ function Dock({ pathname, unreadChat }: { pathname: string; unreadChat: number }
  * 하게 길을 하나 둔다.
  *
  * `<details>` 는 안의 링크를 눌러도 스스로 안 닫힌다. 닫는 자리를 셋 둔다. **주소가 바뀌면**, **눌렀으면**
- * (같은 화면으로 가는 누름은 주소를 안 바꾼다), 그리고 **바깥을 누르거나 Esc 를 누르면.**
+ * (같은 화면으로 가는 누름은 주소를 안 바꾼다), 그리고 **바깥을 누르거나 Esc 를 누르면**(`useDetailsMenu`).
  */
 function SettingsMenu({
   email,
@@ -398,36 +367,19 @@ function SettingsMenu({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const panel = useRef<HTMLDetailsElement>(null);
+  const { menu: panel, close } = useDetailsMenu();
   const [leaving, setLeaving] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
-  const close = () => {
-    if (panel.current !== null) panel.current.open = false;
-  };
+  useEffect(close, [pathname, close]);
 
-  useEffect(close, [pathname]);
-
-  useEffect(() => {
-    const outside = (event: MouseEvent) => {
-      if (panel.current !== null && !panel.current.contains(event.target as Node)) close();
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') close();
-    };
-
-    document.addEventListener('mousedown', outside);
-    document.addEventListener('keydown', escape);
-    return () => {
-      document.removeEventListener('mousedown', outside);
-      document.removeEventListener('keydown', escape);
-    };
-  }, []);
-
+  /*
+    판은 누른 뒤에도 열어 둔다 — 「로그아웃하는 중…」과 실패 문장이 이 판 안에 선다. 먼저 닫으면 실패가 닫힌 판 안에
+    서서 아무에게도 안 보였다. 되면 주소가 바뀌며 닫힌다(위의 `useEffect`).
+  */
   const signOut = async () => {
     setLeaving(true);
     setFailure(null);
-    close();
     const { error } = await supabaseInBrowser().auth.signOut();
     if (error) {
       setLeaving(false);
@@ -455,7 +407,7 @@ function SettingsMenu({
       >
         <Icon name="gear" />
       </summary>
-      <div className="absolute right-0 top-13 z-50 w-60 rounded-[1.25rem] bg-surface p-2 shadow-[var(--shadow-float)] ring-1 ring-border">
+      <div className="absolute right-0 top-13 z-50 w-60 rounded-[1.25rem] bg-surface p-2 shadow-float ring-1 ring-border">
         {email && <p className="truncate border-b border-border px-3 pb-2 pt-1 text-[13px] text-muted">{email}</p>}
         <ul className="mt-1 flex flex-col">
           {links.map((link) => (

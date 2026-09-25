@@ -6,7 +6,7 @@ import { useEffect, type CSSProperties, type ReactNode } from 'react';
 
 import type { Element } from '@/src/lib/saju';
 
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
 

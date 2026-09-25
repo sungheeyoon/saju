@@ -1,6 +1,6 @@
 import { ELEMENTS, ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
 
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { CandidatePhoto } from './candidate-photo';
 import { elementOf, supplyOf, type DeckCard } from './deck-card';

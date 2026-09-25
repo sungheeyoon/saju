@@ -1,6 +1,6 @@
 import type { Element } from '@/src/lib/saju';
 
-import { elementScope } from '../element-tone';
+import { elementScope } from './element-tone';
 
 /**
  * **오행 상징 다섯** — 새싹(木) · 불꽃(火) · 산(土) · 보석(金) · 물방울(水), 모를 때는 물음표 원.

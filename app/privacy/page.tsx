@@ -1,8 +1,7 @@
 import Link from 'next/link';
 
-import { CARD } from '../card';
 import { BUTTON_TERTIARY } from '../ui/buttons';
-import { TYPE_NAME, TYPE_TITLE } from '../ui/surfaces';
+import { CARD, TYPE_NAME, TYPE_TITLE } from '../ui/surfaces';
 import {
   NOTICE_NOT_READY,
   OPTIONAL_CONSENTS,

@@ -7,7 +7,6 @@ import { RELATION_LABEL } from '@/src/lib/people';
 import { analyzeCompatibility, STEM_INFO, type Element } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { CARD } from '../../card';
 import { CompatView } from '../../compat-view';
 import { MatchResult } from '../../compat-match';
 import { ScoringNote } from '../../match-index';
@@ -20,11 +19,11 @@ import { readAccount } from '../account';
 import { payloadForViewer, type PersonPayload } from '../payload';
 import { currentReading } from '../reading/current';
 import { ReadingSection } from '../reading/section';
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
-import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
+import { CARD, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 
 /**
  * 모델 240초 상한이 먼저 끝나 실패를 기록하고, DB 600초 만료보다는 먼저 닫는다.

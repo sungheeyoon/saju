@@ -3,12 +3,12 @@ import Link from 'next/link';
 import { CHAT_TAB_LABEL, messageTimeLabel, partnerNameOf, roomNoticeOf } from '@/src/lib/chat';
 import type { Element } from '@/src/lib/saju';
 
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { BADGE, TYPE_TITLE } from '../../ui/surfaces';
 import { Avatar } from '../avatar';
-import { ChatIcon } from './chat-icon';
 import type { ChatRoom } from './rooms';
 import type { RoomTones } from './tones';
+import { Icon } from '../../ui/icons';
 
 /**
  * **목록과 방이 한 틀에 선다** — 넓은 화면(lg)은 왼쪽 목록 + 오른쪽 방 두 칸, 폰은 주소마다 한 칸이다.
@@ -109,7 +109,7 @@ function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone
           </span>
         </span>
         <span className="flex items-center gap-2">
-          {closed && <ChatIcon name="lock" className="size-3.5 text-secondary" />}
+          {closed && <Icon name="lock" className="size-3.5 text-secondary" />}
           <span
             className={`min-w-0 flex-1 truncate text-[14px] leading-5 ${
               unread > 0 && !closed ? 'font-semibold text-foreground' : 'text-secondary'

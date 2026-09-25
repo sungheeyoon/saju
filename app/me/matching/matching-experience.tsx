@@ -8,7 +8,7 @@ import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
 import { ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
 
-import { elementScope } from '../../element-tone';
+import { elementScope } from '../../ui/element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon, type IconName } from '../../ui/icons';
@@ -20,9 +20,9 @@ import { CandidatePhoto } from './candidate-photo';
 import { elementOf, supplyOf, type DeckCard } from './deck-card';
 import { deckReducer, PASSED_LIMIT } from './deck-state';
 import type { MeMark } from './me-mark';
-import { reducedMotion } from './motion';
+import { reducedMotion } from '../../ui/motion';
 import { ApproachMap, Legend, QuietOrbit, type MapStatus } from './orbit-map';
-import { PassedConnections, UndoIcon } from './passed-connections';
+import { PassedConnections } from './passed-connections';
 import { DeckButtons, DeckDots, DetailSheet, openSheet, TodayCard } from './today-card';
 
 
@@ -274,7 +274,7 @@ export function MatchingExperience({
             onClick={() => setView(view === 'today' ? 'passed' : 'today')}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-surface px-3.5 text-[13px] font-semibold text-foreground ring-1 ring-border hover:ring-border-strong active:scale-[0.97]"
           >
-            {view === 'today' ? <UndoIcon className="size-4" /> : <Icon name="heart" className="size-4" />}
+            {view === 'today' ? <Icon name="undo" className="size-4" /> : <Icon name="heart" className="size-4" />}
             {view === 'today' ? '지나친 인연' : '오늘의 인연'}
             <span className="tabular-nums text-secondary">
               {view === 'today' ? passed.length : deck.remaining.length}
@@ -521,7 +521,7 @@ function Letter({ nickname, intro }: { nickname: string; intro: string | null })
   );
 }
 
-function ViewButton({ on, onClick, icon, label, count }: { on: boolean; onClick: () => void; icon: IconName | 'undo'; label: string; count: number }) {
+function ViewButton({ on, onClick, icon, label, count }: { on: boolean; onClick: () => void; icon: IconName; label: string; count: number }) {
   return (
     <button
       type="button"
@@ -531,7 +531,7 @@ function ViewButton({ on, onClick, icon, label, count }: { on: boolean; onClick:
         on ? 'bg-accent text-on-accent' : 'text-secondary hover:bg-surface-soft hover:text-foreground'
       }`}
     >
-      {icon === 'undo' ? <UndoIcon className="size-[18px]" /> : <Icon name={icon} className="size-[18px]" />}
+      <Icon name={icon} className="size-[18px]" />
       {label}
       <span
         className={`grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold tabular-nums ${

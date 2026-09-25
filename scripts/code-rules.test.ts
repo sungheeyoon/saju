@@ -284,18 +284,11 @@ const ERRORS_NEVER_READ_STILL_THERE: readonly string[] = [];
  * 내므로, 이 모양은 실패를 아무 데도 안 남긴다(ADR 0078). `{ data }` 만 꺼내는 자리(위)의 형제이고, 그 시험이 구조분해만
  * 봐서 이 모양이 지나갔다(2026-09-25 에 쟀다, 아홉 — 그중 `app/api` 둘은 같은 날 고쳤다).
  *
- * 남은 자리는 전부 **뒤에 복구기가 받치는 쓰기**다(`fail_reading_job` 이 실패하면 기한이 지나 복구기가 닫는다). 그래도
- * 조용하다 — 고칠 때 `error` 를 꺼내 기록(`console.error`)에 남기고 여기서 지운다. **넘김:** `app/me/reading/*` 는
- * 풀이 화면 담당이다. `app/me/discovery/participation.ts` 는 2026-09-26 에 기록을 남기게 고쳐 지웠다.
+ * 남은 자리는 없다 — 예산 0 이다. 뒤에서 받치는 쓰기(복구기 · 만료가 닫는 일감)라도 `error` 를 꺼내 기록(`console.error`)에
+ * 남긴다. 풀이의 여섯(`app/me/reading/collect.ts` · `pipeline.ts`)과 `app/me/discovery/participation.ts` 를 2026-09-26 에
+ * 그렇게 고쳤다.
  */
-const DB_RESULTS_DROPPED_STILL_THERE = [
-  "app/me/reading/collect.ts :: keyed.rpc('fail_reading_job', …)",
-  "app/me/reading/collect.ts :: keyed.rpc('release_reading_job', …)",
-  "app/me/reading/pipeline.ts :: keyed.rpc('fail_reading_job', …)",
-  "app/me/reading/pipeline.ts :: keyed.rpc('adopt_reading_job', …)",
-  "app/me/reading/pipeline.ts :: keyed.rpc('fail_reading_job', …)",
-  "app/me/reading/pipeline.ts :: supabase.rpc('fail_reading_run', …)",
-];
+const DB_RESULTS_DROPPED_STILL_THERE: readonly string[] = [];
 /** `.from()` 이름이 겹치는 내장 — `scripts/layers.test.ts` 의 `NOT_A_DB_OBJECT` 와 같은 목록 */
 const NOT_A_DB_OBJECT = /^(Array|Buffer|Uint8Array|Int32Array|Float64Array|Object|Promise|Set|Map|String)$/;
 
@@ -424,7 +417,7 @@ describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 �
     expectExactly(found, ERRORS_NEVER_READ_STILL_THERE);
   });
 
-  it('DB 결과를 문장으로 버리는 자리는 옛 자리 일곱뿐이다 (ADR 0078)', () => {
+  it('DB 결과를 문장으로 버리는 자리는 없다 — 예산 0 이다 (ADR 0078)', () => {
     // `await x.rpc(…)` · `void x.from(…).update(…)` — 식이 곧 문장이다. `.then` · `.catch` 로 받는 사슬은 받은 것으로 친다
     const rootCall = (node: ts.Expression): ts.CallExpression | null => {
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {

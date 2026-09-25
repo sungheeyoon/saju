@@ -107,12 +107,14 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
     /** 쓴 토큰 — **실패에도 나간 돈이 있다**(ADR 0039). 모르면 `null` 이고 안 적는다 */
     usage: ModelUsage | null = null,
   ): Promise<CollectOutcome> => {
-    await keyed.rpc('fail_reading_job', {
+    /* 못 닫아도 기한이 지나면 복구기가 닫는다 — 그래도 조용히 넘기지 않고 기록에 남긴다(ADR 0078) */
+    const { error: notClosed } = await keyed.rpc('fail_reading_job', {
       p_run_id: job.run_id,
       p_failure_code: code,
       p_failure_detail: detail,
       p_usage: usage,
     });
+    if (notClosed) console.error('collect: fail_reading_job', notClosed.code, notClosed.message);
     return { done: 'failed', code };
   };
 
@@ -123,7 +125,8 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
    * 놓아야 복구기가 다음 바퀴에 다시 집는다 — 안 되돌리면 그 일감은 영영 안 집힌다.
    */
   if (retrieved.ok === 'pending') {
-    await keyed.rpc('release_reading_job', { p_run_id: job.run_id });
+    const { error: notReleased } = await keyed.rpc('release_reading_job', { p_run_id: job.run_id });
+    if (notReleased) console.error('collect: release_reading_job', notReleased.code, notReleased.message);
     return { done: 'pending' };
   }
 

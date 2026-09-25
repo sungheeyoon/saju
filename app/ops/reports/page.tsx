@@ -4,7 +4,6 @@ import { notFound, redirect } from 'next/navigation';
 import { REPORT_REASONS } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { CARD } from '../../card';
 import { filtersOf, hrefOf, isFiltered, type ReportFilters } from './filters';
 import {
   EVIDENCE_LABEL,
@@ -17,6 +16,7 @@ import {
   reviewStateLabel,
 } from './labels';
 import { DENIED, operatorReports, type Account, type ReportRow } from './read';
+import { CARD } from '../../ui/surfaces';
 
 export const metadata = {
   title: '신고',

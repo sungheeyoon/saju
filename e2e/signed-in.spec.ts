@@ -111,6 +111,47 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('link', { name: '인연 설정', exact: true })).toHaveCount(0);
   });
 
+  test('로그아웃이 실패하면 톱니 판이 열린 채로 그 까닭을 말한다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    /*
+      실패 문장은 톱니 판(`<details>`) 안에 선다. 누르자마자 판을 닫던 동안에는 문장이 닫힌 판 안에 서서
+      아무에게도 안 보였다 — 로그아웃은 조용히 안 된 채로 끝났다(2026-09-26).
+    */
+    await page.route('**/auth/v1/logout**', (route) =>
+      route.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"unavailable"}' }),
+    );
+    await page.goto('/me');
+
+    const banner = page.getByRole('banner');
+    await page.getByLabel('설정 메뉴').click();
+    await banner.getByRole('button', { name: '로그아웃' }).click();
+
+    await expect(banner.getByRole('alert')).toHaveText('로그아웃하지 못했습니다. 다시 시도해 주세요.');
+    await expect(banner.getByRole('button', { name: '로그아웃' })).toBeEnabled();
+    await expect(page).toHaveURL(/\/me$/);
+  });
+
+  test('톱니 판은 Esc 로 닫히고 초점이 톱니로 돌아온다 — 바깥을 눌러도 닫힌다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me');
+
+    const banner = page.getByRole('banner');
+    const gear = page.getByLabel('설정 메뉴');
+    const profile = banner.getByRole('link', { name: '프로필', exact: true });
+
+    await gear.click();
+    await expect(profile).toBeVisible();
+    await profile.focus();
+    await page.keyboard.press('Escape');
+    await expect(profile).toBeHidden();
+    await expect(gear).toBeFocused();
+
+    await gear.click();
+    await expect(profile).toBeVisible();
+    await page.mouse.click(5, 300);
+    await expect(profile).toBeHidden();
+  });
+
   test('온보딩에서 내 사주를 저장하면 그 자리에서 저장된 명식으로 바뀐다', async ({
     page,
     newcomer,

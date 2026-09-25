@@ -7,12 +7,12 @@ import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { noRoomToSave, type PersonSlots } from '@/src/lib/people';
 
 import { supabaseInBrowser } from './auth/browser-client';
-import { CARD } from './card';
 import { savePersonForReading } from './me/actions';
 import { personSlotsFrom } from './person-slots';
 import { toSearchParams, type Query } from '@/src/lib/input/query';
 import { READING_DRAFT_KEY } from './reading-draft';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
+import { CARD } from './ui/surfaces';
 
 /**
  * 직접 입력한 사람을 **저장해서 풀이까지 가는 길.**

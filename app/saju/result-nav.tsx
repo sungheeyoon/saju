@@ -41,7 +41,7 @@ export function ResultNav() {
   return (
     <nav
       aria-label="결과 바로가기"
-      className="sticky top-20 z-20 -my-2 overflow-x-auto rounded-full border border-border bg-surface/95 p-1 shadow-[var(--shadow-card)] backdrop-blur"
+      className="sticky top-20 z-20 -my-2 overflow-x-auto rounded-full border border-border bg-surface/95 p-1 shadow-card backdrop-blur"
     >
       <ul className="flex min-w-max items-center gap-0.5">
         {RESULT_LINKS.map(([target, label]) => (

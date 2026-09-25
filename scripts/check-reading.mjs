@@ -491,7 +491,9 @@ try {
      */
     const picker = plain(await body('/compat', cookie.a));
     check('고르는 화면이 무슨 사이인지 묻는다', picker.includes('두 분은 무슨 사이인가요'));
-    check('점수에 안 쓴다는 것도 그 자리에서 말한다', picker.includes('점수에는 쓰지 않습니다'));
+    /* 사이가 점수의 눈금도 고른다(ADR 0113) — 옛 약속 「점수에는 쓰지 않습니다」는 거짓이 되어 걷었다 */
+    check('사이가 점수의 기준도 고른다고 그 자리에서 말한다', picker.includes('점수의 기준도 이 답을 따릅니다'));
+    check('옛 약속(점수에 안 쓴다)을 더는 말하지 않는다', !picker.includes('점수에는 쓰지 않습니다'));
     /**
      * **결과 화면에서는 다시 안 묻는다**(ADR 0054).
      *

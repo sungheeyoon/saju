@@ -5,12 +5,13 @@ import { useRef, useState, type MouseEvent } from 'react';
 
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 
-import { elementScope } from '../../../element-tone';
+import { elementScope } from '../../../ui/element-tone';
 import { ICON_BUTTON } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
 import { STALE_CHIP, TYPE_META, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
 import type { MapLink, MapModel, MapPerson } from './model';
 import { arcBetween, placeOnOrbit, type Point } from './placement';
+import { reducedMotion } from '../../../ui/motion';
 
 /*
   **관계 지도 — 나를 가운데 두고 저장한 사람이 두 궤도에 앉는다.**
@@ -42,14 +43,14 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
     /* 폰에서 카드는 지도 아래다 — 누른 결과가 화면 밖(하단 독 뒤)에서 일어나지 않게 끌어온다 */
     if (selectedId !== id) requestAnimationFrame(() => card.current?.scrollIntoView({
       block: 'nearest',
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+      behavior: reducedMotion() ? 'instant' : 'smooth',
     }));
   };
 
   return (
     <section
       aria-labelledby="home-map"
-      className="flex h-full min-w-0 flex-col overflow-hidden rounded-[2rem] border border-border bg-surface shadow-[var(--shadow-card)]"
+      className="flex h-full min-w-0 flex-col overflow-hidden rounded-[2rem] border border-border bg-surface shadow-card"
     >
       <header className="flex items-center justify-between gap-3 px-5 pt-5 sm:px-7 sm:pt-7">
         <h2 id="home-map" className={TYPE_SECTION}>
@@ -179,7 +180,7 @@ function Center({ self }: { self: MapModel['self'] }) {
       aria-label={`나 ${self.label}, 일간 ${self.stem} ${self.picture}`}
       className={`${elementScope(self.element)} absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-[2.125rem] flex-col items-center sm:-translate-y-[2.75rem]`}
     >
-      <span className="grid size-[4.25rem] place-items-center rounded-full border-2 border-[color-mix(in_srgb,var(--ink)_30%,transparent)] bg-[var(--tile)] shadow-[var(--shadow-card)] sm:size-[5.5rem]">
+      <span className="grid size-[4.25rem] place-items-center rounded-full border-2 border-[color-mix(in_srgb,var(--ink)_30%,transparent)] bg-[var(--tile)] shadow-card sm:size-[5.5rem]">
         <span aria-hidden="true" className="glyph text-[2.25rem] font-bold leading-none text-[var(--ink)] sm:text-[2.875rem]">
           {self.stem}
         </span>
@@ -224,7 +225,7 @@ function PersonDot({
           person.day === null
             ? 'border-dashed border-border-strong bg-surface-sunken'
             : 'border-[color-mix(in_srgb,var(--ink)_30%,transparent)] bg-[var(--tile)]'
-        } ${active ? 'shadow-[0_0_0_3px_var(--foreground)]' : 'shadow-[var(--shadow-card)]'}`}
+        } ${active ? 'shadow-[0_0_0_3px_var(--foreground)]' : 'shadow-card'}`}
       >
         <span
           aria-hidden="true"

@@ -1,9 +1,18 @@
 /**
  * **판의 모양과 글자의 단** — 부드러움(5차)의 카드 · 타일 · 제목을 한 자리에서 든다.
  *
- * 모서리는 큰 판 32px · 카드 28px(`app/card.ts` 의 `CARD`, 스물한 자리가 쓴다) · 타일 24px · 줄 카드 20px ·
+ * 모서리는 큰 판 32px · 카드 28px(`CARD`) · 타일 24px · 줄 카드 20px ·
  * 단추는 알약. 간격은 4 · 8 · 12 · 16 · 24 · 32 · 48 단계다(시안 `NOTES.md`).
  */
+
+/**
+ * 카드 한 장 — 흰 면 · 가는 테 · 카드 그림자. 앱에서 가장 많이 부르는 판이다(스무 자리 넘게).
+ *
+ * 모서리는 **1.75rem 이다.** 내 명식과 저장한 사람 카드가 그 반지름으로 서면서 같은 화면 안에서 카드마다 모서리가
+ * 갈렸다 — 한 화면에 두 벌이 서면 어느 쪽이 이 앱의 카드인지 사용자가 정하게 된다. `app/card.ts` 에 따로 살다가
+ * 공용 판이 모인 이 파일로 왔다(2026-09-26).
+ */
+export const CARD = 'rounded-[1.75rem] border border-border bg-surface p-5 shadow-card sm:p-6';
 
 /** 크림 종이 판 — 한 화면의 주인공(관계 지도 · 내 사주 등록). 한 화면에 하나 */
 export const PAPER = 'rounded-[2rem] bg-cream p-6 sm:p-8';
@@ -54,7 +63,7 @@ export const BADGE =
  * 여백을 0 으로 되돌려, 브라우저가 가운데에 놓던 `margin: auto` 를 다시 세운다
  */
 export const DIALOG =
-  'm-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-[var(--shadow-float)] backdrop:bg-black/40';
+  'm-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-float backdrop:bg-black/40';
 
 /** 확인 창의 단추 줄 — 누르는 쪽이 오른쪽이고, 좁은 화면에서는 위아래로 서며 그때도 확인이 위다 */
 export const DIALOG_ACTIONS = 'mt-6 flex flex-col gap-2 sm:flex-row-reverse';

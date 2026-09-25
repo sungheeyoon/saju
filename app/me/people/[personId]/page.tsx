@@ -11,7 +11,7 @@ import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { payloadForViewer } from '../../payload';
 import { ReadingTabs } from '../../reading-tabs';
-import { elementScope } from '../../../element-tone';
+import { elementScope } from '../../../ui/element-tone';
 import { BUTTON_ON_TILE, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { ElementSymbol } from '../../../ui/element-symbol';
 import { Icon } from '../../../ui/icons';

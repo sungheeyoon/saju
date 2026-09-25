@@ -1,6 +1,6 @@
 import type { Element } from '@/src/lib/saju';
 
-import { elementScope } from './element-tone';
+import { elementScope } from './ui/element-tone';
 import { ElementSymbol } from './ui/element-symbol';
 import { Icon } from './ui/icons';
 
@@ -97,7 +97,7 @@ export function HomeMap({ className = '' }: { className?: string }) {
       </svg>
 
       {/* 가운데의 나 — 로고와 같은 큰 점 */}
-      <span className="tone-fire absolute left-1/2 top-1/2 grid size-[22%] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-[var(--ink)] bg-[var(--tile)] shadow-[0_12px_28px_-14px_rgba(60,48,30,0.6)] ring-[5px] ring-surface">
+      <span className="tone-fire absolute left-1/2 top-1/2 grid size-[22%] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-[var(--ink)] bg-[var(--tile)] shadow-raise ring-[5px] ring-surface">
         <ElementSymbol element="火" className="size-[52%]" />
       </span>
 
@@ -110,7 +110,7 @@ export function HomeMap({ className = '' }: { className?: string }) {
           } ${
             dot.element === null
               ? 'border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_35%,transparent)] bg-surface'
-              : 'bg-[var(--tile)] shadow-[0_8px_18px_-10px_rgba(60,48,30,0.55)]'
+              : 'bg-[var(--tile)] shadow-lift'
           }`}
         >
           <ElementSymbol element={dot.element} className="size-[58%]" />

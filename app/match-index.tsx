@@ -1,9 +1,8 @@
 import type { ScorePolicy } from '@/src/lib/discovery';
 import type { MatchPreview } from '@/src/lib/matching';
 
-import { CARD } from './card';
 import { Icon } from './ui/icons';
-import { TYPE_NAME } from './ui/surfaces';
+import { CARD, TYPE_NAME } from './ui/surfaces';
 
 /** 카드 위 딱지 — 운영자 확정 문구 #7(2026-09-25) */
 const POLICY_BADGE: Record<ScorePolicy, string> = {

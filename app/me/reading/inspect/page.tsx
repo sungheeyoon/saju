@@ -9,12 +9,12 @@ import {
 } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../../auth/server-client';
-import { CARD } from '../../../card';
 import { UUID } from '../../../uuid';
 import { CopyText } from '../copy-text';
 import { readingArtifacts, currentReading, lastReadingRun, readingGroundingOf } from '../current';
 import type { ReadingTarget } from '../target';
 import { selfReadingPreview, type PreviewResult } from '../preview';
+import { CARD } from '../../../ui/surfaces';
 
 export const metadata = {
   title: '해석 내부 보기',

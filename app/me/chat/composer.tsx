@@ -13,8 +13,8 @@ import {
 } from '@/src/lib/chat';
 
 import { markChatRead, sendChatMessage } from './actions';
-import { ChatIcon } from './chat-icon';
 import { announceChatUnreadMoved } from './unread-signal';
+import { Icon } from '../../ui/icons';
 
 /** 글자 수는 한도에 가까워질 때만 선다 — 늘 서 있는 「0/1,000」은 읽을 것 없는 숫자다 */
 const COUNT_FROM = Math.floor(CHAT_POLICY.maxLength * 0.9);
@@ -99,7 +99,7 @@ export function Composer({ matchId }: { matchId: string }) {
           aria-label={working ? '보내는 중…' : CHAT_SEND_LABEL}
           className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-accent px-3 text-[15px] font-semibold text-on-accent hover:bg-accent-strong active:scale-95 disabled:opacity-55 sm:px-4"
         >
-          <ChatIcon name="send" className="size-[18px]" />
+          <Icon name="send" className="size-[18px]" />
           <span aria-hidden="true" className="hidden sm:inline">
             {CHAT_SEND_LABEL}
           </span>

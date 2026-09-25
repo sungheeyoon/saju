@@ -1,10 +1,7 @@
 import {
-  CARD,
-} from '../card';
-import {
   ELEMENT_TONE,
   elementScope,
-} from '../element-tone';
+} from '../ui/element-tone';
 import {
   ElementSymbol,
 } from '../ui/element-symbol';
@@ -36,10 +33,7 @@ import {
   PillarDetails,
   type PillarDetailTab,
 } from './pillar-details';
-import {
-  DISCLOSURE_SUMMARY,
-  TYPE_SECTION,
-} from '../ui/surfaces';
+import { CARD, DISCLOSURE_SUMMARY, TYPE_SECTION } from '../ui/surfaces';
 
 
 /**
@@ -63,7 +57,7 @@ import {
  * 어느 쪽인지 정할 수 없다. 이때는 전역 옵션이 아니라 그 계산에만 붙는
  * 경고로 알린다(앞선 쪽으로 해석했다고 밝힌다).
  *
- * 오행 색은 **정체성을 지지 않는다**(`app/element-tone.ts`).
+ * 오행 색은 **정체성을 지지 않는다**(`app/ui/element-tone.ts`).
  *
  * 전통색(청·적·황·백·흑)을 그대로 쓰지 않는다. 白(금)은 채움색으로 성립하지
  * 않고, 대체색을 넣으면 접근성 게이트를 넘지 못한다 — 토=갈색/금=금색은
