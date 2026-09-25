@@ -2058,8 +2058,8 @@ following Content Security Policy directive` 가 선다. 받는 서버(`report-u
 4. **값으로 적는다.** `npm run db:remote -- --purpose "v2-beta 백필 확인" "select count(*) filter (where need_summary is null) as missing, count(*) filter (where need_summary ->> 'rule' is distinct from public.discovery_need_rule()) as stale, count(*) as participants from public.discovery_profile where opted_in_at is not null"`
    — `missing` · `stale` 이 0 이어야 한다. 셋을 그 일의 이슈에 적는다.
 5. **앱.** 위 「묶음 배포」. 새 앱은 참여 문을 부를 때마다 요약을 새로 짓는다.
-6. **좁히기(뒤에).** 백필의 두 문(`need_summary_backfill_targets` · `set_discovery_need_summary`)은 `service_role` 에만 열린
-   임시 문이다. 백필을 확인한 뒤 지우는 마이그레이션을 따로 올리고 `13_reading` 의 열쇠 함수 목록에서 두 줄을 뺀다.
+6. **두 문은 남긴다**(운영자 결정 2026-09-25). `need_summary_backfill_targets` · `set_discovery_need_summary` 는 `service_role`
+   에만 열린 운영 문이고 `set_person_chart` 처럼 영구히 선다 — 아래처럼 규칙이 바뀔 때마다 백필이 다시 지난다.
 
 **엔진이 억부 규칙이나 오행 무게를 올리는 날에도 같은 순서다** — `discovery_need_rule()` 을 새 이름으로 올리는
 마이그레이션 → 백필(옛 이름의 요약이 대상이 된다) → 앱. 두 이름이 어긋나면 `scripts/card-score-sql.test.ts` 가 깨진다.

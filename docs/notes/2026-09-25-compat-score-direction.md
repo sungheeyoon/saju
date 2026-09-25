@@ -157,5 +157,5 @@ ADR ④ 무작위 쌍으로 분포와 `discovery-v1` 과의 순위 차이를 잰
 - 운영자 풀이권 예외 +90(`reading_credit_grant`, 한도 95).
 - 고지 `notice-v7`(표현 개정, 재확인 기준 `notice-v6` 그대로).
 - **남은 것:** ① 운영자가 연인 · 배우자 1회 · 일반 1회 궁합풀이를 만들어 점수 · 축 · 문구 · 저장된 판본(`score_version` · `score_relation`)을
-  본다 ② 백필의 임시 문 둘(`need_summary_backfill_targets` · `set_discovery_need_summary`)을 지우는 좁히기 마이그레이션
+  본다 ② ~~백필 문 둘 좁히기~~ — 운영자 결정(2026-09-25)으로 영구 운영 문으로 남긴다(runbook 「카드 점수 v2-beta 배포」 6)
   ③ 비교기 「다음에 잴 것」 — 일주 점수를 실제 연인 사례와 대기, 시나리오 여섯 표 잠그기 ④ 실사용 결과로 가중치 · 문턱 보정.
