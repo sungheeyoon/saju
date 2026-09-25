@@ -42,7 +42,7 @@ begin
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
   perform public.save_my_profile(left(mail, 8), null);
-  perform public.set_discovery_participation(true, pg_temp.summary(i));
+  perform public.set_discovery_participation(true, pg_temp.summary(i), tests.need());
   return uid;
 end;
 $$;
@@ -76,18 +76,27 @@ grant select on me to authenticated;
 /**
  * 기대 점수 — 셈을 베끼지 않는다.
  *
- * 같은 축 함수를 부르고 정책이 선언한 가중치를 그대로 쓴다. 갈리면 둘 중 하나가 바뀐 것이다.
+ * 줄 세우기가 부르는 같은 점수 함수(`discovery_preview_score_v2`, ADR 0113 연인용)를 부른다. 갈리면 둘 중
+ * 하나가 바뀐 것이다. 여기 사람들은 여덟 글자와 필요한 기운 요약이 같아서(`tests.chart()` · `tests.need()`)
+ * 점수를 가르는 것은 오행 요약이다 — 보완과 균형 두 축이 움직인다.
  */
 create temporary table scores as
 select
   other.user_id,
-  public.discovery_deficit_complement_v1(mine.element_summary, other.element_summary) * 0.3
-    + public.discovery_count_balance_v1(mine.element_summary, other.element_summary) * 0.7 as score,
+  public.discovery_preview_score_v2(
+    mp.current_chart, mine.element_summary, mine.need_summary,
+    tp.current_chart, other.element_summary, other.need_summary) as score,
   row_number() over (order by
-    public.discovery_deficit_complement_v1(mine.element_summary, other.element_summary) * 0.3
-    + public.discovery_count_balance_v1(mine.element_summary, other.element_summary) * 0.7 desc,
+    public.discovery_preview_score_v2(
+      mp.current_chart, mine.element_summary, mine.need_summary,
+      tp.current_chart, other.element_summary, other.need_summary) desc,
     other.user_id) as rnk
-from public.discovery_profile other, public.discovery_profile mine
+from public.discovery_profile other
+join public.app_user tu on tu.id = other.user_id
+join public.person tp on tp.id = tu.self_person_id
+cross join public.discovery_profile mine
+join public.app_user mu on mu.id = mine.user_id
+join public.person mp on mp.id = mu.self_person_id
 where mine.user_id = (select uid from me)
   and other.user_id in (select uid from folks where i <> 1);
 grant select on scores to authenticated;
@@ -105,8 +114,8 @@ select * from public.discovery_candidate_slot where snapshot_id = (select id fro
 
 select is(
   (select policy_version from public.discovery_candidate where id = (select id from first_id)),
-  'discovery-v1',
-  '새 스냅샷은 discovery-v1 정책을 기록한다');
+  'v2-beta',
+  '새 스냅샷은 v2-beta 정책을 기록한다');
 
 select is((select count(*)::int from board), 10, '한 번에 열 명이 선다');
 
@@ -366,7 +375,7 @@ select lives_ok(
   '5분이 지나면 새로 받는다');
 
 reset role;
-update public.discovery_candidate set policy_version = 'discovery-v0'
+update public.discovery_candidate set policy_version = 'discovery-v1'
 where id = (
   select id from public.discovery_candidate where user_id = (select uid from me)
   order by seq desc limit 1
@@ -380,7 +389,7 @@ reset role;
 select is(
   (select policy_version from public.discovery_candidate where user_id = (select uid from me)
    order by seq desc limit 1),
-  'discovery-v1',
+  'v2-beta',
   '이전 정책 스냅샷은 읽을 때 즉시 다시 만든다');
 
 set local role authenticated;

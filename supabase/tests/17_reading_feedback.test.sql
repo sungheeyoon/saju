@@ -30,7 +30,7 @@ begin
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
   perform public.save_my_profile(who, null);
-  perform public.set_discovery_participation(true, summary);
+  perform public.set_discovery_participation(true, summary, tests.need());
   return uid;
 end;
 $$;

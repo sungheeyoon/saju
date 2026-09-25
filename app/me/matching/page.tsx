@@ -77,6 +77,7 @@ export default async function MatchingPage() {
   const { data: joined, error: joinError } = await supabase.rpc('ensure_discovery_participation', {
     p_person_id: self.personId,
     p_summary: self.summary,
+    p_need: self.need,
   });
   /* 부름이 터진 것은 「자격이 없다」가 아니다 — 안내를 세우면 사주가 있는 사람에게 채우라고 한다(ADR 0078) */
   if (joinError) throw dbFailure(joinError, 'ensure_discovery_participation');

@@ -9,7 +9,7 @@ create schema if not exists tests;
 -- pg_prove 는 plan 이 없는 파일을 「망가진 시험」으로 읽는다. 도구 파일이라도
 -- 한 줄은 세워 둔다 — 손잡이가 안 서면 나머지가 전부 이유 없이 무너지므로,
 -- 그 자리를 여기서 먼저 알려 주는 것이 맞다.
-select plan(3);
+select plan(4);
 
 /**
  * 구글 로그인만 한다 — **가입은 아직 안 끝났다.**
@@ -186,6 +186,23 @@ stable
 security definer
 as $$ select public.reading_credit_limit() $$;
 
+/**
+ * 필요한 기운 요약 한 벌 — 매칭 풀에 서려면 오행 요약 옆에 이것도 있어야 한다(ADR 0113).
+ *
+ * 앱은 엔진의 억부로 짓는다(`src/lib/discovery/need-summary.ts`). 시험은 모양만 맞는 한 벌을 쓴다 —
+ * 카드 점수의 셈 자체는 `60_card_score_v2` 가 TS 와 같은 표로 잰다. 셈 이름은 **지금 DB 의 이름**을 싣는다 —
+ * `definer` 인 것은 그 이름을 내는 함수가 모든 역할에 닫혀 있어서다(`tests.person_limit` 과 같은 자리).
+ */
+create or replace function tests.need(primary_element text default '木', heaviest_element text default '金')
+returns jsonb
+language sql
+stable
+security definer
+as $$
+  select jsonb_build_object(
+    'primary', primary_element, 'heaviest', heaviest_element, 'rule', public.discovery_need_rule());
+$$;
+
 -- 시험은 역할을 `authenticated` 로 바꾼 채로 이 손잡이들을 부른다.
 grant usage on schema tests to authenticated;
 grant execute on all functions in schema tests to authenticated;
@@ -193,4 +210,5 @@ grant execute on all functions in schema tests to authenticated;
 select has_function('tests', 'signup', array['text'], '가입한 척하는 손잡이가 선다');
 select has_function('tests', 'signup_raw', array['text'], '가입을 안 끝낸 손잡이도 선다');
 select ok(public.is_chart_snapshot(tests.chart()), '손잡이가 내는 여덟 글자는 문을 지나간다');
+select ok(public.is_need_summary(tests.need()), '손잡이가 내는 필요한 기운 요약은 모양이 맞다');
 select * from finish();

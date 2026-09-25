@@ -45,5 +45,6 @@ export async function openDiscoveryParticipation(): Promise<void> {
   await supabase.rpc('ensure_discovery_participation', {
     p_person_id: self.personId,
     p_summary: self.summary,
+    p_need: self.need,
   });
 }

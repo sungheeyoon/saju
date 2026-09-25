@@ -21,7 +21,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql } from './checks.mjs';
+import { createChecks, sql, testNeed } from './checks.mjs';
 /**
  * **문구를 손으로 안 적는다** — 제품이 쓰는 그 상수를 그대로 든다.
  *
@@ -86,6 +86,7 @@ const person = async (email, label, birth) => {
       counts: { 木: 2, 火: 2, 土: 2, 金: 1, 水: 1 },
       ratios: { 木: 0.25, 火: 0.25, 土: 0.25, 金: 0.125, 水: 0.125 },
     },
+    p_need: testNeed(),
   });
   return client;
 };

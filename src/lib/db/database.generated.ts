@@ -599,6 +599,9 @@ export type Database = {
           element_chart_engine_version: string | null
           element_input_version: number | null
           element_summary: Json | null
+          need_chart_engine_version: string | null
+          need_input_version: number | null
+          need_summary: Json | null
           opted_in_at: string | null
           opted_out_at: string | null
           prefer_gender: string
@@ -610,6 +613,9 @@ export type Database = {
           element_chart_engine_version?: string | null
           element_input_version?: number | null
           element_summary?: Json | null
+          need_chart_engine_version?: string | null
+          need_input_version?: number | null
+          need_summary?: Json | null
           opted_in_at?: string | null
           opted_out_at?: string | null
           prefer_gender?: string
@@ -621,6 +627,9 @@ export type Database = {
           element_chart_engine_version?: string | null
           element_input_version?: number | null
           element_summary?: Json | null
+          need_chart_engine_version?: string | null
+          need_input_version?: number | null
+          need_summary?: Json | null
           opted_in_at?: string | null
           opted_out_at?: string | null
           prefer_gender?: string
@@ -2225,6 +2234,14 @@ export type Database = {
         Args: { a: Json; b: Json }
         Returns: number
       }
+      discovery_day_pillar_axis_v2: {
+        Args: { a_chart: Json; b_chart: Json }
+        Returns: number
+      }
+      discovery_day_relation_kinds_v2: {
+        Args: { a: Json; b: Json }
+        Returns: string[]
+      }
       discovery_deficit_complement_one_way_v1: {
         Args: { mine: Json; partner: Json }
         Returns: number
@@ -2237,6 +2254,15 @@ export type Database = {
         Args: { other: string; viewer: string }
         Returns: boolean
       }
+      discovery_need_complement_v2: {
+        Args: { a_need: Json; a_summary: Json; b_need: Json; b_summary: Json }
+        Returns: number
+      }
+      discovery_need_direction_v2: {
+        Args: { provider_summary: Json; receiver_need: Json }
+        Returns: number
+      }
+      discovery_need_rule: { Args: never; Returns: string }
       discovery_pair_eligible: {
         Args: { other: string; viewer: string }
         Returns: boolean
@@ -2248,6 +2274,17 @@ export type Database = {
       discovery_passed_kept: {
         Args: { other: string; viewer: string }
         Returns: boolean
+      }
+      discovery_preview_score_v2: {
+        Args: {
+          a_chart: Json
+          a_need: Json
+          a_summary: Json
+          b_chart: Json
+          b_need: Json
+          b_summary: Json
+        }
+        Returns: number
       }
       discovery_refresh_cooldown: { Args: never; Returns: string }
       discovery_seeded_unit: {
@@ -2280,7 +2317,7 @@ export type Database = {
         Returns: number
       }
       ensure_discovery_participation: {
-        Args: { p_person_id: string; p_summary: Json }
+        Args: { p_need?: Json; p_person_id: string; p_summary: Json }
         Returns: boolean
       }
       expire_match_requests: { Args: never; Returns: number }
@@ -2329,6 +2366,7 @@ export type Database = {
       is_chart_pillar: { Args: { pillar: Json }; Returns: boolean }
       is_chart_snapshot: { Args: { chart: Json }; Returns: boolean }
       is_element_summary: { Args: { summary: Json }; Returns: boolean }
+      is_need_summary: { Args: { summary: Json }; Returns: boolean }
       is_operator: { Args: never; Returns: boolean }
       leave_reading_feedback: {
         Args: {
@@ -2616,6 +2654,15 @@ export type Database = {
           category: string
           warned_on: string
           warning_ref: string
+        }[]
+      }
+      need_summary_backfill_targets: {
+        Args: never
+        Returns: {
+          chart: Json
+          chart_engine_version: string
+          input_version: number
+          user_id: string
         }[]
       }
       new_person_with_input: {
@@ -3098,8 +3145,17 @@ export type Database = {
         }[]
       }
       set_contact_consent: { Args: { p_consent: boolean }; Returns: undefined }
+      set_discovery_need_summary: {
+        Args: {
+          p_chart_engine_version: string
+          p_input_version: number
+          p_need: Json
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       set_discovery_participation: {
-        Args: { p_on: boolean; p_summary: Json }
+        Args: { p_need?: Json; p_on: boolean; p_summary: Json }
         Returns: boolean
       }
       set_improvement_consent: {

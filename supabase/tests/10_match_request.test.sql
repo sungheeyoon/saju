@@ -24,7 +24,7 @@ begin
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
   perform public.save_my_profile(who, null);
-  perform public.set_discovery_participation(true, summary);
+  perform public.set_discovery_participation(true, summary, tests.need());
   return uid;
 end;
 $$;
@@ -293,7 +293,7 @@ select is(
 -- 수락이 Match 를 만들지 않는지를 잰다(US 44).
 select pg_temp.acting((select park from folks));
 select public.ensure_discovery_participation(
-  (select park_person from persons), pg_temp.summary(0, 0, 4, 4, 0));
+  (select park_person from persons), pg_temp.summary(0, 0, 4, 4, 0), tests.need());
 
 /**
  * **어제 본 카드로 오늘의 요청을 만들 수 없다.**

@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql } from './checks.mjs';
+import { createChecks, sql, testNeed } from './checks.mjs';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -218,8 +218,8 @@ const isolate = (emails) => {
     counts: { 木: 8, 火: 0, 土: 0, 金: 0, 水: 0 },
     ratios: { 木: 1, 火: 0, 土: 0, 金: 0, 水: 0 },
   };
-  await me.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
-  await other.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
+  await me.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+  await other.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
 
   // 요약을 고치는 자리는 **목록이 서는 화면**이다. 목록이 홈으로 왔으므로 홈을 연다.
   await get('/me/matching', myCookie);

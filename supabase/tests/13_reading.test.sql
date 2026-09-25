@@ -53,7 +53,7 @@ begin
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
     tests.chart(day_stem), 'chart-for-tests');
   perform public.save_my_profile(who, null);
-  perform public.set_discovery_participation(true, summary);
+  perform public.set_discovery_participation(true, summary, tests.need());
   return uid;
 end;
 $$;
@@ -375,7 +375,7 @@ select throws_ok(
  * (ADR 0003 「이행」). 요약을 지금 판본의 것으로 다시 내놓아야 청할 수 있다.
  */
 select public.ensure_discovery_participation(
-  (select kim_person from people), pg_temp.summary(4, 4, 0, 0, 0));
+  (select kim_person from people), pg_temp.summary(4, 4, 0, 0, 0), tests.need());
 
 -- 요청은 **노출 기록에 매인다**(ADR 0009). 목록을 먼저 열어야 청할 수 있다.
 select lives_ok($$select count(*) from public.my_discovery_board()$$, '김이 후보 목록을 연다');
@@ -895,6 +895,11 @@ select is(
     'mark_reading_webhook_processed',
     /** 동의가 연 시도를 서버가 찾아 제출한다 — 부르는 사람은 요청자가 아니다(ADR 0038) */
     'match_run_awaiting_send',
+    /**
+     * `v2-beta` 전환 백필의 두 문(ADR 0113) — 참여자의 여덟 글자를 읽고 필요한 기운 요약을 적는다.
+     * **임시다** — 백필이 끝나면 좁히는 마이그레이션이 닫고 이 두 줄이 빠진다.
+     */
+    'need_summary_backfill_targets',
     'open_reading_jobs',
     /** Node 가 지은 것을 적는 문 — 계산 입력은 안 받는다(ADR 0071 · #66) */
     'prepare_reading_job',
@@ -910,6 +915,7 @@ select is(
       **지금 상태를 감추지 않고 값으로 드는 것이 그 표를 잣대로 만든다.**
     */
     'save_reading',
+    'set_discovery_need_summary',
     /**
      * 엔진 판이 바뀐 뒤 **남의** Person 의 여덟 글자를 다시 채우는 운영 문(ADR 0071).
      * RLS 가 앱 세션에 남의 입력을 안 열어 주므로 이 일은 열쇠로만 된다 — 임시 장치가

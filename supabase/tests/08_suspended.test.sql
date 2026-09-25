@@ -26,7 +26,7 @@ select public.create_managed_person(
   tests.chart(), 'chart-for-tests');
 
 select public.save_my_profile('민수', null);
-select public.set_discovery_participation(true, (select elements from summary));
+select public.set_discovery_participation(true, (select elements from summary), tests.need());
 
 -- 여기까지는 다 된다. 이제 운영자가 계정을 중지한다.
 reset role;
@@ -73,7 +73,7 @@ select throws_ok(
   '후보를 볼 수 없다');
 
 select throws_ok(
-  format($$select public.ensure_discovery_participation(%L, %L)$$,
+  format($$select public.ensure_discovery_participation(%L, %L, tests.need())$$,
     (select person_id from mine), (select elements from summary)),
   '42501', null,
   '매칭 풀의 요약도 못 갱신한다');

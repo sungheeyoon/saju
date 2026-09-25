@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql } from './checks.mjs';
+import { createChecks, sql, testNeed } from './checks.mjs';
 /** 공개 범위 목록의 **제품 원본** — 손으로 베끼면 문구가 바뀐 날 검사만 옛 글자를 든다 */
 import { MATCH_DISCLOSURE } from '../src/lib/consent/disclosure.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
@@ -89,7 +89,7 @@ const 가짜 = {
 
 for (const [client, nickname] of [[a, NAME.a], [b, NAME.b], [c, NAME.c]]) {
   await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: introOf(nickname) });
-  await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
+  await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
 }
 
 /** 이번 실행의 사람들만 서로의 후보가 되게 한다 — 아니면 「DB 가 비어 있는가」를 잰다 */

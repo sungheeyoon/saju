@@ -351,6 +351,7 @@ export async function participate(api, counts = EVEN_SUMMARY) {
   const on = await api.rpc('set_discovery_participation', {
     p_on: true,
     p_summary: summaryOf(counts),
+    p_need: { primary: '木', heaviest: '金', rule: sql('select public.discovery_need_rule()') },
   });
   if (on.error) throw new Error(`참여를 못 켰습니다 — ${on.error.message}`);
 }

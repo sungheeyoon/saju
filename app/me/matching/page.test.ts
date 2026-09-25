@@ -9,6 +9,7 @@ vi.mock('../summary', () => ({
       counts: { 木: 2, 火: 2, 土: 2, 金: 1, 水: 1 },
       ratios: { 木: 0.25, 火: 0.25, 土: 0.25, 金: 0.125, 水: 0.125 },
     },
+    need: { primary: '木', heaviest: '金', rule: 'test-rule' },
   }),
 }));
 vi.mock('../discovery/discovery-profile', () => ({ myDiscoveryProfile: async () => ({ ok: true, value: null }) }));

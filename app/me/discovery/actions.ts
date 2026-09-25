@@ -59,6 +59,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
     const { error } = await supabase.rpc('set_discovery_participation', {
       p_on: false,
       p_summary: null,
+      p_need: null,
     });
     if (error) return { ok: false, message: userFacingDbMessage(error, 'set_discovery_participation') };
 
@@ -78,6 +79,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
   const { error } = await supabase.rpc('set_discovery_participation', {
     p_on: true,
     p_summary: self.summary,
+    p_need: self.need,
   });
   if (error) return { ok: false, message: userFacingDbMessage(error, 'set_discovery_participation') };
 

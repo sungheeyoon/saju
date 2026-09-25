@@ -89,7 +89,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 select throws_ok(
-  format($$select public.set_discovery_participation(true, %L)$$, (select 고른네오행 from summaries)),
+  format($$select public.set_discovery_participation(true, %L, tests.need())$$, (select 고른네오행 from summaries)),
   '23502', null,
   '사주를 등록하기 전에는 참여할 수 없다');
 
@@ -108,7 +108,7 @@ grant select on mine to authenticated;
 select public.save_my_profile('민수', '조용한 편입니다');
 
 select throws_ok(
-  $$select public.set_discovery_participation(true, '{"counts":{}}'::jsonb)$$,
+  $$select public.set_discovery_participation(true, '{"counts":{}}'::jsonb, tests.need())$$,
   '22023', null,
   '모양이 맞지 않는 요약으로는 참여할 수 없다');
 
@@ -121,7 +121,7 @@ select throws_ok(
  */
 select is(
   public.ensure_discovery_participation(
-    (select person_id from mine), (select 고른네오행 from summaries)),
+    (select person_id from mine), (select 고른네오행 from summaries), tests.need()),
   true,
   '켠 적 없어도 요약이 들어오면 참여가 열린다');
 
@@ -151,7 +151,7 @@ select is(
  */
 select is(
   public.ensure_discovery_participation(
-    (select person_id from mine), (select 고른네오행 from summaries)),
+    (select person_id from mine), (select 고른네오행 from summaries), tests.need()),
   false,
   '끈 사람은 자동으로 다시 켜지지 않는다');
 
@@ -162,7 +162,7 @@ select is(
 
 -- ── 다시 켜는 것은 끈 기록을 지운다 ───────────────────────────────────────────
 select lives_ok(
-  format($$select public.set_discovery_participation(true, %L)$$, (select 고른네오행 from summaries)),
+  format($$select public.set_discovery_participation(true, %L, tests.need())$$, (select 고른네오행 from summaries)),
   '쉬던 사람이 직접 다시 켠다');
 
 select is(
@@ -223,7 +223,7 @@ select public.create_self_person(
 grant select on theirs to authenticated;
 
 select public.save_my_profile('지영', null);
-select public.set_discovery_participation(true, (select 토금뿐 from summaries));
+select public.set_discovery_participation(true, (select 토금뿐 from summaries), tests.need());
 
 reset role;
 
@@ -391,7 +391,7 @@ select is(
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select lee from who)), true);
-select public.set_discovery_participation(true, (select 토금뿐 from summaries));
+select public.set_discovery_participation(true, (select 토금뿐 from summaries), tests.need());
 reset role;
 
 /**

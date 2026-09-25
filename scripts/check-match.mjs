@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql } from './checks.mjs';
+import { createChecks, sql, testNeed } from './checks.mjs';
 /** 공개 범위 목록의 **제품 원본** — 손으로 베끼면 문구가 바뀐 날 검사만 옛 글자를 든다 */
 import { MATCH_DISCLOSURE } from '../src/lib/consent/disclosure.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
@@ -88,7 +88,7 @@ for (const [client, nickname, intro] of [
   [c, NAME.c, '요리를 합니다'],
 ]) {
   await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: intro });
-  await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
+  await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
 }
 
 /**
@@ -371,8 +371,8 @@ try {
     const e = await person(eMail, '태호', '1989-02-02', '광주', 'male');
     await d.rpc('save_my_profile', { p_nickname: NAME.d, p_intro: null });
     await e.rpc('save_my_profile', { p_nickname: NAME.e, p_intro: null });
-    await d.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
-    await e.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
+    await d.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+    await e.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
 
     isolate([aMail, bMail, cMail, dMail, eMail]);
 

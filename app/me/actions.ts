@@ -241,6 +241,7 @@ export async function editPersonInput(personId: string, query: Query): Promise<S
     const { error: summaryError } = await supabase.rpc('ensure_discovery_participation', {
       p_person_id: personId,
       p_summary: self.summary,
+      p_need: self.need,
     });
     // 저장은 끝났다. 요약을 못 따라가게 한 것은 홈이 목록을 열 때 고친다.
     if (summaryError) console.error('오행 요약을 갱신하지 못했습니다', summaryError.message);

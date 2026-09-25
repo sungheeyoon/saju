@@ -12,7 +12,7 @@ begin
     perform set_config('request.jwt.claims', tests.claims(u), true);
     perform public.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean', tests.chart(), 'chart-for-tests');
     perform public.set_discovery_participation(true,
-      '{"glyphCount":8,"counts":{"木":4,"火":4,"土":0,"金":0,"水":0},"ratios":{"木":0.5,"火":0.5,"土":0,"金":0,"水":0}}'::jsonb);
+      '{"glyphCount":8,"counts":{"木":4,"火":4,"土":0,"金":0,"水":0},"ratios":{"木":0.5,"火":0.5,"土":0,"金":0,"水":0}}'::jsonb, tests.need());
   end loop;
 end;
 $$;

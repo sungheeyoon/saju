@@ -1,4 +1,6 @@
 import { elementSummaryOf, type ElementSummary } from '@/src/lib/discovery/element-axes';
+import { needSummaryOf, type NeedSummary } from '@/src/lib/discovery/need-summary';
+import { chartSnapshotOf } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { dbFailure } from '../db-error';
@@ -15,8 +17,13 @@ import { storedInputOf } from './person-input';
  * 여기서 만드는 것은 언제나 **내 것**이다. 남의 요약을 앱이 만들 일은 없다 — 후보의
  * 요약은 각자가 참여할 때 내놓은 것이고, 우리는 그것을 읽지도 않는다(DB 안에서
  * 두 축으로 바뀌어 나온다).
+ *
+ * **필요한 기운 요약도 여기서 함께 만든다**(ADR 0113) — 후보 카드의 `v2-beta` 점수가 억부 1순위와
+ * 가장 무거운 기운을 쓰고, 억부도 엔진에만 있다. 둘을 한 자리에서 같은 명식으로 지어야 풀에 실린
+ * 두 값이 서로 다른 입력의 것이 되지 않는다. 요약은 여덟 글자에서 만든다 — 전환 백필이
+ * `person.current_chart` 에서 만드는 것과 같은 길이다(`needSummaryOf`).
  */
-type SelfSummary = { personId: string; summary: ElementSummary };
+type SelfSummary = { personId: string; summary: ElementSummary; need: NeedSummary };
 
 /**
  * 지금 저장된 내 입력에서 요약 한 벌.
@@ -57,5 +64,6 @@ export async function selfElementSummary(): Promise<SelfSummary | null> {
     // 익명 화면·저장된 화면과 **같은 함수**로 계산한다. 여기서 따로 세면 후보 목록의
     // 오행과 내 명식의 오행이 갈릴 수 있다.
     summary: elementSummaryOf(stood.saju.analysis.elements),
+    need: needSummaryOf(chartSnapshotOf(stood.saju.pillars)),
   };
 }

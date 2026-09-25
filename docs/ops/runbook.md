@@ -2037,6 +2037,33 @@ following Content Security Policy directive` 가 선다. 받는 서버(`report-u
 3. **다시 강제한다.** 고친 가지에서 e2e 전부를 돌린다 — 자동 손잡이(`e2e/csp.ts`)가 어긴 자리 0 을 든다.
    `curl -sI https://saju-snowy.vercel.app/ | grep -i content-security` 로 운영 헤더를 확인한다.
 
+### 카드 점수 `v2-beta` 배포 — **마이그레이션 → 백필 → 앱** (ADR 0113 · 0114, 한 번만)
+
+`20261025160000_the_card_score_reads_the_day_pillars_and_the_needs.sql` 부터 후보 카드의 점수는 **필요한 기운 요약**
+(`discovery_profile.need_summary`)을 읽고, 요약이 없거나 지금 셈 이름(`discovery_need_rule()`)의 것이 아닌 참여자는
+**풀에서 빠진다** — 가운데 값을 넣지 않는다. 그래서 앱보다 먼저 기존 참여자를 채운다.
+
+1. **마이그레이션.** 위 「묶음 배포」의 0 처럼 `npx supabase migration list` → `npm run db:push`. 이 순간부터 앱이 새 것으로
+   가기 전까지 **요약이 없는 참여자는 후보 목록에서 안 보인다** — 2 를 바로 잇는다. 옛 앱은 참여 문을 두 인자로 부르고,
+   새 인자(`p_need`)는 `default null` 이라 그대로 돈다(있던 요약을 안 지운다).
+2. **백필 — 셈만 먼저.** 운영 접속값을 **환경변수로만** 준다(스크립트는 `.env.*` 를 스스로 안 읽는다).
+
+   ```bash
+   NEXT_PUBLIC_SUPABASE_URL=<운영 URL> SUPABASE_SECRET_KEY=<운영 secret> npx jiti scripts/backfill-need-summary.ts
+   ```
+
+   찍는 것은 `targets` · `would-update` · `skipped` · `failed` 수뿐이다. `failed` 가 0 이 아니면 멈추고 본다.
+3. **백필 — 적는다.** 같은 줄 끝에 `--apply`. 한 번 더 `--apply` 로 돌려 `targets: 0` 인지 본다(멱등이다 — 다 채운
+   뒤에는 대상이 없다). `skipped` 는 읽은 뒤 그 사람이 입력을 고쳐 안 적은 수다 — 그 사람은 앱을 열 때 채운다.
+4. **값으로 적는다.** `npm run db:remote -- --purpose "v2-beta 백필 확인" "select count(*) filter (where need_summary is null) as missing, count(*) filter (where need_summary ->> 'rule' is distinct from public.discovery_need_rule()) as stale, count(*) as participants from public.discovery_profile where opted_in_at is not null"`
+   — `missing` · `stale` 이 0 이어야 한다. 셋을 그 일의 이슈에 적는다.
+5. **앱.** 위 「묶음 배포」. 새 앱은 참여 문을 부를 때마다 요약을 새로 짓는다.
+6. **좁히기(뒤에).** 백필의 두 문(`need_summary_backfill_targets` · `set_discovery_need_summary`)은 `service_role` 에만 열린
+   임시 문이다. 백필을 확인한 뒤 지우는 마이그레이션을 따로 올리고 `13_reading` 의 열쇠 함수 목록에서 두 줄을 뺀다.
+
+**엔진이 억부 규칙이나 오행 무게를 올리는 날에도 같은 순서다** — `discovery_need_rule()` 을 새 이름으로 올리는
+마이그레이션 → 백필(옛 이름의 요약이 대상이 된다) → 앱. 두 이름이 어긋나면 `scripts/card-score-sql.test.ts` 가 깨진다.
+
 ### 가입 코드 배포 — **훅을 먼저 끈다** (ADR 0042, 한 번만)
 
 `20260911090000_the_code_opens_the_signup.sql` 이 `gate_signup_by_invite` 를 지운다.

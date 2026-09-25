@@ -193,13 +193,13 @@ select pg_temp.acting((select kim from who));
 select public.create_self_person(
   '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
-select public.set_discovery_participation(true, pg_temp.summary(4, 4, 0, 0, 0));
+select public.set_discovery_participation(true, pg_temp.summary(4, 4, 0, 0, 0), tests.need());
 
 select pg_temp.acting((select lee from who));
 select public.create_self_person(
   '나', 'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
-select public.set_discovery_participation(true, pg_temp.summary(0, 0, 4, 4, 0));
+select public.set_discovery_participation(true, pg_temp.summary(0, 0, 4, 4, 0), tests.need());
 
 /**
  * **다른 검사가 남긴 참여자는 이 시험의 관심 밖이다**(`09_discovery_board` 와 같은 자리).
@@ -246,7 +246,7 @@ set local role authenticated;
 select pg_temp.acting((select lee from who));
 
 select throws_ok(
-  $$select public.set_discovery_participation(true, '{"glyphCount":8,"counts":{"木":0,"火":0,"土":4,"金":4,"水":0},"ratios":{"木":0,"火":0,"土":0.5,"金":0.5,"水":0}}'::jsonb)$$,
+  $$select public.set_discovery_participation(true, '{"glyphCount":8,"counts":{"木":0,"火":0,"土":4,"金":4,"水":0},"ratios":{"木":0,"火":0,"土":0.5,"金":0.5,"水":0}}'::jsonb, tests.need())$$,
   '23502', null,
   '이름이 없으면 남의 목록에 설 수 없다');
 

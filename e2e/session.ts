@@ -7,6 +7,7 @@ import { test as base, type Page } from '@playwright/test';
 import { cspFixture, watchCsp } from './csp';
 
 import { NOTICE_VERSION } from '@/src/lib/consent';
+import { NEED_SUMMARY_RULE } from '@/src/lib/discovery/need-summary';
 import { worktreeStack } from '@/src/lib/local-env';
 import { chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY, type Query } from '@/src/lib/input/query';
@@ -458,6 +459,7 @@ export async function optIn(api: SupabaseClient, nickname?: string): Promise<voi
       counts: { 木: 2, 火: 2, 土: 2, 金: 1, 水: 1 },
       ratios: { 木: 0.25, 火: 0.25, 土: 0.25, 金: 0.125, 水: 0.125 },
     },
+    p_need: { primary: '木', heaviest: '金', rule: NEED_SUMMARY_RULE },
   });
   if (on.error) throw new Error(`매칭 참여를 못 켰습니다 — ${on.error.message}`);
 }

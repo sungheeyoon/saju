@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql } from './checks.mjs';
+import { createChecks, sql, testNeed } from './checks.mjs';
 import { CHAT_POLICY, RATE_LIMITED_TEXT, closedRoomText } from '../src/lib/chat/index.ts';
 import { PRESENCE_POLICY } from '../src/lib/presence/index.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
@@ -63,7 +63,7 @@ const 가짜 = {
 
 for (const [client, nickname] of [[a, NAME.a], [b, NAME.b]]) {
   await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: null });
-  await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜 });
+  await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
 }
 
 const list = Object.values(mail).map((email) => `'${email}'`).join(', ');

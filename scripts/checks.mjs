@@ -56,3 +56,11 @@ export function createChecks(name) {
 export const sql = (statement) =>
   execFileSync('docker', ['exec', '-i', worktreeStack().dbContainer, 'psql', '-U', 'postgres', '-tAq', '-c', statement],
     { encoding: 'utf8' }).trim();
+
+/**
+ * 매칭 풀에 서는 데 드는 **필요한 기운 요약** 한 벌(ADR 0113) — 셈 이름은 지금 DB 의 이름을 읽는다.
+ *
+ * 앱은 엔진의 억부로 짓는다. 흐름 검사가 재는 것은 요청 · 수락이 이어지는가라 모양만 맞으면 된다. 이름을 여기 적으면
+ * 엔진이 규칙을 올리는 날 모든 흐름이 조용히 풀에서 빠진다.
+ */
+export const testNeed = () => ({ primary: '木', heaviest: '金', rule: sql('select public.discovery_need_rule()') });
