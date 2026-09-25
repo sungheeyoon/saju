@@ -39,7 +39,7 @@ export const ELEMENT_TONE: Record<
 };
 
 /** 오행을 모를 때(시주 모름 · 아직 명식이 없는 사람)의 판 — 같은 세 이름이 회색 한 벌이 된다 */
-export const NO_ELEMENT_SCOPE = 'tone-none';
+const NO_ELEMENT_SCOPE = 'tone-none';
 
 /** 오행 → `tone-*` 이름. 모르면 회색 한 벌 */
 export function elementScope(element: Element | null): string {

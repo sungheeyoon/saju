@@ -20,6 +20,7 @@ import {
   said,
   warningsToShow,
 } from './utterances';
+import { TYPE_NAME } from './ui/surfaces';
 
 /**
  * 두 사람 **사이**에 대해 말할 수 있는 것 — 명식은 받지 않는다.
@@ -70,7 +71,7 @@ export function BetweenSections({
       */}
       {warningsToShow(compat.warnings).length > 0 && (
         <section className={CARD}>
-          <h2 className="font-rounded text-[1.3rem] leading-7">주의</h2>
+          <h2 className={TYPE_NAME}>주의</h2>
           <ul className="mt-2 flex flex-col gap-1 text-sm text-secondary">
             {warningsToShow(compat.warnings).map((warning) => (
               <li key={warning.kind}>{warning.text}</li>
@@ -118,7 +119,7 @@ function BetweenRelations({
   return (
     <section className={CARD}>
       <div className="flex flex-wrap items-baseline gap-x-3">
-        <h2 className="font-rounded text-[1.3rem] leading-7">두 사주 사이의 관계</h2>
+        <h2 className={TYPE_NAME}>두 사주 사이의 관계</h2>
         <p className="text-sm text-secondary">
           {relations.length === 0 ? '걸리는 것이 없습니다' : `${relations.length}개`}
         </p>
@@ -223,7 +224,7 @@ function BetweenRelations({
 function SaidBetween({ utterances }: { utterances: Utterance[] }) {
   return (
     <section className={CARD}>
-      <h2 className="font-rounded text-[1.3rem] leading-7">두 사람 사이에 대해 말할 수 있는 것</h2>
+      <h2 className={TYPE_NAME}>두 사람 사이에 대해 말할 수 있는 것</h2>
 
       <div className="mt-3">
         <UtteranceList utterances={utterances} />
