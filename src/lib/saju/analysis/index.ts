@@ -30,6 +30,8 @@ export * from './effectiveElements';
 export * from './fiveElements';
 export * from './followingPatterns';
 export * from './johu';
+export * from './johuConditions';
+export * from './johuJudgement';
 export * from './favorability';
 export * from './hiddenRelations';
 export * from './rootedness';
