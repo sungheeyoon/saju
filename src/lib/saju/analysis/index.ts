@@ -35,6 +35,7 @@ export * from './johuConditions';
 export * from './johuJudgement';
 export * from './favorability';
 export * from './hiddenRelations';
+export * from './needComplement';
 export * from './needProfile';
 export * from './needProfileTypes';
 export * from './rootedness';

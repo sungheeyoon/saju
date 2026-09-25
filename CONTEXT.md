@@ -226,6 +226,14 @@ _Avoid_: 「조후가 우선이다」 · 「억부가 우선이다」(둘 다 �
 `Analysis` 에는 싣지 않는다(ADR 0111).
 _Avoid_: 용신 프로필, 보완 점수, 궁합 점수
 
+**방향별 필요 보완** — `needComplementOf` · `DirectionalNeedComplement` : 한 사람(받는 쪽)의 **필요 오행 프로필**에
+상대(주는 쪽) 원국이 어느 자리에서 닿는가 — 억부 1순위 · 대안 오행과 조후 글자(글자대로)마다 주는 쪽의 일간 ·
+다른 천간 · 지지 본기 · 숨은 자리를 날것으로(`ProviderPresence`) 들고, 받는 쪽의 가장 무거운 오행을 주는 쪽이
+가졌으면 신호 한 줄(`counterSignals`)을 든 값. 한 쌍에 두 번(A→B · B→A) 부르고 두 값은 다를 수 있다. 관계는
+세 기준(`any` · `visible` · `stems`)에서 다 내고 고르지 않는다. **등급도 점수도 없고**(`support: 'not-graded'`),
+오행 개수는 세지 않는다 — 그것은 **예측 궁합 점수**의 상호보완 축이다(ADR 0112).
+_Avoid_: 보완 점수, 기신(가장 무거운 쪽을 부르는 말로), 궁합 점수
+
 **claim** — 코드에 없다(PRD §7.3) : 어떤 **Person** 이 자기 자신임을 **User** 가 승인받는
 절차. 끝나면 그 Person 의 출생 정보 편집권이 그 User 에게만 남는다.
 _Avoid_: 연결, 병합(merge 는 두 Person 을 하나로 합치는 별개의 일)
@@ -779,6 +787,7 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | 조후 판정(조건부) | `johuJudgementOf` | 엔진 `analysis/johuJudgement` |
 | 억부·조후 관계 | `eokbuJohuRelationOf` | 엔진 `analysis/needProfile` |
 | 필요 오행 프로필 | `needProfileOf` · `NeedProfile` | 엔진 `analysis/needProfile` |
+| 방향별 필요 보완 | `needComplementOf` · `DirectionalNeedComplement` · `ProviderPresence` | 엔진 `analysis/needComplement` |
 | 읽는 문 | `dbFailure` | `app/db-error.ts` |
 | 부속 정보 | `SkippableRead` · `unread` | `app/db-error.ts` |
 | 열쇠 | `keyedClient` · `service_role` | `app/keyed-client.ts` · DB 역할 |
