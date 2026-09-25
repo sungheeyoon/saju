@@ -73,10 +73,11 @@
 | `proxy.ts` | 관문 — 레이아웃에 못 사는 판단(ADR 0041) | `src/lib/consent` · `app/auth/config` · `app/beta-schedule`(일정을 읽는 문) |
 | `supabase/migrations/` | 표·함수·정책. **앱이 아는 DB 의 모양 전부는 여기서 생성된 `database.generated.ts` 다** | — |
 | `supabase/tests/` | pgTAP — 역할을 갈아입고 「막힌다」를 잰다 | — |
+| `app/ui/` | 공용 부품 — 단추 · 판 · 아이콘 · 로고의 모양 상수와 작은 부품(G-58). 여러 화면이 부르므로 **화면 층의 바닥**이다 | `src/lib` · `app/ui` · 순수 모듈 `app/element-tone`. 문 · 액션 · 클라이언트 · `@supabase` 는 모른다 |
 | `scripts/` | 흐름 검사·생성기·UI 훑기. **화면 모듈을 안 부른다** — 주소로 두드린다 | `src/lib` |
 | `e2e/` | Playwright. 같다 | `src/lib` |
 | `app/me/reading/model.ts` | **모델을 부르는 유일한 자리**(ADR 0047) | `ai` · `openai` |
-| 비밀을 읽는 모듈 | `app/keyed-client.ts` · `app/me/reading/model.ts` · `app/api/cron/reading/route.ts` · `app/api/cron/audit-export/route.ts`(접속기록 반출, ADR 0105) · `app/api/portone/webhook/route.ts`(결제 알림, G-23 ⑥) — 첫 줄이 `import 'server-only'` 라 화면 층이 부르면 빌드가 선다. 새 비밀은 `scripts/secret-env.mjs` 의 갈래에 먼저 서고, `scripts/secret-env.test.ts` 가 둘을 견준다(G-23 ⑧) | 서버 환경변수 |
+| 비밀을 읽는 모듈 | `app/keyed-client.ts` · `app/me/reading/model.ts` · `app/api/cron/reading/route.ts` · `app/api/cron/audit-export/route.ts` · `app/api/cron/audit-export/s3.ts`(접속기록 반출, ADR 0105) · `app/api/portone/webhook/route.ts`(결제 알림, G-23 ⑥) — 첫 줄이 `import 'server-only'` 라 화면 층이 부르면 빌드가 선다. 새 비밀은 `scripts/secret-env.mjs` 의 갈래에 먼저 서고, `scripts/secret-env.test.ts` 가 둘을 견준다(G-23 ⑧) | 서버 환경변수 |
 
 ## 새 것을 놓을 때
 
@@ -103,6 +104,7 @@
 | 문자열이 아닌 `import()` 대상 | `no-restricted-syntax` | 대상을 모르는 import 0건 |
 | 도메인 lib 끼리의 방향 | — | 허용 목록과 **정확히 같은가**, 순환 없는가, `db` 는 나가는 방향 0 |
 | 화면(`.tsx`) 안의 `.rpc()`·`.from()` | `no-restricted-syntax` | 호출 지문이 옛 자리 여섯 안에만, 표시 수 = 호출 수 |
+| `app/ui` → 문 · 액션 · 클라이언트 · `@supabase` | — | `app` 안에서는 `app/ui` 와 순수 모듈 목록만 |
 | `src/lib` 이 DB 함수를 이름으로 든다 | — | 호출 인자의 문자열이 생성된 `Functions` 의 키면 빨개진다(`*.live.test.ts` 제외). 표 이름은 도메인 낱말과 겹쳐 안 본다 |
 
 **보장하는 것은 여기까지다** — 역방향 import 와 화면 안의 새 DB 호출을 막는다. 아래는 **안**
