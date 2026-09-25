@@ -26,6 +26,23 @@ export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 /** 올린 사진을 이 변으로 줄여서 보낸다 — 카드와 프로필에 서는 크기 */
 export const PHOTO_MAX_EDGE = 512;
 
+/** 한 사람의 사진 장 수 — `profile_photo.position` 의 검사식(1..6)과 같은 수(G-60). 편집 칸도 여섯이다 */
+export const PHOTO_MAX_COUNT = 6;
+
+/**
+ * 끌어다 놓은 뒤의 순서 — **사이의 장이 한 칸씩 밀린다.** 맞바꾸지 않는다(DB 의 `move_my_photo` 와 같은 뜻).
+ *
+ * `from` · `to` 는 1부터 세는 자리다. 자리 밖이면 그대로 돌려준다. 화면이 서버 답을 기다리지 않고
+ * 먼저 옮겨 그리는 데 쓴다 — 두 셈이 어긋나면 새로 그릴 때 서버의 순서로 돌아간다.
+ */
+export function movedPhotos<T>(list: readonly T[], from: number, to: number): T[] {
+  const next = [...list];
+  if (from < 1 || from > next.length || to < 1 || to > next.length || from === to) return next;
+  const [lifted] = next.splice(from - 1, 1);
+  next.splice(to - 1, 0, lifted);
+  return next;
+}
+
 export type ProfileInput = {
   /** 앱 안의 모든 자리에서 부르는 이름(§5.2). 부를 이름(`local_label`)과 다른 값이다 */
   nickname: string;

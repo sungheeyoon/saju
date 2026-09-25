@@ -43,6 +43,8 @@ type CandidateCard = {
   readonly intro: string | null;
   /** 사진이 있는가 — **바이트는 여기 없다.** 그림은 주소로 받아 간다 */
   readonly hasPhoto: boolean;
+  /** 사진 주소들 — 자리 순서, 첫 장이 대표(G-60). 사진이 없으면 빈 배열 */
+  readonly photoUrls: readonly string[];
   /**
    * 기본 아바타의 색 — 그 사람 일간의 오행(운영자 2026-09-24). **색에만 쓰고 글자로 말하지 않는다.**
    * 사진이 있거나 명식을 모르면 `null`. 카드 · 기운 칸 · 지도의 색(채워 주는 기운)과는 다른 값이다
@@ -184,17 +186,35 @@ export async function boardStamp(): Promise<BoardStamp | null> {
 const avatarElementOf = (value: string | null | undefined): Element | null =>
   ELEMENTS.find((element) => element === value) ?? null;
 
+/**
+ * 한 사람의 사진 주소들 — `/me/photo/{id}/{n}`, `n` 은 1부터 세는 자리다(G-60).
+ *
+ * 판본을 안 붙인다. 남의 사진은 `private, max-age=60` 이라 순서를 바꾼 뒤 길어야 1분 옛 장이 서고,
+ * 판본을 실으려면 목록이 장마다 시각을 내줘야 한다 — 카드가 쓰지 않는 값을 내보내지 않는다.
+ */
+export const photoUrlsOf = (userId: string, count: number): string[] =>
+  Array.from({ length: Math.max(0, Math.min(count, 6)) }, (_, index) => `/me/photo/${userId}/${index + 1}`);
+
+/**
+ * 장 수 — **칸이 없으면 옛 칸으로 한 장을 센다.** 앱이 DB 보다 먼저 배포되면 옛 문은 `photo_count` 를
+ * 안 준다. 그때 카드는 대표 한 장으로 서고 나머지는 그대로 돈다.
+ */
+const photoCountOf = (count: number | null | undefined, hasPhoto: boolean): number =>
+  typeof count === 'number' ? count : hasPhoto ? 1 : 0;
+
 /** RPC가 허용한 공개 행을 직렬화 가능한 카드로 옮긴다. 복원도 기존 점수 문구를 쓴다. */
 export function publicCardFromRow(
   row: Pick<BoardRow, 'candidate_user_id' | 'nickname' | 'intro' | 'has_photo' | 'supplied_elements' | 'balance_band' | 'preview_score'>
-    & Partial<Pick<BoardRow, 'avatar_element'>>,
+    & Partial<Pick<BoardRow, 'avatar_element' | 'photo_count'>>,
   mySummary: ElementSummary,
 ) {
+  const hasPhoto = row.has_photo === true;
   return {
     candidateUserId: row.candidate_user_id,
     nickname: row.nickname,
     intro: row.intro,
-    hasPhoto: row.has_photo === true,
+    hasPhoto,
+    photoUrls: photoUrlsOf(row.candidate_user_id, photoCountOf(row.photo_count, hasPhoto)),
     avatarElement: avatarElementOf(row.avatar_element),
     exploration: false,
     ...candidateCardText({

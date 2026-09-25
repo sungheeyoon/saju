@@ -3,11 +3,11 @@ import { redirect } from 'next/navigation';
 import { isBlocked } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { dbFailure } from '../../db-error';
 import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { ProfileForm } from './form';
+import { myPhotos } from './photos';
 
 export const metadata = {
   title: '프로필',
@@ -21,7 +21,7 @@ export const metadata = {
  * (`/signup`, ADR 0042), 이 화면에 닿는 사람은 이미 이름이 있다. 그래서 관문의 예외
  * 목록에서도 빠졌다 — 이름 없이 열려야 할 이유가 없어졌다.
  *
- * 여기 남는 것은 **셋을 고치는 일**이다: 닉네임 · 프로필 사진 · 소개. 뒤의 둘은 가입
+ * 여기 남는 것은 **셋을 고치는 일**이다: 닉네임 · 프로필 사진(여섯 장까지, G-60) · 소개. 뒤의 둘은 가입
  * 폼에 없으므로 실제로 채우는 자리도 여기다.
  */
 export default async function ProfilePage() {
@@ -48,15 +48,8 @@ export default async function ProfilePage() {
     );
   }
 
-  /*
-    **한 장인지 아닌지만 묻는다.** 바이트는 이 화면에 안 실린다 — 그림은 주소로 받아
-    간다(`/me/photo/[userId]`).
-  */
-  // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-  const { data: photo, error: photoError } = await supabase.rpc('photo_of', { p_user_id: user.id });
-  /* 못 읽은 것은 「사진이 없다」가 아니다 — 그 칸만 비울 말이 없어 화면째 오류 경계로 간다(ADR 0078) */
-  if (photoError) throw dbFailure(photoError, 'photo_of');
-  const hasPhoto = (photo ?? []).length > 0;
+  /* 바이트는 이 화면에 안 실린다 — 자리와 판본만 읽고 그림은 주소로 받아 간다(`/me/photo/[userId]/[n]`) */
+  const photos = await myPhotos();
 
   return (
     <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
@@ -67,7 +60,7 @@ export default async function ProfilePage() {
 
       <ProfileForm
         current={{ nickname: account.nickname ?? '', intro: account.intro ?? '' }}
-        hasPhoto={hasPhoto}
+        photos={photos}
         userId={user.id}
       />
     </main>

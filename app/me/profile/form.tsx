@@ -7,19 +7,16 @@ import {
   INTRO_MAX,
   NICKNAME_MAX,
   NICKNAME_MIN,
-  PHOTO_MAX_BYTES,
-  PHOTO_MAX_EDGE,
-  PHOTO_NOTE,
-  PHOTO_TYPES,
-  initialOf,
   missingInProfile,
   nicknameKey,
   type ProfileInput,
 } from '@/src/lib/profile';
 
 import { checkNickname } from '../../nickname';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL, BUTTON_TERTIARY } from '../../ui/buttons';
-import { clearPhoto, savePhoto, saveProfile } from './actions';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+import { saveProfile } from './actions';
+import { PhotoGrid } from './photo-grid';
+import type { MyPhoto } from './photos';
 
 /** 입력 칸 — 48px, 크림 바탕 위에서도 칸임이 보이게 흰 면과 테 */
 const FIELD =
@@ -29,59 +26,6 @@ const FIELD =
 const PANEL = 'flex flex-col gap-5 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
 
 const LABEL = 'text-[13px] font-semibold text-secondary';
-
-/**
- * 올린 사진을 줄여서 보낸다 — **폰으로 찍은 사진은 그대로 못 올린다.**
- *
- * 요즘 사진 한 장이 3~5MB 다. 상한(512KB)에 걸려 거절하면 사용자가 할 수 있는 일이
- * 없다 — 「작게 만들어 오세요」는 브라우저가 할 수 있는 일을 사람에게 미루는 말이다.
- * 그래서 긴 변을 512px 로 줄이고 WebP 로 다시 굽는다. 카드와 프로필에 서는 크기가
- * 그만하다.
- *
- * **잘라 내지 않는다.** 비율을 지켜 줄이기만 한다 — 얼굴이 잘리는 자리를 우리가 고르면
- * 그것은 사용자가 고른 사진이 아니다. 동그란 자리에 담을 때만 CSS 가 가운데를 보인다.
- */
-async function shrink(
-  file: File,
-): Promise<{ ok: true; contentType: string; base64: string } | { ok: false; message: string }> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, PHOTO_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-
-  const context = canvas.getContext('2d');
-  if (context === null) return { ok: false, message: '사진을 줄이지 못했습니다.' };
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-
-  const blob = await new Promise<Blob | null>((done) =>
-    canvas.toBlob(done, 'image/webp', 0.85),
-  );
-
-  /*
-    WebP 를 못 굽는 브라우저가 있으면 `toBlob` 이 다른 형식으로 내주거나 아무것도 안
-    내준다. 그때는 원본을 그대로 보낸다 — 상한은 아래에서 다시 본다.
-  */
-  const chosen = blob ?? file;
-  const contentType = (PHOTO_TYPES as readonly string[]).includes(chosen.type)
-    ? chosen.type
-    : 'image/jpeg';
-
-  if (chosen.size > PHOTO_MAX_BYTES) {
-    return {
-      ok: false,
-      message: `사진이 너무 큽니다 — ${Math.round(PHOTO_MAX_BYTES / 1024)}KB까지입니다.`,
-    };
-  }
-
-  const buffer = new Uint8Array(await chosen.arrayBuffer());
-  let binary = '';
-  for (const byte of buffer) binary += String.fromCharCode(byte);
-
-  return { ok: true, contentType, base64: btoa(binary) };
-}
 
 /**
  * 프로필을 고치는 자리 — **셋이 한 화면에 있다**(§5.1).
@@ -97,11 +41,11 @@ async function shrink(
  */
 export function ProfileForm({
   current,
-  hasPhoto,
+  photos,
   userId,
 }: {
   current: ProfileInput;
-  hasPhoto: boolean;
+  photos: readonly MyPhoto[];
   userId: string;
 }) {
   const router = useRouter();
@@ -147,8 +91,15 @@ export function ProfileForm({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* 사진이 맨 위다 — 프로필을 여는 사람이 먼저 보는 것이 얼굴이고, 고르면 바로 올라간다 */}
-      <PhotoField userId={userId} nickname={profile.nickname} hasPhoto={hasPhoto} />
+      {/*
+        사진이 맨 위다 — 프로필을 여는 사람이 먼저 보는 것이 얼굴이고, 고르면 바로 올라간다.
+        장 **모음**이 바뀔 때만 칸을 새로 세운다 — 순서만 바뀐 새로 그림은 칸이 이미 먼저 옮겨 그렸다
+      */}
+      <PhotoGrid
+        key={photos.map((photo) => photo.version).sort((a, b) => a - b).join('-')}
+        userId={userId}
+        photos={photos}
+      />
 
       <section className={PANEL}>
         <div className="flex flex-col gap-1.5">
@@ -230,115 +181,5 @@ export function ProfileForm({
         )}
       </section>
     </div>
-  );
-}
-
-/**
- * 사진 — **고르면 바로 올라간다.**
- *
- * 「고르기」와 「저장」을 갈라 두면 고르고 저장을 안 한 사람이 생기고, 그 사람은 사진을
- * 올렸다고 알고 있다. 미리 보여 주는 자리도 따로 안 만든다 — 올라간 사진이 곧 미리보기다.
- */
-function PhotoField({
-  userId,
-  nickname,
-  hasPhoto,
-}: {
-  userId: string;
-  nickname: string;
-  hasPhoto: boolean;
-}) {
-  const router = useRouter();
-  const [failure, setFailure] = useState<string | null>(null);
-  const [working, startWorking] = useTransition();
-  /** 같은 주소를 다시 받게 한다 — 브라우저가 방금 올린 사진 대신 옛것을 그린다 */
-  const [stamp, setStamp] = useState(0);
-
-  const pick = (file: File | undefined) => {
-    if (file === undefined) return;
-    setFailure(null);
-    startWorking(async () => {
-      try {
-        const shrunk = await shrink(file);
-        if (!shrunk.ok) {
-          setFailure(shrunk.message);
-          return;
-        }
-        const result = await savePhoto({ contentType: shrunk.contentType, base64: shrunk.base64 });
-        if (!result.ok) {
-          setFailure(result.message);
-          return;
-        }
-        setStamp(Date.now());
-        router.refresh();
-      } catch {
-        /*
-          여기 닿는 것은 우리가 안 쓴 문장이다 — 브라우저가 못 읽은 사진(`createImageBitmap`)이나
-          액션이 던진 오류(운영의 Next 는 영어 안내로 바꿔 보낸다). 우리 문장 하나로 선다
-          (`app/db-error.boundary.test.ts`).
-        */
-        setFailure('사진을 읽지 못했습니다.');
-      }
-    });
-  };
-
-  const remove = () => {
-    setFailure(null);
-    startWorking(async () => {
-      const result = await clearPhoto();
-      if (result.ok) {
-        setStamp(Date.now());
-        router.refresh();
-      } else setFailure(result.message);
-    });
-  };
-
-  return (
-    <section className="flex flex-col items-center gap-4 rounded-[2rem] bg-cream px-5 py-7 text-center sm:flex-row sm:gap-6 sm:px-8 sm:text-left">
-      <span
-        aria-hidden="true"
-        className="inline-flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface text-4xl font-semibold text-cream-ink ring-4 ring-surface"
-      >
-        {hasPhoto ? (
-          // eslint-disable-next-line @next/next/no-img-element -- 바이트를 우리 라우트가 내준다
-          <img
-            src={`/me/photo/${userId}${stamp === 0 ? '' : `?v=${stamp}`}`}
-            alt=""
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          initialOf(nickname)
-        )}
-      </span>
-
-      <div className="flex min-w-0 flex-col items-center gap-3 sm:items-start">
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          {/* 파일 칸은 숨기고 라벨이 단추가 된다 — 포커스 테는 안의 칸이 받으면 라벨이 보인다 */}
-          <label
-            className={`${BUTTON_SECONDARY_SMALL} cursor-pointer has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft`}
-          >
-            {working ? '올리는 중…' : hasPhoto ? '사진 바꾸기' : '사진 올리기'}
-            <input
-              type="file"
-              accept={PHOTO_TYPES.join(',')}
-              disabled={working}
-              onChange={(event) => pick(event.target.files?.[0])}
-              className="sr-only"
-            />
-          </label>
-          {hasPhoto && (
-            <button type="button" onClick={remove} disabled={working} className={BUTTON_TERTIARY}>
-              사진 지우기
-            </button>
-          )}
-        </div>
-        <p className="text-[13px] leading-5 text-cream-ink">{PHOTO_NOTE}</p>
-        {failure !== null && (
-          <p role="alert" className="text-sm text-danger">
-            {failure}
-          </p>
-        )}
-      </div>
-    </section>
   );
 }

@@ -5,9 +5,11 @@ import {
   NICKNAME_MAX,
   NICKNAME_MIN,
   PHOTO_MAX_BYTES,
+  PHOTO_MAX_COUNT,
   PHOTO_TYPES,
   initialOf,
   missingInProfile,
+  movedPhotos,
   nicknameKey,
 } from './index';
 
@@ -83,5 +85,31 @@ describe('사진이 없는 자리', () => {
 
   it('이름이 없으면 빈 자리로 둔다 — 물음표를 세우지 않는다', () => {
     expect(initialOf('   ')).toBe('');
+  });
+});
+
+describe('사진 여러 장의 순서 (G-60)', () => {
+  const four = ['A', 'B', 'C', 'D'];
+
+  it('넷째를 첫 칸에 두면 사이의 장이 한 칸씩 밀린다 — 맞바꾸지 않는다', () => {
+    expect(movedPhotos(four, 4, 1)).toEqual(['D', 'A', 'B', 'C']);
+  });
+
+  it('첫 장을 끝에 두면 나머지가 한 칸씩 당겨진다', () => {
+    expect(movedPhotos(four, 1, 4)).toEqual(['B', 'C', 'D', 'A']);
+  });
+
+  it('옆 칸으로 옮기면 두 장이 자리를 바꾼다 — 키보드의 ← → 한 번', () => {
+    expect(movedPhotos(four, 2, 3)).toEqual(['A', 'C', 'B', 'D']);
+  });
+
+  it('자리 밖이거나 제자리면 그대로다', () => {
+    expect(movedPhotos(four, 0, 2)).toEqual(four);
+    expect(movedPhotos(four, 2, 5)).toEqual(four);
+    expect(movedPhotos(four, 3, 3)).toEqual(four);
+  });
+
+  it('상한은 DB 검사식과 같은 여섯이다', () => {
+    expect(PHOTO_MAX_COUNT).toBe(6);
   });
 });

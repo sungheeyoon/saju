@@ -2049,6 +2049,75 @@ test.describe('가입 관문', () => {
     await two.page.getByRole('button', { name: '프로필 저장' }).click();
     await expect(two.page.getByText(/저장하지 못했습니다/)).toBeVisible();
   });
+
+  /**
+   * **사진 여러 장 — 올리고, 옮기고, 지운다**(G-60).
+   *
+   * 칸 여섯, 첫 칸이 대표. 보조기기 이름은 운영자가 승인한 글자 그대로다 — 첫 칸 무리는 「대표 사진」,
+   * 사진 칸은 「사진 n / 전체, 길게 눌러 옮기기」. 옮기기는 두 길로 잰다 — 키보드 ← 와 길게 눌러 끌기.
+   * 주소의 판본(`?v=`)은 장마다 달라서, 어느 장이 어느 칸에 앉았는지를 그 값으로 가른다.
+   */
+  test('프로필 사진을 여러 장 올리고, 길게 눌러 끌거나 ← → 로 옮기고, × 로 지운다', async ({ openAs }) => {
+    const { page } = await openAs({ selfPerson: true });
+    await page.goto('/me/profile');
+
+    const lead = page.getByRole('group', { name: '대표 사진' });
+    await expect(lead).toBeVisible();
+
+    await page.getByLabel('사진 올리기').setInputFiles([
+      'public/matching/harin.webp',
+      'public/matching/jiwoo.webp',
+    ]);
+
+    const first = page.getByRole('button', { name: '사진 1 / 2, 길게 눌러 옮기기' });
+    const second = page.getByRole('button', { name: '사진 2 / 2, 길게 눌러 옮기기' });
+    await expect(first).toBeVisible();
+    await expect(second).toBeVisible();
+    await expect(lead.getByRole('button', { name: '사진 1 / 2, 길게 눌러 옮기기' })).toBeVisible();
+
+    const versionAt = async (slot: typeof first) =>
+      new URL((await slot.locator('img').getAttribute('src')) ?? '', 'http://x').searchParams.get('v');
+    const a = await versionAt(first);
+    const b = await versionAt(second);
+    expect(a).not.toBe(b);
+
+    /* 키보드 — 둘째 장에서 ← 한 번이면 대표가 되고, 초점이 그 장을 따라간다 */
+    await second.focus();
+    await page.keyboard.press('ArrowLeft');
+    await expect.poll(() => versionAt(first)).toBe(b);
+    await expect(first).toBeFocused();
+
+    /* 서버에도 앉았다 — 다시 열어도 같은 순서다 */
+    await page.reload();
+    await expect.poll(() => versionAt(first)).toBe(b);
+
+    /* 길게 눌러 끌기 — 대표를 둘째 칸에 놓으면 처음 순서로 돌아온다 */
+    const from = await first.boundingBox();
+    const to = await second.boundingBox();
+    if (from === null || to === null) throw new Error('사진 칸이 그려지지 않았다');
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(600);
+    await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await expect.poll(() => versionAt(first)).toBe(a);
+    await page.reload();
+    await expect.poll(() => versionAt(first)).toBe(a);
+
+    /* 대표를 지우면 둘째가 대표가 된다 */
+    await lead.getByRole('button', { name: '사진 지우기' }).click();
+    const only = page.getByRole('button', { name: '사진 1 / 1, 길게 눌러 옮기기' });
+    await expect(only).toBeVisible();
+    await expect.poll(() => versionAt(only)).toBe(b);
+
+    /* 그림은 자리 주소로 열린다 — 1번과 옛 주소가 같은 장이다 */
+    const userId = new URL((await only.locator('img').getAttribute('src')) ?? '', 'http://x').pathname.split('/')[3];
+    const byPosition = await page.request.get(`/me/photo/${userId}/1`);
+    const byAlias = await page.request.get(`/me/photo/${userId}`);
+    expect(byPosition.status()).toBe(200);
+    expect(Buffer.compare(await byPosition.body(), await byAlias.body())).toBe(0);
+    expect((await page.request.get(`/me/photo/${userId}/2`)).status()).toBe(404);
+  });
 });
 
 /**

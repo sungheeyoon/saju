@@ -1029,18 +1029,21 @@ export type Database = {
         Row: {
           bytes: string
           content_type: string
+          position: number
           updated_at: string
           user_id: string
         }
         Insert: {
           bytes: string
           content_type: string
+          position: number
           updated_at?: string
           user_id?: string
         }
         Update: {
           bytes?: string
           content_type?: string
+          position?: number
           updated_at?: string
           user_id?: string
         }
@@ -1048,7 +1051,7 @@ export type Database = {
           {
             foreignKeyName: "profile_photo_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "app_user"
             referencedColumns: ["id"]
           },
@@ -2027,6 +2030,10 @@ export type Database = {
       }
       acknowledge_warning: { Args: { p_ref: string }; Returns: boolean }
       activity_band_of: { Args: { p_user_id: string }; Returns: string }
+      add_my_photo: {
+        Args: { p_base64: string; p_content_type: string }
+        Returns: number
+      }
       adopt_reading_job: {
         Args: { p_response_id: string; p_run_id: string }
         Returns: boolean
@@ -2379,6 +2386,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      lock_my_photos: { Args: never; Returns: string }
       lock_users: { Args: { a: string; b: string }; Returns: undefined }
       mark_chat_read: { Args: { p_match_id: string }; Returns: number }
       mark_notifications_read: { Args: never; Returns: number }
@@ -2413,6 +2421,10 @@ export type Database = {
         Returns: boolean
       }
       may_see_photo: { Args: { p_user_id: string }; Returns: boolean }
+      move_my_photo: {
+        Args: { p_from: number; p_to: number }
+        Returns: undefined
+      }
       my_chat_messages: {
         Args: { p_before_seq?: number; p_limit?: number; p_match_id: string }
         Returns: {
@@ -2452,6 +2464,7 @@ export type Database = {
           has_photo: boolean
           intro: string
           nickname: string
+          photo_count: number
           preview_score: number
           seat: number
           supplied_elements: string[]
@@ -2549,6 +2562,7 @@ export type Database = {
           intro: string
           nickname: string
           passed_at: string
+          photo_count: number
           preview_score: number
           supplied_elements: string[]
         }[]
@@ -2559,6 +2573,13 @@ export type Database = {
           person_limit: number
           remaining: number
           used: number
+        }[]
+      }
+      my_photos: {
+        Args: never
+        Returns: {
+          position: number
+          version: number
         }[]
       }
       my_reading: {
@@ -2911,6 +2932,13 @@ export type Database = {
       person_limit: { Args: never; Returns: number }
       person_save_daily_limit: { Args: never; Returns: number }
       person_save_hourly_limit: { Args: never; Returns: number }
+      photo_at: {
+        Args: { p_position: number; p_user_id: string }
+        Returns: {
+          base64: string
+          content_type: string
+        }[]
+      }
       photo_of: {
         Args: { p_user_id: string }
         Returns: {
@@ -2948,6 +2976,10 @@ export type Database = {
         }[]
       }
       presence_write_window: { Args: never; Returns: string }
+      profile_photo_bytes: {
+        Args: { p_base64: string; p_content_type: string }
+        Returns: string
+      }
       purge_closed_chat_messages: { Args: never; Returns: number }
       reading_about: {
         Args: {
@@ -3059,6 +3091,7 @@ export type Database = {
         Returns: undefined
       }
       release_reading_job: { Args: { p_run_id: string }; Returns: undefined }
+      remove_my_photo: { Args: { p_position: number }; Returns: undefined }
       report_chat_message: {
         Args: { p_detail?: string; p_message_id: string; p_reason: string }
         Returns: string

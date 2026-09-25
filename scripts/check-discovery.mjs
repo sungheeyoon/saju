@@ -370,9 +370,10 @@ const isolate = (emails) => {
       Number.isInteger(rows?.[0]?.preview_score) && rows[0].preview_score >= 0 && rows[0].preview_score <= 100,
       String(rows?.[0]?.preview_score));
     /* `activity` 는 구간 셋 중 하나다 — 시각이 아니다(ADR 0092). 카드에 서는 값이라 여기 든다.
-       `avatar_element` 는 사진 없는 아바타의 일간 오행 한 글자(사진이면 null) — 원국이 아니다(ADR 0109) */
+       `avatar_element` 는 사진 없는 아바타의 일간 오행 한 글자(사진이면 null) — 원국이 아니다(ADR 0109).
+       `photo_count` 는 사진 장 수 — 바이트도 판본도 아니다(G-60) */
     check('반환은 카드에 설 값뿐이다',
-      keys.join(',') === 'activity,avatar_element,balance_band,candidate_user_id,exploration,has_photo,intro,nickname,preview_score,seat,supplied_elements',
+      keys.join(',') === 'activity,avatar_element,balance_band,candidate_user_id,exploration,has_photo,intro,nickname,photo_count,preview_score,seat,supplied_elements',
       keys.join(','));
 
     const axis = await me.rpc('discovery_count_balance_v1', { a: {}, b: {} });
@@ -464,6 +465,33 @@ const isolate = (emails) => {
     const anonymous = await fetch(`${BASE}/me/photo/${theirId}`, { redirect: 'manual' });
     check('로그인하지 않으면 없는 것과 같은 답을 받는다', anonymous.status === 404,
       String(anonymous.status));
+
+    /*
+      **여러 장은 자리 번호로 연다**(G-60). `/me/photo/{id}` 는 1번의 다른 이름이고, 둘째 장은 `/2` 다.
+      여는 조건은 사람 단위라 한 장이 열리면 둘째도 열린다.
+    */
+    const 둘째 = Buffer.from('52494646-둘째', 'utf8').toString('base64');
+    const { error: 더함 } = await other.rpc('add_my_photo', { p_content_type: 'image/webp', p_base64: 둘째 });
+    check('둘째 사진을 더한다', 더함 === null, 더함?.message);
+
+    const first = await get(`/me/photo/${theirId}/1`, myCookie);
+    check('1번 주소가 대표 사진을 연다', first.status === 200
+      && first.headers.get('content-type') === 'image/png', `${first.status} ${first.headers.get('content-type')}`);
+    const second = await get(`/me/photo/${theirId}/2`, myCookie);
+    check('2번 주소가 둘째 사진을 연다', second.status === 200
+      && second.headers.get('content-type') === 'image/webp', `${second.status} ${second.headers.get('content-type')}`);
+    const third = await get(`/me/photo/${theirId}/3`, myCookie);
+    check('없는 자리는 404 다', third.status === 404, String(third.status));
+    const odd = await get(`/me/photo/${theirId}/abc`, myCookie);
+    check('자리가 수가 아니면 404 다', odd.status === 404, String(odd.status));
+    const secondAnon = await fetch(`${BASE}/me/photo/${theirId}/2`, { redirect: 'manual' });
+    check('둘째 사진도 로그인하지 않으면 없는 것과 같다', secondAnon.status === 404, String(secondAnon.status));
+
+    forgetBoard(mine);
+    const { data: counted } = await me.rpc('my_discovery_board');
+    check('카드가 사진 장 수를 든다',
+      (counted ?? []).find((row) => row.candidate_user_id === theirId)?.photo_count === 2,
+      JSON.stringify((counted ?? []).find((row) => row.candidate_user_id === theirId)?.photo_count));
   }
 
   // ── 7. 남의 selfPerson 은 안 보인다 ─────────────────────────────────────────

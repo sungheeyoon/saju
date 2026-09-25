@@ -241,7 +241,6 @@ const DOUBLE_CASTS_STILL_THERE = [
   'app/me/account.ts :: data as unknown as T',
   'app/me/person-input.ts :: data as unknown as StoredInput',
   'app/me/person-input.ts :: row as unknown as StoredInput',
-  'app/me/photo/[userId]/route.ts :: Buffer.from(row.base64, \'base64\') as unknown as BodyInit',
   'app/me/reading/pipeline.ts :: (data ?? []) as unknown as FrozenJob[]',
   'app/me/reading/pipeline.ts :: (data ?? []) as unknown as FrozenJob[]',
   "app/me/reading/target.ts :: null as unknown as ReadingTarget['kind']",
@@ -313,7 +312,7 @@ const COUNTED_BY_LAYERS = 'no-restricted-syntax';
 const DISABLES_STILL_THERE = [
   'app/me/avatar.tsx :: @next/next/no-img-element',
   'app/me/matching/matching-experience.tsx :: @next/next/no-img-element',
-  'app/me/profile/form.tsx :: @next/next/no-img-element',
+  'app/me/profile/photo-grid.tsx :: @next/next/no-img-element',
   'app/me/survey/form.tsx :: react-hooks/exhaustive-deps',
 ];
 /** 까닭(`-- …`) 없이 선 표시 — 새 표시는 까닭을 적는다 */
@@ -332,7 +331,7 @@ describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 �
     expect(PRODUCT_FILES.length).toBeGreaterThan(150);
   });
 
-  it('`as unknown as` 는 옛 자리 여덟에만 있다 — `as never as` · `as any as` 도 같은 예산이다', () => {
+  it('`as unknown as` 는 옛 자리 일곱에만 있다 — `as never as` · `as any as` 도 같은 예산이다', () => {
     const found = fingerprints(PRODUCT_FILES, (node, source) =>
       isAs(node) && isAs(node.expression) && isUnknown(node.expression.type) ? oneLine(node.getText(source)) : null,
     );

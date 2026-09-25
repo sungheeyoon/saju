@@ -37,12 +37,12 @@ export async function saveProfile(profile: ProfileInput): Promise<SaveResult> {
 }
 
 /**
- * 사진을 올린다 — **줄이는 일은 브라우저가 했다.**
+ * 사진 한 장을 **맨 뒤에** 더한다 — **줄이는 일은 브라우저가 했다**(G-60).
  *
- * 여기 닿는 것은 이미 512px 안팎으로 줄여 놓은 바이트다(`shrinkToDataUrl`). 그렇다고
- * 믿지는 않는다 — 상한도 형식도 DB 가 다시 본다. 이 액션도 주소만 알면 부를 수 있다.
+ * 여기 닿는 것은 이미 512px 안팎으로 줄여 놓은 바이트다(`shrink`). 그렇다고 믿지는 않는다 —
+ * 상한도 형식도 여섯 장도 DB 가 다시 본다. 이 액션도 주소만 알면 부를 수 있다.
  */
-export async function savePhoto(photo: {
+export async function addPhoto(photo: {
   contentType: string;
   base64: string;
 }): Promise<SaveResult> {
@@ -52,23 +52,34 @@ export async function savePhoto(photo: {
 
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('set_my_photo', {
+  const { error } = await supabase.rpc('add_my_photo', rpcArgs<'add_my_photo'>({
     p_content_type: photo.contentType,
     p_base64: photo.base64,
-  });
+  }));
 
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'set_my_photo') };
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'add_my_photo') };
 
   refresh('account-changed');
   return { ok: true };
 }
 
-/** 사진을 내린다 — 행을 지운다. 「없음」이 두 값이 되지 않게 */
-export async function clearPhoto(): Promise<SaveResult> {
+/** 한 장을 내린다 — 뒤의 장이 한 칸씩 당겨 앉는다. 자리를 세는 일은 DB 가 한다 */
+export async function removePhoto(position: number): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('clear_my_photo');
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'clear_my_photo') };
+  const { error } = await supabase.rpc('remove_my_photo', rpcArgs<'remove_my_photo'>({ p_position: position }));
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'remove_my_photo') };
+
+  refresh('account-changed');
+  return { ok: true };
+}
+
+/** 한 장을 다른 자리로 옮긴다 — 사이의 장이 한 칸씩 밀린다. 맞바꾸지 않는다 */
+export async function movePhoto(from: number, to: number): Promise<SaveResult> {
+  const supabase = await supabaseOnServer();
+
+  const { error } = await supabase.rpc('move_my_photo', rpcArgs<'move_my_photo'>({ p_from: from, p_to: to }));
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'move_my_photo') };
 
   refresh('account-changed');
   return { ok: true };
