@@ -260,7 +260,7 @@ function EditInputConfirm({
       onClose={onCancel}
       className={DIALOG}
     >
-      <h3 id={`edit-input-confirm-${personId}`} className="font-rounded text-[1.3rem] leading-7">
+      <h3 id={`edit-input-confirm-${personId}`} className={TYPE_NAME}>
         {INPUT_EDIT_CHANGE_CONFIRM.title}
       </h3>
       <div className="mt-2 flex flex-col gap-1.5 text-[15px] leading-6 text-secondary">

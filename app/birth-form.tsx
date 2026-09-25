@@ -169,7 +169,7 @@ function convertedLine(value: Query): { ok: boolean; text: string } | null {
  * 궁합에서 사람을 고르는 칸도 이것을 쓴다(`me/compat/picker.tsx`). 거기만 브라우저
  * 기본 셀렉트로 서 있어서, 같은 앱 안에서 고르는 칸이 두 모양이었다.
  */
-export function SelectShell({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+function SelectShell({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`relative min-w-0 ${className}`}>
       {children}

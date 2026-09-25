@@ -20,7 +20,7 @@ import { elementScope } from '../../element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon } from '../../ui/icons';
-import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_NAME } from '../../ui/surfaces';
+import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_NAME, TYPE_SECTION } from '../../ui/surfaces';
 import { generateReading, readingRunState } from './actions';
 import { announceCreditsMoved } from './credits-signal';
 import { GENERATION } from './generation';
@@ -590,7 +590,7 @@ export function ReadingPanel({
         <span aria-hidden="true" className="grid size-11 place-items-center rounded-full bg-cream text-cream-ink">
           <Icon name="ticket" className="size-5" />
         </span>
-        <h3 id="reading-confirm-title" className="mt-4 font-rounded text-[1.3rem] leading-7">
+        <h3 id="reading-confirm-title" className={`mt-4 ${TYPE_NAME}`}>
           풀이권 1회를 사용하시겠어요?
         </h3>
         <p className="mt-2 text-[15px] leading-6 text-secondary">{READING_USES_TICKET_NOTE}</p>
@@ -623,7 +623,7 @@ function EmptyState() {
             <ElementSymbol key={element} element={element} className="size-6" />
           ))}
         </span>
-        <h3 className="mt-4 font-rounded text-[1.3rem] leading-7">아직 받아 둔 풀이가 없어요</h3>
+        <h3 className={`mt-4 ${TYPE_NAME}`}>아직 받아 둔 풀이가 없어요</h3>
         <p className="mt-2 text-[15px] leading-6 text-secondary">복잡한 사주 정보를 핵심 성향, 강점, 균형을 위한 제안으로 나누어 읽기 쉽게 정리합니다.</p>
       </div>
     </div>
@@ -820,7 +820,7 @@ function Result({
           {target.kind === 'match' && (
             <header className="mx-auto w-full max-w-[36rem]">
               <p className="text-[13px] font-semibold text-secondary">두 사람의 풀이</p>
-              <h2 className="mt-1 font-rounded text-[1.5rem] leading-8">궁합풀이 결과</h2>
+              <h2 className={`mt-1 ${TYPE_SECTION}`}>궁합풀이 결과</h2>
             </header>
           )}
           <article id={`reading-${reading.id}`}>

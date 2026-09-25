@@ -10,6 +10,7 @@ import {
 } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { answerOfThrown } from '../../db-error';
 import { Icon, type IconName } from '../../ui/icons';
 import { CARD } from '../../card';
 import { BADGE, ROW_CARD, TYPE_META, TYPE_NAME, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
@@ -83,12 +84,13 @@ async function InboxSections() {
   let inbox: Inbox;
   try {
     inbox = await inboxForViewer();
-  } catch (error) {
-    // 거절의 문장은 DB 가 쓴다 — 사람이 읽을 수 있게 써 뒀다.
+  } catch (thrown) {
+    /*
+      문이 던진 거절(`DbFailure`)은 이미 우리말로 옮겨졌다 — 그것만 옮긴다. 망 · 모르는 예외의 원문은 영어일 수
+      있어 기록에만 보내고 일반 문장이 선다(`answerOfThrown`). 전에는 `error.message` 를 그대로 세웠다.
+    */
     return (
-      <p className="text-sm text-muted">
-        요청함을 읽지 못했습니다 — {error instanceof Error ? error.message : '알 수 없는 까닭'}
-      </p>
+      <p className="text-sm text-muted">요청함을 읽지 못했습니다 — {answerOfThrown(thrown, 'inbox')}</p>
     );
   }
 

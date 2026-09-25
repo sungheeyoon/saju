@@ -1,5 +1,3 @@
-'use client';
-
 import type { ReactNode } from 'react';
 
 import {
@@ -17,19 +15,14 @@ import { elementScope } from './element-tone';
 import { DayMasterChip, PillarStrip } from './me/people/chart-bits';
 import { sharedPillarChartOf, type SharedPillarChart } from './shared-pillar';
 import { ElementSymbol } from './ui/element-symbol';
-import { TILE, TYPE_META, TYPE_NAME } from './ui/surfaces';
+import { TILE, TYPE_META, TYPE_NAME, TYPE_SECTION } from './ui/surfaces';
 
 /**
- * 궁합 **결과 영역** — 입력을 어디서 받았는지 모른다.
+ * 궁합 **결과 영역** — 계산이 끝난 값만 받는다.
  *
- * 익명 화면은 주소의 `#` 뒤에서 입력을 읽어 브라우저가 계산하고, `/me/compat` 은
- * 저장된 판본 둘을 서버가 읽어 계산한다. **그 차이는 위층에서 끝나야 한다** —
- * 여기까지 내려오면 「저장된 것인가」를 묻는 분기가 결과 화면 곳곳에 생기고,
- * 그러면 같은 두 사람이 어디서 왔느냐에 따라 다른 결과 화면을 보게 된다
- * (ADR 0007 「이행」).
- *
- * 그래서 받는 것은 계산이 끝난 값 셋뿐이다. 어느 화면인지는 `notice` 하나로만
- * 드러난다 — 링크에 무엇이 실리는지가 두 화면에서 서로 다른 사실이라 그렇다.
+ * 부르는 자리는 `/me/compat` 하나다. 저장된 판본 둘을 서버가 읽어 계산하고 여기는 그리기만 한다 — 누름도
+ * 상태도 없어서 서버 컴포넌트로 선다. 두 명식 전체(`Saju`)는 서버에서 여덟 글자로 잘린 뒤에만 그려지고,
+ * 브라우저로는 그려진 결과만 간다(2026-09-25 전에는 `'use client'` 라 두 명식과 관계 표 전체가 화면 자료로 실렸다).
  *
  * Match 결과 화면은 이 컴포넌트 전체가 아니라 `PillarPair`만 재사용한다. 그 화면은
  * 상대의 `Saju`를 받지 않고, 동의로 열린 여덟 글자만 잘라 만든 `SharedPillarChart`를
@@ -53,60 +46,19 @@ export function CompatView({
   names,
   notice,
   verdict,
-  analysis,
 }: {
   charts: Record<CompatSide, Saju>;
   /** 두 사람을 부르는 말 — 입력한 이름이거나 '첫 번째 사람' */
   names: Record<CompatSide, string>;
   compat: Compatibility;
-  /**
-   * 결과 맨 위에 서는 한 줄 — **화면마다 다른 사실을 말한다.**
-   *
-   * 익명 화면은 링크에 두 사람의 생년월일시가 담긴다고 말해야 하고, `/me/compat`
-   * 은 저장된 판본을 본다고 말해야 한다. 둘 다 참인 문장 하나를 지어낼 수 없으므로
-   * 여기서 판단하지 않고 받는다.
-   */
+  /** 결과 맨 위에 서는 한 줄 — 무엇을 기준으로 본 결과인가 */
   notice: ReactNode;
   /**
-   * 사실 **아래에 서는 판정** — 화면마다 다른 것이 서는 자리다.
-   *
-   * 궁합 결과 화면에는 「궁합 베타」 카드와 궁합풀이가 선다. 카드의 수가 곧 풀이 점수의
+   * 사실 **아래에 서는 판정** — 「궁합 베타」 카드와 궁합풀이. 카드의 수가 곧 풀이 점수의
    * 기준점이라 **두 수가 같은 축에 선다**(ADR 0060) — 축이 다른 점수 둘을 한 화면에
    * 세우면 사용자가 무엇을 믿을지 정해야 하고, 그 물음에 우리가 답을 갖고 있지 않다.
-   *
-   * `notice` 와 같은 규율이다. 화면마다 다른 사실은 여기서 판단하지 않고 받는다.
    */
   verdict: ReactNode;
-  /**
-   * 분석 표를 **어떻게 두는가** — 접어 두는가, 아예 안 세우는가.
-   *
-   * ## 갈리는 것은 화면이 아니라 화면 안의 무엇인가다
-   *
-   * 두 종류가 섞여 있다(ADR 0035).
-   *
-   * - **사용자 것** — 두 사람의 여덟 글자, 오행이 서로를 어떻게 채우는지,
-   *   사이를 묻는 칸, 저장해서 풀이로 가는 다리
-   * - **우리 것** — 관계 표와 그 표에서 세운 발화. 프롬프트와 근거를 손보면서
-   *   무엇이 나왔는지 대조하는 **엔진 중간 결과**다
-   *
-   * 사용자 앞에 표 스물몇 개가 먼저 서면 아래로 못 내려간다. 그래서 우리 것은
-   * 먼저 서지 않는다 — 다만 **두 화면이 하는 일이 달라서 방식이 갈린다.**
-   *
-   * - `folded` — 익명 화면(`/compat`). 계산기이고, 우리도 여기서 두 결과를 나란히
-   *   놓고 본다. 없애면 그 자리를 잃으므로 **접는다.** 펴면 그대로 다 나온다
-   * - `hidden` — 저장한 두 사람 화면(`/me/compat`). 사람이 보러 온 것은 읽어 주는
-   *   글이고, 접은 칸도 그 앞에 「펼치면 뭔가 더 있다」는 자리를 하나 만든다
-   *   (ADR 0025). 여덟 글자는 그대로 선다 — 이 화면은 글을 만들기 **전에** 서는
-   *   만세력이기 때문이다(ADR 0036)
-   *
-   * **기본값을 두지 않는다.** 없으면 새로 생기는 화면이 아무 말 없이 다 펼친 쪽에
-   * 선다. 가르는 자리를 화면이 따로 그리지 않고 여기 두는 이유도 같다 — 두 번
-   * 그리면 한쪽만 고쳐지고, 그때 두 화면이 서로 다른 것을 감춘다.
-   *
-   * **숨김 뒤에 자격을 걸지 않는다.** 이건 보안이 아니라 편집이다. 접힌 자료는
-   * 응답에 그대로 실린다 — 자르는 것이 아니다.
-   */
-  analysis: 'folded' | 'hidden';
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -118,7 +70,7 @@ export function CompatView({
         }}
         names={names}
       />
-      {analysis === 'folded' && <FoldedAnalysis compat={compat} names={names} />}
+      <FoldedAnalysis compat={compat} names={names} />
       {verdict}
     </div>
   );
@@ -126,6 +78,10 @@ export function CompatView({
 
 /**
  * 접어 둔 분석 — **기본은 접힘이고, 펴면 그대로 다 나온다.**
+ *
+ * 관계 표와 그 표에서 세운 발화는 우리가 대조하는 엔진 중간 결과다(ADR 0035). 사용자 앞에 표 스물몇 개가
+ * 먼저 서면 아래의 지표와 풀이까지 못 내려가므로 접는다 — 없애면 두 결과를 나란히 놓고 보는 자리를 잃는다.
+ * **숨김 뒤에 자격을 걸지 않는다.** 이건 보안이 아니라 편집이다.
  *
  * 접이칸이 제 이름으로 무엇이 들었는지 말한다. 「계산을 확인하는 자리입니다」처럼
  * **자기 용도를 적지 않는다** — 그 문장이 붙어 있던 칸은 사용자에게 「내가 볼 것이
@@ -150,7 +106,7 @@ function FoldedAnalysis({
       */}
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-[1.5rem] border border-border bg-surface px-5 py-4 hover:border-border-strong active:scale-[0.99] sm:px-6 [&::-webkit-details-marker]:hidden">
         <span>
-          <span className="font-rounded text-[1.3rem] leading-7">두 사주를 맞대어 본 표</span>
+          <span className={TYPE_NAME}>두 사주를 맞대어 본 표</span>
           <span className="mt-0.5 block text-[13px] leading-5 text-secondary">
             사이에 걸리는 관계와, 그 표에서 말할 수 있는 것.
           </span>
@@ -192,7 +148,7 @@ export function PillarPair({
     <section className="rounded-[2rem] bg-cream p-4 sm:p-6">
       <header className="px-1 pb-4 sm:px-2">
         <p className="text-[13px] font-semibold text-cream-ink">각자의 사주</p>
-        <h2 className="mt-0.5 font-rounded text-[1.5rem] leading-8">궁합의 출발점</h2>
+        <h2 className={`mt-0.5 ${TYPE_SECTION}`}>궁합의 출발점</h2>
       </header>
 
       <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">

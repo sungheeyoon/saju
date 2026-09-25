@@ -3,6 +3,7 @@ import type { MatchPreview } from '@/src/lib/matching';
 
 import { CARD } from './card';
 import { Icon } from './ui/icons';
+import { TYPE_NAME } from './ui/surfaces';
 
 /** 카드 위 딱지 — 운영자 확정 문구 #7(2026-09-25) */
 const POLICY_BADGE: Record<ScorePolicy, string> = {
@@ -25,13 +26,10 @@ const POLICY_BADGE: Record<ScorePolicy, string> = {
 export function MatchIndexCard({
   preview,
   names,
-  children,
 }: {
   preview: MatchPreview;
   /** 두 사람을 부르는 말 — 지표 위에 누구와 누구인지를 적는다 */
   names: Record<'a' | 'b', string>;
-  /** 카드 아래에 덧붙는 것 — 화면마다 다르다(익명 화면의 신청 칸 같은 것) */
-  children?: React.ReactNode;
 }) {
   return (
     <section className={`${CARD} flex flex-col gap-6`}>
@@ -107,7 +105,7 @@ export function MatchIndexCard({
       </div>
 
       <div className="border-t border-border pt-5">
-        <h3 className="font-rounded text-[1.3rem] leading-7">먼저 보이는 신호</h3>
+        <h3 className={TYPE_NAME}>먼저 보이는 신호</h3>
         <ul className="mt-2 flex flex-col gap-2 text-[15px] leading-6">
           {preview.highlights.map((highlight) => (
             <li key={highlight} className="flex gap-2.5">
@@ -119,8 +117,6 @@ export function MatchIndexCard({
       </div>
 
       <p className="text-[13px] leading-5 text-secondary">{preview.caveat}</p>
-
-      {children}
     </section>
   );
 }

@@ -1,5 +1,3 @@
-'use client';
-
 import { buildMatchPreview, type MatchBasis } from '@/src/lib/matching';
 import type { Compatibility, Saju } from '@/src/lib/saju';
 
@@ -11,11 +9,8 @@ import { MatchIndexCard } from './match-index';
  * **눈금은 부르는 화면이 정한다**(`matchBasisOf`). 저장된 풀이가 있으면 그 풀이를 잰 판과 기준점이고, 없을 때만
  * 지금의 판을 사이로 고른다 — 옛 풀이 옆에 새 판의 수를 세우지 않는다(ADR 0113).
  *
- * **셈은 여기서 부르고 그리기는 `MatchIndexCard` 가 한다.** 이 화면은 두 명식을
- * 브라우저가 들고 있어도 되는 자리라(사용자가 스스로 넣었거나 자기 사람들이다)
- * 지표도 브라우저에서 난다. Match 결과 화면은 그럴 수 없으므로 서버에서 같은
- * 함수를 부르고 결과만 넘긴다(ADR 0010) — **부르는 자리가 둘이어도 부르는 함수는
- * 하나**라, 두 화면의 숫자가 갈릴 자리가 없다.
+ * **셈은 여기서 부르고 그리기는 `MatchIndexCard` 가 한다.** 서버 컴포넌트라 셈도 서버에서 나고, 브라우저로는
+ * 그려진 지표만 간다 — 두 명식 전체를 화면 자료로 싣지 않는다(ADR 0010).
  *
  * ## 「인연 찾기에서 요청하기」를 걷었다
  *

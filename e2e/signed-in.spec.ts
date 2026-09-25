@@ -1003,7 +1003,9 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       이 답이 정해진 채로 선다.
     */
     await expect(page.getByText('두 분은 무슨 사이인가요')).toBeVisible();
-    await expect(page.getByText('점수에는 쓰지 않습니다')).toBeVisible();
+    /* 사이가 점수의 눈금도 고른다(ADR 0113) — 안내가 옛 약속 「점수에는 쓰지 않습니다」를 말하지 않는다 */
+    await expect(page.getByText('점수의 기준도 이 답을 따릅니다')).toBeVisible();
+    await expect(page.getByText('점수에는 쓰지 않습니다')).toHaveCount(0);
 
     /* 목록의 카드가 연 길이라 첫 칸에는 그 사람이 이미 앉아 있다 — 찾아 고르는 칸이 그 이름을 든다 */
     await expect(page.getByRole('combobox', { name: '첫 번째' })).not.toHaveValue('');
@@ -2064,6 +2066,27 @@ test.describe('가입 관문', () => {
     const lead = page.getByRole('group', { name: '대표 사진' });
     await expect(lead).toBeVisible();
 
+    /*
+      **주소가 아니라 그림을 잰다.** 칸의 `src` 는 자리 주소(`/me/photo/{id}/{n}?v=`)라, 옮긴 순서를 먼저 그리는
+      순간 서버가 아직 옛 순서일 때 받아 가면 새 주소에 옛 장의 바이트가 1분 캐시된다 — `?v=` 는 맞는데 눈에는
+      안 옮겨진 그림이 선다. 그래서 브라우저가 받은 바이트를 주소마다 적어 두고, 칸이 보이는 그림이 그 장인가를 본다.
+    */
+    /* 누름(서버 액션)이 그림 요청보다 늦게 닿는 망을 흉내 낸다 — 폰의 느린 올림에서는 늘 그렇다 */
+    await page.route('**/me/profile', async (route) => {
+      if (route.request().method() === 'POST') await new Promise((done) => setTimeout(done, 600));
+      await route.continue();
+    });
+    const bodies = new Map<string, Buffer>();
+    page.on('response', async (response) => {
+      if (!/\/me\/photo\/[^/]+\/\d\?v=/.test(response.url()) || response.status() !== 200) return;
+      bodies.set(new URL(response.url()).pathname + new URL(response.url()).search, await response.body());
+    });
+    const shownBytes = async (slot: typeof lead) => {
+      const src = (await slot.locator('img').getAttribute('src')) ?? '';
+      await expect.poll(() => bodies.has(src)).toBe(true);
+      return bodies.get(src) ?? Buffer.alloc(0);
+    };
+
     await page.getByLabel('사진 올리기').setInputFiles([
       'public/matching/harin.webp',
       'public/matching/jiwoo.webp',
@@ -2080,14 +2103,22 @@ test.describe('가입 관문', () => {
     const a = await versionAt(first);
     const b = await versionAt(second);
     expect(a).not.toBe(b);
+    const bytesOfA = await shownBytes(first);
+    const bytesOfB = await shownBytes(second);
+    expect(Buffer.compare(bytesOfA, bytesOfB)).not.toBe(0);
 
     /* 키보드 — 둘째 장에서 ← 한 번이면 대표가 되고, 초점이 그 장을 따라간다 */
+    const saved = () => page.waitForResponse((response) => response.request().method() === 'POST');
     await second.focus();
+    const moved = saved();
     await page.keyboard.press('ArrowLeft');
     await expect.poll(() => versionAt(first)).toBe(b);
     await expect(first).toBeFocused();
+    expect(Buffer.compare(await shownBytes(first), bytesOfB)).toBe(0);
+    expect(Buffer.compare(await shownBytes(second), bytesOfA)).toBe(0);
 
     /* 서버에도 앉았다 — 다시 열어도 같은 순서다 */
+    await moved;
     await page.reload();
     await expect.poll(() => versionAt(first)).toBe(b);
 
@@ -2099,8 +2130,11 @@ test.describe('가입 관문', () => {
     await page.mouse.down();
     await page.waitForTimeout(600);
     await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
+    const movedBack = saved();
     await page.mouse.up();
     await expect.poll(() => versionAt(first)).toBe(a);
+    expect(Buffer.compare(await shownBytes(first), bytesOfA)).toBe(0);
+    await movedBack;
     await page.reload();
     await expect.poll(() => versionAt(first)).toBe(a);
 

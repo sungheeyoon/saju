@@ -41,11 +41,8 @@ export const metadata = {
 };
 
 /**
- * 저장된 두 사람의 궁합 — **서버가 판본 둘을 읽어 계산한다.**
- *
- * 익명 화면과 갈리는 것은 **입력을 어디서 받는가 하나**여야 한다(ADR 0007 「이행」).
- * 그쪽은 주소의 `#` 뒤에서 읽어 브라우저가 계산하고, 여기는 Person id 둘로 저장된
- * 판본을 읽어 서버가 계산한다. 결과 화면(`CompatView`)은 같은 것을 쓴다.
+ * 저장된 두 사람의 궁합 — **서버가 판본 둘을 읽어 계산한다.** Person id 둘로 저장된 판본을 읽고,
+ * 결과(`CompatView`)는 그리기만 한다.
  *
  * **주소에는 id 둘뿐이다.** 저장된 출생 원문을 fragment 로 옮기지 않는다 — 남이
  * 등록한 가족의 생년월일시가 주소창에 실리는 것은 그 ADR 이 익명 링크에서 막으려던
@@ -152,7 +149,7 @@ export default async function ManagedCompatPage({
  * 여기서 한 번 더 눌러야 글이 난다 — `/` 와 `/compat` 이 이미 그 모양이다.
  *
  * 그 앞에 표 스물몇 개를 세워 두면 글까지 내려오지 못하므로 **관계표는 접어 둔다**
- * (`analysis="folded"`). 서는 것은 여덟 글자다 — 표는 우리가 대조하는 값이라 없애지
+ * (`CompatView` 의 `FoldedAnalysis`). 서는 것은 여덟 글자다 — 표는 우리가 대조하는 값이라 없애지
  * 않고 접는다(ADR 0035). 접이칸이 살던 화면(`/compat` 의 결과)이 이 자리로 합쳐지면서
  * 그 값이 갈 곳이 여기뿐이다.
  */
@@ -208,12 +205,6 @@ function PairMark({ elements }: { elements: readonly [Element, Element] }) {
 const firstOf = (value: string | string[] | undefined): string | null =>
   (Array.isArray(value) ? value[0] : value) ?? null;
 
-/**
- * 두 사람을 고르는 자리 — **평범한 GET 폼이다.**
- *
- * 자바스크립트가 하는 일이 없다. 고른 결과가 곧 주소(`?a=…&b=…`)이고 그 주소가
- * 곧 화면이므로, 상태를 들고 있다가 옮겨 줄 컴포넌트가 필요하지 않다.
- */
 type Outcome =
   | { kind: 'empty' }
   | { kind: 'same' }
@@ -326,11 +317,15 @@ async function Result({ outcome }: { outcome: Outcome }) {
     relation: stored.ok ? stored.relation : null,
   });
 
+  const charts = { a: first.saju, b: second.saju };
+  const compat = analyzeCompatibility(first.saju, second.saju);
+  const names = { a: first.name, b: second.name };
+
   return (
     <CompatView
-      charts={{ a: first.saju, b: second.saju }}
-      compat={analyzeCompatibility(first.saju, second.saju)}
-      names={{ a: first.name, b: second.name }}
+      charts={charts}
+      compat={compat}
+      names={names}
       /**
        * 비공개 궁합의 결과 슬롯 — **자기 풀이·공유 궁합과 같은 칸을 쓴다**(`ReadingSection`).
        *
@@ -338,27 +333,16 @@ async function Result({ outcome }: { outcome: Outcome }) {
        * 없었다.** 파이프라인은 처음부터 세 kind 를 다 받았고(`ReadingTarget`), 쌍의 차례도
        * DB 가 정한다(`least`·`greatest`) — 막혀 있던 것은 화면 한 줄뿐이었다.
        */
-      analysis="folded"
       verdict={
         <>
           {/*
             **두 길이 같은 차례로 선다** — 두 명식 → 베타 지표 → 사이 → 만드는 버튼.
             직접 입력 화면에도 이 칸이 있었는데 여기만 없어서, 같은 흐름을 지나온
             사람이 화면마다 다른 것을 보고 있었다.
-
-            셈은 브라우저에서 난다(`MatchResult`). 내 사람들의 명식이라 브라우저가
-            들고 있어도 되는 자리이고, 부르는 함수는 저쪽과 같다(ADR 0010).
           */}
-          <MatchResult
-            key="match-index"
-            charts={{ a: first.saju, b: second.saju }}
-            compat={analyzeCompatibility(first.saju, second.saju)}
-            names={{ a: first.name, b: second.name }}
-            basis={basis}
-          />
-          <ScoringNote key="scoring-note" />
+          <MatchResult charts={charts} compat={compat} names={names} basis={basis} />
+          <ScoringNote />
           <ReadingSection
-            key="private-reading"
             target={target}
             reading={reading}
             layout="page"
@@ -375,7 +359,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
              */
             ask={
               stored.ok && stored.relation !== null ? (
-                <p key="relation-line" className="text-[13px] leading-5 text-secondary">
+                <p className="text-[13px] leading-5 text-secondary">
                   <strong className="font-semibold text-foreground">
                     {RELATION_LABEL[stored.relation]}
                   </strong>{' '}
@@ -387,12 +371,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
         </>
       }
       notice={
-        /*
-          **키를 단다.** 이 원소는 서버 컴포넌트가 만들어 클라이언트 컴포넌트
-          (`CompatView`)의 자식 배열로 건너간다. 경계를 넘어온 원소는 `jsx` 가 달아 두는
-          「검사했다」 표시를 잃으므로, 정적인 자리에 서 있어도 React 가 키를 찾는다.
-        */
-        <p key="input-edit-notice" className="text-[13px] leading-5 text-secondary">
+        <p className="text-[13px] leading-5 text-secondary">
           <strong className="font-semibold text-foreground">현재 저장된 출생 정보 기준입니다.</strong>{' '}
           {INPUT_EDIT_REPLACED_NOTE}
         </p>

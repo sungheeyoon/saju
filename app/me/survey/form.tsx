@@ -37,6 +37,7 @@ import {
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { saveServiceSurvey } from './actions';
 import type { MySurvey, SurveyContext } from './read';
+import { TYPE_SECTION } from '../../ui/surfaces';
 
 /**
  * 서비스 설문 폼 — **쓰는 동안 저절로 남고, 제출은 손으로 한다.**
@@ -122,7 +123,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
     return (
       <section className="flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6">
         <div className="flex flex-col gap-1">
-          <h2 className="font-rounded text-[1.5rem] leading-8">{SURVEY_COPY.thanks}</h2>
+          <h2 className={TYPE_SECTION}>{SURVEY_COPY.thanks}</h2>
           <p className="text-sm leading-6 text-secondary">{SURVEY_COPY.editable}</p>
         </div>
         <button
