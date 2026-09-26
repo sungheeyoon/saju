@@ -11,6 +11,7 @@ import {
 import { chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY } from '@/src/lib/input/query';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
+import { DISCOVERY_POLICY } from '@/src/lib/discovery';
 import { PROMPT_VARIANTS } from '@/src/lib/reading';
 
 import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
@@ -1726,6 +1727,50 @@ test.describe('로그인한 사람의 궁합 화면', () => {
     expect(list).not.toContain('민수');
     expect(list).not.toContain('지영');
     expect(list).toContain(`1/${personLimit()}명`);
+  });
+
+  /**
+   * **풀이를 받은 뒤 사이를 바꾸면, 두 줄이 서로 다른 사이를 말하지 않는다.**
+   *
+   * 지표는 그 풀이를 잰 사이로 선다(ADR 0113) — 옛 풀이 옆에 새 눈금을 세우지 않는다. 사이 줄은 지금 적어 둔
+   * 사이를 말한다 — 다음 풀이가 그 사이로 난다. 둘을 한 줄씩 따로 세우면 「가족 사이로 읽어 드립니다」 위에
+   * 「연인·배우자 기준」이 서서, 지금 보는 글이 무슨 사이로 읽혔는지 화면이 두 말을 한다(2026-09-26).
+   * 모델은 안 부른다 — 글은 `postgres` 로 심고, 그 글의 눈금만 연인으로 적는다.
+   */
+  test('풀이를 받은 뒤 사이를 바꾸면 사이 줄이 지금 글의 사이와 다음 풀이의 사이를 갈라 말한다', async ({
+    openAs,
+  }) => {
+    const { page, api } = await openAs({ selfPerson: true });
+
+    await page.goto('/compat');
+    await typeInto(page, '첫 번째', { name: '민수', date: '1991-03-03', time: '11:20' });
+    await typeInto(page, '두 번째', { name: '지영', date: '1992-08-20', time: '09:00' });
+    await page.getByRole('radio', { name: '가족' }).check();
+    await page.getByRole('button', { name: '궁합 보기' }).click();
+    await expect(page).toHaveURL(/\/me\/compat\?a=[0-9a-f-]+&b=[0-9a-f-]+$/);
+
+    const address = new URL(page.url());
+    const started = await api.rpc('start_reading_run', {
+      p_kind: 'private',
+      p_idempotency_key: `e2e-private-${address.search}`,
+      p_person_a: address.searchParams.get('a'),
+      p_person_b: address.searchParams.get('b'),
+      p_model: 'gpt-e2e',
+      p_prompt_version: 'reading-prompt-v1',
+    });
+    expect(started.error).toBeNull();
+    const runId = started.data?.[0]?.run_id as string;
+    sql(`select public.save_reading('${runId}'::uuid, '## 연인으로 읽은 글', null, null,
+           '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
+    sql(`update public.reading
+           set score_baseline = 70, score_version = '${DISCOVERY_POLICY.version}', score_relation = 'partner'
+         where source_run_id = '${runId}'`);
+
+    await page.reload();
+    await expect(page.getByText('연인·배우자 기준', { exact: true })).toBeVisible();
+    const main = page.locator('main');
+    await expect(main).toContainText('지금 글과 점수는 연인·배우자 사이로 읽었습니다');
+    await expect(main).toContainText('다음 풀이는 가족 사이로 읽어 드립니다');
   });
 
   /**
