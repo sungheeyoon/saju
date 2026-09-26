@@ -2245,7 +2245,11 @@ test.describe('가입 관문', () => {
     await page.reload();
     await expect.poll(() => versionAt(first)).toBe(b);
 
-    /* 길게 눌러 끌기 — 대표를 둘째 칸에 놓으면 처음 순서로 돌아온다 */
+    /*
+      길게 눌러 끌기 — 대표를 둘째 칸에 놓으면 처음 순서로 돌아온다. 다시 연 화면은 서버 HTML 로 먼저 서고 누름을
+      받는 손은 하이드레이션 뒤에 붙는다 — 그 전에 누르면 아무 일도 없다(모바일에서 세 번에 두 번, 2026-09-26).
+    */
+    await page.waitForLoadState('networkidle');
     const from = await first.boundingBox();
     const to = await second.boundingBox();
     if (from === null || to === null) throw new Error('사진 칸이 그려지지 않았다');
@@ -2274,6 +2278,57 @@ test.describe('가입 관문', () => {
     expect(byPosition.status()).toBe(200);
     expect(Buffer.compare(await byPosition.body(), await byAlias.body())).toBe(0);
     expect((await page.request.get(`/me/photo/${userId}/2`)).status()).toBe(404);
+  });
+
+  /**
+   * **같은 지우기를 두 번 보내도 한 장만 지워진다**(`20261027090000`).
+   *
+   * 두 탭이 같은 목록(1 · 2 · 3)을 본다. 한 탭이 둘째 장을 지우면 셋째 장이 둘째 자리로 당겨 앉는다. 다른 탭은
+   * 아직 옛 목록이라 같은 둘째 칸의 × 를 누른다 — 전에는 그 누름이 당겨 앉은 셋째 장을 지웠다. 지금은 화면이 본
+   * 장의 판본을 함께 보내므로 DB 가 그 누름을 흘려보내고, 그 탭은 목록을 다시 받아 남은 두 장을 그린다.
+   */
+  test('두 탭에서 같은 사진을 지워도 한 장만 지워진다', async ({ openAs }) => {
+    const { page } = await openAs({ selfPerson: true });
+    await page.goto('/me/profile');
+
+    await page.getByLabel('사진 올리기').setInputFiles([
+      'public/matching/harin.webp',
+      'public/matching/jiwoo.webp',
+      'public/matching/seoyeon.webp',
+    ]);
+    const slot = (tab: typeof page, n: number, total: number) =>
+      tab.getByRole('button', { name: `사진 ${n} / ${total}, 길게 눌러 옮기기` });
+    await expect(slot(page, 3, 3)).toBeVisible();
+
+    const versionAt = async (button: ReturnType<typeof slot>) =>
+      new URL((await button.locator('img').getAttribute('src')) ?? '', 'http://x').searchParams.get('v');
+    const first = await versionAt(slot(page, 1, 3));
+    const third = await versionAt(slot(page, 3, 3));
+
+    const other = await page.context().newPage();
+    await other.goto('/me/profile');
+    await expect(slot(other, 3, 3)).toBeVisible();
+
+    /* 첫 탭이 둘째 장을 지운다 — 셋째 장이 둘째 자리로 당겨 앉는다 */
+    const removeSecond = (tab: typeof page) =>
+      tab.locator('[data-photo-slot="2"]').getByRole('button', { name: '사진 지우기' }).click();
+    await removeSecond(page);
+    await expect(slot(page, 2, 2)).toBeVisible();
+    await expect.poll(() => versionAt(slot(page, 2, 2))).toBe(third);
+
+    /* 다른 탭은 옛 목록 그대로 같은 칸을 누른다 */
+    await expect(slot(other, 3, 3)).toBeVisible();
+    const pressed = other.waitForResponse((response) => response.request().method() === 'POST');
+    await removeSecond(other);
+    await pressed;
+    await expect(slot(other, 2, 2)).toBeVisible();
+    await expect.poll(() => versionAt(slot(other, 1, 2))).toBe(first);
+    await expect.poll(() => versionAt(slot(other, 2, 2))).toBe(third);
+
+    await page.reload();
+    await expect(slot(page, 2, 2)).toBeVisible();
+    await expect(slot(page, 3, 3)).toHaveCount(0);
+    await expect.poll(() => versionAt(slot(page, 2, 2))).toBe(third);
   });
 });
 

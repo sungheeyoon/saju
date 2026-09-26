@@ -27,6 +27,12 @@
 1. **DB 붉은 발견 셋(E) — 마이그레이션 초안 `2026-09-26-night-review/fix-draft.sql`, 붉은 시험 `red-findings.test.sql`.**
    ① 카드 점수 SQL 이 numeric 나눗셈 절단으로 x.5 를 내려 TS(풀이 기준점)보다 1점 낮은 쌍 — 79,800 쌍 중 100(8글자 × 6글자 쌍의 0.33%) ② `clear_my_photo` 가 계정 행을 안 잠가 올리기와 겹치면 4번 자리 하나만 남음(대표 사진 빔) ③ `remove_my_photo(2)` 두 번이 다른 장까지 지움(두 탭 · 재시도). 초안은 로컬에서 셋 다 초록 · 불일치 100 → 0. 받으면 61 의 권한 검사와 앱(`p_version` 넘김)이 함께 바뀐다. 운영에 벌어진 자리가 있는지 확인 SQL:
    `select user_id from profile_photo group by user_id having max(position) <> count(*)`
+   **받음 · 고침(2026-09-26, 에이전트 G)** — #256 마이그레이션 `20261027090000_the_card_score_rounds_like_the_reading_and_a_photo_is_named_by_its_version`,
+   `db push` 2026-09-26 11:04 KST(remote 목록에 섬, 발행 키 호출이 42501 — 캐시가 새 서명을 봄) · #257 앱이 `p_version` 을 넘김.
+   초안과 다른 점: ① 아홉째 자리 맞추기는 TS 도 부동소수로 x.5 를 내리는 쌍에서 거꾸로 갈려(79,800 쌍 중 1), SQL 이 TS 의
+   연산 순서를 `double precision` 으로 따른다 — 무작위 두 벌 79,800 쌍씩 불일치 154 · 118 → 0, 반올림 전 수까지 같은 비트.
+   TS 쪽 `toFixed(9)` 방어는 기존 TS 결과를 1 · 354 쌍 바꿔 넣지 않았다. 저장된 카드 점수는 없어 다시 세울 것이 없다.
+   ② 판본은 `profile_photo_version()` 한 식이고 `my_photos()` 도 그것을 부른다. 운영 집계: 벌어진 사진 자리 사용자 **0**.
 2. **풀이 점수 폭** — 셋으로 나뉜다: 항목 조정 ±15(`READING_POLICY.scoreAdjustment`) · 모델 재량 ±10(`scoreDiscretion`) · 검사가 막는 최종 폭 ±25(`check.ts` 가 둘의 합). ±15 는 v1 분포(50~77)에 맞춘 값이고 v2 는 연인 36~74 · 일반 35~84. 다시 잴지 — 실호출 분포를 보기 전에는 수치를 안 바꾸는 것을 권한다(외부 리뷰 2026-09-26).
 3. **`needComplementOf`(ADR 0112, 287줄)** — 시험 외 부르는 곳 없음, 점수는 `needComplementSymmetric`. 시험에서만 쓰는 것은 손대지 않는다(`delegation.md` 「죽은 코드는 셋으로 가른다」) — 걷으려면 ADR 0112 실험을 끝내는 결정이 따로 선다.
 4. **남의 카드 사진 캐시 `max-age=60`** — 순서를 바꾸면 보는 쪽에 최대 1분 옛 사진. 판본 주소로 바꿀지(DB · 라우트까지).
