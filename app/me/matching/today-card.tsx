@@ -193,7 +193,7 @@ function SupplyOnPhoto({ card }: { card: DeckCard }) {
           const known = elementOf(highlight.element);
           return (
             <span key={highlight.element} className={`${elementScope(known)} ${styles.breathe} grid size-11 place-items-center rounded-full`}>
-              <span className="grid size-full place-items-center rounded-full bg-[var(--tile)]" style={{ boxShadow: '0 0 0 2px var(--card)' }}>
+              <span className="grid size-full place-items-center rounded-full bg-[var(--tile)]" style={{ boxShadow: '0 0 0 2px var(--surface)' }}>
                 <ElementSymbol element={known} className="size-6" />
               </span>
             </span>
