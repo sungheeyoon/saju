@@ -63,22 +63,38 @@ export async function addPhoto(photo: {
   return { ok: true };
 }
 
-/** 한 장을 내린다 — 뒤의 장이 한 칸씩 당겨 앉는다. 자리를 세는 일은 DB 가 한다 */
-export async function removePhoto(position: number): Promise<SaveResult> {
+/**
+ * 한 장을 내린다 — 뒤의 장이 한 칸씩 당겨 앉는다. 자리를 세는 일은 DB 가 한다.
+ *
+ * **판본(`version`)으로 그 장을 확인한다** — 두 탭 · 재시도가 같은 자리를 두 번 보내면 둘째 누름은 당겨 앉은
+ * 다른 장이 아니라 아무것도 안 지운다(`20261027090000`).
+ */
+export async function removePhoto(photo: { position: number; version: number }): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('remove_my_photo', rpcArgs<'remove_my_photo'>({ p_position: position }));
+  const { error } = await supabase.rpc(
+    'remove_my_photo',
+    rpcArgs<'remove_my_photo'>({ p_position: photo.position, p_version: photo.version }),
+  );
   if (error) return { ok: false, message: userFacingDbMessage(error, 'remove_my_photo') };
 
   refresh('account-changed');
   return { ok: true };
 }
 
-/** 한 장을 다른 자리로 옮긴다 — 사이의 장이 한 칸씩 밀린다. 맞바꾸지 않는다 */
-export async function movePhoto(from: number, to: number): Promise<SaveResult> {
+/**
+ * 한 장을 다른 자리로 옮긴다 — 사이의 장이 한 칸씩 밀린다. 맞바꾸지 않는다.
+ *
+ * `version` 은 `from` 에 있다고 화면이 본 장이다. 그 사이 다른 탭이 목록을 바꿨으면 DB 가 「사진을 옮기지
+ * 못했습니다.」로 거절하고 화면이 목록을 다시 받는다.
+ */
+export async function movePhoto(from: number, to: number, version: number): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('move_my_photo', rpcArgs<'move_my_photo'>({ p_from: from, p_to: to }));
+  const { error } = await supabase.rpc(
+    'move_my_photo',
+    rpcArgs<'move_my_photo'>({ p_from: from, p_to: to, p_version: version }),
+  );
   if (error) return { ok: false, message: userFacingDbMessage(error, 'move_my_photo') };
 
   refresh('account-changed');

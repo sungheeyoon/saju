@@ -153,29 +153,30 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
     return () => grid.removeEventListener('touchmove', hold);
   }, []);
 
+  /*
+    옮기기 · 지우기는 화면이 본 **그 장의 판본**을 함께 보낸다(`20261027090000`). 다른 탭이 먼저 목록을 바꿨으면
+    DB 가 옮기기를 거절하고 지우기는 지나간다 — 어느 쪽이든 목록을 다시 받아 지금 모양을 그린다.
+  */
   const move = (from: number, to: number) => {
-    if (from === to || to < 1 || to > total) return;
+    const photo = order[from - 1];
+    if (photo === undefined || from === to || to < 1 || to > total) return;
     setFailure(null);
     focusAfter.current = to;
     startWorking(async () => {
       moveInView({ from, to });
-      const result = await movePhoto(from, to);
-      if (!result.ok) {
-        setFailure(result.message);
-        return;
-      }
+      const result = await movePhoto(from, to, photo.version);
+      if (!result.ok) setFailure(result.message);
       router.refresh();
     });
   };
 
   const remove = (position: number) => {
+    const photo = order[position - 1];
+    if (photo === undefined) return;
     setFailure(null);
     startWorking(async () => {
-      const result = await removePhoto(position);
-      if (!result.ok) {
-        setFailure(result.message);
-        return;
-      }
+      const result = await removePhoto({ position, version: photo.version });
+      if (!result.ok) setFailure(result.message);
       router.refresh();
     });
   };
