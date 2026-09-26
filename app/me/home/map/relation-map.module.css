@@ -1,41 +1,35 @@
 /*
-  **관계 지도의 움직임** — 매칭 지도(`app/me/matching/orbit.module.css`)와 한 가족이다. 이징은 그쪽의 「자리 잡기」
-  곡선(`cubic-bezier(0.2, 0.8, 0.2, 1)` — 빨리 떠나 천천히 앉는다) 하나이고, 가만있을 때의 숨은 그쪽 `breathe` 의 결을
-  중립색으로 옮겼다.
+  관계 지도의 움직임(`relation-map.tsx` 머리말).
 
-  **들어올 때(1.1초 안팎, 한 번)** — 가운데 나가 먼저 서고(`center`), 궤도가 나에게서 번져 나가며(`orbit`), 사람들이
-  가운데에서 제 자리로 차례로 퍼져 앉고(`seat`), 이미 본 궁합의 실이 나에게서 바깥으로 한 점씩 찍힌 뒤(`bead`) 점수
-  딱지가 뜬다(`pop`). 차례는 화면이 `animation-delay` 로 준다.
+  지도: 나 → 사람들이 가운데에서 제 방향으로 퍼져 앉는다, 누르면 제자리에서 커진다, 나와 본 궁합의 빛이 그어진다. 더한 것은 **만남** 하나 — 나와 본 궁합이 있으면 빛이 그어진 뒤 두 그림에서 작은 것이 하나씩
+  떠나 선을 타고 서로에게 건너가고, 닿으면 받은 쪽 그림이 제 성격대로 한 번 깨어난다. 어느 짝이든 같은 박자 · 같은 크기다 —
+  궁합이 좋고 나쁨을 말하지 않는다.
 
-  **모두 CSS 다.** 서버 HTML 이 곧 끝 모양이고 브라우저가 그 위에서 한 번 돌린다 — 자바스크립트가 없어도, 하이드레이션이
-  늦어도 사람이 안 보이는 채로 멈추지 않는다. 키프레임은 `from` 만 적고 `backwards` 로 채운다: 끝나면 요소가 제 스타일로
-  돌아가서, 누를 때의 흐려짐(`transition`)이 들어올 때의 움직임에 막히지 않는다.
-
-  **가만있을 때** — 궤도의 점선이 아주 느리게 돌고(4분에 한 바퀴), 나의 둘레가 숨을 쉰다. 둘 뿐이다.
-
-  줄인 움직임 설정이면 전부 멈추고 끝 모양만 선다. 전역 규칙(`globals.css`)은 길이만 줄이고 지연은 남기므로 여기서 끈다.
+  그림: `living-stem.tsx` 머리말. 줄인 움직임이면 전부 멈추고 원본 그림과 끝 모양만 선다.
 */
-.center {
-  animation: center-in 440ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+
+/* ───────── 지도 ───────── */
+
+.me {
+  animation: me-in 440ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 
-@keyframes center-in {
+@keyframes me-in {
   from {
     opacity: 0;
     transform: scale(0.6);
   }
 }
 
-.orbit {
-  transform-box: view-box;
-  transform-origin: 50% 50%;
-  animation: orbit-in 720ms cubic-bezier(0.2, 0.8, 0.2, 1) 120ms backwards;
+/* `--dx` · `--dy` 는 제 자리에서 가운데까지(`cqw`) */
+.seat {
+  animation: seat 620ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 
-@keyframes orbit-in {
+@keyframes seat {
   from {
     opacity: 0;
-    transform: scale(0.3);
+    transform: translate(var(--dx), var(--dy)) scale(0.4);
   }
 }
 
@@ -51,65 +45,718 @@
   }
 }
 
-/* 사람 — 가운데에서 제 자리로. `--dx` · `--dy` 는 제 자리에서 가운데까지(상자 폭 단위 `cqw`) */
-.seat {
-  animation: seat 560ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+/* 나와 본 궁합의 빛 — `pathLength="1"` 인 곡선이 그 사람에게서 나에게로 그어진다 */
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 820ms cubic-bezier(0.2, 0.8, 0.2, 1) 360ms forwards;
 }
 
-@keyframes seat {
-  from {
-    opacity: 0;
-    transform: translate(var(--dx), var(--dy)) scale(0.4);
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
   }
 }
 
-.bead {
+.fade {
+  animation: fade 420ms ease-out 520ms backwards;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* 만남 — 작은 것이 곡선 위 여섯 점(`--x0`…`--y5`, 100 칸 좌표)을 지나 건너간다. `--at` 에 떠난다 */
+.token {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  animation: travel 900ms linear var(--at) both;
+}
+
+@keyframes travel {
+  0% {
+    opacity: 0;
+    transform: translate(calc(var(--x0) * 1px), calc(var(--y0) * 1px)) scale(0.5);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(calc(var(--x1) * 1px), calc(var(--y1) * 1px)) scale(1);
+  }
+  40% {
+    transform: translate(calc(var(--x2) * 1px), calc(var(--y2) * 1px));
+  }
+  60% {
+    transform: translate(calc(var(--x3) * 1px), calc(var(--y3) * 1px));
+  }
+  80% {
+    opacity: 1;
+    transform: translate(calc(var(--x4) * 1px), calc(var(--y4) * 1px)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--x5) * 1px), calc(var(--y5) * 1px)) scale(0.4);
+  }
+}
+
+/* 닿은 자리의 물결 한 겹 — 누른 때 한 번, 만난 때 양쪽에 한 번 */
+.ripple {
+  opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
-  animation: bead 260ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation: ripple 900ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--at);
 }
 
-@keyframes bead {
+@keyframes ripple {
   from {
+    opacity: 0.8;
+    transform: scale(0.75);
+  }
+  to {
     opacity: 0;
-    transform: scale(0);
+    transform: scale(1.7);
   }
 }
 
-.pop {
-  animation: pop 300ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+/* 카드 — 아래에서 살짝 떠오른다 */
+.arrive {
+  animation: arrive 320ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 
-@keyframes pop {
+@keyframes arrive {
   from {
     opacity: 0;
-    transform: scale(0.5);
+    translate: 0 8px;
   }
 }
 
-/* 나의 둘레 — 중립색 한 겹이 부풀었다 가라앉는다. 판에 색을 번지게 하지 않는다 */
-.breathe {
-  animation: breathe 5.6s ease-in-out 1.2s infinite;
+/* ───────── 그림 — 한 부분의 축은 24 칸 좌표(`transform-origin` 을 화면이 준다) ───────── */
+
+.part {
+  transform-box: view-box;
 }
 
-@keyframes breathe {
+/* 물러난 사람은 숨을 멈춘다 */
+.hush .part {
+  animation-play-state: paused;
+}
+
+/* 甲 나무 — 밑동을 축으로 바람에 살짝. 깨우면 한 뼘 자란다 */
+.treeIdle {
+  animation: tree-sway 8s ease-in-out var(--phase) infinite;
+}
+
+@keyframes tree-sway {
   0%,
+  42%,
   100% {
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--foreground) 6%, transparent);
+    transform: rotate(0);
+  }
+  12% {
+    transform: rotate(2.4deg);
+  }
+  27% {
+    transform: rotate(-1.4deg);
+  }
+}
+
+.stirring .treeStir {
+  animation:
+    tree-grow 1.2s ease-in-out var(--s1),
+    tree-grow 1.2s ease-in-out var(--s2);
+}
+
+@keyframes tree-grow {
+  30% {
+    transform: scale(1.16) rotate(-3deg);
+  }
+  55% {
+    transform: scale(0.97) rotate(1.6deg);
+  }
+  78% {
+    transform: scale(1.03);
+  }
+}
+
+/* 乙 덩굴 — 잎 둘이 엇갈려 팔랑. 깨우면 잎을 활짝 연다 */
+.leafLeftIdle {
+  animation: leaf-left 6.5s ease-in-out var(--phase) infinite;
+}
+
+.leafRightIdle {
+  animation: leaf-right 6.5s ease-in-out calc(var(--phase) - 0.8s) infinite;
+}
+
+@keyframes leaf-left {
+  0%,
+  40%,
+  100% {
+    transform: rotate(0);
+  }
+  14% {
+    transform: rotate(-8deg);
+  }
+  28% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes leaf-right {
+  0%,
+  40%,
+  100% {
+    transform: rotate(0);
+  }
+  14% {
+    transform: rotate(8deg);
+  }
+  28% {
+    transform: rotate(-3deg);
+  }
+}
+
+.stirring .vineStir {
+  animation:
+    lift 1.1s ease-in-out var(--s1),
+    lift 1.1s ease-in-out var(--s2);
+}
+
+.stirring .leafLeftStir {
+  animation:
+    leaf-open-left 1.1s ease-in-out var(--s1),
+    leaf-open-left 1.1s ease-in-out var(--s2);
+}
+
+.stirring .leafRightStir {
+  animation:
+    leaf-open-right 1.1s ease-in-out var(--s1),
+    leaf-open-right 1.1s ease-in-out var(--s2);
+}
+
+@keyframes lift {
+  35% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes leaf-open-left {
+  35% {
+    transform: rotate(-24deg);
+  }
+  70% {
+    transform: rotate(5deg);
+  }
+}
+
+@keyframes leaf-open-right {
+  35% {
+    transform: rotate(24deg);
+  }
+  70% {
+    transform: rotate(-5deg);
+  }
+}
+
+/* 丙 햇빛 — 빛살이 아주 천천히 돈다. 깨우면 빛살이 번지고 해가 부푼다 */
+.raysIdle {
+  animation: spin 72s linear var(--phase) infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.stirring .raysStir {
+  animation:
+    rays-flare 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) var(--s1),
+    rays-flare 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) var(--s2);
+}
+
+/* 빛살은 45° 마다 같은 모양이라 45° 에서 끝나도 처음과 같다 */
+@keyframes rays-flare {
+  35% {
+    transform: scale(1.28) rotate(20deg);
+  }
+  to {
+    transform: rotate(45deg);
+  }
+}
+
+.stirring .coreStir {
+  animation:
+    swell 1.1s ease-in-out var(--s1),
+    swell 1.1s ease-in-out var(--s2);
+}
+
+@keyframes swell {
+  35% {
+    transform: scale(1.16);
+  }
+  70% {
+    transform: scale(0.98);
+  }
+}
+
+/* 丁 등불 — 불꽃이 이따금 흔들린다. 깨우면 불꽃이 솟고 등 안이 환해진다 */
+.flameIdle {
+  animation: flicker 4.6s ease-in-out var(--phase) infinite;
+}
+
+@keyframes flicker {
+  0%,
+  34%,
+  100% {
+    transform: none;
+  }
+  7% {
+    transform: scale(0.93, 1.08);
+  }
+  13% {
+    transform: scale(1.04, 0.95);
+  }
+  20% {
+    transform: scale(0.96, 1.05);
+  }
+  27% {
+    transform: scale(1.02, 0.99);
+  }
+}
+
+.stirring .flameStir {
+  animation:
+    flame-leap 1.1s ease-in-out var(--s1),
+    flame-leap 1.1s ease-in-out var(--s2);
+}
+
+@keyframes flame-leap {
+  25% {
+    transform: scale(0.86, 1.42);
   }
   50% {
-    box-shadow: 0 0 0 12px color-mix(in srgb, var(--foreground) 2.5%, transparent);
+    transform: scale(1.08, 0.92);
+  }
+  75% {
+    transform: scale(0.97, 1.06);
   }
 }
 
+.haloStir {
+  opacity: 0;
+}
+
+.stirring .haloStir {
+  animation:
+    halo 1.3s ease-out var(--s1),
+    halo 1.3s ease-out var(--s2);
+}
+
+@keyframes halo {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  30% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+/* 戊 산 — 산은 가만. 구름 한 조각이 봉우리를 스치고 한동안 없다. 깨우면 구름이 빨리 지나고 산이 한 번 든든해진다 */
+.cloudIdle {
+  opacity: 0;
+  animation: cloud-pass 17s linear var(--phase) infinite;
+}
+
+@keyframes cloud-pass {
+  0% {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  6%,
+  32% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0;
+    transform: translateX(11px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(11px);
+  }
+}
+
+.cloudStir {
+  opacity: 0;
+}
+
+.stirring .cloudStir {
+  animation:
+    cloud-rush 1.3s ease-in-out var(--s1),
+    cloud-rush 1.3s ease-in-out var(--s2);
+}
+
+@keyframes cloud-rush {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  20%,
+  75% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(11px);
+  }
+}
+
+.stirring .mountainStir {
+  animation:
+    settle 1.1s ease-in-out var(--s1),
+    settle 1.1s ease-in-out var(--s2);
+}
+
+@keyframes settle {
+  35% {
+    transform: scale(1.06, 1.04);
+  }
+  65% {
+    transform: scale(0.99, 1);
+  }
+}
+
+/* 己 밭 — 새싹이 살랑. 깨우면 움츠렸다 쑥 자란다 */
+.sproutIdle {
+  animation: sprout-sway 7.5s ease-in-out var(--phase) infinite;
+}
+
+@keyframes sprout-sway {
+  0%,
+  40%,
+  100% {
+    transform: rotate(0);
+  }
+  13% {
+    transform: rotate(-5deg);
+  }
+  27% {
+    transform: rotate(3deg);
+  }
+}
+
+.stirring .sproutStir {
+  animation:
+    sprout-grow 1.2s ease-in-out var(--s1),
+    sprout-grow 1.2s ease-in-out var(--s2);
+}
+
+@keyframes sprout-grow {
+  25% {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.24);
+  }
+  82% {
+    transform: scale(0.97);
+  }
+}
+
+/* 庚 강철 — 이따금 칼날을 타고 빛이 오른다. 깨우면 칼이 살짝 들리고 빛이 한 번 더 빠르게 오른다 */
+.glintIdle {
+  opacity: 0;
+  animation: glint 10s ease-out var(--phase) infinite;
+}
+
+@keyframes glint {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+  3% {
+    opacity: 0.95;
+  }
+  11% {
+    opacity: 0.95;
+  }
+  14% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.glintStir {
+  opacity: 0;
+}
+
+.stirring .glintStir {
+  animation:
+    glint-rush 0.9s ease-out var(--s1),
+    glint-rush 0.9s ease-out var(--s2);
+}
+
+@keyframes glint-rush {
+  from {
+    opacity: 0;
+    transform: none;
+  }
+  15%,
+  70% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6.5px);
+  }
+}
+
+.stirring .bladeStir {
+  animation:
+    raise 1s ease-in-out var(--s1),
+    raise 1s ease-in-out var(--s2);
+}
+
+@keyframes raise {
+  35% {
+    transform: translateY(-1.3px);
+  }
+  70% {
+    transform: translateY(0.2px);
+  }
+}
+
+/* 辛 보석 — 반짝임이 이따금 한 번. 깨우면 보석이 부풀고 반대편에도 반짝임이 선다 */
+.twinkleIdle {
+  animation: twinkle 5.5s ease-in-out var(--phase) infinite;
+}
+
+@keyframes twinkle {
+  0%,
+  16%,
+  100% {
+    transform: none;
+  }
+  5% {
+    transform: scale(0.4);
+  }
+  10% {
+    transform: scale(1.35) rotate(45deg);
+  }
+}
+
+.stirring .twinkleStir {
+  animation:
+    twinkle-big 1s ease-in-out var(--s1),
+    twinkle-big 1s ease-in-out var(--s2);
+}
+
+@keyframes twinkle-big {
+  30% {
+    transform: scale(1.8) rotate(45deg);
+  }
+  60% {
+    transform: scale(0.8) rotate(90deg);
+  }
+  to {
+    transform: rotate(90deg);
+  }
+}
+
+.sparkStir {
+  opacity: 0;
+}
+
+.stirring .sparkStir {
+  animation:
+    spark 1s ease-in-out calc(var(--s1) + 150ms),
+    spark 1s ease-in-out calc(var(--s2) + 150ms);
+}
+
+@keyframes spark {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.3) rotate(45deg);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.6) rotate(90deg);
+  }
+}
+
+.stirring .gemStir {
+  animation:
+    swell 1.1s ease-in-out var(--s1),
+    swell 1.1s ease-in-out var(--s2);
+}
+
+/* 壬 바다 — 세 물결이 서로 엇갈려 쉼 없이 아주 조금 출렁인다. 깨우면 너울이 인다 */
+.waveBodyIdle {
+  animation: sway-x 7s ease-in-out var(--phase) infinite alternate;
+}
+
+.waveMidIdle {
+  animation: sway-x-back 7s ease-in-out var(--phase) infinite alternate;
+}
+
+.waveTopIdle {
+  animation: bob 5s ease-in-out calc(var(--phase) - 1.3s) infinite alternate;
+}
+
+@keyframes sway-x {
+  to {
+    transform: translateX(-0.9px);
+  }
+}
+
+@keyframes sway-x-back {
+  to {
+    transform: translateX(0.9px);
+  }
+}
+
+@keyframes bob {
+  to {
+    transform: translateY(-0.6px);
+  }
+}
+
+.stirring .waveBodyStir {
+  animation:
+    surge 1.2s ease-in-out var(--s1),
+    surge 1.2s ease-in-out var(--s2);
+}
+
+.stirring .waveMidStir {
+  animation:
+    surge 1.2s ease-in-out calc(var(--s1) + 90ms),
+    surge 1.2s ease-in-out calc(var(--s2) + 90ms);
+}
+
+.stirring .waveTopStir {
+  animation:
+    surge 1.2s ease-in-out calc(var(--s1) + 180ms),
+    surge 1.2s ease-in-out calc(var(--s2) + 180ms);
+}
+
+@keyframes surge {
+  35% {
+    transform: translateY(-1.8px);
+  }
+  70% {
+    transform: translateY(0.4px);
+  }
+}
+
+/* 癸 빗물 — 작은 방울이 똑 떨어져 아래 방울에 닿고, 다시 맺힌다. 깨우면 큰 방울이 통 튄다 */
+.dripIdle {
+  animation: drip 7s ease-in var(--phase) infinite;
+}
+
+@keyframes drip {
+  0%,
+  38% {
+    opacity: 1;
+    transform: none;
+  }
+  52% {
+    opacity: 0;
+    transform: translateY(7.5px) scale(0.8);
+  }
+  53% {
+    opacity: 0;
+    transform: translateY(-1.5px) scale(0.6);
+  }
+  72%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.plopIdle {
+  animation: plop 7s ease-in-out var(--phase) infinite;
+}
+
+@keyframes plop {
+  0%,
+  49%,
+  60%,
+  100% {
+    transform: none;
+  }
+  53% {
+    transform: scale(1.12, 0.9);
+  }
+}
+
+.stirring .dripStir {
+  animation:
+    drip-fast 1s ease-in var(--s1),
+    drip-fast 1s ease-in var(--s2);
+}
+
+@keyframes drip-fast {
+  45% {
+    opacity: 0;
+    transform: translateY(7.5px) scale(0.8);
+  }
+  46% {
+    opacity: 0;
+    transform: translateY(-1.5px) scale(0.6);
+  }
+}
+
+.stirring .dropStir {
+  animation:
+    bounce 1.1s ease-in-out var(--s1),
+    bounce 1.1s ease-in-out var(--s2);
+}
+
+@keyframes bounce {
+  25% {
+    transform: scale(1.12, 0.86);
+  }
+  55% {
+    transform: scale(0.94, 1.1);
+  }
+  80% {
+    transform: scale(1.02, 0.98);
+  }
+}
+
+/* ───────── 줄인 움직임 — 전부 멈추고 끝 모양만 ───────── */
 @media (prefers-reduced-motion: reduce) {
-  .center,
-  .orbit,
-  .drift,
+  .me,
   .seat,
-  .bead,
-  .pop,
-  .breathe {
+  .drift,
+  .fade,
+  .arrive,
+  .part,
+  .stirring .part {
     animation: none;
+  }
+  .draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .token,
+  .ripple {
+    display: none;
   }
 }

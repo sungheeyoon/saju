@@ -50,16 +50,19 @@ describe('관계 지도의 값', () => {
     expect(readingOf([pair], 'p1')).toBeNull();
   });
 
-  it('나와의 궁합은 본 사람에게만 점수가 붙고, 풀이만 본 사람은 궁합이 없는 사람과 같다', () => {
+  it('나와의 궁합은 본 사람에게만 점수와 그 궁합풀이의 비유가 붙고, 사주풀이만 본 사람은 궁합이 없는 사람과 같다', () => {
     const model = mapModelOf({
       self: { personId: 'me', label: '나', saju },
       people: [person('p1', '어머니'), person('p2', '아버지'), person('p3', '친구')],
-      readings: [entry({ personA: 'me', personB: 'p1', score: 78 }), entry({ kind: 'person', personA: 'p2' })],
+      readings: [
+        entry({ personA: 'me', personB: 'p1', score: 78, metaphor: '궁합의 비유', fromCurrentChart: false }),
+        entry({ kind: 'person', personA: 'p2', metaphor: '아버지 혼자의 비유' }),
+      ],
     });
-    expect(model.people.map((one) => [one.id, one.compat.seen, one.compat.score, one.reading !== null])).toEqual([
-      ['p1', true, 78, false],
-      ['p2', false, null, true],
-      ['p3', false, null, false],
+    expect(model.people.map((one) => [one.id, one.compat.seen, one.compat.score, one.compat.metaphor, one.compat.current])).toEqual([
+      ['p1', true, 78, '궁합의 비유', false],
+      ['p2', false, null, null, true],
+      ['p3', false, null, null, true],
     ]);
     expect(model.people[0].tileHref).toBe('#person-p1');
   });

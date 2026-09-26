@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { isBlocked } from '@/src/lib/account';
 import { matchBasisOf } from '@/src/lib/matching';
 import { RELATION_LABEL, relationOf } from '@/src/lib/people';
-import { analyzeCompatibility, STEM_INFO, type Element } from '@/src/lib/saju';
+import { analyzeCompatibility, STEM_INFO, type Stem } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { CompatView } from '../../compat-view';
@@ -21,7 +21,7 @@ import { currentReading } from '../reading/current';
 import { ReadingSection } from '../reading/section';
 import { elementScope } from '../../ui/element-tone';
 import { BUTTON_TERTIARY } from '../../ui/buttons';
-import { ElementSymbol } from '../../ui/element-symbol';
+import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { CARD, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 
@@ -162,7 +162,7 @@ async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' 
           만든 풀이 목록
         </Link>
         <div className="flex items-center gap-4">
-          <PairMark elements={[elementOf(outcome.first), elementOf(outcome.second)]} />
+          <PairMark stems={[outcome.first.saju.pillars.dayMaster, outcome.second.saju.pillars.dayMaster]} />
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-secondary">궁합</p>
             <h1 className={`${TYPE_TITLE} break-words`}>
@@ -177,23 +177,21 @@ async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' 
   );
 }
 
-const elementOf = (payload: PersonPayload): Element => STEM_INFO[payload.saju.pillars.dayMaster].element;
-
 /**
  * **두 사람의 표식** — 두 원이 살짝 겹쳐 선다(홈의 관계 지도에서 두 사람을 잇는 말투). 각 원은 그 사람의 일간
  * 색과 상징이다. 그림이라 보조기기에는 안 읽히고, 누구와 누구인지는 바로 옆 제목이 든다.
  */
-function PairMark({ elements }: { elements: readonly [Element, Element] }) {
+function PairMark({ stems }: { stems: readonly [Stem, Stem] }) {
   return (
     <span aria-hidden="true" className="flex shrink-0 items-center">
-      {elements.map((element, index) => (
+      {stems.map((stem, index) => (
         <span
           key={index}
-          className={`${elementScope(element)} grid size-12 place-items-center rounded-full bg-[var(--tile)] ring-4 ring-background sm:size-14 ${
+          className={`${elementScope(STEM_INFO[stem].element)} grid size-12 place-items-center rounded-full bg-[var(--tile)] ring-4 ring-background sm:size-14 ${
             index === 1 ? '-ml-3' : ''
           }`}
         >
-          <ElementSymbol element={element} className="size-7 sm:size-8" />
+          <StemSymbol stem={stem} className="size-7 sm:size-8" />
         </span>
       ))}
     </span>

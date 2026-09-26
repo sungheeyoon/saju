@@ -2,6 +2,7 @@ import { ELEMENTS, ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
 import { ElementSymbol } from '../../ui/element-symbol';
+import { StemSymbol } from '../../ui/stem-symbol';
 import { CandidatePhoto } from './candidate-photo';
 import { elementOf, supplyOf, type DeckCard } from './deck-card';
 import type { MeMark } from './me-mark';
@@ -343,7 +344,7 @@ export function ApproachMap({
   );
 }
 
-/** 가운데의 나 — 내 일간 글자가 제 오행의 파스텔 위에. 내 사주가 없으면 점선으로 빈다 */
+/** 가운데의 나 — 내 천간 그림(`app/ui/stem-symbol.tsx`)과 「나」가 제 오행의 파스텔 위에. 내 사주가 없으면 점선으로 빈다 */
 function Me({ me, arc, small }: { me: MeMark | null; arc: boolean; small: boolean }) {
   const place = arc ? 'left-1/2 top-full size-[4.25rem]' : small ? 'left-1/2 top-1/2 size-16' : 'left-1/2 top-1/2 size-[5.25rem]';
   if (me === null || me.stem === null) {
@@ -362,8 +363,13 @@ function Me({ me, arc, small }: { me: MeMark | null; arc: boolean; small: boolea
       }`}
       style={{ boxShadow: `0 0 0 4px var(--surface), 0 16px 30px -14px ${SHADOW_SOFT}` }}
     >
-      <span className={`glyph font-bold leading-none text-[var(--ink)] ${small ? 'text-[1.35rem]' : 'text-[2.25rem]'}`}>{me.stem}</span>
-      {!arc && !small && <span className="mt-1 rounded-full bg-[var(--ink)] px-1.5 text-[11px] font-bold leading-4 text-[var(--tile)]">나</span>}
+      <StemSymbol stem={me.stem} className={arc ? 'size-9' : small ? 'size-7' : 'size-11'} />
+      {/* 홈의 관계 지도와 같은 얼굴 — 천간 그림 아래 「나」. 작은 궤도(빈 날)에서도 선다 */}
+      {!arc && (
+        <span className={`rounded-full bg-[var(--ink)] px-1.5 font-bold text-[var(--tile)] ${small ? 'mt-0.5 text-[10px] leading-[14px]' : 'mt-1 text-[11px] leading-4'}`}>
+          나
+        </span>
+      )}
     </span>
   );
 }

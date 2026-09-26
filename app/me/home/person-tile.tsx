@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { ELEMENT_PICTURE_KO, STEM_INFO } from '@/src/lib/saju';
+import { STEM_INFO } from '@/src/lib/saju';
 import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 
@@ -8,6 +8,8 @@ import { elementScope } from '../../ui/element-tone';
 import { PILLAR_COLUMNS } from '../../saju/shared';
 import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
+import { StemSymbol } from '../../ui/stem-symbol';
+import { DayMasterChip } from '../people/chart-bits';
 import { Icon } from '../../ui/icons';
 import { STALE_CHIP, TYPE_NAME } from '../../ui/surfaces';
 import type { ReadingEntry } from '../reading/current';
@@ -65,18 +67,9 @@ export function PersonTile({
       id={anchor}
       className={`${elementScope(element)} ${TARGET} relative flex flex-col gap-2.5 overflow-hidden rounded-[1.5rem] bg-[var(--tile)] p-3.5 sm:p-4`}
     >
-      <ElementSymbol element={element} className="pointer-events-none absolute -right-3 -top-3 size-20 opacity-20" />
+      <StemSymbol stem={dayMaster} className="pointer-events-none absolute -right-3 -top-3 size-20 opacity-20" />
 
-      <span
-        className="flex items-center gap-1 self-start rounded-full bg-[color-mix(in_srgb,var(--surface)_70%,transparent)] py-1 pl-1 pr-2.5 text-[12px] font-semibold text-[var(--ink)]"
-        aria-label={`일간 ${dayMaster}, ${ELEMENT_PICTURE_KO[element]}`}
-      >
-        <ElementSymbol element={element} className="size-5" />
-        <span aria-hidden="true" className="glyph text-[15px] font-bold leading-none">
-          {dayMaster}
-        </span>
-        <span aria-hidden="true">{ELEMENT_PICTURE_KO[element]}</span>
-      </span>
+      <DayMasterChip stem={dayMaster} className="relative self-start" />
 
       <div className="min-w-0">
         <Name href={detailHref} label={person.label} />

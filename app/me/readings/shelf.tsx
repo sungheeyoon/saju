@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { ELEMENTS, ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
+import { ELEMENTS, type Element, type Stem } from '@/src/lib/saju';
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 
 import { elementScope } from '../../ui/element-tone';
 import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
+import { STEM_PICTURE, StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT, PAPER, STALE_CHIP, TYPE_SECTION } from '../../ui/surfaces';
 import { Avatar } from '../avatar';
@@ -50,10 +51,9 @@ export function SingleCover({ book }: { book: Book }) {
   return (
     <CoverLink href={book.href} className={`${elementScope(subject?.element ?? null)} ${COVER}`} style={{ background: face.background }}>
       <Spine background={face.spine} />
-      <ElementSymbol
-        element={subject?.element ?? null}
-        className="pointer-events-none absolute -bottom-5 -right-5 size-24 opacity-15"
-      />
+      {subject !== null && (
+        <StemSymbol stem={subject.stem} className="pointer-events-none absolute -bottom-5 -right-5 size-24 opacity-15" />
+      )}
 
       <span className="relative flex min-w-0 flex-col gap-1">
         <SubjectTag subject={subject} />
@@ -87,7 +87,7 @@ export function PairCover({ book }: { book: Book }) {
               key={index}
               className={`${elementScope(one?.element ?? null)} grid size-8 place-items-center rounded-full bg-surface ring-2 ring-[var(--tile)]`}
             >
-              <ElementSymbol element={one?.element ?? null} className="size-5" />
+              {one ? <StemSymbol stem={one.stem} className="size-5" /> : <ElementSymbol element={null} className="size-5" />}
             </span>
           ))}
         </span>
@@ -263,14 +263,13 @@ function Metaphor({ text, lines }: { text: string | null; lines: string }) {
   );
 }
 
-/** 일간 딱지 — 상징 + 일간 글자 + 「나무」. 색만으로 말하지 않는다 */
+/** 일간 딱지 — 천간 그림 + 그 이름(「햇빛」). 한자 · 오행 이름은 얼굴 자리에서 걷었다(`app/ui/stem-symbol.tsx`) */
 export function SubjectTag({ subject }: { subject: DayMaster | null }) {
   if (subject === null) return null;
   return (
     <span className={`${elementScope(subject.element)} flex items-center gap-1 text-[12px] font-semibold text-[var(--ink)]`}>
-      <ElementSymbol element={subject.element} className="size-4" />
-      <span className="glyph font-bold">{subject.stem}</span>
-      <span>{ELEMENT_PICTURE_KO[subject.element]}</span>
+      <StemSymbol stem={subject.stem} className="size-4" />
+      <span>{STEM_PICTURE[subject.stem as Stem]}</span>
     </span>
   );
 }

@@ -21,6 +21,7 @@ import { elementScope } from './ui/element-tone';
 import { useHashParams, writeParams } from './hash-query';
 import { openPairScreen, pairRelationFor, type PairAnswers, type PairSide } from './me/compat/actions';
 import { PersonCombobox, type Choosable } from './person-combobox';
+import { StemSymbol } from './ui/stem-symbol';
 import { RelationChoice } from './relation-choice';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
 import { BUTTON_PRIMARY } from './ui/buttons';
@@ -352,17 +353,17 @@ function SlotCard({
 }
 
 /** 두 원이 그리는 한 사람 — 이름과, 알면 일간 오행. 적는 칸의 사람은 아직 명식이 없어 물음표 원이다 */
-type StageSide = { name: string; element: Element | null; filled: boolean };
+type StageSide = { name: string; element: Element | null; stem: string | null; filled: boolean };
 
 const stageOf = (slot: Slot, people: Choosable[], side: CompatSide): StageSide => {
   if (slot.from === 'typed') {
     const name = slot.query.name.trim();
-    return { name: name === '' ? `${SIDE_LABEL[side]} 사람` : name, element: null, filled: complete(slot) };
+    return { name: name === '' ? `${SIDE_LABEL[side]} 사람` : name, element: null, stem: null, filled: complete(slot) };
   }
   const one = people.find((person) => person.personId === slot.personId);
   return one === undefined
-    ? { name: `${SIDE_LABEL[side]} 사람`, element: null, filled: false }
-    : { name: one.label, element: one.element ?? null, filled: true };
+    ? { name: `${SIDE_LABEL[side]} 사람`, element: null, stem: null, filled: false }
+    : { name: one.label, element: one.element ?? null, stem: one.stem ?? null, filled: true };
 };
 
 /**
@@ -408,7 +409,7 @@ function StageOne({ one }: { one: StageSide }) {
             : 'border-2 border-dashed border-border-strong bg-[color-mix(in_srgb,var(--surface)_60%,transparent)]'
         }`}
       >
-        <ElementSymbol element={one.element} className="size-10 sm:size-12" />
+        {one.stem !== null ? <StemSymbol stem={one.stem} className="size-10 sm:size-12" /> : <ElementSymbol element={one.element} className="size-10 sm:size-12" />}
       </span>
       <span className={`max-w-full truncate font-rounded text-[1.15rem] leading-7 ${one.filled ? 'text-foreground' : 'text-secondary'}`}>
         {one.name}

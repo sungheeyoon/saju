@@ -19,6 +19,7 @@ import { ELEMENTS, type Element } from '@/src/lib/saju';
 import { elementScope } from '../../ui/element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
+import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_NAME, TYPE_SECTION } from '../../ui/surfaces';
 import { generateReading, readingRunState } from './actions';
@@ -765,12 +766,20 @@ function Result({
           className={`${elementScope(firstTone)} relative overflow-hidden rounded-[2rem] px-6 pb-6 pt-7 sm:px-10 sm:pb-8 sm:pt-10 ${face === null ? 'bg-cream' : ''}`}
           style={face === null ? undefined : { background: face.background }}
         >
-          {tones !== undefined && tones.length === 1 && (
-            <ElementSymbol
-              element={firstTone}
-              className="pointer-events-none absolute -right-10 -top-10 size-48 opacity-20 sm:size-64"
-            />
-          )}
+          {/* 한 사람 풀이의 표지 — 그 사람의 천간 그림(저장한 사람 카드의 딱지와 같은 것). 일간을 모르면 오행 상징 */}
+          {tones !== undefined &&
+            tones.length === 1 &&
+            (reading.dayMasterA !== null ? (
+              <StemSymbol
+                stem={reading.dayMasterA}
+                className="pointer-events-none absolute -right-10 -top-10 size-48 opacity-20 sm:size-64"
+              />
+            ) : (
+              <ElementSymbol
+                element={firstTone}
+                className="pointer-events-none absolute -right-10 -top-10 size-48 opacity-20 sm:size-64"
+              />
+            ))}
           {reading.metaphor !== null ? (
             <>
               <span aria-hidden="true" className="relative block h-10 font-rounded text-[5rem] leading-none text-[var(--ink)] opacity-70">

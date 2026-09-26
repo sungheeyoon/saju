@@ -66,11 +66,19 @@ export default async function CompatPage() {
     return chart.ok ? STEM_INFO[chart.saju.pillars.dayMaster].element : null;
   };
 
+  const stemOf = (personId: string, label: string): string | null => {
+    const input = stored.get(personId);
+    if (input === undefined) return null;
+    const chart = storedChartOf(input, label);
+    return chart.ok ? chart.saju.pillars.dayMaster : null;
+  };
+
   const people = listed.map((edge) => ({
     personId: edge.person_id as string,
     label: edge.local_label as string,
     isSelfPerson: edge.person_id === selfPersonIdOf(state),
     element: elementOf(edge.person_id as string, edge.local_label as string),
+    stem: stemOf(edge.person_id as string, edge.local_label as string),
   }));
 
   return (

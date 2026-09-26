@@ -6,6 +6,7 @@ import { pickable, stepTo, type Step } from '@/src/lib/people/pick';
 import type { Element } from '@/src/lib/saju';
 
 import { ElementSymbol } from './ui/element-symbol';
+import { StemSymbol } from './ui/stem-symbol';
 
 /**
  * 저장한 사람을 **찾아 고르는 칸** — 궁합의 두 칸이 쓴다(ADR 0102).
@@ -32,6 +33,8 @@ export type Choosable = {
    * 못 읽었거나 안 받았으면 `null` 이고, 그때는 물음표 원이 선다(없는 오행을 지어내지 않는다).
    */
   element?: Element | null;
+  /** 그 사람의 일간 — 있으면 오행 상징 대신 천간 그림(`app/ui/stem-symbol.tsx`)이 선다 */
+  stem?: string | null;
 };
 
 /** 목록과 칸에 서는 이름 — 자기 사주에는 「(나)」가 붙는다 */
@@ -166,10 +169,7 @@ export function PersonCombobox({
       </label>
       <div className="relative min-w-0">
         {chosen !== undefined && typed === null && (
-          <ElementSymbol
-            element={chosen.element ?? null}
-            className="pointer-events-none absolute left-3 top-1/2 size-6 -translate-y-1/2"
-          />
+          <PersonMark one={chosen} className="pointer-events-none absolute left-3 top-1/2 size-6 -translate-y-1/2" />
         )}
         {/*
           **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
@@ -241,7 +241,7 @@ export function PersonCombobox({
                 index === current ? 'bg-surface-sunken text-foreground' : 'text-foreground hover:bg-surface-sunken'
               }`}
             >
-              <ElementSymbol element={one.element ?? null} className="size-5" />
+              <PersonMark one={one} className="size-5" />
               <span className="min-w-0 flex-1 truncate">{shownLabel(one)}</span>
               {one.personId === chosenId && (
                 <svg viewBox="0 0 12 12" aria-hidden="true" className="size-3.5 shrink-0 text-foreground">
@@ -269,4 +269,10 @@ export function PersonCombobox({
       </p>
     </div>
   );
+}
+
+/** 그 사람의 얼굴 — 일간을 알면 천간 그림, 모르면 오행 상징(없으면 물음표 원) */
+export function PersonMark({ one, className }: { one: Choosable; className: string }) {
+  if (one.stem != null) return <StemSymbol stem={one.stem} className={className} />;
+  return <ElementSymbol element={one.element ?? null} className={className} />;
 }

@@ -7,7 +7,6 @@ import { CALENDAR_KO, GENDER_KO, STEM_INFO, type Saju } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { dbFailure } from '../../db-error';
-import { isoOf, solarDateOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL, type Query } from '@/src/lib/input/query';
 import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
@@ -25,6 +24,7 @@ import { compatHrefFor } from './compat-href';
 import { elementScope } from '../../ui/element-tone';
 import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
+import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT, STALE_CHIP, TILE, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../ui/surfaces';
 
@@ -272,7 +272,9 @@ function PersonCard({
     <section className={`${elementScope(element)} ${TILE} relative flex h-full flex-col gap-3 sm:p-5`}>
       {/* 큰 상징 하나가 모서리에 옅게 번진다 — 장식이라 누름도 보조기기도 지나간다 */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-[1.5rem]">
-        <ElementSymbol element={element} className="absolute -bottom-6 -right-6 size-32 opacity-[0.14]" />
+        {person.chart.ok && (
+          <StemSymbol stem={person.chart.saju.pillars.dayMaster} className="absolute -bottom-6 -right-6 size-32 opacity-[0.14]" />
+        )}
       </div>
 
       <div className="flex min-h-11 items-center pr-14">
@@ -307,14 +309,15 @@ function PersonCard({
       {person.chart.ok ? (
         <>
           <PillarStrip pillars={person.chart.saju.pillars} name={person.local_label} />
-          {reading !== null && (
-            <p className="line-clamp-2 text-[13px] leading-5">
-              {!reading.fromCurrentChart && (
-                <span className={`mr-1 ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>
-              )}
-              {reading.metaphor ?? '만들어 둔 풀이를 이어서 읽어보세요'}
-            </p>
-          )}
+          {/* 한 줄 평은 늘 두 줄 높이 — 없거나 짧아도 칸을 비워 둬서 타일끼리 단추 줄이 맞는다. 넘치면 … */}
+          <p className="line-clamp-2 min-h-10 text-[13px] leading-5">
+            {reading !== null && (
+              <>
+                {!reading.fromCurrentChart && <span className={`mr-1 ${STALE_CHIP}`}>{READING_STALE_LABEL}</span>}
+                {reading.metaphor ?? '만들어 둔 풀이를 이어서 읽어보세요'}
+              </>
+            )}
+          </p>
           <div className="relative z-10 mt-auto grid grid-cols-[minmax(0,1fr)_auto] gap-2 pt-1">
             <Link
               href={`/me/readings/${person.personId}`}
@@ -362,9 +365,6 @@ function BirthLines({ query }: { query: Query }) {
       <p className={TYPE_META}>
         {GENDER_KO[query.gender]} · {query.city}
       </p>
-      {query.calendar !== 'solar' && (
-        <p className={`${TYPE_META} tabular-nums`}>계산에 쓴 양력 날짜 · {isoOf(solarDateOf(query))}</p>
-      )}
     </>
   );
 }

@@ -18,6 +18,8 @@ import { elementScope } from '../../ui/element-tone';
 import { PILLAR_COLUMNS } from '../../saju/shared';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
+import { StemSymbol } from '../../ui/stem-symbol';
+import { DayMasterChip } from '../people/chart-bits';
 import { Icon } from '../../ui/icons';
 import { EditInput } from '../edit-input';
 import type { ReadingEntry } from '../reading/current';
@@ -56,15 +58,16 @@ export function SelfCard({
       aria-label="내 사주"
       className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between gap-4 overflow-hidden rounded-[2rem] bg-[var(--tile)] p-5 sm:gap-6 sm:p-8`}
     >
-      <ElementSymbol element={dayElement} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
+      <StemSymbol stem={saju.pillars.dayMaster} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
 
       {/* 이름(가장 크게)과 바로 아래 한 줄 평 — 내 사주풀이의 비유. 풀이가 없으면 그 줄은 서지 않는다 */}
       <header className="relative flex min-w-0 flex-col gap-2 pr-14 sm:gap-3">
         <div>
-          <p className="flex items-center gap-2 text-[13px] font-semibold text-[var(--ink)]">
-            <span className="rounded-full bg-[var(--ink)] px-2 py-0.5 text-[11px] font-bold text-[var(--tile)]">나</span>
-            내 사주
-          </p>
+          {/*
+            저장한 사람 타일과 같은 문법 — 딱지 하나, 그 아래 이름. 「나」 알약 · 「내 사주」 글자는 걷었다: 홈 맨 위의 큰
+            카드와 그 아래 내 이름이 이미 말한다(운영자 2026-09-26, 한 줄에 요소가 셋이면 많았다)
+          */}
+          <DayMasterChip stem={saju.pillars.dayMaster} />
           <h2 className="mt-1 break-all font-rounded text-[1.75rem] leading-[1.15] tracking-[-0.02em] text-foreground sm:text-[2.5rem]">
             {label}
           </h2>

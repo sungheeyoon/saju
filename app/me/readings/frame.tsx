@@ -8,6 +8,7 @@ import type { Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
 import { ElementSymbol } from '../../ui/element-symbol';
+import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 
 /**
@@ -27,6 +28,8 @@ export type NextBook = {
   readonly title: string;
   readonly metaphor: string | null;
   readonly element: Element | null;
+  /** 그 사람의 일간 — 얼굴에 천간 그림을 세운다 */
+  readonly stem: string | null;
 };
 
 /** lg — 두 칸이 서는 폭. Tailwind 의 `lg:` 와 같은 값이어야 한 칸짜리 화면에서 옮기지 않는다 */
@@ -127,7 +130,7 @@ function NextCard({ book }: { book: NextBook }) {
       className={`${elementScope(book.element)} group flex w-full max-w-[36rem] items-center gap-4 self-center rounded-[1.5rem] border border-border bg-surface p-4 text-left transition-colors hover:border-[color-mix(in_srgb,var(--ink)_40%,transparent)] active:scale-[0.99]`}
     >
       <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--tile)]">
-        <ElementSymbol element={book.element} className="size-7" />
+        {book.stem !== null ? <StemSymbol stem={book.stem} className="size-7" /> : <ElementSymbol element={null} className="size-7" />}
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-[12px] font-semibold text-secondary">다음 풀이</span>

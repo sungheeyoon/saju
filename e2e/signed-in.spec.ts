@@ -263,7 +263,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * **홈의 관계 지도와 사람 타일** — 저장한 사람이 둘 다에 서고, 타일이 그 사람의 길을 전부 든다.
    *
    * 나와 궁합을 아직 안 봤으면 궁합 화면으로 가되 **두 칸이 찬 채로**(`a.person` · `b.person`) 간다.
-   * 지도의 원을 누르면 작은 카드가 열리고, 그 카드도 같은 세 길을 든다.
+   * 지도의 원을 누르면 작은 카드가 열리고, 그 카드는 나와의 궁합과 그 사람의 사주 상세로 가는 길을 든다.
    */
   test('홈은 저장한 사람을 지도와 타일에 세우고 원을 누르면 그 사람의 길이 열린다', async ({ page, signedIn }, testInfo) => {
     await page.goto('/me');
@@ -284,15 +284,21 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(dot).toHaveAttribute('href', `#person-${personId}`);
     await dot.click();
     await expect(dot).toHaveAttribute('aria-expanded', 'true');
-    await expect(map.getByRole('link', { name: '자세히' })).toHaveAttribute('href', `/me/people/${personId}`);
-    await expect(map.getByRole('link', { name: '나와 궁합' })).toHaveAttribute(
+    /*
+      카드는 **나와의 궁합**을 잇는다 — 안 봤으면 그렇다고 말하고 주 행동은 궁합으로 가는 하나다. 그 사람 혼자의
+      사주풀이 단추는 카드에 없고(타일과 상세가 든다), 상세로 가는 길은 이름이 무엇을 여는지 말한다.
+    */
+    await expect(map.getByText('아직 둘의 궁합을 보지 않았어요')).toBeVisible();
+    await expect(map.getByRole('link', { name: '궁합 보러 가기' })).toHaveAttribute(
       'href',
       `/compat#a.person=${signedIn.selfPersonId}&b.person=${personId}`,
     );
+    await expect(map.getByRole('link', { name: '어머니 사주 보기' })).toHaveAttribute('href', `/me/people/${personId}`);
+    await expect(map.getByRole('link', { name: /풀이 받기|풀이 보기/ })).toHaveCount(0);
     /* 누른 자리에서 주소가 안 바뀐다 — 자바스크립트가 돌면 카드가 열리는 것이 전부다 */
     await expect(page).toHaveURL(/\/me$/);
     await map.getByRole('button', { name: '닫기' }).click();
-    await expect(map.getByRole('link', { name: '자세히' })).toHaveCount(0);
+    await expect(map.getByRole('link', { name: '어머니 사주 보기' })).toHaveCount(0);
 
     /* 홈을 떠나는 길 셋 — 메뉴에서 빠진 「사주·궁합」의 길이 여기 선다 */
     const more = page.getByRole('navigation', { name: '더 해 보기' });

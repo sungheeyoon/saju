@@ -134,6 +134,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
     title: book.title,
     metaphor: book.metaphor,
     element: book.subjects[0]?.element ?? null,
+    stem: book.subjects[0]?.stem ?? null,
   }));
 
   return (

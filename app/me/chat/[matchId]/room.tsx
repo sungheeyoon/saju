@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 
 import { BLOCK_NOTE } from '@/src/lib/consent';
 import { activityText, type ActivityBand } from '@/src/lib/presence';
-import { ELEMENT_KO, STEM_INFO, type Stem } from '@/src/lib/saju';
+import { STEM_INFO, type Stem } from '@/src/lib/saju';
 
 import { elementScope } from '../../../ui/element-tone';
 import {
@@ -14,9 +14,9 @@ import {
   BUTTON_SECONDARY,
   BUTTON_SECONDARY_SMALL,
 } from '../../../ui/buttons';
-import { ElementSymbol } from '../../../ui/element-symbol';
+import { StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
-import { TYPE_META, TYPE_NAME } from '../../../ui/surfaces';
+import { TYPE_NAME } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
 import { DayMasterChip } from '../../people/chart-bits';
 import { blockUser } from '../../requests/actions';
@@ -310,14 +310,10 @@ function StartSide({ label, stem }: { label: string; stem: Stem }) {
   const info = STEM_INFO[stem];
   return (
     <section className={`${elementScope(info.element)} relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-[1.5rem] bg-[var(--tile)] p-4`}>
-      <ElementSymbol element={info.element} className="pointer-events-none absolute -bottom-4 -right-4 size-20 opacity-20" />
+      <StemSymbol stem={stem} className="pointer-events-none absolute -bottom-4 -right-4 size-20 opacity-20" />
       <DayMasterChip stem={stem} className="relative self-start" />
       <div className="relative min-w-0">
         <p className="truncate font-rounded text-[1.125rem] leading-6 text-foreground">{label}</p>
-        <p className={TYPE_META}>
-          {info.ko}
-          {ELEMENT_KO[info.element]} 일간
-        </p>
       </div>
     </section>
   );

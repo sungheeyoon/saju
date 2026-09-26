@@ -12,6 +12,11 @@ import { readingHref } from '../../reading/line';
   **거리는 아무것도 판정하지 않는다.** 저장한 사람은 모두 한 궤도에 앉는다 — 풀이를 봤는지는 카드가, 궁합은
   선이 말한다. 선은 **이미 만든 궁합풀이가 있을 때만** 긋는다(`my_readings` 의 `private` 줄). 없는 관계를
   지어내지 않는다 — 점수는 그 글이 들고 있던 값 그대로이고, 안 본 짝을 권하지도 않는다.
+
+  **누른 사람의 카드는 「나와 이 사람」의 궁합을 이어받는다.** 지도가 그리는 것이 궁합의 연결이라, 카드에 그 사람
+  혼자의 사주풀이 단추와 그 비유가 같은 무게로 섰을 때 하트 점수 · 「풀이 보기」 · 「자세히」 중 무엇이 궁합풀이를
+  여는지 읽히지 않았다(2026-09-26 운영자). 그 사람의 사주풀이는 아래 사람 타일과 사람 상세의 탭이 든다 — 그래서
+  여기에는 그 사람의 풀이가 없고, 나와 본 궁합풀이의 점수 · 비유 · 수정 전 여부가 있다.
 */
 
 export type DayMark = { stem: string; element: Element; picture: string };
@@ -34,11 +39,12 @@ export type MapPerson = {
   /** 아래 사람 타일의 앵커 — 자바스크립트가 없으면 지도의 원이 여기로 간다 */
   tileHref: string;
   detailHref: string;
-  readingHref: string;
-  /** 이 사람의 풀이 — 없으면 `null` */
-  reading: { metaphor: string | null; current: boolean } | null;
-  /** 나와의 궁합 — 이미 본 것이면 `seen` 이고 그 글로 간다 */
-  compat: { href: string; score: number | null; seen: boolean };
+  /**
+   * 나와의 궁합 — 이미 본 것이면 `seen` 이고 그 궁합풀이로 간다. 안 봤으면 두 칸이 찬 궁합 화면으로 간다.
+   * 점수 · 비유는 그 글이 든 값 그대로다 — 옛 글은 비유가 없을 수 있다(`CurrentReading.metaphor`).
+   * `current` 는 그 글의 여덟 글자가 아직 지금 명식인가(ADR 0071) — 안 봤으면 참이다.
+   */
+  compat: { href: string; seen: boolean; score: number | null; metaphor: string | null; current: boolean };
 };
 
 /** 저장한 두 사람 사이에 이미 본 궁합 — 나와의 것은 사람 쪽 `compat` 이 든다 */
@@ -102,7 +108,6 @@ export function compatHrefOf(pair: ReadingEntry | null, selfId: string | null, p
 
 function personOf(person: HomePerson, readings: readonly ReadingEntry[], selfId: string | null): MapPerson {
   const pair = pairWithSelf(readings, selfId, person.personId);
-  const reading = readingOf(readings, person.personId);
   const note = person.note?.trim() ?? '';
   return {
     id: person.personId,
@@ -112,9 +117,13 @@ function personOf(person: HomePerson, readings: readonly ReadingEntry[], selfId:
     unreadable: person.chart.ok ? null : person.chart.message,
     tileHref: `#${tileAnchor(person.personId)}`,
     detailHref: `/me/people/${person.personId}`,
-    readingHref: `/me/readings/${person.personId}`,
-    reading: reading === null ? null : { metaphor: reading.metaphor, current: reading.fromCurrentChart },
-    compat: { href: compatHrefOf(pair, selfId, person.personId), score: pair?.score ?? null, seen: pair !== null },
+    compat: {
+      href: compatHrefOf(pair, selfId, person.personId),
+      seen: pair !== null,
+      score: pair?.score ?? null,
+      metaphor: pair?.metaphor ?? null,
+      current: pair?.fromCurrentChart ?? true,
+    },
   };
 }
 

@@ -1,9 +1,9 @@
-import { ELEMENT_PICTURE_KO, STEM_INFO, BRANCH_INFO, type Branch, type Stem } from '@/src/lib/saju';
+import { STEM_INFO, BRANCH_INFO, type Branch, type Stem } from '@/src/lib/saju';
 import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
 
 import { ELEMENT_TONE, elementScope } from '../../ui/element-tone';
 import { PILLAR_COLUMNS } from '../../saju/shared';
-import { ElementSymbol } from '../../ui/element-symbol';
+import { STEM_PICTURE, StemSymbol } from '../../ui/stem-symbol';
 
 /*
   **사람 한 명을 알아보는 두 조각** — 일간 딱지와 네 기둥 띠. 사람 목록의 타일과 궁합의 두 면이 같은 것을 쓴다.
@@ -13,10 +13,9 @@ import { ElementSymbol } from '../../ui/element-symbol';
 */
 
 /**
- * 일간 딱지 — **상징 · 글자 · 오행 이름 셋이 함께 선다.** 색만으로 오행을 말하지 않는다.
- *
- * 보조기기에는 「일간 庚, 쇠」 한 줄로 읽힌다(보이는 조각 셋은 `aria-hidden`). 딱지는 제 오행의 색을 스스로
- * 입으므로 어느 판 위에 놓여도 같은 뜻이다.
+ * 일간 딱지 — **천간 그림과 그 이름(「햇빛」)이 함께 선다.** 한자(丙)와 오행 이름(불)은 얼굴 자리에서 걷었다 — 한국 유저
+ * 대부분이 한자를 못 읽고, 그림 이름이 앱 어디서나 같은 사람을 가리킨다(운영자 2026-09-26, `app/ui/stem-symbol.tsx`).
+ * 한자는 네 기둥 띠(`PillarStrip`) 같은 자료 자리에 남는다. 딱지는 제 오행의 색을 스스로 입는다.
  */
 export function DayMasterChip({ stem, className = '' }: { stem: Stem; className?: string }) {
   const element = STEM_INFO[stem].element;
@@ -25,14 +24,9 @@ export function DayMasterChip({ stem, className = '' }: { stem: Stem; className?
     <span
       className={`${elementScope(element)} inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] py-1 pl-1 pr-2.5 text-[12px] font-semibold text-[var(--ink)] ${className}`}
     >
-      <span className="sr-only">
-        일간 {stem}, {ELEMENT_PICTURE_KO[element]}
-      </span>
-      <ElementSymbol element={element} className="size-5" />
-      <span aria-hidden="true" className="glyph text-[15px] font-bold leading-none">
-        {stem}
-      </span>
-      <span aria-hidden="true">{ELEMENT_PICTURE_KO[element]}</span>
+      <span className="sr-only">일간 {STEM_PICTURE[stem]}</span>
+      <StemSymbol stem={stem} className="size-5" />
+      <span aria-hidden="true">{STEM_PICTURE[stem]}</span>
     </span>
   );
 }
