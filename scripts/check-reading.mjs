@@ -206,13 +206,21 @@ const TONE_OF_STEM = {
   己: 'tone-earth', 庚: 'tone-metal', 辛: 'tone-metal', 壬: 'tone-water', 癸: 'tone-water',
 };
 
-/** 글 화면 머리의 일간 딱지 — 제목(`reading-subject`) 앞의 마지막 둥근 딱지 안의 판과 글자 */
+/**
+ * 천간 → 그림 이름 — 얼굴 자리의 딱지는 한자 대신 이 이름을 적는다(2026-09-26, `app/ui/stem-symbol.tsx`). 판 이름처럼
+ * **손으로 적는다** — 화면의 표를 가져오면 둘이 함께 틀려도 초록이다.
+ */
+const PICTURE_OF_STEM = {
+  甲: '나무', 乙: '덩굴', 丙: '햇빛', 丁: '등불', 戊: '산', 己: '밭', 庚: '강철', 辛: '보석', 壬: '바다', 癸: '빗물',
+};
+
+/** 글 화면 머리의 일간 딱지 — 제목(`reading-subject`) 앞의 마지막 둥근 딱지 안의 판과 그림 이름(천간 그림 뒤의 글자) */
 const headerChipOf = (html) => {
   const head = html.slice(0, html.indexOf('id="reading-subject"'));
-  const found = /ring-1 ring-border"><span class="(tone-[a-z]+)[^"]*">.*?class="glyph font-bold">(.)</s.exec(
+  const found = /ring-1 ring-border"><span class="(tone-[a-z]+)[^"]*">.*?<\/svg><span>([^<]+)<\/span>/s.exec(
     head.slice(head.lastIndexOf('ring-1 ring-border"')),
   );
-  return found === null ? null : { tone: found[1], stem: found[2] };
+  return found === null ? null : { tone: found[1], picture: found[2] };
 };
 
 /**
@@ -776,8 +784,8 @@ try {
      * 세우면 글과 머리가 다른 사람을 말한다. 기대값은 고치기 전에 DB 에서 읽은 글자와 이 파일의 표다.
      */
     const chip = headerChipOf(edited);
-    check('머리의 일간 딱지는 풀이를 만들 때의 글자다', chip?.stem === stemBefore,
-      `${chip?.stem ?? '딱지 없음'} — 그때 ${stemBefore}, 지금 ${stemAfter}`);
+    check('머리의 일간 딱지는 풀이를 만들 때의 그림이다', chip?.picture === PICTURE_OF_STEM[stemBefore],
+      `${chip?.picture ?? '딱지 없음'} — 그때 ${PICTURE_OF_STEM[stemBefore]}(${stemBefore}), 지금 ${PICTURE_OF_STEM[stemAfter]}(${stemAfter})`);
     check('머리의 일간 딱지는 그때의 오행 색이다', chip?.tone === TONE_OF_STEM[stemBefore],
       `${chip?.tone ?? '딱지 없음'} — 그때 ${TONE_OF_STEM[stemBefore]}`);
     const cover = /class="(tone-[a-z]+) relative overflow-hidden rounded-\[2rem\]/.exec(edited)?.[1];
@@ -795,7 +803,7 @@ try {
     check('책장의 안 고친 사람 책에는 「수정 전」이 없다',
       momBook !== null && !momBook.text.includes('수정 전'), momBook?.text ?? '책 없음');
     check('책장의 내 책 표지도 풀이를 만들 때의 일간이다',
-      selfBook?.tone === TONE_OF_STEM[stemBefore] && selfBook?.text.includes(stemBefore) === true,
+      selfBook?.tone === TONE_OF_STEM[stemBefore] && selfBook?.text.includes(PICTURE_OF_STEM[stemBefore]) === true,
       `${selfBook?.tone ?? '책 없음'} · ${selfBook?.text ?? ''}`);
   }
 
