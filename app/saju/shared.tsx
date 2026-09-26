@@ -3,6 +3,7 @@ import {
   STEM_INFO,
   type Relation,
 } from '@/src/lib/saju';
+import { endsWithBatchim } from '@/src/lib/saju/text/batchim';
 
 
 /** 전통 표기 순서 — 시주가 왼쪽, 년주가 오른쪽 */
@@ -53,9 +54,8 @@ const hasFinalConsonant = (char: string): boolean => {
     BRANCH_INFO[char as keyof typeof BRANCH_INFO]?.ko ??
     STEM_INFO[char as keyof typeof STEM_INFO]?.ko ??
     char;
-  const code = ko.charCodeAt(ko.length - 1) - 0xac00;
 
-  return code >= 0 && code <= 11171 && code % 28 !== 0;
+  return endsWithBatchim(ko);
 };
 
 
