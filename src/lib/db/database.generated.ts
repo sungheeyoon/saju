@@ -2241,6 +2241,10 @@ export type Database = {
         Args: { a: Json; b: Json }
         Returns: number
       }
+      discovery_count_balance_v2_float: {
+        Args: { a: Json; b: Json }
+        Returns: number
+      }
       discovery_day_pillar_axis_v2: {
         Args: { a_chart: Json; b_chart: Json }
         Returns: number
@@ -2266,6 +2270,10 @@ export type Database = {
         Returns: number
       }
       discovery_need_direction_v2: {
+        Args: { provider_summary: Json; receiver_need: Json }
+        Returns: number
+      }
+      discovery_need_direction_v2_float: {
         Args: { provider_summary: Json; receiver_need: Json }
         Returns: number
       }
@@ -2422,7 +2430,7 @@ export type Database = {
       }
       may_see_photo: { Args: { p_user_id: string }; Returns: boolean }
       move_my_photo: {
-        Args: { p_from: number; p_to: number }
+        Args: { p_from: number; p_to: number; p_version?: number }
         Returns: undefined
       }
       my_chat_messages: {
@@ -2980,6 +2988,7 @@ export type Database = {
         Args: { p_base64: string; p_content_type: string }
         Returns: string
       }
+      profile_photo_version: { Args: { p_updated_at: string }; Returns: number }
       purge_closed_chat_messages: { Args: never; Returns: number }
       reading_about: {
         Args: {
@@ -3091,7 +3100,10 @@ export type Database = {
         Returns: undefined
       }
       release_reading_job: { Args: { p_run_id: string }; Returns: undefined }
-      remove_my_photo: { Args: { p_position: number }; Returns: undefined }
+      remove_my_photo: {
+        Args: { p_position: number; p_version?: number }
+        Returns: undefined
+      }
       report_chat_message: {
         Args: { p_detail?: string; p_message_id: string; p_reason: string }
         Returns: string
