@@ -39,11 +39,6 @@ export const ELEMENT_PICTURE_KO: Record<Element, string> = {
   水: '물',
 };
 
-export const YIN_YANG_KO: Record<YinYang, string> = {
-  陽: '양',
-  陰: '음',
-};
-
 /** 상생(相生) — 키가 생(生)해 주는 오행. 木生火 火生土 土生金 金生水 水生木 */
 export const GENERATES: Record<Element, Element> = {
   木: '火',

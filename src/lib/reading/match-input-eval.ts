@@ -96,7 +96,7 @@ export function secretsOf(fixture: MatchFixture): BirthSecret[] {
 }
 
 /** 한 사람 이야기로 새는 낱말 — **지표**다. 나왔다고 틀린 글은 아니다 */
-export const PERSONAL_DRIFT_TERMS = [
+const PERSONAL_DRIFT_TERMS = [
   '건강',
   '재물',
   '재산',
@@ -115,7 +115,7 @@ export const PERSONAL_DRIFT_TERMS = [
  *
  * 맞는 설명이 안 걸리게 넓게 잡지 않는다 — 「겉글자에 토가 없다」는 사실이라 「없다」만으로는 안 센다.
  */
-export const REVIEW_PATTERNS: Readonly<Record<string, RegExp>> = {
+const REVIEW_PATTERNS: Readonly<Record<string, RegExp>> = {
   /* 「전혀 없다는 뜻이 아니라」는 확대가 아니라 부정이다 — 그 꼴은 아래 「범위 해설」이 센다 */
   '오행 부재 확대': /(기운|힘|요소)[이가은는도]?\s*(전혀|아예|하나도)(?!.{0,12}(뜻|의미)[이가은는]?\s*아니)|(전혀|아예|하나도)\s*없(?!.{0,8}(뜻|의미)[이가은는]?\s*아니)/,
   /* 「방어적으로 변해요」 같은 말은 안 센다 — 오행 이름 바로 뒤의 「으로 변했다」만 */
