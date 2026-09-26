@@ -64,26 +64,6 @@ describe('관계 지도의 값', () => {
     expect(model.people[0].tileHref).toBe('#person-p1');
   });
 
-  it('다른 사람과 궁합을 고르는 길은 고를 수 있는 다른 사람이 있을 때만 선다', () => {
-    const broken: HomePerson = { personId: 'p3', label: '모름', note: null, chart: { ok: false, message: '명식을 못 읽어요' } };
-    const alone = mapModelOf({ self: { personId: 'me', label: '나', saju }, people: [person('p1', '어머니')], readings: [] });
-    expect(alone.people[0].pickHref).toBeNull();
-
-    const withBroken = mapModelOf({
-      self: { personId: 'me', label: '나', saju },
-      people: [person('p1', '어머니'), broken],
-      readings: [],
-    });
-    expect(withBroken.people.map((one) => one.pickHref)).toEqual([null, null]);
-
-    const two = mapModelOf({
-      self: { personId: 'me', label: '나', saju },
-      people: [person('p1', '어머니'), person('p2', '아버지')],
-      readings: [],
-    });
-    expect(two.people[0].pickHref).toBe('/compat#a.person=p1');
-  });
-
   it('저장한 두 사람 사이의 선은 둘 다 지도에 있을 때만, 같은 쌍은 한 번만 선다', () => {
     const model = mapModelOf({
       self: { personId: 'me', label: '나', saju },

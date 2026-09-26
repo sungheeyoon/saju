@@ -39,8 +39,6 @@ export type MapPerson = {
   reading: { metaphor: string | null; current: boolean } | null;
   /** 나와의 궁합 — 이미 본 것이면 `seen` 이고 그 글로 간다 */
   compat: { href: string; score: number | null; seen: boolean };
-  /** 이 사람과 다른 저장한 사람의 궁합을 고르러 가는 곳 — 고를 사람이 없거나 이 사람을 못 읽으면 `null` */
-  pickHref: string | null;
 };
 
 /** 저장한 두 사람 사이에 이미 본 궁합 — 나와의 것은 사람 쪽 `compat` 이 든다 */
@@ -102,12 +100,7 @@ export function compatHrefOf(pair: ReadingEntry | null, selfId: string | null, p
   return selfId === null ? `/compat#b.person=${personId}` : `/compat#a.person=${selfId}&b.person=${personId}`;
 }
 
-function personOf(
-  person: HomePerson,
-  readings: readonly ReadingEntry[],
-  selfId: string | null,
-  people: readonly HomePerson[],
-): MapPerson {
+function personOf(person: HomePerson, readings: readonly ReadingEntry[], selfId: string | null): MapPerson {
   const pair = pairWithSelf(readings, selfId, person.personId);
   const reading = readingOf(readings, person.personId);
   const note = person.note?.trim() ?? '';
@@ -122,10 +115,6 @@ function personOf(
     readingHref: `/me/readings/${person.personId}`,
     reading: reading === null ? null : { metaphor: reading.metaphor, current: reading.fromCurrentChart },
     compat: { href: compatHrefOf(pair, selfId, person.personId), score: pair?.score ?? null, seen: pair !== null },
-    pickHref:
-      person.chart.ok && people.some((other) => other.personId !== person.personId && other.chart.ok)
-        ? `/compat#a.person=${person.personId}`
-        : null,
   };
 }
 
@@ -143,7 +132,7 @@ export function mapModelOf({
 
   return {
     self: { label: self.label, ...dayOf(self.saju) },
-    people: people.map((person) => personOf(person, readings, selfId, people)),
+    people: people.map((person) => personOf(person, readings, selfId)),
     /* 나 밖의 두 사람 궁합 — 둘 다 지도에 있을 때만 선이 선다. 같은 쌍은 가장 최근 글 하나 */
     links: readings.flatMap((entry, index) =>
       entry.kind === 'private' &&
