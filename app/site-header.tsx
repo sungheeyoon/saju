@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { SERVICE_NAME } from '@/src/lib/brand';
@@ -11,6 +11,7 @@ import { SURVEY_COPY } from '@/src/lib/survey';
 
 import { supabaseInBrowser } from './auth/browser-client';
 import { useBrowserSession } from './auth/browser-session';
+import { useSignOut } from './auth/sign-out';
 import { readUnreadChat } from './me/chat/unread';
 import { CHAT_UNREAD_MOVED } from './me/chat/unread-signal';
 import { readReadingCredits } from './me/reading/credits';
@@ -365,30 +366,15 @@ function SettingsMenu({
    */
   ended?: boolean;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const { menu: panel, close } = useDetailsMenu();
-  const [leaving, setLeaving] = useState(false);
-  const [failure, setFailure] = useState<string | null>(null);
-
-  useEffect(close, [pathname, close]);
-
   /*
     판은 누른 뒤에도 열어 둔다 — 「로그아웃하는 중…」과 실패 문장이 이 판 안에 선다. 먼저 닫으면 실패가 닫힌 판 안에
-    서서 아무에게도 안 보였다. 되면 주소가 바뀌며 닫힌다(위의 `useEffect`).
+    서서 아무에게도 안 보였다. 되면 주소가 바뀌며 닫힌다(아래 `useEffect`).
   */
-  const signOut = async () => {
-    setLeaving(true);
-    setFailure(null);
-    const { error } = await supabaseInBrowser().auth.signOut();
-    if (error) {
-      setLeaving(false);
-      setFailure('로그아웃하지 못했습니다. 다시 시도해 주세요.');
-      return;
-    }
-    router.replace('/');
-    router.refresh();
-  };
+  const { leaving, failure, signOut } = useSignOut();
+
+  useEffect(close, [pathname, close]);
 
   const links = ended
     ? [{ href: '/me/settings', label: '계정 관리' }]
