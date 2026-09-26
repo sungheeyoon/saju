@@ -52,15 +52,24 @@ export const SCRIPTS = [
 const brokeAfterwards = (one) =>
   one.ran && one.failed.length === 0 && (one.signal != null || (one.status ?? 0) !== 0);
 
+/**
+ * 검사가 **돌았는데 하나도 안 쟀는가** — `0/0` 은 통과가 아니다.
+ *
+ * 흐름 검사는 화면 · 표에서 읽어 온 줄을 돌며 단언한다. 고른 줄이 비거나 앞에서 일찍 돌아오면 `finish()` 가
+ * 「0/0 통과」를 쓰고 러너는 그것을 초록으로 셌다 — 재는 자리가 통째로 사라져도 아무도 모른다.
+ */
+const measuredNothing = (one) => one.ran && one.total === 0;
+
 export function summarize(results) {
   const ran = results.filter((one) => one.ran);
   const total = ran.reduce((sum, one) => sum + one.total, 0);
   const passed = ran.reduce((sum, one) => sum + one.passed, 0);
   const failedScripts = results.filter(
-    (one) => !one.ran || one.failed.length > 0 || brokeAfterwards(one));
+    (one) => !one.ran || one.failed.length > 0 || brokeAfterwards(one) || measuredNothing(one));
 
   const lines = results.map((one) => {
     if (!one.ran) return `  FAIL ${one.name} — 돌지 못했다 (${one.reason ?? '이유 없음'})`;
+    if (measuredNothing(one)) return `  FAIL ${one.name} — 돌았지만 단언이 하나도 없다`;
     if (brokeAfterwards(one)) {
       return `  FAIL ${one.name} — ${one.passed}/${one.total} 은 통과했지만 비정상 종료했다`
         + ` (${one.signal ?? `종료 코드 ${one.status}`})`;
