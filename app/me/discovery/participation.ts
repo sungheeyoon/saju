@@ -32,7 +32,7 @@ export async function openDiscoveryParticipation(): Promise<void> {
   const supabase = await supabaseOnServer();
 
   /*
-    **묻는 것이 「켰는가」에서 「껐는가」로 바뀌었다**(PRD §4.1). 참여가 기본으로 켜지면서
+    **묻는 것이 「켰는가」에서 「껐는가」로 바뀌었다**(PRD 「추천은 스냅샷이다」). 참여가 기본으로 켜지면서
     안 켠 사람이라는 상태가 없어졌다. 남은 것은 직접 끈 사람이고, 그 하나만 안 연다.
   */
   const profile = await myDiscoveryProfile();

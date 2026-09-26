@@ -39,7 +39,7 @@ export function ChatFrame({
 /**
  * 대화방 목록. 닫힌 방도 남는다 — 「방이 닫힌다」는 입력이 안 된다는 뜻이지 사라진다는 뜻이 아니다.
  *
- * **접속 상태는 여기 안 선다.** PRD §7.2 가 허락한 자리는 방 안과 후보 카드 둘이다 — 목록에 점을 세우면
+ * **접속 상태는 여기 안 선다.** PRD 「접속 상태」 가 허락한 자리는 방 안과 후보 카드 둘이다 — 목록에 점을 세우면
  * 매칭된 사람 전부의 활동을 한눈에 훑는 판이 된다.
  */
 export function RoomList({
@@ -76,7 +76,7 @@ export function RoomList({
 function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone: Element | null }) {
   /*
     닫힌 방은 마지막 메시지 대신 닫힌 까닭이 자물쇠와 함께 선다 — 누르기 전에 무엇이 안 되는지 읽힌다.
-    상대가 떠난 방은 까닭 대신 넷째 줄이다(PRD §7.1).
+    상대가 떠난 방은 까닭 대신 넷째 줄이다(PRD 「앱 내 채팅」).
   */
   const notice = roomNoticeOf(room);
   const closed = notice !== null;
