@@ -11,6 +11,7 @@ import { readAccount } from '../account';
 import { RequestDeletion } from '../leaving';
 import { ConsentControls } from '../consent-controls';
 import { SETTINGS_QUIET, SettingsCard, SettingsLinkRow, SettingsRow } from './card';
+import { SignOutRow } from './sign-out-row';
 import { ParticipationToggle, PreferenceForm } from '../discovery/manage';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { OPTIONAL_CONSENT_NOTE, asKoreanDay, noticeAckHolds } from '@/src/lib/consent';
@@ -48,13 +49,6 @@ export default async function SettingsPage() {
     ),
     myDiscoveryProfile(),
   ]);
-
-  const signOut = async () => {
-    'use server';
-    const client = await supabaseOnServer();
-    await client.auth.signOut();
-    redirect('/');
-  };
 
   return (
     <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-8 py-8 sm:py-12">
@@ -126,13 +120,7 @@ export default async function SettingsPage() {
       )}
 
       <SettingsCard title="로그인 정보">
-        <SettingsRow help={user.email}>
-          <form action={signOut}>
-            <button type="submit" className={SETTINGS_QUIET}>
-              로그아웃
-            </button>
-          </form>
-        </SettingsRow>
+        <SignOutRow email={user.email} />
       </SettingsCard>
 
       {state.kind === 'active' && (

@@ -195,8 +195,8 @@ const exported = (node: ts.Node) =>
   ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword);
 
 /** 액션 — `'use server'` 파일이 내보낸 함수, 그리고 몸통에 `'use server'` 를 적은 함수 */
-function serverActions(): { id: string; body: ts.Node }[] {
-  const fromFiles = sources
+function serverActions(from: typeof sources = sources): { id: string; body: ts.Node }[] {
+  const fromFiles = from
     .filter(({ source }) => {
       const first = source.statements[0];
       return first !== undefined && ts.isExpressionStatement(first) && ts.isStringLiteral(first.expression) && USE_SERVER.test(`'${first.expression.text}'`);
@@ -218,7 +218,7 @@ function serverActions(): { id: string; body: ts.Node }[] {
       }),
     );
 
-  const inline = sources.flatMap(({ path, source }) => {
+  const inline = from.flatMap(({ path, source }) => {
     const out: { id: string; body: ts.Node }[] = [];
     const visit = (node: ts.Node) => {
       if ((ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node) || ts.isArrowFunction(node)) && startsWithUseServer(node.body)) {
@@ -255,8 +255,17 @@ describe('서버 액션은 던지지 않는다', () => {
   /** 아무것도 못 찾았으면 이 시험은 아무것도 안 잰 것이다 */
   it('던지는 문과 액션을 실제로 읽어 왔다', () => {
     expect(actions.length).toBeGreaterThan(20);
-    // 화면 안에 적은 액션도 액션이다 — 설정의 로그아웃이 그 모양이다
-    expect(actions.map(({ id }) => id)).toContain('app/me/settings/page.tsx::signOut');
+    /*
+      화면 안에 적은 액션도 액션이다. 그 모양이던 설정의 로그아웃이 브라우저로 옮겨 가(`useSignOut`, 2026-09-26) 지금
+      저장소에는 한 벌도 없다 — 읽는 길이 살아 있는지는 지어 낸 화면 하나로 잰다.
+    */
+    const text = "export default function Page() {\n  const leave = async () => {\n    'use server';\n  };\n  return leave;\n}\n";
+    const made = {
+      path: 'app/made/page.tsx',
+      text,
+      source: ts.createSourceFile('page.tsx', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX),
+    };
+    expect(serverActions([made]).map(({ id }) => id)).toEqual(['app/made/page.tsx::leave']);
     // 이 셋은 `throw dbFailure(…)` 를 직접 · 한 다리 건너 든다 — 못 찾으면 잇는 셈이 깨졌다
     expect([...throwing]).toEqual(expect.arrayContaining(['sameChartInMyList', 'storedInputsOf', 'currentReading']));
   });
