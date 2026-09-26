@@ -6,8 +6,6 @@ import { argsOf, isReportId, type ReportFilters } from './filters';
 import { sideOf, type Side } from './labels';
 import { chosenOnce, type SnapshotMessage } from './snapshot';
 
-export type { SnapshotMessage };
-
 /**
  * 신고와 그 근거 스냅샷이 **브라우저로 내려오는 문** (G-24 1차판, ADR 0103).
  *

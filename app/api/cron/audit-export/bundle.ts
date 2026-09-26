@@ -34,7 +34,7 @@ export type AccessLine = {
   readonly error_class: string | null;
 };
 
-export type BundleHead = {
+type BundleHead = {
   readonly kind: 'saju-operator-access';
   /** 2 — CLI 결과 칸 셋이 더해졌다(`20261014090000`). 1 은 그 전의 파일이다 */
   readonly version: 2;

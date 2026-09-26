@@ -26,14 +26,12 @@ import { DIALOG, DIALOG_ACTIONS, TYPE_META, TYPE_NAME } from '../ui/surfaces';
 export function EditInput({
   personId,
   current,
-  embedded = false,
   variant = 'link',
   editableName = true,
   confirmsRequests = false,
 }: {
   personId: string;
   current: Query;
-  embedded?: boolean;
   /**
    * 여덟 글자를 바꾸기 전에 **요청이 취소된다고 한 번 묻는가.**
    *
@@ -98,7 +96,6 @@ export function EditInput({
       <EditInputForm
         personId={personId}
         current={current}
-        embedded={embedded}
         editableName={editableName}
         confirmsRequests={confirmsRequests}
         onDone={() => setOpen(false)}
@@ -114,9 +111,8 @@ export function EditInput({
       /*
         `self-start` 를 달지 않는다. 이 버튼은 다른 것들과 한 줄에 설 수 있는데,
         `self-start` 가 그 줄의 `items-center` 를 이겨서 **혼자만 위로 솟아 있었다.**
-        늘어나는 것을 막아야 하는 자리(`embedded`)에서만 단다.
       */
-      className={`${BUTTON_TERTIARY} ${embedded ? 'self-start' : ''}`}
+      className={BUTTON_TERTIARY}
     >
       출생 정보 수정
     </button>
@@ -132,7 +128,6 @@ export function EditInput({
 export function EditInputForm({
   personId,
   current,
-  embedded = false,
   editableName = true,
   confirmsRequests = false,
   onDone,
@@ -140,7 +135,6 @@ export function EditInputForm({
 }: {
   personId: string;
   current: Query;
-  embedded?: boolean;
   editableName?: boolean;
   confirmsRequests?: boolean;
   onDone: () => void;
@@ -172,7 +166,7 @@ export function EditInputForm({
 
   return (
     <section
-      className={`flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-4 text-foreground shadow-card sm:p-5 ${embedded ? 'col-span-full' : ''}`}
+      className="flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-4 text-foreground shadow-card sm:p-5"
     >
       <header className="flex flex-col gap-1">
         <h2 className={TYPE_NAME}>수정하기</h2>
