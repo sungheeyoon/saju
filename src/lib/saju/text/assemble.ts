@@ -27,6 +27,7 @@ import { COMPAT_CHART_ID, COMPAT_SIDES, type Compatibility, type CompatSide } fr
 import { absorbableByUnknownHour, orderedParticipants, type Relation } from '../relations';
 import type { Saju } from '../index';
 import { FOLLOWING_SILENT_VERDICTS, type ClaimPath, type ClaimStrength } from './policy';
+import { endsWithBatchim } from './batchim';
 import { FRAGMENT_INDEX } from './corpus';
 import {
   followingVariant,
@@ -288,12 +289,7 @@ const HALF_KO = { first: '상반월', second: '하반월' } as const;
  * 이름을 이미 알고 있으므로 맞는 조사를 고를 수 있다.
  */
 const joinNames = (names: readonly string[]): string =>
-  names.reduce((joined, name) => {
-    const last = joined.charCodeAt(joined.length - 1) - 0xac00;
-    const closed = last >= 0 && last <= 11171 && last % 28 !== 0;
-
-    return `${joined}${closed ? '과' : '와'} ${name}`;
-  });
+  names.reduce((joined, name) => `${joined}${endsWithBatchim(joined) ? '과' : '와'} ${name}`);
 
 const stemsKo = (stems: readonly Stem[]): string => stems.map((stem) => STEM_INFO[stem].ko).join('·');
 

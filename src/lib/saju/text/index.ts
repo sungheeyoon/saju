@@ -9,3 +9,4 @@ export * from './policy';
 export * from './fragment';
 export * from './corpus';
 export * from './assemble';
+export * from './batchim';
