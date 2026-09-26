@@ -42,7 +42,7 @@ const LABEL = 'text-[15px] font-semibold';
  * ## 사진과 소개는 여기 없다
  *
  * 필수가 아닌 것을 첫 화면에 세우면 사용자는 그것도 채워야 하는 줄 안다. 둘 다 프로필
- * 화면에 그대로 있고, 언제든 채울 수 있다(PRD §5.1).
+ * 화면에 그대로 있고, 언제든 채울 수 있다(PRD 「이름과 얼굴」).
  */
 export function SignupForm({
   resumeReading = false,
