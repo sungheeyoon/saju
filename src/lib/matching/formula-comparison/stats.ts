@@ -20,7 +20,7 @@ export function quantile(xs: readonly number[], q: number): number {
 }
 
 /** 같은 값은 평균 순위 */
-export function ranks(xs: readonly number[]): number[] {
+function ranks(xs: readonly number[]): number[] {
   const order = xs.map((x, i) => [x, i] as const).sort((a, b) => a[0] - b[0]);
   const out = new Array<number>(xs.length);
   for (let start = 0; start < order.length; ) {

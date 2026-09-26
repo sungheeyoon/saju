@@ -87,14 +87,6 @@ export type BureauKind =
   /** 왕지를 낀 방합 두 글자 */
   | 'halfDirectional';
 
-export const BUREAU_KIND_KO: Record<BureauKind, string> = {
-  tripleCombination: '삼합국',
-  halfTriple: '반합',
-  spanTriple: '공협',
-  directional: '방합국',
-  halfDirectional: '반방합',
-};
-
 export type Bureau = {
   status: 'experimental';
   kind: BureauKind;

@@ -136,7 +136,7 @@ function agreementOf(
 }
 
 /** 맞출 매개변수의 격자 — 기본값(0.2 · 0.3)이 들어 있다 */
-export const PARAM_GRID: readonly NeedComplementParams[] = [0.125, 0.2, 0.25, 0.34].flatMap((supplyCap) =>
+const PARAM_GRID: readonly NeedComplementParams[] = [0.125, 0.2, 0.25, 0.34].flatMap((supplyCap) =>
   [0, 0.3, 0.6, 1].map((counterWeight) => ({ supplyCap, counterWeight })),
 );
 
