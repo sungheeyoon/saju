@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY } from '@/src/lib/input/query';
 
+import { STEM_PICTURE } from '../../../ui/stem-symbol';
 import type { ReadingEntry } from '../../reading/current';
 import { compatHrefOf, linksOf, mapModelOf, pairWithSelf, readingOf, type HomePerson } from './model';
 
@@ -65,6 +66,12 @@ describe('관계 지도의 값', () => {
       ['p3', false, null, null, true],
     ]);
     expect(model.people[0].tileHref).toBe('#person-p1');
+  });
+
+  it('지도의 얼굴 이름은 그 천간의 그림이다 — 오행의 그림(「불」)이 아니다', () => {
+    const model = mapModelOf({ self: { personId: 'me', label: '나', saju }, people: [person('p1', '어머니')], readings: [] });
+    expect(model.self.picture).toBe(STEM_PICTURE[saju.pillars.dayMaster]);
+    expect(model.people[0].day?.picture).toBe(STEM_PICTURE[saju.pillars.dayMaster]);
   });
 
   it('저장한 두 사람 사이의 선은 둘 다 지도에 있을 때만, 같은 쌍은 한 번만 선다', () => {

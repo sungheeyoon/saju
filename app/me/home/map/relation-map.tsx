@@ -20,24 +20,23 @@ import Link from 'next/link';
 import { useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
-import type { Element, Stem } from '@/src/lib/saju';
+import type { Element } from '@/src/lib/saju';
 
 import { BUTTON_PRIMARY_SMALL, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { elementScope } from '../../../ui/element-tone';
 import { Icon } from '../../../ui/icons';
 import { reducedMotion } from '../../../ui/motion';
+import { DotsMark, ORBIT_GLOW, ORBIT_LABEL_PAD, ORBIT_NAME_TAG, ORBIT_RING, ThreadMark, round2 } from '../../../ui/orbit';
+import { StemSymbol } from '../../../ui/stem-symbol';
 import { STALE_CHIP, TYPE_META } from '../../../ui/surfaces';
-import { linksOf, type MapModel, type MapPerson } from './model';
-import { STEM_PICTURE, StemSymbol } from '../../../ui/stem-symbol';
 import { LivingStem } from './living-stem';
-import { RING, SIZE, curve, curveAway, phaseOf, pointAt, round2, seatAngles, stepsAlong, type Point } from './orbit';
+import { linksOf, type MapModel, type MapPerson } from './model';
+import { RADIUS, SIZE, curve, curveAway, phaseOf, pointAt, seatAngles, stepsAlong, type Point } from './orbit';
 import styles from './relation-map.module.css';
 
-const LABEL_PAD = 'rounded-full bg-[color-mix(in_srgb,var(--cream)_90%,transparent)] px-1.5 leading-5';
-const SHADOW_SOFT = 'color-mix(in srgb, var(--foreground) 45%, transparent)';
 const MOVE = 'transition-[left,top,opacity] duration-[520ms] ease-[cubic-bezier(.2,.8,.2,1)] motion-reduce:transition-none';
 
-/** 누른 뒤의 박자(ms) — 다가오며 깨어나고, 빛이 그어지고, 작은 것이 떠나 건너가 닿는다 */
+/** 누른 뒤의 박자(ms) — 커지며 깨어나고, 빛이 그어지고, 작은 것이 떠나 건너가 닿는다 */
 const BEAT = { wake: 240, depart: 900, travel: 900 } as const;
 const MEET = BEAT.depart + BEAT.travel - 60;
 /** 나와 본 궁합의 빛 — 그 사람에게서 나에게로 휘는 정도 */
@@ -47,7 +46,6 @@ const BEND = 3;
 const cqw = (value: number) => `${value}cqw`;
 const delay = (ms: number): CSSProperties => ({ animationDelay: `${ms}ms` });
 const seatDelay = (index: number, count: number) => 420 + index * Math.round(Math.min(70, 480 / Math.max(1, count)));
-const pictureOf = (stem: string) => STEM_PICTURE[stem as Stem] ?? stem;
 
 function keptOf(model: MapModel, chosenId: string | null): Set<string> | null {
   if (chosenId === null) return null;
@@ -108,7 +106,7 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
       <div className="grid flex-1 place-items-center px-[8%] py-[9%] sm:px-[10%]">
         <div className="@container relative aspect-square w-full max-w-[24rem]">
           <Glow element={chosen?.day?.element ?? null} lit={meeting} />
-          <Lines model={model} angles={angles} chosen={chosen} self={model.self} meeting={meeting} />
+          <Lines model={model} angles={angles} chosen={chosen} meeting={meeting} />
           <Me self={model.self} meeting={meeting ? chosenId : null} />
 
           {model.people.map((person, index) => (
@@ -152,9 +150,7 @@ function Glow({ element, lit }: { element: Element | null; lit: boolean }) {
       className={`${elementScope(element)} pointer-events-none absolute inset-[6%] rounded-full transition-opacity duration-700 motion-reduce:transition-none ${
         lit ? 'opacity-100' : 'opacity-0'
       }`}
-      style={{
-        background: 'radial-gradient(closest-side, color-mix(in srgb, var(--tile) 70%, transparent), transparent)',
-      }}
+      style={{ background: ORBIT_GLOW }}
     />
   );
 }
@@ -163,16 +159,15 @@ function Lines({
   model,
   angles,
   chosen,
-  self,
   meeting,
 }: {
   model: MapModel;
   angles: Record<string, number>;
   chosen: MapPerson | null;
-  self: MapModel['self'];
   meeting: boolean;
 }) {
-  const near = chosen === null ? null : pointAt(angles[chosen.id], RING.waiting);
+  const { self } = model;
+  const near = chosen === null ? null : pointAt(angles[chosen.id], RADIUS);
   const center = { x: 50, y: 50 };
   const trimNear = SIZE.current / 2 + 1;
   const trimMe = SIZE.me / 2 + 1.5;
@@ -181,7 +176,7 @@ function Lines({
       <circle
         cx="50"
         cy="50"
-        r={RING.waiting}
+        r={RADIUS}
         fill="none"
         stroke="color-mix(in srgb, var(--foreground) 28%, transparent)"
         strokeWidth="2"
@@ -199,7 +194,7 @@ function Lines({
           {model.links.flatMap((link) => {
             const otherId = link.a === chosen.id ? link.b : link.b === chosen.id ? link.a : null;
             if (otherId === null || angles[otherId] === undefined) return [];
-            const other = pointAt(angles[otherId], RING.waiting);
+            const other = pointAt(angles[otherId], RADIUS);
             return [
               <path
                 key={otherId}
@@ -317,13 +312,9 @@ function Me({ self, meeting }: { self: MapModel['self']; meeting: string | null 
   return (
     <span
       role="img"
-      aria-label={`나 ${self.label}, 일간 ${self.stem} ${pictureOf(self.stem)}`}
+      aria-label={`나 ${self.label}, 일간 ${self.stem} ${self.picture}`}
       className={`${elementScope(self.element)} ${styles.me} absolute left-1/2 top-1/2 z-[5] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full bg-[var(--tile)]`}
-      style={{
-        width: cqw(SIZE.me),
-        height: cqw(SIZE.me),
-        boxShadow: `0 0 0 4px var(--surface), 0 16px 30px -14px ${SHADOW_SOFT}`,
-      }}
+      style={{ width: cqw(SIZE.me), height: cqw(SIZE.me), boxShadow: ORBIT_RING.me }}
     >
       <span aria-hidden="true" className="leading-none" style={{ fontSize: cqw(9.5) }}>
         <LivingStem
@@ -364,13 +355,12 @@ function Seat({
   onChoose: (event: MouseEvent<HTMLAnchorElement>) => void;
 }) {
   const near = state === 'near';
-  const at = pointAt(angle, RING.waiting);
-  const home = pointAt(angle, RING.waiting);
+  const at = pointAt(angle, RADIUS);
   const above = Math.sin((angle * Math.PI) / 180) < -0.3;
   const score = person.compat.seen ? person.compat.score : null;
   const size = near ? SIZE.current : SIZE.person;
   const unread = person.day === null;
-  /* 누르면 다가오며 한 번, 만남이 있으면 건너온 것을 받고 또 한 번 */
+  /* 누르면 커지며 한 번, 만남이 있으면 건너온 것을 받고 또 한 번 */
   const stir = near ? (meeting ? [BEAT.wake, MEET] : [BEAT.wake]) : [];
 
   return (
@@ -379,7 +369,7 @@ function Seat({
       onClick={onChoose}
       aria-expanded={near}
       aria-controls="home-orbit-card"
-      aria-label={`${person.label}${unread ? '' : `, 일간 ${person.day?.stem} ${pictureOf(person.day?.stem ?? '')}`}${
+      aria-label={`${person.label}${person.day === null ? '' : `, 일간 ${person.day.stem} ${person.day.picture}`}${
         score !== null ? `, 나와 본 궁합 ${score}점` : ''
       }`}
       className={`${elementScope(person.day?.element ?? null)} ${styles.seat} group absolute -translate-x-1/2 -translate-y-1/2 ${MOVE} ${
@@ -389,8 +379,8 @@ function Seat({
         {
           left: `${at.x}%`,
           top: `${at.y}%`,
-          '--dx': cqw(round2(50 - home.x)),
-          '--dy': cqw(round2(50 - home.y)),
+          '--dx': cqw(round2(50 - at.x)),
+          '--dy': cqw(round2(50 - at.y)),
           ...delay(enter),
         } as CSSProperties
       }
@@ -407,10 +397,10 @@ function Seat({
           width: cqw(size),
           height: cqw(size),
           boxShadow: near
-            ? `0 0 0 3px var(--surface), 0 0 0 7px var(--mid), 0 14px 30px -10px ${SHADOW_SOFT}`
+            ? ORBIT_RING.chosen
             : state === 'linked'
               ? `0 0 0 2.5px var(--surface), 0 0 0 5px color-mix(in srgb, var(--mid) 70%, transparent)`
-              : `0 0 0 2.5px var(--surface), 0 6px 14px -8px ${SHADOW_SOFT}`,
+              : ORBIT_RING.resting,
         }}
       >
         <span
@@ -437,10 +427,8 @@ function Seat({
       {near ? (
         <span
           aria-hidden="true"
-          className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--surface)] px-3 leading-7 text-foreground ring-1 ring-[var(--border)] ${
-            above ? 'bottom-full mb-2.5' : 'top-full mt-2.5'
-          }`}
-          style={{ boxShadow: `0 6px 14px -8px ${SHADOW_SOFT}` }}
+          className={`${ORBIT_NAME_TAG} ${above ? 'bottom-full mb-2.5' : 'top-full mt-2.5'}`}
+          style={{ boxShadow: ORBIT_RING.tag }}
         >
           <span className="font-rounded text-[15px]">{person.label}</span>
           {score !== null && <span className="ml-1.5 text-[13px] font-bold tabular-nums text-[var(--ink)]">{score}</span>}
@@ -448,7 +436,7 @@ function Seat({
       ) : (
         <span
           aria-hidden="true"
-          className={`${LABEL_PAD} absolute left-1/2 flex max-w-[4.75rem] -translate-x-1/2 items-baseline gap-1 whitespace-nowrap text-[12px] font-semibold text-secondary ${
+          className={`${ORBIT_LABEL_PAD} absolute left-1/2 flex max-w-[4.75rem] -translate-x-1/2 items-baseline gap-1 whitespace-nowrap text-[12px] font-semibold text-secondary ${
             above ? 'bottom-full mb-1' : 'top-full mt-1'
           }`}
         >
@@ -461,7 +449,7 @@ function Seat({
 }
 
 function AddSeat({ href }: { href: string }) {
-  const at = pointAt(-90, RING.waiting);
+  const at = pointAt(-90, RADIUS);
   return (
     <Link
       href={href}
@@ -474,7 +462,7 @@ function AddSeat({ href }: { href: string }) {
       >
         <Icon name="plus" />
       </span>
-      <span className={`${LABEL_PAD} absolute bottom-full mb-1 whitespace-nowrap text-[13px] font-semibold text-foreground`}>
+      <span className={`${ORBIT_LABEL_PAD} absolute bottom-full mb-1 whitespace-nowrap text-[13px] font-semibold text-foreground`}>
         사람 추가
       </span>
     </Link>
@@ -491,30 +479,11 @@ function Legend({ empty, chosen }: { empty: boolean; chosen: boolean }) {
     <div className="flex flex-col gap-2 px-5 pb-5 pt-1 sm:px-6">
       <ul className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] font-medium text-secondary">
         <li className={`${elementScope('木')} flex items-center gap-1.5`}>
-          <svg aria-hidden="true" viewBox="0 0 22 10" className="h-2.5 w-[22px] overflow-visible">
-            <path
-              d="M1 8 Q 11 -2 21 6"
-              fill="none"
-              stroke="var(--mid)"
-              strokeWidth="4"
-              strokeOpacity="0.5"
-              strokeLinecap="round"
-            />
-            <path d="M1 8 Q 11 -2 21 6" fill="none" stroke="var(--ink)" strokeWidth="1.4" strokeLinecap="round" />
-          </svg>
+          <ThreadMark />
           나와 본 궁합
         </li>
         <li className="flex items-center gap-1.5">
-          <svg aria-hidden="true" viewBox="0 0 22 10" className="h-2.5 w-[22px] overflow-visible">
-            <path
-              d="M1 5 H 21"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeDasharray="0.01 4.5"
-              strokeLinecap="round"
-            />
-          </svg>
+          <DotsMark />
           사람끼리 본 궁합
         </li>
       </ul>
@@ -559,7 +528,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
           </h3>
           <p className="truncate text-[13px] leading-5 text-secondary">
             {/* 그림 이름 하나만 — 일간 · 한자 · 메모는 걷었다(운영자 2026-09-26) */}
-            {person.day !== null && pictureOf(person.day.stem)}
+            {person.day?.picture}
           </p>
         </div>
         <button

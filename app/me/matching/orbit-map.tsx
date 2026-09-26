@@ -2,6 +2,17 @@ import { ELEMENTS, ELEMENT_PICTURE_KO, type Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
 import { ElementSymbol } from '../../ui/element-symbol';
+import {
+  DotsMark,
+  ELEMENT_ANGLE,
+  ORBIT_GLOW,
+  ORBIT_LABEL_PAD,
+  ORBIT_NAME_TAG,
+  ORBIT_RING,
+  SPARE_ANGLES,
+  ThreadMark,
+  round2,
+} from '../../ui/orbit';
 import { StemSymbol } from '../../ui/stem-symbol';
 import { CandidatePhoto } from './candidate-photo';
 import { elementOf, supplyOf, type DeckCard } from './deck-card';
@@ -52,8 +63,8 @@ const GEOMETRY: Record<
   round: {
     aspect: 1,
     center: { x: 50, y: 50 },
-    angle: { 木: -90, 火: -18, 土: 54, 金: 126, 水: 198 },
-    spare: [-54, 162, 90, 18],
+    angle: ELEMENT_ANGLE,
+    spare: SPARE_ANGLES,
     gap: 22,
     ring: { element: [19, 19], current: [36, 36], waiting: [45, 45], passed: [66, 66] },
   },
@@ -68,18 +79,6 @@ const GEOMETRY: Record<
 };
 
 const COMPACT_ELEMENT_RING: Ring = [31, 31];
-
-/**
- * 글자 받침 — 지도의 글자(오행 자리 · 기다리는 사람 이름) 밑에 지도 바탕색(`--cream`)을 한 겹 깐다. 채워 주는 기운의 선과
- * 지나온 점선이 글자를 지나가도 선이 받침 뒤로 숨어 글자가 끊기지 않는다(지도 제작의 글자 후광과 같은 일, 2026-09-25).
- * 지도는 어디서나 크림 판 위에 선다.
- */
-const LABEL_PAD = 'rounded-full bg-[color-mix(in_srgb,var(--cream)_90%,transparent)] px-1.5 leading-5';
-
-/** 그림자 — 새 색을 짓지 않고 글자색을 옅게 쓴다 */
-const SHADOW_SOFT = 'color-mix(in srgb, var(--foreground) 45%, transparent)';
-
-const round2 = (value: number) => Math.round(value * 100) / 100;
 
 function pointOf(shape: Shape, angle: number, [rx, ry]: Ring) {
   const { center } = GEOMETRY[shape];
@@ -211,7 +210,7 @@ export function ApproachMap({
           width: '84%',
           top: arc ? '20%' : '8%',
           height: arc ? '160%' : '84%',
-          background: 'radial-gradient(closest-side, color-mix(in srgb, var(--tile) 70%, transparent), transparent)',
+          background: ORBIT_GLOW,
         }}
       />
 
@@ -276,7 +275,7 @@ export function ApproachMap({
             <Bead element={element} low={mine === null || mine.low} lit={supplied.includes(element)} unknown={mine === null} small={small} />
             {mine !== null && !compact && (
               <span
-                className={`${LABEL_PAD} absolute top-full whitespace-nowrap text-[12px] font-semibold tabular-nums text-secondary ${arc ? 'mt-0.5' : 'mt-1'}`}
+                className={`${ORBIT_LABEL_PAD} absolute top-full whitespace-nowrap text-[12px] font-semibold tabular-nums text-secondary ${arc ? 'mt-0.5' : 'mt-1'}`}
               >
                 {ELEMENT_PICTURE_KO[element]} {mine.count}
               </span>
@@ -307,9 +306,7 @@ export function ApproachMap({
                 now ? (arc ? 'size-12' : 'size-[4.25rem]') : `${small ? 'size-9' : 'size-12'} opacity-85 saturate-[.55]`
               }`}
               style={{
-                boxShadow: now
-                  ? `0 0 0 3px var(--surface), 0 0 0 7px var(--mid), 0 14px 30px -10px ${SHADOW_SOFT}`
-                  : `0 0 0 2.5px var(--surface), 0 6px 14px -8px ${SHADOW_SOFT}`,
+                boxShadow: now ? ORBIT_RING.chosen : ORBIT_RING.resting,
               }}
             >
               <CandidatePhoto card={card} />
@@ -321,17 +318,15 @@ export function ApproachMap({
             )}
             {!arc && !now && status === 'waiting' && (
               <span
-                className={`${LABEL_PAD} absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[12px] font-semibold text-secondary ${above ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+                className={`${ORBIT_LABEL_PAD} absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-[12px] font-semibold text-secondary ${above ? 'bottom-full mb-1' : 'top-full mt-1'}`}
               >
                 {card.nickname}
               </span>
             )}
             {!arc && (now || status === 'kept') && (
               <span
-                className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--surface)] px-3 leading-7 text-foreground ring-1 ring-[var(--border)] ${
-                  above ? 'bottom-full mb-2' : 'top-full mt-2'
-                }`}
-                style={{ boxShadow: `0 6px 14px -8px ${SHADOW_SOFT}` }}
+                className={`${ORBIT_NAME_TAG} ${above ? 'bottom-full mb-2' : 'top-full mt-2'}`}
+                style={{ boxShadow: ORBIT_RING.tag }}
               >
                 <span className="font-rounded text-[15px]">{card.nickname}</span>
                 {now && <span className="ml-1.5 text-[13px] font-bold tabular-nums text-[var(--ink)]">{card.previewScore}</span>}
@@ -361,7 +356,7 @@ function Me({ me, arc, small }: { me: MeMark | null; arc: boolean; small: boolea
       className={`${elementScope(me.element)} ${place} absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center rounded-full bg-[var(--tile)] ${
         arc ? 'justify-start pt-2' : 'justify-center'
       }`}
-      style={{ boxShadow: `0 0 0 4px var(--surface), 0 16px 30px -14px ${SHADOW_SOFT}` }}
+      style={{ boxShadow: ORBIT_RING.me }}
     >
       <StemSymbol stem={me.stem} className={arc ? 'size-9' : small ? 'size-7' : 'size-11'} />
       {/* 홈의 관계 지도와 같은 얼굴 — 천간 그림 아래 「나」. 작은 궤도(빈 날)에서도 선다 */}
@@ -421,16 +416,11 @@ export function Legend({ className = '' }: { className?: string }) {
         적은 기운
       </li>
       <li className={`${elementScope('木')} flex items-center gap-1.5`}>
-        <svg aria-hidden="true" viewBox="0 0 22 10" className="h-2.5 w-[22px] overflow-visible">
-          <path d="M1 8 Q 11 -2 21 6" fill="none" stroke="var(--mid)" strokeWidth="4" strokeOpacity="0.5" strokeLinecap="round" />
-          <path d="M1 8 Q 11 -2 21 6" fill="none" stroke="var(--ink)" strokeWidth="1.4" strokeLinecap="round" />
-        </svg>
+        <ThreadMark />
         채워 주는 기운
       </li>
       <li className="flex items-center gap-1.5">
-        <svg aria-hidden="true" viewBox="0 0 22 10" className="h-2.5 w-[22px] overflow-visible">
-          <path d="M1 5 H 21" fill="none" stroke="currentColor" strokeWidth="2.2" strokeDasharray="0.01 4.5" strokeLinecap="round" />
-        </svg>
+        <DotsMark />
         기다리는 인연
       </li>
     </ul>
