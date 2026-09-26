@@ -132,6 +132,29 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page).toHaveURL(/\/me$/);
   });
 
+  test('계정 관리의 로그아웃도 실패하면 그 자리에서 말하고, 되면 첫 화면으로 나간다', async ({ openAs }) => {
+    /*
+      서버 액션이던 동안에는 `signOut()` 의 오류를 버리고 첫 화면으로 보냈다 — 세션이 남아도 나간 것처럼 보였다.
+      톱니 판과 같은 한 벌(`useSignOut`)을 부른다. 새 사람으로 연다 — 성공한 로그아웃은 그 계정의 세션을 닫는다.
+    */
+    const { page } = await openAs({ selfPerson: true });
+    await page.route('**/auth/v1/logout**', (route) =>
+      route.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"unavailable"}' }),
+    );
+    await page.goto('/me/settings');
+
+    const account = page.getByRole('main');
+    await account.getByRole('button', { name: '로그아웃' }).click();
+    await expect(account.getByRole('alert')).toHaveText('로그아웃하지 못했습니다. 다시 시도해 주세요.');
+    await expect(page).toHaveURL(/\/me\/settings$/);
+
+    await page.unroute('**/auth/v1/logout**');
+    await account.getByRole('button', { name: '로그아웃' }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await page.goto('/me');
+    await expect(page).toHaveURL(/\/auth/);
+  });
+
   test('톱니 판은 Esc 로 닫히고 초점이 톱니로 돌아온다 — 바깥을 눌러도 닫힌다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
@@ -2119,6 +2142,20 @@ test.describe('가입 관문', () => {
     await expect(
       newcomer.page.getByRole('button', { name: '다른 계정으로 로그인하기' }),
     ).toBeVisible();
+  });
+
+  test('가입 화면의 나가는 길도 로그아웃이 실패하면 그 자리에서 말한다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipSignup: true });
+    await newcomer.page.route('**/auth/v1/logout**', (route) =>
+      route.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"unavailable"}' }),
+    );
+    await newcomer.page.goto('/signup');
+
+    const main = newcomer.page.getByRole('main');
+    await main.getByRole('button', { name: '다른 계정으로 로그인하기' }).click();
+    await expect(main.getByRole('alert')).toHaveText('로그아웃하지 못했습니다. 다시 시도해 주세요.');
+    await expect(main.getByRole('button', { name: '다른 계정으로 로그인하기' })).toBeEnabled();
+    await expect(newcomer.page).toHaveURL(/\/signup$/);
   });
 
   test('이름은 나중에 고칠 수 있고, 고칠 때도 중복 규칙은 같다', async ({ openAs }) => {
