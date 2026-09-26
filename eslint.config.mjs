@@ -74,8 +74,8 @@ const NO_NODE = [
  * 화면(.tsx)은 DB 를 직접 부르지 않는다 — **문**(.ts)이 부른다 (ADR 0072·0078).
  *
  * 구문으로 거른다: `.rpc()` 와 `.from()`. `.from()` 은 `Array.from` 같은 이름과 겹쳐서 객체
- * 이름으로 뺀다. 잠근 날 이미 부르고 있던 열셋 중 남은 일곱 자리는 **그 줄에** `eslint-disable-next-line`
- * 이 붙어 있다. 그 표시는 줄 하나를 통째로 끄므로, **어느 호출인지는 `scripts/layers.test.ts`
+ * 이름으로 뺀다. 잠근 날 이미 부르고 있던 열셋 중 남은 자리는 **그 줄에** `eslint-disable-next-line`
+ * 이 붙어 있다. 그 표시는 줄 하나를 통째로 끄므로, **어느 호출인지와 몇 자리인지는 `scripts/layers.test.ts`
  * 가 지문으로 잠근다** — 같은 줄의 둘째 호출도, 지운 자리의 예산을 쓰는 새 호출도 거기서 빨개진다.
  */
 const NO_DB_CALL_IN_SCREENS = [
@@ -124,7 +124,6 @@ const eslintConfig = defineConfig([
     ".next/**",
     // 서버 검사가 짓는 자리 — 빌드 산출물이라 읽지 않는다(`scripts/check-managed.mjs`).
     ".next-check/**",
-    ".next-matching-test/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
