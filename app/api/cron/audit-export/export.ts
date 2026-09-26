@@ -30,12 +30,12 @@ export type ExportResult = {
 /** 한 파일의 행 수 — 한 달 치 운영자 읽기를 넉넉히 넘는다 */
 export const BATCH_ROWS = 5000;
 /** 한 번에 올리는 파일 수 — 밀린 날이 있어도 한 번 실행이 끝나게 */
-export const MAX_OBJECTS = 20;
+const MAX_OBJECTS = 20;
 
 /** 어느 걸음에서 넘어졌나 — 실패의 분류가 된다 */
 type Step = 'batch' | 'upload' | 'done';
 
-export class ExportStepError extends Error {
+class ExportStepError extends Error {
   constructor(readonly step: Step, readonly reason: unknown) {
     super(`audit-export: ${step}`);
   }
@@ -90,7 +90,7 @@ export function errorClassOf(error: unknown): string {
 }
 
 /** 반출의 두 방식 — 오래 사는 접근 키, 또는 Vercel OIDC 로 받는 단기 역할(runbook 「반출」 — 역할이 기본안) */
-export type ExportCredentials =
+type ExportCredentials =
   | { readonly kind: 'keys'; readonly accessKeyId: string; readonly secretAccessKey: string }
   | { readonly kind: 'role'; readonly roleArn: string };
 
@@ -153,7 +153,7 @@ export function configOf(env: MaybeEnv): ConfigState {
   return { state: 'ready', config: { bucket, region, credentials } };
 }
 
-export type FinishOutcome = 'succeeded' | 'failed' | 'not_configured' | 'misconfigured';
+type FinishOutcome = 'succeeded' | 'failed' | 'not_configured' | 'misconfigured';
 
 export type Finish = {
   readonly outcome: FinishOutcome;

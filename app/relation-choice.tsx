@@ -23,15 +23,13 @@ export function RelationChoice({
   value,
   onChange,
   idPrefix,
-  className = '',
 }: {
   value: Relation | null;
   onChange: (next: Relation | null) => void;
   idPrefix: string;
-  className?: string;
 }) {
   return (
-    <fieldset className={className}>
+    <fieldset>
       {/* `float-left w-full` — 안 두면 legend 가 테두리 선을 끊고 그 위에 걸터앉는다 */}
       <legend className={`float-left w-full ${TYPE_NAME}`}>두 분은 무슨 사이인가요?</legend>
       <p className="mt-1.5 text-[13px] leading-5 text-secondary">

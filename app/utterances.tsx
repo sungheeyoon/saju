@@ -184,7 +184,7 @@ const MEANING_ORDER: readonly Exclude<ClaimStrength, 'silent'>[] = [
   'reference',
 ];
 
-export function ClaimStrengthLegend({ tail }: { tail?: React.ReactNode }) {
+export function ClaimStrengthLegend() {
   return (
     <p>
       왼쪽 딱지는 <strong className="font-medium">얼마나 세게 말할 수 있는가</strong>입니다.{' '}
@@ -194,7 +194,7 @@ export function ClaimStrengthLegend({ tail }: { tail?: React.ReactNode }) {
           {index < MEANING_ORDER.length - 1 ? ', ' : '입니다. '}
         </span>
       ))}
-      근거보다 세게 말하지 않는지는 계약이 검사합니다.{tail}
+      근거보다 세게 말하지 않는지는 계약이 검사합니다.
     </p>
   );
 }

@@ -20,6 +20,10 @@ import { TYPE_TITLE } from './ui/surfaces';
  * 그래서 규칙을 바꿨다. **입력칸이 같은 화면에 있으면 머리에는 버튼을 안 세운다** —
  * 시작하는 누름은 그 칸 안에 하나뿐이다(`/compat` 의 「궁합 보기」). 지금 버튼 줄을
  * 드는 것은 `/` 하나다(출생 정보 입력하기 · 궁합 보러 가기).
+ *
+ * 궁합 쪽은 2026-09-24 부터 이 껍데기를 빌리지 않고 제 머리를 쓴다(`compat-hero.tsx` — 앱 안의 한 화면이라
+ * 현관의 큰 머리가 아니다). 그래서 껍데기와 속을 한 번에 세우던 `TabHero` 는 걷었고, 지금 이 파일을 쓰는 것은
+ * `/` 의 머리(`home-hero.tsx`)와 그 버튼 줄의 둘째 갈래(`compat-entry.tsx`)다.
  */
 export const TAB_HERO_CARD = 'relative overflow-hidden rounded-[2rem] bg-cream';
 
@@ -74,16 +78,6 @@ export function TabHeroBody({
       </div>
       {actions ?? null}
     </div>
-  );
-}
-
-/** 껍데기와 속을 한 번에 — 속이 안 갈리는 화면(궁합 쪽)은 이걸 쓴다 */
-export function TabHero(props: Parameters<typeof TabHeroBody>[0]) {
-  return (
-    <header className={TAB_HERO_CARD}>
-      <TabHeroGlow />
-      <TabHeroBody {...props} />
-    </header>
   );
 }
 

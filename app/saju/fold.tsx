@@ -23,7 +23,6 @@ export function Fold({
   title,
   meta,
   note,
-  open = false,
   children,
 }: {
   /** 바로가기가 짚는 자리 — 없으면 안 건다 */
@@ -33,11 +32,10 @@ export function Fold({
   readonly meta?: ReactNode;
   /** 제목 아래 한 줄 — 이 표가 무엇을 보는가 */
   readonly note?: ReactNode;
-  readonly open?: boolean;
   readonly children: ReactNode;
 }) {
   return (
-    <details id={id} data-fold="" open={open} className={`${FOLD_CARD} ${id === undefined ? '' : 'scroll-mt-36'}`}>
+    <details id={id} data-fold="" className={`${FOLD_CARD} ${id === undefined ? '' : 'scroll-mt-36'}`}>
       <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 rounded-[1.75rem] px-5 py-4 hover:bg-surface-soft group-open/fold:rounded-b-none sm:px-6 [&::-webkit-details-marker]:hidden">
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
@@ -56,11 +54,6 @@ export function Fold({
 }
 
 /** 펴진 채 서는 카드의 머리 — 접이칸과 같은 제목 단을 쓴다(여덟 글자 · 오행) */
-export function SectionTitle({ children, meta }: { readonly children: ReactNode; readonly meta?: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-      <h2 className={TYPE_NAME}>{children}</h2>
-      {meta !== undefined && <span className="text-sm font-semibold text-secondary">{meta}</span>}
-    </div>
-  );
+export function SectionTitle({ children }: { readonly children: ReactNode }) {
+  return <h2 className={TYPE_NAME}>{children}</h2>;
 }
