@@ -5,7 +5,7 @@
  * 「문서만 바뀌면 건너뛰는가」보다 「모르는 파일이 하나라도 있으면 전부 도는가」와
  * 「라벨이 검사를 뺄 수 없는가」다.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -170,6 +170,9 @@ describe('CI 계획 — 공개 출시', () => {
   it('DB 검사식이 보는 엔진 파일은 엔진 단계에 안 든다', () => {
     /** 저장되는 여덟 글자의 모양과 판본 — 로그인 뒤 자리만 빨개지는 유일한 엔진 변경 */
     for (const file of ENGINE_DB_FACING) expect(pr([file]).tier, file).toBe('full');
+    // 이름으로 견주는 목록이다 — 파일을 옮기면 옛 이름은 아무것도 안 걸러 새 자리가 엔진 단계로 조용히 빠진다
+    const root = resolve(__dirname, '..');
+    expect([...ENGINE_DB_FACING, ...DEPENDENCY_LISTS].filter((file) => !existsSync(resolve(root, file)))).toEqual([]);
   });
 
   it('diff 를 못 받았으면 모르는 것이므로 전부 돈다', () => {
