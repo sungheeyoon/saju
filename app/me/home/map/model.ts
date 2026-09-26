@@ -1,5 +1,6 @@
-import { ELEMENT_PICTURE_KO, STEM_INFO, type Element, type Saju } from '@/src/lib/saju';
+import { STEM_INFO, type Element, type Saju } from '@/src/lib/saju';
 
+import { STEM_PICTURE } from '../../../ui/stem-symbol';
 import type { ReadingEntry } from '../../reading/current';
 import { readingHref } from '../../reading/line';
 
@@ -19,6 +20,7 @@ import { readingHref } from '../../reading/line';
   여기에는 그 사람의 풀이가 없고, 나와 본 궁합풀이의 점수 · 비유 · 수정 전 여부가 있다.
 */
 
+/** 일간 — 한자 · 오행 · 그 천간의 그림 이름(「햇빛」, `app/ui/stem-symbol.tsx`) */
 export type DayMark = { stem: string; element: Element; picture: string };
 
 /** 홈이 들고 있는 한 사람 — 명식을 못 세웠으면 그 까닭을 든다 */
@@ -56,10 +58,9 @@ export type MapModel = {
   links: MapLink[];
 };
 
-export function dayOf(saju: Saju): DayMark {
+function dayOf(saju: Saju): DayMark {
   const stem = saju.pillars.dayMaster;
-  const element = STEM_INFO[stem].element;
-  return { stem, element, picture: ELEMENT_PICTURE_KO[element] };
+  return { stem, element: STEM_INFO[stem].element, picture: STEM_PICTURE[stem] };
 }
 
 /** 사람 타일의 `id` — 지도의 원이 자바스크립트 없이 가는 자리 */
