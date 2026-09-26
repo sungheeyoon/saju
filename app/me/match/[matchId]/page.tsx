@@ -147,7 +147,7 @@ function Result({ result }: { result: SharedResult }) {
         단추, 차단은 한 번 더 묻는 조용한 글자다(ADR 0058, `BlockButton`).
       */}
       <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        {/* 동의가 나면 방이 열린다(PRD §7.1) — 결과에서 바로 그 방으로 간다 */}
+        {/* 동의가 나면 방이 열린다(PRD 「앱 내 채팅」) — 결과에서 바로 그 방으로 간다 */}
         <Link href={`/me/chat/${result.matchId}`} className={`${BUTTON_SECONDARY} self-start`}>
           <Icon name="chat" className="size-[18px]" />
           {CHAT_TAB_LABEL}
