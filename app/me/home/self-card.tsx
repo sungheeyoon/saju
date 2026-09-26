@@ -88,7 +88,7 @@ export function SelfCard({
         `ICON_BUTTON` 의 `relative` 가 손잡이의 `absolute` 를 이겨 단추가 흐름에 떨어지던 것을 여기서 누른다).
       */}
       <div className="contents [&>button]:absolute [&>button]:right-4 [&>button]:top-4 sm:[&>button]:right-5 sm:[&>button]:top-5">
-        <EditInput personId={personId} current={query} variant="corner" editableName={false} confirmsRequests />
+        <EditInput personId={personId} current={query} editableName={false} confirmsRequests />
       </div>
 
       <BirthLine query={query} />

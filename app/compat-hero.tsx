@@ -27,7 +27,7 @@ import { TYPE_TITLE } from './ui/surfaces';
  * 부품은 지금 어디에 있는지 함께 보여 주는 한 덩이다. `/` 의 회원 머리가 **같은 자리에
  * 같은 것**을 든다(`home-hero.tsx`).
  *
- * 머리의 모양은 부드러움의 제목 단(`TYPE_TITLE`, 둥근 서체)을 따른다. 공용 머리(`TabHero`)를 빌리지 않고
+ * 머리의 모양은 부드러움의 제목 단(`TYPE_TITLE`, 둥근 서체)을 따른다. `/` 의 큰 머리 껍데기(`tab-hero.tsx`)를 빌리지 않고
  * 여기 적는 것은 이 화면이 이제 홈에서 들어오는 앱 안의 한 화면이라서다 — 공개 현관의 큰 머리가 아니다.
  */
 export function CompatHero() {
