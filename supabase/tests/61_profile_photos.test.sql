@@ -261,15 +261,15 @@ select is((select count(*)::int from public.my_photos()), 0, '옛 `clear_my_phot
 reset role;
 select ok(
   not has_function_privilege('anon', 'public.add_my_photo(text, text)', 'execute')
-    and not has_function_privilege('anon', 'public.remove_my_photo(integer)', 'execute')
-    and not has_function_privilege('anon', 'public.move_my_photo(integer, integer)', 'execute')
+    and not has_function_privilege('anon', 'public.remove_my_photo(integer, bigint)', 'execute')
+    and not has_function_privilege('anon', 'public.move_my_photo(integer, integer, bigint)', 'execute')
     and not has_function_privilege('anon', 'public.my_photos()', 'execute')
     and not has_function_privilege('anon', 'public.photo_at(uuid, integer)', 'execute'),
   '익명은 새 문 다섯을 못 부른다');
 select ok(
   has_function_privilege('authenticated', 'public.add_my_photo(text, text)', 'execute')
-    and has_function_privilege('authenticated', 'public.remove_my_photo(integer)', 'execute')
-    and has_function_privilege('authenticated', 'public.move_my_photo(integer, integer)', 'execute')
+    and has_function_privilege('authenticated', 'public.remove_my_photo(integer, bigint)', 'execute')
+    and has_function_privilege('authenticated', 'public.move_my_photo(integer, integer, bigint)', 'execute')
     and has_function_privilege('authenticated', 'public.my_photos()', 'execute')
     and has_function_privilege('authenticated', 'public.photo_at(uuid, integer)', 'execute'),
   '로그인한 사람은 새 문 다섯을 부른다');

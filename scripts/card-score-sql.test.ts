@@ -108,8 +108,8 @@ describe('일주 관계 이름 — SQL 표와 엔진이 같다', () => {
 describe('카드 점수 — SQL 표와 TS 가 같다', () => {
   const rows = tableRows('카드 점수');
 
-  it('표는 열아홉 쌍이다', () => {
-    expect(rows).toHaveLength(19);
+  it('표는 스물한 쌍이다', () => {
+    expect(rows).toHaveLength(21);
   });
 
   it.each(rows)('%s(%s · %s) × %s 의 일주 축과 점수가 표와 같다', (aDay, aCounts, aNeed, bDay, bCounts, bNeed, dayAxis, score) => {
