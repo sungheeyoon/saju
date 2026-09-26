@@ -5,6 +5,7 @@ import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Pers
 import { READING_FAILED_NOTE } from '@/src/lib/reading';
 
 import { fillBirthDate } from './birth-form';
+import { hydrated } from './hydrated';
 import { expectTargets } from './target';
 
 /**
@@ -811,7 +812,7 @@ test('매칭 진입과 AI 미리보기의 보관·복원은 실제 기록을 바
   await viewer.page.goto('/me/matching/preview');
   const before = (await viewer.api.from('discovery_passed').select('passed_user_id')).data;
   const name = (await viewer.page.getByRole('article').getByRole('heading').textContent())!;
-  await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
+  await (await hydrated(viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }))).click();
   await expect(viewer.page.getByRole('article').getByRole('heading', { name })).not.toBeVisible();
   await viewer.page.getByRole('button', { name: /지나친 인연/ }).click();
   const panel = viewer.page.getByRole('region', { name: /지나친 인연/ });

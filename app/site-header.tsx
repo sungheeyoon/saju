@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { SERVICE_NAME } from '@/src/lib/brand';
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
@@ -374,7 +374,16 @@ function SettingsMenu({
   */
   const { leaving, failure, signOut } = useSignOut();
 
-  useEffect(close, [pathname, close]);
+  /*
+    **주소가 바뀔 때만** 닫는다 — 처음 붙을 때는 안 닫는다. 서버 HTML 의 `<details>` 는 하이드레이션 전에도 눌려
+    열리는데, 붙자마자 닫으면 막 연 판이 저절로 닫혔다(느린 폰 · CI 에서 톱니 시험 넷이 흔들림, 2026-09-26).
+  */
+  const shownAt = useRef(pathname);
+  useEffect(() => {
+    if (shownAt.current === pathname) return;
+    shownAt.current = pathname;
+    close();
+  }, [pathname, close]);
 
   const links = ended
     ? [{ href: '/me/settings', label: '계정 관리' }]

@@ -17,6 +17,7 @@ import { PROMPT_VARIANTS } from '@/src/lib/reading';
 import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
 
 import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
+import { hydrated } from './hydrated';
 import { expectTargets, focusedOutline } from './target';
 import type { Page } from '@playwright/test';
 
@@ -984,7 +985,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '저장한 사람' })).toBeVisible();
     await expect(page.getByRole('heading', { name: '어머니' })).toBeVisible();
 
-    await page.getByRole('button', { name: '사람 추가' }).click();
+    await (await hydrated(page.getByRole('button', { name: '사람 추가' }))).click();
     await expect(page.getByRole('heading', { name: '사람 추가' })).toBeVisible();
 
     const form = page.locator('form, section').filter({ hasText: '사람 추가' }).last();
@@ -2249,7 +2250,7 @@ test.describe('가입 관문', () => {
       길게 눌러 끌기 — 대표를 둘째 칸에 놓으면 처음 순서로 돌아온다. 다시 연 화면은 서버 HTML 로 먼저 서고 누름을
       받는 손은 하이드레이션 뒤에 붙는다 — 그 전에 누르면 아무 일도 없다(모바일에서 세 번에 두 번, 2026-09-26).
     */
-    await page.waitForLoadState('networkidle');
+    await hydrated(first);
     const from = await first.boundingBox();
     const to = await second.boundingBox();
     if (from === null || to === null) throw new Error('사진 칸이 그려지지 않았다');

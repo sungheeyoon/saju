@@ -200,6 +200,7 @@ CI=1 npx vitest run --coverage --coverage.reporter=text \
 - `playwright.config.ts` — 프로젝트 다섯(`desktop-chromium` · `mobile-chromium` · `authed-desktop` · `authed-mobile` · `notice-gate`), 서버 띄우기
 - `scripts/run-checks.mjs` — 흐름 아홉 벌(`SCRIPTS`)을 **전부** 돌리고 끝에 한 번 답한다(사슬이면 첫 실패가 나머지를 삼킨다)
 - `e2e/session.ts` — 로컬 스택에 초대된 계정을 만든다
+- `e2e/hydrated.ts` — 하이드레이션이 끝난 뒤에 누르는 도우미. `goto` · `reload` 바로 뒤의 누름은 사라질 수 있다
 - `e2e/target.ts` — 누르는 넓이(`elementFromPoint` 로 손가락이 닿는 자리) · 초점 테두리 · 바탕 이음매를 재는 도우미(#229)
 - `supabase/tests/00_helpers.sql` — 역할을 갈아입는 헬퍼. `32_test_isolation` 이 순서 의존을 잰다
 - `docs/ops/runbook.md` — 로컬 스택 · 접속값 여섯 · 코드 · 날짜
