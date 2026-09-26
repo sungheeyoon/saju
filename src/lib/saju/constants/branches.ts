@@ -66,7 +66,3 @@ export function branchAt(index: number): Branch {
   return BRANCHES[((index % 12) + 12) % 12];
 }
 
-export function branchIndex(branch: Branch): number {
-  return BRANCH_INFO[branch].index;
-}
-
