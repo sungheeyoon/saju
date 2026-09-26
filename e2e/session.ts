@@ -136,10 +136,17 @@ function clearTestRunsFromToday(): void {
     모르므로 `model` 이 비어 있다. 시험이 만드는 계정은 전부 `@example.com` 이고 구글로
     로그인한 사람의 주소는 그럴 수 없으니, 그것을 표식으로 함께 쓴다.
   */
+  /*
+    **나란히 도는 워커가 쥔 시도는 안 민다.** 이 문은 워커가 설 때마다 돈다 — 실패 뒤에 새로 서는 워커도.
+    그때 다른 워커가 `start_reading_run` 과 `save_reading` 사이에 있으면, 그 시도가 어제로 밀려
+    「만드는 데 너무 오래 걸려」로 저장이 거절됐다(2026-09-27, 여섯 워커로 두 번 돈 실행에서 한 번 — 설문 시험의
+    `reader` 씨앗). 끝난 시도와 제한 시간을 넘긴 시도만 민다 — 벽을 채우는 것은 그 둘이다.
+  */
   sql(`update public.reading_run r
          set created_at = r.created_at - interval '1 day'
        where r.created_at >= (date_trunc('day', now() at time zone 'Asia/Seoul')
                               at time zone 'Asia/Seoul')
+         and (r.status <> 'running' or r.created_at <= now() - public.reading_run_timeout())
          and (r.model = 'gpt-e2e'
               or exists (select 1 from auth.users u
                           where u.id = r.user_id and u.email like '%@example.com'))`);
