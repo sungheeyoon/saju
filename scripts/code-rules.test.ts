@@ -323,10 +323,9 @@ const DISABLES_STILL_THERE = [
   'app/me/avatar.tsx :: @next/next/no-img-element',
   'app/me/matching/candidate-photo.tsx :: @next/next/no-img-element',
   'app/me/profile/photo-grid.tsx :: @next/next/no-img-element',
-  'app/me/survey/form.tsx :: react-hooks/exhaustive-deps',
 ];
 /** 까닭(`-- …`) 없이 선 표시 — 새 표시는 까닭을 적는다 */
-const DISABLES_WITHOUT_A_REASON = ['app/me/survey/form.tsx :: react-hooks/exhaustive-deps'];
+const DISABLES_WITHOUT_A_REASON: readonly string[] = [];
 
 /** class 가 잇는 것 — `Error` 가 아니면 이름으로 든다 */
 const CLASSES_NOT_EXTENDING_ERROR = ['scripts/fake-clock.mjs :: Shifted extends Real'];
