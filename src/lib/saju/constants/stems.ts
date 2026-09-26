@@ -39,7 +39,3 @@ export function stemAt(index: number): Stem {
   return STEMS[((index % 10) + 10) % 10];
 }
 
-export function stemIndex(stem: Stem): number {
-  return STEM_INFO[stem].index;
-}
-

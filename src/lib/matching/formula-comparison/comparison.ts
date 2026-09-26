@@ -140,7 +140,7 @@ export type Person = {
   targets: Record<ComparisonStrength, NeedTargets>;
 };
 
-export function personOf(input: SajuInput): Person {
+function personOf(input: SajuInput): Person {
   const { pillars, hourKnown } = computePillars(input);
   const distribution = elementDistributionOf(pillars);
   return {
@@ -260,7 +260,7 @@ function distributionOf(scores: readonly number[]): Distribution {
 
 export type ScenarioSizes = { pairs: number; viewers: number; candidates: number };
 
-export const DEFAULT_SIZES: ScenarioSizes = { pairs: 5000, viewers: 30, candidates: 200 };
+const DEFAULT_SIZES: ScenarioSizes = { pairs: 5000, viewers: 30, candidates: 200 };
 
 export function runScenario(
   scenario: PairScenario,

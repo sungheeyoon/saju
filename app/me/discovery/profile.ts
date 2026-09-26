@@ -1,7 +1,7 @@
 /**
  * 인연에 내놓는 조건의 **화면 쪽** — 값의 목록과 뜻은 `src/lib/discovery` 의 `DiscoveryProfile` 이 든다.
  *
- * 이름과 소개는 여기 없다. 그 둘은 계정의 것이고 프로필 화면이 든다(§5.1·§5.2).
+ * 이름과 소개는 여기 없다. 그 둘은 계정의 것이고 프로필 화면이 든다(PRD 「이름과 얼굴」 · 「앱 안에서 나는 닉네임이다」).
  */
 
 import type { PreferGender } from '@/src/lib/discovery';

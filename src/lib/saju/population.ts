@@ -87,15 +87,6 @@ export type PairScenario =
   | 'parent-child'
   | 'independent';
 
-export const PAIR_SCENARIOS: readonly PairScenario[] = [
-  'adults',
-  'romantic-5',
-  'romantic-10',
-  'same-decade',
-  'parent-child',
-  'independent',
-];
-
 /** 시나리오의 가설 값 — 한 자리에 모은다. 바꾸면 비교기의 잠긴 수가 움직인다 */
 export const PAIR_POPULATION_HYPOTHESES = {
   /** 나이를 재는 날 — 「성인」과 「만 나이」가 이 날 기준이다 */

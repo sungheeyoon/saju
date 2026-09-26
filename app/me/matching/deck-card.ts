@@ -23,7 +23,7 @@ export type DeckCard = {
    */
   readonly photoUrls?: readonly string[];
   readonly exploration: boolean;
-  /** 접속 상태의 구간 — 후보 목록의 카드에만 온다. 지나친 인연과 예시 카드는 비운다(PRD §7.2) */
+  /** 접속 상태의 구간 — 후보 목록의 카드에만 온다. 지나친 인연과 예시 카드는 비운다(PRD 「접속 상태」) */
   readonly activity?: ActivityBand | null;
   readonly previewScore: number;
   readonly verdict: string;

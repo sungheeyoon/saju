@@ -323,10 +323,9 @@ const DISABLES_STILL_THERE = [
   'app/me/avatar.tsx :: @next/next/no-img-element',
   'app/me/matching/candidate-photo.tsx :: @next/next/no-img-element',
   'app/me/profile/photo-grid.tsx :: @next/next/no-img-element',
-  'app/me/survey/form.tsx :: react-hooks/exhaustive-deps',
 ];
 /** 까닭(`-- …`) 없이 선 표시 — 새 표시는 까닭을 적는다 */
-const DISABLES_WITHOUT_A_REASON = ['app/me/survey/form.tsx :: react-hooks/exhaustive-deps'];
+const DISABLES_WITHOUT_A_REASON: readonly string[] = [];
 
 /** class 가 잇는 것 — `Error` 가 아니면 이름으로 든다 */
 const CLASSES_NOT_EXTENDING_ERROR = ['scripts/fake-clock.mjs :: Shifted extends Real'];
@@ -507,10 +506,12 @@ describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 �
 /** 세션마다 처음 읽히는 문서 — 여기 적힌 경로가 낡으면 에이전트가 없는 파일을 찾아 헤맨다 */
 const ENTRY_DOCS = [
   join(ROOT, 'CLAUDE.md'),
+  join(ROOT, 'AGENTS.md'),
   join(ROOT, 'CONTEXT.md'),
   join(ROOT, 'docs/product/gaps.md'),
   join(ROOT, 'README.md'),
   join(ROOT, 'docs/architecture.md'),
+  join(ROOT, 'docs/ops/runbook.md'),
   ...readdirSync(join(ROOT, 'docs/agents')).map((name) => join(ROOT, 'docs/agents', name)),
 ];
 /** 저장소 뿌리에서 시작하는 경로만 잰다 — `person-input.ts` 같은 줄임과 `NNNN-….md` 같은 틀은 경로가 아니다 */
@@ -532,6 +533,23 @@ describe('입구 문서가 가리키는 경로 (docs/agents/test-map.md)', () =>
       }
     }
     expect(seen).toBeGreaterThan(60);
+    expect(missing).toEqual([]);
+  });
+
+  /** 문서가 시키는 명령이 없으면 에이전트는 그 자리에서 멈추거나 비슷한 이름을 지어 부른다 */
+  it('`npm run <이름>` 은 전부 package.json 에 있는 스크립트다 — 이름을 바꾸면 문서도 바꾼다', () => {
+    const scripts = new Set(
+      Object.keys((JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { scripts: Record<string, string> }).scripts),
+    );
+    const missing: string[] = [];
+    let seen = 0;
+    for (const doc of ENTRY_DOCS) {
+      for (const match of readFileSync(doc, 'utf8').matchAll(/npm run ([a-z][a-z0-9:-]*[a-z0-9])/g)) {
+        seen += 1;
+        if (!scripts.has(match[1])) missing.push(`${relPath(doc)}: npm run ${match[1]}`);
+      }
+    }
+    expect(seen).toBeGreaterThan(40);
     expect(missing).toEqual([]);
   });
 });
