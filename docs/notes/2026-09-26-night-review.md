@@ -62,3 +62,4 @@
 - 운영자 「배포」 뒤 `7c76323` 을 Production 으로(`saju-6wi114qz1`, Ready 11:54 KST, alias `saju-snowy`, `icn1`). DB `20261027090000` 은 11:04 에 먼저 올랐다.
 - smoke(로그인 없이, headless): `/` · `/auth` 200 · 제 제목 · 콘솔 오류 0, `/compat` · `/me/people` · `/ops/reports` 는 `/auth` 로 보냄. 로그인이 드는 화면은 운영자가 실사용으로 본다.
 - 운영자 「배포」 뒤 `a12c28f`(톱니 판이 처음 붙을 때 닫지 않음 · 흔들리는 e2e)을 Production 으로(`saju-jg48ttwm9`, Ready 13:25 KST, alias `saju-snowy`, `icn1`). 마이그레이션 없음. smoke(로그인 없이): `/` · `/auth` 200 · 제 제목 · CSP 위반 · 콘솔 오류 0, `/compat` · `/me/people` · `/ops/reports` 는 `/auth` 로 보냄.
+- 운영자 「배포」 뒤 `4f183ce`(공유 미리보기 그림 v3)를 Production 으로(`saju-7ivf0cssa`, Ready 14:02 KST, alias `saju-snowy`, `icn1`). 마이그레이션 없음. 그림 셋 200 `image/jpeg` 41~45KB, 첫 화면 `og:image` 가 `saju-share-v3.jpg`. smoke 다섯 앞과 같음.
