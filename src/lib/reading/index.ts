@@ -129,18 +129,7 @@ export function readingEvidenceOf(
   return { kind, evidence: shared, baseline, scoring };
 }
 
-export {
-  COMPARED_MATCH_INPUTS,
-  DEFAULT_MATCH_INPUT,
-  MATCH_INPUTS,
-  MATCH_INPUT_FIELDS,
-  type MatchInput,
-} from '../saju/evidence/shared';
-export {
-  MATCH_READING_GUIDE,
-  guideFor,
-  type GuideEntry,
-} from './match-reading-guide';
+export { COMPARED_MATCH_INPUTS, MATCH_INPUT_FIELDS } from '../saju/evidence/shared';
 export * from './policy';
 export * from './feedback';
 export * from './notes';
@@ -172,14 +161,6 @@ export {
   PAIR_VARIANTS,
   PROMPT_VARIANTS,
   type PairVariant,
-  type PromptVariantId,
 } from './variants';
-export {
-  checkReading,
-  plainTermsIn,
-  secretForms,
-  OUT_OF_SCOPE_TERMS,
-  PLAIN_FORBIDDEN_TERMS,
-  type BirthSecret,
-} from './check';
-export { positionSlips, type PositionSlip } from './position-check';
+export { checkReading, plainTermsIn, type BirthSecret } from './check';
+export { positionSlips } from './position-check';

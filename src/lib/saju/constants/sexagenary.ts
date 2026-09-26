@@ -47,7 +47,7 @@ export function pillarAt(index: number): Pillar {
 /**
  * 천간·지지 조합의 60갑자 순서를 반환한다. 성립하지 않는 조합이면 `null`.
  *
- * i ≡ stemIndex (mod 10), i ≡ branchIndex (mod 12) 의 해를
+ * i ≡ s (mod 10), i ≡ b (mod 12) 의 해를
  * 중국인의 나머지 정리로 닫힌 형태로 구한다.
  */
 export function pillarIndexOf(stem: Stem, branch: Branch): number | null {
