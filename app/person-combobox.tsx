@@ -5,8 +5,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { pickable, stepTo, type Step } from '@/src/lib/people/pick';
 import type { Element } from '@/src/lib/saju';
 
-import { ElementSymbol } from './ui/element-symbol';
-import { StemSymbol } from './ui/stem-symbol';
+import { FaceSymbol } from './ui/stem-symbol';
 
 /**
  * 저장한 사람을 **찾아 고르는 칸** — 궁합의 두 칸이 쓴다(ADR 0102).
@@ -169,7 +168,11 @@ export function PersonCombobox({
       </label>
       <div className="relative min-w-0">
         {chosen !== undefined && typed === null && (
-          <PersonMark one={chosen} className="pointer-events-none absolute left-3 top-1/2 size-6 -translate-y-1/2" />
+          <FaceSymbol
+            stem={chosen.stem}
+            element={chosen.element}
+            className="pointer-events-none absolute left-3 top-1/2 size-6 -translate-y-1/2"
+          />
         )}
         {/*
           **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
@@ -241,7 +244,7 @@ export function PersonCombobox({
                 index === current ? 'bg-surface-sunken text-foreground' : 'text-foreground hover:bg-surface-sunken'
               }`}
             >
-              <PersonMark one={one} className="size-5" />
+              <FaceSymbol stem={one.stem} element={one.element} className="size-5" />
               <span className="min-w-0 flex-1 truncate">{shownLabel(one)}</span>
               {one.personId === chosenId && (
                 <svg viewBox="0 0 12 12" aria-hidden="true" className="size-3.5 shrink-0 text-foreground">
@@ -269,10 +272,4 @@ export function PersonCombobox({
       </p>
     </div>
   );
-}
-
-/** 그 사람의 얼굴 — 일간을 알면 천간 그림, 모르면 오행 상징(없으면 물음표 원) */
-export function PersonMark({ one, className }: { one: Choosable; className: string }) {
-  if (one.stem != null) return <StemSymbol stem={one.stem} className={className} />;
-  return <ElementSymbol element={one.element ?? null} className={className} />;
 }
