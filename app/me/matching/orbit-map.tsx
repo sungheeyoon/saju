@@ -307,14 +307,14 @@ export function ApproachMap({
               }`}
               style={{
                 boxShadow: now
-                  ? `0 0 0 3px var(--card), 0 0 0 7px var(--mid), 0 14px 30px -10px ${SHADOW_SOFT}`
-                  : `0 0 0 2.5px var(--card), 0 6px 14px -8px ${SHADOW_SOFT}`,
+                  ? `0 0 0 3px var(--surface), 0 0 0 7px var(--mid), 0 14px 30px -10px ${SHADOW_SOFT}`
+                  : `0 0 0 2.5px var(--surface), 0 6px 14px -8px ${SHADOW_SOFT}`,
               }}
             >
               <CandidatePhoto card={card} />
             </span>
             {card.exploration && (
-              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[var(--card)] text-[var(--ink)] shadow-sm ring-1 ring-[var(--line)]">
+              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[var(--surface)] text-[var(--ink)] shadow-sm ring-1 ring-[var(--border)]">
                 <Spark />
               </span>
             )}
@@ -327,7 +327,7 @@ export function ApproachMap({
             )}
             {!arc && (now || status === 'kept') && (
               <span
-                className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--card)] px-3 leading-7 text-foreground ring-1 ring-[var(--line)] ${
+                className={`absolute left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--surface)] px-3 leading-7 text-foreground ring-1 ring-[var(--border)] ${
                   above ? 'bottom-full mb-2' : 'top-full mt-2'
                 }`}
                 style={{ boxShadow: `0 6px 14px -8px ${SHADOW_SOFT}` }}
@@ -349,7 +349,7 @@ function Me({ me, arc, small }: { me: MeMark | null; arc: boolean; small: boolea
   if (me === null || me.stem === null) {
     return (
       <span
-        className={`${place} absolute grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-dashed border-[color-mix(in_srgb,var(--foreground)_30%,transparent)] bg-[var(--card)]`}
+        className={`${place} absolute grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-dashed border-[color-mix(in_srgb,var(--foreground)_30%,transparent)] bg-[var(--surface)]`}
       >
         <span className={`font-rounded ${arc ? '-translate-y-3 text-[15px]' : 'text-[17px]'} text-secondary`}>나</span>
       </span>
@@ -360,7 +360,7 @@ function Me({ me, arc, small }: { me: MeMark | null; arc: boolean; small: boolea
       className={`${elementScope(me.element)} ${place} absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center rounded-full bg-[var(--tile)] ${
         arc ? 'justify-start pt-2' : 'justify-center'
       }`}
-      style={{ boxShadow: `0 0 0 4px var(--card), 0 16px 30px -14px ${SHADOW_SOFT}` }}
+      style={{ boxShadow: `0 0 0 4px var(--surface), 0 16px 30px -14px ${SHADOW_SOFT}` }}
     >
       <span className={`glyph font-bold leading-none text-[var(--ink)] ${small ? 'text-[1.35rem]' : 'text-[2.25rem]'}`}>{me.stem}</span>
       {!arc && !small && <span className="mt-1 rounded-full bg-[var(--ink)] px-1.5 text-[11px] font-bold leading-4 text-[var(--tile)]">나</span>}
@@ -376,8 +376,8 @@ function Bead({ element, low, lit, unknown, small }: { element: Element; low: bo
         lit ? `${styles.breathe} scale-110` : ''
       } ${
         low
-          ? `border-2 bg-[var(--card)] transition-[border-color] duration-700 ${lit ? 'border-solid border-[var(--ink)]' : 'border-dashed border-[color-mix(in_srgb,var(--ink)_60%,transparent)]'}`
-          : 'bg-[var(--tile)] shadow-[0_0_0_2px_var(--card)] ring-1 ring-[color-mix(in_srgb,var(--ink)_22%,transparent)]'
+          ? `border-2 bg-[var(--surface)] transition-[border-color] duration-700 ${lit ? 'border-solid border-[var(--ink)]' : 'border-dashed border-[color-mix(in_srgb,var(--ink)_60%,transparent)]'}`
+          : 'bg-[var(--tile)] shadow-[0_0_0_2px_var(--surface)] ring-1 ring-[color-mix(in_srgb,var(--ink)_22%,transparent)]'
       }`}
     >
       {low && (
