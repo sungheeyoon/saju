@@ -63,3 +63,4 @@
 - smoke(로그인 없이, headless): `/` · `/auth` 200 · 제 제목 · 콘솔 오류 0, `/compat` · `/me/people` · `/ops/reports` 는 `/auth` 로 보냄. 로그인이 드는 화면은 운영자가 실사용으로 본다.
 - 운영자 「배포」 뒤 `a12c28f`(톱니 판이 처음 붙을 때 닫지 않음 · 흔들리는 e2e)을 Production 으로(`saju-jg48ttwm9`, Ready 13:25 KST, alias `saju-snowy`, `icn1`). 마이그레이션 없음. smoke(로그인 없이): `/` · `/auth` 200 · 제 제목 · CSP 위반 · 콘솔 오류 0, `/compat` · `/me/people` · `/ops/reports` 는 `/auth` 로 보냄.
 - 운영자 「배포」 뒤 `4f183ce`(공유 미리보기 그림 v3)를 Production 으로(`saju-7ivf0cssa`, Ready 14:02 KST, alias `saju-snowy`, `icn1`). 마이그레이션 없음. 그림 셋 200 `image/jpeg` 41~45KB, 첫 화면 `og:image` 가 `saju-share-v3.jpg`. smoke 다섯 앞과 같음.
+- 운영자 「배포」 뒤 `08325ac`(관계 지도를 천간 그림이 숨 쉬는 궤도로 · 얼굴 자리마다 한자 대신 천간 그림 · 흐름 검사 맞춤)을 Production 으로(`saju-83bb2d14q`, Ready 23:11 KST, alias `saju-snowy`). 마이그레이션 없음. CI(`verify` 전 차선) 초록 뒤 올림. smoke(로그인 없이, curl): `/` · `/auth` 200 · 제 제목, `/compat` · `/me/people` · `/ops/reports` 는 로그인으로 보냄(307). 브라우저 콘솔 · 로그인 화면은 운영자가 실사용으로 본다.
