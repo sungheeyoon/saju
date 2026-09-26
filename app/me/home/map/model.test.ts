@@ -4,7 +4,7 @@ import { chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY } from '@/src/lib/input/query';
 
 import type { ReadingEntry } from '../../reading/current';
-import { compatHrefOf, mapModelOf, pairWithSelf, readingOf, type HomePerson } from './model';
+import { compatHrefOf, linksOf, mapModelOf, pairWithSelf, readingOf, type HomePerson } from './model';
 
 const entry = (over: Partial<ReadingEntry>): ReadingEntry => ({
   kind: 'private',
@@ -50,18 +50,38 @@ describe('관계 지도의 값', () => {
     expect(readingOf([pair], 'p1')).toBeNull();
   });
 
-  it('풀이나 궁합을 본 사람은 안쪽 궤도에, 저장만 한 사람은 바깥 궤도에 앉는다', () => {
+  it('나와의 궁합은 본 사람에게만 점수가 붙고, 풀이만 본 사람은 궁합이 없는 사람과 같다', () => {
     const model = mapModelOf({
       self: { personId: 'me', label: '나', saju },
       people: [person('p1', '어머니'), person('p2', '아버지'), person('p3', '친구')],
       readings: [entry({ personA: 'me', personB: 'p1', score: 78 }), entry({ kind: 'person', personA: 'p2' })],
     });
-    expect(model.people.map((one) => [one.id, one.ring, one.compat.seen, one.compat.score])).toEqual([
-      ['p1', 'inner', true, 78],
-      ['p2', 'inner', false, null],
-      ['p3', 'outer', false, null],
+    expect(model.people.map((one) => [one.id, one.compat.seen, one.compat.score, one.reading !== null])).toEqual([
+      ['p1', true, 78, false],
+      ['p2', false, null, true],
+      ['p3', false, null, false],
     ]);
     expect(model.people[0].tileHref).toBe('#person-p1');
+  });
+
+  it('다른 사람과 궁합을 고르는 길은 고를 수 있는 다른 사람이 있을 때만 선다', () => {
+    const broken: HomePerson = { personId: 'p3', label: '모름', note: null, chart: { ok: false, message: '명식을 못 읽어요' } };
+    const alone = mapModelOf({ self: { personId: 'me', label: '나', saju }, people: [person('p1', '어머니')], readings: [] });
+    expect(alone.people[0].pickHref).toBeNull();
+
+    const withBroken = mapModelOf({
+      self: { personId: 'me', label: '나', saju },
+      people: [person('p1', '어머니'), broken],
+      readings: [],
+    });
+    expect(withBroken.people.map((one) => one.pickHref)).toEqual([null, null]);
+
+    const two = mapModelOf({
+      self: { personId: 'me', label: '나', saju },
+      people: [person('p1', '어머니'), person('p2', '아버지')],
+      readings: [],
+    });
+    expect(two.people[0].pickHref).toBe('/compat#a.person=p1');
   });
 
   it('저장한 두 사람 사이의 선은 둘 다 지도에 있을 때만, 같은 쌍은 한 번만 선다', () => {
@@ -76,5 +96,15 @@ describe('관계 지도의 값', () => {
     });
     expect(model.links).toHaveLength(1);
     expect(model.links[0]).toMatchObject({ a: 'p1', b: 'p2', score: 64, label: '어머니 × 아버지' });
+  });
+
+  it('누른 사람의 카드는 그 사람과 이미 본 다른 사람의 궁합만 든다', () => {
+    const model = mapModelOf({
+      self: { personId: 'me', label: '나', saju },
+      people: [person('p1', '어머니'), person('p2', '아버지'), person('p3', '친구')],
+      readings: [entry({ personA: 'p2', personB: 'p1', score: 64 })],
+    });
+    expect(linksOf(model, 'p1')).toEqual([{ otherLabel: '아버지', score: 64, href: model.links[0].href }]);
+    expect(linksOf(model, 'p3')).toEqual([]);
   });
 });

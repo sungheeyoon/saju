@@ -9,19 +9,20 @@ import { elementScope } from '../../../ui/element-tone';
 import { ICON_BUTTON } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
 import { STALE_CHIP, TYPE_META, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
-import type { MapLink, MapModel, MapPerson } from './model';
+import { linksOf, type MapLink, type MapModel, type MapPerson } from './model';
 import { arcBetween, placeOnOrbit, type Point } from './placement';
 import { reducedMotion } from '../../../ui/motion';
 
 /*
-  **관계 지도 — 나를 가운데 두고 저장한 사람이 두 궤도에 앉는다.**
+  **관계 지도 — 나를 가운데 두고 저장한 사람이 한 궤도에 앉는다.**
 
   이 그림이 말하는 것은 넷뿐이고, 그 넷만 눈에 띄게 한다.
   1. **가운데의 나가 가장 무겁다** — 가장 큰 원 · 가장 큰 글자 · 이름표만 먹색으로 채운다.
-  2. **두 궤도는 사용자가 한 일의 기록이다** — 안쪽 실선은 「풀이나 궁합을 본 사람」, 바깥 점선은 「저장만
-     한 사람」. 가깝다는 판정이 아니므로 궤도는 가는 중립 선 한 줄이다(면 · 띠를 깔지 않는다).
-  3. **선은 이미 본 궁합에만** — 나와의 궁합은 가운데서 뻗는 곧은 먹선 + 점 위의 점수 딱지, 저장한 두
-     사람의 궁합은 바깥으로 휜 점선 + 점수 알약(누르면 그 글). 없는 관계를 지어내지 않는다(`model.ts`).
+  2. **거리는 판정하지 않는다** — 저장한 사람은 모두 같은 궤도(가는 중립 점선 한 줄)에 앉는다. 안쪽 · 바깥으로
+     나누면 누구나 「가깝다」로 읽었다 — 궤도가 둘일 때 그 뜻은 「풀이나 궁합을 봤는가」였고 아무도 못 읽었다.
+  3. **선은 이미 본 궁합에만** — 나와의 궁합은 가운데서 뻗는 곧은 먹선 + 점 위의 점수 딱지로 늘 선다. 저장한
+     두 사람의 궁합(바깥으로 휜 점선 + 점수 알약, 누르면 그 글)은 **그 둘 중 하나를 눌렀을 때만** 선다 —
+     평소에는 나와의 선만 읽힌다. 안 본 짝은 선도 권유도 없다(`model.ts`).
   4. **색은 사람에게만 있다.** 판 · 궤도 · 선은 종이와 먹의 중립 토큰이고, 오행 파스텔은 사람 원(나 포함)
      안에만 든다 — 그래서 색이 곧 「그 사람의 일간」으로 읽힌다. 색만으로 말하지 않게 원에는 일간 글자가,
      보조기기에는 「일간 庚 쇠」가 선다.
@@ -56,7 +57,7 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
         <h2 id="home-map" className={TYPE_SECTION}>
           관계 지도
         </h2>
-        {!empty && <span className={`${TYPE_META} tabular-nums`}>{model.people.length}명과 함께</span>}
+        {!empty && <span className={`${TYPE_META} tabular-nums`}>저장한 사람 {model.people.length}명</span>}
       </header>
 
       {/* 판이 옆 카드보다 길어지면 지도가 가운데로 모인다 — 둘의 윗선 · 아랫선은 격자가 맞춘다 */}
@@ -91,7 +92,7 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
 
       <div ref={card} id="home-map-card" className="scroll-mt-4 scroll-mb-28 md:scroll-mb-4" aria-live="polite">
         {chosen !== null ? (
-          <PersonCard person={chosen} onClose={() => {
+          <PersonCard person={chosen} links={linksOf(model, chosen.id)} onClose={() => {
             setSelectedId(null);
             card.current?.closest('section')?.querySelector<HTMLAnchorElement>('a[aria-expanded="true"]')?.focus({ preventScroll: true });
           }} />
@@ -102,7 +103,7 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
   );
 }
 
-/** 궤도 둘과 이미 본 궁합의 선 — 전부 중립색. 누를 것은 없다 */
+/** 궤도와 이미 본 궁합의 선 — 전부 중립색. 누를 것은 없다 */
 function Orbits({
   model,
   placed,
@@ -111,16 +112,15 @@ function Orbits({
 }: {
   model: MapModel;
   placed: Record<string, Point>;
-  radius: { inner: number; outer: number };
+  radius: number;
   chosenId: string | null;
 }) {
   return (
     <svg aria-hidden="true" viewBox="0 0 100 100" className="absolute inset-0 size-full overflow-visible">
-      <circle cx="50" cy="50" r={radius.inner} fill="none" stroke="var(--border-strong)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
       <circle
         cx="50"
         cy="50"
-        r={radius.outer}
+        r={radius}
         fill="none"
         stroke="var(--border-strong)"
         strokeWidth="1"
@@ -149,19 +149,18 @@ function Orbits({
         );
       })}
 
-      {/* 저장한 두 사람 사이의 궁합 — 바깥으로 휜 점선 */}
+      {/* 저장한 두 사람 사이의 궁합 — 바깥으로 휜 점선. 그 둘 중 하나를 눌렀을 때만 */}
       {model.links.map((link) => {
         const a = placed[link.a];
         const b = placed[link.b];
-        if (a === undefined || b === undefined) return null;
+        if (a === undefined || b === undefined || !touches(link, chosenId)) return null;
         return (
           <path
             key={`${link.a}-${link.b}`}
             d={arcBetween(a, b).d}
             fill="none"
             stroke="var(--text-secondary)"
-            strokeWidth={chosenId === link.a || chosenId === link.b ? 2 : 1.5}
-            opacity={chosenId === null || chosenId === link.a || chosenId === link.b ? 1 : 0.2}
+            strokeWidth="2"
             strokeDasharray="1 4"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
@@ -185,7 +184,7 @@ function Center({ self }: { self: MapModel['self'] }) {
           {self.stem}
         </span>
       </span>
-      {/* 이름표는 원의 아랫단에 걸친다 — 안쪽 궤도의 사람(과 점수 딱지)에 닿지 않게 원 밖으로 덜 나온다 */}
+      {/* 이름표는 원의 아랫단에 걸친다 — 궤도의 사람(과 점수 딱지)에 닿지 않게 원 밖으로 덜 나온다 */}
       <span
         aria-hidden="true"
         className="relative -mt-3 flex max-w-[6.5rem] items-center gap-1 whitespace-nowrap rounded-full bg-foreground px-2.5 py-0.5 text-[12px] font-bold text-background"
@@ -256,18 +255,20 @@ function PersonDot({
   );
 }
 
-/** 저장한 두 사람의 궁합 점수 — 누르면 그 글. 보이는 알약은 작아도 누를 자리는 44px 이다 */
+const touches = (link: MapLink, chosenId: string | null) => chosenId === link.a || chosenId === link.b;
+
+/** 저장한 두 사람의 궁합 점수 — 누르면 그 글. 보이는 알약은 작아도 누를 자리는 44px 이다. 누른 사람의 것만 선다 */
 function LinkScore({ link, placed, chosenId }: { link: MapLink; placed: Record<string, Point>; chosenId: string | null }) {
   const a = placed[link.a];
   const b = placed[link.b];
-  if (a === undefined || b === undefined) return null;
+  if (a === undefined || b === undefined || !touches(link, chosenId)) return null;
   const { mid } = arcBetween(a, b);
   return (
     <Link
       href={link.href}
       aria-label={`${link.label} 궁합${link.score === null ? '' : ` ${link.score}점`}`}
       style={{ left: `${mid.x}%`, top: `${mid.y}%` }}
-      className={`group absolute grid min-h-11 min-w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full transition-opacity ${chosenId !== null && chosenId !== link.a && chosenId !== link.b ? 'opacity-35 hover:opacity-100 focus-visible:opacity-100' : 'opacity-100'}`}
+      className="group absolute grid min-h-11 min-w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full"
     >
       <span className="rounded-full border border-border-strong bg-surface px-2 py-0.5 text-[12px] font-bold tabular-nums text-secondary group-hover:border-foreground group-hover:text-foreground group-active:scale-95">
         {link.score === null ? '궁합' : `${link.score}점`}
@@ -276,12 +277,12 @@ function LinkScore({ link, placed, chosenId }: { link: MapLink; placed: Record<s
   );
 }
 
-/** 0명 — 바깥 궤도 꼭대기의 점선 원 하나가 「한 자리 더」를 말한다 */
+/** 0명 — 궤도 꼭대기의 점선 원 하나가 「한 자리 더」를 말한다 */
 function AddDot({ href }: { href: string }) {
   return (
     <Link
       href={href}
-      style={{ left: '50%', top: '6%' }}
+      style={{ left: '50%', top: '9%' }}
       className="group absolute flex -translate-x-1/2 -translate-y-[1.5rem] flex-col items-center gap-1 rounded-2xl sm:-translate-y-[1.75rem]"
     >
       <span className="grid size-12 place-items-center rounded-full border-2 border-dashed border-border-strong bg-surface text-foreground group-hover:bg-surface-soft group-active:scale-95 sm:size-14">
@@ -292,26 +293,19 @@ function AddDot({ href }: { href: string }) {
   );
 }
 
-/** 아무도 안 눌렀을 때 — 궤도와 선의 뜻. 판 바닥에 가는 띠 하나로 물러난다 */
+/** 아무도 안 눌렀을 때 — 선의 뜻과 누르면 무엇이 열리는가. 판 바닥에 가는 띠 하나로 물러난다 */
 function Legend({ empty }: { empty: boolean }) {
   return (
     <div className="border-t border-border px-5 py-3.5 sm:px-7">
       {empty ? (
-        <p className="text-[13px] leading-5 text-secondary">저장한 사람이 이 둘레에 앉아요.</p>
+        <p className="text-[13px] leading-5 text-secondary">사람을 저장하면 이 둘레에 나타나요</p>
       ) : (
-        <ul className="flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] font-medium text-secondary">
+        <ul className="flex flex-col gap-1.5 text-[12px] font-medium text-secondary">
           <li className="flex items-center gap-2">
-            <span aria-hidden="true" className="inline-block size-3 rounded-full border border-border-strong" />
-            풀이나 궁합을 본 사람
+            <span aria-hidden="true" className="inline-block h-0.5 w-4 shrink-0 rounded-full bg-foreground opacity-70" />
+            선은 이미 본 궁합, 숫자는 점수예요
           </li>
-          <li className="flex items-center gap-2">
-            <span aria-hidden="true" className="inline-block size-3 rounded-full border border-dashed border-border-strong" />
-            저장만 한 사람
-          </li>
-          <li className="flex items-center gap-2">
-            <span aria-hidden="true" className="inline-block h-0.5 w-4 rounded-full bg-foreground opacity-70" />
-            이미 본 궁합과 점수
-          </li>
+          <li>사람을 누르면 그 사람의 풀이와 궁합을 볼 수 있어요</li>
         </ul>
       )}
     </div>
@@ -327,7 +321,15 @@ const CARD_SECONDARY = `${CARD_BUTTON} border border-border-strong bg-surface te
  * 누른 사람의 작은 카드 — 판 바닥의 범례 자리에 선다. 카드는 중립 면이고 색은 머리의 일간 원에만 있다
  * (지도의 원과 같은 모양이라 「방금 누른 그 사람」으로 읽힌다).
  */
-function PersonCard({ person, onClose }: { person: MapPerson; onClose: () => void }) {
+function PersonCard({
+  person,
+  links,
+  onClose,
+}: {
+  person: MapPerson;
+  links: ReturnType<typeof linksOf>;
+  onClose: () => void;
+}) {
   const score = person.compat.score;
   return (
     <article className="flex flex-col gap-3 border-t border-border bg-surface-soft px-4 py-4 sm:px-6">
@@ -391,6 +393,32 @@ function PersonCard({ person, onClose }: { person: MapPerson; onClose: () => voi
             자세히
           </Link>
         </div>
+      )}
+
+      {/* 이미 본 다른 사람과의 궁합만 — 안 본 짝을 하나하나 권하지 않고, 고르는 길은 단추 하나다 */}
+      {links.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <h4 className={TYPE_META}>다른 사람과의 궁합</h4>
+          <ul className="flex flex-wrap gap-1.5">
+            {links.map((link) => (
+              <li key={link.href} className="min-w-0">
+                <Link
+                  href={link.href}
+                  aria-label={`${person.label} · ${link.otherLabel} 궁합${link.score === null ? '' : ` ${link.score}점`}`}
+                  className={`${CARD_SECONDARY} max-w-full px-3`}
+                >
+                  <span className="truncate">{link.otherLabel}</span>
+                  {link.score !== null && <span className="shrink-0 tabular-nums">{link.score}점</span>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {person.pickHref !== null && (
+        <Link href={person.pickHref} className={`${CARD_SECONDARY} self-start px-4`}>
+          다른 사람과 궁합 보기
+        </Link>
       )}
     </article>
   );

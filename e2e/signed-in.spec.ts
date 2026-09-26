@@ -289,6 +289,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       'href',
       `/compat#a.person=${signedIn.selfPersonId}&b.person=${personId}`,
     );
+    /* 저장한 사람이 어머니 하나 — 고를 다른 사람이 없으니 그 길도 안 선다(있을 때의 주소는 `model.test.ts`) */
+    await expect(map.getByRole('link', { name: '다른 사람과 궁합 보기' })).toHaveCount(0);
     /* 누른 자리에서 주소가 안 바뀐다 — 자바스크립트가 돌면 카드가 열리는 것이 전부다 */
     await expect(page).toHaveURL(/\/me$/);
     await map.getByRole('button', { name: '닫기' }).click();

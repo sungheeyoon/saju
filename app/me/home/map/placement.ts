@@ -1,25 +1,20 @@
 /*
-  **궤도 위 자리 계산 — 겹치지 않는 것이 이 파일의 일 전부다.** (홈 시안 orbit 의 계산을 그대로 옮겼다)
+  **궤도 위 자리 계산 — 겹치지 않는 것이 이 파일의 일 전부다.**
 
-  좌표는 지도 상자(정사각)의 백분율이다.
+  좌표는 지도 상자(정사각)의 백분율이다. 저장한 사람은 모두 **한 궤도**에 앉는다 — 거리는 아무것도 판정하지
+  않는다(`model.ts`).
 
-  겹침을 막는 셋:
-  1. **한 궤도에 몇이 서도 이웃 간격이 이름표 폭보다 넓다.** 이름표는 72px(넓은 화면 84px)에서 말줄임이 된다.
-     폰 궤도 판 폭 320px 에서 바깥 궤도(반지름 44%) 열 명의 이웃 간격은 2·141·sin(18°) ≈ 87px,
-     안쪽 궤도(29%)는 여섯 명까지 2·93·sin(30°) ≈ 93px 이다. 안쪽이 여섯을 넘으면 반지름을 키운다.
-  2. **두 궤도는 엇갈린다.** 바깥 궤도의 시작각을 72 곳 중에서 골라, 안쪽 사람과 가장 좁은 각이 가장
-     넓어지게 한다 — 바깥 사람의 이름표가 안쪽 사람 위에 얹히지 않게. 반 칸 공식은 5 · 5 에서 18° 까지 붙었다.
-  3. 저장한 두 사람의 궁합 선이 있으면, 바깥 사람을 짝에 가장 가까운 빈 자리에 앉힌다 — 선이 지도를
-     가로지르지 않게.
+  겹침을 막는 둘:
+  1. **열 명이 서도 이웃 간격이 이름표 폭보다 넓다.** 이름표는 72px(넓은 화면 84px)에서 말줄임이 된다.
+     폰 궤도 판 폭 320px 에서 반지름 41% 열 명의 이웃 간격은 2·131·sin(18°) ≈ 81px 이다.
+  2. 저장한 두 사람의 궁합 선이 있으면 짝을 가장 가까운 빈 자리에 앉힌다 — 선이 지도를 가로지르지 않게.
 */
 
-export type Ring = 'inner' | 'outer';
 export type Point = { x: number; y: number };
 
-const RADIUS = { inner: 29, outer: 44 } as const;
-const INNER_ROOM = 6;
+const RADIUS = 41;
 
-export type Placed = { radius: Record<Ring, number>; at: Record<string, Point> };
+export type Placed = { radius: number; at: Record<string, Point> };
 
 function slots(count: number, radius: number, start: number): (Point & { angle: number })[] {
   return Array.from({ length: count }, (_, index) => {
@@ -36,44 +31,16 @@ const gap = (a: number, b: number) => {
   return d > Math.PI ? 2 * Math.PI - d : d;
 };
 
-export function placeOnOrbit(
-  people: readonly { id: string; ring: Ring }[],
-  links: readonly { a: string; b: string }[],
-): Placed {
-  const inner = people.filter((person) => person.ring === 'inner');
-  const outer = people.filter((person) => person.ring === 'outer');
-  const innerRadius = Math.min(35, RADIUS.inner + Math.max(0, inner.length - INNER_ROOM) * 2);
-  const radius = { inner: innerRadius, outer: Math.max(RADIUS.outer, innerRadius + 12) };
-
-  /* 안쪽은 오른쪽 위(-60°)에서 시작한다 — 정수리의 자리는 바깥 궤도의 이름표가 쓴다 */
-  const innerStart = -Math.PI / 3;
+export function placeOnOrbit(people: readonly { id: string }[], links: readonly { a: string; b: string }[]): Placed {
+  /* 정수리에서 시작한다 */
+  const free = slots(people.length, RADIUS, -Math.PI / 2);
   const at: Record<string, Point> = {};
   const angleOf: Record<string, number> = {};
-  slots(inner.length, radius.inner, innerStart).forEach((slot, index) => {
-    at[inner[index].id] = slot;
-    angleOf[inner[index].id] = slot.angle;
-  });
-
-  /* 바깥 궤도의 시작각을 찾는다 — 머리말 2 */
-  const innerAngles = Object.values(angleOf);
-  const outerStart =
-    outer.length === 0 || innerAngles.length === 0
-      ? -Math.PI / 2
-      : Array.from({ length: 72 }, (_, index) => -Math.PI / 2 + (index * 2 * Math.PI) / (72 * outer.length)).reduce(
-          (best, start) => {
-            const spread = (from: number) =>
-              Math.min(...slots(outer.length, 1, from).flatMap((slot) => innerAngles.map((angle) => gap(slot.angle, angle))));
-            return spread(start) > spread(best) + 1e-9 ? start : best;
-          },
-          -Math.PI / 2,
-        );
-  const free = slots(outer.length, radius.outer, outerStart);
   const partnerOf = (id: string) =>
     links.flatMap((link) => (link.a === id ? [link.b] : link.b === id ? [link.a] : [])).find((other) => other in angleOf);
 
-  /* 짝이 있는 사람부터 앉힌다 — 짝 없는 사람은 남은 자리를 차례로 */
-  const ordered = [...outer].sort((a, b) => Number(partnerOf(b.id) !== undefined) - Number(partnerOf(a.id) !== undefined));
-  for (const person of ordered) {
+  /* 받은 차례로 앉되, 이미 앉은 짝이 있으면 그 곁의 빈 자리로 — 머리말 2 */
+  for (const person of people) {
     const partner = partnerOf(person.id);
     let pick = 0;
     if (partner !== undefined) {
@@ -85,12 +52,12 @@ export function placeOnOrbit(
     angleOf[person.id] = slot.angle;
   }
 
-  return { radius, at };
+  return { radius: RADIUS, at };
 }
 
 /**
  * 두 사람 사이 선 — **두 점을 잇는 선의 옆으로** 휜다. 점수 알약은 휜 선의 한가운데에 선다.
- * 가운데 쪽으로 밀면 두 사람이 가까울 때(안쪽 · 바깥 궤도의 짝) 알약이 한 사람 위에 얹혔다.
+ * 가운데 쪽으로 밀면 두 사람이 가까울 때(궤도의 이웃) 알약이 한 사람 위에 얹혔다.
  */
 export function arcBetween(a: Point, b: Point): { d: string; mid: Point } {
   const mx = (a.x + b.x) / 2;
