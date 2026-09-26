@@ -1,5 +1,5 @@
 begin;
-select no_plan();
+select plan(21);
 
 create temporary table pass_people (n integer, id uuid);
 grant select on pass_people to authenticated;

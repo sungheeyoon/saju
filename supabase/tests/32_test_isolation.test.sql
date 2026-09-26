@@ -11,7 +11,7 @@
 -- 여기 적힌 것과 같은 문장을 쓴다.
 
 begin;
-select no_plan();
+select plan(5);
 
 create temporary table two as
 select tests.signup('isolation-keeper@example.com') as keeper,

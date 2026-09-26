@@ -1241,7 +1241,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.goto('/me/people');
 
     const cards = page.locator('main ul > li');
-    const find = page.getByRole('searchbox', { name: '이름으로 찾기' });
+    /* 손이 붙은 칸에 친다 — 아래 「백이어도」 시험의 까닭과 같다 */
+    const find = await hydrated(page.getByRole('searchbox', { name: '이름으로 찾기' }));
     /* 결과를 말하는 칸 — 찾는 칸이 `aria-describedby` 로 가리키는 그 칸이다 */
     const status = page.locator(`[id="${await find.getAttribute('aria-describedby')}"]`);
     await expect(cards).toHaveCount(names.length + 1);
@@ -1296,7 +1297,11 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     const last = names[names.length - 1];
     await expect(page.getByRole('heading', { name: last, exact: true })).not.toBeInViewport();
 
-    const find = page.getByRole('searchbox', { name: '이름으로 찾기' });
+    /*
+      **손이 붙은 칸에 친다.** 하이드레이션 전에 친 글자는 칸에는 남지만 React 의 상태로 안 가서 거르기가 영영 안
+      돈다 — 칸이 서자마자 치면 붙기 전인 판마다 붉었다(2026-09-27, 여섯에 넷). 백 장의 카드라 붙는 데 오래 걸린다.
+    */
+    const find = await hydrated(page.getByRole('searchbox', { name: '이름으로 찾기' }));
     await find.click();
     await find.pressSequentially(last);
     await expect(page.locator('main [role="status"]')).toHaveText('검색 결과 1명');

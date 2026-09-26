@@ -13,7 +13,7 @@
 | 시험 | 명령 | 무엇을 재나 | 필요한 것 | 수 |
 | --- | --- | --- | --- | --- |
 | **단위**(vitest) | `npm test` | 순수 함수 — 엔진 · 도메인 lib · `app/**/*.ts` 의 판단 · `scripts/` 의 검사 도구 자신 | 없음 | 142 파일(그중 둘은 통째로 건너뜀 — 실호출 백필) · 2,411 통과 + 10 건너뜀 · 13초 |
-| **pgTAP** | `npm run test:db` | 표 · 함수 · 정책이 **역할을 갈아입고** 실제로 막는가, 함수와 표의 모양(ADR 0084) | Docker + `npm run db:start` | 57 파일 · 1,453 건(고정 plan 1,424 + `no_plan` 둘) |
+| **pgTAP** | `npm run test:db` | 표 · 함수 · 정책이 **역할을 갈아입고** 실제로 막는가, 함수와 표의 모양(ADR 0084) | Docker + `npm run db:start` | 63 파일 · 1,551 건 — 전부 고정 plan(2026-09-26, `no_plan` 둘을 수로 잠갔다 — 단언이 조용히 빠지면 plan 이 붉힌다) |
 | **흐름**(`scripts/check-*.mjs`) | `npm run test:flow` | 가입 → 저장 → 요청 · 수락 → 풀이 · 공유를 **실제 스택에 대고**, 모델만 빼고 | Docker + `db:start`. 제 안에서 Next 서버를 띄운다(`check-db-races` 는 안 띄우고 psql 둘 · 셋으로 DB 의 두 세션 경합을 일으킨다) | 9 벌 · 단언 464(2026-09-25) |
 | **e2e**(Playwright) | `npm run test:e2e` / `test:e2e:authed` | 화면 — 비로그인 · 로그인 · 둘이 있어야 성립하는 흐름 · 가입 관문 | 익명은 없음(CI 의 껍데기 접속값으로 돈다). 로그인 뒤는 Docker + `db:start` | 8 파일 · 익명 34 × 2 기기, 로그인 73 × 2 기기, 관문 9 — 합 223 |
 
