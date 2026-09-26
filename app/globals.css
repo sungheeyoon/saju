@@ -73,10 +73,6 @@
   --elevation-lift: 0 8px 18px -10px rgba(60, 48, 30, 0.6);
   /* 떠 있는 판(하단 독) · 가운데 큰 원 */
   --elevation-raise: 0 12px 28px -12px rgba(60, 48, 30, 0.5);
-
-  /* warm 시안의 이름 — 관계 지도(`app/me/matching/orbit-map.tsx` · `today-card.tsx`)가 아직 부른다. 새 자리는 `--surface` · `--border` */
-  --card: var(--surface);
-  --line: var(--border);
 }
 
 @media (prefers-color-scheme: dark) {
