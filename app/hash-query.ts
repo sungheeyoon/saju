@@ -75,7 +75,7 @@ export function useHashParams(): URLSearchParams {
       }
       sessionStorage.removeItem(READING_DRAFT_KEY);
     } catch {
-      // An unavailable draft leaves the ordinary input form usable.
+      // 적어 둔 입력을 못 읽어도(저장소가 막힌 창) 평소의 입력 폼은 그대로 쓸 수 있다
     }
   }, [raw]);
 

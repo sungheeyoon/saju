@@ -28,7 +28,7 @@ const PANEL = 'flex flex-col gap-5 rounded-[1.5rem] border border-border bg-surf
 const LABEL = 'text-[13px] font-semibold text-secondary';
 
 /**
- * 프로필을 고치는 자리 — **셋이 한 화면에 있다**(§5.1).
+ * 프로필을 고치는 자리 — **셋이 한 화면에 있다**(PRD 「이름과 얼굴」).
  *
  * 이름은 가입 폼이 이미 받았고(`/signup`, ADR 0042), 사진과 소개는 거기 없다. 그래서
  * 이 화면이 실제로 하는 일은 **이름을 고치는 것과 나머지 둘을 채우는 것**이다.
