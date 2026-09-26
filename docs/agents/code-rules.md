@@ -92,7 +92,7 @@
 | `if (error) return null` (`if (x.error)` · `if (error \|\| …)` · `{ return false; }` 도 같다) | 3 | 위 「실패를 말하는 법」 |
 | `const { data } = await ….from(…)` — `error` 를 꺼내지도 않는다(`Promise.all` 의 한 칸 포함) | 0 | `{ data, error }` 로 꺼내고 위 「실패를 말하는 법」 |
 | `await x.rpc(…)` 를 문장으로 — 결과를 통째로 버린다(`void` 포함, `.then` · `.catch` 로 받으면 안 센다) | 0 | `const { error } = await …` 로 꺼내고, 뒤에 복구기가 받치는 쓰기라도 `console.error` 로 기록에 남긴다 |
-| `eslint-disable` | 화면 DB 호출 6(층 시험이 든다) + 4 | `// eslint-disable-next-line 규칙 -- 까닭` 한 줄. 파일째 끄지 않는다. 까닭 없는 것은 하나 남았다 |
+| `eslint-disable` | 화면 DB 호출 6(층 시험이 든다) + 3 | `// eslint-disable-next-line 규칙 -- 까닭` 한 줄. 파일째 끄지 않는다. 까닭 없는 것은 없다(2026-09-26 에 설문의 `exhaustive-deps` 표시를 걷었다) |
 | `any` · `@ts-ignore` | 0 · 0 | 린트가 막는다 |
 | `@ts-expect-error` | 0 | 시험이 예산 0 으로 든다 |
 | 안 걸리는 예외 표시 | 0 | `reportUnusedDisableDirectives` 가 오류로 세운다 |
@@ -142,7 +142,7 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 | `no-console` | `src/` · `app/` · `proxy.ts`(`*.live.test.ts` 제외) | `console.log` |
 | `import/no-default-export` | `src/` · `scripts/` · `e2e/` | `export default` |
 | `reportUnusedDisableDirectives` | 전부 | 안 걸리는 예외 표시 |
-| `scripts/code-rules.test.ts` | — | 파일·폴더 이름 두 규약, 시험의 자리와 중간 이름, 마이그레이션·pgTAP·ADR 이름, ADR 참조 806 건이 실제 파일, 탈출구 지문(7 · 12 · 3 · 0 · 0 · 4 · 1 · 1), `@ts-expect-error` 0, import 홑따옴표 |
+| `scripts/code-rules.test.ts` | — | 파일·폴더 이름 두 규약, 시험의 자리와 중간 이름, 마이그레이션·pgTAP·ADR 이름, ADR 참조 806 건이 실제 파일, 탈출구 지문(7 · 12 · 3 · 0 · 0 · 3 · 0 · 1), `@ts-expect-error` 0, import 홑따옴표 |
 
 규칙마다 일부러 어긴 파일로 걸리는 것을 확인하고 지웠다(ADR 0086).
 
@@ -157,4 +157,3 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 - **코드가 용어집과 다른 말을 쓰는 자리**는 `CONTEXT.md` §10 「어긋난 이름」이 든다 — 고칠 것은 2026-09-23 에 다 고쳤고(G-43),
   「그대로 둔다」로 정한 넷(`metaphor` · 후보 목록의 RPC 이름 · 사유값 `unreadable-revision` · 탈퇴 대기)이 까닭과 함께 남았다. 그 표의 이름이 코드에 아직 있는지는 시험이 잰다(ADR 0088).
 - `if (error) return null` 셋, `!` 열둘, `as unknown as` 일곱, — 위 표(결과를 버리는 DB 쓰기는 2026-09-26 에 일곱을 다 기록으로 옮겨 0 이다). 목록은 시험에 있다.
-- `app/me/survey/form.tsx` 의 `react-hooks/exhaustive-deps` 표시에 까닭이 없다.

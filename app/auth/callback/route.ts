@@ -65,7 +65,7 @@ export async function GET(request: Request) {
     return goTo('/auth/denied');
   }
 
-  // Complete the beta onboarding before restoring the anonymous reading input.
+  // 로그인 전에 적던 입력을 되살리기 전에 가입 관문을 먼저 지난다
   const destination = returnTo === '/#resume-reading' ? '/signup?resume=reading' : returnTo;
   return goTo(destination);
 }

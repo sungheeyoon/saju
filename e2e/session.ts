@@ -5,6 +5,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { test as base, type Page } from '@playwright/test';
 
 import { cspFixture, watchCsp } from './csp';
+import { hydrationFixture, waitForHydrationOnNavigation } from './hydrated';
 
 import { NOTICE_VERSION } from '@/src/lib/consent';
 import { NEED_SUMMARY_RULE } from '@/src/lib/discovery/need-summary';
@@ -597,10 +598,13 @@ type Fixtures = {
   openAs: (wanted: Seed) => Promise<Person>;
   /** 어느 창에서든 CSP 를 어긴 자리 — 시험이 끝날 때 비어 있어야 한다(G-23 ②) */
   cspViolations: string[];
+  /** 어느 창에서든 `goto` · `reload` 가 하이드레이션까지 기다린다(`hydrated.ts`) */
+  hydration: void;
 };
 
 export const test = base.extend<Fixtures, { local: Local }>({
   cspViolations: [cspFixture[0], cspFixture[1]],
+  hydration: [hydrationFixture[0], hydrationFixture[1]],
 
   local: [
     async ({}, use) => {
@@ -703,6 +707,7 @@ export const test = base.extend<Fixtures, { local: Local }>({
       });
       opened.push(context);
       await watchCsp(context, cspViolations);
+      waitForHydrationOnNavigation(context);
       await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
 
       return { account, page: await context.newPage(), api };
