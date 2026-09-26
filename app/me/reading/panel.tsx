@@ -841,6 +841,10 @@ function Result({
   );
 }
 
+/**
+ * 만든 시각 — **한국 시간으로.** 이 칸은 서버가 먼저 그리고(UTC) 브라우저가 이어받는다. 시간대를 안 적으면
+ * 서버 HTML 은 아홉 시간 이른 시각을 들고, 한국의 브라우저는 다른 글자를 그려 하이드레이션이 어긋났다.
+ */
 function when(iso: string): string {
-  return new Date(iso).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' });
+  return new Date(iso).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' });
 }
