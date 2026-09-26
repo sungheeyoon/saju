@@ -7,7 +7,7 @@ import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 import { elementScope } from '../../ui/element-tone';
 import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { STEM_PICTURE, StemSymbol } from '../../ui/stem-symbol';
+import { FaceSymbol, STEM_PICTURE, StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT, PAPER, STALE_CHIP, TYPE_SECTION } from '../../ui/surfaces';
 import { Avatar } from '../avatar';
@@ -87,7 +87,7 @@ export function PairCover({ book }: { book: Book }) {
               key={index}
               className={`${elementScope(one?.element ?? null)} grid size-8 place-items-center rounded-full bg-surface ring-2 ring-[var(--tile)]`}
             >
-              {one ? <StemSymbol stem={one.stem} className="size-5" /> : <ElementSymbol element={null} className="size-5" />}
+              <FaceSymbol stem={one?.stem} className="size-5" />
             </span>
           ))}
         </span>

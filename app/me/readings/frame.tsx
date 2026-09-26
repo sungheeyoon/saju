@@ -7,8 +7,7 @@ import { useEffect, type CSSProperties, type ReactNode } from 'react';
 import type { Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';
-import { ElementSymbol } from '../../ui/element-symbol';
-import { StemSymbol } from '../../ui/stem-symbol';
+import { FaceSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 
 /**
@@ -130,7 +129,7 @@ function NextCard({ book }: { book: NextBook }) {
       className={`${elementScope(book.element)} group flex w-full max-w-[36rem] items-center gap-4 self-center rounded-[1.5rem] border border-border bg-surface p-4 text-left transition-colors hover:border-[color-mix(in_srgb,var(--ink)_40%,transparent)] active:scale-[0.99]`}
     >
       <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--tile)]">
-        {book.stem !== null ? <StemSymbol stem={book.stem} className="size-7" /> : <ElementSymbol element={null} className="size-7" />}
+        <FaceSymbol stem={book.stem} className="size-7" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-[12px] font-semibold text-secondary">다음 풀이</span>
