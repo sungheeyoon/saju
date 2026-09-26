@@ -43,7 +43,7 @@ export function putInputOf(config: ExportConfig, bundle: Bundle): PutObjectComma
 }
 
 /** 역할의 세션 이름 — CloudTrail 에서 이 반출이 받은 자격을 가려 본다 */
-export const ROLE_SESSION_NAME = 'saju-audit-export';
+const ROLE_SESSION_NAME = 'saju-audit-export';
 
 export function credentialsOf(config: ExportConfig) {
   const credentials = config.credentials;

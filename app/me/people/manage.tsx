@@ -35,7 +35,7 @@ import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../
  * 홈의 「사람 추가」가 여는 주소 — `/me/people#add` 로 오면 추가 칸이 펼쳐진 채 선다. 한 번 더 누르게 하지
  * 않으려는 것이다. 조각은 서버에 안 가므로 브라우저가 읽는다(`useHashParams`).
  */
-export const ADD_PERSON_HASH = '#add';
+const ADD_PERSON_HASH = '#add';
 const ADD_PERSON_KEY = ADD_PERSON_HASH.slice(1);
 
 /**
