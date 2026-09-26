@@ -8,8 +8,9 @@
 */
 import { Fragment, type ReactElement } from 'react';
 
-import { STEM_INFO, type Stem } from '@/src/lib/saju';
+import { STEM_INFO, type Element, type Stem } from '@/src/lib/saju';
 
+import { ElementSymbol } from './element-symbol';
 import { elementScope } from './element-tone';
 
 export const STEM_PICTURE: Record<Stem, string> = {
@@ -118,4 +119,22 @@ export function StemSymbol({ stem, className = 'size-6' }: { stem: string; class
       ))}
     </svg>
   );
+}
+
+/**
+ * **한 사람의 얼굴** — 일간을 알면 천간 그림, 모르면 오행 상징, 오행도 모르면 물음표 원.
+ *
+ * 궁합 고르기의 두 원 · 사람 고르는 칸 · 책장 표지 · 다음 풀이가 같은 셋 중 고르기를 저마다 적고 있었다(2026-09-26, 다섯 자리).
+ */
+export function FaceSymbol({
+  stem,
+  element = null,
+  className,
+}: {
+  stem: string | null | undefined;
+  element?: Element | null;
+  className?: string;
+}) {
+  if (stem != null) return <StemSymbol stem={stem} className={className} />;
+  return <ElementSymbol element={element} className={className} />;
 }
