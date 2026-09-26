@@ -80,7 +80,6 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
   await expect(fortunePanel(page)).toHaveCount(0);
   await unfold(page, '운 흐름');
   await expect(fortunePanel(page)).toContainText('세운');
-  await expect(consoleErrors).toEqual([]);
 
   /* 일간과 일지의 의미를 가른 화면이 아래 설명에서 다시 합쳐지지 않는다. */
   await expect(page.getByLabel('일주 천간과 지지').getByText('관계 자리')).toBeVisible();
@@ -107,6 +106,9 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
   */
   await unfoldAll(page);
   expect(await page.locator('main').innerText()).not.toMatch(/\{[a-zA-Z]+\}/);
+
+  /* 콘솔 오류는 끝에서 센다 — 중간에 세면 그 뒤에 편 접이칸 · 신살에서 난 오류를 못 본다 */
+  expect(consoleErrors).toEqual([]);
 
   /*
     **발화 층은 이 화면에 더 이상 서지 않는다.**
