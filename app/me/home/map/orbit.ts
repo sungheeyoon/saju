@@ -1,29 +1,24 @@
 /*
   관계 지도의 자리 계산. 나 둘레의 오행 알 궤도는 없다(`relation-map.tsx` 머리말).
 
-  매칭의 「내 궤도로 다가오는 인연」(`app/me/matching/orbit-map.tsx`)과 같은 문법을 홈으로 옮긴다.
-  - **각도는 그 사람의 일간 오행이다.** 오행 다섯의 방향은 매칭과 같은 각도(木 → 火 → 土 → 金 → 水, 정수리부터
-    시계 방향)에 서고, 저장한 사람은 바깥 궤도에서 **제 일간 오행의 방향**에 앉는다. 이웃이 너무 가까우면 서로 밀어 벌린다.
+  매칭의 「내 궤도로 다가오는 인연」(`app/me/matching/orbit-map.tsx`)과 같은 문법을 홈으로 옮긴다 — 두 지도가 함께 쓰는
+  방향 · 받침 · 테는 `app/ui/orbit.tsx` 에 있다.
+  - **각도는 그 사람의 일간 오행이다.** 오행 다섯의 방향은 매칭과 같은 각도(`ELEMENT_ANGLE`)에 서고, 저장한 사람은 바깥 궤도에서 **제 일간 오행의 방향**에 앉는다. 이웃이 너무 가까우면 서로 밀어 벌린다.
   - **거리는 판정하지 않는다.** 모두 같은 궤도다. 누른 사람도 자리를 떠나지 않고 제자리에서
     커진다.
   좌표는 정사각 상자의 백분율이고 소수 둘째 자리로 자른다(서버와 브라우저가 같은 글자를 쓰게).
 */
 import type { Element } from '@/src/lib/saju';
 
+import { ELEMENT_ANGLE, SPARE_ANGLES, round2 } from '../../../ui/orbit';
+
 export type Point = { x: number; y: number };
 
-/** 매칭 지도의 `round` 각도와 같다 */
-export const ELEMENT_ANGLE: Record<Element, number> = { 木: -90, 火: -18, 土: 54, 金: 126, 水: 198 };
-/** 명식을 못 읽은 사람이 설 오행 사이의 빈 각도 */
-const SPARE = [-54, 162, 90, 18];
-
-/** 반지름 — 상자 폭의 % */
-export const RING = { waiting: 42 } as const;
+/** 궤도의 반지름 — 상자 폭의 %. 궤도는 하나다 */
+export const RADIUS = 42;
 /** 지름 — 상자 폭의 %(`cqw`) */
 /* 누른 사람은 제자리에서 커진다 — 궤도 밖으로 덜 나가게 14 */
 export const SIZE = { me: 22, person: 11.5, current: 14 } as const;
-
-export const round2 = (value: number) => Math.round(value * 100) / 100;
 
 export function pointAt(angle: number, radius: number): Point {
   const rad = (angle * Math.PI) / 180;
@@ -41,7 +36,7 @@ export function seatAngles(people: readonly { id: string; element: Element | nul
   let spare = 0;
   const seats = people.map((person) => ({
     id: person.id,
-    at: person.element !== null ? ELEMENT_ANGLE[person.element] : SPARE[spare++ % SPARE.length],
+    at: person.element !== null ? ELEMENT_ANGLE[person.element] : SPARE_ANGLES[spare++ % SPARE_ANGLES.length],
   }));
   for (let round = 0; round < 400 && seats.length > 1; round += 1) {
     for (const seat of seats) seat.at = wrap(seat.at);
@@ -65,7 +60,7 @@ export function seatAngles(people: readonly { id: string; element: Element | nul
 }
 
 /** 휜 곡선의 세 점 — 끝을 원 둘레만큼 잘라 낸다. `bend` 가 양수면 가는 쪽의 왼쪽(시계 방향)으로 휜다 */
-export function bendOf(from: Point, to: Point, trimFrom: number, trimTo: number, bend: number): { a: Point; c: Point; b: Point } {
+function bendOf(from: Point, to: Point, trimFrom: number, trimTo: number, bend: number): { a: Point; c: Point; b: Point } {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const length = Math.hypot(dx, dy) || 1;

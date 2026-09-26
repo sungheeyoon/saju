@@ -73,7 +73,7 @@
 | `proxy.ts` | 관문 — 레이아웃에 못 사는 판단(ADR 0041) | `src/lib/consent` · `app/auth/config` · `app/beta-schedule`(일정을 읽는 문) |
 | `supabase/migrations/` | 표·함수·정책. **앱이 아는 DB 의 모양 전부는 여기서 생성된 `database.generated.ts` 다** | — |
 | `supabase/tests/` | pgTAP — 역할을 갈아입고 「막힌다」를 잰다 | — |
-| `app/ui/` | 공용 부품 — 단추 · 판(`CARD` 포함) · 오행 색(`element-tone`) · 아이콘 · 로고의 모양 상수, 작은 부품, 메뉴 닫기 · 줄인 움직임 같은 작은 훅(G-58). 여러 화면이 부르므로 **화면 층의 바닥**이다 | `src/lib` · `app/ui` 뿐. 문 · 액션 · 클라이언트 · `@supabase` 는 모른다 |
+| `app/ui/` | 공용 부품 — 단추 · 판(`CARD` 포함) · 오행 색(`element-tone`) · 아이콘 · 로고의 모양 상수, 오행 · 천간 그림(`element-symbol` · `stem-symbol`), 두 궤도 지도의 같은 문법(`orbit`), 작은 부품, 메뉴 닫기 · 줄인 움직임 같은 작은 훅(G-58). 여러 화면이 부르므로 **화면 층의 바닥**이다 | `src/lib` · `app/ui` 뿐. 문 · 액션 · 클라이언트 · `@supabase` 는 모른다 |
 | `scripts/` | 흐름 검사·생성기·UI 훑기. **화면 모듈을 안 부른다** — 주소로 두드린다 | `src/lib` |
 | `e2e/` | Playwright. 같다 | `src/lib` |
 | `app/me/reading/model.ts` | **모델을 부르는 유일한 자리**(ADR 0047) | `ai` · `openai` |
