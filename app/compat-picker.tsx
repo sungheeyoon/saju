@@ -21,11 +21,10 @@ import { elementScope } from './ui/element-tone';
 import { useHashParams, writeParams } from './hash-query';
 import { openPairScreen, pairRelationFor, type PairAnswers, type PairSide } from './me/compat/actions';
 import { PersonCombobox, type Choosable } from './person-combobox';
-import { StemSymbol } from './ui/stem-symbol';
+import { FaceSymbol } from './ui/stem-symbol';
 import { RelationChoice } from './relation-choice';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
 import { BUTTON_PRIMARY } from './ui/buttons';
-import { ElementSymbol } from './ui/element-symbol';
 import { Icon } from './ui/icons';
 import { CARD, PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
 
@@ -409,7 +408,7 @@ function StageOne({ one }: { one: StageSide }) {
             : 'border-2 border-dashed border-border-strong bg-[color-mix(in_srgb,var(--surface)_60%,transparent)]'
         }`}
       >
-        {one.stem !== null ? <StemSymbol stem={one.stem} className="size-10 sm:size-12" /> : <ElementSymbol element={one.element} className="size-10 sm:size-12" />}
+        <FaceSymbol stem={one.stem} element={one.element} className="size-10 sm:size-12" />
       </span>
       <span className={`max-w-full truncate font-rounded text-[1.15rem] leading-7 ${one.filled ? 'text-foreground' : 'text-secondary'}`}>
         {one.name}
