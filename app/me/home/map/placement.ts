@@ -61,8 +61,8 @@ export function placeOnOrbit(people: readonly { id: string }[], links: readonly 
 }
 
 /**
- * 두 사람 사이 선 — **두 점을 잇는 선의 옆으로** 휜다. 점수 알약은 휜 선의 한가운데에 선다.
- * 가운데 쪽으로 밀면 두 사람이 가까울 때(궤도의 이웃) 알약이 한 사람 위에 얹혔다.
+ * 두 사람 사이 선 — **두 점을 잇는 선의 옆으로** 휜다.
+ * 가운데 쪽으로 밀면 궤도의 이웃끼리의 선이 나를 가로질렀다.
  */
 export function arcBetween(a: Point, b: Point): { d: string; mid: Point; control: Point } {
   const mx = (a.x + b.x) / 2;

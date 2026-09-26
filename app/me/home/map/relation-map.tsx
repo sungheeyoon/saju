@@ -10,7 +10,7 @@ import { ICON_BUTTON } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
 import { STALE_CHIP, TYPE_META, TYPE_NAME, TYPE_SECTION } from '../../../ui/surfaces';
 import { linksOf, type MapLink, type MapModel, type MapPerson } from './model';
-import { arcBetween, placeOnOrbit, threadBetween, threadTo, type Point } from './placement';
+import { placeOnOrbit, threadBetween, threadTo, type Point } from './placement';
 import { reducedMotion } from '../../../ui/motion';
 import styles from './relation-map.module.css';
 
@@ -23,15 +23,16 @@ import styles from './relation-map.module.css';
      나누면 누구나 「가깝다」로 읽었다 — 궤도가 둘일 때 그 뜻은 「풀이나 궁합을 봤는가」였고 아무도 못 읽었다.
   3. **선은 이미 본 궁합에만** — 나와의 궁합은 나에게서 그 사람으로 살짝 휘며 점점 커지는 점의 실 + 원 위의 점수
      딱지로 늘 선다(`placement.ts` 머리말). 곧은 먹선은 도면처럼 읽혀 걷었다(2026-09-26). 저장한 두 사람의 궁합(바깥으로
-     휜 고른 점의 실 + 점수 알약, 누르면 그 글)은 **그 둘 중 하나를 눌렀을 때만** 선다 — 평소에는 나와의 실만 읽힌다.
+     휜 고른 점의 실)은 **그 둘 중 하나를 눌렀을 때만** 선다 — 평소에는 나와의 실만 읽힌다. 그 점수는 지도 위에
+     알약으로 띄우지 않고 누른 사람의 카드 칩이 든다 — 궤도의 이웃끼리는 알약이 누른 사람 곁에 몰려 답답했다.
      안 본 짝은 선도 권유도 없다(`model.ts`). 실은 조용하고 주인공은 점수와 사람 원이다.
   4. **색은 사람에게만 있다.** 판 · 궤도 · 실은 종이와 먹의 중립 토큰이고, 오행 파스텔은 사람 원(나 포함)
      안에만 든다 — 그래서 색이 곧 「그 사람의 일간」으로 읽힌다. 색만으로 말하지 않게 원에는 일간 글자가,
      보조기기에는 「일간 庚 쇠」가 선다.
 
   **움직임**(`relation-map.module.css`) — 들어올 때 나 → 궤도 → 사람들이 퍼져 앉고 → 실이 바깥으로 찍힌다. 누르면 그
-  사람과 그 실, 그와 궁합을 본 사람만 남고 나머지는 물러나며, 사람끼리의 실이 누른 사람 쪽에서부터 찍히고 알약이
-  뜬다. 닫으면 한 번에 옅어진다. 사람끼리의 실과 알약은 늘 그려 두고 `opacity` · `visibility` 로만 드나든다 — 붙였다
+  사람과 그 실, 그와 궁합을 본 사람만 남고 나머지는 물러나며, 사람끼리의 실이 누른 사람 쪽에서부터 찍힌다.
+  닫으면 한 번에 옅어진다. 사람끼리의 실은 늘 그려 두고 `opacity` · `visibility` 로만 드나든다 — 붙였다
   떼면 닫을 때 뚝 끊긴다. 좌표는 전부 `placement.ts` 가 소수 둘째 자리로 낸 값이라 서버와 브라우저가 같다.
 
   **자바스크립트 없이도 길이 돈다.** 사람 원은 아래 그 사람의 타일로 가는 링크(`#person-…`)이고, 타일이
@@ -115,11 +116,6 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
               />
             );
           })}
-
-          {/* 점수 알약은 사람 원보다 뒤에 둔다 — 겹치면 알약이 위에 선다 */}
-          {model.links.map((link) => (
-            <LinkScore key={`${link.a}-${link.b}`} link={link} placed={placed.at} chosenId={chosenId} />
-          ))}
 
           {empty && canAdd && <AddDot href={addHref} />}
         </div>
@@ -325,33 +321,6 @@ function PersonDot({
 }
 
 const touches = (link: MapLink, chosenId: string | null) => chosenId === link.a || chosenId === link.b;
-
-/**
- * 저장한 두 사람의 궁합 점수 — 누르면 그 글. 보이는 알약은 작아도 누를 자리는 44px 이다. 누른 사람의 것만 선다 —
- * 늘 그려 두고 `visibility` 로 감추므로 감춘 동안은 초점도 보조기기도 안 닿는다. 실이 다 찍힌 뒤에 뜬다.
- */
-function LinkScore({ link, placed, chosenId }: { link: MapLink; placed: Record<string, Point>; chosenId: string | null }) {
-  const a = placed[link.a];
-  const b = placed[link.b];
-  if (a === undefined || b === undefined) return null;
-  const on = touches(link, chosenId);
-  const { mid } = arcBetween(a, b);
-  const after = Math.round(threadBetween(a, b).length * LINK_STEP * 0.6);
-  return (
-    <Link
-      href={link.href}
-      aria-label={`${link.label} 궁합${link.score === null ? '' : ` ${link.score}점`}`}
-      style={{ left: `${mid.x}%`, top: `${mid.y}%`, transitionDelay: on ? `${after}ms` : '0ms' }}
-      className={`group absolute grid min-h-11 min-w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full transition-[opacity,scale,visibility] duration-300 ${SETTLE} ${
-        on ? 'visible scale-100 opacity-100' : 'invisible scale-75 opacity-0'
-      }`}
-    >
-      <span className="rounded-full border border-border-strong bg-surface px-2 py-0.5 text-[12px] font-bold tabular-nums text-secondary shadow-card group-hover:border-foreground group-hover:text-foreground group-active:scale-95">
-        {link.score === null ? '궁합' : `${link.score}점`}
-      </span>
-    </Link>
-  );
-}
 
 /** 0명 — 궤도 꼭대기의 점선 원 하나가 「한 자리 더」를 말한다 */
 function AddDot({ href }: { href: string }) {
