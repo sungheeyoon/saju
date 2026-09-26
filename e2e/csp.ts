@@ -1,5 +1,7 @@
 import { test as base, type BrowserContext } from '@playwright/test';
 
+import { hydrationFixture } from './hydrated';
+
 /**
  * 콘텐츠 보안 정책을 **어긴 자리**를 모은다 (G-23 ②).
  *
@@ -36,7 +38,11 @@ export const cspFixture = [
   { auto: true },
 ] as const;
 
-/** 로그인하지 않은 시험의 `test` — CSP 를 어긴 자리를 자동으로 모은다 */
-export const anonTest = base.extend<{ cspViolations: string[] }>({
+/**
+ * 로그인하지 않은 시험의 `test` — CSP 를 어긴 자리를 자동으로 모으고, 화면을 열면 하이드레이션까지 기다린다
+ * (`hydrated.ts`)
+ */
+export const anonTest = base.extend<{ cspViolations: string[]; hydration: void }>({
   cspViolations: [cspFixture[0], cspFixture[1]],
+  hydration: [hydrationFixture[0], hydrationFixture[1]],
 });
