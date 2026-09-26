@@ -22,11 +22,15 @@ import { DIALOG, DIALOG_ACTIONS, TYPE_META, TYPE_NAME } from '../ui/surfaces';
  * 폼을 늘 펼쳐 두면 「지금 보고 있는 것」과 「고치는 중인 것」이 한 화면에서 섞인다.
  *
  * 여기서도 익명 화면과 **같은 폼**을 쓴다.
+ *
+ * **여는 손잡이는 카드 모서리의 아이콘 하나다.** 저장한 사람 카드가 손대는 것들을 오른쪽 위 구석의 아이콘
+ * 하나로 모은 뒤로 내 명식 카드만 밑줄 친 글자로 열고 있었다 — 두 화면이 같은 일을 다른 모양으로 내밀면
+ * 사용자는 그것이 같은 일인지부터 확인해야 한다. 글자 손잡이 갈래(`variant='link'`)는 부르는 곳이 없어
+ * 2026-09-27 에 걷었다. **부르는 이름은 그대로 「출생 정보 수정」이다** — 보조기기와 시험이 읽는 이름이다.
  */
 export function EditInput({
   personId,
   current,
-  variant = 'link',
   editableName = true,
   confirmsRequests = false,
 }: {
@@ -39,83 +43,43 @@ export function EditInput({
    * 걸린 요청이 없어 물을 것이 없다.
    */
   confirmsRequests?: boolean;
-  /**
-   * 여는 손잡이의 모양 — **글자냐 카드 모서리의 아이콘이냐.**
-   *
-   * 저장한 사람 카드가 손대는 것들을 오른쪽 위 구석의 아이콘 하나로 모은 뒤로, 내
-   * 명식 카드만 밑줄 친 글자로 열고 있었다. 두 화면이 같은 일을 다른 모양으로 내밀면
-   * 사용자는 그것이 같은 일인지부터 확인해야 한다.
-   *
-   * **부르는 이름은 그대로 「출생 정보 수정」이다** — 모양이 달라져도 보조기기와
-   * 시험이 읽는 이름은 한 벌이어야 한다.
-   */
-  variant?: 'link' | 'corner';
   /** selfPerson 은 계정 닉네임으로 부르므로 이 폼에서 이름을 고치지 않는다 */
   editableName?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
-  if (variant === 'corner') {
-    return (
-      <>
-        <button
-          type="button"
-          onClick={() => setOpen((now) => !now)}
-          aria-expanded={open}
-          aria-label="출생 정보 수정"
-          className={`${ICON_BUTTON} absolute right-4 top-4 text-secondary hover:text-foreground sm:right-5 sm:top-5`}
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            className="size-4.5 fill-none stroke-current"
-            strokeWidth="1.7"
-            strokeLinejoin="round"
-          >
-            <path d="M4 16.2 14.1 6.1a1.9 1.9 0 0 1 2.7 2.7L6.7 18.9l-3.2.5Z" />
-          </svg>
-        </button>
-        {open && (
-          <div className="mt-5">
-            <EditInputForm
-              personId={personId}
-              current={current}
-              editableName={editableName}
-              confirmsRequests={confirmsRequests}
-              onDone={() => setOpen(false)}
-              onCancel={() => setOpen(false)}
-            />
-          </div>
-        )}
-      </>
-    );
-  }
-
-  if (open) {
-    return (
-      <EditInputForm
-        personId={personId}
-        current={current}
-        editableName={editableName}
-        confirmsRequests={confirmsRequests}
-        onDone={() => setOpen(false)}
-        onCancel={() => setOpen(false)}
-      />
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={() => setOpen(true)}
-      /*
-        `self-start` 를 달지 않는다. 이 버튼은 다른 것들과 한 줄에 설 수 있는데,
-        `self-start` 가 그 줄의 `items-center` 를 이겨서 **혼자만 위로 솟아 있었다.**
-      */
-      className={BUTTON_TERTIARY}
-    >
-      출생 정보 수정
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen((now) => !now)}
+        aria-expanded={open}
+        aria-label="출생 정보 수정"
+        className={`${ICON_BUTTON} absolute right-4 top-4 text-secondary hover:text-foreground sm:right-5 sm:top-5`}
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="size-4.5 fill-none stroke-current"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        >
+          <path d="M4 16.2 14.1 6.1a1.9 1.9 0 0 1 2.7 2.7L6.7 18.9l-3.2.5Z" />
+        </svg>
+      </button>
+      {open && (
+        <div className="mt-5">
+          <EditInputForm
+            personId={personId}
+            current={current}
+            editableName={editableName}
+            confirmsRequests={confirmsRequests}
+            onDone={() => setOpen(false)}
+            onCancel={() => setOpen(false)}
+          />
+        </div>
+      )}
+    </>
   );
 }
 
