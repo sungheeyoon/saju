@@ -1,6 +1,8 @@
 import type { ElementSummary } from '@/src/lib/discovery/element-axes';
 import { ELEMENTS, STEM_INFO, type Element } from '@/src/lib/saju';
 
+import { isStem } from '../../ui/stem-symbol';
+
 /**
  * **지도의 가운데와 안쪽 궤도 — 나.** 「내 궤도로 다가오는 인연」(`orbit-map.tsx`)이 그리는 내 몫이다.
  *
@@ -17,8 +19,6 @@ export type MeMark = {
 };
 
 const LOW_RATIO = 0.2;
-
-const isStem = (value: string): value is keyof typeof STEM_INFO => Object.hasOwn(STEM_INFO, value);
 
 export function meMarkOf(stem: string | null, summary: Pick<ElementSummary, 'counts' | 'glyphCount'>): MeMark {
   const known = stem !== null && isStem(stem) ? stem : null;
