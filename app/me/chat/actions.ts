@@ -67,7 +67,7 @@ export async function reportChatMessage(
   );
   if (error) return { ok: false, message: userFacingDbMessage(error, 'report_chat_message') };
 
-  /* 신고는 방을 닫지 않는다(PRD §7.1) — 새로고침할 화면이 없다 */
+  /* 신고는 방을 닫지 않는다(PRD 「앱 내 채팅」) — 새로고침할 화면이 없다 */
   return { ok: true };
 }
 

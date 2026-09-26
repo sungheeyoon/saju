@@ -75,7 +75,7 @@ type Slot = { kind: 'compose' } | { kind: 'block' } | { kind: 'report'; messageI
  * 상대 말이 회색 한 벌이다 — 지어낸 색은 그 사람에 대해 거짓을 말한다.
  *
  * 신고 · 차단은 머리의 「⋯」 안에 있다 — 말풍선마다 「신고」가 서 있으면 대화가 신고 목록처럼 읽힌다.
- * 신고는 고르는 걸음이 있어(PRD §7.1) 누르면 상대 말풍선 곁에 깃발이 서고, 하나를 고르면 입력 자리에
+ * 신고는 고르는 걸음이 있어(PRD 「앱 내 채팅」) 누르면 상대 말풍선 곁에 깃발이 서고, 하나를 고르면 입력 자리에
  * 사유 칸이 선다. 차단은 입력 자리에 알림 글과 확인 단추가 선다.
  */
 export function ChatRoomView({ room }: { room: RoomView }) {
@@ -102,9 +102,9 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           <Avatar userId={room.partnerUserId ?? ''} nickname={room.name} hasPhoto={room.partnerHasPhoto} size={44} tone={theirTone} />
         </span>
         <div className="min-w-0 flex-1">
-          {/* 상대가 떠났으면 닉네임 자리에 「탈퇴한 사용자」가 선다(PRD §5.3, ADR 0094) */}
+          {/* 상대가 떠났으면 닉네임 자리에 「탈퇴한 사용자」가 선다(PRD 「계정이 멈추는 자리」, ADR 0094) */}
           <h1 className="truncate font-rounded text-[1.25rem] leading-7 text-foreground">{room.heading}</h1>
-          {/* 접속 상태는 구간 하나다 — 열린 방에만 오고, 시각은 오지 않는다(PRD §7.2, ADR 0092) */}
+          {/* 접속 상태는 구간 하나다 — 열린 방에만 오고, 시각은 오지 않는다(PRD 「접속 상태」, ADR 0092) */}
           {room.activity !== null && <Activity band={room.activity} />}
         </div>
         {/*
@@ -176,7 +176,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
             }}
           />
         ) : closed ? (
-          /* 닫힌 까닭 한 줄 — 상대가 떠났으면 넷째 줄(PRD §7.1) */
+          /* 닫힌 까닭 한 줄 — 상대가 떠났으면 넷째 줄(PRD 「앱 내 채팅」) */
           <p role="status" className="flex items-center gap-2.5 rounded-[1.25rem] bg-surface-soft px-4 py-3 text-[14px] text-secondary">
             <Icon name="lock" className="size-4" />
             {room.notice}

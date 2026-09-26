@@ -50,7 +50,7 @@ export async function savePreferGender(value: PreferGender): Promise<SaveResult>
  *
  * **켤 때 오행 요약을 함께 낸다.** 요약은 브라우저가 아니라 여기서 내 판본을 읽어
  * 만든다 — 클라이언트가 지어 보낼 수 있으면 매칭 풀에 아무 요약이나 올라간다.
- * 자격(사주가 있는가·계정이 살아 있는가)은 RPC 가 묻는다 — 이름은 이미 있다(§5.1).
+ * 자격(사주가 있는가·계정이 살아 있는가)은 RPC 가 묻는다 — 이름은 이미 있다(PRD 「이름과 얼굴」).
  */
 export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
