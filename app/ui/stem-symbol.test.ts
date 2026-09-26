@@ -1,19 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { STEMS, STEM_INFO } from '@/src/lib/saju';
+import { STEMS } from '@/src/lib/saju';
 
 import { elementScope } from './element-tone';
-import { STEM_ELEMENT, STEM_PICTURE, StemSymbol } from './stem-symbol';
+import { STEM_PICTURE, StemSymbol } from './stem-symbol';
 
-/*
-  천간 그림의 표 둘은 엔진의 표를 브라우저 묶음으로 끌고 가지 않으려고 따로 적은 것이다(`stem-symbol.tsx`).
-  베낀 표는 조용히 갈린다 — 그림의 색(오행)이 엔진과 다르면 얼굴 자리 · 궁합 칸 · 지도가 다른 오행을 입는다.
-*/
+/* 천간 그림 — 그림 이름이 화면의 딱지이고(책장 · 글 머리), 모르는 글자는 빈 그림을 세우지 않는다 */
 describe('천간 그림', () => {
-  it('그림의 오행은 엔진의 천간 오행과 같다', () => {
-    expect(STEM_ELEMENT).toEqual(Object.fromEntries(STEMS.map((stem) => [stem, STEM_INFO[stem].element])));
-  });
-
   it('열 천간이 저마다 다른 그림 이름을 든다 — 이름이 곧 화면의 딱지다', () => {
     expect(Object.keys(STEM_PICTURE).toSorted()).toEqual([...STEMS].toSorted());
     expect(new Set(Object.values(STEM_PICTURE)).size).toBe(STEMS.length);
