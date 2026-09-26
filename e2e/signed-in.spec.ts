@@ -334,6 +334,65 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
+   * **본 궁합이 있으면 누른 사람의 카드가 그 글을 잇는다**(2026-09-26 — 지도 위 알약 대신 카드의 칩).
+   *
+   * 위 시험은 궁합을 안 본 사람만 누른다 — 카드의 절반(점수 · 비유 · 「궁합풀이 보기」)과 저장한 두 사람 사이의 칩은
+   * 화면에서 한 번도 안 밟혔다. 모델은 안 부른다: 궁합풀이 둘(나 × 어머니, 어머니 × 아버지)을 `postgres` 로 심는다.
+   */
+  test('본 궁합이 있으면 지도의 카드가 점수 · 비유 · 그 글로 가는 길과 다른 사람과 본 궁합을 든다', async ({ openAs }) => {
+    const { page, api, account } = await openAs({ selfPerson: true, people: ['어머니', '아버지'] });
+    const { data: edges } = await api.from('user_person_access').select('person_id, local_label');
+    const idOf = (label: string) => (edges ?? []).find((row) => row.local_label === label)?.person_id as string;
+    const me = account.selfPersonId as string;
+    const mother = idOf('어머니');
+    const father = idOf('아버지');
+
+    const privateReading = async (a: string, b: string, score: number, metaphor: string) => {
+      const started = await api.rpc('start_reading_run', {
+        p_kind: 'private',
+        p_idempotency_key: `e2e-map-${a}-${b}`,
+        p_person_a: a,
+        p_person_b: b,
+        p_model: 'gpt-e2e',
+        p_prompt_version: 'reading-prompt-v1',
+      });
+      expect(started.error).toBeNull();
+      const runId = started.data?.[0]?.run_id as string;
+      sql(`select public.save_reading('${runId}'::uuid, '## 궁합', null, '${metaphor}',
+             '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
+      sql(`update public.reading set score = ${score} where source_run_id = '${runId}'`);
+    };
+    await privateReading(me, mother, 78, '같은 우산 아래 걷는 두 사람');
+    await privateReading(mother, father, 64, '마주 앉은 두 그루');
+
+    await page.goto('/me');
+    const map = page.getByRole('region', { name: '관계 지도' });
+
+    await map.getByRole('link', { name: /^어머니, 일간/ }).click();
+    const card = map.getByRole('article');
+    await expect(card.getByRole('heading', { name: '어머니' })).toBeVisible();
+    await expect(card).toContainText('78점');
+    await expect(card.getByText('같은 우산 아래 걷는 두 사람')).toBeVisible();
+    await expect(card.getByText('아직 둘의 궁합을 보지 않았어요')).toHaveCount(0);
+    await expect(card.getByRole('link', { name: '궁합풀이 보기' })).toHaveAttribute(
+      'href',
+      new RegExp(`^/me/compat\\?a=(${me}&b=${mother}|${mother}&b=${me})$`),
+    );
+    await expect(card.getByRole('link', { name: '어머니 · 아버지 궁합 64점' })).toHaveAttribute(
+      'href',
+      new RegExp(`^/me/compat\\?a=(${mother}&b=${father}|${father}&b=${mother})$`),
+    );
+    /* 두 사람 사이의 궁합을 지도 위 알약으로 띄우지 않는다 — 카드의 칩 하나다 */
+    await expect(map.getByText('64점')).toHaveCount(1);
+
+    await card.getByRole('button', { name: '닫기' }).click();
+    await map.getByRole('link', { name: /^아버지, 일간/ }).click();
+    await expect(card.getByRole('heading', { name: '아버지' })).toBeVisible();
+    await expect(card.getByText('아직 둘의 궁합을 보지 않았어요')).toBeVisible();
+    await expect(card.getByRole('link', { name: '아버지 · 어머니 궁합 64점' })).toBeVisible();
+  });
+
+  /**
    * **내 명식 화면에는 이 칸이 없다.**
    *
    * 목록은 selfPerson 을 걸러 내지만 이 주소는 열린다. 칸을 세우면 같은 명식에 글이

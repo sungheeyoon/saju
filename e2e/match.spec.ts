@@ -42,6 +42,33 @@ async function bothParticipate(a: Person, b: Person, tag: string): Promise<void>
 }
 
 /**
+ * **덱을 넘겨 그 사람의 카드를 세운다** — 덱은 한 번에 한 장이고, `onlyTheseParticipate` 는 부를 때 있던 프로필만
+ * 끄므로 나란히 도는 시험이 그 뒤에 만든 참여자가 앞에 설 수 있다. 목록이라면 이름으로 좁히면 되지만 덱에서는
+ * 넘겨서 찾아야 한다 — 그것이 이 화면의 사용법이기도 하다.
+ *
+ * **넘긴 뒤에는 시간이 아니라 다음 장을 기다린다.** 고른 것을 읽을 시간(700ms)과 떠나는 시간(550ms) 뒤에 다음 장이
+ * 서는데, 1.4초를 재워 두던 때는 느린 러너에서 그보다 늦으면 같은 장을 두 번 넘겼다. 뒤에서 기다리는 다음 카드는
+ * `aria-hidden` 이라 역할로 잡히지 않는다 — 보이는 카드의 제목이 바뀌거나 덱이 비는 것이 「넘어갔다」다.
+ */
+async function passUntilShown(page: Person['page'], target: Locator): Promise<void> {
+  const next = page.getByRole('button', { name: '다음 인연으로 지나가기' });
+  const heading = page.getByRole('region', { name: '인연 카드' }).getByRole('article').getByRole('heading').first();
+  for (let step = 0; step < 12; step += 1) {
+    if (await target.isVisible()) break;
+    if (!(await next.isVisible()) || !(await next.isEnabled())) break;
+    await passShownCard(page, heading, next);
+  }
+  await expect(target).toBeVisible();
+}
+
+/** 보이는 카드 한 장을 넘기고 다음 장이 서거나 덱이 빌 때까지 선다 */
+async function passShownCard(page: Person['page'], heading: Locator, next: Locator): Promise<void> {
+  const shown = (await heading.textContent()) ?? '';
+  await next.click();
+  await expect(page.getByRole('region', { name: '인연 카드' }).getByRole('heading', { name: shown, exact: true })).toHaveCount(0);
+}
+
+/**
  * **「보냈다」는 화면이 말한다 — 누른 것으로는 모른다.**
  *
  * 「요청 보내기」를 누르면 창이 닫히고 서버 액션이 **아직 가는 중**이다. 그 자리에서
@@ -542,22 +569,7 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     await bothParticipate(asker, receiver, tag);
 
     await asker.page.goto('/me/matching');
-
-    /*
-      **덱은 한 번에 한 장이다.** `onlyTheseParticipate` 는 부를 때 있던 프로필만 끄므로
-      나란히 도는 시험이 그 뒤에 만든 참여자가 앞에 설 수 있다. 목록이라면 이름으로
-      좁히면 되지만 덱에서는 넘겨서 찾아야 한다 — 그것이 이 화면의 사용법이기도 하다.
-    */
-    const target = asker.page.getByRole('heading', { name: `나${tag}` });
-    for (let step = 0; step < 12; step += 1) {
-      if (await target.isVisible()) break;
-      const next = asker.page.getByRole('button', { name: '다음 인연으로 지나가기' });
-      if (!(await next.isEnabled())) break;
-      await next.click();
-      // 고른 것을 읽을 시간을 준 뒤에 카드가 떠난다 — 다음 장이 설 때까지 기다린다.
-      await asker.page.waitForTimeout(1400);
-    }
-    await expect(target).toBeVisible();
+    await passUntilShown(asker.page, asker.page.getByRole('heading', { name: `나${tag}` }));
 
     /*
       **점수는 서버가 준 값이다 — 화면이 다시 세지 않는다.**
@@ -648,13 +660,7 @@ test.describe('지나친 인연에 보관하기', () => {
 
     const target = asker.page.getByRole('heading', { name: `나${tag}` });
     const next = asker.page.getByRole('button', { name: '다음 인연으로 지나가기' });
-    for (let step = 0; step < 12; step += 1) {
-      if (await target.isVisible()) break;
-      if (!(await next.isEnabled())) break;
-      await next.click();
-      await asker.page.waitForTimeout(1400);
-    }
-    await expect(target).toBeVisible();
+    await passUntilShown(asker.page, target);
 
     // 「지나친 인연」을 여는 문이 카드 위에 선다.
     await expect(asker.page.getByRole('button', { name: /지나친 인연/ })).toBeVisible();
@@ -675,9 +681,9 @@ test.describe('지나친 인연에 보관하기', () => {
 
       **넘김 버튼이 살아나기를 기다리면 안 된다.** 그 버튼은 `!profile || exit` 일 때
       죽는데, 풀을 둘로 좁힌 이 시험에서는 한 장뿐인 덱이 비어 `profile` 이 없어진다 —
-      영영 안 살아난다(`f263eda` 에서 그렇게 죽었다). 시간으로만 기다린다.
+      영영 안 살아난다(`f263eda` 에서 그렇게 죽었다). 떠난 것은 그 사람의 제목이 사라진 것으로 본다.
     */
-    await asker.page.waitForTimeout(1400);
+    await expect(target).toHaveCount(0);
     await undo.click();
 
     await expect(target).toBeVisible();
@@ -837,15 +843,7 @@ test.describe('사진 여러 장을 넘겨 보는 카드', () => {
   /** 덱을 넘겨 그 사람의 카드를 세운다 — 나란히 도는 시험이 만든 참여자가 앞에 설 수 있다 */
   async function showCandidate(person: Person, nickname: string): Promise<Locator> {
     await person.page.goto('/me/matching');
-    const target = person.page.getByRole('heading', { name: nickname });
-    for (let step = 0; step < 12; step += 1) {
-      if (await target.isVisible()) break;
-      const next = person.page.getByRole('button', { name: '다음 인연으로 지나가기' });
-      if (!(await next.isEnabled())) break;
-      await next.click();
-      await person.page.waitForTimeout(1400);
-    }
-    await expect(target).toBeVisible();
+    await passUntilShown(person.page, person.page.getByRole('heading', { name: nickname }));
     return person.page.getByRole('article', { name: `${nickname} 님` });
   }
 
@@ -898,8 +896,7 @@ test.describe('사진 여러 장을 넘겨 보는 카드', () => {
       }
       const next = viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' });
       if (seen.size === 2 || !(await next.isVisible())) break;
-      await next.click();
-      await viewer.page.waitForTimeout(1400);
+      await passShownCard(viewer.page, card.getByRole('heading').first(), next);
     }
     expect([...seen].sort()).toEqual([`사${tag}`, `아${tag}`]);
   });
