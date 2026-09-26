@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ReadingEntry } from './current';
-import { readingHref, readingTitle } from './line';
+import { readingDate, readingHref, readingTitle } from './line';
 
 /**
  * 목록 한 줄 — **제목과 주소는 한 갈래에서 함께 난다.**
@@ -68,5 +68,12 @@ describe('누르면 가는 곳', () => {
     expect(readingHref(entry({ kind: 'person', personA: 'p1' })).startsWith('/me/readings/')).toBe(true);
     expect(readingHref(entry({ kind: 'private', personA: 'p1', personB: 'p2' })).startsWith('/me/compat')).toBe(true);
     expect(readingHref(entry({ kind: 'match', matchId: 'm1' })).startsWith('/me/match')).toBe(true);
+  });
+});
+
+describe('목록의 날짜', () => {
+  it('한국 시각으로 적는다 — UTC 로 전날인 새벽의 글도 그날 날짜다', () => {
+    // 2026-09-26 01:30 KST = 2026-09-25 16:30 UTC. 서버(UTC)의 기본 시간대로 적으면 25일이 섰다
+    expect(readingDate('2026-09-25T16:30:00Z')).toBe('2026년 9월 26일');
   });
 });

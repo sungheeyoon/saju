@@ -98,7 +98,7 @@ export function SettingsRow({
 }
 
 /**
- * 다른 화면으로 가는 줄 — **줄 전체가 누를 자리다.** 왼쪽에 그림(선택)과 이름, 오른쪽에 지금 값과
+ * 다른 화면으로 가는 줄 — **줄 전체가 누를 자리다.** 왼쪽에 그림(선택)과 이름, 오른쪽에
  * 셰브론. 누를 자리는 56px 을 넘는다.
  */
 export function SettingsLinkRow({
@@ -106,13 +106,11 @@ export function SettingsLinkRow({
   leading,
   label,
   help,
-  value,
 }: {
   href: string;
   leading?: ReactNode;
   label: ReactNode;
   help?: ReactNode;
-  value?: ReactNode;
 }) {
   return (
     <Link
@@ -124,7 +122,6 @@ export function SettingsLinkRow({
         <span className="truncate text-[15px] font-semibold leading-6">{label}</span>
         {help !== undefined && <span className="text-[13px] leading-5 text-secondary">{help}</span>}
       </span>
-      {value !== undefined && <span className="shrink-0 text-sm text-secondary">{value}</span>}
       <span aria-hidden="true" className="text-muted">
         <Icon name="chevron" className="size-4" />
       </span>

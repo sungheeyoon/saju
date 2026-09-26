@@ -53,6 +53,13 @@ describe('흐름 검사 러너', () => {
     expect(text).toContain('SIGSEGV');
   });
 
+  it('돌았지만 하나도 안 잰 검사는 초록이 아니다', () => {
+    const { text, ok } = summarize([ran('check-onboarding', 0, 0), ran('check-share', 65, 65)]);
+
+    expect(ok).toBe(false);
+    expect(text).toContain('check-onboarding — 돌았지만 단언이 하나도 없다');
+  });
+
   it('전부 통과하면 초록이다', () => {
     const { text, ok } = summarize([ran('check-onboarding', 35, 35), ran('check-share', 65, 65)]);
 

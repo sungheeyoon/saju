@@ -15,8 +15,8 @@ import { REPORT_REASONS, warningRefOf, type ReportReason } from '@/src/lib/accou
  * 처리 상태 — `open` 은 처리 필요(안 봤거나 추가 확인 필요), `done` 은 처리 완료다. 무엇이 처리 필요인가는 DB 의
  * `report_is_open` 하나가 정한다(ADR 0107) — 여기서는 어느 쪽을 청하는지만 적는다.
  */
-export type ReviewFilter = 'all' | 'open' | 'done';
-export type EvidenceFilter = 'all' | 'chat' | 'none';
+type ReviewFilter = 'all' | 'open' | 'done';
+type EvidenceFilter = 'all' | 'chat' | 'none';
 
 export type ReportFilters = {
   readonly review: ReviewFilter;
