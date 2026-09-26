@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { isBlocked } from '@/src/lib/account';
 import { matchBasisOf } from '@/src/lib/matching';
-import { RELATION_LABEL } from '@/src/lib/people';
+import { RELATION_LABEL, relationOf } from '@/src/lib/people';
 import { analyzeCompatibility, STEM_INFO, type Element } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
@@ -316,6 +316,14 @@ async function Result({ outcome }: { outcome: Outcome }) {
     relation: stored.ok ? stored.relation : null,
   });
 
+  /**
+   * **지금 글이 읽힌 사이** — 지표의 딱지가 따르는 그 값이다. 풀이를 받은 뒤 사이를 바꾸면 적어 둔 사이(다음 풀이의
+   * 것)와 갈린다. 그때 사이 줄이 적어 둔 사이만 말하면 「연인·배우자 기준」 딱지 아래에 「가족 사이로 읽어 드립니다」가
+   * 서서 지금 글이 무슨 사이로 읽혔는지 화면이 두 말을 한다(2026-09-26) — 그래서 둘을 갈라 적는다. 옛 판 풀이는 사이를
+   * 몰랐으므로(`null`) 적지 않는다.
+   */
+  const readWith = reading === null ? null : relationOf(reading.scoreScale.relation);
+
   const charts = { a: first.saju, b: second.saju };
   const compat = analyzeCompatibility(first.saju, second.saju);
   const names = { a: first.name, b: second.name };
@@ -359,6 +367,13 @@ async function Result({ outcome }: { outcome: Outcome }) {
             ask={
               stored.ok && stored.relation !== null ? (
                 <p className="text-[13px] leading-5 text-secondary">
+                  {readWith !== null && readWith !== stored.relation && (
+                    <>
+                      지금 글과 점수는{' '}
+                      <strong className="font-semibold text-foreground">{RELATION_LABEL[readWith]}</strong> 사이로
+                      읽었습니다. 다음 풀이는{' '}
+                    </>
+                  )}
                   <strong className="font-semibold text-foreground">
                     {RELATION_LABEL[stored.relation]}
                   </strong>{' '}
