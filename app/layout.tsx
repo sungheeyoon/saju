@@ -12,7 +12,7 @@ const DESCRIPTION = "사주의 근거부터 두 사람의 궁합과 사주풀이
 
 /** 사이트 대표 미리보기 — 사주풀이 공유본은 전용 이미지를 사용한다 */
 const PREVIEW = {
-  url: "/brand/saju-share-v2.jpg",
+  url: "/brand/saju-share-v3.jpg",
   width: 1200,
   height: 628,
   type: "image/jpeg",

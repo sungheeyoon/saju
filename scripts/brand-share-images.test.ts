@@ -31,7 +31,7 @@ describe('공유 미리보기 그림', () => {
       expect(existsSync(join(root, 'public/brand', image))).toBe(true);
       expect(said).toContain(`/brand/${image}`);
     }
-    expect(said).not.toMatch(/share-v1\.jpg/);
+    expect(said).not.toMatch(/share-v[12]\.jpg/);
   });
 });
 

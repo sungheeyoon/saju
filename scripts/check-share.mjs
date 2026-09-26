@@ -44,9 +44,9 @@ const HOST = 'saju-snowy.vercel.app';
  * 말을 한다. 그래서 여기서도 **어느 화면이 어느 장을 쓰는지**를 따로 잰다. 한 장으로
  * 돌아가는 실수는 화면 어디에도 안 나타난다.
  */
-const SITE_IMAGE = `https://${HOST}/brand/saju-share-v2.jpg`;
-const READING_IMAGE = `https://${HOST}/brand/reading-share-v2.jpg`;
-const COMPAT_IMAGE = `https://${HOST}/brand/compat-share-v2.jpg`;
+const SITE_IMAGE = `https://${HOST}/brand/saju-share-v3.jpg`;
+const READING_IMAGE = `https://${HOST}/brand/reading-share-v3.jpg`;
+const COMPAT_IMAGE = `https://${HOST}/brand/compat-share-v3.jpg`;
 
 /**
  * JPEG 가 스스로 말하는 가로세로 — **적어 둔 수가 맞는지 재려고 읽는다.**
@@ -422,9 +422,9 @@ check('첫 화면은 색인에서 안 빠진다',
  * 안 나타난다. 그림을 갈아 끼우다 무거워지면 여기서 멈춘다.
  */
 for (const [label, address, said] of [
-  ['서비스 소개', '/brand/saju-share-v2.jpg', homeHtml],
-  ['풀이 전용', '/brand/reading-share-v2.jpg', html],
-  ['궁합 전용', '/brand/compat-share-v2.jpg', compatHtml],
+  ['서비스 소개', '/brand/saju-share-v3.jpg', homeHtml],
+  ['풀이 전용', '/brand/reading-share-v3.jpg', html],
+  ['궁합 전용', '/brand/compat-share-v3.jpg', compatHtml],
 ]) {
   const image = await get(address);
   const bytes = await image.arrayBuffer();
