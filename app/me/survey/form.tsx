@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 
 import {
   EMPTY_ANSWERS,
@@ -78,7 +78,12 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
 
   /** 마지막으로 서버에 넣은 것 — 안 바뀐 답을 되풀이해 보내지 않는다 */
   const saved = useRef(JSON.stringify(given?.answers ?? EMPTY_ANSWERS));
-  const shown = { readSolo: context.readSolo, readPair: context.readPair };
+  /*
+    묻는 문항의 갈래 — 이 화면이 사는 동안 안 바뀐다. 그릴 때마다 새 객체로 지으면 아래 저장 effect 가 누를 때마다
+    다시 서므로 두 참거짓으로 한 번만 짓는다. 전에는 effect 의 의존 목록에서 이것을 빼고 린트를 껐다.
+  */
+  const { readSolo, readPair } = context;
+  const shown = useMemo(() => ({ readSolo, readPair }), [readSolo, readPair]);
   const open = submittedAt === null || editing;
 
   useEffect(() => {
@@ -101,8 +106,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
     }, 1200);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answers, open]);
+  }, [answers, open, shown]);
 
   const send = () => {
     setFailure(null);

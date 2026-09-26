@@ -20,7 +20,7 @@ import { Icon } from '../../ui/icons';
 const COUNT_FROM = Math.floor(CHAT_POLICY.maxLength * 0.9);
 
 /**
- * 입력 칸 — 보내고 나면 화면을 다시 읽는다. 실시간 갱신은 채팅 안전 베타에 없다(PRD §7.1).
+ * 입력 칸 — 보내고 나면 화면을 다시 읽는다. 실시간 갱신은 채팅 안전 베타에 없다(PRD 「앱 내 채팅」).
  *
  * **거절은 누른 뒤에 말한다**(CONTEXT 「화면 문구 규칙」) — 버튼을 잠그지 않고, 못 보낸 그때
  * 무엇이 막았는지 한 줄로 말한다. 한도(`rate_limited`)와 닫힘(`closed`)은 값으로 오고, 나머지는
