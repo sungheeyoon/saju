@@ -9,6 +9,7 @@ import {
 import { RELATION_FROM_MATCH, relationBlock, relationSentence, type Relation } from '../people';
 import { EVIDENCE_CONTRACT } from '../saju/evidence';
 import { DEFAULT_MATCH_INPUT, type MatchInput } from '../saju/evidence/shared';
+import { endsWithBatchim } from '../saju/text/batchim';
 import {
   type GuideScope,
   pairReadingGuideBlock,
@@ -147,7 +148,7 @@ type Terminology = 'annotated' | 'plain';
  * 코칭만 남았다」. 그때 없앤 것은 구조가 아니라 **다룰 것**이었다 — 모델은 자유를 얻으면
  * 안전한 쪽으로 가고, 뭉뚱그린 조언이 제일 안전하다.
  *
- * 그래서 이 축은 구조만 놓고 **다룰 것은 그대로 든다**(`PAIR_NEEDS`). 「연애에서 무엇을
+ * 그래서 이 축은 구조만 놓고 **다룰 것은 그대로 든다**(`PAIR_NEEDS_BLOCK`). 「연애에서 무엇을
  * 궁금해하나」는 커버리지이고 「4번 절에 잘 맞는 지점 셋을 써라」는 구성이다 — 지금
  * 프롬프트는 그 둘을 한 덩어리로 묶어 두었다.
  *
@@ -297,12 +298,8 @@ const tenGodGlossLines = (): string =>
  * 표에서 문장을 지으면 조사도 지어야 한다. 「나무는 불를 살리고」가 프롬프트에 서면,
  * 사람 말로 쓰라고 시키는 자리에서 사람이 안 쓰는 말이 본보기로 나간다.
  */
-const particleOf = (word: string, closed: string, open: string): string => {
-  const last = word.charCodeAt(word.length - 1) - 0xac00;
-  const hasBatchim = last >= 0 && last <= 11171 && last % 28 !== 0;
-
-  return hasBatchim ? closed : open;
-};
+const particleOf = (word: string, closed: string, open: string): string =>
+  endsWithBatchim(word) ? closed : open;
 
 /** 낱말에 조사를 붙여서 — 낱말 없이 조사만 필요하면 `particleOf` 를 쓴다 */
 const withParticle = (word: string, closed: string, open: string): string =>
