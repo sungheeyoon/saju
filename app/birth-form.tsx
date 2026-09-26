@@ -50,7 +50,7 @@ import {
  * 날짜를 들고 있을 수는 있어도 **없는 날짜를 들 수는 없다.**
  */
 
-export const FIELD =
+const FIELD =
   'h-12 rounded-2xl border border-border-strong bg-surface px-3 text-base outline-none placeholder:text-muted focus:border-foreground focus:ring-[3px] focus:ring-accent-soft';
 
 /**
