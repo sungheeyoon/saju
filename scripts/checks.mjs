@@ -64,3 +64,18 @@ export const sql = (statement) =>
  * 엔진이 규칙을 올리는 날 모든 흐름이 조용히 풀에서 빠진다.
  */
 export const testNeed = () => ({ primary: '木', heaviest: '金', rule: sql('select public.discovery_need_rule()') });
+
+/**
+ * **본문을 끝까지 받은 뒤에 돌려주는 fetch** — 화면을 「열었다」는 곧 서버가 그 화면을 다 그렸다는 뜻이다.
+ *
+ * `fetch` 는 헤더가 오면 끝난다. 탭마다 `loading.tsx` 가 선 뒤로(ADR 0116) 서버는 헤더와 뼈대를 먼저 흘려보내고 페이지의
+ * 일(홈을 열면 풀에 드는 참여 · 읽음 표시 등)은 그 뒤에 끝낸다 — 본문을 안 읽은 검사가 그 일이 끝나기 전에 DB 를 들여다봐
+ * 「홈을 한 번 여는 것만으로 풀에 든다」가 붉었다(2026-09-27). 받은 본문으로 새 `Response` 를 지어 돌려주므로 부르는 쪽은
+ * `status` · `headers` · `text()` 를 전처럼 쓴다.
+ */
+export async function fetchWhole(url, init) {
+  const response = await fetch(url, init);
+  const body = await response.arrayBuffer();
+  const empty = [101, 204, 205, 304].includes(response.status);
+  return new Response(empty ? null : body, { status: response.status, statusText: response.statusText, headers: response.headers });
+}

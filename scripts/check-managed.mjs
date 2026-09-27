@@ -19,7 +19,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks } from './checks.mjs';
+import { createChecks, fetchWhole } from './checks.mjs';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -191,7 +191,7 @@ const { base: BASE, stop } = await startCheckServer({
   anonKey: status.ANON_KEY,
 });
 
-const get = (path, headers = {}) => fetch(`${BASE}${path}`, { headers, redirect: 'manual' });
+const get = (path, headers = {}) => fetchWhole(`${BASE}${path}`, { headers, redirect: 'manual' });
 
 try {
   // ── 로그인하지 않은 사람은 들어가지 못한다 ─────────────────────────────────

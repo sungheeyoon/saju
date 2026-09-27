@@ -20,7 +20,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks } from './checks.mjs';
+import { createChecks, fetchWhole } from './checks.mjs';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -226,7 +226,7 @@ const { base: BASE, stop } = await startCheckServer({
 });
 
 /** **쿠키를 한 줄도 안 보낸다** — 링크를 받은 사람이 그렇기 때문이다 */
-const get = (path) => fetch(`${BASE}${path}`, { redirect: 'manual' });
+const get = (path) => fetchWhole(`${BASE}${path}`, { redirect: 'manual' });
 
 const page = await get(`/share/readings/${token}`);
 const html = await page.text();

@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole } from './checks.mjs';
 /** 공개 범위 목록의 **제품 원본** — 손으로 베끼면 문구가 바뀐 날 검사만 옛 글자를 든다 */
 import { MATCH_DISCLOSURE } from '../src/lib/consent/disclosure.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
@@ -143,7 +143,7 @@ const { base: BASE, stop } = await startCheckServer({
   anonKey: status.ANON_KEY,
 });
 
-const get = (path, cookie) => fetch(`${BASE}${path}`, { headers: { cookie }, redirect: 'manual' });
+const get = (path, cookie) => fetchWhole(`${BASE}${path}`, { headers: { cookie }, redirect: 'manual' });
 const body = async (path, cookie) => (await get(path, cookie)).text();
 /** React 는 나란한 글자 마디 사이에 `<!-- -->` 를 넣는다. 문장을 견줄 때 지운다 */
 const plain = (html) => html.replace(/<!--\s*-->/g, '');

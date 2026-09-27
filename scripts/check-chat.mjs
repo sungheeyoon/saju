@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole } from './checks.mjs';
 import { CHAT_POLICY, RATE_LIMITED_TEXT, closedRoomText } from '../src/lib/chat/index.ts';
 import { PRESENCE_POLICY } from '../src/lib/presence/index.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
@@ -94,7 +94,7 @@ const { base: BASE, stop } = await startCheckServer({
   secretKey: status.SERVICE_ROLE_KEY,
 });
 
-const get = (path, jar) => fetch(`${BASE}${path}`, { headers: jar ? { cookie: jar } : {}, redirect: 'manual' });
+const get = (path, jar) => fetchWhole(`${BASE}${path}`, { headers: jar ? { cookie: jar } : {}, redirect: 'manual' });
 const body = async (path, jar) => (await get(path, jar)).text();
 const plain = (html) => html.replace(/<!--\s*-->/g, '');
 

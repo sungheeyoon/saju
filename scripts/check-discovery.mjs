@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole } from './checks.mjs';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -121,7 +121,7 @@ const { base: BASE, stop } = await startCheckServer({
 /** 매칭의 공개 카드 영역만 읽는다. 숨겨진 확인 창과 직렬화 자료는 포함하지 않는다. */
 const candidateListIn = (body) => body.match(/<article\b[^>]*>[\s\S]*?<\/article>/)?.[0] ?? '';
 
-const get = (path, cookie) => fetch(`${BASE}${path}`, { headers: { cookie }, redirect: 'manual' });
+const get = (path, cookie) => fetchWhole(`${BASE}${path}`, { headers: { cookie }, redirect: 'manual' });
 
 try {
   // ── 4. 참여를 다루는 자리와 그 고지 ─────────────────────────────────────────
