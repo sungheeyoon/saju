@@ -1,15 +1,14 @@
--- 후보 목록 — **뽑는 일과 보는 일이 갈렸다** (ADR 0037)
+-- 오늘의 인연 덱 — **여섯 자리, 떠나면 바로 채운다** (ADR 0037 · ADR 0115)
 --
--- 전에는 이 파일이 「같은 날 다시 열면 같은 목록인가」를 쟀다. 결정적 순서였으므로
--- 상위 여덟을 그대로 베껴 견줄 수 있었다. 이제 여덟은 **가중 무작위**라 그 자리에서
--- 잴 수 있는 것은 구조다: 열 명인가 · 8+2 인가 · 위쪽은 컷 안에서 왔는가 · 중복이
--- 없는가 · 전부 자격이 있는가.
+-- 덱은 가중 무작위라 한 번의 뽑기에서 잴 수 있는 것은 구조다: 여섯인가 · 탐색은 컷 밖에서 왔는가 ·
+-- 위쪽은 컷 안에서 먼저 왔는가 · 중복이 없는가 · 전부 자격이 있는가. 그리고 채우기: 넘기면 한 명이
+-- 뒤에 붙는가 · 자격을 잃으면 채우는가 · 풀이 모자라면 주는가 · 비면 비는가.
 --
--- 그리고 **씨앗을 인자로 받는 닫힌 문**(`refresh_discovery_snapshot_for`)이 있어
--- 「가중치대로 뽑혔는가」도 잰다 — 같은 씨앗이면 같은 목록이므로 여러 씨앗으로 뽑아
--- 등장 횟수를 세면 된다. 그 문은 `authenticated` 에게 닫혀 있고, 그것도 여기서 잰다.
+-- **씨앗을 인자로 받는 닫힌 문**(`refresh_discovery_snapshot_for`)이 있어 「가중치대로 뽑혔는가」와
+-- 「자리마다 20% 가 아래에서 오는가」도 잰다 — 같은 씨앗이면 같은 덱이므로 여러 씨앗으로 뽑아
+-- 등장 횟수를 세면 된다. 그 문과 채우는 문은 `authenticated` 에게 닫혀 있고, 그것도 여기서 잰다.
 begin;
-select plan(34);
+select plan(45);
 
 /**
  * 참여자 하나를 세우는 손잡이.
@@ -104,10 +103,13 @@ grant select on scores to authenticated;
 -- 스물넷이 후보다. 컷은 `ceil(24 * 0.2)` = 다섯.
 select is((select count(*)::int from scores), 24, '후보 스물넷이 선다');
 
--- ── 스냅샷의 모양 ─────────────────────────────────────────────────────────────
+
+-- ── 덱의 모양 — 여섯 자리 ─────────────────────────────────────────────────────
 
 create temporary table first_id as
 select public.refresh_discovery_snapshot_for((select uid from me), 'seed-a') as id;
+
+grant select on first_id to authenticated;
 
 create temporary table board as
 select * from public.discovery_candidate_slot where snapshot_id = (select id from first_id);
@@ -115,34 +117,24 @@ select * from public.discovery_candidate_slot where snapshot_id = (select id fro
 select is(
   (select policy_version from public.discovery_candidate where id = (select id from first_id)),
   'v2-beta',
-  '새 스냅샷은 v2-beta 정책을 기록한다');
+  '새 덱은 v2-beta 정책을 기록한다');
 
-select is((select count(*)::int from board), 10, '한 번에 열 명이 선다');
+select is((select count(*)::int from board), 6, '덱에는 여섯이 선다');
 
 select is(
   (select array_agg(position order by position) from board),
-  array[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+  array[0, 1, 2, 3, 4, 5],
   '자리는 0부터 빈틈없이 매겨진다');
 
 select is(
   (select count(distinct candidate_user_id)::int from board),
-  10,
+  6,
   '한 사람도 두 번 서지 않는다');
 
 select is(
   (select count(*)::int from board where candidate_user_id = (select uid from me)),
   0,
   '자기 자신은 후보가 아니다');
-
-select is(
-  (select count(*)::int from board where exploration),
-  2,
-  '열 자리 중 둘이 탐색이다');
-
-select is(
-  (select array_agg(position order by position) from board where exploration),
-  array[2, 5],
-  '탐색 자리는 앞뒤에 몰리지 않는다');
 
 /**
  * **탐색은 잘라 낸 아래에서만 온다.**
@@ -156,16 +148,19 @@ select is(
   '탐색은 상위 컷 밖에서만 뽑는다');
 
 /**
- * **컷 안의 다섯은 전부 선다.**
- *
- * 여덟을 뽑는데 컷이 다섯이라 다섯이 다 뽑히고, 모자란 자리는 아래에서 채워진다.
- * 「컷에서 여덟」이 컷보다 클 때 무슨 일이 나는지를 여기서 못 박아 둔다.
+ * **위쪽 자리는 컷에서 먼저 온다.** 컷이 다섯이라 위쪽 자리가 다섯을 넘으면 넘친 자리만 아래에서 채운다.
  */
 select is(
   (select count(*)::int from board b join scores s on s.user_id = b.candidate_user_id
    where not b.exploration and s.rnk <= 5),
-  5,
-  '컷 안의 다섯은 모두 위쪽 자리에 선다');
+  (select least(5, count(*))::int from board where not exploration),
+  '위쪽 자리는 컷 안에서 먼저 채운다');
+
+/** 탐색 자리는 새로 채우는 자리들 사이에 선다 — 맨 앞에 서지 않는다 */
+select is(
+  (select count(*)::int from board where exploration and position = 0),
+  0,
+  '탐색 자리는 맨 앞에 서지 않는다');
 
 -- ── 기록이 목록과 **정확히 같다** ─────────────────────────────────────────────
 
@@ -173,18 +168,15 @@ select is(
   (select array_agg(candidate_user_id order by position) from public.discovery_impression
    where viewer_user_id = (select uid from me)),
   (select array_agg(candidate_user_id order by position) from board),
-  '노출 기록의 후보와 차례가 스냅샷과 같다');
+  '노출 기록의 후보와 차례가 덱과 같다');
 
 select is(
   (select array_agg(exploration order by position) from public.discovery_impression
    where viewer_user_id = (select uid from me)),
   (select array_agg(exploration order by position) from board),
-  '탐색 여부도 스냅샷과 같다');
+  '탐색 여부도 덱과 같다');
 
 -- ── 씨앗 ──────────────────────────────────────────────────────────────────────
-
-/** 같은 씨앗이면 같은 목록이다 — 직전 스냅샷을 지우고 같은 자리에서 다시 뽑는다 */
-delete from public.discovery_candidate where user_id = (select uid from me);
 
 /*
   뽑아 두고 나서 읽는다. 볼러틸 함수가 심은 행은 **그 행을 심은 질의 자신에게는 안
@@ -197,9 +189,12 @@ select is(
   (select array_agg(candidate_user_id order by position)
    from public.discovery_candidate_slot where snapshot_id = (select id from again)),
   (select array_agg(candidate_user_id order by position) from board),
-  '같은 씨앗이면 같은 목록이다');
+  '같은 씨앗이면 같은 덱이다');
 
-delete from public.discovery_candidate where user_id = (select uid from me);
+select is(
+  (select count(*)::int from public.discovery_candidate where user_id = (select uid from me)),
+  1,
+  '덱은 한 세대만 남는다 — 이어지므로 「직전」이 없다');
 
 create temporary table other_seed as
 select public.refresh_discovery_snapshot_for((select uid from me), 'seed-b') as id;
@@ -208,20 +203,14 @@ select isnt(
   (select array_agg(candidate_user_id order by position)
    from public.discovery_candidate_slot where snapshot_id = (select id from other_seed)),
   (select array_agg(candidate_user_id order by position) from board),
-  '씨앗이 다르면 목록이 달라진다');
+  '씨앗이 다르면 덱이 달라진다');
 
 -- ── 가중치 — **점수가 높을수록 자주 뽑힌다** ──────────────────────────────────
 
 /**
- * 씨앗 천 개를 넣어 등장 횟수를 센다. cap 뒤에는 컷 밖 점수 간격이 전보다 좁아져
- * 작은 표본의 씨앗 운이 실제 가중치보다 크게 보일 수 있으므로 표본을 넓힌다.
- *
- * 매번 직전 스냅샷을 지우는 것은 「직전에 있던 사람 제외」가 등장 횟수를 반씩 깎기
- * 때문이다 — 그 규칙은 따로 잰다. 여기서 재려는 것은 **뽑기의 기울기** 하나다.
+ * 씨앗 천 개로 덱을 세워 등장 횟수를 센다. 새 덱은 늘 빈 자리에서 여섯을 뽑으므로 앞 덱이 결과를 안 깎는다.
  */
-delete from public.discovery_candidate where user_id = (select uid from me);
-
-create temporary table draws (user_id uuid, exploration boolean);
+create temporary table draws (user_id uuid, exploration boolean, position integer);
 do $$
 declare
   actor uuid := (select uid from me);
@@ -229,10 +218,9 @@ declare
   made uuid;
 begin
   for s in 1..1000 loop
-    delete from public.discovery_candidate where user_id = actor;
     made := public.refresh_discovery_snapshot_for(actor, 'weights-' || s);
     insert into draws
-    select candidate_user_id, exploration
+    select candidate_user_id, exploration, position
     from public.discovery_candidate_slot where snapshot_id = made;
   end loop;
 end
@@ -247,7 +235,7 @@ select cmp_ok(
 /**
  * **컷을 걷어 내도 기울어 있다.**
  *
- * 위의 검사는 상위 컷이 늘 뽑히는 것만으로도 통과한다. 컷 밖에서 채워지는 자리만
+ * 위의 검사는 상위 컷이 늘 뽑히는 것만으로도 통과한다. 컷 밖에서 채워지는 위쪽 자리만
  * 따로 세면 남는 것은 가중 무작위 하나다 — 그 자리도 점수를 따라야 한다.
  */
 select cmp_ok(
@@ -258,101 +246,162 @@ select cmp_ok(
    where not d.exploration and s.rnk > 14),
   '컷 밖에서도 점수가 높은 쪽이 더 자주 채워진다');
 
--- ── 직전 스냅샷 ───────────────────────────────────────────────────────────────
-
-delete from public.discovery_candidate where user_id = (select uid from me);
-
-create temporary table one as
-select public.refresh_discovery_snapshot_for((select uid from me), 'gen-1') as id;
-create temporary table two as
-select public.refresh_discovery_snapshot_for((select uid from me), 'gen-2') as id;
-
-select is(
-  (select count(*)::int
-   from public.discovery_candidate_slot a
-   join public.discovery_candidate_slot b on b.candidate_user_id = a.candidate_user_id
-   where a.snapshot_id = (select id from one) and b.snapshot_id = (select id from two)),
-  0,
-  '직전 스냅샷에 있던 사람은 다시 서지 않는다');
-
-select is(
-  (select count(*)::int from public.discovery_candidate where user_id = (select uid from me)),
-  2,
-  '두 세대만 남는다');
-
 /**
- * **풀이 얕으면 직전 제외를 풀어서 채운다.**
- *
- * 후보를 열둘로 줄이면 새로 뽑을 사람이 둘뿐이다. 그래도 열 자리를 채운다 — 못 채우면
- * 목록이 하루아침에 두 명으로 줄어든 것처럼 보인다.
+ * **자리마다 20% 가 아래에서 온다** — 옛 「열에 둘」과 같은 몫. 여섯 자리 천 덱이면 탐색은 1200 안팎이다
+ * (이항분포의 표준편차는 약 31). 넓게 잡아 15~25% 를 잰다.
  */
-update public.discovery_profile set opted_in_at = null, opted_out_at = now()
-where user_id in (select user_id from scores where rnk > 12);
+select ok(
+  (select avg(case when exploration then 1.0 else 0.0 end) between 0.15 and 0.25 from draws),
+  '자리마다 다섯에 하나꼴로 잘라 낸 아래에서 온다');
 
-create temporary table shallow as
-select public.refresh_discovery_snapshot_for((select uid from me), 'shallow') as id;
+-- ── 넘기면 채워진다 ──────────────────────────────────────────────────────────
 
-select is(
-  (select count(*)::int from public.discovery_candidate_slot
-   where snapshot_id = (select id from shallow)),
-  10,
-  '풀이 얕으면 직전 스냅샷 사람으로 채워 열을 세운다');
+create temporary table deck_before as
+select candidate_user_id, position from public.discovery_candidate_slot
+where snapshot_id = (select id from public.discovery_candidate where user_id = (select uid from me));
+grant select on deck_before to authenticated;
 
-update public.discovery_profile set opted_in_at = now(), opted_out_at = null
-where user_id in (select user_id from scores where rnk > 12);
+create temporary table impressions_before as
+select count(*)::int as n from public.discovery_impression where viewer_user_id = (select uid from me);
+grant select on impressions_before to authenticated;
 
--- ── 읽는 함수 ─────────────────────────────────────────────────────────────────
+/** 앱이 넘기는 길 그대로 — `discovery_passed` 에 한 줄 */
+insert into public.discovery_passed (user_id, passed_user_id)
+select (select uid from me), candidate_user_id from deck_before order by position limit 1;
 
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
 
-create temporary table read_once as select * from public.my_discovery_board();
+create temporary table after_pass as select * from public.my_discovery_board();
+
+reset role;
+
+select is((select count(*)::int from after_pass), 6, '한 명을 넘기면 풀에서 한 명이 채워 여섯이 된다');
+
+select is(
+  (select array_agg(candidate_user_id order by seat) from (select * from after_pass order by seat limit 5) f),
+  (select array_agg(candidate_user_id order by position) from (select * from deck_before order by position offset 1) b),
+  '남은 다섯은 차례 그대로 앞에 선다');
+
+select is(
+  (select count(*)::int from after_pass a
+   where a.seat = (select max(seat) from after_pass)
+     and a.candidate_user_id not in (select candidate_user_id from deck_before)),
+  1,
+  '새 사람은 덱 맨 뒤에 붙는다');
+
+select is(
+  (select count(*)::int from public.discovery_impression where viewer_user_id = (select uid from me)),
+  (select n + 1 from impressions_before),
+  '노출 기록은 새로 붙은 한 사람만 더 적는다');
+
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
 
 select is(
   (select array_agg(candidate_user_id order by seat) from public.my_discovery_board()),
-  (select array_agg(candidate_user_id order by seat) from read_once),
-  '읽는 함수는 만들지 않고 읽는다 — 두 번 열어도 같은 목록이다');
+  (select array_agg(candidate_user_id order by seat) from after_pass),
+  '자리가 차 있으면 읽기는 뽑지 않는다 — 두 번 열어도 같은 덱이다');
 
 reset role;
-select is(
-  (select count(*)::int from public.discovery_candidate where user_id = (select uid from me)),
-  2,
-  '읽기만으로는 세대가 늘지 않는다');
 
-/** 그 사이 자격을 잃은 사람은 빠진다 — 자리를 메우지 않는다. 메우는 것은 다시 뽑는 일이다 */
+select is(
+  (select count(*)::int from after_pass a where not public.discovery_eligible((select uid from me), a.candidate_user_id)),
+  0,
+  '채운 사람도 자격 규칙을 지난 사람이다');
+
+/** 그 사이 자격을 잃은 사람도 떠난 사람이다 — 자리를 채운다 */
 update public.discovery_profile set opted_in_at = null, opted_out_at = now()
-where user_id = (
-  select candidate_user_id from public.discovery_candidate_slot
-  where snapshot_id = (
-    select id from public.discovery_candidate where user_id = (select uid from me)
-    order by seq desc limit 1)
-  order by position limit 1);
+where user_id = (select candidate_user_id from after_pass order by seat limit 1);
+
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
+create temporary table after_leave as select * from public.my_discovery_board();
+reset role;
+
+select is(
+  (select count(*)::int from after_leave),
+  6,
+  '그 사이 자격을 잃은 사람은 빠지고 자리는 채워진다');
+
+select is(
+  (select count(*)::int from after_leave where candidate_user_id = (select candidate_user_id from after_pass order by seat limit 1)),
+  0,
+  '자격을 잃은 사람은 덱에 없다');
+
+/** 스물네 시간이 지나도 덱을 갈아엎지 않는다 — 떠나는 사람만큼만 바뀐다 */
+update public.discovery_candidate set generated_at = now() - interval '25 hours'
+where user_id = (select uid from me);
+
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
+
+select is(
+  (select array_agg(candidate_user_id order by seat) from public.my_discovery_board()),
+  (select array_agg(candidate_user_id order by seat) from after_leave),
+  '스물네 시간이 지나도 덱은 그대로다');
+
+-- ── 되돌리면 잠시 일곱 ───────────────────────────────────────────────────────
+
+select lives_ok(
+  format('select public.restore_passed_connection(%L)',
+    (select candidate_user_id from deck_before order by position limit 1)),
+  '넘긴 사람을 되돌린다');
+
+select is(
+  (select count(*)::int from public.my_discovery_board()),
+  7,
+  '되돌린 사람이 맨 앞에 서고 덱은 잠시 일곱이다 — 아무도 말없이 빠지지 않는다');
+
+reset role;
+
+-- ── 풀이 모자라면 줄고, 비면 빈 목록 ─────────────────────────────────────────
+
+/** 나 말고 셋만 풀에 남긴다 */
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
+where user_id in (select user_id from scores where rnk > 3);
+
+create temporary table few as
+select count(*)::int as n from scores s
+where s.rnk <= 3 and public.discovery_eligible((select uid from me), s.user_id);
+grant select on few to authenticated;
+
+select cmp_ok((select n from few), '<', 6, '풀에 남은 사람이 여섯보다 적다');
 
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
 
 select is(
   (select count(*)::int from public.my_discovery_board()),
-  (select count(*)::int from read_once) - 1,
-  '그 사이 자격을 잃은 사람은 목록에서 빠진다');
+  (select n from few),
+  '풀에 더 올 사람이 없으면 덱은 여섯보다 줄어든다');
 
-/** 스물네 시간이 지나면 읽는 함수가 스스로 새로 만든다 */
 reset role;
-update public.discovery_candidate set generated_at = now() - interval '25 hours'
-where user_id = (select uid from me);
+update public.discovery_profile set opted_in_at = null, opted_out_at = now()
+where user_id in (select user_id from scores);
 
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
-create temporary table drained as select * from public.my_discovery_board();
+
+select is((select count(*)::int from public.my_discovery_board()), 0, '풀이 비면 덱도 빈다');
 
 reset role;
-select cmp_ok(
-  (select max(generated_at) from public.discovery_candidate where user_id = (select uid from me)),
-  '>',
-  now() - interval '1 minute',
-  '스물네 시간이 지나면 읽을 때 새로 만들어진다');
+update public.discovery_profile set opted_in_at = now(), opted_out_at = null
+where user_id in (select user_id from scores);
 
--- ── 새로고침과 쿨다운 ─────────────────────────────────────────────────────────
+set local role authenticated;
+select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
+
+select is(
+  (select count(*)::int from public.my_discovery_board()),
+  6,
+  '풀에 사람이 돌아오면 다음에 읽을 때 다시 여섯이다');
+
+-- ── 옛 앱의 새로고침 문 — 넓히기 동안 그대로 선다 ─────────────────────────────
+
+reset role;
+update public.discovery_candidate set generated_at = now()
+where user_id = (select uid from me);
 
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
@@ -361,7 +410,7 @@ select throws_ok(
   'select public.refresh_discovery_snapshot()',
   '55000',
   '방금 새로 받았습니다. 잠시 뒤에 다시 받아 주세요.',
-  '만든 지 5분 안이면 새로고침이 거절된다');
+  '옛 새로고침 문은 만든 지 5분 안이면 여전히 거절한다');
 
 reset role;
 update public.discovery_candidate set generated_at = now() - interval '6 minutes'
@@ -372,14 +421,17 @@ select set_config('request.jwt.claims', tests.claims((select uid from me)), true
 
 select lives_ok(
   'select public.refresh_discovery_snapshot()',
-  '5분이 지나면 새로 받는다');
+  '5분이 지나면 옛 새로고침 문이 새 덱을 세운다');
 
 reset role;
+select is(
+  (select count(*)::int from public.discovery_candidate_slot
+   where snapshot_id = (select id from public.discovery_candidate where user_id = (select uid from me))),
+  6,
+  '옛 새로고침 문이 세운 덱도 여섯이다');
+
 update public.discovery_candidate set policy_version = 'discovery-v1'
-where id = (
-  select id from public.discovery_candidate where user_id = (select uid from me)
-  order by seq desc limit 1
-);
+where user_id = (select uid from me);
 
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
@@ -390,7 +442,7 @@ select is(
   (select policy_version from public.discovery_candidate where user_id = (select uid from me)
    order by seq desc limit 1),
   'v2-beta',
-  '이전 정책 스냅샷은 읽을 때 즉시 다시 만든다');
+  '이전 정책 덱은 읽을 때 즉시 다시 만든다');
 
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
@@ -402,7 +454,16 @@ select throws_ok(
   null,
   '씨앗을 넣는 문은 authenticated 에게 닫혀 있다');
 
+select throws_ok(
+  format('select public.fill_discovery_deck(%L, %L, %L)', (select uid from me), (select id from first_id), 'mine'),
+  '42501',
+  null,
+  '채우는 문도 authenticated 에게 닫혀 있다');
+
 reset role;
+
+/** 아래 절은 지나친 기록을 처음부터 쌓는다 */
+delete from public.discovery_passed where user_id = (select uid from me);
 
 -- ── 지나친 인연 — **영구 숨김과 다른 수명** ────────────────────────────────────
 --

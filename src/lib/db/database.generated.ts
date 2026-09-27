@@ -2253,6 +2253,7 @@ export type Database = {
         Args: { a: Json; b: Json }
         Returns: string[]
       }
+      discovery_deck_size: { Args: never; Returns: number }
       discovery_deficit_complement_one_way_v1: {
         Args: { mine: Json; partner: Json }
         Returns: number
@@ -2353,6 +2354,10 @@ export type Database = {
           p_usage?: Json
         }
         Returns: undefined
+      }
+      fill_discovery_deck: {
+        Args: { p_actor: string; p_deck: string; p_seed: string }
+        Returns: number
       }
       forget_orphan_people: { Args: never; Returns: number }
       forget_user: {

@@ -10,7 +10,7 @@ import { Icon } from '../../ui/icons';
 import { TYPE_DISPLAY } from '../../ui/surfaces';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
-import { boardStamp, candidatesForViewer, passedForViewer } from '../candidates';
+import { candidatesForViewer, passedForViewer } from '../candidates';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { payloadForViewer } from '../payload';
 import { selfElementSummary } from '../summary';
@@ -84,9 +84,8 @@ export default async function MatchingPage() {
   if (joinError) throw dbFailure(joinError, 'ensure_discovery_participation');
   if (joined !== true) return <Guide me={me} />;
 
-  // 목록을 **먼저** 읽는다 — 그 호출이 하루 지난 스냅샷을 새로 만들 수 있다.
+  // 덱을 읽는다 — 그 호출이 떠난 자리를 풀에서 채운다(ADR 0115)
   const board = await candidatesForViewer(self.summary);
-  const stamp = await boardStamp();
   /*
     **보관함은 서버가 든다.** 화면 상태로만 쌓으면 새로 고치거나 탭을 옮긴 순간 비고,
     그러면 추천에서는 빠져 있는데 꺼낼 자리도 없는 사람이 생긴다.
@@ -99,16 +98,17 @@ export default async function MatchingPage() {
   const passedCards = passed.map((card) => deckCardOf(card, { exploration: false, activity: null }));
 
   return (
+    /*
+      **덱은 다시 세우지 않는다** — 떠난 자리를 채운 사람은 서버가 준 목록의 뒤에 붙어 오고, 덱이 그것을 뒤에
+      합친다(`deck-state.ts` 의 `sync`). 넘기는 움직임과 되돌리기 이력이 끊기지 않게 `key` 를 안 단다.
+    */
     <MatchingExperience
-      /* 새 목록이 곧 새 덱이다 — 남은 초를 세는 버튼도 여기서 다시 선다 */
-      key={stamp?.generatedAt ?? 'none'}
       cards={cards}
       me={me}
       passed={passedCards}
       teaser={board.teaser}
       notice={board.notice}
       explorationNote={board.explorationNote}
-      waitSeconds={stamp?.waitSeconds ?? 0}
     />
   );
 }

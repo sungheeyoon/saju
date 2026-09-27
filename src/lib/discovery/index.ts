@@ -90,10 +90,10 @@ export const DISCOVERY_POLICY = {
     'structure',
     'johu-conditions',
   ] as const,
-  /** 목록의 이만큼은 상위가 아닌 자리에서 뽑아 섞는다 */
+  /** 덱의 자리마다 이 확률로 상위가 아닌 자리에서 뽑아 섞는다(ADR 0115) */
   explorationRatio: 0.2,
-  /** 한 번에 보여주는 후보 수 */
-  pageSize: 10,
+  /** 덱에 서는 자리 수 — 한 명이 떠나면 풀에서 한 명이 채운다. SQL `discovery_deck_size()` 와 같다(ADR 0115) */
+  pageSize: 6,
 
   /**
    * 균형 값을 말로 바꾸는 문턱.

@@ -7,7 +7,7 @@ import {
   type ElementSummary,
 } from './element-axes';
 import { CITY_LONGITUDES, ELEMENTS, computeSaju, type Element } from '../saju';
-import { DISCOVERY_POLICY, DISCOVERY_V1 } from './index';
+import { DISCOVERY_V1 } from './index';
 
 /**
  * **노출 분포를 재어 남긴다** — 문턱을 옮기지는 않는다.
@@ -113,6 +113,9 @@ function scoreFor(viewer: ElementSummary, candidate: ElementSummary): number {
   );
 }
 
+/** 잰 때의 목록 길이 — 그때 목록은 열 명이었다. 덱이 여섯이 된 뒤(ADR 0115)에도 이 기록은 그 열을 잰 값이다 */
+const MEASURED_TOP = 10;
+
 /** 저마다의 상위 열에 누가 서는가 — 하드 제외는 자기 자신뿐이다(정책은 지우지 않는다) */
 function timesShown(): Map<string, number> {
   const shown = new Map(participants.map((one) => [one.name, 0]));
@@ -123,7 +126,7 @@ function timesShown(): Map<string, number> {
       .map((one) => ({ name: one.name, score: scoreFor(viewer.summary, one.summary) }))
       // 동점은 이름으로 가른다 — 입력 순서에 기대면 표본을 섞을 때 값이 흔들린다.
       .sort((a, b) => b.score - a.score || a.name.localeCompare(b.name))
-      .slice(0, DISCOVERY_POLICY.pageSize);
+      .slice(0, MEASURED_TOP);
 
     for (const row of ranked) shown.set(row.name, (shown.get(row.name) ?? 0) + 1);
   }

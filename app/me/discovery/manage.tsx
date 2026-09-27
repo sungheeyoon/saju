@@ -1,9 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 
-import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 
 import {
   SETTINGS_PRIMARY,
@@ -12,11 +11,7 @@ import {
   SettingsCard,
   SettingsRow,
 } from '../settings/card';
-import {
-  refreshDiscoveryBoard,
-  savePreferGender,
-  setDiscoveryParticipation,
-} from './actions';
+import { savePreferGender, setDiscoveryParticipation } from './actions';
 import type { PreferGender } from '@/src/lib/discovery';
 
 import { PREFER_GENDER_KO, PREFER_GENDER_ORDER } from './profile';
@@ -122,7 +117,7 @@ export function PreferenceForm({ current }: { current: PreferGender }) {
 /**
  * 매칭 참여를 켜고 끄는 자리 — **이제 여기가 켜는 자리가 아니다.**
  *
- * 참여는 기본으로 켜져 있고(PRD 「추천은 스냅샷이다」), 무엇이 나가는지는 가입 관문이 읽힌다
+ * 참여는 기본으로 켜져 있고(PRD 「추천은 여섯 자리 덱이다」), 무엇이 나가는지는 가입 관문이 읽힌다
  * (`notice-v4`). 여기 남은 일은 **끄는 것과, 껐던 것을 되돌리는 것** 둘이다.
  *
  * 그래도 목록은 양쪽에 그대로 선다. 끄기 직전에도 무엇을 거두는지 보여야 하고, 되돌리기
@@ -197,61 +192,5 @@ export function ParticipationToggle({ resting }: { resting: boolean }) {
         </p>
       )}
     </SettingsCard>
-  );
-}
-
-/**
- * 목록을 새로 받는다 — **얼마나 기다려야 하는지는 DB 가 말한다**(ADR 0037).
- *
- * `waitSeconds` 는 DB 가 센 값이다(`my_discovery_snapshot`). 여기서 5분을 다시 세지 않는
- * 것은 그 수가 두 곳에 적히면 갈리기 때문이고, 남은 초를 시각에서 직접 빼지 않는 것은
- * **브라우저 시계가 서버와 다를 수 있어서**다 — 그러면 눌리는 시점이 사람마다 달라진다.
- * 받은 수만큼만 세어 내려간다.
- *
- * 눌리지 않는 이유를 버튼 자리에서 말한다. 아무 말 없이 흐린 버튼은 고장으로 읽힌다.
- */
-export function RefreshBoard({ waitSeconds }: { waitSeconds: number }) {
-  const router = useRouter();
-  const [left, setLeft] = useState(waitSeconds);
-  const [failure, setFailure] = useState<string | null>(null);
-  const [working, startWorking] = useTransition();
-
-  useEffect(() => {
-    if (left <= 0) return;
-    const tick = setInterval(() => setLeft((seconds) => Math.max(0, seconds - 1)), 1000);
-    return () => clearInterval(tick);
-  }, [left]);
-
-  const refresh = () => {
-    setFailure(null);
-    startWorking(async () => {
-      const result = await refreshDiscoveryBoard();
-      if (result.ok) router.refresh();
-      else setFailure(result.message);
-    });
-  };
-
-  return (
-    /*
-      **남은 시간은 버튼 옆이 아니라 아래다.** 옆에 두면 그 줄이 화면 폭에 따라 접히면서
-      버튼과 시간이 갈라섰다(빈 목록 카드에서 그게 제일 크게 보였다). 세로로 쌓으면 폭이
-      좁아져도 차례가 그대로다.
-    */
-    <span className="flex flex-col items-start gap-1.5">
-      <button
-        type="button"
-        onClick={refresh}
-        disabled={working || left > 0}
-        className={BUTTON_SECONDARY_SMALL}
-      >
-        {working ? '새로 고치는 중…' : '목록 새로 고치기'}
-      </button>
-      {left > 0 && (
-        <span className="text-[12px] leading-5 text-secondary">
-          {left >= 60 ? `${Math.ceil(left / 60)}분` : `${left}초`} 후 다시 시도할 수 있어요.
-        </span>
-      )}
-      {failure !== null && <span className="text-[12px] leading-5 text-secondary">{failure}</span>}
-    </span>
   );
 }

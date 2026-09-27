@@ -65,14 +65,13 @@ export type Changed =
   | 'consent-changed'
   /** 만나볼 상대의 조건, 참여를 켜고 끄기 */
   | 'discovery-settings-changed'
-  /** 목록을 새로 받았다 — 스냅샷 시각이 바뀌어 덱이 통째로 다시 선다 */
-  | 'board-refreshed'
   /**
-   * 덱에서 지나치거나 요청했다 — **덱이 선 화면은 일부러 안 든다.**
+   * 덱에서 지나치거나 되돌렸다 — **덱이 선 화면은 적지 않는다.**
    *
-   * 무르면 응답이 새 페이로드를 실어 라우트를 다시 그리고, 그러면 이 사람이 `cards` 에서
-   * 빠지며 뒤 카드가 당겨지는데 덱이 든 자리(`index`)는 `key` 가 같아 살아남아 계산이
-   * 어긋난다(느린 기계에서 먼저 드러났다, `74349b6`). 덱은 자기 자리를 스스로 옮긴다.
+   * 적지 않아도 액션이 경로를 하나라도 무르면 응답이 **지금 화면**을 다시 그려 싣는다(Next 의 액션 처리기가
+   * `pathWasRevalidated` 를 본다). 덱은 그 새 목록을 사람 id 로 합친다(`deck-state.ts` 의 `sync`) — 떠난 자리를
+   * 채운 사람이 뒤에 붙어 오는 길이 이것이다(ADR 0115). 옛 덱은 자리를 순번(`index`)으로 들어 새 목록에 계산이
+   * 어긋났다(`74349b6`).
    */
   | 'deck-moved'
   /** 상세 궁합을 청했다 — 소식과 요청 목록이 함께 갈린다 */
@@ -104,7 +103,6 @@ const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'account-closed': [{ path: '/', scope: 'layout' }],
   'consent-changed': [{ path: '/me/settings' }, { path: '/me' }],
   'discovery-settings-changed': [{ path: '/me/settings' }],
-  'board-refreshed': [{ path: '/me' }, { path: '/me/matching' }],
   'deck-moved': [{ path: '/me' }],
   'match-requested': [{ path: '/me' }, { path: '/me/requests' }],
   'requests-changed': [{ path: '/me/requests' }, { path: '/me' }],

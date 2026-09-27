@@ -14,7 +14,6 @@ import { ElementSymbol } from '../../ui/element-symbol';
 import { Icon, type IconName } from '../../ui/icons';
 import { TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { passCandidate, requestMatch, restorePassed } from '../discovery/actions';
-import { RefreshBoard } from '../discovery/manage';
 import { announceIfMoved } from '../reading/credits-signal';
 import { CandidatePhoto } from './candidate-photo';
 import { elementOf, supplyOf, type DeckCard } from './deck-card';
@@ -49,6 +48,9 @@ type View = 'today' | 'passed';
   동작은 옛 덱 그대로다: 넘기면 서버 보관함에 적고(`passCandidate`), 요청은 확인 창을 지나야 나가며(`requestMatch`),
   되돌리기와 지나친 인연의 「다시 만나보기」는 같은 복원 경로를 쓴다(`restorePassed`). 미리보기(`preview`)는 셋 다
   서버를 부르지 않는다.
+
+  **덱은 여섯 자리이고 떠나면 채워진다**(ADR 0115). 넘기거나 요청하면 응답이 실어 온 새 목록에 채운 사람이 뒤에
+  붙어 오고, `sync` 가 그 사람을 덱 뒤에 합친다 — 덱을 통째로 다시 세우지 않는다. 새로고침 단추는 없다.
 */
 export function MatchingExperience({
   cards,
@@ -56,7 +58,6 @@ export function MatchingExperience({
   teaser,
   notice,
   explorationNote,
-  waitSeconds,
   passed: passedFromServer = EMPTY_CARDS,
   preview = false,
 }: {
@@ -68,15 +69,22 @@ export function MatchingExperience({
   teaser: string;
   notice: string | null;
   explorationNote: string | null;
-  waitSeconds: number;
+  /**
+   * **안 읽는다** — 새로고침 단추가 걷혔다(ADR 0115). 미리보기 화면이 아직 넘겨서 칸만 남겼다 — 그 화면에서 걷으면 이 칸도 걷는다
+   */
+  waitSeconds?: number;
   /** 디자인 확인용 — **요청이 나가지 않고**, 목록을 건드리는 누름도 서지 않는다 */
   preview?: boolean;
 }) {
   const [deck, dispatch] = useReducer(deckReducer, {
     remaining: cards, passed: passedFromServer.slice(0, PASSED_LIMIT), history: [], seen: [],
   });
-  const index = deck.seen.length;
-  const total = index + deck.remaining.length;
+  /*
+    **순번은 덱 안의 자리다** — 덱은 떠난 만큼 채워지므로 「지금까지 본 수 / 전체」가 끝없이 자란다. 지금 사람이 첫
+    자리이고 덱에 선 사람이 전체다.
+  */
+  const index = 0;
+  const total = deck.remaining.length;
   const passed = deck.passed;
   const hidden = deck.history[0] ?? null;
   const busy = useRef(false);
@@ -289,7 +297,7 @@ export function MatchingExperience({
       </header>
 
       {/*
-        목록 머리 — 참고 점수라는 사실과(PRD 「추천은 스냅샷이다」) 목록이 비슷한 까닭. 카드마다 되풀이하지 않는다.
+        목록 머리 — 참고 점수라는 사실과(PRD 「추천은 여섯 자리 덱이다」) 목록이 비슷한 까닭. 카드마다 되풀이하지 않는다.
         **폰은 이 줄을 ⓘ 시트가 든다** — 한 화면을 그 사람에게 준다(2026-09-25).
       */}
       {view === 'today' && profile !== undefined && (
@@ -325,12 +333,7 @@ export function MatchingExperience({
           feedback={feedback}
         />
       ) : profile === undefined ? (
-        <EmptyDeck
-          me={me}
-          kind={cards.length === 0 && total === 0 ? 'none' : 'all-met'}
-          refresh={preview ? null : <RefreshBoard waitSeconds={waitSeconds} />}
-          feedback={feedback}
-        />
+        <EmptyDeck me={me} feedback={feedback} />
       ) : (
         <section
           aria-label="인연 카드"
@@ -588,48 +591,38 @@ function Feedback({
   );
 }
 
-/** 오늘 소개할 사람이 없거나(`none`) 오늘의 인연을 다 만났다(`all-met`) — 아무도 다가오지 않는 작은 궤도 */
-function EmptyDeck({
-  me,
-  kind,
-  refresh,
-  feedback,
-}: {
-  me: MeMark;
-  kind: 'none' | 'all-met';
-  refresh: ReactNode;
-  feedback: ReactNode;
-}) {
+/**
+ * 소개할 사람이 없다 — 아무도 다가오지 않는 작은 궤도.
+ *
+ * 덱은 떠난 만큼 채워지므로(ADR 0115) 비는 것은 **풀에 더 올 사람이 없을 때뿐**이다. 「다 만났다」와 새로고침 단추는
+ * 걷었다 — 기다려서 받을 새 목록이 따로 없다.
+ */
+function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode }) {
   return (
     <section className="grid items-center gap-6 rounded-[2rem] bg-cream p-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-10 sm:p-10">
       <QuietOrbit me={me} />
       <div className="flex min-w-0 flex-col items-start gap-5">
         <div className="flex flex-col gap-2">
           <h2 className="font-rounded text-[1.625rem] leading-[1.35] text-foreground sm:text-[2rem]">
-            {kind === 'none' ? DISCOVERY_EMPTY.title : '오늘의 인연을 모두 만났어요'}
+            {DISCOVERY_EMPTY.title}
           </h2>
-          <p className="max-w-prose text-[15px] leading-6 text-secondary">
-            {kind === 'none' ? DISCOVERY_EMPTY.line : '지나친 인연을 다시 살펴보거나, 나중에 새로운 인연을 확인해 보세요.'}
-          </p>
+          <p className="max-w-prose text-[15px] leading-6 text-secondary">{DISCOVERY_EMPTY.line}</p>
         </div>
-        {refresh}
-        {kind === 'none' && (
-          <nav aria-label="더 해 보기" className="grid w-full gap-2 sm:grid-cols-2">
-            {MEANWHILE.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`${elementScope(link.element)} group flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.98]`}
-              >
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] text-[var(--ink)]">
-                  <Icon name={link.icon} />
-                </span>
-                <span className="min-w-0 flex-1">{link.label}</span>
-                <Icon name="arrow" className="size-4 text-secondary group-hover:translate-x-0.5" />
-              </Link>
-            ))}
-          </nav>
-        )}
+        <nav aria-label="더 해 보기" className="grid w-full gap-2 sm:grid-cols-2">
+          {MEANWHILE.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`${elementScope(link.element)} group flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.98]`}
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] text-[var(--ink)]">
+                <Icon name={link.icon} />
+              </span>
+              <span className="min-w-0 flex-1">{link.label}</span>
+              <Icon name="arrow" className="size-4 text-secondary group-hover:translate-x-0.5" />
+            </Link>
+          ))}
+        </nav>
         <div className="flex w-full flex-col gap-2">{feedback}</div>
       </div>
     </section>
