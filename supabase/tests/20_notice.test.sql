@@ -9,7 +9,7 @@
 -- 3. **거절해도 서비스는 그대로다.** 닫히는 것은 설문 하나뿐이다.
 -- 4. **철회가 곧 지움이다.** 안내 화면에서 거절한 경우에도 같다.
 begin;
-select plan(33);
+select plan(40);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -185,6 +185,55 @@ select is(
    from public.app_user where id = (select kim from fresh)),
   array['notice-v3', 'false'],
   '남이 확인해도 내 답은 그대로다');
+
+-- ── 연락 동의는 설정에서 따로 켜고 끈다 ────────────────────────────────────
+
+/**
+ * **철회는 들어올 때만큼 쉬워야 한다.** 안내에서 고른 연락 동의는 설정 화면에서 따로
+ * 켜고 끈다(`set_contact_consent`, 화면은 `app/me/actions.ts` 의 `setOptionalConsent`).
+ * 여기서 재는 것은 셋 — 켜고 끄는 대로 남는가, 개선 동의는 안 건드리는가, 남의 값은
+ * 못 건드리는가. uuid 를 안 받으므로 「남의 것」은 **부른 사람의 값만 바뀌는가**로 잰다.
+ */
+set local role authenticated;
+select pg_temp.acting((select kim from fresh));
+
+select lives_ok($$select public.set_contact_consent(true)$$, '연락 동의를 켠다');
+
+reset role;
+select is(
+  (select contact_consent from public.app_user where id = (select kim from fresh)),
+  true,
+  '켜면 연락 동의가 남는다');
+set local role authenticated;
+select pg_temp.acting((select kim from fresh));
+
+select lives_ok($$select public.set_contact_consent(false)$$, '연락 동의를 끈다');
+
+reset role;
+select is(
+  (select array[contact_consent, improvement_consent] from public.app_user
+   where id = (select kim from fresh)),
+  array[false, false],
+  '끄면 연락 동의가 풀리고 개선 동의는 그대로다');
+
+/** 남은 안내에서 연락을 받겠다고 했다 — 내가 끈 것이 거기까지 번지면 안 된다 */
+select is(
+  (select a.contact_consent from public.app_user a
+   join auth.users u on u.id = a.id where u.email = 'lee-notice@example.com'),
+  true,
+  '내가 꺼도 남의 연락 동의는 그대로다');
+set local role authenticated;
+select pg_temp.acting((select kim from fresh));
+
+select throws_ok(
+  $$select public.set_contact_consent(null)$$,
+  '23514', null, '연락 동의를 비워 둔 채 정할 수는 없다');
+
+set local role anon;
+select throws_ok(
+  $$select public.set_contact_consent(false)$$,
+  '42501', null, '로그인하지 않았으면 부를 수 없다');
+reset role;
 
 -- ── 일정을 옮기면 ─────────────────────────────────────────────────────────
 

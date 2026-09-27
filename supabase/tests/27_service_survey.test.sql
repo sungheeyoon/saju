@@ -7,9 +7,9 @@
 --    화면이 숨기는 것과 서버가 안 받는 것은 다른 일이다.
 -- 3. **초안은 집계에 안 든다.** 작성 도중의 문장을 제출한 의견처럼 읽으면 안 된다.
 -- 4. **처음 제출한 때와 그때의 일정은 안 움직인다.** 답을 고쳐도 그렇다.
--- 5. **표는 밖에서 한 줄도 안 보인다.**
+-- 5. **표는 밖에서 한 줄도 안 보인다.** 운영자 집계 셋도 운영자가 아니면 거절한다.
 begin;
-select plan(22);
+select plan(25);
 
 create or replace function pg_temp.save(run uuid)
 returns uuid language sql security definer as $$
@@ -244,6 +244,23 @@ select pg_temp.acting((select lee from folks));
 select throws_ok(
   $$select 1 from public.service_survey$$,
   '42501', null, '표는 밖에서 한 줄도 안 보인다');
+
+/*
+  **집계 셋은 `authenticated` 에 열려 있다** — 문을 지키는 것은 함수 안의 `is_operator()`
+  한 줄뿐이다. 그 줄이 빠지면 로그인한 누구나 남이 적은 글을 읽는다. 위에서는 운영자로만
+  불러 「운영자가 읽는다」만 재었다.
+*/
+select throws_ok(
+  $$select * from public.operator_service_survey_overview()$$,
+  '42501', null, '운영자가 아니면 제출 · 초안 수를 못 읽는다');
+
+select throws_ok(
+  $$select * from public.operator_service_survey_counts()$$,
+  '42501', null, '운영자가 아니면 문항별 수를 못 읽는다');
+
+select throws_ok(
+  $$select * from public.operator_service_survey_texts()$$,
+  '42501', null, '운영자가 아니면 적어 준 글을 못 읽는다');
 
 select throws_like(
   $$select pg_temp.answer(array['discovery'])$$,
