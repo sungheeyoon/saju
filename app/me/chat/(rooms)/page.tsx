@@ -3,14 +3,14 @@ import { redirect } from 'next/navigation';
 import { isBlocked } from '@/src/lib/account';
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
 
-import { supabaseOnServer } from '../../auth/server-client';
-import { TYPE_TITLE } from '../../ui/surfaces';
-import { AccountNotice } from '../account-notice';
-import { readAccount } from '../account';
-import { EmptyChat, NoRoomChosen } from './empty';
-import { ChatFrame, RoomList } from './room-list';
-import { chatRoomsForViewer } from './rooms';
-import { roomTonesForViewer } from './tones';
+import { supabaseOnServer } from '../../../auth/server-client';
+import { TYPE_TITLE } from '../../../ui/surfaces';
+import { AccountNotice } from '../../account-notice';
+import { readAccount } from '../../account';
+import { EmptyChat, NoRoomChosen } from '../empty';
+import { ChatFrame, RoomList } from '../room-list';
+import { chatRoomsForViewer } from '../rooms';
+import { roomTonesForViewer } from '../tones';
 
 export const metadata = {
   title: CHAT_TAB_LABEL,

@@ -124,8 +124,15 @@ try {
 
   // ── 1. 방이 없을 때의 목록, 로그인 없이의 목록 ────────────────────────────
   {
+    /*
+      **목록에는 뼈대가 있다**(`chat/(rooms)/loading.tsx`, 2026-09-27) — 뼈대가 먼저 흘러 나가므로 로그인 확인의 되돌림은
+      307 이 아니라 흘러간 문서 안의 되돌림(200 + `NEXT_REDIRECT`)으로 온다. 재는 것은 그대로다 — 로그인 화면으로 보낸다.
+    */
     const anonymous = await get('/me/chat');
-    check('로그인 없이는 목록이 안 열린다', anonymous.status !== 200, String(anonymous.status));
+    const sentAway = anonymous.status === 200
+      ? (await anonymous.text()).includes('NEXT_REDIRECT;replace;/auth;')
+      : (anonymous.headers.get('location') ?? '').includes('/auth');
+    check('로그인 없이는 목록이 안 열린다', sentAway, String(anonymous.status));
 
     const empty = plain(await body('/me/chat', cookie.a));
     check('방이 없으면 빈 목록이 말한다', empty.includes('아직 채팅방이 없습니다'));

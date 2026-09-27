@@ -84,13 +84,13 @@ export default async function MatchingPage() {
   if (joinError) throw dbFailure(joinError, 'ensure_discovery_participation');
   if (joined !== true) return <Guide me={me} />;
 
-  // 덱을 읽는다 — 그 호출이 떠난 자리를 풀에서 채운다(ADR 0115)
-  const board = await candidatesForViewer(self.summary);
   /*
+    덱을 읽는다 — 그 호출이 떠난 자리를 풀에서 채운다(ADR 0115).
     **보관함은 서버가 든다.** 화면 상태로만 쌓으면 새로 고치거나 탭을 옮긴 순간 비고,
     그러면 추천에서는 빠져 있는데 꺼낼 자리도 없는 사람이 생긴다.
+    둘은 **나란히 읽는다** — 덱을 채우는 문은 지나친 인연 표를 읽기만 하고 안 쓴다(2026-09-27, 탭 이동의 차례 호출 하나를 줄였다).
   */
-  const passed = await passedForViewer(self.summary);
+  const [board, passed] = await Promise.all([candidatesForViewer(self.summary), passedForViewer(self.summary)]);
 
   const cards = board.cards.map((card) =>
     deckCardOf(card, { exploration: card.exploration, activity: card.activity }),

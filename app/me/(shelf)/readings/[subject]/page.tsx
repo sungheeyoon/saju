@@ -3,12 +3,12 @@ import { notFound, redirect } from 'next/navigation';
 import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 import { STEM_INFO } from '@/src/lib/saju';
 
-import { supabaseOnServer } from '../../../auth/server-client';
-import { BUTTON_TERTIARY } from '../../../ui/buttons';
-import { TYPE_TITLE } from '../../../ui/surfaces';
-import { readAccount } from '../../account';
-import { currentReading } from '../../reading/current';
-import { ReadingSection } from '../../reading/section';
+import { supabaseOnServer } from '../../../../auth/server-client';
+import { BUTTON_TERTIARY } from '../../../../ui/buttons';
+import { TYPE_TITLE } from '../../../../ui/surfaces';
+import { readAccount } from '../../../account';
+import { currentReading } from '../../../reading/current';
+import { ReadingSection } from '../../../reading/section';
 import { BackToShelf } from '../frame';
 import { SubjectTag } from '../shelf';
 import { dayMastersOf } from '../subject';
