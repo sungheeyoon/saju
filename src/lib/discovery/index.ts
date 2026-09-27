@@ -23,7 +23,7 @@ import { ELEMENTS, ELEMENT_KO, type Element, type Pillars } from '../saju';
  *
  * ## 이 모듈이 **하지 않는** 일
  *
- * 줄 세우기도, 탐색 배치도, 노출 기록도 여기 없다. 셋 다 `discovery_board()` 안에서
+ * 줄 세우기도, 탐색 배치도, 노출 기록도 여기 없다. 셋 다 `my_discovery_board()` 안에서
  * 한 번에 일어난다 — 나눠 두면 「무엇을 보여줄까」와 「무엇을 보여줬다고 적을까」가 서로
  * 다른 신뢰 경계에 놓이고, 뒤의 것은 브라우저에서 그대로 부를 수 있는 자리가 된다.
  * 자리·탐색 여부·후보 목록을 손으로 적을 자리가 **아예 없어야** 위조가 불가능하다.
@@ -197,8 +197,9 @@ export const scorePolicyOf = (pair: { matched: boolean; relation: string | null 
  *
  * 사이로 가른 두 공식을 둘로 흩지 않고 정책을 받는다. 후보 카드의 줄 세우기는 SQL 이 하고, 이 함수는
  * **SQL 이 못 서는 자리** — 궁합풀이의 기준점과 궁합 화면의 지표 — 에서 그 셈을 TS 로 한 번 더 한다.
- * `private`(내가 저장한 두 사람)에는 카드 스냅샷이 아예 없고, 있는 `match` 도 그 값은 하루짜리라 풀이
- * 시각과 다를 수 있다. 그래서 넘겨받지 않고 **두 명식에서 그 자리에서 다시 잰다**(ADR 0060).
+ * `private`(내가 저장한 두 사람)에는 카드가 아예 없고, 있는 `match` 도 카드의 수는 목록을 읽을 때마다
+ * 지금 명식으로 다시 재므로 풀이가 쓴 명식과 다를 수 있다. 그래서 넘겨받지 않고 **두 명식에서 그 자리에서
+ * 다시 잰다**(ADR 0060).
  *
  * 가중치는 `DISCOVERY_POLICY.weights` 에서 읽는다 — 손으로 옮겨 적으면 정책만 바뀌고 이 함수가 안
  * 따라오는 날이 온다.
@@ -251,7 +252,7 @@ export const knownElementsOf = (raw: readonly string[] | null): Element[] =>
     (ELEMENTS as readonly string[]).includes(element),
   );
 
-/** `discovery_board()` 가 내주는 한 줄 — **여기 없는 것이 안 나가는 것이다** */
+/** `my_discovery_board()` 가 내주는 한 줄 — **여기 없는 것이 안 나가는 것이다** */
 type BoardRow = {
   candidateUserId: string;
   nickname: string;

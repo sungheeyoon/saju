@@ -53,7 +53,7 @@ type Screen = { readonly path: string; readonly scope?: 'layout' };
 export type Changed =
   /** 내 사주를 처음 저장했다 */
   | 'self-person-saved'
-  /** 저장된 출생 정보를 새 판본으로 쌓았다 — 홈의 명식과 목록의 줄이 함께 갈린다 */
+  /** 저장된 출생 정보를 고쳐 덮어썼다 — 홈의 명식과 목록의 줄이 함께 갈린다 */
   | 'person-input-edited'
   /** 저장한 사람이 늘거나 줄거나, 그 사람에 적은 메모가 바뀌었다 */
   | 'person-list-changed'

@@ -225,8 +225,8 @@ export const YONGSIN_POLICY = {
   /**
    * 격국은 판정하되(`structure.ts`) 억부를 뒤집지 않는다.
    *
-   * `followingPattern` 과 같은 자리인데 근거가 더 얕다 — 종격에는 외부 명조
-   * 서른다섯 건의 대조가 있고 격국은 0 건이다.
+   * `followingPattern` 과 같은 자리인데 근거가 더 얕다 — 종격의 외부 대조는 명조
+   * 마흔한 건 · 계통 셋이고, 격국은 일흔네 건이지만 계통이 하나다(`externalCheck`).
    */
   structure: 'judged-but-does-not-override',
   /** 조후 조건은 자동 판정하지 않는다 */

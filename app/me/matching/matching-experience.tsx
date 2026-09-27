@@ -110,7 +110,10 @@ export function MatchingExperience({
     dispatch({ type: 'sync', cards, passed: passedFromServer });
   }, [cards, passedFromServer, working, exit]);
 
-  /** 카드를 떠나보낸다 — 지나가는 것은 **이 자리에서만** 없어진다(서버에 안 적는다) */
+  /**
+   * 카드를 화면에서 떠나보낸다 — 움직임과 알림만 맡는다. 서버에 적는 일은 부르는 쪽이
+   * 먼저 끝낸다(지나침은 `passCandidate`, 요청은 `requestMatch`)
+   */
   function leave(direction: 'left' | 'right', said: string, id: string) {
     setExit(direction);
     if (direction === 'right') setFlash(said);

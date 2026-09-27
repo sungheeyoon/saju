@@ -131,8 +131,8 @@ export async function addManagedPerson(
  * 직접 입력한 한 사람을 **저장하고 그 사람의 풀이로 넘긴다.**
  *
  * 사주 결과 화면(`/`)은 아무것도 저장하지 않아서 AI 풀이가 없다 — 시도도 잠금도
- * 풀이권도 대상에 거는데(ADR 0013) 걸 대상이 없다. 궁합 쪽과 **같은 길**이고, 다른
- * 것은 저장이 하나뿐이라 한 문으로 묶을 일이 없다는 것이다(ADR 0030).
+ * 풀이권도 대상에 거는데(ADR 0013) 걸 대상이 없다. 그래서 풀이로 가는 길이 저장이다
+ * (ADR 0030). 궁합은 이제 이 길을 안 지난다 — 저장 없이 연다(`openPairScreen`).
  *
  * 메모는 안 받는다. 이 입구는 이름과 여덟 글자만 들고 왔고, **묻지 않은 것을 빈 값으로
  * 채워 저장하지 않는다** — 메모는 사람 탭에서 언제든 적을 수 있다.
@@ -184,14 +184,15 @@ export async function removeFromList(personId: string): Promise<SaveResult> {
 }
 
 /**
- * 고친 출생 정보를 새 판본으로 쌓는다.
+ * 고친 출생 정보로 그 사람의 입력을 덮어쓴다.
  *
  * 두 가지가 함께 일어나지만 **같은 종류가 아니다.**
  *
- * - 부를 이름은 엣지를 고친다. 여덟 글자를 바꾸지 않으므로 판본이 되지 않는다.
- * - 나머지는 판본을 쌓는다. 하나라도 다르면 새것이고, 다 같으면 아무것도 안 쌓인다.
+ * - 부를 이름은 엣지를 고친다. 여덟 글자를 바꾸지 않으므로 입력이 되지 않는다.
+ * - 나머지는 Person 의 입력 칸을 덮어쓰고 `input_version` 을 올린다. 하나라도 다르면
+ *   덮어쓰고, 다 같으면 아무것도 안 바뀐다.
  *
- * 아무것도 안 쌓였는지는 DB 가 정한다(`edit_person_input` 이 지문으로 판정한다).
+ * 바뀌었는지는 DB 가 정한다(`edit_person_input` 이 여덟 칸을 그대로 견준다).
  * 여기서 미리 걸러 보내지 않는 이유는, 화면이 든 「지금 값」이 그 사이에 다른 기기에서
  * 바뀌었을 수 있기 때문이다 — 판정은 값을 들고 있는 쪽이 한다.
  */
@@ -215,7 +216,7 @@ export async function editPersonInput(personId: string, query: Query): Promise<S
   if (error) return { ok: false, message: userFacingDbMessage(error, 'edit_person_input') };
 
   /**
-   * 판본이 바뀌었으면 **매칭 풀에 내놓은 오행 요약도 따라간다.**
+   * 입력이 바뀌었으면 **매칭 풀에 내놓은 오행 요약도 따라간다.**
    *
    * 낡은 요약은 후보 질의가 이미 걸러낸다. 그래도 여기서 따라가게 하는 것은 그 탈락이
    * **조용하기** 때문이다 — 사용자는 참여 중이라고 알고 있는데 아무에게도 안 보이게 된다.
@@ -224,7 +225,7 @@ export async function editPersonInput(personId: string, query: Query): Promise<S
    * 참여가 기본으로 켜진 뒤로 이 호출은 **참여를 열기도 한다**(PRD 「추천은 여섯 자리 덱이다」). 끈 사람은
    * 그대로 쉰다 — 그 판정도 RPC 안에 있다(`opted_out_at`).
    */
-  // 저장은 이미 끝났다. 요약을 못 읽은 것도 아래 RPC 실패처럼 홈이 목록을 열 때 고친다 — 던지지 않는다
+  // 저장은 이미 끝났다. 요약을 못 읽은 것도 아래 RPC 실패처럼 홈이나 매칭을 열 때 참여를 여는 문이 고친다 — 던지지 않는다
   const self = await selfElementSummary().catch(() => null);
   /*
     **「내 사주인가」를 여기서 묻지 않는다.**
@@ -243,7 +244,7 @@ export async function editPersonInput(personId: string, query: Query): Promise<S
       p_summary: self.summary,
       p_need: self.need,
     });
-    // 저장은 끝났다. 요약을 못 따라가게 한 것은 홈이 목록을 열 때 고친다.
+    // 저장은 끝났다. 요약을 못 따라가게 한 것은 홈이나 매칭을 열 때 참여를 여는 문이 고친다.
     if (summaryError) console.error('오행 요약을 갱신하지 못했습니다', summaryError.message);
   }
 

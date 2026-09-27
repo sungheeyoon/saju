@@ -7,17 +7,20 @@ import type { Database } from '@/src/lib/db';
 /**
  * **열쇠를 드는 유일한 자리.**
  *
- * 이 저장소는 사용자 경로에 `service_role` 을 쓰지 않는다(ADR 0003·0006). 그 규율에
- * 구멍이 둘 뚫려 있고, 둘 다 **구멍의 모양을 DB 가 정한다.**
+ * 이 저장소는 사용자 경로에 `service_role` 을 쓰지 않는다(ADR 0003·0006). 열쇠는 사용자
+ * JWT 에 닫아 둔 문을 부를 때만 든다 — 부르는 곳은 여섯 파일의 일곱 자리다(2026-09-28 에 잰 값):
+ * 풀이 제출(`app/me/reading/pipeline.ts` 둘) · 결과 회수(`app/me/reading/collect.ts`) ·
+ * 결과 복구 크론(`app/api/cron/reading/route.ts`) · 접속기록 반출 크론
+ * (`app/api/cron/audit-export/route.ts`) · OpenAI webhook · 결제 webhook
+ * (`app/api/openai/webhook/route.ts` · `app/api/portone/webhook/route.ts`).
  *
- * - `match_calculation_inputs` — 매인 판본의 계산 입력을 읽는다(ADR 0010).
- * - `save_reading` — 현재 결과를 교체한다(ADR 0013). 이 문이 `authenticated` 에게
- *   열려 있으면 로그인한 사람이 모델·redaction·출력 검사를 다 건너뛰고 임의의 글을
- *   저장할 수 있고, Match 에서는 그 글이 상대에게 간다.
- *
- * 열쇠가 할 수 있는 일은 그 함수 **둘**뿐이다. `20260826090000_reading.sql` 이 public
- * 함수의 기본 `PUBLIC EXECUTE` 를 닫고, pgTAP 이 실제 허용 집합을 둘로 고정한다. 표에는
- * 사용자 데이터를 읽고 쓰는 DML 권한이 없다(`20260824090200_access_policies.sql`).
+ * **구멍의 모양은 DB 가 정한다.** 열쇠가 부를 수 있는 public 함수는 이름으로 고정되어
+ * 있고, 그 목록을 드는 것은 pgTAP 이다(`supabase/tests/13_reading.test.sql` 의 권한 시험).
+ * 예컨대 `save_reading` 이 `authenticated` 에게 열려 있으면 로그인한 사람이 모델·
+ * redaction·출력 검사를 다 건너뛰고 임의의 글을 저장할 수 있고, Match 에서는 그 글이
+ * 상대에게 간다(ADR 0013). `20260826090000_reading.sql` 이 public 함수의 기본
+ * `PUBLIC EXECUTE` 를 닫았고, 표에는 사용자 데이터를 읽고 쓰는 DML 권한이 없다
+ * (`20260824090200_access_policies.sql`).
  */
 
 /**

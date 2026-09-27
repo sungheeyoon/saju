@@ -121,7 +121,7 @@ type SaeunInput = {
   pillars: Pick<Pillars, 'year' | 'month' | 'day' | 'hour' | 'dayMaster'>;
   /** 출생 시각이 속한 사주년 — 기본 세운 시작 */
   birthSajuYear: number;
-  /** 세운 구간 안에서 생일 전후의 실제 만 나이를 계산한다 — 보정된 출생 시각(`meta.resolvedTime`)의 양력 날짜 */
+  /** 세운 구간 안에서 생일 전후의 실제 만 나이를 계산한다 — 계산에 쓴 벽시계 시각(`meta.resolvedTime`, 보정 전)의 양력 날짜 */
   solarBirthDate: CivilDate;
   /**
    * 그 해를 감싼 대운을 찾을 표.
