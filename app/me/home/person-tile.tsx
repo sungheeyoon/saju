@@ -1,11 +1,9 @@
 import Link from 'next/link';
 
 import { STEM_INFO } from '@/src/lib/saju';
-import { HOUR_UNKNOWN_LABEL } from '@/src/lib/input/query';
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 
 import { elementScope } from '../../ui/element-tone';
-import { PILLAR_COLUMNS } from '../../saju/shared';
 import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
 import { StemSymbol } from '../../ui/stem-symbol';
@@ -18,6 +16,7 @@ import { tileAnchor, type HomePerson } from './map/model';
 /*
   **한 사람 = 한 장의 파스텔 타일.** 타일 색은 그 사람의 일간 오행이다 — 열 명이 모이면 색만으로도 누가
   어느 기운인지 갈린다. 그래도 색 혼자 말하지 않게 왼쪽 위 딱지에 천간 그림과 그 이름(햇빛 …)을 함께 둔다.
+  여덟 글자(한자)는 타일에 없다 — 내 카드와 같이 「자세히」(상세)가 든다(운영자 2026-09-27).
 
   타일 전체가 상세로 가는 링크다(이름 링크의 `after:` 가 타일을 덮는다). 단추 둘은 그 위에 떠서 따로 눌린다.
   **관계 지도의 원이 자바스크립트 없이 오는 자리**이기도 하다(`id`) — 그래서 이 타일이 그 사람의 길을 전부 든다.
@@ -75,32 +74,6 @@ export function PersonTile({
         <Name href={detailHref} label={person.label} />
         {note !== '' && <p className="mt-0.5 truncate text-[12px] text-secondary">{note}</p>}
       </div>
-
-      <p className="flex items-center gap-1 text-[var(--ink)]" aria-label={`${person.label}의 네 기둥`}>
-        {PILLAR_COLUMNS.map(({ key, label }) => {
-          const pillar = saju.pillars[key];
-          if (pillar === null) {
-            return (
-              <span key={key} className="glyph min-w-[1.9rem] text-center text-[14px] text-secondary">
-                <span aria-hidden="true">··</span>
-                <span className="sr-only">
-                  {label} {HOUR_UNKNOWN_LABEL}
-                </span>
-              </span>
-            );
-          }
-          return (
-            <span
-              key={key}
-              className={`glyph rounded-md px-0.5 text-[14px] font-semibold leading-6 ${key === 'day' ? 'bg-[color-mix(in_srgb,var(--surface)_75%,transparent)]' : ''}`}
-            >
-              <span className="sr-only">{label} </span>
-              {pillar.stem}
-              {pillar.branch}
-            </span>
-          );
-        })}
-      </p>
 
       <p className="line-clamp-2 min-h-10 text-[13px] leading-5">
         {reading === null ? (

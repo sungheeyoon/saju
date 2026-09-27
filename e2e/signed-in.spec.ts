@@ -220,12 +220,14 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   }) => {
     await page.goto('/me');
 
-    /* 홈의 내 카드 — 여덟 글자와 저장된 출생 정보, 고치는 손잡이, 상세로 가는 길 */
+    /*
+      홈의 내 카드 — 오행 분포와 저장된 출생 정보, 고치는 손잡이, 상세로 가는 길. 여덟 글자(한자)는 카드에 없고
+      「사주 자세히 보기」가 든다(운영자 2026-09-27)
+    */
     const mine = page.getByRole('region', { name: '내 사주' });
     await expect(mine.getByRole('heading', { name: signedIn.label, exact: true })).toBeVisible();
-    const glyphs = mine.getByRole('list', { name: '여덟 글자' });
-    await expect(glyphs.getByRole('listitem')).toHaveCount(4);
-    await expect(glyphs.getByLabel(/^일주 /)).toBeVisible();
+    await expect(mine.getByRole('list', { name: '오행 분포' }).getByRole('listitem')).toHaveCount(5);
+    await expect(mine.getByRole('list', { name: '여덟 글자' })).toHaveCount(0);
     await expect(mine.getByText('1990-05-15 14:30')).toBeVisible();
     await expect(mine.getByRole('button', { name: '출생 정보 수정' })).toBeVisible();
     await expect(mine.getByRole('link', { name: /사주 자세히 보기/ })).toHaveAttribute(
