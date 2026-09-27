@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { DISCOVERY_TEASER } from '@/src/lib/discovery';
 
 import { supabaseOnServer } from '../../../auth/server-client';
+import { signedInUser } from '../../../auth/signed-in';
 import { EXAMPLE_DECK_SIZE, EXAMPLE_ME, EXAMPLE_PASSED, exampleCards } from '../examples';
 import { MatchingExperience } from '../matching-experience';
 
@@ -28,9 +29,7 @@ export default async function MatchingPreviewPage({ searchParams }: { searchPara
     가리키고 로그인 판정은 하지 않는다. 안 물으면 주소를 아는 누구에게나 열린다.
   */
   const supabase = await supabaseOnServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect('/auth');
 
   /*

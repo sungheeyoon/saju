@@ -4,6 +4,7 @@ import { isBlocked } from '@/src/lib/account';
 import { SURVEY_COPY } from '@/src/lib/survey';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { signedInUser } from '../../auth/signed-in';
 import { PAPER, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
@@ -36,9 +37,7 @@ export const metadata = {
 export default async function SurveyPage() {
   const supabase = await supabaseOnServer();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect('/auth');
 
   const { state } = await readAccount(supabase, 'status');

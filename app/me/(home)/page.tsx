@@ -7,6 +7,7 @@ import type { PersonSlots } from '@/src/lib/people';
 import type { Element } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { signedInUser } from '../../auth/signed-in';
 import { elementScope } from '../../ui/element-tone';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { Icon, type IconName } from '../../ui/icons';
@@ -36,9 +37,7 @@ import { unreadCount } from '../requests/inbox';
 export default async function MePage() {
   const supabase = await supabaseOnServer();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect('/auth');
 
   // 정책이 자기 행만 내주므로 `where` 를 적지 않는다. 적으면 판정하는 자리가 둘이 된다.

@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { isAuthApiError } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseEnv } from '@/app/auth/config';
 import { currentSchedule } from '@/app/beta-schedule';
@@ -33,6 +34,11 @@ import { gateFor } from '@/src/lib/consent';
  * 두면 규칙을 브라우저 없이 전부 밟을 수 있고, **밟히지 않은 규칙이 그 구멍을
  * 만들었다.**
  */
+/**
+ * 세션 쿠키 — `sb-<프로젝트>-auth-token` 과 길어서 나뉜 조각(`.0` · `.1` …). PKCE 의 `-code-verifier` 는 안 든다.
+ */
+const SESSION_COOKIE = /^sb-.+-auth-token(\.\d+)?$/;
+
 export async function proxy(request: NextRequest) {
   const { url, publishableKey } = supabaseEnv();
 
@@ -60,10 +66,30 @@ export async function proxy(request: NextRequest) {
     return response;
   };
 
-  // 이 한 줄이 갱신을 일으킨다. 값도 쓴다 — 로그인하지 않은 사람에게는 길을 안 가리킨다.
+  /*
+    이 한 줄이 갱신을 일으킨다. 값도 쓴다 — 로그인하지 않은 사람에게는 길을 안 가리킨다.
+
+    **요청마다 Auth 서버에 묻는 것은 여기 하나다**(ADR 0117). 화면은 같은 쿠키의 서명만 확인하고
+    (`app/auth/signed-in.ts`), 서명으로는 못 보는 것 — 서버에서 끊긴 세션 · 지워진 계정 — 은 여기가 본다.
+  */
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
+
+  /*
+    **Auth 서버가 이 토큰을 거절했으면 그 세션의 쿠키를 걷는다.** 끊긴 세션(`session_not_found`)은 라이브러리가
+    이미 걷지만 지워진 계정(`user_not_found`, 403)은 안 걷는다 — 그대로 두면 서명은 여전히 맞아서 화면이 그
+    사람을 로그인한 사람으로 읽는다. 전에는 화면의 `getUser` 가 같은 403 을 받아 로그인으로 보냈으니, 쿠키를
+    걷어 그 판정을 그대로 잇는다. 닿지 못한 것(네트워크 · 5xx)은 거절이 아니라 걷지 않는다.
+  */
+  if (user === null && isAuthApiError(userError) && (userError.status === 401 || userError.status === 403)) {
+    for (const { name } of request.cookies.getAll()) {
+      if (!SESSION_COOKIE.test(name)) continue;
+      request.cookies.delete(name);
+      fresh.push({ name, value: '', options: { path: '/', maxAge: 0 } });
+    }
+  }
 
   /*
     **로그인 판정은 여기서 안 한다.** 화면마다 이미 하고 있고(`redirect('/auth')`),
@@ -76,13 +102,13 @@ export async function proxy(request: NextRequest) {
     보내고, 화면이 「계정을 읽지 못했습니다」라고 말한다.
   */
   /*
-    **활동은 로그인된 요청이 서버에 온 것이다**(PRD §7.2). 여기가 앱 안 이동에도 매번 도는 유일한
-    자리라 적는 문도 여기서 부른다. 1분에 한 번만 실제로 적히고(ADR 0092), 답은 안 쓴다 — 부속
-    정보라 실패해도 길을 가리키는 판정에는 안 낀다. prefetch 는 사람이 연 것이 아니라 안 센다.
+    **활동은 로그인된 요청이 서버에 온 것이다**(PRD §7.2) — 그런데 여기서는 **서버 액션만** 적는다(ADR 0118).
+    미리 받기(prefetch)는 사람이 연 것이 아닌데, Next 가 그 표식(`next-router-prefetch`)을 여기 넘기기 전에
+    지워서(`FLIGHT_HEADERS`) 이 자리에서는 앱 안 이동과 미리 받기를 못 가른다 — 전에 적어 둔 가름은 한 번도
+    안 걸렸다. 화면을 여는 것(GET)은 그 화면이 그려질 때 `signedInUser` 가 적는다. 미리 받기는 언제나 GET 이라
+    GET 이 아닌 요청은 사람이 누른 것이다. 1분에 한 번만 실제로 적히고(ADR 0092), 답은 안 쓴다.
   */
-  const prefetch =
-    request.headers.get('next-router-prefetch') === '1' ||
-    request.headers.get('purpose') === 'prefetch';
+  const pressed = request.method !== 'GET' && request.method !== 'HEAD';
 
   const [{ data: account, error: accountError }, notice] = await Promise.all([
     supabase
@@ -90,7 +116,7 @@ export async function proxy(request: NextRequest) {
       .select('signed_up_at, notice_version, notice_schedule_id')
       .maybeSingle(),
     currentSchedule(supabase),
-    prefetch ? Promise.resolve() : supabase.rpc('touch_activity'),
+    pressed ? supabase.rpc('touch_activity') : Promise.resolve(),
   ]);
 
   /*

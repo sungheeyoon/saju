@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import { REPORT_REASONS } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { signedInUser } from '../../auth/signed-in';
 import { filtersOf, hrefOf, isFiltered, type ReportFilters } from './filters';
 import {
   EVIDENCE_LABEL,
@@ -42,9 +43,7 @@ export default async function OperatorReportsPage({
 }) {
   const supabase = await supabaseOnServer();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect('/auth');
 
   const filters = filtersOf(await searchParams);

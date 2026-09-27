@@ -4,6 +4,7 @@ import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 import { STEM_INFO } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../../../auth/server-client';
+import { signedInUser } from '../../../../auth/signed-in';
 import { BUTTON_TERTIARY } from '../../../../ui/buttons';
 import { TYPE_TITLE } from '../../../../ui/surfaces';
 import { readAccount } from '../../../account';
@@ -40,9 +41,7 @@ export default async function SingleReadingPage({
   params: Promise<{ subject: string }>;
 }) {
   const supabase = await supabaseOnServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect('/auth');
 
   const { state } = await readAccount(supabase);

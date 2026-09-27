@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
+vi.mock('../../auth/signed-in', () => ({ signedInUser: async () => ({ id: 'u-1', email: undefined }) }));
 
 import { supabaseOnServer } from '../../auth/server-client';
 import ProfilePage from './page';
@@ -15,7 +16,6 @@ import ProfilePage from './page';
 
 const answering = (photo: { data: unknown; error: unknown }) =>
   vi.mocked(supabaseOnServer).mockResolvedValue({
-    auth: { getUser: async () => ({ data: { user: { id: 'u-1' } } }) },
     rpc: async () => photo,
     from: () => ({
       select: () => ({ maybeSingle: async () => ({ data: { status: 'active', nickname: '민수', intro: null }, error: null }) }),

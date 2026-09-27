@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../auth/server-client';
+import { signedInUser } from '../auth/signed-in';
 import { currentSchedule } from '../beta-schedule';
 import { readAccount } from '../me/account';
 import { AccountNotice } from '../me/account-notice';
@@ -55,9 +56,7 @@ export default async function SignupPage({ searchParams }: {
 }) {
   const resumeReading = (await searchParams).resume === 'reading';
   const supabase = await supabaseOnServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect(resumeReading ? '/auth?next=%2F%23resume-reading' : '/auth');
 
   /**

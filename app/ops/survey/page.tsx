@@ -9,6 +9,7 @@ import {
 import { PRICE_LABEL, SURVEY_QUESTION_TITLE, choiceLabel, type PriceOption } from '@/src/lib/survey';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { signedInUser } from '../../auth/signed-in';
 import { readingDate } from '../../me/reading/line';
 import {
   DENIED,
@@ -54,9 +55,7 @@ export const metadata = {
 export default async function OperatorSurveyPage() {
   const supabase = await supabaseOnServer();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect('/auth');
 
   const survey = await operatorSurvey();

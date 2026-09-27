@@ -4,6 +4,7 @@ import { isBlocked } from '@/src/lib/account';
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
 
 import { supabaseOnServer } from '../../../auth/server-client';
+import { signedInUser } from '../../../auth/signed-in';
 import { TYPE_TITLE } from '../../../ui/surfaces';
 import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
@@ -26,9 +27,7 @@ export const metadata = {
 export default async function ChatRoomsPage() {
   const supabase = await supabaseOnServer();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect('/auth');
 
   const { state } = await readAccount(supabase, 'status, self_person_id');

@@ -6,6 +6,7 @@ import { MATCH_RESULT_CLOSED_NOTE } from '@/src/lib/consent';
 import { STEM_INFO } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../../auth/server-client';
+import { signedInUser } from '../../../auth/signed-in';
 import { PillarPair } from '../../../compat-view';
 import { BUTTON_SECONDARY, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
@@ -40,9 +41,7 @@ export default async function MatchResultPage({
 }) {
   const supabase = await supabaseOnServer();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect('/auth');
 
   const { matchId } = await params;

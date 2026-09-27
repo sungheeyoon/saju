@@ -9,6 +9,7 @@ import {
 } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../../auth/server-client';
+import { signedInUser } from '../../../auth/signed-in';
 import { UUID } from '../../../uuid';
 import { CopyText } from '../copy-text';
 import { readingArtifacts, currentReading, lastReadingRun, readingGroundingOf } from '../current';
@@ -40,9 +41,7 @@ export default async function InspectPage({
 }) {
   const supabase = await supabaseOnServer();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect('/auth');
 
   const params = await searchParams;
