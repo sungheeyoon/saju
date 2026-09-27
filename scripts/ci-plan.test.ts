@@ -5,12 +5,22 @@
  * 「문서만 바뀌면 건너뛰는가」보다 「모르는 파일이 하나라도 있으면 전부 도는가」와
  * 「라벨이 검사를 뺄 수 없는가」다.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { DEPENDENCY_LISTS, ENGINE_DB_FACING, FAST_STEPS, FULL_LABEL, planFor, summaryOf } from './ci-plan.mjs';
+import {
+  DEPENDENCY_LISTS,
+  ENGINE_DB_FACING,
+  FAST_STEPS,
+  FLOW_RUNNERS,
+  FULL_LABEL,
+  SERVER_ACTIONS_ELSEWHERE,
+  isSurface,
+  planFor,
+  summaryOf,
+} from './ci-plan.mjs';
 import { currentStageOf } from './release-stage.mjs';
 
 /** 공개 출시 — 머지 전에 전체를 재는 단계. 아래 「CI 계획」은 이 단계의 세 단계를 잰다 */
@@ -18,8 +28,14 @@ const pr = (files: string[], labels: string[] = []) => planFor({ files, labels, 
 const beta = (files: string[], labels: string[] = []) => planFor({ files, labels, event: 'pull_request', stage: '운영 베타' });
 
 describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
-  it('코드 PR 은 fast 하나만 탄다 — 전체는 main 에서 돈다', () => {
-    for (const files of [['app/page.tsx'], ['src/lib/saju/strength/index.ts'], ['e2e/match.spec.ts', 'app/me/matching/x.tsx'], ['.github/workflows/verify.yml']]) {
+  it('입구가 아닌 코드 PR 은 fast 하나만 탄다 — 전체는 main 에서 돈다', () => {
+    for (const files of [
+      ['app/me/(shelf)/readings/shelf.tsx'],
+      ['src/lib/saju/strength/index.ts'],
+      ['src/lib/matching/x.ts', 'app/me/matching/x.tsx', 'app/auth-free.ts'],
+      ['app/me/(shelf)/readings/book.ts', 'app/auth/signed-in.test.ts', 'app/me/matching/page.test.ts'],
+      ['.github/workflows/verify.yml'],
+    ]) {
       const plan = beta(files);
       expect(plan.tier, files[0]).toBe('fast');
       expect(plan.lanes, files[0]).toEqual({ policy: false, fast: true, verify: false, authed: false, flow: false, audit: false });
@@ -53,7 +69,7 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
     expect(now).not.toBeNull();
     const launched = prd.replace(/\| \*\*([^*]+)\*\* \(지금\) \|/, '| **$1** |').replace('| **공개 출시** |', '| **공개 출시** (지금) |');
     expect(currentStageOf(launched)).toBe('공개 출시');
-    const files = ['app/page.tsx'];
+    const files = ['src/lib/chat/index.ts'];
     expect(planFor({ files, stage: currentStageOf(launched) }).tier).toBe('full');
     expect(planFor({ files, stage: now }).tier).toBe('fast');
   });
@@ -75,6 +91,88 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
     expect(currentStageOf(prd.replace(/ \(지금\) \|/, ' |'))).toBeNull();
     expect(currentStageOf(prd.replace('| **공개 출시** |', '| **공개 출시** (지금) |'))).toBeNull();
     expect(currentStageOf('')).toBeNull();
+  });
+});
+
+describe('CI 계획 — 관문 · 화면 · 인증은 베타에서도 전부다 (ADR 0119)', () => {
+  const FULL = { policy: false, fast: false, verify: true, authed: true, flow: true, audit: false };
+
+  /** 바뀐 파일 목록 그대로 — 둘 다 PR 에서 fast 만 돌았고, #284 는 머지 뒤 main 의 flow 가 붉었다(e370931) */
+  const PR_284 = [
+    'app/me/(home)/loading.tsx', 'app/me/(home)/page.tsx', 'app/me/(shelf)/loading.tsx',
+    'app/me/(shelf)/readings/[subject]/page.tsx', 'app/me/(shelf)/readings/book.test.ts', 'app/me/(shelf)/readings/book.ts',
+    'app/me/(shelf)/readings/frame.tsx', 'app/me/(shelf)/readings/layout.tsx', 'app/me/(shelf)/readings/opening.test.ts',
+    'app/me/(shelf)/readings/opening.ts', 'app/me/(shelf)/readings/page.tsx', 'app/me/(shelf)/readings/shelf.tsx',
+    'app/me/(shelf)/readings/subject.ts', 'app/me/chat/(rooms)/loading.tsx', 'app/me/chat/(rooms)/page.tsx',
+    'app/me/matching/loading.tsx', 'app/me/matching/page.tsx', 'app/refresh.boundary.test.ts', 'app/ui/skeleton.tsx',
+    'docs/adr/0116-the-tabs-open-on-a-skeleton-inside-a-route-group.md', 'docs/architecture.md', 'docs/prd.md',
+    'scripts/check-chat.mjs', 'scripts/layers.test.ts',
+  ];
+  const PR_286 = [
+    'app/auth/page.tsx', 'app/auth/signed-in.test.ts', 'app/auth/signed-in.ts', 'app/compat/page.test.ts', 'app/compat/page.tsx',
+    'app/me/(home)/page.tsx', 'app/me/chat/[matchId]/page.tsx', 'app/me/discovery/actions.ts', 'app/me/matching/page.tsx',
+    'app/signup/page.tsx', 'app/ops/reports/page.tsx', 'docs/adr/0117-the-gate-asks-auth-once-and-the-screen-checks-the-signature.md',
+    'docs/prd.md', 'e2e/signed-in.spec.ts', 'proxy.ts',
+  ];
+
+  it('#284 · #286 모양의 PR 은 흐름 검사와 로그인 e2e 를 머지 전에 돈다', () => {
+    expect(beta(PR_284).lanes).toEqual(FULL);
+    expect(beta(PR_286).lanes).toEqual(FULL);
+  });
+
+  it('입구 하나만 바뀌어도 전부다 — 관문 · 인증 · 화면 · 액션 · 그것을 재는 시험', () => {
+    for (const file of [
+      'proxy.ts',
+      'src/lib/consent/gate.ts',
+      'app/auth/signed-in.ts',
+      'app/auth/callback/route.ts',
+      'app/page.tsx',
+      'app/layout.tsx',
+      'app/me/(home)/loading.tsx',
+      'app/me/compat/not-found.tsx',
+      'app/me/photo/[userId]/route.ts',
+      'app/me/discovery/actions.ts',
+      ...SERVER_ACTIONS_ELSEWHERE,
+      'e2e/match.spec.ts',
+      'scripts/check-discovery.mjs',
+      ...FLOW_RUNNERS,
+    ]) {
+      expect(beta([file]).lanes, file).toEqual(FULL);
+      expect(beta(['docs/prd.md', file]).tier, file).toBe('full');
+    }
+  });
+
+  it('입구가 아닌 것은 전부로 안 넓힌다 — 컴포넌트 · lib · 시험 파일 · 문서', () => {
+    for (const file of [
+      'app/me/(shelf)/readings/shelf.tsx',
+      'app/ui/skeleton.tsx',
+      'app/me/(shelf)/readings/book.ts',
+      'app/auth/signed-in.test.ts',
+      'app/me/discovery/actions.test.ts',
+      'src/lib/matching/pool.ts',
+      'scripts/checks.mjs',
+      'scripts/ci-plan.mjs',
+      'app/pages.ts',
+      'app/me/pageless.tsx',
+    ]) {
+      expect(isSurface(file), file).toBe(false);
+    }
+    expect(beta(['docs/adr/0116-x.md', 'docs/architecture.md']).tier).toBe('policy');
+  });
+
+  it("app/ 의 'use server' 파일은 전부 입구로 걸린다 — 이름이 다른 새 액션 파일이 조용히 빠지지 않게", () => {
+    const root = resolve(__dirname, '..');
+    const walk = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((one) =>
+        one.isDirectory() ? walk(join(dir, one.name)) : /\.tsx?$/.test(one.name) ? [join(dir, one.name)] : [],
+      );
+    const servers = walk(resolve(root, 'app'))
+      .filter((file) => /^\s*['"]use server['"]/m.test(readFileSync(file, 'utf8').split('\n').slice(0, 20).join('\n')))
+      .map((file) => relative(root, file));
+    expect(servers.length).toBeGreaterThan(0);
+    expect(servers.filter((file) => !isSurface(file))).toEqual([]);
+    // 이름으로 견주는 목록이다 — 옮기거나 지우면 옛 이름은 아무것도 안 건다
+    expect([...SERVER_ACTIONS_ELSEWHERE, ...FLOW_RUNNERS].filter((file) => !existsSync(resolve(root, file)))).toEqual([]);
   });
 });
 
