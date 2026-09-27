@@ -3,19 +3,19 @@
 이 문서는 **무엇을 고쳤을 때 무엇을 돌리는가** 하나만 답한다. 어디에 놓는가는
 `docs/architecture.md`, 어떻게 적는가는 `docs/agents/code-rules.md`. CI 가 무엇을 돌리는가의
 **규칙은 `scripts/ci-plan.mjs` 한 곳**이고(ADR 0082), 이 문서는 그 규칙을 사람이 읽는 표로
-옮긴 것이다 — 어긋나면 `ci-plan.mjs` 가 맞다. 값은 **2026-09-22 에 잰 것**이다(ADR 0087). 아래 두 표의 파일 수 ·
-시험 수는 **2026-09-25 에 다시 쟀다**(#229 뒤, `aa6f0a3`) — 단위는 `npm test` 의 끝 줄, pgTAP 은 `npm run test:db` 의 끝 줄과
-`select plan(N)` 의 합, e2e 는 `npx playwright test --list`, 파일 수는 `find … -name '*.test.ts'` 다. pgTAP 과 흐름은 #222 뒤로
-`supabase/tests` · `scripts/check-*.mjs` 가 안 바뀌어 그때 잰 값이다(파일 수와 plan 합은 다시 셌다).
+옮긴 것이다 — 어긋나면 `ci-plan.mjs` 가 맞다. 값은 **2026-09-22 에 잰 것**이다(ADR 0087). **파일 수 · 시험 수는
+적지 않는다 — 실행이 찍는다**(`docs/agents/delegation.md` 「값을 적는 자리는 하나다」). 적어 두었던 수는 PR 몇 개 만에 낡아
+한 문서 안에서도 서로 달랐다(2026-09-28). 단위는 `npm test` 의 끝 줄, pgTAP 은 `npm run test:db` 의 끝 줄과
+`select plan(N)` 의 합, e2e 는 `npx playwright test --list`, 파일 수는 `find … -name '*.test.ts'` 가 찍는다.
 
 ## 시험은 넷이고, 층마다 닿는 것이 다르다
 
 | 시험 | 명령 | 무엇을 재나 | 필요한 것 | 수 |
 | --- | --- | --- | --- | --- |
-| **단위**(vitest) | `npm test` | 순수 함수 — 엔진 · 도메인 lib · `app/**/*.ts` 의 판단 · `scripts/` 의 검사 도구 자신 | 없음 | 142 파일(그중 둘은 통째로 건너뜀 — 실호출 백필) · 2,411 통과 + 10 건너뜀 · 13초 |
-| **pgTAP** | `npm run test:db` | 표 · 함수 · 정책이 **역할을 갈아입고** 실제로 막는가, 함수와 표의 모양(ADR 0084) | Docker + `npm run db:start` | 63 파일 · 1,551 건 — 전부 고정 plan(2026-09-26, `no_plan` 둘을 수로 잠갔다 — 단언이 조용히 빠지면 plan 이 붉힌다) |
-| **흐름**(`scripts/check-*.mjs`) | `npm run test:flow` | 가입 → 저장 → 요청 · 수락 → 풀이 · 공유를 **실제 스택에 대고**, 모델만 빼고 | Docker + `db:start`. 제 안에서 Next 서버를 띄운다(`check-db-races` 는 안 띄우고 psql 둘 · 셋으로 DB 의 두 세션 경합을 일으킨다) | 9 벌 · 단언 464(2026-09-25) |
-| **e2e**(Playwright) | `npm run test:e2e` / `test:e2e:authed` | 화면 — 비로그인 · 로그인 · 둘이 있어야 성립하는 흐름 · 가입 관문 | 익명은 없음(CI 의 껍데기 접속값으로 돈다). 로그인 뒤는 Docker + `db:start` | 8 파일 · 익명 34 × 2 기기, 로그인 73 × 2 기기, 관문 9 — 합 223 |
+| **단위**(vitest) | `npm test` | 순수 함수 — 엔진 · 도메인 lib · `app/**/*.ts` 의 판단 · `scripts/` 의 검사 도구 자신 | 없음 | `npm test` 의 끝 줄 — 실호출 백필 파일은 통째로 건너뛴다 |
+| **pgTAP** | `npm run test:db` | 표 · 함수 · 정책이 **역할을 갈아입고** 실제로 막는가, 함수와 표의 모양(ADR 0084) | Docker + `npm run db:start` | `npm run test:db` 의 끝 줄 — 전부 고정 plan(2026-09-26, `no_plan` 둘을 수로 잠갔다 — 단언이 조용히 빠지면 plan 이 붉힌다) |
+| **흐름**(`scripts/check-*.mjs`) | `npm run test:flow` | 가입 → 저장 → 요청 · 수락 → 풀이 · 공유를 **실제 스택에 대고**, 모델만 빼고 | Docker + `db:start`. 제 안에서 Next 서버를 띄운다(`check-db-races` 는 안 띄우고 psql 둘 · 셋으로 DB 의 두 세션 경합을 일으킨다) | `scripts/check-*.mjs` 한 벌마다 — `npm run test:flow` 가 찍는다 |
+| **e2e**(Playwright) | `npm run test:e2e` / `test:e2e:authed` | 화면 — 비로그인 · 로그인 · 둘이 있어야 성립하는 흐름 · 가입 관문 | 익명은 없음(CI 의 껍데기 접속값으로 돈다). 로그인 뒤는 Docker + `db:start` | `npx playwright test --list` — 익명 · 로그인은 기기 둘에서, 관문은 한 번 돈다 |
 
 **vitest 는 `.tsx` 를 불러올 수는 있어도 그리지는 못한다** — `vitest.config.mts` 의 include 가 `src/**` · `app/**` ·
 `scripts/**` 의 `*.test.ts` 이고(시험 파일은 `.ts` 뿐이다), 환경은 `node` 다. jsdom 을 안 들였다(`<dialog>` 때문, ADR 0080).
@@ -34,13 +34,13 @@
 
 | 층 | 자리 | 단위 | pgTAP | 흐름 | e2e |
 | --- | --- | --- | --- | --- | --- |
-| 엔진 | `src/lib/saju/` | **46 파일** — 골든 스냅샷(건수는 스냅샷 머리가 찍는다) · 외부 대조(억부 37 · 종격 41) · 모집단 3000 · 절기 · 음력 왕복 | | | 명식 화면(`saju.spec.ts` 22) |
-| 도메인 lib | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat,presence}` | **34 파일**(+ 실호출 백필 둘) — 프롬프트 조립 · 검사 · 점수 · 동의 · 관문 | | | |
-| 문 · 액션 | `app/**/*.ts` | **48 파일**(+ 실호출 하나 — 서버 페이지 함수 넷을 부르는 `page.test.ts` 도 여기 든다) — 어댑터 · 파이프라인 · 오류 번역 · 주소 코덱 · 장부(`*.boundary.test.ts`) · 크론 두 주소의 `CRON_SECRET` 자격(`app/api/cron/*/route.test.ts` — 주소를 두드려 403 과 열쇠를 안 꺼냈는가를 본다) | 문이 부르는 함수 전부 | **여기가 본거지** — 문·액션·라우트를 주소로 두드린다 | 로그인 뒤 화면이 지나간다 |
-| 화면 | `app/**/*.tsx` | 그리기는 없음 — 내보낸 순수 함수와 서버 페이지 함수의 약속만(위) | | 서버 HTML 만 — `check-reading` 이 「수정 전」 풀이의 딱지 · 표지 색 · 주 단추를 읽는다 | **여기서 누른다** — 116 건(기기 둘을 겹치면 223). 누르는 자리 44px · 초점 테두리 한 겹 · 바탕 빛이 되풀이되지 않음은 `e2e/target.ts` 로 잰다(#229 — `saju.spec.ts` 의 새 한 건 · `signed-in.spec.ts` · `match.spec.ts`) |
-| 관문 | `proxy.ts` · `src/lib/consent` | `gate.test.ts` · `notice.test.ts` | `20_notice` | | `notice.spec.ts` 9 |
-| DB | `supabase/migrations/` | | **57 파일** · 모양 잠금 넷(`33_function_shape`) | 위 | |
-| 검사 도구 | `scripts/` · `eslint.config.mjs` | **14 파일** — `ci-plan` · `run-checks` · `layers` · `code-rules` · `worktree-stack` · `secret-env`(비밀의 갈래 · `server-only` 잠금 · runbook 절, G-23 ⑧) · `vercel-ignore`(Preview 를 건너뛸지 — 0 이 건너뜀) · `copy-contracts` · `main-red` · `stack-slot` · `remote-lock` · `db-remote` · `audit-verify` · `brand-share-images` | | | |
+| 엔진 | `src/lib/saju/` | 골든 스냅샷(건수는 스냅샷 머리가 찍는다) · 외부 대조(억부 37 · 종격 41) · 모집단 3000 · 절기 · 음력 왕복 | | | 명식 화면(`saju.spec.ts`) |
+| 도메인 lib | `src/lib/{input,reading,discovery,matching,consent,people,profile,account,survey,chat,presence}` | 프롬프트 조립 · 검사 · 점수 · 동의 · 관문(실호출 백필 둘은 통째로 건너뛴다) | | | |
+| 문 · 액션 | `app/**/*.ts` | 서버 페이지 함수 넷을 부르는 `page.test.ts` 도 여기 든다(실호출 하나는 건너뛴다) — 어댑터 · 파이프라인 · 오류 번역 · 주소 코덱 · 장부(`*.boundary.test.ts`) · 크론 두 주소의 `CRON_SECRET` 자격(`app/api/cron/*/route.test.ts` — 주소를 두드려 403 과 열쇠를 안 꺼냈는가를 본다) | 문이 부르는 함수 전부 | **여기가 본거지** — 문·액션·라우트를 주소로 두드린다 | 로그인 뒤 화면이 지나간다 |
+| 화면 | `app/**/*.tsx` | 그리기는 없음 — 내보낸 순수 함수와 서버 페이지 함수의 약속만(위) | | 서버 HTML 만 — `check-reading` 이 「수정 전」 풀이의 딱지 · 표지 색 · 주 단추를 읽는다 | **여기서 누른다.** 누르는 자리 44px · 초점 테두리 한 겹 · 바탕 빛이 되풀이되지 않음은 `e2e/target.ts` 로 잰다(#229 — `saju.spec.ts` 의 새 한 건 · `signed-in.spec.ts` · `match.spec.ts`) |
+| 관문 | `proxy.ts` · `src/lib/consent` | `gate.test.ts` · `notice.test.ts` | `20_notice` | | `notice.spec.ts` |
+| DB | `supabase/migrations/` | | `supabase/tests/` · 모양 잠금 넷(`33_function_shape`) | 위 | |
+| 검사 도구 | `scripts/` · `eslint.config.mjs` | `ci-plan` · `run-checks` · `layers` · `code-rules` · `card-score-sql`(카드 점수의 TS ↔ SQL 이 같은 표를 읽는다) · `worktree-stack` · `secret-env`(비밀의 갈래 · `server-only` 잠금 · runbook 절, G-23 ⑧) · `vercel-ignore`(Preview 를 건너뛸지 — 0 이 건너뜀) · `copy-contracts` · `main-red` · `stack-slot` · `remote-lock` · `db-remote` · `audit-verify` · `brand-share-images` | | | |
 
 ## 무엇을 고쳤으면 무엇을 돌리나
 
