@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../../auth/server-client';
+import { signedInUser } from '../../../auth/signed-in';
 import { TYPE_TITLE } from '../../../ui/surfaces';
 import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
@@ -47,9 +48,7 @@ import { BlankBook, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from '
 export default async function ReadingsLayout({ children }: { children: ReactNode }) {
   const supabase = await supabaseOnServer();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect('/auth');
 
   /** 빈 상태의 길이 내 사주 등록 여부를 묻는다 — 온보딩으로 보내지는 않는다 */

@@ -170,6 +170,75 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page).toHaveURL(/\/auth/);
   });
 
+  test('다른 곳에서 끊긴 세션의 쿠키로는 탭을 눌러도 주소로 열어도 로그인으로 간다', async ({ openAs }) => {
+    /*
+      화면은 쿠키의 서명만 확인한다(ADR 0117) — 서명은 세션이 끊겨도 만료 전까지 맞다. 끊긴 것을 아는 것은 관문의
+      `getUser` 이고, 그것이 쿠키를 걷어야 화면이 로그인으로 보낸다. 누르는 길을 먼저 간다 — 앱 안 이동도 관문을 지난다.
+    */
+    const { page, api } = await openAs({ selfPerson: true });
+    await page.goto('/me');
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
+
+    const { error } = await api.auth.signOut({ scope: 'global' });
+    expect(error).toBeNull();
+
+    await page.getByRole('link', { name: '매칭', exact: true }).filter({ visible: true }).first().click();
+    await expect(page).toHaveURL(/\/auth/);
+    await page.goto('/me/settings');
+    await expect(page).toHaveURL(/\/auth/);
+  });
+
+  test('지워진 계정의 쿠키로는 화면이 안 열린다', async ({ openAs }) => {
+    /*
+      Auth 서버는 이 토큰에 `user_not_found`(403)를 답하지만 라이브러리는 그때 쿠키를 안 걷는다 — 관문이 걷는다
+      (ADR 0117). 안 걷으면 서명이 맞으니 화면이 없는 사람을 로그인한 사람으로 읽는다.
+    */
+    const { page, account } = await openAs({ selfPerson: true });
+    await page.goto('/me');
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
+
+    sql(`delete from auth.users where email = '${account.email}'`);
+
+    await page.goto('/me/settings');
+    await expect(page).toHaveURL(/\/auth/);
+  });
+
+  test('미리 받기는 활동이 아니고, 연 화면과 눌러서 간 화면은 활동이다', async ({ openAs }) => {
+    /*
+      PRD §7.2 · ADR 0118. 활동을 한 시간 전으로 돌린 뒤 **미리 받기 요청만** 보낸다 — 그 요청이 서버에 닿은
+      것만으로 적히는지를 가른다. 개발 서버는 미리 받기를 안 하므로 브라우저가 보내는 그 모양(`RSC` ·
+      `Next-Router-Prefetch` · `Next-Router-Segment-Prefetch`, Next 의 `segment-cache/cache.js`)을 같은 쿠키로
+      직접 보낸다. 관문에서 적던 동안 이 시험은 붉었다(미리 받기마다 적혔다).
+    */
+    const { page, account } = await openAs({ selfPerson: true });
+    const id = sql(`select id from auth.users where email = '${account.email}'`);
+    const lastActive = () =>
+      sql(`select coalesce(extract(epoch from last_active_at)::text, '') from public.user_activity where user_id = '${id}'`);
+
+    await page.goto('/me');
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
+    await expect.poll(lastActive).not.toBe('');
+
+    sql(`update public.user_activity set last_active_at = now() - interval '1 hour' where user_id = '${id}'`);
+    const rewound = lastActive();
+
+    for (const path of ['/me/matching', '/me/readings', '/me/chat', '/me/settings']) {
+      for (const segment of ['/_tree', '/_index']) {
+        const answer = await page.request.get(path, {
+          headers: { RSC: '1', 'Next-Router-Prefetch': '1', 'Next-Router-Segment-Prefetch': segment },
+          maxRedirects: 0,
+        });
+        expect(answer.status()).toBeLessThan(400);
+      }
+    }
+    await page.waitForTimeout(1_500);
+    expect(lastActive()).toBe(rewound);
+
+    await page.getByRole('link', { name: '매칭', exact: true }).filter({ visible: true }).first().click();
+    await expect(page.getByRole('heading', { name: '오늘의 인연' })).toBeVisible();
+    await expect.poll(lastActive).not.toBe(rewound);
+  });
+
   test('톱니 판은 Esc 로 닫히고 초점이 톱니로 돌아온다 — 바깥을 눌러도 닫힌다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');

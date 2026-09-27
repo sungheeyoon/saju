@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
+vi.mock('../../auth/signed-in', () => ({ signedInUser: async () => ({ id: 'u-1', email: undefined }) }));
 vi.mock('../summary', () => ({
   selfElementSummary: async () => ({
     personId: 'p-self',
@@ -32,7 +33,6 @@ import MatchingPage from './page';
 
 const answering = (joined: { data: unknown; error: unknown }) =>
   vi.mocked(supabaseOnServer).mockResolvedValue({
-    auth: { getUser: async () => ({ data: { user: { id: 'u-1' } } }) },
     rpc: async () => joined,
     from: () => ({ select: () => ({ maybeSingle: async () => ({ data: { status: 'active', self_person_id: 'p-self' }, error: null }) }) }),
   } as never);

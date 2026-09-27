@@ -6,6 +6,7 @@ import { Logo } from '../ui/logo';
 import { TYPE_TITLE } from '../ui/surfaces';
 import { SignInButton } from './sign-in-button';
 import { supabaseOnServer } from './server-client';
+import { signedInUser } from './signed-in';
 import { safeReturnPath } from './return-path';
 
 export default async function SignInPage({
@@ -15,8 +16,7 @@ export default async function SignInPage({
 }) {
   const returnTo = safeReturnPath((await searchParams).next);
   const supabase = await supabaseOnServer();
-  const { data } = await supabase.auth.getUser();
-  if (data.user) redirect(returnTo === '/#resume-reading' ? '/signup?resume=reading' : returnTo);
+  if ((await signedInUser(supabase)) !== null) redirect(returnTo === '/#resume-reading' ? '/signup?resume=reading' : returnTo);
 
   const forCompat = returnTo === '/compat';
   const forReading = returnTo === '/#resume-reading';

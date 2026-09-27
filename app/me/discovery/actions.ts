@@ -3,6 +3,7 @@
 import { refresh } from '../../refresh';
 import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
+import { signedInUser } from '../../auth/signed-in';
 import { publicCardFromRow } from '../candidates';
 import { selfElementSummary } from '../summary';
 import { PREFER_GENDERS, type PreferGender } from '@/src/lib/discovery';
@@ -101,9 +102,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
 export async function passCandidate(candidateUserId: string): Promise<SaveResult> {
   const supabase = await supabaseOnServer();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) return { ok: false, message: '로그인이 필요합니다.' };
 
   const { error } = await supabase

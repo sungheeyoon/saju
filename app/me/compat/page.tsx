@@ -7,6 +7,7 @@ import { RELATION_LABEL, relationOf } from '@/src/lib/people';
 import { analyzeCompatibility, STEM_INFO, type Stem } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { signedInUser } from '../../auth/signed-in';
 import { CompatView } from '../../compat-view';
 import { MatchResult } from '../../compat-match';
 import { ScoringNote } from '../../match-index';
@@ -58,9 +59,7 @@ export default async function ManagedCompatPage({
 }) {
   const supabase = await supabaseOnServer();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await signedInUser(supabase);
   if (!user) redirect('/auth');
 
   const params = await searchParams;

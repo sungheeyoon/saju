@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
+vi.mock('../auth/signed-in', () => ({ signedInUser: async () => ({ id: 'u-1', email: undefined }) }));
 
 import { supabaseOnServer } from '../auth/server-client';
 import CompatPage from './page';
@@ -26,7 +27,6 @@ const chain = (answer: Answer) => {
 
 const answering = (tables: Record<string, Answer>) =>
   vi.mocked(supabaseOnServer).mockResolvedValue({
-    auth: { getUser: async () => ({ data: { user: { id: 'u-1' } } }) },
     from: (table: string) => chain(tables[table]),
   } as never);
 
