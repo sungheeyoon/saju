@@ -38,6 +38,13 @@
 - 사고: 탭 에이전트가 `pkill -f "cat"` 으로 운영자의 Docker Desktop 과 IDE 를 꺼뜨렸다. 뒤의 브리프에 `pkill`/`killall` 금지를 넣었다.
 - 로컬 함정: 옮기기 전부터 떠 있던 dev 서버의 `.next/types` 가 옛 경로를 가리켜 같은 폴더의 `next build`(흐름 검사)가 타입 검사에서 멈춘다 — dev 서버를 다시 켜면 풀린다.
 
+## 저녁 — CI 차선 · 미리보기 걷기 · 정리
+
+- #287 `49ef0d6`: 관문 · 화면의 입구 · 인증 · e2e · 흐름 검사를 바꾼 PR 은 베타에서도 머지 전에 전부 돈다(ADR 0119). 오늘 #284 · #286 이 `fast` 만 돈 까닭은 규칙에 그 칸이 없어서였다.
+- #288 `716b3e2`: `/me/matching/preview` · 예시 · `preview` 갈래를 걷고(AI 얼굴 셋은 사진 올리기 e2e 가 써서 `e2e/fixtures/` 로), 늘 0 이던 덱 순번 점 · 낡은 주석(새로고침 · 5분 · 열 명)을 정리.
+- `8f6050a`: 안 쓰는 `.swipe` · `DayPillarParams` export.
+- 배포: Production = `8f6050a`(20:18). `/me/matching/preview` 404 확인.
+
 ## 남은 것
 
 - 운영자 판단 셋(#286): Auth 서버에 못 닿으면 서명만으로 화면을 여는 것 · 활동 기록이 화면(GET)과 관문(POST) 둘인 것 · `scripts/ci-plan.mjs` 가 관문과 화면 27개를 건드린 PR 에 `fast` 차선만 고른 것.
