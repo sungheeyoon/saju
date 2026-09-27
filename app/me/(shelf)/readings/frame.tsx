@@ -6,9 +6,9 @@ import { useEffect, type CSSProperties, type ReactNode } from 'react';
 
 import type { Element } from '@/src/lib/saju';
 
-import { elementScope } from '../../ui/element-tone';
-import { FaceSymbol } from '../../ui/stem-symbol';
-import { Icon } from '../../ui/icons';
+import { elementScope } from '../../../ui/element-tone';
+import { FaceSymbol } from '../../../ui/stem-symbol';
+import { Icon } from '../../../ui/icons';
 import { openingHref } from './opening';
 
 /**

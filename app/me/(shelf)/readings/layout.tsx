@@ -3,12 +3,12 @@ import type { ReactNode } from 'react';
 
 import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 
-import { supabaseOnServer } from '../../auth/server-client';
-import { TYPE_TITLE } from '../../ui/surfaces';
-import { AccountNotice } from '../account-notice';
-import { readAccount } from '../account';
-import { myReadings } from '../reading/current';
-import { matchesForViewer } from '../requests/inbox';
+import { supabaseOnServer } from '../../../auth/server-client';
+import { TYPE_TITLE } from '../../../ui/surfaces';
+import { AccountNotice } from '../../account-notice';
+import { readAccount } from '../../account';
+import { myReadings } from '../../reading/current';
+import { matchesForViewer } from '../../requests/inbox';
 import { bookOf } from './book';
 import { ReadingsFrame, type NextBook } from './frame';
 import { BlankBook, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from './shelf';

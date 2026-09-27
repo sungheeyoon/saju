@@ -6,23 +6,23 @@ import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
 import type { PersonSlots } from '@/src/lib/people';
 import type { Element } from '@/src/lib/saju';
 
-import { supabaseOnServer } from '../auth/server-client';
-import { elementScope } from '../ui/element-tone';
-import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../ui/buttons';
-import { Icon, type IconName } from '../ui/icons';
-import { BADGE, EMPTY_SLOT, TYPE_DISPLAY, TYPE_META, TYPE_SECTION } from '../ui/surfaces';
-import { readAccount } from './account';
-import { AccountNotice } from './account-notice';
-import { openDiscoveryParticipation } from './discovery/participation';
-import { myCircle } from './home/circle';
-import { compatHrefOf, mapModelOf, pairWithSelf, readingOf, selfReadingOf, type HomePerson } from './home/map/model';
-import { RelationMap } from './home/map/relation-map';
-import { PersonTile } from './home/person-tile';
-import { SelfCard } from './home/self-card';
-import { Onboarding } from './onboarding';
-import { storedInputOf, storedInputsOf } from './person-input';
-import { myReadings } from './reading/current';
-import { unreadCount } from './requests/inbox';
+import { supabaseOnServer } from '../../auth/server-client';
+import { elementScope } from '../../ui/element-tone';
+import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
+import { Icon, type IconName } from '../../ui/icons';
+import { BADGE, EMPTY_SLOT, TYPE_DISPLAY, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
+import { readAccount } from '../account';
+import { AccountNotice } from '../account-notice';
+import { openDiscoveryParticipation } from '../discovery/participation';
+import { myCircle } from '../home/circle';
+import { compatHrefOf, mapModelOf, pairWithSelf, readingOf, selfReadingOf, type HomePerson } from '../home/map/model';
+import { RelationMap } from '../home/map/relation-map';
+import { PersonTile } from '../home/person-tile';
+import { SelfCard } from '../home/self-card';
+import { Onboarding } from '../onboarding';
+import { storedInputOf, storedInputsOf } from '../person-input';
+import { myReadings } from '../reading/current';
+import { unreadCount } from '../requests/inbox';
 
 /**
  * 로그인한 사람이 도착하는 자리 — **홈.**

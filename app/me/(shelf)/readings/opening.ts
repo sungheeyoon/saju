@@ -1,4 +1,4 @@
-import { readingHrefOf } from '../reading/target';
+import { readingHrefOf } from '../../reading/target';
 
 /**
  * 넓은 화면에서 목록만 열면 **펼 한 권** — 내 사주풀이가 있으면 그것, 없으면 가장 최근 한 사람 풀이(2026-09-27 운영자).

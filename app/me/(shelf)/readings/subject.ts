@@ -1,8 +1,8 @@
 import { storedChartOf } from '@/src/lib/input/stored';
 import { STEM_INFO, type Element } from '@/src/lib/saju';
 
-import type { supabaseOnServer } from '../../auth/server-client';
-import { storedInputsOf } from '../person-input';
+import type { supabaseOnServer } from '../../../auth/server-client';
+import { storedInputsOf } from '../../person-input';
 
 type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
 

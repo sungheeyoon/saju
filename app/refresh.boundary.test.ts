@@ -255,7 +255,8 @@ describe('표가 가리키는 것', () => {
       .map(asPosix)
       .filter((path) => /\/page\.tsx$/.test(path))
       .map((path) => {
-        const route = path.replace(/^app/, '').replace(/\/page\.tsx$/, '');
+        /* 무리 폴더(`(home)` · `(shelf)`)는 주소에 안 든다 — 탭의 뼈대가 그 안에 산다(2026-09-27) */
+        const route = path.replace(/^app/, '').replace(/\/\([^/]+\)/g, '').replace(/\/page\.tsx$/, '');
         return route === '' ? '/' : route;
       }),
   );
