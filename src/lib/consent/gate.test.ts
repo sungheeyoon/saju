@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { NOTICE_ACK_FLOOR, NOTICE_VERSION, noticeEdition } from './notice';
 import {
+  NOTICE_UNREAD,
   betaIsOver,
   gateFor,
   signupDone,
@@ -108,8 +109,23 @@ describe('가입', () => {
     expect(gateFor('/me', { ...ready, noticeScheduleId: 6 }, notice, during)).toBe('/signup');
   });
 
-  it('일정을 못 읽으면 가입 화면으로 보낸다 — 그 화면이 말할 자리다', () => {
+  it('일정이 없으면 가입 화면으로 보낸다 — 그 화면이 말할 자리다', () => {
     expect(gateFor('/me', ready, null, during)).toBe('/signup');
+  });
+
+  /**
+   * **일정을 못 읽은 것은 일정이 없는 것과 다르다**(ADR 0078). 둘을 한 `null` 로 합쳤을 때는
+   * 일정 문 한 번이 실패하면 가입을 마친 사람 전원의 `/me` 아래 요청이 가입 화면으로 튕겼다 —
+   * 계정을 못 읽었을 때와 같은 까닭으로 아무 데도 안 보낸다. 접근은 DB 가 다시 묻는다.
+   */
+  it('일정을 못 읽으면 가입한 사람을 가입 화면으로 보내지 않는다', () => {
+    expect(gateFor('/me', ready, NOTICE_UNREAD, during)).toBeNull();
+    expect(gateFor('/me/people', ready, NOTICE_UNREAD, during)).toBeNull();
+    expect(gateFor('/me/settings', ready, NOTICE_UNREAD, during)).toBeNull();
+  });
+
+  it('일정을 못 읽으면 가입 전인 사람도 보내지 않는다 — 그 화면도 같은 일정을 못 읽는다', () => {
+    expect(gateFor('/me', fresh, NOTICE_UNREAD, during)).toBeNull();
   });
 
   it('다 맞으면 안 보낸다', () => {

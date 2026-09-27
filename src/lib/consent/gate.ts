@@ -56,11 +56,18 @@ export type GateAccount = {
 /** 가입을 끝내는 자리 — `/me` 밖이라 관문이 자기 자신을 막지 않는다 */
 const SIGNUP_PATH = '/signup';
 
-/** 지금 안내 한 벌 — 못 읽었으면 `null` */
+/** 지금 안내 한 벌 */
 export type GateNotice = {
   readonly scheduleId: number;
   readonly dates: BetaDates;
 };
+
+/**
+ * 일정을 **못 읽었다** — 일정이 없는 것(`null`)과 다른 값이다(ADR 0078).
+ *
+ * 이 lib 은 앱의 `SkippableRead` 를 모르므로(층이 막는다) 관문이 받는 모양은 여기서 적는다.
+ */
+export const NOTICE_UNREAD = 'unread';
 
 /**
  * 관문이 서는 자리인가.
@@ -86,15 +93,19 @@ export const betaIsOver = (dates: BetaDates, now: Date): boolean =>
  * @param account 못 읽었으면 `null`. **그때는 아무 데도 안 보낸다** — 계정을 못 읽은
  *   것은 안내를 안 본 것과 다르고, 돌려보내면 그 화면도 못 읽어 되돌이가 된다.
  *   화면마다 「계정을 읽지 못했습니다」라고 말할 자리가 있다.
+ * @param notice 일정이 없으면 `null`, 못 읽었으면 `NOTICE_UNREAD`. **못 읽었을 때도 아무 데도
+ *   안 보낸다** — 같은 까닭이다. 한 `null` 로 합쳤을 때는 일정 문 한 번의 실패가 가입을 마친
+ *   사람 전원을 `/signup` 으로 튕겼다. 여기는 접근 판정을 안 하므로 안 보내서 열리는 문은 없다.
  */
 export function gateFor(
   path: string,
   account: GateAccount | null,
-  notice: GateNotice | null,
+  notice: GateNotice | null | typeof NOTICE_UNREAD,
   now: Date,
 ): string | null {
   if (!gated(path)) return null;
   if (account === null) return null;
+  if (notice === NOTICE_UNREAD) return null;
 
   /**
    * **끝났으면 여기서 끝난다.**
