@@ -46,8 +46,7 @@ type View = 'today' | 'passed';
   시트가 들던 것을 펼쳐 둔다. 참고 점수 고지는 넓은 화면에서는 목록 머리 한 줄이다.
 
   동작은 옛 덱 그대로다: 넘기면 서버 보관함에 적고(`passCandidate`), 요청은 확인 창을 지나야 나가며(`requestMatch`),
-  되돌리기와 지나친 인연의 「다시 만나보기」는 같은 복원 경로를 쓴다(`restorePassed`). 미리보기(`preview`)는 셋 다
-  서버를 부르지 않는다.
+  되돌리기와 지나친 인연의 「다시 만나보기」는 같은 복원 경로를 쓴다(`restorePassed`).
 
   **덱은 여섯 자리이고 떠나면 채워진다**(ADR 0115). 넘기거나 요청하면 응답이 실어 온 새 목록에 채운 사람이 뒤에
   붙어 오고, `sync` 가 그 사람을 덱 뒤에 합친다 — 덱을 통째로 다시 세우지 않는다. 새로고침 단추는 없다.
@@ -59,7 +58,6 @@ export function MatchingExperience({
   notice,
   explorationNote,
   passed: passedFromServer = EMPTY_CARDS,
-  preview = false,
 }: {
   cards: readonly DeckCard[];
   /** 지도의 가운데 — 내 일간과 오행 다섯 */
@@ -69,17 +67,14 @@ export function MatchingExperience({
   teaser: string;
   notice: string | null;
   explorationNote: string | null;
-  /** 디자인 확인용 — **요청이 나가지 않고**, 목록을 건드리는 누름도 서지 않는다 */
-  preview?: boolean;
 }) {
   const [deck, dispatch] = useReducer(deckReducer, {
     remaining: cards, passed: passedFromServer.slice(0, PASSED_LIMIT), history: [], seen: [],
   });
   /*
     **순번은 덱 안의 자리다** — 덱은 떠난 만큼 채워지므로 「지금까지 본 수 / 전체」가 끝없이 자란다. 지금 사람이 첫
-    자리이고 덱에 선 사람이 전체다.
+    자리(`01`)이고 덱에 선 사람이 전체다.
   */
-  const index = 0;
   const total = deck.remaining.length;
   const passed = deck.passed;
   const hidden = deck.history[0] ?? null;
@@ -148,7 +143,6 @@ export function MatchingExperience({
       dispatch({ type: 'pass', card: passing });
       leave('left', `${passing.nickname} 님을 지나친 인연에 두었어요.`, passing.candidateUserId);
     };
-    if (preview) { finish(); return; }
     busy.current = true;
     startWorking(async () => {
       try {
@@ -165,10 +159,7 @@ export function MatchingExperience({
   function send() {
     if (!profile || busy.current || exit) return;
     const sending = profile;
-    const finish = () => leave('right', preview
-      ? `미리보기예요 — ${sending.nickname} 님에게 요청은 전송되지 않았어요.`
-      : `${sending.nickname} 님에게 상세 궁합을 요청했어요.`, sending.candidateUserId);
-    if (preview) { finish(); return; }
+    const finish = () => leave('right', `${sending.nickname} 님에게 상세 궁합을 요청했어요.`, sending.candidateUserId);
     setFailure(null);
     busy.current = true;
     startWorking(async () => {
@@ -191,7 +182,7 @@ export function MatchingExperience({
     let message: string | null = null;
     await new Promise<void>((resolve) => startWorking(async () => {
       try {
-        const result = preview ? { ok: true as const, card: back, passed: undefined } : await restorePassed(back.candidateUserId);
+        const result = await restorePassed(back.candidateUserId);
         if (!result.ok) { message = result.message; setFailure(message); return; }
         cancelLeave();
         dispatch({ type: 'restore', card: result.card, passed: result.passed });
@@ -221,7 +212,7 @@ export function MatchingExperience({
     if (deck.remaining.some((one) => one.candidateUserId === card.candidateUserId)) return 'waiting';
     return passed.some((one) => one.candidateUserId === card.candidateUserId) ? 'passed' : 'requested';
   };
-  const counter = `${String(Math.min(index + 1, total)).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
+  const counter = `${String(Math.min(1, total)).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
 
   /** 되돌릴 한 줄 · 실패 · 방금 한 일 — 한 화면에 한 자리에만 선다 */
   const feedback = (
@@ -272,7 +263,7 @@ export function MatchingExperience({
           <h1 className={TYPE_DISPLAY}>오늘의 인연</h1>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2 sm:hidden">
-          {view === 'today' && profile !== undefined && <DeckDots at={index} total={total} counter={counter} />}
+          {view === 'today' && profile !== undefined && <DeckDots total={total} counter={counter} />}
           <button
             type="button"
             onClick={() => setView(view === 'today' ? 'passed' : 'today')}
@@ -307,7 +298,6 @@ export function MatchingExperience({
       {view === 'passed' ? (
         <PassedConnections
           cards={passed}
-          preview={preview}
           working={working || exit === 'right'}
           onRestore={async (card) => {
             const message = await restoreCard(card);

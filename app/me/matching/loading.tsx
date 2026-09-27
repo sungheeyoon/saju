@@ -3,7 +3,7 @@ import { Bone, SkeletonMain } from '../../ui/skeleton';
 /**
  * 오늘의 인연의 뼈대 — 제목 줄 · 카드 한 장, 넓은 화면은 그 옆에 궤도 지도(`matching-experience.tsx`).
  *
- * 이 폴더 아래는 예시 화면(`preview`)뿐이고 같은 모양이라 함께 이 뼈대를 쓴다(ADR 0116).
+ * 탭을 누르는 즉시 이 뼈대로 넘어간다(ADR 0116).
  */
 export default function MatchingLoading() {
   return (

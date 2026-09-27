@@ -6,7 +6,6 @@ import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
 import { READING_FAILED_NOTE } from '@/src/lib/reading';
 
 import { fillBirthDate } from './birth-form';
-import { hydrated } from './hydrated';
 import { expectTargets } from './target';
 
 /**
@@ -858,26 +857,6 @@ test.describe('매칭 덱 상태 회귀', () => {
     expect(response.status()).toBe(200);
     await expect(panel.getByText(/예시|연결 준비 중/)).toHaveCount(0);
   });
-});
-
-test('매칭 진입과 AI 미리보기의 보관·복원은 실제 기록을 바꾸지 않는다', async ({ openAs, isMobile }) => {
-  const viewer = await openAs({ selfPerson: true });
-  await viewer.page.goto('/me');
-  await expect(viewer.page.getByRole('link', { name: /매칭에서 오늘의 인연 만나기/ })).toBeVisible();
-  await expect(viewer.page.getByRole('heading', { name: '오늘의 인연', exact: true })).toHaveCount(0);
-  if (isMobile) await expect(viewer.page.getByRole('navigation', { name: '모바일 내 메뉴' }).getByRole('link', { name: '매칭', exact: true })).toBeVisible();
-  await viewer.page.goto('/me/matching/preview');
-  const before = (await viewer.api.from('discovery_passed').select('passed_user_id')).data;
-  const name = (await viewer.page.getByRole('article').getByRole('heading').textContent())!;
-  await (await hydrated(viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }))).click();
-  await expect(viewer.page.getByRole('article').getByRole('heading', { name })).not.toBeVisible();
-  await viewer.page.getByRole('button', { name: /지나친 인연/ }).click();
-  const panel = viewer.page.getByRole('region', { name: /지나친 인연/ });
-  await viewer.page.screenshot({ path: `test-results/matching-panel-${isMobile ? 'mobile' : 'desktop'}.png` });
-  await panel.getByRole('listitem').filter({ hasText: name }).getByRole('button', { name: '다시 만나보기' }).click();
-  await expect(panel).not.toBeVisible();
-  await expect(viewer.page.getByRole('article').getByRole('heading', { name })).toBeVisible();
-  expect((await viewer.api.from('discovery_passed').select('passed_user_id')).data).toEqual(before);
 });
 
 /**
