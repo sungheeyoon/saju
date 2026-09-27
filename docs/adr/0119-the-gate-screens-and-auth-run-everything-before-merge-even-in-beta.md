@@ -37,3 +37,17 @@
 
 그런 PR 은 머지 전에 약 5분(전부)을 기다린다 — `fast` 는 빌드를 넣은 뒤 몇 분이라 차이는 몇 분이다. strict 가 뒤에 선 PR 을
 최신 main 위에서 다시 돌리므로 그 값이 두 번 들 수 있다. 공개 출시로 옮기면 이 예외는 「그 밖 전부 → 전부」에 녹아 사라진다.
+
+## 추기 (2026-09-28) — 이름이 아니라 import 로 가르는 입구 둘
+
+밤샘 감사가 경로를 `ci-plan.mjs` 에 넣어 보니 판단이 사는 문이 `fast` 였다. `page.tsx` 는 얇고 DB 를 부르는 것은 옆의 `.ts` 다 —
+`app/me/reading/pipeline.ts` · `app/me/candidates.ts` · `app/me/chat/rooms.ts` · `app/keyed-client.ts`(service-role) · `app/ops/reports/read.ts` ·
+`app/share/public-client.ts`, 그리고 `proxy.ts` 가 부르는 `app/beta-schedule.ts`. 앱 서버의 설정(`next.config.ts` 의 CSP — 익명 e2e 가 잰다) ·
+`playwright.config.ts` · 흐름 검사의 도우미(`scripts/checks.mjs` · `notice.mjs`) · `src/lib/local-env.ts` 도 그랬다. 그래서 `SURFACE` 에 둘을 더했다.
+**서버에 닿는 `app/` 파일** — `app/**` 의 시험 아닌 `.ts` · `.tsx` 가 Supabase 클라이언트나 서버 전용 모듈(`server-only` · `next/server` ·
+`next/headers` · `next/cache`)을 import 하면 이름과 상관없이 입구다(`SERVER_REACHING`, 계획 job 이 HEAD 를 읽는다). **시험 도구가 혼자
+쓰는 파일**(`HARNESS`) — 목록이지만, 시험이 e2e · 흐름 검사 · Playwright 설정에서 import 를 따라가 앱이 안 닿는 파일이 전부 걸리는지
+잰다. 잰 값: 한 파일만 바꾼 PR 이 전부로 옮는 파일 42 개(`app/**` `.ts` 35 · 브라우저 client 를 부르는 `.tsx` 2 · 도구 5), `app/**` 의 순수
+로직 `.ts` 44 개는 그대로 `fast`. 최근 머지된 PR 30 개를 넣으면 전부가 16 → 17 이다. `src/lib/**` 는 위 「안 고른 것」대로 내용으로 안 가른다.
+같은 날 `ci-plan.test.ts` 가 계획이 내는 차선 전부를 `verify.yml` 의 `plan.outputs` · job `if` · `gate` 의 `needs` 와 견주게 했다 —
+한쪽 이름만 바뀌면 그 job 은 늘 skipped 이고 `gate` 는 초록이라, 전에는 `audit` 하나만 견줬다.

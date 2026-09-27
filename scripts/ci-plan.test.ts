@@ -5,8 +5,8 @@
  * 「문서만 바뀌면 건너뛰는가」보다 「모르는 파일이 하나라도 있으면 전부 도는가」와
  * 「라벨이 검사를 뺄 수 없는가」다.
  */
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -14,9 +14,10 @@ import {
   DEPENDENCY_LISTS,
   ENGINE_DB_FACING,
   FAST_STEPS,
-  FLOW_RUNNERS,
   FULL_LABEL,
+  HARNESS,
   SERVER_ACTIONS_ELSEWHERE,
+  importsOf,
   isSurface,
   planFor,
   summaryOf,
@@ -135,7 +136,7 @@ describe('CI 계획 — 관문 · 화면 · 인증은 베타에서도 전부다 
       ...SERVER_ACTIONS_ELSEWHERE,
       'e2e/match.spec.ts',
       'scripts/check-discovery.mjs',
-      ...FLOW_RUNNERS,
+      ...HARNESS,
     ]) {
       expect(beta([file]).lanes, file).toEqual(FULL);
       expect(beta(['docs/prd.md', file]).tier, file).toBe('full');
@@ -150,8 +151,11 @@ describe('CI 계획 — 관문 · 화면 · 인증은 베타에서도 전부다 
       'app/auth/signed-in.test.ts',
       'app/me/discovery/actions.test.ts',
       'src/lib/matching/pool.ts',
-      'scripts/checks.mjs',
       'scripts/ci-plan.mjs',
+      'scripts/fake-clock.mjs',
+      'app/me/matching/deck-state.ts',
+      'app/api/portone/webhook/settle.ts',
+      'app/db-error.ts',
       'app/pages.ts',
       'app/me/pageless.tsx',
     ]) {
@@ -172,7 +176,144 @@ describe('CI 계획 — 관문 · 화면 · 인증은 베타에서도 전부다 
     expect(servers.length).toBeGreaterThan(0);
     expect(servers.filter((file) => !isSurface(file))).toEqual([]);
     // 이름으로 견주는 목록이다 — 옮기거나 지우면 옛 이름은 아무것도 안 건다
-    expect([...SERVER_ACTIONS_ELSEWHERE, ...FLOW_RUNNERS].filter((file) => !existsSync(resolve(root, file)))).toEqual([]);
+    expect([...SERVER_ACTIONS_ELSEWHERE, ...HARNESS].filter((file) => !existsSync(resolve(root, file)))).toEqual([]);
+  });
+});
+
+/** 저장소 안의 import 를 파일로 푼다 — `./` · `../` · `@/` 만. 패키지는 `null` */
+const ROOT = resolve(__dirname, '..');
+const resolveImport = (name: string, from: string): string | null => {
+  const base = name.startsWith('@/') ? resolve(ROOT, name.slice(2)) : name.startsWith('.') ? resolve(dirname(from), name) : null;
+  if (base === null) return null;
+  for (const tail of ['', '.ts', '.tsx', '.mjs', '.js', '/index.ts', '/index.tsx']) {
+    const file = base + tail;
+    if (existsSync(file) && statSync(file).isFile()) return file;
+  }
+  return null;
+};
+const reachedFrom = (roots: string[]): Set<string> => {
+  const seen = new Set<string>();
+  const queue = [...roots];
+  while (queue.length > 0) {
+    const file = queue.pop()!;
+    if (seen.has(file)) continue;
+    seen.add(file);
+    for (const name of importsOf(readFileSync(file, 'utf8'))) {
+      const next = resolveImport(name, file);
+      if (next !== null && !next.includes('/node_modules/')) queue.push(next);
+    }
+  }
+  return seen;
+};
+const filesUnder = (dir: string): string[] =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((one) =>
+    one.isDirectory() ? filesUnder(join(dir, one.name)) : /\.(tsx?|mjs)$/.test(one.name) ? [join(dir, one.name)] : [],
+  );
+const isTestFile = (file: string) => /\.test\.tsx?$/.test(file);
+
+describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구다 (2026-09-28, ADR 0119 추기)', () => {
+  const FULL = { policy: false, fast: false, verify: true, authed: true, flow: true, audit: false };
+
+  it('감사가 짚은 서버 문 — 이름이 입구가 아니어도 DB · service-role · 공개 client 를 부르면 전부다', () => {
+    for (const file of [
+      'app/me/reading/pipeline.ts',
+      'app/me/same-chart.ts',
+      'app/me/candidates.ts',
+      'app/me/chat/rooms.ts',
+      'app/keyed-client.ts',
+      'app/ops/reports/read.ts',
+      'app/share/public-client.ts',
+      'app/me/photo/photo-response.ts',
+      'app/beta-schedule.ts',
+    ]) {
+      expect(beta([file]).lanes, file).toEqual(FULL);
+    }
+  });
+
+  it('앱 서버의 설정과 흐름 검사 · e2e 의 도우미도 전부다', () => {
+    for (const file of ['next.config.ts', 'playwright.config.ts', 'scripts/checks.mjs', 'scripts/notice.mjs', 'src/lib/local-env.ts']) {
+      expect(beta([file]).lanes, file).toEqual(FULL);
+    }
+  });
+
+  it('가르는 것은 이름이 아니라 import 다 — 새 파일도 · 지운 파일은 안 건다 · 시험 파일은 안 건다', () => {
+    const fake = (source: string | null) => () => source;
+    expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("import { supabaseOnServer } from '../auth/server-client';") }).tier).toBe('full');
+    expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("import type { SupabaseClient } from '@supabase/supabase-js';") }).tier).toBe('full');
+    expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("import 'server-only';") }).tier).toBe('full');
+    expect(planFor({ files: ['app/me/new-door.ts'], stage: '운영 베타', sourceOf: fake("export { x } from '../../keyed-client';") }).tier).toBe('full');
+    expect(planFor({ files: ['app/me/pure.ts'], stage: '운영 베타', sourceOf: fake("import { chartOf } from '@/src/lib/input/chart';") }).tier).toBe('fast');
+    expect(planFor({ files: ['app/me/gone.ts'], stage: '운영 베타', sourceOf: fake(null) }).tier).toBe('fast');
+    expect(planFor({ files: ['app/me/door.test.ts'], stage: '운영 베타', sourceOf: fake("import 'server-only';") }).tier).toBe('fast');
+    // app/ 밖은 내용으로 안 가른다 — src/lib 는 전처럼 fast(ADR 0119 「안 고른 것」)
+    expect(planFor({ files: ['src/lib/db/x.ts'], stage: '운영 베타', sourceOf: fake("import '@supabase/ssr';") }).tier).toBe('fast');
+  });
+
+  it('관문(proxy.ts)이 import 하는 저장소 파일은 전부 입구다', () => {
+    const reached = [...reachedFrom([resolve(ROOT, 'proxy.ts')])].map((file) => relative(ROOT, file));
+    expect(reached).toContain('app/beta-schedule.ts');
+    // 관문이 부르는 도메인 lib(`src/lib/consent` 밖)는 앱도 부르고 단위 시험이 잰다 — app/ 과 관문 자리만 본다
+    const doors = reached.filter((file) => file.startsWith('app/') || file === 'proxy.ts' || file.startsWith('src/lib/consent/'));
+    expect(doors.filter((file) => !isSurface(file))).toEqual([]);
+  });
+
+  it('e2e · 흐름 검사 · Playwright 가 import 하되 앱은 안 닿는 파일은 전부 입구다 — 새 도우미가 조용히 빠지지 않게', () => {
+    const harnessRoots = [
+      ...filesUnder(resolve(ROOT, 'e2e')),
+      ...readdirSync(resolve(ROOT, 'scripts'))
+        .filter((name) => /^check-[^/]+\.mjs$/.test(name))
+        .map((name) => resolve(ROOT, 'scripts', name)),
+      ...HARNESS.map((file) => resolve(ROOT, file)),
+    ];
+    const appRoots = [...filesUnder(resolve(ROOT, 'app')).filter((file) => !isTestFile(file)), resolve(ROOT, 'proxy.ts')];
+    const app = reachedFrom(appRoots);
+    const toolOnly = [...reachedFrom(harnessRoots)].filter((file) => !app.has(file)).map((file) => relative(ROOT, file));
+    expect(toolOnly).toContain('scripts/checks.mjs');
+    expect(toolOnly.filter((file) => !isSurface(file))).toEqual([]);
+  });
+});
+
+describe('CI 계획 — ci-plan.mjs 의 차선과 verify.yml 이 짝을 이룬다', () => {
+  /**
+   * 한쪽에서 이름이 바뀌면 그 job 은 `if` 가 영원히 거짓이라 늘 skipped 이고, `gate` 는 skipped 를 통과로 세 초록이다 —
+   * 아무 빨간불 없이 차선 하나가 사라진다. 그래서 계획이 내는 차선 전부를 워크플로의 네 자리와 견준다.
+   */
+  const yml = readFileSync(resolve(__dirname, '../.github/workflows/verify.yml'), 'utf8');
+  /** 단계마다 내는 차선 이름의 합 — 한 단계의 줄에서만 이름이 바뀌어도 걸리게 */
+  const lanes = [
+    ...new Set(
+      [planFor({ files: [], event: 'push' }), beta(['app/me/matching/deck-state.ts']), beta(['docs/prd.md']), pr(['src/lib/saju/strength/index.ts'])]
+        .flatMap((plan) => Object.keys(plan.lanes)),
+    ),
+  ].sort();
+  const jobs = new Map(
+    [...yml.split(/^jobs:\n/m)[1].matchAll(/^  ([a-z][\w-]*):\n([\s\S]*?)(?=^  [a-z][\w-]*:\n|(?![\s\S]))/gm)].map((one) => [one[1], one[2]]),
+  );
+
+  it('계획 job 의 outputs 는 차선마다 한 줄이고 같은 이름의 step 출력을 넘긴다', () => {
+    const plan = jobs.get('plan') ?? '';
+    const block = /\n    outputs:\n((?: {6}.+\n)+)/.exec(plan)?.[1] ?? '';
+    const pairs = [...block.matchAll(/^ {6}([\w-]+): \$\{\{ steps\.plan\.outputs\.([\w-]+) \}\}$/gm)].map((one) => [one[1], one[2]]);
+    expect(pairs.length).toBe(block.trim().split('\n').length);
+    for (const [key, value] of pairs) expect(value, key).toBe(key);
+    expect(pairs.map(([key]) => key).sort()).toEqual(lanes);
+  });
+
+  it('차선마다 같은 이름의 job 이 있고 그 job 은 제 출력 하나로만 켜진다', () => {
+    for (const lane of lanes) {
+      const job = jobs.get(lane);
+      expect(job, lane).toBeDefined();
+      expect(job, lane).toMatch(/^ {4}needs: plan$/m);
+      expect(job, lane).toMatch(new RegExp(`^ {4}if: needs\\.plan\\.outputs\\.${lane} == 'true'$`, 'm'));
+    }
+    const read = [...yml.matchAll(/needs\.plan\.outputs\.([\w-]+)/g)].map((one) => one[1]);
+    expect(read.filter((name) => !lanes.includes(name))).toEqual([]);
+  });
+
+  it('plan · gate 밖의 job 은 전부 차선이고, gate 가 그 전부를 물린다', () => {
+    expect([...jobs.keys()].filter((name) => name !== 'plan' && name !== 'gate').sort()).toEqual(lanes);
+    const needs = /^ {4}needs: \[([^\]]*)\]$/m.exec(jobs.get('gate') ?? '')?.[1].split(',').map((one) => one.trim()) ?? [];
+    expect(needs.sort()).toEqual(['plan', ...lanes].sort());
   });
 });
 
