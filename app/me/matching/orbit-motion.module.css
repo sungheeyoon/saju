@@ -1,0 +1,291 @@
+/*
+  **지도의 움직임 — 바뀌는 순간에만 선다**(2026-09-27, 시안 b 「모션 · 인터랙션」을 운영자가 골랐다).
+
+  사람은 화면의 직선이 아니라 **궤도 좌표(각도 · 반지름)** 로 움직인다. 반지름과 각도를 등록한 사용자 속성(`@property`)으로
+  두고 `left` · `top` 을 `cos()` · `sin()` 으로 셈하므로, 전환이 두 수를 따로 보간해 사람이 궤도를 따라 돌고 궤도 사이를 건넌다.
+
+  전환은 넷이고 저마다 곡선이 다르다:
+  - arrive — 바깥 제 자리에서 안으로. 끝에서 살짝 넘었다 돌아와 선다(다가와 멈춘다)
+  - pass   — 궤도 방향으로 계속 돌며 밖으로 풀려 나간다(가속, 뒤늦게 옅어진다)
+  - pull   — 조금 돌며 가운데로 빨려 든다(가속), 닿는 순간 나에게 한 번의 물결
+  - rest   — 기다림 · 되돌림 · 반 걸음 기울기의 부드러운 이동
+  그리고 `enter` — 지도에 새로 서는 사람(첫 그림 · 줄이 당겨져 새로 든 사람)이 먼 궤도에서 제 자리로 들어온다.
+
+  **늘 반복되는 움직임은 없다** — 전에 채워진 알이 끝없이 숨 쉬던 것(`breathe`)을 걷고 한 번 퍼지는 테(`settle`)로 바꿨다.
+
+  **못 하는 브라우저는 끝 자리에 선다.** 자리의 기본값은 지도가 셈해 넘긴 끝 좌표(`--orbit-x` · `--orbit-y`)이고, `sin()` 을
+  아는 브라우저에서만 궤도 좌표로 덮는다(`@supports`) — `var()` 가 든 선언은 읽을 때 걸러지지 않아 뒤에 둔 대체값이 안 먹는다.
+  `sin()` 은 알지만 `@property` 를 모르는 브라우저(Safari 15.4–16.3 · Firefox 108–127)는 사용자 속성을 보간하지 못해 전환 없이
+  끝 자리로 바로 선다 — 줄인 움직임과 같은 모습이다. `enter` 는 `left` · `top` 을 직접 움직여 어디서나 돈다.
+*/
+@property --orbit-rx {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --orbit-ry {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --orbit-a {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.seat {
+  position: absolute;
+  left: calc(var(--orbit-x) * 1%);
+  top: calc(var(--orbit-y) * 1%);
+  translate: -50% -50%;
+}
+
+@supports (top: calc(1% * sin(1deg))) {
+  .seat {
+    left: calc((var(--orbit-cx) + var(--orbit-rx) * cos(var(--orbit-a))) * 1%);
+    top: calc((var(--orbit-cy) + var(--orbit-ry) * sin(var(--orbit-a))) * 1%);
+  }
+}
+
+.rest {
+  transition:
+    --orbit-rx 520ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    --orbit-ry 520ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    --orbit-a 520ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 320ms ease,
+    scale 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.arrive {
+  transition:
+    --orbit-rx 640ms cubic-bezier(0.22, 1.28, 0.4, 1),
+    --orbit-ry 640ms cubic-bezier(0.22, 1.28, 0.4, 1),
+    --orbit-a 640ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 240ms ease,
+    scale 640ms cubic-bezier(0.22, 1.28, 0.4, 1);
+}
+
+.pass {
+  transition:
+    --orbit-a 760ms cubic-bezier(0.4, 0, 0.9, 0.55),
+    --orbit-rx 760ms cubic-bezier(0.55, 0, 0.9, 0.4),
+    --orbit-ry 760ms cubic-bezier(0.55, 0, 0.9, 0.4),
+    opacity 380ms linear 380ms,
+    scale 760ms ease-in;
+}
+
+.pull {
+  transition:
+    --orbit-rx 700ms cubic-bezier(0.6, 0, 0.9, 0.3),
+    --orbit-ry 700ms cubic-bezier(0.6, 0, 0.9, 0.3),
+    --orbit-a 700ms cubic-bezier(0.3, 0, 0.7, 0.4),
+    opacity 160ms linear 560ms,
+    scale 700ms cubic-bezier(0.6, 0, 0.9, 0.3);
+}
+
+/*
+  지도에 새로 서는 사람 — 먼 궤도(지나친 사람이 풀려 가는 반지름)의 같은 각도에서 제 자리로 들어온다. 멀리 = 아직 줄 뒤.
+  같은 각도의 반지름만 바뀌므로 화면에서도 곧은 길이라 `left` · `top` 으로 움직인다. 끝난 뒤에 붙잡지 않는다(backwards) —
+  붙잡으면 상태가 바뀔 때의 전환과 겹친다.
+*/
+.enter {
+  animation: enter 620ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--orbit-enter-delay, 0ms) backwards;
+}
+
+@keyframes enter {
+  from {
+    left: calc(var(--orbit-far-x) * 1%);
+    top: calc(var(--orbit-far-y) * 1%);
+    opacity: 0;
+  }
+}
+
+/* 넘친 사람 수 — 바뀔 때 한 번 */
+.count {
+  animation: count 360ms cubic-bezier(0.22, 1.28, 0.4, 1) both;
+}
+
+@keyframes count {
+  from {
+    scale: 0.7;
+    opacity: 0;
+  }
+}
+
+/* 얼굴의 크기 — 다가온 사람만 커진다. 도착 곡선과 같은 시간 */
+.face {
+  transition:
+    width 640ms cubic-bezier(0.22, 1.28, 0.4, 1),
+    height 640ms cubic-bezier(0.22, 1.28, 0.4, 1),
+    filter 500ms ease,
+    opacity 500ms ease;
+}
+
+/* 채워 주는 선 — 도착이 거의 끝날 때(520ms) 그어지기 시작한다. `pathLength=1` 이라 길이와 상관없다 */
+.thread {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 700ms cubic-bezier(0.2, 0.8, 0.2, 1) 520ms forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* 지나칠 때 — 선이 그 사람 쪽으로 감겨 간다(가져간다) */
+.retractOut {
+  stroke-dasharray: 1;
+  animation: retract-out 340ms cubic-bezier(0.5, 0, 0.9, 0.5) forwards;
+}
+
+@keyframes retract-out {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* 요청할 때 — 선이 내 오행 쪽으로 스며든다(내 안에 남는다) */
+.retractIn {
+  stroke-dasharray: 1;
+  animation: retract-in 560ms cubic-bezier(0.5, 0, 0.9, 0.5) 120ms forwards;
+}
+
+@keyframes retract-in {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+
+/* 지나간 · 빨려 든 길 — 그 사람이 간 나선을 한 번 긋고 사라진다 */
+.wake {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  animation: wake 900ms cubic-bezier(0.3, 0.6, 0.3, 1);
+}
+
+@keyframes wake {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0.7;
+  }
+  55% {
+    stroke-dashoffset: 0;
+    opacity: 0.55;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+/* 기울인 사람(누름)이 채울 자리 — 아직 오지 않았으니 점선으로, 한 번 옅게 떠오른다 */
+.ghost {
+  animation: fade-in 320ms ease both;
+}
+
+/* 지나온 길의 점선 — 도착한 뒤에 선다 */
+.late {
+  animation: fade-in 420ms ease 560ms both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* 차오른 알이 한 번 퍼지는 테 — 늘 숨쉬던 것을 대신한다 */
+.settle {
+  animation: settle 1000ms cubic-bezier(0.2, 0.8, 0.2, 1) 1700ms both;
+}
+
+@keyframes settle {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--mid) 55%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 14px color-mix(in srgb, var(--mid) 0%, transparent);
+  }
+}
+
+/* 요청한 사람이 닿을 때 나에게 한 번의 물결 */
+.ripple {
+  opacity: 0;
+  animation: ripple 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) 620ms;
+}
+
+@keyframes ripple {
+  from {
+    opacity: 0.8;
+    scale: 0.92;
+  }
+  to {
+    opacity: 0;
+    scale: 1.9;
+  }
+}
+
+/* 누름 — 지도가 조금 줄며 위로 서고 비운 아래에 짧은 카드가 떠오른다 */
+.layer {
+  transform-origin: 50% 0;
+  transition: scale 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.card {
+  animation: rise 300ms cubic-bezier(0.2, 0.8, 0.2, 1) 80ms both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+.drawer {
+  transition: grid-template-rows 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* 줄인 움직임 — 모든 전환이 끝 모습으로 바로 선다. 한 번 긋고 사라지는 것(길 · 물결 · 퍼지는 테)은 아예 안 선다 */
+@media (prefers-reduced-motion: reduce) {
+  .rest,
+  .arrive,
+  .pass,
+  .pull,
+  .face,
+  .layer,
+  .drawer {
+    transition: none;
+  }
+  .thread {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .retractOut,
+  .retractIn,
+  .wake,
+  .ripple,
+  .settle {
+    animation: none;
+    display: none;
+  }
+  .ghost,
+  .late,
+  .card,
+  .enter,
+  .count {
+    animation: none;
+  }
+}
