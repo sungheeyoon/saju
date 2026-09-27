@@ -302,6 +302,7 @@ squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 �
 | 픽스처가 `Something went wrong` 으로 죽는다 | 로컬 스택의 하루 풀이 한도 100 이 찼다. 도구가 제 줄을 어제로 밀지만 다른 표식의 줄은 안 민다 | `docker logs supabase_db_<SAJU_STACK_ID> --tail 30 \| grep -i error` 로 확인(main 은 `saju`, 워크트리는 `saju_wtN`), `npm run db:reset` |
 | pgTAP 이 e2e 뒤에 붉다 | 표를 전역으로 세는 자리가 남은 계정에 걸린다 | `npm run db:reset` 뒤 다시. 새로 쓰는 시험은 자기가 만든 행만 센다 |
 | 로그인 e2e 가 `PGRST202 Could not find the function …` 로 붉다(예: 사진 지우기 `remove_my_photo(p_position, p_version)`) | 스택 자리에 옛 볼륨이 남아 있으면 `db:start` 는 새 마이그레이션을 올리지 않는다 — 앱은 새 서명을 부르고 로컬 DB 는 옛 함수를 든다(2026-09-26) | `npm run db:reset` 뒤 다시 |
+| localhost 의 dev 서버만 탭 이동이 말도 안 되게 느리다(운영은 빠르다) · 서버 로그의 요청 시간은 0.2~0.6초로 멀쩡하다 | 에이전트 워크트리(`.claude/worktrees/`)가 메인 폴더 **안에** 서고, 저마다 `node_modules` 를 통째로 복제한다 — 밤 라운드 뒤 다섯 벌 8.3GB 를 메인의 dev 서버가 함께 감시했다. 캐시를 지우고 다시 띄워도 그대로였고, 워크트리를 걷고 다시 띄우자 풀렸다(2026-09-27) | 라운드가 끝나면 머지된 워크트리를 `git worktree remove` 로 걷고 dev 서버를 다시 띄운다(위 「끝난 워크트리를 걷는다」) |
 | `supabase: command not found` | PATH 에 없다 | `npx supabase` 나 `./node_modules/.bin/supabase` |
 | `db query` 가 `cannot insert multiple commands` | prepared statement 라 `begin; … rollback;` 을 못 받는다 | 트랜잭션이 필요하면 `docker exec -i supabase_db_<SAJU_STACK_ID> psql -U postgres -d postgres` |
 | `db diff --linked` 가 비밀번호를 묻는다 | 다른 인증 경로다(`db query --linked` 는 된다) | 양쪽에 같은 질의를 돌려 손으로 견준다 |
