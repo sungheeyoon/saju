@@ -29,7 +29,13 @@ export const BUTTON_SECONDARY_SMALL = `inline-flex min-h-11 items-center justify
 export const BUTTON_DANGER = `inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-danger px-5 text-[15px] font-semibold text-surface hover:opacity-90 ${PRESS}`;
 
 /** 동그란 아이콘 단추 44px — 안에 `<Icon>` 하나. 이름은 `aria-label` 이 든다 */
-export const ICON_BUTTON = `relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full bg-surface text-foreground ring-1 ring-border hover:ring-border-strong active:scale-95`;
+const ICON_BUTTON_SHAPE = `relative grid size-11 shrink-0 cursor-pointer place-items-center rounded-full ring-1 hover:ring-border-strong active:scale-95`;
+export const ICON_BUTTON = `${ICON_BUTTON_SHAPE} bg-surface text-foreground ring-border`;
+/**
+ * 지금 선 자리의 아이콘 단추 — 먹색 면에 밝은 그림. `ICON_BUTTON` 뒤에 `bg-accent` 를 덧붙이면 같은 속성의 두 클래스가
+ * CSS 순서로 갈려 흰 면에 밝은 그림이 서서 그림이 사라졌다(소식 종, 2026-09-27). 색은 덧붙이지 말고 이 한 벌을 쓴다
+ */
+export const ICON_BUTTON_ACTIVE = `${ICON_BUTTON_SHAPE} bg-accent text-on-accent ring-accent`;
 
 /**
  * 오행 판(`tone-*`) 안의 보조 — 반투명 흰 면이 판의 색을 조금 비치고, 글자는 그 오행의 진한 색이다.

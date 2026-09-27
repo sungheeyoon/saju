@@ -19,7 +19,7 @@ import { READING_CREDITS_MOVED } from './me/reading/credits-signal';
 import { readUnreadNotifications } from './me/requests/unread';
 import { NOTIFICATIONS_UNREAD_MOVED } from './me/requests/unread-signal';
 import { isSharePath } from './share/path';
-import { BUTTON_SECONDARY_SMALL, ICON_BUTTON } from './ui/buttons';
+import { BUTTON_SECONDARY_SMALL, ICON_BUTTON, ICON_BUTTON_ACTIVE } from './ui/buttons';
 import { useDetailsMenu } from './ui/details-menu';
 import { Icon, type IconName } from './ui/icons';
 import { BrandMark } from './ui/logo';
@@ -289,7 +289,7 @@ function NewsBell({ count, active }: { count: number; active: boolean }) {
       href="/me/requests"
       aria-current={active ? 'page' : undefined}
       title="소식"
-      className={`${ICON_BUTTON} ${active ? 'bg-accent text-on-accent ring-accent' : ''}`}
+      className={active ? ICON_BUTTON_ACTIVE : ICON_BUTTON}
     >
       <Icon name="bell" />
       <span className="sr-only">소식</span>

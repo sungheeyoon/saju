@@ -113,6 +113,20 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('link', { name: '인연 설정', exact: true })).toHaveCount(0);
   });
 
+  test('소식에 들어가도 종은 먹색 면에 밝은 그림으로 남는다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    /* 흰 단추에 켜진 색을 덧붙이던 동안 면은 흰색이, 그림은 밝은 색이 이겨 종이 머리글에서 사라졌다(2026-09-27) */
+    await page.goto('/me/requests');
+    const bell = page.getByRole('banner').getByRole('link', { name: /^소식/ });
+    await expect(bell).toHaveAttribute('aria-current', 'page');
+    const paint = async (locator: typeof bell) =>
+      locator.evaluate((element) => ({ face: getComputedStyle(element).backgroundColor, ink: getComputedStyle(element).color }));
+    const lit = await paint(bell);
+    const idle = await paint(page.getByLabel('설정 메뉴'));
+    expect(lit.ink).not.toBe(lit.face);
+    expect(lit.face).not.toBe(idle.face);
+  });
+
   test('로그아웃이 실패하면 톱니 판이 열린 채로 그 까닭을 말한다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     /*
