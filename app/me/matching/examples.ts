@@ -121,9 +121,6 @@ export function exampleCards(count: number = EXAMPLE_DECK_SIZE): readonly DeckCa
   return EVERYONE.slice(0, Math.max(1, Math.min(count, EVERYONE.length))).map(cardOf);
 }
 
-/** 옛 이름 — 처음 세 사람 */
-export const EXAMPLE_CARDS: readonly DeckCard[] = SEEDS.map(cardOf);
-
 /** 지나친 인연 보기의 예시 — 덱과 겹치지 않는 여섯(지나친 인연 지도가 받는 수) */
 export const EXAMPLE_PASSED: readonly DeckCard[] = EVERYONE.slice(-6).map((seed) =>
   cardOf({ ...seed, candidateUserId: `${seed.candidateUserId}-passed` }),
