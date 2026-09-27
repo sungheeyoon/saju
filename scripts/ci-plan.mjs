@@ -64,6 +64,26 @@
  * 머지를 막고, 새로 뜬 advisory 는 main 푸시 · 하루 한 번의 일정이 잡아 `ci-main-red` 이슈로 알린다.
  * 라벨 · 빈 diff · 계획 밖 이벤트는 「전부」와 같이 켠다.
  *
+ * ## 관문 · 화면 · 인증 · 그것을 재는 시험은 베타에서도 머지 전에 전부다 (2026-09-27, ADR 0119)
+ *
+ * 베타의 `fast` 는 「그 밖 전부」를 받았다. 그래서 #284(탭 넷의 `loading.tsx` · route group 이동)와 #286(`proxy.ts` 와
+ * 화면 · 서버 액션 27개)이 PR 에서 `fast` 만 돌았다 — 목록이 틀린 게 아니라 규칙에 그 자리가 없었다. #284 는 머지 뒤
+ * main 의 `flow` 가 붉었다(`check-discovery`, e370931). 단위 · 타입 · 린트 · 빌드는 **화면이 열리는가 · 관문이 누구를
+ * 들이는가**를 모른다. 그래서 아래 `SURFACE` 가 하나라도 섞이면 단계와 상관없이 전부(익명 e2e · `authed` · `flow`)다.
+ *
+ * - **관문** — `proxy.ts` · `src/lib/consent/`(test-map 「관문」 줄)
+ * - **인증** — `app/auth/`
+ * - **화면의 입구** — `app/` 아래의 `page` · `layout` · `loading` · `template` · `error` · `not-found` · `default`(`.tsx`) ·
+ *   `route.ts`. route group 을 옮기면 `--no-renames` 로 옛 · 새 `page.tsx` 가 다 서므로 이것이 잡는다
+ * - **서버 액션** — `app/` 의 `actions.ts`, 그리고 이름이 다른 `'use server'` 파일(`SERVER_ACTIONS_ELSEWHERE`). 시험이
+ *   `app/` 의 `'use server'` 파일 전부가 여기 걸리는지 잰다 — 새 액션 파일이 조용히 빠지지 않게
+ * - **그것을 재는 시험 자체** — `e2e/` · 흐름 검사(`scripts/check-*.mjs` · `run-checks.mjs` · `next-server.mjs`).
+ *   시험이 도는지는 시험을 돌려야 안다(ADR 0097 의 로컬 예외 첫째를 CI 로 옮겼다)
+ *
+ * 입구가 아닌 컴포넌트(`app/me/(shelf)/readings/shelf.tsx` 같은 것)와 `src/lib/**` 는 전처럼 `fast` 다 — 거기까지 넓히면 코드 PR 이 다
+ * 전부가 되어 ADR 0097 이 없던 것과 같다. 차선을 경로별로 잘게 고르지 않는다(ADR 0082 — 그 문장은 파일이 옮겨지는
+ * 날 거짓이 된다). `authed` 는 일곱 차선을 다 돈다.
+ *
  * ## 원칙
  *
  * - 라벨(`full-ci`)은 **더할 수만 있고 뺄 수 없다.**
@@ -86,6 +106,20 @@ const POLICY = [/^docs\//, /\.md$/, /^\.claude\//, /^scripts\/[^/]+\.test\.ts$/]
 const ENGINE = [/^src\/lib\/saju\//, /^app\/saju\//];
 /** 의존성 목록 — 이것을 바꾼 PR 만 `audit` 이 머지를 막는다 */
 export const DEPENDENCY_LISTS = ['package.json', 'package-lock.json'];
+/** 관문 · 인증 · 화면의 입구 · 서버 액션 · 그것을 재는 시험 — 베타에서도 전부를 돈다(위 「관문 · 화면 · 인증」) */
+const SURFACE = [
+  /^proxy\.ts$/,
+  /^src\/lib\/consent\//,
+  /^app\/auth\//,
+  /^app\/(.+\/)?(page|layout|loading|template|error|not-found|default)\.tsx$/,
+  /^app\/(.+\/)?route\.ts$/,
+  /^app\/(.+\/)?actions\.ts$/,
+  /^e2e\//,
+  /^scripts\/check-[^/]+\.mjs$/,
+];
+/** 이름이 `actions.ts` 가 아닌 `'use server'` 파일과 흐름 검사의 러너 — 이름으로 견주므로 시험이 실재를 잰다 */
+export const SERVER_ACTIONS_ELSEWHERE = ['app/nickname.ts', 'app/me/reading/share.ts'];
+export const FLOW_RUNNERS = ['scripts/run-checks.mjs', 'scripts/next-server.mjs'];
 /** DB 차선에서만 재어지는 자리 — 단계와 상관없이 전부를 돈다 */
 const DATABASE = [/^supabase\//];
 /** 엔진 안에서 DB 의 검사식이 보는 파일 — 여기가 바뀌면 로그인 뒤 자리도 재야 한다 */
@@ -97,6 +131,10 @@ export const FAST_STEPS = ['npm test', 'npm run typecheck', 'npm run lint', 'npm
 const matches = (rules, file) => rules.some((rule) => rule.test(file));
 
 const isPolicy = (file) => matches(POLICY, file);
+/** 시험 파일(`*.test.ts`)은 제 결과만 바꾼다 — `app/auth/signed-in.test.ts` 하나로 전부를 돌지 않는다 */
+export const isSurface = (file) =>
+  !/\.test\.ts$/.test(file) &&
+  (matches(SURFACE, file) || SERVER_ACTIONS_ELSEWHERE.includes(file) || FLOW_RUNNERS.includes(file));
 const isEngine = (file) => matches(ENGINE, file) && !ENGINE_DB_FACING.includes(file);
 
 /** 단계마다 켜는 차선 — `verify.yml` 의 job 이름과 같다 */
@@ -138,6 +176,8 @@ function decide({ files, labels, event, stage }) {
   if (stage === null || !(stage in LAUNCHED)) return { tier: 'full', reason: '출시 단계를 모른다 — PRD §7.0 의 「(지금)」' };
 
   if (!LAUNCHED[stage]) {
+    const surface = changed.find(isSurface);
+    if (surface) return { tier: 'full', reason: `${stage} — \`${surface}\` 은 관문 · 화면 · 인증이라 머지 전에 전부 잰다` };
     if (changed.every(isPolicy)) return { tier: 'policy', reason: `${stage} — 정책만 바뀌었다` };
     return { tier: 'fast', reason: `${stage} — 빠른 검사만 머지를 막고 전체는 main 에서 돈다` };
   }
