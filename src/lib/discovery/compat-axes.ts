@@ -132,7 +132,7 @@ export const DAY_PILLAR_AXIS = {
   ceiling: 90,
 } as const;
 
-export type DayPillarParams = {
+type DayPillarParams = {
   neutral: number;
   points: Record<RelationKind, number>;
   combinationResolvesClash: number;
