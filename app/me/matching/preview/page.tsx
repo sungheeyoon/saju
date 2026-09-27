@@ -48,7 +48,6 @@ export default async function MatchingPreviewPage({ searchParams }: { searchPara
       teaser={DISCOVERY_TEASER}
       notice={null}
       explorationNote={null}
-      waitSeconds={0}
       preview
     />
   );

@@ -69,10 +69,6 @@ export function MatchingExperience({
   teaser: string;
   notice: string | null;
   explorationNote: string | null;
-  /**
-   * **안 읽는다** — 새로고침 단추가 걷혔다(ADR 0115). 미리보기 화면이 아직 넘겨서 칸만 남겼다 — 그 화면에서 걷으면 이 칸도 걷는다
-   */
-  waitSeconds?: number;
   /** 디자인 확인용 — **요청이 나가지 않고**, 목록을 건드리는 누름도 서지 않는다 */
   preview?: boolean;
 }) {
