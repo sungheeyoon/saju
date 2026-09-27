@@ -9,6 +9,7 @@ import type { Element } from '@/src/lib/saju';
 import { elementScope } from '../../ui/element-tone';
 import { FaceSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
+import { openingHref } from './opening';
 
 /**
  * **책장과 읽는 자리 — 두 칸, 주소 하나에 글 하나.**
@@ -51,17 +52,17 @@ export function ReadingsFrame({
   const segment = useSelectedLayoutSegment();
   const router = useRouter();
   const reading = segment !== null;
-  const latest = singles[0]?.href ?? null;
+  const opening = openingHref(singles);
 
   /*
-    **넓은 화면에서 목록만 열면 가장 최근 글을 편다**(시안이 그랬다 — 첫 표지가 펼쳐진 채로 선다).
+    **넓은 화면에서 목록만 열면 한 권을 편다** — 내 사주풀이가 있으면 그것, 없으면 가장 최근 글(`openingHref`).
     주소를 그 글로 **바꿔 끼운다**(`replace`) — 뒤로 가기가 빈 오른쪽을 한 번 더 지나지 않는다. 폰은
     목록이 곧 첫 화면이라 옮기지 않는다.
   */
   useEffect(() => {
-    if (reading || latest === null) return;
-    if (window.matchMedia(TWO_COLUMNS).matches) router.replace(latest, { scroll: false });
-  }, [reading, latest, router]);
+    if (reading || opening === null) return;
+    if (window.matchMedia(TWO_COLUMNS).matches) router.replace(opening, { scroll: false });
+  }, [reading, opening, router]);
 
   if (!reading && nothing !== null) return nothing;
 
@@ -75,8 +76,8 @@ export function ReadingsFrame({
       </div>
 
       <div className={`${reading ? 'flex' : 'hidden lg:flex'} min-w-0 flex-col gap-8`}>
-        {/* 곧 가장 최근 글로 옮겨 갈 자리에 「표지를 누르면」을 잠깐 세우지 않는다 */}
-        {reading || latest === null ? children : null}
+        {/* 곧 펼 글로 옮겨 갈 자리에 「표지를 누르면」을 잠깐 세우지 않는다 */}
+        {reading || opening === null ? children : null}
         {next !== null && <NextCard book={next} />}
       </div>
     </div>
