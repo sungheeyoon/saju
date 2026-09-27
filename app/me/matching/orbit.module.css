@@ -1,7 +1,7 @@
 /*
-  **매칭의 움직임 셋** — 채워 주는 선이 후보에게서 내 오행 자리로 그어지고(`draw`), 선이 닿은 자리가
-  천천히 숨을 쉬고(`breathe`), 다음 사람의 사진이 아래에서 살짝 떠오른다(`arrive` — 화면 밖에서는 브라우저가 미루므로 첫 화면의 사진에만 단다). 셋 다 줄인 움직임
-  설정이면 멈추고 끝 모습만 선다.
+  **카드의 움직임 둘** — 다음 사람의 사진이 아래에서 살짝 떠오르고(`arrive` — 화면 밖에서는 브라우저가 미루므로 첫 화면의
+  사진에만 단다), 카드의 채워 주는 기운 알이 천천히 숨을 쉰다(`breathe`). 둘 다 줄인 움직임 설정이면 멈추고 끝 모습만 선다.
+  지도의 움직임은 `orbit-motion.module.css` 가 든다 — 지도의 알은 2026-09-27 에 숨쉬기를 걷었다.
 */
 .arrive {
   animation: arrive 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -11,18 +11,6 @@
   from {
     opacity: 0;
     translate: 0 6px;
-  }
-}
-
-.draw {
-  stroke-dasharray: 300;
-  stroke-dashoffset: 300;
-  animation: draw 900ms cubic-bezier(0.2, 0.8, 0.2, 1) 280ms forwards;
-}
-
-@keyframes draw {
-  to {
-    stroke-dashoffset: 0;
   }
 }
 
@@ -47,10 +35,6 @@
   }
   .arrive {
     animation: none;
-  }
-  .draw {
-    animation: none;
-    stroke-dashoffset: 0;
   }
   .breathe {
     animation: none;
