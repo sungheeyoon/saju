@@ -397,38 +397,15 @@ select is(
   6,
   '풀에 사람이 돌아오면 다음에 읽을 때 다시 여섯이다');
 
--- ── 옛 앱의 새로고침 문 — 넓히기 동안 그대로 선다 ─────────────────────────────
+-- ── 옛 앱의 새로고침 문 — 좁히기로 걷었다 (G-61) ─────────────────────────────
 
 reset role;
-update public.discovery_candidate set generated_at = now()
-where user_id = (select uid from me);
-
-set local role authenticated;
-select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
-
-select throws_ok(
-  'select public.refresh_discovery_snapshot()',
-  '55000',
-  '방금 새로 받았습니다. 잠시 뒤에 다시 받아 주세요.',
-  '옛 새로고침 문은 만든 지 5분 안이면 여전히 거절한다');
-
-reset role;
-update public.discovery_candidate set generated_at = now() - interval '6 minutes'
-where user_id = (select uid from me);
-
-set local role authenticated;
-select set_config('request.jwt.claims', tests.claims((select uid from me)), true);
-
-select lives_ok(
-  'select public.refresh_discovery_snapshot()',
-  '5분이 지나면 옛 새로고침 문이 새 덱을 세운다');
-
-reset role;
-select is(
-  (select count(*)::int from public.discovery_candidate_slot
-   where snapshot_id = (select id from public.discovery_candidate where user_id = (select uid from me))),
-  6,
-  '옛 새로고침 문이 세운 덱도 여섯이다');
+select hasnt_function('public', 'refresh_discovery_snapshot', array[]::name[],
+  '사람이 누르는 새로고침 문은 없다 — 덱은 떠나는 만큼 채운다');
+select hasnt_function('public', 'my_discovery_snapshot', array[]::name[],
+  '새로고침 단추의 남은 대기를 내주던 문도 없다');
+select hasnt_function('public', 'discovery_refresh_cooldown', array[]::name[],
+  '5분 쿨다운도 없다');
 
 update public.discovery_candidate set policy_version = 'discovery-v1'
 where user_id = (select uid from me);

@@ -22,8 +22,9 @@ select cmp_ok(
   (select count(*)::int
      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prosrc like '%''이용이 정지된 계정입니다.''%'),
-  '>=', 21,
-  '정지된 계정을 거절하는 함수 21개가 새 문장을 든다');
+  '>=', 20,
+  -- 21 이던 것이 G-61 에서 하나 줄었다 — 걷은 옛 새로고침 문(`refresh_discovery_snapshot`)이 그 하나였다.
+  '정지된 계정을 거절하는 함수 20개가 새 문장을 든다');
 
 -- ── 2. 부르면 무엇이 서나 ──────────────────────────────────────────────────────
 

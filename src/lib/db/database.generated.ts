@@ -2302,7 +2302,6 @@ export type Database = {
         }
         Returns: number
       }
-      discovery_refresh_cooldown: { Args: never; Returns: string }
       discovery_seeded_unit: {
         Args: { id: string; seed: string }
         Returns: number
@@ -2481,13 +2480,6 @@ export type Database = {
           preview_score: number
           seat: number
           supplied_elements: string[]
-        }[]
-      }
-      my_discovery_snapshot: {
-        Args: never
-        Returns: {
-          generated_at: string
-          wait_seconds: number
         }[]
       }
       my_last_reading_run: {
@@ -3081,7 +3073,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      refresh_discovery_snapshot: { Args: never; Returns: string }
       refresh_discovery_snapshot_for: {
         Args: { p_actor: string; p_seed: string }
         Returns: string
