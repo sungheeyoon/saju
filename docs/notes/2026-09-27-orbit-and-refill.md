@@ -30,4 +30,4 @@
 
 - 한 기운에 몰린 날 폰 반원에서 얼굴이 겹치고 넓은 화면에서도 이웃 방향으로 번져 앉는다 · 폰 시트를 열 때마다 들어오는 움직임이 다시 돈다 · dev 에서 처음 열 때 약 2.5초 얼굴이 없다 — 운영자가 미리보기로 보고 정한다.
 - pgTAP 09 의 16번 「컷 밖에서도 점수가 높은 쪽이 더 자주 채워진다」가 CI 에서 한 번 흔들렸다(확률 단언, 사용자 id 무작위) — 구간을 넓히거나 id 를 고정한다.
-- `src/lib/discovery/index.ts` 의 안 부르는 export 셋(`DISCOVERY_V` · `ScoreSide` · `ScoreAxes`) — 오늘 것이 아니라 남겼다.
+- `src/lib/discovery/index.ts` 의 `ScoreSide` · `ScoreAxes` 는 파일 안에서만 쓰여 `export` 만 뗐다(`DISCOVERY_V1` 은 `src/lib/matching` 이 불러 남김 — 여러 줄 import 를 grep 이 놓쳤다).

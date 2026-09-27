@@ -148,7 +148,7 @@ export type ScoreVersion = typeof DISCOVERY_POLICY.version | typeof DISCOVERY_V1
  *
  * 일주(일주 · 일지 관계) · 오행 요약(드러난 글자 수 — 공급과 균형) · 필요 대상(억부 1순위와 가장 무거운 오행).
  */
-export type ScoreSide = {
+type ScoreSide = {
   pillars: Pick<Pillars, 'day'>;
   summary: ElementSummary;
   need: NeedTargets;
@@ -165,7 +165,7 @@ export const scoreSideOf = (saju: {
 });
 
 /** 세 축, 0~100 — 반올림하지 않은 값 */
-export type ScoreAxes = { dayPillar: number; needComplement: number; combinedBalance: number };
+type ScoreAxes = { dayPillar: number; needComplement: number; combinedBalance: number };
 
 export const scoreAxesOf = (a: ScoreSide, b: ScoreSide): ScoreAxes => ({
   dayPillar: dayPillarAxisOf(a.pillars, b.pillars),
