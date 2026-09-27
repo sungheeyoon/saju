@@ -22,7 +22,6 @@ import { PASSED_LIMIT } from './deck-state';
 */
 export function PassedConnections({
   cards,
-  preview,
   working,
   onRestore,
   onBack,
@@ -30,7 +29,6 @@ export function PassedConnections({
   feedback,
 }: {
   cards: readonly DeckCard[];
-  preview: boolean;
   working: boolean;
   onRestore: (card: DeckCard) => Promise<string | null>;
   onBack: () => void;
@@ -112,9 +110,7 @@ export function PassedConnections({
           <Icon name="arrow" className="size-4" />
         </button>
         <p className="text-[12px] leading-5 text-secondary">
-          {preview
-            ? '미리보기에서는 실제 보관 기록을 바꾸지 않아요.'
-            : `최근 ${PASSED_LIMIT}명을 보관해요. 목록에서 빠진 인연은 마지막으로 넘긴 뒤 하루가 지나면 다시 추천될 수 있어요.`}
+          최근 {PASSED_LIMIT}명을 보관해요. 목록에서 빠진 인연은 마지막으로 넘긴 뒤 하루가 지나면 다시 추천될 수 있어요.
         </p>
       </div>
     </section>

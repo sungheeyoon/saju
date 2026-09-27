@@ -242,8 +242,8 @@ where user_id not in (select kim from who union select lee from who union select
  * **목록은 이제 스냅샷이다** — 새 참여자는 다음 스냅샷부터 선다(ADR 0037).
  *
  * 김은 지영이 들어오기 전에 한 번 목록을 열었고, 그때 만들어진 스냅샷이 아직 신선하다.
- * 시험은 **씨앗을 고를 수 있는 닫힌 문**으로 다시 뽑는다 — 사람이 누르는 문은 5분
- * 쿨다운이 있고, 여기서 재려는 것은 쿨다운이 아니다.
+ * 시험은 **씨앗을 고를 수 있는 닫힌 문**으로 다시 뽑는다 — 사람이 새로 뽑게 하는 문은
+ * 없다(새로고침 단추는 ADR 0115 에서 걷혔다).
  */
 create temporary table kim_first as
 select public.refresh_discovery_snapshot_for((select kim from who), 'seven') as id;

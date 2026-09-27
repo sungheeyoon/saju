@@ -1,4 +1,4 @@
-Generated with the built-in image_gen tool. Fictional adults for UI preview only.
+Generated with the built-in image_gen tool. Fictional adults. Kept as e2e upload fixtures (signed-in.spec.ts photo tests); the matching preview that showed them was removed 2026-09-27.
 
 seoyeon.webp
 Use case: photorealistic-natural. Asset: fictional adult dating profile demo photo for a refined Korean app. One single portrait of a fictional 28-year-old Korean woman with shoulder-length dark hair, ivory knit cardigan, gentle smile, seated by a cafe window, soft sage greenery in background. Natural realistic skin texture, warm soft daylight, authentic approachable everyday portrait, not glamour or commercial fashion. Vertical 4:5 composition, head and upper torso, face centered horizontally with full head comfortably inside central 60% of image, generous space above head. No text, logos, collage, graphics or watermark.

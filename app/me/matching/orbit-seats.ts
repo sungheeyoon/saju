@@ -24,7 +24,7 @@ export type Ring = readonly [rx: number, ry: number];
 
 type Point = { x: number; y: number };
 
-export type Geometry = {
+type Geometry = {
   /** 상자의 가로 : 세로 — SVG viewBox 도 이 비로 선다 */
   aspect: number;
   center: Point;

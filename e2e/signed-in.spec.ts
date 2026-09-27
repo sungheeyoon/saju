@@ -390,6 +390,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(more.getByRole('link', { name: '다른 사람 사주 보기' })).toHaveAttribute('href', '/');
     await expect(more.getByRole('link', { name: '궁합 보러 가기' })).toHaveAttribute('href', '/compat');
     await expect(more.getByRole('link', { name: /매칭에서 오늘의 인연 만나기/ })).toHaveAttribute('href', '/me/matching');
+    /* 홈은 매칭으로 가는 길만 두고 오늘의 인연을 제 자리에 세우지 않는다 */
+    await expect(page.getByRole('heading', { name: '오늘의 인연', exact: true })).toHaveCount(0);
 
     /*
       **초점 테두리는 타일이 두른 한 겹이다.** 이름 링크의 `::after` 가 타일 전체를 덮고 초점도 그
@@ -2389,8 +2391,8 @@ test.describe('가입 관문', () => {
     };
 
     await page.getByLabel('사진 올리기').setInputFiles([
-      'public/matching/harin.webp',
-      'public/matching/jiwoo.webp',
+      'e2e/fixtures/harin.webp',
+      'e2e/fixtures/jiwoo.webp',
     ]);
 
     const first = page.getByRole('button', { name: '사진 1 / 2, 길게 눌러 옮기기' });
@@ -2470,9 +2472,9 @@ test.describe('가입 관문', () => {
     await page.goto('/me/profile');
 
     await page.getByLabel('사진 올리기').setInputFiles([
-      'public/matching/harin.webp',
-      'public/matching/jiwoo.webp',
-      'public/matching/seoyeon.webp',
+      'e2e/fixtures/harin.webp',
+      'e2e/fixtures/jiwoo.webp',
+      'e2e/fixtures/seoyeon.webp',
     ]);
     const slot = (tab: typeof page, n: number, total: number) =>
       tab.getByRole('button', { name: `사진 ${n} / ${total}, 길게 눌러 옮기기` });

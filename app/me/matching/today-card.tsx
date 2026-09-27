@@ -314,10 +314,10 @@ export function openSheet(sheet: HTMLDialogElement | null) {
 }
 
 /**
- * 덱 순번(폰) — 사진 위의 「01 / 03」이 사진 장 수로 읽혀(운영자 2026-09-25) 제목 줄의 점으로 옮겼다. 지금 사람이 긴 점,
- * 지나온 사람은 진한 점, 남은 사람은 옅은 점. 글로는 보조기기에만 순번을 읽힌다.
+ * 덱 순번(폰) — 사진 위의 「01 / 03」이 사진 장 수로 읽혀(운영자 2026-09-25) 제목 줄의 점으로 옮겼다. 지금 사람은 늘 덱의
+ * 맨 앞이라(ADR 0115) 첫 점이 긴 점이고 남은 사람은 옅은 점. 글로는 보조기기에만 순번을 읽힌다.
  */
-export function DeckDots({ at, total, counter }: { at: number; total: number; counter: string }) {
+export function DeckDots({ total, counter }: { total: number; counter: string }) {
   if (total < 2) return null;
   return (
     <p className="flex items-center gap-1 pr-1">
@@ -326,7 +326,7 @@ export function DeckDots({ at, total, counter }: { at: number; total: number; co
         <span
           key={index}
           aria-hidden="true"
-          className={`h-1.5 rounded-full transition-[width] ${index === at ? 'w-4 bg-foreground' : index < at ? 'w-1.5 bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)]' : 'w-1.5 bg-border-strong'}`}
+          className={`h-1.5 rounded-full transition-[width] ${index === 0 ? 'w-4 bg-foreground' : 'w-1.5 bg-border-strong'}`}
         />
       ))}
     </p>

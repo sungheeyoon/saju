@@ -4,7 +4,7 @@ import { cache } from 'react';
 
 import type { Database } from '@/src/lib/db';
 
-export type SignedInUser = { id: string; email: string | undefined };
+type SignedInUser = { id: string; email: string | undefined };
 
 /**
  * 화면이 **스스로 묻는** 로그인 — 쿠키의 JWT 서명을 이 서버에서 확인한다(ADR 0117).

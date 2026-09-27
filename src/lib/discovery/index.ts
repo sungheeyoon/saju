@@ -473,15 +473,14 @@ export function cardTextFor(
  *
  * 날값을 읽고(`knownElementsOf` · `balanceBandOf`) 점수를 0~100 정수로 묶은 뒤
  * `cardTextFor` 와 `previewSummaryFor` 를 차례로 부르는 넷째 걸음까지가 한 벌이다.
- * 2026-09-23 까지 그 한 벌이 `app/me/candidates.ts` 와 미리보기 예시(`examples.ts`)에
- * 따로 적혀 있었다(G-46) — 예시가 실데이터와 같은 말을 한다는 약속을 손으로 지키고
- * 있었던 셈이다. 이제 둘 다 이것을 부른다.
+ * 2026-09-23 까지 그 한 벌이 `app/me/candidates.ts` 와 미리보기 예시에 따로 적혀
+ * 있었다(G-46). 미리보기는 2026-09-27 에 걷혔고 `app/me/candidates.ts` 가 이것을 부른다.
  */
 export function candidateCardText(row: {
   suppliedElements: readonly string[] | null;
   balanceBand: string;
   previewScore: number;
-  /** 내 개수는 문구 강도만 가른다. 예시처럼 모르면 비운다 */
+  /** 내 개수는 문구 강도만 가른다. 모르면 비운다 */
   viewerCounts?: Readonly<Record<Element, number>>;
 }): {
   previewScore: number;
