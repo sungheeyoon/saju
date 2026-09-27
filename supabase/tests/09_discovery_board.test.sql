@@ -208,7 +208,8 @@ select isnt(
 -- ── 가중치 — **점수가 높을수록 자주 뽑힌다** ──────────────────────────────────
 
 /**
- * 씨앗 천 개로 덱을 세워 등장 횟수를 센다. 새 덱은 늘 빈 자리에서 여섯을 뽑으므로 앞 덱이 결과를 안 깎는다.
+ * 씨앗 삼천 개로 덱을 세워 등장 횟수를 센다. 새 덱은 늘 빈 자리에서 여섯을 뽑으므로 앞 덱이 결과를 안 깎는다.
+ * 삼천인 까닭은 아래 「컷을 걷어 내도」다 — 그 검사가 세는 자리는 덱마다 네에 하나꼴로만 선다.
  */
 create temporary table draws (user_id uuid, exploration boolean, position integer);
 do $$
@@ -217,7 +218,7 @@ declare
   s integer;
   made uuid;
 begin
-  for s in 1..1000 loop
+  for s in 1..3000 loop
     made := public.refresh_discovery_snapshot_for(actor, 'weights-' || s);
     insert into draws
     select candidate_user_id, exploration, position
@@ -237,18 +238,25 @@ select cmp_ok(
  *
  * 위의 검사는 상위 컷이 늘 뽑히는 것만으로도 통과한다. 컷 밖에서 채워지는 위쪽 자리만
  * 따로 세면 남는 것은 가중 무작위 하나다 — 그 자리도 점수를 따라야 한다.
+ *
+ * 그 자리는 여섯 동전이 모두 위쪽일 때(0.8⁶ ≈ 26%)의 여섯째 한 자리뿐이라 삼천 덱에 780 안팎이다. **점수로 가른
+ * 두 무리의 한 사람당 등장**을 견준다 — 컷 밖에서 점수 50 이상(여섯 안팎)과 40 미만(여덟 안팎). 점수 차이가
+ * 1.5 배쯤이라 기대 차이는 표준편차의 네 배를 넘는다. 전에는 천 덱 · 컷 밖을 순위로 반 갈라 아홉과 열을 견줬고,
+ * 사용자 id 가 매번 무작위라 CI 에서 한 번 뒤집혔다(2026-09-27, 로컬 여섯 판 중 한 판 127 대 132).
  */
 select cmp_ok(
-  (select count(*)::int from draws d join scores s on s.user_id = d.user_id
-   where not d.exploration and s.rnk between 6 and 14),
+  (select count(*)::numeric / nullif((select count(*) from scores where rnk > 5 and score >= 50), 0)
+   from draws d join scores s on s.user_id = d.user_id
+   where not d.exploration and s.rnk > 5 and s.score >= 50),
   '>',
-  (select count(*)::int from draws d join scores s on s.user_id = d.user_id
-   where not d.exploration and s.rnk > 14),
+  (select count(*)::numeric / nullif((select count(*) from scores where rnk > 5 and score < 40), 0)
+   from draws d join scores s on s.user_id = d.user_id
+   where not d.exploration and s.rnk > 5 and s.score < 40),
   '컷 밖에서도 점수가 높은 쪽이 더 자주 채워진다');
 
 /**
- * **자리마다 20% 가 아래에서 온다** — 옛 「열에 둘」과 같은 몫. 여섯 자리 천 덱이면 탐색은 1200 안팎이다
- * (이항분포의 표준편차는 약 31). 넓게 잡아 15~25% 를 잰다.
+ * **자리마다 20% 가 아래에서 온다** — 옛 「열에 둘」과 같은 몫. 여섯 자리 삼천 덱이면 탐색은 3600 안팎이다
+ * (이항분포의 표준편차는 약 54). 넓게 잡아 15~25% 를 잰다.
  */
 select ok(
   (select avg(case when exploration then 1.0 else 0.0 end) between 0.15 and 0.25 from draws),
