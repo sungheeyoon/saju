@@ -2610,6 +2610,8 @@ test.describe('자바스크립트 없이 여는 홈', () => {
     const dot = page.getByRole('region', { name: '관계 지도' }).getByRole('link', { name: /^어머니, 일간/ });
     const target = (await dot.getAttribute('href')) ?? '';
     expect(target).toMatch(/^#person-/);
+    /* 원은 가운데에서 제 자리로 퍼져 앉는다 — 앉기 전에 누르면 가운데의 나를 누른다 */
+    await dot.evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
     await dot.click();
     await expect(page).toHaveURL(new RegExp(`/me${target}$`));
     await expect(page.locator(`li${target}`).getByRole('link', { name: '풀이 받기' })).toBeVisible();

@@ -33,18 +33,6 @@
   }
 }
 
-.drift {
-  transform-box: view-box;
-  transform-origin: 50% 50%;
-  animation: drift 240s linear infinite;
-}
-
-@keyframes drift {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 /* 나와 본 궁합의 빛 — `pathLength="1"` 인 곡선이 그 사람에게서 나에게로 그어진다 */
 .draw {
   stroke-dasharray: 1;
@@ -744,7 +732,6 @@
 @media (prefers-reduced-motion: reduce) {
   .me,
   .seat,
-  .drift,
   .fade,
   .arrive,
   .part,
