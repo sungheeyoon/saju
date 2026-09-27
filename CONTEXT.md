@@ -493,7 +493,8 @@ _Avoid_: 오행 벡터(자료구조 이름), 명식 요약
 
 **후보** — `BoardRow` · `my_discovery_board` · `candidatesForViewer` : 매칭 참여에 동의한 다른
 User 의 **selfPerson**. 대신 등록한 Person(엄마·친구)은 후보가 되지 않는다. 후보 목록은
-뽑아 둔 것을 읽는다(`discovery_candidate`) — 뽑는 자리와 읽는 자리가 갈려 있다.
+**여섯 자리 덱**이다(`discovery_candidate`) — 떠난 자리(넘김 · 요청 · 자격을 잃음)는 읽을 때 풀에서 한 명씩
+뒤에 채운다(`fill_discovery_deck`, ADR 0115). 뽑는 자리와 보는 자리가 갈려 있다.
 _Avoid_: 상대, 매칭 대상
 
 **탐색 후보** — `discovery_impression.exploration` : `discovery-v1` 상위가 아닌데도 일부러 섞어
@@ -504,7 +505,7 @@ _Avoid_: 상대, 매칭 대상
 빼는 조건 — 참여를 끔 · 차단 · 이용이 정지된 계정 · 성별 조건 · 이미 오간 요청이나 매칭. **나이로는
 거르지 않는다**(PRD §6.1). **사주 점수는 여기 들어가지 않는다.**
 
-**노출 순서** — `DISCOVERY_POLICY` (`discovery-v1`) · `refresh_discovery_snapshot_for` : 아직
+**노출 순서** — `DISCOVERY_POLICY` (`discovery-v1`) · `fill_discovery_deck` · `refresh_discovery_snapshot_for` : 아직
 선택되지 않은 후보를 어떤 차례로 보여줄지 정하는, 별개 버전의 정책. **정렬만 하고 사람을
 제외하지 않는다.** 두 **오행 요약** 사이에서 난다 — 명식도 **궁합**도 보지 않는다.
 _Avoid_: 필터, 매칭 알고리즘, 추천 점수
@@ -818,7 +819,7 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | 후보 | `BoardRow` · `my_discovery_board` · `candidatesForViewer` · `discovery_candidate` | `src/lib/discovery` · 함수 · 읽는 문 · 표 |
 | 탐색 후보 | `exploration` · `DISCOVERY_POLICY` | `discovery_impression` 칸 · `src/lib/discovery` |
 | 하드 제외 | `discovery_eligible` · `discovery_unavailable` | 함수 |
-| 노출 순서 | `DISCOVERY_POLICY` · `refresh_discovery_snapshot_for` | `src/lib/discovery` · 함수 |
+| 노출 순서 | `DISCOVERY_POLICY` · `fill_discovery_deck` · `refresh_discovery_snapshot_for` | `src/lib/discovery` · 함수 |
 | 예측 궁합 점수 | `previewScoreOf` · `buildMatchPreview` | `src/lib/discovery` · `src/lib/matching` |
 | 노출 기록 | `discovery_impression` | 표 |
 | 지나친 인연 | `discovery_passed` · `passCandidate` · `restorePassed` | 표 · 액션 |
@@ -856,5 +857,5 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | --- | --- | --- | --- |
 | 사유값 `unreadable-revision` | 저장된 입력을 못 읽었다 | `fail_reading_job` 의 `p_failure_code` 로 적히는 값 · `app/me/reading/pipeline.ts` | 그대로 둔다 — DB 에 이미 적힌 값이라 바꾸면 옛 행과 새 행이 갈린다. 화면에 안 나간다(2026-09-23 결정) |
 | `metaphor` · `metaphorLength` | 한 줄 요약 | `reading` · `reading_share` 칸 · RPC 다섯 · 구조화 출력 필드 · `READING_POLICY` | 그대로 둔다 — 구조화 출력의 키는 프롬프트의 일부라 바꾸면 프롬프트를 바꾸는 일이고(실호출이 들고, 배포 순간 돌던 생성은 옛 키로 돌아온다), 칸 이름은 RPC 의 반환 열 · 인자라 바꾸면 떠 있는 옛 앱이 깨진다. 비유를 접은 뒤에도(ADR 0056) 이름만 남았다(2026-09-23 결정) |
-| `my_discovery_snapshot` · `refresh_discovery_snapshot` · `refresh_discovery_snapshot_for` · `snapshot_id` | 후보 목록 | 함수 · `discovery_candidate_slot` 칸 | 그대로 둔다 — 표 둘은 2026-09-23 에 `discovery_candidate` · `discovery_candidate_slot` 으로 옮겼다. RPC 둘은 앱이 불러 이름을 바꾸면 넓히고 좁히는 세 걸음이고 뜻은 안 갈린다. 칸은 표를 따라 읽힌다(2026-09-23 결정) |
+| `my_discovery_snapshot` · `refresh_discovery_snapshot` · `refresh_discovery_snapshot_for` · `snapshot_id` | 후보 목록 | 함수 · `discovery_candidate_slot` 칸 | 그대로 둔다 — 표 둘은 2026-09-23 에 `discovery_candidate` · `discovery_candidate_slot` 으로 옮겼다. RPC 둘은 앱이 불러 이름을 바꾸면 넓히고 좁히는 세 걸음이고 뜻은 안 갈린다. 칸은 표를 따라 읽힌다(2026-09-23 결정). 새로고침 단추가 걷힌 뒤(ADR 0115) 새 앱은 `my_discovery_snapshot` · `refresh_discovery_snapshot` 을 안 부른다 — 좁히기에서 걷는다(`docs/product/gaps.md`) |
 | `requestAccountDeletion` · `request_account_deletion` · `deletion_requested` · `DELETION_NOTE` | 탈퇴 대기 | 액션 · 함수 · `app_user.status` 값 · `src/lib/account` | 식별자는 그대로 둔다 — DB 값을 바꾸면 마이그레이션이고 뜻은 안 갈린다. 화면 문구는 2026-09-23 에 옮겼다(카드 「탈퇴」 · 버튼 「탈퇴를 신청합니다」) |

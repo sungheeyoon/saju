@@ -88,23 +88,6 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
 }
 
 /**
- * 목록을 새로 받는다 — **인자가 없다**(ADR 0037).
- *
- * 뽑기도 씨앗도 5분 쿨다운도 DB 안에 있다. 여기서 씨앗을 지어 보내면 사용자가 씨앗을
- * 바꿔 가며 다시 뽑을 수 있고, 그때 노출 기록이 무엇을 잰 것인지 말할 수 없게 된다.
- * 거절의 문장도 DB 가 낸다 — 「방금 새로 받았습니다」를 여기서 다시 판정하지 않는다.
- */
-export async function refreshDiscoveryBoard(): Promise<SaveResult> {
-  const supabase = await supabaseOnServer();
-
-  const { error } = await supabase.rpc('refresh_discovery_snapshot');
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'refresh_discovery_snapshot') };
-
-  refresh('board-refreshed');
-  return { ok: true };
-}
-
-/**
  * 이 사람은 **지금은** 지나친다.
  *
  * 수명은 최근 스물과 24시간이 정한다(`discovery_passed_active`) — 영구 제외가 아니라

@@ -43,4 +43,53 @@ describe('지나침과 복원의 덱 순서', () => {
     expect(state.remaining.map(c => c.candidateUserId)).toEqual(['old','b','c']);
     expect(state.passed.map(c => c.candidateUserId)).toEqual(['a']);
   });
+
+});
+
+/**
+ * **덱은 떠난 만큼 채워진다**(ADR 0115). 서버는 떠난 사람의 자리를 걷고 풀에서 한 명을 뒤에 붙여 준다 —
+ * 덱은 그 사람을 뒤에 합치고, 앞 순서와 되돌리기 이력은 그대로 둔다.
+ */
+describe('채워지는 덱', () => {
+  const deckOf = (...ids: string[]): DeckState => ({ remaining: ids.map(card), passed: [], history: [], seen: [] });
+  const ids = (state: DeckState) => state.remaining.map((c) => c.candidateUserId);
+
+  it('넘긴 뒤 서버가 채운 사람은 덱 맨 뒤에 붙고 나머지 순서는 그대로다', () => {
+    let state = deckOf('a', 'b', 'c', 'd', 'e', 'f');
+    state = deckReducer(state, { type: 'pass', card: card('a') });
+    state = deckReducer(state, { type: 'leave', id: 'a' });
+    state = deckReducer(state, { type: 'sync', cards: ['b', 'c', 'd', 'e', 'f', 'g'].map(card), passed: [card('a')] });
+    expect(ids(state)).toEqual(['b', 'c', 'd', 'e', 'f', 'g']);
+    expect(state.history.map((c) => c.candidateUserId)).toEqual(['a']);
+  });
+
+  it('응답이 떠나는 중인 사람을 아직 들고 와도 다시 세우지 않는다', () => {
+    let state = deckOf('a', 'b');
+    state = deckReducer(state, { type: 'pass', card: card('a') });
+    state = deckReducer(state, { type: 'leave', id: 'a' });
+    state = deckReducer(state, { type: 'sync', cards: ['a', 'b', 'c'].map(card), passed: [card('a')] });
+    expect(ids(state)).toEqual(['b', 'c']);
+  });
+
+  it('여러 번 넘기고 채워도 되돌리기 이력은 끊기지 않는다 — 되돌린 사람은 맨 앞, 덱은 잠시 일곱', () => {
+    let state = deckOf('a', 'b', 'c', 'd', 'e', 'f');
+    for (const [gone, fresh] of [['a', 'g'], ['b', 'h']]) {
+      state = deckReducer(state, { type: 'pass', card: card(gone) });
+      state = deckReducer(state, { type: 'leave', id: gone });
+      state = deckReducer(state, { type: 'sync', cards: [...ids(state), fresh].map(card), passed: state.passed });
+    }
+    expect(ids(state)).toEqual(['c', 'd', 'e', 'f', 'g', 'h']);
+    expect(state.history.map((c) => c.candidateUserId)).toEqual(['b', 'a']);
+    state = deckReducer(state, { type: 'restore', card: card('b') });
+    expect(ids(state)).toEqual(['b', 'c', 'd', 'e', 'f', 'g', 'h']);
+    expect(state.history.map((c) => c.candidateUserId)).toEqual(['a']);
+  });
+
+  it('풀이 비어 서버가 아무도 안 채우면 덱은 줄다 빈다', () => {
+    let state = deckOf('a');
+    state = deckReducer(state, { type: 'pass', card: card('a') });
+    state = deckReducer(state, { type: 'leave', id: 'a' });
+    state = deckReducer(state, { type: 'sync', cards: [], passed: [card('a')] });
+    expect(state.remaining).toEqual([]);
+  });
 });

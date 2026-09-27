@@ -2,6 +2,7 @@ import type { Locator } from '@playwright/test';
 
 import { expect, forgetBoards, onlyTheseParticipate, optIn, sql, test, type Person } from './session';
 
+import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
 import { READING_FAILED_NOTE } from '@/src/lib/reading';
 
 import { fillBirthDate } from './birth-form';
@@ -709,6 +710,56 @@ test.describe('보관함 복원 회귀', () => {
     expect((await asker.api.rpc('my_passed_connections')).data).toEqual([]);
     await asker.page.reload();
     await expect(asker.page.getByRole('heading', { name: `나${tag}` })).toBeVisible();
+  });
+});
+
+/**
+ * **덱은 여섯 자리이고, 떠나면 풀에서 한 명이 바로 채운다**(ADR 0115).
+ *
+ * 채우는 일은 DB 가 덱을 읽을 때 하고, 넘김의 응답이 다시 그린 목록으로 화면에 온다 — 새로 고치지 않아도 채운 사람이
+ * 덱 뒤에 붙는가를 화면으로 잰다. 일곱을 세우면 처음 덱은 여섯이고 일곱째는 덱 밖에 있다. 한 명을 넘기면 일곱째가 뒤에 붙고,
+ * 넘겨 가면 그 사람의 카드가 선다. 다 넘기면 풀이 비어 빈 화면이 선다.
+ */
+test.describe('채워지는 덱', () => {
+  test('한 명을 넘기면 덱 밖의 사람이 뒤에 붙고, 풀이 비면 빈 화면이 선다', async ({ openAs }) => {
+    const tag = freshTag();
+    const viewer = await openAs({ selfPerson: true });
+    const others: Person[] = [];
+    for (let i = 0; i < 7; i += 1) others.push(await openAs({ selfPerson: true }));
+    await optIn(viewer.api, `가${tag}`);
+    const prefixes = ['나', '다', '라', '마', '바', '사', '아'];
+    for (const [i, other] of others.entries()) await optIn(other.api, `${prefixes[i]}${tag}`);
+    onlyTheseParticipate([viewer.account.email, ...others.map((other) => other.account.email)]);
+    forgetBoards([viewer.account.email]);
+
+    await viewer.page.goto('/me/matching');
+    await expect(viewer.page.getByRole('region', { name: '인연 카드' })).toBeVisible();
+
+    const inDeck = sql(`select count(*) from public.discovery_candidate_slot slot
+         join public.discovery_candidate d on d.id = slot.snapshot_id
+         join auth.users u on u.id = d.user_id where u.email = '${viewer.account.email}'`);
+    expect(Number(inDeck)).toBe(6);
+    const outside = sql(`select a.nickname from public.app_user a join auth.users u on u.id = a.id
+       where u.email in (${others.map((other) => `'${other.account.email}'`).join(', ')})
+         and not exists (
+           select 1 from public.discovery_candidate_slot slot
+           join public.discovery_candidate d on d.id = slot.snapshot_id
+           join auth.users me on me.id = d.user_id
+           where me.email = '${viewer.account.email}' and slot.candidate_user_id = a.id)`).trim();
+    expect(outside).toMatch(new RegExp(`${tag}$`));
+
+    const deck = viewer.page.getByRole('region', { name: '인연 카드' });
+    await passShownCard(
+      viewer.page,
+      deck.getByRole('article').getByRole('heading').first(),
+      viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }),
+    );
+    /* 새로 고치지 않는다 — 넘김의 응답이 채운 사람을 싣고 온다 */
+    await passUntilShown(viewer.page, deck.getByRole('heading', { name: outside, exact: true }));
+
+    await passUntilShown(viewer.page, viewer.page.getByRole('heading', { name: DISCOVERY_EMPTY.title }));
+    await expect(viewer.page.getByText(DISCOVERY_EMPTY.line)).toBeVisible();
+    await expect(viewer.page.getByRole('button', { name: /목록 새로 고치기/ })).toHaveCount(0);
   });
 });
 

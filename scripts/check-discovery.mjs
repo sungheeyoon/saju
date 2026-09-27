@@ -544,15 +544,17 @@ const isolate = (emails) => {
     /**
      * 내가 든 카드는 **바뀌기 전 요약**을 가리킨다. 남겨 두면 화면이 지금의 그 사람이
      * 아닌 오행을 말하고, 눌러도 요청이 안 난다(`request_match` 는 요약 두 벌이 지금과
-     * 같은 기록만 받는다). 그래서 읽는 자리에서 빠지고, 새로 받아야 돌아온다.
+     * 같은 기록만 받는다). 그래서 읽는 자리가 **그 자리를 걷고 채운다**(ADR 0115) — 그 사람이
+     * 여전히 풀에 있으면 **지금 요약으로** 다시 뽑힐 수 있다. 재는 것은 덱에 옛 요약이 안 남는 것이다.
      */
     const changed = await (await get('/me/matching', myCookie)).text();
-    check('요약이 바뀌면 내 목록에서 빠진다 — 카드가 옛 값을 가리킨다',
-      !changed.includes(THEIR_NAME));
-
-    forgetBoard(mine);
-    const again = await (await get('/me/matching', myCookie)).text();
-    check('목록을 새로 받으면 다시 선다', again.includes(THEIR_NAME));
+    const staleSlots = Number(sql(`select count(*) from public.discovery_candidate_slot slot
+         join public.discovery_candidate d on d.id = slot.snapshot_id
+         join auth.users u on u.id = d.user_id
+         join public.discovery_profile p on p.user_id = slot.candidate_user_id
+       where u.email = '${mine}' and slot.candidate_summary is distinct from p.element_summary`));
+    check('요약이 바뀌면 옛 값을 가리키던 카드는 덱에서 걷힌다', staleSlots === 0, `${staleSlots}자리`);
+    check('그 사람은 지금 요약으로 다시 선다 — 풀에 남아 있으므로', changed.includes(THEIR_NAME));
   }
 
   // ── 9. 참여를 끄면 풀에서 사라지고 요약도 거둬진다 ──────────────────────────

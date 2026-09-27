@@ -89,11 +89,11 @@ type CandidateBoard = {
 type BoardRow = RpcRow<'my_discovery_board'>;
 
 /**
- * 지금 내 후보 — **만들어 둔 목록을 읽는다**(ADR 0037).
+ * 지금 내 후보 — **덱을 읽는다**(ADR 0037 · 0115).
  *
- * 고르는 일은 스냅샷을 만들 때 끝났다. 이 호출이 하는 일은 그것을 읽고, 그 열 명이
- * 지금도 자격이 있는지 다시 묻는 것뿐이다. 없거나 하루가 지났으면 DB 가 그 자리에서
- * 새로 만든다 — **낡음을 판정하는 자리는 하나여야 한다.**
+ * 덱은 여섯 자리다. 떠난 사람(넘김 · 요청 · 자격을 잃음)의 자리는 DB 가 이 읽기에서 걷고 풀에서
+ * 한 명씩 뽑아 **뒤에** 채운다. 덱이 없거나 내 요약이 바뀌었으면 그 자리에서 새로 세운다 —
+ * **채울지 · 낡았는지를 판정하는 자리는 하나여야 한다.**
  *
  * 부르면서 넣을 인자는 하나도 없다 — 자리나 후보 목록을 손으로 적을 수 있으면 그것이
  * 곧 위조할 자리다.
@@ -151,30 +151,6 @@ export async function passedForViewer(mySummary: ElementSummary): Promise<Passed
     ...publicCardFromRow(row, mySummary),
     passedAt: row.passed_at,
   }));
-}
-
-/** 목록을 언제 받았고 몇 초 뒤에 다시 받을 수 있나 — **두 값 다 DB 가 센다** */
-type BoardStamp = { generatedAt: string; waitSeconds: number };
-
-/**
- * 새로고침 버튼이 언제 눌리는지를 **여기서 세지 않는다.**
- *
- * 5분도, 지금 시각과의 뺄셈도 DB 안에 있다. 시각만 받아 여기서 빼면 그 뺄셈이 두 곳에
- * 생기고, 서버와 브라우저의 시계가 어긋난 만큼 버튼이 잘못 눌린다.
- *
- * **목록을 읽은 뒤에 부른다.** 읽는 함수가 24시간 갱신을 일으킬 수 있으므로, 먼저 물으면
- * 방금 만들어진 목록의 시각이 아니라 그 전의 시각을 든다.
- */
-export async function boardStamp(): Promise<BoardStamp | null> {
-  const supabase = await supabaseOnServer();
-
-  const { data, error } = await supabase.rpc('my_discovery_snapshot');
-  if (error) throw dbFailure(error, 'my_discovery_snapshot');
-
-  const row = (data ?? [])[0];
-  if (row === undefined) return null;
-
-  return { generatedAt: row.generated_at, waitSeconds: row.wait_seconds };
 }
 
 /**
