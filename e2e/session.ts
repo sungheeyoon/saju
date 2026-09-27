@@ -586,6 +586,8 @@ type Fixtures = {
   reader: Reader;
   /** 저장한 사람 하나의 풀이가 이미 있는 계정 */
   personReader: PersonReader;
+  /** 내 사주풀이를 먼저, 저장한 사람의 풀이를 나중에 만든 계정 — 가장 최근 글이 내 사주가 아니다 */
+  selfThenPersonReader: PersonReader;
   /** 가입만 끝난 계정 — 온보딩 화면에서 시작한다 */
   newcomer: Account;
   /**
@@ -672,6 +674,22 @@ export const test = base.extend<Fixtures, { local: Local }>({
     if (!kin) throw new Error('저장한 사람을 못 찾았습니다');
 
     const personId = kin.person_id as string;
+    const runId = await saveReadingAs(api, account.email, 'person', personId, '어머니의 결');
+
+    const cookies = await cookiesFor(local, account.email, password);
+    await context.addCookies(cookies.map((one) => ({ ...one, url: baseURL as string })));
+    await use({ account, runId, personId });
+  },
+
+  selfThenPersonReader: async ({ local, context, baseURL }, use) => {
+    const { account, password, api } = await seed(local, { selfPerson: true, people: ['어머니'] });
+
+    const { data: edges } = await api.from('user_person_access').select('person_id, local_label');
+    const kin = (edges ?? []).find((row) => row.local_label === '어머니');
+    if (!kin) throw new Error('저장한 사람을 못 찾았습니다');
+
+    const personId = kin.person_id as string;
+    await saveReadingAs(api, account.email, 'self', null, '지금의 핵심');
     const runId = await saveReadingAs(api, account.email, 'person', personId, '어머니의 결');
 
     const cookies = await cookiesFor(local, account.email, password);

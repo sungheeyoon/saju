@@ -1412,6 +1412,28 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(shelfTitle).toBeVisible();
   });
 
+  /** 넓은 화면에서 목록만 열면 **내 사주풀이가 먼저** 펼쳐진다 — 저장한 사람의 글이 더 최근이어도(2026-09-27 운영자) */
+  test('풀이 목록은 넓은 화면에서 내 사주풀이를 먼저 편다', async ({ page, selfThenPersonReader }, testInfo) => {
+    const mother = page.getByRole('link', { name: /어머니 사주/ });
+    await page.goto('/me/readings');
+
+    if (testInfo.project.name.includes('mobile')) {
+      /* 폰은 목록이 곧 첫 화면이다 — 옮기지 않는다 */
+      await expect(page).toHaveURL(/\/me\/readings$/);
+      await expect(mother.first()).toBeVisible();
+      return;
+    }
+
+    await expect(page).toHaveURL(/\/me\/readings\/self$/);
+    await expect(page.getByRole('heading', { name: '내 사주', exact: true })).toBeVisible();
+    /* 책장의 차례는 그대로 최근 순이다 — 더 최근인 어머니의 표지가 여전히 먼저 서고, 글 끝의 「다음 풀이」도 어머니다 */
+    await expect(mother.first()).toHaveAttribute('href', `/me/readings/${selfThenPersonReader.personId}`);
+    await expect(page.getByRole('link', { name: /다음 풀이/ })).toHaveAttribute(
+      'href',
+      `/me/readings/${selfThenPersonReader.personId}`,
+    );
+  });
+
   test('계정 작업은 우측 계정 메뉴의 계정 관리에 모여 있다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');

@@ -280,7 +280,7 @@ function StaleChip() {
 
 /**
  * 넓은 화면에서 목록 주소만 열었고 펼칠 한 사람 풀이가 없을 때의 오른쪽 칸 — 비워 두면 고장으로 읽힌다.
- * 한 사람 풀이가 있으면 이 칸은 잠깐만 선다(`frame.tsx` 가 가장 최근 글로 옮긴다).
+ * 한 사람 풀이가 있으면 이 칸은 잠깐만 선다(`frame.tsx` 가 내 사주풀이나 가장 최근 글로 옮긴다).
  */
 export function EmptyReader() {
   return (
