@@ -16,7 +16,7 @@ import {
   type FeltLength,
   type IssueTag,
   type ReadingAnswer,
-} from '@/src/lib/reading';
+} from '@/src/lib/reading/feedback';
 
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { TYPE_NAME } from '../../ui/surfaces';

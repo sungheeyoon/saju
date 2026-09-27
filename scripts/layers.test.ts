@@ -12,7 +12,7 @@
  * `docs/architecture.md` 를 함께 고친다. 화면 안의 DB 호출은 **호출마다 지문**을 잠근다 —
  * 표시 수를 세면 같은 줄의 둘째 호출과 예산 재사용을 못 본다.
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { builtinModules } from 'node:module';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 
@@ -97,6 +97,24 @@ const SOURCE_EXTENSION_AT_END = /\.(ts|mts|cts|tsx|js|jsx|mjs|cjs)$/;
 const literalOf = (node: ts.Node | undefined): string | null =>
   node && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) ? node.text : null;
 
+/**
+ * 번들러가 지우는 import 인가 — `import type { … }`, 아니면 이름 전부가 `type` 인 `import { type A }`.
+ * 방향 시험은 이 값을 안 본다(타입도 방향이다). 브라우저로 가는 그래프만 본다 — 아래 「브라우저로 가는 그래프」.
+ */
+const typeOnlyImport = (node: ts.ImportDeclaration): boolean => {
+  const clause = node.importClause;
+  if (clause === undefined) return false; // `import 'x'` 는 부작용이라 실린다
+  if (clause.isTypeOnly) return true;
+  const named = clause.namedBindings;
+  return (
+    clause.name === undefined &&
+    named !== undefined &&
+    ts.isNamedImports(named) &&
+    named.elements.length > 0 &&
+    named.elements.every((element) => element.isTypeOnly)
+  );
+};
+
 function edgesOf(file: string): Edge[] {
   const source = parse(file);
   const rel = relPath(file);
@@ -111,8 +129,8 @@ function edgesOf(file: string): Edge[] {
     out.push({ file: rel, spec, target, line: source.getLineAndCharacterOfPosition(at.getStart()).line + 1, typeOnly });
   };
   const visit = (node: ts.Node) => {
-    if (ts.isImportDeclaration(node)) push(node.moduleSpecifier, node);
-    else if (ts.isExportDeclaration(node) && node.moduleSpecifier) push(node.moduleSpecifier, node);
+    if (ts.isImportDeclaration(node)) push(node.moduleSpecifier, node, typeOnlyImport(node));
+    else if (ts.isExportDeclaration(node) && node.moduleSpecifier) push(node.moduleSpecifier, node, node.isTypeOnly);
     else if (ts.isCallExpression(node)) {
       const callee = node.expression;
       if (callee.kind === ts.SyntaxKind.ImportKeyword) push(node.arguments[0], node);
@@ -353,5 +371,76 @@ describe('화면 안의 DB 호출 (ADR 0072·0078·0085)', () => {
     // 그리고 호출 수와 표시 수가 같다 — 같은 줄에 둘을 두면 표시 하나로 둘을 끄게 된다
     expect(markers.length).toBe(calls.length);
     expect(calls.length).toBe(SCREEN_DB_CALLS_STILL_THERE.size);
+  });
+});
+
+/**
+ * **브라우저로 가는 그래프는 풀이 프롬프트를 모른다.**
+ *
+ * 머리글(`app/site-header.tsx`, 루트 레이아웃의 `'use client'`)이 풀이권 문구 하나를 묶음 입구
+ * `@/src/lib/reading` 에서 불렀다. 입구는 프롬프트 · 변형 · 재기 · 검사와 엔진까지 다시 내보내고
+ * `package.json` 에 `sideEffects` 가 없어 버려지지 않는다 — 2026-09-28 빌드에서 client manifest 38 중 30
+ * (`/privacy` · `/` · `/share/**` 포함)에 프롬프트 원문 조각(85,995B)이 실렸다.
+ * 잎 모듈(`notes` · `feedback`)을 부르게 고치고 여기서 잠근다.
+ *
+ * 뿌리는 `app/` 의 `'use client'` 파일 전부다. 거기서 값으로 부르는 import 를 따라가고(타입만 부르면
+ * 번들러가 지운다), `'use server'` 파일에서 멈춘다 — 액션은 브라우저에 참조로만 간다. 별칭 · 상대경로 ·
+ * `import()` 가 같은 그래프다. 닿으면 안 되는 것은 입구(`index`)와 프롬프트 원문(`prompt`)이다.
+ */
+describe('브라우저로 가는 그래프', () => {
+  const NOT_IN_BROWSER = new Set(['src/lib/reading/index.ts', 'src/lib/reading/prompt.ts']);
+
+  const directivesOf = (file: string): string[] => {
+    const out: string[] = [];
+    for (const statement of parse(join(ROOT, file)).statements) {
+      if (!ts.isExpressionStatement(statement) || !ts.isStringLiteral(statement.expression)) break;
+      out.push(statement.expression.text);
+    }
+    return out;
+  };
+
+  /** 확장자를 뗀 대상 → 실제 파일. `import './x'` 는 `x.ts` 나 `x/index.ts` 다 */
+  const fileOf = (target: string): string | null => {
+    const candidates = [...SOURCE_EXTENSIONS.map((ext) => `${target}${ext}`), ...SOURCE_EXTENSIONS.map((ext) => `${target}/index${ext}`)];
+    return candidates.find((candidate) => existsSync(join(ROOT, candidate)) && statSync(join(ROOT, candidate)).isFile()) ?? null;
+  };
+
+  const valueEdges = new Map<string, string[]>();
+  for (const edge of EDGES) {
+    if (edge.typeOnly || edge.target === null) continue;
+    const to = fileOf(edge.target);
+    if (to !== null) valueEdges.set(edge.file, [...(valueEdges.get(edge.file) ?? []), to]);
+  }
+
+  const roots = SOURCE_FILES.map(relPath).filter((file) => under(file, 'app') && directivesOf(file).includes('use client'));
+
+  /** 뿌리마다가 아니라 한 번에 넓게 돈다 — 처음 닿은 길을 거꾸로 따라가 보여 준다 */
+  const cameFrom = new Map<string, string | null>(roots.map((root) => [root, null]));
+  const queue = [...roots];
+  for (let file = queue.shift(); file !== undefined; file = queue.shift()) {
+    if (directivesOf(file).includes('use server')) continue;
+    for (const to of valueEdges.get(file) ?? []) {
+      if (cameFrom.has(to)) continue;
+      cameFrom.set(to, file);
+      queue.push(to);
+    }
+  }
+  const pathTo = (file: string): string => {
+    const chain = [file];
+    for (let at = cameFrom.get(file); at != null; at = cameFrom.get(at)) chain.unshift(at);
+    return chain.join(' → ');
+  };
+
+  it('그래프를 실제로 읽고 있다 — 뿌리와 잎이 있다', () => {
+    expect(roots.length).toBeGreaterThan(40);
+    expect(roots).toContain('app/site-header.tsx');
+    // 머리글은 잎을 부른다 — 그 길이 그래프에 있다
+    expect(cameFrom.has('src/lib/reading/notes.ts')).toBe(true);
+    // 동의 입구는 닿지만 풀이는 `ReadingKind` 를 타입으로만 든다 — 타입 import 를 안 따라가는 것이 이 시험의 요점이다
+    expect(cameFrom.has('src/lib/consent/index.ts')).toBe(true);
+  });
+
+  it("'use client' 파일에서 값으로 닿는 모듈에 풀이 입구와 프롬프트 원문이 없다", () => {
+    expect([...NOT_IN_BROWSER].filter((file) => cameFrom.has(file)).map(pathTo)).toEqual([]);
   });
 });
