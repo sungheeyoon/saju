@@ -155,7 +155,7 @@ describe('CI 계획 — 관문 · 화면 · 인증은 베타에서도 전부다 
       'scripts/fake-clock.mjs',
       'app/me/matching/deck-state.ts',
       'app/api/portone/webhook/settle.ts',
-      'app/db-error.ts',
+      'app/me/(shelf)/readings/opening.ts',
       'app/pages.ts',
       'app/me/pageless.tsx',
     ]) {
@@ -231,9 +231,37 @@ describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구�
   });
 
   it('앱 서버의 설정과 흐름 검사 · e2e 의 도우미도 전부다', () => {
-    for (const file of ['next.config.ts', 'playwright.config.ts', 'scripts/checks.mjs', 'scripts/notice.mjs', 'src/lib/local-env.ts']) {
+    for (const file of [
+      'next.config.ts',
+      'playwright.config.ts',
+      'scripts/checks.mjs',
+      'scripts/notice.mjs',
+      'scripts/run-checks.mjs',
+      'scripts/next-server.mjs',
+      'src/lib/local-env.ts',
+      // 아직 없는 새 도우미도 이름을 안 적고 걸린다 — 빼는 쪽(NOT_HARNESS)을 적는다
+      'scripts/beta-dates.mjs',
+      'scripts/some-new-helper.mjs',
+    ]) {
       expect(beta([file]).lanes, file).toEqual(FULL);
     }
+    for (const file of ['scripts/ci-plan.mjs', 'scripts/release-stage.mjs', 'scripts/fake-clock.mjs', 'scripts/ui-shots.mjs', 'scripts/generate-lunar-table.mjs']) {
+      expect(isSurface(file), file).toBe(false);
+    }
+  });
+
+  it('관문이 import 를 따라 닿는 app/ 파일은 서버에 안 닿아도 전부다 — 관문이 새로 부르기 시작한 PR 에서부터', () => {
+    const tree: Record<string, string> = {
+      'proxy.ts': "import { currentSchedule } from '@/app/beta-schedule';",
+      'app/beta-schedule.ts': "import { read } from './db-error';\nimport type { X } from '@/src/lib/consent';",
+      'app/db-error.ts': 'export const read = 1;',
+      'app/unrelated.ts': 'export const y = 2;',
+      'src/lib/consent/index.ts': 'export type X = 1;',
+    };
+    const sourceOf = (file: string) => tree[file] ?? null;
+    expect(planFor({ files: ['app/db-error.ts'], stage: '운영 베타', sourceOf }).tier).toBe('full');
+    expect(planFor({ files: ['app/unrelated.ts'], stage: '운영 베타', sourceOf }).tier).toBe('fast');
+    expect(isSurface('app/db-error.ts', () => null)).toBe(false);
   });
 
   it('가르는 것은 이름이 아니라 import 다 — 새 파일도 · 지운 파일은 안 건다 · 시험 파일은 안 건다', () => {
@@ -264,6 +292,7 @@ describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구�
         .filter((name) => /^check-[^/]+\.mjs$/.test(name))
         .map((name) => resolve(ROOT, 'scripts', name)),
       ...HARNESS.map((file) => resolve(ROOT, file)),
+      resolve(ROOT, 'scripts/run-checks.mjs'),
     ];
     const appRoots = [...filesUnder(resolve(ROOT, 'app')).filter((file) => !isTestFile(file)), resolve(ROOT, 'proxy.ts')];
     const app = reachedFrom(appRoots);

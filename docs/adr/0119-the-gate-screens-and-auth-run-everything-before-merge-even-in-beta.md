@@ -46,8 +46,11 @@
 `playwright.config.ts` · 흐름 검사의 도우미(`scripts/checks.mjs` · `notice.mjs`) · `src/lib/local-env.ts` 도 그랬다. 그래서 `SURFACE` 에 둘을 더했다.
 **서버에 닿는 `app/` 파일** — `app/**` 의 시험 아닌 `.ts` · `.tsx` 가 Supabase 클라이언트나 서버 전용 모듈(`server-only` · `next/server` ·
 `next/headers` · `next/cache`)을 import 하면 이름과 상관없이 입구다(`SERVER_REACHING`, 계획 job 이 HEAD 를 읽는다). **시험 도구가 혼자
-쓰는 파일**(`HARNESS`) — 목록이지만, 시험이 e2e · 흐름 검사 · Playwright 설정에서 import 를 따라가 앱이 안 닿는 파일이 전부 걸리는지
-잰다. 잰 값: 한 파일만 바꾼 PR 이 전부로 옮는 파일 42 개(`app/**` `.ts` 35 · 브라우저 client 를 부르는 `.tsx` 2 · 도구 5), `app/**` 의 순수
+쓰는 파일** — 설정 둘과 `src/lib/local-env.ts`(`HARNESS`), 그리고 `scripts/*.mjs` 중 CI · 개발 도구(`NOT_HARNESS`, 빼는 쪽을 적는다)가
+아닌 것 전부. 새 도우미는 이름을 안 적어도 걸린다. **관문이 import 하는 `app/` 파일** — `proxy.ts` 에서 import 를 따라가 닿는 `app/**` 는
+서버에 안 닿아도 입구다(계획 job 이 그때 잰다). 셋 다 목록이 파일의 실재를 요구하지 않아, 나란히 선 PR 이 도우미를 새로 만들거나 관문이
+새 파일을 부르기 시작해도 머지 순서와 상관없이 맞다. 시험은 e2e · 흐름 검사 · Playwright 에서 import 를 따라가 앱이 안 닿는 파일, 관문이
+닿는 `app/` 파일이 전부 걸리는지 잰다. 잰 값: 한 파일만 바꾼 PR 이 전부로 옮는 파일 42 개(`app/**` `.ts` 35 · 브라우저 client 를 부르는 `.tsx` 2 · 도구 5), `app/**` 의 순수
 로직 `.ts` 44 개는 그대로 `fast`. 최근 머지된 PR 30 개를 넣으면 전부가 16 → 17 이다. `src/lib/**` 는 위 「안 고른 것」대로 내용으로 안 가른다.
 같은 날 `ci-plan.test.ts` 가 계획이 내는 차선 전부를 `verify.yml` 의 `plan.outputs` · job `if` · `gate` 의 `needs` 와 견주게 했다 —
 한쪽 이름만 바뀌면 그 job 은 늘 skipped 이고 `gate` 는 초록이라, 전에는 `audit` 하나만 견줬다.

@@ -96,10 +96,14 @@
  *   `next/headers` · `next/cache`)을 import 하는 것(`SERVER_REACHING`). 계획 job 이 HEAD 를 받아 두므로 파일을 읽는다.
  *   못 읽는 파일(지운 것)은 안 건다 — 그것을 부르던 쪽이 함께 바뀌어 그쪽이 걸린다. 순수 화면 로직(`book.ts` ·
  *   `deck-state.ts` · 받은 client 를 쓰기만 하는 `settle.ts`)은 단위 시험이 재므로 전처럼 `fast` 다.
- * - **시험 도구가 혼자 쓰는 파일** — 앱 서버의 설정(`next.config.ts` 의 CSP · 보안 헤더는 익명 e2e 가 잰다)과
- *   e2e · 흐름 검사가 import 하되 앱은 안 부르는 파일(`HARNESS`). 목록이지만 시험이 규칙을 잰다 — e2e · 흐름 검사 ·
- *   Playwright 설정에서 import 를 따라가 앱이 안 닿는 파일이 전부 여기 걸리는지 본다. `scripts/fake-clock.mjs` 는
- *   `ui-shots` 만 쓰고 CI 가 안 돌리므로 안 든다.
+ * - **관문이 import 하는 `app/` 파일** — `proxy.ts` 에서 import 를 따라가 닿는 `app/**` 파일은 서버에 안 닿아도
+ *   입구다(`app/beta-schedule.ts` 가 부르는 `app/db-error.ts` 처럼). 이것도 계획 job 이 HEAD 를 읽어 그때 잰다 —
+ *   관문이 새 파일을 부르기 시작한 PR 에서부터 걸린다.
+ * - **시험 도구가 혼자 쓰는 파일** — 앱 서버의 설정(`next.config.ts` 의 CSP · 보안 헤더는 익명 e2e 가 잰다) ·
+ *   `src/lib/local-env.ts`(`HARNESS`), 그리고 `scripts/*.mjs` 중 CI · 개발 도구가 아닌 것 전부(`NOT_HARNESS` 가 빼는
+ *   쪽이다 — 새 도우미는 이름을 안 적어도 걸리고, 모르는 스크립트는 전부로 간다). 시험이 e2e · 흐름 검사 ·
+ *   Playwright 설정에서 import 를 따라가 앱이 안 닿는 파일이 전부 걸리는지 잰다. `scripts/fake-clock.mjs` 는
+ *   `ui-shots` 만 쓰고 CI 가 안 돌리므로 뺀다.
  *
  * 잰 값(2026-09-28): 한 파일만 바꾼 PR 이 `fast` 에서 전부로 옮는 파일이 42 개다 — `app/**` 의 `.ts` 35 개(시험 아닌 105 개 중
  * 입구가 26 → 61, 순수 로직 44 개는 그대로 `fast`), 브라우저 client 를 부르는 `.tsx` 둘(`site-header.tsx` · `save-for-reading.tsx`),
@@ -114,6 +118,7 @@
  * - `main` 푸시 · `schedule` · 손으로 켠 실행은 계획을 안 보고 전부 돈다.
  */
 import { readFileSync, appendFileSync } from 'node:fs';
+import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { LAUNCHED, currentStageOf } from './release-stage.mjs';
@@ -145,15 +150,16 @@ export const SERVER_ACTIONS_ELSEWHERE = ['app/nickname.ts', 'app/me/reading/shar
  * 앱 서버의 설정, 그리고 e2e · 흐름 검사가 import 하되 앱은 안 부르는 파일 — 위 「서버에 닿는 `app/` 파일과 시험 도구」.
  * 시험이 import 를 따라가 앱이 안 닿는 도구 파일이 전부 여기 있는지 잰다 — 새 도우미가 조용히 빠지지 않게
  */
-export const HARNESS = [
-  'next.config.ts',
-  'playwright.config.ts',
-  'scripts/run-checks.mjs',
-  'scripts/next-server.mjs',
-  'scripts/checks.mjs',
-  'scripts/notice.mjs',
-  'src/lib/local-env.ts',
-];
+export const HARNESS = ['next.config.ts', 'playwright.config.ts', 'src/lib/local-env.ts'];
+/**
+ * `scripts/*.mjs` 는 흐름 검사 · e2e 의 도우미로 보고 입구로 건다 — 여기 든 CI · 개발 도구만 뺀다. 빼는 쪽을 적으므로
+ * 새 도우미(`scripts/beta-dates.mjs` 같은 것)는 이름을 안 적어도 걸리고, 여기 든 이름이 없어져도 넓어질 뿐이다
+ */
+export const NOT_HARNESS =
+  /^scripts\/(?:ci-plan|release-stage|main-red|audit-verify|vercel-ignore|secret-env|remote-lock|db-remote|stack-slot|brand-share-images|generate-[^/]+|fake-clock|ui-[^/]+)\.mjs$/;
+const isHarness = (file) => HARNESS.includes(file) || (/^scripts\/[^/]+\.mjs$/.test(file) && !NOT_HARNESS.test(file));
+/** 관문 — 여기서 import 를 따라가 닿는 `app/` 파일은 입구다(위 「관문이 import 하는 `app/` 파일」) */
+const GATE = 'proxy.ts';
 /**
  * 서버에 닿는 `app/` 파일을 가르는 import — Supabase 클라이언트와 서버 전용 모듈. 이것을 부르는 `app/**` 파일은 이름과
  * 상관없이 입구다(위 「서버에 닿는 `app/` 파일」)
@@ -192,13 +198,46 @@ export function reachesServer(file, sourceOf = sourceFromDisk) {
   return source !== null && importsOf(source).some((name) => SERVER_REACHING.test(name));
 }
 
+/** 저장소 안의 import(`./` · `../` · `@/`)를 파일로 푼다 — 패키지이거나 못 읽으면 `null` */
+function resolveImport(name, from, sourceOf) {
+  let base;
+  if (name.startsWith('@/')) base = name.slice(2);
+  else if (name.startsWith('.')) base = posix.normalize(posix.join(posix.dirname(from), name));
+  else return null;
+  for (const tail of ['', '.ts', '.tsx', '.mjs', '.js', '/index.ts', '/index.tsx']) {
+    if (sourceOf(base + tail) !== null) return base + tail;
+  }
+  return null;
+}
+
+/** 관문에서 import 를 따라가 닿는 저장소 파일 — `sourceOf` 하나마다 한 번만 잰다 */
+const gateReachOf = new WeakMap();
+export function gateReach(sourceOf = sourceFromDisk) {
+  if (gateReachOf.has(sourceOf)) return gateReachOf.get(sourceOf);
+  const seen = new Set();
+  const queue = [GATE];
+  while (queue.length > 0) {
+    const file = queue.pop();
+    const source = seen.has(file) ? null : sourceOf(file);
+    if (source === null) continue;
+    seen.add(file);
+    for (const name of importsOf(source)) {
+      const next = resolveImport(name, file, sourceOf);
+      if (next !== null && !seen.has(next)) queue.push(next);
+    }
+  }
+  gateReachOf.set(sourceOf, seen);
+  return seen;
+}
+
 /** 시험 파일(`*.test.ts`)은 제 결과만 바꾼다 — `app/auth/signed-in.test.ts` 하나로 전부를 돌지 않는다 */
 export const isSurface = (file, sourceOf = sourceFromDisk) =>
   !/\.test\.tsx?$/.test(file) &&
   (matches(SURFACE, file) ||
     SERVER_ACTIONS_ELSEWHERE.includes(file) ||
-    HARNESS.includes(file) ||
-    reachesServer(file, sourceOf));
+    isHarness(file) ||
+    reachesServer(file, sourceOf) ||
+    (file.startsWith('app/') && gateReach(sourceOf).has(file)));
 const isEngine = (file) => matches(ENGINE, file) && !ENGINE_DB_FACING.includes(file);
 
 /** 단계마다 켜는 차선 — `verify.yml` 의 job 이름과 같다 */
