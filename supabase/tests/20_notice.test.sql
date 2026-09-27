@@ -42,8 +42,7 @@ select throws_like(
   '일정이 없으면 확인이 남지 않는다');
 
 reset role;
-insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
-values ('2026-10-31', '시험', '운영자', '담당', 'ops@example.com');
+select tests.schedule_beta();
 insert into public.signup_code (code, note, valid_on, max_uses)
 values ('NOTICE1', '시험', public.signup_today(), 5);
 set local role authenticated;
@@ -197,7 +196,7 @@ select is(
  */
 reset role;
 insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
-values ('2026-12-31', '연장', '운영자', '담당', 'ops@example.com');
+values (tests.beta_ends_on(3), '연장', '운영자', '담당', 'ops@example.com');
 set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 
@@ -213,13 +212,13 @@ select lives_ok(
 
 select is(
   (select a.notice_ends_on from public.app_user a where a.id = (select kim from fresh)),
-  '2026-12-31'::date,
+  tests.beta_ends_on(3),
   '본 날짜가 확인 기록에 남는다');
 
 /** 파기 기한은 **DB 가 짓는다** — 화면마다 더하면 그중 하나가 다른 수를 더한다 */
 select is(
   (select array[ends_on::text, purge_by::text] from public.current_beta_schedule()),
-  array['2026-12-31', '2027-01-30'],
+  array[tests.beta_ends_on(3)::text, (tests.beta_ends_on(3) + 30)::text],
   '파기 기한이 종료일에서 난다');
 
 /** 덮어쓰지 않고 쌓는다 — 무엇을 언제 약속했는지 답할 수 있어야 한다 */
@@ -239,13 +238,20 @@ set local role authenticated;
  * 있어서 다음 날에도 그대로 돌았다 — 「10월 31일에 끝납니다」라고 적어 두고 안 끝나면
  * 그 문장은 지키는 것이 없다.
  */
-reset role;  -- 밖의 역할에는 닫힌 함수다(G-23 ⑪) — 판정만 잰다
-select is(public.beta_is_over(), false, '종료일 전에는 안 끝났다');
+/*
+  **경계는 오늘에서 센다 — 이틀씩 비킨다.** 날짜를 적어 두면 그날이 지나는 순간 「전에는
+  안 끝났다」가 거짓이 된다. 판정이 UTC 날짜로 세든 서울 날짜로 세든 둘은 하루까지만
+  어긋나므로, 모레와 그저께는 어느 쪽으로 재도 같은 답을 낸다.
+*/
+reset role;
+insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
+values (current_date + 2, '모레 끝난다', '운영자', '담당', 'ops@example.com');
+select is(public.beta_is_over(), false, '종료일 전에는 안 끝났다');  -- 밖의 역할에는 닫힌 함수다(G-23 ⑪) — 판정만 잰다
 set local role authenticated;
 
 reset role;
 insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
-values ('2020-01-01', '지난 날', '운영자', '담당', 'ops@example.com');
+values (current_date - 2, '그저께 끝났다', '운영자', '담당', 'ops@example.com');
 set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 
