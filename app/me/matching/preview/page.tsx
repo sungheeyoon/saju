@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { DISCOVERY_TEASER } from '@/src/lib/discovery';
 
 import { supabaseOnServer } from '../../../auth/server-client';
-import { EXAMPLE_CARDS, EXAMPLE_ME } from '../examples';
+import { EXAMPLE_DECK_SIZE, EXAMPLE_ME, EXAMPLE_PASSED, exampleCards } from '../examples';
 import { MatchingExperience } from '../matching-experience';
 
 export const metadata = {
@@ -22,7 +22,7 @@ export const metadata = {
  * **요청은 나가지 않는다**(`preview`). 얼굴이 가짜인 자리에서 진짜 요청이 나가면
  * 받을 사람이 없는 요청이 표에 남는다.
  */
-export default async function MatchingPreviewPage() {
+export default async function MatchingPreviewPage({ searchParams }: { searchParams: Promise<{ people?: string }> }) {
   /*
     **이 화면도 스스로 묻는다.** `/me` 아래의 규약이다 — 관문(`proxy.ts`)은 길만
     가리키고 로그인 판정은 하지 않는다. 안 물으면 주소를 아는 누구에게나 열린다.
@@ -33,9 +33,17 @@ export default async function MatchingPreviewPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
+  /*
+    **몇 명을 세울지는 주소가 정한다**(`?people=3`, 1~18, 기본 12). 지도는 여섯까지 세우고 나머지는 「+n」 이라 기본값에서
+    넘길 때마다 바깥에서 한 사람이 들어와 앉는다 — 붐비는 날 · 한 기운에 몰린 날 · 들어오는 움직임을 여기서 본다.
+  */
+  const people = Number((await searchParams).people ?? EXAMPLE_DECK_SIZE) || EXAMPLE_DECK_SIZE;
+
   return (
     <MatchingExperience
-      cards={EXAMPLE_CARDS}
+      key={people}
+      cards={exampleCards(people)}
+      passed={EXAMPLE_PASSED}
       me={EXAMPLE_ME}
       teaser={DISCOVERY_TEASER}
       notice={null}
