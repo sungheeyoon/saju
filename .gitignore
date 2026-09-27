@@ -20,6 +20,9 @@
 # next.js
 /.next/
 /.next-check/
+# 옛 도구가 남긴 다른 빌드 자리도 — 무시하지 않으면 Tailwind 가 그 안의 이진 캐시를 클래스 후보로 읽어
+# globals.css 파싱이 깨진다(2026-09-27, `.next-matching-test` 를 목록에서 뺀 뒤)
+/.next-*/
 /out/
 
 # production
