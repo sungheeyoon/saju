@@ -118,6 +118,17 @@ function record(where: string, code: string, message: string): void {
 }
 
 /**
+ * 답에 **문장을 안 싣는** 자리의 거절을 기록에만 남긴다.
+ *
+ * `{ ok: false }` · 상태 하나 · HTTP 503 처럼 「못 했다」만 값으로 내는 자리가 있다. 그 값은 부르는
+ * 쪽이 정한 그대로 두고, 원문만 여기로 보낸다 — 안 보내면 그 실패는 아무 데도 안 남는다(2026-09-28
+ * 에 넷을 쟀다: 쌍의 사이 읽기 · 계정 읽기 · 복구 크론의 목록 · webhook 영수증).
+ */
+export function recordDbFailure(error: DbError, where: string): void {
+  record(where, error.code ?? '', error.message);
+}
+
+/**
  * 문이 던진 거절 — **`message` 가 이미 사용자에게 보일 우리말이다**(`dbFailure` 만 짓는다).
  *
  * 이름으로 가르는 까닭은 서버 액션이다. 액션이 던지면 운영의 Next 는 그 문장을 지우고 영어

@@ -15,7 +15,7 @@ import { rpcArgs } from '@/src/lib/db';
  * 답한 결과는 **세 갈래**다.
  *
  * 수락·거절 말고 **무효**가 있다. 누른 사람이 수락을 눌렀는데 무효가 나오는 경우가
- * 실재하고(그 사이에 낀 판본 수정), 그때 화면이 「수락했습니다」라고 말하면 사용자는
+ * 실재하고(그 사이에 낀 입력 수정), 그때 화면이 「수락했습니다」라고 말하면 사용자는
  * 없는 Match 를 찾게 된다. 그래서 결과를 성공/실패가 아니라 **상태**로 돌려준다.
  */
 type RespondResult =
@@ -29,8 +29,8 @@ function statusOf(value: unknown): RequestStatus | null {
 /**
  * 받은 요청에 답한다.
  *
- * **여기서 판정하지 않는다.** 내가 받는 쪽인가, 아직 pending 인가, 잡아 둔 판본이 지금
- * 판본과 같은가 — 셋 다 RPC 안에 있다. 여기서 다시 물으면 답하는 자리가 둘이 되고,
+ * **여기서 판정하지 않는다.** 내가 받는 쪽인가, 아직 pending 인가, 잡아 둔 입력 판
+ * (`input_version`)이 지금과 같은가 — 셋 다 RPC 안에 있다. 여기서 다시 물으면 답하는 자리가 둘이 되고,
  * 어긋났을 때 열려 있는 쪽은 언제나 더 바깥이다.
  */
 export async function respondToRequest(requestId: string, accept: boolean): Promise<RespondResult> {
@@ -53,15 +53,16 @@ export async function respondToRequest(requestId: string, accept: boolean): Prom
    * 그것을 떠나보내는 일뿐이고, 그 일은 응답 뒤에 돈다: 수락을 누른 사람이 「수락했다」를
    * 보기까지 모델 왕복을 기다릴 이유가 없다(ADR 0020 과 같은 규율).
    *
-   * **던지지 않는다.** 응답은 이미 나갔고 부르는 쪽이 없다. 실패하면 `sendRun` 이 시도를
-   * 닫고, 결과 화면에 「다시 만들기」가 선다.
+   * **던지지 않는다.** 응답은 이미 나갔고 부르는 쪽이 없다. 실패하면 `submitFrozen` 이 시도를
+   * 닫고, 결과 화면에 만드는 버튼이 돌아온다.
    */
   if (status === 'accepted') {
     after(async () => {
       try {
         await sendAcceptedMatchReading(requestId);
-      } catch {
-        // 여기까지 온 것은 우리가 못 적은 경우다. 복구기가 deadline 에 닫는다.
+      } catch (thrown) {
+        // 여기까지 온 것은 우리가 못 적은 경우다. 복구기가 deadline 에 닫는다 — 까닭만 기록에 남긴다.
+        console.error('respond: sendAcceptedMatchReading', thrown);
       }
     });
   }
@@ -136,8 +137,9 @@ export async function reportUser(
 /**
  * 탈퇴를 신청한다 — 계정이 탈퇴 대기가 된다(PRD 「계정이 멈추는 자리」).
  *
- * **지우지 않는다.** 폐쇄 MVP 에서 실제 삭제는 운영자가 처리하고, 이 문이 즉시 하는
- * 일은 상태를 옮겨 바깥으로 나가는 길을 다 막는 것이다(`request_account_deletion`).
+ * **지우지 않는다.** 실제 처분은 신청 뒤 사흘 안에 크론이 한다(G-53,
+ * `20261004090000_the_leaver_is_disposed_within_three_days_by_the_clock.sql`). 이 문이 즉시
+ * 하는 일은 상태를 옮겨 바깥으로 나가는 길을 다 막는 것이다(`request_account_deletion`).
  */
 export async function requestAccountDeletion(): Promise<SaveResult> {
   const supabase = await supabaseOnServer();

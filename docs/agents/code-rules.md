@@ -55,11 +55,11 @@
 `CONTEXT.md` 「입력」 항목이 그 경계다.
 
 **`console`** — 앱(`src/` · `app/`)에 `console.log` 는 없다. `console.error` 는 답을 안 바꾸고 **기록에만**
-남기는 자리뿐이고, 2026-09-27 에 잰 값으로 호출 스물하나 · 파일 열셋이다(`grep -rn 'console\.error' app src`, 시험 파일 제외).
+남기는 자리뿐이고, 2026-09-28 에 잰 값으로 호출 스물셋 · 파일 열넷이다(`grep -rn 'console\.error' app src`, 시험 파일 제외).
 갈래는 다섯이다 — ① 못 옮긴 DB 오류의 원문(`app/db-error.ts` 한 곳). ② 답에 안 싣는 거절 까닭: webhook 의
 서명 거절(G-23 ⑧)과 결제 알림을 반영하지 않은 까닭(서명 · 금액 거절 · 닫힌 주문, G-23 ⑥). ③ 운영자 거절 기록을
 못 적은 것과 ④ 접속기록 반출 실패(ADR 0105). ⑤ **뒤에서 받치는 쓰기를 못 한 것** — 복구기 · 만료가 닫을 일감을
-못 닫음, 오행 요약 · 발견 참여 갱신 실패, webhook 처리 표시, 동의 당시 명식이 없는 옛 Match, 활동을 못 적음(`app/auth/signed-in.ts`, ADR 0118). ⑤ 는 결과를 버리는
+못 닫음(응답 뒤 `after` 에서 풀이를 못 떠나보낸 것 포함), 오행 요약 · 발견 참여 갱신 실패, webhook 처리 표시, 동의 당시 명식이 없는 옛 Match, 활동을 못 적음(`app/auth/signed-in.ts`, ADR 0118). ⑤ 는 결과를 버리는
 쓰기의 대신이다(위 탈출구 표). 새 자리는 이 다섯 중 하나여야 한다. 찍어 보는 자리는 `scripts/` 와, 사람이 읽으려고
 돌리는 `*.live.test.ts` 다.
 
@@ -89,7 +89,7 @@
 | --- | --- | --- |
 | `x as unknown as T` (`as never as` · `as any as` 도 같은 예산) | 7 | 생성 타입 `Database` 와 `rpcArgs`. `jsonb` 를 내주는 문만 어댑터 안에서 한 번 |
 | `x!` | 12 | 좁히기(`if (x === null) return …`), 아니면 없음을 값으로 |
-| `if (error) return null` (`if (x.error)` · `if (error \|\| …)` · `{ return false; }` 도 같다) | 3 | 위 「실패를 말하는 법」 |
+| `if (error) return null` (`if (x.error)` · `if (error \|\| …)` · `if (error !== null)` · `{ return false; }` · `{ ok: false }` 처럼 값이 글자뿐인 객체도 같다) | 3 | 위 「실패를 말하는 법」. 문장을 안 싣는 자리는 `recordDbFailure` 로 원문을 기록에 보낸다 |
 | `const { data } = await ….from(…)` — `error` 를 꺼내지도 않는다(`Promise.all` 의 한 칸 포함) | 0 | `{ data, error }` 로 꺼내고 위 「실패를 말하는 법」 |
 | `await x.rpc(…)` 를 문장으로 — 결과를 통째로 버린다(`void` 포함, `.then` · `.catch` 로 받으면 안 센다) | 0 | `const { error } = await …` 로 꺼내고, 뒤에 복구기가 받치는 쓰기라도 `console.error` 로 기록에 남긴다 |
 | `eslint-disable` | 화면 DB 호출 6(층 시험이 든다) + 3 | `// eslint-disable-next-line 규칙 -- 까닭` 한 줄. 파일째 끄지 않는다. 까닭 없는 것은 없다(2026-09-26 에 설문의 `exhaustive-deps` 표시를 걷었다) |
