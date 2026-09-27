@@ -315,7 +315,10 @@ alter table runs add column seventh uuid;
 update runs set seventh = (select run_id from public.start_reading_run('person', 'ledger-run-0007', (select dad from kin)));
 select is(pg_temp.use_of_run((select seventh from runs)), 'bundle:reserved', '그다음은 묶음이다 — 도는 동안 예약');
 
-select public.fail_reading_run((select seventh from runs), 'provider_error');
+-- 닫는 문은 열쇠의 것이다(ADR 0120)
+reset role;
+select public.fail_reading_job((select seventh from runs), 'provider_error');
+set local role authenticated;
 select is(pg_temp.use_of_run((select seventh from runs)), 'bundle:released', '실패하면 풀린다');
 
 select pg_temp.acting((select kim from folks));

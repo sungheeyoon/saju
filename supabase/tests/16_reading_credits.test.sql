@@ -175,7 +175,10 @@ select is(
 
 -- ── 실패는 되돌리는 일 없이 풀린다 ──────────────────────────────────────────
 
-select public.fail_reading_run((select id from run_bro), 'call_failed');
+-- 닫는 문은 열쇠의 것이다(ADR 0120)
+reset role;
+select public.fail_reading_job((select id from run_bro), 'call_failed');
+set local role authenticated;
 
 select is(
   (select array[used, reserved, available] from public.my_reading_credits()),

@@ -73,12 +73,11 @@ select pg_temp.becomes((select kim from folks));
 create temporary table failed_run as
 select run_id from public.start_reading_run('self', 'budget-fail-1');
 
-select public.fail_reading_run(
+-- 시도를 닫는 문은 열쇠의 것이다(ADR 0120). 시도 행은 사용자에게 안 보이므로 적힌 것도 운영자 자리에서 본다.
+reset role;
+select public.fail_reading_job(
   (select run_id from failed_run), 'model-incomplete', '상한에 걸렸습니다',
   '{"inputTokens": 900, "outputTokens": 100, "totalTokens": 1000}'::jsonb);
-
--- 시도 행은 사용자에게 안 보인다. 무엇이 적혔는지는 운영자 자리에서 본다.
-reset role;
 select is(
   (select (r.usage ->> 'totalTokens')::int from public.reading_run r
    where r.id = (select run_id from failed_run)),
@@ -92,10 +91,9 @@ select pg_temp.becomes((select kim from folks));
 create temporary table unknown_run as
 select run_id from public.start_reading_run('self', 'budget-fail-2');
 
-select public.fail_reading_run(
-  (select run_id from unknown_run), 'model-submit-failed', '제출이 안 됐습니다');
-
 reset role;
+select public.fail_reading_job(
+  (select run_id from unknown_run), 'model-submit-failed', '제출이 안 됐습니다');
 select is(
   (select r.usage from public.reading_run r where r.id = (select run_id from unknown_run)),
   null,
