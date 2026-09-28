@@ -3,6 +3,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { scheduleOf, type BetaSchedule } from '@/src/lib/consent';
 import type { Database } from '@/src/lib/db';
 
+import { read, unread, type SkippableRead } from './db-error';
+
 /**
  * **지금 베타 일정을 읽는 문** — 관문(`proxy.ts`)과 세 화면(`/signup` · `/privacy` · `/closed`)이
  * 같은 문을 지난다.
@@ -17,25 +19,32 @@ import type { Database } from '@/src/lib/db';
  * 로그인 없이도 읽힌다 — 처리방침은 초대 메일에 실리므로 그래야 한다. 내주는 것은
  * 날짜 둘뿐이고 그 둘은 처리방침이 이미 공개하는 값이다.
  *
- * @returns 못 읽었거나, 줄이 없거나, 운영자 칸이 비었으면 `null`. 못 읽은 것과 없는 것을
- *   **아직 가르지 않는다** — 관문과 세 화면이 이 `null` 하나로 갈래를 짓고 있어서다(ADR 0078).
+ * @returns 못 읽었으면 `{ ok: false }` — 까닭은 사용자에게 보일 말로 옮겨 싣고 원문은 기록에 남긴다.
+ *   읽었는데 줄이 없거나 운영자 칸이 비었으면 `{ ok: true, value: null }`.
+ *
+ *   **못 읽은 것과 없는 것을 가른다**(ADR 0078). 한 `null` 로 합쳤을 때는 관문이 그 `null` 을
+ *   「일정 없음」으로 읽어, 이 문 한 번이 실패하면 가입을 마친 사람 전원의 `/me` 아래 요청이
+ *   `/signup` 으로 튕겼다. 관문은 못 읽었으면 아무 데도 안 보내고(계정을 못 읽었을 때와 같다),
+ *   화면은 폼이나 전문 대신 그 까닭을 세운다.
  */
 export async function currentSchedule(
   client: SupabaseClient<Database>,
-): Promise<BetaSchedule | null> {
+): Promise<SkippableRead<BetaSchedule | null>> {
   const { data, error } = await client.rpc('current_beta_schedule');
-  if (error) return null;
+  if (error) return unread(error, 'current_beta_schedule');
 
   const row = (data ?? [])[0];
-  if (row === undefined) return null;
+  if (row === undefined) return read(null);
 
-  return scheduleOf({
-    scheduleId: row.schedule_id,
-    endsOn: row.ends_on,
-    purgeBy: row.purge_by,
-    purgeWithinDays: row.purge_within_days,
-    operatorName: row.operator_name,
-    operatorOfficer: row.operator_officer,
-    operatorContact: row.operator_contact,
-  });
+  return read(
+    scheduleOf({
+      scheduleId: row.schedule_id,
+      endsOn: row.ends_on,
+      purgeBy: row.purge_by,
+      purgeWithinDays: row.purge_within_days,
+      operatorName: row.operator_name,
+      operatorOfficer: row.operator_officer,
+      operatorContact: row.operator_contact,
+    }),
+  );
 }

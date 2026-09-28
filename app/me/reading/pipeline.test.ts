@@ -244,17 +244,16 @@ describe('누름은 얼린 작업을 집어 떠나보낸다', () => {
     await settle();
 
     expect(submit).not.toHaveBeenCalled();
-    /** 열쇠가 없으면 열쇠 문도 못 쓴다 — 남는 길은 사용자 세션 하나다 */
+    /** 열쇠가 없으면 닫을 문이 없다 — 사용자 권한으로 닫는 문은 걷었고 만료가 닫는다(ADR 0120) */
     expect(
-      rpc.mock.calls.find(([name]) => name === 'fail_reading_run'),
-      '실패를 안 적었다',
-    ).toBeDefined();
+      rpc.mock.calls.filter(([name]) => name !== 'start_reading_run'),
+      '사용자 세션으로 다른 문을 불렀다',
+    ).toEqual([]);
   });
 
   /**
-   * **실패는 열쇠로 닫는다.** 수락이 연 시도는 청한 사람 것으로 서 있어 사용자 쪽 문
-   * (`fail_reading_run` 은 `auth.uid()` 를 건다)으로는 못 닫는다 — 그러면 실패한 인연
-   * 궁합이 만료까지 열린 채 남는다.
+   * **실패는 열쇠로 닫는다.** 사용자 권한으로 닫는 문은 없다(ADR 0120) — 수락이 연 시도는
+   * 청한 사람 것이라 그 문으로는 애초에 못 닫았다.
    */
   it('제출이 실패하면 열쇠로 시도를 닫는다', async () => {
     submit.mockResolvedValue({ ok: false, code: 'model-submit-failed', detail: '끊겼다' });

@@ -1,9 +1,5 @@
-import {
-  isScored,
-  READING_ALREADY_RUNNING_NOTE,
-  READING_FAILED_NOTE,
-  READING_UNEXPECTED_NOTE,
-} from '@/src/lib/reading';
+import { READING_ALREADY_RUNNING_NOTE, READING_FAILED_NOTE, READING_UNEXPECTED_NOTE } from '@/src/lib/reading/notes';
+import { isScored } from '@/src/lib/reading/policy';
 
 import type { CurrentReading, LastRun } from './current';
 import type { ReadingTarget } from './target';

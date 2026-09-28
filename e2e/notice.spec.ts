@@ -1,6 +1,7 @@
 import {
   E2E_CODE,
   expect,
+  postponedEndsOn,
   test,
   scheduleBeta,
   scheduledEndsOn,
@@ -90,11 +91,11 @@ test.describe('시작하기 전에', () => {
     await expect(page).toHaveURL(/\/me$/);
 
     /* 운영자가 미룬다 — 날짜가 아니라 **줄**이 바뀌므로, 같은 날짜로 연락처만 고쳐도 같다 */
-    scheduleBeta('2026-12-31');
+    scheduleBeta(postponedEndsOn());
 
     await page.goto('/me');
     await expect(page).toHaveURL(/\/signup$/);
-    await expect(page.getByText(asKoreanDay('2026-12-31'), { exact: false })).toBeVisible();
+    await expect(page.getByText(asKoreanDay(postponedEndsOn()), { exact: false })).toBeVisible();
 
     /* 이미 가진 사람에게는 코드 칸도 이름 칸도 안 선다 */
     await expect(page.getByLabel('테스트 코드')).toHaveCount(0);

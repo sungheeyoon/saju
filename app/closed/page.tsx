@@ -33,8 +33,13 @@ const INLINE_LINK =
 
 export default async function ClosedPage() {
   const supabase = await supabaseOnServer();
-  const notice = await currentSchedule(supabase);
+  const schedule = await currentSchedule(supabase);
+  const notice = schedule.ok ? schedule.value : null;
 
+  /*
+    못 읽었으면 끝났는지 모른다 — 「끝났습니다」를 날짜 없이 세우지 않고 돌려보낸다. 관문도 못 읽었으면
+    아무 데도 안 보내므로(`gateFor`) 여기로 되돌아오지 않는다.
+  */
   if (notice === null || !betaIsOver(notice.dates, new Date())) redirect('/me');
 
   return (

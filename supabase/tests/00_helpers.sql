@@ -9,7 +9,58 @@ create schema if not exists tests;
 -- pg_prove 는 plan 이 없는 파일을 「망가진 시험」으로 읽는다. 도구 파일이라도
 -- 한 줄은 세워 둔다 — 손잡이가 안 서면 나머지가 전부 이유 없이 무너지므로,
 -- 그 자리를 여기서 먼저 알려 주는 것이 맞다.
-select plan(4);
+select plan(5);
+
+/**
+ * 시험의 종료일 — **오늘에서 센다.** 서울 날짜로 다다음 달 1일이다(29~62일 뒤 — 가장 짧은 것이 1월 31일 → 3월 1일).
+ *
+ * 한동안 `2026-10-31` 을 적어 두었다. 운영의 종료일과 같은 값이라 맞아 보였지만, 그날이
+ * 지나면 `beta_is_over()` 가 참이 되어 가입도 첫 입력도 닫히고 — 시험 63 파일 중 45 가
+ * 아무것도 안 고쳤는데 붉어진다(2026-09-28, 로컬의 종료일을 어제로 옮겨 쟀다). 시험이
+ * 재려는 것은 「열려 있는 동안」이지 운영이 약속한 그날이 아니다.
+ *
+ * **하루가 아니라 달로 센다.** e2e 와 흐름 검사가 같은 규칙을 쓰는데(`scripts/beta-dates.mjs`
+ * 의 `checkEndsOn`), 그쪽은 자정을 걸쳐 돌 수 있다 — 날로 세면 도는 도중에 값이 바뀌어
+ * 새 줄이 서고 앞선 계정이 모두 안내로 돌아간다. 달로 세면 그 자리가 한 해에 열두 번이다.
+ * 서울 날짜로 세든 UTC 로 세든 종료일까지 4주가 넘게 남는다.
+ *
+ * `months_ahead` 는 「운영자가 미뤘다」를 흉내 내는 자리가 쓴다 — 기본값보다 늦은 날.
+ */
+create or replace function tests.beta_ends_on(months_ahead integer default 2)
+returns date
+language sql
+stable
+as $$
+  select (date_trunc('month', (now() at time zone 'Asia/Seoul')::date)
+          + make_interval(months => months_ahead))::date;
+$$;
+
+/**
+ * 시험이 쓰는 일정을 세운다 — **지금 줄이 그 날짜가 아니면 새 줄을 넣는다.**
+ *
+ * 표는 쌓으므로 지우지 않는다. 마이그레이션이 넣은 운영의 첫 줄(고정 종료일)이 지금 줄로
+ * 남아 있어도 그 위에 시험의 줄이 선다 — 파일마다 트랜잭션이 되돌아가므로 밖에는 안 남는다.
+ * 이미 그 날짜이고 운영자 정보가 있으면 아무것도 안 한다. 그래야 한 파일에서 여러 번
+ * 불러도 계정들이 같은 줄을 본다.
+ *
+ * `e2e/session.ts` · `scripts/notice.mjs` 의 `scheduleBeta` 와 같은 규칙이다.
+ */
+create or replace function tests.schedule_beta()
+returns bigint
+language plpgsql
+security definer
+as $$
+begin
+  insert into public.beta_schedule
+    (ends_on, note, operator_name, operator_officer, operator_contact)
+  select tests.beta_ends_on(), '시험', '만세력 운영자', '시험 담당', 'ops@example.com'
+  where coalesce((select s.ends_on from public.current_beta_schedule() s), '1900-01-01')
+          <> tests.beta_ends_on()
+     or (select s.operator_contact from public.current_beta_schedule() s) is null;
+
+  return (select s.schedule_id from public.current_beta_schedule() s);
+end;
+$$;
 
 /**
  * 구글 로그인만 한다 — **가입은 아직 안 끝났다.**
@@ -61,10 +112,7 @@ begin
     일정도 함께 세운다 — 확인 기록이 **본 날짜**를 들기 때문이다. 없으면 `/me` 관문이
     「일정이 바뀌었다」로 읽고 모두를 안내 화면으로 돌려보낸다.
   */
-  insert into public.beta_schedule
-    (ends_on, note, operator_name, operator_officer, operator_contact)
-  select '2026-10-31'::date, '시험', '만세력 운영자', '시험 담당', 'ops@example.com'
-  where not exists (select 1 from public.beta_schedule);
+  perform tests.schedule_beta();
 
   update public.app_user
   set notice_version = 'notice-for-tests',
@@ -211,4 +259,7 @@ select has_function('tests', 'signup', array['text'], '가입한 척하는 손�
 select has_function('tests', 'signup_raw', array['text'], '가입을 안 끝낸 손잡이도 선다');
 select ok(public.is_chart_snapshot(tests.chart()), '손잡이가 내는 여덟 글자는 문을 지나간다');
 select ok(public.is_need_summary(tests.need()), '손잡이가 내는 필요한 기운 요약은 모양이 맞다');
+select ok(
+  tests.beta_ends_on() > (now() at time zone 'Asia/Seoul')::date + 28,
+  '시험의 종료일은 오늘에서 4주 넘게 남는다 — 날짜를 적어 두면 그날 모든 파일이 붉어진다');
 select * from finish();

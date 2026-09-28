@@ -1,7 +1,8 @@
 # 운영 절차
 
-폐쇄 초대 MVP 를 운영하는 데 필요한 일들. **화면은 없다** — `prd-archive` 가 초기에는 UI 대신
-감사 가능한 관리자 절차를 쓸 수 있다고 했고, 지금이 그 단계다. 이 문서가 그 「절차」다.
+폐쇄 초대 MVP 를 운영하는 데 필요한 일들. **운영자 화면은 읽는 둘뿐이다** — 신고 열람(`app/ops/reports`)과 설문 요약
+(`app/ops/survey`). 나머지는 `prd-archive` 가 초기에는 UI 대신 감사 가능한 관리자 절차를 쓸 수 있다고 한 그대로
+절차이고, 이 문서가 그 「절차」다.
 
 여기 적힌 것을 그대로 실행할 수 있어야 한다. 기억에 기대면 초대 하나를 넣는 데도
 표 이름을 더듬게 되고, 급할 때 더듬는 것은 대개 제재 쪽이다.
@@ -160,8 +161,8 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 
 ## 테스트 시작하기 — **날짜 한 줄**
 
-지금은 아무도 시작할 수 없다. 종료일이 없으면 안내가 만들어지지 않고, 안내가 없으면
-`/signup` 에 폼이 아예 없다(ADR 0024). 배포 없이 **언제든** 넣고 옮길 수 있다.
+지금 시작할 수 있는지는 `select * from public.current_beta_schedule();` 가 답한다 — 줄이 없으면 아무도 시작할 수
+없다. 종료일이 없으면 안내가 만들어지지 않고, 안내가 없으면 `/signup` 에 폼이 아예 없다(ADR 0024). 배포 없이 **언제든** 넣고 옮길 수 있다.
 
 > **일정을 옮기면 이미 가입한 사람도 다시 확인한다.** 관문이 「지금 일정 줄」을 보므로
 > (ADR 0042) 그 사람들은 다음 방문에 `/signup` 으로 돌아가 확인 하나만 다시 누른다 —
@@ -305,7 +306,7 @@ order by 쓴것 desc;
 
 ```sql
 create or replace function public.reading_credit_limit()
-returns integer language sql immutable as $$ select 5 $$;
+returns integer language sql immutable set search_path = '' as $$ select 5 $$;
 ```
 
 > 옮기기 전에 **무엇을 근거로 옮기는지 적어 둔다.** 처음 다섯은 재어 보고 정한 값이
@@ -1494,10 +1495,12 @@ where d.start_time > now() - interval '24 hours'
 group by 1, 2 order by 1, 2;
 ```
 
-지금 서 있는 잡은 넷이다 — `reading-recovery`(1분) · `match-request-expiry`(매시 7분) ·
-`account-disposal`(매시 23분, G-53) · `cron-watch`(10분, G-42).
+서 있는 잡의 원본은 `supabase/migrations/` 의 `cron.schedule` 이고, 운영의 실제는 `select jobname, schedule from cron.job;` 이
+찍는다. 2026-09-28 에 마이그레이션에서 센 것은 일곱이다 — `reading-recovery`(1분) · `match-request-expiry`(매시 7분) ·
+`account-disposal`(매시 23분, G-53) · `report-retention-purge`(매시 47분, ADR 0098) · `cron-watch`(10분, G-42) ·
+`payment-retention-purge`(매일 04:53 UTC) · `audit-export-watch`(매일 06:29 UTC, 「반출 — 매일 S3」).
 Vercel Cron 은 둘이다(`vercel.json`) — 복구기의 하루 청소(`/api/cron/reading`)와 접속기록 반출(`/api/cron/audit-export`,
-ADR 0105). 둘은 `cron-watch` 가 못 본다 — 반출은 월 점검이 본다.
+ADR 0105). 둘은 `cron-watch` 가 못 본다 — 반출은 pg_cron 의 `audit-export-watch` 가 매일 본다(시도나 성공이 이틀 넘게 없으면 알린다).
 **`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**
 
 ---

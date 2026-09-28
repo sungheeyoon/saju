@@ -24,9 +24,7 @@ end;
 $$;
 
 /** 일정이 있어야 확인이 남는다 — 안내가 만들어질 수 없으면 가입도 못 한다 */
-insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
-select '2026-10-31', '시험', '운영자', '담당', 'ops@example.com'
-where not exists (select 1 from public.beta_schedule);
+select tests.schedule_beta();
 
 insert into public.signup_code (code, note, valid_on, max_uses) values
   ('TODAY1', '오늘 두 명', public.signup_today(), 2),
@@ -122,7 +120,7 @@ select results_eq(
 
 select is(
   (select a.notice_ends_on from public.app_user a where a.id = (select kim from folks)),
-  '2026-10-31'::date,
+  tests.beta_ends_on(),
   '본 종료일도 함께 남는다 — 일정이 움직이면 다시 물어야 하므로');
 
 -- ── 3. 이름은 유일하다 ────────────────────────────────────────────────────
