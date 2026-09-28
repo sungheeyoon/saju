@@ -232,7 +232,7 @@ function SaveCard({
           <p className="text-xs leading-5 text-muted">
             {note} 저장한 뒤 {reading}를 받는 화면으로 갑니다.
             {slots !== null && ` 앞으로 ${slots.remaining}명 더 저장할 수 있습니다.`} 목록에서
-            빼려면 ‘저장한 사람’ 화면에서 관리해 주세요.
+            빼려면 ‘저장한 사람’으로 이동해 주세요.
           </p>
         </div>
       )}
