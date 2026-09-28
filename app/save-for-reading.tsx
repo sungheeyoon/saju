@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
 
-import { RESUME_READING_PATH, withReturnPath } from '@/src/lib/consent';
+import { RESUME_READING_PATH } from '@/src/lib/consent';
 import { calculateChart } from '@/src/lib/input/chart';
 import { noRoomToSave, type PersonSlots } from '@/src/lib/people';
 
@@ -14,6 +14,7 @@ import { SelfCard } from './me/home/self-card';
 import { personSlotsFrom } from './person-slots';
 import { toSearchParams, type Query } from '@/src/lib/input/query';
 import { READING_DRAFT_KEY } from './reading-draft';
+import { SignInCarrying } from './sign-in-carrying';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
 import { selfPersonState, type SelfPersonState } from './self-person-state';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './ui/buttons';
@@ -173,27 +174,19 @@ function SaveCard({
             <p className="mt-1 text-sm leading-6 text-secondary">성향부터 일과 연애, 운의 흐름까지 글로 풀어드려요.</p>
           </div>
           <div className="shrink-0">
-            <Link
-              href={withReturnPath('/auth', RESUME_READING_PATH)}
-              prefetch={false}
-              onClick={(event) => {
-                try {
-                  sessionStorage.setItem(READING_DRAFT_KEY, toSearchParams(query).toString());
-                } catch {
-                  event.preventDefault();
-                  setFailure('브라우저에서 입력 정보를 임시 보관하지 못했어요. 브라우저의 저장 공간 설정을 확인한 뒤 다시 눌러 주세요.');
-                }
-              }}
+            <SignInCarrying
+              draftKey={READING_DRAFT_KEY}
+              draft={toSearchParams(query).toString()}
+              next={RESUME_READING_PATH}
               className="flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent hover:bg-accent-strong"
             >
               로그인하고 계속하기
-            </Link>
+            </SignInCarrying>
             <p className="mt-2 text-xs leading-5 text-secondary sm:text-right">
               로그인하면 이 입력으로 돌아옵니다 · 사주풀이는 저장한 뒤에 받고 풀이권 1회를 씁니다
             </p>
           </div>
         </div>
-        {failure !== null && <p role="alert" className="mt-3 text-sm text-danger">{failure}</p>}
       </section>
     );
   }

@@ -7,7 +7,7 @@ import { TYPE_TITLE } from '../ui/surfaces';
 import { SignInButton } from './sign-in-button';
 import { supabaseOnServer } from './server-client';
 import { signedInUser } from './signed-in';
-import { RESUME_READING_PATH, afterSignIn, safeReturnPath } from '@/src/lib/consent';
+import { RESUME_PAIR_PATH, RESUME_READING_PATH, afterSignIn, safeReturnPath } from '@/src/lib/consent';
 
 export default async function SignInPage({
   searchParams,
@@ -18,7 +18,8 @@ export default async function SignInPage({
   const supabase = await supabaseOnServer();
   if ((await signedInUser(supabase)) !== null) redirect(afterSignIn(returnTo));
 
-  const forCompat = returnTo === '/compat';
+  /* 첫 화면의 궁합 맛보기에서 온 사람도 궁합으로 간다(ADR 0131) */
+  const forCompat = returnTo === '/compat' || returnTo === RESUME_PAIR_PATH;
   const forReading = returnTo === RESUME_READING_PATH;
 
   return (

@@ -178,9 +178,13 @@ test('사주 계산은 로그인 없이 열리고 궁합은 로그인으로 이�
   await expect(page.getByRole('heading', { name: '궁합은 로그인 후 이용할 수 있습니다' })).toBeVisible();
 });
 
-/** 현관의 궁합 입구를 **눌러서** 간다 — 앱 안 이동에서도 로그인 화면이 궁합을 돌아올 곳으로 든다(ADR 0128) */
-test('현관의 궁합 입구는 궁합을 돌아올 곳으로 들고 로그인으로 간다', async ({ page }) => {
+/**
+ * 현관의 궁합 입구는 **같은 화면 안에서** 궁합 맛보기를 연다(ADR 0131) — 로그인 전에 `/compat` 으로 내보내지 않는다.
+ * 궁합풀이로 가는 누름이 궁합을 돌아올 곳으로 들고 로그인으로 간다(ADR 0128) — 그 걸음은 `taste.spec.ts` 가 끝까지 잰다.
+ */
+test('현관의 궁합 입구는 로그인으로 내보내지 않고 같은 화면에서 두 사람을 받는다', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: /궁합 보러 가기/ }).click();
-  await expect(page).toHaveURL(/\/auth\?next=%2Fcompat$/);
+  await page.getByRole('tab', { name: /궁합 보기/ }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('button', { name: '무료로 궁합 미리 보기' })).toBeVisible();
 });
