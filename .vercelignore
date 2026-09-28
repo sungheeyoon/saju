@@ -1,0 +1,11 @@
+# `vercel deploy` 가 올리지 않는 자리 — 빌드는 Vercel 에서 새로 하므로 로컬의 빌드 · 시험 산출물과
+# 다른 체크아웃은 필요 없다. 쓰던 체크아웃에서 올리면 이것들이 100 MB 한도를 넘겼다(runbook 「묶음 배포」 1).
+# 앱이 읽는 파일은 여기 넣지 않는다 — `.env*` 도 건드리지 않는다.
+/.claude/worktrees
+/.next
+/.next-*
+/coverage
+/playwright-report
+/test-results
+/.reading-live
+/.ab-overlaps

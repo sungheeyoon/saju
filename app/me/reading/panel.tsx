@@ -13,7 +13,7 @@ import {
   READING_USES_TICKET_NOTE,
   readingCreditsNote,
   readingWaitNote,
-} from '@/src/lib/reading';
+} from '@/src/lib/reading/notes';
 import { ELEMENTS, type Element } from '@/src/lib/saju';
 
 import { elementScope } from '../../ui/element-tone';

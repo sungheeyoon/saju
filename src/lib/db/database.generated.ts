@@ -2345,15 +2345,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      fail_reading_run: {
-        Args: {
-          p_failure_code: string
-          p_failure_detail?: string
-          p_run_id: string
-          p_usage?: Json
-        }
-        Returns: undefined
-      }
       fill_discovery_deck: {
         Args: { p_actor: string; p_deck: string; p_seed: string }
         Returns: number

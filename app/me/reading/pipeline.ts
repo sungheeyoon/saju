@@ -145,9 +145,9 @@ async function openRun(
  *
  * ## 실패는 **열쇠로** 닫는다
  *
- * `fail_reading_run` 은 `r.user_id = auth.uid()` 를 건다. 수락이 연 시도는 **청한 사람**
- * 것으로 서 있고 이 코드는 받은 쪽 응답 뒤에서 도므로, 그 문으로는 못 닫는다 — 그러면
- * 실패한 인연 궁합이 만료까지 열린 채 남는다. 열쇠가 여는 문은 임자를 안 묻는다.
+ * 사용자 권한으로 닫는 문(`fail_reading_run`)은 `r.user_id = auth.uid()` 를 걸어 수락이 연 시도(**청한 사람**
+ * 것)를 못 닫았고, 사용자가 제 시도를 곧바로 닫아 하루 상한을 태울 수 있어 걷었다(ADR 0120). 열쇠가 여는 문은
+ * 임자를 안 묻는다.
  */
 async function submitFrozen(
   keyed: ReturnType<typeof keyedClient>,
@@ -266,7 +266,8 @@ async function sendRun(runId: string): Promise<void> {
   try {
     keyed = keyedClient('결과 제출');
   } catch (failure) {
-    await failAsUser(runId, 'unexpected', failure instanceof NoKeyError ? failure.message : '');
+    /* 열쇠가 없는 배포다 — 시도는 열린 채 남고 10분 만료가 닫는다. 사용자 권한으로 닫는 문은 없다(ADR 0120) */
+    console.error('send: 열쇠 없음', failure instanceof NoKeyError ? failure.message : failure);
     return;
   }
 
@@ -372,24 +373,4 @@ export async function sendAcceptedMatchReading(requestId: string): Promise<void>
   if (job === undefined) return;
 
   await submitFrozen(keyed, job);
-}
-
-/**
- * 열쇠가 없을 때만 쓰는 문 — **사용자 세션으로 닫는다.**
- *
- * 열쇠가 없으면 `fail_reading_job` 도 못 부르므로 남는 길이 이것뿐이다. 인연 궁합에는
- * 안 닿지만(그 시도의 임자는 청한 사람이다) 그 자리는 애초에 열쇠 없이는 아무것도 못
- * 하는 배포이고, 만료가 닫는다.
- */
-async function failAsUser(runId: string, code: string, detail: string): Promise<void> {
-  const supabase = await supabaseOnServer();
-
-  const { error } = await supabase.rpc('fail_reading_run', {
-    p_run_id: runId,
-    p_failure_code: code,
-    p_failure_detail: detail,
-    p_usage: null,
-  });
-  /* 이 자리는 만료가 닫는다 — 못 닫은 것은 기록에만 남긴다 */
-  if (error) console.error('send: fail_reading_run', error.code, error.message);
 }
