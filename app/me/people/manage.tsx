@@ -284,7 +284,7 @@ export function NoteEditor({
           {saving ? '저장하는 중…' : '메모 저장'}
         </button>
         <button type="button" onClick={onCancel} disabled={saving} className={BUTTON_TERTIARY}>
-          닫기
+          작성 그만두기
         </button>
         {failure !== null && (
           <span role="alert" className="text-[13px] text-danger">
