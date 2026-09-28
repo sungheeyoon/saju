@@ -25,8 +25,9 @@ import { myDiscoveryProfile } from './discovery-profile';
  * 쉬는 사람을 여기서 한 번 더 거르는 것은 판정이 아니라 **안 물어도 되는 것을 안 묻는
  * 일**이다. 그 줄을 지워도 RPC 가 같은 답을 낸다.
  *
- * 문이 **둘**이다 — 홈과 매칭(`/me/matching`). 매칭만 보고 홈에 안 들르는 사람이 그 문을
- * 한 번도 안 지나기 때문이고, 같은 RPC 라 두 번 불려도 한 번만 연다.
+ * 참여를 여는 문(`ensure_discovery_participation`)은 **셋**이다 — 홈(이 함수), 매칭
+ * (`/me/matching`), 그리고 입력을 고친 뒤(`editPersonInput`). 매칭만 보고 홈에 안 들르는
+ * 사람이 홈의 문을 한 번도 안 지나기 때문이고, 같은 RPC 라 여러 번 불려도 한 번만 연다.
  */
 export async function openDiscoveryParticipation(): Promise<void> {
   const supabase = await supabaseOnServer();

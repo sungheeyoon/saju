@@ -1,5 +1,6 @@
 import { after } from 'next/server';
 
+import { recordDbFailure } from '@/app/db-error';
 import { keyedClient } from '@/app/keyed-client';
 
 import { collectReadingResult } from '../../../me/reading/collect';
@@ -64,7 +65,11 @@ export async function POST(request: Request): Promise<Response> {
     p_event_type: event.type,
   });
 
-  if (error) return new Response('could not record', { status: 503 });
+  if (error) {
+    // 답은 그대로 503 이다(재전송을 부른다) — 원문은 답이 아니라 기록에 간다
+    recordDbFailure(error, 'webhook 영수증');
+    return new Response('could not record', { status: 503 });
+  }
 
   /**
    * **이미 적힌 사건은 다시 집지 않는다.** 재전송은 정상이고, 두 번 집으면 회수도 두 번

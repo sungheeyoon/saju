@@ -40,8 +40,8 @@ export type CurrentReading = {
   /**
    * 이 글의 **여덟 글자**가 아직 지금 명식인가 — `match` 는 언제나 참이다.
    *
-   * **판본이 아니라 여덟 글자로 견준다**(ADR 0071). 출생지를 서울에서 부산으로 고치면
-   * 새 판본이 서지만 여덟 글자는 그대로일 수 있고, 그때 화면이 하려는 말은
+   * **입력이 아니라 여덟 글자로 견준다**(ADR 0071). 출생지를 서울에서 부산으로 고치면
+   * 입력은 바뀌지만 여덟 글자는 그대로일 수 있고, 그때 화면이 하려는 말은
    * 「여덟 글자가 달라졌다」이지 「입력이 달라졌다」가 아니다 — 앞서는 그 자리에서 한쪽으로 거짓말했다.
    *
    * 견주는 일은 계속 SQL 이 한다. 화면이 재면 판정하는 자리가 둘이 된다(ADR 0033).
@@ -159,9 +159,10 @@ export async function readingCredits(): Promise<SkippableRead<ReadingCredits | n
 /**
  * 마지막 시도가 어떻게 됐나.
  *
- * 실패는 알림함에 서지 않는다 — 생성이 요청과 같은 왕복에서 끝나므로 누른 사람은 그
- * 자리에서 본다. 다만 다른 기기에서 열었거나 새로고침한 뒤에도 「지난번에 실패했다」를
- * 말할 수 있어야 해서, 그 근거를 이 값이 든다(US 56).
+ * 생성은 누름과 같은 왕복이 아니라 `after` 로 떨어지므로, 실패하면 알림함에
+ * `reading_failed` 가 선다(`fail_reading_job`, `20260831090000_reading_failure_is_told.sql`).
+ * 그 대상의 화면으로 다시 들어온 사람에게도 — 다른 기기에서 열었거나 새로고침한 뒤에도 —
+ * 「지난번에 실패했다」를 말할 수 있어야 해서, 그 근거를 이 값이 든다(US 56).
  */
 export async function lastReadingRun(target: ReadingTarget): Promise<LastRun | null> {
   const supabase = await supabaseOnServer();

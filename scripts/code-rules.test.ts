@@ -355,10 +355,28 @@ describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 �
     // `error` · `x.error` 를 조건으로, 또는 `error || …` 의 한 갈래로 드는 if 다
     const isError = (node: ts.Expression): boolean =>
       (ts.isIdentifier(node) && node.text === 'error') || (ts.isPropertyAccessExpression(node) && node.name.text === 'error');
+    const isNothing = (node: ts.Expression): boolean =>
+      node.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(node) && node.text === 'undefined');
+    const isInequality = (kind: ts.SyntaxKind): boolean =>
+      kind === ts.SyntaxKind.ExclamationEqualsEqualsToken || kind === ts.SyntaxKind.ExclamationEqualsToken;
     const namesError = (node: ts.Expression): boolean =>
       isError(node) ||
       (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.BarBarToken && (namesError(node.left) || namesError(node.right))) ||
+      // `error !== null` · `null != error` 도 같은 물음이다(2026-09-28 에 넓혔다 — `app/me/account.ts` 가 이 모양으로 지나갔다)
+      (ts.isBinaryExpression(node) && isInequality(node.operatorToken.kind) &&
+        ((isError(node.left) && isNothing(node.right)) || (isNothing(node.left) && isError(node.right)))) ||
       (ts.isParenthesizedExpression(node) && namesError(node.expression));
+    /** 값이 전부 글자 그대로인 객체 — `{ ok: false }` 처럼 실패를 「못 했다」 하나로만 내고 원문을 안 싣는다 */
+    const isLiteral = (node: ts.Expression): boolean =>
+      node.kind === ts.SyntaxKind.NullKeyword ||
+      node.kind === ts.SyntaxKind.TrueKeyword ||
+      node.kind === ts.SyntaxKind.FalseKeyword ||
+      ts.isNumericLiteral(node) ||
+      ts.isStringLiteral(node) ||
+      (ts.isIdentifier(node) && node.text === 'undefined');
+    const isBareObject = (node: ts.Expression): boolean =>
+      ts.isObjectLiteralExpression(node) &&
+      node.properties.every((property) => ts.isPropertyAssignment(property) && isLiteral(property.initializer));
     const swallows = (node: ts.Node, source: ts.SourceFile): string | null => {
       if (!ts.isIfStatement(node) || !namesError(node.expression)) return null;
       const body = ts.isBlock(node.thenStatement) && node.thenStatement.statements.length === 1 ? node.thenStatement.statements[0] : node.thenStatement;
@@ -370,7 +388,8 @@ describe('탈출구의 지문 (docs/agents/code-rules.md) — 줄어들기만 �
         value.kind === ts.SyntaxKind.FalseKeyword ||
         (ts.isIdentifier(value) && value.text === 'undefined') ||
         (ts.isArrayLiteralExpression(value) && value.elements.length === 0) ||
-        ts.isNumericLiteral(value);
+        ts.isNumericLiteral(value) ||
+        isBareObject(value);
       return empty ? `if (${oneLine(node.expression.getText(source))}) ${oneLine(body.getText(source))}` : null;
     };
     expectExactly(fingerprints(PRODUCT_FILES, swallows), ERROR_SWALLOWS_STILL_THERE);

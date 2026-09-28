@@ -48,7 +48,7 @@ import { elementRolesOf, type ElementRole } from './yongsin';
 
 export const STRUCTURE_POLICY = {
   ruleSet: 'wolryeong-structure-v1',
-  /** 고전 규칙을 옮겼으나 외부 대조가 아직 0건이다 */
+  /** 고전 규칙을 옮겼고 외부 대조는 한 계통뿐이다(아래 `externalCheck`, 72 중 63) — 게이트를 못 열었다 */
   status: 'experimental',
   /** 격은 월령에서 잡는다 */
   basis: 'month-branch',
@@ -88,7 +88,7 @@ export const STRUCTURE_POLICY = {
    * **억부도 조후도 뒤집지 않는다.**
    *
    * 종격의 `eokbuOverride` 와 같은 스위치이고, 같은 이유로 꺼져 있다. 다만 **못 연
-   * 이유가 다르다** — 종격은 서른 건 중 열일곱을 잡았고(재현율이 모자라다), 격국은
+   * 이유가 다르다** — 종격은 서른셋 중 스물을 잡았고(재현율이 모자라다), 격국은
    * 일흔둘 중 예순셋이 맞는데 **계통이 하나뿐이고 남은 아홉이 겸격을 못 드는 데서
    * 온다.** 아래 `externalCheck` 가 그 둘을 값으로 든다.
    */
@@ -295,7 +295,7 @@ export const STRUCTURE_OUTCOME_KO: Record<StructureOutcome, string> = {
 };
 
 export type Structure = {
-  /** 외부 대조 0건이라는 것을 값으로 못박는다 */
+  /** 게이트를 못 연 판정이라는 것을 값으로 못박는다(`STRUCTURE_POLICY.externalCheck.passed`) */
   status: 'experimental';
   kind: StructureKind;
   ko: string;

@@ -329,8 +329,9 @@ export async function beginReading(
      */
     try {
       await sendRun(runId);
-    } catch {
-      // 여기까지 온 것은 우리가 못 적은 경우다. 복구기가 deadline 에 닫는다.
+    } catch (thrown) {
+      // 여기까지 온 것은 우리가 못 적은 경우다. 복구기가 deadline 에 닫는다 — 까닭만 기록에 남긴다.
+      console.error('begin: sendRun', thrown);
     }
   });
 
@@ -353,8 +354,8 @@ export async function beginReading(
  *
  * ## 못 보내도 막다른 길이 아니다
  *
- * 여기서 실패하면 시도는 `submitFrozen` 이 닫고(실패로), 결과 화면에는 「다시 만들기」가
- * 선다. 「누를 버튼이 없다」는 성공 경로의 약속이지 실패 경로의 약속이 아니다.
+ * 여기서 실패하면 시도는 `submitFrozen` 이 닫고(실패로), 결과 화면에는 만드는 버튼이
+ * 돌아온다. 「누를 버튼이 없다」는 성공 경로의 약속이지 실패 경로의 약속이 아니다.
  */
 export async function sendAcceptedMatchReading(requestId: string): Promise<void> {
   let keyed: ReturnType<typeof keyedClient>;

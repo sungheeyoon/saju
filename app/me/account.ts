@@ -1,6 +1,7 @@
 import { accountStateOf, type AccountState } from '@/src/lib/account';
 
 import type { supabaseOnServer } from '../auth/server-client';
+import { recordDbFailure } from '../db-error';
 
 type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
 
@@ -47,6 +48,8 @@ export async function readAccount<T extends AccountRow = AccountRow>(
   const { data, error } = await supabase.from('app_user').select(columns).maybeSingle();
 
   if (error !== null) {
+    // 화면은 `unreachable` 상태만 받는다 — 원문은 기록에 간다
+    recordDbFailure(error, 'app_user');
     return { state: accountStateOf({ ok: false, reason: 'unreachable' }), row: null };
   }
   if (data === null) {

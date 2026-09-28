@@ -40,7 +40,7 @@ export function PersonActions({
   personId: string;
   label: string;
   note: string;
-  /** 못 읽는 판본이면 `null` — 그때는 고치는 줄이 메뉴에 없다(빈 폼이 새 판본으로 굳는다) */
+  /** 못 읽는 입력이면 `null` — 그때는 고치는 줄이 메뉴에 없다(빈 폼이 저장된 입력을 덮어쓴다) */
   current: Query | null;
 }) {
   const { menu, close } = useDetailsMenu();

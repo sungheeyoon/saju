@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { recordDbFailure } from '@/app/db-error';
 import { keyedClient } from '@/app/keyed-client';
 
 import { collectReadingResult } from '../../../me/reading/collect';
@@ -69,7 +70,11 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   const { data, error } = await keyed.rpc('open_reading_jobs');
-  if (error) return new Response('could not list', { status: 503 });
+  if (error) {
+    // 답은 그대로 503 이다 — 원문은 답이 아니라 기록에 간다
+    recordDbFailure(error, 'cron reading: open_reading_jobs');
+    return new Response('could not list', { status: 503 });
+  }
 
   const jobs = (data ?? []) as OpenJob[];
   let collected = 0;

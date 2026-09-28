@@ -19,7 +19,8 @@ import { sharedReadingOf } from './read';
  * 고치는 날이 온다.
  *
  * 로그인도 테스트 코드도 없이 열린다. 여기 있는 것은 보낸 사람이 그때 내놓기로 한
- * 사본 하나뿐이다 — 명식도, 근거도, 누가 보냈는지도 없다(`shared_reading` 이 넷만 낸다).
+ * 사본 하나뿐이다 — 명식도, 근거도, 누가 보냈는지도 없다(`shared_reading` 이 일곱 칸만 낸다 —
+ * 갈래 · 보낸 그때의 이름 둘 · 비유 · 점수 · 본문 · 만든 때).
  */
 export async function SharedReadingView({
   token,

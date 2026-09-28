@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { answerOfThrown, dbFailure, userFacingDbMessage } from './db-error';
+import { answerOfThrown, dbFailure, recordDbFailure, userFacingDbMessage } from './db-error';
 
 describe('userFacingDbMessage', () => {
   it('DB 가 우리말로 쓴 거절은 그대로 옮긴다', () => {
@@ -246,6 +246,20 @@ describe('answerOfThrown', () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     expect(answerOfThrown('boom', 'x')).toBe('요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+
+    logged.mockRestore();
+  });
+});
+
+describe('recordDbFailure', () => {
+  it('답에 안 싣는 거절도 원문을 기록에 남긴다 — 우리말이든 아니든', () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    recordDbFailure({ message: 'permission denied for function pair_relation_of', code: '42501' }, 'pair_relation_of');
+    recordDbFailure({ message: '로그인이 필요합니다.' }, 'app_user');
+
+    expect(logged).toHaveBeenNthCalledWith(1, 'pair_relation_of', '42501', 'permission denied for function pair_relation_of');
+    expect(logged).toHaveBeenNthCalledWith(2, 'app_user', '', '로그인이 필요합니다.');
 
     logged.mockRestore();
   });

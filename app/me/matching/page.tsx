@@ -27,15 +27,15 @@ export const metadata = {
 };
 
 /**
- * 덱으로 보는 오늘의 인연 — **목록과 같은 자료를 읽는다**(ADR 0037).
+ * 덱으로 보는 오늘의 인연 — **후보를 뽑는 자리는 하나다**(ADR 0037).
  *
- * 카드 모양만 다르고 뽑는 일도 자르는 일도 홈의 목록과 한 자리에서 난다
- * (`candidatesForViewer` → `my_discovery_board`). 화면이 둘이라고 규칙이 둘이면
- * 같은 사람이 화면마다 다른 점수를 받는다.
+ * 후보 탐색은 이 화면에서만 한다. 뽑는 일도 자르는 일도 `candidatesForViewer` →
+ * `my_discovery_board` 한 자리에서 난다 — 읽는 자리가 둘이 되면 같은 사람이 자리마다
+ * 다른 점수를 받는다.
  *
- * **참여를 여는 호출을 여기서도 한다.** 홈이 목록을 여는 것이 곧 참여를 여는 일인데
- * (`board.tsx`), 이 화면만 보고 홈에 안 들르는 사람이 생기면 그 문을 한 번도 안
- * 지난다. 같은 RPC 라 두 번 불려도 한 번만 연다.
+ * **참여를 여는 호출을 여기서도 한다.** 홈도 참여를 연다(`DiscoveryDoor` →
+ * `openDiscoveryParticipation`)만, 이 화면만 보고 홈에 안 들르는 사람이 생기면 그 문을
+ * 한 번도 안 지난다. 같은 RPC 라 두 번 불려도 한 번만 연다.
  */
 export default async function MatchingPage() {
   const supabase = await supabaseOnServer();

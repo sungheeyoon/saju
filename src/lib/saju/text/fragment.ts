@@ -198,8 +198,9 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
    * — 격은 월령과 투출에서 나오고 성패는 여덟 글자 전체에서 나온다. 아직 주제가
    * 없다는 것은 `UNCOVERED_FACTS_BY_PATH` 가 적는다.
    *
-   * 상한은 `candidate` 이고 그 이유가 종격과 다르다. 종격은 외부 대조 서른다섯
-   * 건을 놓고 게이트를 못 열었고, 격국은 **아직 0건**이다(`CLAIM_CEILING`).
+   * 상한은 `candidate` 이고 그 이유가 종격과 다르다. 종격은 외부 대조 마흔한
+   * 건을 놓고 게이트를 못 열었고, 격국은 일흔둘 중 예순셋이 맞지만 **계통이 하나뿐**이다
+   * (`CLAIM_CEILING`).
    */
   'structure.kind': {
     paths: ['analysis.structure'],
@@ -411,7 +412,7 @@ export const FRAGMENT_TOPICS: Record<FragmentTopic, TopicSpec> = {
    * 식상이 재를 낳는다는 뜻이라, 풀어 적으면 이름을 한국어로 옮긴 것뿐이다 —
    * 관계 22칸이 2칸이 된 것과 같은 판단이다(`ClaimForm` 의 동어반복).
    *
-   * 상한은 격 이름과 같다. 외부 대조가 아직 **0건**이고, 그 값은 `structure.kind`
+   * 상한은 격 이름과 같다. 성패는 외부 대조가 아직 **0건**이고(대조는 격의 종류만 쟀다), 그 값은 `structure.kind`
    * 와 한 자리에서 온다(`CLAIM_CEILING['analysis.structure']`).
    */
   'structure.outcome': {

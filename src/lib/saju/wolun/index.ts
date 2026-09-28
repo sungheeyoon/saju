@@ -102,7 +102,7 @@ type WolunInput = {
   year: number;
   /** 그 달을 감싼 대운을 찾을 표 — 선택값으로 두지 않는 이유는 `SaeunInput` 과 같다 */
   daeun: Daeun;
-  /** 절입 시각의 만 나이를 재는 기준 — 보정된 출생 시각(`meta.resolvedTime`)의 양력 날짜 */
+  /** 절입 시각의 만 나이를 재는 기준 — 계산에 쓴 벽시계 시각(`meta.resolvedTime`, 보정 전)의 양력 날짜 */
   solarBirthDate: CivilDate;
 };
 

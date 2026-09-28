@@ -13,7 +13,7 @@ import {
   type BlankPersonArgs,
   type ManagedPersonArgs,
 } from '@/src/lib/input/edit';
-import { answerOfThrown, userFacingDbMessage } from '../../db-error';
+import { answerOfThrown, recordDbFailure, userFacingDbMessage } from '../../db-error';
 import { rpcArgs } from '@/src/lib/db';
 
 /**
@@ -39,7 +39,11 @@ export async function pairRelationFor(
     p_person_b: personB,
   });
 
-  if (error) return { ok: false };
+  if (error) {
+    // 화면은 「못 읽었다」만 받는다 — 원문은 기록에 간다
+    recordDbFailure(error, 'pair_relation_of');
+    return { ok: false };
+  }
 
   return { ok: true, relation: relationOf(data) };
 }
