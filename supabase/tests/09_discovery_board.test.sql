@@ -196,14 +196,34 @@ select is(
   1,
   '덱은 한 세대만 남는다 — 이어지므로 「직전」이 없다');
 
-create temporary table other_seed as
-select public.refresh_discovery_snapshot_for((select uid from me), 'seed-b') as id;
+/**
+ * **씨앗 다섯 중 하나라도 다른 덱을 내면 씨앗이 덱을 정한다.**
+ *
+ * 다른 씨앗 하나('seed-b')와만 견줬을 때 main CI 에서 한 번 같은 덱(같은 차례)이 나와 붉었다(2026-09-28,
+ * 659b936). 로컬에서 씨앗 이천 개로 덱을 세워 두 씨앗이 같은 덱을 낼 확률을 재면 판마다 1만분의 1 안팎이었다
+ * (2026-09-29, 세 판). 다섯이 모두 'seed-a' 와 같을 확률은 그 다섯제곱쯤이다. 씨앗을 무시하면 다섯 모두 같아 붉는다.
+ */
+create temporary table other_seeds (seed text, deck uuid[]);
+do $$
+declare
+  actor uuid := (select uid from me);
+  s text;
+  made uuid;
+begin
+  foreach s in array array['seed-b', 'seed-c', 'seed-d', 'seed-e', 'seed-f'] loop
+    made := public.refresh_discovery_snapshot_for(actor, s);
+    insert into other_seeds
+    select s, array_agg(candidate_user_id order by position)
+    from public.discovery_candidate_slot where snapshot_id = made;
+  end loop;
+end
+$$;
 
-select isnt(
-  (select array_agg(candidate_user_id order by position)
-   from public.discovery_candidate_slot where snapshot_id = (select id from other_seed)),
-  (select array_agg(candidate_user_id order by position) from board),
-  '씨앗이 다르면 덱이 달라진다');
+select ok(
+  exists (
+    select 1 from other_seeds
+    where deck is distinct from (select array_agg(candidate_user_id order by position) from board)),
+  '씨앗이 다르면 덱이 달라진다 — 다른 씨앗 다섯 중 하나라도');
 
 -- ── 가중치 — **점수가 높을수록 자주 뽑힌다** ──────────────────────────────────
 
