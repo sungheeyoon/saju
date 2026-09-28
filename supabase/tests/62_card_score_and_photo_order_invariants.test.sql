@@ -146,6 +146,9 @@ begin
 
     perform set_config('role', 'postgres', true);
 
+    -- 이 시험이 재는 것은 자리의 순서다 — 하루 올리기 한도(`20261102090000`)가 이백 걸음을 끊지 않게 걸음마다 센 것을 비운다
+    delete from public.profile_photo_upload u where u.user_id = p_uid;
+
     select string_agg(convert_from(p.bytes, 'UTF8'), ',' order by p.position),
            array_agg(p.position::integer order by p.position)
       into seen, positions

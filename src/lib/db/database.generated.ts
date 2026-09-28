@@ -1057,6 +1057,29 @@ export type Database = {
           },
         ]
       }
+      profile_photo_upload: {
+        Row: {
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_photo_upload_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reading: {
         Row: {
           chart_a: Json
@@ -2701,6 +2724,7 @@ export type Database = {
       new_warning_ref: { Args: { p_report_id: string }; Returns: string }
       nickname_is_available: { Args: { p_nickname: string }; Returns: boolean }
       nickname_key: { Args: { p_nickname: string }; Returns: string }
+      note_my_photo_upload: { Args: { p_actor: string }; Returns: undefined }
       note_operator_denial: {
         Args: { p_action: string; p_report_id?: string }
         Returns: undefined
@@ -2977,6 +3001,7 @@ export type Database = {
         Args: { p_base64: string; p_content_type: string }
         Returns: string
       }
+      profile_photo_upload_limit: { Args: never; Returns: number }
       profile_photo_version: { Args: { p_updated_at: string }; Returns: number }
       purge_closed_chat_messages: { Args: never; Returns: number }
       reading_about: {
