@@ -14,7 +14,7 @@ export function announceNotificationsUnreadMoved(): void {
 
 /**
  * 「답할 요청 수가 움직였다」 — 인연 탭에서 받은 요청에 답하거나 그 사람을 차단한 뒤 탭의 딱지가 다시 세게 한다
- * (ADR 0129). 같은 화면 안의 누름이라 주소가 안 바뀐다 — 위와 같은 까닭이다.
+ * (ADR 0130). 같은 화면 안의 누름이라 주소가 안 바뀐다 — 위와 같은 까닭이다.
  */
 export const REQUESTS_TO_ANSWER_MOVED = 'requests-to-answer-moved';
 

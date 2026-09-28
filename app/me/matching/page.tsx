@@ -23,7 +23,7 @@ import { QuietOrbit } from './orbit-map';
 import { RequestsLead, type RequestsRead } from './requests-lead';
 
 /**
- * **수락이 여기서 풀이를 떠나보낸다** (ADR 0038 · 0129).
+ * **수락이 여기서 풀이를 떠나보낸다** (ADR 0038 · 0130).
  *
  * 받은 요청이 이 탭 맨 위에 산다. 동의하면 시도가 열리고, 제출은 응답 뒤에 돈다(`after`). 그 콜백이 사는 시간은
  * 그것을 부른 라우트의 상한이다 — 여기 없으면 플랫폼 기본값에서 잘리고, 그러면 시도가 열린 채 남아 그 Match 가
@@ -67,7 +67,7 @@ export default async function MatchingPage() {
   }
 
   /*
-    **받은 요청은 덱과 나란히 읽는다**(ADR 0129) — 덱을 세우는 차례 호출 뒤에 따로 읽으면 탭 이동이 한 번 더 길어진다.
+    **받은 요청은 덱과 나란히 읽는다**(ADR 0130) — 덱을 세우는 차례 호출 뒤에 따로 읽으면 탭 이동이 한 번 더 길어진다.
     못 읽어도 덱은 선다 — 요청 자리에 까닭 한 줄만 선다.
   */
   const requests: Promise<RequestsRead> = requestsForViewer().then(
@@ -171,7 +171,7 @@ function Quiet({
   action,
 }: {
   me: MeMark | null;
-  /** 받은 요청 — 덱이 없어도 답할 일은 선다(ADR 0129) */
+  /** 받은 요청 — 덱이 없어도 답할 일은 선다(ADR 0130) */
   lead: React.ReactNode;
   title: string;
   line: string;

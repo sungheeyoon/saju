@@ -35,7 +35,7 @@ import { BADGE } from './ui/surfaces';
  * 탭이 켜지나」만 바뀐다. 궁합 탭의 첫 화면은 두 사람을 고르는 `/compat` 이다.
  *
  * 소식은 종, 프로필 · 계정 관리 · 서비스 설문은 톱니 안이다(ADR 0109 그대로). 받은 요청은 종이 아니라 인연 탭 맨 위에
- * 산다(ADR 0129). 대화방 목록도 탭이다(PRD 「앱 내 채팅」).
+ * 산다(ADR 0130). 대화방 목록도 탭이다(PRD 「앱 내 채팅」).
  */
 const MEMBER_TABS = [
   { href: '/me', label: '나', icon: 'home' },
@@ -100,7 +100,7 @@ export function SiteHeader() {
   const unreadChat = useUnreadCount(live, pathname, readUnreadChat, CHAT_UNREAD_MOVED);
   const unreadNews = useUnreadCount(live, pathname, readUnreadNotifications, NOTIFICATIONS_UNREAD_MOVED);
   const toAnswer = useUnreadCount(live, pathname, readRequestsToAnswer, REQUESTS_TO_ANSWER_MOVED);
-  /** 탭마다 선 딱지 — 채팅은 안 읽은 메시지, 인연은 답할 요청(ADR 0129) */
+  /** 탭마다 선 딱지 — 채팅은 안 읽은 메시지, 인연은 답할 요청(ADR 0130) */
   const tabBadges: Partial<Record<(typeof MEMBER_TABS)[number]['href'], number>> = {
     '/me/chat': unreadChat,
     '/me/matching': toAnswer,
@@ -236,7 +236,7 @@ function useReadingCredits(enabled: boolean): string | null {
 
 /**
  * 안 읽은 수 — 채팅 탭의 메시지 수, 인연 탭의 답할 요청 수, 종의 소식 수. **셋은 섞지 않는다**(PRD 「앱 내 채팅」: 새
- * 메시지는 소식이 아니다). 요청이 왔다는 소식은 종이 안 센다 — 그 요청은 인연 탭이 센다(ADR 0129).
+ * 메시지는 소식이 아니다). 요청이 왔다는 소식은 종이 안 센다 — 그 요청은 인연 탭이 센다(ADR 0130).
  *
  * 문은 각각 하나다(`me/chat/unread.ts` · `me/requests/unread.ts`, ADR 0078). 못 읽었거나 0 이면 안 세운다 —
  * 모르는 수를 세어 보게 하지 않는다. 화면을 옮길 때마다, 그리고 그 화면이 읽음 처리가 끝났다고 창에

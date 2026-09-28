@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { answerCount, bellCount, NOTIFICATION_KINDS } from './index';
 
 /**
- * 요청 하나가 **한 딱지만** 켠다(ADR 0129) — 종은 지나간 일, 인연 탭은 답할 일.
+ * 요청 하나가 **한 딱지만** 켠다(ADR 0130) — 종은 지나간 일, 인연 탭은 답할 일.
  */
 describe('머리글의 두 딱지', () => {
   it('요청이 왔다는 소식은 종이 안 세고, 그 요청은 인연 탭이 센다', () => {

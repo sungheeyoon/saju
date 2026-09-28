@@ -84,7 +84,7 @@ export function RespondButtons({ requestId }: { requestId: string }) {
       if (result.status !== 'accepted' && result.status !== 'rejected') {
         setSettled(result.status);
       }
-      // 인연 탭의 딱지는 주소가 안 바뀌면 다시 안 센다 — 답한 것을 바로 알린다(ADR 0129)
+      // 인연 탭의 딱지는 주소가 안 바뀌면 다시 안 센다 — 답한 것을 바로 알린다(ADR 0130)
       announceRequestsToAnswerMoved();
       router.refresh();
     });

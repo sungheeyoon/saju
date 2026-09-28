@@ -181,7 +181,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     const { page, api } = await openAs({ selfPerson: true });
     await page.goto('/me');
-    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^내가 받은 사주풀이/ })).toBeVisible();
 
     const { error } = await api.auth.signOut({ scope: 'global' });
     expect(error).toBeNull();
@@ -199,7 +199,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     const { page, account } = await openAs({ selfPerson: true });
     await page.goto('/me');
-    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^내가 받은 사주풀이/ })).toBeVisible();
 
     sql(`delete from auth.users where email = '${account.email}'`);
 
@@ -220,7 +220,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       sql(`select coalesce(extract(epoch from last_active_at)::text, '') from public.user_activity where user_id = '${id}'`);
 
     await page.goto('/me');
-    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^내가 받은 사주풀이/ })).toBeVisible();
     await expect.poll(lastActive).not.toBe('');
 
     sql(`update public.user_activity set last_active_at = now() - interval '1 hour' where user_id = '${id}'`);
@@ -308,6 +308,23 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       `/me/people/${signedIn.selfPersonId}`,
     );
 
+    /*
+      **이번 달 흐름**(ADR 0129) — 오늘 한 줄과 열나흘 띠가 내 카드 옆에 선다. 규칙 문장이라 모델을 안 부른다 — 날짜는
+      서울 달력이다(하루가 어디서 갈리는지는 `app/me/home/day-flow.test.ts` 가 잰다).
+    */
+    const flow = page.getByRole('region', { name: '이번 달 흐름' });
+    const seoulToday = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' });
+    await expect(flow.getByText(`오늘 · ${seoulToday}`, { exact: false })).toBeVisible();
+    await expect(flow.getByText(/날입니다\./)).toBeVisible();
+    await expect(flow.getByRole('list', { name: '앞뒤 열나흘' }).getByRole('listitem')).toHaveCount(14);
+
+    /* 내가 받은 사주풀이 — 아직 한 권도 없으면 받는 자리로 가는 점선 한 권이 선다 */
+    const received = page.getByRole('region', { name: /^내가 받은 사주풀이/ });
+    await expect(received.getByRole('link', { name: '내 사주풀이', exact: true })).toHaveAttribute('href', '/me/readings/self');
+    /* 관계 지도 · 저장한 사람은 궁합 탭에 선다 */
+    await expect(page.getByRole('region', { name: '관계 지도' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toHaveCount(0);
+
     /* 풀이는 홈에 안 선다 — 받는 길만 서고, 그 길은 풀이 화면이다 */
     await mine.getByRole('link', { name: /사주풀이 받기/ }).click();
 
@@ -349,13 +366,24 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
-   * **홈의 관계 지도와 사람 타일** — 저장한 사람이 둘 다에 서고, 타일이 그 사람의 길을 전부 든다.
+   * **궁합 탭의 관계 지도와 사람 타일**(ADR 0129 — 나 탭 홈에서 옮겨 왔다) — 저장한 사람이 둘 다에 서고, 타일이 그 사람의
+   * 길을 전부 든다.
    *
    * 나와 궁합을 아직 안 봤으면 궁합 화면으로 가되 **두 칸이 찬 채로**(`a.person` · `b.person`) 간다.
    * 지도의 원을 누르면 작은 카드가 열리고, 그 카드는 나와의 궁합과 그 사람의 사주 상세로 가는 길을 든다.
    */
-  test('홈은 저장한 사람을 지도와 타일에 세우고 원을 누르면 그 사람의 길이 열린다', async ({ page, signedIn }, testInfo) => {
-    await page.goto('/me');
+  test('궁합 탭은 저장한 사람을 지도와 타일에 세우고 원을 누르면 그 사람의 길이 열린다', async ({ page, signedIn }, testInfo) => {
+    await page.goto('/compat');
+    /* 차례 — 지도와 타일이 먼저, 그 아래 궁합 새로 보기(고르는 칸). 뼈대가 걷힌 뒤에 읽는다(ADR 0116 — 본문은 뼈대 뒤 300ms 뒤에 선다) */
+    await expect(page.getByRole('heading', { name: '궁합 새로 보기' })).toBeVisible();
+    await expect(page.locator('main[data-skeleton]')).toHaveCount(0);
+    const order = await page.locator('main').innerText();
+    expect(order.indexOf('저장한 사람')).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf('저장한 사람')).toBeLessThan(order.indexOf('궁합 새로 보기'));
+    await expect(page.getByRole('link', { name: '궁합', exact: true }).filter({ visible: true }).first()).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
 
     const tile = page.locator('li[id^="person-"]').filter({ has: page.getByRole('link', { name: '어머니', exact: true }) });
     const detail = await tile.getByRole('link', { name: '어머니', exact: true }).getAttribute('href');
@@ -385,13 +413,18 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(map.getByRole('link', { name: '어머니 사주 보기' })).toHaveAttribute('href', `/me/people/${personId}`);
     await expect(map.getByRole('link', { name: /풀이 받기|풀이 보기/ })).toHaveCount(0);
     /* 누른 자리에서 주소가 안 바뀐다 — 자바스크립트가 돌면 카드가 열리는 것이 전부다 */
-    await expect(page).toHaveURL(/\/me$/);
+    await expect(page).toHaveURL(/\/compat$/);
     await map.getByRole('button', { name: '닫기' }).click();
     await expect(map.getByRole('link', { name: '어머니 사주 보기' })).toHaveCount(0);
 
-    /* 나 탭 홈의 바로가기 넷 — 다른 사람 사주와, 탭에서 빠진 책장(ADR 0126)의 길이 여기 선다 */
+    /*
+      나 탭 홈의 바로가기 셋 — 탭에서 빠진 책장(ADR 0126)의 길이 여기 선다. 다른 사람 사주는 받은 사주풀이 아래의
+      단추 하나다(ADR 0129)
+    */
+    await page.goto('/me');
+    await expect(page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' })).toHaveAttribute('href', '/');
     const more = page.getByRole('navigation', { name: '바로가기' });
-    await expect(more.getByRole('link', { name: '다른 사람 사주 보기' })).toHaveAttribute('href', '/');
+    await expect(more.getByRole('link')).toHaveCount(3);
     await expect(more.getByRole('link', { name: '궁합 보러 가기' })).toHaveAttribute('href', '/compat');
     await expect(more.getByRole('link', { name: /오늘의 인연 만나기/ })).toHaveAttribute('href', '/me/matching');
     await expect(more.getByRole('link', { name: '만든 풀이 다시 보기', exact: true })).toHaveAttribute('href', '/me/readings');
@@ -403,7 +436,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       자리에 두른다 — 링크 자신은 `outline-none` 이다. 전역 테두리가 층 밖에 있을 때는 그것을 눌러
       이름 글자 둘레에 한 겹이 더 섰다(2026-09-25 운영에서 잰 것). 사람 화면의 타일도 같은 모양이다.
     */
-    for (const at of ['/me', '/me/people']) {
+    for (const at of ['/compat', '/me/people']) {
       await page.goto(at);
       const name = page.getByRole('main').getByRole('link', { name: '어머니', exact: true }).first();
       const focused = await focusedOutline(name);
@@ -457,7 +490,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await privateReading(me, mother, 78, '같은 우산 아래 걷는 두 사람');
     await privateReading(mother, father, 64, '마주 앉은 두 그루');
 
-    await page.goto('/me');
+    await page.goto('/compat');
     const map = page.getByRole('region', { name: '관계 지도' });
 
     await map.getByRole('link', { name: /^어머니, 일간/ }).click();
@@ -482,6 +515,20 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(card.getByRole('heading', { name: '아버지' })).toBeVisible();
     await expect(card.getByText('아직 둘의 궁합을 보지 않았어요')).toBeVisible();
     await expect(card.getByRole('link', { name: '아버지 · 어머니 궁합 64점' })).toBeVisible();
+
+    /*
+      **궁합풀이 보관함**(ADR 0129) — 본 궁합이 책장의 표지 그대로 고르는 칸 아래에 선다. 직접 본 것은 「직접」 딱지를 달고
+      제 결과 화면으로 간다. 최근 것이 앞이다(DB 의 차례).
+    */
+    const archive = page.getByRole('region', { name: /^궁합풀이 보관함/ });
+    const covers = archive.getByRole('link');
+    await expect(covers).toHaveCount(2);
+    await expect(covers.first()).toContainText(/(어머니 × 아버지|아버지 × 어머니) 궁합/);
+    await expect(covers.first()).toContainText('직접');
+    await expect(covers.nth(1)).toHaveAttribute('href', new RegExp(`^/me/compat\\?a=(${me}&b=${mother}|${mother}&b=${me})$`));
+    /* 나 탭 홈에는 궁합풀이가 안 선다 — 한 사람 풀이만 */
+    await page.goto('/me');
+    await expect(page.getByRole('region', { name: /^내가 받은 사주풀이/ }).getByText('궁합', { exact: false })).toHaveCount(0);
   });
 
   /**
@@ -2730,16 +2777,26 @@ test.describe('사주풀이 공유하기', () => {
 test.describe('자바스크립트 없이 여는 홈', () => {
   test.use({ javaScriptEnabled: false });
 
+  /* 뼈대 뒤에 숨어 흘러온 본문이 제자리처럼 선다(`app/ui/skeleton.tsx` 의 `<noscript>` 규칙) */
+  test('나 탭 홈은 뼈대가 아니라 내 사주와 이번 달 흐름을 세운다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me');
+    await expect(page.getByRole('region', { name: '내 사주' })).toBeVisible();
+    await expect(page.getByRole('region', { name: '이번 달 흐름' })).toBeVisible();
+    await expect(page.locator('main[data-skeleton]')).toBeHidden();
+  });
+
+  /* 관계 지도는 궁합 탭에 산다(ADR 0129) — 궁합 탭에도 뼈대가 있다 */
   test('지도의 원을 누르면 그 사람의 타일로 간다', async ({ page, signedIn }) => {
     expect(signedIn.managed).toContain('어머니');
-    await page.goto('/me');
+    await page.goto('/compat');
     const dot = page.getByRole('region', { name: '관계 지도' }).getByRole('link', { name: /^어머니, 일간/ });
     const target = (await dot.getAttribute('href')) ?? '';
     expect(target).toMatch(/^#person-/);
     /* 원은 가운데에서 제 자리로 퍼져 앉는다 — 앉기 전에 누르면 가운데의 나를 누른다 */
     await dot.evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
     await dot.click();
-    await expect(page).toHaveURL(new RegExp(`/me${target}$`));
+    await expect(page).toHaveURL(new RegExp(`/compat${target}$`));
     await expect(page.locator(`li${target}`).getByRole('link', { name: '풀이 받기' })).toBeVisible();
   });
 });

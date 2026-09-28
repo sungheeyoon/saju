@@ -18,7 +18,7 @@ import { when } from '../requests/when';
 export type RequestsRead = { readonly ok: true; readonly value: Requests } | { readonly ok: false; readonly message: string };
 
 /**
- * 인연 탭 맨 위의 요청 — **후보 카드만 본 것은 궁합 동의가 아니다**(ADR 0038 · 0129).
+ * 인연 탭 맨 위의 요청 — **후보 카드만 본 것은 궁합 동의가 아니다**(ADR 0038 · 0130).
  *
  * 여기가 동의가 일어나는 자리다. 받은 요청은 무엇이 열리는지 읽은 뒤에만 수락되고,
  * 그 수락은 판본을 다시 확인한 뒤에야 Match 가 된다(전부 `respond_to_match_request`
@@ -27,7 +27,7 @@ export type RequestsRead = { readonly ok: true; readonly value: Requests } | { r
  * 이 자리가 요청에 대해 아는 것은 별명·소개·상태·채우는 오행·균형뿐이다. 여덟 글자도
  * 생년월일시도 점수도 `my_match_requests()` 의 반환형에 없다.
  *
- * ## 답할 일만 펼치고, 나머지는 한 줄로 접는다 (ADR 0129)
+ * ## 답할 일만 펼치고, 나머지는 한 줄로 접는다 (ADR 0130)
  *
  * 전에는 종의 「소식」 화면에 받은 요청 · 보낸 요청 · 새 소식이 함께 살았다. 요청은 인연에서 난 일이라 인연 탭으로
  * 왔고, 종에는 소식만 남았다. 이 탭의 본체는 덱이라 **빈 칸이 덱을 밀어내지 않는다** — 받은 요청은 있을 때만 크게

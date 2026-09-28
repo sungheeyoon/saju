@@ -111,7 +111,7 @@ describe('부속 정보는 값으로 말한다', () => {
     answering({ data: [], error: null });
     expect(await unreadCount()).toEqual({ ok: true, value: 0 });
 
-    /* 요청이 왔다는 소식은 인연 탭이 센다 — 종의 수에서 빠진다(ADR 0129) */
+    /* 요청이 왔다는 소식은 인연 탭이 센다 — 종의 수에서 빠진다(ADR 0130) */
     answering({
       data: [
         { kind: 'request_received', read_at: null },

@@ -123,7 +123,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(talkOf(b).getByText(hello)).toBeVisible();
     /*
       방 안에서 읽음이 끝나면 **주소를 안 옮겨도** 헤더의 배지가 내려간다. 종(소식)의 딱지는 뺀다 — 같은 글자를 쓰고,
-      요청이 왔다는 소식을 종이 안 세게 된 뒤로(ADR 0129) 이 쌍의 수락 소식 하나가 「1건 안 읽음」으로 선다.
+      요청이 왔다는 소식을 종이 안 세게 된 뒤로(ADR 0130) 이 쌍의 수락 소식 하나가 「1건 안 읽음」으로 선다.
     */
     const chatBadges = b.page.locator('a:not([href="/me/requests"])').getByText('1건 안 읽음');
     await expect(chatBadges).toHaveCount(0);

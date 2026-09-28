@@ -113,7 +113,7 @@ async function respondThroughApi(person: Person, accept: boolean): Promise<void>
 }
 
 /**
- * 인연 탭 맨 위의 「받은 요청」 절(ADR 0129). **절로 좁혀서 잡는다** — 같은 화면의 덱에도 사람 이름의 제목이 서므로,
+ * 인연 탭 맨 위의 「받은 요청」 절(ADR 0130). **절로 좁혀서 잡는다** — 같은 화면의 덱에도 사람 이름의 제목이 서므로,
  * 이름으로만 찾으면 요청 카드인지 후보 카드인지 가르지 못한다.
  */
 function receivedRequests(person: Person): Locator {
@@ -138,7 +138,7 @@ test.describe('동의로 열리는 흐름', () => {
     await bothParticipate(asker, receiver, tag);
     await pendingRequest(asker, receiver);
     /*
-      **요청이 왔다는 소식은 종이 안 센다** — 그 요청은 인연 탭이 센다(ADR 0129). 그래서 거절을 받은 쪽(청한 사람)의
+      **요청이 왔다는 소식은 종이 안 센다** — 그 요청은 인연 탭이 센다(ADR 0130). 그래서 거절을 받은 쪽(청한 사람)의
       소식으로 잰다 — 답이 난 뒤의 소식은 종이 센다.
     */
     await respondThroughApi(receiver, false);
@@ -156,7 +156,7 @@ test.describe('동의로 열리는 흐름', () => {
   });
 
   /**
-   * **요청 하나가 딱지 하나만 켠다**(ADR 0129). 받은 요청은 인연 탭이 「답할 요청」으로 세고, 종은 그 도착을 안 센다 —
+   * **요청 하나가 딱지 하나만 켠다**(ADR 0130). 받은 요청은 인연 탭이 「답할 요청」으로 세고, 종은 그 도착을 안 센다 —
    * 같은 일을 두 자리에서 세면 둘 다 덜 읽힌다. 답하면 탭의 딱지가 그 자리에서 내려간다.
    */
   test('받은 요청은 인연 탭의 딱지가 세고 종은 안 켜진다', async ({ openAs }) => {
@@ -260,7 +260,7 @@ test.describe('동의로 열리는 흐름', () => {
     // ── 받은 쪽이 읽고 수락한다 ─────────────────────────────────────────────
     await receiver.page.goto('/me/matching');
     /*
-      **받은 요청은 인연 탭 맨 위에 선다**(ADR 0129). 절 「받은 요청」과 세 걸음이 함께
+      **받은 요청은 인연 탭 맨 위에 선다**(ADR 0130). 절 「받은 요청」과 세 걸음이 함께
       서지 않으면 「동의」라는 낱말만 남고, 받은 쪽은 자기가 무엇을 정하는 중인지
       모른 채 버튼을 고른다(`CONSENT_FLOW_STEPS`).
     */
@@ -652,7 +652,7 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     await confirming.getByRole('button', { name: '요청 보내기' }).click();
     await sentRequest(asker);
 
-    // 눌린 것이 실제로 요청이 됐는지는 **받은 쪽에서** 본다 — 인연 탭 맨 위의 받은 요청(ADR 0129).
+    // 눌린 것이 실제로 요청이 됐는지는 **받은 쪽에서** 본다 — 인연 탭 맨 위의 받은 요청(ADR 0130).
     await receiver.page.goto('/me/matching');
     await expect(receivedRequests(receiver).getByRole('heading', { name: `가${tag}` })).toBeVisible();
   });

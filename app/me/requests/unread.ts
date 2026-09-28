@@ -7,7 +7,7 @@ import { read, unread, type SkippableRead } from '../../db-error';
 
 /**
  * 머리글의 두 딱지 — 종의 안 읽은 소식 수와 인연 탭의 답할 요청 수. 둘 다 **부속 정보**다 — 못 읽으면 딱지를
- * 안 세운다(ADR 0078). **무엇을 어느 딱지가 세는지는 `src/lib/consent/counts.ts` 가 든다**(ADR 0129) — 요청 하나가
+ * 안 세운다(ADR 0078). **무엇을 어느 딱지가 세는지는 `src/lib/consent/counts.ts` 가 든다**(ADR 0130) — 요청 하나가
  * 두 딱지를 켜지 않는다.
  *
  * 채팅의 `readUnreadChat` 과 같은 모양으로 클라이언트를 **받기만** 한다 — 머리글은 `/` 에도 서고 그 화면은

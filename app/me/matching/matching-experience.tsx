@@ -60,7 +60,7 @@ export function MatchingExperience({
   explorationNote,
   passed: passedFromServer = EMPTY_CARDS,
 }: {
-  /** 받은 요청 — 제목 아래, 덱 위에 선다. 없으면 아무것도 안 선다(ADR 0129) */
+  /** 받은 요청 — 제목 아래, 덱 위에 선다. 없으면 아무것도 안 선다(ADR 0130) */
   lead?: ReactNode;
   cards: readonly DeckCard[];
   /** 지도의 가운데 — 내 일간과 오행 다섯 */
@@ -302,7 +302,7 @@ export function MatchingExperience({
       {view === 'today' && profile === undefined && notice !== null && <p className={`${TYPE_META} -mt-2 max-w-prose`}>{notice}</p>}
 
       {/*
-        **답할 요청이 덱보다 먼저다**(시안 g, ADR 0129). 받은 요청은 내가 답할 때까지 남는 유일한 것이라 덱 위에 선다.
+        **답할 요청이 덱보다 먼저다**(시안 g, ADR 0130). 받은 요청은 내가 답할 때까지 남는 유일한 것이라 덱 위에 선다.
         요청이 없으면 이 자리는 비어 덱이 제자리에 선다 — 빈 칸이 덱을 밀어내지 않는다.
       */}
       {lead}

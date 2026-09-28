@@ -72,7 +72,7 @@ type InboxNotification = {
   /**
    * 가서 볼 자리 — **요청의 소식과 실패 알림에 있다.**
    *
-   * 요청은 인연 탭에 산다(ADR 0129) — 소식은 그리로 간다. 실패는 어느 대상인지 아는 것과
+   * 요청은 인연 탭에 산다(ADR 0130) — 소식은 그리로 간다. 실패는 어느 대상인지 아는 것과
    * **그 자리로 가는 것**이 다른 일이고, 비공개 궁합은 두 사람을 다시 골라야 닿는다.
    * 못 찾으면 `null` — 아무 데도 안 가는 링크를 세우지 않는다. 공유 결과가 바뀐 소식은 아직 글자로만 선다.
    */
@@ -126,7 +126,7 @@ const REQUEST_NOTIFICATIONS: readonly NotificationKind[] = [
  * **주소를 지어 내지 않는다.** 대상을 못 알아보면 `null` 이고, 그때 알림은 글자로만
  * 선다 — 눌러도 아무것도 없는 줄을 만들지 않는다.
  *
- * 요청의 소식은 **인연 탭**으로 간다(ADR 0129) — 받은 요청 · 보낸 요청 · 끝난 요청이 거기 산다. 성립한 요청도
+ * 요청의 소식은 **인연 탭**으로 간다(ADR 0130) — 받은 요청 · 보낸 요청 · 끝난 요청이 거기 산다. 성립한 요청도
  * 그렇다 — 결과 화면은 풀이 목록이 든다(소식 화면에 Match 로 가는 길을 따로 세우지 않는다, `check-match` 7).
  */
 function destinationFor(
@@ -179,7 +179,7 @@ function requestOf(row: RequestRow): InboxRequest[] {
 }
 
 /**
- * 내 요청 — 인연 탭 맨 위에 선다(ADR 0129).
+ * 내 요청 — 인연 탭 맨 위에 선다(ADR 0130).
  *
  * 요청과 차단 수를 한 번에 읽는다. 차단은 요청 카드에서 일어나고, 차단한 뒤에 「몇 명을 차단했나」가 같은
  * 자리에 서야 누른 것이 어디 갔는지 보인다.
@@ -233,7 +233,7 @@ function notificationOf(row: NotificationRow): InboxNotification[] {
 /**
  * 지금 내 소식 — 종(`/me/requests`)의 본체다.
  *
- * 요청은 여기 없다 — 인연 탭이 `requestsForViewer` 로 읽는다(ADR 0129). `unread` 는 **읽음으로 바꿀 것의 수**라
+ * 요청은 여기 없다 — 인연 탭이 `requestsForViewer` 로 읽는다(ADR 0130). `unread` 는 **읽음으로 바꿀 것의 수**라
  * 요청이 왔다는 소식까지 센다 — 이 화면에 들어오면 그 줄도 읽은 것이다. 머리글의 딱지(`bellCount`)와는 다른 값이다.
  */
 export async function inboxForViewer(): Promise<Inbox> {
@@ -250,7 +250,7 @@ export async function inboxForViewer(): Promise<Inbox> {
 }
 
 /**
- * 다른 화면이 배지 하나를 세우려고 부른다 — **머리글의 종과 같은 수**다(`readUnreadNotifications`, ADR 0129).
+ * 다른 화면이 배지 하나를 세우려고 부른다 — **머리글의 종과 같은 수**다(`readUnreadNotifications`, ADR 0130).
  * 요청이 왔다는 소식은 인연 탭이 세므로 여기서 빠진다.
  */
 export async function unreadCount(): Promise<SkippableRead<number>> {
