@@ -17,7 +17,7 @@ import { chosenOnce, type SnapshotMessage } from './snapshot';
  * 운영자가 CLI 로 부르는 검토 문(`review_report`)이 적는다(ADR 0105 · 0107). **문이 읽을 때마다 DB 가 접속기록에 한 줄을 적는다**(G-23 ⑩) —
  * 성공은 문 안에서, 거절은 아래 `noteDenial` 이.
  *
- * **세션이 2단계 인증(aal2)을 안 지났으면 운영자 문을 부르지 않는다**(ADR 0122, `../second-factor.ts`). 등록한 요소가
+ * **세션이 2단계 인증(aal2)을 안 지났으면 운영자 문을 부르지 않는다**(ADR 0123, `../second-factor.ts`). 등록한 요소가
  * 있으면 `SECOND_FACTOR_NEEDED` 로 확인 화면에 보내고, 없으면 운영자가 아닌 사람과 같은 거절이다(기록도 같다).
  *
  * 생성 타입은 반환 칸을 전부 `null` 이 아닌 것으로 적는다(`returns table` 의 한계). 닉네임 · 덧붙인

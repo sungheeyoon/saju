@@ -744,7 +744,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     answerReading(reader.runId, reader.account.email, said);
     makeOperator(reader.account.email);
 
-    /* 운영자여도 2단계 인증 전에는 없는 화면이다 — 확인을 마치면 선다(ADR 0122) */
+    /* 운영자여도 2단계 인증 전에는 없는 화면이다 — 확인을 마치면 선다(ADR 0123) */
     expect((await page.goto('/ops/survey'))?.status()).toBe(404);
     await passSecondFactor(page, '/ops/survey');
 

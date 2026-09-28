@@ -14,7 +14,7 @@ import { SECOND_FACTOR_NEEDED, secondFactorOf } from '../second-factor';
  * 물어보고 열고 닫으면 판정하는 자리가 둘이 되므로, 그냥 자료를 청하고 **거절당하는
  * 것으로 안다.**
  *
- * **세션이 2단계 인증(aal2)을 안 지났으면 청하지도 않는다**(ADR 0122, `../second-factor.ts`) — 등록한 요소가 있으면
+ * **세션이 2단계 인증(aal2)을 안 지났으면 청하지도 않는다**(ADR 0123, `../second-factor.ts`) — 등록한 요소가 있으면
  * 확인 화면으로, 없으면 거절과 같다.
  */
 

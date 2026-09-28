@@ -172,7 +172,7 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
     'app/ops/mfa/actions.ts::startTotpEnrollment':
       '등록을 열고 QR 을 내줄 뿐 서버가 그리는 화면은 안 바뀐다 — 확인 전 요소는 어느 화면에도 안 선다',
     'app/ops/mfa/actions.ts::confirmTotpCode':
-      '바뀌는 것은 세션 쿠키(aal2)뿐이고 곧장 운영 화면으로 보낸다 — 운영 화면은 동적이라 새 쿠키로 다시 그려진다(ADR 0122)',
+      '바뀌는 것은 세션 쿠키(aal2)뿐이고 곧장 운영 화면으로 보낸다 — 운영 화면은 동적이라 새 쿠키로 다시 그려진다(ADR 0123)',
     'app/me/chat/actions.ts::reportChatMessage':
       '신고는 방을 닫지 않는다(PRD 「앱 내 채팅」) — 서버가 그리는 화면이 안 바뀐다. 접수됐다는 말은 누른 자리가 든다',
   };

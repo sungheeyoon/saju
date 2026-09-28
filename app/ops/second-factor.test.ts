@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { opsReturnPath, secondFactorHref, secondFactorOf } from './second-factor';
 
 /**
- * 운영자 문 앞의 두 번째 요소(ADR 0122) — 이 자리가 Auth 의 답을 **어떻게 읽는가**를 잰다.
+ * 운영자 문 앞의 두 번째 요소(ADR 0123) — 이 자리가 Auth 의 답을 **어떻게 읽는가**를 잰다.
  *
  * 서명 확인과 요소 목록은 라이브러리의 것이다. 재는 것 셋: aal2 만 통과다 · aal1 이면 확인을 마친 TOTP 가 있을
  * 때만 확인 화면이다(없으면 운영자가 아닌 사람과 같은 거절) · 목록을 못 읽으면 통과가 아니다.

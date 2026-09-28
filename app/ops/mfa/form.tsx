@@ -12,7 +12,7 @@ const FIELD =
   'min-h-12 w-40 rounded-2xl border border-border-strong bg-surface px-4 font-mono text-[18px] tracking-[0.3em] outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft';
 
 /**
- * 두 번째 요소 — **등록**(QR · 설정 키 → 코드)과 **확인**(코드만) 두 갈래다(ADR 0122).
+ * 두 번째 요소 — **등록**(QR · 설정 키 → 코드)과 **확인**(코드만) 두 갈래다(ADR 0123).
  *
  * 등록은 누를 때 연다. 화면을 그릴 때 열면 미리 받기 · 새로고침마다 확인 전 요소가 생긴다. QR 은 Auth 가 내준
  * SVG 의 `data:` 주소라 최적화기를 안 지난다(`unoptimized`, CSP 의 `img-src` 가 `data:` 를 연다).

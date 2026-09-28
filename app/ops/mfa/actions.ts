@@ -10,7 +10,7 @@ import { opsReturnPath } from '../second-factor';
 import { SECOND_FACTOR_COPY } from './copy';
 
 /**
- * **운영자가 제 계정에 TOTP 를 등록하고, 그 코드로 세션을 aal2 로 올린다** (ADR 0122).
+ * **운영자가 제 계정에 TOTP 를 등록하고, 그 코드로 세션을 aal2 로 올린다** (ADR 0123).
  *
  * Supabase Auth 의 요소 API 를 사용자 쿠키 그대로 부른다 — 열쇠는 안 든다. 요소는 그 사람의 것이고, Auth 가
  * 「이 세션의 주인인가」를 스스로 묻는다. 확인을 마치면 Auth 가 새 토큰(aal2)을 내주고 서버 client 가 그 쿠키를

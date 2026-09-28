@@ -349,7 +349,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     const ops = await openAs({ selfPerson: true });
     makeOperator(ops.account.email);
 
-    // 운영자여도 2단계 인증 전의 세션에는 없는 화면이다 — 인증 앱을 등록한 적이 없으면 확인 화면으로도 안 보낸다(ADR 0122)
+    // 운영자여도 2단계 인증 전의 세션에는 없는 화면이다 — 인증 앱을 등록한 적이 없으면 확인 화면으로도 안 보낸다(ADR 0123)
     for (const path of ['/ops/reports', `/ops/reports/${reportId}`]) {
       const closed = await ops.page.goto(path);
       expect(closed?.status()).toBe(404);
