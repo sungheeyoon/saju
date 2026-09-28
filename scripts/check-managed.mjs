@@ -279,8 +279,15 @@ try {
     check('둘의 상태가 같다', missing.status === forbidden.status);
     check('둘 다 찾을 수 없다고만 말한다',
       missingBody.includes('찾을 수 없습니다') && forbiddenBody.includes('찾을 수 없습니다'));
+    /**
+     * 뿌리의 404(`app/not-found.tsx`)는 모든 응답의 라우터 자료에 실려 온다 — 루트 레이아웃이 들고 다니는
+     * 경계라서다. 그 문장(「…더 이상 볼 수 없는 화면입니다.」, 운영자 확정 2026-09-28)은 두 응답에 똑같이
+     * 서고 이 화면이 낸 말이 아니므로 빼고 잰다. 여기 글자로 적는 것은 화면 상수를 가져오면 둘이 함께
+     * 틀려도 초록이어서다.
+     */
+    const rootNotFound = /주소가 바뀌었거나 더 이상 볼 수 없는 화면입니다\./g;
     check('어느 쪽인지 말하지 않는다',
-      !/볼 수 없|권한|없는 사람/.test(missingBody + forbiddenBody));
+      !/볼 수 없|권한|없는 사람/.test((missingBody + forbiddenBody).replace(rootNotFound, '')));
 
     /**
      * 본문에는 주소의 uuid 가 섞여 들어간다(라우터 상태). 그것만 가리고 견주면
