@@ -11,7 +11,14 @@ import {
   SIGNUP_CODE_NOTE,
   asKoreanDay,
 } from '@/src/lib/consent';
-import { NICKNAME_MAX, NICKNAME_MIN, missingNickname, nicknameKey } from '@/src/lib/profile';
+import {
+  NICKNAME_AVAILABLE_NOTE,
+  NICKNAME_MAX,
+  NICKNAME_MIN,
+  NICKNAME_TAKEN_NOTE,
+  missingNickname,
+  nicknameKey,
+} from '@/src/lib/profile';
 
 import { checkNickname } from '../nickname';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
@@ -173,9 +180,7 @@ export function SignupForm({
           */}
           {answer !== null && (
             <p role="status" className={`text-sm ${answer.available ? 'text-secondary' : 'text-danger'}`}>
-              {answer.available
-                ? '사용할 수 있는 닉네임입니다.'
-                : '이미 사용 중인 닉네임입니다.'}
+              {answer.available ? NICKNAME_AVAILABLE_NOTE : NICKNAME_TAKEN_NOTE}
             </p>
           )}
 

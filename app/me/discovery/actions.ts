@@ -73,7 +73,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
   if (self === null) {
     return {
       ok: false,
-      message: '저장된 내 사주를 읽지 못해 참여할 수 없습니다. 내 사주 화면을 먼저 확인해 주세요.',
+      message: '내 사주를 불러오지 못해 참여할 수 없습니다. 홈에서 내 사주 카드를 먼저 확인해 주세요.',
     };
   }
 
