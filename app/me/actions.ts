@@ -135,7 +135,7 @@ export async function addManagedPerson(
  * (ADR 0030). 궁합은 이제 이 길을 안 지난다 — 저장 없이 연다(`openPairScreen`).
  *
  * 메모는 안 받는다. 이 입구는 이름과 여덟 글자만 들고 왔고, **묻지 않은 것을 빈 값으로
- * 채워 저장하지 않는다** — 메모는 사람 탭에서 언제든 적을 수 있다.
+ * 채워 저장하지 않는다** — 메모는 「저장한 사람」 화면에서 언제든 적을 수 있다.
  */
 export async function savePersonForReading(
   query: Query,

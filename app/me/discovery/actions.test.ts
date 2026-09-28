@@ -71,7 +71,7 @@ describe('요약을 못 읽은 액션', () => {
   it('참여를 켜는 액션은 거절을 값으로 낸다', async () => {
     expect(await setDiscoveryParticipation(true)).toEqual({
       ok: false,
-      message: '저장된 내 사주를 읽지 못해 참여할 수 없습니다. 내 사주 화면을 먼저 확인해 주세요.',
+      message: '내 사주를 불러오지 못했어요. 홈에서 내 사주 카드가 보이는지 확인한 뒤 다시 시도해 주세요.',
     });
   });
 

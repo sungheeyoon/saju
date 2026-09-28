@@ -131,18 +131,23 @@ export function recordDbFailure(error: DbError, where: string): void {
 /**
  * 문이 던진 거절 — **`message` 가 이미 사용자에게 보일 우리말이다**(`dbFailure` 만 짓는다).
  *
- * 이름으로 가르는 까닭은 서버 액션이다. 액션이 던지면 운영의 Next 는 그 문장을 지우고 영어
- * 안내로 바꿔 보낸다 — 오류 경계는 그래도 되지만 폼은 아니다. 그래서 액션은 받아서 값으로
- * 내야 하고(`answerOfThrown`), 받은 것 중 **옮겨도 되는 것은 이것뿐이다.**
+ * 이름으로 가르는 까닭은 서버 액션이다. 서버에서 던진 것은 운영의 Next 가 그 문장을 지우고 일반
+ * 문장과 `digest` 로 바꿔 보낸다 — 오류 경계는 어차피 `message` 를 안 세우니 상관없지만(`app/error-screen.tsx`)
+ * 폼은 그 문장이 답이다. 그래서 액션은 받아서 값으로 내야 하고(`answerOfThrown`), 받은 것 중
+ * **옮겨도 되는 것은 이것뿐이다.**
  */
 export class DbFailure extends Error {}
 
 /**
  * 같은 번역을 **던지는 자리**에 (`throw dbFailure(error, 'my_candidates')`).
  *
- * 화면 몇은 거절을 값으로 안 받고 던져서 오류 경계가 받는다. 그 경계는 `error.message` 를
- * 그대로 세우므로, 던지는 자리가 원문을 실으면 **영어가 화면에 선다** — 값으로 내는 자리만
- * 고치면 그 길이 그대로 남는다.
+ * 화면 몇은 거절을 값으로 안 받고 던져서 오류 경계가 받는다. **그 경계는 `error.message` 를 세우지
+ * 않는다** — 운영의 Next 는 서버 컴포넌트가 던진 오류의 `message` 를 일반 문장과 `digest` 로 바꿔 보내고,
+ * 경계(`app/error-screen.tsx`)는 운영자가 확정한 문구 하나를 세운다(2026-09-28). 이 우리말이 화면에 닿는
+ * 길은 개발 서버뿐이다.
+ *
+ * 그래도 던지는 자리가 번역을 지나는 까닭은 둘이다 — 원문이 여기서 서버 기록에 남고(`record`), 같은 문을
+ * 서버 액션이 부르면 `answerOfThrown` 이 이 우리말을 폼에 옮긴다.
  */
 export function dbFailure(error: DbError, where: string, fallback?: string): DbFailure {
   return new DbFailure(userFacingDbMessage(error, where, fallback));

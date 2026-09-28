@@ -140,7 +140,7 @@ test.describe('동의로 열리는 흐름', () => {
       await person.page.goto('/me/profile');
       await person.page.getByLabel('닉네임').fill(nickname);
       await person.page.getByRole('button', { name: '중복 확인' }).click();
-      await expect(person.page.getByText('쓸 수 있는 닉네임입니다.')).toBeVisible();
+      await expect(person.page.getByText('사용할 수 있는 닉네임입니다.')).toBeVisible();
       await person.page.getByRole('button', { name: '프로필 저장' }).click();
       await expect(person.page.getByText('저장했습니다')).toBeVisible();
 

@@ -14,6 +14,16 @@
 export const NICKNAME_MIN = 2;
 export const NICKNAME_MAX = 8;
 
+/**
+ * 중복 확인의 답 — **가입과 프로필이 같은 문장을 쓴다.** 두 화면이 한 벌씩 적어 「사용할 수 있는」과
+ * 「쓸 수 있는」으로 갈려 있었다(2026-09-28 감사, 운영자 확정 문구).
+ *
+ * 저장 때 DB 가 내는 거절(`save_my_profile` · `complete_signup` 의 「이미 쓰고 있는 닉네임입니다.」)은
+ * 아직 옛 표기다 — 고치려면 마이그레이션이라 따로 간다.
+ */
+export const NICKNAME_AVAILABLE_NOTE = '사용할 수 있는 닉네임입니다.';
+export const NICKNAME_TAKEN_NOTE = '이미 사용 중인 닉네임입니다.';
+
 /** 소개 길이 상한 — DB 검사식과 같은 수 */
 export const INTRO_MAX = 300;
 

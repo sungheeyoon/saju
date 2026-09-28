@@ -1003,7 +1003,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * **직접 입력한 한 사람이 사주풀이로 가는 길.**
    *
    * 궁합 쪽과 같은 다리이고 갈리는 것은 둘이다 — 사이를 묻지 않고(혼자 보는 풀이에는
-   * 물을 상대가 없다), 저장이 하나라 한 문으로 묶을 일이 없다. 도착하는 곳은 사람 탭의
+   * 물을 상대가 없다), 저장이 하나라 한 문으로 묶을 일이 없다. 도착하는 곳은 「저장한 사람」 화면의
    * 그 사람 화면이고, 거기가 저장한 사람의 풀이가 사는 자리다(`person` 흐름).
    */
   test('직접 입력한 한 사람을 저장하면 그 사람의 사주풀이 화면으로 건너간다', async ({
@@ -1150,7 +1150,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '친구' })).toBeVisible();
 
     /*
-      **사람 탭은 그 사람의 사주를 보는 자리다.** 무슨 사이인지는 여기서 묻지 않는다 —
+      **「저장한 사람」 화면은 그 사람의 사주를 보는 자리다.** 무슨 사이인지는 여기서 묻지 않는다 —
       내 사주 화면에 「나와 나는 무슨 사이인가」가 없는 것과 같다. 관계가 글을 바꾸는
       것은 궁합을 읽을 때뿐이라, 묻는 자리도 거기다.
     */
@@ -1994,7 +1994,7 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 
     await expect(page.getByRole('button', { name: '궁합 보기' })).toBeEnabled();
     await expect(page.getByText('자리가 1명분만 남았습니다')).toHaveCount(0);
-    await expect(page.getByRole('link', { name: '사람 탭에서 자리 비우기 →' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: '저장한 사람 관리 →' })).toHaveCount(0);
   });
 
   /**
@@ -2348,7 +2348,7 @@ test.describe('가입 관문', () => {
     /* 남이 쓰는 이름으로 고치려 하면 확인 자리에서 먼저 말한다 */
     await two.page.getByLabel('닉네임').fill(one.account.nickname);
     await two.page.getByRole('button', { name: '중복 확인' }).click();
-    await expect(two.page.getByText('이미 쓰고 있는 닉네임입니다.')).toBeVisible();
+    await expect(two.page.getByText('이미 사용 중인 닉네임입니다.')).toBeVisible();
 
     /* 그래도 눌러 보면 저장이 거절한다 — 확인은 안내이고 막는 것은 DB 다 */
     await two.page.getByRole('button', { name: '프로필 저장' }).click();

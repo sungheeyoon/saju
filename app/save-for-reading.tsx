@@ -211,7 +211,7 @@ function SaveCard({
             href="/me/people"
             className="self-start text-sm font-medium text-accent underline underline-offset-2"
           >
-            사람 탭에서 자리 비우기 →
+            저장한 사람 관리 →
           </Link>
         </div>
       ) : (
@@ -226,13 +226,13 @@ function SaveCard({
           </button>
 
           {/*
-            **무엇이 일어나는지 누르기 전에 적는다.** 지우는 길은 사람 탭에 있다. 누르고
+            **무엇이 일어나는지 누르기 전에 적는다.** 지우는 길은 「저장한 사람」 화면에 있다. 누르고
             나서 알게 되면 그 목록은 사용자가 만든 것이 아니라 화면이 만든 것이 된다.
           */}
           <p className="text-xs leading-5 text-muted">
             {note} 저장한 뒤 {reading}를 받는 화면으로 갑니다.
             {slots !== null && ` 앞으로 ${slots.remaining}명 더 저장할 수 있습니다.`} 목록에서
-            빼는 것은 사람 탭에서 할 수 있습니다.
+            빼려면 ‘저장한 사람’으로 이동해 주세요.
           </p>
         </div>
       )}

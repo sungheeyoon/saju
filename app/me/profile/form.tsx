@@ -5,8 +5,10 @@ import { useState, useTransition } from 'react';
 
 import {
   INTRO_MAX,
+  NICKNAME_AVAILABLE_NOTE,
   NICKNAME_MAX,
   NICKNAME_MIN,
+  NICKNAME_TAKEN_NOTE,
   missingInProfile,
   nicknameKey,
   type ProfileInput,
@@ -138,7 +140,7 @@ export function ProfileForm({
         */}
         {answer !== null && (
           <p role="status" className={`-mt-3 text-sm ${answer.available ? 'text-secondary' : 'text-danger'}`}>
-            {answer.available ? '쓸 수 있는 닉네임입니다.' : '이미 쓰고 있는 닉네임입니다.'}
+            {answer.available ? NICKNAME_AVAILABLE_NOTE : NICKNAME_TAKEN_NOTE}
           </p>
         )}
 
