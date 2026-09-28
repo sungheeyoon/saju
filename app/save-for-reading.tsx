@@ -273,7 +273,7 @@ function SaveCard({
 export function SavePersonForReading({ query }: { query: Query }) {
   const router = useRouter();
   const context = useSaveContext();
-  /** 「다른 사람 사주였어요」를 눌렀다 — 이 화면에서는 다시 묻지 않는다 */
+  /** 「다른 사람의 사주예요」를 눌렀다 — 이 화면에서는 다시 묻지 않는다 */
   const [someoneElse, setSomeoneElse] = useState(false);
 
   /**
@@ -304,7 +304,7 @@ export function SavePersonForReading({ query }: { query: Query }) {
   /*
     **내 사주가 아직 없으면 먼저 묻는다**(ADR 0128). `/` 에서 생일을 넣고 로그인 · 가입을 다녀온 사람은 대개 자기
     사주를 넣었다 — 그대로 「저장한 사람」으로 저장하면 같은 생일을 온보딩에서 한 번 더 넣고, 첫 풀이권이 「다른
-    사람 풀이」에 쓰인다. 「다른 사람 사주였어요」면 지금 흐름(저장한 사람)으로 간다.
+    사람 풀이」에 쓰인다. 「다른 사람의 사주예요」면 지금 흐름(저장한 사람)으로 간다.
   */
   if (context.state === 'in' && context.self !== null && !context.self.saved && !someoneElse) {
     return (
@@ -411,7 +411,7 @@ function SelfConfirm({
               disabled={saving}
               className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}
             >
-              다른 사람 사주였어요
+              다른 사람의 사주예요
             </button>
           </>
         }

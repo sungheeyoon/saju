@@ -2774,14 +2774,14 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     expect(self).toBe('1988-11-07');
   });
 
-  test('「다른 사람 사주였어요」면 저장한 사람으로 저장하는 지금 길이 선다', async ({ page, newcomer }) => {
+  test('「다른 사람의 사주예요」면 저장한 사람으로 저장하는 지금 길이 선다', async ({ page, newcomer }) => {
     expect(newcomer.email).not.toBe('');
     await page.goto('/');
     await page.evaluate(() => sessionStorage.setItem('saju:reading-draft', 'name=영희&date=1988-11-07&hour=09:15'));
     await page.goto('/#resume-reading');
 
     await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toBeVisible();
-    await page.getByRole('button', { name: '다른 사람 사주였어요' }).click();
+    await page.getByRole('button', { name: '다른 사람의 사주예요' }).click();
 
     await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toBeVisible();
     await page.getByRole('button', { name: '저장하고 계속하기' }).click();
