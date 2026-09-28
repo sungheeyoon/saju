@@ -245,7 +245,7 @@ describe('CI 계획 — 판단이 사는 app/ 파일과 시험 도구도 입구�
     ]) {
       expect(beta([file]).lanes, file).toEqual(FULL);
     }
-    for (const file of ['scripts/ci-plan.mjs', 'scripts/release-stage.mjs', 'scripts/fake-clock.mjs', 'scripts/ui-shots.mjs', 'scripts/generate-lunar-table.mjs']) {
+    for (const file of ['scripts/ci-plan.mjs', 'scripts/release-stage.mjs', 'scripts/merge-sim.mjs', 'scripts/fake-clock.mjs', 'scripts/ui-shots.mjs', 'scripts/generate-lunar-table.mjs']) {
       expect(isSurface(file), file).toBe(false);
     }
   });

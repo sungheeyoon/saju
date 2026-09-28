@@ -573,6 +573,84 @@ describe('입구 문서가 가리키는 경로 (docs/agents/test-map.md)', () =>
 });
 
 // -----------------------------------------------------------------------------
+// 운영 소스의 주석이 가리키는 파일 — 있다
+// -----------------------------------------------------------------------------
+
+/**
+ * 주석이 가리키는 경로를 읽는 곳 — **지금 도는 운영 소스**(`app/**` · `src/**` · `proxy.ts` 의 `.ts` · `.tsx`, 시험 빼고).
+ * 마이그레이션 · pgTAP · e2e · scripts 는 범위 밖이다 — 마이그레이션은 그날의 기록이고, 나머지는 도구다.
+ */
+const COMMENTED_SOURCE = SOURCE_FILES.filter((file) => {
+  const rel = relPath(file);
+  return (rel.startsWith('app/') || rel.startsWith('src/') || rel === 'proxy.ts') && /\.tsx?$/.test(rel) && !isTest(rel);
+});
+
+/**
+ * **없는 파일을 일부러 말하는 주석** — `파일 :: 경로` 와 까닭 한 줄. 옛 자리를 적는 역사 설명(「…였다」 · 「살다가 왔다」)과
+ * 두지 않은 자리를 가정하는 문장이다. 2026-09-28 에 잰 넷이고, 주석을 고치거나 지우면 여기서도 지운다 — 안 쓰이는
+ * 항목은 시험이 잡는다(목록이 썩지 않게).
+ */
+const COMMENT_PATHS_NOT_THERE: readonly { at: string; why: string }[] = [
+  { at: 'app/me/(home)/loading.tsx :: app/me/loading.tsx', why: '가정 — 뼈대를 그 자리에 두면 /me 아래가 다 이 뼈대로 연다(그래서 안 둔다)' },
+  { at: 'app/ui/surfaces.ts :: app/card.ts', why: '역사 — 카드 판이 따로 살던 옛 파일(2026-09-26 에 이 파일로 왔다)' },
+  { at: 'src/lib/local-env.ts :: supabase/.env.local', why: '무시된 파일 — 워크트리마다 `stack:slot` 이 짓고 저장소에는 없다' },
+  { at: 'src/lib/reading/parts.ts :: src/lib/saju/evidence/prompt.ts', why: '역사 — 이 파일이 엔진 안에 있던 옛 자리(ADR 0047)' },
+];
+
+/** 한 파일의 주석 전부 — `//` · `/* *\/` · JSDoc, JSX 안의 `{/* *\/}` 도. JSX 글자(`JsxText`)는 주석이 아니다 */
+function commentsOf(file: string): { text: string; pos: number; source: ts.SourceFile }[] {
+  const source = parse(file);
+  const text = source.getFullText();
+  const jsxText: [number, number][] = [];
+  const ranges = new Map<number, ts.CommentRange>();
+  const visit = (node: ts.Node) => {
+    if (node.kind === ts.SyntaxKind.JsxText) {
+      jsxText.push([node.pos, node.end]);
+      return;
+    }
+    for (const range of ts.getLeadingCommentRanges(text, node.pos) ?? []) ranges.set(range.pos, range);
+    for (const range of ts.getTrailingCommentRanges(text, node.end) ?? []) ranges.set(range.pos, range);
+    node.getChildren(source).forEach(visit);
+  };
+  visit(source);
+  return [...ranges.values()]
+    .filter((range) => !jsxText.some(([from, to]) => range.pos >= from && range.pos < to))
+    .map((range) => ({ text: text.slice(range.pos, range.end), pos: range.pos, source }));
+}
+
+describe('운영 소스의 주석이 가리키는 경로', () => {
+  it('주석의 백틱 안 뿌리 경로는 있는 파일이나 폴더다 — 옛 자리를 말하는 주석은 이름과 까닭으로 든다', () => {
+    const allowed = new Set(COMMENT_PATHS_NOT_THERE.map((one) => one.at));
+    const missing: string[] = [];
+    const used = new Set<string>();
+    let seen = 0;
+    for (const file of COMMENTED_SOURCE) {
+      const rel = relPath(file);
+      for (const comment of commentsOf(file)) {
+        for (const match of comment.text.matchAll(/`([^`\s]+)`/g)) {
+          const token = match[1];
+          if (!ROOTED_PATH.test(token) || token.includes('*')) continue;
+          seen += 1;
+          // 모듈 경로는 확장자 없이 적는다(`app/auth/config`) — 소스 확장자 중 하나로 있으면 된다
+          if ([''].concat(SOURCE_EXTENSIONS).some((ext) => existsSync(join(ROOT, token + ext)))) continue;
+          const at = `${rel} :: ${token}`;
+          if (allowed.has(at)) {
+            used.add(at);
+            continue;
+          }
+          const line = comment.source.getLineAndCharacterOfPosition(comment.pos + (match.index ?? 0)).line + 1;
+          missing.push(`${rel}:${line} ${token}`);
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(100);
+    expect(missing).toEqual([]);
+    // 허용 목록이 썩지 않는다 — 주석을 고쳤거나 그 파일이 다시 생겼으면 항목을 지운다
+    expect([...allowed].filter((at) => !used.has(at))).toEqual([]);
+  });
+});
+
+// -----------------------------------------------------------------------------
 // 용어집 ↔ 코드 (CONTEXT.md §9)
 // -----------------------------------------------------------------------------
 
