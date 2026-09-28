@@ -57,7 +57,7 @@ export function SegmentedNav({
  *
  * **회원에게만 세운다.** 궁합(`/compat`)은 로그인이 필요하므로(PRD 「사주 보기 · 궁합 보기」) 로그인하지 않은 사람에게
  * 이 토글은 누를 수 없는 반쪽을 들고 서는 줄이 된다. 그 사람에게는 현관의 두 입구(내 사주 보기 · 궁합 보기)가 같은
- * 화면 안에서 궁합 맛보기를 연다(`home-hero.tsx`, ADR 0130).
+ * 화면 안에서 궁합 맛보기를 연다(`home-hero.tsx`, ADR 0131).
  */
 export function SajuCompatTabs({ current }: { current: 'saju' | 'compat' }) {
   return (

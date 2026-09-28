@@ -6,7 +6,7 @@ import type { TasteKey } from '@/src/lib/reading/taste';
 import { read, unread, type SkippableRead } from './db-error';
 
 /**
- * **미리 만든 맛보기 한 칸을 읽는 문** — 로그인 전 첫 화면이 브라우저에서 부른다(ADR 0130).
+ * **미리 만든 맛보기 한 칸을 읽는 문** — 로그인 전 첫 화면이 브라우저에서 부른다(ADR 0131).
  *
  * 보내는 것은 열쇠(`丙午-卯`) 하나다. 생년월일시 · 이름은 안 나간다 — 열쇠는 브라우저가 엔진으로 계산한다
  * (`src/lib/reading/taste.ts`). 문(`taste_passage`)은 익명에게 열려 있고 검사를 지난 글 하나만 낸다.

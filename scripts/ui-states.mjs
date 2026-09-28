@@ -181,7 +181,7 @@ export async function build(state) {
         {
           ...receiver,
           cookies: await cookiesFor(local, receiver.email, receiver.password),
-          at: '/me/requests',
+          at: '/me/matching',
         },
       ],
     };

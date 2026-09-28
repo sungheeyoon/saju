@@ -28,7 +28,7 @@ export const DEFAULT_RETURN_PATH = '/me';
 export const RESUME_READING_PATH = '/#resume-reading';
 
 /**
- * 첫 화면의 궁합 맛보기에서 넣은 두 사람으로 궁합을 이어 본다(ADR 0130) — 두 사람도 주소가 아니라 탭의
+ * 첫 화면의 궁합 맛보기에서 넣은 두 사람으로 궁합을 이어 본다(ADR 0131) — 두 사람도 주소가 아니라 탭의
  * `sessionStorage` 가 든다(`app/reading-draft.ts`).
  */
 export const RESUME_PAIR_PATH = '/compat#resume-pair';

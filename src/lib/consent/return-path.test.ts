@@ -69,7 +69,7 @@ describe('로그인 · 가입 주소', () => {
 describe('로그인을 마친 사람이 처음 설 곳', () => {
   it('사주 이어 보기만 가입 화면을 거친다 — 나머지는 관문이 끼운다', () => {
     expect(afterSignIn('/#resume-reading')).toBe('/signup?next=%2F%23resume-reading');
-    /* 궁합 이어 보기도 낱말째 가입 화면을 거친다 — 관문은 `#` 뒤를 못 봐서 가입 뒤 입력을 잃는다(ADR 0130) */
+    /* 궁합 이어 보기도 낱말째 가입 화면을 거친다 — 관문은 `#` 뒤를 못 봐서 가입 뒤 입력을 잃는다(ADR 0131) */
     expect(afterSignIn('/compat#resume-pair')).toBe('/signup?next=%2Fcompat%23resume-pair');
     expect(afterSignIn('/compat')).toBe('/compat');
     expect(afterSignIn('/compat')).toBe('/compat');

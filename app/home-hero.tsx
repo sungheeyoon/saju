@@ -153,7 +153,7 @@ function Hero({ member, entry, onEntry }: { member: boolean; entry: Entry; onEnt
 }
 
 /**
- * 현관의 속 — 카드 껍데기는 `Hero` 가 든다(흐름 시안 g 의 첫 화면, ADR 0130).
+ * 현관의 속 — 카드 껍데기는 `Hero` 가 든다(흐름 시안 g 의 첫 화면, ADR 0131).
  *
  * 로고와 이름, 한 줄 소개(`SERVICE_TAGLINE`), 제목, 점으로 이루어지는 관계의 그림(`HomeMap`), 그리고 **두 입구** —
  * 「내 사주 보기」와 「궁합 보기」. 입구는 바로 아래 입력 칸을 고르는 탭이다: 둘 다 로그인 없이 맛보기까지 간다.

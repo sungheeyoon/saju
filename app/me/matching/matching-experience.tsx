@@ -52,6 +52,7 @@ type View = 'today' | 'passed';
   붙어 오고, `sync` 가 그 사람을 덱 뒤에 합친다 — 덱을 통째로 다시 세우지 않는다. 새로고침 단추는 없다.
 */
 export function MatchingExperience({
+  lead,
   cards,
   me,
   teaser,
@@ -59,6 +60,8 @@ export function MatchingExperience({
   explorationNote,
   passed: passedFromServer = EMPTY_CARDS,
 }: {
+  /** 받은 요청 — 제목 아래, 덱 위에 선다. 없으면 아무것도 안 선다(ADR 0130) */
+  lead?: ReactNode;
   cards: readonly DeckCard[];
   /** 지도의 가운데 — 내 일간과 오행 다섯 */
   me: MeMark;
@@ -172,7 +175,7 @@ export function MatchingExperience({
         if (!result.ok) { setFailure(result.message); return; }
         finish();
       } catch {
-        setFailure('요청 결과를 확인하지 못했습니다. 소식에서 확인해 주세요.');
+        setFailure('요청 결과를 확인하지 못했습니다. 화면을 새로 고쳐 보낸 요청에서 확인해 주세요.');
       } finally { busy.current = false; }
     });
   }
@@ -297,6 +300,12 @@ export function MatchingExperience({
         </div>
       )}
       {view === 'today' && profile === undefined && notice !== null && <p className={`${TYPE_META} -mt-2 max-w-prose`}>{notice}</p>}
+
+      {/*
+        **답할 요청이 덱보다 먼저다**(시안 g, ADR 0130). 받은 요청은 내가 답할 때까지 남는 유일한 것이라 덱 위에 선다.
+        요청이 없으면 이 자리는 비어 덱이 제자리에 선다 — 빈 칸이 덱을 밀어내지 않는다.
+      */}
+      {lead}
 
       {view === 'passed' ? (
         <PassedConnections

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { announceIfMoved } from '../reading/credits-signal';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { SETTINGS_DANGER } from '../settings/card';
-import { announceNotificationsUnreadMoved } from './unread-signal';
+import { announceNotificationsUnreadMoved, announceRequestsToAnswerMoved } from './unread-signal';
 
 import {
   REPORT_DETAIL_MAX,
@@ -60,7 +60,7 @@ export function MatchConsentQuestion() {
  * 받은 요청에 답하는 자리.
  *
  * **동의 질문은 이 버튼이 들고 있지 않다.** 카드가 열릴 때부터 위에 서 있다
- * (`page.tsx` 가 `MatchConsentQuestion` 을 세운다) — 눌러야 나타나는 고지는 「읽고 눌렀다」를
+ * (인연 탭의 `requests-lead.tsx` 가 `MatchConsentQuestion` 을 세운다) — 눌러야 나타나는 고지는 「읽고 눌렀다」를
  * 보장하지 못하고, 서버가 내려보낸 화면에 그 문장이 있는지 밖에서 잴 수도 없다.
  *
  * **결과를 상태로 받는다.** 수락을 눌렀는데 무효가 나오는 경우가 실재한다 — 그 사이에
@@ -84,6 +84,8 @@ export function RespondButtons({ requestId }: { requestId: string }) {
       if (result.status !== 'accepted' && result.status !== 'rejected') {
         setSettled(result.status);
       }
+      // 인연 탭의 딱지는 주소가 안 바뀌면 다시 안 센다 — 답한 것을 바로 알린다(ADR 0130)
+      announceRequestsToAnswerMoved();
       router.refresh();
     });
   };
@@ -158,8 +160,11 @@ export function BlockButton({ userId }: { userId: string }) {
     setFailure(null);
     startWorking(async () => {
       const result = await blockUser(userId);
-      if (result.ok) router.refresh();
-      else setFailure(result.message);
+      if (result.ok) {
+        // 차단은 그 사람의 요청을 거둔다 — 답할 요청 수가 준다
+        announceRequestsToAnswerMoved();
+        router.refresh();
+      } else setFailure(result.message);
     });
   };
 

@@ -121,8 +121,12 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     ).toBeVisible();
     await b.page.getByRole('link', { name: new RegExp(`가${tag}`) }).click();
     await expect(talkOf(b).getByText(hello)).toBeVisible();
-    // 방 안에서 읽음이 끝나면 **주소를 안 옮겨도** 헤더의 배지가 내려간다
-    await expect(b.page.getByText('1건 안 읽음')).toHaveCount(0);
+    /*
+      방 안에서 읽음이 끝나면 **주소를 안 옮겨도** 헤더의 배지가 내려간다. 종(소식)의 딱지는 뺀다 — 같은 글자를 쓰고,
+      요청이 왔다는 소식을 종이 안 세게 된 뒤로(ADR 0130) 이 쌍의 수락 소식 하나가 「1건 안 읽음」으로 선다.
+    */
+    const chatBadges = b.page.locator('a:not([href="/me/requests"])').getByText('1건 안 읽음');
+    await expect(chatBadges).toHaveCount(0);
 
     const reply = `반갑습니다 ${tag}`;
     await b.page.getByPlaceholder('메시지를 입력해 주세요').fill(reply);
@@ -130,7 +134,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(talkOf(b).getByText(reply)).toBeVisible();
 
     await b.page.goto('/me/chat');
-    await expect(b.page.getByText('1건 안 읽음')).toHaveCount(0);
+    await expect(chatBadges).toHaveCount(0);
 
     // 보낸 쪽이 다시 열면 답이 보인다 — 실시간이 아니라 다시 읽는 것이다
     await a.page.goto(room);

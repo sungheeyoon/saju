@@ -3,7 +3,7 @@ import { analyzeCompatibility, type Saju, type Stem } from '../saju';
 import { buildMatchPreview, matchBasisOf } from './index';
 
 /**
- * 로그인 전 첫 화면의 **궁합 맛보기** — 모델을 안 부르고 엔진 계산만으로 한 줄을 세운다(ADR 0130).
+ * 로그인 전 첫 화면의 **궁합 맛보기** — 모델을 안 부르고 엔진 계산만으로 한 줄을 세운다(ADR 0131).
  *
  * 한 줄은 궁합 결과 화면의 「궁합 베타」 칸이 「먼저 보이는 신호」로 세우는 것과 **같은 함수**에서 온다
  * (`buildMatchPreview` 의 첫 신호) — 로그인 뒤 같은 두 사람의 궁합을 열면 같은 문장을 다시 만난다. 사이는 묻지 않은 채

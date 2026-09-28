@@ -18,7 +18,7 @@ export default async function SignInPage({
   const supabase = await supabaseOnServer();
   if ((await signedInUser(supabase)) !== null) redirect(afterSignIn(returnTo));
 
-  /* 첫 화면의 궁합 맛보기에서 온 사람도 궁합으로 간다(ADR 0130) */
+  /* 첫 화면의 궁합 맛보기에서 온 사람도 궁합으로 간다(ADR 0131) */
   const forCompat = returnTo === '/compat' || returnTo === RESUME_PAIR_PATH;
   const forReading = returnTo === RESUME_READING_PATH;
 

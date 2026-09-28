@@ -74,9 +74,9 @@ export type Changed =
    * 어긋났다(`74349b6`).
    */
   | 'deck-moved'
-  /** 상세 궁합을 청했다 — 소식과 요청 목록이 함께 갈린다 */
+  /** 상세 궁합을 청했다 — 인연 탭의 보낸 요청이 는다(ADR 0130) */
   | 'match-requested'
-  /** 받은 요청에 답했거나, 거뒀거나, 차단했거나, 소식을 읽었다 */
+  /** 받은 요청에 답했거나, 거뒀거나, 차단했거나, 소식을 읽었다 — 요청은 인연 탭, 소식은 종(ADR 0130) */
   | 'requests-changed'
   /** 신고했다 — 소식은 안 바뀐다(운영자가 볼 기록이다) */
   | 'report-filed'
@@ -104,9 +104,9 @@ const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'consent-changed': [{ path: '/me/settings' }, { path: '/me' }],
   'discovery-settings-changed': [{ path: '/me/settings' }],
   'deck-moved': [{ path: '/me' }],
-  'match-requested': [{ path: '/me' }, { path: '/me/requests' }],
-  'requests-changed': [{ path: '/me/requests' }, { path: '/me' }],
-  'report-filed': [{ path: '/me/requests' }],
+  'match-requested': [{ path: '/me' }, { path: '/me/matching' }],
+  'requests-changed': [{ path: '/me/matching' }, { path: '/me/requests' }, { path: '/me' }],
+  'report-filed': [{ path: '/me/matching' }],
   'survey-submitted': [{ path: '/me/survey' }],
   'pair-opened': [{ path: '/me/compat' }],
   'signed-up': [{ path: '/me', scope: 'layout' }],
