@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { openingHref } from './opening';
 
-describe('풀이 탭이 넓은 화면에서 펼 한 권', () => {
+describe('책장이 넓은 화면에서 펼 한 권', () => {
   it('내 사주풀이가 있으면 더 최근 글이 있어도 그것을 편다', () => {
     expect(openingHref([{ href: '/me/readings/p2' }, { href: '/me/readings/self' }, { href: '/me/readings/p1' }])).toBe(
       '/me/readings/self',

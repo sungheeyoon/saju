@@ -100,11 +100,11 @@ const matchOf = (row: MatchRow): InboxMatch => ({
   createdAt: row.created_at,
 });
 
-/** 풀이 탭에 세울, 서로 동의해 성립한 궁합. */
+/** 책장(`/me/readings`)에 세울, 서로 동의해 성립한 궁합. */
 export async function matchesForViewer(): Promise<readonly InboxMatch[]> {
   const supabase = await supabaseOnServer();
   const { data, error } = await supabase.rpc('my_matches');
-  /* 풀이 탭의 본체다 — 같은 문을 읽는 `inboxForViewer` 와 같은 답을 해야 한다(ADR 0078) */
+  /* 책장의 본체다 — 같은 문을 읽는 `inboxForViewer` 와 같은 답을 해야 한다(ADR 0078) */
   if (error) throw dbFailure(error, 'my_matches');
   return (data ?? []).map(matchOf);
 }
