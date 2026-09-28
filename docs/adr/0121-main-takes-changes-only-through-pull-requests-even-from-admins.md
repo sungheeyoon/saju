@@ -1,5 +1,7 @@
 # main 에는 관리자까지 PR 로만 든다
 
+> **추기(2026-09-28 오후)** — 「PR 을 거쳐야 머지」(`required_pull_request_reviews`, 승인 0)도 켰다. `enforce_admins` 와 필수 검사 `gate` 만으로는 **가지에서 이미 `gate` 를 지난 커밋을 PR 없이 `git push origin HEAD:main` 으로 올리는 길**이 열려 있었다(외부 리뷰가 잡음). 승인 수가 0 이라 기다리는 걸음은 늘지 않고 `--auto` 는 그대로 돈다 — 승인 1 이상은 혼자 운영하는 저장소에서 매번 막히므로 두지 않는다. 설정 값: PR 필수(승인 0) · 관리자 포함 · `gate` strict.
+
 > **섰다**(2026-09-28). 운영자 결정 — main 보호 규칙의 `enforce_admins` 를 켰다. ADR 0082 의 「관리자는 규칙 밖에 둔다
 > (`enforce_admins: false`) — main 에 직접 미는 일이 있다」를 이 문서가 뒤집는다.
 
