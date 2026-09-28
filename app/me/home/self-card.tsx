@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 import { isoOf, solarDateOf } from '@/src/lib/input/chart';
 import { HOUR_UNKNOWN_LABEL, type Query } from '@/src/lib/input/query';
@@ -35,13 +36,21 @@ export function SelfCard({
   query,
   saju,
   reading,
+  actions,
 }: {
-  personId: string;
+  /**
+   * 저장된 내 사주 — **`null` 이면 아직 저장 전**이다(ADR 0128). 사주 이어 보기가 「이 사주가 내 사주 맞나요?」를
+   * 물을 때 같은 카드로 그 사람을 보인다. 그때는 고칠 손잡이(저장된 입력을 고친다)와 풀이 · 자세히 보기 단추가
+   * 서지 않고, 그 자리에 `actions` 가 선다.
+   */
+  personId: string | null;
   label: string;
   query: Query;
   saju: Saju;
   /** 내 사주풀이 — 없으면 `null` */
   reading: ReadingEntry | null;
+  /** 저장 전 카드의 단추 줄 — 저장된 카드에서는 안 쓴다 */
+  actions?: ReactNode;
 }) {
   const dayElement = STEM_INFO[saju.pillars.dayMaster].element;
 
@@ -79,28 +88,34 @@ export function SelfCard({
         `display: contents` 라 이 상자는 판에 자리를 안 차지한다 — 단추만 판의 오른쪽 맨 위로 띄운다(공용
         `ICON_BUTTON` 의 `relative` 가 손잡이의 `absolute` 를 이겨 단추가 흐름에 떨어지던 것을 여기서 누른다).
       */}
-      <div className="contents [&>button]:absolute [&>button]:right-4 [&>button]:top-4 sm:[&>button]:right-5 sm:[&>button]:top-5">
-        <EditInput personId={personId} current={query} editableName={false} confirmsRequests />
-      </div>
+      {personId !== null && (
+        <div className="contents [&>button]:absolute [&>button]:right-4 [&>button]:top-4 sm:[&>button]:right-5 sm:[&>button]:top-5">
+          <EditInput personId={personId} current={query} editableName={false} confirmsRequests />
+        </div>
+      )}
 
       <BirthLine query={query} />
 
       <ElementCounts saju={saju} />
 
       {/* 폰에서도 두 단추가 한 줄을 나눠 쓴다 — 세로로 쌓으면 단추 줄만 110px 였다 */}
-      <div className="relative flex flex-wrap items-center gap-2">
-        <Link href="/me/readings/self" className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}>
-          <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
-          {reading === null ? '사주풀이 받기' : '사주풀이 보기'}
-          {reading !== null && !reading.fromCurrentChart && (
-            <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">{READING_STALE_LABEL}</span>
-          )}
-        </Link>
-        <Link href={`/me/people/${personId}`} className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}>
-          사주 자세히 보기
-          <Icon name="arrow" className="hidden size-4 sm:block" />
-        </Link>
-      </div>
+      {personId === null ? (
+        <div className="relative flex flex-wrap items-center gap-2">{actions}</div>
+      ) : (
+        <div className="relative flex flex-wrap items-center gap-2">
+          <Link href="/me/readings/self" className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}>
+            <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
+            {reading === null ? '사주풀이 받기' : '사주풀이 보기'}
+            {reading !== null && !reading.fromCurrentChart && (
+              <span className="rounded-full bg-[color-mix(in_srgb,var(--on-accent)_20%,transparent)] px-2 py-0.5 text-[11px]">{READING_STALE_LABEL}</span>
+            )}
+          </Link>
+          <Link href={`/me/people/${personId}`} className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}>
+            사주 자세히 보기
+            <Icon name="arrow" className="hidden size-4 sm:block" />
+          </Link>
+        </div>
+      )}
     </section>
   );
 }

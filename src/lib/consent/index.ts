@@ -1,4 +1,5 @@
 export * from './gate';
+export * from './return-path';
 export * from './notice';
 export * from './schedule';
 export * from './disclosure';

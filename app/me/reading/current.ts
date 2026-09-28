@@ -83,6 +83,21 @@ export type LastRun = {
   readonly status: (typeof RUN_STATUSES)[number];
   readonly failureCode: string | null;
   readonly createdAt: string;
+  /**
+   * 도는 동안 **서버가 적은 진행** — 끝난 시도면 `null` 이다(얼린 작업이 함께 지워진다, ADR 0127).
+   *
+   * 셋 다 서버가 적은 값 그대로다. 화면이 시간으로 채우는 자리가 없다.
+   */
+  readonly progress: RunProgress | null;
+};
+
+export type RunProgress = {
+  /** 얼린 작업의 상태(`frozen · preparing · submitting · submitted · retrieving`) — 모르는 값도 그대로 싣는다 */
+  readonly jobStatus: string | null;
+  /** 시작한 절의 수 — 소제목(`## `)이 선 수 */
+  readonly sectionsBegun: number;
+  /** 본문을 다 썼다 — 검사용 근거 절이 섰거나 본문이 닫혔다 */
+  readonly bodyWritten: boolean;
 };
 
 /** @returns 아직 만들지 않았거나 못 보는 대상이면 `null` — 둘을 가르지 않는다 */
@@ -181,6 +196,17 @@ export async function lastReadingRun(target: ReadingTarget): Promise<LastRun | n
     status,
     failureCode: row.failure_code ?? null,
     createdAt: row.created_at,
+    /*
+      앱이 DB 보다 먼저 나가면 세 칸이 안 온다 — 그때도 「진행을 모른다」로 읽힌다(0절 · 본문 전). 지어 넣지 않는다.
+    */
+    progress:
+      status === 'running'
+        ? {
+            jobStatus: row.job_status ?? null,
+            sectionsBegun: row.sections_begun ?? 0,
+            bodyWritten: row.body_written ?? false,
+          }
+        : null,
   };
 }
 

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
 import { MATCH_RESULT_CLOSED_NOTE } from '@/src/lib/consent';
@@ -7,6 +7,7 @@ import { STEM_INFO } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { signedInUser } from '../../../auth/signed-in';
+import { redirectToSignIn } from '../../../auth/sign-in-redirect';
 import { PillarPair } from '../../../compat-view';
 import { BUTTON_SECONDARY, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
@@ -42,7 +43,7 @@ export default async function MatchResultPage({
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   const { matchId } = await params;
 
