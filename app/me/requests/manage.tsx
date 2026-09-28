@@ -30,7 +30,7 @@ import {
 } from './actions';
 
 /**
- * 카드 밑단의 조용한 누름(차단 · 신고 · 거두기 · 그만두기) — 셋째 단추의 기하에 보조 글자색.
+ * 카드 밑단의 조용한 누름(차단 · 신고 · 거두기 · 취소) — 셋째 단추의 기하에 보조 글자색.
  * 수락 · 거절보다 한 층 아래로 읽혀야 한다: 같은 무게로 서면 차단이 답처럼 보인다.
  *
  * **눌리는 자리는 글자보다 좌우로 8px 씩 넓다**(`after:`). 「차단」 · 「신고」는 글자 둘이라 폭이 32px 로
@@ -181,7 +181,7 @@ export function BlockButton({ userId }: { userId: string }) {
           disabled={working}
           className={SETTINGS_DANGER}
         >
-          {working ? '차단하는 중…' : '차단합니다'}
+          {working ? '차단하는 중…' : '차단하기'}
         </button>
         <button
           type="button"
@@ -189,7 +189,7 @@ export function BlockButton({ userId }: { userId: string }) {
           disabled={working}
           className={QUIET_LINK}
         >
-          그만두기
+          취소
         </button>
       </span>
       {failure !== null && <span className="text-[13px] text-danger">{failure}</span>}
@@ -283,7 +283,7 @@ export function ReportButton({ userId }: { userId: string }) {
           disabled={working}
           className={SETTINGS_DANGER}
         >
-          {working ? '보내는 중…' : '신고합니다'}
+          {working ? '보내는 중…' : '신고하기'}
         </button>
         <button
           type="button"
@@ -291,7 +291,7 @@ export function ReportButton({ userId }: { userId: string }) {
           disabled={working}
           className={QUIET_LINK}
         >
-          그만두기
+          취소
         </button>
         {failure !== null && <span className="text-[13px] text-danger">{failure}</span>}
       </span>

@@ -171,7 +171,7 @@ export function EditInputForm({
             {saving ? '저장하는 중…' : pillarsSame ? '이름 저장' : '변경 사항 저장'}
           </button>
           <button type="button" onClick={onCancel} disabled={saving} className={BUTTON_TERTIARY}>
-            그만두기
+            작성 그만두기
           </button>
         </div>
         {missing !== null && <p className={TYPE_META}>{missing}</p>}

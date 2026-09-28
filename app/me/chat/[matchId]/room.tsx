@@ -423,10 +423,10 @@ function BlockAsk({ userId, onCancel }: { userId: string; onCancel: () => void }
       <p className="text-[14px] leading-6 text-foreground">{BLOCK_NOTE}</p>
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={block} disabled={working} className={BUTTON_DANGER}>
-          {working ? '차단하는 중…' : '차단합니다'}
+          {working ? '차단하는 중…' : '차단하기'}
         </button>
         <button type="button" onClick={onCancel} disabled={working} className={BUTTON_SECONDARY}>
-          그만두기
+          취소
         </button>
         {failure !== null && <span className="text-[13px] text-danger">{failure}</span>}
       </div>

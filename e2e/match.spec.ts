@@ -336,7 +336,7 @@ test.describe('동의로 열리는 흐름', () => {
 
     await receiver.page.getByLabel('신고 사유').selectOption({ label: '괴롭힘이나 위협' });
     await receiver.page.getByLabel('덧붙일 말 (선택)').fill('겪은 일을 적습니다.');
-    await receiver.page.getByRole('button', { name: '신고합니다' }).click();
+    await receiver.page.getByRole('button', { name: '신고하기' }).click();
 
     await expect(receiver.page.getByText('신고를 접수했습니다')).toBeVisible();
 
@@ -378,7 +378,7 @@ test.describe('동의로 열리는 흐름', () => {
       leaver.page.getByText('상대 화면에서도 함께 사라집니다', { exact: false }),
     ).toBeVisible();
 
-    await leaver.page.getByRole('button', { name: '탈퇴를 신청합니다' }).click();
+    await leaver.page.getByRole('button', { name: '탈퇴 신청하기' }).click();
 
     /*
       **이유를 갈라서 말한다.** 자기가 신청해서 그렇게 된 사람에게 「이용이 정지된 계정입니다」는
@@ -514,7 +514,7 @@ test.describe('동의로 열리는 흐름', () => {
     await expectTargets({ '결과 화면의 차단': receiver.page.getByRole('button', { name: '차단', exact: true }) });
     await reach(receiver, '차단');
     await receiver.page.keyboard.press('Enter');
-    await reach(receiver, '차단합니다');
+    await reach(receiver, '차단하기');
   });
 
   test('차단하면 그 사람은 후보에서도 사라지고 새 요청도 서지 않는다', async ({ openAs }) => {
@@ -530,7 +530,7 @@ test.describe('동의로 열리는 흐름', () => {
 
     // 차단은 한 번 더 묻는다 — 되돌리지 않기 때문이다(용어집).
     await receiver.page.getByRole('button', { name: '차단', exact: true }).click();
-    await receiver.page.getByRole('button', { name: '차단합니다' }).click();
+    await receiver.page.getByRole('button', { name: '차단하기' }).click();
 
     /*
       **누구를 차단했는지는 적지 않는다.** 차단한 뒤에는 그 사람의 프로필을 읽을 이유가

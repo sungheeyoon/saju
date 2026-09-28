@@ -260,7 +260,7 @@ export const INPUT_EDIT_CHANGE_CONFIRM = {
     '이미 만든 풀이와 성립한 인연 궁합은 그때의 입력 그대로 남습니다.',
   ],
   confirm: '바꾸고 저장하기',
-  cancel: '그만두기',
+  cancel: '취소',
 } as const;
 
 /** 거절은 되돌리지 않는다 — 누르기 전에 읽힌다 */
