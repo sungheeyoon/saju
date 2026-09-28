@@ -275,7 +275,7 @@ function AddTile({ slots }: { slots: PersonSlots | null }) {
 }
 
 /**
- * 나 탭 홈에서 떠나는 길 넷 — 인연, 다른 사람 사주, 궁합, 그리고 만든 풀이의 책장.
+ * 나 탭 홈의 바로가기 넷 — 인연, 다른 사람 사주, 궁합, 그리고 만든 풀이의 책장.
  *
  * 인연과 궁합은 머리글의 탭에도 있지만 이 줄이 **무엇을 하는 곳인가**를 한 줄로 말한다 — 탭 이름만으로는
  * 처음 온 사람이 「인연」에서 무엇을 하는지 모른다. 책장(`/me/readings`)은 탭에서 빠지며(ADR 0126) 나 탭 안의
@@ -291,12 +291,12 @@ const MORE_WAYS: readonly { href: string; label: string; note?: string; icon: Ic
   },
   { href: '/', label: '다른 사람 사주 보기', icon: 'search', element: '水' },
   { href: '/compat', label: '궁합 보러 가기', icon: 'heart', element: '火' },
-  { href: '/me/readings', label: '만든 풀이', icon: 'reading', element: '金' },
+  { href: '/me/readings', label: '만든 풀이 다시 보기', icon: 'reading', element: '金' },
 ];
 
 function MoreWays() {
   return (
-    <nav aria-label="더 해 보기" className="grid gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
+    <nav aria-label="바로가기" className="grid gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
       {MORE_WAYS.map((way) => (
         <Link
           key={way.href}

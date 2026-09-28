@@ -217,7 +217,7 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
       <div className="flex max-w-[34rem] flex-col gap-2">
         <h2 className={TYPE_SECTION}>아직 만든 풀이가 없습니다</h2>
         <p className="text-[15px] leading-7 text-secondary">
-          내 사주풀이와 저장한 사람의 풀이는 나 탭에서, 두 사람의 궁합은 궁합 탭에서 시작할 수 있습니다.
+          내 사주와 저장한 사람의 풀이는 나 탭에서, 두 사람의 궁합은 궁합 탭에서 시작할 수 있습니다.
         </p>
       </div>
       <ul className="grid grid-cols-3 gap-2.5 sm:max-w-[34rem] sm:gap-3">

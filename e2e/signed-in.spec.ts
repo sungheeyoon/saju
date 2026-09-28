@@ -387,12 +387,12 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await map.getByRole('button', { name: '닫기' }).click();
     await expect(map.getByRole('link', { name: '어머니 사주 보기' })).toHaveCount(0);
 
-    /* 나 탭 홈을 떠나는 길 넷 — 다른 사람 사주와, 탭에서 빠진 책장(ADR 0126)의 길이 여기 선다 */
-    const more = page.getByRole('navigation', { name: '더 해 보기' });
+    /* 나 탭 홈의 바로가기 넷 — 다른 사람 사주와, 탭에서 빠진 책장(ADR 0126)의 길이 여기 선다 */
+    const more = page.getByRole('navigation', { name: '바로가기' });
     await expect(more.getByRole('link', { name: '다른 사람 사주 보기' })).toHaveAttribute('href', '/');
     await expect(more.getByRole('link', { name: '궁합 보러 가기' })).toHaveAttribute('href', '/compat');
     await expect(more.getByRole('link', { name: /오늘의 인연 만나기/ })).toHaveAttribute('href', '/me/matching');
-    await expect(more.getByRole('link', { name: '만든 풀이', exact: true })).toHaveAttribute('href', '/me/readings');
+    await expect(more.getByRole('link', { name: '만든 풀이 다시 보기', exact: true })).toHaveAttribute('href', '/me/readings');
     /* 홈은 인연으로 가는 길만 두고 오늘의 인연을 제 자리에 세우지 않는다 */
     await expect(page.getByRole('heading', { name: '오늘의 인연', exact: true })).toHaveCount(0);
 
@@ -1427,11 +1427,11 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * 글을 실제로 만들어 놓고 재지는 않는다 — 누르면 4분과 돈이 든다. 네 kind 가 다
    * 서는지는 흐름 검사가 열쇠로 저장해 놓고 잰다(`check-reading.mjs`).
    */
-  test('나 탭 홈의 「만든 풀이」가 만든 글의 목록으로 가고, 거기서도 나 탭이 켜져 있다', async ({ page, signedIn }) => {
+  test('나 탭 홈의 「만든 풀이 다시 보기」가 만든 글의 목록으로 가고, 거기서도 나 탭이 켜져 있다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
 
-    await page.getByRole('navigation', { name: '더 해 보기' }).getByRole('link', { name: '만든 풀이', exact: true }).click();
+    await page.getByRole('navigation', { name: '바로가기' }).getByRole('link', { name: '만든 풀이 다시 보기', exact: true }).click();
 
     await expect(page).toHaveURL(/\/me\/readings$/);
     /* 책장은 탭에서 빠졌지만 나 탭 안의 길이다 — 불이 제자리에 있어야 어디서 왔는지 안다 */
