@@ -28,6 +28,18 @@ export const DEFAULT_RETURN_PATH = '/me';
 export const RESUME_READING_PATH = '/#resume-reading';
 
 /**
+ * 첫 화면의 궁합 맛보기에서 넣은 두 사람으로 궁합을 이어 본다(ADR 0131) — 두 사람도 주소가 아니라 탭의
+ * `sessionStorage` 가 든다(`app/reading-draft.ts`).
+ */
+export const RESUME_PAIR_PATH = '/compat#resume-pair';
+
+/**
+ * `#` 뒤 낱말로 입력을 되찾는 목적지 — **가입 화면을 한 번 거친다.** 관문(`proxy.ts`)은 `#` 뒤를 못 보므로 가입 화면으로
+ * 보낼 때 `next` 에 낱말이 안 실리고, 가입을 마친 사람은 입력 없이 도착한다. 로그인을 마친 자리가 낱말째 싣는다.
+ */
+const RESUMES: readonly string[] = [RESUME_READING_PATH, RESUME_PAIR_PATH];
+
+/**
  * 관문(`proxy.ts`)이 화면에 넘기는 **지금 주소**(경로 + 쿼리) — 서버 화면은 자기 주소를 모른다.
  *
  * 레이아웃은 쿼리도 동적 조각도 못 받는다(`/me/readings/[subject]` 의 레이아웃). 화면마다 주소를 다시 지으면
@@ -84,9 +96,10 @@ export const signInFrom = (pathname: string): string =>
  * 로그인을 마친 사람이 **처음 설 곳** — 가입 관문이 못 서는 목적지만 가입 화면을 거친다.
  *
  * `/me` 아래 · `/compat` 은 관문(`gateFor`)이 가입 전인 사람을 가입 화면으로 보낸다. 사주 이어 보기(`/`)는
- * 관문 밖이라 여기서 가입 화면을 한 번 거치게 한다 — 가입을 마쳤으면 그 화면이 곧장 목적지로 보낸다.
+ * 관문 밖이라, 궁합 이어 보기(`/compat#resume-pair`)는 관문이 `#` 뒤를 못 보아 여기서 가입 화면을 한 번 거치게
+ * 한다 — 가입을 마쳤으면 그 화면이 곧장 목적지로 보낸다.
  */
 export function afterSignIn(next: string): string {
   const destination = safeReturnPath(next);
-  return destination === RESUME_READING_PATH ? withReturnPath('/signup', destination) : destination;
+  return RESUMES.includes(destination) ? withReturnPath('/signup', destination) : destination;
 }

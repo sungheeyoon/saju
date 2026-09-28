@@ -277,6 +277,7 @@ ADR 0082). 보호 규칙이 strict 라(2026-09-23) 가지가 최신 main 위에 
 - `Bash(READING_MATCH_INPUT_LIVE=1:*)`
 - `Bash(BACKFILL_CHART=1:*)`
 - `Bash(BACKFILL_READING_CHART=1:*)`
+- `Bash(TASTE_LIVE=1:*)`
 - `Bash(vercel env:*)`
 - `Bash(npx vercel env:*)`
 - `Bash(vercel --prod:*)`
