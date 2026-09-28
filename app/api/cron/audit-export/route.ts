@@ -2,6 +2,7 @@ import 'server-only';
 
 import { keyedClient } from '@/app/keyed-client';
 
+import { cronAuthorized } from '../authorized';
 import { configOf, runExport, type ExportSource, type RunLedger } from './export';
 import { s3Upload } from './s3';
 
@@ -24,8 +25,7 @@ export const maxDuration = 60;
 const rpcError = (name: string, code: string | undefined) => Object.assign(new Error(name), { code: code ?? 'unknown' });
 
 export async function GET(request: Request): Promise<Response> {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
+  if (!cronAuthorized(request)) {
     return new Response('forbidden', { status: 403 });
   }
 
