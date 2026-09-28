@@ -275,32 +275,34 @@ function AddTile({ slots }: { slots: PersonSlots | null }) {
 }
 
 /**
- * 홈에서 떠나는 길 셋 — 머리글의 탭에서 빠진 「사주·궁합」의 두 길과 매칭.
+ * 나 탭 홈에서 떠나는 길 넷 — 인연, 다른 사람 사주, 궁합, 그리고 만든 풀이의 책장.
  *
- * 매칭은 머리글의 탭에도 있지만 홈의 이 줄이 **무엇을 하는 곳인가**를 한 줄로 말한다 — 탭 이름만으로는
- * 처음 온 사람이 「매칭」에서 무엇을 하는지 모른다.
+ * 인연과 궁합은 머리글의 탭에도 있지만 이 줄이 **무엇을 하는 곳인가**를 한 줄로 말한다 — 탭 이름만으로는
+ * 처음 온 사람이 「인연」에서 무엇을 하는지 모른다. 책장(`/me/readings`)은 탭에서 빠지며(ADR 0126) 나 탭 안의
+ * 길이 됐다 — 넓은 화면은 글을 열면 옆에 서지만, 폰에서 책장 자체로 가는 길은 여기뿐이다.
  */
 const MORE_WAYS: readonly { href: string; label: string; note?: string; icon: IconName; element: Element }[] = [
   {
     href: '/me/matching',
-    label: '매칭에서 오늘의 인연 만나기',
+    label: '오늘의 인연 만나기',
     note: '예측 궁합과 보완하는 기운으로, 나의 귀인을 찾아보세요.',
     icon: 'people',
     element: '木',
   },
   { href: '/', label: '다른 사람 사주 보기', icon: 'search', element: '水' },
   { href: '/compat', label: '궁합 보러 가기', icon: 'heart', element: '火' },
+  { href: '/me/readings', label: '만든 풀이', icon: 'reading', element: '金' },
 ];
 
 function MoreWays() {
   return (
-    <nav aria-label="더 해 보기" className="grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">
+    <nav aria-label="더 해 보기" className="grid gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
       {MORE_WAYS.map((way) => (
         <Link
           key={way.href}
           href={way.href}
           className={`${elementScope(way.element)} group flex min-h-16 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-foreground hover:border-[color-mix(in_srgb,var(--ink)_40%,transparent)] active:scale-[0.98] ${
-            way.note === undefined ? '' : 'sm:col-span-2 lg:col-span-1'
+            way.note === undefined ? '' : 'sm:col-span-3 lg:col-span-1'
           }`}
         >
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] text-[var(--ink)]">

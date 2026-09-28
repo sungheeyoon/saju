@@ -73,7 +73,7 @@ export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult
   if (self === null) {
     return {
       ok: false,
-      message: '내 사주를 불러오지 못했어요. 홈에서 내 사주 카드가 보이는지 확인한 뒤 다시 시도해 주세요.',
+      message: '내 사주를 불러오지 못했어요. 나 탭에서 내 사주 카드가 보이는지 확인한 뒤 다시 시도해 주세요.',
     };
   }
 
