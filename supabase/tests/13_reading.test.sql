@@ -718,7 +718,10 @@ create temporary table run_told as
 select run_id as id from public.start_reading_run('self', 'key-self-fail-0001');
 grant select on run_told to authenticated, service_role;
 
-select public.fail_reading_run((select id from run_told), 'model-call-failed', '모델이 안 왔다');
+-- 닫는 문은 열쇠의 것이다 — 사용자 권한으로 닫는 문은 걷었다(ADR 0120)
+reset role;
+select public.fail_reading_job((select id from run_told), 'model-call-failed', '모델이 안 왔다');
+set local role authenticated;
 
 select is(
   (select count(*)::int from public.my_notifications() where kind = 'reading_failed'),
@@ -767,13 +770,14 @@ select is(
  * **늦게 돌아온 호출은 이 문에 못 들어온다.** 그 시도는 이미 만료로 닫혔으므로
  * 0행을 만난다 — 그래서 「더 나중 시도가 있나」를 여기서 다시 묻지 않는다.
  */
-select throws_ok(
-  format($$select public.fail_reading_run(%L::uuid, 'closed')$$,
-    (select id from run_abandoned)),
-  'P0002', null, '이미 닫힌 시도는 다시 닫히지 않는다');
+reset role;
+select is(
+  public.fail_reading_job((select id from run_abandoned), 'closed'),
+  false, '이미 닫힌 시도는 다시 닫히지 않는다');
 
 -- 도는 것을 남기지 않는다. 다음 시험이 같은 대상으로 시도를 연다.
-select public.fail_reading_run((select id from run_after), 'model-no-output', '모양이 아니다');
+select public.fail_reading_job((select id from run_after), 'model-no-output', '모양이 아니다');
+set local role authenticated;
 
 -- ── 늦게 돌아온 호출은 새 결과를 덮지 않는다 ────────────────────────────────
 

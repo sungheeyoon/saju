@@ -15,10 +15,13 @@
  *   6. **두 표에 나란히 적는 경고는 같은 안내번호를 못 받는다** — 지금 계정의 신고(`public.report`)와 떠난 사람의
  *      신고(`retention.report`)에 같은 씨앗으로 경고를 적으면 둘 다 같은 번호를 뽑는다. 뒤 세션은 앞 세션의 커밋을
  *      기다렸다가 다른 번호를 받는다(`20261020090000`, ADR 0108 추기)
+ *   7. **덱이 없던 사람의 첫 목록을 두 세션이 나란히 열어도 덱은 한 벌이다** — 뒤 세션은 사람 단위 자물쇠에서 앞
+ *      세션의 커밋을 기다렸다가 앞이 세운 덱을 읽는다. 고치기 전에는 덱 둘 · 노출 기록 두 벌이 섰다(`20261030090000`)
  *
  * 남는 것 — 접속기록 표는 추가만 되므로 이 검사가 적은 줄(무작위 actor, 1 · 3 · CLI 질의와 결과, 5)과 반출 시도
  * 둘(4, 「설정 없음」으로 끝낸다)은 로컬 DB 에 남는다. 주문을 연 계정은 끝에 지운다. 판매 스위치는 2 동안만 켜고 `finally` 에서 끈다.
  * 6 의 계정과 신고는 끝에 지우고, 안내번호 대장의 두 줄은 남는다 — 한 번 쓴 번호는 다시 안 쓰는 것이 그 대장의 뜻이다.
+ * 7 의 두 계정은 끝에 지운다(덱 · 노출 기록이 FK 를 따라간다). 일정이 하나도 없던 DB 면 7 이 세운 일정 한 줄은 남는다.
  */
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -271,6 +274,68 @@ const accessRow = (actor, outcome = 'allowed') => `
     sql(`delete from auth.users where id in ('${reporter}', '${warned}', '${operator}')`);
     // 신고한 사람이 떠나며 옮겨진 줄도 걷는다
     sql(`delete from retention.report where report_id = '${current}'`);
+  }
+}
+
+// ── 7. 첫 덱은 하나만 선다 ───────────────────────────────────────────────────────
+
+{
+  /**
+   * 참여를 켠 사람 하나 — 가입 · 안내 · 이름 · 내 사주 · 참여를 실제 문으로 지난다. 일정이 없으면 오늘(서울)에서 센
+   * 종료일로 하나 세운다 — 고정 날짜를 적으면 그날이 지나 이 절이 「베타가 끝났다」로 붉는다.
+   */
+  const stamp = Date.now();
+  const participant = (label, stem) => {
+    const uid = sql(`insert into auth.users (instance_id, id, aud, role, email, created_at, updated_at)
+      values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
+              'race-deck-${label}-${stamp}@example.com', now(), now()) returning id`);
+    sql(`do $$ begin
+      insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
+      select (now() at time zone 'Asia/Seoul')::date + 30, '경합 검사', '만세력 운영자', '시험 담당', 'ops@example.com'
+      where not exists (select 1 from public.beta_schedule);
+      update public.app_user set notice_version = 'race-check',
+        notice_schedule_id = (select s.schedule_id from public.current_beta_schedule() s),
+        notice_ends_on = (select s.ends_on from public.current_beta_schedule() s), notice_ack_at = now(),
+        improvement_consent = false, contact_consent = false,
+        nickname = '${label}' || right('${stamp}', 4), signed_up_at = now()
+      where id = '${uid}';
+      perform set_config('request.jwt.claims', '{"sub":"${uid}","role":"authenticated"}', true);
+      perform public.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo',
+        'localMean', jsonb_build_object(
+          'year', jsonb_build_object('stem', '甲', 'branch', '子'), 'month', jsonb_build_object('stem', '乙', 'branch', '丑'),
+          'day', jsonb_build_object('stem', '${stem}', 'branch', '寅'), 'hour', jsonb_build_object('stem', '丁', 'branch', '卯'),
+          'dayMaster', '${stem}'), 'chart-for-race');
+      perform public.set_discovery_participation(true,
+        '{"glyphCount":8,"counts":{"木":2,"火":2,"土":2,"金":1,"水":1},"ratios":{"木":0.25,"火":0.25,"土":0.25,"金":0.125,"水":0.125}}'::jsonb,
+        jsonb_build_object('primary', '木', 'heaviest', '金', 'rule', public.discovery_need_rule()));
+    end $$`);
+    return uid;
+  };
+  const viewer = participant('덱보는', '戊');
+  const other = participant('덱후보', '甲');
+
+  // 앞 세션은 덱을 세우고 2초 뒤에 커밋한다 — 그 사이에 뒤 세션이 같은 사람의 목록을 연다
+  const board = (at, tail = '') => session(at, `begin; ${asUser(viewer)}
+    select 'CARDS=' || count(*) from public.my_discovery_board(); ${tail} commit;`);
+
+  try {
+    const [first, second] = await Promise.all([board(0, 'select pg_sleep(2);'), board(600)]);
+    const decks = sql(`select count(*) from public.discovery_candidate where user_id = '${viewer}'`);
+    // 목록이 읽는 덱 하나(가장 늦은 것)의 자리 — 덱이 두 벌이면 노출 기록은 두 덱 몫이라 이보다 많다
+    const slots = sql(`select count(*) from public.discovery_candidate_slot slot
+      where slot.snapshot_id = (select s.id from public.discovery_candidate s
+                                where s.user_id = '${viewer}' order by s.seq desc limit 1)`);
+    const shown = sql(`select count(*) from public.discovery_impression where viewer_user_id = '${viewer}'`);
+
+    check('첫 목록을 나란히 여는 두 세션이 끝까지 돈다', first.code === 0 && second.code === 0,
+      `${first.err}${second.err}`.trim());
+    check('앞 세션의 덱에 후보가 앉았다 — 경합할 덱이 있다', Number(marked(first, 'CARDS')) > 0,
+      `${marked(first, 'CARDS')}장`);
+    check('덱은 한 벌이다 — 덱이 없던 사람의 두 읽기가 두 벌을 세우지 않는다', decks === '1', `${decks}벌`);
+    check('노출 기록은 한 덱의 자리 수만큼이다', shown === slots, `노출 ${shown} · 자리 ${slots}`);
+    check('뒤 세션은 앞 세션의 커밋을 기다렸다 — 사람 단위 자물쇠가 하나다', second.ms >= 1000, `${second.ms}ms`);
+  } finally {
+    sql(`delete from auth.users where id in ('${viewer}', '${other}')`);
   }
 }
 

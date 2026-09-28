@@ -823,7 +823,22 @@ try {
     check('자기 풀이 시도가 열린다', !opened.error && opened.data?.[0]?.run_id,
       opened.error?.message ?? '');
 
-    await a.rpc('fail_reading_run', {
+    /**
+     * **사용자는 제 시도를 실패로 닫지 못한다**(ADR 0120). 실패한 시도는 풀이권을 안 쓰고 하루 상한에는 세므로,
+     * 열고 닫기를 되풀이하면 모두의 그날 풀이가 멈춘다. 브라우저와 같은 길로 두 문을 다 두드린다.
+     */
+    const userDoor = await a.rpc('fail_reading_run', {
+      p_run_id: opened.data[0].run_id, p_failure_code: 'model-call-failed',
+    });
+    check('사용자 권한으로 시도를 닫는 문이 없다 — PGRST202', userDoor.error?.code === 'PGRST202',
+      userDoor.error?.code ?? '닫혔다');
+    const keyDoor = await a.rpc('fail_reading_job', {
+      p_run_id: opened.data[0].run_id, p_failure_code: 'model-call-failed',
+    });
+    check('열쇠의 문은 로그인한 사람에게 닫혀 있다 — 42501', keyDoor.error?.code === '42501',
+      keyDoor.error?.code ?? '닫혔다');
+
+    await keyed().rpc('fail_reading_job', {
       p_run_id: opened.data[0].run_id,
       p_failure_code: 'model-call-failed',
       p_failure_detail: '모델이 안 왔다',
@@ -841,7 +856,7 @@ try {
       p_kind: 'private', p_idempotency_key: `check-fail-private-${stamp}`,
       p_person_a: account.self_person_id, p_person_b: momId,
     });
-    await a.rpc('fail_reading_run', {
+    await keyed().rpc('fail_reading_job', {
       p_run_id: pairRun.data[0].run_id,
       p_failure_code: 'model-no-output',
       p_failure_detail: '모양이 아니다',
