@@ -192,7 +192,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await a.page.goto(room);
     await openRoomMenu(a);
     await a.page.getByRole('button', { name: '차단', exact: true }).click();
-    await a.page.getByRole('button', { name: '차단합니다' }).click();
+    await a.page.getByRole('button', { name: '차단하기' }).click();
     // 누른 그 화면에서 입력 자리가 닫힌 까닭으로 바뀐다
     await expect(a.page.getByRole('status')).toHaveText(closedRoomText('block'));
 
@@ -290,7 +290,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await b.page.getByRole('button', { name: '신고', exact: true }).click();
     const chosen = talkOf(b).getByRole('listitem').filter({ hasText: `셋 ${tag}` });
     await chosen.getByRole('button', { name: '이 메시지 신고' }).click();
-    await b.page.getByRole('button', { name: '신고합니다' }).click();
+    await b.page.getByRole('button', { name: '신고하기' }).click();
     await expect(b.page.getByRole('status').filter({ hasText: '신고를 접수했습니다' })).toBeVisible();
 
     // 방은 그대로 열려 있다 — 신고는 방을 닫지 않는다
@@ -329,7 +329,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await b.page.getByRole('button', { name: '신고', exact: true }).click();
     const chosen = talkOf(b).getByRole('listitem').filter({ hasText: `셋 ${tag}` });
     await chosen.getByRole('button', { name: '이 메시지 신고' }).click();
-    await b.page.getByRole('button', { name: '신고합니다' }).click();
+    await b.page.getByRole('button', { name: '신고하기' }).click();
     await expect(b.page.getByRole('status').filter({ hasText: '신고를 접수했습니다' })).toBeVisible();
 
     const reportId = sql(`select s.report_id from public.chat_report_snapshot s

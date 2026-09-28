@@ -54,7 +54,14 @@ export function ReportPanel({
           <Icon name="flag" className="size-[18px] text-danger" />
           {messageId === null ? '신고할 메시지를 골라 주세요' : '메시지 신고'}
         </p>
-        <button type="button" aria-label="그만두기" onClick={onCancel} disabled={working} className={ICON_BUTTON}>
+        {/*
+          닫으면 이 판이 내려가며 적은 사유와 덧붙인 말이 사라진다 — 그래서 사유 칸이 선 뒤에는 「작성 그만두기」다.
+          메시지를 고르기 전에는 잃을 것이 없어 「취소」다(CONTEXT.md §8 버튼 규칙, 2026-09-28).
+        */}
+        <button
+          type="button"
+          aria-label={messageId === null ? '취소' : '작성 그만두기'}
+          onClick={onCancel} disabled={working} className={ICON_BUTTON}>
           <Icon name="close" className="size-[18px]" />
         </button>
       </div>
@@ -87,7 +94,7 @@ export function ReportPanel({
           </label>
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" onClick={send} disabled={working} className={BUTTON_PRIMARY_SMALL}>
-              {working ? '보내는 중…' : '신고합니다'}
+              {working ? '보내는 중…' : '신고하기'}
             </button>
             {failure !== null && <span className="text-[13px] text-danger">{failure}</span>}
           </div>

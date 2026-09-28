@@ -606,7 +606,7 @@ export function ReadingPanel({
             {reading === null ? `${noun} 받기` : `${noun} 다시 받기`}
           </button>
           <button type="button" onClick={() => confirming.current?.close()} className={BUTTON_SECONDARY}>
-            그만두기
+            취소
           </button>
         </div>
       </dialog>

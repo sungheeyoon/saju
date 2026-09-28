@@ -42,7 +42,7 @@ export function RequestDeletion() {
     return (
       /*
         **이 누름은 아무것도 안 지운다.** 자세한 내용을 펴는 것이고, 되돌릴 수 없는
-        누름은 그 안의 「탈퇴를 신청합니다」다. 카드의 둘째 줄이 그렇게 말한다.
+        누름은 그 안의 「탈퇴 신청하기」다. 카드의 둘째 줄이 그렇게 말한다.
         이름은 PRD 「계정이 멈추는 자리」 의 표(2026-09-23) — 계정 상태에 「삭제」를 안 쓴다.
       */
       <SettingsRow
@@ -73,7 +73,7 @@ export function RequestDeletion() {
       */}
       {/*
         되돌릴 수 없는 마지막 누름만 **채운 위험 색**이다(`BUTTON_DANGER`). 여는 단추는 흰 알약에
-        붉은 글자였으니, 한 번 더 물은 뒤에야 무게가 오른다. 폰에서는 그만두기가 아래로 내려가
+        붉은 글자였으니, 한 번 더 물은 뒤에야 무게가 오른다. 폰에서는 취소가 아래로 내려가
         엄지가 먼저 닿는 자리를 위험한 누름에 내주지 않는다 — 두 단추가 같은 폭으로 쌓인다.
       */}
       <div className="flex w-full flex-col-reverse gap-2 sm:w-auto sm:flex-row sm:items-center">
@@ -83,10 +83,10 @@ export function RequestDeletion() {
           disabled={working}
           className={SETTINGS_QUIET}
         >
-          그만두기
+          취소
         </button>
         <button type="button" onClick={leave} disabled={working} className={BUTTON_DANGER}>
-          {working ? '보내는 중…' : '탈퇴를 신청합니다'}
+          {working ? '보내는 중…' : '탈퇴 신청하기'}
         </button>
       </div>
       {failure !== null && (

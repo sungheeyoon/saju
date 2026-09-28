@@ -54,7 +54,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   const remaining = slots?.remaining ?? null;
   const router = useRouter();
   const [opened, setOpened] = useState(false);
-  /** 주소가 펼치라고 했어도 사용자가 한 번 닫았으면(그만두기 · 등록) 다시 안 편다 */
+  /** 주소가 펼치라고 했어도 사용자가 한 번 닫았으면(취소 · 등록) 다시 안 편다 */
   const [dismissed, setDismissed] = useState(false);
   const asked = useHashParams().has(ADD_PERSON_KEY);
   const open = opened || (asked && !dismissed);
@@ -183,7 +183,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
               {saving ? '저장하는 중…' : '등록'}
             </button>
             <button type="button" onClick={() => setOpen(false)} disabled={saving} className={BUTTON_TERTIARY}>
-              그만두기
+              취소
             </button>
           </div>
           {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
@@ -284,7 +284,7 @@ export function NoteEditor({
           {saving ? '저장하는 중…' : '메모 저장'}
         </button>
         <button type="button" onClick={onCancel} disabled={saving} className={BUTTON_TERTIARY}>
-          닫기
+          작성 그만두기
         </button>
         {failure !== null && (
           <span role="alert" className="text-[13px] text-danger">

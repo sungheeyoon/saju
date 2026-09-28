@@ -334,7 +334,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(asking).toBeVisible();
     await expect(asking.getByText('풀이권 1회가 사용됩니다', { exact: false })).toBeVisible();
     await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toHaveCount(0);
-    await asking.getByRole('button', { name: '그만두기' }).click();
+    await asking.getByRole('button', { name: '취소' }).click();
     await expect(asking).toBeHidden();
     await expect(page.getByText('풀이 만드는 중…')).toHaveCount(0);
     await expectReadingCredits(page, '풀이권 5번 중 5번 남음');
@@ -760,10 +760,10 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * 사람은 그것을 배경으로 읽고 지나간다. 이제 누른 그때 창이 뜬다.
    *
    * 흐름 검사는 그 창이 화면에 실려 왔는지까지만 잰다(JS 를 안 돌린다). **열리는가,
-   * 그만두면 닫히는가, 그리고 그만둔 뒤에 아무것도 안 만들어졌는가**는 여기서만 잰다 —
+   * 취소하면 닫히는가, 그리고 취소한 뒤에 아무것도 안 만들어졌는가**는 여기서만 잰다 —
    * 마지막이 이 시험의 요점이다. 확인 창이 취소를 안 지키면 걸음만 하나 는 것이 된다.
    */
-  test('사주풀이 다시 받기는 확인 창을 먼저 띄우고, 그만두면 아무것도 만들지 않는다', async ({
+  test('사주풀이 다시 받기는 확인 창을 먼저 띄우고, 취소하면 아무것도 만들지 않는다', async ({
     page,
     reader,
   }) => {
@@ -784,11 +784,11 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(asking.getByText('풀이권 1회가 사용됩니다', { exact: false })).toBeVisible();
     await expect(asking.getByText('이전 것은 남기지 않습니다', { exact: false })).toBeVisible();
 
-    await asking.getByRole('button', { name: '그만두기' }).click();
+    await asking.getByRole('button', { name: '취소' }).click();
     await expect(asking).toBeHidden();
 
     /*
-      **그만두면 정말 아무 일도 없다.** 만들기가 시작됐으면 기다리는 화면으로 바뀌고
+      **취소하면 정말 아무 일도 없다.** 만들기가 시작됐으면 기다리는 화면으로 바뀌고
       풀이권이 하나 더 잡힌다 — 둘 다 그대로인 것으로 잰다(하나는 이미 이 글을 만들 때 썼다).
     */
     await expect(page.getByText('풀이 만드는 중…')).toHaveCount(0);
