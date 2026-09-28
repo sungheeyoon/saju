@@ -9,7 +9,7 @@
 -- 3. **거절해도 서비스는 그대로다.** 닫히는 것은 설문 하나뿐이다.
 -- 4. **철회가 곧 지움이다.** 안내 화면에서 거절한 경우에도 같다.
 begin;
-select plan(33);
+select plan(40);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void language plpgsql as $$
@@ -42,8 +42,7 @@ select throws_like(
   '일정이 없으면 확인이 남지 않는다');
 
 reset role;
-insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
-values ('2026-10-31', '시험', '운영자', '담당', 'ops@example.com');
+select tests.schedule_beta();
 insert into public.signup_code (code, note, valid_on, max_uses)
 values ('NOTICE1', '시험', public.signup_today(), 5);
 set local role authenticated;
@@ -187,6 +186,55 @@ select is(
   array['notice-v3', 'false'],
   '남이 확인해도 내 답은 그대로다');
 
+-- ── 연락 동의는 설정에서 따로 켜고 끈다 ────────────────────────────────────
+
+/**
+ * **철회는 들어올 때만큼 쉬워야 한다.** 안내에서 고른 연락 동의는 설정 화면에서 따로
+ * 켜고 끈다(`set_contact_consent`, 화면은 `app/me/actions.ts` 의 `setOptionalConsent`).
+ * 여기서 재는 것은 셋 — 켜고 끄는 대로 남는가, 개선 동의는 안 건드리는가, 남의 값은
+ * 못 건드리는가. uuid 를 안 받으므로 「남의 것」은 **부른 사람의 값만 바뀌는가**로 잰다.
+ */
+set local role authenticated;
+select pg_temp.acting((select kim from fresh));
+
+select lives_ok($$select public.set_contact_consent(true)$$, '연락 동의를 켠다');
+
+reset role;
+select is(
+  (select contact_consent from public.app_user where id = (select kim from fresh)),
+  true,
+  '켜면 연락 동의가 남는다');
+set local role authenticated;
+select pg_temp.acting((select kim from fresh));
+
+select lives_ok($$select public.set_contact_consent(false)$$, '연락 동의를 끈다');
+
+reset role;
+select is(
+  (select array[contact_consent, improvement_consent] from public.app_user
+   where id = (select kim from fresh)),
+  array[false, false],
+  '끄면 연락 동의가 풀리고 개선 동의는 그대로다');
+
+/** 남은 안내에서 연락을 받겠다고 했다 — 내가 끈 것이 거기까지 번지면 안 된다 */
+select is(
+  (select a.contact_consent from public.app_user a
+   join auth.users u on u.id = a.id where u.email = 'lee-notice@example.com'),
+  true,
+  '내가 꺼도 남의 연락 동의는 그대로다');
+set local role authenticated;
+select pg_temp.acting((select kim from fresh));
+
+select throws_ok(
+  $$select public.set_contact_consent(null)$$,
+  '23514', null, '연락 동의를 비워 둔 채 정할 수는 없다');
+
+set local role anon;
+select throws_ok(
+  $$select public.set_contact_consent(false)$$,
+  '42501', null, '로그인하지 않았으면 부를 수 없다');
+reset role;
+
 -- ── 일정을 옮기면 ─────────────────────────────────────────────────────────
 
 /**
@@ -197,7 +245,7 @@ select is(
  */
 reset role;
 insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
-values ('2026-12-31', '연장', '운영자', '담당', 'ops@example.com');
+values (tests.beta_ends_on(3), '연장', '운영자', '담당', 'ops@example.com');
 set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 
@@ -213,13 +261,13 @@ select lives_ok(
 
 select is(
   (select a.notice_ends_on from public.app_user a where a.id = (select kim from fresh)),
-  '2026-12-31'::date,
+  tests.beta_ends_on(3),
   '본 날짜가 확인 기록에 남는다');
 
 /** 파기 기한은 **DB 가 짓는다** — 화면마다 더하면 그중 하나가 다른 수를 더한다 */
 select is(
   (select array[ends_on::text, purge_by::text] from public.current_beta_schedule()),
-  array['2026-12-31', '2027-01-30'],
+  array[tests.beta_ends_on(3)::text, (tests.beta_ends_on(3) + 30)::text],
   '파기 기한이 종료일에서 난다');
 
 /** 덮어쓰지 않고 쌓는다 — 무엇을 언제 약속했는지 답할 수 있어야 한다 */
@@ -239,13 +287,20 @@ set local role authenticated;
  * 있어서 다음 날에도 그대로 돌았다 — 「10월 31일에 끝납니다」라고 적어 두고 안 끝나면
  * 그 문장은 지키는 것이 없다.
  */
-reset role;  -- 밖의 역할에는 닫힌 함수다(G-23 ⑪) — 판정만 잰다
-select is(public.beta_is_over(), false, '종료일 전에는 안 끝났다');
+/*
+  **경계는 오늘에서 센다 — 이틀씩 비킨다.** 날짜를 적어 두면 그날이 지나는 순간 「전에는
+  안 끝났다」가 거짓이 된다. 판정이 UTC 날짜로 세든 서울 날짜로 세든 둘은 하루까지만
+  어긋나므로, 모레와 그저께는 어느 쪽으로 재도 같은 답을 낸다.
+*/
+reset role;
+insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
+values (current_date + 2, '모레 끝난다', '운영자', '담당', 'ops@example.com');
+select is(public.beta_is_over(), false, '종료일 전에는 안 끝났다');  -- 밖의 역할에는 닫힌 함수다(G-23 ⑪) — 판정만 잰다
 set local role authenticated;
 
 reset role;
 insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
-values ('2020-01-01', '지난 날', '운영자', '담당', 'ops@example.com');
+values (current_date - 2, '그저께 끝났다', '운영자', '담당', 'ops@example.com');
 set local role authenticated;
 select pg_temp.acting((select kim from fresh));
 

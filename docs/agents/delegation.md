@@ -117,7 +117,8 @@ git 이 줄 단위로 합친다 — 부딪히는 것은 끝에 덧붙이는 chan
 | **0 읽는다** | 저장소·로컬 스택·CI 로그·이슈를 읽는다 | `git log` · `npm test` · `gh run view` · 로컬 DB 질의 | 없음 |
 | **1 로컬에서 고친다** | 작업 가지에서 파일을 고치고 시험을 돌린다. 로컬 스택은 마음껏 되돌린다 | `npm run db:reset` · `npm run test:e2e:authed` | 없음 |
 | **2 밖으로 낸다 — 되돌릴 수 있게** | 가지를 밀고 PR 을 열고 이슈에 적는다. 리뷰 뒤 `--auto` 머지를 건다(gate 가 초록이 될 때까지 기다린다, ADR 0082) | `git push -u origin <가지>` · `gh pr create` · `gh pr merge --auto --squash` | 없음 — 단 아래 등급 3 의 예외 |
-| **3 사람이 답한 뒤에** | **프로덕션 배포**(`vercel deploy --prod` · 대시보드의 Create Deployment — 머지는 배포가 아니다, ADR 0110). 운영 DB 에 마이그레이션을 올리거나 임의 SQL 을 보내는 것, 토큰이 나가는 실호출, Vercel 변수, 원격 가지 삭제, 프로덕션 확인이 든 걸음 — **공식 운영에 들어간 뒤에 켠다(ADR 0093).** 운영 베타에서는 등급 2 처럼 밟고 값을 적는다 | `db push` · `db query --linked` · `READING_LIVE=1` · `vercel env` · `gh pr merge`(auto 아닌 즉시 머지) | 없음 — 공식 운영 전. 켤 목록은 아래 절 |
+| **3 사람이 답한 뒤에 — 운영 배포** | **프로덕션 배포**(`vercel deploy --prod` · 대시보드의 Create Deployment — 머지는 배포가 아니다, ADR 0110). **운영 베타에서도 사람이 답한 뒤다** — 라운드 끝의 묶음 배포 한 번을 조율자가 밟는다(위 「머지는 배포가 아니다」, runbook 「묶음 배포」) | `vercel deploy --prod` · Create Deployment | 사람 — 도구 잠금은 공식 운영 전이라 없다. 켤 목록은 아래 절 |
+| **3 사람이 답한 뒤에** | 운영 DB 에 마이그레이션을 올리거나 임의 SQL 을 보내는 것, 토큰이 나가는 실호출, Vercel 변수, 원격 가지 삭제, 프로덕션 확인이 든 걸음 — **공식 운영에 들어간 뒤에 켠다(ADR 0093).** 운영 베타에서는 등급 2 처럼 밟고 값을 적는다 | `db push` · `db query --linked` · `READING_LIVE=1` · `vercel env` · `gh pr merge`(auto 아닌 즉시 머지) | 없음 — 공식 운영 전. 켤 목록은 아래 절 |
 | **3 사람이 답한 뒤에 — 도구 밖** | 새 한글 문구는 표로 보이고 답을 기다린다(`docs/agents/code-rules.md`). 남이 띄운 dev 서버는 죽이기 전에 묻는다. 운영 SQL Editor 의 문장을 건네기만 하는 것은 공식 운영 뒤의 일이다(ADR 0093) — 지금은 `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 직접 돌리고 값을 적는다. **단 운영 개인정보는 예외 없이 직접 조회하지 않는다**(아래, ADR 0105) — 질의를 써서 건네고 사람이 검토해 돈다 | 버튼 문구 · dev 서버 · 운영 개인정보 조회 | 사람 |
 | **4 안 한다** | 되돌릴 수 없는 것. main 에 force push, `supabase config push`(원격의 구글 설정을 지운다), main 가지 삭제, Vercel 변수 삭제, 비밀 값을 커밋 | | `Bash(git push --force:*)` · `Bash(git push -f:*)` · `Bash(git push --force-with-lease:*)` · `Bash(npx supabase config push:*)` · `Bash(supabase config push:*)` · `Bash(./node_modules/.bin/supabase config push:*)` · `Bash(git push origin :main)` · `Bash(git push origin --delete main)` · `Bash(vercel env rm:*)` · `Bash(npx vercel env rm:*)` |
 
@@ -265,7 +266,9 @@ squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 �
 - **다른 에이전트나 사용자가 같은 폴더에 있을 수 있다 — 작업 가지는 worktree 로 연다.** 2026-09-22
   에 HEAD 가 남의 가지 위에 있어 PR 에 남의 커밋이 섞였다.
 - **워크트리는 소스만 가른다 — 스택 자리를 따로 받는다(ADR 0096).** 이름과 포트가 같으면 한 워크트리의
-  `db:reset` 이 다른 워크트리의 데이터를 지우고 e2e 는 남의 dev 서버를 잰다. 여는 순서는 넷이다:
+  `db:reset` 이 다른 워크트리의 데이터를 지우고 e2e 는 남의 dev 서버를 잰다. **자리는 둘이다** — `Agent` 도구
+  (`isolation: "worktree"`)가 세우는 에이전트 워크트리는 메인 폴더 안의 `.claude/worktrees/agent-…` 에 서고(아래 「로컬
+  환경의 함정」의 느린 dev 서버), 손으로 여는 워크트리는 아래처럼 메인 밖(`../saju-<일>`)에 둔다. 여는 순서는 넷이다:
 
   ```bash
   git worktree add ../saju-<일> -b <가지> origin/main

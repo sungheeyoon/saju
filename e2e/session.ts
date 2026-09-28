@@ -14,6 +14,8 @@ import { chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY, type Query } from '@/src/lib/input/query';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 
+import { checkEndsOn } from '../scripts/beta-dates.mjs';
+
 /**
  * 로그인한 사람의 화면을 **진짜 브라우저로** 재는 자리.
  *
@@ -89,8 +91,16 @@ export function scheduleBeta(endsOn: string | null): void {
           or (select s.operator_contact from public.current_beta_schedule() s) is null`);
 }
 
-/** 검사가 쓰는 종료일 — 하나뿐이라 손잡이와 시험이 같은 값을 본다 */
-export const scheduledEndsOn = (): string => '2026-10-31';
+/**
+ * 검사가 쓰는 종료일 — 하나뿐이라 손잡이와 시험이 같은 값을 본다.
+ *
+ * **오늘에서 센다**(다다음 달 1일, 서울). 날짜를 적어 두면 그날이 지나는 순간 로그인
+ * e2e 가 거의 전부 「끝났습니다」 화면을 받는다. 규칙은 흐름 검사와 한 자리다(`checkEndsOn`).
+ */
+export const scheduledEndsOn = (): string => checkEndsOn();
+
+/** 운영자가 **미룬** 날 — 검사의 종료일보다 늦어야 「옮겼다」가 된다 */
+export const postponedEndsOn = (): string => checkEndsOn(new Date(), 3);
 
 /** e2e 가 쓰는 테스트 코드 — 한 자리에 두어 손잡이와 시험이 같은 값을 본다 */
 export const E2E_CODE = 'E2ECODE';
@@ -375,13 +385,17 @@ async function seed(
 
     선택 동의는 **꺼 둔다.** 켜 두면 「동의한 사람에게만」을 재는 시험이 우연히 통과한다.
   */
+  /*
+    **일정이 있어야 확인이 남는다.** 안내 관문 시험이 이 표를 비웠다 채웠다 하므로,
+    계정마다 자기 몫을 스스로 세운다 — 앞의 시험이 무엇을 남겼는지 기대하지 않는다.
+
+    **가입을 건너뛰는 계정도 세운다.** 그 계정은 관문을 재는데, 운영의 종료일(마이그레이션이
+    넣은 줄)에 기대면 그날이 지난 뒤로는 관문 대신 「끝났습니다」를 받는다. 일정 자체를 재는
+    시험은 받은 뒤에 비우거나 옮긴다.
+  */
+  scheduleBeta(scheduledEndsOn());
+
   if (wanted.skipSignup !== true) {
-    /*
-      **일정이 있어야 확인이 남는다.** 안내 관문 시험이 이 표를 비웠다 채웠다 하므로,
-      가입을 지나야 하는 계정은 자기 몫을 스스로 세운다 — 앞의 시험이 무엇을 남겼는지
-      기대하지 않는다.
-    */
-    scheduleBeta(scheduledEndsOn());
     seedSignupCode();
 
     const current = await client.rpc('current_beta_schedule');

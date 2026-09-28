@@ -12,6 +12,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { worktreeStack } from '../src/lib/local-env.ts';
+import { checkEndsOn } from './beta-dates.mjs';
 
 const source = readFileSync(new URL('../src/lib/consent/notice.ts', import.meta.url), 'utf8');
 
@@ -27,9 +28,6 @@ if (found === null) {
 }
 
 export const NOTICE_VERSION = found[1];
-
-/** 검사가 쓰는 종료일 — 한 자리에 두어 손잡이와 검사가 같은 값을 본다 */
-const CHECK_ENDS_ON = '2026-10-31';
 
 /**
  * 입력을 쓰는 문에 함께 가는 **여덟 글자** (ADR 0071).
@@ -152,7 +150,7 @@ export function clearMachineRunsFromToday() {
  * 일정은 표에 있고 언제든 옮길 수 있다. 그래서 검사도 자기 몫을 스스로 세운다 —
  * 앞선 검사가 무엇을 남겼는지 기대하지 않는다.
  */
-export function scheduleBeta(endsOn = CHECK_ENDS_ON) {
+export function scheduleBeta(endsOn = checkEndsOn()) {
   // **지우고 넣지 않는다** — 이미 그 값이면 아무것도 안 한다(`e2e/session.ts` 와 같은 까닭).
   psql(`insert into public.beta_schedule
              (ends_on, note, operator_name, operator_officer, operator_contact)
