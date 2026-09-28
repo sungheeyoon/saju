@@ -50,6 +50,23 @@ const unfoldAll = (page: Page) =>
     for (const fold of folds) (fold as HTMLDetailsElement).open = true;
   });
 
+/**
+ * **이 파일은 만세력 자체를 잰다** — 로그인 전에는 만세력이 「사주 자세히 보기」에 접혀 선다(흐름 시안 g, ADR 0129).
+ * 접힘과 그 앞의 맛보기는 `taste.spec.ts` 가 잰다. 여기서는 사람이 그 칸을 편 뒤를 재므로, 칸이 서는 순간 편다 —
+ * 시험마다 누름을 끼우면 스무 곳에 같은 줄이 서고, 한 곳을 빠뜨리면 그 시험은 접힌 칸을 재다 붉어진다.
+ */
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    new MutationObserver(() => {
+      const detail = document.getElementById('saju-detail');
+      if (detail instanceof HTMLDetailsElement && detail.dataset.unfolded === undefined) {
+        detail.dataset.unfolded = '';
+        detail.open = true;
+      }
+    }).observe(document, { childList: true, subtree: true });
+  });
+});
+
 const enterKnownBirth = async (page: Page, name = '민수') => {
   await page.getByLabel('이름', { exact: true }).fill(name);
   await fillBirthDate(page, '1990-05-15');
@@ -732,12 +749,13 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
     page.getByLabel('출생 시', { exact: true }),
     page.getByRole('button', { name: '사주 보기' }),
     /*
-      **히어로의 두 갈래도 과녁이다.** 좁은 화면에서 둘을 한 줄에 세우려고 글자와
-      여백을 줄였고, 그때 높이가 42px 로 내려갔다 — 이 검사가 이 둘을 안 재고 있어서
+      **현관의 두 입구도 과녁이다.** 옛 히어로의 두 갈래는 좁은 화면에서 한 줄에 세우려고 글자와
+      여백을 줄였다가 높이가 42px 로 내려갔다 — 이 검사가 그 둘을 안 재고 있어서
       규칙이 깨진 것을 아무도 못 봤다. 화면에서 제일 먼저 누르는 것이 여기 없었다.
+      2026-09-29 부터 그 자리는 입력 칸을 고르는 두 입구다(ADR 0129).
     */
-    page.getByRole('link', { name: '출생 정보 입력하기' }),
-    page.getByRole('link', { name: '궁합 보러 가기', exact: false }),
+    page.getByRole('tab', { name: /내 사주 보기/ }),
+    page.getByRole('tab', { name: /궁합 보기/ }),
   ]) {
     /*
       **재기 전에 서 있는지부터 본다.**
@@ -845,11 +863,11 @@ test('입력 폼과 결과의 누르는 자리가 44px 이상이고, 초점은 �
 test('로그인하지 않은 사주 결과에는 저장 버튼 대신 로그인 길이 선다', async ({ page }) => {
   await page.goto('/#date=1990-05-15&hour=14:30');
 
-  await expect(page.getByRole('heading', { name: '이 사주가 내 삶에서는 어떤 뜻일까요?' })).toBeVisible();
+  await expect(page.getByRole('region', { name: '전체 사주풀이 목차' })).toBeVisible();
   await expect(
     page.getByRole('button', { name: '저장하고 계속하기' }),
   ).toHaveCount(0);
-  await expect(page.getByRole('link', { name: '로그인하고 계속하기' })).toBeVisible();
+  await expect(page.getByRole('link', { name: '로그인하고 전체 풀이 받기' })).toBeVisible();
 });
 
 

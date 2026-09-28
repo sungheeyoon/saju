@@ -2780,6 +2780,31 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     expect(self).toBe('1988-11-07');
   });
 
+  /**
+   * **첫 화면의 궁합 맛보기에서 넣은 두 사람이 궁합 화면의 두 칸이 된다**(ADR 0129). 관문은 `#` 뒤를 못 보므로 가입
+   * 화면을 거칠 때 낱말을 잃지 않게 로그인이 낱말째 싣는다(`afterSignIn`).
+   */
+  test('궁합 맛보기의 두 사람은 가입을 거쳐 궁합 화면의 두 칸으로 돌아온다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipSignup: true });
+    const { page } = newcomer;
+
+    /* 「로그인하고 궁합풀이 받기」가 탭에 적어 두는 두 사람 — 로그인한 창에는 그 단추가 안 서므로 같은 자리에 손으로 적는다 */
+    await page.goto('/');
+    await page.evaluate(() =>
+      sessionStorage.setItem('saju:pair-draft', 'a.name=민수&a.date=1990-05-15&a.hour=14:30&b.name=지영&b.date=1992-08-20&b.hour=09:00'),
+    );
+
+    await page.goto('/auth?next=%2Fcompat%23resume-pair');
+    await expect(page).toHaveURL(/\/signup\?next=%2Fcompat%23resume-pair$/);
+    await signUp(page);
+
+    await expect(page).toHaveURL(/\/compat#.*a\.date=1990-05-15/);
+    const names = page.getByLabel('이름', { exact: true });
+    await expect(names.first()).toHaveValue('민수');
+    await expect(names.last()).toHaveValue('지영');
+    expect(await page.evaluate(() => sessionStorage.getItem('saju:pair-draft'))).toBeNull();
+  });
+
   test('「다른 사람의 사주예요」면 저장한 사람으로 저장하는 지금 길이 선다', async ({ page, newcomer }) => {
     expect(newcomer.email).not.toBe('');
     await page.goto('/');

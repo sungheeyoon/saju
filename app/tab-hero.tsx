@@ -18,12 +18,12 @@ import { TYPE_TITLE } from './ui/surfaces';
  * 테두리 버튼은 궁합을 적으러 온 사람을 사주로 내보냈다.
  *
  * 그래서 규칙을 바꿨다. **입력칸이 같은 화면에 있으면 머리에는 버튼을 안 세운다** —
- * 시작하는 누름은 그 칸 안에 하나뿐이다(`/compat` 의 「궁합 보기」). 지금 버튼 줄을
- * 드는 것은 `/` 하나다(출생 정보 입력하기 · 궁합 보러 가기).
+ * 시작하는 누름은 그 칸 안에 하나뿐이다(`/compat` 의 「궁합 보기」). `/` 의 현관도 2026-09-29 부터 버튼 줄 대신
+ * 바로 아래 입력 칸을 고르는 두 입구(내 사주 보기 · 궁합 보기)를 든다(ADR 0129) — 버튼 줄을 드는 화면은 이제 없다.
  *
  * 궁합 쪽은 2026-09-24 부터 이 껍데기를 빌리지 않고 제 머리를 쓴다(`compat-hero.tsx` — 앱 안의 한 화면이라
  * 현관의 큰 머리가 아니다). 그래서 껍데기와 속을 한 번에 세우던 `TabHero` 는 걷었고, 지금 이 파일을 쓰는 것은
- * `/` 의 머리(`home-hero.tsx`)와 그 버튼 줄의 둘째 갈래(`compat-entry.tsx`)다.
+ * `/` 의 머리(`home-hero.tsx`) 하나다.
  */
 export const TAB_HERO_CARD = 'relative overflow-hidden rounded-[2rem] bg-cream';
 
@@ -80,30 +80,3 @@ export function TabHeroBody({
     </div>
   );
 }
-
-/**
- * 버튼 줄 — **좁은 화면에서 둘이 한 줄을 나눠 쓰고 높이가 같다.**
- *
- * `flex-1` 이라 하나만 설 때도 자리가 비지 않는다. 칸을 `grid-cols-2` 로 고정하면
- * 버튼 하나짜리 화면에서 반쪽이 빈 채로 선다.
- */
-export function TabActions({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-stretch gap-2 sm:shrink-0 sm:gap-3">{children}</div>
-  );
-}
-
-/**
- * 두 갈래는 공용 단추 두 층(`app/ui/buttons.ts`)의 모양을 입는다 — 먹색 채움이 「여기서 시작」, 흰 알약이
- * 「나머지 반쪽」. 공용 문자열을 이어 붙이지 않고 여기 다시 적는 것은 **여백이 갈리기 때문**이다: 폰 360px 에서
- * 두 알약이 한 줄을 나눠 쓰려면 좌우 여백이 `px-3` 이어야 하는데, 공용 `px-5` 뒤에 붙이면 둘 중 무엇이 이기는지를
- * 클래스 순서가 아니라 CSS 가 정한다.
- */
-const ACTION =
-  'inline-flex min-h-12 flex-1 items-center justify-center rounded-full px-3 text-center text-[15px] font-semibold leading-5 active:scale-[0.97] sm:flex-none sm:px-5';
-
-/** 이 화면에서 시작하는 길 */
-export const TAB_ACTION_PRIMARY = `${ACTION} gap-2 bg-accent text-on-accent shadow-lift hover:bg-accent-strong`;
-
-/** 이 탭의 나머지 반쪽으로 가는 길 — 「로그인 필요」가 붙을 수 있어 세로로 쌓는다 */
-export const TAB_ACTION_SECONDARY = `${ACTION} flex-col border border-border bg-surface py-1.5 text-foreground hover:border-border-strong`;

@@ -9,7 +9,8 @@ import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
 import { useSignedIn } from './signed-in';
 import { BUTTON_PRIMARY } from './ui/buttons';
-import { SajuView, sajuViewModelOf } from './saju/view';
+import { SajuView, sajuViewModelOf, type SajuViewModel } from './saju/view';
+import { Taste } from './taste';
 import {
   DEFAULT_QUERY,
   missingAnswer,
@@ -50,7 +51,7 @@ import { CARD } from './ui/surfaces';
  * 「명식」이 아니라 **「사주」**다. 두 사람 쪽도 같은 규칙을 쓴다(`compat-picker.tsx`
  * 의 「궁합 보기」).
  */
-export function SajuCalculator() {
+export function SajuCalculator({ outline }: { outline: readonly string[] }) {
   const signedIn = useSignedIn();
   const searchParams = useHashParams();
   const query = useMemo(() => queryFromSearchParams(searchParams), [searchParams]);
@@ -151,7 +152,11 @@ export function SajuCalculator() {
             aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
             className={`${BUTTON_PRIMARY} w-full sm:w-auto`}
           >
-            {query !== null ? '수정하고 다시 보기' : '사주 보기'}
+            {/*
+              **로그인 전에는 무엇이 무료인지 버튼이 말한다**(흐름 시안 g, ADR 0129) — 사주 · 오행 · 맛보기는 로그인 없이
+              바로 선다. 회원이 여기 넣는 것은 대개 남의 사주라 「내」를 안 붙인다(위 머리말).
+            */}
+            {query !== null ? '수정하고 다시 보기' : signedIn ? '사주 보기' : '무료로 내 사주 보기'}
           </button>
 
           {/*
@@ -176,25 +181,10 @@ export function SajuCalculator() {
         </div>
 
         {/*
-          **버튼이 아니라 이 줄이 사주와 사주풀이를 가른다.**
-
-          한동안 버튼 글자가 그 일을 했다 — 로그인 안 한 사람에게는 「내 사주 먼저
-          살펴보기」, 회원에게는 「사주 보기」. 그런데 이 누름이 하는 일은 양쪽 다
-          **적은 것을 제출하고 결과를 보는 것** 하나이고, 「먼저」와 「내」는 그 일에
-          대한 말이 아니었다. 게다가 회원이 여기 넣는 것은 대개 남의 생년월일시라
-          「내 사주」는 적은 사람과 다른 사람을 가리켰다.
-
-          그래서 버튼은 한 가지만 말하고(「사주 보기」), **다음에 무엇이 있는지는 이
-          줄이 든다.** 회원에게는 안 세운다 — 로그인 이야기가 그 사람에게는 참이 아니고,
-          저장하면 무슨 일이 일어나는지는 결과 아래 입구가 이미 말한다
-          (`save-for-reading.tsx`).
+          **사주와 사주풀이를 가르던 한 줄은 걷었다.** 「로그인 없이 사주와 오행을 확인할 수 있어요. 자세한 사주풀이는
+          로그인 후 받을 수 있어요.」가 폼 아래 서 있었다. 이제 로그인하지 않은 사람에게는 결과의 첫머리(맛보기)가 잠긴
+          목차와 로그인 단추로 그 일을 한다(`taste.tsx`) — 입력 전에 같은 말을 한 번 더 할 까닭이 없다.
         */}
-        {!signedIn && (
-          <p className="text-[13px] leading-5 text-secondary">
-            로그인 없이 사주와 오행을 확인할 수 있어요. 자세한 사주풀이는 로그인 후 받을 수 있어요.
-          </p>
-        )}
-
         {dirty && (
           <p className="text-sm text-secondary">
             입력이 바뀌었습니다. &lsquo;수정하고 다시 보기&rsquo;를 누르면 반영됩니다.
@@ -226,10 +216,7 @@ export function SajuCalculator() {
             `query` 를 넘긴다. 폼(`form`)은 사용자가 지금 고치고 있는 값이라, 그것을
             저장하면 화면에 서 있는 사주와 다른 사람이 목록에 남는다.
           */}
-          <SajuView
-            {...model!}
-            afterChart={query !== null ? <SavePersonForReading query={query} /> : null}
-          />
+          <CalculatorResult model={model!} query={query} signedIn={signedIn} outline={outline} />
         </>
       ) : (
         <p role="alert" className={`${CARD} text-sm`}>
@@ -237,5 +224,36 @@ export function SajuCalculator() {
         </p>
       )}
     </div>
+  );
+}
+
+/**
+ * 계산이 선 뒤의 결과 — **로그인하지 않은 사람에게는 맛보기가 먼저 선다**(흐름 시안 g, ADR 0129).
+ *
+ * 내 사주 카드 · 짧은 맛보기 · 잠긴 목차가 서고, 만세력은 지우지 않고 「사주 자세히 보기」에 접힌다. 회원은 전과 같다:
+ * 표가 펴져 서고 사주 아래에 저장 입구가 선다(돌아온 사람의 「이 사주가 내 사주 맞나요?」도 그 자리다).
+ */
+function CalculatorResult({
+  model,
+  query,
+  signedIn,
+  outline,
+}: {
+  model: SajuViewModel;
+  query: Query | null;
+  signedIn: boolean;
+  outline: readonly string[];
+}) {
+  if (signedIn || query === null) {
+    return <SajuView {...model} afterChart={query !== null ? <SavePersonForReading query={query} /> : null} />;
+  }
+  return (
+    <Taste
+      query={query}
+      saju={model.saju}
+      utterances={model.utterances}
+      outline={outline}
+      detail={<SajuView {...model} />}
+    />
   );
 }

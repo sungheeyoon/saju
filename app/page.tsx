@@ -1,7 +1,18 @@
 import { Suspense } from 'react';
 
+import { CONTROL, selfSectionTexts } from '@/src/lib/reading';
+
 import { HomeHero } from './home-hero';
 import { SajuCalculator } from './saju-calculator';
+
+/**
+ * 맛보기의 잠긴 목차 — **본 풀이가 실제로 세우는 절 이름**(ADR 0129).
+ *
+ * 화면이 이름을 따로 적으면 절을 고친 날 목차만 옛 이름으로 남는다. 그래서 프롬프트가 시키는 절에서 이름만 떼어
+ * 넘긴다 — 이 화면은 빌드 때 서버에서 그려지므로 여기서 한 번 짓고, 브라우저로는 이름 아홉만 간다. 프롬프트 원문은
+ * 안 간다(`scripts/layers.test.ts` 가 `'use client'` 에서 `reading/index` · `prompt` 로 가는 길을 막는다).
+ */
+const READING_OUTLINE: readonly string[] = selfSectionTexts(CONTROL).map((text) => text.split('\n', 1)[0]);
 
 /**
  * `/` — **한 주소가 두 사람을 받는다.**
@@ -21,7 +32,7 @@ export default function Home() {
       <HomeHero
         calculator={
           <Suspense fallback={<div className="h-56 rounded-[1.75rem] border border-border bg-surface shadow-card" />}>
-            <SajuCalculator />
+            <SajuCalculator outline={READING_OUTLINE} />
           </Suspense>
         }
       />

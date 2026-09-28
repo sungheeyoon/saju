@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
-import { READING_DRAFT_KEY } from './reading-draft';
+import { RESUME_DRAFTS } from './reading-draft';
 import { queryFromSearchParams } from '@/src/lib/input/query';
 
 /**
@@ -67,13 +67,19 @@ export function useHashParams(): URLSearchParams {
   const raw = useSyncExternalStore(subscribe, readParams, readNothing);
 
   useEffect(() => {
-    if (raw !== 'resume-reading') return;
+    /*
+      **돌아온 주소의 낱말이 입력을 든 자리를 가리킨다** — 사주 이어 보기(`resume-reading`)와 첫 화면의 궁합
+      맛보기(`resume-pair`, ADR 0129). 궁합은 두 칸이 `a.` · `b.` 접두사로 실려 있어 첫 칸으로 모양을 잰다.
+    */
+    const key = Object.hasOwn(RESUME_DRAFTS, raw) ? RESUME_DRAFTS[raw] : undefined;
+    if (key === undefined) return;
     try {
-      const draft = sessionStorage.getItem(READING_DRAFT_KEY);
-      if (draft && queryFromSearchParams(new URLSearchParams(draft)) !== null) {
+      const draft = sessionStorage.getItem(key);
+      const params = new URLSearchParams(draft ?? '');
+      if (draft && (queryFromSearchParams(params) !== null || queryFromSearchParams(params, 'a.') !== null)) {
         writeParams(draft, 'replace');
       }
-      sessionStorage.removeItem(READING_DRAFT_KEY);
+      sessionStorage.removeItem(key);
     } catch {
       // 적어 둔 입력을 못 읽어도(저장소가 막힌 창) 평소의 입력 폼은 그대로 쓸 수 있다
     }
