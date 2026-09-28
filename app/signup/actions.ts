@@ -53,7 +53,7 @@ export async function completeSignup(answer: {
   if (error) return { ok: false, message: userFacingDbMessage(error, 'complete_signup') };
   /*
     **틀린 코드는 거절이 아니라 `false` 로 온다** — DB 가 틀린 시도를 적고 세어야 해서 던지지 않는다
-    (`20261101090000`, ADR 0122). 문장은 던지던 때와 같다: 없는 코드와 지난 코드를 가르지 않는다.
+    (`20261101090000`, ADR 0124). 문장은 던지던 때와 같다: 없는 코드와 지난 코드를 가르지 않는다.
   */
   if (signedUp === false) return { ok: false, message: WRONG_CODE_NOTE };
 

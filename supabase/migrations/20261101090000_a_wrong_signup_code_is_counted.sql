@@ -1,4 +1,4 @@
--- 틀린 가입 코드는 계정마다 한 시간에 열 번까지다 (ADR 0122, 보안 감사 3~14 의 하나) — **결정 대기**
+-- 틀린 가입 코드는 계정마다 한 시간에 열 번까지다 (ADR 0124, 보안 감사 3~14 의 하나, 운영자 승인 2026-09-28)
 --
 -- `complete_signup` 은 `authenticated` 에 열려 있고(`20260911090000_the_code_opens_the_signup.sql:268-271`), 코드를
 -- 맞춰 보는 데 **횟수 제한이 없다.** 로그인만 하면 PostgREST 로 코드를 끝없이 두드릴 수 있다. runbook 「초대」의 본보기
@@ -8,7 +8,7 @@
 -- ## 무엇이 바뀌나
 --
 -- - **틀린 시도를 적는다** — `signup_code_miss`(계정 · 시각). 사용자에게 안 열린 표다.
--- - **한 시간에 열 번 틀리면 그 계정은 한 시간 동안 코드를 못 넣는다** — 맞는 코드도. 거절 문장은 새것이다(결정).
+-- - **한 시간에 열 번 틀리면 그 계정은 한 시간 동안 코드를 못 넣는다** — 맞는 코드도. 거절 문장은 새것이다(운영자 승인).
 -- - **틀린 코드는 던지지 않고 `false` 를 낸다.** 던지면 적은 줄이 함께 되감기므로 셀 수가 없다. 그래서 반환형이
 --   `void` → `boolean` 이 된다(`true` = 가입을 끝냈다 · 안내를 다시 확인했다, `false` = 코드가 안 맞는다). 앱은
 --   `false` 에 지금과 같은 문장(「지금 쓸 수 있는 코드가 아닙니다.」)을 세운다.
@@ -20,9 +20,9 @@
 -- 옛 앱은 `false` 를 성공으로 읽어 `/me` 로 보내고 관문이 `/signup` 으로 되돌린다 — 틀린 코드에 문장이 안 선다.
 -- 가입은 일어나지 않는다(이름 · 코드 · 안내 확인을 적는 `update` 앞에서 돌아간다).
 --
--- ## 정해야 하는 것(운영자)
+-- ## 운영자 결정(2026-09-28)
 --
--- 한도(열 번) · 창(한 시간) · 거절 문장. 수는 아래 두 함수 한 곳에 있다.
+-- 「예, 10번/1시간」 — 한도 · 창 · 거절 문장을 제안대로 승인했다. 수는 아래 두 함수 한 곳에 있다.
 --
 -- 재는 자리는 `supabase/tests/66_signup_code_misses.test.sql`.
 
@@ -38,7 +38,7 @@ alter table public.signup_code_miss enable row level security;
 -- 정책을 하나도 만들지 않는다 — 사용자가 읽을 까닭도 지울 까닭도 없다. 쓰는 것은 `complete_signup` 하나다
 revoke all on public.signup_code_miss from anon, authenticated;
 
-/** 창 안에서 받는 틀린 시도의 수 — 운영자 결정 대기(제안 10) */
+/** 창 안에서 받는 틀린 시도의 수 — 운영자 승인 2026-09-28 */
 create function public.signup_code_miss_limit()
 returns integer
 language sql
@@ -46,7 +46,7 @@ immutable
 set search_path = ''
 as $$ select 10 $$;
 
-/** 틀린 시도를 세는 창 — 운영자 결정 대기(제안 1시간) */
+/** 틀린 시도를 세는 창 — 운영자 승인 2026-09-28 */
 create function public.signup_code_miss_window()
 returns interval
 language sql
