@@ -147,6 +147,7 @@ export {
   promptSlotsOf,
   selfSectionCount,
   selfSectionTexts,
+  selfSectionTitlesOf,
   type PromptSlot,
   type PromptAssembly,
   type ReadingAbout,
@@ -164,4 +165,5 @@ export {
   type PairVariant,
 } from './variants';
 export { checkReading, plainTermsIn, type BirthSecret } from './check';
+export { sectionCounter, type SectionCount } from './progress';
 export { positionSlips } from './position-check';

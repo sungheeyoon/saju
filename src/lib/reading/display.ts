@@ -5,7 +5,7 @@
  * 끝낸다. 화면마다 문자열을 따로 자르면 자기 풀이와 궁합 중 한쪽에서만 근거가 새므로
  * 자르는 규칙을 한 곳에 둔다.
  */
-const GROUNDING_HEADING = /^###\s+근거(?:\s+\(검사용\))?\s*$/m;
+export const GROUNDING_HEADING = /^###\s+근거(?:\s+\(검사용\))?\s*$/m;
 
 /** 사용자에게 보여 줄 본문 — 내부 검토용 근거 절은 제외한다. */
 export function readingBody(markdown: string): string {
