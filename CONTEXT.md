@@ -56,8 +56,9 @@ _Avoid_: 회원 상태, 계정 등급
 만 읽어** 정지된 사실을 확인할 수 있다 — Person · 목록 · 프로필 같은 자기 자료는 읽지도 쓰지도
 못한다(정책이 `is_active_account()` 로 막는다, pgTAP 08). 화면은 자료가 지워진 것이 아니라 정지된
 것이라고 말하고, 그 한 줄을 말할 근거가 상태 한 칸이다. 운영자가 이 상태를 거는 일을 **제재**라
-부르고, 그것은 **신고의 결론이지 신고 자체가 아니다** — 어느 표에도 처분을 적지 않고 `status` 한
-자리가 든다. 신고 기록에는 「봤다」만 남는다.
+부르고, 그것은 **신고의 결론이지 신고 자체가 아니다** — 계정의 상태는 `status` 한 자리가 든다. 신고 곁에는
+검토 기록이 남는다 — 운영자가 부르는 검토 문(`review_report`)이 결과(조치 없음 · 경고 · 이용 정지 결정 · 추가 확인 필요)와
+제재 대상을 적고, 이용 정지 결정이면 같은 자리에서 `status` 를 건다(ADR 0107). 나중에 풀어도 결정 기록은 남는다.
 _Avoid_: 중지(2026-09-23 까지의 이름), 삭제, 차단, 잠김
 
 **계정을 못 읽음** — `AccountRead` · `readAccount` : 지금 이 화면이 **User** 의 자격을 확인하지
@@ -497,7 +498,7 @@ User 의 **selfPerson**. 대신 등록한 Person(엄마·친구)은 후보가 �
 뒤에 채운다(`fill_discovery_deck`, ADR 0115). 뽑는 자리와 보는 자리가 갈려 있다.
 _Avoid_: 상대, 매칭 대상
 
-**탐색 후보** — `discovery_impression.exploration` : `discovery-v1` 상위가 아닌데도 일부러 섞어
+**탐색 후보** — `discovery_impression.exploration` : 점수 상위가 아닌데도 일부러 섞어
 넣는 후보. 정책이 틀렸을 때 신호를 얻는 유일한 자리다. 비율은 `DISCOVERY_POLICY` 가 값으로
 든다.
 
@@ -505,9 +506,10 @@ _Avoid_: 상대, 매칭 대상
 빼는 조건 — 참여를 끔 · 차단 · 이용이 정지된 계정 · 성별 조건 · 이미 오간 요청이나 매칭. **나이로는
 거르지 않는다**(PRD §6.1). **사주 점수는 여기 들어가지 않는다.**
 
-**노출 순서** — `DISCOVERY_POLICY` (`discovery-v1`) · `fill_discovery_deck` · `refresh_discovery_snapshot_for` : 아직
+**노출 순서** — `DISCOVERY_POLICY` (`v2-beta`) · `fill_discovery_deck` · `refresh_discovery_snapshot_for` : 아직
 선택되지 않은 후보를 어떤 차례로 보여줄지 정하는, 별개 버전의 정책. **정렬만 하고 사람을
-제외하지 않는다.** 두 **오행 요약** 사이에서 난다 — 명식도 **궁합**도 보지 않는다.
+제외하지 않는다.** 값은 **예측 궁합 점수**의 연인용 정책이다(ADR 0113) — 서버가 든 두 일주(일주 · 일지 관계), 두
+필요한 기운 요약, 두 **오행 요약**에서 난다. 일주 글자는 점수 하나로만 나오고 **궁합풀이**는 보지 않는다.
 _Avoid_: 필터, 매칭 알고리즘, 추천 점수
 
 **예측 궁합 점수** — `previewScoreOf` · `buildMatchPreview` : 사이로 가른 두 정책의 참고값(`v2-beta`, ADR 0113).
@@ -599,8 +601,9 @@ _Avoid_: 도배 방지, 스팸 필터, 쿨다운
 
 **신고 스냅샷** — `chat_report_snapshot` 표 · `report_chat_message` : **메시지 하나를 고른 신고**에
 붙는 불변 사본. 고른 것과 앞 5 · 뒤 5 를 그때의 본문 그대로 jsonb 한 칸에 베낀다. **메시지에 FK 로
-매지 않는다** — 메시지가 지워져도 남고, 수명은 **신고**를 따른다. 운영자만 runbook 의 SQL 로
-읽는다 — 대화방 전체를 여는 열쇠는 없다. 사람을 신고하는 `report_user` 는 그대로다.
+매지 않는다** — 메시지가 지워져도 남고, 수명은 **신고**를 따른다. 운영자만 읽는다 — 신고 열람 화면
+(`/ops/reports`, `app/ops/reports/read.ts` 가 `operator_report_snapshot` 으로)이 읽고, 읽을 때마다 접속기록에 한 줄이
+남는다(ADR 0103 · 0105). 대화방 전체를 여는 열쇠는 없다. 사람을 신고하는 `report_user` 는 그대로다.
 _Avoid_: 증거(법의 말), 캡처, 로그
 
 **접속 상태** — `user_activity` 표 · `touch_activity` · `activity_band_of` · `presence_policy` · `ActivityBand` ·
