@@ -14,7 +14,9 @@ import {
   NOTICE_NOT_READY,
   NOTICE_VERSION,
   betaIsOver,
+  safeReturnPath,
   signupDone,
+  withReturnPath,
 } from '@/src/lib/consent';
 
 import { SignupForm } from './form';
@@ -52,12 +54,16 @@ export const metadata = {
  * 찾기에 참여한다는 것. 위탁·국외이전·파기 방법·권리 행사는 전문에서 읽는다.
  */
 export default async function SignupPage({ searchParams }: {
-  searchParams: Promise<{ resume?: string }>;
+  searchParams: Promise<{ next?: string | string[] }>;
 }) {
-  const resumeReading = (await searchParams).resume === 'reading';
+  /**
+   * **가입을 마치고 갈 곳** — 관문이 들려 보낸 `next` 하나다(ADR 0128). 없으면 내 사주. 전에는 사주 이어 보기만
+   * `?resume=reading` 으로 따로 들었고, 나머지는 어디서 왔든 `/me` 로 갔다.
+   */
+  const returnTo = safeReturnPath((await searchParams).next);
   const supabase = await supabaseOnServer();
   const user = await signedInUser(supabase);
-  if (!user) redirect(resumeReading ? '/auth?next=%2F%23resume-reading' : '/auth');
+  if (!user) redirect(withReturnPath('/auth', returnTo));
 
   /**
    * **문은 여기 것이고 문구만 같은 자리에서 가져온다.**
@@ -116,7 +122,7 @@ export default async function SignupPage({ searchParams }: {
     notice,
   );
 
-  if (done) redirect(resumeReading ? '/#resume-reading' : '/me');
+  if (done) redirect(returnTo);
 
   const again = account.signed_up_at !== null;
 
@@ -152,7 +158,7 @@ export default async function SignupPage({ searchParams }: {
       ) : (
         <section className="rounded-[1.5rem] border border-border bg-surface p-5 sm:p-7">
           <SignupForm
-            resumeReading={resumeReading}
+            returnTo={returnTo}
             needsCode={account.signed_up_at === null}
             needsName={account.nickname === null}
             version={NOTICE_VERSION}

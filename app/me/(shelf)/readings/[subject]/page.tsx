@@ -5,6 +5,7 @@ import { STEM_INFO } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../../../auth/server-client';
 import { signedInUser } from '../../../../auth/signed-in';
+import { redirectToSignIn } from '../../../../auth/sign-in-redirect';
 import { BUTTON_TERTIARY } from '../../../../ui/buttons';
 import { TYPE_TITLE } from '../../../../ui/surfaces';
 import { readAccount } from '../../../account';
@@ -42,7 +43,7 @@ export default async function SingleReadingPage({
 }) {
   const supabase = await supabaseOnServer();
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   const { state } = await readAccount(supabase);
   /* 막힌 계정의 안내는 레이아웃이 한 장으로 세운다 — 이 칸은 아무것도 읽지 않는다 */

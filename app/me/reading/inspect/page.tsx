@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 import {
   READING_KINDS,
@@ -10,6 +10,7 @@ import {
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { signedInUser } from '../../../auth/signed-in';
+import { redirectToSignIn } from '../../../auth/sign-in-redirect';
 import { UUID } from '../../../uuid';
 import { CopyText } from '../copy-text';
 import { readingArtifacts, currentReading, lastReadingRun, readingGroundingOf } from '../current';
@@ -46,7 +47,7 @@ export default async function InspectPage({
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   const params = await searchParams;
   const target = targetFrom(params);

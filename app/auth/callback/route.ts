@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { supabaseOnServer } from '../server-client';
-import { safeReturnPath } from '../return-path';
+import { afterSignIn, safeReturnPath, withReturnPath } from '@/src/lib/consent';
 
 /**
  * 구글이 답을 들고 돌아오는 자리.
@@ -50,11 +50,12 @@ export async function GET(request: Request) {
 
   if (url.searchParams.get('error') !== null) {
     await dropSpentVerifiers();
-    return goTo('/auth/denied');
+    return goTo(withReturnPath('/auth/denied', returnTo));
   }
 
+  /* 실패한 자리도 돌아갈 곳을 버리지 않는다 — 「다시 로그인」이 같은 곳으로 간다(ADR 0128) */
   if (code === null) {
-    return goTo('/auth');
+    return goTo(withReturnPath('/auth', returnTo));
   }
 
   const supabase = await supabaseOnServer();
@@ -62,12 +63,10 @@ export async function GET(request: Request) {
   await dropSpentVerifiers();
 
   if (error) {
-    return goTo('/auth/denied');
+    return goTo(withReturnPath('/auth/denied', returnTo));
   }
 
-  // 로그인 전에 적던 입력을 되살리기 전에 가입 관문을 먼저 지난다
-  const destination = returnTo === '/#resume-reading' ? '/signup?resume=reading' : returnTo;
-  return goTo(destination);
+  return goTo(afterSignIn(returnTo));
 }
 
 /**

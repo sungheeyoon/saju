@@ -50,7 +50,7 @@ export async function secondFactorOf(supabase: SupabaseClient<Database>): Promis
 /**
  * 확인을 마치고 돌아갈 자리 — **`/ops/` 아래만** 받는다.
  *
- * 주소창에서 온 값이라 그대로 보내면 열린 리다이렉트다(`app/auth/return-path.ts` 와 같은 까닭). 확인 화면
+ * 주소창에서 온 값이라 그대로 보내면 열린 리다이렉트다(`src/lib/consent/return-path.ts` 와 같은 까닭). 확인 화면
  * 자신이나 모르는 값이면 신고 목록으로 간다.
  */
 export function opsReturnPath(value: string | string[] | null | undefined): string {

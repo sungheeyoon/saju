@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { refresh } from '../refresh';
 import { supabaseOnServer } from '../auth/server-client';
 import { userFacingDbMessage } from '../db-error';
+import { safeReturnPath } from '@/src/lib/consent';
 import { rpcArgs } from '@/src/lib/db';
 
 /** 틀린 코드의 문장 — 없는 코드 · 지난 코드 · 가입이 멈춘 때가 같은 말이다(DB 의 거절과 같은 글자) */
@@ -27,7 +28,8 @@ const WRONG_CODE_NOTE = '지금 쓸 수 있는 코드가 아닙니다.';
  * 빈다(커밋 `2cbb31f`). 튕김이 하나면 그 자리가 없다.
  */
 export async function completeSignup(answer: {
-  resumeReading?: boolean;
+  /** 가입을 마치고 갈 곳 — 화면이 보낸 값이라 여기서 다시 좁힌다(ADR 0128) */
+  returnTo: string;
   code: string;
   nickname: string;
   version: string;
@@ -59,6 +61,10 @@ export async function completeSignup(answer: {
 
   refresh('signed-up');
 
-  /* `redirect` 는 던진다 — try 안에 두지 않는다(Next 문서). 여기가 이 함수의 끝이다 */
-  redirect(answer.resumeReading === true ? '/#resume-reading' : '/me');
+  /*
+    **가려던 곳으로 간다**(ADR 0128) — 관문이 가입 화면으로 보낼 때 들려 보낸 `next` 다. 액션은 주소가 알려지면
+    누구나 부르므로 화면이 넘긴 값을 믿지 않고 같은 사이트 경로로 다시 좁힌다.
+    `redirect` 는 던진다 — try 안에 두지 않는다(Next 문서). 여기가 이 함수의 끝이다.
+  */
+  redirect(safeReturnPath(answer.returnTo));
 }

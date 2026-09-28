@@ -44,7 +44,7 @@ describe('종료일', () => {
 
 describe('관문이 서는 자리', () => {
   it('`/me` 밖은 안 묻는다', () => {
-    for (const path of ['/', '/compat', '/privacy', '/signup', '/closed', '/auth']) {
+    for (const path of ['/', '/privacy', '/signup', '/closed', '/auth', '/compatible']) {
       expect(gateFor(path, null, notice, during), path).toBeNull();
       expect(gateFor(path, fresh, notice, during), path).toBeNull();
     }
@@ -86,9 +86,33 @@ describe('가입', () => {
    */
   it('가입을 안 끝냈으면 가입 화면으로 보낸다', () => {
     expect(gateFor('/me', fresh, notice, during)).toBe('/signup');
-    expect(gateFor('/me/people', fresh, notice, during)).toBe('/signup');
-    expect(gateFor('/me/profile', fresh, notice, during)).toBe('/signup');
-    expect(gateFor('/me/settings', fresh, notice, during)).toBe('/signup');
+    expect(gateFor('/me/people', fresh, notice, during)).toBe('/signup?next=%2Fme%2Fpeople');
+    expect(gateFor('/me/profile', fresh, notice, during)).toBe('/signup?next=%2Fme%2Fprofile');
+    expect(gateFor('/me/settings', fresh, notice, during)).toBe('/signup?next=%2Fme%2Fsettings');
+  });
+
+  /**
+   * **가려던 곳을 들고 간다**(ADR 0128). 가입 화면이 그 값을 받아 가입을 마친 뒤 그리로 보낸다 — 쿼리까지
+   * 싣는다: `/me/compat` 은 두 사람을 쿼리로 든다. 내 사주(`/me`)는 가입 화면의 기본값이라 싣지 않는다.
+   */
+  it('가입 화면으로 보낼 때 가려던 곳을 next 하나로 싣는다', () => {
+    expect(gateFor('/me/match/abc', fresh, notice, during)).toBe('/signup?next=%2Fme%2Fmatch%2Fabc');
+    expect(gateFor('/me/compat?a=1&b=2', fresh, notice, during)).toBe(
+      '/signup?next=%2Fme%2Fcompat%3Fa%3D1%26b%3D2',
+    );
+    expect(gateFor('/me/people', fresh, NOTICE_UNREAD, during)).toBe('/signup?next=%2Fme%2Fpeople');
+    expect(gateFor('/me', fresh, notice, during)).toBe('/signup');
+  });
+
+  /**
+   * **궁합도 관문 안이다**(ADR 0128). 밖에 있을 때 가입 전인 사람이 로그인하고 궁합에 돌아오면 고를 사람도
+   * 쓸 풀이권도 없는 화면에 섰다.
+   */
+  it('궁합에 온 가입 전 계정은 가입을 거쳐 궁합으로 돌아온다', () => {
+    expect(gateFor('/compat', fresh, notice, during)).toBe('/signup?next=%2Fcompat');
+    expect(gateFor('/compat', ready, notice, during)).toBeNull();
+    expect(gateFor('/compat', null, notice, during)).toBeNull();
+    expect(gateFor('/compat', ready, notice, after)).toBe('/closed');
   });
 
   /**
@@ -130,7 +154,7 @@ describe('가입', () => {
    */
   it('일정을 못 읽으면 가입 전 계정은 가입 화면으로 보낸다', () => {
     expect(gateFor('/me', fresh, NOTICE_UNREAD, during)).toBe('/signup');
-    expect(gateFor('/me/people', fresh, NOTICE_UNREAD, during)).toBe('/signup');
+    expect(gateFor('/me/people', fresh, NOTICE_UNREAD, during)).toBe('/signup?next=%2Fme%2Fpeople');
   });
 
   it('다 맞으면 안 보낸다', () => {

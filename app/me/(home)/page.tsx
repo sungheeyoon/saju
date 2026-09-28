@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 
 import { isBlocked } from '@/src/lib/account';
 import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
@@ -8,6 +7,7 @@ import type { Element } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
+import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { elementScope } from '../../ui/element-tone';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { Icon, type IconName } from '../../ui/icons';
@@ -38,7 +38,7 @@ export default async function MePage() {
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   // 정책이 자기 행만 내주므로 `where` 를 적지 않는다. 적으면 판정하는 자리가 둘이 된다.
   const { state, row: account } = await readAccount<{

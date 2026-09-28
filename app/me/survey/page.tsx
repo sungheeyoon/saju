@@ -1,10 +1,10 @@
-import { redirect } from 'next/navigation';
 
 import { isBlocked } from '@/src/lib/account';
 import { SURVEY_COPY } from '@/src/lib/survey';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
+import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { PAPER, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
@@ -38,7 +38,7 @@ export default async function SurveyPage() {
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   const { state } = await readAccount(supabase, 'status');
   if (isBlocked(state)) {
