@@ -2033,7 +2033,8 @@ following Content Security Policy directive` 가 선다. 받는 서버(`report-u
 
 1. **먼저 되돌린다.** 이 커밋 앞의 배포를 Vercel 에서 **Promote** 하거나(가장 빠르다, 코드 안 바꿈), `next.config.ts`
    의 헤더 키 `Content-Security-Policy` 를 `Content-Security-Policy-Report-Only` 로 바꾸고 `frame-ancestors 'none'`
-   한 줄짜리 강제 헤더를 다시 세워 main 에 민다 — `frame-ancestors` 는 보고만 하는 정책에서 무시된다.
+   한 줄짜리 강제 헤더를 다시 세워 가지 → PR → gate → `--auto` 로 넣는다(급하면 운영자가 보호를 잠시 끄고, 켤 때까지를 노트에
+   적는다 — ADR 0121) — `frame-ancestors` 는 보고만 하는 정책에서 무시된다.
 2. **원인을 본다.** 콘솔 문장의 지시어(`connect-src` · `img-src` …)와 막힌 주소가 답이다. 새 외부 출처면
    그 지시어에 **그 출처 하나만** 더한다 — `*` 이나 `https:` 로 넓히지 않는다. 우리 코드가 인라인 `eval`
    이나 `data:` 스크립트를 새로 부른 것이면 코드를 고친다.
