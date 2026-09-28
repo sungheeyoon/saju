@@ -52,7 +52,7 @@ const LABEL = 'text-[15px] font-semibold';
  * 화면에 그대로 있고, 언제든 채울 수 있다(PRD 「이름과 얼굴」).
  */
 export function SignupForm({
-  resumeReading = false,
+  returnTo,
   needsCode,
   needsName,
   version,
@@ -60,7 +60,8 @@ export function SignupForm({
   endsOn,
   purgeBy,
 }: {
-  resumeReading?: boolean;
+  /** 가입을 마치고 갈 곳 — 관문이 `next` 로 들려 보낸 목적지(ADR 0128) */
+  returnTo: string;
   needsCode: boolean;
   needsName: boolean;
   version: string;
@@ -104,11 +105,11 @@ export function SignupForm({
     setFailure(null);
     startWorking(async () => {
       /*
-        **성공하면 이 줄 아래로 안 온다.** 서버 액션이 스스로 `/me` 로 보낸다 — 여기서
+        **성공하면 이 줄 아래로 안 온다.** 서버 액션이 스스로 목적지로 보낸다 — 여기서
         보내면 관문이 한 번 더 튕기고, 그 두 번째 튕김이 화면을 비운다.
       */
       const failed = await completeSignup({
-        resumeReading,
+        returnTo,
         code,
         nickname,
         version,

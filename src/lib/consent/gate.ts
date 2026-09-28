@@ -1,5 +1,6 @@
 import { noticeAckHolds } from './notice';
 import type { BetaDates } from './notice';
+import { withReturnPath } from './return-path';
 
 /**
  * `/me` 아래로 들어오는 사람을 **어디로 보낼 것인가** — 한 함수가 답한다.
@@ -53,8 +54,13 @@ export type GateAccount = {
   readonly noticeScheduleId: number | null;
 };
 
-/** 가입을 끝내는 자리 — `/me` 밖이라 관문이 자기 자신을 막지 않는다 */
-const SIGNUP_PATH = '/signup';
+/**
+ * 가입을 끝내는 자리 — `/me` 밖이라 관문이 자기 자신을 막지 않는다.
+ *
+ * **가려던 곳을 `next` 로 들고 간다**(ADR 0128). `/me/match/…` 를 열다 가입 화면에 선 사람이 가입을 마치고
+ * `/me` 에 서면 목적지를 다시 찾아가야 한다. 가입 화면이 이 값을 받아 가입을 마친 뒤 그리로 보낸다.
+ */
+const signupFor = (location: string): string => withReturnPath('/signup', location);
 
 /** 지금 안내 한 벌 */
 export type GateNotice = {
@@ -70,14 +76,17 @@ export type GateNotice = {
 export const NOTICE_UNREAD = 'unread';
 
 /**
- * 관문이 서는 자리인가.
+ * 관문이 서는 자리인가 — `/me` 아래와 궁합(`/compat`).
+ *
+ * **궁합이 관문 안에 든다**(ADR 0128). 궁합은 로그인한 사람의 화면인데 관문 밖이라, 가입 전인 사람이 로그인하고
+ * 돌아오면 고를 사람도 쓸 풀이권도 없는 화면에 섰다. 이제 가입 화면을 거쳐 `/compat` 으로 돌아온다.
  *
  * `/me/photo/…` 는 뺀다. **그림을 내주는 자리**라 튕기면 사진이 깨지고, 하필 깨지는
  * 곳이 이름과 사진을 정하는 화면이다. 레이아웃 시절에도 여기는 관문 밖이었다 —
  * route handler 에는 레이아웃이 안 걸리기 때문이고, 그 사실이 우연히 맞았다.
  */
 const gated = (path: string): boolean =>
-  (path === '/me' || path.startsWith('/me/')) && !path.startsWith('/me/photo/');
+  path === '/compat' || ((path === '/me' || path.startsWith('/me/')) && !path.startsWith('/me/photo/'));
 
 /**
  * 베타가 끝났는가 — **한국 시각의 그날 끝까지**가 종료일이다.
@@ -90,6 +99,9 @@ export const betaIsOver = (dates: BetaDates, now: Date): boolean =>
 /**
  * 어디로 보낼까 — 보낼 곳이 없으면 `null`.
  *
+ * @param location 지금 주소 — 경로에 쿼리가 붙어 올 수 있다(`/me/compat?a=…&b=…`). 관문이 서는가는 경로로
+ *   가르고, 가입 화면으로 보낼 때는 쿼리까지 `next` 로 싣는다.
+ *
  * @param account 못 읽었으면 `null`. **그때는 아무 데도 안 보낸다** — 계정을 못 읽은
  *   것은 안내를 안 본 것과 다르고, 돌려보내면 그 화면도 못 읽어 되돌이가 된다.
  *   화면마다 「계정을 읽지 못했습니다」라고 말할 자리가 있다.
@@ -97,11 +109,12 @@ export const betaIsOver = (dates: BetaDates, now: Date): boolean =>
  *   사람만 지나가고 가입 전인 사람은 여전히 가입 화면으로 간다** — 아래 갈래에 까닭이 있다.
  */
 export function gateFor(
-  path: string,
+  location: string,
   account: GateAccount | null,
   notice: GateNotice | null | typeof NOTICE_UNREAD,
   now: Date,
 ): string | null {
+  const path = location.split('?')[0];
   if (!gated(path)) return null;
   if (account === null) return null;
 
@@ -117,7 +130,7 @@ export function gateFor(
    * 가입 전인 사람은 일정이 무엇이든 가입을 안 끝냈으므로 가입 화면으로 보낸다 — 그 화면은 같은
    * 문을 못 읽으면 폼 대신 못 읽은 까닭을 세운다.
    */
-  if (notice === NOTICE_UNREAD) return account.signedUp ? null : SIGNUP_PATH;
+  if (notice === NOTICE_UNREAD) return account.signedUp ? null : signupFor(location);
 
   /**
    * **끝났으면 여기서 끝난다.**
@@ -139,7 +152,7 @@ export function gateFor(
    * 일정이 아직 없으면(`notice === null`) 그때도 보낸다. 그 화면이 「아직 시작할 수
    * 없습니다」를 말할 자리다.
    */
-  return signupDone(account, notice) ? null : SIGNUP_PATH;
+  return signupDone(account, notice) ? null : signupFor(location);
 }
 
 /**

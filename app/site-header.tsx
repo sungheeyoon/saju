@@ -8,6 +8,7 @@ import { SERVICE_NAME } from '@/src/lib/brand';
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
 import { readingCreditsLabel } from '@/src/lib/reading/notes';
 import { SURVEY_COPY } from '@/src/lib/survey';
+import { signInFrom } from '@/src/lib/consent';
 
 import { supabaseInBrowser } from './auth/browser-client';
 import { useBrowserSession } from './auth/browser-session';
@@ -168,7 +169,7 @@ export function SiteHeader() {
               로그인
             </span>
           ) : (
-            <Link href="/auth" className={BUTTON_SECONDARY_SMALL}>
+            <Link href={signInFrom(pathname)} className={BUTTON_SECONDARY_SMALL}>
               로그인
             </Link>
           )}

@@ -5,6 +5,7 @@ import { REPORT_REASONS } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
+import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { filtersOf, hrefOf, isFiltered, type ReportFilters } from './filters';
 import {
   EVIDENCE_LABEL,
@@ -45,7 +46,7 @@ export default async function OperatorReportsPage({
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   const filters = filtersOf(await searchParams);
   const listed = await operatorReports(filters);

@@ -7,7 +7,7 @@ import { TYPE_TITLE } from '../ui/surfaces';
 import { SignInButton } from './sign-in-button';
 import { supabaseOnServer } from './server-client';
 import { signedInUser } from './signed-in';
-import { safeReturnPath } from './return-path';
+import { RESUME_READING_PATH, afterSignIn, safeReturnPath } from '@/src/lib/consent';
 
 export default async function SignInPage({
   searchParams,
@@ -16,10 +16,10 @@ export default async function SignInPage({
 }) {
   const returnTo = safeReturnPath((await searchParams).next);
   const supabase = await supabaseOnServer();
-  if ((await signedInUser(supabase)) !== null) redirect(returnTo === '/#resume-reading' ? '/signup?resume=reading' : returnTo);
+  if ((await signedInUser(supabase)) !== null) redirect(afterSignIn(returnTo));
 
   const forCompat = returnTo === '/compat';
-  const forReading = returnTo === '/#resume-reading';
+  const forReading = returnTo === RESUME_READING_PATH;
 
   return (
     <main className="app-shell grid flex-1 place-items-center py-12 sm:py-20">

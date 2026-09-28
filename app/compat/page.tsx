@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { selfPersonIdOf } from '@/src/lib/account';
@@ -9,6 +8,7 @@ import { readAccount } from '../me/account';
 import { storedInputsOf } from '../me/person-input';
 import { supabaseOnServer } from '../auth/server-client';
 import { signedInUser } from '../auth/signed-in';
+import { redirectToSignIn } from '../auth/sign-in-redirect';
 import { dbFailure } from '../db-error';
 import { CompatPicker } from '../compat-picker';
 import { CompatHero } from '../compat-hero';
@@ -28,7 +28,7 @@ export const metadata = {
 export default async function CompatPage() {
   const supabase = await supabaseOnServer();
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth?next=%2Fcompat');
+  if (!user) return redirectToSignIn();
 
   const [{ state }, { data: edges, error: edgesError }] = await Promise.all([
     readAccount(supabase),

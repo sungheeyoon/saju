@@ -127,11 +127,12 @@ try {
     /*
       **목록에는 뼈대가 있다**(`chat/(rooms)/loading.tsx`, 2026-09-27) — 뼈대가 먼저 흘러 나가므로 로그인 확인의 되돌림은
       307 이 아니라 흘러간 문서 안의 되돌림(200 + `NEXT_REDIRECT`)으로 온다. 재는 것은 그대로다 — 로그인 화면으로 보낸다.
+      돌아올 곳(이 목록)을 `next` 로 든다(ADR 0128).
     */
     const anonymous = await get('/me/chat');
     const sentAway = anonymous.status === 200
-      ? (await anonymous.text()).includes('NEXT_REDIRECT;replace;/auth;')
-      : (anonymous.headers.get('location') ?? '').includes('/auth');
+      ? (await anonymous.text()).includes('NEXT_REDIRECT;replace;/auth?next=%2Fme%2Fchat;')
+      : (anonymous.headers.get('location') ?? '') === '/auth?next=%2Fme%2Fchat';
     check('로그인 없이는 목록이 안 열린다', sentAway, String(anonymous.status));
 
     const empty = plain(await body('/me/chat', cookie.a));

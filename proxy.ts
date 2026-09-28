@@ -3,7 +3,7 @@ import { isAuthApiError } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseEnv } from '@/app/auth/config';
 import { currentSchedule } from '@/app/beta-schedule';
-import { NOTICE_UNREAD, gateFor } from '@/src/lib/consent';
+import { NOTICE_UNREAD, RETURN_PATH_HEADER, gateFor } from '@/src/lib/consent';
 
 /**
  * 세션을 갱신하고, **`/me` 아래로 들어오는 사람에게 길을 가리킨다.**
@@ -41,6 +41,14 @@ const SESSION_COOKIE = /^sb-.+-auth-token(\.\d+)?$/;
 
 export async function proxy(request: NextRequest) {
   const { url, publishableKey } = supabaseEnv();
+
+  /**
+   * **지금 주소를 화면에 넘긴다**(ADR 0128) — 로그인으로 보내는 화면이 돌아올 곳으로 싣는다
+   * (`app/auth/sign-in-redirect.ts`). 서버 화면은 자기 주소를 모르고, 레이아웃은 쿼리도 못 받는다.
+   * 들어온 같은 이름의 머리글은 **덮어쓴다** — 읽는 쪽도 같은 사이트 경로로 다시 좁힌다.
+   */
+  const location = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+  request.headers.set(RETURN_PATH_HEADER, location);
 
   /**
    * 갱신된 쿠키를 **어느 응답에든 다시 싣는다.**
@@ -125,7 +133,7 @@ export async function proxy(request: NextRequest) {
     화면(`readAccount`)이 그 실패를 말하고, 여기는 접근 판정을 안 하므로 안 보내서 열리는 문은 없다.
   */
   const where = gateFor(
-    request.nextUrl.pathname,
+    location,
     accountError !== null || account === null
       ? null
       : {

@@ -10,6 +10,7 @@ import { PRICE_LABEL, SURVEY_QUESTION_TITLE, choiceLabel, type PriceOption } fro
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
+import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { readingDate } from '../../me/reading/line';
 import {
   DENIED,
@@ -57,7 +58,7 @@ export default async function OperatorSurveyPage() {
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   const survey = await operatorSurvey();
   if (survey === DENIED) notFound();

@@ -12,6 +12,10 @@ import { expect, test } from './anon';
  * 백엔드가 필요하면 그것부터 잘못이다.
  */
 
+/** 로그인 화면의 주소 — 돌아갈 곳을 `next` 하나로 든다(ADR 0128). 주소 끝까지 잰다 */
+const signInFor = (path: string) =>
+  new RegExp(`/auth\\?next=${encodeURIComponent(path).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+
 test('로그인하지 않으면 내 계정 화면에 들어가지 못한다', async ({ page }) => {
   await page.goto('/me');
 
@@ -23,8 +27,56 @@ test('로그인하지 않으면 내 계정 화면에 들어가지 못한다', as
 test('로그인하지 않으면 운영자 신고 화면에 들어가지 못한다', async ({ page }) => {
   for (const path of ['/ops/reports', '/ops/reports/3f0b8f5e-2c1d-4b7a-9e2f-0a1b2c3d4e5f']) {
     await page.goto(path);
-    await expect(page).toHaveURL(/\/auth$/);
+    await expect(page).toHaveURL(signInFor(path));
   }
+});
+
+/**
+ * **로그인으로 보내는 화면은 가려던 곳을 `next` 하나로 든다**(ADR 0128). 전에는 `/me` 아래가 전부 `/auth` 로만 보내,
+ * 세션이 끊긴 채 인연 궁합을 열던 사람이 로그인을 마치고 `/me` 에 섰다. 쿼리까지 싣는다 — `/me/compat` 은 두 사람을 쿼리로 든다.
+ */
+test('로그인으로 보낼 때 가려던 주소를 쿼리까지 싣는다', async ({ page }) => {
+  for (const path of [
+    '/me/match/3f0b8f5e-2c1d-4b7a-9e2f-0a1b2c3d4e5f',
+    '/me/compat?a=3f0b8f5e-2c1d-4b7a-9e2f-0a1b2c3d4e5f&b=self',
+    '/me/readings/self',
+  ]) {
+    await page.goto(path);
+    await expect(page).toHaveURL(signInFor(path));
+  }
+});
+
+/** 관문이 넘기는 머리글을 밖에서 지어 보내도 덮어쓴다 — 돌아갈 곳은 요청한 주소다 */
+test('돌아갈 곳 머리글을 지어 보내도 다른 사이트로 가지 않는다', async ({ request }) => {
+  const answer = await request.get('/me/people', {
+    maxRedirects: 0,
+    headers: { 'x-saju-return-path': '//evil.example' },
+  });
+  expect(answer.status()).toBe(307);
+  expect(answer.headers()['location']).toBe('/auth?next=%2Fme%2Fpeople');
+});
+
+/**
+ * **실패한 로그인도 가려던 곳을 버리지 않는다.** 「다시 로그인」이 같은 `next` 를 든다. 다른 사이트로 가는 `next` 는
+ * 어느 자리에서도 싣지 않는다.
+ */
+test('로그인이 끊겨도 다시 로그인이 같은 곳으로 간다 — 밖으로 가는 next 는 버린다', async ({ page, request }) => {
+  await page.goto('/auth/callback?error=access_denied&next=%2Fcompat');
+  await expect(page).toHaveURL(/\/auth\/denied\?next=%2Fcompat$/);
+  await expect(page.getByRole('link', { name: '다시 로그인' })).toHaveAttribute('href', '/auth?next=%2Fcompat');
+
+  for (const outside of ['https://evil.example', '//evil.example', '/\\evil.example']) {
+    const denied = await request.get(`/auth/callback?error=access_denied&next=${encodeURIComponent(outside)}`, {
+      maxRedirects: 0,
+    });
+    expect(denied.headers()['location'], outside).toBe('/auth/denied');
+
+    const stray = await request.get(`/auth/callback?next=${encodeURIComponent(outside)}`, { maxRedirects: 0 });
+    expect(stray.headers()['location'], outside).toBe('/auth');
+  }
+
+  await page.goto(`/auth/denied?next=${encodeURIComponent('//evil.example')}`);
+  await expect(page.getByRole('link', { name: '다시 로그인' })).toHaveAttribute('href', '/auth');
 });
 
 test('로그인 화면은 코드가 한 번 필요하다고 미리 말한다', async ({ page }) => {
@@ -124,4 +176,11 @@ test('사주 계산은 로그인 없이 열리고 궁합은 로그인으로 이�
   await page.goto('/compat');
   await expect(page).toHaveURL(/\/auth\?next=%2Fcompat/);
   await expect(page.getByRole('heading', { name: '궁합은 로그인 후 이용할 수 있습니다' })).toBeVisible();
+});
+
+/** 현관의 궁합 입구를 **눌러서** 간다 — 앱 안 이동에서도 로그인 화면이 궁합을 돌아올 곳으로 든다(ADR 0128) */
+test('현관의 궁합 입구는 궁합을 돌아올 곳으로 들고 로그인으로 간다', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('link', { name: /궁합 보러 가기/ }).click();
+  await expect(page).toHaveURL(/\/auth\?next=%2Fcompat$/);
 });

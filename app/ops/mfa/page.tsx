@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
+import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { CARD } from '../../ui/surfaces';
 import { opsReturnPath, secondFactorOf } from '../second-factor';
 import { SECOND_FACTOR_COPY as COPY } from './copy';
@@ -29,7 +30,7 @@ export default async function SecondFactorPage({
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   const next = opsReturnPath((await searchParams).next);
   const factor = await secondFactorOf(supabase);
