@@ -597,7 +597,7 @@ function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode }) {
           </h2>
           <p className="max-w-prose text-[15px] leading-6 text-secondary">{DISCOVERY_EMPTY.line}</p>
         </div>
-        <nav aria-label="더 해 보기" className="grid w-full gap-2 sm:grid-cols-2">
+        <nav aria-label="바로가기" className="grid w-full gap-2 sm:grid-cols-2">
           {MEANWHILE.map((link) => (
             <Link
               key={link.href}
