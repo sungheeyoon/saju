@@ -49,7 +49,15 @@ export type ModelCall =
  * 여기서 글은 안 온다. 오는 것은 그 작업을 나중에 다시 찾을 이름표뿐이다.
  */
 export type ModelSubmission =
-  | { ok: true; responseId: string }
+  | {
+      ok: true;
+      responseId: string;
+      /**
+       * 만드는 동안 흘러나오는 **본문 조각**(JSON 글자 그대로) — 절 머리를 세는 데만 쓴다(ADR 0127).
+       * 검사 전의 글이라 어디에도 적지 않는다. 끝까지 안 읽어도 만들던 것은 안 멈춘다.
+       */
+      written: AsyncIterable<string>;
+    }
   | { ok: false; code: string; detail: string };
 
 /**

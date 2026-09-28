@@ -10,7 +10,7 @@ import { plainTermsIn } from './check';
 import type { TasteKey } from './taste';
 
 /**
- * 맛보기 표(`taste_passage`)를 **미리 채우는 일** — 프롬프트 · 짧은 규칙 검사 · 도는 차례(ADR 0129).
+ * 맛보기 표(`taste_passage`)를 **미리 채우는 일** — 프롬프트 · 짧은 규칙 검사 · 도는 차례(ADR 0130).
  *
  * 부르는 자리는 운영자가 손으로 돌리는 실호출 하나다(`app/me/reading/taste.live.test.ts` — 모델 래퍼가 app 에 살고
  * `scripts/` 는 app 을 못 부르므로 `call.live.test.ts` 와 같은 자리에 선다). 여기는 모델도 DB 도 모른다 — 둘 다 받아서
@@ -70,7 +70,7 @@ export function tastePromptOf(key: TasteKey): string {
 단정하지 않는다.`;
 }
 
-/** 맛보기가 지켜야 할 모양 — 짧은 규칙만. 글의 질은 사람이 본다(ADR 0129 「잠그지 않은 것」) */
+/** 맛보기가 지켜야 할 모양 — 짧은 규칙만. 글의 질은 사람이 본다(ADR 0130 「잠그지 않은 것」) */
 export const TASTE_RULES = {
   minLength: 60,
   /** DB 의 `taste_passage_body_length` 는 600 이다 — 여기서 먼저 좁게 거른다 */

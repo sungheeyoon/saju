@@ -72,8 +72,13 @@ export function SingleCover({ book }: { book: Book }) {
   );
 }
 
-/** 궁합 = 두 사람의 색이 비스듬히 만나는 표지. 점수가 크게 선다 */
-export function PairCover({ book }: { book: Book }) {
+/**
+ * 궁합 = 두 사람의 색이 비스듬히 만나는 표지. 점수가 크게 선다.
+ *
+ * `source` 는 궁합 탭의 보관함만 단다(ADR 0129) — 직접 본 궁합과 인연 궁합이 한 줄에 섞여 서므로 어디서 왔는지 작은
+ * 딱지로 가른다. 책장은 제목(「… 님과의 궁합풀이」)이 이미 말하므로 안 단다.
+ */
+export function PairCover({ book, source }: { book: Book; source?: string }) {
   const [a = null, b = null] = book.subjects;
   const face = coverFace([a?.element ?? null, b?.element ?? null]);
   return (
@@ -99,7 +104,14 @@ export function PairCover({ book }: { book: Book }) {
         )}
       </span>
 
-      <span className="relative truncate text-[15px] font-semibold text-foreground">{book.title}</span>
+      <span className="relative flex min-w-0 flex-col items-start gap-1">
+        {source !== undefined && (
+          <span className="rounded-full bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] px-2 py-0.5 text-[11px] font-semibold text-secondary">
+            {source}
+          </span>
+        )}
+        <span className="max-w-full truncate text-[15px] font-semibold text-foreground">{book.title}</span>
+      </span>
 
       <Metaphor text={book.metaphor} lines="line-clamp-3" />
 

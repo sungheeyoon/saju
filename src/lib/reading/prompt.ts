@@ -1054,6 +1054,15 @@ export const selfSectionCount = (assembly: PromptAssembly): number =>
   selfSectionsOf(assembly).length;
 
 /**
+ * 그 조립이 시키는 절 이름을 차례대로 — **기다리는 화면의 목차가 이것이다**(ADR 0127).
+ *
+ * 화면이 이름을 따로 적으면 절을 고친 날 목차만 옛 이름으로 남는다. 모델이 실제로 단 소제목은 검사 전이라 안
+ * 내보내므로, 목차가 부를 수 있는 이름은 우리가 시킨 이것뿐이다.
+ */
+export const selfSectionTitlesOf = (assembly: PromptAssembly = CONTROL): readonly string[] =>
+  selfSectionsOf(assembly).map((section) => section.title);
+
+/**
  * 그 조립이 세우는 절들을 글자로 — **변형 가드가 절 단위를 세는 자다.**
  *
  * 「변형은 한 곳만 벗어난다」를 조립 **칸**으로만 세면, 한 칸 안에서 절 셋이 움직이는
