@@ -96,7 +96,7 @@ describe('비밀의 갈래 (G-23 ⑧)', () => {
 describe('비밀을 읽는 모듈은 서버에만 있다 (G-23 ⑧)', () => {
   it('비밀을 읽는 모듈이 있다 — 부재로 통과하지 않는다', () => {
     expect(secretReaders).toEqual(
-      expect.arrayContaining(['app/keyed-client.ts', 'app/me/reading/model.ts', 'app/api/cron/reading/route.ts']),
+      expect.arrayContaining(['app/keyed-client.ts', 'app/me/reading/model.ts', 'app/api/cron/authorized.ts']),
     );
   });
 
