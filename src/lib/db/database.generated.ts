@@ -1387,6 +1387,7 @@ export type Database = {
           about: Json
           birth_a: Json
           birth_b: Json | null
+          body_written: boolean
           chart_a: Json
           chart_b: Json | null
           created_at: string
@@ -1400,6 +1401,7 @@ export type Database = {
           score_baseline: number | null
           score_relation: string | null
           score_version: string | null
+          sections_begun: number
           status: string
           viewed_at: string | null
         }
@@ -1407,6 +1409,7 @@ export type Database = {
           about: Json
           birth_a: Json
           birth_b?: Json | null
+          body_written?: boolean
           chart_a: Json
           chart_b?: Json | null
           created_at?: string
@@ -1420,6 +1423,7 @@ export type Database = {
           score_baseline?: number | null
           score_relation?: string | null
           score_version?: string | null
+          sections_begun?: number
           status?: string
           viewed_at?: string | null
         }
@@ -1427,6 +1431,7 @@ export type Database = {
           about?: Json
           birth_a?: Json
           birth_b?: Json | null
+          body_written?: boolean
           chart_a?: Json
           chart_b?: Json | null
           created_at?: string
@@ -1440,6 +1445,7 @@ export type Database = {
           score_baseline?: number | null
           score_relation?: string | null
           score_version?: string | null
+          sections_begun?: number
           status?: string
           viewed_at?: string | null
         }
@@ -2528,9 +2534,12 @@ export type Database = {
           p_person_b?: string
         }
         Returns: {
+          body_written: boolean
           created_at: string
           failure_code: string
           failure_detail: string
+          job_status: string
+          sections_begun: number
           status: string
         }[]
       }
@@ -2751,6 +2760,14 @@ export type Database = {
       note_operator_denial: {
         Args: { p_action: string; p_report_id?: string }
         Returns: undefined
+      }
+      note_reading_progress: {
+        Args: {
+          p_body_written: boolean
+          p_run_id: string
+          p_sections_begun: number
+        }
+        Returns: boolean
       }
       notify_ops: {
         Args: { p_detail: string; p_kind: string }
