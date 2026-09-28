@@ -80,18 +80,19 @@ select throws_like(
   '%테스트 코드%',
   '코드 없이는 못 지난다');
 
-select throws_like(
-  $$select public.complete_signup('NOSUCH', '민수', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
-  '%지금 쓸 수 있는 코드%',
+-- 틀린 코드는 던지지 않고 `false` 를 낸다 — 던지면 틀린 시도를 적은 줄이 되감긴다(`20261101090000`)
+select is(
+  public.complete_signup('NOSUCH', '민수', 'notice-v9', pg_temp.schedule_id(), false, false),
+  false,
   '없는 코드는 거절된다');
 
 /**
- * **어제 코드와 없는 코드가 같은 문장이다.** 갈라 말하면 「그런 코드는 있는데 어제
+ * **어제 코드와 없는 코드가 같은 답이다**(`false`). 갈라 말하면 「그런 코드는 있는데 어제
  * 것」이 되고, 그것은 코드 하나를 맞혔다는 답이다.
  */
-select throws_like(
-  $$select public.complete_signup('YESTER', '민수', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
-  '%지금 쓸 수 있는 코드%',
+select is(
+  public.complete_signup('YESTER', '민수', 'notice-v9', pg_temp.schedule_id(), false, false),
+  false,
   '어제 코드는 오늘 안 열린다');
 
 select throws_like(
@@ -234,10 +235,10 @@ select lives_ok(
   '어제 열려 내일 닫히는 코드는 오늘도 열려 있다');
 
 select pg_temp.acting((select seo from folks));
-select throws_like(
-  $$select public.complete_signup('PASSED', '서지남', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
-  '%지금 쓸 수 있는 코드가 아닙니다%',
-  '창이 지난 코드는 없는 코드와 같은 말로 막힌다');
+select is(
+  public.complete_signup('PASSED', '서지남', 'notice-v9', pg_temp.schedule_id(), false, false),
+  false,
+  '창이 지난 코드는 없는 코드와 같은 답으로 막힌다');
 
 /**
  * **정원은 창 전체에 누적이다.**

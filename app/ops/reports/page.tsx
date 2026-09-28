@@ -18,6 +18,7 @@ import {
 } from './labels';
 import { DENIED, operatorReports, type Account, type ReportRow } from './read';
 import { CARD } from '../../ui/surfaces';
+import { SECOND_FACTOR_NEEDED, secondFactorHref } from '../second-factor';
 
 export const metadata = {
   title: '신고',
@@ -49,6 +50,7 @@ export default async function OperatorReportsPage({
   const filters = filtersOf(await searchParams);
   const listed = await operatorReports(filters);
   if (listed === DENIED) notFound();
+  if (listed === SECOND_FACTOR_NEEDED) redirect(secondFactorHref(hrefOf(filters, { page: filters.page })));
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">

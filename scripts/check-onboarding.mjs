@@ -93,11 +93,12 @@ const client = anon();
   });
   check('코드 없이는 가입이 안 끝난다', nocode !== null, nocode?.message ?? '지나가 버렸다');
 
-  const { error: wrong } = await client.rpc('complete_signup', {
+  /* 틀린 코드는 던지지 않고 `false` 로 온다 — DB 가 틀린 시도를 적고 센다(`20261101090000`) */
+  const { data: wrongAnswer, error: wrong } = await client.rpc('complete_signup', {
     p_code: 'NOSUCHCODE', p_nickname: '민수', p_version: NOTICE_VERSION,
     p_schedule_id: await scheduleId(client), p_improvement: false, p_contact: false,
   });
-  check('없는 코드는 거절된다', wrong !== null, wrong?.message ?? '지나가 버렸다');
+  check('없는 코드는 거절된다', wrong === null && wrongAnswer === false, wrong?.message ?? `답 ${wrongAnswer}`);
 
   /** 선택 답을 비운 채 지나가는 길이 없다 — 물었는데 `null` 인 사람이 생기면 안 된다 */
   const { error: blank } = await client.rpc('complete_signup', {

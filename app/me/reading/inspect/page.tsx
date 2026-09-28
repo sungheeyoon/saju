@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import {
   READING_KINDS,
@@ -16,6 +16,7 @@ import { readingArtifacts, currentReading, lastReadingRun, readingGroundingOf } 
 import type { ReadingTarget } from '../target';
 import { selfReadingPreview, type PreviewResult } from '../preview';
 import { CARD } from '../../../ui/surfaces';
+import { inspectOpen } from './open';
 
 export const metadata = {
   title: '해석 내부 보기',
@@ -39,6 +40,9 @@ export default async function InspectPage({
 }: {
   searchParams: Promise<{ kind?: string; a?: string; b?: string; m?: string }>;
 }) {
+  // 운영 · Preview 에서는 없는 주소다 — 로그인보다 먼저 닫아 있는지조차 말하지 않는다(`./open.ts`)
+  if (!inspectOpen()) notFound();
+
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
