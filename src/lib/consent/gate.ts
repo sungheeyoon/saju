@@ -93,9 +93,8 @@ export const betaIsOver = (dates: BetaDates, now: Date): boolean =>
  * @param account 못 읽었으면 `null`. **그때는 아무 데도 안 보낸다** — 계정을 못 읽은
  *   것은 안내를 안 본 것과 다르고, 돌려보내면 그 화면도 못 읽어 되돌이가 된다.
  *   화면마다 「계정을 읽지 못했습니다」라고 말할 자리가 있다.
- * @param notice 일정이 없으면 `null`, 못 읽었으면 `NOTICE_UNREAD`. **못 읽었을 때도 아무 데도
- *   안 보낸다** — 같은 까닭이다. 한 `null` 로 합쳤을 때는 일정 문 한 번의 실패가 가입을 마친
- *   사람 전원을 `/signup` 으로 튕겼다. 여기는 접근 판정을 안 하므로 안 보내서 열리는 문은 없다.
+ * @param notice 일정이 없으면 `null`, 못 읽었으면 `NOTICE_UNREAD`. 못 읽었을 때는 **가입을 마친
+ *   사람만 지나가고 가입 전인 사람은 여전히 가입 화면으로 간다** — 아래 갈래에 까닭이 있다.
  */
 export function gateFor(
   path: string,
@@ -105,7 +104,20 @@ export function gateFor(
 ): string | null {
   if (!gated(path)) return null;
   if (account === null) return null;
-  if (notice === NOTICE_UNREAD) return null;
+
+  /**
+   * **일정을 못 읽었으면 가입했는가만 본다**(ADR 0078).
+   *
+   * 종료 여부와 안내 판본 · 본 줄 대조는 **일정이 있어야 물을 수 있는 것**이라 건너뛴다. 못 읽은
+   * 것을 「바뀌었다」로 읽으면 일정 문 한 번의 실패가 가입을 마친 사람 전원을 `/signup` 으로
+   * 튕긴다 — 두 값을 한 `null` 로 합쳤을 때 실제로 그랬다. 건너뛰어 놓치는 것은 이 요청 한 번의
+   * 재확인과 종료 안내뿐이고, 다음 요청이 일정을 읽으면 다시 묻는다. 여기는 접근 판정을 안 하므로
+   * (종료는 `is_active_account()` 가 막는다) 지나가게 해서 열리는 문은 없다.
+   *
+   * 가입 전인 사람은 일정이 무엇이든 가입을 안 끝냈으므로 가입 화면으로 보낸다 — 그 화면은 같은
+   * 문을 못 읽으면 폼 대신 못 읽은 까닭을 세운다.
+   */
+  if (notice === NOTICE_UNREAD) return account.signedUp ? null : SIGNUP_PATH;
 
   /**
    * **끝났으면 여기서 끝난다.**

@@ -133,7 +133,7 @@ export async function proxy(request: NextRequest) {
           noticeVersion: account.notice_version,
           noticeScheduleId: account.notice_schedule_id,
         },
-    /* 일정을 못 읽은 것도 같은 갈래다 — 「일정 없음」으로 읽으면 가입한 사람 전원이 `/signup` 으로 튕긴다 */
+    /* 일정을 못 읽은 것은 「일정 없음」과 다르다 — 합치면 가입한 사람 전원이 `/signup` 으로 튕긴다(`gateFor` 가 가른다) */
     schedule.ok ? schedule.value : NOTICE_UNREAD,
     new Date(),
   );

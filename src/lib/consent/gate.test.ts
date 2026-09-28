@@ -124,8 +124,13 @@ describe('가입', () => {
     expect(gateFor('/me/settings', ready, NOTICE_UNREAD, during)).toBeNull();
   });
 
-  it('일정을 못 읽으면 가입 전인 사람도 보내지 않는다 — 그 화면도 같은 일정을 못 읽는다', () => {
-    expect(gateFor('/me', fresh, NOTICE_UNREAD, during)).toBeNull();
+  /**
+   * **가입 전인 사람은 못 읽어도 가입 화면이다.** 일정이 무엇이든 그 사람은 가입을 안 끝냈고,
+   * 가입 화면은 폼 대신 못 읽은 까닭을 세운다 — 안 보내면 가입 안 한 계정이 `/me` 아래로 들어간다.
+   */
+  it('일정을 못 읽으면 가입 전 계정은 가입 화면으로 보낸다', () => {
+    expect(gateFor('/me', fresh, NOTICE_UNREAD, during)).toBe('/signup');
+    expect(gateFor('/me/people', fresh, NOTICE_UNREAD, during)).toBe('/signup');
   });
 
   it('다 맞으면 안 보낸다', () => {
