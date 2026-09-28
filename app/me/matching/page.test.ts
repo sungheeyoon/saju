@@ -43,7 +43,17 @@ describe('오늘의 인연', () => {
   it('자격이 없으면(`false`) 화면이 선다 — 문은 성공했고 답이 「아니다」다', async () => {
     answering({ data: false, error: null });
 
-    await expect(MatchingPage()).resolves.toBeDefined();
+    /*
+      **무엇이 섰는지 본다.** 「무언가 돌아왔다」만 재면 덱이 서도, 쉬는 자리가 서도 통과한다.
+      안내는 채우러 가는 길(`/me`)을 들고, 가운데에 내 표식이 선다 — 사주가 없어서 선 안내
+      (`me` 가 `null`)와 갈린다.
+    */
+    const page = (await MatchingPage()) as { type: unknown; props: { me: unknown } };
+    expect(typeof page.type === 'function' && page.type.name).toBe('Guide');
+    expect(page.props.me).not.toBeNull();
+
+    const drawn = (page.type as (props: unknown) => { props: { href: string } })(page.props);
+    expect(drawn.props.href).toBe('/me');
   });
 
   it('참여를 여는 부름이 터지면 안내가 아니라 던진다', async () => {
