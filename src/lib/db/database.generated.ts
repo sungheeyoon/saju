@@ -1946,6 +1946,30 @@ export type Database = {
         }
         Relationships: []
       }
+      taste_passage: {
+        Row: {
+          body: string
+          checked: boolean
+          key: string
+          made_at: string
+          model: string
+        }
+        Insert: {
+          body: string
+          checked?: boolean
+          key: string
+          made_at?: string
+          model: string
+        }
+        Update: {
+          body?: string
+          checked?: boolean
+          key?: string
+          made_at?: string
+          model?: string
+        }
+        Relationships: []
+      }
       user_activity: {
         Row: {
           last_active_at: string
@@ -3364,6 +3388,7 @@ export type Database = {
           run_id: string
         }[]
       }
+      taste_passage: { Args: { p_key: string }; Returns: string }
       touch_activity: { Args: never; Returns: boolean }
       unread_chat_count: { Args: never; Returns: number }
       unread_notifications: { Args: never; Returns: number }
