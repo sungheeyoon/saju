@@ -74,7 +74,7 @@
 | 무엇 | 어디 | 메모 |
 | --- | --- | --- |
 | 화면 갤러리(30여 화면 × 두 폭) | <https://claude.ai/code/artifact/4db17a58-26dc-43af-9054-35d1dfcaeaee> | 찍는 법은 `ui-walk-and-gallery.md`. 2026-09-14 16차가 마지막 |
-| 화면 문구 대장(3판 「닫음」) | <https://claude.ai/code/artifact/263b0f15-c2f5-48a1-a327-d747a58ed639> | 남은 「결정 필요」는 `docs/product/gaps.md` G-05 · G-36 |
+| 점점 화면 문구 대장(현재 기준 · 과거 기록은 접음) | <https://claude.ai/code/artifact/263b0f15-c2f5-48a1-a327-d747a58ed639> | 규칙의 원본은 `CONTEXT.md` §8 — 2026-09-28 확정 문구(#298 · #299). 남은 「결정 필요」는 `docs/product/gaps.md` G-05 · G-36 |
 | overlaps A/B 블라인드 | <https://claude.ai/code/artifact/49ead318-80b6-4431-a977-b6bdc94abc74> | 결론은 `async-generation-and-overlaps-ab.md` |
 | 서울 이전 대장 | <https://claude.ai/code/artifact/a3927607-808c-4405-981e-b3a15f0fb51c> | 남은 규칙은 runbook |
 | 실호출 원문 · 실험 산출물 | 로컬 `.reading-live/`(gitignore) | 출생 원문이 든다 — 저장소에 올리지 않는다 |
