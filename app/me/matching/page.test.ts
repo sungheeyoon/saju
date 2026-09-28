@@ -15,6 +15,7 @@ vi.mock('../summary', () => ({
 }));
 vi.mock('../discovery/discovery-profile', () => ({ myDiscoveryProfile: async () => ({ ok: true, value: null }) }));
 vi.mock('../payload', () => ({ payloadForViewer: async () => null }));
+vi.mock('../requests/inbox', () => ({ requestsForViewer: async () => ({ requests: [], blocked: 0 }) }));
 vi.mock('../candidates', () => ({
   candidatesForViewer: async () => ({ cards: [], teaser: null, notice: null }),
   passedForViewer: async () => [],
