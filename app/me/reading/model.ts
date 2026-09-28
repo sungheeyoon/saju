@@ -206,6 +206,16 @@ const client = () => new OpenAI();
  * 제출은 됐는데 우리 쪽에 `response_id` 를 적기 전에 끊기면 그 작업은 주인을 잃는다 —
  * 돈은 나가고 결과는 아무 데도 안 붙는다. **이름표를 결과에 붙여 보내는 것이 우리 쪽
  * 기록보다 먼저다**(ADR 0020).
+ *
+ * ## 스트림으로 떠나보낸다 (ADR 0127)
+ *
+ * `background` 응답은 **만들 때 `stream: true` 가 아니면 나중에 스트림으로 못 읽는다**(OpenAI 문서). 그래서 제출
+ * 자체를 스트림으로 하고, 첫 사건(`response.created`)에서 이름표를 받아 곧바로 돌아온다. 남은 사건은 `written` 이
+ * 본문 조각(JSON 글자 그대로)만 골라 흘려 준다 — 받는 쪽은 절 머리만 세고 글은 한 자도 안 남긴다. 완성본은 지금처럼
+ * webhook · 복구기가 가져와 검사한다.
+ *
+ * **따라 읽기를 그만둬도 만들던 것은 안 멈춘다** — background 응답은 연결이 끊겨도 provider 쪽에서 끝까지 돈다.
+ * `written` 을 끝까지 안 읽으면 연결만 닫는다.
  */
 export async function submitBackgroundReading(
   prompt: string,
@@ -217,10 +227,11 @@ export async function submitBackgroundReading(
   options: { summaryLast?: boolean } = {},
 ): Promise<ModelSubmission> {
   try {
-    const response = await client().responses.create({
+    const stream = await client().responses.create({
       model: GENERATION.model,
       input: prompt,
       background: true,
+      stream: true,
       store: GENERATION.settings.store,
       metadata: { reading_run_id: runId },
       text: {
@@ -233,9 +244,55 @@ export async function submitBackgroundReading(
       },
     });
 
-    return { ok: true, responseId: response.id };
+    const events = stream[Symbol.asyncIterator]();
+    for (;;) {
+      const next = await events.next();
+      if (next.done === true) {
+        return { ok: false, code: 'model-submit-failed', detail: '이름표를 받기 전에 스트림이 끝났습니다' };
+      }
+      const event = next.value;
+      if (event.type === 'error') {
+        stream.controller.abort();
+        return { ok: false, code: 'model-submit-failed', detail: event.message };
+      }
+      if ('response' in event && typeof event.response?.id === 'string') {
+        return { ok: true, responseId: event.response.id, written: textOf(events, stream.controller) };
+      }
+    }
   } catch (failure) {
     return { ok: false, code: 'model-submit-failed', detail: messageOf(failure) };
+  }
+}
+
+/**
+ * 남은 사건에서 **본문 조각만** 흘린다 — 끝나는 사건이 오면 멈춘다.
+ *
+ * 받는 쪽이 도중에 그만두면(`return`) 연결을 닫는다. 붙들고 있으면 함수가 그만큼 더 산다.
+ */
+async function* textOf(
+  events: AsyncIterator<OpenAI.Responses.ResponseStreamEvent>,
+  controller: AbortController,
+): AsyncGenerator<string, void, undefined> {
+  try {
+    for (;;) {
+      const next = await events.next();
+      if (next.done === true) return;
+      const event = next.value;
+      if (event.type === 'response.output_text.delta') {
+        yield event.delta;
+        continue;
+      }
+      if (
+        event.type === 'response.completed' ||
+        event.type === 'response.failed' ||
+        event.type === 'response.incomplete' ||
+        event.type === 'error'
+      ) {
+        return;
+      }
+    }
+  } finally {
+    controller.abort();
   }
 }
 

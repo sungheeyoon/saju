@@ -6,6 +6,7 @@ import { relationOf } from '@/src/lib/people';
 import type { Saju } from '@/src/lib/saju';
 import {
   promptVersionOf,
+  sectionCounter,
   READING_UNEXPECTED_NOTE,
   writesSummaryLast,
   type ReadingAbout,
@@ -253,6 +254,50 @@ async function submitFrozen(
     p_response_id: submitted.responseId,
   });
   if (notAdopted) console.error('submit: adopt_reading_job', notAdopted.code, notAdopted.message);
+
+  await followProgress(keyed, job.run_id, submitted.written);
+}
+
+/**
+ * 만드는 동안 **몇 번째 절까지 썼는지** 적는다 — 절 번호만, 글은 한 자도 안 적는다(ADR 0127).
+ *
+ * 흘러나오는 본문 조각에서 절 머리를 세고(`sectionCounter`), 값이 바뀔 때만 열쇠 문 하나를 부른다. 본문을 다 썼으면
+ * 더 셀 것이 없어 그만둔다 — 완성본은 webhook 이 받는다.
+ *
+ * **여기서 무엇이 끊겨도 진행만 멈춘다.** 스트림이 끊기거나 적는 문이 거절해도 시도는 안 닫는다 — 만드는 일은
+ * provider 쪽에서 그대로 돌고 있고, 닫는 것은 결과를 받는 쪽(`collect.ts`)의 일이다. 끝난 시도라 적는 문이
+ * `false` 로 답하면 거기서 그만둔다.
+ */
+async function followProgress(
+  keyed: ReturnType<typeof keyedClient>,
+  runId: string,
+  written: AsyncIterable<string>,
+): Promise<void> {
+  const counter = sectionCounter();
+  let noted = counter.count;
+
+  try {
+    for await (const chunk of written) {
+      const now = counter.feed(chunk);
+      if (now.begun === noted.begun && now.bodyWritten === noted.bodyWritten) continue;
+
+      const { data: stillRunning, error } = await keyed.rpc('note_reading_progress', {
+        p_run_id: runId,
+        p_sections_begun: now.begun,
+        p_body_written: now.bodyWritten,
+      });
+      if (error) {
+        console.error('progress: note_reading_progress', error.code, error.message);
+        return;
+      }
+      if (stillRunning !== true) return;
+
+      noted = now;
+      if (now.bodyWritten) return;
+    }
+  } catch (thrown) {
+    console.error('progress: 따라 읽기가 끊겼다', thrown instanceof Error ? thrown.message : thrown);
+  }
 }
 
 /**

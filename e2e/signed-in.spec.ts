@@ -803,6 +803,48 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(again).toBeEnabled();
   });
 
+  /**
+   * **만드는 동안 목차 줄은 서버가 적은 절까지만 「완료」다**(ADR 0127).
+   *
+   * 모델은 안 부른다. 시도를 열고, 얼린 작업을 「제출됨 · 셋째 절 시작」으로 `postgres` 가 적는다 — 스트림을 따라 읽는
+   * 쪽이 적었을 값이다. 화면은 그 값만 그린다: 초를 세지 않고, 적힌 값이 바뀌면 다음 물음(3초)에서 따라온다.
+   */
+  test('풀이를 만드는 동안 목차는 서버가 적은 절까지만 완료이고, 본문을 다 쓰면 마지막 검토로 간다', async ({
+    openAs,
+  }) => {
+    const { page, api } = await openAs({ selfPerson: true });
+    const started = await api.rpc('start_reading_run', {
+      p_kind: 'self',
+      p_idempotency_key: 'e2e-progress-self',
+      p_model: 'gpt-e2e',
+      p_prompt_version: 'reading-prompt-v1',
+    });
+    expect(started.error).toBeNull();
+    const runId = started.data?.[0]?.run_id as string;
+    sql(`update public.reading_job
+           set status = 'submitted', prompt = '# 역할', evidence = '{}', prompt_version = 'reading-prompt-v1',
+               requested_model = 'gpt-e2e', generation = '{}'::jsonb, viewed_at = now(),
+               response_id = 'resp-e2e-${runId}', sections_begun = 3
+         where run_id = '${runId}'`);
+
+    await page.goto('/me/readings/self');
+    const outline = page.getByRole('list', { name: '풀이 목차' });
+    const rows = outline.getByRole('listitem');
+    await expect(rows).toHaveCount(10);
+    await expect(rows.nth(0)).toContainText('완료');
+    await expect(rows.nth(1)).toContainText('완료');
+    await expect(rows.nth(2)).toContainText('쓰는 중');
+    await expect(rows.nth(3)).not.toContainText('완료');
+    await expect(rows.nth(9)).toContainText('마지막 검토');
+    await expect(rows.nth(9)).not.toContainText('검토 중');
+    /* 초를 세던 자리는 걷었다 — 시간으로 채우는 진행이 없다 */
+    await expect(page.getByRole('status').getByText(/^\d+초$/)).toHaveCount(0);
+
+    sql(`update public.reading_job set sections_begun = 9, body_written = true where run_id = '${runId}'`);
+    await expect(rows.nth(9)).toContainText('검토 중', { timeout: 10_000 });
+    await expect(rows.nth(8)).toContainText('완료');
+  });
+
   /** 사람 카드의 단일 진입점이 풀이로 가고, 명식은 그 화면의 탭으로 오간다. */
   test('저장한 사람의 풀이 화면에는 탭이 없고, 명식 화면에서 풀이로 돌아온다', async ({
     page,
