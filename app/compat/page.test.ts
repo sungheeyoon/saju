@@ -28,6 +28,8 @@ const chain = (answer: Answer) => {
 const answering = (tables: Record<string, Answer>) =>
   vi.mocked(supabaseOnServer).mockResolvedValue({
     from: (table: string) => chain(tables[table]),
+    /* 보관함 · 지도가 읽는 만든 풀이 목록(`my_readings`) — 이 시험의 본론이 아니라 비워 둔다 */
+    rpc: async () => OK([]),
   } as never);
 
 const OK = (data: unknown): Answer => ({ data, error: null });

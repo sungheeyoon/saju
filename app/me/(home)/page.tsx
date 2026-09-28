@@ -2,34 +2,33 @@ import Link from 'next/link';
 
 import { isBlocked } from '@/src/lib/account';
 import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
-import type { PersonSlots } from '@/src/lib/people';
 import type { Element } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { elementScope } from '../../ui/element-tone';
-import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
+import { BUTTON_SECONDARY } from '../../ui/buttons';
 import { Icon, type IconName } from '../../ui/icons';
-import { BADGE, EMPTY_SLOT, TYPE_DISPLAY, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
+import { BADGE, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
 import { openDiscoveryParticipation } from '../discovery/participation';
 import { myCircle } from '../home/circle';
-import { compatHrefOf, mapModelOf, pairWithSelf, readingOf, selfReadingOf, type HomePerson } from '../home/map/model';
-import { RelationMap } from '../home/map/relation-map';
-import { PersonTile } from '../home/person-tile';
+import { DayFlowCard } from '../home/day-flow-card';
+import { selfReadingOf } from '../home/map/model';
+import { ReceivedReadings } from '../home/received-readings';
 import { SelfCard } from '../home/self-card';
 import { Onboarding } from '../onboarding';
-import { storedInputOf, storedInputsOf } from '../person-input';
+import { storedInputOf } from '../person-input';
 import { myReadings } from '../reading/current';
 import { unreadCount } from '../requests/inbox';
 
 /**
  * 로그인한 사람이 도착하는 자리 — **홈.**
  *
- * 인사 → 관계 지도와 내 사주 → 저장한 사람 → 다른 길 셋 차례로 내려온다(2026-09-24, 부드러움 5차).
- * 머리글에서 「사주·궁합」 · 「사람」 탭이 빠졌으므로 그 길(다른 사람 사주 · 궁합 · 사람 전체 관리)은 여기 선다.
+ * 인사 → 내 사주와 이번 달 흐름 → 내가 받은 사주풀이 → 다른 사람 사주 → 바로가기 차례로 내려온다(ADR 0129).
+ * 관계 지도와 저장한 사람은 궁합 탭(`/compat`)에 선다.
  *
  * 저장된 입력으로 **서버에서 계산한다.** 익명 화면은 브라우저에서 계산하지만 부르는 함수는 같다(`chartOf`)
  * — 저장하기 전에 본 사주와 저장한 뒤에 보는 사주가 다를 자리를 만들지 않으려는 것이다.
@@ -107,11 +106,10 @@ function Greeting({ name }: { name: string }) {
 }
 
 /**
- * 홈의 본체 — 내 사주 · 저장한 사람 · 만든 풀이를 **한 번에** 읽는다.
+ * 홈의 본체 — 내 사주 카드와 이번 달 흐름, 그 아래 내가 받은 사주풀이(ADR 0129).
  *
- * 옛 홈은 내 사주 하나만 읽었다. 관계 지도와 사람 타일이 들어오며 읽을 것이 셋 늘었다(엣지 · 자리 수 ·
- * 풀이 목록) — 넷을 한 `Promise.all` 로 겹쳐 돌리고, 사람들의 입력만 엣지를 알아야 하므로 뒤에 한 번 더
- * 묶어 읽는다. 왕복은 둘이다.
+ * 관계 지도와 저장한 사람은 궁합 탭(`/compat`)으로 옮겼다 — 지도가 긋는 선이 궁합이라서다. 나 탭은 **나**를 본다:
+ * 내 사주 · 오늘 · 내가 받은 풀이. 읽는 것은 내 엣지(이름) · 내 입력 · 만든 풀이 목록 셋이고 한 번에 겹쳐 돈다.
  */
 async function Home({ selfPersonId }: { selfPersonId: string }) {
   const supabase = await supabaseOnServer();
@@ -121,29 +119,10 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
     storedInputOf(supabase, selfPersonId),
     myReadings(),
   ]);
-  const inputs = await storedInputsOf(
-    supabase,
-    circle.people.map((person) => person.personId),
-  );
-
-  const people: HomePerson[] = circle.people.map((edge) => {
-    const stored = inputs.get(edge.personId);
-    /* 입력이 없는 사람 — 읽을 것이 없다는 말과 못 읽는다는 말을 여기서 합친다(저장한 사람 화면과 같다) */
-    const stood =
-      stored === undefined
-        ? ({ ok: false, message: '저장된 출생 정보를 읽지 못했습니다.' } as const)
-        : storedChartOf(stored, edge.label);
-    return {
-      personId: edge.personId,
-      label: edge.label,
-      note: edge.note,
-      chart: stood.ok ? { ok: true, saju: stood.saju } : { ok: false, message: stood.message },
-    };
-  });
 
   /**
    * **못 읽는 입력은 메우지 않는다.** 모르는 출생지를 서울로 치면 저장할 때 본 사주와 다른 사주가 이
-   * 화면에 나온다. 값은 남아 있고 읽는 쪽이 못 읽는 것이므로 그렇게 말하고 멈춘다 — 사람들은 그대로 선다.
+   * 화면에 나온다. 값은 남아 있고 읽는 쪽이 못 읽는 것이므로 그렇게 말하고 멈춘다 — 풀이 목록은 그대로 선다.
    */
   const stood = self !== null && circle.self !== null ? storedChartOf(self.input, circle.self.label) : null;
 
@@ -158,9 +137,8 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
         </section>
       ) : (
         /*
-          **내 사주가 먼저 선다**(2026-09-25) — 이 앱의 첫 얼굴은 나이고, 관계 지도는 그 둘레다. 폰에서는 위,
-          넓은 화면에서는 왼쪽의 넓은 칸(7)이다. 두 카드는 한 줄에 서고 **같은 높이로 늘어난다**(`items-stretch`)
-          — 저마다 단추 · 범례 띠를 바닥에 붙여 아랫선까지 맞는다.
+          **내 사주가 먼저 선다**(2026-09-25) — 이 앱의 첫 얼굴은 나다. 폰에서는 위, 넓은 화면에서는 왼쪽의 넓은
+          칸(7)이고 오른쪽(5)에 이번 달 흐름이 선다. 두 카드는 **같은 높이로 늘어난다**(`items-stretch`).
         */
         <div className="grid gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-stretch lg:gap-6">
           <SelfCard
@@ -170,25 +148,18 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
             saju={stood.saju}
             reading={selfReadingOf(readings)}
           />
-          <RelationMap
-            model={mapModelOf({ self: { personId: selfPersonId, label: stood.query.name, saju: stood.saju }, people, readings })}
-            addHref="/me/people"
-            canAdd={circle.slots === null || circle.slots.remaining > 0}
-          />
+          <DayFlowCard dayMaster={stood.saju.pillars.dayMaster} now={new Date()} />
         </div>
       )}
 
-      <SavedPeople
-        people={people}
-        slots={circle.slots}
-        tileOf={(person) => {
-          const pair = pairWithSelf(readings, selfPersonId, person.personId);
-          return {
-            reading: readingOf(readings, person.personId),
-            compat: { href: compatHrefOf(pair, selfPersonId, person.personId), score: pair?.score ?? null },
-          };
-        }}
-      />
+      <ReceivedReadings readings={readings} />
+
+      <div className="-mt-2 sm:-mt-6">
+        <Link href="/" className={BUTTON_SECONDARY}>
+          <Icon name="search" className="size-[18px]" />
+          다른 사람 사주 보기
+        </Link>
+      </div>
 
       <MoreWays />
     </>
@@ -196,86 +167,8 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
 }
 
 /**
- * 저장한 사람 — 사람마다 제 일간 색의 타일 한 장. 폰 2열 · 태블릿 3열 · 넓은 화면 4열.
- *
- * 몇 자리를 썼는지는 **DB 가 센다**(`my_person_slots`) — 못 읽었으면 수를 안 세운다. 빼기를 화면이 하면
- * 내 사주를 잊는 자리가 생긴다.
- */
-function SavedPeople({
-  people,
-  slots,
-  tileOf,
-}: {
-  people: readonly HomePerson[];
-  slots: PersonSlots | null;
-  tileOf: (person: HomePerson) => Omit<Parameters<typeof PersonTile>[0], 'person'>;
-}) {
-  const full = slots !== null && slots.remaining <= 0;
-
-  return (
-    <section aria-labelledby="home-people" className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
-        <h2 id="home-people" className={`${TYPE_SECTION} flex items-baseline gap-2`}>
-          저장한 사람
-          {slots !== null && (
-            <span className="font-sans text-[13px] font-semibold tabular-nums text-secondary">
-              {slots.used}/{slots.limit}명
-            </span>
-          )}
-        </h2>
-        {people.length > 0 && (
-          <Link href="/me/people" className={BUTTON_TERTIARY}>
-            전체 관리
-            <Icon name="arrow" className="size-4" />
-          </Link>
-        )}
-      </div>
-
-      {people.length === 0 ? (
-        <div className={`${EMPTY_SLOT} flex flex-col items-start gap-4`}>
-          <p className="text-[15px] leading-6 text-secondary">가족이나 친구의 출생 정보를 저장하고 관리하세요.</p>
-          <Link href="/me/people" className={BUTTON_PRIMARY}>
-            <Icon name="plus" className="size-[18px]" />
-            사람 추가
-          </Link>
-        </div>
-      ) : (
-        <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {people.map((person) => (
-            <PersonTile key={person.personId} person={person} {...tileOf(person)} />
-          ))}
-          {!full && <AddTile slots={slots} />}
-        </ul>
-      )}
-      {slots !== null && full && <p className="text-[13px] text-secondary">등록할 수 있는 {slots.limit}명을 다 채웠습니다.</p>}
-    </section>
-  );
-}
-
-/** 목록 끝의 빈 타일 — 다른 타일과 같은 크기라 「한 자리 더」로 읽힌다 */
-function AddTile({ slots }: { slots: PersonSlots | null }) {
-  return (
-    <li>
-      <Link
-        href="/me/people"
-        className="flex h-full min-h-44 flex-col items-center justify-center gap-2 rounded-[1.5rem] border-2 border-dashed border-border-strong p-4 text-center text-foreground hover:bg-surface active:scale-[0.98]"
-      >
-        <span className="grid size-12 place-items-center rounded-full bg-accent text-on-accent">
-          <Icon name="plus" />
-        </span>
-        <span className="text-[15px] font-semibold">사람 추가</span>
-        {slots !== null && (
-          <span className="text-[13px] tabular-nums text-secondary">
-            {slots.used}/{slots.limit}명
-          </span>
-        )}
-      </Link>
-    </li>
-  );
-}
-
-/**
- * 나 탭 홈의 바로가기 넷 — 인연, 다른 사람 사주, 궁합, 그리고 만든 풀이의 책장.
+ * 나 탭 홈의 바로가기 셋 — 인연, 궁합, 그리고 만든 풀이의 책장. 다른 사람 사주는 받은 사주풀이 바로 아래
+ * 단추 하나로 섰다(ADR 0129) — 한 사람 풀이를 보는 자리 옆이다.
  *
  * 인연과 궁합은 머리글의 탭에도 있지만 이 줄이 **무엇을 하는 곳인가**를 한 줄로 말한다 — 탭 이름만으로는
  * 처음 온 사람이 「인연」에서 무엇을 하는지 모른다. 책장(`/me/readings`)은 탭에서 빠지며(ADR 0126) 나 탭 안의
@@ -289,20 +182,19 @@ const MORE_WAYS: readonly { href: string; label: string; note?: string; icon: Ic
     icon: 'people',
     element: '木',
   },
-  { href: '/', label: '다른 사람 사주 보기', icon: 'search', element: '水' },
   { href: '/compat', label: '궁합 보러 가기', icon: 'heart', element: '火' },
   { href: '/me/readings', label: '만든 풀이 다시 보기', icon: 'reading', element: '金' },
 ];
 
 function MoreWays() {
   return (
-    <nav aria-label="바로가기" className="grid gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
+    <nav aria-label="바로가기" className="grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))]">
       {MORE_WAYS.map((way) => (
         <Link
           key={way.href}
           href={way.href}
           className={`${elementScope(way.element)} group flex min-h-16 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-foreground hover:border-[color-mix(in_srgb,var(--ink)_40%,transparent)] active:scale-[0.98] ${
-            way.note === undefined ? '' : 'sm:col-span-3 lg:col-span-1'
+            way.note === undefined ? '' : 'sm:col-span-2 lg:col-span-1'
           }`}
         >
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] text-[var(--ink)]">
