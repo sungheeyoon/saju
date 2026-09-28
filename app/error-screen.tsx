@@ -24,7 +24,7 @@ export function ErrorScreen({ retry }: { retry: () => void }) {
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-4 py-10 sm:py-14">
       <h1 className={TYPE_TITLE}>화면을 불러오지 못했어요</h1>
-      <p className="text-[15px] leading-6 text-secondary">
+      <p role="alert" className="text-[15px] leading-6 text-secondary">
         잠시 후 다시 시도해 주세요.
       </p>
       <p className="flex flex-wrap gap-2">
