@@ -100,3 +100,9 @@
 - **#295 의 순서를 거꾸로 적었다** — 마이그레이션 PR 은 `db push` 와 확인 뒤에 머지한다(`delegation.md`). 브리프에도 「머지 뒤 push」로 적어 에이전트 보고가 그대로 따라왔다.
 - 여덟 PR 은 이 커밋 뒤 모두 `BEHIND` — strict 라 최신 main 위에서 다시 gate 를 지나야 든다.
 - 참고: Supabase Pro 의 PITR 은 기본 포함이 아니라 추가 기능이다(일일 백업 7일만 포함).
+
+## 아침 — 머지 · DB · 묶음 배포
+
+- 머지 순서: #289 → #290 → #291 → #296 → #293 → **#295(먼저 `db push`)** → #292(리뷰의 P1 을 고친 뒤 — 못 읽으면 가입한 계정만 통과, 가입 전은 `/signup`) → #294. 스크립트가 PR 마다 `update-branch` 뒤 `--auto` 로 걸었다. #295 는 GitHub 가 `prd-changelog.md` 를 union 으로 못 합쳐 한 번 `DIRTY` — 가지에서 `git merge origin/main` 으로 풀었다.
+- **DB**: `20261030090000` 을 #295 의 가지에서 `db push`(원격은 `20261029090000` 까지 맞았음). 발행 키로 `rpc/fail_reading_run` → `PGRST202`, `current_beta_schedule` 은 그대로 응답. 운영자가 ADR 0120 의 사진 정책(끝난 요청 · 차단 모두 같은 모양으로 닫음)을 수락했다.
+- **배포**: `ef5397a`(main HEAD, `verify` · `main-red` 초록)를 깨끗한 워크트리(13MB)에서 `vercel deploy --prod`. `saju-4sw0i6rm5`, 2026-09-28 10:30 서울 Ready, `saju-snowy.vercel.app` alias. 함수 전부 `[icn1]`, `x-vercel-id: icn1::`. `/` · `/auth` · `/privacy` 200, `/compat` 307(로그인), CSP 헤더 있음, `/me/matching/preview` 404. `/privacy` 가 싣는 조각에 프롬프트 문장 없음. 로그인이 드는 smoke 셋(궁합 · `/me/people` · `/ops/reports`)은 운영자 몫.
