@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { SERVICE_NAME } from '@/src/lib/brand';
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
-import { readingCreditsLabel } from '@/src/lib/reading';
+import { readingCreditsLabel } from '@/src/lib/reading/notes';
 import { SURVEY_COPY } from '@/src/lib/survey';
 
 import { supabaseInBrowser } from './auth/browser-client';
@@ -70,9 +70,9 @@ export function isNavigationActive(pathname: string, href: string): boolean {
 }
 
 /*
-  로그인했는지는 `useBrowserSession` 이 읽는다 — 서버에서 읽지 않는다. `/` 와 `/compat` 은
-  **정적으로 미리 그려지고** proxy 도 일부러 안 지나간다. 헤더 하나 때문에 그 두 화면이 요청마다 도는 화면이 되면,
-  세션도 없는 방문마다 Supabase 를 두드리게 된다.
+  로그인했는지는 `useBrowserSession` 이 읽는다 — 서버에서 읽지 않는다. `/` 는 **정적으로 미리 그려지고**
+  proxy 도 일부러 안 지나간다. 헤더 하나 때문에 그 화면이 요청마다 도는 화면이 되면, 세션도 없는 방문마다
+  Supabase 를 두드리게 된다. `/compat` 은 다르다 — proxy 의 matcher 안이고 요청마다 그려진다(2026-09-28 빌드).
 */
 export function SiteHeader() {
   const pathname = usePathname();
