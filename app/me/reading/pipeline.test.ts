@@ -121,8 +121,19 @@ beforeEach(() => {
   keyedClient.mockReturnValue({ rpc: keyedRpc });
   pending.length = 0;
   submit.mockReset();
-  submit.mockResolvedValue({ ok: true, responseId: 'resp-1' });
+  submit.mockResolvedValue({ ok: true, responseId: 'resp-1', written: flowing([]) });
 });
+
+/** 모델이 흘려 주는 본문 조각 — JSON 글자 그대로 */
+async function* flowing(chunks: readonly string[], breakAfter?: number): AsyncGenerator<string> {
+  for (const [at, chunk] of chunks.entries()) {
+    if (breakAfter !== undefined && at === breakAfter) throw new Error('연결이 끊겼다');
+    yield chunk;
+  }
+}
+
+const noted = () =>
+  keyedRpc.mock.calls.filter(([name]) => name === 'note_reading_progress').map(([, args]) => args);
 
 /**
  * **화면이 실제로 오는 길** — 집고, 적고, 떠나보낸다 (ADR 0020·0071).
@@ -263,6 +274,78 @@ describe('누름은 얼린 작업을 집어 떠나보낸다', () => {
 
     expect(closed()?.[1]).toMatchObject({ p_failure_code: 'model-submit-failed' });
     expect(adopted(), '보내지도 못했는데 이름표를 적었다').toBeUndefined();
+  });
+});
+
+/**
+ * **만드는 동안 절 번호만 적는다**(ADR 0127) — 글은 한 자도 안 적고, 무엇이 끊겨도 시도는 안 닫는다.
+ */
+describe('따라 읽으며 몇 번째 절인지 적는다', () => {
+  const STREAM = [
+    '{"score":null,"metaphor":"요약","markdown":"## 하나\\n',
+    '첫 절의 글\\n\\n#',
+    '# 둘\\n둘째 절\\n\\n### 근거\\n',
+    '하나 — 결론"}',
+  ];
+
+  const answering = (progress: { data: boolean; error: null }) =>
+    keyedRpc.mockImplementation(async (name: string) => {
+      if (name === 'take_reading_job') return { data: [job], error: null };
+      if (name === 'prepare_reading_job') return { data: true, error: null };
+      if (name === 'note_reading_progress') return progress;
+      return { data: null, error: null };
+    });
+
+  it('머리가 설 때마다 · 본문을 다 쓰면 한 번 — 바뀔 때만 적는다', async () => {
+    submit.mockResolvedValue({ ok: true, responseId: 'resp-1', written: flowing(STREAM) });
+    answering({ data: true, error: null });
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(noted()).toEqual([
+      { p_run_id: started.run_id, p_sections_begun: 1, p_body_written: false },
+      { p_run_id: started.run_id, p_sections_begun: 2, p_body_written: true },
+    ]);
+    /* 이름표가 먼저다 — 진행은 제출된 작업에만 적힌다 */
+    const order = keyedRpc.mock.calls.map(([name]) => name);
+    expect(order.indexOf('adopt_reading_job')).toBeLessThan(order.indexOf('note_reading_progress'));
+  });
+
+  it('적은 값에 글이 없다 — 절 번호와 참거짓뿐이다', async () => {
+    submit.mockResolvedValue({ ok: true, responseId: 'resp-1', written: flowing(STREAM) });
+    answering({ data: true, error: null });
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(noted().length).toBeGreaterThan(0);
+    for (const args of noted()) {
+      expect(Object.keys(args as object).sort()).toEqual(['p_body_written', 'p_run_id', 'p_sections_begun']);
+    }
+  });
+
+  it('끝난 시도라 적는 문이 거절하면 그만둔다', async () => {
+    submit.mockResolvedValue({ ok: true, responseId: 'resp-1', written: flowing(STREAM) });
+    answering({ data: false, error: null });
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(noted()).toHaveLength(1);
+  });
+
+  it('스트림이 끊겨도 진행만 멈춘다 — 시도를 닫지 않는다', async () => {
+    submit.mockResolvedValue({ ok: true, responseId: 'resp-1', written: flowing(STREAM, 2) });
+    answering({ data: true, error: null });
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(noted()).toEqual([{ p_run_id: started.run_id, p_sections_begun: 1, p_body_written: false }]);
+    expect(closed(), '따라 읽기가 끊긴 것으로 시도를 닫았다').toBeUndefined();
+    quiet.mockRestore();
   });
 });
 

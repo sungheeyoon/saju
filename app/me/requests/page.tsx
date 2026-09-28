@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 
 import { isBlocked } from '@/src/lib/account';
 import {
@@ -11,6 +10,7 @@ import {
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
+import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { answerOfThrown } from '../../db-error';
 import { Icon, type IconName } from '../../ui/icons';
 import { BADGE, CARD, ROW_CARD, TYPE_META, TYPE_NAME, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
@@ -64,7 +64,7 @@ export default async function RequestsPage() {
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   /** 온보딩을 안 묻는 화면이라 `self_person_id` 도 안 읽는다 — 안 물은 것에 답이 나오지 않게 */
   const { state } = await readAccount(supabase, 'status');

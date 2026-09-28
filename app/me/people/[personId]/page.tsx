@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 import { STEM_INFO } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { signedInUser } from '../../../auth/signed-in';
+import { redirectToSignIn } from '../../../auth/sign-in-redirect';
 import { SajuResult } from '../../../saju/view';
 import { UNREADABLE_INPUT_NOTE } from '@/src/lib/input/stored';
 import { AccountNotice } from '../../account-notice';
@@ -32,7 +33,7 @@ export default async function PersonSajuPage({
 }) {
   const supabase = await supabaseOnServer();
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   /**
    * **못 읽은 것을 중지로 말하지 않는다**(ADR 0048).

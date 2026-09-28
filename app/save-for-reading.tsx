@@ -2,16 +2,21 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
 
+import { RESUME_READING_PATH, withReturnPath } from '@/src/lib/consent';
+import { calculateChart } from '@/src/lib/input/chart';
 import { noRoomToSave, type PersonSlots } from '@/src/lib/people';
 
 import { supabaseInBrowser } from './auth/browser-client';
-import { savePersonForReading } from './me/actions';
+import { savePersonForReading, saveSelfPerson } from './me/actions';
+import { SelfCard } from './me/home/self-card';
 import { personSlotsFrom } from './person-slots';
 import { toSearchParams, type Query } from '@/src/lib/input/query';
 import { READING_DRAFT_KEY } from './reading-draft';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
+import { selfPersonState, type SelfPersonState } from './self-person-state';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './ui/buttons';
 import { CARD } from './ui/surfaces';
 
 /**
@@ -64,8 +69,11 @@ type SaveContext =
   /** 아직 모른다 — 아무것도 안 그린다. 깜빡이는 것보다 늦게 서는 편이 낫다 */
   | { state: 'unknown' }
   | { state: 'out' }
-  /** `slots` 가 `null` 이면 못 읽은 것이다 — 그때는 막지 않는다 */
-  | { state: 'in'; slots: PersonSlots | null };
+  /**
+   * `slots` 가 `null` 이면 못 읽은 것이다 — 그때는 막지 않는다.
+   * `self` 는 내 사주를 등록했는가와 등록하면 설 이름 — 못 읽었으면 `null` 이고, 그때는 묻지 않는다(`self-person-state.ts`).
+   */
+  | { state: 'in'; slots: PersonSlots | null; self: SelfPersonState | null };
 
 function useSaveContext(): SaveContext {
   const [context, setContext] = useState<SaveContext>({ state: 'unknown' });
@@ -81,9 +89,18 @@ function useSaveContext(): SaveContext {
         return;
       }
 
-      // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-      const read = await supabaseInBrowser().rpc('my_person_slots');
-      if (alive) setContext({ state: 'in', slots: personSlotsFrom(read.data, read.error) });
+      const [read, self] = await Promise.all([
+        // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
+        supabaseInBrowser().rpc('my_person_slots'),
+        selfPersonState(supabaseInBrowser()),
+      ]);
+      if (alive) {
+        setContext({
+          state: 'in',
+          slots: personSlotsFrom(read.data, read.error),
+          self: self.ok ? self.value : null,
+        });
+      }
     })();
 
     return () => {
@@ -95,6 +112,7 @@ function useSaveContext(): SaveContext {
 }
 
 function SaveCard({
+  context,
   query,
   needed,
   /** 도착지가 그 글을 부르는 말 — 「사주풀이」이거나 「궁합풀이」다 */
@@ -104,6 +122,7 @@ function SaveCard({
   note,
   onSave,
 }: {
+  context: SaveContext;
   /** 이 입구가 저장하려는 사람 수 — 자리가 모자란지는 이 수가 정한다 */
   query: Query;
   needed: number;
@@ -114,7 +133,6 @@ function SaveCard({
   note: ReactNode;
   onSave: () => Promise<SaveOutcome>;
 }) {
-  const context = useSaveContext();
   const [failure, setFailure] = useState<string | null>(null);
   /**
    * 물어야 할 것이 있으면 여기 선다 — **물음이 서 있는 동안 저장 버튼은 자리를 비운다.**
@@ -156,7 +174,7 @@ function SaveCard({
           </div>
           <div className="shrink-0">
             <Link
-              href="/auth?next=%2F%23resume-reading"
+              href={withReturnPath('/auth', RESUME_READING_PATH)}
               prefetch={false}
               onClick={(event) => {
                 try {
@@ -254,6 +272,9 @@ function SaveCard({
  */
 export function SavePersonForReading({ query }: { query: Query }) {
   const router = useRouter();
+  const context = useSaveContext();
+  /** 「다른 사람의 사주예요」를 눌렀다 — 이 화면에서는 다시 묻지 않는다 */
+  const [someoneElse, setSomeoneElse] = useState(false);
 
   /**
    * 「맞다」면 **아무것도 저장하지 않고** 그 사람에게 간다. 자리도 안 쓰고 대상도 안 는다 —
@@ -280,8 +301,24 @@ export function SavePersonForReading({ query }: { query: Query }) {
     };
   };
 
+  /*
+    **내 사주가 아직 없으면 먼저 묻는다**(ADR 0128). `/` 에서 생일을 넣고 로그인 · 가입을 다녀온 사람은 대개 자기
+    사주를 넣었다 — 그대로 「저장한 사람」으로 저장하면 같은 생일을 온보딩에서 한 번 더 넣고, 첫 풀이권이 「다른
+    사람 풀이」에 쓰인다. 「다른 사람의 사주예요」면 지금 흐름(저장한 사람)으로 간다.
+  */
+  if (context.state === 'in' && context.self !== null && !context.self.saved && !someoneElse) {
+    return (
+      <SelfConfirm
+        query={query}
+        name={context.self.nickname ?? query.name.trim()}
+        onSomeoneElse={() => setSomeoneElse(true)}
+      />
+    );
+  }
+
   return (
     <SaveCard
+      context={context}
       query={query}
       needed={1}
       reading="사주풀이"
@@ -304,5 +341,87 @@ export function SavePersonForReading({ query }: { query: Query }) {
       }
       onSave={() => savePerson(false)}
     />
+  );
+}
+
+/**
+ * **「이 사주가 내 사주 맞나요?」** — 내 사주가 없는 사람이 사주 이어 보기로 돌아왔을 때(ADR 0128).
+ *
+ * 그 사람을 **홈의 내 사주 카드 그대로** 보인다(`SelfCard`) — 저장하면 홈에서 만날 얼굴이 이것이다. 새 카드 모양을
+ * 짓지 않는다(운영자 2026-09-29).
+ *
+ * 「맞다」면 온보딩과 같은 문으로 내 사주를 등록하고(`saveSelfPerson`) 내 사주풀이 화면으로 간다. **풀이를 대신
+ * 누르지 않는다**(ADR 0028) — 풀이권을 쓰는 누름은 거기서 사용자가 한다. 그래서 단추는 온보딩의 이름
+ * 「내 사주로 저장」을 그대로 쓴다.
+ */
+function SelfConfirm({
+  query,
+  name,
+  onSomeoneElse,
+}: {
+  query: Query;
+  /** 카드에 설 이름 — 내 사주는 닉네임으로 저장된다(`self-person-state.ts`) */
+  name: string;
+  onSomeoneElse: () => void;
+}) {
+  const router = useRouter();
+  const chart = useMemo(() => calculateChart(query), [query]);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [saving, startSaving] = useTransition();
+
+  /* 계산기가 이미 그린 입력이라 여기서 못 푸는 일은 없다 — 그래도 지어낸 카드를 세우지 않는다 */
+  if (!chart.ok) return null;
+
+  const save = () => {
+    setFailure(null);
+    startSaving(async () => {
+      /* 내 사주의 이름은 닉네임이다 — 적은 이름이 비어 있어도(이름 없이 나눈 링크) 막히지 않게 그 이름으로 보낸다 */
+      const saved = await saveSelfPerson({ ...query, name });
+      if (saved.ok) router.push('/me/readings/self');
+      else setFailure(saved.message);
+    });
+  };
+
+  return (
+    <section id="reading-next" className="scroll-mt-24 flex flex-col gap-4">
+      <div>
+        <h2 className="text-base font-semibold">이 사주가 내 사주 맞나요?</h2>
+        <p className="mt-1.5 text-sm leading-6 text-secondary">방금 첫 화면에서 넣은 그대로예요.</p>
+      </div>
+
+      <SelfCard
+        personId={null}
+        label={name}
+        query={query}
+        saju={chart.saju}
+        reading={null}
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}
+            >
+              {saving ? '저장하는 중…' : '내 사주로 저장'}
+            </button>
+            <button
+              type="button"
+              onClick={onSomeoneElse}
+              disabled={saving}
+              className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}
+            >
+              다른 사람의 사주예요
+            </button>
+          </>
+        }
+      />
+
+      {failure !== null && (
+        <p role="alert" className="text-sm leading-6 text-danger">
+          저장하지 못했습니다. {failure}
+        </p>
+      )}
+    </section>
   );
 }

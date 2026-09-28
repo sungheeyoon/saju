@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { signedInUser } from '../../../auth/signed-in';
+import { redirectToSignIn } from '../../../auth/sign-in-redirect';
 import {
   NO_NICKNAME,
   NO_REVIEW_RECORD,
@@ -49,7 +50,7 @@ export default async function OperatorReportPage({
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   const { reportId } = await params;
   const found = await operatorReport(reportId);

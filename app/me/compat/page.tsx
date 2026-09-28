@@ -8,6 +8,7 @@ import { analyzeCompatibility, STEM_INFO, type Stem } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
+import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { CompatView } from '../../compat-view';
 import { MatchResult } from '../../compat-match';
 import { ScoringNote } from '../../match-index';
@@ -60,7 +61,7 @@ export default async function ManagedCompatPage({
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   const params = await searchParams;
   const a = firstOf(params.a);

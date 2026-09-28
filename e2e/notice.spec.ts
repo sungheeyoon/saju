@@ -253,11 +253,12 @@ test.describe('재확인 기준', () => {
     recordAs(signedIn.email, below);
 
     await page.goto('/me/settings');
-    await expect(page).toHaveURL(/\/signup$/);
+    await expect(page).toHaveURL(/\/signup\?next=%2Fme%2Fsettings$/);
 
     await page.getByRole('checkbox', { name: /위 내용을 확인/ }).check();
     await page.getByRole('button', { name: '확인하고 계속하기' }).click();
-    await expect(page).toHaveURL(/\/me$/);
+    /* 다시 확인한 사람은 가려던 화면으로 돌아간다(ADR 0128) */
+    await expect(page).toHaveURL(/\/me\/settings$/);
 
     expect(versionOf(signedIn.email)).toBe(NOTICE_VERSION);
   });

@@ -1,9 +1,11 @@
 import {
+  E2E_CODE,
   answerReading,
   expect,
   leavePersonSlots,
   makeOperator,
   personLimit,
+  seedSignupCode,
   sql,
   test,
 } from './session';
@@ -179,7 +181,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     const { page, api } = await openAs({ selfPerson: true });
     await page.goto('/me');
-    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^내가 받은 사주풀이/ })).toBeVisible();
 
     const { error } = await api.auth.signOut({ scope: 'global' });
     expect(error).toBeNull();
@@ -197,7 +199,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     const { page, account } = await openAs({ selfPerson: true });
     await page.goto('/me');
-    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^내가 받은 사주풀이/ })).toBeVisible();
 
     sql(`delete from auth.users where email = '${account.email}'`);
 
@@ -218,7 +220,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       sql(`select coalesce(extract(epoch from last_active_at)::text, '') from public.user_activity where user_id = '${id}'`);
 
     await page.goto('/me');
-    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^내가 받은 사주풀이/ })).toBeVisible();
     await expect.poll(lastActive).not.toBe('');
 
     sql(`update public.user_activity set last_active_at = now() - interval '1 hour' where user_id = '${id}'`);
@@ -306,6 +308,23 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       `/me/people/${signedIn.selfPersonId}`,
     );
 
+    /*
+      **이번 달 흐름**(ADR 0129) — 오늘 한 줄과 열나흘 띠가 내 카드 옆에 선다. 규칙 문장이라 모델을 안 부른다 — 날짜는
+      서울 달력이다(하루가 어디서 갈리는지는 `app/me/home/day-flow.test.ts` 가 잰다).
+    */
+    const flow = page.getByRole('region', { name: '이번 달 흐름' });
+    const seoulToday = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' });
+    await expect(flow.getByText(`오늘 · ${seoulToday}`, { exact: false })).toBeVisible();
+    await expect(flow.getByText(/날입니다\./)).toBeVisible();
+    await expect(flow.getByRole('list', { name: '앞뒤 열나흘' }).getByRole('listitem')).toHaveCount(14);
+
+    /* 내가 받은 사주풀이 — 아직 한 권도 없으면 받는 자리로 가는 점선 한 권이 선다 */
+    const received = page.getByRole('region', { name: /^내가 받은 사주풀이/ });
+    await expect(received.getByRole('link', { name: '내 사주풀이', exact: true })).toHaveAttribute('href', '/me/readings/self');
+    /* 관계 지도 · 저장한 사람은 궁합 탭에 선다 */
+    await expect(page.getByRole('region', { name: '관계 지도' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toHaveCount(0);
+
     /* 풀이는 홈에 안 선다 — 받는 길만 서고, 그 길은 풀이 화면이다 */
     await mine.getByRole('link', { name: /사주풀이 받기/ }).click();
 
@@ -347,13 +366,24 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
-   * **홈의 관계 지도와 사람 타일** — 저장한 사람이 둘 다에 서고, 타일이 그 사람의 길을 전부 든다.
+   * **궁합 탭의 관계 지도와 사람 타일**(ADR 0129 — 나 탭 홈에서 옮겨 왔다) — 저장한 사람이 둘 다에 서고, 타일이 그 사람의
+   * 길을 전부 든다.
    *
    * 나와 궁합을 아직 안 봤으면 궁합 화면으로 가되 **두 칸이 찬 채로**(`a.person` · `b.person`) 간다.
    * 지도의 원을 누르면 작은 카드가 열리고, 그 카드는 나와의 궁합과 그 사람의 사주 상세로 가는 길을 든다.
    */
-  test('홈은 저장한 사람을 지도와 타일에 세우고 원을 누르면 그 사람의 길이 열린다', async ({ page, signedIn }, testInfo) => {
-    await page.goto('/me');
+  test('궁합 탭은 저장한 사람을 지도와 타일에 세우고 원을 누르면 그 사람의 길이 열린다', async ({ page, signedIn }, testInfo) => {
+    await page.goto('/compat');
+    /* 차례 — 지도와 타일이 먼저, 그 아래 궁합 새로 보기(고르는 칸). 뼈대가 걷힌 뒤에 읽는다(ADR 0116 — 본문은 뼈대 뒤 300ms 뒤에 선다) */
+    await expect(page.getByRole('heading', { name: '궁합 새로 보기' })).toBeVisible();
+    await expect(page.locator('main[data-skeleton]')).toHaveCount(0);
+    const order = await page.locator('main').innerText();
+    expect(order.indexOf('저장한 사람')).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf('저장한 사람')).toBeLessThan(order.indexOf('궁합 새로 보기'));
+    await expect(page.getByRole('link', { name: '궁합', exact: true }).filter({ visible: true }).first()).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
 
     const tile = page.locator('li[id^="person-"]').filter({ has: page.getByRole('link', { name: '어머니', exact: true }) });
     const detail = await tile.getByRole('link', { name: '어머니', exact: true }).getAttribute('href');
@@ -383,13 +413,18 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(map.getByRole('link', { name: '어머니 사주 보기' })).toHaveAttribute('href', `/me/people/${personId}`);
     await expect(map.getByRole('link', { name: /풀이 받기|풀이 보기/ })).toHaveCount(0);
     /* 누른 자리에서 주소가 안 바뀐다 — 자바스크립트가 돌면 카드가 열리는 것이 전부다 */
-    await expect(page).toHaveURL(/\/me$/);
+    await expect(page).toHaveURL(/\/compat$/);
     await map.getByRole('button', { name: '닫기' }).click();
     await expect(map.getByRole('link', { name: '어머니 사주 보기' })).toHaveCount(0);
 
-    /* 나 탭 홈의 바로가기 넷 — 다른 사람 사주와, 탭에서 빠진 책장(ADR 0126)의 길이 여기 선다 */
+    /*
+      나 탭 홈의 바로가기 셋 — 탭에서 빠진 책장(ADR 0126)의 길이 여기 선다. 다른 사람 사주는 받은 사주풀이 아래의
+      단추 하나다(ADR 0129)
+    */
+    await page.goto('/me');
+    await expect(page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' })).toHaveAttribute('href', '/');
     const more = page.getByRole('navigation', { name: '바로가기' });
-    await expect(more.getByRole('link', { name: '다른 사람 사주 보기' })).toHaveAttribute('href', '/');
+    await expect(more.getByRole('link')).toHaveCount(3);
     await expect(more.getByRole('link', { name: '궁합 보러 가기' })).toHaveAttribute('href', '/compat');
     await expect(more.getByRole('link', { name: /오늘의 인연 만나기/ })).toHaveAttribute('href', '/me/matching');
     await expect(more.getByRole('link', { name: '만든 풀이 다시 보기', exact: true })).toHaveAttribute('href', '/me/readings');
@@ -401,7 +436,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       자리에 두른다 — 링크 자신은 `outline-none` 이다. 전역 테두리가 층 밖에 있을 때는 그것을 눌러
       이름 글자 둘레에 한 겹이 더 섰다(2026-09-25 운영에서 잰 것). 사람 화면의 타일도 같은 모양이다.
     */
-    for (const at of ['/me', '/me/people']) {
+    for (const at of ['/compat', '/me/people']) {
       await page.goto(at);
       const name = page.getByRole('main').getByRole('link', { name: '어머니', exact: true }).first();
       const focused = await focusedOutline(name);
@@ -455,7 +490,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await privateReading(me, mother, 78, '같은 우산 아래 걷는 두 사람');
     await privateReading(mother, father, 64, '마주 앉은 두 그루');
 
-    await page.goto('/me');
+    await page.goto('/compat');
     const map = page.getByRole('region', { name: '관계 지도' });
 
     await map.getByRole('link', { name: /^어머니, 일간/ }).click();
@@ -480,6 +515,20 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(card.getByRole('heading', { name: '아버지' })).toBeVisible();
     await expect(card.getByText('아직 둘의 궁합을 보지 않았어요')).toBeVisible();
     await expect(card.getByRole('link', { name: '아버지 · 어머니 궁합 64점' })).toBeVisible();
+
+    /*
+      **궁합풀이 보관함**(ADR 0129) — 본 궁합이 책장의 표지 그대로 고르는 칸 아래에 선다. 직접 본 것은 「직접」 딱지를 달고
+      제 결과 화면으로 간다. 최근 것이 앞이다(DB 의 차례).
+    */
+    const archive = page.getByRole('region', { name: /^궁합풀이 보관함/ });
+    const covers = archive.getByRole('link');
+    await expect(covers).toHaveCount(2);
+    await expect(covers.first()).toContainText(/(어머니 × 아버지|아버지 × 어머니) 궁합/);
+    await expect(covers.first()).toContainText('직접');
+    await expect(covers.nth(1)).toHaveAttribute('href', new RegExp(`^/me/compat\\?a=(${me}&b=${mother}|${mother}&b=${me})$`));
+    /* 나 탭 홈에는 궁합풀이가 안 선다 — 한 사람 풀이만 */
+    await page.goto('/me');
+    await expect(page.getByRole('region', { name: /^내가 받은 사주풀이/ }).getByText('궁합', { exact: false })).toHaveCount(0);
   });
 
   /**
@@ -801,6 +850,48 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('풀이 만드는 중…')).toHaveCount(0);
     await expectReadingCredits(page, '풀이권 5번 중 4번 남음');
     await expect(again).toBeEnabled();
+  });
+
+  /**
+   * **만드는 동안 목차 줄은 서버가 적은 절까지만 「완료」다**(ADR 0127).
+   *
+   * 모델은 안 부른다. 시도를 열고, 얼린 작업을 「제출됨 · 셋째 절 시작」으로 `postgres` 가 적는다 — 스트림을 따라 읽는
+   * 쪽이 적었을 값이다. 화면은 그 값만 그린다: 초를 세지 않고, 적힌 값이 바뀌면 다음 물음(3초)에서 따라온다.
+   */
+  test('풀이를 만드는 동안 목차는 서버가 적은 절까지만 완료이고, 본문을 다 쓰면 마지막 검토로 간다', async ({
+    openAs,
+  }) => {
+    const { page, api } = await openAs({ selfPerson: true });
+    const started = await api.rpc('start_reading_run', {
+      p_kind: 'self',
+      p_idempotency_key: 'e2e-progress-self',
+      p_model: 'gpt-e2e',
+      p_prompt_version: 'reading-prompt-v1',
+    });
+    expect(started.error).toBeNull();
+    const runId = started.data?.[0]?.run_id as string;
+    sql(`update public.reading_job
+           set status = 'submitted', prompt = '# 역할', evidence = '{}', prompt_version = 'reading-prompt-v1',
+               requested_model = 'gpt-e2e', generation = '{}'::jsonb, viewed_at = now(),
+               response_id = 'resp-e2e-${runId}', sections_begun = 3
+         where run_id = '${runId}'`);
+
+    await page.goto('/me/readings/self');
+    const outline = page.getByRole('list', { name: '풀이 목차' });
+    const rows = outline.getByRole('listitem');
+    await expect(rows).toHaveCount(10);
+    await expect(rows.nth(0)).toContainText('완료');
+    await expect(rows.nth(1)).toContainText('완료');
+    await expect(rows.nth(2)).toContainText('쓰는 중');
+    await expect(rows.nth(3)).not.toContainText('완료');
+    await expect(rows.nth(9)).toContainText('마지막 검토');
+    await expect(rows.nth(9)).not.toContainText('검토 중');
+    /* 초를 세던 자리는 걷었다 — 시간으로 채우는 진행이 없다 */
+    await expect(page.getByRole('status').getByText(/^\d+초$/)).toHaveCount(0);
+
+    sql(`update public.reading_job set sections_begun = 9, body_written = true where run_id = '${runId}'`);
+    await expect(rows.nth(9)).toContainText('검토 중', { timeout: 10_000 });
+    await expect(rows.nth(8)).toContainText('완료');
   });
 
   /** 사람 카드의 단일 진입점이 풀이로 가고, 명식은 그 화면의 탭으로 오간다. */
@@ -2329,7 +2420,7 @@ test.describe('가입 관문', () => {
 
     await newcomer.page.goto('/me/settings');
 
-    await expect(newcomer.page).toHaveURL(/\/signup$/);
+    await expect(newcomer.page).toHaveURL(/\/signup\?next=%2Fme%2Fsettings$/);
     await expect(
       newcomer.page.getByRole('button', { name: '다른 계정으로 로그인하기' }),
     ).toBeVisible();
@@ -2686,16 +2777,126 @@ test.describe('사주풀이 공유하기', () => {
 test.describe('자바스크립트 없이 여는 홈', () => {
   test.use({ javaScriptEnabled: false });
 
+  /* 뼈대 뒤에 숨어 흘러온 본문이 제자리처럼 선다(`app/ui/skeleton.tsx` 의 `<noscript>` 규칙) */
+  test('나 탭 홈은 뼈대가 아니라 내 사주와 이번 달 흐름을 세운다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me');
+    await expect(page.getByRole('region', { name: '내 사주' })).toBeVisible();
+    await expect(page.getByRole('region', { name: '이번 달 흐름' })).toBeVisible();
+    await expect(page.locator('main[data-skeleton]')).toBeHidden();
+  });
+
+  /* 관계 지도는 궁합 탭에 산다(ADR 0129) — 궁합 탭에도 뼈대가 있다 */
   test('지도의 원을 누르면 그 사람의 타일로 간다', async ({ page, signedIn }) => {
     expect(signedIn.managed).toContain('어머니');
-    await page.goto('/me');
+    await page.goto('/compat');
     const dot = page.getByRole('region', { name: '관계 지도' }).getByRole('link', { name: /^어머니, 일간/ });
     const target = (await dot.getAttribute('href')) ?? '';
     expect(target).toMatch(/^#person-/);
     /* 원은 가운데에서 제 자리로 퍼져 앉는다 — 앉기 전에 누르면 가운데의 나를 누른다 */
     await dot.evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
     await dot.click();
-    await expect(page).toHaveURL(new RegExp(`/me${target}$`));
+    await expect(page).toHaveURL(new RegExp(`/compat${target}$`));
     await expect(page.locator(`li${target}`).getByRole('link', { name: '풀이 받기' })).toBeVisible();
+  });
+});
+
+/**
+ * **로그인 · 가입은 가려던 곳을 버리지 않는다**(ADR 0128).
+ *
+ * 구글 로그인 자체는 몰 수 없으므로(남의 화면) 로그인을 마친 세션으로 `/auth?next=…` 에 선다 — 로그인을 마친 사람이
+ * 그 주소에 서면 로그인 화면이 목적지로 보낸다(`afterSignIn`). 콜백도 같은 함수를 부른다. 재는 것은 그다음이다:
+ * 관문이 가입 화면을 끼우고, 가입을 마친 사람이 **처음 가려던 곳**에 서는가.
+ */
+test.describe('로그인 · 가입이 목적지를 든다', () => {
+  /** 가입 한 장을 채운다 — 가입 화면의 모양은 그대로다(`notice.spec.ts` 가 모양을 잰다) */
+  const signUp = async (page: Page): Promise<string> => {
+    seedSignupCode();
+    const nickname = `벗${String(Date.now()).slice(-4)}${Math.floor(Math.random() * 90 + 10)}`;
+    await page.getByLabel('테스트 코드').fill(E2E_CODE);
+    await page.getByLabel('닉네임').fill(nickname);
+    await page.getByRole('button', { name: '중복 확인' }).click();
+    await expect(page.getByText('사용할 수 있는 닉네임입니다.')).toBeVisible();
+    await page.getByRole('checkbox', { name: /위 내용을 확인/ }).check();
+    await page.getByRole('button', { name: '가입하고 시작하기' }).click();
+    return nickname;
+  };
+
+  test('궁합 입구로 로그인한 가입 전 계정은 가입을 거쳐 궁합에 선다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipSignup: true });
+
+    await newcomer.page.goto('/auth?next=%2Fcompat');
+    /* 가입 화면이 끼어들어도 `next` 는 최종 목적지 하나다 — 겹치지 않는다 */
+    await expect(newcomer.page).toHaveURL(/\/signup\?next=%2Fcompat$/);
+    await expect(newcomer.page.getByRole('heading', { name: /테스트 코드와 닉네임/ })).toBeVisible();
+
+    await signUp(newcomer.page);
+    await expect(newcomer.page).toHaveURL(/\/compat$/);
+    await expect(slotCard(newcomer.page, '첫 번째')).toBeVisible();
+  });
+
+  test('가입 전 계정이 연 화면은 쿼리까지 들고 가입 화면으로 간다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipSignup: true });
+
+    await newcomer.page.goto('/me/people?from=settings');
+    await expect(newcomer.page).toHaveURL(/\/signup\?next=%2Fme%2Fpeople%3Ffrom%3Dsettings$/);
+
+    await signUp(newcomer.page);
+    /* 도착한 화면이 `?from=` 을 `#from=` 으로 갈아 적는다(`/me/people` 의 몫) — 도착한 것까지 잰다 */
+    await expect(newcomer.page).toHaveURL(/\/me\/people[?#]from=settings$/);
+  });
+
+  /**
+   * **`/` 에서 넣은 생일이 내 사주가 된다.** 처음 온 사람은 대개 자기 생일을 넣는다 — 그대로 「저장한 사람」이 되면
+   * 온보딩에서 같은 생일을 한 번 더 넣고, 첫 풀이권이 다른 사람 풀이에 쓰였다.
+   */
+  test('이어 온 사주를 내 사주로 저장하면 내 사주풀이 화면에 선다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipSignup: true });
+    const { page } = newcomer;
+
+    /* 「로그인하고 계속하기」가 탭에 적어 두는 입력 — 로그인한 창에는 그 링크가 안 서므로 같은 자리에 손으로 적는다 */
+    await page.goto('/');
+    await page.evaluate(() => sessionStorage.setItem('saju:reading-draft', 'name=민수&date=1988-11-07&hour=09:15'));
+
+    await page.goto('/auth?next=%2F%23resume-reading');
+    await expect(page).toHaveURL(/\/signup\?next=%2F%23resume-reading$/);
+    const nickname = await signUp(page);
+
+    await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toBeVisible();
+    /* 내 사주의 이름은 닉네임이다 — 저장하면 홈에서 이 이름으로 선다 */
+    const card = page.getByRole('region', { name: '내 사주' });
+    await expect(card).toContainText(nickname);
+    await expect(card).toContainText('1988-11-07');
+    /* 저장 전이라 풀이 단추는 없다 — 풀이권을 쓰는 누름은 도착한 화면에서 사용자가 한다(ADR 0028) */
+    await expect(card.getByRole('link', { name: /사주풀이 받기/ })).toHaveCount(0);
+
+    await page.getByRole('button', { name: '내 사주로 저장' }).click();
+    await expect(page).toHaveURL(/\/me\/readings\/self$/);
+
+    const self = sql(`select p.original_date from public.app_user u
+      join public.person p on p.id = u.self_person_id
+      join auth.users au on au.id = u.id where au.email = '${newcomer.account.email}'`);
+    expect(self).toBe('1988-11-07');
+  });
+
+  test('「다른 사람의 사주예요」면 저장한 사람으로 저장하는 지금 길이 선다', async ({ page, newcomer }) => {
+    expect(newcomer.email).not.toBe('');
+    await page.goto('/');
+    await page.evaluate(() => sessionStorage.setItem('saju:reading-draft', 'name=영희&date=1988-11-07&hour=09:15'));
+    await page.goto('/#resume-reading');
+
+    await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toBeVisible();
+    await page.getByRole('button', { name: '다른 사람의 사주예요' }).click();
+
+    await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toBeVisible();
+    await page.getByRole('button', { name: '저장하고 계속하기' }).click();
+    await expect(page).toHaveURL(/\/me\/readings\/[0-9a-f-]{36}$/);
+  });
+
+  test('내 사주가 이미 있으면 묻지 않는다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/#date=1988-11-07&hour=09:15');
+    await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toHaveCount(0);
   });
 });

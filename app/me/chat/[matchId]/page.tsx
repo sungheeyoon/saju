@@ -1,10 +1,11 @@
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 import { isBlocked } from '@/src/lib/account';
 import { CHAT_TAB_LABEL, partnerNameOf, roomHeadingOf, roomNoticeOf } from '@/src/lib/chat';
 
 import { supabaseOnServer } from '../../../auth/server-client';
 import { signedInUser } from '../../../auth/signed-in';
+import { redirectToSignIn } from '../../../auth/sign-in-redirect';
 import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { ChatFrame, RoomList } from '../room-list';
@@ -35,7 +36,7 @@ export default async function ChatRoomPage({
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) redirect('/auth');
+  if (!user) return redirectToSignIn();
 
   const { matchId } = await params;
   const { state } = await readAccount(supabase, 'status');
