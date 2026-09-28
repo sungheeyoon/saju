@@ -2,6 +2,7 @@ export * from './gate';
 export * from './notice';
 export * from './schedule';
 export * from './disclosure';
+export * from './counts';
 
 import { ELEMENT_KO } from '../saju';
 import { knownElementsOf } from '../discovery';
@@ -216,7 +217,7 @@ export function notificationText({ kind, nickname, readingKind }: NotificationEv
 export const CONSENT_FLOW_STEPS = [
   {
     title: '요청을 보냅니다',
-    body: '인연 목록에서 마음이 가는 사람에게 「상세 궁합을 함께 보자」고 청합니다. 보내는 것만으로 상대에게 열리는 것은 없고, 상대의 소식에 요청이 하나 뜹니다.',
+    body: '인연 목록에서 마음이 가는 사람에게 「상세 궁합을 함께 보자」고 청합니다. 보내는 것만으로 상대에게 열리는 것은 없고, 상대의 인연 탭에 요청이 하나 뜹니다.',
   },
   {
     title: '상대가 답합니다',

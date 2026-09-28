@@ -141,7 +141,7 @@ const PLAN = [
       },
       { id: 'inspect', at: '/me/reading/inspect?kind=self', name: '해석 내부 보기 (검산)' },
       { id: 'discovery', at: '/me/discovery', name: '인연 찾기 설정' },
-      { id: 'requests', at: '/me/requests', name: '궁합 요청과 새 소식' },
+      { id: 'requests', at: '/me/requests', name: '소식' },
       { id: 'compat-anon', at: '/compat', name: '궁합 — 직접 입력' },
       {
         id: 'compat-anon-result',
@@ -165,7 +165,7 @@ const PLAN = [
     group: '인연',
     shots: [
       { id: 'match', at: (one, all) => `/me/match/${all.matchId}`, name: '함께 보는 궁합' },
-      { id: 'requests-matched', at: '/me/requests', name: '요청함 — 맺어진 뒤' },
+      { id: 'requests-matched', at: '/me/matching', name: '인연 탭의 요청 — 맺어진 뒤' },
       {
         id: 'inspect-match',
         at: (one, all) => `/me/reading/inspect?kind=match&m=${all.matchId}`,

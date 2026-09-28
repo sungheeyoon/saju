@@ -12,7 +12,8 @@ import {
 } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { dbFailure, read, unread, type SkippableRead } from '../../db-error';
+import { dbFailure, type SkippableRead } from '../../db-error';
+import { readUnreadNotifications } from './unread';
 
 /**
  * **요청·Match·알림이 브라우저로 내려가는 유일한 문.**
@@ -69,12 +70,11 @@ type InboxNotification = {
   readonly kind: NotificationKind;
   readonly text: string;
   /**
-   * 가서 볼 자리 — **실패 알림에만 있다.**
+   * 가서 볼 자리 — **요청의 소식과 실패 알림에 있다.**
    *
-   * 다른 사건은 요청과 Match 를 이 화면이 이미 세우고 있어 갈 곳이 여기다. 실패는
-   * 다르다. 어느 대상인지 아는 것과 **그 자리로 가는 것**은 다른 일이고, 비공개
-   * 궁합은 두 사람을 다시 골라야 닿는다. 못 찾으면 `null` — 아무 데도 안 가는 링크를
-   * 세우지 않는다.
+   * 요청은 인연 탭에 산다(ADR 0129) — 소식은 그리로 간다. 실패는 어느 대상인지 아는 것과
+   * **그 자리로 가는 것**이 다른 일이고, 비공개 궁합은 두 사람을 다시 골라야 닿는다.
+   * 못 찾으면 `null` — 아무 데도 안 가는 링크를 세우지 않는다. 공유 결과가 바뀐 소식은 아직 글자로만 선다.
    */
   readonly href: string | null;
   readonly createdAt: string;
@@ -82,10 +82,12 @@ type InboxNotification = {
 };
 
 export type Inbox = {
-  readonly requests: InboxRequest[];
-  readonly matches: InboxMatch[];
   readonly notifications: InboxNotification[];
   readonly unread: number;
+};
+
+export type Requests = {
+  readonly requests: InboxRequest[];
   readonly blocked: number;
 };
 
@@ -109,17 +111,30 @@ export async function matchesForViewer(): Promise<readonly InboxMatch[]> {
   return (data ?? []).map(matchOf);
 }
 
+/** 요청에서 난 소식 — 누르면 인연 탭으로 간다 */
+const REQUEST_NOTIFICATIONS: readonly NotificationKind[] = [
+  'request_received',
+  'request_accepted',
+  'request_rejected',
+  'request_invalidated',
+  'request_expired',
+];
+
 /**
- * 실패한 시도를 다시 누를 수 있는 자리.
+ * 소식 한 줄이 가리키는 자리.
  *
  * **주소를 지어 내지 않는다.** 대상을 못 알아보면 `null` 이고, 그때 알림은 글자로만
  * 선다 — 눌러도 아무것도 없는 줄을 만들지 않는다.
+ *
+ * 요청의 소식은 **인연 탭**으로 간다(ADR 0129) — 받은 요청 · 보낸 요청 · 끝난 요청이 거기 산다. 성립한 요청도
+ * 그렇다 — 결과 화면은 풀이 목록이 든다(소식 화면에 Match 로 가는 길을 따로 세우지 않는다, `check-match` 7).
  */
 function destinationFor(
   kind: NotificationKind,
   readingKind: ReadingKind | null,
   row: NotificationRow,
 ): string | null {
+  if (REQUEST_NOTIFICATIONS.includes(kind)) return '/me/matching';
   if (kind !== 'reading_failed') return null;
 
   if (readingKind === 'self') return '/me/readings/self';
@@ -138,93 +153,106 @@ function destinationFor(
   return null;
 }
 
+/** 요청 한 줄을 도메인 말로 — 모르는 상태는 그리지 않는다 */
+function requestOf(row: RequestRow): InboxRequest[] {
+  const status = REQUEST_STATUSES.find((known) => known === row.status);
+  // 모르는 상태는 그리지 않는다. 「알 수 없음」으로 세워 두면 사용자가 그 카드로
+  // 무엇을 할 수 있는지 알 수 없다.
+  if (status === undefined) return [];
+
+  return [
+    {
+      requestId: row.request_id,
+      direction: row.direction === 'sent' ? ('sent' as const) : ('received' as const),
+      counterpartUserId: row.counterpart_user_id,
+      nickname: row.counterpart_nickname ?? '',
+      intro: row.counterpart_intro,
+      hasPhoto: row.counterpart_has_photo === true,
+      status,
+      suppliedToMe: suppliedText(row.supplied_to_me, 'toMe'),
+      suppliedToThem: suppliedText(row.supplied_to_them, 'toThem'),
+      balanceLabel: balanceLabelOf(row.balance_band),
+      createdAt: row.created_at,
+      decidedAt: row.decided_at,
+    },
+  ];
+}
+
 /**
- * 지금 내 요청함.
+ * 내 요청 — 인연 탭 맨 위에 선다(ADR 0129).
  *
- * 넷을 한 번에 읽는다. 나눠 부르면 화면이 「알림은 왔는데 요청은 아직 없는」 찰나를
- * 그리게 되고, 그 찰나는 사용자에게 고장으로 보인다.
+ * 요청과 차단 수를 한 번에 읽는다. 차단은 요청 카드에서 일어나고, 차단한 뒤에 「몇 명을 차단했나」가 같은
+ * 자리에 서야 누른 것이 어디 갔는지 보인다.
  */
-export async function inboxForViewer(): Promise<Inbox> {
+export async function requestsForViewer(): Promise<Requests> {
   const supabase = await supabaseOnServer();
 
-  const [requests, matches, notifications, blocked] = await Promise.all([
+  const [requests, blocked] = await Promise.all([
     supabase.rpc('my_match_requests'),
-    supabase.rpc('my_matches'),
-    supabase.rpc('my_notifications'),
     // 차단 목록은 정책이 자기 행만 연다. **누구인지는 세지 않고 몇인지만 센다** —
     // 차단한 뒤에는 그 사람의 프로필을 읽을 이유가 없다.
     supabase.from('block').select('blocked_user_id'),
   ]);
 
-  for (const { error } of [requests, matches, notifications, blocked]) {
+  for (const { error } of [requests, blocked]) {
     // 「이용이 정지된 계정입니다」 같은 거절은 DB 가 문장으로 낸다. 여기서 다시 판정하지 않는다.
     if (error) throw dbFailure(error, 'inbox');
   }
 
   const requestRows: RequestRow[] = requests.data ?? [];
-  const matchRows: MatchRow[] = matches.data ?? [];
-  const notificationRows: NotificationRow[] = notifications.data ?? [];
-
   return {
-    requests: requestRows.flatMap((row) => {
-      const status = REQUEST_STATUSES.find((known) => known === row.status);
-      // 모르는 상태는 그리지 않는다. 「알 수 없음」으로 세워 두면 사용자가 그 카드로
-      // 무엇을 할 수 있는지 알 수 없다.
-      if (status === undefined) return [];
-
-      return [
-        {
-          requestId: row.request_id,
-          direction: row.direction === 'sent' ? ('sent' as const) : ('received' as const),
-          counterpartUserId: row.counterpart_user_id,
-          nickname: row.counterpart_nickname ?? '',
-          intro: row.counterpart_intro,
-          hasPhoto: row.counterpart_has_photo === true,
-          status,
-          suppliedToMe: suppliedText(row.supplied_to_me, 'toMe'),
-          suppliedToThem: suppliedText(row.supplied_to_them, 'toThem'),
-          balanceLabel: balanceLabelOf(row.balance_band),
-          createdAt: row.created_at,
-          decidedAt: row.decided_at,
-        },
-      ];
-    }),
-
-    matches: matchRows.map(matchOf),
-
-    notifications: notificationRows.flatMap((row) => {
-      const kind = NOTIFICATION_KINDS.find((known) => known === row.kind);
-      if (kind === undefined) return [];
-
-      const readingKind = READING_KINDS.find((known) => known === row.reading_kind) ?? null;
-
-      return [
-        {
-          notificationId: row.notification_id,
-          kind: kind as NotificationKind,
-          // **문장은 DB 가 저장하지 않는다.** 사건과 상대만 오고 말은 정책이 짓는다.
-          text: notificationText({
-            kind: kind as NotificationKind,
-            nickname: row.counterpart_nickname,
-            readingKind,
-          }),
-          href: destinationFor(kind as NotificationKind, readingKind, row),
-          createdAt: row.created_at,
-          unread: row.read_at === null,
-        },
-      ];
-    }),
-
-    unread: notificationRows.filter((row) => row.read_at === null).length,
+    requests: requestRows.flatMap(requestOf),
     blocked: (blocked.data ?? []).length,
   };
 }
 
-/** 다른 화면이 배지 하나를 세우려고 부른다 — 목록 전체를 읽지 않는다 */
-export async function unreadCount(): Promise<SkippableRead<number>> {
+/** 소식 한 줄을 도메인 말로 */
+function notificationOf(row: NotificationRow): InboxNotification[] {
+  const kind = NOTIFICATION_KINDS.find((known) => known === row.kind);
+  if (kind === undefined) return [];
+
+  const readingKind = READING_KINDS.find((known) => known === row.reading_kind) ?? null;
+
+  return [
+    {
+      notificationId: row.notification_id,
+      kind: kind as NotificationKind,
+      // **문장은 DB 가 저장하지 않는다.** 사건과 상대만 오고 말은 정책이 짓는다.
+      text: notificationText({
+        kind: kind as NotificationKind,
+        nickname: row.counterpart_nickname,
+        readingKind,
+      }),
+      href: destinationFor(kind as NotificationKind, readingKind, row),
+      createdAt: row.created_at,
+      unread: row.read_at === null,
+    },
+  ];
+}
+
+/**
+ * 지금 내 소식 — 종(`/me/requests`)의 본체다.
+ *
+ * 요청은 여기 없다 — 인연 탭이 `requestsForViewer` 로 읽는다(ADR 0129). `unread` 는 **읽음으로 바꿀 것의 수**라
+ * 요청이 왔다는 소식까지 센다 — 이 화면에 들어오면 그 줄도 읽은 것이다. 머리글의 딱지(`bellCount`)와는 다른 값이다.
+ */
+export async function inboxForViewer(): Promise<Inbox> {
   const supabase = await supabaseOnServer();
-  const { data, error } = await supabase.rpc('unread_notifications');
-  /* **부속 정보다** — 못 읽으면 띠를 안 세운다. `0` 은 읽어서 안 값이라 다르다(ADR 0078) */
-  if (error) return unread(error, 'unread_notifications');
-  return read(typeof data === 'number' ? data : 0);
+
+  const { data, error } = await supabase.rpc('my_notifications');
+  if (error) throw dbFailure(error, 'inbox');
+
+  const notificationRows: NotificationRow[] = data ?? [];
+  return {
+    notifications: notificationRows.flatMap(notificationOf),
+    unread: notificationRows.filter((row) => row.read_at === null).length,
+  };
+}
+
+/**
+ * 다른 화면이 배지 하나를 세우려고 부른다 — **머리글의 종과 같은 수**다(`readUnreadNotifications`, ADR 0129).
+ * 요청이 왔다는 소식은 인연 탭이 세므로 여기서 빠진다.
+ */
+export async function unreadCount(): Promise<SkippableRead<number>> {
+  return readUnreadNotifications(await supabaseOnServer());
 }

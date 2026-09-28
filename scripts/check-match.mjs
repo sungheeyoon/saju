@@ -157,6 +157,27 @@ const plain = (html) => html.replace(/<!--\s*-->/g, '');
  */
 const text = (html) => plain(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
+/**
+ * 인연 탭 맨 위의 요청 자리(`#requests-lead`, ADR 0129) — **그 요소 하나의 마크업만.**
+ *
+ * 요청이 종에서 인연 탭으로 오면서 같은 응답에 덱과 내 궤도 지도가 함께 선다. 그 둘은 내 일간과 후보의 점수를
+ * 들고 있어야 하는 자리라, 「요청 카드가 무엇을 말하는가」를 응답 전체로 재면 덱이 걸린다. 요청 자리의 클라이언트
+ * 부품은 요청 · 사람 id 만 받으므로(`requests-lead.tsx`) 서버가 그린 이 마크업이 요청이 브라우저에 내주는 글자의 전부다.
+ */
+const leadOf = (html) => {
+  const at = html.indexOf('id="requests-lead"');
+  if (at < 0) return '';
+  const start = html.lastIndexOf('<div', at);
+  const tags = /<div\b|<\/div>/g;
+  tags.lastIndex = start;
+  let depth = 0;
+  for (let tag = tags.exec(html); tag !== null; tag = tags.exec(html)) {
+    depth += tag[0] === '</div>' ? -1 : 1;
+    if (depth === 0) return html.slice(start, tags.lastIndex);
+  }
+  return html.slice(start);
+};
+
 /** `/me` 의 「요청과 알림」 옆에 선 수 — 없으면 `'0'` */
 const badge = async (cookie) => (/(\d+) 건 안 읽음/.exec(text(await body('/me', cookie))) ?? [null, '0'])[1];
 
@@ -215,18 +236,27 @@ try {
   check('후보로 본 사람에게는 청할 수 있다', !asked.error, asked.error?.message ?? '');
 
   {
-    const html = await body('/me/matching', aCookie);
-    check('청한 사람은 후보 목록에서 빠진다', !html.includes(NAME.b) && html.includes(NAME.c));
+    /*
+      **덱을 내주는 문으로 잰다.** 인연 탭에는 이제 보낸 요청도 서므로(ADR 0129) 화면 전체에서 이름을 찾으면 보낸
+      요청 줄이 걸린다. 덱이 읽는 문(`my_discovery_board`)이 그 사람을 안 내주는지를 본다 — 화면이 부르는 그 문이다.
+    */
+    await get('/me/matching', aCookie);
+    const { data: board, error } = await a.rpc('my_discovery_board');
+    const names = (board ?? []).map((row) => row.nickname);
+    check('청한 사람은 후보 목록에서 빠진다', !error && !names.includes(NAME.b) && names.includes(NAME.c),
+      error?.message ?? names.join(', '));
   }
 
-  // ── 4. 받는 쪽 화면 — **동의 화면이다** ─────────────────────────────────────
+  // ── 4. 받는 쪽 화면 — **동의 화면이다**(인연 탭 맨 위, ADR 0129) ─────────────────
   {
-    const html = await body('/me/requests', bCookie);
+    const html = leadOf(await body('/me/matching', bCookie));
     const text = plain(html);
 
-    check('받은 요청이 화면에 선다', text.includes('받은 요청') && html.includes(NAME.a));
-    check('새 요청 알림이 뜬다',
-      text.includes(`${NAME.a} 님이 상세 궁합을 함께 보자고 요청했습니다`));
+    check('받은 요청이 인연 탭에 선다', text.includes('받은 요청') && html.includes(NAME.a));
+    const news = plain(await body('/me/requests', bCookie));
+    check('새 요청 알림이 종의 소식에 뜨고 인연 탭으로 간다',
+      news.includes(`${NAME.a} 님이 상세 궁합을 함께 보자고 요청했습니다`) && news.includes('href="/me/matching"'));
+    check('소식 화면에는 받은 요청 카드가 없다', !news.includes('수락하고 궁합 열기'));
 
     check('수락 카드가 여덟 글자 공개와 함께 보는 궁합을 한 문장으로 묻는다',
       text.includes('당신의 사주팔자 여덟 글자가 상대에게 공개됩니다')
@@ -266,9 +296,13 @@ try {
       (/[甲乙丙丁戊己庚辛壬癸子丑寅卯辰巳午未申酉戌亥]/.exec(html) ?? [''])[0]);
   }
 
-  // ── 5. 앱 내 알림은 들어왔을 때 눈에 띈다 ───────────────────────────────────
+  // ── 5. 요청 하나는 딱지 하나만 켠다(ADR 0129) ─────────────────────────────────
   {
-    check('내 사주 화면에 안 읽은 알림 수가 선다', (await badge(bCookie)) === '1', await badge(bCookie));
+    /*
+      **요청이 왔다는 소식은 종이 안 센다** — 그 요청은 인연 탭이 「답할 요청」으로 센다. 나 탭의 띠는 종과 같은 수다.
+      인연 탭의 딱지는 머리글이 브라우저에서 세므로 e2e 가 잰다(`match.spec.ts`).
+    */
+    check('받은 요청의 도착은 내 사주 화면의 소식 수에 안 선다', (await badge(bCookie)) === '0', await badge(bCookie));
     check('청한 쪽에는 알림이 서지 않는다 — 자기가 한 일이다',
       (await badge(aCookie)) === '0', await badge(aCookie));
   }
@@ -329,8 +363,9 @@ try {
     const asker = plain(await body('/me/requests', aCookie));
     check('출생 정보를 고치면 pending 이 무효가 된다',
       asker.includes(`${NAME.c} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다`));
-    check('무효가 된 요청은 기다리는 목록에서 내려간다',
-      asker.includes('기다리는 중인 요청이 없습니다'));
+    const askerTab = text(leadOf(await body('/me/matching', aCookie)));
+    check('무효가 된 요청은 보낸 요청에서 내려간다',
+      !/보낸 요청 \d+개/.test(askerTab) && askerTab.includes('끝난 요청'), askerTab.slice(0, 200));
 
     const other = plain(await body('/me/requests', cCookie));
     check('무효화는 양쪽 다 알림을 받는다',
@@ -346,7 +381,7 @@ try {
      * 지우지 않는다(사건은 일어났다). Match 칸이 비었는지는 그 칸에만 서는 것으로 잰다 —
      * 결과로 들어가는 길이 그것이다.
      */
-    const asker = plain(await body('/me/requests', aCookie));
+    const asker = plain(leadOf(await body('/me/matching', aCookie)));
     const askerReadings = plain(await body('/me/readings', aCookie));
     check('차단하면 풀이 탭의 Match 가 목록에서 내려간다', !askerReadings.includes('/me/match/'));
     check('차단한 사람이 몇인지는 말하되 누구인지는 적지 않는다',

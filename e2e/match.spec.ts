@@ -100,6 +100,33 @@ async function pendingRequest(from: Person, to: Person): Promise<void> {
   if (asked.error) throw new Error(`요청을 못 보냈습니다 — ${asked.error.message}`);
 }
 
+/** 받은 요청 하나에 화면을 안 거치고 답한다 — 화면으로 재는 자리가 아닐 때 */
+async function respondThroughApi(person: Person, accept: boolean): Promise<void> {
+  const mine = await person.api.rpc('my_match_requests');
+  if (mine.error) throw new Error(`요청을 못 읽었습니다 — ${mine.error.message}`);
+  const received = (mine.data as { request_id: string; direction: string; status: string }[]).find(
+    (row) => row.direction === 'received' && row.status === 'pending',
+  );
+  if (!received) throw new Error('답할 요청이 없습니다.');
+  const answered = await person.api.rpc('respond_to_match_request', { p_request_id: received.request_id, p_accept: accept });
+  if (answered.error) throw new Error(`답하지 못했습니다 — ${answered.error.message}`);
+}
+
+/**
+ * 인연 탭 맨 위의 「받은 요청」 절(ADR 0129). **절로 좁혀서 잡는다** — 같은 화면의 덱에도 사람 이름의 제목이 서므로,
+ * 이름으로만 찾으면 요청 카드인지 후보 카드인지 가르지 못한다.
+ */
+function receivedRequests(person: Person): Locator {
+  return person.page.locator('section').filter({
+    has: person.page.getByRole('heading', { level: 2, name: '받은 요청' }),
+  });
+}
+
+/** 보낸 요청 · 끝난 요청 · 차단 수가 든 한 줄 접이칸을 편다 */
+async function openRequestLog(person: Person): Promise<void> {
+  await person.page.locator('summary').filter({ hasText: /보낸 요청|끝난 요청|요청 기록/ }).first().click();
+}
+
 test.describe('동의로 열리는 흐름', () => {
   test('내 사주의 소식 버튼으로 들어오면 도착한 소식을 모두 읽은 것으로 남긴다', async ({
     openAs,
@@ -110,17 +137,48 @@ test.describe('동의로 열리는 흐름', () => {
 
     await bothParticipate(asker, receiver, tag);
     await pendingRequest(asker, receiver);
+    /*
+      **요청이 왔다는 소식은 종이 안 센다** — 그 요청은 인연 탭이 센다(ADR 0129). 그래서 거절을 받은 쪽(청한 사람)의
+      소식으로 잰다 — 답이 난 뒤의 소식은 종이 센다.
+    */
+    await respondThroughApi(receiver, false);
 
-    await receiver.page.goto('/me');
-    await expect(receiver.page.getByText('아직 확인하지 않은 새 소식이 있습니다.')).toBeVisible();
-    await receiver.page.getByText('아직 확인하지 않은 새 소식이 있습니다.').click();
+    await asker.page.goto('/me');
+    await expect(asker.page.getByText('아직 확인하지 않은 새 소식이 있습니다.')).toBeVisible();
+    await asker.page.getByText('아직 확인하지 않은 새 소식이 있습니다.').click();
 
-    await expect(receiver.page).toHaveURL(/\/me\/requests$/);
+    await expect(asker.page).toHaveURL(/\/me\/requests$/);
     // 처음 내려온 알림의 읽지 않음 표시는 자동 읽음 처리 뒤의 refresh 에서 사라진다.
-    await expect(receiver.page.getByLabel('읽지 않음')).toHaveCount(0);
+    await expect(asker.page.getByLabel('읽지 않음')).toHaveCount(0);
+
+    await asker.page.goto('/me');
+    await expect(asker.page.getByText('아직 확인하지 않은 새 소식이 있습니다.')).toHaveCount(0);
+  });
+
+  /**
+   * **요청 하나가 딱지 하나만 켠다**(ADR 0129). 받은 요청은 인연 탭이 「답할 요청」으로 세고, 종은 그 도착을 안 센다 —
+   * 같은 일을 두 자리에서 세면 둘 다 덜 읽힌다. 답하면 탭의 딱지가 그 자리에서 내려간다.
+   */
+  test('받은 요청은 인연 탭의 딱지가 세고 종은 안 켜진다', async ({ openAs }) => {
+    const tag = freshTag();
+    const asker = await openAs({ selfPerson: true });
+    const receiver = await openAs({ selfPerson: true });
+
+    await bothParticipate(asker, receiver, tag);
+    await pendingRequest(asker, receiver);
 
     await receiver.page.goto('/me');
+    const banner = receiver.page.getByRole('banner');
+    const tab = receiver.page.getByRole('link', { name: /^인연\s*1\s*건 답할 요청$/ }).filter({ visible: true });
+    await expect(tab).toBeVisible();
+    await expect(banner.getByRole('link', { name: /^소식/ })).toHaveAccessibleName('소식');
+    /* 나 탭의 소식 띠도 종과 같은 수를 센다 */
     await expect(receiver.page.getByText('아직 확인하지 않은 새 소식이 있습니다.')).toHaveCount(0);
+
+    await tab.click();
+    await expect(receiver.page).toHaveURL(/\/me\/matching$/);
+    await receivedRequests(receiver).getByRole('button', { name: '거절' }).click();
+    await expect(receiver.page.getByRole('link', { name: /답할 요청/ })).toHaveCount(0);
   });
 
   test('저장한 사람은 이미 참여 중이고, 요청을 보내 수락하면 같은 결과 화면에 선다', async ({ openAs }) => {
@@ -200,22 +258,19 @@ test.describe('동의로 열리는 흐름', () => {
     await sentRequest(asker);
 
     // ── 받은 쪽이 읽고 수락한다 ─────────────────────────────────────────────
-    await receiver.page.goto('/me/requests');
+    await receiver.page.goto('/me/matching');
     /*
-      **화면이 자기가 무엇을 하는 곳인지부터 말한다.** 제목 한 줄과 세 걸음이 함께
+      **받은 요청은 인연 탭 맨 위에 선다**(ADR 0129). 절 「받은 요청」과 세 걸음이 함께
       서지 않으면 「동의」라는 낱말만 남고, 받은 쪽은 자기가 무엇을 정하는 중인지
-      모른 채 버튼을 고른다(`CONSENT_FLOW_STEPS`). 5차부터 제목은 메뉴의 이름(「소식」) 그대로이고,
-      답할 일이 무엇인지는 바로 아래 첫 절 「받은 요청」이 말한다.
+      모른 채 버튼을 고른다(`CONSENT_FLOW_STEPS`).
     */
-    await expect(receiver.page.getByRole('heading', { level: 1, name: '소식' })).toBeVisible();
-    await expect(receiver.page.getByRole('heading', { level: 2, name: '받은 요청' })).toBeVisible();
-    await receiver.page.getByText('궁합 요청은 어떻게 진행되나요?').click();
-    await expect(receiver.page.getByRole('listitem').filter({ hasText: '요청을 보냅니다' })).toBeVisible();
-    await expect(receiver.page.getByText('보내는 것만으로 상대에게 열리는 것은 없고')).toBeVisible();
-    await expect(receiver.page.getByRole('heading', { name: `보내는${tag}` })).toBeVisible();
-    const receivedSection = receiver.page.locator('section').filter({
-      has: receiver.page.getByRole('heading', { name: '받은 요청' }),
-    });
+    await expect(receiver.page.getByRole('heading', { level: 1, name: '오늘의 인연' })).toBeVisible();
+    const receivedSection = receivedRequests(receiver);
+    await expect(receivedSection).toBeVisible();
+    await receivedSection.getByText('궁합 요청은 어떻게 진행되나요?').click();
+    await expect(receivedSection.getByRole('listitem').filter({ hasText: '요청을 보냅니다' })).toBeVisible();
+    await expect(receivedSection.getByText('보내는 것만으로 상대에게 열리는 것은 없고')).toBeVisible();
+    await expect(receivedSection.getByRole('heading', { name: `보내는${tag}` })).toBeVisible();
     const receivedCard = receivedSection.getByRole('listitem').filter({ hasText: `보내는${tag}` });
     await expect(receivedCard).toContainText('당신의 사주팔자 여덟 글자가 상대에게 공개');
     await expect(receivedCard).toContainText('상대와 자세한 궁합을 함께 보는 데 동의하시겠어요?');
@@ -292,7 +347,7 @@ test.describe('동의로 열리는 흐름', () => {
     await bothParticipate(asker, receiver, tag);
     await pendingRequest(asker, receiver);
 
-    await receiver.page.goto('/me/requests');
+    await receiver.page.goto('/me/matching');
     await expect(receiver.page.getByRole('button', { name: '수락하고 궁합 열기' })).toBeVisible();
 
     // 보낸 쪽이 Evidence 를 바꾼다 — 이름이 아니라 여덟 글자를 바꾸는 수정이다.
@@ -310,8 +365,13 @@ test.describe('동의로 열리는 흐름', () => {
       `cancelled` 를 갈라서 말하기로 한 것이 여기서 실제로 읽힌다.
     */
     await receiver.page.reload();
+    await expect(receiver.page.getByRole('heading', { level: 1, name: '오늘의 인연' })).toBeVisible();
     await expect(receiver.page.getByRole('button', { name: '수락하고 궁합 열기' })).toHaveCount(0);
-    await expect(receiver.page.getByText('답할 요청이 없습니다')).toBeVisible();
+    await expect(receivedRequests(receiver)).toHaveCount(0);
+    /* 무효가 된 까닭은 끝난 요청의 줄과 종의 소식 둘 다 말한다 */
+    await openRequestLog(receiver);
+    await expect(receiver.page.getByText('출생 정보가 바뀌어 요청이 무효가 되었습니다', { exact: false })).toBeVisible();
+    await receiver.page.goto('/me/requests');
     await expect(
       receiver.page.getByText(`가${tag} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다`),
     ).toBeVisible();
@@ -325,8 +385,8 @@ test.describe('동의로 열리는 흐름', () => {
     await bothParticipate(asker, receiver, tag);
     await pendingRequest(asker, receiver);
 
-    await receiver.page.goto('/me/requests');
-    await receiver.page.getByRole('button', { name: '신고', exact: true }).click();
+    await receiver.page.goto('/me/matching');
+    await receivedRequests(receiver).getByRole('button', { name: '신고', exact: true }).click();
 
     /*
       **차단과 무엇이 다른지 먼저 읽힌다.** 나란한 두 버튼이 같은 무게로 읽히면
@@ -394,8 +454,9 @@ test.describe('동의로 열리는 흐름', () => {
     }
 
     // 답을 기다리던 요청은 정리된다 — 상대가 답할 수 없는 요청을 계속 보지 않는다.
-    await other.page.goto('/me/requests');
-    await expect(other.page.getByText('기다리는 중인 요청이 없습니다')).toBeVisible();
+    await other.page.goto('/me/matching');
+    await expect(other.page.getByRole('heading', { level: 1, name: '오늘의 인연' })).toBeVisible();
+    await expect(other.page.getByText(/보낸 요청 \d+개/)).toHaveCount(0);
   });
 
   /**
@@ -478,12 +539,11 @@ test.describe('동의로 열리는 흐름', () => {
     await asker.page.keyboard.press('Enter');
     await sentRequest(asker);
     // 눌린 것이 실제로 요청이 됐는지는 목록에서 본다 — 초점만 닿고 안 눌리면 여기서 갈린다.
-    await asker.page.goto('/me/requests');
-    await expect(asker.page.getByRole('heading', { name: '보낸 요청' })).toBeVisible();
-    await expect(asker.page.getByText('기다리는 중인 요청이 없습니다')).toHaveCount(0);
+    await asker.page.goto('/me/matching');
+    await expect(asker.page.getByText('보낸 요청 1개')).toBeVisible();
 
-    await receiver.page.goto('/me/requests');
-    const received = receiver.page.getByRole('listitem').filter({ hasText: `가${tag}` });
+    await receiver.page.goto('/me/matching');
+    const received = receivedRequests(receiver).getByRole('listitem').filter({ hasText: `가${tag}` });
     /* 카드 밑단의 조용한 글자 둘 — 「차단」은 글자 둘이라 폭이 31.8px 이었다(2026-09-25) */
     await expectTargets({
       '요청 카드의 차단': received.getByRole('button', { name: '차단', exact: true }),
@@ -492,7 +552,7 @@ test.describe('동의로 열리는 흐름', () => {
     await reach(receiver, '수락하고 궁합 열기', received);
     await receiver.page.keyboard.press('Enter');
     /**
-     * **수락은 화면을 옮기지 않는다**(ADR 0058) — 성립한 궁합은 소식이 아니라 풀이
+     * **수락은 화면을 옮기지 않는다**(ADR 0058) — 성립한 궁합은 요청 카드 자리가 아니라 풀이
      * 목록에 선다. 그래서 답이 난 것을 이 자리에서 재고, 결과가 어디 서는지는 흐름
      * 시험이 따로 잡는다. 결과 화면으로 옮겨 가는 것을 여기서 기다리면, 안 눌렸을
      * 때와 「안 옮겨 가는 것이 맞을 때」가 같은 실패로 보인다.
@@ -506,7 +566,7 @@ test.describe('동의로 열리는 흐름', () => {
      * 차단은 **한 번 더 묻는다.** 그래서 키보드로 닿아야 하는 문이 둘이다 — 여는
      * 것과 확인하는 것. 확인 칸이 탭 순서 밖에 있으면 마우스로만 차단할 수 있게 된다.
      *
-     * **수락한 뒤의 차단은 결과 화면에 있다.** 소식의 카드는 답이 난 순간 「끝난 요청」
+     * **수락한 뒤의 차단은 결과 화면에 있다.** 인연 탭의 요청 카드는 답이 난 순간 「끝난 요청」
      * 으로 접히고, 그 줄에는 조작이 없다 — 성립한 쌍을 끊는 자리는 풀이가 사는 곳이다.
      */
     await receiver.page.goto('/me/readings');
@@ -525,12 +585,14 @@ test.describe('동의로 열리는 흐름', () => {
     await bothParticipate(asker, receiver, tag);
     await pendingRequest(asker, receiver);
 
-    await receiver.page.goto('/me/requests');
-    await expect(receiver.page.getByRole('heading', { name: `가${tag}` })).toBeVisible();
+    await receiver.page.goto('/me/matching');
+    await expect(receivedRequests(receiver).getByRole('heading', { name: `가${tag}` })).toBeVisible();
 
     // 차단은 한 번 더 묻는다 — 되돌리지 않기 때문이다(용어집).
-    await receiver.page.getByRole('button', { name: '차단', exact: true }).click();
-    await receiver.page.getByRole('button', { name: '차단하기' }).click();
+    await receivedRequests(receiver).getByRole('button', { name: '차단', exact: true }).click();
+    await receivedRequests(receiver).getByRole('button', { name: '차단하기' }).click();
+    await expect(receivedRequests(receiver)).toHaveCount(0);
+    await openRequestLog(receiver);
 
     /*
       **누구를 차단했는지는 적지 않는다.** 차단한 뒤에는 그 사람의 프로필을 읽을 이유가
@@ -590,9 +652,9 @@ test.describe('덱으로 보는 오늘의 인연', () => {
     await confirming.getByRole('button', { name: '요청 보내기' }).click();
     await sentRequest(asker);
 
-    // 눌린 것이 실제로 요청이 됐는지는 **받은 쪽에서** 본다.
-    await receiver.page.goto('/me/requests');
-    await expect(receiver.page.getByRole('heading', { name: `가${tag}` })).toBeVisible();
+    // 눌린 것이 실제로 요청이 됐는지는 **받은 쪽에서** 본다 — 인연 탭 맨 위의 받은 요청(ADR 0129).
+    await receiver.page.goto('/me/matching');
+    await expect(receivedRequests(receiver).getByRole('heading', { name: `가${tag}` })).toBeVisible();
   });
 });
 

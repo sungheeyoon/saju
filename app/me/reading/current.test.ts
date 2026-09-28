@@ -108,8 +108,19 @@ describe('부속 정보는 값으로 말한다', () => {
    * **같은 이유로 안 세우는 것이 아니다.**
    */
   it('소식 0건은 읽어서 안 값이고, 못 읽은 것과 갈린다', async () => {
-    answering({ data: 0, error: null });
+    answering({ data: [], error: null });
     expect(await unreadCount()).toEqual({ ok: true, value: 0 });
+
+    /* 요청이 왔다는 소식은 인연 탭이 센다 — 종의 수에서 빠진다(ADR 0129) */
+    answering({
+      data: [
+        { kind: 'request_received', read_at: null },
+        { kind: 'reading_failed', read_at: null },
+        { kind: 'request_accepted', read_at: '2026-09-29T00:00:00Z' },
+      ],
+      error: null,
+    });
+    expect(await unreadCount()).toEqual({ ok: true, value: 1 });
 
     answering(BROKEN);
     expect((await unreadCount()).ok).toBe(false);

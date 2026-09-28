@@ -2,63 +2,33 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { isBlocked } from '@/src/lib/account';
-import {
-  CONSENT_FLOW_CAVEAT,
-  CONSENT_FLOW_STEPS,
-  REQUEST_STATUS_TEXT,
-  type NotificationKind,
-} from '@/src/lib/consent';
+import type { NotificationKind } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { answerOfThrown } from '../../db-error';
 import { Icon, type IconName } from '../../ui/icons';
-import { BADGE, CARD, ROW_CARD, TYPE_META, TYPE_NAME, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
-import { Avatar } from '../avatar';
+import { TYPE_META, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
-import { inboxForViewer, type Inbox, type InboxRequest } from './inbox';
-import {
-  BlockButton,
-  ReportButton,
-  BlockedCount,
-  CancelButton,
-  MatchConsentQuestion,
-  ReadNotificationsOnVisit,
-  RespondButtons,
-} from './manage';
-
-/**
- * **수락이 여기서 풀이를 떠나보낸다** (ADR 0038).
- *
- * 동의하면 시도가 열리고, 제출은 응답 뒤에 돈다(`after`). 그 콜백이 사는 시간은 그것을
- * 부른 라우트의 상한이다 — 여기 없으면 플랫폼 기본값에서 잘리고, 그러면 시도가 열린 채
- * 남아 그 Match 가 10분간 잠긴다. 결과 칸이 서는 화면들과 같은 값을 든다.
- */
-export const maxDuration = 300;
+import { inboxForViewer, type Inbox } from './inbox';
+import { ReadNotificationsOnVisit } from './manage';
+import { when } from './when';
 
 export const metadata = {
   title: '소식',
-  description: '궁합 요청과 함께 보는 궁합의 새 소식을 확인합니다.',
+  description: '궁합 요청의 결과와 풀이의 새 소식을 확인합니다.',
 };
 
 /**
- * 요청함 — **후보 카드만 본 것은 궁합 동의가 아니다.**
+ * 소식 — **머리글의 종이 여는 화면이고, 지나간 일만 든다**(ADR 0129).
  *
- * 여기가 동의가 일어나는 자리다. 받은 요청은 무엇이 열리는지 읽은 뒤에만 수락되고,
- * 그 수락은 판본을 다시 확인한 뒤에야 Match 가 된다(전부 `respond_to_match_request`
- * 안에서 한 트랜잭션으로).
+ * 받은 요청 · 보낸 요청은 인연 탭 맨 위로 옮겼다 — 동의가 일어나는 자리는 인연에서 난 일 곁이다
+ * (`app/me/matching/requests-lead.tsx`). 여기는 요청의 결과와 풀이의 소식을 시간순 한 장으로 세운다.
+ * 요청의 소식을 누르면 인연 탭으로 간다(`inbox.ts` 의 `destinationFor`).
  *
- * 이 화면이 요청에 대해 아는 것은 별명·소개·상태·채우는 오행·균형뿐이다. 여덟 글자도
- * 생년월일시도 점수도 `my_match_requests()` 의 반환형에 없다.
- *
- * ## 답할 일이 위, 알림이 아래 (5차, 부드러움)
- *
- * 알림 목록이 맨 위에 서 있었고 받은 요청은 그 아래였다. 알림은 이 화면에 들어오는 순간 전부
- * 읽음이 되므로(`ReadNotificationsOnVisit`) 다시 볼 일이 적고, 받은 요청은 **내가 답할 때까지
- * 남는** 유일한 것이다. 그래서 차례를 뒤집었다 — 답할 일은 크게 위에, 지나간 일은 시간순 한 장의
- * 목록으로 아래에. 숫자 타일 셋(새 소식 · 받은 요청 · 답변 대기)은 뺐다. 읽는 순간 0 이 되는 수와
- * 바로 아래 절의 수를 한 번 더 세우는 판이었다 — 수는 절 제목 옆 딱지가 든다.
+ * 이 화면에 들어오는 순간 소식은 전부 읽음이 된다(`ReadNotificationsOnVisit`) — 요청이 왔다는 줄도.
+ * 그 요청은 답할 때까지 인연 탭의 딱지가 센다.
  */
 export default async function RequestsPage() {
   const supabase = await supabaseOnServer();
@@ -88,169 +58,15 @@ async function InboxSections() {
       있어 기록에만 보내고 일반 문장이 선다(`answerOfThrown`). 전에는 `error.message` 를 그대로 세웠다.
     */
     return (
-      <p className="text-sm text-muted">요청함을 읽지 못했습니다 — {answerOfThrown(thrown, 'inbox')}</p>
+      <p className="text-sm text-muted">소식을 읽지 못했습니다 — {answerOfThrown(thrown, 'inbox')}</p>
     );
   }
-
-  const received = inbox.requests.filter(
-    (request) => request.direction === 'received' && request.status === 'pending',
-  );
-  const sent = inbox.requests.filter(
-    (request) => request.direction === 'sent' && request.status === 'pending',
-  );
-  const decided = inbox.requests.filter((request) => request.status !== 'pending');
 
   return (
     <div className="flex flex-col gap-10">
       <ReadNotificationsOnVisit unread={inbox.unread} />
-
-      <section className="flex flex-col gap-3">
-        <SectionHead title="받은 요청" count={received.length} />
-        {received.length === 0 ? (
-          <Nothing>답할 요청이 없습니다.</Nothing>
-        ) : (
-          <ul className="flex flex-col gap-4">
-            {received.map((request) => (
-              <li
-                key={request.requestId}
-                className={`flex flex-col gap-4 ${CARD}`}
-              >
-                <RequestHead request={request} large />
-                {/*
-                  **동의 화면이다.** 무엇이 열리는지는 눌러야 나타나는 것이 아니라
-                  카드가 열릴 때부터 버튼 위에 서 있다 — 읽지 않고 누른 수락은 동의가
-                  아니고, 눌러야 나타나는 고지는 밖에서 잴 수도 없다.
-                */}
-                <MatchConsentQuestion />
-                <RespondButtons requestId={request.requestId} />
-                {/*
-                  신고는 **상대가 나에게 한 일**이 있는 자리에만 둔다 — 받은 요청과
-                  성립한 Match. 내가 보낸 요청 카드에는 두지 않는다.
-                */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-2">
-                  <BlockButton userId={request.counterpartUserId} />
-                  <ReportButton userId={request.counterpartUserId} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <SectionHead title="보낸 요청" count={sent.length} />
-        {sent.length === 0 ? (
-          <Nothing>기다리는 중인 요청이 없습니다.</Nothing>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {sent.map((request) => (
-              <li key={request.requestId} className={`${ROW_CARD} flex flex-col gap-2`}>
-                <RequestHead request={request} />
-                <p className="text-sm leading-6 text-secondary">{REQUEST_STATUS_TEXT.pending.sent}</p>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-1">
-                  <CancelButton requestId={request.requestId} />
-                  <BlockButton userId={request.counterpartUserId} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       <Notifications inbox={inbox} />
-
-      {/*
-        끝난 요청도 남긴다. **왜 사라졌는지**를 말할 수 있어야 하기 때문이다 —
-        무효와 거둠은 둘 다 「성립하지 않았다」지만 이유가 다르다(US 43).
-      */}
-      {decided.length > 0 && <DecidedRequests requests={decided} />}
-
-      <div className="flex flex-col gap-3">
-        <ConsentGuide />
-        <BlockedCount count={inbox.blocked} />
-      </div>
     </div>
-  );
-}
-
-/** 절 제목 — 수는 딱지로. 0 이면 딱지를 안 세운다(빈 자리가 바로 아래에서 말한다) */
-function SectionHead({ title, count }: { title: string; count: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <h2 className={TYPE_SECTION}>{title}</h2>
-      {count > 0 && <span className={BADGE}>{count}</span>}
-    </div>
-  );
-}
-
-/** 접이칸 한 줄 — 제목 줄이 44px 을 넘고 끝의 셰브론이 펴지면 아래를 본다 */
-const FOLD = `${ROW_CARD} group py-0`;
-const FOLD_SUMMARY =
-  'flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden';
-
-function FoldMark() {
-  return (
-    <span aria-hidden="true" className="text-muted transition-transform group-open:rotate-90">
-      <Icon name="chevron" className="size-4" />
-    </span>
-  );
-}
-
-function ConsentGuide() {
-  return (
-    <details className={FOLD}>
-      <summary className={FOLD_SUMMARY}>
-        궁합 요청은 어떻게 진행되나요?
-        <FoldMark />
-      </summary>
-      <ol className="flex flex-col gap-4 border-t border-border py-4">
-        {CONSENT_FLOW_STEPS.map((step, index) => (
-          <li key={step.title} className="grid grid-cols-[1.75rem_1fr] gap-3">
-            <span className="grid size-7 place-items-center rounded-full bg-cream text-[13px] font-bold text-cream-ink">
-              {index + 1}
-            </span>
-            <div>
-              <p className="text-sm font-semibold">{step.title}</p>
-              <p className="mt-1 text-[13px] leading-5 text-secondary">{step.body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
-      <p className="border-t border-border py-4 text-[13px] leading-5 text-muted">
-        {CONSENT_FLOW_CAVEAT}
-      </p>
-    </details>
-  );
-}
-
-function DecidedRequests({ requests }: { requests: readonly InboxRequest[] }) {
-  return (
-    <details className={FOLD}>
-      <summary className={`${FOLD_SUMMARY} text-secondary`}>
-        끝난 요청 {requests.length}개
-        <FoldMark />
-      </summary>
-      <ul className="flex flex-col divide-y divide-border border-t border-border text-sm">
-        {requests.map((request) => (
-          <li key={request.requestId} className="flex flex-col gap-1 py-3">
-            <span className="flex flex-wrap items-center gap-2">
-              <strong className="font-semibold">{request.nickname}</strong>
-              <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-[12px] font-medium text-secondary">
-                {REQUEST_STATUS_TEXT[request.status].label}
-              </span>
-              <span className={`ml-auto ${TYPE_META}`}>
-                {when(request.decidedAt ?? request.createdAt)}
-              </span>
-            </span>
-            <span className="text-[13px] leading-5 text-secondary">
-              {request.direction === 'sent'
-                ? REQUEST_STATUS_TEXT[request.status].sent
-                : REQUEST_STATUS_TEXT[request.status].received}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </details>
   );
 }
 
@@ -367,61 +183,4 @@ function Notifications({ inbox }: { inbox: Inbox }) {
       </p>
     </section>
   );
-}
-
-/**
- * 절이 비었을 때 — **카드 자리에 점선 자리가 선다.** 같은 절이 차면 그 자리에 카드가 서므로,
- * 빈 것도 같은 층의 자리로 말한다. 회색 문장 한 줄만 바탕에 떠 있으면 빈 것과 카드 밖의 것이
- * 같은 모양이 된다.
- */
-function Nothing({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-[1.25rem] border-2 border-dashed border-border-strong px-5 py-4">
-      <p className="text-sm text-secondary">{children}</p>
-    </div>
-  );
-}
-
-/** 요청 한 장의 머리 — 닉네임·사진·소개와 **양쪽 방향의 오행** */
-function RequestHead({ request, large = false }: { request: InboxRequest; large?: boolean }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <Avatar
-          userId={request.counterpartUserId}
-          nickname={request.nickname}
-          hasPhoto={request.hasPhoto}
-          size={large ? 52 : 40}
-        />
-        <div className="min-w-0 flex-1">
-          <h3 className={large ? TYPE_NAME : 'text-base font-semibold'}>{request.nickname}</h3>
-          <time dateTime={request.createdAt} className={`block ${TYPE_META}`}>
-            {when(request.createdAt)}
-          </time>
-        </div>
-      </div>
-
-      {request.intro !== null && <p className="text-sm leading-6 text-secondary">{request.intro}</p>}
-
-      {/* 내 자리 기준이다 — 방향은 DB 가 뒤집어 준다 */}
-      <div className="flex flex-wrap gap-2">
-        {request.suppliedToMe !== null && <InfoChip>{request.suppliedToMe}</InfoChip>}
-        {request.suppliedToThem !== null && <InfoChip>{request.suppliedToThem}</InfoChip>}
-        <InfoChip>{request.balanceLabel}</InfoChip>
-      </div>
-    </div>
-  );
-}
-
-function InfoChip({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-xl bg-surface-sunken px-3 py-1.5 text-[13px] font-medium leading-5 text-secondary">
-      {children}
-    </span>
-  );
-}
-
-/** 요청 · 소식의 시각 — **한국 시간으로.** 서버(UTC)가 그리는 화면이라 적지 않으면 아홉 시간 이르게 섰다 */
-function when(iso: string): string {
-  return new Date(iso).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', dateStyle: 'medium', timeStyle: 'short' });
 }
