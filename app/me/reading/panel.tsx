@@ -6,6 +6,7 @@ import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
 import {
   READING_LEAVE_SAFE_NOTE,
   READING_NOUN,
+  READING_OUTLINE_STATE,
   readingNoneNote,
   READING_REPLACES_NOTE,
   READING_STALE_LABEL,
@@ -25,12 +26,13 @@ import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_NAME, TYPE_SECTION } from '../
 import { generateReading, readingRunState } from './actions';
 import { announceCreditsMoved } from './credits-signal';
 import { GENERATION } from './generation';
-import type { CurrentReading, ReadingCredits } from './current';
+import type { CurrentReading, ReadingCredits, RunProgress } from './current';
 import { namedMatchBody } from '@/src/lib/reading/display';
 import { ReadingFeedback } from './feedback';
 import { ShareReadingButton } from './share-button';
 import { Markdown } from './markdown';
 import { coverFace, readingMinutes } from './essay';
+import { readingOutline, type OutlineRow } from './outline';
 import flow from './flow.module.css';
 import {
   afterAsking,
@@ -188,6 +190,8 @@ export function ReadingPanel({
   initialReading,
   initialFailed,
   initialRunning,
+  initialProgress,
+  outline,
   credits,
   consented,
   heading,
@@ -210,6 +214,18 @@ export function ReadingPanel({
    * 모습으로 열려야 한다. 모르면 「아무것도 안 하고 있다」고 말하게 된다.
    */
   initialRunning: boolean;
+  /**
+   * 그 시도가 **서버에서 어디까지 왔는가** — 끝났거나 모르면 `null`(ADR 0127).
+   *
+   * 새로고침하고 돌아와도 목차가 처음부터 다시 시작하는 것처럼 보이지 않게, 화면을 여는 그 왕복에서 함께 읽는다.
+   */
+  initialProgress: RunProgress | null;
+  /**
+   * 기다리는 동안의 목차 줄 이름 — 프롬프트가 시킨 절 이름. 이름을 미리 모르는 궁합이면 `null`(ADR 0127).
+   *
+   * 서버가 지어 넘긴다. 이 칸은 브라우저에서 돌고, 프롬프트 모듈은 브라우저로 안 간다(`scripts/layers.test.ts`).
+   */
+  outline: readonly string[] | null;
   /**
    * 남은 풀이권 — **못 물었으면 `null`.**
    *
@@ -289,6 +305,11 @@ export function ReadingPanel({
   );
   /* 접힘은 이 화면만의 것이라 흐름에 안 든다 — 서버에도 다른 기기에도 뜻이 없다 */
   const [readingExpanded, setReadingExpanded] = useState(false);
+  /**
+   * 서버가 적은 진행 — **물을 때마다 그 답으로 갈아 끼운다.** 흐름(`readingFlow`)에 안 넣는 것은 이 값이 무엇이
+   * 서는지(글 · 빈 칸 · 기다림)를 안 바꾸고 기다리는 칸 안의 줄만 바꾸기 때문이다.
+   */
+  const [progress, setProgress] = useState(initialProgress);
 
   const { phase, failure } = flow;
   /* 예시 글이 서 있는 것과 `mock !== null` 은 같은 말이다 — 따로 들면 한쪽만 지운다 */
@@ -308,14 +329,20 @@ export function ReadingPanel({
     let alive = true;
     const ask = async () => {
       let answer: RunAnswer;
+      let seen: RunProgress | null | undefined;
       try {
-        answer = answerOf(await readingRunState(target));
+        const run = await readingRunState(target);
+        answer = answerOf(run);
+        seen = run?.progress ?? null;
       } catch {
         // 한 번 못 물은 것으로 끝났다고 하지 않는다. 다음 물음에서 다시 본다.
         answer = { kind: 'unreachable' };
       }
       /* 떠난 칸에는 아무것도 안 세운다 — 답이 오는 사이에 화면이 바뀔 수 있다 */
       if (!alive) return;
+
+      /* 못 물었으면 앞서 본 진행을 그대로 둔다 — 한 번 끊긴 것으로 목차를 비우지 않는다 */
+      if (seen !== undefined) setProgress(seen);
 
       apply(afterAsking(answer), dispatch, () => router.refresh());
     };
@@ -332,6 +359,8 @@ export function ReadingPanel({
   const generate = async () => {
     dispatch({ type: 'press' });
     setReadingExpanded(false);
+    /* 새 시도다 — 지난 시도의 진행을 들고 가지 않는다 */
+    setProgress(null);
 
     /*
       **예시 글은 누르는 자리에서 짓는다.** 지을 수 있는가는 이 화면이 알고
@@ -537,7 +566,7 @@ export function ReadingPanel({
       {phase === 'loading' ? (
         <>
           {betweenSummaryAndBody}
-          <LoadingState />
+          <LoadingState rows={readingOutline(outline, progress)} />
         </>
       ) : reading === null ? (
         <>
@@ -632,30 +661,16 @@ function EmptyState() {
 }
 
 /**
- * **멈춘 화면이 아니라는 것을 무엇이 말하는가.**
+ * **멈춘 화면이 아니라는 것을 무엇이 말하는가** — 서버가 적은 진행이다(ADR 0127).
  *
- * 스피너는 서버가 죽어도 계속 돈다. 그래서 오래 걸리는 일에서 스피너는 「살아 있다」를
- * 말하지 못한다 — 30초쯤 지나면 사용자는 고장으로 읽는다.
+ * 스피너는 서버가 죽어도 계속 돈다. 그래서 오래 걸리는 일에서 스피너는 「살아 있다」를 말하지 못한다. 한동안 여기서
+ * 초를 셌다 — 서버가 어느 단계인지 몰랐고, 시간만 보고 단계를 지어 보이면 그건 **꾸며 낸 진행**이기 때문이다.
  *
- * 올라가는 숫자는 다르다. 초가 늘어나는 것은 **브라우저가 이 화면을 아직 붙들고
- * 있다**는 증거이고, 사람은 그것을 그렇게 읽는다. 그래서 여기서 세는 것을 「진행률」이라
- * 부르지 않는다 — 서버가 지금 어느 단계인지 우리는 모르고, 시간만 보고 단계를 지어
- * 보이면 그건 꾸며 낸 진행이다. 흐르는 띠(`flow.module.css`)도 차오르지 않는다 — 끝을 모른다는 말이다.
+ * 이제 서버가 안다. 제출한 응답을 따라 읽으며 소제목이 설 때마다 절 번호를 적고(`note_reading_progress`), 이 칸은
+ * 그 값으로 목차 줄을 칠한다(`readingOutline`). **시간으로 채우는 자리는 여전히 없다** — 첫 머리가 서기 전에는 아무
+ * 줄도 안 움직이고, 흐르는 띠(`flow.module.css`)는 차오르지 않는다. 끝을 모른다는 말은 그대로다.
  */
-function LoadingState() {
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    /**
-     * **틱을 세지 않고 시각을 뺀다.** 배경 탭에서는 `setInterval` 이 눌려서 늦게 돌고,
-     * 틱을 세면 그만큼 적게 센다 — 다른 탭을 보다 돌아온 사람에게 「10초째」라고 말하게 된다.
-     */
-    const startedAt = Date.now();
-    const tick = setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 1000);
-
-    return () => clearInterval(tick);
-  }, []);
-
+function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
   return (
     <div role="status" aria-live="polite" className="rounded-[1.75rem] bg-cream p-5 sm:p-7">
       <div className="flex items-center gap-3">
@@ -666,29 +681,54 @@ function LoadingState() {
           <p className="text-[17px] font-semibold text-foreground">사주의 흐름을 이어 읽고 있어요</p>
           <p className="text-[13px] leading-5 text-cream-ink">근거를 확인하고, 단정하지 않는 문장으로 옮깁니다.</p>
         </div>
-        {/*
-          **읽어 주지 않는다.** 바깥이 `aria-live` 라 이 숫자가 매초 낭독되면 화면
-          낭독기를 쓰는 사람에게는 글을 읽을 수 없는 칸이 된다. 살아 있다는 신호는
-          눈으로 보는 사람에게 필요한 것이고, 낭독되는 문장은 위의 한 줄로 족하다.
-        */}
-        <p aria-hidden="true" className="ml-auto shrink-0 text-[15px] font-semibold tabular-nums text-cream-ink">
-          {elapsed}초
-        </p>
       </div>
       <div aria-hidden="true" className="mt-5 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--cream-ink)_14%,transparent)]">
         <div className={`${flow.flow} h-full w-full rounded-full`} />
       </div>
-      <div className="mt-6 flex max-w-[36rem] flex-col gap-3" aria-hidden="true">
-        <div className="reading-skeleton h-4 w-2/5 rounded-full" />
-        <div className="reading-skeleton h-3 w-full rounded-full" />
-        <div className="reading-skeleton h-3 w-11/12 rounded-full" />
-        <div className="reading-skeleton h-3 w-4/5 rounded-full" />
-      </div>
+      {/*
+        **줄마다 서버가 적은 상태 하나.** 목록이라 화면 낭독기가 몇 줄 중 몇째인지 읽는다. 기다리는 줄의 말줄임표는
+        읽어 주지 않는다 — 「점점점」이 아홉 번 낭독되면 목차를 들을 수 없다.
+      */}
+      <ol aria-label="풀이 목차" className="mt-5 flex max-w-[36rem] flex-col gap-2">
+        {rows.map((row, at) => (
+          <li
+            key={`${at}-${row.label}`}
+            className="flex items-center justify-between gap-3 rounded-[1.25rem] bg-surface px-4 py-3 text-[14px]"
+          >
+            <span className={row.state === 'waiting' ? 'text-secondary' : 'text-foreground'}>{row.label}</span>
+            <OutlineMark state={row.state} />
+          </li>
+        ))}
+      </ol>
       <p className="mt-5 text-[13px] leading-5 text-cream-ink">
         {readingWaitNote(GENERATION.settings.timeout)} {READING_LEAVE_SAFE_NOTE}
       </p>
     </div>
   );
+}
+
+function OutlineMark({ state }: { state: OutlineRow['state'] }) {
+  switch (state) {
+    case 'done':
+      return (
+        <span className="shrink-0 rounded-full bg-wood-soft px-2 py-0.5 text-[12px] font-semibold text-wood">
+          {READING_OUTLINE_STATE.done}
+        </span>
+      );
+    case 'writing':
+    case 'reviewing':
+      return (
+        <span className="shrink-0 animate-pulse text-[12px] font-semibold text-fire motion-reduce:animate-none">
+          {READING_OUTLINE_STATE[state]}
+        </span>
+      );
+    case 'waiting':
+      return (
+        <span aria-hidden="true" className="shrink-0 text-muted">
+          {READING_OUTLINE_STATE.waiting}
+        </span>
+      );
+  }
 }
 
 function Result({

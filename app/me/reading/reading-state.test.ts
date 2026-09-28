@@ -258,6 +258,7 @@ describe('읽은 한 줄이 네 갈래로 갈린다', () => {
     status,
     failureCode: null,
     createdAt: '2026-09-22T00:00:00.000Z',
+    progress: null,
   });
 
   it('행이 없으면 「가리킬 시도가 없다」다 — 못 물은 것과 다른 값이다', () => {

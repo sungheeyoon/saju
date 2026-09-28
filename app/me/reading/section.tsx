@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { isSolo, selfSectionTitlesOf } from '@/src/lib/reading';
 import { STEM_INFO, type Element } from '@/src/lib/saju';
 
 import { currentReading, improvementConsented, lastReadingRun, readingCredits, type CurrentReading } from './current';
@@ -94,6 +95,8 @@ export async function ReadingSection({
           모르면 화면이 「아무것도 안 하고 있다」고 말하게 된다.
         */
         initialRunning={run?.status === 'running'}
+        initialProgress={run?.progress ?? null}
+        outline={isSolo(target.kind) ? selfSectionTitlesOf() : null}
         credits={credits.ok ? credits.value : null}
         /*
           **못 읽었으면 동의를 주장하지 않는다**(ADR 0078). 문은 실패를 값으로 주고,
