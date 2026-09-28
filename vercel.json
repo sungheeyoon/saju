@@ -2,6 +2,7 @@
   "git": {
     "deploymentEnabled": false
   },
+  "regions": ["icn1"],
   "ignoreCommand": "node scripts/vercel-ignore.mjs",
   "crons": [
     {
