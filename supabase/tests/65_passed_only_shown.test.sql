@@ -76,9 +76,10 @@ select is(
   0::bigint,
   '5. 선 적 없는 사람의 지나침 행은 하나도 없다');
 
+-- 문장까지 맞춘다 — 같은 42501 이 「자격이 없다」 갈래에서도 나므로, 막힌 까닭이 보관 행이 없어서인지 가른다
 select throws_ok(
   format('select public.restore_passed_connection(%L)', (select id from stranger)),
-  '42501', null,
+  '42501', '이미 복원되었거나 보관 중인 인연이 아닙니다. 목록을 새로 열어 주세요.',
   '6. 그래서 선 적 없는 사람을 복원으로 덱 맨 앞에 못 세운다');
 
 select lives_ok(
