@@ -24,6 +24,7 @@ import {
   type WarningRecord,
 } from '../read';
 import { CARD } from '../../../ui/surfaces';
+import { SECOND_FACTOR_NEEDED, secondFactorHref } from '../../second-factor';
 
 export const metadata = {
   title: '신고 내용',
@@ -53,6 +54,7 @@ export default async function OperatorReportPage({
   const { reportId } = await params;
   const found = await operatorReport(reportId);
   if (found === DENIED) notFound();
+  if (found === SECOND_FACTOR_NEEDED) redirect(secondFactorHref(`/ops/reports/${reportId}`));
   if (found.ok && found.value === null) notFound();
 
   return (

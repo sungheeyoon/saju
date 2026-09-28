@@ -18,6 +18,7 @@ import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/li
 
 import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
 import { hydrated } from './hydrated';
+import { passSecondFactor } from './second-factor';
 import { expectTargets, focusedOutline } from './target';
 import type { Page } from '@playwright/test';
 
@@ -742,6 +743,10 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     const said = `셋째 문단이 제 얘기 같았어요 (${reader.runId.slice(0, 8)})`;
     answerReading(reader.runId, reader.account.email, said);
     makeOperator(reader.account.email);
+
+    /* 운영자여도 2단계 인증 전에는 없는 화면이다 — 확인을 마치면 선다(ADR 0122) */
+    expect((await page.goto('/ops/survey'))?.status()).toBe(404);
+    await passSecondFactor(page, '/ops/survey');
 
     await page.goto('/ops/survey');
     await expect(page.getByRole('heading', { name: '설문 요약' })).toBeVisible();
