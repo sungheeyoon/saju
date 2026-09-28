@@ -23,6 +23,7 @@ import {
   type VersionRow,
 } from './read';
 import { CARD } from '../../ui/surfaces';
+import { SECOND_FACTOR_NEEDED, secondFactorHref } from '../second-factor';
 
 export const metadata = {
   title: '설문 요약',
@@ -60,6 +61,7 @@ export default async function OperatorSurveyPage() {
 
   const survey = await operatorSurvey();
   if (survey === DENIED) notFound();
+  if (survey === SECOND_FACTOR_NEEDED) redirect(secondFactorHref('/ops/survey'));
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-6 py-9 sm:py-12">

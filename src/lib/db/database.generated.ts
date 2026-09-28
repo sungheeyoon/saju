@@ -2329,6 +2329,7 @@ export type Database = {
         Args: { id: string; seed: string }
         Returns: number
       }
+      discovery_shown_to_me: { Args: { p_other: string }; Returns: boolean }
       discovery_supplied_elements_v1: {
         Args: { mine: Json; partner: Json }
         Returns: string[]
