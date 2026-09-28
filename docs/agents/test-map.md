@@ -40,7 +40,7 @@
 | 화면 | `app/**/*.tsx` | 그리기는 없음 — 내보낸 순수 함수와 서버 페이지 함수의 약속만(위) | | 서버 HTML 만 — `check-reading` 이 「수정 전」 풀이의 딱지 · 표지 색 · 주 단추를 읽는다 | **여기서 누른다.** 누르는 자리 44px · 초점 테두리 한 겹 · 바탕 빛이 되풀이되지 않음은 `e2e/target.ts` 로 잰다(#229 — `saju.spec.ts` 의 새 한 건 · `signed-in.spec.ts` · `match.spec.ts`) |
 | 관문 | `proxy.ts` · `src/lib/consent` | `gate.test.ts` · `notice.test.ts` | `20_notice` | | `notice.spec.ts` |
 | DB | `supabase/migrations/` | | `supabase/tests/` · 모양 잠금 넷(`33_function_shape`) | 위 | |
-| 검사 도구 | `scripts/` · `eslint.config.mjs` | `ci-plan` · `run-checks` · `layers` · `code-rules` · `card-score-sql`(카드 점수의 TS ↔ SQL 이 같은 표를 읽는다) · `worktree-stack` · `secret-env`(비밀의 갈래 · `server-only` 잠금 · runbook 절, G-23 ⑧) · `vercel-ignore`(Preview 를 건너뛸지 — 0 이 건너뜀) · `copy-contracts` · `main-red` · `stack-slot` · `remote-lock` · `db-remote` · `audit-verify` · `brand-share-images` | | | |
+| 검사 도구 | `scripts/` · `eslint.config.mjs` | `ci-plan` · `run-checks` · `layers` · `code-rules` · `card-score-sql`(카드 점수의 TS ↔ SQL 이 같은 표를 읽는다) · `worktree-stack` · `secret-env`(비밀의 갈래 · `server-only` 잠금 · runbook 절, G-23 ⑧) · `vercel-ignore`(Preview 를 건너뛸지 — 0 이 건너뜀) · `copy-contracts` · `main-red` · `stack-slot` · `remote-lock` · `db-remote` · `audit-verify` · `brand-share-images` · `merge-sim`(인자와 요약 문장만 — git 은 안 부른다) | | | |
 
 ## 무엇을 고쳤으면 무엇을 돌리나
 
@@ -72,6 +72,12 @@
 | `package.json` · `package-lock.json` | `npm audit --omit=dev --audit-level=high` → `npm test` · `npm run typecheck` · `npm run lint` · `npm run build` | CI 는 `fast` 와 `audit` 만 돈다. 의존성은 화면과 DB 도구에도 닿으니 큰 판 올림이면 e2e · pgTAP 도 한 번 |
 | `eslint.config.mjs` · `scripts/*.test.ts` | `npm run lint` → `npm test`, 그리고 **일부러 어긴 파일**로 걸리는지 | 「규칙을 넣었다」와 「규칙이 건다」는 다른 문장이다(ADR 0085·0086) |
 | `app/api/cron/audit-export/**` · `scripts/db-remote.mjs` · `scripts/audit-verify.mjs` | `npx vitest run app/api/cron/audit-export scripts/db-remote.test.ts scripts/audit-verify.test.ts`(자격은 복구기와 같은 모양으로 `route.test.ts` 가 든다), 표 · 함수면 `npm run test:db`(`46_operator_access_log` · `50_audit_export_runs`) · `node scripts/check-db-races.mjs`(반출과 늦은 커밋 · 거절 한도 · 같은 열쇠의 주문 · 두 반출 실행 · CLI 결과 한 줄 — 두 세션 경합, `20261013090000` · `20261014090000` · `20261015090000`) | 접속기록 반출과 CLI 기록(ADR 0105). S3 는 가짜로 대신한다 — 진짜 버킷은 AWS 계정이 서는 날 runbook 「반출」의 7 이 잰다 |
+
+**병렬 라운드의 머지 직전에는 `npm run merge:sim -- <PR 번호…>` 를 한 번 돈다** — 조율자가 머지할 PR 을 머지할 순서대로
+적으면 저장소 밖 임시 워크트리에서 `origin/main` 위로 차례로 합쳐 글자 충돌을 보고, 단위(`scripts/code-rules.test.ts` ·
+`scripts/layers.test.ts` 포함) · 린트 · 타입을 돈다(`scripts/merge-sim.mjs`). PR 마다 초록이어도 한 PR 의 새 잠금이 다른 PR 이
+새로 들인 파일을 몰라 합치면 붉었다(2026-09-28, `docs/notes/2026-09-28-overnight-audit.md`). 스택(pgTAP · e2e · 흐름)은
+안 돈다 — 각 PR 의 CI 몫이다. 머지는 안 한다(strict gate 와 `--auto`).
 
 **워크트리에서는 제 자리의 포트다** — `npm run stack:slot -- N` 이 스택 이름 · Supabase 포트 · dev 서버(`3000+10N`) ·
 흐름 검사(`3210+10N` 부터 여덟)를 함께 옮긴다(ADR 0096). 아래는 main 체크아웃(자리 0)의 이야기다.

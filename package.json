@@ -34,6 +34,7 @@
     "db:remote": "node scripts/remote-lock.mjs node scripts/db-remote.mjs",
     "audit:verify": "node scripts/audit-verify.mjs",
     "stack:slot": "node scripts/stack-slot.mjs",
+    "merge:sim": "node scripts/merge-sim.mjs",
     "test:flow": "node scripts/run-checks.mjs",
     "verify": "npm test && npm run typecheck && npm run lint && npm run build"
   },
