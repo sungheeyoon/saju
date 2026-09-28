@@ -27,47 +27,49 @@ import { BrandMark } from './ui/logo';
 import { BADGE } from './ui/surfaces';
 
 /**
- * 로그인한 사람의 탭 — **홈 · 매칭 · 풀이 · 채팅 넷**(2026-09-24 사용자 결정, 5차).
+ * 로그인한 사람의 탭 — **나 · 궁합 · 인연 · 채팅 넷**(2026-09-29 운영자 결정, 시안 g · ADR 0126).
  *
- * 일곱 줄(내 사주 · 매칭 · 사주·궁합 · 사람 · 풀이 · 채팅 · 소식 · 서비스 설문)이 폰에서 여섯 칸과 전체 메뉴로
- * 갈라져 있었다. 이제 **홈이 사람 · 다른 사람 사주 · 궁합으로 가는 길을 품고**, 소식은 종으로, 프로필 · 계정
- * 관리 · 서비스 설문은 톱니 안으로 들어간다. 주소는 그대로다 — 홈은 `/me` 이고 이름만 바뀌었다(관문 ·
- * 동의 · 경고 안내 · 로그인 복귀가 전부 `/me` 기준이다).
+ * 앞 판(홈 · 매칭 · 풀이 · 채팅, ADR 0109)은 **만든 글**을 탭 하나에 모았다. 이제 글은 **누구의 것인가**로 갈라
+ * 선다 — 내 사주풀이와 저장한 사람의 풀이는 나, 두 사람을 고른 궁합은 궁합, 동의로 열린 궁합은 인연. 책장
+ * (`/me/readings`)은 주소 그대로 나 탭 안의 길이다. **주소는 하나도 안 바뀌었다** — 이름과 「어느 화면에서 어느
+ * 탭이 켜지나」만 바뀐다. 궁합 탭의 첫 화면은 두 사람을 고르는 `/compat` 이다.
  *
- * **만든 글이 사는 자리는 메뉴에 있다**(ADR 0033) — 「풀이」. 대화방 목록도 탭이다(PRD 「앱 내 채팅」 · 「화면 정리」).
+ * 소식은 종, 프로필 · 계정 관리 · 서비스 설문은 톱니 안이다(ADR 0109 그대로). 대화방 목록도 탭이다(PRD 「앱 내 채팅」).
  */
 const MEMBER_TABS = [
-  { href: '/me', label: '홈', icon: 'home' },
-  { href: '/me/matching', label: '매칭', icon: 'people' },
-  { href: '/me/readings', label: '풀이', icon: 'reading' },
+  { href: '/me', label: '나', icon: 'home' },
+  { href: '/compat', label: '궁합', icon: 'heart' },
+  { href: '/me/matching', label: '인연', icon: 'people' },
   { href: '/me/chat', label: CHAT_TAB_LABEL, icon: 'chat' },
 ] as const satisfies readonly { href: string; label: string; icon: IconName }[];
 
+/** `base` 그 자리이거나 그 아래인가 — `/me/peoplex` 는 `/me/people` 아래가 아니다 */
+function within(pathname: string, base: string): boolean {
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
+
 /**
- * 지금 보고 있는 화면이 **어느 탭의 것인가.**
+ * 지금 보고 있는 화면이 **어느 탭의 것인가**(ADR 0126).
  *
- * - **홈**은 `/me` 와 거기서 뻗는 길이다 — 저장한 사람(`/me/people/*`),
- *   궁합(`/compat` · `/me/compat`), 그리고 로그인한 사람이 보는 사주 계산(`/`). 사람 · 사주·궁합 탭이 빠지며
- *   그 길이 홈 안에 섰다 — 거기 있는 동안 불은 홈에 있어야 사용자가 어디서 왔는지 안다.
- * - **풀이**는 만든 글의 목록과 그 목록에서 열리는 글(`/me/readings/*` — 내 사주풀이도 목록 옆에서 열린다, 함께 보는 궁합 `/me/match/*`)이다.
- *   내 사주풀이는 목록에도 서지만 닿는 길이 대개 홈이라 홈 쪽이다(탭 안에서 움직이면 메뉴는 안 움직인다).
- * - 채팅 · 매칭 · 종(`/me/requests`)은 제 주소와 그 아래다.
+ * - **나**는 `/me` 와 내 쪽의 것이다 — 저장한 사람(`/me/people/*`), 만든 풀이의 책장과 한 사람 풀이
+ *   (`/me/readings/*` — 내 사주풀이도, 다른 사람 사주풀이도), 그리고 로그인한 사람이 보는 사주 계산(`/`).
+ *   책장은 탭이 아니게 됐지만 그 안에서 연 글은 나에 남는다.
+ * - **궁합**은 두 사람을 고르는 자리(`/compat`)와 그 결과(`/me/compat`)다. 책장이나 홈의 지도에서 연 궁합도
+ *   궁합이다 — 글이 어디서 열렸나가 아니라 **무엇인가**로 켠다.
+ * - **인연**은 오늘의 인연(`/me/matching`)과 동의로 열린 궁합(`/me/match/*`)이다. 책장에서 열어도 인연이다.
+ * - 채팅 · 종(`/me/requests`)은 제 주소와 그 아래다. 톱니 안의 화면은 어느 탭도 안 켠다.
  */
 export function isNavigationActive(pathname: string, href: string): boolean {
   if (href === '/me') {
-    return (
-      pathname === '/me' ||
-      pathname === '/me/people' ||
-      pathname.startsWith('/me/people/') ||
-      pathname === '/compat' ||
-      pathname === '/me/compat' ||
-      pathname === '/'
-    );
+    return pathname === '/me' || within(pathname, '/me/people') || within(pathname, '/me/readings') || pathname === '/';
   }
-  if (href === '/me/readings') {
-    return pathname === href || pathname.startsWith(`${href}/`) || pathname.startsWith('/me/match/');
+  if (href === '/compat') {
+    return pathname === '/compat' || pathname === '/me/compat';
   }
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (href === '/me/matching') {
+    return within(pathname, href) || pathname.startsWith('/me/match/');
+  }
+  return within(pathname, href);
 }
 
 /*

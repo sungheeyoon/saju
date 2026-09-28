@@ -80,15 +80,16 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(mobileNav).toBeVisible();
 
     const viewportWidth = page.viewportSize()?.width ?? 0;
-    // 탭 넷(2026-09-24, 5차) — 넷이 폰 폭에 다 서는지도 여기서 잰다
-    for (const label of ['홈', '매칭', '풀이', '채팅']) {
+    // 탭 넷(2026-09-29, ADR 0126) — 넷이 폰 폭에 다 서는지도 여기서 잰다
+    for (const label of ['나', '궁합', '인연', '채팅']) {
       const link = mobileNav.getByRole('link', { name: label, exact: true });
       await expect(link).toBeVisible();
       const box = await link.boundingBox();
       expect(box?.x).toBeGreaterThanOrEqual(0);
       expect((box?.x ?? viewportWidth) + (box?.width ?? 0)).toBeLessThanOrEqual(viewportWidth);
     }
-    await expect(mobileNav.getByRole('link', { name: '홈', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(mobileNav.getByRole('link', { name: '나', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(mobileNav.getByRole('link', { name: '궁합', exact: true })).toHaveAttribute('href', '/compat');
 
     /* 소식은 머리글의 종 — 탭에서 빠져도 1클릭이다 */
     const banner = page.getByRole('banner');
@@ -185,7 +186,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     const { error } = await api.auth.signOut({ scope: 'global' });
     expect(error).toBeNull();
 
-    await page.getByRole('link', { name: '매칭', exact: true }).filter({ visible: true }).first().click();
+    await page.getByRole('link', { name: '인연', exact: true }).filter({ visible: true }).first().click();
     await expect(page).toHaveURL(/\/auth/);
     await page.goto('/me/settings');
     await expect(page).toHaveURL(/\/auth/);
@@ -237,7 +238,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.waitForTimeout(1_500);
     expect(lastActive()).toBe(rewound);
 
-    await page.getByRole('link', { name: '매칭', exact: true }).filter({ visible: true }).first().click();
+    await page.getByRole('link', { name: '인연', exact: true }).filter({ visible: true }).first().click();
     await expect(page.getByRole('heading', { name: '오늘의 인연' })).toBeVisible();
     await expect.poll(lastActive).not.toBe(rewound);
   });
@@ -388,12 +389,13 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await map.getByRole('button', { name: '닫기' }).click();
     await expect(map.getByRole('link', { name: '어머니 사주 보기' })).toHaveCount(0);
 
-    /* 홈을 떠나는 길 셋 — 메뉴에서 빠진 「사주·궁합」의 길이 여기 선다 */
-    const more = page.getByRole('navigation', { name: '더 해 보기' });
+    /* 나 탭 홈의 바로가기 넷 — 다른 사람 사주와, 탭에서 빠진 책장(ADR 0126)의 길이 여기 선다 */
+    const more = page.getByRole('navigation', { name: '바로가기' });
     await expect(more.getByRole('link', { name: '다른 사람 사주 보기' })).toHaveAttribute('href', '/');
     await expect(more.getByRole('link', { name: '궁합 보러 가기' })).toHaveAttribute('href', '/compat');
-    await expect(more.getByRole('link', { name: /매칭에서 오늘의 인연 만나기/ })).toHaveAttribute('href', '/me/matching');
-    /* 홈은 매칭으로 가는 길만 두고 오늘의 인연을 제 자리에 세우지 않는다 */
+    await expect(more.getByRole('link', { name: /오늘의 인연 만나기/ })).toHaveAttribute('href', '/me/matching');
+    await expect(more.getByRole('link', { name: '만든 풀이 다시 보기', exact: true })).toHaveAttribute('href', '/me/readings');
+    /* 홈은 인연으로 가는 길만 두고 오늘의 인연을 제 자리에 세우지 않는다 */
     await expect(page.getByRole('heading', { name: '오늘의 인연', exact: true })).toHaveCount(0);
 
     /*
@@ -414,7 +416,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       const nav = page.getByRole('navigation', { name: '내 메뉴' });
       await expectTargets(
         Object.fromEntries(
-          ['홈', '매칭', '풀이', '채팅'].map((label) => [
+          ['나', '궁합', '인연', '채팅'].map((label) => [
             label,
             nav.getByRole('link', { name: new RegExp(`^${label}`) }),
           ]),
@@ -1418,7 +1420,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
-   * **만든 글이 사는 자리는 메뉴에 있다**(ADR 0033).
+   * **만든 글이 모이는 자리가 있다**(ADR 0033) — 탭은 아니고 나 탭 홈의 길이다(ADR 0126).
    *
    * 풀이가 네 화면에 흩어져 있어서, 만든 글에 닿으려면 그것이 어느 화면의 것인지를
    * 먼저 기억해야 했다. 여기서 재는 것은 **길이 나 있는가**와, 아직 아무것도 없는
@@ -1427,13 +1429,17 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * 글을 실제로 만들어 놓고 재지는 않는다 — 누르면 4분과 돈이 든다. 네 kind 가 다
    * 서는지는 흐름 검사가 열쇠로 저장해 놓고 잰다(`check-reading.mjs`).
    */
-  test('머리글의 풀이가 만든 글의 목록으로 간다', async ({ page, signedIn }) => {
+  test('나 탭 홈의 「만든 풀이 다시 보기」가 만든 글의 목록으로 가고, 거기서도 나 탭이 켜져 있다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
 
-    await page.getByRole('link', { name: '풀이', exact: true }).click();
+    await page.getByRole('navigation', { name: '바로가기' }).getByRole('link', { name: '만든 풀이 다시 보기', exact: true }).click();
 
     await expect(page).toHaveURL(/\/me\/readings$/);
+    /* 책장은 탭에서 빠졌지만 나 탭 안의 길이다 — 불이 제자리에 있어야 어디서 왔는지 안다 */
+    await expect(
+      page.getByRole('link', { name: '나', exact: true }).filter({ visible: true }).first(),
+    ).toHaveAttribute('aria-current', 'page');
     // `exact` 를 안 주면 **두 개를 잡는다** — 「아직 만든 풀이가 없습니다」가 이것을 품는다.
     await expect(page.getByRole('heading', { name: '만든 풀이', exact: true })).toBeVisible();
 
@@ -1444,7 +1450,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     */
     await expect(page.getByRole('heading', { name: '아직 만든 풀이가 없습니다' })).toBeVisible();
     /*
-      「내 사주」 탭이 없어진 뒤로(메뉴: 홈 · 매칭 · 풀이 · 채팅) 빈 화면은 만드는 자리로 **곧장** 가는
+      「내 사주」 탭이 없어진 뒤로(메뉴: 나 · 궁합 · 인연 · 채팅) 빈 화면은 만드는 자리로 **곧장** 가는
       표지를 세운다 — 내 사주가 있는 사람에게는 내 사주풀이 화면이다.
     */
     const mine = page.getByRole('main').getByRole('link', { name: '내 사주풀이', exact: true });
