@@ -36,14 +36,14 @@ export const metadata = {
 */
 export default async function PrivacyPage() {
   const supabase = await supabaseOnServer();
-  const notice = await currentSchedule(supabase);
+  const schedule = await currentSchedule(supabase);
 
   /*
     **둘 다 있어야 안내가 선다.** 날짜가 없으면 보유기간을 말할 수 없고, 처리자와
     연락처가 없으면 열람·정정·삭제를 어디에 요구하는지 말할 수 없다 — 어느 쪽이
     비어도 지키는 것이 없는 문장만 남는다.
   */
-  const ready = notice;
+  const ready = schedule.ok ? schedule.value : null;
 
   return (
     <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-4 py-9 sm:py-12">
@@ -59,7 +59,10 @@ export default async function PrivacyPage() {
         </p>
       </header>
 
-      {ready === null ? (
+      {!schedule.ok ? (
+        /* 못 읽은 것은 아직 정하지 않은 것과 다르다(ADR 0078) — 문이 옮겨 온 까닭을 세운다 */
+        <p className={`${CARD} text-[15px] leading-7`}>{schedule.reason}</p>
+      ) : ready === null ? (
         /*
           **날짜를 지어내지 않는다.** 「추후 종료 예정」으로 메우면 그 문장이 실제로
           지키는 것이 없고, 보유기간을 「목적 달성 시까지」로 적는 것과 같은 말이 된다.

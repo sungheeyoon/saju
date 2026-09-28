@@ -67,7 +67,7 @@ export default async function SignupPage({ searchParams }: {
    * 하고, 그 말은 못 읽은 까닭에 따라 갈린다 — DB 가 잠긴 사람에게 「다시 로그인해
    * 주세요」는 들어올 곳이 없는 데로 보내는 말이다.
    */
-  const [{ state, row: account }, notice] = await Promise.all([
+  const [{ state, row: account }, schedule] = await Promise.all([
     readAccount<{
       status: string;
       signed_up_at: string | null;
@@ -77,6 +77,12 @@ export default async function SignupPage({ searchParams }: {
     }>(supabase, 'status, signed_up_at, nickname, notice_version, notice_schedule_id'),
     currentSchedule(supabase),
   ]);
+
+  /*
+    **못 읽은 일정은 없는 일정처럼 폼을 안 세운다**(ADR 0024) — 다만 「아직 시작할 수 없습니다」가
+    아니라 못 읽은 까닭을 세운다(ADR 0078). 그 말은 이미 문이 사용자에게 보일 말로 옮겨 왔다.
+  */
+  const notice = schedule.ok ? schedule.value : null;
 
   if (account === null) {
     return (
@@ -135,7 +141,9 @@ export default async function SignupPage({ searchParams }: {
         </p>
       </header>
 
-      {notice === null ? (
+      {!schedule.ok ? (
+        <p className={`${CARD} text-sm leading-6`}>{schedule.reason}</p>
+      ) : notice === null ? (
         /*
           **날짜를 지어내지 않는다.** 「추후 종료 예정」으로 메우면 그 문장이 실제로
           지키는 것이 없고, 보유기간을 「목적 달성 시까지」로 적는 것과 같은 말이 된다.
