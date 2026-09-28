@@ -24,6 +24,7 @@ import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 
 import { createChecks, sql } from './checks.mjs';
+import { scheduleBeta } from './notice.mjs';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const { check, finish } = createChecks('check-db-races');
@@ -108,6 +109,12 @@ const accessRow = (actor, outcome = 'allowed') => `
 // ── 2. 같은 열쇠의 주문 둘 ──────────────────────────────────────────────────────
 
 {
+  /*
+    **일정을 스스로 세운다.** 주문을 여는 문은 활성 계정만 받고, 종료일이 지난 일정 아래서는
+    아무도 활성이 아니다. 운영의 종료일(마이그레이션이 넣은 줄)에 기대면 그날이 지나는 순간
+    이 경합과 상관없는 자리에서 넘어진다 — 다른 흐름 검사와 같은 손잡이를 쓴다.
+  */
+  scheduleBeta();
   const buyer = sql(`insert into auth.users (instance_id, id, aud, role, email, created_at, updated_at)
     values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
             'race-${Date.now()}@example.com', now(), now()) returning id`);

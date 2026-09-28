@@ -131,9 +131,7 @@ select throws_ok(
 
 -- ── 5 · 6. 가입 닫기 ────────────────────────────────────────────────────────
 
-insert into public.beta_schedule (ends_on, note, operator_name, operator_officer, operator_contact)
-select '2026-10-31', '시험', '운영자', '담당', 'ops@example.com'
-where not exists (select 1 from public.beta_schedule);
+select tests.schedule_beta();
 
 insert into public.signup_code (code, note, valid_on, max_uses) values ('PAUSE1', '닫기 시험', public.signup_today(), 10);
 insert into public.signup_pause (reason) values ('운영자 부재 시험');

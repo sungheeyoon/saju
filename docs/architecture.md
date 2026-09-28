@@ -106,6 +106,7 @@
 | 도메인 lib 끼리의 방향 | — | 허용 목록과 **정확히 같은가**, 순환 없는가, `db` 는 나가는 방향 0 |
 | 화면(`.tsx`) 안의 `.rpc()`·`.from()` | `no-restricted-syntax` | 호출 지문이 옛 자리 여섯 안에만, 표시 수 = 호출 수 |
 | `app/ui` → 문 · 액션 · 클라이언트 · `@supabase` | — | `app` 안에서는 `app/ui` 만 |
+| `'use client'` 파일에서 값으로 닿는 모듈에 풀이 입구(`src/lib/reading/index`)와 프롬프트 원문(`prompt`) | — | `app/` 의 `'use client'` 전부를 뿌리로 값 import 를 따라간다(타입만 부르면 안 따라가고, `'use server'` 에서 멈춘다). 닿으면 그 길을 보여 준다. 클라이언트는 잎(`reading/notes` · `feedback` · `policy`)을 부른다 |
 | `src/lib` 이 DB 함수를 이름으로 든다 | — | 호출 인자의 문자열이 생성된 `Functions` 의 키면 빨개진다(`*.live.test.ts` 제외). 표 이름은 도메인 낱말과 겹쳐 안 본다 |
 
 **보장하는 것은 여기까지다** — 역방향 import 와 화면 안의 새 DB 호출을 막는다. 아래는 **안**
