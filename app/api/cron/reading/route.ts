@@ -4,6 +4,7 @@ import { recordDbFailure } from '@/app/db-error';
 import { keyedClient } from '@/app/keyed-client';
 
 import { collectReadingResult } from '../../../me/reading/collect';
+import { cronAuthorized } from '../authorized';
 
 /**
  * **webhook 이 흘린 것을 줍는다** (ADR 0020).
@@ -57,8 +58,7 @@ export async function GET(request: Request): Promise<Response> {
    * **`OPENAI_WEBHOOK_SECRET` 과 같은 값을 쓰지 않는다.** 하는 일이 다르고, 하나로 쓰면
    * 한쪽이 새는 순간 둘 다 샌다.
    */
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get('authorization') !== `Bearer ${secret}`) {
+  if (!cronAuthorized(request)) {
     return new Response('forbidden', { status: 403 });
   }
 
