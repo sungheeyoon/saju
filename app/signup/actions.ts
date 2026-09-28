@@ -7,6 +7,9 @@ import { supabaseOnServer } from '../auth/server-client';
 import { userFacingDbMessage } from '../db-error';
 import { rpcArgs } from '@/src/lib/db';
 
+/** 틀린 코드의 문장 — 없는 코드 · 지난 코드 · 가입이 멈춘 때가 같은 말이다(DB 의 거절과 같은 글자) */
+const WRONG_CODE_NOTE = '지금 쓸 수 있는 코드가 아닙니다.';
+
 /**
  * 가입을 끝낸다 — **성공하면 안 돌아온다.**
  *
@@ -34,7 +37,7 @@ export async function completeSignup(answer: {
 }): Promise<{ ok: false; message: string }> {
   const supabase = await supabaseOnServer();
 
-  const { error } = await supabase.rpc('complete_signup', rpcArgs<'complete_signup'>({
+  const { data: signedUp, error } = await supabase.rpc('complete_signup', rpcArgs<'complete_signup'>({
     /*
       **빈 칸은 `null` 로 보낸다.** 이미 이름이나 코드를 가진 사람은 그 칸을 안 보므로
       빈 문자열이 온다 — DB 가 그것을 「짓겠다」로 읽으면 2자 미만이라고 거절한다.
@@ -48,6 +51,11 @@ export async function completeSignup(answer: {
   }));
 
   if (error) return { ok: false, message: userFacingDbMessage(error, 'complete_signup') };
+  /*
+    **틀린 코드는 거절이 아니라 `false` 로 온다** — DB 가 틀린 시도를 적고 세어야 해서 던지지 않는다
+    (`20261101090000`, ADR 0122). 문장은 던지던 때와 같다: 없는 코드와 지난 코드를 가르지 않는다.
+  */
+  if (signedUp === false) return { ok: false, message: WRONG_CODE_NOTE };
 
   refresh('signed-up');
 
