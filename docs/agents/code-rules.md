@@ -142,7 +142,7 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 | `no-console` | `src/` · `app/` · `proxy.ts`(`*.live.test.ts` 제외) | `console.log` |
 | `import/no-default-export` | `src/` · `scripts/` · `e2e/` | `export default` |
 | `reportUnusedDisableDirectives` | 전부 | 안 걸리는 예외 표시 |
-| `scripts/code-rules.test.ts` | — | 파일·폴더 이름 두 규약, 시험의 자리와 중간 이름, 마이그레이션·pgTAP·ADR 이름, ADR 참조 806 건이 실제 파일, 탈출구 지문(7 · 12 · 3 · 0 · 0 · 3 · 0 · 1), `@ts-expect-error` 0, import 홑따옴표 |
+| `scripts/code-rules.test.ts` | — | 파일·폴더 이름 두 규약, 시험의 자리와 중간 이름, 마이그레이션·pgTAP·ADR 이름, ADR 참조 806 건이 실제 파일, 입구 문서와 운영 소스 주석(`app/**` · `src/**` · `proxy.ts`)의 백틱 속 뿌리 경로가 실제 파일(옛 자리를 말하는 역사 설명은 이름과 까닭으로 든 허용 목록, 2026-09-28), 탈출구 지문(7 · 12 · 3 · 0 · 0 · 3 · 0 · 1), `@ts-expect-error` 0, import 홑따옴표 |
 
 규칙마다 일부러 어긴 파일로 걸리는 것을 확인하고 지웠다(ADR 0086).
 
