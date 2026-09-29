@@ -71,7 +71,7 @@ describe('← 가 가는 곳 (ADR 0134)', () => {
   });
 
   it('채팅에서 온 인연 궁합은 그 Match 의 방으로, 다른 결과는 채팅 목록으로 간다', () => {
-    expect(backOf('match', { from: 'chat', matchId: MATCH_ID })).toEqual({ href: `/me/chat/${MATCH_ID}`, label: '대화' });
+    expect(backOf('match', { from: 'chat', matchId: MATCH_ID })).toEqual({ href: `/me/chat/${MATCH_ID}`, label: '채팅' });
     expect(backOf('match', { from: 'chat' })).toEqual({ href: '/me/chat', label: '채팅' });
     expect(backOf('compat', { from: 'chat', matchId: MATCH_ID })).toEqual({ href: '/me/chat', label: '채팅' });
   });

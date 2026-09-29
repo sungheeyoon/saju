@@ -145,7 +145,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
    * **방에서 연 인연 궁합의 ← 는 그 방이다**(ADR 0134). 불은 채팅 탭에 남는다 — 대화를 하다 궁합을 본 사람은 채팅에
    * 있는 것이다. 주소를 직접 열면(`from` 없음) 인연 탭 첫 화면으로 간다.
    */
-  test('채팅방에서 연 인연 궁합은 채팅 탭 불이고 ← 「대화」가 그 방으로 돌아간다', async ({ openAs }) => {
+  test('채팅방에서 연 인연 궁합은 채팅 탭 불이고 ← 「채팅」이 그 방으로 돌아간다', async ({ openAs }) => {
     const { a, matchId, room } = await pair(openAs);
     const lit = a.page
       .locator('nav[aria-label="내 메뉴"], nav[aria-label="모바일 내 메뉴"]')
@@ -159,7 +159,10 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(lit).toHaveCount(1);
     await expect(lit).toContainText(/^채팅/);
 
-    await a.page.getByRole('main').getByRole('link', { name: '대화', exact: true }).click();
+    /* ← 가 머리에 먼저 선다 — 글 끝의 방으로 가는 단추도 같은 이름 · 같은 곳이다 */
+    const toRoom = a.page.getByRole('main').getByRole('link', { name: '채팅', exact: true });
+    await expect(toRoom.first()).toHaveAttribute('href', `/me/chat/${matchId}`);
+    await toRoom.first().click();
     await expect(a.page).toHaveURL(new RegExp(`${room}$`));
 
     /* 주소를 직접 연 인연 궁합 — 인연 탭 불, ← 「인연」 */
