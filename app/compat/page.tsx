@@ -22,11 +22,14 @@ export const metadata = {
 };
 
 /**
- * **궁합 탭의 첫 화면** — 위에서부터 관계 지도와 저장한 사람, 궁합 새로 보기(두 사람 고르기), 궁합풀이 보관함(ADR 0129).
+ * **궁합 탭의 첫 화면** — 위에서부터 궁합 새로 보기(두 사람 고르기), 최근 궁합풀이, 관계 지도와 저장한 사람
+ * (ADR 0129 「2026-09-29 e+」).
  *
- * 두 사람을 정하는 자리는 그대로다 — 칸마다 어디서 올지를 고르고, 결과는 한 화면에서 본다(ADR 0054). 그 위에 나와
- * 내가 저장한 사람이, 아래에 이미 본 궁합이 선다. 지도와 타일은 나 탭 홈에서 옮겨 왔다 — 지도의 선이 궁합이라서다.
- * 내 사주가 아직 없으면 지도 · 타일은 안 서고 고르는 칸과 보관함만 선다(내 사주 등록은 나 탭이 든다).
+ * 탭을 연 사람이 가장 먼저 하려는 일이 새 궁합이라 고르는 칸이 맨 위에 서고, 폰의 첫 화면에서 스크롤 없이 보인다.
+ * 두 사람을 정하는 자리는 그대로다 — 칸마다 어디서 올지를 고르고, 결과는 한 화면에서 본다(ADR 0054). 그 아래 이미 본
+ * 직접 궁합이 최근 것 셋까지, 그 아래 나와 내가 저장한 사람이 선다. 인연 궁합은 인연 탭이 든다(ADR 0130).
+ * 지도의 카드 · 타일의 「나와 궁합」은 위의 두 칸을 채우고 그 칸을 화면에 들인다(`compat-picker.tsx`).
+ * 내 사주가 아직 없으면 지도 · 타일은 안 서고 고르는 칸과 최근 궁합풀이만 선다(내 사주 등록은 나 탭이 든다).
  */
 export default async function CompatPage() {
   const supabase = await supabaseOnServer();
@@ -46,7 +49,7 @@ export default async function CompatPage() {
       .select('person_id, local_label')
       .eq('listed', true)
       .order('created_at', { ascending: true }),
-    /* 지도의 선 · 타일의 점수 · 보관함이 같은 목록을 읽는다 — 한 번 읽어 나눠 준다 */
+    /* 지도의 선 · 타일의 점수 · 최근 궁합풀이가 같은 목록을 읽는다 — 한 번 읽어 나눠 준다 */
     myReadings(),
   ]);
 
@@ -89,17 +92,16 @@ export default async function CompatPage() {
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-10 py-6 sm:gap-14 sm:py-12">
-      {/* 제목은 화면 밖에서만 읽힌다 — 켜진 탭이 이미 「궁합」이라 말하고, 폰의 첫 화면은 지도가 차지한다 */}
+      {/* 제목은 화면 밖에서만 읽힌다 — 켜진 탭이 이미 「궁합」이라 말하고, 폰의 첫 화면은 고르는 칸이 차지한다 */}
       <h1 className="sr-only">궁합</h1>
-
-      {selfPersonId !== null && <MyCircle selfPersonId={selfPersonId} readings={readings} />}
 
       {/*
         사주 화면과 같은 이유로 Suspense 아래에 둔다 — 주소창의 `#` 뒤를 읽는데 fragment 는 서버에 오지 않는다.
         지도의 카드 · 사람 타일의 「나와 궁합」이 두 칸을 채운 주소(`/compat#a.person=…`)로 여기에 온다.
       */}
-      <section aria-labelledby="compat-new" className="flex flex-col gap-4">
-        <h2 id="compat-new" className={TYPE_SECTION}>
+      {/* 지도 · 타일이 칸을 채우면 고르는 칸이 이 구역을 머리글 아래로 데려오고 제목에 초점을 둔다(`compat-picker.tsx`) */}
+      <section aria-labelledby="compat-new" className="flex scroll-mt-24 flex-col gap-4">
+        <h2 id="compat-new" tabIndex={-1} className={`${TYPE_SECTION} outline-none`}>
           궁합 새로 보기
         </h2>
         <Suspense fallback={<div className="h-72 rounded-[2rem] bg-cream" />}>
@@ -111,6 +113,8 @@ export default async function CompatPage() {
       </section>
 
       <CompatArchive readings={readings} />
+
+      {selfPersonId !== null && <MyCircle selfPersonId={selfPersonId} readings={readings} />}
     </main>
   );
 }
