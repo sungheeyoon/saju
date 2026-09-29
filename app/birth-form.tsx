@@ -654,7 +654,7 @@ export function BirthFields({
             **이름 옆은 성별이다.** 달력이 여기 서 있던 동안 이 줄은 「이름 · 달력 기준」
             이었다 — 사람을 묻다 말고 날짜 형식을 묻고, 다시 아래에서 날짜를 물었다.
             묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 · 시각) →
-            어디서(출생지 — 고급 설정 안).
+            어디서(출생지).
           */}
           <fieldset className="flex min-w-0 flex-col gap-1.5">
             <legend className="mb-1.5 text-[13px] font-semibold text-secondary">성별</legend>
@@ -709,6 +709,26 @@ export function BirthFields({
 
         <TimeFields value={value} onChange={onChange} idPrefix={idPrefix} />
 
+        {/*
+          **출생지는 폼 안에 선다.** 한때 고급 설정에 접었는데(2026-09-29 아침) 운영자가 「출생지도 폼에 넣어야
+          될 것 같다」고 되돌렸다 — 진태양시의 경도라 계산에 들고, 서울이 아닌 사람이 접힌 칸을 열어 볼 까닭이 없다.
+        */}
+        <Field label="출생지">
+          <SelectShell className="max-w-72">
+            <select
+              value={value.city}
+              onChange={(event) => set('city', event.target.value as CityName)}
+              className={`${FIELD} w-full appearance-none pr-8`}
+            >
+              {CITIES.map((city) => (
+                <option key={city} value={city}>
+                  {city} ({CITY_LONGITUDES[city].toFixed(2)}°E)
+                </option>
+              ))}
+            </select>
+          </SelectShell>
+        </Field>
+
       </div>
 
       {/*
@@ -716,35 +736,13 @@ export function BirthFields({
         고쳐 온 판본이 진태양시가 아닐 때, 무엇으로 세운 명식인지가 접힘 뒤에 가린다.
         그래서 「기본값과 다른가」로 편다. 기본값을 옮겨도 이 규칙은 따라온다.
       */}
-      <details
-        className="border-t border-border pt-3"
-        open={value.basis !== DEFAULT_QUERY.basis || value.city !== DEFAULT_QUERY.city}
-      >
+      <details className="border-t border-border pt-3" open={value.basis !== DEFAULT_QUERY.basis}>
         <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-foreground">
           고급 설정
-          <span className="ml-2 text-xs font-normal text-muted">출생지 · 자시 · 시간 기준 · 세운 연도</span>
+          <span className="ml-2 text-xs font-normal text-muted">자시 · 시간 기준 · 세운 연도</span>
         </summary>
 
-        {/*
-          **출생지도 여기 산다**(운영자 2026-09-29 「좀 더 심플하게」). 진태양시의 경도라 계산에는 들지만, 대부분은
-          기본값(서울)과 몇 분 차이다. 기본값이 아니면 위 `open` 이 편다 — 무엇으로 세운 명식인지가 가리지 않는다.
-        */}
         <div className="mt-3 flex flex-wrap items-end gap-3">
-          <Field label="출생지">
-            <SelectShell className="max-w-72">
-              <select
-                value={value.city}
-                onChange={(event) => set('city', event.target.value as CityName)}
-                className={`${FIELD} w-full appearance-none pr-8`}
-              >
-                {CITIES.map((city) => (
-                  <option key={city} value={city}>
-                    {city} ({CITY_LONGITUDES[city].toFixed(2)}°E)
-                  </option>
-                ))}
-              </select>
-            </SelectShell>
-          </Field>
           <Field label="자시 규칙">
             {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
             <select
