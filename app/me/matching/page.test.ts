@@ -16,13 +16,16 @@ vi.mock('../summary', () => ({
 vi.mock('../discovery/discovery-profile', () => ({ myDiscoveryProfile: async () => ({ ok: true, value: null }) }));
 vi.mock('../payload', () => ({ payloadForViewer: async () => null }));
 vi.mock('../requests/inbox', () => ({ requestsForViewer: async () => ({ requests: [], blocked: 0 }) }));
+vi.mock('../reading/current', () => ({ myReadings: vi.fn(async () => []) }));
 vi.mock('../candidates', () => ({
   candidatesForViewer: async () => ({ cards: [], teaser: null, notice: null }),
   passedForViewer: async () => [],
 }));
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { myReadings } from '../reading/current';
 import MatchingPage from './page';
+import { RecentMatchShelf } from './recent-match-shelf';
 
 /**
  * **참여를 못 열어 본 것을 「참여할 수 없다」로 세우지 않는다**(ADR 0078).
@@ -61,5 +64,18 @@ describe('오늘의 인연', () => {
     answering({ data: null, error: { message: 'fetch failed' } });
 
     await expect(MatchingPage()).rejects.toThrow('요청을 처리하지 못했습니다');
+  });
+
+  /*
+    **최근 인연 궁합은 부속 정보다**(ADR 0078, 2026-09-29 e+). 풀이 목록 문이 터져도 화면은 서고, 그 구역만 못 읽었다는
+    값을 받는다 — 덱을 세우는 부름 뒤로 밀리지도, 덱을 막지도 않는다.
+  */
+  it('풀이 목록을 못 읽어도 화면은 서고 최근 인연 궁합 구역만 비운다', async () => {
+    answering({ data: false, error: null });
+    vi.mocked(myReadings).mockRejectedValueOnce(new Error('fetch failed'));
+
+    const page = (await MatchingPage()) as { props: { tail: { props: { children: { type: unknown; props: unknown }[] } } } };
+    const shelf = page.props.tail.props.children.find((child) => child.type === RecentMatchShelf);
+    expect(shelf?.props).toMatchObject({ loaded: { ok: false } });
   });
 });
