@@ -30,7 +30,7 @@ export default function SharedReadingNotFound() {
       <div className="flex max-w-sm flex-col gap-2">
         <h1 className={TYPE_TITLE}>열 수 없는 링크입니다</h1>
         <p className="text-sm leading-6 text-secondary">
-          주소가 잘못됐거나 더 이상 남아 있지 않은 풀이입니다. 보낸 분에게 링크를 다시
+          주소가 잘못됐거나 더 이상 남아 있지 않은 풀이예요. 보낸 분에게 링크를 다시
           받아 주세요.
         </p>
       </div>

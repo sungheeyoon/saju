@@ -80,7 +80,7 @@ describe('userFacingDbMessage', () => {
    */
   it.each([
     '풀이권을 다 쓰셨습니다. 테스트 기간에는 5번까지 만들 수 있어요.',
-    'JPG · PNG · WebP 만 올릴 수 있습니다.',
+    'JPG · PNG · WebP 사진만 올릴 수 있어요. 다른 사진을 골라 주세요.',
     '등록할 수 있는 사람은 20명까지입니다.',
     '보낸 인연 요청이 풀이권을 잡고 있어요. 요청을 거두거나 상대의 답을 기다려 주세요.',
   ])('우리가 쓴 %j 는 그대로 간다', (message) => {
@@ -116,7 +116,7 @@ describe('대신 쓸 말을 안 줬을 때', () => {
         { message: 'function public.save_reading(...) does not exist', code: '42883' },
         'save_reading',
       ),
-    ).toBe('서비스가 잠시 어긋났습니다. 잠시 뒤 다시 시도해 주세요.');
+    ).toBe('일시적인 문제로 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
 
     logged.mockRestore();
   });
@@ -130,7 +130,7 @@ describe('대신 쓸 말을 안 줬을 때', () => {
         { message: 'Could not find the function in the schema cache', code: 'PGRST202' },
         'share_my_reading',
       ),
-    ).toBe('서비스가 잠시 어긋났습니다. 잠시 뒤 다시 시도해 주세요.');
+    ).toBe('일시적인 문제로 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
 
     logged.mockRestore();
   });
@@ -143,7 +143,7 @@ describe('대신 쓸 말을 안 줬을 때', () => {
         { message: 'new row violates row-level security policy', code: '42501' },
         'request_match',
       ),
-    ).toBe('이 작업을 할 권한이 없습니다. 다시 로그인한 뒤 시도해 주세요.');
+    ).toBe('이 작업을 할 권한이 없어요. 다시 로그인한 뒤 시도해 주세요.');
 
     logged.mockRestore();
   });
@@ -156,7 +156,7 @@ describe('대신 쓸 말을 안 줬을 때', () => {
     const logged = quiet();
 
     expect(userFacingDbMessage({ message: 'fetch failed' }, 'my_readings')).toBe(
-      '요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+      '요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.',
     );
 
     logged.mockRestore();
@@ -212,7 +212,7 @@ describe('dbFailure', () => {
 
     const failure = dbFailure({ message: 'permission denied', code: '42501' }, 'my_candidates');
 
-    expect(failure.message).toBe('이 작업을 할 권한이 없습니다. 다시 로그인한 뒤 시도해 주세요.');
+    expect(failure.message).toBe('이 작업을 할 권한이 없어요. 다시 로그인한 뒤 시도해 주세요.');
     expect(failure.message).not.toContain('permission denied');
 
     logged.mockRestore();
@@ -235,7 +235,7 @@ describe('answerOfThrown', () => {
 
     const thrown = new Error('Supabase 접속값이 없습니다 — NEXT_PUBLIC_SUPABASE_URL 을 확인하세요');
 
-    expect(answerOfThrown(thrown, 'same_chart')).toBe('요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+    expect(answerOfThrown(thrown, 'same_chart')).toBe('요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
     expect(answerOfThrown(thrown, 'share_my_reading', '대신 쓸 말')).toBe('대신 쓸 말');
     expect(logged).toHaveBeenCalledWith('same_chart', 'Error', thrown.message);
 
@@ -245,7 +245,7 @@ describe('answerOfThrown', () => {
   it('Error 가 아닌 것을 던져도 문장이 선다', () => {
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    expect(answerOfThrown('boom', 'x')).toBe('요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+    expect(answerOfThrown('boom', 'x')).toBe('요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
 
     logged.mockRestore();
   });

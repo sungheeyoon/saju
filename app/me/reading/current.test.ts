@@ -39,7 +39,7 @@ describe('화면의 본체는 던진다', () => {
   it('던지는 말에 영어 원문이 안 실린다', async () => {
     answering(BROKEN);
 
-    await expect(myReadings()).rejects.toThrow('요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+    await expect(myReadings()).rejects.toThrow('요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
   });
 
   it('문이 성공했고 0행이면 빈 목록이다', async () => {
@@ -90,7 +90,7 @@ describe('부속 정보는 값으로 말한다', () => {
     const credits = await readingCredits();
 
     expect(credits.ok === false && credits.reason).toBe(
-      '요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+      '요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.',
     );
   });
 

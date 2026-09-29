@@ -219,6 +219,7 @@ function notificationOf(row: NotificationRow): InboxNotification[] {
   if (kind === undefined) return [];
 
   const readingKind = READING_KINDS.find((known) => known === row.reading_kind) ?? null;
+  const href = destinationFor(kind as NotificationKind, readingKind, row);
 
   return [
     {
@@ -229,8 +230,9 @@ function notificationOf(row: NotificationRow): InboxNotification[] {
         kind: kind as NotificationKind,
         nickname: row.counterpart_nickname,
         readingKind,
+        tappable: href !== null,
       }),
-      href: destinationFor(kind as NotificationKind, readingKind, row),
+      href,
       createdAt: row.created_at,
       unread: row.read_at === null,
     },

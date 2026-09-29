@@ -33,7 +33,7 @@ import {
  * 당시**의 입력으로 나므로 움직이지 않는다(`MATCH_RESULT_PINNED_NOTE`).
  */
 export const INPUT_EDIT_REPLACED_NOTE =
-  '수정하면 현재 사주와 궁합은 새 입력으로 계산됩니다. 이전에 본 결과와 다를 수 있습니다.';
+  '고치면 사주와 궁합을 새 정보로 다시 계산해요. 전에 본 결과와 달라질 수 있어요.';
 
 /** 저장된 입력을 이루는 값 — **여덟 글자를 가르는 것 전부이고, 그 밖은 없다.** */
 type ChartFields = {

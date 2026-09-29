@@ -42,7 +42,7 @@ export type RequestsRead = SkippableRead<Requests>;
  */
 export function ReceivedRequests({ loaded }: { loaded: RequestsRead }) {
   if (!loaded.ok) {
-    return <p className="text-sm text-muted">요청을 읽지 못했습니다 — {loaded.reason}</p>;
+    return <p className="text-sm text-muted">요청을 불러오지 못했어요. {loaded.reason}</p>;
   }
 
   const received = receivedOf(loaded.value.requests);

@@ -280,7 +280,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
   if (outcome.kind === 'same') {
     return (
       <p role="alert" className={`${CARD} text-[15px] leading-6`}>
-        같은 사람을 두 번 고를 수는 없습니다. 서로 다른 두 사람을 골라 주세요.
+        같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.
       </p>
     );
   }
@@ -373,13 +373,13 @@ async function Result({ outcome }: { outcome: Outcome }) {
                     <>
                       지금 글과 점수는{' '}
                       <strong className="font-semibold text-foreground">{RELATION_LABEL[readWith]}</strong> 사이로
-                      읽었습니다. 다음 풀이는{' '}
+                      읽었어요. 다음 풀이는{' '}
                     </>
                   )}
                   <strong className="font-semibold text-foreground">
                     {RELATION_LABEL[stored.relation]}
                   </strong>{' '}
-                  사이로 읽어 드립니다. 바꾸시려면 두 사람을 고르는 자리에서 다시 고르세요.
+                  사이로 읽어 드려요. 바꾸려면 두 사람을 고르는 자리에서 다시 골라 주세요.
                 </p>
               ) : undefined
             }
@@ -388,7 +388,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
       }
       notice={
         <p className="text-[13px] leading-5 text-secondary">
-          <strong className="font-semibold text-foreground">현재 저장된 출생 정보 기준입니다.</strong>{' '}
+          <strong className="font-semibold text-foreground">지금 저장된 출생 정보로 계산했어요.</strong>{' '}
           {INPUT_EDIT_REPLACED_NOTE}
         </p>
       }

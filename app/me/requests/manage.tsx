@@ -111,7 +111,7 @@ export function RespondButtons({ requestId }: { requestId: string }) {
 
       {failure !== null && (
         <p role="alert" className="text-sm text-danger">
-          답하지 못했습니다 — {failure}
+          답하지 못했어요. {failure}
         </p>
       )}
     </div>
@@ -336,7 +336,7 @@ export function ReadNotificationsOnVisit({ unread }: { unread: number }) {
   }, [router, unread]);
 
   if (failure === null) return null;
-  return <p className="text-[13px] text-danger">읽음 처리하지 못했습니다 — {failure}</p>;
+  return <p className="text-[13px] text-danger">소식을 읽은 것으로 표시하지 못했어요. 새로고침한 뒤 다시 확인해 주세요.</p>;
 }
 
 /**

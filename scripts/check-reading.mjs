@@ -249,7 +249,7 @@ try {
     const mine = await body('/me/readings/self', cookie.a);
     check('내 사주풀이 전용 화면이 선다', plain(mine).includes('내 사주풀이'));
     check('풀이 화면에 사주를 다시 싣지 않는다', !plain(mine).includes('사주 자세히 보기'));
-    check('아직 없으면 없다고 말한다', plain(mine).includes('아직 받아 둔 사주풀이가 없습니다'));
+    check('아직 없으면 없다고 말한다', plain(mine).includes('아직 받은 사주풀이가 없어요'));
     check('만드는 버튼이 선다', mine.includes('사주풀이 받기'));
     /**
      * **숫자는 이제 서버 HTML 에 없다.** 머리글이 브라우저에서 읽는다 — 헤더는 `/` 와
@@ -329,14 +329,14 @@ try {
      */
     const consented = plain(await body('/me/readings/self', cookie.a));
     check('동의하면 설문이 글 아래에 선다', consented.includes('이 풀이는 어떠셨어요'));
-    check('어느 글에 대한 답인지 말한다', consented.includes('지금 읽은 이 풀이에 대한 답입니다'));
+    check('어느 글에 대한 답인지 말한다', consented.includes('지금 읽은 이 풀이에 대한 답이에요'));
     /*
       「정확」만 보고 재면 안 된다. 재려는 것은 **묻는 말**이므로 낱말을 좁혀서 본다.
     */
     check('「정확도」라고 묻지 않는다',
       !consented.includes('정확도') && consented.includes('실제 경험과 얼마나 비슷했나요'));
     check('적는 칸이 열린다', consented.includes('어느 대목이 맞았고 어느 대목이 달랐나요'));
-    check('넓게 묻지 않는다', consented.includes('풀이의 문장을 가리켜 주시면'));
+    check('넓게 묻지 않는다', consented.includes('풀이의 문장을 짚어 주시면'));
     check('한도가 화면에 선다', consented.includes('200자'));
 
     /**
@@ -357,7 +357,7 @@ try {
     check('여섯 태그를 다 넣어도 받는다', !answered.error, answered.error?.message ?? '');
 
     const thanked = plain(await body('/me/readings/self', cookie.a));
-    check('답한 뒤에는 고맙다고 말한다', thanked.includes('답해 주셔서 고맙습니다'));
+    check('답한 뒤에는 고맙다고 말한다', thanked.includes('답해 주셔서 고마워요'));
     check('고칠 수 있다고도 말한다', thanked.includes('답 고치기'));
 
     /**
@@ -397,7 +397,7 @@ try {
 
     check('그 사람 이름으로 풀이 칸이 선다', plain(empty).includes('엄마의 사주풀이'));
     check('만드는 버튼이 선다', empty.includes('사주풀이 받기'));
-    check('아직 없으면 없다고 말한다', plain(empty).includes('아직 받아 둔 사주풀이가 없습니다'));
+    check('아직 없으면 없다고 말한다', plain(empty).includes('아직 받은 사주풀이가 없어요'));
 
     const saved = await saveAs(a, 'person', { personA: momId }, OUTPUT.self, null, METAPHOR.self);
     check('저장한 사람의 풀이가 저장된다', !saved.error, saved.error?.message ?? '');
@@ -500,7 +500,7 @@ try {
     const picker = plain(await body('/compat', cookie.a));
     check('고르는 화면이 무슨 사이인지 묻는다', picker.includes('두 분은 무슨 사이인가요'));
     /* 사이가 점수의 눈금도 고른다(ADR 0113) — 옛 약속 「점수에는 쓰지 않습니다」는 거짓이 되어 걷었다 */
-    check('사이가 점수의 기준도 고른다고 그 자리에서 말한다', picker.includes('점수의 기준도 이 답을 따릅니다'));
+    check('사이가 점수의 기준도 고른다고 그 자리에서 말한다', picker.includes('점수의 기준도 이 답을 따라요'));
     check('옛 약속(점수에 안 쓴다)을 더는 말하지 않는다', !picker.includes('점수에는 쓰지 않습니다'));
     /**
      * **결과 화면에서는 다시 안 묻는다**(ADR 0054).
@@ -511,7 +511,7 @@ try {
      * 골랐는지 모른 채 만드는 버튼을 누른다.
      */
     check('결과 화면에서는 다시 묻지 않는다', !after.includes('두 분은 무슨 사이인가요'));
-    check('무엇으로 읽는지는 적는다', after.includes('사이로 읽어 드립니다'));
+    check('무엇으로 읽는지는 적는다', after.includes('사이로 읽어 드려요'));
 
     const asked = await a.rpc('pair_relation_of', {
       p_person_a: account.self_person_id, p_person_b: momId,
@@ -614,10 +614,12 @@ try {
     */
 
     /** 상대에게 준비 완료가 뜬다 — 누른 사람에게는 안 뜬다 */
+    /* 닉네임이 있든 없든 「…인연 궁합이 완성됐어요」로 끝난다(`notificationText`) */
+    const told = (text) => text.includes('인연 궁합이 완성됐어요');
     const inbox = plain(await body('/me/requests', cookie.b));
-    check('상대의 알림함에 준비 완료가 뜬다', inbox.includes('궁합풀이가 새로 만들어졌습니다'));
+    check('상대의 알림함에 준비 완료가 뜬다', told(inbox));
     const mineInbox = plain(await body('/me/requests', cookie.a));
-    check('누른 사람에게는 뜨지 않는다', !mineInbox.includes('궁합풀이가 새로 만들어졌습니다'));
+    check('누른 사람에게는 뜨지 않는다', !told(mineInbox));
   }
 
   // ── 4-1. 만든 글은 한 목록에 선다 ────────────────────────────────────────
@@ -817,7 +819,7 @@ try {
      * 그리고 **어느 것을 다시 눌러야 하는지** 말하는가.
      */
     const before = plain(await body('/me/requests', cookie.a));
-    check('아직 실패 알림은 없다', !before.includes('만들지 못했습니다'));
+    check('아직 실패 알림은 없다', !before.includes('만들지 못했어요'));
 
     const opened = await a.rpc('start_reading_run', {
       p_kind: 'self', p_idempotency_key: `check-fail-self-${stamp}`,
@@ -848,8 +850,10 @@ try {
 
     const told = await body('/me/requests', cookie.a);
     const text = plain(told);
-    check('실패가 알림함에 선다', text.includes('내 사주풀이를 만들지 못했습니다'));
-    check('지금 보이는 글은 그대로라고 말한다', text.includes('지금 보이는 글은 그대로입니다'));
+    check('실패가 알림함에 선다', text.includes('내 사주풀이를 만들지 못했어요'));
+    /* 눌리는 줄이라 누르라고 한다 — 처음 실패에 거짓일 「그대로」는 안 선다(ADR 0135) */
+    check('다시 누를 자리를 말한다', text.includes('이 알림을 눌러 다시 시도해 주세요')
+      && !text.includes('지금 보이는 글은 그대로'));
     check('다시 누를 자리로 가는 링크가 붙는다', told.includes('href="/me/readings/self?from=news"'));
 
     /** **어느 궁합인지**까지 말한다 — 비공개 궁합은 두 사람을 다시 골라야 닿는 자리다 */
@@ -871,7 +875,7 @@ try {
 
     /** 남의 실패는 내 알림함에 없다 — 시도는 부른 사람의 것이다 */
     const stranger = plain(await body('/me/requests', cookie.b));
-    check('남의 실패는 내 알림함에 안 선다', !stranger.includes('만들지 못했습니다'));
+    check('남의 실패는 내 알림함에 안 선다', !stranger.includes('만들지 못했어요'));
 
     /**
      * **실패는 풀이권을 먹지 않는다.** 여기까지 성공한 것은 넷(자기·저장한 사람·

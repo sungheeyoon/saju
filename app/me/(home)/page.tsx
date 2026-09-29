@@ -134,7 +134,7 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
       */}
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         {stood === null ? (
-          <p className="text-sm text-muted">저장된 사주를 읽지 못했습니다.</p>
+          <p className="text-sm text-muted">내 사주를 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.</p>
         ) : !stood.ok ? (
           <section className="flex flex-col gap-2 rounded-[2rem] border border-border bg-surface p-5 sm:p-6">
             <p className="text-sm">{stood.message}</p>
@@ -181,7 +181,7 @@ async function Unread() {
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-fire-soft text-fire">
         <Icon name="bell" className="size-[18px]" />
       </span>
-      <span className="min-w-0 flex-1">아직 확인하지 않은 새 소식이 있습니다.</span>
+      <span className="min-w-0 flex-1">아직 확인하지 않은 새 소식이 있어요.</span>
       {/*
         수만 그리면 화면 밖에서는 **아무 뜻이 없다.** 보이지 않는 말을 붙여 배지가 스스로 무엇인지 말하게
         한다. 밖에서 이 배지를 재는 검사도 같은 말을 짚는다(`scripts/check-match.mjs`).

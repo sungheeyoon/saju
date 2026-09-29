@@ -145,13 +145,35 @@ describe('실패 알림은 무엇을 만들다 실패했는지 말한다', () =>
   });
 
   /**
-   * 실패는 현재 결과를 지우지 않는다 — 성공한 요청만 교체한다(ADR 0013). 그 말이
-   * 없으면 읽던 글이 사라진 줄 안다.
+   * 처음 만들다 실패하면 보이는 글이 없다 — 「지금 보이는 글은 그대로」는 거짓이 된다. 알림 행은 그때 글이
+   * 있었는지 모르므로 어느 갈래에서도 말하지 않고, 다시 시도할 자리를 말한다(ADR 0135).
    */
-  it('지금 보이는 글은 그대로라고 함께 말한다', () => {
+  it('없을 수도 있는 글을 그대로라 하지 않고 다시 시도할 자리를 말한다', () => {
     for (const kind of [...READING_KINDS, null]) {
-      expect(failed(kind)).toContain('그대로');
+      for (const tappable of [true, false]) {
+        const said = notificationText({ kind: 'reading_failed', nickname: '지영', readingKind: kind, tappable });
+        expect(said, `${kind} ${tappable}`).not.toContain('그대로');
+        expect(said, `${kind} ${tappable}`).toContain('다시 시도해 주세요');
+      }
     }
+  });
+
+  /** 「이 알림을 눌러」는 주소가 있는 줄에만 참이다 — 글자로만 서는 줄에는 가는 길을 말로 준다 */
+  it('눌리는 줄만 누르라고 한다', () => {
+    for (const kind of [...READING_KINDS, null]) {
+      const tapped = notificationText({ kind: 'reading_failed', nickname: null, readingKind: kind, tappable: true });
+      expect(tapped).toContain('이 알림을 눌러 다시 시도해 주세요');
+      expect(failed(kind)).not.toContain('눌러');
+    }
+    expect(failed('match')).toContain('인연 기록에서 해당 궁합을 열어');
+    expect(failed('self')).toContain('만들던 풀이 화면에서');
+  });
+
+  it('갈래마다 제 이름을 부른다', () => {
+    expect(failed('self')).toMatch(/^내 사주풀이를 만들지 못했어요/);
+    expect(failed('person')).toMatch(/^사주풀이를 만들지 못했어요/);
+    expect(failed('private')).toMatch(/^궁합풀이를 만들지 못했어요/);
+    expect(failed(null)).toMatch(/^풀이를 만들지 못했어요/);
   });
 });
 
@@ -206,7 +228,7 @@ describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
   it('동의한 그때의 출생 정보로 났고 나중 수정에 흔들리지 않는다고 말한다', () => {
     // 「매인 판본」은 우리가 FK 를 부르는 이름이다 — 사용자에게는 그때의 출생 정보다.
     expect(MATCH_RESULT_PINNED_NOTE).toContain('그때의 출생 정보');
-    expect(MATCH_RESULT_PINNED_NOTE).toContain('움직이지 않습니다');
+    expect(MATCH_RESULT_PINNED_NOTE).toContain('바뀌지 않아요');
   });
 
   /**
@@ -216,7 +238,7 @@ describe('공유 결과는 무엇으로 났는지 함께 말한다', () => {
    * 였다. 그 결정은 폐기됐다(HEAD `a9337f4`) — 점수는 해석과 **같은 생성 건**에서 나온다.
    */
   it('조립된 문장과 모델이 쓴 궁합풀이를 구별해 말한다', () => {
-    expect(MATCH_RESULT_ENGINE_NOTE).toContain('조립');
+    expect(MATCH_RESULT_ENGINE_NOTE).toContain('계산 결과로 바로 만든');
     // 제목에는 도구 이름을 안 박지만 **두 층이 나란히 서는 이 자리에서는 밝힌다.**
     // 「궁합풀이」만 적으면 표와 같은 곳에서 나온 것처럼 읽힌다.
     expect(MATCH_RESULT_ENGINE_NOTE).toContain('궁합풀이');
@@ -292,7 +314,7 @@ describe('무엇을 하는 곳인지 세 걸음으로 적는다', () => {
 
     // 같은 사실은 그래도 말한다 — 무엇이 요청을 깨뜨리는지, 그리고 그다음에 할 일.
     expect(CONSENT_FLOW_CAVEAT).toContain('출생 정보');
-    expect(CONSENT_FLOW_CAVEAT).toContain('취소');
+    expect(CONSENT_FLOW_CAVEAT).toContain('무효');
     expect(CONSENT_FLOW_CAVEAT).toContain('다시 요청');
   });
 });
@@ -302,11 +324,12 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
    * 미리 적어 두면 실제로 무효가 됐을 때 **그렇게 하기로 했던 것**이 된다. 안 적으면
    * 사고처럼 읽힌다.
    */
-  it('출생 정보를 바꾸기 전에 요청이 취소된다는 것을 먼저 말한다', () => {
+  it('출생 정보를 바꾸기 전에 요청이 무효가 된다는 것을 먼저 말한다', () => {
     const said = [INPUT_EDIT_CHANGE_CONFIRM.title, ...INPUT_EDIT_CHANGE_CONFIRM.body].join(' ');
     expect(said).toContain('출생 정보');
-    expect(said).toContain('취소');
-    // 취소는 막다른 길이 아니다 — 그다음에 할 일을 함께 적는다.
+    // 상태 이름은 `invalidated` — 「취소」는 보낸 사람이 거둔 것이다(운영자 2026-09-29)
+    expect(said).toContain('무효');
+    // 무효는 막다른 길이 아니다 — 그다음에 할 일을 함께 적는다.
     expect(said).toContain('다시 요청');
     // 이미 만든 것은 안 사라진다 — 안 적으면 고칠 것을 못 고친다.
     expect(said).toContain('그대로 남습니다');
@@ -328,7 +351,7 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
 describe('채우는 오행은 이름으로 말한다', () => {
   it('글자와 우리말 이름을 함께 낸다', () => {
     expect(suppliedText(['木', '水'], 'toMe')).toBe(
-      '나에게 부족한 목(木) · 수(水) 기운을 이 사람이 채웁니다.',
+      '나에게 부족한 목(木) · 수(水) 기운을 이 사람이 채워 줘요.',
     );
   });
 
@@ -337,7 +360,7 @@ describe('채우는 오행은 이름으로 말한다', () => {
    * 화면이 쓰는 것이 되고, 고칠 자리가 둘이 된다.
    */
   it('반대 방향은 내가 채우는 것으로 말한다', () => {
-    expect(suppliedText(['木'], 'toThem')).toBe('이 사람에게 부족한 목(木) 기운을 내가 채웁니다.');
+    expect(suppliedText(['木'], 'toThem')).toBe('이 사람에게 부족한 목(木) 기운을 내가 채워 줘요.');
   });
 
   /** 없는 것을 설명하지 않는다 — 채우는 것이 없으면 그 줄이 서지 않는다 */

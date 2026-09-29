@@ -58,7 +58,7 @@ async function InboxSections() {
       있어 기록에만 보내고 일반 문장이 선다(`answerOfThrown`). 전에는 `error.message` 를 그대로 세웠다.
     */
     return (
-      <p className="text-sm text-muted">소식을 읽지 못했습니다 — {answerOfThrown(thrown, 'inbox')}</p>
+      <p className="text-sm text-muted">소식을 불러오지 못했어요. {answerOfThrown(thrown, 'inbox')}</p>
     );
   }
 
@@ -179,7 +179,7 @@ function Notifications({ inbox }: { inbox: Inbox }) {
       )}
 
       <p className={TYPE_META}>
-        소식은 앱 안에서만 확인할 수 있습니다. 이메일·문자·카카오로는 보내지 않습니다.
+        소식은 앱 안에서만 볼 수 있어요. 이메일 · 문자 · 카카오톡으로는 보내지 않아요.
       </p>
     </section>
   );

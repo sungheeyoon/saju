@@ -87,7 +87,7 @@ export default async function MatchResultPage({
           <p className="text-[13px] font-semibold text-secondary">인연</p>
           <h1 className={TYPE_TITLE}>인연 궁합</h1>
           <p className="text-[15px] leading-6 text-secondary">
-            서로 동의한 두 분에게 같은 글과 같은 점수가 보입니다.
+            두 분 모두 같은 글과 같은 점수를 봐요.
           </p>
         </div>
       </header>

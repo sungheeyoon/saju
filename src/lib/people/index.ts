@@ -150,8 +150,8 @@ export const noRoomToSave = (needed: number, slots: PersonSlots | null): string 
   if (slots === null || slots.remaining >= needed) return null;
 
   return slots.remaining === 0
-    ? `저장한 사람이 ${slots.limit}명을 다 채웠습니다. 한 명을 지워야 여기서 저장할 수 있습니다.`
-    : `저장한 사람이 ${slots.used}명이라 자리가 ${slots.remaining}명분만 남았습니다. ${needed}명을 저장하려면 ${
+    ? `저장한 사람이 ${slots.limit}명을 다 채웠어요. 목록에서 한 명을 빼야 여기서 저장할 수 있어요.`
+    : `저장한 사람이 ${slots.used}명이라 자리가 ${slots.remaining}명분만 남았어요. ${needed}명을 저장하려면 목록에서 ${
         needed - slots.remaining
-      }명을 지워야 합니다.`;
+      }명을 빼야 해요.`;
 };

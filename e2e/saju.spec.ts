@@ -204,7 +204,7 @@ test('음력으로 넣으면 잡은 양력을 먼저 보여주고 그 날로 계
   await fillBirthDate(page, '1965-03-12');
   await fillBirthTime(page, '09:00');
 
-  await expect(page.getByText('양력 1965년 4월 13일로 계산합니다')).toBeVisible();
+  await expect(page.getByText('양력 1965년 4월 13일로 계산해요')).toBeVisible();
 
   await page.getByRole('button', { name: '사주 보기' }).click();
   const fromLunar = await page.locator('#chart').innerText();
@@ -262,7 +262,7 @@ test('있지도 않은 윤달은 계산하지 않고 어느 윤달이 있는지 
   */
   const refused = page.locator('main').getByRole('alert');
   await expect(refused).toHaveCount(1);
-  await expect(refused).toContainText(`1912~${BIRTH_YEAR_MAX}년에 태어난 분만 계산합니다`);
+  await expect(refused).toContainText(`1912~${BIRTH_YEAR_MAX}년에 태어난 분만 계산할 수 있어요`);
 });
 
 /**
@@ -304,7 +304,7 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
   await year.fill(String(tooLate));
   await show.click();
   await expect(refusal).toHaveText(
-    `1900~${BIRTH_YEAR_MAX}년에 태어난 분만 계산합니다: ${tooLate}년`,
+    `1900~${BIRTH_YEAR_MAX}년에 태어난 분만 계산할 수 있어요. 태어난 해(${tooLate}년)를 확인해 주세요.`,
   );
   await expect(page.getByRole('heading', { name: '사주팔자' })).toHaveCount(0);
 
@@ -359,7 +359,7 @@ test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한�
 
   // 라디오는 끌 수 없다 — 반대쪽을 고른다. 그것이 라디오로 바꾼 이유이기도 하다.
   await fillBirthTime(page, '14:30');
-  await expect(page.getByText('입력이 바뀌었습니다.', { exact: false })).toBeVisible();
+  await expect(page.getByText('입력이 바뀌었어요.', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: '수정하고 다시 보기' }).click();
 
   // 아무것도 안 고른 사람이 진태양시로 선다 — 고급 설정을 편 적이 없다(ADR 0057).
@@ -610,9 +610,9 @@ test('제출한 입력이 주소에 실려 링크와 새로고침에서 같은 �
   await page.goto(shared);
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
   expect(await page.locator('#chart').innerText()).toBe(chart);
-  // 폼도 주소를 따라와야 한다. 안 그러면 사용자가 바꾼 적 없는데 '입력이 바뀌었습니다'가 뜬다.
+  // 폼도 주소를 따라와야 한다. 안 그러면 사용자가 바꾼 적 없는데 '입력이 바뀌었어요'가 뜬다.
   await expectBirthDate(page, '1990-05-15');
-  await expect(page.getByText('입력이 바뀌었습니다.', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('입력이 바뀌었어요.', { exact: false })).toHaveCount(0);
   expect(consoleErrors).toEqual([]);
 });
 
@@ -649,8 +649,8 @@ test('옛 ? 링크도 그대로 열리고, 주소는 # 으로 갈린다', async 
 
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
   await expectBirthDate(page, '1990-05-15');
-  // 주소가 밖에서 바뀌었을 뿐인데 '입력이 바뀌었습니다' 가 뜨면 안 된다.
-  await expect(page.getByText('입력이 바뀌었습니다.', { exact: false })).toHaveCount(0);
+  // 주소가 밖에서 바뀌었을 뿐인데 '입력이 바뀌었어요' 가 뜨면 안 된다.
+  await expect(page.getByText('입력이 바뀌었어요.', { exact: false })).toHaveCount(0);
 
   // 쿼리스트링은 사라지고 같은 값이 `#` 뒤에 선다.
   await expect(page).toHaveURL(/#/);

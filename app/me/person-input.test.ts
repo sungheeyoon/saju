@@ -64,7 +64,7 @@ describe('한 사람을 집어 온다', () => {
   it('던지는 말에 영어 원문이 안 실린다', async () => {
     await expect(
       storedInputOf(single({ data: null, error: { message: 'fetch failed' } }), 'p-1'),
-    ).rejects.toThrow('요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+    ).rejects.toThrow('요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.');
   });
 });
 

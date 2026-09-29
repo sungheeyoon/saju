@@ -42,7 +42,7 @@ describe('지금 일정 읽기', () => {
   it('못 읽으면 못 읽었다고 답한다', async () => {
     expect(await currentSchedule(answering(null, { message: 'boom' }).client)).toEqual({
       ok: false,
-      reason: '요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+      reason: '요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.',
     });
     expect((await currentSchedule(answering([ROW], { message: 'boom' }).client)).ok).toBe(false);
   });

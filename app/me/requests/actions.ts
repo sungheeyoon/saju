@@ -44,7 +44,7 @@ export async function respondToRequest(requestId: string, accept: boolean): Prom
   if (error) return { ok: false, message: userFacingDbMessage(error, 'respond_to_match_request') };
 
   const status = statusOf(data);
-  if (status === null) return { ok: false, message: '답을 남기지 못했습니다.' };
+  if (status === null) return { ok: false, message: '답을 보내지 못했어요. 잠시 뒤 다시 시도해 주세요.' };
 
   /**
    * **동의하면 풀이가 저절로 만들어진다** (ADR 0038).
@@ -84,7 +84,7 @@ export async function cancelRequest(requestId: string): Promise<RespondResult> {
   if (error) return { ok: false, message: userFacingDbMessage(error, 'cancel_match_request') };
 
   const status = statusOf(data);
-  if (status === null) return { ok: false, message: '요청을 거두지 못했습니다.' };
+  if (status === null) return { ok: false, message: '요청을 거두지 못했어요. 새로고침한 뒤 다시 시도해 주세요.' };
 
   refresh('requests-changed');
   return { ok: true, credits: 'moved' as const, status };

@@ -186,8 +186,8 @@ export function SignupForm({
           )}
 
           <p className="text-[13px] leading-5 text-muted">
-            앱에서는 이 닉네임을 사용합니다. 프로필 사진과 소개는 가입 후에 추가할 수
-            있습니다.
+            앱에서는 이 닉네임으로 불려요. 프로필 사진과 소개는 가입한 뒤에 추가할 수
+            있어요.
           </p>
         </div>
       )}

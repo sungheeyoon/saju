@@ -34,6 +34,6 @@ describe('프로필', () => {
   it('사진을 못 읽으면 「사진 없음」이 아니라 던진다', async () => {
     answering({ data: null, error: { message: 'fetch failed' } });
 
-    await expect(ProfilePage()).rejects.toThrow('요청을 처리하지 못했습니다');
+    await expect(ProfilePage()).rejects.toThrow('요청을 처리하지 못했어요');
   });
 });

@@ -8,7 +8,7 @@ import { answerOfThrown, userFacingDbMessage } from '../../db-error';
 import { rpcArgs } from '@/src/lib/db';
 
 /** 링크를 못 냈다 — 까닭을 우리가 못 고를 때 이 버튼이 세우는 한 문장 */
-const NOT_ISSUED = '공유 링크를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.';
+const NOT_ISSUED = '공유 링크를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.';
 
 /**
  * 풀이를 공유본으로 내놓고 **주소를 받는다.**
@@ -45,7 +45,7 @@ export async function shareMyReading(
    * 아래 `shareTargetArgs` 는 `match` 를 받을 수조차 없다 — 이 검사를 지우면 컴파일이 깨진다.
    */
   if (!isShareable(target)) {
-    return { ok: false, message: '인연 궁합은 공유 링크를 만들 수 없습니다.' };
+    return { ok: false, message: '인연 궁합은 공유 링크를 만들 수 없어요.' };
   }
 
   /* 풀이를 못 읽으면 문이 던진다 — 던지지 않고 값으로 낸다. 액션이 던지면 운영의 Next 가
@@ -57,7 +57,7 @@ export async function shareMyReading(
     return { ok: false, message: answerOfThrown(thrown, 'share_my_reading', NOT_ISSUED) };
   }
   if (reading === null) {
-    return { ok: false, message: '공유할 풀이가 없습니다.' };
+    return { ok: false, message: '아직 공유할 풀이가 없어요. 풀이를 먼저 받아 주세요.' };
   }
 
   const supabase = await supabaseOnServer();
