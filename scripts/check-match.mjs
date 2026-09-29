@@ -340,7 +340,8 @@ try {
       check(`${who} 소식 화면에는 함께 보기 카드가 남지 않는다`,
         !news.includes('/me/match/'));
       check(`${who} 풀이 화면에 인연 궁합이 선다`,
-        readings.includes(partner) && readings.includes('/me/match/') && readings.includes('함께 보기'));
+        /* 보관함에서 여는 인연 궁합은 보관함 틀 안 주소다 — 사주풀이와 같은 옆 칸(ADR 0134 덧붙임) */
+        readings.includes(partner) && readings.includes('/me/readings/match/') && readings.includes('함께 보기'));
     }
 
     const history = await body(HISTORY, bCookie);

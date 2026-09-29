@@ -242,6 +242,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     for (const path of ['/me/matching', '/me/readings', '/me/chat', '/me/settings']) {
       for (const segment of ['/_tree', '/_index']) {
         const answer = await page.request.get(path, {
+          headers: { RSC: '1', 'Next-Router-Prefetch': '1', 'Next-Router-Segment-Prefetch': segment },
           maxRedirects: 0,
         });
         expect(answer.status()).toBeLessThan(400);
