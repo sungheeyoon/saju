@@ -22,7 +22,7 @@ export function useSignOut(): { leaving: boolean; failure: string | null; signOu
     const { error } = await supabaseInBrowser().auth.signOut();
     if (error) {
       setLeaving(false);
-      setFailure('로그아웃하지 못했습니다. 다시 시도해 주세요.');
+      setFailure('로그아웃하지 못했어요. 다시 시도해 주세요.');
       return;
     }
     router.replace('/');

@@ -154,7 +154,7 @@ function ElementCounts({ saju, compact }: { saju: Saju; compact: boolean }) {
           );
         })}
       </ul>
-      {glyphCount !== 8 && <p className="text-[12px] text-secondary">출생 시각을 몰라 시주는 제외했습니다</p>}
+      {glyphCount !== 8 && <p className="text-[12px] text-secondary">출생 시각을 몰라 시주는 빼고 봤어요</p>}
     </div>
   );
 }

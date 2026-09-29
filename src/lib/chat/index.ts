@@ -91,7 +91,7 @@ export const RATE_LIMITED_TEXT = '메시지를 너무 빠르게 보내고 있습
 /** 화면 이름과 빈 목록 — 사용자가 정한 글자 그대로(2026-09-23) */
 export const CHAT_TAB_LABEL = '채팅';
 export const CHAT_EMPTY_TITLE = '아직 채팅방이 없습니다';
-export const CHAT_EMPTY_DETAIL = '상세 궁합 요청이 완료되면 메시지를 주고받을 수 있습니다.';
+export const CHAT_EMPTY_DETAIL = '요청이 수락돼 인연 궁합이 열리면 메시지를 주고받을 수 있어요.';
 export const CHAT_INPUT_PLACEHOLDER = '메시지를 입력해 주세요';
 export const CHAT_SEND_LABEL = '보내기';
 

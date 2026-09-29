@@ -19,11 +19,11 @@ export function RelationNote({ readWith, next }: { readWith: Relation | null; ne
         <>
           지금 글과 점수는{' '}
           <strong className="font-semibold text-foreground">{RELATION_LABEL[readWith]}</strong> 사이로
-          읽었습니다. 다음 풀이는{' '}
+          읽었어요. 다음 풀이는{' '}
         </>
       )}
       <strong className="font-semibold text-foreground">{RELATION_LABEL[next]}</strong>{' '}
-      사이로 읽어 드립니다. 바꾸시려면 두 사람을 고르는 자리에서 다시 고르세요.
+      사이로 읽어 드려요. 바꾸려면 두 사람을 고르는 자리에서 다시 골라 주세요.
     </p>
   );
 }

@@ -55,7 +55,7 @@ export type StoredInput = {
  * 동의**이고, 그것은 입력이 아니라 동의의 말이다(`MATCH_RESULT_CLOSED_NOTE`).
  */
 export const UNREADABLE_INPUT_NOTE =
-  '저장된 값은 그대로 있습니다. 지금 화면이 그 값을 읽지 못하는 것입니다.';
+  '저장된 출생 정보는 그대로 있어요. 지금 이 화면이 그 정보를 읽지 못하고 있어요.';
 
 /**
  * 저장된 입력 한 벌을 **입력과 명식으로 세운 결과.**

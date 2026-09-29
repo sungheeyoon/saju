@@ -56,6 +56,6 @@ describe('한 사람의 payload', () => {
   it('엣지를 못 읽으면 null 이 아니라 던진다', async () => {
     answering({ person: OK(PERSON), user_person_access: BROKEN });
 
-    await expect(payloadForViewer(ID)).rejects.toThrow('요청을 처리하지 못했습니다');
+    await expect(payloadForViewer(ID)).rejects.toThrow('요청을 처리하지 못했어요');
   });
 });

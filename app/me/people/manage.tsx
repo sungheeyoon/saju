@@ -124,7 +124,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   if (remaining !== null && remaining <= 0) {
     return (
       <p className={`${EMPTY_SLOT} text-[15px] leading-6 text-secondary`}>
-        등록할 수 있는 {slots?.limit}명을 다 채웠습니다. 목록에서 누군가를 빼면 다시 등록할 수
+        저장할 수 있는 {slots?.limit}명을 다 채웠어요. 목록에서 한 명을 빼면 다시 추가할 수
         있습니다.
       </p>
     );
@@ -138,7 +138,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
           사람 추가
         </button>
         {remaining !== null && remaining <= 5 && (
-          <span className={TYPE_META}>앞으로 {remaining}명 더 등록할 수 있습니다.</span>
+          <span className={TYPE_META}>앞으로 {remaining}명 더 저장할 수 있어요.</span>
         )}
       </div>
     );
@@ -153,9 +153,9 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       <header className="flex flex-col gap-1.5">
         <h2 className={TYPE_SECTION}>사람 추가</h2>
         <p className="text-[15px] leading-6 text-secondary">
-          부를 이름은 <strong className="font-medium">나만 봅니다.</strong> 같은 사람을 다른
-          사람은 다르게 부를 수 있으므로, 이름은 그 사람이 아니라 나와 그 사람 사이에 붙습니다.
-          {remaining !== null && remaining <= 5 && ` 앞으로 ${remaining}명 더 등록할 수 있습니다.`}
+          부를 이름은 <strong className="font-medium">나만 봐요.</strong> 같은 사람도 부르는
+          사람마다 이름이 다를 수 있어서, 이 이름은 내 목록에만 붙어요.
+          {remaining !== null && remaining <= 5 && ` 앞으로 ${remaining}명 더 저장할 수 있어요.`}
         </p>
       </header>
 
@@ -193,7 +193,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
 
       {failure !== null && (
         <p role="alert" className="text-sm text-danger">
-          저장하지 못했습니다 — {failure}
+          저장하지 못했어요. {failure}
         </p>
       )}
     </section>
@@ -222,7 +222,7 @@ function NoteField({
         onChange={(event) => onChange(event.target.value.slice(0, NOTE_MAX))}
         maxLength={NOTE_MAX}
         rows={2}
-        placeholder="기억해 둘 것 — 이 사람의 사주에는 들어가지 않습니다"
+        placeholder="기억해 둘 것 — 사주 계산에는 쓰지 않아요"
         className="rounded-2xl border border-border bg-surface px-3.5 py-2.5 text-[15px] leading-6 placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
       />
     </label>
@@ -345,7 +345,7 @@ export function RemoveConfirm({
       <p className="mt-2 text-[15px] leading-6 text-secondary">
         저장한 출생 정보와 이 사람의 풀이는 목록에서 사라지며 되돌릴 수 없습니다.
       </p>
-      {failure !== null && <p className="mt-3 text-sm text-danger">빼지 못했습니다 — {failure}</p>}
+      {failure !== null && <p className="mt-3 text-sm text-danger">빼지 못했어요. {failure}</p>}
       <div className={DIALOG_ACTIONS}>
         <button type="button" onClick={remove} disabled={removing} className={BUTTON_DANGER}>
           {removing ? '빼는 중…' : '목록에서 빼기'}

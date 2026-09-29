@@ -51,7 +51,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
         <h2 className={TYPE_TITLE}>내 사주 등록</h2>
         <p className="max-w-prose text-[15px] leading-6 text-secondary">
           <strong className="font-semibold text-foreground">{nickname}</strong> 님의 출생 정보를 입력해 주세요.
-          나중에 언제든 고칠 수 있고, 고치면 그때부터 새 입력으로 계산합니다.
+          나중에 언제든 고칠 수 있어요. 고치면 그때부터 새 정보로 계산해요.
         </p>
       </header>
 
@@ -65,7 +65,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
         {missing !== null && <span className="text-[13px] text-secondary">{missing}</span>}
       </div>
 
-      {failure !== null && <p className="text-sm text-danger">저장하지 못했습니다 — {failure}</p>}
+      {failure !== null && <p className="text-sm text-danger">저장하지 못했어요. {failure}</p>}
     </section>
   );
 }

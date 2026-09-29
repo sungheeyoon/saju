@@ -223,9 +223,9 @@ function convertedLine(value: Query): { ok: boolean; text: string } | null {
 
   try {
     const { year, month, day } = solarDateOf(value);
-    return { ok: true, text: `양력 ${year}년 ${month}월 ${day}일로 계산합니다` };
+    return { ok: true, text: `양력 ${year}년 ${month}월 ${day}일로 계산해요` };
   } catch (error) {
-    return { ok: false, text: error instanceof Error ? error.message : '양력으로 바꾸지 못했습니다.' };
+    return { ok: false, text: error instanceof Error ? error.message : '양력으로 바꾸지 못했어요. 날짜를 다시 확인해 주세요.' };
   }
 }
 
@@ -522,7 +522,7 @@ function TimeFields({
         onPick={(next) => choose(next === 'known')}
         options={[
           { value: 'known', label: '직접 입력' },
-          { value: 'unknown', label: HOUR_UNKNOWN_CHOICE, hint: '시주 없이 봐요' },
+          { value: 'unknown', label: HOUR_UNKNOWN_CHOICE, hint: '출생 시각 없이 풀이해요' },
         ]}
       />
       {/*

@@ -39,7 +39,7 @@ export function SignInCarrying({
             setFailure(null);
           } catch {
             event.preventDefault();
-            setFailure('브라우저에서 입력 정보를 임시 보관하지 못했어요. 브라우저의 저장 공간 설정을 확인한 뒤 다시 눌러 주세요.');
+            setFailure('입력을 임시로 저장하지 못했어요. 저장 공간 설정을 확인하고 다시 시도해 주세요.');
           }
         }}
         className={className}

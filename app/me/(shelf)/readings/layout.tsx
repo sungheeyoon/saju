@@ -86,16 +86,16 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
       **빈 구역도 선다 — 점선 한 권으로.** 구역을 통째로 숨기면 「궁합풀이도 여기 꽂힌다」가 안
       보인다. 빈 자리는 같은 크기의 점선 표지라 「한 권 더」로 읽히고, 누르면 만드는 자리로 간다.
     */
-    <Shelf title="사주풀이" description="나와 저장한 사람을 한 사람씩 본 풀이입니다.">
+    <Shelf title="사주풀이" description="나와 저장한 사람을 한 사람씩 본 풀이예요.">
       {singles.map((book) => (
         <li key={book.key}>
           <SingleCover book={book} from="shelf" />
         </li>
       ))}
       {selfPersonId === null ? (
-        <BlankBook href="/me" element="木" label="내 사주 등록" />
+        <BlankBook href="/me" element="木" label="내 사주 등록하기" />
       ) : (
-        !hasSelfReading && <BlankBook href="/me/readings/self" element="木" label="내 사주풀이" from="shelf" />
+        !hasSelfReading && <BlankBook href="/me/readings/self" element="木" label="사주풀이 받기" from="shelf" />
       )}
     </Shelf>
   );
@@ -107,7 +107,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   const pairShelf = (only: 'compat' | 'match' | null, blank: ReactNode) => {
     const pairs = pairsOf(only);
     return (
-      <Shelf title="궁합풀이" description="두 사람을 함께 맞대어 본 풀이입니다.">
+      <Shelf title="궁합풀이" description="두 사람을 함께 맞대어 본 풀이예요.">
         {pairs.map(({ book, kind }) => (
           <li key={book.key}>
             <PairCover book={book} source={kind === 'match' ? '인연' : '직접'} from="shelf" />

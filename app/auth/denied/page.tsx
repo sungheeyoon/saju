@@ -34,13 +34,13 @@ export default async function DeniedPage({
           </span>
           <h1 className={`mt-3 ${TYPE_TITLE}`}>로그인하지 못했습니다</h1>
           <p className="text-[15px] leading-7 text-secondary">
-            구글 로그인이 끝나지 못했습니다. 취소하셨거나 중간에 끊긴 것일 수 있습니다. 다시
-            시도해 주세요.
+            구글 로그인을 마치지 못했어요. 중간에 취소했거나 연결이 끊겼을 수 있어요. 아래
+            「다시 로그인」을 눌러 주세요.
           </p>
         </header>
 
         <p className="text-sm leading-6 text-secondary">
-          사주 계산은 로그인 없이 이용할 수 있고, 궁합과 저장 기능은 로그인 후 이용할 수 있습니다.
+          사주 계산은 로그인 없이 이용할 수 있어요. 궁합과 저장은 로그인한 뒤에 이용할 수 있어요.
         </p>
 
         <p className="flex flex-col gap-2 sm:flex-row">

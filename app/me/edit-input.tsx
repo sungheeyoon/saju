@@ -141,7 +141,7 @@ export function EditInputForm({
         <div className="rounded-2xl bg-surface-sunken px-3.5 py-2.5 text-[15px]">
           <span className="text-secondary">닉네임</span>{' '}
           <strong className="font-semibold">{current.name}</strong>
-          <p className={`mt-0.5 ${TYPE_META}`}>내 이름은 프로필 닉네임으로 표시됩니다.</p>
+          <p className={`mt-0.5 ${TYPE_META}`}>내 이름은 프로필 닉네임으로 보여요.</p>
         </div>
       )}
 
@@ -154,8 +154,8 @@ export function EditInputForm({
       {pillarsSame && (
         <p className={TYPE_META}>
           {nameChanged
-            ? '이름만 바뀌었습니다. 부르는 이름은 여덟 글자를 바꾸지 않으므로 저장된 출생 정보는 그대로입니다.'
-            : '바뀐 것이 없습니다.'}
+            ? '이름만 바뀌었어요. 이름은 여덟 글자에 들어가지 않아서 출생 정보와 사주는 그대로예요.'
+            : '바뀐 것이 없어요.'}
         </p>
       )}
 
@@ -179,7 +179,7 @@ export function EditInputForm({
 
       {failure !== null && (
         <p role="alert" className="text-sm text-danger">
-          저장하지 못했습니다 — {failure}
+          저장하지 못했어요. {failure}
         </p>
       )}
 

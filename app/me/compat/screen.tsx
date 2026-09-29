@@ -307,7 +307,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
   if (outcome.kind === 'same') {
     return (
       <p role="alert" className={`${CARD} text-[15px] leading-6`}>
-        같은 사람을 두 번 고를 수는 없습니다. 서로 다른 두 사람을 골라 주세요.
+        같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.
       </p>
     );
   }
@@ -403,7 +403,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
       }
       notice={
         <p className="text-[13px] leading-5 text-secondary">
-          <strong className="font-semibold text-foreground">현재 저장된 출생 정보 기준입니다.</strong>{' '}
+          <strong className="font-semibold text-foreground">지금 저장된 출생 정보로 계산했어요.</strong>{' '}
           {INPUT_EDIT_REPLACED_NOTE}
         </p>
       }

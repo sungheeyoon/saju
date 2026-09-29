@@ -172,7 +172,7 @@ function PeopleList({
   if (people.length === 0) {
     return (
       <p className={`${EMPTY_SLOT} text-[15px] leading-6 text-secondary`}>
-        아직 저장한 사람이 없습니다. 이름과 출생 정보를 입력해 사람을 추가해 보세요.
+        아직 저장한 사람이 없어요. 이름과 출생 정보를 입력해 사람을 추가해 보세요.
       </p>
     );
   }
@@ -233,7 +233,7 @@ async function peopleWithCharts(edges: Edge[]): Promise<Person[]> {
       /* 입력이 없는 사람 — 읽을 것이 없다는 말과 못 읽는다는 말을 여기서 합친다 */
       chart:
         stored === undefined
-          ? ({ ok: false, message: '저장된 출생 정보를 읽지 못했습니다.' } as const)
+          ? ({ ok: false, message: '출생 정보를 불러오지 못했어요.' } as const)
           : storedChartOf(stored, edge.local_label),
     };
   });

@@ -188,7 +188,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
         */}
         {dirty && (
           <p className="text-sm text-secondary">
-            입력이 바뀌었습니다. &lsquo;수정하고 다시 보기&rsquo;를 누르면 반영됩니다.
+            입력이 바뀌었어요. &lsquo;수정하고 다시 보기&rsquo;를 누르면 결과에 반영돼요.
           </p>
         )}
       </form>

@@ -144,7 +144,7 @@ function PairTasteResult({ taste, names, draft }: { taste: Taste; names: { a: st
             00
           </span>
           <Icon name="lock" className="size-4" />
-          점수는 궁합풀이와 함께 보여요
+          점수는 궁합풀이에서 볼 수 있어요
         </p>
       </section>
 
@@ -166,7 +166,7 @@ function PairTasteResult({ taste, names, draft }: { taste: Taste; names: { a: st
             로그인하고 궁합풀이 받기
           </SignInCarrying>
           <p className="text-center text-xs leading-5 text-secondary">
-            로그인하면 두 사람을 그대로 들고 궁합으로 가요 · 가입하면 받는 풀이권으로 궁합풀이를 받을 수 있어요
+            로그인하면 입력한 두 사람으로 이어서 볼 수 있어요. 가입하면 풀이권으로 궁합풀이를 받을 수 있어요.
           </p>
         </div>
       </section>
