@@ -61,9 +61,9 @@ export function MatchingExperience({
   explorationNote,
   passed: passedFromServer = EMPTY_CARDS,
 }: {
-  /** 받은 요청 — 제목 아래, 덱 위에 선다. 없으면 아무것도 안 선다(ADR 0130) */
+  /** 받은 요청 띠 한 줄 — 제목 아래, 덱 위에 선다. 없으면 아무것도 안 선다(ADR 0130) */
   lead?: ReactNode;
-  /** 덱 아래 — 최근 인연 궁합과 지난 요청 한 줄(2026-09-29 e+). 비면 아무것도 안 선다 */
+  /** 덱 아래 — 「인연 기록 N」 한 줄(2026-09-29 u2). 비면 아무것도 안 선다 */
   tail?: ReactNode;
   cards: readonly DeckCard[];
   /** 지도의 가운데 — 내 일간과 오행 다섯 */
@@ -260,7 +260,7 @@ export function MatchingExperience({
   );
 
   return (
-    <main className="app-shell flex min-w-0 flex-1 flex-col gap-5 py-6 sm:gap-7 sm:py-10">
+    <main className="app-shell flex min-w-0 flex-1 flex-col gap-3 py-6 sm:gap-7 sm:py-10">
       {/*
         **폰에서는 제목과 보기 전환이 한 줄에 선다**(2026-09-25). 두 칸짜리 토글이 폰에서 한 줄을 통째로 썼다 — 폰에는
         「지금 아닌 쪽」으로 가는 알약 하나와, 그 위에 덱 순번 점이 선다. 지나친 인연은 가끔 여는 보관함이라 오늘의 인연과
@@ -302,11 +302,11 @@ export function MatchingExperience({
           {notice !== null && <p className={TYPE_META}>{notice}</p>}
         </div>
       )}
-      {view === 'today' && profile === undefined && notice !== null && <p className={`${TYPE_META} -mt-2 max-w-prose`}>{notice}</p>}
+      {view === 'today' && profile === undefined && notice !== null && <p className={`${TYPE_META} max-w-prose sm:-mt-2`}>{notice}</p>}
 
       {/*
-        **답할 요청이 덱보다 먼저다**(시안 g, ADR 0130). 받은 요청은 내가 답할 때까지 남는 유일한 것이라 덱 위에 선다.
-        요청이 없으면 이 자리는 비어 덱이 제자리에 선다 — 빈 칸이 덱을 밀어내지 않는다.
+        **답할 요청이 덱보다 먼저다**(시안 g · u, ADR 0130). 받은 요청은 내가 답할 때까지 남는 유일한 것이라 덱 위에 띠 한
+        줄로 선다 — 누르면 카드 시트가 올라온다. 요청이 없으면 이 자리는 비어 사진이 그 높이를 도로 가져간다.
       */}
       {lead}
 
@@ -392,8 +392,8 @@ export function MatchingExperience({
       )}
 
       {/*
-        **덱 다음은 지나간 것이다**(2026-09-29 e+) — 최근 인연 궁합 셋, 그 아래 보낸 요청 · 끝난 요청 한 줄. 폰에서는 카드
-        한 장이 화면을 채우고 이 둘은 스크롤 아래에 선다 — 덱을 밀어내지 않는다.
+        **덱 다음은 지나간 것이다**(2026-09-29 u2) — 인연 궁합과 지난 요청이 「인연 기록 N」 한 줄로 접혀 선다. 폰은 덱이
+        뷰포트에 묶여 있어 이 줄의 높이만큼 카드 사진이 줄고, 페이지는 여전히 한 화면이다.
       */}
       {tail}
 

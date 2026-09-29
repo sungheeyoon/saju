@@ -156,20 +156,32 @@ export function BlankBook({ href, element, label }: { href: string; element: Ele
  * 크림 편지 한 장이 통째로 결과 화면으로 가는 링크다. 「함께 보기」는 그 링크의 모양일 뿐 따로 눌리는
  * 단추가 아니다(한 장에 손잡이 하나).
  */
-export function MakingShelf({ matches }: { matches: readonly InboxMatch[] }) {
+export function MakingShelf({
+  matches,
+  hrefOf = (matchId) => `/me/match/${matchId}`,
+  titled = true,
+}: {
+  matches: readonly InboxMatch[];
+  /** 결과 화면으로 가는 길 — 인연 기록은 `?from=history` 를 단다(2026-09-29 u2) */
+  hrefOf?: (matchId: string) => string;
+  /** 절 제목 줄 — 인연 기록은 제 「인연 궁합」 제목 아래에 세우므로 안 단다 */
+  titled?: boolean;
+}) {
   return (
     <section className="flex flex-col gap-4">
-      <div>
-        <h2 className={TYPE_SECTION}>인연 궁합</h2>
-        <p className="mt-0.5 text-[13px] leading-5 text-secondary">서로 동의한 궁합풀이를 만들고 있습니다.</p>
-      </div>
+      {titled && (
+        <div>
+          <h2 className={TYPE_SECTION}>인연 궁합</h2>
+          <p className="mt-0.5 text-[13px] leading-5 text-secondary">서로 동의한 궁합풀이를 만들고 있습니다.</p>
+        </div>
+      )}
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
         {matches.map((match) => {
           const supplied = ELEMENTS.find((one) => one === match.suppliedToMe) ?? null;
           return (
             <li key={match.matchId}>
               <Link
-                href={`/me/match/${match.matchId}`}
+                href={hrefOf(match.matchId)}
                 className="group flex h-full flex-col gap-4 rounded-[1.75rem] bg-cream p-5 transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
               >
                 <span className="flex items-center gap-3.5">
