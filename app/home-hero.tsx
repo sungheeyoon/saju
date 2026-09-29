@@ -9,8 +9,8 @@ import { PairTaste } from './pair-taste';
 import { SignedInProvider } from './signed-in';
 import { SajuCompatTabs } from './segmented-nav';
 import { TAB_HERO_CARD, TabHeroBody, TabHeroGlow } from './tab-hero';
-import { ElementSymbol } from './ui/element-symbol';
-import { TYPE_SECTION } from './ui/surfaces';
+import { SunMark, TaijiMark } from './ui/entry-marks';
+import { PAPER_TOP, TYPE_SECTION } from './ui/surfaces';
 
 /**
  * `/` 의 얼굴 — **처음 온 사람과 이미 들어온 사람에게 다른 것을 세운다.**
@@ -71,7 +71,11 @@ export function HomeHero({ calculator }: { calculator: ReactNode }) {
       */}
       <Hero member={member} entry={entry} onEntry={open} />
 
-      <section id="calculator" className="scroll-mt-24">
+      {/*
+        로그인 전에는 머리와 폼이 **크림 종이 한 장**이다(`PAPER_TOP` · `PAPER_BOTTOM`, ADR 0132) — 이 자리가 `main` 의
+        틈만큼 올라붙어 머리의 아래 끝에 닿는다. 자리의 종류는 안 바꾸고 클래스만 갈린다(위 「자리에 서는 부품」).
+      */}
+      <section id="calculator" className={`scroll-mt-24 ${member ? '' : '-mt-8 sm:-mt-10'}`}>
         <div id="self-panel" role={member ? undefined : 'tabpanel'} aria-labelledby={member ? undefined : 'entry-self'} hidden={pair}>
           {/*
             **제목은 둘이 같다.** 묻는 것이 같기 때문이다 — 가르는 것은 이 입력이
@@ -114,8 +118,9 @@ type Entry = 'self' | 'pair';
  */
 function Hero({ member, entry, onEntry }: { member: boolean; entry: Entry; onEntry: (entry: Entry) => void }) {
   return (
-    <header className={TAB_HERO_CARD}>
-      <TabHeroGlow />
+    <header className={member ? TAB_HERO_CARD : `relative ${PAPER_TOP}`}>
+      {/* 번짐은 회원의 머리에만 — 현관의 종이는 먹 · 흰 · 크림뿐이다(시안 n) */}
+      {member && <TabHeroGlow />}
       {/*
         **껍데기는 안 갈린다.** 자리에 서는 부품 종류가 바뀌면 세션이 풀리는 순간
         React 가 머리를 통째로 뜯고 다시 세워 화면이 한 번 튄다. 속만 갈린다.
@@ -152,7 +157,8 @@ function Hero({ member, entry, onEntry }: { member: boolean; entry: Entry; onEnt
 }
 
 /**
- * 현관의 속 — 카드 껍데기는 `Hero` 가 든다(흐름 시안 g 의 첫 화면, ADR 0131).
+ * 현관의 속 — 카드 껍데기는 `Hero` 가 든다(흐름 시안 g 의 첫 화면, ADR 0131). 크림 종이의 위 토막이고, 아래 토막은
+ * 폼이다 — 제목 · 입구 · 폼 · 주 단추가 한 장 안에 선다(입력 폼 시안 n, ADR 0132).
  *
  * 제목 한 줄, 설명 한 줄, 그리고 **두 입구** — 「내 사주 보기」와 「궁합 보기」. 입구는 바로 아래 입력 칸을 고르는 탭이다:
  * 둘 다 로그인 없이 맛보기까지 간다. 입구 아래에는 곧장 폼이 선다.
@@ -177,45 +183,45 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
   };
 
   return (
-    <div className="relative px-5 pb-6 pt-6 sm:px-10 sm:pb-9 sm:pt-9">
-      <div className="min-w-0">
-        <h1 className="font-rounded text-[1.75rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2.25rem]">
+    <div className="relative px-3 pb-4 pt-5 sm:px-10 sm:pt-9">
+      <div className="px-1">
+        <h1 className="font-rounded text-[1.6rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2rem]">
           나는 어떤 사람일까?
         </h1>
-        <p className="mt-2 max-w-md text-[15px] leading-7 text-secondary">
-          생일만 넣으면 사주와 짧은 맛보기를 바로 보여 드려요.
-        </p>
-        <div role="tablist" aria-label="무엇을 볼까요" className="mt-5 grid grid-cols-2 gap-3">
-          {ENTRIES.map(({ id, element, title, question }) => (
-            <button
-              key={id}
-              id={`entry-${id}`}
-              type="button"
-              role="tab"
-              aria-selected={entry === id}
-              aria-controls={`${id}-panel`}
-              tabIndex={entry === id ? 0 : -1}
-              onClick={() => onEntry(id)}
-              onKeyDown={onKeyDown}
-              className={`flex min-h-24 flex-col items-start gap-2 rounded-[1.5rem] border p-4 text-left active:scale-[0.98] ${
-                entry === id ? 'border-foreground bg-surface shadow-card' : 'border-border bg-surface/70 hover:border-border-strong'
-              }`}
-            >
-              <ElementSymbol element={element} className="size-7" />
-              <span className="flex flex-col">
-                <span className="text-[15px] font-semibold text-foreground">{title}</span>
-                <span className="text-[13px] text-secondary">{question}</span>
-              </span>
-            </button>
-          ))}
-        </div>
+        <p className="mt-1 max-w-md text-sm leading-6 text-secondary">생일만 넣으면 사주와 짧은 맛보기를 바로 보여 드려요.</p>
+      </div>
+      {/* 입구는 세그먼트 한 줄이다(시안 n) — 큰 카드 둘이던 자리가 한 줄로 줄어 폼이 첫 화면에 더 많이 든다 */}
+      <div role="tablist" aria-label="무엇을 볼까요" className="mt-4 grid grid-cols-2 gap-0.5 rounded-[0.9rem] bg-surface-sunken p-0.5">
+        {ENTRIES.map(({ id, Mark, title }) => (
+          <button
+            key={id}
+            id={`entry-${id}`}
+            type="button"
+            role="tab"
+            aria-selected={entry === id}
+            aria-controls={`${id}-panel`}
+            tabIndex={entry === id ? 0 : -1}
+            onClick={() => onEntry(id)}
+            onKeyDown={onKeyDown}
+            className={`flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-[0.75rem] px-2 text-[15px] font-semibold active:scale-[0.98] ${
+              entry === id ? 'bg-surface text-foreground shadow-card' : 'text-secondary'
+            }`}
+          >
+            <Mark className="size-5" />
+            {title}
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
-/** 두 입구 — 상징은 장식이다(오행을 뜻하지 않는다). 이름이 곧 버튼의 이름이다 */
-const ENTRIES: readonly { id: Entry; element: '火' | '水'; title: string; question: string }[] = [
-  { id: 'self', element: '火', title: '내 사주 보기', question: '나는 어떤 사람?' },
-  { id: 'pair', element: '水', title: '궁합 보기', question: '이 사람이랑 맞아?' },
+/**
+ * 두 입구 — 그림은 장식이다. 이름이 곧 탭의 이름이다.
+ *
+ * 오행 그림(火 · 水)이 서 있었는데 입구는 오행을 뜻하지 않는다 — 해와 태극의 흑백 그림으로 바꿨다(시안 n, ADR 0132).
+ */
+const ENTRIES: readonly { id: Entry; Mark: typeof SunMark; title: string }[] = [
+  { id: 'self', Mark: SunMark, title: '내 사주 보기' },
+  { id: 'pair', Mark: TaijiMark, title: '궁합 보기' },
 ];

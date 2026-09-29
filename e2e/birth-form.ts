@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { HOUR_UNKNOWN_CHOICE } from '@/src/lib/input/query';
 import { CALENDAR_KO, type Calendar } from '@/src/lib/saju';
 
 /**
@@ -9,9 +10,9 @@ import { CALENDAR_KO, type Calendar } from '@/src/lib/saju';
  * 있다. 칸 하나가 갈라지거나 합쳐질 때마다 호출부를 스무 곳 고치면 한 곳은 안
  * 고쳐지고, 그 한 곳이 「폼이 바뀌었다」가 아니라 「그 화면이 깨졌다」로 읽힌다.
  *
- * 날짜와 시각은 `<input type="date">`·`type="time">` 이 아니라 고르는 칸으로 서 있다
+ * 날짜와 시각은 `<input type="date">`·`type="time">` 이 아니라 숫자 칸으로 서 있다
  * (`app/birth-form.tsx` 의 머리말). 그래서 검사도 **한 칸에 한 번 채우지 않고**
- * 년·월·일과 시·분을 각각 고른다.
+ * 년·월·일과 시·분을 각각 적는다. 성별 · 달력 · 출생지 · 출생 시각은 펼침 줄이다(ADR 0132).
  */
 
 type Scope = Page | Locator;
@@ -48,38 +49,40 @@ export async function expectBirthDate(scope: Scope, date: string): Promise<void>
 }
 
 /**
- * 시각을 아는 쪽을 고르고 시·분을 적는다.
+ * 묶음 목록의 펼침 줄에서 하나를 고른다 — 줄(`button`, 이름은 「줄 이름 + 지금 값」)을 눌러 펼치고 라디오를 누른다.
  *
- * 이름으로 찾는 「출생 시각 입력」은 **화면에 그렇게 적혀 있지 않다.** 칸에 보이는 글자는
- * 「시각 입력」이고, 온전한 이름은 `aria-label` 이 들고 있다(`birth-form.tsx`). 검사가
- * 짚는 것은 언제나 불리는 이름 쪽이다.
+ * 손으로 고르면 목록이 접히므로(`birth-form.tsx` 의 `PickRow`) `check()` 가 아니라 `click()` 이다 — `check()` 는
+ * 누른 뒤 라디오가 켜져 있는지 다시 보는데, 그때 라디오는 이미 떼어졌다.
+ */
+export async function pickRow(scope: Scope, row: string, option: string): Promise<void> {
+  await scope.getByRole('button', { name: new RegExp(`^${row} `) }).click();
+  await scope.getByRole('radio', { name: option, exact: true }).click();
+}
+
+/**
+ * 시각을 아는 쪽(「직접 입력」)을 고르고 시·분을 적는다.
  *
- * 폼은 「출생 시각 입력」에서 시작하므로 두 칸은 이미 열려 있다. 그래도 고르는 줄을 먼저
- * 누른다 — 주소에서 온 입력은 `hourKnown` 이 `null` 이거나 `false` 일 수 있고, 그때는
- * 두 칸이 잠겨 있다.
+ * 폼은 「직접 입력」에서 시작하므로 시각 줄은 이미 서 있다. 그래도 먼저 고른다 — 주소에서 온 입력은
+ * `hourKnown` 이 `null` 이거나 `false` 일 수 있고, 그때는 시각 줄이 없다.
  */
 export async function fillBirthTime(scope: Scope, time: string): Promise<void> {
   const match = TIME.exec(time);
   if (!match) throw new Error(`HH:MM 이 아니다: ${time}`);
   const [, hour, minute] = match;
 
-  await scope.getByRole('radio', { name: '출생 시각 입력', exact: true }).check();
-  /*
-    `exact` 없이 「출생 시」로 찾으면 **라디오까지 걸린다** — 「출생 시각 모름」이
-    그 글자로 시작한다. 부분일치는 화면 낱말이 길어지는 날 조용히 둘을 잡는다.
-  */
+  await pickRow(scope, '출생 시각', '직접 입력');
   await scope.getByLabel('출생 시', { exact: true }).fill(hour);
   await scope.getByLabel('출생 분', { exact: true }).fill(minute);
 }
 
 /** 시각을 모른다고 답한다 — 고르지 않은 것과 다르다 */
 export async function chooseHourUnknown(scope: Scope): Promise<void> {
-  await scope.getByRole('radio', { name: '출생 시각 모름', exact: true }).check();
+  await pickRow(scope, '출생 시각', HOUR_UNKNOWN_CHOICE);
 }
 
-/** 달력 기준 — 양력·음력·음력 윤달 셋 중 하나. 「음력」은 「음력 윤달」의 앞토막이라 `exact` 다 */
+/** 달력 기준 — 양력·음력·음력 윤달 셋 중 하나. 「음력」은 「음력 윤달」의 앞토막이라 라디오는 `exact` 로 찾는다 */
 export async function chooseCalendar(scope: Scope, calendar: Calendar): Promise<void> {
-  await scope.getByRole('radio', { name: CALENDAR_KO[calendar], exact: true }).check();
+  await pickRow(scope, '달력', CALENDAR_KO[calendar]);
 }
 
 /** 이름·생년월일·출생시각까지 한 벌 — 제출 조건을 다 채운다 */

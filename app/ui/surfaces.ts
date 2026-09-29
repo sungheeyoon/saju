@@ -18,6 +18,17 @@ export const CARD = 'rounded-[1.75rem] border border-border bg-surface p-5 shado
 export const PAPER = 'rounded-[2rem] bg-cream p-6 sm:p-8';
 
 /**
+ * 크림 종이 한 장을 **위아래 두 토막으로** — 로그인 전 첫 화면이 쓴다(입력 폼 시안 n, ADR 0132).
+ *
+ * 제목 · 입구 둘 · 폼 · 주 단추가 한 장 안에 서야 하는데, 머리(`home-hero.tsx`)와 폼(`saju-calculator.tsx` ·
+ * `pair-taste.tsx`)은 서로 다른 부품이고 결과는 폼 **밖** 아래에 선다. 한 부품으로 싸면 결과까지 종이 위에 올라간다.
+ * 그래서 머리는 위 모서리만, 폼은 아래 모서리만 둥글고, 폼 쪽 자리가 둘 사이의 틈만큼 올라붙는다.
+ */
+export const PAPER_TOP = 'rounded-t-[2rem] bg-cream';
+
+export const PAPER_BOTTOM = 'rounded-b-[2rem] bg-cream px-3 pb-5 sm:px-10 sm:pb-9';
+
+/**
  * 오행 타일 — `ELEMENT_TONE[x].scope`(또는 `elementScope`)와 함께 단다. 면이 그 오행의 파스텔이 되고 안의
  * `BUTTON_ON_TILE` · `ElementSymbol` 이 같은 색을 따른다.
  */

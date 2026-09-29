@@ -343,7 +343,6 @@ function SlotCard({
         <BirthFields
           value={slot.query}
           onChange={(next) => onChange({ from: 'typed', query: next })}
-          idPrefix={side}
           namePlaceholder={SIDE_LABEL[side]}
         />
       )}

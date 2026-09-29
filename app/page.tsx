@@ -31,7 +31,8 @@ export default function Home() {
     <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:gap-10 sm:py-14">
       <HomeHero
         calculator={
-          <Suspense fallback={<div className="h-56 rounded-[1.75rem] border border-border bg-surface shadow-card" />}>
+          // 미리 그려진 HTML 은 현관이다 — 자리표시도 현관 종이의 아래 토막 모양이다(`PAPER_BOTTOM`, ADR 0132)
+          <Suspense fallback={<div className="h-[26rem] rounded-b-[2rem] bg-cream" />}>
             <SajuCalculator outline={READING_OUTLINE} />
           </Suspense>
         }

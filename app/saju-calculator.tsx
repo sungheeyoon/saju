@@ -18,7 +18,7 @@ import {
   toSearchParams,
   type Query,
 } from '@/src/lib/input/query';
-import { CARD } from './ui/surfaces';
+import { CARD, PAPER_BOTTOM } from './ui/surfaces';
 
 /**
  * 익명 계산기 — **엔진이 순수 함수라 서버 없이 브라우저에서 그대로 돈다.**
@@ -142,15 +142,16 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
           setTried(false);
           submit(form);
         }}
-        className={`${CARD} flex flex-col gap-5`}
+        // 로그인 전에는 첫 화면 종이의 아래 토막이다 — 머리(`home-hero.tsx`)와 한 장으로 선다(ADR 0132)
+        className={signedIn ? `${CARD} flex flex-col gap-5` : `${PAPER_BOTTOM} flex flex-col gap-3`}
       >
-        <BirthFields value={form} onChange={setForm} idPrefix="natal" />
+        <BirthFields value={form} onChange={setForm} />
 
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
             aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
-            className={`${BUTTON_PRIMARY} w-full sm:w-auto`}
+            className={`${BUTTON_PRIMARY} w-full ${signedIn ? 'sm:w-auto' : 'mt-1'}`}
           >
             {/*
               **로그인 전에는 무엇이 무료인지 버튼이 말한다**(흐름 시안 g, ADR 0131) — 사주 · 오행 · 맛보기는 로그인 없이
