@@ -53,6 +53,7 @@ type View = 'today' | 'passed';
 */
 export function MatchingExperience({
   lead,
+  tail,
   cards,
   me,
   teaser,
@@ -62,6 +63,8 @@ export function MatchingExperience({
 }: {
   /** 받은 요청 — 제목 아래, 덱 위에 선다. 없으면 아무것도 안 선다(ADR 0130) */
   lead?: ReactNode;
+  /** 덱 아래 — 최근 인연 궁합과 지난 요청 한 줄(2026-09-29 e+). 비면 아무것도 안 선다 */
+  tail?: ReactNode;
   cards: readonly DeckCard[];
   /** 지도의 가운데 — 내 일간과 오행 다섯 */
   me: MeMark;
@@ -387,6 +390,12 @@ export function MatchingExperience({
           </div>
         </section>
       )}
+
+      {/*
+        **덱 다음은 지나간 것이다**(2026-09-29 e+) — 최근 인연 궁합 셋, 그 아래 보낸 요청 · 끝난 요청 한 줄. 폰에서는 카드
+        한 장이 화면을 채우고 이 둘은 스크롤 아래에 선다 — 덱을 밀어내지 않는다.
+      */}
+      {tail}
 
       {/* 폰의 ⓘ — 사진 위에 못 둔 것 전부와 궤도 · 참고 점수 고지 */}
       {profile && (

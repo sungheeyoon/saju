@@ -5,7 +5,7 @@ import { isBlocked } from '@/src/lib/account';
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
-import { answerOfThrown, dbFailure } from '../../db-error';
+import { answerOfThrown, dbFailure, read, type SkippableRead } from '../../db-error';
 import { BUTTON_PRIMARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { TYPE_DISPLAY } from '../../ui/surfaces';
@@ -14,13 +14,16 @@ import { AccountNotice } from '../account-notice';
 import { candidatesForViewer, passedForViewer } from '../candidates';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { payloadForViewer } from '../payload';
+import { myReadings } from '../reading/current';
 import { requestsForViewer } from '../requests/inbox';
 import { selfElementSummary } from '../summary';
 import type { DeckCard } from './deck-card';
 import { MatchingExperience } from './matching-experience';
 import { meMarkOf, type MeMark } from './me-mark';
 import { QuietOrbit } from './orbit-map';
-import { RequestsLead, type RequestsRead } from './requests-lead';
+import { RecentMatchShelf } from './recent-match-shelf';
+import { recentMatches, type RecentMatches } from './recent-matches';
+import { ReceivedRequests, RequestHistory, type RequestsRead } from './requests-lead';
 
 /**
  * **수락이 여기서 풀이를 떠나보낸다** (ADR 0038 · 0130).
@@ -76,12 +79,34 @@ export default async function MatchingPage() {
   );
 
   /*
+    **최근 인연 궁합도 덱과 나란히 읽는다**(2026-09-29 e+) — 풀이 보관함과 같은 문(`my_readings`)이다. 인연 궁합만 고르고
+    셋까지 자른다. 부속 정보라 못 읽으면 그 구역만 안 선다(ADR 0078) — 문이 던진 것을 값으로 받는다.
+  */
+  const matches: Promise<SkippableRead<RecentMatches>> = myReadings().then(
+    (readings) => read(recentMatches(readings)),
+    (thrown: unknown) => ({ ok: false as const, reason: answerOfThrown(thrown, 'my_readings') }),
+  );
+  /** 받은 요청은 덱 위, 최근 인연 궁합과 지난 요청은 덱 아래 — 덱이 서지 않는 자리도 같은 차례다 */
+  const around = async () => {
+    const [loaded, recent] = await Promise.all([requests, matches]);
+    return {
+      lead: <ReceivedRequests loaded={loaded} />,
+      tail: (
+        <>
+          <RecentMatchShelf loaded={recent} />
+          <RequestHistory loaded={loaded} />
+        </>
+      ),
+    };
+  };
+
+  /*
     **내 사주가 없으면 견줄 것이 없다.** 후보를 뽑는 셈이 내 오행 요약에서 시작하므로
     이 자리에서 멈추고 채우러 가는 길을 준다 — 빈 덱을 세우면 「소개할 인연이 없다」로
     읽히고, 실제 이유(내 것이 없다)는 화면 어디에도 안 적힌다.
   */
   const self = await selfElementSummary();
-  if (self === null) return <Guide me={null} lead={<RequestsLead loaded={await requests} />} />;
+  if (self === null) return <Guide me={null} {...await around()} />;
 
   /*
     **지도의 가운데는 내 일간이다.** 요약에는 오행 개수만 있어서 일간 글자는 내 명식을 내주는 문
@@ -91,7 +116,7 @@ export default async function MatchingPage() {
   const me = meMarkOf(mine?.kind === 'ok' ? mine.payload.saju.pillars.dayMaster : null, self.summary);
 
   /** 못 읽으면 미리 안 거른다 — 끈 사람이면 아래 RPC 가 참여를 안 연다 */
-  if (profile.ok && profile.value?.optedOut) return <Resting me={me} lead={<RequestsLead loaded={await requests} />} />;
+  if (profile.ok && profile.value?.optedOut) return <Resting me={me} {...await around()} />;
 
   // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
   const { data: joined, error: joinError } = await supabase.rpc('ensure_discovery_participation', {
@@ -101,7 +126,7 @@ export default async function MatchingPage() {
   });
   /* 부름이 터진 것은 「자격이 없다」가 아니다 — 안내를 세우면 사주가 있는 사람에게 채우라고 한다(ADR 0078) */
   if (joinError) throw dbFailure(joinError, 'ensure_discovery_participation');
-  if (joined !== true) return <Guide me={me} lead={<RequestsLead loaded={await requests} />} />;
+  if (joined !== true) return <Guide me={me} {...await around()} />;
 
   /*
     덱을 읽는다 — 그 호출이 떠난 자리를 풀에서 채운다(ADR 0115).
@@ -116,13 +141,16 @@ export default async function MatchingPage() {
   );
   const passedCards = passed.map((card) => deckCardOf(card, { exploration: false, activity: null }));
 
+  const { lead, tail } = await around();
+
   return (
     /*
       **덱은 다시 세우지 않는다** — 떠난 자리를 채운 사람은 서버가 준 목록의 뒤에 붙어 오고, 덱이 그것을 뒤에
       합친다(`deck-state.ts` 의 `sync`). 넘기는 움직임과 되돌리기 이력이 끊기지 않게 `key` 를 안 단다.
     */
     <MatchingExperience
-      lead={<RequestsLead loaded={await requests} />}
+      lead={lead}
+      tail={tail}
       cards={cards}
       me={me}
       passed={passedCards}
@@ -165,6 +193,7 @@ function deckCardOf(
 function Quiet({
   me,
   lead,
+  tail,
   title,
   line,
   href,
@@ -173,6 +202,8 @@ function Quiet({
   me: MeMark | null;
   /** 받은 요청 — 덱이 없어도 답할 일은 선다(ADR 0130) */
   lead: React.ReactNode;
+  /** 최근 인연 궁합 · 지난 요청 — 덱이 없어도 지나간 것은 선다 */
+  tail: React.ReactNode;
   title: string;
   line: string;
   href: string;
@@ -195,16 +226,18 @@ function Quiet({
           </Link>
         </div>
       </section>
+      {tail}
     </main>
   );
 }
 
 /** 참여가 열릴 자리가 아직 아니다 — 이름이나 내 사주가 비어 있다 */
-function Guide({ me, lead }: { me: MeMark | null; lead: React.ReactNode }) {
+function Guide({ me, lead, tail }: { me: MeMark | null; lead: React.ReactNode; tail: React.ReactNode }) {
   return (
     <Quiet
       me={me}
       lead={lead}
+      tail={tail}
       title="먼저 내 사주와 이름이 필요해요"
       line="나와 맞는 인연을 찾으려면 내 사주의 오행 구성이 있어야 해요. 내 사주를 저장하고 닉네임을 지으면 오늘의 인연이 섭니다."
       href="/me"
@@ -214,11 +247,12 @@ function Guide({ me, lead }: { me: MeMark | null; lead: React.ReactNode }) {
 }
 
 /** 쉬기로 한 사람에게 서는 자리 — 홈의 목록과 같은 말을 한다 */
-function Resting({ me, lead }: { me: MeMark; lead: React.ReactNode }) {
+function Resting({ me, lead, tail }: { me: MeMark; lead: React.ReactNode; tail: React.ReactNode }) {
   return (
     <Quiet
       me={me}
       lead={lead}
+      tail={tail}
       title="인연 찾기를 쉬고 있습니다"
       line="지금은 다른 참여자에게 내 프로필이 공개되지 않으며, 새로운 사람도 소개받지 않습니다. 내 사주와 저장한 사람은 그대로 남아 있습니다."
       href="/me/settings"
