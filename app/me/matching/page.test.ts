@@ -15,17 +15,19 @@ vi.mock('../summary', () => ({
 }));
 vi.mock('../discovery/discovery-profile', () => ({ myDiscoveryProfile: async () => ({ ok: true, value: null }) }));
 vi.mock('../payload', () => ({ payloadForViewer: async () => null }));
-vi.mock('../requests/inbox', () => ({ requestsForViewer: async () => ({ requests: [], blocked: 0 }) }));
-vi.mock('../reading/current', () => ({ myReadings: vi.fn(async () => []) }));
+vi.mock('../requests/inbox', () => ({
+  requestsForViewer: async () => ({ requests: [], blocked: 0 }),
+  matchesForViewer: vi.fn(async () => []),
+}));
 vi.mock('../candidates', () => ({
   candidatesForViewer: async () => ({ cards: [], teaser: null, notice: null }),
   passedForViewer: async () => [],
 }));
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { myReadings } from '../reading/current';
+import { matchesForViewer } from '../requests/inbox';
 import MatchingPage from './page';
-import { RecentMatchShelf } from './recent-match-shelf';
+import { HistoryRow } from './history-row';
 
 /**
  * **참여를 못 열어 본 것을 「참여할 수 없다」로 세우지 않는다**(ADR 0078).
@@ -67,15 +69,15 @@ describe('오늘의 인연', () => {
   });
 
   /*
-    **최근 인연 궁합은 부속 정보다**(ADR 0078, 2026-09-29 e+). 풀이 목록 문이 터져도 화면은 서고, 그 구역만 못 읽었다는
-    값을 받는다 — 덱을 세우는 부름 뒤로 밀리지도, 덱을 막지도 않는다.
+    **인연 기록의 수는 부속 정보다**(ADR 0078, 2026-09-29 u2). 성립한 Match 문이 터져도 화면은 서고, 「인연 기록」 한 줄은
+    읽은 것만 센다 — 덱을 세우는 부름 뒤로 밀리지도, 덱을 막지도 않는다. 여기서는 요청도 없으니 줄이 안 선다.
   */
-  it('풀이 목록을 못 읽어도 화면은 서고 최근 인연 궁합 구역만 비운다', async () => {
+  it('인연 궁합 수를 못 읽어도 화면은 서고 「인연 기록」 한 줄만 비운다', async () => {
     answering({ data: false, error: null });
-    vi.mocked(myReadings).mockRejectedValueOnce(new Error('fetch failed'));
+    vi.mocked(matchesForViewer).mockRejectedValueOnce(new Error('fetch failed'));
 
-    const page = (await MatchingPage()) as { props: { tail: { props: { children: { type: unknown; props: unknown }[] } } } };
-    const shelf = page.props.tail.props.children.find((child) => child.type === RecentMatchShelf);
-    expect(shelf?.props).toMatchObject({ loaded: { ok: false } });
+    const page = (await MatchingPage()) as { props: { tail: { type: unknown; props: { summary: unknown } } } };
+    expect(page.props.tail.type).toBe(HistoryRow);
+    expect(page.props.tail.props.summary).toBeNull();
   });
 });
