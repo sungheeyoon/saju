@@ -12,6 +12,7 @@ import { DayMasterChip } from '../people/chart-bits';
 import { Icon } from '../../ui/icons';
 import { STALE_CHIP, TYPE_NAME } from '../../ui/surfaces';
 import type { ReadingEntry } from '../reading/current';
+import { withFromMe } from './from-me';
 import { tileAnchor, type HomePerson } from './map/model';
 
 /*
@@ -30,12 +31,15 @@ export function PersonTile({
   person,
   reading,
   compat,
+  fromMe = false,
 }: {
   person: HomePerson;
   /** 그 사람의 사주풀이 — 없으면 `null` */
   reading: ReadingEntry | null;
   /** 나와 궁합 — 이미 본 것이면 점수를 달고 그 글로 간다 */
   compat: { href: string; score: number | null };
+  /** 나 탭 홈에 선 타일 — 결과로 가는 링크가 `from=me` 를 든다(`from-me.ts`) */
+  fromMe?: boolean;
 }) {
   const detailHref = `/me/people/${person.personId}`;
   const note = person.note?.trim() ?? '';
@@ -95,14 +99,14 @@ export function PersonTile({
       */}
       <div className="relative z-10 mt-auto grid grid-cols-[minmax(0,1fr)_auto] gap-1.5 min-[400px]:grid-cols-2">
         <Link
-          href={`/me/readings/${person.personId}`}
+          href={fromMe ? withFromMe(`/me/readings/${person.personId}`) : `/me/readings/${person.personId}`}
           className={`${reading === null ? BUTTON_ON_TILE_PRIMARY : BUTTON_ON_TILE} whitespace-nowrap`}
         >
           {reading === null ? '풀이 받기' : '풀이 보기'}
         </Link>
         {/* 안 본 궁합은 같은 화면 위의 두 칸을 채운다(`CompatFillLink`) */}
         <CompatFillLink
-          href={compat.href}
+          href={fromMe ? withFromMe(compat.href) : compat.href}
           className={`${BUTTON_ON_TILE} min-w-11 whitespace-nowrap`}
           aria-label={compat.score !== null ? `나와 궁합 ${compat.score}점` : '나와 궁합'}
         >

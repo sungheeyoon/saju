@@ -32,6 +32,13 @@ import type { DayMaster } from './subject';
 const COVER =
   'group relative flex h-full min-h-[14rem] flex-col gap-3 overflow-hidden rounded-[0.5rem_1.5rem_1.5rem_0.5rem] py-4 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]';
 
+/**
+ * **한 줄에 셋이 서는 작은 표지** — 나 탭 홈의 「내가 받은 사주풀이」(u2, 운영자 2026-09-29). 모양은 같고 크기만 줄였다: 폰 한 칸이
+ * 110px 남짓이라 14rem 표지 셋이면 저장한 사람 머리가 첫 화면 밖으로 나갔다(잰 값 717px, 첫 화면 끝 584px).
+ */
+const COVER_ROW =
+  'group relative flex h-full min-h-[9.25rem] flex-col gap-1 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] py-2.5 pl-5 pr-2.5 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]';
+
 export function Shelf({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-4">
@@ -45,11 +52,15 @@ export function Shelf({ title, description, children }: { title: string; descrip
 }
 
 /** 한 사람 풀이 = 제 일간 색의 표지 한 권. 왼쪽 등(spine)이 상징색, 가운데가 비유 한 줄 */
-export function SingleCover({ book }: { book: Book }) {
+export function SingleCover({ book, row = false }: { book: Book; row?: boolean }) {
   const subject = book.subjects[0] ?? null;
   const face = coverFace([subject?.element ?? null]);
   return (
-    <CoverLink href={book.href} className={`${elementScope(subject?.element ?? null)} ${COVER}`} style={{ background: face.background }}>
+    <CoverLink
+      href={book.href}
+      className={`${elementScope(subject?.element ?? null)} ${row ? COVER_ROW : COVER}`}
+      style={{ background: face.background }}
+    >
       <Spine background={face.spine} />
       {subject !== null && (
         <StemSymbol stem={subject.stem} className="pointer-events-none absolute -bottom-5 -right-5 size-24 opacity-15" />
@@ -57,14 +68,14 @@ export function SingleCover({ book }: { book: Book }) {
 
       <span className="relative flex min-w-0 flex-col gap-1">
         <SubjectTag subject={subject} />
-        <span className="truncate text-[15px] font-semibold text-foreground">{book.title}</span>
+        <span className={`truncate font-semibold text-foreground ${row ? 'text-[14px]' : 'text-[15px]'}`}>{book.title}</span>
       </span>
 
-      <Metaphor text={book.metaphor} lines="line-clamp-4" />
+      <Metaphor text={book.metaphor} lines={row ? 'line-clamp-3' : 'line-clamp-4'} small={row} />
 
       <span className="relative flex flex-wrap items-center gap-1.5">
         {book.stale && <StaleChip />}
-        <time dateTime={book.dateTime} className="text-[12px] tabular-nums text-secondary">
+        <time dateTime={book.dateTime} className={`tabular-nums text-secondary ${row ? 'text-[11px]' : 'text-[12px]'}`}>
           {book.date}
         </time>
       </span>
@@ -134,12 +145,12 @@ export function PairCover({ book, source }: { book: Book; source?: string }) {
 }
 
 /** 빈 자리 한 권 — 같은 크기의 점선 표지라 「한 권 더」로 읽힌다 */
-export function BlankBook({ href, element, label }: { href: string; element: Element; label: string }) {
+export function BlankBook({ href, element, label, row = false }: { href: string; element: Element; label: string; row?: boolean }) {
   return (
     <li>
       <CoverLink
         href={href}
-        className={`${elementScope(element)} flex h-full min-h-[14rem] flex-col items-center justify-center gap-3 rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] p-4 text-center hover:bg-surface active:scale-[0.98]`}
+        className={`${elementScope(element)} flex h-full ${row ? 'min-h-[9.25rem]' : 'min-h-[14rem]'} flex-col items-center justify-center gap-3 rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] p-4 text-center hover:bg-surface active:scale-[0.98]`}
       >
         <span className="grid size-12 place-items-center rounded-full bg-[var(--tile)]">
           <ElementSymbol element={element} className="size-7" />
@@ -259,9 +270,11 @@ function Spine({ background }: { background: string }) {
   );
 }
 
-function Metaphor({ text, lines }: { text: string | null; lines: string }) {
+function Metaphor({ text, lines, small = false }: { text: string | null; lines: string; small?: boolean }) {
   return (
-    <span className={`font-rounded relative ${lines} flex-1 text-[1.0625rem] leading-[1.5] text-foreground`}>
+    <span
+      className={`font-rounded relative ${lines} flex-1 text-foreground ${small ? 'text-[14px] leading-[1.35]' : 'text-[1.0625rem] leading-[1.5]'}`}
+    >
       {text === null ? (
         <span className="font-sans text-[13px] text-secondary">만들어 둔 풀이를 이어서 읽어보세요</span>
       ) : (

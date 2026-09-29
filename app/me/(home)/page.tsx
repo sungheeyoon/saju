@@ -2,20 +2,17 @@ import Link from 'next/link';
 
 import { isBlocked } from '@/src/lib/account';
 import { UNREADABLE_INPUT_NOTE, storedChartOf } from '@/src/lib/input/stored';
-import type { Element } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
-import { elementScope } from '../../ui/element-tone';
-import { BUTTON_SECONDARY } from '../../ui/buttons';
-import { Icon, type IconName } from '../../ui/icons';
+import { Icon } from '../../ui/icons';
 import { BADGE, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
 import { openDiscoveryParticipation } from '../discovery/participation';
 import { myCircle } from '../home/circle';
-import { DayFlowCard } from '../home/day-flow-card';
+import { MyPeople } from '../home/circle-view';
 import { selfReadingOf } from '../home/map/model';
 import { ReceivedReadings } from '../home/received-readings';
 import { SelfCard } from '../home/self-card';
@@ -23,13 +20,12 @@ import { Onboarding } from '../onboarding';
 import { storedInputOf } from '../person-input';
 import { myReadings } from '../reading/current';
 import { unreadCount } from '../requests/inbox';
-import { SHELF_TITLE } from '../(shelf)/readings/kind';
 
 /**
  * 로그인한 사람이 도착하는 자리 — **홈.**
  *
- * 인사 → 내 사주와 이번 달 흐름 → 내가 받은 사주풀이 → 다른 사람 사주 → 바로가기 차례로 내려온다(ADR 0129).
- * 관계 지도와 저장한 사람은 궁합 탭(`/compat`)에 선다.
+ * 인사 → 줄인 내 사주 카드 → 내가 받은 사주풀이 셋 → 저장한 사람 차례로 내려온다(ADR 0129 「2026-09-29 u2」).
+ * 관계 지도는 궁합 탭(`/compat`)에 선다. 인연 · 궁합은 머리글의 탭이, 풀이 보관함은 받은 사주풀이의 머리가 든다.
  *
  * 저장된 입력으로 **서버에서 계산한다.** 익명 화면은 브라우저에서 계산하지만 부르는 함수는 같다(`chartOf`)
  * — 저장하기 전에 본 사주와 저장한 뒤에 보는 사주가 다를 자리를 만들지 않으려는 것이다.
@@ -50,7 +46,7 @@ export default async function MePage() {
   const nickname = account?.nickname?.trim() ?? '';
 
   return (
-    <main className="app-shell flex min-w-0 flex-1 flex-col gap-6 py-5 sm:gap-12 sm:py-12">
+    <main className="app-shell flex min-w-0 flex-1 flex-col gap-4 py-4 sm:gap-12 sm:py-12">
       {isBlocked(state) ? (
         <AccountNotice state={state} />
       ) : (
@@ -107,10 +103,13 @@ function Greeting({ name }: { name: string }) {
 }
 
 /**
- * 홈의 본체 — 내 사주 카드와 이번 달 흐름, 그 아래 내가 받은 사주풀이(ADR 0129).
+ * 홈의 본체 — 줄인 내 사주 카드 → 내가 받은 사주풀이 셋 → 저장한 사람 타일(u2, 운영자 2026-09-29).
  *
- * 관계 지도와 저장한 사람은 궁합 탭(`/compat`)으로 옮겼다 — 지도가 긋는 선이 궁합이라서다. 나 탭은 **나**를 본다:
- * 내 사주 · 오늘 · 내가 받은 풀이. 읽는 것은 내 엣지(이름) · 내 입력 · 만든 풀이 목록 셋이고 한 번에 겹쳐 돈다.
+ * 나 탭은 **나와 내 사람들**을 본다. 이번 달 흐름은 걷었다(ADR 0129 「2026-09-29 u2」). 저장한 사람은 궁합 탭에서 다시
+ * 여기로 왔다 — 프로덕션 홈(`a45e34e`)의 타일 그대로다. 폰 첫 화면(390×664)에 카드 · 받은 사주풀이 · 저장한 사람 머리까지
+ * 든다(`e2e/signed-in.spec.ts` 가 잰다). 이 화면에서 연 결과는 주소에 `from=me` 를 든다(`home/from-me.ts`).
+ *
+ * 읽는 것은 내 엣지(이름) · 내 입력 · 만든 풀이 목록 셋이 한 번에 겹쳐 돌고, 저장한 사람의 입력은 그 뒤에 읽힌다(`MyPeople`).
  */
 async function Home({ selfPersonId }: { selfPersonId: string }) {
   const supabase = await supabaseOnServer();
@@ -123,92 +122,40 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
 
   /**
    * **못 읽는 입력은 메우지 않는다.** 모르는 출생지를 서울로 치면 저장할 때 본 사주와 다른 사주가 이
-   * 화면에 나온다. 값은 남아 있고 읽는 쪽이 못 읽는 것이므로 그렇게 말하고 멈춘다 — 풀이 목록은 그대로 선다.
+   * 화면에 나온다. 값은 남아 있고 읽는 쪽이 못 읽는 것이므로 그렇게 말하고 멈춘다 — 풀이 목록과 사람은 그대로 선다.
    */
   const stood = self !== null && circle.self !== null ? storedChartOf(self.input, circle.self.label) : null;
 
   return (
     <>
-      {stood === null ? (
-        <p className="text-sm text-muted">저장된 사주를 읽지 못했습니다.</p>
-      ) : !stood.ok ? (
-        <section className="flex flex-col gap-2 rounded-[2rem] border border-border bg-surface p-5 sm:p-6">
-          <p className="text-sm">{stood.message}</p>
-          <p className="text-[13px] text-muted">{UNREADABLE_INPUT_NOTE}</p>
-        </section>
-      ) : (
-        /*
-          **내 사주가 먼저 선다**(2026-09-25) — 이 앱의 첫 얼굴은 나다. 폰에서는 위, 넓은 화면에서는 왼쪽의 넓은
-          칸(7)이고 오른쪽(5)에 이번 달 흐름이 선다. 두 카드는 **같은 높이로 늘어난다**(`items-stretch`).
-        */
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-stretch lg:gap-6">
+      {/*
+        **내 사주가 먼저 선다**(2026-09-25) — 이 앱의 첫 얼굴은 나다. 넓은 화면에서는 왼쪽의 넓은 칸(7)이고 오른쪽(5)에
+        내가 받은 사주풀이가 선다.
+      */}
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
+        {stood === null ? (
+          <p className="text-sm text-muted">저장된 사주를 읽지 못했습니다.</p>
+        ) : !stood.ok ? (
+          <section className="flex flex-col gap-2 rounded-[2rem] border border-border bg-surface p-5 sm:p-6">
+            <p className="text-sm">{stood.message}</p>
+            <p className="text-[13px] text-muted">{UNREADABLE_INPUT_NOTE}</p>
+          </section>
+        ) : (
           <SelfCard
             personId={selfPersonId}
             label={stood.query.name}
             query={stood.query}
             saju={stood.saju}
             reading={selfReadingOf(readings)}
+            compact
           />
-          <DayFlowCard dayMaster={stood.saju.pillars.dayMaster} now={new Date()} />
-        </div>
-      )}
+        )}
 
-      <ReceivedReadings readings={readings} />
-
-      <div className="-mt-2 sm:-mt-6">
-        <Link href="/" className={BUTTON_SECONDARY}>
-          <Icon name="search" className="size-[18px]" />
-          다른 사람 사주 보기
-        </Link>
+        <ReceivedReadings readings={readings} />
       </div>
 
-      <MoreWays />
+      <MyPeople selfPersonId={selfPersonId} readings={readings} />
     </>
-  );
-}
-
-/**
- * 나 탭 홈의 바로가기 셋 — 인연, 궁합, 그리고 풀이 보관함. 다른 사람 사주는 받은 사주풀이 바로 아래
- * 단추 하나로 섰다(ADR 0129) — 한 사람 풀이를 보는 자리 옆이다.
- *
- * 인연과 궁합은 머리글의 탭에도 있지만 이 줄이 **무엇을 하는 곳인가**를 한 줄로 말한다 — 탭 이름만으로는
- * 처음 온 사람이 「인연」에서 무엇을 하는지 모른다. 보관함(`/me/readings`)은 탭에서 빠지며(ADR 0126) 어느 탭에도 속하지 않는
- * 전체 기록이 됐다(ADR 0133) — 넓은 화면은 글을 열면 옆에 서지만, 폰에서 책장 자체로 가는 길은 여기뿐이다.
- */
-const MORE_WAYS: readonly { href: string; label: string; note?: string; icon: IconName; element: Element }[] = [
-  {
-    href: '/me/matching',
-    label: '오늘의 인연 만나기',
-    note: '예측 궁합과 보완하는 기운으로, 나의 귀인을 찾아보세요.',
-    icon: 'people',
-    element: '木',
-  },
-  { href: '/compat', label: '궁합 보러 가기', icon: 'heart', element: '火' },
-  { href: '/me/readings', label: SHELF_TITLE, icon: 'reading', element: '金' },
-];
-
-function MoreWays() {
-  return (
-    <nav aria-label="바로가기" className="grid gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-[minmax(0,2fr)_repeat(2,minmax(0,1fr))]">
-      {MORE_WAYS.map((way) => (
-        <Link
-          key={way.href}
-          href={way.href}
-          className={`${elementScope(way.element)} group flex min-h-16 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-foreground hover:border-[color-mix(in_srgb,var(--ink)_40%,transparent)] active:scale-[0.98] ${
-            way.note === undefined ? '' : 'sm:col-span-2 lg:col-span-1'
-          }`}
-        >
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] text-[var(--ink)]">
-            <Icon name={way.icon} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[15px] font-semibold">{way.label}</span>
-            {way.note !== undefined && <span className="mt-0.5 block text-[13px] leading-5 text-secondary">{way.note}</span>}
-          </span>
-          <Icon name="arrow" className="size-4 shrink-0 text-secondary transition group-hover:translate-x-0.5" />
-        </Link>
-      ))}
-    </nav>
   );
 }
 
