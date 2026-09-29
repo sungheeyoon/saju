@@ -11,7 +11,6 @@ import {
   SUPPORTED_YEAR_RANGE,
   type Calendar,
   type CityName,
-  type Gender,
   type LateNightRule,
 } from '@/src/lib/saju';
 
@@ -363,42 +362,6 @@ function DateFields({
   return (
     <Group label="생년월일">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {/*
-          **달력은 날짜의 일부다.** 한동안 이 셋은 이름 칸 옆에서 폭을 반이나 차지하고
-          서 있었다 — 자기가 무엇을 바꾸는지에서 두 줄 떨어진 자리였다. 「1984-10-05」는
-          양력인지 음력인지가 정해져야 비로소 하루를 가리키므로, 고르는 자리도 그 숫자
-          바로 옆이어야 한다. 무엇을 고르든 날짜가 다시 판정되는 것(`chooseCalendar`)도
-          여기 붙어 있을 때 눈에 보인다.
-
-          `Group` 의 제목은 label 이 아니라 그냥 글자다. 이 셋은 라디오 묶음이라 제
-          이름을 따로 가져야 하므로 `fieldset` 으로 싸고 legend 는 화면에서만 감춘다 —
-          「생년월일」 아래에 「달력 기준」을 또 세우면 줄만 늘고, 낭독기는 이름을 잃는다.
-        */}
-        {/* 좁은 화면에서는 한 줄을 다 쓴다 — 안 그러면 「년」 칸만 옆에 붙어 따라온다 */}
-        <fieldset className="min-w-0 basis-full sm:basis-auto">
-          <legend className="sr-only">달력 기준</legend>
-          <div className={`${SEGMENT} grid-flow-col`}>
-            {CALENDARS.map((calendar) => (
-              <label
-                key={calendar}
-                className={`${SEGMENT_ITEM} whitespace-nowrap ${
-                  value.calendar === calendar ? 'bg-surface text-foreground shadow-sm' : 'text-secondary hover:text-foreground'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name={`${idPrefix}-calendar`}
-                  value={calendar}
-                  checked={value.calendar === calendar}
-                  onChange={() => onCalendar(calendar)}
-                  className={SEGMENT_INPUT}
-                />
-                {CALENDAR_KO[calendar]}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
         <NumberField
           label="출생연도"
           suffix="년"
@@ -435,6 +398,43 @@ function DateFields({
           placeholder={`1~${maxDay}`}
           autoComplete="bday-day"
         />
+        {/*
+          **달력은 날짜의 일부다.** 한동안 이 셋은 이름 칸 옆에서 폭을 반이나 차지하고
+          서 있었다 — 자기가 무엇을 바꾸는지에서 두 줄 떨어진 자리였다. 「1984-10-05」는
+          양력인지 음력인지가 정해져야 비로소 하루를 가리키므로, 고르는 자리도 그 숫자
+          바로 옆이어야 한다. 무엇을 고르든 날짜가 다시 판정되는 것(`chooseCalendar`)도
+          여기 붙어 있을 때 눈에 보인다. **「일」 칸 뒤에 선다** — 날짜를 먼저 적고 그 날짜가 무엇의 날짜인지를
+          곁에서 고른다. 앞에 세웠을 때는 폰에서 이 셋이 한 줄을 다 쓰고 숫자 칸이 그 아래로 밀렸다(운영자 2026-09-29
+          「생년월일도 토글로 줄여 일 옆에」).
+
+          `Group` 의 제목은 label 이 아니라 그냥 글자다. 이 셋은 라디오 묶음이라 제
+          이름을 따로 가져야 하므로 `fieldset` 으로 싸고 legend 는 화면에서만 감춘다 —
+          「생년월일」 아래에 「달력 기준」을 또 세우면 줄만 늘고, 낭독기는 이름을 잃는다.
+        */}
+        <fieldset className="min-w-0">
+          <legend className="sr-only">달력 기준</legend>
+          <div className={`${SEGMENT} grid-flow-col`}>
+            {CALENDARS.map((calendar) => (
+              <label
+                key={calendar}
+                className={`${SEGMENT_ITEM} whitespace-nowrap ${
+                  value.calendar === calendar ? 'bg-surface text-foreground shadow-sm' : 'text-secondary hover:text-foreground'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={`${idPrefix}-calendar`}
+                  value={calendar}
+                  checked={value.calendar === calendar}
+                  onChange={() => onCalendar(calendar)}
+                  className={SEGMENT_INPUT}
+                />
+                {CALENDAR_KO[calendar]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
       </div>
     </Group>
   );
@@ -516,6 +516,37 @@ function TimeFields({
       <legend className="text-[13px] font-semibold text-secondary">출생 시각</legend>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {/*
+          시·분도 **적는 칸**이다. 24시간이라 시는 스물넷, 분은 예순 줄짜리 목록이
+          되는데, 두 자리를 치는 편이 어느 쪽이든 빠르다. 범위를 벗어나면 시각을
+          내보내지 않으므로 「25:70」이 계산으로 흘러가지 않는다.
+        */}
+        <div className="flex items-center gap-3">
+          <NumberField
+            label="출생 시"
+            suffix="시"
+            value={parts.hour}
+            onChange={(next) => update('hour', next)}
+            digits={2}
+            min={0}
+            max={23}
+            width="w-16"
+            placeholder="0~23"
+            disabled={!known}
+          />
+          <NumberField
+            label="출생 분"
+            suffix="분"
+            value={parts.minute}
+            onChange={(next) => update('minute', next)}
+            digits={2}
+            min={0}
+            max={59}
+            width="w-16"
+            placeholder="0~59"
+            disabled={!known}
+          />
+        </div>
         <div className={`${SEGMENT} grid-cols-2`}>
           {[
             /*
@@ -552,44 +583,12 @@ function TimeFields({
           ))}
         </div>
 
-        {/*
-          시·분도 **적는 칸**이다. 24시간이라 시는 스물넷, 분은 예순 줄짜리 목록이
-          되는데, 두 자리를 치는 편이 어느 쪽이든 빠르다. 범위를 벗어나면 시각을
-          내보내지 않으므로 「25:70」이 계산으로 흘러가지 않는다.
-        */}
-        <div className="flex items-center gap-3">
-          <NumberField
-            label="출생 시"
-            suffix="시"
-            value={parts.hour}
-            onChange={(next) => update('hour', next)}
-            digits={2}
-            min={0}
-            max={23}
-            width="w-16"
-            placeholder="0~23"
-            disabled={!known}
-          />
-          <NumberField
-            label="출생 분"
-            suffix="분"
-            value={parts.minute}
-            onChange={(next) => update('minute', next)}
-            digits={2}
-            min={0}
-            max={59}
-            width="w-16"
-            placeholder="0~59"
-            disabled={!known}
-          />
-        </div>
       </div>
 
-      <p className="text-xs leading-5 text-muted">
-        {value.hourKnown === false
-          ? '시각을 모르면 시주를 뽑지 않습니다. 나머지 세 기둥은 그대로 계산합니다.'
-          : `24시간으로 적습니다 — 오후 2시 30분은 14시 30분입니다. 모르면 「${HOUR_UNKNOWN_CHOICE}」을 고르세요.`}
-      </p>
+      {/*
+        **아래 안내 줄은 걷었다**(운영자 2026-09-29 「그 아래 문구는 지우고 좀 더 심플하게」). 24시간이라는 것은
+        칸의 자리표시(0~23)가, 모르면 고른다는 것은 바로 곁의 토글이 말한다.
+      */}
     </fieldset>
   );
 }
@@ -634,40 +633,54 @@ export function BirthFields({
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2">
-        {showName && (
-          <Field label="이름">
-            <input
-              type="text"
-              value={value.name}
-              onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
-              placeholder={namePlaceholder}
-              maxLength={NAME_MAX}
-              className={`${FIELD} w-full max-w-56`}
-            />
-          </Field>
-        )}
+        {/* 누구인가를 한 줄에 — 이름 칸 곁에 성별 토글(폰에서도 한 줄, 좁으면 접힌다) */}
+        <div className="flex flex-wrap items-end gap-3 sm:col-span-2">
+          {showName && (
+            <div className="min-w-0 flex-1 basis-40">
+              <Field label="이름">
+                <input
+                  type="text"
+                  value={value.name}
+                  onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
+                  placeholder={namePlaceholder}
+                  maxLength={NAME_MAX}
+                  className={`${FIELD} w-full`}
+                />
+              </Field>
+            </div>
+          )}
 
-        {/*
-          **이름 옆은 성별이다.** 달력이 여기 서 있던 동안 이 줄은 「이름 · 달력 기준」
-          이었다 — 사람을 묻다 말고 날짜 형식을 묻고, 다시 아래에서 날짜를 물었다.
-          묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 · 시각) →
-          어디서(출생지).
-        */}
-        <Field label="성별">
-          <SelectShell className="max-w-56">
-            <select
-              value={value.gender}
-              onChange={(event) => set('gender', event.target.value as Gender)}
-              className={`${FIELD} w-full appearance-none pr-8`}
-            >
+          {/*
+            **이름 옆은 성별이다.** 달력이 여기 서 있던 동안 이 줄은 「이름 · 달력 기준」
+            이었다 — 사람을 묻다 말고 날짜 형식을 묻고, 다시 아래에서 날짜를 물었다.
+            묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 · 시각) →
+            어디서(출생지 — 고급 설정 안).
+          */}
+          <fieldset className="flex min-w-0 flex-col gap-1.5">
+            <legend className="mb-1.5 text-[13px] font-semibold text-secondary">성별</legend>
+            {/* 둘뿐이라 목록을 열게 하지 않는다 — 한 번 누르면 끝나는 토글(운영자 2026-09-29) */}
+            <div className={`${SEGMENT} w-fit grid-cols-2`}>
               {GENDERS.map((gender) => (
-                <option key={gender} value={gender}>
+                <label
+                  key={gender}
+                  className={`${SEGMENT_ITEM} whitespace-nowrap ${
+                    value.gender === gender ? 'bg-surface text-foreground shadow-sm' : 'text-secondary hover:text-foreground'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name={`${idPrefix}-gender`}
+                    value={gender}
+                    checked={value.gender === gender}
+                    onChange={() => set('gender', gender)}
+                    className={SEGMENT_INPUT}
+                  />
                   {GENDER_KO[gender]}
-                </option>
+                </label>
               ))}
-            </select>
-          </SelectShell>
-        </Field>
+            </div>
+          </fieldset>
+        </div>
 
         {/*
           달력 형식과 날짜는 **함께 읽어야 뜻이 생긴다.** 「1984-10-05」 하나로는
@@ -696,21 +709,6 @@ export function BirthFields({
 
         <TimeFields value={value} onChange={onChange} idPrefix={idPrefix} />
 
-        <Field label="출생지">
-          <SelectShell className="max-w-72">
-            <select
-              value={value.city}
-              onChange={(event) => set('city', event.target.value as CityName)}
-              className={`${FIELD} w-full appearance-none pr-8`}
-            >
-              {CITIES.map((city) => (
-                <option key={city} value={city}>
-                  {city} ({CITY_LONGITUDES[city].toFixed(2)}°E)
-                </option>
-              ))}
-            </select>
-          </SelectShell>
-        </Field>
       </div>
 
       {/*
@@ -718,13 +716,35 @@ export function BirthFields({
         고쳐 온 판본이 진태양시가 아닐 때, 무엇으로 세운 명식인지가 접힘 뒤에 가린다.
         그래서 「기본값과 다른가」로 편다. 기본값을 옮겨도 이 규칙은 따라온다.
       */}
-      <details className="border-t border-border pt-3" open={value.basis !== DEFAULT_QUERY.basis}>
+      <details
+        className="border-t border-border pt-3"
+        open={value.basis !== DEFAULT_QUERY.basis || value.city !== DEFAULT_QUERY.city}
+      >
         <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold text-foreground">
           고급 설정
-          <span className="ml-2 text-xs font-normal text-muted">자시 · 시간 기준 · 세운 연도</span>
+          <span className="ml-2 text-xs font-normal text-muted">출생지 · 자시 · 시간 기준 · 세운 연도</span>
         </summary>
 
+        {/*
+          **출생지도 여기 산다**(운영자 2026-09-29 「좀 더 심플하게」). 진태양시의 경도라 계산에는 들지만, 대부분은
+          기본값(서울)과 몇 분 차이다. 기본값이 아니면 위 `open` 이 편다 — 무엇으로 세운 명식인지가 가리지 않는다.
+        */}
         <div className="mt-3 flex flex-wrap items-end gap-3">
+          <Field label="출생지">
+            <SelectShell className="max-w-72">
+              <select
+                value={value.city}
+                onChange={(event) => set('city', event.target.value as CityName)}
+                className={`${FIELD} w-full appearance-none pr-8`}
+              >
+                {CITIES.map((city) => (
+                  <option key={city} value={city}>
+                    {city} ({CITY_LONGITUDES[city].toFixed(2)}°E)
+                  </option>
+                ))}
+              </select>
+            </SelectShell>
+          </Field>
           <Field label="자시 규칙">
             {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
             <select
