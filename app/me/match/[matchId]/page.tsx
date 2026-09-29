@@ -14,7 +14,7 @@ import { Icon } from '../../../ui/icons';
 import { EMPTY_SLOT, TYPE_TITLE } from '../../../ui/surfaces';
 import { BlockButton } from '../../requests/manage';
 import { ReadingSection } from '../../reading/section';
-import { SHELF_TITLE, withShelfKind } from '../../(shelf)/readings/kind';
+import { backOf, placeOf } from '../../../came-from';
 import { matchResultForViewer, type SharedResult } from '../result';
 
 /** 모델 240초 뒤 실패를 적을 60초를 남기되 DB 의 10분 만료보다 짧게 둔다. */
@@ -38,8 +38,10 @@ export const metadata = {
  */
 export default async function MatchResultPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ matchId: string }>;
+  searchParams: Promise<{ from?: string | string[]; kind?: string | string[] }>;
 }) {
   const supabase = await supabaseOnServer();
 
@@ -66,6 +68,9 @@ export default async function MatchResultPage({
    */
   if (outcome === null) notFound();
 
+  /* 방으로 돌아가는 ← 는 이 Match 의 방이다 — `matchId` 는 위 문이 UUID 로 걸렀고 실제로 볼 수 있는 Match 다 */
+  const back = backOf('match', { ...placeOf(await searchParams), matchId });
+
   return (
     /*
       **다른 화면과 같은 폭·같은 머리를 쓴다.** 여기만 제 손으로 여백과 제목을 그리고
@@ -73,10 +78,10 @@ export default async function MatchResultPage({
     */
     <main className="app-shell flex w-full flex-1 flex-col gap-8 py-8 sm:py-12">
       <header className="flex flex-col gap-5">
-        {/* 되돌아가는 자리는 풀이 보관함의 인연 궁합 칸이다(ADR 0133) */}
-        <Link href={withShelfKind('/me/readings', 'match')} className={`${BUTTON_TERTIARY} self-start`}>
+        {/* 되돌아가는 자리는 **온 곳**이다(ADR 0134) — 인연 탭 · 인연 기록 · 대화방 · 보관함, 없으면 인연 탭 첫 화면 */}
+        <Link href={back.href} className={`${BUTTON_TERTIARY} self-start`}>
           <Icon name="back" className="size-4" />
-          {SHELF_TITLE}
+          {back.label}
         </Link>
         <div className="flex flex-col gap-1.5">
           <p className="text-[13px] font-semibold text-secondary">인연</p>

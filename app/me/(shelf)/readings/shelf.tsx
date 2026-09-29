@@ -14,8 +14,10 @@ import { Avatar } from '../../avatar';
 import { coverFace } from '../../reading/essay';
 import flow from '../../reading/flow.module.css';
 import type { InboxMatch } from '../../requests/inbox';
+import { withCameFrom, type CameFrom } from '../../../came-from';
 import type { Book } from './book';
 import { CoverLink } from './frame';
+import type { ShelfKind } from './kind';
 import type { DayMaster } from './subject';
 
 /**
@@ -51,13 +53,18 @@ export function Shelf({ title, description, children }: { title: string; descrip
   );
 }
 
-/** 한 사람 풀이 = 제 일간 색의 표지 한 권. 왼쪽 등(spine)이 상징색, 가운데가 비유 한 줄 */
-export function SingleCover({ book, row = false }: { book: Book; row?: boolean }) {
+/**
+ * 한 사람 풀이 = 제 일간 색의 표지 한 권. 왼쪽 등(spine)이 상징색, 가운데가 비유 한 줄.
+ *
+ * `from` 은 이 표지가 선 자리다 — 결과 화면의 ← 와 탭 불이 그것을 읽는다(ADR 0134). 없으면 주소만 간다.
+ */
+export function SingleCover({ book, row = false, from }: { book: Book; row?: boolean; from?: CameFrom }) {
   const subject = book.subjects[0] ?? null;
   const face = coverFace([subject?.element ?? null]);
   return (
     <CoverLink
       href={book.href}
+      from={from}
       className={`${elementScope(subject?.element ?? null)} ${row ? COVER_ROW : COVER}`}
       style={{ background: face.background }}
     >
@@ -89,11 +96,22 @@ export function SingleCover({ book, row = false }: { book: Book; row?: boolean }
  * `source` 는 궁합 탭의 보관함만 단다(ADR 0129) — 직접 본 궁합과 인연 궁합이 한 줄에 섞여 서므로 어디서 왔는지 작은
  * 딱지로 가른다. 책장은 제목(「… 님과의 궁합풀이」)이 이미 말하므로 안 단다.
  */
-export function PairCover({ book, source }: { book: Book; source?: string }) {
+export function PairCover({
+  book,
+  source,
+  from,
+  shelfKind = 'all',
+}: {
+  book: Book;
+  source?: string;
+  /** 이 표지가 선 자리(ADR 0134) — 보관함이면 `shelfKind` 칩도 함께 싣는다 */
+  from?: CameFrom;
+  shelfKind?: ShelfKind;
+}) {
   const [a = null, b = null] = book.subjects;
   const face = coverFace([a?.element ?? null, b?.element ?? null]);
   return (
-    <Link href={book.href} className={COVER} style={{ background: face.background }}>
+    <Link href={from === undefined ? book.href : withCameFrom(book.href, from, shelfKind)} className={COVER} style={{ background: face.background }}>
       <Spine background={face.spine} />
 
       <span className="relative flex items-center justify-between gap-2">
@@ -145,11 +163,25 @@ export function PairCover({ book, source }: { book: Book; source?: string }) {
 }
 
 /** 빈 자리 한 권 — 같은 크기의 점선 표지라 「한 권 더」로 읽힌다 */
-export function BlankBook({ href, element, label, row = false }: { href: string; element: Element; label: string; row?: boolean }) {
+export function BlankBook({
+  href,
+  element,
+  label,
+  row = false,
+  from,
+}: {
+  href: string;
+  element: Element;
+  label: string;
+  row?: boolean;
+  /** 결과로 가는 빈 표지(「내 사주풀이」)만 싣는다 — 만드는 자리로 가는 표지에는 `CoverLink` 가 안 붙인다 */
+  from?: CameFrom;
+}) {
   return (
     <li>
       <CoverLink
         href={href}
+        from={from}
         className={`${elementScope(element)} flex h-full ${row ? 'min-h-[9.25rem]' : 'min-h-[14rem]'} flex-col items-center justify-center gap-3 rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] p-4 text-center hover:bg-surface active:scale-[0.98]`}
       >
         <span className="grid size-12 place-items-center rounded-full bg-[var(--tile)]">
@@ -173,7 +205,7 @@ export function MakingShelf({
   titled = true,
 }: {
   matches: readonly InboxMatch[];
-  /** 결과 화면으로 가는 길 — 인연 기록은 `?from=history` 를 단다(2026-09-29 u2) */
+  /** 결과 화면으로 가는 길 — 인연 기록은 `?from=history`, 보관함은 `?from=shelf` 와 칩을 단다(ADR 0134) */
   hrefOf?: (matchId: string) => string;
   /** 절 제목 줄 — 인연 기록은 제 「인연 궁합」 제목 아래에 세우므로 안 단다 */
   titled?: boolean;

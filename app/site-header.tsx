@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { SERVICE_NAME } from '@/src/lib/brand';
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
@@ -11,6 +11,7 @@ import { SURVEY_COPY } from '@/src/lib/survey';
 import { signInFrom } from '@/src/lib/consent';
 
 import { supabaseInBrowser } from './auth/browser-client';
+import { cameFromOf, lightOf, resultKindOf } from './came-from';
 import { useBrowserSession } from './auth/browser-session';
 import { useSignOut } from './auth/sign-out';
 import { readUnreadChat } from './me/chat/unread';
@@ -50,29 +51,45 @@ function within(pathname: string, base: string): boolean {
 }
 
 /**
- * 지금 보고 있는 화면이 **어느 탭의 것인가**(ADR 0126).
+ * 지금 보고 있는 화면이 **어느 탭의 것인가**(ADR 0126 · 0134).
  *
- * - **나**는 `/me` 와 내 쪽의 것이다 — 저장한 사람(`/me/people/*`), 한 사람 풀이(`/me/readings/self` ·
- *   `/me/readings/[id]` — 내 사주풀이도, 다른 사람 사주풀이도), 그리고 로그인한 사람이 보는 사주 계산(`/`).
- * - **풀이 보관함 목록(`/me/readings`) 자체는 어느 탭도 안 켠다**(ADR 0133). 사주풀이 · 궁합풀이 · 인연 궁합을 다
- *   드는 전체 기록이라 한 탭의 것이 아니다 — 궁합 탭 · 인연 탭의 「모두 보기」도 이리 온다. 탭 불 대신 화면의
- *   제목(「풀이 보관함」)이 위치를 말한다. 그 안에서 연 한 사람 풀이는 나에 남는다.
- * - **궁합**은 두 사람을 고르는 자리(`/compat`)와 그 결과(`/me/compat`)다. 책장이나 홈의 지도에서 연 궁합도
- *   궁합이다 — 글이 어디서 열렸나가 아니라 **무엇인가**로 켠다.
- * - **인연**은 오늘의 인연(`/me/matching`)과 동의로 열린 궁합(`/me/match/*`)이다. 책장에서 열어도 인연이다.
+ * - **결과 화면 셋**(사주풀이 · 직접 궁합 · 인연 궁합)은 **온 곳**(`?from=`)의 탭을 켠다 — 궁합 탭에서 연 궁합은 궁합,
+ *   채팅방에서 연 인연 궁합은 채팅, 소식에서 연 글은 종이다. 온 곳이 없거나 모르는 값이면 결과 종류의 탭이다(사주 → 나,
+ *   궁합 → 궁합, 인연 → 인연). 표는 `came-from.ts` 한 벌이다(ADR 0134).
+ * - **나**는 `/me` 와 내 쪽의 것이다 — 저장한 사람(`/me/people/*`), **풀이 보관함 목록(`/me/readings`)**, 그리고
+ *   로그인한 사람이 보는 사주 계산(`/`). 보관함은 궁합 탭의 「모두 보기」로 와도 나다(2026-09-29 운영자, ADR 0133 을
+ *   뒤집음).
+ * - **궁합**은 두 사람을 고르는 자리(`/compat`)다. **인연**은 오늘의 인연과 그 아래(`/me/matching/*`)다.
  * - 채팅 · 종(`/me/requests`)은 제 주소와 그 아래다. 톱니 안의 화면은 어느 탭도 안 켠다.
  */
-export function isNavigationActive(pathname: string, href: string): boolean {
+export function isNavigationActive(pathname: string, href: string, from: string | null = null): boolean {
+  const result = resultKindOf(pathname);
+  if (result !== null) return lightOf(result, cameFromOf(from)) === href;
   if (href === '/me') {
-    return pathname === '/me' || within(pathname, '/me/people') || pathname.startsWith('/me/readings/') || pathname === '/';
+    return pathname === '/me' || within(pathname, '/me/people') || pathname === '/me/readings' || pathname === '/';
   }
-  if (href === '/compat') {
-    return pathname === '/compat' || pathname === '/me/compat';
-  }
-  if (href === '/me/matching') {
-    return within(pathname, href) || pathname.startsWith('/me/match/');
-  }
+  if (href === '/compat') return pathname === '/compat';
   return within(pathname, href);
+}
+
+/**
+ * **주소의 `?from=` 을 읽는 자리는 `Suspense` 안에만 둔다**(ADR 0134).
+ *
+ * `useSearchParams` 는 미리 그려지는 화면(`/` 등)에서 가장 가까운 `Suspense` 까지를 브라우저로 미룬다. 경계 없이
+ * 머리글에서 부르면 루트 레이아웃 전체가 미뤄지거나 빌드가 그 화면을 요청마다 그리는 쪽으로 돈다. 그래서 탭 불을
+ * 그리는 조각만 감싸고, **미리 그릴 때는 `from` 없이(`null`) 그린다** — 미리 그려지는 화면은 결과 화면이 아니라
+ * `from` 이 불을 안 바꾼다. 요청마다 그려지는 결과 화면(`/me/**`)에서는 서버가 쿼리를 알아 첫 HTML 부터 맞는 불이다.
+ */
+function WithCameFrom({ render }: { render: (from: string | null) => ReactNode }) {
+  return (
+    <Suspense fallback={render(null)}>
+      <ReadCameFrom render={render} />
+    </Suspense>
+  );
+}
+
+function ReadCameFrom({ render }: { render: (from: string | null) => ReactNode }) {
+  return render(useSearchParams().get('from'));
 }
 
 /*
@@ -129,31 +146,35 @@ export function SiteHeader() {
           */}
           {live ? (
             <nav aria-label="내 메뉴" className="hidden min-w-0 flex-1 justify-center md:flex">
-              <ul className="flex items-center gap-1 rounded-full bg-surface p-1 ring-1 ring-border">
-                {MEMBER_TABS.map((tab) => {
-                  const active = isNavigationActive(pathname, tab.href);
-                  return (
-                    <li key={tab.href}>
-                      {/*
-                        **눌리는 자리는 알약보다 위아래로 2px 씩 넓다**(`after:`). 알약은 40px 이고 손가락
-                        과녁은 44px 이다. 알약을 키우면 고른 탭의 색 바탕도 커지므로, 모양은 두고 투명한
-                        덮개만 판의 안쪽 여백(`p-1`)으로 내민다.
-                      */}
-                      <Link
-                        href={tab.href}
-                        aria-current={active ? 'page' : undefined}
-                        className={`relative inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[15px] font-semibold active:scale-[0.97] after:absolute after:inset-x-0 after:-inset-y-0.5 ${
-                          active ? 'bg-accent text-on-accent' : 'text-secondary hover:bg-surface-soft hover:text-foreground'
-                        }`}
-                      >
-                        <Icon name={tab.icon} className="hidden size-[18px] lg:block" />
-                        {tab.label}
-                        <UnreadBadge count={tabBadges[tab.href] ?? 0} words={BADGE_WORDS[tab.href]} />
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+              <WithCameFrom
+                render={(from) => (
+                  <ul className="flex items-center gap-1 rounded-full bg-surface p-1 ring-1 ring-border">
+                    {MEMBER_TABS.map((tab) => {
+                      const active = isNavigationActive(pathname, tab.href, from);
+                      return (
+                        <li key={tab.href}>
+                          {/*
+                            **눌리는 자리는 알약보다 위아래로 2px 씩 넓다**(`after:`). 알약은 40px 이고 손가락
+                            과녁은 44px 이다. 알약을 키우면 고른 탭의 색 바탕도 커지므로, 모양은 두고 투명한
+                            덮개만 판의 안쪽 여백(`p-1`)으로 내민다.
+                          */}
+                          <Link
+                            href={tab.href}
+                            aria-current={active ? 'page' : undefined}
+                            className={`relative inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[15px] font-semibold active:scale-[0.97] after:absolute after:inset-x-0 after:-inset-y-0.5 ${
+                              active ? 'bg-accent text-on-accent' : 'text-secondary hover:bg-surface-soft hover:text-foreground'
+                            }`}
+                          >
+                            <Icon name={tab.icon} className="hidden size-[18px] lg:block" />
+                            {tab.label}
+                            <UnreadBadge count={tabBadges[tab.href] ?? 0} words={BADGE_WORDS[tab.href]} />
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              />
             </nav>
           ) : null}
           <div aria-hidden="true" className={`min-w-0 flex-1 ${live ? 'md:hidden' : ''}`} />
@@ -170,7 +191,13 @@ export function SiteHeader() {
                 사는 자리(톱니 옆)에 선다. 못 물었거나 아직 안 물은 동안에는 빈 자리다.
               */}
               {creditsLabel !== null && <Credits label={creditsLabel} />}
-              {live && <NewsBell count={unreadNews} active={isNavigationActive(pathname, '/me/requests')} />}
+              {live && (
+                <WithCameFrom
+                  render={(from) => (
+                    <NewsBell count={unreadNews} active={isNavigationActive(pathname, '/me/requests', from)} />
+                  )}
+                />
+              )}
               <SettingsMenu email={email} ended={ended} />
             </div>
           ) : session === 'unknown' || onAuthScreen || shared ? (
@@ -184,7 +211,7 @@ export function SiteHeader() {
           )}
         </div>
       </header>
-      {live && <Dock pathname={pathname} badges={tabBadges} />}
+      {live && <WithCameFrom render={(from) => <Dock pathname={pathname} from={from} badges={tabBadges} />} />}
     </>
   );
 }
@@ -324,9 +351,12 @@ function NewsBell({ count, active }: { count: number; active: boolean }) {
  */
 function Dock({
   pathname,
+  from,
   badges,
 }: {
   pathname: string;
+  /** 결과 화면이 온 곳(`?from=`) — 불을 온 곳에 켠다(ADR 0134) */
+  from: string | null;
   badges: Partial<Record<(typeof MEMBER_TABS)[number]['href'], number>>;
 }) {
   return (
@@ -337,7 +367,7 @@ function Dock({
     >
       <ul className="mx-auto grid max-w-md grid-cols-4 rounded-[1.75rem] bg-surface/95 p-1.5 shadow-raise ring-1 ring-border backdrop-blur-xl">
         {MEMBER_TABS.map((tab) => {
-          const active = isNavigationActive(pathname, tab.href);
+          const active = isNavigationActive(pathname, tab.href, from);
           return (
             <li key={tab.href} className="min-w-0">
               <Link

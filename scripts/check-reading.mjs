@@ -650,9 +650,10 @@ try {
 
     /** 누르면 그 글이 사는 화면으로 간다 — 목록 안에서 결과를 열지 않는다 */
     for (const [what, href] of [
-      ['내 사주', 'href="/me/readings/self"'],
-      ['저장한 사람', `href="/me/readings/${momId}"`],
-      ['인연 궁합', `href="/me/match/${matchId}"`],
+      /* 보관함에서 연 글은 온 곳을 싣는다 — 결과의 ← 가 보관함으로 돌아온다(ADR 0134) */
+      ['내 사주', 'href="/me/readings/self?from=shelf"'],
+      ['저장한 사람', `href="/me/readings/${momId}?from=shelf"`],
+      ['인연 궁합', `href="/me/match/${matchId}?from=shelf"`],
     ]) {
       check(`${what} 줄이 그 대상의 화면으로 간다`, list.includes(href), href);
     }
@@ -796,8 +797,9 @@ try {
 
     /** 책장 — 고친 사람의 책에만 「수정 전」이 서고, 안 고친 사람의 책에는 안 선다 */
     const shelf = await body('/me/readings', cookie.a);
-    const selfBook = bookOf(shelf, '/me/readings/self');
-    const momBook = bookOf(shelf, `/me/readings/${momId}`);
+    /* 보관함의 표지는 온 곳을 싣는다(ADR 0134) */
+    const selfBook = bookOf(shelf, '/me/readings/self?from=shelf');
+    const momBook = bookOf(shelf, `/me/readings/${momId}?from=shelf`);
     check('책장의 내 책에 「수정 전」 딱지가 선다', selfBook?.text.includes('수정 전') === true,
       selfBook?.text ?? '책 없음');
     check('책장의 안 고친 사람 책에는 「수정 전」이 없다',
@@ -848,7 +850,7 @@ try {
     const text = plain(told);
     check('실패가 알림함에 선다', text.includes('내 사주풀이를 만들지 못했습니다'));
     check('지금 보이는 글은 그대로라고 말한다', text.includes('지금 보이는 글은 그대로입니다'));
-    check('다시 누를 자리로 가는 링크가 붙는다', told.includes('href="/me/readings/self"'));
+    check('다시 누를 자리로 가는 링크가 붙는다', told.includes('href="/me/readings/self?from=news"'));
 
     /** **어느 궁합인지**까지 말한다 — 비공개 궁합은 두 사람을 다시 골라야 닿는 자리다 */
     const { data: account } = await a.from('app_user').select('self_person_id').maybeSingle();
