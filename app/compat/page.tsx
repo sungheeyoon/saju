@@ -11,10 +11,10 @@ import { signedInUser } from '../auth/signed-in';
 import { redirectToSignIn } from '../auth/sign-in-redirect';
 import { dbFailure } from '../db-error';
 import { CompatPicker } from '../compat-picker';
-import { MyCircle } from '../me/home/circle-view';
 import { myReadings } from '../me/reading/current';
 import { TYPE_SECTION } from '../ui/surfaces';
-import { CompatArchive } from './archive';
+import { CompatSummary } from './archive';
+import { CompatRelationMap } from './relation-map-section';
 
 export const metadata = {
   title: '궁합',
@@ -22,14 +22,15 @@ export const metadata = {
 };
 
 /**
- * **궁합 탭의 첫 화면** — 위에서부터 궁합 새로 보기(두 사람 고르기), 최근 궁합풀이, 관계 지도와 저장한 사람
- * (ADR 0129 「2026-09-29 e+」).
+ * **궁합 탭의 첫 화면** — 위에서부터 궁합 새로 보기(두 사람 고르기), 궁합풀이 한 줄, 관계 지도(「2026-09-29 u2」, 시안 u).
  *
  * 탭을 연 사람이 가장 먼저 하려는 일이 새 궁합이라 고르는 칸이 맨 위에 서고, 폰의 첫 화면에서 스크롤 없이 보인다.
- * 두 사람을 정하는 자리는 그대로다 — 칸마다 어디서 올지를 고르고, 결과는 한 화면에서 본다(ADR 0054). 그 아래 이미 본
- * 직접 궁합이 최근 것 셋까지, 그 아래 나와 내가 저장한 사람이 선다. 인연 궁합은 인연 탭이 든다(ADR 0130).
- * 지도의 카드 · 타일의 「나와 궁합」은 위의 두 칸을 채우고 그 칸을 화면에 들인다(`compat-picker.tsx`).
- * 내 사주가 아직 없으면 지도 · 타일은 안 서고 고르는 칸과 최근 궁합풀이만 선다(내 사주 등록은 나 탭이 든다).
+ * 두 사람을 정하는 자리는 그대로다 — 칸마다 어디서 올지를 고르고, 사이를 보기 전에 묻는다(ADR 0019 · 0054). 그래서 칸이
+ * 길고, 폰에서 그 아래 한 줄은 첫 화면 밖이다(ADR 0129 「2026-09-29 u2」 4). 이미 본 직접 궁합은 한 줄(개수 · 최근 두
+ * 사람)로 풀이 보관함의 궁합풀이 칸에 잇는다. 관계 지도는 그 아래다.
+ * **저장한 사람 타일은 여기 없다** — 나 탭이 든다. 인연 궁합은 인연 탭이 든다(ADR 0130).
+ * 지도 카드의 「궁합 보러 가기」는 위의 두 칸을 채우고 그 칸을 화면에 들인다(`compat-picker.tsx` · `compat-fill-link.tsx`).
+ * 내 사주가 아직 없으면 지도는 안 서고 고르는 칸과 궁합풀이 한 줄만 선다(내 사주 등록은 나 탭이 든다).
  */
 export default async function CompatPage() {
   const supabase = await supabaseOnServer();
@@ -49,7 +50,7 @@ export default async function CompatPage() {
       .select('person_id, local_label')
       .eq('listed', true)
       .order('created_at', { ascending: true }),
-    /* 지도의 선 · 타일의 점수 · 최근 궁합풀이가 같은 목록을 읽는다 — 한 번 읽어 나눠 준다 */
+    /* 지도의 선 · 카드의 점수 · 궁합풀이 한 줄이 같은 목록을 읽는다 — 한 번 읽어 나눠 준다 */
     myReadings(),
   ]);
 
@@ -59,7 +60,7 @@ export default async function CompatPage() {
 
   /**
    * **고를 사람마다 그 사람의 일간 오행 하나만** 접어 넘긴다 — 고르는 칸의 줄과 두 원이 그 사람의 상징을 든다.
-   * 명식이나 출생 입력은 브라우저로 안 넘긴다. 저장한 사람 목록과 같은 문(`storedInputsOf`)을 한 번 부르고,
+   * 명식이나 출생 입력은 브라우저로 안 넘긴다. 저장한 사람 화면과 같은 문(`storedInputsOf`)을 한 번 부르고,
    * 못 읽은 사람은 `null`(물음표 원)이다 — 없는 오행을 지어내지 않는다.
    */
   const stored = await storedInputsOf(
@@ -97,9 +98,9 @@ export default async function CompatPage() {
 
       {/*
         사주 화면과 같은 이유로 Suspense 아래에 둔다 — 주소창의 `#` 뒤를 읽는데 fragment 는 서버에 오지 않는다.
-        지도의 카드 · 사람 타일의 「나와 궁합」이 두 칸을 채운 주소(`/compat#a.person=…`)로 여기에 온다.
+        지도의 카드 · 나 탭 사람 타일의 「나와 궁합」이 두 칸을 채운 주소(`/compat#a.person=…`)로 여기에 온다.
       */}
-      {/* 지도 · 타일이 칸을 채우면 고르는 칸이 이 구역을 머리글 아래로 데려오고 제목에 초점을 둔다(`compat-picker.tsx`) */}
+      {/* 지도가 칸을 채우면 고르는 칸이 이 구역을 머리글 아래로 데려오고 제목에 초점을 둔다(`compat-picker.tsx`) */}
       <section aria-labelledby="compat-new" className="flex scroll-mt-24 flex-col gap-4">
         <h2 id="compat-new" tabIndex={-1} className={`${TYPE_SECTION} outline-none`}>
           궁합 새로 보기
@@ -112,9 +113,9 @@ export default async function CompatPage() {
         </p>
       </section>
 
-      <CompatArchive readings={readings} />
+      <CompatSummary readings={readings} />
 
-      {selfPersonId !== null && <MyCircle selfPersonId={selfPersonId} readings={readings} />}
+      {selfPersonId !== null && <CompatRelationMap selfPersonId={selfPersonId} readings={readings} />}
     </main>
   );
 }

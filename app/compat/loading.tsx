@@ -1,7 +1,7 @@
 import { Bone, SkeletonMain } from '../ui/skeleton';
 
 /**
- * 궁합 탭의 뼈대 — 고르는 칸, 최근 궁합풀이의 표지 셋, 관계 지도와 저장한 사람 타일(`page.tsx`, ADR 0129 「2026-09-29 e+」).
+ * 궁합 탭의 뼈대 — 고르는 칸, 궁합풀이 한 줄, 관계 지도(`page.tsx`, 「2026-09-29 u2」).
  *
  * 다른 탭 넷과 같은 까닭이다(ADR 0116) — 로그인을 읽는 동적 화면이라 뼈대가 없으면 누른 뒤 서버 응답이 다 올 때까지 지금
  * 화면에 머문다. 이 폴더는 궁합 첫 화면 하나만 품으므로 무리 폴더가 필요 없다. 익명으로 곧바로 열면 로그인으로 보내는
@@ -15,25 +15,9 @@ export default function CompatLoading() {
         <div className="h-72 rounded-[2rem] bg-cream" />
       </div>
 
-      <div className="flex flex-col gap-4">
-        <Bone className="h-8 w-36 rounded-full" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Bone className="min-h-44 rounded-[1.5rem]" />
-          <Bone className="min-h-44 rounded-[1.5rem]" />
-          <Bone className="min-h-44 rounded-[1.5rem] max-sm:hidden" />
-        </div>
-      </div>
+      <Bone className="h-[4.25rem] rounded-[1.25rem]" />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-8">
-        <div className="min-h-[22rem] rounded-[2rem] bg-cream sm:min-h-[26rem]" />
-        <div className="flex flex-col gap-4">
-          <Bone className="h-8 w-36 rounded-full" />
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            <Bone className="min-h-44 rounded-[1.5rem]" />
-            <Bone className="min-h-44 rounded-[1.5rem]" />
-          </div>
-        </div>
-      </div>
+      <div className="min-h-[22rem] rounded-[2rem] bg-cream sm:min-h-[26rem]" />
     </SkeletonMain>
   );
 }
