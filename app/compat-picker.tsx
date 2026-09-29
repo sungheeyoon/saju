@@ -26,6 +26,7 @@ import { RelationChoice } from './relation-choice';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
 import { BUTTON_PRIMARY } from './ui/buttons';
 import { Icon } from './ui/icons';
+import { reducedMotion } from './ui/motion';
 import { CARD, PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
 
 /**
@@ -103,14 +104,23 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
    * 주소가 덮는다 — 원국 화면이 같은 자리를 같은 방식으로 지킨다.
    */
   const shown = useRef(params.toString());
+  const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const now = params.toString();
     if (now === shown.current) return;
     shown.current = now;
-    setSlots({
-      a: slotFrom(params, 'a', people) ?? firstSlot(people),
-      b: slotFrom(params, 'b', people) ?? secondSlot(people),
-    });
+    const a = slotFrom(params, 'a', people);
+    const b = slotFrom(params, 'b', people);
+    setSlots({ a: a ?? firstSlot(people), b: b ?? secondSlot(people) });
+    /*
+      **주소가 칸을 채웠으면 그 칸을 화면에 들인다**(ADR 0129 「2026-09-29 e+」). 같은 화면 아래의 관계 지도 · 사람
+      타일의 「나와 궁합」이 이 칸을 채우는데, 칸은 맨 위라 누른 자리에서는 안 보인다 — 채워진 것을 보여 주고 초점을
+      구역 제목에 옮긴다. 주소의 `#` 뒤는 id 가 아니라 Next 가 스스로 스크롤하지 않는다.
+    */
+    if (a === null && b === null) return;
+    const section = root.current?.closest('section') ?? root.current;
+    section?.scrollIntoView({ block: 'start', behavior: reducedMotion() ? 'instant' : 'smooth' });
+    section?.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
   }, [params, people]);
 
   const [relation, setRelation] = useState<Relation | null>(null);
@@ -193,7 +203,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
     : null;
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-5">
+    <div ref={root} className="flex flex-col gap-4 sm:gap-5">
       <PairStage
         sides={{ a: stageOf(slots.a, people, 'a'), b: stageOf(slots.b, people, 'b') }}
       />

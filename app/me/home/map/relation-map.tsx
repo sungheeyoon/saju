@@ -24,6 +24,7 @@ import { useRef, useState, type CSSProperties, type MouseEvent, type ReactNode }
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 import { ELEMENTS, type Element } from '@/src/lib/saju';
 
+import { CompatFillLink } from '../../../compat-fill-link';
 import { BUTTON_PRIMARY_SMALL, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { elementScope } from '../../../ui/element-tone';
 import { ElementSymbol } from '../../../ui/element-symbol';
@@ -617,10 +618,11 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
           </p>
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Link href={compat.href} className={BUTTON_PRIMARY_SMALL}>
+            {/* 안 본 궁합은 같은 화면 위의 두 칸을 채운다(`CompatFillLink`) */}
+            <CompatFillLink href={compat.href} className={BUTTON_PRIMARY_SMALL}>
               <Icon name={compat.seen ? 'reading' : 'heart'} className="size-4" />
               {compat.seen ? '궁합풀이 보기' : '궁합 보러 가기'}
-            </Link>
+            </CompatFillLink>
             <Link href={person.detailHref} className={BUTTON_TERTIARY}>
               {person.label} 사주 보기
               <Icon name="arrow" className="size-4" />

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { STEM_INFO } from '@/src/lib/saju';
 import { READING_STALE_LABEL } from '@/src/lib/reading/notes';
 
+import { CompatFillLink } from '../../compat-fill-link';
 import { elementScope } from '../../ui/element-tone';
 import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
@@ -99,7 +100,8 @@ export function PersonTile({
         >
           {reading === null ? '풀이 받기' : '풀이 보기'}
         </Link>
-        <Link
+        {/* 안 본 궁합은 같은 화면 위의 두 칸을 채운다(`CompatFillLink`) */}
+        <CompatFillLink
           href={compat.href}
           className={`${BUTTON_ON_TILE} min-w-11 whitespace-nowrap`}
           aria-label={compat.score !== null ? `나와 궁합 ${compat.score}점` : '나와 궁합'}
@@ -110,7 +112,7 @@ export function PersonTile({
           ) : (
             <span className="max-[399px]:sr-only">궁합</span>
           )}
-        </Link>
+        </CompatFillLink>
       </div>
     </li>
   );
