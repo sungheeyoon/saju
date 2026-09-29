@@ -348,11 +348,14 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(mine.getByText('1990-05-15', { exact: false })).toBeVisible();
     await expect(mine.getByRole('link', { name: /사주풀이 보기/ })).toHaveAttribute('href', '/me/readings/self?from=me');
 
-    /* 받은 사주풀이 — 최근 것이 앞, 셋만. 전부는 보관함의 사주풀이 칸이 든다 */
+    /*
+      받은 사주풀이 — 최근 것이 앞, 폰은 한 줄 셋. 넓은 화면(`lg`)은 내 사주 카드 옆 칸에 두 줄 둘로 넷이 선다(2026-09-29).
+      전부는 보관함의 사주풀이 칸이 든다
+    */
     const received = page.getByRole('region', { name: /^내가 받은 사주풀이/ });
     await expect(received.getByRole('heading')).toContainText('4개');
     const covers = received.getByRole('listitem').getByRole('link');
-    await expect(covers).toHaveCount(3);
+    await expect(covers).toHaveCount(testInfo.project.name.includes('mobile') ? 3 : 4);
     await expect(covers.first()).toHaveAttribute('href', `/me/readings/${idOf('동생')}?from=me`);
     await expect(received.getByRole('link', { name: '풀이 보관함' })).toHaveAttribute('href', '/me/readings?kind=saju');
 

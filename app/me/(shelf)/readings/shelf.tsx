@@ -36,9 +36,12 @@ const COVER =
 /**
  * **한 줄에 셋이 서는 작은 표지** — 나 탭 홈의 「내가 받은 사주풀이」(u2, 운영자 2026-09-29). 모양은 같고 크기만 줄였다: 폰 한 칸이
  * 110px 남짓이라 14rem 표지 셋이면 저장한 사람 머리가 첫 화면 밖으로 나갔다(잰 값 717px, 첫 화면 끝 584px).
+ *
+ * **줄이는 것은 폰뿐이다**(2026-09-29) — `sm` 부터는 `COVER` 와 같은 크기로 돌아간다. 넓은 화면에서도 작게 두었더니 한 칸이
+ * 195~235px 인데 높이는 148px 라 표지가 옆으로 누운 책이 됐다.
  */
 const COVER_ROW =
-  'group relative flex h-full min-h-[9.25rem] flex-col gap-1 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] py-2.5 pl-5 pr-2.5 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]';
+  'group relative flex h-full min-h-[9.25rem] flex-col gap-1 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] py-2.5 pl-5 pr-2.5 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-[14rem] sm:gap-3 sm:rounded-[0.5rem_1.5rem_1.5rem_0.5rem] sm:py-4 sm:pl-6 sm:pr-4';
 
 export function Shelf({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
@@ -74,14 +77,14 @@ export function SingleCover({ book, row = false, from }: { book: Book; row?: boo
 
       <span className="relative flex min-w-0 flex-col gap-1">
         <SubjectTag subject={subject} />
-        <span className={`truncate font-semibold text-foreground ${row ? 'text-[14px]' : 'text-[15px]'}`}>{book.title}</span>
+        <span className={`truncate font-semibold text-foreground ${row ? 'text-[14px] sm:text-[15px]' : 'text-[15px]'}`}>{book.title}</span>
       </span>
 
-      <Metaphor text={book.metaphor} lines={row ? 'line-clamp-3' : 'line-clamp-4'} small={row} />
+      <Metaphor text={book.metaphor} lines={row ? 'line-clamp-3 sm:line-clamp-4' : 'line-clamp-4'} small={row} />
 
       <span className="relative flex flex-wrap items-center gap-1.5">
         {book.stale && <StaleChip />}
-        <time dateTime={book.dateTime} className={`tabular-nums text-secondary ${row ? 'text-[11px]' : 'text-[12px]'}`}>
+        <time dateTime={book.dateTime} className={`tabular-nums text-secondary ${row ? 'text-[11px] sm:text-[12px]' : 'text-[12px]'}`}>
           {book.date}
         </time>
       </span>
@@ -179,7 +182,7 @@ export function BlankBook({
       <CoverLink
         href={href}
         from={from}
-        className={`${elementScope(element)} flex h-full ${row ? 'min-h-[9.25rem]' : 'min-h-[14rem]'} flex-col items-center justify-center gap-3 rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] p-4 text-center hover:bg-surface active:scale-[0.98]`}
+        className={`${elementScope(element)} flex h-full ${row ? 'min-h-[9.25rem] sm:min-h-[14rem]' : 'min-h-[14rem]'} flex-col items-center justify-center gap-3 rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] p-4 text-center hover:bg-surface active:scale-[0.98]`}
       >
         <span className="grid size-12 place-items-center rounded-full bg-[var(--tile)]">
           <ElementSymbol element={element} className="size-7" />
@@ -315,7 +318,7 @@ function Spine({ background }: { background: string }) {
 function Metaphor({ text, lines, small = false }: { text: string | null; lines: string; small?: boolean }) {
   return (
     <span
-      className={`font-rounded relative ${lines} flex-1 text-foreground ${small ? 'text-[14px] leading-[1.35]' : 'text-[1.0625rem] leading-[1.5]'}`}
+      className={`font-rounded relative ${lines} flex-1 text-foreground ${small ? 'text-[14px] leading-[1.35] sm:text-[1.0625rem] sm:leading-[1.5]' : 'text-[1.0625rem] leading-[1.5]'}`}
     >
       {text === null ? (
         <span className="font-sans text-[13px] text-secondary">만들어 둔 풀이를 이어서 읽어보세요</span>
