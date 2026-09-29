@@ -427,7 +427,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(more.getByRole('link')).toHaveCount(3);
     await expect(more.getByRole('link', { name: '궁합 보러 가기' })).toHaveAttribute('href', '/compat');
     await expect(more.getByRole('link', { name: /오늘의 인연 만나기/ })).toHaveAttribute('href', '/me/matching');
-    await expect(more.getByRole('link', { name: '만든 풀이 다시 보기', exact: true })).toHaveAttribute('href', '/me/readings');
+    await expect(more.getByRole('link', { name: '풀이 보관함', exact: true })).toHaveAttribute('href', '/me/readings');
     /* 홈은 인연으로 가는 길만 두고 오늘의 인연을 제 자리에 세우지 않는다 */
     await expect(page.getByRole('heading', { name: '오늘의 인연', exact: true })).toHaveCount(0);
 
@@ -1518,19 +1518,23 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * 글을 실제로 만들어 놓고 재지는 않는다 — 누르면 4분과 돈이 든다. 네 kind 가 다
    * 서는지는 흐름 검사가 열쇠로 저장해 놓고 잰다(`check-reading.mjs`).
    */
-  test('나 탭 홈의 「만든 풀이 다시 보기」가 만든 글의 목록으로 가고, 거기서도 나 탭이 켜져 있다', async ({ page, signedIn }) => {
+  test('나 탭 홈의 「풀이 보관함」이 만든 글의 목록으로 가고, 거기서는 어느 탭도 안 켜지고 제목이 위치를 말한다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
 
-    await page.getByRole('navigation', { name: '바로가기' }).getByRole('link', { name: '만든 풀이 다시 보기', exact: true }).click();
+    await page.getByRole('navigation', { name: '바로가기' }).getByRole('link', { name: '풀이 보관함', exact: true }).click();
 
     await expect(page).toHaveURL(/\/me\/readings$/);
-    /* 책장은 탭에서 빠졌지만 나 탭 안의 길이다 — 불이 제자리에 있어야 어디서 왔는지 안다 */
-    await expect(
-      page.getByRole('link', { name: '나', exact: true }).filter({ visible: true }).first(),
-    ).toHaveAttribute('aria-current', 'page');
-    // `exact` 를 안 주면 **두 개를 잡는다** — 「아직 만든 풀이가 없습니다」가 이것을 품는다.
-    await expect(page.getByRole('heading', { name: '만든 풀이', exact: true })).toBeVisible();
+    /* 보관함은 탭 소속이 없는 전체 기록이다(ADR 0133) — 탭 불 대신 제목이 선다 */
+    for (const tab of ['나', '궁합', '인연']) {
+      await expect(page.getByRole('link', { name: tab, exact: true }).filter({ visible: true }).first()).not.toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+    }
+    await expect(page.getByRole('heading', { name: '풀이 보관함', exact: true })).toBeVisible();
+    /* 한 권도 없으면 가를 것이 없다 — 칩이 안 선다 */
+    await expect(page.getByRole('navigation', { name: '풀이 종류' })).toHaveCount(0);
 
     /*
       **빈 화면만 남기지 않는다.** 「본 궁합」은 비어 있으면 아무것도 안 그렸는데, 거기서는
@@ -1557,7 +1561,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    */
   test('풀이 목록은 넓은 화면에서 책장 옆에 글을 펴고 폰에서는 글과 책장을 오간다', async ({ page, personReader }, testInfo) => {
     const reading = `/me/readings/${personReader.personId}`;
-    const shelfTitle = page.getByRole('heading', { name: '만든 풀이', exact: true });
+    const shelfTitle = page.getByRole('heading', { name: '풀이 보관함', exact: true });
     const cover = page.getByRole('link', { name: /어머니 사주/ });
     await page.goto('/me/readings');
 
@@ -1567,7 +1571,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       await expect(page.getByRole('heading', { name: '어머니의 사주풀이' })).toBeVisible();
       await expect(cover).toHaveAttribute('aria-current', 'page');
       /* 책장이 옆에 있으니 돌아가는 길은 안 선다 */
-      await expect(page.getByRole('link', { name: '만든 풀이 목록' })).toBeHidden();
+      await expect(page.getByRole('main').getByRole('link', { name: '풀이 보관함', exact: true })).toBeHidden();
       return;
     }
 
@@ -1582,9 +1586,39 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(shelfTitle).toBeVisible();
 
     await cover.click();
-    await page.getByRole('link', { name: '만든 풀이 목록' }).click();
+    await page.getByRole('main').getByRole('link', { name: '풀이 보관함', exact: true }).click();
     await expect(page).toHaveURL(/\/me\/readings$/);
     await expect(shelfTitle).toBeVisible();
+  });
+
+  /**
+   * **필터 칩 넷이 주소를 든다**(ADR 0133). 궁합 탭 · 인연 탭의 「모두 보기」가 `?kind=` 를 달고 오면 그 칸으로 열리고,
+   * 칩을 누르면 주소가 바뀐다. 궁합 칸에는 한 사람 풀이가 안 서므로 넓은 화면도 글을 펴지 않는다.
+   */
+  test('풀이 보관함은 ?kind= 로 칸을 열고 칩을 누르면 주소가 바뀐다', async ({ page, personReader }, testInfo) => {
+    const chips = page.getByRole('navigation', { name: '풀이 종류' });
+    const cover = page.getByRole('link', { name: /어머니 사주/ });
+    await page.goto('/me/readings?kind=compat');
+
+    await expect(page).toHaveURL(/\/me\/readings\?kind=compat$/);
+    await expect(chips.getByRole('link', { name: '궁합풀이', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(cover).toHaveCount(0);
+    await expect(page.getByRole('main').getByRole('link', { name: '궁합 보러 가기' })).toHaveAttribute('href', '/compat');
+
+    await chips.getByRole('link', { name: '사주풀이', exact: true }).click();
+    if (testInfo.project.name.includes('mobile')) {
+      await expect(page).toHaveURL(/\/me\/readings\?kind=saju$/);
+    } else {
+      /* 넓은 화면은 펼 한 권으로 옮기되 칸을 들고 간다 — 책장이 같은 칸에 남는다 */
+      await expect(page).toHaveURL(new RegExp(`/me/readings/${personReader.personId}\\?kind=saju$`));
+    }
+    await expect(chips.getByRole('link', { name: '사주풀이', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(cover).toBeVisible();
+
+    /* 모르는 값은 전체다 */
+    await page.goto('/me/readings?kind=nope');
+    await expect(chips.getByRole('link', { name: '전체', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(chips.getByRole('link', { name: '인연 궁합', exact: true })).toHaveAttribute('href', '/me/readings?kind=match');
   });
 
   /** 넓은 화면에서 목록만 열면 **내 사주풀이가 먼저** 펼쳐진다 — 저장한 사람의 글이 더 최근이어도(2026-09-27 운영자) */

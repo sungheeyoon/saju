@@ -1,7 +1,7 @@
 import { EmptyReader } from './shelf';
 
 export const metadata = {
-  title: '풀이',
+  title: '풀이 보관함',
   description: '내가 만든 사주풀이와 궁합풀이를 종류별로 확인합니다.',
 };
 

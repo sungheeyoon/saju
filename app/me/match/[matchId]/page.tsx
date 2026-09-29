@@ -14,13 +14,14 @@ import { Icon } from '../../../ui/icons';
 import { EMPTY_SLOT, TYPE_TITLE } from '../../../ui/surfaces';
 import { BlockButton } from '../../requests/manage';
 import { ReadingSection } from '../../reading/section';
+import { SHELF_TITLE, withShelfKind } from '../../(shelf)/readings/kind';
 import { matchResultForViewer, type SharedResult } from '../result';
 
 /** 모델 240초 뒤 실패를 적을 60초를 남기되 DB 의 10분 만료보다 짧게 둔다. */
 export const maxDuration = 300;
 
 export const metadata = {
-  title: '함께 보는 궁합',
+  title: '인연 궁합',
   description: '서로 동의한 두 사람의 궁합과 그 위에 선 사주풀이를 봅니다.',
 };
 
@@ -72,13 +73,14 @@ export default async function MatchResultPage({
     */
     <main className="app-shell flex w-full flex-1 flex-col gap-8 py-8 sm:py-12">
       <header className="flex flex-col gap-5">
-        <Link href="/me/readings" className={`${BUTTON_TERTIARY} self-start`}>
+        {/* 되돌아가는 자리는 풀이 보관함의 인연 궁합 칸이다(ADR 0133) */}
+        <Link href={withShelfKind('/me/readings', 'match')} className={`${BUTTON_TERTIARY} self-start`}>
           <Icon name="back" className="size-4" />
-          만든 풀이 목록
+          {SHELF_TITLE}
         </Link>
         <div className="flex flex-col gap-1.5">
           <p className="text-[13px] font-semibold text-secondary">인연</p>
-          <h1 className={TYPE_TITLE}>함께 보는 궁합</h1>
+          <h1 className={TYPE_TITLE}>인연 궁합</h1>
           <p className="text-[15px] leading-6 text-secondary">
             서로 동의한 두 분에게 같은 글과 같은 점수가 보입니다.
           </p>

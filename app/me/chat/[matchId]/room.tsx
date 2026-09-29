@@ -45,7 +45,7 @@ export type RoomView = {
   readonly days: readonly BubbleDay[];
   /** 읽는 문이 준 것이 방의 처음부터다(200건 아래) — 그때만 첫머리를 세운다 */
   readonly fromBeginning: boolean;
-  /** 두 사람의 일간 — 함께 보는 궁합이 연 값이 있을 때만(`roomTonesForViewer`). 없으면 중립 색이다 */
+  /** 두 사람의 일간 — 인연 궁합이 연 값이 있을 때만(`roomTonesForViewer`). 없으면 중립 색이다 */
   readonly tones: RoomTones | null;
 };
 
@@ -70,7 +70,7 @@ type Slot = { kind: 'compose' } | { kind: 'block' } | { kind: 'report'; messageI
  * 최근 말이 먼저 보이고, 보낸 뒤 다시 읽어도 그 자리에 남는다.
  *
  * **대화가 두 사람의 색으로 짜인다** — 내 말은 내 일간 오행의 진한 색으로 채우고, 상대 말은 상대 일간
- * 오행의 파스텔을 입는다(홈의 「사람 한 명 = 그 오행의 파스텔 한 장」을 대화로 옮겼다). 색은 함께 보는 궁합이
+ * 오행의 파스텔을 입는다(홈의 「사람 한 명 = 그 오행의 파스텔 한 장」을 대화로 옮겼다). 색은 인연 궁합이
  * 이미 연 두 일간에서만 온다(`tones.ts`). 그 값이 없는 방(닫힌 방 · 떠난 상대 · 옛 Match)은 내 말이 먹색,
  * 상대 말이 회색 한 벌이다 — 지어낸 색은 그 사람에 대해 거짓을 말한다.
  *
@@ -109,13 +109,13 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         </div>
         {/*
           폰에서는 이름에 자리를 준다 — 같은 길이 대화의 첫머리에 있다. 닫힌 방에는 안 선다: 차단 · 정지 · 탈퇴 신청으로
-          닫히면 함께 보는 궁합도 그 쌍에게 닫힌다(`visible_matches()`) — 누르면 없는 화면이다.
+          닫히면 인연 궁합도 그 쌍에게 닫힌다(`visible_matches()`) — 누르면 없는 화면이다.
         */}
         {hasPartner && !closed && (
           <span className="hidden shrink-0 sm:block">
             <Link href={`/me/match/${room.matchId}`} className={room.tones === null ? BUTTON_SECONDARY_SMALL : `${elementScope(theirTone)} ${TONED_PILL}`}>
               <Icon name="heart" className={`size-[18px] ${room.tones === null ? 'text-danger' : ''}`} />
-              함께 보는 궁합
+              인연 궁합
             </Link>
           </span>
         )}
@@ -267,10 +267,10 @@ function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: ()
 }
 
 /**
- * 대화의 첫머리 — 누구와 이야기하는지와 함께 보는 궁합으로 가는 길.
+ * 대화의 첫머리 — 누구와 이야기하는지와 인연 궁합으로 가는 길.
  *
  * 두 일간을 아는 방은 **두 사람의 카드**다: 나와 상대가 제 일간 오행의 파스텔 한 장씩으로 나란히 서고(결과 화면의
- * 「각자의 사주」와 같은 조각 `DayMasterChip`), 아래로 함께 보는 궁합이 이어진다. 「이 사람과 왜 이야기하게
+ * 「각자의 사주」와 같은 조각 `DayMasterChip`), 아래로 인연 궁합이 이어진다. 「이 사람과 왜 이야기하게
  * 됐나」를 두 색이 되짚는다. 점수 · 궁합 한 줄은 방의 문이 주지 않으므로 싣지 않는다(지어낸 점수는 함께 보는
  * 궁합의 점수와 갈린다). 두 일간을 모르는 방은 상대의 사진과 이름만 선다.
  */
@@ -279,7 +279,7 @@ function RoomStart({ room }: { room: RoomView }) {
   const toMatch = room.partnerUserId !== null && room.notice === null && (
     <Link href={`/me/match/${room.matchId}`} className={BUTTON_SECONDARY_SMALL}>
       <Icon name="heart" className="size-4 text-danger" />
-      함께 보는 궁합
+      인연 궁합
       <Icon name="arrow" className="size-4" />
     </Link>
   );

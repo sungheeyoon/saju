@@ -4,6 +4,7 @@ import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { TYPE_SECTION } from '../../ui/surfaces';
 import { bookOf } from '../(shelf)/readings/book';
+import { SHELF_TITLE, withShelfKind } from '../(shelf)/readings/kind';
 import { BlankBook, SingleCover } from '../(shelf)/readings/shelf';
 import type { ReadingEntry } from '../reading/current';
 
@@ -14,7 +15,7 @@ const SHOWN = 4;
  * **내가 받은 사주풀이** — 한 사람 풀이(나 · 저장한 사람)만, 책장의 표지 그대로(ADR 0129).
  *
  * 궁합풀이는 궁합 탭의 보관함에 선다. 차례는 DB 가 준 그대로(최근 것이 앞)이고 앞의 몇 권만 세운다 — 전부는
- * 「만든 풀이 다시 보기」(책장, `/me/readings`)가 든다. 표지를 누르면 책장의 그 글이 열린다.
+ * 「풀이 보관함」의 사주풀이 칸(`/me/readings?kind=saju`)이 든다. 표지를 누르면 책장의 그 글이 열린다.
  *
  * 내 사주풀이가 아직 없으면 점선 한 권이 받는 자리로 간다 — 책장의 빈 자리와 같은 모양이다.
  */
@@ -33,8 +34,8 @@ export function ReceivedReadings({ readings }: { readings: readonly ReadingEntry
           )}
         </h2>
         {singles.length > shown.length && (
-          <Link href="/me/readings" className={BUTTON_TERTIARY}>
-            만든 풀이 다시 보기
+          <Link href={withShelfKind('/me/readings', 'saju')} className={BUTTON_TERTIARY}>
+            {SHELF_TITLE}
             <Icon name="arrow" className="size-4" />
           </Link>
         )}

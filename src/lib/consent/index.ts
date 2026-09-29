@@ -65,8 +65,8 @@ export const REQUEST_STATUS_TEXT: Record<
   },
   accepted: {
     label: '성립',
-    sent: '상대가 수락해 함께 보는 궁합이 열렸습니다.',
-    received: '수락해 함께 보는 궁합이 열렸습니다.',
+    sent: '상대가 수락해 인연 궁합이 열렸습니다.',
+    received: '수락해 인연 궁합이 열렸습니다.',
   },
   rejected: {
     label: '거절',
@@ -158,8 +158,8 @@ export function notificationText({ kind, nickname, readingKind }: NotificationEv
         : `${who} 님이 상세 궁합을 함께 보자고 요청했습니다.`;
     case 'request_accepted':
       return who === ''
-        ? '요청이 수락되어 함께 보는 궁합이 열렸습니다.'
-        : `${who} 님과 함께 보는 궁합이 열렸습니다.`;
+        ? '요청이 수락되어 인연 궁합이 열렸습니다.'
+        : `${who} 님과 인연 궁합이 열렸습니다.`;
     case 'request_rejected':
       return who === ''
         ? '요청이 거절되었습니다.'
@@ -174,7 +174,7 @@ export function notificationText({ kind, nickname, readingKind }: NotificationEv
         : `${who} 님에게 보낸 요청이 만료되었습니다. 잡고 있던 풀이권은 돌아왔습니다.`;
     case 'reading_ready':
       return who === ''
-        ? '함께 보는 궁합풀이가 새로 만들어졌습니다.'
+        ? '인연 궁합풀이가 새로 만들어졌습니다.'
         : `${who} 님과의 궁합풀이가 새로 만들어졌습니다.`;
     /**
      * **지금 보이는 글은 그대로**라는 것까지 함께 말한다. 실패는 현재 결과를 지우지
@@ -186,7 +186,7 @@ export function notificationText({ kind, nickname, readingKind }: NotificationEv
       }
       if (readingKind === 'match') {
         return who === ''
-          ? '함께 보는 궁합풀이를 만들지 못했습니다. 지금 보이는 글은 그대로입니다.'
+          ? '인연 궁합풀이를 만들지 못했습니다. 지금 보이는 글은 그대로입니다.'
           : `${who} 님과의 궁합풀이를 만들지 못했습니다. 지금 보이는 글은 그대로입니다.`;
       }
       /**
