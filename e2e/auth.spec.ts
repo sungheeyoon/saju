@@ -171,7 +171,9 @@ test('사주 계산은 로그인 없이 열리고 궁합은 로그인으로 이�
   */
   await expect(page.getByRole('link', { name: '로그인', exact: true })).toBeVisible();
   await expect(page.getByLabel(/^(전체|설정) 메뉴$/)).toHaveCount(0);
-  await expect(page.getByRole('heading', { name: '출생 정보를 입력해 주세요' })).toBeVisible();
+  /* 로그인 전 첫 화면은 두 입구 아래 곧장 폼이다 — 폼 제목은 화면 밖에서만 읽힌다(흐름 시안 g) */
+  await expect(page.getByRole('tab', { name: /내 사주 보기/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '출생 정보를 입력해 주세요' })).toBeAttached();
 
   await page.goto('/compat');
   await expect(page).toHaveURL(/\/auth\?next=%2Fcompat/);

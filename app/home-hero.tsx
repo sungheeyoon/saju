@@ -2,17 +2,14 @@
 
 import { useState, type KeyboardEvent, type ReactNode } from 'react';
 
-import { SERVICE_TAGLINE } from '@/src/lib/brand';
 import { HOUR_UNKNOWN_CHOICE } from '@/src/lib/input/query';
 
 import { useBrowserSession } from './auth/browser-session';
-import { HomeMap } from './home-map';
 import { PairTaste } from './pair-taste';
 import { SignedInProvider } from './signed-in';
 import { SajuCompatTabs } from './segmented-nav';
 import { TAB_HERO_CARD, TabHeroBody, TabHeroGlow } from './tab-hero';
 import { ElementSymbol } from './ui/element-symbol';
-import { BrandMark } from './ui/logo';
 import { TYPE_SECTION } from './ui/surfaces';
 
 /**
@@ -76,14 +73,16 @@ export function HomeHero({ calculator }: { calculator: ReactNode }) {
 
       <section id="calculator" className="scroll-mt-24">
         <div id="self-panel" role={member ? undefined : 'tabpanel'} aria-labelledby={member ? undefined : 'entry-self'} hidden={pair}>
-          <div className="mb-5">
-            {/*
-              **제목은 둘이 같다.** 묻는 것이 같기 때문이다 — 가르는 것은 이 입력이
-              그 사람에게 무엇이냐는 쪽이지 무엇을 묻느냐가 아니다.
-            */}
+          {/*
+            **제목은 둘이 같다.** 묻는 것이 같기 때문이다 — 가르는 것은 이 입력이
+            그 사람에게 무엇이냐는 쪽이지 무엇을 묻느냐가 아니다. 로그인 전 첫 화면에서는 **눈에 안 보인다** —
+            바로 위 입구 「내 사주 보기」가 같은 말을 하고, 입구 아래 곧장 폼이 서야 한다(흐름 시안 g, 2026-09-29
+            운영자 「내 사주 보기 · 궁합 보기 아래에 바로 입력 폼」). 시각 모름 안내는 시각 칸 아래에 이미 있다.
+          */}
+          <div className={member ? 'mb-5' : 'sr-only'}>
             {member && <p className="text-[13px] font-semibold text-cream-ink">직접 입력</p>}
             <h2 className={`mt-1 ${TYPE_SECTION}`}>출생 정보를 입력해 주세요</h2>
-            <p className="mt-2 text-sm leading-6 text-secondary">출생 시각을 모르면 「{HOUR_UNKNOWN_CHOICE}」을 고르세요.</p>
+            {member && <p className="mt-2 text-sm leading-6 text-secondary">출생 시각을 모르면 「{HOUR_UNKNOWN_CHOICE}」을 고르세요.</p>}
           </div>
           {/*
             **계산기도 이 값으로 갈린다** — 로그인하지 않은 사람에게는 결과의 첫머리가 맛보기다(`taste.tsx`).
@@ -155,14 +154,16 @@ function Hero({ member, entry, onEntry }: { member: boolean; entry: Entry; onEnt
 /**
  * 현관의 속 — 카드 껍데기는 `Hero` 가 든다(흐름 시안 g 의 첫 화면, ADR 0131).
  *
- * 로고와 이름, 한 줄 소개(`SERVICE_TAGLINE`), 제목, 점으로 이루어지는 관계의 그림(`HomeMap`), 그리고 **두 입구** —
- * 「내 사주 보기」와 「궁합 보기」. 입구는 바로 아래 입력 칸을 고르는 탭이다: 둘 다 로그인 없이 맛보기까지 간다.
+ * 제목 한 줄, 설명 한 줄, 그리고 **두 입구** — 「내 사주 보기」와 「궁합 보기」. 입구는 바로 아래 입력 칸을 고르는 탭이다:
+ * 둘 다 로그인 없이 맛보기까지 간다. 입구 아래에는 곧장 폼이 선다.
  *
  * ## 걷은 것
  *
  * - 「테스트 코드를 받으셨나요? · 테스트 코드로 시작하기」 띠 — 기준은 일반 공개 서비스다(운영자 2026-09-29). 코드는
  *   운영자가 테스터에게 직접 알리고, 넣는 자리는 그대로 가입 화면이다(머리글의 「로그인」 → 가입). 현관이 앞세우지 않을 뿐이다.
  * - 「사주풀이에서 만날 이야기」 세 칸 — 결과의 잠긴 목차가 본 풀이의 실제 절 이름으로 그 일을 한다(`taste.tsx`).
+ * - 로고 · 이름 · 한 줄 소개와 관계의 그림, 제목 둘째 줄(「우리는 왜 끌릴까.」) — 운영자가 시안 g 와 견주어 「위에 글도
+ *   많고」라고 했다(2026-09-29). 로고는 머리글에 이미 서고, 그림은 폰에서 폼을 한 화면 아래로 밀었다.
  * - 「사주는 로그인 없이 · 사주풀이와 궁합은 로그인 후」 — 궁합도 맛보기까지는 로그인 없이 간다. 참이 아니게 됐다.
  */
 function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry) => void }) {
@@ -176,17 +177,15 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
   };
 
   return (
-    <div className="relative grid items-center gap-6 px-5 pb-6 pt-6 sm:px-10 sm:pb-9 sm:pt-9 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
+    <div className="relative px-5 pb-6 pt-6 sm:px-10 sm:pb-9 sm:pt-9">
       <div className="min-w-0">
-        <BrandMark className="[&_svg]:size-9" nameClassName="!text-[1.6rem]" />
-        <p className="mt-5 text-[15px] font-semibold text-cream-ink">{SERVICE_TAGLINE}</p>
-        <h1 className="mt-2 font-rounded text-[2rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2.75rem] sm:leading-[1.25]">
-          나는 어떤 사람일까.<br />우리는 왜 끌릴까.
+        <h1 className="font-rounded text-[1.75rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2.25rem]">
+          나는 어떤 사람일까?
         </h1>
-        <p className="mt-4 max-w-md text-[15px] leading-7 text-secondary">
+        <p className="mt-2 max-w-md text-[15px] leading-7 text-secondary">
           생일만 넣으면 사주와 짧은 맛보기를 바로 보여 드려요.
         </p>
-        <div role="tablist" aria-label="무엇을 볼까요" className="mt-6 grid grid-cols-2 gap-3">
+        <div role="tablist" aria-label="무엇을 볼까요" className="mt-5 grid grid-cols-2 gap-3">
           {ENTRIES.map(({ id, element, title, question }) => (
             <button
               key={id}
@@ -211,11 +210,6 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
           ))}
         </div>
       </div>
-      {/*
-        그림은 넓은 화면에서 오른쪽 반을, 폰에서는 입구 아래 가운데를 차지한다. 폰에서 너무 크면 입력 칸이
-        두 화면 아래로 밀리므로 폭을 묶는다.
-      */}
-      <HomeMap className="mx-auto max-w-[15rem] sm:max-w-[20rem] lg:max-w-[26rem]" />
     </div>
   );
 }
