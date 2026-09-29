@@ -31,7 +31,7 @@ export function RequestsBand({ count, names, children }: { count: number; names:
       >
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-bold leading-5">받은 요청 {count}</span>
-          <span className="block truncate text-[13px] leading-[18px] opacity-90">{names} — 답하면 궁합이 열린다</span>
+          <span className="block truncate text-[13px] leading-[18px] opacity-90">{names} — 수락하면 인연 궁합이 열려요</span>
         </span>
         <Icon name="chevron" className="size-4 shrink-0" />
       </button>

@@ -65,7 +65,7 @@ export default async function SurveyPage() {
 
       {context === null ? (
         <p role="alert" className="rounded-[1.5rem] border border-border bg-surface p-5 text-sm text-danger">
-          설문을 열지 못했습니다. 잠시 뒤에 새로고침해 주세요.
+          설문을 불러오지 못했어요. 잠시 뒤에 새로고침해 주세요.
         </p>
       ) : context.consented ? (
         <SurveyForm context={context} given={given} />

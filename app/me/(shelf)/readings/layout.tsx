@@ -9,6 +9,7 @@ import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { myReadings } from '../../reading/current';
 import { matchesForViewer } from '../../requests/inbox';
+import { withCameFrom } from '../../../came-from';
 import { bookOf } from './book';
 import { ReadingsFrame, type NextBook } from './frame';
 import { shelfKindOfReading, type ShelfKind } from './kind';
@@ -17,7 +18,7 @@ import { BlankBook, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from '
 /**
  * **풀이 보관함** — 만든 글이 **한 목록에** 서는 자리 (ADR 0033) — 그리고 그 목록 옆에서 글을 읽는 자리.
  *
- * 보관함은 **어느 탭에도 속하지 않는 전체 기록**이다(ADR 0133). 궁합 탭 · 인연 탭은 최근 몇 권만 들고 「모두 보기」로
+ * 보관함은 **나 탭의 전체 기록**이다(ADR 0133 · 0134). 궁합 탭 · 인연 탭은 최근 몇 권만 들고 「모두 보기」로
  * 이리 보낸다 — 필터 칩 넷(전체 · 사주풀이 · 궁합풀이 · 인연 궁합)이 주소의 `?kind=` 를 읽어 그 칸으로 연다.
  *
  * 풀이가 네 화면에 흩어져 있었다. 이제 한 사람 풀이는 `/me/readings/[subject]`에 따로
@@ -85,16 +86,16 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
       **빈 구역도 선다 — 점선 한 권으로.** 구역을 통째로 숨기면 「궁합풀이도 여기 꽂힌다」가 안
       보인다. 빈 자리는 같은 크기의 점선 표지라 「한 권 더」로 읽히고, 누르면 만드는 자리로 간다.
     */
-    <Shelf title="사주풀이" description="나와 저장한 사람을 한 사람씩 본 풀이입니다.">
+    <Shelf title="사주풀이" description="나와 저장한 사람을 한 사람씩 본 풀이예요.">
       {singles.map((book) => (
         <li key={book.key}>
-          <SingleCover book={book} />
+          <SingleCover book={book} from="shelf" />
         </li>
       ))}
       {selfPersonId === null ? (
-        <BlankBook href="/me" element="木" label="내 사주 등록" />
+        <BlankBook href="/me" element="木" label="내 사주 등록하기" />
       ) : (
-        !hasSelfReading && <BlankBook href="/me/readings/self" element="木" label="내 사주풀이" />
+        !hasSelfReading && <BlankBook href="/me/readings/self" element="木" label="사주풀이 받기" from="shelf" />
       )}
     </Shelf>
   );
@@ -106,10 +107,10 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   const pairShelf = (only: 'compat' | 'match' | null, blank: ReactNode) => {
     const pairs = pairsOf(only);
     return (
-      <Shelf title="궁합풀이" description="두 사람을 함께 맞대어 본 풀이입니다.">
+      <Shelf title="궁합풀이" description="두 사람을 함께 맞대어 본 풀이예요.">
         {pairs.map(({ book, kind }) => (
           <li key={book.key}>
-            <PairCover book={book} source={kind === 'match' ? '인연' : '직접'} />
+            <PairCover book={book} source={kind === 'match' ? '인연' : '직접'} from="shelf" shelfKind={only ?? 'all'} />
           </li>
         ))}
         {pairs.length === 0 && blank}
@@ -117,13 +118,15 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
     );
   };
   const toCompat = <BlankBook href="/compat" element="火" label="궁합 보러 가기" />;
-  const makingShelf = making.length > 0 && <MakingShelf matches={making} />;
+  const makingShelf = (shelfKind: ShelfKind) => making.length > 0 && (
+    <MakingShelf matches={making} hrefOf={(matchId) => withCameFrom(`/me/match/${matchId}`, 'shelf', shelfKind)} />
+  );
 
   /* 필터 칸마다의 책장(ADR 0133) — 어느 칸을 세울지는 주소를 읽는 `frame.tsx` 가 고른다 */
   const shelves: Record<ShelfKind, ReactNode> = {
     all: (
       <>
-        {makingShelf}
+        {makingShelf('all')}
         {sajuShelf}
         {pairShelf(null, toCompat)}
       </>
@@ -132,7 +135,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
     compat: pairShelf('compat', toCompat),
     match: (
       <>
-        {makingShelf}
+        {makingShelf('match')}
         {pairShelf('match', <BlankBook href="/me/matching" element="水" label="오늘의 인연" />)}
       </>
     ),

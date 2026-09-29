@@ -239,8 +239,8 @@ try {
     check('동의 범위 설명 카드는 빠진다',
       [...MATCH_DISCLOSURE.shown, ...MATCH_DISCLOSURE.hidden].every((line) => !mine.includes(line)));
     check('결과 화면의 긴 판본·엔진 설명은 빠진다',
-      !text.includes('동의하신 대상이 그때의 출생 정보이기 때문')
-        && !text.includes('곧바로 조립한 것입니다'));
+      !text.includes('그때의 출생 정보로 계산했어요')
+        && !text.includes('계산 결과로 바로 만든 것이에요'));
   }
 
   // ── 4. 출생 원문은 응답에 없다 ────────────────────────────────────────────

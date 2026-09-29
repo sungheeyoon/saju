@@ -47,7 +47,7 @@ export async function addPhoto(photo: {
   base64: string;
 }): Promise<SaveResult> {
   if (!(PHOTO_TYPES as readonly string[]).includes(photo.contentType)) {
-    return { ok: false, message: 'JPG · PNG · WebP 만 올릴 수 있습니다.' };
+    return { ok: false, message: 'JPG · PNG · WebP 사진만 올릴 수 있어요. 다른 사진을 골라 주세요.' };
   }
 
   const supabase = await supabaseOnServer();

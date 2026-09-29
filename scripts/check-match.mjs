@@ -260,7 +260,7 @@ try {
     check('받은 요청이 인연 탭에 선다', text.includes('받은 요청') && html.includes(NAME.a));
     const news = plain(await body('/me/requests', bCookie));
     check('새 요청 알림이 종의 소식에 뜨고 인연 탭으로 간다',
-      news.includes(`${NAME.a} 님이 상세 궁합을 함께 보자고 요청했습니다`) && news.includes('href="/me/matching"'));
+      news.includes(`${NAME.a} 님이 상세 궁합을 함께 보자고 요청했어요`) && news.includes('href="/me/matching"'));
     check('소식 화면에는 받은 요청 카드가 없다', !news.includes('수락하고 궁합 열기'));
 
     check('수락 카드가 여덟 글자 공개와 인연 궁합을 한 문장으로 묻는다',
@@ -371,7 +371,7 @@ try {
 
     const asker = plain(await body('/me/requests', aCookie));
     check('출생 정보를 고치면 pending 이 무효가 된다',
-      asker.includes(`${NAME.c} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다`));
+      asker.includes(`${NAME.c} 님과의 요청이 출생 정보가 바뀌어 무효가 됐어요`));
     const askerLog = logOf(await body(HISTORY, aCookie));
     const askerTab = text(askerLog);
     check('무효가 된 요청은 보낸 요청에서 내려간다',
@@ -379,7 +379,7 @@ try {
 
     const other = plain(await body('/me/requests', cCookie));
     check('무효화는 양쪽 다 알림을 받는다',
-      other.includes(`${NAME.a} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다`));
+      other.includes(`${NAME.a} 님과의 요청이 출생 정보가 바뀌어 무효가 됐어요`));
   }
 
   // ── 9. 차단은 요청과 성립한 Match 까지 거둔다 ───────────────────────────────

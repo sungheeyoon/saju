@@ -62,7 +62,7 @@ describe.each([
     await expect(save()).resolves.toEqual({
       ok: false,
       kind: 'failed',
-      message: '요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+      message: '요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.',
     });
     expect(saved()).toEqual([]);
   });

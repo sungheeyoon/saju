@@ -41,7 +41,7 @@ export function NoRoomChosen() {
   return (
     <section className="flex flex-1 flex-col items-center justify-center gap-4 rounded-[2rem] bg-surface px-6 text-center ring-1 ring-border">
       <ChatIllustration className="h-auto w-[11rem] opacity-80" />
-      <p className="text-[15px] text-secondary">대화방을 고르면 여기에서 대화가 열립니다.</p>
+      <p className="text-[15px] text-secondary">대화방을 고르면 여기에 대화가 열려요.</p>
     </section>
   );
 }

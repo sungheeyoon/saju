@@ -95,7 +95,7 @@ export function calculateChart(query: Query): ChartResult {
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : '계산에 실패했습니다.',
+      message: error instanceof Error ? error.message : '사주를 계산하지 못했어요. 입력을 다시 확인해 주세요.',
     };
   }
 }

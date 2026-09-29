@@ -49,7 +49,7 @@ async function shrink(
   canvas.height = Math.max(1, Math.round(bitmap.height * scale));
 
   const context = canvas.getContext('2d');
-  if (context === null) return { ok: false, message: '사진을 줄이지 못했습니다.' };
+  if (context === null) return { ok: false, message: '사진을 줄이지 못했어요. 다른 사진을 골라 주세요.' };
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
 
@@ -69,7 +69,7 @@ async function shrink(
   if (chosen.size > PHOTO_MAX_BYTES) {
     return {
       ok: false,
-      message: `사진이 너무 큽니다 — ${Math.round(PHOTO_MAX_BYTES / 1024)}KB까지입니다.`,
+      message: `사진이 너무 커요. ${Math.round(PHOTO_MAX_BYTES / 1024)}KB 이하 사진을 골라 주세요.`,
     };
   }
 
@@ -205,7 +205,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
           액션이 던진 오류(운영의 Next 는 영어 안내로 바꿔 보낸다). 우리 문장 하나로 선다
           (`app/db-error.boundary.test.ts`).
         */
-        setFailure('사진을 읽지 못했습니다.');
+        setFailure('사진을 열지 못했어요. 다른 사진을 골라 주세요.');
       }
       router.refresh();
     });

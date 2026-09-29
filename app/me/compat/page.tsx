@@ -26,7 +26,7 @@ import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { CARD, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
-import { SHELF_TITLE, withShelfKind } from '../(shelf)/readings/kind';
+import { backOf, placeOf, type Back } from '../../came-from';
 
 /**
  * 모델 240초 상한이 먼저 끝나 실패를 기록하고, DB 600초 만료보다는 먼저 닫는다.
@@ -57,7 +57,7 @@ export const metadata = {
 export default async function ManagedCompatPage({
   searchParams,
 }: {
-  searchParams: Promise<{ a?: string | string[]; b?: string | string[] }>;
+  searchParams: Promise<{ a?: string | string[]; b?: string | string[]; from?: string | string[]; kind?: string | string[] }>;
 }) {
   const supabase = await supabaseOnServer();
 
@@ -104,7 +104,7 @@ export default async function ManagedCompatPage({
    * 자리를 가른다 — 주소는 이미 갈려 있었다(`?a=…&b=…`).
    */
   if (outcome !== null && outcome.kind === 'ok') {
-    return <ResultPage outcome={outcome} />;
+    return <ResultPage outcome={outcome} back={backOf('compat', placeOf(params))} />;
   }
 
   /**
@@ -153,14 +153,17 @@ export default async function ManagedCompatPage({
  * 않고 접는다(ADR 0035). 접이칸이 살던 화면(`/compat` 의 결과)이 이 자리로 합쳐지면서
  * 그 값이 갈 곳이 여기뿐이다.
  */
-async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' }> }) {
+async function ResultPage({ outcome, back }: { outcome: Extract<Outcome, { kind: 'ok' }>; back: Back }) {
   return (
     <main className="app-shell flex flex-1 flex-col gap-6 py-8 sm:py-12">
       <header className="flex flex-col gap-3">
-        {/* 되돌아가는 자리는 **풀이 보관함의 궁합풀이 칸**이다 — 이 궁합도 거기 한 권으로 선다(ADR 0133) */}
-        <Link href={withShelfKind('/me/readings', 'compat')} className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
+        {/*
+          되돌아가는 자리는 **온 곳**이다(ADR 0134) — 궁합 탭에서 열었으면 「궁합」, 보관함에서 열었으면 들어온 칩의
+          「풀이 보관함」, 주소를 직접 열었으면 궁합 탭 첫 화면.
+        */}
+        <Link href={back.href} className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
           <Icon name="back" className="size-4" />
-          {SHELF_TITLE}
+          {back.label}
         </Link>
         <div className="flex items-center gap-4">
           <PairMark stems={[outcome.first.saju.pillars.dayMaster, outcome.second.saju.pillars.dayMaster]} />
@@ -277,7 +280,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
   if (outcome.kind === 'same') {
     return (
       <p role="alert" className={`${CARD} text-[15px] leading-6`}>
-        같은 사람을 두 번 고를 수는 없습니다. 서로 다른 두 사람을 골라 주세요.
+        같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.
       </p>
     );
   }
@@ -370,13 +373,13 @@ async function Result({ outcome }: { outcome: Outcome }) {
                     <>
                       지금 글과 점수는{' '}
                       <strong className="font-semibold text-foreground">{RELATION_LABEL[readWith]}</strong> 사이로
-                      읽었습니다. 다음 풀이는{' '}
+                      읽었어요. 다음 풀이는{' '}
                     </>
                   )}
                   <strong className="font-semibold text-foreground">
                     {RELATION_LABEL[stored.relation]}
                   </strong>{' '}
-                  사이로 읽어 드립니다. 바꾸시려면 두 사람을 고르는 자리에서 다시 고르세요.
+                  사이로 읽어 드려요. 바꾸려면 두 사람을 고르는 자리에서 다시 골라 주세요.
                 </p>
               ) : undefined
             }
@@ -385,7 +388,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
       }
       notice={
         <p className="text-[13px] leading-5 text-secondary">
-          <strong className="font-semibold text-foreground">현재 저장된 출생 정보 기준입니다.</strong>{' '}
+          <strong className="font-semibold text-foreground">지금 저장된 출생 정보로 계산했어요.</strong>{' '}
           {INPUT_EDIT_REPLACED_NOTE}
         </p>
       }

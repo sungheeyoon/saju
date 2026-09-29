@@ -53,7 +53,7 @@ export default async function SettingsPage() {
     <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-8 py-8 sm:py-12">
       <header className="flex flex-col gap-1">
         <h1 className={TYPE_TITLE}>계정 관리</h1>
-        <p className={TYPE_META}>로그인과 계정에 관한 작업을 한곳에서 관리합니다.</p>
+        <p className={TYPE_META}>로그인과 계정에 관한 일을 여기서 관리해요.</p>
       </header>
 
       {isBlocked(state) && <AccountNotice state={state} />}

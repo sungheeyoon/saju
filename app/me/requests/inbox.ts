@@ -12,6 +12,7 @@ import {
 } from '@/src/lib/consent';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { withCameFrom } from '../../came-from';
 import { dbFailure, type SkippableRead } from '../../db-error';
 import { readUnreadNotifications } from './unread';
 
@@ -137,6 +138,12 @@ function destinationFor(
   if (REQUEST_NOTIFICATIONS.includes(kind)) return '/me/matching';
   if (kind !== 'reading_failed') return null;
 
+  const result = resultOf(readingKind, row);
+  /* 소식에서 연 결과의 ← 는 소식으로, 불은 종에 선다(ADR 0134) */
+  return result === null ? null : withCameFrom(result, 'news');
+}
+
+function resultOf(readingKind: ReadingKind | null, row: NotificationRow): string | null {
   if (readingKind === 'self') return '/me/readings/self';
   /* 저장한 사람의 풀이는 그 사람의 풀이 화면에서 다시 누른다 */
   if (readingKind === 'person') {
@@ -212,6 +219,7 @@ function notificationOf(row: NotificationRow): InboxNotification[] {
   if (kind === undefined) return [];
 
   const readingKind = READING_KINDS.find((known) => known === row.reading_kind) ?? null;
+  const href = destinationFor(kind as NotificationKind, readingKind, row);
 
   return [
     {
@@ -222,8 +230,9 @@ function notificationOf(row: NotificationRow): InboxNotification[] {
         kind: kind as NotificationKind,
         nickname: row.counterpart_nickname,
         readingKind,
+        tappable: href !== null,
       }),
-      href: destinationFor(kind as NotificationKind, readingKind, row),
+      href,
       createdAt: row.created_at,
       unread: row.read_at === null,
     },

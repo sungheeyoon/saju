@@ -46,7 +46,7 @@ export function SignInButton({ returnTo = '/me' }: { returnTo?: string }) {
         {going ? '구글로 이동하는 중…' : '구글로 로그인'}
       </button>
       {failure !== null && (
-        <p role="alert" className="text-[13px] font-medium text-danger">로그인을 시작하지 못했습니다 — {failure}</p>
+        <p role="alert" className="text-[13px] font-medium text-danger">로그인을 시작하지 못했어요. {failure}</p>
       )}
     </div>
   );

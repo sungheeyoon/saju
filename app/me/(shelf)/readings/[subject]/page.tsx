@@ -11,7 +11,7 @@ import { TYPE_TITLE } from '../../../../ui/surfaces';
 import { readAccount } from '../../../account';
 import { currentReading } from '../../../reading/current';
 import { ReadingSection } from '../../../reading/section';
-import { BackToShelf } from '../frame';
+import { ReadingBack } from '../frame';
 import { SubjectTag } from '../shelf';
 import { dayMastersOf } from '../subject';
 
@@ -30,7 +30,7 @@ export const metadata = {
  * 각 화면의 입구에서 연다. `self` 만 사람이 기억할 수 있는 이름이고 저장한 사람은 불투명 Person id 다.
  *
  * **책장 옆 칸에 펼쳐진다**(6차 warm). 넓은 화면에서는 레이아웃(`../layout.tsx`)의 책장이 왼쪽에 그대로
- * 서고 이 화면이 오른쪽 칸을 채운다. 폰은 이 화면만 서고, 「← 풀이 보관함」이 책장으로 돌아간다.
+ * 서고 이 화면이 오른쪽 칸을 채운다. 폰은 이 화면만 서고, ← 가 온 곳(나 · 보관함의 같은 칩)으로 돌아간다(ADR 0134).
  *
  * **에세이처럼 읽는다**(5차 warm). 글의 짜임(모델이 낸 소제목 · 문단)은 `ReadingPanel` 과 `Markdown` 이
  * 그대로 들고, 이 화면은 표지 색을 정해 넘긴다 — 대상의 일간 오행이다. 목록의 책 표지와 같은 색이라
@@ -89,7 +89,7 @@ export default async function SingleReadingPage({
   return (
     <article aria-labelledby="reading-subject" className="flex min-w-0 flex-col gap-8">
       <header className="flex flex-col gap-5">
-        <BackToShelf className={`${BUTTON_TERTIARY} self-start`} />
+        <ReadingBack className={`${BUTTON_TERTIARY} self-start`} />
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="flex min-w-0 flex-col gap-1.5">
             <p className="flex flex-wrap items-center gap-2 text-[13px] font-semibold text-secondary">

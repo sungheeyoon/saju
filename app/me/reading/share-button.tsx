@@ -125,7 +125,7 @@ export function ShareReadingButton({
       setNotice(
         answer !== null && !answer.ok
           ? answer.message
-          : '공유 링크를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+          : '공유 링크를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.',
       );
       return;
     }
@@ -142,7 +142,7 @@ export function ShareReadingButton({
       setPhase('copied');
     } catch {
       setPhase('failed');
-      setNotice('링크를 복사하지 못했습니다. 아래 주소를 직접 선택해 복사해 주세요.');
+      setNotice('링크를 복사하지 못했어요. 아래 주소를 직접 선택해 복사해 주세요.');
     }
   };
 

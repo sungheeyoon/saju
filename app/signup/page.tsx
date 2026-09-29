@@ -143,7 +143,7 @@ export default async function SignupPage({ searchParams }: {
         <p className="text-[15px] leading-7 text-cream-ink">
           {again
             ? NOTICE_AGAIN_NOTE
-            : '초대받은 분만 이용할 수 있는 비공개 베타입니다. 가입에 필요한 정보만 간단히 확인해 주세요.'}
+            : '초대받은 분만 이용할 수 있는 비공개 베타예요. 가입에 필요한 정보만 간단히 확인해 주세요.'}
         </p>
       </header>
 

@@ -103,7 +103,7 @@ export async function passCandidate(candidateUserId: string): Promise<SaveResult
   const supabase = await supabaseOnServer();
 
   const user = await signedInUser(supabase);
-  if (!user) return { ok: false, message: '로그인이 필요합니다.' };
+  if (!user) return { ok: false, message: '로그인이 풀렸어요. 다시 로그인해 주세요.' };
 
   const { error } = await supabase
     .from('discovery_passed')
@@ -144,7 +144,7 @@ export async function restorePassed(candidateUserId: string) {
    * 아래에서 다시 `as` 를 쓰지 않는다.
    */
   const deck = data as { card?: BoardCardRow; passed?: BoardCardRow[] } | null;
-  if (!deck?.card) return { ok: false as const, message: '복원한 인연을 읽지 못했습니다. 목록을 새로 열어 주세요.' };
+  if (!deck?.card) return { ok: false as const, message: '되돌린 인연을 불러오지 못했어요. 목록을 새로 열어 주세요.' };
   refresh('deck-moved');
   return {
     ok: true as const,

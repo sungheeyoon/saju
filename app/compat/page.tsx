@@ -109,7 +109,7 @@ export default async function CompatPage() {
           <CompatPicker people={people} />
         </Suspense>
         <p className="text-[13px] leading-6 text-secondary">
-          직접 입력한 사람은 <strong className="font-semibold text-foreground">사람 목록에 저장되지 않습니다.</strong>
+          직접 입력한 사람은 <strong className="font-semibold text-foreground">저장한 사람에 추가되지 않아요.</strong>
         </p>
       </section>
 

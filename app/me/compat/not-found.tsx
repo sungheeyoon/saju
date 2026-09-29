@@ -17,7 +17,7 @@ export default function PersonNotFound() {
     <main className="app-shell flex w-full flex-1 flex-col gap-4 py-10 sm:py-14">
       <h1 className={TYPE_TITLE}>찾을 수 없습니다</h1>
       <p className="text-[15px] leading-6 text-secondary">
-        주소에 적힌 사람을 찾지 못했습니다. 목록에서 다시 골라 주세요.
+        주소에 적힌 사람을 찾지 못했어요. 목록에서 다시 골라 주세요.
       </p>
       <p className="flex flex-wrap gap-2">
         <Link href="/compat" className={BUTTON_PRIMARY_SMALL}>

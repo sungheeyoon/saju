@@ -35,17 +35,17 @@ describe('저장할 자리가 모자랄 때', () => {
     const said = noRoomToSave(2, slots(1));
 
     expect(said).not.toBeNull();
-    expect(said).toContain('1명분만 남았습니다');
+    expect(said).toContain('1명분만 남았어요');
     // 무엇을 해야 하는지까지 — 「안 됩니다」로 끝내면 사용자가 할 일을 못 찾는다
-    expect(said).toContain('1명을 지워야');
+    expect(said).toContain('목록에서 1명을 빼야');
   });
 
   it('다 찼으면 몇 명이 찼는지와 할 일을 말한다', () => {
     for (const needed of [1, 2]) {
       const said = noRoomToSave(needed, slots(0));
 
-      expect(said, String(needed)).toContain(`${LIMIT}명을 다 채웠습니다`);
-      expect(said, String(needed)).toContain('한 명을 지워야');
+      expect(said, String(needed)).toContain(`${LIMIT}명을 다 채웠어요`);
+      expect(said, String(needed)).toContain('목록에서 한 명을 빼야');
     }
   });
 
@@ -59,7 +59,7 @@ describe('저장할 자리가 모자랄 때', () => {
 
   /** 수를 화면이 들지 않는다 — 한도를 옮기면 이 문장도 저절로 따라온다 */
   it('한도 수는 받은 값에서 나온다', () => {
-    expect(noRoomToSave(1, slots(0, 30))).toContain('30명을 다 채웠습니다');
+    expect(noRoomToSave(1, slots(0, 30))).toContain('30명을 다 채웠어요');
   });
 });
 
