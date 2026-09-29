@@ -110,7 +110,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
       <Shelf title="궁합풀이" description="두 사람을 함께 맞대어 본 풀이입니다.">
         {pairs.map(({ book, kind }) => (
           <li key={book.key}>
-            <PairCover book={book} source={kind === 'match' ? '인연' : '직접'} from="shelf" shelfKind={only ?? 'all'} />
+            <PairCover book={book} source={kind === 'match' ? '인연' : '직접'} from="shelf" />
           </li>
         ))}
         {pairs.length === 0 && blank}

@@ -65,13 +65,34 @@ export function lightOf(kind: ResultKind, from: CameFrom | null): Light {
   return from === null ? DEFAULT_TAB[kind] : LIGHT_OF[from];
 }
 
+/**
+ * 궁합 두 갈래의 **보관함 안 주소** — 사주풀이처럼 책장 옆 칸에 선다(ADR 0134, 2026-09-29 운영자). 틀 밖 주소
+ * (`/me/compat` · `/me/match/[id]`)는 궁합 탭 · 인연 기록 · 채팅 · 소식이 그대로 쓴다. 두 주소가 같은 결과 부품을 그린다.
+ */
+const SHELF_COMPAT = '/me/readings/compat';
+const SHELF_MATCH = '/me/readings/match/';
+
 /** 이 주소가 결과 화면이면 그 종류 — 보관함 목록(`/me/readings`) 자체는 결과가 아니다 */
 export function resultKindOf(address: string): ResultKind | null {
   const pathname = address.split(/[?#]/, 1)[0];
+  if (pathname === '/me/compat' || pathname === SHELF_COMPAT) return 'compat';
+  if (pathname === SHELF_MATCH.slice(0, -1)) return null;
+  if (pathname.startsWith(SHELF_MATCH) && pathname.length > SHELF_MATCH.length) return 'match';
   if (pathname.startsWith('/me/readings/') && pathname.length > '/me/readings/'.length) return 'saju';
-  if (pathname === '/me/compat') return 'compat';
   if (pathname.startsWith('/me/match/') && pathname.length > '/me/match/'.length) return 'match';
   return null;
+}
+
+/** 보관함 틀 안의 궁합 주소인가 — 그 자리는 온 곳이 없어도 보관함이다(주소가 곧 온 곳이다) */
+function withinShelf(pathname: string): boolean {
+  return pathname === SHELF_COMPAT || pathname.startsWith(SHELF_MATCH);
+}
+
+/** 궁합 결과 주소를 보관함 틀 안으로 옮긴다 — 사주풀이 · 이미 틀 안인 주소 · 결과가 아닌 주소는 그대로다 */
+function intoShelf(href: string): string {
+  if (href === '/me/compat' || href.startsWith('/me/compat?')) return `${SHELF_COMPAT}${href.slice('/me/compat'.length)}`;
+  if (href.startsWith('/me/match/')) return `${SHELF_MATCH}${href.slice('/me/match/'.length)}`;
+  return href;
 }
 
 export type Back = { readonly href: string; readonly label: string };
@@ -119,6 +140,9 @@ const DEFAULT_BACK: Record<ResultKind, Back> = {
 /**
  * 결과 링크에 온 곳을 싣는다. 보관함이면 칩(`kind`)도 함께 싣는다 — 전체 칩은 안 싣는다(`withShelfKind` 와 같은 결).
  * 이미 쿼리가 있는 주소(`/me/compat?a=…&b=…`)에는 `&` 로 잇는다.
+ *
+ * **보관함에서 여는 궁합은 보관함 틀 안의 주소로 간다** — 사주풀이와 같은 칸에 서게(2026-09-29 운영자). 표지가 어느
+ * 주소를 들든 여기 한 자리에서 옮긴다.
  */
 export function withCameFrom(href: string, from: CameFrom, shelfKind: ShelfKind = 'all'): string {
   /* 이미 온 곳을 든 주소는 그대로다 — 먼저 실은 자리가 이긴다(나 탭 홈의 `withFromMe` 가 싣고 `CoverLink` 를 지난다) */
@@ -126,10 +150,28 @@ export function withCameFrom(href: string, from: CameFrom, shelfKind: ShelfKind 
   const query = new URLSearchParams();
   if (from === 'shelf' && shelfKind !== 'all') query.set('kind', shelfKind);
   query.set('from', from);
-  return `${href}${href.includes('?') ? '&' : '?'}${query.toString()}`;
+  const target = from === 'shelf' ? intoShelf(href) : href;
+  return `${target}${target.includes('?') ? '&' : '?'}${query.toString()}`;
 }
 
-/** 결과 화면이 제 주소에서 읽는 두 값 — `kind` 는 보관함에서 왔을 때만 뜻이 있다 */
-export function placeOf(params: { from?: QueryValue; kind?: QueryValue }): { from: CameFrom | null; shelfKind: ShelfKind } {
-  return { from: cameFromOf(params.from), shelfKind: shelfKindOf(firstOf(params.kind)) };
+/**
+ * 결과 화면이 제 주소에서 읽는 두 값 — `kind` 는 보관함에서 왔을 때만 뜻이 있다. 보관함 틀 안의 궁합 주소는 온 곳이
+ * 없어도 보관함이다 — 그 주소는 보관함만 연다.
+ */
+export function placeOf(
+  params: { from?: QueryValue; kind?: QueryValue },
+  pathname?: string,
+): { from: CameFrom | null; shelfKind: ShelfKind } {
+  const from = cameFromOf(params.from) ?? (pathname !== undefined && withinShelf(pathname) ? 'shelf' : null);
+  return { from, shelfKind: shelfKindOf(firstOf(params.kind)) };
+}
+
+/**
+ * 이 링크가 **지금 펼친 글**인가 — 책장의 표지 테가 읽는다. 온 곳 · 칩은 안 본다(같은 글이다). 궁합은 두 사람(`a` · `b`)까지 같아야 한다.
+ */
+export function isOpenResult(link: string, pathname: string, search: string): boolean {
+  const url = new URL(link, 'https://x.invalid');
+  if (url.pathname !== pathname) return false;
+  const here = new URLSearchParams(search);
+  return ['a', 'b'].every((name) => url.searchParams.get(name) === here.get(name));
 }

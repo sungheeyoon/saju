@@ -14,10 +14,9 @@ import { Avatar } from '../../avatar';
 import { coverFace } from '../../reading/essay';
 import flow from '../../reading/flow.module.css';
 import type { InboxMatch } from '../../requests/inbox';
-import { withCameFrom, type CameFrom } from '../../../came-from';
+import type { CameFrom } from '../../../came-from';
 import type { Book } from './book';
 import { CoverLink } from './frame';
-import type { ShelfKind } from './kind';
 import type { DayMaster } from './subject';
 
 /**
@@ -100,18 +99,16 @@ export function PairCover({
   book,
   source,
   from,
-  shelfKind = 'all',
 }: {
   book: Book;
   source?: string;
-  /** 이 표지가 선 자리(ADR 0134) — 보관함이면 `shelfKind` 칩도 함께 싣는다 */
+  /** 이 표지가 선 자리(ADR 0134) — 보관함이면 켠 칩도 함께 싣고, 보관함 틀 안의 주소로 연다(`CoverLink`) */
   from?: CameFrom;
-  shelfKind?: ShelfKind;
 }) {
   const [a = null, b = null] = book.subjects;
   const face = coverFace([a?.element ?? null, b?.element ?? null]);
   return (
-    <Link href={from === undefined ? book.href : withCameFrom(book.href, from, shelfKind)} className={COVER} style={{ background: face.background }}>
+    <CoverLink href={book.href} from={from} className={COVER} style={{ background: face.background }}>
       <Spine background={face.spine} />
 
       <span className="relative flex items-center justify-between gap-2">
@@ -158,7 +155,7 @@ export function PairCover({
           <Icon name="arrow" className="size-4" />
         </span>
       </span>
-    </Link>
+    </CoverLink>
   );
 }
 

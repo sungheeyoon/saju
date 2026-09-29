@@ -10,7 +10,7 @@ import { elementScope } from '../../../ui/element-tone';
 import { FaceSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
 import { TYPE_TITLE } from '../../../ui/surfaces';
-import { backOf, placeOf, resultKindOf, withCameFrom, type CameFrom } from '../../../came-from';
+import { backOf, isOpenResult, placeOf, resultKindOf, withCameFrom, type CameFrom } from '../../../came-from';
 import { SHELF_KIND_LABEL, SHELF_KINDS, SHELF_TITLE, shelfKindOf, withShelfKind, type ShelfKind } from './kind';
 import { openingHref } from './opening';
 
@@ -130,12 +130,15 @@ export function CoverLink({
   style?: CSSProperties;
   children: ReactNode;
 }) {
-  const current = usePathname() === href;
+  const pathname = usePathname();
+  const params = useSearchParams();
   const kind = useShelfKind();
+  /* 결과로 가는 표지만 온 곳을 싣는다 — 만드는 자리(`/me` · `/compat`)로 가는 빈 표지는 아니다. 보관함이면 궁합도 틀 안 주소다 */
+  const target = from !== undefined && resultKindOf(href) !== null ? withCameFrom(href, from, kind) : href;
+  const current = isOpenResult(target, pathname, params.toString());
   return (
     <Link
-      /* 결과로 가는 표지만 온 곳을 싣는다 — 만드는 자리(`/me` · `/compat`)로 가는 빈 표지는 아니다 */
-      href={from !== undefined && resultKindOf(href) !== null ? withCameFrom(href, from, kind) : href}
+      href={target}
       aria-current={current ? 'page' : undefined}
       className={`${className} ${current ? 'ring-[3px] ring-accent ring-offset-2 ring-offset-background' : ''}`}
       style={style}

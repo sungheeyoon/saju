@@ -1,21 +1,4 @@
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-
-import { CHAT_TAB_LABEL } from '@/src/lib/chat';
-import { MATCH_RESULT_CLOSED_NOTE } from '@/src/lib/consent';
-import { STEM_INFO } from '@/src/lib/saju';
-
-import { supabaseOnServer } from '../../../auth/server-client';
-import { signedInUser } from '../../../auth/signed-in';
-import { redirectToSignIn } from '../../../auth/sign-in-redirect';
-import { PillarPair } from '../../../compat-view';
-import { BUTTON_SECONDARY, BUTTON_TERTIARY } from '../../../ui/buttons';
-import { Icon } from '../../../ui/icons';
-import { EMPTY_SLOT, TYPE_TITLE } from '../../../ui/surfaces';
-import { BlockButton } from '../../requests/manage';
-import { ReadingSection } from '../../reading/section';
-import { backOf, placeOf } from '../../../came-from';
-import { matchResultForViewer, type SharedResult } from '../result';
+import { MatchScreen } from '../screen';
 
 /** 모델 240초 뒤 실패를 적을 60초를 남기되 DB 의 10분 만료보다 짧게 둔다. */
 export const maxDuration = 300;
@@ -26,15 +9,8 @@ export const metadata = {
 };
 
 /**
- * 공유 결과 — **동의가 실제로 연 것.**
- *
- * 요청·수락 화면이 「열릴 것」이라고 적은 목록이 여기서 열린다. 그래서 같은 한 벌을
- * 여기서도 읽는다(`MATCH_DISCLOSURE`) — 동의할 때 읽은 약속과 실제로 보이는 것이
- * 갈리면, 갈렸다는 사실을 아는 사람이 아무도 없다.
- *
- * **상대의 `Saju`와 `ChartEvidence`는 이 화면에 오지 않는다.** 서버가 두 판본을 읽어
- * 계산한 뒤, 서로 공개하기로 한 여덟 글자만 새 객체로 잘라 내보낸다(ADR 0010·0012).
- * 정확한 생년월일시·출생지·상대 원국 전체 판정·근거 패널은 계속 서버 경계 안에 남는다.
+ * 인연 궁합 — **제 주소의 한 화면.** 인연 탭 · 인연 기록 · 채팅 · 소식이 여는 자리다. 보관함에서 연 인연 궁합은 같은
+ * 부품이 보관함 틀 안(`/me/readings/match/[id]`)에 선다(ADR 0134). 무엇을 읽고 그리는지는 `../screen.tsx` 한 벌이다.
  */
 export default async function MatchResultPage({
   params,
@@ -43,124 +19,6 @@ export default async function MatchResultPage({
   params: Promise<{ matchId: string }>;
   searchParams: Promise<{ from?: string | string[]; kind?: string | string[] }>;
 }) {
-  const supabase = await supabaseOnServer();
-
-  const user = await signedInUser(supabase);
-  if (!user) return redirectToSignIn();
-
-  const { matchId } = await params;
-
-  /**
-   * **그릴 것을 정하기 전에 답이 나온다**(`/me/compat` 과 같은 규율).
-   *
-   * 거절을 화면 안쪽 컴포넌트에 두면 그것이 그려질 때는 응답이 이미 흘러나가기
-   * 시작했을 수 있고, 그러면 404 를 부르고도 200 이 나간다.
-   */
-  const outcome = await matchResultForViewer(matchId);
-
-  /**
-   * **없는 Match 와 못 보는 Match 를 같은 말로 거절한다.**
-   *
-   * 갈리면 응답 차이만으로 그 Match 가 실재하는지 알아낼 수 있다. 여기서 두 경우가
-   * 같아지는 것은 문장을 맞춰 적어서가 아니라 **답이 한 자리에서 나오기 때문**이다 —
-   * `matchResultForViewer` 는 둘 다 `null` 을 내고, 그 `null` 을 응답으로 바꾸는
-   * 곳이 이 한 줄뿐이다.
-   */
-  if (outcome === null) notFound();
-
-  /* 방으로 돌아가는 ← 는 이 Match 의 방이다 — `matchId` 는 위 문이 UUID 로 걸렀고 실제로 볼 수 있는 Match 다 */
-  const back = backOf('match', { ...placeOf(await searchParams), matchId });
-
-  return (
-    /*
-      **다른 화면과 같은 폭·같은 머리를 쓴다.** 여기만 제 손으로 여백과 제목을 그리고
-      있어서, 소식에서 이 화면으로 들어오면 앱이 한 번 갈아 끼워지는 것처럼 보였다.
-    */
-    <main className="app-shell flex w-full flex-1 flex-col gap-8 py-8 sm:py-12">
-      <header className="flex flex-col gap-5">
-        {/* 되돌아가는 자리는 **온 곳**이다(ADR 0134) — 인연 탭 · 인연 기록 · 대화방 · 보관함, 없으면 인연 탭 첫 화면 */}
-        <Link href={back.href} className={`${BUTTON_TERTIARY} self-start`}>
-          <Icon name="back" className="size-4" />
-          {back.label}
-        </Link>
-        <div className="flex flex-col gap-1.5">
-          <p className="text-[13px] font-semibold text-secondary">인연</p>
-          <h1 className={TYPE_TITLE}>인연 궁합</h1>
-          <p className="text-[15px] leading-6 text-secondary">
-            서로 동의한 두 분에게 같은 글과 같은 점수가 보입니다.
-          </p>
-        </div>
-      </header>
-
-      {outcome.kind === 'ok' ? (
-        <Result result={outcome.result} />
-      ) : (
-        /*
-          **문장은 정책이 든다** — 화면이 손으로 적지 않는다.
-
-          여기 「함께 보기로 한 두 분의 동의는 그대로 있습니다…」가 적혀 있었고,
-          `MATCH_RESULT_CLOSED_NOTE` 가 같은 말을 하며 시험까지 딸린 채로 **아무도 안
-          부르는 상수**로 서 있었다. 두 벌이면 갈리고, 실제로 조금 갈려 있었다.
-
-          `outcome.message` 는 내리고 이 한 줄만 세운다. 그 값은 「매인 판본을 찾지
-          못했습니다」처럼 **우리가 FK 를 부르는 이름**이라 읽는 사람에게 아무 뜻이 없고,
-          이 문장이 이미 「무엇이 그대로이고 무엇이 지금 안 되는지」를 다 말한다. 어느
-          갈래로 닫혔는지는 서버 로그가 든다.
-        */
-        <section className={EMPTY_SLOT}>
-          <p className="text-[15px] leading-7 text-secondary">{MATCH_RESULT_CLOSED_NOTE}</p>
-        </section>
-      )}
-    </main>
-  );
-}
-
-function Result({ result }: { result: SharedResult }) {
-  return (
-    <>
-      {/*
-        **점수는 여기 한 자리에서만 난다.** 예전에는 이 자리에 `match-v0` 대시보드가
-        섰다. 그것을 내린 것은 지표가 틀려서가 아니라 **한 화면에 점수가 둘이면 사용자가
-        무엇을 믿을지 정해야 하기 때문**이다 — 사용자에게 보이는 점수는 현재 결과의
-        일부이고(`prd-archive`), `match-v0` 는 그 뒤 코드에서도 걷었다.
-      */}
-      {/*
-        **여기에는 만드는 버튼이 없다** (ADR 0038).
-
-        풀이권은 요청할 때 예약되고 동의가 그것을 쓴다. 그래서 이 글은 수락하는 그
-        순간부터 만들어지고 있고, 두 사람 다 누를 것이 없다 — 「먼저 누른 사람이 쓴다」가
-        사라지는 것은 규칙을 하나 더 세워서가 아니라 **누를 것이 없어져서**다.
-
-        글도 도는 시도도 없을 때만 「궁합풀이 받기」가 선다. 자동 생성이 실패한 자리이고,
-        거기서까지 버튼을 없애면 동의는 났는데 아무도 못 여는 Match 가 남는다.
-      */}
-      <ReadingSection
-        target={{ kind: 'match', matchId: result.matchId }}
-        heading={`${result.partnerNickname} 님과의 궁합풀이`}
-        layout="page"
-        automatic
-        bare
-        matchNames={{ me: '나', partner: result.partnerNickname }}
-        betweenSummaryAndBody={<PillarPair charts={result.charts} names={result.names} />}
-        /*
-          표지는 두 사람의 일간이 비스듬히 만난다 — 동의로 열린 여덟 글자에서 읽으므로 새로 열리는 것이 없다
-          (ADR 0012). 앞자리가 늘 보는 사람이다(`names.a`).
-        */
-        tones={[STEM_INFO[result.charts.a.dayMaster].element, STEM_INFO[result.charts.b.dayMaster].element]}
-      />
-
-      {/*
-        **다 읽은 사람이 하는 일 둘** — 방으로 가기와 끊기. 무게가 다르므로 모양도 다르다: 대화는 보조
-        단추, 차단은 한 번 더 묻는 조용한 글자다(ADR 0058, `BlockButton`).
-      */}
-      <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-        {/* 동의가 나면 방이 열린다(PRD 「앱 내 채팅」) — 결과에서 바로 그 방으로 간다 */}
-        <Link href={`/me/chat/${result.matchId}`} className={`${BUTTON_SECONDARY} self-start`}>
-          <Icon name="chat" className="size-[18px]" />
-          {CHAT_TAB_LABEL}
-        </Link>
-        <BlockButton userId={result.partnerUserId} />
-      </div>
-    </>
-  );
+  const [{ matchId }, query] = await Promise.all([params, searchParams]);
+  return <MatchScreen matchId={matchId} query={query} frame="page" />;
 }
