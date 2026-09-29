@@ -364,7 +364,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       'href',
       `/compat#a.person=${me}&b.person=${idOf('어머니')}`,
     );
-    await expect(page.getByRole('link', { name: '전체 관리' })).toHaveAttribute('href', '/me/people');
+    await expect(page.getByRole('link', { name: '저장한 사람 관리' })).toHaveAttribute('href', '/me/people');
 
     /*
       **폰 첫 화면에 사람 머리까지 든다.** 머리글 아래부터 아래 탭 위까지가 첫 화면이다 — 저장한 사람 제목의 아랫선이 그 안에
@@ -415,7 +415,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       연 결과는 주소가 `from=me` 를 든다
     */
     const received = page.getByRole('region', { name: /^내가 받은 사주풀이/ });
-    await expect(received.getByRole('link', { name: '내 사주풀이', exact: true })).toHaveAttribute(
+    await expect(received.getByRole('link', { name: '사주풀이 받기', exact: true })).toHaveAttribute(
       'href',
       '/me/readings/self?from=me',
     );
@@ -1037,7 +1037,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(rows).toHaveCount(10);
     await expect(rows.nth(0)).toContainText('완료');
     await expect(rows.nth(1)).toContainText('완료');
-    await expect(rows.nth(2)).toContainText('쓰는 중');
+    await expect(rows.nth(2)).toContainText('작성 중…');
     await expect(rows.nth(3)).not.toContainText('완료');
     await expect(rows.nth(9)).toContainText('마지막 검토');
     await expect(rows.nth(9)).not.toContainText('검토 중');
@@ -1697,7 +1697,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       「내 사주」 탭이 없어진 뒤로(메뉴: 나 · 궁합 · 인연 · 채팅) 빈 화면은 만드는 자리로 **곧장** 가는
       표지를 세운다 — 내 사주가 있는 사람에게는 내 사주풀이 화면이다.
     */
-    const mine = page.getByRole('main').getByRole('link', { name: '내 사주풀이', exact: true });
+    const mine = page.getByRole('main').getByRole('link', { name: '사주풀이 받기', exact: true });
     await expect(mine).toHaveAttribute('href', '/me/readings/self');
     await expect(page.getByRole('main').getByRole('link', { name: '저장한 사람', exact: true })).toHaveAttribute(
       'href',

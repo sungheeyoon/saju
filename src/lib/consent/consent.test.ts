@@ -149,8 +149,16 @@ describe('실패 알림은 무엇을 만들다 실패했는지 말한다', () =>
    * 없으면 읽던 글이 사라진 줄 안다.
    */
   it('지금 보이는 글은 그대로라고 함께 말한다', () => {
-    for (const kind of [...READING_KINDS, null]) {
+    for (const kind of [...READING_KINDS.filter((k) => k !== 'match'), null]) {
       expect(failed(kind)).toContain('그대로');
+    }
+  });
+
+  /** 인연 궁합은 수락 직후 처음 만들어진다 — 처음 실패에는 보이는 글이 없어 다시 시도할 자리를 말한다(ADR 0135) */
+  it('인연 궁합 실패는 있지도 않은 글을 그대로라 하지 않고 다시 시도할 자리를 말한다', () => {
+    for (const nickname of [null, '지영']) {
+      expect(failed('match', nickname)).not.toContain('그대로');
+      expect(failed('match', nickname)).toContain('인연 궁합 화면에서 다시 시도해 주세요');
     }
   });
 });

@@ -34,7 +34,7 @@ describe('기다리는 화면의 목차', () => {
     }
   });
 
-  it('셋째 절을 시작했으면 둘은 완료 · 셋째는 쓰는 중 · 나머지는 기다림이다', () => {
+  it('셋째 절을 시작했으면 둘은 완료 · 셋째는 작성 중 · 나머지는 기다림이다', () => {
     expect(states(readingOutline(SOLO, at('submitted', 3)))).toEqual([
       'done', 'done', 'writing', 'waiting', 'waiting', 'waiting', 'waiting', 'waiting', 'waiting', 'waiting',
     ]);

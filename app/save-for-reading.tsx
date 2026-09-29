@@ -379,7 +379,7 @@ function SelfConfirm({
     <section id="reading-next" className="scroll-mt-24 flex flex-col gap-4">
       <div>
         <h2 className="text-base font-semibold">이 사주가 내 사주 맞나요?</h2>
-        <p className="mt-1.5 text-sm leading-6 text-secondary">방금 첫 화면에서 넣은 그대로예요.</p>
+        <p className="mt-1.5 text-sm leading-6 text-secondary">첫 화면에 입력한 정보예요.</p>
       </div>
 
       <SelfCard

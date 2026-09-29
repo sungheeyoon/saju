@@ -522,7 +522,7 @@ function TimeFields({
         onPick={(next) => choose(next === 'known')}
         options={[
           { value: 'known', label: '직접 입력' },
-          { value: 'unknown', label: HOUR_UNKNOWN_CHOICE, hint: '시주 없이 봐요' },
+          { value: 'unknown', label: HOUR_UNKNOWN_CHOICE, hint: '출생 시각 없이 봐요' },
         ]}
       />
       {/*

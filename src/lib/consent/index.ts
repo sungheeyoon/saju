@@ -174,11 +174,13 @@ export function notificationText({ kind, nickname, readingKind }: NotificationEv
         : `${who} 님에게 보낸 요청이 만료되었습니다. 잡고 있던 풀이권은 돌아왔습니다.`;
     case 'reading_ready':
       return who === ''
-        ? '인연 궁합풀이가 새로 만들어졌습니다.'
-        : `${who} 님과의 궁합풀이가 새로 만들어졌습니다.`;
+        ? '인연 궁합이 완성됐어요'
+        : `${who} 님과의 인연 궁합이 완성됐어요`;
     /**
      * **지금 보이는 글은 그대로**라는 것까지 함께 말한다. 실패는 현재 결과를 지우지
      * 않는데(성공한 요청만 교체한다), 그 말이 없으면 읽던 글이 사라진 줄 안다.
+     * **인연 궁합 갈래는 예외다** — 수락 직후 처음 만들어지므로 처음 실패에는 보이는 글이 없어,
+     * 다시 시도할 자리를 말한다(운영자 2026-09-29, ADR 0135).
      */
     case 'reading_failed':
       if (readingKind === 'self') {
@@ -186,8 +188,8 @@ export function notificationText({ kind, nickname, readingKind }: NotificationEv
       }
       if (readingKind === 'match') {
         return who === ''
-          ? '인연 궁합풀이를 만들지 못했습니다. 지금 보이는 글은 그대로입니다.'
-          : `${who} 님과의 궁합풀이를 만들지 못했습니다. 지금 보이는 글은 그대로입니다.`;
+          ? '인연 궁합을 만들지 못했어요. 인연 궁합 화면에서 다시 시도해 주세요.'
+          : `${who} 님과의 인연 궁합을 만들지 못했어요. 인연 궁합 화면에서 다시 시도해 주세요.`;
       }
       /**
        * `private` 과 **모르는 값**이 한 갈래다. 시도 기록을 못 읽었을 때 자기 풀이나

@@ -614,10 +614,12 @@ try {
     */
 
     /** 상대에게 준비 완료가 뜬다 — 누른 사람에게는 안 뜬다 */
+    /* 닉네임이 있든 없든 「…인연 궁합이 완성됐어요」로 끝난다(`notificationText`) */
+    const told = (text) => text.includes('인연 궁합이 완성됐어요');
     const inbox = plain(await body('/me/requests', cookie.b));
-    check('상대의 알림함에 준비 완료가 뜬다', inbox.includes('궁합풀이가 새로 만들어졌습니다'));
+    check('상대의 알림함에 준비 완료가 뜬다', told(inbox));
     const mineInbox = plain(await body('/me/requests', cookie.a));
-    check('누른 사람에게는 뜨지 않는다', !mineInbox.includes('궁합풀이가 새로 만들어졌습니다'));
+    check('누른 사람에게는 뜨지 않는다', !told(mineInbox));
   }
 
   // ── 4-1. 만든 글은 한 목록에 선다 ────────────────────────────────────────

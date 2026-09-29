@@ -107,7 +107,7 @@ function SavedPeople({
         </h2>
         {people.length > 0 && (
           <Link href="/me/people" className={BUTTON_TERTIARY}>
-            전체 관리
+            저장한 사람 관리
             <Icon name="arrow" className="size-4" />
           </Link>
         )}

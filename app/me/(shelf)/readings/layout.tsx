@@ -93,9 +93,9 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
         </li>
       ))}
       {selfPersonId === null ? (
-        <BlankBook href="/me" element="木" label="내 사주 등록" />
+        <BlankBook href="/me" element="木" label="내 사주 등록하기" />
       ) : (
-        !hasSelfReading && <BlankBook href="/me/readings/self" element="木" label="내 사주풀이" from="shelf" />
+        !hasSelfReading && <BlankBook href="/me/readings/self" element="木" label="사주풀이 받기" from="shelf" />
       )}
     </Shelf>
   );

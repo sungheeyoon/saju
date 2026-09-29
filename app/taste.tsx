@@ -159,7 +159,7 @@ function LockedOutline({ outline, query }: { outline: readonly string[]; query: 
           로그인하고 전체 풀이 받기
         </SignInCarrying>
         <p className="text-center text-xs leading-5 text-secondary">
-          로그인하면 이 입력으로 돌아와요 · 가입하면 받는 풀이권으로 사주풀이를 받을 수 있어요
+          로그인하면 이 입력으로 돌아와요. 가입하면 받은 풀이권으로 사주풀이를 볼 수 있어요.
         </p>
       </div>
     </section>
