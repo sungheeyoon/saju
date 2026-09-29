@@ -1,0 +1,412 @@
+import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { notFound, redirect } from 'next/navigation';
+
+import { isBlocked } from '@/src/lib/account';
+import { matchBasisOf } from '@/src/lib/matching';
+import { relationOf } from '@/src/lib/people';
+import { analyzeCompatibility, STEM_INFO, type Stem } from '@/src/lib/saju';
+
+import { supabaseOnServer } from '../../auth/server-client';
+import { signedInUser } from '../../auth/signed-in';
+import { redirectToSignIn } from '../../auth/sign-in-redirect';
+import { CompatView } from '../../compat-view';
+import { MatchResult } from '../../compat-match';
+import { ScoringNote } from '../../match-index';
+import { pairRelationFor } from './actions';
+import { RelationNote } from './relation-note';
+import { CompatHero } from '../../compat-hero';
+import { INPUT_EDIT_REPLACED_NOTE } from '@/src/lib/input/edit';
+import { UNREADABLE_INPUT_NOTE } from '@/src/lib/input/stored';
+import { AccountNotice } from '../account-notice';
+import { readAccount } from '../account';
+import { payloadForViewer, type PersonPayload } from '../payload';
+import { currentReading } from '../reading/current';
+import { ReadingSection } from '../reading/section';
+import { elementScope } from '../../ui/element-tone';
+import { BUTTON_TERTIARY } from '../../ui/buttons';
+import { StemSymbol } from '../../ui/stem-symbol';
+import { Icon } from '../../ui/icons';
+import { CARD, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
+import { backOf, placeOf, type Back } from '../../came-from';
+
+/** 주소가 드는 값 — Next 의 `searchParams` 는 같은 이름이 둘이면 배열을 준다 */
+export type CompatQuery = {
+  a?: string | string[];
+  b?: string | string[];
+  from?: string | string[];
+  kind?: string | string[];
+};
+
+/**
+ * 결과가 어느 틀에 서나 — `page` 는 제 주소(`/me/compat`)의 한 화면, `shelf` 는 풀이 보관함의 옆 칸
+ * (`/me/readings/compat`)이다. 보관함에서 연 궁합도 사주풀이와 같은 자리에 선다(ADR 0134, 2026-09-29 운영자).
+ * 같은 부품을 두 주소가 부른다 — 결과를 두 벌로 적지 않는다.
+ */
+export type CompatFrame = 'page' | 'shelf';
+
+/**
+ * 저장된 두 사람의 궁합 — **서버가 판본 둘을 읽어 계산한다.** Person id 둘로 저장된 판본을 읽고,
+ * 결과(`CompatView`)는 그리기만 한다.
+ *
+ * **주소에는 id 둘뿐이다.** 저장된 출생 원문을 fragment 로 옮기지 않는다 — 남이
+ * 등록한 가족의 생년월일시가 주소창에 실리는 것은 그 ADR 이 익명 링크에서 막으려던
+ * 것과 같은 일이다. id 가 요청 라인에 실리는 것은 괜찮다. 불투명 식별자이고 접근은
+ * RLS 가 잠근다.
+ *
+ * **나 중심이 아니어도 된다.** 엄마×아빠처럼 내가 끼지 않는 조합이 이 화면의
+ * 이유다(`prd-archive` US 21).
+ */
+export async function CompatScreen({ params, frame }: { params: CompatQuery; frame: CompatFrame }) {
+  const supabase = await supabaseOnServer();
+
+  const user = await signedInUser(supabase);
+  if (!user) return redirectToSignIn();
+
+  const a = firstOf(params.a);
+  const b = firstOf(params.b);
+
+  /* 고를 사람 목록은 여기서 안 읽는다 — 고르는 자리가 `/compat` 으로 갔다(ADR 0054) */
+  const { state } = await readAccount(supabase);
+
+  /**
+   * 중지된 계정에는 아무것도 안 보인다(정책이 막는다). 그대로 두면 404 로 떨어지는데,
+   * 그건 「없는 사람」에게 하는 말이라 여기서는 틀린 말이다.
+   */
+  const blocked = isBlocked(state);
+
+  /**
+   * **그릴 것을 정하기 전에 다 읽는다.**
+   *
+   * 거절을 화면 안쪽의 컴포넌트에 두면 그 컴포넌트가 그려질 때는 응답이 이미
+   * 흘러나가기 시작했을 수 있고, 그러면 404 를 부르고도 200 이 나간다. 없는 사람과
+   * 못 보는 사람이 **같은 상태 코드**로 거절되는 것이 이 화면의 약속이라, 그 약속이
+   * 렌더 순서에 기대지 않게 여기서 먼저 답을 낸다.
+   */
+  const outcome = blocked ? null : await pairOutcome(a, b);
+
+  if (blocked) {
+    return (
+      <Frame frame={frame}>
+        <CompatHero />
+        <AccountNotice state={state} />
+      </Frame>
+    );
+  }
+
+  /**
+   * **결과는 제 페이지에 선다.**
+   *
+   * 고르는 칸과 결과를 한 화면에 쌓아 두면, 다시 찾아온 사람이 자기 결과에 닿기까지
+   * 두 덩어리를 지나야 한다. 「무엇을 볼까」와 「무엇이 나왔나」는 다른 물음이므로
+   * 자리를 가른다 — 주소는 이미 갈려 있었다(`?a=…&b=…`).
+   */
+  if (outcome !== null && outcome.kind === 'ok') {
+    const place = placeOf(params, frame === 'shelf' ? '/me/readings/compat' : '/me/compat');
+    return <ResultPage outcome={outcome} back={backOf('compat', place)} frame={frame} besideShelf={place.from === 'shelf'} />;
+  }
+
+  /**
+   * **인자 없이 열리면 고르는 자리로 보낸다.**
+   *
+   * 여기 「본 궁합」 목록이 서 있었다. 다시 찾아오는 길이라는 까닭이었는데, **풀이 목록
+   * (`/me/readings`)이 이미 그 일을 더 잘 한다** — 궁합 줄에 점수와 한 줄 비유와
+   * 「수정 전」 딱지와 날짜까지 선다. 같은 목록이 두 자리에 있으면 한쪽만 고쳐지는
+   * 날이 오고, 그날 두 화면은 서로 다른 것을 말한다(ADR 0033).
+   *
+   * 주소는 살려 둔다. 이 화면으로 오는 옛 길이 있었고(풀이 목록의 빈 상태·사람을 못
+   * 찾은 자리), 그 링크가 404 를 만나는 것보다 **시작하는 자리로 이어지는 것**이 맞다.
+   */
+  if (outcome === null || outcome.kind === 'empty') redirect('/compat');
+
+  /**
+   * **거절은 그 자리에서 말한다.** 같은 사람 둘(`same`)과 못 읽은 판본(`unreadable`)은
+   * 주소가 무언가를 가리키고 있는데 결과가 안 나는 경우다. 고르는 자리로 되돌려 보내면
+   * 사용자는 **왜 되돌아왔는지 모른 채** 같은 주소를 다시 누른다.
+   */
+  return (
+    <Frame frame={frame}>
+      <header className="flex flex-col gap-3">
+        <Link href="/compat" className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
+          <Icon name="back" className="size-4" />
+          궁합 보러 가기
+        </Link>
+        <p className="text-[13px] font-semibold text-secondary">궁합</p>
+        <Title frame={frame}>궁합을 볼 수 없습니다</Title>
+      </header>
+
+      <Result outcome={outcome} />
+    </Frame>
+  );
+}
+
+/**
+ * 두 사람의 결과 하나 — **제목이 곧 누구와 누구인가**다.
+ *
+ * **만세력이 먼저 서고 만드는 버튼은 그 아래다**(ADR 0036). 고르는 칸이 곧장 모델을
+ * 부르던 동안 사용자는 만세력을 보기 전에 풀이권을 썼다. 이제 고르면 이 화면이 서고,
+ * 여기서 한 번 더 눌러야 글이 난다 — `/` 와 `/compat` 이 이미 그 모양이다.
+ *
+ * 그 앞에 표 스물몇 개를 세워 두면 글까지 내려오지 못하므로 **관계표는 접어 둔다**
+ * (`CompatView` 의 `FoldedAnalysis`). 서는 것은 여덟 글자다 — 표는 우리가 대조하는 값이라 없애지
+ * 않고 접는다(ADR 0035). 접이칸이 살던 화면(`/compat` 의 결과)이 이 자리로 합쳐지면서
+ * 그 값이 갈 곳이 여기뿐이다.
+ */
+async function ResultPage({
+  outcome,
+  back,
+  frame,
+  besideShelf,
+}: {
+  outcome: Extract<Outcome, { kind: 'ok' }>;
+  back: Back;
+  frame: CompatFrame;
+  /** ← 가 보관함으로 가고 그 책장이 옆에 서 있다 — 넓은 화면에서는 ← 를 안 세운다(사주풀이의 `ReadingBack` 과 같다) */
+  besideShelf: boolean;
+}) {
+  return (
+    <Frame frame={frame}>
+      <header className="flex flex-col gap-3">
+        {/*
+          되돌아가는 자리는 **온 곳**이다(ADR 0134) — 궁합 탭에서 열었으면 「궁합」, 보관함에서 열었으면 들어온 칩의
+          「풀이 보관함」, 주소를 직접 열었으면 궁합 탭 첫 화면.
+        */}
+        <Link href={back.href} className={`${BUTTON_TERTIARY} -ml-1 self-start ${frame === 'shelf' && besideShelf ? 'lg:hidden' : ''}`}>
+          <Icon name="back" className="size-4" />
+          {back.label}
+        </Link>
+        <div className="flex items-center gap-4">
+          <PairMark stems={[outcome.first.saju.pillars.dayMaster, outcome.second.saju.pillars.dayMaster]} />
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-secondary">궁합</p>
+            <Title frame={frame}>
+              {outcome.first.name} <span className="text-secondary">×</span> {outcome.second.name}
+            </Title>
+          </div>
+        </div>
+      </header>
+
+      <Result outcome={outcome} />
+    </Frame>
+  );
+}
+
+/**
+ * 틀 — 제 주소면 한 화면(`main`), 보관함이면 옆 칸의 글 한 편(`article`)이다. 보관함의 `main` 은 레이아웃이 이미 세웠다.
+ */
+function Frame({ frame, children }: { frame: CompatFrame; children: ReactNode }) {
+  return frame === 'page' ? (
+    <main className="app-shell flex flex-1 flex-col gap-6 py-8 sm:py-12">{children}</main>
+  ) : (
+    <article className="flex min-w-0 flex-col gap-6">{children}</article>
+  );
+}
+
+/** 제목 — 보관함 옆 칸에서는 「풀이 보관함」이 이 화면의 h1 이라 글의 이름은 그 아래 단이다(사주풀이와 같다) */
+function Title({ frame, children }: { frame: CompatFrame; children: ReactNode }) {
+  const className = `${TYPE_TITLE} break-words`;
+  return frame === 'page' ? <h1 className={className}>{children}</h1> : <h2 className={className}>{children}</h2>;
+}
+
+/**
+ * **두 사람의 표식** — 두 원이 살짝 겹쳐 선다(홈의 관계 지도에서 두 사람을 잇는 말투). 각 원은 그 사람의 일간
+ * 색과 상징이다. 그림이라 보조기기에는 안 읽히고, 누구와 누구인지는 바로 옆 제목이 든다.
+ */
+function PairMark({ stems }: { stems: readonly [Stem, Stem] }) {
+  return (
+    <span aria-hidden="true" className="flex shrink-0 items-center">
+      {stems.map((stem, index) => (
+        <span
+          key={index}
+          className={`${elementScope(STEM_INFO[stem].element)} grid size-12 place-items-center rounded-full bg-[var(--tile)] ring-4 ring-background sm:size-14 ${
+            index === 1 ? '-ml-3' : ''
+          }`}
+        >
+          <StemSymbol stem={stem} className="size-7 sm:size-8" />
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** 주소에 같은 이름이 두 번 오면 앞의 것만 읽는다 — 뒤의 것으로 조용히 바뀌지 않게 */
+const firstOf = (value: string | string[] | undefined): string | null =>
+  (Array.isArray(value) ? value[0] : value) ?? null;
+
+type Outcome =
+  | { kind: 'empty' }
+  | { kind: 'same' }
+  | { kind: 'unreadable'; message: string }
+  | {
+      kind: 'ok';
+      first: PersonPayload;
+      second: PersonPayload;
+      /**
+       * 이 쌍의 Person id — **판본을 다 읽은 뒤에만 존재한다.**
+       *
+       * 주소에서 곧장 꺼내 쓰지 않는 까닭이 있다. 결과 슬롯이 AI 풀이 대상을 들려면
+       * 그 대상은 **실제로 읽힌 두 사람**이어야 한다. 주소의 값을 그대로 쓰면 못 읽는
+       * 판본이나 못 보는 사람에게도 풀이 버튼이 서고, 눌러야 거절을 만난다.
+       */
+      pair: { personA: string; personB: string };
+    };
+
+async function pairOutcome(a: string | null, b: string | null): Promise<Outcome> {
+  if (a === null || b === null) return { kind: 'empty' };
+
+  /**
+   * 같은 사람 둘은 궁합이 아니다.
+   *
+   * 없는 사람·못 보는 사람과 달리 이것은 **주소만 보고도 아는 사실**이라 따로 말해도
+   * 아무것도 새어 나가지 않는다.
+   */
+  if (a === b) return { kind: 'same' };
+
+  const [one, other] = await Promise.all([payloadForViewer(a), payloadForViewer(b)]);
+
+  /**
+   * **없는 사람과 못 보는 사람을 같은 말로 거절한다.**
+   *
+   * 갈리면 응답 차이만으로 그 Person 이 실재하는지 알아낼 수 있다. 여기서 두 경우가
+   * 같아지는 것은 문장을 맞춰 적어서가 아니라 **답이 한 자리에서 나오기 때문**이다 —
+   * `payloadForViewer` 는 둘 다 `null` 을 내고, 그 `null` 을 응답으로 바꾸는 곳이
+   * 이 한 줄뿐이다. HTTP 상태·문장·화면 종류·응답 구조 넷이 그래서 같다.
+   */
+  if (one === null || other === null) notFound();
+
+  /**
+   * 못 읽는 입력은 **기본값으로 메우지 않는다.** 저장된 값은 그대로 있고 읽는
+   * 쪽이 못 읽는 것이므로, 그렇게 말하고 멈춘다(`/me` 와 같은 규율).
+   *
+   * 한쪽만 못 읽어도 궁합은 못 선다 — 두 명식이 다 있어야 맞대어 볼 수 있다.
+   */
+  const unreadable = [one, other].find((view) => view.kind === 'unreadable-input');
+  if (unreadable !== undefined && unreadable.kind === 'unreadable-input') {
+    return { kind: 'unreadable', message: unreadable.message };
+  }
+
+  if (one.kind !== 'ok' || other.kind !== 'ok') notFound();
+
+  return {
+    kind: 'ok',
+    first: one.payload,
+    second: other.payload,
+    pair: { personA: a, personB: b },
+  };
+}
+
+async function Result({ outcome }: { outcome: Outcome }) {
+  /**
+   * **아직 안 골랐으면 아무것도 안 그린다.**
+   *
+   * 「두 사람을 골라 주세요」 카드가 고르는 칸 바로 아래 서 있었다. 같은 말을 두 번
+   * 하는 자리이고, 처음 온 사람에게는 할 일이 하나 더 있는 것처럼 보인다.
+   */
+  if (outcome.kind === 'empty') return null;
+
+  if (outcome.kind === 'same') {
+    return (
+      <p role="alert" className={`${CARD} text-[15px] leading-6`}>
+        같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.
+      </p>
+    );
+  }
+
+  if (outcome.kind === 'unreadable') {
+    return (
+      <section className={`${CARD} flex flex-col gap-2`}>
+        <p className="text-[15px]">{outcome.message}</p>
+        <p className={TYPE_META}>{UNREADABLE_INPUT_NOTE}</p>
+      </section>
+    );
+  }
+
+  const { first, second } = outcome;
+
+  /**
+   * **이 쌍에 적어 둔 사이** — 다시 풀이받을 때 고칠 수 있게 칸에 세운다.
+   *
+   * 못 읽으면 칸을 안 세운다. 「모른다」로 세워 두면 화면이 저장된 값과 다른 말을
+   * 하게 되고, 사용자는 자기가 답한 적 없는 값을 보고 답한 줄 안다.
+   */
+  const target = { kind: 'private', ...outcome.pair } as const;
+  const [stored, reading] = await Promise.all([
+    pairRelationFor(outcome.pair.personA, outcome.pair.personB),
+    currentReading(target),
+  ]);
+
+  /**
+   * **지표의 눈금은 풀이가 정한다**(ADR 0113). 이 쌍에 풀이가 있으면 그 풀이를 잰 판 · 기준점 · 그때의 사이로
+   * 그리고 — 옛 풀이 옆에 새 판의 수를 세우면 한 화면에 눈금이 둘이다 — 없을 때만 지금 적어 둔 사이로 지금 잰다.
+   * 새 풀이는 그 사이로 기준점을 받는다. 사이를 못 읽었으면 모른다로 잰다.
+   */
+  const basis = matchBasisOf(reading?.scoreScale ?? null, {
+    matched: false,
+    relation: stored.ok ? stored.relation : null,
+  });
+
+  /**
+   * **지금 글이 읽힌 사이** — 지표의 딱지가 따르는 그 값이다. 풀이를 받은 뒤 사이를 바꾸면 적어 둔 사이(다음 풀이의
+   * 것)와 갈린다. 그때 사이 줄이 적어 둔 사이만 말하면 「연인·배우자 기준」 딱지 아래에 「가족 사이로 읽어 드립니다」가
+   * 서서 지금 글이 무슨 사이로 읽혔는지 화면이 두 말을 한다(2026-09-26) — 그래서 둘을 갈라 적는다. 옛 판 풀이는 사이를
+   * 몰랐으므로(`null`) 적지 않는다.
+   */
+  const readWith = reading === null ? null : relationOf(reading.scoreScale.relation);
+
+  const charts = { a: first.saju, b: second.saju };
+  const compat = analyzeCompatibility(first.saju, second.saju);
+  const names = { a: first.name, b: second.name };
+
+  return (
+    <CompatView
+      charts={charts}
+      compat={compat}
+      names={names}
+      /**
+       * 비공개 궁합의 결과 슬롯 — **자기 풀이·공유 궁합과 같은 칸을 쓴다**(`ReadingSection`).
+       *
+       * 이 자리가 비어 있는 동안 화면은 관계 스물몇 개를 세워 놓고 **읽어 주는 버튼이
+       * 없었다.** 파이프라인은 처음부터 세 kind 를 다 받았고(`ReadingTarget`), 쌍의 차례도
+       * DB 가 정한다(`least`·`greatest`) — 막혀 있던 것은 화면 한 줄뿐이었다.
+       */
+      verdict={
+        <>
+          {/*
+            **두 길이 같은 차례로 선다** — 두 명식 → 베타 지표 → 사이 → 만드는 버튼.
+            직접 입력 화면에도 이 칸이 있었는데 여기만 없어서, 같은 흐름을 지나온
+            사람이 화면마다 다른 것을 보고 있었다.
+          */}
+          <MatchResult charts={charts} compat={compat} names={names} basis={basis} />
+          <ScoringNote />
+          <ReadingSection
+            target={target}
+            reading={reading}
+            layout="page"
+            /**
+             * **여기서는 사이를 다시 묻지 않는다**(ADR 0054).
+             *
+             * 물음은 두 사람을 고르는 자리에 있다 — 「사이에 따라 방향을 달리 잡겠다」가
+             * 까닭이므로 읽기 전에 물어야 뜻이 있고(ADR 0019), 그 자리가 이미 읽기
+             * 전이다. 한 흐름에서 두 번 물으면 사용자는 서로 다른 두 물음으로 읽는다.
+             *
+             * 대신 **무엇으로 읽는지는 적는다.** 이 값이 글의 방향을 바꾸는데 화면에
+             * 안 서면, 사용자는 자기가 무엇을 골랐는지 모른 채 만드는 버튼을 누른다.
+             * 고치는 길은 두 사람을 고르는 자리다.
+             */
+            ask={
+              stored.ok && stored.relation !== null ? (
+                <RelationNote readWith={readWith} next={stored.relation} />
+              ) : undefined
+            }
+          />
+        </>
+      }
+      notice={
+        <p className="text-[13px] leading-5 text-secondary">
+          <strong className="font-semibold text-foreground">지금 저장된 출생 정보로 계산했어요.</strong>{' '}
+          {INPUT_EDIT_REPLACED_NOTE}
+        </p>
+      }
+    />
+  );
+}

@@ -5,6 +5,7 @@ import {
   backOf,
   cameFromOf,
   lightOf,
+  isOpenResult,
   placeOf,
   resultKindOf,
   withCameFrom,
@@ -121,7 +122,7 @@ describe('결과 링크에 온 곳을 싣는다 (ADR 0134)', () => {
 
   it('보관함은 칩을 함께 싣고, 전체 칩은 안 싣는다', () => {
     expect(withCameFrom('/me/readings/self', 'shelf', 'saju')).toBe('/me/readings/self?kind=saju&from=shelf');
-    expect(withCameFrom('/me/compat?a=p1&b=p2', 'shelf', 'compat')).toBe('/me/compat?a=p1&b=p2&kind=compat&from=shelf');
+    expect(withCameFrom('/me/compat?a=p1&b=p2', 'shelf', 'compat')).toBe('/me/readings/compat?a=p1&b=p2&kind=compat&from=shelf');
     expect(withCameFrom('/me/readings/self', 'shelf')).toBe('/me/readings/self?from=shelf');
     /* 보관함이 아닌 온 곳은 칩을 안 든다 */
     expect(withCameFrom('/me/readings/self', 'me', 'saju')).toBe('/me/readings/self?from=me');
@@ -134,5 +135,50 @@ describe('결과 링크에 온 곳을 싣는다 (ADR 0134)', () => {
       expect(place.from).toBe(from);
       expect(place.shelfKind).toBe(from === 'shelf' ? 'compat' : 'all');
     }
+  });
+});
+
+describe('보관함에서 연 궁합은 틀 안에 선다 (ADR 0134, 2026-09-29)', () => {
+  it('보관함이 싣는 궁합 링크는 틀 안 주소로 옮기고, 다른 온 곳 · 사주풀이는 그대로다', () => {
+    expect(withCameFrom('/me/compat?a=p1&b=p2', 'shelf')).toBe('/me/readings/compat?a=p1&b=p2&from=shelf');
+    expect(withCameFrom(`/me/match/${MATCH_ID}`, 'shelf', 'match')).toBe(`/me/readings/match/${MATCH_ID}?kind=match&from=shelf`);
+    expect(withCameFrom('/me/readings/self', 'shelf')).toBe('/me/readings/self?from=shelf');
+    for (const from of CAME_FROM.filter((one) => one !== 'shelf')) {
+      expect(withCameFrom('/me/compat?a=p1&b=p2', from)).toBe(`/me/compat?a=p1&b=p2&from=${from}`);
+      expect(withCameFrom(`/me/match/${MATCH_ID}`, from)).toBe(`/me/match/${MATCH_ID}?from=${from}`);
+    }
+  });
+
+  it('틀 안 주소도 결과다 — 궁합은 궁합, 인연은 인연, 사주풀이 id 로 읽지 않는다', () => {
+    expect(resultKindOf('/me/readings/compat')).toBe('compat');
+    expect(resultKindOf('/me/readings/compat?a=p1&b=p2&from=shelf')).toBe('compat');
+    expect(resultKindOf(`/me/readings/match/${MATCH_ID}`)).toBe('match');
+    expect(resultKindOf('/me/readings/match')).toBeNull();
+    expect(resultKindOf('/me/readings/match/')).toBeNull();
+  });
+
+  it('틀 안 주소는 온 곳이 없어도 보관함이다 — 불은 나, ← 는 보관함', () => {
+    for (const [kind, pathname] of [
+      ['compat', '/me/readings/compat'],
+      ['match', `/me/readings/match/${MATCH_ID}`],
+    ] as const) {
+      const place = placeOf({}, pathname);
+      expect(place.from).toBe('shelf');
+      expect(lightOf(kind, place.from)).toBe('/me');
+      expect(backOf(kind, place).href).toBe('/me/readings');
+      /* 실은 온 곳이 있으면 그것이 이긴다 */
+      expect(placeOf({ from: 'compat' }, pathname).from).toBe('compat');
+    }
+    /* 틀 밖 주소 · 사주풀이는 지금처럼 결과 종류의 기본이다 */
+    expect(placeOf({}, '/me/compat').from).toBeNull();
+    expect(placeOf({}, '/me/readings/self').from).toBeNull();
+  });
+
+  it('펼친 글의 표지 — 경로와 두 사람이 같으면 같은 글이고, 온 곳 · 칩은 안 본다', () => {
+    expect(isOpenResult('/me/readings/compat?a=p1&b=p2&kind=compat&from=shelf', '/me/readings/compat', 'a=p1&b=p2&from=shelf')).toBe(true);
+    expect(isOpenResult('/me/readings/compat?a=p1&b=p3&from=shelf', '/me/readings/compat', 'a=p1&b=p2&from=shelf')).toBe(false);
+    expect(isOpenResult('/me/readings/self?from=shelf', '/me/readings/self', 'kind=saju&from=shelf')).toBe(true);
+    expect(isOpenResult(`/me/readings/match/${MATCH_ID}?from=shelf`, `/me/readings/match/${MATCH_ID}`, '')).toBe(true);
+    expect(isOpenResult('/me/readings/self?from=shelf', '/me/readings', '')).toBe(false);
   });
 });

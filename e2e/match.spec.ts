@@ -195,7 +195,7 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receiver.page.getByRole('link', { name: /답할 요청/ })).toHaveCount(0);
   });
 
-  test('저장한 사람은 이미 참여 중이고, 요청을 보내 수락하면 같은 결과 화면에 선다', async ({ openAs }) => {
+  test('저장한 사람은 이미 참여 중이고, 요청을 보내 수락하면 같은 결과 화면에 선다', async ({ openAs, isMobile }) => {
     const tag = freshTag();
     const asker = await openAs({ selfPerson: true });
     const receiver = await openAs({ selfPerson: true });
@@ -308,7 +308,23 @@ test.describe('동의로 열리는 흐름', () => {
         .getByRole('link', { name: new RegExp(`${partner} 님과의 궁합풀이`) })
         .click();
 
-      await expect(person.page.getByRole('heading', { name: '인연 궁합', exact: true })).toBeVisible();
+      /*
+        **보관함에서 연 인연 궁합은 사주풀이처럼 책장 옆 칸에 선다**(ADR 0134, 2026-09-29). 넓은 화면은 책장이 옆에
+        그대로 서고, 폰은 한 화면에 ← 「풀이 보관함」이다. 방으로 가기와 차단은 그 칸 안에서도 그대로 선다.
+      */
+      await expect(person.page).toHaveURL(/\/me\/readings\/match\/[0-9a-f-]+\?from=shelf$/);
+      const main = person.page.getByRole('main');
+      if (isMobile) {
+        await expect(main.getByRole('link', { name: '풀이 보관함', exact: true })).toHaveAttribute('href', '/me/readings');
+      } else {
+        await expect(person.page.getByRole('navigation', { name: '풀이 종류' })).toBeVisible();
+        await expect(main.getByRole('link', { name: new RegExp(`${partner} 님과의 궁합풀이`) })).toHaveAttribute('aria-current', 'page');
+      }
+      await expect(main.getByRole('link', { name: '채팅', exact: true })).toHaveAttribute('href', /^\/me\/chat\/[0-9a-f-]+$/);
+      await expect(main.getByRole('button', { name: '차단', exact: true })).toBeVisible();
+
+      /* 옆 책장에도 「인연 궁합」 절 제목이 서므로 글 칸(`article`) 안에서 찾는다 */
+      await expect(main.getByRole('article').getByRole('heading', { name: '인연 궁합', exact: true })).toBeVisible();
       await expect(person.page.getByRole('heading', { name: '궁합의 출발점' })).toBeVisible();
       await expect(person.page.getByText('각자의 여덟 글자를 한자리에서 견줍니다')).toHaveCount(0);
       /* 두 사람의 여덟 글자가 각자의 네 기둥 띠로 선다(`PillarPair`) — 관계 표는 없다 */

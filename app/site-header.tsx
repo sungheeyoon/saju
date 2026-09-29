@@ -11,7 +11,7 @@ import { SURVEY_COPY } from '@/src/lib/survey';
 import { signInFrom } from '@/src/lib/consent';
 
 import { supabaseInBrowser } from './auth/browser-client';
-import { cameFromOf, lightOf, resultKindOf } from './came-from';
+import { lightOf, placeOf, resultKindOf } from './came-from';
 import { useBrowserSession } from './auth/browser-session';
 import { useSignOut } from './auth/sign-out';
 import { readUnreadChat } from './me/chat/unread';
@@ -64,7 +64,7 @@ function within(pathname: string, base: string): boolean {
  */
 export function isNavigationActive(pathname: string, href: string, from: string | null = null): boolean {
   const result = resultKindOf(pathname);
-  if (result !== null) return lightOf(result, cameFromOf(from)) === href;
+  if (result !== null) return lightOf(result, placeOf({ from }, pathname).from) === href;
   if (href === '/me') {
     return pathname === '/me' || within(pathname, '/me/people') || pathname === '/me/readings' || pathname === '/';
   }

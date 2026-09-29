@@ -1826,16 +1826,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await back('나').click();
     await expect(page).toHaveURL(/\/me$/);
 
-    /* 보관함의 궁합풀이 칩 → 궁합풀이 → ← 같은 칩의 보관함. 불은 나 */
-    await page.goto('/me/readings?kind=compat');
-    await page.getByRole('main').getByRole('link', { name: /어머니/ }).click();
-    await expect(page).toHaveURL(/\/me\/compat\?a=[^&]+&b=[^&]+&kind=compat&from=shelf$/);
-    await expectLitTab(page, '나');
-    await back('풀이 보관함').click();
-    await expect(page).toHaveURL(/\/me\/readings\?kind=compat$/);
-    await expect(
-      page.getByRole('navigation', { name: '풀이 종류' }).getByRole('link', { name: '궁합풀이', exact: true }),
-    ).toHaveAttribute('aria-current', 'page');
+    /* 보관함의 궁합풀이 칩에서 연 궁합은 보관함 틀 안에 선다 — 아래 「보관함에서 연 궁합풀이는 책장 옆 같은 칸에」가 잰다 */
 
     /* 궁합 탭에서 연 궁합은 궁합 탭 불, ← 「궁합」 */
     const pair = `/me/compat?a=${me}&b=${mother}`;
@@ -1852,6 +1843,74 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.goto('/me/readings/self?from=%2F%2Fevil.example');
     await expectLitTab(page, '나');
     await expect(back('나')).toHaveAttribute('href', '/me');
+  });
+
+  /**
+   * **보관함에서 연 궁합풀이도 사주풀이와 같은 칸에 선다**(ADR 0134, 2026-09-29 운영자). 넓은 화면은 책장이 옆에 그대로
+   * 서고 ← 가 안 선다 — 사주풀이와 같다. 폰은 한 화면이고 ← 「풀이 보관함」이 들어온 칩으로 돌아간다. 궁합 탭에서 연
+   * 궁합은 제 주소 그대로 틀 밖이다. 사이 줄(`ask`)이 서는 궁합에서 콘솔에 key 경고가 났었다 — 콘솔 오류 0 을 잰다.
+   */
+  test('보관함에서 연 궁합풀이는 책장 옆 같은 칸에 서고 콘솔 오류가 없다', async ({ openAs }, testInfo) => {
+    const { page, api, account } = await openAs({ selfPerson: true, people: ['어머니'] });
+    const consoleErrors: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error') consoleErrors.push(message.text());
+    });
+    const { data: edges } = await api.from('user_person_access').select('person_id, local_label');
+    const mother = (edges ?? []).find((row) => row.local_label === '어머니')?.person_id as string;
+    const me = account.selfPersonId as string;
+    expect((await api.rpc('set_pair_relation', { p_person_a: me, p_person_b: mother, p_relation: 'family' })).error).toBeNull();
+    const started = await api.rpc('start_reading_run', {
+      p_kind: 'private',
+      p_idempotency_key: `e2e-shelf-pair-${me}-${mother}`,
+      p_person_a: me,
+      p_person_b: mother,
+      p_model: 'gpt-e2e',
+      p_prompt_version: 'reading-prompt-v1',
+    });
+    expect(started.error).toBeNull();
+    sql(`select public.save_reading('${started.data?.[0]?.run_id as string}'::uuid, '## 궁합', null, null,
+           '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
+    const main = page.getByRole('main');
+    const chips = page.getByRole('navigation', { name: '풀이 종류' });
+
+    await page.goto('/me/readings?kind=compat');
+    await main.getByRole('link', { name: /어머니/ }).click();
+    await expect(page).toHaveURL(/\/me\/readings\/compat\?a=[^&]+&b=[^&]+&kind=compat&from=shelf$/);
+    await expect(main.getByRole('heading', { name: /어머니/ }).first()).toBeVisible();
+    await expect(main.getByText('사이로 읽어 드려요')).toBeVisible();
+    await expectLitTab(page, '나');
+
+    if (testInfo.project.name.includes('mobile')) {
+      /* 폰은 한 화면 — 책장이 안 서고 ← 가 같은 칩의 보관함으로 간다 */
+      await expect(chips).toBeHidden();
+      await main.getByRole('link', { name: '풀이 보관함', exact: true }).click();
+      await expect(page).toHaveURL(/\/me\/readings\?kind=compat$/);
+    } else {
+      /* 넓은 화면은 책장이 옆에 그대로 — 같은 칩이 켜져 있고, 편 표지에 테가 서고, ← 는 안 선다 */
+      await expect(chips.getByRole('link', { name: '궁합풀이', exact: true })).toHaveAttribute('aria-current', 'page');
+      await expect(main.getByRole('link', { name: /어머니/ }).first()).toHaveAttribute('aria-current', 'page');
+      await expect(main.getByRole('link', { name: '풀이 보관함', exact: true })).toBeHidden();
+    }
+
+    /*
+      사이를 바꾸면 사이 줄이 둘을 갈라 적는다 — 지금 글의 사이와 다음 풀이의 사이(조건부 조각이 서는 갈래). 틀 안 주소는
+      온 곳 없이 열어도 보관함이다 — 불은 나, ← 는 보관함.
+    */
+    sql(`update public.reading set score_relation = 'family' where source_run_id = '${started.data?.[0]?.run_id as string}'::uuid`);
+    expect((await api.rpc('set_pair_relation', { p_person_a: me, p_person_b: mother, p_relation: 'friend' })).error).toBeNull();
+    await page.goto(`/me/readings/compat?a=${me}&b=${mother}`);
+    await expect(main.getByText('지금 글과 점수는')).toBeVisible();
+    await expectLitTab(page, '나');
+    await expect(main.getByRole('link', { name: '풀이 보관함', exact: true, includeHidden: true })).toHaveAttribute('href', '/me/readings');
+
+    /* 궁합 탭에서 연 궁합은 지금처럼 제 주소 — 책장 없이 ← 「궁합」 */
+    await page.goto(`/me/compat?a=${me}&b=${mother}&from=compat`);
+    await expect(chips).toHaveCount(0);
+    await expect(main.getByRole('link', { name: '궁합', exact: true })).toHaveAttribute('href', '/compat');
+    await expect(main.getByText('사이로 읽어 드려요')).toBeVisible();
+
+    expect(consoleErrors).toEqual([]);
   });
 
   test('계정 작업은 우측 계정 메뉴의 계정 관리에 모여 있다', async ({ page, signedIn }) => {
