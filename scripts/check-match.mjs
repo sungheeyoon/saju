@@ -158,14 +158,15 @@ const plain = (html) => html.replace(/<!--\s*-->/g, '');
 const text = (html) => plain(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
 /**
- * 인연 탭 맨 위의 요청 자리(`#requests-lead`, ADR 0130) — **그 요소 하나의 마크업만.**
+ * 인연 탭의 요청 자리 — **그 요소 하나의 마크업만.** 맨 위의 받은 요청(`#requests-lead`, ADR 0130)과 맨 아래의 지난
+ * 요청 한 줄(`#requests-log`, 2026-09-29 e+)이 따로 선다.
  *
  * 요청이 종에서 인연 탭으로 오면서 같은 응답에 덱과 내 궤도 지도가 함께 선다. 그 둘은 내 일간과 후보의 점수를
  * 들고 있어야 하는 자리라, 「요청 카드가 무엇을 말하는가」를 응답 전체로 재면 덱이 걸린다. 요청 자리의 클라이언트
  * 부품은 요청 · 사람 id 만 받으므로(`requests-lead.tsx`) 서버가 그린 이 마크업이 요청이 브라우저에 내주는 글자의 전부다.
  */
-const leadOf = (html) => {
-  const at = html.indexOf('id="requests-lead"');
+const markupOf = (html, id) => {
+  const at = html.indexOf(`id="${id}"`);
   if (at < 0) return '';
   const start = html.lastIndexOf('<div', at);
   const tags = /<div\b|<\/div>/g;
@@ -177,6 +178,8 @@ const leadOf = (html) => {
   }
   return html.slice(start);
 };
+const leadOf = (html) => markupOf(html, 'requests-lead');
+const logOf = (html) => markupOf(html, 'requests-log');
 
 /** `/me` 의 「요청과 알림」 옆에 선 수 — 없으면 `'0'` */
 const badge = async (cookie) => (/(\d+) 건 안 읽음/.exec(text(await body('/me', cookie))) ?? [null, '0'])[1];
@@ -363,7 +366,7 @@ try {
     const asker = plain(await body('/me/requests', aCookie));
     check('출생 정보를 고치면 pending 이 무효가 된다',
       asker.includes(`${NAME.c} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다`));
-    const askerTab = text(leadOf(await body('/me/matching', aCookie)));
+    const askerTab = text(logOf(await body('/me/matching', aCookie)));
     check('무효가 된 요청은 보낸 요청에서 내려간다',
       !/보낸 요청 \d+개/.test(askerTab) && askerTab.includes('끝난 요청'), askerTab.slice(0, 200));
 
@@ -381,7 +384,7 @@ try {
      * 지우지 않는다(사건은 일어났다). Match 칸이 비었는지는 그 칸에만 서는 것으로 잰다 —
      * 결과로 들어가는 길이 그것이다.
      */
-    const asker = plain(leadOf(await body('/me/matching', aCookie)));
+    const asker = plain(logOf(await body('/me/matching', aCookie)));
     const askerReadings = plain(await body('/me/readings', aCookie));
     check('차단하면 풀이 탭의 Match 가 목록에서 내려간다', !askerReadings.includes('/me/match/'));
     check('차단한 사람이 몇인지는 말하되 누구인지는 적지 않는다',
