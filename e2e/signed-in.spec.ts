@@ -452,42 +452,37 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
-   * **궁합 탭의 관계 지도와 사람 타일**(ADR 0129 — 나 탭 홈에서 옮겨 왔다) — 저장한 사람이 둘 다에 서고, 타일이 그 사람의
-   * 길을 전부 든다.
+   * **궁합 탭은 새로 보기 → 궁합풀이 한 줄 → 관계 지도다**(「2026-09-29 u2」) — 저장한 사람 타일은 나 탭이 들고 여기 없다.
    *
-   * 나와 궁합을 아직 안 봤으면 궁합 화면으로 가되 **두 칸이 찬 채로**(`a.person` · `b.person`) 간다.
-   * 지도의 원을 누르면 작은 카드가 열리고, 그 카드는 나와의 궁합과 그 사람의 사주 상세로 가는 길을 든다.
+   * 지도의 원을 누르면 작은 카드가 열리고, 그 카드는 나와의 궁합과 그 사람의 사주 상세로 가는 길을 든다. 나와 궁합을 아직
+   * 안 봤으면 궁합 화면으로 가되 **두 칸이 찬 채로**(`a.person` · `b.person`) 간다. 타일이 없으니 자바스크립트 없는 원은
+   * 그 사람의 상세로 간다.
    */
-  test('궁합 탭은 저장한 사람을 지도와 타일에 세우고 원을 누르면 그 사람의 길이 열린다', async ({ page, signedIn }, testInfo) => {
+  test('궁합 탭은 새로 보기 아래 관계 지도를 세우고 원을 누르면 그 사람의 길이 열린다', async ({ page, signedIn }, testInfo) => {
     await page.goto('/compat');
     /*
-      차례 — 궁합 새로 보기(고르는 칸)가 먼저, 그 아래 지도와 타일(ADR 0129 「2026-09-29 e+」). 고르는 칸은 폰에서도
-      스크롤 없이 보인다. 뼈대가 걷힌 뒤에 읽는다(ADR 0116 — 본문은 뼈대 뒤 300ms 뒤에 선다)
+      차례 — 궁합 새로 보기(고르는 칸)가 먼저, 그 아래 지도. 고르는 칸은 폰에서도 스크롤 없이 보인다. 궁합풀이가 아직 없어
+      한 줄은 안 선다. 뼈대가 걷힌 뒤에 읽는다(ADR 0116 — 본문은 뼈대 뒤 300ms 뒤에 선다)
     */
     await expect(page.getByRole('heading', { name: '궁합 새로 보기' })).toBeInViewport();
     await expect(page.locator('main[data-skeleton]')).toHaveCount(0);
     const order = await page.locator('main').innerText();
     expect(order.indexOf('궁합 새로 보기')).toBeGreaterThanOrEqual(0);
-    expect(order.indexOf('궁합 새로 보기')).toBeLessThan(order.indexOf('저장한 사람'));
+    expect(order.indexOf('궁합 새로 보기')).toBeLessThan(order.indexOf('관계 지도'));
+    await expect(page.getByRole('link', { name: /^궁합풀이/ })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toHaveCount(0);
+    await expect(page.locator('li[id^="person-"]')).toHaveCount(0);
     await expect(page.getByRole('link', { name: '궁합', exact: true }).filter({ visible: true }).first()).toHaveAttribute(
       'aria-current',
       'page',
     );
 
-    const tile = page.locator('li[id^="person-"]').filter({ has: page.getByRole('link', { name: '어머니', exact: true }) });
-    const detail = await tile.getByRole('link', { name: '어머니', exact: true }).getAttribute('href');
-    const personId = (detail ?? '').replace('/me/people/', '');
-    expect(personId).not.toBe('');
-    await expect(tile.getByRole('link', { name: '풀이 받기' })).toHaveAttribute('href', `/me/readings/${personId}`);
-    await expect(tile.getByRole('link', { name: '나와 궁합' })).toHaveAttribute(
-      'href',
-      `/compat#a.person=${signedIn.selfPersonId}&b.person=${personId}`,
-    );
-    await expect(page.getByRole('link', { name: '전체 관리' })).toHaveAttribute('href', '/me/people');
-
     const map = page.getByRole('region', { name: '관계 지도' });
     const dot = map.getByRole('link', { name: /^어머니, 일간/ });
-    await expect(dot).toHaveAttribute('href', `#person-${personId}`);
+    const detail = await dot.getAttribute('href');
+    const personId = (detail ?? '').replace('/me/people/', '');
+    expect(personId).not.toBe('');
+    expect(detail).toBe(`/me/people/${personId}`);
     await dot.click();
     await expect(dot).toHaveAttribute('aria-expanded', 'true');
     /*
@@ -511,7 +506,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       자리에 두른다 — 링크 자신은 `outline-none` 이다. 전역 테두리가 층 밖에 있을 때는 그것을 눌러
       이름 글자 둘레에 한 겹이 더 섰다(2026-09-25 운영에서 잰 것). 사람 화면의 타일도 같은 모양이다.
     */
-    for (const at of ['/compat', '/me/people']) {
+    for (const at of ['/me/people']) {
       await page.goto(at);
       const name = page.getByRole('main').getByRole('link', { name: '어머니', exact: true }).first();
       const focused = await focusedOutline(name);
@@ -574,13 +569,14 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(card).toContainText('78점');
     await expect(card.getByText('같은 우산 아래 걷는 두 사람')).toBeVisible();
     await expect(card.getByText('아직 둘의 궁합을 보지 않았어요')).toHaveCount(0);
+    /* 궁합 탭에서 연 결과라 궁합 탭에서 왔다고 싣는다(「2026-09-29 u2」) */
     await expect(card.getByRole('link', { name: '궁합풀이 보기' })).toHaveAttribute(
       'href',
-      new RegExp(`^/me/compat\\?a=(${me}&b=${mother}|${mother}&b=${me})$`),
+      new RegExp(`^/me/compat\\?a=(${me}&b=${mother}|${mother}&b=${me})&from=compat$`),
     );
     await expect(card.getByRole('link', { name: '어머니 · 아버지 궁합 64점' })).toHaveAttribute(
       'href',
-      new RegExp(`^/me/compat\\?a=(${mother}&b=${father}|${father}&b=${mother})$`),
+      new RegExp(`^/me/compat\\?a=(${mother}&b=${father}|${father}&b=${mother})&from=compat$`),
     );
     /* 두 사람 사이의 궁합을 지도 위 알약으로 띄우지 않는다 — 카드의 칩 하나다 */
     await expect(map.getByText('64점')).toHaveCount(1);
@@ -592,26 +588,26 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(card.getByRole('link', { name: '아버지 · 어머니 궁합 64점' })).toBeVisible();
 
     /*
-      **최근 궁합풀이**(ADR 0129 「2026-09-29 e+」) — 직접 본 궁합이 책장의 표지 그대로 고르는 칸 아래에 선다. 제 결과
-      화면으로 가고, 최근 것이 앞이다(DB 의 차례). 셋 이하라 「모두 보기」는 안 선다.
+      **궁합풀이 한 줄**(「2026-09-29 u2」) — 직접 본 궁합의 수와 가장 최근 두 사람이 고르는 칸 아래 한 줄에 선다. 누르면
+      풀이 보관함의 궁합풀이 칸으로 간다.
     */
-    const archive = page.getByRole('region', { name: '최근 궁합풀이' });
-    const covers = archive.getByRole('link');
-    await expect(covers).toHaveCount(2);
-    await expect(covers.first()).toContainText(/(어머니 × 아버지|아버지 × 어머니) 궁합/);
-    await expect(covers.nth(1)).toHaveAttribute('href', new RegExp(`^/me/compat\\?a=(${me}&b=${mother}|${mother}&b=${me})$`));
-    await expect(archive.getByRole('link', { name: '모두 보기' })).toHaveCount(0);
+    const summary = page.getByRole('link', { name: /^궁합풀이/ });
+    await expect(summary).toHaveAttribute('href', '/me/readings?kind=compat&from=compat');
+    await expect(summary).toContainText('2');
+    await expect(summary).toContainText(/최근 (어머니 × 아버지|아버지 × 어머니)/);
     /* 나 탭 홈에는 궁합풀이가 안 선다 — 한 사람 풀이만 */
     await page.goto('/me');
     await expect(page.getByRole('region', { name: /^내가 받은 사주풀이/ }).getByText('궁합', { exact: false })).toHaveCount(0);
   });
 
   /**
-   * **최근 궁합풀이는 셋까지, 넘으면 「모두 보기」가 보관함의 궁합풀이 필터로 간다**(ADR 0129 「2026-09-29 e+」).
-   * 그리고 **아래의 타일이 위의 고르는 칸을 채우면 그 칸이 화면에 든다** — 칸이 맨 위라 누른 자리에서는 안 보인다.
+   * **궁합풀이 한 줄은 직접 본 궁합을 다 세고 폰의 첫 화면에 든다**(「2026-09-29 u2」). 그리고 **아래 지도의 카드가 위의
+   * 고르는 칸을 채우면 그 칸이 화면에 든다** — 칸이 맨 위라 누른 자리에서는 안 보인다(ADR 0129 「2026-09-29 e+」).
    * 모델은 안 부른다: 궁합풀이 넷을 `postgres` 로 심는다.
    */
-  test('최근 궁합풀이는 셋까지이고 타일의 「나와 궁합」은 위의 고르는 칸을 채워 화면에 들인다', async ({ openAs }) => {
+  test('궁합풀이 한 줄은 넷을 세어 첫 화면에 들고 지도의 「궁합 보러 가기」는 위의 고르는 칸을 채워 화면에 들인다', async ({
+    openAs,
+  }, testInfo) => {
     const { page, api, account } = await openAs({ selfPerson: true, people: ['어머니', '아버지', '동생', '친구'] });
     const { data: edges } = await api.from('user_person_access').select('person_id, local_label');
     const idOf = (label: string) => (edges ?? []).find((row) => row.local_label === label)?.person_id as string;
@@ -637,25 +633,40 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await privateReading(idOf('어머니'), idOf('동생'));
 
     await page.goto('/compat');
-    const archive = page.getByRole('region', { name: '최근 궁합풀이' });
-    await expect(archive.getByRole('listitem')).toHaveCount(3);
-    /* 가장 먼저 본 나 × 어머니는 넷째라 여기 안 선다 */
-    await expect(archive.getByText(/(어머니 × 동생|동생 × 어머니) 궁합/)).toBeVisible();
-    await expect(archive.getByRole('link', { name: '모두 보기' })).toHaveAttribute('href', '/me/readings?kind=compat');
+    await expect(page.locator('main[data-skeleton]')).toHaveCount(0);
+    const summary = page.getByRole('link', { name: /^궁합풀이/ });
+    await expect(summary).toContainText('4');
+    /* 가장 최근 것은 어머니 × 동생이다 */
+    await expect(summary).toContainText(/최근 (어머니 × 동생|동생 × 어머니)/);
+    /*
+      **차례는 고르는 칸 → 이 한 줄 → 관계 지도다.** 고르는 칸은 지금 부품 그대로라(두 원 · 칸 둘 · 사이 묻기, ADR 0019 ·
+      0054) 폰에서 이 줄은 첫 화면(390×664) 아래에 선다 — 잰 값을 남긴다(시안 u 의 「나 × 누구와?」 카드는 옮기지 않았다).
+    */
+    const top = (locator: typeof summary) =>
+      locator.evaluate((node) => Math.round(node.getBoundingClientRect().top + window.scrollY));
+    const map = page.getByRole('region', { name: '관계 지도' });
+    const [pickerTop, summaryTop, mapTop] = await Promise.all([
+      top(page.getByRole('region', { name: '궁합 새로 보기' })),
+      top(summary),
+      top(map),
+    ]);
+    expect(pickerTop).toBeLessThan(summaryTop);
+    expect(summaryTop).toBeLessThan(mapTop);
+    testInfo.annotations.push({ type: '궁합 탭의 세로 자리', description: `고르는 칸 ${pickerTop} · 한 줄 ${summaryTop} · 지도 ${mapTop}px` });
 
     const heading = page.getByRole('heading', { name: '궁합 새로 보기' });
-    const tile = page.locator('li[id^="person-"]').filter({ has: page.getByRole('link', { name: '친구', exact: true }) });
-    await tile.scrollIntoViewIfNeeded();
+    const friend = map.getByRole('link', { name: /^친구, 일간/ });
+    await friend.scrollIntoViewIfNeeded();
     await expect(heading).not.toBeInViewport();
 
-    await tile.getByRole('link', { name: '나와 궁합' }).click();
+    await friend.click();
+    await map.getByRole('link', { name: '궁합 보러 가기' }).click();
     await expect(page).toHaveURL(new RegExp(`/compat#a\\.person=${me}&b\\.person=${idOf('친구')}$`));
     await expect(page.getByRole('combobox', { name: '두 번째' })).toHaveValue('친구');
     await expect(heading).toBeInViewport();
     await expect(heading).toBeFocused();
 
-    /* 지도의 카드도 같다 — 안 본 사람의 「궁합 보러 가기」가 위의 칸을 채운다 */
-    const map = page.getByRole('region', { name: '관계 지도' });
+    /* 한 번 더 — 채운 뒤 다른 사람의 카드도 같은 칸을 갈아 채운다 */
     await map.getByRole('link', { name: /^동생, 일간/ }).click();
     await map.getByRole('link', { name: '궁합 보러 가기' }).click();
     await expect(page.getByRole('combobox', { name: '두 번째' })).toHaveValue('동생');
@@ -2937,8 +2948,8 @@ test.describe('사주풀이 공유하기', () => {
 });
 
 /**
- * **자바스크립트가 없어도 지도의 원은 길이다** — 그 사람의 타일로 간다(`#person-…`). 타일이 풀이 · 궁합 ·
- * 상세를 전부 링크로 든다. 원이 단추였다면 이 화면에서 아무 일도 안 일어난다.
+ * **자바스크립트가 없어도 지도의 원은 길이다** — 궁합 탭에는 사람 타일이 없어(「2026-09-29 u2」) 그 사람의 상세로 간다.
+ * 상세가 사주 · 사주풀이 · 궁합으로 가는 길을 든다. 원이 단추였다면 이 화면에서 아무 일도 안 일어난다.
  */
 test.describe('자바스크립트 없이 여는 홈', () => {
   test.use({ javaScriptEnabled: false });
@@ -2953,17 +2964,17 @@ test.describe('자바스크립트 없이 여는 홈', () => {
   });
 
   /* 관계 지도는 궁합 탭에 산다(ADR 0129) — 궁합 탭에도 뼈대가 있다 */
-  test('지도의 원을 누르면 그 사람의 타일로 간다', async ({ page, signedIn }) => {
+  test('지도의 원을 누르면 그 사람의 상세로 간다', async ({ page, signedIn }) => {
     expect(signedIn.managed).toContain('어머니');
     await page.goto('/compat');
     const dot = page.getByRole('region', { name: '관계 지도' }).getByRole('link', { name: /^어머니, 일간/ });
     const target = (await dot.getAttribute('href')) ?? '';
-    expect(target).toMatch(/^#person-/);
+    expect(target).toMatch(/^\/me\/people\/[0-9a-f-]+$/);
     /* 원은 가운데에서 제 자리로 퍼져 앉는다 — 앉기 전에 누르면 가운데의 나를 누른다 */
     await dot.evaluate((element) => Promise.all(element.getAnimations().map((animation) => animation.finished)));
     await dot.click();
-    await expect(page).toHaveURL(new RegExp(`/compat${target}$`));
-    await expect(page.locator(`li${target}`).getByRole('link', { name: '풀이 받기' })).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`${target}$`));
+    await expect(page.getByRole('heading', { name: '어머니의 사주', exact: true })).toBeVisible();
   });
 });
 
