@@ -37,7 +37,7 @@ export async function circleOf(selfPersonId: string) {
     /* 입력이 없는 사람 — 읽을 것이 없다는 말과 못 읽는다는 말을 여기서 합친다(저장한 사람 화면과 같다) */
     const stood =
       stored === undefined
-        ? ({ ok: false, message: '저장된 출생 정보를 읽지 못했습니다.' } as const)
+        ? ({ ok: false, message: '출생 정보를 불러오지 못했어요.' } as const)
         : storedChartOf(stored, edge.label);
     return {
       personId: edge.personId,
@@ -106,8 +106,9 @@ function SavedPeople({
           )}
         </h2>
         {people.length > 0 && (
-          <Link href="/me/people" className={BUTTON_TERTIARY}>
-            전체 관리
+          /* 바로 위 제목이 「저장한 사람」이라 화면 글자는 「관리」, 읽는 이름은 온전히 */
+          <Link href="/me/people" className={BUTTON_TERTIARY} aria-label="저장한 사람 관리">
+            관리
             <Icon name="arrow" className="size-4" />
           </Link>
         )}
@@ -129,7 +130,7 @@ function SavedPeople({
           {!full && <AddTile slots={slots} />}
         </ul>
       )}
-      {slots !== null && full && <p className="text-[13px] text-secondary">등록할 수 있는 {slots.limit}명을 다 채웠습니다.</p>}
+      {slots !== null && full && <p className="text-[13px] text-secondary">저장할 수 있는 {slots.limit}명을 다 채웠어요.</p>}
     </section>
   );
 }

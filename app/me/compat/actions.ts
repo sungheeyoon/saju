@@ -181,7 +181,7 @@ export async function openPairScreen(
 
   const pair = ((data ?? []) as { person_a: string; person_b: string }[])[0];
   if (pair === undefined) {
-    return { ok: false, kind: 'failed', message: '두 사람의 궁합을 열지 못했습니다.' };
+    return { ok: false, kind: 'failed', message: '두 사람의 궁합을 열지 못했어요. 잠시 뒤 다시 시도해 주세요.' };
   }
 
   /**

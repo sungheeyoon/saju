@@ -177,7 +177,7 @@ export function ProfileForm({
 
         {failure !== null && (
           <p role="alert" className="text-sm text-danger">
-            저장하지 못했습니다 — {failure}
+            저장하지 못했어요. {failure}
           </p>
         )}
       </section>

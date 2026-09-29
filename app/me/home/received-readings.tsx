@@ -55,7 +55,7 @@ export function ReceivedReadings({ readings }: { readings: readonly ReadingEntry
             <SingleCover book={{ ...book, href: withFromMe(book.href) }} row />
           </li>
         ))}
-        {!hasSelf && <BlankBook href={withFromMe('/me/readings/self')} element="木" label="내 사주풀이" row />}
+        {!hasSelf && <BlankBook href={withFromMe('/me/readings/self')} element="木" label="사주풀이 받기" row />}
       </ul>
     </section>
   );

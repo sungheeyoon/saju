@@ -654,7 +654,7 @@ function EmptyState() {
           ))}
         </span>
         <h3 className={`mt-4 ${TYPE_NAME}`}>아직 받아 둔 풀이가 없어요</h3>
-        <p className="mt-2 text-[15px] leading-6 text-secondary">복잡한 사주 정보를 핵심 성향, 강점, 균형을 위한 제안으로 나누어 읽기 쉽게 정리합니다.</p>
+        <p className="mt-2 text-[15px] leading-6 text-secondary">복잡한 사주 정보를 핵심 성향, 강점, 균형을 위한 제안으로 나눠 읽기 쉽게 정리해 드려요.</p>
       </div>
     </div>
   );
@@ -679,7 +679,7 @@ function LoadingState({ rows }: { rows: readonly OutlineRow[] }) {
         </span>
         <div className="min-w-0">
           <p className="text-[17px] font-semibold text-foreground">사주의 흐름을 이어 읽고 있어요</p>
-          <p className="text-[13px] leading-5 text-cream-ink">근거를 확인하고, 단정하지 않는 문장으로 옮깁니다.</p>
+          <p className="text-[13px] leading-5 text-cream-ink">근거를 확인하고, 단정하지 않는 문장으로 옮기고 있어요.</p>
         </div>
       </div>
       <div aria-hidden="true" className="mt-5 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--cream-ink)_14%,transparent)]">

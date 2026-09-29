@@ -22,8 +22,8 @@ describe('기다리는 동안의 문구', () => {
    * 주장이다. 재기 전에는 아는 쪽만 말한다.
    */
   it('상한에서 지어 내므로 상한이 바뀌면 문구도 바뀐다', () => {
-    expect(readingWaitNote(240_000)).toBe('길면 4분까지 걸립니다.');
-    expect(readingWaitNote(120_000)).toBe('길면 2분까지 걸립니다.');
+    expect(readingWaitNote(240_000)).toBe('길면 4분까지 걸려요.');
+    expect(readingWaitNote(120_000)).toBe('길면 2분까지 걸려요.');
 
     // 손으로 적은 숫자였다면 이 둘이 같았을 것이다
     expect(readingWaitNote(240_000)).not.toBe(readingWaitNote(120_000));
@@ -65,8 +65,8 @@ describe('기다리는 동안의 문구', () => {
       expect(READING_ALREADY_RUNNING_NOTE, blame).not.toContain(blame);
     }
     // 무엇이 되고 있는지까지 — 상태만 알리고 끝내면 사용자는 다시 누른다
-    expect(READING_ALREADY_RUNNING_NOTE).toContain('기다립니다');
-    expect(READING_ALREADY_RUNNING_NOTE).toContain('완성되면');
+    expect(READING_ALREADY_RUNNING_NOTE).toContain('다 만들어지면');
+    expect(READING_ALREADY_RUNNING_NOTE).toContain('이 화면에 나타나요');
   });
 });
 

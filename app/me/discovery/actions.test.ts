@@ -52,7 +52,7 @@ describe('만나볼 상대의 조건', () => {
   it('처음인지를 못 읽으면 쓰지 않고 거절을 값으로 낸다', async () => {
     answering({ data: null, error: { message: 'fetch failed' } });
 
-    expect(await savePreferGender('any')).toEqual({ ok: false, message: '요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.' });
+    expect(await savePreferGender('any')).toEqual({ ok: false, message: '요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.' });
     expect(writes).toEqual([]);
   });
 });
@@ -64,7 +64,7 @@ describe('만나볼 상대의 조건', () => {
 describe('요약을 못 읽은 액션', () => {
   beforeEach(() => {
     vi.mocked(selfElementSummary).mockReset();
-    vi.mocked(selfElementSummary).mockRejectedValue(new Error('요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.'));
+    vi.mocked(selfElementSummary).mockRejectedValue(new Error('요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.'));
     vi.mocked(supabaseOnServer).mockResolvedValue({ rpc: async () => ({ data: null, error: null }) } as never);
   });
 

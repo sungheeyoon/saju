@@ -96,7 +96,7 @@ const silentNoteOf = (utterances: readonly Utterance[]): string | null => {
   const silent = utterances.filter((utterance) => utterance.strength === 'silent');
   if (silent.length === 0) return null;
 
-  return `시각을 몰라 말하지 않은 것 ${silent.length}가지가 있습니다.`;
+  return `출생 시각을 몰라 말하지 않은 것이 ${silent.length}가지 있어요.`;
 };
 
 /**
@@ -116,7 +116,7 @@ export function UtteranceList({ utterances }: { utterances: readonly Utterance[]
   if (spoken.length === 0) {
     return (
       <p className="text-sm text-muted">
-        {silentNote ?? '이 자리에서 말할 수 있는 것이 없습니다.'}
+        {silentNote ?? '이 자리에서 말할 수 있는 것이 없어요.'}
       </p>
     );
   }

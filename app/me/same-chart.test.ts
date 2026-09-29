@@ -48,12 +48,12 @@ describe('내 목록의 같은 명식', () => {
   it('엣지를 못 읽으면 null 이 아니라 던진다 — 모르는 채로 저장을 밀지 않는다', async () => {
     answering({ app_user: OK({ self_person_id: null }), user_person_access: BROKEN });
 
-    await expect(sameChartInMyList(QUERY)).rejects.toThrow('요청을 처리하지 못했습니다');
+    await expect(sameChartInMyList(QUERY)).rejects.toThrow('요청을 처리하지 못했어요');
   });
 
   it('계정을 못 읽으면 던진다 — 나를 남으로 알고 답하지 않는다', async () => {
     answering({ app_user: BROKEN, user_person_access: OK([]) });
 
-    await expect(sameChartInMyList(QUERY)).rejects.toThrow('요청을 처리하지 못했습니다');
+    await expect(sameChartInMyList(QUERY)).rejects.toThrow('요청을 처리하지 못했어요');
   });
 });

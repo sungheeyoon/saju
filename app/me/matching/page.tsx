@@ -233,7 +233,7 @@ function Guide({ me, lead, tail }: { me: MeMark | null; lead: React.ReactNode; t
       lead={lead}
       tail={tail}
       title="먼저 내 사주와 이름이 필요해요"
-      line="나와 맞는 인연을 찾으려면 내 사주의 오행 구성이 있어야 해요. 내 사주를 저장하고 닉네임을 지으면 오늘의 인연이 섭니다."
+      line="나와 맞는 인연을 찾으려면 내 사주의 오행 구성이 있어야 해요. 내 사주를 저장하고 닉네임을 지으면 오늘의 인연을 볼 수 있어요."
       href="/me"
       action="내 사주로 가기"
     />
@@ -248,7 +248,7 @@ function Resting({ me, lead, tail }: { me: MeMark; lead: React.ReactNode; tail: 
       lead={lead}
       tail={tail}
       title="인연 찾기를 쉬고 있습니다"
-      line="지금은 다른 참여자에게 내 프로필이 공개되지 않으며, 새로운 사람도 소개받지 않습니다. 내 사주와 저장한 사람은 그대로 남아 있습니다."
+      line="지금은 다른 참여자에게 내 프로필이 공개되지 않고, 새로운 사람도 소개받지 않아요. 내 사주와 저장한 사람은 그대로 남아 있어요."
       href="/me/settings"
       action="계정 관리 열기"
     />

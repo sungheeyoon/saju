@@ -224,7 +224,7 @@ try {
     check('두 사람을 부를 이름으로 부른다', body.includes(nickname) && body.includes('어머니'),
       `${nickname} · 어머니`);
     check('결과가 무엇을 기준으로 났는지 문장으로 말한다',
-      body.includes('현재 저장된 출생 정보 기준입니다'));
+      body.includes('지금 저장된 출생 정보로 계산했어요'));
     /**
      * `b6e1893` 이 이 칸을 세웠다. 그 전까지 여기는 「아직 안 선다」를 재고 있었고,
      * 화면이 고쳐진 뒤로도 그대로 남아 **고쳐진 것을 고장이라고 부르고 있었다.**
@@ -296,7 +296,7 @@ try {
     const response = await get(`/me/compat?a=${momId}&b=${momId}`, { cookie });
     const body = await response.text();
     check('같은 사람을 두 번 고르면 그렇다고 말한다',
-      response.status === 200 && body.includes('같은 사람을 두 번'), String(response.status));
+      response.status === 200 && body.includes('같은 사람은 한 번만 고를 수 있어요'), String(response.status));
   }
 
   // ── 목록에서 빼면 그 자리에서 안 보인다 ────────────────────────────────────

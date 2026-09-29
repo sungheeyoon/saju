@@ -63,7 +63,7 @@ describe('공유본을 읽는 문', () => {
     answering({ data: null, error: { message: 'fetch failed' } });
 
     await expect(sharedReadingOf('t', 'self')).rejects.toThrow(
-      '요청을 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+      '요청을 처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.',
     );
   });
 });

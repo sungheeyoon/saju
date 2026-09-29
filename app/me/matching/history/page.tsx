@@ -84,7 +84,7 @@ export default async function MatchHistoryPage() {
         <h1 className={TYPE_TITLE}>인연 기록</h1>
       </header>
 
-      {empty && <p className="text-[15px] leading-6 text-secondary">아직 인연 기록이 없습니다.</p>}
+      {empty && <p className="text-[15px] leading-6 text-secondary">아직 인연 기록이 없어요.</p>}
 
       {(!readings.ok || matchCount > 0) && (
         <section aria-labelledby="history-matches" className="flex flex-col gap-4">
@@ -108,7 +108,7 @@ export default async function MatchHistoryPage() {
               )}
             </>
           ) : (
-            <p className="text-sm text-muted">인연 궁합을 읽지 못했습니다 — {readings.reason}</p>
+            <p className="text-sm text-muted">인연 궁합을 불러오지 못했어요. {readings.reason}</p>
           )}
         </section>
       )}
@@ -122,7 +122,7 @@ export default async function MatchHistoryPage() {
           {requests.ok ? (
             past !== null && <PastRequestList past={past} guide={receivedOf(requests.value.requests).length === 0} />
           ) : (
-            <p className="text-sm text-muted">요청을 읽지 못했습니다 — {requests.reason}</p>
+            <p className="text-sm text-muted">요청을 불러오지 못했어요. {requests.reason}</p>
           )}
         </section>
       )}

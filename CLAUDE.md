@@ -22,7 +22,7 @@
 이름 · 실패를 말하는 법 · 주석과 ADR 참조 · 탈출구 · 화면 문구 · 금지어는 **`docs/agents/code-rules.md`**
 한 장이 답한다. 잰 값이지 정한 규칙이 아니고(ADR 0086), 린트가 잡을 것은 `eslint.config.mjs` 가,
 못 잡을 것은 `scripts/code-rules.test.ts` 가 든다 — 문서와 어긋나면 그 둘이 맞다. **한글 문구는
-코드에 넣기 전에 표로 보여주고 답을 기다린다.**
+먼저 `docs/product/copy-ledger.md` 를 보고, 없으면 코드에 넣기 전에 표로 보여주고 답을 기다린다.**
 
 ## 무엇을 돌리는가는 `docs/agents/test-map.md` 가
 

@@ -310,7 +310,7 @@ function DraftMark({ state }: { state: 'idle' | 'saving' | 'saved' | 'failed' })
   if (state === 'failed') {
     return (
       <span role="status" className="text-[13px] font-semibold text-danger">
-        {SURVEY_COPY.draftFailed} 다시 고치시면 한 번 더 시도합니다.
+        {SURVEY_COPY.draftFailed} 답을 다시 고치면 한 번 더 저장해 볼게요.
       </span>
     );
   }

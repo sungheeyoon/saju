@@ -33,8 +33,8 @@ export function RelationChoice({
       {/* `float-left w-full` — 안 두면 legend 가 테두리 선을 끊고 그 위에 걸터앉는다 */}
       <legend className={`float-left w-full ${TYPE_NAME}`}>두 분은 무슨 사이인가요?</legend>
       <p className="mt-1.5 text-[13px] leading-5 text-secondary">
-        사이에 따라 읽어 드릴 방향이 달라집니다. 가족에게 할 말과 연인에게 할 말이 다르기
-        때문입니다. <strong className="font-semibold text-foreground">점수의 기준도 이 답을 따릅니다.</strong>
+        사이에 따라 읽어 드릴 방향이 달라져요. 가족에게 할 말과 연인에게 할 말이 다르기
+        때문이에요. <strong className="font-semibold text-foreground">점수의 기준도 이 답을 따라요.</strong>
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">

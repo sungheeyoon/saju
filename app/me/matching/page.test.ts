@@ -65,7 +65,7 @@ describe('오늘의 인연', () => {
   it('참여를 여는 부름이 터지면 안내가 아니라 던진다', async () => {
     answering({ data: null, error: { message: 'fetch failed' } });
 
-    await expect(MatchingPage()).rejects.toThrow('요청을 처리하지 못했습니다');
+    await expect(MatchingPage()).rejects.toThrow('요청을 처리하지 못했어요');
   });
 
   /*

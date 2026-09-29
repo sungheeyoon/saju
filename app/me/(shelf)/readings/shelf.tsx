@@ -218,7 +218,7 @@ export function MakingShelf({
       {titled && (
         <div>
           <h2 className={TYPE_SECTION}>인연 궁합</h2>
-          <p className="mt-0.5 text-[13px] leading-5 text-secondary">서로 동의한 궁합풀이를 만들고 있습니다.</p>
+          <p className="mt-0.5 text-[13px] leading-5 text-secondary">서로 동의해 두 사람이 함께 보는 궁합풀이예요.</p>
         </div>
       )}
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -277,8 +277,8 @@ export function MakingShelf({
 export function Nothing({ hasSelf }: { hasSelf: boolean }) {
   const slots = [
     hasSelf
-      ? { href: '/me/readings/self', label: '내 사주풀이', element: '木' as const }
-      : { href: '/me', label: '내 사주 등록', element: '木' as const },
+      ? { href: '/me/readings/self', label: '사주풀이 받기', element: '木' as const }
+      : { href: '/me', label: '내 사주 등록하기', element: '木' as const },
     { href: '/me/people', label: '저장한 사람', element: '土' as const },
     { href: '/compat', label: '궁합 보러 가기', element: '火' as const },
   ];
@@ -357,7 +357,7 @@ function StaleChip() {
 export function EmptyReader() {
   return (
     <div className={`${EMPTY_SLOT} grid min-h-80 place-items-center p-8 text-center`}>
-      <p className="text-[15px] leading-6 text-secondary">표지를 누르면 여기에 풀이가 펼쳐집니다.</p>
+      <p className="text-[15px] leading-6 text-secondary">표지를 누르면 여기에 풀이가 펼쳐져요.</p>
     </div>
   );
 }
