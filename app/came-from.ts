@@ -76,8 +76,8 @@ const SHELF_MATCH = '/me/readings/match/';
 export function resultKindOf(address: string): ResultKind | null {
   const pathname = address.split(/[?#]/, 1)[0];
   if (pathname === '/me/compat' || pathname === SHELF_COMPAT) return 'compat';
-  if (pathname === SHELF_MATCH.slice(0, -1)) return null;
-  if (pathname.startsWith(SHELF_MATCH) && pathname.length > SHELF_MATCH.length) return 'match';
+  /* 틀 안 인연 궁합은 id 가 있어야 결과다 — `/me/readings/match` 를 사주풀이 id 로 읽지 않는다 */
+  if (`${pathname}/`.startsWith(SHELF_MATCH)) return pathname.length > SHELF_MATCH.length ? 'match' : null;
   if (pathname.startsWith('/me/readings/') && pathname.length > '/me/readings/'.length) return 'saju';
   if (pathname.startsWith('/me/match/') && pathname.length > '/me/match/'.length) return 'match';
   return null;

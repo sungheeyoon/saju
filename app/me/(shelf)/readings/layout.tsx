@@ -22,7 +22,8 @@ import { BlankBook, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from '
  * 이리 보낸다 — 필터 칩 넷(전체 · 사주풀이 · 궁합풀이 · 인연 궁합)이 주소의 `?kind=` 를 읽어 그 칸으로 연다.
  *
  * 풀이가 네 화면에 흩어져 있었다. 이제 한 사람 풀이는 `/me/readings/[subject]`에 따로
- * 서고, 두 궁합은 각각의 결과 화면에 선다. 이 목록은 그 네 갈래의 공통 입구다.
+ * 서고, 두 궁합은 각각의 결과 화면에 선다 — 보관함에서 열면 그 화면이 이 틀의 옆 칸에 선다(`readings/compat` · `readings/match/[id]`,
+ * ADR 0134). 이 목록은 그 네 갈래의 공통 입구다.
  *
  * ## 책장이 레이아웃에 산다 (6차 warm)
  *

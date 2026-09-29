@@ -68,7 +68,7 @@ export function ReadingsFrame({
   const kind = useShelfKind();
   const reading = segment !== null;
   /*
-    궁합 칸 · 인연 칸에는 한 사람 풀이가 안 서므로 옆 칸에 펼 것도 없다 — 그 표지들은 제 결과 화면으로 떠난다.
+    궁합 칸 · 인연 칸에는 저절로 펼 한 사람 풀이가 없다 — 그 표지는 눌러야 옆 칸에 펼친다(`/me/readings/compat` · `match/[id]`, ADR 0134).
     사주풀이 칸에서 펼 때는 칸을 들고 간다 — 펼친 뒤에도 책장이 같은 칸에 남는다.
   */
   const openingBook = kind === 'all' || kind === 'saju' ? openingHref(singles) : null;

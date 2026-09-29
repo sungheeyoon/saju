@@ -220,7 +220,8 @@ export function MakingShelf({
           const supplied = ELEMENTS.find((one) => one === match.suppliedToMe) ?? null;
           return (
             <li key={match.matchId}>
-              <Link
+              {/* 보관함 옆 칸에 펼친 편지에도 테가 선다 — 표지와 같은 링크(`CoverLink`)다 */}
+              <CoverLink
                 href={hrefOf(match.matchId)}
                 className="group flex h-full flex-col gap-4 rounded-[1.75rem] bg-cream p-5 transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
               >
@@ -253,7 +254,7 @@ export function MakingShelf({
                   함께 보기
                   <Icon name="arrow" className="size-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
-              </Link>
+              </CoverLink>
             </li>
           );
         })}

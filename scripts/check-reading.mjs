@@ -655,11 +655,12 @@ try {
       /* 보관함에서 연 글은 온 곳을 싣는다 — 결과의 ← 가 보관함으로 돌아온다(ADR 0134) */
       ['내 사주', 'href="/me/readings/self?from=shelf"'],
       ['저장한 사람', `href="/me/readings/${momId}?from=shelf"`],
-      ['인연 궁합', `href="/me/match/${matchId}?from=shelf"`],
+      /* 궁합 두 갈래도 사주풀이처럼 보관함 틀 안의 옆 칸에 선다(ADR 0134 덧붙임) */
+      ['인연 궁합', `href="/me/readings/match/${matchId}?from=shelf"`],
     ]) {
       check(`${what} 줄이 그 대상의 화면으로 간다`, list.includes(href), href);
     }
-    check('두 사람 궁합 줄이 그 둘의 화면으로 간다', /href="\/me\/compat\?a=[^"]+&(amp;)?b=/.test(list));
+    check('두 사람 궁합 줄이 그 둘의 화면으로 간다', /href="\/me\/readings\/compat\?a=[^"]+&(amp;)?b=/.test(list));
 
     /**
      * **본문이 없다.** 이건 SQL 시험이 못 잰다 — 반환형에 열이 하나 늘어도 pgTAP 은

@@ -1822,16 +1822,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await back('나').click();
     await expect(page).toHaveURL(/\/me$/);
 
-    /* 보관함의 궁합풀이 칩 → 궁합풀이 → ← 같은 칩의 보관함. 불은 나 */
-    await page.goto('/me/readings?kind=compat');
-    await page.getByRole('main').getByRole('link', { name: /어머니/ }).click();
-    await expect(page).toHaveURL(/\/me\/compat\?a=[^&]+&b=[^&]+&kind=compat&from=shelf$/);
-    await expectLitTab(page, '나');
-    await back('풀이 보관함').click();
-    await expect(page).toHaveURL(/\/me\/readings\?kind=compat$/);
-    await expect(
-      page.getByRole('navigation', { name: '풀이 종류' }).getByRole('link', { name: '궁합풀이', exact: true }),
-    ).toHaveAttribute('aria-current', 'page');
+    /* 보관함의 궁합풀이 칩에서 연 궁합은 보관함 틀 안에 선다 — 아래 「보관함에서 연 궁합풀이는 책장 옆 같은 칸에」가 잰다 */
 
     /* 궁합 탭에서 연 궁합은 궁합 탭 불, ← 「궁합」 */
     const pair = `/me/compat?a=${me}&b=${mother}`;
@@ -1897,6 +1888,17 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       await expect(main.getByRole('link', { name: /어머니/ }).first()).toHaveAttribute('aria-current', 'page');
       await expect(main.getByRole('link', { name: '풀이 보관함', exact: true })).toBeHidden();
     }
+
+    /*
+      사이를 바꾸면 사이 줄이 둘을 갈라 적는다 — 지금 글의 사이와 다음 풀이의 사이(조건부 조각이 서는 갈래). 틀 안 주소는
+      온 곳 없이 열어도 보관함이다 — 불은 나, ← 는 보관함.
+    */
+    sql(`update public.reading set score_relation = 'family' where source_run_id = '${started.data?.[0]?.run_id as string}'::uuid`);
+    expect((await api.rpc('set_pair_relation', { p_person_a: me, p_person_b: mother, p_relation: 'friend' })).error).toBeNull();
+    await page.goto(`/me/readings/compat?a=${me}&b=${mother}`);
+    await expect(main.getByText('지금 글과 점수는')).toBeVisible();
+    await expectLitTab(page, '나');
+    await expect(main.getByRole('link', { name: '풀이 보관함', exact: true, includeHidden: true })).toHaveAttribute('href', '/me/readings');
 
     /* 궁합 탭에서 연 궁합은 지금처럼 제 주소 — 책장 없이 ← 「궁합」 */
     await page.goto(`/me/compat?a=${me}&b=${mother}&from=compat`);
