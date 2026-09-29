@@ -10,6 +10,7 @@ import {
   expectBirthDate,
   fillBirthDate,
   fillBirthTime,
+  pickRow,
 } from './birth-form';
 import { expectTargets, focusedOutline, seamRows } from './target';
 
@@ -348,8 +349,9 @@ test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한�
   await enterKnownBirth(page);
 
   await chooseHourUnknown(page);
-  await expect(page.getByLabel('출생 시', { exact: true })).toBeDisabled();
-  await expect(page.getByLabel('출생 분')).toBeDisabled();
+  // 「모름」이면 시각 줄이 빠진다 — 시 · 분을 적을 자리가 없다(ADR 0132, 전에는 두 칸이 잠겼다)
+  await expect(page.getByLabel('출생 시', { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel('출생 분', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: '사주 보기' }).click();
   await expect(
     page.getByLabel('시주 천간과 지지').getByText('출생 시각 모름').first(),
@@ -366,8 +368,8 @@ test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한�
   await expect(page.getByText('균시차', { exact: true })).toBeVisible();
 
   // 기준은 여전히 사용자가 옮긴다 — 옮기면 균시차 줄이 빠진다.
-  await page.locator('summary').filter({ hasText: '고급 설정' }).click();
-  await page.getByRole('combobox', { name: '시간 기준', exact: true }).selectOption({ label: '지방평균태양시' });
+  await page.getByRole('button', { name: /^고급 설정/ }).click();
+  await pickRow(page, '시간 기준', '지방평균태양시');
   await page.getByRole('button', { name: '수정하고 다시 보기' }).click();
   await expect(page.getByRole('heading', { name: /적용된 보정.*지방평균태양시/ })).toBeVisible();
   await expect(page.getByText('균시차', { exact: true })).toHaveCount(0);
@@ -484,7 +486,7 @@ test('기준 시각은 제출할 때마다 새로 잡힌다', async ({ page }) =
   // 아직 제출하지 않았으므로 그대로다 — 초마다 다시 그리지는 않는다.
   expect(await asOf()).toBe('2026년 8월 17일 10시 0분');
 
-  await page.locator('summary').filter({ hasText: '고급 설정' }).click();
+  await page.getByRole('button', { name: /^고급 설정/ }).click();
   await page.getByLabel('세운 시작').fill('2030');
   await page.getByRole('button', { name: '수정하고 다시 보기' }).click();
   await expect(page).toHaveURL(/saeun=2030/);
@@ -624,7 +626,7 @@ test('수정은 히스토리를 쌓지 않아 뒤로가기 한 번에 빈 화면
   await page.getByRole('button', { name: '사주 보기' }).click();
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 
-  await page.locator('summary').filter({ hasText: '고급 설정' }).click();
+  await page.getByRole('button', { name: /^고급 설정/ }).click();
   await page.getByLabel('세운 시작').fill('2030');
   await page.getByRole('button', { name: '수정하고 다시 보기' }).click();
   await expect(page).toHaveURL(/saeun=2030/);
@@ -772,8 +774,8 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }
 
   /*
-    **궁합 입구의 두 카드가 제일 좁다.** 폰 360px 에서 흰 카드 안은 262px 이다 — 시 · 분 곁의 「시각」 셀렉트와
-    「달력 · 음력 윤달」이 빠듯한 자리라, 폼이 선 자리의 폭으로 줄을 가른다(ADR 0132). 가장 긴 값을 고른 채로 잰다.
+    **궁합 입구의 두 묶음도 잰다.** 「생년월일」 줄은 칸 셋과 단위가 한 줄에 거의 꽉 차서 좁으면 이름 아래로 꺾인다
+    (ADR 0132). 가장 긴 값을 고른 채로 잰다.
   */
   await page.getByRole('tab', { name: /궁합 보기/ }).click();
   const partner = page.getByRole('group', { name: '상대', exact: true });
@@ -786,9 +788,9 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }));
   expect(pairOverflow.scroll).toBeLessThanOrEqual(pairOverflow.client);
   for (const control of [
-    partner.getByRole('combobox', { name: '달력 기준', exact: true }),
-    partner.getByRole('combobox', { name: '출생 시각', exact: true }),
-    partner.getByLabel('출생 분', { exact: true }),
+    partner.getByRole('button', { name: /^달력 / }),
+    partner.getByRole('button', { name: /^출생 시각 / }),
+    partner.getByLabel('출생일', { exact: true }),
     page.getByRole('button', { name: '무료로 궁합 미리 보기' }),
   ]) {
     expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(44);
@@ -828,7 +830,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
 /**
  * **작은 과녁 · 두 겹 초점 · 바탕의 금** — 셋 다 운영 화면에서 잰 것이다(2026-09-25).
  *
- * - 입력 폼의 두 세그먼트(달력 기준 · 출생 시각)는 칸 높이가 40px 이었다(지금은 48px 알약 셀렉트, ADR 0132). 결과의 바로가기
+ * - 입력 폼의 두 세그먼트(달력 기준 · 출생 시각)는 칸 높이가 40px 이었다(지금은 48px 펼침 줄, ADR 0132). 결과의 바로가기
  *   「운」은 글자 하나라 폭이 39.9px, 합 설명을 펴는 머리는 높이가 20px 이었다.
  * - 전역 초점 테두리가 층 밖에 있어서 `outline-none` 을 단 칸에도 한 겹 더 섰다 — 칸은 제
  *   테두리(`ring`)를 두르므로 두 겹이었다.
@@ -841,14 +843,13 @@ test('입력 폼과 결과의 누르는 자리가 44px 이상이고, 초점은 �
 }) => {
   await page.goto('/');
 
-  // 고르는 칸은 알약 셀렉트 넷이다(ADR 0132) — 세그먼트였을 때 40px 이던 자리
-  const select = (name: string) => page.getByRole('combobox', { name, exact: true });
-  await expectTargets({
-    성별: select('성별'),
-    '달력 기준': select('달력 기준'),
-    출생지: select('출생지'),
-    '출생 시각': select('출생 시각'),
-  });
+  // 고르는 칸은 펼침 줄이고(ADR 0132) 펼친 목록의 한 줄도 과녁이다 — 세그먼트였을 때 40px 이던 자리
+  const row = (name: string) => page.getByRole('button', { name: new RegExp(`^${name} `) });
+  await expectTargets({ 성별: row('성별'), 달력: row('달력'), '출생 시각': row('출생 시각'), 출생지: row('출생지') });
+  await row('달력').click();
+  const option = (name: string) => page.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
+  await expectTargets({ 양력: option('양력'), 음력: option('음력'), '음력 윤달': option('음력 윤달') });
+  await row('달력').click();
 
   const focused = await focusedOutline(page.getByLabel('출생연도'));
   expect.soft(focused.own).toBe('none');

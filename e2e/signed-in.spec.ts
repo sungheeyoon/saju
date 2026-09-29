@@ -1823,7 +1823,7 @@ async function typeInto(
   { name, date, time }: { name: string; date: string; time: string },
 ): Promise<void> {
   const card = slotCard(page, side);
-  await card.getByRole('button', { name: '직접 입력' }).click();
+  await card.getByRole('button', { name: '직접 입력', exact: true }).click();
 
   await fillBirthDate(card, date);
   await fillBirthTime(card, time);

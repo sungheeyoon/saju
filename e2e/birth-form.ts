@@ -12,7 +12,7 @@ import { CALENDAR_KO, type Calendar } from '@/src/lib/saju';
  *
  * 날짜와 시각은 `<input type="date">`·`type="time">` 이 아니라 숫자 칸으로 서 있다
  * (`app/birth-form.tsx` 의 머리말). 그래서 검사도 **한 칸에 한 번 채우지 않고**
- * 년·월·일과 시·분을 각각 적는다. 성별 · 달력 · 출생지 · 시각은 알약 셀렉트다(ADR 0132).
+ * 년·월·일과 시·분을 각각 적는다. 성별 · 달력 · 출생지 · 출생 시각은 펼침 줄이다(ADR 0132).
  */
 
 type Scope = Page | Locator;
@@ -49,41 +49,40 @@ export async function expectBirthDate(scope: Scope, date: string): Promise<void>
 }
 
 /**
- * 「출생 시각」 셀렉트(「알아요 · 몰라요」)에서 하나를 고른다.
+ * 묶음 목록의 펼침 줄에서 하나를 고른다 — 줄(`button`, 이름은 「줄 이름 + 지금 값」)을 눌러 펼치고 라디오를 누른다.
  *
- * 알약 안에 보이는 이름은 「시각」 두 글자고, 온전한 이름 「출생 시각」은 화면에서 감춘 라벨이 든다
- * (`birth-form.tsx` 의 `PillSelect`). 검사가 짚는 것은 언제나 불리는 이름 쪽이다. 역할로 찾는다 —
- * 「출생 시」 · 「출생 분」 칸도 그 글자로 시작한다.
+ * 손으로 고르면 목록이 접히므로(`birth-form.tsx` 의 `PickRow`) `check()` 가 아니라 `click()` 이다 — `check()` 는
+ * 누른 뒤 라디오가 켜져 있는지 다시 보는데, 그때 라디오는 이미 떼어졌다.
  */
-function hourSelect(scope: Scope): Locator {
-  return scope.getByRole('combobox', { name: '출생 시각', exact: true });
+export async function pickRow(scope: Scope, row: string, option: string): Promise<void> {
+  await scope.getByRole('button', { name: new RegExp(`^${row} `) }).click();
+  await scope.getByRole('radio', { name: option, exact: true }).click();
 }
 
 /**
- * 시각을 아는 쪽을 고르고 시·분을 적는다.
+ * 시각을 아는 쪽(「직접 입력」)을 고르고 시·분을 적는다.
  *
- * 폼은 「알아요」에서 시작하므로 두 칸은 이미 열려 있다. 그래도 셀렉트를 먼저 고른다 — 주소에서 온 입력은
- * `hourKnown` 이 `null` 이거나 `false` 일 수 있고, 그때는 두 칸이 잠겨 있다.
+ * 폼은 「직접 입력」에서 시작하므로 시각 줄은 이미 서 있다. 그래도 먼저 고른다 — 주소에서 온 입력은
+ * `hourKnown` 이 `null` 이거나 `false` 일 수 있고, 그때는 시각 줄이 없다.
  */
 export async function fillBirthTime(scope: Scope, time: string): Promise<void> {
   const match = TIME.exec(time);
   if (!match) throw new Error(`HH:MM 이 아니다: ${time}`);
   const [, hour, minute] = match;
 
-  await hourSelect(scope).selectOption({ label: '알아요' });
-  // `exact` 없이 「출생 시」로 찾으면 「출생 시각」 셀렉트까지 걸린다.
+  await pickRow(scope, '출생 시각', '직접 입력');
   await scope.getByLabel('출생 시', { exact: true }).fill(hour);
   await scope.getByLabel('출생 분', { exact: true }).fill(minute);
 }
 
 /** 시각을 모른다고 답한다 — 고르지 않은 것과 다르다 */
 export async function chooseHourUnknown(scope: Scope): Promise<void> {
-  await hourSelect(scope).selectOption({ label: HOUR_UNKNOWN_CHOICE });
+  await pickRow(scope, '출생 시각', HOUR_UNKNOWN_CHOICE);
 }
 
-/** 달력 기준 — 양력·음력·음력 윤달 셋 중 하나. 알약 셀렉트 「달력」(불리는 이름 「달력 기준」)에서 고른다 */
+/** 달력 기준 — 양력·음력·음력 윤달 셋 중 하나. 「음력」은 「음력 윤달」의 앞토막이라 라디오는 `exact` 로 찾는다 */
 export async function chooseCalendar(scope: Scope, calendar: Calendar): Promise<void> {
-  await scope.getByRole('combobox', { name: '달력 기준', exact: true }).selectOption({ label: CALENDAR_KO[calendar] });
+  await pickRow(scope, '달력', CALENDAR_KO[calendar]);
 }
 
 /** 이름·생년월일·출생시각까지 한 벌 — 제출 조건을 다 채운다 */

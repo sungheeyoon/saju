@@ -10,7 +10,7 @@ import { SignedInProvider } from './signed-in';
 import { SajuCompatTabs } from './segmented-nav';
 import { TAB_HERO_CARD, TabHeroBody, TabHeroGlow } from './tab-hero';
 import { SunMark, TaijiMark } from './ui/entry-marks';
-import { PAPER_TOP, TYPE_META, TYPE_SECTION, TYPE_TITLE } from './ui/surfaces';
+import { PAPER_TOP, TYPE_SECTION } from './ui/surfaces';
 
 /**
  * `/` 의 얼굴 — **처음 온 사람과 이미 들어온 사람에게 다른 것을 세운다.**
@@ -86,7 +86,7 @@ export function HomeHero({ calculator }: { calculator: ReactNode }) {
           <div className={member ? 'mb-5' : 'sr-only'}>
             {member && <p className="text-[13px] font-semibold text-cream-ink">직접 입력</p>}
             <h2 className={`mt-1 ${TYPE_SECTION}`}>출생 정보를 입력해 주세요</h2>
-            {member && <p className="mt-2 text-sm leading-6 text-secondary">출생 시각을 모르면 「{HOUR_UNKNOWN_CHOICE}」를 고르세요.</p>}
+            {member && <p className="mt-2 text-sm leading-6 text-secondary">출생 시각을 모르면 「{HOUR_UNKNOWN_CHOICE}」을 고르세요.</p>}
           </div>
           {/*
             **계산기도 이 값으로 갈린다** — 로그인하지 않은 사람에게는 결과의 첫머리가 맛보기다(`taste.tsx`).
@@ -119,7 +119,7 @@ type Entry = 'self' | 'pair';
 function Hero({ member, entry, onEntry }: { member: boolean; entry: Entry; onEntry: (entry: Entry) => void }) {
   return (
     <header className={member ? TAB_HERO_CARD : `relative ${PAPER_TOP}`}>
-      {/* 번짐은 회원의 머리에만 — 현관의 종이는 먹 · 흰 · 크림뿐이다(시안 s) */}
+      {/* 번짐은 회원의 머리에만 — 현관의 종이는 먹 · 흰 · 크림뿐이다(시안 n) */}
       {member && <TabHeroGlow />}
       {/*
         **껍데기는 안 갈린다.** 자리에 서는 부품 종류가 바뀌면 세션이 풀리는 순간
@@ -158,7 +158,7 @@ function Hero({ member, entry, onEntry }: { member: boolean; entry: Entry; onEnt
 
 /**
  * 현관의 속 — 카드 껍데기는 `Hero` 가 든다(흐름 시안 g 의 첫 화면, ADR 0131). 크림 종이의 위 토막이고, 아래 토막은
- * 폼이다 — 제목 · 입구 · 폼 · 주 단추가 한 장 안에 선다(입력 폼 시안 s, ADR 0132).
+ * 폼이다 — 제목 · 입구 · 폼 · 주 단추가 한 장 안에 선다(입력 폼 시안 n, ADR 0132).
  *
  * 제목 한 줄, 설명 한 줄, 그리고 **두 입구** — 「내 사주 보기」와 「궁합 보기」. 입구는 바로 아래 입력 칸을 고르는 탭이다:
  * 둘 다 로그인 없이 맛보기까지 간다. 입구 아래에는 곧장 폼이 선다.
@@ -183,11 +183,16 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
   };
 
   return (
-    <div className="relative px-4 pb-5 pt-6 sm:px-10 sm:pt-9">
-      <h1 className={TYPE_TITLE}>나는 어떤 사람일까?</h1>
-      <p className="mt-1 max-w-md text-sm leading-6 text-secondary">생일만 넣으면 사주와 짧은 맛보기를 바로 보여 드려요.</p>
-      <div role="tablist" aria-label="무엇을 볼까요" className="mt-5 grid grid-cols-2 gap-3">
-        {ENTRIES.map(({ id, Mark, title, question }) => (
+    <div className="relative px-3 pb-4 pt-5 sm:px-10 sm:pt-9">
+      <div className="px-1">
+        <h1 className="font-rounded text-[1.6rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2rem]">
+          나는 어떤 사람일까?
+        </h1>
+        <p className="mt-1 max-w-md text-sm leading-6 text-secondary">생일만 넣으면 사주와 짧은 맛보기를 바로 보여 드려요.</p>
+      </div>
+      {/* 입구는 세그먼트 한 줄이다(시안 n) — 큰 카드 둘이던 자리가 한 줄로 줄어 폼이 첫 화면에 더 많이 든다 */}
+      <div role="tablist" aria-label="무엇을 볼까요" className="mt-4 grid grid-cols-2 gap-0.5 rounded-[0.9rem] bg-surface-sunken p-0.5">
+        {ENTRIES.map(({ id, Mark, title }) => (
           <button
             key={id}
             id={`entry-${id}`}
@@ -198,15 +203,12 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
             tabIndex={entry === id ? 0 : -1}
             onClick={() => onEntry(id)}
             onKeyDown={onKeyDown}
-            className={`flex min-h-32 min-w-0 flex-col items-start gap-3 rounded-[1.5rem] border bg-surface p-4 text-left text-foreground transition active:scale-[0.97] ${
-              entry === id ? 'border-foreground shadow-card ring-1 ring-foreground' : 'border-border hover:border-border-strong'
+            className={`flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-[0.75rem] px-2 text-[15px] font-semibold active:scale-[0.98] ${
+              entry === id ? 'bg-surface text-foreground shadow-card' : 'text-secondary'
             }`}
           >
-            <Mark className="size-10" />
-            <span className="flex min-w-0 max-w-full flex-col">
-              <span className="text-[15px] font-semibold leading-5">{title}</span>
-              <span className={`${TYPE_META} truncate`}>{question}</span>
-            </span>
+            <Mark className="size-5" />
+            {title}
           </button>
         ))}
       </div>
@@ -217,9 +219,9 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
 /**
  * 두 입구 — 그림은 장식이다. 이름이 곧 탭의 이름이다.
  *
- * 오행 그림(火 · 水)이 서 있었는데 입구는 오행을 뜻하지 않는다 — 해와 태극의 흑백 그림으로 바꿨다(시안 s, ADR 0132).
+ * 오행 그림(火 · 水)이 서 있었는데 입구는 오행을 뜻하지 않는다 — 해와 태극의 흑백 그림으로 바꿨다(시안 n, ADR 0132).
  */
-const ENTRIES: readonly { id: Entry; Mark: typeof SunMark; title: string; question: string }[] = [
-  { id: 'self', Mark: SunMark, title: '내 사주 보기', question: '나는 어떤 사람?' },
-  { id: 'pair', Mark: TaijiMark, title: '궁합 보기', question: '이 사람이랑 맞아?' },
+const ENTRIES: readonly { id: Entry; Mark: typeof SunMark; title: string }[] = [
+  { id: 'self', Mark: SunMark, title: '내 사주 보기' },
+  { id: 'pair', Mark: TaijiMark, title: '궁합 보기' },
 ];

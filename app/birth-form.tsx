@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import {
   CALENDARS,
@@ -48,82 +48,157 @@ import {
  */
 
 /**
- * 흰 알약 칸 — 높이 48px, 가는 테. **적는 칸과 고르는 칸이 같은 모양이다**(입력 폼 시안 s 「부드러움」, ADR 0132).
+ * 폼은 **설정 앱의 묶음 목록**이다(입력 폼 시안 n 「설정 목록」, ADR 0132).
  *
- * 세그먼트 셋(성별 · 달력 · 시각)과 네모 칸이 한 폼에 섞여 있었다 — 판 위의 모서리가 32 · 24 · 16 · 알약 네 벌이었다.
- * 칸이 전부 알약이면 「단추 = 알약」 규칙과 같은 모양이라 판(32) · 타일(24) · 알약 세 벌로 끝난다.
+ * 흰 둥근 묶음 안에 줄마다 왼쪽 이름 · 오른쪽 값. 칸 위에 제목을 세우고 그 아래 칸을 두던 동안에는 모양이 네 벌
+ * (네모 칸 · 세그먼트 · 네모 셀렉트 · 라디오)이었다 — 줄 하나에 이름과 값이 함께 서면 비어 있어도 무슨 칸인지
+ * 늘 보이고, 고르는 칸은 그 자리에서 펼쳐져 화면을 떠나지 않는다.
+ *
+ * 줄 사이 선은 왼쪽 16px 을 들여 긋는다(묶음 `pl-4`, 줄 `pr-4`) — 한 묶음으로 읽힌다.
  */
-const PILL =
-  'h-12 w-full min-w-0 rounded-full border border-border bg-surface text-base text-foreground outline-none placeholder:text-muted hover:border-border-strong focus:border-foreground focus:ring-[3px] focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-40';
+const GROUP = 'overflow-hidden rounded-2xl bg-surface pl-4 shadow-card divide-y divide-border';
 
-/** 알약 왼쪽의 작은 이름 */
-const PILL_LABEL = 'pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-medium text-secondary';
+/** 줄 — 높이 48px. 이름은 왼쪽, 값은 오른쪽 */
+const ROW = 'flex min-h-12 items-center gap-3 pr-4';
+const ROW_LABEL = 'shrink-0 text-[15px] text-foreground';
 
-/** 알약 왼쪽 작은 이름(12px 한 글자 ≈ 0.75rem)만큼 값 글자를 민다 */
-const labelPad = (label: string) => `calc(0.875rem + ${label.length * 0.75 + 0.4}rem)`;
+/** 줄 안 오른쪽 숫자 칸 — 움푹한 작은 칸, 오른쪽 정렬 */
+const DIGIT =
+  'h-11 min-w-0 rounded-lg bg-surface-sunken px-1.5 text-right text-base tabular-nums text-foreground outline-none placeholder:text-sm placeholder:text-muted focus:ring-2 focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-40';
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
+type Option<T extends string> = { value: T; label: string; hint?: string };
+
 /**
- * 알약 셀렉트 — 흰 알약 + 왼쪽 작은 이름 + 오른쪽 ▾. 펼침은 브라우저 · OS 가 그린다(폰에서는 휠).
+ * 누르면 그 자리에서 아래로 펼쳐지는 줄 — 고른 항목에 체크(✓), 고르면 접힌다.
  *
- * **보이는 이름과 불리는 이름이 다를 수 있다**(`name`). 알약 안에는 두 글자(「달력」)만 서지만 낭독기에는 온전한
- * 이름(「달력 기준」)을 준다 — 셀렉트는 지금 값 하나만 읽어 주므로, 무엇의 값인지를 이름이 말해야 한다.
+ * 줄은 `button` + `aria-expanded` 이고, 펼친 목록은 **진짜 라디오 묶음**이다. 단추에 `role="radio"` 를 달면 화살표
+ * 이동과 한 번에 하나라는 규칙을 우리가 다시 짜야 한다 — 라디오는 브라우저가 그것을 이미 안다. 라디오는 보이지 않게
+ * 줄 전체를 덮고(눌리는 것도 초점을 받는 것도 라디오다), 초점 테두리는 줄이 대신 두른다.
  *
- * 세그먼트였을 때는 고를 것 둘 · 셋이 한눈에 보였다. 셀렉트는 지금 값 하나만 보인다 — 시안이 받아들인 값이다.
+ * **손으로 고르면 접히고 키보드로 옮기면 안 접힌다.** 화살표는 고르면서 옮기므로, 옮길 때마다 접으면 두 번째 항목에
+ * 닿을 수 없다. 키보드로는 Enter 로 접는다 — 접히면 초점은 줄로 돌아간다.
  */
-function PillSelect<T extends string>({
+function PickRow<T extends string>({
   label,
   name = label,
-  value,
   options,
-  onChange,
+  value,
+  open,
+  onToggle,
+  onPick,
   disabled = false,
-  placeholder,
 }: {
   label: string;
+  /** 낭독기가 부르는 묶음 이름 — 보이는 이름이 짧을 때(「달력」 → 「달력 기준」) */
   name?: string;
-  /** 빈 문자열이면 아직 안 고른 것이다 — `placeholder` 한 줄이 그 자리를 든다 */
+  options: readonly Option<T>[];
+  /** 빈 문자열이면 아직 안 골랐다 — 값 자리에 「–」가 선다 */
   value: T | '';
-  options: readonly { value: T; label: string }[];
-  onChange: (value: T) => void;
+  open: boolean;
+  onToggle: () => void;
+  onPick: (value: T) => void;
   disabled?: boolean;
-  placeholder?: string;
 }) {
+  const id = useId();
+  const toggle = useRef<HTMLButtonElement>(null);
+  const current = options.find((option) => option.value === value);
+
+  const close = () => {
+    onToggle();
+    toggle.current?.focus();
+  };
+
   return (
-    <label className="relative block min-w-0">
-      <span aria-hidden="true" className={`${PILL_LABEL} ${disabled ? 'opacity-40' : ''}`}>
-        {label}
-      </span>
-      <span className="sr-only">{name}</span>
-      <select
-        value={value}
+    <div>
+      <button
+        ref={toggle}
+        type="button"
+        aria-expanded={open}
+        aria-controls={id}
         disabled={disabled}
-        onChange={(event) => onChange(event.target.value as T)}
-        style={{ paddingLeft: labelPad(label) }}
-        className={`${PILL} cursor-pointer appearance-none truncate pr-8 text-[15px] font-semibold`}
+        onClick={onToggle}
+        className={`${ROW} w-full text-left active:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-40`}
       >
-        {value === '' && (
-          <option value="" disabled hidden>
-            {placeholder}
-          </option>
-        )}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 12 12"
-        className="pointer-events-none absolute right-3.5 top-1/2 size-3 -translate-y-1/2 text-foreground"
-      >
-        <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </label>
+        <span className={ROW_LABEL}>{label}</span>
+        <span className={`min-w-0 flex-1 truncate text-right text-[15px] ${open ? 'text-foreground' : 'text-secondary'}`}>
+          {current?.label ?? '–'}
+        </span>
+        <Chevron className={`size-4 shrink-0 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div id={id} role="radiogroup" aria-label={name} className="mb-2 mr-4 overflow-hidden rounded-xl bg-surface-sunken">
+          {options.map((option) => {
+            const checked = option.value === value;
+            return (
+              <label
+                key={option.value}
+                className="relative flex min-h-12 cursor-pointer items-center gap-2 border-t border-border px-3 first:border-t-0 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-accent-soft"
+              >
+                <input
+                  type="radio"
+                  name={id}
+                  aria-label={option.label}
+                  checked={checked}
+                  onChange={() => onPick(option.value)}
+                  onClick={(event) => {
+                    // 손(마우스 · 터치)의 누름만 `detail` 이 1 이상이다 — 화살표로 옮긴 것은 0 이라 안 접는다
+                    if (event.detail > 0) close();
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter') return;
+                    event.preventDefault();
+                    onPick(option.value);
+                    close();
+                  }}
+                  className="absolute inset-0 cursor-pointer appearance-none opacity-0"
+                />
+                <span className={`text-[15px] text-foreground ${checked ? 'font-semibold' : ''}`}>{option.label}</span>
+                {option.hint && <span className="text-[13px] text-secondary">{option.hint}</span>}
+                <span className="ml-auto">{checked && <Check className="size-4 text-foreground" />}</span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 숫자 칸이 오른쪽에 서는 줄. **좁으면 칸들이 이름 아래로 꺾인다**(`flex-wrap`) — 폰 360px 의 로그인 뒤 카드 안에서
+ * 「생년월일」과 칸 셋 · 단위가 한 줄에 안 들었다(2026-09-29 잼).
+ */
+function DigitsRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  const id = useId();
+  return (
+    <div role="group" aria-labelledby={id} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 py-1 pr-4">
+      <span id={id} className="flex shrink-0 flex-col text-[15px] leading-5 text-foreground">
+        {label}
+        {hint && <span className="text-xs text-secondary">{hint}</span>}
+      </span>
+      <div className="ml-auto flex min-w-0 items-center justify-end gap-2">{children}</div>
+    </div>
+  );
+}
+
+function Chevron({ className }: { className: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function Check({ className }: { className: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className={className}>
+      <path d="M3 8.5l3.25 3L13 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -218,18 +293,20 @@ function NumberField({
   digits,
   min,
   max,
+  width,
   placeholder,
   disabled = false,
   autoComplete,
 }: {
   label: string;
-  /** 알약 안 오른쪽에 붙는 우리말 — 「년」·「월」·「시」. 이것이 있어 자리 이름을 안 물어도 된다 */
+  /** 칸 뒤에 서는 우리말 — 「년」·「월」·「시」. 이것이 있어 자리 이름을 안 물어도 된다 */
   suffix: string;
   value: string;
   onChange: (next: string) => void;
   digits: number;
   min: number;
   max: number;
+  width: string;
   placeholder: string;
   disabled?: boolean;
   autoComplete?: string;
@@ -243,8 +320,7 @@ function NumberField({
   const outOfRange = settled && (Number(value) < min || Number(value) > max);
 
   return (
-    // 단위 글자를 칸 **안** 오른쪽에 붙인다 — 칸 밖에 두면 폰 360px 의 궁합 카드에서 년 · 월 · 일 셋이 한 줄에 안 섰다.
-    <div className="relative min-w-0">
+    <label className="flex shrink-0 items-center gap-1">
       <input
         type="text"
         inputMode="numeric"
@@ -255,17 +331,14 @@ function NumberField({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, digits))}
-        // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `PILL` 의 테두리 색과
+        // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `DIGIT` 의 바탕과
         // 같은 무게라 어느 쪽이 이길지 정해지지 않는다. 변종 셀렉터는 한 겹 더 무겁다.
-        className={`${PILL} pl-2.5 pr-7 text-center tabular-nums placeholder:text-sm aria-invalid:border-danger aria-invalid:focus:border-danger aria-invalid:focus:ring-danger-wash`}
+        className={`${DIGIT} ${width} aria-invalid:bg-danger-wash aria-invalid:text-danger aria-invalid:ring-2 aria-invalid:ring-danger`}
       />
-      <span
-        aria-hidden="true"
-        className={`pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-secondary ${disabled ? 'opacity-40' : ''}`}
-      >
+      <span aria-hidden="true" className={`text-sm text-secondary ${disabled ? 'opacity-40' : ''}`}>
         {suffix}
       </span>
-    </div>
+    </label>
   );
 }
 
@@ -324,8 +397,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
   };
 
   return (
-    <fieldset className="grid min-w-0 grid-cols-[1.35fr_1fr_1fr] gap-2">
-      <legend className="sr-only">생년월일</legend>
+    <DigitsRow label="생년월일">
       <NumberField
         label="출생연도"
         suffix="년"
@@ -334,6 +406,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={4}
         min={years.min}
         max={years.max}
+        width="w-[3.75rem]"
         placeholder={String(years.max - 30)}
         autoComplete="bday-year"
       />
@@ -345,6 +418,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={12}
+        width="w-12"
         placeholder="1~12"
         autoComplete="bday-month"
       />
@@ -356,10 +430,11 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={maxDay}
+        width="w-12"
         placeholder={`1~${maxDay}`}
         autoComplete="bday-day"
       />
-    </fieldset>
+    </DigitsRow>
   );
 }
 
@@ -380,15 +455,26 @@ function splitTime(time: string) {
  * 갈리고, 그 한 칸이 시주를 통째로 바꾼다. 자시 규칙(조자시 23:00 경계)도 23시가
  * 23시로 적혀 있을 때만 사람이 대조할 수 있다.
  *
- * 시각을 아는가는 **알약 셀렉트 하나**다(「알아요 · 몰라요」, 시안 s). 체크박스는 **꺼진 상태가 답처럼 보이지
- * 않아서** 쓰지 않는다 — 시각을 안 넣고 체크도 안 한 사람이 자기가 아직 아무것도 고르지 않았다는 것을 모른다
- * (`hourKnown` 이 `null`·`false`·`true` 셋인 이유). 주소에서 온 입력이 `null` 이면 셀렉트는 빈 값(「–」)으로
- * 서고 시 · 분 칸은 잠겨 있다 — 고르기 전에는 어느 쪽도 고른 것이 아니다.
+ * 시각을 아는가는 「출생 시각」 줄의 펼침이다(「직접 입력 · 모름」, 시안 n). 체크박스는 **꺼진 상태가 답처럼
+ * 보이지 않아서** 쓰지 않는다 — 시각을 안 넣고 체크도 안 한 사람이 자기가 아직 아무것도 고르지 않았다는 것을 모른다
+ * (`hourKnown` 이 `null`·`false`·`true` 셋인 이유). 주소에서 온 입력이 `null` 이면 줄의 값은 「–」이고 시각 줄은
+ * 서지 않는다 — 고르기 전에는 어느 쪽도 고른 것이 아니다.
  *
- * 「몰라요」를 고르면 적어 둔 시각도 지운다. 남겨 두면 "모름인데 14:30" 이 상태로
- * 남고, 다시 「알아요」를 고르는 순간 사용자가 지웠다고 생각한 값으로 계산된다.
+ * 「모름」을 고르면 적어 둔 시각도 지운다. 남겨 두면 "모름인데 14:30" 이 상태로
+ * 남고, 다시 「직접 입력」을 고르는 순간 사용자가 지웠다고 생각한 값으로 계산된다.
  */
-function TimeFields({ value, onChange }: { value: Query; onChange: (next: Query) => void }) {
+function TimeFields({
+  value,
+  onChange,
+  open,
+  onToggle,
+}: {
+  value: Query;
+  onChange: (next: Query) => void;
+  /** 「출생 시각」 줄이 펼쳐져 있나 — 한 묶음에서 펼침은 하나라 묶음(`BirthFields`)이 든다 */
+  open: boolean;
+  onToggle: () => void;
+}) {
   const [parts, setParts] = useState(() => splitTime(value.time));
   const lastEmitted = useRef(value.time);
 
@@ -427,52 +513,50 @@ function TimeFields({ value, onChange }: { value: Query; onChange: (next: Query)
   const known = value.hourKnown === true;
 
   return (
-    /*
-      시·분도 **적는 칸**이다. 24시간이라 시는 스물넷, 분은 예순 줄짜리 목록이 되는데, 두 자리를 치는 편이
-      어느 쪽이든 빠르다. 범위를 벗어나면 시각을 내보내지 않으므로 「25:70」이 계산으로 흘러가지 않는다.
-
-      **좁으면 셀렉트가 아랫줄로 내려간다**(`@min-[19rem]`) — 폰 390px 의 궁합 카드 안에서 셀렉트 8rem 곁에 시 · 분이
-      서면 칸 하나가 72px 이라 자리표시 「0~23」이 빈자리 34px 에 꼭 찼다(360px 에서는 60px 이다, 2026-09-29 잼).
-      기준은 화면 폭이 아니라 폼이 선 자리의 폭이다.
-    */
-    <fieldset className="grid min-w-0 grid-cols-2 gap-2 @min-[19rem]:grid-cols-[1fr_1fr_8rem]">
-      <legend className="sr-only">출생 시각</legend>
-      <NumberField
-        label="출생 시"
-        suffix="시"
-        value={parts.hour}
-        onChange={(next) => update('hour', next)}
-        digits={2}
-        min={0}
-        max={23}
-        placeholder={known ? '0~23' : '–'}
-        disabled={!known}
+    <>
+      <PickRow
+        label="출생 시각"
+        value={value.hourKnown === null ? '' : value.hourKnown ? 'known' : 'unknown'}
+        open={open}
+        onToggle={onToggle}
+        onPick={(next) => choose(next === 'known')}
+        options={[
+          { value: 'known', label: '직접 입력' },
+          { value: 'unknown', label: HOUR_UNKNOWN_CHOICE, hint: '시주 없이 봐요' },
+        ]}
       />
-      <NumberField
-        label="출생 분"
-        suffix="분"
-        value={parts.minute}
-        onChange={(next) => update('minute', next)}
-        digits={2}
-        min={0}
-        max={59}
-        placeholder={known ? '0~59' : '–'}
-        disabled={!known}
-      />
-      <div className="col-span-2 @min-[19rem]:col-span-1">
-        <PillSelect
-          label="시각"
-          name="출생 시각"
-          value={value.hourKnown === null ? '' : value.hourKnown ? 'known' : 'unknown'}
-          placeholder="–"
-          onChange={(next) => choose(next === 'known')}
-          options={[
-            { value: 'known', label: '알아요' },
-            { value: 'unknown', label: HOUR_UNKNOWN_CHOICE },
-          ]}
-        />
-      </div>
-    </fieldset>
+      {/*
+        시·분도 **적는 칸**이다. 24시간이라 시는 스물넷, 분은 예순 줄짜리 목록이 되는데, 두 자리를 치는 편이
+        어느 쪽이든 빠르다. 범위를 벗어나면 시각을 내보내지 않으므로 「25:70」이 계산으로 흘러가지 않는다.
+        「직접 입력」일 때만 선다 — 「모름」이거나 아직 안 골랐으면(주소에서 온 `null`) 이 줄이 빠진다.
+      */}
+      {known && (
+        <DigitsRow label="시각" hint="24시간">
+          <NumberField
+            label="출생 시"
+            suffix="시"
+            value={parts.hour}
+            onChange={(next) => update('hour', next)}
+            digits={2}
+            min={0}
+            max={23}
+            width="w-12"
+            placeholder="0~23"
+          />
+          <NumberField
+            label="출생 분"
+            suffix="분"
+            value={parts.minute}
+            onChange={(next) => update('minute', next)}
+            digits={2}
+            min={0}
+            max={59}
+            width="w-12"
+            placeholder="0~59"
+          />
+        </DigitsRow>
+      )}
+    </>
   );
 }
 
@@ -491,13 +575,25 @@ export function BirthFields({
 }) {
   const set = <K extends keyof Query>(key: K, next: Query[K]) => onChange({ ...value, [key]: next });
 
+  /** 한 묶음에서 펼침은 하나만 열린다 — 다른 줄을 누르면 앞의 것이 접힌다 */
+  const [open, setOpen] = useState<RowKey | null>(null);
+  const toggle = (key: RowKey) => () => setOpen((current) => (current === key ? null : key));
+  const pick = <K extends keyof Query>(key: K) => (next: Query[K]) => set(key, next);
+
+  /**
+   * 고급 설정을 편 채인가. **기본값이 아닌 값이 숨어 있으면 늘 펴져 있다** — 주소로 들어온 입력이나 고쳐 온
+   * 판본이 진태양시가 아닐 때, 무엇으로 세운 명식인지가 접힘 뒤에 가린다. 기본값을 옮겨도 이 규칙은 따라온다.
+   */
+  const [advanced, setAdvanced] = useState(false);
+  const advancedShown = advanced || value.basis !== DEFAULT_QUERY.basis;
+
   /**
    * 달력을 바꾸면 **못 고르게 된 날짜는 비운다.**
    *
    * 양력 1908년을 고른 사람이 음력으로 옮기면 그 해는 표 밖이다(1912~). 남겨 두면
-   * `select` 가 자기 목록에 없는 값을 들고 빈칸처럼 서 있고, 그때 화면은 사용자가
-   * 방금 고른 것을 잃어버린 것처럼 보인다. 지우는 이유를 변환 줄이 바로 아래에서
-   * 말하므로(`convertedLine`), 지운 자리는 침묵하지 않는다.
+   * 화면에는 서 있는데 변환이 거절하는 값이 되고, 그때 화면은 사용자가 방금 고른 것을
+   * 잃어버린 것처럼 보인다. 지우는 이유를 변환 줄이 바로 아래에서 말하므로
+   * (`convertedLine`), 지운 자리는 침묵하지 않는다.
    */
   const chooseCalendar = (calendar: Calendar) =>
     onChange({
@@ -512,130 +608,136 @@ export function BirthFields({
 
   return (
     /*
-      묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 → 달력 · 출생지 → 시각). 칸은 전부 흰 알약이고
-      고르는 칸은 같은 알약 셀렉트 한 벌이다(시안 s, ADR 0132).
-
-      `@container` — 이 폼은 네 자리에 선다(첫 화면의 판 · 궁합의 두 카드 · 로그인 뒤 카드). 줄을 가를 기준은 화면이
-      아니라 폼이 받은 폭이다.
+      묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 · 달력 · 시각) → 어디서(출생지). 계산 옵션은
+      따로 떨어진 묶음이다(시안 n, ADR 0132).
     */
-    <div className="@container flex flex-col gap-2">
-      <div className={`grid gap-2 ${showName ? 'grid-cols-[1fr_7.5rem]' : 'grid-cols-[7.5rem]'}`}>
-        {showName && (
-          <label className="relative block min-w-0">
-            <span className={PILL_LABEL}>이름</span>
-            <input
-              type="text"
-              value={value.name}
-              onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
-              placeholder={namePlaceholder}
-              maxLength={NAME_MAX}
-              style={{ paddingLeft: labelPad('이름') }}
-              className={`${PILL} pr-4`}
-            />
-          </label>
-        )}
-        {/* 둘뿐이지만 다른 고르는 칸과 같은 알약 셀렉트다 — 세그먼트였을 때 폼에 모양이 두 벌이었다 */}
-        <PillSelect
-          label="성별"
-          value={value.gender}
-          onChange={(gender) => set('gender', gender)}
-          options={GENDERS.map((gender) => ({ value: gender, label: GENDER_KO[gender] }))}
-        />
-      </div>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <div className={GROUP}>
+          {showName && (
+            <label className={ROW}>
+              <span className={ROW_LABEL}>이름</span>
+              <input
+                type="text"
+                value={value.name}
+                onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
+                placeholder={namePlaceholder}
+                maxLength={NAME_MAX}
+                className="h-11 min-w-0 flex-1 bg-transparent text-right text-base text-foreground outline-none placeholder:text-muted"
+              />
+            </label>
+          )}
 
-      <DateFields value={value} onDate={(date) => set('date', date)} />
-
-      {/*
-        **달력은 날짜 바로 아래다.** 「1984-10-05」는 양력인지 음력인지가 정해져야 비로소 하루를 가리킨다.
-        출생지가 곁에 선다 — 진태양시의 경도라 계산에 들고(운영자 2026-09-29 「출생지도 폼에 넣어야」), 서울이
-        아닌 사람이 접힌 칸을 열어 볼 까닭이 없다.
-
-        좁으면 둘이 아래위로 선다 — 「달력 · 음력 윤달」이 한 알약에 들려면 142px 이 든다.
-      */}
-      <div className="grid gap-2 @min-[18rem]:grid-cols-[1.2fr_1fr]">
-        <PillSelect
-          label="달력"
-          name="달력 기준"
-          value={value.calendar}
-          onChange={chooseCalendar}
-          options={CALENDARS.map((calendar) => ({ value: calendar, label: CALENDAR_KO[calendar] }))}
-        />
-        <PillSelect
-          label="출생지"
-          value={value.city}
-          onChange={(city) => set('city', city)}
-          options={CITIES.map((city) => ({ value: city, label: city }))}
-        />
-      </div>
-
-      {/*
-        달력 형식과 날짜는 **함께 읽어야 뜻이 생긴다.** 음력이면 평달인지 윤달인지에 따라 실제 날이 한 달
-        떨어진다. 그래서 변환 결과를 바로 밑에 적는다 — **저장이나 계산 전에.**
-      */}
-      {converted !== null && (
-        <p
-          role={converted.ok ? undefined : 'alert'}
-          // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
-          className={`px-3.5 text-xs ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
-        >
-          {converted.text}
-        </p>
-      )}
-
-      <TimeFields value={value} onChange={onChange} />
-
-      {/*
-        접힌 자리에 기본값 아닌 값이 숨어 있으면 안 된다 — 주소로 들어온 입력이나
-        고쳐 온 판본이 진태양시가 아닐 때, 무엇으로 세운 명식인지가 접힘 뒤에 가린다.
-        그래서 「기본값과 다른가」로 편다. 기본값을 옮겨도 이 규칙은 따라온다.
-      */}
-      <details className="group" open={value.basis !== DEFAULT_QUERY.basis}>
-        <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1 px-1 text-[13px] font-medium text-secondary underline decoration-[color-mix(in_srgb,var(--foreground)_25%,transparent)] decoration-2 underline-offset-[6px] hover:decoration-foreground [&::-webkit-details-marker]:hidden">
-          고급 설정
-          <span className="text-xs font-normal text-muted">자시 · 시간 기준 · 세운 연도</span>
-        </summary>
-
-        <div className="mt-1 flex flex-col gap-2 rounded-[1.25rem] border border-border bg-surface p-3">
-          {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
-          <PillSelect
-            label="자시"
-            name="자시 규칙"
-            value={value.rule}
-            onChange={(rule) => set('rule', rule)}
-            disabled={value.hourKnown === false}
-            options={[
-              { value: 'jo' as LateNightRule, label: '조자시 · 경계 23:00' },
-              { value: 'ya' as LateNightRule, label: '야자시 · 경계 자정' },
-            ]}
+          <PickRow
+            label="성별"
+            value={value.gender}
+            open={open === 'gender'}
+            onToggle={toggle('gender')}
+            onPick={pick('gender')}
+            options={GENDERS.map((gender) => ({ value: gender, label: GENDER_KO[gender] }))}
           />
-          <div className="flex flex-col gap-1">
-            <PillSelect
-              label="기준"
-              name="시간 기준"
-              value={value.basis}
-              onChange={(basis) => set('basis', basis)}
-              options={TIME_BASES.map((basis) => ({ value: basis, label: TIME_BASIS[basis].label }))}
-            />
-            {/* 셀렉트는 이름만 든다 — 무엇을 보정하는지는 그 아래 한 줄이 말한다(라디오였을 때 곁에 섰던 글자) */}
-            <p className="px-3.5 text-xs text-muted">{TIME_BASIS[value.basis].hint}</p>
-          </div>
-          <label className="relative block min-w-0">
-            <span aria-hidden="true" className={PILL_LABEL}>
-              세운
-            </span>
-            <span className="sr-only">세운 시작</span>
-            <input
-              type="number"
-              value={value.saeunFrom}
-              min={SUPPORTED_YEAR_RANGE.min}
-              max={SUPPORTED_YEAR_RANGE.max}
-              onChange={(event) => set('saeunFrom', Number(event.target.value))}
-              style={{ paddingLeft: labelPad('세운') }}
-              className={`${PILL} pr-4 text-[15px] font-semibold tabular-nums`}
-            />
-          </label>
+
+          <DateFields value={value} onDate={(date) => set('date', date)} />
+
+          {/*
+            **달력은 날짜 바로 아래다.** 「1984-10-05」는 양력인지 음력인지가 정해져야 비로소 하루를 가리키고,
+            음력이면 평달인지 윤달인지에 따라 실제 날이 한 달 떨어진다.
+          */}
+          <PickRow
+            label="달력"
+            name="달력 기준"
+            value={value.calendar}
+            open={open === 'calendar'}
+            onToggle={toggle('calendar')}
+            onPick={chooseCalendar}
+            options={CALENDARS.map((calendar) => ({ value: calendar, label: CALENDAR_KO[calendar] }))}
+          />
+
+          <TimeFields value={value} onChange={onChange} open={open === 'time'} onToggle={toggle('time')} />
+
+          {/*
+            **출생지는 폼 안에 선다** — 진태양시의 경도라 계산에 들고(운영자 2026-09-29 「출생지도 폼에 넣어야」),
+            서울이 아닌 사람이 접힌 칸을 열어 볼 까닭이 없다.
+          */}
+          <PickRow
+            label="출생지"
+            value={value.city}
+            open={open === 'city'}
+            onToggle={toggle('city')}
+            onPick={pick('city')}
+            options={CITIES.map((city) => ({ value: city, label: city }))}
+          />
         </div>
-      </details>
+
+        {/*
+          달력 형식과 날짜는 **함께 읽어야 뜻이 생긴다.** 그래서 변환 결과를 묶음 바로 밑에 적는다 — **저장이나
+          계산 전에.** 사용자가 아는 것은 음력 날짜뿐인데, 우리가 무엇을 양력으로 잡았는지 못 보면 잘못 골랐다는
+          것을 결과 화면에 가서야 알게 된다.
+        */}
+        {converted !== null && (
+          <p
+            role={converted.ok ? undefined : 'alert'}
+            // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
+            className={`px-4 text-xs ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
+          >
+            {converted.text}
+          </p>
+        )}
+      </div>
+
+      <div className={GROUP}>
+        <button
+          type="button"
+          aria-expanded={advancedShown}
+          onClick={() => setAdvanced(!advancedShown)}
+          className={`${ROW} w-full text-left active:bg-surface-sunken`}
+        >
+          <span className={ROW_LABEL}>고급 설정</span>
+          <span className="min-w-0 flex-1 truncate text-right text-[13px] text-secondary">자시 · 시간 기준 · 세운</span>
+          <Chevron className={`size-4 shrink-0 text-muted transition-transform ${advancedShown ? 'rotate-0' : '-rotate-90'}`} />
+        </button>
+
+        {advancedShown && (
+          <>
+            {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
+            <PickRow
+              label="자시"
+              name="자시 규칙"
+              value={value.rule}
+              open={open === 'rule'}
+              onToggle={toggle('rule')}
+              onPick={pick('rule')}
+              disabled={value.hourKnown === false}
+              options={[
+                { value: 'jo' as LateNightRule, label: '조자시', hint: '경계 23:00' },
+                { value: 'ya' as LateNightRule, label: '야자시', hint: '경계 자정' },
+              ]}
+            />
+            <PickRow
+              label="시간 기준"
+              value={value.basis}
+              open={open === 'basis'}
+              onToggle={toggle('basis')}
+              onPick={pick('basis')}
+              options={TIME_BASES.map((basis) => ({ value: basis, label: TIME_BASIS[basis].label, hint: TIME_BASIS[basis].hint }))}
+            />
+            <label className={ROW}>
+              <span className={ROW_LABEL}>세운 연도</span>
+              <input
+                type="number"
+                aria-label="세운 시작"
+                value={value.saeunFrom}
+                min={SUPPORTED_YEAR_RANGE.min}
+                max={SUPPORTED_YEAR_RANGE.max}
+                onChange={(event) => set('saeunFrom', Number(event.target.value))}
+                className={`${DIGIT} ml-auto w-[4.5rem]`}
+              />
+            </label>
+          </>
+        )}
+      </div>
     </div>
   );
 }
+
+type RowKey = 'gender' | 'calendar' | 'time' | 'city' | 'rule' | 'basis';
