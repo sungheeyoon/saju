@@ -2944,11 +2944,11 @@ test.describe('자바스크립트 없이 여는 홈', () => {
   test.use({ javaScriptEnabled: false });
 
   /* 뼈대 뒤에 숨어 흘러온 본문이 제자리처럼 선다(`app/ui/skeleton.tsx` 의 `<noscript>` 규칙) */
-  test('나 탭 홈은 뼈대가 아니라 내 사주와 이번 달 흐름을 세운다', async ({ page, signedIn }) => {
+  test('나 탭 홈은 뼈대가 아니라 내 사주와 저장한 사람을 세운다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
     await expect(page.getByRole('region', { name: '내 사주' })).toBeVisible();
-    await expect(page.getByRole('region', { name: '이번 달 흐름' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
     await expect(page.locator('main[data-skeleton]')).toBeHidden();
   });
 
