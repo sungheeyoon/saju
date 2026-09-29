@@ -66,7 +66,8 @@ export function lightOf(kind: ResultKind, from: CameFrom | null): Light {
 }
 
 /** 이 주소가 결과 화면이면 그 종류 — 보관함 목록(`/me/readings`) 자체는 결과가 아니다 */
-export function resultKindOf(pathname: string): ResultKind | null {
+export function resultKindOf(address: string): ResultKind | null {
+  const pathname = address.split(/[?#]/, 1)[0];
   if (pathname.startsWith('/me/readings/') && pathname.length > '/me/readings/'.length) return 'saju';
   if (pathname === '/me/compat') return 'compat';
   if (pathname.startsWith('/me/match/') && pathname.length > '/me/match/'.length) return 'match';
@@ -119,6 +120,8 @@ const DEFAULT_BACK: Record<ResultKind, Back> = {
  * 이미 쿼리가 있는 주소(`/me/compat?a=…&b=…`)에는 `&` 로 잇는다.
  */
 export function withCameFrom(href: string, from: CameFrom, shelfKind: ShelfKind = 'all'): string {
+  /* 이미 온 곳을 든 주소는 그대로다 — 먼저 실은 자리가 이긴다(나 탭 홈의 `withFromMe` 가 싣고 `CoverLink` 를 지난다) */
+  if (/[?&]from=/.test(href)) return href;
   const query = new URLSearchParams();
   if (from === 'shelf' && shelfKind !== 'all') query.set('kind', shelfKind);
   query.set('from', from);

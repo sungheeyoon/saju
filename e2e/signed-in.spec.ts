@@ -300,19 +300,105 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByText('1990-05-15')).toBeVisible();
   });
 
+  /**
+   * **나 탭 홈은 줄인 내 카드 → 내가 받은 사주풀이 셋 → 저장한 사람 차례다**(u2, 운영자 2026-09-29 — ADR 0129 「2026-09-29 u2」).
+   *
+   * 저장한 사람 타일은 프로덕션 홈(`a45e34e`) 그대로 나 탭에 다시 섰고, 이 화면에서 연 결과는 주소가 `from=me` 를 든다. 폰의
+   * 첫 화면(390×664, 머리글과 아래 탭을 뺀 자리)에 카드 · 받은 사주풀이 · 저장한 사람 머리까지 든다 — 시안의 예산은 452px 였다.
+   * 모델은 안 부른다: 사주풀이 넷(나 · 어머니 · 아버지 · 동생)을 `postgres` 로 심는다 — 셋만 서고 보관함 길이 선다.
+   */
+  test('나 탭은 줄인 내 카드 · 받은 사주풀이 셋 · 저장한 사람 차례이고 폰 첫 화면에 사람 머리까지 든다', async ({ openAs }, testInfo) => {
+    const { page, api, account } = await openAs({ selfPerson: true, people: ['어머니', '아버지', '동생'] });
+    const { data: edges } = await api.from('user_person_access').select('person_id, local_label');
+    const idOf = (label: string) => (edges ?? []).find((row) => row.local_label === label)?.person_id as string;
+    const me = account.selfPersonId as string;
+
+    const singleReading = async (personId: string | null, metaphor: string) => {
+      const started = await api.rpc('start_reading_run', {
+        p_kind: personId === null ? 'self' : 'person',
+        p_idempotency_key: `e2e-me-tab-${personId ?? 'self'}`,
+        ...(personId === null ? {} : { p_person_a: personId }),
+        p_model: 'gpt-e2e',
+        p_prompt_version: 'reading-prompt-v1',
+      });
+      expect(started.error).toBeNull();
+      const runId = started.data?.[0]?.run_id as string;
+      sql(`select public.save_reading('${runId}'::uuid, '## 풀이', null, '${metaphor}',
+             '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
+    };
+    await singleReading(null, '곧게 자라 그늘을 내어 주는 나무');
+    await singleReading(idOf('어머니'), '넓게 품고 멀리 흐르는 물');
+    await singleReading(idOf('아버지'), '말없이 버티는 산');
+    await singleReading(idOf('동생'), '틈만 있으면 자라는 풀꽃');
+
+    if (testInfo.project.name.includes('mobile')) await page.setViewportSize({ width: 390, height: 664 });
+    await page.goto('/me');
+    await expect(page.locator('main[data-skeleton]')).toHaveCount(0);
+
+    /* 차례 — 카드 → 받은 사주풀이 → 저장한 사람. 이번 달 흐름 · 바로가기 줄 · 「다른 사람 사주 보기」는 걷었다 */
+    const order = await page.locator('main').innerText();
+    expect(order.indexOf('사주 자세히 보기')).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf('사주 자세히 보기')).toBeLessThan(order.indexOf('내가 받은 사주풀이'));
+    expect(order.indexOf('내가 받은 사주풀이')).toBeLessThan(order.indexOf('저장한 사람'));
+    await expect(page.getByRole('region', { name: '이번 달 흐름' })).toHaveCount(0);
+    await expect(page.getByRole('navigation', { name: '바로가기' })).toHaveCount(0);
+    await expect(page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' })).toHaveCount(0);
+
+    /* 줄인 카드도 출생 정보 한 줄은 든다(2026-09-25 에 일부러 남긴 줄) */
+    const mine = page.getByRole('region', { name: '내 사주' });
+    await expect(mine.getByText('1990-05-15', { exact: false })).toBeVisible();
+    await expect(mine.getByRole('link', { name: /사주풀이 보기/ })).toHaveAttribute('href', '/me/readings/self?from=me');
+
+    /* 받은 사주풀이 — 최근 것이 앞, 셋만. 전부는 보관함의 사주풀이 칸이 든다 */
+    const received = page.getByRole('region', { name: /^내가 받은 사주풀이/ });
+    await expect(received.getByRole('heading')).toContainText('4개');
+    const covers = received.getByRole('listitem').getByRole('link');
+    await expect(covers).toHaveCount(3);
+    await expect(covers.first()).toHaveAttribute('href', `/me/readings/${idOf('동생')}?from=me`);
+    await expect(received.getByRole('link', { name: '풀이 보관함' })).toHaveAttribute('href', '/me/readings?kind=saju');
+
+    /* 저장한 사람 — 프로덕션 홈의 타일. 결과로 가는 단추는 `from=me` 를 들고, 안 본 궁합은 궁합 탭의 두 칸을 채운다 */
+    const tile = page.locator('li[id^="person-"]').filter({ has: page.getByRole('link', { name: '어머니', exact: true }) });
+    await expect(tile.getByRole('link', { name: '풀이 보기' })).toHaveAttribute('href', `/me/readings/${idOf('어머니')}?from=me`);
+    await expect(tile.getByRole('link', { name: '나와 궁합' })).toHaveAttribute(
+      'href',
+      `/compat#a.person=${me}&b.person=${idOf('어머니')}`,
+    );
+    await expect(page.getByRole('link', { name: '전체 관리' })).toHaveAttribute('href', '/me/people');
+
+    /*
+      **폰 첫 화면에 사람 머리까지 든다.** 머리글 아래부터 아래 탭 위까지가 첫 화면이다 — 저장한 사람 제목의 아랫선이 그 안에
+      선다. 잰 값은 첨부로 남긴다(시안 예산 452px 와 견준다).
+    */
+    if (testInfo.project.name.includes('mobile')) {
+      const people = page.getByRole('heading', { name: /^저장한 사람/ });
+      const box = (await people.boundingBox())!;
+      /* 아래 탭은 화면 바닥에 떠 있다 — 그 윗선이 첫 화면의 끝이다 */
+      const fold = (await page.getByRole('navigation', { name: '모바일 내 메뉴' }).boundingBox())!.y;
+      const top = (await page.getByRole('banner').boundingBox())?.height ?? 0;
+      await testInfo.attach('me-tab-fold.json', {
+        body: JSON.stringify({ header: top, fold, peopleHeadingBottom: box.y + box.height, budget: top + 452 }),
+        contentType: 'application/json',
+      });
+      expect(box.y + box.height).toBeLessThanOrEqual(fold);
+    }
+  });
+
   test('홈의 내 사주와 사주풀이는 다른 화면이고 풀이 화면을 여는 것만으로 만들지 않는다', async ({
     page,
     signedIn,
-  }) => {
+  }, testInfo) => {
     await page.goto('/me');
 
     /*
-      홈의 내 카드 — 오행 분포와 저장된 출생 정보, 고치는 손잡이, 상세로 가는 길. 여덟 글자(한자)는 카드에 없고
-      「사주 자세히 보기」가 든다(운영자 2026-09-27)
+      홈의 내 카드 — 저장된 출생 정보, 고치는 손잡이, 상세로 가는 길. 여덟 글자(한자)는 카드에 없고 「사주 자세히 보기」가
+      든다(운영자 2026-09-27). **폰에서는 줄인 판**이라 오행 분포 다섯 칸도 거기로 내려간다 — 출생 정보 한 줄은 남는다(u2)
     */
     const mine = page.getByRole('region', { name: '내 사주' });
     await expect(mine.getByRole('heading', { name: signedIn.label, exact: true })).toBeVisible();
-    await expect(mine.getByRole('list', { name: '오행 분포' }).getByRole('listitem')).toHaveCount(5);
+    await expect(mine.getByRole('list', { name: '오행 분포' }).getByRole('listitem')).toHaveCount(
+      testInfo.project.name.includes('mobile') ? 0 : 5,
+    );
     await expect(mine.getByRole('list', { name: '여덟 글자' })).toHaveCount(0);
     await expect(mine.getByText('1990-05-15 14:30')).toBeVisible();
     await expect(mine.getByRole('button', { name: '출생 정보 수정' })).toBeVisible();
@@ -321,27 +407,27 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       `/me/people/${signedIn.selfPersonId}`,
     );
 
-    /*
-      **이번 달 흐름**(ADR 0129) — 오늘 한 줄과 열나흘 띠가 내 카드 옆에 선다. 규칙 문장이라 모델을 안 부른다 — 날짜는
-      서울 달력이다(하루가 어디서 갈리는지는 `app/me/home/day-flow.test.ts` 가 잰다).
-    */
-    const flow = page.getByRole('region', { name: '이번 달 흐름' });
-    const seoulToday = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', timeZone: 'Asia/Seoul' });
-    await expect(flow.getByText(`오늘 · ${seoulToday}`, { exact: false })).toBeVisible();
-    await expect(flow.getByText(/날입니다\./)).toBeVisible();
-    await expect(flow.getByRole('list', { name: '앞뒤 열나흘' }).getByRole('listitem')).toHaveCount(14);
+    /* 이번 달 흐름은 걷었다(ADR 0129 「2026-09-29 u2」) */
+    await expect(page.getByRole('region', { name: '이번 달 흐름' })).toHaveCount(0);
 
-    /* 내가 받은 사주풀이 — 아직 한 권도 없으면 받는 자리로 가는 점선 한 권이 선다 */
+    /*
+      내가 받은 사주풀이 — 아직 한 권도 없으면 받는 자리로 가는 점선 한 권이 선다. 보관함으로 가는 길은 늘 선다(u2). 나 탭에서
+      연 결과는 주소가 `from=me` 를 든다
+    */
     const received = page.getByRole('region', { name: /^내가 받은 사주풀이/ });
-    await expect(received.getByRole('link', { name: '내 사주풀이', exact: true })).toHaveAttribute('href', '/me/readings/self');
-    /* 관계 지도 · 저장한 사람은 궁합 탭에 선다 */
+    await expect(received.getByRole('link', { name: '내 사주풀이', exact: true })).toHaveAttribute(
+      'href',
+      '/me/readings/self?from=me',
+    );
+    await expect(received.getByRole('link', { name: '풀이 보관함' })).toHaveAttribute('href', '/me/readings?kind=saju');
+    /* 관계 지도는 궁합 탭에 서고, 저장한 사람은 나 탭에 다시 섰다(u2) */
     await expect(page.getByRole('region', { name: '관계 지도' })).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
 
     /* 풀이는 홈에 안 선다 — 받는 길만 서고, 그 길은 풀이 화면이다 */
     await mine.getByRole('link', { name: /사주풀이 받기/ }).click();
 
-    await expect(page).toHaveURL(/\/me\/readings\/self$/);
+    await expect(page).toHaveURL(/\/me\/readings\/self\?from=me$/);
     await expect(page.getByRole('heading', { name: '내 사주풀이', exact: true }).first()).toBeVisible();
     await expect(page.getByText('아직 받아 둔 사주풀이가 없습니다')).toBeVisible();
     await expect(page.getByRole('button', { name: '사주풀이 받기' })).toBeVisible();
@@ -432,20 +518,6 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page).toHaveURL(/\/compat$/);
     await map.getByRole('button', { name: '닫기' }).click();
     await expect(map.getByRole('link', { name: '어머니 사주 보기' })).toHaveCount(0);
-
-    /*
-      나 탭 홈의 바로가기 셋 — 탭에서 빠진 책장(ADR 0126)의 길이 여기 선다. 다른 사람 사주는 받은 사주풀이 아래의
-      단추 하나다(ADR 0129)
-    */
-    await page.goto('/me');
-    await expect(page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' })).toHaveAttribute('href', '/');
-    const more = page.getByRole('navigation', { name: '바로가기' });
-    await expect(more.getByRole('link')).toHaveCount(3);
-    await expect(more.getByRole('link', { name: '궁합 보러 가기' })).toHaveAttribute('href', '/compat');
-    await expect(more.getByRole('link', { name: /오늘의 인연 만나기/ })).toHaveAttribute('href', '/me/matching');
-    await expect(more.getByRole('link', { name: '풀이 보관함', exact: true })).toHaveAttribute('href', '/me/readings');
-    /* 홈은 인연으로 가는 길만 두고 오늘의 인연을 제 자리에 세우지 않는다 */
-    await expect(page.getByRole('heading', { name: '오늘의 인연', exact: true })).toHaveCount(0);
 
     /*
       **초점 테두리는 타일이 두른 한 겹이다.** 이름 링크의 `::after` 가 타일 전체를 덮고 초점도 그
@@ -1594,9 +1666,10 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
 
-    await page.getByRole('navigation', { name: '바로가기' }).getByRole('link', { name: '풀이 보관함', exact: true }).click();
+    /* 받은 사주풀이의 머리에 늘 서는 길이다(u2) — 보관함의 사주풀이 칸으로 간다 */
+    await page.getByRole('region', { name: /^내가 받은 사주풀이/ }).getByRole('link', { name: '풀이 보관함' }).click();
 
-    await expect(page).toHaveURL(/\/me\/readings$/);
+    await expect(page).toHaveURL(/\/me\/readings\?kind=saju$/);
     /* 보관함은 나 탭 소속이다(2026-09-29 운영자, ADR 0134 — ADR 0133 의 「어느 탭도 안 켠다」를 뒤집음) */
     await expectLitTab(page, '나');
     await expect(page.getByRole('heading', { name: '풀이 보관함', exact: true })).toBeVisible();
@@ -2936,11 +3009,11 @@ test.describe('자바스크립트 없이 여는 홈', () => {
   test.use({ javaScriptEnabled: false });
 
   /* 뼈대 뒤에 숨어 흘러온 본문이 제자리처럼 선다(`app/ui/skeleton.tsx` 의 `<noscript>` 규칙) */
-  test('나 탭 홈은 뼈대가 아니라 내 사주와 이번 달 흐름을 세운다', async ({ page, signedIn }) => {
+  test('나 탭 홈은 뼈대가 아니라 내 사주와 저장한 사람을 세운다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
     await expect(page.getByRole('region', { name: '내 사주' })).toBeVisible();
-    await expect(page.getByRole('region', { name: '이번 달 흐름' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
     await expect(page.locator('main[data-skeleton]')).toBeHidden();
   });
 

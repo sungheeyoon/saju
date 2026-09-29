@@ -14,6 +14,7 @@ import { DayMasterChip } from '../people/chart-bits';
 import { Icon } from '../../ui/icons';
 import { EditInput } from '../edit-input';
 import type { ReadingEntry } from '../reading/current';
+import { withFromMe } from './from-me';
 
 /*
   **나 — 홈의 기준점.** 카드가 내 일간의 파스텔을 입는다(아래 사람 타일과 같은 규칙이라 「나도 이 목록의
@@ -22,8 +23,8 @@ import type { ReadingEntry } from '../reading/current';
   **여덟 글자(한자)는 카드에 없다**(운영자 2026-09-27) — 처음 보는 사람에게 가장 어려운 덩어리였다. 나를 말하는 것은
   일간 딱지 · 천간 그림 · 비유 한 줄이 들고, 여덟 글자는 「사주 자세히 보기」가 든다.
 
-  **넓은 화면에서는 관계 지도와 한 줄에 서고 두 카드의 윗선 · 아랫선이 같다.** 격자가 두 칸을 같은 높이로
-  늘이고, 이 카드는 네 덩어리를 위아래로 고르게 편다(`justify-between`) — 이름과 한 줄 평 → 저장된 출생 정보 →
+  **넓은 화면에서는 옆 칸(나 탭은 받은 사주풀이)과 한 줄에 선다.** 격자가 칸을 늘이면 이 카드는 네 덩어리를 위아래로
+  고르게 편다(`justify-between`) — 이름과 한 줄 평 → 저장된 출생 정보 →
   오행 분포 → 단추. 무엇으로 계산했나가 결과 앞에 선다. 단추 줄이 지도의 범례 띠와 같은 바닥선에 선다. 남는 높이가 한 틈에 몰리지 않고 덩어리 사이에 나뉜다.
 
   고치는 손잡이(「출생 정보 수정」)는 오른쪽 맨 위 모서리에 뜨고, 펴지는 폼은 머리 바로 아래에 선다 — 누르는
@@ -37,6 +38,7 @@ export function SelfCard({
   saju,
   reading,
   actions,
+  compact = false,
 }: {
   /**
    * 저장된 내 사주 — **`null` 이면 아직 저장 전**이다(ADR 0128). 사주 이어 보기가 「이 사주가 내 사주 맞나요?」를
@@ -51,13 +53,19 @@ export function SelfCard({
   reading: ReadingEntry | null;
   /** 저장 전 카드의 단추 줄 — 저장된 카드에서는 안 쓴다 */
   actions?: ReactNode;
+  /**
+   * **나 탭 홈의 줄인 판**(u2, 운영자 2026-09-29) — 폰에서 오행 분포 다섯 칸을 걷는다. 그 칸은 「사주 자세히 보기」가 든다.
+   * 출생 정보 한 줄은 남긴다 — 고친 입력이 나 탭에서 보이게 2026-09-25 에 일부러 둔 줄이다. 폰 첫 화면에 카드 아래의 받은
+   * 사주풀이와 저장한 사람 머리까지 들게 하려는 것이다. 넓은 화면은 그대로다.
+   */
+  compact?: boolean;
 }) {
   const dayElement = STEM_INFO[saju.pillars.dayMaster].element;
 
   return (
     <section
       aria-label="내 사주"
-      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between gap-4 overflow-hidden rounded-[2rem] bg-[var(--tile)] p-5 sm:gap-6 sm:p-8`}
+      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-[2rem] bg-[var(--tile)] sm:gap-6 sm:p-8 ${compact ? 'gap-3 p-4' : 'gap-4 p-5'}`}
     >
       <StemSymbol stem={saju.pillars.dayMaster} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
 
@@ -74,7 +82,8 @@ export function SelfCard({
           </h2>
         </div>
         {reading?.metaphor != null && (
-          <p className="font-rounded text-[1.0625rem] leading-[1.5] text-foreground sm:text-xl">
+          /* 줄인 판은 폰에서 한 줄로 자른다 — 두 줄로 꺾이면 아래 저장한 사람 머리가 첫 화면 밖으로 나간다 */
+          <p className={`font-rounded text-[1.0625rem] leading-[1.5] text-foreground sm:text-xl ${compact ? 'max-sm:truncate' : ''}`}>
             <span className="sr-only">내 사주풀이의 비유 </span>
             <span aria-hidden="true" className="text-[var(--ink)]">“</span>
             {reading.metaphor}
@@ -96,14 +105,14 @@ export function SelfCard({
 
       <BirthLine query={query} />
 
-      <ElementCounts saju={saju} />
+      <ElementCounts saju={saju} compact={compact} />
 
       {/* 폰에서도 두 단추가 한 줄을 나눠 쓴다 — 세로로 쌓으면 단추 줄만 110px 였다 */}
       {personId === null ? (
         <div className="relative flex flex-wrap items-center gap-2">{actions}</div>
       ) : (
         <div className="relative flex flex-wrap items-center gap-2">
-          <Link href="/me/readings/self" className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}>
+          <Link href={withFromMe('/me/readings/self')} className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}>
             <Icon name={reading === null ? 'spark' : 'reading'} className="size-[18px]" />
             {reading === null ? '사주풀이 받기' : '사주풀이 보기'}
             {reading !== null && !reading.fromCurrentChart && (
@@ -121,10 +130,10 @@ export function SelfCard({
 }
 
 /** 오행 분포 — 다섯 칸, 상징 · 이름 · 개수. 0 인 칸은 점선으로 비운다 */
-function ElementCounts({ saju }: { saju: Saju }) {
+function ElementCounts({ saju, compact }: { saju: Saju; compact: boolean }) {
   const { counts, glyphCount } = saju.analysis.elements;
   return (
-    <div className="relative flex flex-col gap-2 sm:gap-3">
+    <div className={`relative flex flex-col gap-2 sm:gap-3 ${compact ? 'max-sm:hidden' : ''}`}>
       <p className="text-[13px] font-semibold text-secondary">오행 분포</p>
       <ul aria-label="오행 분포" className="grid grid-cols-5 gap-1.5 sm:gap-3">
         {ELEMENTS.map((element) => {

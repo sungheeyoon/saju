@@ -112,6 +112,13 @@ describe('결과 링크에 온 곳을 싣는다 (ADR 0134)', () => {
     expect(withCameFrom(`/me/match/${MATCH_ID}`, 'chat')).toBe(`/me/match/${MATCH_ID}?from=chat`);
   });
 
+  it('이미 온 곳을 든 주소에는 덧붙이지 않는다', () => {
+    expect(withCameFrom('/me/readings/self?from=me', 'shelf', 'saju')).toBe('/me/readings/self?from=me');
+    expect(withCameFrom('/me/compat?a=p1&b=p2&from=compat', 'shelf')).toBe('/me/compat?a=p1&b=p2&from=compat');
+    expect(resultKindOf('/me/readings/self?from=me')).toBe('saju');
+    expect(resultKindOf('/me/compat?a=p1&b=p2')).toBe('compat');
+  });
+
   it('보관함은 칩을 함께 싣고, 전체 칩은 안 싣는다', () => {
     expect(withCameFrom('/me/readings/self', 'shelf', 'saju')).toBe('/me/readings/self?kind=saju&from=shelf');
     expect(withCameFrom('/me/compat?a=p1&b=p2', 'shelf', 'compat')).toBe('/me/compat?a=p1&b=p2&kind=compat&from=shelf');
