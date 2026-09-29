@@ -258,7 +258,19 @@ export function DeckButtons({ actions }: { actions: DeckActions }) {
  * ⓘ 시트 — 폰에서 사진 위에 못 둔 것(까닭 · 기운의 문장 · 소개 전문 · 궤도 · 참고 점수 고지)을 아래에서 올려 보인다.
  * 제 안에서 스크롤하고, 손잡이를 아래로 끌거나 바깥을 누르거나 Esc 로 닫힌다. 넓은 화면은 같은 것을 옆 열이 든다.
  */
-export function DetailSheet({ sheet, nickname, children }: { sheet: RefObject<HTMLDialogElement | null>; nickname: string; children: ReactNode }) {
+export function DetailSheet({
+  sheet,
+  nickname,
+  label,
+  children,
+}: {
+  sheet: RefObject<HTMLDialogElement | null>;
+  /** 시트 머리의 제목 */
+  nickname: string;
+  /** 보조기기가 읽는 시트 이름 — 없으면 「○○ 님 자세히」. 받은 요청 시트(`requests-band.tsx`)가 제 이름을 준다 */
+  label?: string;
+  children: ReactNode;
+}) {
   const press = useRef<number | null>(null);
   /** 손잡이를 아래로 끈 만큼(px) */
   const [drag, setDrag] = useState(0);
@@ -274,7 +286,7 @@ export function DetailSheet({ sheet, nickname, children }: { sheet: RefObject<HT
   return (
     <dialog
       ref={sheet}
-      aria-label={`${nickname} 님 자세히`}
+      aria-label={label ?? `${nickname} 님 자세히`}
       onClick={(event) => { if (event.target === event.currentTarget) close(); }}
       onCancel={(event) => { event.preventDefault(); close(); }}
       style={drag > 0 ? { transform: `translateY(${drag}px)` } : undefined}

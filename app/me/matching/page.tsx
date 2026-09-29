@@ -14,16 +14,15 @@ import { AccountNotice } from '../account-notice';
 import { candidatesForViewer, passedForViewer } from '../candidates';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { payloadForViewer } from '../payload';
-import { myReadings } from '../reading/current';
-import { requestsForViewer } from '../requests/inbox';
+import { matchesForViewer, requestsForViewer, type InboxMatch } from '../requests/inbox';
 import { selfElementSummary } from '../summary';
 import type { DeckCard } from './deck-card';
+import { historySummary } from './history';
+import { HistoryRow } from './history-row';
 import { MatchingExperience } from './matching-experience';
 import { meMarkOf, type MeMark } from './me-mark';
 import { QuietOrbit } from './orbit-map';
-import { RecentMatchShelf } from './recent-match-shelf';
-import { recentMatches, type RecentMatches } from './recent-matches';
-import { ReceivedRequests, RequestHistory, type RequestsRead } from './requests-lead';
+import { ReceivedRequests, type RequestsRead } from './requests-lead';
 
 /**
  * **수락이 여기서 풀이를 떠나보낸다** (ADR 0038 · 0130).
@@ -73,30 +72,25 @@ export default async function MatchingPage() {
     **받은 요청은 덱과 나란히 읽는다**(ADR 0130) — 덱을 세우는 차례 호출 뒤에 따로 읽으면 탭 이동이 한 번 더 길어진다.
     못 읽어도 덱은 선다 — 요청 자리에 까닭 한 줄만 선다.
   */
-  const requests: Promise<RequestsRead> = requestsForViewer().then(
-    (value) => ({ ok: true as const, value }),
-    (thrown: unknown) => ({ ok: false as const, message: answerOfThrown(thrown, 'inbox') }),
-  );
+  const requests: Promise<RequestsRead> = requestsForViewer().then(read, (thrown: unknown) => ({
+    ok: false as const,
+    reason: answerOfThrown(thrown, 'inbox'),
+  }));
 
   /*
-    **최근 인연 궁합도 덱과 나란히 읽는다**(2026-09-29 e+) — 풀이 보관함과 같은 문(`my_readings`)이다. 인연 궁합만 고르고
-    셋까지 자른다. 부속 정보라 못 읽으면 그 구역만 안 선다(ADR 0078) — 문이 던진 것을 값으로 받는다.
+    **인연 기록의 수도 덱과 나란히 읽는다**(2026-09-29 u2) — 성립한 Match 의 수(`my_matches`, 책장과 같은 문)다. 글 전부를 받는
+    `my_readings` 는 기록 화면만 부른다. 부속 정보라 못 읽으면 그 수만 빠진다(ADR 0078) — 문이 던진 것을 값으로 받는다.
   */
-  const matches: Promise<SkippableRead<RecentMatches>> = myReadings().then(
-    (readings) => read(recentMatches(readings)),
-    (thrown: unknown) => ({ ok: false as const, reason: answerOfThrown(thrown, 'my_readings') }),
-  );
-  /** 받은 요청은 덱 위, 최근 인연 궁합과 지난 요청은 덱 아래 — 덱이 서지 않는 자리도 같은 차례다 */
+  const matches: Promise<SkippableRead<readonly InboxMatch[]>> = matchesForViewer().then(read, (thrown: unknown) => ({
+    ok: false as const,
+    reason: answerOfThrown(thrown, 'my_matches'),
+  }));
+  /** 받은 요청 띠는 덱 위, 「인연 기록」 한 줄은 덱 아래 — 덱이 서지 않는 자리도 같은 차례다 */
   const around = async () => {
-    const [loaded, recent] = await Promise.all([requests, matches]);
+    const [loaded, made] = await Promise.all([requests, matches]);
     return {
       lead: <ReceivedRequests loaded={loaded} />,
-      tail: (
-        <>
-          <RecentMatchShelf loaded={recent} />
-          <RequestHistory loaded={loaded} />
-        </>
-      ),
+      tail: <HistoryRow summary={historySummary(made, loaded)} />,
     };
   };
 
@@ -200,9 +194,9 @@ function Quiet({
   action,
 }: {
   me: MeMark | null;
-  /** 받은 요청 — 덱이 없어도 답할 일은 선다(ADR 0130) */
+  /** 받은 요청 띠 — 덱이 없어도 답할 일은 선다(ADR 0130) */
   lead: React.ReactNode;
-  /** 최근 인연 궁합 · 지난 요청 — 덱이 없어도 지나간 것은 선다 */
+  /** 「인연 기록」 한 줄 — 덱이 없어도 지나간 것은 선다 */
   tail: React.ReactNode;
   title: string;
   line: string;
