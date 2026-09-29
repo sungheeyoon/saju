@@ -164,7 +164,7 @@ const PLAN = [
     state: 'pair',
     group: '인연',
     shots: [
-      { id: 'match', at: (one, all) => `/me/match/${all.matchId}`, name: '함께 보는 궁합' },
+      { id: 'match', at: (one, all) => `/me/match/${all.matchId}`, name: '인연 궁합' },
       { id: 'requests-matched', at: '/me/matching', name: '인연 탭의 요청 — 맺어진 뒤' },
       {
         id: 'inspect-match',

@@ -151,7 +151,7 @@ export function BlankBook({ href, element, label }: { href: string; element: Ele
 }
 
 /**
- * 「함께 보는 궁합」 — 동의가 만들고 있는 글 한 장.
+ * 「인연 궁합」 — 동의가 만들고 있는 글 한 장.
  *
  * 크림 편지 한 장이 통째로 결과 화면으로 가는 링크다. 「함께 보기」는 그 링크의 모양일 뿐 따로 눌리는
  * 단추가 아니다(한 장에 손잡이 하나).
@@ -160,7 +160,7 @@ export function MakingShelf({ matches }: { matches: readonly InboxMatch[] }) {
   return (
     <section className="flex flex-col gap-4">
       <div>
-        <h2 className={TYPE_SECTION}>함께 보는 궁합</h2>
+        <h2 className={TYPE_SECTION}>인연 궁합</h2>
         <p className="mt-0.5 text-[13px] leading-5 text-secondary">서로 동의한 궁합풀이를 만들고 있습니다.</p>
       </div>
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">

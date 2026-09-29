@@ -52,9 +52,11 @@ function within(pathname: string, base: string): boolean {
 /**
  * 지금 보고 있는 화면이 **어느 탭의 것인가**(ADR 0126).
  *
- * - **나**는 `/me` 와 내 쪽의 것이다 — 저장한 사람(`/me/people/*`), 만든 풀이의 책장과 한 사람 풀이
- *   (`/me/readings/*` — 내 사주풀이도, 다른 사람 사주풀이도), 그리고 로그인한 사람이 보는 사주 계산(`/`).
- *   책장은 탭이 아니게 됐지만 그 안에서 연 글은 나에 남는다.
+ * - **나**는 `/me` 와 내 쪽의 것이다 — 저장한 사람(`/me/people/*`), 한 사람 풀이(`/me/readings/self` ·
+ *   `/me/readings/[id]` — 내 사주풀이도, 다른 사람 사주풀이도), 그리고 로그인한 사람이 보는 사주 계산(`/`).
+ * - **풀이 보관함 목록(`/me/readings`) 자체는 어느 탭도 안 켠다**(ADR 0133). 사주풀이 · 궁합풀이 · 인연 궁합을 다
+ *   드는 전체 기록이라 한 탭의 것이 아니다 — 궁합 탭 · 인연 탭의 「모두 보기」도 이리 온다. 탭 불 대신 화면의
+ *   제목(「풀이 보관함」)이 위치를 말한다. 그 안에서 연 한 사람 풀이는 나에 남는다.
  * - **궁합**은 두 사람을 고르는 자리(`/compat`)와 그 결과(`/me/compat`)다. 책장이나 홈의 지도에서 연 궁합도
  *   궁합이다 — 글이 어디서 열렸나가 아니라 **무엇인가**로 켠다.
  * - **인연**은 오늘의 인연(`/me/matching`)과 동의로 열린 궁합(`/me/match/*`)이다. 책장에서 열어도 인연이다.
@@ -62,7 +64,7 @@ function within(pathname: string, base: string): boolean {
  */
 export function isNavigationActive(pathname: string, href: string): boolean {
   if (href === '/me') {
-    return pathname === '/me' || within(pathname, '/me/people') || within(pathname, '/me/readings') || pathname === '/';
+    return pathname === '/me' || within(pathname, '/me/people') || pathname.startsWith('/me/readings/') || pathname === '/';
   }
   if (href === '/compat') {
     return pathname === '/compat' || pathname === '/me/compat';

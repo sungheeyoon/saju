@@ -5,17 +5,20 @@ import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 import { supabaseOnServer } from '../../../auth/server-client';
 import { signedInUser } from '../../../auth/signed-in';
 import { redirectToSignIn } from '../../../auth/sign-in-redirect';
-import { TYPE_TITLE } from '../../../ui/surfaces';
 import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { myReadings } from '../../reading/current';
 import { matchesForViewer } from '../../requests/inbox';
 import { bookOf } from './book';
 import { ReadingsFrame, type NextBook } from './frame';
+import { shelfKindOfReading, type ShelfKind } from './kind';
 import { BlankBook, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from './shelf';
 
 /**
- * 만든 글이 **한 목록에** 서는 자리 (ADR 0033) — 그리고 그 목록 옆에서 글을 읽는 자리.
+ * **풀이 보관함** — 만든 글이 **한 목록에** 서는 자리 (ADR 0033) — 그리고 그 목록 옆에서 글을 읽는 자리.
+ *
+ * 보관함은 **어느 탭에도 속하지 않는 전체 기록**이다(ADR 0133). 궁합 탭 · 인연 탭은 최근 몇 권만 들고 「모두 보기」로
+ * 이리 보낸다 — 필터 칩 넷(전체 · 사주풀이 · 궁합풀이 · 인연 궁합)이 주소의 `?kind=` 를 읽어 그 칸으로 연다.
  *
  * 풀이가 네 화면에 흩어져 있었다. 이제 한 사람 풀이는 `/me/readings/[subject]`에 따로
  * 서고, 두 궁합은 각각의 결과 화면에 선다. 이 목록은 그 네 갈래의 공통 입구다.
@@ -30,8 +33,8 @@ import { BlankBook, MakingShelf, Nothing, PairCover, Shelf, SingleCover } from '
  * ## 여기서 아무것도 판정하지 않는다
  *
  * 차례도 좁힘도 DB 가 정한다(`my_readings`). 화면은 한 사람짜리와 두 사람짜리를
- * **사주풀이·궁합풀이 두 구역으로만 가르고**, 각 구역 안에서는 DB 가 준 차례를 그대로
- * 지킨다. 다시 정렬하거나 대상을 빼면 판정하는 자리가 둘이 되고, 둘이 갈리는 날 이
+ * **사주풀이·궁합풀이 두 구역으로만 가르고**(칩이 고른 칸은 kind 로만 거른다), 각 구역 안에서는 DB 가 준
+ * 차례를 그대로 지킨다. 다시 정렬하거나 대상을 빼면 판정하는 자리가 둘이 되고, 둘이 갈리는 날 이
  * 화면이 DB 보다 넓거나 좁아진다.
  *
  * ## 책장에는 본문이 없다
@@ -70,63 +73,73 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   );
   const making = matches.filter((match) => !madeMatchIds.has(match.matchId));
 
-  const books = readings.map(bookOf);
+  const books = readings.map((entry) => ({ book: bookOf(entry), kind: shelfKindOfReading(entry.kind) }));
   /* 구역 안의 차례는 DB 가 준 그대로다 — 가르기만 하고 다시 세우지 않는다 */
-  const singles = books.filter((book) => book.single);
-  const pairs = books.filter((book) => !book.single);
+  const singles = books.flatMap(({ book }) => (book.single ? [book] : []));
+  const pairsOf = (only: 'compat' | 'match' | null) =>
+    books.filter(({ book, kind }) => !book.single && (only === null || kind === only));
   const hasSelfReading = readings.some((entry) => entry.kind === 'self');
 
-  const title = (
-    <header className="flex flex-col gap-2">
-      <h1 className={TYPE_TITLE}>만든 풀이</h1>
-      {books.length > 0 && (
-        <p className="text-[13px] font-semibold tabular-nums text-secondary">
-          사주풀이 {singles.length} · 궁합풀이 {pairs.length}
-        </p>
+  const sajuShelf = (
+    /*
+      **빈 구역도 선다 — 점선 한 권으로.** 구역을 통째로 숨기면 「궁합풀이도 여기 꽂힌다」가 안
+      보인다. 빈 자리는 같은 크기의 점선 표지라 「한 권 더」로 읽히고, 누르면 만드는 자리로 간다.
+    */
+    <Shelf title="사주풀이" description="나와 저장한 사람을 한 사람씩 본 풀이입니다.">
+      {singles.map((book) => (
+        <li key={book.key}>
+          <SingleCover book={book} />
+        </li>
+      ))}
+      {selfPersonId === null ? (
+        <BlankBook href="/me" element="木" label="내 사주 등록" />
+      ) : (
+        !hasSelfReading && <BlankBook href="/me/readings/self" element="木" label="내 사주풀이" />
       )}
-    </header>
+    </Shelf>
   );
 
-  const shelf = (
-    <>
-      {title}
-      {making.length > 0 && <MakingShelf matches={making} />}
-      {/*
-        **빈 구역도 선다 — 점선 한 권으로.** 구역을 통째로 숨기면 「궁합풀이도 여기 꽂힌다」가 안
-        보인다. 빈 자리는 같은 크기의 점선 표지라 「한 권 더」로 읽히고, 누르면 만드는 자리로 간다.
-      */}
-      <Shelf title="사주풀이" description="나와 저장한 사람을 한 사람씩 본 풀이입니다.">
-        {singles.map((book) => (
-          <li key={book.key}>
-            <SingleCover book={book} />
-          </li>
-        ))}
-        {selfPersonId === null ? (
-          <BlankBook href="/me" element="木" label="내 사주 등록" />
-        ) : (
-          !hasSelfReading && <BlankBook href="/me/readings/self" element="木" label="내 사주풀이" />
-        )}
-      </Shelf>
-
+  /**
+   * 궁합 표지에는 **어디서 왔는지** 딱지가 선다 — 직접 고른 궁합과 인연 궁합이 한 구역에 섞이고, 칩으로 갈라 볼 때도
+   * 표지만 보고 알 수 있어야 한다(ADR 0133). 딱지 말은 궁합 탭의 보관함과 같다(ADR 0129).
+   */
+  const pairShelf = (only: 'compat' | 'match' | null, blank: ReactNode) => {
+    const pairs = pairsOf(only);
+    return (
       <Shelf title="궁합풀이" description="두 사람을 함께 맞대어 본 풀이입니다.">
-        {pairs.map((book) => (
+        {pairs.map(({ book, kind }) => (
           <li key={book.key}>
-            <PairCover book={book} />
+            <PairCover book={book} source={kind === 'match' ? '인연' : '직접'} />
           </li>
         ))}
-        {pairs.length === 0 && <BlankBook href="/compat" element="火" label="궁합 보러 가기" />}
+        {pairs.length === 0 && blank}
       </Shelf>
-    </>
-  );
+    );
+  };
+  const toCompat = <BlankBook href="/compat" element="火" label="궁합 보러 가기" />;
+  const makingShelf = making.length > 0 && <MakingShelf matches={making} />;
+
+  /* 필터 칸마다의 책장(ADR 0133) — 어느 칸을 세울지는 주소를 읽는 `frame.tsx` 가 고른다 */
+  const shelves: Record<ShelfKind, ReactNode> = {
+    all: (
+      <>
+        {makingShelf}
+        {sajuShelf}
+        {pairShelf(null, toCompat)}
+      </>
+    ),
+    saju: sajuShelf,
+    compat: pairShelf('compat', toCompat),
+    match: (
+      <>
+        {makingShelf}
+        {pairShelf('match', <BlankBook href="/me/matching" element="水" label="오늘의 인연" />)}
+      </>
+    ),
+  };
 
   /* 한 권도 없으면 목록 주소에는 두 칸 대신 안내 한 장이 선다 — 글 주소(`/me/readings/self`)는 그래도 두 칸이다 */
-  const nothing =
-    books.length === 0 && making.length === 0 ? (
-      <div className="flex flex-col gap-10">
-        {title}
-        <Nothing hasSelf={selfPersonId !== null} />
-      </div>
-    ) : null;
+  const nothing = books.length === 0 && making.length === 0 ? <Nothing hasSelf={selfPersonId !== null} /> : null;
 
   const nextBooks: NextBook[] = singles.map((book) => ({
     href: book.href,
@@ -138,7 +151,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
 
   return (
     <main className="app-shell flex flex-1 flex-col py-9 sm:py-14">
-      <ReadingsFrame shelf={shelf} nothing={nothing} singles={nextBooks}>
+      <ReadingsFrame shelves={shelves} nothing={nothing} singles={nextBooks}>
         {children}
       </ReadingsFrame>
     </main>

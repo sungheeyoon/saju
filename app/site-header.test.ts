@@ -10,13 +10,22 @@ function activeTabs(pathname: string): string[] {
 }
 
 describe('회원 내비게이션 활성 상태 (ADR 0126)', () => {
-  it('나는 /me 와 저장한 사람 · 만든 풀이 · 로그인한 사람의 사주 계산에서 켜진다', () => {
-    for (const pathname of ['/me', '/me/people', '/me/people/example', '/me/readings', '/me/readings/self', '/me/readings/example', '/']) {
+  it('나는 /me 와 저장한 사람 · 한 사람 풀이 · 로그인한 사람의 사주 계산에서 켜진다', () => {
+    for (const pathname of ['/me', '/me/people', '/me/people/example', '/me/readings/self', '/me/readings/example', '/']) {
       expect(activeTabs(pathname), pathname).toEqual(['/me']);
     }
     /* 이름이 비슷해도 다른 길이다 */
     expect(isNavigationActive('/me/peoplex', '/me')).toBe(false);
     expect(isNavigationActive('/me/readingsx', '/me')).toBe(false);
+  });
+
+  /**
+   * **풀이 보관함은 탭 소속이 없는 전체 기록이다**(ADR 0133). 궁합 탭 · 인연 탭의 「모두 보기」가 필터를 달고 오는데,
+   * 거기서 나 탭이 켜지면 사용자는 궁합을 보다가 나로 옮겨 온 줄 안다. 제목이 위치를 말한다.
+   */
+  it('풀이 보관함 목록은 어느 탭도 안 켠다 — 그 안에서 연 한 사람 풀이는 나다', () => {
+    expect(activeTabs('/me/readings')).toEqual([]);
+    expect(activeTabs('/me/readings/self')).toEqual(['/me']);
   });
 
   /**

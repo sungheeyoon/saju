@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter, useSelectedLayoutSegment } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams, useSelectedLayoutSegment } from 'next/navigation';
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
 
 import type { Element } from '@/src/lib/saju';
@@ -9,6 +9,8 @@ import type { Element } from '@/src/lib/saju';
 import { elementScope } from '../../../ui/element-tone';
 import { FaceSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
+import { TYPE_TITLE } from '../../../ui/surfaces';
+import { SHELF_KIND_LABEL, SHELF_KINDS, SHELF_TITLE, shelfKindOf, withShelfKind, type ShelfKind } from './kind';
 import { openingHref } from './opening';
 
 /**
@@ -35,14 +37,19 @@ export type NextBook = {
 /** lg — 두 칸이 서는 폭. Tailwind 의 `lg:` 와 같은 값이어야 한 칸짜리 화면에서 옮기지 않는다 */
 const TWO_COLUMNS = '(min-width: 64rem)';
 
+/** 지금 켠 필터 칸 — 주소의 `?kind=` 가 든다(ADR 0133). 레이아웃은 서버라 쿼리를 모르므로 여기서 읽는다 */
+function useShelfKind(): ShelfKind {
+  return shelfKindOf(useSearchParams().get('kind'));
+}
+
 export function ReadingsFrame({
-  shelf,
+  shelves,
   nothing,
   singles,
   children,
 }: {
-  /** 책장(머리 · 함께 보는 궁합 · 두 구역) */
-  shelf: ReactNode;
+  /** 필터 칸마다의 책장 — 서버가 넷을 다 그려 두고, 여기서는 주소가 고른 하나만 세운다 */
+  shelves: Record<ShelfKind, ReactNode>;
   /** 한 권도 없을 때의 안내 — 있으면 목록 주소에서는 두 칸 대신 이것 한 장이 선다 */
   nothing: ReactNode | null;
   /** 한 사람 풀이 — DB 가 준 차례(최근 것이 먼저) */
@@ -51,8 +58,14 @@ export function ReadingsFrame({
 }) {
   const segment = useSelectedLayoutSegment();
   const router = useRouter();
+  const kind = useShelfKind();
   const reading = segment !== null;
-  const opening = openingHref(singles);
+  /*
+    궁합 칸 · 인연 칸에는 한 사람 풀이가 안 서므로 옆 칸에 펼 것도 없다 — 그 표지들은 제 결과 화면으로 떠난다.
+    사주풀이 칸에서 펼 때는 칸을 들고 간다 — 펼친 뒤에도 책장이 같은 칸에 남는다.
+  */
+  const openingBook = kind === 'all' || kind === 'saju' ? openingHref(singles) : null;
+  const opening = openingBook === null ? null : withShelfKind(openingBook, kind);
 
   /*
     **넓은 화면에서 목록만 열면 한 권을 편다** — 내 사주풀이가 있으면 그것, 없으면 가장 최근 글(`openingHref`).
@@ -64,7 +77,14 @@ export function ReadingsFrame({
     if (window.matchMedia(TWO_COLUMNS).matches) router.replace(opening, { scroll: false });
   }, [reading, opening, router]);
 
-  if (!reading && nothing !== null) return nothing;
+  if (!reading && nothing !== null) {
+    return (
+      <div className="flex flex-col gap-10">
+        <ShelfHead kind={null} />
+        {nothing}
+      </div>
+    );
+  }
 
   const index = reading ? singles.findIndex((book) => book.href === `/me/readings/${segment}`) : -1;
   const next = index === -1 || singles.length < 2 ? null : singles[(index + 1) % singles.length];
@@ -72,13 +92,14 @@ export function ReadingsFrame({
   return (
     <div className="grid gap-10 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:items-start lg:gap-12">
       <div className={`${reading ? 'hidden lg:flex' : 'flex'} min-w-0 flex-col gap-10`}>
-        {shelf}
+        <ShelfHead kind={kind} />
+        {shelves[kind]}
       </div>
 
       <div className={`${reading ? 'flex' : 'hidden lg:flex'} min-w-0 flex-col gap-8`}>
         {/* 곧 펼 글로 옮겨 갈 자리에 「표지를 누르면」을 잠깐 세우지 않는다 */}
         {reading || opening === null ? children : null}
-        {next !== null && <NextCard book={next} />}
+        {next !== null && <NextCard book={next} kind={kind} />}
       </div>
     </div>
   );
@@ -100,9 +121,11 @@ export function CoverLink({
   children: ReactNode;
 }) {
   const current = usePathname() === href;
+  const kind = useShelfKind();
   return (
     <Link
-      href={href}
+      /* 보관함 안의 글(옆 칸에 펼쳐지는 것)만 켠 칸을 들고 간다 — 만드는 자리로 가는 빈 표지는 아니다 */
+      href={href.startsWith('/me/readings/') ? withShelfKind(href, kind) : href}
       aria-current={current ? 'page' : undefined}
       className={`${className} ${current ? 'ring-[3px] ring-accent ring-offset-2 ring-offset-background' : ''}`}
       style={style}
@@ -112,21 +135,22 @@ export function CoverLink({
   );
 }
 
-/** 폰에서 글 위에 서는 「← 만든 풀이 목록」 — 넓은 화면은 책장이 옆에 있으니 안 선다 */
+/** 폰에서 글 위에 서는 「← 풀이 보관함」 — 넓은 화면은 책장이 옆에 있으니 안 선다. 들어온 칸으로 돌아간다 */
 export function BackToShelf({ className }: { className: string }) {
+  const kind = useShelfKind();
   return (
-    <Link href="/me/readings" className={`${className} lg:hidden`}>
+    <Link href={withShelfKind('/me/readings', kind)} className={`${className} lg:hidden`}>
       <Icon name="back" className="size-4" />
-      만든 풀이 목록
+      {SHELF_TITLE}
     </Link>
   );
 }
 
 /** 글을 다 읽은 사람의 다음 한 권 — 책장의 차례로 다음, 끝이면 처음 */
-function NextCard({ book }: { book: NextBook }) {
+function NextCard({ book, kind }: { book: NextBook; kind: ShelfKind }) {
   return (
     <Link
-      href={book.href}
+      href={withShelfKind(book.href, kind)}
       className={`${elementScope(book.element)} group flex w-full max-w-[36rem] items-center gap-4 self-center rounded-[1.5rem] border border-border bg-surface p-4 text-left transition-colors hover:border-[color-mix(in_srgb,var(--ink)_40%,transparent)] active:scale-[0.99]`}
     >
       <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--tile)]">
@@ -139,5 +163,45 @@ function NextCard({ book }: { book: NextBook }) {
       </span>
       <Icon name="arrow" className="size-5 shrink-0 text-foreground transition-transform group-hover:translate-x-0.5" />
     </Link>
+  );
+}
+
+/**
+ * **제목과 필터 칩이 한 덩어리로 선다.** 보관함은 어느 탭에도 속하지 않아 머리글의 탭 불이 꺼져 있다 — 그래서
+ * 폰에서는 이 덩어리가 머리글 바로 아래에 붙어 따라 내려온다. 책장을 한참 내려도 「어디서 무엇을 보고 있나」를
+ * 잃지 않는다. 넓은 화면은 책장이 한 칸이라 붙이지 않는다.
+ *
+ * 칩은 주소를 바꾼다(`replace`) — 칩을 누를 때마다 뒤로 가기가 쌓이지 않고, 새로고침 · 공유해도 같은 칸이 열린다.
+ * 안내 한 장만 서는 빈 보관함(`kind === null`)에는 칩이 안 선다 — 가를 것이 없다.
+ */
+function ShelfHead({ kind }: { kind: ShelfKind | null }) {
+  return (
+    <header className="sticky top-16 z-30 -mx-4 flex flex-col gap-3 bg-background/90 px-4 pb-3 pt-2 backdrop-blur-xl lg:static lg:mx-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+      <h1 className={TYPE_TITLE}>{SHELF_TITLE}</h1>
+      {kind !== null && (
+        <nav aria-label="풀이 종류">
+          <ul className="flex gap-2 overflow-x-auto">
+            {SHELF_KINDS.map((one) => {
+              const on = one === kind;
+              return (
+                <li key={one} className="shrink-0">
+                  <Link
+                    href={withShelfKind('/me/readings', one)}
+                    replace
+                    scroll={false}
+                    aria-current={on ? 'page' : undefined}
+                    className={`flex min-h-9 items-center rounded-full px-3.5 text-[14px] font-semibold transition-colors ${
+                      on ? 'bg-foreground text-background' : 'bg-surface text-secondary ring-1 ring-border hover:text-foreground'
+                    }`}
+                  >
+                    {SHELF_KIND_LABEL[one]}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      )}
+    </header>
   );
 }
