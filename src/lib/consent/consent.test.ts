@@ -145,25 +145,35 @@ describe('실패 알림은 무엇을 만들다 실패했는지 말한다', () =>
   });
 
   /**
-   * 실패는 현재 결과를 지우지 않는다 — 성공한 요청만 교체한다(ADR 0013). 그 말이
-   * 없으면 읽던 글이 사라진 줄 안다.
+   * 처음 만들다 실패하면 보이는 글이 없다 — 「지금 보이는 글은 그대로」는 거짓이 된다. 알림 행은 그때 글이
+   * 있었는지 모르므로 어느 갈래에서도 말하지 않고, 다시 시도할 자리를 말한다(ADR 0135).
    */
-  it('지금 보이는 글은 그대로라고 함께 말한다', () => {
-    for (const kind of [...READING_KINDS.filter((k) => k !== 'match'), null]) {
-      expect(failed(kind)).toContain('그대로');
+  it('없을 수도 있는 글을 그대로라 하지 않고 다시 시도할 자리를 말한다', () => {
+    for (const kind of [...READING_KINDS, null]) {
+      for (const tappable of [true, false]) {
+        const said = notificationText({ kind: 'reading_failed', nickname: '지영', readingKind: kind, tappable });
+        expect(said, `${kind} ${tappable}`).not.toContain('그대로');
+        expect(said, `${kind} ${tappable}`).toContain('다시 시도해 주세요');
+      }
     }
   });
 
-  /** 인연 궁합은 수락 직후 처음 만들어진다 — 처음 실패에는 보이는 글이 없어 다시 시도할 자리를 말한다(ADR 0135) */
-  it('인연 궁합 실패는 있지도 않은 글을 그대로라 하지 않고 다시 시도할 자리를 말한다', () => {
-    for (const nickname of [null, '지영']) {
-      const tapped = notificationText({ kind: 'reading_failed', nickname, readingKind: 'match', tappable: true });
-      expect(tapped).not.toContain('그대로');
+  /** 「이 알림을 눌러」는 주소가 있는 줄에만 참이다 — 글자로만 서는 줄에는 가는 길을 말로 준다 */
+  it('눌리는 줄만 누르라고 한다', () => {
+    for (const kind of [...READING_KINDS, null]) {
+      const tapped = notificationText({ kind: 'reading_failed', nickname: null, readingKind: kind, tappable: true });
       expect(tapped).toContain('이 알림을 눌러 다시 시도해 주세요');
-      /* 주소가 없어 글자로만 서는 줄에 「눌러」는 거짓이다 */
-      expect(failed('match', nickname)).not.toContain('눌러');
-      expect(failed('match', nickname)).not.toContain('그대로');
+      expect(failed(kind)).not.toContain('눌러');
     }
+    expect(failed('match')).toContain('인연 기록에서 해당 궁합을 열어');
+    expect(failed('self')).toContain('만들던 풀이 화면에서');
+  });
+
+  it('갈래마다 제 이름을 부른다', () => {
+    expect(failed('self')).toMatch(/^내 사주풀이를 만들지 못했어요/);
+    expect(failed('person')).toMatch(/^사주풀이를 만들지 못했어요/);
+    expect(failed('private')).toMatch(/^궁합풀이를 만들지 못했어요/);
+    expect(failed(null)).toMatch(/^풀이를 만들지 못했어요/);
   });
 });
 
@@ -314,11 +324,12 @@ describe('무효화와 거절과 차단은 누르기 전에 읽힌다', () => {
    * 미리 적어 두면 실제로 무효가 됐을 때 **그렇게 하기로 했던 것**이 된다. 안 적으면
    * 사고처럼 읽힌다.
    */
-  it('출생 정보를 바꾸기 전에 요청이 취소된다는 것을 먼저 말한다', () => {
+  it('출생 정보를 바꾸기 전에 요청이 무효가 된다는 것을 먼저 말한다', () => {
     const said = [INPUT_EDIT_CHANGE_CONFIRM.title, ...INPUT_EDIT_CHANGE_CONFIRM.body].join(' ');
     expect(said).toContain('출생 정보');
-    expect(said).toContain('취소');
-    // 취소는 막다른 길이 아니다 — 그다음에 할 일을 함께 적는다.
+    // 상태 이름은 `invalidated` — 「취소」는 보낸 사람이 거둔 것이다(운영자 2026-09-29)
+    expect(said).toContain('무효');
+    // 무효는 막다른 길이 아니다 — 그다음에 할 일을 함께 적는다.
     expect(said).toContain('다시 요청');
     // 이미 만든 것은 안 사라진다 — 안 적으면 고칠 것을 못 고친다.
     expect(said).toContain('그대로 남습니다');

@@ -819,7 +819,7 @@ try {
      * 그리고 **어느 것을 다시 눌러야 하는지** 말하는가.
      */
     const before = plain(await body('/me/requests', cookie.a));
-    check('아직 실패 알림은 없다', !before.includes('만들지 못했습니다'));
+    check('아직 실패 알림은 없다', !before.includes('만들지 못했어요'));
 
     const opened = await a.rpc('start_reading_run', {
       p_kind: 'self', p_idempotency_key: `check-fail-self-${stamp}`,
@@ -850,8 +850,10 @@ try {
 
     const told = await body('/me/requests', cookie.a);
     const text = plain(told);
-    check('실패가 알림함에 선다', text.includes('내 사주풀이를 만들지 못했습니다'));
-    check('지금 보이는 글은 그대로라고 말한다', text.includes('지금 보이는 글은 그대로입니다'));
+    check('실패가 알림함에 선다', text.includes('내 사주풀이를 만들지 못했어요'));
+    /* 눌리는 줄이라 누르라고 한다 — 처음 실패에 거짓일 「그대로」는 안 선다(ADR 0135) */
+    check('다시 누를 자리를 말한다', text.includes('이 알림을 눌러 다시 시도해 주세요')
+      && !text.includes('지금 보이는 글은 그대로'));
     check('다시 누를 자리로 가는 링크가 붙는다', told.includes('href="/me/readings/self?from=news"'));
 
     /** **어느 궁합인지**까지 말한다 — 비공개 궁합은 두 사람을 다시 골라야 닿는 자리다 */
@@ -873,7 +875,7 @@ try {
 
     /** 남의 실패는 내 알림함에 없다 — 시도는 부른 사람의 것이다 */
     const stranger = plain(await body('/me/requests', cookie.b));
-    check('남의 실패는 내 알림함에 안 선다', !stranger.includes('만들지 못했습니다'));
+    check('남의 실패는 내 알림함에 안 선다', !stranger.includes('만들지 못했어요'));
 
     /**
      * **실패는 풀이권을 먹지 않는다.** 여기까지 성공한 것은 넷(자기·저장한 사람·

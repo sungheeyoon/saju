@@ -280,7 +280,7 @@ async function Result({ outcome }: { outcome: Outcome }) {
   if (outcome.kind === 'same') {
     return (
       <p role="alert" className={`${CARD} text-[15px] leading-6`}>
-        같은 사람을 두 번 골랐어요. 서로 다른 두 사람을 골라 주세요.
+        같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.
       </p>
     );
   }

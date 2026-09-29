@@ -178,7 +178,7 @@ export const WANT_NEW_LABEL: Record<WantNewOption, string> = {
   none: '특별히 없어요',
 };
 
-export const WANT_NEW_NOTE = '아래 기능은 지금 제공하지 않고, 만들지도 아직 정하지 않았어요.';
+export const WANT_NEW_NOTE = '아래 기능은 아직 제공하지 않아요. 앞으로 만들지는 정하지 않았어요.';
 
 // ---------------------------------------------------------------------------
 // Q5 — 값
@@ -325,7 +325,7 @@ export const SURVEY_COPY = {
   optional: '선택 응답',
   /** 동의가 없으면 여기서 켤 수 있다 — 탭만 감추면 헤더가 동의를 물어야 한다 */
   consentNeeded:
-    '이 설문은 풀이 개선에 활용하는 데 동의한 분께 받아요. 아래에서 켜면 바로 답할 수 있어요.',
+    '설문 답변을 풀이 개선에 활용하는 데 동의한 분만 참여할 수 있어요. 아래에서 동의하면 바로 답할 수 있어요.',
 } as const;
 
 export const QUESTION = {

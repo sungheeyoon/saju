@@ -248,7 +248,7 @@ function Resting({ me, lead, tail }: { me: MeMark; lead: React.ReactNode; tail: 
       lead={lead}
       tail={tail}
       title="인연 찾기를 쉬고 있습니다"
-      line="지금은 다른 참여자에게 내 프로필이 공개되지 않으며, 새로운 사람도 소개받지 않습니다. 내 사주와 저장한 사람은 그대로 남아 있습니다."
+      line="지금은 다른 참여자에게 내 프로필이 공개되지 않고, 새로운 사람도 소개받지 않아요. 내 사주와 저장한 사람은 그대로 남아 있어요."
       href="/me/settings"
       action="계정 관리 열기"
     />

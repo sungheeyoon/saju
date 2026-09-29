@@ -296,7 +296,7 @@ try {
     const response = await get(`/me/compat?a=${momId}&b=${momId}`, { cookie });
     const body = await response.text();
     check('같은 사람을 두 번 고르면 그렇다고 말한다',
-      response.status === 200 && body.includes('같은 사람을 두 번'), String(response.status));
+      response.status === 200 && body.includes('같은 사람은 한 번만 고를 수 있어요'), String(response.status));
   }
 
   // ── 목록에서 빼면 그 자리에서 안 보인다 ────────────────────────────────────

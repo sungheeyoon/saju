@@ -159,7 +159,7 @@ export function MatchingExperience({
         if (!result.ok) { setFailure(result.message); return; }
         finish();
       } catch {
-        setFailure('지나친 인연에 두지 못했어요. 잠시 뒤 다시 시도해 주세요.');
+        setFailure('지나친 인연으로 옮기지 못했어요. 잠시 뒤 다시 시도해 주세요.');
       } finally { busy.current = false; }
     });
   }
