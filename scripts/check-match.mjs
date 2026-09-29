@@ -158,8 +158,8 @@ const plain = (html) => html.replace(/<!--\s*-->/g, '');
 const text = (html) => plain(html).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
 /**
- * 인연 탭의 요청 자리 — **그 요소 하나의 마크업만.** 맨 위의 받은 요청(`#requests-lead`, ADR 0130)과 맨 아래의 지난
- * 요청 한 줄(`#requests-log`, 2026-09-29 e+)이 따로 선다.
+ * 요청 자리 — **그 요소 하나의 마크업만.** 인연 탭 맨 위의 받은 요청 띠와 그 시트(`#requests-lead`, ADR 0130)와 인연 기록
+ * 화면의 지난 요청(`#requests-log`, `/me/matching/history`, 2026-09-29 u2)이 따로 선다.
  *
  * 요청이 종에서 인연 탭으로 오면서 같은 응답에 덱과 내 궤도 지도가 함께 선다. 그 둘은 내 일간과 후보의 점수를
  * 들고 있어야 하는 자리라, 「요청 카드가 무엇을 말하는가」를 응답 전체로 재면 덱이 걸린다. 요청 자리의 클라이언트
@@ -180,6 +180,8 @@ const markupOf = (html, id) => {
 };
 const leadOf = (html) => markupOf(html, 'requests-lead');
 const logOf = (html) => markupOf(html, 'requests-log');
+/** 지난 요청은 인연 탭이 아니라 인연 기록에 선다(2026-09-29 u2) */
+const HISTORY = '/me/matching/history';
 
 /** `/me` 의 「요청과 알림」 옆에 선 수 — 없으면 `'0'` */
 const badge = async (cookie) => (/(\d+) 건 안 읽음/.exec(text(await body('/me', cookie))) ?? [null, '0'])[1];
@@ -341,6 +343,10 @@ try {
         readings.includes(partner) && readings.includes('/me/match/') && readings.includes('함께 보기'));
     }
 
+    const history = await body(HISTORY, bCookie);
+    check('인연 기록에 인연 궁합이 서고 결과 화면이 기록으로 돌아온다',
+      history.includes('/me/match/') && history.includes('from=history') && plain(history).includes(NAME.a));
+
     /** **Match 는 내 사람 목록을 늘리지 않는다**(US 46) — 두 갈래로 남는다 */
     const people = await body('/me/people', aCookie);
     check('Match 상대는 등록한 사람 목록에 나타나지 않는다', !people.includes(NAME.b));
@@ -366,9 +372,10 @@ try {
     const asker = plain(await body('/me/requests', aCookie));
     check('출생 정보를 고치면 pending 이 무효가 된다',
       asker.includes(`${NAME.c} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다`));
-    const askerTab = text(logOf(await body('/me/matching', aCookie)));
+    const askerLog = logOf(await body(HISTORY, aCookie));
+    const askerTab = text(askerLog);
     check('무효가 된 요청은 보낸 요청에서 내려간다',
-      !/보낸 요청 \d+개/.test(askerTab) && askerTab.includes('끝난 요청'), askerTab.slice(0, 200));
+      !/>보낸 요청</.test(askerLog) && askerTab.includes('끝난 요청'), askerTab.slice(0, 200));
 
     const other = plain(await body('/me/requests', cCookie));
     check('무효화는 양쪽 다 알림을 받는다',
@@ -384,7 +391,7 @@ try {
      * 지우지 않는다(사건은 일어났다). Match 칸이 비었는지는 그 칸에만 서는 것으로 잰다 —
      * 결과로 들어가는 길이 그것이다.
      */
-    const asker = plain(logOf(await body('/me/matching', aCookie)));
+    const asker = plain(logOf(await body(HISTORY, aCookie)));
     const askerReadings = plain(await body('/me/readings', aCookie));
     check('차단하면 풀이 탭의 Match 가 목록에서 내려간다', !askerReadings.includes('/me/match/'));
     check('차단한 사람이 몇인지는 말하되 누구인지는 적지 않는다',

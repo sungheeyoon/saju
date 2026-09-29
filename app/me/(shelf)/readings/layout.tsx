@@ -9,6 +9,7 @@ import { AccountNotice } from '../../account-notice';
 import { readAccount } from '../../account';
 import { myReadings } from '../../reading/current';
 import { matchesForViewer } from '../../requests/inbox';
+import { withCameFrom } from '../../../came-from';
 import { bookOf } from './book';
 import { ReadingsFrame, type NextBook } from './frame';
 import { shelfKindOfReading, type ShelfKind } from './kind';
@@ -117,7 +118,9 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
     );
   };
   const toCompat = <BlankBook href="/compat" element="火" label="궁합 보러 가기" />;
-  const makingShelf = (shelfKind: ShelfKind) => making.length > 0 && <MakingShelf matches={making} shelfKind={shelfKind} />;
+  const makingShelf = (shelfKind: ShelfKind) => making.length > 0 && (
+    <MakingShelf matches={making} hrefOf={(matchId) => withCameFrom(`/me/match/${matchId}`, 'shelf', shelfKind)} />
+  );
 
   /* 필터 칸마다의 책장(ADR 0133) — 어느 칸을 세울지는 주소를 읽는 `frame.tsx` 가 고른다 */
   const shelves: Record<ShelfKind, ReactNode> = {
