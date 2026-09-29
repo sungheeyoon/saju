@@ -134,7 +134,7 @@ export type Query = {
    * 씌우게 되는데, 그것은 엔진이 정오를 채워 넣을 때 경계한 것과 같은 실수다 —
    * **모르는 것을 아는 것처럼 만들지 않는다**(`UNKNOWN_HOUR_PROXY`).
    *
-   * `null` 은 이제 **주소에서만 온다.** 폼은 「출생 시각 입력」에서 시작한다
+   * `null` 은 이제 **주소에서만 온다.** 폼은 시각 「알아요」에서 시작한다
    * (`DEFAULT_QUERY`) — 두 칸이 다 꺼져 있으면 사용자가 그것을 「고를 게 있다」가
    * 아니라 「잠긴 칸」으로 읽었다. 그래도 위험이 없는 것은, 켜진 쪽이 **모른다는
    * 답이 아니라 적으라는 요구**라서다: 시각을 안 적으면 버튼이 잠긴 채로 남는다.
@@ -160,7 +160,7 @@ export const DEFAULT_QUERY: Query = {
   // 결과를 예시 명식으로 채우지 않는다. 사용자가 입력하기 전에는 빈 상태다.
   date: '',
   time: '',
-  // 「출생 시각 입력」에서 시작한다 — 위 `hourKnown` 참조. 시각 두 칸이 비어 있으면
+  // 시각 「알아요」에서 시작한다 — 위 `hourKnown` 참조. 시각 두 칸이 비어 있으면
   // 버튼은 그대로 잠겨 있으므로, 켜 둔다고 답을 대신 채우는 것이 아니다.
   hourKnown: true,
   gender: 'female',
@@ -210,11 +210,10 @@ export const HOUR_UNKNOWN_LABEL = '출생 시각 모름';
  * 목록처럼 앞뒤에 아무 맥락이 없는 자리에 홀로 서므로 「출생」까지 다 말해야 한다.
  *
  * 폼에서는 그 글자가 세 번 겹쳤다 — 묶음 제목이 「출생 시각」이고 그 아래 두 칸이
- * 「출생 시각 입력」·「출생 시각 모름」이었다. 무엇의 시각인지는 제목이 이미 말한다.
- * 낭독기는 고른 칸 하나만 읽어 주는 때가 있어 그쪽에는 온전한 이름을 남긴다
- * (`aria-label`) — **보이는 글자만 짧아지고 불리는 이름은 그대로다.**
+ * 「출생 시각 입력」·「출생 시각 모름」이었다. 지금은 「시각」 알약 셀렉트의 답 하나다(「알아요 · 몰라요」,
+ * 입력 폼 시안 s, ADR 0132) — 무엇의 시각인지는 셀렉트의 이름(「출생 시각」)이 말한다.
  */
-export const HOUR_UNKNOWN_CHOICE = '시각 모름';
+export const HOUR_UNKNOWN_CHOICE = '몰라요';
 
 const SAEUN_MIN = 1900;
 const SAEUN_MAX = 2100;
@@ -293,7 +292,7 @@ export function missingForCalculation(query: Query): string | null {
   const refused = birthYearRefusal(query);
   if (refused !== null) return refused;
   // 고르지 않은 것과 "모른다"고 답한 것은 다르다 — 위 `hourKnown` 참조.
-  if (query.hourKnown === null) return `출생 시각을 입력하거나 「${HOUR_UNKNOWN_CHOICE}」을 골라 주세요.`;
+  if (query.hourKnown === null) return `출생 시각을 입력하거나 「${HOUR_UNKNOWN_CHOICE}」를 골라 주세요.`;
   if (query.hourKnown && query.time === '') return '출생 시각을 입력해 주세요.';
 
   return null;

@@ -159,7 +159,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
         </p>
       </header>
 
-      <BirthFields value={query} onChange={setQuery} idPrefix="add" namePlaceholder="엄마" />
+      <BirthFields value={query} onChange={setQuery} namePlaceholder="엄마" />
 
       <NoteField value={note} onChange={setNote} idPrefix="add" />
 

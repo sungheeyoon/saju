@@ -14,7 +14,7 @@ import { BUTTON_PRIMARY } from './ui/buttons';
 import { elementScope } from './ui/element-tone';
 import { Icon } from './ui/icons';
 import { STEM_PICTURE, StemSymbol } from './ui/stem-symbol';
-import { CARD, PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
+import { CARD, PAPER, PAPER_BOTTOM, TYPE_META, TYPE_NAME } from './ui/surfaces';
 import { STEM_INFO } from '@/src/lib/saju';
 
 /**
@@ -70,23 +70,26 @@ export function PairTaste() {
           event.preventDefault();
           submit();
         }}
-        className={`${CARD} flex flex-col gap-6`}
+        // 첫 화면 종이의 아래 토막 — 입구 「궁합 보기」 곧장 아래에 두 사람의 흰 카드가 선다(시안 s, ADR 0132)
+        className={`${PAPER_BOTTOM} flex flex-col gap-3`}
       >
         {(['a', 'b'] as const).map((side) => (
-          <fieldset key={side} aria-label={side === 'a' ? '나' : '상대'} className="flex flex-col gap-3">
-            <legend className={`${TYPE_NAME} mb-2`}>{side === 'a' ? '나' : '상대'}</legend>
-            <BirthFields
-              value={forms[side]}
-              onChange={(next) => setForms((current) => ({ ...current, [side]: next }))}
-              idPrefix={`pair-${side}`}
-            />
-          </fieldset>
+          // 흰 카드는 `fieldset` 밖에 두른다 — 테를 `fieldset` 에 두르면 legend 가 그 테 위에 걸린다
+          <div key={side} className="rounded-[1.75rem] border border-border bg-surface p-4 shadow-card">
+            <fieldset aria-label={side === 'a' ? '나' : '상대'} className="flex min-w-0 flex-col gap-3">
+              <legend className={`${TYPE_NAME} mb-3`}>{side === 'a' ? '나' : '상대'}</legend>
+              <BirthFields
+                value={forms[side]}
+                onChange={(next) => setForms((current) => ({ ...current, [side]: next }))}
+              />
+            </fieldset>
+          </div>
         ))}
         <div className="flex flex-col gap-2">
           <button
             type="submit"
             aria-describedby={tried && refused !== null ? 'pair-missing' : undefined}
-            className={`${BUTTON_PRIMARY} w-full sm:w-auto sm:self-start`}
+            className={`${BUTTON_PRIMARY} mt-1 w-full`}
           >
             무료로 궁합 미리 보기
           </button>
