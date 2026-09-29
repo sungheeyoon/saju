@@ -628,7 +628,7 @@ try {
     const list = await body('/me/readings', cookie.a);
     const shown = plain(list);
 
-    check('풀이 목록이 열린다', shown.includes('만든 풀이'));
+    check('풀이 보관함이 열린다', shown.includes('풀이 보관함'));
     check('머리글에 풀이가 선다', shown.includes('풀이'));
 
     /**
@@ -643,8 +643,8 @@ try {
      */
     check('목록에 두 사람 궁합 줄이 선다',
       shown.includes('엄마') && shown.includes(NAME.a) && shown.includes('궁합'));
-    /** 함께 보는 궁합의 이름은 상대의 **공개 별명**이다 — `local_label` 이 아니다 */
-    check('목록에 함께 보는 궁합 줄이 선다', shown.includes(`${NAME.b} 님과의 궁합풀이`));
+    /** 인연 궁합의 이름은 상대의 **공개 별명**이다 — `local_label` 이 아니다 */
+    check('목록에 인연 궁합 줄이 선다', shown.includes(`${NAME.b} 님과의 궁합풀이`));
 
     check('궁합 줄에 점수가 함께 선다', shown.includes('71') && shown.includes('64'));
 
@@ -652,7 +652,7 @@ try {
     for (const [what, href] of [
       ['내 사주', 'href="/me/readings/self"'],
       ['저장한 사람', `href="/me/readings/${momId}"`],
-      ['함께 보는 궁합', `href="/me/match/${matchId}"`],
+      ['인연 궁합', `href="/me/match/${matchId}"`],
     ]) {
       check(`${what} 줄이 그 대상의 화면으로 간다`, list.includes(href), href);
     }

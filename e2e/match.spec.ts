@@ -86,7 +86,7 @@ async function sentRequest(person: Person): Promise<void> {
  * 그 요청이 「끝난 요청」으로 접히고 그 줄이 성립을 말한다 — 그 문장을 기다린다.
  */
 async function acceptedRequest(person: Person): Promise<void> {
-  await expect(person.page.getByText('수락해 함께 보는 궁합이 열렸습니다.')).toBeAttached();
+  await expect(person.page.getByText('수락해 인연 궁합이 열렸습니다.')).toBeAttached();
 }
 
 /** 요청 하나를 pending 으로 세운다 — 화면으로 재는 자리가 아닐 때 */
@@ -293,7 +293,7 @@ test.describe('동의로 열리는 흐름', () => {
         .getByRole('link', { name: new RegExp(`${partner} 님과의 궁합풀이`) })
         .click();
 
-      await expect(person.page.getByRole('heading', { name: '함께 보는 궁합' })).toBeVisible();
+      await expect(person.page.getByRole('heading', { name: '인연 궁합', exact: true })).toBeVisible();
       await expect(person.page.getByRole('heading', { name: '궁합의 출발점' })).toBeVisible();
       await expect(person.page.getByText('각자의 여덟 글자를 한자리에서 견줍니다')).toHaveCount(0);
       /* 두 사람의 여덟 글자가 각자의 네 기둥 띠로 선다(`PillarPair`) — 관계 표는 없다 */

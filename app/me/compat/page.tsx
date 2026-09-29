@@ -26,6 +26,7 @@ import { BUTTON_TERTIARY } from '../../ui/buttons';
 import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { CARD, TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
+import { SHELF_TITLE, withShelfKind } from '../(shelf)/readings/kind';
 
 /**
  * 모델 240초 상한이 먼저 끝나 실패를 기록하고, DB 600초 만료보다는 먼저 닫는다.
@@ -156,10 +157,10 @@ async function ResultPage({ outcome }: { outcome: Extract<Outcome, { kind: 'ok' 
   return (
     <main className="app-shell flex flex-1 flex-col gap-6 py-8 sm:py-12">
       <header className="flex flex-col gap-3">
-        {/* 되돌아가는 자리는 **만든 풀이 목록**이다 — 이 궁합도 거기 한 줄로 선다 */}
-        <Link href="/me/readings" className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
+        {/* 되돌아가는 자리는 **풀이 보관함의 궁합풀이 칸**이다 — 이 궁합도 거기 한 권으로 선다(ADR 0133) */}
+        <Link href={withShelfKind('/me/readings', 'compat')} className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
           <Icon name="back" className="size-4" />
-          만든 풀이 목록
+          {SHELF_TITLE}
         </Link>
         <div className="flex items-center gap-4">
           <PairMark stems={[outcome.first.saju.pillars.dayMaster, outcome.second.saju.pillars.dayMaster]} />

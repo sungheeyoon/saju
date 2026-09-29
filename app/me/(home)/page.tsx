@@ -23,6 +23,7 @@ import { Onboarding } from '../onboarding';
 import { storedInputOf } from '../person-input';
 import { myReadings } from '../reading/current';
 import { unreadCount } from '../requests/inbox';
+import { SHELF_TITLE } from '../(shelf)/readings/kind';
 
 /**
  * 로그인한 사람이 도착하는 자리 — **홈.**
@@ -167,12 +168,12 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
 }
 
 /**
- * 나 탭 홈의 바로가기 셋 — 인연, 궁합, 그리고 만든 풀이의 책장. 다른 사람 사주는 받은 사주풀이 바로 아래
+ * 나 탭 홈의 바로가기 셋 — 인연, 궁합, 그리고 풀이 보관함. 다른 사람 사주는 받은 사주풀이 바로 아래
  * 단추 하나로 섰다(ADR 0129) — 한 사람 풀이를 보는 자리 옆이다.
  *
  * 인연과 궁합은 머리글의 탭에도 있지만 이 줄이 **무엇을 하는 곳인가**를 한 줄로 말한다 — 탭 이름만으로는
- * 처음 온 사람이 「인연」에서 무엇을 하는지 모른다. 책장(`/me/readings`)은 탭에서 빠지며(ADR 0126) 나 탭 안의
- * 길이 됐다 — 넓은 화면은 글을 열면 옆에 서지만, 폰에서 책장 자체로 가는 길은 여기뿐이다.
+ * 처음 온 사람이 「인연」에서 무엇을 하는지 모른다. 보관함(`/me/readings`)은 탭에서 빠지며(ADR 0126) 어느 탭에도 속하지 않는
+ * 전체 기록이 됐다(ADR 0133) — 넓은 화면은 글을 열면 옆에 서지만, 폰에서 책장 자체로 가는 길은 여기뿐이다.
  */
 const MORE_WAYS: readonly { href: string; label: string; note?: string; icon: IconName; element: Element }[] = [
   {
@@ -183,7 +184,7 @@ const MORE_WAYS: readonly { href: string; label: string; note?: string; icon: Ic
     element: '木',
   },
   { href: '/compat', label: '궁합 보러 가기', icon: 'heart', element: '火' },
-  { href: '/me/readings', label: '만든 풀이 다시 보기', icon: 'reading', element: '金' },
+  { href: '/me/readings', label: SHELF_TITLE, icon: 'reading', element: '金' },
 ];
 
 function MoreWays() {

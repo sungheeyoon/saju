@@ -261,7 +261,7 @@ try {
       news.includes(`${NAME.a} 님이 상세 궁합을 함께 보자고 요청했습니다`) && news.includes('href="/me/matching"'));
     check('소식 화면에는 받은 요청 카드가 없다', !news.includes('수락하고 궁합 열기'));
 
-    check('수락 카드가 여덟 글자 공개와 함께 보는 궁합을 한 문장으로 묻는다',
+    check('수락 카드가 여덟 글자 공개와 인연 궁합을 한 문장으로 묻는다',
       text.includes('당신의 사주팔자 여덟 글자가 상대에게 공개됩니다')
         && text.includes('상대와 자세한 궁합을 함께 보는 데 동의하시겠어요'));
     /**
@@ -337,7 +337,7 @@ try {
       const readings = plain(await body('/me/readings', cookie));
       check(`${who} 소식 화면에는 함께 보기 카드가 남지 않는다`,
         !news.includes('/me/match/'));
-      check(`${who} 풀이 화면에 함께 보는 궁합이 선다`,
+      check(`${who} 풀이 화면에 인연 궁합이 선다`,
         readings.includes(partner) && readings.includes('/me/match/') && readings.includes('함께 보기'));
     }
 
