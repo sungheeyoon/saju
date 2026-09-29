@@ -61,12 +61,12 @@ describe('내 오행 요약', () => {
   it('계정을 못 읽으면 null 이 아니라 던진다', async () => {
     answering({ app_user: BROKEN });
 
-    await expect(selfElementSummary()).rejects.toThrow('요청을 처리하지 못했습니다');
+    await expect(selfElementSummary()).rejects.toThrow('요청을 처리하지 못했어요');
   });
 
   it('엣지를 못 읽으면 null 이 아니라 던진다', async () => {
     answering({ app_user: OK({ self_person_id: 'p-1' }), person: OK(PERSON), user_person_access: BROKEN });
 
-    await expect(selfElementSummary()).rejects.toThrow('요청을 처리하지 못했습니다');
+    await expect(selfElementSummary()).rejects.toThrow('요청을 처리하지 못했어요');
   });
 });

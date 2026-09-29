@@ -54,7 +54,7 @@ export default async function ProfilePage() {
     <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
       <header className="flex flex-col gap-1">
         <h1 className={TYPE_TITLE}>프로필</h1>
-        <p className={TYPE_META}>앱에서 사용할 닉네임과 프로필을 관리합니다.</p>
+        <p className={TYPE_META}>앱에서 쓸 닉네임과 프로필을 정해요.</p>
       </header>
 
       <ProfileForm

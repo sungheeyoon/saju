@@ -60,13 +60,13 @@ export const REQUEST_STATUS_TEXT: Record<
 > = {
   pending: {
     label: '기다리는 중',
-    sent: '상대가 아직 답하지 않았습니다.',
-    received: '답하지 않은 요청입니다.',
+    sent: '상대의 답을 기다리고 있어요.',
+    received: '아직 답하지 않은 요청이에요.',
   },
   accepted: {
     label: '성립',
-    sent: '상대가 수락해 인연 궁합이 열렸습니다.',
-    received: '수락해 인연 궁합이 열렸습니다.',
+    sent: '상대가 수락해 인연 궁합이 열렸어요.',
+    received: '수락해서 인연 궁합이 열렸어요.',
   },
   rejected: {
     label: '거절',
@@ -75,14 +75,13 @@ export const REQUEST_STATUS_TEXT: Record<
   },
   invalidated: {
     label: '무효',
-    sent: '어느 한쪽의 출생 정보가 바뀌어 요청이 무효가 되었습니다. 동의한 대상과 계산 대상이 달라지기 때문입니다.',
-    received:
-      '어느 한쪽의 출생 정보가 바뀌어 요청이 무효가 되었습니다. 동의한 대상과 계산 대상이 달라지기 때문입니다.',
+    sent: '한쪽의 출생 정보가 바뀌어 요청이 무효가 됐어요. 요청할 때와 계산할 사주가 달라졌기 때문이에요.',
+    received: '한쪽의 출생 정보가 바뀌어 요청이 무효가 됐어요. 요청할 때와 계산할 사주가 달라졌기 때문이에요.',
   },
   cancelled: {
     label: '거둠',
-    sent: '보낸 요청을 거뒀습니다.',
-    received: '거둬진 요청입니다.',
+    sent: '보낸 요청을 거뒀어요.',
+    received: '상대가 거둔 요청이에요.',
   },
   expired: {
     label: '만료',
@@ -136,6 +135,11 @@ type NotificationEvent = {
   readonly nickname: string | null;
   /** `reading_failed` 가 무엇을 만들다 실패했나. 다른 사건에는 없다 */
   readonly readingKind: ReadingKind | null;
+  /**
+   * 이 줄을 누르면 다시 시도할 자리로 가는가(`app/me/requests/inbox.ts` 의 `destinationFor` 가 주소를 냈나).
+   * 「이 알림을 눌러」는 눌리는 줄에만 참이다. 없으면 안 눌리는 줄로 본다
+   */
+  readonly tappable?: boolean;
 };
 
 /**
@@ -148,26 +152,26 @@ type NotificationEvent = {
  * 별명을 못 읽는 경우가 있다(상대가 프로필을 지운 뒤). 그때도 사건은 말할 수 있으므로
  * 사람을 부르지 않는 문장으로 낸다 — 「알 수 없는 사람」이라고 지어 부르지 않는다.
  */
-export function notificationText({ kind, nickname, readingKind }: NotificationEvent): string {
+export function notificationText({ kind, nickname, readingKind, tappable = false }: NotificationEvent): string {
   const who = nickname?.trim() ?? '';
 
   switch (kind) {
     case 'request_received':
       return who === ''
-        ? '상세 궁합을 함께 보자는 요청이 왔습니다.'
-        : `${who} 님이 상세 궁합을 함께 보자고 요청했습니다.`;
+        ? '상세 궁합을 함께 보자는 요청이 왔어요'
+        : `${who} 님이 상세 궁합을 함께 보자고 요청했어요`;
     case 'request_accepted':
       return who === ''
-        ? '요청이 수락되어 인연 궁합이 열렸습니다.'
-        : `${who} 님과 인연 궁합이 열렸습니다.`;
+        ? '요청이 수락돼 인연 궁합이 열렸어요'
+        : `${who} 님과 인연 궁합이 열렸어요`;
     case 'request_rejected':
       return who === ''
         ? '요청이 거절되었습니다.'
         : `${who} 님이 이번에는 함께 보지 않기로 했습니다.`;
     case 'request_invalidated':
       return who === ''
-        ? '출생 정보가 바뀌어 요청이 무효가 되었습니다.'
-        : `${who} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다.`;
+        ? '출생 정보가 바뀌어 요청이 무효가 됐어요'
+        : `${who} 님과의 요청이 출생 정보가 바뀌어 무효가 됐어요`;
     case 'request_expired':
       return who === ''
         ? '답이 없어 요청이 만료되었습니다. 잡고 있던 풀이권은 돌아왔습니다.'
@@ -187,9 +191,11 @@ export function notificationText({ kind, nickname, readingKind }: NotificationEv
         return '내 사주풀이를 만들지 못했습니다. 지금 보이는 글은 그대로입니다.';
       }
       if (readingKind === 'match') {
+        /* 안 눌리는 줄의 문장은 운영자 답을 기다리는 임시다(2026-09-29) */
+        const retry = tappable ? '이 알림을 눌러 다시 시도해 주세요.' : '인연 궁합 화면에서 다시 시도해 주세요.';
         return who === ''
-          ? '인연 궁합을 만들지 못했어요. 인연 궁합 화면에서 다시 시도해 주세요.'
-          : `${who} 님과의 인연 궁합을 만들지 못했어요. 인연 궁합 화면에서 다시 시도해 주세요.`;
+          ? `인연 궁합을 만들지 못했어요. ${retry}`
+          : `${who} 님과의 인연 궁합을 만들지 못했어요. ${retry}`;
       }
       /**
        * `private` 과 **모르는 값**이 한 갈래다. 시도 기록을 못 읽었을 때 자기 풀이나
@@ -240,7 +246,7 @@ export const CONSENT_FLOW_STEPS = [
  * 아직 요청을 보내지도 않은 사람에게 규칙 하나를 알려 준다.
  */
 export const CONSENT_FLOW_CAVEAT =
-  '요청은 보낼 때 저장된 두 사람의 출생 정보를 기준으로 합니다. 답을 기다리는 동안 어느 한쪽이 생년월일시·출생지·계산 옵션을 변경하면 기존 요청은 취소되므로, 변경된 정보로 다시 요청해 주세요.';
+  '요청은 보낼 때 저장된 두 사람의 출생 정보로 계산해요. 답을 기다리는 동안 한쪽이 생년월일시 · 출생지 · 계산 옵션을 바꾸면 그 요청은 무효가 돼요. 바뀐 정보로 다시 요청해 주세요.';
 
 /** 받은 요청 카드에서 수락 전에 읽는 한 문장 질문. */
 export const MATCH_CONSENT_QUESTION =
@@ -287,7 +293,7 @@ export const BLOCK_NOTE =
  * 미리 적어 두면 그것이 고장이 아니라 **그렇게 하기로 했던 것**이 된다(ADR 0010).
  */
 export const MATCH_RESULT_PINNED_NOTE =
-  '이 결과는 두 분이 동의하신 그때의 출생 정보로 계산했습니다. 그 뒤에 어느 쪽이 입력을 고쳤더라도 이 결과는 움직이지 않습니다 — 동의하신 대상이 그때의 출생 정보이기 때문입니다. 새 입력으로 다시 보려면 새 요청이 필요합니다.';
+  '이 결과는 두 분이 동의한 그때의 출생 정보로 계산했어요. 그 뒤에 누가 출생 정보를 고쳐도 이 결과는 바뀌지 않아요. 바뀐 정보로 보려면 새로 요청해 주세요.';
 
 /**
  * 이 화면의 문장이 어디서 왔는가 — **두 층이 함께 선다.**
@@ -308,7 +314,7 @@ export const MATCH_RESULT_PINNED_NOTE =
  * **같은 현재 결과 한 벌**이다.
  */
 export const MATCH_RESULT_ENGINE_NOTE =
-  '표와 그 아래 문장은 계산 결과에서 곧바로 조립한 것입니다. 그 아래 궁합풀이와 점수는 언어 모델이 따로 써서 저장해 둔 것이고, 두 분이 같은 것을 봅니다.';
+  '표와 그 아래 문장은 계산 결과로 바로 만든 것이에요. 그 아래 궁합풀이와 점수는 언어 모델이 따로 써서 저장해 둔 글이고, 두 분이 같은 글을 봐요.';
 
 /**
  * 결과를 열 수 없을 때 — **빈 화면을 내지 않는다.**
@@ -350,6 +356,6 @@ export function suppliedText(
   const named = elements.map((element) => `${ELEMENT_KO[element]}(${element})`).join(' · ');
 
   return direction === 'toMe'
-    ? `나에게 부족한 ${named} 기운을 이 사람이 채웁니다.`
-    : `이 사람에게 부족한 ${named} 기운을 내가 채웁니다.`;
+    ? `나에게 부족한 ${named} 기운을 이 사람이 채워 줘요.`
+    : `이 사람에게 부족한 ${named} 기운을 내가 채워 줘요.`;
 }

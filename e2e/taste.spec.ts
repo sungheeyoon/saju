@@ -67,7 +67,7 @@ test('궁합 보기 → 두 사람의 한 줄 · 가린 점수 · 잠긴 목록 
 
   const taste = panel.getByRole('region', { name: '민수 × 지영 · 궁합 맛보기' });
   await expect(taste).toContainText(/민수|지영/);
-  await expect(taste).toContainText('점수는 궁합풀이에서 확인할 수 있어요');
+  await expect(taste).toContainText('점수는 궁합풀이에서 볼 수 있어요');
 
   await panel.getByRole('link', { name: '로그인하고 궁합풀이 받기' }).click();
   await expect(page).toHaveURL(/\/auth\?next=%2Fcompat%23resume-pair$/);

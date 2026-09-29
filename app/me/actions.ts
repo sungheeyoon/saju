@@ -120,7 +120,7 @@ export async function addManagedPerson(
    * 그리는 화면은 이 값을 안 봐도 되지만, **못 받았다는 사실은 값으로 남는다.**
    */
   if (typeof data !== 'string') {
-    return { ok: false, kind: 'failed', message: '저장한 사람을 찾지 못했습니다.' };
+    return { ok: false, kind: 'failed', message: '저장됐는지 확인하지 못했어요. 저장한 사람 목록을 새로 열어 확인해 주세요.' };
   }
 
   refresh('person-list-changed');

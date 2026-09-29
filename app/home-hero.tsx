@@ -131,8 +131,8 @@ function Hero({ member, entry, onEntry }: { member: boolean; entry: Entry; onEnt
           title="궁금한 사람의 사주를 바로 봅니다."
           lede={
             <p>
-              생년월일시를 입력하면 여덟 글자를 확인할 수 있습니다.<br />
-              저장하지 않고도 바로 볼 수 있습니다.
+              생년월일시를 입력하면 여덟 글자를 확인할 수 있어요.<br />
+              저장하지 않아도 볼 수 있어요.
             </p>
           }
           /*

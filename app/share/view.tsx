@@ -126,7 +126,7 @@ export async function SharedReadingView({
           <StartButton variant="loud" />
         </div>
         <p className="text-[13px] leading-5 text-secondary">
-          지금은 비공개 테스트 기간이라 가입에 테스트 코드가 필요합니다.
+          지금은 비공개 테스트 기간이라 가입하려면 테스트 코드가 필요해요.
         </p>
       </section>
     </main>

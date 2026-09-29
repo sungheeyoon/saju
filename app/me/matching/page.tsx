@@ -233,7 +233,7 @@ function Guide({ me, lead, tail }: { me: MeMark | null; lead: React.ReactNode; t
       lead={lead}
       tail={tail}
       title="먼저 내 사주와 이름이 필요해요"
-      line="나와 맞는 인연을 찾으려면 내 사주의 오행 구성이 있어야 해요. 내 사주를 저장하고 닉네임을 지으면 오늘의 인연이 섭니다."
+      line="나와 맞는 인연을 찾으려면 내 사주의 오행 구성이 있어야 해요. 내 사주를 저장하고 닉네임을 지으면 오늘의 인연을 볼 수 있어요."
       href="/me"
       action="내 사주로 가기"
     />

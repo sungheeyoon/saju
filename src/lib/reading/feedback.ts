@@ -88,12 +88,12 @@ export const ISSUE_TAG_LABEL: Record<IssueTag, string> = {
  */
 export const FEEDBACK_COMMENT = {
   label: '어느 대목이 맞았고 어느 대목이 달랐나요?',
-  hint: '풀이의 문장을 가리켜 주시면 가장 도움이 됩니다.',
+  hint: '풀이의 문장을 짚어 주시면 가장 도움이 돼요.',
   limit: 200,
 } as const;
 
 /** 답을 받은 뒤 — 고맙다고 말하고, 고칠 수 있다고 말한다 */
-export const FEEDBACK_THANKS = '답해 주셔서 고맙습니다. 다음 풀이를 만들 때 참고합니다.';
+export const FEEDBACK_THANKS = '답해 주셔서 고마워요. 다음 풀이를 만들 때 참고할게요.';
 
 /**
  * 이 설문이 무엇에 쓰이는지 — **한 줄로.**
@@ -102,7 +102,7 @@ export const FEEDBACK_THANKS = '답해 주셔서 고맙습니다. 다음 풀이�
  * **어느 글에 매이는가**이고, 그것이 사용자가 알아야 하는 유일한 구조다: 지금 읽은
  * 글에 매인다. 다시 만들면 새 글에 새로 묻는다.
  */
-export const FEEDBACK_SCOPE_NOTE = '지금 읽은 이 풀이에 대한 답입니다. 새로 만들면 다시 여쭤봐요.';
+export const FEEDBACK_SCOPE_NOTE = '지금 읽은 이 풀이에 대한 답이에요. 풀이를 새로 만들면 다시 여쭤볼게요.';
 
 /**
  * 이미 남긴 답 — **고치는 화면이 이 값으로 열린다.**

@@ -48,7 +48,7 @@ describe('풀이 공유', () => {
 
     await expect(shareMyReading({ kind: 'self' })).resolves.toEqual({
       ok: false,
-      message: '공유 링크를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+      message: '공유 링크를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.',
     });
   });
 });

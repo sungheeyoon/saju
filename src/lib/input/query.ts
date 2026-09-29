@@ -269,7 +269,7 @@ export function birthYearRefusal(query: Query): string | null {
   const { min, max } = birthYearRangeOf(query.calendar);
   if (year >= min && year <= max) return null;
 
-  return `${min}~${max}년에 태어난 분만 계산합니다: ${year}년`;
+  return `${min}~${max}년에 태어난 분만 계산할 수 있어요. 태어난 해(${year}년)를 확인해 주세요.`;
 }
 
 /**

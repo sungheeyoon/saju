@@ -159,7 +159,7 @@ export function MatchingExperience({
         if (!result.ok) { setFailure(result.message); return; }
         finish();
       } catch {
-        setFailure('저장하지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+        setFailure('지나친 인연에 두지 못했어요. 잠시 뒤 다시 시도해 주세요.');
       } finally { busy.current = false; }
     });
   }
@@ -178,14 +178,14 @@ export function MatchingExperience({
         if (!result.ok) { setFailure(result.message); return; }
         finish();
       } catch {
-        setFailure('요청 결과를 확인하지 못했습니다. 화면을 새로 고쳐 보낸 요청에서 확인해 주세요.');
+        setFailure('요청이 갔는지 확인하지 못했어요. 새로고침한 뒤 보낸 요청에서 확인해 주세요.');
       } finally { busy.current = false; }
     });
   }
 
   /** 보관함과 실행 취소가 같은 복원 경로를 사용한다. 실패하면 이력도 그대로 둔다. */
   async function restoreCard(back: DeckCard): Promise<string | null> {
-    if (busy.current || exit === 'right') return '처리 중입니다. 잠시 뒤 다시 시도해 주세요.';
+    if (busy.current || exit === 'right') return '앞의 작업을 처리하고 있어요. 잠시 뒤 다시 눌러 주세요.';
     busy.current = true;
     setFailure(null);
     let message: string | null = null;
@@ -198,7 +198,7 @@ export function MatchingExperience({
         setAnnouncement(`${back.nickname} 님을 카드 맨 앞으로 가져왔어요.`);
         setFlash(`${back.nickname} 님을 카드 맨 앞으로 가져왔어요.`);
       } catch {
-        message = '복원하지 못했습니다. 잠시 뒤 다시 시도해 주세요.';
+        message = '카드를 되돌리지 못했어요. 잠시 뒤 다시 시도해 주세요.';
         setFailure(message);
       } finally { busy.current = false; resolve(); }
     }));

@@ -73,7 +73,7 @@ const ACCOUNT_UNREADABLE_TEXT: Record<
   },
   unreachable: {
     title: '계정을 지금 확인할 수 없습니다',
-    detail: '잠시 뒤에 다시 열어 주세요. 다시 로그인해도 달라지지 않습니다.',
+    detail: '잠시 뒤에 다시 열어 주세요. 다시 로그인하지 않아도 돼요.',
   },
 } as const;
 

@@ -198,7 +198,7 @@ export function ReadingFeedback({
 
         {failure !== null && (
           <p role="alert" className="text-sm leading-6 text-danger">
-            답을 남기지 못했습니다. {failure}
+            답을 남기지 못했어요. {failure}
           </p>
         )}
 

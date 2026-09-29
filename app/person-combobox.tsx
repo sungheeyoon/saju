@@ -45,7 +45,7 @@ const shownLabel = (one: Choosable): string =>
  * 같은 사실을 말하므로 이 둘을 그대로 쓴다 — 한 사실 한 표기.
  */
 export const PLACEHOLDER = '이름으로 찾기';
-export const NO_MATCH = '찾는 사람이 없습니다';
+export const NO_MATCH = '찾는 사람이 없어요';
 
 /**
  * 목록의 높이 — **다섯 줄과 여섯째의 반.** 한 줄이 `min-h-11`(44px), 목록 안 여백이 위 4px 라

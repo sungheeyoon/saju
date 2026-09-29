@@ -39,7 +39,7 @@ export function SignInCarrying({
             setFailure(null);
           } catch {
             event.preventDefault();
-            setFailure('입력을 임시로 저장하지 못했어요. 다시 시도해 주세요.');
+            setFailure('입력을 임시로 저장하지 못했어요. 저장 공간 설정을 확인하고 다시 시도해 주세요.');
           }
         }}
         className={className}

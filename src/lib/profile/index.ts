@@ -69,7 +69,7 @@ export type ProfileInput = {
 export function missingNickname(nickname: string): string | null {
   const name = nickname.trim();
   if (name.length < NICKNAME_MIN || name.length > NICKNAME_MAX) {
-    return `닉네임은 ${NICKNAME_MIN}자에서 ${NICKNAME_MAX}자까지입니다.`;
+    return `닉네임은 ${NICKNAME_MIN}자에서 ${NICKNAME_MAX}자까지 쓸 수 있어요.`;
   }
   return null;
 }
@@ -78,7 +78,7 @@ export function missingNickname(nickname: string): string | null {
 export function missingInProfile(profile: ProfileInput): string | null {
   const missing = missingNickname(profile.nickname);
   if (missing !== null) return missing;
-  if (profile.intro.trim().length > INTRO_MAX) return `소개는 ${INTRO_MAX}자까지입니다.`;
+  if (profile.intro.trim().length > INTRO_MAX) return `소개는 ${INTRO_MAX}자까지 쓸 수 있어요.`;
   return null;
 }
 

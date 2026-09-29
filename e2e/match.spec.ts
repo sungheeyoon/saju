@@ -89,7 +89,7 @@ async function sentRequest(person: Person): Promise<void> {
 async function acceptedRequest(person: Person): Promise<void> {
   await expect(person.page.locator('#requests-lead')).toHaveCount(0);
   await person.page.goto('/me/matching/history');
-  await expect(person.page.getByText('수락해 인연 궁합이 열렸습니다.')).toBeVisible();
+  await expect(person.page.getByText('수락해서 인연 궁합이 열렸어요.')).toBeVisible();
 }
 
 /** 요청 하나를 pending 으로 세운다 — 화면으로 재는 자리가 아닐 때 */
@@ -157,15 +157,15 @@ test.describe('동의로 열리는 흐름', () => {
     await respondThroughApi(receiver, false);
 
     await asker.page.goto('/me');
-    await expect(asker.page.getByText('아직 확인하지 않은 새 소식이 있습니다.')).toBeVisible();
-    await asker.page.getByText('아직 확인하지 않은 새 소식이 있습니다.').click();
+    await expect(asker.page.getByText('아직 확인하지 않은 새 소식이 있어요.')).toBeVisible();
+    await asker.page.getByText('아직 확인하지 않은 새 소식이 있어요.').click();
 
     await expect(asker.page).toHaveURL(/\/me\/requests$/);
     // 처음 내려온 알림의 읽지 않음 표시는 자동 읽음 처리 뒤의 refresh 에서 사라진다.
     await expect(asker.page.getByLabel('읽지 않음')).toHaveCount(0);
 
     await asker.page.goto('/me');
-    await expect(asker.page.getByText('아직 확인하지 않은 새 소식이 있습니다.')).toHaveCount(0);
+    await expect(asker.page.getByText('아직 확인하지 않은 새 소식이 있어요.')).toHaveCount(0);
   });
 
   /**
@@ -186,7 +186,7 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(tab).toBeVisible();
     await expect(banner.getByRole('link', { name: /^소식/ })).toHaveAccessibleName('소식');
     /* 나 탭의 소식 띠도 종과 같은 수를 센다 */
-    await expect(receiver.page.getByText('아직 확인하지 않은 새 소식이 있습니다.')).toHaveCount(0);
+    await expect(receiver.page.getByText('아직 확인하지 않은 새 소식이 있어요.')).toHaveCount(0);
 
     await tab.click();
     await expect(receiver.page).toHaveURL(/\/me\/matching$/);
@@ -387,10 +387,10 @@ test.describe('동의로 열리는 흐름', () => {
     await expect(receiver.page.locator('#requests-lead')).toHaveCount(0);
     /* 무효가 된 까닭은 끝난 요청의 줄과 종의 소식 둘 다 말한다 */
     await openRequestHistory(receiver);
-    await expect(receiver.page.getByText('출생 정보가 바뀌어 요청이 무효가 되었습니다', { exact: false })).toBeVisible();
+    await expect(receiver.page.getByText('출생 정보가 바뀌어 요청이 무효가 됐어요', { exact: false })).toBeVisible();
     await receiver.page.goto('/me/requests');
     await expect(
-      receiver.page.getByText(`가${tag} 님과의 요청이 출생 정보 수정으로 무효가 되었습니다`),
+      receiver.page.getByText(`가${tag} 님과의 요청이 출생 정보가 바뀌어 무효가 됐어요`),
     ).toBeVisible();
   });
 
@@ -530,7 +530,7 @@ test.describe('동의로 열리는 흐름', () => {
 
     await page.goto('/me/matching/history');
     await expect(page.getByRole('heading', { level: 1, name: '인연 기록' })).toBeVisible();
-    await expect(page.getByText('아직 인연 기록이 없습니다.')).toBeVisible();
+    await expect(page.getByText('아직 인연 기록이 없어요.')).toBeVisible();
     await expect(
       page.getByRole('link', { name: /^인연/ }).and(page.locator('[aria-current="page"]')).filter({ visible: true }),
     ).toHaveCount(1);
@@ -991,7 +991,7 @@ test.describe('매칭 덱 상태 회귀', () => {
       } else await route.continue();
     });
     await undo.click();
-    await expect(viewer.page.getByText('복원하지 못했습니다. 잠시 뒤 다시 시도해 주세요.')).toBeVisible();
+    await expect(viewer.page.getByText('카드를 되돌리지 못했어요. 잠시 뒤 다시 시도해 주세요.')).toBeVisible();
     await expect(undo).toBeEnabled();
     expect((await viewer.api.rpc('my_passed_connections')).data).toHaveLength(1);
     await viewer.page.unroute('**/me/matching');

@@ -183,7 +183,7 @@ function SaveCard({
               로그인하고 계속하기
             </SignInCarrying>
             <p className="mt-2 text-xs leading-5 text-secondary sm:text-right">
-              로그인하면 이 입력으로 돌아옵니다 · 사주풀이는 저장한 뒤에 받고 풀이권 1회를 씁니다
+              로그인하면 이 입력으로 돌아와요. 사주풀이는 저장한 뒤에 받을 수 있고, 풀이권 1회를 써요.
             </p>
           </div>
         </div>
@@ -199,8 +199,8 @@ function SaveCard({
       <div>
         <h2 className="text-base font-semibold">{reading}로 이어 보기</h2>
         <p className="mt-1.5 text-sm leading-6 text-secondary">
-          이 화면은 입력을 저장하지 않아서 여기서는 {reading}를 받을 수 없습니다.{' '}
-          {saveWhat}를 저장하면 {reading}를 받을 수 있고, 다음에 다시 찾아볼 수도 있습니다.
+          {reading}는 저장한 출생 정보로만 받을 수 있어요.{' '}
+          {saveWhat}를 저장하면 {reading}를 받고, 다음에 다시 볼 수도 있어요.
         </p>
       </div>
 
@@ -241,8 +241,8 @@ function SaveCard({
             나서 알게 되면 그 목록은 사용자가 만든 것이 아니라 화면이 만든 것이 된다.
           */}
           <p className="text-xs leading-5 text-muted">
-            {note} 저장한 뒤 {reading}를 받는 화면으로 갑니다.
-            {slots !== null && ` 앞으로 ${slots.remaining}명 더 저장할 수 있습니다.`} 목록에서
+            {note} 저장하면 {reading}를 받는 화면으로 넘어가요.
+            {slots !== null && ` 앞으로 ${slots.remaining}명 더 저장할 수 있어요.`} 목록에서
             빼려면 ‘저장한 사람’으로 이동해 주세요.
           </p>
         </div>
@@ -329,8 +329,8 @@ export function SavePersonForReading({ query }: { query: Query }) {
       */
       note={
         query.name.trim()
-          ? `저장한 사람 목록에 「${query.name.trim()}」 이름으로 추가됩니다.`
-          : '저장한 사람 목록에 이 사람이 추가됩니다.'
+          ? `저장한 사람 목록에 「${query.name.trim()}」 이름으로 추가돼요.`
+          : '저장한 사람 목록에 이 사람이 추가돼요.'
       }
       onSave={() => savePerson(false)}
     />

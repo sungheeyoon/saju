@@ -22,7 +22,7 @@ export const READING_NOUN = {
 
 /** 아직 만들지 않았을 때 */
 export const readingNoneNote = (noun: string) =>
-  `아직 받아 둔 ${noun}가 없습니다. 아래 버튼을 누르면 지금 저장된 입력으로 한 번 받습니다.`;
+  `아직 받은 ${noun}가 없어요. 아래 버튼을 누르면 지금 저장된 출생 정보로 받을 수 있어요.`;
 
 /*
  * **「누가 썼는가」는 한 사람짜리 화면에서 내렸다.**
@@ -62,14 +62,14 @@ export const READING_REPLACES_NOTE =
  * 무엇을 누르라고는 적지 않는다. 곁의 「사주풀이 다시 받기」가 주 단추로 서 있어, 고친 출생 정보로
  * 새로 받는다는 것은 단추가 말한다(운영자 결정 2026-09-25).
  */
-export const READING_STALE_NOTE = '출생 정보를 수정하기 전에 만든 풀이입니다.';
+export const READING_STALE_NOTE = '출생 정보를 수정하기 전에 만든 풀이예요.';
 
 /** 같은 사실의 딱지 — 홈 · 관계 지도 · 사람 목록 · 책장 · 풀이 화면이 이 두 글자로 적는다 */
 export const READING_STALE_LABEL = '수정 전';
 
 /** 지난 시도가 끝나지 못했다 */
 export const READING_FAILED_NOTE =
-  '지난번 만들기가 끝나지 못했습니다. 지금 보이는 풀이는 그 전에 성공한 결과입니다.';
+  '지난번 풀이를 끝까지 만들지 못했어요. 지금 보이는 글은 그 전에 만든 풀이예요.';
 
 /**
  * **우리가 쓰지 않은 오류가 났을 때** — 화면이 대신 하는 말.
@@ -79,7 +79,7 @@ export const READING_FAILED_NOTE =
  * 자리에 설 말이 있어야 한다. **새로 짓지 않았다** — 패널이 예상 밖 예외에 쓰던 그 문장이다.
  */
 export const READING_UNEXPECTED_NOTE =
-  '예상하지 못한 오류로 풀이를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.';
+  '예상하지 못한 오류로 풀이를 만들지 못했어요. 잠시 뒤 다시 시도해 주세요.';
 
 /** 같은 자리의 설문 쪽 — 화면이 「답을 남기지 못했습니다.」 뒤에 이어 붙인다 */
 export const FEEDBACK_UNEXPECTED_NOTE = '잠시 뒤 다시 시도해 주세요.';
@@ -109,7 +109,7 @@ export const READING_REDACTION_NOTE =
  * 값을 받아 쓰는 것은 상한이 바뀌는 날 문구가 조용히 거짓이 되지 않게 하려는 것이다.
  */
 export const readingWaitNote = (timeoutMs: number): string =>
-  `길면 ${Math.round(timeoutMs / 60_000)}분까지 걸립니다.`;
+  `길면 ${Math.round(timeoutMs / 60_000)}분까지 걸려요.`;
 
 /**
  * 나가도 되는가 — **이제 정말로 된다.**
@@ -123,7 +123,7 @@ export const readingWaitNote = (timeoutMs: number): string =>
  * 걱정을 시키고, 사용자는 그 화면 앞에 붙들려 앉아 있게 된다.
  */
 export const READING_LEAVE_SAFE_NOTE =
-  '이 화면을 벗어나거나 새로고침해도 계속 만들어집니다. 다시 열면 진행 상태가 그대로 보여요.';
+  '이 화면을 벗어나거나 새로고침해도 풀이는 계속 만들어져요. 다시 열면 진행 상태가 그대로 보여요.';
 
 /**
  * 기다리는 화면의 목차 — **줄마다 서버가 적은 상태 하나**(ADR 0127).
@@ -163,7 +163,7 @@ export const readingStoryLabel = (nth: number): string =>
  * 무엇을 하면 되는지를 말한다.
  */
 export const READING_ALREADY_RUNNING_NOTE =
-  '이미 만들고 있는 풀이가 있어 그대로 기다립니다. 완성되면 이 화면에 나타납니다.';
+  '이미 만들고 있는 풀이가 있어요. 다 만들어지면 이 화면에 나타나요.';
 
 /**
  * 남은 풀이권 — **「토큰」이라고 부르지 않는다.**

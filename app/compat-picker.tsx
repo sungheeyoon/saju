@@ -199,7 +199,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
   };
 
   const reason = !opening && (missing(slots) !== null || sameTwice)
-    ? sameTwice ? '같은 사람 둘로는 궁합을 볼 수 없습니다.' : missing(slots)
+    ? sameTwice ? '같은 사람을 두 번 골랐어요. 서로 다른 두 사람을 골라 주세요.' : missing(slots)
     : null;
 
   return (
@@ -347,7 +347,7 @@ function SlotCard({
             chosenId={slot.personId}
             onChoose={(personId) => onChange({ from: 'saved', personId })}
           />
-          {people.length === 0 && <span className={TYPE_META}>저장한 사람이 아직 없습니다.</span>}
+          {people.length === 0 && <span className={TYPE_META}>아직 저장한 사람이 없어요.</span>}
         </>
       ) : (
         <BirthFields

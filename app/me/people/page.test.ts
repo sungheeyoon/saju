@@ -47,6 +47,6 @@ describe('저장한 사람', () => {
   it('목록을 못 읽으면 빈 목록이 아니라 던진다', async () => {
     answering({ app_user: ACCOUNT, user_person_access: { data: null, error: { message: 'fetch failed' } } });
 
-    await expect(PeoplePage()).rejects.toThrow('요청을 처리하지 못했습니다');
+    await expect(PeoplePage()).rejects.toThrow('요청을 처리하지 못했어요');
   });
 });
