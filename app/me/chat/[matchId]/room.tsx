@@ -8,6 +8,7 @@ import { BLOCK_NOTE } from '@/src/lib/consent';
 import { activityText, type ActivityBand } from '@/src/lib/presence';
 import { STEM_INFO, type Stem } from '@/src/lib/saju';
 
+import { withCameFrom } from '../../../came-from';
 import { elementScope } from '../../../ui/element-tone';
 import {
   BUTTON_DANGER,
@@ -113,7 +114,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
         */}
         {hasPartner && !closed && (
           <span className="hidden shrink-0 sm:block">
-            <Link href={`/me/match/${room.matchId}`} className={room.tones === null ? BUTTON_SECONDARY_SMALL : `${elementScope(theirTone)} ${TONED_PILL}`}>
+            <Link href={withCameFrom(`/me/match/${room.matchId}`, 'chat')} className={room.tones === null ? BUTTON_SECONDARY_SMALL : `${elementScope(theirTone)} ${TONED_PILL}`}>
               <Icon name="heart" className={`size-[18px] ${room.tones === null ? 'text-danger' : ''}`} />
               인연 궁합
             </Link>
@@ -277,7 +278,7 @@ function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: ()
 function RoomStart({ room }: { room: RoomView }) {
   const tones = room.tones;
   const toMatch = room.partnerUserId !== null && room.notice === null && (
-    <Link href={`/me/match/${room.matchId}`} className={BUTTON_SECONDARY_SMALL}>
+    <Link href={withCameFrom(`/me/match/${room.matchId}`, 'chat')} className={BUTTON_SECONDARY_SMALL}>
       <Icon name="heart" className="size-4 text-danger" />
       인연 궁합
       <Icon name="arrow" className="size-4" />

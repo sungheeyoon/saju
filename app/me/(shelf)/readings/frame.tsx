@@ -10,6 +10,7 @@ import { elementScope } from '../../../ui/element-tone';
 import { FaceSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
 import { TYPE_TITLE } from '../../../ui/surfaces';
+import { backOf, placeOf, resultKindOf, withCameFrom, type CameFrom } from '../../../came-from';
 import { SHELF_KIND_LABEL, SHELF_KINDS, SHELF_TITLE, shelfKindOf, withShelfKind, type ShelfKind } from './kind';
 import { openingHref } from './opening';
 
@@ -42,6 +43,12 @@ function useShelfKind(): ShelfKind {
   return shelfKindOf(useSearchParams().get('kind'));
 }
 
+/** 지금 글이 어디서 열렸나 — 주소의 `?from=` 과 `?kind=`(ADR 0134) */
+function usePlace() {
+  const params = useSearchParams();
+  return placeOf({ from: params.get('from'), kind: params.get('kind') });
+}
+
 export function ReadingsFrame({
   shelves,
   nothing,
@@ -65,7 +72,7 @@ export function ReadingsFrame({
     사주풀이 칸에서 펼 때는 칸을 들고 간다 — 펼친 뒤에도 책장이 같은 칸에 남는다.
   */
   const openingBook = kind === 'all' || kind === 'saju' ? openingHref(singles) : null;
-  const opening = openingBook === null ? null : withShelfKind(openingBook, kind);
+  const opening = openingBook === null ? null : withCameFrom(openingBook, 'shelf', kind);
 
   /*
     **넓은 화면에서 목록만 열면 한 권을 편다** — 내 사주풀이가 있으면 그것, 없으면 가장 최근 글(`openingHref`).
@@ -99,7 +106,7 @@ export function ReadingsFrame({
       <div className={`${reading ? 'flex' : 'hidden lg:flex'} min-w-0 flex-col gap-8`}>
         {/* 곧 펼 글로 옮겨 갈 자리에 「표지를 누르면」을 잠깐 세우지 않는다 */}
         {reading || opening === null ? children : null}
-        {next !== null && <NextCard book={next} kind={kind} />}
+        {next !== null && <NextCard book={next} />}
       </div>
     </div>
   );
@@ -111,11 +118,14 @@ export function ReadingsFrame({
  */
 export function CoverLink({
   href,
+  from,
   className,
   style,
   children,
 }: {
   href: string;
+  /** 이 표지가 선 자리 — 결과로 가는 표지에만 싣는다(ADR 0134). 보관함이면 켠 칩도 함께 든다 */
+  from?: CameFrom;
   className: string;
   style?: CSSProperties;
   children: ReactNode;
@@ -124,8 +134,8 @@ export function CoverLink({
   const kind = useShelfKind();
   return (
     <Link
-      /* 보관함 안의 글(옆 칸에 펼쳐지는 것)만 켠 칸을 들고 간다 — 만드는 자리로 가는 빈 표지는 아니다 */
-      href={href.startsWith('/me/readings/') ? withShelfKind(href, kind) : href}
+      /* 결과로 가는 표지만 온 곳을 싣는다 — 만드는 자리(`/me` · `/compat`)로 가는 빈 표지는 아니다 */
+      href={from !== undefined && resultKindOf(href) !== null ? withCameFrom(href, from, kind) : href}
       aria-current={current ? 'page' : undefined}
       className={`${className} ${current ? 'ring-[3px] ring-accent ring-offset-2 ring-offset-background' : ''}`}
       style={style}
@@ -135,22 +145,27 @@ export function CoverLink({
   );
 }
 
-/** 폰에서 글 위에 서는 「← 풀이 보관함」 — 넓은 화면은 책장이 옆에 있으니 안 선다. 들어온 칸으로 돌아간다 */
-export function BackToShelf({ className }: { className: string }) {
-  const kind = useShelfKind();
+/**
+ * 글 위의 ← — **온 곳으로 돌아간다**(ADR 0134). 나 탭에서 열었으면 「나」, 보관함에서 열었으면 들어온 칩의
+ * 「풀이 보관함」, 주소를 직접 열었으면 「나」다. 보관함으로 가는 ← 는 넓은 화면에서 안 선다 — 책장이 이미 옆에 있다.
+ */
+export function ReadingBack({ className }: { className: string }) {
+  const place = usePlace();
+  const back = backOf('saju', place);
   return (
-    <Link href={withShelfKind('/me/readings', kind)} className={`${className} lg:hidden`}>
+    <Link href={back.href} className={`${className} ${place.from === 'shelf' ? 'lg:hidden' : ''}`}>
       <Icon name="back" className="size-4" />
-      {SHELF_TITLE}
+      {back.label}
     </Link>
   );
 }
 
-/** 글을 다 읽은 사람의 다음 한 권 — 책장의 차례로 다음, 끝이면 처음 */
-function NextCard({ book, kind }: { book: NextBook; kind: ShelfKind }) {
+/** 글을 다 읽은 사람의 다음 한 권 — 책장의 차례로 다음, 끝이면 처음. 지금 글이 온 곳을 그대로 들고 간다 */
+function NextCard({ book }: { book: NextBook }) {
+  const place = usePlace();
   return (
     <Link
-      href={withShelfKind(book.href, kind)}
+      href={place.from === null ? book.href : withCameFrom(book.href, place.from, place.shelfKind)}
       className={`${elementScope(book.element)} group flex w-full max-w-[36rem] items-center gap-4 self-center rounded-[1.5rem] border border-border bg-surface p-4 text-left transition-colors hover:border-[color-mix(in_srgb,var(--ink)_40%,transparent)] active:scale-[0.99]`}
     >
       <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--tile)]">
@@ -167,7 +182,7 @@ function NextCard({ book, kind }: { book: NextBook; kind: ShelfKind }) {
 }
 
 /**
- * **제목과 필터 칩이 한 덩어리로 선다.** 보관함은 어느 탭에도 속하지 않아 머리글의 탭 불이 꺼져 있다 — 그래서
+ * **제목과 필터 칩이 한 덩어리로 선다.** 탭 불은 나지만 나 탭 홈과 다른 화면이라 제목이 위치를 말한다(ADR 0134) — 그래서
  * 폰에서는 이 덩어리가 머리글 바로 아래에 붙어 따라 내려온다. 책장을 한참 내려도 「어디서 무엇을 보고 있나」를
  * 잃지 않는다. 넓은 화면은 책장이 한 칸이라 붙이지 않는다.
  *

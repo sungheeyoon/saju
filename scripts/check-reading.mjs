@@ -650,9 +650,10 @@ try {
 
     /** 누르면 그 글이 사는 화면으로 간다 — 목록 안에서 결과를 열지 않는다 */
     for (const [what, href] of [
-      ['내 사주', 'href="/me/readings/self"'],
-      ['저장한 사람', `href="/me/readings/${momId}"`],
-      ['인연 궁합', `href="/me/match/${matchId}"`],
+      /* 보관함에서 연 글은 온 곳을 싣는다 — 결과의 ← 가 보관함으로 돌아온다(ADR 0134) */
+      ['내 사주', 'href="/me/readings/self?from=shelf"'],
+      ['저장한 사람', `href="/me/readings/${momId}?from=shelf"`],
+      ['인연 궁합', `href="/me/match/${matchId}?from=shelf"`],
     ]) {
       check(`${what} 줄이 그 대상의 화면으로 간다`, list.includes(href), href);
     }

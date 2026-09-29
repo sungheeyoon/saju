@@ -14,8 +14,10 @@ import { Avatar } from '../../avatar';
 import { coverFace } from '../../reading/essay';
 import flow from '../../reading/flow.module.css';
 import type { InboxMatch } from '../../requests/inbox';
+import { withCameFrom, type CameFrom } from '../../../came-from';
 import type { Book } from './book';
 import { CoverLink } from './frame';
+import type { ShelfKind } from './kind';
 import type { DayMaster } from './subject';
 
 /**
@@ -44,12 +46,16 @@ export function Shelf({ title, description, children }: { title: string; descrip
   );
 }
 
-/** 한 사람 풀이 = 제 일간 색의 표지 한 권. 왼쪽 등(spine)이 상징색, 가운데가 비유 한 줄 */
-export function SingleCover({ book }: { book: Book }) {
+/**
+ * 한 사람 풀이 = 제 일간 색의 표지 한 권. 왼쪽 등(spine)이 상징색, 가운데가 비유 한 줄.
+ *
+ * `from` 은 이 표지가 선 자리다 — 결과 화면의 ← 와 탭 불이 그것을 읽는다(ADR 0134). 없으면 주소만 간다.
+ */
+export function SingleCover({ book, from }: { book: Book; from?: CameFrom }) {
   const subject = book.subjects[0] ?? null;
   const face = coverFace([subject?.element ?? null]);
   return (
-    <CoverLink href={book.href} className={`${elementScope(subject?.element ?? null)} ${COVER}`} style={{ background: face.background }}>
+    <CoverLink href={book.href} from={from} className={`${elementScope(subject?.element ?? null)} ${COVER}`} style={{ background: face.background }}>
       <Spine background={face.spine} />
       {subject !== null && (
         <StemSymbol stem={subject.stem} className="pointer-events-none absolute -bottom-5 -right-5 size-24 opacity-15" />
@@ -78,11 +84,22 @@ export function SingleCover({ book }: { book: Book }) {
  * `source` 는 궁합 탭의 보관함만 단다(ADR 0129) — 직접 본 궁합과 인연 궁합이 한 줄에 섞여 서므로 어디서 왔는지 작은
  * 딱지로 가른다. 책장은 제목(「… 님과의 궁합풀이」)이 이미 말하므로 안 단다.
  */
-export function PairCover({ book, source }: { book: Book; source?: string }) {
+export function PairCover({
+  book,
+  source,
+  from,
+  shelfKind = 'all',
+}: {
+  book: Book;
+  source?: string;
+  /** 이 표지가 선 자리(ADR 0134) — 보관함이면 `shelfKind` 칩도 함께 싣는다 */
+  from?: CameFrom;
+  shelfKind?: ShelfKind;
+}) {
   const [a = null, b = null] = book.subjects;
   const face = coverFace([a?.element ?? null, b?.element ?? null]);
   return (
-    <Link href={book.href} className={COVER} style={{ background: face.background }}>
+    <Link href={from === undefined ? book.href : withCameFrom(book.href, from, shelfKind)} className={COVER} style={{ background: face.background }}>
       <Spine background={face.spine} />
 
       <span className="relative flex items-center justify-between gap-2">
@@ -134,11 +151,23 @@ export function PairCover({ book, source }: { book: Book; source?: string }) {
 }
 
 /** 빈 자리 한 권 — 같은 크기의 점선 표지라 「한 권 더」로 읽힌다 */
-export function BlankBook({ href, element, label }: { href: string; element: Element; label: string }) {
+export function BlankBook({
+  href,
+  element,
+  label,
+  from,
+}: {
+  href: string;
+  element: Element;
+  label: string;
+  /** 결과로 가는 빈 표지(「내 사주풀이」)만 싣는다 — 만드는 자리로 가는 표지에는 `CoverLink` 가 안 붙인다 */
+  from?: CameFrom;
+}) {
   return (
     <li>
       <CoverLink
         href={href}
+        from={from}
         className={`${elementScope(element)} flex h-full min-h-[14rem] flex-col items-center justify-center gap-3 rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] p-4 text-center hover:bg-surface active:scale-[0.98]`}
       >
         <span className="grid size-12 place-items-center rounded-full bg-[var(--tile)]">
@@ -156,7 +185,7 @@ export function BlankBook({ href, element, label }: { href: string; element: Ele
  * 크림 편지 한 장이 통째로 결과 화면으로 가는 링크다. 「함께 보기」는 그 링크의 모양일 뿐 따로 눌리는
  * 단추가 아니다(한 장에 손잡이 하나).
  */
-export function MakingShelf({ matches }: { matches: readonly InboxMatch[] }) {
+export function MakingShelf({ matches, shelfKind }: { matches: readonly InboxMatch[]; shelfKind: ShelfKind }) {
   return (
     <section className="flex flex-col gap-4">
       <div>
@@ -169,7 +198,7 @@ export function MakingShelf({ matches }: { matches: readonly InboxMatch[] }) {
           return (
             <li key={match.matchId}>
               <Link
-                href={`/me/match/${match.matchId}`}
+                href={withCameFrom(`/me/match/${match.matchId}`, 'shelf', shelfKind)}
                 className="group flex h-full flex-col gap-4 rounded-[1.75rem] bg-cream p-5 transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
               >
                 <span className="flex items-center gap-3.5">

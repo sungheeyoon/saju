@@ -1,0 +1,131 @@
+import { CHAT_TAB_LABEL } from '@/src/lib/chat';
+
+import { SHELF_TITLE, shelfKindOf, withShelfKind, type ShelfKind } from './me/(shelf)/readings/kind';
+
+/**
+ * **결과 화면은 온 곳을 안다 — `?from=`**(ADR 0134).
+ *
+ * 결과 화면 셋(사주풀이 `/me/readings/self|[subject]` · 직접 궁합 `/me/compat?a&b` · 인연 궁합 `/me/match/[id]`)은
+ * 네 탭과 보관함 · 채팅방 · 소식 여섯 자리에서 열린다. 2026-09-29 까지 ← 와 켜진 탭은 **글의 종류**로 정해졌다 —
+ * 궁합 탭에서 연 궁합의 ← 가 보관함으로 갔고, 채팅방에서 연 인연 궁합의 ← 도 보관함으로 갔다. 나 탭에서 연 사주풀이의
+ * ← 는 나를 안 거치고 보관함으로 갔다. 이제 **결과 링크가 온 곳을 싣고**, 결과 화면과 머리글이 그것을 읽는다.
+ *
+ * 이 파일이 그 한 벌이다 — 무슨 값이 있고(`CAME_FROM`), 각 값이 어느 탭을 켜고(`tabOf`) ← 가 어디로 무슨 이름으로
+ * 가는가(`backOf`). **모르는 값 · 없음은 결과 종류의 기본**이다 — 옛 링크 · 주소를 직접 연 사람 · 손으로 고친 주소가
+ * 헛길에 떨어지지 않는다.
+ *
+ * **← 는 이 표 밖으로 못 간다.** 값은 이름표일 뿐 주소가 아니다 — `from=https://…` 도 `from=//evil` 도 모르는 값이라
+ * 기본으로 떨어진다. 가는 곳은 아래 표의 같은 사이트 경로 여섯과, 채팅방이면 **결과가 이미 든 Match id** 뿐이다.
+ */
+export const CAME_FROM = ['me', 'shelf', 'compat', 'matching', 'history', 'chat', 'news'] as const;
+export type CameFrom = (typeof CAME_FROM)[number];
+
+/** 결과 화면의 종류 — 사주풀이 · 직접 궁합 · 인연 궁합 */
+export type ResultKind = 'saju' | 'compat' | 'match';
+
+/** 머리글의 탭 넷 — `site-header.tsx` 의 `MEMBER_TABS` 와 같은 주소다 */
+export type TabHref = '/me' | '/compat' | '/me/matching' | '/me/chat';
+
+/** 온 곳이 켜는 불 — 탭 넷 중 하나, 아니면 종(소식) */
+export type Light = TabHref | '/me/requests';
+
+/** 주소의 `from` 한 값 — 배열(`?from=a&from=b`)은 첫 값, 모르는 값은 `null` */
+export function cameFromOf(value: QueryValue): CameFrom | null {
+  const one = firstOf(value);
+  return CAME_FROM.find((known) => known === one) ?? null;
+}
+
+/** 주소 쿼리 한 칸 — Next 의 `searchParams` 는 같은 이름이 둘이면 배열을 준다 */
+type QueryValue = string | readonly string[] | null | undefined;
+
+function firstOf(value: QueryValue): string | null {
+  if (value === null || value === undefined) return null;
+  return typeof value === 'string' ? value : (value[0] ?? null);
+}
+
+/** 온 곳이 없을 때 결과 종류가 켜는 탭 — 사주는 나, 궁합은 궁합, 인연은 인연 */
+const DEFAULT_TAB: Record<ResultKind, TabHref> = {
+  saju: '/me',
+  compat: '/compat',
+  match: '/me/matching',
+};
+
+const LIGHT_OF: Record<CameFrom, Light> = {
+  me: '/me',
+  shelf: '/me',
+  compat: '/compat',
+  matching: '/me/matching',
+  history: '/me/matching',
+  chat: '/me/chat',
+  news: '/me/requests',
+};
+
+/** 결과 화면이 켜는 불 — 온 곳이 있으면 그 자리, 없으면 결과 종류의 탭 */
+export function lightOf(kind: ResultKind, from: CameFrom | null): Light {
+  return from === null ? DEFAULT_TAB[kind] : LIGHT_OF[from];
+}
+
+/** 이 주소가 결과 화면이면 그 종류 — 보관함 목록(`/me/readings`) 자체는 결과가 아니다 */
+export function resultKindOf(pathname: string): ResultKind | null {
+  if (pathname.startsWith('/me/readings/') && pathname.length > '/me/readings/'.length) return 'saju';
+  if (pathname === '/me/compat') return 'compat';
+  if (pathname.startsWith('/me/match/') && pathname.length > '/me/match/'.length) return 'match';
+  return null;
+}
+
+export type Back = { readonly href: string; readonly label: string };
+
+/**
+ * ← 가 가는 곳과 그 이름 — **가는 곳의 이름**이다(「돌아가기」가 아니다). 폰에서 이 글자가 곧 「어디로 돌아가나」다.
+ *
+ * - `shelf` 는 들어온 칩(`kind`)을 들고 돌아간다 — 궁합풀이 칸에서 연 글의 ← 는 궁합풀이 칸이다.
+ * - `chat` 은 인연 궁합이면 **그 Match 의 방**으로 간다 — 방의 주소가 곧 Match id 라 따로 싣지 않는다. 다른 결과면 목록.
+ */
+export function backOf(
+  kind: ResultKind,
+  place: { from: CameFrom | null; shelfKind?: ShelfKind; matchId?: string },
+): Back {
+  switch (place.from) {
+    case 'me':
+      return { href: '/me', label: '나' };
+    case 'shelf':
+      return { href: withShelfKind('/me/readings', place.shelfKind ?? 'all'), label: SHELF_TITLE };
+    case 'compat':
+      return { href: '/compat', label: '궁합' };
+    case 'matching':
+      return { href: '/me/matching', label: '인연' };
+    case 'history':
+      return { href: '/me/matching/history', label: '인연 기록' };
+    case 'chat':
+      return kind === 'match' && place.matchId !== undefined
+        ? { href: `/me/chat/${place.matchId}`, label: '대화' }
+        : { href: '/me/chat', label: CHAT_TAB_LABEL };
+    case 'news':
+      return { href: '/me/requests', label: '소식' };
+    case null:
+      return DEFAULT_BACK[kind];
+  }
+}
+
+/** 주소를 직접 연 결과의 ← — 그 종류의 탭 첫 화면 */
+const DEFAULT_BACK: Record<ResultKind, Back> = {
+  saju: { href: '/me', label: '나' },
+  compat: { href: '/compat', label: '궁합' },
+  match: { href: '/me/matching', label: '인연' },
+};
+
+/**
+ * 결과 링크에 온 곳을 싣는다. 보관함이면 칩(`kind`)도 함께 싣는다 — 전체 칩은 안 싣는다(`withShelfKind` 와 같은 결).
+ * 이미 쿼리가 있는 주소(`/me/compat?a=…&b=…`)에는 `&` 로 잇는다.
+ */
+export function withCameFrom(href: string, from: CameFrom, shelfKind: ShelfKind = 'all'): string {
+  const query = new URLSearchParams();
+  if (from === 'shelf' && shelfKind !== 'all') query.set('kind', shelfKind);
+  query.set('from', from);
+  return `${href}${href.includes('?') ? '&' : '?'}${query.toString()}`;
+}
+
+/** 결과 화면이 제 주소에서 읽는 두 값 — `kind` 는 보관함에서 왔을 때만 뜻이 있다 */
+export function placeOf(params: { from?: QueryValue; kind?: QueryValue }): { from: CameFrom | null; shelfKind: ShelfKind } {
+  return { from: cameFromOf(params.from), shelfKind: shelfKindOf(firstOf(params.kind)) };
+}
