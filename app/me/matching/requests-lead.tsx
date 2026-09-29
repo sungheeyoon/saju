@@ -27,61 +27,78 @@ export type RequestsRead = { readonly ok: true; readonly value: Requests } | { r
  * 이 자리가 요청에 대해 아는 것은 별명·소개·상태·채우는 오행·균형뿐이다. 여덟 글자도
  * 생년월일시도 점수도 `my_match_requests()` 의 반환형에 없다.
  *
- * ## 답할 일만 펼치고, 나머지는 한 줄로 접는다 (ADR 0130)
+ * ## 답할 일만 맨 위에 펼치고, 나머지는 맨 아래 한 줄로 접는다 (ADR 0130)
  *
  * 전에는 종의 「소식」 화면에 받은 요청 · 보낸 요청 · 새 소식이 함께 살았다. 요청은 인연에서 난 일이라 인연 탭으로
- * 왔고, 종에는 소식만 남았다. 이 탭의 본체는 덱이라 **빈 칸이 덱을 밀어내지 않는다** — 받은 요청은 있을 때만 크게
- * 서고, 보낸 요청 · 끝난 요청 · 차단 수는 한 줄 접이칸에 든다. 요청이 하나도 없으면 아무것도 안 선다.
+ * 왔고, 종에는 소식만 남았다. 이 탭의 본체는 덱이라 **빈 칸이 덱을 밀어내지 않는다** — 받은 요청은 있을 때만 덱 위에
+ * 크게 서고(`ReceivedRequests`), 보낸 요청 · 끝난 요청 · 차단 수는 탭 맨 아래 한 줄 접이칸에 든다(`RequestHistory`,
+ * 2026-09-29 e+ — 기다리거나 지나간 일이라 덱과 최근 인연 궁합보다 뒤다). 요청이 하나도 없으면 둘 다 아무것도 안 선다.
+ *
+ * 두 자리는 저마다 id 를 든다(`#requests-lead` · `#requests-log`) — 흐름 검사(`scripts/check-match.mjs`)가 요청이
+ * 브라우저에 내주는 글자를 그 두 요소의 마크업으로만 잰다. 같은 응답에 덱과 궤도 지도가 함께 서기 때문이다.
  */
-export function RequestsLead({ loaded }: { loaded: RequestsRead }) {
+export function ReceivedRequests({ loaded }: { loaded: RequestsRead }) {
   if (!loaded.ok) {
     return <p className="text-sm text-muted">요청을 읽지 못했습니다 — {loaded.message}</p>;
   }
 
-  const { requests, blocked } = loaded.value;
-  const received = requests.filter((request) => request.direction === 'received' && request.status === 'pending');
-  const sent = requests.filter((request) => request.direction === 'sent' && request.status === 'pending');
-  const decided = requests.filter((request) => request.status !== 'pending');
-
-  if (received.length === 0 && sent.length === 0 && decided.length === 0 && blocked === 0) return null;
+  const received = receivedOf(loaded.value.requests);
+  if (received.length === 0) return null;
 
   return (
     <div id="requests-lead" className="flex flex-col gap-3">
-      {received.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <SectionHead title="받은 요청" count={received.length} />
-          <ul className="flex flex-col gap-4">
-            {received.map((request) => (
-              <li key={request.requestId} className={`flex flex-col gap-4 ${CARD}`}>
-                <RequestHead request={request} large />
-                {/*
-                  **동의 화면이다.** 무엇이 열리는지는 눌러야 나타나는 것이 아니라
-                  카드가 열릴 때부터 버튼 위에 서 있다 — 읽지 않고 누른 수락은 동의가
-                  아니고, 눌러야 나타나는 고지는 밖에서 잴 수도 없다.
-                */}
-                <MatchConsentQuestion />
-                <RespondButtons requestId={request.requestId} />
-                {/*
-                  신고는 **상대가 나에게 한 일**이 있는 자리에만 둔다 — 받은 요청과
-                  성립한 Match. 내가 보낸 요청 카드에는 두지 않는다.
-                */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-2">
-                  <BlockButton userId={request.counterpartUserId} />
-                  <ReportButton userId={request.counterpartUserId} />
-                </div>
-              </li>
-            ))}
-          </ul>
-          <ConsentGuide />
-        </section>
-      )}
-
-      {(sent.length > 0 || decided.length > 0 || blocked > 0) && (
-        <RequestLog sent={sent} decided={decided} blocked={blocked} guide={received.length === 0} />
-      )}
+      <section className="flex flex-col gap-3">
+        <SectionHead title="받은 요청" count={received.length} />
+        <ul className="flex flex-col gap-4">
+          {received.map((request) => (
+            <li key={request.requestId} className={`flex flex-col gap-4 ${CARD}`}>
+              <RequestHead request={request} large />
+              {/*
+                **동의 화면이다.** 무엇이 열리는지는 눌러야 나타나는 것이 아니라
+                카드가 열릴 때부터 버튼 위에 서 있다 — 읽지 않고 누른 수락은 동의가
+                아니고, 눌러야 나타나는 고지는 밖에서 잴 수도 없다.
+              */}
+              <MatchConsentQuestion />
+              <RespondButtons requestId={request.requestId} />
+              {/*
+                신고는 **상대가 나에게 한 일**이 있는 자리에만 둔다 — 받은 요청과
+                성립한 Match. 내가 보낸 요청 카드에는 두지 않는다.
+              */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-2">
+                <BlockButton userId={request.counterpartUserId} />
+                <ReportButton userId={request.counterpartUserId} />
+              </div>
+            </li>
+          ))}
+        </ul>
+        <ConsentGuide />
+      </section>
     </div>
   );
 }
+
+/**
+ * 지난 요청 — 보낸 요청 · 끝난 요청 · 차단 수가 든 한 줄 접이칸. 탭 맨 아래에 선다.
+ *
+ * 못 읽었으면 아무것도 안 선다 — 까닭은 맨 위의 받은 요청 자리가 이미 한 줄로 말한다.
+ */
+export function RequestHistory({ loaded }: { loaded: RequestsRead }) {
+  if (!loaded.ok) return null;
+
+  const { requests, blocked } = loaded.value;
+  const sent = requests.filter((request) => request.direction === 'sent' && request.status === 'pending');
+  const decided = requests.filter((request) => request.status !== 'pending');
+  if (sent.length === 0 && decided.length === 0 && blocked === 0) return null;
+
+  return (
+    <div id="requests-log">
+      <RequestLog sent={sent} decided={decided} blocked={blocked} guide={receivedOf(requests).length === 0} />
+    </div>
+  );
+}
+
+const receivedOf = (requests: readonly InboxRequest[]) =>
+  requests.filter((request) => request.direction === 'received' && request.status === 'pending');
 
 /** 절 제목 — 수는 딱지로 */
 function SectionHead({ title, count }: { title: string; count: number }) {
