@@ -9,9 +9,9 @@
 -- (`75_suspended_write_doors` 가 쓰기 문마다 정지를 두드린다). 하나가 줄면 「Missing records」다 — 걷은 문이면 이
 -- 목록에서도 지운다.
 --
--- 2026-09-30 에 로컬(`20261106100000` 까지)에서 잰 84 개다. 화면이 안 부르는 것도 든다 — 정책 · 다른 함수 안에서
+-- 2026-09-30 에 로컬(`20261106100000` 까지)에서 잰 84 개였고, `clear_my_photo` 를 걷어 83 개다. 화면이 안 부르는 것도 든다 — 정책 · 다른 함수 안에서
 -- 불리는 판정(`chat_room_readable` · `discovery_shown_to_me` · `set_person_listed`), 모양 검사(`is_*` · `reject_bad_chart`),
--- 옛 문(`clear_my_photo` · `photo_of`). 걷을지는 이 파일이 아니라 마이그레이션이 정한다.
+-- 옛 문(`photo_of`). 걷을지는 이 파일이 아니라 마이그레이션이 정한다 — `clear_my_photo` 는 `20261110090000` 이 걷었다.
 begin;
 select plan(1);
 
@@ -25,7 +25,6 @@ select set_eq(
            ('cancel_match_request(p_request_id uuid)'),
            ('chat_policy()'),
            ('chat_room_readable(p_room_id uuid)'),
-           ('clear_my_photo()'),
            ('complete_signup(p_code text, p_nickname text, p_version text, p_schedule_id bigint, p_improvement boolean, p_contact boolean)'),
            ('create_managed_person(p_local_label text, p_note text, p_calendar text, p_original_date date, p_solar_date date, p_birth_time time without time zone, p_gender text, p_city text, p_late_night_rule text, p_time_basis text, p_chart jsonb, p_chart_engine_version text)'),
            ('create_pair_for_reading(p_a_local_label text, p_a_note text, p_a_calendar text, p_a_original_date date, p_a_solar_date date, p_a_birth_time time without time zone, p_a_gender text, p_a_city text, p_a_late_night_rule text, p_a_time_basis text, p_b_local_label text, p_b_note text, p_b_calendar text, p_b_original_date date, p_b_solar_date date, p_b_birth_time time without time zone, p_b_gender text, p_b_city text, p_b_late_night_rule text, p_b_time_basis text, p_relation text, p_a_person uuid, p_b_person uuid, p_listed boolean, p_a_chart jsonb, p_a_chart_engine_version text, p_b_chart jsonb, p_b_chart_engine_version text)'),
