@@ -620,7 +620,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {/* 안 본 궁합은 같은 화면 위의 두 칸을 채운다(`CompatFillLink`) */}
             <CompatFillLink href={compat.href} className={BUTTON_PRIMARY_SMALL}>
-              <Icon name={compat.seen ? 'reading' : 'heart'} className="size-4" />
+              <Icon name={compat.seen ? 'reading' : 'taiji'} className="size-4" />
               {compat.seen ? '궁합풀이 보기' : '궁합 보러 가기'}
             </CompatFillLink>
             <Link href={person.detailHref} className={BUTTON_TERTIARY}>

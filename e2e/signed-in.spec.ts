@@ -94,14 +94,14 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     const viewportWidth = page.viewportSize()?.width ?? 0;
     // 탭 넷(2026-09-29, ADR 0126) — 넷이 폰 폭에 다 서는지도 여기서 잰다
-    for (const label of ['나', '궁합', '인연', '채팅']) {
+    for (const label of ['홈', '궁합', '인연', '채팅']) {
       const link = mobileNav.getByRole('link', { name: label, exact: true });
       await expect(link).toBeVisible();
       const box = await link.boundingBox();
       expect(box?.x).toBeGreaterThanOrEqual(0);
       expect((box?.x ?? viewportWidth) + (box?.width ?? 0)).toBeLessThanOrEqual(viewportWidth);
     }
-    await expect(mobileNav.getByRole('link', { name: '나', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(mobileNav.getByRole('link', { name: '홈', exact: true })).toHaveAttribute('aria-current', 'page');
     await expect(mobileNav.getByRole('link', { name: '궁합', exact: true })).toHaveAttribute('href', '/compat');
 
     /* 소식은 머리글의 종 — 탭에서 빠져도 1클릭이다 */
@@ -301,13 +301,13 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
-   * **나 탭 홈은 줄인 내 카드 → 내가 받은 사주풀이 셋 → 저장한 사람 차례다**(u2, 운영자 2026-09-29 — ADR 0129 「2026-09-29 u2」).
+   * **홈 탭은 줄인 내 카드 → 내가 받은 사주풀이 셋 → 저장한 사람 차례다**(u2, 운영자 2026-09-29 — ADR 0129 「2026-09-29 u2」).
    *
-   * 저장한 사람 타일은 프로덕션 홈(`a45e34e`) 그대로 나 탭에 다시 섰고, 이 화면에서 연 결과는 주소가 `from=me` 를 든다. 폰의
+   * 저장한 사람 타일은 프로덕션 홈(`a45e34e`) 그대로 홈 탭에 다시 섰고, 이 화면에서 연 결과는 주소가 `from=me` 를 든다. 폰의
    * 첫 화면(390×664, 머리글과 아래 탭을 뺀 자리)에 카드 · 받은 사주풀이 · 저장한 사람 머리까지 든다 — 시안의 예산은 452px 였다.
    * 모델은 안 부른다: 사주풀이 넷(나 · 어머니 · 아버지 · 동생)을 `postgres` 로 심는다 — 셋만 서고 보관함 길이 선다.
    */
-  test('나 탭은 줄인 내 카드 · 받은 사주풀이 셋 · 저장한 사람 차례이고 폰 첫 화면에 사람 머리까지 든다', async ({ openAs }, testInfo) => {
+  test('홈 탭은 줄인 내 카드 · 받은 사주풀이 셋 · 저장한 사람 차례이고 폰 첫 화면에 사람 머리까지 든다', async ({ openAs }, testInfo) => {
     const { page, api, account } = await openAs({ selfPerson: true, people: ['어머니', '아버지', '동생'] });
     const { data: edges } = await api.from('user_person_access').select('person_id, local_label');
     const idOf = (label: string) => (edges ?? []).find((row) => row.local_label === label)?.person_id as string;
@@ -414,7 +414,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('region', { name: '이번 달 흐름' })).toHaveCount(0);
 
     /*
-      내가 받은 사주풀이 — 아직 한 권도 없으면 받는 자리로 가는 점선 한 권이 선다. 보관함으로 가는 길은 늘 선다(u2). 나 탭에서
+      내가 받은 사주풀이 — 아직 한 권도 없으면 받는 자리로 가는 점선 한 권이 선다. 보관함으로 가는 길은 늘 선다(u2). 홈 탭에서
       연 결과는 주소가 `from=me` 를 든다
     */
     const received = page.getByRole('region', { name: /^내가 받은 사주풀이/ });
@@ -423,7 +423,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       '/me/readings/self?from=me',
     );
     await expect(received.getByRole('link', { name: '풀이 보관함' })).toHaveAttribute('href', '/me/readings?kind=saju');
-    /* 관계 지도는 궁합 탭에 서고, 저장한 사람은 나 탭에 다시 섰다(u2) */
+    /* 관계 지도는 궁합 탭에 서고, 저장한 사람은 홈 탭에 다시 섰다(u2) */
     await expect(page.getByRole('region', { name: '관계 지도' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: /^저장한 사람/ })).toBeVisible();
 
@@ -468,7 +468,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
-   * **궁합 탭은 새로 보기 → 궁합풀이 한 줄 → 관계 지도다**(「2026-09-29 u2」) — 저장한 사람 타일은 나 탭이 들고 여기 없다.
+   * **궁합 탭은 새로 보기 → 궁합풀이 한 줄 → 관계 지도다**(「2026-09-29 u2」) — 저장한 사람 타일은 홈 탭이 들고 여기 없다.
    *
    * 지도의 원을 누르면 작은 카드가 열리고, 그 카드는 나와의 궁합과 그 사람의 사주 상세로 가는 길을 든다. 나와 궁합을 아직
    * 안 봤으면 궁합 화면으로 가되 **두 칸이 찬 채로**(`a.person` · `b.person`) 간다. 타일이 없으니 자바스크립트 없는 원은
@@ -535,7 +535,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       const nav = page.getByRole('navigation', { name: '내 메뉴' });
       await expectTargets(
         Object.fromEntries(
-          ['나', '궁합', '인연', '채팅'].map((label) => [
+          ['홈', '궁합', '인연', '채팅'].map((label) => [
             label,
             nav.getByRole('link', { name: new RegExp(`^${label}`) }),
           ]),
@@ -611,7 +611,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(summary).toHaveAttribute('href', '/me/readings?kind=compat&from=compat');
     await expect(summary).toContainText('2');
     await expect(summary).toContainText(/최근 (어머니 × 아버지|아버지 × 어머니)/);
-    /* 나 탭 홈에는 궁합풀이가 안 선다 — 한 사람 풀이만 */
+    /* 홈 탭에는 궁합풀이가 안 선다 — 한 사람 풀이만 */
     await page.goto('/me');
     await expect(page.getByRole('region', { name: /^내가 받은 사주풀이/ }).getByText('궁합', { exact: false })).toHaveCount(0);
   });
@@ -1387,7 +1387,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page.getByRole('heading', { name: '쌍둥이의 사주풀이', exact: true }).first()).toBeVisible();
   });
 
-  test('사람을 추가하면 목록에 서고 그 사람과의 수동 궁합이 열린다', async ({ page, signedIn }) => {
+  test('사람을 추가하면 목록에 서고 그 사람과의 수동 궁합이 열린다', async ({ page, signedIn }, testInfo) => {
     await page.goto('/me/people');
 
     await expect(page.getByRole('heading', { name: '저장한 사람' })).toBeVisible();
@@ -1497,6 +1497,29 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     await choosePerson(page, '두 번째', '어머니');
     await page.getByRole('radio', { name: '가족' }).check();
+
+    /*
+      **사이 칩은 조용하고 「궁합 보기」는 칩 줄의 오른쪽 끝이다**(운영자 2026-09-29). 칩의 보이는 알약은 36px 이어도
+      누르는 자리는 44px 이고, 단추는 넓은 화면에서 칩과 한 줄 · 폰에서는 줄이 넘치면 다음 줄의 오른쪽 끝이다. 가로로 안 넘친다.
+    */
+    const relations = page.getByRole('group', { name: '두 분은 무슨 사이인가요?' });
+    await expectTargets(
+      Object.fromEntries(
+        ['가족', '친구·동료', '연인·배우자', '아직 모르겠음'].map((name) => [name, relations.getByRole('radio', { name })]),
+      ),
+    );
+    const openPair = relations.getByRole('button', { name: '궁합 보기' });
+    const [chipBox, openBox, rowBox] = await Promise.all([
+      relations.getByRole('radio', { name: '가족' }).boundingBox(),
+      openPair.boundingBox(),
+      relations.boundingBox(),
+    ]);
+    if (chipBox === null || openBox === null || rowBox === null) throw new Error('사이 칩 · 궁합 보기 자리를 못 쟀다');
+    expect(Math.abs(openBox.x + openBox.width - (rowBox.x + rowBox.width))).toBeLessThanOrEqual(2);
+    if (testInfo.project.name.includes('desktop')) {
+      expect(Math.abs(openBox.y + openBox.height / 2 - (chipBox.y + chipBox.height / 2))).toBeLessThanOrEqual(4);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 
     /* 고르는 자리에는 결과가 없다 — 지표도 명식도 다음 화면의 것이다 */
     await expect(page.getByText('궁합 베타')).toHaveCount(0);
@@ -1667,7 +1690,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
-   * **만든 글이 모이는 자리가 있다**(ADR 0033) — 탭은 아니고 나 탭 홈의 길이다(ADR 0126).
+   * **만든 글이 모이는 자리가 있다**(ADR 0033) — 탭은 아니고 홈 탭의 길이다(ADR 0126).
    *
    * 풀이가 네 화면에 흩어져 있어서, 만든 글에 닿으려면 그것이 어느 화면의 것인지를
    * 먼저 기억해야 했다. 여기서 재는 것은 **길이 나 있는가**와, 아직 아무것도 없는
@@ -1676,7 +1699,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * 글을 실제로 만들어 놓고 재지는 않는다 — 누르면 4분과 돈이 든다. 네 kind 가 다
    * 서는지는 흐름 검사가 열쇠로 저장해 놓고 잰다(`check-reading.mjs`).
    */
-  test('나 탭 홈의 「풀이 보관함」이 만든 글의 목록으로 가고, 거기서는 나 탭이 켜지고 제목이 위치를 말한다', async ({ page, signedIn }) => {
+  test('홈 탭의 「풀이 보관함」이 만든 글의 목록으로 가고, 거기서는 홈 탭이 켜지고 제목이 위치를 말한다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
 
@@ -1684,8 +1707,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.getByRole('region', { name: /^내가 받은 사주풀이/ }).getByRole('link', { name: '풀이 보관함' }).click();
 
     await expect(page).toHaveURL(/\/me\/readings\?kind=saju$/);
-    /* 보관함은 나 탭 소속이다(2026-09-29 운영자, ADR 0134 — ADR 0133 의 「어느 탭도 안 켠다」를 뒤집음) */
-    await expectLitTab(page, '나');
+    /* 보관함은 홈 탭 소속이다(2026-09-29 운영자, ADR 0134 — ADR 0133 의 「어느 탭도 안 켠다」를 뒤집음) */
+    await expectLitTab(page, '홈');
     await expect(page.getByRole('heading', { name: '풀이 보관함', exact: true })).toBeVisible();
     /* 한 권도 없으면 가를 것이 없다 — 칩이 안 선다 */
     await expect(page.getByRole('navigation', { name: '풀이 종류' })).toHaveCount(0);
@@ -1798,7 +1821,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
-   * **← 는 온 곳으로, 불도 온 곳 기준**(ADR 0134). 나 탭에서 연 사주풀이는 「나」로, 보관함의 궁합풀이 칸에서 연 궁합은
+   * **← 는 온 곳으로, 불도 온 곳 기준**(ADR 0134). 홈 탭에서 연 사주풀이는 「홈」으로, 보관함의 궁합풀이 칸에서 연 궁합은
    * 같은 칩의 보관함으로 돌아간다. 주소를 직접 연 결과는 결과 종류의 탭 첫 화면이다 — 모르는 값 · 바깥 주소도 그렇다.
    * 모델은 안 부른다: 궁합풀이 하나를 `postgres` 로 심는다.
    */
@@ -1820,10 +1843,10 @@ test.describe('초대된 사람의 로그인 흐름', () => {
            '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
     const back = (label: string) => page.getByRole('main').getByRole('link', { name: label, exact: true });
 
-    /* 나 탭 → 사주풀이 → ← 나. 사주풀이의 ← 「나」는 넓은 화면에서도 선다 — 옆 책장은 나가 아니다 */
+    /* 홈 탭 → 사주풀이 → ← 홈. 사주풀이의 ← 「홈」은 넓은 화면에서도 선다 — 옆 책장은 홈이 아니다 */
     await page.goto('/me/readings/self?from=me');
-    await expectLitTab(page, '나');
-    await back('나').click();
+    await expectLitTab(page, '홈');
+    await back('홈').click();
     await expect(page).toHaveURL(/\/me$/);
 
     /* 보관함의 궁합풀이 칩에서 연 궁합은 보관함 틀 안에 선다 — 아래 「보관함에서 연 궁합풀이는 책장 옆 같은 칸에」가 잰다 */
@@ -1834,15 +1857,15 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expectLitTab(page, '궁합');
     await expect(back('궁합')).toHaveAttribute('href', '/compat');
 
-    /* 온 곳이 없거나 모르는 값 · 바깥 주소면 결과 종류의 탭 — 궁합은 궁합, 사주는 나 */
+    /* 온 곳이 없거나 모르는 값 · 바깥 주소면 결과 종류의 탭 — 궁합은 궁합, 사주는 홈 */
     for (const query of ['', '&from=nope', '&from=https://evil.example', '&from=//evil.example']) {
       await page.goto(`${pair}${query}`);
       await expectLitTab(page, '궁합');
       await expect(back('궁합')).toHaveAttribute('href', '/compat');
     }
     await page.goto('/me/readings/self?from=%2F%2Fevil.example');
-    await expectLitTab(page, '나');
-    await expect(back('나')).toHaveAttribute('href', '/me');
+    await expectLitTab(page, '홈');
+    await expect(back('홈')).toHaveAttribute('href', '/me');
   });
 
   /**
@@ -1879,7 +1902,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(page).toHaveURL(/\/me\/readings\/compat\?a=[^&]+&b=[^&]+&kind=compat&from=shelf$/);
     await expect(main.getByRole('heading', { name: /어머니/ }).first()).toBeVisible();
     await expect(main.getByText('사이로 읽어 드려요')).toBeVisible();
-    await expectLitTab(page, '나');
+    await expectLitTab(page, '홈');
 
     if (testInfo.project.name.includes('mobile')) {
       /* 폰은 한 화면 — 책장이 안 서고 ← 가 같은 칩의 보관함으로 간다 */
@@ -1895,13 +1918,13 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     /*
       사이를 바꾸면 사이 줄이 둘을 갈라 적는다 — 지금 글의 사이와 다음 풀이의 사이(조건부 조각이 서는 갈래). 틀 안 주소는
-      온 곳 없이 열어도 보관함이다 — 불은 나, ← 는 보관함.
+      온 곳 없이 열어도 보관함이다 — 불은 홈, ← 는 보관함.
     */
     sql(`update public.reading set score_relation = 'family' where source_run_id = '${started.data?.[0]?.run_id as string}'::uuid`);
     expect((await api.rpc('set_pair_relation', { p_person_a: me, p_person_b: mother, p_relation: 'friend' })).error).toBeNull();
     await page.goto(`/me/readings/compat?a=${me}&b=${mother}`);
     await expect(main.getByText('지금 글과 점수는')).toBeVisible();
-    await expectLitTab(page, '나');
+    await expectLitTab(page, '홈');
     await expect(main.getByRole('link', { name: '풀이 보관함', exact: true, includeHidden: true })).toHaveAttribute('href', '/me/readings');
 
     /* 궁합 탭에서 연 궁합은 지금처럼 제 주소 — 책장 없이 ← 「궁합」 */
@@ -3082,7 +3105,7 @@ test.describe('자바스크립트 없이 여는 홈', () => {
   test.use({ javaScriptEnabled: false });
 
   /* 뼈대 뒤에 숨어 흘러온 본문이 제자리처럼 선다(`app/ui/skeleton.tsx` 의 `<noscript>` 규칙) */
-  test('나 탭 홈은 뼈대가 아니라 내 사주와 저장한 사람을 세운다', async ({ page, signedIn }) => {
+  test('홈 탭은 뼈대가 아니라 내 사주와 저장한 사람을 세운다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/me');
     await expect(page.getByRole('region', { name: '내 사주' })).toBeVisible();

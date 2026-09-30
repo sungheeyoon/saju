@@ -34,16 +34,16 @@ const COVER =
   'group relative flex h-full min-h-[14rem] flex-col gap-3 overflow-hidden rounded-[0.5rem_1.5rem_1.5rem_0.5rem] py-4 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]';
 
 /**
- * **한 줄에 셋이 서는 작은 표지** — 나 탭 홈의 「내가 받은 사주풀이」(u2, 운영자 2026-09-29). 모양은 같고 크기만 줄였다: 폰 한 칸이
+ * **한 줄에 셋이 서는 작은 표지** — 홈 탭의 「내가 받은 사주풀이」(u2, 운영자 2026-09-29). 모양은 같고 크기만 줄였다: 폰 한 칸이
  * 110px 남짓이라 14rem 표지 셋이면 저장한 사람 머리가 첫 화면 밖으로 나갔다(잰 값 717px, 첫 화면 끝 584px).
  *
  * **줄이는 것은 폰뿐이다**(2026-09-29) — `sm` 부터는 `COVER` 와 같은 크기로 돌아간다. 넓은 화면에서도 작게 두었더니 한 칸이
  * 195~235px 인데 높이는 148px 라 표지가 옆으로 누운 책이 됐다.
  *
- * **날짜는 한 줄이다**(2026-09-30, #341). Pretendard 가 없는 기기는 한글을 대체 서체로 그리는데, 그때 「2026년 9월 30일」이
+ * **날짜는 한 줄이다**(2026-09-30, #341). 웹 글꼴(Pretendard)을 받지 못해 한글을 대체 서체로 그린 기기(CI 리눅스)에서 「2026년 9월 30일」이
  * 84.7px 로 칸(84px)을 넘겨 두 줄로 꺾였고 표지 셋이 18px 씩 자라 저장한 사람 머리가 첫 화면 밖(598.9px > 584)으로 나갔다.
  * 위아래 여백(`py-2`)과 최소 높이(9rem), 홈의 폰 틈(`app/me/(home)/page.tsx` · `app/me/home/received-readings.tsx`)도 그때 줄여 첫 화면
- * 끝까지 19px 를 남겼다 — 두 서체 모두 564.8px 로 잰다.
+ * 끝까지 19px 를 남겼다 — 두 서체 모두 564.8px 로 쟀다. 같은 날 웹 글꼴을 뺐다(ADR 0109 추기) — 이제 모든 기기가 시스템 서체다.
  */
 const COVER_ROW =
   'group relative flex h-full min-h-[9rem] flex-col gap-1 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] py-2 pl-5 pr-2.5 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-[14rem] sm:gap-3 sm:rounded-[0.5rem_1.5rem_1.5rem_0.5rem] sm:py-4 sm:pl-6 sm:pr-4';
@@ -274,7 +274,7 @@ export function MakingShelf({
 /**
  * 아직 한 권도 없을 때 — **어디서 만드는지를 말한다.** 빈 화면만 남으면 고장으로 읽힌다.
  *
- * 만드는 자리는 나 탭(내 사주풀이 · 저장한 사람)과 궁합 탭에 있다(ADR 0126). 표지 셋은 그 자리로 **곧장**
+ * 만드는 자리는 홈 탭(내 사주풀이 · 저장한 사람)과 궁합 탭에 있다(ADR 0126). 표지 셋은 그 자리로 **곧장**
  * 간다 — 탭을 한 번 더 지나게 하지 않는다.
  */
 export function Nothing({ hasSelf }: { hasSelf: boolean }) {
@@ -290,7 +290,7 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
       <div className="flex max-w-[34rem] flex-col gap-2">
         <h2 className={TYPE_SECTION}>아직 만든 풀이가 없습니다</h2>
         <p className="text-[15px] leading-7 text-secondary">
-          내 사주와 저장한 사람의 풀이는 나 탭에서, 두 사람의 궁합은 궁합 탭에서 시작할 수 있습니다.
+          내 사주와 저장한 사람의 풀이는 홈 탭에서, 두 사람의 궁합은 궁합 탭에서 시작할 수 있습니다.
         </p>
       </div>
       <ul className="grid grid-cols-3 gap-2.5 sm:max-w-[34rem] sm:gap-3">

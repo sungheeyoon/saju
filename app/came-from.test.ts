@@ -61,7 +61,7 @@ describe('온 곳 (ADR 0134)', () => {
 
 describe('← 가 가는 곳 (ADR 0134)', () => {
   it('온 곳마다 가는 곳과 그 이름이 선다', () => {
-    expect(backOf('saju', { from: 'me' })).toEqual({ href: '/me', label: '나' });
+    expect(backOf('saju', { from: 'me' })).toEqual({ href: '/me', label: '홈' });
     expect(backOf('compat', { from: 'shelf', shelfKind: 'compat' })).toEqual({ href: '/me/readings?kind=compat', label: '풀이 보관함' });
     expect(backOf('saju', { from: 'shelf', shelfKind: 'all' })).toEqual({ href: '/me/readings', label: '풀이 보관함' });
     expect(backOf('saju', { from: 'shelf' })).toEqual({ href: '/me/readings', label: '풀이 보관함' });
@@ -78,7 +78,7 @@ describe('← 가 가는 곳 (ADR 0134)', () => {
   });
 
   it('없으면 결과 종류의 탭 첫 화면이다', () => {
-    expect(backOf('saju', { from: null })).toEqual({ href: '/me', label: '나' });
+    expect(backOf('saju', { from: null })).toEqual({ href: '/me', label: '홈' });
     expect(backOf('compat', { from: null })).toEqual({ href: '/compat', label: '궁합' });
     expect(backOf('match', { from: null })).toEqual({ href: '/me/matching', label: '인연' });
   });

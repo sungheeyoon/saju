@@ -8,6 +8,8 @@
  * 채팅(`chat-icon.tsx` 다섯) · 사람 메뉴(`person-menu.tsx` 넷) · 지나친 인연(`UndoIcon`)이 같은 격자의 그림을 따로 들고
  * 있었다(2026-09-26 에 모았다). 새 그림은 여기 더한다 — 화면마다 `<svg>` 를 다시 세우지 않는다.
  */
+import { TaijiShapes } from './entry-marks';
+
 export type IconName =
   | 'home'
   | 'people'
@@ -21,6 +23,7 @@ export type IconName =
   | 'close'
   | 'plus'
   | 'heart'
+  | 'taiji'
   | 'search'
   | 'spark'
   | 'alert'
@@ -64,6 +67,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
   chevron: <path d="m9 5.5 6.5 6.5L9 18.5" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  /** 궁합 — 첫 화면 입구의 태극과 같은 몸(`entry-marks.tsx`). 하트는 인연 쪽(호감 · 요청)에만 남는다 */
+  taiji: <TaijiShapes />,
   heart: <path d="M12 19.5s-7.5-4.4-7.5-9.7A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5c0 5.3-7.5 9.7-7.5 9.7Z" />,
   search: (
     <>
