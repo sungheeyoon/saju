@@ -86,6 +86,6 @@ export async function seamRows(page: Page): Promise<{ above: Buffer; below: Buff
     above: await page.screenshot({ clip: clip(edge - 2) }),
     below: await page.screenshot({ clip: clip(edge + 1) }),
   };
-  await veil.evaluate((node) => node.remove());
+  await veil.evaluate((node) => (node as Element).remove());
   return rows;
 }
