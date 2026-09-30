@@ -10,7 +10,7 @@ import { plainTermsIn } from './check';
 import type { TasteKey } from './taste';
 
 /**
- * 맛보기 표(`taste_passage`)를 **미리 채우는 일** — 프롬프트 · 짧은 규칙 검사 · 도는 차례(ADR 0131).
+ * 로그인 전 사주 문단 표(`taste_passage`)를 **미리 채우는 일** — 프롬프트 · 짧은 규칙 검사 · 도는 차례(ADR 0131).
  *
  * 부르는 자리는 운영자가 손으로 돌리는 실호출 하나다(`app/me/reading/taste.live.test.ts` — 모델 래퍼가 app 에 살고
  * `scripts/` 는 app 을 못 부르므로 `call.live.test.ts` 와 같은 자리에 선다). 여기는 모델도 DB 도 모른다 — 둘 다 받아서
@@ -37,12 +37,12 @@ export function tasteKeyParts(key: string): { stem: Stem; dayBranch: Branch; mon
 }
 
 /**
- * 한 칸의 프롬프트. 출력 모양은 모델 래퍼의 계약(`score · metaphor · markdown`) 그대로다 — `markdown` 에 맛보기
+ * 한 칸의 프롬프트. 출력 모양은 모델 래퍼의 계약(`score · metaphor · markdown`) 그대로다 — `markdown` 에 로그인 전 사주
  * 문단을, `metaphor` 에 한 줄을 받는다. 점수는 `null`.
  */
 export function tastePromptOf(key: TasteKey): string {
   const parts = tasteKeyParts(key);
-  if (parts === null) throw new Error(`맛보기 열쇠의 꼴이 아니다: ${key}`);
+  if (parts === null) throw new Error(`로그인 전 사주 문단 열쇠의 꼴이 아니다: ${key}`);
   const stem = STEM_INFO[parts.stem];
   const dayBranch = BRANCH_INFO[parts.dayBranch];
   const month = BRANCH_INFO[parts.monthBranch];
@@ -70,7 +70,7 @@ export function tastePromptOf(key: TasteKey): string {
 단정하지 않는다.`;
 }
 
-/** 맛보기가 지켜야 할 모양 — 짧은 규칙만. 글의 질은 사람이 본다(ADR 0131 「잠그지 않은 것」) */
+/** 로그인 전 사주 문단이 지켜야 할 모양 — 짧은 규칙만. 글의 질은 사람이 본다(ADR 0131 「잠그지 않은 것」) */
 export const TASTE_RULES = {
   minLength: 60,
   /** DB 의 `taste_passage_body_length` 는 600 이다 — 여기서 먼저 좁게 거른다 */

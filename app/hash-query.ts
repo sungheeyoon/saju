@@ -69,7 +69,7 @@ export function useHashParams(): URLSearchParams {
   useEffect(() => {
     /*
       **돌아온 주소의 낱말이 입력을 든 자리를 가리킨다** — 사주 이어 보기(`resume-reading`)와 첫 화면의 궁합
-      맛보기(`resume-pair`, ADR 0131). 궁합은 두 칸이 `a.` · `b.` 접두사로 실려 있어 첫 칸으로 모양을 잰다.
+      로그인 전 궁합 결과(`resume-pair`, ADR 0131). 궁합은 두 칸이 `a.` · `b.` 접두사로 실려 있어 첫 칸으로 모양을 잰다.
     */
     const key = Object.hasOwn(RESUME_DRAFTS, raw) ? RESUME_DRAFTS[raw] : undefined;
     if (key === undefined) return;

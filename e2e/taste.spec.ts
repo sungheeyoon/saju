@@ -3,9 +3,9 @@ import { expect, test } from './anon';
 import { fillBirth } from './birth-form';
 
 /**
- * 로그인 전 첫 화면 — **두 입구 · 맛보기 · 잠긴 목차 · 접힌 만세력**(흐름 시안 g, ADR 0131).
+ * 로그인 전 첫 화면 — **두 입구 · 로그인 전 사주 문단 · 잠긴 목차 · 접힌 만세력**(흐름 시안 g, ADR 0131).
  *
- * 맛보기 글은 미리 만든 표에서 오고, 표가 비었으면 엔진의 문장이 선다. 시험의 스택은 표가 비어 있으므로 여기서
+ * 로그인 전 사주 문단은 미리 만든 표에서 오고, 표가 비었으면 엔진의 문장이 선다. 시험의 스택은 표가 비어 있으므로 여기서
  * 서는 것은 엔진의 문장이다 — 그래서 「글이 선다」까지만 재고 글자를 붙들지 않는다(글은 단위 시험 `taste.test.ts`).
  */
 
@@ -21,7 +21,7 @@ test('첫 화면은 두 입구와 생일 칸이고, 코드 띠와 이야기 칸�
   await expect(page.getByText('사주풀이에서 만날 이야기')).toHaveCount(0);
 });
 
-test('무료로 내 사주 보기 → 맛보기 · 잠긴 목차 · 접힌 만세력 → 로그인은 입력을 주소에 안 싣는다', async ({ page }) => {
+test('무료로 내 사주 보기 → 로그인 전 사주 문단 · 잠긴 목차 · 접힌 만세력 → 로그인은 입력을 주소에 안 싣는다', async ({ page }) => {
   await page.goto('/');
   await fillBirth(page, { name: '민수', date: '1990-05-15', time: '14:30' });
   await page.getByRole('button', { name: '무료로 내 사주 보기' }).click();
@@ -31,7 +31,7 @@ test('무료로 내 사주 보기 → 맛보기 · 잠긴 목차 · 접힌 만�
   await expect(card).toContainText('민수');
   await expect(card.getByRole('list', { name: '오행 분포' })).toBeVisible();
 
-  /* 맛보기 — 기다림이 끝나면 글이 선다 */
+  /* 로그인 전 사주 문단 — 기다림이 끝나면 글이 선다 */
   const taste = page.getByRole('region', { name: '사주가 보여 주는 나' });
   await expect(taste).toHaveAttribute('aria-busy', 'false');
   await expect(taste.locator('p')).not.toHaveText('');
