@@ -2379,6 +2379,15 @@ export type Database = {
         }
         Returns: number
       }
+      discovery_preview_score_v2_of: {
+        Args: {
+          balance: number
+          day_axis: number
+          need_to_a: number
+          need_to_b: number
+        }
+        Returns: number
+      }
       discovery_seeded_unit: {
         Args: { id: string; seed: string }
         Returns: number
