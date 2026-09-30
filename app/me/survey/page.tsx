@@ -40,7 +40,7 @@ export default async function SurveyPage() {
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
-  const { state } = await readAccount(supabase, 'status');
+  const { state } = await readAccount(supabase, ['status']);
   if (isBlocked(state)) {
     return (
       <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
