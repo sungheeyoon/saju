@@ -47,8 +47,6 @@ export type SaeunEntry = {
   /** 관계 연산에서 이 해를 가리키는 이름 — 'annual:2027' */
   chartId: string;
   pillar: Pillar;
-  /** @deprecated 세운 전체의 나이는 하나가 아니다. `ageAtStart`를 쓴다 */
-  age: number;
   /** 이 세운이 시작되는 입춘 당일의 만 나이 */
   ageAtStart: number;
   /** 다음 입춘 직전의 만 나이 */
@@ -190,7 +188,6 @@ export function computeSaeun(input: SaeunInput, options: SaeunOptions = {}): Sae
       year,
       chartId,
       pillar,
-      age: ageAtStart,
       ageAtStart,
       ageAtEnd,
       startTerm,
