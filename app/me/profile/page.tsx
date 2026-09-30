@@ -33,11 +33,7 @@ export default async function ProfilePage() {
 
   // 정책이 자기 행만 내주므로 `where` 를 적지 않는다. 적으면 판정하는 자리가 둘이 된다.
   /** 온보딩을 안 묻는 화면이라 `self_person_id` 를 안 읽고, 대신 이름과 소개를 함께 읽는다 */
-  const { state, row: account } = await readAccount<{
-    status: string;
-    nickname: string | null;
-    intro: string | null;
-  }>(supabase, 'status, nickname, intro');
+  const { state, row: account } = await readAccount(supabase, ['status', 'nickname', 'intro']);
 
   if (isBlocked(state) || account === null) {
     return (

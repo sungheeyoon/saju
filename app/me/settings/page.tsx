@@ -35,17 +35,7 @@ export default async function SettingsPage() {
 
   /** 온보딩을 안 묻는 화면이라 `self_person_id` 를 안 읽고, 대신 동의 칸과 이름을 함께 읽는다 */
   const [{ state, row: account }, discoveryProfile] = await Promise.all([
-    readAccount<{
-      status: string;
-      nickname: string | null;
-      improvement_consent: boolean | null;
-      contact_consent: boolean | null;
-      notice_version: string | null;
-      notice_ack_at: string | null;
-    }>(
-      supabase,
-      'status, nickname, improvement_consent, contact_consent, notice_version, notice_ack_at',
-    ),
+    readAccount(supabase, ['status', 'nickname', 'improvement_consent', 'contact_consent', 'notice_version', 'notice_ack_at']),
     myDiscoveryProfile(),
   ]);
 
