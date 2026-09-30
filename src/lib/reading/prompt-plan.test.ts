@@ -4,9 +4,7 @@ import { computeSaju } from '../saju';
 import {
   CONTROL,
   LEGACY_PAIR_ASSEMBLY,
-  MATCH_INPUT_VARIANTS,
   NOTHING_KNOWN,
-  PAIR_VARIANTS,
   isSolo,
   promptSlotsOf,
   readingEvidenceOf,
@@ -15,6 +13,7 @@ import {
   type PromptSlot,
   type ReadingKind,
 } from '.';
+import { MATCH_INPUT_VARIANTS, PAIR_VARIANTS } from './variants';
 
 /**
  * **어느 세대의 지시가 어느 자리에 서는가** — 표가 잠근다.
