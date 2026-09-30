@@ -3108,6 +3108,8 @@ export type Database = {
         }[]
       }
       reading_daily_budget: { Args: never; Returns: number }
+      reading_failure_alert_floor: { Args: never; Returns: number }
+      reading_failure_alert_share: { Args: never; Returns: number }
       reading_job_deadline: { Args: never; Returns: string }
       reading_job_prepare_deadline: { Args: never; Returns: string }
       reading_rate_limit: { Args: never; Returns: number }
@@ -3197,6 +3199,10 @@ export type Database = {
       report_daily_limit: { Args: never; Returns: number }
       report_is_open: {
         Args: { p_outcome: string; p_reviewed_at: string }
+        Returns: boolean
+      }
+      report_request_error: {
+        Args: { p_digest: string; p_kind: string; p_route: string }
         Returns: boolean
       }
       report_user: {

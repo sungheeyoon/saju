@@ -922,6 +922,11 @@ select is(
     'record_reading_webhook_event',
     'refund_reading_order',
     'release_reading_job',
+    /**
+     * 서버 오류를 운영자에게 알리는 문(`20261108090000`) — 라우트 파일 무늬 · 자리 · digest 만 받고 하루 한 줄이다.
+     * 로그인한 사람이 부를 수 있으면 알림함을 채울 수 있다(`74_ops_alerts`).
+     */
+    'report_request_error',
     /*
       **한 벌로 돌아왔다.** 비유를 받는 인자가 늘 때도, 판본 인자 둘이 빠질 때도 잠시
       두 벌이 서 있었다 — 넓히고(expand) 배포가 자리 잡은 뒤 좁힌다(contract).
@@ -942,7 +947,7 @@ select is(
     /** 얼린 작업을 집는 문 — 조회가 아니라 `frozen` → `preparing` 전이다(ADR 0071 · #66) */
     'take_reading_job'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 스물일곱 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 스물여덟 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

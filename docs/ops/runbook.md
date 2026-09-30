@@ -1488,13 +1488,14 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 쏴 보다가 같은 착각을 발견해서야 드러났다(ADR 0039).
 
 **이제 감시기가 본다**(2026-09-23, G-42). 크론 `cron-watch`(10분마다)가 `watch_cron()` 으로 지난 한 시간을
-보고, 셋 중 하나면 `notify_ops` 로 한 줄을 보낸다 — 정상 실행은 아무것도 안 적는다. 같은 종류는 하루 한 번이다.
+보고, 넷 중 하나면 `notify_ops` 로 한 줄을 보낸다 — 정상 실행은 아무것도 안 적는다. 같은 종류는 하루 한 번이다.
 
 | 종류 | 뜻 | 할 일 |
 | --- | --- | --- |
 | `cron-failed:<잡>` | 그 잡의 SQL 이 실패했다. 알림에 마지막 오류가 붙는다 | 아래 질의로 `return_message` 를 보고 함수를 고친다 |
 | `net-request-failed` | 크론이 밖으로 부른 요청이 2xx 가 아니었다 — 대부분 복구기다. 잡은 초록이어도 이것이 온다 | 403 이면 `CRON_SECRET` 과 Vault 의 `reading_recovery_secret` 이 갈렸다, 503 이면 Vercel 쪽 열쇠 · DB 문 |
 | `cron-inactive:<잡>` | 잡이 꺼져 있다 | 일부러 끈 것이 아니면 `select cron.alter_job(<jobid>, active := true)` |
+| `reading-failure-rate` | 지난 한 시간에 끝난 풀이 시도 중 실패가 다섯 번 이상이고 절반 이상이다(`20261108090000`, 문턱은 `reading_failure_alert_floor()` · `reading_failure_alert_share()`). 알림에 가장 잦은 실패 코드가 붙는다 | 코드가 검사 실패(`length-out-of-contract` 같은 것)면 프롬프트 · 모델 판, `unexpected` 면 Vercel 로그의 `submit:` · `collect:` 줄 |
 
 재시도 소진은 잡이 스스로 알린다 — `account-disposal-overdue`(G-53) · `reading-budget-reached`.
 
