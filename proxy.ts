@@ -164,6 +164,18 @@ export const config = {
    *
    * `/ops` 도 같다. 관문 밖에 일부러 둔 자리라(ADR 0061) 여기서 아무 데도 안 보내지만,
    * 세션이 안 갱신되면 오랜만에 들어온 운영자가 로그인 화면을 먼저 만난다.
+   *
+   * **`/` 는 서버 액션만 지나간다**(ADR 0137). 현관의 이어 보기 저장이 `/` 주소로 액션을 부르고, 그 액션이
+   * `signedInUser` 로 사람을 묻는다 — 서명만 보는 그 확인은 여기의 `getUser` 와 한 벌이다(`app/auth/signed-in.ts`).
+   * 화면(GET)은 로그인 없이 도는 정적 현관이라 그대로 둔다 — 액션의 표식(`next-action` 머리글)이 있을 때만 돈다.
+   * 이 계약은 `app/auth/signed-in.boundary.test.ts` 가 잰다.
    */
-  matcher: ['/me/:path*', '/compat', '/auth/:path*', '/signup', '/ops/:path*'],
+  matcher: [
+    '/me/:path*',
+    '/compat',
+    '/auth/:path*',
+    '/signup',
+    '/ops/:path*',
+    { source: '/', has: [{ type: 'header', key: 'next-action' }] },
+  ],
 };
