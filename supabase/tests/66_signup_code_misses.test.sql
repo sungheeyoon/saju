@@ -65,7 +65,7 @@ select is(pg_temp.misses((select kim from folks)), 10::bigint, '2. 열 번이 �
 
 select throws_ok(
   $$select public.complete_signup('MISS01', '김틀림', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
-  '42501', '코드를 여러 번 잘못 넣었습니다. 한 시간 뒤에 다시 시도해 주세요.',
+  '42501', '코드를 여러 번 잘못 입력했어요. 한 시간 뒤 다시 시도해 주세요.',
   '2. 열 번 틀린 뒤에는 맞는 코드도 막힌다');
 
 -- ── 4. 세는 것은 그 계정뿐 ──────────────────────────────────────────────────
