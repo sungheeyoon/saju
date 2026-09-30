@@ -39,7 +39,7 @@ import { selfElementSummary, type SelfSummary } from './summary';
 /** 문의 실패 — 부르는 쪽이 `userFacingDbMessage` 로 옮긴다. 우리말이 아닌 문장은 사용자에게 안 간다 */
 type WriteError = { readonly message: string; readonly code?: string };
 
-export type KeyedWrite<T> = { data: T | null; error: WriteError | null };
+type KeyedWrite<T> = { data: T | null; error: WriteError | null };
 
 /** 세션이 없다 — `28000` 은 「다시 로그인」 안내로 옮겨진다(`app/db-error.ts`) */
 const NO_SESSION: WriteError = { message: 'keyed-chart-writes: no session', code: '28000' };

@@ -20,7 +20,7 @@ const LOOKUP_TIMEOUT_MS = 10_000;
 export type PortoneConfig = { webhookSecret: string; apiSecret: string; storeId: string };
 
 /** 결제 단건 — 승인에 드는 칸만 */
-export type PortonePayment = {
+type PortonePayment = {
   status: string;
   storeId: string;
   /** PortOne 의 결제 시도 번호 — 승인 때 주문의 거래 번호(`provider_payment_id`)가 된다 */

@@ -36,7 +36,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 /** 바뀌어도 Preview 를 건너뛰는 자리 — 이 밖의 파일이 하나라도 있으면 빌드한다 */
-export const SKIPPABLE = [
+const SKIPPABLE = [
   /^docs\//,
   /\.md$/,
   /^supabase\/migrations\//,

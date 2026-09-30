@@ -21,7 +21,7 @@ import { readingHref } from '../../reading/line';
 */
 
 /** 일간 — 한자 · 오행 · 그 천간의 그림 이름(「햇빛」, `app/ui/stem-symbol.tsx`) */
-export type DayMark = { stem: string; element: Element; picture: string };
+type DayMark = { stem: string; element: Element; picture: string };
 
 /** 홈이 들고 있는 한 사람 — 명식을 못 세웠으면 그 까닭을 든다 */
 export type HomePerson = {
@@ -50,7 +50,7 @@ export type MapPerson = {
 };
 
 /** 저장한 두 사람 사이에 이미 본 궁합 — 나와의 것은 사람 쪽 `compat` 이 든다 */
-export type MapLink = { a: string; b: string; score: number | null; href: string; label: string };
+type MapLink = { a: string; b: string; score: number | null; href: string; label: string };
 
 export type MapModel = {
   self: { label: string } & DayMark;

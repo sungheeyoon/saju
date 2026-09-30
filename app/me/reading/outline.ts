@@ -17,7 +17,7 @@ import type { RunProgress } from './current';
  * 시작한 만큼만 「n번째 이야기」로 선다 — 몇 개가 될지 모르는 줄을 미리 세우지 않는다.
  * 모델이 시킨 것보다 소제목을 더 달면 마지막 줄에 머문다(앞서 가지 않는다).
  */
-export type OutlineState = 'done' | 'writing' | 'reviewing' | 'waiting';
+type OutlineState = 'done' | 'writing' | 'reviewing' | 'waiting';
 
 export type OutlineRow = { readonly label: string; readonly state: OutlineState };
 

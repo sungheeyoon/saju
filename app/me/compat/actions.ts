@@ -26,7 +26,7 @@ import { rpcArgs } from '@/src/lib/db';
  * **못 읽은 것과 「모른다」를 한 값으로 내지 않는다.** 둘을 `null` 로 합치면 읽기가
  * 실패한 순간 화면이 「모른다」로 서고, 그다음 누름이 멀쩡한 값을 지운다.
  */
-export type PairRelationRead = { ok: true; relation: Relation | null } | { ok: false };
+type PairRelationRead = { ok: true; relation: Relation | null } | { ok: false };
 
 export async function pairRelationFor(
   personA: string,
@@ -91,7 +91,7 @@ export type PairSide =
  * 둘 다 이미 있을 수 있으므로 물음도 두 번 갈 수 있다. 한 번에 둘을 물으면 화면이
  * 「첫 번째는 맞고 두 번째는 아니다」를 한 칸에 담아야 하고, 그 칸은 누구도 안 읽는다.
  */
-export type PairOpened =
+type PairOpened =
   | { ok: true; personA: string; personB: string }
   | { ok: false; kind: 'failed'; message: string }
   | { ok: false; kind: 'same-chart'; side: 'a' | 'b'; same: SameChart };

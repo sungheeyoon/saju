@@ -8,7 +8,7 @@ import { STEM_INFO, stemAt, type Stem } from './stems';
  * (천간 인덱스와 지지 인덱스의 홀짝이 항상 일치 → 120이 아니라 60가지)
  */
 
-export const SEXAGENARY_CYCLE_LENGTH = 60;
+const SEXAGENARY_CYCLE_LENGTH = 60;
 
 export type Pillar = {
   /** 0-based 60갑자 순서 (甲子=0 … 癸亥=59) */

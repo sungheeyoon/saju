@@ -77,7 +77,7 @@ export const EXCLUDED_PATHS = {
   wolun: '달마다의 표는 싣지 않는다 — 지금 도는 달은 `now.wolun` 이 든다',
 } as const satisfies Partial<Record<ClaimPath, string>>;
 
-export type ExcludedPath = keyof typeof EXCLUDED_PATHS;
+type ExcludedPath = keyof typeof EXCLUDED_PATHS;
 
 /** 자료에 실리는 근거 — `CLAIM_PATHS` 에서 뺀 것만 뺀 나머지 */
 export type IncludedPath = Exclude<ClaimPath, ExcludedPath>;
@@ -93,7 +93,7 @@ export const INCLUDED_PATHS: readonly IncludedPath[] = CLAIM_PATHS.filter(
  * 한 칸 내려가고 없다는 쪽은 통째로 잠긴다(`ceilingFor`). 한 방향만 실으면
  * 받는 쪽이 「金이 없습니다」를 「金이 있습니다」와 같은 세기로 쓴다.
  */
-export type ClaimNote = {
+type ClaimNote = {
   /** 있다고 말할 때 */
   presence: ClaimStrength;
   /** 없다고 말할 때. `silent` 면 그 자리에서 없다는 말을 하지 않는다 */
@@ -107,7 +107,7 @@ export type ClaimNote = {
  * 그대로 실으면 타입은 `Date` 라고 적혀 있는데 받는 쪽에는 문자열이 도착한다.
  * 넘어간 뒤의 모양이 아무 데도 안 적힌 것이라, 이 자료의 타입이 곧 거짓말이 된다.
  */
-export type Jsonified<T> = T extends Date
+type Jsonified<T> = T extends Date
   ? string
   : T extends readonly (infer U)[]
     ? readonly Jsonified<U>[]
@@ -176,7 +176,7 @@ type WithResolvedRelations<T> = Omit<T, 'relations'> & {
  *
  * 세 칸(`daeun`·`saeun`·`wolun`)이 저마다 관계를 들고 있고 그것도 인덱스다.
  */
-export type FortuneNow = Omit<
+type FortuneNow = Omit<
   CurrentFortune,
   'relations' | 'daeun' | 'firstDaeun' | 'saeun' | 'wolun'
 > & {
@@ -207,7 +207,7 @@ export type ChartEvidence = Jsonified<
 >;
 
 /** 두 사람 사이 — `Compatibility` 그대로이되 관계는 풀렸다 */
-export type CompatEvidence = Jsonified<
+type CompatEvidence = Jsonified<
   Omit<Compatibility, 'relations' | 'combinedFormations'> & {
     /** 궁합 결과별 상한 — `COMPAT_CLAIM_PATHS` 가 가리키는 근거들에서 나온다 */
     claims: Record<keyof Compatibility, ClaimNote>;

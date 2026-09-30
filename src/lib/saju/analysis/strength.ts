@@ -144,9 +144,9 @@ export const STRENGTH_POLICY = {
 /** 일간을 돕는 십성 계열 — 나와 같거나(비겁) 나를 낳는 것(인성) */
 const SUPPORTING_GROUPS: readonly TenGodGroup[] = ['比劫', '印星'];
 
-export type StrengthVerdict = 'strong' | 'weak';
+type StrengthVerdict = 'strong' | 'weak';
 
-export type StrengthCriterion = {
+type StrengthCriterion = {
   key: 'seasonal' | 'branch' | 'overall';
   label: string;
   met: boolean;

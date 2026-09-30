@@ -29,7 +29,7 @@ import { stemTransformationsOf, type StemTransformation } from './transformation
  * 남으므로, 화격을 채택하는 날 여기가 아니라 그 판정에서 읽으면 된다.
  */
 
-export const EFFECTIVE_ELEMENTS_POLICY = {
+const EFFECTIVE_ELEMENTS_POLICY = {
   /** v2 — 바탕 분포의 무게가 월지 ×2 · 지장간 60:30:10 이 됐다(ADR 0114). 옮기는 규칙은 v1 그대로다 */
   ruleSet: 'effective-elements-v2',
   elementWeights: ELEMENT_WEIGHTS_POLICY.ruleSet,
@@ -47,7 +47,7 @@ export const EFFECTIVE_ELEMENTS_POLICY = {
 } as const;
 
 /** 무게가 어디서 어디로 옮겨 갔는가 — 한 건 */
-export type ElementShift = {
+type ElementShift = {
   from: Element;
   to: Element;
   amount: number;

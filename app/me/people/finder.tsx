@@ -20,7 +20,7 @@ import { Icon } from '../../ui/icons';
  * 무엇을 말하는가)은 궁합 칸과 같은 `src/lib/people/pick.ts` 에 있다.
  */
 
-export type Findable = { personId: string; label: string; card: ReactNode };
+type Findable = { personId: string; label: string; card: ReactNode };
 
 export function PeopleFinder({ people }: { people: Findable[] }) {
   const base = useId();

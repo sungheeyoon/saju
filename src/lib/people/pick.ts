@@ -16,7 +16,7 @@
  * 그대로다 — 맞는 정도로 다시 세우면 칠 때마다 줄이 뛴다.
  */
 
-export type Pickable = { readonly personId: string; readonly label: string };
+type Pickable = { readonly personId: string; readonly label: string };
 
 /** 한글 음절의 첫소리 열아홉 — 유니코드 음절 표의 차례 그대로 */
 const CHOSEONG = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
@@ -97,7 +97,7 @@ export const findsInList = (count: number): boolean => count >= FIND_FROM;
  * 안 쳤으면 말하지 않는다(`idle`) — 치지도 않았는데 수를 말하면 화면낭독기가 목록을 열 때마다
  * 그 수를 읽는다. 쳤는데 없으면 없다고(`none`), 있으면 몇 명인지(`some`) 말한다.
  */
-export type FindStatus = { kind: 'idle' } | { kind: 'none' } | { kind: 'some'; count: number };
+type FindStatus = { kind: 'idle' } | { kind: 'none' } | { kind: 'some'; count: number };
 
 export const findStatus = (typed: string, shown: number): FindStatus => {
   if (typed.trim() === '') return { kind: 'idle' };

@@ -19,7 +19,7 @@ export type ExportSource = {
 
 export type Upload = (bundle: Bundle) => Promise<void>;
 
-export type ExportResult = {
+type ExportResult = {
   readonly objects: readonly string[];
   readonly rows: number;
   /** 이번에 올린 번호 범위 — 올린 것이 없으면 null */
@@ -170,7 +170,7 @@ export type RunLedger = {
   readonly finish: (attemptId: number, result: Finish) => Promise<void>;
 };
 
-export type RunResult =
+type RunResult =
   | { readonly kind: 'busy' }
   | { readonly kind: 'off' }
   | { readonly kind: 'misconfigured'; readonly problem: string }

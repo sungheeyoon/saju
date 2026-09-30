@@ -53,7 +53,7 @@ export type HourSensitivity =
 // ─── 억부 ───────────────────────────────────────────────────────────────────
 
 /** 억부가 권하는 쪽: 신약이면 돕고, 신강이면 누르거나 뺀다 */
-export type EokbuDirection = 'support' | 'restrain';
+type EokbuDirection = 'support' | 'restrain';
 
 /** 억부 후보 하나. 규칙이 둘 이상 서면 후보도 여럿이다 */
 export type EokbuCandidate = {
@@ -203,7 +203,7 @@ export type EokbuJohuRelation = {
 
 // ─── 프로필 ─────────────────────────────────────────────────────────────────
 
-export type NeedTarget = { kind: 'element'; element: Element } | { kind: 'stem'; stem: Stem };
+type NeedTarget = { kind: 'element'; element: Element } | { kind: 'stem'; stem: Stem };
 
 export type NeedAction = 'reinforce' | 'restrain' | 'johu' | 'tonggwan';
 

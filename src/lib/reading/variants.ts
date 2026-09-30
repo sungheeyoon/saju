@@ -35,7 +35,7 @@ const RECENCY_CHECK = `## 제출 전 확인
 - 다른 사람에게 그대로 붙여도 맞는 문장을 지웠는가
 - 검사용 근거 절이 절마다 한 줄씩 있는가`;
 
-export type PromptVariantId =
+type PromptVariantId =
   | 'control'
   | 'no-yongsin-v1'
   | 'longer-v1'

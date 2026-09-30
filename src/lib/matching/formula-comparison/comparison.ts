@@ -43,7 +43,7 @@ import { collisionRate, mean, quantile, sd, spearman, topOverlap } from './stats
  * 수와 결과는 `docs/notes/2026-09-25-compat-formula-comparison.md`.
  */
 
-export type AxisKey = 'dayPillar' | 'need' | 'balance' | 'countComplement';
+type AxisKey = 'dayPillar' | 'need' | 'balance' | 'countComplement';
 
 /**
  * 비교기가 재는 세기 — 옛 엔진 기본(`legacy`) · 지금 엔진 기본(`engine`) · 옛 기본에 하나씩 더한 둘 · 둘 다.
@@ -52,7 +52,7 @@ export type AxisKey = 'dayPillar' | 'need' | 'balance' | 'countComplement';
  * `month-x2` · `hidden-60-30-10` 은 **옛 기본에 하나씩 더한 것**이라 「어느 하나가 얼마를 바꾸는가」를 계속 잰다.
  * `legacy` 는 되돌아갈 문(`LEGACY_ELEMENT_WEIGHTS`)이다.
  */
-export const COMPARISON_STRENGTHS = ['legacy', 'engine', 'month-x2', 'hidden-60-30-10', 'both'] as const;
+const COMPARISON_STRENGTHS = ['legacy', 'engine', 'month-x2', 'hidden-60-30-10', 'both'] as const;
 
 export type ComparisonStrength = (typeof COMPARISON_STRENGTHS)[number];
 
@@ -72,7 +72,7 @@ export function targetsFor(
   return needTargetsOf(needProfileOf(pillars, { weights: COMPARISON_STRENGTH_WEIGHTS[variant] }));
 }
 
-export type Formula = {
+type Formula = {
   id: string;
   label: string;
   /** 연인 기준선(일주 · 일지 허용) · 일반 기준선(일주 · 일지 뺌) 중 어디에 드는가 */
@@ -132,7 +132,7 @@ export const FORMULAS: readonly Formula[] = [
 ];
 
 /** 한 사람 — 비교기가 쓰는 것만 */
-export type Person = {
+type Person = {
   input: SajuInput;
   pillars: Pillars;
   hourKnown: boolean;
@@ -155,7 +155,7 @@ function personOf(input: SajuInput): Person {
 }
 
 /** 한 쌍의 네 축 — 필요 보완은 세기 후보마다. 한 번 재고 공식마다 무게만 바꿔 쓴다 */
-export type PairAxes = {
+type PairAxes = {
   dayPillar: number;
   balance: number;
   countComplement: number;
@@ -198,7 +198,7 @@ export const scenarioPeople = (scenario: PairScenario, count: number, seed = 202
 
 // ─── 한 시나리오의 보고 ─────────────────────────────────────────────────────
 
-export type Distribution = {
+type Distribution = {
   mean: number;
   sd: number;
   p5: number;
@@ -212,7 +212,7 @@ export type Distribution = {
   tieRate: number;
 };
 
-export type ViewerMetrics = {
+type ViewerMetrics = {
   /** 보는 사람마다 현재 공식과 겹친 상위 10 의 수 — 평균 */
   top10Overlap: number;
   /** 상위 10 중 바뀐 수의 중앙값 */
@@ -223,7 +223,7 @@ export type ViewerMetrics = {
   spearman: { p10: number; p50: number; p90: number };
 };
 
-export type ScenarioReport = {
+type ScenarioReport = {
   scenario: PairScenario;
   pairs: number;
   meanAgeGap: number;
@@ -258,7 +258,7 @@ function distributionOf(scores: readonly number[]): Distribution {
   };
 }
 
-export type ScenarioSizes = { pairs: number; viewers: number; candidates: number };
+type ScenarioSizes = { pairs: number; viewers: number; candidates: number };
 
 const DEFAULT_SIZES: ScenarioSizes = { pairs: 5000, viewers: 30, candidates: 200 };
 

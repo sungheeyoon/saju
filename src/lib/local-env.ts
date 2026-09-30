@@ -39,7 +39,7 @@ export function loadLocalEnv(): void {
  *
  * 접속 주소와 열쇠는 여기서 안 짓는다. 그것은 `supabase status` 가 떠 있는 스택에서 준다.
  */
-export type WorktreeStack = {
+type WorktreeStack = {
   id: string;
   /** `docker exec` 로 `psql` 을 보낼 컨테이너 */
   dbContainer: string;

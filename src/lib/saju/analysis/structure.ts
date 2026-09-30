@@ -169,10 +169,10 @@ export type StructureKind =
  */
 export const SELF_SEAT_KINDS = ['建祿格', '陽刃格', '月劫格'] as const;
 
-export type SelfSeatKind = (typeof SELF_SEAT_KINDS)[number];
+type SelfSeatKind = (typeof SELF_SEAT_KINDS)[number];
 
 /** 격으로 쓸 수 있는 십성 — 비겁은 빠진다 */
-export type UsableTenGod = Exclude<TenGod, '比肩' | '劫財'>;
+type UsableTenGod = Exclude<TenGod, '比肩' | '劫財'>;
 
 /**
  * 십성 하나에서 격 이름 하나 — **표로 적어 캐스트를 없앤다.**
@@ -235,7 +235,7 @@ const BLADE_BRANCH: Partial<Record<Stem, Branch>> = {
 };
 
 /** 성패의 근거가 되는 조건 하나 */
-export type StructureFactor = {
+type StructureFactor = {
   /** 고전이 부르는 이름 */
   name: string;
   /** 왜 그렇게 보았는가 — 화면에 그대로 쓸 수 있는 한 줄 */
@@ -280,7 +280,7 @@ export const STRUCTURE_FACTOR_NAMES: readonly string[] = [
 ];
 
 /** 성패의 세 자리 */
-export type StructureOutcome =
+type StructureOutcome =
   /** 이루는 조건만 확인됐다 */
   | 'formed'
   /** 깨는 조건만 확인됐다 */

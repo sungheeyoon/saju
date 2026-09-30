@@ -808,7 +808,7 @@ export function assembleText(saju: Saju, index: FragmentIndex = FRAGMENT_INDEX):
  * 값을 적어도 아무것도 걸리지 않았고, 걸렸다면 문장이 엉뚱한 사람의 시주를
  * 빠졌다고 부르는 모양이었다.
  */
-export type CompatPerson = {
+type CompatPerson = {
   /** 행에서 이 사람의 글자 앞에 붙는 이름. 계산에는 들어가지 않는다 */
   label: string;
 };

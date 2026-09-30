@@ -75,7 +75,7 @@ export const BUREAU_POLICY = {
   spanRequiresAdjacency: true,
 } as const;
 
-export type BureauKind =
+type BureauKind =
   /** 삼합 완성 */
   | 'tripleCombination'
   /** 왕지를 낀 삼합 반합 */

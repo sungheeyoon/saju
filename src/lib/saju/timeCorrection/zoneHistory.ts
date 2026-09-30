@@ -51,7 +51,7 @@ export function zoneIntervalAt(instant: Date): ZoneInterval {
   return found;
 }
 
-export type WallClockResolution = {
+type WallClockResolution = {
   /** 벽시계가 가리키는 실제 절대 시각 */
   instant: Date;
   interval: ZoneInterval;

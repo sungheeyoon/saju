@@ -19,7 +19,7 @@
  */
 
 /** 돌아갈 곳을 모르거나 못 믿을 때 — 내 사주 */
-export const DEFAULT_RETURN_PATH = '/me';
+const DEFAULT_RETURN_PATH = '/me';
 
 /**
  * 사주 이어 보기 — `/` 에서 적던 입력으로 돌아온다(입력은 주소가 아니라 탭의 `sessionStorage` 가 든다,

@@ -80,7 +80,7 @@ export const FAVOR_ROLE_KO: Record<FavorRole, string> = {
   neutral: '한신',
 };
 
-export type FavorSeat = {
+type FavorSeat = {
   role: FavorRole;
   element: Element;
   /** 원국 여덟 글자에 그 오행이 몇 자 보이는가 */

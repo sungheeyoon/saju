@@ -21,7 +21,7 @@ import { midTermOf } from '../solarTerms';
  * 읽어야 한다.
  */
 
-export type JohuRule = {
+type JohuRule = {
   /** 검토할 천간. 조건에 따라 함께 쓰거나 앞뒤가 바뀔 수 있다 */
   stems: readonly Stem[];
   /** 원문의 조건을 계산기가 단정하지 않도록 남긴 짧은 요약 */
@@ -232,7 +232,7 @@ export const JOHU_POLICY = {
 } as const;
 
 /** 조후 후보 천간 하나가 원국의 어디에 있는가 — **사실만 낸다** */
-export type JohuCandidate = {
+type JohuCandidate = {
   stem: Stem;
   /** 그 글자가 그대로 천간에 있는 자리들 */
   revealedAt: readonly PillarPosition[];

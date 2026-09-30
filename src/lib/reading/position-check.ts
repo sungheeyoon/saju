@@ -14,7 +14,7 @@ import { readingBody } from './display';
  * - `stem-sinsal-with-branch-relation` — 천간에만 걸린 신살과, 같은 기둥 지지의 관계를 한 문장에 묶었다
  * - `partial-as-complete` — 시간 미상인데 세 글자 중 일부인 합을 이뤘다고 단정했다
  */
-export type PositionSlip = {
+type PositionSlip = {
   readonly code: 'wrong-place' | 'number-leak' | 'stem-sinsal-with-branch-relation' | 'partial-as-complete';
   readonly detail: string;
 };

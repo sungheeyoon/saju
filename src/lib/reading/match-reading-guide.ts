@@ -14,7 +14,7 @@ import type { MatchInput } from '../saju/evidence/shared';
  */
 export type GuideScope = MatchInput | 'private';
 
-export type GuideEntry = {
+type GuideEntry = {
   /** JSON 경로 — 사람 자리는 `*`, 배열 칸은 `[]` */
   readonly path: string;
   readonly meaning: string;

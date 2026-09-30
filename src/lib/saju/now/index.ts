@@ -152,7 +152,7 @@ export type CurrentFortune = {
  * 글자가 그 寅을 또 충하면 겹친 것이고, 다른 자리의 다른 충은 겹친 것이 아니다. 종류를
  * 안 보면 「이 자리에 뭔가 또 걸렸다」가 되어 거의 모든 달이 참이 된다.
  */
-export type NowOverlap = {
+type NowOverlap = {
   /** 다시 밟은 관계의 이름 — 지금 목록에도 같은 이름으로 서 있다 */
   ko: string;
   kind: Relation['kind'];

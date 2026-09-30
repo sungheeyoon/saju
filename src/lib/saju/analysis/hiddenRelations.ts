@@ -51,7 +51,7 @@ export const HIDDEN_RELATION_POLICY = {
   observedPerChart: '0-11',
 } as const;
 
-export type HiddenCombinationKind =
+type HiddenCombinationKind =
   /** 드러난 천간이 다른 자리의 지장간과 맺는다 */
   | 'revealedToHidden'
   /** 지장간끼리 맺는다 */
@@ -63,7 +63,7 @@ export const HIDDEN_COMBINATION_KIND_KO: Record<HiddenCombinationKind, string> =
 };
 
 /** 합에 참여한 글자 하나 */
-export type HiddenParticipant = {
+type HiddenParticipant = {
   position: PillarPosition;
   stem: Stem;
   /** 지지에 숨어 있으면 그 지지와 역할·일수, 천간에 드러나 있으면 `null` */

@@ -8,7 +8,7 @@ export const STEMS = [
   '甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸',
 ] as const satisfies readonly Stem[];
 
-export type StemInfo = {
+type StemInfo = {
   char: Stem;
   ko: string;
   /** 0-based 천간 순서 (甲=0 … 癸=9) */
