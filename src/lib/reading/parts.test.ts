@@ -7,18 +7,16 @@ import { ABSORPTION_RULE, PROMPT_PARTS } from './parts';
 import {
   CONTROL,
   LEGACY_PAIR_ASSEMBLY,
-  MATCH_INPUT_VARIANTS,
   READING_KINDS,
   READING_POLICY,
   READING_PROMPTS,
   isSolo,
-  measureMarkdown,
-  outputDeviations,
-  pairOutputDeviations,
   promptVersionOf,
   readingEvidenceOf,
   readingPromptOf,
 } from '.';
+import { measureMarkdown, outputDeviations, pairOutputDeviations } from './measure';
+import { MATCH_INPUT_VARIANTS } from './variants';
 
 /**
  * 지시문 조각을 잰다 — **이 시험이 재는 대상이 바뀌었다**(ADR 0047).

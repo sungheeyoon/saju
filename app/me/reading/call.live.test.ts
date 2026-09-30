@@ -7,22 +7,17 @@ import { computeSaju, type Saju } from '@/src/lib/saju';
 import {
   CONTROL,
   MATCH_INPUT_FIELDS,
-  MATCH_INPUT_VARIANTS,
-  PAIR_VARIANTS,
-  PROMPT_VARIANTS,
   READING_POLICY,
   checkReading,
   isScored,
-  measureMarkdown,
-  pairOutputDeviations,
   readingEvidenceOf,
   readingPromptOf,
-  outputDeviations,
   positionSlips,
   promptVersionOf,
   writesSummaryLast,
-  type OutputDeviation,
 } from '@/src/lib/reading';
+import { measureMarkdown, outputDeviations, pairOutputDeviations, type OutputDeviation } from '@/src/lib/reading/measure';
+import { MATCH_INPUT_VARIANTS, PAIR_VARIANTS, PROMPT_VARIANTS } from '@/src/lib/reading/variants';
 
 /**
  * **진짜로 한 번 부르는 자리** — 평소에는 돌지 않는다.
