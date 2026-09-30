@@ -124,7 +124,7 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
       supabase,
       circle.people.map((person) => person.personId),
     ),
-    openDiscoveryParticipation(profile, selfPersonId, stood),
+    openDiscoveryParticipation(profile, selfPersonId, stood, self?.versions ?? null),
   ]);
 
   return (

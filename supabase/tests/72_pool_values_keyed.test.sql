@@ -67,14 +67,14 @@ select set_config('request.jwt.claims', tests.claims((select uid from who)), tru
 select throws_ok(
   format($$select public.set_discovery_participation(%L::uuid, true,
     '{"glyphCount":8,"counts":{"木":8,"火":0,"土":0,"金":0,"水":0},"ratios":{"木":1,"火":0,"土":0,"金":0,"水":0}}'::jsonb,
-    tests.need('火', '水'))$$, (select uid from who)),
+    tests.need('火', '水'), 1, 'chart-for-tests')$$, (select uid from who)),
   '42501', null,
   '제 id 를 실어도 참여 요약을 쓰는 문을 부를 수 없다');
 
 select throws_ok(
   format($$select public.ensure_discovery_participation(%L::uuid, %L::uuid,
     '{"glyphCount":8,"counts":{"木":8,"火":0,"土":0,"金":0,"水":0},"ratios":{"木":1,"火":0,"土":0,"金":0,"水":0}}'::jsonb,
-    tests.need('火', '水'))$$, (select uid from who), (select person_id from who)),
+    tests.need('火', '水'), 1, 'chart-for-tests')$$, (select uid from who), (select person_id from who)),
   '42501', null,
   '참여를 여는 문도 부를 수 없다');
 
@@ -141,8 +141,8 @@ select is(
 set local role service_role;
 
 select is(
-  public.set_discovery_participation((select uid from who), false, null, null),
-  false,
+  public.set_discovery_participation((select uid from who), false, null, null, null, null),
+  'off',
   '열쇠는 세션의 사람 id 로 참여를 끈다');
 
 reset role;

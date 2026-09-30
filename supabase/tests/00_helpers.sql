@@ -260,7 +260,7 @@ $$;
  * `tests.` 로 바꾸기만 했다. `definer` 인 것은 `authenticated` 로 역할을 바꾼 뒤에도 열쇠의 문을 부르려는 것이다.
  *
  * 로그인하지 않은 채 부르면 `null` 이 넘어가고 문이 「로그인이 필요합니다」로 선다 — 옛 판과 같은 답이다.
- * 사용자 역할이 문을 **직접** 못 부른다는 것은 `71_pool_values_keyed` 가 잰다.
+ * 사용자 역할이 문을 **직접** 못 부른다는 것은 `72_pool_values_keyed` 가 잰다.
  */
 create or replace function tests.create_self_person(
   p_local_label text, p_calendar text, p_original_date date, p_solar_date date,
@@ -286,18 +286,42 @@ as $$
     p_birth_time, p_gender, p_city, p_late_night_rule, p_time_basis, p_chart, p_chart_engine_version);
 $$;
 
+/**
+ * 참여의 두 문은 **요약을 지은 입력의 판 둘**을 더 받는다 — 서버 모듈은 요약을 지은 입력의 판을 싣는다. 시험의 요약은
+ * 모양만 맞는 한 벌이라 「지은 입력」이 따로 없으므로, 손잡이가 **지금 저장된** 판을 읽어 싣는다. 그래서 옛 판처럼
+ * 참 · 거짓으로 답한다 — `on` · `joined` 이면 참. 판이 엇갈린 갈래(`stale`)는 `71_pool_summary_is_stamped_with_its_input`
+ * 이 문을 직접 불러 잰다.
+ */
+create or replace function tests.my_versions(actor uuid, out input_version integer, out chart_engine_version text)
+language sql
+stable
+security definer
+as $$
+  select p.input_version, p.chart_engine_version
+  from public.app_user u join public.person p on p.id = u.self_person_id
+  where u.id = actor;
+$$;
+
 create or replace function tests.set_discovery_participation(p_on boolean, p_summary jsonb, p_need jsonb default null)
 returns boolean
 language sql
 security definer
-as $$ select public.set_discovery_participation((select auth.uid()), p_on, p_summary, p_need); $$;
+as $$
+  select public.set_discovery_participation((select auth.uid()), p_on, p_summary, p_need,
+    (select v.input_version from tests.my_versions((select auth.uid())) v),
+    (select v.chart_engine_version from tests.my_versions((select auth.uid())) v)) = 'on';
+$$;
 
 create or replace function tests.ensure_discovery_participation(
   p_person_id uuid, p_summary jsonb, p_need jsonb default null)
 returns boolean
 language sql
 security definer
-as $$ select public.ensure_discovery_participation((select auth.uid()), p_person_id, p_summary, p_need); $$;
+as $$
+  select public.ensure_discovery_participation((select auth.uid()), p_person_id, p_summary, p_need,
+    (select v.input_version from tests.my_versions((select auth.uid())) v),
+    (select v.chart_engine_version from tests.my_versions((select auth.uid())) v)) = 'joined';
+$$;
 
 -- 시험은 역할을 `authenticated` 로 바꾼 채로 이 손잡이들을 부른다.
 grant usage on schema tests to authenticated;

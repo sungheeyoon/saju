@@ -2412,12 +2412,14 @@ export type Database = {
       }
       ensure_discovery_participation: {
         Args: {
-          p_need?: Json
+          p_chart_engine_version: string
+          p_input_version: number
+          p_need: Json
           p_person_id: string
           p_summary: Json
           p_user_id: string
         }
-        Returns: boolean
+        Returns: string
       }
       expire_match_requests: { Args: never; Returns: number }
       fail_reading_job: {
@@ -3285,12 +3287,14 @@ export type Database = {
       }
       set_discovery_participation: {
         Args: {
-          p_need?: Json
+          p_chart_engine_version: string
+          p_input_version: number
+          p_need: Json
           p_on: boolean
           p_summary: Json
           p_user_id: string
         }
-        Returns: boolean
+        Returns: string
       }
       set_improvement_consent: {
         Args: { p_consent: boolean }

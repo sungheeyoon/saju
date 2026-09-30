@@ -307,7 +307,8 @@ const accessRow = (actor, outcome = 'allowed') => `
           'dayMaster', '${stem}'), 'chart-for-race');
       perform public.set_discovery_participation('${uid}'::uuid, true,
         '{"glyphCount":8,"counts":{"木":2,"火":2,"土":2,"金":1,"水":1},"ratios":{"木":0.25,"火":0.25,"土":0.25,"金":0.125,"水":0.125}}'::jsonb,
-        jsonb_build_object('primary', '木', 'heaviest', '金', 'rule', public.discovery_need_rule()));
+        jsonb_build_object('primary', '木', 'heaviest', '金', 'rule', public.discovery_need_rule()),
+        1, 'chart-for-race');
     end $$`);
     return uid;
   };

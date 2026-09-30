@@ -5,7 +5,7 @@ import { chartSnapshotOf, type Stem } from '@/src/lib/saju';
 import { supabaseOnServer } from '../auth/server-client';
 import { dbFailure } from '../db-error';
 import { storedChartOf, type StoredChartResult } from '@/src/lib/input/stored';
-import { storedInputOf } from './person-input';
+import { storedInputOf, type InputVersions } from './person-input';
 
 /**
  * 매칭 풀에 내놓을 **오행 요약**을 내 입력에서 만든다.
@@ -23,7 +23,14 @@ import { storedInputOf } from './person-input';
  * 두 값이 서로 다른 입력의 것이 되지 않는다. 요약은 여덟 글자에서 만든다 — 전환 백필이
  * `person.current_chart` 에서 만드는 것과 같은 길이다(`needSummaryOf`).
  */
-export type SelfSummary = { personId: string; summary: ElementSummary; need: NeedSummary; dayMaster: Stem };
+export type SelfSummary = {
+  personId: string;
+  summary: ElementSummary;
+  need: NeedSummary;
+  dayMaster: Stem;
+  /** 이 요약을 지은 입력의 판 둘 — 풀에 올리는 문이 지금 판과 견준다(ADR 0136) */
+  versions: InputVersions;
+};
 
 /**
  * 지금 저장된 내 입력에서 요약 한 벌.
@@ -61,13 +68,17 @@ export async function selfElementSummary(knownSelfPersonId?: string): Promise<Se
   if (edgeError) throw dbFailure(edgeError, 'user_person_access.self');
   if (person === null || !edge) return null;
 
-  return selfSummaryOf(personId, storedChartOf(person.input, edge.local_label));
+  return selfSummaryOf(personId, storedChartOf(person.input, edge.local_label), person.versions);
 }
 
 /**
  * 이미 세운 내 명식에서 요약 한 벌 — 읽지 않는다. 홈 탭은 내 입력과 이름을 제 화면을 그리려고 이미 읽었다.
  */
-export function selfSummaryOf(personId: string, stood: StoredChartResult): SelfSummary | null {
+export function selfSummaryOf(
+  personId: string,
+  stood: StoredChartResult,
+  versions: InputVersions,
+): SelfSummary | null {
   // 못 읽는 입력이면 요약도 없다. 부르는 쪽이 「참여할 수 없다」고 말한다.
   if (!stood.ok) return null;
 
@@ -78,5 +89,6 @@ export function selfSummaryOf(personId: string, stood: StoredChartResult): SelfS
     summary: elementSummaryOf(stood.saju.analysis.elements),
     need: needSummaryOf(chartSnapshotOf(stood.saju.pillars)),
     dayMaster: stood.saju.pillars.dayMaster,
+    versions,
   };
 }

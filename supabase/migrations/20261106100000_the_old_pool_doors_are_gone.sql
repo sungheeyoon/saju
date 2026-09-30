@@ -6,7 +6,7 @@
 -- 올릴 수 있었다. 그 판을 걷으면 이 넷에 대해 브라우저 역할이 부를 수 있는 문이 하나도 안 남는다.
 --
 -- **앱이 새 판으로 옮겨 배포된 뒤에 올린다** — 옛 앱은 옛 판을 부른다(ADR 0071). 재는 자리는
--- `supabase/tests/71_pool_values_keyed.test.sql`.
+-- `supabase/tests/72_pool_values_keyed.test.sql`.
 
 drop function public.create_self_person(
   text, text, date, date, time without time zone, text, text, text, text, jsonb, text);

@@ -63,7 +63,18 @@ async function keyedRpc(client: SupabaseClient, name: string, args: Record<strin
     });
   }
   const { data } = await client.auth.getSession();
-  return keyedOnce.rpc(name, { p_user_id: data.session?.user.id ?? null, ...args });
+  const userId = data.session?.user.id ?? null;
+  /* 참여 문은 요약을 지은 입력의 판을 더 받는다 — 시험의 요약은 모양뿐이라 지금 저장된 판을 싣는다(ADR 0136) */
+  const versions: Record<string, unknown> = {};
+  if (name === 'set_discovery_participation' && userId !== null) {
+    const [input, engine] = sql(
+      `select p.input_version || '|' || p.chart_engine_version from public.app_user u
+       join public.person p on p.id = u.self_person_id where u.id = '${userId}'`,
+    ).split('|');
+    versions.p_input_version = input ? Number(input) : null;
+    versions.p_chart_engine_version = input ? engine : null;
+  }
+  return keyedOnce.rpc(name, { p_user_id: userId, ...versions, ...args });
 }
 
 /**
