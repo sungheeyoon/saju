@@ -91,6 +91,30 @@ describe('절 머리 세기', () => {
     expect(counter.count).toEqual({ begun: 1, bodyWritten: true });
   });
 
+  /**
+   * 모델이 가끔 근거 절 제목을 `##` 로 쓴다(2026-09-30, 운영자 답 — 「`##` 도 근거 절로 받는다」).
+   * 그 제목을 절 하나로 세면 기다리는 화면의 목차가 한 칸 넘친다.
+   */
+  it('근거 절 제목이 `##` 로 와도 절로 안 세고 본문을 다 쓴 것이다 — 그 뒤의 `##` 도 안 센다', () => {
+    const twoHashes = `${BODY.replace('### 근거 (검사용)', '## 근거 (검사용)')}\n## 근거 칸 안의 머리`;
+    const json = JSON.stringify({ score: null, metaphor: '한 줄 요약', markdown: twoHashes });
+
+    expect(last(feedAll([json]))).toEqual({ begun: 3, bodyWritten: true });
+    for (const seed of [1, 7, 42]) {
+      expect(last(feedAll(splitRandomly(json, seed)))).toEqual({ begun: 3, bodyWritten: true });
+    }
+
+    const counter = sectionCounter();
+    counter.feed('{"markdown":"## 하나\\n글\\n\\n## 근거\\n');
+    expect(counter.count).toEqual({ begun: 1, bodyWritten: true });
+  });
+
+  it('`####` 근거는 근거 절이 아니다 — 본문을 다 썼다고 말하지 않는다', () => {
+    const counter = sectionCounter();
+    counter.feed('{"markdown":"## 하나\\n글\\n\\n#### 근거\\n');
+    expect(counter.count).toEqual({ begun: 1, bodyWritten: false });
+  });
+
   it('근거 절 없이 끝나도 문자열이 닫히면 본문을 다 쓴 것이다 — 마지막 줄이 머리여도 센다', () => {
     expect(last(feedAll(['{"markdown":"## 하나\\n글\\n## 둘', '","score":null}']))).toEqual({
       begun: 2,

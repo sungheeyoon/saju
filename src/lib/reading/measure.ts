@@ -52,7 +52,7 @@ type Measured = {
    * 그것이다. **세는 것보다 세게 말하지 않는다.**
    */
   readonly lead: number;
-  /** 본문 소제목 수 — `### 근거` 는 여기 안 걸린다 */
+  /** 본문 소제목 수 — 근거 칸을 자른 본문에서 센다. 근거 제목이 `##` 로 와도 안 걸린다(2026-09-30) */
   readonly headings: number;
   readonly scoreIsNull: Answered;
 };
@@ -80,7 +80,7 @@ export function measureMarkdown(markdown: string, scoreIsNull: Answered = 'unkno
     length: body.trim().length,
     whole: markdown.length,
     lead: leadLengthOf(body),
-    headings: (markdown.match(/^##\s/gm) ?? []).length,
+    headings: (body.match(/^##\s/gm) ?? []).length,
     scoreIsNull,
   };
 }
