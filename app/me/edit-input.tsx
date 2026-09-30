@@ -13,6 +13,7 @@ import {
 } from '@/src/lib/input/edit';
 import { editPersonInput } from './actions';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON } from '../ui/buttons';
+import { Icon } from '../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, TYPE_META, TYPE_NAME } from '../ui/surfaces';
 
 /**
@@ -57,15 +58,7 @@ export function EditInput({
         aria-label="출생 정보 수정"
         className={`${ICON_BUTTON} absolute right-4 top-4 text-secondary hover:text-foreground sm:right-5 sm:top-5`}
       >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          className="size-4.5 fill-none stroke-current"
-          strokeWidth="1.7"
-          strokeLinejoin="round"
-        >
-          <path d="M4 16.2 14.1 6.1a1.9 1.9 0 0 1 2.7 2.7L6.7 18.9l-3.2.5Z" />
-        </svg>
+        <Icon name="pencil" className="size-4.5" />
       </button>
       {open && (
         <div className="mt-5">

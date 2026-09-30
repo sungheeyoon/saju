@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { pickable, stepTo, type Step } from '@/src/lib/people/pick';
 import type { Element } from '@/src/lib/saju';
 
+import { Icon } from './ui/icons';
 import { FaceSymbol } from './ui/stem-symbol';
 
 /**
@@ -209,13 +210,10 @@ export function PersonCombobox({
             chosen !== undefined && typed === null ? 'pl-11' : 'pl-4'
           }`}
         />
-        <svg
-          viewBox="0 0 12 12"
-          aria-hidden="true"
-          className={`pointer-events-none absolute right-4 top-1/2 size-3 -translate-y-1/2 text-secondary ${listed ? 'rotate-180' : ''}`}
-        >
-          <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <Icon
+          name="chevron"
+          className={`pointer-events-none absolute right-4 top-1/2 size-3 -translate-y-1/2 stroke-[3.2] text-secondary ${listed ? '-rotate-90' : 'rotate-90'}`}
+        />
       </div>
 
       {/*
@@ -247,9 +245,7 @@ export function PersonCombobox({
               <FaceSymbol stem={one.stem} element={one.element} className="size-5" />
               <span className="min-w-0 flex-1 truncate">{shownLabel(one)}</span>
               {one.personId === chosenId && (
-                <svg viewBox="0 0 12 12" aria-hidden="true" className="size-3.5 shrink-0 text-foreground">
-                  <path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <Icon name="check" className="size-3.5 stroke-[2.8] text-foreground" />
               )}
             </li>
           ))}
