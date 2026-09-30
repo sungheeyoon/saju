@@ -30,6 +30,13 @@ export default async function ChatRoomsPage() {
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
+  /*
+    **방 목록은 계정과 나란히 읽는다**(2026-09-30) — 계정을 읽은 뒤에 시작하던 동안 탭 이동이 한 물결 더 길었다. 이용이 멈춘
+    계정이면 안 쓰고 버린다 — 아래에서 따로 받아 보므로, 여기서 안 잡으면 버린 쪽의 실패가 처리되지 않은 거절로 뜬다.
+  */
+  const rooms = chatRoomsForViewer();
+  rooms.catch(() => {});
+
   const { state } = await readAccount(supabase, 'status, self_person_id');
 
   return (
@@ -40,14 +47,14 @@ export default async function ChatRoomsPage() {
           <AccountNotice state={state} />
         </div>
       ) : (
-        <Rooms hasSelf={state.kind === 'active' && state.selfPersonId !== null} />
+        <Rooms hasSelf={state.kind === 'active' && state.selfPersonId !== null} reading={rooms} />
       )}
     </main>
   );
 }
 
-async function Rooms({ hasSelf }: { hasSelf: boolean }) {
-  const rooms = await chatRoomsForViewer();
+async function Rooms({ hasSelf, reading }: { hasSelf: boolean; reading: ReturnType<typeof chatRoomsForViewer> }) {
+  const rooms = await reading;
 
   if (rooms.length === 0) {
     return (

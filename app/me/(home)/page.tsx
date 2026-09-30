@@ -10,14 +10,15 @@ import { Icon } from '../../ui/icons';
 import { BADGE, TYPE_DISPLAY, TYPE_META } from '../../ui/surfaces';
 import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
+import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { openDiscoveryParticipation } from '../discovery/participation';
 import { myCircle } from '../home/circle';
-import { MyPeople } from '../home/circle-view';
+import { MyPeople, circlePeopleOf } from '../home/circle-view';
 import { selfReadingOf } from '../home/map/model';
 import { ReceivedReadings } from '../home/received-readings';
 import { SelfCard } from '../home/self-card';
 import { Onboarding } from '../onboarding';
-import { storedInputOf } from '../person-input';
+import { storedInputOf, storedInputsOf } from '../person-input';
 import { myReadings } from '../reading/current';
 import { unreadCount } from '../requests/inbox';
 
@@ -58,26 +59,12 @@ export default async function MePage() {
             <>
               <Unread />
               <Home selfPersonId={selfPersonId} />
-              <DiscoveryDoor />
             </>
           )}
         </>
       )}
     </main>
   );
-}
-
-/**
- * 참여를 여는 문 — **아무것도 안 그린다.**
- *
- * 후보 탐색은 매칭에서만 하고, 참여를 여는 일은 홈에도 남는다(ADR 0070·0076).
- *
- * **형제로 둔다.** 페이지 본문에서 `await` 하면 이 왕복이 끝날 때까지 `Unread` 도 `Home` 도 시작을 못
- * 한다. 아무것도 안 그리는 것과 아무 때나 돌아도 되는 것은 다르다.
- */
-async function DiscoveryDoor() {
-  await openDiscoveryParticipation();
-  return null;
 }
 
 /**
@@ -109,15 +96,21 @@ function Greeting({ name }: { name: string }) {
  * 여기로 왔다 — 프로덕션 홈(`a45e34e`)의 타일 그대로다. 폰 첫 화면(390×664)에 카드 · 받은 사주풀이 · 저장한 사람 머리까지
  * 든다(`e2e/signed-in.spec.ts` 가 잰다). 이 화면에서 연 결과는 주소에 `from=me` 를 든다(`home/from-me.ts`).
  *
- * 읽는 것은 내 엣지(이름) · 내 입력 · 만든 풀이 목록 셋이 한 번에 겹쳐 돌고, 저장한 사람의 입력은 그 뒤에 읽힌다(`MyPeople`).
+ * **읽는 것은 두 물결이다**(2026-09-30). 내 엣지(이름) · 자리 수 · 내 입력 · 만든 풀이 목록 · 참여 설정이 한 번에 겹쳐 돌고,
+ * 저장한 사람들의 입력과 참여를 여는 문이 그 뒤에 함께 돈다. 저장한 사람 타일(`MyPeople`)과 참여를 여는 문은 스스로 읽지 않고
+ * 여기서 읽은 것을 받는다 — 저마다 읽던 동안 같은 엣지 · 입력을 세 번 읽었고, 참여를 여는 문의 차례 넷이 화면을 붙들었다.
+ *
+ * **참여를 여는 문은 아무것도 안 그린다**(ADR 0070 · 0076) — 후보 탐색은 매칭에서만 하고 참여를 여는 일은 홈에도 남는다.
+ * 못 열어도 홈을 오류로 세우지 않는다(`openDiscoveryParticipation`).
  */
 async function Home({ selfPersonId }: { selfPersonId: string }) {
   const supabase = await supabaseOnServer();
 
-  const [circle, self, readings] = await Promise.all([
+  const [circle, self, readings, profile] = await Promise.all([
     myCircle(supabase, selfPersonId),
     storedInputOf(supabase, selfPersonId),
     myReadings(),
+    myDiscoveryProfile(),
   ]);
 
   /**
@@ -125,6 +118,14 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
    * 화면에 나온다. 값은 남아 있고 읽는 쪽이 못 읽는 것이므로 그렇게 말하고 멈춘다 — 풀이 목록과 사람은 그대로 선다.
    */
   const stood = self !== null && circle.self !== null ? storedChartOf(self.input, circle.self.label) : null;
+
+  const [inputs] = await Promise.all([
+    storedInputsOf(
+      supabase,
+      circle.people.map((person) => person.personId),
+    ),
+    openDiscoveryParticipation(supabase, profile, selfPersonId, stood),
+  ]);
 
   return (
     <>
@@ -154,7 +155,7 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
         <ReceivedReadings readings={readings} />
       </div>
 
-      <MyPeople selfPersonId={selfPersonId} readings={readings} />
+      <MyPeople selfPersonId={selfPersonId} readings={readings} circle={circle} people={circlePeopleOf(circle, inputs)} />
     </>
   );
 }

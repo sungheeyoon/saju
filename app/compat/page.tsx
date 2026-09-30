@@ -11,6 +11,7 @@ import { signedInUser } from '../auth/signed-in';
 import { redirectToSignIn } from '../auth/sign-in-redirect';
 import { dbFailure } from '../db-error';
 import { CompatPicker } from '../compat-picker';
+import { myCircle } from '../me/home/circle';
 import { myReadings } from '../me/reading/current';
 import { TYPE_SECTION } from '../ui/surfaces';
 import { CompatSummary } from './archive';
@@ -63,10 +64,21 @@ export default async function CompatPage() {
    * 명식이나 출생 입력은 브라우저로 안 넘긴다. 저장한 사람 화면과 같은 문(`storedInputsOf`)을 한 번 부르고,
    * 못 읽은 사람은 `null`(물음표 원)이다 — 없는 오행을 지어내지 않는다.
    */
-  const stored = await storedInputsOf(
-    supabase,
-    listed.map((edge) => edge.person_id as string),
-  );
+  const selfPersonId = selfPersonIdOf(state);
+  const listedIds = listed.map((edge) => edge.person_id as string);
+
+  /*
+    **관계 지도가 읽을 것도 이 물결에 함께 읽는다**(2026-09-30) — 엣지 · 자리 수(`myCircle`)와 내 입력 · 저장한 사람의 입력이다.
+    지도가 스스로 읽던 동안 이 화면은 같은 입력을 두 번 읽고 두 물결을 더 기다렸다. 지도의 사람은 목록에 선 사람이라
+    고르는 칸과 같은 입력이고, 내 입력만 목록 밖일 수 있어 보탠다.
+  */
+  const [stored, circle] = await Promise.all([
+    storedInputsOf(
+      supabase,
+      selfPersonId === null || listedIds.includes(selfPersonId) ? listedIds : [...listedIds, selfPersonId],
+    ),
+    selfPersonId === null ? null : myCircle(supabase, selfPersonId),
+  ]);
   const elementOf = (personId: string, label: string): Element | null => {
     const input = stored.get(personId);
     if (input === undefined) return null;
@@ -88,8 +100,6 @@ export default async function CompatPage() {
     element: elementOf(edge.person_id as string, edge.local_label as string),
     stem: stemOf(edge.person_id as string, edge.local_label as string),
   }));
-
-  const selfPersonId = selfPersonIdOf(state);
 
   return (
     <main className="app-shell flex flex-1 flex-col gap-10 py-6 sm:gap-14 sm:py-12">
@@ -115,7 +125,9 @@ export default async function CompatPage() {
 
       <CompatSummary readings={readings} />
 
-      {selfPersonId !== null && <CompatRelationMap selfPersonId={selfPersonId} readings={readings} />}
+      {selfPersonId !== null && circle !== null && (
+        <CompatRelationMap selfPersonId={selfPersonId} readings={readings} circle={circle} inputs={stored} />
+      )}
     </main>
   );
 }

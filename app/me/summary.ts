@@ -1,10 +1,10 @@
 import { elementSummaryOf, type ElementSummary } from '@/src/lib/discovery/element-axes';
 import { needSummaryOf, type NeedSummary } from '@/src/lib/discovery/need-summary';
-import { chartSnapshotOf } from '@/src/lib/saju';
+import { chartSnapshotOf, type Stem } from '@/src/lib/saju';
 
 import { supabaseOnServer } from '../auth/server-client';
 import { dbFailure } from '../db-error';
-import { storedChartOf } from '@/src/lib/input/stored';
+import { storedChartOf, type StoredChartResult } from '@/src/lib/input/stored';
 import { storedInputOf } from './person-input';
 
 /**
@@ -23,7 +23,7 @@ import { storedInputOf } from './person-input';
  * 두 값이 서로 다른 입력의 것이 되지 않는다. 요약은 여덟 글자에서 만든다 — 전환 백필이
  * `person.current_chart` 에서 만드는 것과 같은 길이다(`needSummaryOf`).
  */
-type SelfSummary = { personId: string; summary: ElementSummary; need: NeedSummary };
+export type SelfSummary = { personId: string; summary: ElementSummary; need: NeedSummary; dayMaster: Stem };
 
 /**
  * 지금 저장된 내 입력에서 요약 한 벌.
@@ -39,14 +39,20 @@ type SelfSummary = { personId: string; summary: ElementSummary; need: NeedSummar
  * 「selfPerson 이 없다」와 같은 `null` 이 되어, 매칭 화면이 사주가 있는 사람에게 채우러 가는
  * 길을 세웠다. 입력을 읽는 `storedInputOf` 와 같은 길이다.
  */
-export async function selfElementSummary(): Promise<SelfSummary | null> {
+export async function selfElementSummary(knownSelfPersonId?: string): Promise<SelfSummary | null> {
   const supabase = await supabaseOnServer();
 
-  const { data: account, error: accountError } = await supabase.from('app_user').select('self_person_id').maybeSingle();
-  if (accountError) throw dbFailure(accountError, 'app_user.self_person_id');
-  if (!account?.self_person_id) return null;
-
-  const personId = account.self_person_id;
+  /*
+    **계정을 이미 읽은 화면은 내 사람 id 를 넘긴다**(2026-09-30) — 같은 요청에서 `app_user` 를 한 번 더 읽는 물결 하나가 준다.
+    안 넘기면 여기서 읽는다.
+  */
+  let personId = knownSelfPersonId;
+  if (personId === undefined) {
+    const { data: account, error: accountError } = await supabase.from('app_user').select('self_person_id').maybeSingle();
+    if (accountError) throw dbFailure(accountError, 'app_user.self_person_id');
+    if (!account?.self_person_id) return null;
+    personId = account.self_person_id;
+  }
 
   const [person, { data: edge, error: edgeError }] = await Promise.all([
     storedInputOf(supabase, personId),
@@ -55,7 +61,13 @@ export async function selfElementSummary(): Promise<SelfSummary | null> {
   if (edgeError) throw dbFailure(edgeError, 'user_person_access.self');
   if (person === null || !edge) return null;
 
-  const stood = storedChartOf(person.input, edge.local_label);
+  return selfSummaryOf(personId, storedChartOf(person.input, edge.local_label));
+}
+
+/**
+ * 이미 세운 내 명식에서 요약 한 벌 — 읽지 않는다. 나 탭은 내 입력과 이름을 제 화면을 그리려고 이미 읽었다.
+ */
+export function selfSummaryOf(personId: string, stood: StoredChartResult): SelfSummary | null {
   // 못 읽는 입력이면 요약도 없다. 부르는 쪽이 「참여할 수 없다」고 말한다.
   if (!stood.ok) return null;
 
@@ -65,5 +77,6 @@ export async function selfElementSummary(): Promise<SelfSummary | null> {
     // 오행과 내 명식의 오행이 갈릴 수 있다.
     summary: elementSummaryOf(stood.saju.analysis.elements),
     need: needSummaryOf(chartSnapshotOf(stood.saju.pillars)),
+    dayMaster: stood.saju.pillars.dayMaster,
   };
 }
