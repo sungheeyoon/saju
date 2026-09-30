@@ -1690,6 +1690,80 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
+   * **찾는 칸이 서도, 열 명을 다 채워도 폰의 첫 카드는 아래 탭 위에 온전히 선다**(G-21, 운영자 2026-09-30).
+   *
+   * 「온전히」는 카드 전체가 고정된 아래 탭 위에 서고 8px 이상 남는 것이다. 기준 화면은 390×844, 범위는 여섯~열 명이고
+   * 첫 카드에 메모가 없을 때다(메모가 든 카드는 정보를 자르지 않기로 해 범위 밖이다). 열 명을 채우면 「사람 추가」 줄(48px)이
+   * 점선 안내로 바뀌는데, 그 안내가 100px 이던 때는 첫 카드 아랫단이 아래 탭에 7.5px 가려졌다. 폰에서만 안내의 위아래
+   * 안쪽 여백을 16px 로 줄여 84px 가 됐고(`app/me/people/manage.tsx`), `sm` 부터는 24px 그대로다.
+   *
+   * **머리의 「N/10명」이 다음 줄로 넘어가는 서체에서는 그 한 줄을 되돌려 센다.** 이 기계(애플 산돌고딕)에서는 설명과
+   * 수가 한 줄에 서지만 CI 리눅스의 대체 서체는 한글이 넓어 수가 둘째 줄로 내려가고, 그 아래 전부가 25px 내려간다 — CI 가 잰
+   * 값은 열 명 8.5 → −16.5px 다(#392 의 첫 실행). 머리는 이 시험이 지키는 자리가 아니라서(안내의 높이가 지키는 자리다)
+   * 넘어간 줄만큼을 빼고 견준다. 되돌려 세도 옛 100px 안내는 어느 서체에서나 붉다(−7.5px).
+   */
+  test('저장한 사람이 여섯이어도 열을 다 채워도 폰의 첫 카드가 아래 탭 위에 온전히 선다', async ({ page, signedIn }, testInfo) => {
+    const phone = testInfo.project.name.includes('mobile');
+    if (phone) await page.setViewportSize({ width: 390, height: 844 });
+
+    /** 첫 카드 아랫단에서 아래 탭 윗단까지 — 머리의 설명이 넘어간 줄은 되돌려 센다 */
+    const roomAboveDock = () =>
+      page.evaluate(() => {
+        const edge = (selector: string) => document.querySelector(selector)?.getBoundingClientRect();
+        const card = edge('main ul > li');
+        const dock = edge('#mobile-member-navigation');
+        const intro = document.querySelector('main header p');
+        if (card === undefined || dock === undefined || intro === null) throw new Error('첫 카드 · 아래 탭 · 머리를 못 쟀다');
+        /* 넘어간 줄의 높이는 서체가 정한다(작은 「N/10명」이 글줄을 0~1px 키운다) — 선 높이에서 한 줄 몫을 뺀다 */
+        const tall = intro.getBoundingClientRect().height;
+        const lines = Math.max(1, Math.round(tall / parseFloat(getComputedStyle(intro).lineHeight)));
+        const wrapped = tall - tall / lines;
+        return { room: dock.top - card.bottom, wrapped, cardTop: card.top, cardBottom: card.bottom, dockTop: dock.top };
+      });
+    const expectWholeFirstCard = async (when: string) => {
+      const found = await roomAboveDock();
+      expect(found.room + found.wrapped, `${when} — ${JSON.stringify(found)}`).toBeGreaterThanOrEqual(8);
+    };
+
+    /* 여섯 — 찾는 칸이 처음 서는 수다. 「사람 추가」 줄은 그대로다 */
+    saveManyPeople(signedIn.email, Array.from({ length: 5 }, (_, index) => `이웃${index + 1}`));
+    await page.goto('/me/people');
+    await expect(page.locator('main ul > li')).toHaveCount(6);
+    await expect(page.getByRole('searchbox', { name: '이름으로 찾기' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '사람 추가' })).toBeVisible();
+    if (phone) await expectWholeFirstCard('여섯 명');
+
+    /* 열 — 「사람 추가」 줄 자리에 점선 안내가 선다 */
+    saveManyPeople(signedIn.email, Array.from({ length: 4 }, (_, index) => `이웃${index + 6}`));
+    await page.reload();
+    await expect(page.locator('main ul > li')).toHaveCount(10);
+    await expect(page.getByRole('searchbox', { name: '이름으로 찾기' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '사람 추가' })).toHaveCount(0);
+    const full = page.getByText('다 채웠어요', { exact: false });
+    await expect(full).toBeVisible();
+    if (!phone) {
+      /* 넓은 화면(`sm` 부터)의 안내는 공용 상수 그대로다 — 폰에서 덮은 여백이 여기까지 새지 않는다 */
+      const padding = await full.evaluate((node) => {
+        const style = getComputedStyle(node);
+        return [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft].join(' ');
+      });
+      expect(padding).toBe('24px 24px 24px 24px');
+      return;
+    }
+    await expectWholeFirstCard('열 명');
+
+    /* 누르는 자리는 그대로 44px 이다 — 재느라 화면을 굴리므로 맨 끝에 잰다 */
+    const first = page.locator('main ul > li').first();
+    await expectTargets({
+      '찾는 칸': page.getByRole('searchbox', { name: '이름으로 찾기' }),
+      '궁합 보러 가기': page.getByRole('link', { name: '궁합 보러 가기' }),
+      '관리 메뉴': first.getByLabel(`${signedIn.managed[0]} 관리`, { exact: true }),
+      '사주풀이 받기': first.getByRole('link', { name: '사주풀이 받기' }),
+      '나와 궁합': first.getByRole('link', { name: '나와 궁합' }),
+    });
+  });
+
+  /**
    * **만든 글이 모이는 자리가 있다**(ADR 0033) — 탭은 아니고 홈 탭의 길이다(ADR 0126).
    *
    * 풀이가 네 화면에 흩어져 있어서, 만든 글에 닿으려면 그것이 어느 화면의 것인지를

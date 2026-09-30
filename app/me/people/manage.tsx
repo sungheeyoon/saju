@@ -122,8 +122,14 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
 
   // 못 읽었으면(`null`) 막지 않는다 — 막는 것은 DB 이고 화면은 먼저 말해 줄 뿐이다.
   if (remaining !== null && remaining <= 0) {
+    /*
+      **폰에서만 위아래 안쪽 여백을 한 단계 줄인다(24 → 16px).** 이 안내는 「사람 추가」 줄(48px)이 서던 자리에 100px 로
+      서서, 열 명을 다 채운 날 첫 카드를 52px 더 내렸다 — 390×844 에서 첫 카드 아랫단이 아래 탭에 7.5px 가려졌다
+      (2026-09-30, G-21). 84px 가 되면 첫 카드가 아래 탭 위 8.5px 에 선다. 공용 `EMPTY_SLOT` 은 다른 화면도 쓰므로
+      이 자리에서만 덮는다 — `max-sm:` 은 변형이라 상수의 `p-6` 뒤에 서고, `sm` 부터는 상수 그대로다.
+    */
     return (
-      <p className={`${EMPTY_SLOT} text-[15px] leading-6 text-secondary`}>
+      <p className={`${EMPTY_SLOT} text-[15px] leading-6 text-secondary max-sm:py-4`}>
         저장할 수 있는 {slots?.limit}명을 다 채웠어요. 목록에서 한 명을 빼면 다시 추가할 수
         있습니다.
       </p>
