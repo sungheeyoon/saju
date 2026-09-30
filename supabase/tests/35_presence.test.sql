@@ -137,7 +137,7 @@ select throws_ok(
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 select throws_ok(
   $$select public.touch_activity()$$,
-  '28000', '로그인이 필요합니다.',
+  '28000', '로그인이 필요해요. 로그인한 뒤 다시 시도해 주세요.',
   '로그인 안 한 요청은 적지 않는다');
 
 reset role;

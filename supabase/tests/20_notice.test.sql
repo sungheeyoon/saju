@@ -251,7 +251,7 @@ select pg_temp.acting((select kim from fresh));
 
 select throws_like(
   $$select public.complete_signup(null, null, 'notice-v3', 1::bigint, false, false)$$,
-  '%바뀌었습니다%',
+  '%바뀌었어요%',
   '옛 안내를 들고 온 확인은 거절된다');
 
 select lives_ok(
@@ -319,7 +319,7 @@ select throws_like(
 select throws_like(
   $$select public.complete_signup(null, null, 'notice-v3',
       (select s.schedule_id from public.current_beta_schedule() s), false, false)$$,
-  '%끝났습니다%',
+  '%끝났어요%',
   '끝난 뒤에는 가입도 확인도 안 받는다');
 
 /**
