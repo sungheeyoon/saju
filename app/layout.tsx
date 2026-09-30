@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Gowun_Dodum } from 'next/font/google';
 
 import { SERVICE_NAME, SERVICE_TAGLINE, SERVICE_TITLE_TEMPLATE } from '@/src/lib/brand';
@@ -54,6 +54,19 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     images: [PREVIEW.url],
   },
+};
+
+/**
+ * **화면은 기기의 가장자리까지 깔린다**(`viewport-fit=cover`).
+ *
+ * 하단 독(`site-header.tsx`)과 폰의 본문 끝은 홈 막대를 비키려고 `env(safe-area-inset-bottom)` 을 더하는데, 이 값은
+ * `cover` 가 아니면 iOS 에서 늘 0 이다 — 적어 둔 여백이 한 번도 안 들었다. 가로로 누인 폰의 노치는
+ * `globals.css` 의 `.app-shell` 이 양옆 값을 빼서 비킨다. 폭 · 배율은 Next 의 기본값과 같다.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 /**

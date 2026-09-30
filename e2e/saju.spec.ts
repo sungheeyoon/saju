@@ -142,6 +142,24 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
   */
 });
 
+/**
+ * **화면은 기기의 가장자리까지 깔린다**(`app/layout.tsx` 의 `viewport`).
+ *
+ * `cover` 가 아니면 iOS 의 `env(safe-area-inset-*)` 가 늘 0 이라 하단 독이 홈 막대를 비키려고 더한 여백이 안 든다.
+ * 노치가 없는 이 브라우저에서 본문 틀의 폭은 전과 같아야 한다(폰 16px · 넓은 화면 20px 씩 양옆).
+ */
+test('뿌리의 viewport 는 가장자리까지 깔리고, 노치가 없으면 본문 틀의 폭은 그대로다', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('meta[name="viewport"]')).toHaveAttribute('content', /viewport-fit=cover/);
+
+  const { shell, body } = await page.evaluate(() => ({
+    shell: document.querySelector('.app-shell')?.getBoundingClientRect().width ?? 0,
+    body: document.body.getBoundingClientRect().width,
+  }));
+  const gutter = body <= 640 ? 32 : 40;
+  expect(shell).toBeCloseTo(Math.min(body - gutter, 72 * 16), 0);
+});
+
 /*
   **금지 표현이 화면까지 나가는 유일한 자리.**
 
