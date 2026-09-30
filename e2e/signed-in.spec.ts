@@ -22,6 +22,7 @@ import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
 import { hydrated } from './hydrated';
 import { passSecondFactor } from './second-factor';
 import { expectTargets, focusedOutline } from './target';
+import { writeSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 
 /** 익명 파일에서 함께 옮겨 온 손잡이 — 그 시험이 쓰던 것과 같은 값이다 */
@@ -1697,32 +1698,36 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * 점선 안내로 바뀌는데, 그 안내가 100px 이던 때는 첫 카드 아랫단이 아래 탭에 7.5px 가려졌다. 폰에서만 안내의 위아래
    * 안쪽 여백을 16px 로 줄여 84px 가 됐고(`app/me/people/manage.tsx`), `sm` 부터는 24px 그대로다.
    *
-   * **머리의 「N/10명」이 다음 줄로 넘어가는 서체에서는 그 한 줄을 되돌려 센다.** 이 기계(애플 산돌고딕)에서는 설명과
-   * 수가 한 줄에 서지만 CI 리눅스의 대체 서체는 한글이 넓어 수가 둘째 줄로 내려가고, 그 아래 전부가 25px 내려간다 — CI 가 잰
-   * 값은 열 명 8.5 → −16.5px 다(#392 의 첫 실행). 머리는 이 시험이 지키는 자리가 아니라서(안내의 높이가 지키는 자리다)
-   * 넘어간 줄만큼을 빼고 견준다. 되돌려 세도 옛 100px 안내는 어느 서체에서나 붉다(−7.5px).
+   * **보정 없이 잰다 — 아래 탭 윗단에서 첫 카드 아랫단을 뺀 값 그대로다**(운영자 2026-10-01). 한글이 넓은 서체(CI 리눅스의
+   * 대체 서체)에서는 머리의 「N/10명」이 둘째 줄로 넘어가 그 아래 전부가 내려간다. 그 줄을 되돌려 세던 셈은 걷었고, 폰에서
+   * 「궁합 보러 가기」가 제목 옆에 서면서(`app/me/people/page.tsx`) 머리가 52px 낮아져 넘어간 서체에서도 실제로 선다.
+   *
+   * **이 시험이 지키는 것과 안 지키는 것**(2026-10-01 에 되돌려 봤다). 머리를 옛 배치(단추가 설명 아래 제 줄)로 되돌리면 넓은 서체에서
+   * 열 명이 −14.5px 로 붉다 — 이 기계 서체에서는 8.5px 라 초록이다. 안내의 폰 여백(`max-sm:py-4`)만 빼면 어느 서체에서도
+   * 초록이다(44.9 · 21.9px 가 남는다). 그 여백은 이 시험이 혼자서는 안 지킨다.
    */
   test('저장한 사람이 여섯이어도 열을 다 채워도 폰의 첫 카드가 아래 탭 위에 온전히 선다', async ({ page, signedIn }, testInfo) => {
     const phone = testInfo.project.name.includes('mobile');
     if (phone) await page.setViewportSize({ width: 390, height: 844 });
 
-    /** 첫 카드 아랫단에서 아래 탭 윗단까지 — 머리의 설명이 넘어간 줄은 되돌려 센다 */
-    const roomAboveDock = () =>
-      page.evaluate(() => {
+    /** 아래 탭 윗단 − 첫 카드 아랫단. 잰 값은 통과한 실행에서도 읽히게 남긴다 — 서체마다 다르다 */
+    const expectWholeFirstCard = async (when: string) => {
+      const found = await page.evaluate(() => {
         const edge = (selector: string) => document.querySelector(selector)?.getBoundingClientRect();
         const card = edge('main ul > li');
         const dock = edge('#mobile-member-navigation');
-        const intro = document.querySelector('main header p');
-        if (card === undefined || dock === undefined || intro === null) throw new Error('첫 카드 · 아래 탭 · 머리를 못 쟀다');
-        /* 넘어간 줄의 높이는 서체가 정한다(작은 「N/10명」이 글줄을 0~1px 키운다) — 선 높이에서 한 줄 몫을 뺀다 */
-        const tall = intro.getBoundingClientRect().height;
-        const lines = Math.max(1, Math.round(tall / parseFloat(getComputedStyle(intro).lineHeight)));
-        const wrapped = tall - tall / lines;
-        return { room: dock.top - card.bottom, wrapped, cardTop: card.top, cardBottom: card.bottom, dockTop: dock.top };
+        const head = edge('main header');
+        if (card === undefined || dock === undefined || head === undefined) throw new Error('첫 카드 · 아래 탭 · 머리를 못 쟀다');
+        return { room: dock.top - card.bottom, cardTop: card.top, cardBottom: card.bottom, dockTop: dock.top, headHeight: head.height };
       });
-    const expectWholeFirstCard = async (when: string) => {
-      const found = await roomAboveDock();
-      expect(found.room + found.wrapped, `${when} — ${JSON.stringify(found)}`).toBeGreaterThanOrEqual(8);
+      const measured = `${when} — ${JSON.stringify(found)}`;
+      testInfo.annotations.push({ type: '첫 카드 아래 여유', description: measured });
+      /*
+        CI 의 기록에도 남긴다 — 리포터(`github`)는 통과한 시험의 출력과 주석을 안 찍는다. 워커의 표준 출력 자리(1)는
+        러너가 물려준 그대로라 거기에 직접 쓴다. CI 서체의 값은 그 기록에서 읽는다(G-21)
+      */
+      if (process.env.CI) writeSync(1, `::notice title=first-card-room::${testInfo.project.name} ${measured}\n`);
+      expect(found.room, measured).toBeGreaterThanOrEqual(8);
     };
 
     /* 여섯 — 찾는 칸이 처음 서는 수다. 「사람 추가」 줄은 그대로다 */
