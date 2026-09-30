@@ -327,7 +327,6 @@ export function ApproachMap({
         const angle = angleOf(card, status);
         const end = pointOf(center, angle, ring);
         const far = pointOf(center, angles[card.candidateUserId], geometry.ring.far);
-        const supply = supplyOf(card);
         const gone = status === 'passed' || status === 'requested';
         const now = status === 'current';
         const leaned = leaning?.candidateUserId === card.candidateUserId;
@@ -350,10 +349,16 @@ export function ApproachMap({
           opacity: gone ? 0 : 1,
           scale: status === 'passed' ? '0.6' : status === 'requested' ? '0.3' : leaned ? '1.12' : '1',
         };
+        /*
+          **궤도 위 사람의 색은 그 사람 일간의 오행**(운영자 2026-09-30) — 기본 얼굴(`CandidatePhoto`)과 같은 규칙이다.
+          전에는 「나에게 채워 주는 기운」(`supplyOf`)을 입어서, 모자란 기운이 하나인 사람에게는 누구를 골라도 한 색(대개
+          초록)이었다. 채워 주는 기운은 궤도의 실과 카드가 말한다. 사진이 있는 사람은 DB 가 일간을 보내지 않으므로
+          (`avatar_element` 가 null) 오행 없는 무채색 테두리로 선다 — 공개하지 않던 일간을 여기서 새로 드러내지 않는다.
+        */
         return (
           <span
             key={card.candidateUserId}
-            className={`${elementScope(supply)} ${motion.seat} ${motion.enter} ${curve} ${gone ? 'pointer-events-none' : ''} ${
+            className={`${elementScope(card.avatarElement)} ${motion.seat} ${motion.enter} ${curve} ${gone ? 'pointer-events-none' : ''} ${
               leaned ? 'z-20' : now ? 'z-10' : ''
             }`}
             style={seat}
