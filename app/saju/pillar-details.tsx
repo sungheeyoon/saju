@@ -59,7 +59,7 @@ export function PillarDetails({ tabs }: { readonly tabs: readonly PillarDetailTa
               onKeyDown={(event) => selectByKeyboard(event, index)}
               className={`min-h-11 rounded-full px-1 text-[13px] font-semibold sm:px-3 sm:text-sm ${
                 selected
-                  ? 'bg-surface text-foreground shadow-sm'
+                  ? 'bg-surface text-foreground shadow-soft'
                   : 'text-secondary hover:text-foreground'
               }`}
             >

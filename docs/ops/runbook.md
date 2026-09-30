@@ -1488,15 +1488,21 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 쏴 보다가 같은 착각을 발견해서야 드러났다(ADR 0039).
 
 **이제 감시기가 본다**(2026-09-23, G-42). 크론 `cron-watch`(10분마다)가 `watch_cron()` 으로 지난 한 시간을
-보고, 셋 중 하나면 `notify_ops` 로 한 줄을 보낸다 — 정상 실행은 아무것도 안 적는다. 같은 종류는 하루 한 번이다.
+보고, 넷 중 하나면 `notify_ops` 로 한 줄을 보낸다 — 정상 실행은 아무것도 안 적는다. 같은 종류는 하루 한 번이다.
 
 | 종류 | 뜻 | 할 일 |
 | --- | --- | --- |
 | `cron-failed:<잡>` | 그 잡의 SQL 이 실패했다. 알림에 마지막 오류가 붙는다 | 아래 질의로 `return_message` 를 보고 함수를 고친다 |
 | `net-request-failed` | 크론이 밖으로 부른 요청이 2xx 가 아니었다 — 대부분 복구기다. 잡은 초록이어도 이것이 온다 | 403 이면 `CRON_SECRET` 과 Vault 의 `reading_recovery_secret` 이 갈렸다, 503 이면 Vercel 쪽 열쇠 · DB 문 |
 | `cron-inactive:<잡>` | 잡이 꺼져 있다 | 일부러 끈 것이 아니면 `select cron.alter_job(<jobid>, active := true)` |
+| `reading-failure-rate` | 지난 한 시간에 끝난 풀이 시도 중 실패가 다섯 번 이상이고 절반 이상이다(`20261108090000`, 문턱은 `reading_failure_alert_floor()` · `reading_failure_alert_share()`). 알림에 가장 잦은 실패 코드가 붙는다 | 코드가 검사 실패(`length-out-of-contract` 같은 것)면 프롬프트 · 모델 판, `unexpected` 면 Vercel 로그의 `submit:` · `collect:` 줄 |
 
 재시도 소진은 잡이 스스로 알린다 — `account-disposal-overdue`(G-53) · `reading-budget-reached`.
+
+**서버 오류는 앱이 알린다** — `request-error:<자리>:<라우트 파일>`(자리는 `render` · `route` · `action` · `proxy`). 앱의
+`instrumentation.ts` 의 `onRequestError` 가 열쇠로 `report_request_error` 를 부르고(Production 만, `app/request-error.ts`),
+라우트 파일 · 자리마다 하루 한 줄이다. 알림에는 라우트 무늬와 digest 만 있다 — Vercel 로그에서 그 digest 로 오류 줄을 찾는다.
+알림을 보내다 실패하면 삼키고 로그에 `request-error: report_request_error` 한 줄을 남긴다. Next 는 오류 응답 전에 이 부름을 기다리므로 부름은 1.5초에 끊고, 한 인스턴스 안에서도 같은 날 같은 라우트 · 자리는 한 번만 부른다.
 
 **감시기가 못 보는 것 둘** — 감시기 자신이 계속 실패하는 것, `pg_cron` 이 통째로 멈춘 것. 그래서
 **배포한 날과, 잡을 건드린 날에 한 번씩은 여전히 본다.**
@@ -1512,9 +1518,9 @@ group by 1, 2 order by 1, 2;
 ```
 
 서 있는 잡의 원본은 `supabase/migrations/` 의 `cron.schedule` 이고, 운영의 실제는 `select jobname, schedule from cron.job;` 이
-찍는다. 2026-09-28 에 마이그레이션에서 센 것은 일곱이다 — `reading-recovery`(1분) · `match-request-expiry`(매시 7분) ·
+찍는다. 2026-09-30 에 마이그레이션에서 센 것은 여덟이다 — `reading-recovery`(1분) · `match-request-expiry`(매시 7분) ·
 `account-disposal`(매시 23분, G-53) · `report-retention-purge`(매시 47분, ADR 0098) · `cron-watch`(10분, G-42) ·
-`payment-retention-purge`(매일 04:53 UTC) · `audit-export-watch`(매일 06:29 UTC, 「반출 — 매일 S3」).
+`cron-run-retention-purge`(매일 04:37 UTC, 크론 실행 이력 14일, ADR 0138) · `payment-retention-purge`(매일 04:53 UTC) · `audit-export-watch`(매일 06:29 UTC, 「반출 — 매일 S3」).
 Vercel Cron 은 둘이다(`vercel.json`) — 복구기의 하루 청소(`/api/cron/reading`)와 접속기록 반출(`/api/cron/audit-export`,
 ADR 0105). 둘은 `cron-watch` 가 못 본다 — 반출은 pg_cron 의 `audit-export-watch` 가 매일 본다(시도나 성공이 이틀 넘게 없으면 알린다).
 **`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**

@@ -420,7 +420,7 @@ export function MatchingExperience({
         ref={confirming}
         aria-labelledby="matching-confirm"
         onClick={(event) => { if (event.target === event.currentTarget) confirming.current?.close(); }}
-        className="m-auto w-[min(100%-2rem,28rem)] rounded-[2rem] bg-surface p-0 text-foreground shadow-2xl backdrop:bg-black/40"
+        className="m-auto w-[min(100%-2rem,28rem)] rounded-[2rem] bg-surface p-0 text-foreground shadow-float backdrop:bg-black/40"
       >
         {profile && (
           <div className={`${elementScope(supplyOf(profile))} flex flex-col gap-4 p-6`}>

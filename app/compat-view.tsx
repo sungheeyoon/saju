@@ -13,6 +13,7 @@ import { BetweenSections } from './between-view';
 
 import { elementScope } from './ui/element-tone';
 import { DayMasterChip, PillarStrip } from './me/people/chart-bits';
+import { Icon } from './ui/icons';
 import { StemSymbol } from './ui/stem-symbol';
 import { sharedPillarChartOf, type SharedPillarChart } from './shared-pillar';
 import { TILE, TYPE_META, TYPE_NAME, TYPE_SECTION } from './ui/surfaces';
@@ -114,9 +115,7 @@ function FoldedAnalysis({
         <span aria-hidden className="flex shrink-0 items-center gap-1 text-[13px] font-semibold text-secondary">
           <span className="group-open:hidden">펼치기</span>
           <span className="hidden group-open:inline">접기</span>
-          <svg viewBox="0 0 12 12" className="size-3 group-open:rotate-180">
-            <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <Icon name="chevron" className="size-3 rotate-90 stroke-[3.2] group-open:-rotate-90" />
         </span>
       </summary>
 

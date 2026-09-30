@@ -22,8 +22,9 @@ select cmp_ok(
   (select count(*)::int
      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.prosrc like '%''로그인이 필요해요. 로그인한 뒤 다시 시도해 주세요.''%'),
-  '>=', 27,
-  '1. 로그인을 묻는 함수 27개가 새 문장을 든다');
+  -- 27 이었다 — 그중 옛 문 `clear_my_photo` 를 `20261110090000` 이 걷어 26
+  '>=', 26,
+  '1. 로그인을 묻는 함수 26개가 새 문장을 든다');
 
 select is(
   (select count(*)::int

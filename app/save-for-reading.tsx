@@ -178,7 +178,7 @@ function SaveCard({
               draftKey={READING_DRAFT_KEY}
               draft={toSearchParams(query).toString()}
               next={RESUME_READING_PATH}
-              className="flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-on-accent hover:bg-accent-strong"
+              className={`${BUTTON_PRIMARY} w-full sm:w-auto`}
             >
               로그인하고 계속하기
             </SignInCarrying>
@@ -231,7 +231,7 @@ function SaveCard({
             type="button"
             onClick={save}
             disabled={saving}
-            className="h-11 w-full rounded-md bg-accent-strong px-5 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-auto sm:self-start"
+            className={`${BUTTON_PRIMARY} w-full sm:w-auto sm:self-start`}
           >
             {saving ? '저장하는 중…' : label}
           </button>
@@ -250,7 +250,7 @@ function SaveCard({
 
       {failure !== null && (
         <p role="alert" className="text-sm leading-6 text-danger">
-          저장하지 못했습니다. {failure}
+          저장하지 못했어요. {failure}
         </p>
       )}
     </section>
@@ -412,7 +412,7 @@ function SelfConfirm({
 
       {failure !== null && (
         <p role="alert" className="text-sm leading-6 text-danger">
-          저장하지 못했습니다. {failure}
+          저장하지 못했어요. {failure}
         </p>
       )}
     </section>

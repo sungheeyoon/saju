@@ -159,15 +159,10 @@ const reaching = entries
   .map((one) => ({ ...one, byActionOnly: one.path.slice(0, -1).some(isServerActionFile) }));
 
 /**
- * **알고 있는 어긋남 — 줄어들기만 한다.** 시험을 세운 날(2026-09-30) 이미 있던 자리다. 고치면 여기서 지운다.
- *
- * `/` 의 「이어 보기」 저장이 `app/me/actions.ts` 의 액션을 `/` 주소로 부르고, 그 액션이 열쇠 모듈(`keyed-chart-writes.ts`)
- * 에서 `signedInUser` 를 묻는다. 관문이 `/` 에서 안 돌아 다른 기기에서 끊긴 세션의 쿠키가 토큰 만료(한 시간)까지 그 저장을
- * 할 수 있다. 고치는 길은 결정이다(관문이 도는 자리를 넓힌다 — `docs/agents/delegation.md` 「결정 점검표」의 첫 줄).
+ * **알고 있는 어긋남 — 줄어들기만 한다.** 시험을 세운 날(2026-09-30) 있던 하나 — `/` 의 이어 보기 저장 액션 — 는 관문이
+ * `/` 의 액션 POST 에서 돌게 해 닫았다(ADR 0137). 새 자리는 여기 들지 않는다 — 관문을 넓히거나 부르는 자리를 옮긴다.
  */
-const KNOWN_OUTSIDE: Readonly<Record<string, string>> = {
-  '/': '현관의 이어 보기 저장이 `/` 에서 액션을 부른다 — 관문을 액션 POST 에 넓힐지는 결정 대기',
-};
+const KNOWN_OUTSIDE: Readonly<Record<string, string>> = {};
 
 describe('signedInUser 는 관문의 matcher 안에서만 돈다', () => {
   /** 입구를 못 찾았거나 아무도 안 닿으면 이 시험은 아무것도 안 잰 것이다 */
@@ -204,7 +199,15 @@ describe('signedInUser 는 관문의 matcher 안에서만 돈다', () => {
    * 닿기 시작하면 위 시험이 붉어지지만, 이 표본은 matcher 를 넓혀 그 붉음을 지우는 길을 막는다 — 넓히면 여기가 붉다.
    */
   it.each(['/', '/saju', '/share/x-id', '/privacy', '/api/cron/reading', '/api/portone/webhook', '/api/openai/webhook'])(
-    '%s 는 관문 밖이다',
+    '%s 를 그리는 요청은 관문 밖이다',
+    (route) => {
+      expect(gateOnRender(route)).toBe(false);
+    },
+  );
+
+  /** 현관은 액션만 관문을 지난다(ADR 0137) — 나머지 관문 밖 주소는 액션도 안 지난다 */
+  it.each(['/saju', '/share/x-id', '/privacy', '/api/cron/reading', '/api/portone/webhook', '/api/openai/webhook'])(
+    '%s 는 어떤 요청도 관문을 안 지난다',
     (route) => {
       expect(gateOnSome(route)).toBe(false);
     },

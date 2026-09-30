@@ -142,6 +142,24 @@ test('입력 전에는 예시 명식을 보여주지 않고 계산 뒤 핵심 �
   */
 });
 
+/**
+ * **화면은 기기의 가장자리까지 깔린다**(`app/layout.tsx` 의 `viewport`).
+ *
+ * `cover` 가 아니면 iOS 의 `env(safe-area-inset-*)` 가 늘 0 이라 하단 독이 홈 막대를 비키려고 더한 여백이 안 든다.
+ * 노치가 없는 이 브라우저에서 본문 틀의 폭은 전과 같아야 한다(폰 16px · 넓은 화면 20px 씩 양옆).
+ */
+test('뿌리의 viewport 는 가장자리까지 깔리고, 노치가 없으면 본문 틀의 폭은 그대로다', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('meta[name="viewport"]')).toHaveAttribute('content', /viewport-fit=cover/);
+
+  const { shell, body } = await page.evaluate(() => ({
+    shell: document.querySelector('.app-shell')?.getBoundingClientRect().width ?? 0,
+    body: document.body.getBoundingClientRect().width,
+  }));
+  const gutter = body <= 640 ? 32 : 40;
+  expect(shell).toBeCloseTo(Math.min(body - gutter, 72 * 16), 0);
+});
+
 /*
   **금지 표현이 화면까지 나가는 유일한 자리.**
 
@@ -921,4 +939,23 @@ test('결과 바로가기는 접힌 표를 열고 주소의 입력을 그대로 
   // 입력은 주소에 그대로 있고, 결과도 그대로 서 있다.
   expect(sharedParams(page).get('date')).toBe('1990-05-15');
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+});
+
+/**
+ * **줄인 움직임을 고른 사람에게 바로가기는 미끄러지지 않는다.**
+ *
+ * `scrollIntoView` 에 `behavior` 를 적으면 `globals.css` 의 `scroll-behavior: auto` 가 안 듣는다. 눌러서 바로 그 자리에
+ * 닿았는지를 누른 같은 순간에 잰다 — 부드러운 스크롤은 그 순간 아직 출발점 근처에 있다.
+ */
+test('줄인 움직임에서 결과 바로가기는 곧바로 그 자리로 간다', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/#date=1990-05-15&hour=14:30');
+  await expect(page.getByRole('navigation', { name: '결과 바로가기' })).toBeVisible();
+
+  const top = await page.evaluate(() => {
+    const link = document.querySelector<HTMLAnchorElement>('nav[aria-label="결과 바로가기"] a[href="#fortune"]');
+    link?.click();
+    return document.getElementById('fortune')?.getBoundingClientRect().top ?? Number.NaN;
+  });
+  expect(Math.abs(top)).toBeLessThan(200);
 });

@@ -21,8 +21,8 @@ type SignedInUser = { id: string; email: string | undefined };
  * 서명만으로는 **서버에서 막 끊은 세션**(다른 기기에서 나감 · 계정 삭제)을 못 알아챈다. 그것은
  * 같은 요청에서 먼저 도는 관문의 `getUser` 가 알아채고 그 세션의 쿠키를 걷는다 — 그래서 여기에
  * 도착하는 쿠키에는 그 세션이 없다. 이 둘은 한 벌이고, 이 함수는 `proxy.ts` 의 matcher 안에서만 부른다 — 주소의 입구에서
- * import 를 따라가 이 파일에 닿는 주소가 matcher 안인지를 `app/auth/signed-in.boundary.test.ts` 가 잰다(세운 날 어긋난 자리
- * 하나 — `/` 의 이어 보기 저장 액션 — 는 그 시험의 목록에 있다).
+ * import 를 따라가 이 파일에 닿는 주소가 matcher 안인지를 `app/auth/signed-in.boundary.test.ts` 가 잰다(현관 `/` 은 액션만
+ * 관문을 지난다, ADR 0137).
  * 정지 · 탈퇴 대기는 Auth 가 아니라 `app_user.status` 라 DB 가 판정한다 — 여기와 무관하다.
  *
  * **활동도 여기서 적는다**(ADR 0118) — 아래 `noteActivity`.

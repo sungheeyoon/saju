@@ -63,6 +63,7 @@
 | `src/lib/*` (엔진 밖) | `npm test`, 프롬프트면 아래 「프롬프트」 | 순수 함수. 문이 부르는 모양이 바뀌면 `typecheck` 가 잡는다 |
 | `app/**/*.ts` — 문 · 액션 · 라우트 | `npm test` → `npm run test:flow` | 문의 실패 셋과 액션의 값은 단위가, 실제 스택에서 문이 여는가는 흐름이 |
 | `app/api/cron/reading/**` · `app/api/cron/authorized.ts` | `npx vitest run app/api/cron` | 크론 두 주소가 함께 쓰는 자격(`cronAuthorized` — SHA-256 으로 길이를 맞춘 상수 시간 비교, `authorized.test.ts`). 복구기의 자격 — 머리 없음 · 다른 비밀 · `Basic` · 비밀이 없는 배포는 403 이고 열쇠를 안 꺼낸다, 맞는 비밀만 일감을 줍는다(`route.test.ts`). 소스를 훑는 정규식(`app/me/reading/boundary.test.ts`)은 조건이 헐거워져도 초록이었다 |
+| `app/api/openai/webhook/**` · `verifyReadingWebhook`(`app/me/reading/model.ts`) | `npx vitest run app/api/openai/webhook` | OpenAI 가 두드리는 문. 진짜 서명(Standard Webhooks HMAC)을 지어 보낸다 — 다른 비밀 · 본문 바꿈 · 머리 없음 · 오래된 시각 · 서버에 비밀 없음 · `response.*` 아닌 사건은 401 이고 열쇠를 안 꺼낸다, 맞으면 영수증을 적고 204 · 회수는 응답 뒤(`after`) · 재전송은 다시 안 집는다, 못 적으면 503(`route.test.ts`, 2026-09-30). 전에는 위 정규식뿐이라 서명 판정을 버려도 초록이었다 |
 | `app/**/*.tsx` — 화면 | 비로그인 화면 `npm run test:e2e`, 로그인 뒤 `npm run test:e2e:signed-in` · 요청·수락이면 `test:e2e:match` · 채팅이면 `test:e2e:chat`. 서버 페이지의 읽기를 고쳤으면 옆의 `page.test.ts` 도 | vitest 는 그리지 못한다(위). 문구만 바뀐 라운드는 안 돌린다 |
 | `proxy.ts` · `src/lib/consent` | `npm test` → `npm run test:e2e:notice` | 관문은 링크를 눌러야 밟힌다 — `page.goto` 로는 못 잰다(ADR 0041) |
 | `supabase/migrations/**` | `npm run db:reset` → `npm run test:db` → `npm run db:types` → `npm run typecheck` → `npm run test:flow` | 생성 타입을 다시 안 지으면 앱은 없는 열을 있다고 믿은 채 컴파일된다(ADR 0078). CI 의 `authed` 중 `notice` 차선이 diff 를 본다 |

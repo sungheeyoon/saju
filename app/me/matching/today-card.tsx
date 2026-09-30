@@ -107,12 +107,12 @@ export function TodayCard({
         key={profile.candidateUserId}
         ref={panel}
         style={cardStyle}
-        className={`${elementScope(supplyOf(profile))} ${styles.arrive} absolute inset-0 select-none overflow-hidden rounded-[2rem] bg-[var(--tile)] shadow-[0_24px_48px_-24px_rgba(0,0,0,0.45)] motion-reduce:transition-none`}
+        className={`${elementScope(supplyOf(profile))} ${styles.arrive} absolute inset-0 select-none overflow-hidden rounded-[2rem] bg-[var(--tile)] shadow-float motion-reduce:transition-none`}
       >
         <CardPhotos card={profile} bounce={panel} initialClass={INITIAL_ON_CARD} />
 
         {profile.exploration && (
-          <span className={`${belowBars ? 'top-8' : 'top-4'} absolute left-4 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-surface/95 px-3 text-[13px] font-semibold text-foreground shadow-sm`}>
+          <span className={`${belowBars ? 'top-8' : 'top-4'} absolute left-4 inline-flex min-h-8 items-center gap-1.5 rounded-full bg-surface/95 px-3 text-[13px] font-semibold text-foreground shadow-soft`}>
             <Icon name="spark" className="size-4 text-[var(--ink)]" />
             색다른 인연
           </span>
@@ -133,7 +133,7 @@ export function TodayCard({
       {/*
         실패 · 잠깐 서는 안내 — 흐름 밖, 카드 위쪽에 뜬다. 흐름 안에 두면 폰에서 카드 아래로 삐져나와 한 화면이 깨진다
       */}
-      <div className="pointer-events-none absolute inset-x-3 top-16 z-20 flex flex-col items-stretch gap-2 *:pointer-events-auto *:shadow-lg">
+      <div className="pointer-events-none absolute inset-x-3 top-16 z-20 flex flex-col items-stretch gap-2 *:pointer-events-auto *:shadow-float">
         {feedback}
       </div>
     </div>

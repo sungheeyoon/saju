@@ -8,8 +8,9 @@ import type { Database } from '@/src/lib/db';
  * **열쇠를 드는 유일한 자리.**
  *
  * 이 저장소는 사용자 경로에 `service_role` 을 쓰지 않는다(ADR 0003·0006). 열쇠는 사용자
- * JWT 에 닫아 둔 문을 부를 때만 든다 — 부르는 곳은 일곱 파일이다(2026-09-30 에 잰 값):
+ * JWT 에 닫아 둔 문을 부를 때만 든다 — 부르는 곳은 여덟 파일이다(2026-09-30 에 잰 값):
  * 풀이 제출(`app/me/reading/pipeline.ts` 둘) · 결과 회수(`app/me/reading/collect.ts`) ·
+ * 서버 오류 알림(`app/request-error.ts`, `instrumentation.ts` 가 부른다) ·
  * 결과 복구 크론(`app/api/cron/reading/route.ts`) · 접속기록 반출 크론
  * (`app/api/cron/audit-export/route.ts`) · OpenAI webhook · 결제 webhook
  * (`app/api/openai/webhook/route.ts` · `app/api/portone/webhook/route.ts`), 그리고 **사용자 경로의 제한된 예외 하나** —

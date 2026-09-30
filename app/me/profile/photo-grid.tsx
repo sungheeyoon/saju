@@ -53,14 +53,17 @@ async function shrink(
   context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
 
-  const blob = await new Promise<Blob | null>((done) =>
-    canvas.toBlob(done, 'image/webp', 0.85),
-  );
+  const baked = (type: string) =>
+    new Promise<Blob | null>((done) => canvas.toBlob(done, type, 0.85));
 
   /*
-    WebP 를 못 굽는 브라우저가 있으면 `toBlob` 이 다른 형식으로 내주거나 아무것도 안
-    내준다. 그때는 원본을 그대로 보낸다 — 상한은 아래에서 다시 본다.
+    **WebP 를 못 구우면 JPEG 로 물러선다**(운영자 2026-09-30). 못 굽는 브라우저의 `toBlob` 은 요청한 형식 대신 PNG 를
+    내준다 — 사진을 PNG 로 구우면 512px 한 장이 상한(512KB)을 넘기 쉬워 「사진이 너무 커요」로 떨어졌다. 그래서 받은
+    형식이 WebP 가 아니면 같은 캔버스를 JPEG(같은 품질 0.85)로 다시 굽는다. 그것도 안 되면 원본을 그대로 보낸다 —
+    상한은 아래에서 다시 본다.
   */
+  const webp = await baked('image/webp');
+  const blob = webp?.type === 'image/webp' ? webp : await baked('image/jpeg');
   const chosen = blob ?? file;
   const contentType = (PHOTO_TYPES as readonly string[]).includes(chosen.type)
     ? chosen.type
@@ -295,7 +298,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
           <span
             aria-hidden="true"
             className={`pointer-events-none block h-full w-full transition-transform duration-150 motion-reduce:transition-none ${
-              lifting ? 'relative z-20 rounded-2xl shadow-[0_18px_36px_-12px_rgba(0,0,0,0.5)]' : ''
+              lifting ? 'relative z-20 rounded-2xl shadow-float' : ''
             }`}
             style={lifting && lift !== null ? { transform: `translate(${lift.dx}px, ${lift.dy}px) scale(1.05)` } : undefined}
           >

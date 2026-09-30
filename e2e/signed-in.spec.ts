@@ -2896,6 +2896,32 @@ test.describe('가입 관문', () => {
    * 아직 옛 목록이라 같은 둘째 칸의 × 를 누른다 — 전에는 그 누름이 당겨 앉은 셋째 장을 지웠다. 지금은 화면이 본
    * 장의 판본을 함께 보내므로 DB 가 그 누름을 흘려보내고, 그 탭은 목록을 다시 받아 남은 두 장을 그린다.
    */
+  test('WebP 를 못 굽는 브라우저에서는 사진을 JPEG 로 구워 올린다', async ({ openAs }) => {
+    const { page } = await openAs({ selfPerson: true });
+    /*
+      **WebP 를 못 굽는 캔버스를 흉내 낸다** — 그런 브라우저의 `toBlob` 은 요청한 WebP 대신 PNG 를 내준다. PNG 로 올라가면
+      512px 한 장이 상한을 넘기 쉬워 「사진이 너무 커요」로 떨어졌다(운영자 2026-09-30, JPEG 로 물러선다).
+    */
+    await page.addInitScript(() => {
+      const bake = HTMLCanvasElement.prototype.toBlob;
+      HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+        return bake.call(this, callback, type === 'image/webp' ? 'image/png' : type, quality);
+      };
+    });
+    await page.goto('/me/profile');
+
+    await page.getByLabel('사진 올리기').setInputFiles(['e2e/fixtures/harin.webp']);
+    const photo = page.getByRole('button', { name: '사진 1 / 1, 길게 눌러 옮기기' });
+    await expect(photo).toBeVisible();
+
+    const src = (await photo.locator('img').getAttribute('src')) ?? '';
+    const served = await page.request.get(src);
+    expect(served.status()).toBe(200);
+    expect(served.headers()['content-type']).toBe('image/jpeg');
+    /* JPEG 의 첫 두 바이트 — 이름만 JPEG 인 PNG 가 아니다 */
+    expect([...(await served.body()).subarray(0, 2)]).toEqual([0xff, 0xd8]);
+  });
+
   test('두 탭에서 같은 사진을 지워도 한 장만 지워진다', async ({ openAs }) => {
     const { page } = await openAs({ selfPerson: true });
     await page.goto('/me/profile');
