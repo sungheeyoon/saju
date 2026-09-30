@@ -1,6 +1,11 @@
-import { supabaseOnServer } from '../../auth/server-client';
-import { selfElementSummary } from '../summary';
-import { myDiscoveryProfile } from './discovery-profile';
+import type { DiscoveryProfile } from '@/src/lib/discovery';
+import type { StoredChartResult } from '@/src/lib/input/stored';
+
+import type { supabaseOnServer } from '../../auth/server-client';
+import type { SkippableRead } from '../../db-error';
+import { selfSummaryOf, type SelfSummary } from '../summary';
+
+type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
 
 /**
  * 참여가 열리는 문 — **화면이 아니라 문이다.**
@@ -29,18 +34,28 @@ import { myDiscoveryProfile } from './discovery-profile';
  * (`/me/matching`), 그리고 입력을 고친 뒤(`editPersonInput`). 매칭만 보고 홈에 안 들르는
  * 사람이 홈의 문을 한 번도 안 지나기 때문이고, 같은 RPC 라 여러 번 불려도 한 번만 연다.
  */
-export async function openDiscoveryParticipation(): Promise<void> {
-  const supabase = await supabaseOnServer();
-
+export async function openDiscoveryParticipation(
+  supabase: ServerClient,
+  profile: SkippableRead<DiscoveryProfile | null>,
+  selfPersonId: string,
+  stood: StoredChartResult | null,
+): Promise<void> {
   /*
     **묻는 것이 「켰는가」에서 「껐는가」로 바뀌었다**(PRD 「추천은 여섯 자리 덱이다」). 참여가 기본으로 켜지면서
     안 켠 사람이라는 상태가 없어졌다. 남은 것은 직접 끈 사람이고, 그 하나만 안 연다.
+
+    **읽지 않고 받는다**(2026-09-30). 홈이 참여 설정 · 내 입력 · 내 이름을 제 화면과 한 물결에 읽어 넘긴다 — 여기서 따로
+    읽던 동안(참여 설정 → 계정 → 입력 · 이름 → 문) 이 줄이 홈 탭의 가장 긴 차례였다.
   */
-  const profile = await myDiscoveryProfile();
   if (profile.ok && profile.value?.optedOut) return;
 
-  // 홈을 열며 곁들이는 일이다. 요약을 못 읽었으면 이번에는 안 열고 넘어간다 — 홈을 오류로 세우지 않는다
-  const self = await selfElementSummary().catch(() => null);
+  // 홈을 열며 곁들이는 일이다. 요약을 못 세웠으면 이번에는 안 열고 넘어간다 — 홈을 오류로 세우지 않는다
+  let self: SelfSummary | null = null;
+  try {
+    self = stood === null ? null : selfSummaryOf(selfPersonId, stood);
+  } catch {
+    self = null;
+  }
   if (self === null) return;
 
   /*

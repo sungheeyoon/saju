@@ -56,6 +56,14 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
+  /*
+    **책장은 계정과 나란히 읽는다**(2026-09-30) — 만든 풀이 · 성립한 Match 는 계정을 몰라도 읽을 수 있다. 계정을 읽은 뒤에
+    시작하던 동안 탭 이동이 한 물결 더 길었다. 이용이 멈춘 계정이면 안 쓰고 버린다 — 아래에서 따로 받아 보므로, 여기서
+    안 잡으면 버린 쪽의 실패가 처리되지 않은 거절로 뜬다.
+  */
+  const reading = Promise.all([myReadings(), matchesForViewer()]);
+  reading.catch(() => {});
+
   /** 빈 상태의 길이 내 사주 등록 여부를 묻는다 — 온보딩으로 보내지는 않는다 */
   const { state } = await readAccount(supabase);
   if (isBlocked(state)) {
@@ -67,7 +75,7 @@ export default async function ReadingsLayout({ children }: { children: ReactNode
   }
   const selfPersonId = selfPersonIdOf(state);
 
-  const [readings, matches] = await Promise.all([myReadings(), matchesForViewer()]);
+  const [readings, matches] = await reading;
   const madeMatchIds = new Set(
     readings.flatMap((reading) =>
       reading.kind === 'match' && reading.matchId !== null ? [reading.matchId] : [],
