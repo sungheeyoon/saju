@@ -37,7 +37,7 @@ export default async function ChatRoomsPage() {
   const rooms = chatRoomsForViewer();
   rooms.catch(() => {});
 
-  const { state } = await readAccount(supabase, 'status, self_person_id');
+  const { state } = await readAccount(supabase, ['status', 'self_person_id']);
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col py-6 sm:py-10 lg:py-8">

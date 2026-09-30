@@ -38,11 +38,7 @@ export default async function MePage() {
   if (!user) return redirectToSignIn();
 
   // 정책이 자기 행만 내주므로 `where` 를 적지 않는다. 적으면 판정하는 자리가 둘이 된다.
-  const { state, row: account } = await readAccount<{
-    status: string;
-    self_person_id: string | null;
-    nickname: string | null;
-  }>(supabase, 'status, self_person_id, nickname');
+  const { state, row: account } = await readAccount(supabase, ['status', 'self_person_id', 'nickname']);
   const selfPersonId = state.kind === 'active' ? state.selfPersonId : null;
   const nickname = account?.nickname?.trim() ?? '';
 
