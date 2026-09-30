@@ -47,7 +47,7 @@ const FALLBACK_TOPICS: readonly (readonly FragmentTopic[])[] = [
   ['elements.heaviest'],
 ];
 
-export const TASTE_FALLBACK_LIMIT = 3;
+const TASTE_FALLBACK_LIMIT = 3;
 
 export function fallbackTasteOf(utterances: readonly Utterance[]): readonly string[] {
   return FALLBACK_TOPICS.flatMap((topics) => {

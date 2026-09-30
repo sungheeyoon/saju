@@ -71,7 +71,7 @@ export function tastePromptOf(key: TasteKey): string {
 }
 
 /** 로그인 전 사주 문단이 지켜야 할 모양 — 짧은 규칙만. 글의 질은 사람이 본다(ADR 0131 「잠그지 않은 것」) */
-export const TASTE_RULES = {
+const TASTE_RULES = {
   minLength: 60,
   /** DB 의 `taste_passage_body_length` 는 600 이다 — 여기서 먼저 좁게 거른다 */
   maxLength: 320,
@@ -79,7 +79,7 @@ export const TASTE_RULES = {
   maxSentences: 4,
 } as const;
 
-export type TasteVerdict = { ok: true } | { ok: false; reasons: readonly string[] };
+type TasteVerdict = { ok: true } | { ok: false; reasons: readonly string[] };
 
 const HANJA = /[一-鿿]/;
 /** 화면에 「AI」를 새로 세우지 않는다(운영자 2026-09-29) — 글 안에서도 */
@@ -117,7 +117,7 @@ export type TasteAsk = (prompt: string) => Promise<{ ok: true; body: string; mod
 
 export type TasteRow = { key: TasteKey; body: string; model: string; checked: true };
 
-export type TasteReport = {
+type TasteReport = {
   written: readonly TasteKey[];
   /** 검사를 못 지난 칸 — 적지 않았다. 까닭과 함께 */
   rejected: readonly { key: TasteKey; reasons: readonly string[] }[];
