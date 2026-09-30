@@ -250,7 +250,7 @@ function SaveCard({
 
       {failure !== null && (
         <p role="alert" className="text-sm leading-6 text-danger">
-          저장하지 못했습니다. {failure}
+          저장하지 못했어요. {failure}
         </p>
       )}
     </section>
@@ -412,7 +412,7 @@ function SelfConfirm({
 
       {failure !== null && (
         <p role="alert" className="text-sm leading-6 text-danger">
-          저장하지 못했습니다. {failure}
+          저장하지 못했어요. {failure}
         </p>
       )}
     </section>
