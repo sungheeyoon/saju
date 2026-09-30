@@ -429,7 +429,7 @@ function BlockAsk({ userId, onCancel }: { userId: string; onCancel: () => void }
         <button type="button" onClick={onCancel} disabled={working} className={BUTTON_SECONDARY}>
           취소
         </button>
-        {failure !== null && <span className="text-[13px] text-danger">{failure}</span>}
+        {failure !== null && <span role="alert" className="text-[13px] text-danger">{failure}</span>}
       </div>
     </div>
   );

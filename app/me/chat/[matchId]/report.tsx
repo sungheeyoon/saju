@@ -96,7 +96,7 @@ export function ReportPanel({
             <button type="button" onClick={send} disabled={working} className={BUTTON_PRIMARY_SMALL}>
               {working ? '보내는 중…' : '신고하기'}
             </button>
-            {failure !== null && <span className="text-[13px] text-danger">{failure}</span>}
+            {failure !== null && <span role="alert" className="text-[13px] text-danger">{failure}</span>}
           </div>
         </>
       )}

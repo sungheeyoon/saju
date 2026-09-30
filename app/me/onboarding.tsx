@@ -65,7 +65,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
         {missing !== null && <span className="text-[13px] text-secondary">{missing}</span>}
       </div>
 
-      {failure !== null && <p className="text-sm text-danger">저장하지 못했어요. {failure}</p>}
+      {failure !== null && <p role="alert" className="text-sm text-danger">저장하지 못했어요. {failure}</p>}
     </section>
   );
 }
