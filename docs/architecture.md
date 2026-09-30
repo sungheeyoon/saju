@@ -79,7 +79,7 @@
 | `e2e/` | Playwright. 같다 | `src/lib` |
 | `app/me/reading/model.ts` | **모델을 부르는 유일한 자리**(ADR 0047) | `ai` · `openai` |
 | `app/me/keyed-chart-writes.ts` | **풀에 오르는 값을 열쇠로 쓰는 자리** — 「사용자 경로에 열쇠를 안 쓴다」의 제한된 예외(G-64, ADR 0136). 풀에 오르는 요약과 내 사람의 여덟 글자를 쓰는 문 넷(`create_self_person` · `edit_person_input` · `set_discovery_participation` · `ensure_discovery_participation`)만 부른다. 사람 id 는 세션에서, 값은 저장된 입력에서 서버가 짓는다. 열쇠(`app/keyed-client.ts`)를 부르는 파일은 `eslint.config.mjs` 의 `KEY_HOLDERS` 가 이름으로 들고 `scripts/layers.test.ts` 가 견준다 | 도메인 lib · `summary` · 열쇠 · 세션 |
-| 비밀을 읽는 모듈 | `app/keyed-client.ts`(부르는 파일은 `KEY_HOLDERS` 일곱) · `app/me/reading/model.ts` · `app/api/cron/reading/route.ts` · `app/api/cron/audit-export/route.ts` · `app/api/cron/audit-export/s3.ts`(접속기록 반출, ADR 0105) · `app/api/portone/webhook/route.ts`(결제 알림, G-23 ⑥) — 첫 줄이 `import 'server-only'` 라 화면 층이 부르면 빌드가 선다. 새 비밀은 `scripts/secret-env.mjs` 의 갈래에 먼저 서고, `scripts/secret-env.test.ts` 가 둘을 견준다(G-23 ⑧) | 서버 환경변수 |
+| 비밀을 읽는 모듈 | `app/keyed-client.ts`(부르는 파일은 `KEY_HOLDERS` 여덟) · `app/me/reading/model.ts` · `app/api/cron/reading/route.ts` · `app/api/cron/audit-export/route.ts` · `app/api/cron/audit-export/s3.ts`(접속기록 반출, ADR 0105) · `app/api/portone/webhook/route.ts`(결제 알림, G-23 ⑥) — 첫 줄이 `import 'server-only'` 라 화면 층이 부르면 빌드가 선다. 새 비밀은 `scripts/secret-env.mjs` 의 갈래에 먼저 서고, `scripts/secret-env.test.ts` 가 둘을 견준다(G-23 ⑧) | 서버 환경변수 |
 
 ## 새 것을 놓을 때
 

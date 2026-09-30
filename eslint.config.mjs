@@ -125,6 +125,7 @@ export const KEY_HOLDERS = [
   "app/me/keyed-chart-writes.ts",
   "app/me/reading/collect.ts",
   "app/me/reading/pipeline.ts",
+  "app/request-error.ts",
 ];
 
 const NO_KEYED_CLIENT = [
