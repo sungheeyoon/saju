@@ -14,7 +14,7 @@ export type BetaSchedule = {
  * 여기 남는 것은 **셋이 다 있어야 안내가 선다**는 규칙 하나다. 운영자 칸이 `string` 만이
  * 아닌 것은 그 규칙이 빈 값과 `undefined` 를 재기 때문이다.
  */
-export type ScheduleRow = {
+type ScheduleRow = {
   readonly scheduleId: number;
   readonly endsOn: string;
   readonly purgeBy: string;

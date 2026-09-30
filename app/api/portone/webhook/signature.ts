@@ -19,7 +19,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 /** 규격의 권고 — 앞뒤 5분 */
 export const TOLERANCE_SECONDS = 5 * 60;
 
-export type Verified = { ok: true; eventId: string } | { ok: false; detail: string };
+type Verified = { ok: true; eventId: string } | { ok: false; detail: string };
 
 const keyOf = (secret: string): Buffer => Buffer.from(secret.replace(/^whsec_/, ''), 'base64');
 

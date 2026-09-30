@@ -26,7 +26,7 @@ import { PILLAR_POSITIONS, type PillarPosition } from '../position';
  */
 
 /** 공망을 어느 기둥 기준으로 뽑았는가 */
-export type EmptinessBasis = 'day' | 'year';
+type EmptinessBasis = 'day' | 'year';
 
 export const EMPTINESS_BASIS_KO: Record<EmptinessBasis, string> = {
   day: '일주',

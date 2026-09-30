@@ -40,7 +40,7 @@ import { UNRESOLVED_FACTOR_KO } from './yongsin';
  *   「더 필요하다」는 말은 `relation.precedence: 'reinforced'` 가 든다.
  */
 
-export type NeedProfileOptions = {
+type NeedProfileOptions = {
   /** 상 · 하반월을 가를 출생 시각 — `johuJudgementOf` 로 간다 */
   instant?: Date;
   weights?: EokbuJudgementOptions['weights'];

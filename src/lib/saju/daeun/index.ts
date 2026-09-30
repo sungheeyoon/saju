@@ -56,7 +56,7 @@ const DAY_MS = 86_400_000;
  * 어느 쪽도 표준이 아니라서 옵션으로 둔다. 정확한 값은 `startAgeExact` 로
  * 함께 돌려주므로, 다른 방식이 필요하면 그 값에서 다시 만들면 된다.
  */
-export type DaeunRounding = 'round' | 'floor';
+type DaeunRounding = 'round' | 'floor';
 
 /**
  * 대운수가 0으로 떨어질 때의 처리.
@@ -70,7 +70,7 @@ export type DaeunRounding = 'round' | 'floor';
  * 첫 대운을 한 해 늦게 말하는 셈이 된다. 세는나이 표기의 만세력과 맞춰볼 때만
  * 바꾸면 된다.
  */
-export type DaeunZeroPolicy = 'keep' | 'raiseToOne';
+type DaeunZeroPolicy = 'keep' | 'raiseToOne';
 
 export type DaeunOptions = {
   rounding?: DaeunRounding;
@@ -217,7 +217,7 @@ export type Daeun = {
  * 조합을 넘길 수 있고(연간과 월간이 오호둔에 맞지 않는 조합은 실재하지 않는다),
  * 칸마다 십성·신살·관계를 내려면 어차피 여덟 글자가 다 필요하다.
  */
-export type DaeunInput = {
+type DaeunInput = {
   pillars: Pillars;
   /** 출생의 절대 시각 */
   instant: Date;

@@ -23,7 +23,7 @@ import { rpcArgs } from '@/src/lib/db';
  * 이미 누가 집었거나 시도가 끝난 것이다. **그때 실패로 닫으면 안 된다** — 방금 성공으로
  * 닫힌 것을 뒤따라 실패로 덮을 수 있다.
  */
-export type CollectOutcome =
+type CollectOutcome =
   | { done: 'saved' }
   | { done: 'failed'; code: string }
   | { done: 'pending' }

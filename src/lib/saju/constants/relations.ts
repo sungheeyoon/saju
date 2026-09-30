@@ -27,7 +27,7 @@ export type RelationKind =
 // 천간
 // ─────────────────────────────────────────────────────────────
 
-export type StemCombination = {
+type StemCombination = {
   stems: readonly [Stem, Stem];
   /** 합화(合化)한 오행 */
   result: Element;
@@ -43,7 +43,7 @@ export const STEM_COMBINATIONS: readonly StemCombination[] = [
   { stems: ['戊', '癸'], result: '火', ko: '무계합화' },
 ];
 
-export type StemClash = {
+type StemClash = {
   stems: readonly [Stem, Stem];
   ko: string;
 };
@@ -63,7 +63,7 @@ export const STEM_CLASHES: readonly StemClash[] = [
 // 지지 — 합
 // ─────────────────────────────────────────────────────────────
 
-export type BranchSixCombination = {
+type BranchSixCombination = {
   branches: readonly [Branch, Branch];
   result: Element;
   ko: string;
@@ -84,7 +84,7 @@ export const BRANCH_SIX_COMBINATIONS: readonly BranchSixCombination[] = [
   { branches: ['午', '未'], result: '火', ko: '오미합화' },
 ];
 
-export type BranchTripleCombination = {
+type BranchTripleCombination = {
   /** 생지(生支) · 왕지(旺支) · 묘지(墓支) 순서 */
   branches: readonly [Branch, Branch, Branch];
   /** 왕지 — 반합(半合)이 성립하려면 이 지지가 반드시 포함되어야 한다. */
@@ -101,7 +101,7 @@ export const BRANCH_TRIPLE_COMBINATIONS: readonly BranchTripleCombination[] = [
   { branches: ['巳', '酉', '丑'], peak: '酉', result: '金', ko: '사유축 금국' },
 ];
 
-export type BranchDirectionalCombination = {
+type BranchDirectionalCombination = {
   branches: readonly [Branch, Branch, Branch];
   result: Element;
   season: Season;
@@ -120,7 +120,7 @@ export const BRANCH_DIRECTIONAL_COMBINATIONS: readonly BranchDirectionalCombinat
 // 지지 — 충·형·해·파·원진·귀문
 // ─────────────────────────────────────────────────────────────
 
-export type BranchPair = {
+type BranchPair = {
   branches: readonly [Branch, Branch];
   ko: string;
 };
@@ -250,7 +250,7 @@ export function findBranchGhostGate(a: Branch, b: Branch): BranchPair | null {
   return BRANCH_GHOST_GATES.find((c) => matchesPair(c.branches, a, b)) ?? null;
 }
 
-export type TripleCombinationMatch = {
+type TripleCombinationMatch = {
   combination: BranchTripleCombination;
   matched: Branch[];
   /** 세 지지가 모두 모였으면 true, 왕지를 낀 반합이면 false */

@@ -13,7 +13,7 @@ import type { NotificationKind, RequestDirection, RequestStatus } from './index'
  */
 
 /** 종이 세지 않는 소식 — 인연 탭이 「답할 요청」으로 센다 */
-export const COUNTED_BY_MATCHING_TAB: readonly NotificationKind[] = ['request_received'];
+const COUNTED_BY_MATCHING_TAB: readonly NotificationKind[] = ['request_received'];
 
 /** 종의 딱지 — 안 읽은 소식 중 인연 탭이 안 세는 것 */
 export function bellCount(notifications: readonly { kind: string; unread: boolean }[]): number {

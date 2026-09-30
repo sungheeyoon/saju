@@ -7,7 +7,7 @@ import { managedEdges, personSlotsFrom } from '../../person-slots';
 type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
 
 /** 홈에 서는 한 사람의 엣지 — 이름과 메모는 **내가 붙인 것**이다(`local_label`) */
-export type CircleEdge = { readonly personId: string; readonly label: string; readonly note: string | null };
+type CircleEdge = { readonly personId: string; readonly label: string; readonly note: string | null };
 
 export type Circle = {
   /** 내 엣지 — 내 사주 카드의 이름. 못 찾으면 `null` 이고 화면이 「못 읽었다」고 말한다 */

@@ -88,7 +88,7 @@ export type ReportRow = {
   readonly warningRef: string | null;
 };
 
-export type ReportPage = {
+type ReportPage = {
   readonly rows: readonly ReportRow[];
   /** 거른 결과 전체의 쪽 수 — 한 쪽의 크기는 DB 만 안다 */
   readonly pages: number;
@@ -155,7 +155,7 @@ export type WarningRecord = {
   readonly acknowledgedAt: string | null;
 };
 
-export type ReportDetail = {
+type ReportDetail = {
   readonly reportId: string;
   readonly createdAt: string;
   readonly reason: string;

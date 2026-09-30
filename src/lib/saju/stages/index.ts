@@ -162,7 +162,7 @@ export function twelveStageBranchesOf(
   ) as Record<TwelveStage, Branch>;
 }
 
-export type StageChart = Record<PillarPosition, TwelveStage | null>;
+type StageChart = Record<PillarPosition, TwelveStage | null>;
 
 export type Stages = {
   /** 일간이 네 지지에서 어떤 상태인가 — 가장 널리 쓰는 방식 */

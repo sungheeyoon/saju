@@ -46,7 +46,7 @@ export type ReadingEvidence =
  * 판(`v2-beta`)과 그때 쓴 사이를 남겨야, 나중에 그 풀이를 다시 여는 화면이 **만든 때의 눈금**으로 지표를 그린다.
  * 정책은 판과 사이에서 다시 나오지만 함께 든다 — 되짚는 사람이 매핑을 다시 풀지 않게.
  */
-export type ReadingScoring = {
+type ReadingScoring = {
   version: typeof DISCOVERY_POLICY.version;
   policy: ScorePolicy;
   /** 기준점을 고를 때 쓴 사이 — 모르면 `null`. 인연 궁합은 사이를 안 묻는다 */

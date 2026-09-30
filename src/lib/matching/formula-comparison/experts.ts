@@ -81,7 +81,7 @@ function casesWith(variant: ComparisonStrength): CaseDirections[] {
   })).filter(({ directions }) => directions.length > 0);
 }
 
-export type Agreement = {
+type Agreement = {
   /** 양성 쌍 · 음성 쌍 · 갈린 쌍의 수 */
   positivePairs: number;
   negativePairs: number;
@@ -155,7 +155,7 @@ function fit(cases: readonly CaseDirections[]): NeedComplementParams {
   });
 }
 
-export type ExpertReport = {
+type ExpertReport = {
   variant: ComparisonStrength;
   overall: Agreement;
   byCredibility: Record<string, Agreement>;

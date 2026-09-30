@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { supabaseInBrowser } from './browser-client';
 
 /** 아직 모름 · 로그인함 · 안 함 — 모르는 동안은 어느 쪽 길도 세우지 않는다 */
-export type BrowserSession = 'unknown' | 'in' | 'out';
+type BrowserSession = 'unknown' | 'in' | 'out';
 
 /**
  * 브라우저가 아는 로그인 상태 — **길을 가리키는 값이지 문을 지키는 값이 아니다.**
