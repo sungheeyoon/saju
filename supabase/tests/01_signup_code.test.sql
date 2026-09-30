@@ -130,7 +130,7 @@ select pg_temp.acting((select lee from folks));
 
 select throws_like(
   $$select public.complete_signup('TODAY1', '민수', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
-  '%이미 쓰고 있는%',
+  '%이미 사용 중인%',
   '같은 이름으로는 못 들어온다');
 
 select lives_ok(
@@ -144,7 +144,7 @@ select pg_temp.acting((select park from folks));
 /** `TODAY1` 은 둘이 정원이고 둘이 들어왔다 */
 select throws_like(
   $$select public.complete_signup('TODAY1', '철수', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
-  '%정원이 찼%',
+  '%인원이 다 찼어요%',
   '정원을 넘으면 거절된다');
 
 select lives_ok(
@@ -259,7 +259,7 @@ select lives_ok(
 select pg_temp.acting((select choi from folks));
 select throws_like(
   $$select public.complete_signup('CARRY1', '최정원', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
-  '%정원이 찼습니다%',
+  '%인원이 다 찼어요%',
   '창이 남아 있어도 정원이 차면 막힌다 — 자리는 날마다 안 돌아온다');
 
 select * from finish();

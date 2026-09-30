@@ -147,7 +147,7 @@ select pg_temp.acting((select newcomer from folks));
 
 select throws_ok(
   $$select public.complete_signup('PAUSE1', '새사람', 'notice-v9', pg_temp.schedule_id(), false, false)$$,
-  '42501', '지금 쓸 수 있는 코드가 아닙니다.', '닫혀 있으면 살아 있는 코드로도 새 사람은 못 들어온다 — 기존 문장으로');
+  '42501', '사용할 수 없는 코드예요. 코드를 다시 확인해 주세요.', '닫혀 있으면 살아 있는 코드로도 새 사람은 못 들어온다 — 기존 문장으로');
 
 select pg_temp.acting((select reporter from folks));
 select lives_ok(

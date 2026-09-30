@@ -13,7 +13,7 @@ import { rpcArgs } from '@/src/lib/db';
  * `discovery_profile` 때와 다르다. 그 표는 별명·소개 칸을 열 단위로 열어 두었고 서버
  * 액션이 그 칸에 직접 썼다. `app_user` 는 그렇게 열려 있지 않다 — 계정 상태와 안내 확인
  * 기록이 한 행에 있어서, 한 칸을 열면 그 옆 칸을 안 여는 이유를 정책이 매번 다시 대야
- * 한다. 거절의 문장도 DB 가 낸다(「이미 쓰고 있는 닉네임입니다」).
+ * 한다. 거절의 문장도 DB 가 낸다(「이미 사용 중인 닉네임이에요. …」).
  */
 export async function saveProfile(profile: ProfileInput): Promise<SaveResult> {
   const missing = missingInProfile(profile);
