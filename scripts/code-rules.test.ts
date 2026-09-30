@@ -535,6 +535,19 @@ const ENTRY_DOCS = [
 /** 저장소 뿌리에서 시작하는 경로만 잰다 — `person-input.ts` 같은 줄임과 `NNNN-….md` 같은 틀은 경로가 아니다 */
 const ROOTED_PATH = /^(app|src|scripts|e2e|docs|supabase|public|\.github)\/[A-Za-z0-9_.\/\[\]-]+$/;
 
+describe('금지어 (docs/agents/code-rules.md)', () => {
+  /**
+   * 「맛보기」는 화면에서 걷었고(#349) 한국어로는 「로그인 전 결과」로 부른다(`CONTEXT.md`, 2026-09-30). 주석에 남은
+   * 낱말이 다음 작업에서 화면 글자로 다시 번졌으므로 **주석까지** 센다 — 예산 0 이다.
+   */
+  it('화면 파일(`app/**/*.tsx`)에 「맛보기」가 없다 — 주석도', () => {
+    const screens = SOURCE_FILES.filter((file) => relPath(file).startsWith('app/') && file.endsWith('.tsx'));
+    expect(screens.length).toBeGreaterThan(50);
+    const found = screens.filter((file) => readFileSync(file, 'utf8').includes('맛보기')).map(relPath);
+    expect(found).toEqual([]);
+  });
+});
+
 describe('입구 문서가 가리키는 경로 (docs/agents/test-map.md)', () => {
   it('백틱 안의 뿌리 경로는 전부 있는 파일이나 폴더다 — 옮기면 문서도 옮긴다', () => {
     const missing: string[] = [];

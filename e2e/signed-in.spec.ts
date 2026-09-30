@@ -3207,10 +3207,10 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
   });
 
   /**
-   * **첫 화면의 궁합 맛보기에서 넣은 두 사람이 궁합 화면의 두 칸이 된다**(ADR 0131). 관문은 `#` 뒤를 못 보므로 가입
+   * **첫 화면의 로그인 전 궁합 결과에서 넣은 두 사람이 궁합 화면의 두 칸이 된다**(ADR 0131). 관문은 `#` 뒤를 못 보므로 가입
    * 화면을 거칠 때 낱말을 잃지 않게 로그인이 낱말째 싣는다(`afterSignIn`).
    */
-  test('궁합 맛보기의 두 사람은 가입을 거쳐 궁합 화면의 두 칸으로 돌아온다', async ({ openAs }) => {
+  test('로그인 전 궁합 결과의 두 사람은 가입을 거쳐 궁합 화면의 두 칸으로 돌아온다', async ({ openAs }) => {
     const newcomer = await openAs({ selfPerson: false, skipSignup: true });
     const { page } = newcomer;
 

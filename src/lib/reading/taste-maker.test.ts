@@ -6,7 +6,7 @@ import { checkTaste, makeTastePassages, tasteKeyParts, tastePromptOf, type Taste
 const GOOD =
   '한낮의 해가 봄의 들판을 비추듯, 먼저 밝히고 먼저 다가가는 사람이에요. 곁에 있는 사람을 데우는 힘이 커서 자리에 들어서면 공기가 달라져요. 그 힘이 어디서 오고 언제 쉬어야 하는지는 전체 풀이에서 더 자세히 볼 수 있어요.';
 
-describe('맛보기의 짧은 규칙 검사', () => {
+describe('로그인 전 사주 문단의 짧은 규칙 검사', () => {
   it('해요체 두세 문장 · 알맞은 길이 · 분류명 없음이면 지난다', () => {
     expect(checkTaste(GOOD)).toEqual({ ok: true });
   });

@@ -12,7 +12,7 @@ import { GENERATION } from './generation';
 import { callModel } from './model';
 
 /**
- * **맛보기 표를 채우는 자리** — 운영자가 손으로 돌린다(실호출 · 토큰이 나간다, ADR 0131).
+ * **로그인 전 사주 문단 표를 채우는 자리** — 운영자가 손으로 돌린다(실호출 · 토큰이 나간다, ADR 0131).
  *
  * `scripts/` 가 아니라 여기 서는 까닭: 모델을 부르는 유일한 자리(`model.ts`, ADR 0047)가 app 에 살고 `scripts/` 는
  * app 을 못 부른다(`scripts/layers.test.ts`). `call.live.test.ts` 와 같은 자리 · 같은 잠금이다 — 켜는 값이 없으면
@@ -45,7 +45,7 @@ const chosenKeys = (): readonly TasteKey[] => {
   return listed as TasteKey[];
 };
 
-describe.skipIf(!live)('맛보기 표를 채운다 (TASTE_LIVE=1)', () => {
+describe.skipIf(!live)('로그인 전 사주 문단 표를 채운다 (TASTE_LIVE=1)', () => {
   it(
     '칸마다 한 번 부르고 규칙 검사를 지난 글만 남긴다',
     async () => {

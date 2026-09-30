@@ -89,14 +89,14 @@ export function HomeHero({ calculator }: { calculator: ReactNode }) {
             {member && <p className="mt-2 text-sm leading-6 text-secondary">출생 시각을 모르면 「{HOUR_UNKNOWN_CHOICE}」을 고르세요.</p>}
           </div>
           {/*
-            **계산기도 이 값으로 갈린다** — 로그인하지 않은 사람에게는 결과의 첫머리가 맛보기다(`taste.tsx`).
+            **계산기도 이 값으로 갈린다** — 로그인하지 않은 사람에게는 결과의 첫머리가 로그인 전 사주 문단이다(`taste.tsx`).
             그런데 계산기를 여기서 만들지는 않는다: `Suspense` 경계는 서버가 세운 것을
             그대로 쓰고(`page.tsx`), 값만 통로로 내려보낸다(`signed-in.tsx`).
           */}
           <SignedInProvider value={member}>{calculator}</SignedInProvider>
         </div>
         {/*
-          **궁합 맛보기는 여는 순간 선다.** 미리 그려 두면 현관에 폼 둘이 함께 실려 첫 화면이 무거워진다. 닫아도
+          **로그인 전 궁합 결과는 여는 순간 선다.** 미리 그려 두면 현관에 폼 둘이 함께 실려 첫 화면이 무거워진다. 닫아도
           적던 두 사람은 남는다 — 숨기기만 한다.
         */}
         {!member && pairOpened && (
@@ -161,7 +161,7 @@ function Hero({ member, entry, onEntry }: { member: boolean; entry: Entry; onEnt
  * 폼이다 — 제목 · 입구 · 폼 · 주 단추가 한 장 안에 선다(입력 폼 시안 n, ADR 0132).
  *
  * 제목 한 줄, 설명 한 줄, 그리고 **두 입구** — 「내 사주 보기」와 「궁합 보기」. 입구는 바로 아래 입력 칸을 고르는 탭이다:
- * 둘 다 로그인 없이 맛보기까지 간다. 입구 아래에는 곧장 폼이 선다.
+ * 둘 다 로그인 없이 로그인 전 결과까지 간다. 입구 아래에는 곧장 폼이 선다.
  *
  * ## 걷은 것
  *
@@ -170,7 +170,7 @@ function Hero({ member, entry, onEntry }: { member: boolean; entry: Entry; onEnt
  * - 「사주풀이에서 만날 이야기」 세 칸 — 결과의 잠긴 목차가 본 풀이의 실제 절 이름으로 그 일을 한다(`taste.tsx`).
  * - 로고 · 이름 · 한 줄 소개와 관계의 그림, 제목 둘째 줄(「우리는 왜 끌릴까.」) — 운영자가 시안 g 와 견주어 「위에 글도
  *   많고」라고 했다(2026-09-29). 로고는 머리글에 이미 서고, 그림은 폰에서 폼을 한 화면 아래로 밀었다.
- * - 「사주는 로그인 없이 · 사주풀이와 궁합은 로그인 후」 — 궁합도 맛보기까지는 로그인 없이 간다. 참이 아니게 됐다.
+ * - 「사주는 로그인 없이 · 사주풀이와 궁합은 로그인 후」 — 궁합도 로그인 전 궁합 결과까지는 로그인 없이 간다. 참이 아니게 됐다.
  */
 function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry) => void }) {
   /** 탭 목록의 화살표 — 두 입구 사이를 오간다(WAI-ARIA 탭 패턴) */

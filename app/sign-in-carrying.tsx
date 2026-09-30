@@ -8,7 +8,7 @@ import { withReturnPath } from '@/src/lib/consent';
 /**
  * **입력을 들고 로그인으로 가는 누름** — 출생 정보는 주소에 안 싣고 탭의 `sessionStorage` 에 둔다(ADR 0007 · 0128).
  *
- * 사주 이어 보기(`save-for-reading.tsx`) · 첫 화면의 맛보기(`taste.tsx`) · 궁합 맛보기(`pair-taste.tsx`)가 같은 누름을
+ * 사주 이어 보기(`save-for-reading.tsx`) · 첫 화면의 로그인 전 사주 문단(`taste.tsx`) · 로그인 전 궁합 결과(`pair-taste.tsx`)가 같은 누름을
  * 쓴다. `next` 는 `#` 뒤 낱말 하나(`/#resume-reading` · `/compat#resume-pair`)이고, 돌아온 화면이 그 낱말로 입력을
  * 되찾는다(`app/hash-query.ts`). 저장소가 막힌 창이면 가지 않고 그 자리에서 까닭을 말한다 — 가면 입력 없이 도착한다.
  */
