@@ -91,7 +91,7 @@ describe('v2-beta 는 정책을 값으로 든다', () => {
   });
 });
 
-describe('추천 이유 — 맛보기는 적극적으로 말한다', () => {
+describe('추천 이유 — 궁합의 입구는 적극적으로 말한다', () => {
   it('0개는 없는 기운, 1개는 보완에 보탬이 되는 기운으로 나누어 말한다', () => {
     const { highlights } = cardTextFor({
       suppliedElements: ['木', '金'],

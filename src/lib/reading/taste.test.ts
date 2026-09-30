@@ -14,7 +14,7 @@ const sajuOf = (date: string, time: string | null) => {
   return computeSaju({ year, month, day, hour, minute, second: 0, gender: 'female' });
 };
 
-describe('맛보기 열쇠', () => {
+describe('로그인 전 사주 문단의 열쇠', () => {
   it('열쇠는 일주 두 글자 · 하이픈 · 월지 한 글자다', () => {
     const saju = sajuOf('1990-05-15', '14:30');
     const key = tasteKeyOf(saju.pillars);

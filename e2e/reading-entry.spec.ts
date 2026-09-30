@@ -4,11 +4,11 @@ import { expect, test } from './anon';
  * 로그인 전의 풀이 입구 — **잠긴 목차의 단추**가 출생 정보를 주소에 안 싣고 로그인으로 간다(ADR 0128 · 0131).
  * 입력은 탭의 `sessionStorage` 가 들고, 돌아온 주소(`/#resume-reading`)가 그것을 되찾는다.
  */
-test('풀이 입구는 맛보기 아래 잠긴 목차에 서고 로그인에 출생 정보를 보내지 않는다', async ({ page }) => {
+test('풀이 입구는 로그인 전 사주 문단 아래 잠긴 목차에 서고 로그인에 출생 정보를 보내지 않는다', async ({ page }) => {
   await page.goto('/#name=민수&date=1990-05-15&hour=14:30');
   const outline = page.getByRole('region', { name: '전체 사주풀이 목차' });
   await expect(outline).toBeVisible();
-  /* 카드 · 맛보기가 먼저 선다 — 입구는 그 아래다 */
+  /* 카드 · 로그인 전 사주 문단이 먼저 선다 — 입구는 그 아래다 */
   const card = (await page.getByRole('region', { name: '내 사주' }).boundingBox())!;
   const entry = (await outline.boundingBox())!;
   expect(entry.y).toBeGreaterThanOrEqual(card.y + card.height);

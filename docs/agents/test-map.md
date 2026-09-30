@@ -94,14 +94,14 @@
 
 이름이 말한다. **운영 DB 나 모델을 실제로 두드리는 블록**은 환경변수를 켜야만 돈다(`describe.skipIf`). CI 밖이다.
 다만 `call.live.test.ts` 에는 `skipIf` 가 없는 블록 둘(실호출 원문의 이름이 겹치지 않는가 · P0/P1 표본이 실제로 갈리는
-명식인가)이 있어 **`npm test` 에서 늘 돈다** — 모델을 안 부르고 돈을 안 쓴다. 그래서 단위의 건너뛴 파일은 넷이 아니라 셋(백필 둘 · 맛보기)이다.
+명식인가)이 있어 **`npm test` 에서 늘 돈다** — 모델을 안 부르고 돈을 안 쓴다. 그래서 단위의 건너뛴 파일은 넷이 아니라 셋(백필 둘 · 로그인 전 사주 문단)이다.
 
 | 파일 | 켜는 값 | 무엇을 |
 | --- | --- | --- |
 | `app/me/reading/call.live.test.ts` | `READING_LIVE=1` (변형 · 두 판 · 인연 입력은 `READING_VARIANTS_LIVE` · `READING_PAIR_LIVE` · `READING_MATCH_INPUT_LIVE`) | 네 kind 의 풀이를 실제로 한 번 만든다 — 토큰이 나간다 |
 | `src/lib/input/backfill-chart.live.test.ts` | `BACKFILL_CHART=1` (+ `BACKFILL_TARGET=remote` 와 ref 확인) | 명식 없는 사람 행을 채운다 |
 | `src/lib/input/backfill-reading-chart.live.test.ts` | `BACKFILL_READING_CHART=1` | 풀이 행의 여덟 글자를 채운다 |
-| `app/me/reading/taste.live.test.ts` | `TASTE_LIVE=1` (+ `TASTE_WRITE=1` 이면 운영 표에 쓴다 · `TASTE_KEYS=` 로 몇 칸만) | 로그인 전 맛보기 표(720칸)를 채운다 — 토큰이 나간다(ADR 0131) |
+| `app/me/reading/taste.live.test.ts` | `TASTE_LIVE=1` (+ `TASTE_WRITE=1` 이면 운영 표에 쓴다 · `TASTE_KEYS=` 로 몇 칸만) | 로그인 전 사주 문단 표(720칸)를 채운다 — 토큰이 나간다(ADR 0131) |
 
 접속값은 `src/lib/local-env.ts` 가 `.env.development.local` 에서 읽는다 — 이름과 달리 **운영**
 값이다. 그래서 이 셋만 그 파일을 부른다.

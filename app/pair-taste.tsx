@@ -18,7 +18,7 @@ import { CARD, PAPER, PAPER_BOTTOM, TYPE_META } from './ui/surfaces';
 import { STEM_INFO } from '@/src/lib/saju';
 
 /**
- * 첫 화면의 **궁합 맛보기** — 로그인 없이 두 사람을 넣어 본다(흐름 시안 g, ADR 0131).
+ * 첫 화면의 **로그인 전 궁합 결과** — 로그인 없이 두 사람을 넣어 본다(흐름 시안 g, ADR 0131).
  *
  * `/compat` 은 로그인 관문 안이다(ADR 0128) — 두 사람을 정하는 순간 대상이 서버에 서기 때문이다. 그래서 로그인 전의
  * 궁합은 여기서 **브라우저 계산으로만** 선다: 두 사람의 일간 그림, 엔진이 낸 한 줄(`pairTasteOf`), 가린 점수, 궁합풀이가
