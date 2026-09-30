@@ -140,7 +140,10 @@ begin
         model[1] := label;
       end if;
     else
-      perform public.clear_my_photo();
+      -- 전부 내리기 — 옛 문(`clear_my_photo`)은 걷었다(`20261110090000`). 지금 앱처럼 한 장씩 내린다
+      for f in 1..n loop
+        perform public.remove_my_photo(1);
+      end loop;
       model := array[]::text[];
     end if;
 

@@ -5,10 +5,10 @@
 --   1. 상한 — 일곱째 장은 거절한다. 한 장의 상한 · 형식은 그대로다
 --   2. 자리 — 올리면 맨 뒤, 지우면 뒤가 당겨 앉고, 옮기면 사이가 밀린다. 언제나 1..k
 --   3. 여는 조건 — 장 단위의 답이 없다. 한 사람의 사진은 여섯 장이 함께 열리고 함께 닫힌다
---   4. 옛 문 — `photo_of` 는 대표, `set_my_photo` 는 대표만 바꾸고, `clear_my_photo` 는 전부 내린다
+--   4. 옛 문 — `photo_of` 는 대표, `set_my_photo` 는 대표만 바꾼다(전부 내리던 `clear_my_photo` 는 `20261110090000` 이 걷었다)
 --   5. 떠나면 전부 사라진다 — FK 를 따라간다
 begin;
-select plan(40);
+select plan(39);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void
@@ -252,9 +252,6 @@ reset role;
 select is(pg_temp.order_of((select park from who)), 'P', '사진이 없으면 옛 문이 1번에 놓는다');
 set local role authenticated;
 
-select pg_temp.acting((select kim from who));
-select public.clear_my_photo();
-select is((select count(*)::int from public.my_photos()), 0, '옛 `clear_my_photo` 는 전부 내린다');
 
 -- ── 권한 ────────────────────────────────────────────────────────────────────
 

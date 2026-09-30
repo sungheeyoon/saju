@@ -2215,7 +2215,6 @@ export type Database = {
         }[]
       }
       claimed_by: { Args: { target_person: string }; Returns: string }
-      clear_my_photo: { Args: never; Returns: undefined }
       complete_signup: {
         Args: {
           p_code: string

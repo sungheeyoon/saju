@@ -5,10 +5,10 @@
 --      TS 가 같은 쌍에 같은 수를 내는지는 `60_card_score_v2` 의 표를 `scripts/card-score-sql.test.ts` 가 다시 잰다.
 --   2. 같은 자리를 두 번 지우면 둘째 누름이 당겨 앉은 다른 장을 지웠다 — 판본(`p_version`)을 본다.
 --      옮기기도 같다. 판본 없이 부르는 옛 앱은 앞처럼 자리만 본다.
---   3. 전부 내리기(`clear_my_photo`)가 계정 행을 안 잠가 올리기와 겹치면 자리가 벌어졌다.
---      두 세션이 필요한 경합 대신 **이 거래가 계정 행을 잠갔는가**(`xmax`)를 잰다.
+--   3. 전부 내리기(`clear_my_photo`)가 계정 행을 안 잠가 올리기와 겹치면 자리가 벌어졌다 — 그 옛 문은
+--      `20261110090000` 에서 걷었다(앱이 안 부른다). 그 단언도 함께 걷었다.
 begin;
-select plan(14);
+select plan(13);
 
 -- ── 1. 카드 점수 — .5 에서 TS 와 같은 쪽으로 ───────────────────────────────────
 
@@ -126,16 +126,6 @@ select ok(
     and not has_function_privilege('authenticated', 'public.discovery_need_direction_v2_float(jsonb, jsonb)', 'execute')
     and not has_function_privilege('authenticated', 'public.discovery_count_balance_v2_float(jsonb, jsonb)', 'execute'),
   '안에서만 쓰는 새 함수 셋은 로그인한 사람도 못 부른다');
-
--- ── 3. 전부 내리기 — 계정 행을 잠근다 ───────────────────────────────────────
-
-set local role authenticated;
-select set_config('request.jwt.claims', tests.claims((select quiet from who)), true);
-select public.clear_my_photo();
-reset role;
-select ok(
-  (select u.xmax = pg_current_xact_id()::xid from public.app_user u where u.id = (select quiet from who)),
-  '전부 내리기가 이 거래에서 계정 행을 잠갔다 — 올리기와 같은 잠금을 기다린다');
 
 select * from finish();
 rollback;

@@ -9,11 +9,11 @@
 -- 부르는 대상은 **실제로 있는 것**이다 — 자기 요청 · 자기 사진 · 자기 방 · 자기 풀이. 없는 id 로 부르면 활성 계정도
 -- 같은 자리에서 막혀 「정지 때문에 막혔다」를 못 잰다. 정지 전에 다 만들어 두고, 정지한 뒤 두드린다.
 --
--- **지금 열려 있는 문은 `todo` 로 적는다**(2026-09-30 에 잼). 정지된 계정이 부를 수 있어야 하는가는 「누가 무엇을
--- 할 수 있는가」라 결정이다 — 이 파일은 동작을 바꾸지 않고 지금 모양을 드러낸다. 문이 닫히면 pgTAP 이 그 줄을
--- 「뜻밖에 통과」로 알린다 — 그때 `todo` 를 걷는다.
+-- **열려 있는 문은 운영자가 정한 것뿐이다**(2026-09-30). 처음 잰 날 정지 판정이 없던 넷 가운데 `acknowledge_warning` ·
+-- `cancel_match_request` 는 **의도적으로 열어 둔다**(남에게 해가 없고 후속 피해를 줄인다), `clear_my_photo` 는 걷었고,
+-- `set_person_listed` 는 막았다(`20261110090000`). 열린 둘은 아래 목록에 `OK` 로 적는다 — 누가 닫으면 붉어진다.
 begin;
-select plan(49);
+select plan(48);
 
 create or replace function pg_temp.summary(i integer)
 returns jsonb
@@ -128,10 +128,10 @@ update public.app_user set status = 'suspended' where id = (select kim from folk
 /**
  * 두드릴 문 — 이름 · 부르는 문장 · 정지된 계정이 받는 것.
  *
- * `answer` 가 `null` 이면 **지금 열려 있는 문**이다(아래 `todo`). 문장을 적은 줄은 그 문장 그대로 서야 한다 —
+ * 문장을 적은 줄은 그 문장 그대로 서야 한다 —
  * 정지 거절 문장(「이용이 정지된 계정입니다.」, G-49)이 아닌 줄은 까닭을 `why` 에 적는다.
  */
-create temporary table doors (name text primary key, call text not null, answer text, why text);
+create temporary table doors (name text primary key, call text not null, answer text not null, why text);
 grant select on doors to authenticated;
 
 insert into doors
@@ -175,10 +175,10 @@ from (values
                             '42501 저장한 사람 목록에 없는 사람입니다.', '정지되면 내 사람이 안 보인다'),
   ('restore_passed_connection', format($$select public.restore_passed_connection(%L)$$, (select choi from folks)),
                             '42501 지금은 이 인연을 다시 만나볼 수 없습니다. 목록을 새로 열어 주세요.', '되돌릴 자격(활성 계정)으로 막힌다'),
-  ('set_contact_consent',   $$select public.set_contact_consent(true)$$, 'P0002 계정을 찾지 못했습니다.',
-                            '활성 계정의 행만 고친다 — 문장이 정지를 말하지 않는다'),
-  ('set_improvement_consent', $$select public.set_improvement_consent(true)$$, 'P0002 계정을 찾지 못했습니다.',
-                            '활성 계정의 행만 고친다 — 문장이 정지를 말하지 않는다'),
+  ('set_contact_consent',   $$select public.set_contact_consent(true)$$, '42501 이용이 정지된 계정입니다.', null),
+  ('set_improvement_consent', $$select public.set_improvement_consent(true)$$, '42501 이용이 정지된 계정입니다.', null),
+  ('set_person_listed',     format($$select public.set_person_listed(%L, false)$$, (select v from kept where k = 'mom')),
+                            '42501 이용이 정지된 계정입니다.', null),
   ('set_pair_relation',     format($$select public.set_pair_relation(%L, %L, 'family')$$, (select v from kept where k = 'self'), (select v from kept where k = 'mom')),
                             '42501 new row violates row-level security policy for table "pair_relation"', 'invoker — 정책이 막는다'),
   ('start_reading_run',     $$select * from public.start_reading_run('self', 'susp-run-0002')$$,
@@ -190,13 +190,10 @@ from (values
   ('mark_notifications_read', $$select public.mark_notifications_read()$$, 'OK', '보이는 알림(`visible_notifications`)이 활성 계정만 낸다 — 0 을 고친다'),
   ('touch_activity',        $$select public.touch_activity()$$, 'OK', '활성 계정이 아니면 쓰지 않고 거짓을 낸다'),
 
-  -- 지금 열려 있다 — 결정 대기(위 머리말)
-  ('acknowledge_warning',   $$select public.acknowledge_warning('W-0000')$$, null, '정지 판정이 없다 — 받은 경고를 읽었다고 적는다'),
-  ('cancel_match_request',  format($$select public.cancel_match_request(%L)$$, (select v from kept where k = 'to_park')), null,
-                            '정지 판정이 없다 — 내가 보낸 요청을 거둔다'),
-  ('clear_my_photo',        $$select public.clear_my_photo()$$, null, '옛 문(`remove_my_photo` 이전) — 정지 판정이 없어 사진을 전부 내린다'),
-  ('set_person_listed',     format($$select public.set_person_listed(%L, false)$$, (select v from kept where k = 'mom')), null,
-                            '정지 판정이 없다 — 저장한 사람을 목록에서 뺀다')
+  -- 의도적으로 열려 있다 — 운영자 결정(2026-09-30): 남에게 해가 없고 후속 피해를 줄인다
+  ('acknowledge_warning',   $$select public.acknowledge_warning('W-0000')$$, 'OK', '의도적으로 열림 — 받은 경고를 읽었다고 적는다'),
+  ('cancel_match_request',  format($$select public.cancel_match_request(%L)$$, (select v from kept where k = 'to_park')), 'OK',
+                            '의도적으로 열림 — 내가 보낸 요청을 거둔다')
 ) as d(name, call, answer, why);
 
 /**
@@ -225,27 +222,19 @@ reset role;
 
 select is(k.got, d.answer, d.name || ' — ' || coalesce(d.why, '정지 거절'))
 from doors d join knocked k using (name)
-where d.answer is not null
-order by d.name;
-
-select todo('정지된 계정에 열려 있다 — 닫을지는 결정 대기(2026-09-30)', (select count(*)::int from doors where answer is null));
-select is(k.got, '42501 이용이 정지된 계정입니다.', d.name || ' — ' || d.why)
-from doors d join knocked k using (name)
-where d.answer is null
 order by d.name;
 
 -- ── 막힌 문은 아무것도 안 바꿨다 ──────────────────────────────────────────────
 
 select is(
   (select count(*)::int from public.profile_photo where user_id = (select kim from folks)),
-  -- `clear_my_photo` 가 열려 있어 지금은 0 이다 — 위 todo 가 닫히면 1 이 된다
-  0,
-  '사진은 열린 옛 문(`clear_my_photo`)으로만 내려갔다 — 올리기 · 옮기기 · 지우기 문은 막혔다');
+  1,
+  '사진은 그대로다 — 올리기 · 옮기기 · 지우기 문이 막혔고, 전부 내리던 옛 문(`clear_my_photo`)은 걷었다');
 
 select is(
   (select count(*)::int from public.match_request where requester_user_id = (select kim from folks) and status = 'pending'),
   0,
-  '보낸 요청은 열린 문(`cancel_match_request`)으로만 거둬졌다 — 새 요청은 서지 않았다');
+  '보낸 요청은 의도적으로 열린 문(`cancel_match_request`)으로만 거둬졌다 — 새 요청은 서지 않았다');
 
 select is(
   (select count(*)::int from public.person p
