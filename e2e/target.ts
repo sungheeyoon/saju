@@ -66,6 +66,11 @@ export async function focusedOutline(control: Locator): Promise<{ own: string; a
  * `<html>` 이 한 화면 높이(`h-full`)라 바탕의 둥근 빛이 그 높이마다 다시 깔렸고, 긴 화면에서는
  * 첫 화면 바로 아래에 가로 금이 섰다(어두운 테마에서 가장 또렷하다). 첫 화면 높이 바로 위 한 줄과
  * 바로 아래 한 줄을 왼쪽 여백에서 잘라 견준다 — 되풀이되면 아래 줄에 다음 빛의 머리가 선다.
+ *
+ * **자르는 동안 글과 카드는 가린다**(`visibility: hidden` — 자리는 그대로라 문서 높이도 그대로다). 재는 것은 바탕이다.
+ * 웹 글꼴을 뺀 날(2026-09-30, ADR 0109 추기) CI 리눅스의 대체 서체로 글줄 높이가 바뀌어, 어두운 테마의 카드 그림자
+ * (`shadow-card`)가 왼쪽 여백의 그 줄까지 번졌고 바탕은 한 번 깔렸는데도 붉었다 — 자르는 줄이 무엇에 걸리는가가
+ * 서체에 달려 있었다.
  */
 export async function seamRows(page: Page): Promise<{ above: Buffer; below: Buffer }> {
   const height = page.viewportSize()?.height ?? 0;
@@ -76,8 +81,11 @@ export async function seamRows(page: Page): Promise<{ above: Buffer; below: Buff
   const scrolled = await page.evaluate(() => window.scrollY);
   const edge = height - scrolled;
   const clip = (y: number) => ({ x: 2, y, width: 8, height: 1 });
-  return {
+  const veil = await page.addStyleTag({ content: 'body * { visibility: hidden !important; }' });
+  const rows = {
     above: await page.screenshot({ clip: clip(edge - 2) }),
     below: await page.screenshot({ clip: clip(edge + 1) }),
   };
+  await veil.evaluate((node) => node.remove());
+  return rows;
 }
