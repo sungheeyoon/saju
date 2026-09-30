@@ -52,8 +52,15 @@
 -- ('pending', 'accepted', 'rejected')`. 같은 세 상태다. `pair_low` · `pair_high` 는 `requester < addressee` 로 가른
 -- 생성 열이라 `least` · `greatest`(같은 uuid 비교)로 짚으면 같은 줄을 가리킨다. 색인만 읽는 한 번으로 준다.
 --
--- 재는 자리: 같은 결과는 `09_discovery_board` · `60_card_score_v2` · `63_card_score_rounding…` · `34_chat` 이 행동으로,
--- 모양(내 방에서 출발 · 짝 색인)은 `73_scale_shapes` 가 계획으로 잰다.
+-- 재는 자리: **같은 답**은 `09_discovery_board` · `60_card_score_v2` · `63_card_score_rounding…` · `34_chat` 이 행동으로,
+-- 조각마다 센 점수 · 네 항을 더하는 한 식 · 짝 조건의 여섯 상태 × 두 방향은 `73_scale_shapes` 가 잰다. **계획(색인을
+-- 타는가)은 시험이 안 잰다** — 계획은 표의 크기와 통계를 따라 바뀌어 작은 시험 데이터로는 흔들린다. 위의 전후 수와
+-- 계획은 1만 명을 심은 로컬에서 `EXPLAIN ANALYZE` 로 잰 값이다(PR 본문).
+--
+-- **닿지 않는 차이 하나**(독립 검토, 2026-09-30): 새 판은 일주 · 오행 요약 · 필요한 기운 중 하나가 `null` 인 사람을
+-- 조각과 잇는 `join` 에서 뺀다. 옛 판은 그 사람을 점수 `null` 로 풀에 남겼다(가중 무작위에서 거의 안 뽑힌다). 지금은
+-- 드러날 길이 없다 — `discovery_pair_eligible` 이 두 요약과 여덟 글자가 모두 있는 사람만 들이고(`need_summary is not
+-- null` · `current_chart is not null`), `reject_bad_chart` 가 일주 없는 여덟 글자를 받지 않는다.
 
 -- ---------------------------------------------------------------------------
 -- 1. 점수를 더하는 식 — 한 곳
