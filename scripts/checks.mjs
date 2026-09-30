@@ -87,7 +87,7 @@ export async function fetchWhole(url, init) {
  * `service_role` 에만 열려 있고 첫 인자로 사람 id 를 받는다. 앱에서는 `app/me/keyed-chart-writes.ts` 가 세션에서 그 id 를
  * 얻는다. 여기서는 로그인한 클라이언트의 세션에서 얻어 로컬 스택의 열쇠로 부른다 — 나머지 인자는 옛 판과 같고 답의 모양
  * (`{ data, error }`)도 같아서, 부르던 자리는 `client.rpc(이름, …)` 를 `keyedRpc(client, 이름, …)` 로 바꾸기만 했다.
- * 사용자 역할이 이 문을 직접 못 부르는 것은 pgTAP(`70_pool_values_keyed`)이 잰다.
+ * 사용자 역할이 이 문을 직접 못 부르는 것은 pgTAP(`71_pool_values_keyed`)이 잰다.
  */
 let keyedOnce = null;
 export async function keyedRpc(client, name, args) {

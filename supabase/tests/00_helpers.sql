@@ -260,7 +260,7 @@ $$;
  * `tests.` 로 바꾸기만 했다. `definer` 인 것은 `authenticated` 로 역할을 바꾼 뒤에도 열쇠의 문을 부르려는 것이다.
  *
  * 로그인하지 않은 채 부르면 `null` 이 넘어가고 문이 「로그인이 필요합니다」로 선다 — 옛 판과 같은 답이다.
- * 사용자 역할이 문을 **직접** 못 부른다는 것은 `70_pool_values_keyed` 가 잰다.
+ * 사용자 역할이 문을 **직접** 못 부른다는 것은 `71_pool_values_keyed` 가 잰다.
  */
 create or replace function tests.create_self_person(
   p_local_label text, p_calendar text, p_original_date date, p_solar_date date,

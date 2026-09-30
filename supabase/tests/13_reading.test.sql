@@ -898,7 +898,7 @@ select is(
     /**
      * 풀에 오르는 값을 쓰는 문 넷(G-64 길 ①, ADR 0136) — 내 사람의 여덟 글자와 풀의 요약 둘. 부르는 자리는
      * `app/me/keyed-chart-writes.ts` 하나이고, 사람 id 는 세션에서, 값은 그 사람의 저장된 입력에서 서버가 짓는다.
-     * 로그인한 사람은 넷 다 직접 못 부른다(`70_pool_values_keyed`).
+     * 로그인한 사람은 넷 다 직접 못 부른다(`71_pool_values_keyed`).
      */
     'create_self_person',
     'edit_person_input',
