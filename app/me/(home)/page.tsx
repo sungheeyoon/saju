@@ -46,7 +46,7 @@ export default async function MePage() {
   const nickname = account?.nickname?.trim() ?? '';
 
   return (
-    <main className="app-shell flex min-w-0 flex-1 flex-col gap-4 py-4 sm:gap-12 sm:py-12">
+    <main className="app-shell flex min-w-0 flex-1 flex-col gap-3 py-4 sm:gap-12 sm:py-12">
       {isBlocked(state) ? (
         <AccountNotice state={state} />
       ) : (
@@ -132,7 +132,7 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
         **내 사주가 먼저 선다**(2026-09-25) — 이 앱의 첫 얼굴은 나다. 넓은 화면에서는 왼쪽의 넓은 칸(7)이고 오른쪽(5)에
         내가 받은 사주풀이가 선다.
       */}
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
+      <div className="grid gap-3 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         {stood === null ? (
           <p className="text-sm text-muted">내 사주를 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.</p>
         ) : !stood.ok ? (
