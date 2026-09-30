@@ -84,7 +84,7 @@ export const COMPAT_POLICY = {
  * (부족을 채우는 쪽이 좋다는 읽기와, 용신에 맞는 오행이라야 한다는 읽기가 다르다)
  * 환산하는 순간 근거 없는 점수가 된다.
  */
-export type ElementSupport = {
+type ElementSupport = {
   /** 내 원국에 아예 없는 오행 */
   missing: Element[];
   /** 그중 상대가 가진 것 */
@@ -102,7 +102,7 @@ export type ElementSupport = {
  * 아직 못 본 것들(`unresolved`)도 함께 옮긴다. 궁합으로 넘어오면서 딱지가
  * 떨어지면 근거 없는 확신이 결론으로 새어 나간다.
  */
-export type EokbuMatch = {
+type EokbuMatch = {
   status: 'experimental';
   /** 내 억부 관점의 후보 오행 */
   element: Element;

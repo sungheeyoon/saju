@@ -51,7 +51,7 @@ export const JOHU_SEASON_BY_MONTH: Record<Branch, JohuJudgement['season']> = {
   丑: { temperature: 'cold', moisture: 'wet', basis: 'month-branch' },
 };
 
-export const JOHU_JUDGEMENT_POLICY = {
+const JOHU_JUDGEMENT_POLICY = {
   ruleSet: 'johu-judgement-v1',
   status: 'reference-with-conditions',
   /** 문턱 없이 답하는 조건만 판정한다 */
@@ -75,7 +75,7 @@ export const JOHU_JUDGEMENT_POLICY = {
  * 네 기둥과, 상 · 하반월을 볼 때만 그 달을 연 절기. `Pillars` 가 그대로 들어간다 —
  * 시험이 간지만으로 명식을 지을 수 있게 `meta` 를 다 요구하지 않는다(`johuAssessmentOf` 와 같다).
  */
-export type JohuJudgementInput = Pick<Pillars, 'year' | 'month' | 'day' | 'hour' | 'dayMaster'> & {
+type JohuJudgementInput = Pick<Pillars, 'year' | 'month' | 'day' | 'hour' | 'dayMaster'> & {
   meta?: Pick<Pillars['meta'], 'monthTerm'>;
 };
 

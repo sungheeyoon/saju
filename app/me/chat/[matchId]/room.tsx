@@ -30,7 +30,7 @@ import styles from './room.module.css';
 /**
  * 방 안에서 사람이 서는 모양 — 서버가 다 지어서 넘긴다(시각 글자 · 묶음 · 닫힌 까닭).
  */
-export type RoomView = {
+type RoomView = {
   readonly matchId: string;
   /** `{닉네임} 님` · 떠났으면 「탈퇴한 사용자」 */
   readonly heading: string;

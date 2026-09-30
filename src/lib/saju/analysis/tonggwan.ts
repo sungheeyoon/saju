@@ -41,7 +41,7 @@ import type { EffectiveElements } from './effectiveElements';
  * 세력을 재므로, 여기만 글자 그대로의 분포를 보면 한 화면 안에서 같은 세력을 두 번
  * 다르게 세게 된다.
  */
-export type TonggwanPair = {
+type TonggwanPair = {
   /** 극하는 쪽 */
   controller: Element;
   /** 극당하는 쪽 */

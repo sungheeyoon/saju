@@ -29,13 +29,13 @@ export const discountAgainstSingles = (credits: number, price: number): number =
   Math.floor((1 - price / (credits * SINGLE_PRICE)) * 100);
 
 /** 쓰임이 든 몫 — 무료 · 예외 · 산 묶음 · 몫 밖(셈이 되돌려 준 자리) */
-export type CreditShare = 'free' | 'grant' | 'bundle' | 'outside';
+type CreditShare = 'free' | 'grant' | 'bundle' | 'outside';
 
 /** 돈으로 돌려줄 수 있는 몫인가 — **산 것만.** 무료 · 예외 · 몫 밖은 어떤 경우에도 아니다(G-21 ③) */
 export const shareIsRefundable = (share: CreditShare): boolean => share === 'bundle';
 
 /** 묶음 하나의 쓰임 — 환불 셈의 입력 한 줄에서 */
-export type BundleUsage = {
+type BundleUsage = {
   readonly credits: number;
   readonly refundedCredits: number;
   readonly used: number;

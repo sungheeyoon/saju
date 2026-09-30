@@ -78,7 +78,7 @@ export const LUNAR_SUPPORTED_YEAR_RANGE = {
  * 할 일이 서로 다르다 — 범위 밖은 포기해야 하고, 윤달 없음은 평달로 고쳐야 하고,
  * 없는 날은 날짜를 다시 봐야 한다.
  */
-export type LunarRefusal =
+type LunarRefusal =
   /** 표가 덮지 않는 해 */
   | 'out-of-range'
   /** 그 해에 그 윤달이 없다 */

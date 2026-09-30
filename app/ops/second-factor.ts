@@ -21,7 +21,7 @@ import type { Database } from '@/src/lib/db';
 export const SECOND_FACTOR_NEEDED = 'second-factor';
 
 /** 두 번째 요소를 확인하는 화면 */
-export const SECOND_FACTOR_PATH = '/ops/mfa';
+const SECOND_FACTOR_PATH = '/ops/mfa';
 
 /**
  * 이 세션의 두 번째 요소 — 넷 중 하나다.
@@ -31,7 +31,7 @@ export const SECOND_FACTOR_PATH = '/ops/mfa';
  * - `enroll` — aal1 이고 확인을 마친 TOTP 가 없다
  * - `unread` — 요소 목록을 못 읽었다. 운영자 문 앞에서는 `enroll` 과 같이 닫는다
  */
-export type SecondFactor = 'passed' | 'challenge' | 'enroll' | 'unread';
+type SecondFactor = 'passed' | 'challenge' | 'enroll' | 'unread';
 
 /**
  * 수준은 쿠키 토큰의 **서명을 확인한** 클레임에서 읽는다(`getClaims`, ADR 0117). `getAuthenticatorAssuranceLevel()`

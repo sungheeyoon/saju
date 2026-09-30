@@ -87,7 +87,7 @@ export const HOUR_UNKNOWN_MARK = '시주';
  * 한 것과 같은 판단이다. 열쇠 타입이 둘로 갈려 있는 것(`ElementRole` ·
  * `TenGodGroup`)은 L2 에 남아 있는 이름 중복이지 여기서 갈린 것이 아니다.
  */
-export const ROLE_GLOSS: Record<ElementRole, string> = {
+const ROLE_GLOSS: Record<ElementRole, string> = {
   比劫: '일간과 한편에 서는',
   印星: '일간을 받쳐 주는',
   食傷: '일간이 기운을 내보내는',

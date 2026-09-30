@@ -14,7 +14,7 @@ import { elementRolesOf, type ElementRole } from './yongsin';
  * 고전에서 확인한 공통분모와 아직 결정하지 않은 쟁점을 먼저 데이터로 고정한다.
  */
 
-export type FollowingPatternKind =
+type FollowingPatternKind =
   | 'followWealth'
   | 'followOfficerKill'
   | 'followProsperous'
@@ -68,7 +68,7 @@ export type FollowingCandidacy = {
   opposingStems: { position: PillarPosition; stem: Stem; role: ElementRole }[];
 };
 
-export type FollowingPatternDecision =
+type FollowingPatternDecision =
   | 'hiddenSupport'
   | 'storageRoot'
   | 'neutralizedSupport'

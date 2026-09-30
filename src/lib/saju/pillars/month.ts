@@ -23,7 +23,7 @@ import { getSolarTerms, type SolarTerm } from '../solarTerms';
 // 절기 탐색은 `getSolarTerms` 가 스스로 캐시한다. 여기 또 두면 같은 것을
 // 두 겹으로 들고 있게 된다.
 
-export type MonthTerm = {
+type MonthTerm = {
   /** 이 시각이 속한 절기 구간의 시작 절기 */
   term: SolarTerm;
   /** 그 절기가 속한 사주년 */

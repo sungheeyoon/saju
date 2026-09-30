@@ -43,7 +43,7 @@ export type CompatQuery = {
  * (`/me/readings/compat`)이다. 보관함에서 연 궁합도 사주풀이와 같은 자리에 선다(ADR 0134, 2026-09-29 운영자).
  * 같은 부품을 두 주소가 부른다 — 결과를 두 벌로 적지 않는다.
  */
-export type CompatFrame = 'page' | 'shelf';
+type CompatFrame = 'page' | 'shelf';
 
 /**
  * 저장된 두 사람의 궁합 — **서버가 판본 둘을 읽어 계산한다.** Person id 둘로 저장된 판본을 읽고,

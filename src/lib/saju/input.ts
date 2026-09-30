@@ -25,7 +25,7 @@ export const SUPPORTED_YEAR_RANGE = { min: 1900, max: 2100 } as const;
  * 관례대로 정오를 넣어 계산하면 시주가 午시로 **나와 버린다**. 모르는 값을
  * 아는 값처럼 보여주는 셈이라, 아예 시주를 뽑지 않는 경로를 따로 둔다.
  */
-export type UnknownHourInput = CivilDate & {
+type UnknownHourInput = CivilDate & {
   hour: null;
   minute?: undefined;
   second?: undefined;
@@ -59,7 +59,7 @@ export type SajuInput = (CivilDateTime | UnknownHourInput) & {
   gender: Gender;
 };
 
-export type SajuInputField =
+type SajuInputField =
   | 'input'
   | 'year'
   | 'month'
@@ -228,9 +228,9 @@ export function assertValidLongitude(longitude: number): void {
 }
 
 /** 시간 미상일 때 계산 기준으로 삼는 시각 — 하루의 한가운데 */
-export const UNKNOWN_HOUR_PROXY = { hour: 12, minute: 0, second: 0 } as const;
+const UNKNOWN_HOUR_PROXY = { hour: 12, minute: 0, second: 0 } as const;
 
-export type NormalizedInput = {
+type NormalizedInput = {
   /** 검증을 통과한 계산 기준 시각. 시간 미상이면 정오로 채워진다 */
   civil: CivilDateTime;
   /** 시각을 알고 입력했는가 — `false` 면 시주를 뽑지 않는다 */

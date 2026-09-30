@@ -33,7 +33,7 @@ export type SettleDeps = {
   now: () => Date;
 };
 
-export type Settled = { status: 200 | 400 | 401 | 503; note: string | null };
+type Settled = { status: 200 | 400 | 401 | 503; note: string | null };
 
 const answer = (status: Settled['status'], note: string | null = null): Settled => ({ status, note });
 

@@ -24,10 +24,10 @@ export type CameFrom = (typeof CAME_FROM)[number];
 export type ResultKind = 'saju' | 'compat' | 'match';
 
 /** 머리글의 탭 넷 — `site-header.tsx` 의 `MEMBER_TABS` 와 같은 주소다 */
-export type TabHref = '/me' | '/compat' | '/me/matching' | '/me/chat';
+type TabHref = '/me' | '/compat' | '/me/matching' | '/me/chat';
 
 /** 온 곳이 켜는 불 — 탭 넷 중 하나, 아니면 종(소식) */
-export type Light = TabHref | '/me/requests';
+type Light = TabHref | '/me/requests';
 
 /** 주소의 `from` 한 값 — 배열(`?from=a&from=b`)은 첫 값, 모르는 값은 `null` */
 export function cameFromOf(value: QueryValue): CameFrom | null {

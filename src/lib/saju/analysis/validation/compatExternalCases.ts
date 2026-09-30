@@ -26,7 +26,7 @@ import type { Element } from '../../constants';
  */
 
 /** 자료의 계통 — 호스트가 아니라 글쓴이의 관법으로 센다 */
-export type CompatLineage =
+type CompatLineage =
   /** 중국 현대 상담 블로그 · 칼럼(2011~2026) */
   | 'chinese-modern-consult'
   /** 한국 현대 명리 카페 */
@@ -40,7 +40,7 @@ export type CompatLineage =
  * - `B` — 실무자의 블로그 · 포럼 글로 풀이 예가 있는 것, 앱 자신의 방법 페이지
  * - `C` — 익명 글 · 광고 문안 · 검색 요약으로만 본 것
  */
-export type SourceCredibility = 'S' | 'A' | 'B' | 'C';
+type SourceCredibility = 'S' | 'A' | 'B' | 'C';
 
 /** 한 방향의 판정 — 받는 쪽의 필요를 주는 쪽이 채우는가 */
 export type CompatVerdict =
@@ -71,7 +71,7 @@ export type CompatVerdict =
  * - `combination` — 두 사람 사이 합화로 그 오행이 생긴다(「戊癸合化火」)
  * - `clash` — 주는 쪽 글자가 받는 쪽 용신 자리를 충한다(「亥冲巳」)
  */
-export type CitedBasis =
+type CitedBasis =
   | 'abundance'
   | 'month-command'
   | 'day-master'
@@ -105,7 +105,7 @@ export type CasePerson = {
   needsAsStated: string;
 };
 
-export type CaseDirection = {
+type CaseDirection = {
   /** 받는 쪽(필요를 가진 쪽)의 `label` */
   receiver: string;
   /** 주는 쪽의 `label` */

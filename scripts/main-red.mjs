@@ -14,7 +14,7 @@
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-export const LABEL = 'ci-main-red';
+const LABEL = 'ci-main-red';
 const FAILED = new Set(['failure', 'timed_out', 'startup_failure', 'action_required']);
 
 /**

@@ -70,7 +70,7 @@ export const TRANSFORMATION_POLICY = {
 } as const;
 
 /** 화(化)의 세 등급 */
-export type TransformationVerdict =
+type TransformationVerdict =
   /** 조건을 다 채웠다 — 두 글자를 화신의 오행으로 센다 */
   | 'transformed'
   /** 인접하고 다툼도 없으나 월령이 받쳐주지 않았다 */

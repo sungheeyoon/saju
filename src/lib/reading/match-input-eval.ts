@@ -19,7 +19,7 @@ import { FALLBACK_NAMES } from './prompt';
  * - **자리 혼동의 판정.** 자리가 나오는 문장을 모아 줄 뿐이고, 맞는지는 사람이 자료와 대 본다.
  */
 
-export type MatchFixture = {
+type MatchFixture = {
   readonly id: string;
   /** 이 짝으로 무엇을 보려 하는가 */
   readonly asks: string;
@@ -167,7 +167,7 @@ function personElementCandidates(evidence: SharedEvidence, sentences: readonly s
   });
 }
 
-export type MatchRunMetrics = {
+type MatchRunMetrics = {
   /** 저장 검사가 막는 것 — 규칙 위반 */
   readonly blocking: readonly string[];
   /** 근거 칸이 이름을 댄 관계 가운데 자료의 관계 목록에 없는 것 — 근거 오류 후보 */

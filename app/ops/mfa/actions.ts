@@ -24,9 +24,9 @@ import { SECOND_FACTOR_COPY } from './copy';
  * 그래서 여기서 따로 적지 않는다.
  */
 
-export type Answer = { readonly ok: false; readonly message: string };
+type Answer = { readonly ok: false; readonly message: string };
 
-export type Enrollment =
+type Enrollment =
   | { readonly ok: true; readonly qrCode: string; readonly secret: string }
   | Answer;
 

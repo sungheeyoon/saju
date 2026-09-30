@@ -155,7 +155,7 @@ export const HARNESS = ['next.config.ts', 'playwright.config.ts', 'src/lib/local
  * `scripts/*.mjs` 는 흐름 검사 · e2e 의 도우미로 보고 입구로 건다 — 여기 든 CI · 개발 도구만 뺀다. 빼는 쪽을 적으므로
  * 새 도우미(`scripts/beta-dates.mjs` 같은 것)는 이름을 안 적어도 걸리고, 여기 든 이름이 없어져도 넓어질 뿐이다
  */
-export const NOT_HARNESS =
+const NOT_HARNESS =
   /^scripts\/(?:ci-plan|release-stage|main-red|audit-verify|vercel-ignore|secret-env|remote-lock|db-remote|stack-slot|merge-sim|brand-share-images|generate-[^/]+|fake-clock|ui-[^/]+)\.mjs$/;
 const isHarness = (file) => HARNESS.includes(file) || (/^scripts\/[^/]+\.mjs$/.test(file) && !NOT_HARNESS.test(file));
 /** 관문 — 여기서 import 를 따라가 닿는 `app/` 파일은 입구다(위 「관문이 import 하는 `app/` 파일」) */
@@ -164,7 +164,7 @@ const GATE = 'proxy.ts';
  * 서버에 닿는 `app/` 파일을 가르는 import — Supabase 클라이언트와 서버 전용 모듈. 이것을 부르는 `app/**` 파일은 이름과
  * 상관없이 입구다(위 「서버에 닿는 `app/` 파일」)
  */
-export const SERVER_REACHING =
+const SERVER_REACHING =
   /^(?:@supabase\/|server-only$|next\/(?:server|headers|cache)$)|\/(?:server-client|browser-client|keyed-client|public-client)(?:\.ts)?$/;
 /** DB 차선에서만 재어지는 자리 — 단계와 상관없이 전부를 돈다 */
 const DATABASE = [/^supabase\//];
@@ -183,7 +183,7 @@ export const importsOf = (source) =>
   [...source.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)['"]([^'"]+)['"]/g)].map((one) => one[1]);
 
 /** 저장소 뿌리에서 읽는다 — 계획 job 은 PR 의 HEAD 를 받아 둔다. 못 읽으면(지운 파일) `null` */
-export function sourceFromDisk(file) {
+function sourceFromDisk(file) {
   try {
     return readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
   } catch {
@@ -192,7 +192,7 @@ export function sourceFromDisk(file) {
 }
 
 /** `app/**` 의 시험 아닌 `.ts` · `.tsx` 가 Supabase 클라이언트나 서버 전용 모듈을 부르는가 */
-export function reachesServer(file, sourceOf = sourceFromDisk) {
+function reachesServer(file, sourceOf = sourceFromDisk) {
   if (!/^app\/.+\.tsx?$/.test(file)) return false;
   const source = sourceOf(file);
   return source !== null && importsOf(source).some((name) => SERVER_REACHING.test(name));
@@ -212,7 +212,7 @@ function resolveImport(name, from, sourceOf) {
 
 /** 관문에서 import 를 따라가 닿는 저장소 파일 — `sourceOf` 하나마다 한 번만 잰다 */
 const gateReachOf = new WeakMap();
-export function gateReach(sourceOf = sourceFromDisk) {
+function gateReach(sourceOf = sourceFromDisk) {
   if (gateReachOf.has(sourceOf)) return gateReachOf.get(sourceOf);
   const seen = new Set();
   const queue = [GATE];

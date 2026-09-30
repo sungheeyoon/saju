@@ -19,7 +19,7 @@ import { backOf, placeOf } from '../../came-from';
 import { matchResultForViewer, type SharedResult } from './result';
 
 /** 결과가 어느 틀에 서나 — 제 주소(`/me/match/[id]`)의 한 화면, 또는 풀이 보관함의 옆 칸(ADR 0134, `../compat/screen.tsx` 와 같다) */
-export type MatchFrame = 'page' | 'shelf';
+type MatchFrame = 'page' | 'shelf';
 
 /**
  * 공유 결과 — **동의가 실제로 연 것.**

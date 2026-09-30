@@ -567,7 +567,7 @@ export const HOUR_SENSITIVE_PATHS: readonly ClaimPath[] = [
  * 시주를 지우면 자리 색인이 **일주 칸에서 57.9%, 세 칸 중 하나라도면 85.3%**
  * 달라진다. 거의 전부가 늘어난 것이고, 그래서 「없다」만 위험하다.
  */
-export const LIST_COMPLETENESS_PATHS: readonly ClaimPath[] = [
+const LIST_COMPLETENESS_PATHS: readonly ClaimPath[] = [
   /** 관계 목록 — 시주 두 글자가 새 형충회합을 만든다 */
   'relations',
   /**
@@ -613,7 +613,7 @@ function downgrade(strength: ClaimStrength): ClaimStrength {
   return CLAIM_STRENGTH_ORDER[Math.max(0, index - 1)];
 }
 
-export type CeilingQuery = {
+type CeilingQuery = {
   /** 이 문장이 읽은 출처들 */
   paths: readonly ClaimPath[];
   /** 있다고 하는가, 없다고 하는가 */
@@ -658,16 +658,16 @@ export function ceilingFor({ paths, polarity = 'presence', hourKnown = true }: C
  * 어미를 파싱하지 않는다. "후보입니다"에서 `입니다` 는 문제가 아니고 문제는
  * `후보` 가 빠진 것이다 — 한국어에서 확신의 세기는 어미보다 명사가 나른다.
  */
-export const REQUIRED_HEDGES: Record<Exclude<ClaimStrength, 'fact' | 'silent'>, readonly string[]> = {
+const REQUIRED_HEDGES: Record<Exclude<ClaimStrength, 'fact' | 'silent'>, readonly string[]> = {
   derived: ['로 본다', '로 봅니다', '으로 본다', '으로 봅니다', '쪽으로', '기준으로는', '봅니다'],
   candidate: ['후보', '여지', '가능성', '검토', '아직', '확정하지 않'],
   reference: ['참고', '고전', '표는', '원문', '출처'],
 };
 
 /** 표를 옮겨 적은 문장이 밝혀야 하는 출처의 이름 */
-export const ATTRIBUTION_TERMS: readonly string[] = ['궁통보감', '적천수', '자평진전', '삼명통회', '천리명고'];
+const ATTRIBUTION_TERMS: readonly string[] = ['궁통보감', '적천수', '자평진전', '삼명통회', '천리명고'];
 
-export type ForbiddenClaim = {
+type ForbiddenClaim = {
   id: string;
   /** 문장에 나오면 걸리는 표현 */
   terms: readonly string[];
@@ -943,7 +943,7 @@ export type ClaimForm =
   /** 표의 한 줄. 서술어가 없고 강도는 옆 칸이 든다 */
   | 'row';
 
-export type SentenceCheck = {
+type SentenceCheck = {
   text: string;
   /**
    * 이 문장이 읽은 근거들 — **옵셔널이 아니다.**
