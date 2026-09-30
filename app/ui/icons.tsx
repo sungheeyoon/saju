@@ -7,6 +7,10 @@
  *
  * 채팅(`chat-icon.tsx` 다섯) · 사람 메뉴(`person-menu.tsx` 넷) · 지나친 인연(`UndoIcon`)이 같은 격자의 그림을 따로 들고
  * 있었다(2026-09-26 에 모았다). 새 그림은 여기 더한다 — 화면마다 `<svg>` 를 다시 세우지 않는다.
+ *
+ * 2026-09-30 에 남은 복제 여섯을 옮겼다 — 고른 표시(`check`, 사이 고르기 · 사람 고르기 · 생년월일 칸)와 아래 꺾쇠(`chevron` 을
+ * 90° 돌린다), 출생 정보 수정의 연필, 공유 링크. 작은 자리(12 · 16px)의 그림은 선이 가늘어지지 않게 부르는 쪽이
+ * `stroke-*` 로 굵기를 되돌린다 — 선 굵기는 24 격자의 값이라 크기를 줄이면 함께 준다.
  */
 import { TaijiShapes } from './entry-marks';
 
@@ -38,7 +42,9 @@ export type IconName =
   | 'manage'
   | 'pencil'
   | 'note'
-  | 'remove';
+  | 'remove'
+  | 'check'
+  | 'link';
 
 const PATHS: Record<IconName, React.ReactNode> = {
   home: <path d="M4 11 12 4.5l8 6.5v8.5a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1Z" />,
@@ -137,6 +143,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M10.5 10.5v6M13.5 10.5v6" />
     </>
   ),
+  check: <path d="M5 12.4 10 17l9-10" />,
+  link: <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2" />,
 };
 
 export function Icon({ name, className = 'size-5' }: { name: IconName; className?: string }) {

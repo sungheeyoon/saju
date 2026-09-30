@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { Icon } from '../../ui/icons';
 import { shareMyReading } from './share';
 import type { ReadingTarget } from './target';
 
@@ -168,16 +169,7 @@ export function ShareReadingButton({
         disabled={phase === 'working'}
         className={`${emphasis === 'primary' ? BUTTON_PRIMARY : BUTTON_SECONDARY} w-full px-3 sm:px-5`}
       >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          className="size-[18px] shrink-0 fill-none stroke-current"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2" />
-        </svg>
+        <Icon name="link" className="size-[18px]" />
         {/*
           **안 보이는 한 벌이 폭을 잡는다.** 두 글자를 같은 칸에 겹쳐 놓고 아래 것을
           숨기면, 칸의 너비는 늘 평소의 말이 정하고 위의 글자만 갈린다.

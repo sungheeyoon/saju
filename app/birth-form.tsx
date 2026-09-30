@@ -26,6 +26,8 @@ import {
   type Query,
 } from '@/src/lib/input/query';
 
+import { Icon } from './ui/icons';
+
 /**
  * 생년월일시 입력 한 벌.
  *
@@ -127,7 +129,7 @@ function PickRow<T extends string>({
         <span className={`min-w-0 flex-1 truncate text-right text-[15px] ${open ? 'text-foreground' : 'text-secondary'}`}>
           {current?.label ?? '–'}
         </span>
-        <Chevron className={`size-4 shrink-0 text-muted transition-transform ${open ? 'rotate-180' : ''}`} />
+        <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${open ? '-rotate-90' : 'rotate-90'}`} />
       </button>
 
       {open && (
@@ -159,7 +161,7 @@ function PickRow<T extends string>({
                 />
                 <span className={`text-[15px] text-foreground ${checked ? 'font-semibold' : ''}`}>{option.label}</span>
                 {option.hint && <span className="text-[13px] text-secondary">{option.hint}</span>}
-                <span className="ml-auto">{checked && <Check className="size-4 text-foreground" />}</span>
+                <span className="ml-auto">{checked && <Icon name="check" className="size-4 stroke-3 text-foreground" />}</span>
               </label>
             );
           })}
@@ -183,22 +185,6 @@ function DigitsRow({ label, hint, children }: { label: string; hint?: string; ch
       </span>
       <div className="ml-auto flex min-w-0 items-center justify-end gap-2">{children}</div>
     </div>
-  );
-}
-
-function Chevron({ className }: { className: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className={className}>
-      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function Check({ className }: { className: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className={className}>
-      <path d="M3 8.5l3.25 3L13 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 
@@ -694,7 +680,7 @@ export function BirthFields({
         >
           <span className={ROW_LABEL}>고급 설정</span>
           <span className="min-w-0 flex-1 truncate text-right text-[13px] text-secondary">자시 · 시간 기준 · 세운</span>
-          <Chevron className={`size-4 shrink-0 text-muted transition-transform ${advancedShown ? 'rotate-0' : '-rotate-90'}`} />
+          <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${advancedShown ? 'rotate-90' : 'rotate-0'}`} />
         </button>
 
         {advancedShown && (

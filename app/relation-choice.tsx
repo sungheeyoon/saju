@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import { RELATIONS, RELATION_LABEL, type Relation } from '@/src/lib/people';
 
+import { Icon } from './ui/icons';
 import { TYPE_NAME } from './ui/surfaces';
 
 /**
@@ -80,11 +81,7 @@ export function RelationChoice({
                     : 'bg-surface font-medium text-secondary ring-border group-hover:text-foreground'
                 }`}
               >
-                {picked && (
-                  <svg viewBox="0 0 12 12" aria-hidden="true" className="size-3 shrink-0">
-                    <path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
+                {picked && <Icon name="check" className="size-3 stroke-[3.6]" />}
                 {label}
               </span>
             </label>
