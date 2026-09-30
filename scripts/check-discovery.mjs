@@ -561,7 +561,7 @@ const isolate = (emails) => {
 
   // ── 9. 참여를 끄면 풀에서 사라지고 요약도 거둬진다 ──────────────────────────
   {
-    const stopped = await keyedRpc(other, 'set_discovery_participation', { p_on: false, p_summary: null });
+    const stopped = await keyedRpc(other, 'set_discovery_participation', { p_on: false, p_summary: null, p_need: null });
     if (stopped.error) throw new Error(stopped.error.message);
 
     const body = await (await get('/me/matching', myCookie)).text();

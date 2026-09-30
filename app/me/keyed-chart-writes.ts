@@ -98,12 +98,7 @@ export async function editPersonInput(personId: string, query: Query): Promise<K
 
   const self = await selfElementSummary().catch(() => null);
   if (self !== null) {
-    const followed = await who.keyed.rpc('ensure_discovery_participation', {
-      p_user_id: who.userId,
-      p_person_id: personId,
-      p_summary: self.summary,
-      p_need: self.need,
-    });
+    const followed = await joinPool(who, personId, self);
     if (followed.error) recordDbFailure(followed.error, 'ensure_discovery_participation (입력을 고친 뒤)');
   }
 
@@ -111,52 +106,104 @@ export async function editPersonInput(personId: string, query: Query): Promise<K
 }
 
 /**
- * 매칭 참여를 켜고 끈다. 켤 때는 **내 저장된 입력에서** 요약 둘을 여기서 짓는다.
+ * **판이 엇갈려 두 번 다 못 쓴 것** — 다시 지은 요약도 그 사이 또 바뀐 입력을 만났다. 문장을 안 싣고 일반 안내로 선다
+ * (`app/db-error.ts` 가 모르는 코드). 원문은 기록에 간다.
+ */
+const STILL_STALE: WriteError = { message: 'keyed-chart-writes: the input moved while writing the summary', code: '40001' };
+
+/** 참여의 두 문이 받는 요약 한 벌과 그 요약을 지은 입력의 판 둘 */
+const summaryArgs = (self: SelfSummary) => ({
+  p_summary: self.summary,
+  p_need: self.need,
+  p_input_version: self.versions.inputVersion,
+  p_chart_engine_version: self.versions.chartEngineVersion,
+});
+
+/**
+ * **요약을 지은 뒤 입력이 바뀌었으면 한 번 다시 짓는다**(ADR 0136, 운영자 검토 2026-09-30).
  *
- * @returns `no-self` — 켜려는데 내 사주를 못 세웠다(없거나 못 읽었다). 부르는 쪽이 그 사실을 말한다.
+ * 저장된 입력 A 로 요약을 지은 뒤 문을 부르기 전에 다른 요청이 입력을 B 로 고치면, DB 는 그 사람 행을 잠그고 판을 견주어
+ * 쓰지 않고 `stale` 을 낸다. 그러면 여기서 저장된 입력을 **다시 읽어** 요약을 새로 짓고 한 번 더 부른다. 두 번째도 엇갈리면
+ * 멈추고 실패로 낸다 — 끝없이 돌지 않는다.
+ */
+async function writeFollowingInput(
+  first: SelfSummary,
+  write: (self: SelfSummary) => PromiseLike<{ data: string | null; error: WriteError | null }>,
+): Promise<{ data: string | null; error: WriteError | null }> {
+  let self = first;
+  for (let tries = 0; tries < 2; tries += 1) {
+    const answer = await write(self);
+    if (answer.error || answer.data !== 'stale') return answer;
+
+    const again = await selfElementSummary(self.personId).catch(() => null);
+    if (again === null) break;
+    self = again;
+  }
+  return { data: null, error: STILL_STALE };
+}
+
+/** 참여를 여는 문 — `joined` 면 참, 내 사람이 아니거나 껐거나 이름이 없으면 거짓 */
+async function joinPool(
+  who: Extract<Writer, { ok: true }>,
+  targetPersonId: string,
+  self: SelfSummary,
+): Promise<KeyedWrite<boolean>> {
+  const { data, error } = await writeFollowingInput(self, (current) =>
+    who.keyed.rpc('ensure_discovery_participation', {
+      p_user_id: who.userId,
+      p_person_id: targetPersonId,
+      ...summaryArgs(current),
+    }),
+  );
+  if (error) return { data: null, error };
+  return { data: data === 'joined', error: null };
+}
+
+/**
+ * 매칭 참여를 켜고 끈다. 켤 때는 **내 저장된 입력에서** 요약 둘을 여기서 짓고, 그 입력의 판을 함께 싣는다.
+ *
+ * @returns `noSelf` — 켜려는데 내 사주를 못 세웠다(없거나 못 읽었다). 부르는 쪽이 그 사실을 말한다.
  */
 export async function setParticipation(on: boolean): Promise<KeyedWrite<boolean> | { data: null; error: null; noSelf: true }> {
   const who = await writer();
   if (!who.ok) return { data: null, error: who.error };
 
   if (!on) {
-    const { data, error } = await who.keyed.rpc('set_discovery_participation', {
-      p_user_id: who.userId,
-      p_on: false,
-      p_summary: null,
-      p_need: null,
-    });
-    return { data: data ?? null, error };
+    const { data, error } = await who.keyed.rpc(
+      'set_discovery_participation',
+      rpcArgs<'set_discovery_participation'>({
+        p_user_id: who.userId,
+        p_on: false,
+        p_summary: null,
+        p_need: null,
+        p_input_version: null,
+        p_chart_engine_version: null,
+      }),
+    );
+    if (error) return { data: null, error };
+    return { data: data === 'on', error: null };
   }
 
   // 요약의 문은 DB 실패를 던진다. 못 읽은 것도 「내 사주를 못 세웠다」와 같은 답이다
   const self = await selfElementSummary().catch(() => null);
   if (self === null) return { data: null, error: null, noSelf: true };
 
-  const { data, error } = await who.keyed.rpc('set_discovery_participation', {
-    p_user_id: who.userId,
-    p_on: true,
-    p_summary: self.summary,
-    p_need: self.need,
-  });
-  return { data: data ?? null, error };
+  const { data, error } = await writeFollowingInput(self, (current) =>
+    who.keyed.rpc('set_discovery_participation', { p_user_id: who.userId, p_on: true, ...summaryArgs(current) }),
+  );
+  if (error) return { data: null, error };
+  return { data: data === 'on', error: null };
 }
 
 /**
  * 참여를 연다 — 홈과 매칭이 열릴 때. 요약은 그 화면이 **같은 요청에서 저장된 입력으로 이미 지은 것**이다
- * (`selfElementSummary` · `selfSummaryOf`). 다시 읽으면 탭마다 물결이 하나 는다(2026-09-30 에 줄인 것).
+ * (`selfElementSummary` · `selfSummaryOf`) — 다시 읽으면 탭마다 물결이 하나 는다(2026-09-30 에 줄인 것). 그 사이 입력이
+ * 바뀌었으면 DB 가 `stale` 로 알리고, 그때만 다시 읽어 짓는다.
  *
- * 껐던 사람 · 이름 없는 사람 · 내 사람이 아닌 id 는 DB 가 `false` 로 답한다.
+ * 껐던 사람 · 이름 없는 사람 · 내 사람이 아닌 id 는 거짓이다.
  */
 export async function openParticipation(self: SelfSummary): Promise<KeyedWrite<boolean>> {
   const who = await writer();
   if (!who.ok) return { data: null, error: who.error };
-
-  const { data, error } = await who.keyed.rpc('ensure_discovery_participation', {
-    p_user_id: who.userId,
-    p_person_id: self.personId,
-    p_summary: self.summary,
-    p_need: self.need,
-  });
-  return { data: data ?? null, error };
+  return joinPool(who, self.personId, self);
 }

@@ -37,8 +37,10 @@ const chain = (answer: Answer) => {
 const OK = (data: unknown): Answer => ({ data, error: null });
 
 /** DB 에 저장된 내 입력 — 요약은 이 행에서 나와야 한다 */
-const STORED: StoredInput & { id: string } = {
+const STORED: StoredInput & { id: string; input_version: number; chart_engine_version: string } = {
   id: 'p-self',
+  input_version: 3,
+  chart_engine_version: 'engine-test',
   calendar: 'solar',
   original_date: '1990-05-15',
   solar_date: '1990-05-15',
@@ -47,7 +49,7 @@ const STORED: StoredInput & { id: string } = {
   city: '서울',
   late_night_rule: 'jo',
   time_basis: 'localMean',
-} as StoredInput & { id: string };
+} as StoredInput & { id: string; input_version: number; chart_engine_version: string };
 
 const storing = (stored = STORED) =>
   vi.mocked(supabaseOnServer).mockResolvedValue({
@@ -61,13 +63,15 @@ const storing = (stored = STORED) =>
       ),
   } as never);
 
+const VERSIONS = { inputVersion: 3, chartEngineVersion: 'engine-test' };
+
 const QUERY: Query = { ...DEFAULT_QUERY, name: '나', date: '1993-11-03', time: '08:10', city: '대구', gender: 'female' };
 
 const sent = (name: string) => keyedRpc.mock.calls.filter(([called]) => called === name).map(([, args]) => args);
 
 beforeEach(() => {
   keyedRpc.mockReset();
-  keyedRpc.mockResolvedValue({ data: true, error: null });
+  keyedRpc.mockResolvedValue({ data: 'joined', error: null });
   vi.mocked(signedInUser).mockReset();
   vi.mocked(signedInUser).mockResolvedValue({ id: 'u-session', email: undefined });
   storing();
@@ -75,7 +79,7 @@ beforeEach(() => {
 
 describe('사람은 세션에서 온다', () => {
   it('넷 다 세션의 id 를 싣는다', async () => {
-    const self = selfSummaryOf('p-self', storedChartOf(STORED, '나'))!;
+    const self = selfSummaryOf('p-self', storedChartOf(STORED, '나'), VERSIONS)!;
 
     await createSelfPerson(QUERY);
     await editPersonInput('p-other', QUERY);
@@ -95,7 +99,7 @@ describe('사람은 세션에서 온다', () => {
       await createSelfPerson(QUERY),
       await editPersonInput('p-self', QUERY),
       await setParticipation(true),
-      await openParticipation(selfSummaryOf('p-self', storedChartOf(STORED, '나'))!),
+      await openParticipation(selfSummaryOf('p-self', storedChartOf(STORED, '나'), VERSIONS)!),
     ];
 
     expect(keyedRpc).not.toHaveBeenCalled();
@@ -116,9 +120,16 @@ describe('값은 서버가 짓는다', () => {
   it('참여를 켤 때의 요약은 DB 에 저장된 내 입력에서 지은 것이다', async () => {
     await setParticipation(true);
 
-    const self = selfSummaryOf('p-self', storedChartOf(STORED, '나'))!;
+    const self = selfSummaryOf('p-self', storedChartOf(STORED, '나'), VERSIONS)!;
     expect(sent('set_discovery_participation')).toEqual([
-      { p_user_id: 'u-session', p_on: true, p_summary: self.summary, p_need: self.need },
+      {
+        p_user_id: 'u-session',
+        p_on: true,
+        p_summary: self.summary,
+        p_need: self.need,
+        p_input_version: 3,
+        p_chart_engine_version: 'engine-test',
+      },
     ]);
   });
 
@@ -134,9 +145,16 @@ describe('값은 서버가 짓는다', () => {
   it('입력을 고치면 요약도 저장된 입력에서 다시 지어 따라간다', async () => {
     await editPersonInput('p-self', QUERY);
 
-    const self = selfSummaryOf('p-self', storedChartOf(STORED, '나'))!;
+    const self = selfSummaryOf('p-self', storedChartOf(STORED, '나'), VERSIONS)!;
     expect(sent('ensure_discovery_participation')).toEqual([
-      { p_user_id: 'u-session', p_person_id: 'p-self', p_summary: self.summary, p_need: self.need },
+      {
+        p_user_id: 'u-session',
+        p_person_id: 'p-self',
+        p_summary: self.summary,
+        p_need: self.need,
+        p_input_version: 3,
+        p_chart_engine_version: 'engine-test',
+      },
     ]);
   });
 
@@ -156,5 +174,53 @@ describe('값은 서버가 짓는다', () => {
 
     expect(await setParticipation(true)).toEqual({ data: null, error: null, noSelf: true });
     expect(keyedRpc).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * **요약을 지은 뒤 입력이 바뀌면 한 번 다시 짓는다**(운영자 검토 2026-09-30).
+ *
+ * DB 는 받은 판이 지금 판과 다르면 쓰지 않고 `stale` 을 낸다. 모듈은 저장된 입력을 다시 읽어 새 판 · 새 요약으로 한 번 더
+ * 부르고, 두 번째도 엇갈리면 멈추고 실패로 낸다.
+ */
+describe('판이 엇갈리면 다시 짓는다', () => {
+  const MOVED = { ...STORED, input_version: 4, original_date: '1971-02-20', solar_date: '1971-02-20', birth_time: '03:05:00' };
+
+  it('참여를 켤 때 stale 이면 바뀐 입력으로 다시 지어 한 번 더 부른다', async () => {
+    keyedRpc.mockImplementationOnce(async () => {
+      storing(MOVED); // 문을 부르는 사이 다른 요청이 입력을 고쳤다
+      return { data: 'stale', error: null };
+    });
+    keyedRpc.mockResolvedValueOnce({ data: 'on', error: null });
+
+    expect(await setParticipation(true)).toEqual({ data: true, error: null });
+
+    const [first, second] = sent('set_discovery_participation') as { p_input_version: number; p_summary: unknown }[];
+    expect([first.p_input_version, second.p_input_version]).toEqual([3, 4]);
+    const moved = selfSummaryOf('p-self', storedChartOf(MOVED, '나'), { inputVersion: 4, chartEngineVersion: 'engine-test' })!;
+    expect(second.p_summary).toEqual(moved.summary);
+    expect(first.p_summary).not.toEqual(second.p_summary);
+  });
+
+  it('참여를 열 때도 같다 — 화면이 지은 요약이 낡았으면 다시 짓는다', async () => {
+    keyedRpc.mockImplementationOnce(async () => {
+      storing(MOVED);
+      return { data: 'stale', error: null };
+    });
+    keyedRpc.mockResolvedValueOnce({ data: 'joined', error: null });
+
+    const answer = await openParticipation(selfSummaryOf('p-self', storedChartOf(STORED, '나'), VERSIONS)!);
+
+    expect(answer).toEqual({ data: true, error: null });
+    expect((sent('ensure_discovery_participation') as { p_input_version: number }[]).map((a) => a.p_input_version)).toEqual([3, 4]);
+  });
+
+  it('두 번째도 엇갈리면 멈추고 실패로 낸다 — 끝없이 돌지 않는다', async () => {
+    keyedRpc.mockResolvedValue({ data: 'stale', error: null });
+
+    const answer = await setParticipation(true);
+
+    expect(answer.error?.code).toBe('40001');
+    expect(sent('set_discovery_participation')).toHaveLength(2);
   });
 });

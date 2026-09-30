@@ -3,6 +3,7 @@ import type { StoredChartResult } from '@/src/lib/input/stored';
 
 import type { SkippableRead } from '../../db-error';
 import { openParticipation } from '../keyed-chart-writes';
+import type { InputVersions } from '../person-input';
 import { selfSummaryOf, type SelfSummary } from '../summary';
 
 /**
@@ -36,6 +37,7 @@ export async function openDiscoveryParticipation(
   profile: SkippableRead<DiscoveryProfile | null>,
   selfPersonId: string,
   stood: StoredChartResult | null,
+  versions: InputVersions | null,
 ): Promise<void> {
   /*
     **묻는 것이 「켰는가」에서 「껐는가」로 바뀌었다**(PRD 「추천은 여섯 자리 덱이다」). 참여가 기본으로 켜지면서
@@ -49,7 +51,7 @@ export async function openDiscoveryParticipation(
   // 홈을 열며 곁들이는 일이다. 요약을 못 세웠으면 이번에는 안 열고 넘어간다 — 홈을 오류로 세우지 않는다
   let self: SelfSummary | null = null;
   try {
-    self = stood === null ? null : selfSummaryOf(selfPersonId, stood);
+    self = stood === null || versions === null ? null : selfSummaryOf(selfPersonId, stood, versions);
   } catch {
     self = null;
   }

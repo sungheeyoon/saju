@@ -35,15 +35,25 @@
      (`SelfSummary`)을 받는다 — 다시 읽으면 탭마다 물결이 하나 늘고(2026-09-30 에 줄인 것), 그 값도 저장된 입력에서 서버가
      지은 것이다.
    - 이 넷만 부르고, 표를 직접 만지지 않고, 열쇠를 밖으로 내주지 않는다.
+2-1. **요약은 그것을 지은 입력의 판 둘을 달고 간다**(운영자 검토 2026-09-30). 서버가 입력 A 로 요약을 지은 뒤 문을 부르기
+   전에 다른 요청이 입력을 B 로 고치면, 판을 안 받던 문은 저장하는 순간의 판(B)을 요약 A 에 찍었다 — 낡은 요약을 거르는
+   검사가 그것을 지금 입력의 것으로 읽는다. 그래서 참여의 두 문은 `p_input_version` · `p_chart_engine_version` 을 받고,
+   **그 사람 행을 잠근 뒤**(`for update`, 입력을 쓰는 문과 같은 Person → app_user 차례) 지금 판과 견주어 다르면 쓰지 않고
+   `stale` 을 **값으로** 낸다. 답은 글자다 — `ensure` 는 `joined` · `skipped` · `stale`, `set` 은 `on` · `off` · `stale`.
+   모듈은 `stale` 이면 저장된 입력을 다시 읽어 한 번 더 부르고, 두 번째도 엇갈리면 멈추고 실패(일반 안내)로 낸다.
+   판은 입력과 같은 행에서 읽는다(`storedInputOf` 의 `versions`).
 3. **열쇠를 드는 파일을 이름으로 잠근다** — `eslint.config.mjs` 의 `KEY_HOLDERS` 일곱(크론 둘 · webhook 둘 · 풀이 제출 ·
    회수 · 이 모듈)이 `no-restricted-imports` 로 나머지 `app/**` 를 막고, `scripts/layers.test.ts` 「열쇠를 드는 자리」가 부르는
    파일이 목록과 정확히 같은지 · 린트의 목록과 같은지 · 문 넷의 `.rpc()` 가 이 모듈 밖에 없는지 · 모듈이 넷 밖을 안 부르고 사람
    id 를 안 받는지 잰다. 브라우저로 가는 그래프에 열쇠 둘이 없는 것도 같은 파일이 든다.
 4. **시험 넷**
-   - pgTAP `71_pool_values_keyed`(좁히기와 함께) — `authenticated` 가 문 넷을 부르면 권한 거절(`42501`)이고, 모양만 맞는 다른
+   - pgTAP `71_pool_summary_is_stamped_with_its_input` — 입력 A 의 판을 읽고 → 입력을 B 로 고치고 → A 의 판을 실은 요약을
+     올리면 두 문 다 `stale` 이고 풀의 값 · 판이 그대로다. 지금 판으로 다시 지으면 선다.
+   - pgTAP `72_pool_values_keyed`(좁히기와 함께) — `authenticated` 가 문 넷을 부르면 권한 거절(`42501`)이고, 모양만 맞는 다른
      요약을 사용자 역할로 올리는 시도가 풀의 값을 안 바꾼다. `13_reading` 의 열쇠 허용 목록에 넷이 선다.
    - 단위 `app/me/keyed-chart-writes.test.ts` — 넷 다 세션의 id 를 싣고, 세션이 없으면 열쇠 문을 안 부르며, 여덟 글자는 저장할
      입력을 엔진이 센 값이고, 참여를 켤 때의 요약은 DB 에 저장된 입력에서 지은 값이다(입력이 다르면 요약도 다르다).
+     `stale` 이면 바뀐 입력으로 다시 지어 한 번 더 부르고, 두 번째도 엇갈리면 멈춘다.
    - 기존 pgTAP · 흐름 · e2e 는 세션의 사람으로 열쇠 문을 부르는 손잡이로 옮겼다 — `tests.create_self_person` 등
      (`supabase/tests/00_helpers.sql`), `keyedRpc`(`scripts/checks.mjs` · `e2e/session.ts`).
 
