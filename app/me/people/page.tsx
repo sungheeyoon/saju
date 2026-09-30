@@ -127,10 +127,16 @@ export default async function PeoplePage() {
 
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-6 py-8 sm:gap-8 sm:py-12">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1.5">
+      {/*
+        **폰에서는 「궁합 보러 가기」가 제목 옆에 선다**(운영자 2026-10-01, G-21). 설명 아래 제 줄에 서던 때는 머리가 단추
+        한 줄(44px)과 틈(16px)만큼 높았고, 한글이 넓은 서체에서는 「N/10명」까지 둘째 줄로 넘어가 열 명을 다 채운 날 첫 카드가
+        아래 탭에 가려졌다. 요소의 차례는 그대로다 — 폰에서만 묶음을 풀고(`max-sm:contents`) 설명을 줄 끝으로 보낸다. 제목과
+        단추가 한 줄에 못 서는 좁은 폭에서는 단추가 다음 줄로 내려간다. `sm` 부터는 전과 같다.
+      */}
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 sm:flex-nowrap sm:items-end sm:gap-4">
+        <div className="flex flex-col gap-1.5 max-sm:contents">
           <h1 className={TYPE_TITLE}>저장한 사람</h1>
-          <p className="text-[15px] leading-6 text-secondary">
+          <p className="text-[15px] leading-6 text-secondary max-sm:order-last max-sm:basis-full">
             가족이나 친구의 출생 정보를 저장하고 관리하세요.
             {slots !== null && (
               <span className="ml-2 whitespace-nowrap text-[13px] font-semibold tabular-nums">
@@ -139,7 +145,7 @@ export default async function PeoplePage() {
             )}
           </p>
         </div>
-        <Link href="/compat" className={`${BUTTON_SECONDARY_SMALL} self-start sm:self-auto`}>
+        <Link href="/compat" className={`${BUTTON_SECONDARY_SMALL} shrink-0`}>
           <Icon name="taiji" className="size-4" />
           궁합 보러 가기
         </Link>
