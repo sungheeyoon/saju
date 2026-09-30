@@ -20,7 +20,7 @@ describe('회원 내비게이션 활성 상태 (ADR 0126 · 0134)', () => {
   });
 
   /**
-   * **보관함 목록은 나 탭이다**(2026-09-29 운영자, ADR 0133 을 뒤집음). 궁합 탭의 「모두 보기」가 `from=compat` 을 달고
+   * **보관함 목록은 홈 탭이다**(2026-09-29 운영자, ADR 0133 을 뒤집음). 궁합 탭의 「모두 보기」가 `from=compat` 을 달고
    * 와도 목록은 결과 화면이 아니라 온 곳을 안 읽는다.
    */
   it('풀이 보관함 목록은 어느 칸 · 어느 온 곳이든 나를 켠다', () => {
@@ -61,7 +61,7 @@ describe('회원 내비게이션 활성 상태 (ADR 0126 · 0134)', () => {
     expect(isNavigationActive(pathname, '/me/requests', 'me')).toBe(false);
   });
 
-  it('온 곳이 없거나 모르는 값이면 결과 종류의 탭이다 — 사주는 나, 궁합은 궁합, 인연은 인연', () => {
+  it('온 곳이 없거나 모르는 값이면 결과 종류의 탭이다 — 사주는 홈, 궁합은 궁합, 인연은 인연', () => {
     const DEFAULT: Record<(typeof RESULTS)[number][1], string> = { saju: '/me', compat: '/compat', match: '/me/matching' };
     for (const [pathname, kind] of RESULTS) {
       for (const from of [null, '', 'nope', 'https://evil.example', '//evil', 'ME', 'me ']) {

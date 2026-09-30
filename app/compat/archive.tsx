@@ -5,7 +5,7 @@ import { ROW_CARD } from '../ui/surfaces';
 import type { ReadingEntry } from '../me/reading/current';
 
 /**
- * 궁합풀이 전부 — 풀이 보관함의 궁합풀이 칸. 목록은 나 탭 소속이고, `from=compat` 이 그 목록에서 연 결과의 ← 를 궁합 탭으로
+ * 궁합풀이 전부 — 풀이 보관함의 궁합풀이 칸. 목록은 홈 탭 소속이고, `from=compat` 이 그 목록에서 연 결과의 ← 를 궁합 탭으로
  * 돌린다(「2026-09-29 u2」). 새 주소를 만들지 않는다.
  */
 export const COMPAT_SHELF_HREF = '/me/readings?kind=compat&from=compat';

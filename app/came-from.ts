@@ -7,8 +7,8 @@ import { SHELF_TITLE, shelfKindOf, withShelfKind, type ShelfKind } from './me/(s
  *
  * 결과 화면 셋(사주풀이 `/me/readings/self|[subject]` · 직접 궁합 `/me/compat?a&b` · 인연 궁합 `/me/match/[id]`)은
  * 네 탭과 보관함 · 채팅방 · 소식 여섯 자리에서 열린다. 2026-09-29 까지 ← 와 켜진 탭은 **글의 종류**로 정해졌다 —
- * 궁합 탭에서 연 궁합의 ← 가 보관함으로 갔고, 채팅방에서 연 인연 궁합의 ← 도 보관함으로 갔다. 나 탭에서 연 사주풀이의
- * ← 는 나를 안 거치고 보관함으로 갔다. 이제 **결과 링크가 온 곳을 싣고**, 결과 화면과 머리글이 그것을 읽는다.
+ * 궁합 탭에서 연 궁합의 ← 가 보관함으로 갔고, 채팅방에서 연 인연 궁합의 ← 도 보관함으로 갔다. 홈 탭에서 연 사주풀이의
+ * ← 는 홈을 안 거치고 보관함으로 갔다. 이제 **결과 링크가 온 곳을 싣고**, 결과 화면과 머리글이 그것을 읽는다.
  *
  * 이 파일이 그 한 벌이다 — 무슨 값이 있고(`CAME_FROM`), 각 값이 어느 탭을 켜고(`tabOf`) ← 가 어디로 무슨 이름으로
  * 가는가(`backOf`). **모르는 값 · 없음은 결과 종류의 기본**이다 — 옛 링크 · 주소를 직접 연 사람 · 손으로 고친 주소가
@@ -43,7 +43,7 @@ function firstOf(value: QueryValue): string | null {
   return typeof value === 'string' ? value : (value[0] ?? null);
 }
 
-/** 온 곳이 없을 때 결과 종류가 켜는 탭 — 사주는 나, 궁합은 궁합, 인연은 인연 */
+/** 온 곳이 없을 때 결과 종류가 켜는 탭 — 사주는 홈, 궁합은 궁합, 인연은 인연 */
 const DEFAULT_TAB: Record<ResultKind, TabHref> = {
   saju: '/me',
   compat: '/compat',
@@ -109,7 +109,7 @@ export function backOf(
 ): Back {
   switch (place.from) {
     case 'me':
-      return { href: '/me', label: '나' };
+      return { href: '/me', label: '홈' };
     case 'shelf':
       return { href: withShelfKind('/me/readings', place.shelfKind ?? 'all'), label: SHELF_TITLE };
     case 'compat':
@@ -132,7 +132,7 @@ export function backOf(
 
 /** 주소를 직접 연 결과의 ← — 그 종류의 탭 첫 화면 */
 const DEFAULT_BACK: Record<ResultKind, Back> = {
-  saju: { href: '/me', label: '나' },
+  saju: { href: '/me', label: '홈' },
   compat: { href: '/compat', label: '궁합' },
   match: { href: '/me/matching', label: '인연' },
 };
@@ -145,7 +145,7 @@ const DEFAULT_BACK: Record<ResultKind, Back> = {
  * 주소를 들든 여기 한 자리에서 옮긴다.
  */
 export function withCameFrom(href: string, from: CameFrom, shelfKind: ShelfKind = 'all'): string {
-  /* 이미 온 곳을 든 주소는 그대로다 — 먼저 실은 자리가 이긴다(나 탭 홈의 `withFromMe` 가 싣고 `CoverLink` 를 지난다) */
+  /* 이미 온 곳을 든 주소는 그대로다 — 먼저 실은 자리가 이긴다(홈 탭의 `withFromMe` 가 싣고 `CoverLink` 를 지난다) */
   if (/[?&]from=/.test(href)) return href;
   const query = new URLSearchParams();
   if (from === 'shelf' && shelfKind !== 'all') query.set('kind', shelfKind);

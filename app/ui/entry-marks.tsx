@@ -32,14 +32,42 @@ export function SunMark({ className = '' }: { className?: string }) {
 
 const RAYS = [0, 45, 90, 135, 180, 225, 270, 315] as const;
 
+/**
+ * 태극의 몸 — 원 테두리 · 먹색 반 · 두 점. **궁합의 그림은 이 한 벌이다**(운영자 2026-09-29 — 하트를 걷었다).
+ *
+ * 첫 화면 입구(`TaijiMark`)와 선 아이콘(`Icon name="taiji"` — 탭 · 단추)이 같은 모양을 쓴다. 선 굵기는 둘러싼 `<svg>` 가
+ * 준다 — 입구는 1.5, 선 아이콘 한 벌은 1.8 이라 곁의 다른 탭 그림과 굵기가 같다.
+ *
+ * **밝은 반은 `--taiji-light` 를 칠한다. 없으면 비친다**(`transparent`). 먹색 알약(켜진 탭 · 주 단추) 위에서는 글자색이
+ * 밝은 색이라 밝은 반을 흰 면으로 칠하면 두 반이 한 색이 되어 그림이 사라진다 — 비치면 알약의 먹색이 어두운 반이 된다.
+ * 입구는 크림 종이 위의 흰 원이 시안이라 `var(--surface)` 를 준다.
+ */
+export function TaijiShapes() {
+  return (
+    <>
+      <circle cx="12" cy="12" r="9" fill="var(--taiji-light, transparent)" stroke="currentColor" />
+      {/* 먹색 반 — 아래 점은 칠하지 않고 **뚫는다**(`evenodd`) — 그래야 밝은 반과 같은 것(면이든 비침이든)이 보인다 */}
+      <path
+        d="M12 3a9 9 0 0 1 0 18 4.5 4.5 0 0 1 0-9 4.5 4.5 0 0 0 0-9ZM13.4 16.5a1.4 1.4 0 1 0-2.8 0 1.4 1.4 0 1 0 2.8 0Z"
+        fill="currentColor"
+        fillRule="evenodd"
+        stroke="none"
+      />
+      <circle cx="12" cy="7.5" r="1.4" fill="currentColor" stroke="none" />
+    </>
+  );
+}
+
 /** 태극 — 흰 바탕 원에 먹색 반, 테두리 1.5 */
 export function TaijiMark({ className = '' }: { className?: string }) {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className={`shrink-0 ${className}`}>
-      <circle cx="12" cy="12" r="9" fill="var(--surface)" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 3a9 9 0 0 1 0 18 4.5 4.5 0 0 1 0-9 4.5 4.5 0 0 0 0-9Z" fill="currentColor" />
-      <circle cx="12" cy="7.5" r="1.4" fill="currentColor" />
-      <circle cx="12" cy="16.5" r="1.4" fill="var(--surface)" />
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      strokeWidth="1.5"
+      className={`shrink-0 [--taiji-light:var(--surface)] ${className}`}
+    >
+      <TaijiShapes />
     </svg>
   );
 }

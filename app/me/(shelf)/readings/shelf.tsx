@@ -34,7 +34,7 @@ const COVER =
   'group relative flex h-full min-h-[14rem] flex-col gap-3 overflow-hidden rounded-[0.5rem_1.5rem_1.5rem_0.5rem] py-4 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]';
 
 /**
- * **한 줄에 셋이 서는 작은 표지** — 나 탭 홈의 「내가 받은 사주풀이」(u2, 운영자 2026-09-29). 모양은 같고 크기만 줄였다: 폰 한 칸이
+ * **한 줄에 셋이 서는 작은 표지** — 홈 탭의 「내가 받은 사주풀이」(u2, 운영자 2026-09-29). 모양은 같고 크기만 줄였다: 폰 한 칸이
  * 110px 남짓이라 14rem 표지 셋이면 저장한 사람 머리가 첫 화면 밖으로 나갔다(잰 값 717px, 첫 화면 끝 584px).
  *
  * **줄이는 것은 폰뿐이다**(2026-09-29) — `sm` 부터는 `COVER` 와 같은 크기로 돌아간다. 넓은 화면에서도 작게 두었더니 한 칸이
@@ -269,7 +269,7 @@ export function MakingShelf({
 /**
  * 아직 한 권도 없을 때 — **어디서 만드는지를 말한다.** 빈 화면만 남으면 고장으로 읽힌다.
  *
- * 만드는 자리는 나 탭(내 사주풀이 · 저장한 사람)과 궁합 탭에 있다(ADR 0126). 표지 셋은 그 자리로 **곧장**
+ * 만드는 자리는 홈 탭(내 사주풀이 · 저장한 사람)과 궁합 탭에 있다(ADR 0126). 표지 셋은 그 자리로 **곧장**
  * 간다 — 탭을 한 번 더 지나게 하지 않는다.
  */
 export function Nothing({ hasSelf }: { hasSelf: boolean }) {
@@ -285,7 +285,7 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
       <div className="flex max-w-[34rem] flex-col gap-2">
         <h2 className={TYPE_SECTION}>아직 만든 풀이가 없습니다</h2>
         <p className="text-[15px] leading-7 text-secondary">
-          내 사주와 저장한 사람의 풀이는 나 탭에서, 두 사람의 궁합은 궁합 탭에서 시작할 수 있습니다.
+          내 사주와 저장한 사람의 풀이는 홈 탭에서, 두 사람의 궁합은 궁합 탭에서 시작할 수 있습니다.
         </p>
       </div>
       <ul className="grid grid-cols-3 gap-2.5 sm:max-w-[34rem] sm:gap-3">

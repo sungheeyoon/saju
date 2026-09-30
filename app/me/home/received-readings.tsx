@@ -9,7 +9,7 @@ import { BlankBook, SingleCover } from '../(shelf)/readings/shelf';
 import type { ReadingEntry } from '../reading/current';
 import { withFromMe } from './from-me';
 
-/** 나 탭 홈에 서는 표지 수 — **한 줄 셋**(u2, 운영자 2026-09-29). 넷을 두 줄로 세우면 저장한 사람 머리가 폰 첫 화면 밖으로 나갔다 */
+/** 홈 탭에 서는 표지 수 — **한 줄 셋**(u2, 운영자 2026-09-29). 넷을 두 줄로 세우면 저장한 사람 머리가 폰 첫 화면 밖으로 나갔다 */
 const SHOWN = 3;
 
 /**
@@ -24,7 +24,7 @@ const SHOWN_WIDE = 4;
  *
  * 차례는 DB 가 준 그대로(최근 것이 앞)이고 앞의 셋(`lg` 는 넷)만 세운다 — 전부는 「풀이 보관함」의 사주풀이 칸(`/me/readings?kind=saju`)이
  * 든다. 그 길은 **늘 선다**(u2) — 셋이 다여도 보관함에는 궁합풀이 · 인연 궁합이 함께 있다. 표지는 결과 화면으로 가고 주소가
- * `from=me` 를 들어 ← 가 나 탭 홈으로 돌아온다.
+ * `from=me` 를 들어 ← 가 홈 탭으로 돌아온다.
  *
  * 내 사주풀이가 아직 없으면 점선 한 권이 받는 자리로 간다 — 책장의 빈 자리와 같은 모양이다.
  */
