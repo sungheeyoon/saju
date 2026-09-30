@@ -106,7 +106,7 @@ function TastePassage({ saju, utterances }: { saju: Saju; utterances: readonly U
   return (
     <section aria-labelledby="taste-heading" aria-busy={text === null} className={CARD}>
       <h2 id="taste-heading" className={TYPE_META}>
-        맛보기
+        사주가 보여 주는 나
       </h2>
       {text === null ? (
         <div aria-hidden className="mt-3 flex flex-col gap-2">

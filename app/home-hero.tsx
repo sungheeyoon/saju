@@ -188,7 +188,7 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
         <h1 className="font-rounded text-[1.6rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2rem]">
           나는 어떤 사람일까?
         </h1>
-        <p className="mt-1 max-w-md text-sm leading-6 text-secondary">생일만 넣으면 사주와 짧은 맛보기를 바로 보여 드려요.</p>
+        <p className="mt-1 max-w-md text-sm leading-6 text-secondary">생일만 넣으면 사주가 보여 주는 나를 바로 볼 수 있어요.</p>
       </div>
       {/* 입구는 세그먼트 한 줄이다(시안 n) — 큰 카드 둘이던 자리가 한 줄로 줄어 폼이 첫 화면에 더 많이 든다 */}
       <div role="tablist" aria-label="무엇을 볼까요" className="mt-4 grid grid-cols-2 gap-0.5 rounded-[0.9rem] bg-surface-sunken p-0.5">

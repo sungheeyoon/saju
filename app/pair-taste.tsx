@@ -89,7 +89,7 @@ export function PairTaste() {
             aria-describedby={tried && refused !== null ? 'pair-missing' : undefined}
             className={`${BUTTON_PRIMARY} mt-1 w-full`}
           >
-            무료로 궁합 미리 보기
+            무료로 두 사람 궁합 보기
           </button>
           {tried && refused !== null && (
             <p id="pair-missing" role="alert" className="text-sm font-medium text-danger">
@@ -118,7 +118,7 @@ function PairTasteResult({ taste, names, draft }: { taste: Taste; names: { a: st
     <>
       <section aria-labelledby="pair-taste-heading" className={`${PAPER} flex flex-col items-center gap-3 text-center`}>
         <h2 id="pair-taste-heading" className={TYPE_META}>
-          {names.a} × {names.b} · 궁합 맛보기
+          {names.a} × {names.b} · 두 사람의 궁합
         </h2>
         <div className="flex items-center justify-center gap-3">
           {(['a', 'b'] as const).map((side, index) => {

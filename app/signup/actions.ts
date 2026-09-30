@@ -9,7 +9,7 @@ import { safeReturnPath } from '@/src/lib/consent';
 import { rpcArgs } from '@/src/lib/db';
 
 /** 틀린 코드의 문장 — 없는 코드 · 지난 코드 · 가입이 멈춘 때가 같은 말이다(DB 의 거절과 같은 글자) */
-const WRONG_CODE_NOTE = '지금 쓸 수 있는 코드가 아닙니다.';
+const WRONG_CODE_NOTE = '사용할 수 없는 코드예요. 코드를 다시 확인해 주세요.';
 
 /**
  * 가입을 끝낸다 — **성공하면 안 돌아온다.**

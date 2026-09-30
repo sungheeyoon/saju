@@ -188,5 +188,5 @@ test('현관의 궁합 입구는 로그인으로 내보내지 않고 같은 화�
   await page.goto('/');
   await page.getByRole('tab', { name: /궁합 보기/ }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole('button', { name: '무료로 궁합 미리 보기' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '무료로 두 사람 궁합 보기' })).toBeVisible();
 });
