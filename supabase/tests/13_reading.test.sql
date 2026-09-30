@@ -924,7 +924,7 @@ select is(
     'release_reading_job',
     /**
      * 서버 오류를 운영자에게 알리는 문(`20261108090000`) — 라우트 파일 무늬 · 자리 · digest 만 받고 하루 한 줄이다.
-     * 로그인한 사람이 부를 수 있으면 알림함을 채울 수 있다(`74_ops_alerts`).
+     * 로그인한 사람이 부를 수 있으면 알림함을 채울 수 있다(`77_ops_alerts`).
      */
     'report_request_error',
     /*
