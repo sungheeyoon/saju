@@ -16,11 +16,17 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 
 - **옮겨 적지 않고 가리킨다.** 지금 모양은 PRD, 틈은 간극 대장, 날짜별 변경은 changelog, 결정은 ADR, 낱말은 `CONTEXT.md`,
   사정은 노트, 절차는 runbook
+  (원본: `docs/start.md` 「원본 — 무엇이 무엇을 답하나」 · ADR 0089)
 - 문서에 수를 적지 않는다 — 실행이 찍게 한다(시험 수 · 파일 수는 금세 낡는다)
+  (원본: `docs/agents/delegation.md` 「일하는 법」)
 - 문서와 코드가 어긋나면 버그 · 문서 노후 · 결정 미반영 중 무엇인지 먼저 가른다. 문서를 코드에 맞추다 정책이 바뀌면 그것은 결정이다
+  (원본: `docs/agents/delegation.md` 「조율자 세션」 · 「결정 점검표」)
 - 입구 문서(`CLAUDE.md` · `AGENTS.md` · `docs/agents/` · `docs/roles/` …)의 백틱 경로와 `npm run` 이름, 역할 문서가 가리키는 절은 시험이 잰다
+  (원본: `docs/agents/code-rules.md` 「린트가 잠근 것」 · ADR 0140)
 - 중앙 문서는 제가 바꾼 줄만 고친다. 나란히 도는 PR 이 있으면 머지는 하나씩이다 — changelog 는 끝에 덧붙인다(`union`)
+  (원본: `docs/agents/delegation.md` 「나란히 맡길 때」)
 - `docs/product/prd-archive.md` 는 요구사항이 아니다 — 거기서 무엇을 만들지 읽지 않는다
+  (원본: `CLAUDE.md` 「요구사항은」)
 
 ## 하지 않는 것 · 묻는 것
 

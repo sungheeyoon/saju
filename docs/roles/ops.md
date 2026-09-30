@@ -12,12 +12,18 @@
 
 ## 이 저장소의 방식
 
-- **머지는 배포가 아니다**(ADR 0110). 운영 배포는 운영자의 「배포」 답을 받은 뒤 최신 main 을 한 번 올리는 묶음 배포다
+- **머지는 배포가 아니다.** 운영 배포는 운영자의 「배포」 답을 받은 뒤 최신 main 을 한 번 올리는 묶음 배포다
+  (원본: `docs/ops/runbook.md` 「배포」 · 「묶음 배포」 · ADR 0110)
 - 앱과 DB 는 따로 간다 — 마이그레이션이 먼저, 앱이 나중
+  (원본: `docs/ops/runbook.md` 「규약 넷 — 앱과 DB 는 따로 간다」)
 - 등급 3 을 밟으면 무엇을 봤는지 값으로 적는다 — `db push` 뒤에는 remote 칸과 PostgREST 캐시, 배포 뒤에는 Ready 와
   배포 SHA = main HEAD 와 익명 smoke
+  (원본: `docs/agents/delegation.md` 「권한 등급」)
 - 원격 질의는 개인을 가리키지 않는 것만 `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 보낸다 — 목적이 접속기록에 남는다
-- 로그인이 드는 운영 smoke 와 아이폰 확인은 운영자에게 단계별 시나리오로 건넨다
+  (원본: `docs/ops/runbook.md` 「개인정보는 화면으로만」 · ADR 0105)
+- 로그인이 드는 운영 smoke 는 「로컬 환경의 함정」의 프로덕션 확인 줄(`@example.com` 시험 계정, 끝나면 지운다)을 따르거나
+  운영자에게 단계별 시나리오로 건넨다. 아이폰 확인은 운영자 몫이다
+  (원본: `docs/agents/delegation.md` 「로컬 환경의 함정」 · `docs/notes/2026-09-30-parallel-round.md` 「끝 상태」)
 
 ## 하지 않는 것 · 묻는 것
 

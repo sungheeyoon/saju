@@ -853,6 +853,42 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
     expect(missing).toEqual([]);
   });
 
+  /**
+   * 「이 저장소의 방식」은 원본을 줄인 길잡이다 — 줄마다 끝에 `(원본: …)` 을 달아 대조할 자리를 드러낸다(ADR 0140).
+   * 출처는 `경로.md` 「절」 과 `ADR NNNN` 만이다. 본문에 경로나 ADR 이 우연히 있어도 그 줄의 출처로 세지 않는다.
+   * 가리킨 절이 제목으로 있는지는 위 시험이 잰다.
+   */
+  it('「이 저장소의 방식」의 줄마다 끝에 `(원본: …)` 이 있고, 출처는 `경로.md` 「절」 이나 있는 ADR 뿐이다', () => {
+    const adrs = new Set(readdirSync(join(ROOT, 'docs/adr')).map((name) => name.slice(0, 4)));
+    const wrong: string[] = [];
+    let seen = 0;
+    for (const role of roles) {
+      const text = readFileSync(join(ROLES_DIR, `${role}.md`), 'utf8');
+      const start = text.indexOf('\n## 이 저장소의 방식\n');
+      const section = text.slice(start + 1, text.indexOf('\n## ', start + 1));
+      const bullets = section
+        .split('\n')
+        .slice(1)
+        .reduce<string[]>((acc, line) => {
+          if (line.startsWith('- ')) acc.push(line);
+          else if (line.startsWith('  ') && acc.length > 0) acc[acc.length - 1] += `\n${line}`;
+          return acc;
+        }, []);
+      expect(bullets.length, role).toBeGreaterThan(3);
+      for (const bullet of bullets) {
+        seen += 1;
+        const source = /\n {2}\(원본: ([^\n]+)\)$/.exec(bullet)?.[1];
+        const rest = source
+          ?.replace(/`[^`\s]+\.md`(?:\s*(?:·\s*)?「[^」]+」)+/g, '')
+          .replace(/ADR (\d{4})/g, (whole, number: string) => (adrs.has(number) ? '' : whole))
+          .replace(/[\s·]/g, '');
+        if (rest !== '') wrong.push(`${role}: ${bullet.split('\n')[0].slice(0, 40)}`);
+      }
+    }
+    expect(seen).toBeGreaterThan(30);
+    expect(wrong).toEqual([]);
+  });
+
   it('에이전트 정의와 역할 문서는 짝이다 — 정의는 제 역할 문서를 가리킨다', () => {
     const agents = readdirSync(AGENTS_DIR)
       .filter((name) => name.endsWith('.md'))
