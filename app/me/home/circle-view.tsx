@@ -1,38 +1,28 @@
 import Link from 'next/link';
 
-import { storedChartOf } from '@/src/lib/input/stored';
+import { storedChartOf, type StoredInput } from '@/src/lib/input/stored';
 import type { PersonSlots } from '@/src/lib/people';
 
-import { supabaseOnServer } from '../../auth/server-client';
 import { BUTTON_PRIMARY, BUTTON_TERTIARY } from '../../ui/buttons';
 import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT, TYPE_SECTION } from '../../ui/surfaces';
-import { storedInputOf, storedInputsOf } from '../person-input';
 import type { ReadingEntry } from '../reading/current';
-import { myCircle } from './circle';
+import type { Circle } from './circle';
 import { compatHrefOf, pairWithSelf, readingOf, type HomePerson } from './map/model';
 import { PersonTile } from './person-tile';
 
 /**
- * **나와 내가 저장한 사람 — 관계 지도와 사람 타일이 같이 읽는 것.**
+ * **나와 내가 저장한 사람 — 관계 지도와 사람 타일이 같이 쓰는 것.**
  *
  * 둘은 다른 탭에 선다(u2, 운영자 2026-09-29). **저장한 사람 타일은 나 탭 홈(`/me`)** 의 맨 아래 — 프로덕션 홈(`a45e34e`)의
  * 타일 그대로다(`MyPeople`). **관계 지도는 궁합 탭(`/compat`)** 의 아래에 남는다(`app/compat/relation-map-section.tsx`,
  * ADR 0129 「2026-09-29 u2」 — 궁합 탭에는 타일이 없다).
  *
- * 내 사주 · 저장한 사람 · 사람들의 입력을 읽는다(`circleOf`). 왕복은 둘이다 — 엣지와 내 입력을 겹쳐 읽고, 사람들의 입력은 엣지를
- * 알아야 하므로 뒤에 한 번 더 묶어 읽는다. 만든 풀이 목록은 부르는 화면이 이미 읽었으므로 받는다.
+ * **여기서 읽지 않는다**(2026-09-30). 엣지(`myCircle`)와 사람들의 입력(`storedInputsOf`)은 부르는 화면이 제 읽기와 겹쳐 한 번씩
+ * 읽어 넘긴다 — 이 자리가 스스로 읽던 동안 나 탭은 엣지 · 내 입력을 두 번 읽고 그 뒤에 한 물결을 더 기다렸고, 궁합 탭도 같았다.
  */
-export async function circleOf(selfPersonId: string) {
-  const supabase = await supabaseOnServer();
-
-  const [circle, self] = await Promise.all([myCircle(supabase, selfPersonId), storedInputOf(supabase, selfPersonId)]);
-  const inputs = await storedInputsOf(
-    supabase,
-    circle.people.map((person) => person.personId),
-  );
-
-  const people: HomePerson[] = circle.people.map((edge) => {
+export function circlePeopleOf(circle: Circle, inputs: ReadonlyMap<string, StoredInput>): HomePerson[] {
+  return circle.people.map((edge) => {
     const stored = inputs.get(edge.personId);
     /* 입력이 없는 사람 — 읽을 것이 없다는 말과 못 읽는다는 말을 여기서 합친다(저장한 사람 화면과 같다) */
     const stood =
@@ -46,8 +36,6 @@ export async function circleOf(selfPersonId: string) {
       chart: stood.ok ? { ok: true, saju: stood.saju } : { ok: false, message: stood.message },
     };
   });
-
-  return { circle, self, people };
 }
 
 function tileOfWith(readings: readonly ReadingEntry[], selfPersonId: string) {
@@ -64,14 +52,17 @@ function tileOfWith(readings: readonly ReadingEntry[], selfPersonId: string) {
  * **나 탭 홈의 저장한 사람** — 타일만(u2). 타일의 결과 링크는 `from=me` 를 든다(`from-me.ts`). 넓은 화면은 4열이다 — 지도 옆이
  * 아니라 화면 폭을 다 쓴다(프로덕션 홈과 같다).
  */
-export async function MyPeople({
+export function MyPeople({
   selfPersonId,
   readings,
+  circle,
+  people,
 }: {
   selfPersonId: string;
   readings: readonly ReadingEntry[];
+  circle: Circle;
+  people: readonly HomePerson[];
 }) {
-  const { circle, people } = await circleOf(selfPersonId);
   return <SavedPeople people={people} slots={circle.slots} tileOf={tileOfWith(readings, selfPersonId)} fromMe />;
 }
 

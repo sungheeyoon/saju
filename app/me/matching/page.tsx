@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import { isBlocked } from '@/src/lib/account';
+import { isBlocked, selfPersonIdOf } from '@/src/lib/account';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
@@ -13,7 +13,6 @@ import { readAccount } from '../account';
 import { AccountNotice } from '../account-notice';
 import { candidatesForViewer, passedForViewer } from '../candidates';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
-import { payloadForViewer } from '../payload';
 import { matchesForViewer, requestsForViewer, type InboxMatch } from '../requests/inbox';
 import { selfElementSummary } from '../summary';
 import type { DeckCard } from './deck-card';
@@ -56,21 +55,12 @@ export default async function MatchingPage() {
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
-  const { state } = await readAccount<{ status: string; self_person_id: string | null }>(
-    supabase,
-    'status, self_person_id',
-  );
-  if (isBlocked(state)) {
-    return (
-      <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
-        <AccountNotice state={state} />
-      </main>
-    );
-  }
-
   /*
     **받은 요청은 덱과 나란히 읽는다**(ADR 0130) — 덱을 세우는 차례 호출 뒤에 따로 읽으면 탭 이동이 한 번 더 길어진다.
     못 읽어도 덱은 선다 — 요청 자리에 까닭 한 줄만 선다.
+
+    **계정과도 나란히 읽는다**(2026-09-30) — 받은 요청 · 인연 기록의 수 · 참여 설정은 계정을 몰라도 읽을 수 있다. 셋 다 실패를
+    값으로 받으므로 이용이 멈춘 계정의 화면에서 안 쓰고 버려져도 던지지 않는다.
   */
   const requests: Promise<RequestsRead> = requestsForViewer().then(read, (thrown: unknown) => ({
     ok: false as const,
@@ -85,6 +75,21 @@ export default async function MatchingPage() {
     ok: false as const,
     reason: answerOfThrown(thrown, 'my_matches'),
   }));
+  /** 못 읽으면 미리 안 거른다 — 끈 사람이면 아래 RPC 가 참여를 안 연다 */
+  const profile = myDiscoveryProfile();
+
+  const { state } = await readAccount<{ status: string; self_person_id: string | null }>(
+    supabase,
+    'status, self_person_id',
+  );
+  if (isBlocked(state)) {
+    return (
+      <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">
+        <AccountNotice state={state} />
+      </main>
+    );
+  }
+
   /** 받은 요청 띠는 덱 위, 「인연 기록」 한 줄은 덱 아래 — 덱이 서지 않는 자리도 같은 차례다 */
   const around = async () => {
     const [loaded, made] = await Promise.all([requests, matches]);
@@ -99,18 +104,18 @@ export default async function MatchingPage() {
     이 자리에서 멈추고 채우러 가는 길을 준다 — 빈 덱을 세우면 「소개할 인연이 없다」로
     읽히고, 실제 이유(내 것이 없다)는 화면 어디에도 안 적힌다.
   */
-  const self = await selfElementSummary();
+  /* 계정에서 읽은 내 사람 id 를 넘긴다 — 같은 요청에서 `app_user` 를 다시 읽지 않는다 */
+  const self = await selfElementSummary(selfPersonIdOf(state) ?? undefined);
   if (self === null) return <Guide me={null} {...await around()} />;
 
   /*
-    **지도의 가운데는 내 일간이다.** 요약에는 오행 개수만 있어서 일간 글자는 내 명식을 내주는 문
-    (`payloadForViewer`)에서 한 번 더 읽는다. 못 읽으면 가운데만 「나」로 비고 다섯 알은 요약대로 선다.
+    **지도의 가운데는 내 일간이다.** 요약을 세운 그 명식의 일간이다 — 내 명식을 내주는 문(`payloadForViewer`)을 한 번 더
+    부르던 것은 같은 입력 · 같은 이름으로 같은 명식을 세웠다(2026-09-30 걷음).
   */
-  const [profile, mine] = await Promise.all([myDiscoveryProfile(), payloadForViewer(self.personId)]);
-  const me = meMarkOf(mine?.kind === 'ok' ? mine.payload.saju.pillars.dayMaster : null, self.summary);
+  const me = meMarkOf(self.dayMaster, self.summary);
 
-  /** 못 읽으면 미리 안 거른다 — 끈 사람이면 아래 RPC 가 참여를 안 연다 */
-  if (profile.ok && profile.value?.optedOut) return <Resting me={me} {...await around()} />;
+  const participation = await profile;
+  if (participation.ok && participation.value?.optedOut) return <Resting me={me} {...await around()} />;
 
   // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
   const { data: joined, error: joinError } = await supabase.rpc('ensure_discovery_participation', {

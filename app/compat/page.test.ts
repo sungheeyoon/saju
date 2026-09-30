@@ -20,6 +20,7 @@ const chain = (answer: Answer) => {
     select: () => link,
     eq: () => link,
     order: async () => answer,
+    in: async () => answer,
     maybeSingle: async () => answer,
   };
   return link;
@@ -39,7 +40,8 @@ beforeEach(() => vi.mocked(supabaseOnServer).mockReset());
 
 describe('궁합 고르기', () => {
   it('목록이 비었으면 화면이 선다 — 문은 성공했고 자료가 없다', async () => {
-    answering({ app_user: ACCOUNT, user_person_access: OK([]) });
+    /* 관계 지도가 받을 내 입력도 화면이 같은 물결에 읽는다 */
+    answering({ app_user: ACCOUNT, user_person_access: OK([]), person: OK([]) });
 
     await expect(CompatPage()).resolves.toBeDefined();
   });
