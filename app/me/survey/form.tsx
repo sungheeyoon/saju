@@ -58,7 +58,7 @@ import { TYPE_SECTION } from '../../ui/surfaces';
 /** 문항 한 장 — 무리 지은 목록과 같은 흰 판 */
 const PANEL = 'flex flex-col gap-3 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
 
-/** 문항의 물음 — 본문보다 확실히 크고 굵게. 긴 문장이라 둥근 서체 대신 Pretendard 다 */
+/** 문항의 물음 — 본문보다 확실히 크고 굵게. 긴 문장이라 둥근 서체 대신 시스템 서체다 */
 const ASK = 'block text-[17px] font-bold leading-7 text-foreground';
 
 /**

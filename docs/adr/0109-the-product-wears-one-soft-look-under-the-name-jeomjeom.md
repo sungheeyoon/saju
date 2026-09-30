@@ -65,3 +65,18 @@
 - **풀이 책장** — 채팅과 같은 길로 닫았다(G-59, `20261022090000`). 목록 문(`my_readings`)이 줄마다 표지의 두 일간을 준다 —
   내가 주인인 글은 그 사람의 지금 명식, 인연 궁합은 같은 동의 시점 사본의 두 일간(앞이 나)이다. 책장은 명식을 다시 읽지 않고,
   인연 궁합의 상대 쪽 반도 색을 입는다.
+
+## 추기 — 본문 웹 글꼴(Pretendard)을 뺐다 (2026-09-30)
+
+운영자 결정(2026-09-30): 「그 글꼴을 어디에 쓰는데 싣는 거야, 싣지 마 그냥」. 2026-08-26(`7577082`)부터 본문 · 단추 · 보조가
+입던 Pretendard 가변 글꼴(`pretendard` 의존성, `app/globals.css` 의 동적 조각 `@import`)을 걷었다. 본문은 **기기의 시스템 서체**다 —
+`--font-system` 한 벌(`-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui,
+sans-serif`)을 `--font-sans` · `--font-rounded` 의 대체 · `body` · `.glyph` 가 함께 읽는다. Pretendard 전용 글자 모양(`ss05` · `ss06`)도
+뺐다. **제목의 고운돋움(`next/font`)은 그대로다.**
+
+- **전송량** — 로컬 dev 로 잰 첫 방문의 Pretendard 조각: 첫 화면(`/`) 8개 207,724B, 만세력(`/saju`) 6개 156,732B → 0.
+- **폰 한 화면**(390×664, 로컬 macOS · 애플 산돌고딕) — 나 탭 저장한 사람 제목 아랫선 564.8 → 563.8px(끝 584), 인연 탭 카드 띠
+  없음 267 · 띠 있음 201px(같음), 궁합 탭 고르는 칸 89 · 한 줄 1247px(같음). 여백은 고치지 않았다. CI 리눅스(대체 서체)는 이 PR 의
+  `full-ci` 차선이 같은 시험으로 잰다.
+- CSP 의 `font-src 'self' data:` 는 그대로다 — 고운돋움을 `next/font` 가 같은 곳에서 준다.
+- 공유 그림 굽는 도구(`scripts/brand-share-images.mjs`)의 한 줄 소개도 Noto Sans KR 600 으로 옮겼다. 이미 구운 v3 그림은 그대로다.
