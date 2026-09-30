@@ -603,10 +603,15 @@ const COMMENTED_SOURCE = SOURCE_FILES.filter((file) => {
  * 두지 않은 자리를 가정하는 문장이다. 2026-09-28 에 잰 넷이고, 주석을 고치거나 지우면 여기서도 지운다 — 안 쓰이는
  * 항목은 시험이 잡는다(목록이 썩지 않게).
  */
-const COMMENT_PATHS_NOT_THERE: readonly { at: string; why: string }[] = [
+const COMMENT_PATHS_NOT_THERE: readonly { at: string; why: string; ignored?: true }[] = [
   { at: 'app/me/(home)/loading.tsx :: app/me/loading.tsx', why: '가정 — 뼈대를 그 자리에 두면 /me 아래가 다 이 뼈대로 연다(그래서 안 둔다)' },
   { at: 'app/ui/surfaces.ts :: app/card.ts', why: '역사 — 카드 판이 따로 살던 옛 파일(2026-09-26 에 이 파일로 왔다)' },
-  { at: 'src/lib/local-env.ts :: supabase/.env.local', why: '무시된 파일 — 워크트리마다 `stack:slot` 이 짓고 저장소에는 없다' },
+  {
+    at: 'src/lib/local-env.ts :: supabase/.env.local',
+    why: '무시된 파일 — 워크트리마다 `stack:slot` 이 짓고 저장소에는 없다',
+    // 디스크에 있든 없든 쓰인 항목이다 — 자리를 받은 워크트리에서만 있어 로컬만 붉었다(2026-09-30)
+    ignored: true,
+  },
   { at: 'src/lib/reading/parts.ts :: src/lib/saju/evidence/prompt.ts', why: '역사 — 이 파일이 엔진 안에 있던 옛 자리(ADR 0047)' },
 ];
 
@@ -634,6 +639,7 @@ function commentsOf(file: string): { text: string; pos: number; source: ts.Sourc
 describe('운영 소스의 주석이 가리키는 경로', () => {
   it('주석의 백틱 안 뿌리 경로는 있는 파일이나 폴더다 — 옛 자리를 말하는 주석은 이름과 까닭으로 든다', () => {
     const allowed = new Set(COMMENT_PATHS_NOT_THERE.map((one) => one.at));
+    const ignored = new Set(COMMENT_PATHS_NOT_THERE.filter((one) => one.ignored).map((one) => one.at));
     const missing: string[] = [];
     const used = new Set<string>();
     let seen = 0;
@@ -644,9 +650,13 @@ describe('운영 소스의 주석이 가리키는 경로', () => {
           const token = match[1];
           if (!ROOTED_PATH.test(token) || token.includes('*')) continue;
           seen += 1;
+          const at = `${rel} :: ${token}`;
+          if (ignored.has(at)) {
+            used.add(at);
+            continue;
+          }
           // 모듈 경로는 확장자 없이 적는다(`app/auth/config`) — 소스 확장자 중 하나로 있으면 된다
           if ([''].concat(SOURCE_EXTENSIONS).some((ext) => existsSync(join(ROOT, token + ext)))) continue;
-          const at = `${rel} :: ${token}`;
           if (allowed.has(at)) {
             used.add(at);
             continue;
