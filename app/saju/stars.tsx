@@ -120,7 +120,7 @@ export function StarTable({ saju }: { saju: Saju }) {
                 ) : (
                   <ul className="flex flex-col gap-1.5">
                     {found.map(({ star, hit }) => (
-                      <li key={`${star.id}:${hit.target}:${hit.char}`} className="rounded-xl bg-surface-raised px-3 py-2 shadow-sm">
+                      <li key={`${star.id}:${hit.target}:${hit.char}`} className="rounded-xl bg-surface-raised px-3 py-2 shadow-soft">
                         <span className="text-sm font-semibold text-foreground">{star.ko}</span>
                         <p className="mt-0.5 text-xs leading-5 text-secondary">
                           {HIT_POSITION_KO[hit.position][hit.target]} <span className="glyph">{hit.char}</span>

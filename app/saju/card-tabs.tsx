@@ -83,7 +83,7 @@ export function CardTabs({
               onKeyDown={(event) => selectByKeyboard(event, index)}
               className={`min-h-11 rounded-full px-2 text-sm font-semibold sm:px-4 ${
                 selected
-                  ? 'bg-surface text-foreground shadow-sm'
+                  ? 'bg-surface text-foreground shadow-soft'
                   : 'text-secondary hover:text-foreground'
               }`}
             >
