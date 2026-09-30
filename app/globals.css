@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
 :root {
   /*
@@ -73,6 +72,13 @@
   --elevation-lift: 0 8px 18px -10px rgba(60, 48, 30, 0.6);
   /* 떠 있는 판(하단 독) · 가운데 큰 원 */
   --elevation-raise: 0 12px 28px -12px rgba(60, 48, 30, 0.5);
+
+  /*
+    **본문 글꼴은 기기의 것이다**(ADR 0109 추기, 2026-09-30 운영자 결정). 웹 글꼴(Pretendard)을 싣지 않는다 —
+    라틴 글자와 숫자는 시스템 서체가, 한글은 애플 산돌고딕 · Noto Sans KR · 맑은 고딕 가운데 기기에 있는 것이 그린다.
+    제목의 둥근 서체(고운돋움)만 `next/font` 로 싣는다(`app/layout.tsx`).
+  */
+  --font-system: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -175,9 +181,9 @@
   --shadow-soft: var(--elevation-soft);
   --shadow-lift: var(--elevation-lift);
   --shadow-raise: var(--elevation-raise);
-  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-sans: var(--font-system);
   /* 제목 전용 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
-  --font-rounded: var(--font-gowun-dodum), "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  --font-rounded: var(--font-gowun-dodum), var(--font-system);
 }
 
 /*
@@ -218,8 +224,7 @@ body {
   */
   background-repeat: no-repeat;
   color: var(--foreground);
-  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  font-feature-settings: "ss05" 1, "ss06" 1;
+  font-family: var(--font-system);
   letter-spacing: -0.012em;
   line-height: 1.65;
   /* 한국어는 낱말 가운데서 안 끊는다 — 1차 스크린샷에서 「서로/를」 「있습니/다」로 끊겼다 */
@@ -251,8 +256,7 @@ button, a, summary {
 ::selection { background: var(--accent-soft); }
 
 .glyph {
-  font-family: "Pretendard Variable", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  font-feature-settings: normal;
+  font-family: var(--font-system);
 }
 .app-shell { width: min(100% - 2.5rem, 72rem); margin-inline: auto; }
 .eyebrow {

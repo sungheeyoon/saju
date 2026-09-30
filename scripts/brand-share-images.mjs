@@ -24,8 +24,9 @@
  *   node scripts/brand-share-images.mjs                  # public/brand 에 굽는다
  *   node scripts/brand-share-images.mjs --out <폴더>     # 다른 곳에 굽는다(미리 보기)
  *
- * Playwright 의 Chromium 으로 두 배 크기로 그리고 sharp 로 1200×628 로 줄여 mozjpeg 로 담는다. 고운돋움은 Google
- * Fonts 에서 받는다(앱과 같은 곳) — 굽는 기계에 망이 있어야 한다.
+ * Playwright 의 Chromium 으로 두 배 크기로 그리고 sharp 로 1200×628 로 줄여 mozjpeg 로 담는다. 고운돋움과 Noto Sans KR 은
+ * Google Fonts 에서 받는다 — 굽는 기계에 망이 있어야 한다. v3 의 한 줄 소개는 Pretendard SemiBold 로 구웠다 — 앱이 웹 글꼴을
+ * 뺀 날(2026-09-30, ADR 0109 추기) 의존성도 걷어 다음 판은 Noto Sans KR 600 으로 굽는다.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -254,15 +255,14 @@ function page(shot) {
   const corners = CORNERS[shot.kind].map(([x, y, r, fill]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`).join('');
   return `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@700&display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@600;700&display=block">
 <style>
-  @font-face { font-family: Pretendard; font-weight: 600; src: url("file://${ROOT}node_modules/pretendard/dist/public/static/Pretendard-SemiBold.otf"); }
   html, body { margin: 0; }
   body { width: ${SIZE.width}px; height: ${SIZE.height}px; position: relative; overflow: hidden; background: ${T.background}; }
   svg.art { position: absolute; inset: 0; }
   .words { position: absolute; left: 92px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; color: ${T.foreground}; }
   .name { margin-top: 20px; font-family: 'Gowun Dodum'; font-size: 132px; line-height: 1; letter-spacing: -0.02em; }
-  .tagline { margin-top: 30px; font-family: Pretendard; font-weight: 600; font-size: 31px; letter-spacing: -0.02em; color: ${T['text-secondary']}; white-space: nowrap; }
+  .tagline { margin-top: 30px; font-family: 'Noto Sans KR'; font-weight: 600; font-size: 31px; letter-spacing: -0.02em; color: ${T['text-secondary']}; white-space: nowrap; }
 </style></head>
 <body>
   <svg class="art" viewBox="0 0 ${SIZE.width} ${SIZE.height}" width="${SIZE.width}" height="${SIZE.height}">
