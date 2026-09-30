@@ -1502,7 +1502,7 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 **서버 오류는 앱이 알린다** — `request-error:<자리>:<라우트 파일>`(자리는 `render` · `route` · `action` · `proxy`). 앱의
 `instrumentation.ts` 의 `onRequestError` 가 열쇠로 `report_request_error` 를 부르고(Production 만, `app/request-error.ts`),
 라우트 파일 · 자리마다 하루 한 줄이다. 알림에는 라우트 무늬와 digest 만 있다 — Vercel 로그에서 그 digest 로 오류 줄을 찾는다.
-알림을 보내다 실패하면 삼키고 로그에 `request-error: report_request_error` 한 줄을 남긴다.
+알림을 보내다 실패하면 삼키고 로그에 `request-error: report_request_error` 한 줄을 남긴다. Next 는 오류 응답 전에 이 부름을 기다리므로 부름은 1.5초에 끊고, 한 인스턴스 안에서도 같은 날 같은 라우트 · 자리는 한 번만 부른다.
 
 **감시기가 못 보는 것 둘** — 감시기 자신이 계속 실패하는 것, `pg_cron` 이 통째로 멈춘 것. 그래서
 **배포한 날과, 잡을 건드린 날에 한 번씩은 여전히 본다.**
