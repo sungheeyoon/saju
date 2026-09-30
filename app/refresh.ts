@@ -1,4 +1,4 @@
-import { revalidatePath } from 'next/cache';
+import { refresh as redrawThisScreen, revalidatePath } from 'next/cache';
 
 /**
  * 누름 하나가 **무엇을 바꿨나** — 그리고 그래서 무를 화면.
@@ -26,12 +26,22 @@ import { revalidatePath } from 'next/cache';
  * 남은 일이 둘 있기 때문이다.
  *
  * 1. **지금 보고 있는 화면**은 이 호출이 응답에 실어 주는 RSC 페이로드로 그 자리에서
- *    갱신된다. `router.refresh()` 를 안 부르는 자리가 실제로 있다(덱).
+ *    갱신된다. `router.refresh()` 를 안 부르는 자리가 실제로 있다(덱) — 그 자리는 경로가 아니라
+ *    **지금 화면**(`THIS_SCREEN`)을 적는다. 아래.
  * 2. `/` 하나는 **정말로 미리 그려져 있다.** 계정이 닫히면 그 화면도 갈려야 한다.
  *
  * 그리고 문서가 「이 동작은 임시이고 앞으로 그 경로에만 적용되도록 바뀐다」고 적어 두었다.
  * 그날이 오면 **고칠 자리가 여기 하나**여야 한다. 스무 곳에 흩어져 있으면 그때 아무도
  * 전부를 못 찾는다.
+ *
+ * ## 지금 화면을 다시 그리는 것은 경로가 아니다 (2026-09-30)
+ *
+ * 덱은 `/me/matching` 에 서는데 표에는 `/me` 가 적혀 있었다. 덱을 다시 그린 것은 그 경로가 아니라 위 「임시」 동작 —
+ * 경로를 하나라도 무르면 액션 처리기가 지금 화면을 다시 그려 싣는다 — 이었다(2026-09-28 밤샘 감사). 문서대로 그
+ * 동작이 「그 경로에만」으로 좁혀지는 날, `/me` 를 적은 덱은 조용히 옛 목록을 들고 선다. 이 판(16.3)의
+ * `next/cache` 에는 그 일만 하는 문 `refresh()` 가 있다 — 서버 액션 안에서만 부를 수 있고, 캐시는 안 건드리며
+ * 응답이 지금 화면을 다시 그려 싣게 한다(Next 문서 `api-reference/functions/refresh`, 구현은 `pathWasRevalidated` 를
+ * 「동적만」으로 세운다). 그래서 덱은 그 문을 부른다.
  *
  * ## 이름이 경로가 아니라 **바뀐 것**인 까닭
  *
@@ -42,7 +52,14 @@ import { revalidatePath } from 'next/cache';
  */
 
 /** 무를 화면 하나 — `scope` 가 `'layout'` 이면 그 아래가 전부 따라간다 */
-type Screen = { readonly path: string; readonly scope?: 'layout' };
+type Path = { readonly path: string; readonly scope?: 'layout' };
+
+/**
+ * **누른 사람이 지금 보고 있는 화면** — 주소를 모른다. 서버 액션의 응답이 그 화면을 다시 그려 싣는다(`refresh()`).
+ */
+export const THIS_SCREEN = 'this-screen';
+
+type Screen = Path | typeof THIS_SCREEN;
 
 /**
  * 이 누름이 바꾼 것.
@@ -66,12 +83,12 @@ export type Changed =
   /** 만나볼 상대의 조건, 참여를 켜고 끄기 */
   | 'discovery-settings-changed'
   /**
-   * 덱에서 지나치거나 되돌렸다 — **덱이 선 화면은 적지 않는다.**
+   * 덱에서 지나치거나 되돌렸다 — **덱이 선 지금 화면을 다시 그린다.** 경로는 적지 않는다.
    *
-   * 적지 않아도 액션이 경로를 하나라도 무르면 응답이 **지금 화면**을 다시 그려 싣는다(Next 의 액션 처리기가
-   * `pathWasRevalidated` 를 본다). 덱은 그 새 목록을 사람 id 로 합친다(`deck-state.ts` 의 `sync`) — 떠난 자리를
-   * 채운 사람이 뒤에 붙어 오는 길이 이것이다(ADR 0115). 옛 덱은 자리를 순번(`index`)으로 들어 새 목록에 계산이
-   * 어긋났다(`74349b6`).
+   * 응답이 **지금 화면**을 다시 그려 싣고(`THIS_SCREEN` — `refresh()`), 덱은 그 새 목록을 사람 id 로 합친다
+   * (`app/me/matching/deck-state.ts` 의 `sync`) — 떠난 자리를 채운 사람이 뒤에 붙어 오는 길이 이것이다(ADR 0115). 옛 덱은
+   * 자리를 순번(`index`)으로 들어 새 목록에 계산이 어긋났다(`74349b6`). 전에는 `/me` 를 적어 경로 무르기의 「임시」
+   * 부수효과로 같은 일을 했다(위 머리말).
    */
   | 'deck-moved'
   /** 상세 궁합을 청했다 — 인연 탭의 보낸 요청이 는다(ADR 0130) */
@@ -103,7 +120,7 @@ const SCREENS: Readonly<Record<Changed, readonly Screen[]>> = {
   'account-closed': [{ path: '/', scope: 'layout' }],
   'consent-changed': [{ path: '/me/settings' }, { path: '/me' }],
   'discovery-settings-changed': [{ path: '/me/settings' }],
-  'deck-moved': [{ path: '/me' }],
+  'deck-moved': [THIS_SCREEN],
   'match-requested': [{ path: '/me' }, { path: '/me/matching' }],
   'requests-changed': [{ path: '/me/matching' }, { path: '/me/requests' }, { path: '/me' }],
   'report-filed': [{ path: '/me/matching' }],
@@ -118,7 +135,10 @@ export const REFRESH_SCREENS = SCREENS;
 
 /** 이 누름이 바꾼 것을 말하면, 무를 화면은 표가 안다 */
 export function refresh(changed: Changed): void {
-  for (const screen of SCREENS[changed]) revalidatePath(screen.path, screen.scope);
+  for (const screen of SCREENS[changed]) {
+    if (screen === THIS_SCREEN) redrawThisScreen();
+    else revalidatePath(screen.path, screen.scope);
+  }
 }
 
 /**
