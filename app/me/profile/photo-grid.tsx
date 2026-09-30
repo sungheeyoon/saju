@@ -295,7 +295,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
           <span
             aria-hidden="true"
             className={`pointer-events-none block h-full w-full transition-transform duration-150 motion-reduce:transition-none ${
-              lifting ? 'relative z-20 rounded-2xl shadow-[0_18px_36px_-12px_rgba(0,0,0,0.5)]' : ''
+              lifting ? 'relative z-20 rounded-2xl shadow-float' : ''
             }`}
             style={lifting && lift !== null ? { transform: `translate(${lift.dx}px, ${lift.dy}px) scale(1.05)` } : undefined}
           >

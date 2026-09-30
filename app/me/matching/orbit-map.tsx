@@ -375,7 +375,7 @@ export function ApproachMap({
               <CandidatePhoto card={card} />
             </button>
             {card.exploration && (
-              <span className="pointer-events-none absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[var(--surface)] text-[var(--ink)] shadow-sm ring-1 ring-[var(--border)]">
+              <span className="pointer-events-none absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-[var(--surface)] text-[var(--ink)] shadow-soft ring-1 ring-[var(--border)]">
                 <Spark />
               </span>
             )}
