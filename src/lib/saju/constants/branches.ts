@@ -20,7 +20,7 @@ export const SEASON_KO: Record<Season, string> = {
   冬: '겨울',
 };
 
-export type BranchInfo = {
+type BranchInfo = {
   char: Branch;
   ko: string;
   /** 0-based 지지 순서 (子=0 … 亥=11) */

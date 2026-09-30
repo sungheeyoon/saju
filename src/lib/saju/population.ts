@@ -88,7 +88,7 @@ export type PairScenario =
   | 'independent';
 
 /** 시나리오의 가설 값 — 한 자리에 모은다. 바꾸면 비교기의 잠긴 수가 움직인다 */
-export const PAIR_POPULATION_HYPOTHESES = {
+const PAIR_POPULATION_HYPOTHESES = {
   /** 나이를 재는 날 — 「성인」과 「만 나이」가 이 날 기준이다 */
   evaluationDate: { year: 2026, month: 9, day: 25 },
   /** 성인 풀의 만 나이 범위. 60 은 가입자 분포를 모르는 채로 고른 윗선이다 */

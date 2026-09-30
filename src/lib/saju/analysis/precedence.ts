@@ -52,7 +52,7 @@ export const JUDGEMENT_KO: Record<JudgementKey, string> = {
  * 칸에 앉을 수 없다. 상한 표가 종격과 격국을 같은 `candidate` 에 앉히면서 그 까닭을
  * 값으로 남긴 것과 같은 자리다(`CLAIM_CEILING['analysis.structure']`).
  */
-export type PrecedenceReason =
+type PrecedenceReason =
   /** 이 판정이 기준이다 */
   | 'primary'
   /** 외부 대조를 했고 게이트를 못 열었다 */
@@ -72,7 +72,7 @@ export const PRECEDENCE_REASON_KO: Record<PrecedenceReason, string> = {
   'no-verdict': '판정이 없음',
 };
 
-export type PrecedenceRow = {
+type PrecedenceRow = {
   key: JudgementKey;
   ko: string;
   /** 억부와 어긋날 때 이 판정이 이기는가 */

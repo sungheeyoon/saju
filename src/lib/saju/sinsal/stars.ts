@@ -81,7 +81,7 @@ export type StarNature = 'auspicious' | 'inauspicious' | 'neutral';
 /** 신살이 어디에 걸렸는가 — 천간, 지지, 아니면 간지 전체 */
 export type StarTarget = 'stem' | 'branch' | 'pillar';
 
-export type StarHit = {
+type StarHit = {
   position: PillarPosition;
   target: StarTarget;
   /** 걸린 글자. 간지 전체로 성립하는 괴강·백호는 '庚辰' 처럼 두 글자다 */

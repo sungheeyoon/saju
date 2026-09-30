@@ -81,7 +81,7 @@ export type StemRooting = {
 };
 
 /** 지장간 하나가 천간에 드러난 것 */
-export type Emergence = {
+type Emergence = {
   /** 드러난 글자를 품은 지지의 자리 */
   position: PillarPosition;
   branch: Branch;

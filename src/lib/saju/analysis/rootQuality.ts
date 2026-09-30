@@ -32,7 +32,7 @@ import type { Root, Rootedness, StemRooting } from './rootedness';
  */
 
 /** 지지의 갈래 — 왕지(旺支)·생지(生支)·고지(庫支) */
-export type BranchClass = 'peak' | 'birth' | 'storage';
+type BranchClass = 'peak' | 'birth' | 'storage';
 
 const BRANCH_CLASS_KO: Record<BranchClass, string> = {
   peak: '왕지',
@@ -121,7 +121,7 @@ export const ROOT_QUALITY_POLICY = {
 } as const;
 
 /** 뿌리 하나의 질 */
-export type GradedRoot = {
+type GradedRoot = {
   root: Root;
   branchClass: BranchClass;
   /** 이 지지가 충을 맞고 있는가 */

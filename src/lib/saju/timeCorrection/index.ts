@@ -21,7 +21,7 @@ export type { RawZoneInterval } from './zoneTypes';
  * 오프셋"으로 표현한다.
  */
 
-export type CorrectionKind =
+type CorrectionKind =
   | 'standardMeridian'
   | 'dst'
   | 'longitude'
@@ -46,7 +46,7 @@ export type Correction = {
  * 그 사람은 태어났다. 계산을 거부하는 것보다 해석 근거를 밝히는 편이 낫다.
  * 다만 정확한 시각 변환기로 쓸 때는 `'throw'`가 맞다.
  */
-export type DstTransitionPolicy = 'resolve' | 'throw';
+type DstTransitionPolicy = 'resolve' | 'throw';
 
 export class InvalidLocalTimeError extends Error {
   readonly kind: 'nonexistent' | 'ambiguous';

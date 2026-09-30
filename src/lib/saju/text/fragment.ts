@@ -99,7 +99,7 @@ const FOLLOWING_VARIANTS: readonly string[] = (
       ),
 );
 
-export type TopicSpec = {
+type TopicSpec = {
   /** 이 주제의 문장이 읽는 근거. **조각이 아니라 주제가 적는다** */
   paths: readonly ClaimPath[];
   /** 있다고 하는가, 없다고 하는가. 안전도가 다르므로 방향이 다르면 다른 주제다 */
@@ -870,7 +870,7 @@ export function expectedFragmentKeys(): FragmentKey[] {
   );
 }
 
-export type FragmentViolationRule =
+type FragmentViolationRule =
   | TextViolationRule
   /** 주제에 없는 변종이다 */
   | 'unknown-variant'
@@ -903,7 +903,7 @@ export type FragmentViolation = {
  * 정해지므로 문장 틀이 미리 고를 수 없다. 조사를 붙여 쓰려면 슬롯 뒤에 다른
  * 낱말을 한 번 놓고(`{name} 관계가`) 그 낱말에 붙인다.
  */
-export const VARIABLE_PARTICLES: readonly string[] = ['이', '가', '은', '는', '을', '를', '과', '와', '로', '으로'];
+const VARIABLE_PARTICLES: readonly string[] = ['이', '가', '은', '는', '을', '를', '과', '와', '로', '으로'];
 
 const SLOT_PATTERN = /\{([a-zA-Z]+)\}/g;
 
@@ -1057,7 +1057,7 @@ export type FragmentRequest = {
   hourKnown?: boolean;
 };
 
-export type RenderedFragment = {
+type RenderedFragment = {
   /** `silent` 이면 조회조차 하지 않으므로 null */
   key: FragmentKey | null;
   strength: ClaimStrength;

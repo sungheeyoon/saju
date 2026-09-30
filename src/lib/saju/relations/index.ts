@@ -56,7 +56,7 @@ import {
  */
 
 /** 천간끼리의 관계인가, 지지끼리의 관계인가 */
-export type RelationTier = 'stem' | 'branch';
+type RelationTier = 'stem' | 'branch';
 
 export const RELATION_KIND_KO: Record<RelationKind, string> = {
   stemCombination: '천간합',
@@ -226,7 +226,7 @@ export const RELATION_SCOPE_KO: Record<RelationScope, string> = {
  * 글자들이다. 예를 들어 년간 甲 · 월간 己 · 일간 甲 이면, 甲己합 두 개가
  * 월간 己 를 공유하므로 양쪽 관계 모두 `over: 월간 己` 로 표시된다.
  */
-export type Contest = {
+type Contest = {
   over: Participant;
   rivals: readonly Participant[];
 };
@@ -242,7 +242,7 @@ export type Contest = {
  * - **세 글자가 다 모인 삼형**: 방향이 없는 것이 아니라 순환 전체라서
  *   화살표 **하나**로 적을 수 없다. 그쪽은 `cycle` 이 든다.
  */
-export type PunishmentDirection = {
+type PunishmentDirection = {
   /** `participants` 의 인덱스 — 글자를 복사하지 않아 어긋날 수 없다 */
   from: number;
   to: number;

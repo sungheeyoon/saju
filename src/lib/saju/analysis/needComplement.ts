@@ -46,7 +46,7 @@ export type ProviderPresence =
   | 'absent';
 
 /** 자리의 날것 — 해당하는 자리를 **모두** 든다. 가장 센 하나로 줄이지 않는다 */
-export type ProviderSeats = {
+type ProviderSeats = {
   dayMaster: boolean;
   /** 일간을 뺀 천간 자리 */
   stemAt: readonly PillarPosition[];
@@ -67,13 +67,13 @@ export type ComplementBasis =
   /** 일간 · 다른 천간 */
   | 'stems';
 
-export type ComplementRelation = 'supportive' | 'mixed' | 'conflicting' | 'not-comparable';
+type ComplementRelation = 'supportive' | 'mixed' | 'conflicting' | 'not-comparable';
 
-export type ElementMatch = { element: Element; seats: ProviderSeats };
+type ElementMatch = { element: Element; seats: ProviderSeats };
 
-export type AlternativeMatch = ElementMatch & { ruleId: string };
+type AlternativeMatch = ElementMatch & { ruleId: string };
 
-export type JohuStemMatch = {
+type JohuStemMatch = {
   stem: Stem;
   element: Element;
   /** 받는 쪽 조후 판정에서 조건 뒤 이 글자가 아직 권해지는가 — `false` 면 관계에 안 든다 */
@@ -84,7 +84,7 @@ export type JohuStemMatch = {
   sameElementOthers: readonly { stem: Stem; seats: ProviderSeats }[];
 };
 
-export type CounterSignal = { kind: 'supplies-heaviest'; element: Element; seats: ProviderSeats };
+type CounterSignal = { kind: 'supplies-heaviest'; element: Element; seats: ProviderSeats };
 
 export type DirectionalNeedComplement = {
   status: 'experimental';
@@ -168,11 +168,11 @@ function seatsOf(provider: ProviderChart, test: StemTest): ProviderSeats {
 export const providerSeatsOfElement = (provider: ProviderChart, element: Element): ProviderSeats =>
   seatsOf(provider, (stem) => STEM_INFO[stem].element === element);
 
-export const providerSeatsOfStem = (provider: ProviderChart, stem: Stem): ProviderSeats =>
+const providerSeatsOfStem = (provider: ProviderChart, stem: Stem): ProviderSeats =>
   seatsOf(provider, (other) => other === stem);
 
 /** 그 기준에서 「있다」인가 */
-export const presentUnder = (seats: ProviderSeats, basis: ComplementBasis): boolean =>
+const presentUnder = (seats: ProviderSeats, basis: ComplementBasis): boolean =>
   seats.presences.some((presence) => BASIS_PRESENCES[basis].includes(presence));
 
 // ─── 관계 ───────────────────────────────────────────────────────────────────

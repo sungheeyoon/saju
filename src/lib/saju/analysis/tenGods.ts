@@ -110,7 +110,7 @@ export function tenGodOfBranch(dayMaster: Stem, branch: Branch): TenGod {
   return tenGodOf(dayMaster, principalStem(branch));
 }
 
-export type HiddenTenGod = {
+type HiddenTenGod = {
   stem: Stem;
   role: HiddenStemRole;
   days: number;
