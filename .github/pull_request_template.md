@@ -20,7 +20,7 @@
 
 결정 여부: 없음 <!-- 또는 「있음 — 점검표의 어느 줄 · ADR 번호 · 운영자가 답했는가」. docs/agents/delegation.md 「결정 점검표」 다섯(볼 수 있는 것 · 할 수 있는 것 / 실패 때 열리는가 닫히는가 / 보존 · 삭제 / 비용 · 외부 서비스 / 화면 문구) 중 하나라도 바뀌면 있음. -->
 
-<!-- ADR(같은 PR) · CONTEXT.md · docs/prd.md 와 changelog · docs/product/gaps.md · docs/agents/test-map.md 중 고친 것. -->
+<!-- 역할 문서(docs/roles/<역할>.md) 「끝날 때 고치는 것」을 옮겨 적고 체크한다 — ADR(같은 PR) · CONTEXT.md · docs/prd.md 와 changelog · docs/product/gaps.md · docs/agents/test-map.md 중 고친 것. 역할 문서에 없어서 헤맨 것이 있으면 한 줄. -->
 
 ## 사람이 할 걸음
 
