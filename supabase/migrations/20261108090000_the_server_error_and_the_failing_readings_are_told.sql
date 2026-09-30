@@ -23,7 +23,7 @@
 -- ## 2. 풀이의 잦은 실패 — `watch_cron()` 의 넷째 갈래
 --
 -- 감시기(10분마다, 지난 한 시간)가 `reading_run` 의 끝난 시도를 센다. **실패가 다섯 번 이상이고 끝난 것의 절반
--- 이상이면** `reading-failure-rate` 로 알린다 — 하루 한 줄. 문턱 둘은 **제안값이다(운영자 확인 필요)** — 이름 붙은
+-- 이상이면** `reading-failure-rate` 로 알린다 — 하루 한 줄. 문턱 둘은 **운영자가 승인했다(2026-09-30)** — 이름 붙은
 -- 함수 둘(`reading_failure_alert_floor` · `reading_failure_alert_share`)에 두어 한 줄로 고친다. 적는 것은 수와 가장
 -- 잦은 실패 코드뿐이다 — 사람 · 본문은 안 적는다.
 --
@@ -76,7 +76,7 @@ grant execute on function public.report_request_error(text, text, text) to servi
 -- 2. 풀이의 잦은 실패
 -- ---------------------------------------------------------------------------
 
-/** 한 시간에 이만큼은 실패해야 알린다 — 제안값(운영자 확인 필요). 한둘은 모델의 흔들림이다 */
+/** 한 시간에 이만큼은 실패해야 알린다 — 운영자 승인(2026-09-30). 한둘은 모델의 흔들림이다 */
 create function public.reading_failure_alert_floor()
 returns integer
 language sql
@@ -84,7 +84,7 @@ immutable
 set search_path = ''
 as $$ select 5 $$;
 
-/** 끝난 시도 중 실패가 이 몫 이상이면 알린다 — 제안값(운영자 확인 필요) */
+/** 끝난 시도 중 실패가 이 몫 이상이면 알린다 — 운영자 승인(2026-09-30) */
 create function public.reading_failure_alert_share()
 returns numeric
 language sql
