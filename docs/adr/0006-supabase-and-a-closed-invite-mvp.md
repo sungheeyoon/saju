@@ -51,3 +51,6 @@ Supabase 의 **Postgres Before User Created Auth Hook** 에서 정확한 초대 
 
 기존 사용자의 접근 회수는 allowlist 에서 지우는 것이 아니라 **계정 중지**로 처리한다.
 allowlist 는 들어오는 문만 지키고, 이미 들어온 계정은 별개의 상태로 다룬다.
+
+> 사용자 경로에 `service_role` 을 안 쓴다는 이 저장소의 규율(ADR 0003 이 이 ADR 로 가리킨다)에 **제한된 예외 하나**가 섰다 —
+> 풀에 오르는 값을 쓰는 문 넷, `app/me/keyed-chart-writes.ts`(ADR 0136, 2026-09-30).

@@ -10,7 +10,7 @@ grant select on who to authenticated;
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 create temporary table target as
-select public.create_self_person(
+select tests.create_self_person(
   '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean'
 ,
   tests.chart(), 'chart-for-tests') as person_id;

@@ -41,11 +41,11 @@ declare
   uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
-  perform public.create_self_person(
+  perform tests.create_self_person(
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
   perform public.save_my_profile(who, null);
-  perform public.set_discovery_participation(true, summary, tests.need());
+  perform tests.set_discovery_participation(true, summary, tests.need());
   return uid;
 end;
 $$;
@@ -292,7 +292,7 @@ select is(
  * 한 번 고치면 2 다 — 세는 수라 원문을 안 담는다.
  */
 select is(
-  public.edit_person_input((select mom from kin),
+  tests.edit_person_input((select mom from kin),
     'solar', '1962-03-03', '1962-03-03', '07:10', 'female', '부산', 'jo', 'localMean',
   tests.chart('丁'), 'chart-for-tests'),
   2,

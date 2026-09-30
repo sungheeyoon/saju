@@ -156,7 +156,7 @@ select lives_ok(
 select pg_temp.acting((select choi from folks));
 
 select throws_like(
-  $$select public.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30',
+  $$select tests.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30',
       'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
   '%가입을 먼저%',

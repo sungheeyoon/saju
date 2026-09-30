@@ -60,7 +60,7 @@ create temporary table folks as
 grant select on folks to authenticated, service_role;
 
 select set_config('request.jwt.claims', tests.claims((select kim from folks)), true);
-select public.create_self_person(
+select tests.create_self_person(
   '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 

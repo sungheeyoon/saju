@@ -68,7 +68,7 @@ select throws_ok(
   '탈퇴 신청도 DB 가 같은 문장으로 막는다');
 
 select throws_ok(
-  $$select public.create_self_person(
+  $$select tests.create_self_person(
       '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
       tests.chart(), 'chart-for-tests')$$,
   '42501', '이용이 정지된 계정입니다.',

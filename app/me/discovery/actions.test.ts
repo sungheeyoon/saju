@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
 vi.mock('../summary', () => ({ selfElementSummary: vi.fn() }));
+/* 참여를 켜는 문은 열쇠 모듈이 세션의 사람으로 부른다(G-64, ADR 0136) — 세션과 열쇠만 가짜로 댄다 */
+vi.mock('../../auth/signed-in', () => ({ signedInUser: async () => ({ id: 'u-1', email: undefined }) }));
+vi.mock('../../keyed-client', () => ({ keyedClient: () => ({ rpc: async () => ({ data: null, error: null }) }) }));
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { selfElementSummary } from '../summary';

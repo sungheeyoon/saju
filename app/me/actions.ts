@@ -5,12 +5,10 @@ import type { SaveResult } from '../save-result';
 import { supabaseOnServer } from '../auth/server-client';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
 import { sameChartInMyList, type SameChart } from './same-chart';
-import { selfElementSummary } from './summary';
+import { createSelfPerson, editPersonInput as editPersonInputWithKey } from './keyed-chart-writes';
 import {
   managedPersonArgs,
   noteOrNull,
-  personInputArgs,
-  selfPersonArgs,
   unsupportedForSaving,
 } from '@/src/lib/input/edit';
 import { answerOfThrown, userFacingDbMessage } from '../db-error';
@@ -48,8 +46,8 @@ export async function saveSelfPerson(query: Query): Promise<SaveResult> {
   const unsupported = unsupportedForSaving(query);
   if (unsupported !== null) return { ok: false, message: unsupported };
 
-  const supabase = await supabaseOnServer();
-  const { error } = await supabase.rpc('create_self_person', rpcArgs<'create_self_person'>(selfPersonArgs(query)));
+  /* 여덟 글자는 열쇠 모듈이 이 입력에서 세고, 사람은 세션에서 얻는다(G-64, ADR 0136) */
+  const { error } = await createSelfPerson(query);
 
   if (error) {
     /**
@@ -212,41 +210,16 @@ export async function editPersonInput(personId: string, query: Query): Promise<S
     .eq('person_id', personId);
   if (labelError) return { ok: false, message: userFacingDbMessage(labelError, 'user_person_access.label') };
 
-  const { error } = await supabase.rpc('edit_person_input', rpcArgs<'edit_person_input'>(personInputArgs(personId, query)));
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'edit_person_input') };
-
   /**
-   * 입력이 바뀌었으면 **매칭 풀에 내놓은 오행 요약도 따라간다.**
+   * 입력을 덮어쓰고, 내 사람이면 **매칭 풀에 내놓은 오행 요약도 따라간다** — 둘 다 열쇠 모듈이 한다(G-64, ADR 0136).
    *
-   * 낡은 요약은 후보 질의가 이미 걸러낸다. 그래도 여기서 따라가게 하는 것은 그 탈락이
-   * **조용하기** 때문이다 — 사용자는 참여 중이라고 알고 있는데 아무에게도 안 보이게 된다.
-   * 내 사주가 아니면 RPC 가 스스로 아무 일도 하지 않는다 — 그래서 앱은 안 묻는다.
-   *
-   * 참여가 기본으로 켜진 뒤로 이 호출은 **참여를 열기도 한다**(PRD 「추천은 여섯 자리 덱이다」). 끈 사람은
-   * 그대로 쉰다 — 그 판정도 RPC 안에 있다(`opted_out_at`).
+   * 낡은 요약은 후보 질의가 이미 걸러낸다. 그래도 따라가게 하는 것은 그 탈락이 **조용하기** 때문이다 — 사용자는
+   * 참여 중이라고 알고 있는데 아무에게도 안 보이게 된다. 「내 사주인가」는 앱이 안 묻는다 — `ensure_discovery_participation`
+   * 이 `uuid` 로 견준다(문자열 비교는 대소문자를 가려, 대문자 id 에서 요약 갱신이 조용히 빠졌었다).
+   * 참여가 기본으로 켜진 뒤로 그 호출은 참여를 열기도 한다. 끈 사람은 그대로 쉰다(`opted_out_at`).
    */
-  // 저장은 이미 끝났다. 요약을 못 읽은 것도 아래 RPC 실패처럼 홈이나 매칭을 열 때 참여를 여는 문이 고친다 — 던지지 않는다
-  const self = await selfElementSummary().catch(() => null);
-  /*
-    **「내 사주인가」를 여기서 묻지 않는다.**
-
-    `self.personId === personId` 로 걸렀었다. `ensure_discovery_participation` 이 이미 같은
-    질문에 답하는데(`self_person is distinct from p_person_id`) 앱이 한 번 더 판정한
-    것이고, 둘 중 **나쁜 쪽이 먼저 답하고** 있었다 — 저쪽은 `uuid` 비교라 대소문자를
-    안 가리고 이쪽은 문자열 비교라 가린다. 대문자로 적힌 id 가 오면 이 줄이 거짓이 되어
-    요약 갱신이 조용히 빠지고, 사용자는 참여 중이라고 아는 채 아무에게도 안 보이게 된다.
-
-    요약을 만들 재료가 있는지만 보고 넘긴다. 판정은 한 자리에서 한다.
-  */
-  if (self !== null) {
-    const { error: summaryError } = await supabase.rpc('ensure_discovery_participation', {
-      p_person_id: personId,
-      p_summary: self.summary,
-      p_need: self.need,
-    });
-    // 저장은 끝났다. 요약을 못 따라가게 한 것은 홈이나 매칭을 열 때 참여를 여는 문이 고친다.
-    if (summaryError) console.error('오행 요약을 갱신하지 못했습니다', summaryError.message);
-  }
+  const { error } = await editPersonInputWithKey(personId, query);
+  if (error) return { ok: false, message: userFacingDbMessage(error, 'edit_person_input') };
 
   refresh('person-input-edited');
   return { ok: true };

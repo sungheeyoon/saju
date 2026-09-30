@@ -79,3 +79,25 @@ export async function fetchWhole(url, init) {
   const empty = [101, 204, 205, 304].includes(response.status);
   return new Response(empty ? null : body, { status: response.status, statusText: response.statusText, headers: response.headers });
 }
+
+/**
+ * 풀에 오르는 값을 쓰는 문 넷을 **그 사람으로** 부른다 — 앱의 열쇠 모듈이 하는 일을 흐름 검사가 흉내 낸다(G-64, ADR 0136).
+ *
+ * `create_self_person` · `edit_person_input` · `set_discovery_participation` · `ensure_discovery_participation` 은
+ * `service_role` 에만 열려 있고 첫 인자로 사람 id 를 받는다. 앱에서는 `app/me/keyed-chart-writes.ts` 가 세션에서 그 id 를
+ * 얻는다. 여기서는 로그인한 클라이언트의 세션에서 얻어 로컬 스택의 열쇠로 부른다 — 나머지 인자는 옛 판과 같고 답의 모양
+ * (`{ data, error }`)도 같아서, 부르던 자리는 `client.rpc(이름, …)` 를 `keyedRpc(client, 이름, …)` 로 바꾸기만 했다.
+ * 사용자 역할이 이 문을 직접 못 부르는 것은 pgTAP(`70_pool_values_keyed`)이 잰다.
+ */
+let keyedOnce = null;
+export async function keyedRpc(client, name, args) {
+  if (keyedOnce === null) {
+    const { createClient } = await import('@supabase/supabase-js');
+    const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
+    keyedOnce = createClient(status.API_URL, status.SECRET_KEY ?? status.SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  const { data } = await client.auth.getSession();
+  return keyedOnce.rpc(name, { p_user_id: data.session?.user.id ?? null, ...args });
+}

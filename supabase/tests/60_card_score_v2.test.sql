@@ -284,7 +284,7 @@ begin
     u := tests.signup('card-v2-' || one.who || '@example.com');
     insert into folks values (one.who, u);
     perform set_config('request.jwt.claims', tests.claims(u), true);
-    perform public.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo',
+    perform tests.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo',
       'localMean',
       jsonb_build_object(
         'year', jsonb_build_object('stem', '甲', 'branch', '子'),
@@ -294,7 +294,7 @@ begin
         'dayMaster', one.stem),
       'chart-for-tests');
     perform public.save_my_profile(one.who, null);
-    perform public.set_discovery_participation(true, pg_temp.summary(one.counts),
+    perform tests.set_discovery_participation(true, pg_temp.summary(one.counts),
       case when one.need is null then null else pg_temp.need(one.need) end);
   end loop;
 end;
@@ -334,7 +334,7 @@ select is(
 -- 두 인자로 부르면(옛 앱) 있던 요약을 지우지 않는다
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select uid from folks where who = 'match')), true);
-select public.ensure_discovery_participation(
+select tests.ensure_discovery_participation(
   (select self_person_id from public.app_user where id = (select uid from folks where who = 'match')),
   pg_temp.summary('1,2,3,1,1'));
 reset role;

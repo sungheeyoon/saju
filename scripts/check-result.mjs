@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed, fetchWhole } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole, keyedRpc } from './checks.mjs';
 /** 공개 범위 목록의 **제품 원본** — 손으로 베끼면 문구가 바뀐 날 검사만 옛 글자를 든다 */
 import { MATCH_DISCLOSURE } from '../src/lib/consent/disclosure.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
@@ -67,7 +67,7 @@ const person = async (email, label, birth) => {
   const client = anon();
   await client.auth.signUp({ email, password });
   await passNotice(client);
-  await client.rpc('create_self_person', {
+  await keyedRpc(client, 'create_self_person', {
     p_local_label: label, p_calendar: 'solar',
     p_original_date: birth.date, p_solar_date: birth.date, p_birth_time: '14:30',
     p_gender: birth.gender, p_city: birth.city, p_late_night_rule: 'jo', p_time_basis: 'localMean',
@@ -89,7 +89,7 @@ const 가짜 = {
 
 for (const [client, nickname] of [[a, NAME.a], [b, NAME.b], [c, NAME.c]]) {
   await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: introOf(nickname) });
-  await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+  await keyedRpc(client, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
 }
 
 /** 이번 실행의 사람들만 서로의 후보가 되게 한다 — 아니면 「DB 가 비어 있는가」를 잰다 */
@@ -315,7 +315,7 @@ try {
     const before = pillarsOf(mine);
 
     const { data: account } = await b.from('app_user').select('self_person_id').maybeSingle();
-    const edited = await b.rpc('edit_person_input', {
+    const edited = await keyedRpc(b, 'edit_person_input', {
       p_person_id: account.self_person_id,
       p_calendar: 'solar', p_original_date: BIRTH.b.date, p_solar_date: BIRTH.b.date,
       p_birth_time: '05:20', p_gender: BIRTH.b.gender, p_city: BIRTH.b.city,

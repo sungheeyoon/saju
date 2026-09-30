@@ -44,10 +44,13 @@ type RpcArgs<N extends RpcName> = Database['public']['Functions'][N]['Args'];
  *
  * 그래서 **그 하나만 우리가 주장하고, 주장하는 자리를 이 함수로 모은다.** 이름은
  * 여전히 생성 타입이 잠근다 — 없는 인자를 적으면 여기서 걸린다.
+ *
+ * **같은 이름의 문이 두 벌이면 한 벌씩 본다.** 넓히는 동안(ADR 0071) 생성 타입의 `Args` 는 두 서명의 합이고, 그 합에
+ * 칸을 바로 매기면 두 벌에 **다 있는** 칸만 남아 새 칸을 못 적는다(G-64 넓히기에서 `p_user_id` 가 그랬다). 그래서 벌마다
+ * 매겨서 합친다 — 넘긴 한 벌은 두 서명 중 하나에 꼭 맞아야 한다.
  */
-type NullableArgs<N extends RpcName> = {
-  [K in keyof RpcArgs<N>]: RpcArgs<N>[K] | null;
-};
+type NullableArgs<N extends RpcName> =
+  RpcArgs<N> extends infer Args ? (Args extends unknown ? { [K in keyof Args]: Args[K] | null } : never) : never;
 
 /** 문이 받는 한 벌 — 이름과 칸은 생성 타입이, `null` 허용은 이 함수가 주장한다 */
 export const rpcArgs = <N extends RpcName>(args: NullableArgs<N>): RpcArgs<N> =>

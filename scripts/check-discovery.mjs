@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed, fetchWhole } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole, keyedRpc } from './checks.mjs';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -63,7 +63,7 @@ const forgetBoard = (email) =>
 const me = anon();
 await me.auth.signUp({ email: mine, password });
 await passNotice(me);
-await me.rpc('create_self_person', {
+await keyedRpc(me, 'create_self_person', {
   p_local_label: '민수', p_calendar: 'solar',
   p_original_date: '1990-05-15', p_solar_date: '1990-05-15', p_birth_time: '14:30',
   p_gender: 'male', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',
@@ -73,7 +73,7 @@ await me.rpc('create_self_person', {
 const other = anon();
 await other.auth.signUp({ email: theirs, password });
 await passNotice(other);
-await other.rpc('create_self_person', {
+await keyedRpc(other, 'create_self_person', {
   p_local_label: '지영', p_calendar: 'solar',
   p_original_date: '1992-03-03', p_solar_date: '1992-03-03', p_birth_time: '09:00',
   p_gender: 'female', p_city: '부산', p_late_night_rule: 'jo', p_time_basis: 'localMean',
@@ -116,6 +116,8 @@ const { base: BASE, stop } = await startCheckServer({
   port: PORT,
   supabaseUrl: API,
   anonKey: status.ANON_KEY,
+  // 풀에 오르는 값(내 사람의 여덟 글자 · 참여 요약)은 앱이 열쇠로 쓴다(G-64, ADR 0136)
+  secretKey: status.SERVICE_ROLE_KEY,
 });
 
 /** 매칭의 공개 카드 영역만 읽는다. 숨겨진 확인 창과 직렬화 자료는 포함하지 않는다. */
@@ -218,8 +220,8 @@ const isolate = (emails) => {
     counts: { 木: 8, 火: 0, 土: 0, 金: 0, 水: 0 },
     ratios: { 木: 1, 火: 0, 土: 0, 金: 0, 水: 0 },
   };
-  await me.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
-  await other.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+  await keyedRpc(me, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+  await keyedRpc(other, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
 
   // 요약을 고치는 자리는 **목록이 서는 화면**이다. 목록이 홈으로 왔으므로 홈을 연다.
   await get('/me/matching', myCookie);
@@ -504,7 +506,7 @@ const isolate = (emails) => {
 
   // ── 8. 판본을 고치면 요약이 따라간다 ────────────────────────────────────────
   {
-    const edited = await other.rpc('edit_person_input', {
+    const edited = await keyedRpc(other, 'edit_person_input', {
       p_person_id: theirPersonId,
       p_calendar: 'solar', p_original_date: '1992-03-03', p_solar_date: '1992-03-03',
       p_birth_time: '09:00', p_gender: 'female', p_city: '대구',
@@ -531,7 +533,7 @@ const isolate = (emails) => {
 
   // ── 8-2. 요약이 **바뀌면** 그 카드는 지금의 그 사람이 아니다 ────────────────
   {
-    const edited = await other.rpc('edit_person_input', {
+    const edited = await keyedRpc(other, 'edit_person_input', {
       p_person_id: theirPersonId,
       p_calendar: 'solar', p_original_date: '1993-07-07', p_solar_date: '1993-07-07',
       p_birth_time: '21:10', p_gender: 'female', p_city: '대구',
@@ -559,7 +561,7 @@ const isolate = (emails) => {
 
   // ── 9. 참여를 끄면 풀에서 사라지고 요약도 거둬진다 ──────────────────────────
   {
-    const stopped = await other.rpc('set_discovery_participation', { p_on: false, p_summary: null });
+    const stopped = await keyedRpc(other, 'set_discovery_participation', { p_on: false, p_summary: null });
     if (stopped.error) throw new Error(stopped.error.message);
 
     const body = await (await get('/me/matching', myCookie)).text();

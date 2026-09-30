@@ -19,7 +19,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, fetchWhole } from './checks.mjs';
+import { createChecks, fetchWhole, keyedRpc } from './checks.mjs';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -65,7 +65,7 @@ let selfPersonId;
 let momId;
 {
   await passNotice(client, nickname);
-  await client.rpc('create_self_person', { p_local_label: '민수', ...birth });
+  await keyedRpc(client, 'create_self_person', { p_local_label: '민수', ...birth });
 
   const { data: mom, error } = await client.rpc('create_managed_person', {
     p_local_label: '엄마',
@@ -149,7 +149,7 @@ let momId;
 let theirPersonId;
 {
   await passNotice(other);
-  await other.rpc('create_self_person', {
+  await keyedRpc(other, 'create_self_person', {
     p_local_label: '지영', ...birth, p_gender: 'female', ...chartArgs('managed-theirs'),
   });
   const { data: account } = await other.from('app_user').select('self_person_id').maybeSingle();
@@ -159,7 +159,7 @@ let theirPersonId;
   const { data: people } = await other.from('person').select('id');
   check('남이 등록한 가족은 한 줄도 안 보인다', people?.length === 1, `${people?.length ?? '?'}줄`);
 
-  const { error } = await other.rpc('edit_person_input', {
+  const { error } = await keyedRpc(other, 'edit_person_input', {
     p_person_id: momId, ...birth, ...chartArgs('managed-mom'),
   });
   check('남의 가족 출생 정보는 못 고친다', error?.code === '42501', error?.message ?? '통과돼 버렸다');
@@ -189,6 +189,8 @@ const { base: BASE, stop } = await startCheckServer({
   port: PORT,
   supabaseUrl: API,
   anonKey: status.ANON_KEY,
+  // 풀에 오르는 값(내 사람의 여덟 글자 · 참여 요약)은 앱이 열쇠로 쓴다(G-64, ADR 0136)
+  secretKey: status.SERVICE_ROLE_KEY,
 });
 
 const get = (path, headers = {}) => fetchWhole(`${BASE}${path}`, { headers, redirect: 'manual' });

@@ -48,7 +48,7 @@ returns uuid language plpgsql as $$
 declare uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
-  perform public.create_self_person(
+  perform tests.create_self_person(
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
   return uid;

@@ -8,11 +8,13 @@ import type { Database } from '@/src/lib/db';
  * **열쇠를 드는 유일한 자리.**
  *
  * 이 저장소는 사용자 경로에 `service_role` 을 쓰지 않는다(ADR 0003·0006). 열쇠는 사용자
- * JWT 에 닫아 둔 문을 부를 때만 든다 — 부르는 곳은 여섯 파일의 일곱 자리다(2026-09-28 에 잰 값):
+ * JWT 에 닫아 둔 문을 부를 때만 든다 — 부르는 곳은 일곱 파일이다(2026-09-30 에 잰 값):
  * 풀이 제출(`app/me/reading/pipeline.ts` 둘) · 결과 회수(`app/me/reading/collect.ts`) ·
  * 결과 복구 크론(`app/api/cron/reading/route.ts`) · 접속기록 반출 크론
  * (`app/api/cron/audit-export/route.ts`) · OpenAI webhook · 결제 webhook
- * (`app/api/openai/webhook/route.ts` · `app/api/portone/webhook/route.ts`).
+ * (`app/api/openai/webhook/route.ts` · `app/api/portone/webhook/route.ts`), 그리고 **사용자 경로의 제한된 예외 하나** —
+ * 풀에 오르는 요약과 내 사람의 여덟 글자를 쓰는 문 넷(`app/me/keyed-chart-writes.ts`, G-64 · ADR 0136).
+ * 그 목록은 `eslint.config.mjs` 의 `KEY_HOLDERS` 와 `scripts/layers.test.ts` 가 함께 든다 — 새 자리는 둘을 고친다.
  *
  * **구멍의 모양은 DB 가 정한다.** 열쇠가 부를 수 있는 public 함수는 이름으로 고정되어
  * 있고, 그 목록을 드는 것은 pgTAP 이다(`supabase/tests/13_reading.test.sql` 의 권한 시험).

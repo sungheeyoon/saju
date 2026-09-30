@@ -35,11 +35,11 @@ declare
   uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
-  perform public.create_self_person(
+  perform tests.create_self_person(
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
     tests.chart(stem), 'chart-for-tests');
   perform public.save_my_profile(who, null);
-  perform public.set_discovery_participation(true, summary, tests.need());
+  perform tests.set_discovery_participation(true, summary, tests.need());
   return uid;
 end;
 $$;
@@ -154,7 +154,7 @@ select is(
 -- ── 4. 동의 뒤에 고친 입력은 안 샌다 ───────────────────────────────────────
 
 select is(
-  public.edit_person_input((select lee_person from people),
+  tests.edit_person_input((select lee_person from people),
     'solar', '1990-05-16', '1990-05-16', '14:30', 'female', '서울', 'jo', 'localMean',
     tests.chart('癸'), 'chart-for-tests'),
   2,
@@ -168,7 +168,7 @@ select is(
 
 select pg_temp.acting((select kim from folks));
 select is(
-  public.edit_person_input((select mom from kin),
+  tests.edit_person_input((select mom from kin),
     'solar', '1962-03-03', '1962-03-03', '07:10', 'female', '부산', 'jo', 'localMean',
     tests.chart('丁'), 'chart-for-tests'),
   2,

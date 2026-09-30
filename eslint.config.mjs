@@ -111,6 +111,29 @@ const CODE_SHAPE = [
 /** 코드에 남기는 미결은 TODO 가 아니라 ADR 의 「잠그지 않은 것」·PRD §9·이슈다 — 2026-09-22 기준 0건 */
 const NO_LOOSE_ENDS = ["error", { terms: ["todo", "fixme", "xxx", "hack"], location: "anywhere" }];
 
+/**
+ * **열쇠(`service_role`)를 드는 자리는 이름으로 든다**(ADR 0010 · 0136). 열쇠는 사용자 JWT 에 닫아 둔 문을 부를 때만
+ * 들고, 그 자리는 여기 적힌 파일뿐이다 — 새 자리는 이 목록과 `scripts/layers.test.ts` 의 목록을 함께 고친다(시험이
+ * 둘을 견준다). 사용자 경로에서 드는 것은 풀에 오르는 값을 쓰는 한 자리(`app/me/keyed-chart-writes.ts`, G-64)와
+ * 풀이 제출 · 회수다. 시험 파일은 가짜로 바꿔 끼우므로 뺀다.
+ */
+export const KEY_HOLDERS = [
+  "app/api/cron/audit-export/route.ts",
+  "app/api/cron/reading/route.ts",
+  "app/api/openai/webhook/route.ts",
+  "app/api/portone/webhook/route.ts",
+  "app/me/keyed-chart-writes.ts",
+  "app/me/reading/collect.ts",
+  "app/me/reading/pipeline.ts",
+];
+
+const NO_KEYED_CLIENT = [
+  {
+    group: ["**/keyed-client", "**/keyed-client.ts", "@/app/keyed-client", "@/app/keyed-client.ts"],
+    message: "열쇠(service_role)는 이름으로 든 자리에서만 든다 — eslint.config.mjs 의 KEY_HOLDERS (ADR 0136)",
+  },
+];
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -172,6 +195,13 @@ const eslintConfig = defineConfig([
     /** 화면 폴더의 .ts 도 import() 대상은 문자열이다 — 라이브 시험이 여기 산다 */
     files: [`app/**/*.${CODE}`, "proxy.ts"],
     rules: { "no-restricted-syntax": ["error", NO_UNKNOWN_DYNAMIC_IMPORT, ...CODE_SHAPE] },
+  },
+
+  {
+    /** 열쇠 클라이언트는 목록의 자리만 부른다 — 화면도 문도 액션도 */
+    files: [`app/**/*.${ANY}`, "proxy.ts"],
+    ignores: [...KEY_HOLDERS, "app/keyed-client.ts", "**/*.test.ts"],
+    rules: { "no-restricted-imports": ["error", { patterns: NO_KEYED_CLIENT }] },
   },
 
   // ---------------------------------------------------------------------------

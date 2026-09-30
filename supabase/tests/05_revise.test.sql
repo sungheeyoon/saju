@@ -10,7 +10,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 create temporary table target as
-select public.create_self_person(
+select tests.create_self_person(
   '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean'
 ,
   tests.chart(), 'chart-for-tests') as person_id;
@@ -22,7 +22,7 @@ grant select on first_version to authenticated;
 
 -- ── 아무것도 안 바꾸면 판이 안 오른다 ────────────────────────────────────────
 select is(
-  public.edit_person_input((select person_id from target),
+  tests.edit_person_input((select person_id from target),
     'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests'),
   (select n from first_version),
@@ -30,7 +30,7 @@ select is(
 
 -- ── 고치면 그 자리가 바뀐다 ──────────────────────────────────────────────────
 create temporary table second_version as
-select public.edit_person_input((select person_id from target),
+select tests.edit_person_input((select person_id from target),
   'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '부산', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests') as n;
 grant select on second_version to authenticated;
@@ -49,7 +49,7 @@ select is(
 
 -- ── 자시 규칙 하나로도 갈린다 ─────────────────────────────────────────────────
 select is(
-  public.edit_person_input((select person_id from target),
+  tests.edit_person_input((select person_id from target),
     'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '부산', 'ya', 'localMean',
   tests.chart(), 'chart-for-tests'),
   (select n from second_version) + 1,
@@ -57,7 +57,7 @@ select is(
 
 -- ── 음력 판본 ────────────────────────────────────────────────────────────────
 select lives_ok(
-  format($$select public.edit_person_input(%L,
+  format($$select tests.edit_person_input(%L,
     'lunar', '1990-04-21', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
     (select person_id from target)),
@@ -79,7 +79,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select lee from who)), true);
 
 select throws_ok(
-  format($$select public.edit_person_input(%L,
+  format($$select tests.edit_person_input(%L,
     'solar', '1980-01-01', '1980-01-01', '01:00', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
     (select person_id from target)),
@@ -113,7 +113,7 @@ select input_version as n from public.person where id = (select person_id from t
 grant select on version_now to authenticated;
 
 /** 지금 서 있는 입력은 **음력 판본**이다 — 같은 값을 다시 보내려면 그 달력으로 보낸다 */
-select public.edit_person_input((select person_id from target),
+select tests.edit_person_input((select person_id from target),
   'lunar', '1990-04-21', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 
@@ -122,7 +122,7 @@ select is(
   (select n from version_now),
   '같은 값으로 저장하면 버전이 안 오른다 — pending 요청도 안 죽는다');
 
-select public.edit_person_input((select person_id from target),
+select tests.edit_person_input((select person_id from target),
   'lunar', '1990-04-21', '1990-05-15', '16:00', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 

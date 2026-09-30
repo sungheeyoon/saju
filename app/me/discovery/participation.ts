@@ -1,11 +1,9 @@
 import type { DiscoveryProfile } from '@/src/lib/discovery';
 import type { StoredChartResult } from '@/src/lib/input/stored';
 
-import type { supabaseOnServer } from '../../auth/server-client';
 import type { SkippableRead } from '../../db-error';
+import { openParticipation } from '../keyed-chart-writes';
 import { selfSummaryOf, type SelfSummary } from '../summary';
-
-type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
 
 /**
  * 참여가 열리는 문 — **화면이 아니라 문이다.**
@@ -35,7 +33,6 @@ type ServerClient = Awaited<ReturnType<typeof supabaseOnServer>>;
  * 사람이 홈의 문을 한 번도 안 지나기 때문이고, 같은 RPC 라 여러 번 불려도 한 번만 연다.
  */
 export async function openDiscoveryParticipation(
-  supabase: ServerClient,
   profile: SkippableRead<DiscoveryProfile | null>,
   selfPersonId: string,
   stood: StoredChartResult | null,
@@ -62,10 +59,7 @@ export async function openDiscoveryParticipation(
     홈을 오류로 세우지 않는 것은 그대로다 — 다만 조용히 버리지 않는다. 못 열면 매칭(`/me/matching`)이 같은 RPC 를
     다시 부르고 그쪽은 던진다. 여기서는 기록에만 남긴다.
   */
-  const { error } = await supabase.rpc('ensure_discovery_participation', {
-    p_person_id: self.personId,
-    p_summary: self.summary,
-    p_need: self.need,
-  });
+  /* 문은 열쇠로만 열린다 — 사람은 세션에서, 요약은 위에서 저장된 입력으로 지은 것이다(G-64, ADR 0136) */
+  const { error } = await openParticipation(self);
   if (error) console.error('ensure_discovery_participation (home)', error);
 }

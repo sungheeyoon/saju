@@ -46,6 +46,27 @@ import { checkEndsOn } from '../scripts/beta-dates.mjs';
 type Local = { api: string; anonKey: string };
 
 /**
+ * 풀에 오르는 값을 쓰는 문 넷을 **그 사람으로** 부른다(G-64, ADR 0136) — 흐름 검사의 `keyedRpc` 와 같은 자리다.
+ *
+ * `create_self_person` · `set_discovery_participation` 등은 `service_role` 에만 열려 있고 첫 인자로 사람 id 를 받는다.
+ * 앱에서는 `app/me/keyed-chart-writes.ts` 가 세션에서 그 id 를 얻는다. 여기서는 로그인한 클라이언트의 세션에서 얻어 로컬
+ * 스택의 열쇠로 부른다 — 나머지 인자와 답의 모양은 옛 판과 같다.
+ */
+let keyedOnce: SupabaseClient | null = null;
+async function keyedRpc(client: SupabaseClient, name: string, args: Record<string, unknown>) {
+  if (keyedOnce === null) {
+    const status = JSON.parse(
+      execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }),
+    ) as { API_URL: string; SECRET_KEY?: string; SERVICE_ROLE_KEY?: string };
+    keyedOnce = createClient(status.API_URL, (status.SECRET_KEY ?? status.SERVICE_ROLE_KEY) as string, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  const { data } = await client.auth.getSession();
+  return keyedOnce.rpc(name, { p_user_id: data.session?.user.id ?? null, ...args });
+}
+
+/**
  * 운영자가 SQL 로 하는 일 — `service_role` 에도 안 열린 표를 넣고, **저장된 행을 그대로
  * 읽는다.** 뒤엣것 때문에 밖으로 연다: 앱이 쓴 값이 엔진이 낸 값과 같은지 견주려면
  * 화면이 아니라 **행**을 봐야 한다(ADR 0071 「재는 자리」).
@@ -413,7 +434,7 @@ async function seed(
   let selfPersonId: string | null = null;
 
   if (wanted.selfPerson) {
-    const saved = await client.rpc('create_self_person', {
+    const saved = await keyedRpc(client, 'create_self_person', {
       p_local_label: label,
       p_calendar: BIRTH.calendar,
       p_original_date: BIRTH.date,
@@ -474,7 +495,7 @@ export async function optIn(api: SupabaseClient, nickname?: string): Promise<voi
     if (named.error) throw new Error(`이름을 못 지었습니다 — ${named.error.message}`);
   }
 
-  const on = await api.rpc('set_discovery_participation', {
+  const on = await keyedRpc(api, 'set_discovery_participation', {
     p_on: true,
     p_summary: {
       glyphCount: 8,
