@@ -475,6 +475,8 @@ describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
     POOL_MODULE,
     'app/me/reading/collect.ts',
     'app/me/reading/pipeline.ts',
+    /** 서버 오류를 운영자에게 알리는 자리 — 라우트 무늬 · 자리 · digest 만 보낸다(`20261108090000`) */
+    'app/request-error.ts',
   ];
 
   const running = (file: string) => !/\.test\.ts$/.test(file);
