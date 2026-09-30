@@ -79,10 +79,7 @@ export default async function MatchingPage() {
   /** 못 읽으면 미리 안 거른다 — 끈 사람이면 아래 RPC 가 참여를 안 연다 */
   const profile = myDiscoveryProfile();
 
-  const { state } = await readAccount<{ status: string; self_person_id: string | null }>(
-    supabase,
-    'status, self_person_id',
-  );
+  const { state } = await readAccount(supabase, ['status', 'self_person_id']);
   if (isBlocked(state)) {
     return (
       <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">

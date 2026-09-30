@@ -14,7 +14,7 @@ import { chartOf } from '@/src/lib/input/chart';
 import { DEFAULT_QUERY } from '@/src/lib/input/query';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 import { DISCOVERY_POLICY } from '@/src/lib/discovery';
-import { PROMPT_VARIANTS } from '@/src/lib/reading';
+import { PROMPT_VARIANTS } from '@/src/lib/reading/variants';
 
 import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
 

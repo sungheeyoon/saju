@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../auth/server-client', () => ({ supabaseOnServer: vi.fn() }));
-vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
+/* 무르는 부름을 적는다 — 덱은 경로가 아니라 지금 화면을 다시 그린다(`app/refresh.ts`) */
+const cacheCalls = vi.hoisted(() => [] as string[]);
+vi.mock('next/cache', () => ({
+  revalidatePath: (path: string) => cacheCalls.push(`revalidatePath ${path}`),
+  refresh: () => cacheCalls.push('refresh'),
+}));
 vi.mock('../summary', () => ({ selfElementSummary: vi.fn() }));
 /* 참여를 켜는 문은 열쇠 모듈이 세션의 사람으로 부른다(G-64, ADR 0136) — 세션과 열쇠만 가짜로 댄다 */
 vi.mock('../../auth/signed-in', () => ({ signedInUser: async () => ({ id: 'u-1', email: undefined }) }));
@@ -9,7 +14,7 @@ vi.mock('../../keyed-client', () => ({ keyedClient: () => ({ rpc: async () => ({
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { selfElementSummary } from '../summary';
-import { restorePassed, savePreferGender, setDiscoveryParticipation } from './actions';
+import { passCandidate, restorePassed, savePreferGender, setDiscoveryParticipation } from './actions';
 
 /**
  * **처음인지를 못 읽었으면 저장하지 않고 값으로 말한다**(ADR 0078).
@@ -80,5 +85,25 @@ describe('요약을 못 읽은 액션', () => {
 
   it('보관함에서 꺼내는 액션은 거절을 값으로 낸다', async () => {
     expect(await restorePassed('someone')).toEqual({ ok: false, message: '내 사주를 먼저 확인해 주세요.' });
+  });
+});
+
+/**
+ * **덱에서 지나치면 지금 화면을 다시 그린다 — 경로를 무르지 않는다**(2026-09-30).
+ *
+ * 전에는 `/me` 를 물러 경로 무르기의 「임시」 부수효과(지금 화면도 다시 그림)로 덱의 빈자리를 채웠다. Next 가 그
+ * 동작을 「그 경로에만」으로 좁히면 덱이 조용히 옛 목록을 든다 — 그래서 `refresh()` 를 부르는지 여기서 잰다.
+ */
+describe('덱에서 지나치기', () => {
+  beforeEach(() => {
+    cacheCalls.length = 0;
+    vi.mocked(supabaseOnServer).mockResolvedValue({
+      from: () => ({ upsert: async () => ({ data: null, error: null }) }),
+    } as never);
+  });
+
+  it('지나치면 지금 화면을 다시 그리고 경로는 무르지 않는다', async () => {
+    expect(await passCandidate('someone')).toEqual({ ok: true });
+    expect(cacheCalls).toEqual(['refresh']);
   });
 });

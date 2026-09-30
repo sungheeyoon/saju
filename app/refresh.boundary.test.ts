@@ -3,7 +3,11 @@ import { join, relative, sep } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { REFRESH_SCREENS, type Changed } from './refresh';
+import { REFRESH_SCREENS, THIS_SCREEN, type Changed } from './refresh';
+
+/** 경로를 적은 칸만 — 지금 화면(`THIS_SCREEN`)은 주소가 없다 */
+const pathsOf = (changed: Changed) =>
+  REFRESH_SCREENS[changed].flatMap((screen) => (screen === THIS_SCREEN ? [] : [screen]));
 
 /**
  * **무르게 하는 일이 표 하나를 지나는가** (ADR 0076).
@@ -265,10 +269,22 @@ describe('표가 가리키는 것', () => {
       }),
   );
 
-  it.each(Object.entries(REFRESH_SCREENS))('%s 가 가리키는 화면이 다 있다', (_changed, screens) => {
-    for (const screen of screens) {
+  it.each(Object.keys(REFRESH_SCREENS) as Changed[])('%s 가 가리키는 화면이 다 있다', (changed) => {
+    for (const screen of pathsOf(changed)) {
       expect(routes.has(screen.path)).toBe(true);
     }
+  });
+
+  /**
+   * **지금 화면을 다시 그리는 것은 덱 하나다.** 경로 무르기의 「임시」 부수효과에 기대던 자리를 `refresh()` 로 옮겼다
+   * (2026-09-30). 다른 이름이 지금 화면을 적기 시작하면 그 누름이 어느 화면을 바꾸는지 표가 말하지 않게 된다.
+   */
+  it('지금 화면을 다시 그리는 이름은 덱 하나뿐이다', () => {
+    const here = (Object.keys(REFRESH_SCREENS) as Changed[]).filter((changed) =>
+      REFRESH_SCREENS[changed].includes(THIS_SCREEN),
+    );
+
+    expect(here).toEqual(['deck-moved']);
   });
 
   /**
@@ -287,7 +303,7 @@ describe('표가 가리키는 것', () => {
    * 빠지면 그 침묵이 그대로 돌아온다.
    */
   it.each(['account-changed', 'signed-up', 'warning-acknowledged'] as const)('%s 는 `/me` 아래를 다 데려간다', (changed) => {
-    expect(REFRESH_SCREENS[changed].find((screen) => screen.path === '/me')?.scope).toBe('layout');
+    expect(pathsOf(changed).find((screen) => screen.path === '/me')?.scope).toBe('layout');
   });
 
   /**
@@ -298,16 +314,15 @@ describe('표가 가리키는 것', () => {
    * 조용히 `/me` 로 좁혀지면 **닫힌 계정이 현관에서 계속 열려 보인다.**
    */
   it('계정이 닫히면 미리 그려진 현관까지 간다', () => {
-    expect(REFRESH_SCREENS['account-closed'].find((screen) => screen.path === '/')?.scope).toBe(
+    expect(pathsOf('account-closed').find((screen) => screen.path === '/')?.scope).toBe(
       'layout',
     );
   });
 
   it('현관을 무르는 이름은 그 하나뿐이다', () => {
-    const others = Object.entries(REFRESH_SCREENS)
-      .filter(([changed]) => changed !== 'account-closed')
-      .filter(([, screens]) => screens.some((screen) => screen.path === '/'))
-      .map(([changed]) => changed);
+    const others = (Object.keys(REFRESH_SCREENS) as Changed[])
+      .filter((changed) => changed !== 'account-closed')
+      .filter((changed) => pathsOf(changed).some((screen) => screen.path === '/'));
 
     expect(others).toEqual([]);
   });
@@ -337,7 +352,7 @@ describe('표가 가리키는 것', () => {
  * 「이 화면이 정말 이 목록인가」를 한 번 더 묻는 자리다.
  */
 describe('표의 값은 계약과 글자까지 같다', () => {
-  const EXPECTED: Readonly<Record<Changed, readonly { path: string; scope?: 'layout' }[]>> = {
+  const EXPECTED: Readonly<Record<Changed, readonly ({ path: string; scope?: 'layout' } | typeof THIS_SCREEN)[]>> = {
     'self-person-saved': [{ path: '/me' }],
     'person-input-edited': [{ path: '/me' }, { path: '/me/people' }],
     'person-list-changed': [{ path: '/me/people' }],
@@ -345,7 +360,7 @@ describe('표의 값은 계약과 글자까지 같다', () => {
     'account-closed': [{ path: '/', scope: 'layout' }],
     'consent-changed': [{ path: '/me/settings' }, { path: '/me' }],
     'discovery-settings-changed': [{ path: '/me/settings' }],
-    'deck-moved': [{ path: '/me' }],
+    'deck-moved': [THIS_SCREEN],
     'match-requested': [{ path: '/me' }, { path: '/me/matching' }],
     'requests-changed': [{ path: '/me/matching' }, { path: '/me/requests' }, { path: '/me' }],
     'report-filed': [{ path: '/me/matching' }],
