@@ -56,7 +56,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 select lives_ok(
-  $$select public.create_self_person('민수','solar','1990-05-15','1990-05-15','14:30',
+  $$select tests.create_self_person('민수','solar','1990-05-15','1990-05-15','14:30',
       'male','서울','jo','localMean',
       (select ok from sample), 'engine-v1')$$,
   '새 서명은 여덟 글자를 함께 받는다');
@@ -139,7 +139,7 @@ from public.app_user u where u.id = (select kim from who);
 grant select on mine to authenticated, service_role;
 
 select is(
-  public.edit_person_input((select person_id from mine),
+  tests.edit_person_input((select person_id from mine),
     'solar','1990-05-15','1990-05-15','14:30','male','서울','jo','localMean',
     (select ok from sample), 'engine-v2'),
   (select version from mine),

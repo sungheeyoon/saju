@@ -16,6 +16,7 @@ import { dirname, join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 
+import { keyedRpc } from './checks.mjs';
 import { clearMachineRunsFromToday, chartArgs } from './notice.mjs';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
@@ -182,7 +183,7 @@ export async function seed(local, wanted, tag) {
 
   let selfPersonId = null;
   if (wanted.selfPerson) {
-    const saved = await client.rpc('create_self_person', {
+    const saved = await keyedRpc(client, 'create_self_person', {
       p_local_label: label,
       p_calendar: BIRTH.calendar,
       p_original_date: BIRTH.date,
@@ -348,7 +349,7 @@ const summaryOf = (counts) => {
  * 한쪽에 빈 칸이 있고 다른 쪽이 그것을 가져야 한다.
  */
 export async function participate(api, counts = EVEN_SUMMARY) {
-  const on = await api.rpc('set_discovery_participation', {
+  const on = await keyedRpc(api, 'set_discovery_participation', {
     p_on: true,
     p_summary: summaryOf(counts),
     p_need: { primary: '木', heaviest: '金', rule: sql('select public.discovery_need_rule()') },

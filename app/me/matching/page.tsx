@@ -14,6 +14,7 @@ import { AccountNotice } from '../account-notice';
 import { candidatesForViewer, passedForViewer } from '../candidates';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { matchesForViewer, requestsForViewer, type InboxMatch } from '../requests/inbox';
+import { openParticipation } from '../keyed-chart-writes';
 import { selfElementSummary } from '../summary';
 import type { DeckCard } from './deck-card';
 import { historySummary } from './history';
@@ -117,12 +118,8 @@ export default async function MatchingPage() {
   const participation = await profile;
   if (participation.ok && participation.value?.optedOut) return <Resting me={me} {...await around()} />;
 
-  // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-  const { data: joined, error: joinError } = await supabase.rpc('ensure_discovery_participation', {
-    p_person_id: self.personId,
-    p_summary: self.summary,
-    p_need: self.need,
-  });
+  /* 참여를 여는 문은 열쇠 모듈이 부른다 — 사람은 세션에서, 요약은 위에서 저장된 입력으로 지은 것(G-64, ADR 0136) */
+  const { data: joined, error: joinError } = await openParticipation(self);
   /* 부름이 터진 것은 「자격이 없다」가 아니다 — 안내를 세우면 사주가 있는 사람에게 채우라고 한다(ADR 0078) */
   if (joinError) throw dbFailure(joinError, 'ensure_discovery_participation');
   if (joined !== true) return <Guide me={me} {...await around()} />;

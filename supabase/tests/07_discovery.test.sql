@@ -89,12 +89,12 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 select throws_ok(
-  format($$select public.set_discovery_participation(true, %L, tests.need())$$, (select 고른네오행 from summaries)),
+  format($$select tests.set_discovery_participation(true, %L, tests.need())$$, (select 고른네오행 from summaries)),
   '23502', null,
   '사주를 등록하기 전에는 참여할 수 없다');
 
 create temporary table mine as
-select public.create_self_person(
+select tests.create_self_person(
   '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean'
 ,
   tests.chart(), 'chart-for-tests') as person_id;
@@ -108,7 +108,7 @@ grant select on mine to authenticated;
 select public.save_my_profile('민수', '조용한 편입니다');
 
 select throws_ok(
-  $$select public.set_discovery_participation(true, '{"counts":{}}'::jsonb, tests.need())$$,
+  $$select tests.set_discovery_participation(true, '{"counts":{}}'::jsonb, tests.need())$$,
   '22023', null,
   '모양이 맞지 않는 요약으로는 참여할 수 없다');
 
@@ -120,7 +120,7 @@ select throws_ok(
  * 「저장한 사람은 자동으로 후보 풀에 든다」는 줄이 코드 어디에도 없게 된다.
  */
 select is(
-  public.ensure_discovery_participation(
+  tests.ensure_discovery_participation(
     (select person_id from mine), (select 고른네오행 from summaries), tests.need()),
   true,
   '켠 적 없어도 요약이 들어오면 참여가 열린다');
@@ -133,7 +133,7 @@ select is(
   '자동 참여도 요약을 지금 입력 판에 붙인다');
 
 -- ── 끄는 것은 사건으로 남는다 ─────────────────────────────────────────────────
-select is(public.set_discovery_participation(false, null), false, '참여를 끈다');
+select is(tests.set_discovery_participation(false, null), false, '참여를 끈다');
 
 select is(
   (select opted_in_at is null and opted_out_at is not null
@@ -150,7 +150,7 @@ select is(
  * **사용자가 한 결정을 우리가 매번 되돌리는 일**이다. 여기서 재는 것이 그 경계다.
  */
 select is(
-  public.ensure_discovery_participation(
+  tests.ensure_discovery_participation(
     (select person_id from mine), (select 고른네오행 from summaries), tests.need()),
   false,
   '끈 사람은 자동으로 다시 켜지지 않는다');
@@ -162,7 +162,7 @@ select is(
 
 -- ── 다시 켜는 것은 끈 기록을 지운다 ───────────────────────────────────────────
 select lives_ok(
-  format($$select public.set_discovery_participation(true, %L, tests.need())$$, (select 고른네오행 from summaries)),
+  format($$select tests.set_discovery_participation(true, %L, tests.need())$$, (select 고른네오행 from summaries)),
   '쉬던 사람이 직접 다시 켠다');
 
 select is(
@@ -216,14 +216,14 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select lee from who)), true);
 
 create temporary table theirs as
-select public.create_self_person(
+select tests.create_self_person(
   '지영', 'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '서울', 'jo', 'localMean'
 ,
   tests.chart(), 'chart-for-tests') as person_id;
 grant select on theirs to authenticated;
 
 select public.save_my_profile('지영', null);
-select public.set_discovery_participation(true, (select 토금뿐 from summaries), tests.need());
+select tests.set_discovery_participation(true, (select 토금뿐 from summaries), tests.need());
 
 reset role;
 
@@ -371,7 +371,7 @@ select set_config('request.jwt.claims', tests.claims((select lee from who)), tru
 update public.discovery_profile set prefer_gender = 'any';
 
 -- 출생정보를 고치면 요약이 낡는다. 낡은 요약은 후보가 아니다.
-select public.edit_person_input((select person_id from theirs),
+select tests.edit_person_input((select person_id from theirs),
   'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '부산', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 reset role;
@@ -391,7 +391,7 @@ select is(
 reset role;
 set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select lee from who)), true);
-select public.set_discovery_participation(true, (select 토금뿐 from summaries), tests.need());
+select tests.set_discovery_participation(true, (select 토금뿐 from summaries), tests.need());
 reset role;
 
 /**

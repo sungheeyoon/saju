@@ -48,11 +48,11 @@ begin
    * **사람마다 일간을 달리 준다.** 둘이 같은 여덟 글자를 들면 「누구 것을 베꼈나」를
    * 가릴 수 없다.
    */
-  perform public.create_self_person(
+  perform tests.create_self_person(
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
     tests.chart(day_stem), 'chart-for-tests');
   perform public.save_my_profile(who, null);
-  perform public.set_discovery_participation(true, summary, tests.need());
+  perform tests.set_discovery_participation(true, summary, tests.need());
   return uid;
 end;
 $$;
@@ -297,7 +297,7 @@ select pg_temp.acting((select lee from folks));
 
 /** 일간까지 갈리게 고친다 — 안 그러면 「안 움직인다」를 한 번도 안 재고 통과한다 */
 select lives_ok(
-  format($$select public.edit_person_input(%L::uuid,
+  format($$select tests.edit_person_input(%L::uuid,
     'solar', '1990-05-15', '1990-05-15', '15:45', 'female', '서울', 'jo', 'localMean',
   tests.chart('壬'), 'chart-for-tests')$$,
     (select lee_person from pinned)),

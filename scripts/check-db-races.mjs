@@ -300,14 +300,15 @@ const accessRow = (actor, outcome = 'allowed') => `
         nickname = '${label}' || right('${stamp}', 4), signed_up_at = now()
       where id = '${uid}';
       perform set_config('request.jwt.claims', '{"sub":"${uid}","role":"authenticated"}', true);
-      perform public.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo',
+      perform public.create_self_person('${uid}'::uuid, '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo',
         'localMean', jsonb_build_object(
           'year', jsonb_build_object('stem', '甲', 'branch', '子'), 'month', jsonb_build_object('stem', '乙', 'branch', '丑'),
           'day', jsonb_build_object('stem', '${stem}', 'branch', '寅'), 'hour', jsonb_build_object('stem', '丁', 'branch', '卯'),
           'dayMaster', '${stem}'), 'chart-for-race');
-      perform public.set_discovery_participation(true,
+      perform public.set_discovery_participation('${uid}'::uuid, true,
         '{"glyphCount":8,"counts":{"木":2,"火":2,"土":2,"金":1,"水":1},"ratios":{"木":0.25,"火":0.25,"土":0.25,"金":0.125,"水":0.125}}'::jsonb,
-        jsonb_build_object('primary', '木', 'heaviest', '金', 'rule', public.discovery_need_rule()));
+        jsonb_build_object('primary', '木', 'heaviest', '金', 'rule', public.discovery_need_rule()),
+        1, 'chart-for-race');
     end $$`);
     return uid;
   };

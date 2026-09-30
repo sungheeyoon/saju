@@ -69,7 +69,7 @@ update public.app_user set improvement_consent = true where id = (select kim fro
 set local role authenticated;
 
 select pg_temp.acting((select kim from folks));
-select public.create_self_person(
+select tests.create_self_person(
   '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 

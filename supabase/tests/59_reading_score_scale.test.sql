@@ -48,7 +48,7 @@ create temporary table folks as select tests.signup('kim-scale@example.com') as 
 grant select on folks to authenticated, service_role;
 
 select pg_temp.acting((select kim from folks));
-select public.create_self_person(
+select tests.create_self_person(
   '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart('甲'), 'chart-for-tests');
 

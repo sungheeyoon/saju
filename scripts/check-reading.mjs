@@ -21,7 +21,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed, fetchWhole } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole, keyedRpc } from './checks.mjs';
 /**
  * **문구를 손으로 안 적는다** — 제품이 쓰는 그 상수를 그대로 든다.
  *
@@ -72,14 +72,14 @@ const person = async (email, label, birth) => {
   const client = anon();
   await client.auth.signUp({ email, password });
   await passNotice(client);
-  await client.rpc('create_self_person', {
+  await keyedRpc(client, 'create_self_person', {
     p_local_label: label, p_calendar: 'solar',
     p_original_date: birth.date, p_solar_date: birth.date, p_birth_time: '14:30',
     p_gender: birth.gender, p_city: birth.city, p_late_night_rule: 'jo', p_time_basis: 'localMean',
     ...chartArgs(label),
   });
   await client.rpc('save_my_profile', { p_nickname: label, p_intro: null });
-  await client.rpc('set_discovery_participation', {
+  await keyedRpc(client, 'set_discovery_participation', {
     p_on: true,
     p_summary: {
       glyphCount: 8,
@@ -730,7 +730,7 @@ try {
   // ── 7. 공유 결과는 매인 판본에 서 있다 ───────────────────────────────────
   {
     const { data: account } = await b.from('app_user').select('self_person_id').maybeSingle();
-    await b.rpc('edit_person_input', {
+    await keyedRpc(b, 'edit_person_input', {
       p_person_id: account.self_person_id,
       p_calendar: 'solar', p_original_date: BIRTH.b.date, p_solar_date: BIRTH.b.date,
       p_birth_time: '05:20', p_gender: BIRTH.b.gender, p_city: BIRTH.b.city,
@@ -766,7 +766,7 @@ try {
     const edit = TONE_OF_STEM[stemBefore] === 'tone-metal'
       ? { date: '1990-05-17', stem: '壬' }
       : { date: BIRTH.a.date, stem: '庚' };
-    await a.rpc('edit_person_input', {
+    await keyedRpc(a, 'edit_person_input', {
       p_person_id: selfId,
       p_calendar: 'solar', p_original_date: edit.date, p_solar_date: edit.date,
       p_birth_time: '09:40', p_gender: BIRTH.a.gender, p_city: BIRTH.a.city,

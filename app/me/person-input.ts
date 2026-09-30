@@ -45,7 +45,15 @@ const PERSON_INPUT_COLUMNS =
  * 되돌려주면 부르는 쪽의 문자열 비교가 전부 어긋난다 — 「이게 내 selfPerson 인가」가
  * 거짓이 되고, 그때 화면은 못 만드는 버튼을 세운다. 정규화는 DB 가 이미 했다.
  */
-type StoredPerson = { readonly id: string; readonly input: StoredInput };
+type StoredPerson = { readonly id: string; readonly input: StoredInput; readonly versions: InputVersions };
+
+/**
+ * 이 입력의 **판 둘** — 입력을 고칠 때마다 오르는 `input_version` 과 여덟 글자를 낸 엔진 판.
+ *
+ * 풀에 요약을 올리는 문이 이 둘을 받아 지금 판과 견준다(ADR 0136) — 입력 A 로 지은 요약이 그 사이 B 로 바뀐 입력의
+ * 판을 달고 서지 않게. 그래서 요약을 짓는 자리는 입력과 **같은 행에서** 판을 함께 읽는다.
+ */
+export type InputVersions = { readonly inputVersion: number; readonly chartEngineVersion: string };
 
 /**
  * 여덟 칸이 **함께 차거나 함께 빈다** — 한 칸이 그 답을 든다.
@@ -53,6 +61,12 @@ type StoredPerson = { readonly id: string; readonly input: StoredInput };
  * DB 검사식이 그렇게 걸려 있다(`num_nonnulls(...) in (0, 7)`). 그래서 한 칸만 보면
  * 되고, 여덟을 다 보면 그 검사식과 같은 말을 두 곳에서 하게 된다.
  */
+/** 입력과 같은 행에서 읽은 판 둘 — 칸 이름을 한 번만 옮긴다 */
+const versionsOf = (row: { input_version: number; chart_engine_version: string }): InputVersions => ({
+  inputVersion: row.input_version,
+  chartEngineVersion: row.chart_engine_version,
+});
+
 const filled = (row: Record<string, unknown> | null): boolean =>
   row !== null && row.calendar !== null && row.calendar !== undefined;
 
@@ -74,14 +88,18 @@ export async function storedInputOf(
      만들지 않는다(ADR 0004). */
   const { data, error } = await supabase
     .from('person')
-    .select(`id, ${PERSON_INPUT_COLUMNS}`)
+    .select(`id, input_version, chart_engine_version, ${PERSON_INPUT_COLUMNS}`)
     .eq('id', personId)
     .maybeSingle();
 
   if (error) throw dbFailure(error, 'person.select');
   if (!filled(data)) return null;
 
-  return { id: data!.id as string, input: data as unknown as StoredInput };
+  return {
+    id: data!.id as string,
+    input: data as unknown as StoredInput,
+    versions: versionsOf(data as { input_version: number; chart_engine_version: string }),
+  };
 }
 
 /**

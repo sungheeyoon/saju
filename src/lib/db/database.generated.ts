@@ -2280,22 +2280,40 @@ export type Database = {
           person_b: string
         }[]
       }
-      create_self_person: {
-        Args: {
-          p_birth_time: string
-          p_calendar: string
-          p_chart: Json
-          p_chart_engine_version: string
-          p_city: string
-          p_gender: string
-          p_late_night_rule: string
-          p_local_label: string
-          p_original_date: string
-          p_solar_date: string
-          p_time_basis: string
-        }
-        Returns: string
-      }
+      create_self_person:
+        | {
+            Args: {
+              p_birth_time: string
+              p_calendar: string
+              p_chart: Json
+              p_chart_engine_version: string
+              p_city: string
+              p_gender: string
+              p_late_night_rule: string
+              p_local_label: string
+              p_original_date: string
+              p_solar_date: string
+              p_time_basis: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_birth_time: string
+              p_calendar: string
+              p_chart: Json
+              p_chart_engine_version: string
+              p_city: string
+              p_gender: string
+              p_late_night_rule: string
+              p_local_label: string
+              p_original_date: string
+              p_solar_date: string
+              p_time_basis: string
+              p_user_id: string
+            }
+            Returns: string
+          }
       current_beta_schedule: {
         Args: never
         Returns: {
@@ -2392,26 +2410,56 @@ export type Database = {
         Returns: boolean
       }
       dispose_requested_accounts: { Args: never; Returns: number }
-      edit_person_input: {
-        Args: {
-          p_birth_time: string
-          p_calendar: string
-          p_chart: Json
-          p_chart_engine_version: string
-          p_city: string
-          p_gender: string
-          p_late_night_rule: string
-          p_original_date: string
-          p_person_id: string
-          p_solar_date: string
-          p_time_basis: string
-        }
-        Returns: number
-      }
-      ensure_discovery_participation: {
-        Args: { p_need?: Json; p_person_id: string; p_summary: Json }
-        Returns: boolean
-      }
+      edit_person_input:
+        | {
+            Args: {
+              p_birth_time: string
+              p_calendar: string
+              p_chart: Json
+              p_chart_engine_version: string
+              p_city: string
+              p_gender: string
+              p_late_night_rule: string
+              p_original_date: string
+              p_person_id: string
+              p_solar_date: string
+              p_time_basis: string
+            }
+            Returns: number
+          }
+        | {
+            Args: {
+              p_birth_time: string
+              p_calendar: string
+              p_chart: Json
+              p_chart_engine_version: string
+              p_city: string
+              p_gender: string
+              p_late_night_rule: string
+              p_original_date: string
+              p_person_id: string
+              p_solar_date: string
+              p_time_basis: string
+              p_user_id: string
+            }
+            Returns: number
+          }
+      ensure_discovery_participation:
+        | {
+            Args: { p_need?: Json; p_person_id: string; p_summary: Json }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_chart_engine_version: string
+              p_input_version: number
+              p_need: Json
+              p_person_id: string
+              p_summary: Json
+              p_user_id: string
+            }
+            Returns: string
+          }
       expire_match_requests: { Args: never; Returns: number }
       fail_reading_job: {
         Args: {
@@ -3276,10 +3324,22 @@ export type Database = {
         }
         Returns: boolean
       }
-      set_discovery_participation: {
-        Args: { p_need?: Json; p_on: boolean; p_summary: Json }
-        Returns: boolean
-      }
+      set_discovery_participation:
+        | {
+            Args: { p_need?: Json; p_on: boolean; p_summary: Json }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_chart_engine_version: string
+              p_input_version: number
+              p_need: Json
+              p_on: boolean
+              p_summary: Json
+              p_user_id: string
+            }
+            Returns: string
+          }
       set_improvement_consent: {
         Args: { p_consent: boolean }
         Returns: undefined

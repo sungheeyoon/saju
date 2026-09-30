@@ -20,11 +20,11 @@ declare
   uid uuid := tests.signup(mail);
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
-  perform public.create_self_person(
+  perform tests.create_self_person(
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
   perform public.save_my_profile(who, null);
-  perform public.set_discovery_participation(true, summary, tests.need());
+  perform tests.set_discovery_participation(true, summary, tests.need());
   return uid;
 end;
 $$;
@@ -252,7 +252,7 @@ select pg_temp.acting((select park from folks));
  * 여기까지 오지 않는다.
  */
 select lives_ok(
-  format($$select public.edit_person_input(%L::uuid,
+  format($$select tests.edit_person_input(%L::uuid,
     'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
     (select park_person from persons)),
@@ -264,7 +264,7 @@ select is(
   '아무것도 안 바뀌었으면 요청은 그대로 산다');
 
 select lives_ok(
-  format($$select public.edit_person_input(%L::uuid,
+  format($$select tests.edit_person_input(%L::uuid,
     'solar', '1990-05-15', '1990-05-15', '15:45', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
     (select park_person from persons)),
@@ -292,7 +292,7 @@ select is(
 -- 이미 거두기 때문이다. 무효화와 수락이 겹치는 찰나를 손으로 세워 두고, 그때도
 -- 수락이 Match 를 만들지 않는지를 잰다(US 44).
 select pg_temp.acting((select park from folks));
-select public.ensure_discovery_participation(
+select tests.ensure_discovery_participation(
   (select park_person from persons), pg_temp.summary(0, 0, 4, 4, 0), tests.need());
 
 /**

@@ -18,7 +18,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed, fetchWhole } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole, keyedRpc } from './checks.mjs';
 /** 공개 범위 목록의 **제품 원본** — 손으로 베끼면 문구가 바뀐 날 검사만 옛 글자를 든다 */
 import { MATCH_DISCLOSURE } from '../src/lib/consent/disclosure.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
@@ -59,7 +59,7 @@ const person = async (email, label, birth, city, gender) => {
   const client = anon();
   await client.auth.signUp({ email, password });
   await passNotice(client);
-  await client.rpc('create_self_person', {
+  await keyedRpc(client, 'create_self_person', {
     p_local_label: label, p_calendar: 'solar',
     p_original_date: birth, p_solar_date: birth, p_birth_time: '14:30',
     p_gender: gender, p_city: city, p_late_night_rule: 'jo', p_time_basis: 'localMean',
@@ -88,7 +88,7 @@ for (const [client, nickname, intro] of [
   [c, NAME.c, '요리를 합니다'],
 ]) {
   await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: intro });
-  await client.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+  await keyedRpc(client, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
 }
 
 /**
@@ -141,6 +141,8 @@ const { base: BASE, stop } = await startCheckServer({
   port: PORT,
   supabaseUrl: API,
   anonKey: status.ANON_KEY,
+  // 풀에 오르는 값(내 사람의 여덟 글자 · 참여 요약)은 앱이 열쇠로 쓴다(G-64, ADR 0136)
+  secretKey: status.SERVICE_ROLE_KEY,
 });
 
 const get = (path, cookie) => fetchWhole(`${BASE}${path}`, { headers: { cookie }, redirect: 'manual' });
@@ -362,7 +364,7 @@ try {
     check('현우에게도 청한다', !asked2.error, asked2.error?.message ?? '');
 
     const { data: account } = await c.from('app_user').select('self_person_id').maybeSingle();
-    await c.rpc('edit_person_input', {
+    await keyedRpc(c, 'edit_person_input', {
       p_person_id: account.self_person_id,
       p_calendar: 'solar', p_original_date: '1988-11-20', p_solar_date: '1988-11-20',
       p_birth_time: '20:10', p_gender: 'male', p_city: '대구',
@@ -417,8 +419,8 @@ try {
     const e = await person(eMail, '태호', '1989-02-02', '광주', 'male');
     await d.rpc('save_my_profile', { p_nickname: NAME.d, p_intro: null });
     await e.rpc('save_my_profile', { p_nickname: NAME.e, p_intro: null });
-    await d.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
-    await e.rpc('set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+    await keyedRpc(d, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+    await keyedRpc(e, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
 
     isolate([aMail, bMail, cMail, dMail, eMail]);
 

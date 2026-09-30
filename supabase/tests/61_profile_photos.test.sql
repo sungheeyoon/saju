@@ -149,20 +149,20 @@ select is(
 
 /* 김과 이가 서로의 후보로 선다 — `24_profile` 과 같은 자리 */
 select pg_temp.acting((select kim from who));
-select public.create_self_person(
+select tests.create_self_person(
   '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 select public.save_my_profile('김사진', null);
-select public.set_discovery_participation(true,
+select tests.set_discovery_participation(true,
   '{"glyphCount":8,"counts":{"木":4,"火":4,"土":0,"金":0,"水":0},"ratios":{"木":0.5,"火":0.5,"土":0,"金":0,"水":0}}'::jsonb,
   tests.need());
 
 select pg_temp.acting((select lee from who));
-select public.create_self_person(
+select tests.create_self_person(
   '나', 'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 select public.save_my_profile('이사진', null);
-select public.set_discovery_participation(true,
+select tests.set_discovery_participation(true,
   '{"glyphCount":8,"counts":{"木":0,"火":0,"土":4,"金":4,"水":0},"ratios":{"木":0,"火":0,"土":0.5,"金":0.5,"水":0}}'::jsonb,
   tests.need());
 

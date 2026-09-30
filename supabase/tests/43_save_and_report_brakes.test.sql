@@ -46,7 +46,7 @@ set local role authenticated;
 select pg_temp.acting((select kim from who));
 
 select lives_ok(
-  $$select public.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울',
+  $$select tests.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울',
       'jo', 'localMean', tests.chart(), 'chart-for-tests')$$,
   '나 자신은 빗장 밖이다');
 

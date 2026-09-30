@@ -13,6 +13,9 @@ vi.mock('../summary', () => ({
     need: { primary: '木', heaviest: '金', rule: 'test-rule' },
   }),
 }));
+/** 참여를 여는 문은 열쇠 모듈이 부른다(G-64, ADR 0136) — 그 답만 바꿔 끼운다 */
+const joinedNow = vi.hoisted(() => ({ answer: { data: null as unknown, error: null as unknown } }));
+vi.mock('../keyed-chart-writes', () => ({ openParticipation: async () => joinedNow.answer }));
 vi.mock('../discovery/discovery-profile', () => ({ myDiscoveryProfile: async () => ({ ok: true, value: null }) }));
 vi.mock('../payload', () => ({ payloadForViewer: async () => null }));
 vi.mock('../requests/inbox', () => ({
@@ -37,11 +40,13 @@ import { HistoryRow } from './history-row';
  * 있는 사람이 「사주를 먼저 채우라」를 받았다. 덱이 이 화면의 본체라 오류 경계로 던진다.
  */
 
-const answering = (joined: { data: unknown; error: unknown }) =>
-  vi.mocked(supabaseOnServer).mockResolvedValue({
+const answering = (joined: { data: unknown; error: unknown }) => {
+  joinedNow.answer = joined;
+  return vi.mocked(supabaseOnServer).mockResolvedValue({
     rpc: async () => joined,
     from: () => ({ select: () => ({ maybeSingle: async () => ({ data: { status: 'active', self_person_id: 'p-self' }, error: null }) }) }),
   } as never);
+};
 
 beforeEach(() => vi.mocked(supabaseOnServer).mockReset());
 

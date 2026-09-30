@@ -49,11 +49,11 @@ declare
 begin
   perform set_config('request.jwt.claims', tests.claims(uid), true);
   /** 여덟 글자를 함께 넣는다(ADR 0071) — 없으면 아래 스냅샷 시험이 `null` 끼리 견준다 */
-  perform public.create_self_person(
+  perform tests.create_self_person(
     '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
     tests.chart(day_stem), 'chart-for-tests');
   perform public.save_my_profile(who, null);
-  perform public.set_discovery_participation(true, summary, tests.need());
+  perform tests.set_discovery_participation(true, summary, tests.need());
   return uid;
 end;
 $$;
@@ -259,7 +259,7 @@ create temporary table run_stale as
 select run_id as id from public.start_reading_run('self', 'key-self-0003');
 grant select on run_stale to authenticated, service_role;
 
-select public.edit_person_input(
+select tests.edit_person_input(
   (select kim_person from people),
   'solar', '1990-05-15', '1990-05-15', '15:30', 'female', '서울', 'jo', 'localMean',
   tests.chart('丁'), 'chart-for-tests');
@@ -320,7 +320,7 @@ select pg_temp.acting((select kim from folks));
  * 앞서는 그때 화면이 「이전 입력」이라 적었다 — **한쪽으로 거짓말하던 자리다.** 화면이
  * 하려는 말은 「이전 명식」이므로 여덟 글자로 견주는 쪽이 맞다.
  */
-select public.edit_person_input(
+select tests.edit_person_input(
   (select kim_person from people),
   'solar', '1990-05-15', '1990-05-15', '15:30', 'female', '부산', 'jo', 'localMean',
   tests.chart('丙'), 'chart-for-tests');
@@ -374,7 +374,7 @@ select throws_ok(
  * 위에서 김이 입력을 고쳤으므로 내놓은 오행 요약이 낡았다 — 낡으면 후보가 아니다
  * (ADR 0003 「이행」). 요약을 지금 판본의 것으로 다시 내놓아야 청할 수 있다.
  */
-select public.ensure_discovery_participation(
+select tests.ensure_discovery_participation(
   (select kim_person from people), pg_temp.summary(4, 4, 0, 0, 0), tests.need());
 
 -- 요청은 **노출 기록에 매인다**(ADR 0009). 목록을 먼저 열어야 청할 수 있다.
@@ -895,6 +895,14 @@ select is(
     'audit_export_finish',
     'cancel_reading_order',
     'claim_reading_job',
+    /**
+     * 풀에 오르는 값을 쓰는 문 넷(G-64 길 ①, ADR 0136) — 내 사람의 여덟 글자와 풀의 요약 둘. 부르는 자리는
+     * `app/me/keyed-chart-writes.ts` 하나이고, 사람 id 는 세션에서, 값은 그 사람의 저장된 입력에서 서버가 짓는다.
+     * 로그인한 사람은 넷 다 직접 못 부른다(`72_pool_values_keyed`).
+     */
+    'create_self_person',
+    'edit_person_input',
+    'ensure_discovery_participation',
     'fail_reading_job',
     'mark_reading_webhook_processed',
     /** 동의가 연 시도를 서버가 찾아 제출한다 — 부르는 사람은 요청자가 아니다(ADR 0038) */
@@ -923,6 +931,7 @@ select is(
     */
     'save_reading',
     'set_discovery_need_summary',
+    'set_discovery_participation',
     /**
      * 엔진 판이 바뀐 뒤 **남의** Person 의 여덟 글자를 다시 채우는 운영 문(ADR 0071).
      * RLS 가 앱 세션에 남의 입력을 안 열어 주므로 이 일은 열쇠로만 된다 — 임시 장치가
@@ -933,7 +942,7 @@ select is(
     /** 얼린 작업을 집는 문 — 조회가 아니라 `frozen` → `preparing` 전이다(ADR 0071 · #66) */
     'take_reading_job'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 열아홉 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 스물일곱 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

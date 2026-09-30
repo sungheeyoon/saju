@@ -60,7 +60,7 @@ select is(
  * 보관하는지 알리지 않으면, 알린 적 없는 처리가 시작된다.
  */
 select throws_like(
-  $$select public.create_self_person(
+  $$select tests.create_self_person(
       '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
   '%가입을 먼저%',
@@ -109,7 +109,7 @@ select pg_temp.acting((select kim from fresh));
 -- ── 지나온 뒤 ──────────────────────────────────────────────────────────────
 
 select lives_ok(
-  $$select public.create_self_person(
+  $$select tests.create_self_person(
       '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
   '가입을 끝낸 뒤에는 첫 입력이 들어간다');

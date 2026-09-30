@@ -79,3 +79,40 @@ export async function fetchWhole(url, init) {
   const empty = [101, 204, 205, 304].includes(response.status);
   return new Response(empty ? null : body, { status: response.status, statusText: response.statusText, headers: response.headers });
 }
+
+/**
+ * 풀에 오르는 값을 쓰는 문 넷을 **그 사람으로** 부른다 — 앱의 열쇠 모듈이 하는 일을 흐름 검사가 흉내 낸다(G-64, ADR 0136).
+ *
+ * `create_self_person` · `edit_person_input` · `set_discovery_participation` · `ensure_discovery_participation` 은
+ * `service_role` 에만 열려 있고 첫 인자로 사람 id 를 받는다. 앱에서는 `app/me/keyed-chart-writes.ts` 가 세션에서 그 id 를
+ * 얻는다. 여기서는 로그인한 클라이언트의 세션에서 얻어 로컬 스택의 열쇠로 부른다 — 나머지 인자는 옛 판과 같고 답의 모양
+ * (`{ data, error }`)도 같아서, 부르던 자리는 `client.rpc(이름, …)` 를 `keyedRpc(client, 이름, …)` 로 바꾸기만 했다.
+ * 사용자 역할이 이 문을 직접 못 부르는 것은 pgTAP(`72_pool_values_keyed`)이 잰다.
+ */
+let keyedOnce = null;
+export async function keyedRpc(client, name, args) {
+  if (keyedOnce === null) {
+    const { createClient } = await import('@supabase/supabase-js');
+    const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
+    keyedOnce = createClient(status.API_URL, status.SECRET_KEY ?? status.SERVICE_ROLE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  const { data } = await client.auth.getSession();
+  const userId = data.session?.user.id ?? null;
+  return keyedOnce.rpc(name, { p_user_id: userId, ...versionsFor(name, userId), ...args });
+}
+
+/**
+ * 참여의 두 문은 **요약을 지은 입력의 판 둘**을 더 받는다(ADR 0136). 흐름 검사의 요약은 모양만 맞는 한 벌이라 지은 입력이
+ * 따로 없으므로 **지금 저장된 판**을 싣는다 — 판이 엇갈린 갈래는 pgTAP `71_pool_summary_is_stamped_with_its_input` 이 잰다.
+ */
+const WITH_VERSIONS = new Set(['set_discovery_participation', 'ensure_discovery_participation']);
+function versionsFor(name, userId) {
+  if (!WITH_VERSIONS.has(name) || userId === null) return {};
+  const [input, engine] = sql(
+    `select p.input_version || '|' || p.chart_engine_version from public.app_user u
+     join public.person p on p.id = u.self_person_id where u.id = '${userId}'`,
+  ).split('|');
+  return input ? { p_input_version: Number(input), p_chart_engine_version: engine } : { p_input_version: null, p_chart_engine_version: null };
+}

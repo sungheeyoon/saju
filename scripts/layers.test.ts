@@ -47,7 +47,6 @@ const ALLOWED_LIB_EDGES = new Set([
  */
 const SCREEN_DB_CALLS_STILL_THERE = new Set([
   "app/compat/page.tsx :: supabase.from('user_person_access')",
-  "app/me/matching/page.tsx :: supabase.rpc('ensure_discovery_participation', …)",
   "app/me/people/page.tsx :: supabase.from('user_person_access')",
   "app/me/people/page.tsx :: supabase.rpc('my_person_slots')",
   "app/me/(shelf)/readings/[subject]/page.tsx :: supabase.from('user_person_access')",
@@ -388,7 +387,13 @@ describe('화면 안의 DB 호출 (ADR 0072·0078·0085)', () => {
  * `import()` 가 같은 그래프다. 닿으면 안 되는 것은 입구(`index`)와 프롬프트 원문(`prompt`)이다.
  */
 describe('브라우저로 가는 그래프', () => {
-  const NOT_IN_BROWSER = new Set(['src/lib/reading/index.ts', 'src/lib/reading/prompt.ts']);
+  const NOT_IN_BROWSER = new Set([
+    'src/lib/reading/index.ts',
+    'src/lib/reading/prompt.ts',
+    // 열쇠와 그것을 드는 풀의 쓰기(G-64, ADR 0136) — `server-only` 가 빌드를 세우지만, 길을 보여 주는 것은 여기다
+    'app/keyed-client.ts',
+    'app/me/keyed-chart-writes.ts',
+  ]);
 
   const directivesOf = (file: string): string[] => {
     const out: string[] = [];
@@ -442,5 +447,103 @@ describe('브라우저로 가는 그래프', () => {
 
   it("'use client' 파일에서 값으로 닿는 모듈에 풀이 입구와 프롬프트 원문이 없다", () => {
     expect([...NOT_IN_BROWSER].filter((file) => cameFrom.has(file)).map(pathTo)).toEqual([]);
+  });
+});
+
+/**
+ * **열쇠(`service_role`)는 이름으로 든 자리에만 있다**(G-64 길 ①, ADR 0136).
+ *
+ * 풀에 오르는 요약과 내 사람의 여덟 글자를 쓰는 문 넷이 로그인한 사람에게 닫히고 열쇠로만 열렸다. 그 대가로 **열쇠가
+ * 사용자 경로에 한 자리 더 들어왔다** — 그 자리의 실수가 곧 권한 우회다. 그래서 셋을 잰다: 열쇠를 부르는 파일이 목록
+ * 그대로인가, 문 넷을 부르는 자리가 열쇠 모듈 하나인가, 열쇠 모듈이 그 넷 밖을 부르거나 사람 id 를 인자로 받지 않는가.
+ * 린트(`eslint.config.mjs` 의 `KEY_HOLDERS`)가 편집기에서 같은 목록을 알려 준다 — 둘이 같은 목록인지도 여기서 잰다.
+ */
+describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
+  const KEYED_CLIENT = 'app/keyed-client';
+  const POOL_MODULE = 'app/me/keyed-chart-writes.ts';
+  const POOL_DOORS = new Set([
+    'create_self_person',
+    'edit_person_input',
+    'ensure_discovery_participation',
+    'set_discovery_participation',
+  ]);
+  const KEY_HOLDERS = [
+    'app/api/cron/audit-export/route.ts',
+    'app/api/cron/reading/route.ts',
+    'app/api/openai/webhook/route.ts',
+    'app/api/portone/webhook/route.ts',
+    POOL_MODULE,
+    'app/me/reading/collect.ts',
+    'app/me/reading/pipeline.ts',
+  ];
+
+  const running = (file: string) => !/\.test\.ts$/.test(file);
+  const appSources = SOURCE_FILES.map(relPath).filter(
+    (file) => (under(file, 'app') || under(file, 'src') || file === 'proxy.ts') && running(file),
+  );
+
+  /** `.rpc('이름', …)` 의 이름 — 문자열 리터럴로 적힌 것 */
+  function rpcNamesOf(file: string): { name: string; line: number }[] {
+    const source = parse(join(ROOT, file));
+    const out: { name: string; line: number }[] = [];
+    const visit = (node: ts.Node) => {
+      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === 'rpc') {
+        const name = literalOf(node.arguments[0]);
+        if (name !== null) out.push({ name, line: source.getLineAndCharacterOfPosition(node.getStart()).line + 1 });
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+    return out;
+  }
+
+  it('열쇠 클라이언트를 부르는 파일은 목록 그대로다 — 시험 파일 밖에서', () => {
+    const holders = [...new Set(EDGES.filter((edge) => edge.target === KEYED_CLIENT && running(edge.file)).map((edge) => edge.file))];
+    expect(holders.sort()).toEqual([...KEY_HOLDERS].sort());
+  });
+
+  it('린트의 목록(KEY_HOLDERS)이 이 목록과 같다', () => {
+    const config = readFileSync(join(ROOT, 'eslint.config.mjs'), 'utf8');
+    const listed = /export const KEY_HOLDERS = \[([^\]]*)\]/.exec(config)?.[1] ?? '';
+    const names = [...listed.matchAll(/"([^"]+)"/g)].map((found) => found[1]);
+    expect(names.sort()).toEqual([...KEY_HOLDERS].sort());
+  });
+
+  it('풀에 오르는 값을 쓰는 문 넷은 열쇠 모듈에서만 부른다', () => {
+    const outside = appSources
+      .filter((file) => file !== POOL_MODULE)
+      .flatMap((file) => rpcNamesOf(file).filter(({ name }) => POOL_DOORS.has(name)).map(({ name, line }) => `${file}:${line} ${name}`));
+    expect(outside).toEqual([]);
+  });
+
+  it('열쇠 모듈은 그 넷만 부르고, 표를 직접 만지지 않는다', () => {
+    const names = rpcNamesOf(POOL_MODULE).map(({ name }) => name);
+    expect(names.length).toBeGreaterThanOrEqual(POOL_DOORS.size);
+    expect(new Set(names)).toEqual(POOL_DOORS);
+    expect(readFileSync(join(ROOT, POOL_MODULE), 'utf8')).not.toMatch(/\.from\(/);
+  });
+
+  it("열쇠 모듈은 server-only 로 잠겨 있고, 서버 액션('use server')이 아니다 — 브라우저가 직접 못 부른다", () => {
+    const text = readFileSync(join(ROOT, POOL_MODULE), 'utf8');
+    expect(text).toMatch(/^import 'server-only';$/m);
+    expect(text).not.toMatch(/^['"]use server['"]/m);
+  });
+
+  it('열쇠 모듈이 내보내는 함수는 사람 id 를 인자로 받지 않고, 열쇠를 내보내지 않는다', () => {
+    const source = parse(join(ROOT, POOL_MODULE));
+    const exported: { name: string; params: string[] }[] = [];
+    ts.forEachChild(source, (node) => {
+      const isExported = ts.canHaveModifiers(node) && ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+      if (!isExported) return;
+      if (ts.isFunctionDeclaration(node) && node.name) {
+        exported.push({ name: node.name.text, params: node.parameters.map((p) => p.name.getText(source)) });
+      } else if (ts.isVariableStatement(node)) {
+        for (const declaration of node.declarationList.declarations) exported.push({ name: declaration.name.getText(source), params: [] });
+      }
+    });
+    expect(exported.map(({ name }) => name).sort()).toEqual(
+      ['createSelfPerson', 'editPersonInput', 'openParticipation', 'setParticipation'].sort(),
+    );
+    expect(exported.flatMap(({ name, params }) => params.filter((param) => /user|actor|account/i.test(param)).map((param) => `${name}(${param})`))).toEqual([]);
   });
 });

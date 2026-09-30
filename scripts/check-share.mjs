@@ -20,7 +20,7 @@ import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, fetchWhole } from './checks.mjs';
+import { createChecks, fetchWhole, keyedRpc } from './checks.mjs';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -114,7 +114,7 @@ const person = async (email, label) => {
   const client = anon();
   await client.auth.signUp({ email, password });
   await passNotice(client);
-  await client.rpc('create_self_person', {
+  await keyedRpc(client, 'create_self_person', {
     p_local_label: label, p_calendar: 'solar',
     p_original_date: '1990-05-15', p_solar_date: '1990-05-15', p_birth_time: '14:30',
     p_gender: 'female', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',

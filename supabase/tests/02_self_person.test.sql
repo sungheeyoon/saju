@@ -37,7 +37,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 select throws_like(
-  $$select public.create_self_person(
+  $$select tests.create_self_person(
       '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests')$$,
   '%가입을 먼저%',
@@ -49,7 +49,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select kim from who)), true);
 
 create temporary table target as
-select public.create_self_person(
+select tests.create_self_person(
   '민수', 'solar', '1990-05-15', '1990-05-15', '14:30', 'male', '서울', 'jo', 'localMean'
 ,
   tests.chart(), 'chart-for-tests') as person_id;
@@ -86,7 +86,7 @@ select is(
   'Person 이 자기 입력을 1판으로 든다');
 
 select throws_ok(
-  $$select public.create_self_person('민수2','solar','1991-01-01','1991-01-01','09:00','male','서울','jo','localMean', tests.chart(), 'chart-for-tests')$$,
+  $$select tests.create_self_person('민수2','solar','1991-01-01','1991-01-01','09:00','male','서울','jo','localMean', tests.chart(), 'chart-for-tests')$$,
   '23505', null,
   '두 번째 selfPerson 은 조용히 덮어쓰지 않고 거절한다');
 
@@ -101,12 +101,12 @@ select set_config('request.jwt.claims', tests.claims((select lee from who)), tru
 -- 하므로 DB 가 잡을 수 있는 것은 **변환을 아예 건너뛴 쓰기**다 — 원본을 두 칸에
 -- 그대로 넣으면 음력 날짜가 양력인 척 판본으로 굳는다.
 select throws_ok(
-  $$select public.create_self_person('지영','lunar','1992-02-28','1992-02-28','09:00','female','부산','jo','localMean', tests.chart(), 'chart-for-tests')$$,
+  $$select tests.create_self_person('지영','lunar','1992-02-28','1992-02-28','09:00','female','부산','jo','localMean', tests.chart(), 'chart-for-tests')$$,
   '23514', null,
   '음력인데 변환값이 원본과 같으면 거절한다 — 변환을 건너뛴 쓰기다');
 
 -- 시각 미상은 정오로 메우지 않는다 — 빈 칸으로 남는다.
-select public.create_self_person(
+select tests.create_self_person(
   '지영', 'solar', '1992-03-02', '1992-03-02', null, 'female', '부산', 'ya', 'record',
   tests.chart('丙', false), 'chart-for-tests');
 select is((select p.birth_time from public.person p

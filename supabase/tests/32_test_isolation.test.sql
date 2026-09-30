@@ -23,10 +23,10 @@ declare u uuid;
 begin
   for u in select keeper from two union all select outsider from two loop
     perform set_config('request.jwt.claims', tests.claims(u), true);
-    perform public.create_self_person(
+    perform tests.create_self_person(
       '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
       tests.chart(), 'chart-for-tests');
-    perform public.set_discovery_participation(true,
+    perform tests.set_discovery_participation(true,
       '{"glyphCount":8,"counts":{"木":4,"火":4,"土":0,"金":0,"水":0},"ratios":{"木":0.5,"火":0.5,"土":0,"金":0,"水":0}}'::jsonb, tests.need());
   end loop;
 end;
@@ -59,7 +59,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', tests.claims((select outsider from two)), true);
 
 select is(
-  public.ensure_discovery_participation(
+  tests.ensure_discovery_participation(
     (select self_person_id from public.app_user where id = (select outsider from two)),
     '{"glyphCount":8,"counts":{"木":4,"火":4,"土":0,"金":0,"水":0},"ratios":{"木":0.5,"火":0.5,"土":0,"金":0,"水":0}}'::jsonb, tests.need()),
   false,

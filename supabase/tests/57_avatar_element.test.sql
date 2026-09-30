@@ -27,10 +27,10 @@ begin
     u := tests.signup('avatar-' || one.who || '@example.com');
     insert into folks values (one.who, one.stem, u);
     perform set_config('request.jwt.claims', tests.claims(u), true);
-    perform public.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
+    perform tests.create_self_person('나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
       tests.chart(one.stem), 'chart-for-tests');
     perform public.save_my_profile(one.who, null);
-    perform public.set_discovery_participation(true,
+    perform tests.set_discovery_participation(true,
       '{"glyphCount":8,"counts":{"木":2,"火":2,"土":2,"金":1,"水":1},"ratios":{"木":0.25,"火":0.25,"土":0.25,"金":0.125,"水":0.125}}'::jsonb, tests.need());
   end loop;
 end;

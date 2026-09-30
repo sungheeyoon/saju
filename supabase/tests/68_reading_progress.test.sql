@@ -64,7 +64,7 @@ grant select on folks to authenticated, anon;
 set local role authenticated;
 
 select pg_temp.acting((select owner from folks));
-select public.create_self_person(
+select tests.create_self_person(
   '나', 'solar', '1991-03-03', '1991-03-03', '09:00', 'male', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 

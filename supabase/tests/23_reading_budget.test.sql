@@ -52,17 +52,17 @@ language sql
 as $$ select set_config('request.jwt.claims', tests.claims(who), true); select null::void; $$;
 
 select pg_temp.becomes((select kim from folks));
-select public.create_self_person(
+select tests.create_self_person(
   '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 
 select pg_temp.becomes((select lee from folks));
-select public.create_self_person(
+select tests.create_self_person(
   '나', 'solar', '1992-03-03', '1992-03-03', '09:00', 'female', '부산', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 
 select pg_temp.becomes((select park from folks));
-select public.create_self_person(
+select tests.create_self_person(
   '나', 'solar', '1988-11-20', '1988-11-20', '05:40', 'male', '대구', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 

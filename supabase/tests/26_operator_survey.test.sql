@@ -82,7 +82,7 @@ where id in (select kim from folks union all select lee from folks);
 set local role authenticated;
 
 select pg_temp.acting((select kim from folks));
-select public.create_self_person(
+select tests.create_self_person(
   '나', 'solar', '1990-05-15', '1990-05-15', '14:30', 'female', '서울', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 
@@ -127,7 +127,7 @@ select pg_temp.answer('ops-kim-0002', 'reading-prompt-v10', 4, 4, 'right',
   array['abstract'], null);
 
 select pg_temp.acting((select lee from folks));
-select public.create_self_person(
+select tests.create_self_person(
   '너', 'solar', '1992-08-02', '1992-08-02', '09:20', 'male', '부산', 'jo', 'localMean',
   tests.chart(), 'chart-for-tests');
 

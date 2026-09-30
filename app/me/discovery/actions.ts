@@ -6,6 +6,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { publicCardFromRow } from '../candidates';
 import { selfElementSummary } from '../summary';
+import { setParticipation } from '../keyed-chart-writes';
 import { PREFER_GENDERS, type PreferGender } from '@/src/lib/discovery';
 import { userFacingDbMessage } from '../../db-error';
 
@@ -49,40 +50,20 @@ export async function savePreferGender(value: PreferGender): Promise<SaveResult>
 /**
  * 매칭 참여를 켜고 끈다.
  *
- * **켤 때 오행 요약을 함께 낸다.** 요약은 브라우저가 아니라 여기서 내 판본을 읽어
- * 만든다 — 클라이언트가 지어 보낼 수 있으면 매칭 풀에 아무 요약이나 올라간다.
- * 자격(사주가 있는가·계정이 살아 있는가)은 RPC 가 묻는다 — 이름은 이미 있다(PRD 「이름과 얼굴」).
+ * **켤 때 오행 요약을 함께 낸다.** 요약은 브라우저가 아니라 서버가 내 저장된 입력에서 짓고, 열쇠 모듈이 세션의
+ * 사람으로 문을 부른다(`../keyed-chart-writes`, G-64 · ADR 0136) — 클라이언트가 지어 보낼 수 있으면 매칭 풀에 아무
+ * 요약이나 올라간다. 자격(사주가 있는가·계정이 살아 있는가)은 RPC 가 묻는다 — 이름은 이미 있다(PRD 「이름과 얼굴」).
  */
 export async function setDiscoveryParticipation(on: boolean): Promise<SaveResult> {
-  const supabase = await supabaseOnServer();
+  const written = await setParticipation(on);
 
-  if (!on) {
-    const { error } = await supabase.rpc('set_discovery_participation', {
-      p_on: false,
-      p_summary: null,
-      p_need: null,
-    });
-    if (error) return { ok: false, message: userFacingDbMessage(error, 'set_discovery_participation') };
-
-    refresh('discovery-settings-changed');
-    return { ok: true };
-  }
-
-  // 요약의 문은 DB 실패를 던진다. 액션은 던지지 않고 값으로 말한다 — 못 읽은 것도 같은 거절이다
-  const self = await selfElementSummary().catch(() => null);
-  if (self === null) {
+  if ('noSelf' in written) {
     return {
       ok: false,
       message: '내 사주를 불러오지 못했어요. 홈 탭에 내 사주 카드가 보이는지 확인하고 다시 시도해 주세요.',
     };
   }
-
-  const { error } = await supabase.rpc('set_discovery_participation', {
-    p_on: true,
-    p_summary: self.summary,
-    p_need: self.need,
-  });
-  if (error) return { ok: false, message: userFacingDbMessage(error, 'set_discovery_participation') };
+  if (written.error) return { ok: false, message: userFacingDbMessage(written.error, 'set_discovery_participation') };
 
   refresh('discovery-settings-changed');
   return { ok: true };

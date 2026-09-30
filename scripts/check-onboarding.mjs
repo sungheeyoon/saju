@@ -14,7 +14,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { execFileSync } from 'node:child_process';
 import { CHECK_CODE, NOTICE_VERSION, passNotice, scheduleBeta, seedSignupCode, chartArgs } from './notice.mjs';
-import { createChecks } from './checks.mjs';
+import { createChecks, keyedRpc } from './checks.mjs';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
 const API = status.API_URL;
@@ -65,7 +65,7 @@ const client = anon();
    * **여기가 출생 정보가 처음 들어오는 자리다.** 화면에도 관문이 있지만(`proxy.ts`)
    * 되돌릴 수 없는 첫 쓰기는 DB 가 막는다 — 화면만 막으면 이렇게 RPC 로 지나간다.
    */
-  const { error } = await client.rpc('create_self_person', {
+  const { error } = await keyedRpc(client, 'create_self_person', {
     p_local_label: '민수', p_calendar: 'solar',
     p_original_date: '1990-05-15', p_solar_date: '1990-05-15', p_birth_time: '14:30',
     p_gender: 'male', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',
@@ -111,7 +111,7 @@ const client = anon();
 // ── 4. 자기 사주를 저장한다 ───────────────────────────────────────────────────
 {
   await passNotice(client);
-  const { error } = await client.rpc('create_self_person', {
+  const { error } = await keyedRpc(client, 'create_self_person', {
     p_local_label: '민수',
     p_calendar: 'solar',
     p_original_date: '1990-05-15',
@@ -125,7 +125,7 @@ const client = anon();
   });
   check('자기 사주를 저장한다', error === null, error?.message);
 
-  const { error: again } = await client.rpc('create_self_person', {
+  const { error: again } = await keyedRpc(client, 'create_self_person', {
     p_local_label: '민수2', p_calendar: 'solar',
     p_original_date: '1991-01-01', p_solar_date: '1991-01-01', p_birth_time: '09:00',
     p_gender: 'male', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean',
@@ -189,7 +189,7 @@ const other = anon();
 // ── 7. 고치면 그 자리가 바뀐다 ───────────────────────────────────────────────
 {
   const editInput = (patch) =>
-    client.rpc('edit_person_input', {
+    keyedRpc(client, 'edit_person_input', {
       p_person_id: personId,
       p_calendar: 'solar',
       p_original_date: '1990-05-15',
@@ -314,7 +314,7 @@ const other = anon();
 
 // ── 8. 남은 못 고친다 — RPC 는 정책을 지나가므로 스스로 물어야 한다 ───────────
 {
-  const { error } = await other.rpc('edit_person_input', {
+  const { error } = await keyedRpc(other, 'edit_person_input', {
     p_person_id: personId,
     p_calendar: 'solar', p_original_date: '1980-01-01', p_solar_date: '1980-01-01',
     p_birth_time: '01:00', p_gender: 'male', p_city: '서울',
