@@ -35,7 +35,7 @@ export function ReceivedReadings({ readings }: { readings: readonly ReadingEntry
   const shown = singles.slice(0, hasSelf ? SHOWN_WIDE : SHOWN_WIDE - 1);
 
   return (
-    <section aria-labelledby="home-readings" className="flex min-w-0 flex-col gap-3 sm:gap-4">
+    <section aria-labelledby="home-readings" className="flex min-w-0 flex-col gap-2 sm:gap-4">
       <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
         <h2 id="home-readings" className={`${TYPE_SECTION} flex items-baseline gap-2`}>
           내가 받은 사주풀이
