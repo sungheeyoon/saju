@@ -48,6 +48,14 @@ describe('무엇을 세는가', () => {
     expect(measureMarkdown(`${body(4, 10)}\n\n### 근거 (검사용)\n\n한 줄`).headings).toBe(4);
   });
 
+  /** 모델이 가끔 근거 제목을 `##` 로 쓴다(2026-09-30, 운영자 답) — 그 제목도 소제목이 아니고 분량도 아니다 */
+  it('근거 제목이 `##` 로 와도 소제목으로 안 세고 분량에서 뺀다', () => {
+    const measured = measureMarkdown(`${body(4, 10)}\n\n## 근거 (검사용)\n\n${'나'.repeat(500)}`);
+
+    expect(measured.headings).toBe(4);
+    expect(measured.length).toBeLessThan(200);
+  });
+
   it('첫 절만 재고 둘째 절에서 끊는다', () => {
     const measured = measureMarkdown(`## 1. 한 줄로\n\n${'가'.repeat(30)}\n\n## 2. 무슨 때인가\n\n${'나'.repeat(400)}`);
 

@@ -1,8 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '../saju';
-import { CONTROL, FALLBACK_NAMES, READING_PROMPTS, readingEvidenceOf, readingPromptOf } from '.';
-import { SEAT_NAMES, calledName, namedMatchBody, readingBody, readingGrounding } from './display';
+import {
+  CONTROL,
+  FALLBACK_NAMES,
+  READING_PROMPTS,
+  readingEvidenceOf,
+  readingPromptOf,
+  selfSectionTitlesOf,
+} from '.';
+import {
+  GROUNDING_HEADING,
+  SEAT_NAMES,
+  calledName,
+  namedMatchBody,
+  readingBody,
+  readingGrounding,
+} from './display';
+import { PROMPT_VARIANTS } from './variants';
 
 describe('옛 공유 궁합의 자리 호칭', () => {
   const names = { me: '나', partner: '지영' } as const;
@@ -91,6 +106,59 @@ describe('사용자가 읽는 사주풀이 본문', () => {
     const markdown = '## 한 줄로\n\n이 판단의 근거는 두 흐름이 겹친다는 점입니다.';
 
     expect(readingBody(markdown)).toBe(markdown);
+  });
+});
+
+/**
+ * **근거 절 제목은 `##` 로도 온다(2026-09-30, 운영자 답).** 모델이 가끔 `### 근거 (검사용)` 대신
+ * `## 근거 (검사용)` 로 쓴다 — 실호출 원문 33편 중 1편(`person`). 프롬프트는 그대로 두고 받는 쪽을 넓혔다.
+ */
+describe('근거 절 제목의 `#` 개수', () => {
+  const PERSON_LIKE = `## 먼저 볼 핵심 세 가지
+
+1. 혼자 판단할 때 강점이 드러나요.
+
+## 조심할 점과 몸
+
+무리하지 않는 편이 좋아요.
+
+## 근거 (검사용)
+
+먼저 볼 핵심 세 가지 — 결론 「혼자 판단」 | 자료: analysis.strength [유도]
+조심할 점과 몸 — 결론 「무리하지 않기」 | 자료: charts.a.analysis.elements [사실]`;
+
+  it('`## 근거 (검사용)` 앞에서 본문을 끊고 뒤를 근거로 준다', () => {
+    const body = readingBody(PERSON_LIKE);
+    const grounding = readingGrounding(PERSON_LIKE);
+
+    expect(body).not.toContain('근거 (검사용)');
+    expect(body).not.toContain('analysis.strength');
+    expect(body.endsWith('무리하지 않는 편이 좋아요.')).toBe(true);
+    expect(grounding?.startsWith('## 근거 (검사용)\n')).toBe(true);
+    expect(`${body}\n\n${grounding}`).toBe(PERSON_LIKE);
+  });
+
+  it('`## 근거` 만 있어도 끊는다', () => {
+    expect(readingBody('## 한 줄로\n\n본문\n\n## 근거\n\n줄')).toBe('## 한 줄로\n\n본문');
+  });
+
+  it.each(['# 근거 (검사용)', '#### 근거 (검사용)', '## 근거의 층', '## 근거 있는 선택'])(
+    '`%s` 는 근거 절이 아니다',
+    (heading) => {
+      const markdown = `## 한 줄로\n\n본문\n\n${heading}\n\n줄`;
+
+      expect(readingBody(markdown)).toBe(markdown);
+      expect(readingGrounding(markdown)).toBeNull();
+    },
+  );
+
+  it('자기 풀이 절 제목 가운데 근거 절로 읽히는 것이 없다', () => {
+    const assemblies = [CONTROL, ...PROMPT_VARIANTS.map((variant) => variant.assembly)];
+    for (const assembly of assemblies) {
+      for (const title of selfSectionTitlesOf(assembly)) {
+        expect(GROUNDING_HEADING.test(`## ${title}`), title).toBe(false);
+      }
+    }
   });
 });
 

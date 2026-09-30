@@ -10,8 +10,9 @@ import { GROUNDING_HEADING } from './display';
  * 세는 것은 둘이다.
  *
  * - `begun` — 줄머리 `## ` 로 시작한 줄의 수. 소제목 하나가 곧 절 하나다(프롬프트가 「소제목은 `##` 로 단다」).
- *   `### ` 는 안 센다 — 본문 안의 작은 제목과 맨 끝 검사용 근거 절이 그 자리다.
- * - `bodyWritten` — 사용자 본문을 다 썼다. 검사용 근거 절(`### 근거`)이 섰거나 `markdown` 문자열이 닫혔다.
+ *   `### ` 는 안 센다 — 본문 안의 작은 제목이 그 자리다. 맨 끝 검사용 근거 절의 제목은 `##` 로 와도 안 세고
+ *   (`GROUNDING_HEADING`, 2026-09-30 운영자 답), 그 절 안의 줄도 안 센다 — 본문이 끝난 뒤다.
+ * - `bodyWritten` — 사용자 본문을 다 썼다. 검사용 근거 절(`### 근거` · `## 근거`)이 섰거나 `markdown` 문자열이 닫혔다.
  *
  * 줄은 **끝났을 때** 잰다(줄바꿈이나 문자열 끝). 머리 한 줄은 짧아 늦어 봐야 한 조각이고, 덜 온 줄을 재면 `##` 와
  * `###` 를 가를 수 없다.
@@ -38,9 +39,16 @@ export function sectionCounter(): { feed(chunk: string): SectionCount; readonly 
   let begun = 0;
   let bodyWritten = false;
 
+  /** 근거 절 제목을 지났다 — 그 뒤는 본문이 아니다 */
+  let grounding = false;
+
   const endLine = () => {
-    if (SECTION_HEAD.test(line)) begun += 1;
-    if (GROUNDING_HEADING.test(line)) bodyWritten = true;
+    if (GROUNDING_HEADING.test(line)) {
+      grounding = true;
+      bodyWritten = true;
+    } else if (!grounding && SECTION_HEAD.test(line)) {
+      begun += 1;
+    }
     line = '';
   };
 

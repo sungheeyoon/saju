@@ -448,6 +448,41 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     expect(result).toEqual({ ok: true });
   });
 
+  /**
+   * **근거 절 제목이 `##` 로 와도 근거 절이다(2026-09-30, 운영자 답).**
+   *
+   * 프롬프트는 `### 근거 (검사용)` 를 시키는데 모델이 가끔 `## 근거 (검사용)` 로 쓴다 — 실호출 원문 33편 중
+   * 1편(`person`), 운영 `reading_run` 의 `person` 실패 1건. 그때는 근거 절 전체가 본문으로 세어져 경로와 원문
+   * 한자 · 라틴 문자가 `evidence-path-leaked` · `non-korean-self-body` 로 걸렸다. 받는 쪽만 넓혔고, 같은 줄이
+   * **본문에** 있으면 여전히 걸린다.
+   */
+  describe('근거 절 제목이 `##` 여도 근거 절로 받는다', () => {
+    const GROUNDING_LINES = [
+      `- 한 줄로 — 결론 「버티는 힘이 약하다」 | 자료: analysis.strength [유도]`,
+      `- 일주 — ${A.pillars.day.name} | 자료: charts.a.pillars.day [사실]`,
+    ].join('\n');
+    const person = (markdown: string) => ({ ...ok('person'), output: { ...ok('person').output, markdown } });
+
+    it.each(['##', '###'])('%s 근거 (검사용) 아래의 경로 · 원문 한자는 안 걸린다', (hashes) => {
+      const result = checkReading(person(`${OK_MARKDOWN}\n\n${hashes} 근거 (검사용)\n\n${GROUNDING_LINES}`));
+
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('같은 줄이 근거 제목 **앞** 본문에 있으면 여전히 걸린다', () => {
+      const result = checkReading(person(`${OK_MARKDOWN}\n\n${GROUNDING_LINES}\n\n## 근거 (검사용)\n\n한 줄`));
+
+      expect(codesOf(result)).toContain('evidence-path-leaked');
+      expect(codesOf(result)).toContain('non-korean-self-body');
+    });
+
+    it.each(['#', '####'])('%s 근거 는 근거 절이 아니다 — 아래 줄이 본문으로 걸린다', (hashes) => {
+      const result = checkReading(person(`${OK_MARKDOWN}\n\n${hashes} 근거 (검사용)\n\n${GROUNDING_LINES}`));
+
+      expect(codesOf(result)).toContain('evidence-path-leaked');
+    });
+  });
+
   it('출생 원문이 어떤 꼴로든 나오면 hard fail 이다', () => {
     for (const form of ['1990년 5월 12일', '1990-05-12', '14:30', '오후 2시 30분', '부산']) {
       const base = ok('self');
