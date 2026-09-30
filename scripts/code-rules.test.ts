@@ -531,6 +531,8 @@ const ENTRY_DOCS = [
   join(ROOT, 'docs/architecture.md'),
   join(ROOT, 'docs/ops/runbook.md'),
   ...readdirSync(join(ROOT, 'docs/agents')).map((name) => join(ROOT, 'docs/agents', name)),
+  join(ROOT, 'docs/start.md'),
+  ...readdirSync(join(ROOT, 'docs/roles')).map((name) => join(ROOT, 'docs/roles', name)),
 ];
 /** 저장소 뿌리에서 시작하는 경로만 잰다 — `person-input.ts` 같은 줄임과 `NNNN-….md` 같은 틀은 경로가 아니다 */
 const ROOTED_PATH = /^(app|src|scripts|e2e|docs|supabase|public|\.github)\/[A-Za-z0-9_.\/\[\]-]+$/;
@@ -790,6 +792,77 @@ describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
     expect(prd).not.toMatch(/^### 0\.[3-8] /m);
     const changelog = readFileSync(join(ROOT, 'docs/product/prd-changelog.md'), 'utf8');
     expect(changelog).toMatch(/^## 10\. 이 문서의 계보/m);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// 역할 문서 (docs/start.md · docs/roles/, ADR 0140)
+// -----------------------------------------------------------------------------
+
+describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
+  const START = join(ROOT, 'docs/start.md');
+  const ROLES_DIR = join(ROOT, 'docs/roles');
+  const AGENTS_DIR = join(ROOT, '.claude/agents');
+  const roles = readdirSync(ROLES_DIR)
+    .filter((name) => name.endsWith('.md'))
+    .map((name) => name.replace(/\.md$/, ''));
+  /** 사람과 말하는 세션 자신이라 에이전트 정의가 없는 역할 */
+  const WITHOUT_AGENT = ['coordinator'];
+  const COLUMNS = ['먼저 읽는 것', '이 저장소의 방식', '하지 않는 것 · 묻는 것', '끝날 때 고치는 것'];
+  /** 한 화면 — 넘으면 원본으로 옮길 것을 옮겨 적고 있다는 뜻이다 */
+  const MAX_BYTES = 8000;
+
+  it('입구 표가 역할 문서 전부를 들고, 없는 역할 문서를 들지 않는다', () => {
+    const start = readFileSync(START, 'utf8');
+    const listed = [...start.matchAll(/`docs\/roles\/([a-z-]+)\.md`/g)].map((match) => match[1]);
+    expect(roles.length).toBeGreaterThan(5);
+    expect([...new Set(listed)].sort()).toEqual([...roles].sort());
+  });
+
+  it('역할 문서마다 칸 넷이 그 차례로 있고 한 화면 안이다', () => {
+    for (const role of roles) {
+      const text = readFileSync(join(ROLES_DIR, `${role}.md`), 'utf8');
+      const headings = [...text.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim());
+      expect(headings, role).toEqual(COLUMNS);
+      expect(Buffer.byteLength(text), role).toBeLessThanOrEqual(MAX_BYTES);
+    }
+  });
+
+  it('`경로.md` 「절」 로 가리킨 절은 그 파일에 제목으로 있다 — 원본의 절을 옮기면 가리키는 쪽도 옮긴다', () => {
+    const docs = [START, ...roles.map((role) => join(ROLES_DIR, `${role}.md`))];
+    const missing: string[] = [];
+    let seen = 0;
+    for (const doc of docs) {
+      const text = readFileSync(doc, 'utf8');
+      for (const match of text.matchAll(/`([^`\s]+\.md)`((?:\s*(?:·\s*)?「[^」]+」)+)/g)) {
+        const target = join(ROOT, match[1]);
+        if (!existsSync(target)) {
+          missing.push(`${relPath(doc)}: ${match[1]} (파일 없음)`);
+          continue;
+        }
+        const headings = [...readFileSync(target, 'utf8').matchAll(/^#{1,4} (.+)$/gm)].map((heading) =>
+          heading[1].replace(/\*\*/g, '').trim(),
+        );
+        for (const section of [...match[2].matchAll(/「([^」]+)」/g)].map((quoted) => quoted[1])) {
+          seen += 1;
+          if (!headings.some((heading) => heading.startsWith(section))) missing.push(`${relPath(doc)}: ${match[1]} 「${section}」`);
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(30);
+    expect(missing).toEqual([]);
+  });
+
+  it('에이전트 정의와 역할 문서는 짝이다 — 정의는 제 역할 문서를 가리킨다', () => {
+    const agents = readdirSync(AGENTS_DIR)
+      .filter((name) => name.endsWith('.md'))
+      .map((name) => name.replace(/\.md$/, ''));
+    expect([...agents].sort()).toEqual(roles.filter((role) => !WITHOUT_AGENT.includes(role)).sort());
+    for (const agent of agents) {
+      const text = readFileSync(join(AGENTS_DIR, `${agent}.md`), 'utf8');
+      expect(/^name: (.+)$/m.exec(text)?.[1].trim(), agent).toBe(agent);
+      expect(text, agent).toContain(`docs/roles/${agent}.md`);
+    }
   });
 });
 

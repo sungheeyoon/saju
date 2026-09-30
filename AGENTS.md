@@ -8,6 +8,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+## 일은 `docs/start.md` 에서 연다
+
+손대기 전에 **`docs/start.md` 에서 역할을 고르고 그 역할 문서(`docs/roles/`)를 끝까지 읽는다** — 읽을 것 · 이 저장소의 방식 ·
+하지 않을 것 · 끝날 때 고칠 문서가 역할마다 한 장이다(ADR 0140).
+
 ## 무엇을 맡기고 무엇을 묻는가는 `docs/agents/delegation.md` 가
 
 맡길 이슈의 칸 아홉, 권한 등급 다섯(main 머지 · `db push` · 실호출 · 운영 SQL 을 사람이 답한 뒤에
