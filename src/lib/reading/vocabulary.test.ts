@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '../saju';
-import { CONTROL, MATCH_INPUT_VARIANTS, readingEvidenceOf, readingPromptOf } from '.';
+import {
+  CONTROL,
+  readingEvidenceOf,
+  readingPromptOf,
+} from '.';
+import { MATCH_INPUT_VARIANTS } from './variants';
 import { OUT_OF_SCOPE_TERMS, PLAIN_FORBIDDEN_TERMS } from './check';
 import { SAJU_TERMS, termNames } from './vocabulary';
 

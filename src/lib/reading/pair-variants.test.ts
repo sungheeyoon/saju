@@ -3,13 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { computeSaju } from '../saju';
 import {
   CONTROL,
-  PAIR_VARIANTS,
   READING_POLICY,
   pairSectionTexts,
   readingEvidenceOf,
   readingPromptOf,
-  type PairVariant,
 } from '.';
+import { PAIR_VARIANTS, type PairVariant } from './variants';
 
 const VIEWED_AT = new Date('2026-08-26T04:00:00Z');
 

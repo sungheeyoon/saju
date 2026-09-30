@@ -139,7 +139,7 @@ export function CancelButton({ requestId }: { requestId: string }) {
       <button type="button" onClick={cancel} disabled={working} className={QUIET_LINK}>
         {working ? '거두는 중…' : '요청 거두기'}
       </button>
-      {failure !== null && <span className="text-[13px] text-danger">{failure}</span>}
+      {failure !== null && <span role="alert" className="text-[13px] text-danger">{failure}</span>}
     </span>
   );
 }
@@ -197,7 +197,7 @@ export function BlockButton({ userId }: { userId: string }) {
           취소
         </button>
       </span>
-      {failure !== null && <span className="text-[13px] text-danger">{failure}</span>}
+      {failure !== null && <span role="alert" className="text-[13px] text-danger">{failure}</span>}
     </span>
   );
 }
@@ -298,7 +298,7 @@ export function ReportButton({ userId }: { userId: string }) {
         >
           취소
         </button>
-        {failure !== null && <span className="text-[13px] text-danger">{failure}</span>}
+        {failure !== null && <span role="alert" className="text-[13px] text-danger">{failure}</span>}
       </span>
     </span>
   );
@@ -336,7 +336,7 @@ export function ReadNotificationsOnVisit({ unread }: { unread: number }) {
   }, [router, unread]);
 
   if (failure === null) return null;
-  return <p className="text-[13px] text-danger">소식을 읽은 것으로 표시하지 못했어요. 새로고침한 뒤 다시 확인해 주세요.</p>;
+  return <p role="alert" className="text-[13px] text-danger">소식을 읽은 것으로 표시하지 못했어요. 새로고침한 뒤 다시 확인해 주세요.</p>;
 }
 
 /**

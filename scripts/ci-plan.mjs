@@ -150,7 +150,7 @@ export const SERVER_ACTIONS_ELSEWHERE = ['app/nickname.ts', 'app/me/reading/shar
  * 앱 서버의 설정, 그리고 e2e · 흐름 검사가 import 하되 앱은 안 부르는 파일 — 위 「서버에 닿는 `app/` 파일과 시험 도구」.
  * 시험이 import 를 따라가 앱이 안 닿는 도구 파일이 전부 여기 있는지 잰다 — 새 도우미가 조용히 빠지지 않게
  */
-export const HARNESS = ['next.config.ts', 'playwright.config.ts', 'src/lib/local-env.ts'];
+export const HARNESS = ['next.config.ts', 'playwright.config.ts', 'src/lib/local-env.ts', 'src/lib/reading/variants.ts'];
 /**
  * `scripts/*.mjs` 는 흐름 검사 · e2e 의 도우미로 보고 입구로 건다 — 여기 든 CI · 개발 도구만 뺀다. 빼는 쪽을 적으므로
  * 새 도우미(`scripts/beta-dates.mjs` 같은 것)는 이름을 안 적어도 걸리고, 여기 든 이름이 없어져도 넓어질 뿐이다

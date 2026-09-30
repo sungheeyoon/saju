@@ -74,13 +74,7 @@ export default async function SignupPage({ searchParams }: {
    * 주세요」는 들어올 곳이 없는 데로 보내는 말이다.
    */
   const [{ state, row: account }, schedule] = await Promise.all([
-    readAccount<{
-      status: string;
-      signed_up_at: string | null;
-      nickname: string | null;
-      notice_version: string | null;
-      notice_schedule_id: number | null;
-    }>(supabase, 'status, signed_up_at, nickname, notice_version, notice_schedule_id'),
+    readAccount(supabase, ['status', 'signed_up_at', 'nickname', 'notice_version', 'notice_schedule_id']),
     currentSchedule(supabase),
   ]);
 

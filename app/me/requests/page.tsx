@@ -37,7 +37,7 @@ export default async function RequestsPage() {
   if (!user) return redirectToSignIn();
 
   /** 온보딩을 안 묻는 화면이라 `self_person_id` 도 안 읽는다 — 안 물은 것에 답이 나오지 않게 */
-  const { state } = await readAccount(supabase, 'status');
+  const { state } = await readAccount(supabase, ['status']);
 
   return (
     <main className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-8 py-8 sm:py-12">

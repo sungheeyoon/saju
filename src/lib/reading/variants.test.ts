@@ -7,7 +7,6 @@ import { ABSORBABLE_KINDS, RELATION_KIND_KO } from '../saju/relations';
 import {
   CONTROL,
   LEGACY_PAIR_ASSEMBLY,
-  PROMPT_VARIANTS,
   selfSectionTexts,
   FALLBACK_NAMES,
   READING_POLICY,
@@ -17,6 +16,10 @@ import {
   readingPromptOf,
   selfSectionCount,
 } from '.';
+import * as entry from '.';
+import * as measure from './measure';
+import * as variants from './variants';
+import { PROMPT_VARIANTS } from './variants';
 
 const VIEWED_AT = new Date('2026-08-26T04:00:00Z');
 
@@ -944,5 +947,21 @@ describe('고객이 읽는 글의 계약', () => {
     it('이름을 뺀 자리에 없는 것을 채우지 말라고 적는다', () => {
       expect(plain()).toContain('자료에 없는 도움을 지어내지 마라');
     });
+  });
+});
+
+/**
+ * **실험 장치는 풀이의 입구에 안 선다**(ADR 0047 「공개 표면에 세우지도 않는다」, 2026-09-30).
+ *
+ * 변형(`variants.ts`)과 출력 재기(`measure.ts`)는 실호출 시험 · 단위 시험만 쓴다. 입구(`index.ts`)가 그것들을 다시 내보내던
+ * 동안 서버의 생성 경로가 한 줄 import 로 실험판을 집을 수 있었다(2026-09-28 밤샘 감사의 구조 줄 — 「실험 장치를 lab 으로」).
+ * 시험은 파일에서 직접 부른다.
+ */
+describe('풀이의 입구', () => {
+  it('실험 장치의 이름을 하나도 내보내지 않는다', () => {
+    const experimental = [...Object.keys(variants), ...Object.keys(measure)];
+
+    expect(experimental.length).toBeGreaterThan(3);
+    expect(experimental.filter((name) => name in entry)).toEqual([]);
   });
 });

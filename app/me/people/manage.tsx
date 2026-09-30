@@ -345,7 +345,7 @@ export function RemoveConfirm({
       <p className="mt-2 text-[15px] leading-6 text-secondary">
         저장한 출생 정보와 이 사람의 풀이는 목록에서 사라지며 되돌릴 수 없습니다.
       </p>
-      {failure !== null && <p className="mt-3 text-sm text-danger">빼지 못했어요. {failure}</p>}
+      {failure !== null && <p role="alert" className="mt-3 text-sm text-danger">빼지 못했어요. {failure}</p>}
       <div className={DIALOG_ACTIONS}>
         <button type="button" onClick={remove} disabled={removing} className={BUTTON_DANGER}>
           {removing ? '빼는 중…' : '목록에서 빼기'}

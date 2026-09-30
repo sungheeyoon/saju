@@ -2,12 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   CONTROL,
-  PROMPT_VARIANTS,
-  measureMarkdown,
-  outputDeviations,
   selfSectionCount,
   type PromptAssembly,
 } from '.';
+import { measureMarkdown, outputDeviations } from './measure';
+import { PROMPT_VARIANTS } from './variants';
 
 /**
  * 이 계산은 채점 화면 안에 있었다. 그 자리에 있는 동안은 시험이 한 줄도 안 닿았고,

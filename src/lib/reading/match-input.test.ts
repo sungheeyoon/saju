@@ -9,12 +9,12 @@ import {
   COMPARED_MATCH_INPUTS,
   CONTROL,
   LEGACY_PAIR_ASSEMBLY,
-  MATCH_INPUT_VARIANTS,
   NOTHING_KNOWN,
   READING_PROMPTS,
   readingEvidenceOf,
   readingPromptOf,
 } from '.';
+import { MATCH_INPUT_VARIANTS } from './variants';
 
 /**
  * 인연 궁합 입력 두 판 — **자료·요약·지시가 같은 범위를 말하는가**(ADR 0067).

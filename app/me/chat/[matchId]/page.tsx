@@ -39,7 +39,7 @@ export default async function ChatRoomPage({
   if (!user) return redirectToSignIn();
 
   const { matchId } = await params;
-  const { state } = await readAccount(supabase, 'status');
+  const { state } = await readAccount(supabase, ['status']);
 
   if (isBlocked(state)) {
     return (

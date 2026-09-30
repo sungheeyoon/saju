@@ -42,7 +42,7 @@ export default async function MatchHistoryPage() {
   const user = await signedInUser(supabase);
   if (!user) return redirectToSignIn();
 
-  const { state } = await readAccount<{ status: string }>(supabase, 'status');
+  const { state } = await readAccount(supabase, ['status']);
   if (isBlocked(state)) {
     return (
       <main className="app-shell flex flex-1 flex-col gap-7 py-9 sm:py-12">

@@ -152,18 +152,6 @@ export {
   type PromptAssembly,
   type ReadingAbout,
 } from './prompt';
-export {
-  measureMarkdown,
-  outputDeviations,
-  pairOutputDeviations,
-  type OutputDeviation,
-} from './measure';
-export {
-  MATCH_INPUT_VARIANTS,
-  PAIR_VARIANTS,
-  PROMPT_VARIANTS,
-  type PairVariant,
-} from './variants';
 export { checkReading, plainTermsIn, type BirthSecret } from './check';
 export { sectionCounter, type SectionCount } from './progress';
 export { positionSlips } from './position-check';
