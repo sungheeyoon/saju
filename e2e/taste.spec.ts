@@ -32,7 +32,7 @@ test('무료로 내 사주 보기 → 맛보기 · 잠긴 목차 · 접힌 만�
   await expect(card.getByRole('list', { name: '오행 분포' })).toBeVisible();
 
   /* 맛보기 — 기다림이 끝나면 글이 선다 */
-  const taste = page.getByRole('region', { name: '맛보기' });
+  const taste = page.getByRole('region', { name: '사주가 보여 주는 나' });
   await expect(taste).toHaveAttribute('aria-busy', 'false');
   await expect(taste.locator('p')).not.toHaveText('');
 
@@ -63,9 +63,9 @@ test('궁합 보기 → 두 사람의 한 줄 · 가린 점수 · 잠긴 목록 
   const panel = page.getByRole('tabpanel', { name: /궁합 보기/ });
   await fillBirth(panel.getByRole('group', { name: '나' }), { name: '민수', date: '1990-05-15', time: '14:30' });
   await fillBirth(panel.getByRole('group', { name: '상대' }), { name: '지영', date: '1992-08-20', time: '09:00' });
-  await panel.getByRole('button', { name: '무료로 궁합 미리 보기' }).click();
+  await panel.getByRole('button', { name: '무료로 두 사람 궁합 보기' }).click();
 
-  const taste = panel.getByRole('region', { name: '민수 × 지영 · 궁합 맛보기' });
+  const taste = panel.getByRole('region', { name: '민수 × 지영 · 두 사람의 궁합' });
   await expect(taste).toContainText(/민수|지영/);
   await expect(taste).toContainText('점수는 궁합풀이에서 볼 수 있어요');
 

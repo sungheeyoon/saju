@@ -86,7 +86,7 @@ export const sendOutcomeOf = (value: unknown): SendOutcome | null =>
 /**
  * 한도에 걸린 전송에 하는 말 — 사용자가 2026-09-23 에 승인했다(PRD §7.1).
  */
-export const RATE_LIMITED_TEXT = '메시지를 너무 빠르게 보내고 있습니다. 잠시 뒤에 다시 보내 주세요.';
+export const RATE_LIMITED_TEXT = '메시지를 너무 빠르게 보내고 있어요. 잠시 뒤에 다시 보내 주세요.';
 
 /** 화면 이름과 빈 목록 — 사용자가 정한 글자 그대로(2026-09-23) */
 export const CHAT_TAB_LABEL = '채팅';

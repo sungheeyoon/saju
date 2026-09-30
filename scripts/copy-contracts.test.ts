@@ -52,6 +52,6 @@ describe('계약 문구', () => {
   });
 
   it('승인된 채팅 한도 거절 문장 (ADR 0091)', () => {
-    expect(RATE_LIMITED_TEXT).toBe('메시지를 너무 빠르게 보내고 있습니다. 잠시 뒤에 다시 보내 주세요.');
+    expect(RATE_LIMITED_TEXT).toBe('메시지를 너무 빠르게 보내고 있어요. 잠시 뒤에 다시 보내 주세요.');
   });
 });

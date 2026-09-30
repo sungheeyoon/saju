@@ -791,7 +791,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
     partner.getByRole('button', { name: /^달력 / }),
     partner.getByRole('button', { name: /^출생 시각 / }),
     partner.getByLabel('출생일', { exact: true }),
-    page.getByRole('button', { name: '무료로 궁합 미리 보기' }),
+    page.getByRole('button', { name: '무료로 두 사람 궁합 보기' }),
   ]) {
     expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(44);
   }
