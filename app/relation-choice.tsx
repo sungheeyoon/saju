@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import { RELATIONS, RELATION_LABEL, type Relation } from '@/src/lib/people';
 
 import { TYPE_NAME } from './ui/surfaces';
@@ -14,7 +16,13 @@ import { TYPE_NAME } from './ui/surfaces';
  * 답은 글의 방향만이 아니라 **점수의 눈금도 고른다**(ADR 0113) — 연인 · 배우자는 연인용, 그 밖과 모름은 일반.
  * 그래서 안내가 「점수에는 쓰지 않습니다」를 더는 말하지 않는다(2026-09-26).
  *
- * 고른 것은 먹색으로 채우고 체크 표시를 단다 — 색만으로 「골랐다」를 말하지 않는다.
+ * **칩은 조용하다**(운영자 2026-09-29 — 「스타일 좀 죽이고」). 먹색 채움 · 굵은 15px · 44px 알약 다섯이 주 단추와 같은
+ * 무게로 서서, 누를 것(「궁합 보기」)보다 고를 것이 먼저 보였다. 이제 칩은 보관함의 필터 칩과 같은 몸 — 14px 보통 굵기 ·
+ * 흰 면 · 가는 테 · 보이는 높이 36px 이고, 고른 것은 옅은 크림 면 · 한 단계 짙은 테 · 먹색 글자에 **체크 표시**를 단다 — 색만으로
+ * 「골랐다」를 말하지 않는다. 눌리는 자리는 그대로 44px 다(보이는 알약 밖의 투명한 위아래 4px).
+ *
+ * **누를 것은 칩 줄의 오른쪽 끝에 선다**(`action`). 넓은 화면은 칩 · 단추가 한 줄이고, 폰에서 줄이 넘치면 단추만 다음 줄의
+ * 오른쪽 끝으로 내려간다.
  *
  * **안 고르는 것도 답이다.** 필수로 두면 사람들은 아무거나 고르고, 그러면 틀린 값이
  * 「모른다」보다 나쁜 자리에 앉는다.
@@ -23,10 +31,13 @@ export function RelationChoice({
   value,
   onChange,
   idPrefix,
+  action,
 }: {
   value: Relation | null;
   onChange: (next: Relation | null) => void;
   idPrefix: string;
+  /** 칩 줄 오른쪽 끝의 단추 — 궁합 고르는 자리의 「궁합 보기」 */
+  action?: ReactNode;
 }) {
   return (
     <fieldset>
@@ -37,7 +48,7 @@ export function RelationChoice({
         때문이에요. <strong className="font-semibold text-foreground">점수의 기준도 이 답을 따라요.</strong>
       </p>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-x-1.5">
         {[...RELATIONS, null].map((choice) => {
           const id = `${idPrefix}-relation-${choice ?? 'unknown'}`;
           const label = choice === null ? '아직 모르겠음' : RELATION_LABEL[choice];
@@ -47,11 +58,7 @@ export function RelationChoice({
             <label
               key={id}
               htmlFor={id}
-              className={`relative inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full border px-4 text-[15px] font-semibold active:scale-[0.97] has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft ${
-                picked
-                  ? 'border-transparent bg-accent text-on-accent'
-                  : 'border-border bg-surface text-foreground hover:border-border-strong'
-              }`}
+              className="group relative inline-flex min-h-11 cursor-pointer items-center active:scale-[0.97]"
             >
               {/*
                 칸 전체를 덮는 라디오 — 보이지는 않지만 **이것이 눌린다.** `sr-only` 로
@@ -64,17 +71,26 @@ export function RelationChoice({
                 name={`${idPrefix}-relation`}
                 checked={picked}
                 onChange={() => onChange(choice)}
-                className="absolute inset-0 cursor-pointer appearance-none opacity-0"
+                className="peer absolute inset-0 cursor-pointer appearance-none opacity-0"
               />
-              {picked && (
-                <svg viewBox="0 0 12 12" aria-hidden="true" className="size-3.5 shrink-0">
-                  <path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
-              {label}
+              <span
+                className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-[14px] ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-soft ${
+                  picked
+                    ? 'bg-accent-wash font-semibold text-foreground ring-border-strong'
+                    : 'bg-surface font-medium text-secondary ring-border group-hover:text-foreground'
+                }`}
+              >
+                {picked && (
+                  <svg viewBox="0 0 12 12" aria-hidden="true" className="size-3 shrink-0">
+                    <path d="M2.5 6.2 5 8.5l4.5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+                {label}
+              </span>
             </label>
           );
         })}
+        {action !== undefined && <div className="ml-auto flex min-w-0 justify-end pl-1.5">{action}</div>}
       </div>
     </fieldset>
   );

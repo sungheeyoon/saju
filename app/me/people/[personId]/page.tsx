@@ -119,7 +119,7 @@ export default async function PersonSajuPage({
               나 × 이 사람으로 두 칸이 다 찬다(`compatHrefFor`, 주소에는 person id 만).
             */}
             <Link href={compatHrefFor(selfPersonId, person.personId)} className={`${BUTTON_ON_TILE} px-4`}>
-              <Icon name="heart" className="size-4" />
+              <Icon name="taiji" className="size-4" />
               궁합 보러 가기
             </Link>
           </div>

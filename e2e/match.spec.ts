@@ -185,7 +185,7 @@ test.describe('동의로 열리는 흐름', () => {
     const tab = receiver.page.getByRole('link', { name: /^인연\s*1\s*건 답할 요청$/ }).filter({ visible: true });
     await expect(tab).toBeVisible();
     await expect(banner.getByRole('link', { name: /^소식/ })).toHaveAccessibleName('소식');
-    /* 나 탭의 소식 띠도 종과 같은 수를 센다 */
+    /* 홈 탭의 소식 띠도 종과 같은 수를 센다 */
     await expect(receiver.page.getByText('아직 확인하지 않은 새 소식이 있어요.')).toHaveCount(0);
 
     await tab.click();

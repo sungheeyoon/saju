@@ -140,7 +140,7 @@ export default async function PeoplePage() {
           </p>
         </div>
         <Link href="/compat" className={`${BUTTON_SECONDARY_SMALL} self-start sm:self-auto`}>
-          <Icon name="heart" className="size-4" />
+          <Icon name="taiji" className="size-4" />
           궁합 보러 가기
         </Link>
       </header>
@@ -330,7 +330,7 @@ function PersonCard({
               className={`${BUTTON_ON_TILE} px-3.5`}
               aria-label={pair?.score != null ? `나와 궁합 ${pair.score}점` : '나와 궁합'}
             >
-              <Icon name="heart" className="size-4" />
+              <Icon name="taiji" className="size-4" />
               {pair?.score != null ? <span className="tabular-nums">{pair.score}점</span> : '궁합'}
             </Link>
           </div>

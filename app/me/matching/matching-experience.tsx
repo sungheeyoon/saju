@@ -638,5 +638,5 @@ function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode }) {
 
 const MEANWHILE: readonly { href: string; label: string; icon: IconName; element: Element }[] = [
   { href: '/', label: '다른 사람 사주 보기', icon: 'search', element: '水' },
-  { href: '/compat', label: '궁합 보러 가기', icon: 'heart', element: '火' },
+  { href: '/compat', label: '궁합 보러 가기', icon: 'taiji', element: '火' },
 ];
