@@ -258,7 +258,15 @@ button, a, summary {
 .glyph {
   font-family: var(--font-system);
 }
-.app-shell { width: min(100% - 2.5rem, 72rem); margin-inline: auto; }
+/*
+  **본문 틀은 노치를 비킨다.** 뿌리 레이아웃이 `viewport-fit=cover` 라 가로로 누인 폰에서는 화면이 노치 밑까지 깔린다 —
+  틀은 가운데 서므로 양옆 중 큰 값의 두 배를 폭에서 뺀다(노치가 없으면 0 이라 그대로다).
+*/
+.app-shell {
+  --safe-inline: calc(2 * max(env(safe-area-inset-left), env(safe-area-inset-right)));
+  width: min(100% - 2.5rem - var(--safe-inline), 72rem);
+  margin-inline: auto;
+}
 .eyebrow {
   color: var(--accent);
   font-size: 0.72rem;
@@ -283,7 +291,7 @@ button, a, summary {
   }
 }
 @media (max-width: 640px) {
-  .app-shell { width: min(100% - 2rem, 72rem); }
+  .app-shell { width: min(100% - 2rem - var(--safe-inline), 72rem); }
 }
 /* 하단 독(`site-header.tsx`)이 서는 폭 — 떠 있는 판의 높이와 아래 틈만큼 본문 끝을 비운다 */
 @media (max-width: 767px) {
