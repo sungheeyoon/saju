@@ -922,3 +922,22 @@ test('결과 바로가기는 접힌 표를 열고 주소의 입력을 그대로 
   expect(sharedParams(page).get('date')).toBe('1990-05-15');
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 });
+
+/**
+ * **줄인 움직임을 고른 사람에게 바로가기는 미끄러지지 않는다.**
+ *
+ * `scrollIntoView` 에 `behavior` 를 적으면 `globals.css` 의 `scroll-behavior: auto` 가 안 듣는다. 눌러서 바로 그 자리에
+ * 닿았는지를 누른 같은 순간에 잰다 — 부드러운 스크롤은 그 순간 아직 출발점 근처에 있다.
+ */
+test('줄인 움직임에서 결과 바로가기는 곧바로 그 자리로 간다', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/#date=1990-05-15&hour=14:30');
+  await expect(page.getByRole('navigation', { name: '결과 바로가기' })).toBeVisible();
+
+  const top = await page.evaluate(() => {
+    const link = document.querySelector<HTMLAnchorElement>('nav[aria-label="결과 바로가기"] a[href="#fortune"]');
+    link?.click();
+    return document.getElementById('fortune')?.getBoundingClientRect().top ?? Number.NaN;
+  });
+  expect(Math.abs(top)).toBeLessThan(200);
+});

@@ -1,5 +1,7 @@
 'use client';
 
+import { reducedMotion } from '../ui/motion';
+
 /**
  * 결과 바로가기 — **화면에 선 차례와 같다.**
  *
@@ -34,7 +36,8 @@ function go(event: React.MouseEvent<HTMLAnchorElement>, target: string) {
       ? [place]
       : [...place.querySelectorAll<HTMLDetailsElement>('details[data-fold]')];
   for (const fold of folds) fold.open = true;
-  place.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  /* `behavior` 를 적으면 CSS 의 `scroll-behavior` 가 안 듣는다 — 줄인 움직임을 고른 사람은 여기서 묻는다 */
+  place.scrollIntoView({ behavior: reducedMotion() ? 'instant' : 'smooth', block: 'start' });
 }
 
 export function ResultNav() {
