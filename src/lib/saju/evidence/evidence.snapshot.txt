@@ -193,7 +193,6 @@
     year: number
     chartId: string
     pillar: {5}
-    age: number
     ageAtStart: number
     ageAtEnd: number
     startTerm: {4}
