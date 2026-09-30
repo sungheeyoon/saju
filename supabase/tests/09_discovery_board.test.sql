@@ -8,7 +8,7 @@
 -- 「자리마다 20% 가 아래에서 오는가」도 잰다 — 같은 씨앗이면 같은 덱이므로 여러 씨앗으로 뽑아
 -- 등장 횟수를 세면 된다. 그 문과 채우는 문은 `authenticated` 에게 닫혀 있고, 그것도 여기서 잰다.
 begin;
-select plan(45);
+select plan(46);
 
 /**
  * 참여자 하나를 세우는 손잡이.
@@ -228,24 +228,56 @@ select ok(
 -- ── 가중치 — **점수가 높을수록 자주 뽑힌다** ──────────────────────────────────
 
 /**
- * 씨앗 삼천 개로 덱을 세워 등장 횟수를 센다. 새 덱은 늘 빈 자리에서 여섯을 뽑으므로 앞 덱이 결과를 안 깎는다.
- * 삼천인 까닭은 아래 「컷을 걷어 내도」다 — 그 검사가 세는 자리는 덱마다 네에 하나꼴로만 선다.
+ * 씨앗으로 덱을 세워 등장 횟수를 센다. 새 덱은 늘 빈 자리에서 여섯을 뽑으므로 앞 덱이 결과를 안 깎는다.
+ *
+ * **표본은 둘이다.** 아래 「컷을 걷어 내도」가 세는 자리(컷 밖에서 채워지는 위쪽 자리)는 여섯 동전이 모두 위쪽인
+ * 덱(0.8⁶ ≈ 26%)에만 한 자리 선다. 전에는 씨앗 삼천 개를 전부 뽑아 그 자리 780 안팎을 모았고, 이 파일 하나가
+ * pgTAP 벽시계의 대부분이었다(2026-09-30 에 잼 — 덱 하나 약 21ms, 삼천 덱 약 64초 · 전체 약 70초).
+ *
+ * - **고르지 않은 표본** — 앞 씨앗 사백(`uniform`). 「자리마다 20%」는 이것만 센다(동전을 고르면 몫이 기운다).
+ * - **넘침 표본** — 그 뒤 씨앗은 여섯 동전이 모두 위쪽으로 나올 씨앗만 뽑는다. 동전은 씨앗에서 나오므로(`fill_discovery_deck`
+ *   의 `coins`) 뽑기 전에 셀 수 있다. **고르는 셈은 시험을 빠르게만 한다** — 재는 것은 여전히 뽑힌 덱의 실제 자리다.
+ *   함수의 동전 셈이 바뀌어 고른 씨앗이 넘침 자리를 안 내면 표본이 모일 때까지 더 뽑아 느려질 뿐이고, 그것은 아래
+ *   「고른 씨앗이 넘침 자리를 낸다」가 붉혀 알린다.
+ *
+ * 넘침 자리가 780 이 될 때까지 뽑는다 — 옛 삼천 덱과 같은 크기라 검정력이 같다.
  */
-create temporary table draws (user_id uuid, exploration boolean, position integer);
+create temporary table draws (seed integer, uniform boolean, user_id uuid, exploration boolean, position integer);
+create temporary table drawn (decks integer);
 do $$
 declare
   actor uuid := (select uid from me);
-  s integer;
+  s integer := 0;
   made uuid;
+  overflow integer := 0;
+  decks integer := 0;
+  wander integer;
 begin
-  for s in 1..3000 loop
+  while overflow < 780 and s < 20000 loop
+    s := s + 1;
+    select count(*) filter (
+      where (('x' || substr(md5('weights-' || s || ':seat:' || j), 1, 8))::bit(32)::bigint::double precision + 0.5)
+            / 4294967296.0 < 0.2)::int
+      into wander
+    from generate_series(1, 6) as j;
+    continue when s > 400 and wander > 0;
+
     made := public.refresh_discovery_snapshot_for(actor, 'weights-' || s);
+    decks := decks + 1;
     insert into draws
-    select candidate_user_id, exploration, position
+    select s, s <= 400, candidate_user_id, exploration, position
     from public.discovery_candidate_slot where snapshot_id = made;
+
+    overflow := overflow + (
+      select count(*)::int from public.discovery_candidate_slot c join scores r on r.user_id = c.candidate_user_id
+      where c.snapshot_id = made and not c.exploration and r.rnk > 5);
   end loop;
+  insert into drawn values (decks);
 end
 $$;
+
+/** 옛 삼천 덱의 절반 아래로 넘침 표본이 찬다 — 넘으면 동전 셈이 바뀐 것이다(위 「고르는 셈」) */
+select cmp_ok((select decks from drawn), '<', 1500, '고른 씨앗이 넘침 자리를 낸다 — 덱을 천오백 번 안에 다 모은다');
 
 select cmp_ok(
   (select count(*)::int from draws d join scores s on s.user_id = d.user_id where s.rnk <= 12),
@@ -259,10 +291,10 @@ select cmp_ok(
  * 위의 검사는 상위 컷이 늘 뽑히는 것만으로도 통과한다. 컷 밖에서 채워지는 위쪽 자리만
  * 따로 세면 남는 것은 가중 무작위 하나다 — 그 자리도 점수를 따라야 한다.
  *
- * 그 자리는 여섯 동전이 모두 위쪽일 때(0.8⁶ ≈ 26%)의 여섯째 한 자리뿐이라 삼천 덱에 780 안팎이다. **점수로 가른
- * 두 무리의 한 사람당 등장**을 견준다 — 컷 밖에서 점수 50 이상(여섯 안팎)과 40 미만(여덟 안팎). 점수 차이가
- * 1.5 배쯤이라 기대 차이는 표준편차의 네 배를 넘는다. 전에는 천 덱 · 컷 밖을 순위로 반 갈라 아홉과 열을 견줬고,
- * 사용자 id 가 매번 무작위라 CI 에서 한 번 뒤집혔다(2026-09-27, 로컬 여섯 판 중 한 판 127 대 132).
+ * 그 자리를 780 모은다(위 넘침 표본). **점수로 가른 두 무리의 한 사람당 등장**을 견준다 — 컷 밖에서 점수 50 이상
+ * (여섯 안팎)과 40 미만(여덟 안팎). 점수 차이가 1.5 배쯤이라 기대 차이는 표준편차의 네 배를 넘는다. 전에는 천 덱 ·
+ * 컷 밖을 순위로 반 갈라 아홉과 열을 견줬고, 사용자 id 가 매번 무작위라 CI 에서 한 번 뒤집혔다(2026-09-27, 로컬
+ * 여섯 판 중 한 판 127 대 132).
  */
 select cmp_ok(
   (select count(*)::numeric / nullif((select count(*) from scores where rnk > 5 and score >= 50), 0)
@@ -275,11 +307,11 @@ select cmp_ok(
   '컷 밖에서도 점수가 높은 쪽이 더 자주 채워진다');
 
 /**
- * **자리마다 20% 가 아래에서 온다** — 옛 「열에 둘」과 같은 몫. 여섯 자리 삼천 덱이면 탐색은 3600 안팎이다
- * (이항분포의 표준편차는 약 54). 넓게 잡아 15~25% 를 잰다.
+ * **자리마다 20% 가 아래에서 온다** — 옛 「열에 둘」과 같은 몫. 고르지 않은 사백 덱(2400 자리)이면 탐색은 480
+ * 안팎이다(이항분포의 표준편차는 약 20, 몫으로 0.8%p). 넓게 잡아 15~25% 를 잰다 — 표준편차의 여섯 배 넘는 폭이다.
  */
 select ok(
-  (select avg(case when exploration then 1.0 else 0.0 end) between 0.15 and 0.25 from draws),
+  (select avg(case when exploration then 1.0 else 0.0 end) between 0.15 and 0.25 from draws where uniform),
   '자리마다 다섯에 하나꼴로 잘라 낸 아래에서 온다');
 
 -- ── 넘기면 채워진다 ──────────────────────────────────────────────────────────
