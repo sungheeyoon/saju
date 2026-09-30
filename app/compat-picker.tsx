@@ -25,6 +25,7 @@ import { FaceSymbol } from './ui/stem-symbol';
 import { RelationChoice } from './relation-choice';
 import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
 import { BUTTON_PRIMARY } from './ui/buttons';
+import { TaijiMark } from './ui/entry-marks';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
 import { CARD, PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
@@ -222,6 +223,10 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
         ))}
       </div>
 
+      {/*
+        **「궁합 보기」는 사이를 묻는 칩 줄의 오른쪽 끝이다**(운영자 2026-09-29). 칩 아래 따로 선 줄이면 사이를 고른 손이
+        다시 아래로 내려가야 했다. 같은 이름의 확인(`SameChartAsk`)이 서는 동안에는 단추가 비키고 확인이 카드 아래에 선다.
+      */}
       <div className={CARD}>
         <RelationChoice
           value={relation}
@@ -230,10 +235,32 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
             setRelation(next);
           }}
           idPrefix="pair"
+          action={
+            question === null ? (
+              <button
+                type="button"
+                onClick={press}
+                disabled={!chosen || sameTwice || opening}
+                aria-describedby={reason !== null ? 'compat-locked-reason' : undefined}
+                className={`${BUTTON_PRIMARY} sm:min-w-44`}
+              >
+                <Icon name="taiji" className="size-[18px]" />
+                {opening ? '여는 중…' : '궁합 보기'}
+              </button>
+            ) : undefined
+          }
         />
+
+        {/* 왜 눌리지 않는지 단추 곁에서 말한다 — 잠긴 단추만 두면 이유를 찾아야 한다 */}
+        {question === null && reason !== null && (
+          <p id="compat-locked-reason" className="mt-2 flex items-center justify-end gap-1.5 text-right text-[13px] leading-5 text-secondary">
+            <Icon name="alert" className="size-4 shrink-0" />
+            {reason}
+          </p>
+        )}
       </div>
 
-      {question !== null ? (
+      {question !== null && (
         <SameChartAsk
           question={question}
           busy={opening}
@@ -242,27 +269,6 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
             startOpening(async () => settle(await question.answer(sameperson)));
           }}
         />
-      ) : (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button
-            type="button"
-            onClick={press}
-            disabled={!chosen || sameTwice || opening}
-            aria-describedby={reason !== null ? 'compat-locked-reason' : undefined}
-            className={`${BUTTON_PRIMARY} w-full sm:w-auto sm:min-w-44`}
-          >
-            <Icon name="heart" className="size-[18px]" />
-            {opening ? '여는 중…' : '궁합 보기'}
-          </button>
-
-          {/* 왜 눌리지 않는지 버튼 옆에서 말한다 — 잠긴 버튼만 두면 이유를 찾아야 한다 */}
-          {reason !== null && (
-            <p id="compat-locked-reason" className="flex items-center gap-1.5 text-[15px] text-secondary">
-              <Icon name="alert" className="size-4 shrink-0" />
-              {reason}
-            </p>
-          )}
-        </div>
       )}
 
       {failure !== null && (
@@ -398,8 +404,9 @@ function PairStage({ sides }: { sides: Record<CompatSide, StageSide> }) {
       </svg>
       <div className="relative grid grid-cols-[1fr_auto_1fr] items-start gap-2">
         <StageOne one={sides.a} />
+        {/* 두 사람 사이의 그림은 첫 화면 「궁합 보기」 입구의 태극이다(운영자 2026-09-29 — 하트를 걷었다) */}
         <span className="mt-5 grid size-11 place-items-center rounded-full bg-surface text-foreground shadow-lift ring-1 ring-border sm:mt-7">
-          <Icon name="heart" className="size-5" />
+          <TaijiMark className="size-6" />
         </span>
         <StageOne one={sides.b} />
       </div>

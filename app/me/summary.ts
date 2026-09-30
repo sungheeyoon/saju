@@ -65,7 +65,7 @@ export async function selfElementSummary(knownSelfPersonId?: string): Promise<Se
 }
 
 /**
- * 이미 세운 내 명식에서 요약 한 벌 — 읽지 않는다. 나 탭은 내 입력과 이름을 제 화면을 그리려고 이미 읽었다.
+ * 이미 세운 내 명식에서 요약 한 벌 — 읽지 않는다. 홈 탭은 내 입력과 이름을 제 화면을 그리려고 이미 읽었다.
  */
 export function selfSummaryOf(personId: string, stood: StoredChartResult): SelfSummary | null {
   // 못 읽는 입력이면 요약도 없다. 부르는 쪽이 「참여할 수 없다」고 말한다.

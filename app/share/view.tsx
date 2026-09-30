@@ -92,7 +92,7 @@ export async function SharedReadingView({
           {score !== null && (
             <div className="tone-fire m-3 flex min-w-40 flex-col items-center justify-center rounded-[1.5rem] bg-[var(--tile)] px-5 py-4 text-center sm:ml-0">
               <p className="flex items-center gap-1 text-[13px] font-semibold text-[var(--ink)]">
-                <Icon name="heart" className="size-4" />
+                <Icon name="taiji" className="size-4" />
                 궁합풀이 점수
               </p>
               <p className="mt-1 flex items-baseline justify-center gap-1">

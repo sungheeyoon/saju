@@ -38,7 +38,7 @@ export function PersonTile({
   reading: ReadingEntry | null;
   /** 나와 궁합 — 이미 본 것이면 점수를 달고 그 글로 간다 */
   compat: { href: string; score: number | null };
-  /** 나 탭 홈에 선 타일 — 결과로 가는 링크가 `from=me` 를 든다(`from-me.ts`) */
+  /** 홈 탭에 선 타일 — 결과로 가는 링크가 `from=me` 를 든다(`from-me.ts`) */
   fromMe?: boolean;
 }) {
   const detailHref = `/me/people/${person.personId}`;
@@ -110,7 +110,7 @@ export function PersonTile({
           className={`${BUTTON_ON_TILE} min-w-11 whitespace-nowrap`}
           aria-label={compat.score !== null ? `나와 궁합 ${compat.score}점` : '나와 궁합'}
         >
-          <Icon name="heart" className={`size-4 ${compat.score !== null ? 'max-[399px]:hidden' : ''}`} />
+          <Icon name="taiji" className={`size-4 ${compat.score !== null ? 'max-[399px]:hidden' : ''}`} />
           {compat.score !== null ? (
             <span className="tabular-nums">{compat.score}점</span>
           ) : (

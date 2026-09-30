@@ -41,7 +41,7 @@ export function MatchIndexCard({
           있으므로 되짚을 때는 자료에서 읽는다.
         */}
         <span className="inline-flex items-center gap-1.5 rounded-full bg-cream px-3 py-1 text-[13px] font-semibold text-cream-ink">
-          <Icon name="heart" className="size-4" />
+          <Icon name="taiji" className="size-4" />
           궁합 베타
         </span>
         {/*
