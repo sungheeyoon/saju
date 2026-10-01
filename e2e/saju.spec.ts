@@ -593,6 +593,38 @@ test('세운·월운 표가 대운과 걸리는 것을 딱지와 함께 낸다',
 });
 
 /**
+ * 원국 밖 글자를 보태야 서는 삼합 · 방합 · 삼형(`combinedFormation`)에는 세 표 모두
+ * **「· 합쳐서」 딱지**가 붙는다(운영자 승인 2026-10-01, `docs/product/copy-ledger.md` 09).
+ *
+ * 대운 표는 가운뎃점 없이 「해자축 수방 합쳐서」로 붙여 썼고, 월운 표는 딱지를 아예 안 찍었다 —
+ * 원국 안에서 이미 선 관계와 운이 와서야 서는 관계가 같은 모양으로 섰다. 이 명식은 세 표에
+ * 다 그런 줄이 선다(2026 사주년 · 시간 모름).
+ */
+test('운 표 셋이 원국 밖 글자로 서는 합에 「· 합쳐서」 딱지를 붙인다', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+
+  await page.goto('/#date=1980-01-03&hour=unknown&gender=female&saeun=2026');
+  const panel = fortunePanel(page);
+  await unfold(page, '운 흐름');
+
+  await page.getByRole('tab', { name: '세운' }).click();
+  expect(await panel.innerText()).toMatch(/[가-힣]+ · (세운|대운|세운·대운) · 합쳐서/);
+
+  await page.getByRole('tab', { name: '대운' }).click();
+  const daeun = await panel.innerText();
+  expect(daeun).toMatch(/[가-힣]+ · 합쳐서/);
+  expect(daeun).not.toMatch(/[가-힣] 합쳐서/);
+
+  await page.getByRole('tab', { name: '월운' }).click();
+  expect(await panel.innerText()).toMatch(/[가-힣]+ · (세운|대운|세운·대운) · 합쳐서/);
+
+  expect(errors).toEqual([]);
+});
+
+/**
  * 결과 화면을 링크로 줄 수 있어야 한다. 상태가 컴포넌트 안에만 있으면 주소를
  * 복사해 줘도 상대는 빈 폼을 본다 — 그것이 이 동기화의 이유이므로, 주소에
  * 실렸는지가 아니라 **그 주소로 다시 열었을 때 같은 명식이 나오는지**를 본다.
