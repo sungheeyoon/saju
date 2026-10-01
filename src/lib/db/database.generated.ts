@@ -2330,14 +2330,6 @@ export type Database = {
         Returns: string[]
       }
       discovery_deck_size: { Args: never; Returns: number }
-      discovery_deficit_complement_one_way_v1: {
-        Args: { mine: Json; partner: Json }
-        Returns: number
-      }
-      discovery_deficit_complement_v1: {
-        Args: { a: Json; b: Json }
-        Returns: number
-      }
       discovery_eligible: {
         Args: { other: string; viewer: string }
         Returns: boolean

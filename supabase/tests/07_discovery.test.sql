@@ -1,6 +1,6 @@
 -- discovery — 참여한 사람만 보고, 사주로는 아무도 지우지 않는다.
 begin;
-select plan(46);
+select plan(42);
 
 create temporary table who as
 select tests.signup('kim@example.com') as kim,
@@ -11,8 +11,9 @@ grant select on who to authenticated;
 /**
  * 오행 요약 세 벌 — 참여·후보·노출 시험이 내놓는 표본이다.
  *
- * 축의 셈은 아래 `discovery-v1` 절이 따로 잰다 — **`src/lib/matching/elementAxes.test.ts` 에
- * 같은 입력과 같은 기대값이 있다.** 두 언어에 하나씩 적힌 셈이라 갈릴 수 있기 때문이다.
+ * 축의 셈은 아래 `discovery-v1` 절이 따로 잰다 — 균형(`discovery_count_balance_v1`)은
+ * **`src/lib/discovery/element-axes.test.ts` 에 같은 입력과 같은 기대값이 있다.** 두 언어에 하나씩
+ * 적힌 셈이라 갈릴 수 있기 때문이다. 상호보완 축은 SQL 짝을 걷어(`20261113090000`) TS 에만 있다.
  */
 create temporary table summaries as
 select
@@ -40,25 +41,6 @@ select is(
   ), 4),
   48.4375::numeric,
   '0·1·2·8·5의 글자 분포 균형은 48.4375다');
-
-select is(
-  public.discovery_deficit_complement_v1(
-    '{"glyphCount":8,"counts":{"木":0,"火":0,"土":0,"金":8,"水":0}}'::jsonb,
-    '{"glyphCount":8,"counts":{"木":8,"火":0,"土":0,"金":0,"水":0}}'::jsonb
-  ),
-  40::numeric,
-  '서로 한 오행만 건네면 나머지 세 오행은 남아 상호보완은 40이다');
-
-select is(
-  round(public.discovery_deficit_complement_one_way_v1(
-    '{"glyphCount":8,"counts":{"木":1,"火":2,"土":2,"金":2,"水":1}}'::jsonb,
-    '{"glyphCount":8,"counts":{"木":2,"火":2,"土":2,"金":2,"水":0}}'::jsonb
-  ), 4),
-  round(public.discovery_deficit_complement_one_way_v1(
-    '{"glyphCount":8,"counts":{"木":1,"火":2,"土":2,"金":2,"水":1}}'::jsonb,
-    '{"glyphCount":8,"counts":{"木":8,"火":0,"土":0,"金":0,"水":0}}'::jsonb
-  ), 4),
-  '상대가 木을 20%보다 많이 가져도 추가 보완 가점은 없다');
 
 select is(
   public.discovery_supplied_elements_v1(
@@ -327,14 +309,6 @@ select ok(
 select function_privs_are('public', 'discovery_count_balance_v1', array['jsonb', 'jsonb'],
   'authenticated', array[]::text[],
   'v1 균형 함수는 로그인한 사람이 직접 부를 수 없다');
-
-select function_privs_are('public', 'discovery_deficit_complement_one_way_v1', array['jsonb', 'jsonb'],
-  'authenticated', array[]::text[],
-  'v1 한 방향 보완 함수는 로그인한 사람이 직접 부를 수 없다');
-
-select function_privs_are('public', 'discovery_deficit_complement_v1', array['jsonb', 'jsonb'],
-  'authenticated', array[]::text[],
-  'v1 상호보완 함수는 로그인한 사람이 직접 부를 수 없다');
 
 select function_privs_are('public', 'discovery_supplied_elements_v1', array['jsonb', 'jsonb'],
   'authenticated', array[]::text[],
