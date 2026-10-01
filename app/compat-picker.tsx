@@ -23,7 +23,12 @@ import { openPairScreen, pairRelationFor, type PairAnswers, type PairSide } from
 import { PersonCombobox, type Choosable } from './person-combobox';
 import { FaceSymbol } from './ui/stem-symbol';
 import { RelationChoice } from './relation-choice';
-import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
+import {
+  SameChartAsk,
+  settleSaveOutcome,
+  type SaveOutcome,
+  type SameChartQuestion,
+} from './same-chart-ask';
 import { BUTTON_PRIMARY } from './ui/buttons';
 import { TaijiMark } from './ui/entry-marks';
 import { Icon } from './ui/icons';
@@ -184,14 +189,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
     };
   };
 
-  const settle = (outcome: SaveOutcome) => {
-    if ('failed' in outcome) {
-      setFailure(outcome.failed);
-      setQuestion(null);
-      return;
-    }
-    setQuestion('ask' in outcome ? outcome.ask : null);
-  };
+  const settle = (outcome: SaveOutcome) => settleSaveOutcome(outcome, setFailure, setQuestion);
 
   const press = () => {
     if (!chosen || sameTwice) return;
