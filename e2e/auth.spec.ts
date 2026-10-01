@@ -16,13 +16,6 @@ import { expect, test } from './anon';
 const signInFor = (path: string) =>
   new RegExp(`/auth\\?next=${encodeURIComponent(path).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
 
-// 임시 — PR #397 의 실패 artifact 증거용. 되돌린다.
-test('임시 실패 — 익명 artifact 증거', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-chromium');
-  await page.goto('/me');
-  await expect(page).toHaveURL(/\/never-here$/, { timeout: 2_000 });
-});
-
 test('로그인하지 않으면 내 계정 화면에 들어가지 못한다', async ({ page }) => {
   await page.goto('/me');
 
