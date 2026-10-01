@@ -3106,13 +3106,6 @@ export type Database = {
       reading_job_deadline: { Args: never; Returns: string }
       reading_job_prepare_deadline: { Args: never; Returns: string }
       reading_rate_limit: { Args: never; Returns: number }
-      reading_recovery_configured: {
-        Args: never
-        Returns: {
-          has_secret: boolean
-          has_url: boolean
-        }[]
-      }
       reading_run_timeout: { Args: never; Returns: string }
       reading_sale_is_open: { Args: never; Returns: boolean }
       reading_scope: {

@@ -1,0 +1,21 @@
+-- 복구기의 Vault 배선을 묻던 문 `reading_recovery_configured()` 를 걷는다 — 묻는 일은 runbook 의 질의가 한다 (슬롭 감사 G 좁히기)
+--
+-- `20260902090000` 이 이 문을 열었다. `wake_reading_recovery()` 가 Vault 값이 없으면 조용히 지나가므로(ADR 0020)
+-- 「배선이 끝났는지」를 물을 자리가 있어야 했다. 그런데 부른 곳은 끝내 없었다 — 열쇠(`service_role`)에 열린 채 pgTAP 의
+-- 문 목록과 생성 타입에만 섰다(`docs/notes/2026-09-27-night-cleanup.md` 가 걷을 후보로 적었다).
+--
+-- ## 잰 값 (2026-10-01, 로컬 `20261113090000` 까지)
+--
+-- - **부르는 함수 0** — `pg_proc.prosrc` 에 이름이 든 함수 0, `pg_depend` 0, 크론 0(크론 `reading-recovery` 는
+--   `wake_reading_recovery()` 를 부른다).
+-- - **앱 · scripts · e2e 0** — 운영에 서 있는 앱(`83a6192`)의 `app/` · `proxy.ts` 에도 0. 부르던 것은 pgTAP
+--   `13_reading` 의 열쇠 문 목록 한 줄이고 이 PR 이 뺀다(28 → 27).
+-- - **대체 확인이 먼저 섰다** — `docs/ops/runbook.md` 「도는 잡이 정말 도나」의 「감시기가 못 보는 것 셋」이 두 이름을
+--   **wake 와 같은 조건**(`decrypted_secret is not null`)으로 센다. 이 문은 이름이 있는지만 봐서 값이 `null` 인 갈래를
+--   못 잡았다. 2026-10-01 에 운영에서 그 질의로 둘 다 1 이었다(`npm run db:remote`, 값은 안 읽음).
+-- - **권한** — `security definer` · `search_path = ''` · 실행은 `postgres` 와 `service_role` 뿐. 걷으면 열쇠에 열린
+--   문의 집합이 하나 준다. 로그인한 사람 · 익명은 처음부터 못 불렀다. 값은 처음부터 안 냈다.
+--
+-- **배포 순서는 상관없다** — 지금 운영의 앱이 이 문을 안 부른다.
+
+drop function public.reading_recovery_configured();
