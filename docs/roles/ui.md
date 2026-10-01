@@ -22,11 +22,12 @@
   (원본: `docs/architecture.md` 「그 밖의 자리」 · ADR 0109)
 - **화면은 DB 를 부르지 않는다** — 문(`.ts`)이 부른다. 판단이 생기면 `.ts` 로 내려야 vitest 가 닿는다
   (원본: `docs/architecture.md` 「새 것을 놓을 때」 · ADR 0080)
-- 시험: vitest 는 `.tsx` 를 못 그린다. 화면을 건드렸으면 커밋 전에 그 화면의 e2e 를 돈다 — 비로그인은 `npm run test:e2e`,
-  로그인 뒤는 `npm run test:e2e:signed-in` · `npm run test:e2e:match` · `npm run test:e2e:chat`. **로컬 스택의 시험 계정으로 돈다** —
-  운영 smoke 는 이 역할의 일이 아니다(`docs/roles/ops.md`). 문구만 바뀐 라운드는 안 돌린다(e2e 가 그 글자를 붙들면 스펙만 고친다)
+- 시험: vitest 는 `.tsx` 를 못 그린다. 그래도 지금(공개 출시 전) 로컬 최소는 `npm test` · `npm run typecheck` · `npm run lint` 이고
+  화면 변경에 e2e 를 일괄로 돌리지 않는다 — 화면은 CI 의 그 주소 차선과 머지 뒤 main 의 전체 검증이 잰다. e2e 를 돌리는 것은 원본의 예외 넷
+  (e2e 스펙 자체를 고쳤을 때 등)이고, 그때는 **로컬 스택의 시험 계정으로 돈다** — 운영 smoke 는 이 역할의 일이 아니다(`docs/roles/ops.md`)
   (원본: `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」 · `CLAUDE.md` 「무엇을 돌리는가는」 · `docs/agents/delegation.md` 「일하는 법」)
-- 입구 파일(`page` · `layout` · `loading` · `error` …)은 CI 가 머지 전에 e2e 전부를 돈다
+- CI 는 머지 전에 바뀐 파일이 닿는 차선을 돈다 — `layout` 은 공용 위험이라 전부, 입구(`page` · `loading` · `error` …)는 `core` 와
+  그 주소를 요청하는 시험의 차선(닿는 시험이 없으면 전부)
   (원본: `docs/agents/test-map.md` 「CI」)
 - `app/` 아래 `icon` · `opengraph-image` · `manifest` 같은 파일 이름은 Next 에게 특별하다 — 화면을 바꾼 병합 뒤 `npm run build` 한 번
   (원본: `docs/agents/delegation.md` 「로컬 환경의 함정」)

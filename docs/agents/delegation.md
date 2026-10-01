@@ -199,8 +199,8 @@ git 이 줄 단위로 합친다 — 부딪히는 것은 끝에 덧붙이는 chan
 
 **등급 3 의 잠금은 공식 운영에 들어간 뒤에 켠다(ADR 0093).** 지금은 운영 베타라 실제 사용자가 없고,
 운영 DB 와 배포는 되돌려도 다치는 사람이 없다. 그래서 등급 3 의 잠금 칸은 비어 있고 에이전트는
-`db push` · 실호출 · `gh pr merge` · 운영 SQL 을 묻지 않고 밟되 **밟고 나서 본 값을 적는다**(아래). 실호출만은
-운영자가 직접 돌린다 — 위 「권한 봉투」의 기본값.
+`db push` · `gh pr merge` · 운영 SQL 을 묻지 않고 밟되 **밟고 나서 본 값을 적는다**(아래). 실호출은 운영 베타에서도
+에이전트가 밟지 않고 운영자가 직접 돌린다 — 위 「권한 봉투」의 기본값.
 켤 목록은 「공식 운영에 들어가면 켜는 잠금」 절이 든다. **지금이 어느 단계인가는 `docs/prd.md` §7.0 표의
 「(지금)」 한 곳**이고, 시험은 그 표시가 공개 출시가 아닌 동안 `ask` 가 빈 배열인지 잰다 — 문서의 이 표와
 설정을 함께 바꿔도 붉어진다. 잠금을 켜는 것은 단계를 옮기는 사람의 일이지 할 일 목록의 한 줄이 아니다.
@@ -211,7 +211,7 @@ git 이 줄 단위로 합친다 — 부딪히는 것은 끝에 덧붙이는 chan
 | **1 로컬에서 고친다** | 작업 가지에서 파일을 고치고 시험을 돌린다. 로컬 스택은 마음껏 되돌린다 | `npm run db:reset` · `npm run test:e2e:authed` | 없음 |
 | **2 밖으로 낸다 — 되돌릴 수 있게** | 가지를 밀고 PR 을 열고 이슈에 적는다. 리뷰 뒤 `--auto` 머지를 건다(gate 가 초록이 될 때까지 기다린다, ADR 0082). main 에 직접 미는 길은 없다 — 관리자까지 PR 로만 든다(ADR 0121) | `git push -u origin <가지>` · `gh pr create` · `gh pr merge --auto --squash` | 없음 — 단 아래 등급 3 의 예외 |
 | **3 사람이 답한 뒤에 — 운영 배포** | **프로덕션 배포**(`vercel deploy --prod` · 대시보드의 Create Deployment — 머지는 배포가 아니다, ADR 0110). **운영 베타에서도 사람이 답한 뒤다** — 라운드 끝의 묶음 배포 한 번을 조율자가 밟는다(위 「머지는 배포가 아니다」, runbook 「묶음 배포」) | `vercel deploy --prod` · Create Deployment | 사람 — 도구 잠금은 공식 운영 전이라 없다. 켤 목록은 아래 절 |
-| **3 사람이 답한 뒤에** | 운영 DB 에 마이그레이션을 올리거나 임의 SQL 을 보내는 것, 토큰이 나가는 실호출, Vercel 변수, 원격 가지 삭제, 프로덕션 확인이 든 걸음 — **공식 운영에 들어간 뒤에 켠다(ADR 0093).** 운영 베타에서는 등급 2 처럼 밟고 값을 적는다 | `db push` · `db query --linked` · `READING_LIVE=1` · `vercel env` · `gh pr merge`(auto 아닌 즉시 머지) | 없음 — 공식 운영 전. 켤 목록은 아래 절 |
+| **3 사람이 답한 뒤에** | 운영 DB 에 마이그레이션을 올리거나 임의 SQL 을 보내는 것, 토큰이 나가는 실호출, Vercel 변수, 원격 가지 삭제, 프로덕션 확인이 든 걸음 — **공식 운영에 들어간 뒤에 켠다(ADR 0093).** 운영 베타에서는 등급 2 처럼 밟고 값을 적는다 — 실호출만은 빼고 운영자가 직접 돌린다(위 「권한 봉투」) | `db push` · `db query --linked` · `READING_LIVE=1` · `vercel env` · `gh pr merge`(auto 아닌 즉시 머지) | 없음 — 공식 운영 전. 켤 목록은 아래 절 |
 | **3 사람이 답한 뒤에 — 도구 밖** | 새 한글 문구는 표로 보이고 답을 기다린다(`docs/agents/code-rules.md`). 남이 띄운 dev 서버는 죽이기 전에 묻는다. 운영 SQL Editor 의 문장을 건네기만 하는 것은 공식 운영 뒤의 일이다(ADR 0093) — 지금은 `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 직접 돌리고 값을 적는다. **단 운영 개인정보는 예외 없이 직접 조회하지 않는다**(아래, ADR 0105) — 질의를 써서 건네고 사람이 검토해 돈다 | 버튼 문구 · dev 서버 · 운영 개인정보 조회 | 사람 |
 | **4 안 한다** | 되돌릴 수 없는 것. main 에 force push, `supabase config push`(원격의 구글 설정을 지운다), main 가지 삭제, Vercel 변수 삭제, 비밀 값을 커밋 | | `Bash(git push --force:*)` · `Bash(git push -f:*)` · `Bash(git push --force-with-lease:*)` · `Bash(npx supabase config push:*)` · `Bash(supabase config push:*)` · `Bash(./node_modules/.bin/supabase config push:*)` · `Bash(git push origin :main)` · `Bash(git push origin --delete main)` · `Bash(vercel env rm:*)` · `Bash(npx vercel env rm:*)` |
 
@@ -246,7 +246,7 @@ ADR 0082). 보호 규칙이 strict 라(2026-09-23) 가지가 최신 main 위에 
 그 모양이다). 이 예외는 시험이 안 잰다 — `ci-plan.mjs` 가 그 경로를 아니까 잠글 자리는 있다.
 
 **등급 3 을 밟고 나면 무엇을 봤는지 값으로 적는다.** `db push` 뒤에는 `migration list` 의 remote
-칸과 PostgREST 캐시(`docs/ops/runbook.md` 「배포」), 실호출 뒤에는 저장된 판본과 검사 결과,
+칸과 PostgREST 캐시(`docs/ops/runbook.md` 「배포」), 실호출은 운영자가 돌리므로 에이전트는 볼 값(저장된 판본과 검사 결과)을 PR 에 적어 건네고,
 묶음 배포 뒤에는 Vercel 의 Ready 와 배포 SHA = main HEAD.
 
 **잠그지 않은 것 — 2026-09-23 에 잰 값.** 규칙이 서 있다고 도구가 지키는 것이 아니다. 두 가지를 밟았다.
@@ -308,7 +308,7 @@ PR 틀(`.github/pull_request_template.md`)의 칸이다. 칸 이름은 이 표�
 | --- | --- | --- |
 | **무엇이 참이 되는가** | 이슈의 첫 칸 그대로. 재어 보니 달랐으면 **잰 값으로 다시 쓴 문장** | 이슈 문장은 가설이다 |
 | **잰 값** | 고치기 전에 잰 수와 그 방법. 후보 문장과 어디가 달랐나 | 값 없이 「정리했다」는 다음 사람이 다시 잰다 |
-| **돌린 것** | `docs/agents/test-map.md` 의 명령과 결과(수까지) — 공개 출시 전의 최소는 단위 · 타입 · 린트와 예외 넷이다. 화면·라우트면 e2e, 프롬프트 본문이면 실호출, 마이그레이션이면 `db:types` diff. **안 돌린 것과 그 까닭** | 단위 시험은 화면이 사라진 것을 모른다 |
+| **돌린 것** | `docs/agents/test-map.md` 의 명령과 결과(수까지) — 공개 출시 전의 최소는 단위 · 타입 · 린트와 예외 넷이다. 화면·라우트면 e2e, 프롬프트 본문이면 실호출(운영자가 돌린다 — 명령은 「사람이 할 걸음」에), 마이그레이션이면 `db:types` diff. **안 돌린 것과 그 까닭** | 단위 시험은 화면이 사라진 것을 모른다 |
 | **잠금이면 일부러 어긴 것** | 린트·시험·pgTAP 을 새로 세웠으면 **옛 상태를 되살리거나 일부러 어긴 파일**로 빨개지는 것을 본 기록. 같은 뜻의 다른 표기(별칭/상대경로, 정적/동적, `.ts`/`.jsx`)까지 | 「규칙을 넣었다」와 「규칙이 건다」는 다른 문장이다(ADR 0085·0086) |
 | **문서** | 역할 문서(`docs/roles/`)의 「끝날 때 고치는 것」을 옮겨 적는다. 첫 줄은 **결정 여부** — 위 「결정 점검표」에 걸리면 「있음」과 어느 줄인지, 운영자가 답했는지. 결정이 있으면 ADR(같은 PR). 낱말이 생기면 `CONTEXT.md`, 모양이 바뀌면 `docs/prd.md` 와 changelog, 틈이 생기거나 닫히면 `docs/product/gaps.md`, 돌리는 것이 바뀌면 `docs/agents/test-map.md` | 문서와 코드가 어긋나면 시험이 있는 쪽만 산다 |
 | **사람이 할 걸음** | 등급 3 — `db push` · 실호출 · 문구 확인 · 운영 SQL. **앱 배포 ≠ DB 마이그레이션**(`docs/ops/runbook.md` 「배포」) | 앱은 묶음 배포로, DB 는 그보다 먼저 따로 간다 |
@@ -403,7 +403,7 @@ squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 �
 | 모든 주소가 500 이고 `globals.css` 파싱 오류가 뜬다 | `.next` 의 Turbopack CSS 캐시가 깨졌다. **원본은 멀쩡하다** | `lsof -ti tcp:3000 \| xargs kill -9 ; rm -rf .next ; npm run dev`. 다른 dist(`.next-check`)도 같다 |
 | `Another next dev server is already running` | Next 16 은 한 디렉터리에 dev 서버 하나다 — 포트를 옮겨도 안 된다 | 3000 을 끄거나(사람이 쓰는 중이면 묻는다) `PLAYWRIGHT_PORT=3100 NEXT_DIST_DIR=.next-check` 로 `next start` 를 쓴다 |
 | 로그인 e2e 74건이 전부 로그인 화면을 받는다 | 3000 의 dev 서버를 재사용해 운영 DB 를 봤다 | 위와 같다. CI 는 `CI=true` 라 이 함정이 없다 |
-| 픽스처가 `Something went wrong` 으로 죽는다 | 로컬 스택의 하루 풀이 한도 100 이 찼다. 도구가 제 줄을 어제로 밀지만 다른 표식의 줄은 안 민다 | `docker logs supabase_db_<SAJU_STACK_ID> --tail 30 \| grep -i error` 로 확인(main 은 `saju`, 워크트리는 `saju_wtN`), `npm run db:reset` |
+| 픽스처가 `Something went wrong` 으로 죽는다 | 로컬 스택의 하루 풀이 한도(`reading_daily_budget()`)가 찼다. 도구가 제 줄을 어제로 밀지만 다른 표식의 줄은 안 민다 | `docker logs supabase_db_<SAJU_STACK_ID> --tail 30 \| grep -i error` 로 확인(main 은 `saju`, 워크트리는 `saju_wtN`), `npm run db:reset` |
 | pgTAP 이 e2e 뒤에 붉다 | 표를 전역으로 세는 자리가 남은 계정에 걸린다 | `npm run db:reset` 뒤 다시. 새로 쓰는 시험은 자기가 만든 행만 센다 |
 | 로그인 e2e 가 `PGRST202 Could not find the function …` 로 붉다(예: 사진 지우기 `remove_my_photo(p_position, p_version)`) | 스택 자리에 옛 볼륨이 남아 있으면 `db:start` 는 새 마이그레이션을 올리지 않는다 — 앱은 새 서명을 부르고 로컬 DB 는 옛 함수를 든다(2026-09-26) | `npm run db:reset` 뒤 다시 |
 | localhost 의 dev 서버만 탭 이동이 말도 안 되게 느리다(운영은 빠르다) · 서버 로그의 요청 시간은 0.2~0.6초로 멀쩡하다 | 에이전트 워크트리(`.claude/worktrees/`)가 메인 폴더 **안에** 서고, 저마다 `node_modules` 를 통째로 복제한다 — 밤 라운드 뒤 다섯 벌 8.3GB 를 메인의 dev 서버가 함께 감시했다. 캐시를 지우고 다시 띄워도 그대로였고, 워크트리를 걷고 다시 띄우자 풀렸다(2026-09-27) | 라운드가 끝나면 머지된 워크트리를 `git worktree remove` 로 걷고 dev 서버를 다시 띄운다(위 「끝난 워크트리를 걷는다」) |

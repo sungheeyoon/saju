@@ -105,7 +105,7 @@
 | `app/me/reading/taste.live.test.ts` | `TASTE_LIVE=1` (+ `TASTE_WRITE=1` 이면 운영 표에 쓴다 · `TASTE_KEYS=` 로 몇 칸만) | 로그인 전 사주 문단 표(720칸)를 채운다 — 토큰이 나간다(ADR 0131) |
 
 접속값은 `src/lib/local-env.ts` 가 `.env.development.local` 에서 읽는다 — 이름과 달리 **운영**
-값이다. 그래서 이 셋만 그 파일을 부른다.
+값이다. 그래서 이 넷만 그 파일을 부른다.
 
 ## CI
 
