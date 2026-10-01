@@ -1,5 +1,4 @@
 import { CompatScreen, type CompatQuery } from '../../../compat/screen';
-// 임시 — CI 계획 증거용(#398), 곧 revert 한다
 
 /** 풀이 생성은 응답 뒤에서 최대 240초 동안 돌 수 있다(`/me/compat` 과 같은 까닭). */
 export const maxDuration = 300;
