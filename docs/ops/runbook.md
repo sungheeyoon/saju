@@ -1504,8 +1504,23 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 라우트 파일 · 자리마다 하루 한 줄이다. 알림에는 라우트 무늬와 digest 만 있다 — Vercel 로그에서 그 digest 로 오류 줄을 찾는다.
 알림을 보내다 실패하면 삼키고 로그에 `request-error: report_request_error` 한 줄을 남긴다. Next 는 오류 응답 전에 이 부름을 기다리므로 부름은 1.5초에 끊고, 한 인스턴스 안에서도 같은 날 같은 라우트 · 자리는 한 번만 부른다.
 
-**감시기가 못 보는 것 둘** — 감시기 자신이 계속 실패하는 것, `pg_cron` 이 통째로 멈춘 것. 그래서
-**배포한 날과, 잡을 건드린 날에 한 번씩은 여전히 본다.**
+**감시기가 못 보는 것 셋** — 감시기 자신이 계속 실패하는 것, `pg_cron` 이 통째로 멈춘 것, 그리고 **복구기의 Vault 배선이
+빈 것.** `wake_reading_recovery()` 는 Vault 의 `reading_recovery_url` · `reading_recovery_secret` 중 하나라도 값이 `null`
+이면 아무것도 안 하고 돌아간다 — 1분마다 예외를 쌓으면 그 소음이 진짜 실패를 덮기 때문이다(ADR 0020). 그래서 이름을 한
+글자 틀리거나 값을 안 넣어도 잡은 초록이고, 요청을 안 보내니 `net-request-failed` 도 안 온다. 그래서
+**배포한 날과, 잡을 건드린 날에 한 번씩은 여전히 본다** — 아래 둘 다.
+
+```sql
+-- 복구기의 Vault 배선 — wake 와 같은 조건(`decrypted_secret is not null`)을 본다. 값은 안 읽는다. 둘 다 1 이어야 한다
+select (select count(*) from vault.decrypted_secrets
+        where name = 'reading_recovery_url' and decrypted_secret is not null) as url_ok,
+       (select count(*) from vault.decrypted_secrets
+        where name = 'reading_recovery_secret' and decrypted_secret is not null) as secret_ok;
+```
+
+0 이 있으면 복구기는 멈춰 있다 — 「비밀이 새면」 표의 `CRON_SECRET` = Vault `reading_recovery_secret` · Vault
+`reading_recovery_url` 줄대로 넣는다. 들어갔는지는 2분 뒤 `select status_code, created from net._http_response order by
+created desc limit 3;` 가 200 인지로 본다. 2026-10-01 에 운영에서 둘 다 1 이었다.
 
 ```sql
 select j.jobname, d.status, count(*) as 횟수,
