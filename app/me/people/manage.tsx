@@ -10,7 +10,12 @@ import { DEFAULT_QUERY, missingAnswer, type Query } from '@/src/lib/input/query'
 import { NOTE_MAX } from '@/src/lib/input/edit';
 import { useHashParams } from '../../hash-query';
 import { addManagedPerson, removeFromList, updateNote } from '../actions';
-import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from '../../same-chart-ask';
+import {
+  SameChartAsk,
+  settleSaveOutcome,
+  type SaveOutcome,
+  type SameChartQuestion,
+} from '../../same-chart-ask';
 import {
   BUTTON_DANGER,
   BUTTON_PRIMARY,
@@ -106,14 +111,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
     };
   };
 
-  const settle = (outcome: SaveOutcome) => {
-    if ('failed' in outcome) {
-      setFailure(outcome.failed);
-      setQuestion(null);
-      return;
-    }
-    setQuestion('ask' in outcome ? outcome.ask : null);
-  };
+  const settle = (outcome: SaveOutcome) => settleSaveOutcome(outcome, setFailure, setQuestion);
 
   const save = () => {
     setFailure(null);
