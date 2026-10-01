@@ -595,6 +595,40 @@ describe('나온 글을 저장하기 전에 검사한다', () => {
     expect(codesOf(result)).toContain('out-of-scope-judgment');
   });
 
+  /**
+   * **판을 못 읽으면 닫는다**(운영자 결정 2026-10-01, ADR 0141). 옛 컷만 `억부` 를 풀고, 옛 컷은
+   * 「`matchInput` 이 없는 공유 계약」으로 스스로 말한다. 깨진 JSON · 모르는 판 · 계약 없는 자료를
+   * 옛 컷으로 읽으면 검사가 실패한 자리에서 금지가 풀린다.
+   */
+  it.each([
+    ['깨진 JSON', () => '{"contract":'],
+    ['모르는 판', () => {
+      const evidence = JSON.parse(ok('match').evidenceText);
+      evidence.contract.matchInput = 'limited-v9';
+      return JSON.stringify(evidence);
+    }],
+    ['계약이 없는 자료', () => {
+      const evidence = JSON.parse(ok('match').evidenceText);
+      delete evidence.contract;
+      return JSON.stringify(evidence);
+    }],
+    ['공유 범위를 안 말하는 계약', () => {
+      const evidence = JSON.parse(ok('match').evidenceText);
+      delete evidence.contract.matchInput;
+      delete evidence.contract.scope;
+      return JSON.stringify(evidence);
+    }],
+  ])('억부는 판을 못 읽은 자료(%s)에서도 걸린다', (_, evidenceText) => {
+    const base = ok('match');
+    const result = checkReading({
+      ...base,
+      evidenceText: evidenceText(),
+      output: { ...base.output, markdown: `${OK_MARKDOWN}\n억부 쪽의 맞물림은 아직 후보로만 볼 수 있어요.` },
+    });
+
+    expect(codesOf(result)).toContain('out-of-scope-judgment');
+  });
+
   /** 조후는 다르다 — 그 값은 `analysis` 에 있고 공유 자료에서 통째로 빠진다 */
   it('조후는 그대로 hard fail 이다 — 공유 자료에 값이 없다', () => {
     const base = ok('match');
