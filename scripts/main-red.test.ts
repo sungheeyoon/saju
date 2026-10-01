@@ -41,8 +41,8 @@ describe('ci-main-red — main 의 결과로 이슈 하나를 든다 (ADR 0097)'
     expect(onlyAudit).not.toContain('`gate`');
     expect(onlyAudit).toContain('새로 뜬 advisory');
 
-    const withOthers = reportOf({ runUrl: 'https://x/run/1', sha: MAIN, lastGreen: OLD, failedJobs: ['audit', 'verify', 'gate'] });
-    expect(withOthers).toContain('`audit` · `verify`');
+    const withOthers = reportOf({ runUrl: 'https://x/run/1', sha: MAIN, lastGreen: OLD, failedJobs: ['audit', 'anon', 'gate'] });
+    expect(withOthers).toContain('`audit` · `anon`');
     expect(withOthers).not.toContain('새로 뜬 advisory');
 
     expect(reportOf({ runUrl: 'https://x/run/1', sha: MAIN, lastGreen: OLD })).not.toContain('붉은 차선');

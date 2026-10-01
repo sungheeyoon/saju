@@ -54,3 +54,29 @@
 로직 `.ts` 44 개는 그대로 `fast`. 최근 머지된 PR 30 개를 넣으면 전부가 16 → 17 이다. `src/lib/**` 는 위 「안 고른 것」대로 내용으로 안 가른다.
 같은 날 `ci-plan.test.ts` 가 계획이 내는 차선 전부를 `verify.yml` 의 `plan.outputs` · job `if` · `gate` 의 `needs` 와 견주게 했다 —
 한쪽 이름만 바뀌면 그 job 은 늘 skipped 이고 `gate` 는 초록이라, 전에는 `audit` 하나만 견줬다.
+
+## 추기 (2026-10-01, 운영자 승인) — 「경로마다 `authed` 차선을 골라 켜기」를 소스에서 뽑는 대응으로 골랐다
+
+위 「안 고른 것」 둘째를 고른다. 안 고른 까닭은 둘이었다 — 손으로 적은 「이 경로는 저 차선」은 파일이 옮겨지는 날 거짓이
+되고, 관문 · 로그인 확인은 모든 차선이 밟는다. 그런데 입구 하나만 바뀌어도 전부라서, `app/me/(shelf)/readings/compat/page.tsx`
+한 줄을 고친 PR 도 그 주소를 여는 시험이 `e2e/signed-in.spec.ts` 하나뿐인데 로그인 일곱 · 흐름 · 익명을 다 기다렸다. 그래서
+두 까닭에 각각 답하고 고른다(`scripts/ci-plan.mjs` 「그 주소에 실제로 닿는 차선만」).
+
+- **모든 차선이 밟는 자리는 공용 위험으로 먼저 거른다.** 바뀐 파일 전체를 주소 대응보다 먼저 훑어, 하나라도 들면 전부다 —
+  관문 · 인증 · `layout` · `route.ts` · 서버 액션 · spec 이 아닌 `e2e/**` · 시험 도구, 그리고 Next 의 공용 경계(`global-error` ·
+  `global-not-found` · `forbidden` · `unauthorized` · 뿌리의 `instrumentation` · `instrumentation-client` · `middleware`). #284 는
+  지금 규칙에서도 `layout` 으로 전부다.
+- **대응을 손으로 적지 않고 소스에서 뽑는다.** 입구 파일의 주소는 경로에서(`(group)` · `@slot` 걷음, `[x]` 한 마디, `[...x]`
+  나머지, `page` 밖은 그 아래 전부), 시험이 요청하는 주소는 `e2e/*.spec.ts` · `scripts/check-*.mjs` 의 주석 줄을 뺀 따옴표 ·
+  백틱 속 `/…` 에서, spec 과 차선은 `package.json` 의 `test:e2e:<차선>` 과 `playwright.config.ts` 의 `AUTHED` · `NOTICE` 무늬에서
+  읽는다. 파일이 옮겨지면 대응도 함께 옮는다.
+- **모르면 전부다.** 주소를 못 뽑는 입구(서버에 닿는 `.ts` · 관문이 부르는 파일), 닿는 시험이 0 인 화면, 로그인 무늬인데 부르는
+  차선이 없는 spec, 알려진 자리가 아닌 파일(ADR 0097 추기 같은 날)은 전부로 간다.
+
+예: `app/me/(shelf)/readings/compat/page.tsx` → `core` + signed-in 둘. `app/me/people/page.tsx` → `core` + `anon`(`auth.spec.ts` 가
+`/me/people` 을 요청한다) + signed-in 둘 + match 둘 + `flow`. 잰 값: 옛 규칙에서 한 파일로 전부였던 382 개 중 61 개가 좁혀진다.
+job 이름도 뜻대로 바꿨다 — `fast` → `core`, `verify` → `anon`(익명 e2e 만), 익명 artifact 는 `anon-test-results`.
+
+**대가** — 시험이 주소를 문자열로 적지 않고 링크를 눌러 닿는 화면은 그 시험에 안 잡힌다. 그 붉음은 전처럼 머지 뒤 main 의
+전체가 잡는다. 시험(`ci-plan.test.ts`)이 공용 위험의 갈래마다 전부로 가는지(까닭의 갈래 이름까지), 차선 스크립트가 부르는
+spec 이 모두 로그인 무늬에 드는지, 주석 속 주소를 안 세는지, 모르는 파일이 전부인지 잰다.
