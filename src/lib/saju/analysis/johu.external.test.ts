@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   HIDDEN_STEMS,
-  pillarOf,
   STEM_INFO,
   type Branch,
   type Element,
@@ -14,6 +13,7 @@ import { johuJudgementOf } from './johuJudgement';
 import { needProfileOf } from './needProfile';
 import { rootednessOf } from './rootedness';
 import { JOHU_EXTERNAL_CASES, type JohuVerdict } from './validation/johuExternalCases';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 /**
  * 조후 외부 대조 — **관찰만 한다.** 엔진 규칙을 이 자료에 맞추지 않는다(ADR 0111 「정한 것」 5).
@@ -27,17 +27,12 @@ import { JOHU_EXTERNAL_CASES, type JohuVerdict } from './validation/johuExternal
 type Case = (typeof JOHU_EXTERNAL_CASES)[number];
 
 function chartOf(pillars: Case['pillars']) {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-  const day = parse(pillars.day);
+  const day = pillarNamed(pillars.day);
   return {
-    year: parse(pillars.year),
-    month: parse(pillars.month),
+    year: pillarNamed(pillars.year),
+    month: pillarNamed(pillars.month),
     day,
-    hour: parse(pillars.hour),
+    hour: pillarNamed(pillars.hour),
     dayMaster: day.stem,
   };
 }

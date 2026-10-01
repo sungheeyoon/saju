@@ -10,21 +10,16 @@ import { effectiveElementsOf } from '@/src/lib/saju/analysis/effectiveElements';
 import { elementDistributionOf } from '@/src/lib/saju/analysis/fiveElements';
 import { rootednessOf } from '@/src/lib/saju/analysis/rootedness';
 import { rootQualityOf } from '@/src/lib/saju/analysis/rootQuality';
-import { pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
+import { pillarOf } from '@/src/lib/saju/constants';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 function candidacy(year: string, month: string, day: string, hour: string | null) {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-
-  const parsedDay = parse(day);
+  const parsedDay = pillarNamed(day);
   const pillars = {
-    year: parse(year),
-    month: parse(month),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
     day: parsedDay,
-    hour: hour === null ? null : parse(hour),
+    hour: hour === null ? null : pillarNamed(hour),
     dayMaster: parsedDay.stem,
   };
 
@@ -112,17 +107,12 @@ describe('종격 후보 — 조건이 되는 사실', () => {
 
 describe('종격 판정 — 실험 규칙 v2', () => {
   const assess = (year: string, month: string, day: string, hour: string | null) => {
-    const parse = (name: string) => {
-      const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-      if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-      return pillar;
-    };
-    const parsedDay = parse(day);
+    const parsedDay = pillarNamed(day);
     const pillars = {
-      year: parse(year),
-      month: parse(month),
+      year: pillarNamed(year),
+      month: pillarNamed(month),
       day: parsedDay,
-      hour: hour === null ? null : parse(hour),
+      hour: hour === null ? null : pillarNamed(hour),
       dayMaster: parsedDay.stem,
     };
     const rootedness = rootednessOf(pillars);

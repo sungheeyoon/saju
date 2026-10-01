@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  pillarOf,
   principalStem,
   STEM_INFO,
   type Branch,
@@ -22,6 +21,7 @@ import {
   type CasePillars,
   type CompatVerdict,
 } from './validation/compatExternalCases';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 /**
  * 궁합 외부 사례(`compatExternalCases.ts`)의 모양과, 전문가 판정 × 주는 쪽 자리의 **관찰**.
@@ -31,19 +31,13 @@ import {
  * 엔진이 바뀌면 이 수가 움직이고, 그때 무엇이 움직였는지 드러난다.
  */
 
-const parse = (name: string) => {
-  const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-  if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-  return pillar;
-};
-
 const chartOf = (pillars: CasePillars): ProviderChart => {
-  const day = parse(pillars.day);
+  const day = pillarNamed(pillars.day);
   return {
-    year: parse(pillars.year),
-    month: parse(pillars.month),
+    year: pillarNamed(pillars.year),
+    month: pillarNamed(pillars.month),
     day,
-    hour: pillars.hour === null ? null : parse(pillars.hour),
+    hour: pillars.hour === null ? null : pillarNamed(pillars.hour),
     dayMaster: day.stem,
   };
 };
