@@ -75,6 +75,17 @@ export const EXCLUDED_PATHS = {
   saeun: '해마다의 표는 싣지 않는다 — 지금 도는 해는 `now.saeun` 이 든다',
   /** 위와 같다. 열두 달 중 해석에 쓰이는 것은 지금 도는 달이다 */
   wolun: '달마다의 표는 싣지 않는다 — 지금 도는 달은 `now.wolun` 이 든다',
+  /**
+   * 종격 후보 자격은 **두 벌을 싣지 않는다**(ADR 0142).
+   *
+   * 엔진은 같은 세 입력(원국 · 실효 분포 · 뿌리)으로 같은 순수 함수를 두 번 부른다 —
+   * `analysis.followingCandidacy` 와 `analysis.following.facts` 다. 값이 같은데 상한은
+   * 갈렸다: 앞의 것은 `fact` 로, 뒤의 것은 종격 게이트에 묶여 `candidate` 로 앉는다
+   * (시간 미상이면 `derived` · `reference`). 받는 쪽은 같은 사실을 센 쪽으로 읽는다.
+   * 화면은 두 칸을 다 쓰므로 엔진에서는 안 뺀다 — 모델에 넘기는 이 자료에서만 뺀다.
+   */
+  'analysis.followingCandidacy':
+    '종격 후보 자격은 `analysis.following.facts` 가 든다 — 같은 값을 두 번 싣지 않는다',
 } as const satisfies Partial<Record<ClaimPath, string>>;
 
 type ExcludedPath = keyof typeof EXCLUDED_PATHS;
@@ -189,9 +200,11 @@ type FortuneNow = Omit<
 };
 
 export type ChartEvidence = Jsonified<
-  Omit<Saju, 'relations' | 'daeun' | 'saeun' | 'wolun'> & {
+  Omit<Saju, 'relations' | 'daeun' | 'saeun' | 'wolun' | 'analysis'> & {
     /** 이 명식의 근거별 상한 — 아래 값들은 자기 이름으로 여기를 가리킨다 */
     claims: Record<IncludedPath, ClaimNote>;
+    /** 판정들 — 종격 후보 자격만 빠진다(`analysis.following.facts` 와 같은 값, `EXCLUDED_PATHS`) */
+    analysis: Omit<Saju['analysis'], 'followingCandidacy'>;
     relations: readonly ResolvedRelation[];
     /**
      * 대운 — **표는 빼고 그 밖의 것만.**
@@ -360,6 +373,8 @@ function chartEvidenceOf(saju: Saju, viewedAt: Date): ChartEvidence {
     claims: claimsFor(saju.meta.hourKnown),
     // 표 셋은 여기서 빠지고 지금 도는 칸이 `now` 로 간다(`EXCLUDED_PATHS`).
     ...without(saju, 'relations', 'daeun', 'saeun', 'wolun'),
+    // 종격 후보 자격은 `analysis.following.facts` 와 같은 값이라 한 벌만 싣는다(`EXCLUDED_PATHS`).
+    analysis: without(saju.analysis, 'followingCandidacy'),
     relations: saju.relations.map(resolveRelation),
     daeun: without(saju.daeun, 'entries'),
     now: {
