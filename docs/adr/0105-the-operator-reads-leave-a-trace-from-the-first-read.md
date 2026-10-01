@@ -119,3 +119,25 @@ Vercel 은 0 이면 건너뛰고 1 이면 빌드한다 — 시험이 그 반대 
 - 대시보드 SQL Editor 에서의 읽기 — 결정 1 의 규약이지 도구가 막지 않는다. `.claude/settings.json` 도 SQL 의 내용을 못 가른다.
 - 반출 크론의 실패는 Vercel 로그에만 선다(`cron-watch` 는 `pg_cron` 만 본다). 월 점검이 마지막 반출 시각을 본다.
 - `postgres` 가 트리거를 끄는 것 — 밖의 사본과 월 점검(반출 범위가 이어지는가)이 드러낸다.
+
+## 추기 (2026-10-01) — 설문 문 일곱도 읽을 때마다 적는다
+
+**운영자 결정 2026-10-01** — `app/ops/survey/read.ts` 가 읽는 설문 집계와 적어 주신 글을 이 접속기록의 범위에 넣는다.
+설문 답 · 글 원문은 기록에 넣지 않는다. 성공과 거절은 신고 문 셋과 같은 원칙으로 적는다.
+
+- **잰 것** — `/ops/survey` 의 문은 운영자 문 일곱을 부른다: 풀이 설문 넷(`operator_survey_overview` · `_by_version` ·
+  `_tags` · `_comments`)과 서비스 설문 셋(`operator_service_survey_overview` · `_counts` · `_texts`). 일곱 다 `stable` 이라
+  적지 못했고, runbook 「운영자 접속기록」 표는 이 화면을 「안 적는다 — 집계뿐」으로 두었다. 그런데 `_comments` 와
+  `_texts` 는 이용자가 적은 글 원문을 낸다 — 누가 썼는지는 안 내지만(ADR 0061) 그 글을 언제 누가 읽었는지는 0일 남았다.
+- **문이 적는다** — 일곱이 `volatile` 이 되고 성공한 읽기를 같은 트랜잭션에서 문마다 한 줄 적는다(`20261116090000`).
+  동작은 `survey.overview` · `survey.by_version` · `survey.tags` · `survey.comments` · `survey.service_overview` ·
+  `survey.service_counts` · `survey.service_texts`. 대상 신고 id · 거른 조건 칸은 비운다 — 설문에는 대상도 거름도 없다.
+  화면을 한 번 열면 일곱 줄이다. 한 줄로 묶으려면 앱이 먼저 「연다」를 적는 문을 따로 불러야 하는데, 그러면 PostgREST 로
+  문을 직접 두드린 읽기가 빠진다 — 신고 상세가 두 문(`reports.detail` · `reports.snapshot`)을 두 줄로 적는 것과 같다.
+- **거절은 문 밖에서** — 운영자가 아니면 문은 그대로 `42501` 을 던지고, 앱의 문이 `note_operator_denial('survey.overview')`
+  를 제 트랜잭션에서 부른다 — 머리 문의 이름 한 줄이다. 두 번째 요소를 안 지난 세션의 거절도 같은 줄이다(ADR 0123). 그 문이
+  설문 동작 일곱을 받고, 한 사람 한 시간 서른 줄의 한도는 그대로다. 위 「구현이 정한 것」의 한계(PostgREST 로 직접 두드리고
+  이 문을 안 부르면 거절은 안 남는다)도 그대로다.
+- **반출 · 보존은 그대로** — `audit_export_batch` 는 동작을 걸러 내지 않아 새 줄이 그대로 나가고, 반출 파일의 모양(`version`
+  2)도 같다. 반출 행에 드는 것은 위 결정 2 의 칸 그대로다(대상 칸이 비어 있을 뿐이다). 재는 자리는 pgTAP
+  `78_operator_survey_access_log`.

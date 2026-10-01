@@ -1,6 +1,7 @@
 import type { FeltLength, IssueTag } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
+import { noteDenial } from '../denial';
 import { SECOND_FACTOR_NEEDED, secondFactorOf } from '../second-factor';
 
 /**
@@ -16,6 +17,9 @@ import { SECOND_FACTOR_NEEDED, secondFactorOf } from '../second-factor';
  *
  * **세션이 2단계 인증(aal2)을 안 지났으면 청하지도 않는다**(ADR 0123, `../second-factor.ts`) — 등록한 요소가 있으면
  * 확인 화면으로, 없으면 거절과 같다.
+ *
+ * **문이 읽을 때마다 DB 가 접속기록에 한 줄을 적는다**(ADR 0105 추기 2026-10-01) — 성공은 일곱 문 안에서 문마다, 거절은
+ * 아래에서 `noteDenial` 이 머리 문의 이름(`survey.overview`) 한 줄로. 기록에는 설문 답 · 글이 안 들어간다.
  */
 
 /** 운영자가 아니라고 DB 가 답했다 — `42501` */
@@ -113,7 +117,10 @@ export async function operatorSurvey(): Promise<
 
   const factor = await secondFactorOf(supabase);
   if (factor === 'challenge') return SECOND_FACTOR_NEEDED;
-  if (factor !== 'passed') return DENIED;
+  if (factor !== 'passed') {
+    await noteDenial(supabase, 'survey.overview');
+    return DENIED;
+  }
 
   const [overview, versions, tags, comments, service, serviceCounts, serviceTexts] =
     await Promise.all([
@@ -127,7 +134,10 @@ export async function operatorSurvey(): Promise<
     ]);
 
   const asked = [overview, versions, tags, comments, service, serviceCounts, serviceTexts];
-  if (asked.some((answer) => answer.error?.code === '42501')) return DENIED;
+  if (asked.some((answer) => answer.error?.code === '42501')) {
+    await noteDenial(supabase, 'survey.overview');
+    return DENIED;
+  }
   if (asked.some((answer) => answer.error !== null)) return null;
 
   const counts = ((overview.data ?? []) as Row[])[0];
