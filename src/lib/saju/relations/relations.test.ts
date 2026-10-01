@@ -114,29 +114,25 @@ describe('표 전수 검사 — 상수 표의 모든 항목이 검출된다', ()
     expect(found?.targetElement).toBe(result);
   });
 
-  it.each(BRANCH_CLASHES)('지지충 $ko', ({ branches, ko }) => {
+  /**
+   * 두 글자 지지 관계 다섯 표 — 이름만 보지 않고 kind · tier 까지 본다. 이름만 보면 귀문 · 파의
+   * tier 를 'stem' 으로 바꾼 변이가 이 묶음을 지나갔다(골든 하나만 잡았다).
+   */
+  it.each([
+    ...BRANCH_CLASHES.map((p) => ({ ...p, kind: 'branchClash' as const })),
+    ...BRANCH_HARMS.map((p) => ({ ...p, kind: 'branchHarm' as const })),
+    ...BRANCH_DESTRUCTIONS.map((p) => ({ ...p, kind: 'branchDestruction' as const })),
+    ...BRANCH_RESENTMENTS.map((p) => ({ ...p, kind: 'branchResentment' as const })),
+    ...BRANCH_GHOST_GATES.map((p) => ({ ...p, kind: 'branchGhostGate' as const })),
+  ])('$kind $ko', ({ branches, ko, kind }) => {
     const relations = findRelations(branchChart(branches[0], branches[1], '子', '子'));
-    expect(kosOf(relations)).toContain(ko);
-  });
+    const found = relations.find((r) => r.ko === ko);
 
-  it.each(BRANCH_HARMS)('해 $ko', ({ branches, ko }) => {
-    const relations = findRelations(branchChart(branches[0], branches[1], '子', '子'));
-    expect(kosOf(relations)).toContain(ko);
-  });
-
-  it.each(BRANCH_DESTRUCTIONS)('파 $ko', ({ branches, ko }) => {
-    const relations = findRelations(branchChart(branches[0], branches[1], '子', '子'));
-    expect(kosOf(relations)).toContain(ko);
-  });
-
-  it.each(BRANCH_RESENTMENTS)('원진 $ko', ({ branches, ko }) => {
-    const relations = findRelations(branchChart(branches[0], branches[1], '子', '子'));
-    expect(kosOf(relations)).toContain(ko);
-  });
-
-  it.each(BRANCH_GHOST_GATES)('귀문 $ko', ({ branches, ko }) => {
-    const relations = findRelations(branchChart(branches[0], branches[1], '子', '子'));
-    expect(kosOf(relations)).toContain(ko);
+    expect(found).toBeDefined();
+    expect(found?.kind).toBe(kind);
+    expect(found?.tier).toBe('branch');
+    expect(found?.targetElement).toBeNull();
+    expect(found?.name).toBeNull();
   });
 
   /**

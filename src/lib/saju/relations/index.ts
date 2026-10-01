@@ -486,111 +486,54 @@ function stemRelations(slots: readonly Slot[]): Relation[] {
 // 두 글자 관계 — 지지
 // ─────────────────────────────────────────────────────────────
 
+type PairFound = { ko: string; result?: Element; name?: string };
+
+/**
+ * 상형(相刑)과 자형(自刑) — 같은 글자면 자형, 아니면 상형. 삼형은 세 글자를 함께 봐야 해서 아래에서
+ * 따로 센다.
+ */
+function findPairPunishment(a: Branch, b: Branch): PairFound | null {
+  if (a === b) return SELF_PUNISHMENTS.find((p) => p.branch === a) ?? null;
+  return MUTUAL_PUNISHMENTS.find((p) => p.branches.includes(a) && p.branches.includes(b)) ?? null;
+}
+
+/**
+ * 두 글자 지지 관계의 표 — 한 쌍에서 줄마다 하나씩 찾는다. 결과의 차례는 `compareRelations` 가 다시
+ * 정하므로 이 표의 차례와 무관하다.
+ *
+ * 귀문은 원진과 네 쌍이 겹친다. 겹치는 자리에서는 두 줄이 함께 나온다 — 어느 표에서 나온 사실인지
+ * 목록에서 지워지면 안 되기 때문이다.
+ */
+const BRANCH_PAIR_FINDERS: readonly {
+  kind: RelationKind;
+  find: (a: Branch, b: Branch) => PairFound | null;
+}[] = [
+  { kind: 'branchSixCombination', find: findBranchSixCombination },
+  { kind: 'branchClash', find: findBranchClash },
+  { kind: 'branchPunishment', find: findPairPunishment },
+  { kind: 'branchHarm', find: findBranchHarm },
+  { kind: 'branchDestruction', find: findBranchDestruction },
+  { kind: 'branchResentment', find: findBranchResentment },
+  { kind: 'branchGhostGate', find: findBranchGhostGate },
+];
+
 function branchPairRelations(slots: readonly Slot[]): Relation[] {
-  return combinationsOf(slots, 2).flatMap(([a, b]) => {
-    const found: Relation[] = [];
-    const pair = [a, b] as const;
-
-    const six = findBranchSixCombination(a.branch, b.branch);
-    if (six) {
-      found.push(
+  return combinationsOf(slots, 2).flatMap(([a, b]) =>
+    BRANCH_PAIR_FINDERS.flatMap(({ kind, find }) => {
+      const found = find(a.branch, b.branch);
+      if (!found) return [];
+      return [
         makeRelation({
-          kind: 'branchSixCombination',
+          kind,
           tier: 'branch',
-          ko: six.ko,
-          targetElement: six.result,
-          slots: pair,
+          ko: found.ko,
+          name: found.name,
+          targetElement: found.result,
+          slots: [a, b],
         }),
-      );
-    }
-
-    const clash = findBranchClash(a.branch, b.branch);
-    if (clash) {
-      found.push(
-        makeRelation({ kind: 'branchClash', tier: 'branch', ko: clash.ko, slots: pair }),
-      );
-    }
-
-    // 상형(相刑)과 자형(自刑). 삼형은 세 글자를 함께 봐야 해서 아래에서 따로 센다.
-    const mutual = MUTUAL_PUNISHMENTS.find(
-      (p) =>
-        (p.branches[0] === a.branch && p.branches[1] === b.branch) ||
-        (p.branches[0] === b.branch && p.branches[1] === a.branch),
-    );
-    if (mutual) {
-      found.push(
-        makeRelation({
-          kind: 'branchPunishment',
-          tier: 'branch',
-          ko: mutual.ko,
-          name: mutual.name,
-          slots: pair,
-        }),
-      );
-    }
-
-    if (a.branch === b.branch) {
-      const self = SELF_PUNISHMENTS.find((p) => p.branch === a.branch);
-      if (self) {
-        found.push(
-          makeRelation({
-            kind: 'branchPunishment',
-            tier: 'branch',
-            ko: self.ko,
-            name: self.name,
-            slots: pair,
-          }),
-        );
-      }
-    }
-
-    const harm = findBranchHarm(a.branch, b.branch);
-    if (harm) {
-      found.push(
-        makeRelation({ kind: 'branchHarm', tier: 'branch', ko: harm.ko, slots: pair }),
-      );
-    }
-
-    const destruction = findBranchDestruction(a.branch, b.branch);
-    if (destruction) {
-      found.push(
-        makeRelation({
-          kind: 'branchDestruction',
-          tier: 'branch',
-          ko: destruction.ko,
-          slots: pair,
-        }),
-      );
-    }
-
-    const resentment = findBranchResentment(a.branch, b.branch);
-    if (resentment) {
-      found.push(
-        makeRelation({
-          kind: 'branchResentment',
-          tier: 'branch',
-          ko: resentment.ko,
-          slots: pair,
-        }),
-      );
-    }
-
-    // 귀문은 원진과 네 쌍이 겹친다. 겹치는 자리에서는 두 줄이 함께 나온다 —
-    // 어느 표에서 나온 사실인지 목록에서 지워지면 안 되기 때문이다.
-    const ghostGate = findBranchGhostGate(a.branch, b.branch);
-    if (ghostGate) {
-      found.push(
-        makeRelation({
-          kind: 'branchGhostGate',
-          tier: 'branch',
-          ko: ghostGate.ko,
-          slots: pair,
-        }),
-      );
-    }
-
-    return found;
-  });
+      ];
+    }),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
