@@ -13,12 +13,11 @@
  *    그 사람이 화면을 한 번 열면 돌아와야 한다. 두 경로가 걸린 일이라 DB 안에서 못 잰다.
  */
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed, fetchWhole, keyedRpc } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole, keyedRpc, sessionCookie, shapeOnlySummary } from './checks.mjs';
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
@@ -94,23 +93,8 @@ await keyedRpc(other, 'create_self_person', {
 }
 
 // ── 3. 브라우저처럼 로그인해 쿠키를 얻는다 ────────────────────────────────────
-const cookieFor = async (email) => {
-  const jar = new Map();
-  const browser = createServerClient(API, status.ANON_KEY, {
-    cookies: {
-      getAll: () => [...jar].map(([name, value]) => ({ name, value })),
-      setAll: (written) => {
-        for (const { name, value } of written) jar.set(name, value);
-      },
-    },
-  });
-  const { error } = await browser.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(`${email} 로그인 실패 — ${error.message}`);
-  return [...jar].map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join('; ');
-};
-
-const myCookie = await cookieFor(mine);
-const theirCookie = await cookieFor(theirs);
+const myCookie = await sessionCookie(status, mine, password);
+const theirCookie = await sessionCookie(status, theirs, password);
 
 const { base: BASE, stop } = await startCheckServer({
   port: PORT,
@@ -207,21 +191,8 @@ const isolate = (emails) => {
     check('홈을 한 번 여는 것만으로 풀에 든다', summaryOf(mine) !== '', summaryOf(mine).slice(0, 40));
   }
 
-  /**
-   * 참여를 켤 때 **모양만 맞는 가짜 요약**을 넣어 둔다.
-   *
-   * 요약을 만드는 것은 앱이고(`selfElementSummary`), 검사가 그 계산을 흉내 내면 앱이
-   * 옳게 만드는지를 한 번도 안 재게 된다. 그래서 일부러 판본과 무관한 값을 넣고,
-   * **화면을 한 번 열었을 때 내 판본에서 다시 계산돼 자리를 잡는지**를 잰다.
-   * DB 는 모양까지만 보므로 이 값은 통과한다 — 그 사실도 함께 드러난다.
-   */
-  const 가짜 = {
-    glyphCount: 8,
-    counts: { 木: 8, 火: 0, 土: 0, 金: 0, 水: 0 },
-    ratios: { 木: 1, 火: 0, 土: 0, 金: 0, 水: 0 },
-  };
-  await keyedRpc(me, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
-  await keyedRpc(other, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+  await keyedRpc(me, 'set_discovery_participation', { p_on: true, p_summary: shapeOnlySummary, p_need: testNeed() });
+  await keyedRpc(other, 'set_discovery_participation', { p_on: true, p_summary: shapeOnlySummary, p_need: testNeed() });
 
   // 요약을 고치는 자리는 **목록이 서는 화면**이다. 목록이 홈으로 왔으므로 홈을 연다.
   await get('/me/matching', myCookie);
