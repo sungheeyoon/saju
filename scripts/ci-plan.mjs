@@ -14,7 +14,7 @@
  * | 변경이 이 안에만 있으면 | 도는 것 |
  * |---|---|
  * | 정책(`docs/**` · `*.md` · `.claude/**` · `scripts/*.test.ts`) | `policy` (scripts 시험 · 타입 · 린트, 1분 안) |
- * | 엔진(`src/lib/saju/**`) · 엔진을 그리는 칸(`app/saju/**`) | `verify` (단위·타입·린트·빌드 + 익명 e2e) |
+ * | 엔진(`src/lib/saju/**`) · 엔진을 그리는 칸(`app/saju/**`) | `core`(단위·타입·린트·빌드) + `anon`(익명 e2e) |
  * | 그 밖 전부 · **모르는 파일** | 전부 |
  *
  * ## 엔진 단계의 예외 둘 — 재서 뺐다
@@ -40,8 +40,9 @@
  *
  * 운영 베타에는 실제 사용자가 없다. PR 마다 전부(약 5분)를 돌리고 strict 가 뒤에 선 PR 을 다시 돌리는 값이
  * 다치는 사람을 막는 값보다 컸다. 그래서 단계가 공개 뒤의 규율을 켜지 않았으면(`release-stage.mjs`) PR 은
- * `fast`(단위 · 타입 · 린트) 하나만 탄다 — 정책 파일만 바뀌었으면 전처럼 `policy`. 전체 검증은 main 푸시가
- * 최신 커밋 하나에서 비차단으로 돌고, 붉으면 `ci-main-red` 이슈가 든다.
+ * `core`(단위 · 타입 · 린트 · 빌드 — 그때 이름 `fast`)를 탄다 — 정책 파일만 바뀌었으면 전처럼 `policy`. 전체 검증은 main
+ * 푸시가 최신 커밋 하나에서 비차단으로 돌고, 붉으면 `ci-main-red` 이슈가 든다. 화면의 입구를 바꾸면 그 주소에 닿는
+ * 차선이 더 선다(아래 「그 주소에 닿는 차선만」).
  *
  * - **`supabase/**` 는 단계와 상관없이 전부다.** 마이그레이션 · pgTAP · `config.toml` 은 DB 차선에서만 재어지고,
  *   `db:start` 가 깨지면 main 의 DB 차선이 다 선다. 라벨에 기대지 않는다 — 에이전트는 라벨을 잊는다.
@@ -50,11 +51,11 @@
  *
  * ## 빠른 검사에도 빌드가 든다 (2026-09-24, #219)
  *
- * `fast` 는 처음에 빌드를 뺐다 — 빌드가 깨지면 Vercel 이 이전 배포를 그대로 세우므로 머지 뒤 main 의 `verify` 로
+ * `core` 는 처음에 빌드를 뺐다 — 빌드가 깨지면 Vercel 이 이전 배포를 그대로 세우므로 머지 뒤 main 의 전체 검증으로
  * 넉넉하다고 봤다. 그런데 `next build` 만 잡는 실패가 있다: `app/…/icon.tsx` 는 Next 가 파비콘 라우트로 읽어
- * 빌드가 섰고, 단위 · 타입 · 린트는 다 초록이었다(3d54d56). Production 이 두 시간 멈췄다. 그래서 `FAST_STEPS` 에
- * `npm run build` 를 넣는다 — 빌드는 끝에 비밀 검사도 돈다(G-23 ⑧). `verify.yml` 의 `fast` job 은 이 목록을
- * 그대로 돌고, 시험이 둘을 견준다.
+ * 빌드가 섰고, 단위 · 타입 · 린트는 다 초록이었다(3d54d56). Production 이 두 시간 멈췄다. 그래서 `CORE_STEPS` 에
+ * `npm run build` 를 넣는다 — 빌드는 끝에 비밀 검사도 돈다(G-23 ⑧). `verify.yml` 의 `core` job 은 이 목록을
+ * 그대로 돌고, 시험이 둘을 견준다. 단위 · 타입 · 린트 · 빌드를 도는 job 은 이것 하나다 — `anon` 은 익명 e2e 만 돈다.
  *
  * ## 운영 의존성 감사는 단계와 따로 켠다 (2026-09-23, G-23 ①, ADR 0104)
  *
@@ -69,7 +70,8 @@
  * 베타의 `fast` 는 「그 밖 전부」를 받았다. 그래서 #284(탭 넷의 `loading.tsx` · route group 이동)와 #286(`proxy.ts` 와
  * 화면 · 서버 액션 27개)이 PR 에서 `fast` 만 돌았다 — 목록이 틀린 게 아니라 규칙에 그 자리가 없었다. #284 는 머지 뒤
  * main 의 `flow` 가 붉었다(`check-discovery`, e370931). 단위 · 타입 · 린트 · 빌드는 **화면이 열리는가 · 관문이 누구를
- * 들이는가**를 모른다. 그래서 아래 `SURFACE` 가 하나라도 섞이면 단계와 상관없이 전부(익명 e2e · `authed` · `flow`)다.
+ * 들이는가**를 모른다. 그래서 아래 `SURFACE` 가 하나라도 섞이면 단계와 상관없이 전부(익명 e2e · `authed` · `flow`)였다 —
+ * 2026-10-01 부터는 공용 위험이 아닌 화면의 입구가 그 주소에 닿는 차선만 돈다(아래 「그 주소에 닿는 차선만」).
  *
  * - **관문** — `proxy.ts` · `src/lib/consent/`(test-map 「관문」 줄)
  * - **인증** — `app/auth/`
@@ -80,22 +82,22 @@
  * - **그것을 재는 시험 자체** — `e2e/` · 흐름 검사(`scripts/check-*.mjs` · `run-checks.mjs` · `next-server.mjs`).
  *   시험이 도는지는 시험을 돌려야 안다(ADR 0097 의 로컬 예외 첫째를 CI 로 옮겼다)
  *
- * 입구가 아닌 컴포넌트(`app/me/(shelf)/readings/shelf.tsx` 같은 것)와 `src/lib/**` 는 전처럼 `fast` 다 — 거기까지 넓히면 코드 PR 이 다
- * 전부가 되어 ADR 0097 이 없던 것과 같다. 차선을 경로별로 잘게 고르지 않는다(ADR 0082 — 그 문장은 파일이 옮겨지는
- * 날 거짓이 된다). `authed` 는 일곱 차선을 다 돈다.
+ * 입구가 아닌 컴포넌트(`app/me/(shelf)/readings/shelf.tsx` 같은 것)와 `src/lib/**` 는 전처럼 `core` 다 — 거기까지 넓히면 코드 PR 이 다
+ * 전부가 되어 ADR 0097 이 없던 것과 같다. 그날은 차선을 경로별로 고르지 않았다(ADR 0082 — 손으로 적은 「이 경로는 저
+ * 차선」은 파일이 옮겨지는 날 거짓이 된다). 2026-10-01 에 손 목록이 아니라 소스에서 뽑는 대응으로 골랐다(아래).
  *
  * ## 서버에 닿는 `app/` 파일과 시험 도구가 혼자 쓰는 파일도 입구다 (2026-09-28, ADR 0119 추기)
  *
  * 이름으로만 입구를 골랐더니 판단이 사는 문이 빠졌다. `page.tsx` 는 얇고, DB 를 부르는 것은 그 옆의 `.ts` 다 —
  * `app/me/reading/pipeline.ts` · `app/me/candidates.ts` · `app/me/chat/rooms.ts` · `app/keyed-client.ts`(service-role) ·
- * `app/ops/reports/read.ts` · `app/share/public-client.ts` · `proxy.ts` 가 부르는 `app/beta-schedule.ts` 가 다 `fast` 였다.
+ * `app/ops/reports/read.ts` · `app/share/public-client.ts` · `proxy.ts` 가 부르는 `app/beta-schedule.ts` 가 다 `core`(그때 `fast`)였다.
  * 흐름 · pgTAP 은 머지 뒤 main 에서만 돌아 #284 와 같은 모양이 남았다. 이름을 늘어놓지 않고 **내용으로 가른다**:
  *
  * - **서버에 닿는 `app/` 파일** — `app/**` 의 `.ts` · `.tsx`(시험 빼고) 중 Supabase 클라이언트(`@supabase/*` 나
  *   `server-client` · `browser-client` · `keyed-client` · `public-client`)나 서버 전용 모듈(`server-only` · `next/server` ·
  *   `next/headers` · `next/cache`)을 import 하는 것(`SERVER_REACHING`). 계획 job 이 HEAD 를 받아 두므로 파일을 읽는다.
  *   못 읽는 파일(지운 것)은 안 건다 — 그것을 부르던 쪽이 함께 바뀌어 그쪽이 걸린다. 순수 화면 로직(`book.ts` ·
- *   `deck-state.ts` · 받은 client 를 쓰기만 하는 `settle.ts`)은 단위 시험이 재므로 전처럼 `fast` 다.
+ *   `deck-state.ts` · 받은 client 를 쓰기만 하는 `settle.ts`)은 단위 시험이 재므로 전처럼 `core` 다.
  * - **관문이 import 하는 `app/` 파일** — `proxy.ts` 에서 import 를 따라가 닿는 `app/**` 파일은 서버에 안 닿아도
  *   입구다(`app/beta-schedule.ts` 가 부르는 `app/db-error.ts` 처럼). 이것도 계획 job 이 HEAD 를 읽어 그때 잰다 —
  *   관문이 새 파일을 부르기 시작한 PR 에서부터 걸린다.
@@ -105,10 +107,45 @@
  *   Playwright 설정에서 import 를 따라가 앱이 안 닿는 파일이 전부 걸리는지 잰다. `scripts/fake-clock.mjs` 는
  *   `ui-shots` 만 쓰고 CI 가 안 돌리므로 뺀다.
  *
- * 잰 값(2026-09-28): 한 파일만 바꾼 PR 이 `fast` 에서 전부로 옮는 파일이 42 개다 — `app/**` 의 `.ts` 35 개(시험 아닌 105 개 중
- * 입구가 26 → 61, 순수 로직 44 개는 그대로 `fast`), 브라우저 client 를 부르는 `.tsx` 둘(`site-header.tsx` · `save-for-reading.tsx`),
+ * 잰 값(2026-09-28): 한 파일만 바꾼 PR 이 `core` 에서 전부로 옮는 파일이 42 개다 — `app/**` 의 `.ts` 35 개(시험 아닌 105 개 중
+ * 입구가 26 → 61, 순수 로직 44 개는 그대로 `core`), 브라우저 client 를 부르는 `.tsx` 둘(`site-header.tsx` · `save-for-reading.tsx`),
  * 도구 다섯. 최근 머지된 PR 30 개를 옛 · 새 규칙에 넣으면 전부가 16 → 17 이다(#264 가 `s3.ts` · `ops/reports/read.ts` 로 옮는다).
  * 전부로 가는 PR 은 대개 이미 화면의 입구를 함께 바꾼다.
+ *
+ * ## 그 주소에 실제로 닿는 차선만 (2026-10-01, ADR 0097 · 0119 추기, 운영자 승인)
+ *
+ * 입구 하나만 바뀌어도 전부(로그인 일곱 · 흐름 · 익명)였다. `app/me/(shelf)/readings/compat/page.tsx` 한 줄을 고친 PR 도 그
+ * 주소를 여는 시험이 `e2e/signed-in.spec.ts` 하나뿐인데 일곱 차선을 다 기다렸다. 그래서 차선을 독립 출력으로 내고
+ * (`core` · `anon` · `authed` 와 `authed_lanes` · `flow`, 그대로 `policy` · `audit`), 운영 베타의 PR 에서만 좁힌다. job 이름도
+ * 그 뜻으로 바꿨다 — `fast` → `core`, `verify` → `anon`. `tier` 는 요약의 낱말일 뿐이다.
+ *
+ * 판정 차례:
+ *
+ * 1. 위의 「전부」 조건 그대로 — 계획 밖 이벤트 · `full-ci` 라벨 · 빈 diff · `supabase/**` · 단계 모름. 공개 출시는 세 단계
+ * 2. **공용 위험**(`SHARED_RISK`) — 바뀐 파일 전체를 먼저 훑고 하나라도 들면 전부. 관문 · 인증 · `layout` · `route.ts` ·
+ *    서버 액션 · spec 이 아닌 `e2e/**` · 시험 도구, 그리고 Next 의 공용 경계(`global-error` · `global-not-found` ·
+ *    `forbidden` · `unauthorized` · 뿌리의 `instrumentation` · `instrumentation-client` · `middleware`). 주소 하나로는 그것을
+ *    밟는 시험을 셀 수 없는 자리다
+ * 3. 정책만이면 `policy`
+ * 4. 파일마다 — 시험 파일 · 입구가 아닌 파일은 `core` 만. `e2e/*.spec.ts` 는 그 spec 의 차선(차선 스크립트가 부르면 그
+ *    차선, 아닌데 `AUTHED` · `NOTICE` 무늬면 전부, 그 밖은 `anon`). `scripts/check-*.mjs` 는 `flow`. 메타데이터 파일은
+ *    `anon`. 화면의 입구(`page` · `loading` · `error` · `not-found` · `template` · `default`)는 **주소로** 닿는 시험을 찾고,
+ *    그 시험의 차선을 켠다. 주소를 못 뽑는 입구(서버에 닿는 `.ts` · 관문이 부르는 파일)나 닿는 시험이 0 이면 전부
+ * 5. 좁힌 계획에도 `core` 는 늘 선다
+ *
+ * **주소 대응은 소스에서 뽑는다** — 손으로 적은 「이 경로는 저 차선」이 없다. 입구 파일의 주소는 경로에서(`(group)` ·
+ * `@slot` 은 걷고 `[x]` 는 한 마디, `[...x]` 는 나머지, `page` 밖은 그 아래 전부), 시험이 요청하는 주소는
+ * `e2e/*.spec.ts` · `scripts/check-*.mjs` 의 주석 줄을 뺀 따옴표 · 백틱 속 `/…` 에서(`addressesOf`), spec 과 차선은
+ * `package.json` 의 `test:e2e:<차선>` 과 `playwright.config.ts` 의 무늬에서 읽는다. 파일이 옮겨지면 대응도 함께 옮는다.
+ *
+ * **모르는 파일은 베타에서도 전부다.** 알려진 `core` 자리(`KNOWN_CORE` · `ROOT_CONFIGS`)는 자리로 적는다 — `src/**` ·
+ * 입구가 아닌 `app/**` · `scripts/**` · `.github/**` · `public/**` 와 뿌리 설정 몇. 잰 값(2026-10-01, 추적 파일 1,139 개를 한
+ * 파일씩): 옛 규칙의 `fast` 489 개 중 486 개가 그대로 `core` 이고, 셋이 옮는다 — `app/global-error.tsx` ·
+ * `instrumentation.ts` 는 공용 경계라 전부, `app/icon.svg` 는 메타데이터라 `core` + `anon`. 옛 전부 382 개 중 61 개가
+ * 좁혀진다.
+ *
+ * 남는 구멍: 시험이 주소를 문자열로 적지 않고 링크를 눌러 닿는 화면은 그 시험에 안 잡힌다. 그 자리의 붉음은 전처럼
+ * 머지 뒤 main 의 전체가 잡는다.
  *
  * ## 원칙
  *
@@ -117,7 +154,7 @@
  * - diff 를 못 받았으면(빈 목록) 모르는 것이므로 전부 돈다.
  * - `main` 푸시 · `schedule` · 손으로 켠 실행은 계획을 안 보고 전부 돈다.
  */
-import { readFileSync, appendFileSync } from 'node:fs';
+import { readFileSync, readdirSync, appendFileSync } from 'node:fs';
 import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -133,7 +170,7 @@ const POLICY = [/^docs\//, /\.md$/, /^\.claude\//, /^scripts\/[^/]+\.test\.ts$/]
 const ENGINE = [/^src\/lib\/saju\//, /^app\/saju\//];
 /** 의존성 목록 — 이것을 바꾼 PR 만 `audit` 이 머지를 막는다 */
 export const DEPENDENCY_LISTS = ['package.json', 'package-lock.json'];
-/** 관문 · 인증 · 화면의 입구 · 서버 액션 · 그것을 재는 시험 — 베타에서도 전부를 돈다(위 「관문 · 화면 · 인증」) */
+/** 관문 · 인증 · 화면의 입구 · 서버 액션 · 그것을 재는 시험 — 베타에서도 주소를 재거나 전부를 돈다(위 「관문 · 화면 · 인증」) */
 const SURFACE = [
   /^proxy\.ts$/,
   /^src\/lib\/consent\//,
@@ -171,12 +208,68 @@ const DATABASE = [/^supabase\//];
 /** 엔진 안에서 DB 의 검사식이 보는 파일 — 여기가 바뀌면 로그인 뒤 자리도 재야 한다 */
 export const ENGINE_DB_FACING = ['src/lib/saju/version.ts', 'src/lib/saju/pillars/index.ts'];
 
-/** `fast` job 이 `npm ci` 뒤에 차례로 도는 명령 — `verify.yml` 이 이 목록과 같아야 한다(위 「빠른 검사에도 빌드가 든다」) */
-export const FAST_STEPS = ['npm test', 'npm run typecheck', 'npm run lint', 'npm run build'];
+/** `core` job 이 `npm ci` 뒤에 차례로 도는 명령 — `verify.yml` 이 이 목록과 같아야 한다(위 「빠른 검사에도 빌드가 든다」) */
+export const CORE_STEPS = ['npm test', 'npm run typecheck', 'npm run lint', 'npm run build'];
+
+/**
+ * 로그인 뒤 차선 — `verify.yml` 의 `authed` matrix 가 계획의 `authed_lanes` 로 받는다. 차선마다 `package.json` 에
+ * `test:e2e:<차선>` 이 있고, 그 스크립트가 어느 spec 을 부르는지가 곧 그 차선이 재는 것이다(위 「그 주소에 닿는 차선만」)
+ */
+export const AUTHED_LANES = ['signed-in:desktop', 'signed-in:mobile', 'match:desktop', 'match:mobile', 'chat:desktop', 'chat:mobile', 'notice'];
 
 const matches = (rules, file) => rules.some((rule) => rule.test(file));
 
 const isPolicy = (file) => matches(POLICY, file);
+const isTestFile = (file) => /\.test\.tsx?$/.test(file);
+const isSpec = (file) => /^e2e\/[^/]+\.spec\.ts$/.test(file);
+const isFlowCheck = (file) => /^scripts\/check-[^/]+\.mjs$/.test(file);
+
+/**
+ * 공용 위험 — 주소 하나로 닿는 시험을 셀 수 없는 자리. 바뀐 파일 전부를 **주소 대응보다 먼저** 훑고, 하나라도 들면 전부다.
+ * 이름이 까닭에 그대로 실린다(위 「공용 위험」)
+ */
+export const SHARED_RISK = [
+  ['DB', (file) => matches(DATABASE, file)],
+  [
+    'Next 공용 경계',
+    (file) =>
+      /^app\/global-(?:error|not-found)\.tsx$/.test(file) ||
+      /^app\/(?:.+\/)?(?:forbidden|unauthorized)\.tsx$/.test(file) ||
+      /^(?:instrumentation|instrumentation-client|middleware)\.[jt]s$/.test(file),
+  ],
+  ['관문', (file) => file === GATE || /^src\/lib\/consent\//.test(file)],
+  ['인증', (file) => /^app\/auth\//.test(file)],
+  ['layout', (file) => /^app\/(?:.+\/)?layout\.tsx$/.test(file)],
+  ['route.ts', (file) => /^app\/(?:.+\/)?route\.ts$/.test(file)],
+  ['서버 액션', (file) => /^app\/(?:.+\/)?actions\.ts$/.test(file) || SERVER_ACTIONS_ELSEWHERE.includes(file)],
+  ['e2e 기반', (file) => /^e2e\//.test(file) && !isSpec(file)],
+  ['시험 도구', (file) => isHarness(file) && !isFlowCheck(file)],
+];
+
+/**
+ * 알려진 core 자리 — 단위 · 타입 · 린트 · 빌드가 재는 곳. 위 판정이 안 걸린 파일이 여기 들면 `core` 만이고, **여기도
+ * 정책도 아니면 베타에서도 전부다**(ADR 0097 추기). 파일을 늘어놓지 않고 자리로 적는다
+ */
+const KNOWN_CORE = [/^src\//, /^app\//, /^scripts\//, /^\.github\//, /^public\//];
+/** 뿌리의 설정 — 이름으로 든다. 앱 서버 · Playwright 의 설정은 `HARNESS` 라 공용 위험이다 */
+export const ROOT_CONFIGS = [
+  'package.json',
+  'package-lock.json',
+  'tsconfig.json',
+  'eslint.config.mjs',
+  'postcss.config.mjs',
+  'vitest.config.mts',
+  'vercel.json',
+  '.nvmrc',
+  '.gitignore',
+  '.gitattributes',
+  '.vercelignore',
+];
+const isKnownCore = (file) => matches(KNOWN_CORE, file) || ROOT_CONFIGS.includes(file);
+
+/** Next 의 메타데이터 파일 — 빌드와 익명 e2e(문서 머리)가 잰다 */
+const METADATA =
+  /^app\/(?:.+\/)?(?:icon|apple-icon|favicon|opengraph-image|twitter-image|manifest|robots|sitemap)\d*\.(?:tsx?|png|jpe?g|gif|svg|ico|txt|xml|json|webmanifest)$/;
 
 /** 파일이 import 하는 이름들 — `import … from` · `export … from` · `import '…'` · `import('…')` */
 export const importsOf = (source) =>
@@ -232,7 +325,7 @@ function gateReach(sourceOf = sourceFromDisk) {
 
 /** 시험 파일(`*.test.ts`)은 제 결과만 바꾼다 — `app/auth/signed-in.test.ts` 하나로 전부를 돌지 않는다 */
 export const isSurface = (file, sourceOf = sourceFromDisk) =>
-  !/\.test\.tsx?$/.test(file) &&
+  !isTestFile(file) &&
   (matches(SURFACE, file) ||
     SERVER_ACTIONS_ELSEWHERE.includes(file) ||
     isHarness(file) ||
@@ -240,25 +333,157 @@ export const isSurface = (file, sourceOf = sourceFromDisk) =>
     (file.startsWith('app/') && gateReach(sourceOf).has(file)));
 const isEngine = (file) => matches(ENGINE, file) && !ENGINE_DB_FACING.includes(file);
 
-/** 단계마다 켜는 차선 — `verify.yml` 의 job 이름과 같다 */
-const LANES = {
-  // `verify` · `fast` 가 도는 단계는 `npm test` 가 scripts 시험을 이미 돈다 — policy 는 그것이 안 도는 단계에만 켠다
-  policy: { policy: true, fast: false, verify: false, authed: false, flow: false },
-  fast: { policy: false, fast: true, verify: false, authed: false, flow: false },
-  engine: { policy: false, fast: false, verify: true, authed: false, flow: false },
-  full: { policy: false, fast: false, verify: true, authed: true, flow: true },
-};
+// ---------------------------------------------------------------------------
+// 주소 대응 — 소스에서 뽑는다(위 「그 주소에 닿는 차선만」)
+// ---------------------------------------------------------------------------
+
+/** 주소를 가진 화면의 입구. `layout` 은 공용 위험이라 여기 없다 */
+const ENTRY = /^app\/(?:(.*)\/)?(page|loading|template|error|not-found|default)\.tsx$/;
+
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * 화면 입구 파일이 맡는 주소의 무늬. `page` 는 그 주소 하나, 나머지는 그 아래 전부(뿌리면 모든 주소).
+ * `(group)` · `@slot` 은 걷고, `[x]` 는 한 마디, `[...x]` 는 하나 이상, `[[...x]]` 는 없어도 된다. 입구가 아니면 `null`
+ *
+ * @param {string} file
+ * @returns {RegExp | null}
+ */
+export function routeOf(file) {
+  const entry = ENTRY.exec(file);
+  if (!entry) return null;
+  const segments = (entry[1] ?? '').split('/').filter((one) => one !== '' && !/^\(.*\)$/.test(one) && !one.startsWith('@'));
+  const path = segments
+    .map((one) => {
+      if (/^\[\[\.\.\..+\]\]$/.test(one)) return '(?:/.*)?';
+      if (/^\[\.\.\..+\]$/.test(one)) return '/.+';
+      if (/^\[.+\]$/.test(one)) return '/[^/]+';
+      return `/${escapeRegExp(one)}`;
+    })
+    .join('');
+  return new RegExp(entry[2] === 'page' ? `^${path}/?$` : `^${path}(?:/.*)?$`);
+}
+
+/** 주석 줄 — `//` · `/*` · ` *` 로 여는 줄. 거기 적힌 주소는 시험이 요청하지 않는다 */
+const isCommentLine = (line) => /^\s*(?:\/\/|\/\*|\*)/.test(line);
+
+/**
+ * 시험 소스가 요청하는 주소들 — 주석 줄을 뺀 따옴표 · 백틱 속 `/…`. `${…}` 는 한 마디로, `%2F…` 는 풀어서 하나 더,
+ * `?` · `#` 뒤는 버린다
+ *
+ * @param {string} source
+ * @returns {string[]}
+ */
+export function addressesOf(source) {
+  const code = source
+    .split('\n')
+    .filter((line) => !isCommentLine(line))
+    .join('\n');
+  const found = new Set();
+  for (const one of code.matchAll(/['"`](\/[^'"`\s]*)/g)) found.add(one[1].replace(/\$\{[^}]*\}/g, 'x').split(/[?#]/)[0]);
+  for (const one of code.matchAll(/%2F[\w%.-]+/g)) {
+    try {
+      found.add(decodeURIComponent(one[0]).split(/[?#]/)[0]);
+    } catch {
+      // 풀 수 없는 조각은 주소가 아니다
+    }
+  }
+  return [...found];
+}
+
+/** `playwright.config.ts` 의 `const NAME = ['**\/x.spec.ts', …]` — e2e 아래 spec 경로로 */
+function specGlobOf(config, name) {
+  const list = new RegExp(`const ${name} = \\[([^\\]]*)\\];`).exec(config)?.[1] ?? '';
+  return [...list.matchAll(/\*\*\/([\w.-]+)/g)].map((one) => `e2e/${one[1]}`);
+}
+
+/**
+ * 시험과 차선의 대응 — 저장소에서 한 번 읽는다. 로그인 spec 은 Playwright 의 `AUTHED` · `NOTICE` 무늬, 차선이 부르는
+ * spec 은 `package.json` 의 `test:e2e:<차선>`(spec 을 안 적었으면 `--project` 의 `testMatch` 무늬)
+ */
+let testMapCache = null;
+function testMap() {
+  if (testMapCache) return testMapCache;
+  const scripts = JSON.parse(sourceFromDisk('package.json') ?? '{}').scripts ?? {};
+  const config = sourceFromDisk('playwright.config.ts') ?? '';
+  const loginSpecs = [...specGlobOf(config, 'AUTHED'), ...specGlobOf(config, 'NOTICE')];
+  const specsOfLane = Object.fromEntries(
+    AUTHED_LANES.map((lane) => {
+      const script = scripts[`test:e2e:${lane}`] ?? '';
+      const named = [...script.matchAll(/\be2e\/[\w.-]+\.spec\.ts\b/g)].map((one) => one[0]);
+      if (named.length > 0) return [lane, named];
+      const projects = [...script.matchAll(/--project=([\w-]+)/g)].map((one) => one[1]);
+      const globbed = projects.flatMap((project) => {
+        const glob = new RegExp(`name: '${escapeRegExp(project)}',\\s*testMatch: (\\w+)`).exec(config)?.[1];
+        return glob ? specGlobOf(config, glob) : [];
+      });
+      return [lane, globbed];
+    }),
+  );
+  const listed = (dir, pattern) => {
+    try {
+      return readdirSync(new URL(`../${dir}`, import.meta.url)).filter((name) => pattern.test(name)).map((name) => `${dir}/${name}`);
+    } catch {
+      return [];
+    }
+  };
+  const tests = [...listed('e2e', /\.spec\.ts$/), ...listed('scripts', /^check-[^/]+\.mjs$/)];
+  const addresses = Object.fromEntries(tests.map((test) => [test, addressesOf(sourceFromDisk(test) ?? '')]));
+  testMapCache = { loginSpecs, specsOfLane, addresses };
+  return testMapCache;
+}
+
+/** 시험 하나가 켜는 차선 — 흐름 검사는 `flow`, 차선 스크립트가 부르는 spec 은 그 차선, 로그인 무늬인데 부르는 차선이 없으면 `null`(전부), 그 밖 spec 은 `anon` */
+export function lanesOfTest(test) {
+  if (isFlowCheck(test)) return ['flow'];
+  const map = testMap();
+  const lanes = AUTHED_LANES.filter((lane) => map.specsOfLane[lane].includes(test));
+  if (lanes.length > 0) return lanes;
+  if (map.loginSpecs.includes(test)) return null;
+  return isSpec(test) ? ['anon'] : null;
+}
+
+/** 그 주소 무늬에 닿는 시험들 */
+const testsReaching = (route) =>
+  Object.entries(testMap().addresses)
+    .filter(([, addresses]) => addresses.some((address) => route.test(address)))
+    .map(([test]) => test);
+
+/** 로그인 spec 이 무엇인가 — 시험이 차선 스크립트와 견준다 */
+export const loginSpecs = () => [...testMap().loginSpecs];
+/** 차선이 부르는 spec — 시험이 무늬와 견준다 */
+export const specsOfLane = (lane) => [...testMap().specsOfLane[lane]];
+
+// ---------------------------------------------------------------------------
+// 계획
+// ---------------------------------------------------------------------------
+
+/** 차선 묶음 — `verify.yml` 의 job 이름과 같다. `authed` 는 `authedLanes` 가 비었는가로 정한다 */
+const picked = ({ policy = false, core = false, anon = false, authedLanes = [], flow = false }) => ({
+  lanes: { policy, core, anon, authed: authedLanes.length > 0, flow },
+  authedLanes: AUTHED_LANES.filter((lane) => authedLanes.includes(lane)),
+});
+const EVERYTHING = { core: true, anon: true, authedLanes: AUTHED_LANES, flow: true };
 
 /**
  * `stage` 는 `release-stage.mjs` 의 `currentStageOf` 가 낸 값이다 — `null` 이나 빠진 값은 모르는 단계다.
  * `sourceOf` 는 바뀐 파일의 지금 내용이다(서버에 닿는 `app/` 파일을 가른다) — 빠지면 저장소에서 읽는다.
  *
+ * `tier` 는 사람이 읽는 요약이다 — job 은 `lanes` 와 `authedLanes` 만 읽는다. `cause` 는 전부로 간 갈래의 이름이다.
+ *
  * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null, sourceOf?: (file: string) => string | null }} input
- * @returns {{ tier: 'policy' | 'fast' | 'engine' | 'full', reason: string, lanes: typeof LANES.full & { audit: boolean } }}
+ * @returns {{ tier: 'policy' | 'core' | 'narrow' | 'engine' | 'full', reason: string, cause: string | null, lanes: { policy: boolean, core: boolean, anon: boolean, authed: boolean, flow: boolean, audit: boolean }, authedLanes: string[] }}
  */
 export function planFor({ files, labels = [], event = 'pull_request', stage = null, sourceOf = sourceFromDisk }) {
   const decided = decide({ files, labels, event, stage, sourceOf });
-  return { ...decided, lanes: { ...LANES[decided.tier], audit: audits({ files, labels, event }) } };
+  const { lanes, authedLanes } = picked(decided.tier === 'full' ? EVERYTHING : decided.pick ?? {});
+  return {
+    tier: decided.tier,
+    reason: decided.reason,
+    cause: decided.cause ?? null,
+    lanes: { ...lanes, audit: audits({ files, labels, event }) },
+    authedLanes,
+  };
 }
 
 /** 단계와 상관없다 — 위 「운영 의존성 감사」 */
@@ -268,35 +493,80 @@ function audits({ files, labels, event }) {
   return changed.length === 0 || changed.some((one) => DEPENDENCY_LISTS.includes(one));
 }
 
+const full = (cause, reason) => ({ tier: 'full', cause, reason });
+
 function decide({ files, labels, event, stage, sourceOf }) {
-  if (!PLANNED_EVENTS.has(event)) return { tier: 'full', reason: `\`${event}\` 은 계획을 안 본다` };
-  if (labels.includes(FULL_LABEL)) return { tier: 'full', reason: `\`${FULL_LABEL}\` 라벨` };
+  if (!PLANNED_EVENTS.has(event)) return full('계획 밖 이벤트', `\`${event}\` 은 계획을 안 본다`);
+  if (labels.includes(FULL_LABEL)) return full('라벨', `\`${FULL_LABEL}\` 라벨`);
 
   const changed = files.map((one) => one.trim()).filter((one) => one !== '');
-  if (changed.length === 0) return { tier: 'full', reason: '바뀐 파일 목록을 못 받았다' };
+  if (changed.length === 0) return full('빈 diff', '바뀐 파일 목록을 못 받았다');
 
   const database = changed.find((one) => matches(DATABASE, one));
-  if (database) return { tier: 'full', reason: `\`${database}\` 은 DB 차선에서만 재어진다` };
-  if (stage === null || !(stage in LAUNCHED)) return { tier: 'full', reason: '출시 단계를 모른다 — PRD §7.0 의 「(지금)」' };
+  if (database) return full('DB', `\`${database}\` 은 DB 차선에서만 재어진다`);
+  if (stage === null || !(stage in LAUNCHED)) return full('단계 모름', '출시 단계를 모른다 — PRD §7.0 의 「(지금)」');
 
-  if (!LAUNCHED[stage]) {
-    const surface = changed.find((one) => isSurface(one, sourceOf));
-    if (surface) return { tier: 'full', reason: `${stage} — \`${surface}\` 은 관문 · 화면 · 인증이라 머지 전에 전부 잰다` };
-    if (changed.every(isPolicy)) return { tier: 'policy', reason: `${stage} — 정책만 바뀌었다` };
-    return { tier: 'fast', reason: `${stage} — 빠른 검사만 머지를 막고 전체는 main 에서 돈다` };
-  }
+  if (LAUNCHED[stage]) return decideLaunched(changed);
+  return decideBeta(changed, stage, sourceOf);
+}
 
+/** 공개 출시 — 위 「세 단계뿐이다」 그대로. 엔진 단계는 `core` + `anon` 이다 */
+function decideLaunched(changed) {
   const unknown = changed.filter((one) => !isPolicy(one) && !isEngine(one));
-  if (unknown.length > 0) return { tier: 'full', reason: `\`${unknown[0]}\` 은 정책도 엔진도 아니다` };
+  if (unknown.length > 0) return full('정책도 엔진도 아님', `\`${unknown[0]}\` 은 정책도 엔진도 아니다`);
+  if (changed.every(isPolicy)) return { tier: 'policy', reason: '정책(문서 · 도구 설정 · scripts 시험)만 바뀌었다', pick: { policy: true } };
+  return { tier: 'engine', reason: '엔진과 그것을 그리는 칸만 바뀌었다', pick: { core: true, anon: true } };
+}
 
-  if (changed.every(isPolicy)) return { tier: 'policy', reason: '정책(문서 · 도구 설정 · scripts 시험)만 바뀌었다' };
-  return { tier: 'engine', reason: '엔진과 그것을 그리는 칸만 바뀌었다' };
+/** 공개 출시 전 — 공용 위험 → 정책 → 파일마다 그 주소에 닿는 차선. 좁힌 계획에도 `core` 는 늘 선다 */
+function decideBeta(changed, stage, sourceOf) {
+  for (const file of changed) {
+    if (isTestFile(file)) continue;
+    const risk = SHARED_RISK.find(([, hits]) => hits(file));
+    if (risk) return full(risk[0], `${stage} — \`${file}\` 은 공용 위험(${risk[0]})이라 머지 전에 전부 잰다`);
+  }
+  if (changed.every(isPolicy)) return { tier: 'policy', reason: `${stage} — 정책만 바뀌었다`, pick: { policy: true } };
+
+  const pick = { core: true, anon: false, authedLanes: [], flow: false };
+  const why = [];
+  const take = (lanes) => {
+    for (const lane of lanes) {
+      if (lane === 'anon') pick.anon = true;
+      else if (lane === 'flow') pick.flow = true;
+      else if (!pick.authedLanes.includes(lane)) pick.authedLanes.push(lane);
+    }
+  };
+  for (const file of changed) {
+    if (isTestFile(file) || isPolicy(file)) continue;
+    let tests;
+    if (isSpec(file) || isFlowCheck(file)) tests = [file];
+    else if (METADATA.test(file) && !reachesServer(file, sourceOf)) {
+      take(['anon']);
+      why.push(`\`${file}\` → 메타데이터`);
+      continue;
+    } else if (isSurface(file, sourceOf)) {
+      const route = routeOf(file);
+      if (!route) return full('주소 없음', `${stage} — \`${file}\` 은 입구인데 주소를 못 뽑는다`);
+      tests = testsReaching(route);
+      if (tests.length === 0) return full('닿는 시험 없음', `${stage} — \`${file}\` 의 주소에 닿는 시험이 없다`);
+    } else if (isKnownCore(file)) continue;
+    else return full('미분류', `${stage} — \`${file}\` 은 알려진 자리가 아니다`);
+
+    for (const test of tests) {
+      const lanes = lanesOfTest(test);
+      if (!lanes) return full('차선 모름', `${stage} — \`${test}\` 을 부르는 차선을 못 찾는다`);
+      take(lanes);
+    }
+    why.push(tests[0] === file ? `\`${file}\`` : `\`${file}\` ← ${tests.map((one) => `\`${one}\``).join(' · ')}`);
+  }
+  if (why.length === 0) return { tier: 'core', reason: `${stage} — 입구가 아니라 core 만 머지를 막고 전체는 main 에서 돈다`, pick };
+  return { tier: 'narrow', reason: `${stage} — 그 주소에 닿는 차선만: ${why.join(', ')}`, pick };
 }
 
 /** 사람이 읽는 표 — step summary 에 찍는다 */
 export function summaryOf(plan, files) {
   const lanes = Object.entries(plan.lanes)
-    .map(([lane, on]) => `| \`${lane}\` | ${on ? '돈다' : '건너뛴다'} |`)
+    .map(([lane, on]) => `| \`${lane}\` | ${on ? (lane === 'authed' ? plan.authedLanes.map((one) => `\`${one}\``).join(' · ') : '돈다') : '건너뛴다'} |`)
     .join('\n');
   return [
     `## CI 계획: \`${plan.tier}\``,
@@ -331,8 +601,12 @@ function main() {
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(
       process.env.GITHUB_OUTPUT,
-      [`tier=${plan.tier}`, ...Object.entries(plan.lanes).map(([lane, on]) => `${lane}=${on}`), '']
-        .join('\n'),
+      [
+        `tier=${plan.tier}`,
+        ...Object.entries(plan.lanes).map(([lane, on]) => `${lane}=${on}`),
+        `authed_lanes=${JSON.stringify(plan.authedLanes)}`,
+        '',
+      ].join('\n'),
     );
   }
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryOf(plan, files));

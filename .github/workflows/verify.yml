@@ -36,11 +36,14 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # 차선마다 한 줄 — 계획이 「그 주소에 닿는 차선만」 고른다(2026-10-01, ADR 0097 · 0119 추기). `authed_lanes` 는 로그인
+    # 차선 이름의 JSON 배열이고 `authed` matrix 가 그대로 받는다. `authed` 는 그 배열이 비었는가다.
     outputs:
       policy: ${{ steps.plan.outputs.policy }}
-      fast: ${{ steps.plan.outputs.fast }}
-      verify: ${{ steps.plan.outputs.verify }}
+      core: ${{ steps.plan.outputs.core }}
+      anon: ${{ steps.plan.outputs.anon }}
       authed: ${{ steps.plan.outputs.authed }}
+      authed_lanes: ${{ steps.plan.outputs.authed_lanes }}
       flow: ${{ steps.plan.outputs.flow }}
       audit: ${{ steps.plan.outputs.audit }}
     steps:
@@ -89,17 +92,17 @@ jobs:
       - run: npx eslint scripts/
 
   # ---------------------------------------------------------------------------
-  # 빠른 검사 — 공개 출시 전의 PR 이 머지 전에 지나는 전부 (#161, ADR 0097)
+  # core — 단위 · 타입 · 린트 · 빌드. 정책만 바뀐 PR 밖에서는 늘 선다 (#161, ADR 0097)
   # ---------------------------------------------------------------------------
   #
-  # 단위 · 타입 · 린트 · 빌드. 전체(익명 e2e · authed · flow)는 머지 뒤 main 이 돈다 — 관문 · 화면의 입구 · 인증 ·
-  # e2e · 흐름 검사를 바꾼 PR 은 예외로 머지 전에 전부다(ADR 0119, `ci-plan.mjs` 의 `SURFACE`). 문법이나 타입 하나가
-  # main 을 깨 나란히 선 세션을 다 세우는 일을 막는다. **명령 목록은 `ci-plan.mjs` 의 `FAST_STEPS` 와 같다** —
-  # 시험이 견준다. 빌드는 처음에 뺐다가 되돌렸다(#219): `app/**/icon.tsx` 처럼 `next build` 만 잡는 실패가
-  # 초록으로 머지돼 Production 이 두 시간 섰다.
-  fast:
+  # 공개 출시 전의 PR 은 이것과, 바뀐 화면의 주소에 닿는 차선만 머지 전에 돈다(`ci-plan.mjs` 「그 주소에 닿는 차선만」).
+  # 공용 위험(관문 · 인증 · layout · 서버 액션 · 시험 도구 …)이면 전부다(ADR 0119). 문법이나 타입 하나가 main 을 깨
+  # 나란히 선 세션을 다 세우는 일을 막는다. **명령 목록은 `ci-plan.mjs` 의 `CORE_STEPS` 와 같다** — 시험이 견준다.
+  # 빌드는 처음에 뺐다가 되돌렸다(#219): `app/**/icon.tsx` 처럼 `next build` 만 잡는 실패가 초록으로 머지돼
+  # Production 이 두 시간 섰다. 단위 · 타입 · 린트 · 빌드를 도는 job 은 이것 하나다 — 전부일 때도 `anon` 이 다시 돌지 않는다.
+  core:
     needs: plan
-    if: needs.plan.outputs.fast == 'true'
+    if: needs.plan.outputs.core == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -115,11 +118,14 @@ jobs:
       - run: npm run build
 
   # ---------------------------------------------------------------------------
-  # 단위·타입·린트·빌드 + 익명 e2e — **살아 있는 Supabase 없이** 잰다
+  # 익명 e2e — **살아 있는 Supabase 없이** 잰다
   # ---------------------------------------------------------------------------
-  verify:
+  #
+  # 단위 · 타입 · 린트 · 빌드는 `core` 가 돈다(2026-10-01 에 `npm run verify` 를 뺐다). Playwright 는 dev 서버를 제가
+  # 띄우므로 빌드가 필요 없다.
+  anon:
     needs: plan
-    if: needs.plan.outputs.verify == 'true'
+    if: needs.plan.outputs.anon == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -128,14 +134,12 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           # **버전을 여기 적지 않는다**(`.nvmrc`). CI 가 20 에 고정돼 있는 동안 개발
-          # 기계는 24 였고, 그 차이는 `verify` 가 realtime client 를 안 만들어서 여태
+          # 기계는 24 였고, 그 차이는 익명 e2e 가 realtime client 를 안 만들어서 여태
           # 안 드러났다 — `authed` 를 세우자 첫 실행에서 68건이 「Node.js detected but
           # native WebSocket not found」로 죽었다(전역 `WebSocket` 은 Node 22부터다).
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run verify
-
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
         env:
@@ -150,7 +154,7 @@ jobs:
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: verify-test-results
+          name: anon-test-results
           path: test-results/
           if-no-files-found: ignore
           retention-days: 7
@@ -174,6 +178,10 @@ jobs:
   # 모바일을 스택째 가른다. 궁합은 그 위에 한 워커다 — `onlyTheseParticipate` 가 전역
   # 참여 표를 제 쌍으로 좁혀 두 워커면 7건이 죽는다. 안내 관문은 전역 일정 표를 두고
   # 다투므로 혼자 돈다.
+  #
+  # **차선은 계획이 고른다**(2026-10-01). 목록은 `ci-plan.mjs` 의 `AUTHED_LANES` 이고, 운영 베타의 PR 은 바뀐 화면의 주소에
+  # 닿는 차선만 받는다. 원소는 문자열이다 — 아래 artifact 이름이 `matrix.lane` 을 읽는다. 배열이 비면 `authed` 가
+  # `false` 라 job 이 건너뛰어진다.
   authed:
     needs: plan
     if: needs.plan.outputs.authed == 'true'
@@ -183,7 +191,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: ['signed-in:desktop', 'signed-in:mobile', 'match:desktop', 'match:mobile', 'chat:desktop', 'chat:mobile', notice]
+        lane: ${{ fromJSON(needs.plan.outputs.authed_lanes) }}
 
     steps:
       - uses: actions/checkout@v7
@@ -210,7 +218,8 @@ jobs:
       # pgTAP 은 표를 전역으로 세는 자리가 있어서(「얼린 입력이 0개인가」·「후보로
       # 서는가」) **먼저 만들어진 남의 행에 걸린다.** 로컬에서 이것이 빨간불이었고
       # 원인이 e2e 가 남긴 계정이었다 — `supabase db reset` 뒤에 669건이 다 통과했다.
-      # 뒤에 두면 CI 에서도 같은 오염을 만든다. 차선 넷 중 가장 짧은 `notice` 에만 둔다.
+      # 뒤에 두면 CI 에서도 같은 오염을 만든다. 차선 넷 중 가장 짧은 `notice` 에만 둔다. 계획이 `notice` 를 빼는 것은
+      # `supabase/**` 를 안 바꾼 PR 뿐이다 — 마이그레이션 · pgTAP 이 섞이면 전부다(`ci-plan.mjs`).
       #
       # **생성 타입은 마이그레이션과 함께 움직인다.**
       #
@@ -231,7 +240,7 @@ jobs:
 
       # **artifact 이름에 콜론을 못 쓴다.** 차선 이름(`signed-in:mobile`)을 그대로 붙였던 동안 올리기가 매번
       # 「The artifact name is not valid … Colon :」로 죽어 실패한 차선에서 artifact 가 0개였다(run 36733185436).
-      # 그래서 `:` 를 `-` 로 바꾼 이름을 따로 만든다. 올리는 것은 `verify` 와 같은 `test-results/` 하나다.
+      # 그래서 `:` 를 `-` 로 바꾼 이름을 따로 만든다. 올리는 것은 `anon` 과 같은 `test-results/` 하나다.
       - if: failure()
         id: artifact
         env:
@@ -302,7 +311,7 @@ jobs:
   # job 을 필수로 걸면 머지가 막힌다. 그래서 `gate` 는 항상 돌고, 위 job 전부를 물린다.
   # main 보호 규칙의 필수 검사는 `gate` 하나다 — 그래서 `gh pr merge --auto` 가 기다린다.
   gate:
-    needs: [plan, policy, fast, verify, authed, flow, audit]
+    needs: [plan, policy, core, anon, authed, flow, audit]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2

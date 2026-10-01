@@ -38,3 +38,18 @@ e2e 를 돌렸다. 다치는 사람을 막는 값보다 기다리는 값이 컸�
 PRD §7.0 의 「(지금)」이 공개 출시로 옮겨지는 날 — `ci-plan.mjs` 가 그 PR 부터 머지 전 전체로 계획한다. 실제 사용자
 데이터가 먼저 들어오면 그날 사람이 단계를 옮긴다(runbook 「초대」). main 의 concurrency 는 그때도 최신 하나로 둔다 —
 머지 전 검증이 다시 전부가 되면 main 실행은 확인일 뿐이다.
+
+## 추기 (2026-10-01, 운영자 승인) — 모르는 파일은 베타에서도 전부, 그 밖은 그 주소에 닿는 차선만
+
+PR 의 필수는 이제 한 job 이 아니라 **독립 차선**이다 — `core`(단위 · 타입 · 린트 · 빌드, 옛 `fast`) · `anon`(익명 e2e, 옛
+`verify` job 에서 `npm run verify` 를 뺐다) · `authed`(계획이 고른 로그인 차선, `authed_lanes`) · `flow`, 그대로 `policy` · `audit`.
+운영 베타의 PR 은 바뀐 화면의 주소에 실제로 닿는 차선만 돈다(ADR 0119 추기 같은 날). `core` 는 정책만 바뀐 PR 밖에서 늘 선다.
+
+여기서 하나를 바꿨다: **베타의 `fast` 는 「그 밖 전부」를 받았는데, 이제 모르는 파일은 베타에서도 전부다.** 알려진 `core`
+자리를 파일 대장이 아니라 자리로 적는다 — `src/**` · 입구가 아닌 `app/**` · `scripts/**` · `.github/**` · `public/**` 와 이름으로 든
+뿌리 설정 몇(`ci-plan.mjs` 의 `KNOWN_CORE` · `ROOT_CONFIGS`). 정책 파일은 전처럼 `policy` 다. 잰 값: 추적 파일 1,139 개를 한 파일씩
+넣으니 옛 `fast` 489 개 중 486 개가 그대로 `core` 이고, 셋이 옮는다 — `app/global-error.tsx` · `instrumentation.ts` 는 Next 의 공용
+경계라 전부, `app/icon.svg` 는 메타데이터라 `core` + `anon`. 새 자리(예: `newdir/thing.sh`)는 그날부터 전부다.
+
+`full-ci` 라벨 · main 푸시 · 일정 · 손으로 켠 실행 · 빈 diff · `supabase/**` · 단계 모름은 지금처럼 전부다. 공개 출시로 옮기면
+좁히기 없이 위의 세 단계로 돌아간다.
