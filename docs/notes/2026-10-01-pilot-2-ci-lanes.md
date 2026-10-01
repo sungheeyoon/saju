@@ -52,3 +52,11 @@
 ## 끝 상태
 
 main `77cb2f8`. 워크트리는 main 하나. 운영 배포는 하지 않았다(CI 만 바뀌었다).
+
+**묶음 배포(운영자 「배포」 답, 2026-10-01):** Production = `1951137`(파일럿 1 의 사람 목록 화면 #392 · #394 를 처음 싣는다). `saju-l5cf8znke`,
+13:07 서울 Ready, 별칭 `saju-snowy.vercel.app`. 마이그레이션 변경 없음(`d8d2cd7` 이후 0). 배포 메타데이터에 커밋이 안 실려(CLI 로
+폴더를 올림) 올린 임시 워크트리의 HEAD 와 `origin/main` 이 같음으로 확인했다. 익명 smoke(데스크톱 · Pixel 5): `/` · `/auth` 200 ·
+콘솔 오류 0, `/me/people` · `/compat` 은 `/auth` 로. **Pixel 5 에서 로그인 전 `/compat` 을 열면 콘솔 오류 여섯** — 소식 · 채팅 ·
+요청 수를 읽는 문 셋(`unread_chat_count` · `my_match_requests` · `my_notifications`)이 401(42501)로 거절된다. 이번 배포의 앱 변경은
+사람 목록 두 파일뿐이라 회귀가 아니다(앞 배포 주소는 Vercel 보호로 직접 견주지 못했다). 데이터는 안 나간다 — 거절이다. 고치는 일은 열지
+않았다. 로그인이 드는 smoke(사람 목록 · 궁합 · `/ops/reports`)는 운영자 몫.
