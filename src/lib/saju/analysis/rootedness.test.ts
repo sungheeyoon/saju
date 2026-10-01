@@ -1,21 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { HIDDEN_STEMS, STEM_INFO, pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
+import { HIDDEN_STEMS, STEM_INFO } from '@/src/lib/saju/constants';
 import { ROOTEDNESS_POLICY, rootednessOf } from '@/src/lib/saju/analysis/rootedness';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 function chart(year: string, month: string, day: string, hour: string | null) {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-
-  const parsedDay = parse(day);
+  const parsedDay = pillarNamed(day);
   return {
-    year: parse(year),
-    month: parse(month),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
     day: parsedDay,
-    hour: hour === null ? null : parse(hour),
+    hour: hour === null ? null : pillarNamed(hour),
     dayMaster: parsedDay.stem,
   };
 }
