@@ -381,7 +381,6 @@ async function Result({ outcome }: { outcome: Outcome }) {
           <ReadingSection
             target={target}
             reading={reading}
-            layout="page"
             /**
              * **여기서는 사이를 다시 묻지 않는다**(ADR 0054).
              *

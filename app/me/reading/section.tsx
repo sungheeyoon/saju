@@ -16,12 +16,11 @@ import { CARD } from '../../ui/surfaces';
  * 인연 궁합(`/me/match/[matchId]`)이 다 이것을 쓴다 — 파이프라인이 받는 kind 넷(`READING_KINDS`)과 같다.
  *
  * **읽기만 한다.** 이 칸이 그려지는 것으로 AI 가 불리지 않는다 — 부르는 길은 버튼
- * 하나뿐이다(`GenerateButton`).
+ * 하나뿐이다(`ReadingPanel` 의 만드는 버튼).
  */
 export async function ReadingSection({
   target,
   heading,
-  layout,
   automatic,
   ask,
   betweenSummaryAndBody,
@@ -38,8 +37,6 @@ export async function ReadingSection({
    * 읽어 오면 화면이 이미 들고 있는 것을 한 번 더 묻게 된다.
    */
   heading?: string;
-  /** 카드로 서는가, 그 글을 읽으러 온 페이지인가 — `ReadingPanel` 이 그 뜻을 든다 */
-  layout?: 'card' | 'page';
   /**
    * 이 글을 **동의가 만드는가** (ADR 0038). 성공 경로에는 누를 것이 없다 —
    * 뜻은 `ReadingPanel` 이 든다.
@@ -105,7 +102,6 @@ export async function ReadingSection({
         consented={consented.ok && consented.value}
         heading={heading ?? (target.kind === 'self' ? '나의 사주풀이' : '두 사람의 궁합풀이')}
         allowMockFallback={process.env.NODE_ENV !== 'production'}
-        layout={layout}
         automatic={automatic}
         ask={ask}
         betweenSummaryAndBody={betweenSummaryAndBody}
