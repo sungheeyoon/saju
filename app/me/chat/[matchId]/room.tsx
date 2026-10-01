@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 
 import { BLOCK_NOTE } from '@/src/lib/consent';
 import { activityText, type ActivityBand } from '@/src/lib/presence';
@@ -15,6 +15,7 @@ import {
   BUTTON_SECONDARY,
   BUTTON_SECONDARY_SMALL,
 } from '../../../ui/buttons';
+import { useDetailsMenu } from '../../../ui/details-menu';
 import { StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
 import { TYPE_NAME } from '../../../ui/surfaces';
@@ -201,69 +202,49 @@ function Activity({ band }: { band: ActivityBand }) {
   );
 }
 
-/** 「⋯」 — 신고 · 차단. 닫힌 방은 차단할 것이 없고(이미 끊겼다) 신고만 남는다 */
+/**
+ * 「⋯」 — 신고 · 차단. 닫힌 방은 차단할 것이 없고(이미 끊겼다) 신고만 남는다.
+ *
+ * 여는 방식은 계정 메뉴 · 사람 관리 메뉴와 같다 — `<details>` 하나에 바깥 누름과 Esc 로 닫는 자리를 단다
+ * (`useDetailsMenu`). Esc 로 닫으면 초점이 「⋯」로 돌아온다. 고르면 먼저 닫고 그 칸을 세운다.
+ */
 function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: () => void; onBlock: () => void }) {
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const outside = (event: PointerEvent) => {
-      if (!box.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', outside);
-    document.addEventListener('keydown', escape);
-    return () => {
-      document.removeEventListener('pointerdown', outside);
-      document.removeEventListener('keydown', escape);
-    };
-  }, [open]);
+  const { menu, close } = useDetailsMenu();
 
   const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 text-left text-[15px] font-semibold hover:bg-surface-soft active:bg-surface-sunken';
 
   return (
-    <div ref={box} className="relative shrink-0">
-      <button
-        type="button"
-        aria-label="신고 · 차단"
-        aria-expanded={open}
-        onClick={() => setOpen((was) => !was)}
-        className={GHOST_ICON}
-      >
+    <details ref={menu} className="relative shrink-0">
+      <summary aria-label="신고 · 차단" className={`${GHOST_ICON} list-none [&::-webkit-details-marker]:hidden`}>
         <Icon name="more" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-12 z-20 flex w-48 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-float ring-1 ring-border">
+      </summary>
+      <div className="absolute right-0 top-12 z-20 flex w-48 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-float ring-1 ring-border">
+        <button
+          type="button"
+          className={`${item} text-foreground`}
+          onClick={() => {
+            close();
+            onReport();
+          }}
+        >
+          <Icon name="flag" className="size-[18px]" />
+          신고
+        </button>
+        {!closed && (
           <button
             type="button"
-            className={`${item} text-foreground`}
+            className={`${item} text-danger`}
             onClick={() => {
-              setOpen(false);
-              onReport();
+              close();
+              onBlock();
             }}
           >
-            <Icon name="flag" className="size-[18px]" />
-            신고
+            <Icon name="block" className="size-[18px]" />
+            차단
           </button>
-          {!closed && (
-            <button
-              type="button"
-              className={`${item} text-danger`}
-              onClick={() => {
-                setOpen(false);
-                onBlock();
-              }}
-            >
-              <Icon name="block" className="size-[18px]" />
-              차단
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </details>
   );
 }
 
