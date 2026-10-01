@@ -3,22 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { JOHU_TABLE, johuAssessmentOf } from '@/src/lib/saju/analysis/johu';
 import { JOHU_SEASON_BY_MONTH, johuJudgementOf } from '@/src/lib/saju/analysis/johuJudgement';
 import type { Grade, JohuJudgement } from '@/src/lib/saju/analysis/needProfileTypes';
-import { BRANCHES, pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
+import { BRANCHES, type Stem } from '@/src/lib/saju/constants';
 import { getFourPillars } from '@/src/lib/saju/pillars';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 /** 간지 넷으로 명식을 짓는다 — 반월을 안 보는 자리에서만 */
 const chart = (year: string, month: string, day: string, hour: string | null) => {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-  const parsedDay = parse(day);
+  const parsedDay = pillarNamed(day);
   return {
-    year: parse(year),
-    month: parse(month),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
     day: parsedDay,
-    hour: hour === null ? null : parse(hour),
+    hour: hour === null ? null : pillarNamed(hour),
     dayMaster: parsedDay.stem,
   };
 };

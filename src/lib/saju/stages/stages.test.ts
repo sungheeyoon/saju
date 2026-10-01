@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '@/src/lib/saju';
-import { STEMS, pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
+import { STEMS, type Branch, type Stem } from '@/src/lib/saju/constants';
 import {
   STEM_PROSPERITY,
   TWELVE_STAGES,
@@ -9,6 +9,7 @@ import {
   twelveStageOf,
   twelveStagesOf,
 } from '@/src/lib/saju/stages';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 /**
  * 12운성 테스트.
@@ -141,17 +142,11 @@ describe('양포태 — yinReverse: false', () => {
 });
 
 function pillarsOf(year: string, month: string, day: string, hour: string | null) {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-
   return {
-    year: parse(year),
-    month: parse(month),
-    day: parse(day),
-    hour: hour === null ? null : parse(hour),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
+    day: pillarNamed(day),
+    hour: hour === null ? null : pillarNamed(hour),
   };
 }
 

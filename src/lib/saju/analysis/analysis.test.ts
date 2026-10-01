@@ -9,7 +9,6 @@ import {
   elementRelation,
   pillarOf,
   principalStem,
-  type Branch,
   type Element,
   type Stem,
 } from '@/src/lib/saju/constants';
@@ -37,6 +36,7 @@ import {
 } from '@/src/lib/saju/analysis';
 import { computeSaju } from '@/src/lib/saju';
 import { getFourPillars, fromCivil, type FourPillars } from '@/src/lib/saju/pillars';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 const at = (
   year: number,
@@ -378,17 +378,12 @@ describe('12운성은 신강·신약 점수에 들어가지 않는다', () => {
    * 같은 사실을 두 번 세게 된다.
    */
   const chart = (year: string, month: string, day: string, hour: string) => {
-    const parse = (name: string) => {
-      const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-      if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-      return pillar;
-    };
-    const day_ = parse(day);
+    const day_ = pillarNamed(day);
     return {
-      year: parse(year),
-      month: parse(month),
+      year: pillarNamed(year),
+      month: pillarNamed(month),
       day: day_,
-      hour: parse(hour),
+      hour: pillarNamed(hour),
       dayMaster: day_.stem,
     };
   };
@@ -464,17 +459,12 @@ describe('12운성은 신강·신약 점수에 들어가지 않는다', () => {
 });
 
 const chartOf = (year: string, month: string, day: string, hour: string) => {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-  const day_ = parse(day);
+  const day_ = pillarNamed(day);
   return {
-    year: parse(year),
-    month: parse(month),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
     day: day_,
-    hour: parse(hour),
+    hour: pillarNamed(hour),
     dayMaster: day_.stem,
   };
 };

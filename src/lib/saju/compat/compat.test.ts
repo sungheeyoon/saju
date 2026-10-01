@@ -9,22 +9,16 @@ import {
   compatSideOf,
   findCompatRelations,
 } from '@/src/lib/saju/compat';
-import { pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
 import { resolveRelation, type Participant, type Relation } from '@/src/lib/saju/relations';
 import { findCompatUtterances } from '@/src/lib/saju/text';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 function chart(year: string, month: string, day: string, hour: string | null) {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-
   return {
-    year: parse(year),
-    month: parse(month),
-    day: parse(day),
-    hour: hour === null ? null : parse(hour),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
+    day: pillarNamed(day),
+    hour: hour === null ? null : pillarNamed(hour),
   };
 }
 

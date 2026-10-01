@@ -9,10 +9,8 @@ import {
   SEXAGENARY,
   STEMS,
   STEM_INFO,
-  pillarOf,
-  type Branch,
-  type Stem,
 } from '@/src/lib/saju/constants';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 const cells = STEMS.flatMap((stem) =>
   BRANCHES.map((branch) => ({
@@ -24,17 +22,12 @@ const cells = STEMS.flatMap((stem) =>
 
 /** 간지 넷으로 명식을 짓는다 — 시험이 절기 시각까지 알 필요가 없는 자리에서만 */
 const chart = (year: string, month: string, day: string, hour: string | null) => {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-  const parsedDay = parse(day);
+  const parsedDay = pillarNamed(day);
   return {
-    year: parse(year),
-    month: parse(month),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
     day: parsedDay,
-    hour: hour === null ? null : parse(hour),
+    hour: hour === null ? null : pillarNamed(hour),
     dayMaster: parsedDay.stem,
   };
 };

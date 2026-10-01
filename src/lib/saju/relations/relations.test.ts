@@ -15,7 +15,6 @@ import {
   STEM_CLASHES,
   STEM_COMBINATIONS,
   STEM_INFO,
-  pillarOf,
   type Branch,
   type RelationKind,
   type Stem,
@@ -32,6 +31,7 @@ import {
   type Relation,
   type RelationInput,
 } from '@/src/lib/saju/relations';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 /**
  * 원국 관계 연산 테스트.
@@ -43,17 +43,11 @@ import {
 
 /** '甲子' 같은 표기 넷으로 원국을 세운다. 시주는 null 이면 시간 미상이다. */
 function chart(year: string, month: string, day: string, hour: string | null): RelationInput {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-
   return {
-    year: parse(year),
-    month: parse(month),
-    day: parse(day),
-    hour: hour === null ? null : parse(hour),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
+    day: pillarNamed(day),
+    hour: hour === null ? null : pillarNamed(hour),
   };
 }
 

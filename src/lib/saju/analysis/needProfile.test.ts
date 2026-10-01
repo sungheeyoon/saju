@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '..';
-import { BRANCHES, pillarOf, type Branch, type Stem } from '../constants';
+import { BRANCHES } from '../constants';
 import { COMPAT_POLICY } from '../compat';
 import { hourPillarOf } from '../pillars/hour';
 import { randomInputs, withoutHour } from '../population';
@@ -11,6 +11,7 @@ import { johuJudgementOf } from './johuJudgement';
 import { eokbuJohuRelationOf, needProfileOf } from './needProfile';
 import { NEED_PROFILE_POLICY, type Grade, type NeedEntry, type NeedProfile } from './needProfileTypes';
 import { EOKBU_EXTERNAL_CASES } from './validation/eokbuExternalCases';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 /** 표본 1000건(시 있음)과 시 미상 100건이 열두 시를 다 돈다 — 기본 5초로는 모자란다 */
 const POPULATION_TIMEOUT_MS = 30_000;
@@ -19,17 +20,12 @@ const GRADE_RANK: Record<Grade, number> = { low: 0, medium: 1, high: 2 };
 
 /** 간지 넷으로 명식을 짓는다 — 반월을 안 보는 자리에서만 */
 const chart = (year: string, month: string, day: string, hour: string | null) => {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-  const parsedDay = parse(day);
+  const parsedDay = pillarNamed(day);
   return {
-    year: parse(year),
-    month: parse(month),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
     day: parsedDay,
-    hour: hour === null ? null : parse(hour),
+    hour: hour === null ? null : pillarNamed(hour),
     dayMaster: parsedDay.stem,
   };
 };
