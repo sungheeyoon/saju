@@ -374,6 +374,9 @@ export function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                         <li key={relationKey(relation)}>
                           {relation.ko}
                           {crossed !== null && <span className="text-muted"> · {crossed}</span>}
+                          {relation.scope === 'combinedFormation' && (
+                            <span className="text-muted"> · 합쳐서</span>
+                          )}
                         </li>
                       );
                     })}
@@ -458,7 +461,7 @@ export function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                         <li key={relationKey(relation)}>
                           {relation.ko}
                           {relation.scope === 'combinedFormation' && (
-                            <span className="text-muted"> 합쳐서</span>
+                            <span className="text-muted"> · 합쳐서</span>
                           )}
                         </li>
                       ))}
