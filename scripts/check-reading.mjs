@@ -16,12 +16,11 @@
  *    없을 수 있다(ADR 0016). 그 줄이 어디를 다시 눌러야 하는지까지 들어야 한다.
  */
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed, fetchWhole, keyedRpc } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole, keyedRpc, sessionCookie } from './checks.mjs';
 /**
  * **문구를 손으로 안 적는다** — 제품이 쓰는 그 상수를 그대로 든다.
  *
@@ -104,22 +103,7 @@ const { data: momId } = await a.rpc('create_managed_person', {
   ...chartArgs('reading-mom'),
 });
 
-const cookieFor = async (email) => {
-  const jar = new Map();
-  const browser = createServerClient(API, status.ANON_KEY, {
-    cookies: {
-      getAll: () => [...jar].map(([name, value]) => ({ name, value })),
-      setAll: (written) => {
-        for (const { name, value } of written) jar.set(name, value);
-      },
-    },
-  });
-  const { error } = await browser.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(`${email} 로그인 실패 — ${error.message}`);
-  return [...jar].map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join('; ');
-};
-
-const cookie = { a: await cookieFor(mail.a), b: await cookieFor(mail.b) };
+const cookie = { a: await sessionCookie(status, mail.a, password), b: await sessionCookie(status, mail.b, password) };
 
 const { base: BASE, stop } = await startCheckServer({
   port: PORT,
