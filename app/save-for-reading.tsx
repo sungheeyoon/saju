@@ -15,7 +15,12 @@ import { personSlotsFrom } from './person-slots';
 import { toSearchParams, type Query } from '@/src/lib/input/query';
 import { READING_DRAFT_KEY } from './reading-draft';
 import { SignInCarrying } from './sign-in-carrying';
-import { SameChartAsk, type SaveOutcome, type SameChartQuestion } from './same-chart-ask';
+import {
+  SameChartAsk,
+  settleSaveOutcome,
+  type SaveOutcome,
+  type SameChartQuestion,
+} from './same-chart-ask';
 import { selfPersonState, type SelfPersonState } from './self-person-state';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './ui/buttons';
 import { CARD } from './ui/surfaces';
@@ -142,14 +147,7 @@ function SaveCard({
   const [question, setQuestion] = useState<SameChartQuestion | null>(null);
   const [saving, startSaving] = useTransition();
 
-  const settle = (outcome: SaveOutcome) => {
-    if ('failed' in outcome) {
-      setFailure(outcome.failed);
-      setQuestion(null);
-      return;
-    }
-    setQuestion('ask' in outcome ? outcome.ask : null);
-  };
+  const settle = (outcome: SaveOutcome) => settleSaveOutcome(outcome, setFailure, setQuestion);
 
   const save = () => {
     setFailure(null);

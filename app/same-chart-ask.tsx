@@ -34,6 +34,23 @@ export type SaveOutcome =
   | { failed: string }
   | { ask: SameChartQuestion };
 
+/**
+ * 결과 하나를 입구의 두 칸(실패 · 물음)에 앉힌다 — 입구 셋이 같은 규율을 쓴다.
+ * 실패면 물음을 거두고, 물음이면 세우고, 끝났으면 거둔다. 실패 칸을 비우는 것은 누를 때 입구가 한다.
+ */
+export function settleSaveOutcome(
+  outcome: SaveOutcome,
+  setFailure: (failure: string) => void,
+  setQuestion: (question: SameChartQuestion | null) => void,
+) {
+  if ('failed' in outcome) {
+    setFailure(outcome.failed);
+    setQuestion(null);
+    return;
+  }
+  setQuestion('ask' in outcome ? outcome.ask : null);
+}
+
 export function SameChartAsk({
   question,
   busy,
