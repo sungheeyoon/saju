@@ -21,6 +21,7 @@ import {
   type DaeunSpan,
   type PillarPosition,
   type Relation,
+  type SaeunEntry,
   type Saju,
 } from '@/src/lib/saju';
 import {
@@ -166,6 +167,42 @@ export function NowOverlaps({ now }: { now: CurrentFortune }) {
 
 
 /**
+ * 운 표의 간지 칸 하나 — 세운 · 월운 · 대운이 같은 모양으로 쓴다.
+ *
+ * 위에서부터 천간 십성 · 간 · 지 · 지지 십성 · 12운성, 그리고 12신살. 월운 칸은 12신살을 안 적는다.
+ * 머리 · 관계 목록 · 각주는 표마다 다르므로 여기 없다.
+ */
+function FortuneCell({
+  entry,
+  current,
+  showSpirits = true,
+}: {
+  entry: Pick<SaeunEntry, 'pillar' | 'tenGods' | 'stage' | 'spirits'>;
+  current: boolean;
+  showSpirits?: boolean;
+}) {
+  return (
+    <div
+      className={`mx-auto flex min-h-[7.25rem] w-full max-w-28 flex-col items-center gap-0.5 rounded-2xl border py-2.5 ${
+        current ? 'border-foreground bg-cream' : 'border-transparent bg-surface-soft'
+      }`}
+    >
+      <span className="text-xs text-muted">{TEN_GOD_KO[entry.tenGods.stem]}</span>
+      <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[STEM_INFO[entry.pillar.stem].element].text}`}>{entry.pillar.stem}</span>
+      <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[BRANCH_INFO[entry.pillar.branch].element].text}`}>{entry.pillar.branch}</span>
+      <span className="text-xs text-muted">{TEN_GOD_KO[entry.tenGods.branch]}</span>
+      <span className="mt-1 text-xs text-secondary">{TWELVE_STAGE_KO[entry.stage]}</span>
+      {showSpirits && (
+        <span className="text-xs text-muted">
+          {TWELVE_SPIRIT_ALIAS[entry.spirits.year] ?? TWELVE_SPIRIT_KO[entry.spirits.year]}
+        </span>
+      )}
+    </div>
+  );
+}
+
+
+/**
  * 세운 — 해마다의 간지.
  *
  * 대운 표와 같은 모양으로 늘어놓되, 세운은 **원국·대운과 무엇을 하는가**가 본론이라
@@ -231,29 +268,7 @@ export function SaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                 const current = entry.chartId === currentChartId;
                 return (
                   <td key={entry.year} className="snap-start px-1 align-top">
-                    <div
-                      className={`mx-auto flex min-h-[7.25rem] w-full max-w-28 flex-col items-center gap-0.5 rounded-2xl border py-2.5 ${
-                        current
-                          ? 'border-foreground bg-cream'
-                          : 'border-transparent bg-surface-soft'
-                      }`}
-                    >
-                    <span className="text-xs text-muted">
-                      {TEN_GOD_KO[entry.tenGods.stem]}
-                    </span>
-                    <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[STEM_INFO[entry.pillar.stem].element].text}`}>{entry.pillar.stem}</span>
-                    <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[BRANCH_INFO[entry.pillar.branch].element].text}`}>{entry.pillar.branch}</span>
-                    <span className="text-xs text-muted">
-                      {TEN_GOD_KO[entry.tenGods.branch]}
-                    </span>
-                    <span className="mt-1 text-xs text-secondary">
-                      {TWELVE_STAGE_KO[entry.stage]}
-                    </span>
-                    <span className="text-xs text-muted">
-                      {TWELVE_SPIRIT_ALIAS[entry.spirits.year] ??
-                        TWELVE_SPIRIT_KO[entry.spirits.year]}
-                    </span>
-                    </div>
+                    <FortuneCell entry={entry} current={current} />
 
                     <ul className="mt-1.5 flex flex-col gap-0.5 text-xs text-secondary">
                       {entry.relations.map((relation) => {
@@ -346,25 +361,11 @@ export function WolunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
             <tr>
               {entries.map((entry) => (
                 <td key={entry.chartId} className="snap-start px-1 align-top">
-                  <div
-                    className={`mx-auto flex min-h-[7.25rem] w-full max-w-28 flex-col items-center gap-0.5 rounded-2xl border py-2.5 ${
-                      entry.chartId === currentChartId
-                        ? 'border-foreground bg-cream'
-                        : 'border-transparent bg-surface-soft'
-                    }`}
-                  >
-                    <span className="text-xs text-muted">
-                      {TEN_GOD_KO[entry.tenGods.stem]}
-                    </span>
-                    <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[STEM_INFO[entry.pillar.stem].element].text}`}>{entry.pillar.stem}</span>
-                    <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[BRANCH_INFO[entry.pillar.branch].element].text}`}>{entry.pillar.branch}</span>
-                    <span className="text-xs text-muted">
-                      {TEN_GOD_KO[entry.tenGods.branch]}
-                    </span>
-                    <span className="mt-1 text-xs text-secondary">
-                      {TWELVE_STAGE_KO[entry.stage]}
-                    </span>
-                  </div>
+                  <FortuneCell
+                    entry={entry}
+                    current={entry.chartId === currentChartId}
+                    showSpirits={false}
+                  />
 
                   <ul className="mt-1.5 flex flex-col gap-0.5 text-xs text-secondary">
                     {entry.relations.map((relation) => {
@@ -450,27 +451,7 @@ export function DaeunTable({ saju, now }: { saju: Saju; now: CurrentFortune }) {
                 const current = entry.chartId === currentChartId;
                 return (
                   <td key={entry.chartId} className="snap-start px-1 align-top">
-                    <div
-                      className={`mx-auto flex min-h-[7.25rem] w-full max-w-28 flex-col items-center gap-0.5 rounded-2xl border py-2.5 ${
-                        current ? 'border-foreground bg-cream' : 'border-transparent bg-surface-soft'
-                      }`}
-                    >
-                      <span className="text-xs text-muted">
-                        {TEN_GOD_KO[entry.tenGods.stem]}
-                      </span>
-                      <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[STEM_INFO[entry.pillar.stem].element].text}`}>{entry.pillar.stem}</span>
-                      <span className={`glyph text-[1.7rem] font-bold leading-none ${ELEMENT_TONE[BRANCH_INFO[entry.pillar.branch].element].text}`}>{entry.pillar.branch}</span>
-                      <span className="text-xs text-muted">
-                        {TEN_GOD_KO[entry.tenGods.branch]}
-                      </span>
-                      <span className="mt-1 text-xs text-secondary">
-                        {TWELVE_STAGE_KO[entry.stage]}
-                      </span>
-                      <span className="text-xs text-muted">
-                        {TWELVE_SPIRIT_ALIAS[entry.spirits.year] ??
-                          TWELVE_SPIRIT_KO[entry.spirits.year]}
-                      </span>
-                    </div>
+                    <FortuneCell entry={entry} current={current} />
 
                     <ul className="mt-1.5 flex flex-col gap-0.5 text-xs text-secondary">
                       {entry.relations.map((relation) => (
