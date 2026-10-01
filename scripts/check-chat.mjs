@@ -1,10 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed, fetchWhole, keyedRpc } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole, keyedRpc, sessionCookie, shapeOnlySummary } from './checks.mjs';
 import { CHAT_POLICY, RATE_LIMITED_TEXT, closedRoomText } from '../src/lib/chat/index.ts';
 import { PRESENCE_POLICY } from '../src/lib/presence/index.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
@@ -55,37 +54,16 @@ const person = async (email, label, birth) => {
 const a = await person(mail.a, '민수', BIRTH.a);
 const b = await person(mail.b, '지영', BIRTH.b);
 
-const 가짜 = {
-  glyphCount: 8,
-  counts: { 木: 8, 火: 0, 土: 0, 金: 0, 水: 0 },
-  ratios: { 木: 1, 火: 0, 土: 0, 金: 0, 水: 0 },
-};
-
 for (const [client, nickname] of [[a, NAME.a], [b, NAME.b]]) {
   await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: null });
-  await keyedRpc(client, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+  await keyedRpc(client, 'set_discovery_participation', { p_on: true, p_summary: shapeOnlySummary, p_need: testNeed() });
 }
 
 const list = Object.values(mail).map((email) => `'${email}'`).join(', ');
 sql(`update public.discovery_profile set opted_in_at = null, opted_out_at = now()
      where user_id not in (select id from auth.users where email in (${list}))`);
 
-const cookieFor = async (email) => {
-  const jar = new Map();
-  const browser = createServerClient(API, status.ANON_KEY, {
-    cookies: {
-      getAll: () => [...jar].map(([name, value]) => ({ name, value })),
-      setAll: (written) => {
-        for (const { name, value } of written) jar.set(name, value);
-      },
-    },
-  });
-  const { error } = await browser.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(`${email} 로그인 실패 — ${error.message}`);
-  return [...jar].map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join('; ');
-};
-
-const cookie = { a: await cookieFor(mail.a), b: await cookieFor(mail.b) };
+const cookie = { a: await sessionCookie(status, mail.a, password), b: await sessionCookie(status, mail.b, password) };
 
 const { base: BASE, stop } = await startCheckServer({
   port: PORT,

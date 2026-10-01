@@ -12,6 +12,7 @@
  * 러너는 자식 프로세스로 돌리고(`run-checks.mjs`), 여기서는 `process.exitCode` 만 적는다.
  * 그러면 출력과 뒷정리가 끝날 기회가 남는다.
  */
+import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { worktreeStack } from '../src/lib/local-env.ts';
@@ -64,6 +65,41 @@ export const sql = (statement) =>
  * 엔진이 규칙을 올리는 날 모든 흐름이 조용히 풀에서 빠진다.
  */
 export const testNeed = () => ({ primary: '木', heaviest: '金', rule: sql('select public.discovery_need_rule()') });
+
+/**
+ * 참여를 켤 때 넣는 **모양만 맞는 가짜 요약.**
+ *
+ * 요약을 만드는 것은 앱이고(`selfElementSummary`), 검사가 그 계산을 흉내 내면 앱이
+ * 옳게 만드는지를 한 번도 안 재게 된다. 그래서 일부러 판본과 무관한 값을 넣고,
+ * **화면을 한 번 열었을 때 내 판본에서 다시 계산돼 자리를 잡는지**를 잰다.
+ * DB 는 모양까지만 보므로 이 값은 통과한다 — 그 사실도 함께 드러난다.
+ */
+export const shapeOnlySummary = {
+  glyphCount: 8,
+  counts: { 木: 8, 火: 0, 土: 0, 金: 0, 水: 0 },
+  ratios: { 木: 1, 火: 0, 土: 0, 金: 0, 水: 0 },
+};
+
+/**
+ * 브라우저처럼 로그인해 받은 **세션 쿠키 한 줄**(`Cookie` 머리에 그대로 싣는다).
+ *
+ * 쿠키는 @supabase/ssr 이 직접 쓰게 한다. 이름과 조각내는 규칙을 손으로 흉내 내면 그 규칙이
+ * 바뀌는 날 검사만 조용히 틀린다. `status` 는 `supabase status -o json` 의 답이다.
+ */
+export async function sessionCookie(status, email, password) {
+  const jar = new Map();
+  const browser = createServerClient(status.API_URL, status.ANON_KEY, {
+    cookies: {
+      getAll: () => [...jar].map(([name, value]) => ({ name, value })),
+      setAll: (written) => {
+        for (const { name, value } of written) jar.set(name, value);
+      },
+    },
+  });
+  const { error } = await browser.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(`${email} 로그인 실패 — ${error.message}`);
+  return [...jar].map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join('; ');
+}
 
 /**
  * **본문을 끝까지 받은 뒤에 돌려주는 fetch** — 화면을 「열었다」는 곧 서버가 그 화면을 다 그렸다는 뜻이다.
