@@ -8,11 +8,12 @@ import {
 } from './element-axes';
 
 /**
- * **이 두 벌은 pgTAP 에도 그대로 있다**(`supabase/tests/07_discovery.test.sql`).
+ * **균형 두 벌은 pgTAP 에도 그대로 있다**(`supabase/tests/07_discovery.test.sql`).
  *
- * 오행 두 축은 TypeScript 와 SQL 에 하나씩 적혀 있다 — 후보의 오행 요약을 브라우저로
+ * 균형 축은 TypeScript 와 SQL 에 하나씩 적혀 있다 — 후보의 오행 요약을 브라우저로
  * 내려보내지 않으려면 DB 안에서도 같은 셈을 해야 하기 때문이다. 두 자리는 갈릴 수
  * 있으므로 **같은 입력에 같은 기대값**을 양쪽에 적어 둔다. 한쪽만 고치면 다른 쪽이 깨진다.
+ * 상호보완 축의 SQL 짝은 부르는 곳이 없어 걷었다(2026-10-01) — 아래 보완 시험은 TS 에만 있다.
  */
 const 한쪽에몰림 = (element: keyof ElementSummary['counts']): ElementSummary => ({
   glyphCount: 8,
