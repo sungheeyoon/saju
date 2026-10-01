@@ -152,6 +152,10 @@ PRD 의 「(지금)」을 공개 출시로 옮기면 아래 세 단계로 저절
 
 `authed` 는 `db:start` 를 하고 e2e 차선 하나를 돈다. pgTAP 과 **생성 타입 diff** 는 그 일곱 중 **`notice` 차선만** 본다
 (`verify.yml` 의 `if: matrix.lane == 'notice'` — e2e 가 남긴 계정이 전역으로 세는 pgTAP 을 흐리므로 e2e 앞, 가장 짧은 차선에 둔다).
+**e2e 가 붉으면 `test-results/` 가 artifact 로 올라온다**(7일) — 익명은 `verify-test-results`, 로그인은
+`authed-test-results-<차선>`(콜론을 `-` 로, 예: `authed-test-results-signed-in-mobile`). 안에는 시도마다의 `error-context.md` 와
+첫 재시도의 `trace.zip` 이 있다 — `gh run download <run id> -n <이름>` 뒤 `npx playwright show-trace <…>/trace.zip`. 리포터가
+`github` 하나라 `playwright-report/` 는 없다. 스택을 내리는 `db:stop` 단계는 없다 — hosted runner 는 job 마다 버려진다.
 `full-ci` 라벨은 더할 수만 있다. `main` 푸시와 손으로 켠 실행은 계획을 안 보고 전부 돈다.
 **main 푸시는 최신 하나만 끝까지 돈다** — 새 푸시가 앞 실행을 끊는다(#161 이 #143 의 「커밋마다 제 그룹」을
 되돌렸다). 끊긴 실행은 실패가 아니다. 하루 한 번의 일정은 제 그룹이라 안 끊긴다. 보호 규칙은 strict 라 PR 은

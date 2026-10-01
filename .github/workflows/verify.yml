@@ -144,6 +144,17 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
 
+      # **실패하면 `test-results/` 를 올린다.** 리포터가 `github` 하나라 `playwright-report/` 는 생기지 않는다 —
+      # 남는 것은 시도마다의 `error-context.md` 와 첫 재시도의 `trace.zip`(`trace: 'on-first-retry'`)이다.
+      # 이 단계가 없던 동안 익명 e2e 가 붉으면 로그 말고는 아무것도 안 남았다.
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: verify-test-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
   # ---------------------------------------------------------------------------
   # 로그인 뒤 화면 — **살아 있는 Supabase 를 세워서 잰다** (ADR 0050), 차선 넷이 나란히
   # ---------------------------------------------------------------------------
@@ -218,18 +229,24 @@ jobs:
       # 그때 `webServer.env` 가 로컬 스택 값을 덮는다 — 원격에 닿을 자리가 없다.
       - run: npm run test:e2e:${{ matrix.lane }}
 
+      # **artifact 이름에 콜론을 못 쓴다.** 차선 이름(`signed-in:mobile`)을 그대로 붙였던 동안 올리기가 매번
+      # 「The artifact name is not valid … Colon :」로 죽어 실패한 차선에서 artifact 가 0개였다(run 36733185436).
+      # 그래서 `:` 를 `-` 로 바꾼 이름을 따로 만든다. 올리는 것은 `verify` 와 같은 `test-results/` 하나다.
+      - if: failure()
+        id: artifact
+        env:
+          LANE: ${{ matrix.lane }}
+        run: echo "name=authed-test-results-${LANE//:/-}" >> "$GITHUB_OUTPUT"
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: authed-playwright-report-${{ matrix.lane }}
-          path: |
-            playwright-report/
-            test-results/
+          name: ${{ steps.artifact.outputs.name }}
+          path: test-results/
           if-no-files-found: ignore
           retention-days: 7
 
-      - if: always()
-        run: npm run db:stop
+      # 스택을 내리는 단계를 두지 않는다 — hosted runner 는 job 마다 새 VM 이고 끝나면 버려진다. `supabase stop` 은
+      # 차선마다 약 14초를 쓰고 뒤에 기대는 단계가 없었다(`flow` 도 같다).
 
   # ---------------------------------------------------------------------------
   # 흐름 검사 일곱 벌 — RPC 로 동의하고 화면을 두드린다, 모델은 안 부른다
@@ -256,8 +273,6 @@ jobs:
       - run: sudo sysctl -w net.ipv4.ip_local_port_range="60000 65535"
       - run: npm run db:start || { npx supabase stop --no-backup; npm run db:start; }
       - run: npm run test:flow
-      - if: always()
-        run: npm run db:stop
 
   # ---------------------------------------------------------------------------
   # 운영 의존성 감사 — high 이상이 하나라도 있으면 붉다 (G-23 ①, ADR 0104)
