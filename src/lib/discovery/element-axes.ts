@@ -54,7 +54,11 @@ export function combinedCountBalanceOf(a: ElementSummary, b: ElementSummary): nu
   return Math.max(0, Math.min(100, (1 - deviation / 1.6) * 100));
 }
 
-const countRatioOf = (summary: ElementSummary, element: Element): number =>
+/**
+ * 보이는 글자 수 가운데 한 오행의 몫(0~1). 글자가 없으면 0 이다. 부족분 보완과 필요 보완(`compat-axes.ts`)이
+ * 같은 자로 잰다 — 묶음 밖(`index.ts`)으로는 내지 않는다.
+ */
+export const countRatioOf = (summary: ElementSummary, element: Element): number =>
   summary.glyphCount > 0 ? summary.counts[element] / summary.glyphCount : 0;
 
 /**
