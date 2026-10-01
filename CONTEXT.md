@@ -38,7 +38,7 @@ _Avoid_: relationship, Person.name, 닉네임
 참여하지 않는 사람도 이름이 있다.
 _Avoid_: 별명, 공개용 별명, 표시 이름
 
-**프로필 사진** — `profile_photo` 표 · `photo_of` : **닉네임** 옆에 서는 선택 값. 올린 사람만
+**프로필 사진** — `profile_photo` 표 · `photo_at` : **닉네임** 옆에 서는 선택 값. 올린 사람만
 서고 없으면 이름의 첫 글자가 선다. 바이트는 Postgres 안에 있고 계정에 cascade 로 매여
 있다 — 지우는 일이 **열쇠를 따라가게** 하려는 것이다(ADR 0023). 볼 수 있는 조건은 「지금
 그 사람의 이름이 내게 보이는가」와 같다.
@@ -815,7 +815,7 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | selfPerson | `self_person_id` · `create_self_person` | `app_user` 칸 · 함수 |
 | localLabel | `local_label` | `user_person_access` 칸 |
 | 닉네임 | `nickname` · `nicknameKey` | `app_user` 칸 · `src/lib/profile` |
-| 프로필 사진 | `profile_photo` · `photo_of` | 표 · 함수 |
+| 프로필 사진 | `profile_photo` · `photo_at` | 표 · 함수 |
 | 이용 정지 | `suspended` · `AccountStatus` | `app_user.status` 값 · `src/lib/account` |
 | 계정을 못 읽음 | `AccountRead` · `readAccount` | `app/me/account.ts` |
 | 탈퇴 대기 | `deletion_requested` · `requestAccountDeletion` | `app_user.status` 값 · 액션 |

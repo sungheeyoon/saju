@@ -1,0 +1,21 @@
+-- 대표 사진을 열던 옛 문 `photo_of` 를 걷는다 — 대표는 `photo_at(id, 1)` 이 연다 (G-60 의 좁히기)
+--
+-- `20261026090000` 이 사진을 여섯 장으로 넓히며 옛 앱의 문 넷을 남겼고, 그 머리말이 좁히기를 예고했다 —
+-- 「옛 문을 좁히는 일(`set_my_photo` · `clear_my_photo` · `photo_of` 를 닫는 것)은 새 앱이 운영에 선 뒤의
+-- 마이그레이션이 한다 — `/me/photo/{id}` 는 아바타가 계속 쓰므로 `photo_of` 는 남을 수도 있다」.
+-- `clear_my_photo` 는 `20261110090000` 이 걷었다. 이것이 둘째다.
+--
+-- ## 잰 값 (2026-10-01, 로컬 `20261111090000` 까지)
+--
+-- - **부르는 함수 0** — `pg_proc.prosrc` 에 이름이 든 public · 다른 스키마 함수 0, `pg_depend` 0, 크론 · 뷰 · 정책 0.
+-- - **앱 · scripts · e2e 0** — `/me/photo/{id}` 의 아바타도 `photo_at`(`app/me/photo/photo-response.ts`)으로 간다. 운영에
+--   서 있는 앱(`80c59bf`)의 `app/` · `proxy.ts` 에도 0 이다(시험 주석 한 줄뿐). 부르던 것은 pgTAP 넷(24 · 61 · 64 · 74)이고
+--   이 PR 이 `photo_at(id, 1)` 로 옮긴다.
+-- - **뜻이 같다** — `photo_of(u)` 의 본문은 `photo_at(u, 1)` 의 본문에서 `position = 1` 을 상수로 박은 것이다. 둘 다
+--   `security definer` · `search_path = ''` · 소유자 `postgres` · `authenticated` 에만 열림이고, 여는 조건은 같은
+--   `may_see_photo(p_user_id)` 하나다. 그래서 이 변경은 **누가 무엇을 볼 수 있는가를 안 바꾼다** — 같은 사진을 같은
+--   사람에게 다른 문 하나로 연다. 로그인한 사람에게 열린 문의 집합이 하나 줄 뿐이다(`74_authenticated_doors`).
+--
+-- **배포 순서는 상관없다** — 지금 운영의 앱이 이 문을 안 부른다.
+
+drop function public.photo_of(uuid);

@@ -9,9 +9,9 @@
 -- (`75_suspended_write_doors` 가 쓰기 문마다 정지를 두드린다). 하나가 줄면 「Missing records」다 — 걷은 문이면 이
 -- 목록에서도 지운다.
 --
--- 2026-09-30 에 로컬(`20261106100000` 까지)에서 잰 84 개였고, `clear_my_photo` 를 걷어 83 개다. 화면이 안 부르는 것도 든다 — 정책 · 다른 함수 안에서
+-- 2026-09-30 에 로컬(`20261106100000` 까지)에서 잰 84 개였고, `clear_my_photo` 를 걷어 83 개, `photo_of` 를 걷어 82 개다. 화면이 안 부르는 것도 든다 — 정책 · 다른 함수 안에서
 -- 불리는 판정(`chat_room_readable` · `discovery_shown_to_me` · `set_person_listed`), 모양 검사(`is_*` · `reject_bad_chart`),
--- 옛 문(`photo_of`). 걷을지는 이 파일이 아니라 마이그레이션이 정한다 — `clear_my_photo` 는 `20261110090000` 이 걷었다.
+-- 옛 문(`set_my_photo`). 걷을지는 이 파일이 아니라 마이그레이션이 정한다 — `clear_my_photo` 는 `20261110090000` 이, `photo_of` 는 `20261112090000` 이 걷었다.
 begin;
 select plan(1);
 
@@ -76,7 +76,6 @@ select set_eq(
            ('pair_relation_of(p_person_a uuid, p_person_b uuid)'),
            ('person_for_pair(p_person uuid, p_local_label text, p_note text, p_calendar text, p_original_date date, p_solar_date date, p_birth_time time without time zone, p_gender text, p_city text, p_late_night_rule text, p_time_basis text, p_chart jsonb, p_chart_engine_version text)'),
            ('photo_at(p_user_id uuid, p_position integer)'),
-           ('photo_of(p_user_id uuid)'),
            ('presence_policy()'),
            ('reject_bad_chart(p_chart jsonb, p_chart_engine_version text, p_birth_time time without time zone)'),
            ('remove_my_photo(p_position integer, p_version bigint)'),
