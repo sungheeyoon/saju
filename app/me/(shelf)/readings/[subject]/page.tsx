@@ -13,7 +13,7 @@ import { currentReading } from '../../../reading/current';
 import { ReadingSection } from '../../../reading/section';
 import { ReadingBack } from '../frame';
 import { SubjectTag } from '../shelf';
-import { dayMastersOf } from '../subject';
+import { dayMastersOf, savedPersonOf } from '../subject';
 
 /** 풀이 생성은 응답 뒤에서 최대 240초 동안 돌 수 있다. */
 export const maxDuration = 300;
@@ -54,25 +54,16 @@ export default async function SingleReadingPage({
   const mine = subject === 'self';
   if (mine && selfPersonId === null) redirect('/me');
 
-  const edge = mine
-    ? null
-    : (
-        // eslint-disable-next-line no-restricted-syntax -- 옛 자리(ADR 0085): 문으로 옮기면 지운다
-        await supabase
-          .from('user_person_access')
-          .select('person_id, local_label')
-          .eq('person_id', subject)
-          .maybeSingle()
-      ).data;
-  if (!mine && edge === null) notFound();
+  const saved = mine ? null : await savedPersonOf(supabase, subject);
+  if (!mine && saved === null) notFound();
 
-  const personId = mine ? selfPersonId : (edge?.person_id as string);
+  const personId = saved === null ? selfPersonId : saved.personId;
   if (personId === null) notFound();
 
   /* self Person id 를 직접 적은 옛 링크도 자기 풀이 한 자리로 모은다. */
   if (!mine && selfPersonId === personId) redirect('/me/readings/self');
 
-  const name = mine ? '내 사주' : (edge?.local_label as string);
+  const name = saved === null ? '내 사주' : saved.localLabel;
   const readingTitle = mine ? '내 사주풀이' : `${name}의 사주풀이`;
   const target = mine ? ({ kind: 'self' } as const) : ({ kind: 'person', personId } as const);
   /*

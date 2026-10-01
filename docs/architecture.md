@@ -60,7 +60,7 @@
 `SkippableRead` 로 값을 내고, 성공했는데 없는 것만 `null`·`[]`·`0` 이다(ADR 0078).
 `if (error) return []` 는 셋을 하나로 합치므로 쓰지 않는다.
 
-**옛 자리 다섯.** 잠근 날(2026-09-22)에 열셋이었고, 2026-09-23 에 `discovery_profile` 둘이 문(`app/me/discovery/discovery-profile.ts`)으로, 2026-09-24 에 홈의 엣지 읽기가 문(`app/me/home/circle.ts`)으로, 2026-09-25 에 세 화면의 일정 읽기가 문(`app/beta-schedule.ts`)으로, 같은 날 G-60 에서 프로필의 사진 읽기가 문(`app/me/profile/photos.ts`)으로, 2026-09-30 에 매칭의 참여를 여는 부름이 열쇠 모듈(`app/me/keyed-chart-writes.ts`, G-64)로 옮겼다. 잠근 날 이미 `.tsx` 안에서 DB 를 부르고 있던 호출이다.
+**옛 자리 넷.** 잠근 날(2026-09-22)에 열셋이었고, 2026-09-23 에 `discovery_profile` 둘이 문(`app/me/discovery/discovery-profile.ts`)으로, 2026-09-24 에 홈의 엣지 읽기가 문(`app/me/home/circle.ts`)으로, 2026-09-25 에 세 화면의 일정 읽기가 문(`app/beta-schedule.ts`)으로, 같은 날 G-60 에서 프로필의 사진 읽기가 문(`app/me/profile/photos.ts`)으로, 2026-09-30 에 매칭의 참여를 여는 부름이 열쇠 모듈(`app/me/keyed-chart-writes.ts`, G-64)로, 2026-10-01 에 사주풀이 글 화면의 엣지 읽기가 문(`app/me/(shelf)/readings/subject.ts` 의 `savedPersonOf`)으로 옮겼다. 잠근 날 이미 `.tsx` 안에서 DB 를 부르고 있던 호출이다.
 **호출 하나마다** 그 줄 위에 `eslint-disable-next-line no-restricted-syntax` 가 붙어 있고,
 `scripts/layers.test.ts` 가 **호출의 지문**(`파일 :: supabase.from('표')`)을 목록으로 든다 —
 **줄어들기만 한다.** 하나를 문으로 옮기면 표시와 지문을 함께 지운다. 표시는 줄 하나를 통째로
@@ -105,7 +105,7 @@
 | `src/lib` → React/Next · `@supabase` · 모델 SDK · Node 내장 | `no-restricted-imports` (패키지 이름) | 같다 |
 | 문자열이 아닌 `import()` 대상 | `no-restricted-syntax` | 대상을 모르는 import 0건 |
 | 도메인 lib 끼리의 방향 | — | 허용 목록과 **정확히 같은가**, 순환 없는가, `db` 는 나가는 방향 0 |
-| 화면(`.tsx`) 안의 `.rpc()`·`.from()` | `no-restricted-syntax` | 호출 지문이 옛 자리 다섯 안에만, 표시 수 = 호출 수 |
+| 화면(`.tsx`) 안의 `.rpc()`·`.from()` | `no-restricted-syntax` | 호출 지문이 옛 자리 넷 안에만, 표시 수 = 호출 수 |
 | `app/ui` → 문 · 액션 · 클라이언트 · `@supabase` | — | `app` 안에서는 `app/ui` 만 |
 | `'use client'` 파일에서 값으로 닿는 모듈에 풀이 입구(`src/lib/reading/index`)와 프롬프트 원문(`prompt`), 열쇠(`app/keyed-client.ts` · `app/me/keyed-chart-writes.ts`) | — | `app/` 의 `'use client'` 전부를 뿌리로 값 import 를 따라간다(타입만 부르면 안 따라가고, `'use server'` 에서 멈춘다). 닿으면 그 길을 보여 준다. 클라이언트는 잎(`reading/notes` · `feedback` · `policy`)을 부른다 |
 | 열쇠(`app/keyed-client.ts`)를 부르는 파일 | `no-restricted-imports` — `KEY_HOLDERS` 밖의 `app/**` · `proxy.ts`(시험 파일 제외) | 부르는 파일이 목록과 **정확히 같은가**, 린트의 목록과 같은가, 풀에 오르는 값을 쓰는 문 넷의 `.rpc()` 가 `app/me/keyed-chart-writes.ts` 밖에 없는가, 그 모듈이 넷 밖을 안 부르고 사람 id 를 인자로 안 받는가(ADR 0136) |

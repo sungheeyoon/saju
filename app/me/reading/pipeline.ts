@@ -14,7 +14,7 @@ import {
 } from '@/src/lib/reading';
 
 import { supabaseOnServer } from '../../auth/server-client';
-import { userFacingDbMessage } from '../../db-error';
+import { recordDbFailure, userFacingDbMessage } from '../../db-error';
 import { NoKeyError, keyedClient } from '../../keyed-client';
 import { storedChartOf, type StoredInput } from '@/src/lib/input/stored';
 import { readingInputOf } from './generator';
@@ -406,13 +406,18 @@ export async function sendAcceptedMatchReading(requestId: string): Promise<void>
   let keyed: ReturnType<typeof keyedClient>;
   try {
     keyed = keyedClient('동의가 연 시도를 제출할');
-  } catch {
-    // 열쇠가 없는 배포다. 시도는 열린 채로 남고 만료 때 닫힌다 — 화면에 버튼이 돌아온다.
+  } catch (failure) {
+    // 열쇠가 없는 배포다. 시도는 열린 채로 남고 만료 때 닫힌다 — 화면에 버튼이 돌아온다. 까닭만 기록에 남긴다(`sendRun` 과 같다).
+    console.error('send match: 열쇠 없음', failure instanceof NoKeyError ? failure.message : failure);
     return;
   }
 
   const { data, error } = await keyed.rpc('match_run_awaiting_send', { p_request_id: requestId });
-  if (error) return;
+  if (error) {
+    /* 못 찾았어도 시도는 열린 채 남고 복구기 · 만료가 닫는다 — 답은 그대로, 원문만 기록에 */
+    recordDbFailure(error, 'send match: match_run_awaiting_send');
+    return;
+  }
 
   const job = ((data ?? []) as unknown as FrozenJob[])[0];
   // 0행은 「보낼 것이 없다」다 — 수락이 시도를 못 열었거나 이미 떠났다.
