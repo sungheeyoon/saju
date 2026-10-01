@@ -344,8 +344,15 @@ export function ReadingPanel({
       **예시 글은 누르는 자리에서 짓는다.** 지을 수 있는가는 이 화면이 알고
       (`allowMockFallback`), 세울 것인가는 흐름이 답한다 — 여기서 `null` 이면 그 갈래가
       아예 없다는 뜻이고, 그것이 프로덕션에서 실패가 실패로 서는 까닭이다.
+
+      **`NODE_ENV` 를 여기서 한 번 더 묻는 것은 묶음 때문이다.** `allowMockFallback` 은
+      서버가 넘기는 실행 값이라 빌드가 못 접는다 — 이 자리의 상수가 접혀야 예시 글이
+      운영 클라이언트 묶음에서 빠진다(ADR 0080 「값으로 남은 것 넷」 1).
     */
-    const preview = allowMockFallback ? previewReading(target.kind, new Date()) : null;
+    const preview =
+      process.env.NODE_ENV !== 'production' && allowMockFallback
+        ? previewReading(target.kind, new Date())
+        : null;
 
     let outcome: PressOutcome;
     try {
