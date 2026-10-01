@@ -5,7 +5,7 @@
 --
 --   1. 일주 · 일지 축 — 60갑자 × 60갑자 3,600 쌍 전부에서 대칭이고 25 ~ 90 안이다
 --   2. 카드 점수 — 같은 3,600 쌍에서 두 사람에게 같은 수이고, 반올림한 수가 0 ~ 100 안이다
---   3. 사진 자리 — 올리기 · 지우기 · 옮기기 · 대표 바꾸기 · 전부 내리기를 섞은 이백 걸음 뒤에도 매 걸음
+--   3. 사진 자리 — 올리기 · 지우기 · 옮기기 · 전부 내리기를 섞은 이백 걸음 뒤에도 매 걸음
 --      자리가 1..k 이고, 순서가 모형(배열 하나)과 같다
 begin;
 select plan(6);
@@ -123,7 +123,8 @@ begin
       if f <= n then
         model := model[1:f - 1] || model[f + 1:n];
       end if;
-    elsif roll < 0.85 then
+    elsif roll < 0.95 then
+      -- 옮기기 — 대표를 덮어쓰던 옛 갈래(`set_my_photo`)는 그 문과 함께 걷었다(`20261115090000`)
       if n > 0 then
         f := 1 + floor(random() * n)::integer;
         t := 1 + floor(random() * n)::integer;
@@ -131,13 +132,6 @@ begin
         moved := model[f];
         model := model[1:f - 1] || model[f + 1:n];
         model := model[1:t - 1] || moved || model[t:n - 1];
-      end if;
-    elsif roll < 0.95 then
-      perform public.set_my_photo('image/webp', encode(convert_to(label, 'UTF8'), 'base64'));
-      if n = 0 then
-        model := array[label];
-      else
-        model[1] := label;
       end if;
     else
       -- 전부 내리기 — 옛 문(`clear_my_photo`)은 걷었다(`20261110090000`). 지금 앱처럼 한 장씩 내린다

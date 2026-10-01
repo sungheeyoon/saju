@@ -403,7 +403,7 @@ const isolate = (emails) => {
    */
   {
     const 사진 = Buffer.from('89504e470d0a1a0a-검사용', 'utf8').toString('base64');
-    const { error: 올림 } = await other.rpc('set_my_photo', {
+    const { error: 올림 } = await other.rpc('add_my_photo', {
       p_content_type: 'image/png',
       p_base64: 사진,
     });

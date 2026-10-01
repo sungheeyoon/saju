@@ -1023,7 +1023,7 @@ test.describe('매칭 덱 상태 회귀', () => {
     const partner = await openAs({ selfPerson: true });
     await bothParticipate(viewer, partner, tag);
     const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWZkAAAAASUVORK5CYII=';
-    const uploaded = await partner.api.rpc('set_my_photo', { p_content_type: 'image/png', p_base64: png });
+    const uploaded = await partner.api.rpc('add_my_photo', { p_content_type: 'image/png', p_base64: png });
     expect(uploaded.error).toBeNull();
     await viewer.page.goto('/me/matching');
     await viewer.page.getByRole('button', { name: '다음 인연으로 지나가기' }).click();
@@ -1087,7 +1087,7 @@ test.describe('사진 여러 장을 넘겨 보는 카드', () => {
     await optIn(viewer.api, `가${tag}`);
     await optIn(withPhoto.api, `사${tag}`);
     await optIn(without.api, `아${tag}`);
-    expect((await withPhoto.api.rpc('set_my_photo', { p_content_type: 'image/png', p_base64: PNG_1PX })).error).toBeNull();
+    expect((await withPhoto.api.rpc('add_my_photo', { p_content_type: 'image/png', p_base64: PNG_1PX })).error).toBeNull();
     const emails = [viewer, withPhoto, without].map((person) => person.account.email);
     onlyTheseParticipate(emails);
     forgetBoards(emails);

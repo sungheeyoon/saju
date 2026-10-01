@@ -3,7 +3,8 @@
 -- 여기서 재는 것 넷.
 --
 -- 1. **올리고 지우기를 되풀이해도 스무 번에서 멈춘다** — 지금 몇 장인가가 아니라 오늘 몇 번 올렸나를 센다
--- 2. **옛 문(`set_my_photo`)도 같은 셈이다** — 1번 자리를 제자리에서 덮어써도 센다
+-- 2. **대표를 바꾸는 길도 같은 셈이다** — 1번을 지우고 다시 올려도 센다(제자리에서 덮어쓰던 옛 문 `set_my_photo` 는
+--    `20261115090000` 이 걷었다 — 대표는 이제 지우기 + 올리기 + 옮기기로 바꾼다)
 -- 3. **어제 올린 것은 안 센다**
 -- 4. **세는 것은 그 계정뿐이고, 표는 아무에게도 안 열려 있다**
 --
@@ -65,12 +66,13 @@ select throws_ok(
   '53400', '오늘은 사진을 더 올릴 수 없습니다. 내일 다시 올려 주세요.',
   '1. 스물한 번째는 자리가 비어 있어도 거절된다');
 
--- ── 2. 옛 문도 같은 셈 ───────────────────────────────────────────────────────
+-- ── 2. 대표를 바꾸는 길도 같은 셈 ────────────────────────────────────────────
 
+select public.remove_my_photo(1);
 select throws_ok(
-  format($$select public.set_my_photo('image/png', %L)$$, pg_temp.pic('old-door')),
+  format($$select public.add_my_photo('image/png', %L)$$, pg_temp.pic('new-cover')),
   '53400', '오늘은 사진을 더 올릴 수 없습니다. 내일 다시 올려 주세요.',
-  '2. 옛 문으로 대표 사진을 덮어써도 막힌다');
+  '2. 대표를 지우고 새로 올려도 막힌다');
 
 -- ── 4. 세는 것은 그 계정뿐 ──────────────────────────────────────────────────
 
@@ -88,7 +90,7 @@ where user_id = (select kim from who);
 set local role authenticated;
 
 select pg_temp.acting((select kim from who));
-select is(public.add_my_photo('image/png', pg_temp.pic('tomorrow')), 6, '3. 어제의 스무 번은 오늘을 안 막는다');
+select is(public.add_my_photo('image/png', pg_temp.pic('tomorrow')), 5, '3. 어제의 스무 번은 오늘을 안 막는다');
 select is(pg_temp.uploads((select kim from who)), 1::bigint, '3. 어제 줄은 걷히고 오늘 한 번만 남는다');
 
 reset role;

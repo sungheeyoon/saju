@@ -5,11 +5,12 @@
 --   1. 상한 — 일곱째 장은 거절한다. 한 장의 상한 · 형식은 그대로다
 --   2. 자리 — 올리면 맨 뒤, 지우면 뒤가 당겨 앉고, 옮기면 사이가 밀린다. 언제나 1..k
 --   3. 여는 조건 — 장 단위의 답이 없다. 한 사람의 사진은 여섯 장이 함께 열리고 함께 닫힌다
---   4. 옛 문 — `set_my_photo` 는 대표만 바꾼다(전부 내리던 `clear_my_photo` 는 `20261110090000` 이, 대표를 열던 `photo_of` 는
---      `20261112090000` 이 걷었다 — 대표는 `photo_at(id, 1)` 이 연다)
+--   4. 옛 문은 없다 — 전부 내리던 `clear_my_photo` 는 `20261110090000` 이, 대표를 열던 `photo_of` 는 `20261112090000` 이,
+--      대표를 덮어쓰던 `set_my_photo` 는 `20261115090000` 이 걷었다. 대표는 `photo_at(id, 1)` 이 열고, 대표를 바꾸는 길은
+--      지우기 + 올리기 + 옮기기다
 --   5. 떠나면 전부 사라진다 — FK 를 따라간다
 begin;
-select plan(39);
+select plan(38);
 
 create or replace function pg_temp.acting(uid uuid)
 returns void
@@ -239,19 +240,12 @@ select is(
   0,
   '차단하면 네 장이 함께 닫힌다');
 
--- ── 4. 옛 문 ────────────────────────────────────────────────────────────────
-
-select pg_temp.acting((select kim from who));
-select public.set_my_photo('image/jpeg', pg_temp.pic('Z'));
-reset role;
-select is(pg_temp.order_of((select kim from who)), 'Z,C,F,D', '옛 `set_my_photo` 는 대표만 바꾸고 나머지는 둔다');
-set local role authenticated;
+-- ── 4. 옛 문은 없다 ─────────────────────────────────────────────────────────
 
 select pg_temp.acting((select park from who));
-select public.set_my_photo('image/png', pg_temp.pic('P'));
+select public.add_my_photo('image/png', pg_temp.pic('P'));
 reset role;
-select is(pg_temp.order_of((select park from who)), 'P', '사진이 없으면 옛 문이 1번에 놓는다');
-set local role authenticated;
+select is(pg_temp.order_of((select park from who)), 'P', '사진이 없으면 첫 장은 1번에 앉는다');
 
 
 -- ── 권한 ────────────────────────────────────────────────────────────────────

@@ -142,18 +142,18 @@ set local role authenticated;
 select pg_temp.acting((select kim from who));
 
 select throws_ok(
-  format($$select public.set_my_photo('image/gif', %L)$$, encode('gif89a'::bytea, 'base64')),
+  format($$select public.add_my_photo('image/gif', %L)$$, encode('gif89a'::bytea, 'base64')),
   '22023', null,
   '받기로 한 형식이 아니면 거절한다');
 
 select throws_ok(
-  format($$select public.set_my_photo('image/png', %L)$$,
+  format($$select public.add_my_photo('image/png', %L)$$,
     encode(repeat('0', 600000)::bytea, 'base64')),
   '22023', null,
   '512KB 를 넘으면 거절한다');
 
 select lives_ok(
-  format($$select public.set_my_photo('image/png', %L)$$, encode('PNG-김'::bytea, 'base64')),
+  format($$select public.add_my_photo('image/png', %L)$$, encode('PNG-김'::bytea, 'base64')),
   '사진을 올린다');
 
 select is(
