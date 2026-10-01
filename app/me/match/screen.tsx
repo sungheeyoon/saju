@@ -146,7 +146,6 @@ function Result({ result }: { result: SharedResult }) {
       <ReadingSection
         target={{ kind: 'match', matchId: result.matchId }}
         heading={`${result.partnerNickname} 님과의 궁합풀이`}
-        layout="page"
         automatic
         bare
         matchNames={{ me: '나', partner: result.partnerNickname }}

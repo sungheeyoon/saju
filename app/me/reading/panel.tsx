@@ -80,8 +80,6 @@ export function panelChrome({
   isMock,
   credits,
   automatic,
-  onPage,
-  expanded,
   consented,
 }: {
   kind: ReadingTarget['kind'];
@@ -92,8 +90,6 @@ export function panelChrome({
   isMock: boolean;
   credits: ReadingCredits | null;
   automatic: boolean;
-  onPage: boolean;
-  expanded: boolean;
   consented: boolean;
 }): PanelChrome {
   /*
@@ -122,7 +118,7 @@ export function panelChrome({
      * 글이 이미 있는 사람에게 그 칸이 하는 말은 버튼 하나뿐이고, 나머지 줄은 **읽을
      * 이유가 없는 자리**를 차지하고 있었다.
      */
-    makeInHeader: onPage && reading !== null && !hideMake,
+    makeInHeader: reading !== null && !hideMake,
 
     makeLabel: loading
       ? `${noun} 받는 중…`
@@ -146,8 +142,7 @@ export function panelChrome({
 
     /**
      * **읽고 나서 곧바로 묻는다.** 시점이 값을 정한다 — 다 읽은 직후가 기억이 가장
-     * 선명하고, 여기를 떠난 뒤에 묻는 설문은 「대체로 괜찮았다」를 받는다. 그래서 글이
-     * 실제로 펼쳐져 있을 때만 선다.
+     * 선명하고, 여기를 떠난 뒤에 묻는 설문은 「대체로 괜찮았다」를 받는다.
      *
      * **예시 결과에는 안 붙는다.** 그 글은 모델이 쓴 것이 아니라 개발용으로 박아 둔
      * 문자열이라, 그것에 대한 답을 세면 프롬프트 판본별 값이 조용히 오염된다.
@@ -159,8 +154,7 @@ export function panelChrome({
      * 같은 줄도 세우지 않는다 — 거절한 사람에게 거절을 다시 보여 주는 자리가 된다.
      */
     asksFeedback:
-      (onPage || expanded)
-      && consented
+      consented
       && !loading
       && reading !== null
       && !isMock
@@ -196,7 +190,6 @@ export function ReadingPanel({
   consented,
   heading,
   allowMockFallback,
-  layout = 'card',
   automatic = false,
   ask,
   betweenSummaryAndBody,
@@ -255,18 +248,6 @@ export function ReadingPanel({
   heading: string;
   allowMockFallback: boolean;
   /**
-   * 이 칸이 **카드인가 페이지인가.**
-   *
-   * `card` 는 다른 것들 사이에 끼어 있는 자리다(`/me` 의 자기 풀이). 긴 글을 접어
-   * 두고 만드는 버튼을 아래에 둔다.
-   *
-   * `page` 는 그 글을 읽으러 온 자리다. **이미 상세 화면인데 또 펼쳐 보라고 하지
-   * 않는다** — 한 번 더 누르게 하는 것은 아무것도 아끼지 않는다. 그리고 다시 받는
-   * 버튼은 위로 간다. 그것은 글을 읽기 **전에** 정하는 일이라 8천 자 뒤에 있으면
-   * 없는 것과 같다.
-   */
-  layout?: 'card' | 'page';
-  /**
    * **다음 풀이를 위해 먼저 정할 것.**
    *
    * 만드는 버튼과 같은 덩어리에 선다. 이 자리에 있는 물음은 지금 서 있는 글이 아니라
@@ -303,8 +284,6 @@ export function ReadingPanel({
     { running: initialRunning, failed: initialFailed },
     initialFlow,
   );
-  /* 접힘은 이 화면만의 것이라 흐름에 안 든다 — 서버에도 다른 기기에도 뜻이 없다 */
-  const [readingExpanded, setReadingExpanded] = useState(false);
   /**
    * 서버가 적은 진행 — **물을 때마다 그 답으로 갈아 끼운다.** 흐름(`readingFlow`)에 안 넣는 것은 이 값이 무엇이
    * 서는지(글 · 빈 칸 · 기다림)를 안 바꾸고 기다리는 칸 안의 줄만 바꾸기 때문이다.
@@ -358,7 +337,6 @@ export function ReadingPanel({
 
   const generate = async () => {
     dispatch({ type: 'press' });
-    setReadingExpanded(false);
     /* 새 시도다 — 지난 시도의 진행을 들고 가지 않는다 */
     setProgress(null);
 
@@ -420,8 +398,6 @@ export function ReadingPanel({
     void generate();
   };
 
-  const onPage = layout === 'page';
-
   /** 이 대상을 부르는 말 — 두 사람짜리 화면은 「궁합풀이」라고 적는다 */
   const noun = READING_NOUN[target.kind];
   const creditsNote = credits === null ? null : readingCreditsNote(credits);
@@ -434,8 +410,6 @@ export function ReadingPanel({
     isMock,
     credits,
     automatic,
-    onPage,
-    expanded: readingExpanded,
     consented,
   });
 
@@ -468,9 +442,7 @@ export function ReadingPanel({
   const stale = reading !== null && target.kind !== 'match' && !reading.fromCurrentChart;
 
   const makeBlock = chrome.hideMake ? null : (
-    <div
-      className={`flex flex-col gap-3 ${onPage ? 'rounded-[1.75rem] border border-border bg-surface px-5 py-5 sm:px-6' : 'border-t border-border pt-5'}`}
-    >
+    <div className="flex flex-col gap-3 rounded-[1.75rem] border border-border bg-surface px-5 py-5 sm:px-6">
       {/* 먼저 정할 것이 있으면 버튼보다 앞에 선다 — 정하고 나서 누르는 차례다 */}
       {ask}
       {/*
@@ -558,10 +530,10 @@ export function ReadingPanel({
 
       {/*
         **다시 받는 버튼이 글 위에 선다.** 그것은 글을 읽기 전에 정하는 일이라, 8천 자 뒤에 있으면 없는
-        것과 같다. 카드로 설 때는 반대다 — 먼저 무엇이 있는지 보이고 나서 만들지 말지를 정한다.
+        것과 같다.
       */}
-      {onPage && !chrome.makeInHeader && makeBlock}
-      {onPage && alert}
+      {!chrome.makeInHeader && makeBlock}
+      {alert}
 
       {phase === 'loading' ? (
         <>
@@ -579,9 +551,6 @@ export function ReadingPanel({
           target={target}
           isMock={isMock}
           tones={tones}
-          alwaysOpen={onPage}
-          expanded={readingExpanded}
-          onExpandedChange={setReadingExpanded}
           betweenSummaryAndBody={betweenSummaryAndBody}
           matchNames={matchNames}
         />
@@ -598,9 +567,6 @@ export function ReadingPanel({
           <ReadingFeedback target={target} runId={reading.sourceRunId} given={reading.myFeedback} />
         </div>
       )}
-
-      {!onPage && alert}
-      {!onPage && makeBlock}
 
       {/*
         **누를 수 없는 자리에는 창도 없다.** 이 창은 만드는 버튼이 여는 것이라, 버튼이 없는 화면(동의가
@@ -736,9 +702,6 @@ function Result({
   target,
   isMock,
   tones,
-  alwaysOpen,
-  expanded,
-  onExpandedChange,
   betweenSummaryAndBody,
   matchNames,
 }: {
@@ -746,14 +709,9 @@ function Result({
   target: ReadingTarget;
   isMock: boolean;
   tones: readonly (Element | null)[] | undefined;
-  /** 상세 화면에서는 접지 않는다 — 그 글을 읽으러 온 자리다 */
-  alwaysOpen: boolean;
-  expanded: boolean;
-  onExpandedChange: (expanded: boolean) => void;
   betweenSummaryAndBody?: ReactNode;
   matchNames?: { readonly me: string; readonly partner: string };
 }) {
-  const open = alwaysOpen || expanded;
   const body =
     target.kind === 'match' && matchNames !== undefined
       ? namedMatchBody(reading.output, reading.viewerIsFirst, matchNames)
@@ -765,19 +723,6 @@ function Result({
   */
   const face = tones === undefined ? null : coverFace(tones);
   const firstTone = tones?.[0] ?? null;
-
-  const detailButton = !alwaysOpen && (
-    <button
-      type="button"
-      onClick={() => onExpandedChange(!expanded)}
-      aria-expanded={expanded}
-      aria-controls={`reading-${reading.id}`}
-      className={`${BUTTON_SECONDARY} self-start`}
-    >
-      {expanded ? '접기' : '자세히 보기'}
-      <Icon name="chevron" className={`size-4 ${expanded ? '-rotate-90' : 'rotate-90'}`} />
-    </button>
-  );
 
   const meta = (
     <>
@@ -842,7 +787,6 @@ function Result({
       ) : (
         <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[13px] text-secondary">{meta}</p>
       )}
-      {detailButton}
       {/*
         **늘 참인 사실은 여기 안 적는다.** 여기 서는 것은 **실제로 갈리는** 한 줄뿐이다 — 지금과 다른
         명식으로 만든 글. 새로 만들면 지금 것이 사라진다는 경고는 되돌릴 수 없는 누름 **직전**에 필요한
@@ -858,25 +802,23 @@ function Result({
         </p>
       )}
       {betweenSummaryAndBody}
-      {open && (
-        <div className={`${elementScope(firstTone)} flex flex-col gap-2 pt-4 sm:pt-8`}>
-          {target.kind === 'match' && (
-            <header className="mx-auto w-full max-w-[36rem]">
-              <p className="text-[13px] font-semibold text-secondary">두 사람의 풀이</p>
-              <h2 className={`mt-1 ${TYPE_SECTION}`}>궁합풀이 결과</h2>
-            </header>
-          )}
-          <article id={`reading-${reading.id}`}>
-            <Markdown source={body} />
-          </article>
-          {/* 글의 끝 — 다섯 상징이 마침표 자리에 선다 */}
-          <span aria-hidden="true" className="mt-12 flex justify-center gap-3 opacity-80">
-            {ELEMENTS.map((element) => (
-              <ElementSymbol key={element} element={element} className="size-5" />
-            ))}
-          </span>
-        </div>
-      )}
+      <div className={`${elementScope(firstTone)} flex flex-col gap-2 pt-4 sm:pt-8`}>
+        {target.kind === 'match' && (
+          <header className="mx-auto w-full max-w-[36rem]">
+            <p className="text-[13px] font-semibold text-secondary">두 사람의 풀이</p>
+            <h2 className={`mt-1 ${TYPE_SECTION}`}>궁합풀이 결과</h2>
+          </header>
+        )}
+        <article id={`reading-${reading.id}`}>
+          <Markdown source={body} />
+        </article>
+        {/* 글의 끝 — 다섯 상징이 마침표 자리에 선다 */}
+        <span aria-hidden="true" className="mt-12 flex justify-center gap-3 opacity-80">
+          {ELEMENTS.map((element) => (
+            <ElementSymbol key={element} element={element} className="size-5" />
+          ))}
+        </span>
+      </div>
     </div>
   );
 }

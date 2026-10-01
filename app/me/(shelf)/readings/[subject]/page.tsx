@@ -104,7 +104,6 @@ export default async function SingleReadingPage({
         target={target}
         reading={reading}
         heading={readingTitle}
-        layout="page"
         bare
         tones={[dayMaster?.element ?? null]}
       />

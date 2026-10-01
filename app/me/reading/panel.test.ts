@@ -41,8 +41,6 @@ const view = (over: Partial<View> = {}): View => ({
   isMock: false,
   credits: credits(),
   automatic: false,
-  onPage: true,
-  expanded: false,
   consented: true,
   ...over,
 });
@@ -87,8 +85,6 @@ describe('만드는 버튼이 서는 자리와 닫히는 자리', () => {
     expect(panelChrome(view({ reading: reading() })).makeInHeader).toBe(true);
     /* 아직 글이 없으면 권하는 말과 함께 칸 안에 선다 */
     expect(panelChrome(view()).makeInHeader).toBe(false);
-    /* 카드로 설 때는 다른 것들 사이라 머리가 없다 */
-    expect(panelChrome(view({ reading: reading(), onPage: false })).makeInHeader).toBe(false);
     /* 아예 안 서는 버튼은 올라갈 자리도 없다 */
     expect(
       panelChrome(view({ reading: reading(), automatic: true })).makeInHeader,
@@ -147,13 +143,5 @@ describe('설문이 붙는 글', () => {
     expect(
       panelChrome(view({ reading: reading({ sourceRunId: null }) })).asksFeedback,
     ).toBe(false);
-  });
-
-  /** 카드로 설 때는 접혀 있는 글 아래에 설문만 서면 묻는 자리가 글보다 먼저 보인다 */
-  it('카드로 설 때는 펼친 뒤에만 붙는다', () => {
-    const card = { reading: reading(), onPage: false };
-
-    expect(panelChrome(view({ ...card })).asksFeedback).toBe(false);
-    expect(panelChrome(view({ ...card, expanded: true })).asksFeedback).toBe(true);
   });
 });
