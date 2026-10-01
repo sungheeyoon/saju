@@ -157,12 +157,12 @@ select lives_ok(
   '사진을 올린다');
 
 select is(
-  (select content_type from public.photo_of((select kim from who))),
+  (select content_type from public.photo_at((select kim from who), 1)),
   'image/png',
   '내 사진은 내가 읽는다');
 
 select is(
-  (select decode(base64, 'base64') from public.photo_of((select kim from who))),
+  (select decode(base64, 'base64') from public.photo_at((select kim from who), 1)),
   'PNG-김'::bytea,
   '올린 바이트가 그대로 돌아온다');
 
@@ -174,12 +174,12 @@ select is(
  */
 select pg_temp.acting((select park from who));
 select is(
-  (select count(*)::int from public.photo_of((select kim from who))),
+  (select count(*)::int from public.photo_at((select kim from who), 1)),
   0,
   '남의 사진은 이유 없이 안 열린다');
 
 select is(
-  (select count(*)::int from public.photo_of(gen_random_uuid())),
+  (select count(*)::int from public.photo_at(gen_random_uuid(), 1)),
   0,
   '없는 사람의 사진도 같은 답을 받는다');
 
@@ -228,7 +228,7 @@ select is(
   '카드가 사진이 있다고 말한다');
 
 select is(
-  (select content_type from public.photo_of((select kim from who))),
+  (select content_type from public.photo_at((select kim from who), 1)),
   'image/png',
   '후보로 선 사람의 사진은 열린다');
 
@@ -264,7 +264,7 @@ select pg_temp.acting((select lee from who));
  */
 select public.block_user((select kim from who));
 select is(
-  (select count(*)::int from public.photo_of((select kim from who))),
+  (select count(*)::int from public.photo_at((select kim from who), 1)),
   0,
   '차단한 사람의 사진은 닫힌다');
 

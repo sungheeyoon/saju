@@ -3041,13 +3041,6 @@ export type Database = {
           content_type: string
         }[]
       }
-      photo_of: {
-        Args: { p_user_id: string }
-        Returns: {
-          base64: string
-          content_type: string
-        }[]
-      }
       pick_reading_credit_share: {
         Args: { p_user: string }
         Returns: Record<string, unknown>

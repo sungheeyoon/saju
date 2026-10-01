@@ -84,7 +84,7 @@ grant select on asked to authenticated;
 set local role authenticated;
 select pg_temp.acting((select kim from who));
 select is(
-  (select count(*)::int from public.photo_of((select lee from who))), 1,
+  (select count(*)::int from public.photo_at((select lee from who), 1)), 1,
   '기다리는 요청을 보낸 사람은 받은 사람의 사진을 본다');
 select is(
   (select counterpart_intro from public.my_match_requests()
@@ -96,12 +96,12 @@ select is(
 select pg_temp.acting((select lee from who));
 select is(public.block_user((select kim from who)), true, '받은 사람이 보낸 사람을 차단한다');
 select is(
-  (select count(*)::int from public.photo_of((select kim from who))), 0,
+  (select count(*)::int from public.photo_at((select kim from who), 1)), 0,
   '차단한 사람은 요청을 주고받았던 상대의 사진을 못 본다');
 
 select pg_temp.acting((select kim from who));
 select is(
-  (select count(*)::int from public.photo_of((select lee from who))), 0,
+  (select count(*)::int from public.photo_at((select lee from who), 1)), 0,
   '차단당한 사람은 요청을 주고받았던 상대의 사진을 못 본다');
 select is(
   (select status from public.my_match_requests()
@@ -123,7 +123,7 @@ select lives_ok(
 
 select pg_temp.acting((select park from who));
 select is(
-  (select count(*)::int from public.photo_of((select lee from who))), 0,
+  (select count(*)::int from public.photo_at((select lee from who), 1)), 0,
   '그냥 거절된 요청도 사진을 안 연다 — 거절과 차단이 같은 답이다');
 select is(
   (select array[coalesce(counterpart_intro, '없음'), counterpart_has_photo::text] from public.my_match_requests()
@@ -144,13 +144,13 @@ set local role authenticated;
 
 select pg_temp.acting((select choi from who));
 select is(
-  (select count(*)::int from public.photo_of((select kim from who))), 1,
+  (select count(*)::int from public.photo_at((select kim from who), 1)), 1,
   '수락된 요청의 두 사람은 서로의 사진을 본다');
 select pg_temp.acting((select kim from who));
 select is(public.block_user((select choi from who)), true, '수락한 사람이 상대를 차단한다');
 select pg_temp.acting((select choi from who));
 select is(
-  (select count(*)::int from public.photo_of((select kim from who))), 0,
+  (select count(*)::int from public.photo_at((select kim from who), 1)), 0,
   '수락된 요청이라도 차단 뒤에는 사진이 닫힌다');
 reset role;
 
