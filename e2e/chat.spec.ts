@@ -70,9 +70,14 @@ const userIdOf = (email: string): string =>
  */
 const talkOf = (person: Person) => person.page.getByRole('log', { name: '메시지' });
 
-/** 신고 · 차단은 방 머리의 「⋯」 안에 있다 */
+/**
+ * 신고 · 차단은 방 머리의 「⋯」 안에 있다. 여는 자리는 `<summary>` 라 단추 역할이 아니다 — 이름(aria-label)으로 찾는다
+ * (계정 메뉴의 `설정 메뉴` 와 같다)
+ */
+const roomMenuOf = (person: Person) => person.page.getByLabel('신고 · 차단', { exact: true });
+
 async function openRoomMenu(person: Person): Promise<void> {
-  await person.page.getByRole('button', { name: '신고 · 차단' }).click();
+  await roomMenuOf(person).click();
 }
 
 async function pair(openAs: (seed: { selfPerson: true }) => Promise<Person>) {
@@ -248,6 +253,58 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(b.page.getByText(closedRoomText('block'))).toBeVisible();
   });
 
+  /**
+   * 방 머리의 「⋯」는 다른 작은 메뉴(계정 메뉴 · 사람 관리)와 같은 규칙으로 닫힌다(`useDetailsMenu`) — 바깥을 누르면,
+   * Esc 를 누르면. Esc 로 닫으면 초점이 여는 자리로 돌아온다: 닫힌 판 안의 단추에 초점이 남으면 키보드로 쓰는 사람은
+   * 화면 어디에 있는지 잃는다. 고른 뒤에는 메뉴가 닫히고 그 칸이 한 번 선다. 닫힌 방에는 차단이 없다.
+   */
+  test('방 메뉴는 바깥 누름과 Esc 로 닫히고, Esc 뒤 초점이 여는 자리로 돌아오며, 고르면 닫히고 그 칸이 선다', async ({ openAs }) => {
+    const { a, room } = await pair(openAs);
+    await a.page.goto(room);
+    const opener = roomMenuOf(a);
+    const report = a.page.getByRole('button', { name: '신고', exact: true });
+    const block = a.page.getByRole('button', { name: '차단', exact: true });
+
+    // 여는 자리로 열린다
+    await opener.click();
+    await expect(report).toBeVisible();
+    await expect(block).toBeVisible();
+
+    // 바깥을 누르면 닫힌다
+    await a.page.getByRole('heading', { level: 1 }).click();
+    await expect(report).toBeHidden();
+
+    // Esc 를 누르면 닫히고, 판 안에 있던 초점이 여는 자리로 돌아온다
+    await opener.focus();
+    await a.page.keyboard.press('Enter');
+    await expect(report).toBeVisible();
+    await a.page.keyboard.press('Tab');
+    await expect(report).toBeFocused();
+    await a.page.keyboard.press('Escape');
+    await expect(report).toBeHidden();
+    await expect(opener).toBeFocused();
+
+    // 신고를 고르면 메뉴가 닫히고 메시지를 고르는 칸이 한 번 선다
+    await opener.click();
+    await report.click();
+    await expect(report).toBeHidden();
+    await expect(a.page.getByText('신고할 메시지를 골라 주세요')).toHaveCount(1);
+
+    // 열린 방의 차단을 고르면 메뉴가 닫히고 확인 칸이 한 번 선다
+    await opener.click();
+    await block.click();
+    await expect(block).toBeHidden();
+    await expect(a.page.getByRole('button', { name: '차단하기' })).toHaveCount(1);
+    await a.page.getByRole('button', { name: '차단하기' }).click();
+    await expect(a.page.getByRole('status')).toHaveText(closedRoomText('block'));
+
+    // 닫힌 방의 메뉴에는 신고만 남는다
+    await a.page.goto(room);
+    await opener.click();
+    await expect(report).toBeVisible();
+    await expect(block).toHaveCount(0);
+  });
+
   test('이용 정지와 탈퇴 신청은 방을 닫고, 그 사람이 아닌 쪽만 본다', async ({ openAs }) => {
     const suspended = await pair(openAs);
     await suspended.a.api.rpc('send_chat_message', {
@@ -311,7 +368,7 @@ test.describe('매칭된 한 쌍의 채팅', () => {
     await expect(a.page.getByRole('status')).toHaveText(LEFT_ROOM_TEXT);
     await expect(a.page.getByPlaceholder('메시지를 입력해 주세요')).toHaveCount(0);
     // 떠난 사람에게는 신고가 안 선다 — 신고당할 계정이 없다. 「⋯」도, 메시지를 고를 깃발도 없다
-    await expect(a.page.getByRole('button', { name: '신고 · 차단' })).toHaveCount(0);
+    await expect(roomMenuOf(a)).toHaveCount(0);
     await expect(a.page.getByRole('button', { name: '이 메시지 신고' })).toHaveCount(0);
   });
 
