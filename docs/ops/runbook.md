@@ -587,6 +587,7 @@ delete from public.signup_code;
 화면이 드는 것 넷 — 들어온 답과 동의 분포, 판본별 평균, 아쉬운 점 태그, 적어 주신 글.
 아래 SQL 과 **같은 수**를 낸다(집계가 `operator_survey_*` 넷으로 옮겨 갔다). 화면이 안
 열리거나 그 수를 의심할 때만 아래로 내려간다.
+화면의 문은 읽을 때마다 접속기록에 남는다 — 아래 「운영자 접속기록」(ADR 0105 추기 2026-10-01).
 
 ### 운영자를 세우고 내린다
 
@@ -1754,7 +1755,7 @@ G-25 ③ 이 운영자의 개인정보처리시스템 접속기록을 **1년 이
 | --- | --- | --- | --- |
 | 앱의 운영자 화면 `/ops/reports` | **DB 의 `audit.operator_access`** — 운영자 id · 시각 · 동작(목록 · 상세 · 스냅샷) · 대상 신고 id(목록이면 거른 조건) · 성공/거절. 문이 읽을 때 같은 트랜잭션에서 적고, 거절은 앱의 문이 따로 적는다 | DB 에 쌓이고 **매일 S3 로 반출, Object Lock 400일** — 아래 「반출」. AWS 가 켜지기 전에는 DB 에만 있다 | ADR 0105 · pgTAP `46_operator_access_log` |
 | `npm run db:remote` | **같은 표** — 실행자(git 이름, 에이전트면 `(agent)`) · 시각 · **목적 · SQL 의 sha256**. 원문은 안 적는다. 끝난 뒤 **결과 줄 하나**(`cli.result` — 앞 줄의 번호 · 성공/실패 · 오류 분류 `sql` · `connection` · `unknown`, `20261014090000`)가 더해진다 | 위와 같다 | `scripts/db-remote.mjs` · `db-remote.test.ts` |
-| `/ops/survey` | 안 적는다 — 집계뿐이고 누가 썼는지와 본문이 안 실린다(ADR 0061) | — | |
+| `/ops/survey` | **같은 표** — 설문 문 일곱이 읽을 때마다 문마다 한 줄(동작 `survey.*` · 운영자 id · 시각 · 성공/거절). 대상 · 거른 조건 칸은 비고 **설문 답 · 글 원문은 안 적는다.** 거절은 앱의 문이 `survey.overview` 한 줄로 적는다(2026-10-01 부터) | 위와 같다 | ADR 0105 추기 2026-10-01 · pgTAP `78_operator_survey_access_log` |
 | Supabase SQL Editor · Table Editor · `db query --linked` 를 직접 부르는 것 | Postgres 로그. **`log_statement = ddl` 이라 읽기(select)는 안 남는다**, `pgaudit` 은 설치 안 됨 | **읽기 0일** · DDL 1일 | 운영에서 `current_setting('log_statement')` · `pg_extension`(2026-09-24) · 로그 보존 Free 1일 <https://supabase.com/pricing>. **그래서 여기서 개인정보를 읽지 않는다**(맨 위 「개인정보는 화면으로만」) |
 | Supabase 조직 · 프로젝트 설정(Management API 행위 포함) | Platform Audit Logs | **없음** — Team · Enterprise 만 | <https://supabase.com/docs/guides/security/platform-audit-logs>(2026-09-24) |
 | Supabase 계정 | Account Audit Logs(<https://supabase.com/dashboard/account/audit>) — 제 계정의 행위 | **모름** — 문서에 일수가 없고 API(PAT)로는 못 읽는다(`401`) | 같은 문서(2026-09-24). 사람이 화면에서 가장 오래된 줄을 본다 |

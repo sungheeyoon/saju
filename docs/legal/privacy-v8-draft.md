@@ -196,7 +196,7 @@ v6 의 「초대받은 분만 쓰는 비공개 베타」를 걷는다)
 - **운영자 계정에 2단계 인증을 씁니다.** `[출시 전 운영자·변호사 확인]` — G-23 ⑨. 운영자 계정 다섯(Supabase · Vercel ·
   GitHub · PortOne · AWS)의 2단계 인증 확인 날짜가 runbook 에 서야 이 줄이 참이다
 - **운영자가 개인정보를 처리한 기록(접속기록)을 1년 이상 보관하고 매월 점검합니다.** 기록에는 운영자 계정의 내부 번호, 일시,
-  한 일(신고 목록 · 신고 상세 · 대화 사본 열람 · 환불 셈 조회 · 데이터베이스 질의), 대상 신고 번호나 주문 번호, 목록을 거른
+  한 일(신고 목록 · 신고 상세 · 대화 사본 열람 · 환불 셈 조회 · 설문 집계와 적어 주신 글 열람 · 데이터베이스 질의), 대상 신고 번호나 주문 번호, 목록을 거른
   조건, 성공 · 거절이 남습니다. 데이터베이스 질의는 질의 원문 대신 목적과 질의의 요약값(SHA-256)을 남깁니다. **기록은 지우거나
   고칠 수 없게 두고, 매일 한 번 Amazon Web Services 의 서울 저장소에 고칠 수 없는 사본을 400일 보관합니다.** 사본에는 이용자의
   이름 · 이메일 · 메시지 본문이 들지 않습니다.
@@ -304,7 +304,7 @@ v6 의 「초대받은 분만 쓰는 비공개 베타」를 걷는다)
 | 신고 · 스냅샷 | `20260927090000`(`chat_snapshot_context()` = 5) · `20261006090000`(`retention.report`, 크론 `report-retention-purge` 매시 47분) · `20261010090000`(검토 칸) | 떠나기 전에 옮기고 처분일부터 6개월 |
 | 탈퇴 처분 | `20261004090000`, 크론 `account-disposal`(매시 23분) | 신청 뒤 3일, 달력으로 |
 | 채팅 90일 | `chat_retention()` = 90일, `purge_closed_chat_messages()` — **크론이 아니다**, runbook 「닫힌 지 90일 지난 방의 메시지를 지운다 — 손으로」(배포한 날이나 달마다) | 그래서 7절이 「매달 한 번의 정기 삭제 때」다 |
-| 운영자 접속기록 | `20261010100000`(`audit.operator_access` — 칸: 번호 · 시각 · 채널 · 운영자 id · CLI 실행자 이름 · 동작 · 대상 신고 id · 거른 조건 · 목적 · SQL sha256 · 성공/거절) · `20261011090000`(동작 `credits.refund_basis`, 거른 조건 칸에 주문 id) · runbook 「운영자 접속기록」「반출」 | 추가만 된다(소유자도 `update` · `delete` 없음). 반출 Object Lock 400일 |
+| 운영자 접속기록 | `20261010100000`(`audit.operator_access` — 칸: 번호 · 시각 · 채널 · 운영자 id · CLI 실행자 이름 · 동작 · 대상 신고 id · 거른 조건 · 목적 · SQL sha256 · 성공/거절) · `20261011090000`(동작 `credits.refund_basis`, 거른 조건 칸에 주문 id) · `20261116090000`(설문 동작 `survey.*` 일곱, 대상 · 거른 조건 없음) · runbook 「운영자 접속기록」「반출」 | 추가만 된다(소유자도 `update` · `delete` 없음). 반출 Object Lock 400일 |
 | 쿠키 · 저장소 | `@supabase/ssr` 0.12.4 `DEFAULT_COOKIE_OPTIONS`(`maxAge` 400일 · `sameSite: lax`) · `app/auth/callback/route.ts`(`-code-verifier` 를 지운다) · `app/save-for-reading.tsx` · `app/hash-query.ts`(`sessionStorage` `saju:reading-draft`, 돌아오면 지운다) · ADR 0007(`#` 입력) | `localStorage` · 분석 도구 없음(코드 검색, G-23 ② 의 출처 측정) |
 | 활동 시각 | `src/lib/presence` 의 `ACTIVITY_PRIVACY_LINE` · ADR 0092 | v6 줄 그대로 |
 | 요청 기록 | Vercel 「Limits」(런타임 로그 1시간, Hobby) · runbook 「운영자 접속기록」(Supabase 로그 Free 1일) | 회사가 옮겨 두는 IP 는 0 |

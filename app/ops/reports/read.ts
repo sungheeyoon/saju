@@ -2,6 +2,7 @@ import { rpcArgs, type RpcRow } from '@/src/lib/db';
 
 import { supabaseOnServer } from '../../auth/server-client';
 import { read, unread, type SkippableRead } from '../../db-error';
+import { noteDenial, type DeniedAction } from '../denial';
 import { SECOND_FACTOR_NEEDED, secondFactorOf } from '../second-factor';
 import { argsOf, isReportId, type ReportFilters } from './filters';
 import { sideOf, type Side } from './labels';
@@ -32,8 +33,6 @@ type Asked = { readonly error: { readonly code?: string } | null };
 const denied = (answers: readonly Asked[]): boolean =>
   answers.some((answer) => answer.error?.code === '42501');
 
-type DeniedAction = 'reports.list' | 'reports.detail';
-
 /**
  * 운영자 문 앞의 두 번째 요소 — 지났으면 `null`, 아니면 이 문이 낼 답이다. 거절이면 `noteDenial` 이 적는다.
  */
@@ -47,23 +46,6 @@ async function withoutSecondFactor(
   if (factor === 'challenge') return SECOND_FACTOR_NEEDED;
   await noteDenial(supabase, action, reportId);
   return DENIED;
-}
-
-/**
- * **거절을 적는다** — 운영자 문은 거절하며 던지고, 던진 트랜잭션에 적은 줄은 되감긴다. 그래서 거절을 받은 뒤
- * 제 트랜잭션에서 따로 적는다(`note_operator_denial`, G-23 ⑩ · ADR 0105). 적지 못해도 화면은 404 그대로다 —
- * 거절을 적는 일이 거절의 답을 바꾸지 않는다. 못 적은 것은 기록으로만 남긴다.
- */
-async function noteDenial(
-  supabase: Awaited<ReturnType<typeof supabaseOnServer>>,
-  action: DeniedAction,
-  reportId: string | null,
-): Promise<void> {
-  const { error } = await supabase.rpc(
-    'note_operator_denial',
-    rpcArgs<'note_operator_denial'>({ p_action: action, p_report_id: reportId ?? undefined }),
-  );
-  if (error) console.error('note_operator_denial', error);
 }
 
 export type Account = {
