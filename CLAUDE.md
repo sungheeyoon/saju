@@ -35,8 +35,9 @@ Claude Code 에서 맡길 때는 `Agent` 도구의 `subagent_type` 에 역할 �
 ## 무엇을 돌리는가는 `docs/agents/test-map.md` 가
 
 시험 넷(단위 · pgTAP · 흐름 · e2e)이 층마다 어디까지 닿는지, **고친 자리 → 로컬 명령** 표, 잠긴
-실호출 시험 셋, CI 차선은 **`docs/agents/test-map.md`** 가 답한다. 규칙의 원본은 `scripts/ci-plan.mjs`
-다. vitest 는 `.tsx` 에 안 닿는다 — 화면을 건드렸으면 커밋 전에 e2e 를 돌린다.
+실호출 시험, CI 차선은 **`docs/agents/test-map.md`** 가 답한다. 규칙의 원본은 `scripts/ci-plan.mjs`
+다. vitest 는 `.tsx` 에 안 닿는다 — 그래도 지금(공개 출시 전) 로컬 최소는 그 문서의 「무엇을 고쳤으면 무엇을 돌리나」대로
+`npm test` · `npm run typecheck` · `npm run lint` 이고, 화면 변경에 e2e 를 일괄로 돌리지 않는다(CI 의 그 주소 차선과 머지 뒤 main 이 잰다).
 
 ## Agent skills
 
