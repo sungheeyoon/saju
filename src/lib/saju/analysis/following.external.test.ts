@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { pillarOf, type Branch, type Stem } from '../constants';
+import { type Branch, type Stem } from '../constants';
 import { hourPillarOf } from '../pillars/hour';
 import { monthPillarOf } from '../pillars/month';
 import { bureausOf } from './bureau';
@@ -9,21 +9,16 @@ import { FOLLOWING_PATTERN_POLICY, followingAssessmentOf } from './followingPatt
 import { rootednessOf } from './rootedness';
 import { rootQualityOf } from './rootQuality';
 import { FOLLOWING_EXTERNAL_CASES } from './validation/followingExternalCases';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 /** 네 기둥 문자열을 계산판으로 — 뿌리를 따로 보는 시험도 이것을 쓴다 */
 function chartOf(pillars: (typeof FOLLOWING_EXTERNAL_CASES)[number]['pillars']) {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-
-  const day = parse(pillars.day);
+  const day = pillarNamed(pillars.day);
   return {
-    year: parse(pillars.year),
-    month: parse(pillars.month),
+    year: pillarNamed(pillars.year),
+    month: pillarNamed(pillars.month),
     day,
-    hour: parse(pillars.hour),
+    hour: pillarNamed(pillars.hour),
     dayMaster: day.stem,
   };
 }

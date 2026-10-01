@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '@/src/lib/saju';
-import { BRANCHES_BY_MONTH_ORDER, pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
+import { BRANCHES_BY_MONTH_ORDER } from '@/src/lib/saju/constants';
 import { monthPillarOf } from '@/src/lib/saju/pillars/month';
 import { yearPillarOf } from '@/src/lib/saju/pillars/year';
 import { InvalidWolunRangeError, computeWolun, wolunChartId } from '@/src/lib/saju/wolun';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 /**
  * 월운 테스트.
@@ -14,17 +15,12 @@ import { InvalidWolunRangeError, computeWolun, wolunChartId } from '@/src/lib/sa
  */
 
 const chart = (year: string, month: string, day: string, hour: string) => {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-  const day_ = parse(day);
+  const day_ = pillarNamed(day);
   return {
-    year: parse(year),
-    month: parse(month),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
     day: day_,
-    hour: parse(hour),
+    hour: pillarNamed(hour),
     dayMaster: day_.stem,
   };
 };

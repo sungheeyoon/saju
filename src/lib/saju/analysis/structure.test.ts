@@ -12,20 +12,16 @@ import type { SajuInput } from '@/src/lib/saju/input';
 import { getFourPillars, type Pillars } from '@/src/lib/saju/pillars';
 import { randomInputs } from '@/src/lib/saju/population';
 import { eokbuAssessmentOf } from '@/src/lib/saju/analysis/yongsin';
-import { GENERATED_BY, CONTROLLED_BY, HIDDEN_STEMS, pillarOf, type Branch, type Stem } from '@/src/lib/saju/constants';
+import { GENERATED_BY, CONTROLLED_BY, HIDDEN_STEMS } from '@/src/lib/saju/constants';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 const chart = (year: string, month: string, day: string, hour: string) => {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-  const parsedDay = parse(day);
+  const parsedDay = pillarNamed(day);
   return {
-    year: parse(year),
-    month: parse(month),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
     day: parsedDay,
-    hour: parse(hour),
+    hour: pillarNamed(hour),
     dayMaster: parsedDay.stem,
   };
 };
@@ -232,17 +228,12 @@ describe('희용기구한', () => {
  */
 describe('왕지 월령은 정기 하나로 격을 잡는다', () => {
   const chart = (year: string, month: string, day: string, hour: string) => {
-    const parse = (name: string) => {
-      const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-      if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-      return pillar;
-    };
-    const dayPillar = parse(day);
+    const dayPillar = pillarNamed(day);
     return {
-      year: parse(year),
-      month: parse(month),
+      year: pillarNamed(year),
+      month: pillarNamed(month),
       day: dayPillar,
-      hour: parse(hour),
+      hour: pillarNamed(hour),
       dayMaster: dayPillar.stem,
     };
   };

@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { pillarOf, type Branch, type Stem } from '../constants';
+import { type Branch, type Stem } from '../constants';
 import { hourPillarOf } from '../pillars/hour';
 import { monthPillarOf } from '../pillars/month';
 import { effectiveElementsOf } from './effectiveElements';
 import { STRUCTURE_POLICY, structureOf } from './structure';
 import { STRUCTURE_EXTERNAL_CASES } from './validation/structureExternalCases';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 /**
  * 격국 외부 대조 — **처음 재 본다.**
@@ -24,18 +25,13 @@ import { STRUCTURE_EXTERNAL_CASES } from './validation/structureExternalCases';
  */
 
 function chartOf(pillars: (typeof STRUCTURE_EXTERNAL_CASES)[number]['pillars']) {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-  const day = parse(pillars.day);
+  const day = pillarNamed(pillars.day);
 
   return {
-    year: parse(pillars.year),
-    month: parse(pillars.month),
+    year: pillarNamed(pillars.year),
+    month: pillarNamed(pillars.month),
     day,
-    hour: parse(pillars.hour),
+    hour: pillarNamed(pillars.hour),
     dayMaster: day.stem,
   };
 }

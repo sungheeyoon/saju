@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeSaju } from '..';
-import { pillarOf, type Branch, type Stem } from '../constants';
 import { COMPAT_POLICY } from '../compat';
 import { randomInputs } from '../population';
 import {
@@ -13,6 +12,7 @@ import {
 } from './needComplement';
 import { needProfileOf } from './needProfile';
 import type { Grade } from './needProfileTypes';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 /** 표본 6000 명식(3000 쌍)을 한 바퀴 돈다 — 기본 5초로는 모자란다 */
 const POPULATION_TIMEOUT_MS = 60_000;
@@ -21,17 +21,12 @@ const GRADE_RANK: Record<Grade, number> = { low: 0, medium: 1, high: 2 };
 
 /** 간지 넷으로 명식을 짓는다 — 반월을 안 보는 자리에서만 */
 const chart = (year: string, month: string, day: string, hour: string | null): ProviderChart => {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-  const parsedDay = parse(day);
+  const parsedDay = pillarNamed(day);
   return {
-    year: parse(year),
-    month: parse(month),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
     day: parsedDay,
-    hour: hour === null ? null : parse(hour),
+    hour: hour === null ? null : pillarNamed(hour),
     dayMaster: parsedDay.stem,
   };
 };

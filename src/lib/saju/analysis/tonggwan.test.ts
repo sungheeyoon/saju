@@ -1,22 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { CONTROLS, ELEMENTS, GENERATES, pillarOf, type Branch, type Stem } from '../constants';
+import { CONTROLS, ELEMENTS, GENERATES } from '../constants';
 import { effectiveElementsOf } from './effectiveElements';
 import { TONGGWAN_POLICY, tonggwanCandidacyOf } from './tonggwan';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 const chart = (year: string, month: string, day: string, hour: string) => {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-  const dayPillar = parse(day);
+  const dayPillar = pillarNamed(day);
 
   return {
-    year: parse(year),
-    month: parse(month),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
     day: dayPillar,
-    hour: parse(hour),
+    hour: pillarNamed(hour),
     dayMaster: dayPillar.stem,
   };
 };

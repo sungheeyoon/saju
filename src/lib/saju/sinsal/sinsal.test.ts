@@ -43,6 +43,7 @@ import {
   type Star,
   type StarKind,
 } from '@/src/lib/saju/sinsal';
+import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
 /**
  * 공망 · 12신살 · 출처를 고정한 핵심 신살 테스트.
@@ -53,18 +54,12 @@ import {
  */
 
 function chart(year: string, month: string, day: string, hour: string | null) {
-  const parse = (name: string) => {
-    const pillar = pillarOf(name[0] as Stem, name[1] as Branch);
-    if (!pillar) throw new Error(`간지가 아니다: ${name}`);
-    return pillar;
-  };
-
-  const day_ = parse(day);
+  const day_ = pillarNamed(day);
   return {
-    year: parse(year),
-    month: parse(month),
+    year: pillarNamed(year),
+    month: pillarNamed(month),
     day: day_,
-    hour: hour === null ? null : parse(hour),
+    hour: hour === null ? null : pillarNamed(hour),
     dayMaster: day_.stem,
   };
 }
