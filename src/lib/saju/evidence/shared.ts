@@ -427,12 +427,26 @@ export function shareEvidence(
  *
  * 검사는 모델에 보낸 JSON 문자열만 받는다. 판을 따로 넘기면 자료와 검사가 다른 판을
  * 말할 수 있으므로, 자료가 든 값에서 읽는다.
+ *
+ * **옛 컷은 「공유 계약인데 `matchInput` 이 없다」로만 알아본다.** 깨진 JSON · 모르는 판 ·
+ * 계약이 없거나 공유 범위를 안 말하는 자료는 `null` 이다 — 옛 컷은 검사의 금지 하나를
+ * 푸는 판이라, 못 읽은 것을 옛 컷으로 읽으면 실패한 자리에서 금지가 풀린다(ADR 0141).
+ *
+ * @returns 판을 못 읽으면 `null`. 부르는 쪽은 그것을 가장 엄한 판으로 다룬다.
  */
-export function matchInputOfEvidenceText(evidenceText: string): MatchInput {
+export function matchInputOfEvidenceText(evidenceText: string): MatchInput | null {
+  let parsed: unknown;
   try {
-    const found = (JSON.parse(evidenceText) as { contract?: { matchInput?: unknown } }).contract?.matchInput;
-    return (COMPARED_MATCH_INPUTS as readonly unknown[]).includes(found) ? (found as MatchInput) : 'legacy-v0';
+    parsed = JSON.parse(evidenceText);
   } catch {
-    return 'legacy-v0';
+    return null;
   }
+  const contract = isRecord(parsed) ? parsed.contract : undefined;
+  if (!isRecord(contract) || contract.scope !== 'match-consent') return null;
+  if (!('matchInput' in contract)) return 'legacy-v0';
+  const found = contract.matchInput;
+  return (COMPARED_MATCH_INPUTS as readonly unknown[]).includes(found) ? (found as MatchInput) : null;
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);

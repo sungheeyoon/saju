@@ -652,7 +652,8 @@ export function checkReading({
     const body = readingBody(markdown);
     /**
      * 옛 컷은 `eokbuMatch` 를 싣고 절이 그것을 읽게 한다 — 그 판에서는 `억부` 를 막으면 시키는
-     * 대로 쓴 글이 걸린다. A·B 는 이름을 본문에 안 쓰게 하므로 막는다(ADR 0067).
+     * 대로 쓴 글이 걸린다. A·B 는 이름을 본문에 안 쓰게 하므로 막는다(ADR 0067). 판을 못
+     * 읽은 자료(`null`)도 막는다 — 푸는 것은 옛 컷이라고 스스로 말한 자료뿐이다(ADR 0141).
      */
     const terms =
       matchInputOfEvidenceText(evidenceText) === 'legacy-v0'
