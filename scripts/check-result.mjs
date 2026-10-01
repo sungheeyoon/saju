@@ -13,12 +13,11 @@
  * 5. **열쇠 없이는 못 여는가** — 로그인한 사람이 RPC 를 그대로 두드리는 경로.
  */
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed, fetchWhole, keyedRpc } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole, keyedRpc, sessionCookie, shapeOnlySummary } from './checks.mjs';
 /** 공개 범위 목록의 **제품 원본** — 손으로 베끼면 문구가 바뀐 날 검사만 옛 글자를 든다 */
 import { MATCH_DISCLOSURE } from '../src/lib/consent/disclosure.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
@@ -80,16 +79,9 @@ const a = await person(mail.a, '민수', BIRTH.a);
 const b = await person(mail.b, '지영', BIRTH.b);
 const c = await person(mail.c, '현우', BIRTH.c);
 
-/** 모양만 맞는 가짜 요약 — 화면을 한 번 열면 자기 판본에서 다시 계산된다 */
-const 가짜 = {
-  glyphCount: 8,
-  counts: { 木: 8, 火: 0, 土: 0, 金: 0, 水: 0 },
-  ratios: { 木: 1, 火: 0, 土: 0, 金: 0, 水: 0 },
-};
-
 for (const [client, nickname] of [[a, NAME.a], [b, NAME.b], [c, NAME.c]]) {
   await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: introOf(nickname) });
-  await keyedRpc(client, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+  await keyedRpc(client, 'set_discovery_participation', { p_on: true, p_summary: shapeOnlySummary, p_need: testNeed() });
 }
 
 /** 이번 실행의 사람들만 서로의 후보가 되게 한다 — 아니면 「DB 가 비어 있는가」를 잰다 */
@@ -97,25 +89,10 @@ const list = Object.values(mail).map((email) => `'${email}'`).join(', ');
 sql(`update public.discovery_profile set opted_in_at = null, opted_out_at = now()
      where user_id not in (select id from auth.users where email in (${list}))`);
 
-const cookieFor = async (email) => {
-  const jar = new Map();
-  const browser = createServerClient(API, status.ANON_KEY, {
-    cookies: {
-      getAll: () => [...jar].map(([name, value]) => ({ name, value })),
-      setAll: (written) => {
-        for (const { name, value } of written) jar.set(name, value);
-      },
-    },
-  });
-  const { error } = await browser.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(`${email} 로그인 실패 — ${error.message}`);
-  return [...jar].map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join('; ');
-};
-
 const cookie = {
-  a: await cookieFor(mail.a),
-  b: await cookieFor(mail.b),
-  c: await cookieFor(mail.c),
+  a: await sessionCookie(status, mail.a, password),
+  b: await sessionCookie(status, mail.b, password),
+  c: await sessionCookie(status, mail.c, password),
 };
 
 const { base: BASE, stop } = await startCheckServer({
