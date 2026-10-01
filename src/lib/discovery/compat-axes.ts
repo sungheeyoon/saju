@@ -6,7 +6,7 @@ import {
   type Pillars,
   type RelationKind,
 } from '../saju';
-import type { ElementSummary } from './element-axes';
+import { countRatioOf, type ElementSummary } from './element-axes';
 
 /**
  * 궁합 점수의 새 축 둘 — **필요한 기운의 보완**(방향별)과 **일주 · 일지 관계.** 0~100.
@@ -59,9 +59,6 @@ export const needTargetsOf = (profile: Pick<NeedProfile, 'eokbu'>): NeedTargets 
 export const needTargetsFor = (pillars: Parameters<typeof needProfileOf>[0]): NeedTargets =>
   needTargetsOf(needProfileOf(pillars));
 
-const visibleShare = (summary: ElementSummary, element: Element): number =>
-  summary.glyphCount > 0 ? summary.counts[element] / summary.glyphCount : 0;
-
 /** 한 방향의 날값 — 공급(0~1) · 반대 신호(0~1) */
 export function needSupplyOf(
   receiver: NeedTargets,
@@ -69,8 +66,8 @@ export function needSupplyOf(
   params: NeedComplementParams = NEED_COMPLEMENT_AXIS,
 ): { supply: number; counter: number } {
   return {
-    supply: Math.min(1, visibleShare(provider, receiver.primary) / params.supplyCap),
-    counter: Math.min(1, visibleShare(provider, receiver.heaviest) / params.supplyCap),
+    supply: Math.min(1, countRatioOf(provider, receiver.primary) / params.supplyCap),
+    counter: Math.min(1, countRatioOf(provider, receiver.heaviest) / params.supplyCap),
   };
 }
 
