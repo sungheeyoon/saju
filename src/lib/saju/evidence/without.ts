@@ -8,7 +8,8 @@
  * 자리(`redacted.ts`)에 글자까지 같은 사본이 두 벌 있었다. 둘이 갈리면 한쪽만 거친 값이
  * 생기는데, 그 차이는 자료를 눈으로 읽어서는 안 보인다.
  *
- * 인연 궁합 컷(`shared.ts`)은 이것을 안 쓴다 — 그쪽은 **빼는 것이 아니라 고른다**(ADR 0067).
+ * 인연 궁합 컷(`shared.ts`)은 필드를 **빼는 것이 아니라 고른다**(ADR 0067). 거기서 이것은 계약의
+ * `excluded` 에서 `withheld` 가 이미 덮는 줄을 덜 때만 쓴다(ADR 0142).
  */
 export function without<T extends object, K extends keyof T>(
   value: T,

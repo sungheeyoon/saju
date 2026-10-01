@@ -91,6 +91,28 @@ describe('넘길 자료', () => {
       }
     });
 
+    /**
+     * **뺀 것이 다른 칸에 그대로 있어야 뺄 수 있다**(ADR 0142).
+     *
+     * 종격 후보 자격은 `analysis.following.facts` 가 같은 값을 든다고 보고 뺐다. 두 값을
+     * 내는 엔진의 입력이 갈리는 날 이 자료는 사실 하나를 조용히 잃는다 — 그때 여기가 먼저 붉다.
+     */
+    it('뺀 종격 후보 자격은 `analysis.following.facts` 에 같은 값으로 실려 있다', () => {
+      const charts = [
+        KNOWN,
+        OTHER,
+        HOURLESS,
+        ...GOLDEN_CASES.map((golden) => computeSaju(golden.input, golden.options)),
+      ];
+
+      for (const saju of charts) {
+        const chart = evidenceOf({ a: saju }, VIEWED_AT).charts.a;
+        expect(Object.hasOwn(chart.analysis, 'followingCandidacy')).toBe(false);
+        expect(chart.analysis.following.facts).toBeDefined();
+        expect(saju.analysis.following.facts).toEqual(saju.analysis.followingCandidacy);
+      }
+    });
+
     /** 자료가 근거 아닌 것을 싣고 있으면 그 값의 강도를 아무도 모른다 */
     it('근거 이름이 아닌 칸은 계약이 아는 것뿐이다', () => {
       const chart = evidenceOf({ a: KNOWN }, VIEWED_AT).charts.a;

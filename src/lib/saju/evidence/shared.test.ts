@@ -455,6 +455,26 @@ describe('한계와 계약', () => {
     expect(Object.keys(WITHHELD_PATHS['extended-v1'])).not.toContain('compatibility.eokbuMatch');
   });
 
+  /**
+   * **`withheld.analysis` 가 덮는 칸을 `excluded` 로 다시 말하지 않는다**(ADR 0142).
+   *
+   * 종격 후보 자격은 앞선 컷이 이유와 함께 뺐지만, 이 컷은 `analysis` 를 원래 안 고른다. 그 줄을
+   * 받으면 같은 빠짐을 두 번 말하고 자료만 는다. 나머지 줄은 앞선 컷 그대로다 — 옛 컷의 JSON 도 안 바뀐다.
+   */
+  it('종격 후보 자격의 「뺀 까닭」은 싣지 않는다 — 세 판 모두 `analysis` 를 이미 뺐다', () => {
+    const full = redactedOf(C, D).contract.excluded;
+    expect(Object.keys(full)).toContain('analysis.followingCandidacy');
+
+    for (const input of MATCH_INPUTS) {
+      const { contract } = shared(input);
+      expect(Object.keys(WITHHELD_PATHS[input])).toContain('analysis');
+      expect(Object.keys(contract.excluded)).not.toContain('analysis.followingCandidacy');
+      expect(Object.keys(contract.excluded)).toEqual(
+        Object.keys(full).filter((path) => path !== 'analysis.followingCandidacy'),
+      );
+    }
+  });
+
   /** 운영 기본값은 제한형 A 다(2026-09-15). 옛 컷은 이름으로 부르면 한 글자도 안 바뀐 채 남는다 — 원복의 길이다 */
   it('기본값은 제한형 A 이고, 옛 컷은 이름으로 부르면 그대로다', () => {
     const pair = redactedOf(A, B);

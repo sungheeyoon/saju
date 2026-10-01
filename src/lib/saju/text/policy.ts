@@ -341,7 +341,8 @@ export const CLAIM_CEILING: Record<ClaimPath, ClaimStrength> = {
    *
    * 옆칸의 `analysis.followingCandidacy` 는 같은 분포를 쓰면서 `fact` 로 앉아 있다.
    * 그 자리를 여기서 흔들지는 않되 이쪽이 그 칸을 근거로 올라가지도 않는다 — 둘 중
-   * 하나가 잘못 앉았다면 옮기는 일은 그 값을 재는 자리에서 해야 한다.
+   * 하나가 잘못 앉았다면 옮기는 일은 그 값을 재는 자리에서 해야 한다. 모델에 넘기는 자료는
+   * 그 칸을 싣지 않는다 — 같은 값을 `analysis.following.facts` 가 그쪽 상한으로 든다(ADR 0142).
    */
   'analysis.tonggwan': 'derived',
 
