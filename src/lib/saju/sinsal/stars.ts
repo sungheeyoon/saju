@@ -432,14 +432,48 @@ const RESTATED_SPIRITS = [
  * 적는다. 卯申이 두 쌍이면 자리는 월·일·시 셋이 되고 항목은 하나다.
  */
 const RESTATED_RELATIONS = [
-  { kind: 'gwimun', relation: 'branchGhostGate', ko: '귀문관살', hanja: '鬼門關殺' },
-  { kind: 'wonjin', relation: 'branchResentment', ko: '원진살', hanja: '怨嗔殺' },
-] as const satisfies readonly {
-  kind: StarKind;
-  relation: RelationKind;
-  ko: string;
-  hanja: string;
-}[];
+  { kind: 'gwimun', relation: 'branchGhostGate' },
+  { kind: 'wonjin', relation: 'branchResentment' },
+] as const satisfies readonly { kind: StarKind; relation: RelationKind }[];
+
+/** 12신살 표의 이름을 그대로 쓰는 셋을 뺀 신살 — 이름 · 한자 · 길흉을 아래 표에서 받는다 */
+type NamedStarKind = Exclude<StarKind, (typeof RESTATED_SPIRITS)[number]['kind']>;
+
+/**
+ * 신살의 이름 · 한자 · 길흉 분류 한 벌. 줄의 차례는 결과의 차례가 아니다 —
+ * 결과의 차례는 `findStars` 가 적은 차례다.
+ */
+const STAR_META: Record<NamedStarKind, Pick<Star, 'ko' | 'hanja' | 'nature'>> = {
+  gwimun: { ko: '귀문관살', hanja: '鬼門關殺', nature: 'inauspicious' },
+  wonjin: { ko: '원진살', hanja: '怨嗔殺', nature: 'inauspicious' },
+  cheoneulGwiin: { ko: '천을귀인', hanja: '天乙貴人', nature: 'auspicious' },
+  cheondeokGwiin: { ko: '천덕귀인', hanja: '天德貴人', nature: 'auspicious' },
+  woldeokGwiin: { ko: '월덕귀인', hanja: '月德貴人', nature: 'auspicious' },
+  munchangGwiin: { ko: '문창귀인', hanja: '文昌貴人', nature: 'auspicious' },
+  hakdangGwiin: { ko: '학당귀인', hanja: '學堂貴人', nature: 'auspicious' },
+  geumyeo: { ko: '금여', hanja: '金輿', nature: 'auspicious' },
+  amrok: { ko: '암록', hanja: '暗祿', nature: 'auspicious' },
+  hongyeom: { ko: '홍염살', hanja: '紅艶殺', nature: 'neutral' },
+  yangin: { ko: '양인', hanja: '羊刃', nature: 'inauspicious' },
+  goegang: { ko: '괴강', hanja: '魁罡', nature: 'inauspicious' },
+  baekho: { ko: '백호대살', hanja: '白虎大殺', nature: 'inauspicious' },
+  gosin: { ko: '고신살', hanja: '孤辰殺', nature: 'inauspicious' },
+  gwasuk: { ko: '과숙살', hanja: '寡宿殺', nature: 'inauspicious' },
+  gwangwiHakgwan: { ko: '관귀학관', hanja: '官貴學館', nature: 'auspicious' },
+  hyeonchim: { ko: '현침살', hanja: '懸針殺', nature: 'inauspicious' },
+  cheonmun: { ko: '천문성', hanja: '天門星', nature: 'neutral' },
+  cheonui: { ko: '천의성', hanja: '天醫星', nature: 'auspicious' },
+  taegeukGwiin: { ko: '태극귀인', hanja: '太極貴人', nature: 'auspicious' },
+};
+
+/** 이름 · 한자 · 길흉은 `STAR_META` 에서, 기준과 걸린 자리는 부르는 쪽에서 받는다 */
+const namedStar = (kind: NamedStarKind, basis: Star['basis'], hits: StarHit[]): Star => ({
+  id: kind,
+  kind,
+  ...STAR_META[kind],
+  basis,
+  hits,
+});
 
 type StarInput = Pick<Pillars, 'year' | 'month' | 'day' | 'hour' | 'dayMaster'>;
 
@@ -533,25 +567,21 @@ function restatedSpiritStars(pillars: StarInput, charts: readonly SpiritChart[])
  * 뜻이지, 전통이 이 살을 어디로 분류했는지를 감추자는 뜻이 아니다.
  */
 function restatedRelationStars(pillars: StarInput, relations: readonly Relation[]): Star[] {
-  return RESTATED_RELATIONS.map(({ kind, relation, ko, hanja }): Star => {
+  return RESTATED_RELATIONS.map(({ kind, relation }): Star => {
     const positions = new Set(
       relations
         .filter((found) => found.kind === relation)
         .flatMap((found) => found.participants.map((participant) => participant.position)),
     );
 
-    return {
-      id: kind,
+    // 두 글자가 서로를 성립시키므로 기준 글자가 따로 없다 — 괴강·백호와 같다.
+    return namedStar(
       kind,
-      ko,
-      hanja,
-      nature: 'inauspicious',
-      // 두 글자가 서로를 성립시키므로 기준 글자가 따로 없다 — 괴강·백호와 같다.
-      basis: null,
-      hits: eachPillar(pillars, (pillar, position) =>
+      null,
+      eachPillar(pillars, (pillar, position) =>
         positions.has(position) ? { position, target: 'branch', char: pillar.branch } : null,
       ),
-    };
+    );
   });
 }
 
@@ -564,184 +594,52 @@ function restatedRelationStars(pillars: StarInput, relations: readonly Relation[
 export function findStars(pillars: StarInput, options: StarOptions = {}): Star[] {
   const { dayMaster } = pillars;
   const monthBranch = pillars.month.branch;
-  const yinYangin = options.yinYangin ?? DEFAULT_YIN_YANGIN;
-
   const yearBranch = pillars.year.branch;
   const yearStem = pillars.year.stem;
+  const yinYangin = options.yinYangin ?? DEFAULT_YIN_YANGIN;
   const loneliness = lonelinessBranchesOf(yearBranch);
-  const cheondeokTarget = CHEONDEOK_TARGET[monthBranch];
-  const woldeokStem = woldeokStemOf(monthBranch);
 
   const yanginAllowed = yinYangin || STEM_INFO[dayMaster].yinYang === '陽';
   const hyeonchimHits = glyphHits(pillars, HYEONCHIM_GLYPHS);
   const cheonmunHits = branchHits(pillars, CHEONMUN_BRANCHES);
   const cheonmunComplete = new Set(cheonmunHits.map((hit) => hit.char)).size === 2;
 
+  const byDayMaster = { label: '일간', char: dayMaster };
+  const byMonthBranch = { label: '월지', char: monthBranch };
+  const byYearBranch = { label: '년지', char: yearBranch };
+  /** 일간 하나가 지지 하나를 정하는 신살 — 문창·학당·금여·암록·홍염·관귀학관 */
+  const dayMasterStar = (kind: NamedStarKind, branchOf: (stem: Stem) => Branch): Star =>
+    namedStar(kind, byDayMaster, branchHits(pillars, [branchOf(dayMaster)]));
+
   const candidates: Star[] = [
     ...restatedSpiritStars(pillars, findTwelveSpirits(pillars)),
     ...restatedRelationStars(pillars, findRelations(pillars)),
-    {
-      id: 'cheoneulGwiin',
-      kind: 'cheoneulGwiin',
-      ko: '천을귀인',
-      hanja: '天乙貴人',
-      nature: 'auspicious',
-      basis: { label: '일간', char: dayMaster },
-      hits: branchHits(pillars, CHEONEUL_BRANCHES[dayMaster]),
-    },
-    {
-      id: 'cheondeokGwiin',
-      kind: 'cheondeokGwiin',
-      ko: '천덕귀인',
-      hanja: '天德貴人',
-      nature: 'auspicious',
-      basis: { label: '월지', char: monthBranch },
-      hits: charHits(pillars, cheondeokTarget),
-    },
-    {
-      id: 'woldeokGwiin',
-      kind: 'woldeokGwiin',
-      ko: '월덕귀인',
-      hanja: '月德貴人',
-      nature: 'auspicious',
-      basis: { label: '월지', char: monthBranch },
-      hits: charHits(pillars, woldeokStem),
-    },
-    {
-      id: 'munchangGwiin',
-      kind: 'munchangGwiin',
-      ko: '문창귀인',
-      hanja: '文昌貴人',
-      nature: 'auspicious',
-      basis: { label: '일간', char: dayMaster },
-      hits: branchHits(pillars, [munchangBranchOf(dayMaster)]),
-    },
-    {
-      id: 'hakdangGwiin',
-      kind: 'hakdangGwiin',
-      ko: '학당귀인',
-      hanja: '學堂貴人',
-      nature: 'auspicious',
-      basis: { label: '일간', char: dayMaster },
-      hits: branchHits(pillars, [hakdangBranchOf(dayMaster)]),
-    },
-    {
-      id: 'geumyeo',
-      kind: 'geumyeo',
-      ko: '금여',
-      hanja: '金輿',
-      nature: 'auspicious',
-      basis: { label: '일간', char: dayMaster },
-      hits: branchHits(pillars, [geumyeoBranchOf(dayMaster)]),
-    },
-    {
-      id: 'amrok',
-      kind: 'amrok',
-      ko: '암록',
-      hanja: '暗祿',
-      nature: 'auspicious',
-      basis: { label: '일간', char: dayMaster },
-      hits: branchHits(pillars, [amrokBranchOf(dayMaster)]),
-    },
-    {
-      id: 'hongyeom',
-      kind: 'hongyeom',
-      ko: '홍염살',
-      hanja: '紅艶殺',
-      nature: 'neutral',
-      basis: { label: '일간', char: dayMaster },
-      hits: branchHits(pillars, [hongyeomBranchOf(dayMaster)]),
-    },
-    {
-      id: 'yangin',
-      kind: 'yangin',
-      ko: '양인',
-      hanja: '羊刃',
-      nature: 'inauspicious',
-      basis: { label: '일간', char: dayMaster },
-      hits: yanginAllowed ? branchHits(pillars, [yanginBranchOf(dayMaster)]) : [],
-    },
-    {
-      id: 'goegang',
-      kind: 'goegang',
-      ko: '괴강',
-      hanja: '魁罡',
-      nature: 'inauspicious',
-      basis: null,
-      hits: pillarHits(pillars, GOEGANG_PILLARS),
-    },
-    {
-      id: 'baekho',
-      kind: 'baekho',
-      ko: '백호대살',
-      hanja: '白虎大殺',
-      nature: 'inauspicious',
-      basis: null,
-      hits: pillarHits(pillars, BAEKHO_PILLARS),
-    },
-    {
-      id: 'gosin',
-      kind: 'gosin',
-      ko: '고신살',
-      hanja: '孤辰殺',
-      nature: 'inauspicious',
-      basis: { label: '년지', char: yearBranch },
-      hits: branchHits(pillars, [loneliness.gosin]),
-    },
-    {
-      id: 'gwasuk',
-      kind: 'gwasuk',
-      ko: '과숙살',
-      hanja: '寡宿殺',
-      nature: 'inauspicious',
-      basis: { label: '년지', char: yearBranch },
-      hits: branchHits(pillars, [loneliness.gwasuk]),
-    },
-    {
-      id: 'gwangwiHakgwan',
-      kind: 'gwangwiHakgwan',
-      ko: '관귀학관',
-      hanja: '官貴學館',
-      nature: 'auspicious',
-      basis: { label: '일간', char: dayMaster },
-      hits: branchHits(pillars, [gwangwiHakgwanBranchOf(dayMaster)]),
-    },
-    {
-      id: 'hyeonchim',
-      kind: 'hyeonchim',
-      ko: '현침살',
-      hanja: '懸針殺',
-      nature: 'inauspicious',
-      basis: null,
-      hits: hyeonchimHits.length >= HYEONCHIM_MIN_HITS ? hyeonchimHits : [],
-    },
-    {
-      id: 'cheonmun',
-      kind: 'cheonmun',
-      ko: '천문성',
-      hanja: '天門星',
-      nature: 'neutral',
-      basis: null,
-      hits: cheonmunComplete ? cheonmunHits : [],
-    },
-    {
-      id: 'cheonui',
-      kind: 'cheonui',
-      ko: '천의성',
-      hanja: '天醫星',
-      nature: 'auspicious',
-      basis: { label: '월지', char: pillars.month.branch },
-      hits: branchHits(pillars, [cheonuiBranchOf(pillars.month.branch)]),
-    },
-    {
-      id: 'taegeukGwiin',
-      kind: 'taegeukGwiin',
-      ko: '태극귀인',
-      hanja: '太極貴人',
-      nature: 'auspicious',
-      basis: { label: '년간', char: yearStem },
-      hits: branchHits(pillars, TAEGEUK_BRANCHES[yearStem]),
-    },
+    namedStar('cheoneulGwiin', byDayMaster, branchHits(pillars, CHEONEUL_BRANCHES[dayMaster])),
+    namedStar('cheondeokGwiin', byMonthBranch, charHits(pillars, CHEONDEOK_TARGET[monthBranch])),
+    namedStar('woldeokGwiin', byMonthBranch, charHits(pillars, woldeokStemOf(monthBranch))),
+    dayMasterStar('munchangGwiin', munchangBranchOf),
+    dayMasterStar('hakdangGwiin', hakdangBranchOf),
+    dayMasterStar('geumyeo', geumyeoBranchOf),
+    dayMasterStar('amrok', amrokBranchOf),
+    dayMasterStar('hongyeom', hongyeomBranchOf),
+    namedStar(
+      'yangin',
+      byDayMaster,
+      yanginAllowed ? branchHits(pillars, [yanginBranchOf(dayMaster)]) : [],
+    ),
+    namedStar('goegang', null, pillarHits(pillars, GOEGANG_PILLARS)),
+    namedStar('baekho', null, pillarHits(pillars, BAEKHO_PILLARS)),
+    namedStar('gosin', byYearBranch, branchHits(pillars, [loneliness.gosin])),
+    namedStar('gwasuk', byYearBranch, branchHits(pillars, [loneliness.gwasuk])),
+    dayMasterStar('gwangwiHakgwan', gwangwiHakgwanBranchOf),
+    namedStar('hyeonchim', null, hyeonchimHits.length >= HYEONCHIM_MIN_HITS ? hyeonchimHits : []),
+    namedStar('cheonmun', null, cheonmunComplete ? cheonmunHits : []),
+    namedStar('cheonui', byMonthBranch, branchHits(pillars, [cheonuiBranchOf(monthBranch)])),
+    namedStar(
+      'taegeukGwiin',
+      { label: '년간', char: yearStem },
+      branchHits(pillars, TAEGEUK_BRANCHES[yearStem]),
+    ),
   ];
 
   return candidates.filter((star) => star.hits.length > 0);
