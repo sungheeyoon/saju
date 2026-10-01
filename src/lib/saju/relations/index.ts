@@ -658,54 +658,28 @@ function matchGroups(
  */
 type AbsorbedPairs = 'drop' | 'keep';
 
-function tripleCombinationRelations(slots: readonly Slot[]): Relation[] {
-  return BRANCH_TRIPLE_COMBINATIONS.flatMap((c) => {
-    const { full, partial } = matchGroups(slots, c.branches, c.peak);
+/**
+ * 삼합과 방합 — 표 · 종류 · 왕지 고르는 법 · 두 글자짜리 접미어(반합/반방합)만 다르다.
+ */
+function groupCombinationRelations<
+  C extends { branches: readonly [Branch, Branch, Branch]; result: Element; ko: string },
+>(
+  slots: readonly Slot[],
+  table: readonly C[],
+  kind: 'branchTripleCombination' | 'branchDirectionalCombination',
+  peakOf: (c: C) => Branch,
+  partialSuffix: '반합' | '반방합',
+): Relation[] {
+  return table.flatMap((c) => {
+    const { full, partial } = matchGroups(slots, c.branches, peakOf(c));
+    const base = { kind, tier: 'branch', targetElement: c.result } as const;
 
     return [
-      ...full.map((group) =>
-        makeRelation({
-          kind: 'branchTripleCombination',
-          tier: 'branch',
-          ko: c.ko,
-          targetElement: c.result,
-          slots: group,
-        }),
-      ),
+      ...full.map((group) => makeRelation({ ...base, ko: c.ko, slots: group })),
       ...partial.map((group) =>
         makeRelation({
-          kind: 'branchTripleCombination',
-          tier: 'branch',
-          ko: `${orderedKo(group, c.branches)} 반합`,
-          targetElement: c.result,
-          full: false,
-          slots: group,
-        }),
-      ),
-    ];
-  });
-}
-
-function directionalCombinationRelations(slots: readonly Slot[]): Relation[] {
-  return BRANCH_DIRECTIONAL_COMBINATIONS.flatMap((c) => {
-    const { full, partial } = matchGroups(slots, c.branches, directionalPeak(c.branches));
-
-    return [
-      ...full.map((group) =>
-        makeRelation({
-          kind: 'branchDirectionalCombination',
-          tier: 'branch',
-          ko: c.ko,
-          targetElement: c.result,
-          slots: group,
-        }),
-      ),
-      ...partial.map((group) =>
-        makeRelation({
-          kind: 'branchDirectionalCombination',
-          tier: 'branch',
-          ko: `${orderedKo(group, c.branches)} 반방합`,
-          targetElement: c.result,
+          ...base,
+          ko: `${orderedKo(group, c.branches)} ${partialSuffix}`,
           full: false,
           slots: group,
         }),
@@ -849,8 +823,20 @@ export function findRelationsAmong(charts: readonly LabeledPillars[]): Relation[
   const found = [
     ...stemRelations(slots),
     ...branchPairRelations(slots),
-    ...tripleCombinationRelations(slots),
-    ...directionalCombinationRelations(slots),
+    ...groupCombinationRelations(
+      slots,
+      BRANCH_TRIPLE_COMBINATIONS,
+      'branchTripleCombination',
+      (c) => c.peak,
+      '반합',
+    ),
+    ...groupCombinationRelations(
+      slots,
+      BRANCH_DIRECTIONAL_COMBINATIONS,
+      'branchDirectionalCombination',
+      (c) => directionalPeak(c.branches),
+      '반방합',
+    ),
     ...triplePunishmentRelations(slots),
   ];
 
