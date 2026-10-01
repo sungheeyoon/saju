@@ -1,5 +1,6 @@
 import type { Limitation } from '.';
 import type { RedactedChartEvidence, RedactedEvidence } from './redacted';
+import { without } from './without';
 
 /**
  * Match 동의 범위로 **한 번 더 고른** 자료 — 인연 궁합(`match`)만 쓴다.
@@ -182,6 +183,24 @@ export const WITHHELD_PATHS: Record<MatchInput, Readonly<Record<string, string>>
   },
 };
 
+/**
+ * 계약의 `excluded` 에서 **이 컷이 받지 않는 줄** — `withheld.analysis` 가 이미 덮는다(ADR 0142).
+ *
+ * 세 판 모두 `analysis` 를 통째로 또는 종격까지 빼 둔다(위 `WITHHELD_PATHS`). 그 아래 칸 하나를
+ * 「왜 안 실었나」로 다시 적으면 같은 빠짐을 두 번 말하고, 인연 궁합 자료가 그 줄만큼 커진다.
+ * 판본을 가르는 근거로서도 이 컷에는 뜻이 없다 — 이 칸은 인연 궁합 자료에 실린 적이 없다.
+ * 옛 컷(`legacy-v0`)도 받지 않으므로 운영 JSON 이 한 글자도 안 바뀐다.
+ */
+const EXCLUSIONS_UNDER_WITHHELD_ANALYSIS = ['analysis.followingCandidacy'] as const;
+
+type SharedExcluded = Omit<
+  RedactedEvidence['contract']['excluded'],
+  (typeof EXCLUSIONS_UNDER_WITHHELD_ANALYSIS)[number]
+>;
+
+const sharedExcluded = (contract: RedactedEvidence['contract']): SharedExcluded =>
+  without(contract.excluded, ...EXCLUSIONS_UNDER_WITHHELD_ANALYSIS);
+
 /** 경계 경고를 대신하는 한 문장 — 어느 경계인지·몇 분인지는 안 싣는다 */
 export const PILLAR_UNCERTAIN =
   '이 명식은 입력 시각이나 절기·시각 경계 때문에 일부 기둥이 달라질 수 있습니다.';
@@ -238,7 +257,8 @@ type SharedCompatibility = {
 
 /** 옛 컷 — 명식 세 칸을 고르고 궁합은 통째로 남긴다 */
 type LegacySharedEvidence = Omit<RedactedEvidence, 'charts' | 'contract'> & {
-  contract: RedactedEvidence['contract'] & {
+  contract: Omit<RedactedEvidence['contract'], 'excluded'> & {
+    excluded: SharedExcluded;
     withheld: Readonly<Record<string, string>>;
     scope: 'match-consent';
     /** 옛 컷은 이 값을 안 싣는다 — 운영 JSON 을 그대로 두려고 */
@@ -255,7 +275,9 @@ export type SharedEvidence = LegacySharedEvidence | CutSharedEvidence;
 
 /** 필드를 적어서 고른 두 판(A·B) */
 type CutSharedEvidence = {
-  contract: Omit<RedactedEvidence['contract'], never> & {
+  contract: Omit<RedactedEvidence['contract'], 'excluded'> & {
+    /** 앞선 컷이 안 실은 근거 — `withheld.analysis` 가 덮는 줄은 빠진다(`EXCLUSIONS_UNDER_WITHHELD_ANALYSIS`) */
+    excluded: SharedExcluded;
     /** 이 판이 빼 둔 자리와 그 이유 */
     withheld: Readonly<Record<string, string>>;
     scope: 'match-consent';
@@ -402,7 +424,12 @@ export function shareEvidence(
     });
     return {
       ...evidence,
-      contract: { ...evidence.contract, withheld: WITHHELD_PATHS['legacy-v0'], scope: 'match-consent' },
+      contract: {
+        ...evidence.contract,
+        excluded: sharedExcluded(evidence.contract),
+        withheld: WITHHELD_PATHS['legacy-v0'],
+        scope: 'match-consent',
+      },
       charts: { a: legacyChart(evidence.charts.a), b: legacyChart(b) },
       compatibility: evidence.compatibility,
     };
@@ -411,6 +438,7 @@ export function shareEvidence(
   return {
     contract: {
       ...evidence.contract,
+      excluded: sharedExcluded(evidence.contract),
       withheld: WITHHELD_PATHS[input],
       scope: 'match-consent',
       matchInput: input,
