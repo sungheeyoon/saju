@@ -49,7 +49,6 @@ const SCREEN_DB_CALLS_STILL_THERE = new Set([
   "app/compat/page.tsx :: supabase.from('user_person_access')",
   "app/me/people/page.tsx :: supabase.from('user_person_access')",
   "app/me/people/page.tsx :: supabase.rpc('my_person_slots')",
-  "app/me/(shelf)/readings/[subject]/page.tsx :: supabase.from('user_person_access')",
   "app/save-for-reading.tsx :: supabaseInBrowser().rpc('my_person_slots')",
 ]);
 const SCREEN_EXCEPTION = 'eslint-disable-next-line no-restricted-syntax';

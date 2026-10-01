@@ -268,7 +268,6 @@ const NON_NULL_STILL_THERE = [
  * 새로 쓰는 문은 `dbFailure`·`SkippableRead`·`userFacingDbMessage` 셋 중 하나로 말한다.
  */
 const ERROR_SWALLOWS_STILL_THERE = [
-  'app/me/reading/pipeline.ts :: if (error) return;',
   'app/person-slots.ts :: if (error) return null;',
 ];
 

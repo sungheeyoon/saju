@@ -48,7 +48,7 @@
 넷 다 한 가지를 지킨다: **`error.message` 를 사용자에게 그대로 내지 않는다.** 우리가 쓴 한국어
 거절만 옮기고 나머지는 `console.error` 로 기록에 보낸다 — `app/db-error.boundary.test.ts` 가
 모든 파일을 훑는다(#67). `if (error) return null` 은 「DB 실패」와 「없음」을 한 값으로 합치므로
-새로 쓰지 않는다. 남은 셋은 지문으로 잠겨 있다. `error` 를 꺼내지도 않는 자리는 이제 없다 — 예산 0 이다.
+새로 쓰지 않는다. 남은 하나는 지문으로 잠겨 있다. `error` 를 꺼내지도 않는 자리는 이제 없다 — 예산 0 이다.
 
 **엔진과 도메인 lib** 은 DB 를 모르므로 다르다 — 사용자가 고칠 수 있는 것은 **값**으로
 (`hour: null` · `unresolved` · `candidate`), 고칠 수 없는 것은 **예외**로(`InvalidSajuInputError`).
@@ -89,10 +89,10 @@
 | --- | --- | --- |
 | `x as unknown as T` (`as never as` · `as any as` 도 같은 예산) | 7 | 생성 타입 `Database` 와 `rpcArgs`. `jsonb` 를 내주는 문만 어댑터 안에서 한 번 |
 | `x!` | 12 | 좁히기(`if (x === null) return …`), 아니면 없음을 값으로 |
-| `if (error) return null` (`if (x.error)` · `if (error \|\| …)` · `if (error !== null)` · `{ return false; }` · `{ ok: false }` 처럼 값이 글자뿐인 객체도 같다) | 3 | 위 「실패를 말하는 법」. 문장을 안 싣는 자리는 `recordDbFailure` 로 원문을 기록에 보낸다 |
+| `if (error) return null` (`if (x.error)` · `if (error \|\| …)` · `if (error !== null)` · `{ return false; }` · `{ ok: false }` 처럼 값이 글자뿐인 객체도 같다) | 1 | 위 「실패를 말하는 법」. 문장을 안 싣는 자리는 `recordDbFailure` 로 원문을 기록에 보낸다 |
 | `const { data } = await ….from(…)` — `error` 를 꺼내지도 않는다(`Promise.all` 의 한 칸 포함) | 0 | `{ data, error }` 로 꺼내고 위 「실패를 말하는 법」 |
 | `await x.rpc(…)` 를 문장으로 — 결과를 통째로 버린다(`void` 포함, `.then` · `.catch` 로 받으면 안 센다) | 0 | `const { error } = await …` 로 꺼내고, 뒤에 복구기가 받치는 쓰기라도 `console.error` 로 기록에 남긴다 |
-| `eslint-disable` | 화면 DB 호출 5(층 시험이 든다) + 3 | `// eslint-disable-next-line 규칙 -- 까닭` 한 줄. 파일째 끄지 않는다. 까닭 없는 것은 없다(2026-09-26 에 설문의 `exhaustive-deps` 표시를 걷었다) |
+| `eslint-disable` | 화면 DB 호출 4(층 시험이 든다) + 3 | `// eslint-disable-next-line 규칙 -- 까닭` 한 줄. 파일째 끄지 않는다. 까닭 없는 것은 없다(2026-09-26 에 설문의 `exhaustive-deps` 표시를 걷었다) |
 | `any` · `@ts-ignore` | 0 · 0 | 린트가 막는다 |
 | `@ts-expect-error` | 0 | 시험이 예산 0 으로 든다 |
 | 안 걸리는 예외 표시 | 0 | `reportUnusedDisableDirectives` 가 오류로 세운다 |
