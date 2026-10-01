@@ -11,9 +11,9 @@
 --
 -- **열려 있는 문은 운영자가 정한 것뿐이다**(2026-09-30). 처음 잰 날 정지 판정이 없던 넷 가운데 `acknowledge_warning` ·
 -- `cancel_match_request` 는 **의도적으로 열어 둔다**(남에게 해가 없고 후속 피해를 줄인다), `clear_my_photo` 는 걷었고,
--- `set_person_listed` 는 막았다(`20261110090000`). 열린 둘은 아래 목록에 `OK` 로 적는다 — 누가 닫으면 붉어진다.
+-- `set_person_listed` 는 막았다(`20261110090000`). 옛 사진 문 `set_my_photo` 는 `20261115090000` 이 걷었다. 열린 둘은 아래 목록에 `OK` 로 적는다 — 누가 닫으면 붉어진다.
 begin;
-select plan(48);
+select plan(47);
 
 create or replace function pg_temp.summary(i integer)
 returns jsonb
@@ -159,7 +159,6 @@ from (values
                             '42501 이용이 정지된 계정입니다.', null),
   ('send_chat_message',     format($$select public.send_chat_message(%L, '안녕하세요')$$, (select v from kept where k = 'match')),
                             '42501 이용이 정지된 계정입니다.', null),
-  ('set_my_photo',          $$select public.set_my_photo('image/jpeg', '/9j/4A==')$$, '42501 이용이 정지된 계정입니다.', null),
   ('share_my_reading',      $$select public.share_my_reading('본문', '비유', 'self', null, null)$$, 'P0001 이용이 정지된 계정입니다.',
                             'errcode 없이 던진다 — 문장만 맞췄다(`36_suspended_sentence`)'),
 

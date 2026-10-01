@@ -3292,10 +3292,6 @@ export type Database = {
         Args: { p_consent: boolean }
         Returns: undefined
       }
-      set_my_photo: {
-        Args: { p_base64: string; p_content_type: string }
-        Returns: undefined
-      }
       set_pair_relation: {
         Args: { p_person_a: string; p_person_b: string; p_relation: string }
         Returns: undefined
