@@ -13,12 +13,11 @@
  *    두 갈래로 남는지는 두 화면을 함께 봐야 안다.
  */
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
 import { execFileSync } from 'node:child_process';
 
 import { startCheckServer } from './next-server.mjs';
 import { passNotice, chartArgs } from './notice.mjs';
-import { createChecks, sql, testNeed, fetchWhole, keyedRpc } from './checks.mjs';
+import { createChecks, sql, testNeed, fetchWhole, keyedRpc, sessionCookie, shapeOnlySummary } from './checks.mjs';
 /** 공개 범위 목록의 **제품 원본** — 손으로 베끼면 문구가 바뀐 날 검사만 옛 글자를 든다 */
 import { MATCH_DISCLOSURE } from '../src/lib/consent/disclosure.ts';
 import { worktreeStack } from '../src/lib/local-env.ts';
@@ -72,23 +71,13 @@ const a = await person(aMail, '민수', '1990-05-15', '서울', 'male');
 const b = await person(bMail, '지영', '1992-03-03', '부산', 'female');
 const c = await person(cMail, '현우', '1988-11-20', '대구', 'male');
 
-/**
- * 참여를 켤 때 **모양만 맞는 가짜 요약**을 넣는다(`check-discovery` 와 같은 이유).
- * 화면을 한 번 열면 자기 판본에서 다시 계산돼 자리를 잡는다.
- */
-const 가짜 = {
-  glyphCount: 8,
-  counts: { 木: 8, 火: 0, 土: 0, 金: 0, 水: 0 },
-  ratios: { 木: 1, 火: 0, 土: 0, 金: 0, 水: 0 },
-};
-
 for (const [client, nickname, intro] of [
   [a, NAME.a, '조용한 편입니다'],
   [b, NAME.b, '주말엔 걷습니다'],
   [c, NAME.c, '요리를 합니다'],
 ]) {
   await client.rpc('save_my_profile', { p_nickname: nickname, p_intro: intro });
-  await keyedRpc(client, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+  await keyedRpc(client, 'set_discovery_participation', { p_on: true, p_summary: shapeOnlySummary, p_need: testNeed() });
 }
 
 /**
@@ -118,24 +107,9 @@ const forgetBoard = (email) =>
   sql(`delete from public.discovery_candidate s using auth.users u
        where u.id = s.user_id and u.email = '${email}'`);
 
-const cookieFor = async (email) => {
-  const jar = new Map();
-  const browser = createServerClient(API, status.ANON_KEY, {
-    cookies: {
-      getAll: () => [...jar].map(([name, value]) => ({ name, value })),
-      setAll: (written) => {
-        for (const { name, value } of written) jar.set(name, value);
-      },
-    },
-  });
-  const { error } = await browser.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(`${email} 로그인 실패 — ${error.message}`);
-  return [...jar].map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join('; ');
-};
-
-const aCookie = await cookieFor(aMail);
-const bCookie = await cookieFor(bMail);
-const cCookie = await cookieFor(cMail);
+const aCookie = await sessionCookie(status, aMail, password);
+const bCookie = await sessionCookie(status, bMail, password);
+const cCookie = await sessionCookie(status, cMail, password);
 
 const { base: BASE, stop } = await startCheckServer({
   port: PORT,
@@ -419,13 +393,13 @@ try {
     const e = await person(eMail, '태호', '1989-02-02', '광주', 'male');
     await d.rpc('save_my_profile', { p_nickname: NAME.d, p_intro: null });
     await e.rpc('save_my_profile', { p_nickname: NAME.e, p_intro: null });
-    await keyedRpc(d, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
-    await keyedRpc(e, 'set_discovery_participation', { p_on: true, p_summary: 가짜, p_need: testNeed() });
+    await keyedRpc(d, 'set_discovery_participation', { p_on: true, p_summary: shapeOnlySummary, p_need: testNeed() });
+    await keyedRpc(e, 'set_discovery_participation', { p_on: true, p_summary: shapeOnlySummary, p_need: testNeed() });
 
     isolate([aMail, bMail, cMail, dMail, eMail]);
 
-    const dCookie = await cookieFor(dMail);
-    const eCookie = await cookieFor(eMail);
+    const dCookie = await sessionCookie(status, dMail, password);
+    const eCookie = await sessionCookie(status, eMail, password);
     /**
      * 둘 다 화면을 연 **뒤에** 한 번 더 연다.
      *
