@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto';
 
 import { describe, expect, it } from 'vitest';
 
-import { recordsSqlOf, rowsOf, verifyAll, verifyObject } from './audit-verify.mjs';
+import { listArgsOf, recordsSqlOf, rowsOf, verifyAll, verifyObject } from './audit-verify.mjs';
 
 const sha = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
 
@@ -100,5 +100,28 @@ describe('DB 에서 읽는 것', () => {
     const stdout = `Connecting...\n${JSON.stringify({ boundary: 'b', rows: [
       { first_id: 1, last_id: 2, rows: 2, sha256: 'x', object_key: 'k', after_id: 0 }] })}`;
     expect(rowsOf(stdout)).toEqual([{ first_id: 1, last_id: 2, rows: 2, sha256: 'x', object_key: 'k', after_id: 0 }]);
+  });
+
+  // CLI 2.115 는 사람의 셸에서 `--output-format json` 을 받으면 봉투가 아니라 맨 배열을 낸다 — 위 봉투만 읽던 rowsOf 는
+  // 사람이 돌릴 때 죽었다(#431). 아래 모양(들여쓰기 둘 · 줄바꿈으로 끝남)은 #430 이 로컬 스택에 사람의 env 로 받은 맨 배열과
+  // 같다. bigint 칸이 수로 오는지 글자로 오는지는 안 쟀다 — 둘 다 Number 로 읽는지 함께 본다.
+  it('사람의 셸에서 받은 맨 배열에서도 기록을 집는다', () => {
+    const stdout = '[\n  {\n    "first_id": 1,\n    "last_id": "2",\n    "rows": 2,\n    "sha256": "x",\n'
+      + '    "object_key": "k",\n    "after_id": "0"\n  }\n]\n';
+    expect(rowsOf(stdout)).toEqual([{ first_id: 1, last_id: 2, rows: 2, sha256: 'x', object_key: 'k', after_id: 0 }]);
+    expect(rowsOf('[]')).toEqual([]);
+    expect(rowsOf(JSON.stringify({ boundary: 'b', rows: [] }))).toEqual([]);
+  });
+
+  it('표(text)면 읽은 척하지 않는다 — null', () => {
+    expect(rowsOf('┌──────────┐\n│ first_id │\n├──────────┤\n│ 1        │\n└──────────┘\n')).toBeNull();
+    expect(rowsOf('')).toBeNull();
+  });
+
+  it('db:remote 에 --json 을 넘겨 본 질의도 JSON 으로 받는다', () => {
+    const args = listArgsOf(0);
+    expect(args.slice(0, 4)).toEqual(['run', '--silent', 'db:remote', '--']);
+    expect(args).toContain('--json');
+    expect(args.at(-1)).toBe(recordsSqlOf(0));
   });
 });

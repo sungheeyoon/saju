@@ -20,6 +20,12 @@
  * - 실행자는 git 의 `user.name`, 없으면 OS 사용자다. 에이전트 세션(`CLAUDECODE` · `AI_AGENT`)이면 뒤에 `(agent)` 가
  *   붙는다 — **에이전트는 운영 개인정보를 직접 조회하지 않는다**(ADR 0105, `docs/agents/delegation.md` 등급 3).
  *
+ * ## 기계가 읽을 때 — `--json`
+ *
+ * 다른 스크립트가 본 질의의 출력을 읽어야 하면(`audit-verify.mjs`) `--json` 을 붙인다 — 본 질의도
+ * `--output-format json` 으로 부른다. 없으면 지금처럼 사람이 읽는 출력 그대로다(사람의 셸이면 표). 접속기록에 적는 것과
+ * 결과를 적는 것은 이 옵션과 상관없이 같은 길이다(#431).
+ *
  * 개인정보를 읽는 SQL 은 이 명령으로 보내지 않는다 — 그것은 break-glass 이고 사람만 한다(runbook 「break-glass」).
  * 이 기록은 그것을 막지 못한다. 목적과 해시가 남아 **뒤에 물을 수 있게** 할 뿐이다.
  */
@@ -28,14 +34,16 @@ import { createHash } from 'node:crypto';
 import { userInfo } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-const USAGE = '쓰는 법: npm run db:remote -- --purpose "<목적>" "<sql>"';
+const USAGE = '쓰는 법: npm run db:remote -- --purpose "<목적>" [--json] "<sql>"';
 
 /**
  * @param {readonly string[]} argv `node db-remote.mjs` 뒤의 인자
- * @returns {{ ok: true, purpose: string, sql: string } | { ok: false, message: string }}
+ * @returns {{ ok: true, purpose: string, sql: string, json: boolean } | { ok: false, message: string }}
+ *          `json` — 본 질의의 출력을 기계가 읽는다(`--json`)
  */
 export function parseArgs(argv) {
   let purpose = null;
+  let json = false;
   const rest = [];
   for (let at = 0; at < argv.length; at += 1) {
     const arg = argv[at];
@@ -44,6 +52,8 @@ export function parseArgs(argv) {
       at += 1;
     } else if (arg.startsWith('--purpose=')) {
       purpose = arg.slice('--purpose='.length);
+    } else if (arg === '--json') {
+      json = true;
     } else {
       rest.push(arg);
     }
@@ -54,7 +64,7 @@ export function parseArgs(argv) {
   if (trimmed.length < 4 || trimmed.length > 200) return { ok: false, message: '목적은 4~200자다' };
   if (trimmed.includes('@')) return { ok: false, message: '목적에 이메일을 적지 않는다 — 목적도 반출된다' };
   if (rest.length !== 1 || rest[0].trim() === '') return { ok: false, message: `SQL 은 하나다 — ${USAGE}` };
-  return { ok: true, purpose: trimmed, sql: rest[0] };
+  return { ok: true, purpose: trimmed, sql: rest[0], json };
 }
 
 export const sqlHashOf = (sql) => createHash('sha256').update(sql, 'utf8').digest('hex');
@@ -75,22 +85,30 @@ export function noteSqlOf({ actor, purpose, sha256 }) {
 }
 
 /**
- * `db query --output-format json` 의 출력에서 적은 줄의 번호를 집는다. 못 집으면 null.
+ * `db query --output-format json` 의 출력에서 줄들을 집는다. JSON 이 아니면 null.
  *
  * 모양이 둘이다 — CLI 2.115 는 에이전트 세션(`CLAUDECODE` · `AI_AGENT`)이면 `{ boundary, rows, warning }` 봉투를,
  * 사람의 셸이면 맨 배열 `[{ … }]` 을 낸다. 플래그가 없으면 사람의 셸에서는 박스 표(text)라 못 집는다(2026-10-02).
+ * 이 출력을 읽는 자리(아래 `accessIdOf` · `audit-verify.mjs` 의 `rowsOf`)는 다 이것을 거친다(#431).
+ *
+ * @returns {Record<string, unknown>[] | null}
  */
-export function accessIdOf(stdout) {
+export function jsonRowsOf(stdout) {
   const starts = [stdout.indexOf('{'), stdout.indexOf('[')].filter((at) => at >= 0);
   if (starts.length === 0) return null;
   try {
     const parsed = JSON.parse(stdout.slice(Math.min(...starts)));
     const rows = Array.isArray(parsed) ? parsed : parsed?.rows;
-    const id = Number(rows?.[0]?.access_log_id);
-    return Number.isSafeInteger(id) && id > 0 ? id : null;
+    return Array.isArray(rows) ? rows : null;
   } catch {
     return null;
   }
+}
+
+/** 적은 줄의 번호를 집는다. 못 집으면 null */
+export function accessIdOf(stdout) {
+  const id = Number(jsonRowsOf(stdout)?.[0]?.access_log_id);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
 /** 실패의 분류 — 문장은 안 적는다. 분류는 DB 의 검사식 `^[a-z0-9_.:-]{1,60}$` 안에 든다 */
@@ -119,8 +137,8 @@ function gitUserName() {
 }
 
 /**
- * `npx` 뒤의 인자. 기록 · 결과 호출은 출력을 기계가 읽으므로 JSON 을 요청한다(`json: true`). 운영자가 읽는 본 질의는
- * 요청하지 않는다 — 사람의 셸이면 표, 에이전트 세션이면 CLI 가 고르는 봉투 그대로다.
+ * `npx` 뒤의 인자. 기록 · 결과 호출은 출력을 기계가 읽으므로 JSON 을 요청한다(`json: true`). 본 질의는 `--json` 을
+ * 받았을 때만 요청한다 — 없으면 사람의 셸이면 표, 에이전트 세션이면 CLI 가 고르는 봉투 그대로다.
  */
 export const queryArgsOf = (sql, { json }) =>
   ['supabase', 'db', 'query', '--linked', ...(json ? ['--output-format', 'json'] : []), sql];
@@ -152,7 +170,7 @@ function main() {
   const accessId = accessIdOf(noted.stdout ?? '');
 
   // 결과를 가르려면 출력을 봐야 한다 — 받아서 그대로 다시 낸다
-  const ran = supabase(parsed.sql, ['inherit', 'pipe', 'pipe']);
+  const ran = supabase(parsed.sql, ['inherit', 'pipe', 'pipe'], { json: parsed.json });
   if (ran.stdout) process.stdout.write(ran.stdout);
   if (ran.stderr) process.stderr.write(ran.stderr);
 

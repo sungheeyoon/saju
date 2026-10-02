@@ -10,15 +10,24 @@ import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
-  accessIdOf, actorOf, errorClassOf, noteSqlOf, parseArgs, queryArgsOf, resultSqlOf, sqlHashOf,
+  accessIdOf, actorOf, errorClassOf, jsonRowsOf, noteSqlOf, parseArgs, queryArgsOf, resultSqlOf, sqlHashOf,
 } from './db-remote.mjs';
 
 const SQL = 'select count(*) from public.report where reviewed_at is null';
 
 describe('인자', () => {
   it('목적과 SQL 하나를 읽는다 — 앞뒤 어디에 와도', () => {
-    expect(parseArgs(['--purpose', '미검토 신고 건수', SQL])).toEqual({ ok: true, purpose: '미검토 신고 건수', sql: SQL });
-    expect(parseArgs([SQL, '--purpose=미검토 신고 건수'])).toEqual({ ok: true, purpose: '미검토 신고 건수', sql: SQL });
+    expect(parseArgs(['--purpose', '미검토 신고 건수', SQL])).toEqual(
+      { ok: true, purpose: '미검토 신고 건수', sql: SQL, json: false });
+    expect(parseArgs([SQL, '--purpose=미검토 신고 건수'])).toEqual(
+      { ok: true, purpose: '미검토 신고 건수', sql: SQL, json: false });
+  });
+
+  it('--json 이 있으면 본 질의를 기계가 읽는다 — 어디에 와도, SQL 로 세지 않는다(#431)', () => {
+    expect(parseArgs(['--purpose', '반출 기록 읽기', '--json', SQL])).toEqual(
+      { ok: true, purpose: '반출 기록 읽기', sql: SQL, json: true });
+    expect(parseArgs([SQL, '--json', '--purpose=반출 기록 읽기'])).toMatchObject({ ok: true, sql: SQL, json: true });
+    expect(parseArgs(['--purpose', '반출 기록 읽기', '--json'])).toMatchObject({ ok: false });
   });
 
   it('목적 없이는 안 돈다', () => {
@@ -97,7 +106,14 @@ describe('끝난 뒤의 결과 (`20261014090000`)', () => {
     expect(accessIdOf('[]')).toBeNull();
   });
 
-  it('기록 · 결과 호출은 JSON 을 요청하고, 운영자가 읽는 본 질의는 지금 모양(사람이면 표)으로 둔다', () => {
+  it('JSON 출력의 줄은 봉투에서도 맨 배열에서도 같은 것으로 읽고, 표면 null 이다', () => {
+    expect(jsonRowsOf(noted)).toEqual([{ access_log_id: 42 }]);
+    expect(jsonRowsOf('[\n  {\n    "access_log_id": 42\n  }\n]\n')).toEqual([{ access_log_id: 42 }]);
+    expect(jsonRowsOf('┌───────────────┐\n│ access_log_id │\n└───────────────┘\n')).toBeNull();
+    expect(jsonRowsOf('{"boundary":"b"}')).toBeNull();
+  });
+
+  it('기록 · 결과 호출은 JSON 을 요청하고, 본 질의는 --json 일 때만(없으면 사람이면 표)', () => {
     expect(queryArgsOf('select 1', { json: true })).toEqual(
       ['supabase', 'db', 'query', '--linked', '--output-format', 'json', 'select 1']);
     expect(queryArgsOf('select 1', { json: false })).toEqual(['supabase', 'db', 'query', '--linked', 'select 1']);
