@@ -7,6 +7,8 @@
 >
 > **지금은:** 실제로 나가는 것은 `CONTROL` 하나이고 세대는 `planOf` 가 한 번 고른다(ADR 0075). 개인 풀이 `reading-prompt-v15`(2026-09-23 G-56), 두 궁합 `reading-prompt-v14`(2026-09-23 G-55) — 이름은 `promptVersionOf`. 조립은 `src/lib/reading/prompt.ts` · `parts.ts` · `vocabulary.ts`. 프롬프트 본문을 고치면 실호출 한 번(`docs/agents/test-map.md`).
 >
+> **낡은 화면:** 아래 `/me/reading/inspect` 는 Vercel 배포(Production · Preview)에서 없는 주소다 — 로컬에서만 연다(`app/me/reading/inspect/open.ts`, ADR 0122). 그 화면의 「실험용 변형」 목록도 걷혔고 나가는 판 하나만 짓는다(G-32, #176).
+>
 > **낡은 경로:** `src/lib/saju/evidence/prompt.ts` 는 없다 — 그 바탕은 `src/lib/reading/prompt.ts` 와 `parts.ts` 로 옮겨 갔다(ADR 0047·0075).
 
 ## 2026-09-15 — 판본이 둘로 갈렸다 (이것이 가장 먼저다)
