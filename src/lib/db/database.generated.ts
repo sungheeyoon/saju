@@ -2175,6 +2175,32 @@ export type Database = {
           },
         ]
       }
+      taste_session_step: {
+        Row: {
+          counted_at: string
+          session_id: string
+          step: string
+        }
+        Insert: {
+          counted_at?: string
+          session_id: string
+          step: string
+        }
+        Update: {
+          counted_at?: string
+          session_id?: string
+          step?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taste_session_step_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "taste_session"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_activity: {
         Row: {
           last_active_at: string
@@ -2486,6 +2512,10 @@ export type Database = {
         Returns: boolean
       }
       count_taste_step: { Args: { p_step: string }; Returns: undefined }
+      count_taste_step_once: {
+        Args: { p_browser_hmac: string; p_session_id: string; p_step: string }
+        Returns: boolean
+      }
       create_managed_person: {
         Args: {
           p_birth_time: string
