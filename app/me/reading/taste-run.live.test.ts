@@ -11,7 +11,7 @@ import {
   type ContinuedReadingOutput,
 } from '@/src/lib/reading/continuation';
 import {
-  TASTE_RUN_SHAPE,
+  tasteRunShapeOf,
   checkTasteRun,
   tasteEvidenceOf,
   tasteFingerprintOf,
@@ -38,20 +38,22 @@ import { callModel, type ReasoningEffort } from './model';
  *   # 먼저 작게 — 손 견본 하나 · 추론 none 만(부름 1번, 약 5원)
  *   TASTE_RUN_LIVE=1 TASTE_RUN_SAMPLES=hand TASTE_RUN_EFFORTS=none npx vitest run app/me/reading/taste-run.live.test.ts
  *
- *   # 맛보기만 전부 — 견본 6 × 세기 2(none · low) = 부름 12번, 약 70원
+ *   # 맛보기만 전부 — 견본 6 × 추론 none = 부름 6번, 약 22원
  *   TASTE_RUN_LIVE=1 npx vitest run app/me/reading/taste-run.live.test.ts
  *
- *   # 짝까지 — 위 12번 + 검사를 지난 맛보기마다 전체 자기 풀이 1번(최대 12번 × 약 20원) = 최대 약 310원
- *   TASTE_RUN_LIVE=1 TASTE_RUN_PAIR=1 npx vitest run app/me/reading/taste-run.live.test.ts
+ *   # 짝은 고른 견본만 — 맛보기 6번 + 고른 셋의 전체 자기 풀이 3번(× 약 20원) = 약 80원
+ *   TASTE_RUN_LIVE=1 TASTE_RUN_PAIR=1 TASTE_RUN_PAIR_SAMPLES=hand,strong-m,hourless-f npx vitest run app/me/reading/taste-run.live.test.ts
  *
- * 켜는 값 — `TASTE_RUN_EFFORTS`(쉼표, 기본 `none,low`) · `TASTE_RUN_SAMPLES`(쉼표로 견본 id, 기본 전부) ·
- * `TASTE_RUN_PAIR=1`(짝). 맛보기는 출력 상한 1,500 토큰(추론 포함) · 시간 상한 20초 · 기다리는 길로 부르고, 전체 자기
+ * 켜는 값 — `TASTE_RUN_EFFORTS`(쉼표, 기본 `none` — 1차에서 `low` 는 느리고 비싸고 검사를 덜 지났다) ·
+ * `TASTE_RUN_SAMPLES`(쉼표로 견본 id, 기본 전부) · `TASTE_RUN_PAIR=1`(짝) · `TASTE_RUN_PAIR_SAMPLES`(짝을 지을 견본 id). 맛보기는 출력 상한 1,500 토큰(추론 포함) · 시간 상한 20초 · 기다리는 길로 부르고, 전체 자기
  * 풀이는 운영과 같은 기본값(추론 세기 안 보냄 · 상한 없음 · 240초)으로 부른다. 원 단위는 1,400원/$ 가정이다.
  * 위 원 단위의 맛보기 한 건 값(약 5원)은 **추정**이다 — 이 시험이 실제 사용량으로 다시 센다.
  */
 
 const live = process.env.TASTE_RUN_LIVE === '1';
 const pairing = process.env.TASTE_RUN_PAIR === '1';
+/** 짝을 부를 견본 — 적으면 그 견본만 짝을 짓는다(2차: 주제가 갈린 것을 보고 대표 셋만). 안 적으면 검사를 지난 것 전부 */
+const pairSamples = process.env.TASTE_RUN_PAIR_SAMPLES?.split(',').map((one) => one.trim()).filter((one) => one !== '') ?? [];
 const OUTPUT_ROOT = '.taste-run-live';
 
 /** 맛보기 전용 설정 — 합의한 값(노트 「맛보기 전용 모델 설정」) */
@@ -103,7 +105,7 @@ describe('맛보기 실험 견본은 신강 · 신약 · 시간 모름 · 남녀
 const EFFORTS: readonly ReasoningEffort[] = ['none', 'low', 'medium', 'high'];
 
 const chosenEfforts = (): readonly ReasoningEffort[] => {
-  const listed = (process.env.TASTE_RUN_EFFORTS ?? 'none,low').split(',').map((one) => one.trim()).filter((one) => one !== '');
+  const listed = (process.env.TASTE_RUN_EFFORTS ?? 'none').split(',').map((one) => one.trim()).filter((one) => one !== '');
   const unknown = listed.filter((one) => !(EFFORTS as readonly string[]).includes(one));
   if (unknown.length > 0) throw new Error(`모르는 추론 세기: ${unknown.join(', ')} — ${EFFORTS.join(' · ')} 중에서`);
   return listed as ReasoningEffort[];
@@ -211,6 +213,8 @@ const pairDocOf = (record: RunRecord): string => {
     '',
     '## 보이지 않는 칸',
     '',
+    `- 꼴: ${output.topic}`,
+    `- 이 사주가 갈리는 점: ${output.distinctivePattern}`,
     `- 질문: ${output.continuationQuestion}`,
     `- 답의 방향: ${output.answerDirection}`,
     `- 기대는 자료: ${output.supportingClaims.map((claim) => `\`${claim}\``).join(' · ')}`,
@@ -286,6 +290,14 @@ const summaryOf = (records: readonly RunRecord[], efforts: readonly ReasoningEff
     '',
     '캐시 쓰기를 provider 가 안 준 부름은 그 몫을 입력 단가로 셌다 — 최대 25% 낮게 나온다(`runs.json` 의 `cacheWriteUnknown`).',
     '',
+    '## 주제가 갈렸나 — 견본마다 고른 꼴과 갈리는 점',
+    '',
+    '| 견본 | 세기 | 꼴 | 갈리는 점 | 질문 |',
+    '| --- | --- | --- | --- | --- |',
+    ...records.flatMap(({ label, effort, output }) =>
+      output === null ? [] : [`| ${label} | ${effort} | ${output.topic} | ${output.distinctivePattern.replace(/\|/g, '/')} | ${output.continuationQuestion.replace(/\|/g, '/')} |`],
+    ),
+    '',
     '## 짝 검토의 여섯 질문 (`docs/notes/2026-10-03-taste-run-experiment.md`)',
     '',
     '1. 첫 문단에서 「내 얘기」인가',
@@ -333,7 +345,7 @@ describe.skipIf(!live)('맛보기 · 이어쓰기 짝 견본을 뽑는다 (TASTE
 
         for (const effort of efforts) {
           const { ms, value: called } = await timed(() =>
-            callModel<TasteRunOutput>(tasteRunPromptOf(taste), { shape: TASTE_RUN_SHAPE, reasoningEffort: effort, ...TASTE_CALL }),
+            callModel<TasteRunOutput>(tasteRunPromptOf(taste), { shape: tasteRunShapeOf(taste), reasoningEffort: effort, ...TASTE_CALL }),
           );
           const record: RunRecord = {
             sample: sample.id,
@@ -354,7 +366,12 @@ describe.skipIf(!live)('맛보기 · 이어쓰기 짝 견본을 뽑는다 (TASTE
           }
 
           /* 짝은 검사를 지난 맛보기만 — 떨어진 맛보기는 화면에 안 서므로 그 뒤를 부를 까닭이 없다 */
-          if (pairing && record.output !== null && record.tasteCheck === 'ok') {
+          if (
+            pairing &&
+            record.output !== null &&
+            record.tasteCheck === 'ok' &&
+            (pairSamples.length === 0 || pairSamples.includes(sample.id))
+          ) {
             const carry = record.output;
             const prompt = `${readingPromptOf(built)}\n\n${continuationBlockOf(carry)}`;
             const { ms: pairMs, value: full } = await timed(() => callModel<ContinuedReadingOutput>(prompt, { continuation: true }));

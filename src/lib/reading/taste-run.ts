@@ -134,12 +134,38 @@ export async function tasteFingerprintOf(evidence: TasteEvidence): Promise<strin
 // 출력 모양과 프롬프트
 // ---------------------------------------------------------------------------
 
-/** 맛보기 모델이 내는 것 — 구조화 출력이 **속성 차례대로** 짓는다 */
+/**
+ * 맛보기의 꼴 — **근거에 가장 맞는 하나를 모델이 고른다.** 1차(2026-10-03)는 모든 사주를 「장점 → 그 장점이 만드는 문제 →
+ * 해결 직전」 한 꼴로 쓰게 했고, 여섯 명식이 거의 다 「잘하지만 혼자 버티다 지친다 → 나눠라」로 모였다. 한 꼴이 이야기를
+ * 정한 것이다. 그래서 꼴을 여럿 두고 고르게 한다. 「압박 · 책임 · 혼자 버팀」은 그것이 정말 가장 두드러진 사주에서만 쓴다.
+ */
+export const TASTE_TOPICS = [
+  '겉과 속의 차이',
+  '결정하거나 행동하는 방식',
+  '관계에서 반복되는 장면',
+  '일이나 돈을 다루는 방식',
+  '힘이 살아나는 조건',
+  '힘이 빠지는 조건',
+  '서로 반대되는 두 성향',
+  '잘못 알려진 자신의 강점',
+] as const;
+
+export type TasteTopic = (typeof TASTE_TOPICS)[number];
+
+/**
+ * 맛보기 모델이 내는 것 — 구조화 출력이 **속성 차례대로** 짓는다.
+ *
+ * 차례가 곧 생각의 차례다: 이 사주에서 남과 다른 것을 고르고(`topic` · `distinctivePattern`) → 근거를 정하고
+ * (`supportingClaims`) → 궁금증과 답의 방향을 정한 뒤(`continuationQuestion` · `answerDirection`) → **글은 마지막에**
+ * 쓴다(`previewMarkdown`). 1차는 글을 먼저 쓰고 근거를 뒤에 끼워 맞췄다 — 근거 경로가 틀린 실패 넷이 그 증상이었다.
+ */
 export type TasteRunOutput = {
-  previewMarkdown: string;
+  topic: TasteTopic;
+  distinctivePattern: string;
+  supportingClaims: string[];
   continuationQuestion: string;
   answerDirection: string;
-  supportingClaims: string[];
+  previewMarkdown: string;
 };
 
 /**
@@ -153,16 +179,52 @@ export const TASTE_RUN_RULES = {
   supportingClaims: { min: 1, max: 6 },
 } as const;
 
+/** 근거 경로를 한 층 더 내려가 세는 칸 — 나머지 칸은 그 이름 하나가 경로다 */
+const CLAIM_BRANCHES = ['analysis', 'pillars', 'sinsal'] as const;
+/** 경로로 고르게 하지 않는 칸 — 상한 표(`claims`)와 성별 · 시간 앎 같은 겉값(`meta`, `pillars.meta`) */
+const CLAIM_SKIPPED = new Set(['claims', 'meta', 'pillars.meta']);
+
+/**
+ * 이 근거에서 **고를 수 있는 근거 경로 전부** — 구조화 출력의 `enum` 이 된다. 경로는 `chart` 아래에서 센다.
+ *
+ * 프롬프트에 목록을 보이는 것으로는 모자랐다(1차: `chart.analysis.…` · 없는 `analysis.relations`). 그래서 스키마가 막는다.
+ * 값이 `null` 인 칸(시간 모름의 `pillars.hour`)은 없는 것과 같다 — 고르게 두지 않는다.
+ */
+export function tasteClaimPathsOf(evidence: TasteEvidence): string[] {
+  const chart: Record<string, unknown> = { ...evidence.chart };
+  return Object.keys(chart).flatMap((key) => {
+    if (CLAIM_SKIPPED.has(key) || chart[key] === null) return [];
+    const value = chart[key];
+    if (!(CLAIM_BRANCHES as readonly string[]).includes(key) || value === null || typeof value !== 'object') return [key];
+    const inner = value as Record<string, unknown>;
+    return Object.keys(inner)
+      .map((child) => `${key}.${child}`)
+      .filter((path) => !CLAIM_SKIPPED.has(path) && inner[path.slice(key.length + 1)] !== null);
+  });
+}
+
 /**
  * 구조화 출력의 모양 — JSON Schema 의 날값이다. 도메인 lib 은 모델 SDK 를 모르므로 타입은 부르는 자리(`model.ts`)가 입힌다.
  * 통째로 `as const` 로 굳히지 않는다 — `required` 가 읽기 전용이 되면 SDK 의 스키마 타입이 안 받는다.
+ *
+ * `supportingClaims` 의 `enum` 이 사람마다 달라서(시간 모름이면 `pillars.hour` 가 없다) 근거를 받아 짓는다.
  */
-export const TASTE_RUN_SHAPE = {
+export const tasteRunShapeOf = (evidence: TasteEvidence) => ({
   type: 'object' as const,
   properties: {
-    previewMarkdown: {
+    topic: {
       type: 'string' as const,
-      description: '로그인 전에 보여 줄 짧은 글. 해요체 문단 2~4개, 해결책 직전에서 완결된 문장으로 멈춘다',
+      enum: [...TASTE_TOPICS],
+      description: '이 사주의 근거에 가장 맞는 맛보기의 꼴 하나',
+    },
+    distinctivePattern: {
+      type: 'string' as const,
+      description: '이 사주가 다른 사주와 갈리는 점 한두 문장 — 근거의 값으로 말한다. 사용자에게는 보이지 않는다',
+    },
+    supportingClaims: {
+      type: 'array' as const,
+      items: { type: 'string' as const, enum: tasteClaimPathsOf(evidence) },
+      description: '주제 · 물음 · 답의 방향이 기대는 근거 경로',
     },
     continuationQuestion: {
       type: 'string' as const,
@@ -172,44 +234,51 @@ export const TASTE_RUN_SHAPE = {
       type: 'string' as const,
       description: '그 물음에 대한 답의 방향 한 줄 — 사용자에게는 보이지 않는다',
     },
-    supportingClaims: {
-      type: 'array' as const,
-      items: { type: 'string' as const },
-      description: '물음과 답의 방향이 기대는 자료 경로(예: analysis.structure)',
+    previewMarkdown: {
+      type: 'string' as const,
+      description: '로그인 전에 보여 줄 짧은 글. 위에서 정한 것으로 마지막에 쓴다. 해요체 문단 2~4개, 완결된 문장으로 멈춘다',
     },
   },
-  required: ['previewMarkdown', 'continuationQuestion', 'answerDirection', 'supportingClaims'],
+  required: ['topic', 'distinctivePattern', 'supportingClaims', 'continuationQuestion', 'answerDirection', 'previewMarkdown'],
   additionalProperties: false,
-};
+});
 
 const TASTE_RUN_PROMPT_HEAD = `# 역할
 
-너는 사주를 처음 보는 한 사람에게 **그 사람의 사주에서 가장 먼저 눈에 띄는 이야기 하나**를 건네는 사람이다. 긴 풀이가
-아니라, 읽고 나서 「이게 내 얘기다」 싶고 다음이 궁금해지는 짧은 글이다. 이 사람은 아직 가입하지 않았고, 이 글 뒤에
+너는 사주를 처음 보는 한 사람에게 **그 사람의 사주에서만 나오는 이야기 하나**를 건네는 사람이다. 긴 풀이가 아니라,
+읽고 나서 「이건 남이 아니라 내 얘기다」 싶고 다음이 궁금해지는 짧은 글이다. 이 사람은 아직 가입하지 않았고, 이 글 뒤에
 [더보기]가 선다. 가입하면 전체 풀이가 **네가 멈춘 그 물음에 맨 먼저 답한다.**
 
-## 쓰는 법
+## 생각하는 차례 — 낼 칸의 차례가 이것이다
 
-- **핵심 주제 하나만** 잡는다. 자료에서 서로 다른 근거 둘 이상이 만나 이 사람에게만 맞는 장면이 되는 것을 고른다.
-- **장점에서 시작해 그 장점이 만드는 문제로 잇고, 해결책 바로 앞에서 멈춘다.** 해결책은 말하지 않는다 — 그것은
-  가입 뒤 전체 풀이의 첫 답이다. 멈추는 자리도 **완결된 문장**이다. 문장 중간에서 끊거나 말줄임으로 끝내지 않는다.
+1. **이 사주에서 남과 갈리는 것을 고른다.** 자료를 보고 이 명식에서 가장 두드러지는 값(가장 많은 오행 · 없는 오행 ·
+   눈에 띄는 합 · 충 · 형 · 뿌리의 모양 · 계절과 일간의 관계 · 판정이 갈리는 자리 등)을 찾는다. 많은 사람에게 그대로
+   맞는 이야기(「잘하지만 혼자 다 떠안는다」 · 「책임감이 강하다」)는 고르지 않는다. 그것을 \`distinctivePattern\` 에 적는다.
+2. **꼴을 고른다**(\`topic\`). 아래 여덟 중 그 근거에 가장 맞는 것 하나다. 늘 같은 꼴을 고르지 않는다 — 근거가 가리키는
+   것을 고른다. **「압박 · 책임 · 혼자 버팀」 이야기는 그것이 이 사주에서 정말 가장 두드러질 때만** 쓴다.
+${TASTE_TOPICS.map((topic) => `   - ${topic}`).join('\n')}
+3. **근거를 정한다**(\`supportingClaims\`). 고를 수 있는 경로는 스키마가 준다.
+4. **궁금증과 답의 방향을 정한다**(\`continuationQuestion\` · \`answerDirection\`). 답의 방향은 자료에서 실제로 나오는 것이어야 한다.
+5. **글은 마지막에 쓴다**(\`previewMarkdown\`). 위에서 정한 것만으로 쓴다.
+
+## 글을 쓰는 법
+
+- 핵심 주제 하나. 그 사람이 「맞아, 나 이래」 할 **구체적인 장면**으로 시작한다. 정해진 순서(장점 → 문제 → 해결 직전)를
+  따르지 않아도 된다 — 고른 꼴이 글의 모양을 정한다.
+- 끝은 **답을 말하기 직전**에서 멈춘다. 답은 가입 뒤 전체 풀이의 첫 문단이다. 멈추는 자리도 **완결된 문장**이다. 문장
+  중간에서 끊거나 말줄임으로 끝내지 않는다. 「가입하면 알려 드릴게요」처럼 가입을 말하지 않는다.
 - 자료의 \`claims\` 가 말하는 세기보다 세게 말하지 않는다. 후보 · 참고인 값은 「~쪽으로 읽혀요」처럼 쓰고, 자료에 없는
   단정(「하나뿐」 · 「반드시」 · 「아껴 써야」)을 만들지 않는다.
 - 해요체. 사주 분류명(십성 이름 · 신강 · 신약 · 용신 · 격국 · 신살 이름 · 운 이름 같은 말)과 한자는 쓰지 않는다 —
-  하는 일로 풀어 쓴다. 제목 · 목록 · 굵은 글씨 없이 문단만 쓴다.
+  하는 일로 풀어 쓴다. **강약 판정을 쉬운 말로 옮긴 표현(「약한 쪽에 서 있어도」 · 「힘이 센 사주라」)도 쓰지 않는다.**
+  제목 · 목록 · 굵은 글씨 없이 문단만 쓴다.
 - 나이 · 해 · 지금 도는 때는 자료에 없다. 지어내지 않는다.
-
-- 이렇게 멈추지 마라 — 「그 해결책은 가입하면 알려 드릴게요.」 · 「그 방향은 바로…」
-- 이렇게 멈춰라 — 「이 사주 안에는 그 열기를 덜어 낼 방향도 함께 보여요. 그 방향을 알면, 같은 압박을 버티는 대신
-  다르게 다룰 수 있어요.」
 
 ## 낼 것
 
 - \`previewMarkdown\` — ${TASTE_RUN_RULES.previewLength.target.min}~${TASTE_RUN_RULES.previewLength.target.max}자, 문단 ${TASTE_RUN_RULES.paragraphs.min}~${TASTE_RUN_RULES.paragraphs.max}개(빈 줄로 가른다).
-- \`continuationQuestion\` — 이 글이 멈춘 자리의 물음 한 줄. 가입 뒤 전체 풀이가 바로 답할 수 있는 물음이어야 한다.
-- \`answerDirection\` — 그 물음의 답이 어느 쪽인지 한 줄. 사용자에게는 안 보이고, 전체 풀이가 이 방향으로 답한다.
-  자료에서 실제로 나오는 방향이어야 한다.
-- \`supportingClaims\` — 물음과 답의 방향이 기대는 자료 경로 ${TASTE_RUN_RULES.supportingClaims.min}~${TASTE_RUN_RULES.supportingClaims.max}개. \`chart\` 아래에서 센 경로로 적는다(예: \`analysis.structure\` · \`pillars.year.stem\`).`;
+- \`supportingClaims\` — ${TASTE_RUN_RULES.supportingClaims.min}~${TASTE_RUN_RULES.supportingClaims.max}개.
+- 나머지 칸은 한두 문장.`;
 
 /** 맛보기 프롬프트 — 정적인 지시를 앞에, 사람마다 다른 자료를 맨 뒤에 둔다(캐시가 앞부분을 잇는다) */
 export function tasteRunPromptOf(evidence: TasteEvidence): string {
@@ -267,6 +336,12 @@ const pathExists = (chart: TasteChart, path: string): boolean => {
   return true;
 };
 
+/**
+ * 경로 앞의 `chart.` 만 뗀다 — 근거가 `chart` 아래에서 세는 것을 모델이 한 칸 위에서 센 것이라 뜻이 같다. **그 밖은
+ * 고치지 않는다** — 없는 경로(`analysis.relations`)를 가까운 경로로 고쳐 주면 근거 없는 글이 근거 있는 척 지난다.
+ */
+export const normalizeClaim = (claim: string): string => claim.trim().replace(/^chart\./, '');
+
 const SEGMENT = /^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)*$/;
 
 /**
@@ -279,16 +354,19 @@ export function checkTasteRun(output: TasteRunOutput, evidence?: TasteEvidence):
   const preview = output.previewMarkdown.trim();
 
   if (preview === '') reasons.push('previewMarkdown 이 비었다');
+  if (!(TASTE_TOPICS as readonly string[]).includes(output.topic)) reasons.push(`모르는 topic: ${output.topic}`);
+  if (output.distinctivePattern.trim() === '') reasons.push('distinctivePattern 이 비었다');
   if (output.continuationQuestion.trim() === '') reasons.push('continuationQuestion 이 비었다');
   if (output.answerDirection.trim() === '') reasons.push('answerDirection 이 비었다');
-  const claims = output.supportingClaims.map((claim) => claim.trim()).filter((claim) => claim !== '');
+  const claims = output.supportingClaims.map(normalizeClaim).filter((claim) => claim !== '');
   if (claims.length < TASTE_RUN_RULES.supportingClaims.min || claims.length > TASTE_RUN_RULES.supportingClaims.max) {
     reasons.push(`supportingClaims 가 ${claims.length}개다`);
   }
   const malformed = claims.filter((claim) => !SEGMENT.test(claim));
   if (malformed.length > 0) reasons.push(`경로 꼴이 아닌 supportingClaims: ${malformed.join(' · ')}`);
   if (evidence !== undefined) {
-    const missing = claims.filter((claim) => SEGMENT.test(claim) && !pathExists(evidence.chart, claim));
+    const allowed = new Set(tasteClaimPathsOf(evidence));
+    const missing = claims.filter((claim) => SEGMENT.test(claim) && (!allowed.has(claim) || !pathExists(evidence.chart, claim)));
     if (missing.length > 0) reasons.push(`근거에 없는 경로: ${missing.join(' · ')}`);
   }
 

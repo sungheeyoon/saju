@@ -6,7 +6,10 @@ import { CHART_ENGINE_VERSION } from '../saju/version';
 import { readingEvidenceOf } from '.';
 import { HAND_SAMPLE } from './taste-run-sample';
 import {
-  TASTE_RUN_SHAPE,
+  TASTE_TOPICS,
+  normalizeClaim,
+  tasteClaimPathsOf,
+  tasteRunShapeOf,
   checkTasteRun,
   tasteEvidenceOf,
   tasteFingerprintOf,
@@ -131,14 +134,41 @@ describe('맛보기 프롬프트와 출력 모양', () => {
     expect(prompt).toContain('문단 2~4개');
   });
 
-  it('출력 모양은 네 칸이고 차례가 previewMarkdown 부터다', () => {
-    expect(Object.keys(TASTE_RUN_SHAPE.properties)).toEqual([
-      'previewMarkdown',
+  it('출력 모양은 숨은 판단을 먼저, 글을 맨 끝에 짓는다', () => {
+    const shape = tasteRunShapeOf(tasteEvidenceOf(redactedOf(HAND_SAMPLE.input)));
+    expect(Object.keys(shape.properties)).toEqual([
+      'topic',
+      'distinctivePattern',
+      'supportingClaims',
       'continuationQuestion',
       'answerDirection',
-      'supportingClaims',
+      'previewMarkdown',
     ]);
-    expect(TASTE_RUN_SHAPE.required).toEqual(Object.keys(TASTE_RUN_SHAPE.properties));
+    expect(shape.required).toEqual(Object.keys(shape.properties));
+    expect(shape.properties.topic.enum).toEqual([...TASTE_TOPICS]);
+  });
+
+  it('근거 경로는 스키마의 enum 이 막는다 — 있는 칸만, 상한 표 · 겉값 · 빈 시주 없이', () => {
+    const paths = tasteClaimPathsOf(tasteEvidenceOf(redactedOf(HAND_SAMPLE.input)));
+    expect(paths).toContain('analysis.structure');
+    expect(paths).toContain('pillars.hour');
+    expect(paths).toContain('relations');
+    expect(paths.some((path) => path.startsWith('claims') || path.startsWith('meta') || path === 'pillars.meta')).toBe(false);
+    expect(paths.some((path) => path.startsWith('now') || path.startsWith('daeun'))).toBe(false);
+    expect(tasteRunShapeOf(tasteEvidenceOf(redactedOf(HAND_SAMPLE.input))).properties.supportingClaims.items.enum).toEqual(paths);
+
+    const hourless = tasteClaimPathsOf(
+      tasteEvidenceOf(redactedOf({ year: 1991, month: 6, day: 2, hour: null, gender: 'female' } as never)),
+    );
+    expect(hourless).not.toContain('pillars.hour');
+  });
+
+  it('한 꼴로 몰지 않는다 — 꼴 여덟을 다 보이고 「압박 · 혼자 버팀」은 가장 두드러질 때만', () => {
+    const prompt = tasteRunPromptOf(tasteEvidenceOf(redactedOf(HAND_SAMPLE.input)));
+    for (const topic of TASTE_TOPICS) expect(prompt).toContain(topic);
+    expect(prompt).toContain('정말 가장 두드러질 때만');
+    /* 1차 프롬프트의 본보기 멈춤 문장 — 모델이 그대로 베꼈다(2026-10-03 실호출) */
+    expect(prompt).not.toContain('같은 압박을 버티는 대신');
   });
 });
 
@@ -161,6 +191,10 @@ describe('맛보기 규칙 검사', () => {
     ['answerDirection 이 비었다', { answerDirection: ' ' }],
     ['supportingClaims 가 0개다', { supportingClaims: [] }],
     ['근거에 없는 경로: now.daeun', { supportingClaims: ['analysis.structure', 'now.daeun'] }],
+    ['근거에 없는 경로: analysis.relations', { supportingClaims: ['analysis.relations'] }],
+    ['근거에 없는 경로: pillars.year.stem', { supportingClaims: ['pillars.year.stem'] }],
+    ['모르는 topic', { topic: '책임감' as never }],
+    ['distinctivePattern 이 비었다', { distinctivePattern: ' ' }],
     ['경로 꼴이 아닌 supportingClaims', { supportingClaims: ['구조가 그렇다'] }],
     ['너무 짧다', { previewMarkdown: '짧은 글이에요.\n\n정말 짧아요.' }],
     ['너무 길다', { previewMarkdown: `${preview} ${'그 압박은 생각보다 오래 이어질 수 있어요. '.repeat(14).trim()}` }],
@@ -174,6 +208,12 @@ describe('맛보기 규칙 검사', () => {
     ['한자가 있다', { previewMarkdown: preview.replace('쇠의 기운', '庚 쇠의 기운') }],
   ])('%s — 걸린다', (reason, patch) => {
     expect(reasonsOf({ ...GOOD, ...patch }).join(' / ')).toContain(reason);
+  });
+
+  it('`chart.` 만 떼고 그 밖은 고치지 않는다', () => {
+    expect(normalizeClaim(' chart.analysis.strength ')).toBe('analysis.strength');
+    expect(normalizeClaim('analysis.relations')).toBe('analysis.relations');
+    expect(checkTasteRun({ ...GOOD, supportingClaims: ['chart.analysis.strength', 'chart.relations'] }, evidence)).toEqual({ ok: true });
   });
 
   it('근거 없이 부르면 경로의 꼴만 본다', () => {

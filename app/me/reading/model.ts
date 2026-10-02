@@ -106,7 +106,7 @@ type CallOptions = {
   summaryLast?: boolean;
   /** 이어쓰기 답(`continuationAnswer`)을 맨 앞 칸으로 받는가 */
   continuation?: boolean;
-  /** 모양을 통째로 갈아 끼운다 — 맛보기(`TASTE_RUN_SHAPE`). 주면 위 둘은 안 본다 */
+  /** 모양을 통째로 갈아 끼운다 — 맛보기(`tasteRunShapeOf`). 주면 위 둘은 안 본다 */
   shape?: JSONSchema7;
   /**
    * 추론 세기 — `@ai-sdk/openai` 의 Responses 선택값 `reasoningEffort`(그 패키지 안의 문서 03-openai.mdx 「Responses」 절: GPT-5.6 은
