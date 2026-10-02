@@ -4,8 +4,8 @@
  *     AWS_PROFILE=saju-audit-verify AUDIT_VERIFY_BUCKET=<버킷> AUDIT_VERIFY_REGION=ap-northeast-2 \
  *       npm run audit:verify [-- --since <첫 번호>]
  *
- * 반출 기록(`audit.operator_access_export` — 범위 · 행 수 · 본문 sha256 · 객체 키)은 `npm run db:remote` 로 읽는다
- * (목적이 접속기록에 남는다). 개인을 가리키는 값이 없는 표다. 객체는 **읽기 전용 역할**로 내려받는다 — 반출의
+ * 반출 기록(`audit.operator_access_export` — 범위 · 행 수 · 본문 sha256 · 객체 키)은 `npm run db:remote -- --json` 으로
+ * 읽는다(목적이 접속기록에 남는다 — `--json` 이 없으면 사람의 셸에서는 표가 와서 못 읽는다, #431). 개인을 가리키는 값이 없는 표다. 객체는 **읽기 전용 역할**로 내려받는다 — 반출의
  * 쓰기 자격(`s3:PutObject` 만)과 따로다(runbook 「반출」 — 검증). 자격은 AWS SDK 의 기본 사슬(`AWS_PROFILE` 등)이
  * 고른다 — 이 스크립트는 열쇠를 받지 않는다.
  *
@@ -21,6 +21,8 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+
+import { jsonRowsOf } from './db-remote.mjs';
 
 const sha256Hex = (text) => createHash('sha256').update(text, 'utf8').digest('hex');
 
@@ -102,10 +104,11 @@ export async function verifyAll(records, fetchObject, startAfter = 0) {
   return results;
 }
 
-/** `db query` 의 JSON 출력에서 줄들을 집는다 */
+/** `db query` 의 JSON 출력(봉투든 맨 배열이든)에서 기록을 집는다. JSON 이 아니면 null */
 export function rowsOf(stdout) {
-  const parsed = JSON.parse(stdout.slice(stdout.indexOf('{')));
-  return (parsed.rows ?? []).map((row) => ({
+  const rows = jsonRowsOf(stdout);
+  if (rows === null) return null;
+  return rows.map((row) => ({
     first_id: Number(row.first_id),
     last_id: Number(row.last_id),
     rows: Number(row.rows),
@@ -122,6 +125,10 @@ export function recordsSqlOf(since) {
     from audit.operator_access_export e where e.first_id >= ${since} order by e.first_id`;
 }
 
+/** 반출 기록을 읽는 `npm` 인자 — 출력을 이 스크립트가 읽으므로 `--json` 을 넘긴다(#431) */
+export const listArgsOf = (since) =>
+  ['run', '--silent', 'db:remote', '--', '--purpose', '접속기록 반출 객체 검증', '--json', recordsSqlOf(since)];
+
 async function main() {
   const bucket = process.env.AUDIT_VERIFY_BUCKET?.trim();
   const region = process.env.AUDIT_VERIFY_REGION?.trim() || 'ap-northeast-2';
@@ -132,13 +139,16 @@ async function main() {
   const at = process.argv.indexOf('--since');
   const since = at >= 0 ? Number(process.argv[at + 1]) : 0;
 
-  const listed = spawnSync('npm', ['run', '--silent', 'db:remote', '--', '--purpose', '접속기록 반출 객체 검증',
-    recordsSqlOf(since)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+  const listed = spawnSync('npm', listArgsOf(since), { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
   if (listed.status !== 0) {
     console.error('반출 기록을 못 읽었다.');
     process.exit(listed.status ?? 1);
   }
   const records = rowsOf(listed.stdout);
+  if (records === null) {
+    console.error('반출 기록을 못 읽었다 — db:remote 의 출력이 JSON 이 아니다.');
+    process.exit(1);
+  }
 
   const { GetObjectCommand, S3Client } = await import('@aws-sdk/client-s3');
   const client = new S3Client({ region });

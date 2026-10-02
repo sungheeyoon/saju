@@ -79,7 +79,8 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
   떨어진다. 주석 처리해 두면 오류가 이름을 대 준다. 실호출에 드는 것은 `OPENAI_API_KEY` 한 줄이고
   손으로 붙인다.
 - **CLI 로 임의 SQL 이 된다** — `npm run db:remote -- --purpose "<목적>" "<sql>"`(= 접속기록에 목적 · 해시를 적고
-  `npx supabase db query --linked`, 기계 전체에서 한 번에 하나, ADR 0096 · 0105). 목적 없이는 안 돈다. 적는 함수(`audit.note_cli_query`)가
+  `npx supabase db query --linked`, 기계 전체에서 한 번에 하나, ADR 0096 · 0105). 목적 없이는 안 돈다. 출력을 스크립트가
+  읽어야 하면 `--json` 을 붙인다 — 본 질의도 `--output-format json` 으로 받는다(봉투든 맨 배열이든, #431). 적는 함수(`audit.note_cli_query`)가
   원격에 없으면 SQL 을 안 보낸다 — 그 함수를 올리는 `db push` 앞의 확인만 `node scripts/remote-lock.mjs npx supabase db query --linked "<sql>"`
   로 직접 보냈다(2026-09-24 한 번, 함수 정의의 md5). Management API 로 붙고
   `postgres` 로 돌므로 비밀번호도 `psql` 도 필요 없다. 다만 `postgres` 라 「비운영자 당사자에게
@@ -1881,7 +1882,8 @@ Vercel Cron `/api/cron/audit-export`(`vercel.json`, 매일 18:37 UTC = 서울 03
    AWS_PROFILE=saju-audit-verify AUDIT_VERIFY_BUCKET=<버킷> AUDIT_VERIFY_REGION=ap-northeast-2 npm run audit:verify
    ```
 
-   `scripts/audit-verify.mjs` 가 `npm run db:remote` 로 반출 기록(범위 · 행 수 · sha256 · 객체 키)을 읽고, 객체마다 내려받아
+   `scripts/audit-verify.mjs` 가 `npm run db:remote -- --json` 으로 반출 기록(범위 · 행 수 · sha256 · 객체 키)을 읽고(`--json` 은
+   본 질의도 JSON 으로 받는다 — 없으면 사람의 셸에서는 표가 온다, #431), 객체마다 내려받아
    머리와 기록 · 본문 해시 · 줄 수 · 번호 차례 · 범위 이음을 견준다. 어긋나면 키와 어긋남의 이름만 찍고 1 로 끝난다(본문은 안
    찍는다). `-- --since <첫 번호>` 로 그 뒤만 본다
 
@@ -1912,7 +1914,7 @@ CLI 질의 가운데 결과 줄(`cli.result`)이 없는 `cli.query` 는 중간�
 2026-10-02 10:31:40Z) 전까지 **사람의 셸에서 돈** 실행은 파서 버그로 결과 줄이 안 남았다 — supabase CLI 2.115 가 사람의
 셸이면 표, 에이전트 세션이면 JSON 봉투를 내는데 `db:remote` 는 봉투만 읽었다(#430). 2026-10-02 에 잰 값으로 그런 줄은
 3건(2026-09-25 13:53:58Z ~ 2026-10-02 10:29:54Z)이고, 끊긴 실행의 증거가 아니다. 지난 결과 줄은 소급해 만들지 않는다.
-`audit:verify` 가 사람의 셸 출력을 못 읽는 것은 #431 이다. 질의는 전부 **보통 질의**다(id · 수 · 시각뿐, 이메일과
+질의는 전부 **보통 질의**다(id · 수 · 시각뿐, 이메일과
 본문이 없다). `npm run db:remote -- --purpose "접속기록 월 점검 <YYYY-MM>" "<sql>"` 로 부른다. 결과는 저장소 밖 점검 기록에
 날짜 · 본 사람 · 이상 여부 · 조치를 한 줄씩 적는다.
 
