@@ -916,6 +916,8 @@ select is(
      */
     'claim_taste_session',
     'count_taste_step',
+    /** 퍼널 단계를 세션당 한 번 — 세션 id 와 브라우저 HMAC 이 함께 맞아야 센다(`20261119090000`, `81_taste_step_once`) */
+    'count_taste_step_once',
     /**
      * 풀에 오르는 값을 쓰는 문 넷(G-64 길 ①, ADR 0136) — 내 사람의 여덟 글자와 풀의 요약 둘. 부르는 자리는
      * `app/me/keyed-chart-writes.ts` 하나이고, 사람 id 는 세션에서, 값은 그 사람의 저장된 입력에서 서버가 짓는다.
