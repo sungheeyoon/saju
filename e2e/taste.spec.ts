@@ -5,8 +5,9 @@ import { fillBirth } from './birth-form';
 /**
  * 로그인 전 첫 화면 — **두 입구 · 로그인 전 사주 문단 · 잠긴 목차 · 접힌 만세력**(흐름 시안 g, ADR 0131).
  *
- * 로그인 전 사주 문단은 미리 만든 표에서 오고, 표가 비었으면 엔진의 문장이 선다. 시험의 스택은 표가 비어 있으므로 여기서
- * 서는 것은 엔진의 문장이다 — 그래서 「글이 선다」까지만 재고 글자를 붙들지 않는다(글은 단위 시험 `taste.test.ts`).
+ * 로그인 전 사주 문단은 서버가 이 사람의 사주로 쓴다(ADR 0143). 시험의 서버는 모델 열쇠가 없고(`playwright.config.ts`)
+ * CI 의 익명 차선에는 DB 도 없다 — 그래서 여기서 서는 것은 **실패 · 한도의 자리**다: 다른 글로 바꿔치기하지 않고, 다시 읽기나
+ * 가입 경로가 선다. 글이 서는 길과 가입 왕복은 로그인 차선(`signed-in.spec.ts`)이 DB 에 글을 심어 잰다.
  */
 
 test('첫 화면은 두 입구와 생일 칸이고, 코드 띠와 이야기 칸은 없다', async ({ page }) => {
@@ -31,10 +32,14 @@ test('무료로 내 사주 보기 → 로그인 전 사주 문단 · 잠긴 목�
   await expect(card).toContainText('민수');
   await expect(card.getByRole('list', { name: '오행 분포' })).toBeVisible();
 
-  /* 로그인 전 사주 문단 — 기다림이 끝나면 글이 선다 */
+  /* 무엇이 어디로 가는지 — 누르는 단추 곁의 고지(운영자가 정한 문구, ADR 0143) */
+  await expect(page.getByText('입력한 생년월일시는 우리 서버에서 사주를 계산하는 데만 쓰고 저장하지 않아요.', { exact: false })).toBeVisible();
+
+  /* 로그인 전 사주 문단 — 모델이 없는 시험 서버에서는 실패로 선다. 엔진 문장으로 바꿔치기하지 않고 다음 걸음이 선다 */
   const taste = page.getByRole('region', { name: '사주가 보여 주는 나' });
-  await expect(taste).toHaveAttribute('aria-busy', 'false');
-  await expect(taste.locator('p')).not.toHaveText('');
+  await expect(taste).toHaveAttribute('aria-busy', 'false', { timeout: 30_000 });
+  await expect(taste.getByRole('button', { name: '다시 읽기' }).or(taste.getByRole('link', { name: '무료 회원가입하고 이어보기' }))).toBeVisible();
+  await expect(taste.getByRole('button', { name: '더보기' })).toHaveCount(0);
 
   /* 잠긴 목차는 본 사주풀이의 절 이름이다 — 첫 줄은 프롬프트의 첫 절 */
   const outline = page.getByRole('region', { name: '전체 사주풀이 목차' });

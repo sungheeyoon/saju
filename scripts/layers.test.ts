@@ -392,6 +392,9 @@ describe('브라우저로 가는 그래프', () => {
     // 열쇠와 그것을 드는 풀의 쓰기(G-64, ADR 0136) — `server-only` 가 빌드를 세우지만, 길을 보여 주는 것은 여기다
     'app/keyed-client.ts',
     'app/me/keyed-chart-writes.ts',
+    // 로그인 전 사주 문단의 문 일곱(ADR 0143) — 화면이 부르는 것은 서버 액션(`app/actions.ts`)이다
+    'app/keyed-taste.ts',
+    'app/me/keyed-taste-claims.ts',
   ]);
 
   const directivesOf = (file: string): string[] => {
@@ -460,6 +463,11 @@ describe('브라우저로 가는 그래프', () => {
 describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
   const KEYED_CLIENT = 'app/keyed-client';
   const POOL_MODULE = 'app/me/keyed-chart-writes.ts';
+  /** 로그인 전 사주 문단의 문 일곱 — 로그인 전 쪽 넷과 가입한 회원 쪽 셋이 모듈 하나씩(ADR 0143) */
+  const TASTE_MODULES: Readonly<Record<string, ReadonlySet<string>>> = {
+    'app/keyed-taste.ts': new Set(['reserve_taste', 'finish_taste', 'taste_session_view', 'count_taste_step']),
+    'app/me/keyed-taste-claims.ts': new Set(['claim_taste_session', 'link_taste_reading_run', 'taste_continuation_of_run']),
+  };
   const POOL_DOORS = new Set([
     'create_self_person',
     'edit_person_input',
@@ -472,6 +480,8 @@ describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
     'app/api/openai/webhook/route.ts',
     'app/api/portone/webhook/route.ts',
     POOL_MODULE,
+    /** 로그인 전 사주 문단의 문 일곱 — 지문 · HMAC 은 서버가 짓고, 회원 id 는 세션에서(ADR 0143) */
+    ...Object.keys(TASTE_MODULES),
     'app/me/reading/collect.ts',
     'app/me/reading/pipeline.ts',
     /** 서버 오류를 운영자에게 알리는 자리 — 라우트 무늬 · 자리 · digest 만 보낸다(`20261108090000`) */
@@ -525,9 +535,38 @@ describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
   });
 
   it("열쇠 모듈은 server-only 로 잠겨 있고, 서버 액션('use server')이 아니다 — 브라우저가 직접 못 부른다", () => {
-    const text = readFileSync(join(ROOT, POOL_MODULE), 'utf8');
-    expect(text).toMatch(/^import 'server-only';$/m);
-    expect(text).not.toMatch(/^['"]use server['"]/m);
+    for (const held of [POOL_MODULE, ...Object.keys(TASTE_MODULES)]) {
+      const text = readFileSync(join(ROOT, held), 'utf8');
+      expect(text, held).toMatch(/^import 'server-only';$/m);
+      expect(text, held).not.toMatch(/^['"]use server['"]/m);
+    }
+  });
+
+  it.each(Object.entries(TASTE_MODULES))('로그인 전 사주 문단의 문은 제 열쇠 모듈에서만 부르고, 그 모듈은 제 문만 부른다 — %s (ADR 0143)', (held, doors) => {
+    const outside = appSources
+      .filter((file) => file !== held)
+      .flatMap((file) => rpcNamesOf(file).filter(({ name }) => doors.has(name)).map(({ name, line }) => `${file}:${line} ${name}`));
+    expect(outside).toEqual([]);
+    expect(new Set(rpcNamesOf(held).map(({ name }) => name))).toEqual(doors);
+    expect(readFileSync(join(ROOT, held), 'utf8')).not.toMatch(/\.from\(/);
+  });
+
+  it.each(Object.keys(TASTE_MODULES))('%s 가 내보내는 것은 함수 · 타입뿐이고 회원 id 를 인자로 받지 않는다 — 세션에서 얻는다', (held) => {
+    const source = parse(join(ROOT, held));
+    const params: string[] = [];
+    const values: string[] = [];
+    ts.forEachChild(source, (node) => {
+      const isExported = ts.canHaveModifiers(node) && ts.getModifiers(node)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+      if (!isExported) return;
+      if (ts.isFunctionDeclaration(node) && node.name) {
+        for (const param of node.parameters) params.push(`${node.name.text}(${param.name.getText(source)})`);
+      } else if (ts.isVariableStatement(node)) {
+        values.push(...node.declarationList.declarations.map((declaration) => declaration.name.getText(source)));
+      }
+    });
+    expect(params.length).toBeGreaterThan(0);
+    expect(params.filter((param) => /user|actor|account|member/i.test(param))).toEqual([]);
+    expect(values).toEqual([]);
   });
 
   it('열쇠 모듈이 내보내는 함수는 사람 id 를 인자로 받지 않고, 열쇠를 내보내지 않는다', () => {

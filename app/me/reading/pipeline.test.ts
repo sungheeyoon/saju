@@ -44,6 +44,21 @@ const settle = async () => {
   pending.length = 0;
 };
 
+/**
+ * **맛보기 이어쓰기의 손잡이**(ADR 0143) — 귀속 표를 맞춰 보는 자리 · 잇는 문 · 스냅숏을 읽는 문만 가짜다. 표가 없으면
+ * (`null`) 지금까지의 길 그대로다.
+ */
+const claimed = vi.fn();
+const link = vi.fn();
+const continuationOfRun = vi.fn();
+const forgot = vi.fn();
+vi.mock('./taste-carry', () => ({ claimedTaste: () => claimed() }));
+vi.mock('../keyed-taste-claims', () => ({
+  linkTasteReadingRun: (...args: unknown[]) => link(...args),
+  tasteContinuationOfRun: (...args: unknown[]) => continuationOfRun(...args),
+}));
+vi.mock('../../taste-visitor', () => ({ forgetTasteClaim: async () => forgot() }));
+
 const submit = vi.fn();
 vi.mock('./model', async () => ({
   ...(await vi.importActual<Record<string, unknown>>('./model')),
@@ -122,6 +137,11 @@ beforeEach(() => {
   pending.length = 0;
   submit.mockReset();
   submit.mockResolvedValue({ ok: true, responseId: 'resp-1', written: flowing([]) });
+  claimed.mockReset();
+  claimed.mockResolvedValue(null);
+  link.mockReset();
+  continuationOfRun.mockReset();
+  forgot.mockReset();
 });
 
 /** 모델이 흘려 주는 본문 조각 — JSON 글자 그대로 */
@@ -474,5 +494,103 @@ describe('궁합은 얼려 둔 사이로 읽는다', () => {
     const prompt = await askForPair({ names: { a: '나', b: '동료' }, relation: '동창' });
 
     expect(prompt).toContain('무슨 사이인지 모른다');
+  });
+});
+
+/**
+ * **이어쓰기 — 세션 하나 = 시도 하나**(ADR 0143 의 2 · 4). 귀속 표가 가리키는 세션이 아직 안 이어졌으면 이 누름이 연 시도에
+ * 잇고, 스냅숏을 프롬프트 맨 뒤에 싣고, 이어쓰기 모양으로 떠나보낸다. 이어진 풀이가 섰거나 도는 중이면 새로 안 연다.
+ */
+describe('귀속한 맛보기를 잇는다', () => {
+  const CARRY = {
+    previewMarkdown: '쇠의 기운을 가장 많이 타고났어요.\n\n그렇다면 어디서 쉬어 갈까요?',
+    continuationQuestion: '어디서 쉬어 가나',
+    answerDirection: '말로 먼저 꺼낸다',
+    supportingClaims: ['analysis.structure'],
+  };
+  const claim = (readingRunStatus: 'running' | 'succeeded' | 'failed' | null) => ({
+    sessionId: 'session-1',
+    claim: { outcome: 'claimed', carry: CARRY, readingRunId: readingRunStatus === null ? null : 'run-0', readingRunStatus },
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-08-26T09:00:00+09:00'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('붙인 세션을 연 시도에 잇고, 스냅숏을 프롬프트 맨 뒤에 실어 이어쓰기 모양으로 보낸다', async () => {
+    claimed.mockResolvedValue(claim(null));
+    link.mockResolvedValue('linked');
+    continuationOfRun.mockResolvedValue(CARRY);
+
+    await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: true });
+    await settle();
+
+    expect(link).toHaveBeenCalledWith('session-1', started.run_id);
+    expect(continuationOfRun).toHaveBeenCalledWith(started.run_id);
+    const prompt = prepared()?.[1].p_prompt as string;
+    expect(prompt).toContain('## 이어쓰기 — 이 사람은 이미 앞 글을 읽었다');
+    expect(prompt.indexOf('## 이어쓰기')).toBeGreaterThan(prompt.indexOf('## 자료'));
+    expect(prepared()?.[1].p_generation).toMatchObject({ continuation: { preview: CARRY.previewMarkdown } });
+    expect(submit.mock.calls[0][0]).toBe(prompt);
+    expect(submit.mock.calls[0][2]).toMatchObject({ continuation: true });
+  });
+
+  it('이어쓰기가 없으면 프롬프트 · 모양 · 설정이 지금 그대로다', async () => {
+    await beginReading({ kind: 'self' });
+    await settle();
+    const plain = prepared()?.[1];
+
+    claimed.mockResolvedValue(claim(null));
+    link.mockResolvedValue('run_taken');
+    keyedRpc.mockClear();
+    submit.mockClear();
+    await beginReading({ kind: 'self' });
+    await settle();
+
+    expect(prepared()?.[1].p_prompt).toBe(plain?.p_prompt);
+    expect(prepared()?.[1].p_generation).toEqual({ ...GENERATION.settings, provider: GENERATION.provider });
+    expect(submit.mock.calls[0][2]).toMatchObject({ continuation: false });
+    expect(continuationOfRun).not.toHaveBeenCalled();
+  });
+
+  it('이어진 풀이가 섰으면 새로 안 연다 — 그 풀이를 열고 표를 걷는다', async () => {
+    claimed.mockResolvedValue(claim('succeeded'));
+    await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: false });
+    expect(rpc).not.toHaveBeenCalledWith('start_reading_run', expect.anything());
+    expect(forgot).toHaveBeenCalled();
+  });
+
+  it('이어진 풀이가 도는 중이면 새로 안 연다', async () => {
+    claimed.mockResolvedValue(claim('running'));
+    await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: false });
+    expect(rpc).not.toHaveBeenCalledWith('start_reading_run', expect.anything());
+  });
+
+  it('실패한 풀이였으면 같은 맛보기로 다시 잇는다', async () => {
+    claimed.mockResolvedValue(claim('failed'));
+    link.mockResolvedValue('linked');
+    continuationOfRun.mockResolvedValue(CARRY);
+    await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: true });
+    expect(link).toHaveBeenCalledWith('session-1', started.run_id);
+  });
+
+  it('버림 · 남의 것 · 지남은 표를 걷고 보통 풀이다', async () => {
+    claimed.mockResolvedValue({ sessionId: 'session-1', claim: { outcome: 'discarded' } });
+    await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: true });
+    await settle();
+    expect(forgot).toHaveBeenCalled();
+    expect(link).not.toHaveBeenCalled();
+    expect(submit.mock.calls[0][2]).toMatchObject({ continuation: false });
+  });
+
+  it('남의 사람 풀이는 표를 안 본다', async () => {
+    claimed.mockResolvedValue(claim(null));
+    await beginReading({ kind: 'person', personId: 'p-1' });
+    expect(claimed).not.toHaveBeenCalled();
+    expect(link).not.toHaveBeenCalled();
   });
 });

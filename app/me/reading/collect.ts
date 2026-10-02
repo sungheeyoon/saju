@@ -1,6 +1,8 @@
 import { baselineIn, checkReading, isScored, type BirthSecret, type ReadingKind } from '@/src/lib/reading';
+import { checkContinuation, continuedMarkdownOf } from '@/src/lib/reading/continuation';
 
 import { keyedClient } from '../../keyed-client';
+import { countTasteStep } from '../../keyed-taste';
 import type { StoredInput } from '@/src/lib/input/stored';
 
 import type { ModelUsage } from './generator';
@@ -136,10 +138,27 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
    * **얼린 것으로 검사한다.** 그 사이 배포가 났어도 보낸 것을 기준으로 재고, 사용자가
    * 입력을 고쳤어도 붙들어 둔 판본으로 유출을 잰다.
    */
+  /**
+   * **이어쓰기면 답을 먼저 잰다**(ADR 0143 의 2) — 맛보기를 되풀이하거나 · 미루거나 · 첫 절에 1번을 또 쓰면 실패다. 지나면
+   * 첫 절 1번 본문으로 답을 **한 번만** 끼운다(`continuedMarkdownOf`). 아래 기본 검사와 저장은 그 끼운 글로 한다 — 저장하는
+   * 글이 검사한 글이다. 이어쓰기가 없는 풀이는 지금과 한 글자도 같다.
+   */
+  const continuation = continuationOf(job.generation);
+  let markdown = retrieved.output.markdown;
+  if (continuation !== null) {
+    const answer = retrieved.output.continuationAnswer;
+    const continued = checkContinuation({ answer, preview: continuation.preview, markdown });
+    if (!continued.ok || answer === undefined) {
+      return close('continuation-out-of-contract', continued.ok ? 'continuationAnswer 가 없다' : continued.reasons.join(' · '), retrieved.usage);
+    }
+    markdown = continuedMarkdownOf(answer, markdown);
+  }
+  const output = { score: retrieved.output.score, metaphor: retrieved.output.metaphor, markdown };
+
   const secrets = [job.birth_a, ...(job.birth_b === null ? [] : [job.birth_b])].map(secretOf);
   const verdict = checkReading({
     kind: job.kind,
-    output: retrieved.output,
+    output,
     evidenceText: job.evidence,
     secrets,
     // 얼린 프롬프트에서 되읽는다 — 그때 실제로 시킨 수다(ADR 0060)
@@ -158,9 +177,9 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
    */
   const { error: saveError } = await keyed.rpc('save_reading', rpcArgs<'save_reading'>({
     p_run_id: job.run_id,
-    p_output: retrieved.output.markdown,
-    p_score: isScored(job.kind) ? retrieved.output.score : null,
-    p_metaphor: retrieved.output.metaphor,
+    p_output: output.markdown,
+    p_score: isScored(job.kind) ? output.score : null,
+    p_metaphor: output.metaphor,
     p_evidence: job.evidence,
     p_prompt: job.prompt,
     p_prompt_version: job.prompt_version,
@@ -172,5 +191,19 @@ export async function collectReadingResult(responseId: string): Promise<CollectO
 
   if (saveError) return close('save-rejected', saveError.message, retrieved.usage);
 
+  /* 퍼널의 끝 — 이어 쓴 풀이가 섰다. 날짜와 단계만 센다(ADR 0143 의 8). 못 세도 저장은 그대로다 */
+  if (continuation !== null) await countTasteStep('reading_succeeded');
+
   return { done: 'saved' };
+}
+
+/**
+ * 얼린 작업이 이어쓰기였는가 — 제출이 `generation.continuation` 에 맛보기 원문을 실어 둔다(`pipeline.ts`). 없거나 모양이
+ * 아니면 이어쓰기가 아니다.
+ */
+export function continuationOf(generation: Record<string, unknown> | null | undefined): { preview: string } | null {
+  const carried = generation?.continuation;
+  if (carried === null || typeof carried !== 'object') return null;
+  const preview = (carried as Record<string, unknown>).preview;
+  return typeof preview === 'string' && preview.trim() !== '' ? { preview } : null;
 }

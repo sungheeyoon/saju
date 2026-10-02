@@ -20,6 +20,10 @@ import {
 } from '@/src/lib/input/query';
 import { CARD, PAPER_BOTTOM } from './ui/surfaces';
 
+/** 로그인 전 결과를 서버가 쓰는 데 무엇이 가는가 — 운영자가 정한 문구 그대로(ADR 0143 의 6, 문구 대장) */
+const TASTE_PRIVACY_NOTE =
+  '입력한 생년월일시는 우리 서버에서 사주를 계산하는 데만 쓰고 저장하지 않아요. 풀이를 쓰는 OpenAI에는 정확한 생년월일시와 출생지 대신 계산된 사주와 분석값만 보내요.';
+
 /**
  * 익명 계산기 — **엔진이 순수 함수라 서버 없이 브라우저에서 그대로 돈다.**
  *
@@ -182,6 +186,12 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
         </div>
 
         {/*
+          **무엇이 어디로 가는지 누르기 전에 말한다**(ADR 0143 의 6, 운영자가 정한 문구) — 로그인하지 않은 사람에게는 결과의
+          첫머리를 서버가 쓴다. 회원이 여기 넣는 사주는 서버로 안 가므로(브라우저가 계산한다) 이 줄이 참이 아니다.
+        */}
+        {!signedIn && <p className="text-xs leading-5 text-secondary">{TASTE_PRIVACY_NOTE}</p>}
+
+        {/*
           **사주와 사주풀이를 가르던 한 줄은 걷었다.** 「로그인 없이 사주와 오행을 확인할 수 있어요. 자세한 사주풀이는
           로그인 후 받을 수 있어요.」가 폼 아래 서 있었다. 이제 로그인하지 않은 사람에게는 결과의 첫머리(로그인 전 사주 문단)가 잠긴
           목차와 로그인 단추로 그 일을 한다(`taste.tsx`) — 입력 전에 같은 말을 한 번 더 할 까닭이 없다.
@@ -252,7 +262,6 @@ function CalculatorResult({
     <Taste
       query={query}
       saju={model.saju}
-      utterances={model.utterances}
       outline={outline}
       detail={<SajuView {...model} />}
     />

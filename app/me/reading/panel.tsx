@@ -47,6 +47,7 @@ import {
   type RunAnswer,
 } from './reading-state';
 import type { ReadingTarget } from './target';
+import type { TasteCarryView } from './taste-carry';
 
 /**
  * **글 둘레에 무엇이 서는가.**
@@ -195,6 +196,7 @@ export function ReadingPanel({
   betweenSummaryAndBody,
   matchNames,
   tones,
+  carry = null,
 }: {
   target: ReadingTarget;
   initialReading: CurrentReading | null;
@@ -277,8 +279,16 @@ export function ReadingPanel({
    * 안 넘기면 크림 한 장이다(`Result`).
    */
   tones?: readonly (Element | null)[];
+  /**
+   * 가입 전에 읽던 로그인 전 사주 문단 — 내 사주풀이에만 온다(ADR 0143). 맨 위에 「아까 보던 내용」으로 선다: 누르기 전 ·
+   * 만드는 동안 · 그 문단을 이은 글 위. 그 글을 새로 받으면(`shown` 에서 누름) 새 글은 이어 쓴 글이 아니라 내려간다.
+   */
+  carry?: TasteCarryView | null;
 }) {
   const router = useRouter();
+  /** 이 화면에서 만드는 버튼을 눌렀나 — 이어 쓴 글을 새로 받으면 「아까 보던 내용」을 내린다 */
+  const [pressed, setPressed] = useState(false);
+  const showsCarry = carry !== null && !(carry.state === 'shown' && pressed);
   const [flow, dispatch] = useReducer(
     readingFlow,
     { running: initialRunning, failed: initialFailed },
@@ -337,6 +347,7 @@ export function ReadingPanel({
 
   const generate = async () => {
     dispatch({ type: 'press' });
+    setPressed(true);
     /* 새 시도다 — 지난 시도의 진행을 들고 가지 않는다 */
     setProgress(null);
 
@@ -535,6 +546,9 @@ export function ReadingPanel({
         )}
       </header>
 
+      {/* 맨 위 — 가입 전에 읽던 문단. 검사 전의 새 글은 여기 안 선다: 저장된 그 원문뿐이다 */}
+      {showsCarry && <CarryCard preview={carry.preview} />}
+
       {/*
         **다시 받는 버튼이 글 위에 선다.** 그것은 글을 읽기 전에 정하는 일이라, 8천 자 뒤에 있으면 없는
         것과 같다.
@@ -550,7 +564,8 @@ export function ReadingPanel({
       ) : reading === null ? (
         <>
           {betweenSummaryAndBody}
-          <EmptyState />
+          {/* 이어 볼 문단이 위에 서 있으면 빈 자리의 소개는 안 세운다 — 무엇이 올지는 그 문단이 말한다 */}
+          {!showsCarry && <EmptyState />}
         </>
       ) : (
         <Result
@@ -614,6 +629,27 @@ export function ReadingPanel({
       </dialog>
       )}
     </>
+  );
+}
+
+/**
+ * 「아까 보던 내용」 — 가입 전에 읽던 로그인 전 사주 문단의 **저장된 원문**(ADR 0143). 모델이 쓴 문단이라 줄 나눔만 살린다.
+ */
+function CarryCard({ preview }: { preview: string }) {
+  const paragraphs = preview.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter((paragraph) => paragraph !== '');
+  return (
+    <section aria-labelledby="carry-heading" className="rounded-[1.75rem] border border-border bg-surface px-5 py-5 sm:px-6">
+      <h3 id="carry-heading" className="text-[13px] font-semibold text-secondary">
+        아까 보던 내용
+      </h3>
+      <div className="mt-2 flex flex-col gap-3">
+        {paragraphs.map((paragraph, at) => (
+          <p key={at} className="text-[15px] leading-7 text-foreground">
+            {paragraph}
+          </p>
+        ))}
+      </div>
+    </section>
   );
 }
 

@@ -21,6 +21,10 @@ import { readingInputOf } from './generator';
 import { GENERATION } from './generation';
 import { submitBackgroundReading } from './model';
 import { readingTargetArgs, type ReadingTarget } from './target';
+import { claimedTaste } from './taste-carry';
+import { linkTasteReadingRun, tasteContinuationOfRun } from '../keyed-taste-claims';
+import { forgetTasteClaim } from '../../taste-visitor';
+import { continuationBlockOf, type TasteRunCarry } from '@/src/lib/reading/continuation';
 import { rpcArgs } from '@/src/lib/db';
 
 /**
@@ -153,6 +157,8 @@ async function openRun(
 async function submitFrozen(
   keyed: ReturnType<typeof keyedClient>,
   job: FrozenJob,
+  /** 이어진 맛보기의 스냅숏 — 자기 풀이에서 귀속된 세션이 이 시도에 이어졌을 때만(ADR 0143). 없으면 지금 모양 그대로다 */
+  continuation: TasteRunCarry | null = null,
 ): Promise<void> {
   const { kind } = job;
 
@@ -211,13 +217,25 @@ async function submitFrozen(
     return;
   }
 
+  /**
+   * **이어쓰기는 프롬프트 맨 뒤에 붙는다**(ADR 0143 의 2) — 자기 풀이의 프롬프트(`readingPromptOf`)는 한 글자도 안 바뀌고,
+   * 사람마다 다른 블록이 그 뒤에 선다. 얼린 프롬프트가 이 전체라 회수 · 검산이 보는 것도 이것이다. 회수가 이어쓰기를 알아보는
+   * 표는 `generation.continuation` 이다 — 그 칸이 든 원문으로 답이 맛보기를 되풀이하는지 잰다(`collect.ts`).
+   */
+  const continued = continuation !== null && kind === 'self';
+  const prompt = continued ? `${made.input.prompt}\n\n${continuationBlockOf(continuation)}` : made.input.prompt;
+
   const { error: prepareError } = await keyed.rpc('prepare_reading_job', {
     p_run_id: job.run_id,
-    p_prompt: made.input.prompt,
+    p_prompt: prompt,
     p_evidence: made.input.evidenceText,
     p_prompt_version: promptVersionOf(kind),
     p_requested_model: GENERATION.model,
-    p_generation: { ...GENERATION.settings, provider: GENERATION.provider },
+    p_generation: {
+      ...GENERATION.settings,
+      provider: GENERATION.provider,
+      ...(continued ? { continuation: { preview: continuation.previewMarkdown } } : {}),
+    },
     p_viewed_at: viewedAt.toISOString(),
     /**
      * **프롬프트에 실은 기준점과 그 눈금** — 풀이를 다시 여는 화면이 만든 때의 눈금으로 지표를 그린다(ADR 0113).
@@ -237,8 +255,9 @@ async function submitFrozen(
     return;
   }
 
-  const submitted = await submitBackgroundReading(made.input.prompt, job.run_id, {
+  const submitted = await submitBackgroundReading(prompt, job.run_id, {
     summaryLast: writesSummaryLast(kind),
+    continuation: continued,
   });
   if (!submitted.ok) {
     await close(submitted.code, submitted.detail);
@@ -306,7 +325,7 @@ async function followProgress(
  * **0행이면 아무 일도 안 한다** — 이미 누가 집었거나 그 사이 시도가 닫힌 것이다. 그때
  * 또 제출하면 같은 시도에 두 번 나간다.
  */
-async function sendRun(runId: string): Promise<void> {
+async function sendRun(runId: string, continuation: TasteRunCarry | null = null): Promise<void> {
   let keyed: ReturnType<typeof keyedClient>;
   try {
     keyed = keyedClient('결과 제출');
@@ -331,7 +350,38 @@ async function sendRun(runId: string): Promise<void> {
   const job = ((data ?? []) as unknown as FrozenJob[])[0];
   if (job === undefined) return;
 
-  await submitFrozen(keyed, job);
+  await submitFrozen(keyed, job, continuation);
+}
+
+/**
+ * 이 누름이 맛보기를 잇는가(ADR 0143 의 4) — 귀속 표가 가리키는 세션을 DB 에 다시 맞춰 본다.
+ *
+ * - `continue` — 붙인 세션이 아직 풀이에 안 이어졌거나 이어진 풀이가 실패했다. 이 누름이 연 시도에 잇는다
+ * - `opened` — 이어진 풀이가 섰거나 도는 중이다. **새로 만들지 않는다** — 화면은 그 풀이를 기다리거나 연다. 섰으면 표를
+ *   걷는다 — 다음 누름부터는 보통 「다시 받기」다
+ * - `null` — 이을 것이 없다(표가 없음 · 버림 · 남의 것 · 지남 · 못 읽음). 표를 걷고 보통 풀이로 간다
+ */
+async function pressCarry(): Promise<{ kind: 'continue'; sessionId: string } | { kind: 'opened' } | null> {
+  let claimed: Awaited<ReturnType<typeof claimedTaste>>;
+  try {
+    claimed = await claimedTaste();
+  } catch (thrown) {
+    /* 내 사주를 못 읽었다 — 이어쓰기는 부속이라 보통 풀이로 간다. 원문은 문이 기록에 남겼다 */
+    console.error('begin: 맛보기 표를 못 맞췄다', thrown instanceof Error ? thrown.message : thrown);
+    return null;
+  }
+  if (claimed === null) return null;
+  const { claim, sessionId } = claimed;
+  if (claim.outcome !== 'claimed') {
+    await forgetTasteClaim();
+    return null;
+  }
+  if (claim.readingRunStatus === 'succeeded') {
+    await forgetTasteClaim();
+    return { kind: 'opened' };
+  }
+  if (claim.readingRunStatus === 'running') return { kind: 'opened' };
+  return { kind: 'continue', sessionId };
 }
 
 /** 눌렀을 때 화면이 곧바로 받는 답 — **결과가 아니라 시작 여부다.** */
@@ -361,11 +411,24 @@ export async function beginReading(
   target: ReadingTarget,
   requestKey?: string,
 ): Promise<ReadingStart> {
+  const carry = target.kind === 'self' ? await pressCarry() : null;
+  if (carry?.kind === 'opened') return { ok: true, started: false };
+
   const opened = await openRun(target, requestKey);
   if (!opened.ok) return opened;
   if (opened.started === null) return { ok: true, started: false };
 
   const runId = opened.started.run_id;
+
+  /**
+   * **세션 하나 = 시도 하나.** 연 시도에 세션을 잇고, 이어졌으면 그 스냅숏을 DB 에서 다시 읽어 싣는다 — 귀속 때 받은 글을
+   * 들고 다니지 않는다. 못 이었으면(경합 · 문이 터짐) 이 시도는 보통 풀이다. 풀이권은 시도를 여는 규칙 그대로다.
+   */
+  let continuation: TasteRunCarry | null = null;
+  if (carry?.kind === 'continue' && (await linkTasteReadingRun(carry.sessionId, runId)) === 'linked') {
+    continuation = await tasteContinuationOfRun(runId);
+  }
+
   after(async () => {
     /**
      * **여기서 던지면 아무도 못 듣는다.** 응답은 이미 나갔고 부르는 쪽이 없다. 그래도
@@ -373,7 +436,7 @@ export async function beginReading(
      * 남는 것만은 막아야 그 대상이 10분간 잠기지 않는다.
      */
     try {
-      await sendRun(runId);
+      await sendRun(runId, continuation);
     } catch (thrown) {
       // 여기까지 온 것은 우리가 못 적은 경우다. 복구기가 deadline 에 닫는다 — 까닭만 기록에 남긴다.
       console.error('begin: sendRun', thrown);

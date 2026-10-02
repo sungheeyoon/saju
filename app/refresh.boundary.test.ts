@@ -173,6 +173,12 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
     'app/me/reading/share.ts::shareMyReading':
       '링크 하나를 내줄 뿐 서버가 그리는 화면은 안 바뀐다 — 주소는 브라우저가 세운다',
     'app/nickname.ts::checkNickname': '읽기만 한다 — 참·거짓 하나',
+    'app/actions.ts::requestTaste':
+      '로그인 전 사주 문단을 답으로 내줄 뿐 서버가 그리는 화면은 안 바뀐다 — 미리 그린 `/` 다(ADR 0143). 쿠키를 처음 심을 때는 Next 가 스스로 다시 그린다',
+    'app/actions.ts::readTaste': '읽기만 한다 — 기다리는 세션의 지금',
+    'app/actions.ts::noteTasteStep': '날짜별 수 하나를 더할 뿐 어느 화면도 그 수를 안 그린다',
+    'app/actions.ts::claimTaste':
+      '세션을 붙이고 쿠키 표를 세울 뿐이고 곧장 `/me/readings/self` 로 간다 — 그 화면은 동적이라 새 쿠키로 다시 그려진다',
     'app/ops/mfa/actions.ts::startTotpEnrollment':
       '등록을 열고 QR 을 내줄 뿐 서버가 그리는 화면은 안 바뀐다 — 확인 전 요소는 어느 화면에도 안 선다',
     'app/ops/mfa/actions.ts::confirmTotpCode':

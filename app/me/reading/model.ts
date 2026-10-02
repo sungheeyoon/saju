@@ -79,7 +79,8 @@ const SUMMARY_LAST_SHAPE = {
 /**
  * **이어쓰기 답을 맨 앞에** — 맛보기를 읽고 가입한 사람의 자기 풀이 실험이 쓴다(`continuationBlockOf`,
  * `docs/notes/2026-10-03-taste-run-experiment.md`). 구조화 출력은 속성 차례대로 지으므로, 답을 본문보다 먼저 쓰게 하려면
- * 차례가 앞이어야 한다. 나머지 셋은 운영 모양 그대로다. 운영 제출(`submitBackgroundReading`)은 이 모양을 모른다.
+ * 차례가 앞이어야 한다. 나머지 셋은 운영 모양 그대로다. 운영 제출(`submitBackgroundReading`)은 이어진 세션이 있을 때만
+ * 이 모양으로 낸다(ADR 0143).
  */
 const CONTINUATION_SHAPE = {
   ...OUTPUT_SHAPE,
@@ -279,7 +280,14 @@ export async function submitBackgroundReading(
    * 한 줄 요약을 본문 뒤에 받는가 — **두 궁합의 4판만**(`writesSummaryLast`, ADR 0067). 필드와 뜻은 같고
    * 차례만 다르다. 안 넘기면 운영 차례 그대로다.
    */
-  options: { summaryLast?: boolean } = {},
+  options: {
+    summaryLast?: boolean;
+    /**
+     * 이어쓰기 답(`continuationAnswer`)을 맨 앞 칸으로 받는가 — 귀속된 맛보기가 이 시도에 이어졌을 때만(ADR 0143). 안 넘기면
+     * 운영 모양 그대로다. 자기 풀이에만 오므로 두 궁합의 차례(`summaryLast`)와 함께 오지 않는다.
+     */
+    continuation?: boolean;
+  } = {},
 ): Promise<ModelSubmission> {
   try {
     const stream = await client().responses.create({
@@ -294,7 +302,7 @@ export async function submitBackgroundReading(
           type: 'json_schema',
           name: 'reading',
           strict: true,
-          schema: options.summaryLast ? SUMMARY_LAST_SHAPE : OUTPUT_SHAPE,
+          schema: options.continuation ? CONTINUATION_SHAPE : options.summaryLast ? SUMMARY_LAST_SHAPE : OUTPUT_SHAPE,
         },
       },
     });
@@ -397,9 +405,9 @@ export async function retrieveBackgroundReading(responseId: string): Promise<Mod
      * **여기서 던지지 않는다.** 스키마가 strict 라도 파싱은 우리 몫이고, 못 읽은 것은
      * 실패로 값이 되어야 시도가 닫힌다.
      */
-    let output: ReadingOutput;
+    let output: ReadingOutput & { continuationAnswer?: string };
     try {
-      output = JSON.parse(text) as ReadingOutput;
+      output = JSON.parse(text) as ReadingOutput & { continuationAnswer?: string };
     } catch {
       return { ok: false, code: 'model-no-output', detail: '결과를 읽지 못했습니다', usage: usageOf(response) };
     }

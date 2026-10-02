@@ -1,0 +1,275 @@
+/**
+ * 로그인 전 사주 문단을 **실제 스택에 대고** 돌린다 — 서버 액션 → DB, 모델만 빼고(ADR 0143).
+ *
+ * 모델은 안 부른다 — 서버의 `OPENAI_API_KEY` 를 비워 두면 부르는 갈래는 그 자리에서 실패로 적힌다(`model-call-failed`).
+ * 성공한 글은 **모델이 냈다고 치고** artifact 를 성공으로 바꿔 둔다 — 재려는 것은 글을 어떻게 쓰는가가 아니라 예약 · 재사용 ·
+ * 한도 · 귀속 · 잇기가 서버 액션에서 DB 까지 실제로 이어지는가다(글과 검사는 단위 시험 `app/taste-run.test.ts`).
+ *
+ * 서버 액션은 브라우저가 부르는 그대로 부른다 — `Next-Action` 머리에 빌드가 지은 액션 id 를 싣고(`server-reference-manifest.json`),
+ * 답은 RSC 줄에서 읽는다. IP 는 `x-forwarded-for` 로 가른다 — 로컬 Next 서버는 그 머리가 있으면 그대로 둔다
+ * (`app/taste-visitor.ts` 머리말).
+ *
+ * 1. **연타 · 새로고침** — 같은 브라우저 · 같은 입력은 세션 하나 · 모델 0번이다
+ * 2. **같은 입력 다른 브라우저 · 쿠키 지우고 같은 입력** — 새 세션, 같은 글, 모델 0번
+ * 3. **남의 세션은 못 읽는다** — 세션 id 를 알아도 쿠키가 다르면 글이 안 선다
+ * 4. **다른 입력 반복 → 한도** — IP 1분 셋 · 브라우저 1시간 새 지문 다섯
+ * 5. **원문이 DB 에 없다** — 날짜 · IP 원문이 맛보기 표 어디에도 없다
+ * 6. **귀속** — 내 것은 붙고, 남이 붙인 것은 못 가져가고, 지문이 다르면 버리고, 바꾼 id 는 조용히 지나간다
+ * 7. **세션 하나 = 풀이 하나** — 누름이 잇고, 실패한 풀이만 다시 잇고, 성공한 풀이가 있으면 새로 안 연다
+ */
+import { createClient } from '@supabase/supabase-js';
+import { execFileSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+
+import { startCheckServer } from './next-server.mjs';
+import { passNotice, chartArgs } from './notice.mjs';
+import { createChecks, sql, keyedRpc, sessionCookie } from './checks.mjs';
+import { worktreeStack } from '../src/lib/local-env.ts';
+
+const status = JSON.parse(execFileSync('npx', ['supabase', 'status', '-o', 'json'], { encoding: 'utf8' }));
+const API = status.API_URL;
+const PORT = Number(process.env.CHECK_PORT ?? worktreeStack().checkPort + 5);
+
+const anon = () => createClient(API, status.ANON_KEY, { auth: { persistSession: false } });
+const { check, finish } = createChecks('check-taste');
+
+const stamp = Date.now();
+const tag = String(stamp).slice(-6);
+
+/** 시험용 비밀 둘 — 운영 값이 아니다. 앱은 비밀이 없으면 문단을 닫는다(기본값으로 돌지 않는다) */
+const SECRETS = {
+  TASTE_BROWSER_SECRET: 'check-taste-browser-secret-0123456789abcdef',
+  TASTE_IP_SECRET: 'check-taste-ip-secret-0123456789abcdefghijkl',
+};
+
+/** 입력 하나 — 화면이 주소 `#` 뒤에 싣는 모양 그대로 */
+const draftOf = (date, time = '14:30') =>
+  new URLSearchParams({ date, hour: time, gender: 'male', city: '서울', rule: 'jo', basis: 'localMean' }).toString();
+
+const BIRTH = '1990-05-15';
+const DRAFT = draftOf(BIRTH);
+
+/* 지난 실행이 남긴 맛보기를 걷는다 — 같은 입력의 artifact 는 전역 한 행이라, 남아 있으면 첫 요청이 재사용으로 시작한다 */
+sql(`delete from public.taste_session`);
+sql(`delete from public.taste_artifact`);
+sql(`delete from public.taste_rate_event`);
+
+const { base: BASE, stop } = await startCheckServer({
+  port: PORT,
+  supabaseUrl: API,
+  anonKey: status.ANON_KEY,
+  secretKey: status.SERVICE_ROLE_KEY,
+  whileRunning: { ...SECRETS, OPENAI_API_KEY: '' },
+});
+
+/** 빌드가 지은 액션 id — 파일과 이름으로 찾는다 */
+const manifest = JSON.parse(readFileSync('.next-check/server/server-reference-manifest.json', 'utf8'));
+const actionId = (filename, name) => {
+  const found = Object.entries(manifest.node).find(([, entry]) => entry.filename === filename && entry.exportedName === name);
+  if (found === undefined) throw new Error(`액션을 못 찾았다 — ${filename}::${name}`);
+  return found[0];
+};
+
+/** 브라우저 하나 — 쿠키 항아리 */
+const browser = () => new Map();
+
+/**
+ * 액션 하나를 부른다 — 브라우저처럼. 답의 RSC 줄에서 값을 읽고, 내려온 쿠키를 항아리에 담는다.
+ */
+async function act(path, [filename, name], args, { jar = browser(), ip = '10.0.0.1', session = '' } = {}) {
+  const cookie = [session, ...[...jar].map(([key, value]) => `${key}=${value}`)].filter((one) => one !== '').join('; ');
+  const response = await fetch(`${BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      'Next-Action': actionId(filename, name),
+      'Content-Type': 'text/plain;charset=UTF-8',
+      Accept: 'text/x-component',
+      Origin: BASE,
+      'x-forwarded-for': ip,
+      ...(cookie === '' ? {} : { cookie }),
+    },
+    body: JSON.stringify(args),
+  });
+  for (const line of response.headers.getSetCookie()) {
+    const [pair, ...attributes] = line.split(';');
+    const at = pair.indexOf('=');
+    const key = pair.slice(0, at).trim();
+    const value = pair.slice(at + 1).trim();
+    if (value === '' || attributes.some((one) => /max-age=0\b|expires=thu, 01 jan 1970/i.test(one.trim()))) jar.delete(key);
+    else jar.set(key, value);
+  }
+  const rows = new Map(
+    (await response.text()).split('\n').flatMap((line) => {
+      const at = line.indexOf(':');
+      return at < 0 ? [] : [[line.slice(0, at), line.slice(at + 1)]];
+    }),
+  );
+  const head = JSON.parse(rows.get('0') ?? 'null');
+  const ref = typeof head?.a === 'string' ? head.a.replace(/^\$@/, '') : null;
+  const value = ref === null ? undefined : rows.get(ref);
+  return value === undefined ? { broken: response.status } : JSON.parse(value);
+}
+
+const REQUEST = ['app/actions.ts', 'requestTaste'];
+const READ = ['app/actions.ts', 'readTaste'];
+const CLAIM = ['app/actions.ts', 'claimTaste'];
+const GENERATE = ['app/me/reading/actions.ts', 'generateReading'];
+
+const modelCalls = () => Number(sql(`select coalesce(sum(value), 0) from public.taste_daily_count where metric = 'model_calls'`));
+
+try {
+  // -------------------------------------------------------------------------
+  // 1 · 처음 — 모델을 부르고(없으니 실패), 그 뒤 「모델이 냈다고 치고」 성공으로 바꾼다
+  // -------------------------------------------------------------------------
+  const first = browser();
+  const before = modelCalls();
+  const failed = await act('/', REQUEST, [DRAFT], { jar: first, ip: '10.77.0.1' });
+  check('처음 부른 입력은 모델을 한 번 부르고, 모델이 없으니 「실패 · 다시 읽기」다', failed.state === 'failed' && failed.retry === true, JSON.stringify(failed));
+  check('부르기 전에 하루 예산을 하나 쓴다', modelCalls() === before + 1, `${before} → ${modelCalls()}`);
+  check('쿠키를 심는다 — 32바이트 무작위', /^[A-Za-z0-9_-]{43}$/.test(first.get('saju_taste') ?? ''));
+
+  const artifact = sql(`select id from public.taste_artifact order by created_at desc limit 1`);
+  check('실패는 시도 1 · 실패 코드로 적힌다', sql(`select status || ':' || attempts || ':' || failure_code from public.taste_artifact where id = '${artifact}'`) === 'failed:1:model-call-failed');
+
+  const retried = await act('/', REQUEST, [DRAFT], { jar: first, ip: '10.77.0.1' });
+  check('다시 읽기는 같은 artifact 의 다음 시도다 — 새 행을 안 만든다', retried.state === 'failed'
+    && sql(`select attempts from public.taste_artifact where id = '${artifact}'`) === '2'
+    && sql(`select count(*) from public.taste_artifact`) === '1');
+
+  const PREVIEW = `이 사주는 ${tag} 번째 장면에서 먼저 움직이는 쪽이에요.\n\n그렇다면 그 걸음은 어디서 쉬어 갈까요?`;
+  sql(`update public.taste_artifact set status = 'succeeded', failure_code = null, preview_markdown = '${PREVIEW}',
+         topic = '결정하거나 행동하는 방식', distinctive_pattern = '먼저 움직인다', continuation_question = '어디서 쉬어 가나',
+         answer_direction = '말로 먼저 꺼낸다', supporting_claims = '{analysis.structure}' where id = '${artifact}'`);
+
+  // -------------------------------------------------------------------------
+  // 2 · 새로고침 · 연타
+  // -------------------------------------------------------------------------
+  const settled = modelCalls();
+  const again = await act('/', REQUEST, [DRAFT], { jar: first, ip: '10.77.0.1' });
+  check('새로고침 — 같은 브라우저 · 같은 입력은 성공한 글을 다시 쓴다', again.state === 'ready' && again.preview === PREVIEW, JSON.stringify(again));
+  const burst = await Promise.all([1, 2, 3].map(() => act('/', REQUEST, [DRAFT], { jar: first, ip: '10.77.0.1' })));
+  check('연타 셋 — 셋 다 같은 세션 · 같은 글', burst.every((one) => one.state === 'ready' && one.sessionId === again.sessionId));
+  check('새로고침 · 연타는 모델을 다시 안 부른다', modelCalls() === settled, `${settled} → ${modelCalls()}`);
+  check('세션은 하나다', sql(`select count(*) from public.taste_session where id = '${again.sessionId}'`) === '1'
+    && sql(`select count(*) from public.taste_session`) === '1');
+
+  // -------------------------------------------------------------------------
+  // 3 · 다른 브라우저 · 쿠키 지움 · 남의 세션
+  // -------------------------------------------------------------------------
+  const second = browser();
+  const other = await act('/', REQUEST, [DRAFT], { jar: second, ip: '10.77.0.2' });
+  check('같은 입력 다른 브라우저 — 새 세션 · 같은 글', other.state === 'ready' && other.sessionId !== again.sessionId && other.preview === PREVIEW);
+  const wiped = await act('/', REQUEST, [DRAFT], { jar: browser(), ip: '10.77.0.1' });
+  check('쿠키를 지우고 같은 입력 — 새 세션 · 같은 글', wiped.state === 'ready' && ![again.sessionId, other.sessionId].includes(wiped.sessionId));
+  check('다른 브라우저 · 쿠키 지움도 모델을 안 부른다', modelCalls() === settled);
+
+  const peek = await act('/', READ, [again.sessionId], { jar: second, ip: '10.77.0.2' });
+  check('남의 세션 id 를 알아도 내 쿠키로는 글이 안 선다', peek.state !== 'ready', JSON.stringify(peek));
+  const mine = await act('/', READ, [again.sessionId], { jar: first, ip: '10.77.0.1' });
+  check('내 세션은 내 쿠키로 다시 읽힌다', mine.state === 'ready' && mine.preview === PREVIEW);
+
+  // -------------------------------------------------------------------------
+  // 4 · 한도
+  // -------------------------------------------------------------------------
+  const perIp = [];
+  for (const day of ['01', '02', '03', '04']) perIp.push(await act('/', REQUEST, [draftOf(`2001-01-${day}`)], { jar: browser(), ip: '10.88.0.1' }));
+  check('IP 하나가 1분에 셋 — 넷째는 「한도」(모델을 안 부른다)', perIp.slice(0, 3).every((one) => one.state === 'failed') && perIp[3].state === 'limited',
+    perIp.map((one) => one.state).join(' · '));
+
+  const hopping = browser();
+  const perBrowser = [];
+  for (const day of ['01', '02', '03', '04', '05', '06']) {
+    perBrowser.push(await act('/', REQUEST, [draftOf(`2002-02-${day}`)], { jar: hopping, ip: `10.99.0.${Number(day)}` }));
+  }
+  check('브라우저 하나가 1시간에 새 입력 다섯 — 여섯째는 「한도」', perBrowser.slice(0, 5).every((one) => one.state === 'failed') && perBrowser[5].state === 'limited',
+    perBrowser.map((one) => one.state).join(' · '));
+  check('한도 답에는 세션도 숫자도 없다', !('sessionId' in perIp[3]) && Object.keys(perIp[3]).join() === 'state');
+
+  // -------------------------------------------------------------------------
+  // 5 · 원문
+  // -------------------------------------------------------------------------
+  const tables = ['taste_artifact', 'taste_session', 'taste_rate_event', 'taste_daily_count'];
+  const dump = tables.map((table) => sql(`select coalesce(string_agg(t::text, ' '), '') from public.${table} t`)).join(' ');
+  check('맛보기 표 어디에도 생년월일 원문이 없다', !dump.includes(BIRTH) && !dump.includes('2001-01-0') && !dump.includes('14:30'));
+  check('맛보기 표 어디에도 IP 원문이 없다', !/10\.(77|88|99)\.0\./.test(dump));
+  check('한도 기록은 16진 64자 HMAC 뿐이다', sql(`select count(*) from public.taste_rate_event where subject_hmac !~ '^[0-9a-f]{64}$'`) === '0');
+
+  // -------------------------------------------------------------------------
+  // 6 · 귀속
+  // -------------------------------------------------------------------------
+  const password = `pw-${stamp}-Aa1!`;
+  const member = async (who) => {
+    const email = `taste-${who}-${stamp}@example.com`;
+    const client = anon();
+    await client.auth.signUp({ email, password });
+    await passNotice(client);
+    return { client, email, id: (await client.auth.getUser()).data.user.id, session: await sessionCookie(status, email, password) };
+  };
+  const a = await member('a');
+  const b = await member('b');
+  const c = await member('c');
+
+  const claimed = await act('/', CLAIM, [DRAFT, again.sessionId], { jar: first, ip: '10.77.0.1', session: a.session });
+  check('내 세션은 붙는다 — 확정한 입력으로 다시 잰 지문이 같다', claimed.continued === true, JSON.stringify(claimed));
+  check('붙은 세션은 그 회원 것이다', sql(`select status || ':' || claimed_by from public.taste_session where id = '${again.sessionId}'`) === `claimed:${a.id}`);
+  check('귀속 표(쿠키)가 선다', first.get('saju_taste_claim') === again.sessionId);
+  check('가입 완료를 한 번 센다', Number(sql(`select coalesce(sum(value), 0) from public.taste_daily_count where metric = 'funnel:signup_completed'`)) >= 1);
+
+  const stolen = await act('/', CLAIM, [DRAFT, again.sessionId], { jar: new Map([['saju_taste', first.get('saju_taste')]]), ip: '10.77.0.1', session: b.session });
+  check('남이 붙인 세션은 같은 브라우저의 다른 회원도 못 가져간다', stolen.continued === false
+    && sql(`select claimed_by from public.taste_session where id = '${again.sessionId}'`) === a.id);
+
+  const discarded = await act('/', CLAIM, [draftOf('1985-03-03'), other.sessionId], { jar: second, ip: '10.77.0.2', session: c.session });
+  check('지문이 다르면 버린다 — 이어쓰기 없는 보통 풀이', discarded.continued === false
+    && sql(`select status from public.taste_session where id = '${other.sessionId}'`) === 'discarded');
+
+  const forged = await act('/', CLAIM, [DRAFT, randomUUID()], { jar: browser(), ip: '10.77.0.3', session: c.session });
+  check('바꾼 id 는 조용히 지나간다', forged.continued === false);
+
+  // -------------------------------------------------------------------------
+  // 7 · 세션 하나 = 풀이 하나
+  // -------------------------------------------------------------------------
+  await keyedRpc(a.client, 'create_self_person', {
+    p_local_label: `맛${tag}`, p_calendar: 'solar', p_original_date: BIRTH, p_solar_date: BIRTH, p_birth_time: '14:30',
+    p_gender: 'male', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean', ...chartArgs(`taste-${tag}`),
+  });
+
+  const linkedRun = () => sql(`select coalesce(reading_run_id::text, '') from public.taste_session where id = '${again.sessionId}'`);
+  const runStatus = (run) => sql(`select status from public.reading_run where id = '${run}'`);
+  const settledRun = async (run) => {
+    for (let tries = 0; tries < 60 && runStatus(run) === 'running'; tries += 1) await new Promise((resolve) => setTimeout(resolve, 500));
+    return runStatus(run);
+  };
+  const runsOfA = () => sql(`select count(*) from public.reading_run where user_id = '${a.id}'`);
+
+  const pressed = await act('/me/readings/self', GENERATE, [{ kind: 'self' }, randomUUID()], { jar: first, ip: '10.77.0.1', session: a.session });
+  const run1 = linkedRun();
+  check('누름이 연 시도에 세션을 잇는다', pressed.ok === true && pressed.started === true && run1 !== '', JSON.stringify(pressed));
+  check('모델이 없는 시도는 실패로 닫힌다 — 풀이권은 안 쓰인다', (await settledRun(run1)) === 'failed');
+
+  const pressedAgain = await act('/me/readings/self', GENERATE, [{ kind: 'self' }, randomUUID()], { jar: first, ip: '10.77.0.1', session: a.session });
+  const run2 = linkedRun();
+  check('풀이가 실패했으면 같은 맛보기로 다시 잇는다', pressedAgain.started === true && run2 !== '' && run2 !== run1, `${run1} → ${run2}`);
+  await settledRun(run2);
+
+  /* 모델이 냈다고 치고 이어진 풀이를 성공시킨다 — 시도는 그 사람으로 열고, 잇기와 저장은 서버가 열쇠로 부르는 그 문이다 */
+  const opened = await a.client.rpc('start_reading_run', {
+    p_kind: 'self', p_idempotency_key: `taste-${tag}`, p_model: 'gpt-check', p_prompt_version: 'reading-prompt-check',
+  });
+  const run3 = opened.data?.[0]?.run_id;
+  sql(`select public.link_taste_reading_run('${a.id}'::uuid, '${again.sessionId}'::uuid, '${run3}'::uuid)`);
+  sql(`select public.save_reading('${run3}'::uuid, '## 이어 쓴 풀이', null, '먼저 움직이는 사람', '{"charts":{}}', '# 역할',
+         'reading-prompt-check', 'gpt-check', '{}'::jsonb, now())`);
+  check('이어진 풀이가 섰다', runStatus(run3) === 'succeeded' && linkedRun() === run3);
+
+  const runs = runsOfA();
+  const done = await act('/me/readings/self', GENERATE, [{ kind: 'self' }, randomUUID()], { jar: first, ip: '10.77.0.1', session: a.session });
+  check('성공한 풀이가 있으면 다시 눌러도 새로 안 연다 — 그 풀이로', done.ok === true && done.started === false && runsOfA() === runs, `${runs} → ${runsOfA()}`);
+  check('다 쓴 귀속 표는 걷힌다 — 다음 누름부터는 보통 「다시 받기」다', !first.has('saju_taste_claim'));
+} catch (failure) {
+  check('검사가 끝까지 돌았다', false, failure instanceof Error ? failure.message : String(failure));
+} finally {
+  stop();
+  finish();
+}
