@@ -74,11 +74,19 @@ export function noteSqlOf({ actor, purpose, sha256 }) {
   return `select audit.note_cli_query(${textOf(actor)}, ${textOf(purpose)}, '${sha256}') as access_log_id`;
 }
 
-/** `db query` 의 JSON 출력에서 적은 줄의 번호를 집는다. 못 집으면 null */
+/**
+ * `db query --output-format json` 의 출력에서 적은 줄의 번호를 집는다. 못 집으면 null.
+ *
+ * 모양이 둘이다 — CLI 2.115 는 에이전트 세션(`CLAUDECODE` · `AI_AGENT`)이면 `{ boundary, rows, warning }` 봉투를,
+ * 사람의 셸이면 맨 배열 `[{ … }]` 을 낸다. 플래그가 없으면 사람의 셸에서는 박스 표(text)라 못 집는다(2026-10-02).
+ */
 export function accessIdOf(stdout) {
+  const starts = [stdout.indexOf('{'), stdout.indexOf('[')].filter((at) => at >= 0);
+  if (starts.length === 0) return null;
   try {
-    const parsed = JSON.parse(stdout.slice(stdout.indexOf('{')));
-    const id = Number(parsed?.rows?.[0]?.access_log_id);
+    const parsed = JSON.parse(stdout.slice(Math.min(...starts)));
+    const rows = Array.isArray(parsed) ? parsed : parsed?.rows;
+    const id = Number(rows?.[0]?.access_log_id);
     return Number.isSafeInteger(id) && id > 0 ? id : null;
   } catch {
     return null;
@@ -110,8 +118,15 @@ function gitUserName() {
   }
 }
 
-const supabase = (sql, stdio) =>
-  spawnSync('npx', ['supabase', 'db', 'query', '--linked', sql], { stdio, encoding: 'utf8' });
+/**
+ * `npx` 뒤의 인자. 기록 · 결과 호출은 출력을 기계가 읽으므로 JSON 을 요청한다(`json: true`). 운영자가 읽는 본 질의는
+ * 요청하지 않는다 — 사람의 셸이면 표, 에이전트 세션이면 CLI 가 고르는 봉투 그대로다.
+ */
+export const queryArgsOf = (sql, { json }) =>
+  ['supabase', 'db', 'query', '--linked', ...(json ? ['--output-format', 'json'] : []), sql];
+
+const supabase = (sql, stdio, { json = false } = {}) =>
+  spawnSync('npx', queryArgsOf(sql, { json }), { stdio, encoding: 'utf8' });
 
 function main() {
   const parsed = parseArgs(process.argv.slice(2));
@@ -123,10 +138,13 @@ function main() {
   const actor = actorOf({ gitName: gitUserName(), osName: userInfo().username, env: process.env });
   const sha256 = sqlHashOf(parsed.sql);
 
-  const noted = supabase(noteSqlOf({ actor, purpose: parsed.purpose, sha256 }), ['ignore', 'pipe', 'pipe']);
+  const noted = supabase(noteSqlOf({ actor, purpose: parsed.purpose, sha256 }), ['ignore', 'pipe', 'pipe'], {
+    json: true,
+  });
   if (noted.status !== 0) {
     console.error('접속기록에 적지 못해 SQL 을 보내지 않았다.');
-    console.error(noted.stderr || noted.stdout);
+    // JSON 을 요청하면 CLI 의 오류는 stdout 에 JSON 으로 온다 — stderr 에는 「Connecting…」뿐이라 둘 다 낸다
+    console.error(`${noted.stderr ?? ''}${noted.stdout ?? ''}`.trim());
     process.exit(noted.status ?? 1);
   }
   console.error(`접속기록에 적었다 — 목적 「${parsed.purpose}」 · sha256 ${sha256.slice(0, 12)}… · ${actor}`);
@@ -142,7 +160,7 @@ function main() {
   if (accessId === null) {
     console.error('경고: 적은 줄의 번호를 못 읽어 결과를 적지 않았다.');
   } else {
-    const told = supabase(resultSqlOf({ id: accessId, errorClass }), ['ignore', 'pipe', 'pipe']);
+    const told = supabase(resultSqlOf({ id: accessId, errorClass }), ['ignore', 'pipe', 'pipe'], { json: true });
     if (told.status !== 0) console.error('경고: 접속기록에 결과를 적지 못했다 — SQL 은 이미 나갔다.');
     else console.error(`접속기록에 결과를 적었다 — ${errorClass === null ? '성공' : `실패(${errorClass})`}`);
   }

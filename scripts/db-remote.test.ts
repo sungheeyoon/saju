@@ -9,7 +9,9 @@ import { join, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { accessIdOf, actorOf, errorClassOf, noteSqlOf, parseArgs, resultSqlOf, sqlHashOf } from './db-remote.mjs';
+import {
+  accessIdOf, actorOf, errorClassOf, noteSqlOf, parseArgs, queryArgsOf, resultSqlOf, sqlHashOf,
+} from './db-remote.mjs';
 
 const SQL = 'select count(*) from public.report where reviewed_at is null';
 
@@ -81,6 +83,24 @@ describe('끝난 뒤의 결과 (`20261014090000`)', () => {
     expect(accessIdOf(`Connecting to remote database...\n${noted}`)).toBe(42);
     expect(accessIdOf('')).toBeNull();
     expect(accessIdOf('{"rows":[]}')).toBeNull();
+  });
+
+  // CLI 2.115 는 에이전트 세션(`CLAUDECODE` · `AI_AGENT`)을 알아채면 위의 봉투(JSON)를, 사람의 셸이면 박스 표(text)를
+  // 낸다 — 이 시험의 봉투는 에이전트 세션에서 뜬 모양이라 사람이 돌릴 때마다 결과가 빠지는 것을 못 봤다(2026-10-02).
+  // 아래 둘은 로컬 스택에 `noteSqlOf` 의 문장을 사람의 env 로 보내 받은 그대로다.
+  it('사람의 셸에서 플래그 없이 받은 박스 표에서는 번호를 못 집는다 — 그래서 JSON 을 요청한다', () => {
+    expect(accessIdOf('┌───────────────┐\n│ access_log_id │\n├───────────────┤\n│ 42            │\n└───────────────┘\n')).toBeNull();
+  });
+
+  it('사람의 셸에서 `--output-format json` 으로 받은 맨 배열에서도 번호를 집는다', () => {
+    expect(accessIdOf('[\n  {\n    "access_log_id": 42\n  }\n]\n')).toBe(42);
+    expect(accessIdOf('[]')).toBeNull();
+  });
+
+  it('기록 · 결과 호출은 JSON 을 요청하고, 운영자가 읽는 본 질의는 지금 모양(사람이면 표)으로 둔다', () => {
+    expect(queryArgsOf('select 1', { json: true })).toEqual(
+      ['supabase', 'db', 'query', '--linked', '--output-format', 'json', 'select 1']);
+    expect(queryArgsOf('select 1', { json: false })).toEqual(['supabase', 'db', 'query', '--linked', 'select 1']);
   });
 
   it('성공은 분류가 없고, 실패는 문장이 아니라 분류만 — SQL 오류 · 접속 · 그 밖', () => {
