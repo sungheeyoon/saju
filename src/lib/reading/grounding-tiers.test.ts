@@ -44,7 +44,7 @@ describe('근거 칸의 층 검사', () => {
     const claims = {
       analysis: { presence: 'fact', absence: 'fact' },
       'analysis.following': { presence: 'candidate', absence: 'candidate' },
-    };
+    } as const;
     const evidence = { charts: { a: { claims }, b: null }, compatibility: null };
 
     expect(overrunsOf(withGrounding(['analysis.following.facts [사실]']), evidence)).toEqual([

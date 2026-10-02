@@ -1,4 +1,5 @@
 import { CLAIM_STRENGTH_KO, CLAIM_STRENGTH_ORDER, type ClaimStrength } from '../saju/text/policy';
+import type { ChartEvidence, IncludedPath } from '../saju/evidence';
 import { readingGrounding } from './display';
 
 /**
@@ -8,9 +9,7 @@ import { readingGrounding } from './display';
  * 부른다 — 저장을 막지도 다시 부르지도 않는다(2026-10-02 운영자 확정). 근거 칸은 모델이 손으로 적는 목록이라
  * 경로 표기가 매번 조금씩 다르고, 이 파서는 그중 **확실히 읽히는 것만** 판정한다.
  *
- * 2026-10-02 에 잰 값: 로컬 실호출 원문 33편에서 경로 1,325 — ① 상한 표에 직접 959 · ② 하위 경로 335 ·
- * ③ `contract` 6 · ④ `limitations` 5 · ⑤ 표에 없음 20, 초과는 ① 6 · ② 4. 운영 35편(비식별 집계)은 ① 5 · ② 1 ·
- * 확인 가능한 absence 3 이었고, 지금 판(v15 · v17) 8편은 0 이었다. 그 집계를 낸 SQL 과 같은 규칙을 옮겼다.
+ * 잰 값은 #427 결정 · 결과 댓글에 있다: https://github.com/sungheeyoon/saju/issues/427#issuecomment-5950748135
  *
  * 규칙:
  * - 근거 절은 화면이 자르는 자리와 같은 제목으로 찾는다(`readingGrounding`). 못 찾으면 `grounding: false`.
@@ -26,8 +25,10 @@ import { readingGrounding } from './display';
  *   `missing` · `stillMissing`)는 부모 칸의 `absence` 상한과도 견준다.
  */
 
-type ClaimNote = { readonly presence: string; readonly absence: string };
-type Claims = Readonly<Record<string, ClaimNote | undefined>>;
+/** 근거 하나의 두 방향 상한 — 자료의 `claims` 값 그대로(JSON 을 건너도 `ClaimStrength`) */
+type ClaimCeiling = ChartEvidence['claims'][IncludedPath];
+/** 판마다 키가 다르다(자기 · 궁합 · 공유) — 경로 문자열로 찾는다 */
+type Claims = Readonly<Partial<Record<string, ClaimCeiling>>>;
 
 /** 실호출이 넘기는 자료 — 자기 풀이 · 궁합 · 공유 판 어느 것이든 `claims` 표만 읽는다 */
 type TieredEvidence = {
@@ -69,7 +70,7 @@ const ITEM_SPLIT = /(?<=\])\s+·\s+|\s+·\s+(?=[A-Za-z])/;
 const PATH_PIECE = /^[a-z][A-Za-z0-9.]*$/;
 const LITERALS = new Set(['true', 'false', 'null']);
 
-const rank = (tier: string): number => CLAIM_STRENGTH_ORDER.indexOf(tier as ClaimStrength);
+const rank = (tier: ClaimStrength): number => CLAIM_STRENGTH_ORDER.indexOf(tier);
 const lowest = (tiers: readonly ClaimStrength[]): ClaimStrength =>
   tiers.reduce((low, tier) => (rank(tier) < rank(low) ? tier : low));
 
@@ -165,12 +166,12 @@ export function groundingTiers(output: string, evidence: TieredEvidence): Ground
         const pathClass = key === bare ? 'direct' : 'sub';
         counts[pathClass]++;
         if (rank(tier) > rank(note.presence)) {
-          overruns.push({ path, tier, key, ceiling: note.presence as ClaimStrength, polarity: 'presence', pathClass });
+          overruns.push({ path, tier, key, ceiling: note.presence, polarity: 'presence', pathClass });
         }
         if (/\.(missing|stillMissing)$/.test(bare)) {
           absenceChecked++;
           if (rank(tier) > rank(note.absence)) {
-            overruns.push({ path, tier, key, ceiling: note.absence as ClaimStrength, polarity: 'absence', pathClass });
+            overruns.push({ path, tier, key, ceiling: note.absence, polarity: 'absence', pathClass });
           }
         }
       });
