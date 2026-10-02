@@ -5,12 +5,13 @@
 고치는 것. 역할 문서는 **규칙을 옮겨 적지 않고 원본의 절을 가리킨다**(ADR 0140) — 규칙이 바뀌면 원본을 고치고, 역할
 문서는 가리키는 절이 옮겨졌을 때만 고친다. 가리킨 절이 실제로 있는지는 `scripts/code-rules.test.ts` 가 잰다.
 
-## 모두가 먼저 보는 넷
+## 모두가 먼저 보는 것
 
 1. **붉은 main** — `gh issue list --label ci-main-red` 가 비어 있지 않으면 그것부터(`docs/agents/delegation.md` 「시작하기 전에」)
 2. **나란히 도는 세션** — `git worktree list`. 작업 가지는 워크트리로 연다(`docs/agents/delegation.md` 「일하는 법」)
 3. **지금 단계** — `docs/prd.md` 「7.0 출시 범위」 표의 「(지금)」. 운영 베타 동안 등급 3 은 밟고 값을 적는다(ADR 0093)
 4. **보류 줄** — `docs/product/gaps.md` 의 `보류` 는 그 조건이 올 때까지 권하지도 묻지도 않는다
+5. **로컬 환경** — 새 워크트리에는 `node_modules` 가 없다. 무엇이든 돌리기 전에 `docs/agents/delegation.md` 「로컬 환경의 함정」
 
 ## 역할 고르기
 
