@@ -32,12 +32,21 @@ export type ModelUsage = {
   totalTokens: number | null;
 };
 
-export type ModelCall =
+/**
+ * 기다리는 길(`callModel`)의 결과. 모양은 기본이 풀이(`ReadingOutput`)이고, 맛보기 실험만 다른 모양을 넘긴다
+ * (`app/me/reading/taste-run.live.test.ts`).
+ */
+export type ModelCall<Output = ReadingOutput> =
   | {
       ok: true;
-      output: ReadingOutput;
+      output: Output;
       /** 못 받았으면 `null`. 지어내지 않는다 */
       usage: ModelUsage | null;
+      /**
+       * 출력 토큰 가운데 추론에 쓴 몫 — `usage.outputTokens` 에 이미 들어 있다(따로 더하지 않는다). 못 받았으면 `null`.
+       * 실험이 추론 세기별 시간 · 비용을 견주려고 받는다.
+       */
+      reasoningTokens: number | null;
       /** provider 가 실제로 답한 모델 — 우리가 **요청한** 이름과 다를 수 있다 */
       modelId: string | null;
     }
