@@ -910,6 +910,13 @@ select is(
     'cancel_reading_order',
     'claim_reading_job',
     /**
+     * 사람마다의 로그인 전 맛보기의 문 일곱(`20261118090000`, ADR 0131 을 대체할 ADR 예정) — 방문자는 로그인 전이라 서버가 지은
+     * 브라우저 · IP HMAC 으로 부르고, 귀속 · 잇기는 서버가 세션에서 얻은 회원 id 를 첫 인자로 넘긴다(ADR 0136 의 꼴).
+     * 익명 · 로그인한 사람은 일곱 다 못 부른다(`80_taste_run`).
+     */
+    'claim_taste_session',
+    'count_taste_step',
+    /**
      * 풀에 오르는 값을 쓰는 문 넷(G-64 길 ①, ADR 0136) — 내 사람의 여덟 글자와 풀의 요약 둘. 부르는 자리는
      * `app/me/keyed-chart-writes.ts` 하나이고, 사람 id 는 세션에서, 값은 그 사람의 저장된 입력에서 서버가 짓는다.
      * 로그인한 사람은 넷 다 직접 못 부른다(`72_pool_values_keyed`).
@@ -918,6 +925,8 @@ select is(
     'edit_person_input',
     'ensure_discovery_participation',
     'fail_reading_job',
+    'finish_taste',
+    'link_taste_reading_run',
     'mark_reading_webhook_processed',
     /** 동의가 연 시도를 서버가 찾아 제출한다 — 부르는 사람은 요청자가 아니다(ADR 0038) */
     'match_run_awaiting_send',
@@ -940,6 +949,7 @@ select is(
      * 로그인한 사람이 부를 수 있으면 알림함을 채울 수 있다(`77_ops_alerts`).
      */
     'report_request_error',
+    'reserve_taste',
     /*
       **한 벌로 돌아왔다.** 비유를 받는 인자가 늘 때도, 판본 인자 둘이 빠질 때도 잠시
       두 벌이 서 있었다 — 넓히고(expand) 배포가 자리 잡은 뒤 좁힌다(contract).
@@ -958,9 +968,11 @@ select is(
      */
     'set_person_chart',
     /** 얼린 작업을 집는 문 — 조회가 아니라 `frozen` → `preparing` 전이다(ADR 0071 · #66) */
-    'take_reading_job'
+    'take_reading_job',
+    'taste_continuation_of_run',
+    'taste_session_view'
   ]::text[],
-  'service_role 이 부를 수 있는 public 함수는 이 스물일곱 줄뿐이다');
+  'service_role 이 부를 수 있는 public 함수는 이 서른네 줄뿐이다');
 
 /**
  * **기본값이 닫아 준다는 약속이 안 지켜지고 있었다.**

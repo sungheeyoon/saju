@@ -18,13 +18,19 @@
  *   7. **덱이 없던 사람의 첫 목록을 두 세션이 나란히 열어도 덱은 한 벌이다** — 뒤 세션은 사람 단위 자물쇠에서 앞
  *      세션의 커밋을 기다렸다가 앞이 세운 덱을 읽는다. 고치기 전에는 덱 둘 · 노출 기록 두 벌이 섰다(`20261030090000`)
  *
+ *   8. **맛보기 예약 스물이 한꺼번에 와도 상한과 유일 생성이 선다** — 같은 지문이면 모델 예약 하나 · 한 IP 면 1분 셋 ·
+ *      한 브라우저면 새 지문 다섯 · 전체 상한 근처면 남은 수만(`20261118090000`). 예약 문은 IP → 브라우저 → artifact 열쇠
+ *      순으로 트랜잭션 자물쇠를 잡고 전체 하루 줄은 `for update` 로 잡는다
+ *
  * 남는 것 — 접속기록 표는 추가만 되므로 이 검사가 적은 줄(무작위 actor, 1 · 3 · CLI 질의와 결과, 5)과 반출 시도
  * 둘(4, 「설정 없음」으로 끝낸다)은 로컬 DB 에 남는다. 주문을 연 계정은 끝에 지운다. 판매 스위치는 2 동안만 켜고 `finally` 에서 끈다.
  * 6 의 계정과 신고는 끝에 지우고, 안내번호 대장의 두 줄은 남는다 — 한 번 쓴 번호는 다시 안 쓰는 것이 그 대장의 뜻이다.
  * 7 의 두 계정은 끝에 지운다(덱 · 노출 기록이 FK 를 따라간다). 일정이 하나도 없던 DB 면 7 이 세운 일정 한 줄은 남는다.
+ * 8 은 만든 세션 · artifact · 한도 사건을 지우고, 전체 하루 줄을 처음 값으로, 낮춘 상한을 2,000 으로 되돌리고, 그날의 맛보기
+ * 예산 알림 줄을 지운다 — 갈래별 수(`reserve:*`)는 남는다.
  */
 import { spawn } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { createChecks, sql } from './checks.mjs';
 import { scheduleBeta } from './notice.mjs';
@@ -337,6 +343,68 @@ const accessRow = (actor, outcome = 'allowed') => `
     check('뒤 세션은 앞 세션의 커밋을 기다렸다 — 사람 단위 자물쇠가 하나다', second.ms >= 1000, `${second.ms}ms`);
   } finally {
     sql(`delete from auth.users where id in ('${viewer}', '${other}')`);
+  }
+}
+
+// ── 8. 맛보기 예약 스물이 한꺼번에 ───────────────────────────────────────────────
+
+{
+  /*
+    스무 세션이 같은 순간 `reserve_taste` 를 부르고, 부른 뒤 0.3초 동안 커밋을 붙든다 — 앞 세션의 예약이 커밋되기 전에
+    나머지가 같은 자리를 다툰다. 지문 · HMAC 은 이 검사의 이름표로 지은 16진 64자다. 끝에 이 검사가 만든 행을 지우고
+    전체 하루 줄을 처음 값으로 돌린다.
+  */
+  const stamp = randomUUID();
+  const hex = (label) => createHash('sha256').update(`race-taste:${stamp}:${label}`).digest('hex');
+  const reserve = (fp, browser, ip) => session(0, `begin; set local role service_role;
+    select 'OUT=' || outcome from public.reserve_taste('${hex(fp)}', 'race-v1', 'race-m1', '${hex(browser)}', '${hex(ip)}');
+    select pg_sleep(0.3); commit;`);
+  const outcomes = (results) => results.reduce((tally, one) => {
+    const out = marked(one, 'OUT') ?? `실패(${one.err.trim().slice(0, 80)})`;
+    return { ...tally, [out]: (tally[out] ?? 0) + 1 };
+  }, {});
+  const today = `(now() at time zone 'Asia/Seoul')::date`;
+  const callsBefore = sql(`select coalesce((select value from public.taste_daily_count
+    where day = ${today} and metric = 'model_calls'), 0)`);
+  const twenty = Array.from({ length: 20 }, (_, i) => i);
+
+  try {
+    // 8a. 같은 지문 · 다른 브라우저 · 다른 IP 스물 — 모델 예약은 하나, 나머지는 기다린다
+    const same = outcomes(await Promise.all(twenty.map((i) => reserve('same', `same-br-${i}`, `same-ip-${i}`))));
+    check('같은 지문의 동시 예약 스물 — 모델 예약은 하나다', same.call_model === 1 && same.wait_running === 19,
+      JSON.stringify(same));
+    check('같은 지문의 artifact 는 한 행이다',
+      sql(`select count(*) from public.taste_artifact where evidence_fingerprint = '${hex('same')}'`) === '1');
+
+    // 8b. 다른 지문 · 다른 브라우저 · 같은 IP 스물 — IP 1분 셋
+    const ip = outcomes(await Promise.all(twenty.map((i) => reserve(`ip-${i}`, `ip-br-${i}`, 'one-ip'))));
+    check('한 IP 의 동시 예약 스물 — 1분 상한 셋만 지난다', ip.call_model === 3 && ip.limited_ip === 17, JSON.stringify(ip));
+
+    // 8c. 다른 지문 · 같은 브라우저 · 다른 IP 스물 — 브라우저 1시간 새 지문 다섯
+    const browser = outcomes(await Promise.all(twenty.map((i) => reserve(`br-${i}`, 'one-browser', `br-ip-${i}`))));
+    check('한 브라우저의 동시 예약 스물 — 새 지문 다섯만 지난다', browser.call_model === 5 && browser.limited_browser === 15,
+      JSON.stringify(browser));
+
+    // 8d. 전체 하루 — 상한을 지금 값 + 넷으로 낮추고 서로 다른 스물
+    const used = Number(sql(`select coalesce((select value from public.taste_daily_count
+      where day = ${today} and metric = 'model_calls'), 0)`));
+    sql(`create or replace function public.taste_daily_model_calls()
+         returns integer language sql immutable set search_path = '' as $$ select ${used + 4} $$`);
+    const global = outcomes(await Promise.all(twenty.map((i) => reserve(`all-${i}`, `all-br-${i}`, `all-ip-${i}`))));
+    check('서비스 전체 상한 근처의 동시 예약 스물 — 남은 넷만 지난다', global.call_model === 4 && global.limited_global === 16,
+      JSON.stringify(global));
+    check('전체 하루 수는 상한을 안 넘는다', sql(`select value from public.taste_daily_count
+      where day = ${today} and metric = 'model_calls'`) === String(used + 4));
+  } finally {
+    sql(`create or replace function public.taste_daily_model_calls()
+         returns integer language sql immutable set search_path = '' as $$ select 2000 $$`);
+    sql(`delete from public.taste_session where prompt_version = 'race-v1'`);
+    sql(`delete from public.taste_artifact where prompt_version = 'race-v1'`);
+    const subjects = ['one-ip', 'one-browser', ...twenty.flatMap((i) => [
+      `same-br-${i}`, `same-ip-${i}`, `ip-br-${i}`, `br-ip-${i}`, `all-br-${i}`, `all-ip-${i}`])];
+    sql(`delete from public.taste_rate_event where subject_hmac in (${subjects.map((label) => `'${hex(label)}'`).join(', ')})`);
+    sql(`update public.taste_daily_count set value = ${callsBefore} where day = ${today} and metric = 'model_calls'`);
+    sql(`delete from public.ops_alert where kind like 'taste-budget-%' and day = ${today}`);
   }
 }
 
