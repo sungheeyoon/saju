@@ -215,3 +215,50 @@ describe('이름표를 잃은 일감을 되찾는다', () => {
     await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'skipped', why: 'adopt failed' });
   });
 });
+
+/**
+ * **이어쓰기 — 첫 절 1번 본문 = 답, 한 번만**(ADR 0143 의 2). 제출이 `generation.continuation` 에 맛보기 원문을 실어 두면
+ * 회수가 답을 재고, 지나면 첫 절 2번 앞에 끼워 저장한다. 없으면 지금과 한 글자도 같다.
+ */
+describe('가입 뒤 이어쓰기', () => {
+  const PREVIEW = '쇠의 기운을 가장 많이 타고났어요. 기준이 분명한 편이에요.\n\n그렇다면 이 단단함은 어디서 쉬어 갈까요?';
+  const ANSWER =
+    '그 쉼은 말로 먼저 꺼내는 데서 와요. 혼자 정리를 끝내고 내놓기보다 덜 다듬어진 채로라도 가까운 사람에게 먼저 나누면 버티는 시간이 줄어요. 결과를 일찍 보여 주는 편이 맞고, 그러면 같은 책임도 지치는 일보다 실력을 보여 주는 일에 가까워져요. 부담이 몰리는 날일수록 먼저 묻는 쪽이 이 사주에는 덜 무거워요.';
+  const BODY = '스스로 정한 규칙 안에서 오래 버티는 사람입니다. '.repeat(20);
+  const CONTINUED = `## 먼저 볼 핵심 세 가지\n2. 일을 고르는 눈이 빠르다.\n3. 관계에서는 천천히 연다.\n\n## 한 줄로\n${BODY}`;
+
+  const continuedJob = () => ({ ...jobOf('self'), generation: { provider: 'openai', continuation: { preview: PREVIEW } } });
+  const replied = (markdown: string, continuationAnswer?: string) => ({
+    ...answered({ markdown, score: null }),
+    output: { metaphor: METAPHOR, markdown, score: null, ...(continuationAnswer === undefined ? {} : { continuationAnswer }) },
+  });
+
+  it('답을 1번 본문으로 한 번만 끼워 저장하고, 퍼널 끝을 센다', async () => {
+    job = continuedJob();
+    retrieve.mockResolvedValue(replied(CONTINUED, ANSWER));
+
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
+    const saved = called('save_reading')?.[1].p_output as string;
+    expect(saved.split(ANSWER)).toHaveLength(2);
+    expect(saved).toContain(`## 먼저 볼 핵심 세 가지\n1. ${ANSWER}\n2. 일을 고르는 눈이 빠르다.`);
+    expect(called('count_taste_step')?.[1]).toEqual({ p_step: 'reading_succeeded' });
+  });
+
+  it('답이 없거나 · 첫 절에 1번을 또 쓰면 저장하지 않는다', async () => {
+    job = continuedJob();
+    retrieve.mockResolvedValue(replied(CONTINUED));
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'failed', code: 'continuation-out-of-contract' });
+
+    retrieve.mockResolvedValue(replied(CONTINUED.replace('2. 일을', '1. 따로 쓴 답.\n2. 일을'), ANSWER));
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'failed', code: 'continuation-out-of-contract' });
+    expect(called('save_reading')).toBeUndefined();
+    expect(called('count_taste_step')).toBeUndefined();
+  });
+
+  it('이어쓰기가 없는 풀이는 받은 본문 그대로다 — 답 칸이 와도 끼우지 않는다', async () => {
+    retrieve.mockResolvedValue(replied(GOOD, ANSWER));
+    await expect(collectReadingResult('resp-1')).resolves.toEqual({ done: 'saved' });
+    expect(called('save_reading')?.[1].p_output).toBe(GOOD);
+    expect(called('count_taste_step')).toBeUndefined();
+  });
+});

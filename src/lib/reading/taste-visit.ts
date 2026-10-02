@@ -1,0 +1,154 @@
+/**
+ * **로그인 전 사주 문단 한 번의 방문** — 서버가 DB 의 갈래를 화면의 상태로 옮기는 순수한 절반(ADR 0143).
+ *
+ * 서버(`app/taste-run.ts`)는 예약(`reserve_taste`) · 읽기(`taste_session_view`) · 모델 결과를 받고, 화면(`app/taste.tsx`)은
+ * 다섯 상태만 안다 — 글이 섰다 · 기다린다 · 실패 · 시간 초과 · 한도. **내부 갈래 이름과 한도 숫자는 화면으로 안 간다** —
+ * `limited_ip` 와 `limited_global` 은 화면에서 같은 「한도」다. 어느 한도인지 알려 주면 그것이 곧 비켜 가는 법이 된다.
+ *
+ * 날짜 키와 IP 의 모양도 여기서 정한다 — 서버의 HMAC 모듈(`app/taste-visitor.ts`)이 부른다. 여기는 DB 도 Node 도 모른다.
+ */
+
+// ---------------------------------------------------------------------------
+// 화면의 상태
+// ---------------------------------------------------------------------------
+
+/**
+ * 화면이 받는 답 — **세션 id 는 글이 섰거나 기다릴 때만** 간다. 가입 왕복이 그 id 를 탭에 들고 가고(ADR 0128), 서버가
+ * 쿠키의 HMAC 과 함께 맞춰 본다 — id 하나로는 아무것도 못 읽는다.
+ *
+ * - `ready` — 글이 섰다
+ * - `waiting` — 같은 입력을 지금 누가 쓰고 있다. 화면이 조금 뒤 `readTaste` 로 다시 본다
+ * - `failed` — 이번 시도가 실패했다. `retry` 면 「다시 읽기」가 다음 시도를 연다. 아니면 가입 경로만 남는다
+ *   (같은 입력이 세 번 실패했거나 · 서버가 이 자리를 닫았다)
+ * - `timeout` — 시간 상한에 걸렸다. `retry` 의 뜻은 위와 같다
+ * - `limited` — 한도(요청 · 브라우저 · IP · 전체 하루 중 하나)
+ */
+export type TasteAnswer =
+  | { readonly state: 'ready'; readonly sessionId: string; readonly preview: string }
+  | { readonly state: 'waiting'; readonly sessionId: string }
+  | { readonly state: 'failed'; readonly retry: boolean }
+  | { readonly state: 'timeout'; readonly retry: boolean }
+  | { readonly state: 'limited' };
+
+/** 서버가 이 자리를 닫았다 — 비밀이 없거나 · 입력을 못 읽거나 · 문이 터졌다. 다시 눌러도 같다 */
+export const TASTE_CLOSED: TasteAnswer = { state: 'failed', retry: false };
+
+/** `reserve_taste` 의 갈래 — DB 함수의 머리말과 같은 여덟 */
+export const RESERVE_OUTCOMES = [
+  'call_model',
+  'reuse_succeeded',
+  'wait_running',
+  'retries_exhausted',
+  'limited_request',
+  'limited_browser',
+  'limited_ip',
+  'limited_global',
+] as const;
+
+export type ReserveOutcome = (typeof RESERVE_OUTCOMES)[number];
+
+export const isReserveOutcome = (value: unknown): value is ReserveOutcome =>
+  (RESERVE_OUTCOMES as readonly unknown[]).includes(value);
+
+/**
+ * 모델을 안 부르는 갈래의 답 — 세션을 읽어야 하는 둘(`reuse_succeeded` · `wait_running`)과 부르는 하나(`call_model`)는
+ * `null` 이다. 부르는 쪽이 그 셋을 따로 간다.
+ */
+export function answerOfReserve(outcome: ReserveOutcome): TasteAnswer | null {
+  switch (outcome) {
+    case 'limited_request':
+    case 'limited_browser':
+    case 'limited_ip':
+    case 'limited_global':
+      return { state: 'limited' };
+    case 'retries_exhausted':
+      return { state: 'failed', retry: false };
+    case 'call_model':
+    case 'reuse_succeeded':
+    case 'wait_running':
+      return null;
+  }
+}
+
+/** `taste_session_view` 한 줄 — 못 읽었으면(0행) 부르는 쪽이 `null` 을 넘긴다 */
+export type TasteSessionView = {
+  readonly state: string;
+  readonly retryable: boolean;
+  readonly preview: string | null;
+};
+
+/**
+ * 세션을 읽은 답.
+ *
+ * `claimed`(이미 회원에게 귀속된 세션)는 로그인 전 화면에 글을 다시 안 낸다 — 다시 읽으면 새 세션이 선다. 그래서 다시 읽기를
+ * 연다. 0행(없는 세션 · 24시간이 지남 · 결과가 지워짐)도 같다 — 다시 부르면 예약이 새 세션을 세운다.
+ */
+export function answerOfView(view: TasteSessionView | null, sessionId: string, failedWith: 'failed' | 'timeout' = 'failed'): TasteAnswer {
+  if (view === null) return { state: 'failed', retry: true };
+  switch (view.state) {
+    case 'succeeded':
+      return view.preview === null || view.preview.trim() === ''
+        ? { state: 'failed', retry: true }
+        : { state: 'ready', sessionId, preview: view.preview };
+    case 'running':
+      return { state: 'waiting', sessionId };
+    case 'failed':
+      return { state: failedWith, retry: view.retryable };
+    default:
+      return { state: 'failed', retry: true };
+  }
+}
+
+/** `callModel` 의 실패 코드 가운데 시간 초과 — 화면이 「실패」와 갈라 말한다 */
+export const MODEL_TIMEOUT = 'model-timeout';
+
+/** 기다리는 화면이 다시 묻는 간격과 상한 — 모델 시간 상한(20초)에 왕복을 얹은 만큼만 기다린다 */
+export const TASTE_WAIT = { everyMs: 2_000, forMs: 30_000 } as const;
+
+/** 앱이 세는 퍼널 단계 넷 — DB 의 `count_taste_step` 이 받는 그 넷이다(ADR 0143 의 8) */
+export const TASTE_STEPS = ['more_clicked', 'signup_started', 'signup_completed', 'reading_succeeded'] as const;
+
+export type TasteStep = (typeof TASTE_STEPS)[number];
+
+// ---------------------------------------------------------------------------
+// 날짜 키와 IP 의 모양
+// ---------------------------------------------------------------------------
+
+const SEOUL_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/**
+ * 서울 날짜(`YYYY-MM-DD`) — IP HMAC 의 날짜별 키가 이 값으로 바뀐다. DB 의 IP 하루 한도(`taste_day_start()`)가 서울 자정에
+ * 새로 세므로 키도 같은 자정에 바뀌어야 한다 — 어긋나면 자정 앞뒤 아홉 시간 동안 같은 IP 가 두 이름으로 센다. 한국은 일광
+ * 절약 시간이 없어 아홉 시간을 더하면 된다.
+ */
+export const seoulDateOf = (at: Date): string => new Date(at.getTime() + SEOUL_OFFSET_MS).toISOString().slice(0, 10);
+
+const IPV4 = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+
+/** IPv6 를 여덟 칸으로 편다 — 모양이 아니면 `null` */
+function ipv6Groups(text: string): string[] | null {
+  if (!/^[0-9a-f:]+$/.test(text) || text.split('::').length > 2) return null;
+  const [head, tail] = text.includes('::') ? text.split('::') : [text, null];
+  const front = head === '' ? [] : head.split(':');
+  const back = tail === null || tail === '' ? [] : tail.split(':');
+  if ([...front, ...back].some((group) => group === '' || group.length > 4)) return null;
+  const missing = 8 - front.length - back.length;
+  if (tail === null ? missing !== 0 : missing < 1) return null;
+  return [...front, ...Array<string>(missing).fill('0'), ...back].map((group) => group.padStart(4, '0'));
+}
+
+/**
+ * HMAC 할 IP 의 이름 — 헤더 값의 **첫 칸**을 읽고 모양을 본다. 모양이 아니면 `null`(서버가 이 자리를 닫는다).
+ *
+ * IPv6 는 **앞 64비트(/64)** 로 접는다 — 한 가입자가 대개 /64 하나를 받으므로, 주소 하나마다 세면 같은 사람이 주소를 바꿔
+ * 가며 IP 빗장을 비켜 간다. IPv4 를 품은 IPv6(`::ffff:1.2.3.4`)는 그 IPv4 다.
+ */
+export function ipSubjectOf(forwardedFor: string | null): string | null {
+  const first = forwardedFor?.split(',')[0]?.trim().toLowerCase() ?? '';
+  if (first === '') return null;
+  if (IPV4.test(first)) return first;
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(first);
+  if (mapped !== null) return IPV4.test(mapped[1]) ? mapped[1] : null;
+  const groups = ipv6Groups(first.replace(/^\[|\]$/g, ''));
+  return groups === null ? null : `${groups.slice(0, 4).join(':')}::/64`;
+}

@@ -13,7 +13,8 @@ import { savePersonForReading, saveSelfPerson } from './me/actions';
 import { SelfCard } from './me/home/self-card';
 import { personSlotsFrom } from './person-slots';
 import { toSearchParams, type Query } from '@/src/lib/input/query';
-import { READING_DRAFT_KEY } from './reading-draft';
+import { claimTaste } from './actions';
+import { READING_DRAFT_KEY, TASTE_SESSION_KEY } from './reading-draft';
 import { SignInCarrying } from './sign-in-carrying';
 import {
   SameChartAsk,
@@ -368,8 +369,17 @@ function SelfConfirm({
     startSaving(async () => {
       /* 내 사주의 이름은 닉네임이다 — 적은 이름이 비어 있어도(이름 없이 나눈 링크) 막히지 않게 그 이름으로 보낸다 */
       const saved = await saveSelfPerson({ ...query, name });
-      if (saved.ok) router.push('/me/readings/self');
-      else setFailure(saved.message);
+      if (!saved.ok) {
+        setFailure(saved.message);
+        return;
+      }
+      /*
+        **가입 전에 읽던 로그인 전 사주 문단을 내 것으로 붙인다**(ADR 0143) — 탭이 든 것은 세션 id 하나다. 지문은 방금 저장한
+        입력으로 서버가 다시 재고, 다르거나 · 남의 것이거나 · 지났으면 조용히 보통 풀이다. 붙이지 못해도 저장은 끝났다.
+      */
+      const sessionId = takeTasteSession();
+      if (sessionId !== null) await claimTaste(toSearchParams(query).toString(), sessionId).catch(() => undefined);
+      router.push('/me/readings/self');
     });
   };
 
@@ -398,7 +408,11 @@ function SelfConfirm({
             </button>
             <button
               type="button"
-              onClick={onSomeoneElse}
+              onClick={() => {
+                /* 내 사주가 아니면 그 문단도 내 것이 아니다 — 들고 온 세션 id 를 버린다 */
+                takeTasteSession();
+                onSomeoneElse();
+              }}
               disabled={saving}
               className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}
             >
@@ -415,4 +429,15 @@ function SelfConfirm({
       )}
     </section>
   );
+}
+
+/** 탭이 들고 온 로그인 전 사주 문단의 세션 id 를 꺼내고 지운다 — 없거나 저장소가 막혔으면 `null` */
+function takeTasteSession(): string | null {
+  try {
+    const sessionId = sessionStorage.getItem(TASTE_SESSION_KEY);
+    sessionStorage.removeItem(TASTE_SESSION_KEY);
+    return sessionId;
+  } catch {
+    return null;
+  }
 }

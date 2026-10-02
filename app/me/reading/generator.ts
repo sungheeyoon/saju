@@ -78,7 +78,8 @@ export type ModelSubmission =
 export type ModelRetrieval =
   | {
       ok: true;
-      output: ReadingOutput;
+      /** 이어쓰기 모양으로 낸 것이면 `continuationAnswer` 가 함께 온다(ADR 0143) — 있는지는 회수가 얼린 작업으로 안다 */
+      output: ReadingOutput & { continuationAnswer?: string };
       usage: ModelUsage | null;
       modelId: string | null;
       /** 우리가 실어 보낸 이름표. 이름표로 일감을 못 찾았을 때 이것으로 되찾는다 */

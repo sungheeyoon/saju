@@ -76,6 +76,9 @@ const ALLOWED: Readonly<Record<string, string>> = {
   'app/me/reading/generator.ts': '`detail` 은 화면이 아니라 DB 에 적힌다(`pipeline.ts`)',
   'app/me/reading/model.ts': 'provider 의 문장 — `detail` 로 DB 에만 간다',
   'app/me/reading/collect.ts': 'webhook 수집기 — 사람이 보는 화면이 없다',
+  'app/keyed-taste.ts': '열쇠가 없는 배포의 까닭 — 기록에만 가고 화면은 「실패」로 선다(ADR 0143)',
+  'app/me/keyed-taste-claims.ts': '같다 — 귀속을 못 하면 보통 풀이로 간다',
+  'app/me/reading/taste-carry.ts': '「아까 보던 내용」을 못 세운 까닭 — 기록에만 가고 그 칸만 빈다',
   'app/api/portone/webhook/settle.ts': '결제 알림 — 사람이 보는 화면이 없고, 까닭은 답이 아니라 기록에만 간다(G-23 ⑥)',
 };
 

@@ -11,6 +11,7 @@ import { TYPE_TITLE } from '../../../../ui/surfaces';
 import { readAccount } from '../../../account';
 import { currentReading } from '../../../reading/current';
 import { ReadingSection } from '../../../reading/section';
+import { tasteCarryOfPage } from '../../../reading/taste-carry';
 import { ReadingBack } from '../frame';
 import { SubjectTag } from '../shelf';
 import { dayMastersOf, savedPersonOf } from '../subject';
@@ -72,6 +73,8 @@ export default async function SingleReadingPage({
     명식이면 표지가 회색이다 — 색을 지어 넣지 않는다.
   */
   const reading = await currentReading(target);
+  /* 가입 전에 읽던 로그인 전 사주 문단 — 내 사주풀이에만 선다(ADR 0143). 못 읽으면 칸만 빈다 */
+  const carry = mine ? await tasteCarryOfPage(reading) : null;
   const dayMaster =
     reading?.dayMasterA != null
       ? { stem: reading.dayMasterA, element: STEM_INFO[reading.dayMasterA].element }
@@ -106,6 +109,7 @@ export default async function SingleReadingPage({
         heading={readingTitle}
         bare
         tones={[dayMaster?.element ?? null]}
+        carry={carry}
       />
     </article>
   );

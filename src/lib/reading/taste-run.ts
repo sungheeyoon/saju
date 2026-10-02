@@ -5,12 +5,11 @@ import { without } from '../saju/evidence/without';
 import { plainTermsIn } from './check';
 
 /**
- * **개인별 맛보기(tasteRun)의 실험 자리** — 근거 줄이기 · 지문 · 프롬프트 · 출력 모양 · 규칙 검사.
+ * **개인별 맛보기(tasteRun)** — 근거 줄이기 · 지문 · 프롬프트 · 출력 모양 · 규칙 검사.
  *
- * ADR 0131 의 720칸 공용 표(`taste-maker.ts`)를 대신할 설계를 2026-10-03 운영자와 합의했고, 이 파일은 그 설계를
- * **실호출 짝 견본으로 재 보려고** 섰다(`docs/notes/2026-10-03-taste-run-experiment.md`). 운영 경로는 아무도 이것을
- * 안 부른다 — 부르는 자리는 운영자가 손으로 돌리는 `app/me/reading/taste-run.live.test.ts` 하나다. 순서는
- * 「실호출 짝 견본 → 사람의 짝 검토 → ADR(0131 대체)」이고, 이 파일은 그 첫 걸음의 도구다. 여기는 모델도 DB 도 모른다.
+ * ADR 0131 의 720칸 공용 표(`taste-maker.ts`)를 대신하는 설계다(ADR 0143). 실호출 짝 견본으로 재 보려고 섰고
+ * (`docs/notes/2026-10-03-taste-run-experiment.md`), 이제 로그인 전 첫 화면의 서버(`app/taste-run.ts`)가 이것으로 근거를
+ * 줄이고 · 지문을 짓고 · 프롬프트를 짓고 · 결과를 검사한다. 여기는 모델도 DB 도 모른다.
  *
  * ## 무엇을 더 자르나 — 해 · 나이 · 날짜
  *
@@ -20,6 +19,26 @@ import { plainTermsIn } from './check';
  * 에 견본 근거를 전부 훑어 잼). 맛보기는 로그인 전에 도는 글이라 지금 도는 때(대운 · 세운 · 월운)를 말할 자리가 아니고,
  * 이 값들은 여덟 글자보다 출생일을 더 좁힌다. 그래서 `now` · `daeun` 은 통째로, 나머지는 그 칸만 뺀다.
  */
+
+// ---------------------------------------------------------------------------
+// 판과 부르는 설정 — 한 곳
+// ---------------------------------------------------------------------------
+
+/**
+ * 맛보기의 **판 이름 둘** — 프롬프트 판과 모델 설정 판(ADR 0143). DB 의 artifact 는 (근거 지문, 이 둘)마다 한 행이라
+ * 둘 중 하나라도 바뀌면 재사용이 갈린다 — 같은 입력이라도 새 판으로 다시 쓴다. 그래서 프롬프트 · 출력 모양 · 검사가 뜻을
+ * 바꾸면 `prompt` 를, 모델 · 추론 세기 · 상한이 바뀌면 `modelConfig` 를 올린다. 꼴은 DB 가 본다(`^[A-Za-z0-9._:-]{1,64}$`).
+ */
+export const TASTE_RUN_VERSIONS = { prompt: 'taste-run-v1', modelConfig: 'luna-none-1500-20s' } as const;
+
+/**
+ * 맛보기를 부르는 설정 — 운영자 승인(2026-10-03, ADR 0143 의 1). 모델 이름은 풀이와 같은 `GENERATION.model` 이고
+ * (`app/me/reading/generation.ts`), 여기 값이 바뀌면 `TASTE_RUN_VERSIONS.modelConfig` 도 함께 올린다.
+ */
+export const TASTE_RUN_CALL = { reasoningEffort: 'none', maxOutputTokens: 1_500, timeoutMs: 20_000 } as const;
+
+/** 검사(`checkTasteRun`)에 걸린 맛보기를 DB 에 적는 실패 코드 — 다음 요청이 재시도한다(상한은 DB 가 센다) */
+export const TASTE_CHECK_FAILED = 'taste-check-failed';
 
 // ---------------------------------------------------------------------------
 // 근거 줄이기

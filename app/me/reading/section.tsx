@@ -6,6 +6,7 @@ import { STEM_INFO, type Element } from '@/src/lib/saju';
 import { currentReading, improvementConsented, lastReadingRun, readingCredits, type CurrentReading } from './current';
 import { ReadingPanel } from './panel';
 import type { ReadingTarget } from './target';
+import type { TasteCarryView } from './taste-carry';
 import { CARD } from '../../ui/surfaces';
 
 /**
@@ -28,6 +29,7 @@ export async function ReadingSection({
   matchNames,
   tones,
   reading: preloaded,
+  carry = null,
 }: {
   target: ReadingTarget;
   /**
@@ -60,6 +62,8 @@ export async function ReadingSection({
    * `null` 은 「읽었고 글이 없다」이고, 안 넘기면 여기서 읽는다.
    */
   reading?: CurrentReading | null;
+  /** 가입 전에 읽던 로그인 전 사주 문단 — 내 사주풀이만 넘긴다(`taste-carry.ts`, ADR 0143) */
+  carry?: TasteCarryView | null;
 }) {
   /*
     **잔액은 대상을 모른다.** 사람마다 하나뿐이라 세 화면이 같은 값을 읽는다 — 그래서
@@ -107,6 +111,7 @@ export async function ReadingSection({
         betweenSummaryAndBody={betweenSummaryAndBody}
         matchNames={matchNames}
         tones={cover}
+        carry={carry}
       />
     </section>
   );

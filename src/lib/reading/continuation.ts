@@ -3,8 +3,9 @@ import { endsPolitely, plainTextSlips, sentencesOf, type TasteRunOutput } from '
 
 /**
  * **가입 뒤 이어쓰기** — 맛보기(tasteRun)를 읽고 가입한 사람의 자기 풀이 프롬프트에 붙는 블록과, 그 답(`continuationAnswer`)의
- * 기계 검사. 실험 자리다(`docs/notes/2026-10-03-taste-run-experiment.md`) — 부르는 자리는 운영자가 손으로 돌리는
- * `app/me/reading/taste-run.live.test.ts` 하나이고, 운영 경로의 프롬프트(`readingPromptOf`)는 이 파일을 모른다.
+ * 기계 검사(ADR 0143). 실험(`docs/notes/2026-10-03-taste-run-experiment.md`)으로 섰고, 이제 운영의 풀이 제출
+ * (`app/me/reading/pipeline.ts`)과 회수(`app/me/reading/collect.ts`)가 이어진 세션이 있을 때만 부른다. 프롬프트
+ * (`readingPromptOf`)는 이 파일을 모른다 — 블록은 그 뒤에 붙는다.
  *
  * ## 왜 프롬프트 맨 뒤에 붙이나
  *

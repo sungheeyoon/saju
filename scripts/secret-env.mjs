@@ -48,6 +48,12 @@ export const SECRET_ENV = [
   /** PortOne V2 — 결제 알림의 서명 비밀(`whsec_…`)과 결제 단건 조회의 API 비밀 (G-23 ⑥, `app/api/portone/webhook`) */
   'PORTONE_WEBHOOK_SECRET',
   'PORTONE_API_SECRET',
+  /**
+   * 로그인 전 사주 문단의 HMAC 비밀 둘(ADR 0143, `app/taste-visitor.ts`) — 브라우저 묶음 쿠키의 안정 비밀과 IP 날짜별 키의
+   * 뿌리. 없으면 그 문단이 닫힌다
+   */
+  'TASTE_BROWSER_SECRET',
+  'TASTE_IP_SECRET',
 ];
 
 /** 브라우저가 본다 — 빌드 때 번들에 박힌다. 비밀을 여기 두는 순간 공개된다 */

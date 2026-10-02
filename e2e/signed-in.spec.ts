@@ -10,8 +10,11 @@ import {
   test,
 } from './session';
 
-import { chartOf } from '@/src/lib/input/chart';
-import { DEFAULT_QUERY } from '@/src/lib/input/query';
+import { calculateChart, chartOf } from '@/src/lib/input/chart';
+import { DEFAULT_QUERY, queryFromSearchParams } from '@/src/lib/input/query';
+import { readingEvidenceOf } from '@/src/lib/reading';
+import { TASTE_RUN_VERSIONS, tasteEvidenceOf, tasteFingerprintOf } from '@/src/lib/reading/taste-run';
+import type { Saju } from '@/src/lib/saju';
 import { CHART_ENGINE_VERSION, chartSnapshotOf } from '@/src/lib/saju';
 import { DISCOVERY_POLICY } from '@/src/lib/discovery';
 import { PROMPT_VARIANTS } from '@/src/lib/reading/variants';
@@ -24,6 +27,13 @@ import { passSecondFactor } from './second-factor';
 import { expectTargets, focusedOutline } from './target';
 import { writeSync } from 'node:fs';
 import type { Page } from '@playwright/test';
+
+/** 한 사람 명식의 자기 풀이 근거 — 서버가 맛보기 지문을 재는 그 길(`app/taste-run.ts`)과 같다 */
+const readingEvidenceOfSelf = (saju: Saju) => {
+  const built = readingEvidenceOf('self', { a: saju }, new Date());
+  if (built.kind !== 'self') throw new Error('한 사람의 근거가 아니다');
+  return built.evidence;
+};
 
 /** 익명 파일에서 함께 옮겨 온 손잡이 — 그 시험이 쓰던 것과 같은 값이다 */
 const sharedParams = (page: Page) =>
@@ -3348,6 +3358,88 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toBeVisible();
     await page.getByRole('button', { name: '저장하고 계속하기' }).click();
     await expect(page).toHaveURL(/\/me\/readings\/[0-9a-f-]{36}$/);
+  });
+
+  /**
+   * **로그인 전 사주 문단 → 더보기 → 가입 왕복 → 「아까 보던 내용」 → 생성 중 → 완성**(ADR 0143). 모델은 안 부른다 — 이 입력의
+   * 글을 DB 에 성공으로 심어 두면 서버가 재사용으로 내준다(지문은 앱이 쓰는 그 함수로 잰다). 풀이도 시도를 그 사람으로 열고
+   * 서버가 열쇠로 부르는 문(잇기 · 저장)을 `postgres` 로 부른다.
+   */
+  test('로그인 전 사주 문단을 읽고 가입하면 내 사주풀이가 「아까 보던 내용」에서 잇는다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipSignup: true });
+    const { page, api } = newcomer;
+    const context = page.context();
+
+    const input = 'name=민수&date=1979-03-21&hour=06:40';
+    const chart = calculateChart(queryFromSearchParams(new URLSearchParams(input))!);
+    if (!chart.ok) throw new Error(chart.message);
+    const fingerprint = await tasteFingerprintOf(tasteEvidenceOf(readingEvidenceOfSelf(chart.saju)));
+    const preview = '새벽빛이 들기 전에 먼저 일어나 하루의 차례를 정하는 쪽이에요.\n\n그렇다면 그 차례는 누구와 나눌 때 가벼워질까요?';
+    sql(`insert into public.taste_artifact
+           (evidence_fingerprint, prompt_version, model_config_version, status, preview_markdown, topic, distinctive_pattern,
+            continuation_question, answer_direction, supporting_claims)
+         values ('${fingerprint}', '${TASTE_RUN_VERSIONS.prompt}', '${TASTE_RUN_VERSIONS.modelConfig}', 'succeeded', '${preview}',
+                 '결정하거나 행동하는 방식', '먼저 정한다', '누구와 나누나', '먼저 말한다', '{analysis.structure}')
+         on conflict on constraint taste_artifact_one_per_input do update
+         set status = 'succeeded', failure_code = null, attempts = 1, preview_markdown = excluded.preview_markdown,
+             expires_at = now() + interval '24 hours'`);
+
+    /* 로그인 전 — 로그인 쿠키를 잠깐 걷는다. IP 는 이 시험만의 것(나란히 도는 시험의 한도와 안 섞이게) */
+    const signedInCookies = await context.cookies();
+    await context.clearCookies();
+    await context.setExtraHTTPHeaders({ 'x-forwarded-for': `10.143.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}` });
+
+    await page.goto(`/#${input}`);
+    const taste = page.getByRole('region', { name: '사주가 보여 주는 나' });
+    await expect(taste).toContainText('새벽빛이 들기 전에', { timeout: 30_000 });
+    await taste.getByRole('button', { name: '더보기' }).click();
+    await taste.getByRole('link', { name: '무료 회원가입하고 이어보기' }).click();
+    await expect(page).toHaveURL(/\/auth\?next=%2F%23resume-reading$/);
+
+    /* 뒤로가기 — 같은 글이 다시 선다(같은 세션을 다시 쓴다) */
+    await page.goBack();
+    await expect(taste).toContainText('새벽빛이 들기 전에', { timeout: 30_000 });
+    await taste.getByRole('button', { name: '더보기' }).click();
+    await taste.getByRole('link', { name: '무료 회원가입하고 이어보기' }).click();
+    const sessionId = await page.evaluate(() => sessionStorage.getItem('saju:taste-session'));
+    expect(sessionId).toMatch(/^[0-9a-f-]{36}$/);
+
+    /* 가입 왕복 — 로그인 쿠키를 되돌리고 가입 화면을 지난다 */
+    await context.addCookies(signedInCookies);
+    await page.goto('/auth?next=%2F%23resume-reading');
+    await signUp(page);
+    await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toBeVisible();
+    await page.getByRole('button', { name: '내 사주로 저장' }).click();
+    await expect(page).toHaveURL(/\/me\/readings\/self$/);
+
+    const carry = page.getByRole('region', { name: '아까 보던 내용' });
+    await expect(carry).toContainText('새벽빛이 들기 전에');
+    await expect(carry).toContainText('누구와 나눌 때 가벼워질까요?');
+    expect(await page.evaluate(() => sessionStorage.getItem('saju:taste-session'))).toBeNull();
+
+    /* 생성 중 — 시도를 그 사람으로 열고 세션에 잇는다(서버가 누름에서 하는 그 두 걸음) */
+    const userId = sql(`select id from auth.users where email = '${newcomer.account.email}'`);
+    const started = await api.rpc('start_reading_run', {
+      p_kind: 'self', p_idempotency_key: `e2e-taste-${sessionId}`, p_model: 'gpt-e2e', p_prompt_version: 'reading-prompt-v1',
+    });
+    const runId = started.data?.[0]?.run_id as string;
+    expect(sql(`select outcome from public.link_taste_reading_run('${userId}'::uuid, '${sessionId}'::uuid, '${runId}'::uuid)`)).toBe('linked');
+
+    await page.reload();
+    await expect(carry).toContainText('새벽빛이 들기 전에');
+    await expect(page.getByText('사주의 흐름을 이어 읽고 있어요')).toBeVisible();
+    await expect(page.getByRole('list', { name: '풀이 목차' })).toBeVisible();
+
+    /* 완성 — 같은 화면이 글로 바뀌고 맨 위에 「아까 보던 내용」이 남는다 */
+    sql(`select public.save_reading('${runId}'::uuid,
+           E'## 먼저 볼 핵심 세 가지\\n1. 이어 쓴 답이에요.\\n2. 둘째 핵심이에요.\\n3. 셋째 핵심이에요.', null,
+           '새벽에 먼저 차례를 정하는 사람', '{"charts":{}}', '# 역할', 'reading-prompt-v1', 'gpt-e2e', '{}'::jsonb, now())`);
+    await expect(page.getByText('1. 이어 쓴 답이에요.').or(page.getByText('이어 쓴 답이에요.'))).toBeVisible({ timeout: 15_000 });
+    await expect(carry).toContainText('새벽빛이 들기 전에');
+
+    /* 새로고침해도 — 그 글을 만든 시도에 이어진 원문이 선다 */
+    await page.reload();
+    await expect(carry).toContainText('새벽빛이 들기 전에');
   });
 
   test('내 사주가 이미 있으면 묻지 않는다', async ({ page, signedIn }) => {

@@ -10,6 +10,7 @@ import type { SaveResult } from '../../save-result';
 import { supabaseOnServer } from '../../auth/server-client';
 import { userFacingDbMessage } from '../../db-error';
 import { rpcArgs } from '@/src/lib/db';
+import { forgetTasteClaim } from '../../taste-visitor';
 
 /**
  * **사용자가 누른 그 순간에만 도는 문.**
@@ -43,6 +44,12 @@ export async function readingRunState(target: ReadingTarget): Promise<LastRun | 
   if (run !== null && run.status !== 'running') {
     refreshPaths(readingPathsOf(target));
   }
+
+  /*
+    **이어 쓴 풀이가 섰으면 귀속 표를 걷는다**(ADR 0143) — 그 세션은 다 쓰였다. 남겨 두면 다음 「다시 받기」가 그 풀이를
+    여는 것으로 끝난다(`pipeline.ts` 의 `pressCarry`). 기다리던 시도는 그 표가 이은 시도다 — 이 화면의 누름이 열었다.
+  */
+  if (target.kind === 'self' && run?.status === 'succeeded') await forgetTasteClaim();
 
   return run;
 }
