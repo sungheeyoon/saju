@@ -103,9 +103,10 @@
 | `src/lib/input/backfill-chart.live.test.ts` | `BACKFILL_CHART=1` (+ `BACKFILL_TARGET=remote` 와 ref 확인) | 명식 없는 사람 행을 채운다 |
 | `src/lib/input/backfill-reading-chart.live.test.ts` | `BACKFILL_READING_CHART=1` | 풀이 행의 여덟 글자를 채운다 |
 | `app/me/reading/taste.live.test.ts` | `TASTE_LIVE=1` (+ `TASTE_WRITE=1` 이면 운영 표에 쓴다 · `TASTE_KEYS=` 로 몇 칸만) | 로그인 전 사주 문단 표(720칸)를 채운다 — 토큰이 나간다(ADR 0131) |
+| `app/me/reading/taste-run.live.test.ts` | `TASTE_RUN_LIVE=1` (+ `TASTE_RUN_EFFORTS=none,low` · `TASTE_RUN_SAMPLES=` · `TASTE_RUN_PAIR=1` 이면 전체 자기 풀이까지) | **실험** — 개인별 맛보기 · 가입 뒤 이어쓰기의 짝 견본을 `.taste-run-live/` 에 떨군다. DB 에 안 쓴다 — 토큰이 나간다(`docs/notes/2026-10-03-taste-run-experiment.md`). 견본이 신강 · 신약 · 시간 모름 · 남녀를 섞는지 재는 블록은 잠금 없이 `npm test` 에서 돈다 |
 
 접속값은 `src/lib/local-env.ts` 가 `.env.development.local` 에서 읽는다 — 이름과 달리 **운영**
-값이다. 그래서 이 넷만 그 파일을 부른다.
+값이다. 그래서 이 다섯만 그 파일을 부른다(실험인 `taste-run.live.test.ts` 를 더해, 2026-10-03).
 
 ## CI
 

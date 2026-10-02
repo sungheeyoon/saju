@@ -5,6 +5,7 @@ import OpenAI from 'openai';
 import { NoOutputGeneratedError, Output, generateText, jsonSchema, type JSONSchema7 } from 'ai';
 
 import { READING_POLICY, type ReadingOutput } from '@/src/lib/reading';
+import { CONTINUATION_ANSWER_PROPERTY } from '@/src/lib/reading/continuation';
 
 import { GENERATION } from './generation';
 
@@ -59,8 +60,6 @@ const OUTPUT_SHAPE = {
   additionalProperties: false,
 } satisfies JSONSchema7;
 
-const SCHEMA = jsonSchema<ReadingOutput>(OUTPUT_SHAPE);
-
 /**
  * **본문을 먼저, 한 줄 요약을 마지막에** — 두 궁합의 읽는 법 4판이 쓴다(ADR 0067, `writesSummaryLast`).
  *
@@ -77,7 +76,54 @@ const SUMMARY_LAST_SHAPE = {
   required: ['markdown', 'score', 'metaphor'],
 } satisfies JSONSchema7;
 
-const SUMMARY_LAST_SCHEMA = jsonSchema<ReadingOutput>(SUMMARY_LAST_SHAPE);
+/**
+ * **이어쓰기 답을 맨 앞에** — 맛보기를 읽고 가입한 사람의 자기 풀이 실험이 쓴다(`continuationBlockOf`,
+ * `docs/notes/2026-10-03-taste-run-experiment.md`). 구조화 출력은 속성 차례대로 지으므로, 답을 본문보다 먼저 쓰게 하려면
+ * 차례가 앞이어야 한다. 나머지 셋은 운영 모양 그대로다. 운영 제출(`submitBackgroundReading`)은 이 모양을 모른다.
+ */
+const CONTINUATION_SHAPE = {
+  ...OUTPUT_SHAPE,
+  properties: {
+    continuationAnswer: CONTINUATION_ANSWER_PROPERTY,
+    ...OUTPUT_SHAPE.properties,
+  },
+  required: ['continuationAnswer', ...OUTPUT_SHAPE.required],
+} satisfies JSONSchema7;
+
+/** 실험이 견주는 추론 세기 — provider 가 받는 값 가운데 우리가 부르는 넷 */
+export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high';
+
+/**
+ * 기다리는 길의 선택값 — **안 넘기면 지금까지와 같다.**
+ *
+ * 맛보기 실험(`taste-run.live.test.ts`)이 모양 · 추론 세기 · 출력 상한 · 시간 상한을 바꿔 부르려고 넓혔다. 모델을 부르는
+ * 자리가 하나여야 하므로(ADR 0047) 실험용 래퍼를 따로 세우지 않고 여기에 선택 인자로 더했다. 기본값은 그대로다 —
+ * 모양은 운영 모양, 추론 세기는 안 보냄(provider 기본, 공식 문서상 `medium`), 출력 상한 없음, 시간 상한은
+ * `GENERATION.settings.timeout`.
+ */
+type CallOptions = {
+  /** 한 줄 요약을 본문 뒤에 받는가 — 운영 제출과 같은 규칙(`writesSummaryLast`)으로 넘긴다 */
+  summaryLast?: boolean;
+  /** 이어쓰기 답(`continuationAnswer`)을 맨 앞 칸으로 받는가 */
+  continuation?: boolean;
+  /** 모양을 통째로 갈아 끼운다 — 맛보기(`tasteRunShapeOf`). 주면 위 둘은 안 본다 */
+  shape?: JSONSchema7;
+  /**
+   * 추론 세기 — `@ai-sdk/openai` 의 Responses 선택값 `reasoningEffort`(그 패키지 안의 문서 03-openai.mdx 「Responses」 절: GPT-5.6 은
+   * `none` · `low` · `medium` · `high` · `xhigh` · `max`). 안 넘기면 보내지 않는다.
+   */
+  reasoningEffort?: ReasoningEffort;
+  /** 출력 토큰 상한 — 추론 토큰을 포함한다(Responses `max_output_tokens`) */
+  maxOutputTokens?: number;
+  /** 기다리다 마는 시각(ms) — 안 넘기면 `GENERATION.settings.timeout` */
+  timeoutMs?: number;
+};
+
+const shapeOf = (options: CallOptions): JSONSchema7 => {
+  if (options.shape !== undefined) return options.shape;
+  if (options.continuation === true) return CONTINUATION_SHAPE;
+  return options.summaryLast === true ? SUMMARY_LAST_SHAPE : OUTPUT_SHAPE;
+};
 
 /** provider 의 오류 문장. 출생 원문이 실릴 자리가 아니다 — 프롬프트에 그 값이 없다 */
 const messageOf = (failure: unknown): string =>
@@ -113,28 +159,36 @@ const usageOf = (response: {
  * 프롬프트 하나를 보내고 결과를 **그 자리에서** 받는다.
  *
  * **화면은 이 길로 오지 않는다** — 누름은 `submitBackgroundReading` 으로 떠나보내고
- * 완성본은 webhook 이나 복구기가 가져온다(ADR 0020). 이 함수를 부르는 것은 실호출
- * 시험(`app/me/reading/call.live.test.ts`) 하나다. 프롬프트를 고친 뒤 기다리는 길로
- * 한 번에 재 보는 자리라 남긴다.
+ * 완성본은 webhook 이나 복구기가 가져온다(ADR 0020). 이 함수를 부르는 것은 운영자가 손으로 돌리는
+ * 실호출 시험 셋(`app/me/reading/call.live.test.ts` · `app/me/reading/taste.live.test.ts` ·
+ * `app/me/reading/taste-run.live.test.ts`)뿐이다. 프롬프트를 고친 뒤 기다리는 길로 한 번에 재 보는 자리라 남긴다.
+ * 선택 인자(`CallOptions`)를 안 넘기면 모양 · 세기 · 상한이 지금까지와 같다.
  *
  * **던지지 않는다.** 실패도 값으로 낸다 — 부르는 쪽은 실패를 기록하고 직전 성공
  * 결과를 그대로 두어야 하므로, 예외로 빠져나가면 그 기록이 남지 않는다.
  */
-export async function callModel(
+export async function callModel<Produced = ReadingOutput>(
   prompt: string,
-  /** 한 줄 요약을 본문 뒤에 받는가 — 운영 제출과 같은 규칙(`writesSummaryLast`)으로 넘긴다 */
-  options: { summaryLast?: boolean } = {},
-): Promise<ModelCall> {
+  options: CallOptions = {},
+): Promise<ModelCall<Produced>> {
   try {
     const { output, usage, response } = await generateText({
       model: openai(GENERATION.model),
-      output: Output.object({
-        schema: options.summaryLast ? SUMMARY_LAST_SCHEMA : SCHEMA,
-      }),
+      output: Output.object({ schema: jsonSchema<Produced>(shapeOf(options)) }),
       prompt,
-      timeout: GENERATION.settings.timeout,
+      timeout: options.timeoutMs ?? GENERATION.settings.timeout,
+      ...(options.maxOutputTokens === undefined ? {} : { maxOutputTokens: options.maxOutputTokens }),
       providerOptions: {
-        openai: { store: GENERATION.settings.store },
+        openai: {
+          store: GENERATION.settings.store,
+          /**
+           * 세기를 넘길 때만 싣는다. `none` 이 아니면 provider 가 추론 요약을 `detailed` 로 켜는데(같은 문서), 운영 길은
+           * 요약을 안 받으므로 `null` 로 꺼서 견주는 값이 요약 몫으로 흔들리지 않게 한다.
+           */
+          ...(options.reasoningEffort === undefined
+            ? {}
+            : { reasoningEffort: options.reasoningEffort, reasoningSummary: null }),
+        },
       },
     });
 
@@ -158,6 +212,7 @@ export async function callModel(
         outputTokens: usage?.outputTokens ?? null,
         totalTokens: usage?.totalTokens ?? null,
       },
+      reasoningTokens: usage?.outputTokenDetails?.reasoningTokens ?? null,
       modelId: response?.modelId ?? null,
     };
   } catch (failure) {
