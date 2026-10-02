@@ -66,7 +66,7 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 | `SUPABASE_SECRET_KEY` | 서버 전용 — `definer` 함수를 부르는 자리 |
 | `OPENAI_API_KEY` · `OPENAI_WEBHOOK_SECRET` | 풀이 생성과 webhook. 키는 Production · Preview, 서명 비밀은 Production 만(2026-09-24 `vercel env ls`) |
 | `CRON_SECRET` | 복구기를 깨우는 자리 |
-| `TASTE_BROWSER_SECRET` · `TASTE_IP_SECRET` | 로그인 전 사주 문단의 브라우저 묶음 · IP 를 HMAC 하는 서버 비밀(ADR 0143). Production · Preview — 없으면 그 문단이 닫힌다(「로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용」) |
+| `TASTE_BROWSER_SECRET` · `TASTE_IP_SECRET` | 로그인 전 사주 문단의 브라우저 묶음 · IP 를 HMAC 하는 서버 비밀(ADR 0143). Production · Preview 에 둔다 — 지금은 Production 만 있다(2026-10-03 `vercel env ls`, Preview 는 G-68). 없으면 그 문단이 닫힌다(「로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용」) |
 
 - **`NEXT_PUBLIC_` 이 붙으면 브라우저가 본다.** 열쇠를 그 접두사로 넣는 순간 공개된다.
 - `POSTGRES_*` 일곱과 `SUPABASE_JWT_SECRET`, 옛 이름 키 넷은 **코드가 한 번도 안 읽어서**
@@ -1488,7 +1488,9 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 ## 로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용 (ADR 0143)
 
 로그인 전 첫 화면의 사주 문단은 사람마다 모델이 쓴다. 계정이 없으므로 빗장은 브라우저와 IP 에 걸고, 칸은 모델을 **부르기 전에**
-`reserve_taste` 가 한 트랜잭션으로 예약한다. 앱이 붙기 전까지(G-68) 이 절의 표와 뷰는 비어 있다.
+`reserve_taste` 가 한 트랜잭션으로 예약한다. 앱은 main 에 들었고(#441 · #443) DB 둘(`20261118090000` · `20261119090000`)은 운영에
+올라 있다 — 「배포」 답 뒤 운영 배포 전까지(G-68) 이 절의 표와 뷰는 비어 있다. 회원에게는 이 문단을 만들지 않는다(로그인한 요청은
+서버가 닫는다).
 
 ### 비밀 둘 — 없으면 문단이 닫힌다
 
@@ -1503,6 +1505,11 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
    값 교체 · 지우기는 사람이 대시보드에서 한다(에이전트의 `vercel env rm` 은 등급 4).
 3. **교체** — 「비밀이 새면」 표의 두 줄. 둘 다 옛 값과 새 값이 함께 설 자리가 없다 — 교체가 곧 끊기다.
 4. **없으면** 로그인 전 사주 문단이 닫힌다. 배포 전에 둘이 있는지 `vercel env ls` 로 이름만 본다.
+
+**지금(2026-10-03 밤)** — 조율자가 둘을 **Production 에만** 무작위 값으로 넣었다(`vercel env ls` 의 environments 칸이
+`Production` 하나). **Preview 에는 없다** — Vercel CLI 54.0.0 의 `vercel env add … preview` 가 `git_branch_required` 로 거절했다.
+Preview 배포에서는 문단이 닫힌다. 넣으려면 대시보드(Settings → Environment Variables 에서 Preview 를 고르고 가지는 비워 둔다)나
+더 새 CLI 다(G-68).
 
 ### 상한 — 값이 사는 자리
 
@@ -1535,7 +1542,12 @@ npm run db:remote -- --purpose "로그인 전 사주 문단 날짜별 수" \
   `avg_response_ms` · `max_response_ms`
 - **토큰** — `input_tokens` · `cache_read_tokens` · `cache_write_tokens` · `output_tokens` · `reasoning_tokens`
 - **퍼널 여섯 단계** — `preview_shown` → `more_clicked` → `signup_started` → `signup_completed` · `session_claimed` →
-  `reading_started` → `reading_succeeded`. 가입 완료와 귀속은 칸이 따로다(앞은 앱이, 뒤는 DB 가 센다)
+  `reading_started` → `reading_succeeded`. 가입 완료와 귀속은 칸이 따로다(앞은 앱이, 뒤는 DB 가 센다).
+  앱이 세는 셋(`more_clicked` · `signup_started` · `signup_completed`)은 **세션 하나에 단계마다 한 번**이다 —
+  `count_taste_step_once` 가 세션 id 와 브라우저 HMAC 이 함께 맞을 때만 센다(`20261119090000`). 「로그인하고 전체 풀이 받기」도
+  `signup_started` 다. `signup_completed` 는 **가입을 마치고 그 세션을 들고 돌아온 것**이다 — 귀속 결과가 `claimed` · `discarded` ·
+  `expired` · `not_ready` 어느 것이든 센다(`session_claimed` 는 그중 붙은 것만). `reading_succeeded` 는 회수 경로가 옛
+  `count_taste_step` 으로 센다. **#443 을 배포한 날 전의 줄은 누름 수였다** — 그 앞뒤를 견주지 않는다
 
 뷰는 `service_role` 에도 닫혀 있다 — `db:remote`(`postgres`)로만 본다. 원본 행(`taste_session` · `taste_artifact`)은 미가입 방문자의
 글과 지문을 들므로 「개인정보는 화면으로만」의 경계대로 일상 질의에 열지 않는다.
@@ -1547,12 +1559,28 @@ DB 는 금액을 내지 않는다. 공식 단가(gpt-5.6-luna, https://developer
 곱하지 않는다).
 
 ```
-하루 $ = (캐시 아닌 입력 × 0.20 + cache_read × 0.02 + cache_write × 0.25 + output × 1.20) / 1,000,000
+캐시 아닌 입력 = input_tokens − cache_read_tokens − cache_write_tokens
+하루 $ = (캐시 아닌 입력 × 0.20 + cache_read_tokens × 0.02 + cache_write_tokens × 0.25 + output_tokens × 1.20) / 1,000,000
 ```
 
-`input_tokens` 가 캐시 칸을 포함해 세면 `input_tokens − cache_read_tokens − cache_write_tokens` 가 캐시 아닌 입력이다 — 앱 PR 이
-어느 쪽으로 적는지 이 줄에 적는다. 실측(2026-10-03 실호출)은 한 번 약 4원 · 4~6초였고, 하루 2,000 을 다 써도 하루 약 8천원
+`input_tokens` 는 캐시 읽기 · 쓰기를 **포함한** 입력 전체이고, `output_tokens` 는 추론을 **포함한** 출력 전체다
+(`reasoning_tokens` 는 그 안의 몫이라 따로 곱하지 않는다). 근거는 앱이 받는 사용량의 변환 —
+`@ai-sdk/openai` 의 `convertOpenAIResponsesUsage` 가 `inputTokens.total = usage.input_tokens` 로 두고 캐시 읽기 · 쓰기를 그 안의
+몫(`cacheRead` · `cacheWrite`, `noCache` 는 둘을 뺀 값)으로, `outputTokens.total = usage.output_tokens` 에 추론을 그 안의 몫으로
+나눈다. 앱은 그 `total` 을 `finish_taste` 에 넘긴다(#441). 실측(2026-10-03 실호출)은 한 번 약 4원 · 4~6초였고, 하루 2,000 을 다 써도 하루 약 8천원
 이하다. 청구의 원본은 OpenAI 대시보드이고 바깥 벽(월 예산)도 거기다 — 위 「AI 비용 한도」.
+
+### 가용성 — Vercel WAF 속도 제한은 운영자 몫
+
+돈은 DB 의 하루 2,000 이 막는다. 남는 것은 가용성이다 — IP 를 많이 쥔 쪽(IPv6 는 /56 하나를 한 IP 로 센다)이 전체 하루 상한을
+먼저 채우면 그날 문단이 닫히고 가입 안내만 선다(ADR 0143 「덧」의 받아들인 위험). 꼴만 맞춘 가짜 쿠키로 다시 묻는 서버 액션
+(`readTaste`)도 한도 없이 DB 읽기 한 번까지 간다. 앱 · DB 는 이것을 더 막지 않는다.
+
+- **권고** — Vercel 대시보드 Firewall 에 사용자 규칙 하나: 경로 `/` · 방법 `POST`(서버 액션은 그 화면 주소로 POST 한다)에 IP 당
+  속도 제한. 값은 앱의 IP 빗장(요청 1분 30)보다 넉넉하게 두어 정상 방문자를 안 막는다. 넣고 고치는 것은 운영자가 대시보드에서
+  한다 — 에이전트는 안 만진다.
+- **볼 것** — `taste_daily` 의 `limited_global` 이 이른 시각에 서거나 `taste-budget-warning` 이 평소보다 이르면 이 길을 의심한다.
+  `limited_ip` 가 꾸준히 늘면 CGNAT 로 IP 하나를 나누는 사람들이 하루 20 에 걸리는 것일 수 있다 — 값을 다시 보는 근거다(PRD §2).
 
 ### 크론 `taste-sweep`
 
