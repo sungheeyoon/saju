@@ -329,15 +329,42 @@ _Avoid_: 리딩
 _Avoid_: 해석, 리포트, 상세 궁합 리포트
 
 **로그인 전 결과** — `app/taste.tsx` · `app/pair-taste.tsx` : 로그인하지 않은 사람이 첫 화면에서
-생일을 넣고 받는 결과의 첫머리. **풀이**가 아니다 — 모델이 방문마다 쓰지 않고, 그 아래에 본
-풀이의 잠긴 목차와 로그인이 선다(ADR 0131). 둘로 갈린다.
-- **로그인 전 사주 문단** — `taste_passage` 표 · `src/lib/reading/taste.ts` : 한 사람의 짧은
-  문단. 미리 만든 표에서 열쇠(일주-월지) 하나로 읽고, 표가 비었으면 엔진의 정해진 문장이 선다.
+생일을 넣고 받는 결과의 첫머리. **풀이**가 아니다 — 풀이권을 안 쓰고, 그 아래에 본 풀이의 잠긴
+목차와 로그인이 선다(ADR 0131 · 0143). 둘로 갈린다.
+- **로그인 전 사주 문단** — `taste_session` · `taste_artifact` 표 · `src/lib/reading/taste-run.ts` : 한
+  사람의 짧은 문단. **사람마다 모델이 쓴다**(ADR 0143) — 그 사주에서 남과 갈리는 이야기 하나를
+  장면으로 쓰고 장면 안의 물음으로 멈춘다. 앱이 옮겨 가기 전까지 운영은 옛 길(`taste_passage` 표 ·
+  `src/lib/reading/taste.ts` — 열쇠 일주-월지로 미리 만든 글을 읽고 비면 엔진의 정해진 문장, ADR 0131)을
+  읽는다(간극 G-68).
 - **로그인 전 궁합 결과** — `src/lib/matching/pair-taste.ts` : 두 사람을 넣어 엔진 계산만으로 선
   한 줄 · 가린 점수 · 궁합풀이가 다루는 것(잠김).
 
 코드 이름 `taste` 는 그대로 둔다 — 식별자는 바꾸지 않고, 한국어로 부를 때만 이 이름을 쓴다(2026-09-30).
-_Avoid_: 맛보기, 미리 보기, 요약
+**「맛보기」는 설계의 내부 말이다** — ADR · 노트 · DB 주석에서 로그인 전 사주 문단을 가리킬 때만 쓰고,
+화면 글자로는 안 쓴다(화면 파일은 주석까지 `scripts/code-rules.test.ts` 가 센다).
+_Avoid_(화면): 맛보기, 미리 보기, 요약
+
+**맛보기 세션** — `taste_session` · `reserve_taste` · `claim_taste_session` : 한 브라우저가 한 입력으로
+받은 로그인 전 사주 문단의 기록. 노트 · 시험이 부르는 `tasteRun` 이 이것이다. 브라우저는 httpOnly
+쿠키를 서버가 HMAC 한 값으로만 가리키고, 세션은 **본 글을 스스로 든다**(스냅숏) — 같은 글을 여럿이
+나누는 **맛보기 생성 결과**(`taste_artifact`, 근거 지문 · 프롬프트 판 · 모델 설정 판마다 한 행)가 24시간
+뒤 지워져도 귀속된 세션은 그 사람이 읽은 글을 그대로 든다. 상태는 셋 — 미귀속(`open`) · 귀속
+(`claimed`, 가입한 회원에게 붙음) · 버림(`discarded`, 확정 입력의 지문이 달랐다). 미귀속은 24시간 뒤
+지워지고 귀속은 풀이와 함께 남는다. 세션 하나에 풀이 시도 하나다(`link_taste_reading_run`).
+_Avoid_: 맛보기 런, 체험판, 캐시
+
+**근거 지문** — `tasteFingerprintOf` · `evidence_fingerprint` : 맛보기 근거(자기 풀이 근거에서 해 ·
+나이 · 날짜를 뺀 것, `tasteEvidenceOf`)의 SHA-256. 같은 입력이면 누구에게나 같은 값이라 생성 결과를
+다시 쓰는 열쇠가 되고, 가입 뒤 확정 입력으로 다시 재서 세션이 그 사람의 것인지 가른다. **비밀이
+아니다** — 경우의 수가 적어 대입으로 풀린다(ADR 0143). 가림이 아니라 열쇠다.
+_Avoid_: 해시 ID, 익명 ID
+
+**이어쓰기** — `continuationAnswer` · `continuationBlockOf` · `taste_continuation_of_run` : 귀속된 맛보기
+세션이 있을 때 첫 자기 사주풀이가 그 문단이 멈춘 물음(`continuationQuestion`)에 맨 먼저 하는 답.
+「먼저 볼 핵심 세 가지」의 **1번 본문이 이 답 한 번**이고 모델은 2 · 3 만 쓴다(`continuedMarkdownOf`).
+세션이 없거나 지문이 달라 버렸으면 이어쓰기 없는 보통 풀이다. 화면에서는 따로 이름을 세우지 않는다 —
+만드는 동안 그때 본 문단은 「아까 보던 내용」으로 선다.
+_Avoid_: 후속 답변, 연장 풀이
 
 **Reading** — `reading` 표 · `my_reading` · `save_reading` · `currentReading` : 한 사람의 자기
 풀이 또는 두 **Person**의 궁합에 대해 AI가 만든 **현재 결과**. 자기 풀이는 해석을, 두 사람
@@ -854,6 +881,10 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | Reading kind | `ReadingKind` · `READING_KINDS` · `SoloKind` | `src/lib/reading` |
 | 결과 생성 요청 | `generateReading` · `start_reading_run` · `beginReading` | 액션 · 함수 · 파이프라인 |
 | 시도 | `reading_run` · `my_last_reading_run` · `readingRunState` · `idempotency_key` | 표 · 함수 · 액션 · 칸 |
+| 맛보기 세션 | `taste_session` · `reserve_taste` · `claim_taste_session` · `link_taste_reading_run` | 표 · 함수 |
+| 맛보기 생성 결과 | `taste_artifact` · `finish_taste` | 표 · 함수 |
+| 근거 지문 | `tasteFingerprintOf` · `evidence_fingerprint` · `tasteEvidenceOf` | `src/lib/reading/taste-run.ts` · 칸 |
+| 이어쓰기 | `continuationAnswer` · `continuationBlockOf` · `continuedMarkdownOf` · `taste_continuation_of_run` | `src/lib/reading/continuation.ts` · 함수 |
 | 공유본 | `reading_share` · `share_my_reading` · `shared_reading` · `sharedReadingOf` | 표 · 함수 · 읽는 문 |
 | 한 줄 요약 | `metaphor` · `metaphorLength` | `reading` 칸 · `READING_POLICY` |
 | 다룰 것 | `PairShape` · `needs-v1` | `src/lib/reading/prompt.ts` |
