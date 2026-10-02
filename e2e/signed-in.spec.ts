@@ -56,6 +56,26 @@ async function submitReady(page: Page) {
   await expect(page.getByText('로그인 없이 사주와 오행을 확인할 수 있어요')).toHaveCount(0);
 }
 
+/**
+ * 로그인 쿠키의 토큰 만료를 지나간 시각으로 바꾼다 — 브라우저가 다음에 세션을 읽을 때 토큰을 새로 받아 오게.
+ *
+ * 쿠키는 `sb-<ref>-auth-token` 하나이거나 `.0` · `.1` … 로 나뉜 조각이고, 값은 `base64-` 뒤의 base64url JSON 이다
+ * (`@supabase/ssr`). 조각을 이어 읽고, 같은 수의 조각으로 다시 나눠 쓴다.
+ */
+async function expireSessionCookie(page: Page) {
+  const context = page.context();
+  const pieces = (await context.cookies())
+    .filter((one) => /^sb-.+-auth-token(\.\d+)?$/.test(one.name))
+    .sort((a, b) => a.name.localeCompare(b.name, 'en', { numeric: true }));
+  expect(pieces.length).toBeGreaterThan(0);
+  const joined = pieces.map((one) => one.value).join('');
+  const session = JSON.parse(Buffer.from(joined.replace(/^base64-/, ''), 'base64url').toString('utf8'));
+  session.expires_at = Math.floor(Date.now() / 1000) - 60;
+  const value = `base64-${Buffer.from(JSON.stringify(session), 'utf8').toString('base64url')}`;
+  const size = Math.ceil(value.length / pieces.length);
+  await context.addCookies(pieces.map((one, at) => ({ ...one, value: value.slice(at * size, (at + 1) * size) })));
+}
+
 /** 화면 크기가 달라도 풀이권은 계정 자리에서 찾을 수 있어야 한다. */
 async function expectReadingCredits(page: Page, label: string) {
   const header = page.getByRole('banner');
@@ -1228,6 +1248,39 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await fillBirthTime(page, '09:15');
     await page.getByRole('button', { name: '사주 보기' }).click();
     await expect(page.locator('#chart')).toBeVisible();
+  });
+
+  /**
+   * **회원의 입력은 로그인 전 사주 문단으로 가지 않는다**(ADR 0143). 계산기는 세션을 알기 전에도 붙는데, 그동안 현관 쪽
+   * 결과(`taste.tsx`)를 세우면 회원이 연 `/#…` 의 생년월일시가 서버 액션으로 한 번 나가고 예약 · 모델 호출까지 간다.
+   * 화면은 세션을 모르는 동안 그 결과를 안 세우고, 서버(`requestTaste`)도 로그인한 사람이면 닫는다 — 여기서는 앞쪽을 잰다.
+   */
+  test('회원이 생일이 실린 `/` 주소로 와도 로그인 전 사주 문단을 서버에 묻지 않는다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+
+    /*
+      **세션을 늦게 알게 만든다.** 쿠키의 토큰이 살아 있으면 세션은 계산기가 붙기 전에 정해져 틈이 안 보인다(2026-10-03 에 잼 —
+      옛 화면도 이 조건에서는 안 물었다). 한 시간이 지나 돌아온 회원은 브라우저가 토큰을 새로 받아 오는 동안 세션을 모른다 —
+      그 모양을 만든다: 쿠키의 만료를 지나간 시각으로 바꾸고, 새로 받는 요청을 1.5초 붙든다.
+    */
+    await expireSessionCookie(page);
+    await page.route('**/auth/v1/token?grant_type=refresh_token', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
+      await route.continue();
+    });
+
+    const asked: string[] = [];
+    page.on('request', (request) => {
+      if (request.method() === 'POST' && request.headers()['next-action'] !== undefined) asked.push(request.url());
+    });
+
+    const draft = new URLSearchParams({ date: '1988-11-07', hour: '09:15', gender: 'male', city: '서울', rule: 'jo', basis: 'localMean' });
+    await page.goto(`/#${draft}`);
+    await expect(page.locator('#chart')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.getByRole('heading', { name: '사주가 보여 주는 나' })).toHaveCount(0);
+    expect(asked, '회원의 `/#…` 에서 서버 액션이 나갔다').toEqual([]);
   });
 
   /**

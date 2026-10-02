@@ -6,7 +6,7 @@ import { HAND_SAMPLE } from '@/src/lib/reading/taste-run-sample';
 import type { TasteSessionView } from '@/src/lib/reading/taste-visit';
 
 import type { Reserved, TasteFinish } from './keyed-taste';
-import { sajuOfDraft, serveTaste, tasteFingerprintOfSaju, viewTaste, type TasteHands } from './taste-run';
+import { TASTE_INTERNAL_ERROR, sajuOfDraft, serveTaste, tasteFingerprintOfSaju, viewTaste, type TasteHands } from './taste-run';
 
 /**
  * **로그인 전 사주 문단 한 번 — 서버가 짓고, 원문은 안 나간다**(ADR 0143). 손잡이를 가짜로 넣어 부른다 — 무엇이 DB 와
@@ -39,7 +39,12 @@ function hands(
     called = { ok: true, output: HAND_SAMPLE.taste, usage: null, reasoningTokens: null, modelId: 'm' },
     finished = 'recorded',
     visitor = { browserHmac: BROWSER_HMAC, ipHmac: IP_HMAC },
+    member = false,
+    throwing,
   }: {
+    member?: boolean;
+    /** 이 손잡이가 던진다 — 예약 뒤의 예외 길 */
+    throwing?: 'call' | 'finish-first';
     view?: { ok: true; value: TasteSessionView | null } | { ok: false };
     called?: Awaited<ReturnType<TasteHands['call']>>;
     finished?: 'recorded' | 'ignored' | null;
@@ -51,6 +56,7 @@ function hands(
   return {
     seen,
     hands: {
+      member: async () => member,
       visitor: async () => visitor,
       reserve: async (args) => {
         seen.reserve.push(args);
@@ -62,12 +68,14 @@ function hands(
       },
       finish: async (finish) => {
         seen.finish.push(finish);
+        if (throwing === 'finish-first' && seen.finish.length === 1) throw new Error('적는 문이 던졌다');
         return finished;
       },
       call: async (prompt, options) => {
         seen.prompts.push(prompt);
         seen.options.push(options);
         now += 4_321;
+        if (throwing === 'call') throw new Error('모델 손잡이가 던졌다');
         return called;
       },
       clock: () => now,
@@ -116,6 +124,7 @@ describe('갈래', () => {
       reasoningEffort: TASTE_RUN_CALL.reasoningEffort,
       maxOutputTokens: 1_500,
       timeoutMs: 20_000,
+      maxRetries: 0,
     });
     expect(seen.finish).toHaveLength(1);
     expect(seen.finish[0]).toMatchObject({ artifactId: ARTIFACT, attempt: 2, failureCode: null });
@@ -214,6 +223,48 @@ describe('갈래', () => {
       view: { ok: true, value: { state: 'succeeded', retryable: false, preview: '먼저 선 글' } },
     });
     expect(await serveTaste(DRAFT, one)).toEqual({ state: 'ready', sessionId: SESSION, preview: '먼저 선 글' });
+  });
+});
+
+describe('로그인한 사람은 맛보기로 가지 않는다', () => {
+  it('회원의 요청은 입력을 읽지도 예약하지도 모델을 부르지도 않고 닫는다', async () => {
+    const { hands: one, seen } = hands(callModel(), { member: true });
+    expect(await serveTaste(DRAFT, one)).toEqual({ state: 'failed', retry: false });
+    expect(seen.reserve).toEqual([]);
+    expect(seen.prompts).toEqual([]);
+    expect(seen.finish).toEqual([]);
+  });
+});
+
+describe('예약한 뒤의 모든 길이 결과를 적는다', () => {
+  it('모델 손잡이가 던져도 실패 코드로 닫고 예외는 위로 간다', async () => {
+    const { hands: one, seen } = hands(callModel(2), { throwing: 'call' });
+    await expect(serveTaste(DRAFT, one)).rejects.toThrow('모델 손잡이가 던졌다');
+    expect(seen.finish).toHaveLength(1);
+    expect(seen.finish[0]).toMatchObject({ artifactId: ARTIFACT, attempt: 2, failureCode: TASTE_INTERNAL_ERROR, output: null });
+    expect(seen.finish[0].usage).toMatchObject({ inputTokens: null, responseMs: 4_321 });
+    expect(TASTE_INTERNAL_ERROR).toMatch(/^[a-z0-9-]{1,64}$/);
+  });
+
+  it('결과를 적는 문이 터지면(못 적음 · 던짐) 실패 코드로 한 번 더 닫는다 — 받은 사용량은 그대로 싣는다', async () => {
+    const usage = { inputTokens: 3_000, noCacheTokens: 3_000, cacheReadTokens: 0, cacheWriteTokens: 0, outputTokens: 900, totalTokens: 3_900 };
+    const notWritten = hands(callModel(), {
+      called: { ok: true, output: HAND_SAMPLE.taste, usage, reasoningTokens: 0, modelId: 'm' },
+      finished: null,
+    });
+    expect(await serveTaste(DRAFT, notWritten.hands)).toEqual({ state: 'failed', retry: false });
+    expect(notWritten.seen.finish.map((one) => one.failureCode)).toEqual([null, TASTE_INTERNAL_ERROR]);
+    expect(notWritten.seen.finish[1]).toMatchObject({ output: null, usage: { inputTokens: 3_000, outputTokens: 900 } });
+
+    const thrown = hands(callModel(), { throwing: 'finish-first' });
+    await expect(serveTaste(DRAFT, thrown.hands)).rejects.toThrow('적는 문이 던졌다');
+    expect(thrown.seen.finish.map((one) => one.failureCode)).toEqual([null, TASTE_INTERNAL_ERROR]);
+  });
+
+  it('적은 뒤에는 다시 닫지 않는다 — 결과 하나에 적기 하나', async () => {
+    const { hands: one, seen } = hands(callModel(), { finished: 'ignored', view: { ok: false } });
+    expect(await serveTaste(DRAFT, one)).toEqual({ state: 'failed', retry: false });
+    expect(seen.finish).toHaveLength(1);
   });
 });
 

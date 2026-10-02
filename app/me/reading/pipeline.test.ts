@@ -578,6 +578,20 @@ describe('귀속한 맛보기를 잇는다', () => {
     expect(link).toHaveBeenCalledWith('session-1', started.run_id);
   });
 
+  it('이었는데 스냅숏을 못 읽었으면 이어쓰기 없는 풀이를 내지 않고 그 시도를 실패로 닫는다', async () => {
+    claimed.mockResolvedValue(claim(null));
+    link.mockResolvedValue('linked');
+    continuationOfRun.mockResolvedValue(null);
+
+    await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: true });
+    await settle();
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(prepared()).toBeUndefined();
+    expect(keyedCall('take_reading_job')).toBeUndefined();
+    expect(closed()?.[1]).toMatchObject({ p_run_id: started.run_id, p_failure_code: 'taste-carry-unread' });
+  });
+
   it('버림 · 남의 것 · 지남은 표를 걷고 보통 풀이다', async () => {
     claimed.mockResolvedValue({ sessionId: 'session-1', claim: { outcome: 'discarded' } });
     await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: true });

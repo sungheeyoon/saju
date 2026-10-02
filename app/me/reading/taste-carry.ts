@@ -30,8 +30,11 @@ import type { CurrentReading } from './current';
  */
 export type TasteCarryView = { readonly preview: string; readonly state: 'next' | 'running' | 'shown' };
 
-/** 지금 저장된 내 사주의 근거 지문 — 못 읽으면 `null` */
-async function selfFingerprint(): Promise<string | null> {
+/**
+ * 지금 저장된 내 사주의 근거 지문 — 못 읽으면 `null`. 귀속(`claimTaste`, `app/actions.ts`)과 이 파일의 다시 맞추기가 같은
+ * 길로 잰다 — 클라이언트가 들고 온 입력이 아니라 서버에 저장된 입력이다.
+ */
+export async function selfTasteFingerprint(): Promise<string | null> {
   const supabase = await supabaseOnServer();
   const { state } = await readAccount(supabase);
   const personId = selfPersonIdOf(state);
@@ -48,7 +51,7 @@ export async function claimedTaste(): Promise<{ sessionId: string; claim: TasteC
   if (sessionId === null) return null;
   const browserHmac = await browserHmacNow();
   if (browserHmac === null) return null;
-  const fingerprint = await selfFingerprint();
+  const fingerprint = await selfTasteFingerprint();
   if (fingerprint === null) return null;
   const claim = await claimTasteSession({ sessionId, browserHmac, fingerprint });
   return claim === null ? null : { sessionId, claim };

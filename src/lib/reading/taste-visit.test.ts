@@ -75,10 +75,18 @@ describe('IP 의 이름', () => {
     expect(ipSubjectOf(' 203.0.113.7 ')).toBe('203.0.113.7');
   });
 
-  it('IPv6 는 /64 로 접는다 — 같은 가입자가 주소를 바꿔도 같은 이름이다', () => {
-    expect(ipSubjectOf('2001:db8:1:2:aaaa::1')).toBe('2001:0db8:0001:0002::/64');
-    expect(ipSubjectOf('2001:db8:1:2:bbbb:cccc:dddd:eeee')).toBe('2001:0db8:0001:0002::/64');
-    expect(ipSubjectOf('::1')).toBe('0000:0000:0000:0000::/64');
+  it('IPv6 는 /56 으로 접는다 — 한 /56 안에서 /64 를 돌려 가며 바꿔도 같은 이름이다', () => {
+    expect(ipSubjectOf('2001:db8:1:2:aaaa::1')).toBe('2001:0db8:0001:0000::/56');
+    expect(ipSubjectOf('2001:db8:1:2:bbbb:cccc:dddd:eeee')).toBe('2001:0db8:0001:0000::/56');
+    /* 흔한 VPS 할당 /56 하나 안의 /64 둘 — /64 로 접던 때는 두 이름이었다 */
+    expect(ipSubjectOf('2001:db8:1:ab01::1')).toBe(ipSubjectOf('2001:db8:1:abff::1'));
+    expect(ipSubjectOf('2001:db8:1:ab01::1')).toBe('2001:0db8:0001:ab00::/56');
+    expect(ipSubjectOf('::1')).toBe('0000:0000:0000:0000::/56');
+  });
+
+  it('/56 밖은 다른 이름이다 — 옆 /56 과 묶지 않는다', () => {
+    expect(ipSubjectOf('2001:db8:1:ab00::1')).not.toBe(ipSubjectOf('2001:db8:1:ac00::1'));
+    expect(ipSubjectOf('2001:db8:1::1')).not.toBe(ipSubjectOf('2001:db8:2::1'));
   });
 
   it('IPv4 를 품은 IPv6 는 그 IPv4 다', () => {

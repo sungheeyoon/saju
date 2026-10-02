@@ -7,7 +7,7 @@ import { CopyLinkButton } from './copy-link';
 import { calculateChart } from '@/src/lib/input/chart';
 import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
-import { useSignedIn } from './signed-in';
+import { useSessionKnown, useSignedIn } from './signed-in';
 import { BUTTON_PRIMARY } from './ui/buttons';
 import { SajuView, sajuViewModelOf, type SajuViewModel } from './saju/view';
 import { Taste } from './taste';
@@ -25,7 +25,7 @@ const TASTE_PRIVACY_NOTE =
   '입력한 생년월일시는 우리 서버에서 사주를 계산하는 데만 쓰고 저장하지 않아요. 풀이를 쓰는 OpenAI에는 정확한 생년월일시와 출생지 대신 계산된 사주와 분석값만 보내요.';
 
 /**
- * 익명 계산기 — **엔진이 순수 함수라 서버 없이 브라우저에서 그대로 돈다.**
+ * 계산기 — **엔진이 순수 함수라 명식은 서버 없이 브라우저에서 그대로 돈다.**
  *
  * 제출한 입력만 계산하므로, 타이핑 도중의 반쪽 날짜로 계산하지 않는다.
  *
@@ -35,8 +35,12 @@ const TASTE_PRIVACY_NOTE =
  * 순수 컴포넌트로 살고, 저장한 사람 화면에서는 **서버에서 그려진다** — 브라우저로 가는
  * 것은 운 탭 하나뿐이다(`app/saju/fortune-tabs.tsx`).
  *
- * 여기서는 그 스물넷이 결국 번들에 실린다. `#` 뒤는 서버에 오지 않으므로(ADR 0007)
- * 계산도 조립도 브라우저에서 할 수밖에 없다 — 그것이 이 화면이 치르는 값이다.
+ * 여기서는 그 스물넷이 결국 번들에 실린다. `#` 뒤는 페이지 요청으로는 서버에 오지 않으므로(ADR 0007)
+ * 명식 계산도 조립도 브라우저에서 한다 — 그것이 이 화면이 치르는 값이다.
+ *
+ * **로그인하지 않은 사람의 입력만은 서버로 간다**(ADR 0143) — 결과의 첫머리인 로그인 전 사주 문단을 서버가 쓰므로, 그
+ * 문단(`taste.tsx`)이 서버 액션으로 입력을 보낸다. 서버는 그것으로 명식을 다시 계산할 뿐 저장하지 않는다. 회원의 입력은
+ * 안 간다 — 세션을 알기 전에는 그 문단을 안 세우고(`useSessionKnown`), 서버도 로그인한 요청이면 닫는다.
  *
  * ## 누구의 사주를 넣고 있나
  *
@@ -187,7 +191,8 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
 
         {/*
           **무엇이 어디로 가는지 누르기 전에 말한다**(ADR 0143 의 6, 운영자가 정한 문구) — 로그인하지 않은 사람에게는 결과의
-          첫머리를 서버가 쓴다. 회원이 여기 넣는 사주는 서버로 안 가므로(브라우저가 계산한다) 이 줄이 참이 아니다.
+          첫머리를 서버가 쓴다. 회원이 여기 넣는 사주는 서버로 안 가므로(브라우저가 계산하고, 로그인 전 사주 문단은 회원에게
+          안 서며 서버도 회원의 요청을 닫는다) 이 줄이 참이 아니다.
         */}
         {!signedIn && <p className="text-xs leading-5 text-secondary">{TASTE_PRIVACY_NOTE}</p>}
 
@@ -255,9 +260,15 @@ function CalculatorResult({
   signedIn: boolean;
   outline: readonly string[];
 }) {
+  const sessionKnown = useSessionKnown();
   if (signedIn || query === null) {
     return <SajuView {...model} afterChart={query !== null ? <SavePersonForReading query={query} /> : null} />;
   }
+  /*
+    **세션을 알기 전에는 로그인 전 결과를 안 세운다.** 그 결과는 서서 곧바로 입력을 서버로 보낸다(`taste.tsx`) — 모르는
+    동안 세우면 회원의 입력이 로그인 전 사주 문단의 예약과 모델 호출로 한 번 간다. 그동안 이 자리는 빈다(폼은 그대로 서 있다).
+  */
+  if (!sessionKnown) return null;
   return (
     <Taste
       query={query}

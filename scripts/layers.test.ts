@@ -463,9 +463,9 @@ describe('브라우저로 가는 그래프', () => {
 describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
   const KEYED_CLIENT = 'app/keyed-client';
   const POOL_MODULE = 'app/me/keyed-chart-writes.ts';
-  /** 로그인 전 사주 문단의 문 일곱 — 로그인 전 쪽 넷과 가입한 회원 쪽 셋이 모듈 하나씩(ADR 0143) */
+  /** 로그인 전 사주 문단의 문 여덟 — 로그인 전 쪽 다섯과 가입한 회원 쪽 셋이 모듈 하나씩(ADR 0143) */
   const TASTE_MODULES: Readonly<Record<string, ReadonlySet<string>>> = {
-    'app/keyed-taste.ts': new Set(['reserve_taste', 'finish_taste', 'taste_session_view', 'count_taste_step']),
+    'app/keyed-taste.ts': new Set(['reserve_taste', 'finish_taste', 'taste_session_view', 'count_taste_step', 'count_taste_step_once']),
     'app/me/keyed-taste-claims.ts': new Set(['claim_taste_session', 'link_taste_reading_run', 'taste_continuation_of_run']),
   };
   const POOL_DOORS = new Set([

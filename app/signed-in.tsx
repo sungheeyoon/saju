@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useSyncExternalStore } from 'react';
 
+import type { BrowserSession } from './auth/browser-session';
+
 /**
  * 로그인했는가 — **화면 하나가 한 번 읽어 아래로 흘려보내는 값.**
  *
@@ -21,10 +23,17 @@ import { createContext, useContext, useSyncExternalStore } from 'react';
  * 만드는 쪽이 아는 값이어야 하는데 `page.tsx` 는 서버라 세션을 모른다 — 알면 안 되는
  * 쪽이기도 하다(이 화면은 빌드 때 미리 그려진다).
  *
- * **모르는 동안은 `false` 다.** 이 값으로 문을 열고 닫지 않는다. 정하는 것은 「어느
- * 쪽으로 가는 길을 보일까」뿐이고, 모르는 동안 세우는 얼굴은 현관이다.
+ * **통로는 세 값을 든다** — 모름 · 로그인함 · 안 함(`useBrowserSession`). 모르는 동안 `useSignedIn()` 은 `false` 다. 이 값으로
+ * 문을 열고 닫지 않는다. 정하는 것은 「어느 쪽으로 가는 길을 보일까」뿐이고, 모르는 동안 세우는 얼굴은 현관이다.
+ *
+ * **다만 서버로 무언가를 보내는 자리는 「모름」을 「안 함」으로 읽지 않는다** — `useSessionKnown()`. 로그인 전 사주
+ * 문단(`taste.tsx`)은 입력을 서버로 보내 예약 · 모델 호출까지 가므로, 모르는 동안 세우면 회원의 입력이 한 번 나간다.
+ * 한 시간이 지나 돌아온 회원은 브라우저가 토큰을 새로 받는 동안 세션을 모른다 — 그 틈에 실제로 나갔다(2026-10-03,
+ * `e2e/signed-in.spec.ts`).
+ *
+ * 통로 밖(공급자 없음)의 기본값은 「안 함」이다 — 전과 같다.
  */
-const SignedIn = createContext(false);
+const SignedIn = createContext<BrowserSession>('out');
 
 export const SignedInProvider = SignedIn.Provider;
 
@@ -43,8 +52,16 @@ export const SignedInProvider = SignedIn.Provider;
  * 값이 늦게 오는 것은 이 화면이 이미 곳곳에서 치르는 값이다(`home-hero.tsx`).
  */
 export function useSignedIn(): boolean {
-  const signedIn = useContext(SignedIn);
-  return useSyncExternalStore(never, attached, notYet) && signedIn;
+  const session = useContext(SignedIn);
+  return useSyncExternalStore(never, attached, notYet) && session === 'in';
+}
+
+/**
+ * 로그인했는지 **안다** — 붙었고, 세션 읽기가 답했다. 서버로 무언가를 보내기 전에 본다(위 「다만 서버로…」).
+ */
+export function useSessionKnown(): boolean {
+  const session = useContext(SignedIn);
+  return useSyncExternalStore(never, attached, notYet) && session !== 'unknown';
 }
 
 /**

@@ -384,6 +384,31 @@ async function pressCarry(): Promise<{ kind: 'continue'; sessionId: string } | {
   return { kind: 'continue', sessionId };
 }
 
+/** 이어진 맛보기의 스냅숏을 못 읽어 보내지 않고 닫은 시도의 실패 코드 */
+export const TASTE_CARRY_UNREAD = 'taste-carry-unread';
+
+/**
+ * 연 시도를 **보내지 않고** 실패로 닫는다 — 기존 실패 닫기 문(`fail_reading_job`, 열쇠)이다. 시도는 `running` 일 때만 닫히고
+ * 실패 알림이 서며, 화면은 다음 물음에서 실패와 다시 누를 단추를 본다.
+ */
+async function closeUnsent(runId: string, code: string, detail: string): Promise<void> {
+  let keyed: ReturnType<typeof keyedClient>;
+  try {
+    keyed = keyedClient('보내지 않은 시도를 닫을');
+  } catch (failure) {
+    /* 열쇠가 없는 배포다 — 시도는 열린 채 남고 만료가 닫는다(`sendRun` 과 같다) */
+    console.error('close: 열쇠 없음', failure instanceof NoKeyError ? failure.message : failure);
+    return;
+  }
+  const { error } = await keyed.rpc('fail_reading_job', {
+    p_run_id: runId,
+    p_failure_code: code,
+    p_failure_detail: detail,
+    p_usage: null,
+  });
+  if (error) console.error('close: fail_reading_job', error.code, error.message);
+}
+
 /** 눌렀을 때 화면이 곧바로 받는 답 — **결과가 아니라 시작 여부다.** */
 export type ReadingStart =
   /** 이 누름이 시도를 열었다. 만드는 일은 응답 뒤에 돈다 */
@@ -425,8 +450,27 @@ export async function beginReading(
    * 들고 다니지 않는다. 못 이었으면(경합 · 문이 터짐) 이 시도는 보통 풀이다. 풀이권은 시도를 여는 규칙 그대로다.
    */
   let continuation: TasteRunCarry | null = null;
+  /**
+   * **이었는데 스냅숏을 못 읽었으면 이 시도를 실패로 닫는다** — 이어쓰기 없는 보통 풀이로 내지 않는다. 세션은 이미 이
+   * 시도에 이어졌으므로, 보통 풀이로 서면 그 맛보기는 다시 안 이어진다(성공한 시도를 바꿔 잇지 않는다). 실패로 닫으면
+   * 풀이권은 안 쓰이고(실패한 시도는 안 쓴 것이다) 다음 누름이 같은 맛보기로 다시 잇는다(`link_taste_reading_run`).
+   */
+  let unreadCarry = false;
   if (carry?.kind === 'continue' && (await linkTasteReadingRun(carry.sessionId, runId)) === 'linked') {
     continuation = await tasteContinuationOfRun(runId);
+    unreadCarry = continuation === null;
+  }
+
+  if (unreadCarry) {
+    after(async () => {
+      try {
+        await closeUnsent(runId, TASTE_CARRY_UNREAD, '이어진 맛보기의 스냅숏을 못 읽었다');
+      } catch (thrown) {
+        // 못 닫았으면 복구기가 deadline 에 닫는다 — 까닭만 기록에 남긴다.
+        console.error('begin: closeUnsent', thrown);
+      }
+    });
+    return { ok: true, started: true };
   }
 
   after(async () => {
