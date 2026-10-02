@@ -1946,6 +1946,102 @@ export type Database = {
         }
         Relationships: []
       }
+      taste_artifact: {
+        Row: {
+          answer_direction: string | null
+          attempt_started_at: string
+          attempts: number
+          cache_read_tokens: number | null
+          cache_write_tokens: number | null
+          continuation_question: string | null
+          created_at: string
+          distinctive_pattern: string | null
+          evidence_fingerprint: string
+          expires_at: string
+          failure_code: string | null
+          id: string
+          input_tokens: number | null
+          model_config_version: string
+          output_tokens: number | null
+          preview_markdown: string | null
+          prompt_version: string
+          reasoning_tokens: number | null
+          response_ms: number | null
+          status: string
+          supporting_claims: string[] | null
+          topic: string | null
+          updated_at: string
+        }
+        Insert: {
+          answer_direction?: string | null
+          attempt_started_at?: string
+          attempts?: number
+          cache_read_tokens?: number | null
+          cache_write_tokens?: number | null
+          continuation_question?: string | null
+          created_at?: string
+          distinctive_pattern?: string | null
+          evidence_fingerprint: string
+          expires_at?: string
+          failure_code?: string | null
+          id?: string
+          input_tokens?: number | null
+          model_config_version: string
+          output_tokens?: number | null
+          preview_markdown?: string | null
+          prompt_version: string
+          reasoning_tokens?: number | null
+          response_ms?: number | null
+          status?: string
+          supporting_claims?: string[] | null
+          topic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          answer_direction?: string | null
+          attempt_started_at?: string
+          attempts?: number
+          cache_read_tokens?: number | null
+          cache_write_tokens?: number | null
+          continuation_question?: string | null
+          created_at?: string
+          distinctive_pattern?: string | null
+          evidence_fingerprint?: string
+          expires_at?: string
+          failure_code?: string | null
+          id?: string
+          input_tokens?: number | null
+          model_config_version?: string
+          output_tokens?: number | null
+          preview_markdown?: string | null
+          prompt_version?: string
+          reasoning_tokens?: number | null
+          response_ms?: number | null
+          status?: string
+          supporting_claims?: string[] | null
+          topic?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      taste_daily_count: {
+        Row: {
+          day: string
+          metric: string
+          value: number
+        }
+        Insert: {
+          day: string
+          metric: string
+          value?: number
+        }
+        Update: {
+          day?: string
+          metric?: string
+          value?: number
+        }
+        Relationships: []
+      }
       taste_passage: {
         Row: {
           body: string
@@ -1969,6 +2065,115 @@ export type Database = {
           model?: string
         }
         Relationships: []
+      }
+      taste_rate_event: {
+        Row: {
+          at: string
+          id: string
+          kind: string
+          subject_hmac: string
+        }
+        Insert: {
+          at?: string
+          id?: string
+          kind: string
+          subject_hmac: string
+        }
+        Update: {
+          at?: string
+          id?: string
+          kind?: string
+          subject_hmac?: string
+        }
+        Relationships: []
+      }
+      taste_session: {
+        Row: {
+          answer_direction: string | null
+          artifact_id: string | null
+          browser_hmac: string
+          claimed_at: string | null
+          claimed_by: string | null
+          continuation_question: string | null
+          created_at: string
+          distinctive_pattern: string | null
+          evidence_fingerprint: string
+          expires_at: string
+          id: string
+          model_config_version: string
+          preview_markdown: string | null
+          prompt_version: string
+          reading_run_id: string | null
+          snapshot_at: string | null
+          status: string
+          supporting_claims: string[] | null
+          topic: string | null
+        }
+        Insert: {
+          answer_direction?: string | null
+          artifact_id?: string | null
+          browser_hmac: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          continuation_question?: string | null
+          created_at?: string
+          distinctive_pattern?: string | null
+          evidence_fingerprint: string
+          expires_at?: string
+          id?: string
+          model_config_version: string
+          preview_markdown?: string | null
+          prompt_version: string
+          reading_run_id?: string | null
+          snapshot_at?: string | null
+          status?: string
+          supporting_claims?: string[] | null
+          topic?: string | null
+        }
+        Update: {
+          answer_direction?: string | null
+          artifact_id?: string | null
+          browser_hmac?: string
+          claimed_at?: string | null
+          claimed_by?: string | null
+          continuation_question?: string | null
+          created_at?: string
+          distinctive_pattern?: string | null
+          evidence_fingerprint?: string
+          expires_at?: string
+          id?: string
+          model_config_version?: string
+          preview_markdown?: string | null
+          prompt_version?: string
+          reading_run_id?: string | null
+          snapshot_at?: string | null
+          status?: string
+          supporting_claims?: string[] | null
+          topic?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taste_session_artifact_id_fkey"
+            columns: ["artifact_id"]
+            isOneToOne: false
+            referencedRelation: "taste_artifact"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "taste_session_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "taste_session_reading_run_id_fkey"
+            columns: ["reading_run_id"]
+            isOneToOne: true
+            referencedRelation: "reading_run"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_activity: {
         Row: {
@@ -2088,6 +2293,39 @@ export type Database = {
           verification_failed: number | null
           verification_succeeded: number | null
           verification_total_tokens: number | null
+        }
+        Relationships: []
+      }
+      taste_daily: {
+        Row: {
+          avg_response_ms: number | null
+          cache_read_tokens: number | null
+          cache_write_tokens: number | null
+          call_model: number | null
+          calls_failed: number | null
+          calls_late: number | null
+          calls_succeeded: number | null
+          calls_timed_out: number | null
+          day: string | null
+          input_tokens: number | null
+          limited_browser: number | null
+          limited_global: number | null
+          limited_ip: number | null
+          limited_request: number | null
+          max_response_ms: number | null
+          model_calls: number | null
+          more_clicked: number | null
+          output_tokens: number | null
+          preview_shown: number | null
+          reading_started: number | null
+          reading_succeeded: number | null
+          reasoning_tokens: number | null
+          retries_exhausted: number | null
+          reuse_succeeded: number | null
+          session_claimed: number | null
+          signup_completed: number | null
+          signup_started: number | null
+          wait_running: number | null
         }
         Relationships: []
       }
@@ -2214,6 +2452,27 @@ export type Database = {
           viewed_at: string
         }[]
       }
+      claim_taste_session: {
+        Args: {
+          p_browser_hmac: string
+          p_evidence_fingerprint: string
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: {
+          answer_direction: string
+          continuation_question: string
+          distinctive_pattern: string
+          model_config_version: string
+          outcome: string
+          preview_markdown: string
+          prompt_version: string
+          reading_run_id: string
+          reading_run_status: string
+          supporting_claims: string[]
+          topic: string
+        }[]
+      }
       claimed_by: { Args: { target_person: string }; Returns: string }
       complete_signup: {
         Args: {
@@ -2226,6 +2485,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      count_taste_step: { Args: { p_step: string }; Returns: undefined }
       create_managed_person: {
         Args: {
           p_birth_time: string
@@ -2435,6 +2695,26 @@ export type Database = {
         Args: { p_actor: string; p_deck: string; p_seed: string }
         Returns: number
       }
+      finish_taste: {
+        Args: {
+          p_answer_direction?: string
+          p_artifact_id: string
+          p_attempt: number
+          p_cache_read_tokens?: number
+          p_cache_write_tokens?: number
+          p_continuation_question?: string
+          p_distinctive_pattern?: string
+          p_failure_code?: string
+          p_input_tokens?: number
+          p_output_tokens?: number
+          p_preview_markdown?: string
+          p_reasoning_tokens?: number
+          p_response_ms?: number
+          p_supporting_claims?: string[]
+          p_topic?: string
+        }
+        Returns: string
+      }
       forget_orphan_people: { Args: never; Returns: number }
       forget_user: {
         Args: { p_user_id: string }
@@ -2474,6 +2754,18 @@ export type Database = {
           p_usefulness: number
         }
         Returns: undefined
+      }
+      link_taste_reading_run: {
+        Args: {
+          p_reading_run_id: string
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: {
+          outcome: string
+          reading_run_id: string
+          reading_run_status: string
+        }[]
       }
       lock_my_photos: { Args: never; Returns: string }
       lock_users: { Args: { a: string; b: string }; Returns: undefined }
@@ -3197,6 +3489,21 @@ export type Database = {
       }
       request_account_deletion: { Args: never; Returns: boolean }
       request_match: { Args: { p_candidate_user_id: string }; Returns: string }
+      reserve_taste: {
+        Args: {
+          p_browser_hmac: string
+          p_evidence_fingerprint: string
+          p_ip_hmac: string
+          p_model_config_version: string
+          p_prompt_version: string
+        }
+        Returns: {
+          artifact_id: string
+          attempt: number
+          outcome: string
+          session_id: string
+        }[]
+      }
       respond_to_match_request: {
         Args: { p_accept: boolean; p_request_id: string }
         Returns: string
@@ -3392,7 +3699,50 @@ export type Database = {
           run_id: string
         }[]
       }
+      taste_attempt_limit: { Args: never; Returns: number }
+      taste_browser_new_per_hour: { Args: never; Returns: number }
+      taste_call_timeout: { Args: never; Returns: string }
+      taste_continuation_of_run: {
+        Args: { p_reading_run_id: string; p_user_id: string }
+        Returns: {
+          answer_direction: string
+          continuation_question: string
+          distinctive_pattern: string
+          model_config_version: string
+          preview_markdown: string
+          prompt_version: string
+          session_id: string
+          supporting_claims: string[]
+          topic: string
+        }[]
+      }
+      taste_daily_model_calls: { Args: never; Returns: number }
+      taste_day_start: { Args: never; Returns: string }
+      taste_ip_calls_per_day: { Args: never; Returns: number }
+      taste_ip_calls_per_minute: { Args: never; Returns: number }
+      taste_ip_requests_per_minute: { Args: never; Returns: number }
+      taste_is_hex64: { Args: { p_value: string }; Returns: boolean }
+      taste_is_version: { Args: { p_value: string }; Returns: boolean }
+      taste_keep_for: { Args: never; Returns: string }
       taste_passage: { Args: { p_key: string }; Returns: string }
+      taste_session_view: {
+        Args: { p_browser_hmac: string; p_session_id: string }
+        Returns: {
+          expires_at: string
+          preview_markdown: string
+          retryable: boolean
+          state: string
+        }[]
+      }
+      taste_snapshot: {
+        Args: { p_artifact_id: string; p_session_id?: string }
+        Returns: number
+      }
+      taste_tally: {
+        Args: { p_max?: boolean; p_metric: string; p_value?: number }
+        Returns: undefined
+      }
+      taste_today: { Args: never; Returns: string }
       touch_activity: { Args: never; Returns: boolean }
       unread_chat_count: { Args: never; Returns: number }
       unread_notifications: { Args: never; Returns: number }
