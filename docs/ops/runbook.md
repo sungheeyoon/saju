@@ -66,6 +66,7 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 | `SUPABASE_SECRET_KEY` | 서버 전용 — `definer` 함수를 부르는 자리 |
 | `OPENAI_API_KEY` · `OPENAI_WEBHOOK_SECRET` | 풀이 생성과 webhook. 키는 Production · Preview, 서명 비밀은 Production 만(2026-09-24 `vercel env ls`) |
 | `CRON_SECRET` | 복구기를 깨우는 자리 |
+| `TASTE_BROWSER_SECRET` · `TASTE_IP_SECRET` | 로그인 전 사주 문단의 브라우저 묶음 · IP 를 HMAC 하는 서버 비밀(ADR 0143). Production · Preview — 없으면 그 문단이 닫힌다(「로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용」) |
 
 - **`NEXT_PUBLIC_` 이 붙으면 브라우저가 본다.** 열쇠를 그 접두사로 넣는 순간 공개된다.
 - `POSTGRES_*` 일곱과 `SUPABASE_JWT_SECRET`, 옛 이름 키 넷은 **코드가 한 번도 안 읽어서**
@@ -128,6 +129,8 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 | `AUDIT_EXPORT_ACCESS_KEY_ID` · `AUDIT_EXPORT_SECRET_ACCESS_KEY` | **역할을 못 세운 날의 대안이다**(기본은 위 OIDC 역할). AWS IAM → 반출 사용자(`saju-audit-export`) → Security credentials → Create access key. 한 사용자에 키가 둘까지 함께 선다 | Vercel **Production** → 재배포. `AUDIT_EXPORT_BUCKET` · `AUDIT_EXPORT_REGION` 은 비밀이 아니다(같은 자리에 넣는다) | 그날 반출이 실패한다(500, Vercel 로그). **기록은 안 잃는다** — DB 에 남아 있고 다음 반출이 이어 올린다 | 새 배포 Ready 뒤 크론을 손으로 한 번 부르거나 다음 날 `select max(exported_at) from audit.operator_access_export` 가 오늘이면 옛 키를 Deactivate → Delete. **키가 새도 올린 객체는 못 지운다** — 권한이 `s3:PutObject` 뿐이고 Object Lock 이 잠갔다. 새 객체를 쓸 수는 있으므로 교체가 먼저다 |
 | `PORTONE_WEBHOOK_SECRET` | PortOne 관리자 콘솔 → 결제 연동 → 웹훅 → 그 주소의 시크릿(`whsec_…`). 새 시크릿을 발급하면 옛 것과 함께 설 수 있는지는 가맹 때 본다(G-23 ⑥) | Vercel **Production** → 재배포 | 결제 알림이 401 이다. **돈은 들어왔는데 묶음이 안 선다** — PortOne 은 다섯 번까지(0 → 256분) 다시 보내므로 그 안에 새 값이 서면 붙는다. 넘기면 콘솔의 재전송으로 다시 보낸다(`approve_reading_order` 는 같은 알림 · 같은 거래 번호를 한 번만 적는다) | 새 배포 Ready 뒤 콘솔의 「웹훅 테스트 호출」이 200 인지 본다. 서명이 여럿이면 하나만 맞아도 되므로(`signature.ts`) 옛 시크릿은 그 뒤에 끈다 |
 | `PORTONE_API_SECRET` | PortOne 관리자 콘솔 → 결제 연동 → 연동 정보 → V2 API 시크릿 재발급 | Vercel **Production** → 재배포. `PORTONE_STORE_ID` 는 비밀이 아니다(같은 자리에 넣는다) | 결제 알림이 금액을 못 받아 503 이다 — 위와 같이 PortOne 이 다시 보낸다. **키가 새면 남이 결제를 조회 · 취소할 수 있다** — 교체가 먼저다 | 새 배포 Ready 뒤 콘솔의 테스트 호출이 200 이면 옛 시크릿을 폐기한다 |
+| `TASTE_BROWSER_SECRET` | 우리가 짓는다 — `openssl rand -hex 32` | Vercel **Production · Preview** · 로컬 `.env.development.local`(앱을 로컬에서 돌릴 때) → 재배포 | 로그인 전 사주 문단이 닫힌다(값이 없으면). **값을 바꾸면 열린 미가입 세션의 귀속이 끊긴다** — 같은 쿠키가 다른 HMAC 이 되어 그 세션을 못 읽고 못 붙인다(`not_found`). 그 사람은 문단을 새로 받고(같은 입력이면 생성 결과를 다시 써 모델을 안 부른다) 이어쓰기 없이 가입할 수 있다. 미가입 세션은 어차피 24시간 안에 지워진다 | 새 배포 Ready 뒤 비로그인 창에서 문단 하나를 받고 새로고침해 같은 글이 서는지 본다. 옛 값은 남겨 둘 자리가 없다 — 교체가 곧 끊기다. 사람이 적은 시간에 한다 |
+| `TASTE_IP_SECRET` | 우리가 짓는다 — `openssl rand -hex 32` | Vercel **Production · Preview** · 로컬 `.env.development.local` → 재배포 | 로그인 전 사주 문단이 닫힌다(값이 없으면). 이 값은 **날짜별 키의 뿌리**다 — 서버가 `HMAC(이 값, 서울 날짜)` 로 그날의 키를 짓고 그 키로 IP 를 HMAC 한다. 바꾸면 그날 IP 빗장(1분 3 · 하루 20 · 요청 1분 30)이 처음부터 다시 센다. 귀속 · 이미 만든 글에는 영향이 없다. 옛 HMAC 은 24시간 안에 지워진다 | 새 배포 Ready 뒤 문단 하나를 받고 `taste_daily` 의 오늘 줄 `call_model` 또는 `reuse_succeeded` 가 하나 는 것을 본다 |
 | Vault `reading_recovery_url` | 비밀이 아니다 — 공개 주소(`/api/cron/reading`). 도메인이 바뀔 때만 고친다 | Vault | — | — |
 | Vault `ops_alert_url` | **주소 자체가 열쇠다** — 가진 사람은 운영 채널에 글을 넣는다. Slack 앱의 Incoming Webhooks 나 Discord 채널의 연동 → 웹후크에서 새 주소를 만든다 | Vault(재배포 없음) | 알림이 채널로 안 나간다. `ops_alert` 표에는 그대로 적힌다 | 「운영자 알림 배선」의 `notify_ops('ops-alert-test', …)` 가 닿으면 옛 웹후크를 지운다 |
 | Vault `ops_alert_secret` | 넣었을 때만 있다 — 받는 쪽이 `Authorization` 을 볼 때 | Vault 와 받는 쪽을 함께 | 받는 쪽이 알림을 거절한다 | 위와 같다 |
@@ -1482,6 +1485,88 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 
 ---
 
+## 로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용 (ADR 0143)
+
+로그인 전 첫 화면의 사주 문단은 사람마다 모델이 쓴다. 계정이 없으므로 빗장은 브라우저와 IP 에 걸고, 칸은 모델을 **부르기 전에**
+`reserve_taste` 가 한 트랜잭션으로 예약한다. 앱이 붙기 전까지(G-68) 이 절의 표와 뷰는 비어 있다.
+
+### 비밀 둘 — 없으면 문단이 닫힌다
+
+| 이름 | 하는 일 | 바꾸면 |
+| --- | --- | --- |
+| `TASTE_BROWSER_SECRET` | httpOnly 쿠키 원문을 HMAC 해 브라우저 묶음을 짓는다 — 날짜별로 돌리지 않는 **안정 비밀**이다(자정을 넘겨 가입한 사람이 다른 브라우저가 되지 않게) | 열린 미가입 세션의 귀속이 끊긴다 |
+| `TASTE_IP_SECRET` | 날짜별 키의 뿌리 — `HMAC(이 값, 서울 날짜)` 가 그날의 키이고 그 키로 IP 를 HMAC 한다. DB 에는 그 HMAC 만 24시간 간다 | 그날 IP 빗장이 처음부터 다시 센다 |
+
+1. **만든다** — 값마다 따로 `openssl rand -hex 32`. 둘을 같은 값으로 두지 않고, 다른 비밀(`CRON_SECRET` 들)과도 나누지 않는다.
+2. **넣는다** — Vercel 대시보드 Settings → Environment Variables 에 **Production · Preview** 둘 다, Sensitive 로. 새 배포부터 읽힌다
+   (Redeploy → Ready). 앱을 로컬에서 돌릴 때만 `.env.development.local` 에 손으로 붙인다(Secret 은 `vercel env pull` 로 안 온다).
+   값 교체 · 지우기는 사람이 대시보드에서 한다(에이전트의 `vercel env rm` 은 등급 4).
+3. **교체** — 「비밀이 새면」 표의 두 줄. 둘 다 옛 값과 새 값이 함께 설 자리가 없다 — 교체가 곧 끊기다.
+4. **없으면** 로그인 전 사주 문단이 닫힌다. 배포 전에 둘이 있는지 `vercel env ls` 로 이름만 본다.
+
+### 상한 — 값이 사는 자리
+
+| 값 | 수 | 함수 |
+| --- | --- | --- |
+| 전체 하루(서울 날짜) 모델 생성 — 실패도 든다 | 2,000 · 80%(1,600)에 `taste-budget-warning`, 닿으면 `taste-budget-reached` | `taste_daily_model_calls()` |
+| 브라우저 하나의 새 근거 지문 / 1시간 | 5 | `taste_browser_new_per_hour()` |
+| IP 하나의 모델 생성 | 1분 3 · 하루 20 | `taste_ip_calls_per_minute()` · `taste_ip_calls_per_day()` |
+| IP 하나의 요청 — 캐시 적중도 센다 | 1분 30 | `taste_ip_requests_per_minute()` |
+| 같은 입력의 모델 시도 | 3 | `taste_attempt_limit()` |
+| 도는 시도를 죽은 것으로 보는 때 | 60초 | `taste_call_timeout()` |
+| 미가입 세션 · 생성 결과 · 사건 기록 | 24시간, 연장 없음 | `taste_keep_for()` |
+
+값은 위 함수 하나씩에 산다(`supabase/migrations/20261118090000_a_taste_is_made_for_each_visitor_and_reserved_before_the_call.sql`).
+바꾸는 것은 그 함수를 `create or replace` 하는 마이그레이션이고 결정이다(PRD §2). 경보 두 이름은 `notify_ops` 로 하루 한 줄씩
+`ops_alert` 와 운영 채널에 간다(위 「운영자 알림 배선」). 80% 는 상한 함수에서 바로 세므로 상한만 고치면 경보도 따라온다.
+
+### 관측 — 개인 없는 날짜별 한 줄
+
+```bash
+npm run db:remote -- --purpose "로그인 전 사주 문단 날짜별 수" \
+  "select * from public.taste_daily order by day desc limit 14;"
+```
+
+`taste_daily` 에는 사람이 없다 — 날짜 × 수뿐이다. 칸은 넷으로 읽는다.
+
+- **예산** — `model_calls`(상한이 보는 수) · 갈래(`call_model` · `reuse_succeeded` · `wait_running` · `retries_exhausted`) · 빗장
+  (`limited_request` · `limited_browser` · `limited_ip` · `limited_global`)
+- **결과** — `calls_succeeded` · `calls_failed` · `calls_timed_out` · `calls_late`(시간을 넘긴 뒤 온 결과 — 토큰은 나갔다) ·
+  `avg_response_ms` · `max_response_ms`
+- **토큰** — `input_tokens` · `cache_read_tokens` · `cache_write_tokens` · `output_tokens` · `reasoning_tokens`
+- **퍼널 여섯 단계** — `preview_shown` → `more_clicked` → `signup_started` → `signup_completed` · `session_claimed` →
+  `reading_started` → `reading_succeeded`. 가입 완료와 귀속은 칸이 따로다(앞은 앱이, 뒤는 DB 가 센다)
+
+뷰는 `service_role` 에도 닫혀 있다 — `db:remote`(`postgres`)로만 본다. 원본 행(`taste_session` · `taste_artifact`)은 미가입 방문자의
+글과 지문을 들므로 「개인정보는 화면으로만」의 경계대로 일상 질의에 열지 않는다.
+
+### 비용 — 토큰 × 공식 단가
+
+DB 는 금액을 내지 않는다. 공식 단가(gpt-5.6-luna, https://developers.openai.com/api/docs/models/gpt-5.6-luna, 2026-10-03 확인) —
+입력 $0.20 · 캐시 입력 $0.02 · **캐시 쓰기는 입력의 1.25배($0.25)** · 출력 $1.20 /1M 토큰. 추론 토큰은 출력에 이미 든다(따로
+곱하지 않는다).
+
+```
+하루 $ = (캐시 아닌 입력 × 0.20 + cache_read × 0.02 + cache_write × 0.25 + output × 1.20) / 1,000,000
+```
+
+`input_tokens` 가 캐시 칸을 포함해 세면 `input_tokens − cache_read_tokens − cache_write_tokens` 가 캐시 아닌 입력이다 — 앱 PR 이
+어느 쪽으로 적는지 이 줄에 적는다. 실측(2026-10-03 실호출)은 한 번 약 4원 · 4~6초였고, 하루 2,000 을 다 써도 하루 약 8천원
+이하다. 청구의 원본은 OpenAI 대시보드이고 바깥 벽(월 예산)도 거기다 — 위 「AI 비용 한도」.
+
+### 크론 `taste-sweep`
+
+5분마다(매시 1 · 6 · 11 … 분) `retention.sweep_taste()` 가 60초를 넘긴 시도를 실패(`timeout`)로 닫고, 24시간 지난 미가입 세션 ·
+생성 결과 · 사건 기록을 지운다. 귀속된 세션은 안 지운다(탈퇴 때 cascade). 도는지는 아래 「도는 잡이 정말 도나」의 질의에
+`taste-sweep` 줄이 `succeeded` 로 서는지로 본다 — 실패하면 `cron-watch` 가 `cron-failed:taste-sweep` 으로 알린다.
+
+```bash
+npm run db:remote -- --purpose "taste-sweep 일정 확인" \
+  "select jobname, schedule, active from cron.job where jobname = 'taste-sweep';"
+```
+
+---
+
 ## 도는 잡이 정말 도나 — **실패는 여기에만 남는다**
 
 `pg_cron` 이 돌리는 것은 앱 로그에 안 남고 `cron.job_run_details` 에만 남는다. 그래서
@@ -1499,7 +1584,7 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 | `cron-inactive:<잡>` | 잡이 꺼져 있다 | 일부러 끈 것이 아니면 `select cron.alter_job(<jobid>, active := true)` |
 | `reading-failure-rate` | 지난 한 시간에 끝난 풀이 시도 중 실패가 다섯 번 이상이고 절반 이상이다(`20261108090000`, 문턱은 `reading_failure_alert_floor()` · `reading_failure_alert_share()`). 알림에 가장 잦은 실패 코드가 붙는다 | 코드가 검사 실패(`length-out-of-contract` 같은 것)면 프롬프트 · 모델 판, `unexpected` 면 Vercel 로그의 `submit:` · `collect:` 줄 |
 
-재시도 소진은 잡이 스스로 알린다 — `account-disposal-overdue`(G-53) · `reading-budget-reached`.
+재시도 소진은 잡이 스스로 알린다 — `account-disposal-overdue`(G-53) · `reading-budget-reached` · 로그인 전 사주 문단의 `taste-budget-warning` · `taste-budget-reached`(「로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용」).
 
 **서버 오류는 앱이 알린다** — `request-error:<자리>:<라우트 파일>`(자리는 `render` · `route` · `action` · `proxy`). 앱의
 `instrumentation.ts` 의 `onRequestError` 가 열쇠로 `report_request_error` 를 부르고(Production 만, `app/request-error.ts`),
@@ -1537,7 +1622,8 @@ group by 1, 2 order by 1, 2;
 서 있는 잡의 원본은 `supabase/migrations/` 의 `cron.schedule` 이고, 운영의 실제는 `select jobname, schedule from cron.job;` 이
 찍는다. 2026-09-30 에 마이그레이션에서 센 것은 여덟이다 — `reading-recovery`(1분) · `match-request-expiry`(매시 7분) ·
 `account-disposal`(매시 23분, G-53) · `report-retention-purge`(매시 47분, ADR 0098) · `cron-watch`(10분, G-42) ·
-`cron-run-retention-purge`(매일 04:37 UTC, 크론 실행 이력 14일, ADR 0138) · `payment-retention-purge`(매일 04:53 UTC) · `audit-export-watch`(매일 06:29 UTC, 「반출 — 매일 S3」).
+`cron-run-retention-purge`(매일 04:37 UTC, 크론 실행 이력 14일, ADR 0138) · `payment-retention-purge`(매일 04:53 UTC) · `audit-export-watch`(매일 06:29 UTC, 「반출 — 매일 S3」). 2026-10-03 에
+`taste-sweep`(5분마다, 매시 1 · 6 · 11 … 분, ADR 0143 — `20261118090000`)이 더해졌다.
 Vercel Cron 은 둘이다(`vercel.json`) — 복구기의 하루 청소(`/api/cron/reading`)와 접속기록 반출(`/api/cron/audit-export`,
 ADR 0105). 둘은 `cron-watch` 가 못 본다 — 반출은 pg_cron 의 `audit-export-watch` 가 매일 본다(시도나 성공이 이틀 넘게 없으면 알린다).
 **`failed` 가 한 줄이라도 있으면 그 잡은 지금 안 도는 것이다.**
