@@ -99,7 +99,7 @@
 
 | 파일 | 켜는 값 | 무엇을 |
 | --- | --- | --- |
-| `app/me/reading/call.live.test.ts` | `READING_LIVE=1` (변형 · 두 판 · 인연 입력은 `READING_VARIANTS_LIVE` · `READING_PAIR_LIVE` · `READING_MATCH_INPUT_LIVE`) | 네 kind 의 풀이를 실제로 한 번 만든다 — 토큰이 나간다 |
+| `app/me/reading/call.live.test.ts` | `READING_LIVE=1` (변형 · 두 판 · 인연 입력은 `READING_VARIANTS_LIVE` · `READING_PAIR_LIVE` · `READING_MATCH_INPUT_LIVE`) | 네 kind 의 풀이를 실제로 한 번 만든다 — 토큰이 나간다. 원문 옆에 자리 검사(`positionSlips`)와 근거 칸의 층 검사(`groundingTiers`, #427 — 층이 `claims` 상한을 넘는 경로와 분류별 수)를 적는다. 층 검사는 **보고만 하고 실패로 세우지 않는다** |
 | `src/lib/input/backfill-chart.live.test.ts` | `BACKFILL_CHART=1` (+ `BACKFILL_TARGET=remote` 와 ref 확인) | 명식 없는 사람 행을 채운다 |
 | `src/lib/input/backfill-reading-chart.live.test.ts` | `BACKFILL_READING_CHART=1` | 풀이 행의 여덟 글자를 채운다 |
 | `app/me/reading/taste.live.test.ts` | `TASTE_LIVE=1` (+ `TASTE_WRITE=1` 이면 운영 표에 쓴다 · `TASTE_KEYS=` 로 몇 칸만) | 로그인 전 사주 문단 표(720칸)를 채운다 — 토큰이 나간다(ADR 0131) |

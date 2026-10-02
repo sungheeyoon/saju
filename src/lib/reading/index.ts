@@ -155,3 +155,4 @@ export {
 export { checkReading, plainTermsIn, type BirthSecret } from './check';
 export { sectionCounter, type SectionCount } from './progress';
 export { positionSlips } from './position-check';
+export { groundingTiers, type GroundingTierReport } from './grounding-tiers';

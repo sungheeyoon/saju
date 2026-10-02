@@ -12,6 +12,7 @@ import {
   isScored,
   readingEvidenceOf,
   readingPromptOf,
+  groundingTiers,
   positionSlips,
   promptVersionOf,
   writesSummaryLast,
@@ -227,6 +228,12 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
       /** 자리 검사(G-33) — 원문과 함께 떨군 뒤 판정한다 */
       const slips = positionSlips(called.output.markdown, evidence.evidence);
 
+      /**
+       * 근거 칸의 층 검사(#427) — **보고만 한다.** 근거 칸이 적은 층이 자료의 `claims` 상한을 넘어도 이 시험을
+       * 실패로 만들지 않는다(2026-10-02 운영자 확정: 저장을 막지도 다시 부르지도 않는다). 원문 옆에 적고 찍는다.
+       */
+      const tiers = groundingTiers(called.output.markdown, evidence.evidence);
+
       writeFileSync(
         `${dir}/${kind}${hourless ? '-hourless' : ''}-${runStamp(viewedAt)}.json`,
         JSON.stringify(
@@ -237,6 +244,7 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
             /** 궁합은 판본 칸이 따로다 — 저장되는 Reading 과 같은 함수로 고른다 */
             promptVersion: promptVersionOf(kind),
             positionSlips: slips,
+            groundingTiers: tiers,
             /** 운은 부르는 순간으로 짚는다 — 그 시각이 없으면 같은 입력도 다른 글이 난다 */
             viewedAt: viewedAt.toISOString(),
             generation: GENERATION,
@@ -246,6 +254,12 @@ describe.skipIf(!live)('OpenAI API 까지 실제로 닿는다', () => {
           2,
         ),
       );
+
+      const label = `${kind}${hourless ? ' (시간 미상)' : ''}`;
+      console.info(`[근거 층] ${label} — ${tiers.grounding ? JSON.stringify(tiers.counts) : '근거 절 없음'}`);
+      for (const one of tiers.overruns) {
+        console.info(`[근거 층 초과] ${label} — ${one.path} [${one.tier}] > ${one.key} ${one.polarity} ${one.ceiling}`);
+      }
 
       const verdict = checkReading({
         kind,
