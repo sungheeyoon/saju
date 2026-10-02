@@ -235,7 +235,7 @@ _Avoid_: 용신 프로필, 보완 점수, 궁합 점수
 오행 개수는 세지 않는다 — 그것은 **예측 궁합 점수**의 상호보완 축이다(ADR 0112).
 _Avoid_: 보완 점수, 기신(가장 무거운 쪽을 부르는 말로), 궁합 점수
 
-**claim** — 코드에 없다(PRD §7.3) : 어떤 **Person** 이 자기 자신임을 **User** 가 승인받는
+**claim** — 승인 절차는 코드에 없다 · 끝난 뒤의 규칙은 `claimed_by` · `demote_others_on_claim`(ADR 0004) : 어떤 **Person** 이 자기 자신임을 **User** 가 승인받는
 절차. 끝나면 그 Person 의 출생 정보 편집권이 그 User 에게만 남는다.
 _Avoid_: 연결, 병합(merge 는 두 Person 을 하나로 합치는 별개의 일)
 
@@ -839,6 +839,7 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | 억부·조후 관계 | `eokbuJohuRelationOf` | 엔진 `analysis/needProfile` |
 | 필요 오행 프로필 | `needProfileOf` · `NeedProfile` | 엔진 `analysis/needProfile` |
 | 방향별 필요 보완 | `needComplementOf` · `DirectionalNeedComplement` · `ProviderPresence` | 엔진 `analysis/needComplement` |
+| claim(끝난 뒤의 규칙) | `claimed_by` · `demote_others_on_claim` | 함수 · `app_user` 트리거 |
 | 읽는 문 | `dbFailure` | `app/db-error.ts` |
 | 부속 정보 | `SkippableRead` · `unread` | `app/db-error.ts` |
 | 열쇠 | `keyedClient` · `service_role` | `app/keyed-client.ts` · DB 역할 |
