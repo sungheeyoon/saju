@@ -265,8 +265,10 @@ ${TASTE_TOPICS.map((topic) => `   - ${topic}`).join('\n')}
 
 - 핵심 주제 하나. 그 사람이 「맞아, 나 이래」 할 **구체적인 장면**으로 시작한다. 정해진 순서(장점 → 문제 → 해결 직전)를
   따르지 않아도 된다 — 고른 꼴이 글의 모양을 정한다.
-- 끝은 **답을 말하기 직전**에서 멈춘다. 답은 가입 뒤 전체 풀이의 첫 문단이다. 멈추는 자리도 **완결된 문장**이다. 문장
-  중간에서 끊거나 말줄임으로 끝내지 않는다. 「가입하면 알려 드릴게요」처럼 가입을 말하지 않는다.
+- **끝은 지금 말한 장면 안의 물음 한 문장으로 멈춘다** — \`continuationQuestion\` 과 **같은 궁금증**을 그 장면의 말로 묻고
+  「~까요?」로 끝낸다. 답은 가입 뒤 전체 풀이의 첫 문단이다. 문장 중간에서 끊거나 말줄임으로 끝내지 않는다.
+- **다음을 예고하지 않는다.** 「다음 이야기의 핵심이 됩니다」 · 「다음 풀이에서 이어집니다」 · 「따로 살펴볼 필요가 있어요」 ·
+  「물음으로 남아요」 · 「가입하면 알려 드릴게요」처럼 글 바깥(다음 글 · 풀이 · 가입)을 가리키는 말을 쓰지 않는다.
 - 자료의 \`claims\` 가 말하는 세기보다 세게 말하지 않는다. 후보 · 참고인 값은 「~쪽으로 읽혀요」처럼 쓰고, 자료에 없는
   단정(「하나뿐」 · 「반드시」 · 「아껴 써야」)을 만들지 않는다.
 - 해요체. 사주 분류명(십성 이름 · 신강 · 신약 · 용신 · 격국 · 신살 이름 · 운 이름 같은 말)과 한자는 쓰지 않는다 —
@@ -302,6 +304,12 @@ const HANJA = /[一-鿿]/;
 /** 화면에 「AI」를 새로 세우지 않는다(운영자 2026-09-29) — 글 안에서도 */
 const AI_WORD = /\bAI\b|인공지능/;
 const MARKUP = /(^|\n)\s*(#|[-*] |\d+\. )|\*\*|__|`/;
+/**
+ * 글 바깥을 가리키는 예고 — 2차 실호출(2026-10-03)에서 끝 문장 셋이 이렇게 미끄러졌고 셋 다 합니다체였다
+ * (「…핵심이 됩니다」 · 「…가장 먼저 이어집니다」 · 「따로 살펴볼 필요가 있어요」). 끝 문단에서만 본다.
+ */
+const FORESHADOWING = /다음 (이야기|풀이|글|내용|절)|이어집니다|이어져요|따로 (살펴|읽|봐|볼)|(물음|질문)으로 남|가입/;
+
 /** 말줄임 — 문장 중간에서 끊은 자리 */
 const TRAILING_OFF = /(…|\.\.\.?|‥)\s*$/;
 
@@ -380,6 +388,10 @@ export function checkTasteRun(output: TasteRunOutput, evidence?: TasteEvidence):
     reasons.push(`문단이 ${paragraphs.length}개다`);
   }
   if (TRAILING_OFF.test(preview) || !/[.!?][」』"')\]]*$/.test(preview)) reasons.push('완결된 문장으로 끝나지 않는다');
+  const last = sentencesOf(preview).at(-1) ?? '';
+  if (!/요\?[」』"')\]]*$/.test(last)) reasons.push('장면 안의 물음(「~요?」)으로 멈추지 않는다');
+  const foreshadow = FORESHADOWING.exec(paragraphs.at(-1) ?? '');
+  if (foreshadow !== null) reasons.push(`다음을 예고한다: 「${foreshadow[0]}」`);
   if (sentencesOf(preview).some((sentence) => !endsPolitely(sentence))) reasons.push('해요체로 끝나지 않는 문장이 있다');
   if (AI_WORD.test(preview)) reasons.push('「AI」를 말한다');
   if (MARKUP.test(preview)) reasons.push('제목 · 목록 · 굵은 글씨가 있다');

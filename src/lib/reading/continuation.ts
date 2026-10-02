@@ -10,8 +10,13 @@ import { endsPolitely, plainTextSlips, sentencesOf, type TasteRunOutput } from '
  *
  * `readingPromptOf` 는 정적인 지시를 앞에, 사람마다 다른 자료를 뒤에 둔다 — 앞부분이 캐시로 이어지게. 이어쓰기는 사람마다
  * 다른 글이므로 자료 **뒤**에 붙인다. 그러면 `readingPromptOf` 의 기본 출력은 한 글자도 안 바뀌고(프롬프트 판 · 캐시 시험이
- * 그대로 초록), 이어쓰기가 없는 사람의 프롬프트는 지금과 같다. 첫 절 「먼저 볼 핵심 세 가지」 지시도 안 바꾼다 — 여기서
- * `markdown` 에 답을 되풀이하지 말라는 줄 하나만 더한다.
+ * 그대로 초록), 이어쓰기가 없는 사람의 프롬프트는 지금과 같다.
+ *
+ * ## 첫 절의 1번은 이어쓰기 답이다 (운영자 2026-10-03, 안 (나))
+ *
+ * 1 · 2차 실호출에서 「먼저 볼 핵심 세 가지」의 1번이 이어쓰기 답의 요지를 다시 말했다 — 「되풀이하지 말라」 한 줄로는 안
+ * 막혔다. 그래서 구조로 막는다: 모델은 첫 절에 **2번 · 3번만** 쓰고, 화면은 `continuationAnswer` 를 **1번의 본문으로 한 번만**
+ * 세운다(`continuedMarkdownOf`). 답을 따로 한 번, 1번에서 요약해 또 한 번 세우지 않는다.
  */
 
 /** 이어쓰기가 있을 때의 출력 — `continuationAnswer` 가 **맨 앞 속성**이다(구조화 출력은 속성 차례로 짓는다) */
@@ -82,7 +87,9 @@ ${taste.supportingClaims.map((claim) => `- \`${claim}\``).join('\n')}
 - 이미 읽은 글을 다시 설명하지 않는다. 앞 글과 다른 성격으로 이 사람을 규정하지 않는다 — 앞 글이 세운 사람을 그대로 이어 간다.
 - 답의 방향과 그 방향이 기대는 자료에 기대어 답한다. 자료가 말하는 세기보다 세게 말하지 않는다.
 - ${target.min}~${target.max}자, 해요체 한 문단. 분류명과 한자는 쓰지 않는다.
-- \`markdown\` 에서는 이 답을 되풀이하지 않는다 — 화면이 그 답을 본문 위에 따로 세운다.`;
+- **첫 절 「먼저 볼 핵심 세 가지」의 1번은 \`continuationAnswer\` 다** — 화면이 그 답을 1번 본문으로 한 번만 세운다.
+  그래서 \`markdown\` 의 첫 절에는 **2번과 3번 두 항목만** 쓴다(\`2.\` · \`3.\` 으로 번호를 붙이고 \`1.\` 은 쓰지 않는다).
+  둘은 그 답과 다른 축에서 고르고, 그 답을 요약하거나 다시 말하지 않는다. 나머지 절의 지시는 그대로다.`;
 }
 
 // ---------------------------------------------------------------------------
@@ -127,6 +134,25 @@ export const markdownHeadOf = (markdown: string): string => {
 
 const ratio = (value: number): string => value.toFixed(2);
 
+/** 첫 절 목록의 번호들 — 줄 머리의 `n.` 만 센다(절 머리 `## 1. …` 은 `##` 로 시작해 안 걸린다) */
+export const firstSectionItemNumbersOf = (markdown: string): number[] =>
+  [...markdownHeadOf(markdown).matchAll(/^(\d+)\.\s/gm)].map((match) => Number(match[1]));
+
+/** 모델이 첫 절에 쓸 번호 — 1번은 이어쓰기 답이 든다 */
+const FIRST_SECTION_ITEMS = [2, 3] as const;
+
+/**
+ * 화면에 설 첫 절 — 모델이 쓴 2번 앞에 `1. {continuationAnswer}` 를 **한 번** 넣는다. 2번이 없으면(검사에 걸릴 모양) 손대지
+ * 않고 그대로 낸다 — 자리를 지어내 끼우지 않는다.
+ */
+export function continuedMarkdownOf(answer: string, markdown: string): string {
+  const head = markdownHeadOf(markdown);
+  const second = /^2\.\s/m.exec(head);
+  if (second === null) return markdown;
+  const at = second.index;
+  return `${markdown.slice(0, at)}1. ${answer.trim()}\n${markdown.slice(at)}`;
+}
+
 /**
  * `continuationAnswer` 를 잰다 — 하나라도 걸리면 실패. 걸린 까닭을 전부 모아 낸다.
  */
@@ -155,6 +181,11 @@ export function checkContinuation({
   const fromMarkdown = overlapRatio(text, markdownHeadOf(markdown));
   if (fromMarkdown >= CONTINUATION_RULES.markdownHeadOverlap) {
     reasons.push(`markdown 첫머리에 같은 답이 또 있다(${ratio(fromMarkdown)})`);
+  }
+
+  const numbers = firstSectionItemNumbersOf(markdown);
+  if (numbers.join(',') !== FIRST_SECTION_ITEMS.join(',')) {
+    reasons.push(`첫 절 항목 번호가 2 · 3 이 아니다(${numbers.join(' · ') || '없음'})`);
   }
 
   reasons.push(...plainTextSlips(text));

@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
@@ -7,6 +7,7 @@ import { checkReading, readingEvidenceOf, readingPromptOf, type BirthSecret } fr
 import {
   checkContinuation,
   continuationBlockOf,
+  continuedMarkdownOf,
   markdownHeadOf,
   type ContinuedReadingOutput,
 } from '@/src/lib/reading/continuation';
@@ -41,6 +42,9 @@ import { callModel, type ReasoningEffort } from './model';
  *   # 맛보기만 전부 — 견본 6 × 추론 none = 부름 6번, 약 22원
  *   TASTE_RUN_LIVE=1 npx vitest run app/me/reading/taste-run.live.test.ts
  *
+ *   # 짝만 — 지난 실행의 맛보기를 다시 쓰고 전체 풀이만 부른다(고른 셋 × 약 20원 = 약 60원)
+ *   TASTE_RUN_LIVE=1 TASTE_RUN_PAIR=1 TASTE_RUN_FROM=.taste-run-live/<시각> TASTE_RUN_SAMPLES=hand,strong-m,hourless-f npx vitest run app/me/reading/taste-run.live.test.ts
+ *
  *   # 짝은 고른 견본만 — 맛보기 6번 + 고른 셋의 전체 자기 풀이 3번(× 약 20원) = 약 80원
  *   TASTE_RUN_LIVE=1 TASTE_RUN_PAIR=1 TASTE_RUN_PAIR_SAMPLES=hand,strong-m,hourless-f npx vitest run app/me/reading/taste-run.live.test.ts
  *
@@ -52,6 +56,12 @@ import { callModel, type ReasoningEffort } from './model';
 
 const live = process.env.TASTE_RUN_LIVE === '1';
 const pairing = process.env.TASTE_RUN_PAIR === '1';
+/**
+ * 맛보기를 **다시 부르지 않고** 지난 실행의 `runs.json`(또는 그 폴더)에서 읽는다 — 운영은 저장된 tasteRun 을 이어 쓰므로 짝 시험도
+ * 그렇게 한다(운영자 2026-10-03). 그때 검사를 지난 맛보기만 쓰고, 지금 다시 잰 근거 지문이 다르면 버린다(운영의 귀속 규칙과 같다).
+ */
+const reusedFrom = process.env.TASTE_RUN_FROM?.trim() || null;
+
 /** 짝을 부를 견본 — 적으면 그 견본만 짝을 짓는다(2차: 주제가 갈린 것을 보고 대표 셋만). 안 적으면 검사를 지난 것 전부 */
 const pairSamples = process.env.TASTE_RUN_PAIR_SAMPLES?.split(',').map((one) => one.trim()).filter((one) => one !== '') ?? [];
 const OUTPUT_ROOT = '.taste-run-live';
@@ -198,7 +208,7 @@ const pairDocOf = (record: RunRecord): string => {
     `# ${record.label} · 추론 ${record.effort}`,
     '',
     `- 명식 ${record.eightChars} · 지문 \`${record.fingerprint.slice(0, 12)}…\``,
-    `- 맛보기 부름: ${record.ok ? describeSpend(record.spend) : `실패 — ${record.detail}`}`,
+    `- 맛보기 부름: ${record.ok ? (record.detail ?? describeSpend(record.spend)) : `실패 — ${record.detail}`}`,
     `- 맛보기 검사: ${describeCheck(record.tasteCheck)}`,
   ];
   if (record.output === null) return lines.join('\n');
@@ -239,13 +249,9 @@ const pairDocOf = (record: RunRecord): string => {
   if (pair.output !== null) {
     lines.push(
       '',
-      '## continuationAnswer',
+      '## 가입 뒤 첫 절 — 화면 그대로 (1번 본문이 continuationAnswer, 한 번만 선다)',
       '',
-      pair.output.continuationAnswer,
-      '',
-      '## markdown 첫 절',
-      '',
-      markdownHeadOf(pair.output.markdown).trim(),
+      markdownHeadOf(continuedMarkdownOf(pair.output.continuationAnswer, pair.output.markdown)).trim(),
       '',
       `_(한 줄 요약: ${pair.output.metaphor})_`,
     );
@@ -332,6 +338,11 @@ describe.skipIf(!live)('맛보기 · 이어쓰기 짝 견본을 뽑는다 (TASTE
       mkdirSync(dir, { recursive: true });
       console.info(`맛보기 ${samples.length * efforts.length}번${pairing ? ' + 짝' : ''} — ${dir}/`);
 
+      const reused: readonly RunRecord[] | null =
+        reusedFrom === null
+          ? null
+          : (JSON.parse(readFileSync(reusedFrom.endsWith('.json') ? reusedFrom : `${reusedFrom}/runs.json`, 'utf8')) as { records: RunRecord[] })
+              .records;
       const records: RunRecord[] = [];
       for (const sample of samples) {
         const chart = computeSaju(sample.input);
@@ -344,9 +355,21 @@ describe.skipIf(!live)('맛보기 · 이어쓰기 짝 견본을 뽑는다 (TASTE
           .join(' ');
 
         for (const effort of efforts) {
-          const { ms, value: called } = await timed(() =>
-            callModel<TasteRunOutput>(tasteRunPromptOf(taste), { shape: tasteRunShapeOf(taste), reasoningEffort: effort, ...TASTE_CALL }),
-          );
+          const stored = reused?.find((one) => one.sample === sample.id && one.effort === effort) ?? null;
+          if (reused !== null && (stored === null || stored.output === null || stored.tasteCheck !== 'ok')) {
+            console.info(`[${sample.id} · ${effort}] 다시 쓸 맛보기가 없다 — 건너뛴다`);
+            continue;
+          }
+          if (stored !== null && stored.fingerprint !== fingerprint) {
+            console.info(`[${sample.id} · ${effort}] 근거 지문이 다르다 — 이어쓰기를 버린다`);
+            continue;
+          }
+          const { ms, value: called } =
+            stored?.output != null
+              ? { ms: 0, value: { ok: true as const, output: stored.output, usage: null, reasoningTokens: null } }
+              : await timed(() =>
+                  callModel<TasteRunOutput>(tasteRunPromptOf(taste), { shape: tasteRunShapeOf(taste), reasoningEffort: effort, ...TASTE_CALL }),
+                );
           const record: RunRecord = {
             sample: sample.id,
             label: sample.label,
@@ -354,15 +377,25 @@ describe.skipIf(!live)('맛보기 · 이어쓰기 짝 견본을 뽑는다 (TASTE
             fingerprint,
             eightChars,
             ok: called.ok,
-            detail: called.ok ? null : `${called.code}: ${called.detail} (${ms.toLocaleString()} ms)`,
+            detail:
+              stored !== null
+                ? `다시 씀 — ${reusedFrom} (이번에 부르지 않았다)`
+                : called.ok
+                  ? null
+                  : `${called.code}: ${called.detail} (${ms.toLocaleString()} ms)`,
             output: called.ok ? called.output : null,
-            spend: called.ok ? spendOf(ms, called.usage, called.reasoningTokens) : null,
+            spend: called.ok && stored === null ? spendOf(ms, called.usage, called.reasoningTokens) : null,
             tasteCheck: null,
             pair: null,
           };
           if (called.ok) {
             const verdict = checkTasteRun(called.output, taste);
             record.tasteCheck = verdict.ok ? 'ok' : verdict.reasons;
+            /* 다시 쓴 맛보기는 그때 지난 판정을 따른다 — 운영은 저장된 글을 다시 재지 않는다. 지금 규칙의 판정은 곁에 적는다 */
+            if (stored !== null) {
+              record.tasteCheck = 'ok';
+              record.detail = `${record.detail} · 지금 규칙으로는 ${verdict.ok ? '지남' : `걸림 — ${verdict.reasons.join(' / ')}`}`;
+            }
           }
 
           /* 짝은 검사를 지난 맛보기만 — 떨어진 맛보기는 화면에 안 서므로 그 뒤를 부를 까닭이 없다 */

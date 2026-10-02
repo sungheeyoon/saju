@@ -7,6 +7,8 @@ import {
   CONTINUATION_RULES,
   checkContinuation,
   continuationBlockOf,
+  continuedMarkdownOf,
+  firstSectionItemNumbersOf,
   markdownHeadOf,
   overlapRatio,
 } from './continuation';
@@ -18,7 +20,6 @@ const PREVIEW = taste.previewMarkdown;
 /** 이어쓰기 답과 겹치지 않는 첫 절 — 「먼저 볼 핵심 세 가지」 모양만 흉내 낸다 */
 const MARKDOWN = `## 먼저 볼 핵심 세 가지
 
-1. 맡은 일의 끝을 보는 힘이 커서, 사람들이 마지막 판단을 맡기는 자리에 자주 서요.
 2. 기준이 분명한 만큼 남의 실수에도 엄격해져 관계가 딱딱해지는 순간이 있어요.
 3. 일이 몰리는 시기에는 쉬는 시간을 먼저 정해 두는 편이 오래 가요.
 
@@ -93,7 +94,7 @@ describe('이어쓰기 블록', () => {
 
   it('시키는 분량과 되풀이하지 말라는 줄을 말한다 · 맨 앞 칸을 이름으로 부른다', () => {
     expect(block).toContain(`${CONTINUATION_RULES.answerLength.target.min}~${CONTINUATION_RULES.answerLength.target.max}자`);
-    expect(block).toContain('`markdown` 에서는 이 답을 되풀이하지 않는다');
+    expect(block).toContain('**2번과 3번 두 항목만** 쓴다');
     expect(block).toContain('`continuationAnswer` 칸이 하나 더 있고 **맨 앞**이다');
   });
 
@@ -112,5 +113,25 @@ describe('이어쓰기 블록', () => {
     expect(prompt).not.toContain('이어쓰기');
     /* 붙이는 자리는 맨 뒤 — 앞부분(캐시가 잇는 곳)은 글자째 같다 */
     expect(`${prompt}\n\n${block}`.startsWith(prompt)).toBe(true);
+  });
+});
+
+describe('첫 절의 1번은 이어쓰기 답이다 — 한 번만 선다', () => {
+  it('모델은 2 · 3 만 쓰고 화면이 1번 본문으로 답을 넣는다', () => {
+    const shown = continuedMarkdownOf(ANSWER, MARKDOWN);
+    expect(firstSectionItemNumbersOf(shown)).toEqual([1, 2, 3]);
+    expect(shown).toContain(`1. ${ANSWER}\n2. `);
+    expect(shown.split(ANSWER)).toHaveLength(2);
+  });
+
+  it('모델이 1번을 쓰거나 셋을 쓰면 걸린다', () => {
+    const withOne = MARKDOWN.replace('2. 기준이', '1. 답을 다시 말해요.\n2. 기준이');
+    expect(reasonsOf({ markdown: withOne }).join(' / ')).toContain('첫 절 항목 번호가 2 · 3 이 아니다(1 · 2 · 3)');
+    expect(reasonsOf({ markdown: '## 먼저 볼 핵심 세 가지\n\n본문만 있어요.' }).join(' / ')).toContain('(없음)');
+  });
+
+  it('2번이 없으면 지어내 끼우지 않는다', () => {
+    const plain = '## 먼저 볼 핵심 세 가지\n\n본문만 있어요.';
+    expect(continuedMarkdownOf(ANSWER, plain)).toBe(plain);
   });
 });
