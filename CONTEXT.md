@@ -350,7 +350,10 @@ _Avoid_(화면): 맛보기, 미리 보기, 요약
 나누는 **맛보기 생성 결과**(`taste_artifact`, 근거 지문 · 프롬프트 판 · 모델 설정 판마다 한 행)가 24시간
 뒤 지워져도 귀속된 세션은 그 사람이 읽은 글을 그대로 든다. 상태는 셋 — 미귀속(`open`) · 귀속
 (`claimed`, 가입한 회원에게 붙음) · 버림(`discarded`, 확정 입력의 지문이 달랐다). 미귀속은 24시간 뒤
-지워지고 귀속은 풀이와 함께 남는다. 세션 하나에 풀이 시도 하나다(`link_taste_reading_run`).
+지워지고 귀속은 풀이와 함께 남는다. 세션 하나에 풀이 시도 하나다(`link_taste_reading_run`). 화면이 아는
+퍼널 단계(더보기 · 가입 시작 · 가입 완료)도 **세션 하나에 단계마다 한 번** 센다(`count_taste_step_once` ·
+`taste_session_step`) — 가입 완료는 가입을 마치고 그 세션을 들고 돌아온 것이다(붙음 · 버림 · 만료 · 아직 안 됨 — 이 브라우저의
+세션이 아닐 때만 안 센다). 회원에게는 맛보기 세션을 만들지 않는다(ADR 0143 「덧」).
 _Avoid_: 맛보기 런, 체험판, 캐시
 
 **근거 지문** — `tasteFingerprintOf` · `evidence_fingerprint` : 맛보기 근거(자기 풀이 근거에서 해 ·
@@ -882,6 +885,7 @@ _Avoid_: 적정 가격, 구매 의향(무엇을 산다고 한 적이 없다), WT
 | 결과 생성 요청 | `generateReading` · `start_reading_run` · `beginReading` | 액션 · 함수 · 파이프라인 |
 | 시도 | `reading_run` · `my_last_reading_run` · `readingRunState` · `idempotency_key` | 표 · 함수 · 액션 · 칸 |
 | 맛보기 세션 | `taste_session` · `reserve_taste` · `claim_taste_session` · `link_taste_reading_run` | 표 · 함수 |
+| 맛보기 퍼널 단계 | `count_taste_step_once` · `taste_session_step` · `TASTE_SESSION_STEPS` · `count_taste_step`(`reading_succeeded` 만) · `taste_daily` | 함수 · 표 · `src/lib/reading/taste-visit.ts` · 뷰 |
 | 맛보기 생성 결과 | `taste_artifact` · `finish_taste` | 표 · 함수 |
 | 근거 지문 | `tasteFingerprintOf` · `evidence_fingerprint` · `tasteEvidenceOf` | `src/lib/reading/taste-run.ts` · 칸 |
 | 이어쓰기 | `continuationAnswer` · `continuationBlockOf` · `continuedMarkdownOf` · `taste_continuation_of_run` | `src/lib/reading/continuation.ts` · 함수 |
