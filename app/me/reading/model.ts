@@ -118,6 +118,12 @@ type CallOptions = {
   maxOutputTokens?: number;
   /** 기다리다 마는 시각(ms) — 안 넘기면 `GENERATION.settings.timeout` */
   timeoutMs?: number;
+  /**
+   * SDK 가 실패한 호출을 스스로 다시 보내는 횟수 — 안 넘기면 SDK 기본값(`generateText` 의 `maxRetries`, 2)이다. 로그인 전 사주
+   * 문단은 `0` 을 넘긴다: 시도 수는 DB 가 예약으로 센다(`taste_attempt_limit()`, 하루 예산도 예약마다 하나) — SDK 가 몰래 두 번
+   * 더 보내면 예약 하나에 모델 호출이 셋까지 나가 예산이 세는 수와 실제 지출이 어긋난다(읽기 전용 검토, 2026-10-03).
+   */
+  maxRetries?: number;
 };
 
 const shapeOf = (options: CallOptions): JSONSchema7 => {
@@ -160,10 +166,10 @@ const usageOf = (response: {
  * 프롬프트 하나를 보내고 결과를 **그 자리에서** 받는다.
  *
  * **화면은 이 길로 오지 않는다** — 누름은 `submitBackgroundReading` 으로 떠나보내고
- * 완성본은 webhook 이나 복구기가 가져온다(ADR 0020). 이 함수를 부르는 것은 운영자가 손으로 돌리는
- * 실호출 시험 셋(`app/me/reading/call.live.test.ts` · `app/me/reading/taste.live.test.ts` ·
- * `app/me/reading/taste-run.live.test.ts`)뿐이다. 프롬프트를 고친 뒤 기다리는 길로 한 번에 재 보는 자리라 남긴다.
- * 선택 인자(`CallOptions`)를 안 넘기면 모양 · 세기 · 상한이 지금까지와 같다.
+ * 완성본은 webhook 이나 복구기가 가져온다(ADR 0020). 이 함수를 부르는 것은 로그인 전 사주 문단의 서버 액션
+ * (`app/actions.ts` 의 `requestTaste`, ADR 0143 — 짧은 글이라 기다린다)과 운영자가 손으로 돌리는 실호출 시험 셋
+ * (`app/me/reading/call.live.test.ts` · `app/me/reading/taste.live.test.ts` · `app/me/reading/taste-run.live.test.ts`)이다.
+ * 선택 인자(`CallOptions`)를 안 넘기면 모양 · 세기 · 상한 · 재시도가 지금까지와 같다.
  *
  * **던지지 않는다.** 실패도 값으로 낸다 — 부르는 쪽은 실패를 기록하고 직전 성공
  * 결과를 그대로 두어야 하므로, 예외로 빠져나가면 그 기록이 남지 않는다.
@@ -179,6 +185,7 @@ export async function callModel<Produced = ReadingOutput>(
       prompt,
       timeout: options.timeoutMs ?? GENERATION.settings.timeout,
       ...(options.maxOutputTokens === undefined ? {} : { maxOutputTokens: options.maxOutputTokens }),
+      ...(options.maxRetries === undefined ? {} : { maxRetries: options.maxRetries }),
       providerOptions: {
         openai: {
           store: GENERATION.settings.store,

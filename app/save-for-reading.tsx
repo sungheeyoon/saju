@@ -374,11 +374,12 @@ function SelfConfirm({
         return;
       }
       /*
-        **가입 전에 읽던 로그인 전 사주 문단을 내 것으로 붙인다**(ADR 0143) — 탭이 든 것은 세션 id 하나다. 지문은 방금 저장한
-        입력으로 서버가 다시 재고, 다르거나 · 남의 것이거나 · 지났으면 조용히 보통 풀이다. 붙이지 못해도 저장은 끝났다.
+        **가입 전에 읽던 로그인 전 사주 문단을 내 것으로 붙인다**(ADR 0143) — 탭이 든 것은 세션 id 하나이고 그것만 보낸다. 지문은
+        방금 서버에 저장된 내 사주로 서버가 다시 재고(이 화면의 입력이 아니다), 다르거나 · 남의 것이거나 · 지났으면 조용히 보통
+        풀이다. 붙이지 못해도 저장은 끝났다.
       */
       const sessionId = takeTasteSession();
-      if (sessionId !== null) await claimTaste(toSearchParams(query).toString(), sessionId).catch(() => undefined);
+      if (sessionId !== null) await claimTaste(sessionId).catch(() => undefined);
       router.push('/me/readings/self');
     });
   };

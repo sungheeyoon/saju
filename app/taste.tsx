@@ -106,9 +106,13 @@ async function askTaste(draft: string, alive: () => boolean): Promise<TasteAnswe
   return answer;
 }
 
-/** 퍼널 한 단계 — 답을 안 기다리고, 못 세도 누름은 그대로다 */
-const note = (step: 'more_clicked' | 'signup_started') => {
-  void noteTasteStep(step).catch(() => undefined);
+/**
+ * 퍼널 한 단계 — 답을 안 기다리고, 못 세도 누름은 그대로다. **글이 선 세션이 있을 때만** 센다 — 세션당 한 번이라 세션이
+ * 없는 누름(글이 못 선 자리의 가입 단추)은 셀 자리가 없다.
+ */
+const note = (step: 'more_clicked' | 'signup_started', sessionId: string | null) => {
+  if (sessionId === null) return;
+  void noteTasteStep(step, sessionId).catch(() => undefined);
 };
 
 /**
@@ -169,7 +173,7 @@ function TastePassage({ draft, onSession }: { draft: string; onSession: (session
                 draft={draft}
                 next={RESUME_READING_PATH}
                 carry={{ key: TASTE_SESSION_KEY, value: answer.sessionId }}
-                onFollow={() => note('signup_started')}
+                onFollow={() => note('signup_started', answer.sessionId)}
                 className={`${BUTTON_PRIMARY} w-full`}
               >
                 무료 회원가입하고 이어보기
@@ -180,7 +184,7 @@ function TastePassage({ draft, onSession }: { draft: string; onSession: (session
               type="button"
               onClick={() => {
                 setMoreFor(draft);
-                note('more_clicked');
+                note('more_clicked', answer.sessionId);
               }}
               className={`${BUTTON_SECONDARY} mt-4 w-full`}
             >
@@ -239,7 +243,6 @@ function TasteTrouble({
           draft={draft}
           next={RESUME_READING_PATH}
           carry={{ key: TASTE_SESSION_KEY, value: null }}
-          onFollow={() => note('signup_started')}
           className={`${BUTTON_PRIMARY} w-full`}
         >
           무료 회원가입하고 이어보기
@@ -292,6 +295,7 @@ function LockedOutline({
           draft={draft}
           next={RESUME_READING_PATH}
           carry={{ key: TASTE_SESSION_KEY, value: sessionId }}
+          onFollow={() => note('signup_started', sessionId)}
           className={`${BUTTON_PRIMARY} w-full`}
         >
           로그인하고 전체 풀이 받기

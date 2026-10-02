@@ -91,9 +91,10 @@ export function HomeHero({ calculator }: { calculator: ReactNode }) {
           {/*
             **계산기도 이 값으로 갈린다** — 로그인하지 않은 사람에게는 결과의 첫머리가 로그인 전 사주 문단이다(`taste.tsx`).
             그런데 계산기를 여기서 만들지는 않는다: `Suspense` 경계는 서버가 세운 것을
-            그대로 쓰고(`page.tsx`), 값만 통로로 내려보낸다(`signed-in.tsx`).
+            그대로 쓰고(`page.tsx`), 값만 통로로 내려보낸다(`signed-in.tsx`). **모름까지 세 값 그대로 보낸다** — 그 문단은
+            입력을 서버로 보내므로 세션을 알기 전에는 안 선다.
           */}
-          <SignedInProvider value={member}>{calculator}</SignedInProvider>
+          <SignedInProvider value={session}>{calculator}</SignedInProvider>
         </div>
         {/*
           **로그인 전 궁합 결과는 여는 순간 선다.** 미리 그려 두면 현관에 폼 둘이 함께 실려 첫 화면이 무거워진다. 닫아도

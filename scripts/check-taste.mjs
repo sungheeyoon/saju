@@ -14,8 +14,11 @@
  * 3. **남의 세션은 못 읽는다** — 세션 id 를 알아도 쿠키가 다르면 글이 안 선다
  * 4. **다른 입력 반복 → 한도** — IP 1분 셋 · 브라우저 1시간 새 지문 다섯
  * 5. **원문이 DB 에 없다** — 날짜 · IP 원문이 맛보기 표 어디에도 없다
- * 6. **귀속** — 내 것은 붙고, 남이 붙인 것은 못 가져가고, 지문이 다르면 버리고, 바꾼 id 는 조용히 지나간다
+ * 6. **귀속** — 내 것은 붙고, 남이 붙인 것은 못 가져가고, 지문이 다르면 버리고, 바꾼 id 는 조용히 지나간다. 지문은 **서버에
+ *    저장된 내 사주**로 잰다 — 클라이언트가 다른 입력을 실어 보내도 저장된 입력이 이긴다
  * 7. **세션 하나 = 풀이 하나** — 누름이 잇고, 실패한 풀이만 다시 잇고, 성공한 풀이가 있으면 새로 안 연다
+ * 8. **퍼널은 세션당 한 번** — 「더보기」 · 가입 완료를 거듭해도 · 귀속 표를 지우고 다시 와도 한 번, 다른 브라우저 · 쿠키 없음은 0
+ * 9. **회원은 맛보기로 안 간다** — 로그인한 요청은 예약도 세션도 없이 닫힌다
  */
 import { createClient } from '@supabase/supabase-js';
 import { execFileSync } from 'node:child_process';
@@ -114,9 +117,11 @@ async function act(path, [filename, name], args, { jar = browser(), ip = '10.0.0
 const REQUEST = ['app/actions.ts', 'requestTaste'];
 const READ = ['app/actions.ts', 'readTaste'];
 const CLAIM = ['app/actions.ts', 'claimTaste'];
+const NOTE = ['app/actions.ts', 'noteTasteStep'];
 const GENERATE = ['app/me/reading/actions.ts', 'generateReading'];
 
 const modelCalls = () => Number(sql(`select coalesce(sum(value), 0) from public.taste_daily_count where metric = 'model_calls'`));
+const funnel = (step) => Number(sql(`select coalesce(sum(value), 0) from public.taste_daily_count where metric = 'funnel:${step}'`));
 
 try {
   // -------------------------------------------------------------------------
@@ -170,6 +175,19 @@ try {
   check('내 세션은 내 쿠키로 다시 읽힌다', mine.state === 'ready' && mine.preview === PREVIEW);
 
   // -------------------------------------------------------------------------
+  // 8 · 퍼널은 세션당 한 번 — 「더보기」
+  // -------------------------------------------------------------------------
+  const moreBefore = funnel('more_clicked');
+  await act('/', NOTE, ['more_clicked', again.sessionId], { jar: first, ip: '10.77.0.1' });
+  await act('/', NOTE, ['more_clicked', again.sessionId], { jar: first, ip: '10.77.0.1' });
+  check('「더보기」를 두 번 눌러도 그 세션은 한 번 센다', funnel('more_clicked') === moreBefore + 1, `${moreBefore} → ${funnel('more_clicked')}`);
+  await act('/', NOTE, ['more_clicked', again.sessionId], { jar: second, ip: '10.77.0.2' });
+  await act('/', NOTE, ['more_clicked', again.sessionId], { jar: browser(), ip: '10.77.0.3' });
+  check('남의 세션 id 로는 · 쿠키 없이는 안 센다', funnel('more_clicked') === moreBefore + 1, `${moreBefore} → ${funnel('more_clicked')}`);
+  await act('/', NOTE, ['more_clicked', other.sessionId], { jar: second, ip: '10.77.0.2' });
+  check('다른 세션은 따로 센다', funnel('more_clicked') === moreBefore + 2);
+
+  // -------------------------------------------------------------------------
   // 4 · 한도
   // -------------------------------------------------------------------------
   const perIp = [];
@@ -210,31 +228,55 @@ try {
   const b = await member('b');
   const c = await member('c');
 
-  const claimed = await act('/', CLAIM, [DRAFT, again.sessionId], { jar: first, ip: '10.77.0.1', session: a.session });
-  check('내 세션은 붙는다 — 확정한 입력으로 다시 잰 지문이 같다', claimed.continued === true, JSON.stringify(claimed));
+  /* 「이 사주가 내 사주 맞나요?」가 저장한 내 사주 — 귀속은 이 저장된 입력으로 지문을 잰다 */
+  const saveSelf = (who, date) => keyedRpc(who.client, 'create_self_person', {
+    p_local_label: `맛${tag}`, p_calendar: 'solar', p_original_date: date, p_solar_date: date, p_birth_time: '14:30',
+    p_gender: 'male', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean', ...chartArgs(`taste-${who.email}`),
+  });
+  await saveSelf(a, BIRTH);
+  await saveSelf(b, BIRTH);
+  await saveSelf(c, '1985-03-03');
+
+  // -------------------------------------------------------------------------
+  // 9 · 회원은 맛보기로 안 간다
+  // -------------------------------------------------------------------------
+  const sessionsBefore = sql(`select count(*) from public.taste_session`);
+  const eventsBefore = sql(`select count(*) from public.taste_rate_event`);
+  const asMember = await act('/', REQUEST, [draftOf('1977-07-07')], { jar: browser(), ip: '10.66.0.1', session: a.session });
+  check('로그인한 요청은 닫힌다 — 예약도 세션도 한도 사건도 없다', asMember.state === 'failed' && asMember.retry === false
+    && sql(`select count(*) from public.taste_session`) === sessionsBefore
+    && sql(`select count(*) from public.taste_rate_event`) === eventsBefore, JSON.stringify(asMember));
+
+  const completedBefore = funnel('signup_completed');
+  /* 클라이언트가 다른 입력을 실어 보내도 서버는 세션 id 만 읽고 저장된 내 사주로 잰다 */
+  const claimed = await act('/', CLAIM, [again.sessionId, draftOf('1985-03-03')], { jar: first, ip: '10.77.0.1', session: a.session });
+  check('내 세션은 붙는다 — 저장된 내 사주로 다시 잰 지문이 같다(실어 보낸 다른 입력은 안 읽는다)', claimed.continued === true, JSON.stringify(claimed));
   check('붙은 세션은 그 회원 것이다', sql(`select status || ':' || claimed_by from public.taste_session where id = '${again.sessionId}'`) === `claimed:${a.id}`);
   check('귀속 표(쿠키)가 선다', first.get('saju_taste_claim') === again.sessionId);
-  check('가입 완료를 한 번 센다', Number(sql(`select coalesce(sum(value), 0) from public.taste_daily_count where metric = 'funnel:signup_completed'`)) >= 1);
+  check('가입 완료를 한 번 센다', funnel('signup_completed') === completedBefore + 1, `${completedBefore} → ${funnel('signup_completed')}`);
 
-  const stolen = await act('/', CLAIM, [DRAFT, again.sessionId], { jar: new Map([['saju_taste', first.get('saju_taste')]]), ip: '10.77.0.1', session: b.session });
+  first.delete('saju_taste_claim');
+  const reclaimed = await act('/', CLAIM, [again.sessionId], { jar: first, ip: '10.77.0.1', session: a.session });
+  check('귀속 표를 지우고 다시 와도 가입 완료는 다시 안 센다', reclaimed.continued === true && funnel('signup_completed') === completedBefore + 1,
+    `${completedBefore} → ${funnel('signup_completed')}`);
+
+  const stolen = await act('/', CLAIM, [again.sessionId], { jar: new Map([['saju_taste', first.get('saju_taste')]]), ip: '10.77.0.1', session: b.session });
   check('남이 붙인 세션은 같은 브라우저의 다른 회원도 못 가져간다', stolen.continued === false
     && sql(`select claimed_by from public.taste_session where id = '${again.sessionId}'`) === a.id);
+  check('남이 붙인 세션(taken)은 가입 완료로 안 센다', funnel('signup_completed') === completedBefore + 1);
 
-  const discarded = await act('/', CLAIM, [draftOf('1985-03-03'), other.sessionId], { jar: second, ip: '10.77.0.2', session: c.session });
-  check('지문이 다르면 버린다 — 이어쓰기 없는 보통 풀이', discarded.continued === false
+  const discarded = await act('/', CLAIM, [other.sessionId, DRAFT], { jar: second, ip: '10.77.0.2', session: c.session });
+  check('저장된 내 사주의 지문이 다르면 버린다 — 실어 보낸 같은 입력은 안 읽는다', discarded.continued === false
     && sql(`select status from public.taste_session where id = '${other.sessionId}'`) === 'discarded');
+  check('버림이어도 세션을 들고 돌아온 것이라 가입 완료로 센다', funnel('signup_completed') === completedBefore + 2,
+    `${completedBefore} → ${funnel('signup_completed')}`);
 
-  const forged = await act('/', CLAIM, [DRAFT, randomUUID()], { jar: browser(), ip: '10.77.0.3', session: c.session });
-  check('바꾼 id 는 조용히 지나간다', forged.continued === false);
+  const forged = await act('/', CLAIM, [randomUUID()], { jar: browser(), ip: '10.77.0.3', session: c.session });
+  check('바꾼 id 는 조용히 지나간다 — 가입 완료로 안 센다', forged.continued === false && funnel('signup_completed') === completedBefore + 2);
 
   // -------------------------------------------------------------------------
   // 7 · 세션 하나 = 풀이 하나
   // -------------------------------------------------------------------------
-  await keyedRpc(a.client, 'create_self_person', {
-    p_local_label: `맛${tag}`, p_calendar: 'solar', p_original_date: BIRTH, p_solar_date: BIRTH, p_birth_time: '14:30',
-    p_gender: 'male', p_city: '서울', p_late_night_rule: 'jo', p_time_basis: 'localMean', ...chartArgs(`taste-${tag}`),
-  });
-
   const linkedRun = () => sql(`select coalesce(reading_run_id::text, '') from public.taste_session where id = '${again.sessionId}'`);
   const runStatus = (run) => sql(`select status from public.reading_run where id = '${run}'`);
   const settledRun = async (run) => {

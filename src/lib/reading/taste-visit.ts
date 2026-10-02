@@ -105,10 +105,30 @@ export const MODEL_TIMEOUT = 'model-timeout';
 /** 기다리는 화면이 다시 묻는 간격과 상한 — 모델 시간 상한(20초)에 왕복을 얹은 만큼만 기다린다 */
 export const TASTE_WAIT = { everyMs: 2_000, forMs: 30_000 } as const;
 
-/** 앱이 세는 퍼널 단계 넷 — DB 의 `count_taste_step` 이 받는 그 넷이다(ADR 0143 의 8) */
-export const TASTE_STEPS = ['more_clicked', 'signup_started', 'signup_completed', 'reading_succeeded'] as const;
+/**
+ * 앱이 세는 퍼널 단계 가운데 **브라우저와 함께 보는 셋** — 세션 하나에 단계마다 한 번만 센다(`count_taste_step_once`,
+ * `20261119090000`). 세션 id 와 서버가 지은 브라우저 HMAC 이 함께 맞아야 센다.
+ *
+ * - `more_clicked` — 맛보기 아래 「더보기」를 눌렀다
+ * - `signup_started` — 가입으로 가는 누름(「무료 회원가입하고 이어보기」 · 「로그인하고 전체 풀이 받기」)
+ * - `signup_completed` — 가입을 마치고 그 세션을 들고 돌아왔다 — 귀속 결과가 `claimed` · `discarded` · `expired` ·
+ *   `not_ready` 어느 것이든(`TASTE_RETURNED_CLAIMS`). 귀속 성공만이 아니다(조율자 결정 2026-10-03)
+ */
+export const TASTE_SESSION_STEPS = ['more_clicked', 'signup_started', 'signup_completed'] as const;
 
-export type TasteStep = (typeof TASTE_STEPS)[number];
+export type TasteSessionStep = (typeof TASTE_SESSION_STEPS)[number];
+
+export const isTasteSessionStep = (value: unknown): value is TasteSessionStep =>
+  (TASTE_SESSION_STEPS as readonly unknown[]).includes(value);
+
+/**
+ * 「가입을 마치고 그 세션을 들고 돌아왔다」로 세는 귀속 결과 — `not_found`(없는 세션 · 다른 브라우저) · `taken`(남의 회원이
+ * 이미 붙였다)은 이 브라우저가 들고 온 세션이 아니라 안 센다.
+ */
+export const TASTE_RETURNED_CLAIMS = ['claimed', 'discarded', 'expired', 'not_ready'] as const;
+
+/** 회수가 세는 단계 — 이어 쓴 풀이가 섰다. 브라우저가 없는 길(webhook · 크론)이라 옛 `count_taste_step` 이 센다 */
+export type TasteStep = 'reading_succeeded';
 
 // ---------------------------------------------------------------------------
 // 날짜 키와 IP 의 모양
@@ -140,8 +160,13 @@ function ipv6Groups(text: string): string[] | null {
 /**
  * HMAC 할 IP 의 이름 — 헤더 값의 **첫 칸**을 읽고 모양을 본다. 모양이 아니면 `null`(서버가 이 자리를 닫는다).
  *
- * IPv6 는 **앞 64비트(/64)** 로 접는다 — 한 가입자가 대개 /64 하나를 받으므로, 주소 하나마다 세면 같은 사람이 주소를 바꿔
- * 가며 IP 빗장을 비켜 간다. IPv4 를 품은 IPv6(`::ffff:1.2.3.4`)는 그 IPv4 다.
+ * IPv6 는 **앞 56비트(/56)** 로 접는다 — 주소 하나마다 세면 같은 사람이 주소를 바꿔 가며 IP 빗장을 비켜 간다. /64 로
+ * 접던 때(#441)는 흔한 VPS 할당이 /56 이라 /64 256개를 돌려 가며 IP 하루 한도(20)를 256배로 늘릴 수 있었다(읽기 전용 검토,
+ * 2026-10-03). /48 로 더 넓히면 한 통신사 이용자 여럿이 한 이름으로 묶일 위험이 커서 /56 에서 멈췄다(조율자 결정 2026-10-03).
+ *
+ * 이것으로 다 막지 않는다 — **하루 돈은 서비스 전체 상한**(`taste_daily_model_calls()`)이 막고, 주소를 많이 쥔 쪽이 그 상한을
+ * 먼저 채워 다른 사람의 문단을 닫는 **가용성 공격은 남는다.** 그 몫은 Vercel WAF 의 속도 제한이고 운영자가 켠다.
+ * IPv4 를 품은 IPv6(`::ffff:1.2.3.4`)는 그 IPv4 다.
  */
 export function ipSubjectOf(forwardedFor: string | null): string | null {
   const first = forwardedFor?.split(',')[0]?.trim().toLowerCase() ?? '';
@@ -150,5 +175,5 @@ export function ipSubjectOf(forwardedFor: string | null): string | null {
   const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(first);
   if (mapped !== null) return IPV4.test(mapped[1]) ? mapped[1] : null;
   const groups = ipv6Groups(first.replace(/^\[|\]$/g, ''));
-  return groups === null ? null : `${groups.slice(0, 4).join(':')}::/64`;
+  return groups === null ? null : `${groups.slice(0, 3).join(':')}:${groups[3].slice(0, 2)}00::/56`;
 }
