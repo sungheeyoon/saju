@@ -65,7 +65,7 @@ export function TabHeroBody({
   return (
     <div className="relative flex flex-col gap-6 px-6 py-7 sm:flex-row sm:items-end sm:justify-between sm:gap-8 sm:px-10 sm:py-9">
       <div className="min-w-0">
-        <p className="text-[13px] font-semibold text-cream-ink">{eyebrow}</p>
+        <p className="text-[13px] font-semibold text-brand">{eyebrow}</p>
         <h1 className={`mt-2 ${TYPE_TITLE}`}>{title}</h1>
         {/*
           **문단이 여럿일 수 있다.** 궁합 쪽은 「무엇을 보는가」와 「어떻게 말하는가」를

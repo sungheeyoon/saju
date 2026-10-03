@@ -54,6 +54,14 @@
   --none: #5f645d;
   --none-soft: #efede6;
   --none-mid: #c9c6bc;
+  /*
+    **감물빛 — 이름 「결」의 색**(2026-10-03 브랜드 시안). 감물 들인 갈옷처럼 바랜 주황 갈색이다. 단추는 여전히 먹색이고, 이
+    색은 로고의 가운데 점(나) · 눈썹 글자 · 결 그림 · 고른 글자의 옅은 바탕처럼 **이름이 서는 자리에만** 든다 — 오행의 불과
+    헷갈리지 않게 면에는 안 깐다. 글자색(`--brand`)은 바탕 위 7.1:1, 가라앉은 면 위 6.5:1 이다.
+  */
+  --brand: #a8502a;
+  --brand-soft: #f7e4d6;
+  --brand-mid: #e0915f;
   /* 크림 종이 — 관계 지도 · 등록 카드처럼 한 화면의 주인공 판 */
   --cream: #fff4e6;
   --cream-ink: #6b4a2b;
@@ -123,6 +131,9 @@
     --none: #b5b9b2;
     --none-soft: #242824;
     --none-mid: #545a53;
+    --brand: #f2a77f;
+    --brand-soft: #3b241a;
+    --brand-mid: #c8693f;
     --cream: #2b2620;
     --cream-ink: #eed6b8;
     --badge: #f09a84;
@@ -172,6 +183,9 @@
   --color-earth-mid: var(--earth-mid);
   --color-metal-mid: var(--metal-mid);
   --color-water-mid: var(--water-mid);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-mid: var(--brand-mid);
   --color-cream: var(--cream);
   --color-cream-ink: var(--cream-ink);
   --color-badge: var(--badge);
@@ -215,7 +229,7 @@ html { scroll-behavior: smooth; }
 body {
   background:
     radial-gradient(circle at 10% -6%, color-mix(in srgb, var(--cream) 90%, transparent) 0, transparent 28rem),
-    radial-gradient(circle at 96% 16%, color-mix(in srgb, var(--earth-soft) 55%, transparent) 0, transparent 24rem),
+    radial-gradient(circle at 96% 16%, color-mix(in srgb, var(--brand-soft) 60%, transparent) 0, transparent 24rem),
     var(--background);
   /*
     **빛은 한 번만 깔린다.** 바탕은 캔버스로 옮겨 가 `<html>` 의 상자를 한 칸으로 삼는데, 그 상자가
@@ -253,7 +267,7 @@ button, a, summary {
     outline-offset: 3px;
   }
 }
-::selection { background: var(--accent-soft); }
+::selection { background: var(--brand-soft); }
 
 .glyph {
   font-family: var(--font-system);
@@ -268,7 +282,7 @@ button, a, summary {
   margin-inline: auto;
 }
 .eyebrow {
-  color: var(--accent);
+  color: var(--brand);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.12em;
