@@ -4,6 +4,7 @@ import { CONTROL, selfSectionTexts } from '@/src/lib/reading';
 
 import { HomeHero } from './home-hero';
 import { SajuCalculator } from './saju-calculator';
+import { VisitorLadder } from './visitor-ladder';
 
 /**
  * 로그인 전 결과의 잠긴 목차 — **본 풀이가 실제로 세우는 절 이름**(ADR 0131).
@@ -37,6 +38,8 @@ export default function Home() {
           </Suspense>
         }
       />
+      {/* 폼 아래의 사다리 — 처음 온 사람에게만 선다(`visitor-ladder.tsx`) */}
+      <VisitorLadder />
     </main>
   );
 }
