@@ -2,136 +2,145 @@
 
 :root {
   /*
-    **부드러움(warm)의 팔레트** — 크림 종이 위에 먹색 단추, 오행 다섯은 파스텔 면과 진한 글자 한 벌씩이다
-    (2026-09-24 사용자 결정, 5차). 화면 180 곳이 이미 이 토큰 이름을 부르므로 이름은 그대로 두고 값만 옮겼다.
+    **한지와 먹의 팔레트**(2026-10-03 시각 시안) — 만세력 책의 한 면처럼, 바랜 한지 바탕에 먹 글자, 판은 그림자 대신
+    가는 선으로 가른다. 색은 둘만 말한다: **먹**(`--accent`, 주 단추 · 강조 글자)과 **주색 인장**(`--seal`, 로고 · 지금
+    선 자리 · 안 읽은 수). 오행 다섯은 사탕 같은 파스텔에서 한 단 가라앉힌 물감으로 옮겼다 — 판 전체를 칠하는 일보다
+    작은 점 · 상징 · 표지에 쓰이도록.
 
-    잰 값(WCAG 대비, 글자/면): `--text-muted` 는 바탕 5.4 · 가라앉은 면 5.0 · 오행 면 위 4.8 이상 — 옛 값은
-    4.0 이었다. 오행 글자(`--wood` …)는 제 면(`--wood-soft` …) 위 5.6~7.2, 어두운 화면 8.5~9.6 — 옛 어두운
-    화면은 밝은 화면의 색을 그대로 써서 3:1 대였다. 먹색 단추 위 글자는 두 화면 모두 14.9:1 이다.
+    잰 값(WCAG 대비, 글자/면): 먹 글자 바탕 15.4 · `--text-secondary` 바탕 7.7 · `--text-muted` 바탕 6.1 · 가라앉은 면 5.4 ·
+    짙은 한지 5.5 · 오행 면 위 5.3 이상 · 주색 인장 바탕 5.5 · 인장 위 흰 글자 6.1. 오행 글자(`--wood` …)는 제 면 위 5.8~7.3.
+    어두운 화면의 인장 7.2 · 보조 글자 6.9.
 
-    `--accent` 는 이제 초록이 아니라 **먹색**이다 — 주 단추(`bg-accent`)가 파스텔 위 어디서든 가장 먼저
-    보이도록 오행 색을 안 입는다. 강조 글자(`text-accent`)도 그래서 먹색으로 선다.
+    부드러움(ADR 0109) 때와 **토큰 이름은 그대로다** — 화면 180 곳이 이 이름을 부르므로 값만 옮기고 `--seal` 둘을 더했다.
   */
   color-scheme: light;
-  --background: #faf6ef;
-  --foreground: #26241f;
-  --surface: #fffdf9;
+  --background: #f6f2e9;
+  --foreground: #1d1b18;
+  --surface: #fcfaf5;
   --surface-raised: #ffffff;
-  --surface-sunken: #f2ece2;
-  --surface-soft: #f6f0e7;
-  --border: rgba(60, 48, 30, 0.1);
-  --border-strong: rgba(60, 48, 30, 0.22);
-  --text-secondary: #5c564d;
-  --text-muted: #6b6459;
-  --accent: #26241f;
-  --accent-strong: #45413a;
-  --on-accent: #fffaf2;
-  --accent-wash: #fff4e6;
-  --accent-soft: #f3e3cc;
-  --danger: #a3473f;
-  --danger-wash: #faeae7;
-  --warning: #8a6320;
-  --warning-wash: #fbf0d8;
-  --success: #2e5b3f;
-  --track: rgba(60, 48, 30, 0.09);
-  /* 오행 — 글자(`--wood`) · 면(`--wood-soft`) · 상징의 속(`--wood-mid`) */
-  --wood: #2e5b3f;
-  --wood-soft: #e3f1dc;
-  --wood-mid: #8cc49a;
-  --fire: #9c3b27;
-  --fire-soft: #fde4da;
-  --fire-mid: #f0957a;
-  --earth: #72500f;
-  --earth-soft: #f8ecd2;
-  --earth-mid: #deb35f;
-  --metal: #444d59;
-  --metal-soft: #e9ecf1;
-  --metal-mid: #a9b4c4;
-  --water: #2a5575;
-  --water-soft: #dfecf7;
-  --water-mid: #86b4db;
+  --surface-sunken: #ece6da;
+  --surface-soft: #f1ece2;
+  --border: rgba(29, 27, 24, 0.12);
+  --border-strong: rgba(29, 27, 24, 0.26);
+  --text-secondary: #514b44;
+  --text-muted: #625a51;
+  --accent: #1d1b18;
+  --accent-strong: #3a3631;
+  --on-accent: #fbf8f1;
+  --accent-wash: #f1eadd;
+  --accent-soft: #e4d9c6;
+  --danger: #9e3a33;
+  --danger-wash: #f6e4e0;
+  --warning: #85601d;
+  --warning-wash: #f4ead2;
+  --success: #2f5a3e;
+  --track: rgba(29, 27, 24, 0.09);
+  /* 주색 인장 — 로고 · 지금 선 자리 · 안 읽은 수. 한 화면에 몇 점만 */
+  --seal: #b0372a;
+  --seal-wash: #f5e2db;
+  --on-seal: #fff8f2;
+  /* 오행 — 글자(`--wood`) · 면(`--wood-soft`) · 상징의 속(`--wood-mid`). 한 단 가라앉힌 물감 */
+  --wood: #2f5a3e;
+  --wood-soft: #e3eadb;
+  --wood-mid: #86ad8c;
+  --fire: #963725;
+  --fire-soft: #f3e1d7;
+  --fire-mid: #df8d74;
+  --earth: #6c4c10;
+  --earth-soft: #efe4cb;
+  --earth-mid: #cfa75c;
+  --metal: #414955;
+  --metal-soft: #e5e7ea;
+  --metal-mid: #a1abb8;
+  --water: #285170;
+  --water-soft: #dce5ed;
+  --water-mid: #80a6c7;
   /* 오행을 모를 때(시주 모름 · 아직 없는 사람) */
-  --none: #5f645d;
-  --none-soft: #efede6;
-  --none-mid: #c9c6bc;
-  /* 크림 종이 — 관계 지도 · 등록 카드처럼 한 화면의 주인공 판 */
-  --cream: #fff4e6;
-  --cream-ink: #6b4a2b;
-  /* 안 읽은 수 딱지 — 오행의 불과 뜻이 달라 따로 둔다(어두운 화면에서 흰 글자가 안 읽혔다) */
-  --badge: #c0442c;
+  --none: #5c6059;
+  --none-soft: #ebe8e0;
+  --none-mid: #c6c2b7;
+  /* 짙은 한지 — 관계 지도 · 등록 판처럼 한 화면의 주인공 판 */
+  --cream: #efe7d6;
+  --cream-ink: #6a4829;
+  /* 안 읽은 수 딱지 — 인장과 같은 주색이다 */
+  --badge: #b0372a;
   --on-badge: #ffffff;
   /*
-    **그림자 다섯 단** — 화면은 `shadow-card` · `shadow-float` · `shadow-soft` · `shadow-lift` · `shadow-raise` 로 부른다
-    (아래 `@theme`). 갈색 그림자 `rgba(60,48,30,…)` 가 네 화면에 아홉 번 따로 적혀 어두운 화면에서도 갈색이었다(2026-09-26).
+    **그림자는 거의 없다.** 판은 가는 선(`--border`)으로 가르고, 그림자는 정말 떠 있는 것 — 확인 창 · 하단 독 · 넘기는
+    카드 — 에만 남긴다. `shadow-card` 는 한지 위 종이 한 장의 1px 아랫단뿐이다.
   */
-  --elevation-card: 0 1px 2px rgba(60, 48, 30, 0.04), 0 12px 32px -12px rgba(60, 48, 30, 0.14);
-  --elevation-float: 0 18px 50px -12px rgba(60, 48, 30, 0.28);
+  --elevation-card: 0 1px 0 rgba(29, 27, 24, 0.05);
+  --elevation-float: 0 24px 60px -20px rgba(29, 27, 24, 0.38);
   /* 작은 알약 · 고른 칸 */
-  --elevation-soft: 0 2px 8px -4px rgba(60, 48, 30, 0.45);
+  --elevation-soft: 0 1px 3px rgba(29, 27, 24, 0.14);
   /* 주 단추 · 표지 · 작은 원 */
-  --elevation-lift: 0 8px 18px -10px rgba(60, 48, 30, 0.6);
+  --elevation-lift: 0 6px 14px -10px rgba(29, 27, 24, 0.55);
   /* 떠 있는 판(하단 독) · 가운데 큰 원 */
-  --elevation-raise: 0 12px 28px -12px rgba(60, 48, 30, 0.5);
+  --elevation-raise: 0 14px 32px -16px rgba(29, 27, 24, 0.45);
 
   /*
     **본문 글꼴은 기기의 것이다**(ADR 0109 추기, 2026-09-30 운영자 결정). 웹 글꼴(Pretendard)을 싣지 않는다 —
     라틴 글자와 숫자는 시스템 서체가, 한글은 애플 산돌고딕 · Noto Sans KR · 맑은 고딕 가운데 기기에 있는 것이 그린다.
-    제목의 둥근 서체(고운돋움)만 `next/font` 로 싣는다(`app/layout.tsx`).
+    제목의 서체만 `next/font` 로 싣는다(`app/layout.tsx`).
   */
   --font-system: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    /* 어두운 화면 — 먹을 바탕으로, 한지를 글자로 뒤집는다 */
     color-scheme: dark;
-    --background: #161513;
-    --foreground: #f2efe8;
-    --surface: #1e1d1a;
-    --surface-raised: #25231f;
-    --surface-sunken: #121110;
-    --surface-soft: #221f1b;
-    --border: rgba(242, 236, 222, 0.12);
-    --border-strong: rgba(242, 236, 222, 0.24);
-    --text-secondary: #bdb7ab;
-    --text-muted: #a39d91;
-    --accent: #f4efe4;
-    --accent-strong: #d8d1c2;
-    --on-accent: #1d1b17;
-    --accent-wash: #2b2620;
-    --accent-soft: #3a3229;
+    --background: #141311;
+    --foreground: #efebe2;
+    --surface: #1b1a17;
+    --surface-raised: #23211d;
+    --surface-sunken: #0f0e0d;
+    --surface-soft: #1f1d1a;
+    --border: rgba(239, 235, 226, 0.12);
+    --border-strong: rgba(239, 235, 226, 0.26);
+    --text-secondary: #bdb6a9;
+    --text-muted: #a49d90;
+    --accent: #efebe2;
+    --accent-strong: #d6cfc1;
+    --on-accent: #1a1916;
+    --accent-wash: #27231e;
+    --accent-soft: #383128;
     --danger: #ef9a8e;
-    --danger-wash: #462925;
-    --warning: #e8bf74;
-    --warning-wash: #44371f;
-    --success: #b3dfbf;
-    --track: rgba(242, 236, 222, 0.1);
-    --wood: #b3dfbf;
-    --wood-soft: #1f3326;
-    --wood-mid: #5f9c72;
-    --fire: #f6bba9;
-    --fire-soft: #3c2520;
-    --fire-mid: #c56a52;
-    --earth: #ecd197;
-    --earth-soft: #372d1c;
-    --earth-mid: #b08a45;
-    --metal: #d2dae5;
-    --metal-soft: #2a2f36;
-    --metal-mid: #7f8a9b;
-    --water: #b0d3f0;
-    --water-soft: #1d2e3c;
-    --water-mid: #5689b3;
-    --none: #b5b9b2;
-    --none-soft: #242824;
-    --none-mid: #545a53;
-    --cream: #2b2620;
-    --cream-ink: #eed6b8;
-    --badge: #f09a84;
-    --on-badge: #22120d;
-    --elevation-card: 0 1px 2px rgba(0, 0, 0, 0.16), 0 16px 44px rgba(0, 0, 0, 0.14);
-    --elevation-float: 0 18px 50px rgba(0, 0, 0, 0.45);
-    --elevation-soft: 0 2px 8px -4px rgba(0, 0, 0, 0.5);
-    --elevation-lift: 0 8px 18px -10px rgba(0, 0, 0, 0.6);
-    --elevation-raise: 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+    --danger-wash: #432622;
+    --warning: #e6bd72;
+    --warning-wash: #3f331d;
+    --success: #b0dabb;
+    --track: rgba(239, 235, 226, 0.1);
+    --seal: #ec8571;
+    --seal-wash: #3a211b;
+    --on-seal: #1d0f0b;
+    --wood: #b0dabb;
+    --wood-soft: #1d2f23;
+    --wood-mid: #5f9670;
+    --fire: #f4b8a5;
+    --fire-soft: #38231d;
+    --fire-mid: #bd6750;
+    --earth: #e9cf96;
+    --earth-soft: #332a1b;
+    --earth-mid: #a98544;
+    --metal: #d0d7e1;
+    --metal-soft: #282c32;
+    --metal-mid: #7c8798;
+    --water: #aed0ec;
+    --water-soft: #1b2b38;
+    --water-mid: #5485ad;
+    --none: #b3b6af;
+    --none-soft: #222521;
+    --none-mid: #535851;
+    --cream: #221f1a;
+    --cream-ink: #e9d3b5;
+    --badge: #ec8571;
+    --on-badge: #1d0f0b;
+    --elevation-card: 0 1px 0 rgba(0, 0, 0, 0.3);
+    --elevation-float: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+    --elevation-soft: 0 1px 3px rgba(0, 0, 0, 0.45);
+    --elevation-lift: 0 6px 14px -10px rgba(0, 0, 0, 0.6);
+    --elevation-raise: 0 14px 32px -16px rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -174,6 +183,9 @@
   --color-water-mid: var(--water-mid);
   --color-cream: var(--cream);
   --color-cream-ink: var(--cream-ink);
+  --color-seal: var(--seal);
+  --color-seal-wash: var(--seal-wash);
+  --color-on-seal: var(--on-seal);
   --color-badge: var(--badge);
   --color-on-badge: var(--on-badge);
   --shadow-card: var(--elevation-card);
@@ -213,16 +225,11 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background:
-    radial-gradient(circle at 10% -6%, color-mix(in srgb, var(--cream) 90%, transparent) 0, transparent 28rem),
-    radial-gradient(circle at 96% 16%, color-mix(in srgb, var(--earth-soft) 55%, transparent) 0, transparent 24rem),
-    var(--background);
   /*
-    **빛은 한 번만 깔린다.** 바탕은 캔버스로 옮겨 가 `<html>` 의 상자를 한 칸으로 삼는데, 그 상자가
-    한 화면 높이(`h-full`)라 되풀이하면 둥근 빛이 화면 높이마다 다시 깔렸다 — 긴 화면에서 첫 화면
-    바로 아래에 가로 금이 섰다(어두운 테마에서 가장 또렷했다). 첫 칸은 전과 같고, 그 아래는 바탕색이다.
+    **바탕은 한 장의 한지다** — 부드러움 때 깔던 둥근 빛 둘을 걷었다. 빛은 판의 위계를 흐렸다: 크림 빛 위의 크림 판 위의
+    흰 카드가 세 겹으로 서서 어느 것이 주인공인지 색이 아니라 그림자로 갈라야 했다.
   */
-  background-repeat: no-repeat;
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-system);
   letter-spacing: -0.012em;
@@ -268,11 +275,21 @@ button, a, summary {
   margin-inline: auto;
 }
 .eyebrow {
-  color: var(--accent);
-  font-size: 0.72rem;
+  /* 한글에는 대문자가 없다 — 자간을 벌리는 대신 인장 점 하나로 머리를 단다 */
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--seal);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.eyebrow::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 1px;
+  background: currentColor;
 }
 .reading-skeleton {
   background: linear-gradient(90deg, var(--surface-sunken) 25%, var(--surface) 48%, var(--surface-sunken) 72%);
