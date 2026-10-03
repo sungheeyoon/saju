@@ -120,7 +120,7 @@ export function Segmented<T extends string>({
       {/* 고른 자리의 흰 알약 — 자리를 옮길 때 미끄러진다 */}
       <span
         aria-hidden="true"
-        className={`pointer-events-none absolute ${compact ? 'left-0.5 top-0.5 rounded-[0.75rem]' : 'left-1 top-1 rounded-xl'} bg-surface shadow-soft ring-1 ring-border transition-[transform,opacity] duration-300 ease-[cubic-bezier(.3,1.25,.4,1)] ${
+        className={`pointer-events-none absolute ${compact ? 'left-0.5 top-0.5 rounded-[0.75rem]' : 'left-1 top-1 rounded-xl'} bg-surface-raised shadow-soft ring-1 ring-border-strong transition-[transform,opacity] duration-300 ease-[cubic-bezier(.3,1.25,.4,1)] ${
           index < 0 ? 'opacity-0' : 'opacity-100'
         }`}
         style={
