@@ -66,7 +66,7 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 | `SUPABASE_SECRET_KEY` | 서버 전용 — `definer` 함수를 부르는 자리 |
 | `OPENAI_API_KEY` · `OPENAI_WEBHOOK_SECRET` | 풀이 생성과 webhook. 키는 Production · Preview, 서명 비밀은 Production 만(2026-09-24 `vercel env ls`) |
 | `CRON_SECRET` | 복구기를 깨우는 자리 |
-| `TASTE_BROWSER_SECRET` · `TASTE_IP_SECRET` | 로그인 전 사주 문단의 브라우저 묶음 · IP 를 HMAC 하는 서버 비밀(ADR 0143). Production · Preview 에 둔다 — 지금은 Production 만 있다(2026-10-03 `vercel env ls`, Preview 는 G-68). 없으면 그 문단이 닫힌다(「로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용」) |
+| `TASTE_BROWSER_SECRET` · `TASTE_IP_SECRET` | 로그인 전 사주 문단의 브라우저 묶음 · IP 를 HMAC 하는 서버 비밀(ADR 0143). Production · Preview 에 둔다 — 둘 다 있다(2026-10-03 `vercel env ls`). 없으면 그 문단이 닫힌다(「로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용」) |
 
 - **`NEXT_PUBLIC_` 이 붙으면 브라우저가 본다.** 열쇠를 그 접두사로 넣는 순간 공개된다.
 - `POSTGRES_*` 일곱과 `SUPABASE_JWT_SECRET`, 옛 이름 키 넷은 **코드가 한 번도 안 읽어서**
@@ -1506,10 +1506,28 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 3. **교체** — 「비밀이 새면」 표의 두 줄. 둘 다 옛 값과 새 값이 함께 설 자리가 없다 — 교체가 곧 끊기다.
 4. **없으면** 로그인 전 사주 문단이 닫힌다. 배포 전에 둘이 있는지 `vercel env ls` 로 이름만 본다.
 
-**지금(2026-10-03 밤)** — 조율자가 둘을 **Production 에만** 무작위 값으로 넣었다(`vercel env ls` 의 environments 칸이
-`Production` 하나). **Preview 에는 없다** — Vercel CLI 54.0.0 의 `vercel env add … preview` 가 `git_branch_required` 로 거절했다.
-Preview 배포에서는 문단이 닫힌다. 넣으려면 대시보드(Settings → Environment Variables 에서 Preview 를 고르고 가지는 비워 둔다)나
-더 새 CLI 다(G-68).
+**지금(2026-10-03)** — 조율자가 둘을 무작위 값으로 **Production · Preview 둘 다** 넣었다(`vercel env ls` 의 environments 칸에
+이름마다 `Production` 줄과 `Preview` 줄이 하나씩). Preview 는 처음에 Vercel CLI 54.0.0 의 `vercel env add … preview` 가
+`git_branch_required` 로 거절했고, **최신 CLI 의 `vercel env add <NAME> preview --value … --yes`** 로 들었다(가지를 안 적으면 모든
+Preview 가지). 대시보드라면 Settings → Environment Variables 에서 Preview 를 고르고 가지는 비워 둔다.
+
+### 이어쓰기가 막힌 시도 — `taste-link-failed` · `wrong_run` 경보
+
+가입 뒤 첫 누름이 맛보기를 시도에 잇지 못하면 그 시도는 보내지 않고 `taste-link-failed` 로 닫힌다 — 풀이권은 안 나가고 다음
+누름이 다시 잇는다(ADR 0143 「덧」). 순간 장애(문이 답하지 않음 · 귀속 표를 다시 못 맞춤 · `run_taken`)면 다음 누름이 지나간다.
+**`wrong_run`** 은 다르다 — 방금 `self` 로 연 시도가 그 회원의 자기 풀이가 아니라는 답이라 정상에서는 날 수 없다. 앱이 그
+시도를 같은 코드로 닫고 **서버 오류 알림 문으로 운영자에게 알린다** — 종류 `request-error:action:/taste/wrong-run`, 하루 한 줄
+(`app/me/reading/pipeline.ts` 의 `TASTE_WRONG_RUN_ALERT`, Production 에서만). 그 알림을 받으면 수와 날짜만 본다:
+
+```bash
+npm run db:remote -- --purpose "이어쓰기가 막힌 시도 수" \
+  "select date_trunc('day', finished_at) as day, failure_detail like 'wrong_run%' as wrong_run, count(*)
+     from public.reading_run where failure_code = 'taste-link-failed' and finished_at > now() - interval '7 days'
+    group by 1, 2 order by 1 desc;"
+```
+
+`wrong_run` 줄이 서면 그 시도를 연 `start_reading_run` 과 `link_taste_reading_run` 의 판정이 어긋난 것이다 — 막힌 사용자는 실패한
+풀이 화면의 「전체 풀이만 보기」로 귀속 표를 걷고 보통 풀이를 받는다(사람 · 본문은 위 질의에 안 나온다).
 
 ### 상한 — 값이 사는 자리
 

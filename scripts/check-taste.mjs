@@ -17,8 +17,8 @@
  * 6. **귀속** — 문이 터지면 `retryable` 이고 다시 시도하면 붙는다. 내 것은 붙고, 남이 붙인 것은 못 가져가고, 지문이 다르면
  *    버리고, 바꾼 id 는 조용히 지나간다(셋 다 `terminal`). 지문은 **서버에 저장된 내 사주**로 잰다 — 클라이언트가 다른 입력을
  *    실어 보내도 저장된 입력이 이긴다
- * 7. **세션 하나 = 풀이 하나** — 잇는 문이 터지면 그 시도는 실패로 닫히고(`taste-link-failed`), 누름이 잇고, 실패한 풀이만 다시
- *    잇고, 성공한 풀이가 있으면 새로 안 연다
+ * 7. **세션 하나 = 풀이 하나** — 잇는 문이 터지면 그 시도는 실패로 닫히고(`taste-link-failed`), 「전체 풀이만 보기」가 귀속
+ *    표를 걷으면 다음 누름은 보통 풀이고, 누름이 잇고, 실패한 풀이만 다시 잇고, 성공한 풀이가 있으면 새로 안 연다
  * 8. **퍼널은 세션당 한 번** — 「더보기」 · 가입 완료를 거듭해도 · 귀속 표를 지우고 다시 와도 한 번, 다른 브라우저 · 쿠키 없음은 0
  * 9. **회원은 맛보기로 안 간다** — 로그인한 요청은 예약도 세션도 없이 닫힌다
  */
@@ -121,6 +121,7 @@ const READ = ['app/actions.ts', 'readTaste'];
 const CLAIM = ['app/actions.ts', 'claimTaste'];
 const NOTE = ['app/actions.ts', 'noteTasteStep'];
 const GENERATE = ['app/me/reading/actions.ts', 'generateReading'];
+const SKIP = ['app/me/reading/actions.ts', 'skipTasteCarry'];
 
 const modelCalls = () => Number(sql(`select coalesce(sum(value), 0) from public.taste_daily_count where metric = 'model_calls'`));
 const funnel = (step) => Number(sql(`select coalesce(sum(value), 0) from public.taste_daily_count where metric = 'funnel:${step}'`));
@@ -316,6 +317,21 @@ try {
     && Number(runsOfA()) === runsBeforeBroken + 1 && (await settledRun(brokenRun)) === 'failed'
     && sql(`select failure_code from public.reading_run where id = '${brokenRun}'`) === 'taste-link-failed', JSON.stringify(brokenPress));
   check('세션은 안 이어진 채이고 귀속 표가 남는다 — 다음 누름이 다시 잇는다', linkedRun() === '' && first.get('saju_taste_claim') === again.sessionId);
+
+  /*
+    막힌 사람의 탈출구 — 「전체 풀이만 보기」(`skipTasteCarry`)가 귀속 표를 걷으면 다음 누름은 보통 풀이다. DB 의 세션은 그대로다.
+    그다음 걸음을 이으려고 표를 손으로 되돌린다(같은 브라우저가 다시 붙인 것과 같다 — 귀속은 멱등이다)
+  */
+  const claimCookie = first.get('saju_taste_claim');
+  await act('/me/readings/self', SKIP, [], { jar: first, ip: '10.77.0.1', session: a.session });
+  check('「전체 풀이만 보기」는 귀속 표를 걷는다', !first.has('saju_taste_claim'));
+  const plainPress = await act('/me/readings/self', GENERATE, [{ kind: 'self' }, randomUUID()], { jar: first, ip: '10.77.0.1', session: a.session });
+  const plainRun = sql(`select id from public.reading_run where user_id = '${a.id}' order by created_at desc limit 1`);
+  check('표를 걷은 뒤 누름은 보통 풀이다 — 잇지 않고 잇기 실패로도 안 닫는다', plainPress.started === true && linkedRun() === ''
+    && (await settledRun(plainRun)) === 'failed'
+    && sql(`select coalesce(failure_code, '') from public.reading_run where id = '${plainRun}'`) !== 'taste-link-failed'
+    && sql(`select status from public.taste_session where id = '${again.sessionId}'`) === 'claimed', JSON.stringify(plainPress));
+  first.set('saju_taste_claim', claimCookie);
 
   const pressed = await act('/me/readings/self', GENERATE, [{ kind: 'self' }, randomUUID()], { jar: first, ip: '10.77.0.1', session: a.session });
   const run1 = linkedRun();

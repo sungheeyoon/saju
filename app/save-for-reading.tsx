@@ -14,7 +14,8 @@ import { SelfCard } from './me/home/self-card';
 import { personSlotsFrom } from './person-slots';
 import { toSearchParams, type Query } from '@/src/lib/input/query';
 import { claimTaste } from './actions';
-import { claimCarriedTaste, dropCarriedTaste } from './carried-taste';
+import { carriesTaste, claimCarriedTaste, dropCarriedTaste, skipCarriedTaste } from './carried-taste';
+import { skipTasteCarry } from './me/reading/actions';
 import { READING_DRAFT_KEY } from './reading-draft';
 import { SignInCarrying } from './sign-in-carrying';
 import {
@@ -268,6 +269,9 @@ export function SavePersonForReading({ query }: { query: Query }) {
   const context = useSaveContext();
   /** 「다른 사람의 사주예요」를 눌렀다 — 이 화면에서는 다시 묻지 않는다 */
   const [someoneElse, setSomeoneElse] = useState(false);
+  /** 내 사주는 이미 저장됐다 — 탭이 붙이지 못한 세션을 들고 있으면 여기서 다시 붙인다 */
+  const savedSelf = context.state === 'in' && context.self !== null && context.self.saved && !someoneElse;
+  const resumed = useCarriedTasteResume(savedSelf);
 
   /**
    * 「맞다」면 **아무것도 저장하지 않고** 그 사람에게 간다. 자리도 안 쓰고 대상도 안 는다 —
@@ -309,6 +313,22 @@ export function SavePersonForReading({ query }: { query: Query }) {
     );
   }
 
+  /*
+    **내 사주는 저장됐는데 붙이는 답이 안 났던 탭**(ADR 0143 「덧」) — 「이어오지 못했어요.」에서 새로고침하거나 뒤로 돌아왔다.
+    다시 붙이는 동안은 자리를 비우고, 그래도 답이 안 나면 같은 다시 시도 화면을 세운다.
+  */
+  if (savedSelf && resumed === 'checking') return null;
+  if (context.state === 'in' && context.self !== null && savedSelf && resumed === 'stuck') {
+    return (
+      <SelfConfirm
+        query={query}
+        name={context.self.nickname ?? query.name.trim()}
+        onSomeoneElse={() => setSomeoneElse(true)}
+        stuckAtFirst
+      />
+    );
+  }
+
   return (
     <SaveCard
       context={context}
@@ -338,6 +358,51 @@ export function SavePersonForReading({ query }: { query: Query }) {
 }
 
 /**
+ * **내 사주가 이미 저장된 채 돌아온 탭이 들고 있는 세션을 다시 붙인다**(ADR 0143 「덧」).
+ *
+ * 「이 사주가 내 사주 맞나요?」는 내 사주를 저장한 **뒤에** 붙인다 — 붙이는 답이 안 나서(`retryable`) 다시 시도 화면이 선
+ * 자리에서 새로고침하면 내 사주는 이미 저장됐으니 그 물음이 다시 안 서고, 다시 시도는 화면의 상태라 함께 사라졌다. 탭은 id 를
+ * 그대로 들고 있으므로(답이 났을 때만 지운다, `claimCarriedTaste`) **이 화면이 다시 그려질 때 스스로 다시 붙인다** — 새로고침 ·
+ * 뒤로가기 · 같은 탭에서 `/` 로 다시 오는 것이 모두 이 한 자리를 지난다. `#resume-reading` 의 복원 단계가 아닌 까닭은 그 낱말이
+ * 첫 복원에서 입력으로 갈아 끼워져(`hash-query.ts`) 새로고침에는 남지 않기 때문이다.
+ *
+ * - `checking` — 묻는 중이거나 이동하는 중이다. 자리를 비운다
+ * - `none` — 들고 온 것이 없거나 답이 났다(버림 · 지남 · 남의 것). 보통 흐름
+ * - `stuck` — 그래도 답이 안 났다. 같은 다시 시도 화면을 세운다
+ *
+ * 붙었으면(`claimed`) 도착 표를 세우고 내 사주풀이로 간다 — 「이 사주가 내 사주 맞나요?」에서 붙인 것과 같다. 남의 세션 id 를
+ * 들고 와도 서버가 막는다: 귀속은 이 브라우저의 쿠키 HMAC 과 **서버에 저장된 내 사주**로 다시 잰 지문이 함께 맞아야 붙는다.
+ */
+type CarriedTasteResume = 'checking' | 'none' | 'stuck';
+
+function useCarriedTasteResume(savedSelf: boolean): CarriedTasteResume {
+  const router = useRouter();
+  const [resume, setResume] = useState<CarriedTasteResume>('checking');
+
+  useEffect(() => {
+    if (!savedSelf) return;
+    let alive = true;
+
+    void (async () => {
+      if (!carriesTaste(() => sessionStorage)) {
+        setResume('none');
+        return;
+      }
+      const carried = await claimCarriedTaste(() => sessionStorage, claimTaste);
+      if (!alive) return;
+      if (carried === 'claimed') router.push('/me/readings/self');
+      else setResume(carried === 'retryable' ? 'stuck' : 'none');
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [savedSelf, router]);
+
+  return resume;
+}
+
+/**
  * **「이 사주가 내 사주 맞나요?」** — 내 사주가 없는 사람이 사주 이어 보기로 돌아왔을 때(ADR 0128).
  *
  * 그 사람을 **홈의 내 사주 카드 그대로** 보인다(`SelfCard`) — 저장하면 홈에서 만날 얼굴이 이것이다. 새 카드 모양을
@@ -351,17 +416,20 @@ function SelfConfirm({
   query,
   name,
   onSomeoneElse,
+  stuckAtFirst = false,
 }: {
   query: Query;
   /** 카드에 설 이름 — 내 사주는 닉네임으로 저장된다(`self-person-state.ts`) */
   name: string;
   onSomeoneElse: () => void;
+  /** 내 사주는 이미 저장됐고 다시 붙여 봐도 답이 안 났다 — 다시 시도 화면으로 연다(`useCarriedTasteResume`) */
+  stuckAtFirst?: boolean;
 }) {
   const router = useRouter();
   const chart = useMemo(() => calculateChart(query), [query]);
   const [failure, setFailure] = useState<string | null>(null);
   /** 내 사주는 저장했는데 들고 온 문단을 붙이는 답이 안 났다 — 저장 단추 대신 다시 시도가 선다 */
-  const [stuck, setStuck] = useState(false);
+  const [stuck, setStuck] = useState(stuckAtFirst);
   const [saving, startSaving] = useTransition();
 
   /* 계산기가 이미 그린 입력이라 여기서 못 푸는 일은 없다 — 그래도 지어낸 카드를 세우지 않는다 */
@@ -372,7 +440,7 @@ function SelfConfirm({
    * 그것만 보낸다. 지문은 방금 서버에 저장된 내 사주로 서버가 다시 잰다(이 화면의 입력이 아니다).
    *
    * **답이 안 났으면 가지 않는다**(`retryable`) — 조용히 보통 흐름으로 가면 첫 화면에서 끊긴 물음이 이어지지 않는다. 그 자리에
-   * 다시 시도와 이어 보지 않고 계속하기가 선다. 저장은 이미 끝났으니 다시 시도는 붙이기만 다시 한다. 답이 났으면(붙었거나 ·
+   * 다시 시도와 「전체 풀이만 보기」가 선다. 저장은 이미 끝났으니 다시 시도는 붙이기만 다시 한다. 답이 났으면(붙었거나 ·
    * 버렸거나 · 지났거나 · 남의 것이면) 간다 — 붙었으면 그 화면이 풀이권 확인창을 연다.
    */
   const carryOn = async () => {
@@ -402,10 +470,15 @@ function SelfConfirm({
     startSaving(carryOn);
   };
 
-  /** 이어 보지 않고 계속하기 — 들고 온 세션을 버리고 보통 흐름으로. 거듭된 실패에 막히지 않는 길이다 */
+  /**
+   * 「전체 풀이만 보기」 — 들고 온 세션을 버리고 **서버의 귀속 표까지 걷은 뒤** 보통 흐름으로(`skipCarriedTaste`). 거듭된 실패에
+   * 막히지 않는 길이다. 탭만 지우면 앞서 붙은 표가 남아 있을 때 내 사주풀이의 누름이 그대로 잇는다.
+   */
   const skip = () => {
-    dropCarriedTaste(() => sessionStorage);
-    router.push('/me/readings/self');
+    startSaving(async () => {
+      await skipCarriedTaste(() => sessionStorage, skipTasteCarry);
+      router.push('/me/readings/self');
+    });
   };
 
   return (
@@ -438,7 +511,7 @@ function SelfConfirm({
                 disabled={saving}
                 className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}
               >
-                이어 보지 않고 계속하기
+                전체 풀이만 보기
               </button>
             </>
           ) : (

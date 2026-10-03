@@ -152,6 +152,8 @@ describe('내보낸 액션은 바뀐 것의 이름을 고른다', () => {
       '끝난 것을 확인한 자리에서 그 대상의 화면을 무른다 — 주소가 대상마다 다르다',
     'app/me/reading/actions.ts::submitReadingFeedback':
       '답한 뒤 `feedback_given` 이 다시 읽혀야 한다 — 역시 대상이 주소를 정한다',
+    'app/me/reading/actions.ts::skipTasteCarry':
+      '귀속 표를 걷으면 내 사주풀이의 「아까 보던 내용」이 내려가야 한다 — 그 화면의 주소를 무른다(ADR 0143)',
     'app/me/chat/actions.ts::sendChatMessage':
       '방 안의 주소가 방마다 다르다(`/me/chat/<matchId>`) — 목록과 그 방을 함께 무른다',
     'app/me/chat/actions.ts::markChatRead':

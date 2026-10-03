@@ -24,7 +24,9 @@ import { readingTargetArgs, type ReadingTarget } from './target';
 import { claimedTaste } from './taste-carry';
 import { linkTasteReadingRun, tasteContinuationOfRun, type TasteLinkAnswer } from '../keyed-taste-claims';
 import { forgetTasteClaim } from '../../taste-visitor';
+import { reportRequestError } from '../../request-error';
 import { continuationBlockOf, type TasteRunCarry } from '@/src/lib/reading/continuation';
+import { TASTE_LINK_FAILED } from '@/src/lib/reading/taste-visit';
 import { rpcArgs } from '@/src/lib/db';
 
 /**
@@ -396,9 +398,6 @@ async function pressCarry(): Promise<
  * - `plain` — 이 시도는 보통 풀이가 맞다:
  *   - `not_claimed` — 세션이 이제 이 회원 것이 아니다(그 사이 입력을 고쳐 버려졌다 등). 표를 걷는다 — 다시 이을 것이 없다
  *   - `already_succeeded` · `already_running` — 다른 누름(다른 탭)이 그 사이에 이었다. 지금 그대로 둔다
- *   - `wrong_run` — 방금 연 시도가 이 회원의 자기 풀이가 아니라는 답이다. 이 누름에서는 날 수 없는 모순이라 실패로 닫으면
- *     누를 때마다 같은 답이 나 영영 풀이를 못 받는다. 보통 풀이로 보내고 기록에 남긴다 — 세션은 손대지 않았으니 다음
- *     「다시 받기」가 다시 잇는다
  * - `fail` — 이 시도를 **보내지 않고 실패로 닫는다.** 풀이권은 안 쓰이고(실패한 시도는 안 쓴 것이다) 다음 누름이 같은 맛보기로
  *   다시 잇는다:
  *   - 답이 안 났다(`unreachable` · 던짐) — `taste-link-failed`. 보통 풀이로 내면 세션은 안 이어진 채 풀이권 한 번이 이어쓰기 없는
@@ -406,11 +405,19 @@ async function pressCarry(): Promise<
  *   - `run_taken` — 방금 연 시도를 다른 세션이 쥐었다. 새 시도 id 는 겹치지 않으니 다음 누름은 이어진다 — 이 시도만 닫는다
  *   - 이었는데 스냅숏을 못 읽었다 — `taste-carry-unread`. 세션은 이미 이 시도에 이어졌으므로 보통 풀이로 서면 그 맛보기는 다시
  *     안 이어진다(성공한 시도를 바꿔 잇지 않는다)
+ *   - `wrong_run` — 방금 연 시도가 이 회원의 자기 풀이가 아니라는 답이다. 이 누름이 방금 `self` 로 연 시도라 **정상에서는 날 수
+ *     없는 불변식 위반**이다 — 무엇이 틀렸는지 모르는 채 보통 풀이로 내면 풀이권 한 번이 이어쓰기 없는 글에 조용히 쓰인다.
+ *     그래서 `taste-link-failed` 로 닫고 **운영자에게 알린다**(`alert`). 누를 때마다 같은 답이면 사용자가 막히므로, 실패한 풀이
+ *     화면에 「전체 풀이만 보기」가 선다 — 귀속 표를 걷어 다음 누름이 보통 풀이가 된다(`skipTasteCarry`, 운영자 요청 2026-10-03)
  */
 async function linkCarry(
   sessionId: string,
   runId: string,
-): Promise<{ kind: 'carry'; carry: TasteRunCarry } | { kind: 'plain' } | { kind: 'fail'; code: string; detail: string }> {
+): Promise<
+  | { kind: 'carry'; carry: TasteRunCarry }
+  | { kind: 'plain' }
+  | { kind: 'fail'; code: string; detail: string; alert?: true }
+> {
   let link: TasteLinkAnswer;
   try {
     link = await linkTasteReadingRun(sessionId, runId);
@@ -433,22 +440,30 @@ async function linkCarry(
       await forgetTasteClaim();
       return { kind: 'plain' };
     case 'wrong_run':
-      console.error('begin: 연 시도가 이 회원의 자기 풀이가 아니라는 답 — 보통 풀이로 보낸다');
-      return { kind: 'plain' };
+      console.error('begin: 연 시도가 이 회원의 자기 풀이가 아니라는 답(wrong_run) — 그 시도를 실패로 닫고 운영자에게 알린다');
+      return { kind: 'fail', code: TASTE_LINK_FAILED, detail: TASTE_WRONG_RUN_DETAIL, alert: true };
     case 'already_succeeded':
     case 'already_running':
       return { kind: 'plain' };
   }
 }
 
+/**
+ * `wrong_run` 으로 닫은 시도의 `failure_detail` — 운영자가 그 시도를 세는 글자다(`docs/ops/runbook.md` 「로그인 전 사주 문단」).
+ * 사람 · 본문은 안 싣는다.
+ */
+export const TASTE_WRONG_RUN_DETAIL = 'wrong_run — 연 시도가 이 회원의 자기 풀이가 아니라는 답';
+
+/**
+ * `wrong_run` 을 운영자에게 알리는 이름 — 서버 오류 알림 문(`report_request_error`, `app/request-error.ts`)을 그대로 쓴다. 그 문이
+ * 앱이 부를 수 있는 유일한 알림 길이고(`notify_ops` 는 열쇠에도 닫혀 있다), 종류가 `request-error:action:/taste/wrong-run` 으로
+ * 갈려 하루 한 줄이다. 라우트 파일의 무늬가 아니라 이 갈래의 이름이다 — 무늬 검사(`/` 로 시작하는 짧은 경로)는 지난다.
+ */
+export const TASTE_WRONG_RUN_ALERT = '/taste/wrong-run';
+
 /** 이어진 맛보기의 스냅숏을 못 읽어 보내지 않고 닫은 시도의 실패 코드 */
 export const TASTE_CARRY_UNREAD = 'taste-carry-unread';
 
-/**
- * 맛보기를 시도에 잇지 못해(답이 안 났다 · 귀속 표를 다시 못 맞췄다 · 연 시도를 다른 세션이 쥐었다) 보내지 않고 닫은 시도의
- * 실패 코드. `reading_run.failure_code` 는 DB 검사식이 없다 — 꼴은 맛보기 표와 같은 `^[a-z0-9-]{1,64}$` 로 맞춘다.
- */
-export const TASTE_LINK_FAILED = 'taste-link-failed';
 
 /**
  * 연 시도를 **보내지 않고** 실패로 닫는다 — 기존 실패 닫기 문(`fail_reading_job`, 열쇠)이다. 시도는 `running` 일 때만 닫히고
@@ -527,6 +542,8 @@ export async function beginReading(
         // 못 닫았으면 복구기가 deadline 에 닫는다 — 까닭만 기록에 남긴다.
         console.error('begin: closeUnsent', thrown);
       }
+      /* 알림은 던지지 않는다 — Production 에서만 보내고 실패는 기록에 남긴다(`reportRequestError`) */
+      if ('alert' in linked && linked.alert) await reportRequestError(TASTE_WRONG_RUN_ALERT, 'action', null);
     });
     return { ok: true, started: true };
   }
