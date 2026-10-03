@@ -45,7 +45,7 @@ const QUIET_LINK =
  * 테두리뿐이라 그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
  */
 const FIELD =
-  'min-h-11 rounded-xl border border-border bg-surface px-3 text-sm focus:border-border-strong focus:ring-2 focus:ring-accent-soft';
+  'min-h-11 rounded-xl border border-border bg-surface px-3 text-sm focus:border-border-strong focus:ring-2 focus:ring-focus';
 
 /** 받은 요청 카드의 동의 질문 — 공개 범위 목록 대신 결정에 필요한 한 문장만 둔다. */
 export function MatchConsentQuestion() {

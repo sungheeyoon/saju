@@ -66,7 +66,7 @@ const ROW_LABEL = 'shrink-0 text-[15px] text-foreground';
 
 /** 줄 안 오른쪽 숫자 칸 — 움푹한 작은 칸, 오른쪽 정렬 */
 const DIGIT =
-  'h-11 min-w-0 rounded-lg bg-surface-sunken px-1.5 text-right text-base tabular-nums text-foreground outline-none placeholder:text-sm placeholder:text-muted focus:ring-2 focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-40';
+  'h-11 min-w-0 rounded-lg bg-surface-sunken px-1.5 text-right text-base tabular-nums text-foreground outline-none placeholder:text-sm placeholder:text-muted focus:ring-2 focus:ring-focus disabled:cursor-not-allowed disabled:opacity-40';
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
@@ -139,7 +139,7 @@ function PickRow<T extends string>({
             return (
               <label
                 key={option.value}
-                className="relative flex min-h-12 cursor-pointer items-center gap-2 border-t border-border px-3 first:border-t-0 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-accent-soft"
+                className="relative flex min-h-12 cursor-pointer items-center gap-2 border-t border-border px-3 first:border-t-0 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-focus"
               >
                 <input
                   type="radio"
@@ -609,7 +609,7 @@ export function BirthFields({
                 onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
                 placeholder={namePlaceholder}
                 maxLength={NAME_MAX}
-                className="h-11 min-w-0 flex-1 bg-transparent text-right text-base text-foreground outline-none placeholder:text-muted"
+                className="h-11 min-w-0 flex-1 rounded-lg bg-transparent px-1.5 text-right text-base text-foreground outline-none placeholder:text-muted focus:bg-surface-sunken focus:ring-2 focus:ring-focus"
               />
             </label>
           )}

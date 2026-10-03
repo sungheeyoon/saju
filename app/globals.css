@@ -34,6 +34,12 @@
   --warning-wash: #fbf0d8;
   --success: #2e5b3f;
   --track: rgba(60, 48, 30, 0.09);
+  /*
+    **초점 테두리 한 색** — 키보드 · 입력 칸의 초점은 모두 이것을 두른다(`outline-focus` · `ring-focus`). 화면마다
+    `accent-soft`(#f3e3cc) · `accent-wash` · 먹색 45% 가 섞여 있었고, 앞의 둘은 크림 바탕에서 1.1:1 이라 숫자 칸에
+    초점이 들어가도 안 보였다(2026-10-03). 먹색 60% 는 바탕 위 3.9:1 — WCAG 1.4.11 의 3:1 을 넘는다.
+  */
+  --focus-ring: color-mix(in srgb, var(--accent) 60%, transparent);
   /* 오행 — 글자(`--wood`) · 면(`--wood-soft`) · 상징의 속(`--wood-mid`) */
   --wood: #2e5b3f;
   --wood-soft: #e3f1dc;
@@ -157,6 +163,7 @@
   --color-warning-wash: var(--warning-wash);
   --color-success: var(--success);
   --color-track: var(--track);
+  --color-focus: var(--focus-ring);
   --color-wood: var(--wood);
   --color-wood-soft: var(--wood-soft);
   --color-fire: var(--fire);
@@ -249,7 +256,7 @@ button, a, summary {
 @layer base {
   button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
   textarea:focus-visible, summary:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    outline: 3px solid var(--focus-ring);
     outline-offset: 3px;
   }
 }

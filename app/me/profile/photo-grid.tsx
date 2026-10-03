@@ -291,7 +291,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
               move(position, position + 1);
             }
           }}
-          className={`block h-full w-full cursor-grab touch-manipulation select-none rounded-2xl bg-surface outline-none [-webkit-touch-callout:none] focus-visible:ring-4 focus-visible:ring-accent-soft ${
+          className={`block h-full w-full cursor-grab touch-manipulation select-none rounded-2xl bg-surface outline-none [-webkit-touch-callout:none] focus-visible:ring-4 focus-visible:ring-focus ${
             target ? 'ring-4 ring-accent' : ''
           }`}
         >
@@ -338,7 +338,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
         aria-hidden={first ? undefined : true}
         className={`grid h-full w-full cursor-pointer place-items-center rounded-2xl border-2 border-dashed border-border-strong bg-surface text-2xl font-semibold text-muted ${
           first
-            ? 'has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft'
+            ? 'has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus'
             : ''
         } ${working ? 'cursor-progress opacity-60' : ''}`}
       >

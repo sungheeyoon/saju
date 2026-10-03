@@ -14,7 +14,7 @@ import { Icon } from '../../../ui/icons';
 import { reportChatMessage } from '../actions';
 
 const FIELD =
-  'rounded-xl bg-surface px-3 text-[15px] text-foreground ring-1 ring-border outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]';
+  'rounded-xl bg-surface px-3 text-[15px] text-foreground ring-1 ring-border outline-none focus:ring-2 focus:ring-focus';
 
 /**
  * 메시지 하나를 고른 신고 — 입력 자리에 선다. 소식 화면의 `ReportButton` 과 같은 폼이고, 다른 것은 **무엇을

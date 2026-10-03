@@ -9,7 +9,7 @@ import { confirmTotpCode, startTotpEnrollment } from './actions';
 import { SECOND_FACTOR_COPY as COPY } from './copy';
 
 const FIELD =
-  'min-h-12 w-40 rounded-2xl border border-border-strong bg-surface px-4 font-mono text-[18px] tracking-[0.3em] outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+  'min-h-12 w-40 rounded-2xl border border-border-strong bg-surface px-4 font-mono text-[18px] tracking-[0.3em] outline-none focus:border-foreground focus:ring-2 focus:ring-focus';
 
 /**
  * 두 번째 요소 — **등록**(QR · 설정 키 → 코드)과 **확인**(코드만) 두 갈래다(ADR 0123).

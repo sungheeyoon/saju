@@ -296,7 +296,7 @@ function PersonCard({
         <h2 className={`${TYPE_NAME} truncate`}>
           <Link
             href={`/me/people/${person.personId}`}
-            className="after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_45%,transparent)]"
+            className="after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-focus"
           >
             {person.local_label}
           </Link>

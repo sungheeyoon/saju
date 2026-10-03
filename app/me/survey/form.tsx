@@ -66,7 +66,7 @@ const ASK = 'block text-[17px] font-bold leading-7 text-foreground';
  * 있어 고른 것이 색만으로 말해지지 않는다.
  */
 const CHOICE =
-  'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 text-[15px] leading-6 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-focus-visible:outline has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent-soft';
+  'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 text-[15px] leading-6 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-focus-visible:outline has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus';
 
 export function SurveyForm({ context, given }: { context: SurveyContext; given: MySurvey | null }) {
   const [answers, setAnswers] = useState<SurveyAnswers>(given?.answers ?? EMPTY_ANSWERS);
@@ -397,7 +397,7 @@ function Writing({
         maxLength={limit}
         rows={4}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-[15px] leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
+        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-[15px] leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-focus"
       />
     </div>
   );
