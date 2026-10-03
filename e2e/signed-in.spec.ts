@@ -3462,13 +3462,45 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     await page.goto('/auth?next=%2F%23resume-reading');
     await signUp(page);
     await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toBeVisible();
-    await page.getByRole('button', { name: '내 사주로 저장' }).click();
-    await expect(page).toHaveURL(/\/me\/readings\/self$/);
 
+    /*
+      귀속이 한 번 닿지 않는다(네트워크) — 저장은 끝났지만 답이 안 났으니 가지 않는다. 세션 id 는 남고 그 자리에 다시 시도가
+      선다(ADR 0143 「덧」). 귀속 액션의 몸은 세션 id 하나뿐이라 그것으로 가른다 — 저장 액션의 몸에는 그 id 가 없다.
+    */
+    let dropped = 0;
+    await page.route('**/*', async (route) => {
+      const request = route.request();
+      if (request.method() === 'POST' && dropped === 0 && (request.postData() ?? '').includes(sessionId as string)) {
+        dropped += 1;
+        await route.abort('failed');
+        return;
+      }
+      await route.fallback();
+    });
+    await page.getByRole('button', { name: '내 사주로 저장' }).click();
+    await expect(page.getByText('이어오지 못했어요.')).toBeVisible();
+    await expect(page.getByRole('button', { name: '이어 보지 않고 계속하기' })).toBeVisible();
+    expect(dropped).toBe(1);
+    expect(page.url()).not.toMatch(/\/me\/readings\/self$/);
+    expect(await page.evaluate(() => sessionStorage.getItem('saju:taste-session'))).toBe(sessionId);
+
+    /* 다시 시도 — 같은 id 로 붙고 내 사주풀이에 도착하자마자 풀이권 확인창이 열려 있다. 뒤에는 「아까 보던 내용」이 보인다 */
+    await page.unroute('**/*');
+    await page.getByRole('button', { name: '다시 시도하기' }).click();
+    await expect(page).toHaveURL(/\/me\/readings\/self$/);
+    const confirm = page.getByRole('dialog', { name: '풀이권 1회를 사용하시겠어요?' });
+    await expect(confirm).toBeVisible();
+    await expect(page.locator('section[aria-labelledby="carry-heading"]')).toContainText('새벽빛이 들기 전에');
+    expect(await page.evaluate(() => sessionStorage.getItem('saju:taste-session'))).toBeNull();
+
+    /* 누름은 사용자가 한다 — 닫으면 그 방문에서 다시 안 열리고, 새로고침해도 다시 안 열린다 */
+    await confirm.getByRole('button', { name: '취소' }).click();
+    await expect(confirm).toBeHidden();
+    await page.reload();
     const carry = page.getByRole('region', { name: '아까 보던 내용' });
     await expect(carry).toContainText('새벽빛이 들기 전에');
     await expect(carry).toContainText('누구와 나눌 때 가벼워질까요?');
-    expect(await page.evaluate(() => sessionStorage.getItem('saju:taste-session'))).toBeNull();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
 
     /* 생성 중 — 시도를 그 사람으로 열고 세션에 잇는다(서버가 누름에서 하는 그 두 걸음) */
     const userId = sql(`select id from auth.users where email = '${newcomer.account.email}'`);

@@ -245,7 +245,8 @@ function TasteTrouble({
           carry={{ key: TASTE_SESSION_KEY, value: null }}
           className={`${BUTTON_PRIMARY} w-full`}
         >
-          무료 회원가입하고 이어보기
+          {/* 이어질 글이 없다 — 「이어보기」라 하지 않는다(ADR 0143 「덧」). 글이 선 뒤의 「더보기」 단추만 「이어보기」다 */}
+          무료 회원가입하고 전체 풀이 받기
         </SignInCarrying>
       )}
     </div>

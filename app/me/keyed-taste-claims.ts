@@ -47,7 +47,8 @@ const RUN_STATUSES = ['running', 'succeeded', 'failed'] as const;
 
 /**
  * 가입한 회원에게 세션을 붙인다 — **같은 회원이 다시 부르면 멱등**이다. 지문은 서버가 확정 입력에서 다시 잰 값이다.
- * 로그인 안 했거나 · 열쇠가 없거나 · 문이 터지면(정지 · 베타 종료 · 가입 미완 포함) `null` — 부르는 쪽은 보통 흐름으로 간다.
+ * 로그인 안 했거나 · 열쇠가 없거나 · 문이 터지면(정지 · 베타 종료 · 가입 미완 포함) `null` — **답이 안 난 것이다.** 부르는 쪽은
+ * 보통 흐름으로 가지 않는다 — 귀속은 다시 시도를 세우고(`claimTasteWith`), 누름은 그 시도를 실패로 닫는다(`pipeline.ts`).
  */
 export async function claimTasteSession({
   sessionId,
@@ -100,10 +101,21 @@ export async function claimTasteSession({
 /** 잇기의 답 — DB 의 갈래 여섯 */
 export type TasteLink = 'linked' | 'already_succeeded' | 'already_running' | 'not_claimed' | 'wrong_run' | 'run_taken';
 
-/** 귀속된 세션을 이 회원의 자기 풀이 시도 하나에 잇는다 — 못 이었으면(문이 터짐) `null`, 보통 풀이로 간다 */
-export async function linkTasteReadingRun(sessionId: string, runId: string): Promise<TasteLink | null> {
+/**
+ * 잇기의 답 — **DB 가 답했는가(`answered`)와 답이 안 났는가(`unreachable`)를 타입에서 가른다**(ADR 0143 「덧」). 앞서는 둘이
+ * 같은 `null` 이었고, 부르는 쪽이 「`linked` 가 아니면 보통 풀이」로 읽어 순간 장애 하나가 이어쓰기를 조용히 걷었다.
+ */
+export type TasteLinkAnswer = { readonly answered: true; readonly outcome: TasteLink } | { readonly answered: false };
+
+const TASTE_LINKS: readonly TasteLink[] = ['linked', 'already_succeeded', 'already_running', 'not_claimed', 'wrong_run', 'run_taken'];
+
+/**
+ * 귀속된 세션을 이 회원의 자기 풀이 시도 하나에 잇는다. 로그인 세션 · 열쇠가 없거나 · 문이 터지거나 · 모르는 답이면
+ * `unreachable` — 부르는 쪽은 그 시도를 실패로 닫는다(`app/me/reading/pipeline.ts`).
+ */
+export async function linkTasteReadingRun(sessionId: string, runId: string): Promise<TasteLinkAnswer> {
   const who = await member();
-  if (who === null) return null;
+  if (who === null) return { answered: false };
 
   const { data, error } = await who.keyed.rpc(
     'link_taste_reading_run',
@@ -111,12 +123,10 @@ export async function linkTasteReadingRun(sessionId: string, runId: string): Pro
   );
   if (error !== null) {
     recordDbFailure(error, 'link_taste_reading_run');
-    return null;
+    return { answered: false };
   }
-  const outcome = (data ?? [])[0]?.outcome;
-  return ['linked', 'already_succeeded', 'already_running', 'not_claimed', 'wrong_run', 'run_taken'].includes(outcome ?? '')
-    ? (outcome as TasteLink)
-    : null;
+  const outcome = TASTE_LINKS.find((known) => known === (data ?? [])[0]?.outcome);
+  return outcome === undefined ? { answered: false } : { answered: true, outcome };
 }
 
 /**

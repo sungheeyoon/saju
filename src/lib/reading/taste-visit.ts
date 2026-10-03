@@ -127,6 +127,20 @@ export const isTasteSessionStep = (value: unknown): value is TasteSessionStep =>
  */
 export const TASTE_RETURNED_CLAIMS = ['claimed', 'discarded', 'expired', 'not_ready'] as const;
 
+/**
+ * 가입한 뒤 들고 온 세션을 붙인 결과 — **세 갈래다**(ADR 0143 「덧」). 화면은 이 셋만 받는다 — DB 의 갈래 · 오류 원문은 안 간다.
+ *
+ * - `claimed` — 붙었고 이을 풀이가 남았다. 다음 누름이 이 세션을 잇는다(귀속 표가 섰다)
+ * - `terminal` — **답이 났다 — 이을 것이 없다.** 다시 불러도 같다: 지문이 다르다(`discarded`) · 지났다(`expired`) · 남의
+ *   것이다(`taken`) · 없는 세션이거나 다른 브라우저다(`not_found`) · 아직 글이 없다(`not_ready`) · id 꼴이 틀렸다 · 비밀이 없다 ·
+ *   이 브라우저의 쿠키가 없다 · 이어진 풀이가 이미 섰다. 화면은 보통 흐름으로 간다
+ * - `retryable` — **답이 안 났다.** DB · 네트워크 · 로그인 세션을 그 순간 못 읽었다. 화면은 세션 id 를 지우지 않고 다시
+ *   시도하게 한다 — 조용히 보통 흐름으로 가면 「맛보기에서 끊긴 물음은 가입 뒤 그 답부터 이어진다」가 순간 장애에 깨진다
+ */
+export const TASTE_CLAIM_RESULTS = ['claimed', 'terminal', 'retryable'] as const;
+
+export type TasteClaimResult = (typeof TASTE_CLAIM_RESULTS)[number];
+
 /** 회수가 세는 단계 — 이어 쓴 풀이가 섰다. 브라우저가 없는 길(webhook · 크론)이라 옛 `count_taste_step` 이 센다 */
 export type TasteStep = 'reading_succeeded';
 

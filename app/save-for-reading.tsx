@@ -14,7 +14,8 @@ import { SelfCard } from './me/home/self-card';
 import { personSlotsFrom } from './person-slots';
 import { toSearchParams, type Query } from '@/src/lib/input/query';
 import { claimTaste } from './actions';
-import { READING_DRAFT_KEY, TASTE_SESSION_KEY } from './reading-draft';
+import { claimCarriedTaste, dropCarriedTaste } from './carried-taste';
+import { READING_DRAFT_KEY } from './reading-draft';
 import { SignInCarrying } from './sign-in-carrying';
 import {
   SameChartAsk,
@@ -359,10 +360,29 @@ function SelfConfirm({
   const router = useRouter();
   const chart = useMemo(() => calculateChart(query), [query]);
   const [failure, setFailure] = useState<string | null>(null);
+  /** 내 사주는 저장했는데 들고 온 문단을 붙이는 답이 안 났다 — 저장 단추 대신 다시 시도가 선다 */
+  const [stuck, setStuck] = useState(false);
   const [saving, startSaving] = useTransition();
 
   /* 계산기가 이미 그린 입력이라 여기서 못 푸는 일은 없다 — 그래도 지어낸 카드를 세우지 않는다 */
   if (!chart.ok) return null;
+
+  /**
+   * **가입 전에 읽던 로그인 전 사주 문단을 내 것으로 붙이고 내 사주풀이로 간다**(ADR 0143). 탭이 든 것은 세션 id 하나이고
+   * 그것만 보낸다. 지문은 방금 서버에 저장된 내 사주로 서버가 다시 잰다(이 화면의 입력이 아니다).
+   *
+   * **답이 안 났으면 가지 않는다**(`retryable`) — 조용히 보통 흐름으로 가면 첫 화면에서 끊긴 물음이 이어지지 않는다. 그 자리에
+   * 다시 시도와 이어 보지 않고 계속하기가 선다. 저장은 이미 끝났으니 다시 시도는 붙이기만 다시 한다. 답이 났으면(붙었거나 ·
+   * 버렸거나 · 지났거나 · 남의 것이면) 간다 — 붙었으면 그 화면이 풀이권 확인창을 연다.
+   */
+  const carryOn = async () => {
+    const carried = await claimCarriedTaste(() => sessionStorage, claimTaste);
+    if (carried === 'retryable') {
+      setStuck(true);
+      return;
+    }
+    router.push('/me/readings/self');
+  };
 
   const save = () => {
     setFailure(null);
@@ -373,15 +393,19 @@ function SelfConfirm({
         setFailure(saved.message);
         return;
       }
-      /*
-        **가입 전에 읽던 로그인 전 사주 문단을 내 것으로 붙인다**(ADR 0143) — 탭이 든 것은 세션 id 하나이고 그것만 보낸다. 지문은
-        방금 서버에 저장된 내 사주로 서버가 다시 재고(이 화면의 입력이 아니다), 다르거나 · 남의 것이거나 · 지났으면 조용히 보통
-        풀이다. 붙이지 못해도 저장은 끝났다.
-      */
-      const sessionId = takeTasteSession();
-      if (sessionId !== null) await claimTaste(sessionId).catch(() => undefined);
-      router.push('/me/readings/self');
+      await carryOn();
     });
+  };
+
+  const retry = () => {
+    setStuck(false);
+    startSaving(carryOn);
+  };
+
+  /** 이어 보지 않고 계속하기 — 들고 온 세션을 버리고 보통 흐름으로. 거듭된 실패에 막히지 않는 길이다 */
+  const skip = () => {
+    dropCarriedTaste(() => sessionStorage);
+    router.push('/me/readings/self');
   };
 
   return (
@@ -398,30 +422,57 @@ function SelfConfirm({
         saju={chart.saju}
         reading={null}
         actions={
-          <>
-            <button
-              type="button"
-              onClick={save}
-              disabled={saving}
-              className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}
-            >
-              {saving ? '저장하는 중…' : '내 사주로 저장'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                /* 내 사주가 아니면 그 문단도 내 것이 아니다 — 들고 온 세션 id 를 버린다 */
-                takeTasteSession();
-                onSomeoneElse();
-              }}
-              disabled={saving}
-              className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}
-            >
-              다른 사람의 사주예요
-            </button>
-          </>
+          stuck ? (
+            <>
+              <button
+                type="button"
+                onClick={retry}
+                disabled={saving}
+                className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}
+              >
+                다시 시도하기
+              </button>
+              <button
+                type="button"
+                onClick={skip}
+                disabled={saving}
+                className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}
+              >
+                이어 보지 않고 계속하기
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving}
+                className={`${BUTTON_PRIMARY} flex-1 px-4 sm:flex-none sm:min-w-52 sm:px-5`}
+              >
+                {saving ? '저장하는 중…' : '내 사주로 저장'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  /* 내 사주가 아니면 그 문단도 내 것이 아니다 — 들고 온 세션 id 를 버린다 */
+                  dropCarriedTaste(() => sessionStorage);
+                  onSomeoneElse();
+                }}
+                disabled={saving}
+                className={`${BUTTON_SECONDARY} flex-1 px-4 sm:flex-none sm:px-5`}
+              >
+                다른 사람의 사주예요
+              </button>
+            </>
+          )
         }
       />
+
+      {stuck && (
+        <p role="alert" className="text-sm leading-6 text-danger">
+          이어오지 못했어요.
+        </p>
+      )}
 
       {failure !== null && (
         <p role="alert" className="text-sm leading-6 text-danger">
@@ -430,15 +481,4 @@ function SelfConfirm({
       )}
     </section>
   );
-}
-
-/** 탭이 들고 온 로그인 전 사주 문단의 세션 id 를 꺼내고 지운다 — 없거나 저장소가 막혔으면 `null` */
-function takeTasteSession(): string | null {
-  try {
-    const sessionId = sessionStorage.getItem(TASTE_SESSION_KEY);
-    sessionStorage.removeItem(TASTE_SESSION_KEY);
-    return sessionId;
-  } catch {
-    return null;
-  }
 }

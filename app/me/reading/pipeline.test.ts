@@ -523,7 +523,7 @@ describe('귀속한 맛보기를 잇는다', () => {
 
   it('붙인 세션을 연 시도에 잇고, 스냅숏을 프롬프트 맨 뒤에 실어 이어쓰기 모양으로 보낸다', async () => {
     claimed.mockResolvedValue(claim(null));
-    link.mockResolvedValue('linked');
+    link.mockResolvedValue({ answered: true, outcome: 'linked' });
     continuationOfRun.mockResolvedValue(CARRY);
 
     await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: true });
@@ -545,7 +545,7 @@ describe('귀속한 맛보기를 잇는다', () => {
     const plain = prepared()?.[1];
 
     claimed.mockResolvedValue(claim(null));
-    link.mockResolvedValue('run_taken');
+    link.mockResolvedValue({ answered: true, outcome: 'already_running' });
     keyedRpc.mockClear();
     submit.mockClear();
     await beginReading({ kind: 'self' });
@@ -572,7 +572,7 @@ describe('귀속한 맛보기를 잇는다', () => {
 
   it('실패한 풀이였으면 같은 맛보기로 다시 잇는다', async () => {
     claimed.mockResolvedValue(claim('failed'));
-    link.mockResolvedValue('linked');
+    link.mockResolvedValue({ answered: true, outcome: 'linked' });
     continuationOfRun.mockResolvedValue(CARRY);
     await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: true });
     expect(link).toHaveBeenCalledWith('session-1', started.run_id);
@@ -580,7 +580,7 @@ describe('귀속한 맛보기를 잇는다', () => {
 
   it('이었는데 스냅숏을 못 읽었으면 이어쓰기 없는 풀이를 내지 않고 그 시도를 실패로 닫는다', async () => {
     claimed.mockResolvedValue(claim(null));
-    link.mockResolvedValue('linked');
+    link.mockResolvedValue({ answered: true, outcome: 'linked' });
     continuationOfRun.mockResolvedValue(null);
 
     await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: true });
@@ -590,6 +590,68 @@ describe('귀속한 맛보기를 잇는다', () => {
     expect(prepared()).toBeUndefined();
     expect(keyedCall('take_reading_job')).toBeUndefined();
     expect(closed()?.[1]).toMatchObject({ p_run_id: started.run_id, p_failure_code: 'taste-carry-unread' });
+  });
+
+  /**
+   * **잇기가 답하지 않으면 보통 풀이로 내지 않는다**(ADR 0143 「덧」). 앞서는 `linked` 가 아니면 다 보통 풀이였다 — 문이 한 번
+   * 터지면 풀이권 한 번이 이어쓰기 없는 글에 쓰이고 그 맛보기는 안 이어진 채 남았다. 이제 그 시도를 실패로 닫는다.
+   */
+  it.each([
+    ['문이 답하지 않으면', () => link.mockResolvedValue({ answered: false })],
+    ['잇다가 던지면', () => link.mockRejectedValue(new Error('network'))],
+    ['연 시도를 다른 세션이 쥐었으면', () => link.mockResolvedValue({ answered: true, outcome: 'run_taken' })],
+  ])('%s 그 시도를 보내지 않고 실패로 닫는다 — 표는 남아 다음 누름이 다시 잇는다', async (_, arrange) => {
+    claimed.mockResolvedValue(claim(null));
+    arrange();
+
+    await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: true });
+    await settle();
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(prepared()).toBeUndefined();
+    expect(closed()?.[1]).toMatchObject({ p_run_id: started.run_id, p_failure_code: 'taste-link-failed' });
+    expect(continuationOfRun).not.toHaveBeenCalled();
+    expect(forgot).not.toHaveBeenCalled();
+  });
+
+  it('귀속 표를 다시 맞추는 답이 안 났으면 잇지도 보내지도 않고 실패로 닫는다', async () => {
+    claimed.mockResolvedValue({ sessionId: 'session-1', claim: 'unreachable' });
+
+    await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: true });
+    await settle();
+
+    expect(link).not.toHaveBeenCalled();
+    expect(submit).not.toHaveBeenCalled();
+    expect(closed()?.[1]).toMatchObject({ p_run_id: started.run_id, p_failure_code: 'taste-link-failed' });
+    expect(forgot).not.toHaveBeenCalled();
+  });
+
+  it('세션이 이제 이 회원 것이 아니면(`not_claimed`) 표를 걷고 보통 풀이다', async () => {
+    claimed.mockResolvedValue(claim(null));
+    link.mockResolvedValue({ answered: true, outcome: 'not_claimed' });
+    await beginReading({ kind: 'self' });
+    await settle();
+    expect(forgot).toHaveBeenCalled();
+    expect(closed()).toBeUndefined();
+    expect(submit.mock.calls[0][2]).toMatchObject({ continuation: false });
+  });
+
+  it('`wrong_run` 은 보통 풀이다 — 실패로 닫으면 누를 때마다 같은 답이라 영영 못 받는다', async () => {
+    claimed.mockResolvedValue(claim(null));
+    link.mockResolvedValue({ answered: true, outcome: 'wrong_run' });
+    await beginReading({ kind: 'self' });
+    await settle();
+    expect(closed()).toBeUndefined();
+    expect(submit.mock.calls[0][2]).toMatchObject({ continuation: false });
+  });
+
+  it('쿠키 · 비밀이 없어 다시 맞출 길이 없으면(`gone`) 표를 걷고 보통 풀이다', async () => {
+    claimed.mockResolvedValue({ sessionId: 'session-1', claim: 'gone' });
+    await beginReading({ kind: 'self' });
+    await settle();
+    expect(forgot).toHaveBeenCalled();
+    expect(link).not.toHaveBeenCalled();
+    expect(submit.mock.calls[0][2]).toMatchObject({ continuation: false });
   });
 
   it('버림 · 남의 것 · 지남은 표를 걷고 보통 풀이다', async () => {

@@ -254,6 +254,32 @@ export function answerOf(run: LastRun | null): RunAnswer {
 }
 
 /**
+ * **도착하자마자 풀이권 확인창을 여는가**(ADR 0143 「덧」, 조율자 결정 2026-10-03).
+ *
+ * 로그인 전 사주 문단을 붙이고(`claimed`) 막 도착한 사람은 「아까 보던 내용」 아래에서 그 답을 받으러 왔다 — 확인창을 스스로
+ * 열어 둔다. **여는 것까지다** — 풀이권을 쓰는 누름은 사용자가 한다(ADR 0028). 열지 않는 자리:
+ *
+ * - 막 도착한 것이 아니다(`arrived` 는 한 번짜리 표 — `takeTasteArrival`). 새로고침 · 뒤로가기 · 다음 방문은 연다고 말하지 않는다
+ * - 이을 것이 없거나(`carry` 없음) 이어진 풀이가 이미 섰거나(`shown`) 도는 중이다(`running` · `loading`)
+ * - 누를 수 없다 — 단추가 닫혔거나(풀이권 없음 · 기다리는 중) 아예 없다
+ */
+export function asksOnArrival({
+  arrived,
+  carry,
+  loading,
+  makeDisabled,
+  hideMake,
+}: {
+  arrived: boolean;
+  carry: { readonly state: 'next' | 'running' | 'shown' } | null;
+  loading: boolean;
+  makeDisabled: boolean;
+  hideMake: boolean;
+}): boolean {
+  return arrived && carry?.state === 'next' && !loading && !makeDisabled && !hideMake;
+}
+
+/**
  * **연결을 못 쓸 때 대신 세우는 글.**
  *
  * 개발 기계에서만 지어진다. 글자는 화면을 보려고 박아 둔 것이라 뜻이 없지만, 두 칸은

@@ -14,9 +14,11 @@
  * 3. **남의 세션은 못 읽는다** — 세션 id 를 알아도 쿠키가 다르면 글이 안 선다
  * 4. **다른 입력 반복 → 한도** — IP 1분 셋 · 브라우저 1시간 새 지문 다섯
  * 5. **원문이 DB 에 없다** — 날짜 · IP 원문이 맛보기 표 어디에도 없다
- * 6. **귀속** — 내 것은 붙고, 남이 붙인 것은 못 가져가고, 지문이 다르면 버리고, 바꾼 id 는 조용히 지나간다. 지문은 **서버에
- *    저장된 내 사주**로 잰다 — 클라이언트가 다른 입력을 실어 보내도 저장된 입력이 이긴다
- * 7. **세션 하나 = 풀이 하나** — 누름이 잇고, 실패한 풀이만 다시 잇고, 성공한 풀이가 있으면 새로 안 연다
+ * 6. **귀속** — 문이 터지면 `retryable` 이고 다시 시도하면 붙는다. 내 것은 붙고, 남이 붙인 것은 못 가져가고, 지문이 다르면
+ *    버리고, 바꾼 id 는 조용히 지나간다(셋 다 `terminal`). 지문은 **서버에 저장된 내 사주**로 잰다 — 클라이언트가 다른 입력을
+ *    실어 보내도 저장된 입력이 이긴다
+ * 7. **세션 하나 = 풀이 하나** — 잇는 문이 터지면 그 시도는 실패로 닫히고(`taste-link-failed`), 누름이 잇고, 실패한 풀이만 다시
+ *    잇고, 성공한 풀이가 있으면 새로 안 연다
  * 8. **퍼널은 세션당 한 번** — 「더보기」 · 가입 완료를 거듭해도 · 귀속 표를 지우고 다시 와도 한 번, 다른 브라우저 · 쿠키 없음은 0
  * 9. **회원은 맛보기로 안 간다** — 로그인한 요청은 예약도 세션도 없이 닫힌다
  */
@@ -248,31 +250,45 @@ try {
     && sql(`select count(*) from public.taste_rate_event`) === eventsBefore, JSON.stringify(asMember));
 
   const completedBefore = funnel('signup_completed');
-  /* 클라이언트가 다른 입력을 실어 보내도 서버는 세션 id 만 읽고 저장된 내 사주로 잰다 */
+
+  /* 귀속 문이 순간 터진다 — 열쇠의 실행 권한을 잠깐 걷는다. 답이 안 났으니 `retryable` 이고 세션 · 표 · 퍼널은 그대로다 */
+  const CLAIM_FN = 'public.claim_taste_session(uuid, uuid, text, text)';
+  sql(`revoke execute on function ${CLAIM_FN} from service_role`);
+  let broken;
+  try {
+    broken = await act('/', CLAIM, [again.sessionId], { jar: first, ip: '10.77.0.1', session: a.session });
+  } finally {
+    sql(`grant execute on function ${CLAIM_FN} to service_role`);
+  }
+  check('귀속 문이 터지면 `retryable` — 보통 흐름으로 접지 않는다', broken.result === 'retryable', JSON.stringify(broken));
+  check('답이 안 났으면 세션은 열린 채이고 귀속 표도 안 선다', sql(`select status from public.taste_session where id = '${again.sessionId}'`) === 'open'
+    && !first.has('saju_taste_claim') && funnel('signup_completed') === completedBefore);
+
+  /* 다시 시도 — 같은 id 로. 클라이언트가 다른 입력을 실어 보내도 서버는 세션 id 만 읽고 저장된 내 사주로 잰다 */
   const claimed = await act('/', CLAIM, [again.sessionId, draftOf('1985-03-03')], { jar: first, ip: '10.77.0.1', session: a.session });
-  check('내 세션은 붙는다 — 저장된 내 사주로 다시 잰 지문이 같다(실어 보낸 다른 입력은 안 읽는다)', claimed.continued === true, JSON.stringify(claimed));
+  check('다시 시도하면 내 세션은 붙는다 — 저장된 내 사주로 다시 잰 지문이 같다(실어 보낸 다른 입력은 안 읽는다)', claimed.result === 'claimed', JSON.stringify(claimed));
   check('붙은 세션은 그 회원 것이다', sql(`select status || ':' || claimed_by from public.taste_session where id = '${again.sessionId}'`) === `claimed:${a.id}`);
   check('귀속 표(쿠키)가 선다', first.get('saju_taste_claim') === again.sessionId);
   check('가입 완료를 한 번 센다', funnel('signup_completed') === completedBefore + 1, `${completedBefore} → ${funnel('signup_completed')}`);
 
   first.delete('saju_taste_claim');
   const reclaimed = await act('/', CLAIM, [again.sessionId], { jar: first, ip: '10.77.0.1', session: a.session });
-  check('귀속 표를 지우고 다시 와도 가입 완료는 다시 안 센다', reclaimed.continued === true && funnel('signup_completed') === completedBefore + 1,
+  check('귀속 표를 지우고 다시 와도 가입 완료는 다시 안 센다', reclaimed.result === 'claimed' && funnel('signup_completed') === completedBefore + 1,
     `${completedBefore} → ${funnel('signup_completed')}`);
 
   const stolen = await act('/', CLAIM, [again.sessionId], { jar: new Map([['saju_taste', first.get('saju_taste')]]), ip: '10.77.0.1', session: b.session });
-  check('남이 붙인 세션은 같은 브라우저의 다른 회원도 못 가져간다', stolen.continued === false
+  check('남이 붙인 세션은 같은 브라우저의 다른 회원도 못 가져간다 — `terminal`', stolen.result === 'terminal'
     && sql(`select claimed_by from public.taste_session where id = '${again.sessionId}'`) === a.id);
   check('남이 붙인 세션(taken)은 가입 완료로 안 센다', funnel('signup_completed') === completedBefore + 1);
 
   const discarded = await act('/', CLAIM, [other.sessionId, DRAFT], { jar: second, ip: '10.77.0.2', session: c.session });
-  check('저장된 내 사주의 지문이 다르면 버린다 — 실어 보낸 같은 입력은 안 읽는다', discarded.continued === false
+  check('저장된 내 사주의 지문이 다르면 버린다(`terminal`) — 실어 보낸 같은 입력은 안 읽는다', discarded.result === 'terminal'
     && sql(`select status from public.taste_session where id = '${other.sessionId}'`) === 'discarded');
   check('버림이어도 세션을 들고 돌아온 것이라 가입 완료로 센다', funnel('signup_completed') === completedBefore + 2,
     `${completedBefore} → ${funnel('signup_completed')}`);
 
   const forged = await act('/', CLAIM, [randomUUID()], { jar: browser(), ip: '10.77.0.3', session: c.session });
-  check('바꾼 id 는 조용히 지나간다 — 가입 완료로 안 센다', forged.continued === false && funnel('signup_completed') === completedBefore + 2);
+  check('바꾼 id 는 조용히 지나간다(`terminal`) — 가입 완료로 안 센다', forged.result === 'terminal' && funnel('signup_completed') === completedBefore + 2);
 
   // -------------------------------------------------------------------------
   // 7 · 세션 하나 = 풀이 하나
@@ -284,6 +300,22 @@ try {
     return runStatus(run);
   };
   const runsOfA = () => sql(`select count(*) from public.reading_run where user_id = '${a.id}'`);
+
+  /* 잇는 문이 순간 터진다 — 보통 풀이로 강등하지 않고 그 시도를 실패로 닫는다. 세션은 안 이어진 채 표가 남는다 */
+  const LINK_FN = 'public.link_taste_reading_run(uuid, uuid, uuid)';
+  const runsBeforeBroken = Number(runsOfA());
+  sql(`revoke execute on function ${LINK_FN} from service_role`);
+  let brokenPress;
+  try {
+    brokenPress = await act('/me/readings/self', GENERATE, [{ kind: 'self' }, randomUUID()], { jar: first, ip: '10.77.0.1', session: a.session });
+  } finally {
+    sql(`grant execute on function ${LINK_FN} to service_role`);
+  }
+  const brokenRun = sql(`select id from public.reading_run where user_id = '${a.id}' order by created_at desc limit 1`);
+  check('잇는 문이 터지면 연 시도를 실패로 닫는다(`taste-link-failed`) — 보통 풀이로 안 보낸다', brokenPress.started === true
+    && Number(runsOfA()) === runsBeforeBroken + 1 && (await settledRun(brokenRun)) === 'failed'
+    && sql(`select failure_code from public.reading_run where id = '${brokenRun}'`) === 'taste-link-failed', JSON.stringify(brokenPress));
+  check('세션은 안 이어진 채이고 귀속 표가 남는다 — 다음 누름이 다시 잇는다', linkedRun() === '' && first.get('saju_taste_claim') === again.sessionId);
 
   const pressed = await act('/me/readings/self', GENERATE, [{ kind: 'self' }, randomUUID()], { jar: first, ip: '10.77.0.1', session: a.session });
   const run1 = linkedRun();

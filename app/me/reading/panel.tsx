@@ -34,10 +34,12 @@ import { Markdown } from './markdown';
 import { coverFace, readingMinutes } from './essay';
 import { readingOutline, type OutlineRow } from './outline';
 import flow from './flow.module.css';
+import { takeTasteArrival } from '../../carried-taste';
 import {
   afterAsking,
   afterPress,
   answerOf,
+  asksOnArrival,
   initialFlow,
   previewReading,
   readingFlow,
@@ -432,6 +434,27 @@ export function ReadingPanel({
   });
 
   /**
+   * **로그인 전 사주 문단을 막 붙이고 도착했으면 확인창을 스스로 연다**(ADR 0143 「덧」) — 뒤에는 「아까 보던 내용」이 그대로
+   * 보인다. 여는 것까지이고 누름은 사용자가 한다. 「막 도착했다」는 탭의 한 번짜리 표(`takeTasteArrival`)로 판단한다 — 귀속
+   * 표 쿠키는 첫 누름까지 남아 있어서 쿠키로 보면 새로고침 · 뒤로가기마다 다시 열린다. 표는 처음 그릴 때 읽고 곧바로 지우므로
+   * 한 번 닫으면 그 방문에서 다시 안 열린다. 여는가의 판단은 `asksOnArrival` 이 든다.
+   */
+  const arrivalSeen = useRef(false);
+  useEffect(() => {
+    if (arrivalSeen.current || target.kind !== 'self') return;
+    arrivalSeen.current = true;
+    const arrived = takeTasteArrival(() => sessionStorage);
+    const opens = asksOnArrival({
+      arrived,
+      carry,
+      loading: phase === 'loading',
+      makeDisabled: chrome.makeDisabled,
+      hideMake: chrome.hideMake,
+    });
+    if (opens && confirming.current?.open === false) confirming.current.showModal();
+  }, [target.kind, carry, phase, chrome.makeDisabled, chrome.hideMake]);
+
+  /**
    * 만드는 버튼 — **두 자리에 같은 버튼이 선다.**
    *
    * 글이 아직 없으면 권하는 말과 함께 칸 안에(`block`), 글이 이미 있으면 **머리의 공유
@@ -603,7 +626,11 @@ export function ReadingPanel({
           **`m-auto` 는 장식이 아니다.** 브라우저 기본 스타일은 열린 `<dialog>` 를 `margin: auto` 로
           가운데에 놓는데, Tailwind 의 preflight 이 모든 요소의 여백을 0 으로 되돌린다.
         */
-        className={DIALOG}
+        /*
+          「아까 보던 내용」이 서 있으면 좁은 화면에서는 창을 아래에 붙인다 — 가운데 창은 맨 위의 그 문단을 덮는다. 그 문단을
+          보며 그 답을 받을지 정하는 자리다(ADR 0143 「덧」).
+        */
+        className={showsCarry ? `${DIALOG} max-sm:mb-6` : DIALOG}
       >
         <span aria-hidden="true" className="grid size-11 place-items-center rounded-full bg-cream text-cream-ink">
           <Icon name="ticket" className="size-5" />
