@@ -38,6 +38,7 @@ import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { saveServiceSurvey } from './actions';
 import type { MySurvey, SurveyContext } from './read';
 import { TYPE_SECTION } from '../../ui/surfaces';
+import { DJ_CHOICE, DJ_FIELD } from '../../ui/danja';
 
 /**
  * 서비스 설문 폼 — **쓰는 동안 저절로 남고, 제출은 손으로 한다.**
@@ -65,8 +66,8 @@ const ASK = 'block text-[17px] font-bold leading-7 text-foreground';
  * 고르는 줄 — 줄 전체가 누를 자리(48px)이고, 고르면 먹색 테와 크림 면이 선다. 상자 자체도 남아
  * 있어 고른 것이 색만으로 말해지지 않는다.
  */
-const CHOICE =
-  'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 text-[15px] leading-6 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-focus-visible:outline has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent-soft';
+/** 고르는 한 줄 — 생년월일시 판과 같은 한지 낱칸(`app/ui/danja.tsx`). 상자는 남고 고르면 인주 한 획이 왼쪽에 선다 */
+const CHOICE = `${DJ_CHOICE} min-h-12 items-center text-[15px] leading-6`;
 
 export function SurveyForm({ context, given }: { context: SurveyContext; given: MySurvey | null }) {
   const [answers, setAnswers] = useState<SurveyAnswers>(given?.answers ?? EMPTY_ANSWERS);
@@ -397,7 +398,7 @@ function Writing({
         maxLength={limit}
         rows={4}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-[15px] leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
+        className={`${DJ_FIELD} w-full leading-6`}
       />
     </div>
   );
