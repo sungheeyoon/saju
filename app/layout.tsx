@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Gowun_Dodum } from 'next/font/google';
+import { Gowun_Batang } from 'next/font/google';
 
 import { SERVICE_NAME, SERVICE_TAGLINE, SERVICE_TITLE_TEMPLATE } from '@/src/lib/brand';
 
@@ -70,23 +70,24 @@ export const viewport: Viewport = {
 };
 
 /**
- * **둥근 서체는 제목에만**(`font-rounded`). 고운돋움은 굵기가 400 하나뿐이라 본문 13~15px 에서는 획이
- * 가늘어 흐리다 — 인사 · 이름 · 구역 제목까지만 입고, 설명과 버튼은 기기의 시스템 서체(`--font-system`)에 남는다.
+ * **제목은 명조로**(`font-rounded` · `font-display`, 2026-10-03 시각 시안). 만세력 책의 표제처럼 고운바탕이 인사 · 이름 ·
+ * 구역 제목을 들고, 설명과 버튼은 기기의 시스템 서체(`--font-system`)에 남는다 — 명조는 본문 13~15px 에서 획이 가늘다.
+ * 부드러움 때의 고운돋움은 굵기가 400 하나라 구역 제목이 본문과 같은 무게로 섰다. 고운바탕은 400 · 700 두 벌이다.
  * 한글 조각은 `subsets` 에 없어 미리 받지 않는다(`preload: false`) — 쓰이는 조각만 받는다.
  */
-const rounded = Gowun_Dodum({
-  weight: '400',
+const display = Gowun_Batang({
+  weight: ['400', '700'],
   subsets: ['latin'],
   display: 'swap',
   preload: false,
-  variable: '--font-gowun-dodum',
+  variable: '--font-gowun-batang',
 });
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // `globals.css` 가 부드러운 스크롤을 켠다 — Next 는 라우트 전환에서 그것을 끌지
     // 말지를 이 표시로 정한다. 없으면 개발 화면이 그것을 문제로 잡는다.
-    <html lang="ko" data-scroll-behavior="smooth" className={`${rounded.variable} h-full antialiased`}>
+    <html lang="ko" data-scroll-behavior="smooth" className={`${display.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SiteHeader />
         {children}

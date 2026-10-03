@@ -41,21 +41,24 @@ export const ROW_CARD = 'rounded-[1.25rem] border border-border bg-surface px-4 
 export const EMPTY_SLOT = 'rounded-[1.5rem] border-2 border-dashed border-border-strong p-6';
 
 /*
-  **글자의 단.** 둥근 서체(`font-rounded`, 고운돋움)는 제목 단에만 쓴다 — 굵기가 400 하나뿐이라 작은
-  크기에서 획이 흐리다. 본문 · 단추 · 보조는 기기의 시스템 서체다(웹 글꼴을 싣지 않는다, ADR 0109 추기). 12px 아래는 딱지(11px)뿐이다.
+  **글자의 단.** 제목 서체(`font-rounded`, 고운바탕 명조)는 제목 단에만 쓴다 — 명조는 작은 크기에서 획이 가늘다.
+  본문 · 단추 · 보조는 기기의 시스템 서체다(웹 글꼴을 싣지 않는다, ADR 0109 추기). 12px 아래는 딱지(11px)뿐이다.
+
+  **단 사이를 벌렸다**(2026-10-03 시각 시안) — 폰에서 표시와 제목이 같은 28px 이었고 구역 제목(24px)과 본문의 차이도
+  굵기 없이 크기뿐이라 위계가 흐렸다. 표시 32→44 · 제목 28→36 은 가는 400, 구역 제목과 이름은 700 으로 무게를 준다.
 */
 
 /** 표시 — 화면의 첫 한 줄(인사 · 빈 상태의 큰 말) */
-export const TYPE_DISPLAY = 'font-rounded text-[1.75rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2.25rem]';
+export const TYPE_DISPLAY = 'font-rounded text-[2rem] leading-[1.22] tracking-[-0.035em] text-foreground sm:text-[2.75rem]';
 
 /** 제목 — 화면 제목(`h1`) */
-export const TYPE_TITLE = 'font-rounded text-[1.75rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2rem]';
+export const TYPE_TITLE = 'font-rounded text-[1.75rem] leading-[1.25] tracking-[-0.03em] text-foreground sm:text-[2.25rem]';
 
 /** 구역 제목 — 카드 · 구역의 `h2` */
-export const TYPE_SECTION = 'font-rounded text-[1.5rem] leading-8 text-foreground';
+export const TYPE_SECTION = 'font-rounded text-[1.3rem] font-bold leading-8 tracking-[-0.02em] text-foreground';
 
 /** 이름 — 사람 · 카드 머리 */
-export const TYPE_NAME = 'font-rounded text-[1.3rem] leading-7 text-foreground';
+export const TYPE_NAME = 'font-rounded text-[1.25rem] font-bold leading-7 tracking-[-0.02em] text-foreground';
 
 /** 보조 — 날짜 · 메모 · 설명 아래 줄 */
 export const TYPE_META = 'text-[13px] font-medium leading-5 text-secondary';
