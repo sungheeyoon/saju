@@ -9,6 +9,8 @@ import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
 import { useSessionKnown, useSignedIn } from './signed-in';
 import { BUTTON_PRIMARY } from './ui/buttons';
+import { READY_BREATH, ReadyArrow } from './ui/fields';
+import { Icon } from './ui/icons';
 import { SajuView, sajuViewModelOf, type SajuViewModel } from './saju/view';
 import { Taste } from './taste';
 import {
@@ -145,6 +147,14 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
           */
           if (missing !== null) {
             setTried(true);
+            /*
+              **빈 칸으로 데려간다.** 거절의 문장은 단추 곁에 서지만, 고칠 자리는 위의 칸이다 — 짚인 첫 칸(`data-missing`)에
+              초점을 옮긴다. 짚는 표시는 다음 그림에서 서므로 한 박자 뒤에 찾는다.
+            */
+            const form = event.currentTarget;
+            requestAnimationFrame(() =>
+              form.querySelector<HTMLElement>('[data-missing] input, [data-missing] [type=radio]')?.focus(),
+            );
             return;
           }
           setTried(false);
@@ -153,19 +163,21 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
         // 로그인 전에는 첫 화면 종이의 아래 토막이다 — 머리(`home-hero.tsx`)와 한 장으로 선다(ADR 0132)
         className={signedIn ? `${CARD} flex flex-col gap-5` : `${PAPER_BOTTOM} flex flex-col gap-3`}
       >
-        <BirthFields value={form} onChange={setForm} />
+        <BirthFields value={form} onChange={setForm} showMissing={tried && missing !== null} />
 
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
             aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
-            className={`${BUTTON_PRIMARY} w-full ${signedIn ? 'sm:w-auto' : 'mt-1'}`}
+            className={`${BUTTON_PRIMARY} w-full ${signedIn ? 'sm:w-auto' : 'mt-1'} ${missing === null ? READY_BREATH : ''}`}
           >
             {/*
               **로그인 전에는 무엇이 무료인지 버튼이 말한다**(흐름 시안 g, ADR 0131) — 사주 · 오행 · 로그인 전 사주 문단은 로그인 없이
               바로 선다. 회원이 여기 넣는 것은 대개 남의 사주라 「내」를 안 붙인다(위 머리말).
             */}
             {query !== null ? '수정하고 다시 보기' : signedIn ? '사주 보기' : '무료로 내 사주 보기'}
+            {/* 답할 것이 다 차면 화살표가 들어온다 — 이제 눌러도 된다는 표시(`app/ui/fields.tsx`) */}
+            <ReadyArrow ready={missing === null} />
           </button>
 
           {/*
@@ -183,7 +195,8 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
 
           {/* 눌렀는데 못 간 이유를 버튼 옆에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
           {tried && missing !== null && (
-            <p id="natal-missing" role="alert" className="text-sm font-medium text-danger">
+            <p id="natal-missing" role="alert" className="flex items-center gap-1.5 text-sm font-medium text-danger">
+              <Icon name="alert" className="size-4" />
               {missing}
             </p>
           )}

@@ -23,6 +23,7 @@ import {
   BUTTON_SECONDARY_SMALL,
   BUTTON_TERTIARY,
 } from '../../ui/buttons';
+import { READY_BREATH, ReadyArrow } from '../../ui/fields';
 import { Icon } from '../../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
 
@@ -183,8 +184,14 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+            <button
+              type="button"
+              onClick={save}
+              disabled={missing !== null || saving}
+              className={`${BUTTON_PRIMARY} ${missing === null ? READY_BREATH : ''}`}
+            >
               {saving ? '저장하는 중…' : '등록'}
+              <ReadyArrow ready={missing === null && !saving} />
             </button>
             <button type="button" onClick={() => setOpen(false)} disabled={saving} className={BUTTON_TERTIARY}>
               취소
