@@ -68,7 +68,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
         </p>
       </header>
 
-      <BirthFields value={query} onChange={setQuery} showName={false} tried={tried} />
+      <BirthFields value={query} onChange={setQuery} showName={false} self tried={tried} />
 
       <div className="flex flex-wrap items-center gap-3">
         <button

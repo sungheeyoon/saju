@@ -138,7 +138,8 @@ export function EditInputForm({
         </div>
       )}
 
-      <BirthFields value={query} onChange={setQuery} showName={editableName} />
+      {/* 이름을 고칠 수 없는 판본은 내 사주다 — 그때만 기기의 생일 자동완성을 연다 */}
+      <BirthFields value={query} onChange={setQuery} showName={editableName} self={!editableName} />
 
       {/*
         무엇이 일어날지 누르기 전에 말한다. 이름은 여덟 글자를 바꾸지 않으므로
