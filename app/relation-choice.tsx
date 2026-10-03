@@ -77,7 +77,7 @@ export function RelationChoice({
               <span
                 className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-[14px] ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-soft ${
                   picked
-                    ? 'bg-accent-wash font-semibold text-foreground ring-border-strong'
+                    ? 'bg-surface font-semibold text-foreground shadow-[0_0_16px_var(--glass-glow)] ring-[var(--glass-focus)]'
                     : 'bg-surface font-medium text-secondary ring-border group-hover:text-foreground'
                 }`}
               >

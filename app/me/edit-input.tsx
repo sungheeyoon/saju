@@ -13,6 +13,7 @@ import {
 } from '@/src/lib/input/edit';
 import { editPersonInput } from './actions';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON } from '../ui/buttons';
+import { GLOW_PILL } from '../ui/glass';
 import { Icon } from '../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, TYPE_META, TYPE_NAME } from '../ui/surfaces';
 
@@ -159,7 +160,7 @@ export function EditInputForm({
             /* 여덟 글자가 바뀌는 누름만 묻는다 — 이름만 고치는 것은 요청을 안 건드린다 */
             onClick={confirmsRequests && !pillarsSame ? () => setConfirming(true) : save}
             disabled={missing !== null || saving || (pillarsSame && !nameChanged)}
-            className={BUTTON_PRIMARY}
+            className={GLOW_PILL}
           >
             {saving ? '저장하는 중…' : pillarsSame ? '이름 저장' : '변경 사항 저장'}
           </button>
