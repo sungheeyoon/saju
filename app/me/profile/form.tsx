@@ -15,19 +15,16 @@ import {
 } from '@/src/lib/profile';
 
 import { checkNickname } from '../../nickname';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+import { FIELD, FIELD_ACTION, FIELD_LABEL, SHEET_SUBMIT } from '../../ui/form-grid';
 import { saveProfile } from './actions';
 import { PhotoGrid } from './photo-grid';
 import type { MyPhoto } from './photos';
 
-/** 입력 칸 — 48px, 크림 바탕 위에서도 칸임이 보이게 흰 면과 테 */
-const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
-
 /** 판 한 장 — 무리 지은 목록과 같은 흰 판 */
 const PANEL = 'flex flex-col gap-5 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
 
-const LABEL = 'text-[13px] font-semibold text-secondary';
+/** 이름표 · 입력 칸은 서식의 낱칸이다(`app/ui/form-grid.ts`) */
+const LABEL = FIELD_LABEL;
 
 /**
  * 프로필을 고치는 자리 — **셋이 한 화면에 있다**(PRD 「이름과 얼굴」).
@@ -127,7 +124,7 @@ export function ProfileForm({
               type="button"
               onClick={check}
               disabled={checking || missing !== null}
-              className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0`}
+              className={FIELD_ACTION}
             >
               {checking ? '확인하는 중…' : '중복 확인'}
             </button>
@@ -163,7 +160,7 @@ export function ProfileForm({
             type="button"
             onClick={save}
             disabled={missing !== null || saving || !changed}
-            className={BUTTON_PRIMARY}
+            className={SHEET_SUBMIT}
           >
             {saving ? '저장하는 중…' : '프로필 저장'}
           </button>

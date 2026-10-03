@@ -21,16 +21,16 @@ import {
 } from '@/src/lib/profile';
 
 import { checkNickname } from '../nickname';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
+import { FIELD, FIELD_ACTION, SHEET_SUBMIT } from '../ui/form-grid';
 import { completeSignup } from './actions';
 
-/** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
-const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+/*
+  입력 칸은 서식의 낱칸이다(`FIELD`, `app/ui/form-grid.ts`) — 프로필 화면과 같은 칸.
+*/
 
-/** 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다) */
+/** 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹 테와 크림 면이 선다(상자도 그대로 남는다). 서식의 고르는 칸과 같은 선 */
 const BOX =
-  'flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft';
+  'flex cursor-pointer gap-3 rounded-[0.5rem] border border-[var(--form-rule-group)] bg-surface hover:border-[var(--form-rule)] has-checked:border-[var(--form-rule)] has-checked:bg-[var(--form-picked)] has-checked:shadow-[inset_0_0_0_1px_var(--form-rule)] has-[:focus-visible]:shadow-[inset_0_0_0_2px_var(--form-focus) p-4';
 
 const LABEL = 'text-[15px] font-semibold';
 
@@ -169,7 +169,7 @@ export function SignupForm({
               type="button"
               onClick={check}
               disabled={checking || missing !== null}
-              className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0`}
+              className={FIELD_ACTION}
             >
               {checking ? '확인하는 중…' : '중복 확인'}
             </button>
@@ -269,7 +269,7 @@ export function SignupForm({
       )}
 
       <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:gap-3">
-        <button type="button" onClick={send} disabled={blocked} className={BUTTON_PRIMARY}>
+        <button type="button" onClick={send} disabled={blocked} className={SHEET_SUBMIT}>
           {working ? '가입하는 중…' : needsCode ? '가입하고 시작하기' : '확인하고 계속하기'}
         </button>
         {missing !== null && <span className="text-[13px] text-muted">{missing}</span>}
