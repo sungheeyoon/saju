@@ -208,7 +208,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
         sides={{ a: stageOf(slots.a, people, 'a'), b: stageOf(slots.b, people, 'b') }}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         {SIDES.map((side) => (
           <SlotCard
             key={side}
