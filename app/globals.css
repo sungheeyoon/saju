@@ -264,6 +264,14 @@ button, a, summary {
     outline-offset: 3px;
   }
 }
+/*
+  **iOS 는 16px 보다 작은 칸에 초점이 들면 화면을 확대한다** — 채팅 글상자 · 사람 찾기 · 가입 · 프로필 · 설문 칸이
+  15px · 14px 이라 누를 때마다 화면이 커져, 다 적은 뒤 손가락 둘로 되돌려야 했다. 확대를 막는(`maximum-scale`)
+  대신 iOS 에서만 칸의 글자를 16px 로 올린다 — 확대해 보는 손은 그대로 둔다. 층 밖이라 유틸리티보다 세다.
+*/
+@supports (-webkit-touch-callout: none) {
+  input:not([type=radio], [type=checkbox], [type=range]), textarea, select { font-size: max(16px, 1rem); }
+}
 /* 「본문으로 건너뛰기」가 초점을 옮겨 놓는 `<main tabindex=-1>` — 본문 전체에 테두리를 두르지 않는다 */
 main:focus { outline: none; }
 ::selection { background: var(--accent-soft); }
