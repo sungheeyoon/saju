@@ -29,7 +29,7 @@ import {
   type SaveOutcome,
   type SameChartQuestion,
 } from './same-chart-ask';
-import { BUTTON_PRIMARY } from './ui/buttons';
+import { SHEET_SUBMIT } from './ui/form-grid';
 import { TaijiMark } from './ui/entry-marks';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
@@ -240,7 +240,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
                 onClick={press}
                 disabled={!chosen || sameTwice || opening}
                 aria-describedby={reason !== null ? 'compat-locked-reason' : undefined}
-                className={`${BUTTON_PRIMARY} sm:min-w-44`}
+                className={`${SHEET_SUBMIT} sm:min-w-44`}
               >
                 <Icon name="taiji" className="size-[18px]" />
                 {opening ? '여는 중…' : '궁합 보기'}
@@ -315,30 +315,40 @@ function SlotCard({
         <span className={`block truncate ${TYPE_NAME}`}>{name === '' ? `${SIDE_LABEL[side]} 사람` : name}</span>
       </legend>
 
-      <div className="grid grid-cols-2 gap-1 rounded-full bg-surface-sunken p-1">
+      {/* 어디서 올지 — 서식의 고르는 칸 둘(○ · ●). 저장한 사람이 없으면 그 칸은 빗금으로 선다 */}
+      <div className="grid grid-cols-2 divide-x divide-[var(--form-rule-group)] overflow-hidden rounded-[0.625rem] border border-[var(--form-rule-group)] bg-surface">
         {(
           [
             ['saved', '저장한 사람'],
             ['typed', '직접 입력'],
           ] as const
-        ).map(([from, label]) => (
-          <button
-            key={from}
-            type="button"
-            aria-pressed={slot.from === from}
-            disabled={from === 'saved' && people.length === 0}
-            onClick={() =>
-              onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY })
-            }
-            className={`min-h-11 rounded-full px-3 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-45 ${
-              slot.from === from
-                ? 'bg-surface text-foreground shadow-soft ring-1 ring-border'
-                : 'text-secondary hover:text-foreground'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        ).map(([from, label]) => {
+          const pressed = slot.from === from;
+          return (
+            <button
+              key={from}
+              type="button"
+              aria-pressed={pressed}
+              disabled={from === 'saved' && people.length === 0}
+              onClick={() =>
+                onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY })
+              }
+              className={`flex min-h-11 items-center justify-center gap-2 px-3 text-[15px] outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--form-focus)] disabled:cursor-not-allowed disabled:bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--form-rule-cell)_6px_7px)] disabled:text-muted ${
+                pressed ? 'bg-[var(--form-picked)] font-semibold text-foreground' : 'text-secondary hover:text-foreground'
+              }`}
+            >
+              <span
+                aria-hidden="true"
+                className={`size-4 shrink-0 rounded-full border-[1.5px] ${
+                  pressed
+                    ? 'border-foreground bg-foreground shadow-[inset_0_0_0_2.5px_var(--surface)]'
+                    : 'border-[var(--form-rule-group)] bg-surface'
+                }`}
+              />
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {slot.from === 'saved' ? (

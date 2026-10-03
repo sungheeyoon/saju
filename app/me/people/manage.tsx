@@ -23,6 +23,7 @@ import {
   BUTTON_SECONDARY_SMALL,
   BUTTON_TERTIARY,
 } from '../../ui/buttons';
+import { FIELD, FIELD_LABEL, SHEET_SUBMIT } from '../../ui/form-grid';
 import { Icon } from '../../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
 
@@ -183,7 +184,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+            <button type="button" onClick={save} disabled={missing !== null || saving} className={`${SHEET_SUBMIT} sm:min-w-44`}>
               {saving ? '저장하는 중…' : '등록'}
             </button>
             <button type="button" onClick={() => setOpen(false)} disabled={saving} className={BUTTON_TERTIARY}>
@@ -215,10 +216,10 @@ function NoteField({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[13px] font-semibold text-secondary">메모 (선택)</span>
+      <span className={FIELD_LABEL}>메모 (선택)</span>
       {/*
-        **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
-        그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
+        서식의 낱칸이다(`FIELD`, `app/ui/form-grid.ts`) — 초점이면 테가 바깥 테 굵기의 먹색이 되고 안쪽에 한 겹 더 두른다.
+        옅은 `ring` 만 두르던 때는 초점이 거의 안 보여 전역 초점 테두리를 받았다.
       */}
       <textarea
         id={`${idPrefix}-note`}
@@ -227,7 +228,7 @@ function NoteField({
         maxLength={NOTE_MAX}
         rows={2}
         placeholder="기억해 둘 것 — 사주 계산에는 쓰지 않아요"
-        className="rounded-2xl border border-border bg-surface px-3.5 py-2.5 text-[15px] leading-6 placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+        className={`${FIELD} py-3 leading-6`}
       />
     </label>
   );
