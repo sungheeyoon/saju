@@ -824,8 +824,8 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }
 
   /*
-    **궁합 입구의 두 묶음도 잰다.** 「생년월일」 줄은 칸 셋과 단위가 한 줄에 거의 꽉 차서 좁으면 이름 아래로 꺾인다
-    (ADR 0132). 가장 긴 값을 고른 채로 잰다.
+    **궁합 입구의 두 묶음도 잰다.** 칸이 가장 좁아지는 값(음력 윤달 · 시각 모름)을 고른 채로 넘침과 과녁을 잰다
+    (ADR 0132 덧 — 로그인 전 입구는 칸 모양이다).
   */
   await page.getByRole('tab', { name: /궁합 보기/ }).click();
   const partner = page.getByRole('group', { name: '상대', exact: true });
@@ -837,9 +837,12 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
     scroll: document.documentElement.scrollWidth,
   }));
   expect(pairOverflow.scroll).toBeLessThanOrEqual(pairOverflow.client);
+  // 로그인 전 궁합 입구의 선택지는 펼침 없이 보이는 칸이다 — 고른 그 칸이 과녁이다(ADR 0132 덧)
+  const option = (name: string) => partner.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
   for (const control of [
-    partner.getByRole('button', { name: /^달력 / }),
-    partner.getByRole('button', { name: /^출생 시각 / }),
+    option('음력 윤달'),
+    option('모름'),
+    partner.getByRole('button', { name: /^출생지 / }),
     partner.getByLabel('출생일', { exact: true }),
     page.getByRole('button', { name: '무료로 두 사람 궁합 보기' }),
   ]) {
@@ -893,13 +896,13 @@ test('입력 폼과 결과의 누르는 자리가 44px 이상이고, 초점은 �
 }) => {
   await page.goto('/');
 
-  // 고르는 칸은 펼침 줄이고(ADR 0132) 펼친 목록의 한 줄도 과녁이다 — 세그먼트였을 때 40px 이던 자리
-  const row = (name: string) => page.getByRole('button', { name: new RegExp(`^${name} `) });
-  await expectTargets({ 성별: row('성별'), 달력: row('달력'), '출생 시각': row('출생 시각'), 출생지: row('출생지') });
-  await row('달력').click();
+  // 비로그인 홈의 선택지는 펼치지 않고 바로 누른다. 출생지 목록은 기존 펼침을 쓴다.
   const option = (name: string) => page.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
-  await expectTargets({ 양력: option('양력'), 음력: option('음력'), '음력 윤달': option('음력 윤달') });
-  await row('달력').click();
+  await expectTargets({
+    양력: option('양력'), 음력: option('음력'), '음력 윤달': option('음력 윤달'),
+    '직접 입력': option('직접 입력'), 모름: option('모름'),
+    출생지: page.getByRole('button', { name: /^출생지 / }),
+  });
 
   const focused = await focusedOutline(page.getByLabel('출생연도'));
   expect.soft(focused.own).toBe('none');
