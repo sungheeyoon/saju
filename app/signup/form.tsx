@@ -22,11 +22,11 @@ import {
 
 import { checkNickname } from '../nickname';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
+import { FIELD_LABEL, FIELD_LINE, FIELD_NOTE } from '../ui/fields';
 import { completeSignup } from './actions';
 
-/** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
-const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+/** 입력 칸 — 밑줄 한 줄(`app/ui/fields.ts`), 프로필 화면과 같은 칸 */
+const FIELD = FIELD_LINE;
 
 /** 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다) */
 const BOX =
@@ -126,8 +126,8 @@ export function SignupForm({
   return (
     <div className="flex flex-col gap-6">
       {needsCode && (
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="signup-code" className={LABEL}>
+        <div className="group flex flex-col gap-1">
+          <label htmlFor="signup-code" className={FIELD_LABEL}>
             테스트 코드
           </label>
           <input
@@ -142,20 +142,20 @@ export function SignupForm({
             placeholder="예: SAJU1001"
             className={`${FIELD} w-full tracking-[0.08em] sm:max-w-64`}
           />
-          <p className="text-[13px] leading-5 text-muted">{SIGNUP_CODE_NOTE}</p>
+          <p className={`mt-1.5 ${FIELD_NOTE}`}>{SIGNUP_CODE_NOTE}</p>
         </div>
       )}
 
       {needsName && (
-        <div className="flex flex-col gap-1.5">
+        <div className="group flex flex-col gap-1">
           {/*
             **버튼을 라벨 밖에 둔다.** 안에 넣으면 `<label>` 이 칸과 버튼 둘을 함께 물고,
             읽어 주는 도구가 「닉네임」을 어느 것의 이름으로 부를지 사람마다 달라진다.
           */}
-          <label htmlFor="signup-nickname" className={LABEL}>
+          <label htmlFor="signup-nickname" className={FIELD_LABEL}>
             닉네임
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex items-end gap-3">
             <input
               id="signup-nickname"
               type="text"
@@ -180,12 +180,12 @@ export function SignupForm({
             이미 바뀐 이름 옆에 남아 있으면 그 말이 무엇을 가리키는지 알 수 없다.
           */}
           {answer !== null && (
-            <p role="status" className={`text-sm ${answer.available ? 'text-secondary' : 'text-danger'}`}>
+            <p role="status" className={`mt-1.5 text-sm ${answer.available ? 'text-secondary' : 'text-danger'}`}>
               {answer.available ? NICKNAME_AVAILABLE_NOTE : NICKNAME_TAKEN_NOTE}
             </p>
           )}
 
-          <p className="text-[13px] leading-5 text-muted">
+          <p className={`mt-1.5 ${FIELD_NOTE}`}>
             앱에서는 이 닉네임으로 불려요. 프로필 사진과 소개는 가입한 뒤에 추가할 수
             있어요.
           </p>

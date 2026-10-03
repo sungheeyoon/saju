@@ -37,6 +37,7 @@ import {
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { saveServiceSurvey } from './actions';
 import type { MySurvey, SurveyContext } from './read';
+import { FIELD_AREA } from '../../ui/fields';
 import { TYPE_SECTION } from '../../ui/surfaces';
 
 /**
@@ -384,7 +385,7 @@ function Writing({
   onChange: (next: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 border-t border-border pt-4 first:border-0 first:pt-0">
+    <div className="group flex flex-col gap-2 border-t border-border pt-4 first:border-0 first:pt-0">
       <label className="text-[15px] font-semibold leading-6" htmlFor={`writing-${limit}`}>
         {label}
       </label>
@@ -397,7 +398,7 @@ function Writing({
         maxLength={limit}
         rows={4}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-[15px] leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
+        className={FIELD_AREA}
       />
     </div>
   );

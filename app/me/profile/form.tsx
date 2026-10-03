@@ -16,18 +16,18 @@ import {
 
 import { checkNickname } from '../../nickname';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+import { FIELD_AREA, FIELD_LABEL, FIELD_LINE } from '../../ui/fields';
 import { saveProfile } from './actions';
 import { PhotoGrid } from './photo-grid';
 import type { MyPhoto } from './photos';
 
-/** 입력 칸 — 48px, 크림 바탕 위에서도 칸임이 보이게 흰 면과 테 */
-const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+/** 입력 칸 — 밑줄 한 줄(`app/ui/fields.ts`), 가입 화면과 같은 칸 */
+const FIELD = FIELD_LINE;
 
 /** 판 한 장 — 무리 지은 목록과 같은 흰 판 */
 const PANEL = 'flex flex-col gap-5 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
 
-const LABEL = 'text-[13px] font-semibold text-secondary';
+const LABEL = FIELD_LABEL;
 
 /**
  * 프로필을 고치는 자리 — **셋이 한 화면에 있다**(PRD 「이름과 얼굴」).
@@ -103,7 +103,7 @@ export function ProfileForm({
       />
 
       <section className={PANEL}>
-        <div className="flex flex-col gap-1.5">
+        <div className="group flex flex-col gap-1">
           {/*
             **버튼을 라벨 밖에 둔다.** 안에 넣으면 `<label>` 이 칸과 버튼 둘을 함께 물고,
             읽어 주는 도구가 「닉네임」을 어느 것의 이름으로 부를지 사람마다 달라진다.
@@ -111,7 +111,7 @@ export function ProfileForm({
           <label htmlFor="nickname" className={LABEL}>
             닉네임
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex items-end gap-3">
             <input
               id="nickname"
               type="text"
@@ -139,12 +139,12 @@ export function ProfileForm({
           이미 바뀐 이름 옆에 남아 있으면 그 말이 무엇을 가리키는지 알 수 없다.
         */}
         {answer !== null && (
-          <p role="status" className={`-mt-3 text-sm ${answer.available ? 'text-secondary' : 'text-danger'}`}>
+          <p role="status" className={`-mt-2 text-sm ${answer.available ? 'text-secondary' : 'text-danger'}`}>
             {answer.available ? NICKNAME_AVAILABLE_NOTE : NICKNAME_TAKEN_NOTE}
           </p>
         )}
 
-        <label className="flex flex-col gap-1.5">
+        <label className="group flex flex-col gap-1">
           <span className={LABEL}>소개 (선택)</span>
           <textarea
             value={profile.intro}
@@ -154,7 +154,7 @@ export function ProfileForm({
             maxLength={INTRO_MAX}
             rows={3}
             placeholder="간단한 소개를 입력해 주세요"
-            className={`${FIELD} py-3 leading-6`}
+            className={FIELD_AREA}
           />
         </label>
 
