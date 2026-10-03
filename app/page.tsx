@@ -29,7 +29,8 @@ const READING_OUTLINE: readonly string[] = selfSectionTexts(CONTROL).map((text) 
  */
 export default function Home() {
   return (
-    <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:gap-10 sm:py-14">
+    // 넓은 화면에서도 폼은 한 손 너비다 — 72rem 판에 칸 일곱이 퍼지면 이름표와 값이 화면 양 끝으로 갈렸다(2026-10-03 시각 시안)
+    <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:gap-10 sm:py-14 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[42rem]">
       <HomeHero
         calculator={
           // 미리 그려진 HTML 은 현관이다 — 자리표시도 현관 종이의 아래 토막 모양이다(`PAPER_BOTTOM`, ADR 0132)
