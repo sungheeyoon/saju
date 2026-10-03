@@ -196,8 +196,11 @@
   --shadow-lift: var(--elevation-lift);
   --shadow-raise: var(--elevation-raise);
   --font-sans: var(--font-system);
-  /* 제목 전용 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
-  --font-rounded: var(--font-gowun-dodum), var(--font-system);
+  /*
+    제목 전용 서체 — 고운바탕(2026-10-03 브랜드 시안). 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다.
+    이름(`rounded`)은 둥근 서체이던 때의 것이다 — 부르는 23 파일을 한꺼번에 옮기지 않으려고 남겼다.
+  */
+  --font-rounded: var(--font-display), "AppleMyungjo", "Noto Serif KR", serif;
 }
 
 /*

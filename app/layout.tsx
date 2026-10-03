@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Gowun_Dodum } from 'next/font/google';
+import { Gowun_Batang } from 'next/font/google';
 
 import { SERVICE_NAME, SERVICE_TAGLINE, SERVICE_TITLE_TEMPLATE } from '@/src/lib/brand';
 
@@ -70,23 +70,27 @@ export const viewport: Viewport = {
 };
 
 /**
- * **둥근 서체는 제목에만**(`font-rounded`). 고운돋움은 굵기가 400 하나뿐이라 본문 13~15px 에서는 획이
- * 가늘어 흐리다 — 인사 · 이름 · 구역 제목까지만 입고, 설명과 버튼은 기기의 시스템 서체(`--font-system`)에 남는다.
- * 한글 조각은 `subsets` 에 없어 미리 받지 않는다(`preload: false`) — 쓰이는 조각만 받는다.
+ * **제목은 고운바탕 — 글을 읽는 서비스의 얼굴이다**(2026-10-03 브랜드 시안). 이름 「결」은 사주를 사람의 결로 읽는 글이고,
+ * 이 서비스의 본체는 에세이처럼 읽히는 풀이다. 둥근 고운돋움은 귀엽고 가벼웠다 — 바탕체의 붓끝이 「읽는다」를 먼저 말한다.
+ * 인사 · 이름 · 구역 제목까지만 입고 설명과 버튼은 기기의 시스템 서체(`--font-system`)에 남는 규칙은 그대로다.
+ * 400 은 제목, 700 은 머리글의 이름(로고 글자)이다. 한글 조각은 `subsets` 에 없어 미리 받지 않는다(`preload: false`).
+ *
+ * Tailwind 의 이름(`font-rounded`)은 그대로 둔다 — 23 파일이 부르고, 그중 몇은 지금 다른 세션이 쥔 화면이다.
+ * 이 시안이 뽑히면 `font-display` 로 이름을 옮기는 일이 따로 선다.
  */
-const rounded = Gowun_Dodum({
-  weight: '400',
+const display = Gowun_Batang({
+  weight: ['400', '700'],
   subsets: ['latin'],
   display: 'swap',
   preload: false,
-  variable: '--font-gowun-dodum',
+  variable: '--font-display',
 });
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // `globals.css` 가 부드러운 스크롤을 켠다 — Next 는 라우트 전환에서 그것을 끌지
     // 말지를 이 표시로 정한다. 없으면 개발 화면이 그것을 문제로 잡는다.
-    <html lang="ko" data-scroll-behavior="smooth" className={`${rounded.variable} h-full antialiased`}>
+    <html lang="ko" data-scroll-behavior="smooth" className={`${display.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SiteHeader />
         {children}
