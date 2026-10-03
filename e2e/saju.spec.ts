@@ -824,8 +824,8 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }
 
   /*
-    **궁합 입구의 두 묶음도 잰다.** 「생년월일」 줄은 칸 셋과 단위가 한 줄에 거의 꽉 차서 좁으면 이름 아래로 꺾인다
-    (ADR 0132). 가장 긴 값을 고른 채로 잰다.
+    **궁합 입구의 두 묶음도 잰다.** 칸이 가장 좁아지는 값(음력 윤달 · 시각 모름)을 고른 채로 넘침과 과녁을 잰다
+    (ADR 0132 덧 — 로그인 전 입구는 칸 모양이다).
   */
   await page.getByRole('tab', { name: /궁합 보기/ }).click();
   const partner = page.getByRole('group', { name: '상대', exact: true });
@@ -837,9 +837,12 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
     scroll: document.documentElement.scrollWidth,
   }));
   expect(pairOverflow.scroll).toBeLessThanOrEqual(pairOverflow.client);
+  // 로그인 전 궁합 입구의 선택지는 펼침 없이 보이는 칸이다 — 고른 그 칸이 과녁이다(ADR 0132 덧)
+  const option = (name: string) => partner.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
   for (const control of [
-    partner.getByRole('button', { name: /^달력 / }),
-    partner.getByRole('button', { name: /^출생 시각 / }),
+    option('음력 윤달'),
+    option('모름'),
+    partner.getByRole('button', { name: /^출생지 / }),
     partner.getByLabel('출생일', { exact: true }),
     page.getByRole('button', { name: '무료로 두 사람 궁합 보기' }),
   ]) {
