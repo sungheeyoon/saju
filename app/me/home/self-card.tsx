@@ -16,8 +16,9 @@ import type { ReadingEntry } from '../reading/current';
 import { withFromMe } from './from-me';
 
 /*
-  **나 — 홈의 기준점.** 카드가 내 일간의 파스텔을 입는다(아래 사람 타일과 같은 규칙이라 「나도 이 목록의
-  한 색」이 된다). 오행 분포 다섯 칸이 같은 색에 **상징과 이름**을 붙여 색만으로 말하지 않는다.
+  **나 — 홈의 기준점.** 카드는 **명식 한 장**이다 — 흰 종이에 가는 테, 내 일간의 색은 딱지와 따옴표만 든다
+  (2026-10-03 시각 시안). 판 전체를 일간 파스텔로 칠하면 오행 분포 다섯 칸의 색이 그 위에서 묻혔다 — 이제 다섯 칸이
+  저마다 제 오행의 면을 입어 이 카드의 색은 「나의 다섯 기운」이 된다. 칸마다 **상징과 이름**이 함께라 색만으로 말하지 않는다.
 
   **여덟 글자(한자)는 카드에 없다**(운영자 2026-09-27) — 처음 보는 사람에게 가장 어려운 덩어리였다. 나를 말하는 것은
   일간 딱지 · 천간 그림 · 비유 한 줄이 들고, 여덟 글자는 「사주 자세히 보기」가 든다.
@@ -64,7 +65,7 @@ export function SelfCard({
   return (
     <section
       aria-label="내 사주"
-      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-[1.25rem] bg-[var(--tile)] sm:gap-6 sm:p-8 ${compact ? 'gap-3 p-4' : 'gap-4 p-5'}`}
+      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-[1.25rem] border border-border bg-surface sm:gap-6 sm:p-8 ${compact ? 'gap-3 p-4' : 'gap-4 p-5'}`}
     >
       {/* 이름(가장 크게)과 바로 아래 한 줄 평 — 내 사주풀이의 비유. 풀이가 없으면 그 줄은 서지 않는다 */}
       <header className="relative flex min-w-0 flex-col gap-2 pr-14 sm:gap-3">
@@ -139,7 +140,7 @@ function ElementCounts({ saju, compact }: { saju: Saju; compact: boolean }) {
             <li
               key={element}
               className={`${elementScope(element)} flex flex-col items-center gap-1 rounded-2xl px-1 py-3 sm:gap-1.5 sm:py-5 ${
-                count === 0 ? 'border border-dashed border-[color-mix(in_srgb,var(--foreground)_22%,transparent)]' : 'bg-surface'
+                count === 0 ? 'border border-dashed border-[color-mix(in_srgb,var(--foreground)_22%,transparent)]' : 'bg-[var(--tile)]'
               }`}
             >
               <ElementSymbol element={element} className="size-7 sm:size-10" />
@@ -178,7 +179,7 @@ function BirthLine({ query }: { query: Query }) {
   ] as const;
 
   return (
-    <section className="relative -mt-2 sm:mt-0 sm:rounded-[0.875rem] sm:bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] sm:px-4 sm:py-3">
+    <section className="relative -mt-2 sm:mt-0 sm:rounded-[0.875rem] sm:bg-surface-soft sm:px-4 sm:py-3">
       <h3 className="sr-only text-[13px] font-semibold text-secondary sm:not-sr-only">저장된 출생 정보</h3>
       <dl className="flex flex-wrap gap-x-1.5 text-[13px] leading-5 text-secondary sm:mt-1.5 sm:grid sm:grid-cols-[auto_1fr_auto_1fr] sm:gap-x-5 sm:gap-y-1 sm:text-[14px] sm:leading-6">
         {rows.map(([term, value], at) => (
