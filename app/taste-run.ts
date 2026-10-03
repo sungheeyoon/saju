@@ -16,14 +16,17 @@ import {
 import {
   MODEL_TIMEOUT,
   TASTE_CLOSED,
+  TASTE_RETURNED_CLAIMS,
   answerOfReserve,
   answerOfView,
   type TasteAnswer,
+  type TasteClaimResult,
   type TasteSessionView,
 } from '@/src/lib/reading/taste-visit';
 import type { Saju } from '@/src/lib/saju';
 
 import type { Reserved, TasteFinish } from './keyed-taste';
+import type { TasteClaim } from './me/keyed-taste-claims';
 import type { ModelCall } from './me/reading/generator';
 import type { Visitor } from './taste-visitor';
 
@@ -259,4 +262,80 @@ export async function viewTaste(
   if (browserHmac === null) return TASTE_CLOSED;
   const view = await hands.view(sessionId, browserHmac);
   return view.ok ? answerOfView(view.value, sessionId) : TASTE_CLOSED;
+}
+
+const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** 귀속의 손잡이 — 서버 액션(`claimTaste`)이 진짜를, 시험이 가짜를 넣는다 */
+export type TasteClaimHands = {
+  /** 비밀 둘이 섰는가 — 없으면 이 배포는 문단을 안 쓴다. 다시 불러도 안 생긴다 */
+  secretsReady: () => boolean;
+  /** 이 브라우저의 쿠키로 지은 HMAC — 쿠키가 없으면 `null`. 쿠키는 다시 불러도 안 생긴다 */
+  browserHmac: () => Promise<string | null>;
+  /** 방금 저장한 내 사주의 지문 — 못 읽으면 `null`(계정 읽기가 DB 오류를 `null` 로 접는다, `readAccount`) */
+  fingerprint: () => Promise<string | null>;
+  /** DB 의 귀속 — 로그인 세션 · 열쇠 · 문이 터지면 `null` */
+  claim: (args: { sessionId: string; browserHmac: string; fingerprint: string }) => Promise<TasteClaim | null>;
+  /** 퍼널의 가입 완료 — 세션당 한 번은 DB 가 지킨다 */
+  countCompleted: (sessionId: string, browserHmac: string) => Promise<void>;
+  /** 귀속 표(쿠키)를 세운다 · 걷는다 */
+  mark: (sessionId: string) => Promise<void>;
+  forget: () => Promise<void>;
+};
+
+/**
+ * 들고 온 세션을 이 회원에게 붙인다 — **답이 났는가(`claimed` · `terminal`)와 안 났는가(`retryable`)를 가른다**(ADR 0143 「덧」).
+ *
+ * 앞서는 셋을 「이어 볼 세션이 섰나」 하나(`continued`)로 접었다 — DB 오류와 진짜 불일치가 같은 `false` 였고, 화면은 세션 id 를
+ * 먼저 지운 뒤 조용히 보통 흐름으로 갔다. 순간 장애 하나에 이어쓰기가 영영 끊겼다.
+ *
+ * 갈래의 근거:
+ * - 쿠키가 없거나(`browserHmac` 이 `null`) 비밀이 없으면 `terminal` — 다시 불러도 그 값은 안 생긴다. 쿠키를 잃은 브라우저는 그
+ *   세션을 읽을 길이 없다(`not_found` 와 같은 자리)
+ * - 지문이 `null` 이면 `retryable` — 이 액션은 내 사주를 **저장한 직후**에만 불리므로, 내 사주가 없다는 답은 계정 읽기가 그
+ *   순간 실패했다는 뜻이다
+ * - `not_ready`(세션에 아직 글이 없다)는 `terminal` — 이 사람은 끊긴 물음을 본 적이 없다. 글이 선 세션만 가입 단추가 id 를
+ *   싣고(`app/taste.tsx`), 실패 · 한도의 가입 경로는 id 를 안 싣는다. 이 갈래에 다시 시도를 세우면 영영 안 설 글을 기다린다
+ * - 던진 것은 모두 `retryable` — 무엇이 터졌는지 모르면 답이 안 난 것이다
+ *
+ * `retryable` 이면 귀속 표를 건드리지 않는다 — 앞서 붙은 표가 있으면 그대로 두고, 다시 부르면 DB 가 멱등으로 답한다.
+ */
+export async function claimTasteWith(sessionId: string, hands: TasteClaimHands): Promise<TasteClaimResult> {
+  const terminal = async (): Promise<TasteClaimResult> => {
+    await hands.forget();
+    return 'terminal';
+  };
+
+  if (typeof sessionId !== 'string' || !SESSION_ID.test(sessionId)) return terminal();
+  if (!hands.secretsReady()) return terminal();
+
+  let browserHmac: string | null;
+  let fingerprint: string | null;
+  try {
+    browserHmac = await hands.browserHmac();
+    if (browserHmac === null) return terminal();
+    fingerprint = await hands.fingerprint();
+  } catch (thrown) {
+    console.error('taste: 귀속 전에 던졌다 — 다시 시도하게 한다', thrown instanceof Error ? thrown.name : typeof thrown);
+    return 'retryable';
+  }
+  if (fingerprint === null) return 'retryable';
+
+  const claim = await hands.claim({ sessionId, browserHmac, fingerprint });
+  if (claim === null) return 'retryable';
+
+  if ((TASTE_RETURNED_CLAIMS as readonly string[]).includes(claim.outcome)) {
+    /* 퍼널 한 칸 — 못 세도 귀속의 답은 그대로다 */
+    try {
+      await hands.countCompleted(sessionId, browserHmac);
+    } catch (thrown) {
+      console.error('taste: 가입 완료를 못 셌다', thrown instanceof Error ? thrown.name : typeof thrown);
+    }
+  }
+  if (claim.outcome !== 'claimed') return terminal();
+
+  /* 이어진 풀이가 이미 섰으면 표는 다 쓰였다 — 그 풀이가 곧 열린다 */
+  if (claim.readingRunStatus === 'succeeded') return terminal();
+  await hands.mark(sessionId);
+  return 'claimed';
 }

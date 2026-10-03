@@ -45,16 +45,31 @@ export async function selfTasteFingerprint(): Promise<string | null> {
   return chart.ok ? tasteFingerprintOfSaju(chart.saju) : null;
 }
 
-/** 귀속 표가 가리키는 세션을 다시 맞춰 본다 — 표가 없거나 못 맞추면 `null` */
-export async function claimedTaste(): Promise<{ sessionId: string; claim: TasteClaim } | null> {
+/**
+ * 귀속 표가 가리키는 세션을 다시 맞춰 본 답 — 표가 없으면 `null`.
+ *
+ * - `TasteClaim` — DB 가 답했다
+ * - `gone` — 이 브라우저의 쿠키나 서버의 비밀이 없다. 다시 물어도 안 생긴다 — 이을 길이 끊겼다
+ * - `unreachable` — **답이 안 났다**: 내 사주 · DB · 로그인 세션을 그 순간 못 읽었다. 다음 물음에서는 날 수 있다
+ */
+export type ClaimedTaste = { sessionId: string; claim: TasteClaim | 'gone' | 'unreachable' };
+
+/** 귀속 표가 가리키는 세션을 다시 맞춰 본다 — 표가 없으면 `null`. 던진 것도 `unreachable` 이다 */
+export async function claimedTaste(): Promise<ClaimedTaste | null> {
   const sessionId = await claimedTasteSessionId();
   if (sessionId === null) return null;
   const browserHmac = await browserHmacNow();
-  if (browserHmac === null) return null;
-  const fingerprint = await selfTasteFingerprint();
-  if (fingerprint === null) return null;
-  const claim = await claimTasteSession({ sessionId, browserHmac, fingerprint });
-  return claim === null ? null : { sessionId, claim };
+  if (browserHmac === null) return { sessionId, claim: 'gone' };
+  try {
+    /* 내 사주가 있는 사람만 자기 풀이를 받는다 — 지문이 `null` 이면 계정 · 사람을 그 순간 못 읽은 것이다(`readAccount`) */
+    const fingerprint = await selfTasteFingerprint();
+    if (fingerprint === null) return { sessionId, claim: 'unreachable' };
+    const claim = await claimTasteSession({ sessionId, browserHmac, fingerprint });
+    return { sessionId, claim: claim ?? 'unreachable' };
+  } catch (thrown) {
+    console.error('taste carry: 귀속 표를 못 맞췄다', thrown instanceof Error ? thrown.message : thrown);
+    return { sessionId, claim: 'unreachable' };
+  }
 }
 
 /**
@@ -72,7 +87,7 @@ export async function tasteCarryOfPage(reading: CurrentReading | null): Promise<
 
 async function carryOf(reading: CurrentReading | null): Promise<TasteCarryView | null> {
   const claimed = await claimedTaste();
-  if (claimed !== null && claimed.claim.outcome === 'claimed') {
+  if (claimed !== null && typeof claimed.claim === 'object' && claimed.claim.outcome === 'claimed') {
     const { carry, readingRunStatus } = claimed.claim;
     if (readingRunStatus === 'running') return { preview: carry.previewMarkdown, state: 'running' };
     if (readingRunStatus === null || readingRunStatus === 'failed') return { preview: carry.previewMarkdown, state: 'next' };

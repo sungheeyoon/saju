@@ -11,6 +11,7 @@ import {
   afterAsking,
   afterPress,
   answerOf,
+  asksOnArrival,
   initialFlow,
   previewReading,
   readingFlow,
@@ -302,5 +303,32 @@ describe('예시 글', () => {
    */
   it('어느 시도가 만들었는지가 없다', () => {
     expect(previewReading('self', at).sourceRunId).toBeNull();
+  });
+});
+
+/**
+ * **도착하자마자 확인창** — 막 붙이고 온 사람에게만, 누를 수 있을 때만, 이을 것이 남았을 때만(ADR 0143 「덧」).
+ */
+describe('도착하자마자 확인창을 여는가', () => {
+  const ready = { arrived: true, carry: { state: 'next' as const }, loading: false, makeDisabled: false, hideMake: false };
+
+  it('막 붙이고 와서 이을 것이 남았으면 연다', () => {
+    expect(asksOnArrival(ready)).toBe(true);
+  });
+
+  it('막 도착한 것이 아니면 안 연다 — 새로고침 · 뒤로가기 · 다음 방문', () => {
+    expect(asksOnArrival({ ...ready, arrived: false })).toBe(false);
+  });
+
+  it('이어진 풀이가 섰거나 도는 중이거나 이을 것이 없으면 안 연다', () => {
+    expect(asksOnArrival({ ...ready, carry: { state: 'shown' } })).toBe(false);
+    expect(asksOnArrival({ ...ready, carry: { state: 'running' } })).toBe(false);
+    expect(asksOnArrival({ ...ready, loading: true })).toBe(false);
+    expect(asksOnArrival({ ...ready, carry: null })).toBe(false);
+  });
+
+  it('누를 수 없으면 안 연다 — 풀이권이 없거나 단추가 없다', () => {
+    expect(asksOnArrival({ ...ready, makeDisabled: true })).toBe(false);
+    expect(asksOnArrival({ ...ready, hideMake: true })).toBe(false);
   });
 });

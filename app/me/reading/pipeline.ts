@@ -22,7 +22,7 @@ import { GENERATION } from './generation';
 import { submitBackgroundReading } from './model';
 import { readingTargetArgs, type ReadingTarget } from './target';
 import { claimedTaste } from './taste-carry';
-import { linkTasteReadingRun, tasteContinuationOfRun } from '../keyed-taste-claims';
+import { linkTasteReadingRun, tasteContinuationOfRun, type TasteLinkAnswer } from '../keyed-taste-claims';
 import { forgetTasteClaim } from '../../taste-visitor';
 import { continuationBlockOf, type TasteRunCarry } from '@/src/lib/reading/continuation';
 import { rpcArgs } from '@/src/lib/db';
@@ -359,20 +359,25 @@ async function sendRun(runId: string, continuation: TasteRunCarry | null = null)
  * - `continue` — 붙인 세션이 아직 풀이에 안 이어졌거나 이어진 풀이가 실패했다. 이 누름이 연 시도에 잇는다
  * - `opened` — 이어진 풀이가 섰거나 도는 중이다. **새로 만들지 않는다** — 화면은 그 풀이를 기다리거나 연다. 섰으면 표를
  *   걷는다 — 다음 누름부터는 보통 「다시 받기」다
- * - `null` — 이을 것이 없다(표가 없음 · 버림 · 남의 것 · 지남 · 못 읽음). 표를 걷고 보통 풀이로 간다
+ * - `unreachable` — 표는 있는데 **답이 안 났다**(내 사주 · DB · 로그인 세션을 그 순간 못 읽음). 보통 풀이로 가지 않는다 —
+ *   연 시도를 실패로 닫고 표를 둔다. 다음 누름이 다시 맞춘다(`taste-link-failed`)
+ * - `null` — 이을 것이 없다(표가 없음 · 버림 · 남의 것 · 지남 · 쿠키 없음). 표를 걷고 보통 풀이로 간다
  */
-async function pressCarry(): Promise<{ kind: 'continue'; sessionId: string } | { kind: 'opened' } | null> {
+async function pressCarry(): Promise<
+  { kind: 'continue'; sessionId: string } | { kind: 'opened' } | { kind: 'unreachable' } | null
+> {
   let claimed: Awaited<ReturnType<typeof claimedTaste>>;
   try {
     claimed = await claimedTaste();
   } catch (thrown) {
-    /* 내 사주를 못 읽었다 — 이어쓰기는 부속이라 보통 풀이로 간다. 원문은 문이 기록에 남겼다 */
-    console.error('begin: 맛보기 표를 못 맞췄다', thrown instanceof Error ? thrown.message : thrown);
+    /* 귀속 표(쿠키)조차 못 읽었다 — 표가 있는지 모르는 채 모든 자기 풀이를 닫을 수는 없다. 보통 풀이로 간다 */
+    console.error('begin: 맛보기 표를 못 읽었다', thrown instanceof Error ? thrown.message : thrown);
     return null;
   }
   if (claimed === null) return null;
   const { claim, sessionId } = claimed;
-  if (claim.outcome !== 'claimed') {
+  if (claim === 'unreachable') return { kind: 'unreachable' };
+  if (claim === 'gone' || claim.outcome !== 'claimed') {
     await forgetTasteClaim();
     return null;
   }
@@ -384,8 +389,66 @@ async function pressCarry(): Promise<{ kind: 'continue'; sessionId: string } | {
   return { kind: 'continue', sessionId };
 }
 
+/**
+ * 연 시도에 세션을 잇고 이어 쓸 스냅숏을 집는다 — **잇기의 답마다 할 일이 다르다**(ADR 0143 「덧」).
+ *
+ * - `carry` — 이었고 스냅숏을 읽었다. 이어쓰기로 보낸다
+ * - `plain` — 이 시도는 보통 풀이가 맞다:
+ *   - `not_claimed` — 세션이 이제 이 회원 것이 아니다(그 사이 입력을 고쳐 버려졌다 등). 표를 걷는다 — 다시 이을 것이 없다
+ *   - `already_succeeded` · `already_running` — 다른 누름(다른 탭)이 그 사이에 이었다. 지금 그대로 둔다
+ *   - `wrong_run` — 방금 연 시도가 이 회원의 자기 풀이가 아니라는 답이다. 이 누름에서는 날 수 없는 모순이라 실패로 닫으면
+ *     누를 때마다 같은 답이 나 영영 풀이를 못 받는다. 보통 풀이로 보내고 기록에 남긴다 — 세션은 손대지 않았으니 다음
+ *     「다시 받기」가 다시 잇는다
+ * - `fail` — 이 시도를 **보내지 않고 실패로 닫는다.** 풀이권은 안 쓰이고(실패한 시도는 안 쓴 것이다) 다음 누름이 같은 맛보기로
+ *   다시 잇는다:
+ *   - 답이 안 났다(`unreachable` · 던짐) — `taste-link-failed`. 보통 풀이로 내면 세션은 안 이어진 채 풀이권 한 번이 이어쓰기 없는
+ *     글에 쓰이고, 사용자는 그 사실을 모른다
+ *   - `run_taken` — 방금 연 시도를 다른 세션이 쥐었다. 새 시도 id 는 겹치지 않으니 다음 누름은 이어진다 — 이 시도만 닫는다
+ *   - 이었는데 스냅숏을 못 읽었다 — `taste-carry-unread`. 세션은 이미 이 시도에 이어졌으므로 보통 풀이로 서면 그 맛보기는 다시
+ *     안 이어진다(성공한 시도를 바꿔 잇지 않는다)
+ */
+async function linkCarry(
+  sessionId: string,
+  runId: string,
+): Promise<{ kind: 'carry'; carry: TasteRunCarry } | { kind: 'plain' } | { kind: 'fail'; code: string; detail: string }> {
+  let link: TasteLinkAnswer;
+  try {
+    link = await linkTasteReadingRun(sessionId, runId);
+  } catch (thrown) {
+    console.error('begin: 맛보기를 잇다가 던졌다', thrown instanceof Error ? thrown.message : thrown);
+    link = { answered: false };
+  }
+  if (!link.answered) return { kind: 'fail', code: TASTE_LINK_FAILED, detail: '맛보기를 시도에 잇는 답이 안 났다' };
+
+  switch (link.outcome) {
+    case 'linked': {
+      const carry = await tasteContinuationOfRun(runId);
+      return carry === null
+        ? { kind: 'fail', code: TASTE_CARRY_UNREAD, detail: '이어진 맛보기의 스냅숏을 못 읽었다' }
+        : { kind: 'carry', carry };
+    }
+    case 'run_taken':
+      return { kind: 'fail', code: TASTE_LINK_FAILED, detail: '연 시도가 이미 다른 맛보기에 이어졌다' };
+    case 'not_claimed':
+      await forgetTasteClaim();
+      return { kind: 'plain' };
+    case 'wrong_run':
+      console.error('begin: 연 시도가 이 회원의 자기 풀이가 아니라는 답 — 보통 풀이로 보낸다');
+      return { kind: 'plain' };
+    case 'already_succeeded':
+    case 'already_running':
+      return { kind: 'plain' };
+  }
+}
+
 /** 이어진 맛보기의 스냅숏을 못 읽어 보내지 않고 닫은 시도의 실패 코드 */
 export const TASTE_CARRY_UNREAD = 'taste-carry-unread';
+
+/**
+ * 맛보기를 시도에 잇지 못해(답이 안 났다 · 귀속 표를 다시 못 맞췄다 · 연 시도를 다른 세션이 쥐었다) 보내지 않고 닫은 시도의
+ * 실패 코드. `reading_run.failure_code` 는 DB 검사식이 없다 — 꼴은 맛보기 표와 같은 `^[a-z0-9-]{1,64}$` 로 맞춘다.
+ */
+export const TASTE_LINK_FAILED = 'taste-link-failed';
 
 /**
  * 연 시도를 **보내지 않고** 실패로 닫는다 — 기존 실패 닫기 문(`fail_reading_job`, 열쇠)이다. 시도는 `running` 일 때만 닫히고
@@ -447,24 +510,19 @@ export async function beginReading(
 
   /**
    * **세션 하나 = 시도 하나.** 연 시도에 세션을 잇고, 이어졌으면 그 스냅숏을 DB 에서 다시 읽어 싣는다 — 귀속 때 받은 글을
-   * 들고 다니지 않는다. 못 이었으면(경합 · 문이 터짐) 이 시도는 보통 풀이다. 풀이권은 시도를 여는 규칙 그대로다.
+   * 들고 다니지 않는다. 잇기의 답마다 할 일은 `linkCarry` 가 든다. 풀이권은 시도를 여는 규칙 그대로다.
    */
-  let continuation: TasteRunCarry | null = null;
-  /**
-   * **이었는데 스냅숏을 못 읽었으면 이 시도를 실패로 닫는다** — 이어쓰기 없는 보통 풀이로 내지 않는다. 세션은 이미 이
-   * 시도에 이어졌으므로, 보통 풀이로 서면 그 맛보기는 다시 안 이어진다(성공한 시도를 바꿔 잇지 않는다). 실패로 닫으면
-   * 풀이권은 안 쓰이고(실패한 시도는 안 쓴 것이다) 다음 누름이 같은 맛보기로 다시 잇는다(`link_taste_reading_run`).
-   */
-  let unreadCarry = false;
-  if (carry?.kind === 'continue' && (await linkTasteReadingRun(carry.sessionId, runId)) === 'linked') {
-    continuation = await tasteContinuationOfRun(runId);
-    unreadCarry = continuation === null;
-  }
+  const linked =
+    carry?.kind === 'continue'
+      ? await linkCarry(carry.sessionId, runId)
+      : carry?.kind === 'unreachable'
+        ? ({ kind: 'fail', code: TASTE_LINK_FAILED, detail: '귀속 표를 다시 못 맞췄다' } as const)
+        : ({ kind: 'plain' } as const);
 
-  if (unreadCarry) {
+  if (linked.kind === 'fail') {
     after(async () => {
       try {
-        await closeUnsent(runId, TASTE_CARRY_UNREAD, '이어진 맛보기의 스냅숏을 못 읽었다');
+        await closeUnsent(runId, linked.code, linked.detail);
       } catch (thrown) {
         // 못 닫았으면 복구기가 deadline 에 닫는다 — 까닭만 기록에 남긴다.
         console.error('begin: closeUnsent', thrown);
@@ -472,6 +530,7 @@ export async function beginReading(
     });
     return { ok: true, started: true };
   }
+  const continuation: TasteRunCarry | null = linked.kind === 'carry' ? linked.carry : null;
 
   after(async () => {
     /**

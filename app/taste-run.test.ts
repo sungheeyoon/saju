@@ -6,7 +6,17 @@ import { HAND_SAMPLE } from '@/src/lib/reading/taste-run-sample';
 import type { TasteSessionView } from '@/src/lib/reading/taste-visit';
 
 import type { Reserved, TasteFinish } from './keyed-taste';
-import { TASTE_INTERNAL_ERROR, sajuOfDraft, serveTaste, tasteFingerprintOfSaju, viewTaste, type TasteHands } from './taste-run';
+import type { TasteClaim } from './me/keyed-taste-claims';
+import {
+  TASTE_INTERNAL_ERROR,
+  claimTasteWith,
+  sajuOfDraft,
+  serveTaste,
+  tasteFingerprintOfSaju,
+  viewTaste,
+  type TasteClaimHands,
+  type TasteHands,
+} from './taste-run';
 
 /**
  * **로그인 전 사주 문단 한 번 — 서버가 짓고, 원문은 안 나간다**(ADR 0143). 손잡이를 가짜로 넣어 부른다 — 무엇이 DB 와
@@ -279,5 +289,114 @@ describe('다시 묻기', () => {
     expect(await viewTaste(SESSION, { view, browserHmac: async () => null })).toEqual({ state: 'failed', retry: false });
     expect(views).toEqual([]);
     expect(await viewTaste(SESSION, { view, browserHmac: async () => BROWSER_HMAC })).toEqual({ state: 'waiting', sessionId: SESSION });
+  });
+});
+
+/**
+ * **귀속은 세 갈래다 — 답이 났는가(`claimed` · `terminal`), 안 났는가(`retryable`)**(ADR 0143 「덧」). 앞서는 DB 오류와 진짜
+ * 불일치가 같은 「안 이어짐」이었고, 화면은 그것을 보통 흐름으로 읽었다.
+ */
+describe('귀속의 세 갈래', () => {
+  const FINGERPRINT = 'f'.repeat(64);
+  const CARRY = { previewMarkdown: '글', continuationQuestion: '물음', answerDirection: '방향', supportingClaims: [] };
+
+  function claimHands(over: Partial<TasteClaimHands> = {}) {
+    const seen = { claims: [] as unknown[], counted: [] as string[], marked: [] as string[], forgot: 0 };
+    const one: TasteClaimHands = {
+      secretsReady: () => true,
+      browserHmac: async () => BROWSER_HMAC,
+      fingerprint: async () => FINGERPRINT,
+      claim: async (args) => {
+        seen.claims.push(args);
+        return { outcome: 'claimed', carry: CARRY, readingRunId: null, readingRunStatus: null };
+      },
+      countCompleted: async (sessionId) => {
+        seen.counted.push(sessionId);
+      },
+      mark: async (sessionId) => {
+        seen.marked.push(sessionId);
+      },
+      forget: async () => {
+        seen.forgot += 1;
+      },
+      ...over,
+    };
+    return { hands: one, seen };
+  }
+
+  it('붙었으면 `claimed` — 귀속 표를 세우고 가입 완료를 센다', async () => {
+    const { hands: one, seen } = claimHands();
+    expect(await claimTasteWith(SESSION, one)).toBe('claimed');
+    expect(seen.claims).toEqual([{ sessionId: SESSION, browserHmac: BROWSER_HMAC, fingerprint: FINGERPRINT }]);
+    expect(seen.marked).toEqual([SESSION]);
+    expect(seen.counted).toEqual([SESSION]);
+    expect(seen.forgot).toBe(0);
+  });
+
+  it.each(['discarded', 'expired', 'taken', 'not_found', 'not_ready'] as const)(
+    'DB 가 `%s` 로 답하면 `terminal` — 표를 걷는다',
+    async (outcome) => {
+      const { hands: one, seen } = claimHands({ claim: async () => ({ outcome }) as TasteClaim });
+      expect(await claimTasteWith(SESSION, one)).toBe('terminal');
+      expect(seen.marked).toEqual([]);
+      expect(seen.forgot).toBe(1);
+    },
+  );
+
+  it('이어진 풀이가 이미 섰으면 `terminal` — 그 풀이가 열린다', async () => {
+    const { hands: one, seen } = claimHands({
+      claim: async () => ({ outcome: 'claimed', carry: CARRY, readingRunId: 'run-1', readingRunStatus: 'succeeded' }),
+    });
+    expect(await claimTasteWith(SESSION, one)).toBe('terminal');
+    expect(seen.marked).toEqual([]);
+  });
+
+  it('id 꼴이 틀렸거나 · 비밀이 없거나 · 쿠키가 없으면 `terminal` — DB 에 안 묻는다', async () => {
+    for (const [sessionId, over] of [
+      ['nope', {}],
+      [SESSION, { secretsReady: () => false }],
+      [SESSION, { browserHmac: async () => null }],
+    ] as const) {
+      const { hands: one, seen } = claimHands(over);
+      expect(await claimTasteWith(sessionId, one)).toBe('terminal');
+      expect(seen.claims).toEqual([]);
+    }
+  });
+
+  it('귀속 문이 답하지 않으면(`null`) `retryable` — 표를 건드리지 않는다', async () => {
+    const { hands: one, seen } = claimHands({ claim: async () => null });
+    expect(await claimTasteWith(SESSION, one)).toBe('retryable');
+    expect(seen.marked).toEqual([]);
+    expect(seen.forgot).toBe(0);
+    expect(seen.counted).toEqual([]);
+  });
+
+  it('방금 저장한 내 사주를 못 읽거나(`null`) 지문 · 쿠키 읽기가 던지면 `retryable`', async () => {
+    for (const over of [
+      { fingerprint: async () => null },
+      { fingerprint: async () => Promise.reject(new Error('db')) },
+      { browserHmac: async () => Promise.reject(new Error('cookies')) },
+    ]) {
+      const { hands: one, seen } = claimHands(over);
+      expect(await claimTasteWith(SESSION, one)).toBe('retryable');
+      expect(seen.claims).toEqual([]);
+      expect(seen.forgot).toBe(0);
+    }
+  });
+
+  it('다시 시도하면 같은 세션이 붙는다 — 한 번 답이 안 난 것이 다음 답을 막지 않는다', async () => {
+    let up = false;
+    const { hands: one, seen } = claimHands({
+      claim: async () => (up ? { outcome: 'claimed', carry: CARRY, readingRunId: null, readingRunStatus: null } : null),
+    });
+    expect(await claimTasteWith(SESSION, one)).toBe('retryable');
+    up = true;
+    expect(await claimTasteWith(SESSION, one)).toBe('claimed');
+    expect(seen.marked).toEqual([SESSION]);
+  });
+
+  it('가입 완료를 못 세도 귀속의 답은 그대로다', async () => {
+    const { hands: one } = claimHands({ countCompleted: async () => Promise.reject(new Error('count')) });
+    expect(await claimTasteWith(SESSION, one)).toBe('claimed');
   });
 });

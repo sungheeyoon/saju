@@ -38,7 +38,7 @@ test('무료로 내 사주 보기 → 로그인 전 사주 문단 · 잠긴 목�
   /* 로그인 전 사주 문단 — 모델이 없는 시험 서버에서는 실패로 선다. 엔진 문장으로 바꿔치기하지 않고 다음 걸음이 선다 */
   const taste = page.getByRole('region', { name: '사주가 보여 주는 나' });
   await expect(taste).toHaveAttribute('aria-busy', 'false', { timeout: 30_000 });
-  await expect(taste.getByRole('button', { name: '다시 읽기' }).or(taste.getByRole('link', { name: '무료 회원가입하고 이어보기' }))).toBeVisible();
+  await expect(taste.getByRole('button', { name: '다시 읽기' }).or(taste.getByRole('link', { name: '무료 회원가입하고 전체 풀이 받기' }))).toBeVisible();
   await expect(taste.getByRole('button', { name: '더보기' })).toHaveCount(0);
 
   /* 잠긴 목차는 본 사주풀이의 절 이름이다 — 첫 줄은 프롬프트의 첫 절 */
