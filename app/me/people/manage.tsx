@@ -23,6 +23,7 @@ import {
   BUTTON_SECONDARY_SMALL,
   BUTTON_TERTIARY,
 } from '../../ui/buttons';
+import { FIELD_AREA, FIELD_ERROR, FIELD_HINT, FIELD_SUBMIT, FIELD_TILE } from '../../ui/fields';
 import { Icon } from '../../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
 
@@ -183,7 +184,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+            <button type="button" onClick={save} disabled={missing !== null || saving} className={`${FIELD_SUBMIT} sm:min-w-40`}>
               {saving ? '저장하는 중…' : '등록'}
             </button>
             <button type="button" onClick={() => setOpen(false)} disabled={saving} className={BUTTON_TERTIARY}>
@@ -191,13 +192,19 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
             </button>
           </div>
           {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-          {missing !== null && <p className={TYPE_META}>{missing}</p>}
+          {missing !== null && (
+            <p className={`${FIELD_HINT} px-1`}>
+              <Icon name="lock" className="size-3.5 shrink-0" />
+              {missing}
+            </p>
+          )}
         </div>
       )}
 
       {failure !== null && (
-        <p role="alert" className="text-sm text-danger">
-          저장하지 못했어요. {failure}
+        <p role="alert" className={FIELD_ERROR}>
+          <Icon name="alert" className="mt-0.5 size-4 shrink-0" />
+          <span>저장하지 못했어요. {failure}</span>
         </p>
       )}
     </section>
@@ -214,12 +221,11 @@ function NoteField({
   idPrefix: string;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-[13px] font-semibold text-secondary">메모 (선택)</span>
-      {/*
-        **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
-        그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
-      */}
+    /*
+      출생 정보와 같은 떠 있는 타일이다(`app/ui/fields.ts`) — 이름표가 칸 안 위에 붙고, 비어 있으면 첫 줄 자리에 내려앉는다.
+      초점은 칸이 아니라 타일이 두른다(먹색 테 + 번짐).
+    */
+    <label data-empty={value === '' || undefined} className={`${FIELD_TILE} field-head field-head--area block`}>
       <textarea
         id={`${idPrefix}-note`}
         value={value}
@@ -227,8 +233,9 @@ function NoteField({
         maxLength={NOTE_MAX}
         rows={2}
         placeholder="기억해 둘 것 — 사주 계산에는 쓰지 않아요"
-        className="rounded-2xl border border-border bg-surface px-3.5 py-2.5 text-[15px] leading-6 placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+        className={FIELD_AREA}
       />
+      <span className="field-label">메모 (선택)</span>
     </label>
   );
 }

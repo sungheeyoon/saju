@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 import { RELATIONS, RELATION_LABEL, type Relation } from '@/src/lib/people';
 
+import { FIELD_CHIP } from './ui/fields';
 import { Icon } from './ui/icons';
 import { TYPE_NAME } from './ui/surfaces';
 
@@ -49,22 +50,18 @@ export function RelationChoice({
         때문이에요. <strong className="font-semibold text-foreground">점수의 기준도 이 답을 따라요.</strong>
       </p>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-1.5">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         {[...RELATIONS, null].map((choice) => {
           const id = `${idPrefix}-relation-${choice ?? 'unknown'}`;
           const label = choice === null ? '아직 모르겠음' : RELATION_LABEL[choice];
           const picked = value === choice;
 
           return (
-            <label
-              key={id}
-              htmlFor={id}
-              className="group relative inline-flex min-h-11 cursor-pointer items-center active:scale-[0.97]"
-            >
+            <label key={id} htmlFor={id} className={FIELD_CHIP}>
               {/*
                 칸 전체를 덮는 라디오 — 보이지는 않지만 **이것이 눌린다.** `sr-only` 로
                 숨기면 글자만 누를 수 있는 칸이 되고, 라벨을 못 짚는 손에는 누를 것이
-                없는 칸이 된다(`birth-form.tsx` 와 같은 규율).
+                없는 칸이 된다(`birth-form.tsx` 와 같은 규율). 칩의 모양은 출생 정보의 고르는 칩과 한 벌이다(`app/ui/fields.ts`).
               */}
               <input
                 type="radio"
@@ -72,18 +69,10 @@ export function RelationChoice({
                 name={`${idPrefix}-relation`}
                 checked={picked}
                 onChange={() => onChange(choice)}
-                className="peer absolute inset-0 cursor-pointer appearance-none opacity-0"
+                className="absolute inset-0 cursor-pointer appearance-none rounded-full opacity-0"
               />
-              <span
-                className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-[14px] ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-soft ${
-                  picked
-                    ? 'bg-accent-wash font-semibold text-foreground ring-border-strong'
-                    : 'bg-surface font-medium text-secondary ring-border group-hover:text-foreground'
-                }`}
-              >
-                {picked && <Icon name="check" className="size-3 stroke-[3.6]" />}
-                {label}
-              </span>
+              {picked && <Icon name="check" className="-ml-1 size-3.5 shrink-0 stroke-3" />}
+              <span className={picked ? 'font-semibold' : ''}>{label}</span>
             </label>
           );
         })}

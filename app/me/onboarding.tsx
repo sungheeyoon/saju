@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { BirthFields } from '../birth-form';
-import { BUTTON_PRIMARY } from '../ui/buttons';
+import { FIELD_ERROR, FIELD_HINT, FIELD_SUBMIT } from '../ui/fields';
+import { Icon } from '../ui/icons';
 import { ElementSymbol } from '../ui/element-symbol';
 import { PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { ELEMENTS } from '@/src/lib/saju';
@@ -57,15 +58,25 @@ export function Onboarding({ nickname }: { nickname: string }) {
 
       <BirthFields value={query} onChange={setQuery} showName={false} />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:gap-4">
+        <button type="button" onClick={save} disabled={missing !== null || saving} className={`${FIELD_SUBMIT} sm:min-w-52`}>
           {saving ? '저장하는 중…' : '내 사주로 저장'}
         </button>
         {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-        {missing !== null && <span className="text-[13px] text-secondary">{missing}</span>}
+        {missing !== null && (
+          <span className={`${FIELD_HINT} px-1`}>
+            <Icon name="lock" className="size-3.5 shrink-0" />
+            {missing}
+          </span>
+        )}
       </div>
 
-      {failure !== null && <p role="alert" className="text-sm text-danger">저장하지 못했어요. {failure}</p>}
+      {failure !== null && (
+        <p role="alert" className={FIELD_ERROR}>
+          <Icon name="alert" className="mt-0.5 size-4 shrink-0" />
+          <span>저장하지 못했어요. {failure}</span>
+        </p>
+      )}
     </section>
   );
 }

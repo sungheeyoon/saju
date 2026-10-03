@@ -8,7 +8,8 @@ import { calculateChart } from '@/src/lib/input/chart';
 import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
 import { useSessionKnown, useSignedIn } from './signed-in';
-import { BUTTON_PRIMARY } from './ui/buttons';
+import { FIELD_ERROR, FIELD_SUBMIT } from './ui/fields';
+import { Icon } from './ui/icons';
 import { SajuView, sajuViewModelOf, type SajuViewModel } from './saju/view';
 import { Taste } from './taste';
 import {
@@ -151,15 +152,15 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
           submit(form);
         }}
         // 로그인 전에는 첫 화면 종이의 아래 토막이다 — 머리(`home-hero.tsx`)와 한 장으로 선다(ADR 0132)
-        className={signedIn ? `${CARD} flex flex-col gap-5` : `${PAPER_BOTTOM} flex flex-col gap-3`}
+        className={signedIn ? `${CARD} flex flex-col gap-5` : `${PAPER_BOTTOM} flex flex-col gap-4`}
       >
         <BirthFields value={form} onChange={setForm} />
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             type="submit"
             aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
-            className={`${BUTTON_PRIMARY} w-full ${signedIn ? 'sm:w-auto' : 'mt-1'}`}
+            className={`${FIELD_SUBMIT} w-full ${signedIn ? 'sm:w-auto sm:min-w-48' : ''}`}
           >
             {/*
               **로그인 전에는 무엇이 무료인지 버튼이 말한다**(흐름 시안 g, ADR 0131) — 사주 · 오행 · 로그인 전 사주 문단은 로그인 없이
@@ -183,7 +184,8 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
 
           {/* 눌렀는데 못 간 이유를 버튼 옆에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
           {tried && missing !== null && (
-            <p id="natal-missing" role="alert" className="text-sm font-medium text-danger">
+            <p id="natal-missing" role="alert" className={`${FIELD_ERROR} w-full`}>
+              <Icon name="alert" className="mt-0.5 size-4 shrink-0" />
               {missing}
             </p>
           )}
@@ -194,7 +196,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
           첫머리를 서버가 쓴다. 회원이 여기 넣는 사주는 서버로 안 가므로(브라우저가 계산하고, 로그인 전 사주 문단은 회원에게
           안 서며 서버도 회원의 요청을 닫는다) 이 줄이 참이 아니다.
         */}
-        {!signedIn && <p className="text-xs leading-5 text-secondary">{TASTE_PRIVACY_NOTE}</p>}
+        {!signedIn && <p className="px-1 text-xs leading-5 text-secondary">{TASTE_PRIVACY_NOTE}</p>}
 
         {/*
           **사주와 사주풀이를 가르던 한 줄은 걷었다.** 「로그인 없이 사주와 오행을 확인할 수 있어요. 자세한 사주풀이는

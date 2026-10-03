@@ -29,7 +29,7 @@ import {
   type SaveOutcome,
   type SameChartQuestion,
 } from './same-chart-ask';
-import { BUTTON_PRIMARY } from './ui/buttons';
+import { FIELD_SUBMIT } from './ui/fields';
 import { TaijiMark } from './ui/entry-marks';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
@@ -240,7 +240,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
                 onClick={press}
                 disabled={!chosen || sameTwice || opening}
                 aria-describedby={reason !== null ? 'compat-locked-reason' : undefined}
-                className={`${BUTTON_PRIMARY} sm:min-w-44`}
+                className={`${FIELD_SUBMIT} sm:min-w-44`}
               >
                 <Icon name="taiji" className="size-[18px]" />
                 {opening ? '여는 중…' : '궁합 보기'}
@@ -315,7 +315,8 @@ function SlotCard({
         <span className={`block truncate ${TYPE_NAME}`}>{name === '' ? `${SIDE_LABEL[side]} 사람` : name}</span>
       </legend>
 
-      <div className="grid grid-cols-2 gap-1 rounded-full bg-surface-sunken p-1">
+      {/* 어디서 올지 — 타일과 같은 모서리의 두 칸 고르개. 고른 칸이 흰 타일로 떠오른다 */}
+      <div className="grid grid-cols-2 gap-1 rounded-[1.125rem] bg-field-well p-1">
         {(
           [
             ['saved', '저장한 사람'],
@@ -330,9 +331,9 @@ function SlotCard({
             onClick={() =>
               onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY })
             }
-            className={`min-h-11 rounded-full px-3 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-45 ${
+            className={`min-h-11 rounded-[0.875rem] px-3 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-45 ${
               slot.from === from
-                ? 'bg-surface text-foreground shadow-soft ring-1 ring-border'
+                ? 'bg-field text-foreground shadow-field ring-1 ring-border'
                 : 'text-secondary hover:text-foreground'
             }`}
           >

@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { pickable, stepTo, type Step } from '@/src/lib/people/pick';
 import type { Element } from '@/src/lib/saju';
 
+import { FIELD_CHEVRON, FIELD_INPUT, FIELD_TILE } from './ui/fields';
 import { Icon } from './ui/icons';
 import { FaceSymbol } from './ui/stem-symbol';
 
@@ -162,23 +163,22 @@ export function PersonCombobox({
     }
   };
 
+  const shown = typed ?? (chosen === undefined ? '' : shownLabel(chosen));
+
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-[13px] font-semibold text-secondary">
-        {label}
-      </label>
-      <div className="relative min-w-0">
+      {/*
+        출생 정보와 같은 떠 있는 타일이다(`app/ui/fields.ts`) — 이름표는 칸 안 위에 붙고, 비어 있으면 가운데로 내려앉는다.
+        초점은 타일이 두른다(먹색 테 + 번짐) — 칸은 제 테를 안 두른다.
+      */}
+      <div data-empty={shown === '' || undefined} className={`${FIELD_TILE} field-head`}>
         {chosen !== undefined && typed === null && (
           <FaceSymbol
             stem={chosen.stem}
             element={chosen.element}
-            className="pointer-events-none absolute left-3 top-1/2 size-6 -translate-y-1/2"
+            className="pointer-events-none absolute bottom-3 left-[1.125rem] size-6"
           />
         )}
-        {/*
-          **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
-          그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
-        */}
         <input
           id={inputId}
           type="text"
@@ -192,7 +192,7 @@ export function PersonCombobox({
           autoCapitalize="off"
           spellCheck={false}
           placeholder={PLACEHOLDER}
-          value={typed ?? (chosen === undefined ? '' : shownLabel(chosen))}
+          value={shown}
           onFocus={(event) => event.currentTarget.select()}
           onClick={(event) => {
             /* 누른 뒤 다시 한 번 — 마우스를 떼는 순간 커서가 서며 포커스 때의 선택이 풀린다 */
@@ -206,14 +206,14 @@ export function PersonCombobox({
           }}
           onKeyDown={onKeyDown}
           onBlur={close}
-          className={`h-12 w-full rounded-2xl border border-border bg-surface pr-10 text-[15px] font-semibold placeholder:font-normal placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash ${
-            chosen !== undefined && typed === null ? 'pl-11' : 'pl-4'
-          }`}
+          className={`${FIELD_INPUT} pr-12 ${chosen !== undefined && typed === null ? 'pl-[3.25rem]' : ''}`}
         />
-        <Icon
-          name="chevron"
-          className={`pointer-events-none absolute right-4 top-1/2 size-3 -translate-y-1/2 stroke-[3.2] text-secondary ${listed ? '-rotate-90' : 'rotate-90'}`}
-        />
+        <label htmlFor={inputId} className="field-label">
+          {label}
+        </label>
+        <span aria-hidden="true" className={`${FIELD_CHEVRON} pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 ${listed ? '-rotate-90' : 'rotate-90'}`}>
+          <Icon name="chevron" className="size-3.5 stroke-[2.6]" />
+        </span>
       </div>
 
       {/*
@@ -225,7 +225,7 @@ export function PersonCombobox({
         role="listbox"
         aria-label={label}
         hidden={!listed}
-        className={`${LIST_HEIGHT} relative scroll-mb-28 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface p-1 shadow-card sm:scroll-mb-2`}
+        className={`${LIST_HEIGHT} relative scroll-mb-28 overflow-y-auto overscroll-contain rounded-[1.125rem] border border-border bg-field p-1.5 shadow-float sm:scroll-mb-2`}
       >
         {listed &&
           choices.map((one, index) => (

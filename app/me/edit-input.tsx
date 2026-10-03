@@ -13,6 +13,7 @@ import {
 } from '@/src/lib/input/edit';
 import { editPersonInput } from './actions';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON } from '../ui/buttons';
+import { FIELD_ERROR, FIELD_HINT, FIELD_SUBMIT } from '../ui/fields';
 import { Icon } from '../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, TYPE_META, TYPE_NAME } from '../ui/surfaces';
 
@@ -131,7 +132,7 @@ export function EditInputForm({
       </header>
 
       {!editableName && (
-        <div className="rounded-2xl bg-surface-sunken px-3.5 py-2.5 text-[15px]">
+        <div className="rounded-[1.125rem] border border-dashed border-border-strong px-[1.125rem] py-3 text-[15px]">
           <span className="text-secondary">닉네임</span>{' '}
           <strong className="font-semibold">{current.name}</strong>
           <p className={`mt-0.5 ${TYPE_META}`}>내 이름은 프로필 닉네임으로 보여요.</p>
@@ -159,7 +160,7 @@ export function EditInputForm({
             /* 여덟 글자가 바뀌는 누름만 묻는다 — 이름만 고치는 것은 요청을 안 건드린다 */
             onClick={confirmsRequests && !pillarsSame ? () => setConfirming(true) : save}
             disabled={missing !== null || saving || (pillarsSame && !nameChanged)}
-            className={BUTTON_PRIMARY}
+            className={`${FIELD_SUBMIT} sm:min-w-44`}
           >
             {saving ? '저장하는 중…' : pillarsSame ? '이름 저장' : '변경 사항 저장'}
           </button>
@@ -167,12 +168,18 @@ export function EditInputForm({
             작성 그만두기
           </button>
         </div>
-        {missing !== null && <p className={TYPE_META}>{missing}</p>}
+        {missing !== null && (
+          <p className={`${FIELD_HINT} px-1`}>
+            <Icon name="lock" className="size-3.5 shrink-0" />
+            {missing}
+          </p>
+        )}
       </div>
 
       {failure !== null && (
-        <p role="alert" className="text-sm text-danger">
-          저장하지 못했어요. {failure}
+        <p role="alert" className={FIELD_ERROR}>
+          <Icon name="alert" className="mt-0.5 size-4 shrink-0" />
+          <span>저장하지 못했어요. {failure}</span>
         </p>
       )}
 
