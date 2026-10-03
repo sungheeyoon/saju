@@ -26,6 +26,23 @@ import {
   type Query,
 } from '@/src/lib/input/query';
 
+import {
+  COVER_RADIO,
+  FIELD_BLOCK,
+  FIELD_HINT,
+  FIELD_INPUT,
+  FIELD_LABEL,
+  FIELD_LABEL_ROW,
+  FIELD_NOTE,
+  FIELD_ERROR,
+  FIELD_NUMBER,
+  FIELD_PICKER,
+  FIELD_STACK,
+  FIELD_UNIT,
+  PICKER_PANEL,
+  SEGMENT,
+  SEGMENT_OPTION,
+} from './ui/form';
 import { Icon } from './ui/icons';
 
 /**
@@ -50,41 +67,100 @@ import { Icon } from './ui/icons';
  */
 
 /**
- * 폼은 **설정 앱의 묶음 목록**이다(입력 폼 시안 n 「설정 목록」, ADR 0132).
+ * 폼은 **큼직한 채움 칸의 세로 줄**이다(폼 디자인 D, 2026-10-03 — 모양의 원본은 `app/ui/form.ts`).
  *
- * 흰 둥근 묶음 안에 줄마다 왼쪽 이름 · 오른쪽 값. 칸 위에 제목을 세우고 그 아래 칸을 두던 동안에는 모양이 네 벌
- * (네모 칸 · 세그먼트 · 네모 셀렉트 · 라디오)이었다 — 줄 하나에 이름과 값이 함께 서면 비어 있어도 무슨 칸인지
- * 늘 보이고, 고르는 칸은 그 자리에서 펼쳐져 화면을 떠나지 않는다.
- *
- * 줄 사이 선은 왼쪽 16px 을 들여 긋는다(묶음 `pl-4`, 줄 `pr-4`) — 한 묶음으로 읽힌다.
+ * 설정 목록(시안 n, ADR 0132)의 흰 묶음 · 48px 줄 · 꺾쇠를 걷었다. 칸 하나가 동작 하나다 — 이름표는 칸 위에 굵게,
+ * 적는 칸은 56px 채움, 고르는 칸은 너비를 꽉 채우는 세그먼트, 선택지가 많은 칸(출생지 · 시간 기준)만 누르면 아래로
+ * 목록이 펼쳐진다. 칸의 차례와 하는 일은 그대로다.
  */
-const GROUP = 'overflow-hidden rounded-2xl bg-surface pl-4 shadow-card divide-y divide-border';
-
-/** 줄 — 높이 48px. 이름은 왼쪽, 값은 오른쪽 */
-const ROW = 'flex min-h-12 items-center gap-3 pr-4';
-const ROW_LABEL = 'shrink-0 text-[15px] text-foreground';
-
-/** 줄 안 오른쪽 숫자 칸 — 움푹한 작은 칸, 오른쪽 정렬 */
-const DIGIT =
-  'h-11 min-w-0 rounded-lg bg-surface-sunken px-1.5 text-right text-base tabular-nums text-foreground outline-none placeholder:text-sm placeholder:text-muted focus:ring-2 focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-40';
-
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
 type Option<T extends string> = { value: T; label: string; hint?: string };
 
+/** 이름표 줄 — 왼쪽 굵은 이름, 오른쪽 옅은 도움말 */
+function LabelRow({ id, label, aside }: { id?: string; label: string; aside?: React.ReactNode }) {
+  return (
+    <span className={FIELD_LABEL_ROW}>
+      <span id={id} className={FIELD_LABEL}>
+        {label}
+      </span>
+      {aside !== undefined && <span className={FIELD_HINT}>{aside}</span>}
+    </span>
+  );
+}
+
 /**
- * 누르면 그 자리에서 아래로 펼쳐지는 줄 — 고른 항목에 체크(✓), 고르면 접힌다.
+ * 두세 개 가운데 하나 — **칸 너비를 꽉 채우는 세그먼트.** 고른 것이 흰 알약으로 떠오른다.
  *
- * 줄은 `button` + `aria-expanded` 이고, 펼친 목록은 **진짜 라디오 묶음**이다. 단추에 `role="radio"` 를 달면 화살표
- * 이동과 한 번에 하나라는 규칙을 우리가 다시 짜야 한다 — 라디오는 브라우저가 그것을 이미 안다. 라디오는 보이지 않게
- * 줄 전체를 덮고(눌리는 것도 초점을 받는 것도 라디오다), 초점 테두리는 줄이 대신 두른다.
- *
- * **손으로 고르면 접히고 키보드로 옮기면 안 접힌다.** 화살표는 고르면서 옮기므로, 옮길 때마다 접으면 두 번째 항목에
- * 닿을 수 없다. 키보드로는 Enter 로 접는다 — 접히면 초점은 줄로 돌아간다.
+ * 펼침 줄이던 동안(시안 n)에는 한 번 눌러 펴고 한 번 더 눌러 골랐다. 선택지가 둘 · 셋이면 늘 보이게 두는 편이 한 번
+ * 덜 누른다. 속은 **진짜 라디오 묶음**이라 화살표 이동과 한 번에 하나라는 규칙은 브라우저가 든다 — 라디오는 칸 전체를
+ * 덮고(눌리는 것도 초점을 받는 것도 라디오다), 초점 테는 칸이 두른다. 고른 칸의 도움말(「경계 23:00」)은 묶음 아래에 선다.
  */
-function PickRow<T extends string>({
+function Segment<T extends string>({
+  label,
+  name = label,
+  options,
+  value,
+  onPick,
+  disabled = false,
+  missing = false,
+  aside,
+  children,
+}: {
+  label: string;
+  /** 낭독기가 부르는 묶음 이름 — 보이는 이름이 짧을 때(「달력」 → 「달력 기준」) */
+  name?: string;
+  options: readonly Option<T>[];
+  /** 빈 문자열이면 아직 안 골랐다 — 어느 칸도 떠오르지 않는다 */
+  value: T | '';
+  onPick: (value: T) => void;
+  disabled?: boolean;
+  /** 눌러 봤는데 아직 안 고른 칸 — 위험 테 */
+  missing?: boolean;
+  aside?: React.ReactNode;
+  /** 세그먼트 바로 아래에 붙는 것 — 「직접 입력」의 시 · 분 칸 */
+  children?: React.ReactNode;
+}) {
+  const id = useId();
+  const hint = options.find((option) => option.value === value)?.hint;
+
+  return (
+    <div className={FIELD_BLOCK}>
+      <LabelRow label={label} aside={aside} />
+      <div role="radiogroup" aria-label={name} data-missing={missing || undefined} className={SEGMENT}>
+        {options.map((option) => (
+          <label key={option.value} className={SEGMENT_OPTION}>
+            <input
+              type="radio"
+              name={id}
+              aria-label={option.label}
+              checked={option.value === value}
+              disabled={disabled}
+              onChange={() => onPick(option.value)}
+              className={COVER_RADIO}
+            />
+            <span className="truncate">{option.label}</span>
+          </label>
+        ))}
+      </div>
+      {children}
+      {hint !== undefined && <span className={`px-1 ${FIELD_HINT}`}>{hint}</span>}
+    </div>
+  );
+}
+
+/**
+ * 선택지가 많은 칸 — **누르면 그 자리에서 아래로 목록이 펼쳐진다**(출생지 열 곳 · 시간 기준 셋과 그 설명).
+ *
+ * 칸은 `button` + `aria-expanded` 이고 이름은 「이름표 + 지금 값」이다(`aria-labelledby` 둘). 펼친 목록은 진짜 라디오
+ * 묶음이다. **손으로 고르면 접히고 키보드로 옮기면 안 접힌다** — 화살표는 고르면서 옮기므로 옮길 때마다 접으면 두 번째
+ * 항목에 닿을 수 없다. 키보드로는 Enter 로 접고, 접히면 초점은 칸으로 돌아간다.
+ *
+ * `columns` 를 주면 목록이 칩 격자다(출생지 — 두 글자 이름 열 개가 한 화면에 다 선다).
+ */
+function PickField<T extends string>({
   label,
   name = label,
   options,
@@ -92,18 +168,16 @@ function PickRow<T extends string>({
   open,
   onToggle,
   onPick,
-  disabled = false,
+  columns,
 }: {
   label: string;
-  /** 낭독기가 부르는 묶음 이름 — 보이는 이름이 짧을 때(「달력」 → 「달력 기준」) */
   name?: string;
   options: readonly Option<T>[];
-  /** 빈 문자열이면 아직 안 골랐다 — 값 자리에 「–」가 선다 */
-  value: T | '';
+  value: T;
   open: boolean;
   onToggle: () => void;
   onPick: (value: T) => void;
-  disabled?: boolean;
+  columns?: string;
 }) {
   const id = useId();
   const toggle = useRef<HTMLButtonElement>(null);
@@ -115,31 +189,48 @@ function PickRow<T extends string>({
   };
 
   return (
-    <div>
+    <div className={FIELD_BLOCK}>
+      <LabelRow id={`${id}-label`} label={label} />
       <button
         ref={toggle}
         type="button"
         aria-expanded={open}
         aria-controls={id}
-        disabled={disabled}
+        aria-labelledby={`${id}-label ${id}-value`}
         onClick={onToggle}
-        className={`${ROW} w-full text-left active:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-40`}
+        className={FIELD_PICKER}
       >
-        <span className={ROW_LABEL}>{label}</span>
-        <span className={`min-w-0 flex-1 truncate text-right text-[15px] ${open ? 'text-foreground' : 'text-secondary'}`}>
+        <span id={`${id}-value`} className="min-w-0 flex-1 truncate text-[18px] font-semibold">
           {current?.label ?? '–'}
         </span>
-        <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${open ? '-rotate-90' : 'rotate-90'}`} />
+        {current?.hint !== undefined && (
+          <span aria-hidden="true" className={`hidden truncate sm:inline ${FIELD_HINT}`}>
+            {current.hint}
+          </span>
+        )}
+        <Icon
+          name="chevron"
+          className={`size-4 shrink-0 stroke-[2.6] text-muted transition-transform ${open ? '-rotate-90' : 'rotate-90'}`}
+        />
       </button>
 
       {open && (
-        <div id={id} role="radiogroup" aria-label={name} className="mb-2 mr-4 overflow-hidden rounded-xl bg-surface-sunken">
+        <div
+          id={id}
+          role="radiogroup"
+          aria-label={name}
+          className={`${PICKER_PANEL} ${columns !== undefined ? `grid gap-1 ${columns}` : 'flex flex-col gap-0.5'}`}
+        >
           {options.map((option) => {
             const checked = option.value === value;
             return (
               <label
                 key={option.value}
-                className="relative flex min-h-12 cursor-pointer items-center gap-2 border-t border-border px-3 first:border-t-0 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-accent-soft"
+                className={`relative flex min-h-12 cursor-pointer items-center gap-2 rounded-xl transition-colors has-focus-visible:ring-2 has-focus-visible:ring-accent ${
+                  columns !== undefined
+                    ? `justify-center px-1 text-[16px] ${checked ? 'bg-accent font-bold text-on-accent' : 'bg-field font-semibold text-foreground hover:bg-field-hover'}`
+                    : `px-4 text-[16px] ${checked ? 'bg-field font-bold' : 'font-medium hover:bg-field'}`
+                }`}
               >
                 <input
                   type="radio"
@@ -157,11 +248,13 @@ function PickRow<T extends string>({
                     onPick(option.value);
                     close();
                   }}
-                  className="absolute inset-0 cursor-pointer appearance-none opacity-0"
+                  className={COVER_RADIO}
                 />
-                <span className={`text-[15px] text-foreground ${checked ? 'font-semibold' : ''}`}>{option.label}</span>
-                {option.hint && <span className="text-[13px] text-secondary">{option.hint}</span>}
-                <span className="ml-auto">{checked && <Icon name="check" className="size-4 stroke-3 text-foreground" />}</span>
+                <span>{option.label}</span>
+                {option.hint && <span className={FIELD_HINT}>{option.hint}</span>}
+                {columns === undefined && (
+                  <span className="ml-auto">{checked && <Icon name="check" className="size-4 stroke-3 text-foreground" />}</span>
+                )}
               </label>
             );
           })}
@@ -172,18 +265,34 @@ function PickRow<T extends string>({
 }
 
 /**
- * 숫자 칸이 오른쪽에 서는 줄. **좁으면 칸들이 이름 아래로 꺾인다**(`flex-wrap`) — 폰 360px 의 로그인 뒤 카드 안에서
- * 「생년월일」과 칸 셋 · 단위가 한 줄에 안 들었다(2026-09-29 잼).
+ * 숫자 칸 여럿이 한 줄로 서는 칸(생년월일 · 시각). 이름표가 묶음 이름이고(`role="group"`), 칸들은 `cols` 의 격자로
+ * 너비를 나눠 가진다 — 해는 네 자리라 넓게, 월 · 일 · 시 · 분은 같게.
  */
-function DigitsRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function DigitsField({
+  label,
+  aside,
+  cols,
+  hideLabel = false,
+  children,
+}: {
+  label: string;
+  aside?: React.ReactNode;
+  cols: string;
+  /** 이름표를 눈에서만 숨긴다 — 「출생 시각」 세그먼트 바로 아래의 시 · 분 칸 */
+  hideLabel?: boolean;
+  children: React.ReactNode;
+}) {
   const id = useId();
   return (
-    <div role="group" aria-labelledby={id} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 py-1 pr-4">
-      <span id={id} className="flex shrink-0 flex-col text-[15px] leading-5 text-foreground">
-        {label}
-        {hint && <span className="text-xs text-secondary">{hint}</span>}
-      </span>
-      <div className="ml-auto flex min-w-0 items-center justify-end gap-2">{children}</div>
+    <div role="group" aria-labelledby={id} className={FIELD_BLOCK}>
+      {hideLabel ? (
+        <span id={id} className="sr-only">
+          {label}
+        </span>
+      ) : (
+        <LabelRow id={id} label={label} aside={aside} />
+      )}
+      <div className={`grid gap-2 ${cols}`}>{children}</div>
     </div>
   );
 }
@@ -279,22 +388,23 @@ function NumberField({
   digits,
   min,
   max,
-  width,
   placeholder,
   disabled = false,
+  missing = false,
   autoComplete,
 }: {
   label: string;
-  /** 칸 뒤에 서는 우리말 — 「년」·「월」·「시」. 이것이 있어 자리 이름을 안 물어도 된다 */
+  /** 칸 안 오른쪽에 옅게 서는 우리말 — 「년」·「월」·「시」. 이것이 있어 자리 이름을 안 물어도 된다 */
   suffix: string;
   value: string;
   onChange: (next: string) => void;
   digits: number;
   min: number;
   max: number;
-  width: string;
   placeholder: string;
   disabled?: boolean;
+  /** 눌러 봤는데 아직 빈 칸 — 위험 테(범위 밖의 붉음과 같은 모양, 판정은 하지 않는다) */
+  missing?: boolean;
   autoComplete?: string;
 }) {
   /**
@@ -306,22 +416,21 @@ function NumberField({
   const outOfRange = settled && (Number(value) < min || Number(value) > max);
 
   return (
-    <label className="flex shrink-0 items-center gap-1">
+    <label className="relative block min-w-0">
       <input
         type="text"
         inputMode="numeric"
         autoComplete={autoComplete}
         aria-label={label}
         aria-invalid={outOfRange || undefined}
+        data-missing={(missing && value === '') || undefined}
         placeholder={placeholder}
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, digits))}
-        // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `DIGIT` 의 바탕과
-        // 같은 무게라 어느 쪽이 이길지 정해지지 않는다. 변종 셀렉터는 한 겹 더 무겁다.
-        className={`${DIGIT} ${width} aria-invalid:bg-danger-wash aria-invalid:text-danger aria-invalid:ring-2 aria-invalid:ring-danger`}
+        className={FIELD_NUMBER}
       />
-      <span aria-hidden="true" className={`text-sm text-secondary ${disabled ? 'opacity-40' : ''}`}>
+      <span aria-hidden="true" className={`${FIELD_UNIT} ${disabled ? 'opacity-45' : ''}`}>
         {suffix}
       </span>
     </label>
@@ -355,7 +464,16 @@ const within = (value: string, min: number, max: number) =>
  * 것을 구별해야 한다**(뒤로가기·링크로 들어옴). 마지막으로 올려 보낸 값을
  * 기억해 두고 그것과 다를 때만 조각을 다시 쪼갠다.
  */
-function DateFields({ value, onDate }: { value: Query; onDate: (date: string) => void }) {
+function DateFields({
+  value,
+  onDate,
+  missing = false,
+}: {
+  value: Query;
+  onDate: (date: string) => void;
+  /** 눌러 봤는데 날짜가 아직 없다 — 빈 칸만 위험 테를 두른다 */
+  missing?: boolean;
+}) {
   const [parts, setParts] = useState(() => splitDate(value.date));
   const lastEmitted = useRef(value.date);
 
@@ -383,7 +501,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
   };
 
   return (
-    <DigitsRow label="생년월일">
+    <DigitsField label="생년월일" cols="grid-cols-[1.4fr_1fr_1fr]">
       <NumberField
         label="출생연도"
         suffix="년"
@@ -392,9 +510,9 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={4}
         min={years.min}
         max={years.max}
-        width="w-[3.75rem]"
         placeholder={String(years.max - 30)}
         autoComplete="bday-year"
+        missing={missing}
       />
       <NumberField
         label="출생월"
@@ -404,9 +522,9 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={12}
-        width="w-12"
         placeholder="1~12"
         autoComplete="bday-month"
+        missing={missing}
       />
       <NumberField
         label="출생일"
@@ -416,11 +534,11 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={maxDay}
-        width="w-12"
         placeholder={`1~${maxDay}`}
         autoComplete="bday-day"
+        missing={missing}
       />
-    </DigitsRow>
+    </DigitsField>
   );
 }
 
@@ -452,14 +570,12 @@ function splitTime(time: string) {
 function TimeFields({
   value,
   onChange,
-  open,
-  onToggle,
+  missing = false,
 }: {
   value: Query;
   onChange: (next: Query) => void;
-  /** 「출생 시각」 줄이 펼쳐져 있나 — 한 묶음에서 펼침은 하나라 묶음(`BirthFields`)이 든다 */
-  open: boolean;
-  onToggle: () => void;
+  /** 눌러 봤는데 시각을 아직 안 답했다 — 안 고른 세그먼트나 빈 시 · 분 칸이 위험 테를 두른다 */
+  missing?: boolean;
 }) {
   const [parts, setParts] = useState(() => splitTime(value.time));
   const lastEmitted = useRef(value.time);
@@ -499,25 +615,25 @@ function TimeFields({
   const known = value.hourKnown === true;
 
   return (
-    <>
-      <PickRow
-        label="출생 시각"
-        value={value.hourKnown === null ? '' : value.hourKnown ? 'known' : 'unknown'}
-        open={open}
-        onToggle={onToggle}
-        onPick={(next) => choose(next === 'known')}
-        options={[
-          { value: 'known', label: '직접 입력' },
-          { value: 'unknown', label: HOUR_UNKNOWN_CHOICE, hint: '출생 시각 없이 풀이해요' },
-        ]}
-      />
+    <Segment
+      label="출생 시각"
+      value={value.hourKnown === null ? '' : value.hourKnown ? 'known' : 'unknown'}
+      onPick={(next) => choose(next === 'known')}
+      missing={missing && value.hourKnown === null}
+      // 「24시간」은 시 · 분 칸이 설 때만 — 이름표 오른쪽에 옅게
+      aside={known ? '24시간' : undefined}
+      options={[
+        { value: 'known', label: '직접 입력' },
+        { value: 'unknown', label: HOUR_UNKNOWN_CHOICE, hint: '출생 시각 없이 풀이해요' },
+      ]}
+    >
       {/*
         시·분도 **적는 칸**이다. 24시간이라 시는 스물넷, 분은 예순 줄짜리 목록이 되는데, 두 자리를 치는 편이
         어느 쪽이든 빠르다. 범위를 벗어나면 시각을 내보내지 않으므로 「25:70」이 계산으로 흘러가지 않는다.
-        「직접 입력」일 때만 선다 — 「모름」이거나 아직 안 골랐으면(주소에서 온 `null`) 이 줄이 빠진다.
+        「직접 입력」일 때만 세그먼트 바로 아래에 붙는다 — 「모름」이거나 아직 안 골랐으면(주소에서 온 `null`) 빠진다.
       */}
       {known && (
-        <DigitsRow label="시각" hint="24시간">
+        <DigitsField label="시각" cols="grid-cols-2" hideLabel>
           <NumberField
             label="출생 시"
             suffix="시"
@@ -526,8 +642,8 @@ function TimeFields({
             digits={2}
             min={0}
             max={23}
-            width="w-12"
             placeholder="0~23"
+            missing={missing}
           />
           <NumberField
             label="출생 분"
@@ -537,12 +653,12 @@ function TimeFields({
             digits={2}
             min={0}
             max={59}
-            width="w-12"
             placeholder="0~59"
+            missing={missing}
           />
-        </DigitsRow>
+        </DigitsField>
       )}
-    </>
+    </Segment>
   );
 }
 
@@ -551,6 +667,7 @@ export function BirthFields({
   onChange,
   namePlaceholder,
   showName = true,
+  flagMissing = false,
 }: {
   value: Query;
   onChange: (next: Query) => void;
@@ -558,10 +675,15 @@ export function BirthFields({
   namePlaceholder?: string;
   /** 본인은 계정 닉네임으로 부르므로 출생 정보에서 이름을 다시 묻지 않는다 */
   showName?: boolean;
+  /**
+   * 눌렀는데 빠진 답이 있다 — **빈 칸에 위험 테를 두른다.** 판정은 여기서 하지 않는다(`missingAnswer` 가 든다).
+   * 쓰는 화면이 「눌러 봤고 막혔다」일 때만 켠다 — 누르기 전의 빈 칸은 아직 틀린 것이 아니다.
+   */
+  flagMissing?: boolean;
 }) {
   const set = <K extends keyof Query>(key: K, next: Query[K]) => onChange({ ...value, [key]: next });
 
-  /** 한 묶음에서 펼침은 하나만 열린다 — 다른 줄을 누르면 앞의 것이 접힌다 */
+  /** 펼침은 하나만 열린다 — 다른 칸을 펴면 앞의 것이 접힌다 */
   const [open, setOpen] = useState<RowKey | null>(null);
   const toggle = (key: RowKey) => () => setOpen((current) => (current === key ? null : key));
   const pick = <K extends keyof Query>(key: K) => (next: Query[K]) => set(key, next);
@@ -594,104 +716,105 @@ export function BirthFields({
 
   return (
     /*
-      묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 · 달력 · 시각) → 어디서(출생지). 계산 옵션은
-      따로 떨어진 묶음이다(시안 n, ADR 0132).
+      묻는 것의 차례는 그대로다: 누구인가(이름 · 성별) → 언제(생년월일 · 달력 · 시각) → 어디서(출생지). 계산 옵션은
+      가는 선 아래 따로 접힌다. 폼은 36rem 을 안 넘는다 — 넓은 화면에서 56px 칸이 천 픽셀로 늘어나면 한 칸이 한 동작으로 안 읽힌다.
+      넓은 자리(폼 너비 32rem 이상)에서만 이름 · 성별이 한 줄에 나란히 선다 — 차례는 같다.
     */
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <div className={GROUP}>
-          {showName && (
-            <label className={ROW}>
-              <span className={ROW_LABEL}>이름</span>
-              <input
-                type="text"
-                value={value.name}
-                onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
-                placeholder={namePlaceholder}
-                maxLength={NAME_MAX}
-                className="h-11 min-w-0 flex-1 bg-transparent text-right text-base text-foreground outline-none placeholder:text-muted"
-              />
-            </label>
-          )}
-
-          <PickRow
-            label="성별"
-            value={value.gender}
-            open={open === 'gender'}
-            onToggle={toggle('gender')}
-            onPick={pick('gender')}
-            options={GENDERS.map((gender) => ({ value: gender, label: GENDER_KO[gender] }))}
-          />
-
-          <DateFields value={value} onDate={(date) => set('date', date)} />
-
-          {/*
-            **달력은 날짜 바로 아래다.** 「1984-10-05」는 양력인지 음력인지가 정해져야 비로소 하루를 가리키고,
-            음력이면 평달인지 윤달인지에 따라 실제 날이 한 달 떨어진다.
-          */}
-          <PickRow
-            label="달력"
-            name="달력 기준"
-            value={value.calendar}
-            open={open === 'calendar'}
-            onToggle={toggle('calendar')}
-            onPick={chooseCalendar}
-            options={CALENDARS.map((calendar) => ({ value: calendar, label: CALENDAR_KO[calendar] }))}
-          />
-
-          <TimeFields value={value} onChange={onChange} open={open === 'time'} onToggle={toggle('time')} />
-
-          {/*
-            **출생지는 폼 안에 선다** — 진태양시의 경도라 계산에 들고(운영자 2026-09-29 「출생지도 폼에 넣어야」),
-            서울이 아닌 사람이 접힌 칸을 열어 볼 까닭이 없다.
-          */}
-          <PickRow
-            label="출생지"
-            value={value.city}
-            open={open === 'city'}
-            onToggle={toggle('city')}
-            onPick={pick('city')}
-            options={CITIES.map((city) => ({ value: city, label: city }))}
-          />
-        </div>
-
-        {/*
-          달력 형식과 날짜는 **함께 읽어야 뜻이 생긴다.** 그래서 변환 결과를 묶음 바로 밑에 적는다 — **저장이나
-          계산 전에.** 사용자가 아는 것은 음력 날짜뿐인데, 우리가 무엇을 양력으로 잡았는지 못 보면 잘못 골랐다는
-          것을 결과 화면에 가서야 알게 된다.
-        */}
-        {converted !== null && (
-          <p
-            role={converted.ok ? undefined : 'alert'}
-            // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
-            className={`px-4 text-xs ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
-          >
-            {converted.text}
-          </p>
+    <div className={`@container w-full max-w-[36rem] ${FIELD_STACK}`}>
+      <div className={`grid gap-6 ${showName ? '@lg:grid-cols-2 @lg:gap-3' : ''}`}>
+        {showName && (
+          <label className={FIELD_BLOCK}>
+            <LabelRow label="이름" />
+            <input
+              type="text"
+              value={value.name}
+              onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
+              placeholder={namePlaceholder}
+              maxLength={NAME_MAX}
+              data-missing={(flagMissing && value.name.trim() === '') || undefined}
+              className={FIELD_INPUT}
+            />
+          </label>
         )}
+
+        <Segment
+          label="성별"
+          value={value.gender}
+          onPick={pick('gender')}
+          options={GENDERS.map((gender) => ({ value: gender, label: GENDER_KO[gender] }))}
+        />
       </div>
 
-      <div className={GROUP}>
+      <DateFields value={value} onDate={(date) => set('date', date)} missing={flagMissing && value.date === ''} />
+
+      {/*
+        **달력은 날짜 바로 아래다.** 「1984-10-05」는 양력인지 음력인지가 정해져야 비로소 하루를 가리키고,
+        음력이면 평달인지 윤달인지에 따라 실제 날이 한 달 떨어진다.
+      */}
+      <Segment
+        label="달력"
+        name="달력 기준"
+        value={value.calendar}
+        onPick={chooseCalendar}
+        options={CALENDARS.map((calendar) => ({ value: calendar, label: CALENDAR_KO[calendar] }))}
+      />
+
+      <TimeFields value={value} onChange={onChange} missing={flagMissing} />
+
+      {/*
+        **출생지는 폼 안에 선다** — 진태양시의 경도라 계산에 들고(운영자 2026-09-29 「출생지도 폼에 넣어야」),
+        서울이 아닌 사람이 접힌 칸을 열어 볼 까닭이 없다. 열 곳이라 세그먼트로는 못 세우고, 펴면 다섯 칸 칩 격자다.
+      */}
+      <PickField
+        label="출생지"
+        value={value.city}
+        open={open === 'city'}
+        onToggle={toggle('city')}
+        onPick={pick('city')}
+        columns="grid-cols-5"
+        options={CITIES.map((city) => ({ value: city, label: city }))}
+      />
+
+      {/*
+        달력 형식과 날짜는 **함께 읽어야 뜻이 생긴다.** 그래서 변환 결과를 입력 칸들 바로 밑에 적는다 — **저장이나
+        계산 전에.** 사용자가 아는 것은 음력 날짜뿐인데, 우리가 무엇을 양력으로 잡았는지 못 보면 잘못 골랐다는
+        것을 결과 화면에 가서야 알게 된다.
+      */}
+      {converted !== null && (
+        <p
+          role={converted.ok ? undefined : 'alert'}
+          // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
+          className={converted.ok ? FIELD_NOTE : FIELD_ERROR}
+        >
+          <Icon name={converted.ok ? 'check' : 'alert'} className="mt-0.5 size-4 shrink-0 stroke-[2.4]" />
+          {converted.text}
+        </p>
+      )}
+
+      <div className="flex flex-col gap-6 border-t border-border pt-2">
         <button
           type="button"
           aria-expanded={advancedShown}
           onClick={() => setAdvanced(!advancedShown)}
-          className={`${ROW} w-full text-left active:bg-surface-sunken`}
+          className="flex min-h-12 w-full items-center gap-3 rounded-2xl px-1 text-left hover:text-foreground"
         >
-          <span className={ROW_LABEL}>고급 설정</span>
-          <span className="min-w-0 flex-1 truncate text-right text-[13px] text-secondary">자시 · 시간 기준 · 세운</span>
-          <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${advancedShown ? 'rotate-90' : 'rotate-0'}`} />
+          <span className="text-[15px] font-bold text-secondary">고급 설정</span>
+          <span className={`min-w-0 flex-1 truncate text-right ${FIELD_HINT}`}>자시 · 시간 기준 · 세운</span>
+          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-field">
+            <Icon
+              name="chevron"
+              className={`size-3.5 stroke-[2.8] text-secondary transition-transform ${advancedShown ? '-rotate-90' : 'rotate-90'}`}
+            />
+          </span>
         </button>
 
         {advancedShown && (
           <>
             {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
-            <PickRow
+            <Segment
               label="자시"
               name="자시 규칙"
               value={value.rule}
-              open={open === 'rule'}
-              onToggle={toggle('rule')}
               onPick={pick('rule')}
               disabled={value.hourKnown === false}
               options={[
@@ -699,7 +822,7 @@ export function BirthFields({
                 { value: 'ya' as LateNightRule, label: '야자시', hint: '경계 자정' },
               ]}
             />
-            <PickRow
+            <PickField
               label="시간 기준"
               value={value.basis}
               open={open === 'basis'}
@@ -707,17 +830,19 @@ export function BirthFields({
               onPick={pick('basis')}
               options={TIME_BASES.map((basis) => ({ value: basis, label: TIME_BASIS[basis].label, hint: TIME_BASIS[basis].hint }))}
             />
-            <label className={ROW}>
-              <span className={ROW_LABEL}>세운 연도</span>
-              <input
-                type="number"
-                aria-label="세운 시작"
-                value={value.saeunFrom}
-                min={SUPPORTED_YEAR_RANGE.min}
-                max={SUPPORTED_YEAR_RANGE.max}
-                onChange={(event) => set('saeunFrom', Number(event.target.value))}
-                className={`${DIGIT} ml-auto w-[4.5rem]`}
-              />
+            <label className={FIELD_BLOCK}>
+              <LabelRow label="세운 연도" />
+              <span className="relative block max-w-48">
+                <input
+                  type="number"
+                  aria-label="세운 시작"
+                  value={value.saeunFrom}
+                  min={SUPPORTED_YEAR_RANGE.min}
+                  max={SUPPORTED_YEAR_RANGE.max}
+                  onChange={(event) => set('saeunFrom', Number(event.target.value))}
+                  className={`${FIELD_INPUT} text-center tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
+                />
+              </span>
             </label>
           </>
         )}
@@ -726,4 +851,4 @@ export function BirthFields({
   );
 }
 
-type RowKey = 'gender' | 'calendar' | 'time' | 'city' | 'rule' | 'basis';
+type RowKey = 'city' | 'basis';

@@ -74,6 +74,17 @@
   --elevation-raise: 0 12px 28px -12px rgba(60, 48, 30, 0.5);
 
   /*
+    **입력 칸의 채움** — 폼은 테두리 없는 옅은 채움 칸이다(폼 디자인 D, 2026-10-03). 흰 카드 위에도 크림 종이 위에도
+    같은 한 벌이 서도록 불투명한 색이 아니라 먹색을 얇게 깐다. 초점이면 채움이 걷히고 떠 있는 흰 면(`--field-focus`)에
+    먹색 테가 선다.
+  */
+  --field: rgba(60, 48, 30, 0.06);
+  --field-hover: rgba(60, 48, 30, 0.095);
+  --field-focus: var(--surface-raised);
+  /* 세그먼트에서 고른 칸의 알약 — 채움 위로 떠오른다. 어두운 화면에서는 채움보다 밝아야 떠 보인다 */
+  --field-pick: var(--surface-raised);
+
+  /*
     **본문 글꼴은 기기의 것이다**(ADR 0109 추기, 2026-09-30 운영자 결정). 웹 글꼴(Pretendard)을 싣지 않는다 —
     라틴 글자와 숫자는 시스템 서체가, 한글은 애플 산돌고딕 · Noto Sans KR · 맑은 고딕 가운데 기기에 있는 것이 그린다.
     제목의 둥근 서체(고운돋움)만 `next/font` 로 싣는다(`app/layout.tsx`).
@@ -132,6 +143,10 @@
     --elevation-soft: 0 2px 8px -4px rgba(0, 0, 0, 0.5);
     --elevation-lift: 0 8px 18px -10px rgba(0, 0, 0, 0.6);
     --elevation-raise: 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+    --field: rgba(242, 236, 222, 0.075);
+    --field-hover: rgba(242, 236, 222, 0.11);
+    --field-focus: var(--surface-raised);
+    --field-pick: #4a453d;
   }
 }
 
@@ -176,6 +191,10 @@
   --color-cream-ink: var(--cream-ink);
   --color-badge: var(--badge);
   --color-on-badge: var(--on-badge);
+  --color-field: var(--field);
+  --color-field-hover: var(--field-hover);
+  --color-field-focus: var(--field-focus);
+  --color-field-pick: var(--field-pick);
   --shadow-card: var(--elevation-card);
   --shadow-float: var(--elevation-float);
   --shadow-soft: var(--elevation-soft);
