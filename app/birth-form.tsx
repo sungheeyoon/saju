@@ -27,8 +27,8 @@ import {
   type Query,
 } from '@/src/lib/input/query';
 
-import { birthPreviewOf, hourSlotsOf, slotOfTime, slotRangeOf, type HourSlot } from './birth-hour';
-import { SolarClockLine } from './birth-preview';
+import { birthPreviewOf, hourSlotsOf, lateNightChoicesOf, slotOfTime, slotRangeOf, type HourSlot } from './birth-hour';
+import { LateNightChoice, SolarClockLine } from './birth-preview';
 import { ELEMENT_TONE } from './ui/element-tone';
 import { Icon } from './ui/icons';
 
@@ -773,6 +773,7 @@ export function BirthFields({
 
   /* 다 찬 입력으로 엔진이 세운 명식 — 계산 시각 · 자시 · 미리보기가 함께 읽는다(`birth-hour.ts`) */
   const preview = useMemo(() => birthPreviewOf(value), [value]);
+  const lateNight = useMemo(() => lateNightChoicesOf(value), [value]);
 
   return (
     /*
@@ -853,6 +854,9 @@ export function BirthFields({
         {/* 출생지 · 시간 기준이 시계 시각을 몇 분 옮겼는가 — 시주 경계 근처의 사람은 여기서 고칠 곳을 안다 */}
         {preview !== null && <SolarClockLine preview={preview} basis={value.basis} />}
       </div>
+
+      {/* 자정 전 자시면 두 규칙의 일주가 갈린다 — 고급 설정을 열지 않아도 그 자리에서 고른다 */}
+      {lateNight !== null && <LateNightChoice choices={lateNight} rule={value.rule} onPick={pick('rule')} />}
 
       <div className={GROUP}>
         <button
