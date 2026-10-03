@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { pickable, stepTo, type Step } from '@/src/lib/people/pick';
 import type { Element } from '@/src/lib/saju';
 
+import { FIELD_BLOCK, FIELD_COMBO, FIELD_LABEL } from './ui/form';
 import { Icon } from './ui/icons';
 import { FaceSymbol } from './ui/stem-symbol';
 
@@ -163,8 +164,8 @@ export function PersonCombobox({
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-[13px] font-semibold text-secondary">
+    <div className={FIELD_BLOCK}>
+      <label htmlFor={inputId} className={`px-1 ${FIELD_LABEL}`}>
         {label}
       </label>
       <div className="relative min-w-0">
@@ -172,13 +173,10 @@ export function PersonCombobox({
           <FaceSymbol
             stem={chosen.stem}
             element={chosen.element}
-            className="pointer-events-none absolute left-3 top-1/2 size-6 -translate-y-1/2"
+            className="pointer-events-none absolute left-4 top-1/2 size-7 -translate-y-1/2"
           />
         )}
-        {/*
-          **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
-          그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
-        */}
+        {/* 생년월일시 칸과 같은 채움 칸이다(`app/ui/form.ts`) — 초점이면 흰 면에 먹색 테가 선다 */}
         <input
           id={inputId}
           type="text"
@@ -206,13 +204,11 @@ export function PersonCombobox({
           }}
           onKeyDown={onKeyDown}
           onBlur={close}
-          className={`h-12 w-full rounded-2xl border border-border bg-surface pr-10 text-[15px] font-semibold placeholder:font-normal placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash ${
-            chosen !== undefined && typed === null ? 'pl-11' : 'pl-4'
-          }`}
+          className={`${FIELD_COMBO} ${chosen !== undefined && typed === null ? 'pl-13' : 'pl-5'}`}
         />
         <Icon
           name="chevron"
-          className={`pointer-events-none absolute right-4 top-1/2 size-3 -translate-y-1/2 stroke-[3.2] text-secondary ${listed ? '-rotate-90' : 'rotate-90'}`}
+          className={`pointer-events-none absolute right-5 top-1/2 size-3.5 -translate-y-1/2 stroke-[3] text-muted ${listed ? '-rotate-90' : 'rotate-90'}`}
         />
       </div>
 

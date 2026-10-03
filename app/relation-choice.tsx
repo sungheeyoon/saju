@@ -18,9 +18,10 @@ import { TYPE_NAME } from './ui/surfaces';
  * 그래서 안내가 「점수에는 쓰지 않습니다」를 더는 말하지 않는다(2026-09-26).
  *
  * **칩은 조용하다**(운영자 2026-09-29 — 「스타일 좀 죽이고」). 먹색 채움 · 굵은 15px · 44px 알약 다섯이 주 단추와 같은
- * 무게로 서서, 누를 것(「궁합 보기」)보다 고를 것이 먼저 보였다. 이제 칩은 보관함의 필터 칩과 같은 몸 — 14px 보통 굵기 ·
- * 흰 면 · 가는 테 · 보이는 높이 36px 이고, 고른 것은 옅은 크림 면 · 한 단계 짙은 테 · 먹색 글자에 **체크 표시**를 단다 — 색만으로
- * 「골랐다」를 말하지 않는다. 눌리는 자리는 그대로 44px 다(보이는 알약 밖의 투명한 위아래 4px).
+ * 무게로 서서, 누를 것(「궁합 보기」)보다 고를 것이 먼저 보였다. 칩은 생년월일시의 채움 칸과 같은 몸이다(폼 디자인 D,
+ * `app/ui/form.ts`) — 15px 보통 굵기 · 옅은 채움 면 · 모서리 12px · 보이는 높이 40px 이고, 고른 것만 흰 면으로 떠오르며 한 단계 짙은
+ * 테 · 먹색 글자에 **체크 표시**를 단다 — 색만으로 「골랐다」를 말하지 않는다. 눌리는 자리는 그대로 44px 다(보이는 칩 밖의 투명한
+ * 위아래 2px).
  *
  * **누를 것은 칩 줄의 오른쪽 끝에 선다**(`action`). 넓은 화면은 칩 · 단추가 한 줄이고, 폰에서 줄이 넘치면 단추만 다음 줄의
  * 오른쪽 끝으로 내려간다.
@@ -49,7 +50,7 @@ export function RelationChoice({
         때문이에요. <strong className="font-semibold text-foreground">점수의 기준도 이 답을 따라요.</strong>
       </p>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-1.5">
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
         {[...RELATIONS, null].map((choice) => {
           const id = `${idPrefix}-relation-${choice ?? 'unknown'}`;
           const label = choice === null ? '아직 모르겠음' : RELATION_LABEL[choice];
@@ -75,10 +76,10 @@ export function RelationChoice({
                 className="peer absolute inset-0 cursor-pointer appearance-none opacity-0"
               />
               <span
-                className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-[14px] ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-soft ${
+                className={`inline-flex min-h-10 items-center gap-1 rounded-xl px-4 text-[15px] transition-[background-color,color,box-shadow] duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-accent ${
                   picked
-                    ? 'bg-accent-wash font-semibold text-foreground ring-border-strong'
-                    : 'bg-surface font-medium text-secondary ring-border group-hover:text-foreground'
+                    ? 'bg-field-pick font-semibold text-foreground shadow-soft ring-1 ring-border-strong'
+                    : 'bg-field font-medium text-secondary group-hover:bg-field-hover group-hover:text-foreground'
                 }`}
               >
                 {picked && <Icon name="check" className="size-3 stroke-[3.6]" />}

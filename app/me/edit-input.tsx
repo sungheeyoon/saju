@@ -6,13 +6,14 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { INPUT_EDIT_CHANGE_CONFIRM } from '@/src/lib/consent';
 
 import { BirthFields } from '../birth-form';
+import { FIELD_HINT, FORM_SECONDARY, FORM_SUBMIT } from '../ui/form';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
 import {
   INPUT_EDIT_REPLACED_NOTE,
   samePillarInput,
 } from '@/src/lib/input/edit';
 import { editPersonInput } from './actions';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY, BUTTON_TERTIARY, ICON_BUTTON } from '../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_SECONDARY, ICON_BUTTON } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, TYPE_META, TYPE_NAME } from '../ui/surfaces';
 
@@ -123,7 +124,7 @@ export function EditInputForm({
 
   return (
     <section
-      className="flex flex-col gap-4 rounded-[1.5rem] border border-border bg-surface p-4 text-foreground shadow-card sm:p-5"
+      className="flex flex-col gap-6 rounded-[1.5rem] border border-border bg-surface p-4 text-foreground shadow-card sm:p-6"
     >
       <header className="flex flex-col gap-1">
         <h2 className={TYPE_NAME}>수정하기</h2>
@@ -131,7 +132,7 @@ export function EditInputForm({
       </header>
 
       {!editableName && (
-        <div className="rounded-2xl bg-surface-sunken px-3.5 py-2.5 text-[15px]">
+        <div className="rounded-2xl bg-field px-5 py-3.5 text-[15px]">
           <span className="text-secondary">닉네임</span>{' '}
           <strong className="font-semibold">{current.name}</strong>
           <p className={`mt-0.5 ${TYPE_META}`}>내 이름은 프로필 닉네임으로 보여요.</p>
@@ -159,15 +160,15 @@ export function EditInputForm({
             /* 여덟 글자가 바뀌는 누름만 묻는다 — 이름만 고치는 것은 요청을 안 건드린다 */
             onClick={confirmsRequests && !pillarsSame ? () => setConfirming(true) : save}
             disabled={missing !== null || saving || (pillarsSame && !nameChanged)}
-            className={BUTTON_PRIMARY}
+            className={`${FORM_SUBMIT} min-w-0 flex-1 sm:flex-none sm:px-10`}
           >
             {saving ? '저장하는 중…' : pillarsSame ? '이름 저장' : '변경 사항 저장'}
           </button>
-          <button type="button" onClick={onCancel} disabled={saving} className={BUTTON_TERTIARY}>
+          <button type="button" onClick={onCancel} disabled={saving} className={FORM_SECONDARY}>
             작성 그만두기
           </button>
         </div>
-        {missing !== null && <p className={TYPE_META}>{missing}</p>}
+        {missing !== null && <p className={`px-1 ${FIELD_HINT}`}>{missing}</p>}
       </div>
 
       {failure !== null && (
