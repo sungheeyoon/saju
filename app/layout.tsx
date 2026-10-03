@@ -41,6 +41,12 @@ export const metadata: Metadata = {
   */
   title: { default: TITLE, template: SERVICE_TITLE_TEMPLATE },
   description: DESCRIPTION,
+  /*
+    **홈 화면에서 열면 앱처럼**(`app/manifest.ts`). iOS 는 매니페스트의 `display` 를 반만 읽어 이 셋을 따로 본다 —
+    상태 막대는 `default`(밝은 바탕에 검은 글자)라 머리글이 그 밑으로 들어가지 않는다.
+  */
+  appleWebApp: { capable: true, title: SERVICE_NAME, statusBarStyle: 'default' },
+  formatDetection: { telephone: false },
   openGraph: {
     type: "website",
     siteName: SERVICE_NAME,
@@ -67,6 +73,15 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  /*
+    **주소창 · 상태 막대가 종이 색을 입는다** — 없으면 폰 브라우저가 흰 막대를 세워 크림 바탕 위에 띠가 졌다.
+    값은 `globals.css` 의 `--background` 두 벌이다(이 자리는 CSS 변수를 못 읽는다).
+  */
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#faf6ef' },
+    { media: '(prefers-color-scheme: dark)', color: '#161513' },
+  ],
+  colorScheme: 'light dark',
 };
 
 /**
