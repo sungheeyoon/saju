@@ -22,7 +22,8 @@ export function LandingGuide() {
 
   return (
     <section aria-labelledby="landing-guide" className="flex flex-col gap-4">
-      <div className="flex items-end justify-between gap-3">
+      {/* 폰에서는 제목이 두 줄로 갈리지 않게 링크가 아랫줄로 내려간다 */}
+      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
         <h2 id="landing-guide" className={TYPE_SECTION}>
           로그인하면 더 볼 수 있어요
         </h2>
