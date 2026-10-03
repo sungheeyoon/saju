@@ -280,6 +280,24 @@ button, a, summary {
   animation: reading-shimmer 1.6s ease-in-out infinite;
 }
 @keyframes reading-shimmer { to { background-position: -220% 0; } }
+/*
+  **폼의 움직임 둘**(`app/ui/fields.tsx`) — 새로 선 칸은 위에서 4px 내려앉으며 서고(`field-in`), 범위를 벗어난 숫자 칸은
+  한 번 가볍게 고개를 젓는다(`field-nudge`). 아래 줄인 움직임 규칙이 둘 다 멈춘다.
+*/
+@keyframes field-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes field-nudge {
+  0%, 100% { transform: none; }
+  25% { transform: translateX(-3px); }
+  60% { transform: translateX(2px); }
+}
+/* 준비된 주 단추가 한 번 숨을 쉰다 — 모든 칸이 찬 순간 한 번만(`app/ui/fields.tsx` 의 `ReadyMark`) */
+@keyframes ready-breath {
+  0% { box-shadow: var(--elevation-lift), 0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent); }
+  100% { box-shadow: var(--elevation-lift), 0 0 0 12px transparent; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
