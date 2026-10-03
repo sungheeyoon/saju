@@ -217,7 +217,11 @@
   * { border-color: var(--border); }
 }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  /* 앵커 · 스크롤해 보여주기가 데려간 자리가 붙어 있는 머리글(h-16) 밑에 서지 않게 */
+  scroll-padding-top: calc(4.75rem + env(safe-area-inset-top));
+}
 
 body {
   background:

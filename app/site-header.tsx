@@ -25,6 +25,7 @@ import { BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY_SMALL, ICON_BUTTON, ICON_BUTTON_
 import { useDetailsMenu } from './ui/details-menu';
 import { Icon, type IconName } from './ui/icons';
 import { BrandMark } from './ui/logo';
+import { reducedMotion } from './ui/motion';
 import { BADGE } from './ui/surfaces';
 
 /**
@@ -133,6 +134,7 @@ export function SiteHeader() {
   return (
     <>
       <SkipToMain />
+      <KeepFocusInView />
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl">
         <div className="app-shell flex h-16 items-center gap-2 md:gap-5">
           <Link
@@ -246,6 +248,37 @@ function SkipToMain() {
       본문으로 건너뛰기
     </a>
   );
+}
+
+/**
+ * **초점이 머리글 · 독 밑에 숨지 않는다**(WCAG 2.4.11).
+ *
+ * 머리글은 위에 붙어 있고(`sticky`) 폰의 독은 아래에 떠 있다(`fixed`). 브라우저는 초점이 **화면 안에** 있으면 스크롤하지
+ * 않는다 — 화면 안이지만 독 밑인 단추(홈의 사람 타일 「풀이 받기」)에 Tab 이 닿으면 그 단추가 독에 덮인 채로 섰고,
+ * 「본문으로 건너뛰기」 뒤의 첫 단추는 머리글 밑에 섰다(2026-10-03 잼). 초점이 그 둘 밑에 들어가면 그만큼만 민다.
+ *
+ * 글을 적는 칸은 건드리지 않는다 — 폰은 키보드를 올리며 제 스크롤을 하고, 그 사이 독은 내려간다(`globals.css`).
+ * 확인 창(`<dialog>`)은 맨 위 층이라 덮이지 않는다.
+ */
+function KeepFocusInView() {
+  useEffect(() => {
+    const onFocus = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.matches('input, textarea, select, [contenteditable]') || target.closest('dialog, header, nav#mobile-member-navigation')) return;
+      const box = target.getBoundingClientRect();
+      const top = document.querySelector('body > header')?.getBoundingClientRect().bottom ?? 0;
+      /* 독은 `md:hidden` 이면 상자가 0 이다 — 그때는 화면 바닥이 경계다 */
+      const dock = document.getElementById('mobile-member-navigation')?.getBoundingClientRect();
+      const bottom = dock !== undefined && dock.height > 0 ? dock.top : window.innerHeight;
+      const gap = 12;
+      const delta = box.top < top + gap ? box.top - top - gap : box.bottom > bottom - gap ? box.bottom - bottom + gap : 0;
+      if (delta !== 0) window.scrollBy({ top: delta, behavior: reducedMotion() ? 'auto' : 'smooth' });
+    };
+    document.addEventListener('focusin', onFocus);
+    return () => document.removeEventListener('focusin', onFocus);
+  }, []);
+  return null;
 }
 
 /**
