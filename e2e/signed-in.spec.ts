@@ -2869,7 +2869,7 @@ test.describe('가입 관문', () => {
       newcomer.page.getByRole('heading', { name: '출생 정보를 입력해 주세요' }),
     ).toBeVisible();
 
-    await newcomer.page.getByRole('link', { name: '점점 홈' }).first().click();
+    await newcomer.page.getByRole('link', { name: '결 홈' }).first().click();
 
     await expect(newcomer.page).toHaveURL(/\/signup$/);
     await expect(

@@ -25,19 +25,19 @@ const PREVIEW: Record<ShareKind, { title: string; description: string; image: st
   self: {
     title: `사주풀이가 도착했어요 | ${SERVICE_NAME}`,
     description: '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
-    image: '/brand/reading-share-v3.jpg',
+    image: '/brand/reading-share-v4.jpg',
     alt: ALT,
   },
   person: {
     title: `사주풀이가 도착했어요 | ${SERVICE_NAME}`,
     description: '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
-    image: '/brand/saju-share-v3.jpg',
+    image: '/brand/saju-share-v4.jpg',
     alt: ALT,
   },
   private: {
     title: `두 사람의 궁합이 도착했어요 | ${SERVICE_NAME}`,
     description: '공유된 궁합풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
-    image: '/brand/compat-share-v3.jpg',
+    image: '/brand/compat-share-v4.jpg',
     alt: ALT,
   },
 };
@@ -49,7 +49,7 @@ export function previewFor(kind: ShareKind): Metadata {
   const said = PREVIEW[kind];
 
   return {
-    /* `metadataBase` 는 루트 레이아웃 한 곳에서 내려온다. 제목은 이미 이름을 품어 뿌리의 틀(`— 점점`)을 안 입는다 */
+    /* `metadataBase` 는 루트 레이아웃 한 곳에서 내려온다. 제목은 이미 이름을 품어 뿌리의 틀(`— 결`)을 안 입는다 */
     title: { absolute: said.title },
     description: said.description,
     /** 공유본은 링크를 가진 사람의 것이지 검색으로 닿을 것이 아니다 */
