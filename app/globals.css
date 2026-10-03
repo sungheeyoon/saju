@@ -314,17 +314,17 @@ button, a, summary {
 @media (max-width: 640px) {
   .app-shell { width: min(100% - 2rem - var(--safe-inline), 72rem); }
 }
-/* 하단 독(`site-header.tsx`)이 서는 폭 — 떠 있는 판의 높이와 아래 틈만큼 본문 끝을 비운다 */
+/* 하단 독(`site-header.tsx`)이 서는 폭 — 바닥에 붙은 독의 높이(66px)와 숨 쉴 틈만큼 본문 끝을 비운다 */
 @media (max-width: 767px) {
   body:has(#mobile-member-navigation) {
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
   }
   /*
     **스크롤해 데려가는 자리도 독을 비켜 선다** — 앵커(`#person-…`) · 키보드 초점 · 스크롤해 보여주기가 화면
     바닥에 세운 것을 독이 덮었다. 홈에서 관계 지도가 내 사주 아래로 내려간 뒤(2026-09-25) 지도의 원이 그 자리에 섰다.
   */
   html:has(#mobile-member-navigation) {
-    scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom));
   }
 }
 /*
@@ -339,5 +339,5 @@ button, a, summary {
   html:has([data-deck-fit]) main:has([data-deck-fit]) { flex: 1 1 0; min-height: 0; padding-bottom: 1.5rem; }
 }
 @media (max-width: 767.98px) {
-  html:has([data-deck-fit]) main:has([data-deck-fit]) { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+  html:has([data-deck-fit]) main:has([data-deck-fit]) { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
 }

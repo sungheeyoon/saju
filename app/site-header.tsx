@@ -151,7 +151,7 @@ export function SiteHeader() {
             <nav aria-label="내 메뉴" className="hidden min-w-0 flex-1 justify-center md:flex">
               <WithCameFrom
                 render={(from) => (
-                  <ul className="flex items-center gap-1 rounded-full bg-surface p-1 ring-1 ring-border">
+                  <ul className="flex items-center gap-1">
                     {MEMBER_TABS.map((tab) => {
                       const active = isNavigationActive(pathname, tab.href, from);
                       return (
@@ -164,8 +164,8 @@ export function SiteHeader() {
                           <Link
                             href={tab.href}
                             aria-current={active ? 'page' : undefined}
-                            className={`relative inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[15px] font-semibold active:scale-[0.97] after:absolute after:inset-x-0 after:-inset-y-0.5 ${
-                              active ? 'bg-accent text-on-accent' : 'text-secondary hover:bg-surface-soft hover:text-foreground'
+                            className={`relative inline-flex min-h-10 items-center gap-2 rounded-full px-4 text-[15px] font-semibold active:scale-[0.97] after:absolute after:inset-x-0 after:-inset-y-0.5 before:absolute before:bottom-0 before:left-1/2 before:size-1.5 before:-translate-x-1/2 before:rounded-[1px] before:bg-seal before:transition-opacity ${
+                              active ? 'text-foreground before:opacity-100' : 'text-secondary before:opacity-0 hover:text-foreground'
                             }`}
                           >
                             <Icon name={tab.icon} className="hidden size-[18px] lg:block" />
@@ -366,9 +366,9 @@ function Dock({
     <nav
       id="mobile-member-navigation"
       aria-label="모바일 내 메뉴"
-      className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 md:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/92 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
     >
-      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-[1.25rem] bg-surface/95 p-1.5 shadow-raise ring-1 ring-border backdrop-blur-xl">
+      <ul className="mx-auto grid max-w-md grid-cols-4 px-2 pb-1 pt-1">
         {MEMBER_TABS.map((tab) => {
           const active = isNavigationActive(pathname, tab.href, from);
           return (
@@ -380,11 +380,10 @@ function Dock({
                   active ? 'text-foreground' : 'text-secondary hover:text-foreground'
                 }`}
               >
-                <span
-                  aria-hidden="true"
-                  className={`grid h-8 w-14 place-items-center rounded-full ${active ? 'bg-wood-soft text-wood' : ''}`}
-                >
+                <span aria-hidden="true" className="relative grid h-8 w-14 place-items-center">
                   <Icon name={tab.icon} />
+                  {/* 지금 선 자리 — 그림 위의 주색 인장 점 하나(넓은 화면 탭과 같은 표시) */}
+                  <span className={`absolute -top-1 size-1.5 rounded-[1px] bg-seal ${active ? '' : 'opacity-0'}`} />
                 </span>
                 {tab.label}
                 {(badges[tab.href] ?? 0) > 0 && (
