@@ -5,6 +5,7 @@ import { useState, useTransition } from 'react';
 
 import { BirthFields } from '../birth-form';
 import { BUTTON_PRIMARY } from '../ui/buttons';
+import { Icon } from '../ui/icons';
 import { ElementSymbol } from '../ui/element-symbol';
 import { PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { ELEMENTS } from '@/src/lib/saju';
@@ -47,12 +48,34 @@ export function Onboarding({ nickname }: { nickname: string }) {
           <ElementSymbol key={element} element={element} className="size-10 rounded-full bg-[var(--tile)] p-2 sm:size-12" />
         ))}
       </span>
+      {/*
+        **이미 한 걸음 왔다는 것을 보인다**(그로스 시안, 2026-10-03). 가입을 마친 사람이 빈 폼만 보면 처음부터 다시
+        시작하는 느낌이다 — 지나온 걸음에 표를 달고, 이 폼이 마지막에서 두 번째라는 것을 세운다. 걸음은 코드의 차례
+        그대로다: 가입 → 내 사주 저장 → 홈의 내 사주 카드에서 사주풀이 받기.
+      */}
+      <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold" aria-label="시작하는 차례">
+        {ONBOARDING_STEPS.map((step, index) => (
+          <li key={step} className="flex items-center gap-2">
+            {index > 0 && <span aria-hidden="true" className="h-px w-4 bg-border-strong" />}
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 ${
+                index === 0 ? 'bg-surface text-secondary' : index === 1 ? 'bg-accent text-on-accent' : 'text-secondary'
+              }`}
+              aria-current={index === 1 ? 'step' : undefined}
+            >
+              {index === 0 && <Icon name="check" className="size-3.5" />}
+              {step}
+            </span>
+          </li>
+        ))}
+      </ol>
       <header className="flex flex-col gap-2">
         <h2 className={TYPE_TITLE}>내 사주 등록</h2>
         <p className="max-w-prose text-[15px] leading-6 text-secondary">
           <strong className="font-semibold text-foreground">{nickname}</strong> 님의 출생 정보를 입력해 주세요.
           나중에 언제든 고칠 수 있어요. 고치면 그때부터 새 정보로 계산해요.
         </p>
+        <p className="max-w-prose text-[15px] leading-6 text-foreground">저장하면 바로 홈에 내 사주 카드가 서고, 거기서 사주풀이를 받을 수 있어요.</p>
       </header>
 
       <BirthFields value={query} onChange={setQuery} showName={false} />
@@ -69,3 +92,6 @@ export function Onboarding({ nickname }: { nickname: string }) {
     </section>
   );
 }
+
+/** 처음 쓰는 사람이 걷는 차례 — 가입은 이미 지났고 지금은 둘째다 */
+const ONBOARDING_STEPS = ['가입', '내 사주 저장', '사주풀이 받기'] as const;
