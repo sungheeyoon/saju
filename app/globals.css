@@ -272,6 +272,13 @@ button, a, summary {
 @supports (-webkit-touch-callout: none) {
   input:not([type=radio], [type=checkbox], [type=range]), textarea, select { font-size: max(16px, 1rem); }
 }
+/*
+  **화면이 바뀔 때 본문이 살짝 떠오른다.** 탭을 누르면 본문이 한 프레임에 통째로 갈아 끼워져 깜빡였다 — 앱의 탭 전환처럼
+  180ms 동안 옅게 들어온다. 화면마다 제 `<main>` 을 그리므로 주소가 바뀔 때마다 한 번 돈다. **투명도만 움직인다** —
+  `transform` 은 그동안 `<main>` 안의 `fixed`(시트 · 확인 창 바탕)를 본문 기준으로 묶는다. 줄인 움직임이면 없다(아래).
+*/
+main { animation: page-in 180ms ease-out; }
+@keyframes page-in { from { opacity: 0; } }
 /* 「본문으로 건너뛰기」가 초점을 옮겨 놓는 `<main tabindex=-1>` — 본문 전체에 테두리를 두르지 않는다 */
 main:focus { outline: none; }
 ::selection { background: var(--accent-soft); }
