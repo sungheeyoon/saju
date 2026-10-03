@@ -253,6 +253,16 @@ button, a, summary {
     outline-offset: 3px;
   }
 }
+/*
+  **iOS 는 16px 보다 작은 칸에 초점이 들면 화면을 확대한다** — 채팅 글상자 · 사람 찾기 · 가입 · 프로필 · 설문 칸이
+  15px · 14px 이라 누를 때마다 화면이 커져, 다 적은 뒤 손가락 둘로 되돌려야 했다. 확대를 막는(`maximum-scale`)
+  대신 손가락으로 쓰는 화면(`pointer: coarse`)에서 칸의 글자를 16px 로 올린다 — 확대해 보는 손은 그대로 둔다.
+  iOS 만 가르는 `@supports (-webkit-touch-callout)` 는 데스크톱 시험 브라우저에서 잴 수 없어 쓰지 않는다. 층 밖이라
+  유틸리티보다 세다(시안 #451 에서 가져옴).
+*/
+@media (pointer: coarse) {
+  input:not([type=radio], [type=checkbox], [type=range]), textarea, select { font-size: max(16px, 1rem); }
+}
 ::selection { background: var(--accent-soft); }
 
 .glyph {
