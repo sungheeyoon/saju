@@ -17,7 +17,11 @@
  * (ADR 0063), 흐름 검사(`check-share.mjs`)가 JPEG 의 실제 크기 · 무게(300KB 아래)를 적어 둔 값과 견준다.
  * 파일 규약의 그림은 파일 그림이 메타데이터 객체보다 앞서 공유본 세 화면의 갈래별 그림을 덮는다.
  *
- * **판을 바꾸면 파일 이름의 판(`-v3`)도 올린다** — 카카오톡 · 페이스북은 미리보기 그림을 주소로 오래 붙들어, 같은
+ * **v4 — 이름 「결」(2026-10-03 브랜드 시안).** 점선 궤도 자리에 손으로 그은 듯한 나이테 결(`grain`)이 서고, 이름은
+ * 고운바탕 700, 로고는 `app/ui/logo.tsx` 의 나이테, 모서리의 원 하나는 감물빛(`--brand-soft`)이다. 궁합 그림은 두 나무의 결이
+ * 겹치는 모양이다. 한 줄 소개는 Noto Sans KR 600 으로 굽는다.
+ *
+ * **판을 바꾸면 파일 이름의 판(`-v4`)도 올린다** — 카카오톡 · 페이스북은 미리보기 그림을 주소로 오래 붙들어, 같은
  * 이름에 새 그림을 올리면 옛 그림이 계속 선다. 이름을 바꾸면 이것을 다시 돌린다 — `scripts/brand-share-images.test.ts`
  * 가 구운 이름과 상수가 다르면 붉힌다.
  *
@@ -89,21 +93,40 @@ const badge = (name, cx, cy, r, { dashed = false } = {}) =>
   `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${ELEMENTS[name].soft}" stroke="${ELEMENTS[name].mid}" stroke-width="2" ${dashed ? 'stroke-dasharray="5 6"' : ''}/>` +
   symbol(name, cx, cy, r * 1.05);
 
-/** 점선 궤도 — 로고의 `stroke-dasharray="0.1 3.3"` 과 같은 둥근 점 */
-const orbit = (cx, cy, r, { gap = 13, width = 4, color = T['border-strong'] } = {}) =>
-  `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-dasharray="0.1 ${gap}"/>`;
+/**
+ * 나이테 결 — 손으로 그은 듯 고르지 않은 동심원 한 겹. 화면 관계 지도의 점선 궤도를 이 결이 대신한다. 흔들림은 각도의
+ * 사인 셋을 섞어 늘 같은 모양으로 선다(굽을 때마다 그림이 바뀌면 판을 올린 뜻이 흐려진다). `seed` 가 겹마다 자리를 옮긴다.
+ */
+const grain =(cx, cy, r, { seed = 0, wobble = 0.045, width = 3.2, color = T.foreground, opacity = 0.55, from = 0, to = 360 } = {}) => {
+  const steps = 96;
+  const points = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const deg = from + ((to - from) * i) / steps;
+    const a = (deg * Math.PI) / 180;
+    const k = 1 + wobble * (Math.sin(3 * a + seed) * 0.6 + Math.sin(5 * a + seed * 1.7) * 0.3 + Math.sin(2 * a - seed) * 0.4);
+    points.push(`${(cx + r * k * Math.cos(a)).toFixed(1)} ${(cy + r * k * Math.sin(a)).toFixed(1)}`);
+  }
+  return `<path d="M ${points.join(' L ')}" fill="none" stroke="${color}" stroke-opacity="${opacity}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`;
+};
+
+/** 결 여러 겹 — 가운데가 한쪽(왼아래)으로 치우쳐 바깥 겹일수록 오른위가 넓다. 로고의 짜임과 같다 */
+const rings = (cx, cy, radii, options = {}) =>
+  radii
+    .map((r, i) => grain(cx + i * 6, cy - i * 6, r, { seed: i * 1.3 + (options.seed ?? 0), opacity: 0.18 + 0.32 * (1 - i / radii.length), ...options }))
+    .join('');
 
 const HEART = 'M12 19.5s-7.5-4.4-7.5-9.7A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5c0 5.3-7.5 9.7-7.5 9.7Z';
 const SPARK = 'M12 3.5 13.9 10l6.6 2-6.6 2L12 20.5 10.1 14l-6.6-2 6.6-2Z';
 const icon = (d, cx, cy, size, { fill = 'none', stroke = T.foreground, width = 1.8 } = {}) =>
   `<g transform="translate(${cx - size / 2} ${cy - size / 2}) scale(${size / 24})"><path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${width}" stroke-linejoin="round" stroke-linecap="round"/></g>`;
 
-/** 로고(`app/ui/logo.tsx` · `app/icon.svg`) — 바탕 네모 없이 */
-const LOGO = `<svg viewBox="0 0 32 32" width="84" height="84">
-  <circle cx="16" cy="16.5" r="11" fill="none" stroke="${T.foreground}" stroke-opacity="0.5" stroke-width="1.8" stroke-dasharray="0.1 3.3" stroke-linecap="round"/>
-  <circle cx="16" cy="16.5" r="6" fill="${T['fire-mid']}" stroke="${T.foreground}" stroke-width="1.6"/>
-  <circle cx="17.4" cy="5.6" r="2" fill="${T['water-mid']}" stroke="${T.foreground}" stroke-width="1.3"/>
-  <circle cx="24.9" cy="10" r="3" fill="${T['wood-mid']}" stroke="${T.foreground}" stroke-width="1.5"/>
+/** 로고(`app/ui/logo.tsx` · `app/icon.svg`) — 바탕 네모 없이, 같은 좌표 */
+const LOGO = `<svg viewBox="0 0 32 32" width="96" height="96" fill="none" stroke-linecap="round">
+  <path d="M3.08 10.21A14.6 14.6 0 1 1 29.44 22.5" stroke="${T.foreground}" stroke-opacity="0.45" stroke-width="1.5"/>
+  <path d="M26.43 19.62C25.67 22.00 22.93 24.31 20.59 25.57C18.24 26.82 14.72 27.85 12.35 27.13C9.97 26.41 7.55 23.59 6.34 21.24C5.13 18.88 4.31 15.35 5.07 13.01C5.84 10.68 8.60 8.43 10.91 7.23C13.23 6.02 16.58 5.09 18.96 5.78C21.33 6.46 23.91 9.00 25.16 11.31C26.40 13.62 27.19 17.24 26.43 19.62Z" stroke="${T.foreground}" stroke-width="1.6"/>
+  <path d="M19.70 22.04C18.40 23.29 15.10 23.59 13.21 23.04C11.33 22.49 8.85 20.47 8.41 18.74C7.96 17.00 9.15 14.01 10.55 12.62C11.95 11.24 15.05 9.92 16.80 10.41C18.54 10.90 20.53 13.62 21.01 15.56C21.50 17.50 21.00 20.80 19.70 22.04Z" stroke="${T.foreground}" stroke-width="1.6"/>
+  <circle cx="14.7" cy="17.2" r="3" fill="${T.brand}"/>
+  <circle cx="29.44" cy="22.5" r="1.7" fill="${T.foreground}"/>
 </svg>`;
 
 /* ───────────── 그림 셋 — 오른쪽 그림판(1200×628 좌표의 SVG) ───────────── */
@@ -141,12 +164,11 @@ function sajuArt() {
     .join('');
   return `
     <circle cx="${cx}" cy="${cy}" r="218" fill="${T['accent-soft']}" opacity="0.55"/>
-    <circle cx="${cx}" cy="${cy}" r="${ring}" fill="none" stroke="${T.foreground}" stroke-opacity="0.16" stroke-width="2"/>
-    <circle cx="${cx}" cy="${cy}" r="112" fill="${T['fire-soft']}"/>
-    ${orbit(cx, cy, outer)}
+    <circle cx="${cx}" cy="${cy}" r="112" fill="${T['brand-soft']}"/>
+    ${rings(cx - 8, cy + 8, [96, ring, 214, outer], { seed: 0.4 })}
     ${beads}
     ${spokes}
-    <circle cx="${cx}" cy="${cy}" r="66" fill="${T['fire-mid']}" stroke="${T.foreground}" stroke-width="4"/>
+    <circle cx="${cx}" cy="${cy}" r="66" fill="${T['brand-mid']}" stroke="${T.foreground}" stroke-width="4"/>
     <circle cx="${cx - 18}" cy="${cy - 20}" r="12" fill="#ffffff" opacity="0.35"/>
     ${badges}`;
 }
@@ -188,7 +210,7 @@ function readingArt() {
   const dayX = x0 + 40 + (tile + gapX) - 7;
   const day = `<rect x="${dayX}" y="${y0 + 33}" width="${tile + 14}" height="${2 * tile + gapY + 14}" rx="28" fill="none" stroke="${T.foreground}" stroke-width="3.5"/>`;
   return `
-    ${orbit(cx + 10, cy - 4, 262)}
+    ${rings(cx + 10, cy - 4, [236, 262, 292], { seed: 2.1 })}
     <circle cx="${cx + 10 + 262 * Math.cos(-0.5)}" cy="${cy - 4 + 262 * Math.sin(-0.5)}" r="11" fill="${T['water-mid']}" stroke="${T.foreground}" stroke-width="2.4"/>
     <circle cx="${cx + 10 + 262 * Math.cos(2.5)}" cy="${cy - 4 + 262 * Math.sin(2.5)}" r="8" fill="${T['earth-mid']}" stroke="${T.foreground}" stroke-width="2.4"/>
     <g transform="rotate(-4 ${cx} ${cy})" filter="url(#lift)">
@@ -210,8 +232,8 @@ function compatArt() {
   const mid = [(a[0] + b[0]) / 2, 318];
   return `
     <ellipse cx="${mid[0]}" cy="${mid[1]}" rx="318" ry="226" fill="${T['accent-soft']}" opacity="0.5"/>
-    ${orbit(...a, r)}
-    ${orbit(...b, r)}
+    ${rings(a[0], a[1], [r - 34, r, r + 34], { seed: 0.9 })}
+    ${rings(b[0], b[1], [r - 34, r, r + 34], { seed: 3.3 })}
     <path d="M ${a[0] + 64} ${a[1]} C ${mid[0] - 40} ${a[1] - 38}, ${mid[0] + 40} ${b[1] - 38}, ${b[0] - 64} ${b[1]}" fill="none" stroke="${T.foreground}" stroke-width="4" stroke-linecap="round"/>
     <circle cx="${a[0]}" cy="${a[1]}" r="64" fill="${T['fire-soft']}" stroke="${T.fire}" stroke-width="4"/>
     ${symbol('fire', a[0], a[1], 70)}
@@ -230,38 +252,38 @@ function compatArt() {
 const CORNERS = {
   saju: [
     [1170, -30, 190, T['wood-soft']],
-    [1235, 70, 150, T['water-soft']],
+    [1235, 70, 150, T['brand-soft']],
     [-60, 660, 170, T['earth-soft']],
   ],
   reading: [
     [1190, 640, 210, T['water-soft']],
     [1110, 690, 130, T['wood-soft']],
-    [-40, -50, 150, T['fire-soft']],
+    [-40, -50, 150, T['brand-soft']],
   ],
   compat: [
-    [1180, -20, 170, T['fire-soft']],
+    [1180, -20, 170, T['brand-soft']],
     [-50, 650, 190, T['wood-soft']],
     [40, 700, 120, T['water-soft']],
   ],
 };
 
 const SHOTS = [
-  { kind: 'saju', target: 'saju-share-v3.jpg', art: sajuArt },
-  { kind: 'reading', target: 'reading-share-v3.jpg', art: readingArt },
-  { kind: 'compat', target: 'compat-share-v3.jpg', art: compatArt },
+  { kind: 'saju', target: 'saju-share-v4.jpg', art: sajuArt },
+  { kind: 'reading', target: 'reading-share-v4.jpg', art: readingArt },
+  { kind: 'compat', target: 'compat-share-v4.jpg', art: compatArt },
 ];
 
 function page(shot) {
   const corners = CORNERS[shot.kind].map(([x, y, r, fill]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`).join('');
   return `<!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@600;700&display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Noto+Sans+KR:wght@600;700&display=block">
 <style>
   html, body { margin: 0; }
   body { width: ${SIZE.width}px; height: ${SIZE.height}px; position: relative; overflow: hidden; background: ${T.background}; }
   svg.art { position: absolute; inset: 0; }
   .words { position: absolute; left: 92px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; color: ${T.foreground}; }
-  .name { margin-top: 20px; font-family: 'Gowun Dodum'; font-size: 132px; line-height: 1; letter-spacing: -0.02em; }
+  .name { margin-top: 18px; font-family: 'Gowun Batang'; font-weight: 700; font-size: 168px; line-height: 1; letter-spacing: -0.01em; }
   .tagline { margin-top: 30px; font-family: 'Noto Sans KR'; font-weight: 600; font-size: 31px; letter-spacing: -0.02em; color: ${T['text-secondary']}; white-space: nowrap; }
 </style></head>
 <body>
