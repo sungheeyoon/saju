@@ -15,19 +15,15 @@ import {
 } from '@/src/lib/profile';
 
 import { checkNickname } from '../../nickname';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+import { FIELD_AREA, FIELD_INPUT, FIELD_SIDE_BUTTON, FIELD_SUBMIT, FIELD_TILE } from '../../ui/fields';
 import { saveProfile } from './actions';
 import { PhotoGrid } from './photo-grid';
 import type { MyPhoto } from './photos';
 
-/** 입력 칸 — 48px, 크림 바탕 위에서도 칸임이 보이게 흰 면과 테 */
-const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+/** 입력 칸은 출생 정보 폼과 같은 떠 있는 타일이다(`app/ui/fields.ts`) — 이름표가 칸 안 위에 붙는다 */
 
 /** 판 한 장 — 무리 지은 목록과 같은 흰 판 */
 const PANEL = 'flex flex-col gap-5 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
-
-const LABEL = 'text-[13px] font-semibold text-secondary';
 
 /**
  * 프로필을 고치는 자리 — **셋이 한 화면에 있다**(PRD 「이름과 얼굴」).
@@ -108,10 +104,8 @@ export function ProfileForm({
             **버튼을 라벨 밖에 둔다.** 안에 넣으면 `<label>` 이 칸과 버튼 둘을 함께 물고,
             읽어 주는 도구가 「닉네임」을 어느 것의 이름으로 부를지 사람마다 달라진다.
           */}
-          <label htmlFor="nickname" className={LABEL}>
-            닉네임
-          </label>
           <div className="flex items-center gap-2">
+            <div data-empty={profile.nickname === '' || undefined} className={`${FIELD_TILE} field-head min-w-0 flex-1 sm:max-w-72`}>
             <input
               id="nickname"
               type="text"
@@ -121,13 +115,17 @@ export function ProfileForm({
               }
               maxLength={NICKNAME_MAX}
               placeholder={`${NICKNAME_MIN}~${NICKNAME_MAX}자`}
-              className={`${FIELD} min-w-0 flex-1 sm:max-w-64`}
+              className={FIELD_INPUT}
             />
+            <label htmlFor="nickname" className="field-label">
+              닉네임
+            </label>
+            </div>
             <button
               type="button"
               onClick={check}
               disabled={checking || missing !== null}
-              className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0`}
+              className={FIELD_SIDE_BUTTON}
             >
               {checking ? '확인하는 중…' : '중복 확인'}
             </button>
@@ -144,8 +142,7 @@ export function ProfileForm({
           </p>
         )}
 
-        <label className="flex flex-col gap-1.5">
-          <span className={LABEL}>소개 (선택)</span>
+        <label data-empty={profile.intro === '' || undefined} className={`${FIELD_TILE} field-head field-head--area block`}>
           <textarea
             value={profile.intro}
             onChange={(event) =>
@@ -154,8 +151,9 @@ export function ProfileForm({
             maxLength={INTRO_MAX}
             rows={3}
             placeholder="간단한 소개를 입력해 주세요"
-            className={`${FIELD} py-3 leading-6`}
+            className={FIELD_AREA}
           />
+          <span className="field-label">소개 (선택)</span>
         </label>
 
         <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:gap-3">
@@ -163,7 +161,7 @@ export function ProfileForm({
             type="button"
             onClick={save}
             disabled={missing !== null || saving || !changed}
-            className={BUTTON_PRIMARY}
+            className={`${FIELD_SUBMIT} sm:min-w-44`}
           >
             {saving ? '저장하는 중…' : '프로필 저장'}
           </button>

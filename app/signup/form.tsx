@@ -21,16 +21,14 @@ import {
 } from '@/src/lib/profile';
 
 import { checkNickname } from '../nickname';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
+import { FIELD_CHOICE, FIELD_INPUT, FIELD_SIDE_BUTTON, FIELD_SUBMIT, FIELD_TILE } from '../ui/fields';
 import { completeSignup } from './actions';
 
-/** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
-const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
-
-/** 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다) */
-const BOX =
-  'flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft';
+/**
+ * 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다). 출생 정보 폼과 같은
+ * 타일 한 장이다(`app/ui/fields.ts`). 입력 칸도 그 타일이다 — 이름표가 칸 안 위에 붙고 비어 있으면 가운데로 내려앉는다.
+ */
+const BOX = `${FIELD_CHOICE} items-start py-4`;
 
 const LABEL = 'text-[15px] font-semibold';
 
@@ -127,9 +125,7 @@ export function SignupForm({
     <div className="flex flex-col gap-6">
       {needsCode && (
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="signup-code" className={LABEL}>
-            테스트 코드
-          </label>
+          <div data-empty={code === '' || undefined} className={`${FIELD_TILE} field-head w-full sm:max-w-72`}>
           <input
             id="signup-code"
             type="text"
@@ -140,8 +136,12 @@ export function SignupForm({
             /* 대문자 하나로만 산다 — DB 검사식과 같은 규칙이라 여기서 미리 맞춘다 */
             onChange={(event) => setCode(event.target.value.toUpperCase().slice(0, 24))}
             placeholder="예: SAJU1001"
-            className={`${FIELD} w-full tracking-[0.08em] sm:max-w-64`}
+            className={`${FIELD_INPUT} tracking-[0.08em]`}
           />
+          <label htmlFor="signup-code" className="field-label">
+            테스트 코드
+          </label>
+          </div>
           <p className="text-[13px] leading-5 text-muted">{SIGNUP_CODE_NOTE}</p>
         </div>
       )}
@@ -152,10 +152,8 @@ export function SignupForm({
             **버튼을 라벨 밖에 둔다.** 안에 넣으면 `<label>` 이 칸과 버튼 둘을 함께 물고,
             읽어 주는 도구가 「닉네임」을 어느 것의 이름으로 부를지 사람마다 달라진다.
           */}
-          <label htmlFor="signup-nickname" className={LABEL}>
-            닉네임
-          </label>
           <div className="flex items-center gap-2">
+            <div data-empty={nickname === '' || undefined} className={`${FIELD_TILE} field-head min-w-0 flex-1 sm:max-w-72`}>
             <input
               id="signup-nickname"
               type="text"
@@ -163,13 +161,17 @@ export function SignupForm({
               onChange={(event) => setNickname(event.target.value.slice(0, NICKNAME_MAX))}
               maxLength={NICKNAME_MAX}
               placeholder={`${NICKNAME_MIN}~${NICKNAME_MAX}자`}
-              className={`${FIELD} min-w-0 flex-1 sm:max-w-64`}
+              className={FIELD_INPUT}
             />
+            <label htmlFor="signup-nickname" className="field-label">
+              닉네임
+            </label>
+            </div>
             <button
               type="button"
               onClick={check}
               disabled={checking || missing !== null}
-              className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0`}
+              className={FIELD_SIDE_BUTTON}
             >
               {checking ? '확인하는 중…' : '중복 확인'}
             </button>
@@ -269,7 +271,7 @@ export function SignupForm({
       )}
 
       <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:gap-3">
-        <button type="button" onClick={send} disabled={blocked} className={BUTTON_PRIMARY}>
+        <button type="button" onClick={send} disabled={blocked} className={`${FIELD_SUBMIT} sm:min-w-52`}>
           {working ? '가입하는 중…' : needsCode ? '가입하고 시작하기' : '확인하고 계속하기'}
         </button>
         {missing !== null && <span className="text-[13px] text-muted">{missing}</span>}
