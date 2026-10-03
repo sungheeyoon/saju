@@ -57,7 +57,7 @@ export function SettingsCard({
           <p className="text-[13px] leading-5 text-secondary">{description}</p>
         )}
       </div>
-      <div className="flex flex-col overflow-hidden rounded-[1.5rem] border border-border bg-surface px-4 py-1 sm:px-5 [&>[role=alert]]:pb-4">
+      <div className="flex flex-col overflow-hidden rounded-[1rem] border border-border bg-surface px-4 py-1 sm:px-5 [&>[role=alert]]:pb-4">
         {children}
       </div>
     </section>

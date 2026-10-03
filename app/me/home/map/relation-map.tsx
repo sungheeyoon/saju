@@ -95,7 +95,7 @@ export function RelationMap({ model, addHref, canAdd }: { model: MapModel; addHr
   };
 
   return (
-    <section aria-labelledby="home-orbit" className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[2rem] bg-cream">
+    <section aria-labelledby="home-orbit" className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[1.25rem] bg-cream">
       <header className="flex items-baseline justify-between gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
         <h2 id="home-orbit" className="font-rounded text-[1.375rem] leading-8 text-foreground">
           관계 지도
@@ -568,7 +568,7 @@ function PersonCard({ person, links, onClose }: { person: MapPerson; links: Retu
   return (
     <article
       aria-labelledby="home-orbit-card-name"
-      className={`${elementScope(person.day?.element ?? null)} ${styles.arrive} mx-3 mb-3 flex flex-col gap-2.5 rounded-[1.25rem] bg-surface p-3 ring-1 ring-border sm:mx-4 sm:px-4`}
+      className={`${elementScope(person.day?.element ?? null)} ${styles.arrive} mx-3 mb-3 flex flex-col gap-2.5 rounded-[0.875rem] bg-surface p-3 ring-1 ring-border sm:mx-4 sm:px-4`}
     >
       <div className="flex items-center gap-2.5">
         <span

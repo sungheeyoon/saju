@@ -12,12 +12,12 @@ export default function CompatLoading() {
     <SkeletonMain name="compat" className="app-shell flex flex-1 flex-col gap-10 py-6 sm:gap-14 sm:py-12">
       <div className="flex flex-col gap-4">
         <Bone className="h-8 w-40 rounded-full" />
-        <div className="h-72 rounded-[2rem] bg-cream" />
+        <div className="h-72 rounded-[1.25rem] bg-cream" />
       </div>
 
-      <Bone className="h-[4.25rem] rounded-[1.25rem]" />
+      <Bone className="h-[4.25rem] rounded-[0.875rem]" />
 
-      <div className="min-h-[22rem] rounded-[2rem] bg-cream sm:min-h-[26rem]" />
+      <div className="min-h-[22rem] rounded-[1.25rem] bg-cream sm:min-h-[26rem]" />
     </SkeletonMain>
   );
 }

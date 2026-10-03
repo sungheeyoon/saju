@@ -133,7 +133,7 @@ async function Home({ selfPersonId }: { selfPersonId: string }) {
         {stood === null ? (
           <p className="text-sm text-muted">내 사주를 불러오지 못했어요. 잠시 뒤 새로고침해 주세요.</p>
         ) : !stood.ok ? (
-          <section className="flex flex-col gap-2 rounded-[2rem] border border-border bg-surface p-5 sm:p-6">
+          <section className="flex flex-col gap-2 rounded-[1.25rem] border border-border bg-surface p-5 sm:p-6">
             <p className="text-sm">{stood.message}</p>
             <p className="text-[13px] text-muted">{UNREADABLE_INPUT_NOTE}</p>
           </section>
@@ -173,7 +173,7 @@ async function Unread() {
   return (
     <Link
       href="/me/requests"
-      className="flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.99] sm:-mt-6"
+      className="flex min-h-14 items-center gap-3 rounded-[0.875rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.99] sm:-mt-6"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-fire-soft text-fire">
         <Icon name="bell" className="size-[18px]" />

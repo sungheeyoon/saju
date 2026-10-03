@@ -115,7 +115,7 @@ export default async function CompatPage() {
         <h2 id="compat-new" tabIndex={-1} className={`${TYPE_SECTION} outline-none`}>
           궁합 새로 보기
         </h2>
-        <Suspense fallback={<div className="h-72 rounded-[2rem] bg-cream" />}>
+        <Suspense fallback={<div className="h-72 rounded-[1.25rem] bg-cream" />}>
           <CompatPicker people={people} />
         </Suspense>
         <p className="text-[13px] leading-6 text-secondary">

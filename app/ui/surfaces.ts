@@ -1,21 +1,25 @@
 /**
  * **판의 모양과 글자의 단** — 부드러움(5차)의 카드 · 타일 · 제목을 한 자리에서 든다.
  *
- * 모서리는 큰 판 32px · 카드 28px(`CARD`) · 타일 24px · 줄 카드 20px ·
- * 단추는 알약. 간격은 4 · 8 · 12 · 16 · 24 · 32 · 48 단계다(시안 `NOTES.md`).
+ * 모서리는 **세 단이다**(2026-10-03 시각 시안): 판 · 카드 20px(`1.25rem`) · 타일 16px(`1rem`) · 줄 카드 14px(`0.875rem`),
+ * 단추는 알약. 부드러움 때는 32 · 28 · 24 · 20 의 네 단이 4px 씩만 달라 한 화면 안에서 눈으로 안 갈렸고, 큰 반지름이
+ * 판을 풍선처럼 부풀렸다. 간격은 4 · 8 · 12 · 16 · 24 · 32 · 48 단계다(시안 `NOTES.md`).
+ *
+ * **판은 선으로 가른다** — 그림자(`shadow-card`)는 1px 아랫단만 남았다(`globals.css`). 크림 빛 위 크림 판 위 흰 카드가
+ * 그림자로 겹을 말하던 것을, 한지 위 종이 한 장의 가는 테가 말한다.
  */
 
 /**
- * 카드 한 장 — 흰 면 · 가는 테 · 카드 그림자. 앱에서 가장 많이 부르는 판이다(스무 자리 넘게).
+ * 카드 한 장 — 흰 면 · 가는 테. 앱에서 가장 많이 부르는 판이다(스무 자리 넘게).
  *
- * 모서리는 **1.75rem 이다.** 내 명식과 저장한 사람 카드가 그 반지름으로 서면서 같은 화면 안에서 카드마다 모서리가
+ * 모서리는 **1.25rem 이다**(옛 1.75rem). 내 명식과 저장한 사람 카드가 그 반지름으로 서면서 같은 화면 안에서 카드마다 모서리가
  * 갈렸다 — 한 화면에 두 벌이 서면 어느 쪽이 이 앱의 카드인지 사용자가 정하게 된다. `app/card.ts` 에 따로 살다가
  * 공용 판이 모인 이 파일로 왔다(2026-09-26).
  */
-export const CARD = 'rounded-[1.75rem] border border-border bg-surface p-5 shadow-card sm:p-6';
+export const CARD = 'rounded-[1.25rem] border border-border bg-surface p-5 shadow-card sm:p-6';
 
-/** 크림 종이 판 — 한 화면의 주인공(관계 지도 · 내 사주 등록). 한 화면에 하나 */
-export const PAPER = 'rounded-[2rem] bg-cream p-6 sm:p-8';
+/** 짙은 한지 판 — 한 화면의 주인공(관계 지도 · 내 사주 등록). 한 화면에 하나. 바탕과 갈리도록 가는 테를 두른다 */
+export const PAPER = 'rounded-[1.25rem] border border-border bg-cream p-6 sm:p-8';
 
 /**
  * 크림 종이 한 장을 **위아래 두 토막으로** — 로그인 전 첫 화면이 쓴다(입력 폼 시안 n, ADR 0132).
@@ -24,21 +28,21 @@ export const PAPER = 'rounded-[2rem] bg-cream p-6 sm:p-8';
  * `pair-taste.tsx`)은 서로 다른 부품이고 결과는 폼 **밖** 아래에 선다. 한 부품으로 싸면 결과까지 종이 위에 올라간다.
  * 그래서 머리는 위 모서리만, 폼은 아래 모서리만 둥글고, 폼 쪽 자리가 둘 사이의 틈만큼 올라붙는다.
  */
-export const PAPER_TOP = 'rounded-t-[2rem] bg-cream';
+export const PAPER_TOP = 'rounded-t-[1.25rem] bg-cream';
 
-export const PAPER_BOTTOM = 'rounded-b-[2rem] bg-cream px-3 pb-5 sm:px-10 sm:pb-9';
+export const PAPER_BOTTOM = 'rounded-b-[1.25rem] bg-cream px-3 pb-5 sm:px-10 sm:pb-9';
 
 /**
  * 오행 타일 — `ELEMENT_TONE[x].scope`(또는 `elementScope`)와 함께 단다. 면이 그 오행의 파스텔이 되고 안의
  * `BUTTON_ON_TILE` · `ElementSymbol` 이 같은 색을 따른다.
  */
-export const TILE = 'rounded-[1.5rem] bg-[var(--tile)] p-4 text-foreground';
+export const TILE = 'rounded-[1rem] bg-[var(--tile)] p-4 text-foreground';
 
 /** 줄 카드 — 목록의 한 줄(소식 · 대화방 · 풀이 줄) */
-export const ROW_CARD = 'rounded-[1.25rem] border border-border bg-surface px-4 py-3';
+export const ROW_CARD = 'rounded-[0.875rem] border border-border bg-surface px-4 py-3';
 
 /** 점선 빈 자리 — 「한 자리 더」(사람 추가 타일 · 빈 목록) */
-export const EMPTY_SLOT = 'rounded-[1.5rem] border-2 border-dashed border-border-strong p-6';
+export const EMPTY_SLOT = 'rounded-[1rem] border border-dashed border-border-strong p-6';
 
 /*
   **글자의 단.** 제목 서체(`font-rounded`, 고운바탕 명조)는 제목 단에만 쓴다 — 명조는 작은 크기에서 획이 가늘다.
@@ -77,7 +81,7 @@ export const BADGE =
  * 여백을 0 으로 되돌려, 브라우저가 가운데에 놓던 `margin: auto` 를 다시 세운다
  */
 export const DIALOG =
-  'm-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-float backdrop:bg-black/40';
+  'm-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.25rem] border border-border bg-surface p-6 text-foreground shadow-float backdrop:bg-black/40';
 
 /** 확인 창의 단추 줄 — 누르는 쪽이 오른쪽이고, 좁은 화면에서는 위아래로 서며 그때도 확인이 위다 */
 export const DIALOG_ACTIONS = 'mt-6 flex flex-col gap-2 sm:flex-row-reverse';

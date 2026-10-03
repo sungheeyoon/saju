@@ -16,7 +16,7 @@ import { TYPE_NAME } from '../ui/surfaces';
  * **자바스크립트가 없어도 열린다** — 브라우저의 `<details>` 다. 결과 바로가기는 목적지가 접혀 있으면 열고
  * 나서 옮긴다(`result-nav.tsx`). 표시 `data-fold` 가 그 짝이다.
  */
-const FOLD_CARD = 'group/fold rounded-[1.75rem] border border-border bg-surface shadow-card';
+const FOLD_CARD = 'group/fold rounded-[1.25rem] border border-border bg-surface shadow-card';
 
 export function Fold({
   id,
@@ -36,7 +36,7 @@ export function Fold({
 }) {
   return (
     <details id={id} data-fold="" className={`${FOLD_CARD} ${id === undefined ? '' : 'scroll-mt-36'}`}>
-      <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 rounded-[1.75rem] px-5 py-4 hover:bg-surface-soft group-open/fold:rounded-b-none sm:px-6 [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-16 cursor-pointer list-none items-center gap-3 rounded-[1.25rem] px-5 py-4 hover:bg-surface-soft group-open/fold:rounded-b-none sm:px-6 [&::-webkit-details-marker]:hidden">
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
             <h2 className={TYPE_NAME}>{title}</h2>

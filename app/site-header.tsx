@@ -368,7 +368,7 @@ function Dock({
       aria-label="모바일 내 메뉴"
       className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 md:hidden"
     >
-      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-[1.75rem] bg-surface/95 p-1.5 shadow-raise ring-1 ring-border backdrop-blur-xl">
+      <ul className="mx-auto grid max-w-md grid-cols-4 rounded-[1.25rem] bg-surface/95 p-1.5 shadow-raise ring-1 ring-border backdrop-blur-xl">
         {MEMBER_TABS.map((tab) => {
           const active = isNavigationActive(pathname, tab.href, from);
           return (
@@ -376,7 +376,7 @@ function Dock({
               <Link
                 href={tab.href}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-[1.25rem] text-[12px] font-semibold active:scale-95 ${
+                className={`relative flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-[0.875rem] text-[12px] font-semibold active:scale-95 ${
                   active ? 'text-foreground' : 'text-secondary hover:text-foreground'
                 }`}
               >
@@ -457,7 +457,7 @@ function SettingsMenu({
       >
         <Icon name="gear" />
       </summary>
-      <div className="absolute right-0 top-13 z-50 w-60 rounded-[1.25rem] bg-surface p-2 shadow-float ring-1 ring-border">
+      <div className="absolute right-0 top-13 z-50 w-60 rounded-[0.875rem] bg-surface p-2 shadow-float ring-1 ring-border">
         {email && <p className="truncate border-b border-border px-3 pb-2 pt-1 text-[13px] text-muted">{email}</p>}
         <ul className="mt-1 flex flex-col">
           {links.map((link) => (

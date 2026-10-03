@@ -370,7 +370,7 @@ export function PhotoGrid({ userId, photos }: { userId: string; photos: readonly
   };
 
   return (
-    <section className="flex flex-col gap-4 rounded-[2rem] bg-cream px-4 py-5 sm:px-6 sm:py-6">
+    <section className="flex flex-col gap-4 rounded-[1.25rem] bg-cream px-4 py-5 sm:px-6 sm:py-6">
       <div ref={gridRef} className="grid grid-cols-3 gap-2 sm:gap-3">
         {/* 첫 칸 — 두 줄 두 칸을 차지한다 */}
         <div role="group" aria-label="대표 사진" className="col-span-2 row-span-2">

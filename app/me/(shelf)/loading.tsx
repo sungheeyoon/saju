@@ -17,13 +17,13 @@ export default function ReadingsLoading() {
             <div key={shelf} className="flex flex-col gap-4">
               <Bone className="h-8 w-28 rounded-full" />
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-2">
-                <Bone className="min-h-[14rem] rounded-[0.5rem_1.5rem_1.5rem_0.5rem]" />
-                <Bone className="min-h-[14rem] rounded-[0.5rem_1.5rem_1.5rem_0.5rem]" />
+                <Bone className="min-h-[14rem] rounded-[0.25rem_1rem_1rem_0.25rem]" />
+                <Bone className="min-h-[14rem] rounded-[0.25rem_1rem_1rem_0.25rem]" />
               </div>
             </div>
           ))}
         </div>
-        <div className="hidden min-h-80 flex-col gap-4 rounded-[1.75rem] border border-border bg-surface p-6 lg:flex">
+        <div className="hidden min-h-80 flex-col gap-4 rounded-[1.25rem] border border-border bg-surface p-6 lg:flex">
           <Bone className="h-9 w-56 rounded-full" />
           <Bone className="h-5 w-full rounded-full" />
           <Bone className="h-5 w-5/6 rounded-full" />

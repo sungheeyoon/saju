@@ -54,13 +54,13 @@ export function PassedConnections({
       </div>
 
       {map !== null && (
-        <div className="w-full overflow-hidden rounded-[2rem] bg-cream px-2 pt-4 lg:max-w-xl">
+        <div className="w-full overflow-hidden rounded-[1.25rem] bg-cream px-2 pt-4 lg:max-w-xl">
           <div className="mx-auto max-w-[28rem]">{map}</div>
         </div>
       )}
 
       {cards.length === 0 ? (
-        <div className="flex flex-col items-start gap-3 rounded-[1.75rem] border-2 border-dashed border-border-strong p-6">
+        <div className="flex flex-col items-start gap-3 rounded-[1.25rem] border-2 border-dashed border-border-strong p-6">
           <span className="grid size-12 place-items-center rounded-full bg-cream text-cream-ink">
             <Icon name="undo" />
           </span>
@@ -70,7 +70,7 @@ export function PassedConnections({
       ) : (
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
           {cards.map((card) => (
-            <li key={card.candidateUserId} className="flex flex-col overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-card">
+            <li key={card.candidateUserId} className="flex flex-col overflow-hidden rounded-[1rem] border border-border bg-surface shadow-card">
               <span className="relative block aspect-square text-[3rem]">
                 <CandidatePhoto card={card} />
                 <span className={`${elementScope(supplyOf(card))} absolute bottom-2 left-2 grid size-9 place-items-center rounded-full bg-[var(--tile)] ring-2 ring-surface`}>

@@ -18,7 +18,7 @@ export async function WarningNotice() {
     <div className="app-shell w-full pt-6 sm:pt-8">
       <section
         aria-labelledby="warning-notice-title"
-        className="flex flex-col gap-3 rounded-[1.5rem] bg-danger-wash p-5 ring-1 ring-danger/40 sm:p-6"
+        className="flex flex-col gap-3 rounded-[1rem] bg-danger-wash p-5 ring-1 ring-danger/40 sm:p-6"
       >
         <h2 id="warning-notice-title" className="text-[17px] font-bold text-danger">
           {WARNING_NOTICE_TITLE}

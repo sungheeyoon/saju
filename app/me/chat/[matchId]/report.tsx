@@ -48,7 +48,7 @@ export function ReportPanel({
   };
 
   return (
-    <div className="flex max-h-[55dvh] flex-col gap-3 overflow-y-auto rounded-[1.5rem] bg-surface-soft p-4 ring-1 ring-border">
+    <div className="flex max-h-[55dvh] flex-col gap-3 overflow-y-auto rounded-[1rem] bg-surface-soft p-4 ring-1 ring-border">
       <div className="flex items-start justify-between gap-3">
         <p className="flex items-center gap-2 pt-2.5 text-[15px] font-bold text-foreground">
           <Icon name="flag" className="size-[18px] text-danger" />

@@ -47,7 +47,7 @@ export function PersonTile({
 
   if (!person.chart.ok) {
     return (
-      <li id={anchor} className={`${elementScope(null)} ${TARGET} relative flex flex-col gap-3 rounded-[1.5rem] bg-[var(--tile)] p-3.5 sm:p-4`}>
+      <li id={anchor} className={`${elementScope(null)} ${TARGET} relative flex flex-col gap-3 rounded-[1rem] bg-[var(--tile)] p-3.5 sm:p-4`}>
         <span className="grid size-7 place-items-center self-start rounded-full bg-[color-mix(in_srgb,var(--surface)_70%,transparent)]">
           <ElementSymbol element={null} className="size-5" />
         </span>
@@ -69,7 +69,7 @@ export function PersonTile({
   return (
     <li
       id={anchor}
-      className={`${elementScope(element)} ${TARGET} relative flex flex-col gap-2.5 overflow-hidden rounded-[1.5rem] bg-[var(--tile)] p-3.5 sm:p-4`}
+      className={`${elementScope(element)} ${TARGET} relative flex flex-col gap-2.5 overflow-hidden rounded-[1rem] bg-[var(--tile)] p-3.5 sm:p-4`}
     >
       <StemSymbol stem={dayMaster} className="pointer-events-none absolute -right-3 -top-3 size-20 opacity-20" />
 
@@ -127,7 +127,7 @@ function Name({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className={`${TYPE_NAME} block truncate after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_45%,transparent)]`}
+      className={`${TYPE_NAME} block truncate after:absolute after:inset-0 after:rounded-[1rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_45%,transparent)]`}
     >
       {label}
     </Link>

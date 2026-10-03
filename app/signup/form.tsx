@@ -192,7 +192,7 @@ export function SignupForm({
         </div>
       )}
 
-      <div className="rounded-[1.25rem] bg-surface-sunken p-4 sm:p-5" aria-labelledby="signup-notice">
+      <div className="rounded-[0.875rem] bg-surface-sunken p-4 sm:p-5" aria-labelledby="signup-notice">
         <div className="flex flex-wrap items-center justify-between gap-x-3">
           <h2 id="signup-notice" className="text-[15px] font-bold">
             가입 전에 확인해 주세요

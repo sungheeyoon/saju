@@ -105,7 +105,7 @@ function FoldedAnalysis({
         기본 삼각형을 지우고, 그러면 눌러야 하는 자리인지가 화면에 안 남는다. 펼침
         상태는 `<summary>` 가 스스로 알리므로 이 글자는 화면에만 선다.
       */}
-      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-[1.5rem] border border-border bg-surface px-5 py-4 hover:border-border-strong active:scale-[0.99] sm:px-6 [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-[1rem] border border-border bg-surface px-5 py-4 hover:border-border-strong active:scale-[0.99] sm:px-6 [&::-webkit-details-marker]:hidden">
         <span>
           <span className={TYPE_NAME}>두 사주를 맞대어 본 표</span>
           <span className="mt-0.5 block text-[13px] leading-5 text-secondary">
@@ -144,7 +144,7 @@ export function PillarPair({
   names: Record<CompatSide, string>;
 }) {
   return (
-    <section className="rounded-[2rem] bg-cream p-4 sm:p-6">
+    <section className="rounded-[1.25rem] bg-cream p-4 sm:p-6">
       <header className="px-1 pb-4 sm:px-2">
         <p className="text-[13px] font-semibold text-cream-ink">각자의 사주</p>
         <h2 className={`mt-0.5 ${TYPE_SECTION}`}>궁합의 출발점</h2>

@@ -15,7 +15,7 @@ export function AccountNotice({ state }: { state: AccountState }) {
   if (text === null) return null;
 
   return (
-    <div className="flex flex-col gap-1 rounded-[1.25rem] border border-border bg-surface px-5 py-4">
+    <div className="flex flex-col gap-1 rounded-[0.875rem] border border-border bg-surface px-5 py-4">
       <p className="text-[15px] font-semibold text-foreground">{text.title}</p>
       <p className="text-sm text-secondary">{text.detail}</p>
     </div>

@@ -93,7 +93,7 @@ export function StarTable({ saju }: { saju: Saju }) {
     >
 
       {stars.length === 0 ? (
-        <div className="rounded-[1.25rem] bg-surface-soft px-4 py-5 text-center text-sm text-secondary">
+        <div className="rounded-[0.875rem] bg-surface-soft px-4 py-5 text-center text-sm text-secondary">
           걸린 신살이 없습니다
         </div>
       ) : (
@@ -104,7 +104,7 @@ export function StarTable({ saju }: { saju: Saju }) {
               <section
                 key={key}
                 aria-label={`${label}에 걸린 신살`}
-                className={`min-w-0 rounded-[1.25rem] border p-3 ${
+                className={`min-w-0 rounded-[0.875rem] border p-3 ${
                   key === 'day' ? 'border-border-strong bg-cream' : 'border-transparent bg-surface-soft'
                 }`}
               >

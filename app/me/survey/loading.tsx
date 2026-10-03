@@ -9,13 +9,13 @@ import { Bone, SkeletonMain } from '../../ui/skeleton';
 export default function SurveyLoading() {
   return (
     <SkeletonMain name="survey" className="app-shell flex w-full max-w-2xl flex-1 flex-col gap-6 py-8 sm:py-12">
-      <div className="flex min-h-40 flex-col gap-3 rounded-[1.75rem] bg-cream p-6">
+      <div className="flex min-h-40 flex-col gap-3 rounded-[1.25rem] bg-cream p-6">
         <Bone className="h-9 w-40 rounded-full" />
         <Bone className="h-5 w-full rounded-full" />
         <Bone className="h-5 w-2/3 rounded-full" />
       </div>
       {[0, 1].map((panel) => (
-        <div key={panel} className="flex min-h-44 flex-col gap-3 rounded-[1.75rem] border border-border bg-surface p-6">
+        <div key={panel} className="flex min-h-44 flex-col gap-3 rounded-[1.25rem] border border-border bg-surface p-6">
           <Bone className="h-6 w-48 max-w-full rounded-full" />
           <Bone className="h-12 w-full rounded-2xl" />
           <Bone className="h-12 w-full rounded-2xl" />

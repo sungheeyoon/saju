@@ -270,7 +270,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
       )}
 
       {failure !== null && (
-        <p role="alert" className="rounded-[1.5rem] border border-danger/30 bg-surface px-5 py-4 text-[15px] leading-6 text-danger">
+        <p role="alert" className="rounded-[1rem] border border-danger/30 bg-surface px-5 py-4 text-[15px] leading-6 text-danger">
           {failure}
         </p>
       )}

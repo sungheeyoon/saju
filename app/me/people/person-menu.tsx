@@ -62,7 +62,7 @@ export function PersonActions({
           <Icon name="manage" className="size-4.5" />
         </summary>
 
-        <div className="absolute right-0 top-13 z-40 w-56 rounded-[1.25rem] border border-border bg-surface p-1.5 shadow-float">
+        <div className="absolute right-0 top-13 z-40 w-56 rounded-[0.875rem] border border-border bg-surface p-1.5 shadow-float">
           {current !== null && (
             <MenuItem icon="pencil" onClick={() => choose('edit-input')}>
               출생 정보 수정

@@ -17,15 +17,15 @@ export default function MatchHistoryLoading() {
       <div className="flex flex-col gap-4">
         <Bone className="h-8 w-32 rounded-full" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <Bone className="aspect-[3/4] rounded-[1.5rem]" />
-          <Bone className="aspect-[3/4] rounded-[1.5rem]" />
+          <Bone className="aspect-[3/4] rounded-[1rem]" />
+          <Bone className="aspect-[3/4] rounded-[1rem]" />
         </div>
       </div>
 
       <div className="flex flex-col gap-3">
         <Bone className="h-8 w-28 rounded-full" />
-        <Bone className="h-16 w-full rounded-[1.25rem]" />
-        <Bone className="h-16 w-full rounded-[1.25rem]" />
+        <Bone className="h-16 w-full rounded-[0.875rem]" />
+        <Bone className="h-16 w-full rounded-[0.875rem]" />
       </div>
     </SkeletonMain>
   );

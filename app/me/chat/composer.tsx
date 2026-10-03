@@ -72,7 +72,7 @@ export function Composer({ matchId }: { matchId: string }) {
       }}
     >
       {/* 둥근 알약 하나 — 칸과 보내기가 한 몸이라 엄지가 닿는 자리에 둘이 함께 선다 */}
-      <div className="flex items-end gap-2 rounded-[1.75rem] bg-surface-soft p-1.5 pl-4 ring-1 ring-border focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]">
+      <div className="flex items-end gap-2 rounded-[1.25rem] bg-surface-soft p-1.5 pl-4 ring-1 ring-border focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]">
         <label className="flex min-w-0 flex-1">
           <span className="sr-only">메시지</span>
           <textarea

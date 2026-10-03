@@ -252,7 +252,7 @@ export function MatchingExperience({
         <p className="font-rounded text-[1.25rem] leading-snug text-[var(--ink)]">{profile.verdict}</p>
         <p className="max-w-prose text-[14px] leading-6 text-foreground">{profile.reason}</p>
       </div>
-      <div className="flex flex-col gap-2 rounded-[1.5rem] bg-surface p-4 ring-1 ring-border">
+      <div className="flex flex-col gap-2 rounded-[1rem] bg-surface p-4 ring-1 ring-border">
         <SupplyBody card={profile} explorationNote={explorationNote} />
       </div>
       <Letter key={profile.candidateUserId} nickname={profile.nickname} intro={profile.intro} />
@@ -370,7 +370,7 @@ export function MatchingExperience({
             자리에만 선다.
           */}
           <div className="hidden min-w-0 flex-col gap-4 lg:flex">
-            <section aria-labelledby="matching-map" className="flex flex-col overflow-hidden rounded-[2rem] bg-cream">
+            <section aria-labelledby="matching-map" className="flex flex-col overflow-hidden rounded-[1.25rem] bg-cream">
               <div className="flex items-baseline justify-between gap-3 px-6 pt-6">
                 <h2 id="matching-map" className="font-rounded text-[1.375rem] leading-8 text-foreground">
                   내 궤도로 다가오는 인연
@@ -402,7 +402,7 @@ export function MatchingExperience({
         <DetailSheet sheet={sheet} nickname={profile.nickname}>
           <div className={`${elementScope(supplyOf(profile))} flex flex-col gap-4`}>
             {details}
-            <div className="overflow-hidden rounded-[1.75rem] bg-cream px-2 pt-3">
+            <div className="overflow-hidden rounded-[1.25rem] bg-cream px-2 pt-3">
               <ApproachMap shape="arc" me={me} cards={mapCards} statusOf={statusOf} className="mx-auto max-w-[28rem]" />
             </div>
             <p className="text-[12px] leading-5 text-secondary">{teaser}</p>
@@ -420,7 +420,7 @@ export function MatchingExperience({
         ref={confirming}
         aria-labelledby="matching-confirm"
         onClick={(event) => { if (event.target === event.currentTarget) confirming.current?.close(); }}
-        className="m-auto w-[min(100%-2rem,28rem)] rounded-[2rem] bg-surface p-0 text-foreground shadow-float backdrop:bg-black/40"
+        className="m-auto w-[min(100%-2rem,28rem)] rounded-[1.25rem] bg-surface p-0 text-foreground shadow-float backdrop:bg-black/40"
       >
         {profile && (
           <div className={`${elementScope(supplyOf(profile))} flex flex-col gap-4 p-6`}>
@@ -508,7 +508,7 @@ function Letter({ nickname, intro }: { nickname: string; intro: string | null })
   const [open, setOpen] = useState(false);
   const long = intro !== null && intro.length > LETTER_FOLD_AT;
   return (
-    <figure className="flex flex-col gap-2 rounded-[1.5rem] bg-surface px-5 py-4 ring-1 ring-border">
+    <figure className="flex flex-col gap-2 rounded-[1rem] bg-surface px-5 py-4 ring-1 ring-border">
       {intro !== null ? (
         <blockquote className={`font-rounded text-[1rem] leading-7 text-foreground ${long && !open ? 'line-clamp-3' : ''}`}>
           <Icon name="quote" className="mr-1.5 inline size-4 -translate-y-0.5 text-cream-ink" />
@@ -575,14 +575,14 @@ function Feedback({
   return (
     <>
       {undo !== null && (
-        <p className="flex flex-wrap items-center justify-between gap-x-4 rounded-[1.25rem] bg-surface px-4 py-1 text-[14px] font-medium text-foreground ring-1 ring-border">
+        <p className="flex flex-wrap items-center justify-between gap-x-4 rounded-[0.875rem] bg-surface px-4 py-1 text-[14px] font-medium text-foreground ring-1 ring-border">
           <span className="py-2">지나친 인연에 보관했어요</span>
           <button type="button" onClick={undo} disabled={working} className={BUTTON_TERTIARY}>
             실행 취소
           </button>
         </p>
       )}
-      {failure !== null && <p role="alert" className="rounded-[1.25rem] bg-surface px-4 py-3 text-[14px] font-medium text-danger ring-1 ring-border">{failure}</p>}
+      {failure !== null && <p role="alert" className="rounded-[0.875rem] bg-surface px-4 py-3 text-[14px] font-medium text-danger ring-1 ring-border">{failure}</p>}
       {/* 한 줄이 둘을 한다 — 보조기기에는 늘 읽히고, 눈에는 잠깐(`flash`)만 선다 */}
       <p
         role="status"
@@ -606,7 +606,7 @@ function Feedback({
  */
 function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode }) {
   return (
-    <section className="grid items-center gap-6 rounded-[2rem] bg-cream p-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-10 sm:p-10">
+    <section className="grid items-center gap-6 rounded-[1.25rem] bg-cream p-6 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] sm:gap-10 sm:p-10">
       <QuietOrbit me={me} />
       <div className="flex min-w-0 flex-col items-start gap-5">
         <div className="flex flex-col gap-2">
@@ -620,7 +620,7 @@ function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode }) {
             <Link
               key={link.href}
               href={link.href}
-              className={`${elementScope(link.element)} group flex min-h-14 items-center gap-3 rounded-[1.25rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.98]`}
+              className={`${elementScope(link.element)} group flex min-h-14 items-center gap-3 rounded-[0.875rem] border border-border bg-surface px-4 py-3 text-[15px] font-semibold text-foreground hover:border-border-strong active:scale-[0.98]`}
             >
               <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--tile)] text-[var(--ink)]">
                 <Icon name={link.icon} />

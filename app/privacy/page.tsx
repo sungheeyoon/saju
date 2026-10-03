@@ -51,7 +51,7 @@ export default async function PrivacyPage() {
         **읽는 모양만 5차의 것이다** — 글자는 고지한 판 그대로다. 줄이 길면 눈이 다음 줄 머리를 놓치므로
         글줄을 3xl(48rem)로 묶고, 조항마다 카드 한 장 · 둥근 제목 · 점 목록으로 선다.
       */}
-      <header className="mb-2 rounded-[2rem] bg-cream px-6 py-7 sm:px-8">
+      <header className="mb-2 rounded-[1.25rem] bg-cream px-6 py-7 sm:px-8">
         <p className="text-[13px] font-semibold text-cream-ink">처리방침</p>
         <h1 className={`mt-1 ${TYPE_TITLE}`}>개인정보 처리방침</h1>
         <p className="mt-2 text-[15px] leading-7 text-secondary">
@@ -88,7 +88,7 @@ export default async function PrivacyPage() {
             <p className="text-[15px] leading-7 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
             <ul className="flex flex-col gap-3">
               {OPTIONAL_CONSENTS.map((one) => (
-                <li key={one.key} className="rounded-[1.25rem] bg-surface-soft px-4 py-3">
+                <li key={one.key} className="rounded-[0.875rem] bg-surface-soft px-4 py-3">
                   <p className="text-[15px] font-semibold">{one.label}</p>
                   <p className="mt-1 text-[15px] leading-7 text-secondary">{one.detail}</p>
                   <p className="mt-0.5 text-[15px] leading-7 text-secondary">{one.erasure}</p>

@@ -32,7 +32,7 @@ export default function Home() {
       <HomeHero
         calculator={
           // 미리 그려진 HTML 은 현관이다 — 자리표시도 현관 종이의 아래 토막 모양이다(`PAPER_BOTTOM`, ADR 0132)
-          <Suspense fallback={<div className="h-[26rem] rounded-b-[2rem] bg-cream" />}>
+          <Suspense fallback={<div className="h-[26rem] rounded-b-[1.25rem] bg-cream" />}>
             <SajuCalculator outline={READING_OUTLINE} />
           </Suspense>
         }

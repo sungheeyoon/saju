@@ -39,7 +39,7 @@ export function EmptyChat({ hasSelf }: { hasSelf: boolean }) {
 /** 넓은 화면에서 아직 방을 안 고른 오른쪽 칸 — 그림과 한 줄 */
 export function NoRoomChosen() {
   return (
-    <section className="flex flex-1 flex-col items-center justify-center gap-4 rounded-[2rem] bg-surface px-6 text-center ring-1 ring-border">
+    <section className="flex flex-1 flex-col items-center justify-center gap-4 rounded-[1.25rem] bg-surface px-6 text-center ring-1 ring-border">
       <ChatIllustration className="h-auto w-[11rem] opacity-80" />
       <p className="text-[15px] text-secondary">대화방을 고르면 여기에 대화가 열려요.</p>
     </section>

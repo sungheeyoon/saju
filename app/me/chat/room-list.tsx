@@ -59,7 +59,7 @@ export function RoomList({
   return (
     <section
       aria-label="대화방 목록"
-      className="flex min-h-0 flex-1 flex-col overflow-hidden lg:rounded-[2rem] lg:bg-surface lg:ring-1 lg:ring-border"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden lg:rounded-[1.25rem] lg:bg-surface lg:ring-1 lg:ring-border"
     >
       <Title className={`${TYPE_TITLE} pb-4 lg:px-6 lg:pb-2 lg:pt-5 lg:text-[1.5rem]`}>{CHAT_TAB_LABEL}</Title>
       <ul className="-mx-2 flex min-h-0 flex-col gap-0.5 overflow-y-auto lg:mx-0 lg:p-2">
@@ -90,7 +90,7 @@ function RoomRow({ room, active, tone }: { room: ChatRoom; active: boolean; tone
       href={`/me/chat/${room.matchId}`}
       aria-current={active ? 'page' : undefined}
       /* 지금 열린 방은 그 사람의 파스텔이 깔린다 — 목록의 사진 고리와 같은 색이라 어느 방인지 색으로도 이어진다 */
-      className={`${elementScope(tone)} flex min-h-[4.5rem] items-center gap-3 rounded-[1.25rem] px-2 py-2.5 active:scale-[0.99] lg:px-3 ${
+      className={`${elementScope(tone)} flex min-h-[4.5rem] items-center gap-3 rounded-[0.875rem] px-2 py-2.5 active:scale-[0.99] lg:px-3 ${
         active ? (tone === null ? 'bg-surface-soft' : 'bg-[var(--tile)]') : 'hover:bg-surface-soft'
       }`}
     >

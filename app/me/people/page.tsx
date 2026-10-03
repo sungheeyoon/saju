@@ -276,7 +276,7 @@ function PersonCard({
   return (
     <section className={`${elementScope(element)} ${TILE} relative flex h-full flex-col gap-3 sm:p-5`}>
       {/* 큰 상징 하나가 모서리에 옅게 번진다 — 장식이라 누름도 보조기기도 지나간다 */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-[1.5rem]">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-[1rem]">
         {person.chart.ok && (
           <StemSymbol stem={person.chart.saju.pillars.dayMaster} className="absolute -bottom-6 -right-6 size-32 opacity-[0.14]" />
         )}
@@ -296,7 +296,7 @@ function PersonCard({
         <h2 className={`${TYPE_NAME} truncate`}>
           <Link
             href={`/me/people/${person.personId}`}
-            className="after:absolute after:inset-0 after:rounded-[1.5rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_45%,transparent)]"
+            className="after:absolute after:inset-0 after:rounded-[1rem] after:content-[''] hover:underline focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-[3px] focus-visible:after:outline-[color-mix(in_srgb,var(--accent)_45%,transparent)]"
           >
             {person.local_label}
           </Link>

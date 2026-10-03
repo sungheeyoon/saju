@@ -322,7 +322,7 @@ function PillarTable({ saju }: { readonly saju: Saju }) {
               <td key={key} className="align-top">
                 <div
                   aria-label={`${label} 천간과 지지`}
-                  className={`flex flex-col gap-1.5 rounded-[1.4rem] p-1 sm:gap-2 sm:p-1.5 ${
+                  className={`flex flex-col gap-1.5 rounded-[1rem] p-1 sm:gap-2 sm:p-1.5 ${
                     key === 'day' ? 'bg-foreground/[0.06] ring-2 ring-foreground' : ''
                   }`}
                 >
@@ -382,7 +382,7 @@ function PillarGlyph({
 }) {
   return (
     <div
-      className={`${elementScope(element)} flex min-h-[8.5rem] flex-col items-center justify-center gap-1 rounded-[1.1rem] bg-[var(--tile)] px-0.5 py-2.5 sm:min-h-[10.5rem] sm:py-3.5 ${
+      className={`${elementScope(element)} flex min-h-[8.5rem] flex-col items-center justify-center gap-1 rounded-[0.875rem] bg-[var(--tile)] px-0.5 py-2.5 sm:min-h-[10.5rem] sm:py-3.5 ${
         glyph === null ? 'border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_30%,transparent)]' : ''
       }`}
     >

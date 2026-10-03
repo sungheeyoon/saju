@@ -17,12 +17,12 @@ export default function MatchingLoading() {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col lg:grid lg:flex-none lg:grid-cols-[minmax(0,25rem)_minmax(0,1fr)] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-        <div className="flex min-h-[28rem] flex-1 flex-col justify-end gap-3 rounded-[1.75rem] border border-border bg-surface p-5 lg:h-[36rem] lg:flex-none">
+        <div className="flex min-h-[28rem] flex-1 flex-col justify-end gap-3 rounded-[1.25rem] border border-border bg-surface p-5 lg:h-[36rem] lg:flex-none">
           <Bone className="h-10 w-40 rounded-full" />
           <Bone className="h-5 w-full rounded-full" />
           <Bone className="h-5 w-2/3 rounded-full" />
         </div>
-        <div className="hidden h-[30rem] rounded-[2rem] bg-cream lg:block" />
+        <div className="hidden h-[30rem] rounded-[1.25rem] bg-cream lg:block" />
       </div>
     </SkeletonMain>
   );

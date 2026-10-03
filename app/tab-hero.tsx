@@ -25,7 +25,7 @@ import { TYPE_TITLE } from './ui/surfaces';
  * 현관의 큰 머리가 아니다). 그래서 껍데기와 속을 한 번에 세우던 `TabHero` 는 걷었고, 지금 이 파일을 쓰는 것은
  * `/` 의 머리(`home-hero.tsx`) 하나다.
  */
-export const TAB_HERO_CARD = 'relative overflow-hidden rounded-[2rem] bg-cream';
+export const TAB_HERO_CARD = 'relative overflow-hidden rounded-[1.25rem] bg-cream';
 
 /**
  * 카드 오른쪽 위의 번짐 — 두 화면이 같은 색을 쓴다(전에는 목/화로 갈려 있었다).

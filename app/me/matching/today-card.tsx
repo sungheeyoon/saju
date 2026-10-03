@@ -96,7 +96,7 @@ export function TodayCard({
           aria-hidden="true"
           inert
           style={nextStyle}
-          className={`${elementScope(supplyOf(next))} absolute inset-0 overflow-hidden rounded-[2rem] bg-[var(--tile)] motion-reduce:transition-none`}
+          className={`${elementScope(supplyOf(next))} absolute inset-0 overflow-hidden rounded-[1.25rem] bg-[var(--tile)] motion-reduce:transition-none`}
         >
           <CandidatePhoto card={next} initialClass={INITIAL_ON_CARD} />
           <FaceText card={next} />
@@ -107,7 +107,7 @@ export function TodayCard({
         key={profile.candidateUserId}
         ref={panel}
         style={cardStyle}
-        className={`${elementScope(supplyOf(profile))} ${styles.arrive} absolute inset-0 select-none overflow-hidden rounded-[2rem] bg-[var(--tile)] shadow-float motion-reduce:transition-none`}
+        className={`${elementScope(supplyOf(profile))} ${styles.arrive} absolute inset-0 select-none overflow-hidden rounded-[1.25rem] bg-[var(--tile)] shadow-float motion-reduce:transition-none`}
       >
         <CardPhotos card={profile} bounce={panel} initialClass={INITIAL_ON_CARD} />
 
@@ -290,7 +290,7 @@ export function DetailSheet({
       onClick={(event) => { if (event.target === event.currentTarget) close(); }}
       onCancel={(event) => { event.preventDefault(); close(); }}
       style={drag > 0 ? { transform: `translateY(${drag}px)` } : undefined}
-      className="mb-0 mt-auto max-h-[85dvh] w-full max-w-none overflow-y-auto overscroll-contain rounded-t-[2rem] bg-background p-0 text-foreground backdrop:bg-black/40"
+      className="mb-0 mt-auto max-h-[85dvh] w-full max-w-none overflow-y-auto overscroll-contain rounded-t-[1.25rem] bg-background p-0 text-foreground backdrop:bg-black/40"
     >
       <div className="flex flex-col gap-4 px-5 pb-10">
         <div

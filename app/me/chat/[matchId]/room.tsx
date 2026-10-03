@@ -92,7 +92,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   return (
     <section
       aria-label={room.heading}
-      className={`${styles.room} flex min-w-0 flex-col lg:flex-1 overflow-hidden rounded-[1.75rem] bg-surface ring-1 ring-border lg:rounded-[2rem]`}
+      className={`${styles.room} flex min-w-0 flex-col lg:flex-1 overflow-hidden rounded-[1.25rem] bg-surface ring-1 ring-border lg:rounded-[1.25rem]`}
     >
       {/* 들어오면 읽은 것으로 남긴다 — 신고 · 차단 칸이 입력 자리를 차지해도 읽음은 그대로다 */}
       {!closed && <ReadOnVisit matchId={room.matchId} unread={room.unread} />}
@@ -179,7 +179,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
           />
         ) : closed ? (
           /* 닫힌 까닭 한 줄 — 상대가 떠났으면 넷째 줄(PRD 「앱 내 채팅」) */
-          <p role="status" className="flex items-center gap-2.5 rounded-[1.25rem] bg-surface-soft px-4 py-3 text-[14px] text-secondary">
+          <p role="status" className="flex items-center gap-2.5 rounded-[0.875rem] bg-surface-soft px-4 py-3 text-[14px] text-secondary">
             <Icon name="lock" className="size-4" />
             {room.notice}
           </p>
@@ -218,7 +218,7 @@ function RoomMenu({ closed, onReport, onBlock }: { closed: boolean; onReport: ()
       <summary aria-label="신고 · 차단" className={`${GHOST_ICON} list-none [&::-webkit-details-marker]:hidden`}>
         <Icon name="more" />
       </summary>
-      <div className="absolute right-0 top-12 z-20 flex w-48 flex-col rounded-[1.25rem] bg-surface p-1.5 shadow-float ring-1 ring-border">
+      <div className="absolute right-0 top-12 z-20 flex w-48 flex-col rounded-[0.875rem] bg-surface p-1.5 shadow-float ring-1 ring-border">
         <button
           type="button"
           className={`${item} text-foreground`}
@@ -291,7 +291,7 @@ function RoomStart({ room }: { room: RoomView }) {
 function StartSide({ label, stem }: { label: string; stem: Stem }) {
   const info = STEM_INFO[stem];
   return (
-    <section className={`${elementScope(info.element)} relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-[1.5rem] bg-[var(--tile)] p-4`}>
+    <section className={`${elementScope(info.element)} relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-[1rem] bg-[var(--tile)] p-4`}>
       <StemSymbol stem={stem} className="pointer-events-none absolute -bottom-4 -right-4 size-20 opacity-20" />
       <DayMasterChip stem={stem} className="relative self-start" />
       <div className="relative min-w-0">
@@ -347,7 +347,7 @@ function BubbleRow({
         ))}
       <div className={`flex min-w-0 max-w-[80%] items-end gap-1.5 sm:max-w-[68%] ${mine ? 'flex-row-reverse' : ''}`}>
         <p
-          className={`${tone} ${corner} min-w-0 whitespace-pre-wrap break-words rounded-[1.25rem] px-4 py-2.5 text-[15px] leading-[1.55] ${
+          className={`${tone} ${corner} min-w-0 whitespace-pre-wrap break-words rounded-[0.875rem] px-4 py-2.5 text-[15px] leading-[1.55] ${
             chosen ? 'outline-[3px] outline-offset-2 outline-danger' : ''
           }`}
         >
@@ -397,7 +397,7 @@ function BlockAsk({ userId, onCancel }: { userId: string; onCancel: () => void }
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-[1.5rem] bg-danger-wash p-4 ring-1 ring-danger/30">
+    <div className="flex flex-col gap-3 rounded-[1rem] bg-danger-wash p-4 ring-1 ring-danger/30">
       <p className="flex items-center gap-2 text-[15px] font-bold text-danger">
         <Icon name="block" className="size-[18px]" />
         차단

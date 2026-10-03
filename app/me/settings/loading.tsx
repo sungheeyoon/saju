@@ -16,7 +16,7 @@ export default function SettingsLoading() {
       {[0, 1, 2, 3].map((group) => (
         <div key={group} className="flex flex-col gap-2">
           <Bone className="mx-1 h-6 w-28 rounded-full" />
-          <Bone className="h-[4.5rem] w-full rounded-[1.5rem]" />
+          <Bone className="h-[4.5rem] w-full rounded-[1rem]" />
         </div>
       ))}
     </SkeletonMain>

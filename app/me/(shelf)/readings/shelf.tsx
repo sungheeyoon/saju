@@ -31,7 +31,7 @@ import type { DayMaster } from './subject';
  */
 
 const COVER =
-  'group relative flex h-full min-h-[14rem] flex-col gap-3 overflow-hidden rounded-[0.5rem_1.5rem_1.5rem_0.5rem] py-4 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]';
+  'group relative flex h-full min-h-[14rem] flex-col gap-3 overflow-hidden rounded-[0.25rem_1rem_1rem_0.25rem] py-4 pl-6 pr-4 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]';
 
 /**
  * **한 줄에 셋이 서는 작은 표지** — 홈 탭의 「내가 받은 사주풀이」(u2, 운영자 2026-09-29). 모양은 같고 크기만 줄였다: 폰 한 칸이
@@ -46,7 +46,7 @@ const COVER =
  * 끝까지 19px 를 남겼다 — 두 서체 모두 564.8px 로 쟀다. 같은 날 웹 글꼴을 뺐다(ADR 0109 추기) — 이제 모든 기기가 시스템 서체다.
  */
 const COVER_ROW =
-  'group relative flex h-full min-h-[9rem] flex-col gap-1 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] py-2 pl-5 pr-2.5 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-[14rem] sm:gap-3 sm:rounded-[0.5rem_1.5rem_1.5rem_0.5rem] sm:py-4 sm:pl-6 sm:pr-4';
+  'group relative flex h-full min-h-[9rem] flex-col gap-1 overflow-hidden rounded-[0.25rem_0.875rem_0.875rem_0.25rem] py-2 pl-5 pr-2.5 text-left shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97] sm:min-h-[14rem] sm:gap-3 sm:rounded-[0.25rem_1rem_1rem_0.25rem] sm:py-4 sm:pl-6 sm:pr-4';
 
 export function Shelf({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
@@ -187,7 +187,7 @@ export function BlankBook({
       <CoverLink
         href={href}
         from={from}
-        className={`${elementScope(element)} flex h-full ${row ? 'min-h-[9rem] sm:min-h-[14rem]' : 'min-h-[14rem]'} flex-col items-center justify-center gap-3 rounded-[0.5rem_1.5rem_1.5rem_0.5rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] p-4 text-center hover:bg-surface active:scale-[0.98]`}
+        className={`${elementScope(element)} flex h-full ${row ? 'min-h-[9rem] sm:min-h-[14rem]' : 'min-h-[14rem]'} flex-col items-center justify-center gap-3 rounded-[0.25rem_1rem_1rem_0.25rem] border-2 border-dashed border-[color-mix(in_srgb,var(--ink)_28%,transparent)] p-4 text-center hover:bg-surface active:scale-[0.98]`}
       >
         <span className="grid size-12 place-items-center rounded-full bg-[var(--tile)]">
           <ElementSymbol element={element} className="size-7" />
@@ -231,7 +231,7 @@ export function MakingShelf({
               {/* 보관함 옆 칸에 펼친 편지에도 테가 선다 — 표지와 같은 링크(`CoverLink`)다 */}
               <CoverLink
                 href={hrefOf(match.matchId)}
-                className="group flex h-full flex-col gap-4 rounded-[1.75rem] bg-cream p-5 transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
+                className="group flex h-full flex-col gap-4 rounded-[1.25rem] bg-cream p-5 transition-transform hover:-translate-y-0.5 active:scale-[0.99]"
               >
                 <span className="flex items-center gap-3.5">
                   <Avatar userId={match.partnerUserId} nickname={match.nickname} hasPhoto={match.hasPhoto} size={56} />
@@ -298,7 +298,7 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
           <li key={slot.href}>
             <Link
               href={slot.href}
-              className={`${elementScope(slot.element)} relative flex h-full min-h-36 flex-col items-center justify-center gap-3 overflow-hidden rounded-[0.5rem_1.25rem_1.25rem_0.5rem] bg-[var(--tile)] py-3 pl-4 pr-2 text-center shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]`}
+              className={`${elementScope(slot.element)} relative flex h-full min-h-36 flex-col items-center justify-center gap-3 overflow-hidden rounded-[0.25rem_0.875rem_0.875rem_0.25rem] bg-[var(--tile)] py-3 pl-4 pr-2 text-center shadow-lift transition-transform hover:-translate-y-0.5 active:scale-[0.97]`}
             >
               <Spine background="var(--mid)" />
               <ElementSymbol element={slot.element} className="size-9" />

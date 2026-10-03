@@ -18,20 +18,20 @@ export default function HomeLoading() {
 
       <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         {/* 줄인 내 사주 카드 — 폰에서는 오행 칸이 없어 낮고, 넓은 화면은 그대로다 */}
-        <div className="flex min-h-52 flex-col gap-3 rounded-[2rem] bg-surface p-4 sm:min-h-[26rem] sm:gap-4 sm:p-8">
+        <div className="flex min-h-52 flex-col gap-3 rounded-[1.25rem] bg-surface p-4 sm:min-h-[26rem] sm:gap-4 sm:p-8">
           <Bone className="h-6 w-24 rounded-full" />
           <Bone className="h-9 w-40 rounded-full" />
           <Bone className="h-4 w-48 rounded-full" />
-          <Bone className="mt-2 hidden h-32 w-full rounded-[1.25rem] sm:block" />
+          <Bone className="mt-2 hidden h-32 w-full rounded-[0.875rem] sm:block" />
           <Bone className="mt-auto h-12 w-full rounded-full sm:w-72" />
         </div>
 
         <div className="flex flex-col gap-3 sm:gap-4">
           <Bone className="h-8 w-48 rounded-full" />
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
-            <Bone className="min-h-[9.25rem] rounded-[0.5rem_1.25rem_1.25rem_0.5rem]" />
-            <Bone className="min-h-[9.25rem] rounded-[0.5rem_1.25rem_1.25rem_0.5rem]" />
-            <Bone className="min-h-[9.25rem] rounded-[0.5rem_1.25rem_1.25rem_0.5rem]" />
+            <Bone className="min-h-[9.25rem] rounded-[0.25rem_0.875rem_0.875rem_0.25rem]" />
+            <Bone className="min-h-[9.25rem] rounded-[0.25rem_0.875rem_0.875rem_0.25rem]" />
+            <Bone className="min-h-[9.25rem] rounded-[0.25rem_0.875rem_0.875rem_0.25rem]" />
           </div>
         </div>
       </div>
@@ -39,8 +39,8 @@ export default function HomeLoading() {
       <div className="flex flex-col gap-4">
         <Bone className="h-8 w-40 rounded-full" />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          <Bone className="min-h-44 rounded-[1.5rem]" />
-          <Bone className="min-h-44 rounded-[1.5rem]" />
+          <Bone className="min-h-44 rounded-[1rem]" />
+          <Bone className="min-h-44 rounded-[1rem]" />
         </div>
       </div>
     </SkeletonMain>

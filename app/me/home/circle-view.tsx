@@ -132,7 +132,7 @@ function AddTile({ slots }: { slots: PersonSlots | null }) {
     <li>
       <Link
         href="/me/people"
-        className="flex h-full min-h-44 flex-col items-center justify-center gap-2 rounded-[1.5rem] border-2 border-dashed border-border-strong p-4 text-center text-foreground hover:bg-surface active:scale-[0.98]"
+        className="flex h-full min-h-44 flex-col items-center justify-center gap-2 rounded-[1rem] border-2 border-dashed border-border-strong p-4 text-center text-foreground hover:bg-surface active:scale-[0.98]"
       >
         <span className="grid size-12 place-items-center rounded-full bg-accent text-on-accent">
           <Icon name="plus" />

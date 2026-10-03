@@ -150,7 +150,7 @@ export default async function SignupPage({ searchParams }: {
         */
         <p className={`${CARD} text-sm leading-6`}>{NOTICE_NOT_READY}</p>
       ) : (
-        <section className="rounded-[1.5rem] border border-border bg-surface p-5 sm:p-7">
+        <section className="rounded-[1rem] border border-border bg-surface p-5 sm:p-7">
           <SignupForm
             returnTo={returnTo}
             needsCode={account.signed_up_at === null}

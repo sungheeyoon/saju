@@ -10,7 +10,7 @@ export default function ChatLoading() {
   return (
     <SkeletonMain name="chat" className="app-shell flex w-full flex-1 flex-col py-6 sm:py-10 lg:py-8">
       <div className="grid min-w-0 flex-1 gap-5 lg:h-[calc(100dvh-8rem)] lg:min-h-[32rem] lg:flex-none lg:grid-cols-[21rem_minmax(0,1fr)]">
-        <div className="flex min-h-0 min-w-0 flex-col gap-2 lg:rounded-[2rem] lg:bg-surface lg:p-4 lg:ring-1 lg:ring-border">
+        <div className="flex min-h-0 min-w-0 flex-col gap-2 lg:rounded-[1.25rem] lg:bg-surface lg:p-4 lg:ring-1 lg:ring-border">
           <Bone className="mb-3 h-10 w-24 rounded-full lg:mb-2 lg:h-8" />
           {[0, 1, 2].map((row) => (
             <div key={row} className="flex min-h-[4.5rem] items-center gap-3 px-2 py-2.5">
@@ -22,7 +22,7 @@ export default function ChatLoading() {
             </div>
           ))}
         </div>
-        <div className="hidden rounded-[2rem] bg-surface ring-1 ring-border lg:block" />
+        <div className="hidden rounded-[1.25rem] bg-surface ring-1 ring-border lg:block" />
       </div>
     </SkeletonMain>
   );

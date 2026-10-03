@@ -65,7 +65,7 @@ export function SelfCard({
   return (
     <section
       aria-label="내 사주"
-      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-[2rem] bg-[var(--tile)] sm:gap-6 sm:p-8 ${compact ? 'gap-3 p-4' : 'gap-4 p-5'}`}
+      className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-[1.25rem] bg-[var(--tile)] sm:gap-6 sm:p-8 ${compact ? 'gap-3 p-4' : 'gap-4 p-5'}`}
     >
       <StemSymbol stem={saju.pillars.dayMaster} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
 
@@ -181,7 +181,7 @@ function BirthLine({ query }: { query: Query }) {
   ] as const;
 
   return (
-    <section className="relative -mt-2 sm:mt-0 sm:rounded-[1.25rem] sm:bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] sm:px-4 sm:py-3">
+    <section className="relative -mt-2 sm:mt-0 sm:rounded-[0.875rem] sm:bg-[color-mix(in_srgb,var(--surface)_60%,transparent)] sm:px-4 sm:py-3">
       <h3 className="sr-only text-[13px] font-semibold text-secondary sm:not-sr-only">저장된 출생 정보</h3>
       <dl className="flex flex-wrap gap-x-1.5 text-[13px] leading-5 text-secondary sm:mt-1.5 sm:grid sm:grid-cols-[auto_1fr_auto_1fr] sm:gap-x-5 sm:gap-y-1 sm:text-[14px] sm:leading-6">
         {rows.map(([term, value], at) => (

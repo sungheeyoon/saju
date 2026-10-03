@@ -25,7 +25,7 @@ const FIELD =
   'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
 
 /** 판 한 장 — 무리 지은 목록과 같은 흰 판 */
-const PANEL = 'flex flex-col gap-5 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
+const PANEL = 'flex flex-col gap-5 rounded-[1rem] border border-border bg-surface p-5 sm:p-6';
 
 const LABEL = 'text-[13px] font-semibold text-secondary';
 
