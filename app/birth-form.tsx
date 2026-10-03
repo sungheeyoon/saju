@@ -28,7 +28,7 @@ import {
 } from '@/src/lib/input/query';
 
 import { birthPreviewOf, hourSlotsOf, lateNightChoicesOf, slotOfTime, slotRangeOf, type HourSlot } from './birth-hour';
-import { LateNightChoice, SolarClockLine } from './birth-preview';
+import { LateNightChoice, PillarPreview, SolarClockLine } from './birth-preview';
 import { ELEMENT_TONE } from './ui/element-tone';
 import { Icon } from './ui/icons';
 
@@ -857,6 +857,9 @@ export function BirthFields({
 
       {/* 자정 전 자시면 두 규칙의 일주가 갈린다 — 고급 설정을 열지 않아도 그 자리에서 고른다 */}
       {lateNight !== null && <LateNightChoice choices={lateNight} rule={value.rule} onPick={pick('rule')} />}
+
+      {/* 칸을 고치는 그 자리에서 여덟 글자가 바뀐다 — 다른 만세력과 견주는 사람이 무엇이 갈랐는지 바로 본다 */}
+      {preview !== null && <PillarPreview preview={preview} />}
 
       <div className={GROUP}>
         <button
