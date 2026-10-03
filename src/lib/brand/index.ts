@@ -21,3 +21,9 @@ export const SERVICE_TAGLINE = '나와 사람의 결을 읽는 사주';
 
 /** 화면 제목 뒤에 붙는 모양 — `app/layout.tsx` 의 제목 틀이 쓴다(`궁합 — 결`) */
 export const SERVICE_TITLE_TEMPLATE = `%s — ${SERVICE_NAME}`;
+
+/**
+ * **브라우저가 칠하는 바탕 두 색** — 폰 브라우저의 주소창(`theme-color`)과 홈 화면에 얹은 앱의 첫 화면(`manifest`)이 쓴다.
+ * CSS 변수를 못 읽는 자리라 값으로 둔다 — `app/globals.css` 의 `--background`(밝은 · 어두운 화면)와 같아야 한다.
+ */
+export const BRAND_PAPER = { light: '#faf6ef', dark: '#161513' } as const;

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Gowun_Batang } from 'next/font/google';
 
-import { SERVICE_NAME, SERVICE_TAGLINE, SERVICE_TITLE_TEMPLATE } from '@/src/lib/brand';
+import { BRAND_PAPER, SERVICE_NAME, SERVICE_TAGLINE, SERVICE_TITLE_TEMPLATE } from '@/src/lib/brand';
 
 import { SiteHeader } from './site-header';
 import { siteUrl } from './site-url';
@@ -71,6 +71,11 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  /* 폰 브라우저의 주소창이 종이색으로 이어진다 — 흰 띠가 머리글 위에 따로 서지 않게(2026-10-03 브랜드 시안) */
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: BRAND_PAPER.light },
+    { media: '(prefers-color-scheme: dark)', color: BRAND_PAPER.dark },
+  ],
 };
 
 /**
