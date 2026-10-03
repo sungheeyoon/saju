@@ -72,9 +72,13 @@ export const BADGE =
 /**
  * 확인 창 — 되돌리기 어려운 누름 앞의 `<dialog>`. `m-auto` 는 장식이 아니다 — Tailwind 의 preflight 이
  * 여백을 0 으로 되돌려, 브라우저가 가운데에 놓던 `margin: auto` 를 다시 세운다
+ *
+ * **폰에서는 아래에서 올라오는 시트다**(2026-10-03 시안). 가운데 뜬 창은 단추가 화면 가운데 서서 엄지가 닿기 멀었고,
+ * 확인 단추가 방금 누른 자리 근처에 서서 연달아 두 번 누르는 사고가 날 수 있었다. 640px 아래에서는 바닥에 붙고(`top-auto`)
+ * 폭을 다 쓰며 홈 막대를 비킨다. 올라오는 움직임은 `globals.css` 의 `.sheet` 가 든다(줄인 움직임이면 없다).
  */
 export const DIALOG =
-  'm-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-float backdrop:bg-black/40';
+  'sheet m-auto w-[min(26rem,calc(100%-2rem))] rounded-[1.75rem] border border-border bg-surface p-6 text-foreground shadow-float backdrop:bg-black/40 max-sm:top-auto max-sm:w-full max-sm:max-w-full max-sm:rounded-b-none max-sm:border-b-0 max-sm:pb-[calc(1.5rem+env(safe-area-inset-bottom))]';
 
 /** 확인 창의 단추 줄 — 누르는 쪽이 오른쪽이고, 좁은 화면에서는 위아래로 서며 그때도 확인이 위다 */
 export const DIALOG_ACTIONS = 'mt-6 flex flex-col gap-2 sm:flex-row-reverse';

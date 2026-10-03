@@ -301,6 +301,16 @@ main:focus { outline: none; }
   animation: reading-shimmer 1.6s ease-in-out infinite;
 }
 @keyframes reading-shimmer { to { background-position: -220% 0; } }
+/*
+  **확인 창 — 폰에서는 아래에서 올라온다**(`app/ui/surfaces.ts` 의 `DIALOG`). 시트 위의 손잡이는 끌어 닫는 몸짓을 약속하므로
+  그리지 않는다 — 닫는 것은 「취소」와 바깥 누름 · Esc 다.
+*/
+@media (max-width: 639.98px) {
+  dialog.sheet[open] { animation: sheet-up 280ms cubic-bezier(.2, .8, .2, 1); }
+  dialog.sheet[open]::backdrop { animation: sheet-dim 220ms ease; }
+}
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@keyframes sheet-dim { from { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
