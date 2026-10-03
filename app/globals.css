@@ -135,6 +135,25 @@
   }
 }
 
+/*
+  **입력 서식의 선과 칸**(폼 디자인 C 「서식지 격자」, `app/ui/form-grid.ts`) — 새 색을 짓지 않고 먹색과 면을 섞는다.
+  밝은 · 어두운 화면이 각자의 `--foreground` · `--surface` 를 읽으므로 한 벌로 두 화면이 선다.
+
+  선은 세 굵기다 — 바깥 테(먹 70%, 1.5px) · 묶음 사이(먹 24%, 1px) · 칸 사이(먹 11%, 1px). 굵기로 구조를 읽힌다.
+*/
+:root {
+  --form-rule: color-mix(in srgb, var(--foreground) 70%, transparent);
+  --form-rule-group: color-mix(in srgb, var(--foreground) 24%, transparent);
+  --form-rule-cell: color-mix(in srgb, var(--foreground) 11%, transparent);
+  /* 이름표 칸 — 값 칸보다 한 단 가라앉은 면. 초점이 든 줄의 이름표는 크림으로 선다 */
+  --form-label-bg: color-mix(in srgb, var(--surface-sunken) 72%, var(--surface));
+  --form-label-on: color-mix(in srgb, var(--accent-soft) 70%, var(--surface));
+  /* 고른 칸의 면 — 동그라미(●)와 함께라 색만으로 고름을 말하지 않는다 */
+  --form-picked: color-mix(in srgb, var(--accent-wash) 80%, var(--surface));
+  /* 초점 — 칸 안쪽에 두르는 먹 테 */
+  --form-focus: color-mix(in srgb, var(--foreground) 82%, transparent);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
