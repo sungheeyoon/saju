@@ -16,13 +16,13 @@ import {
 
 import { checkNickname } from '../../nickname';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+import { FIELD_BOX } from '../../ui/fields';
 import { saveProfile } from './actions';
 import { PhotoGrid } from './photo-grid';
 import type { MyPhoto } from './photos';
 
-/** 입력 칸 — 48px, 크림 바탕 위에서도 칸임이 보이게 흰 면과 테 */
-const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+/** 입력 칸 — 56px 옅은 회색 면, 초점에 2px 강조색 테(`FIELD_BOX`, 폼 시안 E) */
+const FIELD = FIELD_BOX;
 
 /** 판 한 장 — 무리 지은 목록과 같은 흰 판 */
 const PANEL = 'flex flex-col gap-5 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
@@ -127,7 +127,7 @@ export function ProfileForm({
               type="button"
               onClick={check}
               disabled={checking || missing !== null}
-              className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0`}
+              className={`${BUTTON_SECONDARY_SMALL} min-h-14 shrink-0`}
             >
               {checking ? '확인하는 중…' : '중복 확인'}
             </button>
@@ -154,7 +154,7 @@ export function ProfileForm({
             maxLength={INTRO_MAX}
             rows={3}
             placeholder="간단한 소개를 입력해 주세요"
-            className={`${FIELD} py-3 leading-6`}
+            className={`${FIELD} resize-y`}
           />
         </label>
 

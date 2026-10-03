@@ -22,11 +22,11 @@ import {
 
 import { checkNickname } from '../nickname';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
+import { FIELD_BOX } from '../ui/fields';
 import { completeSignup } from './actions';
 
-/** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
-const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+/** 입력 칸 — 56px 옅은 회색 면, 프로필 화면 · 사람 추가의 메모와 같은 칸(`FIELD_BOX`, 폼 시안 E) */
+const FIELD = FIELD_BOX;
 
 /** 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다) */
 const BOX =
@@ -169,7 +169,7 @@ export function SignupForm({
               type="button"
               onClick={check}
               disabled={checking || missing !== null}
-              className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0`}
+              className={`${BUTTON_SECONDARY_SMALL} min-h-14 shrink-0`}
             >
               {checking ? '확인하는 중…' : '중복 확인'}
             </button>
