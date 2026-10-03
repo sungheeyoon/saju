@@ -26,6 +26,7 @@ import {
   type Query,
 } from '@/src/lib/input/query';
 
+import { FIELD_FRAME, FIELD_HINT, FIELD_INPUT, FIELD_LABEL, FIELD_PANEL, FIELD_STICKER, FIELD_TAB } from './ui/fields';
 import { Icon } from './ui/icons';
 
 /**
@@ -50,23 +51,15 @@ import { Icon } from './ui/icons';
  */
 
 /**
- * 폼은 **설정 앱의 묶음 목록**이다(입력 폼 시안 n 「설정 목록」, ADR 0132).
+ * 폼은 **먹색 테를 두른 판 한 장**이다(폼 디자인 시안 I · 네오 브루탈리즘, 판의 수치는 `app/ui/fields.ts`).
  *
- * 흰 둥근 묶음 안에 줄마다 왼쪽 이름 · 오른쪽 값. 칸 위에 제목을 세우고 그 아래 칸을 두던 동안에는 모양이 네 벌
- * (네모 칸 · 세그먼트 · 네모 셀렉트 · 라디오)이었다 — 줄 하나에 이름과 값이 함께 서면 비어 있어도 무슨 칸인지
- * 늘 보이고, 고르는 칸은 그 자리에서 펼쳐져 화면을 떠나지 않는다.
- *
- * 줄 사이 선은 왼쪽 16px 을 들여 긋는다(묶음 `pl-4`, 줄 `pr-4`) — 한 묶음으로 읽힌다.
+ * 칸마다 이름표가 **위에** 굵게 서고, 그 아래 56px 칸이 2px 테와 4px 어긋난 그림자로 선다. 적는 칸 · 고르는 칸 · 숫자 칸이
+ * 같은 틀을 쓰고 오른쪽 끝의 먹색 꼬리만 다르다 — 숫자 칸은 단위(년 · 월 · 일), 고르는 칸은 꺾쇠. 초점 · 펼침은 칸이
+ * 그림자 쪽으로 내려앉고 노란 면이 든다. 칸의 차례와 하는 일은 설정 목록 시절(ADR 0132)과 같다.
  */
-const GROUP = 'overflow-hidden rounded-2xl bg-surface pl-4 shadow-card divide-y divide-border';
 
-/** 줄 — 높이 48px. 이름은 왼쪽, 값은 오른쪽 */
-const ROW = 'flex min-h-12 items-center gap-3 pr-4';
-const ROW_LABEL = 'shrink-0 text-[15px] text-foreground';
-
-/** 줄 안 오른쪽 숫자 칸 — 움푹한 작은 칸, 오른쪽 정렬 */
-const DIGIT =
-  'h-11 min-w-0 rounded-lg bg-surface-sunken px-1.5 text-right text-base tabular-nums text-foreground outline-none placeholder:text-sm placeholder:text-muted focus:ring-2 focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-40';
+/** 칸 하나 — 이름표 위, 칸 아래. 둘 사이 8px */
+const FIELD = 'flex min-w-0 flex-col gap-2';
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
@@ -114,8 +107,22 @@ function PickRow<T extends string>({
     toggle.current?.focus();
   };
 
+  // 고를 것이 넷 이상이면 스티커를 촘촘히, 설명(`hint`)이 붙은 셋은 폰에서 한 줄에 하나
+  const grid =
+    options.length > 3
+      ? 'grid-cols-3 sm:grid-cols-5'
+      : options.length === 3
+        ? options.some((option) => option.hint)
+          ? 'grid-cols-1 sm:grid-cols-3'
+          : 'grid-cols-3'
+        : 'grid-cols-2';
+
   return (
-    <div>
+    <div className={FIELD}>
+      {/*
+        이름표와 칸이 **한 단추**다 — 낭독기는 「성별 여자」처럼 이름과 지금 값을 함께 읽는다. 단추는 테두리가 없고 안의 칸
+        (`FIELD_FRAME` 의 모양)이 내려앉는다: 펼침(`aria-expanded`) · 키보드 초점이 같은 움직임이다.
+      */}
       <button
         ref={toggle}
         type="button"
@@ -123,24 +130,29 @@ function PickRow<T extends string>({
         aria-controls={id}
         disabled={disabled}
         onClick={onToggle}
-        className={`${ROW} w-full text-left active:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-40`}
+        className="group flex w-full flex-col gap-2 text-left outline-none disabled:cursor-not-allowed"
       >
-        <span className={ROW_LABEL}>{label}</span>
-        <span className={`min-w-0 flex-1 truncate text-right text-[15px] ${open ? 'text-foreground' : 'text-secondary'}`}>
-          {current?.label ?? '–'}
+        <span className={`${FIELD_LABEL} group-disabled:text-muted`}>{label}</span>
+        <span
+          className={`flex h-14 w-full items-stretch overflow-hidden rounded-md border-2 border-field-ink bg-field-face shadow-field transition-[translate,box-shadow,background-color] duration-100 ease-out group-hover:bg-field-focus group-focus-visible:translate-1 group-focus-visible:bg-field-focus group-focus-visible:shadow-field-in group-focus-visible:ring-2 group-focus-visible:ring-field-ink group-aria-expanded:translate-1 group-aria-expanded:bg-field-focus group-aria-expanded:shadow-field-in group-disabled:translate-0 group-disabled:border-dashed group-disabled:bg-field-off group-disabled:shadow-field-in`}
+        >
+          <span
+            className={`flex min-w-0 flex-1 items-center truncate px-4 text-[17px] font-bold ${current ? 'text-foreground' : 'text-muted'} group-disabled:text-muted`}
+          >
+            {current?.label ?? '–'}
+          </span>
+          <span aria-hidden="true" className={`${FIELD_TAB} w-11 group-disabled:bg-field-off group-disabled:text-muted`}>
+            <Icon name="chevron" className={`size-4 stroke-3 transition-transform ${open ? '-rotate-90' : 'rotate-90'}`} />
+          </span>
         </span>
-        <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${open ? '-rotate-90' : 'rotate-90'}`} />
       </button>
 
       {open && (
-        <div id={id} role="radiogroup" aria-label={name} className="mb-2 mr-4 overflow-hidden rounded-xl bg-surface-sunken">
+        <div id={id} role="radiogroup" aria-label={name} className={`mt-2 grid gap-2 ${grid}`}>
           {options.map((option) => {
             const checked = option.value === value;
             return (
-              <label
-                key={option.value}
-                className="relative flex min-h-12 cursor-pointer items-center gap-2 border-t border-border px-3 first:border-t-0 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-accent-soft"
-              >
+              <label key={option.value} className={`${FIELD_STICKER} ${option.hint ? 'flex-wrap' : ''}`}>
                 <input
                   type="radio"
                   name={id}
@@ -159,9 +171,15 @@ function PickRow<T extends string>({
                   }}
                   className="absolute inset-0 cursor-pointer appearance-none opacity-0"
                 />
-                <span className={`text-[15px] text-foreground ${checked ? 'font-semibold' : ''}`}>{option.label}</span>
-                {option.hint && <span className="text-[13px] text-secondary">{option.hint}</span>}
-                <span className="ml-auto">{checked && <Icon name="check" className="size-4 stroke-3 text-foreground" />}</span>
+                <span className="min-w-0 truncate">{option.label}</span>
+                {/* 고른 것은 초록 면만이 아니라 먹색 동그라미 체크로도 말한다 — 색만으로 가르지 않는다 */}
+                <span
+                  aria-hidden="true"
+                  className={`ml-auto grid size-5 shrink-0 place-items-center rounded-full border-2 border-field-ink ${checked ? 'bg-field-ink text-field-face' : 'bg-field-face'}`}
+                >
+                  {checked && <Icon name="check" className="size-3 stroke-[3.6]" />}
+                </span>
+                {option.hint && <span className="basis-full text-[13px] font-semibold leading-5 text-secondary">{option.hint}</span>}
               </label>
             );
           })}
@@ -172,18 +190,29 @@ function PickRow<T extends string>({
 }
 
 /**
- * 숫자 칸이 오른쪽에 서는 줄. **좁으면 칸들이 이름 아래로 꺾인다**(`flex-wrap`) — 폰 360px 의 로그인 뒤 카드 안에서
- * 「생년월일」과 칸 셋 · 단위가 한 줄에 안 들었다(2026-09-29 잼).
+ * 숫자 칸 묶음 — 이름표 위, 칸들은 **격자로 폭을 나눈다**(`columns`). 칸이 폭을 다 쓰므로 폰 360px 에서도 한 줄에
+ * 들고(설정 목록 시절에는 이름 아래로 꺾였다, 2026-09-29 잼), 넓은 화면에서도 칸이 제 몫만큼 넓다.
  */
-function DigitsRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function DigitsRow({
+  label,
+  hint,
+  columns,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  /** 칸들의 폭 비 — 년이 넓고 월 · 일이 좁다 */
+  columns: string;
+  children: React.ReactNode;
+}) {
   const id = useId();
   return (
-    <div role="group" aria-labelledby={id} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 py-1 pr-4">
-      <span id={id} className="flex shrink-0 flex-col text-[15px] leading-5 text-foreground">
-        {label}
-        {hint && <span className="text-xs text-secondary">{hint}</span>}
+    <div role="group" aria-labelledby={id} className={FIELD}>
+      <span id={id} className="flex items-baseline gap-2">
+        <span className={FIELD_LABEL}>{label}</span>
+        {hint && <span className={FIELD_HINT}>{hint}</span>}
       </span>
-      <div className="ml-auto flex min-w-0 items-center justify-end gap-2">{children}</div>
+      <div className={`grid gap-3 ${columns}`}>{children}</div>
     </div>
   );
 }
@@ -279,7 +308,6 @@ function NumberField({
   digits,
   min,
   max,
-  width,
   placeholder,
   disabled = false,
   autoComplete,
@@ -292,7 +320,6 @@ function NumberField({
   digits: number;
   min: number;
   max: number;
-  width: string;
   placeholder: string;
   disabled?: boolean;
   autoComplete?: string;
@@ -306,7 +333,8 @@ function NumberField({
   const outOfRange = settled && (Number(value) < min || Number(value) > max);
 
   return (
-    <label className="flex shrink-0 items-center gap-1">
+    // 칸과 단위 꼬리가 **한 틀**이다(`FIELD_FRAME`) — 초점 · 오류 · 잠김의 면과 움직임을 틀이 든다
+    <label className={`flex h-14 min-w-0 items-stretch overflow-hidden ${FIELD_FRAME}`}>
       <input
         type="text"
         inputMode="numeric"
@@ -317,11 +345,9 @@ function NumberField({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, digits))}
-        // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `DIGIT` 의 바탕과
-        // 같은 무게라 어느 쪽이 이길지 정해지지 않는다. 변종 셀렉터는 한 겹 더 무겁다.
-        className={`${DIGIT} ${width} aria-invalid:bg-danger-wash aria-invalid:text-danger aria-invalid:ring-2 aria-invalid:ring-danger`}
+        className="min-w-0 flex-1 bg-transparent px-1 text-center text-xl font-extrabold tabular-nums text-foreground outline-none placeholder:text-[13px] placeholder:font-semibold placeholder:text-muted aria-invalid:text-danger disabled:cursor-not-allowed"
       />
-      <span aria-hidden="true" className={`text-sm text-secondary ${disabled ? 'opacity-40' : ''}`}>
+      <span aria-hidden="true" className={`${FIELD_TAB} ${disabled ? 'bg-field-off text-muted' : ''}`}>
         {suffix}
       </span>
     </label>
@@ -383,7 +409,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
   };
 
   return (
-    <DigitsRow label="생년월일">
+    <DigitsRow label="생년월일" columns="grid-cols-[1.4fr_1fr_1fr]">
       <NumberField
         label="출생연도"
         suffix="년"
@@ -392,7 +418,6 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={4}
         min={years.min}
         max={years.max}
-        width="w-[3.75rem]"
         placeholder={String(years.max - 30)}
         autoComplete="bday-year"
       />
@@ -404,7 +429,6 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={12}
-        width="w-12"
         placeholder="1~12"
         autoComplete="bday-month"
       />
@@ -416,7 +440,6 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={maxDay}
-        width="w-12"
         placeholder={`1~${maxDay}`}
         autoComplete="bday-day"
       />
@@ -517,7 +540,7 @@ function TimeFields({
         「직접 입력」일 때만 선다 — 「모름」이거나 아직 안 골랐으면(주소에서 온 `null`) 이 줄이 빠진다.
       */}
       {known && (
-        <DigitsRow label="시각" hint="24시간">
+        <DigitsRow label="시각" hint="24시간" columns="grid-cols-2">
           <NumberField
             label="출생 시"
             suffix="시"
@@ -526,7 +549,6 @@ function TimeFields({
             digits={2}
             min={0}
             max={23}
-            width="w-12"
             placeholder="0~23"
           />
           <NumberField
@@ -537,7 +559,6 @@ function TimeFields({
             digits={2}
             min={0}
             max={59}
-            width="w-12"
             placeholder="0~59"
           />
         </DigitsRow>
@@ -598,18 +619,19 @@ export function BirthFields({
       따로 떨어진 묶음이다(시안 n, ADR 0132).
     */
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <div className={GROUP}>
+      <div className="flex flex-col gap-3">
+        {/* 판 하나에 칸 여섯 — 칸 사이 20px, 판 안쪽 폰 16 · 넓은 화면 24 */}
+        <div className={`${FIELD_PANEL} flex flex-col gap-5`}>
           {showName && (
-            <label className={ROW}>
-              <span className={ROW_LABEL}>이름</span>
+            <label className={FIELD}>
+              <span className={FIELD_LABEL}>이름</span>
               <input
                 type="text"
                 value={value.name}
                 onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
                 placeholder={namePlaceholder}
                 maxLength={NAME_MAX}
-                className="h-11 min-w-0 flex-1 bg-transparent text-right text-base text-foreground outline-none placeholder:text-muted"
+                className={FIELD_INPUT}
               />
             </label>
           )}
@@ -663,28 +685,35 @@ export function BirthFields({
         {converted !== null && (
           <p
             role={converted.ok ? undefined : 'alert'}
-            // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
-            className={`px-4 text-xs ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
+            // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다. 면은 바뀐 것이 초록, 못 바꾼 것이 분홍이다.
+            className={`flex items-start gap-2 rounded-md border-2 border-field-ink px-3 py-2 text-[13px] font-semibold leading-5 text-foreground ${converted.ok ? 'bg-field-pick' : 'bg-field-error'}`}
           >
+            <Icon name={converted.ok ? 'check' : 'alert'} className="mt-0.5 size-4 shrink-0 stroke-[2.6]" />
             {converted.text}
           </p>
         )}
       </div>
 
-      <div className={GROUP}>
+      {/*
+        **고급 설정은 파란 띠 하나**다 — 판 밖에 낮게(2px 그림자) 서서 묻는 것이 아니라 고칠 수 있는 것임을 말한다. 펴면 띠가
+        내려앉고 그 아래 파란 판에 칸 셋이 선다.
+      */}
+      <div className="flex flex-col gap-3">
         <button
           type="button"
           aria-expanded={advancedShown}
           onClick={() => setAdvanced(!advancedShown)}
-          className={`${ROW} w-full text-left active:bg-surface-sunken`}
+          className="flex min-h-12 w-full items-center gap-3 rounded-md border-2 border-field-ink bg-field-advanced px-4 text-left shadow-field-sm outline-none transition-[translate,box-shadow] duration-100 ease-out focus-visible:ring-2 focus-visible:ring-field-ink focus-visible:ring-offset-2 focus-visible:ring-offset-field-face aria-expanded:translate-0.5 aria-expanded:shadow-field-in"
         >
-          <span className={ROW_LABEL}>고급 설정</span>
-          <span className="min-w-0 flex-1 truncate text-right text-[13px] text-secondary">자시 · 시간 기준 · 세운</span>
-          <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${advancedShown ? 'rotate-90' : 'rotate-0'}`} />
+          <span className={FIELD_LABEL}>고급 설정</span>
+          <span className="min-w-0 flex-1 truncate text-right text-[13px] font-semibold text-secondary">자시 · 시간 기준 · 세운</span>
+          <span aria-hidden="true" className="grid size-6 shrink-0 place-items-center rounded-full border-2 border-field-ink bg-field-face">
+            <Icon name="chevron" className={`size-3.5 stroke-3 transition-transform ${advancedShown ? '-rotate-90' : 'rotate-90'}`} />
+          </span>
         </button>
 
         {advancedShown && (
-          <>
+          <div className="flex flex-col gap-5 rounded-xl border-2 border-field-ink bg-field-advanced p-4 sm:p-6">
             {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
             <PickRow
               label="자시"
@@ -707,8 +736,8 @@ export function BirthFields({
               onPick={pick('basis')}
               options={TIME_BASES.map((basis) => ({ value: basis, label: TIME_BASIS[basis].label, hint: TIME_BASIS[basis].hint }))}
             />
-            <label className={ROW}>
-              <span className={ROW_LABEL}>세운 연도</span>
+            <label className={FIELD}>
+              <span className={FIELD_LABEL}>세운 연도</span>
               <input
                 type="number"
                 aria-label="세운 시작"
@@ -716,10 +745,10 @@ export function BirthFields({
                 min={SUPPORTED_YEAR_RANGE.min}
                 max={SUPPORTED_YEAR_RANGE.max}
                 onChange={(event) => set('saeunFrom', Number(event.target.value))}
-                className={`${DIGIT} ml-auto w-[4.5rem]`}
+                className={`${FIELD_INPUT} max-w-40 text-center text-xl font-extrabold tabular-nums`}
               />
             </label>
-          </>
+          </div>
         )}
       </div>
     </div>
