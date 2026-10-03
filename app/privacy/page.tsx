@@ -16,6 +16,10 @@ import { currentSchedule } from '../beta-schedule';
 const DOT_LINE =
   "relative pl-4 text-[15px] leading-7 text-secondary before:absolute before:left-0.5 before:top-[0.8rem] before:size-1.5 before:rounded-full before:bg-border-strong before:content-['']";
 
+/** 자료(`noticeFor`) 밖에서 이 화면이 직접 세우는 두 조항의 제목 */
+const OPTIONAL_TITLE = '선택 항목';
+const RIGHTS_TITLE = '확인하고 고치고 지우는 방법';
+
 export const metadata = {
   title: '개인정보 처리방침',
   description: '무엇을 받고, 무엇에 쓰고, 언제까지 두는지 적어 둡니다.',
@@ -44,6 +48,9 @@ export default async function PrivacyPage() {
     비어도 지키는 것이 없는 문장만 남는다.
   */
   const ready = schedule.ok ? schedule.value : null;
+  const sections = ready === null ? [] : noticeFor(ready.dates, ready.operator);
+  /* 목차와 조항 제목이 같은 글자를 쓴다 — 한쪽만 고쳐지면 목차가 없는 조항을 가리킨다 */
+  const titles = [...sections.map((section) => section.title), OPTIONAL_TITLE, RIGHTS_TITLE];
 
   return (
     <main className="app-shell flex w-full max-w-3xl flex-1 flex-col gap-4 py-9 sm:py-12">
@@ -70,8 +77,29 @@ export default async function PrivacyPage() {
         <p className={`${CARD} text-[15px] leading-7`}>{NOTICE_NOT_READY}</p>
       ) : (
         <>
-          {noticeFor(ready.dates, ready.operator).map((section) => (
-            <section key={section.title} className={`${CARD} flex flex-col gap-3`}>
+          {/*
+            **목차 — 조항으로 바로 간다.** 폰에서 이 화면은 화면 열 장이 넘는다. 「언제까지 두나」 하나를 찾는 사람이
+            끝까지 내려야 했다. 이름은 조항의 제목 그대로라 고지한 판의 글자를 바꾸지 않는다.
+          */}
+          <nav aria-label="목차" className={`${CARD} flex flex-col gap-2`}>
+            <p className="text-[13px] font-semibold text-secondary">목차</p>
+            <ol className="flex flex-col">
+              {titles.map((title, index) => (
+                <li key={title}>
+                  <a
+                    href={`#privacy-${index + 1}`}
+                    className="flex min-h-11 items-center gap-3 rounded-xl px-2 text-[15px] text-foreground hover:bg-surface-soft"
+                  >
+                    <span className="w-5 shrink-0 text-right text-[13px] font-semibold tabular-nums text-muted">{index + 1}</span>
+                    {title}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
+
+          {sections.map((section, index) => (
+            <section key={section.title} id={`privacy-${index + 1}`} className={`${CARD} flex scroll-mt-20 flex-col gap-3`}>
               <h2 className={TYPE_NAME}>{section.title}</h2>
               <ul className="flex flex-col gap-2">
                 {section.lines.map((line) => (
@@ -83,8 +111,8 @@ export default async function PrivacyPage() {
             </section>
           ))}
 
-          <section className={`${CARD} flex flex-col gap-3`}>
-            <h2 className={TYPE_NAME}>선택 항목</h2>
+          <section id={`privacy-${sections.length + 1}`} className={`${CARD} flex scroll-mt-20 flex-col gap-3`}>
+            <h2 className={TYPE_NAME}>{OPTIONAL_TITLE}</h2>
             <p className="text-[15px] leading-7 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
             <ul className="flex flex-col gap-3">
               {OPTIONAL_CONSENTS.map((one) => (
@@ -97,8 +125,8 @@ export default async function PrivacyPage() {
             </ul>
           </section>
 
-          <section className={`${CARD} flex flex-col gap-3`}>
-            <h2 className={TYPE_NAME}>확인하고 고치고 지우는 방법</h2>
+          <section id={`privacy-${sections.length + 2}`} className={`${CARD} flex scroll-mt-20 flex-col gap-3`}>
+            <h2 className={TYPE_NAME}>{RIGHTS_TITLE}</h2>
             <ul className="flex flex-col gap-2">
               <li className={DOT_LINE}>저장된 출생 정보는 내 사주 화면에서 언제든 고칠 수 있습니다.</li>
               <li className={DOT_LINE}>선택 동의는 계정 관리 화면에서 켜고 끌 수 있습니다.</li>
