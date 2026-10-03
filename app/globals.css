@@ -74,6 +74,18 @@
   --elevation-raise: 0 12px 28px -12px rgba(60, 48, 30, 0.5);
 
   /*
+    **입력 타일**(`app/ui/fields.ts`, 폼 디자인 B) — 칸마다 떠 있는 흰 타일이다. 쉴 때는 종이에서 1~2px 뜬 그림자, 초점이면
+    먹색 테 한 줄 + 바깥 번짐 한 단. 테 색은 먹색(`--accent`)을 반쯤 비친 것이라 크림 위에서도 검은 줄로 튀지 않는다.
+  */
+  /* 타일의 면 — 밝은 화면은 가장 흰 면, 어두운 화면은 크림 판(`--cream`)보다 한 단 밝다(어두운 판 위에서 떠 보이려면 밝아야 한다) */
+  --field-surface: #ffffff;
+  /* 타일 안의 작은 동그라미(꺾쇠) · 딱지 — 글자색을 아주 옅게 깐다 */
+  --field-well: rgba(60, 48, 30, 0.07);
+  --field-shadow: 0 1px 1px rgba(60, 48, 30, 0.04), 0 6px 16px -10px rgba(60, 48, 30, 0.22);
+  --field-shadow-focus: 0 0 0 4px var(--accent-soft), 0 12px 26px -14px rgba(60, 48, 30, 0.38);
+  --field-ring: color-mix(in srgb, var(--accent) 82%, transparent);
+
+  /*
     **본문 글꼴은 기기의 것이다**(ADR 0109 추기, 2026-09-30 운영자 결정). 웹 글꼴(Pretendard)을 싣지 않는다 —
     라틴 글자와 숫자는 시스템 서체가, 한글은 애플 산돌고딕 · Noto Sans KR · 맑은 고딕 가운데 기기에 있는 것이 그린다.
     제목의 둥근 서체(고운돋움)만 `next/font` 로 싣는다(`app/layout.tsx`).
@@ -132,6 +144,11 @@
     --elevation-soft: 0 2px 8px -4px rgba(0, 0, 0, 0.5);
     --elevation-lift: 0 8px 18px -10px rgba(0, 0, 0, 0.6);
     --elevation-raise: 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+    --field-surface: #312d27;
+    --field-well: rgba(242, 236, 222, 0.08);
+    --field-shadow: inset 0 1px 0 rgba(242, 236, 222, 0.04), 0 8px 18px -12px rgba(0, 0, 0, 0.7);
+    --field-shadow-focus: 0 0 0 4px var(--accent-soft), 0 12px 26px -14px rgba(0, 0, 0, 0.8);
+    --field-ring: color-mix(in srgb, var(--accent) 78%, transparent);
   }
 }
 
@@ -181,6 +198,11 @@
   --shadow-soft: var(--elevation-soft);
   --shadow-lift: var(--elevation-lift);
   --shadow-raise: var(--elevation-raise);
+  --shadow-field: var(--field-shadow);
+  --color-field: var(--field-surface);
+  --color-field-well: var(--field-well);
+  --shadow-field-focus: var(--field-shadow-focus);
+  --color-field-ring: var(--field-ring);
   --font-sans: var(--font-system);
   /* 제목 전용 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
   --font-rounded: var(--font-gowun-dodum), var(--font-system);
@@ -258,6 +280,48 @@ button, a, summary {
 .glyph {
   font-family: var(--font-system);
 }
+/*
+  **떠 있는 타일의 이름표**(폼 디자인 B, `app/ui/fields.ts`) — 칸 안 위쪽에 작게 붙는 이름표가 **비어 있고 초점이 없을 때만**
+  칸 가운데로 내려와 자리표시처럼 선다. 비었는지는 화면이 안다(`data-empty`) — `:placeholder-shown` 은 자리표시 글자가 있는
+  칸에서만 서고, 고르는 칸(단추)에는 아예 없다.
+
+  - `.field-head` — 타일의 머리 한 칸(높이 4rem). 이름표가 기대는 자리다. 펼친 목록은 머리 **밖** 아래에 서므로 이름표가
+    펼친 높이의 가운데로 내려가지 않는다.
+  - `.field-label` — 위 10px · 12px/16px · 600. 내려앉으면 16px/24px · 500 이고 세로 가운데다.
+  - `.field-head--area` — 여러 줄 칸(소개 · 메모). 내려앉은 이름표가 가운데가 아니라 첫 줄 자리에 선다.
+  - 내려앉은 동안은 칸의 자리표시 글자를 숨긴다 — 이름표와 겹친다. 초점이 오면 이름표가 올라가고 자리표시가 선다.
+*/
+@layer components {
+  .field-head { position: relative; }
+  .field-label {
+    position: absolute;
+    left: 1.125rem;
+    right: 3.25rem;
+    top: 0.625rem;
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1rem;
+    letter-spacing: -0.005em;
+    pointer-events: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: top 180ms ease, font-size 180ms ease, line-height 180ms ease, color 180ms ease, transform 180ms ease;
+  }
+  .field-head:focus-within .field-label { color: var(--foreground); }
+  .field-head[data-empty]:not(:focus-within) .field-label {
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5rem;
+  }
+  .field-head--area[data-empty]:not(:focus-within) .field-label { top: 1.125rem; transform: none; }
+}
+/* 층 밖이다 — 칸의 `placeholder:text-muted` 유틸리티(층 안)보다 세야 내려앉은 이름표와 자리표시가 안 겹친다 */
+.field-head[data-empty]:not(:focus-within) ::placeholder { color: transparent; }
 /*
   **본문 틀은 노치를 비킨다.** 뿌리 레이아웃이 `viewport-fit=cover` 라 가로로 누인 폰에서는 화면이 노치 밑까지 깔린다 —
   틀은 가운데 서므로 양옆 중 큰 값의 두 배를 폭에서 뺀다(노치가 없으면 0 이라 그대로다).
