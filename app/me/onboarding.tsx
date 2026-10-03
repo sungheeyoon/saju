@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { BirthFields } from '../birth-form';
-import { BUTTON_PRIMARY } from '../ui/buttons';
+import { FIELD_PANEL, FORM_CTA } from '../ui/fields';
 import { ElementSymbol } from '../ui/element-symbol';
 import { PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { ELEMENTS } from '@/src/lib/saju';
@@ -55,15 +55,17 @@ export function Onboarding({ nickname }: { nickname: string }) {
         </p>
       </header>
 
-      <BirthFields value={query} onChange={setQuery} showName={false} />
-
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
-          {saving ? '저장하는 중…' : '내 사주로 저장'}
-        </button>
-        {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-        {missing !== null && <span className="text-[13px] text-secondary">{missing}</span>}
+      {/* 크림 종이 위 흰 판에 칸이 앉는다(폼 시안 E, `FIELD_PANEL`) */}
+      <div className={FIELD_PANEL}>
+        <BirthFields value={query} onChange={setQuery} showName={false} />
       </div>
+
+      {/* 단추는 판 밖 종이의 바로 아래 자식이다 — 폰에서 바닥에 붙는 범위가 이 판 전체다(`form-cta`) */}
+      <button type="button" onClick={save} disabled={missing !== null || saving} className={`${FORM_CTA} -mt-2`}>
+        {saving ? '저장하는 중…' : '내 사주로 저장'}
+      </button>
+      {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
+      {missing !== null && <p className="-mt-4 px-1 text-center text-[13px] leading-5 text-secondary">{missing}</p>}
 
       {failure !== null && <p role="alert" className="text-sm text-danger">저장하지 못했어요. {failure}</p>}
     </section>

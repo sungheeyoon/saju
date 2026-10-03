@@ -23,6 +23,7 @@ import {
   BUTTON_SECONDARY_SMALL,
   BUTTON_TERTIARY,
 } from '../../ui/buttons';
+import { FIELD_BOX, FIELD_LABEL, FORM_CARD, FORM_CTA_ROW, FORM_CTA_SECONDARY, FORM_CTA_SOLID } from '../../ui/fields';
 import { Icon } from '../../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_META, TYPE_SECTION } from '../../ui/surfaces';
 
@@ -152,7 +153,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
     <section
       ref={form}
       id="add"
-      className="flex scroll-mt-24 scroll-mb-28 flex-col gap-5 rounded-[1.75rem] border border-border bg-surface p-5 shadow-card sm:p-7"
+      className={`${FORM_CARD} flex scroll-mt-24 scroll-mb-28 flex-col gap-7`}
     >
       <header className="flex flex-col gap-1.5">
         <h2 className={TYPE_SECTION}>사람 추가</h2>
@@ -181,18 +182,19 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
           }}
         />
       ) : (
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
-              {saving ? '저장하는 중…' : '등록'}
-            </button>
-            <button type="button" onClick={() => setOpen(false)} disabled={saving} className={BUTTON_TERTIARY}>
+        <>
+          {/* 바닥에 붙는 단추 줄 — 취소(회색) 1 : 등록(먹색) 2. 주 단추는 오른쪽, 엄지 자리다(폼 시안 E) */}
+          <div className={FORM_CTA_ROW}>
+            <button type="button" onClick={() => setOpen(false)} disabled={saving} className={FORM_CTA_SECONDARY}>
               취소
+            </button>
+            <button type="button" onClick={save} disabled={missing !== null || saving} className={FORM_CTA_SOLID}>
+              {saving ? '저장하는 중…' : '등록'}
             </button>
           </div>
           {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-          {missing !== null && <p className={TYPE_META}>{missing}</p>}
-        </div>
+          {missing !== null && <p className={`-mt-5 text-center ${TYPE_META}`}>{missing}</p>}
+        </>
       )}
 
       {failure !== null && (
@@ -214,11 +216,11 @@ function NoteField({
   idPrefix: string;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-[13px] font-semibold text-secondary">메모 (선택)</span>
+    <label className="group flex flex-col gap-2">
+      <span className={FIELD_LABEL}>메모 (선택)</span>
       {/*
-        **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
-        그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
+        여러 줄 글은 밑줄이 아니라 옅은 회색 면이다(`FIELD_BOX`). 초점은 면이 희어지고 안쪽에 2px 강조색 테가 선다 — 옛
+        옅은 `ring` 처럼 안 보이는 초점이 아니라서 전역 초점 테두리를 겹으로 두르지 않는다.
       */}
       <textarea
         id={`${idPrefix}-note`}
@@ -227,7 +229,7 @@ function NoteField({
         maxLength={NOTE_MAX}
         rows={2}
         placeholder="기억해 둘 것 — 사주 계산에는 쓰지 않아요"
-        className="rounded-2xl border border-border bg-surface px-3.5 py-2.5 text-[15px] leading-6 placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+        className={`${FIELD_BOX} resize-none`}
       />
     </label>
   );

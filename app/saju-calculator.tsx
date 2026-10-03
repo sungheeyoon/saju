@@ -8,7 +8,7 @@ import { calculateChart } from '@/src/lib/input/chart';
 import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
 import { useSessionKnown, useSignedIn } from './signed-in';
-import { BUTTON_PRIMARY } from './ui/buttons';
+import { FIELD_PANEL, FORM_CARD, FORM_CTA } from './ui/fields';
 import { SajuView, sajuViewModelOf, type SajuViewModel } from './saju/view';
 import { Taste } from './taste';
 import {
@@ -151,43 +151,52 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
           submit(form);
         }}
         // 로그인 전에는 첫 화면 종이의 아래 토막이다 — 머리(`home-hero.tsx`)와 한 장으로 선다(ADR 0132)
-        className={signedIn ? `${CARD} flex flex-col gap-5` : `${PAPER_BOTTOM} flex flex-col gap-3`}
+        className={signedIn ? `${FORM_CARD} flex flex-col gap-6` : `${PAPER_BOTTOM} flex flex-col gap-4`}
       >
-        <BirthFields value={form} onChange={setForm} />
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
-            className={`${BUTTON_PRIMARY} w-full ${signedIn ? 'sm:w-auto' : 'mt-1'}`}
-          >
-            {/*
-              **로그인 전에는 무엇이 무료인지 버튼이 말한다**(흐름 시안 g, ADR 0131) — 사주 · 오행 · 로그인 전 사주 문단은 로그인 없이
-              바로 선다. 회원이 여기 넣는 것은 대개 남의 사주라 「내」를 안 붙인다(위 머리말).
-            */}
-            {query !== null ? '수정하고 다시 보기' : signedIn ? '사주 보기' : '무료로 내 사주 보기'}
-          </button>
-
-          {/*
-            **링크 복사는 제출 버튼 옆이다.**
-
-            결과 맨 위에 따로 한 줄로 서 있었다. 그런데 이 버튼이 복사하는 것은 **지금 폼이
-            내놓은 주소**라, 그 주소를 만드는 버튼 옆이 그것이 사는 자리다. 결과 위에 두면
-            무엇의 링크인지 한 번 더 생각하게 된다.
-
-            **저장한 사람 화면에서는 함께 사라진다.** 거기서도 결과 화면 부품을 그대로 쓰는데
-            (`SajuResult`), 그 주소(`/me/people/…`)에는 출생 정보가 안 실린다 — 버튼 옆
-            문장이 거기서는 참이 아니었고, 남에게 보내도 열리지 않는 링크였다.
-          */}
-          {query !== null && <CopyLinkButton />}
-
-          {/* 눌렀는데 못 간 이유를 버튼 옆에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
-          {tried && missing !== null && (
-            <p id="natal-missing" role="alert" className="text-sm font-medium text-danger">
-              {missing}
-            </p>
-          )}
+        {/* 로그인 전에는 크림 종이 위에 흰 판을 한 장 깔고 칸을 그 위에 둔다(폼 시안 E) — 카드 안(로그인 뒤)에서는 판이 곧 카드다 */}
+        <div className={signedIn ? undefined : FIELD_PANEL}>
+          <BirthFields value={form} onChange={setForm} flagMissing={tried && missing !== null} />
         </div>
+
+        {/*
+          단추 · 링크 복사 · 못 간 이유가 폼의 바로 아래 자식이다 — 단추가 폰에서 바닥에 붙으려면(`form-cta`) 붙는 범위가
+          폼 전체여야 한다. 한 줄로 묶어 두면 그 줄 높이 안에서만 붙어 아무 데도 안 붙는다.
+        */}
+        <button
+          type="submit"
+          aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
+          className={FORM_CTA}
+        >
+          {/*
+            **로그인 전에는 무엇이 무료인지 버튼이 말한다**(흐름 시안 g, ADR 0131) — 사주 · 오행 · 로그인 전 사주 문단은 로그인 없이
+            바로 선다. 회원이 여기 넣는 것은 대개 남의 사주라 「내」를 안 붙인다(위 머리말).
+          */}
+          {query !== null ? '수정하고 다시 보기' : signedIn ? '사주 보기' : '무료로 내 사주 보기'}
+        </button>
+
+        {/*
+          **링크 복사는 제출 버튼 옆이다.**
+
+          결과 맨 위에 따로 한 줄로 서 있었다. 그런데 이 버튼이 복사하는 것은 **지금 폼이
+          내놓은 주소**라, 그 주소를 만드는 버튼 옆이 그것이 사는 자리다. 결과 위에 두면
+          무엇의 링크인지 한 번 더 생각하게 된다.
+
+          **저장한 사람 화면에서는 함께 사라진다.** 거기서도 결과 화면 부품을 그대로 쓰는데
+          (`SajuResult`), 그 주소(`/me/people/…`)에는 출생 정보가 안 실린다 — 버튼 옆
+          문장이 거기서는 참이 아니었고, 남에게 보내도 열리지 않는 링크였다.
+        */}
+        {query !== null && (
+          <div className="flex justify-center">
+            <CopyLinkButton />
+          </div>
+        )}
+
+        {/* 눌렀는데 못 간 이유를 버튼 옆에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
+        {tried && missing !== null && (
+          <p id="natal-missing" role="alert" className="-mt-1 px-1 text-[13px] font-medium leading-5 text-danger">
+            {missing}
+          </p>
+        )}
 
         {/*
           **무엇이 어디로 가는지 누르기 전에 말한다**(ADR 0143 의 6, 운영자가 정한 문구) — 로그인하지 않은 사람에게는 결과의
