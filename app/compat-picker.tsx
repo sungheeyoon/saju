@@ -16,6 +16,7 @@ import {
 import type { CompatSide, Element } from '@/src/lib/saju';
 
 import { BirthFields } from './birth-form';
+import { BUTTON_SEAL, Seal } from './ui/danja';
 import { SIDE_LABEL, SIDES } from './compat-view';
 import { elementScope } from './ui/element-tone';
 import { useHashParams, writeParams } from './hash-query';
@@ -29,7 +30,6 @@ import {
   type SaveOutcome,
   type SameChartQuestion,
 } from './same-chart-ask';
-import { BUTTON_PRIMARY } from './ui/buttons';
 import { TaijiMark } from './ui/entry-marks';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
@@ -240,10 +240,10 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
                 onClick={press}
                 disabled={!chosen || sameTwice || opening}
                 aria-describedby={reason !== null ? 'compat-locked-reason' : undefined}
-                className={`${BUTTON_PRIMARY} sm:min-w-44`}
+                className={`${BUTTON_SEAL} sm:min-w-44`}
               >
-                <Icon name="taiji" className="size-[18px]" />
                 {opening ? '여는 중…' : '궁합 보기'}
+                <Seal glyph="合" />
               </button>
             ) : undefined
           }
@@ -315,7 +315,10 @@ function SlotCard({
         <span className={`block truncate ${TYPE_NAME}`}>{name === '' ? `${SIDE_LABEL[side]} 사람` : name}</span>
       </legend>
 
-      <div className="grid grid-cols-2 gap-1 rounded-full bg-surface-sunken p-1">
+      {/*
+        어디서 올지 고르는 두 칸 — 생년월일시 판의 창살과 같은 몸이다(먹선 테 · 계선 · 고른 칸은 먹으로 채움).
+      */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[3px] border border-ink-line bg-ink-hair">
         {(
           [
             ['saved', '저장한 사람'],
@@ -330,10 +333,10 @@ function SlotCard({
             onClick={() =>
               onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY })
             }
-            className={`min-h-11 rounded-full px-3 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-45 ${
+            className={`min-h-12 px-3 font-myeongjo text-[15px] outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--seal)] disabled:cursor-not-allowed disabled:opacity-45 ${
               slot.from === from
-                ? 'bg-surface text-foreground shadow-soft ring-1 ring-border'
-                : 'text-secondary hover:text-foreground'
+                ? 'bg-accent font-bold text-on-accent'
+                : 'bg-hanji text-secondary hover:bg-hanji-deep hover:text-foreground'
             }`}
           >
             {label}

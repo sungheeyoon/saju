@@ -8,7 +8,7 @@ import { calculateChart } from '@/src/lib/input/chart';
 import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
 import { useSessionKnown, useSignedIn } from './signed-in';
-import { BUTTON_PRIMARY } from './ui/buttons';
+import { BUTTON_SEAL, Seal } from './ui/danja';
 import { SajuView, sajuViewModelOf, type SajuViewModel } from './saju/view';
 import { Taste } from './taste';
 import {
@@ -159,13 +159,14 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
           <button
             type="submit"
             aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
-            className={`${BUTTON_PRIMARY} w-full ${signedIn ? 'sm:w-auto' : 'mt-1'}`}
+            className={`${BUTTON_SEAL} w-full ${signedIn ? 'sm:w-auto' : 'mt-1'}`}
           >
             {/*
               **로그인 전에는 무엇이 무료인지 버튼이 말한다**(흐름 시안 g, ADR 0131) — 사주 · 오행 · 로그인 전 사주 문단은 로그인 없이
               바로 선다. 회원이 여기 넣는 것은 대개 남의 사주라 「내」를 안 붙인다(위 머리말).
             */}
             {query !== null ? '수정하고 다시 보기' : signedIn ? '사주 보기' : '무료로 내 사주 보기'}
+            <Seal glyph="命" />
           </button>
 
           {/*
@@ -183,7 +184,11 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
 
           {/* 눌렀는데 못 간 이유를 버튼 옆에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
           {tried && missing !== null && (
-            <p id="natal-missing" role="alert" className="text-sm font-medium text-danger">
+            <p
+              id="natal-missing"
+              role="alert"
+              className="border-l-2 border-danger py-0.5 pl-3 font-myeongjo text-[14.5px] font-bold text-danger"
+            >
               {missing}
             </p>
           )}

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { INPUT_EDIT_CHANGE_CONFIRM } from '@/src/lib/consent';
 
 import { BirthFields } from '../birth-form';
+import { BUTTON_SEAL, Seal } from '../ui/danja';
 import { missingAnswer, type Query } from '@/src/lib/input/query';
 import {
   INPUT_EDIT_REPLACED_NOTE,
@@ -159,9 +160,10 @@ export function EditInputForm({
             /* 여덟 글자가 바뀌는 누름만 묻는다 — 이름만 고치는 것은 요청을 안 건드린다 */
             onClick={confirmsRequests && !pillarsSame ? () => setConfirming(true) : save}
             disabled={missing !== null || saving || (pillarsSame && !nameChanged)}
-            className={BUTTON_PRIMARY}
+            className={BUTTON_SEAL}
           >
             {saving ? '저장하는 중…' : pillarsSame ? '이름 저장' : '변경 사항 저장'}
+            <Seal glyph="命" />
           </button>
           <button type="button" onClick={onCancel} disabled={saving} className={BUTTON_TERTIARY}>
             작성 그만두기

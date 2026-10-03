@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import type { PersonSlots } from '@/src/lib/people';
 
 import { BirthFields } from '../../birth-form';
+import { BUTTON_SEAL, DJ_FIELD, DJ_FIELD_LABEL, Seal } from '../../ui/danja';
 import { DEFAULT_QUERY, missingAnswer, type Query } from '@/src/lib/input/query';
 import { NOTE_MAX } from '@/src/lib/input/edit';
 import { useHashParams } from '../../hash-query';
@@ -183,8 +184,9 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+            <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_SEAL}>
               {saving ? '저장하는 중…' : '등록'}
+              <Seal glyph="命" />
             </button>
             <button type="button" onClick={() => setOpen(false)} disabled={saving} className={BUTTON_TERTIARY}>
               취소
@@ -215,10 +217,10 @@ function NoteField({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[13px] font-semibold text-secondary">메모 (선택)</span>
+      <span className={DJ_FIELD_LABEL}>메모 (선택)</span>
       {/*
-        **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
-        그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
+        생년월일시 판과 같은 한지 낱칸이다(`DJ_FIELD`). 초점은 제 것으로 선다 — 먹선 테 · 칸 바닥의 인주 한 획 · 둘레의
+        옅은 먹. 옛 칸은 옅은 `ring` 뿐이라 전역 초점 테두리에 기댔다.
       */}
       <textarea
         id={`${idPrefix}-note`}
@@ -227,7 +229,7 @@ function NoteField({
         maxLength={NOTE_MAX}
         rows={2}
         placeholder="기억해 둘 것 — 사주 계산에는 쓰지 않아요"
-        className="rounded-2xl border border-border bg-surface px-3.5 py-2.5 text-[15px] leading-6 placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+        className={`${DJ_FIELD} leading-6`}
       />
     </label>
   );
