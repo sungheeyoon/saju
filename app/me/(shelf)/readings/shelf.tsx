@@ -76,9 +76,6 @@ export function SingleCover({ book, row = false, from }: { book: Book; row?: boo
       style={{ background: face.background }}
     >
       <Spine background={face.spine} />
-      {subject !== null && (
-        <StemSymbol stem={subject.stem} className="pointer-events-none absolute -bottom-5 -right-5 size-24 opacity-15" />
-      )}
 
       <span className="relative flex min-w-0 flex-col gap-1">
         <SubjectTag subject={subject} />

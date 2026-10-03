@@ -7,7 +7,6 @@ import { CompatFillLink } from '../../compat-fill-link';
 import { elementScope } from '../../ui/element-tone';
 import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { StemSymbol } from '../../ui/stem-symbol';
 import { DayMasterChip } from '../people/chart-bits';
 import { Icon } from '../../ui/icons';
 import { STALE_CHIP, TYPE_NAME } from '../../ui/surfaces';
@@ -71,8 +70,6 @@ export function PersonTile({
       id={anchor}
       className={`${elementScope(element)} ${TARGET} relative flex flex-col gap-2.5 overflow-hidden rounded-[1rem] bg-[var(--tile)] p-3.5 sm:p-4`}
     >
-      <StemSymbol stem={dayMaster} className="pointer-events-none absolute -right-3 -top-3 size-20 opacity-20" />
-
       <DayMasterChip stem={dayMaster} className="relative self-start" />
 
       <div className="min-w-0">

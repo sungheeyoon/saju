@@ -16,7 +16,6 @@ import {
   BUTTON_SECONDARY_SMALL,
 } from '../../../ui/buttons';
 import { useDetailsMenu } from '../../../ui/details-menu';
-import { StemSymbol } from '../../../ui/stem-symbol';
 import { Icon } from '../../../ui/icons';
 import { TYPE_NAME } from '../../../ui/surfaces';
 import { Avatar } from '../../avatar';
@@ -292,7 +291,6 @@ function StartSide({ label, stem }: { label: string; stem: Stem }) {
   const info = STEM_INFO[stem];
   return (
     <section className={`${elementScope(info.element)} relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-[1rem] bg-[var(--tile)] p-4`}>
-      <StemSymbol stem={stem} className="pointer-events-none absolute -bottom-4 -right-4 size-20 opacity-20" />
       <DayMasterChip stem={stem} className="relative self-start" />
       <div className="relative min-w-0">
         <p className="truncate font-rounded text-[1.125rem] leading-6 text-foreground">{label}</p>

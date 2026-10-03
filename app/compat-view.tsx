@@ -14,7 +14,6 @@ import { BetweenSections } from './between-view';
 import { elementScope } from './ui/element-tone';
 import { DayMasterChip, PillarStrip } from './me/people/chart-bits';
 import { Icon } from './ui/icons';
-import { StemSymbol } from './ui/stem-symbol';
 import { sharedPillarChartOf, type SharedPillarChart } from './shared-pillar';
 import { TILE, TYPE_META, TYPE_NAME, TYPE_SECTION } from './ui/surfaces';
 
@@ -178,7 +177,6 @@ function PairSide({
 
   return (
     <section className={`${elementScope(dayMaster.element)} ${TILE} relative flex flex-col gap-3 overflow-hidden sm:p-5`}>
-      <StemSymbol stem={chart.dayMaster} className="pointer-events-none absolute -right-5 -top-5 size-28 opacity-[0.14]" />
       <div className="relative flex min-w-0 flex-col gap-2">
         <DayMasterChip stem={chart.dayMaster} className="self-start" />
         <div className="min-w-0">

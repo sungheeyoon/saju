@@ -18,7 +18,6 @@ import { BUTTON_ON_TILE, BUTTON_TERTIARY } from '../../../ui/buttons';
 import { Icon } from '../../../ui/icons';
 import { TYPE_META, TYPE_TITLE } from '../../../ui/surfaces';
 import { DayMasterChip } from '../chart-bits';
-import { StemSymbol } from '../../../ui/stem-symbol';
 import { compatHrefFor } from '../compat-href';
 
 export const metadata = {
@@ -93,10 +92,6 @@ export default async function PersonSajuPage({
         색 혼자 말하지 않게 일간 딱지(상징 · 글자 · 오행 이름)가 함께 선다.
       */}
       <header className={`${elementScope(element)} relative overflow-hidden rounded-[1.25rem] bg-[var(--tile)] p-5 sm:p-8`}>
-        <StemSymbol
-          stem={person.saju.pillars.dayMaster}
-          className="pointer-events-none absolute -right-8 -top-8 size-44 opacity-[0.14] sm:size-56"
-        />
         <div className="relative flex flex-col gap-4">
           <Link href={mine ? '/me' : '/me/people'} className={`${BUTTON_TERTIARY} -ml-1 self-start`}>
             <Icon name="back" className="size-4" />

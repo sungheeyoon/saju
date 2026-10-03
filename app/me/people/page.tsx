@@ -25,7 +25,6 @@ import { compatHrefFor } from './compat-href';
 import { elementScope } from '../../ui/element-tone';
 import { BUTTON_ON_TILE, BUTTON_ON_TILE_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { StemSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { EMPTY_SLOT, STALE_CHIP, TILE, TYPE_META, TYPE_NAME, TYPE_TITLE } from '../../ui/surfaces';
 
@@ -275,12 +274,6 @@ function PersonCard({
 
   return (
     <section className={`${elementScope(element)} ${TILE} relative flex h-full flex-col gap-3 sm:p-5`}>
-      {/* 큰 상징 하나가 모서리에 옅게 번진다 — 장식이라 누름도 보조기기도 지나간다 */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-[1rem]">
-        {person.chart.ok && (
-          <StemSymbol stem={person.chart.saju.pillars.dayMaster} className="absolute -bottom-6 -right-6 size-32 opacity-[0.14]" />
-        )}
-      </div>
 
       <div className="flex min-h-11 items-center pr-14">
         {person.chart.ok ? (

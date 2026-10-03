@@ -9,7 +9,6 @@ import { CALENDAR_KO, ELEMENTS, ELEMENT_PICTURE_KO, GENDER_KO, STEM_INFO, type S
 import { elementScope } from '../../ui/element-tone';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
 import { ElementSymbol } from '../../ui/element-symbol';
-import { StemSymbol } from '../../ui/stem-symbol';
 import { DayMasterChip } from '../people/chart-bits';
 import { Icon } from '../../ui/icons';
 import { EditInput } from '../edit-input';
@@ -67,8 +66,6 @@ export function SelfCard({
       aria-label="내 사주"
       className={`${elementScope(dayElement)} relative flex h-full min-w-0 flex-col justify-between overflow-hidden rounded-[1.25rem] bg-[var(--tile)] sm:gap-6 sm:p-8 ${compact ? 'gap-3 p-4' : 'gap-4 p-5'}`}
     >
-      <StemSymbol stem={saju.pillars.dayMaster} className="pointer-events-none absolute -bottom-10 -right-8 size-40 opacity-15 sm:size-56" />
-
       {/* 이름(가장 크게)과 바로 아래 한 줄 평 — 내 사주풀이의 비유. 풀이가 없으면 그 줄은 서지 않는다 */}
       <header className="relative flex min-w-0 flex-col gap-2 pr-14 sm:gap-3">
         <div>
