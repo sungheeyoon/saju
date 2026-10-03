@@ -2570,15 +2570,18 @@ test.describe('로그인한 사람의 궁합 화면', () => {
 
   /**
    * **반쪽 링크로는 못 넘어간다.** 한 칸만 적힌 주소로 열면 그 칸만 채워지고, 나머지
-   * 한 칸을 정하기 전에는 버튼이 안 눌린다 — 남의 사주가 섞여 보일 자리가 없다.
+   * 한 칸을 정하기 전에는 눌러도 안 넘어가고 이유를 말한다 — 남의 사주가 섞여 보일 자리가 없다.
+   * 단추는 잠그지 않는다 — 누르기 전에는 이유도 안 선다(폼 시안 · UX).
    */
   test('한 사람만 적힌 궁합 주소는 그 칸만 채운다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
     await page.goto('/compat#a.name=민수&a.date=1990-05-15&a.hour=11:20');
 
     await expectBirthDate(slotCard(page, '첫 번째'), '1990-05-15');
-    await expect(page.getByRole('button', { name: '궁합 보기' })).toBeDisabled();
+    await expect(page.getByText('두 번째 사람을 골라 주세요')).toHaveCount(0);
+    await page.getByRole('button', { name: '궁합 보기' }).click();
     await expect(page.getByText('두 번째 사람을 골라 주세요')).toBeVisible();
+    await expect(page).toHaveURL(/\/compat#/);
   });
 
   /**

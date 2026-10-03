@@ -28,10 +28,16 @@ export function Onboarding({ nickname }: { nickname: string }) {
   const [query, setQuery] = useState<Query>({ ...DEFAULT_QUERY, name: nickname });
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
+  /** 빈칸에 막힌 횟수 — 단추는 잠그지 않고, 막히면 폼이 첫 빈칸의 줄에서 말한다(`BirthFields` 의 `attempt`) */
+  const [attempt, setAttempt] = useState(0);
 
   const missing = missingAnswer(query);
 
   const save = () => {
+    if (missing !== null) {
+      setAttempt((count) => count + 1);
+      return;
+    }
     setFailure(null);
     startSaving(async () => {
       const result = await saveSelfPerson(query);
@@ -55,14 +61,12 @@ export function Onboarding({ nickname }: { nickname: string }) {
         </p>
       </header>
 
-      <BirthFields value={query} onChange={setQuery} showName={false} />
+      <BirthFields value={query} onChange={setQuery} showName={false} attempt={attempt} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+        <button type="button" onClick={save} disabled={saving} className={BUTTON_PRIMARY}>
           {saving ? '저장하는 중…' : '내 사주로 저장'}
         </button>
-        {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-        {missing !== null && <span className="text-[13px] text-secondary">{missing}</span>}
       </div>
 
       {failure !== null && <p role="alert" className="text-sm text-danger">저장하지 못했어요. {failure}</p>}

@@ -102,6 +102,8 @@ export function EditInputForm({
   const [failure, setFailure] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const [confirming, setConfirming] = useState(false);
+  /** 빈칸에 막힌 횟수 — 단추는 빈칸으로 잠그지 않고, 막히면 폼이 첫 빈칸의 줄에서 말한다(`BirthFields` 의 `attempt`) */
+  const [attempt, setAttempt] = useState(0);
 
   const missing = missingAnswer(query);
   const nameChanged = editableName && query.name.trim() !== current.name.trim();
@@ -138,7 +140,7 @@ export function EditInputForm({
         </div>
       )}
 
-      <BirthFields value={query} onChange={setQuery} showName={editableName} />
+      <BirthFields value={query} onChange={setQuery} showName={editableName} attempt={attempt} />
 
       {/*
         무엇이 일어날지 누르기 전에 말한다. 이름은 여덟 글자를 바꾸지 않으므로
@@ -157,8 +159,14 @@ export function EditInputForm({
           <button
             type="button"
             /* 여덟 글자가 바뀌는 누름만 묻는다 — 이름만 고치는 것은 요청을 안 건드린다 */
-            onClick={confirmsRequests && !pillarsSame ? () => setConfirming(true) : save}
-            disabled={missing !== null || saving || (pillarsSame && !nameChanged)}
+            onClick={
+              missing !== null
+                ? () => setAttempt((count) => count + 1)
+                : confirmsRequests && !pillarsSame
+                  ? () => setConfirming(true)
+                  : save
+            }
+            disabled={saving || (pillarsSame && !nameChanged)}
             className={BUTTON_PRIMARY}
           >
             {saving ? '저장하는 중…' : pillarsSame ? '이름 저장' : '변경 사항 저장'}
@@ -167,7 +175,6 @@ export function EditInputForm({
             작성 그만두기
           </button>
         </div>
-        {missing !== null && <p className={TYPE_META}>{missing}</p>}
       </div>
 
       {failure !== null && (

@@ -76,6 +76,8 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   const form = useRef<HTMLElement>(null);
 
   const missing = missingAnswer(query);
+  /** 빈칸에 막힌 횟수 — 단추는 잠그지 않고, 막히면 폼이 첫 빈칸의 줄에서 말한다(`BirthFields` 의 `attempt`) */
+  const [attempt, setAttempt] = useState(0);
 
   /* 펼치면 그 칸으로 데려간다 — 폰에서는 폼 머리가 화면 아래에 걸려 열린 줄 모른다 */
   useEffect(() => {
@@ -86,7 +88,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
    * 「맞다」면 **아무것도 등록하지 않고** 그 사람에게 간다 — 자리도 안 쓰고 대상도 안 는다.
    * 목적은 중복 행이 아니라 **풀이권이 두 번 나가는 것**을 막는 것이다(ADR 0034).
    */
-  const attempt = async (evenIfSameChart: boolean): Promise<SaveOutcome> => {
+  const tryAdd = async (evenIfSameChart: boolean): Promise<SaveOutcome> => {
     const result = await addManagedPerson(query, note, evenIfSameChart);
 
     if (result.ok) {
@@ -103,7 +105,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       ask: {
         label: same.label,
         answer: async (sameperson) => {
-          if (!sameperson) return attempt(true);
+          if (!sameperson) return tryAdd(true);
           router.push(same.isSelfPerson ? '/me' : `/me/people/${same.personId}`);
           return { done: true };
         },
@@ -114,8 +116,12 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
   const settle = (outcome: SaveOutcome) => settleSaveOutcome(outcome, setFailure, setQuestion);
 
   const save = () => {
+    if (missing !== null) {
+      setAttempt((count) => count + 1);
+      return;
+    }
     setFailure(null);
-    startSaving(async () => settle(await attempt(false)));
+    startSaving(async () => settle(await tryAdd(false)));
   };
 
   // 못 읽었으면(`null`) 막지 않는다 — 막는 것은 DB 이고 화면은 먼저 말해 줄 뿐이다.
@@ -163,7 +169,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
         </p>
       </header>
 
-      <BirthFields value={query} onChange={setQuery} namePlaceholder="엄마" />
+      <BirthFields value={query} onChange={setQuery} namePlaceholder="엄마" attempt={attempt} />
 
       <NoteField value={note} onChange={setNote} idPrefix="add" />
 
@@ -183,15 +189,13 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+            <button type="button" onClick={save} disabled={saving} className={BUTTON_PRIMARY}>
               {saving ? '저장하는 중…' : '등록'}
             </button>
             <button type="button" onClick={() => setOpen(false)} disabled={saving} className={BUTTON_TERTIARY}>
               취소
             </button>
           </div>
-          {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-          {missing !== null && <p className={TYPE_META}>{missing}</p>}
         </div>
       )}
 

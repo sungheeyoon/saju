@@ -191,13 +191,22 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
 
   const settle = (outcome: SaveOutcome) => settleSaveOutcome(outcome, setFailure, setQuestion);
 
+  /**
+   * 빈칸에 막힌 횟수 — **단추는 잠그지 않는다**(폼 시안 · UX). 잠긴 단추 곁에 회색 이유가 늘 서 있으면 아직 아무것도
+   * 안 한 사람에게 하는 말이 된다. 누른 뒤에 말하고, 적는 칸이면 폼이 첫 빈칸의 줄을 붉히고 초점을 옮긴다.
+   */
+  const [attempt, setAttempt] = useState(0);
+
   const press = () => {
-    if (!chosen || sameTwice) return;
+    if (!chosen || sameTwice) {
+      setAttempt((count) => count + 1);
+      return;
+    }
     setFailure(null);
     startOpening(async () => settle(await open({})));
   };
 
-  const reason = !opening && (missing(slots) !== null || sameTwice)
+  const reason = attempt > 0 && !opening && (missing(slots) !== null || sameTwice)
     ? sameTwice ? '같은 사람은 한 번만 고를 수 있어요. 서로 다른 두 사람을 골라 주세요.' : missing(slots)
     : null;
 
@@ -217,6 +226,8 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
             /* 다른 칸에서 고른 사람은 여기서 뺀다 — 같은 사람 둘은 애초에 못 고른다 */
             taken={otherSaved(slots, side)}
             onChange={(next) => setSlot(side, next)}
+            /* 막힌 것을 말하는 칸은 **먼저 비어 있는 한 칸**이다 — 둘이 함께 붉어지면 초점도 둘로 갈린다 */
+            attempt={side === SIDES.find((one) => !complete(slots[one])) ? attempt : 0}
           />
         ))}
       </div>
@@ -238,7 +249,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
               <button
                 type="button"
                 onClick={press}
-                disabled={!chosen || sameTwice || opening}
+                disabled={opening}
                 aria-describedby={reason !== null ? 'compat-locked-reason' : undefined}
                 className={`${BUTTON_PRIMARY} sm:min-w-44`}
               >
@@ -249,9 +260,13 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
           }
         />
 
-        {/* 왜 눌리지 않는지 단추 곁에서 말한다 — 잠긴 단추만 두면 이유를 찾아야 한다 */}
+        {/* 눌렀는데 못 연 이유를 단추 곁에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
         {question === null && reason !== null && (
-          <p id="compat-locked-reason" className="mt-2 flex items-center justify-end gap-1.5 text-right text-[13px] leading-5 text-secondary">
+          <p
+            id="compat-locked-reason"
+            role="alert"
+            className="mt-2 flex items-center justify-end gap-1.5 text-right text-[13px] font-medium leading-5 text-danger"
+          >
             <Icon name="alert" className="size-4 shrink-0" />
             {reason}
           </p>
@@ -290,12 +305,15 @@ function SlotCard({
   people,
   taken,
   onChange,
+  attempt,
 }: {
   side: CompatSide;
   slot: Slot;
   people: Choosable[];
   taken: string | null;
   onChange: (next: Slot) => void;
+  /** 「궁합 보기」가 빈칸에 막힌 횟수 — 적는 칸이면 폼이 첫 빈칸의 줄에서 말한다 */
+  attempt: number;
 }) {
   const name = slot.from === 'typed' ? slot.query.name.trim() : labelOf(people, slot.personId);
 
@@ -358,6 +376,7 @@ function SlotCard({
           value={slot.query}
           onChange={(next) => onChange({ from: 'typed', query: next })}
           namePlaceholder={SIDE_LABEL[side]}
+          attempt={attempt}
         />
       )}
     </fieldset>

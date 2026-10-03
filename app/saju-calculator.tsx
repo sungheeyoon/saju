@@ -86,17 +86,13 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
   const missing = missingAnswer(form);
 
   /**
-   * **눌러 본 적이 있는가** — 빠진 칸을 말할 시점을 정하는 값.
+   * **막힌 횟수** — 빠진 칸을 말할 시점을 정하는 값.
    *
-   * 버튼을 잠가 두었다. 그러면 왜 안 눌리는지 묻게 되고, 옆에 답을 적어 두어도 그것은
-   * **아직 아무것도 안 한 사람에게 하는 말**이라 회색으로 늘 서 있었다. 잠긴 버튼은
-   * 키보드 포커스도 안 받아서, 화면을 못 보는 사람에게는 이유가 있는 자리 자체가 없다.
-   *
-   * 그래서 누르게 두고 **누른 뒤에** 말한다. 그때의 문장은 안내가 아니라 실제로 일어난
-   * 거절이므로 경고 색으로 선다 — 「경고는 되돌릴 수 없는 누름 직전에 선다」와 같은
-   * 규율의 다른 쪽 면이다(ADR 0028). 채워지면 스스로 사라진다.
+   * 버튼을 잠그면 왜 안 눌리는지 묻게 되고, 잠긴 버튼은 키보드 포커스도 안 받는다. 그래서 누르게 두고 **누른 뒤에**
+   * 말한다(ADR 0028). 말하는 자리는 단추 옆이 아니라 **첫 빈칸의 줄**이다 — 폼이 그 줄을 붉히고 초점을 옮긴다
+   * (`BirthFields` 의 `attempt`, 폼 시안 · UX). 막힐 때마다 하나씩 올라 초점이 다시 그 칸으로 간다.
    */
-  const [tried, setTried] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   // 주소가 밖에서 바뀌면(뒤로가기·앞으로가기·링크로 들어옴) 폼도 그 값으로 되돌린다.
   // 화면은 주소가 가리키는 사주를 보여주는데 폼만 옛 입력을 들고 있으면,
@@ -144,21 +140,20 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
             엔터로 보내든 버튼을 누르든 같은 답을 받는다.
           */
           if (missing !== null) {
-            setTried(true);
+            setAttempt((count) => count + 1);
             return;
           }
-          setTried(false);
+          setAttempt(0);
           submit(form);
         }}
         // 로그인 전에는 첫 화면 종이의 아래 토막이다 — 머리(`home-hero.tsx`)와 한 장으로 선다(ADR 0132)
         className={signedIn ? `${CARD} flex flex-col gap-5` : `${PAPER_BOTTOM} flex flex-col gap-3`}
       >
-        <BirthFields value={form} onChange={setForm} />
+        <BirthFields value={form} onChange={setForm} attempt={attempt} />
 
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
-            aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
             className={`${BUTTON_PRIMARY} w-full ${signedIn ? 'sm:w-auto' : 'mt-1'}`}
           >
             {/*
@@ -180,13 +175,6 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
             문장이 거기서는 참이 아니었고, 남에게 보내도 열리지 않는 링크였다.
           */}
           {query !== null && <CopyLinkButton />}
-
-          {/* 눌렀는데 못 간 이유를 버튼 옆에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
-          {tried && missing !== null && (
-            <p id="natal-missing" role="alert" className="text-sm font-medium text-danger">
-              {missing}
-            </p>
-          )}
         </div>
 
         {/*
