@@ -29,11 +29,12 @@ import {
   type SaveOutcome,
   type SameChartQuestion,
 } from './same-chart-ask';
-import { BUTTON_PRIMARY } from './ui/buttons';
+import { BUTTON_SUBMIT } from './ui/buttons';
+import { FIELD_TRAY } from './ui/fields';
 import { TaijiMark } from './ui/entry-marks';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
-import { CARD, PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
+import { PAPER, TYPE_META, TYPE_NAME } from './ui/surfaces';
 
 /**
  * 궁합의 **첫 걸음** — 두 사람을 정하고 사이를 답하는 자리.
@@ -225,7 +226,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
         **「궁합 보기」는 사이를 묻는 칩 줄의 오른쪽 끝이다**(운영자 2026-09-29). 칩 아래 따로 선 줄이면 사이를 고른 손이
         다시 아래로 내려가야 했다. 같은 이름의 확인(`SameChartAsk`)이 서는 동안에는 단추가 비키고 확인이 카드 아래에 선다.
       */}
-      <div className={CARD}>
+      <div className={FIELD_TRAY}>
         <RelationChoice
           value={relation}
           onChange={(next) => {
@@ -240,7 +241,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
                 onClick={press}
                 disabled={!chosen || sameTwice || opening}
                 aria-describedby={reason !== null ? 'compat-locked-reason' : undefined}
-                className={`${BUTTON_PRIMARY} sm:min-w-44`}
+                className={`${BUTTON_SUBMIT} sm:min-w-44`}
               >
                 <Icon name="taiji" className="size-[18px]" />
                 {opening ? '여는 중…' : '궁합 보기'}
@@ -270,7 +271,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
       )}
 
       {failure !== null && (
-        <p role="alert" className="rounded-[1.5rem] border border-danger/30 bg-surface px-5 py-4 text-[15px] leading-6 text-danger">
+        <p role="alert" className="rounded-md border-2 border-field-ink bg-field-error px-4 py-3 text-[15px] font-semibold leading-6 text-foreground">
           {failure}
         </p>
       )}
@@ -300,7 +301,7 @@ function SlotCard({
   const name = slot.from === 'typed' ? slot.query.name.trim() : labelOf(people, slot.personId);
 
   return (
-    <fieldset className={`flex min-w-0 flex-col gap-4 ${CARD}`}>
+    <fieldset className={`flex min-w-0 flex-col gap-4 ${FIELD_TRAY}`}>
       {/*
         묶음의 이름은 **그 칸이 든 사람**이다 — 비어 있을 때만 「첫 번째 사람」. 몇 번째 칸인지는 이름이 찬 뒤에도
         보이게 위에 작게 적되(이름이 찼을 때만) 보조기기에는 이름만 읽힌다. `float-left w-full` — 안 두면 legend 가 판 위 가장자리에
@@ -315,7 +316,8 @@ function SlotCard({
         <span className={`block truncate ${TYPE_NAME}`}>{name === '' ? `${SIDE_LABEL[side]} 사람` : name}</span>
       </legend>
 
-      <div className="grid grid-cols-2 gap-1 rounded-full bg-surface-sunken p-1">
+      {/* 어디서 올지 — 스티커 둘. 고른 쪽이 초록 면으로 내려앉는다(`app/ui/fields.ts`) */}
+      <div className="grid grid-cols-2 gap-3">
         {(
           [
             ['saved', '저장한 사람'],
@@ -330,10 +332,10 @@ function SlotCard({
             onClick={() =>
               onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY })
             }
-            className={`min-h-11 rounded-full px-3 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-45 ${
+            className={`min-h-12 rounded-md border-2 border-field-ink px-3 text-[15px] font-extrabold text-foreground transition-[translate,box-shadow,background-color] duration-100 ease-out disabled:cursor-not-allowed disabled:border-dashed disabled:bg-field-off disabled:text-muted disabled:shadow-field-in ${
               slot.from === from
-                ? 'bg-surface text-foreground shadow-soft ring-1 ring-border'
-                : 'text-secondary hover:text-foreground'
+                ? 'translate-0.5 bg-field-pick shadow-field-in'
+                : 'bg-field-face shadow-field-sm hover:bg-field-focus'
             }`}
           >
             {label}

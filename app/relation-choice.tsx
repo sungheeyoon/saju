@@ -22,6 +22,9 @@ import { TYPE_NAME } from './ui/surfaces';
  * 흰 면 · 가는 테 · 보이는 높이 36px 이고, 고른 것은 옅은 크림 면 · 한 단계 짙은 테 · 먹색 글자에 **체크 표시**를 단다 — 색만으로
  * 「골랐다」를 말하지 않는다. 눌리는 자리는 그대로 44px 다(보이는 알약 밖의 투명한 위아래 4px).
  *
+ * 폼 디자인 시안 I(네오 브루탈리즘, `app/ui/fields.ts`)에서는 칩도 폼의 스티커다 — 흰 면 · 먹색 2px 테 · 2px 그림자, 고른 것은
+ * 초록 면으로 내려앉고 체크를 단다. 높이 36 · 14px 굵게로 단추(56px 노란 단추)보다 한 단 낮게 둔다.
+ *
  * **누를 것은 칩 줄의 오른쪽 끝에 선다**(`action`). 넓은 화면은 칩 · 단추가 한 줄이고, 폰에서 줄이 넘치면 단추만 다음 줄의
  * 오른쪽 끝으로 내려간다.
  *
@@ -49,7 +52,7 @@ export function RelationChoice({
         때문이에요. <strong className="font-semibold text-foreground">점수의 기준도 이 답을 따라요.</strong>
       </p>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-1.5">
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
         {[...RELATIONS, null].map((choice) => {
           const id = `${idPrefix}-relation-${choice ?? 'unknown'}`;
           const label = choice === null ? '아직 모르겠음' : RELATION_LABEL[choice];
@@ -59,7 +62,7 @@ export function RelationChoice({
             <label
               key={id}
               htmlFor={id}
-              className="group relative inline-flex min-h-11 cursor-pointer items-center active:scale-[0.97]"
+              className="group relative inline-flex min-h-11 cursor-pointer items-center"
             >
               {/*
                 칸 전체를 덮는 라디오 — 보이지는 않지만 **이것이 눌린다.** `sr-only` 로
@@ -75,10 +78,10 @@ export function RelationChoice({
                 className="peer absolute inset-0 cursor-pointer appearance-none opacity-0"
               />
               <span
-                className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-[14px] ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-soft ${
+                className={`inline-flex min-h-9 items-center gap-1 rounded-md border-2 border-field-ink px-3 text-[14px] font-bold text-foreground transition-[translate,box-shadow,background-color] duration-100 ease-out peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-dashed peer-focus-visible:outline-field-ink ${
                   picked
-                    ? 'bg-accent-wash font-semibold text-foreground ring-border-strong'
-                    : 'bg-surface font-medium text-secondary ring-border group-hover:text-foreground'
+                    ? 'translate-0.5 bg-field-pick shadow-field-in'
+                    : 'bg-field-face shadow-field-sm group-hover:bg-field-focus'
                 }`}
               >
                 {picked && <Icon name="check" className="size-3 stroke-[3.6]" />}

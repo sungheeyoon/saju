@@ -7,6 +7,7 @@ import type { Element } from '@/src/lib/saju';
 
 import { Icon } from './ui/icons';
 import { FaceSymbol } from './ui/stem-symbol';
+import { FIELD_INPUT, FIELD_LABEL } from './ui/fields';
 
 /**
  * 저장한 사람을 **찾아 고르는 칸** — 궁합의 두 칸이 쓴다(ADR 0102).
@@ -164,7 +165,7 @@ export function PersonCombobox({
 
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-[13px] font-semibold text-secondary">
+      <label htmlFor={inputId} className={FIELD_LABEL}>
         {label}
       </label>
       <div className="relative min-w-0">
@@ -206,13 +207,13 @@ export function PersonCombobox({
           }}
           onKeyDown={onKeyDown}
           onBlur={close}
-          className={`h-12 w-full rounded-2xl border border-border bg-surface pr-10 text-[15px] font-semibold placeholder:font-normal placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash ${
+          className={`${FIELD_INPUT} pr-10 ${
             chosen !== undefined && typed === null ? 'pl-11' : 'pl-4'
           }`}
         />
         <Icon
           name="chevron"
-          className={`pointer-events-none absolute right-4 top-1/2 size-3 -translate-y-1/2 stroke-[3.2] text-secondary ${listed ? '-rotate-90' : 'rotate-90'}`}
+          className={`pointer-events-none absolute right-4 top-1/2 size-3.5 -translate-y-1/2 stroke-3 text-foreground ${listed ? '-rotate-90' : 'rotate-90'}`}
         />
       </div>
 
@@ -225,7 +226,7 @@ export function PersonCombobox({
         role="listbox"
         aria-label={label}
         hidden={!listed}
-        className={`${LIST_HEIGHT} relative scroll-mb-28 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface p-1 shadow-card sm:scroll-mb-2`}
+        className={`${LIST_HEIGHT} relative mt-2 scroll-mb-28 overflow-y-auto overscroll-contain rounded-md border-2 border-field-ink bg-field-face p-1 shadow-field sm:scroll-mb-2`}
       >
         {listed &&
           choices.map((one, index) => (
@@ -238,8 +239,8 @@ export function PersonCombobox({
               /* 누르는 동안 입력 칸이 초점을 잃지 않게 — 잃으면 닫히며 누름이 사라진다 */
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => choose(one)}
-              className={`flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-3 text-[15px] ${
-                index === current ? 'bg-surface-sunken text-foreground' : 'text-foreground hover:bg-surface-sunken'
+              className={`flex min-h-11 cursor-pointer items-center gap-2.5 rounded-sm px-3 text-[15px] font-bold ${
+                index === current ? 'bg-field-focus text-foreground' : 'text-foreground hover:bg-field-focus'
               }`}
             >
               <FaceSymbol stem={one.stem} element={one.element} className="size-5" />
@@ -260,7 +261,7 @@ export function PersonCombobox({
         role="status"
         className={
           nothing
-            ? 'rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-secondary'
+            ? 'rounded-md border-2 border-dashed border-field-ink bg-field-face px-4 py-3 text-[15px] font-semibold text-secondary'
             : 'sr-only'
         }
       >
