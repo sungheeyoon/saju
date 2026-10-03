@@ -8,7 +8,7 @@ import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { answerOfThrown } from '../../db-error';
 import { Icon, type IconName } from '../../ui/icons';
-import { TYPE_META, TYPE_SECTION, TYPE_TITLE } from '../../ui/surfaces';
+import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
 import { readAccount } from '../account';
 import { inboxForViewer, type Inbox } from './inbox';
@@ -93,8 +93,11 @@ const NOTIFICATION_WARNS: readonly NotificationKind[] = ['request_invalidated', 
  */
 function Notifications({ inbox }: { inbox: Inbox }) {
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className={TYPE_SECTION}>새 소식</h2>
+    /*
+      「새 소식」 구역 제목을 걷었다 — 화면 제목(「소식」) 바로 아래 같은 말이 한 번 더 섰고, 목록에는 읽은 소식도 함께 서서
+      「새」가 맞지 않았다. 구역이 하나뿐이라 제목 없이 목록이 곧 화면이다.
+    */
+    <section aria-label="소식 목록" className="flex flex-col gap-3">
 
       {inbox.notifications.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-[1.5rem] border-2 border-dashed border-border-strong px-5 py-7 text-center">
