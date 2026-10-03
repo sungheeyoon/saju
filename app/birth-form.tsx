@@ -27,7 +27,8 @@ import {
   type Query,
 } from '@/src/lib/input/query';
 
-import { hourSlotsOf, slotOfTime, slotRangeOf, type HourSlot } from './birth-hour';
+import { birthPreviewOf, hourSlotsOf, slotOfTime, slotRangeOf, type HourSlot } from './birth-hour';
+import { SolarClockLine } from './birth-preview';
 import { ELEMENT_TONE } from './ui/element-tone';
 import { Icon } from './ui/icons';
 
@@ -770,6 +771,9 @@ export function BirthFields({
   // 양력과 계산에 들어간 양력이 갈릴 수 있다.
   const converted = convertedLine(value);
 
+  /* 다 찬 입력으로 엔진이 세운 명식 — 계산 시각 · 자시 · 미리보기가 함께 읽는다(`birth-hour.ts`) */
+  const preview = useMemo(() => birthPreviewOf(value), [value]);
+
   return (
     /*
       묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 · 달력 · 시각) → 어디서(출생지). 계산 옵션은
@@ -826,7 +830,8 @@ export function BirthFields({
             open={open === 'city'}
             onToggle={toggle('city')}
             onPick={pick('city')}
-            options={CITIES.map((city) => ({ value: city, label: city }))}
+            // 경도를 함께 적는다 — 목록에 없는 곳에서 났으면 경도가 가까운 도시를 고르면 된다(1°에 4분)
+            options={CITIES.map((city) => ({ value: city, label: city, hint: `동경 ${CITY_LONGITUDES[city].toFixed(2)}°` }))}
           />
         </div>
 
@@ -844,6 +849,9 @@ export function BirthFields({
             {converted.text}
           </p>
         )}
+
+        {/* 출생지 · 시간 기준이 시계 시각을 몇 분 옮겼는가 — 시주 경계 근처의 사람은 여기서 고칠 곳을 안다 */}
+        {preview !== null && <SolarClockLine preview={preview} basis={value.basis} />}
       </div>
 
       <div className={GROUP}>
