@@ -8,7 +8,11 @@ import { siteUrl } from './site-url';
 import './globals.css';
 
 const TITLE = `${SERVICE_NAME} — ${SERVICE_TAGLINE}`;
-const DESCRIPTION = "사주의 근거부터 두 사람의 궁합과 사주풀이까지 차분하게 살펴봅니다.";
+/**
+ * 소개 한 줄 — 「결」의 말투(2026-10-03 브랜드 시안): 해요체, 짧게, 「결」은 한 문장에 한 번만. 들뜬 말(운명 · 대박 · 소름)과
+ * 겁주는 말(흉 · 조심)을 안 쓴다 — 사주를 사람을 이해하는 말로 세운다.
+ */
+const DESCRIPTION = "생일로 타고난 나의 결을 읽고, 곁의 사람과 맞는 결을 살펴봐요. 사주 여덟 글자부터 궁합과 사주풀이까지.";
 
 /** 사이트 대표 미리보기 — 사주풀이 공유본은 전용 이미지를 사용한다 */
 const PREVIEW = {
