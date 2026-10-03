@@ -260,6 +260,8 @@ button, a, summary {
     outline-offset: 3px;
   }
 }
+/* 「본문으로 건너뛰기」가 초점을 옮겨 놓는 `<main tabindex=-1>` — 본문 전체에 테두리를 두르지 않는다 */
+main:focus { outline: none; }
 ::selection { background: var(--accent-soft); }
 
 .glyph {

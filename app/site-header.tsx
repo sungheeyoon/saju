@@ -21,7 +21,7 @@ import { READING_CREDITS_MOVED } from './me/reading/credits-signal';
 import { readRequestsToAnswer, readUnreadNotifications } from './me/requests/unread';
 import { NOTIFICATIONS_UNREAD_MOVED, REQUESTS_TO_ANSWER_MOVED } from './me/requests/unread-signal';
 import { isSharePath } from './share/path';
-import { BUTTON_SECONDARY_SMALL, ICON_BUTTON, ICON_BUTTON_ACTIVE } from './ui/buttons';
+import { BUTTON_PRIMARY_SMALL, BUTTON_SECONDARY_SMALL, ICON_BUTTON, ICON_BUTTON_ACTIVE } from './ui/buttons';
 import { useDetailsMenu } from './ui/details-menu';
 import { Icon, type IconName } from './ui/icons';
 import { BrandMark } from './ui/logo';
@@ -132,6 +132,7 @@ export function SiteHeader() {
 
   return (
     <>
+      <SkipToMain />
       <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-xl">
         <div className="app-shell flex h-16 items-center gap-2 md:gap-5">
           <Link
@@ -216,6 +217,34 @@ export function SiteHeader() {
       </header>
       {live && <WithCameFrom render={(from) => <Dock pathname={pathname} from={from} badges={tabBadges} />} />}
     </>
+  );
+}
+
+/**
+ * **본문으로 건너뛰기** — 키보드로 들어온 사람의 첫 Tab 이 닿는 자리.
+ *
+ * 폰 폭에서는 머리글 셋(로고 · 종 · 톱니) 뒤에 하단 독의 탭 넷이 DOM 에서 본문보다 먼저 선다 — 화면을 열 때마다
+ * Tab 을 일곱 번 눌러야 본문에 닿았다(2026-10-03 잼). 평소에는 안 보이고 초점을 받을 때만 왼쪽 위에 뜬다.
+ *
+ * `<main>` 은 화면마다 따로 서고 id 가 없다 — 서른 곳에 id 를 다는 대신 누를 때 첫 `<main>` 을 찾아 초점을 옮긴다.
+ * 스크립트가 없을 때는 주소의 `#main` 만 바뀌고 아무 일도 안 일어난다(해가 없다).
+ */
+function SkipToMain() {
+  return (
+    <a
+      href="#main"
+      onClick={(event) => {
+        const main = document.querySelector('main');
+        if (main === null) return;
+        event.preventDefault();
+        if (!main.hasAttribute('tabindex')) main.setAttribute('tabindex', '-1');
+        main.focus({ preventScroll: true });
+        main.scrollIntoView({ block: 'start' });
+      }}
+      className={`${BUTTON_PRIMARY_SMALL} sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-3 focus-visible:top-[calc(0.75rem+env(safe-area-inset-top))] focus-visible:z-[60] focus-visible:whitespace-nowrap focus-visible:px-4`}
+    >
+      본문으로 건너뛰기
+    </a>
   );
 }
 
