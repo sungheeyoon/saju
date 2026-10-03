@@ -112,7 +112,7 @@ export function slotOfTime(slots: readonly HourSlot[], time: string): HourSlot |
 }
 
 /** 칸의 시계 범위를 읽는 글자 — 끝은 안 든다(「03:28~05:28」의 05:28 은 다음 칸) */
-export const slotRangeOf = (slot: HourSlot) => `${clockOf(slot.from)}~${clockOf(slot.to)}`;
+export const slotRangeOf = (slot: HourSlot) => `${clockOf(slot.from)}~${slot.to >= DAY ? '24:00' : clockOf(slot.to)}`;
 
 /**
  * 자시 규칙이 **이 입력에서 무엇을 바꾸는가.**

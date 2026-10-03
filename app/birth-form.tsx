@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import {
+  BRANCH_INFO,
   CALENDARS,
   CALENDAR_KO,
   CITY_LONGITUDES,
@@ -26,6 +27,8 @@ import {
   type Query,
 } from '@/src/lib/input/query';
 
+import { hourSlotsOf, slotOfTime, slotRangeOf, type HourSlot } from './birth-hour';
+import { ELEMENT_TONE } from './ui/element-tone';
 import { Icon } from './ui/icons';
 
 /**
@@ -493,32 +496,28 @@ function splitTime(time: string) {
 }
 
 /**
- * 출생시각 — **24시간으로만 묻는다.**
+ * 출생시각 — **세 갈래로 답한다: 분까지 안다 · 시진만 안다 · 모른다.**
  *
- * 오전·오후를 따로 고르게 하면 「오후 12시 30분」이 0시 30분인지 12시 30분인지에서
- * 갈리고, 그 한 칸이 시주를 통째로 바꾼다. 자시 규칙(조자시 23:00 경계)도 23시가
- * 23시로 적혀 있을 때만 사람이 대조할 수 있다.
+ * 상담 자리에서 태어난 시각을 물으면 답이 셋으로 갈린다. 출생증명서에 적힌 분까지 아는 사람, 「새벽 인시에 났다더라」처럼
+ * 시진만 들은 사람, 모르는 사람. 두 갈래(직접 입력 · 모름)뿐이면 가운데 사람이 시계 시각을 지어내거나 시주를 버린다 —
+ * 둘 다 틀린 명식이다. 시진은 두 시간짜리 칸이라, 그 칸 안의 어느 시각이든 **시주는 같다.**
  *
- * 시각을 아는가는 「출생 시각」 줄의 펼침이다(「직접 입력 · 모름」, 시안 n). 체크박스는 **꺼진 상태가 답처럼
- * 보이지 않아서** 쓰지 않는다 — 시각을 안 넣고 체크도 안 한 사람이 자기가 아직 아무것도 고르지 않았다는 것을 모른다
- * (`hourKnown` 이 `null`·`false`·`true` 셋인 이유). 주소에서 온 입력이 `null` 이면 줄의 값은 「–」이고 시각 줄은
- * 서지 않는다 — 고르기 전에는 어느 쪽도 고른 것이 아니다.
+ * 시계 시각은 **24시간으로만 묻는다.** 오전·오후를 따로 고르게 하면 「오후 12시 30분」이 0시 30분인지 12시 30분인지에서
+ * 갈리고, 그 한 칸이 시주를 통째로 바꾼다. 자시 규칙(조자시 23:00 경계)도 23시가 23시로 적혀 있을 때만 사람이 대조할 수 있다.
+ *
+ * 체크박스는 **꺼진 상태가 답처럼 보이지 않아서** 쓰지 않는다 — `hourKnown` 이 `null`·`false`·`true` 셋인 이유. 주소에서
+ * 온 입력이 `null` 이면 세 칸 어느 것도 켜지지 않고 시각 줄도 서지 않는다.
  *
  * 「모름」을 고르면 적어 둔 시각도 지운다. 남겨 두면 "모름인데 14:30" 이 상태로
  * 남고, 다시 「직접 입력」을 고르는 순간 사용자가 지웠다고 생각한 값으로 계산된다.
+ *
+ * **시진을 골라도 내보내는 값은 시각 한 벌이다**(`time` · `hourKnown: true`) — 그 칸의 가운데 시각이다(`hourSlotsOf`).
+ * 칸의 범위는 출생지 · 날짜 · 시간 기준으로 옮긴 시계 시각이라, 그것들이 바뀌면 고른 시진을 지키도록 가운데 시각을 다시
+ * 싣는다. 저장된 시각이 어느 칸의 가운데와 같으면 시진으로 고른 것으로 읽어 그 칸을 켠 채 연다.
  */
-function TimeFields({
-  value,
-  onChange,
-  open,
-  onToggle,
-}: {
-  value: Query;
-  onChange: (next: Query) => void;
-  /** 「출생 시각」 줄이 펼쳐져 있나 — 한 묶음에서 펼침은 하나라 묶음(`BirthFields`)이 든다 */
-  open: boolean;
-  onToggle: () => void;
-}) {
+type HourWay = 'clock' | 'branch' | 'unknown';
+
+function TimeFields({ value, onChange }: { value: Query; onChange: (next: Query) => void }) {
   const [parts, setParts] = useState(() => splitTime(value.time));
   const lastEmitted = useRef(value.time);
 
@@ -527,6 +526,31 @@ function TimeFields({
     setParts(splitTime(value.time));
     lastEmitted.current = value.time;
   }, [value.time]);
+
+  /* 시진 칸은 날짜 · 달력 · 출생지 · 시간 기준에 따라 시계 범위가 옮겨진다 — 시각 · 이름이 바뀔 때는 다시 세지 않는다 */
+  const { date, calendar, city, basis } = value;
+  const slots = useMemo(
+    () => hourSlotsOf({ ...DEFAULT_QUERY, date, calendar, city, basis }),
+    [date, calendar, city, basis],
+  );
+
+  const [way, setWay] = useState<HourWay | null>(() => {
+    if (value.hourKnown === null) return null;
+    if (value.hourKnown === false) return 'unknown';
+    return slotOfTime(slots, value.time)?.time === value.time ? 'branch' : 'clock';
+  });
+  /** 주소 · 되돌리기가 바깥에서 「모름」 여부를 바꾸면 그쪽이 이긴다 */
+  const shownWay: HourWay | null =
+    value.hourKnown === null ? null : value.hourKnown === false ? 'unknown' : way === 'branch' ? 'branch' : 'clock';
+
+  const [chosenKey, setChosenKey] = useState<string | null>(() =>
+    shownWay === 'branch' ? (slotOfTime(slots, value.time)?.key ?? null) : null,
+  );
+
+  const emit = (time: string) => {
+    lastEmitted.current = time;
+    onChange({ ...value, hourKnown: true, time });
+  };
 
   /** 두 칸이 다 제 범위 안이어야 시각이 된다 — 「25:70」을 실어 보내지 않는다 */
   const timeOf = (from: typeof parts) =>
@@ -537,44 +561,61 @@ function TimeFields({
   const update = (key: keyof typeof parts, next: string) => {
     const changed = { ...parts, [key]: next };
     setParts(changed);
-    const time = timeOf(changed);
-    lastEmitted.current = time;
-    onChange({ ...value, hourKnown: true, time });
+    emit(timeOf(changed));
   };
 
-  const choose = (known: boolean) => {
-    if (!known) {
+  /* 출생지 · 날짜가 바뀌어 칸이 옮겨졌으면 고른 시진의 새 가운데를 싣는다 */
+  const chosen = chosenKey === null ? null : (slots.find((slot) => slot.key === chosenKey) ?? null);
+  useEffect(() => {
+    if (shownWay !== 'branch' || chosen === null || chosen.time === value.time) return;
+    lastEmitted.current = chosen.time;
+    onChange({ ...value, hourKnown: true, time: chosen.time });
+  }, [shownWay, chosen, value, onChange]);
+
+  const chooseWay = (next: HourWay) => {
+    setWay(next);
+    if (next === 'unknown') {
       setParts({ hour: '', minute: '' });
+      setChosenKey(null);
       lastEmitted.current = '';
       onChange({ ...value, hourKnown: false, time: '' });
       return;
     }
-    const time = timeOf(parts);
-    lastEmitted.current = time;
-    onChange({ ...value, hourKnown: true, time });
+    if (next === 'branch') {
+      // 이미 적힌 시각이 있으면 그 시각이 든 시진을 켠다 — 아직 아무 칸도 안 골랐으면 시각을 비운다
+      const holding = slotOfTime(slots, value.time);
+      setChosenKey(holding?.key ?? null);
+      emit(holding?.time ?? '');
+      return;
+    }
+    emit(timeOf(parts));
   };
 
-  const known = value.hourKnown === true;
+  const pickSlot = (slot: HourSlot) => {
+    setChosenKey(slot.key);
+    setParts(splitTime(slot.time));
+    emit(slot.time);
+  };
+
+  const picked = shownWay === 'branch' ? slotOfTime(slots, value.time) : null;
 
   return (
     <>
-      <PickRow
+      <ChoiceRow
         label="출생 시각"
-        value={value.hourKnown === null ? '' : value.hourKnown ? 'known' : 'unknown'}
-        open={open}
-        onToggle={onToggle}
-        onPick={(next) => choose(next === 'known')}
+        value={shownWay ?? ''}
+        onPick={chooseWay}
         options={[
-          { value: 'known', label: '직접 입력' },
-          { value: 'unknown', label: HOUR_UNKNOWN_CHOICE, hint: '출생 시각 없이 풀이해요' },
+          { value: 'clock', label: '직접 입력' },
+          { value: 'branch', label: '시진' },
+          { value: 'unknown', label: HOUR_UNKNOWN_CHOICE },
         ]}
       />
       {/*
         시·분도 **적는 칸**이다. 24시간이라 시는 스물넷, 분은 예순 줄짜리 목록이 되는데, 두 자리를 치는 편이
         어느 쪽이든 빠르다. 범위를 벗어나면 시각을 내보내지 않으므로 「25:70」이 계산으로 흘러가지 않는다.
-        「직접 입력」일 때만 선다 — 「모름」이거나 아직 안 골랐으면(주소에서 온 `null`) 이 줄이 빠진다.
       */}
-      {known && (
+      {shownWay === 'clock' && (
         <DigitsRow label="시각" hint="24시간">
           <NumberField
             label="출생 시"
@@ -600,9 +641,88 @@ function TimeFields({
           />
         </DigitsRow>
       )}
+      {shownWay === 'branch' && <HourSlotGrid slots={slots} picked={picked} onPick={pickSlot} />}
+      {shownWay === 'unknown' && <p className="py-3 pr-4 text-[13px] leading-5 text-secondary">출생 시각 없이 풀이해요</p>}
     </>
   );
 }
+
+/**
+ * 시진 열두 칸 — 한자 · 읽는 이름 · **이 사람의 시계로 옮긴 범위.**
+ *
+ * 한자는 그 지지의 오행 색을 입는다(결과 화면의 여덟 글자와 같은 색, `ELEMENT_TONE`). 색만으로 말하지 않는다 — 글자와
+ * 이름이 늘 함께 선다. 자정을 가로지르는 시진은 「자정 넘어」(맨 앞) · 「자정 전」(맨 뒤) 두 칸이다. 생년월일은 시계의
+ * 날짜라, 같은 자시라도 자정 전에 났으면 그날이고 넘어서 났으면 다음 날이다.
+ */
+function HourSlotGrid({
+  slots,
+  picked,
+  onPick,
+}: {
+  slots: readonly HourSlot[];
+  picked: HourSlot | null;
+  onPick: (slot: HourSlot) => void;
+}) {
+  const name = useId();
+  const lone = slots.length % 4 === 1;
+  return (
+    <div className="flex flex-col gap-2 py-3 pr-4">
+      <p className="text-[13px] leading-5 text-secondary">
+        두 시간씩 나눈 옛 시각이에요. 출생지에 맞춰 시계 시각으로 옮겨 적었어요.
+      </p>
+      <div role="radiogroup" aria-label="시진" className="grid grid-cols-4 gap-1.5">
+        {slots.map((slot, index) => {
+          const checked = picked?.key === slot.key;
+          const branch = BRANCH_INFO[slot.branch];
+          const wide = lone && index === slots.length - 1;
+          return (
+            <label
+              key={slot.key}
+              className={`relative flex cursor-pointer rounded-xl px-1 py-2 text-center has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-1 has-[:focus-visible]:outline-accent-soft ${
+                wide ? 'col-span-4 flex-row items-center justify-center gap-3' : 'flex-col items-center gap-0.5'
+              } ${checked ? 'bg-accent-wash ring-2 ring-accent' : 'bg-surface-sunken'}`}
+            >
+              <input
+                type="radio"
+                name={name}
+                checked={checked}
+                aria-label={`${branch.ko}시 ${SLOT_PART[slot.part]} ${slotRangeOf(slot)}`.replace(/\s+/g, ' ')}
+                onChange={() => onPick(slot)}
+                className="absolute inset-0 cursor-pointer appearance-none opacity-0"
+              />
+              <span aria-hidden="true" className={`text-xl font-semibold leading-6 ${ELEMENT_TONE[branch.element].text}`}>
+                {slot.branch}
+              </span>
+              <span aria-hidden="true" className="text-[13px] font-medium text-foreground">
+                {branch.ko}시
+              </span>
+              {SLOT_PART[slot.part] && (
+                <span aria-hidden="true" className="text-[11px] font-medium text-accent-strong">
+                  {SLOT_PART[slot.part]}
+                </span>
+              )}
+              <span aria-hidden="true" className="text-[11px] tabular-nums text-secondary">
+                {slotRangeOf(slot)}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      {picked && (
+        <p className="text-[13px] leading-5 text-secondary">
+          {BRANCH_INFO[picked.branch].ko}시의 가운데인 <span className="tabular-nums text-foreground">{picked.time}</span>으로
+          계산해요. 분까지 알면 「직접 입력」이 더 정확해요.
+        </p>
+      )}
+    </div>
+  );
+}
+
+const SLOT_PART: Record<HourSlot['part'], string> = {
+  whole: '',
+  beforeMidnight: '자정 전',
+  afterMidnight: '자정 넘어',
+};
 
 export function BirthFields({
   value,
@@ -694,7 +814,7 @@ export function BirthFields({
 
           <DateFields value={value} onDate={(date) => set('date', date)} />
 
-          <TimeFields value={value} onChange={onChange} open={open === 'time'} onToggle={toggle('time')} />
+          <TimeFields value={value} onChange={onChange} />
 
           {/*
             **출생지는 폼 안에 선다** — 진태양시의 경도라 계산에 들고(운영자 2026-09-29 「출생지도 폼에 넣어야」),
@@ -781,4 +901,4 @@ export function BirthFields({
   );
 }
 
-type RowKey = 'time' | 'city' | 'rule' | 'basis';
+type RowKey = 'city' | 'rule' | 'basis';
