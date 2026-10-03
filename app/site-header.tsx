@@ -318,7 +318,8 @@ function UnreadBadge({ count, words = '건 안 읽음' }: { count: number; words
 
 function Credits({ label }: { label: string }) {
   return (
-    <span className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-cream px-3 text-[12px] font-semibold tabular-nums text-cream-ink ring-1 ring-border">
+    // 판 없이 글자로 — 머리글에서 먹 단추 다음으로 무거운 면이 잔액이었다(2026-10-03 시각 시안)
+    <span className="inline-flex min-h-9 shrink-0 items-center gap-1.5 px-1 text-[12px] font-semibold tabular-nums text-secondary">
       <Icon name="ticket" className="hidden size-4 md:block" />
       <span>{label}</span>
     </span>
