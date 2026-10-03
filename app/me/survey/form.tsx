@@ -34,7 +34,8 @@ import {
   type SurveyAnswers,
 } from '@/src/lib/survey';
 
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { BUTTON_SECONDARY } from '../../ui/buttons';
+import { FORM_CHOICE_MARK, FORM_CHOICE_ROW, FORM_FIELD, FORM_GROUP, FORM_SHEET, FORM_SUBMIT } from '../../ui/form';
 import { saveServiceSurvey } from './actions';
 import type { MySurvey, SurveyContext } from './read';
 import { TYPE_SECTION } from '../../ui/surfaces';
@@ -56,7 +57,7 @@ import { TYPE_SECTION } from '../../ui/surfaces';
  * 여기서도 하는 것은, 화면에 안 보이는 값이 요청에 실려 나가지 않게 하기 위해서다.
  */
 /** 문항 한 장 — 무리 지은 목록과 같은 흰 판 */
-const PANEL = 'flex flex-col gap-3 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
+const PANEL = `${FORM_SHEET} flex flex-col gap-3`;
 
 /** 문항의 물음 — 본문보다 확실히 크고 굵게. 긴 문장이라 둥근 서체 대신 시스템 서체다 */
 const ASK = 'block text-[17px] font-bold leading-7 text-foreground';
@@ -65,8 +66,7 @@ const ASK = 'block text-[17px] font-bold leading-7 text-foreground';
  * 고르는 줄 — 줄 전체가 누를 자리(48px)이고, 고르면 먹색 테와 크림 면이 선다. 상자 자체도 남아
  * 있어 고른 것이 색만으로 말해지지 않는다.
  */
-const CHOICE =
-  'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 text-[15px] leading-6 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-focus-visible:outline has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent-soft';
+const CHOICE = FORM_CHOICE_ROW;
 
 export function SurveyForm({ context, given }: { context: SurveyContext; given: MySurvey | null }) {
   const [answers, setAnswers] = useState<SurveyAnswers>(given?.answers ?? EMPTY_ANSWERS);
@@ -229,6 +229,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
               <legend className="contents">
                 <span className="block text-[15px] font-semibold">{PRICE_SUBJECT_LABEL[subject]}</span>
               </legend>
+              <div className={FORM_GROUP}>
               {PRICE_OPTIONS.map((option) => (
                 <label key={option} className={CHOICE}>
                   <input
@@ -244,11 +245,12 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
                       const now = subject === 'solo' ? answers.priceSolo : answers.pricePair;
                       if (now === option) pick(subject === 'solo' ? 'priceSolo' : 'pricePair', null);
                     }}
-                    className="size-5 shrink-0 accent-[var(--accent)]"
+                    className={FORM_CHOICE_MARK}
                   />
                   <span>{PRICE_LABEL[option]}</span>
                 </label>
               ))}
+              </div>
             </fieldset>
           ))}
         </section>
@@ -282,7 +284,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
             type="button"
             onClick={send}
             disabled={sending || !isAnswered(answers)}
-            className={BUTTON_PRIMARY}
+            className={FORM_SUBMIT}
           >
             {submittedAt === null ? SURVEY_COPY.submit : SURVEY_COPY.resubmit}
           </button>
@@ -353,14 +355,14 @@ function Picks<T extends string>({
       </legend>
       <p className="text-[13px] text-muted">{hint}</p>
       {note !== undefined && <p className="text-[13px] leading-5 text-secondary">{note}</p>}
-      <div className="flex flex-col gap-2">
+      <div className={FORM_GROUP}>
         {options.map((option) => (
           <label key={option} className={CHOICE}>
             <input
               type="checkbox"
               checked={picked.includes(option)}
               onChange={() => onPick(afterPicking(picked, option, sole))}
-              className="size-5 shrink-0 accent-[var(--accent)]"
+              className={FORM_CHOICE_MARK}
             />
             <span>{label[option]}</span>
           </label>
@@ -397,7 +399,7 @@ function Writing({
         maxLength={limit}
         rows={4}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-[15px] leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
+        className={`${FORM_FIELD} w-full py-[11px]`}
       />
     </div>
   );

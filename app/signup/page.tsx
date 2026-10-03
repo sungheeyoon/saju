@@ -19,6 +19,7 @@ import {
   withReturnPath,
 } from '@/src/lib/consent';
 
+import { FORM_SHEET } from '../ui/form';
 import { SignupForm } from './form';
 
 export const metadata = {
@@ -150,7 +151,7 @@ export default async function SignupPage({ searchParams }: {
         */
         <p className={`${CARD} text-sm leading-6`}>{NOTICE_NOT_READY}</p>
       ) : (
-        <section className="rounded-[1.5rem] border border-border bg-surface p-5 sm:p-7">
+        <section className={FORM_SHEET}>
           <SignupForm
             returnTo={returnTo}
             needsCode={account.signed_up_at === null}

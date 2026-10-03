@@ -15,19 +15,17 @@ import {
 } from '@/src/lib/profile';
 
 import { checkNickname } from '../../nickname';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
+import { FORM_FIELD, FORM_HEADER, FORM_INLINE_BUTTON, FORM_SHEET, FORM_SUBMIT } from '../../ui/form';
 import { saveProfile } from './actions';
 import { PhotoGrid } from './photo-grid';
 import type { MyPhoto } from './photos';
 
-/** 입력 칸 — 48px, 크림 바탕 위에서도 칸임이 보이게 흰 면과 테 */
-const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+/** 입력 칸 · 판 · 머리말은 폼 한 벌(`app/ui/form.ts`)이다 — 생년월일 폼과 같은 iOS 묶음의 말투 */
+const FIELD = FORM_FIELD;
 
-/** 판 한 장 — 무리 지은 목록과 같은 흰 판 */
-const PANEL = 'flex flex-col gap-5 rounded-[1.5rem] border border-border bg-surface p-5 sm:p-6';
+const PANEL = `${FORM_SHEET} flex flex-col gap-5`;
 
-const LABEL = 'text-[13px] font-semibold text-secondary';
+const LABEL = FORM_HEADER;
 
 /**
  * 프로필을 고치는 자리 — **셋이 한 화면에 있다**(PRD 「이름과 얼굴」).
@@ -103,7 +101,7 @@ export function ProfileForm({
       />
 
       <section className={PANEL}>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col">
           {/*
             **버튼을 라벨 밖에 둔다.** 안에 넣으면 `<label>` 이 칸과 버튼 둘을 함께 물고,
             읽어 주는 도구가 「닉네임」을 어느 것의 이름으로 부를지 사람마다 달라진다.
@@ -127,7 +125,7 @@ export function ProfileForm({
               type="button"
               onClick={check}
               disabled={checking || missing !== null}
-              className={`${BUTTON_SECONDARY_SMALL} min-h-12 shrink-0`}
+              className={FORM_INLINE_BUTTON}
             >
               {checking ? '확인하는 중…' : '중복 확인'}
             </button>
@@ -144,7 +142,7 @@ export function ProfileForm({
           </p>
         )}
 
-        <label className="flex flex-col gap-1.5">
+        <label className="flex flex-col">
           <span className={LABEL}>소개 (선택)</span>
           <textarea
             value={profile.intro}
@@ -154,7 +152,7 @@ export function ProfileForm({
             maxLength={INTRO_MAX}
             rows={3}
             placeholder="간단한 소개를 입력해 주세요"
-            className={`${FIELD} py-3 leading-6`}
+            className={`${FIELD} py-[11px]`}
           />
         </label>
 
@@ -163,7 +161,7 @@ export function ProfileForm({
             type="button"
             onClick={save}
             disabled={missing !== null || saving || !changed}
-            className={BUTTON_PRIMARY}
+            className={FORM_SUBMIT}
           >
             {saving ? '저장하는 중…' : '프로필 저장'}
           </button>
