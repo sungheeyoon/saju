@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-
+import { HomeLink } from './home-link';
 import { BUTTON_PRIMARY, BUTTON_SECONDARY } from './ui/buttons';
 import { TYPE_TITLE } from './ui/surfaces';
 
@@ -31,9 +30,7 @@ export function ErrorScreen({ retry }: { retry: () => void }) {
         <button type="button" onClick={() => retry()} className={BUTTON_PRIMARY}>
           다시 시도하기
         </button>
-        <Link href="/" className={BUTTON_SECONDARY}>
-          홈으로
-        </Link>
+        <HomeLink className={BUTTON_SECONDARY} />
       </p>
     </main>
   );
