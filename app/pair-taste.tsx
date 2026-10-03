@@ -76,10 +76,11 @@ export function PairTaste() {
         {(['a', 'b'] as const).map((side) => (
           <fieldset key={side} aria-label={side === 'a' ? '나' : '상대'} className="flex min-w-0 flex-col">
             {/* 설정 앱의 구역 머리 — 묶음 위 작은 회색 글자 */}
-            <legend className="mb-1.5 px-4 text-[13px] font-medium text-secondary">{side === 'a' ? '나' : '상대'}</legend>
+            <legend className="mb-2 px-4 text-[13px] font-semibold text-secondary sm:px-6">{side === 'a' ? '나' : '상대'}</legend>
             <BirthFields
               value={forms[side]}
               onChange={(next) => setForms((current) => ({ ...current, [side]: next }))}
+              presentation="guest"
             />
           </fieldset>
         ))}
