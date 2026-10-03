@@ -838,8 +838,8 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }));
   expect(pairOverflow.scroll).toBeLessThanOrEqual(pairOverflow.client);
   for (const control of [
-    partner.locator('label', { has: partner.getByRole('radio', { name: '음력 윤달', exact: true }) }),
-    partner.locator('label', { has: partner.getByRole('radio', { name: '모름', exact: true }) }),
+    partner.locator('label', { has: page.getByRole('radio', { name: '음력 윤달', exact: true }) }),
+    partner.locator('label', { has: page.getByRole('radio', { name: '모름', exact: true }) }),
     partner.getByLabel('출생일', { exact: true }),
     page.getByRole('button', { name: '무료로 두 사람 궁합 보기' }),
   ]) {
