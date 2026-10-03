@@ -14,7 +14,7 @@ import { GUIDE_LINKS } from './site-links';
  * 처음 온 사람이 「이게 무엇을 하는 서비스이고 내 생년월일시를 어떻게 다루나」를 가입 전에 찾을 자리가 없었다.
  *
  * 앱 안(`/me/**` · `/compat` · `/ops/**`)에는 안 세운다. 거기는 하단 독과 톱니가 길이고, 인연 탭은 문서를 한 화면 높이에
- * 묶는다(`globals.css` 의 `data-deck-fit`) — 바닥글이 끼면 그 묶음이 깨진다. 앱 안의 사람은 톱니에서 같은 셋을 연다.
+ * 묶는다(`globals.css` 의 `data-deck-fit`) — 바닥글이 끼면 그 묶음이 깨진다.
  */
 export function SiteFooter() {
   const pathname = usePathname();

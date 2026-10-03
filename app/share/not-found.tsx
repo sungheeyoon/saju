@@ -29,9 +29,14 @@ export default function SharedReadingNotFound() {
       </span>
       <div className="flex max-w-sm flex-col gap-2">
         <h1 className={TYPE_TITLE}>열 수 없는 링크입니다</h1>
+        {/*
+          두 문장은 줄을 나눈다(운영자, 2026-10-03) — 한 문단이면 폰에서 「보낸 분에게 / 링크를…」로 갈렸다. 무엇이
+          일어났는지와 무엇을 하면 되는지가 제 줄에서 시작한다.
+        */}
         <p className="text-sm leading-6 text-secondary">
-          주소가 잘못됐거나 더 이상 남아 있지 않은 풀이예요. 보낸 분에게 링크를 다시
-          받아 주세요.
+          주소가 잘못됐거나 더 이상 남아 있지 않은 풀이예요.
+          <br />
+          보낸 분에게 링크를 다시 받아 주세요.
         </p>
       </div>
       {/*
