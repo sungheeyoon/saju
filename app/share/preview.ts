@@ -8,6 +8,13 @@ import type { ShareKind } from './path';
 const ALT = `${SERVICE_NAME} — ${SERVICE_TAGLINE}`;
 
 /**
+ * 대화창에서 그림 아래 서는 한 줄 — **열어 볼 까닭과 그다음 할 일을 함께 말한다**(그로스 시안, 2026-10-03).
+ * 「공유된 사주풀이를 읽고 …」는 무엇이 왔는지만 말했다. 받은 사람의 다음 걸음(내 사주 보기)은 로그인 없이 되므로
+ * 그 사실을 여기서 미리 말한다. 이름 · 풀이 문장은 여전히 안 싣는다(ADR 0063).
+ */
+const SELF_SAID = '보내 준 사주풀이를 열어 보세요. 내 사주도 생일만 넣으면 로그인 없이 바로 볼 수 있어요.';
+
+/**
  * 공유본 세 화면의 **미리보기** — 상수로 둔다.
  *
  * `generateMetadata` 가 아니다. Next 는 동적으로 그려지는 화면의 메타데이터를 본문과
@@ -24,19 +31,19 @@ const ALT = `${SERVICE_NAME} — ${SERVICE_TAGLINE}`;
 const PREVIEW: Record<ShareKind, { title: string; description: string; image: string; alt: string }> = {
   self: {
     title: `사주풀이가 도착했어요 | ${SERVICE_NAME}`,
-    description: '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
+    description: SELF_SAID,
     image: '/brand/reading-share-v3.jpg',
     alt: ALT,
   },
   person: {
     title: `사주풀이가 도착했어요 | ${SERVICE_NAME}`,
-    description: '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
+    description: SELF_SAID,
     image: '/brand/saju-share-v3.jpg',
     alt: ALT,
   },
   private: {
     title: `두 사람의 궁합이 도착했어요 | ${SERVICE_NAME}`,
-    description: '공유된 궁합풀이를 읽고, 나를 이루는 흐름도 알아보세요.',
+    description: '보내 준 궁합풀이를 열어 보세요. 우리 둘의 궁합도 생일만 넣으면 바로 볼 수 있어요.',
     image: '/brand/compat-share-v3.jpg',
     alt: ALT,
   },

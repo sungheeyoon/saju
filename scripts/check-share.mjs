@@ -261,7 +261,7 @@ const named = (name) => namedIn(html, name);
 
 check('첫 HTML 에 미리보기 제목이 있다', meta('og:title') === '사주풀이가 도착했어요 | 점점', meta('og:title'));
 check('첫 HTML 에 미리보기 설명이 있다',
-  meta('og:description') === '공유된 사주풀이를 읽고, 나를 이루는 흐름도 알아보세요.', meta('og:description'));
+  meta('og:description') === '보내 준 사주풀이를 열어 보세요. 내 사주도 생일만 넣으면 로그인 없이 바로 볼 수 있어요.', meta('og:description'));
 check('공유본은 풀이 전용 그림을 쓴다', meta('og:image') === READING_IMAGE, meta('og:image'));
 check('공유본이 서비스 소개 그림을 쓰지 않는다', meta('og:image') !== SITE_IMAGE);
 check('트위터 카드도 같은 그림을 쓴다',

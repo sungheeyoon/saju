@@ -8,7 +8,11 @@ import { siteUrl } from './site-url';
 import './globals.css';
 
 const TITLE = `${SERVICE_NAME} — ${SERVICE_TAGLINE}`;
-const DESCRIPTION = "사주의 근거부터 두 사람의 궁합과 사주풀이까지 차분하게 살펴봅니다.";
+/**
+ * 대화창 · 검색 결과에서 그림 아래 서는 한 줄 — **누르면 무엇이 바로 되는가**를 먼저 말한다(그로스 시안, 2026-10-03).
+ * 첫 화면은 로그인 없이 사주 · 오행 · 두 사람의 궁합 첫 신호까지 연다(ADR 0131). 풀이는 로그인 뒤라 약속하지 않는다.
+ */
+const DESCRIPTION = "생일만 넣으면 로그인 없이 내 사주를 바로 볼 수 있어요. 두 사람의 궁합도 함께요.";
 
 /** 사이트 대표 미리보기 — 사주풀이 공유본은 전용 이미지를 사용한다 */
 const PREVIEW = {
