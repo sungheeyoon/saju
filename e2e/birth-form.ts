@@ -12,7 +12,7 @@ import { CALENDAR_KO, type Calendar } from '@/src/lib/saju';
  *
  * 날짜와 시각은 `<input type="date">`·`type="time">` 이 아니라 숫자 칸으로 서 있다
  * (`app/birth-form.tsx` 의 머리말). 그래서 검사도 **한 칸에 한 번 채우지 않고**
- * 년·월·일과 시·분을 각각 적는다. 성별 · 달력 · 출생지 · 출생 시각은 펼침 줄이다(ADR 0132).
+ * 년·월·일과 시·분을 각각 적는다. 성별 · 달력은 늘 보이는 라디오, 출생지 · 출생 시각은 펼침 줄이다(ADR 0132).
  */
 
 type Scope = Page | Locator;
@@ -80,9 +80,12 @@ export async function chooseHourUnknown(scope: Scope): Promise<void> {
   await pickRow(scope, '출생 시각', HOUR_UNKNOWN_CHOICE);
 }
 
-/** 달력 기준 — 양력·음력·음력 윤달 셋 중 하나. 「음력」은 「음력 윤달」의 앞토막이라 라디오는 `exact` 로 찾는다 */
+/**
+ * 달력 기준 — 양력·음력·음력 윤달 셋 중 하나. 셋이 늘 보이는 라디오다(펼치지 않는다).
+ * 「음력」은 「음력 윤달」의 앞토막이라 `exact` 로 찾는다.
+ */
 export async function chooseCalendar(scope: Scope, calendar: Calendar): Promise<void> {
-  await pickRow(scope, '달력', CALENDAR_KO[calendar]);
+  await scope.getByRole('radiogroup', { name: '달력 기준' }).getByRole('radio', { name: CALENDAR_KO[calendar], exact: true }).click();
 }
 
 /** 이름·생년월일·출생시각까지 한 벌 — 제출 조건을 다 채운다 */

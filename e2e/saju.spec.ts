@@ -838,7 +838,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }));
   expect(pairOverflow.scroll).toBeLessThanOrEqual(pairOverflow.client);
   for (const control of [
-    partner.getByRole('button', { name: /^달력 / }),
+    partner.getByRole('radio', { name: '음력 윤달', exact: true }),
     partner.getByRole('button', { name: /^출생 시각 / }),
     partner.getByLabel('출생일', { exact: true }),
     page.getByRole('button', { name: '무료로 두 사람 궁합 보기' }),
@@ -895,11 +895,10 @@ test('입력 폼과 결과의 누르는 자리가 44px 이상이고, 초점은 �
 
   // 고르는 칸은 펼침 줄이고(ADR 0132) 펼친 목록의 한 줄도 과녁이다 — 세그먼트였을 때 40px 이던 자리
   const row = (name: string) => page.getByRole('button', { name: new RegExp(`^${name} `) });
-  await expectTargets({ 성별: row('성별'), 달력: row('달력'), '출생 시각': row('출생 시각'), 출생지: row('출생지') });
-  await row('달력').click();
+  await expectTargets({ '출생 시각': row('출생 시각'), 출생지: row('출생지') });
+  // 성별 · 달력은 늘 보이는 라디오다 — 한 칸 한 칸이 과녁이다
   const option = (name: string) => page.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
-  await expectTargets({ 양력: option('양력'), 음력: option('음력'), '음력 윤달': option('음력 윤달') });
-  await row('달력').click();
+  await expectTargets({ 여자: option('여자'), 남자: option('남자'), 양력: option('양력'), 음력: option('음력'), '음력 윤달': option('음력 윤달') });
 
   const focused = await focusedOutline(page.getByLabel('출생연도'));
   expect.soft(focused.own).toBe('none');

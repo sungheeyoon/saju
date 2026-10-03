@@ -172,6 +172,64 @@ function PickRow<T extends string>({
 }
 
 /**
+ * 고를 것이 둘 · 셋뿐인 줄 — **펼치지 않고 다 보인다.**
+ *
+ * 성별과 달력은 답이 둘 · 셋이다. 펼침 줄에 넣으면 지금 값 하나만 보이고 나머지는 눌러야 나온다 — 음력으로 생일을
+ * 아는 부모 세대가 「달력: 양력」을 못 보고 지나쳐 음력 날짜를 양력으로 넣는 것이 이 폼에서 가장 비싼 실수다(ADR 0002).
+ * 그래서 세 갈래가 늘 보이게 둔다.
+ *
+ * 진짜 라디오 묶음이다(`PickRow` 와 같은 까닭) — 화살표로 옮기고 한 번에 하나다. 좁으면 이름 아래로 꺾인다.
+ */
+function ChoiceRow<T extends string>({
+  label,
+  name = label,
+  hint,
+  options,
+  value,
+  onPick,
+}: {
+  label: string;
+  /** 낭독기가 부르는 묶음 이름 */
+  name?: string;
+  hint?: string;
+  options: readonly Option<T>[];
+  value: T | '';
+  onPick: (value: T) => void;
+}) {
+  const id = useId();
+  return (
+    <div role="radiogroup" aria-label={name} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1.5 py-1.5 pr-4">
+      <span className="flex shrink-0 flex-col text-[15px] leading-5 text-foreground">
+        {label}
+        {hint && <span className="text-xs text-secondary">{hint}</span>}
+      </span>
+      <span className="ml-auto grid min-w-0 grid-flow-col auto-cols-fr gap-1 rounded-full bg-surface-sunken p-1">
+        {options.map((option) => {
+          const checked = option.value === value;
+          return (
+            <label
+              key={option.value}
+              className={`relative flex min-h-11 cursor-pointer items-center justify-center whitespace-nowrap rounded-full px-3 text-[14px] has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-1 has-[:focus-visible]:outline-accent-soft ${
+                checked ? 'bg-surface font-semibold text-foreground shadow-soft ring-1 ring-border' : 'text-secondary'
+              }`}
+            >
+              <input
+                type="radio"
+                name={id}
+                checked={checked}
+                onChange={() => onPick(option.value)}
+                className="absolute inset-0 cursor-pointer appearance-none opacity-0"
+              />
+              {option.label}
+            </label>
+          );
+        })}
+      </span>
+    </div>
+  );
+}
+
+/**
  * 숫자 칸이 오른쪽에 서는 줄. **좁으면 칸들이 이름 아래로 꺾인다**(`flex-wrap`) — 폰 360px 의 로그인 뒤 카드 안에서
  * 「생년월일」과 칸 셋 · 단위가 한 줄에 안 들었다(2026-09-29 잼).
  */
@@ -614,30 +672,27 @@ export function BirthFields({
             </label>
           )}
 
-          <PickRow
+          <ChoiceRow
             label="성별"
             value={value.gender}
-            open={open === 'gender'}
-            onToggle={toggle('gender')}
             onPick={pick('gender')}
             options={GENDERS.map((gender) => ({ value: gender, label: GENDER_KO[gender] }))}
           />
 
-          <DateFields value={value} onDate={(date) => set('date', date)} />
-
           {/*
-            **달력은 날짜 바로 아래다.** 「1984-10-05」는 양력인지 음력인지가 정해져야 비로소 하루를 가리키고,
-            음력이면 평달인지 윤달인지에 따라 실제 날이 한 달 떨어진다.
+            **달력은 날짜보다 먼저 묻는다.** 상담에서도 「생일을 양력으로 아세요, 음력으로 아세요?」가 날짜보다 앞이다 —
+            「1984-10-05」는 어느 달력인지 정해져야 하루를 가리키고, 음력이면 평달인지 윤달인지에 따라 한 달 떨어진다.
+            날짜를 다 적은 뒤 아래에서 달력을 고치게 두면 이미 양력으로 읽은 날짜를 사람이 다시 떠올려야 한다.
           */}
-          <PickRow
+          <ChoiceRow
             label="달력"
             name="달력 기준"
             value={value.calendar}
-            open={open === 'calendar'}
-            onToggle={toggle('calendar')}
             onPick={chooseCalendar}
             options={CALENDARS.map((calendar) => ({ value: calendar, label: CALENDAR_KO[calendar] }))}
           />
+
+          <DateFields value={value} onDate={(date) => set('date', date)} />
 
           <TimeFields value={value} onChange={onChange} open={open === 'time'} onToggle={toggle('time')} />
 
@@ -726,4 +781,4 @@ export function BirthFields({
   );
 }
 
-type RowKey = 'gender' | 'calendar' | 'time' | 'city' | 'rule' | 'basis';
+type RowKey = 'time' | 'city' | 'rule' | 'basis';
