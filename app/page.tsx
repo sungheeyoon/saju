@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { CONTROL, selfSectionTexts } from '@/src/lib/reading';
 
 import { HomeHero } from './home-hero';
+import { LandingGuide } from './landing-guide';
 import { SajuCalculator } from './saju-calculator';
 
 /**
@@ -37,6 +38,7 @@ export default function Home() {
           </Suspense>
         }
       />
+      <LandingGuide />
     </main>
   );
 }
