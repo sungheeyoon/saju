@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { pickable, stepTo, type Step } from '@/src/lib/people/pick';
 import type { Element } from '@/src/lib/saju';
 
+import { FIELD_INPUT_BODY, FIELD_LABEL } from './ui/fields';
 import { Icon } from './ui/icons';
 import { FaceSymbol } from './ui/stem-symbol';
 
@@ -163,8 +164,8 @@ export function PersonCombobox({
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-[13px] font-semibold text-secondary">
+    <div className="group flex min-w-0 flex-col gap-0">
+      <label htmlFor={inputId} className={FIELD_LABEL}>
         {label}
       </label>
       <div className="relative min-w-0">
@@ -172,12 +173,12 @@ export function PersonCombobox({
           <FaceSymbol
             stem={chosen.stem}
             element={chosen.element}
-            className="pointer-events-none absolute left-3 top-1/2 size-6 -translate-y-1/2"
+            className="pointer-events-none absolute left-0 top-1/2 size-6 -translate-y-1/2"
           />
         )}
         {/*
-          **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
-          그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
+          생년월일 칸과 같은 밑줄 칸이다(`FIELD_INPUT_BODY`) — 초점은 밑줄이 2px 강조색이 되는 한 겹이다. 고른 사람의
+          상징이 서면 글자가 그만큼 오른쪽으로 비킨다.
         */}
         <input
           id={inputId}
@@ -206,13 +207,11 @@ export function PersonCombobox({
           }}
           onKeyDown={onKeyDown}
           onBlur={close}
-          className={`h-12 w-full rounded-2xl border border-border bg-surface pr-10 text-[15px] font-semibold placeholder:font-normal placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash ${
-            chosen !== undefined && typed === null ? 'pl-11' : 'pl-4'
-          }`}
+          className={`${FIELD_INPUT_BODY} pr-8 ${chosen !== undefined && typed === null ? 'pl-9' : 'pl-0'}`}
         />
         <Icon
           name="chevron"
-          className={`pointer-events-none absolute right-4 top-1/2 size-3 -translate-y-1/2 stroke-[3.2] text-secondary ${listed ? '-rotate-90' : 'rotate-90'}`}
+          className={`pointer-events-none absolute right-0 top-1/2 size-5 -translate-y-1/2 stroke-[2.2] text-muted ${listed ? '-rotate-90' : 'rotate-90'}`}
         />
       </div>
 
@@ -225,7 +224,7 @@ export function PersonCombobox({
         role="listbox"
         aria-label={label}
         hidden={!listed}
-        className={`${LIST_HEIGHT} relative scroll-mb-28 overflow-y-auto overscroll-contain rounded-2xl border border-border bg-surface p-1 shadow-card sm:scroll-mb-2`}
+        className={`${LIST_HEIGHT} relative mt-2 scroll-mb-28 overflow-y-auto overscroll-contain rounded-[1.375rem] bg-surface-raised p-2 shadow-float ring-1 ring-border sm:scroll-mb-2`}
       >
         {listed &&
           choices.map((one, index) => (
@@ -238,7 +237,7 @@ export function PersonCombobox({
               /* 누르는 동안 입력 칸이 초점을 잃지 않게 — 잃으면 닫히며 누름이 사라진다 */
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => choose(one)}
-              className={`flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-3 text-[15px] ${
+              className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl px-3 text-[1.0625rem] ${
                 index === current ? 'bg-surface-sunken text-foreground' : 'text-foreground hover:bg-surface-sunken'
               }`}
             >
@@ -260,7 +259,7 @@ export function PersonCombobox({
         role="status"
         className={
           nothing
-            ? 'rounded-2xl border border-border bg-surface px-4 py-3 text-[15px] text-secondary'
+            ? 'mt-2 rounded-2xl bg-surface-sunken px-4 py-3 text-[15px] text-secondary'
             : 'sr-only'
         }
       >
