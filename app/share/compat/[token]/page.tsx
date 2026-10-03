@@ -12,8 +12,8 @@ export default async function Page({ params }: { params: Promise<{ token: string
       expect="private"
       eyebrow="공유받은 궁합풀이"
       invitation={{
-        heading: '다른 사람과의 궁합도 읽어보세요',
-        note: '두 사람의 생년월일시를 입력하면 두 사람의 궁합을 확인하고, 그 근거를 바탕으로 풀이를 받아볼 수 있어요.',
+        heading: '우리 둘은 어떤 궁합일까요?',
+        note: '첫 화면의 「궁합 보기」에서 두 사람의 생일을 넣으면 궁합의 첫 신호를 바로 볼 수 있어요.',
       }}
     />
   );

@@ -12,8 +12,8 @@ export default async function Page({ params }: { params: Promise<{ token: string
       expect="self"
       eyebrow="공유받은 사주풀이"
       invitation={{
-        heading: '내 사주도 직접 읽어보세요',
-        note: '생년월일시를 입력하면 나만의 사주를 확인하고, 그 근거를 바탕으로 풀이를 받아볼 수 있어요.',
+        heading: '나는 어떤 사주일까요?',
+        note: '생일만 넣으면 내 여덟 글자와 오행을 지금 바로 볼 수 있어요.',
       }}
     />
   );

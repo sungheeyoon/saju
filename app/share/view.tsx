@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { calledName } from '@/src/lib/reading/display';
 
 import { Markdown } from '../me/reading/markdown';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
+import { BUTTON_PRIMARY, BUTTON_PRIMARY_SMALL } from '../ui/buttons';
 import { Icon } from '../ui/icons';
 import { Logo } from '../ui/logo';
 import { CARD, TYPE_SECTION, TYPE_TITLE } from '../ui/surfaces';
@@ -112,21 +112,36 @@ export async function SharedReadingView({
         **다 읽은 자리에서 한 번 더 묻는다.** 위의 것은 「여기가 어디인가」에 붙은
         길이고, 이것은 글을 읽고 나서 생긴 마음에 붙은 길이다.
 
-        가입에 코드가 필요하다는 것을 여기서 적는다. 이 화면은 코드 없이 열리지만
-        **가입은 아직 코드로만 열린다**(ADR 0042) — 누르고 나서 알게 하면, 그 사람은
-        읽은 글이 좋아서 눌렀다가 막힌 문을 만난다.
+        **주 단추는 로그인이 아니라 첫 화면이다**(그로스 시안, 2026-10-03). 받은 사람 대부분은 테스트 코드가
+        없다 — 로그인으로 보내면 읽은 글이 좋아서 눌렀다가 막힌 문을 만난다. 첫 화면(`/`)은 로그인 없이
+        사주와 오행까지 열리므로, 마음이 생긴 그 자리에서 바로 「내 것」을 보게 한다. 코드가 있는 사람의
+        길(로그인)은 그 아래 한 줄로 남고, 코드가 필요하다는 말은 그 길에 붙는다(ADR 0042).
       */}
-      <section className="flex flex-col gap-3 rounded-[2rem] bg-cream px-5 py-7 sm:px-8">
+      <section className="flex flex-col gap-4 rounded-[2rem] bg-cream px-5 py-7 sm:px-8">
         <span className="grid size-14 place-items-center rounded-full bg-surface shadow-card">
           <Logo className="size-9" />
         </span>
-        <h2 className={TYPE_SECTION}>{invitation.heading}</h2>
-        <p className="text-[15px] leading-7 text-secondary">{invitation.note}</p>
+        <div className="flex flex-col gap-2">
+          <h2 className={TYPE_SECTION}>{invitation.heading}</h2>
+          <p className="text-[15px] leading-7 text-secondary">{invitation.note}</p>
+        </div>
+        <ul className="flex flex-wrap gap-2" aria-label="첫 화면에서 바로 되는 것">
+          {FREE_FACTS.map((fact) => (
+            <li key={fact} className="inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1.5 text-[13px] font-semibold text-foreground">
+              <Icon name="check" className="size-3.5 text-cream-ink" />
+              {fact}
+            </li>
+          ))}
+        </ul>
         <div className="mt-1">
           <StartButton variant="loud" />
         </div>
         <p className="text-[13px] leading-5 text-secondary">
-          지금은 비공개 테스트 기간이라 가입하려면 테스트 코드가 필요해요.
+          초대를 받으셨나요?{' '}
+          <Link href="/auth" className="font-semibold text-foreground underline underline-offset-4">
+            로그인
+          </Link>
+          하면 풀이까지 받을 수 있어요. 지금은 비공개 테스트 기간이라 가입하려면 테스트 코드가 필요해요.
         </p>
       </section>
     </main>
@@ -157,19 +172,25 @@ function titleOf(kind: ShareKind, nameA: string | null, nameB: string | null): s
 }
 
 /**
+ * 받은 사람이 바로 할 수 있는 것 — **첫 화면이 로그인 없이 여는 것만** 적는다(`/` 의 계산기 · 로그인 전 결과).
+ * 풀이 · 궁합풀이는 로그인 뒤라 여기 안 적는다.
+ */
+const FREE_FACTS = ['로그인 없이', '생일만 넣으면', '입력은 저장 안 해요'] as const;
+
+/**
  * 시작하는 자리로 보내는 버튼 — 위아래 둘이 같은 곳을 가리킨다.
  *
- * **「내 사주풀이 보기」가 아니다.** 이 글을 읽는 사람에게는 열 풀이가 아직 없고, 이
- * 누름이 여는 것은 로그인이다(가입에는 테스트 코드가 더 필요하다 — 그 말은 바로 아래
- * 줄이 든다). 없는 것을 「보기」라고 적으면 눌러서 도착한 자리가 약속과 다르다.
+ * **첫 화면(`/`)으로 간다**(그로스 시안, 2026-10-03). 예전에는 `/auth` 였다 — 그러면 코드가 없는 대부분이 로그인 뒤
+ * 가입 화면에서 막혔다. 글자는 첫 화면의 주 단추와 같다(「무료로 내 사주 보기」) — 누른 뒤 도착한 자리에 같은 말이
+ * 서 있어야 약속이 맞다. 로그인은 아래 한 줄이 든다.
  */
 function StartButton({ variant }: { variant: 'quiet' | 'loud' }) {
   return (
     <Link
-      href="/auth"
-      className={variant === 'loud' ? `${BUTTON_PRIMARY} w-full sm:w-auto` : `${BUTTON_SECONDARY_SMALL} shrink-0`}
+      href="/"
+      className={variant === 'loud' ? `${BUTTON_PRIMARY} w-full sm:w-auto` : `${BUTTON_PRIMARY_SMALL} shrink-0`}
     >
-      로그인하고 시작하기
+      무료로 내 사주 보기
     </Link>
   );
 }
