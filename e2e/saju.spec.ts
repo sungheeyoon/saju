@@ -5,6 +5,8 @@ import { expect, test } from './anon';
 import { BIRTH_YEAR_MAX } from '@/src/lib/input/query';
 
 import {
+  birthDateField,
+  birthTimeField,
   chooseCalendar,
   chooseHourUnknown,
   expectBirthDate,
@@ -297,19 +299,18 @@ test('있지도 않은 윤달은 계산하지 않고 어느 윤달이 있는지 
 test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어간다', async ({ page }) => {
   await page.goto('/');
 
-  const year = page.getByLabel('출생연도');
+  const date = birthDateField(page);
+  const time = birthTimeField(page);
   const show = page.getByRole('button', { name: '사주 보기' });
   /* 폼 안에 서는 거절 하나 — 결과 자리의 알림과 섞이지 않게 폼으로 좁힌다 */
   const refusal = page.locator('form').getByRole('alert');
   await page.getByLabel('이름', { exact: true }).fill('민수');
 
-  // 숫자만 들어간다 — 「19o0」 같은 값이 애초에 만들어지지 않는다.
-  await year.fill('19o0년');
-  await expect(year).toHaveValue('190');
+  // 숫자만 들어가고 점은 칸이 넣는다 — 「19o0」 같은 값이 애초에 만들어지지 않는다.
+  await date.pressSequentially('19o0');
+  await expect(date).toHaveValue('190');
 
-  // 네 자리가 다 적히기 전에는 날짜가 아니다.
-  await page.getByLabel('출생월').fill('05');
-  await page.getByLabel('출생일').fill('15');
+  // 여덟 자리가 다 적히기 전에는 날짜가 아니다.
   await fillBirthTime(page, '14:30');
 
   // **누르기 전에는 아무 말도 안 한다.** 어긴 것이 생기는 시점이 제출이다.
@@ -319,7 +320,8 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
 
   // 아직 오지 않은 해는 거절한다 — 이유를 말하고 결과는 안 선다.
   const tooLate = BIRTH_YEAR_MAX + 1;
-  await year.fill(String(tooLate));
+  await fillBirthDate(page, `${tooLate}-05-15`);
+  await expect(date).toHaveAttribute('aria-invalid', 'true');
   await show.click();
   await expect(refusal).toHaveText(
     `1900~${BIRTH_YEAR_MAX}년에 태어난 분만 계산할 수 있어요. 태어난 해(${tooLate}년)를 확인해 주세요.`,
@@ -327,7 +329,7 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
   await expect(page.getByRole('heading', { name: '사주팔자' })).toHaveCount(0);
 
   // 경계는 열려 있다 — 고치면 거절이 스스로 사라진다.
-  await year.fill(String(BIRTH_YEAR_MAX));
+  await fillBirthDate(page, `${BIRTH_YEAR_MAX}-05-15`);
   await expect(refusal).toHaveCount(0);
 
   /*
@@ -335,31 +337,49 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
     내주므로 자리마다의 범위를 칸이 안다 — 벗어나면 날짜를 아예 내보내지 않고, 그래서
     제출이 거절한다. 판정하는 자리를 새로 만들지 않고 이미 있는 그 자리에 얹는 것이 요점이다.
   */
-  await year.fill('1990');
-  for (const [label, bad, good] of [
-    ['출생월', '13', '02'],
-    ['출생일', '30', '15'],
-  ] as const) {
-    await page.getByLabel(label).fill(bad);
-    await expect(page.getByLabel(label)).toHaveAttribute('aria-invalid', 'true');
+  for (const bad of ['19901315', '19900230']) {
+    await date.fill('');
+    await date.pressSequentially(bad);
+    await expect(date).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.getByText('없는 날짜예요. 월과 일을 확인해 주세요.')).toBeVisible();
     await show.click();
     await expect(refusal).toHaveText('생년월일을 입력해 주세요.');
-    await page.getByLabel(label).fill(good);
-    await expect(refusal).toHaveCount(0);
   }
+  await fillBirthDate(page, '1990-02-15');
+  await expect(refusal).toHaveCount(0);
 
-  // 2월은 스물여덟까지다 — 그 달의 마지막 날을 칸이 안다.
-  await expect(page.getByLabel('출생일')).toHaveAttribute('placeholder', '1~28');
+  // 두 자리가 될 수 없는 첫 자리에는 칸이 0 을 채운다 — 「1990」 「2」 「8」 이 1990.02.08
+  await date.fill('');
+  await date.pressSequentially('199028');
+  await expect(date).toHaveValue('1990.02.08');
+  // 다 차면 시각 칸으로 넘어간다
+  await expect(time).toBeFocused();
 
   // 시각도 같다. 25시는 계산으로 흘러가지 않는다.
-  await page.getByLabel('출생 시', { exact: true }).fill('25');
-  await expect(page.getByLabel('출생 시', { exact: true })).toHaveAttribute('aria-invalid', 'true');
+  await time.fill('');
+  await time.pressSequentially('25');
+  await expect(time).toHaveAttribute('aria-invalid', 'true');
   await show.click();
   await expect(refusal).toHaveText('출생 시각을 입력해 주세요.');
-  await page.getByLabel('출생 시', { exact: true }).fill('14');
+  await fillBirthTime(page, '14:30');
 
   await page.getByRole('button', { name: '사주 보기' }).click();
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
+});
+
+/**
+ * **생일 한 줄을 붙여 넣으면 두 칸이 함께 찬다** — 메신저로 받은 「1990년 5월 15일 오후 2시 30분」을 손으로 옮겨 적지 않는다.
+ */
+test('붙여 넣은 생일 한 줄에서 날짜와 시각을 함께 읽는다', async ({ page }) => {
+  await page.goto('/');
+  await birthDateField(page).focus();
+  await page.evaluate(() => {
+    const data = new DataTransfer();
+    data.setData('text', '1990년 5월 15일 오후 2시 30분');
+    document.activeElement?.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  });
+  await expect(birthDateField(page)).toHaveValue('1990.05.15');
+  await expect(birthTimeField(page)).toHaveValue('14:30');
 });
 
 test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한다', async ({ page }) => {
@@ -367,16 +387,17 @@ test('연속 입력, 시간 미상, 진태양시와 운 탭이 함께 동작한�
   await enterKnownBirth(page);
 
   await chooseHourUnknown(page);
-  // 「모름」이면 시각 줄이 빠진다 — 시 · 분을 적을 자리가 없다(ADR 0132, 전에는 두 칸이 잠겼다)
-  await expect(page.getByLabel('출생 시', { exact: true })).toHaveCount(0);
-  await expect(page.getByLabel('출생 분', { exact: true })).toHaveCount(0);
+  // 「모름」이면 적어 둔 시각도 지운다 — "모름인데 14:30" 이 남지 않는다
+  await expect(page.getByRole('button', { name: '출생 시각 모름', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(birthTimeField(page)).toHaveValue('');
   await page.getByRole('button', { name: '사주 보기' }).click();
   await expect(
     page.getByLabel('시주 천간과 지지').getByText('출생 시각 모름').first(),
   ).toBeVisible();
 
-  // 라디오는 끌 수 없다 — 반대쪽을 고른다. 그것이 라디오로 바꾼 이유이기도 하다.
+  // 시각을 다시 치면 그것이 「안다」는 답이다 — 「모름」이 풀린다.
   await fillBirthTime(page, '14:30');
+  await expect(page.getByRole('button', { name: '출생 시각 모름', exact: true })).toHaveAttribute('aria-pressed', 'false');
   await expect(page.getByText('입력이 바뀌었어요.', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: '수정하고 다시 보기' }).click();
 
@@ -797,8 +818,9 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   expect(overflow.scroll).toBeLessThanOrEqual(overflow.client);
 
   for (const control of [
-    page.getByLabel('출생연도'),
-    page.getByLabel('출생 시', { exact: true }),
+    birthDateField(page),
+    birthTimeField(page),
+    page.getByRole('button', { name: '출생 시각 모름', exact: true }),
     page.getByRole('button', { name: '사주 보기' }),
     /*
       **현관의 두 입구도 과녁이다.** 옛 히어로의 두 갈래는 좁은 화면에서 한 줄에 세우려고 글자와
@@ -824,8 +846,8 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }
 
   /*
-    **궁합 입구의 두 묶음도 잰다.** 「생년월일」 줄은 칸 셋과 단위가 한 줄에 거의 꽉 차서 좁으면 이름 아래로 꺾인다
-    (ADR 0132). 가장 긴 값을 고른 채로 잰다.
+    **궁합 입구의 두 묶음도 잰다.** 달력 줄은 선택지 셋이 나란히 서서 좁은 폭에서 가장 빠듯하다. 가장 긴 값을 고른 채로
+    잰다.
   */
   await page.getByRole('tab', { name: /궁합 보기/ }).click();
   const partner = page.getByRole('group', { name: '상대', exact: true });
@@ -838,9 +860,9 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }));
   expect(pairOverflow.scroll).toBeLessThanOrEqual(pairOverflow.client);
   for (const control of [
-    partner.getByRole('button', { name: /^달력 / }),
-    partner.getByRole('button', { name: /^출생 시각 / }),
-    partner.getByLabel('출생일', { exact: true }),
+    partner.locator('label', { has: partner.getByRole('radio', { name: '음력 윤달', exact: true }) }),
+    partner.getByRole('button', { name: '출생 시각 모름', exact: true }),
+    birthDateField(partner),
     page.getByRole('button', { name: '무료로 두 사람 궁합 보기' }),
   ]) {
     expect((await control.boundingBox())?.height).toBeGreaterThanOrEqual(44);
@@ -893,15 +915,19 @@ test('입력 폼과 결과의 누르는 자리가 44px 이상이고, 초점은 �
 }) => {
   await page.goto('/');
 
-  // 고르는 칸은 펼침 줄이고(ADR 0132) 펼친 목록의 한 줄도 과녁이다 — 세그먼트였을 때 40px 이던 자리
-  const row = (name: string) => page.getByRole('button', { name: new RegExp(`^${name} `) });
-  await expectTargets({ 성별: row('성별'), 달력: row('달력'), '출생 시각': row('출생 시각'), 출생지: row('출생지') });
-  await row('달력').click();
-  const option = (name: string) => page.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
-  await expectTargets({ 양력: option('양력'), 음력: option('음력'), '음력 윤달': option('음력 윤달') });
-  await row('달력').click();
+  /*
+    고르는 것이 둘 · 셋인 칸은 나란히 선 라디오다(모바일 시안 2026-10-03) — 칸 하나하나가 과녁이다. 세그먼트였을 때
+    40px 이던 자리라 높이를 다시 잰다(보이는 알약 36px + 바탕 위아래 4px 가 누르는 자리).
+  */
+  const option = (name: string) => page.locator('[role=radiogroup] > label', { has: page.getByRole('radio', { name, exact: true }) }).first();
+  const group = (name: string) => page.getByRole('radiogroup', { name, exact: true }).first();
+  await expectTargets({ 달력: group('달력 기준'), 성별: group('성별'), 출생지: page.getByRole('combobox').first() });
+  for (const name of ['양력', '음력', '음력 윤달', '여자', '남자']) {
+    const box = await option(name).boundingBox();
+    expect.soft(box?.width, `${name} 폭`).toBeGreaterThanOrEqual(44);
+  }
 
-  const focused = await focusedOutline(page.getByLabel('출생연도'));
+  const focused = await focusedOutline(birthDateField(page));
   expect.soft(focused.own).toBe('none');
   expect.soft(focused.ring).not.toBe('none');
 

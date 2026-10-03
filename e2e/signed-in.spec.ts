@@ -21,7 +21,7 @@ import { PROMPT_VARIANTS } from '@/src/lib/reading/variants';
 
 import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
 
-import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
+import { birthDateField, expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
 import { hydrated } from './hydrated';
 import { passSecondFactor } from './second-factor';
 import { expectTargets, focusedOutline } from './target';
@@ -2161,7 +2161,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
      * 스크롤하지 않는다. 그래서 여기서 재는 것은 「폈는가」가 아니라 「어디에 폈는가」다.
      */
     const from = (await handle.boundingBox())!;
-    const to = (await page.getByLabel('출생연도').boundingBox())!;
+    const to = (await birthDateField(page).boundingBox())!;
     expect(to.y - from.y).toBeLessThan(page.viewportSize()!.height);
     await expect(page.getByLabel('이름')).toHaveCount(0);
     await expect(page.getByText('내 이름은 프로필 닉네임으로 보여요.')).toBeVisible();

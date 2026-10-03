@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type RefObject } from 'react';
 
 import {
   CALENDARS,
@@ -18,6 +18,7 @@ import { solarDateOf } from '@/src/lib/input/chart';
 import {
   DEFAULT_QUERY,
   HOUR_UNKNOWN_CHOICE,
+  HOUR_UNKNOWN_LABEL,
   NAME_MAX,
   TIME_BASES,
   TIME_BASIS,
@@ -26,6 +27,18 @@ import {
   type Query,
 } from '@/src/lib/input/query';
 
+import {
+  DATE_DIGITS,
+  TIME_DIGITS,
+  caretAfterDigits,
+  dateText,
+  missingFieldOf,
+  pastedBirth,
+  timeText,
+  typedDate,
+  typedTime,
+  type BirthField,
+} from './birth-typing';
 import { Icon } from './ui/icons';
 
 /**
@@ -37,6 +50,18 @@ import { Icon } from './ui/icons';
  * 제출 버튼은 여기 없다. 원국은 폼 하나에 버튼 하나지만 궁합은 두 사람을 채운
  * 뒤 한 번 누르므로, 버튼의 자리와 문구는 쓰는 화면이 정한다.
  *
+ * ## 폰 한 손으로 — 자판은 한 번 뜨고, 숫자는 두 칸에 친다 (모바일 시안, 2026-10-03)
+ *
+ * 묻는 것은 그대로이고 **적는 길**만 줄였다. 이름(글자 자판) → 「다음」 → 생년월일 여덟 자리(숫자 자판) → 다 차면 저절로
+ * 출생 시각 네 자리 → 다 차면 자판이 내려간다. 그 아래 성별 · 출생지는 한 번 누르는 칸이다. 자판 바꿈은 한 번, 칸을 짚는
+ * 손가락은 이름 한 번뿐이다(년 · 월 · 일 · 시 · 분 다섯 칸을 하나씩 짚던 때는 여섯 번이었다).
+ *
+ * - **고르는 것이 둘 · 셋인 칸은 펼치지 않고 다 보인다**(성별 · 달력). 펼침 줄은 「누르고 → 고르고」 두 번이고, 접힌 동안
+ *   기본값(「여자」)이 회색 글자 하나로만 서서 안 고친 줄을 모른다.
+ * - **출생지는 기기의 고르기 창이다**(`select`). iOS 는 아래에서 휠이, 안드로이드는 목록 창이 올라와 화면이 밀리지 않는다 —
+ *   열 줄을 그 자리에 펼치면 단추가 화면 밖으로 480px 밀렸다.
+ * - 계산 옵션(고급 설정)은 그대로 펼침 줄이다 — 드물게 열고, 고를 것마다 붙은 설명이 고르는 근거다.
+ *
  * ## 왜 `<input type="date">`·`<input type="time">` 을 쓰지 않는가
  *
  * 네이티브 컨트롤은 **기기가 모양과 규칙을 정한다.** 같은 폼이 iOS 에서는 휠,
@@ -44,35 +69,51 @@ import { Icon } from './ui/icons';
  * 오전/오후로 갈린다. 여기서 묻는 것은 사주 계산에 쓰이는 **24시간 기준의 시·분**
  * 이라 오전/오후가 한 번 접히면 「오후 12시」가 0시인지 12시인지에서 갈린다.
  * 그리고 태어난 해는 대개 40~90년 전이라, 달력 위젯으로는 그만큼을 넘겨야 한다.
+ * 하나 더 — **음력 날짜는 양력 달력이 못 담는다.** 음력 2월 30일은 있는 날이지만 `type="date"` 는 그 값을 거절한다.
  *
- * 그래서 년·월·일과 시·분을 각각 고르게 한다. 고르는 것만 허용하므로 폼이 반쪽
- * 날짜를 들고 있을 수는 있어도 **없는 날짜를 들 수는 없다.**
+ * 그래서 숫자를 친다. 칸이 자리마다의 범위를 알아서, 폼이 반쪽 날짜를 들고 있을 수는 있어도 **없는 날짜를 내보내지는
+ * 않는다**(아래 `DateField`).
  */
 
 /**
  * 폼은 **설정 앱의 묶음 목록**이다(입력 폼 시안 n 「설정 목록」, ADR 0132).
  *
- * 흰 둥근 묶음 안에 줄마다 왼쪽 이름 · 오른쪽 값. 칸 위에 제목을 세우고 그 아래 칸을 두던 동안에는 모양이 네 벌
- * (네모 칸 · 세그먼트 · 네모 셀렉트 · 라디오)이었다 — 줄 하나에 이름과 값이 함께 서면 비어 있어도 무슨 칸인지
- * 늘 보이고, 고르는 칸은 그 자리에서 펼쳐져 화면을 떠나지 않는다.
- *
+ * 흰 둥근 묶음 안에 줄마다 왼쪽 이름 · 오른쪽 값. 줄 하나에 이름과 값이 함께 서면 비어 있어도 무슨 칸인지 늘 보인다.
  * 줄 사이 선은 왼쪽 16px 을 들여 긋는다(묶음 `pl-4`, 줄 `pr-4`) — 한 묶음으로 읽힌다.
  */
 const GROUP = 'overflow-hidden rounded-2xl bg-surface pl-4 shadow-card divide-y divide-border';
 
-/** 줄 — 높이 48px. 이름은 왼쪽, 값은 오른쪽 */
+/** 줄 — 높이 48px 이상. 이름은 왼쪽, 값은 오른쪽 */
 const ROW = 'flex min-h-12 items-center gap-3 pr-4';
 const ROW_LABEL = 'shrink-0 text-[15px] text-foreground';
 
-/** 줄 안 오른쪽 숫자 칸 — 움푹한 작은 칸, 오른쪽 정렬 */
-const DIGIT =
-  'h-11 min-w-0 rounded-lg bg-surface-sunken px-1.5 text-right text-base tabular-nums text-foreground outline-none placeholder:text-sm placeholder:text-muted focus:ring-2 focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-40';
+/**
+ * 줄 안 오른쪽의 적는 칸 — 움푹한 칸, 오른쪽 정렬, 글자 16px(iOS 가 초점에서 화면을 키우지 않는 크기).
+ *
+ * **초점은 진하게 두른다**(`ring-accent`). 옅은 `accent-soft` 였던 동안 폰 햇빛 아래에서는 어느 칸에 자판이 붙었는지
+ * 안 보였다. 비어 있을 때 보이는 예시(placeholder)는 옅은 회색이라 적은 값과 헷갈리지 않는다.
+ */
+const FIELD =
+  'h-11 min-w-0 rounded-lg bg-surface-sunken px-2.5 text-right text-base tabular-nums text-foreground outline-none placeholder:text-muted focus:bg-surface focus:ring-2 focus:ring-accent aria-invalid:bg-danger-wash aria-invalid:text-danger aria-invalid:ring-2 aria-invalid:ring-danger';
+
+/** 짧은 선택지가 나란히 선 칸의 바탕(궁합의 「저장한 사람 · 직접 입력」과 같은 몸) */
+const SEGMENTS = 'flex min-w-0 flex-1 gap-1 rounded-full bg-surface-sunken p-1';
+const SEGMENT =
+  'relative flex min-h-9 flex-1 cursor-pointer items-center justify-center rounded-full px-2 text-[14px] has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-1 has-[:focus-visible]:outline-accent-soft';
+const SEGMENT_ON = 'bg-surface font-semibold text-foreground shadow-soft ring-1 ring-border';
+const SEGMENT_OFF = 'font-medium text-secondary';
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
-type Option<T extends string> = { value: T; label: string; hint?: string };
+type Option<T extends string> = {
+  value: T;
+  label: string;
+  hint?: string;
+  /** 낭독기가 부르는 온 이름 — 보이는 글자가 줄었을 때(「윤달」 → 「음력 윤달」) */
+  spoken?: string;
+};
 
 /**
  * 누르면 그 자리에서 아래로 펼쳐지는 줄 — 고른 항목에 체크(✓), 고르면 접힌다.
@@ -172,23 +213,6 @@ function PickRow<T extends string>({
 }
 
 /**
- * 숫자 칸이 오른쪽에 서는 줄. **좁으면 칸들이 이름 아래로 꺾인다**(`flex-wrap`) — 폰 360px 의 로그인 뒤 카드 안에서
- * 「생년월일」과 칸 셋 · 단위가 한 줄에 안 들었다(2026-09-29 잼).
- */
-function DigitsRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  const id = useId();
-  return (
-    <div role="group" aria-labelledby={id} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 py-1 pr-4">
-      <span id={id} className="flex shrink-0 flex-col text-[15px] leading-5 text-foreground">
-        {label}
-        {hint && <span className="text-xs text-secondary">{hint}</span>}
-      </span>
-      <div className="ml-auto flex min-w-0 items-center justify-end gap-2">{children}</div>
-    </div>
-  );
-}
-
-/**
  * 음력 입력 아래에 적을 한 줄 — 바뀐 양력이거나, 못 바꾼 이유다.
  *
  * 못 바꾼 이유를 「변환할 수 없습니다」로 뭉개지 않는다. 표 밖·없는 윤달·없는 날은
@@ -260,167 +284,57 @@ export function fitsCalendar(date: string, calendar: Calendar): boolean {
   return Number(year) >= years.min && Number(year) <= years.max && Number(day) <= maxDay;
 }
 
-/**
- * 숫자 한 칸 — **적는 칸이면서 범위를 아는 칸.**
- *
- * 여섯 칸(년·월·일·시·분)이 같은 일을 한다: 숫자만 받고, 자릿수를 넘기지 않고,
- * 제 범위를 벗어나면 스스로 붉어진다. 한 벌로 두지 않으면 어느 칸 하나가
- * 「25시」를 조용히 받아들이는 날이 온다.
- *
- * **판정은 여기서 끝나지 않는다.** 이 칸이 아는 것은 자기 범위뿐이라 「2월 30일」이
- * 나 「없는 윤달」은 못 본다 — 그것은 날짜 한 벌이 다 모여야 알 수 있고, 모인 뒤에도
- * 폼이 아니라 변환·엔진이 판정한다(`convertedLine`).
- */
-function NumberField({
-  label,
-  suffix,
-  value,
-  onChange,
-  digits,
-  min,
-  max,
-  width,
-  placeholder,
-  disabled = false,
-  autoComplete,
-}: {
-  label: string;
-  /** 칸 뒤에 서는 우리말 — 「년」·「월」·「시」. 이것이 있어 자리 이름을 안 물어도 된다 */
-  suffix: string;
-  value: string;
-  onChange: (next: string) => void;
-  digits: number;
-  min: number;
-  max: number;
-  width: string;
-  placeholder: string;
-  disabled?: boolean;
-  autoComplete?: string;
-}) {
-  /**
-   * 다 적힌 값만 판정한다. 「1」을 치는 도중에 「1~12 아님」이라고 붉히면, 사용자는
-   * 12월을 적으려다 자기가 틀렸다는 말을 먼저 듣는다. 자릿수가 덜 찬 것은 아직
-   * 틀린 것이 아니라 **덜 적은 것**이다.
-   */
-  const settled = value !== '' && (value.length === digits || Number(value) * 10 > max);
-  const outOfRange = settled && (Number(value) < min || Number(value) > max);
-
-  return (
-    <label className="flex shrink-0 items-center gap-1">
-      <input
-        type="text"
-        inputMode="numeric"
-        autoComplete={autoComplete}
-        aria-label={label}
-        aria-invalid={outOfRange || undefined}
-        placeholder={placeholder}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, digits))}
-        // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `DIGIT` 의 바탕과
-        // 같은 무게라 어느 쪽이 이길지 정해지지 않는다. 변종 셀렉터는 한 겹 더 무겁다.
-        className={`${DIGIT} ${width} aria-invalid:bg-danger-wash aria-invalid:text-danger aria-invalid:ring-2 aria-invalid:ring-danger`}
-      />
-      <span aria-hidden="true" className={`text-sm text-secondary ${disabled ? 'opacity-40' : ''}`}>
-        {suffix}
-      </span>
-    </label>
-  );
-}
 
 /** 다 적힌 숫자가 범위 안인가 — 반쪽인 값은 아직 날짜가 아니다 */
 const within = (value: string, min: number, max: number) =>
   value !== '' && Number(value) >= min && Number(value) <= max;
 
 /**
- * 년·월·일 세 칸 — **전부 적는 칸이다.**
+ * 짧은 선택지가 나란히 선 줄 — **한 번 누르면 끝난다**(성별 · 달력).
  *
- * 고르는 칸으로 두면 연도는 백 줄이 넘는 목록이 되고, 그렇다고 흔한 해를 미리 넣어
- * 두면 연도를 손대지 않은 사람도 그 해를 고른 것이 된다 — 월·일만 채운 순간 **틀린
- * 해로 계산된 사주**가 나온다. 「고르지 않은 것을 골랐다고 치지 않는다」가 이 폼
- * 전체의 규율이다(`hourKnown` 이 셋인 이유). 숫자를 치는 것이 그 둘을 다 피한다.
- *
- * ## 대신 없는 날짜가 들어올 수 있다
- *
- * 고르는 칸이던 동안에는 「2월 30일」이 **만들어질 수가 없었다.** 적는 칸은 그
- * 보호막을 내주므로, 막는 자리를 대신 세워야 한다. 두 층으로 나눈다.
- *
- * 1. **자리마다의 범위**(월 1~12, 일 1~그 달의 마지막 날)는 여기가 안다. 벗어나면
- *    날짜를 **내보내지 않는다** — 그래서 `date` 가 빈 문자열로 남고, 버튼은
- *    `missingAnswer` 가 이미 잠근다. 판정하는 자리를 새로 만들지 않는다.
- * 2. **날짜의 존재**(없는 윤달, 29일까지인 음력 달의 30일)는 여기가 모른다. 그것은
- *    변환과 엔진이 이유를 붙여 거절하고, 화면은 그 문장을 그대로 세운다.
- *
- * 폼이 자기 조각을 따로 들고 있으므로 **밖에서 값이 바뀐 것과 자기가 방금 낸
- * 것을 구별해야 한다**(뒤로가기·링크로 들어옴). 마지막으로 올려 보낸 값을
- * 기억해 두고 그것과 다를 때만 조각을 다시 쪼갠다.
+ * 진짜 라디오 묶음이다 — 화살표 이동과 한 번에 하나는 브라우저가 이미 안다. 라디오는 보이지 않게 칸 전체를 덮고(눌리는
+ * 것도 초점을 받는 것도 라디오다), 고른 칸은 흰 면 · 굵은 글자로 선다. 칸 높이는 보이는 36px + 바탕 4px 위아래로
+ * 누르는 자리가 44px 다.
  */
-function DateFields({ value, onDate }: { value: Query; onDate: (date: string) => void }) {
-  const [parts, setParts] = useState(() => splitDate(value.date));
-  const lastEmitted = useRef(value.date);
-
-  useEffect(() => {
-    if (value.date === lastEmitted.current) return;
-    setParts(splitDate(value.date));
-    lastEmitted.current = value.date;
-  }, [value.date]);
-
-  const { years, maxDay } = limitsOf(value.calendar, parts.year, parts.month);
-
-  const update = (key: keyof typeof parts, next: string) => {
-    const changed = { ...parts, [key]: next };
-    setParts(changed);
-
-    // 자리마다의 범위를 다 지켜야 날짜가 된다. 하나라도 어긋나면 내보내지 않는다 —
-    // 「1990-13-05」를 실어 보내면 그 값을 판정하는 자리가 하나 더 생긴다.
-    const limit = limitsOf(value.calendar, changed.year, changed.month).maxDay;
-    const whole =
-      isFullYear(changed.year) && within(changed.month, 1, 12) && within(changed.day, 1, limit);
-
-    const date = whole ? `${changed.year}-${pad2(Number(changed.month))}-${pad2(Number(changed.day))}` : '';
-    lastEmitted.current = date;
-    onDate(date);
-  };
-
+function Segments<T extends string>({
+  label,
+  name = label,
+  options,
+  value,
+  onPick,
+}: {
+  label: string;
+  /** 낭독기가 부르는 묶음 이름 — 보이는 이름이 짧을 때(「달력」 → 「달력 기준」) */
+  name?: string;
+  options: readonly Option<T>[];
+  value: T;
+  onPick: (value: T) => void;
+}) {
+  const id = useId();
   return (
-    <DigitsRow label="생년월일">
-      <NumberField
-        label="출생연도"
-        suffix="년"
-        value={parts.year}
-        onChange={(next) => update('year', next)}
-        digits={4}
-        min={years.min}
-        max={years.max}
-        width="w-[3.75rem]"
-        placeholder={String(years.max - 30)}
-        autoComplete="bday-year"
-      />
-      <NumberField
-        label="출생월"
-        suffix="월"
-        value={parts.month}
-        onChange={(next) => update('month', next)}
-        digits={2}
-        min={1}
-        max={12}
-        width="w-12"
-        placeholder="1~12"
-        autoComplete="bday-month"
-      />
-      <NumberField
-        label="출생일"
-        suffix="일"
-        value={parts.day}
-        onChange={(next) => update('day', next)}
-        digits={2}
-        min={1}
-        max={maxDay}
-        width="w-12"
-        placeholder={`1~${maxDay}`}
-        autoComplete="bday-day"
-      />
-    </DigitsRow>
+    <div className={`${ROW} py-1`}>
+      <span aria-hidden="true" className={ROW_LABEL}>
+        {label}
+      </span>
+      <div role="radiogroup" aria-label={name} className={`${SEGMENTS} ml-auto max-w-[16rem]`}>
+        {options.map((option) => {
+          const checked = option.value === value;
+          return (
+            <label key={option.value} className={`${SEGMENT} ${checked ? SEGMENT_ON : SEGMENT_OFF}`}>
+              <input
+                type="radio"
+                name={id}
+                aria-label={option.spoken}
+                checked={checked}
+                onChange={() => onPick(option.value)}
+                className="absolute inset-0 cursor-pointer appearance-none opacity-0"
+              />
+              <span className="whitespace-nowrap">{option.label}</span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -429,121 +343,309 @@ function splitDate(date: string) {
   return match ? { year: match[1], month: match[2], day: match[3] } : { year: '', month: '', day: '' };
 }
 
-function splitTime(time: string) {
-  const match = /^(\d{2}):(\d{2})$/.exec(time);
-  return match ? { hour: match[1], minute: match[2] } : { hour: '', minute: '' };
+/** 날짜 · 시각을 쪼갠 숫자열로 — 밖에서 온 값(주소 · 저장된 판본)을 칸에 세울 때 */
+const dateDigitsOf = (date: string) => (/^\d{4}-\d{2}-\d{2}$/.test(date) ? date.replaceAll('-', '') : '');
+const timeDigitsOf = (time: string) => (/^\d{2}:\d{2}$/.test(time) ? time.replace(':', '') : '');
+
+/**
+ * 숫자열이 그 달력의 날짜가 되면 `YYYY-MM-DD`, 아니면 빈 글.
+ *
+ * 자리마다의 범위(월 1~12, 일 1~그 달의 마지막 날)를 다 지켜야 날짜가 된다. 하나라도 어긋나면 내보내지 않는다 —
+ * 「1990-13-05」를 실어 보내면 그 값을 판정하는 자리가 하나 더 생긴다. 해의 범위는 여기서 거르지 않는다 —
+ * `birthYearRefusal` 이 이유를 붙여 거절한다(받는 칸과 거절하는 자리가 갈리지 않게).
+ */
+function dateOfDigits(digits: string, calendar: Calendar): string {
+  const year = digits.slice(0, 4);
+  const month = digits.slice(4, 6);
+  const day = digits.slice(6, 8);
+  const { maxDay } = limitsOf(calendar, year, month);
+  const whole = digits.length === DATE_DIGITS && within(month, 1, 12) && within(day, 1, maxDay);
+  return whole ? `${year}-${pad2(Number(month))}-${pad2(Number(day))}` : '';
+}
+
+/** 다 적었는데 없는 월 · 일인가 — 덜 적은 것은 아직 틀린 것이 아니다 */
+function impossibleDate(digits: string, calendar: Calendar): boolean {
+  const month = digits.slice(4, 6);
+  const day = digits.slice(6, 8);
+  if (month.length === 2 && !within(month, 1, 12)) return true;
+  if (day.length === 2 && !within(day, 1, limitsOf(calendar, digits.slice(0, 4), month).maxDay)) return true;
+  return false;
+}
+
+/** 네 자리가 다 적혔는데 받는 범위 밖의 해인가 — 칸만 붉힌다. 문장은 날짜가 다 차면 `birthYearRefusal` 이 세운다 */
+function yearOutOfRange(digits: string, calendar: Calendar): boolean {
+  if (digits.length < 4) return false;
+  const { years } = limitsOf(calendar, digits.slice(0, 4), '');
+  const year = Number(digits.slice(0, 4));
+  return year < years.min || year > years.max;
+}
+
+const timeOfDigits = (digits: string) =>
+  digits.length === TIME_DIGITS && within(digits.slice(0, 2), 0, 23) && within(digits.slice(2), 0, 59)
+    ? `${digits.slice(0, 2)}:${digits.slice(2)}`
+    : '';
+
+const impossibleTime = (digits: string) =>
+  (digits.length >= 2 && !within(digits.slice(0, 2), 0, 23)) || (digits.length === 4 && !within(digits.slice(2), 0, 59));
+
+/**
+ * 꾸민 글(점 · 쌍점)을 그리는 칸의 커서 — **가운데를 고치면 그 자리에 남는다.**
+ *
+ * 값을 다시 꾸미면 브라우저는 커서를 끝으로 보낸다. 끝에서 치는 동안은 그것이 맞고, 가운데 한 자리를 고칠 때만 그
+ * 자리의 숫자 수를 세어 둔 뒤 다시 놓는다.
+ */
+function useDigitCaret(input: RefObject<HTMLInputElement | null>, text: string) {
+  const pending = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    if (pending.current === null || input.current === null || document.activeElement !== input.current) return;
+    const at = caretAfterDigits(text, pending.current);
+    input.current.setSelectionRange(at, at);
+    pending.current = null;
+  }, [input, text]);
+
+  /** 바뀐 글과 커서에서 「커서 앞 숫자 수」를 적어 둔다 — 커서가 끝이면 비워 둔다(브라우저가 알아서 끝에 둔다) */
+  return (raw: string, caret: number | null) => {
+    pending.current = caret === null || caret >= raw.length ? null : raw.slice(0, caret).replace(/\D/g, '').length;
+  };
 }
 
 /**
- * 출생시각 — **24시간으로만 묻는다.**
+ * 생년월일 한 칸 — **숫자 여덟 자리를 치면 점은 칸이 넣는다**(`1990.05.15`).
+ *
+ * 년 · 월 · 일 세 칸이던 동안 폰에서는 칸마다 손가락이 화면으로 돌아왔고, 「1~12」 같은 예시가 칸마다 서서 적은 값처럼
+ * 보였다(연도 칸의 예시 「2000」은 실제로 적힌 해로 읽혔다). 한 칸이면 자판이 한 번 뜨고 숫자만 친다.
+ *
+ * - 첫 자리로 두 자리가 될 수 없는 월 · 일(2~9월, 4~9일)은 앞에 0 을 채운다(`birth-typing.ts`) — 「1990」 「5」 「15」.
+ * - 다 차서 날짜가 되면 시각 칸으로 넘어간다(`onFilled`). 숫자 자판에는 「다음」 키가 없거나 멀다.
+ * - 생일 한 줄을 붙여 넣으면(`1990.5.15 14:30`) 날짜 · 시각이 함께 찬다(`onPasted`).
+ *
+ * 폼이 자기 숫자열을 따로 들고 있으므로 **밖에서 값이 바뀐 것과 자기가 방금 낸 것을 구별한다**(뒤로가기 · 링크로
+ * 들어옴 · 달력을 바꿔 날짜가 비워짐). 마지막으로 올려 보낸 값을 기억해 두고 그것과 다를 때만 다시 세운다.
+ */
+function DateField({
+  value,
+  onDate,
+  onPasted,
+  onFilled,
+  input,
+  missing,
+  describedBy,
+  self,
+  onImpossible,
+}: {
+  value: Query;
+  onDate: (date: string) => void;
+  /** 다 적었는데 없는 월 · 일이 됐다 · 풀렸다 — 묶음 아래 문장을 세운다 */
+  onImpossible: (impossible: boolean) => void;
+  /** 붙여 넣은 글에 시각까지 있었다 — 날짜와 시각을 한 번에 올린다 */
+  onPasted: (date: string, time: string) => void;
+  /** 날짜가 다 찼다 · 「다음」을 눌렀다 — 다음 칸으로 */
+  onFilled: () => void;
+  input: RefObject<HTMLInputElement | null>;
+  /** 제출이 이 칸에서 막혔다 */
+  missing: boolean;
+  describedBy?: string;
+  self: boolean;
+}) {
+  const [digits, setDigits] = useState(() => dateDigitsOf(value.date));
+  const lastEmitted = useRef(value.date);
+  const text = dateText(digits);
+  const remember = useDigitCaret(input, text);
+
+  useEffect(() => {
+    if (value.date === lastEmitted.current) return;
+    setDigits(dateDigitsOf(value.date));
+    lastEmitted.current = value.date;
+  }, [value.date]);
+
+  const take = (next: string) => {
+    setDigits(next);
+    const date = dateOfDigits(next, value.calendar);
+    lastEmitted.current = date;
+    onDate(date);
+    return date;
+  };
+
+  const paste = (event: ClipboardEvent<HTMLInputElement>) => {
+    const pasted = pastedBirth(event.clipboardData.getData('text'));
+    if (pasted === null) return;
+    event.preventDefault();
+    setDigits(pasted.date);
+    const date = dateOfDigits(pasted.date, value.calendar);
+    lastEmitted.current = date;
+    const time = pasted.time === null ? '' : timeOfDigits(pasted.time);
+    if (time !== '') onPasted(date, time);
+    else onDate(date);
+    if (date !== '' && time === '') onFilled();
+    else if (date !== '') input.current?.blur();
+  };
+
+  const impossible = impossibleDate(digits, value.calendar);
+  useEffect(() => onImpossible(impossible), [impossible, onImpossible]);
+  const invalid = impossible || yearOutOfRange(digits, value.calendar) || (missing && digits.length < DATE_DIGITS);
+
+  return (
+    <label className={`${ROW} py-1`}>
+      <span className={ROW_LABEL}>생년월일</span>
+      <input
+        ref={input}
+        data-birth-field="date"
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9.]*"
+        enterKeyHint="next"
+        autoComplete={self ? 'bday' : 'off'}
+        aria-label="생년월일"
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        placeholder="YYYY.MM.DD"
+        value={text}
+        maxLength={DATE_DIGITS + 4}
+        onPaste={paste}
+        onChange={(event) => {
+          const raw = event.target.value;
+          const next = typedDate(digits, raw, (year, month) => limitsOf(value.calendar, year, month).maxDay);
+          remember(raw, event.target.selectionStart);
+          const date = take(next);
+          // 끝에서 마지막 자리를 친 누름만 넘어간다 — 가운데를 고치는 손을 끌고 가지 않는다
+          if (date !== '' && next.length > digits.length && event.target.selectionStart === raw.length) onFilled();
+        }}
+        onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+          if (event.key !== 'Enter') return;
+          event.preventDefault();
+          onFilled();
+        }}
+        className={`${FIELD} ml-auto w-[8.75rem]`}
+      />
+    </label>
+  );
+}
+
+/**
+ * 출생 시각 — **24시간 네 자리 한 칸과 「모름」 하나.**
  *
  * 오전·오후를 따로 고르게 하면 「오후 12시 30분」이 0시 30분인지 12시 30분인지에서
  * 갈리고, 그 한 칸이 시주를 통째로 바꾼다. 자시 규칙(조자시 23:00 경계)도 23시가
- * 23시로 적혀 있을 때만 사람이 대조할 수 있다.
+ * 23시로 적혀 있을 때만 사람이 대조할 수 있다. 그래서 칸 이름 아래에 「24시간」을 둔다.
  *
- * 시각을 아는가는 「출생 시각」 줄의 펼침이다(「직접 입력 · 모름」, 시안 n). 체크박스는 **꺼진 상태가 답처럼
- * 보이지 않아서** 쓰지 않는다 — 시각을 안 넣고 체크도 안 한 사람이 자기가 아직 아무것도 고르지 않았다는 것을 모른다
- * (`hourKnown` 이 `null`·`false`·`true` 셋인 이유). 주소에서 온 입력이 `null` 이면 줄의 값은 「–」이고 시각 줄은
- * 서지 않는다 — 고르기 전에는 어느 쪽도 고른 것이 아니다.
+ * 시각을 아는가는 `hourKnown` 이 `null`·`false`·`true` 셋이다 — **고르지 않은 것을 고른 것으로 치지 않는다.** 폼은
+ * 「적으라는 요구」(`true`)에서 시작하고, 「모름」을 누르면 `false`, 칸에 숫자를 치면 다시 `true` 다. 주소에서 온
+ * `null` 이면 칸은 비고 「모름」도 안 눌린 채 서서, 둘 중 하나를 해야 제출이 된다(`missingAnswer`).
  *
- * 「모름」을 고르면 적어 둔 시각도 지운다. 남겨 두면 "모름인데 14:30" 이 상태로
- * 남고, 다시 「직접 입력」을 고르는 순간 사용자가 지웠다고 생각한 값으로 계산된다.
+ * 「모름」은 펼침 줄의 답이던 것을 칸 옆 단추로 옮겼다 — 「누르고 → 고르고」 두 번이 한 번이 된다. 누르면 적어 둔 시각도
+ * 지운다. 남겨 두면 "모름인데 14:30" 이 상태로 남고, 다시 적는 순간 사용자가 지웠다고 생각한 값으로 계산된다.
+ *
+ * **다 차면 자판을 내린다.** iOS 의 숫자 자판에는 닫는 키가 없어서, 마지막 칸을 다 적은 손이 자판을 내리려고 빈 곳을
+ * 짚어야 했다 — 그 아래의 성별 · 출생지 · 단추가 자판에 가려 있었다.
  */
-function TimeFields({
+function TimeField({
   value,
   onChange,
-  open,
-  onToggle,
+  input,
+  missing,
+  describedBy,
+  onImpossible,
 }: {
   value: Query;
   onChange: (next: Query) => void;
-  /** 「출생 시각」 줄이 펼쳐져 있나 — 한 묶음에서 펼침은 하나라 묶음(`BirthFields`)이 든다 */
-  open: boolean;
-  onToggle: () => void;
+  input: RefObject<HTMLInputElement | null>;
+  missing: boolean;
+  describedBy?: string;
+  /** 없는 시 · 분이 됐다 · 풀렸다 */
+  onImpossible: (impossible: boolean) => void;
 }) {
-  const [parts, setParts] = useState(() => splitTime(value.time));
+  const [digits, setDigits] = useState(() => timeDigitsOf(value.time));
   const lastEmitted = useRef(value.time);
+  const text = timeText(digits);
+  const remember = useDigitCaret(input, text);
+  const hintId = useId();
 
   useEffect(() => {
     if (value.time === lastEmitted.current) return;
-    setParts(splitTime(value.time));
+    setDigits(timeDigitsOf(value.time));
     lastEmitted.current = value.time;
   }, [value.time]);
 
-  /** 두 칸이 다 제 범위 안이어야 시각이 된다 — 「25:70」을 실어 보내지 않는다 */
-  const timeOf = (from: typeof parts) =>
-    within(from.hour, 0, 23) && within(from.minute, 0, 59)
-      ? `${pad2(Number(from.hour))}:${pad2(Number(from.minute))}`
-      : '';
+  const unknown = value.hourKnown === false;
 
-  const update = (key: keyof typeof parts, next: string) => {
-    const changed = { ...parts, [key]: next };
-    setParts(changed);
-    const time = timeOf(changed);
-    lastEmitted.current = time;
-    onChange({ ...value, hourKnown: true, time });
-  };
-
-  const choose = (known: boolean) => {
-    if (!known) {
-      setParts({ hour: '', minute: '' });
-      lastEmitted.current = '';
-      onChange({ ...value, hourKnown: false, time: '' });
+  const toggleUnknown = () => {
+    if (unknown) {
+      onChange({ ...value, hourKnown: true });
+      input.current?.focus();
       return;
     }
-    const time = timeOf(parts);
-    lastEmitted.current = time;
-    onChange({ ...value, hourKnown: true, time });
+    setDigits('');
+    lastEmitted.current = '';
+    onChange({ ...value, hourKnown: false, time: '' });
   };
 
-  const known = value.hourKnown === true;
+  const impossible = impossibleTime(digits);
+  useEffect(() => onImpossible(impossible), [impossible, onImpossible]);
+  const invalid = impossible || (missing && !unknown && digits.length < TIME_DIGITS);
 
   return (
-    <>
-      <PickRow
-        label="출생 시각"
-        value={value.hourKnown === null ? '' : value.hourKnown ? 'known' : 'unknown'}
-        open={open}
-        onToggle={onToggle}
-        onPick={(next) => choose(next === 'known')}
-        options={[
-          { value: 'known', label: '직접 입력' },
-          { value: 'unknown', label: HOUR_UNKNOWN_CHOICE, hint: '출생 시각 없이 풀이해요' },
-        ]}
-      />
-      {/*
-        시·분도 **적는 칸**이다. 24시간이라 시는 스물넷, 분은 예순 줄짜리 목록이 되는데, 두 자리를 치는 편이
-        어느 쪽이든 빠르다. 범위를 벗어나면 시각을 내보내지 않으므로 「25:70」이 계산으로 흘러가지 않는다.
-        「직접 입력」일 때만 선다 — 「모름」이거나 아직 안 골랐으면(주소에서 온 `null`) 이 줄이 빠진다.
-      */}
-      {known && (
-        <DigitsRow label="시각" hint="24시간">
-          <NumberField
-            label="출생 시"
-            suffix="시"
-            value={parts.hour}
-            onChange={(next) => update('hour', next)}
-            digits={2}
-            min={0}
-            max={23}
-            width="w-12"
-            placeholder="0~23"
-          />
-          <NumberField
-            label="출생 분"
-            suffix="분"
-            value={parts.minute}
-            onChange={(next) => update('minute', next)}
-            digits={2}
-            min={0}
-            max={59}
-            width="w-12"
-            placeholder="0~59"
-          />
-        </DigitsRow>
-      )}
-    </>
+    <div className={`${ROW} py-1`}>
+      <label htmlFor={`${hintId}-time`} className="flex shrink-0 flex-col text-[15px] leading-5 text-foreground">
+        출생 시각
+        <span id={hintId} className="text-xs text-secondary">
+          24시간
+        </span>
+      </label>
+      <div className="ml-auto flex min-w-0 items-center gap-2">
+        <input
+          ref={input}
+          id={`${hintId}-time`}
+          data-birth-field="time"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9:]*"
+          enterKeyHint="done"
+          autoComplete="off"
+          aria-label="출생 시각"
+          aria-invalid={invalid || undefined}
+          aria-describedby={[hintId, describedBy].filter(Boolean).join(' ')}
+          placeholder={unknown ? '–' : 'HH:MM'}
+          value={text}
+          maxLength={TIME_DIGITS + 1}
+          onChange={(event) => {
+            const raw = event.target.value;
+            const next = typedTime(digits, raw);
+            remember(raw, event.target.selectionStart);
+            setDigits(next);
+            const time = timeOfDigits(next);
+            lastEmitted.current = time;
+            onChange({ ...value, hourKnown: true, time });
+            if (time !== '' && next.length > digits.length && event.target.selectionStart === raw.length) {
+              event.target.blur();
+            }
+          }}
+          className={`${FIELD} w-[5.25rem] ${unknown ? 'opacity-60' : ''}`}
+        />
+        <button
+          type="button"
+          aria-pressed={unknown}
+          aria-label={HOUR_UNKNOWN_LABEL}
+          onClick={toggleUnknown}
+          className={`inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full px-3 text-[14px] ring-1 ${
+            unknown ? 'bg-accent-wash font-semibold text-foreground ring-border-strong' : 'bg-surface font-medium text-secondary ring-border'
+          }`}
+        >
+          {unknown && <Icon name="check" className="size-3 stroke-[3.6]" />}
+          {HOUR_UNKNOWN_CHOICE}
+        </button>
+      </div>
+    </div>
   );
+}
+
+/**
+ * 제출이 막힌 칸으로 초점을 옮긴다 — 거절의 문장(`missingAnswer`)은 단추 곁에 서고, 손가락은 고칠 칸에 바로 닿는다.
+ * 폰에서는 칸으로 화면이 굴러가고 자판이 그 칸에 붙는다.
+ */
+export function focusMissingField(root: ParentNode | null, query: Query): void {
+  const field = missingFieldOf(query);
+  if (field === null || root === null) return;
+  root.querySelector<HTMLElement>(`[data-birth-field="${field}"]`)?.focus();
 }
 
 export function BirthFields({
@@ -551,6 +653,8 @@ export function BirthFields({
   onChange,
   namePlaceholder,
   showName = true,
+  self = false,
+  tried = false,
 }: {
   value: Query;
   onChange: (next: Query) => void;
@@ -558,10 +662,25 @@ export function BirthFields({
   namePlaceholder?: string;
   /** 본인은 계정 닉네임으로 부르므로 출생 정보에서 이름을 다시 묻지 않는다 */
   showName?: boolean;
+  /**
+   * 적는 사람 자신의 출생 정보인가 — **기기의 자동완성(이름 · 생일)은 이때만 연다.** 남의 사주를 적는 칸에 내 생일이
+   * 제안되면 한 번 잘못 누른 것이 그 사람의 사주가 된다.
+   */
+  self?: boolean;
+  /** 제출을 눌렀는데 막혔다 — 막은 칸을 붉힌다(문장은 쓰는 화면이 단추 곁에 세운다) */
+  tried?: boolean;
 }) {
   const set = <K extends keyof Query>(key: K, next: Query[K]) => onChange({ ...value, [key]: next });
 
-  /** 한 묶음에서 펼침은 하나만 열린다 — 다른 줄을 누르면 앞의 것이 접힌다 */
+  const dateInput = useRef<HTMLInputElement>(null);
+  const timeInput = useRef<HTMLInputElement>(null);
+  const notesId = useId();
+
+  /** 칸이 아는 「없는 날짜 · 없는 시각」 — 숫자열은 칸이 들고 있으므로 칸이 알려 준다 */
+  const [impossibleDay, setImpossibleDay] = useState(false);
+  const [impossibleHour, setImpossibleHour] = useState(false);
+
+  /** 한 묶음에서 펼침은 하나만 열린다 — 고급 설정의 두 줄 */
   const [open, setOpen] = useState<RowKey | null>(null);
   const toggle = (key: RowKey) => () => setOpen((current) => (current === key ? null : key));
   const pick = <K extends keyof Query>(key: K) => (next: Query[K]) => set(key, next);
@@ -588,87 +707,139 @@ export function BirthFields({
       date: fitsCalendar(value.date, calendar) ? value.date : '',
     });
 
+  /** 날짜가 다 찼다 — 시각을 적을 차례면 시각 칸으로, 「모름」이면 자판을 내린다 */
+  const afterDate = () => {
+    if (value.hourKnown === false) dateInput.current?.blur();
+    else timeInput.current?.focus();
+  };
+
   // 미리보기도 계산과 **같은 함수**를 부른다. 폼이 따로 변환하면 화면에 보인
   // 양력과 계산에 들어간 양력이 갈릴 수 있다.
   const converted = convertedLine(value);
+  const yearRefusal = birthYearRefusal(value);
+  const missing: BirthField | null = tried ? missingFieldOf(value) : null;
 
   return (
     /*
-      묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 · 달력 · 시각) → 어디서(출생지). 계산 옵션은
-      따로 떨어진 묶음이다(시안 n, ADR 0132).
+      **묻는 차례는 손이 가는 차례다** — 적는 칸(이름 → 생년월일 → 출생 시각)이 위에서 이어지고, 자판이 내려간 뒤 한 번
+      누르는 칸(성별 · 출생지)이 단추 쪽으로 이어진다. 달력은 날짜 바로 아래다 — 「1984-10-05」는 양력인지 음력인지가
+      정해져야 비로소 하루를 가리킨다. 계산 옵션은 따로 떨어진 묶음이다(시안 n, ADR 0132).
     */
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
         <div className={GROUP}>
           {showName && (
-            <label className={ROW}>
+            <label className={`${ROW} py-1`}>
               <span className={ROW_LABEL}>이름</span>
               <input
                 type="text"
+                data-birth-field="name"
                 value={value.name}
                 onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
+                onKeyDown={(event) => {
+                  // 자판의 「다음」 — 이름 다음은 생년월일이다. 한글 조합 중의 Enter 는 조합을 끝내는 누름이라 넘기지 않는다
+                  if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+                  event.preventDefault();
+                  dateInput.current?.focus();
+                }}
+                enterKeyHint="next"
+                autoComplete={self ? 'name' : 'off'}
+                aria-invalid={missing === 'name' || undefined}
                 placeholder={namePlaceholder}
                 maxLength={NAME_MAX}
-                className="h-11 min-w-0 flex-1 bg-transparent text-right text-base text-foreground outline-none placeholder:text-muted"
+                className={`${FIELD} ml-auto w-full max-w-[12rem] text-right`}
               />
             </label>
           )}
 
-          <PickRow
+          <DateField
+            value={value}
+            onDate={(date) => set('date', date)}
+            onPasted={(date, time) => onChange({ ...value, date, hourKnown: true, time })}
+            onFilled={afterDate}
+            input={dateInput}
+            missing={missing === 'date'}
+            describedBy={notesId}
+            self={self}
+            onImpossible={setImpossibleDay}
+          />
+
+          <Segments
+            label="달력"
+            name="달력 기준"
+            value={value.calendar}
+            onPick={chooseCalendar}
+            options={CALENDARS.map((calendar) => ({
+              value: calendar,
+              // 좁은 칸에는 「윤달」만 — 「음력」이 바로 옆에 있어 무엇의 윤달인지 읽힌다. 낭독기는 온 이름을 듣는다
+              label: calendar === 'lunar_leap' ? '윤달' : CALENDAR_KO[calendar],
+              spoken: CALENDAR_KO[calendar],
+            }))}
+          />
+
+          <TimeField
+            value={value}
+            onChange={onChange}
+            input={timeInput}
+            missing={missing === 'time'}
+            describedBy={notesId}
+            onImpossible={setImpossibleHour}
+          />
+
+          <Segments
             label="성별"
             value={value.gender}
-            open={open === 'gender'}
-            onToggle={toggle('gender')}
             onPick={pick('gender')}
             options={GENDERS.map((gender) => ({ value: gender, label: GENDER_KO[gender] }))}
           />
 
-          <DateFields value={value} onDate={(date) => set('date', date)} />
-
-          {/*
-            **달력은 날짜 바로 아래다.** 「1984-10-05」는 양력인지 음력인지가 정해져야 비로소 하루를 가리키고,
-            음력이면 평달인지 윤달인지에 따라 실제 날이 한 달 떨어진다.
-          */}
-          <PickRow
-            label="달력"
-            name="달력 기준"
-            value={value.calendar}
-            open={open === 'calendar'}
-            onToggle={toggle('calendar')}
-            onPick={chooseCalendar}
-            options={CALENDARS.map((calendar) => ({ value: calendar, label: CALENDAR_KO[calendar] }))}
-          />
-
-          <TimeFields value={value} onChange={onChange} open={open === 'time'} onToggle={toggle('time')} />
-
           {/*
             **출생지는 폼 안에 선다** — 진태양시의 경도라 계산에 들고(운영자 2026-09-29 「출생지도 폼에 넣어야」),
-            서울이 아닌 사람이 접힌 칸을 열어 볼 까닭이 없다.
+            서울이 아닌 사람이 접힌 칸을 열어 볼 까닭이 없다. 기기의 고르기 창이라 줄 전체가 누르는 자리다.
           */}
-          <PickRow
-            label="출생지"
-            value={value.city}
-            open={open === 'city'}
-            onToggle={toggle('city')}
-            onPick={pick('city')}
-            options={CITIES.map((city) => ({ value: city, label: city }))}
-          />
+          <label className={`${ROW} relative`}>
+            <span className={ROW_LABEL}>출생지</span>
+            <select
+              value={value.city}
+              onChange={(event) => set('city', event.target.value as CityName)}
+              className="h-12 min-w-0 flex-1 cursor-pointer appearance-none bg-transparent pr-6 text-right text-[15px] text-secondary outline-none [text-align-last:right] focus-visible:text-foreground"
+            >
+              {CITIES.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+            <Icon
+              name="chevron"
+              className="pointer-events-none absolute right-4 size-4 rotate-90 stroke-[2.6] text-muted"
+            />
+          </label>
         </div>
 
         {/*
           달력 형식과 날짜는 **함께 읽어야 뜻이 생긴다.** 그래서 변환 결과를 묶음 바로 밑에 적는다 — **저장이나
           계산 전에.** 사용자가 아는 것은 음력 날짜뿐인데, 우리가 무엇을 양력으로 잡았는지 못 보면 잘못 골랐다는
-          것을 결과 화면에 가서야 알게 된다.
+          것을 결과 화면에 가서야 알게 된다. 받지 않는 해 · 없는 날짜 · 없는 시각도 여기서 바로 말한다 — 칸이 붉어지기만
+          하면 무엇이 틀렸는지 화면 읽기로는 알 수 없다.
         */}
-        {converted !== null && (
-          <p
-            role={converted.ok ? undefined : 'alert'}
+        <div id={notesId} aria-live="polite" className="flex flex-col gap-1 px-4 empty:hidden">
+          {converted !== null && (
             // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
-            className={`px-4 text-xs ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
-          >
-            {converted.text}
-          </p>
-        )}
+            <p
+              role={converted.ok ? undefined : 'alert'}
+              className={`text-xs ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
+            >
+              {converted.text}
+            </p>
+          )}
+          {/* 눌러 본 뒤에는 같은 문장이 단추 곁에 선다(쓰는 화면의 거절) — 두 번 세우지 않는다 */}
+          {yearRefusal !== null && !tried && <p className="text-xs font-medium text-danger">{yearRefusal}</p>}
+          {impossibleDay && <p className="text-xs font-medium text-danger">없는 날짜예요. 월과 일을 확인해 주세요.</p>}
+          {impossibleHour && (
+            <p className="text-xs font-medium text-danger">없는 시각이에요. 00:00~23:59 사이로 적어 주세요.</p>
+          )}
+        </div>
       </div>
 
       <div className={GROUP}>
@@ -716,7 +887,7 @@ export function BirthFields({
                 min={SUPPORTED_YEAR_RANGE.min}
                 max={SUPPORTED_YEAR_RANGE.max}
                 onChange={(event) => set('saeunFrom', Number(event.target.value))}
-                className={`${DIGIT} ml-auto w-[4.5rem]`}
+                className={`${FIELD} ml-auto w-[4.5rem]`}
               />
             </label>
           </>
@@ -726,4 +897,4 @@ export function BirthFields({
   );
 }
 
-type RowKey = 'gender' | 'calendar' | 'time' | 'city' | 'rule' | 'basis';
+type RowKey = 'rule' | 'basis';
