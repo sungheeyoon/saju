@@ -90,6 +90,7 @@ type Option<T extends string> = { value: T; label: string; hint?: string };
  */
 function PickRow<T extends string>({
   label,
+  hint,
   name = label,
   options,
   value,
@@ -99,6 +100,8 @@ function PickRow<T extends string>({
   disabled = false,
 }: {
   label: string;
+  /** 이름 밑의 작은 줄 — 이 값이 명식에서 무엇을 바꾸는가 */
+  hint?: string;
   /** 낭독기가 부르는 묶음 이름 — 보이는 이름이 짧을 때(「달력」 → 「달력 기준」) */
   name?: string;
   options: readonly Option<T>[];
@@ -129,7 +132,15 @@ function PickRow<T extends string>({
         onClick={onToggle}
         className={`${ROW} w-full text-left active:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-40`}
       >
-        <span className={ROW_LABEL}>{label}</span>
+        <span className={`${ROW_LABEL} flex flex-col py-1 leading-5`}>
+          {label}
+          {/* 줄 이름(낭독기가 부르는 단추 이름)은 「이름 + 지금 값」 그대로 둔다 — 설명은 눈으로만 */}
+          {hint && (
+            <span aria-hidden="true" className="text-xs text-secondary">
+              {hint}
+            </span>
+          )}
+        </span>
         <span className={`min-w-0 flex-1 truncate text-right text-[15px] ${open ? 'text-foreground' : 'text-secondary'}`}>
           {current?.label ?? '–'}
         </span>
@@ -878,6 +889,7 @@ export function BirthFields({
             {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
             <PickRow
               label="자시"
+              hint="자정 전 자시의 일주"
               name="자시 규칙"
               value={value.rule}
               open={open === 'rule'}
@@ -891,6 +903,7 @@ export function BirthFields({
             />
             <PickRow
               label="시간 기준"
+              hint="시주 · 일주를 읽는 시계"
               value={value.basis}
               open={open === 'basis'}
               onToggle={toggle('basis')}
@@ -898,7 +911,10 @@ export function BirthFields({
               options={TIME_BASES.map((basis) => ({ value: basis, label: TIME_BASIS[basis].label, hint: TIME_BASIS[basis].hint }))}
             />
             <label className={ROW}>
-              <span className={ROW_LABEL}>세운 연도</span>
+              <span className={`${ROW_LABEL} flex flex-col py-1 leading-5`}>
+                세운 연도
+                <span className="text-xs text-secondary">운 표의 첫 해 · 여덟 글자는 그대로</span>
+              </span>
               <input
                 type="number"
                 aria-label="세운 시작"
