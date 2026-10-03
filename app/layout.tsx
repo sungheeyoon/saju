@@ -3,6 +3,7 @@ import { Gowun_Dodum } from 'next/font/google';
 
 import { SERVICE_NAME, SERVICE_TAGLINE, SERVICE_TITLE_TEMPLATE } from '@/src/lib/brand';
 
+import { SiteFooter } from './site-footer';
 import { SiteHeader } from './site-header';
 import { siteUrl } from './site-url';
 import './globals.css';
@@ -90,6 +91,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <SiteHeader />
         {children}
+        <SiteFooter />
       </body>
     </html>
   );
