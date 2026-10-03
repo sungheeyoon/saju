@@ -70,8 +70,31 @@ export default async function PrivacyPage() {
         <p className={`${CARD} text-[15px] leading-7`}>{NOTICE_NOT_READY}</p>
       ) : (
         <>
-          {noticeFor(ready.dates, ready.operator).map((section) => (
-            <section key={section.title} className={`${CARD} flex flex-col gap-3`}>
+          {/*
+            **목차 — 조항으로 바로 간다.** 폰에서 이 화면은 화면 열 장이 넘는다. 「언제까지 두나」 하나를 찾는 사람이
+            끝까지 내려야 했다. 이름은 조항의 제목 그대로라 고지한 판의 글자를 바꾸지 않는다.
+          */}
+          <nav aria-label="목차" className={`${CARD} flex flex-col gap-2`}>
+            <p className="text-[13px] font-semibold text-secondary">목차</p>
+            <ol className="flex flex-col">
+              {[...noticeFor(ready.dates, ready.operator).map((section) => section.title), '선택 항목', '확인하고 고치고 지우는 방법'].map(
+                (title, index) => (
+                  <li key={title}>
+                    <a
+                      href={`#privacy-${index + 1}`}
+                      className="flex min-h-11 items-center gap-3 rounded-xl px-2 text-[15px] text-foreground hover:bg-surface-soft"
+                    >
+                      <span className="w-5 shrink-0 text-right text-[13px] font-semibold tabular-nums text-muted">{index + 1}</span>
+                      {title}
+                    </a>
+                  </li>
+                ),
+              )}
+            </ol>
+          </nav>
+
+          {noticeFor(ready.dates, ready.operator).map((section, index) => (
+            <section key={section.title} id={`privacy-${index + 1}`} className={`${CARD} flex scroll-mt-20 flex-col gap-3`}>
               <h2 className={TYPE_NAME}>{section.title}</h2>
               <ul className="flex flex-col gap-2">
                 {section.lines.map((line) => (
@@ -83,7 +106,7 @@ export default async function PrivacyPage() {
             </section>
           ))}
 
-          <section className={`${CARD} flex flex-col gap-3`}>
+          <section id={`privacy-${noticeFor(ready.dates, ready.operator).length + 1}`} className={`${CARD} flex scroll-mt-20 flex-col gap-3`}>
             <h2 className={TYPE_NAME}>선택 항목</h2>
             <p className="text-[15px] leading-7 text-secondary">{OPTIONAL_CONSENT_NOTE}</p>
             <ul className="flex flex-col gap-3">
@@ -97,7 +120,7 @@ export default async function PrivacyPage() {
             </ul>
           </section>
 
-          <section className={`${CARD} flex flex-col gap-3`}>
+          <section id={`privacy-${noticeFor(ready.dates, ready.operator).length + 2}`} className={`${CARD} flex scroll-mt-20 flex-col gap-3`}>
             <h2 className={TYPE_NAME}>확인하고 고치고 지우는 방법</h2>
             <ul className="flex flex-col gap-2">
               <li className={DOT_LINE}>저장된 출생 정보는 내 사주 화면에서 언제든 고칠 수 있습니다.</li>
