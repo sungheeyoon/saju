@@ -838,8 +838,8 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }));
   expect(pairOverflow.scroll).toBeLessThanOrEqual(pairOverflow.client);
   for (const control of [
-    partner.getByRole('button', { name: /^달력 / }),
-    partner.getByRole('button', { name: /^출생 시각 / }),
+    partner.getByRole('radio', { name: '음력 윤달', exact: true }),
+    partner.getByRole('radio', { name: '모름', exact: true }),
     partner.getByLabel('출생일', { exact: true }),
     page.getByRole('button', { name: '무료로 두 사람 궁합 보기' }),
   ]) {
@@ -880,7 +880,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
 /**
  * **작은 과녁 · 두 겹 초점 · 바탕의 금** — 셋 다 운영 화면에서 잰 것이다(2026-09-25).
  *
- * - 입력 폼의 두 세그먼트(달력 기준 · 출생 시각)는 칸 높이가 40px 이었다(지금은 48px 펼침 줄, ADR 0132). 결과의 바로가기
+ * - 입력 폼의 두 세그먼트(달력 기준 · 출생 시각)는 칸 높이가 40px 이었다(지금은 56px 세그먼트 안의 48px 칸, 폼 디자인 D). 결과의 바로가기
  *   「운」은 글자 하나라 폭이 39.9px, 합 설명을 펴는 머리는 높이가 20px 이었다.
  * - 전역 초점 테두리가 층 밖에 있어서 `outline-none` 을 단 칸에도 한 겹 더 섰다 — 칸은 제
  *   테두리(`ring`)를 두르므로 두 겹이었다.
@@ -893,13 +893,22 @@ test('입력 폼과 결과의 누르는 자리가 44px 이상이고, 초점은 �
 }) => {
   await page.goto('/');
 
-  // 고르는 칸은 펼침 줄이고(ADR 0132) 펼친 목록의 한 줄도 과녁이다 — 세그먼트였을 때 40px 이던 자리
-  const row = (name: string) => page.getByRole('button', { name: new RegExp(`^${name} `) });
-  await expectTargets({ 성별: row('성별'), 달력: row('달력'), '출생 시각': row('출생 시각'), 출생지: row('출생지') });
-  await row('달력').click();
+  // 고르는 칸은 세그먼트의 한 칸 하나하나가 과녁이고(폼 디자인 D), 출생지는 펼치는 칸과 펼친 목록의 칩이 과녁이다
   const option = (name: string) => page.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
-  await expectTargets({ 양력: option('양력'), 음력: option('음력'), '음력 윤달': option('음력 윤달') });
-  await row('달력').click();
+  await expectTargets({
+    여자: option('여자'),
+    남자: option('남자'),
+    양력: option('양력'),
+    음력: option('음력'),
+    '음력 윤달': option('음력 윤달'),
+    '직접 입력': option('직접 입력'),
+    모름: option('모름'),
+  });
+  const city = page.getByRole('button', { name: /^출생지 / });
+  await expectTargets({ 출생지: city });
+  await city.click();
+  await expectTargets({ 서울: option('서울'), 강릉: option('강릉') });
+  await city.click();
 
   const focused = await focusedOutline(page.getByLabel('출생연도'));
   expect.soft(focused.own).toBe('none');
