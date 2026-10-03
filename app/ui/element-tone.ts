@@ -20,10 +20,7 @@ export const ELEMENT_TONE: Record<
   {
     readonly text: string;
     readonly surface: string;
-    readonly border: string;
     readonly bar: string;
-    /** 상징의 속 — 파스텔보다 한 단 진한 면(`ElementSymbol` 이 쓴다) */
-    readonly mid: string;
     /**
      * 한 판 전체가 이 오행을 입는 자리 — 안에서 `var(--tile)` · `var(--ink)` · `var(--mid)` 가 이 오행의 것이 된다
      * (`app/globals.css` 의 `.tone-*`). 사람 타일처럼 한 사람이 한 색인 판에 단다.
@@ -31,11 +28,11 @@ export const ELEMENT_TONE: Record<
     readonly scope: string;
   }
 > = {
-  木: { text: 'text-wood', surface: 'bg-wood-soft', border: 'border-wood/30', bar: 'bg-wood', mid: 'bg-wood-mid', scope: 'tone-wood' },
-  火: { text: 'text-fire', surface: 'bg-fire-soft', border: 'border-fire/30', bar: 'bg-fire', mid: 'bg-fire-mid', scope: 'tone-fire' },
-  土: { text: 'text-earth', surface: 'bg-earth-soft', border: 'border-earth/30', bar: 'bg-earth', mid: 'bg-earth-mid', scope: 'tone-earth' },
-  金: { text: 'text-metal', surface: 'bg-metal-soft', border: 'border-metal/30', bar: 'bg-metal', mid: 'bg-metal-mid', scope: 'tone-metal' },
-  水: { text: 'text-water', surface: 'bg-water-soft', border: 'border-water/30', bar: 'bg-water', mid: 'bg-water-mid', scope: 'tone-water' },
+  木: { text: 'text-wood', surface: 'bg-wood-soft', bar: 'bg-wood', scope: 'tone-wood' },
+  火: { text: 'text-fire', surface: 'bg-fire-soft', bar: 'bg-fire', scope: 'tone-fire' },
+  土: { text: 'text-earth', surface: 'bg-earth-soft', bar: 'bg-earth', scope: 'tone-earth' },
+  金: { text: 'text-metal', surface: 'bg-metal-soft', bar: 'bg-metal', scope: 'tone-metal' },
+  水: { text: 'text-water', surface: 'bg-water-soft', bar: 'bg-water', scope: 'tone-water' },
 };
 
 /** 오행을 모를 때(시주 모름 · 아직 명식이 없는 사람)의 판 — 같은 세 이름이 회색 한 벌이 된다 */
