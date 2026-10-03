@@ -21,6 +21,7 @@ import { READING_CREDITS_MOVED } from './me/reading/credits-signal';
 import { readRequestsToAnswer, readUnreadNotifications } from './me/requests/unread';
 import { NOTIFICATIONS_UNREAD_MOVED, REQUESTS_TO_ANSWER_MOVED } from './me/requests/unread-signal';
 import { isSharePath } from './share/path';
+import { GUIDE_LINKS } from './site-links';
 import { BUTTON_SECONDARY_SMALL, ICON_BUTTON, ICON_BUTTON_ACTIVE } from './ui/buttons';
 import { useDetailsMenu } from './ui/details-menu';
 import { Icon, type IconName } from './ui/icons';
@@ -467,6 +468,23 @@ function SettingsMenu({
                 onClick={close}
                 aria-current={pathname === link.href ? 'page' : undefined}
                 className="flex min-h-11 items-center rounded-xl px-3 text-[15px] font-semibold hover:bg-surface-soft active:bg-surface-sunken aria-[current=page]:bg-accent-wash"
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {/*
+          **안내 셋은 끝난 뒤에도 연다** — 셋 다 관문 밖이라 되돌려지지 않는다. 계정 일(위)과 갈라 작은 글자로 아래에 둔다.
+          앞 판에는 앱 안에서 처리방침으로 가는 길이 계정 관리의 단추 하나뿐이었고, 소개 · 질문은 어디에도 없었다.
+        */}
+        <ul className="mt-1 flex flex-col border-t border-border pt-1">
+          {GUIDE_LINKS.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                onClick={close}
+                className="flex min-h-11 items-center rounded-xl px-3 text-[14px] text-secondary hover:bg-surface-soft hover:text-foreground"
               >
                 {link.label}
               </Link>
