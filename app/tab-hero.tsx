@@ -28,16 +28,18 @@ import { TYPE_TITLE } from './ui/surfaces';
 export const TAB_HERO_CARD = 'relative overflow-hidden rounded-[1.25rem] bg-cream';
 
 /**
- * 카드 오른쪽 위의 번짐 — 두 화면이 같은 색을 쓴다(전에는 목/화로 갈려 있었다).
+ * 카드 오른쪽 위의 표시 — **번지던 두 원 대신 인장 점 셋**(2026-10-03 시각 시안).
  *
- * 부드러움(5차)에서는 크림 종이 위에 나무의 파스텔이 스민다 — 관계 지도의 가운데가 내 일간 색으로 번지는 것과
- * 같은 말투다. 흐림을 걸지 않고 면 두 겹으로 둔다: `blur-3xl` 은 폰에서 스크롤마다 다시 그려 무거웠다.
+ * 부드러움(5차)에서는 나무 · 물의 파스텔 원 두 겹이 카드 모서리에 스몄다. 무엇을 뜻하지도 않는 색이 제목 옆에서
+ * 가장 넓은 면을 차지했다. 이제는 로고의 말투(점 · 점)를 이어 작은 점 셋이 오른쪽 위에 비스듬히 선다 — 장식이라
+ * 보조기기는 지나간다.
  */
 export function TabHeroGlow() {
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-20">
-      <div className="size-64 rounded-full bg-wood-soft opacity-80" />
-      <div className="absolute left-10 top-16 size-40 rounded-full bg-water-soft opacity-70" />
+    <div aria-hidden="true" className="pointer-events-none absolute right-6 top-6 flex items-end gap-1.5 sm:right-10 sm:top-9">
+      <span className="size-1.5 rounded-[1px] bg-seal opacity-50" />
+      <span className="size-2 rounded-[1px] bg-seal opacity-75" />
+      <span className="size-2.5 rounded-[2px] bg-seal" />
     </div>
   );
 }
