@@ -222,10 +222,10 @@ function NoteField({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[13px] font-semibold text-secondary">메모 (선택)</span>
+      <span className="px-1 text-[13px] font-semibold text-secondary">메모 (선택)</span>
       {/*
-        **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
-        그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
+        **생년월일시 폼의 쪽지와 같은 몸이다**(`app/ui/fields.tsx` 의 `FIELD_SLIP`) — 흰 면 · 한 단계 짙은 테, 초점이면 먹색 테에
+        크림 번짐 한 겹. 번짐이 초점을 또렷이 말하므로 전역 초점 테두리는 안 겹쳐 세운다(`outline-none`).
       */}
       <textarea
         id={`${idPrefix}-note`}
@@ -234,7 +234,7 @@ function NoteField({
         maxLength={NOTE_MAX}
         rows={2}
         placeholder="기억해 둘 것 — 사주 계산에는 쓰지 않아요"
-        className="rounded-2xl border border-border bg-surface px-3.5 py-2.5 text-[15px] leading-6 placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash"
+        className="rounded-2xl bg-surface px-4 py-3 text-base leading-6 outline-none ring-1 ring-border-strong transition-[box-shadow] duration-200 placeholder:text-muted focus:ring-[1.5px] focus:ring-[color-mix(in_srgb,var(--accent)_62%,transparent)] focus:shadow-[0_0_0_5px_var(--accent-soft)]"
       />
     </label>
   );
