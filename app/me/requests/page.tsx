@@ -7,6 +7,7 @@ import { supabaseOnServer } from '../../auth/server-client';
 import { signedInUser } from '../../auth/signed-in';
 import { redirectToSignIn } from '../../auth/sign-in-redirect';
 import { answerOfThrown } from '../../db-error';
+import { BUTTON_SECONDARY_SMALL } from '../../ui/buttons';
 import { Icon, type IconName } from '../../ui/icons';
 import { TYPE_META, TYPE_TITLE } from '../../ui/surfaces';
 import { AccountNotice } from '../account-notice';
@@ -109,6 +110,10 @@ function Notifications({ inbox }: { inbox: Inbox }) {
           </span>
           <p className="text-sm font-semibold">새로 도착한 소식이 없습니다</p>
           <p className={TYPE_META}>새 요청이나 풀이 결과가 생기면 여기에 알려드릴게요.</p>
+          {/* 빈 자리에서 끝내지 않는다 — 소식이 생기는 자리(인연 탭)로 가는 길. 글자는 빈 채팅 목록의 것과 같다 */}
+          <Link href="/me/matching" className={`mt-2 ${BUTTON_SECONDARY_SMALL}`}>
+            오늘의 인연 만나기
+          </Link>
         </div>
       ) : (
         <ul className="overflow-hidden rounded-[1.5rem] border border-border bg-surface">
