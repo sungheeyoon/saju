@@ -45,3 +45,10 @@ export const BUTTON_ON_TILE = `inline-flex min-h-11 items-center justify-center 
 
 /** 오행 판 안의 주 — 아직 없는 것을 받을 때만. 한 판에 하나 */
 export const BUTTON_ON_TILE_PRIMARY = `inline-flex min-h-11 items-center justify-center gap-1 rounded-full bg-accent px-3 text-[13px] font-semibold text-on-accent hover:bg-accent-strong active:scale-[0.96]`;
+
+/**
+ * **폼의 제출 단추 — 두꺼운 단추**(폼 디자인 시안 I, `app/ui/fields.ts`). 토(노랑)의 납작한 면 · 먹색 2px 테 · 4px 어긋난
+ * 그림자. 누르면 그림자 쪽으로 4px 꺼지며 그림자가 사라진다. 잠기면 회색 면 · 점선 테로 바닥에 붙는다. 높이 56.
+ */
+export const BUTTON_SUBMIT =
+  'inline-flex min-h-14 items-center justify-center gap-2 rounded-md border-2 border-field-ink bg-field-pop px-6 text-[17px] font-extrabold tracking-[-0.01em] text-field-on-pop shadow-field transition-[translate,box-shadow,background-color] duration-100 ease-out hover:-translate-0.5 hover:shadow-[6px_6px_0_0_var(--field-ink)] active:translate-1 active:shadow-field-in disabled:pointer-events-none disabled:translate-0 disabled:border-dashed disabled:bg-field-off disabled:text-muted disabled:shadow-field-in';

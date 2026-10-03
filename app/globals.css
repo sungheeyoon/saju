@@ -74,6 +74,24 @@
   --elevation-raise: 0 12px 28px -12px rgba(60, 48, 30, 0.5);
 
   /*
+    **입력 폼의 판(네오 브루탈리즘, 폼 디자인 시안 I)** — 입력 칸 · 고르는 스티커 · 제출 단추만 부른다(`app/ui/fields.ts`).
+    먹색 2px 테 · 흐림 없는 4px 어긋난 그림자 · 오행 다섯을 납작한 면으로 상태에 하나씩: 토(노랑) 초점 · 누를 것,
+    목(초록) 고른 것, 화(분홍) 오류, 수(파랑) 고급 설정, 금(회색) 잠긴 칸. 앱 전체의 색 토큰은 건드리지 않는다.
+  */
+  --field-ink: #26241f;
+  --field-face: #ffffff;
+  --field-focus: #fff1a8;
+  --field-pop: #ffd84d;
+  --field-on-pop: #26241f;
+  --field-pick: #bfeab0;
+  --field-error: #ffc9bc;
+  --field-advanced: #cfe5ff;
+  --field-off: #e9e6df;
+  --elevation-field: 4px 4px 0 0 var(--field-ink);
+  --elevation-field-sm: 2px 2px 0 0 var(--field-ink);
+  --elevation-field-in: 0 0 0 0 var(--field-ink);
+
+  /*
     **본문 글꼴은 기기의 것이다**(ADR 0109 추기, 2026-09-30 운영자 결정). 웹 글꼴(Pretendard)을 싣지 않는다 —
     라틴 글자와 숫자는 시스템 서체가, 한글은 애플 산돌고딕 · Noto Sans KR · 맑은 고딕 가운데 기기에 있는 것이 그린다.
     제목의 둥근 서체(고운돋움)만 `next/font` 로 싣는다(`app/layout.tsx`).
@@ -132,6 +150,15 @@
     --elevation-soft: 0 2px 8px -4px rgba(0, 0, 0, 0.5);
     --elevation-lift: 0 8px 18px -10px rgba(0, 0, 0, 0.6);
     --elevation-raise: 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+    --field-ink: #f2efe8;
+    --field-face: #25231f;
+    --field-focus: #4a3f14;
+    --field-pop: #ffd84d;
+    --field-on-pop: #1d1b17;
+    --field-pick: #2a5a33;
+    --field-error: #5e271e;
+    --field-advanced: #1f3e5e;
+    --field-off: #2e2c28;
   }
 }
 
@@ -181,6 +208,18 @@
   --shadow-soft: var(--elevation-soft);
   --shadow-lift: var(--elevation-lift);
   --shadow-raise: var(--elevation-raise);
+  --color-field-ink: var(--field-ink);
+  --color-field-face: var(--field-face);
+  --color-field-focus: var(--field-focus);
+  --color-field-pop: var(--field-pop);
+  --color-field-on-pop: var(--field-on-pop);
+  --color-field-pick: var(--field-pick);
+  --color-field-error: var(--field-error);
+  --color-field-advanced: var(--field-advanced);
+  --color-field-off: var(--field-off);
+  --shadow-field: var(--elevation-field);
+  --shadow-field-sm: var(--elevation-field-sm);
+  --shadow-field-in: var(--elevation-field-in);
   --font-sans: var(--font-system);
   /* 제목 전용 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
   --font-rounded: var(--font-gowun-dodum), var(--font-system);
