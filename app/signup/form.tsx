@@ -21,18 +21,17 @@ import {
 } from '@/src/lib/profile';
 
 import { checkNickname } from '../nickname';
-import { BUTTON_PRIMARY, BUTTON_SECONDARY_SMALL } from '../ui/buttons';
+import { BUTTON_SECONDARY_SMALL, BUTTON_SUBMIT } from '../ui/buttons';
+import { FIELD_INPUT, FIELD_LABEL, FIELD_STICKER } from '../ui/fields';
 import { completeSignup } from './actions';
 
-/** 입력 칸 — 48px, 프로필 화면과 같은 칸 */
-const FIELD =
-  'min-h-12 rounded-2xl border border-border-strong bg-surface px-4 text-[15px] outline-none placeholder:text-muted focus:border-foreground focus:ring-2 focus:ring-accent-soft';
+/** 입력 칸 — 출생 정보 폼과 같은 칸(56px · 먹색 테 · 어긋난 그림자, `app/ui/fields.ts`) */
+const FIELD = FIELD_INPUT;
 
-/** 확인 상자 한 줄 — 줄 전체가 누를 자리이고, 고르면 먹색 테와 크림 면이 선다(상자도 그대로 남는다) */
-const BOX =
-  'flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent-soft';
+/** 확인 상자 한 줄 — 줄 전체가 누를 자리인 스티커. 고르면 초록 면으로 내려앉는다(상자도 그대로 남는다) */
+const BOX = `${FIELD_STICKER} items-start p-4 font-normal`;
 
-const LABEL = 'text-[15px] font-semibold';
+const LABEL = FIELD_LABEL;
 
 /**
  * 가입 폼 — **한 번 눌러 셋을 적는다** (ADR 0042).
@@ -269,7 +268,7 @@ export function SignupForm({
       )}
 
       <div className="flex flex-col gap-2 border-t border-border pt-5 sm:flex-row sm:items-center sm:gap-3">
-        <button type="button" onClick={send} disabled={blocked} className={BUTTON_PRIMARY}>
+        <button type="button" onClick={send} disabled={blocked} className={BUTTON_SUBMIT}>
           {working ? '가입하는 중…' : needsCode ? '가입하고 시작하기' : '확인하고 계속하기'}
         </button>
         {missing !== null && <span className="text-[13px] text-muted">{missing}</span>}
