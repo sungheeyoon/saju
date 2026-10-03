@@ -308,11 +308,20 @@ export function Nothing({ hasSelf }: { hasSelf: boolean }) {
   );
 }
 
+/**
+ * 책등 — **옛 책을 묶던 다섯 땀(오침안정법)**(2026-10-03 시각 시안). 부드러움 때는 색 띠 하나가 왼쪽에 섰는데, 목록 카드의
+ * 흔한 강조 띠와 구별되지 않아 「책」으로 안 읽혔다. 띠 위에 실 구멍 다섯이 위아래로 고르게 서면 한지 책을 꿰맨 자리가 된다.
+ */
 function Spine({ background }: { background: string }) {
   return (
     <>
       <span aria-hidden="true" className="absolute inset-y-0 left-0 w-2.5" style={{ background }} />
       <span aria-hidden="true" className="absolute inset-y-0 left-2.5 w-px bg-[color-mix(in_srgb,var(--foreground)_14%,transparent)]" />
+      <span aria-hidden="true" className="absolute inset-y-3 left-[3px] flex flex-col justify-between">
+        {[0, 1, 2, 3, 4].map((stitch) => (
+          <span key={stitch} className="size-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_85%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--foreground)_18%,transparent)]" />
+        ))}
+      </span>
     </>
   );
 }
