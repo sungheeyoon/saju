@@ -208,7 +208,7 @@ function ShelfHead({ kind }: { kind: ShelfKind | null }) {
                     replace
                     scroll={false}
                     aria-current={on ? 'page' : undefined}
-                    className={`flex min-h-9 items-center rounded-full px-3.5 text-[14px] font-semibold transition-colors ${
+                    className={`flex min-h-11 items-center rounded-full px-4 text-[14px] font-semibold transition-colors active:scale-[0.97] ${
                       on ? 'bg-foreground text-background' : 'bg-surface text-secondary ring-1 ring-border hover:text-foreground'
                     }`}
                   >
