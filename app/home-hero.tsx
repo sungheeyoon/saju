@@ -10,6 +10,7 @@ import { SignedInProvider } from './signed-in';
 import { SajuCompatTabs } from './segmented-nav';
 import { TAB_HERO_CARD, TabHeroBody, TabHeroGlow } from './tab-hero';
 import { SunMark, TaijiMark } from './ui/entry-marks';
+import { GrainRings } from './ui/grain-art';
 import { PAPER_TOP, TYPE_SECTION } from './ui/surfaces';
 
 /**
@@ -185,14 +186,24 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
 
   return (
     <div className="relative px-3 pb-4 pt-5 sm:px-10 sm:pt-9">
-      <div className="px-1">
+      {/*
+        **결 그림은 자리를 안 차지한다**(브랜드 시안 2026-10-03). 종이의 오른쪽 위 모서리에 반쯤 걸쳐 깔리고 글 뒤에 선다 —
+        시안 g 에서 그림이 폼을 한 화면 아래로 밀어 걷었던 것을 되풀이하지 않는다. 종이 밖으로는 안 넘친다.
+      */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-t-[2rem]">
+        <GrainRings
+          className="absolute -right-20 -top-24 w-56 opacity-60 sm:-right-10 sm:-top-24 sm:w-80 sm:opacity-70"
+          peopleClassName="max-sm:hidden"
+        />
+      </div>
+      <div className="relative px-1">
         <h1 className="font-rounded text-[1.6rem] leading-[1.3] tracking-[-0.02em] text-foreground sm:text-[2rem]">
           나는 어떤 사람일까?
         </h1>
         <p className="mt-1 max-w-md text-sm leading-6 text-secondary">생일만 넣으면 사주가 보여 주는 나를 바로 볼 수 있어요.</p>
       </div>
       {/* 입구는 세그먼트 한 줄이다(시안 n) — 큰 카드 둘이던 자리가 한 줄로 줄어 폼이 첫 화면에 더 많이 든다 */}
-      <div role="tablist" aria-label="무엇을 볼까요" className="mt-4 grid grid-cols-2 gap-0.5 rounded-[0.9rem] bg-surface-sunken p-0.5">
+      <div role="tablist" aria-label="무엇을 볼까요" className="relative mt-4 grid grid-cols-2 gap-0.5 rounded-[0.9rem] bg-surface-sunken p-0.5">
         {ENTRIES.map(({ id, Mark, title }) => (
           <button
             key={id}

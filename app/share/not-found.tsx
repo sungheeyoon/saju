@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { SERVICE_NAME } from '@/src/lib/brand';
 
 import { BUTTON_PRIMARY } from '../ui/buttons';
-import { Logo } from '../ui/logo';
+import { LostGrain } from '../ui/grain-art';
 import { TYPE_TITLE } from '../ui/surfaces';
 
 /**
@@ -24,9 +24,7 @@ import { TYPE_TITLE } from '../ui/surfaces';
 export default function SharedReadingNotFound() {
   return (
     <main className="app-shell flex flex-1 flex-col items-center justify-center gap-5 py-16 text-center sm:py-24">
-      <span className="grid size-16 place-items-center rounded-full bg-cream">
-        <Logo className="size-10" />
-      </span>
+      <LostGrain className="w-36" />
       <div className="flex max-w-sm flex-col gap-2">
         <h1 className={TYPE_TITLE}>열 수 없는 링크입니다</h1>
         <p className="text-sm leading-6 text-secondary">

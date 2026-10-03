@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { BUTTON_PRIMARY } from './ui/buttons';
+import { LostGrain } from './ui/grain-art';
 import { TYPE_TITLE } from './ui/surfaces';
 
 /**
@@ -13,6 +14,8 @@ import { TYPE_TITLE } from './ui/surfaces';
 export default function NotFound() {
   return (
     <main className="app-shell flex w-full flex-1 flex-col gap-4 py-10 sm:py-14">
+      {/* 결 밖으로 떨어진 점 — 길을 잃은 화면의 그림(브랜드 시안 2026-10-03). 글은 확정 문구 그대로다 */}
+      <LostGrain className="w-32 sm:w-40" />
       <h1 className={TYPE_TITLE}>페이지를 찾을 수 없어요</h1>
       <p className="text-[15px] leading-6 text-secondary">
         주소가 잘못되었거나 페이지가 이동되었을 수 있어요.
