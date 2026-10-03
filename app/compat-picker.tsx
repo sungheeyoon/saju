@@ -29,7 +29,7 @@ import {
   type SaveOutcome,
   type SameChartQuestion,
 } from './same-chart-ask';
-import { BUTTON_PRIMARY } from './ui/buttons';
+import { FORM_SUBMIT } from './ui/fields';
 import { TaijiMark } from './ui/entry-marks';
 import { Icon } from './ui/icons';
 import { reducedMotion } from './ui/motion';
@@ -240,7 +240,7 @@ export function CompatPicker({ people }: { people: Choosable[] }) {
                 onClick={press}
                 disabled={!chosen || sameTwice || opening}
                 aria-describedby={reason !== null ? 'compat-locked-reason' : undefined}
-                className={`${BUTTON_PRIMARY} sm:min-w-44`}
+                className={`${FORM_SUBMIT} sm:min-w-48`}
               >
                 <Icon name="taiji" className="size-[18px]" />
                 {opening ? '여는 중…' : '궁합 보기'}
@@ -300,7 +300,7 @@ function SlotCard({
   const name = slot.from === 'typed' ? slot.query.name.trim() : labelOf(people, slot.personId);
 
   return (
-    <fieldset className={`flex min-w-0 flex-col gap-4 ${CARD}`}>
+    <fieldset className={`flex min-w-0 flex-col gap-6 ${CARD}`}>
       {/*
         묶음의 이름은 **그 칸이 든 사람**이다 — 비어 있을 때만 「첫 번째 사람」. 몇 번째 칸인지는 이름이 찬 뒤에도
         보이게 위에 작게 적되(이름이 찼을 때만) 보조기기에는 이름만 읽힌다. `float-left w-full` — 안 두면 legend 가 판 위 가장자리에
@@ -315,7 +315,8 @@ function SlotCard({
         <span className={`block truncate ${TYPE_NAME}`}>{name === '' ? `${SIDE_LABEL[side]} 사람` : name}</span>
       </legend>
 
-      <div className="grid grid-cols-2 gap-1 rounded-full bg-surface-sunken p-1">
+      {/* 어디서 올지 — 밑줄 위 두 탭(폼 디자인 A). 고른 쪽은 먹색 2px 밑줄과 굵은 글자다 */}
+      <div className="flex gap-6 shadow-[inset_0_-1px_0_var(--border)]">
         {(
           [
             ['saved', '저장한 사람'],
@@ -330,10 +331,10 @@ function SlotCard({
             onClick={() =>
               onChange(from === 'saved' ? { from, personId: '' } : { from, query: DEFAULT_QUERY })
             }
-            className={`min-h-11 rounded-full px-3 text-[15px] font-semibold disabled:cursor-not-allowed disabled:opacity-45 ${
+            className={`min-h-11 cursor-pointer text-[15px] disabled:cursor-not-allowed disabled:opacity-45 ${
               slot.from === from
-                ? 'bg-surface text-foreground shadow-soft ring-1 ring-border'
-                : 'text-secondary hover:text-foreground'
+                ? 'font-semibold text-foreground shadow-rule-active'
+                : 'font-medium text-secondary hover:text-foreground'
             }`}
           >
             {label}

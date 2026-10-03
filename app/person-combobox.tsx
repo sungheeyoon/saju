@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { pickable, stepTo, type Step } from '@/src/lib/people/pick';
 import type { Element } from '@/src/lib/saju';
 
+import { FIELD_LABEL, FIELD_LINE_LARGE } from './ui/fields';
 import { Icon } from './ui/icons';
 import { FaceSymbol } from './ui/stem-symbol';
 
@@ -163,8 +164,8 @@ export function PersonCombobox({
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-[13px] font-semibold text-secondary">
+    <div className="group flex min-w-0 flex-col gap-1">
+      <label htmlFor={inputId} className={FIELD_LABEL}>
         {label}
       </label>
       <div className="relative min-w-0">
@@ -172,12 +173,11 @@ export function PersonCombobox({
           <FaceSymbol
             stem={chosen.stem}
             element={chosen.element}
-            className="pointer-events-none absolute left-3 top-1/2 size-6 -translate-y-1/2"
+            className="pointer-events-none absolute left-0 top-1/2 size-6 -translate-y-1/2"
           />
         )}
         {/*
-          **`outline-none` 을 안 단다** — 초점에 두르는 것이 옅은 `ring`(`accent-wash`)과 한 단계 짙은 테두리뿐이라
-          그것만으로는 초점이 거의 안 보인다. 전역 초점 테두리(`globals.css` 의 `@layer base`)가 선다.
+          초점은 밑줄이 먹색 2px 로 두꺼워지는 것으로 말한다(`app/ui/fields.ts`) — 전역 초점 테두리를 겹쳐 두르지 않는다.
         */}
         <input
           id={inputId}
@@ -206,13 +206,11 @@ export function PersonCombobox({
           }}
           onKeyDown={onKeyDown}
           onBlur={close}
-          className={`h-12 w-full rounded-2xl border border-border bg-surface pr-10 text-[15px] font-semibold placeholder:font-normal placeholder:text-secondary focus:border-border-strong focus:ring-2 focus:ring-accent-wash ${
-            chosen !== undefined && typed === null ? 'pl-11' : 'pl-4'
-          }`}
+          className={`${FIELD_LINE_LARGE} pr-8! ${chosen !== undefined && typed === null ? 'pl-9!' : ''}`}
         />
         <Icon
           name="chevron"
-          className={`pointer-events-none absolute right-4 top-1/2 size-3 -translate-y-1/2 stroke-[3.2] text-secondary ${listed ? '-rotate-90' : 'rotate-90'}`}
+          className={`pointer-events-none absolute right-0 top-1/2 size-3.5 -translate-y-1/2 stroke-[2.6] text-muted ${listed ? '-rotate-90' : 'rotate-90'}`}
         />
       </div>
 

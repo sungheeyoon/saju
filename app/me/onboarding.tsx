@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { BirthFields } from '../birth-form';
-import { BUTTON_PRIMARY } from '../ui/buttons';
+import { FIELD_NOTE, FORM_SUBMIT } from '../ui/fields';
 import { ElementSymbol } from '../ui/element-symbol';
 import { PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { ELEMENTS } from '@/src/lib/saju';
@@ -41,7 +41,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
   };
 
   return (
-    <section className={`${PAPER} flex flex-col gap-6`}>
+    <section className={`${PAPER} flex flex-col gap-8`}>
       <span aria-hidden="true" className="flex gap-2">
         {ELEMENTS.map((element) => (
           <ElementSymbol key={element} element={element} className="size-10 rounded-full bg-[var(--tile)] p-2 sm:size-12" />
@@ -58,11 +58,11 @@ export function Onboarding({ nickname }: { nickname: string }) {
       <BirthFields value={query} onChange={setQuery} showName={false} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+        <button type="button" onClick={save} disabled={missing !== null || saving} className={`${FORM_SUBMIT} w-full sm:w-auto sm:min-w-60`}>
           {saving ? '저장하는 중…' : '내 사주로 저장'}
         </button>
         {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-        {missing !== null && <span className="text-[13px] text-secondary">{missing}</span>}
+        {missing !== null && <span className={FIELD_NOTE}>{missing}</span>}
       </div>
 
       {failure !== null && <p role="alert" className="text-sm text-danger">저장하지 못했어요. {failure}</p>}

@@ -26,6 +26,7 @@ import {
   type Query,
 } from '@/src/lib/input/query';
 
+import { FIELD_LABEL, FIELD_LINE_LARGE, QUIET_TAB, QUIET_TAB_ON } from './ui/fields';
 import { Icon } from './ui/icons';
 
 /**
@@ -50,23 +51,30 @@ import { Icon } from './ui/icons';
  */
 
 /**
- * 폼은 **설정 앱의 묶음 목록**이다(입력 폼 시안 n 「설정 목록」, ADR 0132).
+ * 폼은 **지면 위의 밑줄 칸들**이다(폼 디자인 A · 밑줄 에디토리얼, 2026-10-03 — `app/ui/fields.ts`).
  *
- * 흰 둥근 묶음 안에 줄마다 왼쪽 이름 · 오른쪽 값. 칸 위에 제목을 세우고 그 아래 칸을 두던 동안에는 모양이 네 벌
- * (네모 칸 · 세그먼트 · 네모 셀렉트 · 라디오)이었다 — 줄 하나에 이름과 값이 함께 서면 비어 있어도 무슨 칸인지
- * 늘 보이고, 고르는 칸은 그 자리에서 펼쳐져 화면을 떠나지 않는다.
+ * 흰 묶음 판과 줄마다 같은 여백의 회색 칸을 걷었다. 칸마다 위에 작은 이름표, 아래에 값과 밑줄 한 줄이 서고, 묶음은
+ * 판의 테두리가 아니라 여백으로 나뉜다. 년 · 월 · 일과 시 · 분은 **큰 숫자와 단위 글자**가 한 줄의 문장처럼 읽힌다
+ * (「1990년 5월 15일」). 고르는 칸은 누르면 그 바로 아래 줄에 항목이 조용한 탭으로 펼쳐진다 — 펼치고 접히는 때는
+ * 전과 같다(`PickRow`).
  *
- * 줄 사이 선은 왼쪽 16px 을 들여 긋는다(묶음 `pl-4`, 줄 `pr-4`) — 한 묶음으로 읽힌다.
+ * 칸은 여섯 단 격자에 선다. 폭은 **폼이 놓인 판의 폭**으로 가른다(`@container`) — 같은 폼이 첫 화면 한 단(592px)과
+ * 궁합의 두 칸(520px) · 폰(330px)에 서므로 화면 폭으로 가르면 한 곳이 늘 어긋난다.
+ *
+ * - 좁을 때: 이름 4 · 성별 2 / 생년월일 6 / 달력 3 · 출생 시각 3 / 시각 3 · 출생지 3
+ * - 넓을 때(28rem~): 이름 4 · 성별 2 / 생년월일 4 · 달력 2 / 출생 시각 2 · 시각 2 · 출생지 2
+ *
+ * 펼친 항목은 격자의 한 줄을 다 쓰고(`col-span-6`), 격자는 `dense` 로 채운다 — 펼친 칸 옆자리의 다음 칸이 아래로
+ * 밀리지 않고 제자리에 남는다. 칸의 차례(DOM · 탭 이동)는 전과 같다.
  */
-const GROUP = 'overflow-hidden rounded-2xl bg-surface pl-4 shadow-card divide-y divide-border';
+const GRID = 'grid grid-flow-row-dense grid-cols-6 gap-x-5 gap-y-7 @md:gap-x-7 @md:gap-y-8';
 
-/** 줄 — 높이 48px. 이름은 왼쪽, 값은 오른쪽 */
-const ROW = 'flex min-h-12 items-center gap-3 pr-4';
-const ROW_LABEL = 'shrink-0 text-[15px] text-foreground';
-
-/** 줄 안 오른쪽 숫자 칸 — 움푹한 작은 칸, 오른쪽 정렬 */
+/** 숫자 칸 — 밑줄 위 큰 숫자. 자리표시는 한 단 작게 흐리게 서서 「빈칸」으로 읽힌다 */
 const DIGIT =
-  'h-11 min-w-0 rounded-lg bg-surface-sunken px-1.5 text-right text-base tabular-nums text-foreground outline-none placeholder:text-sm placeholder:text-muted focus:ring-2 focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-40';
+  'h-12 min-w-0 rounded-none bg-transparent px-0.5 pb-1 text-center text-[26px] font-medium leading-none tracking-[-0.02em] tabular-nums text-foreground shadow-rule outline-none placeholder:text-[15px] placeholder:font-normal placeholder:tracking-normal placeholder:text-muted focus:shadow-rule-active disabled:cursor-not-allowed disabled:opacity-40 @md:text-[28px]';
+
+/** 숫자 뒤 단위 글자 — 「년」 「월」 「일」 「시」 「분」 */
+const UNIT = 'text-[15px] font-medium text-secondary';
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
@@ -93,7 +101,10 @@ function PickRow<T extends string>({
   onToggle,
   onPick,
   disabled = false,
+  span,
 }: {
+  /** 격자에서 차지하는 폭(`col-span-*`) */
+  span: string;
   label: string;
   /** 낭독기가 부르는 묶음 이름 — 보이는 이름이 짧을 때(「달력」 → 「달력 기준」) */
   name?: string;
@@ -114,8 +125,12 @@ function PickRow<T extends string>({
     toggle.current?.focus();
   };
 
+  /** 풀이말이 붙은 항목은 세로로 — 가로 탭에 풀이말까지 서면 무엇이 어느 항목의 말인지 흐려진다 */
+  const stacked = options.some((option) => option.hint !== undefined);
+
   return (
-    <div>
+    /* `contents` — 단추와 펼친 항목이 각각 격자의 칸이 된다(위 `GRID`) */
+    <div className="contents">
       <button
         ref={toggle}
         type="button"
@@ -123,23 +138,39 @@ function PickRow<T extends string>({
         aria-controls={id}
         disabled={disabled}
         onClick={onToggle}
-        className={`${ROW} w-full text-left active:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-40`}
+        className={`${span} group flex min-w-0 cursor-pointer flex-col gap-1 text-left outline-none disabled:cursor-not-allowed disabled:opacity-40`}
       >
-        <span className={ROW_LABEL}>{label}</span>
-        <span className={`min-w-0 flex-1 truncate text-right text-[15px] ${open ? 'text-foreground' : 'text-secondary'}`}>
-          {current?.label ?? '–'}
+        <span className={`${FIELD_LABEL} group-focus-visible:text-foreground ${open ? 'text-foreground' : ''}`}>{label}</span>
+        <span
+          className={`flex h-12 min-w-0 items-center gap-2 pb-1 pt-1.5 group-focus-visible:shadow-rule-active ${
+            open ? 'shadow-rule-active' : 'shadow-rule'
+          }`}
+        >
+          <span className={`min-w-0 flex-1 truncate text-[17px] ${current ? 'font-medium text-foreground' : 'text-muted'}`}>
+            {current?.label ?? '–'}
+          </span>
+          <Icon
+            name="chevron"
+            className={`size-3.5 shrink-0 stroke-[2.6] text-muted transition-transform group-hover:text-foreground ${open ? '-rotate-90' : 'rotate-90'}`}
+          />
         </span>
-        <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${open ? '-rotate-90' : 'rotate-90'}`} />
       </button>
 
       {open && (
-        <div id={id} role="radiogroup" aria-label={name} className="mb-2 mr-4 overflow-hidden rounded-xl bg-surface-sunken">
+        <div
+          id={id}
+          role="radiogroup"
+          aria-label={name}
+          className={`col-span-6 -mt-3 rounded-xl bg-field-wash px-2 py-1 @md:-mt-4 ${
+            stacked ? 'flex flex-col' : 'flex flex-wrap gap-x-1'
+          }`}
+        >
           {options.map((option) => {
             const checked = option.value === value;
             return (
               <label
                 key={option.value}
-                className="relative flex min-h-12 cursor-pointer items-center gap-2 border-t border-border px-3 first:border-t-0 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-accent-soft"
+                className={`${QUIET_TAB} relative rounded-lg has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-foreground ${stacked ? 'flex-wrap gap-x-2' : ''}`}
               >
                 <input
                   type="radio"
@@ -159,9 +190,8 @@ function PickRow<T extends string>({
                   }}
                   className="absolute inset-0 cursor-pointer appearance-none opacity-0"
                 />
-                <span className={`text-[15px] text-foreground ${checked ? 'font-semibold' : ''}`}>{option.label}</span>
-                {option.hint && <span className="text-[13px] text-secondary">{option.hint}</span>}
-                <span className="ml-auto">{checked && <Icon name="check" className="size-4 stroke-3 text-foreground" />}</span>
+                <span className={`decoration-2 underline-offset-[7px] ${checked ? QUIET_TAB_ON : ''}`}>{option.label}</span>
+                {option.hint && <span className="text-[13px] text-muted">{option.hint}</span>}
               </label>
             );
           })}
@@ -172,18 +202,28 @@ function PickRow<T extends string>({
 }
 
 /**
- * 숫자 칸이 오른쪽에 서는 줄. **좁으면 칸들이 이름 아래로 꺾인다**(`flex-wrap`) — 폰 360px 의 로그인 뒤 카드 안에서
- * 「생년월일」과 칸 셋 · 단위가 한 줄에 안 들었다(2026-09-29 잼).
+ * 숫자 칸들이 **한 줄의 문장**으로 서는 칸 — 이름표 아래 「1990 년 5 월 15 일」. 칸마다 제 밑줄을 갖고, 단위 글자는
+ * 밑줄 밖 같은 글자선에 선다. 폰 360px 에서도 한 줄에 든다(년 72 · 월 · 일 52px).
  */
-function DigitsRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function DigitsRow({
+  label,
+  hint,
+  span,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  span: string;
+  children: React.ReactNode;
+}) {
   const id = useId();
   return (
-    <div role="group" aria-labelledby={id} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 py-1 pr-4">
-      <span id={id} className="flex shrink-0 flex-col text-[15px] leading-5 text-foreground">
+    <div role="group" aria-labelledby={id} className={`${span} group flex min-w-0 flex-col gap-1`}>
+      <span id={id} className={FIELD_LABEL}>
         {label}
-        {hint && <span className="text-xs text-secondary">{hint}</span>}
+        {hint && <span className="ml-1.5 font-medium tracking-normal">· {hint}</span>}
       </span>
-      <div className="ml-auto flex min-w-0 items-center justify-end gap-2">{children}</div>
+      <div className="flex min-w-0 items-baseline gap-x-3">{children}</div>
     </div>
   );
 }
@@ -306,7 +346,7 @@ function NumberField({
   const outOfRange = settled && (Number(value) < min || Number(value) > max);
 
   return (
-    <label className="flex shrink-0 items-center gap-1">
+    <label className="flex shrink-0 items-baseline gap-1">
       <input
         type="text"
         inputMode="numeric"
@@ -319,9 +359,9 @@ function NumberField({
         onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, digits))}
         // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `DIGIT` 의 바탕과
         // 같은 무게라 어느 쪽이 이길지 정해지지 않는다. 변종 셀렉터는 한 겹 더 무겁다.
-        className={`${DIGIT} ${width} aria-invalid:bg-danger-wash aria-invalid:text-danger aria-invalid:ring-2 aria-invalid:ring-danger`}
+        className={`${DIGIT} ${width} aria-invalid:text-danger aria-invalid:shadow-rule-danger`}
       />
-      <span aria-hidden="true" className={`text-sm text-secondary ${disabled ? 'opacity-40' : ''}`}>
+      <span aria-hidden="true" className={`${UNIT} ${disabled ? 'opacity-40' : ''}`}>
         {suffix}
       </span>
     </label>
@@ -355,7 +395,7 @@ const within = (value: string, min: number, max: number) =>
  * 것을 구별해야 한다**(뒤로가기·링크로 들어옴). 마지막으로 올려 보낸 값을
  * 기억해 두고 그것과 다를 때만 조각을 다시 쪼갠다.
  */
-function DateFields({ value, onDate }: { value: Query; onDate: (date: string) => void }) {
+function DateFields({ value, onDate, span }: { value: Query; onDate: (date: string) => void; span: string }) {
   const [parts, setParts] = useState(() => splitDate(value.date));
   const lastEmitted = useRef(value.date);
 
@@ -383,7 +423,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
   };
 
   return (
-    <DigitsRow label="생년월일">
+    <DigitsRow label="생년월일" span={span}>
       <NumberField
         label="출생연도"
         suffix="년"
@@ -392,7 +432,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={4}
         min={years.min}
         max={years.max}
-        width="w-[3.75rem]"
+        width="w-[4.5rem]"
         placeholder={String(years.max - 30)}
         autoComplete="bday-year"
       />
@@ -404,7 +444,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={12}
-        width="w-12"
+        width="w-[3.25rem]"
         placeholder="1~12"
         autoComplete="bday-month"
       />
@@ -416,7 +456,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={maxDay}
-        width="w-12"
+        width="w-[3.25rem]"
         placeholder={`1~${maxDay}`}
         autoComplete="bday-day"
       />
@@ -501,6 +541,7 @@ function TimeFields({
   return (
     <>
       <PickRow
+        span="col-span-3 @md:col-span-2"
         label="출생 시각"
         value={value.hourKnown === null ? '' : value.hourKnown ? 'known' : 'unknown'}
         open={open}
@@ -517,7 +558,7 @@ function TimeFields({
         「직접 입력」일 때만 선다 — 「모름」이거나 아직 안 골랐으면(주소에서 온 `null`) 이 줄이 빠진다.
       */}
       {known && (
-        <DigitsRow label="시각" hint="24시간">
+        <DigitsRow label="시각" hint="24시간" span="col-span-3 @md:col-span-2">
           <NumberField
             label="출생 시"
             suffix="시"
@@ -595,26 +636,27 @@ export function BirthFields({
   return (
     /*
       묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 · 달력 · 시각) → 어디서(출생지). 계산 옵션은
-      따로 떨어진 묶음이다(시안 n, ADR 0132).
+      따로 떨어진 묶음이다(시안 n, ADR 0132). 두 묶음 사이는 판이 아니라 40px 의 여백과 가는 선 한 줄이 가른다.
     */
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <div className={GROUP}>
+    <div className="@container flex flex-col gap-9">
+      <div className="flex flex-col gap-3">
+        <div className={GRID}>
           {showName && (
-            <label className={ROW}>
-              <span className={ROW_LABEL}>이름</span>
+            <label className="group col-span-4 flex min-w-0 flex-col gap-1">
+              <span className={FIELD_LABEL}>이름</span>
               <input
                 type="text"
                 value={value.name}
                 onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
                 placeholder={namePlaceholder}
                 maxLength={NAME_MAX}
-                className="h-11 min-w-0 flex-1 bg-transparent text-right text-base text-foreground outline-none placeholder:text-muted"
+                className={FIELD_LINE_LARGE}
               />
             </label>
           )}
 
           <PickRow
+            span={showName ? 'col-span-2' : 'col-span-6 @md:col-span-2'}
             label="성별"
             value={value.gender}
             open={open === 'gender'}
@@ -623,13 +665,14 @@ export function BirthFields({
             options={GENDERS.map((gender) => ({ value: gender, label: GENDER_KO[gender] }))}
           />
 
-          <DateFields value={value} onDate={(date) => set('date', date)} />
+          <DateFields value={value} onDate={(date) => set('date', date)} span="col-span-6 @md:col-span-4" />
 
           {/*
-            **달력은 날짜 바로 아래다.** 「1984-10-05」는 양력인지 음력인지가 정해져야 비로소 하루를 가리키고,
+            **달력은 날짜 바로 곁이다.** 「1984-10-05」는 양력인지 음력인지가 정해져야 비로소 하루를 가리키고,
             음력이면 평달인지 윤달인지에 따라 실제 날이 한 달 떨어진다.
           */}
           <PickRow
+            span="col-span-3 @md:col-span-2"
             label="달력"
             name="달력 기준"
             value={value.calendar}
@@ -646,6 +689,7 @@ export function BirthFields({
             서울이 아닌 사람이 접힌 칸을 열어 볼 까닭이 없다.
           */}
           <PickRow
+            span="col-span-3 @md:col-span-2"
             label="출생지"
             value={value.city}
             open={open === 'city'}
@@ -656,7 +700,7 @@ export function BirthFields({
         </div>
 
         {/*
-          달력 형식과 날짜는 **함께 읽어야 뜻이 생긴다.** 그래서 변환 결과를 묶음 바로 밑에 적는다 — **저장이나
+          달력 형식과 날짜는 **함께 읽어야 뜻이 생긴다.** 그래서 변환 결과를 칸들 바로 밑에 적는다 — **저장이나
           계산 전에.** 사용자가 아는 것은 음력 날짜뿐인데, 우리가 무엇을 양력으로 잡았는지 못 보면 잘못 골랐다는
           것을 결과 화면에 가서야 알게 된다.
         */}
@@ -664,29 +708,35 @@ export function BirthFields({
           <p
             role={converted.ok ? undefined : 'alert'}
             // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
-            className={`px-4 text-xs ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
+            className={`text-[13px] leading-5 ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
           >
             {converted.text}
           </p>
         )}
       </div>
 
-      <div className={GROUP}>
+      <div className="flex flex-col">
         <button
           type="button"
           aria-expanded={advancedShown}
           onClick={() => setAdvanced(!advancedShown)}
-          className={`${ROW} w-full text-left active:bg-surface-sunken`}
+          className="group flex min-h-12 w-full cursor-pointer items-center gap-3 border-t border-border pt-1 text-left outline-none"
         >
-          <span className={ROW_LABEL}>고급 설정</span>
-          <span className="min-w-0 flex-1 truncate text-right text-[13px] text-secondary">자시 · 시간 기준 · 세운</span>
-          <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${advancedShown ? 'rotate-90' : 'rotate-0'}`} />
+          <span className="shrink-0 text-[13px] font-semibold tracking-[0.04em] text-foreground underline-offset-[5px] group-hover:underline group-focus-visible:underline group-focus-visible:decoration-2">
+            고급 설정
+          </span>
+          <span className="min-w-0 flex-1 truncate text-[13px] text-muted">자시 · 시간 기준 · 세운</span>
+          <Icon
+            name="chevron"
+            className={`size-3.5 shrink-0 stroke-[2.6] text-muted transition-transform group-hover:text-foreground ${advancedShown ? '-rotate-90' : 'rotate-90'}`}
+          />
         </button>
 
         {advancedShown && (
-          <>
+          <div className={`${GRID} mt-4`}>
             {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
             <PickRow
+              span="col-span-3 @md:col-span-2"
               label="자시"
               name="자시 규칙"
               value={value.rule}
@@ -700,6 +750,7 @@ export function BirthFields({
               ]}
             />
             <PickRow
+              span="col-span-3 @md:col-span-2"
               label="시간 기준"
               value={value.basis}
               open={open === 'basis'}
@@ -707,8 +758,8 @@ export function BirthFields({
               onPick={pick('basis')}
               options={TIME_BASES.map((basis) => ({ value: basis, label: TIME_BASIS[basis].label, hint: TIME_BASIS[basis].hint }))}
             />
-            <label className={ROW}>
-              <span className={ROW_LABEL}>세운 연도</span>
+            <label className="group col-span-3 flex min-w-0 flex-col gap-1 @md:col-span-2">
+              <span className={FIELD_LABEL}>세운 연도</span>
               <input
                 type="number"
                 aria-label="세운 시작"
@@ -716,10 +767,10 @@ export function BirthFields({
                 min={SUPPORTED_YEAR_RANGE.min}
                 max={SUPPORTED_YEAR_RANGE.max}
                 onChange={(event) => set('saeunFrom', Number(event.target.value))}
-                className={`${DIGIT} ml-auto w-[4.5rem]`}
+                className={`${FIELD_LINE_LARGE} tabular-nums`}
               />
             </label>
-          </>
+          </div>
         )}
       </div>
     </div>

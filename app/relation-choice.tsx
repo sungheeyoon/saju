@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 
 import { RELATIONS, RELATION_LABEL, type Relation } from '@/src/lib/people';
 
-import { Icon } from './ui/icons';
 import { TYPE_NAME } from './ui/surfaces';
 
 /**
@@ -49,7 +48,7 @@ export function RelationChoice({
         때문이에요. <strong className="font-semibold text-foreground">점수의 기준도 이 답을 따라요.</strong>
       </p>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-1.5">
+      <div className="mt-3 flex flex-wrap items-center gap-x-2.5">
         {[...RELATIONS, null].map((choice) => {
           const id = `${idPrefix}-relation-${choice ?? 'unknown'}`;
           const label = choice === null ? '아직 모르겠음' : RELATION_LABEL[choice];
@@ -74,14 +73,14 @@ export function RelationChoice({
                 onChange={() => onChange(choice)}
                 className="peer absolute inset-0 cursor-pointer appearance-none opacity-0"
               />
+              {/* 조용한 탭 — 고른 사이는 먹색 굵은 글자에 2px 밑줄, 나머지는 흐린 글자(폼 디자인 A) */}
               <span
-                className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-[14px] ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-soft ${
+                className={`inline-flex min-h-9 items-center px-1.5 text-[15px] decoration-2 underline-offset-[7px] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-foreground ${
                   picked
-                    ? 'bg-accent-wash font-semibold text-foreground ring-border-strong'
-                    : 'bg-surface font-medium text-secondary ring-border group-hover:text-foreground'
+                    ? 'font-semibold text-foreground underline decoration-foreground'
+                    : 'font-medium text-secondary group-hover:text-foreground'
                 }`}
               >
-                {picked && <Icon name="check" className="size-3 stroke-[3.6]" />}
                 {label}
               </span>
             </label>
