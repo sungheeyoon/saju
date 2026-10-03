@@ -34,12 +34,14 @@ export default function SharedReadingNotFound() {
           받아 주세요.
         </p>
       </div>
-      <Link
-        href="/"
-        className={BUTTON_PRIMARY}
-      >
-        {SERVICE_NAME} 둘러보기
+      {/*
+        **막힌 링크도 들어오는 문이다**(그로스 시안, 2026-10-03). 「둘러보기」는 어디로 가서 무엇을 하는지 말하지 않았다.
+        여기 온 사람은 사주가 궁금해서 링크를 누른 사람이다 — 로그인 없이 되는 첫 화면의 주 단추와 같은 말로 잇는다.
+      */}
+      <Link href="/" className={BUTTON_PRIMARY}>
+        무료로 내 사주 보기
       </Link>
+      <p className="text-[13px] leading-5 text-secondary">{SERVICE_NAME}은 생일만 넣으면 로그인 없이 사주를 볼 수 있어요.</p>
     </main>
   );
 }
