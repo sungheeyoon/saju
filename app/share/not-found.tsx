@@ -29,17 +29,24 @@ export default function SharedReadingNotFound() {
       </span>
       <div className="flex max-w-sm flex-col gap-2">
         <h1 className={TYPE_TITLE}>열 수 없는 링크입니다</h1>
+        {/*
+          두 문장은 줄을 나눈다(운영자, 2026-10-03) — 한 문단이면 폰에서 「보낸 분에게 / 링크를…」로 갈렸다. 무엇이
+          일어났는지와 무엇을 하면 되는지가 제 줄에서 시작한다.
+        */}
         <p className="text-sm leading-6 text-secondary">
-          주소가 잘못됐거나 더 이상 남아 있지 않은 풀이예요. 보낸 분에게 링크를 다시
-          받아 주세요.
+          주소가 잘못됐거나 더 이상 남아 있지 않은 풀이예요.
+          <br />
+          보낸 분에게 링크를 다시 받아 주세요.
         </p>
       </div>
-      <Link
-        href="/"
-        className={BUTTON_PRIMARY}
-      >
-        {SERVICE_NAME} 둘러보기
+      {/*
+        **막힌 링크도 들어오는 문이다**(그로스 시안, 2026-10-03). 「둘러보기」는 어디로 가서 무엇을 하는지 말하지 않았다.
+        여기 온 사람은 사주가 궁금해서 링크를 누른 사람이다 — 로그인 없이 되는 첫 화면의 주 단추와 같은 말로 잇는다.
+      */}
+      <Link href="/" className={BUTTON_PRIMARY}>
+        무료로 내 사주 보기
       </Link>
+      <p className="text-[13px] leading-5 text-secondary">{SERVICE_NAME}은 생일만 넣으면 로그인 없이 사주를 볼 수 있어요.</p>
     </main>
   );
 }
