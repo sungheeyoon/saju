@@ -10,6 +10,7 @@ import { SignedInProvider } from './signed-in';
 import { SajuCompatTabs } from './segmented-nav';
 import { TAB_HERO_CARD, TabHeroBody, TabHeroGlow } from './tab-hero';
 import { SunMark, TaijiMark } from './ui/entry-marks';
+import { Icon } from './ui/icons';
 import { PAPER_TOP, TYPE_SECTION } from './ui/surfaces';
 
 /**
@@ -190,6 +191,19 @@ function VisitorFace({ entry, onEntry }: { entry: Entry; onEntry: (entry: Entry)
           나는 어떤 사람일까?
         </h1>
         <p className="mt-1 max-w-md text-sm leading-6 text-secondary">생일만 넣으면 사주가 보여 주는 나를 바로 볼 수 있어요.</p>
+        {/*
+          **망설임을 첫 줄에서 걷는다**(그로스 시안, 2026-10-03). 처음 온 사람이 생일을 넣기 전에 묻는 둘 — 가입해야
+          하나, 내 생일이 남나 — 에 폼 위에서 답한다. 둘 다 코드가 하는 일이다: 사주와 궁합 첫 신호는 로그인 없이
+          열리고, 넣은 값은 저장하지 않는다(로그인 전 사주 문단도 계산에만 쓰고 안 남긴다, ADR 0143).
+        */}
+        <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] font-semibold text-cream-ink" aria-label="시작하기 전에">
+          {['로그인 없이', '입력은 저장 안 해요', '두 사람 궁합도'].map((fact) => (
+            <li key={fact} className="inline-flex items-center gap-1">
+              <Icon name="check" className="size-3.5" />
+              {fact}
+            </li>
+          ))}
+        </ul>
       </div>
       {/* 입구는 세그먼트 한 줄이다(시안 n) — 큰 카드 둘이던 자리가 한 줄로 줄어 폼이 첫 화면에 더 많이 든다 */}
       <div role="tablist" aria-label="무엇을 볼까요" className="mt-4 grid grid-cols-2 gap-0.5 rounded-[0.9rem] bg-surface-sunken p-0.5">
