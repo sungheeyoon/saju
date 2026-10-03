@@ -79,6 +79,23 @@
     제목의 둥근 서체(고운돋움)만 `next/font` 로 싣는다(`app/layout.tsx`).
   */
   --font-system: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+
+  /*
+    **입력폼 한 벌의 종이와 먹(단자, 폼 디자인 F)** — 앱 전체 토큰은 그대로 두고 폼만 이 일곱을 더 읽는다.
+    한지(`--hanji`) 위에 먹선(`--ink-line`) · 계선(`--ink-hair`) · 번지는 먹(`--ink-wash`), 낙관의 인주(`--seal`).
+    잰 값: 인주 글자는 한지 위 5.9:1, 인주 면 위 밝은 글자 5.6:1 · 어두운 화면은 한지 위 6.1:1.
+  */
+  --hanji: #fffcf4;
+  --hanji-deep: #f5eedf;
+  --ink-line: rgba(38, 36, 31, 0.62);
+  --ink-hair: rgba(38, 36, 31, 0.15);
+  --ink-wash: rgba(38, 36, 31, 0.075);
+  --seal: #b23c2a;
+  --on-seal: #fff8ef;
+  /* 한지의 결 — 잔 티와 가로로 흐르는 섬유 두 겹(SVG 잡음, 그림 파일 없음) */
+  --hanji-grain:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .19' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .34 0 0 0 0 .22 0 0 0 .9 -.64'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .2 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 @media (prefers-color-scheme: dark) {
@@ -132,6 +149,17 @@
     --elevation-soft: 0 2px 8px -4px rgba(0, 0, 0, 0.5);
     --elevation-lift: 0 8px 18px -10px rgba(0, 0, 0, 0.6);
     --elevation-raise: 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+    /* 먹 바탕의 단자 — 종이가 어둡고 선이 밝다 */
+    --hanji: #1c1a16;
+    --hanji-deep: #24211c;
+    --ink-line: rgba(240, 232, 214, 0.5);
+    --ink-hair: rgba(240, 232, 214, 0.14);
+    --ink-wash: rgba(240, 232, 214, 0.07);
+    --seal: #e8826b;
+    --on-seal: #1f1310;
+    --hanji-grain:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.006 .19' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .95 0 0 0 0 .9 0 0 0 0 .8 0 0 0 .8 -.62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .95 0 0 0 0 .9 0 0 0 0 .8 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 }
 
@@ -184,6 +212,15 @@
   --font-sans: var(--font-system);
   /* 제목 전용 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
   --font-rounded: var(--font-gowun-dodum), var(--font-system);
+  /* 입력폼의 명조 — 고운바탕(`app/layout.tsx` 의 `next/font`). 이름표 · 적은 값 · 낙관 단추에만 */
+  --font-myeongjo: var(--font-gowun-batang), "AppleMyungjo", "Noto Serif KR", serif;
+  --color-hanji: var(--hanji);
+  --color-hanji-deep: var(--hanji-deep);
+  --color-ink-line: var(--ink-line);
+  --color-ink-hair: var(--ink-hair);
+  --color-ink-wash: var(--ink-wash);
+  --color-seal: var(--seal);
+  --color-on-seal: var(--on-seal);
 }
 
 /*
@@ -319,4 +356,64 @@ button, a, summary {
 }
 @media (max-width: 767.98px) {
   html:has([data-deck-fit]) main:has([data-deck-fit]) { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+}
+
+/*
+  **단자(單子) — 입력폼 한 장**(폼 디자인 F · 한국 전통). 사주단자를 쓰듯 한지 한 장에 먹으로 적는다.
+
+  - `.danja` 판: 한지 결 위에 **사주쌍변(四周雙邊)** — 고서의 광곽처럼 바깥은 굵은 먹선, 3px 안쪽에 가는 선. 안쪽 선은
+    안쪽 그림자로 긋고, 판의 안쪽 여백(5px)이 그 선 안에 칸을 앉힌다 — 칸의 면이 선을 덮지 않게.
+  - `.dj-row` 칸: 왼쪽에 이름표 기둥(`--dj-col` 폭, 한 단 짙은 한지)과 세로 계선을 **칸의 바탕으로** 깐다. 단추와 펼친
+    목록이 한 칸 안에 위아래로 서도 기둥이 끊기지 않는다.
+  - 초점은 **먹이 번진다** — 칸 바닥 왼쪽에서 옅은 먹이 퍼지고 이름표가 인주색이 된다.
+  - 못 쓰는 칸은 빗금(사선 계선)이다 — 흐리게만 두면 못 쓰는 것인지 덜 그려진 것인지 갈리지 않는다(`app/birth-form.tsx` 의 고르는 칸).
+*/
+.danja {
+  --dj-col: 2.75rem;
+  position: relative;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 3px;
+  padding: 5px;
+  background-color: var(--hanji);
+  background-image: var(--hanji-grain);
+  box-shadow: inset 0 0 0 3px var(--hanji), inset 0 0 0 3.75px var(--ink-line), 0 1px 0 var(--ink-hair);
+}
+/* 한 겹짜리 — 고급 설정처럼 본문에 딸린 쪽지 */
+.danja-slip {
+  --dj-col: 2.75rem;
+  border: 1px solid var(--ink-hair);
+  border-radius: 3px;
+  background-color: var(--hanji);
+  background-image: var(--hanji-grain);
+}
+@media (min-width: 640px) {
+  .danja, .danja-slip { --dj-col: 3.25rem; }
+}
+.dj-row {
+  position: relative;
+  background-image: linear-gradient(
+    to right,
+    var(--hanji-deep) 0 var(--dj-col),
+    var(--ink-hair) var(--dj-col) calc(var(--dj-col) + 1px),
+    transparent calc(var(--dj-col) + 1px)
+  );
+}
+.dj-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 150% at calc(var(--dj-col) + 0.5rem) 110%, var(--ink-wash), transparent 62%);
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
+.dj-row:focus-within::after { opacity: 1; }
+.dj-row:focus-within .dj-label { color: var(--seal); }
+.dj-label {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-family: var(--font-myeongjo);
+  /* 세로쓰기의 띄어쓰기는 한 글자만큼 비어 「출생 시각」 칸이 한 단 더 자랐다 — 반 글자로 줄인다 */
+  word-spacing: -0.5em;
+  transition: color 160ms ease;
 }

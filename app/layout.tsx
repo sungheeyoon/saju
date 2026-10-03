@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Gowun_Dodum } from 'next/font/google';
+import { Gowun_Batang, Gowun_Dodum } from 'next/font/google';
 
 import { SERVICE_NAME, SERVICE_TAGLINE, SERVICE_TITLE_TEMPLATE } from '@/src/lib/brand';
 
@@ -83,11 +83,24 @@ const rounded = Gowun_Dodum({
   variable: '--font-gowun-dodum',
 });
 
+/**
+ * **입력폼의 명조**(`font-myeongjo`) — 생년월일시를 적는 판(단자)의 이름표 · 적은 값 · 낙관 단추만 입는다(폼 디자인 F).
+ * 고운돋움과 같은 집의 바탕체라 제목과 결이 맞고, 400 · 700 두 굵기가 있어 숫자를 굵게 세울 수 있다.
+ * 한글 조각은 고운돋움처럼 쓰이는 것만 받는다(`preload: false`).
+ */
+const myeongjo = Gowun_Batang({
+  weight: ['400', '700'],
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
+  variable: '--font-gowun-batang',
+});
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // `globals.css` 가 부드러운 스크롤을 켠다 — Next 는 라우트 전환에서 그것을 끌지
     // 말지를 이 표시로 정한다. 없으면 개발 화면이 그것을 문제로 잡는다.
-    <html lang="ko" data-scroll-behavior="smooth" className={`${rounded.variable} h-full antialiased`}>
+    <html lang="ko" data-scroll-behavior="smooth" className={`${rounded.variable} ${myeongjo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SiteHeader />
         {children}
