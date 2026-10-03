@@ -75,10 +75,11 @@ export function RelationChoice({
                 className="peer absolute inset-0 cursor-pointer appearance-none opacity-0"
               />
               <span
-                className={`inline-flex min-h-9 items-center gap-1 rounded-full px-3.5 text-[14px] ring-1 peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent-soft ${
+                // 폼의 칸과 같은 면(`form-cell`) 위 글자 · 고른 것은 물빛 면과 물빛 글자 — 펼친 줄의 체크와 같은 말이다(`app/ui/form.ts`)
+                className={`inline-flex min-h-9 items-center gap-1 rounded-[8px] px-3 text-[15px] peer-focus-visible:ring-2 peer-focus-visible:ring-form-tint ${
                   picked
-                    ? 'bg-accent-wash font-semibold text-foreground ring-border-strong'
-                    : 'bg-surface font-medium text-secondary ring-border group-hover:text-foreground'
+                    ? 'bg-form-tint-wash font-semibold text-form-tint'
+                    : 'bg-form-cell text-foreground group-hover:bg-form-pressed'
                 }`}
               >
                 {picked && <Icon name="check" className="size-3 stroke-[3.6]" />}

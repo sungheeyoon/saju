@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 import { BirthFields } from '../birth-form';
-import { BUTTON_PRIMARY } from '../ui/buttons';
+import { FORM_SUBMIT } from '../ui/form';
 import { ElementSymbol } from '../ui/element-symbol';
 import { PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { ELEMENTS } from '@/src/lib/saju';
@@ -58,7 +58,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
       <BirthFields value={query} onChange={setQuery} showName={false} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+        <button type="button" onClick={save} disabled={missing !== null || saving} className={FORM_SUBMIT}>
           {saving ? '저장하는 중…' : '내 사주로 저장'}
         </button>
         {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}

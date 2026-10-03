@@ -26,6 +26,21 @@ import {
   type Query,
 } from '@/src/lib/input/query';
 
+import {
+  FORM_CAPSULE,
+  FORM_DIGIT,
+  FORM_FOOTER,
+  FORM_GROUP,
+  FORM_LABEL,
+  FORM_OPTION_ROW,
+  FORM_ROW,
+  FORM_ROW_CAPSULE,
+  FORM_ROW_TEXT,
+  FORM_SUBTITLE,
+  FORM_UNIT,
+  FORM_VALUE,
+  FORM_VALUE_ACTIVE,
+} from './ui/form';
 import { Icon } from './ui/icons';
 
 /**
@@ -50,24 +65,11 @@ import { Icon } from './ui/icons';
  */
 
 /**
- * 폼은 **설정 앱의 묶음 목록**이다(입력 폼 시안 n 「설정 목록」, ADR 0132).
+ * 폼은 **iOS 의 inset grouped 목록**이다(입력 폼 시안 n 「설정 목록」 ADR 0132 의 틀을 폼 디자인 G 가 다시 그렸다).
  *
- * 흰 둥근 묶음 안에 줄마다 왼쪽 이름 · 오른쪽 값. 칸 위에 제목을 세우고 그 아래 칸을 두던 동안에는 모양이 네 벌
- * (네모 칸 · 세그먼트 · 네모 셀렉트 · 라디오)이었다 — 줄 하나에 이름과 값이 함께 서면 비어 있어도 무슨 칸인지
- * 늘 보이고, 고르는 칸은 그 자리에서 펼쳐져 화면을 떠나지 않는다.
- *
- * 줄 사이 선은 왼쪽 16px 을 들여 긋는다(묶음 `pl-4`, 줄 `pr-4`) — 한 묶음으로 읽힌다.
+ * 밝은 둥근 묶음 안에 줄마다 왼쪽 이름 · 오른쪽 값. 줄 하나에 이름과 값이 함께 서면 비어 있어도 무슨 칸인지 늘 보이고,
+ * 고르는 칸은 그 자리에서 펼쳐져 화면을 떠나지 않는다. 줄 높이 · 들임 · 선 · 글자 크기의 까닭은 `app/ui/form.ts` 머리말이 든다.
  */
-const GROUP = 'overflow-hidden rounded-2xl bg-surface pl-4 shadow-card divide-y divide-border';
-
-/** 줄 — 높이 48px. 이름은 왼쪽, 값은 오른쪽 */
-const ROW = 'flex min-h-12 items-center gap-3 pr-4';
-const ROW_LABEL = 'shrink-0 text-[15px] text-foreground';
-
-/** 줄 안 오른쪽 숫자 칸 — 움푹한 작은 칸, 오른쪽 정렬 */
-const DIGIT =
-  'h-11 min-w-0 rounded-lg bg-surface-sunken px-1.5 text-right text-base tabular-nums text-foreground outline-none placeholder:text-sm placeholder:text-muted focus:ring-2 focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-40';
-
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -114,8 +116,12 @@ function PickRow<T extends string>({
     toggle.current?.focus();
   };
 
+  /*
+    줄과 펼친 보기는 **묶음의 바로 아래 자식**이다(조각으로 낸다) — 둘을 `<div>` 로 감싸면 묶음의 첫 줄이 어느 것인지 CSS 가
+    못 알아 첫 줄 위에도 선이 선다.
+  */
   return (
-    <div>
+    <>
       <button
         ref={toggle}
         type="button"
@@ -123,24 +129,20 @@ function PickRow<T extends string>({
         aria-controls={id}
         disabled={disabled}
         onClick={onToggle}
-        className={`${ROW} w-full text-left active:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-40`}
+        className={`${FORM_ROW} active:bg-form-pressed disabled:cursor-not-allowed disabled:opacity-40`}
       >
-        <span className={ROW_LABEL}>{label}</span>
-        <span className={`min-w-0 flex-1 truncate text-right text-[15px] ${open ? 'text-foreground' : 'text-secondary'}`}>
-          {current?.label ?? '–'}
-        </span>
-        <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${open ? '-rotate-90' : 'rotate-90'}`} />
+        <span className={FORM_LABEL}>{label}</span>
+        <span className={open ? FORM_VALUE_ACTIVE : FORM_VALUE}>{current?.label ?? '–'}</span>
+        {/* 그 자리에서 펼친다는 표시는 위아래 꺾쇠다 — 옆 꺾쇠(›)는 다른 화면으로 넘어간다는 뜻이다 */}
+        <Icon name="updown" className={`-ml-1.5 size-[15px] stroke-[2.4] ${open ? 'text-form-tint' : 'text-muted'}`} />
       </button>
 
       {open && (
-        <div id={id} role="radiogroup" aria-label={name} className="mb-2 mr-4 overflow-hidden rounded-xl bg-surface-sunken">
+        <div id={id} role="radiogroup" aria-label={name}>
           {options.map((option) => {
             const checked = option.value === value;
             return (
-              <label
-                key={option.value}
-                className="relative flex min-h-12 cursor-pointer items-center gap-2 border-t border-border px-3 first:border-t-0 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-accent-soft"
-              >
+              <label key={option.value} className={FORM_OPTION_ROW}>
                 <input
                   type="radio"
                   name={id}
@@ -157,33 +159,37 @@ function PickRow<T extends string>({
                     onPick(option.value);
                     close();
                   }}
-                  className="absolute inset-0 cursor-pointer appearance-none opacity-0"
+                  className="absolute inset-0 cursor-pointer appearance-none opacity-0 outline-none"
                 />
-                <span className={`text-[15px] text-foreground ${checked ? 'font-semibold' : ''}`}>{option.label}</span>
-                {option.hint && <span className="text-[13px] text-secondary">{option.hint}</span>}
-                <span className="ml-auto">{checked && <Icon name="check" className="size-4 stroke-3 text-foreground" />}</span>
+                <span className="min-w-0 flex-1">
+                  <span className={`block text-[17px] leading-[22px] ${checked ? 'text-form-tint' : 'text-foreground'}`}>
+                    {option.label}
+                  </span>
+                  {option.hint && <span className={FORM_SUBTITLE}>{option.hint}</span>}
+                </span>
+                {checked && <Icon name="check" className="size-[18px] stroke-[2.6] text-form-tint" />}
               </label>
             );
           })}
         </div>
       )}
-    </div>
+    </>
   );
 }
 
 /**
- * 숫자 칸이 오른쪽에 서는 줄. **좁으면 칸들이 이름 아래로 꺾인다**(`flex-wrap`) — 폰 360px 의 로그인 뒤 카드 안에서
- * 「생년월일」과 칸 셋 · 단위가 한 줄에 안 들었다(2026-09-29 잼).
+ * 숫자 캡슐이 오른쪽에 서는 줄 — 캡슐 36px + 위아래 4px 로 다른 줄과 같은 44px 이다. **좁으면 캡슐이 이름 아래로
+ * 꺾인다**(`flex-wrap`) — 폰 360px 의 로그인 뒤 카드 안에서 「생년월일」과 캡슐이 한 줄에 안 든다(2026-09-29 잼).
  */
 function DigitsRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   const id = useId();
   return (
-    <div role="group" aria-labelledby={id} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 py-1 pr-4">
-      <span id={id} className="flex shrink-0 flex-col text-[15px] leading-5 text-foreground">
+    <div role="group" aria-labelledby={id} className={FORM_ROW_CAPSULE}>
+      <span id={id} className={`flex flex-col ${FORM_LABEL}`}>
         {label}
-        {hint && <span className="text-xs text-secondary">{hint}</span>}
+        {hint && <span className={FORM_SUBTITLE}>{hint}</span>}
       </span>
-      <div className="ml-auto flex min-w-0 items-center justify-end gap-2">{children}</div>
+      <div className={`ml-auto ${FORM_CAPSULE}`}>{children}</div>
     </div>
   );
 }
@@ -292,6 +298,7 @@ function NumberField({
   digits: number;
   min: number;
   max: number;
+  /** 폭 — `field-sizing` 을 모르는 브라우저의 고정 폭 · 아는 브라우저의 최소 폭 */
   width: string;
   placeholder: string;
   disabled?: boolean;
@@ -306,7 +313,7 @@ function NumberField({
   const outOfRange = settled && (Number(value) < min || Number(value) > max);
 
   return (
-    <label className="flex shrink-0 items-center gap-1">
+    <label className="flex shrink-0 items-baseline">
       <input
         type="text"
         inputMode="numeric"
@@ -317,11 +324,10 @@ function NumberField({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, digits))}
-        // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `DIGIT` 의 바탕과
-        // 같은 무게라 어느 쪽이 이길지 정해지지 않는다. 변종 셀렉터는 한 겹 더 무겁다.
-        className={`${DIGIT} ${width} aria-invalid:bg-danger-wash aria-invalid:text-danger aria-invalid:ring-2 aria-invalid:ring-danger`}
+        // 범위 밖은 `aria-invalid` 셀렉터로 붉힌다(`FORM_DIGIT`) — 클래스를 덧붙이면 같은 무게라 어느 쪽이 이길지 정해지지 않는다
+        className={`${FORM_DIGIT} ${width}`}
       />
-      <span aria-hidden="true" className={`text-sm text-secondary ${disabled ? 'opacity-40' : ''}`}>
+      <span aria-hidden="true" className={`${FORM_UNIT} ${disabled ? 'opacity-40' : ''}`}>
         {suffix}
       </span>
     </label>
@@ -392,7 +398,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={4}
         min={years.min}
         max={years.max}
-        width="w-[3.75rem]"
+        width="w-[3.25rem] min-w-[3rem] supports-[field-sizing:content]:w-auto"
         placeholder={String(years.max - 30)}
         autoComplete="bday-year"
       />
@@ -404,7 +410,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={12}
-        width="w-12"
+        width="w-[2.625rem] min-w-[1.75rem] supports-[field-sizing:content]:w-auto"
         placeholder="1~12"
         autoComplete="bday-month"
       />
@@ -416,7 +422,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={maxDay}
-        width="w-12"
+        width="w-[2.625rem] min-w-[1.75rem] supports-[field-sizing:content]:w-auto"
         placeholder={`1~${maxDay}`}
         autoComplete="bday-day"
       />
@@ -526,7 +532,7 @@ function TimeFields({
             digits={2}
             min={0}
             max={23}
-            width="w-12"
+            width="w-[2.625rem] min-w-[1.75rem] supports-[field-sizing:content]:w-auto"
             placeholder="0~23"
           />
           <NumberField
@@ -537,7 +543,7 @@ function TimeFields({
             digits={2}
             min={0}
             max={59}
-            width="w-12"
+            width="w-[2.625rem] min-w-[1.75rem] supports-[field-sizing:content]:w-auto"
             placeholder="0~59"
           />
         </DigitsRow>
@@ -597,19 +603,20 @@ export function BirthFields({
       묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 · 달력 · 시각) → 어디서(출생지). 계산 옵션은
       따로 떨어진 묶음이다(시안 n, ADR 0132).
     */
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <div className={GROUP}>
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col">
+        <div className={FORM_GROUP}>
           {showName && (
-            <label className={ROW}>
-              <span className={ROW_LABEL}>이름</span>
+            <label className={FORM_ROW_TEXT}>
+              <span className={FORM_LABEL}>이름</span>
               <input
                 type="text"
                 value={value.name}
                 onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
                 placeholder={namePlaceholder}
                 maxLength={NAME_MAX}
-                className="h-11 min-w-0 flex-1 bg-transparent text-right text-base text-foreground outline-none placeholder:text-muted"
+                // 적는 동안 글자와 커서가 물빛이다 — 줄의 다른 값(회색)과 갈려 지금 어디를 고치는지 보인다
+                className="-my-[11px] h-11 min-w-0 flex-1 bg-transparent text-right text-[17px] text-foreground caret-form-tint outline-none placeholder:text-muted focus:text-form-tint"
               />
             </label>
           )}
@@ -664,23 +671,27 @@ export function BirthFields({
           <p
             role={converted.ok ? undefined : 'alert'}
             // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
-            className={`px-4 text-xs ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
+            className={`${FORM_FOOTER} ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
           >
             {converted.text}
           </p>
         )}
       </div>
 
-      <div className={GROUP}>
+      <div className={FORM_GROUP}>
+        {/* 접힌 묶음 — iOS 의 펼침 줄처럼 옆 꺾쇠가 아래로 돈다. 펼친 동안 꺾쇠가 물빛이다 */}
         <button
           type="button"
           aria-expanded={advancedShown}
           onClick={() => setAdvanced(!advancedShown)}
-          className={`${ROW} w-full text-left active:bg-surface-sunken`}
+          className={`${FORM_ROW} active:bg-form-pressed`}
         >
-          <span className={ROW_LABEL}>고급 설정</span>
-          <span className="min-w-0 flex-1 truncate text-right text-[13px] text-secondary">자시 · 시간 기준 · 세운</span>
-          <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${advancedShown ? 'rotate-90' : 'rotate-0'}`} />
+          <span className={FORM_LABEL}>고급 설정</span>
+          <span className="min-w-0 flex-1 truncate text-right text-[15px] leading-[22px] text-secondary">자시 · 시간 기준 · 세운</span>
+          <Icon
+            name="chevron"
+            className={`-ml-1.5 size-[15px] stroke-[2.6] transition-transform ${advancedShown ? 'rotate-90 text-form-tint' : 'text-muted'}`}
+          />
         </button>
 
         {advancedShown && (
@@ -707,8 +718,9 @@ export function BirthFields({
               onPick={pick('basis')}
               options={TIME_BASES.map((basis) => ({ value: basis, label: TIME_BASIS[basis].label, hint: TIME_BASIS[basis].hint }))}
             />
-            <label className={ROW}>
-              <span className={ROW_LABEL}>세운 연도</span>
+            <label className={FORM_ROW_CAPSULE}>
+              <span className={FORM_LABEL}>세운 연도</span>
+              <span className={`ml-auto ${FORM_CAPSULE}`}>
               <input
                 type="number"
                 aria-label="세운 시작"
@@ -716,8 +728,9 @@ export function BirthFields({
                 min={SUPPORTED_YEAR_RANGE.min}
                 max={SUPPORTED_YEAR_RANGE.max}
                 onChange={(event) => set('saeunFrom', Number(event.target.value))}
-                className={`${DIGIT} ml-auto w-[4.5rem]`}
+                className={`${FORM_DIGIT} w-[3.25rem] min-w-[3rem] supports-[field-sizing:content]:w-auto [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
               />
+              </span>
             </label>
           </>
         )}

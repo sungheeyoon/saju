@@ -8,7 +8,7 @@ import { calculateChart } from '@/src/lib/input/chart';
 import { useHashParams, writeParams } from './hash-query';
 import { SavePersonForReading } from './save-for-reading';
 import { useSessionKnown, useSignedIn } from './signed-in';
-import { BUTTON_PRIMARY } from './ui/buttons';
+import { FORM_SHEET, FORM_SUBMIT } from './ui/form';
 import { SajuView, sajuViewModelOf, type SajuViewModel } from './saju/view';
 import { Taste } from './taste';
 import {
@@ -151,7 +151,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
           submit(form);
         }}
         // 로그인 전에는 첫 화면 종이의 아래 토막이다 — 머리(`home-hero.tsx`)와 한 장으로 선다(ADR 0132)
-        className={signedIn ? `${CARD} flex flex-col gap-5` : `${PAPER_BOTTOM} flex flex-col gap-3`}
+        className={signedIn ? `${FORM_SHEET} flex flex-col gap-6` : `${PAPER_BOTTOM} flex flex-col gap-4`}
       >
         <BirthFields value={form} onChange={setForm} />
 
@@ -159,7 +159,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
           <button
             type="submit"
             aria-describedby={tried && missing !== null ? 'natal-missing' : undefined}
-            className={`${BUTTON_PRIMARY} w-full ${signedIn ? 'sm:w-auto' : 'mt-1'}`}
+            className={`${FORM_SUBMIT} w-full ${signedIn ? 'sm:w-auto' : ''}`}
           >
             {/*
               **로그인 전에는 무엇이 무료인지 버튼이 말한다**(흐름 시안 g, ADR 0131) — 사주 · 오행 · 로그인 전 사주 문단은 로그인 없이
