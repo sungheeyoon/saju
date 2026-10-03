@@ -74,6 +74,15 @@
   --elevation-raise: 0 12px 28px -12px rgba(60, 48, 30, 0.5);
 
   /*
+    **입력 칸은 밑줄 한 줄이다**(폼 디자인 A · 밑줄 에디토리얼, `app/ui/fields.ts`). 상자도 채움도 없고, 칸이 칸임을
+    말하는 것은 이 선 하나라 `--border-strong`(0.22)보다 한 단 짙다 — 크림 종이 위에서 3:1 을 넘긴다(비텍스트 대비).
+    초점 · 펼침은 먹색 2px 로 두꺼워진다. 펼친 고르는 칸의 판은 종이에 아주 옅게 먹을 푼 면이다.
+  */
+  --field-rule: rgba(60, 48, 30, 0.42);
+  --field-rule-active: var(--foreground);
+  --field-wash: rgba(60, 48, 30, 0.045);
+
+  /*
     **본문 글꼴은 기기의 것이다**(ADR 0109 추기, 2026-09-30 운영자 결정). 웹 글꼴(Pretendard)을 싣지 않는다 —
     라틴 글자와 숫자는 시스템 서체가, 한글은 애플 산돌고딕 · Noto Sans KR · 맑은 고딕 가운데 기기에 있는 것이 그린다.
     제목의 둥근 서체(고운돋움)만 `next/font` 로 싣는다(`app/layout.tsx`).
@@ -132,6 +141,8 @@
     --elevation-soft: 0 2px 8px -4px rgba(0, 0, 0, 0.5);
     --elevation-lift: 0 8px 18px -10px rgba(0, 0, 0, 0.6);
     --elevation-raise: 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+    --field-rule: rgba(242, 236, 222, 0.4);
+    --field-wash: rgba(242, 236, 222, 0.06);
   }
 }
 
@@ -181,6 +192,11 @@
   --shadow-soft: var(--elevation-soft);
   --shadow-lift: var(--elevation-lift);
   --shadow-raise: var(--elevation-raise);
+  /* 입력 칸의 밑줄 — 그림자로 긋는다. 테두리로 그으면 초점에서 1 → 2px 로 두꺼워질 때 칸이 1px 밀린다 */
+  --shadow-rule: inset 0 -1px 0 var(--field-rule);
+  --shadow-rule-active: inset 0 -2px 0 var(--field-rule-active);
+  --shadow-rule-danger: inset 0 -2px 0 var(--danger);
+  --color-field-wash: var(--field-wash);
   --font-sans: var(--font-system);
   /* 제목 전용 둥근 서체 — 변수는 `app/layout.tsx` 의 `next/font` 가 `<html>` 에 싣는다 */
   --font-rounded: var(--font-gowun-dodum), var(--font-system);

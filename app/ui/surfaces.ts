@@ -26,7 +26,7 @@ export const PAPER = 'rounded-[2rem] bg-cream p-6 sm:p-8';
  */
 export const PAPER_TOP = 'rounded-t-[2rem] bg-cream';
 
-export const PAPER_BOTTOM = 'rounded-b-[2rem] bg-cream px-3 pb-5 sm:px-10 sm:pb-9';
+export const PAPER_BOTTOM = 'rounded-b-[2rem] bg-cream px-4 pb-7 sm:px-10 sm:pb-10';
 
 /**
  * 오행 타일 — `ELEMENT_TONE[x].scope`(또는 `elementScope`)와 함께 단다. 면이 그 오행의 파스텔이 되고 안의
