@@ -78,6 +78,13 @@
     라틴 글자와 숫자는 시스템 서체가, 한글은 애플 산돌고딕 · Noto Sans KR · 맑은 고딕 가운데 기기에 있는 것이 그린다.
     제목의 둥근 서체(고운돋움)만 `next/font` 로 싣는다(`app/layout.tsx`).
   */
+  /*
+    **입력 칸의 두 색**(폼 시안 E, `app/ui/fields.ts`) — 새 색을 짓지 않고 기존 토큰에서 섞는다. 밑줄은 한 단계 짙은 테 색,
+    자리표시는 흐린 글자의 55% — 값(먹색)과 자리표시가 한눈에 갈린다. 어두운 화면도 같은 식이라 따로 적지 않는다.
+  */
+  --field-line: var(--border-strong);
+  --field-placeholder: color-mix(in srgb, var(--text-muted) 55%, transparent);
+
   --font-system: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 }
 
@@ -292,6 +299,20 @@ button, a, summary {
 }
 @media (max-width: 640px) {
   .app-shell { width: min(100% - 2rem - var(--safe-inline), 72rem); }
+}
+/*
+  **폼의 주 단추는 폰에서 바닥에 붙는다**(`FORM_CTA`, 폼 시안 E) — 칸을 채우는 동안 엄지 자리에 늘 서 있다. `sticky` 라
+  폼이 화면에 있는 동안만 붙고, 폼을 지나면 폼 끝의 제자리로 돌아간다. 하단 독이 서면 독 위에 선다.
+*/
+@media (max-width: 639.98px) {
+  .form-cta {
+    position: sticky;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    z-index: 10;
+  }
+  body:has(#mobile-member-navigation) .form-cta {
+    bottom: calc(6.25rem + env(safe-area-inset-bottom));
+  }
 }
 /* 하단 독(`site-header.tsx`)이 서는 폭 — 떠 있는 판의 높이와 아래 틈만큼 본문 끝을 비운다 */
 @media (max-width: 767px) {
