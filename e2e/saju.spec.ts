@@ -317,6 +317,8 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
   await expect(refusal).toHaveCount(0);
   await show.click();
   await expect(refusal).toHaveText('생년월일을 입력해 주세요.');
+  // 막힌 칸으로 초점이 간다 — 폰에서는 자판이 그 칸에 붙는다
+  await expect(date).toBeFocused();
 
   // 아직 오지 않은 해는 거절한다 — 이유를 말하고 결과는 안 선다.
   const tooLate = BIRTH_YEAR_MAX + 1;

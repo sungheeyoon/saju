@@ -1,9 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 
-import { BirthFields } from '../birth-form';
+import { BirthFields, focusMissingField } from '../birth-form';
 import { BUTTON_PRIMARY } from '../ui/buttons';
 import { ElementSymbol } from '../ui/element-symbol';
 import { PAPER, TYPE_TITLE } from '../ui/surfaces';
@@ -31,7 +31,20 @@ export function Onboarding({ nickname }: { nickname: string }) {
 
   const missing = missingAnswer(query);
 
+  /**
+   * **눌러 본 적이 있는가** — 첫 화면 계산기와 같은 규율이다(`saju-calculator.tsx` 의 `tried`). 잠근 단추 옆에 「생년월일을
+   * 입력해 주세요.」가 늘 서 있었다 — 아직 아무것도 안 한 사람에게 하는 말이었고, 잠긴 단추는 초점도 안 받았다. 이제
+   * 누르게 두고, 막히면 그 까닭을 단추 곁에 세우고 고칠 칸으로 초점을 옮긴다.
+   */
+  const [tried, setTried] = useState(false);
+  const form = useRef<HTMLElement>(null);
+
   const save = () => {
+    if (missing !== null) {
+      setTried(true);
+      focusMissingField(form.current, query);
+      return;
+    }
     setFailure(null);
     startSaving(async () => {
       const result = await saveSelfPerson(query);
@@ -41,7 +54,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
   };
 
   return (
-    <section className={`${PAPER} flex flex-col gap-6`}>
+    <section ref={form} className={`${PAPER} flex flex-col gap-6`}>
       <span aria-hidden="true" className="flex gap-2">
         {ELEMENTS.map((element) => (
           <ElementSymbol key={element} element={element} className="size-10 rounded-full bg-[var(--tile)] p-2 sm:size-12" />
@@ -55,14 +68,24 @@ export function Onboarding({ nickname }: { nickname: string }) {
         </p>
       </header>
 
-      <BirthFields value={query} onChange={setQuery} showName={false} />
+      <BirthFields value={query} onChange={setQuery} showName={false} tried={tried} />
 
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          aria-describedby={tried && missing !== null ? 'onboarding-missing' : undefined}
+          className={BUTTON_PRIMARY}
+        >
           {saving ? '저장하는 중…' : '내 사주로 저장'}
         </button>
-        {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-        {missing !== null && <span className="text-[13px] text-secondary">{missing}</span>}
+        {/* 눌렀는데 못 간 이유를 단추 곁에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
+        {tried && missing !== null && (
+          <p id="onboarding-missing" role="alert" className="text-sm font-medium text-danger">
+            {missing}
+          </p>
+        )}
       </div>
 
       {failure !== null && <p role="alert" className="text-sm text-danger">저장하지 못했어요. {failure}</p>}

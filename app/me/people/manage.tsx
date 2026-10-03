@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 
 import type { PersonSlots } from '@/src/lib/people';
 
-import { BirthFields } from '../../birth-form';
+import { BirthFields, focusMissingField } from '../../birth-form';
 import { DEFAULT_QUERY, missingAnswer, type Query } from '@/src/lib/input/query';
 import { NOTE_MAX } from '@/src/lib/input/edit';
 import { useHashParams } from '../../hash-query';
@@ -92,6 +92,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
     if (result.ok) {
       setQuery({ ...DEFAULT_QUERY, name: '' });
       setNote('');
+      setTried(false);
       setOpen(false);
       router.refresh();
       return { done: true };
@@ -113,7 +114,15 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
 
   const settle = (outcome: SaveOutcome) => settleSaveOutcome(outcome, setFailure, setQuestion);
 
+  /** 눌러 본 적이 있는가 — 막히면 까닭을 단추 곁에, 초점은 고칠 칸에(`onboarding.tsx` 와 같은 규율) */
+  const [tried, setTried] = useState(false);
+
   const save = () => {
+    if (missing !== null) {
+      setTried(true);
+      focusMissingField(form.current, query);
+      return;
+    }
     setFailure(null);
     startSaving(async () => settle(await attempt(false)));
   };
@@ -163,7 +172,7 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
         </p>
       </header>
 
-      <BirthFields value={query} onChange={setQuery} namePlaceholder="엄마" />
+      <BirthFields value={query} onChange={setQuery} namePlaceholder="엄마" tried={tried} />
 
       <NoteField value={note} onChange={setNote} idPrefix="add" />
 
@@ -183,15 +192,25 @@ export function AddPerson({ slots }: { slots: PersonSlots | null }) {
       ) : (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              aria-describedby={tried && missing !== null ? 'add-missing' : undefined}
+              className={BUTTON_PRIMARY}
+            >
               {saving ? '저장하는 중…' : '등록'}
             </button>
             <button type="button" onClick={() => setOpen(false)} disabled={saving} className={BUTTON_TERTIARY}>
               취소
             </button>
           </div>
-          {/* 버튼을 잠근 이유를 그대로 말한다 — 잠긴 버튼만 있으면 왜인지 알 수 없다 */}
-          {missing !== null && <p className={TYPE_META}>{missing}</p>}
+          {/* 눌렀는데 못 간 이유를 단추 곁에서 말한다 — 누르기 전에는 이 자리가 비어 있다 */}
+          {tried && missing !== null && (
+            <p id="add-missing" role="alert" className="text-sm font-medium text-danger">
+              {missing}
+            </p>
+          )}
         </div>
       )}
 
