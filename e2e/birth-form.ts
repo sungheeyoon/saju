@@ -55,8 +55,12 @@ export async function expectBirthDate(scope: Scope, date: string): Promise<void>
  * 누른 뒤 라디오가 켜져 있는지 다시 보는데, 그때 라디오는 이미 떼어졌다.
  */
 export async function pickRow(scope: Scope, row: string, option: string): Promise<void> {
-  await scope.getByRole('button', { name: new RegExp(`^${row} `) }).click();
-  await scope.getByRole('radio', { name: option, exact: true }).click();
+  const radio = scope.getByRole('radio', { name: option, exact: true });
+  // 비로그인 홈은 선택지가 처음부터 보이고, 다른 화면은 펼침 줄이다.
+  if (!(await radio.isVisible())) {
+    await scope.getByRole('button', { name: new RegExp(`^${row} `) }).click();
+  }
+  await radio.click();
 }
 
 /**

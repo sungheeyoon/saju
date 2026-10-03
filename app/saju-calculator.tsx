@@ -153,7 +153,7 @@ export function SajuCalculator({ outline }: { outline: readonly string[] }) {
         // 로그인 전에는 첫 화면 종이의 아래 토막이다 — 머리(`home-hero.tsx`)와 한 장으로 선다(ADR 0132)
         className={signedIn ? `${CARD} flex flex-col gap-5` : `${PAPER_BOTTOM} flex flex-col gap-3`}
       >
-        <BirthFields value={form} onChange={setForm} />
+        <BirthFields value={form} onChange={setForm} presentation={signedIn ? 'list' : 'guest'} />
 
         <div className="flex flex-wrap items-center gap-3">
           <button
