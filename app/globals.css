@@ -78,6 +78,22 @@
     라틴 글자와 숫자는 시스템 서체가, 한글은 애플 산돌고딕 · Noto Sans KR · 맑은 고딕 가운데 기기에 있는 것이 그린다.
     제목의 둥근 서체(고운돋움)만 `next/font` 로 싣는다(`app/layout.tsx`).
   */
+  /*
+    **입력 폼 한 벌**(폼 디자인 G, iOS inset grouped) — 새 색을 짓지 않고 위의 토큰을 다시 부른다. 앱 전체 색은 그대로다.
+    - 바탕(`--form-canvas`) 위에 칸 묶음(`--form-cell`)이 한 단 떠 선다 — iOS 의 grouped background 와 secondary 칸의 두 단.
+    - 줄 사이 선은 0.5px 헤어라인이라 옅은 `--border`(10%) 로는 안 보인다 — 한 단 짙은 `--border-strong`(22%).
+    - 숫자 캡슐의 채움은 트랙(9%) — iOS tertiary fill 의 자리.
+    - **편집 중의 강조(`--form-tint`)는 먹색이 아니다.** 먹색은 「누르라」(주 단추)이고 글자색과 같아, 펼친 값 · 고른 체크 ·
+      적는 칸이 먹색이면 지금 어디를 고치는지가 안 보인다. 물의 진한 글자색을 빌린다(흰 칸 위 7.9:1, 어두운 칸 위 9:1 이상).
+  */
+  --form-canvas: var(--surface-soft);
+  --form-cell: var(--surface-raised);
+  --form-separator: var(--border-strong);
+  --form-fill: var(--track);
+  --form-pressed: color-mix(in srgb, var(--foreground) 7%, transparent);
+  --form-tint: var(--water);
+  --form-tint-wash: color-mix(in srgb, var(--water) 11%, transparent);
+
   --font-system: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 }
 
@@ -132,6 +148,11 @@
     --elevation-soft: 0 2px 8px -4px rgba(0, 0, 0, 0.5);
     --elevation-lift: 0 8px 18px -10px rgba(0, 0, 0, 0.6);
     --elevation-raise: 0 12px 28px -12px rgba(0, 0, 0, 0.55);
+    /* 어두운 화면의 계조 — 바탕은 가장 깊게, 칸은 크림 판(--cream) 위에서도 한 단 밝게 선다 */
+    --form-canvas: var(--surface-sunken);
+    --form-cell: color-mix(in srgb, var(--surface-raised) 94%, var(--foreground));
+    --form-pressed: color-mix(in srgb, var(--foreground) 10%, transparent);
+    --form-tint-wash: color-mix(in srgb, var(--water) 18%, transparent);
   }
 }
 
@@ -176,6 +197,13 @@
   --color-cream-ink: var(--cream-ink);
   --color-badge: var(--badge);
   --color-on-badge: var(--on-badge);
+  --color-form-canvas: var(--form-canvas);
+  --color-form-cell: var(--form-cell);
+  --color-form-separator: var(--form-separator);
+  --color-form-fill: var(--form-fill);
+  --color-form-pressed: var(--form-pressed);
+  --color-form-tint: var(--form-tint);
+  --color-form-tint-wash: var(--form-tint-wash);
   --shadow-card: var(--elevation-card);
   --shadow-float: var(--elevation-float);
   --shadow-soft: var(--elevation-soft);

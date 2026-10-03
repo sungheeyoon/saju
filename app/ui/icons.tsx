@@ -44,6 +44,7 @@ export type IconName =
   | 'note'
   | 'remove'
   | 'check'
+  | 'updown'
   | 'link';
 
 const PATHS: Record<IconName, React.ReactNode> = {
@@ -144,6 +145,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   check: <path d="M5 12.4 10 17l9-10" />,
+  /** 위아래 꺾쇠 — 그 자리에서 펼쳐 고르는 줄(입력 폼의 성별 · 달력 · 출생지). 옆으로 가는 꺾쇠는 다른 화면으로 넘어간다는 뜻이라 따로 둔다 */
+  updown: <path d="m7.5 9.5 4.5-4.5 4.5 4.5M7.5 14.5l4.5 4.5 4.5-4.5" />,
   link: <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2" />,
 };
 
