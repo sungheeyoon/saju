@@ -26,7 +26,15 @@ import {
   type Query,
 } from '@/src/lib/input/query';
 
-import { Icon } from './ui/icons';
+import {
+  FORM_SKY,
+  GLASS_DIGIT,
+  GLASS_FIELD,
+  GLASS_LABEL,
+  GLASS_PANEL,
+  GLASS_UNIT,
+  GLASS_VALUE,
+} from './ui/glass';
 
 /**
  * 생년월일시 입력 한 벌.
@@ -50,23 +58,16 @@ import { Icon } from './ui/icons';
  */
 
 /**
- * 폼은 **설정 앱의 묶음 목록**이다(입력 폼 시안 n 「설정 목록」, ADR 0132).
+ * 폼은 **밤하늘 위의 유리 판**이다(폼 디자인 시안 H, 2026-10-03 — `app/ui/glass.ts`).
  *
- * 흰 둥근 묶음 안에 줄마다 왼쪽 이름 · 오른쪽 값. 칸 위에 제목을 세우고 그 아래 칸을 두던 동안에는 모양이 네 벌
- * (네모 칸 · 세그먼트 · 네모 셀렉트 · 라디오)이었다 — 줄 하나에 이름과 값이 함께 서면 비어 있어도 무슨 칸인지
- * 늘 보이고, 고르는 칸은 그 자리에서 펼쳐져 화면을 떠나지 않는다.
- *
- * 줄 사이 선은 왼쪽 16px 을 들여 긋는다(묶음 `pl-4`, 줄 `pr-4`) — 한 묶음으로 읽힌다.
+ * 칸의 차례와 고르는 칸이 그 자리에서 펼쳐지는 것은 묶음 목록(시안 n, ADR 0132) 그대로다. 모양만 바뀌었다 — 줄마다 왼쪽
+ * 이름 · 오른쪽 값이던 것이 **칸마다 이름표가 위, 값이 아래**인 유리 칸이 되고, 짧은 칸 둘(이름 · 성별, 달력 · 출생 시각)은
+ * 한 줄에 나란히 선다. 펼친 목록은 그 줄 아래 한 줄 전체를 쓴다(`glass-sheet`).
  */
-const GROUP = 'overflow-hidden rounded-2xl bg-surface pl-4 shadow-card divide-y divide-border';
+const PANEL = GLASS_PANEL;
 
-/** 줄 — 높이 48px. 이름은 왼쪽, 값은 오른쪽 */
-const ROW = 'flex min-h-12 items-center gap-3 pr-4';
-const ROW_LABEL = 'shrink-0 text-[15px] text-foreground';
-
-/** 줄 안 오른쪽 숫자 칸 — 움푹한 작은 칸, 오른쪽 정렬 */
-const DIGIT =
-  'h-11 min-w-0 rounded-lg bg-surface-sunken px-1.5 text-right text-base tabular-nums text-foreground outline-none placeholder:text-sm placeholder:text-muted focus:ring-2 focus:ring-accent-soft disabled:cursor-not-allowed disabled:opacity-40';
+/** 칸이 한 줄 전체를 쓰는가 — 판은 두 열 격자다 */
+const FULL = 'col-span-2';
 
 const CITIES = Object.keys(CITY_LONGITUDES) as CityName[];
 
@@ -93,10 +94,13 @@ function PickRow<T extends string>({
   onToggle,
   onPick,
   disabled = false,
+  half = false,
 }: {
   label: string;
   /** 낭독기가 부르는 묶음 이름 — 보이는 이름이 짧을 때(「달력」 → 「달력 기준」) */
   name?: string;
+  /** 판의 반 줄에 서는가 — 짧은 값 둘이 나란히 설 때 */
+  half?: boolean;
   options: readonly Option<T>[];
   /** 빈 문자열이면 아직 안 골랐다 — 값 자리에 「–」가 선다 */
   value: T | '';
@@ -115,7 +119,8 @@ function PickRow<T extends string>({
   };
 
   return (
-    <div>
+    // 줄과 펼친 목록이 판의 격자에 따로 선다 — 목록은 반 줄 칸 아래에서도 한 줄 전체를 쓴다
+    <div className="contents">
       <button
         ref={toggle}
         type="button"
@@ -123,24 +128,21 @@ function PickRow<T extends string>({
         aria-controls={id}
         disabled={disabled}
         onClick={onToggle}
-        className={`${ROW} w-full text-left active:bg-surface-sunken disabled:cursor-not-allowed disabled:opacity-40`}
+        className={`${GLASS_FIELD} ${half ? '' : FULL} pr-11`}
       >
-        <span className={ROW_LABEL}>{label}</span>
-        <span className={`min-w-0 flex-1 truncate text-right text-[15px] ${open ? 'text-foreground' : 'text-secondary'}`}>
+        <span className={GLASS_LABEL}>{label}</span>
+        <span className={`${GLASS_VALUE} truncate`} data-empty={current === undefined || undefined}>
           {current?.label ?? '–'}
         </span>
-        <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${open ? '-rotate-90' : 'rotate-90'}`} />
+        <span aria-hidden="true" className="glass-orb" />
       </button>
 
       {open && (
-        <div id={id} role="radiogroup" aria-label={name} className="mb-2 mr-4 overflow-hidden rounded-xl bg-surface-sunken">
+        <div id={id} role="radiogroup" aria-label={name} className="glass-sheet">
           {options.map((option) => {
             const checked = option.value === value;
             return (
-              <label
-                key={option.value}
-                className="relative flex min-h-12 cursor-pointer items-center gap-2 border-t border-border px-3 first:border-t-0 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-accent-soft"
-              >
+              <label key={option.value} className="glass-option">
                 <input
                   type="radio"
                   name={id}
@@ -159,9 +161,9 @@ function PickRow<T extends string>({
                   }}
                   className="absolute inset-0 cursor-pointer appearance-none opacity-0"
                 />
-                <span className={`text-[15px] text-foreground ${checked ? 'font-semibold' : ''}`}>{option.label}</span>
-                {option.hint && <span className="text-[13px] text-secondary">{option.hint}</span>}
-                <span className="ml-auto">{checked && <Icon name="check" className="size-4 stroke-3 text-foreground" />}</span>
+                <span aria-hidden="true" className="glass-radio" data-checked={checked || undefined} />
+                <span className={`text-base text-foreground ${checked ? 'font-semibold' : ''}`}>{option.label}</span>
+                {option.hint && <span className="ml-auto text-[13px] tracking-[0.02em] text-secondary">{option.hint}</span>}
               </label>
             );
           })}
@@ -172,18 +174,18 @@ function PickRow<T extends string>({
 }
 
 /**
- * 숫자 칸이 오른쪽에 서는 줄. **좁으면 칸들이 이름 아래로 꺾인다**(`flex-wrap`) — 폰 360px 의 로그인 뒤 카드 안에서
- * 「생년월일」과 칸 셋 · 단위가 한 줄에 안 들었다(2026-09-29 잼).
+ * 숫자 칸이 선 칸 — 이름표가 위, 숫자와 단위가 그 아래 한 줄. 판의 한 줄 전체를 쓴다. 숫자는 26px 이라 폰 360px 의
+ * 로그인 뒤 카드 안에서도 년 · 월 · 일이 한 줄에 든다(칸 셋 + 단위 셋 ≈ 240px).
  */
 function DigitsRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   const id = useId();
   return (
-    <div role="group" aria-labelledby={id} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 py-1 pr-4">
-      <span id={id} className="flex shrink-0 flex-col text-[15px] leading-5 text-foreground">
+    <div role="group" aria-labelledby={id} className={`${GLASS_FIELD} ${FULL} pb-2`}>
+      <span id={id} className={GLASS_LABEL}>
         {label}
-        {hint && <span className="text-xs text-secondary">{hint}</span>}
+        {hint && <span className="glass-hint">{hint}</span>}
       </span>
-      <div className="ml-auto flex min-w-0 items-center justify-end gap-2">{children}</div>
+      <div className="glass-digits flex min-w-0 flex-wrap items-baseline">{children}</div>
     </div>
   );
 }
@@ -306,7 +308,7 @@ function NumberField({
   const outOfRange = settled && (Number(value) < min || Number(value) > max);
 
   return (
-    <label className="flex shrink-0 items-center gap-1">
+    <label className="flex shrink-0 items-baseline">
       <input
         type="text"
         inputMode="numeric"
@@ -317,11 +319,10 @@ function NumberField({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, digits))}
-        // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `DIGIT` 의 바탕과
-        // 같은 무게라 어느 쪽이 이길지 정해지지 않는다. 변종 셀렉터는 한 겹 더 무겁다.
-        className={`${DIGIT} ${width} aria-invalid:bg-danger-wash aria-invalid:text-danger aria-invalid:ring-2 aria-invalid:ring-danger`}
+        // 범위 밖은 `aria-invalid` 하나로 말한다 — 숫자와 아래 금이 붉어지고, 칸(`glass-field`)이 붉은 빛을 두른다
+        className={`${GLASS_DIGIT} ${width}`}
       />
-      <span aria-hidden="true" className={`text-sm text-secondary ${disabled ? 'opacity-40' : ''}`}>
+      <span aria-hidden="true" className={GLASS_UNIT}>
         {suffix}
       </span>
     </label>
@@ -392,7 +393,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={4}
         min={years.min}
         max={years.max}
-        width="w-[3.75rem]"
+        width="w-[2.75em]"
         placeholder={String(years.max - 30)}
         autoComplete="bday-year"
       />
@@ -404,7 +405,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={12}
-        width="w-12"
+        width="w-[1.7em]"
         placeholder="1~12"
         autoComplete="bday-month"
       />
@@ -416,7 +417,7 @@ function DateFields({ value, onDate }: { value: Query; onDate: (date: string) =>
         digits={2}
         min={1}
         max={maxDay}
-        width="w-12"
+        width="w-[1.7em]"
         placeholder={`1~${maxDay}`}
         autoComplete="bday-day"
       />
@@ -505,6 +506,7 @@ function TimeFields({
         value={value.hourKnown === null ? '' : value.hourKnown ? 'known' : 'unknown'}
         open={open}
         onToggle={onToggle}
+        half
         onPick={(next) => choose(next === 'known')}
         options={[
           { value: 'known', label: '직접 입력' },
@@ -526,7 +528,7 @@ function TimeFields({
             digits={2}
             min={0}
             max={23}
-            width="w-12"
+            width="w-[1.7em]"
             placeholder="0~23"
           />
           <NumberField
@@ -537,7 +539,7 @@ function TimeFields({
             digits={2}
             min={0}
             max={59}
-            width="w-12"
+            width="w-[1.7em]"
             placeholder="0~59"
           />
         </DigitsRow>
@@ -551,6 +553,7 @@ export function BirthFields({
   onChange,
   namePlaceholder,
   showName = true,
+  footer,
 }: {
   value: Query;
   onChange: (next: Query) => void;
@@ -558,6 +561,8 @@ export function BirthFields({
   namePlaceholder?: string;
   /** 본인은 계정 닉네임으로 부르므로 출생 정보에서 이름을 다시 묻지 않는다 */
   showName?: boolean;
+  /** 하늘 안 맨 아래에 세울 것 — 쓰는 화면의 제출 단추 줄. 없으면 하늘이 판에서 끝난다 */
+  footer?: React.ReactNode;
 }) {
   const set = <K extends keyof Query>(key: K, next: Query[K]) => onChange({ ...value, [key]: next });
 
@@ -597,19 +602,20 @@ export function BirthFields({
       묻는 것을 성질끼리 모은다: 누구인가(이름 · 성별) → 언제(생년월일 · 달력 · 시각) → 어디서(출생지). 계산 옵션은
       따로 떨어진 묶음이다(시안 n, ADR 0132).
     */
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <div className={GROUP}>
+    <div className={FORM_SKY}>
+      <Constellation />
+      <div className="flex flex-col gap-2">
+        <div className={PANEL}>
           {showName && (
-            <label className={ROW}>
-              <span className={ROW_LABEL}>이름</span>
+            <label className={GLASS_FIELD}>
+              <span className={GLASS_LABEL}>이름</span>
               <input
                 type="text"
                 value={value.name}
                 onChange={(event) => set('name', event.target.value.slice(0, NAME_MAX))}
                 placeholder={namePlaceholder}
                 maxLength={NAME_MAX}
-                className="h-11 min-w-0 flex-1 bg-transparent text-right text-base text-foreground outline-none placeholder:text-muted"
+                className={`${GLASS_VALUE} h-7 w-full bg-transparent outline-none`}
               />
             </label>
           )}
@@ -620,6 +626,7 @@ export function BirthFields({
             open={open === 'gender'}
             onToggle={toggle('gender')}
             onPick={pick('gender')}
+            half={showName}
             options={GENDERS.map((gender) => ({ value: gender, label: GENDER_KO[gender] }))}
           />
 
@@ -635,6 +642,7 @@ export function BirthFields({
             value={value.calendar}
             open={open === 'calendar'}
             onToggle={toggle('calendar')}
+            half
             onPick={chooseCalendar}
             options={CALENDARS.map((calendar) => ({ value: calendar, label: CALENDAR_KO[calendar] }))}
           />
@@ -664,27 +672,27 @@ export function BirthFields({
           <p
             role={converted.ok ? undefined : 'alert'}
             // 색으로만 가르지 않는다 — 못 바꾼 줄은 문장 자체가 이유를 말한다.
-            className={`px-4 text-xs ${converted.ok ? 'text-secondary' : 'font-medium text-danger'}`}
+            className={`glass-note ${converted.ok ? '' : 'font-medium text-danger'}`}
           >
             {converted.text}
           </p>
         )}
       </div>
 
-      <div className={GROUP}>
+      <div className="flex flex-col gap-2">
         <button
           type="button"
           aria-expanded={advancedShown}
           onClick={() => setAdvanced(!advancedShown)}
-          className={`${ROW} w-full text-left active:bg-surface-sunken`}
+          className="glass-strip"
         >
-          <span className={ROW_LABEL}>고급 설정</span>
-          <span className="min-w-0 flex-1 truncate text-right text-[13px] text-secondary">자시 · 시간 기준 · 세운</span>
-          <Icon name="chevron" className={`size-4 stroke-[2.6] text-muted transition-transform ${advancedShown ? 'rotate-90' : 'rotate-0'}`} />
+          <span className={GLASS_LABEL}>고급 설정</span>
+          <span className="min-w-0 flex-1 truncate text-right text-[13px] tracking-[0.02em] text-secondary">자시 · 시간 기준 · 세운</span>
+          <span aria-hidden="true" className="glass-orb" />
         </button>
 
         {advancedShown && (
-          <>
+          <div className={PANEL}>
             {/* 시간을 모르면 자시 경계에 걸릴 일이 없어 선택이 무의미하다 */}
             <PickRow
               label="자시"
@@ -707,23 +715,58 @@ export function BirthFields({
               onPick={pick('basis')}
               options={TIME_BASES.map((basis) => ({ value: basis, label: TIME_BASIS[basis].label, hint: TIME_BASIS[basis].hint }))}
             />
-            <label className={ROW}>
-              <span className={ROW_LABEL}>세운 연도</span>
-              <input
-                type="number"
-                aria-label="세운 시작"
-                value={value.saeunFrom}
-                min={SUPPORTED_YEAR_RANGE.min}
-                max={SUPPORTED_YEAR_RANGE.max}
-                onChange={(event) => set('saeunFrom', Number(event.target.value))}
-                className={`${DIGIT} ml-auto w-[4.5rem]`}
-              />
+            <label className={`${GLASS_FIELD} ${FULL} pb-2`}>
+              <span className={GLASS_LABEL}>세운 연도</span>
+              <span className="flex items-baseline">
+                <input
+                  type="number"
+                  aria-label="세운 시작"
+                  value={value.saeunFrom}
+                  min={SUPPORTED_YEAR_RANGE.min}
+                  max={SUPPORTED_YEAR_RANGE.max}
+                  onChange={(event) => set('saeunFrom', Number(event.target.value))}
+                  className={`${GLASS_DIGIT} w-[3.4em]`}
+                />
+              </span>
             </label>
-          </>
+          </div>
         )}
       </div>
+
+      {/* 쓰는 화면의 단추 줄 — 하늘 안 맨 아래에 선다. 단추의 자리와 문구는 쓰는 화면이 정한다(위 머리말) */}
+      {footer}
     </div>
   );
 }
 
 type RowKey = 'gender' | 'calendar' | 'time' | 'city' | 'rule' | 'basis';
+
+/** 별자리 한 줄 — 하늘 맨 위, 오행 다섯 별이 상생 차례(木 → 火 → 土 → 金 → 水)로 이어진다. 그림이라 안 읽힌다 */
+const STARS = [
+  { x: 6, y: 11, tone: '--wood-mid' },
+  { x: 30, y: 4, tone: '--fire-mid' },
+  { x: 56, y: 9, tone: '--earth-mid' },
+  { x: 82, y: 3, tone: '--metal-mid' },
+  { x: 106, y: 10, tone: '--water-mid' },
+] as const;
+
+function Constellation() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 112 14" className="mx-auto -mb-1 mt-0.5 h-3.5 w-28 overflow-visible">
+      <polyline
+        points={STARS.map((star) => `${star.x},${star.y}`).join(' ')}
+        fill="none"
+        stroke="var(--sky-orbit)"
+        strokeWidth="0.8"
+        strokeDasharray="1.5 2.5"
+        vectorEffect="non-scaling-stroke"
+      />
+      {STARS.map((star) => (
+        <g key={star.tone}>
+          <circle cx={star.x} cy={star.y} r="3.4" fill={`var(${star.tone})`} opacity="0.35" />
+          <circle cx={star.x} cy={star.y} r="1.7" fill={`var(${star.tone})`} />
+        </g>
+      ))}
+    </svg>
+  );
+}

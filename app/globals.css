@@ -320,3 +320,400 @@ button, a, summary {
 @media (max-width: 767.98px) {
   html:has([data-deck-fit]) main:has([data-deck-fit]) { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
 }
+
+/*
+  **입력 폼의 유리 — 밤하늘 위의 반투명 판**(폼 디자인 시안 H, 2026-10-03).
+
+  폼 둘레 안에서만 선다 — 앱 전체의 색 · 서체 토큰은 그대로 두고, 폼이 쓰는 이름만 여기 더한다. 하늘의 빛은 새 색을 짓지
+  않고 오행의 속(`--wood-mid` …)을 옅게 깐다. 어두운 하늘의 바탕 한 벌(`--sky-base`)만 새 값이다. 부품 이름은
+  `app/ui/glass.ts` 가 든다.
+*/
+:root {
+  --sky-base: color-mix(in srgb, var(--water-soft) 60%, var(--metal-soft));
+  --sky-strength: 80%;
+  --sky-star: rgba(255, 255, 255, 0.95);
+  --sky-orbit: rgba(42, 85, 117, 0.45);
+  --glass-panel: rgba(255, 255, 255, 0.3);
+  --glass-field: rgba(255, 255, 255, 0.46);
+  --glass-field-hover: rgba(255, 255, 255, 0.62);
+  --glass-field-focus: rgba(255, 255, 255, 0.86);
+  --glass-edge: rgba(255, 255, 255, 0.82);
+  --glass-line: rgba(60, 48, 30, 0.16);
+  --glass-highlight: rgba(255, 255, 255, 0.95);
+  --glass-shadow: rgba(42, 85, 117, 0.22);
+  --glass-focus: var(--water);
+  --glass-glow: color-mix(in srgb, var(--water-mid) 70%, transparent);
+  --glass-danger-glow: color-mix(in srgb, var(--fire-mid) 60%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sky-base: #13121b;
+    --sky-strength: 46%;
+    --sky-star: rgba(255, 255, 255, 0.7);
+    --sky-orbit: rgba(255, 255, 255, 0.4);
+    --glass-panel: rgba(36, 34, 48, 0.5);
+    --glass-field: rgba(255, 255, 255, 0.055);
+    --glass-field-hover: rgba(255, 255, 255, 0.085);
+    --glass-field-focus: rgba(255, 255, 255, 0.11);
+    --glass-edge: rgba(255, 255, 255, 0.13);
+    --glass-line: rgba(255, 255, 255, 0.16);
+    --glass-highlight: rgba(255, 255, 255, 0.1);
+    --glass-shadow: rgba(0, 0, 0, 0.55);
+    --glass-glow: color-mix(in srgb, var(--water-mid) 55%, transparent);
+    --glass-danger-glow: color-mix(in srgb, var(--fire-mid) 50%, transparent);
+  }
+}
+
+@layer components {
+  /* 하늘 — 오행 다섯 빛이 네 귀퉁이와 가운데에서 번지고, 별 · 궤도가 그 위에 옅게 선다. 판(유리)은 이 안에 뜬다 */
+  .form-sky {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-radius: 1.75rem;
+    padding: 0.625rem 0.625rem 0.875rem;
+    background:
+      radial-gradient(75% 55% at 4% -6%, color-mix(in srgb, var(--water-mid) var(--sky-strength), transparent), transparent 74%),
+      radial-gradient(60% 50% at 106% 20%, color-mix(in srgb, var(--fire-mid) calc(var(--sky-strength) * 0.8), transparent), transparent 72%),
+      radial-gradient(65% 50% at -6% 98%, color-mix(in srgb, var(--wood-mid) calc(var(--sky-strength) * 0.9), transparent), transparent 72%),
+      radial-gradient(62% 46% at 102% 104%, color-mix(in srgb, var(--earth-mid) calc(var(--sky-strength) * 0.9), transparent), transparent 72%),
+      radial-gradient(50% 36% at 50% 52%, color-mix(in srgb, var(--metal-mid) calc(var(--sky-strength) * 0.6), transparent), transparent 80%),
+      var(--sky-base);
+    box-shadow: inset 0 0 0 1px var(--glass-edge);
+  }
+  @media (min-width: 640px) {
+    .form-sky { gap: 1rem; padding: 1rem 1rem 1.25rem; }
+  }
+  /* 별 — 점 열넷. 그림이라 아무것도 안 읽힌다 */
+  .form-sky::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+      radial-gradient(1.4px 1.4px at 8% 12%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1px 1px at 22% 4%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1.6px 1.6px at 37% 9%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1px 1px at 63% 3%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1.2px 1.2px at 81% 8%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1.8px 1.8px at 94% 15%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1px 1px at 3% 46%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1.2px 1.2px at 98% 52%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1px 1px at 5% 78%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 97% 82%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1px 1px at 18% 97%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1.3px 1.3px at 46% 99%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1px 1px at 71% 96%, var(--sky-star) 50%, transparent 51%),
+      radial-gradient(1.6px 1.6px at 88% 98%, var(--sky-star) 50%, transparent 51%);
+    animation: sky-twinkle 7s ease-in-out infinite alternate;
+  }
+  /* 판 — 하늘 위의 유리 한 장. 위 테두리에 빛 한 줄(안쪽 하이라이트). 칸은 두 열 격자에 선다 */
+  .glass-panel {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+    align-items: start;
+    gap: 0.625rem;
+    border-radius: 1.375rem;
+    padding: 0.75rem 0.75rem 0.875rem;
+    background: var(--glass-panel);
+    border: 1px solid var(--glass-edge);
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 22px 44px -26px var(--glass-shadow);
+    -webkit-backdrop-filter: blur(22px) saturate(1.5);
+    backdrop-filter: blur(22px) saturate(1.5);
+  }
+  @media (min-width: 640px) {
+    .glass-panel { gap: 0.75rem; padding: 1rem 1rem 1.125rem; }
+  }
+
+  /*
+    칸 — 판 안의 더 옅은 유리. **위아래 · 좌우 여백이 다르다**: 이름표가 위에 붙도록 위 10px, 값이 숨 쉬도록 아래 12px,
+    글자가 가장자리에서 떨어지도록 좌우 18px. 높이는 이름표 한 줄 + 값 한 줄로 68px.
+  */
+  .glass-field {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 4.25rem;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.125rem;
+    border-radius: 1rem;
+    padding: 0.625rem 1.125rem 0.75rem;
+    background: var(--glass-field);
+    border: 1px solid var(--glass-edge);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+    text-align: left;
+    transition: background-color 180ms ease, border-color 180ms ease, box-shadow 220ms ease;
+  }
+  .glass-field:hover { background: var(--glass-field-hover); }
+  .glass-field:focus-within,
+  .glass-field[aria-expanded='true'] {
+    background: var(--glass-field-focus);
+    border-color: var(--glass-focus);
+    box-shadow: 0 0 0 1px var(--glass-focus), 0 0 26px 2px var(--glass-glow), inset 0 1px 0 var(--glass-highlight);
+  }
+  .glass-field:has([aria-invalid='true']) {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 1px var(--danger), 0 0 24px 1px var(--glass-danger-glow);
+  }
+  .glass-field:disabled,
+  .glass-field:has(input:disabled) { opacity: 0.45; cursor: not-allowed; }
+  .glass-field:disabled:hover { background: var(--glass-field); }
+
+  /* 이름표 — 가늘고 넓은 자간. 12px 은 이 앱의 보조 글자 아래 한계다 */
+  .glass-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1rem;
+    letter-spacing: 0.16em;
+    color: var(--text-secondary);
+  }
+  .glass-hint { margin-left: 0.5rem; letter-spacing: 0.04em; color: var(--text-muted); }
+
+  /* 값 — 고른 것 · 적은 이름 */
+  .glass-value {
+    min-width: 0;
+    font-size: 1.0625rem;
+    font-weight: 500;
+    line-height: 1.75rem;
+    letter-spacing: -0.005em;
+    color: var(--foreground);
+  }
+  .glass-value[data-empty] { font-weight: 400; color: var(--text-muted); }
+  .glass-value::placeholder { font-weight: 400; color: var(--text-muted); }
+
+  /* 숫자 — 크고 가늘게. 칸마다 아래에 가는 금 한 줄이 서고, 초점이 들면 그 금이 빛난다 */
+  .glass-digit {
+    height: 2.5rem;
+    min-width: 0;
+    padding: 0 0.125rem;
+    background: transparent;
+    border-bottom: 1px solid var(--glass-line);
+    font-size: 1.625rem;
+    font-weight: 300;
+    line-height: 2.5rem;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    color: var(--foreground);
+    caret-color: var(--glass-focus);
+    outline: none;
+    transition: border-color 180ms ease;
+  }
+  .glass-digit::placeholder { font-size: 0.875rem; font-weight: 400; letter-spacing: 0; color: var(--text-muted); }
+  .glass-digit:focus { border-bottom: 2px solid var(--glass-focus); }
+  .glass-digit[aria-invalid='true'] { color: var(--danger); border-bottom: 2px solid var(--danger); }
+  /* 좁은 칸(궁합 카드 안 · 폰 360px)에서는 숫자가 한 단 작아진다 — 칸 너비가 `em` 이라 함께 준다. 년 · 월 · 일이 한 줄에 남는다 */
+  .glass-digits { container-type: inline-size; }
+  @container (max-width: 16rem) {
+    .glass-digit { font-size: 1.375rem; }
+    .glass-unit { margin-right: 0.375rem; }
+  }
+  .glass-digit:disabled { cursor: not-allowed; }
+  .glass-unit {
+    margin-left: 0.25rem;
+    margin-right: 0.625rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    color: var(--text-secondary);
+  }
+
+  /* 펼침의 표지 — 꺾쇠 대신 작은 궤도. 펼치면 속의 별이 빛난다 */
+  .glass-orb {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    display: grid;
+    width: 1.125rem;
+    height: 1.125rem;
+    translate: 0 -50%;
+    place-items: center;
+    border-radius: 9999px;
+    border: 1px solid var(--text-muted);
+  }
+  .glass-orb::after {
+    content: '';
+    width: 0.3125rem;
+    height: 0.3125rem;
+    border-radius: 9999px;
+    background: var(--text-muted);
+    transition: transform 200ms ease, background-color 200ms ease, box-shadow 200ms ease;
+  }
+  [aria-expanded='true'] > .glass-orb { border-color: var(--glass-focus); }
+  [aria-expanded='true'] > .glass-orb::after {
+    transform: scale(1.5);
+    background: var(--glass-focus);
+    box-shadow: 0 0 8px 2px var(--glass-glow);
+  }
+
+  /* 펼친 목록 — 칸 아래 한 줄 전체에 서는 유리 한 장 */
+  .glass-sheet {
+    grid-column: 1 / -1;
+    overflow: hidden;
+    border-radius: 1rem;
+    background: var(--glass-field-focus);
+    border: 1px solid var(--glass-edge);
+    box-shadow: inset 0 1px 0 var(--glass-highlight), 0 16px 32px -20px var(--glass-shadow);
+  }
+  .glass-option {
+    position: relative;
+    display: flex;
+    min-height: 3rem;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 1.125rem;
+    border-top: 1px solid var(--glass-line);
+  }
+  .glass-option:first-child { border-top: 0; }
+  .glass-option:hover { background: var(--glass-field-hover); }
+  .glass-option:has(:focus-visible) { box-shadow: inset 0 0 0 2px var(--glass-focus); }
+  /* 라디오의 얼굴 — 빈 고리, 고르면 빛나는 별 */
+  .glass-radio {
+    display: grid;
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 9999px;
+    border: 1.5px solid var(--text-muted);
+  }
+  .glass-radio[data-checked] { border-color: var(--glass-focus); box-shadow: 0 0 10px 1px var(--glass-glow); }
+  .glass-radio[data-checked]::after {
+    content: '';
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    background: var(--glass-focus);
+  }
+
+  /* 고급 설정의 줄 — 판보다 낮은 유리 띠 한 줄 */
+  .glass-strip {
+    position: relative;
+    display: flex;
+    min-height: 3.25rem;
+    width: 100%;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 9999px;
+    padding: 0.5rem 3rem 0.5rem 1.25rem;
+    background: var(--glass-field);
+    border: 1px solid var(--glass-edge);
+    text-align: left;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
+  .glass-strip:hover { background: var(--glass-field-hover); }
+  .glass-strip[aria-expanded='true'] { border-color: var(--glass-focus); }
+  /* 제 빛으로 초점을 말하는 둘 — 전역 초점 테(`@layer base`)를 한 겹 더 두르지 않는다. 테 1px(`--glass-focus`)만으로도 6.8:1 이다 */
+  .glass-field:focus-visible, .glass-strip:focus-visible { outline: none; }
+  .glass-strip:focus-visible {
+    border-color: var(--glass-focus);
+    box-shadow: 0 0 0 1px var(--glass-focus), 0 0 22px 1px var(--glass-glow);
+  }
+
+  /* 하늘 위 한 줄 글 — 변환된 양력 · 거절의 이유 */
+  .glass-note { padding: 0 0.75rem; font-size: 0.75rem; line-height: 1.25rem; letter-spacing: 0.02em; color: var(--text-secondary); }
+
+  /* 빛나는 알약 — 주 단추의 먹색은 그대로 두고, 오행의 물빛이 테와 그림자로 번진다 */
+  .glow-pill {
+    position: relative;
+    display: inline-flex;
+    min-height: 3.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    padding: 0 1.75rem;
+    background: linear-gradient(115deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 66%, var(--water)) 58%, var(--accent) 100%);
+    color: var(--on-accent);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--on-accent) 22%, transparent),
+      0 0 0 1px color-mix(in srgb, var(--water-mid) 70%, transparent),
+      0 0 0 4px color-mix(in srgb, var(--water-mid) 22%, transparent),
+      0 12px 28px -12px var(--glass-shadow),
+      0 0 36px -2px var(--glass-glow);
+    transition: box-shadow 220ms ease, transform 160ms ease, opacity 160ms ease;
+  }
+  .glow-pill:hover {
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--on-accent) 28%, transparent),
+      0 0 0 1px var(--water-mid),
+      0 12px 30px -12px var(--glass-shadow),
+      0 0 40px 0 var(--glass-glow);
+  }
+  .glow-pill:active { transform: scale(0.97); }
+  .glow-pill:disabled { pointer-events: none; opacity: 0.55; box-shadow: none; }
+
+  /* 거절의 말 — 붉은 빛 한 점과 한 줄 */
+  .glass-alert {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 1rem;
+    padding: 0.375rem 0.875rem;
+    background: color-mix(in srgb, var(--danger-wash) 90%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.375rem;
+    color: var(--danger);
+  }
+  .glass-alert::before {
+    content: '';
+    width: 0.375rem;
+    height: 0.375rem;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    background: var(--danger);
+    box-shadow: 0 0 8px 1px var(--glass-danger-glow);
+  }
+
+  /* 곁 폼(가입 · 프로필 · 설문)의 적는 칸 — 하늘 없이 같은 유리 칸 말투 */
+  .glass-input {
+    min-height: 3.25rem;
+    border-radius: 1rem;
+    padding: 0.75rem 1.125rem 0.8125rem;
+    background: color-mix(in srgb, var(--surface-sunken) 55%, var(--surface));
+    border: 1px solid var(--border-strong);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+    font-size: 1rem;
+    color: var(--foreground);
+    outline: none;
+    transition: border-color 180ms ease, box-shadow 220ms ease, background-color 180ms ease;
+  }
+  .glass-input::placeholder { color: var(--text-muted); }
+  .glass-input:hover { border-color: color-mix(in srgb, var(--glass-focus) 45%, var(--border-strong)); }
+  .glass-input:focus {
+    background: var(--surface-raised);
+    border-color: var(--glass-focus);
+    box-shadow: 0 0 0 1px var(--glass-focus), 0 0 24px 1px var(--glass-glow);
+  }
+  .glass-input[aria-invalid='true'] { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+  .glass-input:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* 곁 폼의 이름표 — 폼의 이름표와 같은 넓은 자간, 칸 위에 선다 */
+  .glass-input-label { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.12em; color: var(--text-secondary); }
+}
+
+@keyframes sky-twinkle { from { opacity: 0.55; } to { opacity: 1; } }
+
+/* 투명을 줄여 달라는 기기 — 유리를 걷고 단단한 면으로 선다. 하늘의 빛은 그대로 */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-panel, .glass-strip { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--surface); }
+  .glass-field, .glass-sheet { background: var(--surface-raised); border-color: var(--border-strong); }
+  .glass-field:hover { background: var(--surface-raised); }
+  .form-sky::before { animation: none; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-panel, .glass-strip { background: color-mix(in srgb, var(--surface) 92%, transparent); }
+}
