@@ -141,6 +141,14 @@ export const TASTE_CLAIM_RESULTS = ['claimed', 'terminal', 'retryable'] as const
 
 export type TasteClaimResult = (typeof TASTE_CLAIM_RESULTS)[number];
 
+/**
+ * 맛보기를 시도에 잇지 못해(답이 안 났다 · 귀속 표를 다시 못 맞췄다 · 연 시도를 다른 세션이 쥐었다 · `wrong_run`) 보내지 않고 닫은
+ * 시도의 실패 코드(ADR 0143 「덧」). 누름이 닫고(`app/me/reading/pipeline.ts`), 내 사주풀이 화면이 이 코드를 보고 「전체 풀이만
+ * 보기」를 세운다(`app/me/reading/reading-state.ts`). `reading_run.failure_code` 는 DB 검사식이 없다 — 꼴은 맛보기 표와 같은
+ * `^[a-z0-9-]{1,64}$` 로 맞춘다.
+ */
+export const TASTE_LINK_FAILED = 'taste-link-failed';
+
 /** 회수가 세는 단계 — 이어 쓴 풀이가 섰다. 브라우저가 없는 길(webhook · 크론)이라 옛 `count_taste_step` 이 센다 */
 export type TasteStep = 'reading_succeeded';
 

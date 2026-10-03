@@ -45,9 +45,33 @@ export async function claimCarriedTaste(
   return result;
 }
 
-/** 들고 온 세션을 버린다 — 「다른 사람의 사주예요」 · 이어 보지 않고 계속하기 */
+/**
+ * 탭이 아직 붙이지 못한 세션을 들고 있는가 — 내 사주가 이미 저장된 채 `/` 로 돌아온 화면이 묻는다(새로고침 · 뒤로가기). 붙이는
+ * 답이 안 났던 탭은 id 를 지우지 않았으므로 그대로 들고 있다. 저장소가 막혔으면 들고 온 것이 없는 것과 같다.
+ */
+export function carriesTaste(storage: () => TabStorage): boolean {
+  return read(storage) !== null;
+}
+
+/** 들고 온 세션을 버린다 — 「다른 사람의 사주예요」 */
 export function dropCarriedTaste(storage: () => TabStorage): void {
   write(storage, (tab) => tab.removeItem(TASTE_SESSION_KEY));
+}
+
+/**
+ * **이어 보기를 그만둔다** — 「전체 풀이만 보기」. 탭의 id 와 함께 **서버의 귀속 표(쿠키)까지** 걷는다(`forget`). 탭만 지우면
+ * 앞서 붙은 표가 남아 있을 때(`retryable` 은 표를 건드리지 않는다) 내 사주풀이의 다음 누름이 그대로 잇는다.
+ *
+ * 걷는 액션이 닿지 않아도 던지지 않는다 — 탈출구가 사람을 붙들면 안 된다. 그때 남은 표는 다음 누름이 그대로 이어 쓰게 할 뿐이고,
+ * 그 잇기가 막히면 풀이 화면의 같은 탈출구가 다시 선다.
+ */
+export async function skipCarriedTaste(storage: () => TabStorage, forget: () => Promise<unknown>): Promise<void> {
+  dropCarriedTaste(storage);
+  try {
+    await forget();
+  } catch {
+    /* 액션이 닿지 않았다(네트워크 · 배포 사이) — 이동은 한다 */
+  }
 }
 
 /**

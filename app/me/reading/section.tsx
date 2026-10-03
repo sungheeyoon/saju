@@ -97,6 +97,7 @@ export async function ReadingSection({
         */
         initialRunning={run?.status === 'running'}
         initialProgress={run?.progress ?? null}
+        lastFailureCode={run?.status === 'failed' ? run.failureCode : null}
         outline={isSolo(target.kind) ? selfSectionTitlesOf() : null}
         credits={credits.ok ? credits.value : null}
         /*

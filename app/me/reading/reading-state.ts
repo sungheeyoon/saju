@@ -1,5 +1,6 @@
 import { READING_ALREADY_RUNNING_NOTE, READING_FAILED_NOTE, READING_UNEXPECTED_NOTE } from '@/src/lib/reading/notes';
 import { isScored } from '@/src/lib/reading/policy';
+import { TASTE_LINK_FAILED } from '@/src/lib/reading/taste-visit';
 
 import type { CurrentReading, LastRun } from './current';
 import type { ReadingTarget } from './target';
@@ -277,6 +278,28 @@ export function asksOnArrival({
   hideMake: boolean;
 }): boolean {
   return arrived && carry?.state === 'next' && !loading && !makeDisabled && !hideMake;
+}
+
+/**
+ * **잇기가 막혀 실패한 자리에 「전체 풀이만 보기」를 세우는가**(ADR 0143 「덧」, 운영자 요청 2026-10-03).
+ *
+ * 맛보기를 잇지 못한 누름은 그 시도를 실패로 닫는다(`taste-link-failed`) — 풀이권은 안 나가고 다음 누름이 다시 잇는다. 순간
+ * 장애면 그것으로 된다. 그런데 같은 답이 거듭되면(`wrong_run` 같은 불변식 위반) 누를 때마다 실패라 사용자가 막힌다. 그 사람이
+ * 이어쓰기를 버리고 보통 풀이를 받을 길이 이것이다 — 누르면 귀속 표가 걷히고(`skipTasteCarry`) 다음 누름은 보통 풀이다.
+ *
+ * 세우는 자리: 「아까 보던 내용」이 다음 누름을 기다리고(`next`) · 지난 시도가 그 코드로 실패했고 · 지금 기다리는 중이 아닐 때.
+ * 다른 실패(모델 · 검사)는 이어쓰기 탓이 아니라 세우지 않는다.
+ */
+export function offersPlainReading({
+  carry,
+  lastFailureCode,
+  loading,
+}: {
+  carry: { readonly state: 'next' | 'running' | 'shown' } | null;
+  lastFailureCode: string | null;
+  loading: boolean;
+}): boolean {
+  return carry?.state === 'next' && lastFailureCode === TASTE_LINK_FAILED && !loading;
 }
 
 /**

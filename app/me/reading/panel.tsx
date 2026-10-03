@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useReducer, useRef, useState, useTransition, type ReactNode } from 'react';
 
 import {
   READING_LEAVE_SAFE_NOTE,
@@ -23,7 +23,7 @@ import { ElementSymbol } from '../../ui/element-symbol';
 import { FaceSymbol } from '../../ui/stem-symbol';
 import { Icon } from '../../ui/icons';
 import { DIALOG, DIALOG_ACTIONS, EMPTY_SLOT, TYPE_NAME, TYPE_SECTION } from '../../ui/surfaces';
-import { generateReading, readingRunState } from './actions';
+import { generateReading, readingRunState, skipTasteCarry } from './actions';
 import { announceCreditsMoved } from './credits-signal';
 import { GENERATION } from './generation';
 import type { CurrentReading, ReadingCredits, RunProgress } from './current';
@@ -34,12 +34,13 @@ import { Markdown } from './markdown';
 import { coverFace, readingMinutes } from './essay';
 import { readingOutline, type OutlineRow } from './outline';
 import flow from './flow.module.css';
-import { takeTasteArrival } from '../../carried-taste';
+import { skipCarriedTaste, takeTasteArrival } from '../../carried-taste';
 import {
   afterAsking,
   afterPress,
   answerOf,
   asksOnArrival,
+  offersPlainReading,
   initialFlow,
   previewReading,
   readingFlow,
@@ -188,6 +189,7 @@ export function ReadingPanel({
   initialFailed,
   initialRunning,
   initialProgress,
+  lastFailureCode = null,
   outline,
   credits,
   consented,
@@ -217,6 +219,11 @@ export function ReadingPanel({
    * 새로고침하고 돌아와도 목차가 처음부터 다시 시작하는 것처럼 보이지 않게, 화면을 여는 그 왕복에서 함께 읽는다.
    */
   initialProgress: RunProgress | null;
+  /**
+   * 지난 시도가 실패했으면 그 코드 — 아니면 `null`. 잇기가 막혀 실패했으면(`taste-link-failed`) 「전체 풀이만 보기」가 선다
+   * (`offersPlainReading`). 기다리던 시도가 끝나면 화면을 다시 읽으므로(`afterAsking`) 이 값도 새로 온다.
+   */
+  lastFailureCode?: string | null;
   /**
    * 기다리는 동안의 목차 줄 이름 — 프롬프트가 시킨 절 이름. 이름을 미리 모르는 궁합이면 `null`(ADR 0127).
    *
@@ -510,6 +517,21 @@ export function ReadingPanel({
     </div>
   );
 
+  /**
+   * **「전체 풀이만 보기」** — 잇기가 막혀 실패한 자리의 탈출구(ADR 0143 「덧」). 귀속 표를 걷고 화면을 다시 읽는다 — 「아까 보던
+   * 내용」이 내려가고 다음 누름은 보통 풀이다. 누르는 것은 풀이권이 아니라 이어 보기를 그만두는 것이라 확인창을 안 연다.
+   */
+  const [skipping, startSkipping] = useTransition();
+  const offersPlain =
+    target.kind === 'self' &&
+    offersPlainReading({ carry: showsCarry ? carry : null, lastFailureCode, loading: phase === 'loading' });
+  const skipCarry = () => {
+    startSkipping(async () => {
+      await skipCarriedTaste(() => sessionStorage, skipTasteCarry);
+      router.refresh();
+    });
+  };
+
   const alert = failure === null ? null : (
     <div
       role={phase === 'error' ? 'alert' : 'status'}
@@ -525,6 +547,16 @@ export function ReadingPanel({
             className="-ml-1 mt-1 inline-flex min-h-11 items-center px-1 font-semibold underline underline-offset-4"
           >
             다시 시도하기
+          </button>
+        )}
+        {offersPlain && (
+          <button
+            type="button"
+            onClick={skipCarry}
+            disabled={skipping}
+            className="-ml-1 mt-1 inline-flex min-h-11 items-center px-1 font-semibold underline underline-offset-4"
+          >
+            전체 풀이만 보기
           </button>
         )}
       </div>

@@ -6,12 +6,15 @@ import {
   READING_UNEXPECTED_NOTE,
 } from '@/src/lib/reading';
 
+import { TASTE_LINK_FAILED } from '@/src/lib/reading/taste-visit';
+
 import type { CurrentReading, LastRun } from './current';
 import {
   afterAsking,
   afterPress,
   answerOf,
   asksOnArrival,
+  offersPlainReading,
   initialFlow,
   previewReading,
   readingFlow,
@@ -330,5 +333,28 @@ describe('도착하자마자 확인창을 여는가', () => {
   it('누를 수 없으면 안 연다 — 풀이권이 없거나 단추가 없다', () => {
     expect(asksOnArrival({ ...ready, makeDisabled: true })).toBe(false);
     expect(asksOnArrival({ ...ready, hideMake: true })).toBe(false);
+  });
+});
+
+/**
+ * **잇기가 막혀 실패한 자리의 탈출구** — 같은 실패가 거듭돼도 사용자가 보통 풀이를 받을 길(ADR 0143 「덧」).
+ */
+describe('「전체 풀이만 보기」를 세우는가', () => {
+  const failedLink = { carry: { state: 'next' as const }, lastFailureCode: TASTE_LINK_FAILED, loading: false };
+
+  it('잇기가 막혀 실패했고 이을 것이 남았으면 세운다', () => {
+    expect(offersPlainReading(failedLink)).toBe(true);
+  });
+
+  it('다른 까닭의 실패 · 실패 아님이면 안 세운다 — 이어쓰기 탓이 아니다', () => {
+    expect(offersPlainReading({ ...failedLink, lastFailureCode: 'unexpected' })).toBe(false);
+    expect(offersPlainReading({ ...failedLink, lastFailureCode: null })).toBe(false);
+  });
+
+  it('기다리는 중이거나 이을 것이 없거나 이미 이어졌으면 안 세운다', () => {
+    expect(offersPlainReading({ ...failedLink, loading: true })).toBe(false);
+    expect(offersPlainReading({ ...failedLink, carry: null })).toBe(false);
+    expect(offersPlainReading({ ...failedLink, carry: { state: 'running' } })).toBe(false);
+    expect(offersPlainReading({ ...failedLink, carry: { state: 'shown' } })).toBe(false);
   });
 });

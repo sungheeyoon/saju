@@ -1,8 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { TasteClaimResult } from '@/src/lib/reading/taste-visit';
 
-import { claimCarriedTaste, dropCarriedTaste, takeTasteArrival, type TabStorage } from './carried-taste';
+import {
+  carriesTaste,
+  claimCarriedTaste,
+  dropCarriedTaste,
+  skipCarriedTaste,
+  takeTasteArrival,
+  type TabStorage,
+} from './carried-taste';
 import { TASTE_ARRIVAL_KEY, TASTE_SESSION_KEY } from './reading-draft';
 
 /**
@@ -82,10 +89,53 @@ describe('들고 온 세션을 붙인다', () => {
     expect(() => dropCarriedTaste(blocked)).not.toThrow();
   });
 
-  it('이어 보지 않고 계속하면 id 를 버린다', () => {
+  it('「다른 사람의 사주예요」면 id 를 버린다', () => {
     const storage = tab({ [TASTE_SESSION_KEY]: SESSION });
     dropCarriedTaste(() => storage);
     expect(storage.items.has(TASTE_SESSION_KEY)).toBe(false);
+  });
+
+  /**
+   * **탈출구는 서버의 귀속 표까지 걷는다**(ADR 0143 「덧」). `retryable` 은 앞서 붙은 표를 건드리지 않으므로, 탭만 지우면 내 사주풀이의
+   * 다음 누름이 그대로 이었다.
+   */
+  it('「전체 풀이만 보기」는 id 를 버리고 서버의 표도 걷는다', async () => {
+    const storage = tab({ [TASTE_SESSION_KEY]: SESSION });
+    const forget = vi.fn(async () => undefined);
+    await skipCarriedTaste(() => storage, forget);
+    expect(storage.items.has(TASTE_SESSION_KEY)).toBe(false);
+    expect(forget).toHaveBeenCalledTimes(1);
+  });
+
+  it('표를 걷는 액션이 닿지 않아도 탈출구는 막히지 않는다', async () => {
+    const storage = tab({ [TASTE_SESSION_KEY]: SESSION });
+    await expect(skipCarriedTaste(() => storage, async () => Promise.reject(new Error('network')))).resolves.toBeUndefined();
+    expect(storage.items.has(TASTE_SESSION_KEY)).toBe(false);
+  });
+});
+
+describe('새로고침한 탭이 붙이지 못한 세션을 들고 있는가', () => {
+  it('답이 안 났던 탭은 id 를 들고 있다 — 다시 붙일 수 있다', async () => {
+    const storage = tab({ [TASTE_SESSION_KEY]: SESSION });
+    const { claim } = answers('retryable', 'claimed');
+    expect(await claimCarriedTaste(() => storage, claim)).toBe('retryable');
+    /* 새로고침 — 화면의 상태는 사라지고 탭의 id 는 남는다 */
+    expect(carriesTaste(() => storage)).toBe(true);
+    expect(await claimCarriedTaste(() => storage, claim)).toBe('claimed');
+    expect(carriesTaste(() => storage)).toBe(false);
+    expect(storage.items.get(TASTE_ARRIVAL_KEY)).toBe('1');
+  });
+
+  it('답이 났거나 들고 온 것이 없거나 저장소가 막혔으면 아니다', async () => {
+    const storage = tab({ [TASTE_SESSION_KEY]: SESSION });
+    await claimCarriedTaste(() => storage, answers('terminal').claim);
+    expect(carriesTaste(() => storage)).toBe(false);
+    expect(carriesTaste(() => tab())).toBe(false);
+    expect(
+      carriesTaste(() => {
+        throw new Error('SecurityError');
+      }),
+    ).toBe(false);
   });
 });
 

@@ -3479,7 +3479,7 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     });
     await page.getByRole('button', { name: '내 사주로 저장' }).click();
     await expect(page.getByText('이어오지 못했어요.')).toBeVisible();
-    await expect(page.getByRole('button', { name: '이어 보지 않고 계속하기' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '전체 풀이만 보기' })).toBeVisible();
     expect(dropped).toBe(1);
     expect(page.url()).not.toMatch(/\/me\/readings\/self$/);
     expect(await page.evaluate(() => sessionStorage.getItem('saju:taste-session'))).toBe(sessionId);
@@ -3525,6 +3525,114 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     /* 새로고침해도 — 그 글을 만든 시도에 이어진 원문이 선다 */
     await page.reload();
     await expect(carry).toContainText('새벽빛이 들기 전에');
+  });
+
+  /**
+   * **붙이는 답이 안 난 채 새로고침해도 이어 보기를 잃지 않는다**(ADR 0143 「덧」). 다시 시도는 화면의 상태라 새로고침에 사라지고,
+   * 내 사주는 이미 저장돼 「이 사주가 내 사주 맞나요?」가 다시 안 선다 — 탭에 남은 세션 id 를 그 화면이 스스로 다시 붙인다.
+   * 그리고 잇기가 막혀 실패한 내 사주풀이에는 「전체 풀이만 보기」가 서서 귀속 표를 걷는다.
+   */
+  test('붙이는 답이 안 난 채 새로고침해도 아까 보던 내용으로 이어지고, 잇기가 막힌 풀이는 전체 풀이만 볼 수 있다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipSignup: true });
+    const { page, api } = newcomer;
+    const context = page.context();
+
+    const input = 'name=지수&date=1983-07-09&hour=11:20';
+    const chart = calculateChart(queryFromSearchParams(new URLSearchParams(input))!);
+    if (!chart.ok) throw new Error(chart.message);
+    const fingerprint = await tasteFingerprintOf(tasteEvidenceOf(readingEvidenceOfSelf(chart.saju)));
+    const preview = '한낮 가까이에 일을 몰아 끝내는 쪽이에요.\n\n그렇다면 남은 오후는 무엇으로 채울까요?';
+    sql(`insert into public.taste_artifact
+           (evidence_fingerprint, prompt_version, model_config_version, status, preview_markdown, topic, distinctive_pattern,
+            continuation_question, answer_direction, supporting_claims)
+         values ('${fingerprint}', '${TASTE_RUN_VERSIONS.prompt}', '${TASTE_RUN_VERSIONS.modelConfig}', 'succeeded', '${preview}',
+                 '결정하거나 행동하는 방식', '몰아 끝낸다', '오후를 무엇으로', '쉬어 간다', '{analysis.structure}')
+         on conflict on constraint taste_artifact_one_per_input do update
+         set status = 'succeeded', failure_code = null, attempts = 1, preview_markdown = excluded.preview_markdown,
+             expires_at = now() + interval '24 hours'`);
+
+    const signedInCookies = await context.cookies();
+    await context.clearCookies();
+    await context.setExtraHTTPHeaders({ 'x-forwarded-for': `10.144.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}` });
+
+    await page.goto(`/#${input}`);
+    const taste = page.getByRole('region', { name: '사주가 보여 주는 나' });
+    await expect(taste).toContainText('한낮 가까이에', { timeout: 30_000 });
+    await taste.getByRole('button', { name: '더보기' }).click();
+    await taste.getByRole('link', { name: '무료 회원가입하고 이어보기' }).click();
+    const sessionId = await page.evaluate(() => sessionStorage.getItem('saju:taste-session'));
+    expect(sessionId).toMatch(/^[0-9a-f-]{36}$/);
+
+    await context.addCookies(signedInCookies);
+    await page.goto('/auth?next=%2F%23resume-reading');
+    await signUp(page);
+    await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toBeVisible();
+
+    /* 귀속이 닿지 않는다 — 이 id 를 실은 POST 를 모두 끊는다. 저장은 끝났고 다시 시도가 선다 */
+    let dropped = 0;
+    await page.route('**/*', async (route) => {
+      const request = route.request();
+      if (request.method() === 'POST' && (request.postData() ?? '').includes(sessionId as string)) {
+        dropped += 1;
+        await route.abort('failed');
+        return;
+      }
+      await route.fallback();
+    });
+    await page.getByRole('button', { name: '내 사주로 저장' }).click();
+    await expect(page.getByText('이어오지 못했어요.')).toBeVisible();
+    expect(dropped).toBe(1);
+
+    /* 새로고침 — 내 사주는 저장됐다. 화면이 스스로 다시 붙여 보고, 여전히 안 닿으니 같은 다시 시도 화면이 선다 */
+    await page.reload();
+    await expect(page.getByText('이어오지 못했어요.')).toBeVisible();
+    await expect(page.getByRole('button', { name: '다시 시도하기' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '전체 풀이만 보기' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toHaveCount(0);
+    expect(dropped).toBe(2);
+    expect(await page.evaluate(() => sessionStorage.getItem('saju:taste-session'))).toBe(sessionId);
+
+    /* 연결이 돌아오고 다시 새로고침 — 스스로 붙여 아까 보던 내용으로 간다. 도착하자마자 확인창 */
+    await page.unroute('**/*');
+    await page.reload();
+    await expect(page).toHaveURL(/\/me\/readings\/self$/);
+    const confirm = page.getByRole('dialog', { name: '풀이권 1회를 사용하시겠어요?' });
+    await expect(confirm).toBeVisible();
+    const carry = page.getByRole('region', { name: '아까 보던 내용' });
+    await expect(carry).toContainText('한낮 가까이에');
+    expect(await page.evaluate(() => sessionStorage.getItem('saju:taste-session'))).toBeNull();
+    await confirm.getByRole('button', { name: '취소' }).click();
+
+    /* 뒤로가기 — 붙은 뒤라 탭에 id 가 없다. 다시 붙이지 않고 보통 저장 입구가 선다 */
+    await page.goBack();
+    await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toBeVisible();
+    await expect(page.getByText('이어오지 못했어요.')).toHaveCount(0);
+
+    /*
+      잇기가 막혀 실패한 풀이 — 누름이 하는 그대로 시도를 열고 `taste-link-failed` 로 닫는다. 「아까 보던 내용」 아래에
+      「전체 풀이만 보기」가 서고, 누르면 귀속 표가 걷혀 그 칸이 내려간다 — 다음 누름은 보통 풀이다
+    */
+    const started = await api.rpc('start_reading_run', {
+      p_kind: 'self', p_idempotency_key: `e2e-taste-skip-${sessionId}`, p_model: 'gpt-e2e', p_prompt_version: 'reading-prompt-v1',
+    });
+    const runId = started.data?.[0]?.run_id as string;
+    sql(`select public.fail_reading_job(p_run_id => '${runId}'::uuid, p_failure_code => 'taste-link-failed',
+           p_failure_detail => 'e2e')`);
+
+    await page.goto('/me/readings/self');
+    await expect(carry).toContainText('한낮 가까이에');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    const plain = page.getByRole('button', { name: '전체 풀이만 보기' });
+    await expect(plain).toBeVisible();
+    expect((await context.cookies()).some((cookie) => cookie.name === 'saju_taste_claim')).toBe(true);
+
+    await plain.click();
+    await expect(carry).toHaveCount(0);
+    await expect(plain).toHaveCount(0);
+    expect((await context.cookies()).some((cookie) => cookie.name === 'saju_taste_claim')).toBe(false);
+    await page.reload();
+    await expect(page.locator('#reading-subject')).toBeVisible();
+    await expect(carry).toHaveCount(0);
   });
 
   test('내 사주가 이미 있으면 묻지 않는다', async ({ page, signedIn }) => {

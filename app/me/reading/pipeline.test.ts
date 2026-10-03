@@ -58,6 +58,9 @@ vi.mock('../keyed-taste-claims', () => ({
   tasteContinuationOfRun: (...args: unknown[]) => continuationOfRun(...args),
 }));
 vi.mock('../../taste-visitor', () => ({ forgetTasteClaim: async () => forgot() }));
+/** 운영 알림 — 서버 오류 알림 문을 그대로 쓴다(`wrong_run`) */
+const alerted = vi.fn();
+vi.mock('../../request-error', () => ({ reportRequestError: async (...args: unknown[]) => alerted(...args) }));
 
 const submit = vi.fn();
 vi.mock('./model', async () => ({
@@ -66,7 +69,8 @@ vi.mock('./model', async () => ({
 }));
 
 const { GENERATION } = await import('./generation');
-const { beginReading, sendAcceptedMatchReading } = await import('./pipeline');
+const { TASTE_WRONG_RUN_ALERT, TASTE_WRONG_RUN_DETAIL, beginReading, sendAcceptedMatchReading } = await import('./pipeline');
+const { TASTE_LINK_FAILED } = await import('@/src/lib/reading/taste-visit');
 const { baselineIn } = await import('@/src/lib/reading');
 
 /**
@@ -142,6 +146,7 @@ beforeEach(() => {
   link.mockReset();
   continuationOfRun.mockReset();
   forgot.mockReset();
+  alerted.mockReset();
 });
 
 /** 모델이 흘려 주는 본문 조각 — JSON 글자 그대로 */
@@ -636,13 +641,35 @@ describe('귀속한 맛보기를 잇는다', () => {
     expect(submit.mock.calls[0][2]).toMatchObject({ continuation: false });
   });
 
-  it('`wrong_run` 은 보통 풀이다 — 실패로 닫으면 누를 때마다 같은 답이라 영영 못 받는다', async () => {
+  /**
+   * **`wrong_run` 은 정상에서 날 수 없는 불변식 위반이다**(ADR 0143 「덧」) — 앞서는 보통 풀이로 보냈다. 이제 그 시도를 실패로 닫고
+   * (풀이권 안 씀) 운영자에게 알린다. 표는 남는다 — 계속 막히면 사용자가 「전체 풀이만 보기」로 걷는다(`skipTasteCarry`).
+   */
+  it('`wrong_run` 은 보통 풀이로 안 보낸다 — 그 시도를 실패로 닫고 운영자에게 알린다', async () => {
     claimed.mockResolvedValue(claim(null));
     link.mockResolvedValue({ answered: true, outcome: 'wrong_run' });
+
+    await expect(beginReading({ kind: 'self' })).resolves.toEqual({ ok: true, started: true });
+    await settle();
+
+    expect(submit).not.toHaveBeenCalled();
+    expect(prepared()).toBeUndefined();
+    expect(closed()?.[1]).toMatchObject({
+      p_run_id: started.run_id,
+      p_failure_code: TASTE_LINK_FAILED,
+      p_failure_detail: TASTE_WRONG_RUN_DETAIL,
+    });
+    expect(alerted).toHaveBeenCalledWith(TASTE_WRONG_RUN_ALERT, 'action', null);
+    expect(forgot).not.toHaveBeenCalled();
+  });
+
+  it('`wrong_run` 이 아닌 실패는 운영자에게 알리지 않는다 — 순간 장애는 다음 누름이 다시 잇는다', async () => {
+    claimed.mockResolvedValue(claim(null));
+    link.mockResolvedValue({ answered: false });
     await beginReading({ kind: 'self' });
     await settle();
-    expect(closed()).toBeUndefined();
-    expect(submit.mock.calls[0][2]).toMatchObject({ continuation: false });
+    expect(closed()?.[1]).toMatchObject({ p_failure_code: TASTE_LINK_FAILED });
+    expect(alerted).not.toHaveBeenCalled();
   });
 
   it('쿠키 · 비밀이 없어 다시 맞출 길이 없으면(`gone`) 표를 걷고 보통 풀이다', async () => {
