@@ -34,7 +34,8 @@ import {
   type SurveyAnswers,
 } from '@/src/lib/survey';
 
-import { BUTTON_PRIMARY, BUTTON_SECONDARY } from '../../ui/buttons';
+import { BUTTON_SECONDARY } from '../../ui/buttons';
+import { FIELD_TEXTAREA, FORM_SUBMIT } from '../../ui/form';
 import { saveServiceSurvey } from './actions';
 import type { MySurvey, SurveyContext } from './read';
 import { TYPE_SECTION } from '../../ui/surfaces';
@@ -62,11 +63,11 @@ const PANEL = 'flex flex-col gap-3 rounded-[1.5rem] border border-border bg-surf
 const ASK = 'block text-[17px] font-bold leading-7 text-foreground';
 
 /**
- * 고르는 줄 — 줄 전체가 누를 자리(48px)이고, 고르면 먹색 테와 크림 면이 선다. 상자 자체도 남아
+ * 고르는 줄 — 줄 전체가 누를 자리(56px)인 채움 면이고(`app/ui/form.ts`), 고르면 흰 면에 먹색 테가 선다. 상자 자체도 남아
  * 있어 고른 것이 색만으로 말해지지 않는다.
  */
 const CHOICE =
-  'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 text-[15px] leading-6 hover:border-border-strong has-checked:border-foreground has-checked:bg-cream has-focus-visible:outline has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-accent-soft';
+  'relative flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl bg-field px-5 py-3 text-[16px] leading-6 transition-[background-color,box-shadow] duration-150 hover:bg-field-hover has-checked:bg-field-focus has-checked:font-semibold has-checked:shadow-soft has-checked:ring-2 has-checked:ring-accent has-focus-visible:ring-2 has-focus-visible:ring-accent';
 
 export function SurveyForm({ context, given }: { context: SurveyContext; given: MySurvey | null }) {
   const [answers, setAnswers] = useState<SurveyAnswers>(given?.answers ?? EMPTY_ANSWERS);
@@ -282,7 +283,7 @@ export function SurveyForm({ context, given }: { context: SurveyContext; given: 
             type="button"
             onClick={send}
             disabled={sending || !isAnswered(answers)}
-            className={BUTTON_PRIMARY}
+            className={`${FORM_SUBMIT} sm:px-10`}
           >
             {submittedAt === null ? SURVEY_COPY.submit : SURVEY_COPY.resubmit}
           </button>
@@ -397,7 +398,7 @@ function Writing({
         maxLength={limit}
         rows={4}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-border-strong bg-surface px-4 py-3 text-[15px] leading-6 outline-none focus:border-foreground focus:ring-2 focus:ring-accent-soft"
+        className={FIELD_TEXTAREA}
       />
     </div>
   );
