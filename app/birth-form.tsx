@@ -316,7 +316,23 @@ function NumberField({
         placeholder={placeholder}
         value={value}
         disabled={disabled}
-        onChange={(event) => onChange(event.target.value.replace(/\D/g, '').slice(0, digits))}
+        enterKeyHint="next"
+        onChange={(event) => {
+          const next = event.target.value.replace(/\D/g, '').slice(0, digits);
+          onChange(next);
+          /*
+            **다 적었으면 다음 칸으로.** 폰 숫자 자판에는 「다음」 키가 없거나 멀어서, 연도 넷을 친 뒤 손가락이 화면의
+            월 칸을 다시 짚어야 했다(년 → 월 → 일 → 시 → 분 다섯 번). 판정은 위의 `settled` 와 같다 — 「1」은 1월인지
+            12월인지 모르므로 안 넘기고, 「2」~「9」는 두 자리가 될 수 없으니 넘긴다. 범위를 벗어난 값은 넘기지 않는다 —
+            붉은 칸에 남아 고치게 한다.
+          */
+          const full = next !== '' && (next.length === digits || Number(next) * 10 > max);
+          const fits = Number(next) >= min && Number(next) <= max;
+          if (full && fits && next.length > value.length) {
+            const fields = [...(event.target.form ?? document).querySelectorAll<HTMLInputElement>('input[inputmode="numeric"]:not(:disabled)')];
+            fields[fields.indexOf(event.target) + 1]?.focus();
+          }
+        }}
         // `aria-invalid` 를 셀렉터로 쓴다 — 클래스를 덧붙이면 `DIGIT` 의 바탕과
         // 같은 무게라 어느 쪽이 이길지 정해지지 않는다. 변종 셀렉터는 한 겹 더 무겁다.
         className={`${DIGIT} ${width} aria-invalid:bg-danger-wash aria-invalid:text-danger aria-invalid:ring-2 aria-invalid:ring-danger`}
