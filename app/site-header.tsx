@@ -21,7 +21,7 @@ import { READING_CREDITS_MOVED } from './me/reading/credits-signal';
 import { readRequestsToAnswer, readUnreadNotifications } from './me/requests/unread';
 import { NOTIFICATIONS_UNREAD_MOVED, REQUESTS_TO_ANSWER_MOVED } from './me/requests/unread-signal';
 import { isSharePath } from './share/path';
-import { GUIDE_LINKS } from './site-links';
+import { CREDITS_HELP_HREF, GUIDE_LINKS } from './site-links';
 import { BUTTON_SECONDARY_SMALL, ICON_BUTTON, ICON_BUTTON_ACTIVE } from './ui/buttons';
 import { useDetailsMenu } from './ui/details-menu';
 import { Icon, type IconName } from './ui/icons';
@@ -317,12 +317,20 @@ function UnreadBadge({ count, words = '건 안 읽음' }: { count: number; words
   );
 }
 
+/**
+ * **눌리면 풀이권이 무엇인지 답하는 자리로 간다**(`/help#credits`). 앞 판은 글자만 선 칩이라, 「5번 중 3번」이 무엇을
+ * 세는지 · 언제 돌아오는지는 확인 창이 열릴 때에야 보였다.
+ */
 function Credits({ label }: { label: string }) {
   return (
-    <span className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-cream px-3 text-[12px] font-semibold tabular-nums text-cream-ink ring-1 ring-border">
+    <Link
+      href={CREDITS_HELP_HREF}
+      title="풀이권 알아보기"
+      className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full bg-cream px-3 text-[12px] font-semibold tabular-nums text-cream-ink ring-1 ring-border hover:ring-border-strong active:scale-[0.97]"
+    >
       <Icon name="ticket" className="hidden size-4 md:block" />
       <span>{label}</span>
-    </span>
+    </Link>
   );
 }
 
