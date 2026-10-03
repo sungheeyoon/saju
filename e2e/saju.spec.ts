@@ -14,6 +14,7 @@ import {
   fillBirthTime,
   pickRow,
 } from './birth-form';
+import { hydrated } from './hydrated';
 import { expectTargets, focusedOutline, seamRows } from './target';
 
 /**
@@ -339,7 +340,7 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
     내주므로 자리마다의 범위를 칸이 안다 — 벗어나면 날짜를 아예 내보내지 않고, 그래서
     제출이 거절한다. 판정하는 자리를 새로 만들지 않고 이미 있는 그 자리에 얹는 것이 요점이다.
   */
-  for (const bad of ['19901315', '19900230']) {
+  for (const bad of ['19901315', '19900431']) {
     await date.fill('');
     await date.pressSequentially(bad);
     await expect(date).toHaveAttribute('aria-invalid', 'true');
@@ -374,11 +375,13 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
  */
 test('붙여 넣은 생일 한 줄에서 날짜와 시각을 함께 읽는다', async ({ page }) => {
   await page.goto('/');
-  await birthDateField(page).focus();
-  await page.evaluate(() => {
+  // 칸에 손(React)이 붙은 뒤에 붙인다 — 그 전의 붙여넣기는 브라우저가 그대로 받는다
+  const field = await hydrated(birthDateField(page));
+  await field.focus();
+  await field.evaluate((node) => {
     const data = new DataTransfer();
     data.setData('text', '1990년 5월 15일 오후 2시 30분');
-    document.activeElement?.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+    node.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
   });
   await expect(birthDateField(page)).toHaveValue('1990.05.15');
   await expect(birthTimeField(page)).toHaveValue('14:30');
@@ -862,7 +865,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }));
   expect(pairOverflow.scroll).toBeLessThanOrEqual(pairOverflow.client);
   for (const control of [
-    partner.locator('label', { has: partner.getByRole('radio', { name: '음력 윤달', exact: true }) }),
+    partner.locator('label', { has: page.getByRole('radio', { name: '음력 윤달', exact: true }) }),
     partner.getByRole('button', { name: '출생 시각 모름', exact: true }),
     birthDateField(partner),
     page.getByRole('button', { name: '무료로 두 사람 궁합 보기' }),
@@ -919,7 +922,7 @@ test('입력 폼과 결과의 누르는 자리가 44px 이상이고, 초점은 �
 
   /*
     고르는 것이 둘 · 셋인 칸은 나란히 선 라디오다(모바일 시안 2026-10-03) — 칸 하나하나가 과녁이다. 세그먼트였을 때
-    40px 이던 자리라 높이를 다시 잰다(보이는 알약 36px + 바탕 위아래 4px 가 누르는 자리).
+    40px 이던 자리라 칸 하나하나의 폭 · 높이를 다시 잰다.
   */
   const option = (name: string) => page.locator('[role=radiogroup] > label', { has: page.getByRole('radio', { name, exact: true }) }).first();
   const group = (name: string) => page.getByRole('radiogroup', { name, exact: true }).first();

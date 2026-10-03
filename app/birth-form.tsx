@@ -99,7 +99,7 @@ const FIELD =
 /** 짧은 선택지가 나란히 선 칸의 바탕(궁합의 「저장한 사람 · 직접 입력」과 같은 몸) */
 const SEGMENTS = 'flex min-w-0 flex-1 gap-1 rounded-full bg-surface-sunken p-1';
 const SEGMENT =
-  'relative flex min-h-9 flex-1 cursor-pointer items-center justify-center rounded-full px-2 text-[14px] has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-1 has-[:focus-visible]:outline-accent-soft';
+  'relative flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-full px-2 text-[14px] has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-1 has-[:focus-visible]:outline-accent-soft';
 const SEGMENT_ON = 'bg-surface font-semibold text-foreground shadow-soft ring-1 ring-border';
 const SEGMENT_OFF = 'font-medium text-secondary';
 
@@ -293,8 +293,8 @@ const within = (value: string, min: number, max: number) =>
  * 짧은 선택지가 나란히 선 줄 — **한 번 누르면 끝난다**(성별 · 달력).
  *
  * 진짜 라디오 묶음이다 — 화살표 이동과 한 번에 하나는 브라우저가 이미 안다. 라디오는 보이지 않게 칸 전체를 덮고(눌리는
- * 것도 초점을 받는 것도 라디오다), 고른 칸은 흰 면 · 굵은 글자로 선다. 칸 높이는 보이는 36px + 바탕 4px 위아래로
- * 누르는 자리가 44px 다.
+ * 것도 초점을 받는 것도 라디오다), 고른 칸은 흰 면 · 굵은 글자로 선다. 칸 하나가 44px 이라
+ * 누르는 자리도 44px 다 — 옛 세그먼트는 40px 이었다.
  */
 function Segments<T extends string>({
   label,
