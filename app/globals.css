@@ -318,6 +318,20 @@ main:focus { outline: none; }
   html:has(#mobile-member-navigation) {
     scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
   }
+  /*
+    **글을 적는 동안 독은 내려간다.** 폰 키보드가 올라오면 떠 있는 독이 키보드 바로 위에 붙어 적는 칸 · 「보내기」를
+    가렸다 — 화면의 남은 높이가 절반쯤인데 그중 80px 을 독이 먹었다. 적는 칸에 초점이 있는 동안만 아래로 비켜나고,
+    초점이 떠나면 돌아온다. 라디오 · 체크 칸은 키보드를 안 올리므로 뺀다.
+  */
+  #mobile-member-navigation {
+    transition: transform 220ms cubic-bezier(.2, .8, .2, 1), opacity 160ms ease;
+  }
+  body:has(:is(input:not([type=radio], [type=checkbox], [type=range], [type=file], [type=button], [type=submit]), textarea, select, [contenteditable]):focus)
+    #mobile-member-navigation {
+    transform: translateY(calc(100% + 1rem + env(safe-area-inset-bottom)));
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 /*
   **오늘의 인연 — 폰은 한 화면에 카드 한 장**(`app/me/matching/today-card.tsx`, 2026-09-25). 카드(`data-deck-fit`)가 서 있는
