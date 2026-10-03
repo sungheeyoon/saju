@@ -336,14 +336,15 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
     제출이 거절한다. 판정하는 자리를 새로 만들지 않고 이미 있는 그 자리에 얹는 것이 요점이다.
   */
   await year.fill('1990');
-  for (const [label, bad, good] of [
-    ['출생월', '13', '02'],
-    ['출생일', '30', '15'],
+  /* 거절은 생년월일 줄 밑에 서고, 다 적힌 값이 범위 밖이면 「입력해 주세요」보다 구체적인 그 이유를 말한다(폼 시안 · UX) */
+  for (const [label, bad, good, why] of [
+    ['출생월', '13', '02', '월은 1~12 사이로 입력해 주세요.'],
+    ['출생일', '30', '15', '일은 1~28 사이로 입력해 주세요.'],
   ] as const) {
     await page.getByLabel(label).fill(bad);
     await expect(page.getByLabel(label)).toHaveAttribute('aria-invalid', 'true');
     await show.click();
-    await expect(refusal).toHaveText('생년월일을 입력해 주세요.');
+    await expect(refusal).toHaveText(why);
     await page.getByLabel(label).fill(good);
     await expect(refusal).toHaveCount(0);
   }
@@ -355,7 +356,7 @@ test('생년월일시는 숫자로 적고 범위 밖이면 눌러도 안 넘어�
   await page.getByLabel('출생 시', { exact: true }).fill('25');
   await expect(page.getByLabel('출생 시', { exact: true })).toHaveAttribute('aria-invalid', 'true');
   await show.click();
-  await expect(refusal).toHaveText('출생 시각을 입력해 주세요.');
+  await expect(refusal).toHaveText('시는 0~23 사이로 입력해 주세요.');
   await page.getByLabel('출생 시', { exact: true }).fill('14');
 
   await page.getByRole('button', { name: '사주 보기' }).click();
@@ -838,8 +839,8 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
   }));
   expect(pairOverflow.scroll).toBeLessThanOrEqual(pairOverflow.client);
   for (const control of [
-    partner.getByRole('button', { name: /^달력 / }),
-    partner.getByRole('button', { name: /^출생 시각 / }),
+    partner.getByRole('radio', { name: '음력 윤달', exact: true }),
+    partner.getByRole('radio', { name: '모름', exact: true }),
     partner.getByLabel('출생일', { exact: true }),
     page.getByRole('button', { name: '무료로 두 사람 궁합 보기' }),
   ]) {
@@ -893,13 +894,16 @@ test('입력 폼과 결과의 누르는 자리가 44px 이상이고, 초점은 �
 }) => {
   await page.goto('/');
 
-  // 고르는 칸은 펼침 줄이고(ADR 0132) 펼친 목록의 한 줄도 과녁이다 — 세그먼트였을 때 40px 이던 자리
+  // 보기가 둘 · 셋인 줄은 보기가 다 펴진 라디오이고(폼 시안 · UX) 라디오가 알약보다 위아래로 넓게 덮는다 — 그 라디오가 과녁이다
+  const radio = (name: string) => page.getByRole('radio', { name, exact: true });
+  await expectTargets({ 여자: radio('여자'), 양력: radio('양력'), '음력 윤달': radio('음력 윤달'), 모름: radio('모름') });
+  // 보기가 많은 줄은 펼침 줄이고 펼친 목록의 한 줄도 과녁이다
   const row = (name: string) => page.getByRole('button', { name: new RegExp(`^${name} `) });
-  await expectTargets({ 성별: row('성별'), 달력: row('달력'), '출생 시각': row('출생 시각'), 출생지: row('출생지') });
-  await row('달력').click();
+  await expectTargets({ 출생지: row('출생지') });
+  await row('출생지').click();
   const option = (name: string) => page.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
-  await expectTargets({ 양력: option('양력'), 음력: option('음력'), '음력 윤달': option('음력 윤달') });
-  await row('달력').click();
+  await expectTargets({ 서울: option('서울'), 부산: option('부산') });
+  await row('출생지').click();
 
   const focused = await focusedOutline(page.getByLabel('출생연도'));
   expect.soft(focused.own).toBe('none');
