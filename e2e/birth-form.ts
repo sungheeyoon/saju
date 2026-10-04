@@ -13,7 +13,7 @@ import { CALENDAR_KO, type Calendar } from '@/src/lib/saju';
  * 날짜와 시각은 `<input type="date">`·`type="time">` 이 아니라 숫자 칸으로 서 있다
  * (`app/birth-form.tsx` 의 머리말). 그래서 검사도 **한 칸에 한 번 채우지 않고**
  * 년·월·일과 시·분을 각각 적는다. 성별 · 달력 · 출생 시각은 선택지가 다 보이는 고르는 칸이고, 출생지와 고급 설정의
- * 자시 · 시간 기준은 펼치는 칸이다 — 어느 화면에서나 같은 모양이다(ADR 0132 덧, 2026-10-05).
+ * 자시 · 시간 기준은 펼치는 칸이다 — 어느 화면에서나 같은 모양이다(ADR 0132 덧).
  */
 
 type Scope = Page | Locator;

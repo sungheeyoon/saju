@@ -43,7 +43,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
   return (
     /*
       **폰에서는 종이의 옆 여백을 12px 로 줄이고 글 · 단추만 제 자리(24px)에 둔다** — 폼의 흰 판이 첫 화면과 같은 폭으로 선다.
-      종이 여백 24px 에 판 안쪽 16px 이 겹치면 320px 폭에서 숫자 칸의 자리표시(「1~12」)가 칸을 넘었다(2026-10-05 잼).
+      종이 여백 24px 에 판 안쪽 16px 이 겹치면 320px 폭에서 숫자 칸의 자리표시(「1~12」)가 칸을 넘는다.
     */
     <section className={`${PAPER} flex flex-col gap-6 max-sm:px-3`}>
       <span aria-hidden="true" className="flex gap-2 max-sm:px-3">
