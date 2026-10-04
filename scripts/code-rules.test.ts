@@ -837,6 +837,31 @@ describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
     expect(missing).toEqual([]);
   });
 
+  /**
+   * 메모 칸은 지금 상태 두세 문장이다 — 실행 기록이 칸에 쌓여 한 줄이 만 자를 넘었다(2026-10-05, G-23).
+   * 긴 기록은 `## G-nn 기록` 절로 내리고 칸이 그 절을 가리킨다. 문턱은 그날 가장 긴 칸(G-65, 보류 · 손대지 않음)의 위다.
+   */
+  const MEMO_LIMIT = 500;
+  const recordSections = [...ledger.matchAll(/^## (G-\d{2}) 기록$/gm)].map((match) => match[1]);
+
+  it(`메모 칸은 ${MEMO_LIMIT}자를 넘지 않는다 — 긴 실행 기록은 \`## G-nn 기록\` 절에 산다`, () => {
+    expect(rows.filter((cells) => cells[6].length > MEMO_LIMIT).map((cells) => `${cells[1]} :: ${cells[6].length}자`)).toEqual([]);
+  });
+
+  it('「G-nn 기록」 절은 표에 서 있는 줄의 것이고, 칸이 가리키는 절은 있다 — 줄을 닫으면 절도 걷는다', () => {
+    const ids = new Set(rows.map((cells) => cells[1]));
+    expect(recordSections.length).toBeGreaterThan(0);
+    expect(new Set(recordSections).size).toBe(recordSections.length);
+    expect(recordSections.filter((id) => !ids.has(id))).toEqual([]);
+    const pointed = rows.flatMap((cells) => [...cells[6].matchAll(/「(G-\d{2}) 기록」/g)].map((match) => `${cells[1]}→${match[1]}`));
+    expect(pointed.length).toBeGreaterThan(0);
+    expect(pointed.filter((pair) => {
+      const [from, to] = pair.split('→');
+      return from !== to || !recordSections.includes(to);
+    })).toEqual([]);
+    expect(recordSections.filter((id) => !pointed.includes(`${id}→${id}`))).toEqual([]);
+  });
+
   it('PRD 본체에는 개정 기록이 없다 — 계보와 「재어 본 값」은 changelog 에 산다', () => {
     expect(prd).not.toMatch(/^## 10\. /m);
     expect(prd).not.toMatch(/^### 0\.[3-8] /m);
