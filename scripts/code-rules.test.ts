@@ -178,7 +178,8 @@ describe('이름 (docs/agents/code-rules.md)', () => {
 // -----------------------------------------------------------------------------
 
 const ADR_DIR = join(ROOT, 'docs/adr');
-const ADR_FILES = readdirSync(ADR_DIR).filter((name) => name.endsWith('.md'));
+/** 결정 문서만 — 색인 `README.md` 는 결정이 아니다 */
+const ADR_FILES = readdirSync(ADR_DIR).filter((name) => name.endsWith('.md') && name !== 'README.md');
 const ADR_NUMBERS = new Set(ADR_FILES.map((name) => name.slice(0, 4)));
 
 /** 루트의 설정 파일 — `playwright.config.ts` 처럼 ADR 을 가리키는 것이 있다 */
@@ -229,6 +230,56 @@ describe('ADR 참조 (docs/agents/code-rules.md)', () => {
       }
     }
     expect(odd).toEqual([]);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// 현재 결정 색인 (docs/adr/README.md)
+// -----------------------------------------------------------------------------
+
+/**
+ * ADR 머리(제목 아래 인용 블록)의 「후속 결정」 줄 — `> 후속 결정: ADR NNNN — …` 는 그 ADR 이 통째로 대체됐다는 표지이고,
+ * `> 후속 결정(일부): …` 는 일부만 대체됐다는 표지다. 괄호 안에 「일부」가 없으면 통째다.
+ */
+function supersededWhole(text: string): boolean {
+  // 머리는 제목 한 줄과 그 앞뒤의 빈 줄 · 인용 줄이다 — 제목 위에 인용을 둔 옛 ADR 도 있다(ADR 0018)
+  const head: string[] = [];
+  let title = false;
+  for (const line of text.split('\n')) {
+    if (!title && line.startsWith('# ')) {
+      title = true;
+      continue;
+    }
+    if (line.trim() !== '' && !line.startsWith('>')) break;
+    head.push(line);
+  }
+  return head.some((line) => {
+    const match = /^> 후속 결정(?:\(([^)]*)\))?:/.exec(line);
+    return match !== null && !(match[1] ?? '').includes('일부');
+  });
+}
+
+describe('현재 결정 색인 (docs/adr/README.md)', () => {
+  const index = readFileSync(join(ADR_DIR, 'README.md'), 'utf8');
+  /** 색인의 줄은 `- ADR NNNN — 제목` 이다. 머리말의 `ADR NNNN` 은 줄로 세지 않는다 */
+  const listed = [...index.matchAll(/^- ADR (\d{4}) — /gm)].map((match) => match[1]);
+  const whole = new Set(
+    ADR_FILES.filter((name) => supersededWhole(readFileSync(join(ADR_DIR, name), 'utf8'))).map((name) => name.slice(0, 4)),
+  );
+
+  it('색인이 가리키는 번호는 `docs/adr/` 에 있다', () => {
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed.filter((number) => !ADR_NUMBERS.has(number))).toEqual([]);
+  });
+
+  it('통째로 대체된 ADR(머리에 「후속 결정」 줄, 「일부」 없이)은 색인에 서지 않는다', () => {
+    expect(whole.size).toBeGreaterThan(0);
+    expect([...new Set(listed)].filter((number) => whole.has(number))).toEqual([]);
+  });
+
+  it('통째로 대체되지 않은 ADR 은 모두 색인에 선다 — 새 ADR 은 색인에 줄을 더한다', () => {
+    const shown = new Set(listed);
+    expect([...ADR_NUMBERS].filter((number) => !whole.has(number) && !shown.has(number)).sort()).toEqual([]);
   });
 });
 

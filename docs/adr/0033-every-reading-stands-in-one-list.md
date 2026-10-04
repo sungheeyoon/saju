@@ -1,6 +1,6 @@
 # 만든 글은 한 목록에 선다
 
-> 후속 결정: ADR 0055에 따라 `self`와 `person` 줄은 각각 `/me/readings/self`와
+> 후속 결정(일부): ADR 0055에 따라 `self`와 `person` 줄은 각각 `/me/readings/self`와
 > `/me/readings/[personId]`로 간다. 목록이 본문을 싣지 않는 규칙은 그대로다.
 >
 > 2026-09-20: **한 입구 안에서 사주풀이와 궁합풀이를 두 구역으로 나눈다.** 한 사람의
