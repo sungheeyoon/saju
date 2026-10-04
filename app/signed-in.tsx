@@ -7,10 +7,9 @@ import type { BrowserSession } from './auth/browser-session';
 /**
  * 로그인했는가 — **화면 하나가 한 번 읽어 아래로 흘려보내는 값.**
  *
- * `/` 위의 세 자리가 이 값으로 갈린다: 머리(`home-hero.tsx`), 궁합으로 가는 길
- * (`compat-entry.tsx`), 계산기의 버튼과 안내(`saju-calculator.tsx`). 셋이 저마다
- * `getSession()` 을 부르면 잠깐 서로 다른 답을 들고, 그 틈에 **회원 전용 얼굴 위에
- * 「로그인 필요」와 「내 사주」가 한 번 깜빡인다.**
+ * 계산기의 버튼 · 안내 · 결과(`saju-calculator.tsx`)가 이 값으로 갈린다. 값은 그 계산기를 품은 화면(`/` 의 `home-hero.tsx` ·
+ * `/saju` 의 `saju-hero.tsx`)이 한 번 읽어 내려보낸다 — 저마다 `getSession()` 을 부르면 잠깐 서로 다른 답을 들고, 그 틈에
+ * 회원의 화면 위에 로그인 전 문구가 한 번 깜빡인다.
  *
  * ## 왜 prop 이 아니라 context 인가
  *

@@ -1,13 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
-import { afterSignIn, safeReturnPath, signInFrom, withReturnPath } from './return-path';
+import { RESUME_READING_PATH, afterSignIn, safeReturnPath, signInFrom, withReturnPath } from './return-path';
 
 describe('로그인 뒤 돌아갈 경로', () => {
   it('앱 안 경로는 쿼리와 # 까지 그대로 둔다', () => {
     expect(safeReturnPath('/compat')).toBe('/compat');
     expect(safeReturnPath('/me/people?from=settings')).toBe('/me/people?from=settings');
     expect(safeReturnPath('/me/compat?a=1&b=2')).toBe('/me/compat?a=1&b=2');
-    expect(safeReturnPath('/#resume-reading')).toBe('/#resume-reading');
+    expect(safeReturnPath('/saju#resume-reading')).toBe('/saju#resume-reading');
+    expect(safeReturnPath('/saju')).toBe('/saju');
+  });
+
+  /** 배포 전에 로그인을 떠난 탭은 옛 주소를 들고 온다 — 회원의 계산 자리로 갈아 읽는다(ADR 0144) */
+  it('옛 사주 이어 보기 주소는 /saju 의 이어 보기로 읽는다', () => {
+    expect(RESUME_READING_PATH).toBe('/saju#resume-reading');
+    expect(safeReturnPath('/#resume-reading')).toBe('/saju#resume-reading');
+    expect(withReturnPath('/auth', '/#resume-reading')).toBe('/auth?next=%2Fsaju%23resume-reading');
+    /* 다른 낱말은 그대로다 — 이어 보기 하나만 갈아 읽는다 */
+    expect(safeReturnPath('/#name=x')).toBe('/#name=x');
   });
 
   it('다른 사이트로 가는 주소는 내 사주로 보낸다', () => {
@@ -68,7 +78,9 @@ describe('로그인 · 가입 주소', () => {
 
 describe('로그인을 마친 사람이 처음 설 곳', () => {
   it('사주 이어 보기만 가입 화면을 거친다 — 나머지는 관문이 끼운다', () => {
-    expect(afterSignIn('/#resume-reading')).toBe('/signup?next=%2F%23resume-reading');
+    expect(afterSignIn('/saju#resume-reading')).toBe('/signup?next=%2Fsaju%23resume-reading');
+    expect(afterSignIn('/#resume-reading')).toBe('/signup?next=%2Fsaju%23resume-reading');
+    expect(afterSignIn('/saju')).toBe('/saju');
     /* 궁합 이어 보기도 낱말째 가입 화면을 거친다 — 관문은 `#` 뒤를 못 봐서 가입 뒤 입력을 잃는다(ADR 0131) */
     expect(afterSignIn('/compat#resume-pair')).toBe('/signup?next=%2Fcompat%23resume-pair');
     expect(afterSignIn('/compat')).toBe('/compat');

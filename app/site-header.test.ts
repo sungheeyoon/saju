@@ -9,11 +9,13 @@ function activeTabs(pathname: string, from: string | null = null): string[] {
   return TABS.filter((href) => isNavigationActive(pathname, href, from));
 }
 
-describe('회원 내비게이션 활성 상태 (ADR 0126 · 0134)', () => {
-  it('나는 /me 와 저장한 사람 · 풀이 보관함 · 로그인한 사람의 사주 계산에서 켜진다', () => {
-    for (const pathname of ['/me', '/me/people', '/me/people/example', '/me/readings', '/']) {
+describe('회원 내비게이션 활성 상태 (ADR 0126 · 0134 · 0144)', () => {
+  it('홈은 /me 와 저장한 사람 · 풀이 보관함 · 로그인한 사람의 사주 계산(/saju)에서 켜진다', () => {
+    for (const pathname of ['/me', '/me/people', '/me/people/example', '/me/readings', '/saju']) {
       expect(activeTabs(pathname), pathname).toEqual(['/me']);
     }
+    /* `/` 는 로그인 전 첫 화면이다 — 회원은 거기 머물지 않으므로 어느 탭도 안 켠다 */
+    expect(activeTabs('/')).toEqual([]);
     /* 이름이 비슷해도 다른 길이다 */
     expect(isNavigationActive('/me/peoplex', '/me')).toBe(false);
     expect(isNavigationActive('/me/readingsx', '/me')).toBe(false);

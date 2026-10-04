@@ -56,7 +56,7 @@ test('무료로 내 사주 보기 → 로그인 전 사주 문단 · 잠긴 목�
   await expect(page.getByRole('heading', { name: '사주팔자' })).toBeVisible();
 
   await outline.getByRole('link', { name: '로그인하고 전체 풀이 받기' }).click();
-  await expect(page).toHaveURL(/\/auth\?next=%2F%23resume-reading$/);
+  await expect(page).toHaveURL(/\/auth\?next=%2Fsaju%23resume-reading$/);
   expect(page.url()).not.toContain('1990');
   expect(await page.evaluate(() => sessionStorage.getItem('saju:reading-draft'))).toContain('date=1990-05-15');
 });
