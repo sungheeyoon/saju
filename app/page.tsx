@@ -16,24 +16,19 @@ import { SajuCalculator } from './saju-calculator';
 const READING_OUTLINE: readonly string[] = selfSectionTexts(CONTROL).map((text) => text.split('\n', 1)[0]);
 
 /**
- * `/` — **한 주소가 두 사람을 받는다.**
+ * `/` — **로그인 전 첫 화면**(ADR 0144). 로그인한 사람은 세션을 안 순간 홈이나 `/saju` 로 옮긴다(`HomeHero`).
  *
- * 로그인하지 않은 사람에게는 「점점」의 첫인상이고, 로그인한 사람에게는 홈의 「다른 사람
- * 사주 보기」가 데려오는 연장이다. 무엇을 세울지는 `HomeHero` 가 브라우저에서 가른다 — 이 화면은
- * **빌드 때 미리 그려지므로** 서버에서 세션을 물으면 방문마다 도는 화면이 된다
- * (`site-header.tsx` 가 같은 까닭으로 같은 일을 한다).
- *
- * 계산기는 **여기서 만든다.** 주소창의 `#` 뒤를 읽는데 이 화면은 미리 그려지고,
- * fragment 는 서버에 오지 않는다 — 그 기다림의 경계를 서버가 세워야 미리 그려진
- * HTML 이 그 자리를 들고 온다. 세션은 `HomeHero` 가 통로로 내려보낸다(`signed-in.tsx`).
+ * **빌드 때 미리 그려진다** — 서버에서 세션을 물으면 방문마다 도는 화면이 된다(`site-header.tsx` 가 같은 까닭으로 같은
+ * 일을 한다). 계산기는 **여기서 만든다.** 주소창의 `#` 뒤를 읽는데 fragment 는 서버에 오지 않는다 — 그 기다림의 경계를
+ * 서버가 세워야 미리 그려진 HTML 이 그 자리를 들고 온다. 세션은 `HomeHero` 가 통로로 내려보낸다(`signed-in.tsx`).
  */
 export default function Home() {
   return (
-    // 넓은 화면에서도 폼은 한 손 너비다 — 72rem 판에 칸 일곱이 퍼지면 이름표와 값이 화면 양 끝으로 갈렸다(2026-10-03 시각 시안)
+    // 넓은 화면에서도 폼은 한 손 너비다 — 넓은 판에 칸이 퍼지면 이름표와 값이 화면 양 끝으로 갈린다
     <main className="app-shell flex flex-1 flex-col gap-8 py-9 sm:gap-10 sm:py-14 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-[42rem]">
       <HomeHero
         calculator={
-          // 미리 그려진 HTML 은 현관이다 — 자리표시도 현관 종이의 아래 토막 모양이다(`PAPER_BOTTOM`, ADR 0132)
+          // 미리 그려진 HTML 은 첫 화면이다 — 자리표시도 그 종이의 아래 토막 모양이다(`PAPER_BOTTOM`, ADR 0132)
           <Suspense fallback={<div className="h-[26rem] rounded-b-[2rem] bg-cream" />}>
             <SajuCalculator outline={READING_OUTLINE} />
           </Suspense>

@@ -159,8 +159,7 @@ const reaching = entries
   .map((one) => ({ ...one, byActionOnly: one.path.slice(0, -1).some(isServerActionFile) }));
 
 /**
- * **알고 있는 어긋남 — 줄어들기만 한다.** 시험을 세운 날(2026-09-30) 있던 하나 — `/` 의 이어 보기 저장 액션 — 는 관문이
- * `/` 의 액션 POST 에서 돌게 해 닫았다(ADR 0137). 새 자리는 여기 들지 않는다 — 관문을 넓히거나 부르는 자리를 옮긴다.
+ * **알고 있는 어긋남 — 줄어들기만 한다.** 지금 없다(ADR 0137). 새 자리는 여기 들지 않는다 — 관문을 넓히거나 부르는 자리를 옮긴다.
  */
 const KNOWN_OUTSIDE: Readonly<Record<string, string>> = {};
 
@@ -205,8 +204,14 @@ describe('signedInUser 는 관문의 matcher 안에서만 돈다', () => {
     },
   );
 
-  /** 현관은 액션만 관문을 지난다(ADR 0137) — 나머지 관문 밖 주소는 액션도 안 지난다 */
-  it.each(['/saju', '/share/x-id', '/privacy', '/api/cron/reading', '/api/portone/webhook', '/api/openai/webhook'])(
+  /** 첫 화면과 회원의 계산 자리는 액션만 관문을 지난다(ADR 0137 · 0144) */
+  it.each(['/', '/saju'])('%s 는 액션 요청에서만 관문을 지난다', (route) => {
+    expect(gateOnSome(route)).toBe(true);
+    expect(gateOnRender(route)).toBe(false);
+  });
+
+  /** 나머지 관문 밖 주소는 액션도 안 지난다 */
+  it.each(['/share/x-id', '/privacy', '/api/cron/reading', '/api/portone/webhook', '/api/openai/webhook'])(
     '%s 는 어떤 요청도 관문을 안 지난다',
     (route) => {
       expect(gateOnSome(route)).toBe(false);

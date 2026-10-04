@@ -50,7 +50,7 @@
 | 서버 액션 | `actions.ts`(`'use server'`) | `app/me/actions.ts` · `app/me/requests/actions.ts` |
 | 라우트 | `route.ts` | `app/api/cron/reading/route.ts` · `app/me/photo/[userId]/route.ts` |
 | 클라이언트 넷 | 이름으로 갈린다 | `app/auth/server-client.ts`(쿠키) · `app/auth/browser-client.ts` · `app/keyed-client.ts`(열쇠, ADR 0010) · `app/share/public-client.ts`(로그인 없음) |
-| 로그인 확인 | `signedInUser` 하나 | `app/auth/signed-in.ts` — 쿠키의 서명을 확인하고 활동을 적는다. Auth 서버에는 `proxy.ts` 가 묻는다(ADR 0117 · 0118) — 그래서 이 함수에 닿는 주소는 관문의 matcher 안이다(`app/auth/signed-in.boundary.test.ts`, 현관 `/` 은 액션만 ADR 0137) |
+| 로그인 확인 | `signedInUser` 하나 | `app/auth/signed-in.ts` — 쿠키의 서명을 확인하고 활동을 적는다. Auth 서버에는 `proxy.ts` 가 묻는다(ADR 0117 · 0118) — 그래서 이 함수에 닿는 주소는 관문의 matcher 안이다(`app/auth/signed-in.boundary.test.ts`, 첫 화면 `/` 와 회원의 계산 `/saju` 는 액션만 ADR 0137 · 0144) |
 
 문 파일에 **접미사 규약은 없다.** 있으면 좋지만 서른 파일을 한 번에 옮기는 일이라 미뤘다.
 새 문을 만들 때는 그 화면 폴더의 `.ts` 로 두고 이름은 **무엇을 내주는가**로 짓는다

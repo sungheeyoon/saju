@@ -103,12 +103,8 @@ const PLAN = [
     group: '쓰는 중',
     shots: [
       { id: 'me', at: '/me', name: '내 계정 (홈)' },
-      /*
-        **`/` 는 두 얼굴이다.** 익명 무리의 `home` 은 현관(제품 소개)이고, 회원이 메뉴의
-        「사주·궁합」으로 걸어오면 같은 주소가 **연장**으로 선다 — 머리에 사주·궁합
-        토글이 서고 계산기 위 안내가 빠진다. 한쪽만 찍어 두면 그 차이가 갤러리에 없다.
-      */
-      { id: 'home-member', at: '/', name: '사주 — 회원이 열었을 때' },
+      /* 회원의 한 사람 계산은 `/saju` 다 — 회원이 `/` 를 열면 홈으로 옮긴다(ADR 0144) */
+      { id: 'home-member', at: '/saju', name: '사주 — 회원이 열었을 때' },
       { id: 'self-reading', at: '/me/readings/self', name: '내 사주풀이' },
       { id: 'profile', at: '/me/profile', name: '프로필' },
       { id: 'settings', at: '/me/settings', name: '설정' },

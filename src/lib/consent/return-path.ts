@@ -4,7 +4,7 @@
  * ## 왜 여기 모았나
  *
  * 로그인으로 보내는 자리가 스물일곱이었고(2026-09-29 `grep -rn "/auth" app`), 돌아갈 곳을 든 것은 셋뿐이었다 —
- * 궁합(`/auth?next=%2Fcompat`), 사주 이어 보기(`/auth?next=%2F%23resume-reading`), 가입 화면의 같은 갈래.
+ * 궁합(`/auth?next=%2Fcompat`), 사주 이어 보기, 가입 화면의 같은 갈래.
  * 나머지 스물넷은 `/auth` 만 적어서, `/me/match/…` 를 열다 세션이 끊긴 사람은 로그인을 마치고 `/me` 에 섰다. 가입 관문도
  * `/signup` 으로만 보내고 가입을 마친 사람을 언제나 `/me` 로 보냈다 — 목적지를 들고 온 사람도 거기서 잃었다.
  *
@@ -21,11 +21,20 @@
 /** 돌아갈 곳을 모르거나 못 믿을 때 — 내 사주 */
 const DEFAULT_RETURN_PATH = '/me';
 
+/** 로그인한 사람이 저장하지 않고 한 사람의 사주를 보는 자리(ADR 0144) — 로그인 전에는 `/` 가 같은 일을 한다 */
+export const SAJU_PATH = '/saju';
+
 /**
- * 사주 이어 보기 — `/` 에서 적던 입력으로 돌아온다(입력은 주소가 아니라 탭의 `sessionStorage` 가 든다,
- * `app/reading-draft.ts`).
+ * 사주 이어 보기 — 로그인 전 첫 화면에서 적던 입력으로 돌아온다(입력은 주소가 아니라 탭의 `sessionStorage` 가 든다,
+ * `app/reading-draft.ts`). 로그인을 마친 사람이 서는 곳이라 회원의 계산 자리다(ADR 0144).
  */
-export const RESUME_READING_PATH = '/#resume-reading';
+export const RESUME_READING_PATH = `${SAJU_PATH}#resume-reading`;
+
+/**
+ * 옛 사주 이어 보기 주소 — 배포 전에 로그인을 떠난 탭이 이 값을 `next` 로 들고 돌아온다. 돌아갈 곳으로 읽을 때 새 주소로
+ * 갈아 읽어, 가입 화면을 거치는 갈래와 로그인 화면의 제목이 같은 답을 낸다.
+ */
+const LEGACY_RESUME_READING_PATH = '/#resume-reading';
 
 /**
  * 첫 화면의 로그인 전 궁합 결과에서 넣은 두 사람으로 궁합을 이어 본다(ADR 0131) — 두 사람도 주소가 아니라 탭의
@@ -68,7 +77,8 @@ export function safeReturnPath(value: string | string[] | null | undefined): str
     const parsed = new URL(candidate, 'https://local.invalid');
     if (parsed.origin !== 'https://local.invalid') return DEFAULT_RETURN_PATH;
     if (detour(parsed.pathname)) return DEFAULT_RETURN_PATH;
-    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    const path = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    return path === LEGACY_RESUME_READING_PATH ? RESUME_READING_PATH : path;
   } catch {
     return DEFAULT_RETURN_PATH;
   }
@@ -95,7 +105,7 @@ export const signInFrom = (pathname: string): string =>
 /**
  * 로그인을 마친 사람이 **처음 설 곳** — 가입 관문이 못 서는 목적지만 가입 화면을 거친다.
  *
- * `/me` 아래 · `/compat` 은 관문(`gateFor`)이 가입 전인 사람을 가입 화면으로 보낸다. 사주 이어 보기(`/`)는
+ * `/me` 아래 · `/compat` 은 관문(`gateFor`)이 가입 전인 사람을 가입 화면으로 보낸다. 사주 이어 보기(`/saju`)는
  * 관문 밖이라, 궁합 이어 보기(`/compat#resume-pair`)는 관문이 `#` 뒤를 못 보아 여기서 가입 화면을 한 번 거치게
  * 한다 — 가입을 마쳤으면 그 화면이 곧장 목적지로 보낸다.
  */

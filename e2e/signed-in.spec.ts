@@ -366,14 +366,17 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await page.goto('/me');
     await expect(page.locator('main[data-skeleton]')).toHaveCount(0);
 
-    /* 차례 — 카드 → 받은 사주풀이 → 저장한 사람. 이번 달 흐름 · 바로가기 줄 · 「다른 사람 사주 보기」는 걷었다 */
+    /* 차례 — 카드 → 받은 사주풀이 → 저장한 사람. 이번 달 흐름 · 바로가기 줄은 없다 */
     const order = await page.locator('main').innerText();
     expect(order.indexOf('사주 자세히 보기')).toBeGreaterThanOrEqual(0);
     expect(order.indexOf('사주 자세히 보기')).toBeLessThan(order.indexOf('내가 받은 사주풀이'));
     expect(order.indexOf('내가 받은 사주풀이')).toBeLessThan(order.indexOf('저장한 사람'));
     await expect(page.getByRole('region', { name: '이번 달 흐름' })).toHaveCount(0);
     await expect(page.getByRole('navigation', { name: '바로가기' })).toHaveCount(0);
-    await expect(page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' })).toHaveCount(0);
+    /* 저장하지 않고 보는 한 사람의 사주는 저장한 사람 구역 끝의 작은 보조 링크 하나다(ADR 0144) */
+    const others = page.getByRole('region', { name: /저장한 사람/ }).getByRole('link', { name: '다른 사람 사주 보기' });
+    await expect(others).toHaveAttribute('href', '/saju');
+    await expect(page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' })).toHaveCount(1);
 
     /* 줄인 카드도 출생 정보 한 줄은 든다(2026-09-25 에 일부러 남긴 줄) */
     const mine = page.getByRole('region', { name: '내 사주' });
@@ -1191,63 +1194,64 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   });
 
   /**
-   * **`/` 는 회원에게 다른 얼굴을 세운다.**
-   *
-   * 한 주소가 두 사람을 받는다 — 로그인하지 않은 사람에게는 현관이고, 회원에게는
-   * 메뉴의 「사주·궁합」이 데려오는 연장이다(`home-hero.tsx`). 익명 쪽은
-   * `saju.spec.ts` 가 재므로 여기서는 **회원에게 사라져야 할 것**을 잰다: 이미 지난
-   * 가입 관문, 이미 아는 제품 소개, 이미 가진 세션을 두고 하는 「로그인 필요」.
+   * **`/` 는 로그인 전 첫 화면이다**(ADR 0144). 회원이 주소창에 `/` 를 치면 홈이 서고, 옮김은 `replace` 라 뒤로가기에
+   * `/` 가 안 남는다.
    */
-  test('회원이 보는 `/` 에는 가입 안내 대신 직접 입력하는 얼굴이 선다', async ({
-    page,
-    signedIn,
-  }) => {
+  test('회원이 `/` 를 열면 홈에 서고 뒤로가기에 `/` 가 안 남는다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
+    await page.goto('/privacy');
     await page.goto('/');
+    await expect(page).toHaveURL(/\/me$/);
+    await expect(page.getByRole('heading', { level: 1, name: `${signedIn.nickname}님, 오늘도 반가워요` })).toBeAttached();
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\/privacy$/);
+  });
+
+  /** 로그인 전 결과에서 복사한 링크(`/#입력`)를 회원이 열면 그 입력째 `/saju` 에 선다(ADR 0144) */
+  test('회원이 입력이 실린 `/` 링크를 열면 /saju 에 그 사주가 선다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto(`/#${new URLSearchParams({ name: '민수', date: '1988-11-07', hour: '09:15' })}`);
+
+    await expect(page).toHaveURL(/\/saju#.*date=1988-11-07/);
+    await expect(page.locator('#chart')).toBeVisible();
+    await expect(page.getByLabel('이름', { exact: true })).toHaveValue('민수');
+  });
+
+  /**
+   * **`/saju` 는 회원의 한 사람 계산 자리다**(ADR 0144) — 홈 탭이 켜지고, 머리에 사주 · 궁합 토글이 없다. 로그인 전 첫
+   * 화면의 것(코드 띠 · 입구 · 「로그인 필요」)은 여기 안 선다.
+   */
+  test('`/saju` 에는 홈 탭이 켜지고 사주 · 궁합 토글 없이 직접 입력하는 얼굴이 선다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/me');
+    await page.getByRole('main').getByRole('link', { name: '다른 사람 사주 보기' }).click();
+    await expect(page).toHaveURL(/\/saju$/);
 
     await expect(page.getByRole('heading', { name: '궁금한 사람의 사주를 바로 봅니다.' })).toBeVisible();
+    await expect(page.locator('a[href="/me"][aria-current="page"]:visible')).toHaveCount(1);
+    await expect(page.getByRole('navigation', { name: '사주와 궁합' })).toHaveCount(0);
 
-    /* 코드는 가입할 때 한 번 쓴다 — 회원이 눌러도 다시 지날 수 없는 길이다 */
+    await expect(page.getByRole('tablist', { name: '무엇을 볼까요' })).toHaveCount(0);
     await expect(page.getByText('테스트 코드를 받으셨나요?')).toHaveCount(0);
-    await expect(page.getByRole('link', { name: /테스트 코드로 시작하기/ })).toHaveCount(0);
-    /* 제품 소개와 「로그인 후」 안내도 현관의 것이다 */
-    await expect(page.getByText('사주풀이에서 만날 이야기')).toHaveCount(0);
-    await expect(page.getByText('사주풀이와 궁합은 로그인 후')).toHaveCount(0);
-
-    /*
-      **회원의 머리에는 토글이 선다.** 사주와 궁합은 나란한 짝이라 버튼이 아니라 지금
-      어디에 있는지 함께 보이는 한 덩이로 잇는다(`segmented-nav.tsx`).
-
-      **「로그인 필요」는 깜빡이지도 않아야 한다.** 그 꼬리표는 현관의 것이고, 회원
-      화면에 한 틱이라도 서면 화면이 그 사람의 세션이 풀렸다고 말하는 셈이다.
-    */
-    const tabs = page.getByRole('navigation', { name: '사주와 궁합' });
-    await expect(tabs.getByRole('link', { name: '사주', exact: true })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    await expect(tabs.getByRole('link', { name: '궁합', exact: true })).toHaveAttribute(
-      'href',
-      '/compat',
-    );
     await expect(page.getByText('로그인 필요')).toHaveCount(0);
 
-    /*
-      **현관에서 하던 말은 회원에게 안 한다.** 버튼은 이제 양쪽이 같은 글자를 쓰지만
-      (「사주 보기」 — 누름이 하는 일이 같다), 그 아래 「로그인 없이…」 한 줄과 현관의
-      눈썹은 로그인하지 않은 사람에게만 참이다. 회원에게 세우면 화면이 그 사람의 세션이
-      풀렸다고 말하는 셈이다(`saju-calculator.tsx`).
-    */
     await expect(page.getByRole('heading', { name: '출생 정보를 입력해 주세요' })).toBeVisible();
-    await expect(page.getByText('첫 단계 · 사주 확인')).toHaveCount(0);
-    await expect(page.getByText('로그인 없이 사주와 오행을 확인할 수 있어요')).toHaveCount(0);
-
     await submitReady(page);
     await page.getByLabel('이름', { exact: true }).fill('민수');
     await fillBirthDate(page, '1988-11-07');
     await fillBirthTime(page, '09:15');
     await page.getByRole('button', { name: '사주 보기' }).click();
     await expect(page.locator('#chart')).toBeVisible();
+    await expect(page).toHaveURL(/\/saju#.*date=1988-11-07/);
+  });
+
+  /** 궁합 화면의 머리에도 사주 · 궁합 토글이 없다 — 탭 사이는 머리글이 잇는다(ADR 0144) */
+  test('`/compat` 머리에 사주 · 궁합 토글이 없다', async ({ page, signedIn }) => {
+    expect(signedIn.label).not.toBe('');
+    await page.goto('/compat');
+    await expect(page.getByRole('heading', { name: '궁합 새로 보기' })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: '사주와 궁합' })).toHaveCount(0);
   });
 
   /**
@@ -1255,7 +1259,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
    * 결과(`taste.tsx`)를 세우면 회원이 연 `/#…` 의 생년월일시가 서버 액션으로 한 번 나가고 예약 · 모델 호출까지 간다.
    * 화면은 세션을 모르는 동안 그 결과를 안 세우고, 서버(`requestTaste`)도 로그인한 사람이면 닫는다 — 여기서는 앞쪽을 잰다.
    */
-  test('회원이 생일이 실린 `/` 주소로 와도 로그인 전 사주 문단을 서버에 묻지 않는다', async ({ page, signedIn }) => {
+  test('회원이 생일이 실린 `/` 주소로 와도 로그인 전 사주 문단을 서버에 묻지 않고 /saju 로 옮긴다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
 
     /*
@@ -1276,11 +1280,12 @@ test.describe('초대된 사람의 로그인 흐름', () => {
 
     const draft = new URLSearchParams({ date: '1988-11-07', hour: '09:15', gender: 'male', city: '서울', rule: 'jo', basis: 'localMean' });
     await page.goto(`/#${draft}`);
+    await expect(page).toHaveURL(/\/saju#.*date=1988-11-07/);
     await expect(page.locator('#chart')).toBeVisible();
     await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('heading', { name: '사주가 보여 주는 나' })).toHaveCount(0);
-    expect(asked, '회원의 `/#…` 에서 서버 액션이 나갔다').toEqual([]);
+    expect(asked, '회원의 `/#…` · `/saju#…` 에서 서버 액션이 나갔다').toEqual([]);
   });
 
   /**
@@ -1293,14 +1298,8 @@ test.describe('초대된 사람의 로그인 흐름', () => {
   test('저장 안내는 이름 뒤에 짝 조사를 찍지 않는다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
 
-    await page.goto('/');
-    /*
-      **회원 얼굴이 선 뒤에 채운다.** 폼은 붙기 전까지 값을 못 지킨다 — 하이드레이션
-      전에 적으면 React 가 자기 상태로 칸을 되돌리고, 그러면 「이름을 입력해 주세요」가
-      뜬 채 이 시험이 조사 이야기를 시작한다. 머리는 계산기보다 **먼저** 서므로
-      (계산기는 `Suspense` 뒤에서 따로 붙는다) 제목만으로는 모자란다.
-    */
-    await expect(page.getByRole('heading', { name: '궁금한 사람의 사주를 바로 봅니다.' })).toBeVisible();
+    await page.goto('/saju');
+    /* 계산기가 붙은 뒤에 채운다 — 붙기 전에 적으면 React 가 자기 상태로 칸을 되돌린다 */
     await submitReady(page);
     await page.getByLabel('이름', { exact: true }).fill('영희');
     await fillBirthDate(page, '1988-11-07');
@@ -1313,7 +1312,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
     await expect(entry).not.toContainText('이(가)');
 
     /* 이름은 주소로 들어온 입력에서 빠질 수 있다 — 그때는 문장이 통째로 갈린다 */
-    await page.goto('/#date=1988-11-07&hour=09:15');
+    await page.goto('/saju#date=1988-11-07&hour=09:15');
     await expect(page.locator('#chart')).toBeVisible();
     await expect(entry).toContainText('이 사람이 추가돼요');
     await expect(entry).not.toContainText('이(가)');
@@ -1337,7 +1336,7 @@ test.describe('초대된 사람의 로그인 흐름', () => {
       가 서고(ADR 0034), 이 검사가 재려던 것은 그것이 아니다. 성별을 바꿔도 안 갈린다 —
       여덟 글자는 성별로 갈리지 않는다.
     */
-    await page.goto('/#date=1988-11-07&hour=09:15');
+    await page.goto('/saju#date=1988-11-07&hour=09:15');
 
     /*
       **도착지가 부르는 이름을 그대로 쓴다.** 제목이 「AI 풀이」였던 동안 이 칸은 앱
@@ -2864,7 +2863,7 @@ test.describe('가입 관문', () => {
   test('가입을 안 끝냈으면 앱 안 링크로 홈에 가도 가입 화면이 선다', async ({ openAs }) => {
     const newcomer = await openAs({ selfPerson: false, skipSignup: true });
 
-    await newcomer.page.goto('/');
+    await newcomer.page.goto('/saju');
     await expect(
       newcomer.page.getByRole('heading', { name: '출생 정보를 입력해 주세요' }),
     ).toBeVisible();
@@ -2875,6 +2874,17 @@ test.describe('가입 관문', () => {
     await expect(
       newcomer.page.getByRole('heading', { name: /테스트 코드와 닉네임/ }),
     ).toBeVisible();
+  });
+
+  /**
+   * **가입을 안 끝낸 사람의 `/` 도 홈으로 옮긴다** — 그러면 관문이 `/me` 에 하는 그대로 가입 화면이 선다(ADR 0144). `/saju` 는
+   * 관문 밖이라 지금 `/` 가 하던 대로 계산기가 선다(위 시험).
+   */
+  test('가입을 안 끝냈으면 `/` 를 열어도 가입 화면이 선다', async ({ openAs }) => {
+    const newcomer = await openAs({ selfPerson: false, skipSignup: true });
+
+    await newcomer.page.goto('/');
+    await expect(newcomer.page).toHaveURL(/\/signup$/);
   });
 
   /**
@@ -3349,13 +3359,15 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     const newcomer = await openAs({ selfPerson: false, skipSignup: true });
     const { page } = newcomer;
 
-    /* 「로그인하고 계속하기」가 탭에 적어 두는 입력 — 로그인한 창에는 그 링크가 안 서므로 같은 자리에 손으로 적는다 */
-    await page.goto('/');
+    /* 「로그인하고 계속하기」가 탭에 적어 두는 입력 — 로그인한 창에는 그 링크가 안 서므로 같은 탭에 손으로 적는다 */
+    await page.goto('/privacy');
     await page.evaluate(() => sessionStorage.setItem('saju:reading-draft', 'name=민수&date=1988-11-07&hour=09:15'));
 
-    await page.goto('/auth?next=%2F%23resume-reading');
-    await expect(page).toHaveURL(/\/signup\?next=%2F%23resume-reading$/);
+    await page.goto('/auth?next=%2Fsaju%23resume-reading');
+    await expect(page).toHaveURL(/\/signup\?next=%2Fsaju%23resume-reading$/);
     const nickname = await signUp(page);
+    /* 가입을 마치면 회원의 계산 자리에서 적던 입력이 되살아난다(ADR 0144) */
+    await expect(page).toHaveURL(/\/saju#.*date=1988-11-07/);
 
     await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toBeVisible();
     /* 내 사주의 이름은 닉네임이다 — 저장하면 홈에서 이 이름으로 선다 */
@@ -3382,8 +3394,8 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     const newcomer = await openAs({ selfPerson: false, skipSignup: true });
     const { page } = newcomer;
 
-    /* 「로그인하고 궁합풀이 받기」가 탭에 적어 두는 두 사람 — 로그인한 창에는 그 단추가 안 서므로 같은 자리에 손으로 적는다 */
-    await page.goto('/');
+    /* 「로그인하고 궁합풀이 받기」가 탭에 적어 두는 두 사람 — 로그인한 창에는 그 단추가 안 서므로 같은 탭에 손으로 적는다 */
+    await page.goto('/privacy');
     await page.evaluate(() =>
       sessionStorage.setItem('saju:pair-draft', 'a.name=민수&a.date=1990-05-15&a.hour=14:30&b.name=지영&b.date=1992-08-20&b.hour=09:00'),
     );
@@ -3401,9 +3413,11 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
 
   test('「다른 사람의 사주예요」면 저장한 사람으로 저장하는 지금 길이 선다', async ({ page, newcomer }) => {
     expect(newcomer.email).not.toBe('');
-    await page.goto('/');
+    await page.goto('/privacy');
     await page.evaluate(() => sessionStorage.setItem('saju:reading-draft', 'name=영희&date=1988-11-07&hour=09:15'));
+    /* 옛 이어 보기 주소로 돌아온 탭 — 회원이면 `/saju` 로 옮겨 그 입력이 되살아난다(ADR 0144) */
     await page.goto('/#resume-reading');
+    await expect(page).toHaveURL(/\/saju#.*date=1988-11-07/);
 
     await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toBeVisible();
     await page.getByRole('button', { name: '다른 사람의 사주예요' }).click();
@@ -3447,7 +3461,7 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     await expect(taste).toContainText('새벽빛이 들기 전에', { timeout: 30_000 });
     await taste.getByRole('button', { name: '더보기' }).click();
     await taste.getByRole('link', { name: '무료 회원가입하고 이어보기' }).click();
-    await expect(page).toHaveURL(/\/auth\?next=%2F%23resume-reading$/);
+    await expect(page).toHaveURL(/\/auth\?next=%2Fsaju%23resume-reading$/);
 
     /* 뒤로가기 — 같은 글이 다시 선다(같은 세션을 다시 쓴다) */
     await page.goBack();
@@ -3459,7 +3473,7 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
 
     /* 가입 왕복 — 로그인 쿠키를 되돌리고 가입 화면을 지난다 */
     await context.addCookies(signedInCookies);
-    await page.goto('/auth?next=%2F%23resume-reading');
+    await page.goto('/auth?next=%2Fsaju%23resume-reading');
     await signUp(page);
     await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toBeVisible();
 
@@ -3564,7 +3578,7 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
     expect(sessionId).toMatch(/^[0-9a-f-]{36}$/);
 
     await context.addCookies(signedInCookies);
-    await page.goto('/auth?next=%2F%23resume-reading');
+    await page.goto('/auth?next=%2Fsaju%23resume-reading');
     await signUp(page);
     await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toBeVisible();
 
@@ -3637,7 +3651,7 @@ test.describe('로그인 · 가입이 목적지를 든다', () => {
 
   test('내 사주가 이미 있으면 묻지 않는다', async ({ page, signedIn }) => {
     expect(signedIn.label).not.toBe('');
-    await page.goto('/#date=1988-11-07&hour=09:15');
+    await page.goto('/saju#date=1988-11-07&hour=09:15');
     await expect(page.getByRole('heading', { name: '사주풀이로 이어 보기' })).toBeVisible();
     await expect(page.getByRole('heading', { name: '이 사주가 내 사주 맞나요?' })).toHaveCount(0);
   });

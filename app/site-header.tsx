@@ -8,7 +8,7 @@ import { SERVICE_NAME } from '@/src/lib/brand';
 import { CHAT_TAB_LABEL } from '@/src/lib/chat';
 import { readingCreditsLabel } from '@/src/lib/reading/notes';
 import { SURVEY_COPY } from '@/src/lib/survey';
-import { signInFrom } from '@/src/lib/consent';
+import { SAJU_PATH, signInFrom } from '@/src/lib/consent';
 
 import { supabaseInBrowser } from './auth/browser-client';
 import { lightOf, placeOf, resultKindOf } from './came-from';
@@ -59,9 +59,8 @@ function within(pathname: string, base: string): boolean {
  * - **결과 화면 셋**(사주풀이 · 직접 궁합 · 인연 궁합)은 **온 곳**(`?from=`)의 탭을 켠다 — 궁합 탭에서 연 궁합은 궁합,
  *   채팅방에서 연 인연 궁합은 채팅, 소식에서 연 글은 종이다. 온 곳이 없거나 모르는 값이면 결과 종류의 탭이다(사주 → 홈,
  *   궁합 → 궁합, 인연 → 인연). 표는 `came-from.ts` 한 벌이다(ADR 0134).
- * - **홈**은 `/me` 와 내 쪽의 것이다 — 저장한 사람(`/me/people/*`), **풀이 보관함 목록(`/me/readings`)**, 그리고
- *   로그인한 사람이 보는 사주 계산(`/`). 보관함은 궁합 탭의 「모두 보기」로 와도 홈이다(2026-09-29 운영자, ADR 0133 을
- *   뒤집음).
+ * - **홈**은 `/me` 와 한 사람의 사주 쪽이다 — 저장한 사람(`/me/people/*`), **풀이 보관함 목록(`/me/readings`)**, 그리고
+ *   로그인한 사람의 사주 계산(`/saju`, ADR 0144). 보관함은 궁합 탭의 「모두 보기」로 와도 홈이다(ADR 0134).
  * - **궁합**은 두 사람을 고르는 자리(`/compat`)다. **인연**은 오늘의 인연과 그 아래(`/me/matching/*`)다.
  * - 채팅 · 종(`/me/requests`)은 제 주소와 그 아래다. 톱니 안의 화면은 어느 탭도 안 켠다.
  */
@@ -69,7 +68,7 @@ export function isNavigationActive(pathname: string, href: string, from: string 
   const result = resultKindOf(pathname);
   if (result !== null) return lightOf(result, placeOf({ from }, pathname).from) === href;
   if (href === '/me') {
-    return pathname === '/me' || within(pathname, '/me/people') || pathname === '/me/readings' || pathname === '/';
+    return pathname === '/me' || within(pathname, '/me/people') || pathname === '/me/readings' || pathname === SAJU_PATH;
   }
   if (href === '/compat') return pathname === '/compat';
   return within(pathname, href);
@@ -96,8 +95,8 @@ function ReadCameFrom({ render }: { render: (from: string | null) => ReactNode }
 }
 
 /*
-  로그인했는지는 `useBrowserSession` 이 읽는다 — 서버에서 읽지 않는다. `/` 는 **정적으로 미리 그려지고**
-  proxy 도 일부러 안 지나간다. 헤더 하나 때문에 그 화면이 요청마다 도는 화면이 되면, 세션도 없는 방문마다
+  로그인했는지는 `useBrowserSession` 이 읽는다 — 서버에서 읽지 않는다. `/` · `/saju` 는 **정적으로 미리 그려지고**
+  화면 요청은 proxy 를 일부러 안 지나간다. 헤더 하나 때문에 그 화면이 요청마다 도는 화면이 되면, 세션도 없는 방문마다
   Supabase 를 두드리게 된다. `/compat` 은 다르다 — proxy 의 matcher 안이고 요청마다 그려진다(2026-09-28 빌드).
 */
 export function SiteHeader() {
@@ -183,7 +182,7 @@ export function SiteHeader() {
           <div aria-hidden="true" className={`min-w-0 flex-1 ${live ? 'md:hidden' : ''}`} />
 
           {/*
-            **익명 화면이라고 로그아웃된 것이 아니다.** 로그인한 사람도 공개 사주 계산 화면으로 올 수 있다.
+            **미리 그려진 화면이라고 로그아웃된 것이 아니다.** 로그인한 사람도 `/saju` · 공개 화면으로 온다.
             아직 모르는 동안에는 **둘 다 안 보인다** — 「로그인」을 먼저 세우면 로그인한 사람이 한 번 깜빡이는
             거짓말을 보고, 톱니를 먼저 세우면 그 반대다. 자리만 잡아 두면 글자가 늦게 오는 것으로 끝난다.
           */}

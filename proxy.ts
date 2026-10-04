@@ -155,7 +155,7 @@ export const config = {
   /**
    * 익명 흐름은 지나가지 않게 한다.
    *
-   * `/` 만 로그인 없이 도는 정적 화면이다. `/compat` 은 로그인 후 쓰므로 만료된
+   * `/` · `/saju` 는 화면 요청이 관문을 안 지나는 정적 화면이다. `/compat` 은 로그인 후 쓰므로 만료된
    * 세션을 갱신해야 한다.
    *
    * `/signup` 도 로그인한 사람의 화면이다. **여기서 튕기지는 않지만**(`gateFor` 는
@@ -165,10 +165,11 @@ export const config = {
    * `/ops` 도 같다. 관문 밖에 일부러 둔 자리라(ADR 0061) 여기서 아무 데도 안 보내지만,
    * 세션이 안 갱신되면 오랜만에 들어온 운영자가 로그인 화면을 먼저 만난다.
    *
-   * **`/` 는 서버 액션만 지나간다**(ADR 0137). 현관의 이어 보기 저장이 `/` 주소로 액션을 부르고, 그 액션이
-   * `signedInUser` 로 사람을 묻는다 — 서명만 보는 그 확인은 여기의 `getUser` 와 한 벌이다(`app/auth/signed-in.ts`).
-   * 화면(GET)은 로그인 없이 도는 정적 현관이라 그대로 둔다 — 액션의 표식(`next-action` 머리글)이 있을 때만 돈다.
-   * 이 계약은 `app/auth/signed-in.boundary.test.ts` 가 잰다.
+   * **`/` · `/saju` 는 서버 액션만 지나간다**(ADR 0137 · 0144). 로그인한 사람의 계산 자리(`/saju`)의 이어 보기 저장이 그
+   * 주소로 액션을 부르고, 그 액션이 `signedInUser` 로 사람을 묻는다 — 서명만 보는 그 확인은 여기의 `getUser` 와 한
+   * 벌이다(`app/auth/signed-in.ts`). `/` 는 로그인 전 결과의 액션이 지나간다. 두 화면(GET)은 미리 그려지고 세션을 브라우저가
+   * 읽으므로 그대로 둔다 — 액션의 표식(`next-action` 머리글)이 있을 때만 돈다. 화면 요청에 관문을 걸지 않는 것은 `#` 뒤가
+   * 서버에 안 와서 회원 · 비회원을 옮기는 일을 어차피 브라우저가 하기 때문이다. 이 계약은 `app/auth/signed-in.boundary.test.ts` 가 잰다.
    */
   matcher: [
     '/me/:path*',
@@ -177,5 +178,6 @@ export const config = {
     '/signup',
     '/ops/:path*',
     { source: '/', has: [{ type: 'header', key: 'next-action' }] },
+    { source: '/saju', has: [{ type: 'header', key: 'next-action' }] },
   ],
 };

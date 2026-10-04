@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useReducer, useRef, useState, useTransition, type ReactNode } from 'react';
 
+import { SAJU_PATH } from '@/src/lib/consent';
 import { MATCH_PILLARS_DISCLOSURE } from '@/src/lib/consent/notice';
 import { DISCOVERY_EMPTY } from '@/src/lib/discovery';
 import { REQUEST_RESERVES_NOTE } from '@/src/lib/reading/notes';
@@ -637,6 +638,6 @@ function EmptyDeck({ me, feedback }: { me: MeMark; feedback: ReactNode }) {
 }
 
 const MEANWHILE: readonly { href: string; label: string; icon: IconName; element: Element }[] = [
-  { href: '/', label: '다른 사람 사주 보기', icon: 'search', element: '水' },
+  { href: SAJU_PATH, label: '다른 사람 사주 보기', icon: 'search', element: '水' },
   { href: '/compat', label: '궁합 보러 가기', icon: 'taiji', element: '火' },
 ];

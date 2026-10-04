@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { SAJU_PATH } from '@/src/lib/consent';
 import { storedChartOf, type StoredInput } from '@/src/lib/input/stored';
 import type { PersonSlots } from '@/src/lib/people';
 
@@ -122,6 +123,14 @@ function SavedPeople({
         </ul>
       )}
       {slots !== null && full && <p className="text-[13px] text-secondary">저장할 수 있는 {slots.limit}명을 다 채웠어요.</p>}
+      {/*
+        저장하지 않고 한 사람을 계산해 보는 길(`/saju`, ADR 0144) — 사람을 저장하기 전에 먼저 보는 자리라 이 구역 끝의 작은
+        보조 링크 하나다. 홈의 주인공은 내 사주와 저장한 사람이다.
+      */}
+      <Link href={SAJU_PATH} className={`${BUTTON_TERTIARY} self-start`}>
+        다른 사람 사주 보기
+        <Icon name="arrow" className="size-4" />
+      </Link>
     </section>
   );
 }
