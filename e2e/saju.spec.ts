@@ -825,7 +825,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
 
   /*
     **궁합 입구의 두 묶음도 잰다.** 칸이 가장 좁아지는 값(음력 윤달 · 시각 모름)을 고른 채로 넘침과 과녁을 잰다
-    (ADR 0132 덧 — 로그인 전 입구는 칸 모양이다).
+    (ADR 0132 덧 — 입력폼은 칸 모양이다).
   */
   await page.getByRole('tab', { name: /궁합 보기/ }).click();
   const partner = page.getByRole('group', { name: '상대', exact: true });
@@ -837,7 +837,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
     scroll: document.documentElement.scrollWidth,
   }));
   expect(pairOverflow.scroll).toBeLessThanOrEqual(pairOverflow.client);
-  // 로그인 전 궁합 입구의 선택지는 펼침 없이 보이는 칸이다 — 고른 그 칸이 과녁이다(ADR 0132 덧)
+  // 고르는 칸의 선택지는 펼침 없이 보인다 — 고른 그 칸이 과녁이다(ADR 0132 덧)
   const option = (name: string) => partner.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
   for (const control of [
     option('음력 윤달'),
@@ -883,7 +883,7 @@ test('모바일에서 전역 가로 넘침이 없고 주요 조작 영역이 44p
 /**
  * **작은 과녁 · 두 겹 초점 · 바탕의 금** — 셋 다 운영 화면에서 잰 것이다(2026-09-25).
  *
- * - 입력 폼의 두 세그먼트(달력 기준 · 출생 시각)는 칸 높이가 40px 이었다(지금은 48px 펼침 줄, ADR 0132). 결과의 바로가기
+ * - 입력 폼의 두 세그먼트(달력 기준 · 출생 시각)는 칸 높이가 40px 이었다(지금은 선택지가 다 보이는 48px 칸, ADR 0132 덧). 결과의 바로가기
  *   「운」은 글자 하나라 폭이 39.9px, 합 설명을 펴는 머리는 높이가 20px 이었다.
  * - 전역 초점 테두리가 층 밖에 있어서 `outline-none` 을 단 칸에도 한 겹 더 섰다 — 칸은 제
  *   테두리(`ring`)를 두르므로 두 겹이었다.
@@ -896,7 +896,7 @@ test('입력 폼과 결과의 누르는 자리가 44px 이상이고, 초점은 �
 }) => {
   await page.goto('/');
 
-  // 비로그인 홈의 선택지는 펼치지 않고 바로 누른다. 출생지 목록은 기존 펼침을 쓴다.
+  // 고르는 칸의 선택지는 펼치지 않고 바로 누른다. 출생지는 펼치는 칸이다.
   const option = (name: string) => page.locator('label', { has: page.getByRole('radio', { name, exact: true }) });
   await expectTargets({
     양력: option('양력'), 음력: option('음력'), '음력 윤달': option('음력 윤달'),

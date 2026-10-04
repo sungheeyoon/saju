@@ -12,7 +12,8 @@ import { CALENDAR_KO, type Calendar } from '@/src/lib/saju';
  *
  * 날짜와 시각은 `<input type="date">`·`type="time">` 이 아니라 숫자 칸으로 서 있다
  * (`app/birth-form.tsx` 의 머리말). 그래서 검사도 **한 칸에 한 번 채우지 않고**
- * 년·월·일과 시·분을 각각 적는다. 성별 · 달력 · 출생지 · 출생 시각은 펼침 줄이다(ADR 0132).
+ * 년·월·일과 시·분을 각각 적는다. 성별 · 달력 · 출생 시각은 선택지가 다 보이는 고르는 칸이고, 출생지와 고급 설정의
+ * 자시 · 시간 기준은 펼치는 칸이다 — 어느 화면에서나 같은 모양이다(ADR 0132 덧, 2026-10-05).
  */
 
 type Scope = Page | Locator;
@@ -49,14 +50,15 @@ export async function expectBirthDate(scope: Scope, date: string): Promise<void>
 }
 
 /**
- * 묶음 목록의 펼침 줄에서 하나를 고른다 — 줄(`button`, 이름은 「줄 이름 + 지금 값」)을 눌러 펼치고 라디오를 누른다.
+ * 선택지 하나를 고른다 — 고르는 칸(성별 · 달력 · 출생 시각)은 보이는 선택지를 그대로 누르고, 펼치는 칸(출생지 · 자시 ·
+ * 시간 기준)은 칸(`button`, 이름은 「칸 이름 + 지금 값」)을 눌러 펼친 뒤 라디오를 누른다.
  *
- * 손으로 고르면 목록이 접히므로(`birth-form.tsx` 의 `PickRow`) `check()` 가 아니라 `click()` 이다 — `check()` 는
- * 누른 뒤 라디오가 켜져 있는지 다시 보는데, 그때 라디오는 이미 떼어졌다.
+ * 펼치는 칸은 손으로 고르면 목록이 접히므로(`birth-form.tsx` 의 `SelectField`) `check()` 가 아니라 `click()` 이다 —
+ * `check()` 는 누른 뒤 라디오가 켜져 있는지 다시 보는데, 그때 라디오는 이미 떼어졌다.
  */
 export async function pickRow(scope: Scope, row: string, option: string): Promise<void> {
   const radio = scope.getByRole('radio', { name: option, exact: true });
-  // 비로그인 홈은 선택지가 처음부터 보이고, 다른 화면은 펼침 줄이다.
+  // 고르는 칸의 선택지는 처음부터 보인다. 안 보이면 펼치는 칸이다 — 칸을 눌러 목록을 편다.
   if (!(await radio.isVisible())) {
     await scope.getByRole('button', { name: new RegExp(`^${row} `) }).click();
   }

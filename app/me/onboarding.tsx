@@ -41,13 +41,17 @@ export function Onboarding({ nickname }: { nickname: string }) {
   };
 
   return (
-    <section className={`${PAPER} flex flex-col gap-6`}>
-      <span aria-hidden="true" className="flex gap-2">
+    /*
+      **폰에서는 종이의 옆 여백을 12px 로 줄이고 글 · 단추만 제 자리(24px)에 둔다** — 폼의 흰 판이 첫 화면과 같은 폭으로 선다.
+      종이 여백 24px 에 판 안쪽 16px 이 겹치면 320px 폭에서 숫자 칸의 자리표시(「1~12」)가 칸을 넘었다(2026-10-05 잼).
+    */
+    <section className={`${PAPER} flex flex-col gap-6 max-sm:px-3`}>
+      <span aria-hidden="true" className="flex gap-2 max-sm:px-3">
         {ELEMENTS.map((element) => (
           <ElementSymbol key={element} element={element} className="size-10 rounded-full bg-[var(--tile)] p-2 sm:size-12" />
         ))}
       </span>
-      <header className="flex flex-col gap-2">
+      <header className="flex flex-col gap-2 max-sm:px-3">
         <h2 className={TYPE_TITLE}>내 사주 등록</h2>
         <p className="max-w-prose text-[15px] leading-6 text-secondary">
           <strong className="font-semibold text-foreground">{nickname}</strong> 님의 출생 정보를 입력해 주세요.
@@ -55,9 +59,9 @@ export function Onboarding({ nickname }: { nickname: string }) {
         </p>
       </header>
 
-      <BirthFields value={query} onChange={setQuery} showName={false} />
+      <BirthFields value={query} onChange={setQuery} showName={false} surface="panel" />
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 max-sm:px-3">
         <button type="button" onClick={save} disabled={missing !== null || saving} className={BUTTON_PRIMARY}>
           {saving ? '저장하는 중…' : '내 사주로 저장'}
         </button>
@@ -65,7 +69,7 @@ export function Onboarding({ nickname }: { nickname: string }) {
         {missing !== null && <span className="text-[13px] text-secondary">{missing}</span>}
       </div>
 
-      {failure !== null && <p role="alert" className="text-sm text-danger">저장하지 못했어요. {failure}</p>}
+      {failure !== null && <p role="alert" className="text-sm text-danger max-sm:px-3">저장하지 못했어요. {failure}</p>}
     </section>
   );
 }
