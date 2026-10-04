@@ -34,7 +34,7 @@
 
 ## 끝날 때 고치는 것
 
-- [ ] 그날 노트(`docs/notes/`)에 끝 상태 — Production SHA · DB remote 의 마지막 마이그레이션 · smoke 결과
+- [ ] 배포 · DB 의 끝 상태(Production SHA · DB remote 의 마지막 마이그레이션 · smoke 결과)는 `docs/ops/runbook.md` 「묶음 배포」 5 의 이슈나 그 PR 에 — 노트는 `docs/agents/delegation.md` 「세션 기록」 기준만
 - [ ] 절차가 바뀌었거나 틀렸으면 → `docs/ops/runbook.md`
 - [ ] 보안 점검의 증거가 생겼으면 → `docs/product/gaps.md` 의 G-23 줄
 - [ ] 운영자만 할 수 있는 일이 새로 생겼으면 → 운영자 할 일 이슈(#304)에 줄
