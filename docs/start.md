@@ -38,7 +38,7 @@
 | 아직 없는 것 · 안 정한 것 · 보류 | `docs/product/gaps.md` | — |
 | 언제 무엇이 바뀌었나 | `docs/product/prd-changelog.md` | — |
 | 낱말 · 화면 문구 규칙 | `CONTEXT.md` | — |
-| 왜 이렇게 정했나 | `docs/adr/` | 다시 열려면 그 근거가 왜 더는 안 서는지 적는다(`docs/agents/domain.md`) |
+| 왜 이렇게 정했나 | `docs/adr/README.md`(영역마다 지금 유효한 ADR) → `docs/adr/` | 다시 열려면 그 근거가 왜 더는 안 서는지 적는다(`docs/agents/domain.md`) |
 | 코드가 어디에 살고 무엇을 불러도 되나 | `docs/architecture.md` | `scripts/layers.test.ts` · `eslint.config.mjs` 가 맞다 |
 | 코드를 어떻게 적나 | `docs/agents/code-rules.md` | `scripts/code-rules.test.ts` · 린트가 맞다 |
 | 무엇을 돌리나 | `docs/agents/test-map.md` | `scripts/ci-plan.mjs` 가 맞다 |

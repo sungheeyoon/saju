@@ -1,5 +1,7 @@
 # 엔진은 모델에게 말을 걸지 않는다
 
+> 후속 결정(일부): ADR 0049 — 「안 닿지만 지우지 않는다」던 `legacy-v1` 을 지웠다
+
 `src/lib/saju/evidence/prompt.ts` 는 이름 그대로 엔진 안에 살았고, 배럴이 그것을 공개
 표면으로 올렸다(`src/lib/saju/index.ts:34`, `export * from './evidence/prompt'`).
 
