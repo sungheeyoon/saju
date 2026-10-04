@@ -34,7 +34,7 @@
 
 ## 끝날 때 고치는 것
 
-- [ ] 라운드 노트(`docs/notes/`) — 머지 · 결정 대기 · DB remote · Production SHA · 배운 것 — 와 `docs/notes/README.md` 한 줄, PR `--auto`
+- [ ] 라운드 노트(`docs/notes/`) — `docs/agents/delegation.md` 「세션 기록」에 따라 다른 문서에 없는 것만 적고, 나머지는 PR · 배포 이슈 · `G-nn` 으로 가리켰는가 — 와 `docs/notes/README.md` 한 줄, PR `--auto`
 - [ ] 에이전트가 보고한 「역할 문서에 없어서 헤맨 것 · 가리킨 절이 틀린 것」 → `docs/roles/` 를 고친다(같은 노트 PR)
 - [ ] 되풀이된 실수 → `docs/agents/delegation.md` 「일하는 법」에 까닭과 함께 한 줄
 - [ ] 운영자만 할 수 있는 일 → 운영자 할 일 이슈. 머지된 워크트리는 사람에게 한 번 묻고 걷는다
