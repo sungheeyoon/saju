@@ -10,7 +10,7 @@
 
 ## 돌린 것
 
-<!-- docs/agents/test-map.md 의 명령과 결과(수까지). 공개 출시 전의 최소는 npm test · typecheck · lint 와 예외 넷(e2e·흐름 시험 자체 · 새 잠금 · 마이그레이션 · 프롬프트 본문). 안 돌린 것과 그 까닭. -->
+<!-- docs/agents/test-map.md 의 명령과 결과(수까지). 공개 출시 전의 최소는 npm test · typecheck · lint 와 예외 넷(e2e·흐름 시험 자체 · 새 잠금 · 마이그레이션 · 프롬프트 본문). 안 돌린 것과 그 까닭. 화면이 바뀌었으면 전후 그림 전부를 여기 GitHub 첨부로 싣고, 저장소 docs/notes/shots/<날짜>-<PR>/ 에는 화면마다 대표 몇 장(대개 390px 바뀐 뒤 한 장)만 — docs/agents/delegation.md 「끝났다는 것」. -->
 
 ## 잠금이면 일부러 어긴 것
 
