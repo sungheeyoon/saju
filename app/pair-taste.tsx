@@ -70,17 +70,17 @@ export function PairTaste() {
           event.preventDefault();
           submit();
         }}
-        // 첫 화면 종이의 아래 토막 — 입구 「궁합 보기」 곧장 아래에 「나」 · 「상대」 묶음 두 장이 선다(시안 n, ADR 0132)
+        // 첫 화면 종이의 아래 토막 — 입구 「궁합 보기」 곧장 아래에 「나」 · 「상대」 판 두 장이 선다(ADR 0132)
         className={`${PAPER_BOTTOM} flex flex-col gap-4`}
       >
         {(['a', 'b'] as const).map((side) => (
           <fieldset key={side} aria-label={side === 'a' ? '나' : '상대'} className="flex min-w-0 flex-col">
-            {/* 설정 앱의 구역 머리 — 묶음 위 작은 회색 글자 */}
+            {/* 구역 머리 — 판 위 작은 회색 글자. 판 안 이름표와 같은 선 · 같은 굵기다 */}
             <legend className="mb-2 px-4 text-[13px] font-semibold text-secondary sm:px-6">{side === 'a' ? '나' : '상대'}</legend>
             <BirthFields
               value={forms[side]}
               onChange={(next) => setForms((current) => ({ ...current, [side]: next }))}
-              presentation="guest"
+              surface="panel"
             />
           </fieldset>
         ))}

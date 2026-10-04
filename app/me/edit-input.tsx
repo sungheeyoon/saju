@@ -138,7 +138,7 @@ export function EditInputForm({
         </div>
       )}
 
-      <BirthFields value={query} onChange={setQuery} showName={editableName} />
+      <BirthFields value={query} onChange={setQuery} showName={editableName} surface="flat" />
 
       {/*
         무엇이 일어날지 누르기 전에 말한다. 이름은 여덟 글자를 바꾸지 않으므로

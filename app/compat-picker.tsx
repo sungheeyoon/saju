@@ -358,6 +358,7 @@ function SlotCard({
           value={slot.query}
           onChange={(next) => onChange({ from: 'typed', query: next })}
           namePlaceholder={SIDE_LABEL[side]}
+          surface="flat"
         />
       )}
     </fieldset>
