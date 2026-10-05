@@ -38,7 +38,7 @@ export const READ_BUDGET = {
   coordinator: { bytes: 106759, routes: [] },
   db: { bytes: 166981, routes: [] },
   docs: { bytes: 87624, routes: [] },
-  feature: { bytes: 186503, routes: ['docs/context/', 'docs/product/prd/'] },
+  feature: { bytes: 186699, routes: ['docs/context/', 'docs/product/prd/'] },
   ops: { bytes: 123122, routes: [] },
   reading: { bytes: 157767, routes: [] },
   reviewer: { bytes: 103331, routes: [] },
