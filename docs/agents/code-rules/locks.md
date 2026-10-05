@@ -1,6 +1,6 @@
 # 코드 규칙 — 커밋과 잠금
 
-색인은 `docs/agents/code-rules.md` 다.
+색인은 `CODING_STANDARDS.md` 다.
 
 ## 커밋과 PR
 
@@ -24,7 +24,7 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 
 규칙마다 일부러 어긴 파일로 걸리는 것을 확인하고 지웠다(ADR 0086).
 
-**잠그지 않은 것** — 식별자에 새는 용어집 낱말(그 표는 CONTEXT.md 재편에서 만든다), 주석의
+**잠그지 않은 것** — 식별자에 새는 용어집 낱말(그 표는 GLOSSARY.md 재편에서 만든다), 주석의
 언어와 내용(지금의 것만 적었는가 — 사람이 본다), 파일 머리말의 유무, 문 파일의 접미사(`docs/architecture.md`), 화면 문구 규칙 전부(사람이
 본다), 상수의 SCREAMING_CASE, import 밖의 따옴표.
 

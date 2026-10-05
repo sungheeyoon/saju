@@ -6,7 +6,7 @@ root ADR directory when exploring, planning, testing, or changing the codebase.
 ## Read before working
 
 - Read the glossary area files under `docs/context/` that your role document (`docs/roles/`) points to — the index
-  `CONTEXT.md` says which file holds which section; not every file. It is
+  `GLOSSARY.md` says which file holds which section; not every file. It is
   the project's domain language; open another section only when the work meets a word it defines.
 - Read the relevant decisions under `docs/adr/` before working in an affected area.
 - Read supporting product or analysis documents when an ADR or the glossary routes to them.
@@ -16,7 +16,7 @@ documentation should grow only when a term or decision is actually resolved.
 
 ## Use the glossary vocabulary
 
-Use terms exactly as `CONTEXT.md` defines them in issues, PRDs, implementation plans, tests, and code.
+Use terms exactly as `GLOSSARY.md` defines them in issues, PRDs, implementation plans, tests, and code.
 Do not replace them with synonyms that the glossary explicitly marks as ambiguous or discouraged.
 
 If a necessary concept is missing, first check whether it is an accidental synonym. If it is a real

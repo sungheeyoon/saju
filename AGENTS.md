@@ -37,5 +37,3 @@ Triage uses the five canonical labels without renaming. See `docs/agents/triage-
 ### Domain docs
 
 This is a single-context repository with a root glossary and root ADR directory. See `docs/agents/domain.md`.
-The skills say `GLOSSARY.md`; here that file is the index `CONTEXT.md` — read and edit it, and never create a
-`GLOSSARY.md`.

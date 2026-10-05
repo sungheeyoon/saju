@@ -1,6 +1,6 @@
 # 코드 규칙 — 실패
 
-색인은 `docs/agents/code-rules.md` 다.
+색인은 `CODING_STANDARDS.md` 다.
 
 ## 실패를 말하는 법
 

@@ -83,7 +83,7 @@ describe('궁합 베타 지표', () => {
     expect(preview.caveat).not.toContain('검증 중인 판정');
 
     /**
-     * **내부 판본 이름은 사용자에게 닿는 어디에도 없다**(CONTEXT.md · ADR 0026).
+     * **내부 판본 이름은 사용자에게 닿는 어디에도 없다**(GLOSSARY.md · ADR 0026).
      * `policyVersion` 은 값으로 실려 화면이 안 쓰는 자리에서만 읽힌다.
      */
     const shown = [...preview.highlights, preview.caveat, ...preview.dimensions.map((d) => `${d.label} ${d.description}`)].join(' ');

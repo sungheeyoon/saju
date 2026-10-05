@@ -1,6 +1,6 @@
 # 코드 규칙 — 탈출구
 
-색인은 `docs/agents/code-rules.md` 다.
+색인은 `CODING_STANDARDS.md` 다.
 
 ## 탈출구 — 지문으로 잠겨 있고 줄어들기만 한다
 

@@ -1,6 +1,6 @@
 # 코드 규칙 — 이름
 
-색인은 `docs/agents/code-rules.md` 다.
+색인은 `CODING_STANDARDS.md` 다.
 
 ## 이름
 
@@ -18,7 +18,7 @@
 | export | 이름 있는 export. `export default` 는 Next 가 요구하는 `app/` 과 루트 설정 파일에만 | src·scripts·e2e 0 |
 | 따옴표 | 홑따옴표 | import 1203 / 0 |
 
-**식별자는 영어, 뜻은 용어집.** `CONTEXT.md` 의 _Avoid_ 는 화면 문구만이 아니라 식별자에도
+**식별자는 영어, 뜻은 용어집.** `GLOSSARY.md` 의 _Avoid_ 는 화면 문구만이 아니라 식별자에도
 적용된다 — DB 를 읽는 함수는 **문**이지 `query` · `fetch` · `repository` 가 아니고, 이름은
 **무엇을 내주는가**로 짓는다(`inbox` · `current` · `candidates`). 사람은 `selfPerson` 이지
 `isSelf` 가 아니다. 지금 새어 있는 자리는 `docs/agents/code-rules/locks.md` 「알려진 어긋남」에 있다.
