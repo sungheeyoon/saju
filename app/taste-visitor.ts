@@ -28,7 +28,7 @@ import { ipSubjectOf, seoulDateOf } from '@/src/lib/reading/taste-visit';
  *
  * 둘 중 하나라도 없으면 `null` 이고 화면은 「실패 · 가입 경로」로 선다. **기본값 비밀로 돌지 않는다** — 그러면 HMAC 이 누구나
  * 다시 지을 수 있는 값이 된다. 로컬 · CI 는 시험이 시험용 값을 넣는다(`playwright.config.ts` · `scripts/check-taste.mjs`),
- * 운영은 Vercel 의 두 값이다(`docs/ops/runbook.md` 「로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용」).
+ * 운영은 Vercel 의 두 값이다(`docs/ops/runbook/ai.md` 「로그인 전 사주 문단 — 비밀 둘 · 상한 · 비용」).
  */
 
 /** 브라우저 묶음 쿠키 — 값은 무작위 32바이트(base64url) */

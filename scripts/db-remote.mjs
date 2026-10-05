@@ -26,7 +26,7 @@
  * `--output-format json` 으로 부른다. 없으면 지금처럼 사람이 읽는 출력 그대로다(사람의 셸이면 표). 접속기록에 적는 것과
  * 결과를 적는 것은 이 옵션과 상관없이 같은 길이다(#431).
  *
- * 개인정보를 읽는 SQL 은 이 명령으로 보내지 않는다 — 그것은 break-glass 이고 사람만 한다(runbook 「break-glass」).
+ * 개인정보를 읽는 SQL 은 이 명령으로 보내지 않는다 — 그것은 break-glass 이고 사람만 한다(`docs/ops/runbook/access.md` 「break-glass」).
  * 이 기록은 그것을 막지 못한다. 목적과 해시가 남아 **뒤에 물을 수 있게** 할 뿐이다.
  */
 import { execFileSync, spawnSync } from 'node:child_process';

@@ -13,7 +13,7 @@
 --      나가고, 늦게 커밋된 줄을 건너뛰지 않게 **쓰기는 공유 · 반출은 배타로 같은 자물쇠를 쥔다**(`20261013090000`).
 --      두 세션의 실제 경합은 `scripts/check-db-races.mjs` 가 재고, 여기서는 같은 자물쇠를 쥐는가를 잰다
 --   7. **advisor 가 보는 모양** — 새 문은 전부 search_path 가 고정됐고, 로그인한 사람에게 열린 새 definer 는
---      거절을 적는 문 하나다(lint 0029 가 하나 는다 — runbook 「보안 advisor」)
+--      거절을 적는 문 하나다(lint 0029 가 하나 는다 — `docs/ops/runbook/security.md` 「보안 advisor」)
 begin;
 select plan(42);
 

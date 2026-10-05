@@ -21,7 +21,7 @@
 - [결정 점검표](../agents/delegation/decisions.md) — 머지 전에 운영자에게 표로 물을 것
 - [역할 고르기](../start.md#역할-고르기) — 브리프의 「역할」 칸
 - [검토 역할](reviewer.md) — 의견을 모을 때 관점마다 하나
-- [묶음 배포](../ops/runbook.md#묶음-배포--최신-main-을-production-으로-한-번) — 라운드 끝의 배포 한 번
+- [묶음 배포](../ops/runbook/deploy.md#묶음-배포--최신-main-을-production-으로-한-번) — 라운드 끝의 배포 한 번
 
 ## 하지 않는 것 · 묻는 것
 

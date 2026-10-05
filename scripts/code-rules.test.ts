@@ -580,6 +580,8 @@ const ENTRY_DOCS = [
   join(ROOT, 'README.md'),
   join(ROOT, 'docs/architecture.md'),
   join(ROOT, 'docs/ops/runbook.md'),
+  // 운영 절차는 색인 아래 `docs/ops/runbook/` 의 운영 작업별 파일로 산다
+  ...walk(join(ROOT, 'docs/ops/runbook')),
   // 위임 규약은 색인 아래 `docs/agents/delegation/` 의 주제별 파일로 산다 — 하위 폴더까지 읽는다
   ...walk(join(ROOT, 'docs/agents')),
   join(ROOT, 'docs/start.md'),
@@ -1030,15 +1032,16 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
    * 원본은 지금 크기로 센다. 그래서 붉어지는 것은 **역할 문서가 더 많이 · 더 큰 파일을 가리키거나 제 몸이 자랄 때**다.
    *
    * 원본을 쪼개 줄였으면(예: runbook 을 주제 파일로) 상한도 내린다. 늘리려면 PR 에 까닭을 적고 여기 값을 함께 고친다.
+   * runbook 은 2026-10-05 에 운영 작업별 파일(`docs/ops/runbook/`)로 나눠 다섯 역할의 값을 내렸다.
    */
   const READ_BUDGET: Record<string, number> = {
-    coordinator: 321571,
-    db: 495030,
+    coordinator: 157819,
+    db: 352031,
     docs: 282168,
-    feature: 583730,
-    ops: 273465,
+    feature: 398330,
+    ops: 174182,
     reading: 430452,
-    reviewer: 501044,
+    reviewer: 318483,
     ui: 345681,
   };
   const SIZE_AT_LOCK: Record<string, number> = {
@@ -1070,7 +1073,11 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
     'docs/notes/2026-09-28-overnight-audit.md': 23358,
     'docs/notes/README.md': 18300,
     'docs/notes/verification-discipline.md': 47917,
-    'docs/ops/runbook.md': 185456,
+    'docs/ops/runbook.md': 2895,
+    'docs/ops/runbook/access.md': 20690,
+    'docs/ops/runbook/deploy.md': 21697,
+    'docs/ops/runbook/jobs.md': 11109,
+    'docs/ops/runbook/security.md': 32543,
     'docs/prd.md': 136645,
     'docs/product/copy-ledger.md': 30104,
     'docs/product/gaps.md': 65299,
@@ -1138,6 +1145,46 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
       expect(/^name: (.+)$/m.exec(text)?.[1].trim(), agent).toBe(agent);
       expect(text, agent).toContain(`docs/roles/${agent}.md`);
     }
+  });
+});
+
+// -----------------------------------------------------------------------------
+// 운영 절차 (docs/ops/runbook.md 색인 → docs/ops/runbook/)
+// -----------------------------------------------------------------------------
+
+describe('운영 절차 (docs/ops/runbook.md 색인 → docs/ops/runbook/)', () => {
+  const INDEX = 'docs/ops/runbook.md';
+  const RUNBOOK_DIR = 'docs/ops/runbook';
+  /** 주제 파일 하나 — 운영 작업 하나의 명령 · 전제 · 확인값은 그 파일에만 산다(2026-10-05 에 한 장을 나눴다) */
+  const part = (name: string) => readFileSync(join(ROOT, RUNBOOK_DIR, name), 'utf8');
+
+  it('색인은 주제 파일 전부를 들고 없는 파일을 들지 않으며, 명령 · 절을 들지 않는다', () => {
+    const index = readFileSync(join(ROOT, INDEX), 'utf8');
+    const files = readdirSync(join(ROOT, RUNBOOK_DIR)).filter((name) => name.endsWith('.md'));
+    expect(files.length).toBeGreaterThan(5);
+    const listed = [...index.matchAll(/^\| `docs\/ops\/runbook\/([a-z-]+\.md)` \|/gm)].map((match) => match[1]);
+    expect([...listed].sort()).toEqual([...files].sort());
+    // 색인에 절이 생기면 절차가 두 벌이 된다 — 머리말과 「차례」 하나뿐이고, 명령(코드 블록)도 없다
+    expect([...index.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
+    expect(index).not.toMatch(/^```/m);
+    for (const name of files) expect(part(name), name).toContain(`\`${INDEX}\``);
+  });
+
+  it('색인의 「절」 칸은 그 파일의 `##` 절을 차례대로 전부 든다 — 절을 옮기면 색인도 옮긴다', () => {
+    const index = readFileSync(join(ROOT, INDEX), 'utf8');
+    const wrong: string[] = [];
+    for (const match of index.matchAll(/^\| `docs\/ops\/runbook\/([a-z-]+\.md)` \| ([^|]+) \|/gm)) {
+      const named = [...match[2].matchAll(/「([^」]+)」/g)].map((one) => one[1]);
+      let inCode = false;
+      const heads: string[] = [];
+      for (const line of part(match[1]).split('\n')) {
+        if (line.startsWith('```')) inCode = !inCode;
+        if (!inCode && line.startsWith('## ')) heads.push(line.slice(3).replace(/\*\*|`/g, '').trim());
+      }
+      const same = named.length === heads.length && named.every((name, i) => heads[i].startsWith(name));
+      if (!same) wrong.push(`${match[1]}: 색인 ${named.join(' · ')} ↔ 파일 ${heads.join(' · ')}`);
+    }
+    expect(wrong).toEqual([]);
   });
 });
 

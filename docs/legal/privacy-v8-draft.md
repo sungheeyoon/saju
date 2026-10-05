@@ -292,10 +292,10 @@ v6 의 「초대받은 분만 쓰는 비공개 베타」를 걷는다)
 
 | 본문 | 확인한 곳 | 값 |
 | --- | --- | --- |
-| Supabase 처리 위치 | `supabase projects list`(CLI, 2026-09-24) · runbook 「어디서 실행하나」 | 프로젝트 `xgdeguyxgkillndraonc` 「Saju」 `region: ap-northeast-2` |
+| Supabase 처리 위치 | `supabase projects list`(CLI, 2026-09-24) · `docs/ops/runbook/access.md` 「어디서 실행하나」 | 프로젝트 `xgdeguyxgkillndraonc` 「Saju」 `region: ap-northeast-2` |
 | Vercel 서버 처리 위치 | `vercel inspect`(운영 배포 `dpl_ALbPRoN6vLfswtR2NFk5jHhDAhAa`) · 응답 머리 | 빌드 표의 함수가 전부 `[icn1]`, `x-vercel-id: icn1::…` |
 | Vercel 전송망 | Vercel 문서(CDN) | 정적 파일 · 요청이 전 세계 지점을 지난다. 로그 1시간(Hobby, 「Limits」) |
-| AWS 처리 위치 | runbook 「반출」 2 | 버킷을 서울(`ap-northeast-2`)에 만든다 — **기본안**. 계정은 아직 없다 |
+| AWS 처리 위치 | `docs/ops/runbook/security.md` 「반출」 2 | 버킷을 서울(`ap-northeast-2`)에 만든다 — **기본안**. 계정은 아직 없다 |
 | OpenAI 로 가는 것 | `app/me/reading/model.ts`(`store: false` · `background: true` · `metadata.reading_run_id`) · `src/lib/reading/prompt.ts`(`namingBlock` — 이름을 싣는다) · 마이그레이션 `20260925090000` 의 `reading_about`(저장한 이름 `local_label`, 인연 궁합은 두 닉네임, 쌍의 사이) · `src/lib/saju/evidence/shared.ts`(성별 · 출생 원문이 근거에서 빠진다) | 사주풀이(한 사람)는 이름을 안 싣고, 궁합풀이는 싣는다 |
 | 프로필 사진 6장까지 | 마이그레이션 `20261026090000`(`profile_photo` 의 자리 1..6 · 장마다 512KB · `app_user` 에 `cascade`) · G-60 | 한 사람 여섯 장, 첫 장이 대표. 볼 수 있는 사람은 한 장일 때와 같다(`may_see_photo`). 탈퇴 처분 때 전부 지워진다 |
 | 본인확인 | ADR 0101 · 운영자 승인(2026-09-24) | **구현 전**(G-20). 이 표는 G-20 이 지킬 조건이다 |
@@ -303,11 +303,11 @@ v6 의 「초대받은 분만 쓰는 비공개 베타」를 걷는다)
 | 쓴 순서 | 같은 마이그레이션의 쓰임 트리거 · ADR 0106 결정 4 | 무료 → 예외 → 산 때가 이른 묶음 |
 | 신고 · 스냅샷 | `20260927090000`(`chat_snapshot_context()` = 5) · `20261006090000`(`retention.report`, 크론 `report-retention-purge` 매시 47분) · `20261010090000`(검토 칸) | 떠나기 전에 옮기고 처분일부터 6개월 |
 | 탈퇴 처분 | `20261004090000`, 크론 `account-disposal`(매시 23분) | 신청 뒤 3일, 달력으로 |
-| 채팅 90일 | `chat_retention()` = 90일, `purge_closed_chat_messages()` — **크론이 아니다**, runbook 「닫힌 지 90일 지난 방의 메시지를 지운다 — 손으로」(배포한 날이나 달마다) | 그래서 7절이 「매달 한 번의 정기 삭제 때」다 |
-| 운영자 접속기록 | `20261010100000`(`audit.operator_access` — 칸: 번호 · 시각 · 채널 · 운영자 id · CLI 실행자 이름 · 동작 · 대상 신고 id · 거른 조건 · 목적 · SQL sha256 · 성공/거절) · `20261011090000`(동작 `credits.refund_basis`, 거른 조건 칸에 주문 id) · `20261116090000`(설문 동작 `survey.*` 일곱, 대상 · 거른 조건 없음) · runbook 「운영자 접속기록」「반출」 | 추가만 된다(소유자도 `update` · `delete` 없음). 반출 Object Lock 400일 |
+| 채팅 90일 | `chat_retention()` = 90일, `purge_closed_chat_messages()` — **크론이 아니다**, `docs/ops/runbook/moderation.md` 「닫힌 지 90일 지난 방의 메시지를 지운다 — 손으로」(배포한 날이나 달마다) | 그래서 7절이 「매달 한 번의 정기 삭제 때」다 |
+| 운영자 접속기록 | `20261010100000`(`audit.operator_access` — 칸: 번호 · 시각 · 채널 · 운영자 id · CLI 실행자 이름 · 동작 · 대상 신고 id · 거른 조건 · 목적 · SQL sha256 · 성공/거절) · `20261011090000`(동작 `credits.refund_basis`, 거른 조건 칸에 주문 id) · `20261116090000`(설문 동작 `survey.*` 일곱, 대상 · 거른 조건 없음) · `docs/ops/runbook/security.md` 「운영자 접속기록」「반출」 | 추가만 된다(소유자도 `update` · `delete` 없음). 반출 Object Lock 400일 |
 | 쿠키 · 저장소 | `@supabase/ssr` 0.12.4 `DEFAULT_COOKIE_OPTIONS`(`maxAge` 400일 · `sameSite: lax`) · `app/auth/callback/route.ts`(`-code-verifier` 를 지운다) · `app/save-for-reading.tsx` · `app/hash-query.ts`(`sessionStorage` `saju:reading-draft`, 돌아오면 지운다) · ADR 0007(`#` 입력) | `localStorage` · 분석 도구 없음(코드 검색, G-23 ② 의 출처 측정) |
 | 활동 시각 | `src/lib/presence` 의 `ACTIVITY_PRIVACY_LINE` · ADR 0092 | v6 줄 그대로 |
-| 요청 기록 | Vercel 「Limits」(런타임 로그 1시간, Hobby) · runbook 「운영자 접속기록」(Supabase 로그 Free 1일) | 회사가 옮겨 두는 IP 는 0 |
+| 요청 기록 | Vercel 「Limits」(런타임 로그 1시간, Hobby) · `docs/ops/runbook/security.md` 「운영자 접속기록」(Supabase 로그 Free 1일) | 회사가 옮겨 두는 IP 는 0 |
 
 **v6 과 구현이 어긋난 자리 셋 — 이 판에서 바로잡는다**(v6 을 따로 고치지 않는다, 운영자 결정 2026-09-24):
 

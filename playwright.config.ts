@@ -143,7 +143,7 @@ export default defineConfig({
       OPENAI_API_KEY: '',
       /**
        * **로그인 전 사주 문단의 HMAC 비밀 둘 — 시험용 값**(ADR 0143). 앱은 이 둘이 없으면 그 문단을 닫는다(기본값으로 돌지
-       * 않는다). 운영 값이 아니다 — 운영은 Vercel 의 두 값이다(`docs/ops/runbook.md`).
+       * 않는다). 운영 값이 아니다 — 운영은 Vercel 의 두 값이다(`docs/ops/runbook/access.md`).
        */
       TASTE_BROWSER_SECRET: 'e2e-taste-browser-secret-0123456789abcdef',
       TASTE_IP_SECRET: 'e2e-taste-ip-secret-0123456789abcdefghijkl',

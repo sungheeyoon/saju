@@ -16,7 +16,7 @@ import { verifySigned } from './signature';
  *   그 알림이 와야 묶음이 선다.
  *
  * **다루는 알림은 `Transaction.Paid` 하나다.** 실패(`Failed`)에 주문을 닫지 않는다 — 같은 결제 번호로 다시 낼 수 있어서다.
- * 취소 · 환불은 사람이 PG 콘솔에서 먼저 하고 적는다(runbook 「수동 환불」) — 그 알림은 받고(200) 아무것도 안 한다.
+ * 취소 · 환불은 사람이 PG 콘솔에서 먼저 하고 적는다(`docs/ops/runbook/credits.md` 「수동 환불」) — 그 알림은 받고(200) 아무것도 안 한다.
  */
 
 /** 승인 문의 답 — 적혔다(`applied` · `refused`) 또는 문이 거절했다(오류 코드) */

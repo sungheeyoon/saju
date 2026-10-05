@@ -1,7 +1,7 @@
 /**
  * **S3 의 반출 객체를 DB 의 기록과 대조하는 검사** (G-23 ⑩, ADR 0105, `20261014090000`).
  *
- * S3 는 가짜(`Map`)로 대신한다 — 진짜 버킷은 AWS 계정이 서는 날 runbook 「반출」의 검증 절이 잰다. 객체의 모양은
+ * S3 는 가짜(`Map`)로 대신한다 — 진짜 버킷은 AWS 계정이 서는 날 `docs/ops/runbook/security.md` 「반출」의 검증 절이 잰다. 객체의 모양은
  * `app/api/cron/audit-export/bundle.ts` 가 짓는 것과 같게 여기서 짓는다(scripts 는 app 을 못 부른다 —
  * `layers.test.ts`). 모양이 갈리면 `bundle.ts` 의 시험(`export.test.ts`)과 이 시험 중 하나가 붉어진다.
  */

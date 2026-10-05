@@ -449,7 +449,7 @@ async function linkCarry(
 }
 
 /**
- * `wrong_run` 으로 닫은 시도의 `failure_detail` — 운영자가 그 시도를 세는 글자다(`docs/ops/runbook.md` 「로그인 전 사주 문단」).
+ * `wrong_run` 으로 닫은 시도의 `failure_detail` — 운영자가 그 시도를 세는 글자다(`docs/ops/runbook/ai.md` 「로그인 전 사주 문단」).
  * 사람 · 본문은 안 싣는다.
  */
 export const TASTE_WRONG_RUN_DETAIL = 'wrong_run — 연 시도가 이 회원의 자기 풀이가 아니라는 답';

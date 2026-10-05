@@ -59,7 +59,7 @@ export function reportOf({ runUrl, sha, lastGreen, failedJobs = [] }) {
       ? `- 범위: 마지막 초록 \`${lastGreen.slice(0, 7)}\` 뒤부터 — \`git log --oneline ${lastGreen.slice(0, 7)}..${sha.slice(0, 7)}\``
       : '- 범위: 마지막 초록을 못 찾았다',
     ...(onlyAudit
-      ? ['', '**`audit` 만 붉다** — 범위의 커밋이 아니라 새로 뜬 advisory 일 수 있다. `docs/ops/runbook.md` 「운영 의존성 취약점」대로 한다.']
+      ? ['', '**`audit` 만 붉다** — 범위의 커밋이 아니라 새로 뜬 advisory 일 수 있다. `docs/ops/runbook/security.md` 「운영 의존성 취약점」대로 한다.']
       : []),
     '',
     '**새 작업보다 먼저 고친다**(`docs/agents/delegation/working.md`). 최신 main 이 초록이 되면 이 이슈는 저절로 닫힌다.',

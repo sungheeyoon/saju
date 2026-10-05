@@ -70,10 +70,10 @@
 | `supabase/migrations/**` | `npm run db:reset` → `npm run test:db` → `npm run db:types` → `npm run typecheck` → `npm run test:flow` | 생성 타입을 다시 안 지으면 앱은 없는 열을 있다고 믿은 채 컴파일된다(ADR 0078). CI 의 `authed` 중 `notice` 차선이 diff 를 본다 |
 | 프롬프트(`src/lib/reading/prompt*` · `parts.ts` · `vocabulary.ts`) | `npm test`, 본문이 바뀌면 `READING_LIVE=1 npx vitest run app/me/reading/call.live.test.ts` | 조립 스냅샷은 단위가 든다. **본문이 한 글자라도 바뀌면 실호출 한 번**(ADR 0073). 경로 이름이 본문에 샌 적이 있다 |
 | `scripts/ci-plan.mjs` · `release-stage.mjs` · `verify.yml` · `main-red.yml` | `npm test` | `ci-plan.test.ts` 가 단계별 계획을, `main-red.test.ts` 가 이슈의 판단을 든다. YAML 에 `paths` 를 적지 않는다 |
-| `vercel.json` · `scripts/vercel-ignore.mjs` | `npx vitest run scripts/vercel-ignore.test.ts` | Vercel 이 Preview 를 건너뛸지. **0 이면 건너뛰고 1 이면 빌드한다** — 시험이 그 반대 의미와 「모르면 빌드」를 든다(runbook 「배포」) |
+| `vercel.json` · `scripts/vercel-ignore.mjs` | `npx vitest run scripts/vercel-ignore.test.ts` | Vercel 이 Preview 를 건너뛸지. **0 이면 건너뛰고 1 이면 빌드한다** — 시험이 그 반대 의미와 「모르면 빌드」를 든다(`docs/ops/runbook/deploy.md` 「배포」) |
 | `package.json` · `package-lock.json` | `npm audit --omit=dev --audit-level=high` → `npm test` · `npm run typecheck` · `npm run lint` · `npm run build` | CI 는 `core` 와 `audit` 만 돈다. 의존성은 화면과 DB 도구에도 닿으니 큰 판 올림이면 e2e · pgTAP 도 한 번 |
 | `eslint.config.mjs` · `scripts/*.test.ts` | `npm run lint` → `npm test`, 그리고 **일부러 어긴 파일**로 걸리는지 | 「규칙을 넣었다」와 「규칙이 건다」는 다른 문장이다(ADR 0085·0086) |
-| `app/api/cron/audit-export/**` · `scripts/db-remote.mjs` · `scripts/audit-verify.mjs` | `npx vitest run app/api/cron/audit-export scripts/db-remote.test.ts scripts/audit-verify.test.ts`(자격은 복구기와 같은 모양으로 `route.test.ts` 가 든다), 표 · 함수면 `npm run test:db`(`46_operator_access_log` · `50_audit_export_runs`) · `node scripts/check-db-races.mjs`(반출과 늦은 커밋 · 거절 한도 · 같은 열쇠의 주문 · 두 반출 실행 · CLI 결과 한 줄 — 두 세션 경합, `20261013090000` · `20261014090000` · `20261015090000`) | 접속기록 반출과 CLI 기록(ADR 0105). S3 는 가짜로 대신한다 — 진짜 버킷은 AWS 계정이 서는 날 runbook 「반출」의 7 이 잰다 |
+| `app/api/cron/audit-export/**` · `scripts/db-remote.mjs` · `scripts/audit-verify.mjs` | `npx vitest run app/api/cron/audit-export scripts/db-remote.test.ts scripts/audit-verify.test.ts`(자격은 복구기와 같은 모양으로 `route.test.ts` 가 든다), 표 · 함수면 `npm run test:db`(`46_operator_access_log` · `50_audit_export_runs`) · `node scripts/check-db-races.mjs`(반출과 늦은 커밋 · 거절 한도 · 같은 열쇠의 주문 · 두 반출 실행 · CLI 결과 한 줄 — 두 세션 경합, `20261013090000` · `20261014090000` · `20261015090000`) | 접속기록 반출과 CLI 기록(ADR 0105). S3 는 가짜로 대신한다 — 진짜 버킷은 AWS 계정이 서는 날 `docs/ops/runbook/security.md` 「반출」의 7 이 잰다 |
 
 **병렬 라운드의 머지 직전에는 `npm run merge:sim -- <PR 번호…>` 를 한 번 돈다** — 조율자가 머지할 PR 을 머지할 순서대로
 적으면 저장소 밖 임시 워크트리에서 `origin/main` 위로 차례로 합쳐 글자 충돌을 보고, 단위(`scripts/code-rules.test.ts` ·
@@ -148,7 +148,7 @@
 **운영 의존성 감사 `audit` 은 단계와 따로 켠다**(G-23 ①, ADR 0104) — `npm audit --omit=dev --audit-level=high`. 결과를 바꾸는
 것이 바뀐 파일이 아니라 밖의 advisory DB 라서, PR 에서는 **`package.json` · `package-lock.json` 을 바꾼 PR 에만** 머지를
 막는다(라벨 · 빈 diff 도 켠다). 아무것도 안 바꾼 PR 이 어느 날 붉어지는 일이 없다. 새로 뜬 advisory 는 main 푸시와 하루
-한 번의 일정이 잡고, `ci-main-red` 가 「`audit` 만 붉다」고 적는다. 절차는 runbook 「운영 의존성 취약점」. 개발 의존성은
+한 번의 일정이 잡고, `ci-main-red` 가 「`audit` 만 붉다」고 적는다. 절차는 `docs/ops/runbook/security.md` 「운영 의존성 취약점」. 개발 의존성은
 CI 가 안 막는다.
 
 입구 · 공용 위험 줄은 #284(탭 뼈대 `loading.tsx` · route group 이동)와 #286(`proxy.ts` · 화면 · 서버 액션)이 PR 에서 `fast`(지금
@@ -159,7 +159,7 @@ CI 가 안 막는다.
 그 밖의 PR 에서 전체(익명 e2e · `authed` 일곱 · `flow`)는 **머지 뒤 최신 main 하나**에서 비차단으로 돈다. 붉으면
 `main-red.yml` 이 `ci-main-red` 이슈 하나를 열고(이미 있으면 댓글), 지금 main 머리가 초록이 되면 닫는다.
 PRD 의 「(지금)」을 공개 출시로 옮기면 아래 세 단계로 저절로 돌아간다 — 실제 사용자 데이터가 들어오는 날에는
-사람이 그날 옮긴다(`docs/ops/runbook.md` 「초대」).
+사람이 그날 옮긴다(`docs/ops/runbook/signup.md` 「초대」).
 
 **빌드는 끝에 비밀 검사를 돈다**(`npm run build` = `next build && node scripts/secret-env.mjs`, G-23 ⑧) — 브라우저로 가는 파일에
 비밀 이름이나 그 빌드의 비밀 값이 있으면 빌드가 선다. CI 는 빌드가 드는 차선 `core` 에서(머지 전 · 머지 뒤 main 모두),
@@ -253,4 +253,5 @@ CI=1 npx vitest run --coverage --coverage.reporter=text \
 - `e2e/hydrated.ts` — 하이드레이션 전의 누름은 사라진다. **모든 시험의 `goto` · `reload` 가 하이드레이션까지 기다린다**(자동 손잡이, `anon.ts` · `session.ts` 가 이어받는다 — 2026-09-26). 그 뒤에 늦게 붙는 요소는 `hydrated(locator)` 로 누른다
 - `e2e/target.ts` — 누르는 넓이(`elementFromPoint` 로 손가락이 닿는 자리) · 초점 테두리 · 바탕 이음매를 재는 도우미(#229)
 - `supabase/tests/00_helpers.sql` — 역할을 갈아입는 헬퍼. `32_test_isolation` 이 순서 의존을 잰다
-- `docs/ops/runbook.md` — 로컬 스택 · 접속값 여섯 · 코드 · 날짜
+- `docs/ops/runbook/access.md` — 로컬 스택 · 접속값 여섯
+- `docs/ops/runbook/signup.md` — 코드 · 날짜
