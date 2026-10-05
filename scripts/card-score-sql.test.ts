@@ -8,7 +8,7 @@ import {
   ELEMENTS,
   STEMS,
   chartSnapshotOf,
-  computeSaju,
+  computePillars,
   pillarOf,
   type Branch,
   type Element,
@@ -125,13 +125,15 @@ describe('필요한 기운 요약 — 여덟 글자에서 만든 것이 명식�
   /**
    * 앱은 제 명식에서, 전환 백필은 `person.current_chart` 에서 요약을 만든다. 둘 다 `needSummaryOf` 를 지나지만
    * 앞의 것은 `meta`(절기 시각)를 든 명식이고 뒤의 것은 글자뿐이다 — 억부가 `meta` 를 안 보는지 여기서 잰다.
+   * 명식은 4주까지만 짓는다(`computePillars` — `computeSaju(input).pillars` 와 같은 길이다). 대운 · 세운까지 지으면
+   * 전체 `npm test` 에서 5초 제한에 0.3초 남았었다(2026-10-06).
    */
   it('시각을 아는 사람 · 모르는 사람 이백 명에서 같다', () => {
     const inputs = randomInputs(100, 20260925);
     for (const input of [...inputs, ...inputs.map(withoutHour)]) {
-      const saju = computeSaju(input);
-      const fromPillars = needTargetsFor(saju.pillars);
-      expect(needSummaryOf(chartSnapshotOf(saju.pillars))).toEqual({
+      const { pillars } = computePillars(input);
+      const fromPillars = needTargetsFor(pillars);
+      expect(needSummaryOf(chartSnapshotOf(pillars))).toEqual({
         primary: fromPillars.primary,
         heaviest: fromPillars.heaviest,
         rule: NEED_SUMMARY_RULE,
