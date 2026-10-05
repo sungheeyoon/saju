@@ -1,6 +1,6 @@
 # 코드 규칙 — 주석과 ADR 참조
 
-색인은 `docs/agents/code-rules.md` 다.
+색인은 `CODING_STANDARDS.md` 다.
 
 ## 주석과 ADR 참조
 

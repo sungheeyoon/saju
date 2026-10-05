@@ -34,7 +34,7 @@ assignees: ''
 
 ## 읽을 문서
 
-<!-- 그 층의 ADR 번호, CONTEXT.md 절, docs/notes/ 의 기록. -->
+<!-- 그 층의 ADR 번호, GLOSSARY.md 절, docs/notes/ 의 기록. -->
 
 ## 선행 이슈
 

@@ -7,7 +7,7 @@
 - `docs/agents/delegation/coordinator.md` 「조율자 세션」 — 「확인한 흔적을 붙여 전한다」 · 「위험에 따라 두 번째 검토」 · 「전체 감사」 줄
 - `docs/notes/2026-09-28-overnight-audit.md` 「팀 — 감사(읽기만)」 — 관점 여덟(코드 규칙 · 아키텍트 · 시험 · 보안 · DB · 프런트 · 문서 · SRE)과 그때 찾은 것
 - 하나를 고른다 — 받은 관점의 원본
-  - 코드 규칙 — `docs/agents/code-rules.md` 의 차례에서 [그 주제 파일](../agents/code-rules/)
+  - 코드 규칙 — `CODING_STANDARDS.md` 의 차례에서 [그 주제 파일](../agents/code-rules/)
   - 아키텍트 — `docs/architecture.md`
   - 시험 — `docs/agents/test-map.md` 의 차례에서 [그 주제 파일](../agents/test-map/)
   - 보안 — `docs/ops/runbook/security.md` 「보안 점검」 · `docs/ops/runbook/access.md` 「개인정보는 화면으로만」

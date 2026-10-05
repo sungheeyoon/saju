@@ -29,6 +29,6 @@
 
 ## 끝날 때 고치는 것
 
-- [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯 · 전후 그림은 PR 본문에. 「문서」 칸이 고칠 원본(PRD 와 changelog · `CONTEXT.md` · ADR)을 든다
+- [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯 · 전후 그림은 PR 본문에. 「문서」 칸이 고칠 원본(PRD 와 changelog · `GLOSSARY.md` · ADR)을 든다
 - [ ] 확정된 문구 → `docs/product/copy-ledger.md` 에 줄을 더한다(그 PR 이)
 - [ ] 토큰 · 공용 부품의 규칙을 바꿨으면 → ADR 0109 추기 또는 새 ADR

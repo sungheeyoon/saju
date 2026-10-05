@@ -1,7 +1,7 @@
 # 시험 지도
 
 이 문서는 **무엇을 고쳤을 때 무엇을 돌리는가** 하나만 답한다. 어디에 놓는가는
-`docs/architecture.md`, 어떻게 적는가는 `docs/agents/code-rules.md`. CI 가 무엇을 돌리는가의
+`docs/architecture.md`, 어떻게 적는가는 `CODING_STANDARDS.md`. CI 가 무엇을 돌리는가의
 **규칙은 `scripts/ci-plan.mjs` 한 곳**이고(ADR 0082), 이 문서는 그 규칙을 사람이 읽는 표로
 옮긴 것이다 — 어긋나면 `ci-plan.mjs` 가 맞다. 값은 **2026-09-22 에 잰 것**이다(ADR 0087). **파일 수 · 시험 수는
 적지 않는다 — 실행이 찍는다**(`docs/agents/delegation/working.md` 「값을 적는 자리는 하나다」). 적어 두었던 수는 PR 몇 개 만에 낡아

@@ -1,5 +1,5 @@
 /**
- * **코드 규칙은 이 시험이 든다** (ADR 0086, `docs/agents/code-rules.md`).
+ * **코드 규칙은 이 시험이 든다** (ADR 0086, `CODING_STANDARDS.md`).
  *
  * `eslint.config.mjs` 가 구문으로 잡을 수 있는 것(enum·class·interface·console·미결 표시·default export)은
  * 린트가 잡는다. 여기는 린트가 못 보는 것을 잰다 — **파일 이름**, **ADR 참조가 실제 파일을
@@ -194,7 +194,8 @@ const REFERRING_FILES = [
   ...ROOT_FILES.filter((file) => file !== join(ROOT, 'proxy.ts')),
   ...walk(join(ROOT, 'supabase')).filter((file) => file.endsWith('.sql')),
   ...walk(join(ROOT, 'docs')).filter((file) => file.endsWith('.md')),
-  join(ROOT, 'CONTEXT.md'),
+  join(ROOT, 'GLOSSARY.md'),
+  join(ROOT, 'CODING_STANDARDS.md'),
   join(ROOT, 'README.md'),
 ];
 
@@ -576,7 +577,8 @@ describe('탈출구의 지문 (docs/agents/code-rules/escapes.md) — 줄어들�
 const ENTRY_DOCS = [
   join(ROOT, 'CLAUDE.md'),
   join(ROOT, 'AGENTS.md'),
-  join(ROOT, 'CONTEXT.md'),
+  join(ROOT, 'GLOSSARY.md'),
+  join(ROOT, 'CODING_STANDARDS.md'),
   // 용어집은 색인 아래 `docs/context/` 의 영역 파일로 산다
   ...walk(join(ROOT, 'docs/context')),
   join(ROOT, 'docs/product/gaps.md'),
@@ -737,26 +739,26 @@ describe('운영 소스의 주석이 가리키는 경로', () => {
 });
 
 // -----------------------------------------------------------------------------
-// 용어집 (CONTEXT.md 색인 → docs/context/)
+// 용어집 (GLOSSARY.md 색인 → docs/context/)
 // -----------------------------------------------------------------------------
 
-const CONTEXT_INDEX = 'CONTEXT.md';
+const GLOSSARY_INDEX = 'GLOSSARY.md';
 const CONTEXT_DIR = 'docs/context';
 /** §9 「용어 ↔ 코드」 · §10 「어긋난 이름」 이 사는 영역 파일 — 아래 두 시험이 이 파일에서만 표를 읽는다 */
 const GLOSSARY_CODE_FILE = 'docs/context/code-names.md';
 /** 색인의 「차례」 줄 — `| \`docs/context/<영역>.md\` | 「절」 · … | 무엇을 드나 |` */
 const CONTEXT_ROW = /^\| `docs\/context\/([a-z-]+\.md)` \| ([^|]+) \|/gm;
-const contextIndex = () => readFileSync(join(ROOT, CONTEXT_INDEX), 'utf8');
+const contextIndex = () => readFileSync(join(ROOT, GLOSSARY_INDEX), 'utf8');
 const contextPart = (name: string) => readFileSync(join(ROOT, CONTEXT_DIR, name), 'utf8');
 /** 영역 파일 이름 — 색인이 든 차례대로 */
 const contextParts = () => [...contextIndex().matchAll(CONTEXT_ROW)].map((match) => match[1]);
 
-describe('용어집 (CONTEXT.md 색인 → docs/context/)', () => {
+describe('용어집 (GLOSSARY.md 색인 → docs/context/)', () => {
   it('색인은 영역 파일 전부를 들고 없는 파일을 들지 않으며, 영역 파일마다 색인을 가리킨다', () => {
     const files = readdirSync(join(ROOT, CONTEXT_DIR)).filter((name) => name.endsWith('.md'));
     expect(files.length).toBeGreaterThan(4);
     expect([...contextParts()].sort()).toEqual([...files].sort());
-    for (const name of files) expect(contextPart(name), name).toContain(`\`${CONTEXT_INDEX}\``);
+    for (const name of files) expect(contextPart(name), name).toContain(`\`${GLOSSARY_INDEX}\``);
   });
 
   it('색인에 정의 · 규칙 문장이 없다 — 절은 「차례」 하나, 용어 머리 줄(`**이름** — …`)과 `_Avoid_` 가 없다', () => {
@@ -983,8 +985,8 @@ describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
     const missing: string[] = [];
     let seen = 0;
     for (const cells of rows) {
-      // `CONTEXT §10` 은 용어집의 절이다 — PRD 의 것만 잰다
-      const source = cells[3].replace(/CONTEXT §\d+/g, '');
+      // `GLOSSARY §10` 은 용어집의 절이다 — PRD 의 것만 잰다
+      const source = cells[3].replace(/GLOSSARY §\d+/g, '');
       for (const match of source.matchAll(/§(\d+(?:\.\d+)*)/g)) {
         seen += 1;
         if (!headings.has(match[1]) && !s8Items.has(match[1])) missing.push(`${cells[1]} :: §${match[1]}`);
@@ -1333,11 +1335,11 @@ describe('시험 지도 (docs/agents/test-map.md 색인 → docs/agents/test-map
 });
 
 // -----------------------------------------------------------------------------
-// 코드 규칙 (docs/agents/code-rules.md 색인 → docs/agents/code-rules/, ADR 0086)
+// 코드 규칙 (CODING_STANDARDS.md 색인 → docs/agents/code-rules/, ADR 0086)
 // -----------------------------------------------------------------------------
 
-describe('코드 규칙 (docs/agents/code-rules.md 색인 → docs/agents/code-rules/, ADR 0086)', () => {
-  const INDEX = 'docs/agents/code-rules.md';
+describe('코드 규칙 (CODING_STANDARDS.md 색인 → docs/agents/code-rules/, ADR 0086)', () => {
+  const INDEX = 'CODING_STANDARDS.md';
   const RULES_DIR = 'docs/agents/code-rules';
   /** 변경 이유별 파일 하나 — 규칙 · 잰 값 · 표는 그 파일에만 산다(2026-10-05 에 한 장을 나눴다) */
   const part = (name: string) => readFileSync(join(ROOT, RULES_DIR, name), 'utf8');

@@ -91,7 +91,7 @@ const NO_DB_CALL_IN_SCREENS = [
 ];
 
 // -----------------------------------------------------------------------------
-// 코드 규칙 (ADR 0086, `docs/agents/code-rules.md`) — 잰 값이 이미 참인 것만 잠근다
+// 코드 규칙 (ADR 0086, `CODING_STANDARDS.md`) — 잰 값이 이미 참인 것만 잠근다
 // -----------------------------------------------------------------------------
 
 /**
@@ -101,10 +101,10 @@ const NO_DB_CALL_IN_SCREENS = [
  * 어느 내장을 잇는지는 `scripts/code-rules.test.ts` 가 이름으로 든다.
  */
 const CODE_SHAPE = [
-  { selector: "TSEnumDeclaration", message: "enum 을 쓰지 않는다 — 문자열 리터럴 유니언으로 적는다 (docs/agents/code-rules.md)" },
+  { selector: "TSEnumDeclaration", message: "enum 을 쓰지 않는다 — 문자열 리터럴 유니언으로 적는다 (CODING_STANDARDS.md)" },
   {
     selector: "ClassDeclaration:not([superClass]), ClassExpression:not([superClass])",
-    message: "class 는 내장(Error·Date)을 잇는 자리에만 쓴다 — 나머지는 type 과 함수다 (docs/agents/code-rules.md)",
+    message: "class 는 내장(Error·Date)을 잇는 자리에만 쓴다 — 나머지는 type 과 함수다 (CODING_STANDARDS.md)",
   },
 ];
 
@@ -208,7 +208,7 @@ const eslintConfig = defineConfig([
   },
 
   // ---------------------------------------------------------------------------
-  // 코드 규칙 (ADR 0086, `docs/agents/code-rules.md`)
+  // 코드 규칙 (ADR 0086, `CODING_STANDARDS.md`)
   // ---------------------------------------------------------------------------
   {
     /** 모양·미결 — 소스 전부. `no-restricted-syntax` 의 몫(enum·class)은 위 블록마다 `CODE_SHAPE` 로 든다 */

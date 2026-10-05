@@ -25,9 +25,9 @@ Claude Code 에서 맡길 때는 `Agent` 도구의 `subagent_type` 에 역할 �
 막는다(ADR 0085) — 문서와 시험이 어긋나면 시험이 맞다. 새 파일을 놓기 전에 그 문서의
 「새 것을 놓을 때」를 본다. 도메인 lib 사이에 새 방향을 열면 시험의 허용 목록과 문서를 함께 고친다.
 
-## 어떻게 적는가는 `docs/agents/code-rules.md` 가
+## 어떻게 적는가는 `CODING_STANDARDS.md` 가
 
-이름 · 실패를 말하는 법 · 주석과 ADR 참조 · 탈출구 · 화면 문구 · 금지어는 **`docs/agents/code-rules.md`** 색인에서
+이름 · 실패를 말하는 법 · 주석과 ADR 참조 · 탈출구 · 화면 문구 · 금지어는 **`CODING_STANDARDS.md`** 색인에서
 고치는 자리에 해당하는 주제 파일(`docs/agents/code-rules/`)만 읽는다. 잰 값이지 정한 규칙이 아니고(ADR 0086), 린트가 잡을 것은 `eslint.config.mjs` 가,
 못 잡을 것은 `scripts/code-rules.test.ts` 가 든다 — 문서와 어긋나면 그 둘이 맞다. **한글 문구는
 먼저 `docs/product/copy-ledger.md` 를 보고, 없으면 코드에 넣기 전에 표로 보여주고 답을 기다린다.**

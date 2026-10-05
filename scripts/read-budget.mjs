@@ -50,7 +50,7 @@ export const READ_BUDGET = {
   coordinator: { bytes: 95213, routes: [], choices: [] },
   db: { bytes: 128334, routes: [], choices: [] },
   docs: { bytes: 75804, routes: [], choices: [] },
-  feature: { bytes: 177513, routes: ['docs/context/', 'docs/product/prd/'], choices: [] },
+  feature: { bytes: 177516, routes: ['docs/context/', 'docs/product/prd/'], choices: [] },
   ops: { bytes: 98676, routes: [], choices: [] },
   reading: { bytes: 145427, routes: [], choices: [] },
   reviewer: {
@@ -72,18 +72,18 @@ export const READ_BUDGET = {
       },
     ],
   },
-  ui: { bytes: 134934, routes: [], choices: [] },
+  ui: { bytes: 134935, routes: [], choices: [] },
 };
 
 /** 고정 · 선택 묶음으로 가리킨 원본의 잠근 날 크기 — 어느 역할도 안 가리키는 파일은 지운다(시험이 잰다) */
 export const SIZE_AT_LOCK = {
-  'CONTEXT.md': 2979,
+  'CODING_STANDARDS.md': 2308,
+  'GLOSSARY.md': 2979,
   'README.md': 26108,
   'docs/adr/0084-the-shape-is-asserted-not-only-the-behaviour.md': 7311,
   'docs/adr/0109-the-product-wears-one-soft-look-under-the-name-jeomjeom.md': 8466,
   'docs/adr/0135-the-screen-speaks-haeyo-by-default.md': 4970,
   'docs/adr/README.md': 14962,
-  'docs/agents/code-rules.md': 2308,
   'docs/agents/code-rules/banned-words.md': 1822,
   'docs/agents/code-rules/comments.md': 1735,
   'docs/agents/code-rules/failures.md': 3216,
@@ -129,7 +129,7 @@ export const SIZE_AT_LOCK = {
   'scripts/secret-env.mjs': 8315,
 };
 
-/** 백틱 안에서 파일로 세는 경로 — 뿌리의 `CONTEXT.md` 같은 문서와 저장소 안의 경로 */
+/** 백틱 안에서 파일로 세는 경로 — 뿌리의 `GLOSSARY.md` 같은 문서와 저장소 안의 경로 */
 const POINTED_PATH = /^(?:[A-Z][A-Za-z_-]*\.md|(?:app|src|scripts|e2e|docs|supabase|public|\.github|\.claude)\/[A-Za-z0-9_.\/\[\]-]+)$/;
 /** `[글](대상#앵커)` — 바깥 주소는 뺀다 */
 const MARKDOWN_LINK = /\[[^\]]+\]\(([^)\s#]+)(?:#([^)\s]+))?\)/g;

@@ -3,7 +3,7 @@
 이 문서는 **에이전트에게 일을 맡길 때 무엇이 오가는가** 하나만 답한다 — 어떤 이슈가 맡길 만한가,
 무엇을 해도 되고 무엇은 사람에게 묻는가, 끝났다는 것이 무슨 뜻인가, 그리고 세션마다 새로 배우던
 것이 어디에 적혀 있는가. 어디에 놓는가는 `docs/architecture.md`, 어떻게 적는가는
-`docs/agents/code-rules.md`, 무엇을 돌리는가는 `docs/agents/test-map.md` 가 답한다. **일을 여는 입구는
+`CODING_STANDARDS.md`, 무엇을 돌리는가는 `docs/agents/test-map.md` 가 답한다. **일을 여는 입구는
 `docs/start.md` 다** — 역할을 고르고 그 역할 문서(`docs/roles/`)가 이 규약의 어느 절을 읽을지 가리킨다(ADR 0140).
 
 여기 적힌 것은 **2026-09-22 에 잰 값**이다(ADR 0090). 그날까지 PR 마흔이 main 에

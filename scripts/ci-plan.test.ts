@@ -433,7 +433,7 @@ describe('CI 계획 — 운영 의존성 감사 (G-23 ①, ADR 0104)', () => {
 
 describe('CI 계획 — 공개 출시', () => {
   it('정책만 바뀌면 policy 차선만 돈다 — 문서도 scripts 시험이 읽으므로 아무것도 안 도는 단계는 없다', () => {
-    const plan = pr(['docs/adr/0082-x.md', 'CONTEXT.md', 'docs/prd.md']);
+    const plan = pr(['docs/adr/0082-x.md', 'GLOSSARY.md', 'docs/prd.md']);
 
     expect(plan.tier).toBe('policy');
     expect(plan.lanes).toEqual({ policy: true, core: false, anon: false, authed: false, flow: false, audit: false });
