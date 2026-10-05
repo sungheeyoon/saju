@@ -1246,6 +1246,49 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
 });
 
 // -----------------------------------------------------------------------------
+// 시험 지도 (docs/agents/test-map.md 색인 → docs/agents/test-map/, ADR 0087)
+// -----------------------------------------------------------------------------
+
+describe('시험 지도 (docs/agents/test-map.md 색인 → docs/agents/test-map/, ADR 0087)', () => {
+  const INDEX = 'docs/agents/test-map.md';
+  const TEST_MAP_DIR = 'docs/agents/test-map';
+  /** 절 묶음 파일 하나 — 표 · 명령 · 차선은 그 파일에만 산다(2026-10-05 에 한 장을 나눴다) */
+  const part = (name: string) => readFileSync(join(ROOT, TEST_MAP_DIR, name), 'utf8');
+
+  it('색인은 절 묶음 파일 전부를 들고 없는 파일을 들지 않으며, 표 · 명령을 들지 않는다', () => {
+    const index = readFileSync(join(ROOT, INDEX), 'utf8');
+    const files = readdirSync(join(ROOT, TEST_MAP_DIR)).filter((name) => name.endsWith('.md'));
+    expect(files.length).toBeGreaterThan(3);
+    const listed = [...index.matchAll(/^\| `docs\/agents\/test-map\/([a-z-]+\.md)` \|/gm)].map((match) => match[1]);
+    expect([...listed].sort()).toEqual([...files].sort());
+    // 색인에 절이 생기면 표가 두 벌이 된다 — 머리말과 「차례」 하나뿐이고, 명령(코드 블록)도 없다
+    expect([...index.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
+    expect(index).not.toMatch(/^```/m);
+    for (const name of files) expect(part(name), name).toContain(`\`${INDEX}\``);
+  });
+
+  it('색인의 「절」 칸은 그 파일의 `##` 절을 차례대로 전부 든다 — 절을 옮기면 색인도 옮긴다', () => {
+    const index = readFileSync(join(ROOT, INDEX), 'utf8');
+    const wrong: string[] = [];
+    let seen = 0;
+    for (const match of index.matchAll(/^\| `docs\/agents\/test-map\/([a-z-]+\.md)` \| ([^|]+) \|/gm)) {
+      seen += 1;
+      const named = [...match[2].matchAll(/「([^」]+)」/g)].map((one) => one[1].replace(/`/g, ''));
+      let inCode = false;
+      const heads: string[] = [];
+      for (const line of part(match[1]).split('\n')) {
+        if (line.startsWith('```')) inCode = !inCode;
+        if (!inCode && line.startsWith('## ')) heads.push(line.slice(3).replace(/\*\*|`/g, '').trim());
+      }
+      const same = named.length === heads.length && named.every((name, i) => heads[i].startsWith(name));
+      if (!same) wrong.push(`${match[1]}: 색인 ${named.join(' · ')} ↔ 파일 ${heads.join(' · ')}`);
+    }
+    expect(seen).toBeGreaterThan(3);
+    expect(wrong).toEqual([]);
+  });
+});
+
+// -----------------------------------------------------------------------------
 // 운영 절차 (docs/ops/runbook.md 색인 → docs/ops/runbook/)
 // -----------------------------------------------------------------------------
 

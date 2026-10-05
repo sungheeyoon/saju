@@ -9,7 +9,7 @@
 - `docs/agents/delegation/parallel.md` 「나란히 맡길 때」 — 원격 DB · 마이그레이션 사슬은 순차다
 - `docs/ops/runbook/deploy.md` 「규약 넷 — 앱과 DB 는 따로 간다」 · 「묶음 배포」의 0
 - `docs/ops/runbook/access.md` 「개인정보는 화면으로만」
-- `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」의 마이그레이션 줄
+- `docs/agents/test-map/what-to-run.md` 「무엇을 고쳤으면 무엇을 돌리나」의 마이그레이션 줄
 - ADR 0071(넓히기 → 앱 → 좁히기) · 0078(문이 실패를 말한다) · 0084(모양을 잠근다) · 0105(접속기록)
 
 ## 이 저장소의 방식
@@ -18,8 +18,8 @@
 
 - [권한 등급](../agents/delegation/permissions.md) — `db push` 의 차례 · 본 값 적기 · 마이그레이션 PR 의 예외 · 운영 개인정보
 - [이름](../agents/code-rules.md#이름) — 마이그레이션 파일 이름
-- [무엇을 고쳤으면 무엇을 돌리나](../agents/test-map.md#무엇을-고쳤으면-무엇을-돌리나) — 로컬 차례(`db:reset` → `test:db` → `db:types` …)
-- [시험은 넷이고](../agents/test-map.md#시험은-넷이고-층마다-닿는-것이-다르다) — pgTAP 이 닿는 곳
+- [무엇을 고쳤으면 무엇을 돌리나](../agents/test-map/what-to-run.md#무엇을-고쳤으면-무엇을-돌리나) — 로컬 차례(`db:reset` → `test:db` → `db:types` …)
+- [시험은 넷이고](../agents/test-map/kinds.md#시험은-넷이고-층마다-닿는-것이-다르다) — pgTAP 이 닿는 곳
 - [일하는 법](../agents/delegation/working.md) — 원격에 닿는 명령 둘과 기계 잠금
 - [조율자 세션](../agents/delegation/coordinator.md) — 타임스탬프 · pgTAP 번호는 머지 직전 main 의 마지막 뒤
 - [로컬 환경의 함정](../agents/delegation/local-env.md) — 옛 볼륨 · 전역으로 세는 pgTAP · `db query` 의 한계

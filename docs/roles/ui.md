@@ -9,7 +9,7 @@
 - ADR 0109 — 디자인 체계는 토큰 한 벌이고 부품은 `app/ui/` 에 있다
 - `docs/product/prd/screens.md` 「3. 화면」 가운데 고칠 화면의 절 — 지금 모양의 원본
 - `docs/architecture.md` 「새 것을 놓을 때」 — 화면은 그리기만 한다
-- `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」의 화면 줄
+- `docs/agents/test-map/what-to-run.md` 「무엇을 고쳤으면 무엇을 돌리나」의 화면 줄
 
 ## 이 저장소의 방식
 
@@ -17,7 +17,7 @@
 
 - [화면 문구](../agents/code-rules.md#화면-문구) · [문구 대장의 규칙](../product/copy-ledger.md#01-규칙--버튼은-결과를-말하고-닫는-것은-취소다) — 대장에 없으면 표로 묻는다 · 같은 사실은 상수 하나
 - [그 밖의 자리](../architecture.md#그-밖의-자리) · [새 것을 놓을 때](../architecture.md#새-것을-놓을-때) — 토큰과 `app/ui/` · 화면은 DB 를 부르지 않는다(ADR 0109 · 0080)
-- [무엇을 고쳤으면 무엇을 돌리나](../agents/test-map.md#무엇을-고쳤으면-무엇을-돌리나) · [CI](../agents/test-map.md#ci) — 로컬 최소 · e2e 의 예외 · 주소 차선
+- [무엇을 고쳤으면 무엇을 돌리나](../agents/test-map/what-to-run.md#무엇을-고쳤으면-무엇을-돌리나) · [CI](../agents/test-map/ci.md#ci) — 로컬 최소 · e2e 의 예외 · 주소 차선
 - [로컬 환경의 함정](../agents/delegation/local-env.md) — 남의 dev 서버 · `next build` 만 잡는 파일 이름
 - [무인 라운드](../agents/delegation/unattended.md) · [끝났다는 것](../agents/delegation/done.md) — 뜻을 바꾸지 않는 다듬기와 전후 그림
 
