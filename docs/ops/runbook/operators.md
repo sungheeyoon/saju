@@ -47,7 +47,7 @@ Authenticator · 1Password 등 TOTP)을 쓴다.
   화면으로 돌아온다. **확인하는 순간 Supabase 가 그 계정의 다른 세션을 끊는다** — 다른 기기는 다시 로그인한다.
 - **인증 앱을 잃었으면** 사람이 대시보드 Authentication → Users → 그 계정 → MFA factors 에서 요소를 지우고 위 「처음 한 번」을
   다시 밟는다. 에이전트는 이 걸음을 안 한다.
-- **운영 Auth 의 TOTP 가 켜져 있어야 한다**(대시보드 Authentication → Multi-Factor → TOTP, 2026-09-24 켜짐 확인 — `docs/ops/runbook/security.md` 
+- **운영 Auth 의 TOTP 가 켜져 있어야 한다**(대시보드 Authentication → Multi-Factor → TOTP, 2026-09-24 켜짐 확인 — `docs/ops/runbook/security.md`
   「보안 advisor」 끝). 꺼져 있으면 등록이 「등록을 시작하지 못했습니다」로 선다.
 - 이 막음은 **화면의** 것이다. 운영자 문(`is_operator()`)이 aal 을 함께 묻는 마이그레이션은 ADR 0123 「DB 층」이 설계만 든다 —
   그것이 들기 전에 운영자가 운영에서 등록을 마쳐야 한다.
