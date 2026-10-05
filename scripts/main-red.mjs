@@ -3,7 +3,7 @@
  *
  * 공개 출시 전에는 전체 검증이 머지 뒤 main 에서 비차단으로 돈다. 아무도 안 보는 비차단 검사는 없는 것과
  * 같아서, 붉은 main 을 다음 세션이 첫 화면에서 보게 한다 — 위임 규약은 열린 `ci-main-red` 를 새 작업보다
- * 먼저 고치라고 한다(`docs/agents/delegation.md`).
+ * 먼저 고치라고 한다(`docs/agents/delegation/working.md`).
  *
  * - 실패: 열린 이슈가 있으면 댓글, 없으면 연다. 실행 · SHA · 마지막 초록부터의 범위를 적는다
  * - 성공: 그 SHA 가 **지금 main 머리일 때만** 닫는다 — 늦게 끝난 옛 실행이 닫지 않게
@@ -62,7 +62,7 @@ export function reportOf({ runUrl, sha, lastGreen, failedJobs = [] }) {
       ? ['', '**`audit` 만 붉다** — 범위의 커밋이 아니라 새로 뜬 advisory 일 수 있다. `docs/ops/runbook.md` 「운영 의존성 취약점」대로 한다.']
       : []),
     '',
-    '**새 작업보다 먼저 고친다**(`docs/agents/delegation.md`). 최신 main 이 초록이 되면 이 이슈는 저절로 닫힌다.',
+    '**새 작업보다 먼저 고친다**(`docs/agents/delegation/working.md`). 최신 main 이 초록이 되면 이 이슈는 저절로 닫힌다.',
   ].join('\n');
 }
 

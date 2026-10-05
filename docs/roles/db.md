@@ -5,8 +5,8 @@
 ## 먼저 읽는 것
 
 - `docs/architecture.md` 「문 — DB 를 부르는 자리」 · 「그 밖의 자리」
-- `docs/agents/delegation.md` 「권한 등급」 — 특히 「예외 — 마이그레이션이 든 PR」 문단
-- `docs/agents/delegation.md` 「나란히 맡길 때」 — 원격 DB · 마이그레이션 사슬은 순차다
+- `docs/agents/delegation/permissions.md` 「권한 등급」 — 특히 「예외 — 마이그레이션이 든 PR」 문단
+- `docs/agents/delegation/parallel.md` 「나란히 맡길 때」 — 원격 DB · 마이그레이션 사슬은 순차다
 - `docs/ops/runbook.md` 「규약 넷 — 앱과 DB 는 따로 간다」 · 「묶음 배포」의 0
 - `docs/ops/runbook.md` 「개인정보는 화면으로만」
 - `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」의 마이그레이션 줄
@@ -15,22 +15,22 @@
 ## 이 저장소의 방식
 
 - 마이그레이션 이름은 영어 문장(`YYYYMMDDHHMMSS_english_sentence.sql`), 타임스탬프는 **머지 직전 main 의 마지막 뒤**다
-  (원본: `docs/agents/code-rules.md` 「이름」 · `docs/agents/delegation.md` 「조율자 세션」)
+  (원본: `docs/agents/code-rules.md` 「이름」 · `docs/agents/delegation/coordinator.md` 「조율자 세션」)
 - 로컬 차례: `npm run db:reset` → `npm run test:db` → `npm run db:types` → `npm run typecheck` → `npm run test:flow`.
   생성 타입을 다시 안 지으면 앱은 없는 열을 있다고 믿은 채 컴파일된다
   (원본: `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」)
 - 원격에 닿는 것은 `npm run db:push` 와 `npm run db:remote -- --purpose "<목적>" "<sql>"` 뿐이다 — 기계 전체의 잠금 하나를 잡는다.
   `npx supabase db push` 를 직접 부르면 잠금을 지나친다
-  (원본: `docs/agents/delegation.md` 「일하는 법」)
+  (원본: `docs/agents/delegation/working.md` 「일하는 법」)
 - **차례는 PR → `db push` → `migration list` 의 remote 칸과 PostgREST 캐시 확인 → 그 뒤 `--auto` 머지다.** 앱이 새 함수를 부르면
   넓히는 마이그레이션 PR 과 앱 PR 로 나눈다
-  (원본: `docs/agents/delegation.md` 「권한 등급」 · ADR 0071)
+  (원본: `docs/agents/delegation/permissions.md` 「권한 등급」 · ADR 0071)
 - pgTAP 은 역할을 갈아입고 「막힌다」를 잰다. 새 시험은 자기가 만든 행만 세고 plan 은 수로 고정한다. 파일 번호는 머지 직전에 본다
-  (원본: `docs/agents/test-map.md` 「시험은 넷이고」 · `docs/agents/delegation.md` 「로컬 환경의 함정」 · 「조율자 세션」)
+  (원본: `docs/agents/test-map.md` 「시험은 넷이고」 · `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」 · `docs/agents/delegation/coordinator.md` 「조율자 세션」)
 - `security definer` 함수의 `search_path` 는 `""` 다 — pgTAP 이 이름으로 잡는다
   (원본: `docs/product/gaps.md` 「공개 출시」)
 - 운영 베타 동안 `db push` 는 묻지 않고 밟되 **본 값을 적는다**
-  (원본: `docs/agents/delegation.md` 「권한 등급」 · ADR 0093)
+  (원본: `docs/agents/delegation/permissions.md` 「권한 등급」 · ADR 0093)
 
 ## 하지 않는 것 · 묻는 것
 

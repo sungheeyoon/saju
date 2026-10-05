@@ -25,20 +25,19 @@
 - 시험: vitest 는 `.tsx` 를 못 그린다. 그래도 지금(공개 출시 전) 로컬 최소는 `npm test` · `npm run typecheck` · `npm run lint` 이고
   화면 변경에 e2e 를 일괄로 돌리지 않는다 — 화면은 CI 의 그 주소 차선과 머지 뒤 main 의 전체 검증이 잰다. e2e 를 돌리는 것은 원본의 예외 넷
   (e2e 스펙 자체를 고쳤을 때 등)이고, 그때는 **로컬 스택의 시험 계정으로 돈다** — 운영 smoke 는 이 역할의 일이 아니다(`docs/roles/ops.md`)
-  (원본: `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」 · `CLAUDE.md` 「무엇을 돌리는가는」 · `docs/agents/delegation.md` 「일하는 법」)
+  (원본: `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」 · `CLAUDE.md` 「무엇을 돌리는가는」 · `docs/agents/delegation/working.md` 「일하는 법」)
 - CI 는 머지 전에 바뀐 파일이 닿는 차선을 돈다 — `layout` 은 공용 위험이라 전부, 입구(`page` · `loading` · `error` …)는 `core` 와
   그 주소를 요청하는 시험의 차선(닿는 시험이 없으면 전부)
   (원본: `docs/agents/test-map.md` 「CI」)
 - `app/` 아래 `icon` · `opengraph-image` · `manifest` 같은 파일 이름은 Next 에게 특별하다 — 화면을 바꾼 병합 뒤 `npm run build` 한 번
-  (원본: `docs/agents/delegation.md` 「로컬 환경의 함정」)
+  (원본: `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」)
 - 뜻을 바꾸지 않는 다듬기(여백 · 정렬 · 반응형 · 포커스)는 전후 스크린샷이 근거다
-  (원본: `docs/agents/delegation.md` 「무인 라운드」)
+  (원본: `docs/agents/delegation/unattended.md` 「무인 라운드」)
 
 ## 하지 않는 것 · 묻는 것
 
-- **새 사용자 문구 · 화면 흐름 · 메뉴 구조는 결정이다** — PR 까지 만들고 머지하지 않는다(`docs/agents/delegation.md` 「결정 점검표」 ·
-  「무인 라운드」). 예외는 `/ops/**` 의 운영자 전용 설명뿐이다
-- 남이 띄운 dev 서버(3000)는 죽이기 전에 묻는다. 그 서버를 재사용한 e2e 는 운영 DB 를 본다(`docs/agents/delegation.md` 「로컬 환경의 함정」)
+- **새 사용자 문구 · 화면 흐름 · 메뉴 구조는 결정이다** — PR 까지 만들고 머지하지 않는다(`docs/agents/delegation/decisions.md` 「결정 점검표」 · `docs/agents/delegation/unattended.md` 「무인 라운드」). 예외는 `/ops/**` 의 운영자 전용 설명뿐이다
+- 남이 띄운 dev 서버(3000)는 죽이기 전에 묻는다. 그 서버를 재사용한 e2e 는 운영 DB 를 본다(`docs/agents/delegation/local-env.md` 「로컬 환경의 함정」)
 - 운영 배포는 안 한다 — 머지는 배포가 아니다
 
 ## 끝날 때 고치는 것

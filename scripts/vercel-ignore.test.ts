@@ -5,7 +5,7 @@
  * 지어 기준 커밋이 있는 경우 · 없는 경우 · git 밖인 경우를 밟는다 — 네트워크를 안 쓴다.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 
@@ -168,7 +168,11 @@ describe('Git 배포는 꺼져 있고 문서가 그것을 말한다', () => {
   });
 
   it('위임 문서는 「머지는 곧 배포」를 말하지 않는다', () => {
-    const delegation = read('docs/agents/delegation.md');
+    // 위임 규약은 색인과 `docs/agents/delegation/` 의 주제 파일로 나뉘어 산다 — 전부를 함께 읽는다
+    const delegation = ['docs/agents/delegation.md']
+      .concat(readdirSync(resolve(__dirname, '..', 'docs/agents/delegation')).map((name) => `docs/agents/delegation/${name}`))
+      .map(read)
+      .join('\n');
     expect(delegation).not.toMatch(/머지는 곧 프로덕션 배포/);
     expect(delegation).not.toMatch(/머지가 곧 배포인데/);
     expect(delegation).toMatch(/머지는 배포가 아니다/);

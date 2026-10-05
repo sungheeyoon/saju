@@ -1,12 +1,12 @@
 ---
 name: 에이전트에게 맡길 일
-about: 칸이 다 채워져야 ready-for-agent 딱지가 붙는다 — docs/agents/delegation.md
+about: 칸이 다 채워져야 ready-for-agent 딱지가 붙는다 — docs/agents/delegation/issues.md
 title: ''
 labels: needs-triage
 assignees: ''
 ---
 
-<!-- 칸 이름은 docs/agents/delegation.md 「맡길 이슈」 표와 같다. 한 칸이라도 비면 needs-info 다. -->
+<!-- 칸 이름은 docs/agents/delegation/issues.md 「맡길 이슈」 표와 같다. 한 칸이라도 비면 needs-info 다. -->
 
 ## 무엇이 참이 되는가
 
@@ -26,7 +26,7 @@ assignees: ''
 
 ## 권한 등급
 
-<!-- docs/agents/delegation.md 표의 0~4 중 이 일이 닿는 가장 높은 것. 3 이면 어느 걸음이 3 인지. -->
+<!-- docs/agents/delegation/permissions.md 「권한 등급」 표의 0~4 중 이 일이 닿는 가장 높은 것. 3 이면 어느 걸음이 3 인지. -->
 
 ## 결정이 필요한 자리
 
@@ -42,4 +42,4 @@ assignees: ''
 
 ## 공유 자원 · 병렬
 
-<!-- docs/agents/delegation.md 「나란히 맡길 때」 표의 이름(로컬 스택 · 원격 DB · 마이그레이션 사슬 · 중앙 문서 · 잠금 시험 · CI · e2e 기반) 중 쥐는 것, 그리고 「병렬 가능」·「순차」와 그 까닭. -->
+<!-- docs/agents/delegation/parallel.md 「나란히 맡길 때」 표의 이름(로컬 스택 · 원격 DB · 마이그레이션 사슬 · 중앙 문서 · 잠금 시험 · CI · e2e 기반) 중 쥐는 것, 그리고 「병렬 가능」·「순차」와 그 까닭. -->

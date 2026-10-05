@@ -7,11 +7,11 @@
 
 ## 모두가 먼저 보는 것
 
-1. **붉은 main** — `gh issue list --label ci-main-red` 가 비어 있지 않으면 그것부터(`docs/agents/delegation.md` 「시작하기 전에」)
-2. **나란히 도는 세션** — `git worktree list`. 작업 가지는 워크트리로 연다(`docs/agents/delegation.md` 「일하는 법」)
+1. **붉은 main** — `gh issue list --label ci-main-red` 가 비어 있지 않으면 그것부터(`docs/agents/delegation/working.md` 「시작하기 전에」)
+2. **나란히 도는 세션** — `git worktree list`. 작업 가지는 워크트리로 연다(`docs/agents/delegation/working.md` 「일하는 법」)
 3. **지금 단계** — `docs/prd.md` 「7.0 출시 범위」 표의 「(지금)」. 운영 베타 동안 등급 3 은 밟고 값을 적는다(ADR 0093)
 4. **보류 줄** — `docs/product/gaps.md` 의 `보류` 는 그 조건이 올 때까지 권하지도 묻지도 않는다
-5. **로컬 환경** — 새 워크트리에는 `node_modules` 가 없다. 무엇이든 돌리기 전에 `docs/agents/delegation.md` 「로컬 환경의 함정」
+5. **로컬 환경** — 새 워크트리에는 `node_modules` 가 없다. 무엇이든 돌리기 전에 `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」
 
 ## 역할 고르기
 
@@ -27,7 +27,7 @@
 | 사람과 말하며 위의 에이전트 여럿을 맡긴다 | `docs/roles/coordinator.md` | — (사람과 말하는 세션 자신) |
 
 **일이 둘에 걸치면 둘 다 읽는다** — 기능이 새 표를 들이면 `feature` 와 `db`. 그래도 **한 에이전트는 한 충돌 영역을 끝까지
-쥔다**(`docs/agents/delegation.md` 「나란히 맡길 때」). 에이전트 정의(`.claude/agents/`)는 역할 문서를 읽으라는 한 줄뿐이다 —
+쥔다**(`docs/agents/delegation/parallel.md` 「나란히 맡길 때」). 에이전트 정의(`.claude/agents/`)는 역할 문서를 읽으라는 한 줄뿐이다 —
 그 파일은 Claude Code 만 읽고, 다른 에이전트에게는 이 표가 전부다.
 
 ## 원본 — 무엇이 무엇을 답하나
@@ -54,7 +54,7 @@
 ## 선순환 — 일이 문서로 돌아오는 길
 
 1. **읽고 시작한다** — 역할 문서 → 그 문서의 「먼저 읽는 것」. 이슈 · 메모의 문장은 가설이라 먼저 잰다
-2. **끝날 때 문서를 고친다** — 역할 문서의 넷째 칸을 PR 의 「문서」 칸에 옮겨 적는다(`docs/agents/delegation.md` 「끝났다는 것」)
+2. **끝날 때 문서를 고친다** — 역할 문서의 넷째 칸을 PR 의 「문서」 칸에 옮겨 적는다(`docs/agents/delegation/done.md` 「끝났다는 것」)
 3. **헤맨 자리는 보고에 한 줄** — 역할 문서에 없어서 찾아다닌 것, 가리킨 절이 틀렸던 것. 역할 문서는 조율자가 라운드 끝에
    고친다(`docs/roles/coordinator.md`) — 나란히 도는 PR 이 같은 역할 문서를 고쳐 부딪히지 않게
 4. **사정은 노트에** — 라운드의 기록은 `docs/notes/` 에 날짜와 함께. 같은 라운드를 이어 가거나 코드가 이렇게 된 사정을

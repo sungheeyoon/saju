@@ -7,8 +7,8 @@
 - `docs/ops/runbook.md` 「어디서 실행하나」 — 접속값 · 비밀 · 개인정보의 경계
 - `docs/ops/runbook.md` 「배포」 — 특히 「묶음 배포」와 「규약 넷 — 앱과 DB 는 따로 간다」
 - `docs/ops/runbook.md` 「도는 잡이 정말 도나」 · 「보안 점검」
-- `docs/agents/delegation.md` 「권한 등급」 · 「공식 운영에 들어가면 켜는 잠금」
-- `docs/agents/delegation.md` 「로컬 환경의 함정」 — 키체인 창 · `BEHIND` · 운영 확인용 계정
+- `docs/agents/delegation/permissions.md` 「권한 등급」 · 「공식 운영에 들어가면 켜는 잠금」
+- `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」 — 키체인 창 · `BEHIND` · 운영 확인용 계정
 
 ## 이 저장소의 방식
 
@@ -18,12 +18,12 @@
   (원본: `docs/ops/runbook.md` 「규약 넷 — 앱과 DB 는 따로 간다」)
 - 등급 3 을 밟으면 무엇을 봤는지 값으로 적는다 — `db push` 뒤에는 remote 칸과 PostgREST 캐시, 배포 뒤에는 Ready 와
   배포 SHA = main HEAD 와 익명 smoke
-  (원본: `docs/agents/delegation.md` 「권한 등급」)
+  (원본: `docs/agents/delegation/permissions.md` 「권한 등급」)
 - 원격 질의는 개인을 가리키지 않는 것만 `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 보낸다 — 목적이 접속기록에 남는다
   (원본: `docs/ops/runbook.md` 「개인정보는 화면으로만」 · ADR 0105)
 - 로그인이 드는 운영 smoke 는 「로컬 환경의 함정」의 프로덕션 확인 줄(`@example.com` 시험 계정, 끝나면 지운다)을 따르거나
   운영자에게 단계별 시나리오로 건넨다. 아이폰 확인은 운영자 몫이다
-  (원본: `docs/agents/delegation.md` 「로컬 환경의 함정」 · `docs/notes/2026-09-30-parallel-round.md` 「끝 상태」)
+  (원본: `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」 · `docs/notes/2026-09-30-parallel-round.md` 「끝 상태」)
 
 ## 하지 않는 것 · 묻는 것
 
@@ -34,7 +34,7 @@
 
 ## 끝날 때 고치는 것
 
-- [ ] 배포 · DB 의 끝 상태(Production SHA · DB remote 의 마지막 마이그레이션 · smoke 결과)는 `docs/ops/runbook.md` 「묶음 배포」 5 의 이슈나 그 PR 에 — 노트는 `docs/agents/delegation.md` 「세션 기록」 기준만
+- [ ] 배포 · DB 의 끝 상태(Production SHA · DB remote 의 마지막 마이그레이션 · smoke 결과)는 `docs/ops/runbook.md` 「묶음 배포」 5 의 이슈나 그 PR 에 — 노트는 `docs/agents/delegation/notes.md` 「세션 기록」 기준만
 - [ ] 절차가 바뀌었거나 틀렸으면 → `docs/ops/runbook.md`
 - [ ] 보안 점검의 증거가 생겼으면 → `docs/product/gaps.md` 의 G-23 줄
 - [ ] 운영자만 할 수 있는 일이 새로 생겼으면 → 운영자 할 일 이슈(#304)에 줄

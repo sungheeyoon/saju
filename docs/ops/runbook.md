@@ -34,7 +34,7 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 | **보통** | 개인을 가리키지 않는 것 — 건수 · 집계 · 마이그레이션 상태 · 크론 · 설정 한 칸 · 신고 id 로 적는 검토 기록 | 사람이든 에이전트든 `npm run db:remote -- --purpose "<목적>" "<sql>"`. 목적과 SQL 의 sha256 이 접속기록에 남는다 |
 | **break-glass** | 이메일 · 닉네임과 계정의 짝 · 메시지 본문 · 출생정보를 **SQL 로** 읽는 것 — 아래 「break-glass」 | **사람만.** 장애 · 수사기관의 적법한 요청처럼 화면으로 못 하는 때에만, 밖의 대장에 먼저 적고 |
 
-**에이전트는 운영 개인정보를 예외 없이 직접 조회하지 않는다**(`docs/agents/delegation.md` 등급 3). 필요하면 질의를 써서
+**에이전트는 운영 개인정보를 예외 없이 직접 조회하지 않는다**(`docs/agents/delegation/permissions.md` 등급 3). 필요하면 질의를 써서
 건네고 사람이 검토해 실행한다. 이 문서에서 `auth.users` 의 이메일이나 메시지 본문을 읽는 질의에는 **break-glass** 라고
 적혀 있다. 대시보드 SQL Editor 는 접속기록이 안 남는 자리다 — 거기서 개인정보를 읽지 않는다. 빈도가 늘면 `pgaudit` 로
 옮긴다.
@@ -107,7 +107,7 @@ docker exec -i supabase_db_saju psql -U postgres -c "<문장>"   # 워크트리�
 2. **넣는다.** Vercel 은 대시보드 Settings → Environment Variables 에서 그 이름의 값을 고친다(표가
    말하는 환경 전부). **Vercel 변수는 새 배포부터 읽힌다** — Deployments 의 최신 Production 에서
    Redeploy 하고 Ready 를 본다. 값 교체는 사람이 대시보드에서 한다(에이전트에게 `vercel env rm` 은
-   등급 4 다, `docs/agents/delegation.md`). Vault 는 SQL Editor 에서 고치고 재배포가 없다 — 다음 호출이 읽는다:
+   등급 4 다, `docs/agents/delegation/permissions.md`). Vault 는 SQL Editor 에서 고치고 재배포가 없다 — 다음 호출이 읽는다:
 
    ```sql
    select vault.update_secret((select id from vault.secrets where name = '<이름>'), '<새 값>');
@@ -225,7 +225,7 @@ order by a.notice_ack_at desc nulls first;
 
 > **테스트가 아닌 사람을 처음 들이기 전에 출시 단계를 옮긴다**(ADR 0093 · 0097). 실제 사용자의 자료가 운영
 > DB 에 들어오는 날이 공개 뒤의 규율이 켜지는 날이다 — `docs/prd.md` §7.0 의 「(지금)」을 옮기면 머지 전 전체
-> 검증(CI)과 등급 3 의 잠금이 함께 돌아온다. 잠금 쪽은 시험이 `docs/agents/delegation.md` 「공식 운영에
+> 검증(CI)과 등급 3 의 잠금이 함께 돌아온다. 잠금 쪽은 시험이 `docs/agents/delegation/permissions.md` 「공식 운영에
 > 들어가면 켜는 잠금」의 걸음으로 데려간다. 코드를 먼저 건네고 나중에 옮기지 않는다.
 
 코드에는 둘이 붙는다: **사는 기간**과 **최대 인원**. 기한 없는 코드는 새면 영원히 열린
@@ -962,7 +962,7 @@ select public.review_report('<report-id>', '<운영자 UUID>', 'no_action', '이
 
 SQL 은 전부 `npm run db:remote -- --purpose "G-24 검증 <걸음 번호>" "<sql>"` 로 보낸다(목적과 해시가 접속기록에 남는다).
 **아래 질의는 테스트 계정 둘의 UUID 와 신고 id 로만 좁혀 두었다** — 그래도 메시지 본문이 나오는 ⑦ 은 break-glass 규율로
-사람이 돈다. 에이전트는 질의를 건네기만 한다(`docs/agents/delegation.md`, ADR 0105).
+사람이 돈다. 에이전트는 질의를 건네기만 한다(`docs/agents/delegation/permissions.md`, ADR 0105).
 
 | # | 걸음 | 어떻게 | 통과 |
 | --- | --- | --- | --- |
@@ -2175,7 +2175,7 @@ npm run db:push               # 밀린 것 전부를 원격에 적용한다 — 
 ### 규약 넷 — 앱과 DB 는 따로 간다 (ADR 0090)
 
 세션 메모에만 있던 것을 2026-09-22 에 옮겼다. 에이전트가 이 절을 밟는 걸음은 공식 운영에 들어간 뒤에는
-사람이 답한 뒤고, 운영 베타에서는 직접 밟고 본 값을 적는다(`docs/agents/delegation.md` 권한 등급 3,
+사람이 답한 뒤고, 운영 베타에서는 직접 밟고 본 값을 적는다(`docs/agents/delegation/permissions.md` 권한 등급 3,
 ADR 0093).
 
 1. **앱 배포 ≠ DB 마이그레이션.** main 머지는 아무것도 내보내지 않고, 묶음 배포는 앱만 내보낸다. 마이그레이션이 든 PR 이
@@ -2338,7 +2338,7 @@ npm run test:e2e:authed   # `npm run db:start` 를 요구한다
 Slack · Discord 쪽이다.
 
 **모두가 한 번 다시 로그인한다** — 세션 쿠키는 오리진마다다. 미리 알릴지 · 무엇이라 알릴지는 옮기는 날 운영자가 정한다
-(화면 문구 — `docs/agents/delegation.md` 「결정 점검표」).
+(화면 문구 — `docs/agents/delegation/decisions.md` 「결정 점검표」).
 
 ## 운영 의존성 취약점 — CI 의 `audit` 이 붉을 때 (G-23 ①, ADR 0104)
 
