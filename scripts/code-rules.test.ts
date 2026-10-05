@@ -577,6 +577,8 @@ const ENTRY_DOCS = [
   join(ROOT, 'AGENTS.md'),
   join(ROOT, 'CONTEXT.md'),
   join(ROOT, 'docs/product/gaps.md'),
+  // 간극 대장의 긴 실행 기록은 줄마다 `docs/product/gaps/records/` 의 파일로 산다
+  ...walk(join(ROOT, 'docs/product/gaps')),
   join(ROOT, 'README.md'),
   join(ROOT, 'docs/architecture.md'),
   join(ROOT, 'docs/prd.md'),
@@ -929,27 +931,52 @@ describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
 
   /**
    * 메모 칸은 지금 상태 두세 문장이다 — 실행 기록이 칸에 쌓여 한 줄이 만 자를 넘었다(2026-10-05, G-23).
-   * 긴 기록은 `## G-nn 기록` 절로 내리고 칸이 그 절을 가리킨다. 문턱은 그날 가장 긴 칸(G-65, 보류 · 손대지 않음)의 위다.
+   * 긴 기록은 줄마다 한 파일(`docs/product/gaps/records/g-nn.md`)로 내리고 칸이 그 파일을 링크로 가리킨다 — 2026-10-05 에
+   * 대장 아래의 `## G-nn 기록` 절 여덟(약 52KB)을 파일로 옮겼다. 대장을 읽는 역할이 기록 전부를 함께 읽지 않게.
+   * 문턱은 그날 가장 긴 칸(G-65, 보류 · 손대지 않음)의 위다.
    */
   const MEMO_LIMIT = 500;
-  const recordSections = [...ledger.matchAll(/^## (G-\d{2}) 기록$/gm)].map((match) => match[1]);
+  const RECORDS_DIR = 'docs/product/gaps/records';
+  const recordFiles = readdirSync(join(ROOT, RECORDS_DIR));
+  /** 표의 줄이 가리키는 기록 파일 — 칸 어디서든 `](gaps/records/…)` 링크 */
+  const recordLinks = rows.flatMap((cells) =>
+    [...cells.join('|').matchAll(/\]\(gaps\/records\/([^)#\s]+)\)/g)].map((match) => ({ row: cells[1], file: match[1] })),
+  );
 
-  it(`메모 칸은 ${MEMO_LIMIT}자를 넘지 않는다 — 긴 실행 기록은 \`## G-nn 기록\` 절에 산다`, () => {
+  it(`메모 칸은 ${MEMO_LIMIT}자를 넘지 않는다 — 긴 실행 기록은 \`${RECORDS_DIR}/\` 의 파일에 산다`, () => {
     expect(rows.filter((cells) => cells[6].length > MEMO_LIMIT).map((cells) => `${cells[1]} :: ${cells[6].length}자`)).toEqual([]);
   });
 
-  it('「G-nn 기록」 절은 표에 서 있는 줄의 것이고, 칸이 가리키는 절은 있다 — 줄을 닫으면 절도 걷는다', () => {
-    const ids = new Set(rows.map((cells) => cells[1]));
-    expect(recordSections.length).toBeGreaterThan(0);
-    expect(new Set(recordSections).size).toBe(recordSections.length);
-    expect(recordSections.filter((id) => !ids.has(id))).toEqual([]);
-    const pointed = rows.flatMap((cells) => [...cells[6].matchAll(/「(G-\d{2}) 기록」/g)].map((match) => `${cells[1]}→${match[1]}`));
-    expect(pointed.length).toBeGreaterThan(0);
-    expect(pointed.filter((pair) => {
-      const [from, to] = pair.split('→');
-      return from !== to || !recordSections.includes(to);
-    })).toEqual([]);
-    expect(recordSections.filter((id) => !pointed.includes(`${id}→${id}`))).toEqual([]);
+  it('대장에 「## G-nn 기록」 절이 다시 서지 않는다 — 기록은 줄마다 한 파일이다', () => {
+    expect([...ledger.matchAll(/^#{1,6} G-\d{2} 기록\s*$/gm)].map((match) => match[0])).toEqual([]);
+  });
+
+  it('표의 기록 링크와 기록 파일은 일대일이다 — 번호가 같고, 가리킨 파일이 있고, 표에 없는 기록 파일이 없다', () => {
+    expect(recordFiles.length).toBeGreaterThan(0);
+    expect(recordLinks.length).toBeGreaterThan(0);
+    // 파일 이름은 `g-` 와 두 자리 번호뿐이다
+    expect(recordFiles.filter((name) => !/^g-\d{2}\.md$/.test(name))).toEqual([]);
+    // 링크는 제 줄의 번호를 가리키고, 그 파일은 있다
+    expect(
+      recordLinks
+        .filter(({ row, file }) => file !== `g-${row.slice(2)}.md` || !recordFiles.includes(file))
+        .map(({ row, file }) => `${row} → ${file}`),
+    ).toEqual([]);
+    // 파일마다 표에 제 줄이 있고 그 줄의 메모 칸이 링크로 가리킨다 — 줄을 닫으면 파일도 지운다
+    const memoLinked = new Set(
+      rows.flatMap((cells) => [...cells[6].matchAll(/\]\(gaps\/records\/([^)#\s]+)\)/g)].map((match) => `${cells[1]}→${match[1]}`)),
+    );
+    expect(recordFiles.filter((name) => !memoLinked.has(`G-${name.slice(2, 4)}→${name}`))).toEqual([]);
+  });
+
+  it('기록 파일은 제 번호의 제목으로 열고 대장으로 돌아가는 링크를 든다', () => {
+    const wrong = recordFiles
+      .filter((name) => /^g-\d{2}\.md$/.test(name))
+      .filter((name) => {
+        const text = readFileSync(join(ROOT, RECORDS_DIR, name), 'utf8');
+        return !text.startsWith(`# G-${name.slice(2, 4)} 기록\n`) || !/\]\(\.\.\/\.\.\/gaps\.md(#[^)]*)?\)/.test(text);
+      });
+    expect(wrong).toEqual([]);
   });
 
   it('PRD 본체에는 개정 기록이 없다 — 계보와 「재어 본 값」은 changelog 에 산다', () => {
@@ -1122,15 +1149,17 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
    * 원본을 쪼개 줄였으면(예: runbook 을 주제 파일로) 상한도 내린다. 늘리려면 PR 에 까닭을 적고 여기 값을 함께 고친다.
    * runbook 은 2026-10-05 에 운영 작업별 파일(`docs/ops/runbook/`)로 나눠 다섯 역할의 값을 내렸다. PRD 는 같은 날 제품 영역별
    * 파일(`docs/product/prd/`)로 나눠, 역할 문서가 제 영역 파일만 가리키게 하고 네 역할(feature · reading · reviewer · ui)의 값을 내렸다.
+   * 간극 대장은 같은 날 「## G-nn 기록」 절 여덟을 줄마다 한 파일(`docs/product/gaps/records/`)로 옮겨, 대장을 가리키는 여섯
+   * 역할(coordinator · db · docs · feature · ops · reviewer)의 값을 51,060 씩 내렸다.
    */
   const READ_BUDGET: Record<string, number> = {
-    coordinator: 157819,
-    db: 352031,
-    docs: 282168,
-    feature: 286336,
-    ops: 174182,
+    coordinator: 106759,
+    db: 300971,
+    docs: 231108,
+    feature: 235276,
+    ops: 123122,
     reading: 313086,
-    reviewer: 184455,
+    reviewer: 133395,
     ui: 236920,
   };
   const SIZE_AT_LOCK: Record<string, number> = {
@@ -1169,7 +1198,7 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
     'docs/ops/runbook/security.md': 32543,
     'docs/prd.md': 2617,
     'docs/product/copy-ledger.md': 30104,
-    'docs/product/gaps.md': 65299,
+    'docs/product/gaps.md': 14239,
     'docs/product/prd-changelog.md': 143536,
     'docs/product/prd/foundation.md': 21970,
     'docs/product/prd/reading.md': 19263,
