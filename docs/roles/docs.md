@@ -14,29 +14,25 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 
 ## 이 저장소의 방식
 
-- **옮겨 적지 않고 가리킨다.** 지금 모양은 PRD, 틈은 간극 대장, 날짜별 변경은 changelog, 결정은 ADR, 낱말은 `CONTEXT.md`,
-  사정은 노트, 절차는 runbook
-  (원본: `docs/start.md` 「원본 — 무엇이 무엇을 답하나」 · ADR 0089)
-- 문서에 수를 적지 않는다 — 실행이 찍게 한다(시험 수 · 파일 수는 금세 낡는다)
-  (원본: `docs/agents/delegation/working.md` 「일하는 법」)
-- 문서와 코드가 어긋나면 버그 · 문서 노후 · 결정 미반영 중 무엇인지 먼저 가른다. 문서를 코드에 맞추다 정책이 바뀌면 그것은 결정이다
-  (원본: `docs/agents/delegation/coordinator.md` 「조율자 세션」 · `docs/agents/delegation/decisions.md` 「결정 점검표」)
-- 입구 문서(`CLAUDE.md` · `AGENTS.md` · `docs/agents/` · `docs/roles/` …)의 백틱 경로와 `npm run` 이름, 역할 문서가 가리키는 절은 시험이 잰다
-  (원본: `docs/agents/code-rules.md` 「린트가 잠근 것」 · ADR 0140)
-- 중앙 문서는 제가 바꾼 줄만 고친다. 나란히 도는 PR 이 있으면 머지는 하나씩이다 — changelog 는 끝에 덧붙인다(`union`)
-  (원본: `docs/agents/delegation/parallel.md` 「나란히 맡길 때」)
-- `docs/product/prd-archive.md` 는 요구사항이 아니다 — 거기서 무엇을 만들지 읽지 않는다
-  (원본: `CLAUDE.md` 「요구사항은」)
+규칙은 아래 원본에만 있다 — 여기는 어디를 열지만 말한다(ADR 0145).
+
+- [원본 — 무엇이 무엇을 답하나](../start.md#원본--무엇이-무엇을-답하나) — 한 사실의 자리 · 어긋나면 어느 쪽이 맞나
+- [일하는 법](../agents/delegation/working.md) — 재는 법 · 값을 적는 자리는 하나다
+- [결정 점검표](../agents/delegation/decisions.md) — 문서를 코드에 맞추다 정책이 바뀌면 결정
+- [조율자 세션](../agents/delegation/coordinator.md) — 사실과 의도 · 버그 · 문서 노후 · 결정 미반영 가르기
+- [나란히 맡길 때](../agents/delegation/parallel.md) — 중앙 문서는 제 줄만 · 머지는 하나씩 · `union`
+- [린트가 잠근 것 · 시험이 잠근 것](../agents/code-rules.md#린트가-잠근-것--시험이-잠근-것) — 입구 문서의 경로를 재는 시험. 역할 문서의 절 · 링크 · 읽기량은 ADR 0145
+- [Writing an ADR](../agents/domain.md#writing-an-adr) — 색인 줄과 후속 결정 줄
 
 ## 하지 않는 것 · 묻는 것
 
-- `보류` 줄을 다시 권하거나 앞당기지 않는다 — 조건이 오면 운영자가 꺼낸다
-- 이미 있는 기록을 고치는 두 PR 을 나란히 두지 않는다 — 상반된 문장이 둘 다 남는다
-- 노트를 요구사항처럼 쓰지 않는다 — 규약이 된 것은 원본으로 옮긴다
+- `보류` 줄을 다시 권하거나 앞당기지 않는다 — 조건이 오면 운영자가 꺼낸다([조율자 세션](../agents/delegation/coordinator.md))
+- 이미 있는 기록을 고치는 두 PR 을 나란히 두지 않는다 — 상반된 문장이 둘 다 남는다([나란히 맡길 때](../agents/delegation/parallel.md))
+- 노트를 요구사항처럼 쓰지 않는다 — 규약이 된 것은 원본으로 옮긴다([세션 기록](../agents/delegation/notes.md))
+- `docs/product/prd-archive.md` 에서 무엇을 만들지 읽지 않는다([원본](../start.md#원본--무엇이-무엇을-답하나))
 
 ## 끝날 때 고치는 것
 
-- [ ] `npx vitest run scripts/` — 입구 경로 · ADR 참조 · 노트 차례 · 역할 문서의 절을 잰다
-- [ ] 새 노트 → `docs/notes/README.md` 에 한 줄
-- [ ] 닫은 `G-nn` → 줄을 지우고 changelog 에 날짜와 함께
-- [ ] 원본의 절 이름을 바꿨으면 → 그 절을 가리키던 역할 문서도
+- [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯과 「문서」 칸의 결정 여부
+- [ ] 새 노트 → [노트의 차례](../notes/README.md)에 한 줄. 닫은 `G-nn` → 줄을 지우고 [개정의 방법](../product/prd-changelog.md#개정의-방법)대로 날짜와 함께
+- [ ] 원본의 절 이름을 바꿨으면 → 그 절을 가리키던 역할 문서도. `npx vitest run scripts/` 가 잰다

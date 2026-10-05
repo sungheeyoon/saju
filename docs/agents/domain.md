@@ -5,7 +5,8 @@ root ADR directory when exploring, planning, testing, or changing the codebase.
 
 ## Read before working
 
-- Read `CONTEXT.md` for the project's domain language.
+- Read the `CONTEXT.md` sections and terms your role document (`docs/roles/`) points to — not the whole file. It is
+  the project's domain language; open another section only when the work meets a word it defines.
 - Read the relevant decisions under `docs/adr/` before working in an affected area.
 - Read supporting product or analysis documents when an ADR or the glossary routes to them.
 

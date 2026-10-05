@@ -11,7 +11,7 @@
  * 다른 새 자리가 쓴다.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { basename, extname, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
@@ -929,40 +929,181 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
     expect(missing).toEqual([]);
   });
 
+  /** 한 칸(`## 이름`)의 본문 — 다음 `## ` 까지 */
+  function sectionOf(text: string, heading: string): string {
+    const start = text.indexOf(`\n## ${heading}\n`);
+    expect(start, heading).toBeGreaterThan(-1);
+    const end = text.indexOf('\n## ', start + 1);
+    return text.slice(start + 1, end === -1 ? undefined : end);
+  }
+
+  /** 칸 안의 목록 줄 — 들여 쓴 이음 줄은 앞 줄에 붙인다 */
+  function bulletsOf(section: string): string[] {
+    return section
+      .split('\n')
+      .slice(1)
+      .reduce<string[]>((acc, line) => {
+        if (line.startsWith('- ')) acc.push(line);
+        else if (line.startsWith('  ') && acc.length > 0) acc[acc.length - 1] += `\n${line}`;
+        return acc;
+      }, []);
+  }
+
+  /** `[글](대상#앵커)` — 바깥 주소는 뺀다 */
+  const MARKDOWN_LINK = /\[[^\]]+\]\(([^)\s#]+)(?:#([^)\s]+))?\)/g;
+  const linksOf = (text: string) =>
+    [...text.matchAll(MARKDOWN_LINK)].filter((match) => !/^[a-z]+:/.test(match[1])).map((match) => ({ path: match[1], anchor: match[2] }));
+
+  /** GitHub 가 제목에 다는 앵커 — 굵기 · 백틱을 걷고 낱자 · 숫자 · `-` · `_` · 빈칸만 남겨 빈칸을 `-` 로. 같은 것이 또 서면 `-1` … */
+  function anchorsOf(text: string): Set<string> {
+    const count = new Map<string, number>();
+    const anchors = new Set<string>();
+    for (const match of text.matchAll(/^#{1,6} (.+)$/gm)) {
+      const base = match[1]
+        .replace(/\*\*|`/g, '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^\p{L}\p{M}\p{N}\p{Pc}\- ]/gu, '')
+        .replace(/ /g, '-');
+      const seen = count.get(base) ?? 0;
+      count.set(base, seen + 1);
+      anchors.add(seen === 0 ? base : `${base}-${seen}`);
+    }
+    return anchors;
+  }
+
+  it('역할 문서와 입구의 Markdown 링크는 있는 파일을, 앵커는 그 파일의 제목을 가리킨다 — 원본의 절을 옮기면 링크도 옮긴다', () => {
+    const docs = [START, ...roles.map((role) => join(ROLES_DIR, `${role}.md`))];
+    const missing: string[] = [];
+    let seen = 0;
+    for (const doc of docs) {
+      for (const { path, anchor } of linksOf(readFileSync(doc, 'utf8'))) {
+        seen += 1;
+        const target = resolve(dirname(doc), path);
+        if (!existsSync(target)) {
+          missing.push(`${relPath(doc)}: ${path} (파일 없음)`);
+          continue;
+        }
+        if (anchor && !anchorsOf(readFileSync(target, 'utf8')).has(decodeURIComponent(anchor))) {
+          missing.push(`${relPath(doc)}: ${path}#${anchor} (제목 없음)`);
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(60);
+    expect(missing).toEqual([]);
+  });
+
   /**
-   * 「이 저장소의 방식」은 원본을 줄인 길잡이다 — 줄마다 끝에 `(원본: …)` 을 달아 대조할 자리를 드러낸다(ADR 0140).
-   * 출처는 `경로.md` 「절」 과 `ADR NNNN` 만이다. 본문에 경로나 ADR 이 우연히 있어도 그 줄의 출처로 세지 않는다.
-   * 가리킨 절이 제목으로 있는지는 위 시험이 잰다.
+   * 역할 문서는 길잡이(Router)다 — 규칙을 다시 말하지 않고 원본을 가리킨다(ADR 0145, ADR 0140 의 「한 줄로 줄인 길잡이」를 대체).
+   * 「이 저장소의 방식」의 줄은 원본 링크로 시작하는 한 줄이고(그 원본이 무엇을 드는지 몇 낱말), 요약 문장의 `(원본: …)` 꼬리는
+   * 없다. 「하지 않는 것 · 묻는 것」은 짧은 인라인 목록으로 두되 줄마다 출처 링크가 있다.
    */
-  it('「이 저장소의 방식」의 줄마다 끝에 `(원본: …)` 이 있고, 출처는 `경로.md` 「절」 이나 있는 ADR 뿐이다', () => {
-    const adrs = new Set(readdirSync(join(ROOT, 'docs/adr')).map((name) => name.slice(0, 4)));
+  it('「이 저장소의 방식」은 원본 링크로 시작하는 한 줄씩이고, 「하지 않는 것 · 묻는 것」의 줄마다 출처 링크가 있다', () => {
     const wrong: string[] = [];
     let seen = 0;
     for (const role of roles) {
       const text = readFileSync(join(ROLES_DIR, `${role}.md`), 'utf8');
-      const start = text.indexOf('\n## 이 저장소의 방식\n');
-      const section = text.slice(start + 1, text.indexOf('\n## ', start + 1));
-      const bullets = section
-        .split('\n')
-        .slice(1)
-        .reduce<string[]>((acc, line) => {
-          if (line.startsWith('- ')) acc.push(line);
-          else if (line.startsWith('  ') && acc.length > 0) acc[acc.length - 1] += `\n${line}`;
-          return acc;
-        }, []);
-      expect(bullets.length, role).toBeGreaterThan(3);
-      for (const bullet of bullets) {
+      const router = bulletsOf(sectionOf(text, '이 저장소의 방식'));
+      expect(router.length, role).toBeGreaterThan(2);
+      for (const bullet of router) {
         seen += 1;
-        const source = /\n {2}\(원본: ([^\n]+)\)$/.exec(bullet)?.[1];
-        const rest = source
-          ?.replace(/`[^`\s]+\.md`(?:\s*(?:·\s*)?「[^」]+」)+/g, '')
-          .replace(/ADR (\d{4})/g, (whole, number: string) => (adrs.has(number) ? '' : whole))
-          .replace(/[\s·]/g, '');
-        if (rest !== '') wrong.push(`${role}: ${bullet.split('\n')[0].slice(0, 40)}`);
+        if (!/^- \[[^\]]+\]\([^)]+\)/.test(bullet) || bullet.includes('\n') || bullet.includes('(원본:')) {
+          wrong.push(`${role} 「이 저장소의 방식」: ${bullet.split('\n')[0].slice(0, 40)}`);
+        }
+      }
+      for (const bullet of bulletsOf(sectionOf(text, '하지 않는 것 · 묻는 것'))) {
+        seen += 1;
+        if (linksOf(bullet).length === 0) wrong.push(`${role} 「하지 않는 것」: ${bullet.slice(0, 40)}`);
       }
     }
-    expect(seen).toBeGreaterThan(30);
+    expect(seen).toBeGreaterThan(50);
     expect(wrong).toEqual([]);
+  });
+
+  /**
+   * **필수 읽기량** — 역할 문서와, 그 「먼저 읽는 것」 · 「이 저장소의 방식」 · 「끝날 때 고치는 것」이 가리키는 파일(백틱의 뿌리
+   * 경로 · Markdown 링크, 폴더는 빼고 중복은 한 번)의 바이트 합이다. 2026-10-05 에 ADR 0145 로 역할 문서를 길잡이로 바꾼 뒤의
+   * 값을 **회귀 상한**으로 박는다 — 임의의 절대 상한은 두지 않는다.
+   *
+   * 원본(가리킨 파일)은 **잠근 날의 크기**로 센다(`SIZE_AT_LOCK`). 간극 대장 · changelog · runbook 은 PR 마다 자라는데, 그것은
+   * 길잡이의 회귀가 아니다 — 지금 크기로 세면 다음 기능 PR 이 changelog 한 줄로 붉어진다. 역할 문서 자신과, 잠근 날에 없던 새
+   * 원본은 지금 크기로 센다. 그래서 붉어지는 것은 **역할 문서가 더 많이 · 더 큰 파일을 가리키거나 제 몸이 자랄 때**다.
+   *
+   * 원본을 쪼개 줄였으면(예: runbook 을 주제 파일로) 상한도 내린다. 늘리려면 PR 에 까닭을 적고 여기 값을 함께 고친다.
+   */
+  const READ_BUDGET: Record<string, number> = {
+    coordinator: 321571,
+    db: 443565,
+    docs: 282168,
+    feature: 568716,
+    ops: 273465,
+    reading: 416727,
+    reviewer: 501044,
+    ui: 332245,
+  };
+  const SIZE_AT_LOCK: Record<string, number> = {
+    'CONTEXT.md': 84831,
+    'README.md': 26108,
+    'app/me/reading/model.ts': 20492,
+    'docs/agents/code-rules.md': 16485,
+    'docs/agents/delegation/coordinator.md': 9000,
+    'docs/agents/delegation/decisions.md': 3031,
+    'docs/agents/delegation/done.md': 3269,
+    'docs/agents/delegation/local-env.md': 6859,
+    'docs/agents/delegation/notes.md': 1563,
+    'docs/agents/delegation/parallel.md': 3836,
+    'docs/agents/delegation/permissions.md': 11728,
+    'docs/agents/delegation/unattended.md': 4823,
+    'docs/agents/delegation/working.md': 7332,
+    'docs/agents/domain.md': 1980,
+    'docs/agents/test-map.md': 32484,
+    'docs/architecture.md': 13790,
+    'docs/notes/2026-09-28-overnight-audit.md': 23358,
+    'docs/notes/README.md': 18300,
+    'docs/notes/verification-discipline.md': 47917,
+    'docs/ops/runbook.md': 185456,
+    'docs/prd.md': 136645,
+    'docs/product/copy-ledger.md': 30104,
+    'docs/product/gaps.md': 65299,
+    'docs/product/prd-changelog.md': 143536,
+    'docs/roles/reviewer.md': 2523,
+    'docs/start.md': 5641,
+    'docs/text/claim-policy.md': 19554,
+    'scripts/secret-env.mjs': 8315,
+  };
+  /** 백틱 안에서 파일로 세는 경로 — 뿌리의 `CONTEXT.md` 같은 문서와 저장소 안의 경로 */
+  const POINTED_PATH = /^(?:[A-Z][A-Za-z_-]*\.md|(?:app|src|scripts|e2e|docs|supabase|public|\.github|\.claude)\/[A-Za-z0-9_.\/\[\]-]+)$/;
+  const isFile = (path: string) => existsSync(path) && statSync(path).isFile();
+
+  /** 역할 문서가 읽게 하는 파일 — 저장소 뿌리에서의 경로 */
+  function pointedFiles(role: string): Set<string> {
+    const doc = join(ROLES_DIR, `${role}.md`);
+    const text = readFileSync(doc, 'utf8');
+    const files = new Set<string>();
+    for (const heading of ['먼저 읽는 것', '이 저장소의 방식', '끝날 때 고치는 것']) {
+      const section = sectionOf(text, heading);
+      for (const match of section.matchAll(/`([^`\s]+)`/g)) {
+        if (POINTED_PATH.test(match[1]) && isFile(join(ROOT, match[1]))) files.add(match[1]);
+      }
+      for (const { path } of linksOf(section)) {
+        const target = resolve(dirname(doc), path);
+        if (isFile(target)) files.add(relPath(target));
+      }
+    }
+    files.delete(relPath(doc));
+    return files;
+  }
+  const readBytes = (role: string) =>
+    statSync(join(ROLES_DIR, `${role}.md`)).size +
+    [...pointedFiles(role)].reduce((sum, file) => sum + (SIZE_AT_LOCK[file] ?? statSync(join(ROOT, file)).size), 0);
+
+  it('역할마다 필수 읽기량이 잠근 값 이하다 — 역할 문서가 더 큰 원본을 가리키면 붉어진다 (ADR 0145)', () => {
+    expect(Object.keys(READ_BUDGET).sort()).toEqual([...roles].sort());
+    const over = roles.filter((role) => readBytes(role) > READ_BUDGET[role]).map((role) => `${role}: ${readBytes(role)} > ${READ_BUDGET[role]}`);
+    expect(over).toEqual([]);
+    // 잠근 날의 크기 표가 썩지 않는다 — 어느 역할도 안 가리키는 파일은 지운다
+    const pointed = new Set(roles.flatMap((role) => [...pointedFiles(role)]));
+    expect(Object.keys(SIZE_AT_LOCK).filter((file) => !pointed.has(file))).toEqual([]);
   });
 
   it('에이전트 정의와 역할 문서는 짝이다 — 정의는 제 역할 문서를 가리킨다', () => {

@@ -12,29 +12,22 @@
 
 ## 이 저장소의 방식
 
-- **머지는 배포가 아니다.** 운영 배포는 운영자의 「배포」 답을 받은 뒤 최신 main 을 한 번 올리는 묶음 배포다
-  (원본: `docs/ops/runbook.md` 「배포」 · 「묶음 배포」 · ADR 0110)
-- 앱과 DB 는 따로 간다 — 마이그레이션이 먼저, 앱이 나중
-  (원본: `docs/ops/runbook.md` 「규약 넷 — 앱과 DB 는 따로 간다」)
-- 등급 3 을 밟으면 무엇을 봤는지 값으로 적는다 — `db push` 뒤에는 remote 칸과 PostgREST 캐시, 배포 뒤에는 Ready 와
-  배포 SHA = main HEAD 와 익명 smoke
-  (원본: `docs/agents/delegation/permissions.md` 「권한 등급」)
-- 원격 질의는 개인을 가리키지 않는 것만 `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 보낸다 — 목적이 접속기록에 남는다
-  (원본: `docs/ops/runbook.md` 「개인정보는 화면으로만」 · ADR 0105)
-- 로그인이 드는 운영 smoke 는 「로컬 환경의 함정」의 프로덕션 확인 줄(`@example.com` 시험 계정, 끝나면 지운다)을 따르거나
-  운영자에게 단계별 시나리오로 건넨다. 아이폰 확인은 운영자 몫이다
-  (원본: `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」 · `docs/notes/2026-09-30-parallel-round.md` 「끝 상태」)
+규칙은 아래 원본에만 있다 — 여기는 어디를 열지만 말한다(ADR 0145).
+
+- [배포](../ops/runbook.md#배포) — 머지는 배포가 아니다 · 묶음 배포 · 앱과 DB 는 따로 간다(ADR 0110)
+- [권한 등급](../agents/delegation/permissions.md) — 등급 3 을 밟은 뒤 적을 값 · 운영 개인정보 · 공식 운영의 잠금
+- [개인정보는 화면으로만](../ops/runbook.md#개인정보는-화면으로만--원격-sql-의-경계-adr-0105) — 원격 질의의 경계와 `db:remote` 의 목적
+- [로컬 환경의 함정](../agents/delegation/local-env.md) — 프로덕션 확인용 시험 계정 · 키체인 · `BEHIND`
 
 ## 하지 않는 것 · 묻는 것
 
-- 「배포」 답 없이 Production 에 올리지 않는다
-- 등급 4 — force push · `supabase config push` · Vercel 변수 삭제 · main 가지 삭제
-- 운영 개인정보를 직접 조회하지 않는다(ADR 0105) — break-glass 는 사람이 돈다
-- 운영자가 미룬 것(간극 대장의 `보류` — 베타 종료일 · 백업 · 2단계 인증 · 보존 기간)을 다시 권하지 않는다
+- 「배포」 답 없이 Production 에 올리지 않는다([권한 등급](../agents/delegation/permissions.md))
+- 등급 4 — force push · `supabase config push` · Vercel 변수 삭제 · main 가지 삭제([권한 등급](../agents/delegation/permissions.md))
+- 운영 개인정보를 직접 조회하지 않는다 — break-glass 는 사람이 돈다([개인정보는 화면으로만](../ops/runbook.md#개인정보는-화면으로만--원격-sql-의-경계-adr-0105) · ADR 0105)
+- 운영자가 미룬 것(간극 대장의 `보류`)을 다시 권하지 않는다([조율자 세션](../agents/delegation/coordinator.md))
 
 ## 끝날 때 고치는 것
 
-- [ ] 배포 · DB 의 끝 상태(Production SHA · DB remote 의 마지막 마이그레이션 · smoke 결과)는 `docs/ops/runbook.md` 「묶음 배포」 5 의 이슈나 그 PR 에 — 노트는 `docs/agents/delegation/notes.md` 「세션 기록」 기준만
+- [ ] 배포 · DB 의 끝 상태는 [묶음 배포](../ops/runbook.md#묶음-배포--최신-main-을-production-으로-한-번) 5 의 이슈나 그 PR 에 — 노트는 [세션 기록](../agents/delegation/notes.md) 기준만
 - [ ] 절차가 바뀌었거나 틀렸으면 → `docs/ops/runbook.md`
-- [ ] 보안 점검의 증거가 생겼으면 → `docs/product/gaps.md` 의 G-23 줄
-- [ ] 운영자만 할 수 있는 일이 새로 생겼으면 → 운영자 할 일 이슈(#304)에 줄
+- [ ] 보안 점검의 증거 → `docs/product/gaps.md` 의 G-23 줄. 운영자만 할 수 있는 새 일 → 운영자 할 일 이슈(#304)
