@@ -47,7 +47,7 @@ export const COUNTED_SECTIONS = ['먼저 읽는 것', '이 저장소의 방식',
  * @type {Record<string, { bytes: number, routes: string[], choices: { name: string, options: { name: string, routes: string[] }[] }[] }>}
  */
 export const READ_BUDGET = {
-  coordinator: { bytes: 95213, routes: [], choices: [] },
+  coordinator: { bytes: 88011, routes: [], choices: [] },
   db: { bytes: 128334, routes: [], choices: [] },
   docs: { bytes: 75804, routes: [], choices: [] },
   feature: { bytes: 177516, routes: ['docs/context/', 'docs/product/prd/'], choices: [] },
