@@ -20,7 +20,7 @@ PR 틀(`.github/pull_request_template.md`)의 칸이다. 칸 이름은 이 표�
 싣는다. 저장소(`docs/notes/shots/<날짜>-<PR>/`)에는 **화면마다 대표 몇 장 — 대개 390px 의 바뀐 뒤 한 장**만 커밋한다.
 까닭: `docs/notes/shots` 가 30MB 가 됐고 2026-10-05 의 #476 · #477 둘이 9.8MB 였다. 이미 커밋된 그림은 지우지 않는다.
 
-**커밋과 PR 제목**은 `type(scope): 한국어 문장 (ADR NNNN)` 이다(`docs/agents/code-rules.md`).
+**커밋과 PR 제목**은 `type(scope): 한국어 문장 (ADR NNNN)` 이다(`docs/agents/code-rules/locks.md` 「커밋과 PR」).
 squash 본문은 PR 본문이 아니라 **커밋 메시지들을 이어 붙인 것**이라(저장소 설정
 `COMMIT_MESSAGES`) 커밋을 하나로 두거나 머지 화면에서 다듬는다. 원격 가지는 자동으로 안
 지워진다(`delete_branch_on_merge: false`) — 머지 뒤 `git fetch --prune` 과 함께 손으로 정리한다.
