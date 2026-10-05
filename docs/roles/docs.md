@@ -6,7 +6,6 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 
 - `docs/start.md` 「원본 — 무엇이 무엇을 답하나」 — 한 사실은 한 자리에 산다
 - `docs/product/gaps.md` 머리말 — 상태 다섯 · 띠 넷 · `보류` 의 뜻
-- `docs/product/prd-changelog.md` 「개정의 방법」
 - `docs/agents/delegation/notes.md` 「세션 기록 — `docs/notes/`」
 - `docs/notes/README.md` — 노트의 차례
 - `docs/agents/code-rules.md` 「주석과 ADR 참조」 — `ADR NNNN` 표기
@@ -34,5 +33,5 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 ## 끝날 때 고치는 것
 
 - [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯과 「문서」 칸의 결정 여부
-- [ ] 새 노트 → [노트의 차례](../notes/README.md)에 한 줄. 닫은 `G-nn` → 줄을 지우고 [개정의 방법](../product/prd-changelog.md#개정의-방법)대로 날짜와 함께
+- [ ] 새 노트 → [노트의 차례](../notes/README.md)에 한 줄. 닫은 `G-nn` → 줄을 지우고 PRD 개정 기록 끝에 날짜와 함께 한 줄 — 자리와 꼴은 [끝났다는 것](../agents/delegation/done.md) 「문서」 칸(그 파일은 쓰기만 한다 — 열어 읽지 않는다)
 - [ ] 원본의 절 이름을 바꿨으면 → 그 절을 가리키던 역할 문서도. `npx vitest run scripts/` 가 잰다
