@@ -576,6 +576,8 @@ const ENTRY_DOCS = [
   join(ROOT, 'CLAUDE.md'),
   join(ROOT, 'AGENTS.md'),
   join(ROOT, 'CONTEXT.md'),
+  // 용어집은 색인 아래 `docs/context/` 의 영역 파일로 산다
+  ...walk(join(ROOT, 'docs/context')),
   join(ROOT, 'docs/product/gaps.md'),
   // 간극 대장의 긴 실행 기록은 줄마다 `docs/product/gaps/records/` 의 파일로 산다
   ...walk(join(ROOT, 'docs/product/gaps')),
@@ -597,7 +599,7 @@ const ROOTED_PATH = /^(app|src|scripts|e2e|docs|supabase|public|\.github)\/[A-Za
 
 describe('금지어 (docs/agents/code-rules.md)', () => {
   /**
-   * 「맛보기」는 화면에서 걷었고(#349) 한국어로는 「로그인 전 결과」로 부른다(`CONTEXT.md`, 2026-09-30). 주석에 남은
+   * 「맛보기」는 화면에서 걷었고(#349) 한국어로는 「로그인 전 결과」로 부른다(`docs/context/evidence.md`, 2026-09-30). 주석에 남은
    * 낱말이 다음 작업에서 화면 글자로 다시 번졌으므로 **주석까지** 센다 — 예산 0 이다.
    */
   it('화면 파일(`app/**/*.tsx`)에 「맛보기」가 없다 — 주석도', () => {
@@ -734,7 +736,64 @@ describe('운영 소스의 주석이 가리키는 경로', () => {
 });
 
 // -----------------------------------------------------------------------------
-// 용어집 ↔ 코드 (CONTEXT.md §9)
+// 용어집 (CONTEXT.md 색인 → docs/context/)
+// -----------------------------------------------------------------------------
+
+const CONTEXT_INDEX = 'CONTEXT.md';
+const CONTEXT_DIR = 'docs/context';
+/** §9 「용어 ↔ 코드」 · §10 「어긋난 이름」 이 사는 영역 파일 — 아래 두 시험이 이 파일에서만 표를 읽는다 */
+const GLOSSARY_CODE_FILE = 'docs/context/code-names.md';
+/** 색인의 「차례」 줄 — `| \`docs/context/<영역>.md\` | 「절」 · … | 무엇을 드나 |` */
+const CONTEXT_ROW = /^\| `docs\/context\/([a-z-]+\.md)` \| ([^|]+) \|/gm;
+const contextIndex = () => readFileSync(join(ROOT, CONTEXT_INDEX), 'utf8');
+const contextPart = (name: string) => readFileSync(join(ROOT, CONTEXT_DIR, name), 'utf8');
+/** 영역 파일 이름 — 색인이 든 차례대로 */
+const contextParts = () => [...contextIndex().matchAll(CONTEXT_ROW)].map((match) => match[1]);
+
+describe('용어집 (CONTEXT.md 색인 → docs/context/)', () => {
+  it('색인은 영역 파일 전부를 들고 없는 파일을 들지 않으며, 영역 파일마다 색인을 가리킨다', () => {
+    const files = readdirSync(join(ROOT, CONTEXT_DIR)).filter((name) => name.endsWith('.md'));
+    expect(files.length).toBeGreaterThan(4);
+    expect([...contextParts()].sort()).toEqual([...files].sort());
+    for (const name of files) expect(contextPart(name), name).toContain(`\`${CONTEXT_INDEX}\``);
+  });
+
+  it('색인에 정의 · 규칙 문장이 없다 — 절은 「차례」 하나, 용어 머리 줄(`**이름** — …`)과 `_Avoid_` 가 없다', () => {
+    const index = contextIndex();
+    // 색인에 절이 생기면 정의가 두 벌이 된다
+    expect([...index.matchAll(/^#{2,6} (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
+    const stray = index
+      .split('\n')
+      // 굵게 시작하는 줄은 용어 머리 줄이거나 §8 의 규칙 문장이다 — 머리말의 「읽는 법.」 하나만 색인에 선다
+      .filter((line) => /^\s*(?:- )?(?:_Avoid_|\*\*)/.test(line) && !line.startsWith('**읽는 법.**'));
+    expect(stray).toEqual([]);
+  });
+
+  it('색인의 「절」 칸은 그 파일의 `##` 절을 차례대로 전부 들고, 절 번호 1–10 은 어느 한 파일에 한 번씩 선다', () => {
+    const wrong: string[] = [];
+    const numbers: number[] = [];
+    for (const match of contextIndex().matchAll(CONTEXT_ROW)) {
+      const named = [...match[2].matchAll(/「([^」]+)」/g)].map((one) => one[1]);
+      const heads = [...contextPart(match[1]).matchAll(/^## (.+)$/gm)].map((one) => one[1].replace(/\*\*|`/g, '').trim());
+      const same = named.length === heads.length && named.every((name, i) => heads[i] === name);
+      if (!same) wrong.push(`${match[1]}: 색인 ${named.join(' · ')} ↔ 파일 ${heads.join(' · ')}`);
+      for (const head of heads) numbers.push(Number(/^(\d+)\. /.exec(head)?.[1]));
+    }
+    expect(wrong).toEqual([]);
+    // 절 하나가 빠지거나 두 파일에 서면 번호가 끊기거나 겹친다
+    expect([...numbers].sort((a, b) => a - b)).toEqual(Array.from({ length: 10 }, (_, i) => i + 1));
+  });
+
+  it('「용어 ↔ 코드」 · 「어긋난 이름」 표는 `GLOSSARY_CODE_FILE` 에 있고, 그 파일은 색인이 드는 영역 파일이다', () => {
+    expect(contextParts()).toContain(GLOSSARY_CODE_FILE.slice(CONTEXT_DIR.length + 1));
+    const text = readFileSync(join(ROOT, GLOSSARY_CODE_FILE), 'utf8');
+    expect(text).toMatch(/^## 9\. 용어 ↔ 코드$/m);
+    expect(text).toMatch(/^## 10\. 어긋난 이름$/m);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// 용어집 ↔ 코드 (docs/context/code-names.md §9)
 // -----------------------------------------------------------------------------
 
 /** 용어집의 식별자를 찾는 곳 — 제품 코드와 마이그레이션. 시험과 생성 파일은 뺀다(생성 파일은 마이그레이션의 사본이다) */
@@ -748,8 +807,12 @@ const GLOSSARY_CODE = [
 
 /** §9 표의 「코드」 칸 — 백틱 토큰마다 `용어 :: 식별자` */
 function glossaryIdentifiers(): { term: string; token: string }[] {
-  const text = readFileSync(join(ROOT, 'CONTEXT.md'), 'utf8');
-  const section = text.slice(text.indexOf('## 9. 용어 ↔ 코드'), text.indexOf('## 10. '));
+  const text = readFileSync(join(ROOT, GLOSSARY_CODE_FILE), 'utf8');
+  const start = text.indexOf('## 9. 용어 ↔ 코드');
+  const end = text.indexOf('## 10. ');
+  // 표가 다른 파일로 가면 빈 표를 재며 초록이 되지 않게 이름을 대고 붉어진다
+  if (start < 0 || end < start) throw new Error(`${GLOSSARY_CODE_FILE} 에 §9 「용어 ↔ 코드」 다음 §10 이 없다`);
+  const section = text.slice(start, end);
   const out: { term: string; token: string }[] = [];
   for (const line of section.split('\n')) {
     const cells = line.split('|').map((cell) => cell.trim());
@@ -759,7 +822,7 @@ function glossaryIdentifiers(): { term: string; token: string }[] {
   return out;
 }
 
-describe('용어집 ↔ 코드 (CONTEXT.md §9)', () => {
+describe('용어집 ↔ 코드 (docs/context/code-names.md §9)', () => {
   it('표의 식별자는 전부 코드나 마이그레이션에 낱말로 있다 — 이름을 바꾸면 용어집도 바꾼다', () => {
     const wanted = glossaryIdentifiers();
     expect(wanted.length).toBeGreaterThan(150);
@@ -774,7 +837,8 @@ describe('용어집 ↔ 코드 (CONTEXT.md §9)', () => {
   });
 
   it('§10 이 든 어긋난 이름은 아직 코드에 있다 — 고쳤으면 표에서 지운다', () => {
-    const text = readFileSync(join(ROOT, 'CONTEXT.md'), 'utf8');
+    const text = readFileSync(join(ROOT, GLOSSARY_CODE_FILE), 'utf8');
+    expect(text, GLOSSARY_CODE_FILE).toContain('## 10. 어긋난 이름');
     const section = text.slice(text.indexOf('## 10. 어긋난 이름'));
     const corpus = [...GLOSSARY_CODE, ...SOURCE_FILES.filter((file) => relPath(file).endsWith('.tsx'))]
       .map((file) => readFileSync(file, 'utf8'))
@@ -1150,20 +1214,21 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
    * runbook 은 2026-10-05 에 운영 작업별 파일(`docs/ops/runbook/`)로 나눠 다섯 역할의 값을 내렸다. PRD 는 같은 날 제품 영역별
    * 파일(`docs/product/prd/`)로 나눠, 역할 문서가 제 영역 파일만 가리키게 하고 네 역할(feature · reading · reviewer · ui)의 값을 내렸다.
    * 간극 대장은 같은 날 「## G-nn 기록」 절 여덟을 줄마다 한 파일(`docs/product/gaps/records/`)로 옮겨, 대장을 가리키는 여섯
-   * 역할(coordinator · db · docs · feature · ops · reviewer)의 값을 51,060 씩 내렸다.
+   * 역할(coordinator · db · docs · feature · ops · reviewer)의 값을 51,060 씩 내렸다. 용어집(`CONTEXT.md`)은 같은 날 영역별
+   * 파일(`docs/context/`)로 나눠, 역할 문서가 제 영역 파일만 가리키게 하고 네 역할(db · feature · reading · ui)의 값을 내렸다.
    */
   const READ_BUDGET: Record<string, number> = {
     coordinator: 106759,
-    db: 300971,
+    db: 227849,
     docs: 231108,
-    feature: 235276,
+    feature: 153484,
     ops: 123122,
-    reading: 313086,
+    reading: 259378,
     reviewer: 133395,
-    ui: 236920,
+    ui: 162222,
   };
   const SIZE_AT_LOCK: Record<string, number> = {
-    'CONTEXT.md': 84831,
+    'CONTEXT.md': 2979,
     'README.md': 26108,
     'app/me/reading/model.ts': 20492,
     'docs/adr/0047-the-engine-does-not-speak-to-the-model.md': 7093,
@@ -1188,6 +1253,10 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
     'docs/agents/domain.md': 1980,
     'docs/agents/test-map.md': 32484,
     'docs/architecture.md': 13790,
+    'docs/context/chart.md': 11667,
+    'docs/context/code-names.md': 11701,
+    'docs/context/copy.md': 7144,
+    'docs/context/evidence.md': 19418,
     'docs/notes/2026-09-28-overnight-audit.md': 23358,
     'docs/notes/README.md': 18300,
     'docs/notes/verification-discipline.md': 47917,

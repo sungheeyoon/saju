@@ -4,7 +4,7 @@
 
 ## 먼저 읽는 것
 
-- `CONTEXT.md` 「2. 입력과 명식」 · 「4. 근거와 글」
+- `docs/context/chart.md` 「2. 입력과 명식」 · `docs/context/evidence.md` 「4. 근거와 글」
 - `docs/text/claim-policy.md` — 무엇까지 말할 자격이 있는가. 조각 · 조립 · 말뭉치는 같은 폴더의 나머지 셋
 - `README.md` 「설계에서 핵심이었던 세 가지」 · 「학파에 따라 갈리는 지점」 — 엔진
 - `docs/product/prd/reading.md` 「4. 풀이」

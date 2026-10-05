@@ -73,7 +73,7 @@ export const readingHref = (entry: ReadingEntry): string => readingHrefOf(target
 /**
  * 날짜만 — 목록에서 분 단위는 읽는 데 방해만 된다.
  *
- * **한 사실에는 한 표기**(CONTEXT.md). 「본 궁합」과 이 목록이 같은 날짜를 다르게 적으면
+ * **한 사실에는 한 표기**(docs/context/copy.md). 「본 궁합」과 이 목록이 같은 날짜를 다르게 적으면
  * 사용자는 같은 글인지 확인하는 데 눈을 쓴다.
  *
  * **시간대는 한국이다.** 책장과 운영 설문 화면은 서버(UTC)가 그리므로, 적지 않으면 한국 시각 0~9시에 만든
