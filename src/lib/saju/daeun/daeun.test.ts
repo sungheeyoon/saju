@@ -543,6 +543,12 @@ describe('대운 — 성별은 필수다', () => {
   });
 });
 
+/**
+ * 500건을 도는 값이라 제 시간을 든다 — 혼자 1.3초인데 `npm test` 전체 아래서는 6초를 넘겨 로컬 5초에 걸렸다
+ * (2026-10-06). 한 건마다 `computeSaju` 전부를 부르는 것이 비용이고, 그것이 이 시험이 재는 것이라 줄이지 않는다.
+ */
+const POPULATION_TIMEOUT_MS = 30_000;
+
 describe('대운 — 무작위 500건 속성', () => {
   function mulberry32(seed: number): () => number {
     let state = seed >>> 0;
@@ -603,5 +609,5 @@ describe('대운 — 무작위 500건 속성', () => {
         Math.abs(daeun.boundaryTerm.date.getTime() - saju.meta.instant.getTime()) / DAY_MS;
       expect(gapDays, label).toBeCloseTo(daeun.daysToBoundary, 9);
     }
-  });
+  }, POPULATION_TIMEOUT_MS);
 });
