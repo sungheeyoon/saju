@@ -6,8 +6,12 @@
 
 - `docs/agents/delegation/coordinator.md` 「조율자 세션」 — 「확인한 흔적을 붙여 전한다」 · 「위험에 따라 두 번째 검토」 · 「전체 감사」 줄
 - `docs/notes/2026-09-28-overnight-audit.md` 「팀 — 감사(읽기만)」 — 관점 여덟(코드 규칙 · 아키텍트 · 시험 · 보안 · DB · 프런트 · 문서 · SRE)과 그때 찾은 것
-- 받은 관점의 원본 — 코드 규칙은 `docs/agents/code-rules.md`, 층은 `docs/architecture.md`, 시험은 `docs/agents/test-map.md`,
-  문서는 `docs/prd.md` · `docs/product/gaps.md`, 운영은 `docs/ops/runbook.md`
+- 하나를 고른다 — 받은 관점의 원본
+  - 코드 규칙 — `docs/agents/code-rules.md`
+  - 층 — `docs/architecture.md`
+  - 시험 — `docs/agents/test-map.md`
+  - 문서 — `docs/prd.md` · `docs/product/gaps.md`
+  - 운영 — `docs/ops/runbook.md`
 - `docs/architecture.md` 「무엇이 잠겨 있나 — 그리고 무엇이 아닌가」 — 잠기지 않은 자리가 볼 곳이다
 
 ## 이 저장소의 방식
