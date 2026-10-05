@@ -20,7 +20,7 @@
 - [규약 넷](../ops/runbook/deploy.md#규약-넷--앱과-db-는-따로-간다-adr-0090) — 마이그레이션이 먼저 · 넓히기 → 앱 → 좁히기(ADR 0071)
 - [문 — DB 를 부르는 자리](../architecture.md#문--db-를-부르는-자리) — 문이 실패를 말하는 셋(ADR 0078)
 - [개인정보는 화면으로만](../ops/runbook/access.md#개인정보는-화면으로만--원격-sql-의-경계-adr-0105) — 원격 SQL 의 경계 · 접속기록(ADR 0105)
-- [이름](../agents/code-rules.md#이름) — 마이그레이션 파일 이름
+- [이름](../agents/code-rules/names.md#이름) — 마이그레이션 파일 이름
 - [무엇을 고쳤으면 무엇을 돌리나](../agents/test-map/what-to-run.md#무엇을-고쳤으면-무엇을-돌리나) — 로컬 차례(`db:reset` → `test:db` → `db:types` …)
 - [시험은 넷이고](../agents/test-map/kinds.md#시험은-넷이고-층마다-닿는-것이-다르다) — pgTAP 이 닿는 곳
 - [일하는 법](../agents/delegation/working.md) — 원격에 닿는 명령 둘과 기계 잠금

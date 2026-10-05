@@ -17,7 +17,7 @@
   그대로) · 할 일 · **건드리지 않을 자리(지금 나란히 도는 세션과 그 파일)** · 워크트리(`stack:slot`) · 돌릴 시험 ·
   내보내기(PR → 필요하면 `db push` 와 remote 값 → 최신 main 위로 `--auto` 머지) · 보고 형식. 나란히 도는 세션이
   없다고 적었다가 나중에 하나 더 띄우면 앞 세션에 `SendMessage` 로 알린다.
-  화면 문구: 대장 경로(`docs/product/copy-ledger.md`)와 규칙(`docs/agents/code-rules.md` 「화면 문구」)을 가리킨다 —
+  화면 문구: 대장 경로(`docs/product/copy-ledger.md`)와 규칙(`docs/agents/code-rules/screen-copy.md` 「화면 문구」)을 가리킨다 —
   시안 문구를 확정이라 쓰지 않는다.
 - **브리프는 규칙을 옮겨 적지 않는다(2026-09-28).** 권한 · 마이그레이션 순서(`db push` → 확인 → 머지, `docs/agents/delegation/permissions.md` 「예외 —
   마이그레이션이 든 PR」) · 멈출 자리는 **이 규약의 문장을 그대로 붙이거나 절 이름으로 가리킨다** — 기억으로 다시 쓰지
