@@ -49,7 +49,7 @@ export const COUNTED_SECTIONS = ['먼저 읽는 것', '이 저장소의 방식',
 export const READ_BUDGET = {
   coordinator: { bytes: 95213, routes: [], choices: [] },
   db: { bytes: 128334, routes: [], choices: [] },
-  docs: { bytes: 75814, routes: [], choices: [] },
+  docs: { bytes: 75804, routes: [], choices: [] },
   feature: { bytes: 177513, routes: ['docs/context/', 'docs/product/prd/'], choices: [] },
   ops: { bytes: 98676, routes: [], choices: [] },
   reading: { bytes: 145427, routes: [], choices: [] },
