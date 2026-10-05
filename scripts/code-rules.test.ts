@@ -1033,18 +1033,27 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
    */
   const READ_BUDGET: Record<string, number> = {
     coordinator: 321571,
-    db: 443565,
+    db: 495030,
     docs: 282168,
-    feature: 568716,
+    feature: 583730,
     ops: 273465,
-    reading: 416727,
+    reading: 430452,
     reviewer: 501044,
-    ui: 332245,
+    ui: 345681,
   };
   const SIZE_AT_LOCK: Record<string, number> = {
     'CONTEXT.md': 84831,
     'README.md': 26108,
     'app/me/reading/model.ts': 20492,
+    'docs/adr/0047-the-engine-does-not-speak-to-the-model.md': 7093,
+    'docs/adr/0071-the-consented-chart-is-copied-not-the-input.md': 18122,
+    'docs/adr/0073-the-blocked-name-is-said-by-the-prompt.md': 6632,
+    'docs/adr/0078-the-reading-doors-say-how-they-failed.md': 9754,
+    'docs/adr/0084-the-shape-is-asserted-not-only-the-behaviour.md': 7311,
+    'docs/adr/0105-the-operator-reads-leave-a-trace-from-the-first-read.md': 16278,
+    'docs/adr/0109-the-product-wears-one-soft-look-under-the-name-jeomjeom.md': 8466,
+    'docs/adr/0135-the-screen-speaks-haeyo-by-default.md': 4970,
+    'docs/adr/README.md': 14962,
     'docs/agents/code-rules.md': 16485,
     'docs/agents/delegation/coordinator.md': 9000,
     'docs/agents/delegation/decisions.md': 3031,
@@ -1075,7 +1084,9 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
   const POINTED_PATH = /^(?:[A-Z][A-Za-z_-]*\.md|(?:app|src|scripts|e2e|docs|supabase|public|\.github|\.claude)\/[A-Za-z0-9_.\/\[\]-]+)$/;
   const isFile = (path: string) => existsSync(path) && statSync(path).isFile();
 
-  /** 역할 문서가 읽게 하는 파일 — 저장소 뿌리에서의 경로 */
+  const ADR_FILES = readdirSync(join(ROOT, 'docs/adr')).filter((name) => /^\d{4}-.+\.md$/.test(name));
+
+  /** 역할 문서가 읽게 하는 파일 — 저장소 뿌리에서의 경로. 「먼저 읽는 것」이 부르는 ADR 도 든다 */
   function pointedFiles(role: string): Set<string> {
     const doc = join(ROLES_DIR, `${role}.md`);
     const text = readFileSync(doc, 'utf8');
@@ -1088,6 +1099,17 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
       for (const { path } of linksOf(section)) {
         const target = resolve(dirname(doc), path);
         if (isFile(target)) files.add(relPath(target));
+      }
+      /*
+        「먼저 읽는 것」의 `ADR NNNN` 은 읽을 파일이다 — 그 줄의 네 자리 번호마다 `docs/adr/NNNN-*.md`. 다른 칸의 ADR 은
+        출처 표시라 세지 않는다(줄마다 원본 링크가 따로 있다).
+      */
+      if (heading !== '먼저 읽는 것') continue;
+      for (const line of section.split('\n').filter((one) => /\bADR\b/.test(one))) {
+        for (const [number] of line.matchAll(/\b0\d{3}\b/g)) {
+          const file = ADR_FILES.find((name) => name.startsWith(`${number}-`));
+          if (file !== undefined) files.add(`docs/adr/${file}`);
+        }
       }
     }
     files.delete(relPath(doc));
