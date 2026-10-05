@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { computeSaju } from '..';
 import { NATAL_CHART_ID } from '../relations';
@@ -10,7 +10,21 @@ const VIEWED_AT = new Date('2026-09-05T12:00:00+09:00');
 const nowOf = (input: Parameters<typeof computeSaju>[0]) =>
   currentFortuneOf(computeSaju(input), VIEWED_AT);
 
+/**
+ * 무작위 200 명식과 그 「지금」은 한 번만 짓는다 — 아래 두 시험이 같은 표본을 읽는다. 시험마다 다시 지으면
+ * 전체 `npm test` 에서 둘이 3~4초씩 걸려 기본 5초에 붙었다(2026-10-06). 짓는 시간은 여기 따로 든다.
+ */
+const POPULATION_TIMEOUT_MS = 30_000;
+let population: { saju: ReturnType<typeof computeSaju>; now: ReturnType<typeof currentFortuneOf> }[] = [];
+
 describe('지금 겹치는 것', () => {
+  beforeAll(() => {
+    population = randomInputs(200).map((input) => {
+      const saju = computeSaju(input);
+      return { saju, now: currentFortuneOf(saju, VIEWED_AT) };
+    });
+  }, POPULATION_TIMEOUT_MS);
+
   /**
    * **이 값을 만든 까닭이 이 명식이다.**
    *
@@ -43,8 +57,8 @@ describe('지금 겹치는 것', () => {
    * 자리가 둘이 되면 표와 카드가 어긋나는 날 어느 쪽이 맞는지 알 수 없다.
    */
   it('겹침은 지금 목록에 이미 있는 것만 가리킨다', () => {
-    for (const input of randomInputs(200)) {
-      const now = nowOf(input);
+    expect(population).toHaveLength(200);
+    for (const { now } of population) {
       const names = now.relations.map((relation) => relation.ko);
 
       for (const overlap of now.overlaps) {
@@ -64,10 +78,8 @@ describe('지금 겹치는 것', () => {
    * 들고 있는지 되짚는다.
    */
   it('같은 종류가 원국에 실제로 있을 때만 겹쳤다고 한다', () => {
-    for (const input of randomInputs(200)) {
-      const saju = computeSaju(input);
-      const now = currentFortuneOf(saju, VIEWED_AT);
-
+    expect(population).toHaveLength(200);
+    for (const { saju, now } of population) {
       for (const overlap of now.overlaps) {
         const natal = saju.relations.filter((relation) => relation.kind === overlap.kind);
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeSaju } from '..';
+import { computePillars } from '..';
 import { COMPAT_POLICY } from '../compat';
 import { randomInputs } from '../population';
 import {
@@ -14,7 +14,11 @@ import { needProfileOf } from './needProfile';
 import type { Grade } from './needProfileTypes';
 import { pillarNamed } from '@/src/lib/saju/constants/pillarNamed';
 
-/** 표본 6000 명식(3000 쌍)을 한 바퀴 돈다 — 기본 5초로는 모자란다 */
+/**
+ * 표본 6000 명식(3000 쌍)을 한 바퀴 돈다 — 기본 5초로는 모자란다. 명식은 4주와 시각만 짓는다(`computePillars`) —
+ * 이 시험이 읽는 것이 그 둘뿐이다. `computeSaju` 6000 번은 11초인데 그중 4주까지는 0.1초이고 나머지는 이 시험이 안 읽는
+ * 대운 · 세운 · 월운 · 신살 · 분석이었다(2026-10-06, 이 시험 혼자 18.9초 → 1.2초).
+ */
 const POPULATION_TIMEOUT_MS = 60_000;
 
 const GRADE_RANK: Record<Grade, number> = { low: 0, medium: 1, high: 2 };
@@ -196,8 +200,8 @@ describe('무작위 3000쌍 (시드 20260821, 6000 명식을 둘씩 짝)', () =>
     '세 기준의 관계 분포 · 억부 1순위의 가장 센 자리 · 방향이 갈리는 쌍의 수가 잠긴 값이다',
     () => {
       const charts = randomInputs(6000).map((input) => {
-        const saju = computeSaju(input);
-        return { pillars: saju.pillars, profile: needProfileOf(saju.pillars, { instant: saju.meta.instant }) };
+        const { pillars, instant } = computePillars(input);
+        return { pillars, profile: needProfileOf(pillars, { instant }) };
       });
 
       const relations: Record<ComplementBasis, Record<string, number>> = { any: {}, visible: {}, stems: {} };
