@@ -36,13 +36,13 @@ export const COUNTED_SECTIONS = ['먼저 읽는 것', '이 저장소의 방식',
  */
 export const READ_BUDGET = {
   coordinator: { bytes: 106759, routes: [] },
-  db: { bytes: 227849, routes: [] },
+  db: { bytes: 210758, routes: [] },
   docs: { bytes: 87624, routes: [] },
-  feature: { bytes: 203606, routes: ['docs/context/', 'docs/product/prd/'] },
+  feature: { bytes: 186503, routes: ['docs/context/', 'docs/product/prd/'] },
   ops: { bytes: 123122, routes: [] },
-  reading: { bytes: 259378, routes: [] },
-  reviewer: { bytes: 133395, routes: [] },
-  ui: { bytes: 162222, routes: [] },
+  reading: { bytes: 239676, routes: [] },
+  reviewer: { bytes: 103331, routes: [] },
+  ui: { bytes: 148931, routes: [] },
 };
 
 /** 고정으로 가리킨 원본의 잠근 날 크기 — 어느 역할도 고정으로 안 가리키는 파일은 지운다(시험이 잰다) */
@@ -70,7 +70,11 @@ export const SIZE_AT_LOCK = {
   'docs/agents/delegation/unattended.md': 4823,
   'docs/agents/delegation/working.md': 7332,
   'docs/agents/domain.md': 1980,
-  'docs/agents/test-map.md': 32484,
+  'docs/agents/test-map.md': 2420,
+  'docs/agents/test-map/ci.md': 8878,
+  'docs/agents/test-map/kinds.md': 5075,
+  'docs/agents/test-map/live.md': 2434,
+  'docs/agents/test-map/what-to-run.md': 10288,
   'docs/architecture.md': 13790,
   'docs/context/chart.md': 11667,
   'docs/context/code-names.md': 11701,

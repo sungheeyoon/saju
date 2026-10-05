@@ -18,7 +18,7 @@ assignees: ''
 
 ## 무엇을 돌리나
 
-<!-- docs/agents/test-map.md 「무엇을 고쳤으면」 표의 줄. 실호출·db push 가 들면 그것도. -->
+<!-- docs/agents/test-map/what-to-run.md 「무엇을 고쳤으면」 표의 줄. 실호출·db push 가 들면 그것도. -->
 
 ## 끝났다고 말할 조건
 
