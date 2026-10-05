@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest';
 
 import { SUPPORT_EMAIL } from '../src/lib/account';
 
-import { READ_BUDGET, SIZE_AT_LOCK, linksOf, pointersOf, readBudgetOf, sectionOf as sectionIn, tableOf } from './read-budget.mjs';
+import { READ_BUDGET, SIZE_AT_LOCK, TABLE_COLUMNS, linksOf, pointersOf, readBudgetOf, sectionOf as sectionIn, tableOf } from './read-budget.mjs';
 import { LAUNCHED, STAGE_FILE, stagesOf } from './release-stage.mjs';
 
 const ROOT = resolve(__dirname, '..');
@@ -1204,11 +1204,15 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
    * **ADR 본문은 영역마다 달라 세지 않는다** — 「그 영역의 ADR — 색인에서 번호만」은 색인(`docs/adr/README.md`)만 센다. 「먼저
    * 읽는 것」이 번호로 부른 ADR 만 고정으로 든다. 「끝날 때 고치는 것」의 쓰는 자리(백틱 디렉터리)도 세지 않는다.
    *
+   * **선택 묶음**(2026-10-05 덧) — 「서로 다른 자리의 파일 중 하나를 골라 읽는다」는 머리 줄 `- 하나를 고른다 — <묶음 이름>` 과 그
+   * 아래 두 칸 들여 쓴 선택지 줄로 적고, 선택지마다 파일 합 가운데 최댓값을 센다(고정과 같은 크기 규칙, 묶음 밖에도 적힌 파일은
+   * 고정 쪽에서 한 번만). 꼴이 틀린 묶음은 셈이 던진다.
+   *
    * 붉어지는 것은 역할 문서가 더 많이 · 더 큰 파일을 가리키거나, 제 몸이 자라거나, 동적 라우트의 후보(PRD · 용어집의 영역 파일)가
-   * 가장 큰 것보다 커질 때다. 동적 링크를 파일 하나로 바꿔치면 라우트가 사라진 것으로 붉어진다. 늘리려면 PR 에 까닭을 적고
-   * `READ_BUDGET` 을 함께 고친다.
+   * 가장 큰 것보다 커질 때다. 동적 링크를 파일 하나로 바꿔치면 라우트가 사라진 것으로, 묶음을 평범한 줄로 되돌리거나 선택지를
+   * 줄이면 묶음이 잠근 것과 달라 붉어진다. 늘리려면 PR 에 까닭을 적고 `READ_BUDGET` 을 함께 고친다.
    */
-  it('역할마다 필수 읽기량(고정 + 동적 라우트의 최댓값)이 잠근 값 이하이고 동적 라우트가 잠근 그대로다 (ADR 0145)', () => {
+  it('역할마다 필수 읽기량(고정 + 동적 라우트의 최댓값 + 선택 묶음의 최댓값)이 잠근 값 이하이고 라우트와 묶음이 잠근 그대로다 (ADR 0145)', () => {
     expect(Object.keys(READ_BUDGET).sort()).toEqual([...roles].sort());
     const budgets = roles.map((role) => readBudgetOf(role, ROOT));
     const over = budgets.filter((budget) => budget.total > READ_BUDGET[budget.role].bytes).map((budget) => `${budget.role}: ${budget.total} > ${READ_BUDGET[budget.role].bytes}`);
@@ -1217,18 +1221,49 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
       expect(budget.routes.map((route) => route.dir), budget.role).toEqual(READ_BUDGET[budget.role].routes);
       // 후보가 없는 라우트는 고를 것이 없다 — 빈 폴더나 고정으로 이미 다 읽는 폴더를 가리키고 있다
       for (const route of budget.routes) expect(route.candidates.length, `${budget.role} ${route.dir}`).toBeGreaterThan(0);
+      expect(
+        budget.choices.map((group) => ({ name: group.name, options: group.options.map((option) => option.name) })),
+        budget.role,
+      ).toEqual(READ_BUDGET[budget.role].choices);
     }
-    // 잠근 날의 크기 표가 썩지 않는다 — 어느 역할도 고정으로 안 가리키는 파일은 지운다
-    const pointed = new Set(roles.flatMap((role) => pointersOf(role, ROOT).fixed));
+    // 잠근 날의 크기 표가 썩지 않는다 — 어느 역할도 고정 · 묶음으로 안 가리키는 파일은 지운다
+    const pointed = new Set(
+      roles.flatMap((role) => {
+        const pointers = pointersOf(role, ROOT);
+        return [...pointers.fixed, ...pointers.choices.flatMap((group) => group.options.flatMap((option) => option.files))];
+      }),
+    );
     expect(Object.keys(SIZE_AT_LOCK).filter((file) => !pointed.has(file))).toEqual([]);
+  });
+
+  it('선택 묶음의 파일은 고정에 들지 않고, 묶음 밖에도 적힌 파일은 고정 쪽에서 한 번만 센다', () => {
+    let groups = 0;
+    for (const role of roles) {
+      const budget = readBudgetOf(role, ROOT);
+      const fixed = new Set(budget.fixed.map((one) => one.file));
+      for (const group of budget.choices) {
+        groups += 1;
+        expect(group.options.length, `${role} ${group.name}`).toBeGreaterThan(1);
+        expect(group.max.bytes).toBe(Math.max(...group.options.map((option) => option.bytes)));
+        for (const option of group.options) {
+          for (const file of option.files) {
+            expect(file.inFixed, `${role} ${option.name} ${file.file}`).toBe(fixed.has(file.file));
+            if (file.inFixed) expect(file.bytes, `${role} ${option.name} ${file.file}`).toBe(0);
+          }
+        }
+      }
+      expect(budget.total).toBe(budget.fixedBytes + budget.dynamicBytes + budget.choiceBytes);
+    }
+    expect(groups).toBeGreaterThan(0);
   });
 
   it('읽기량의 셈은 출력 명령과 시험이 같은 함수다 — 표의 합이 readBudgetOf 의 합이다', () => {
     const table = tableOf(ROOT);
+    const column = TABLE_COLUMNS.indexOf('합') + 1;
     for (const role of roles) {
       const row = table.split('\n').find((line) => line.startsWith(`| ${role} |`));
       expect(row, role).toBeDefined();
-      expect(row?.split('|')[4].trim().replace(/,/g, ''), role).toBe(String(readBudgetOf(role, ROOT).total));
+      expect(row?.split('|')[column].trim().replace(/,/g, ''), role).toBe(String(readBudgetOf(role, ROOT).total));
     }
   });
 
