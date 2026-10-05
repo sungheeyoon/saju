@@ -22,3 +22,20 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 에이전트에게는 표(`docs/agents/delegation/permissions.md`)가 전부다. 시험은 `scripts/code-rules.test.ts` 가 둘을 견준다. 배포 순서는 `docs/ops/runbook/deploy.md` 「배포」.
 옛 세션의 판단 기록은 `docs/notes/` 에 있다 — 요구사항이 아니다. **새 기억은 저장소에 적는다.**
 
+## Agent skills
+
+This section is here, not in `CLAUDE.md`, so Codex reads it too — `CLAUDE.md` pulls this file in with `@AGENTS.md`.
+
+### Issue tracker
+
+Issues and PRDs are tracked in GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage uses the five canonical labels without renaming. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repository with a root glossary and root ADR directory. See `docs/agents/domain.md`.
+The skills say `GLOSSARY.md`; here that file is the index `CONTEXT.md` — read and edit it, and never create a
+`GLOSSARY.md`.

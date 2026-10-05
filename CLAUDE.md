@@ -38,17 +38,3 @@ Claude Code 에서 맡길 때는 `Agent` 도구의 `subagent_type` 에 역할 �
 실호출 시험, CI 차선은 **`docs/agents/test-map.md`** 가 답한다. 규칙의 원본은 `scripts/ci-plan.mjs`
 다. vitest 는 `.tsx` 에 안 닿는다 — 그래도 지금(공개 출시 전) 로컬 최소는 그 문서의 「무엇을 고쳤으면 무엇을 돌리나」대로
 `npm test` · `npm run typecheck` · `npm run lint` 이고, 화면 변경에 e2e 를 일괄로 돌리지 않는다(CI 의 그 주소 차선과 머지 뒤 main 이 잰다).
-
-## Agent skills
-
-### Issue tracker
-
-Issues and PRDs are tracked in GitHub Issues. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Triage uses the five canonical labels without renaming. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-This is a single-context repository with a root glossary and root ADR directory. See `docs/agents/domain.md`.
