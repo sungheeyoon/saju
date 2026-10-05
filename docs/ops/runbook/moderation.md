@@ -7,7 +7,7 @@
 `status` 하나가 모든 문을 막는다 — 읽기까지 막는다(`is_active_account()`). 새 관문을
 두지 않았으므로 이 값만 옮기면 discovery·요청·수락·AI 생성이 한꺼번에 닫힌다.
 
-계정은 **UUID 로** 가리킨다 — `/ops/reports` 의 계정 이름 아래 회색 글자다. 이메일로 찾는 것은 break-glass 다(`docs/ops/runbook/access.md` 
+계정은 **UUID 로** 가리킨다 — `/ops/reports` 의 계정 이름 아래 회색 글자다. 이메일로 찾는 것은 break-glass 다(`docs/ops/runbook/access.md`
 「개인정보는 화면으로만」). **신고로 정지하는 것이면 아래 UPDATE 대신 「신고와 차단」의 검토 문을 `suspension` 으로 부른다** —
 검토 기록과 정지가 한 트랜잭션이다(ADR 0107). 아래 정지 SQL 은 신고와 무관한 정지에만 쓴다. 해제는 어느 쪽이든 아래 SQL 이고,
 해제해도 「이용 정지 결정」 기록은 그대로 남는다.
@@ -43,7 +43,7 @@ order by a.deletion_requested_at desc nulls last;
 **읽는 것은 화면이 있다 — `/ops/reports`**(ADR 0103). 운영자로 로그인해 주소를 직접 친다(메뉴에 없다).
 목록은 최신부터 30건씩이고 처리 상태 · 사유 · 대화 근거로 거른다. 「신고 내용 보기」가 신고 한 건과 신고
 당시의 스냅샷을 연다. **여는 것마다 접속기록에 남는다**(ADR 0105). 화면은 읽기만 한다 — **검토 기록과 처분은 아래
-검토 문이다.** 화면에는 이메일이 없다 — 이메일이 필요한 일(수사기관 요청 등)과 떠난 사람의 신고는 break-glass 다(`docs/ops/runbook/access.md` 
+검토 문이다.** 화면에는 이메일이 없다 — 이메일이 필요한 일(수사기관 요청 등)과 떠난 사람의 신고는 break-glass 다(`docs/ops/runbook/access.md`
 「개인정보는 화면으로만」). 언제 보는가는 `docs/ops/runbook/security.md` 「운영 주기」.
 
 **처리 필요 = 아직 안 봤거나 추가 확인 필요(`needs_more`)다**(ADR 0107). 정의는 `public.report_is_open` 하나이고 화면의

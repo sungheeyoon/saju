@@ -120,7 +120,7 @@ update public.signup_code set max_uses = 0 where code = 'SAJU1001';
 ```
 
 > **훅은 껐다.** `[auth.hook.before_user_created]` 는 `config.toml` 에서 지웠다. **원격
-> 프로젝트에서는 손으로 꺼야 하고, 그것을 마이그레이션보다 먼저 해야 한다** — `docs/ops/runbook/deploy.md` 
+> 프로젝트에서는 손으로 꺼야 하고, 그것을 마이그레이션보다 먼저 해야 한다** — `docs/ops/runbook/deploy.md`
 > 「가입 코드 배포 — 훅을 먼저 끈다」.
 
 ---
