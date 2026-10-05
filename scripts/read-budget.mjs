@@ -20,14 +20,16 @@
  *   묶음의 값은 **선택지마다 그 파일들의 합 가운데 최댓값**이고, 파일은 고정과 같은 규칙(잠근 크기 · 그 밖은 지금 크기)으로 센다 —
  *   선택지는 고정 원본이 「받은 것 하나」로 옮겨 앉은 것이라 자라는 까닭(간극 대장 · runbook 은 PR 마다 자란다)도 고정과 같다.
  *   묶음 안의 파일은 고정 목록에 들지 않는다. 같은 파일이 묶음 밖의 줄에도 적혀 있으면 고정 쪽에서 세고 선택지 합에서는 0 이다(두 번
- *   세지 않는다). 머리 줄 아래 선택지가 둘 미만이거나, 선택지 줄의 꼴이 틀리거나, 선택지에 파일이 없거나 디렉터리를 가리키면 셈이
- *   멈춘다(던진다) — 기계가 잘못 읽은 채로 초록이 되지 않게.
+ *   세지 않는다). **선택지 안에도 동적 라우트를 둘 수 있다** — 선택지의 원본이 색인이고 「고칠 자리에 맞는 주제 파일만 연다」면
+ *   그 폴더를 디렉터리 링크로 적는다(`[그 주제 파일](../agents/code-rules/)`). 선택지의 값 = 그 파일들의 합 + 그 안 라우트마다 후보
+ *   최댓값(지금 크기 — 위 동적 라우트와 같은 까닭). 후보에서는 README 와 고정 · 그 선택지의 파일을 뺀다. 머리 줄 아래 선택지가 둘
+ *   미만이거나, 선택지 줄의 꼴이 틀리거나, 선택지에 파일이 없으면 셈이 멈춘다(던진다) — 기계가 잘못 읽은 채로 초록이 되지 않게.
  * - **세지 않는 것** — ADR 본문 가운데 「그 영역의 ADR — 색인에서 번호만」처럼 영역마다 달라지는 것. 후보 집합이 영역마다 다르고
  *   커서 색인(`docs/adr/README.md`)만 센다. 「끝날 때 고치는 것」의 쓰는 자리(백틱 디렉터리)도 읽을 것이 아니라 세지 않는다.
  *
  * 상한(`READ_BUDGET`)은 회귀 상한이다 — 임의의 절대 상한은 두지 않는다. 늘리려면 PR 에 까닭을 적고 여기 값을 함께 고친다. 원본을
- * 쪼개 줄였으면 상한도 내린다. 라우트 목록과 선택 묶음(이름 · 선택지 이름의 차례)도 같은 표가 든다 — 동적 링크를 파일 하나로
- * 바꿔치거나, 묶음을 평범한 줄로 되돌리거나, 선택지를 줄이면 잠근 목록과 달라 붉어진다.
+ * 쪼개 줄였으면 상한도 내린다. 라우트 목록과 선택 묶음(이름 · 선택지 이름의 차례 · 선택지마다 라우트)도 같은 표가 든다 — 동적
+ * 링크를 파일 하나로 바꿔치거나(묶음 밖이든 선택지 안이든), 묶음을 평범한 줄로 되돌리거나, 선택지를 줄이면 잠근 목록과 달라 붉어진다.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
@@ -39,9 +41,10 @@ export const ROLES_DIR = 'docs/roles';
 export const COUNTED_SECTIONS = ['먼저 읽는 것', '이 저장소의 방식', '끝날 때 고치는 것'];
 
 /**
- * 역할마다 잠근 상한(바이트)과 동적 라우트(저장소 뿌리에서의 디렉터리, `/` 로 끝남)와 선택 묶음(이름 · 선택지 이름의 차례).
+ * 역할마다 잠근 상한(바이트)과 동적 라우트(저장소 뿌리에서의 디렉터리, `/` 로 끝남)와 선택 묶음(이름 · 선택지 이름의 차례 ·
+ * 선택지마다 그 안의 동적 라우트).
  *
- * @type {Record<string, { bytes: number, routes: string[], choices: { name: string, options: string[] }[] }>}
+ * @type {Record<string, { bytes: number, routes: string[], choices: { name: string, options: { name: string, routes: string[] }[] }[] }>}
  */
 export const READ_BUDGET = {
   coordinator: { bytes: 95213, routes: [], choices: [] },
@@ -50,7 +53,25 @@ export const READ_BUDGET = {
   feature: { bytes: 177513, routes: ['docs/context/', 'docs/product/prd/'], choices: [] },
   ops: { bytes: 98676, routes: [], choices: [] },
   reading: { bytes: 145427, routes: [], choices: [] },
-  reviewer: { bytes: 81570, routes: [], choices: [{ name: '받은 관점의 원본', options: ['코드 규칙', '층', '시험', '문서', '운영'] }] },
+  reviewer: {
+    bytes: 112865,
+    routes: [],
+    choices: [
+      {
+        name: '받은 관점의 원본',
+        options: [
+          { name: '코드 규칙', routes: ['docs/agents/code-rules/'] },
+          { name: '아키텍트', routes: [] },
+          { name: '시험', routes: ['docs/agents/test-map/'] },
+          { name: '보안', routes: [] },
+          { name: 'DB', routes: [] },
+          { name: '프런트', routes: [] },
+          { name: '문서', routes: ['docs/product/prd/'] },
+          { name: 'SRE', routes: ['docs/ops/runbook/'] },
+        ],
+      },
+    ],
+  },
   ui: { bytes: 134934, routes: [], choices: [] },
 };
 
@@ -222,7 +243,7 @@ function splitChoices(section, where) {
  *
  * @param {string} role
  * @param {string} [root]
- * @returns {{ fixed: string[], routes: string[], choices: { name: string, options: { name: string, files: string[] }[] }[] }}
+ * @returns {{ fixed: string[], routes: string[], choices: { name: string, options: { name: string, files: string[], routes: string[] }[] }[] }}
  */
 export function pointersOf(role, root = ROOT) {
   const doc = join(root, ROLES_DIR, `${role}.md`);
@@ -241,9 +262,8 @@ export function pointersOf(role, root = ROOT) {
       const options = group.options.map((option) => {
         const inOption = pointedIn(option.text, doc, root, withAdr);
         const where = `${role} 「${group.name}」 · ${option.name}`;
-        if (inOption.dirs.size > 0) throw new Error(`${where}: 선택지는 파일만 든다 — 한 폴더에서 고르는 것은 디렉터리 링크(동적 라우트)다`);
-        if (inOption.files.size === 0) throw new Error(`${where}: 가리킨 파일이 없다`);
-        return { name: option.name, files: [...inOption.files].sort() };
+        if (inOption.files.size === 0) throw new Error(`${where}: 가리킨 파일이 없다 — 선택지는 원본 파일(색인)을 들고, 그 뒤에서 고르는 것만 디렉터리 링크다`);
+        return { name: option.name, files: [...inOption.files].sort(), routes: [...inOption.dirs].sort() };
       });
       choices.push({ name: group.name, options });
     }
@@ -267,20 +287,25 @@ export function readBudgetOf(role, root = ROOT) {
   const sizeOf = (file) => (file !== own && file in atLock ? atLock[file] : statSync(join(root, file)).size);
   const fixed = [own, ...pointers.fixed].map((file) => ({ file, bytes: sizeOf(file) }));
   const alreadyRead = new Set([own, ...pointers.fixed]);
-  const routes = pointers.routes.map((dir) => {
+  /** @param {string} dir @param {Set<string>} read 이미 센 파일 — 후보에서 뺀다 */
+  const routeOf = (dir, read) => {
     const candidates = readdirSync(join(root, dir))
       .filter((name) => name.endsWith('.md') && name !== 'README.md')
       .map((name) => `${dir}${name}`)
-      .filter((file) => isFile(join(root, file)) && !alreadyRead.has(file))
+      .filter((file) => isFile(join(root, file)) && !read.has(file))
       .map((file) => ({ file, bytes: statSync(join(root, file)).size }))
       .sort((a, b) => b.bytes - a.bytes || a.file.localeCompare(b.file));
     return { dir, candidates, max: candidates[0] ?? null };
-  });
-  // 묶음 밖에도 적힌 파일은 고정에서 이미 셌다 — 선택지 합에서는 0 이다
+  };
+  const routes = pointers.routes.map((dir) => routeOf(dir, alreadyRead));
+  // 묶음 밖에도 적힌 파일은 고정에서 이미 셌다 — 선택지 합에서는 0 이다. 선택지 안의 라우트는 고정과 그 선택지의 파일을 후보에서 뺀다
   const choices = pointers.choices.map((group) => {
     const options = group.options.map((option) => {
       const files = option.files.map((file) => ({ file, inFixed: alreadyRead.has(file), bytes: alreadyRead.has(file) ? 0 : sizeOf(file) }));
-      return { name: option.name, files, bytes: files.reduce((sum, one) => sum + one.bytes, 0) };
+      const optionRoutes = option.routes.map((dir) => routeOf(dir, new Set([...alreadyRead, ...option.files])));
+      const fileBytes = files.reduce((sum, one) => sum + one.bytes, 0);
+      const routeBytes = optionRoutes.reduce((sum, route) => sum + (route.max?.bytes ?? 0), 0);
+      return { name: option.name, files, routes: optionRoutes, fileBytes, routeBytes, bytes: fileBytes + routeBytes };
     });
     const max = options.reduce((best, option) => (option.bytes > best.bytes ? option : best), options[0]);
     return { name: group.name, options, max };
@@ -312,7 +337,8 @@ export function tableOf(root = ROOT) {
     const choices = budget.choices
       .map((group) => {
         const options = group.options.map((option) => {
-          const cell = `${option.name} ${grouped(option.bytes)}`;
+          const routes = option.routes.map((route) => (route.max ? `\`${route.max.file}\`` : `\`${route.dir}\` 없음`)).join(' · ');
+          const cell = option.routes.length === 0 ? `${option.name} ${grouped(option.bytes)}` : `${option.name} ${grouped(option.bytes)}(${grouped(option.fileBytes)} + ${routes} ${grouped(option.routeBytes)})`;
           return option === group.max ? `**${cell}**` : cell;
         });
         return `「${group.name}」 → ${options.join(' · ')}`;

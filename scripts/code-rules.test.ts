@@ -1206,7 +1206,8 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
    *
    * **선택 묶음**(2026-10-05 덧) — 「서로 다른 자리의 파일 중 하나를 골라 읽는다」는 머리 줄 `- 하나를 고른다 — <묶음 이름>` 과 그
    * 아래 두 칸 들여 쓴 선택지 줄로 적고, 선택지마다 파일 합 가운데 최댓값을 센다(고정과 같은 크기 규칙, 묶음 밖에도 적힌 파일은
-   * 고정 쪽에서 한 번만). 꼴이 틀린 묶음은 셈이 던진다.
+   * 고정 쪽에서 한 번만). 꼴이 틀린 묶음은 셈이 던진다. 선택지 안의 디렉터리 링크는 그 선택지의 동적 라우트다 — 선택지의 값에 후보
+   * 최댓값(지금 크기)이 더해지고, 선택지마다 라우트 목록도 잠근다(색인 뒤의 주제 파일이 0 바이트가 되지 않게, 같은 덧 둘째).
    *
    * 붉어지는 것은 역할 문서가 더 많이 · 더 큰 파일을 가리키거나, 제 몸이 자라거나, 동적 라우트의 후보(PRD · 용어집의 영역 파일)가
    * 가장 큰 것보다 커질 때다. 동적 링크를 파일 하나로 바꿔치면 라우트가 사라진 것으로, 묶음을 평범한 줄로 되돌리거나 선택지를
@@ -1222,7 +1223,7 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
       // 후보가 없는 라우트는 고를 것이 없다 — 빈 폴더나 고정으로 이미 다 읽는 폴더를 가리키고 있다
       for (const route of budget.routes) expect(route.candidates.length, `${budget.role} ${route.dir}`).toBeGreaterThan(0);
       expect(
-        budget.choices.map((group) => ({ name: group.name, options: group.options.map((option) => option.name) })),
+        budget.choices.map((group) => ({ name: group.name, options: group.options.map((option) => ({ name: option.name, routes: option.routes.map((route) => route.dir) })) })),
         budget.role,
       ).toEqual(READ_BUDGET[budget.role].choices);
     }
@@ -1236,7 +1237,7 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
     expect(Object.keys(SIZE_AT_LOCK).filter((file) => !pointed.has(file))).toEqual([]);
   });
 
-  it('선택 묶음의 파일은 고정에 들지 않고, 묶음 밖에도 적힌 파일은 고정 쪽에서 한 번만 센다', () => {
+  it('선택 묶음의 파일은 고정에 들지 않고, 묶음 밖에도 적힌 파일은 고정 쪽에서 한 번만 센다 — 선택지 안 라우트의 후보도 고정 · 그 선택지의 파일을 뺀다', () => {
     let groups = 0;
     for (const role of roles) {
       const budget = readBudgetOf(role, ROOT);
@@ -1246,6 +1247,14 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
         expect(group.options.length, `${role} ${group.name}`).toBeGreaterThan(1);
         expect(group.max.bytes).toBe(Math.max(...group.options.map((option) => option.bytes)));
         for (const option of group.options) {
+          for (const route of option.routes) expect(route.candidates.length, `${role} ${option.name} ${route.dir}`).toBeGreaterThan(0);
+          expect(option.bytes, `${role} ${option.name}`).toBe(
+            option.files.reduce((sum, one) => sum + one.bytes, 0) + option.routes.reduce((sum, route) => sum + (route.max?.bytes ?? 0), 0),
+          );
+          const own = new Set(option.files.map((one) => one.file));
+          for (const route of option.routes) {
+            for (const candidate of route.candidates) expect(fixed.has(candidate.file) || own.has(candidate.file), `${role} ${option.name} ${candidate.file}`).toBe(false);
+          }
           for (const file of option.files) {
             expect(file.inFixed, `${role} ${option.name} ${file.file}`).toBe(fixed.has(file.file));
             if (file.inFixed) expect(file.bytes, `${role} ${option.name} ${file.file}`).toBe(0);
