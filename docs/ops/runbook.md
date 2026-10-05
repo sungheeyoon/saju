@@ -15,7 +15,8 @@
 
 | 파일 | 절 | 무엇을 드나 |
 | --- | --- | --- |
-| `docs/ops/runbook/access.md` | 「어디서 실행하나」 | 원격 프로젝트 ref · 개인정보는 화면으로만(break-glass) · 접속값 여섯 · 비밀이 새면 |
+| `docs/ops/runbook/access.md` | 「어디서 실행하나」 | 원격 프로젝트 ref · 개인정보는 화면으로만(break-glass) · 접속값 여섯 |
+| `docs/ops/runbook/secret-leak.md` | 「비밀이 새면」 | 교체 순서 넷 · 비밀마다 새 값 · 넣는 자리 · 확인과 끊기 · git 기록에 새었을 때 |
 | `docs/ops/runbook/signup.md` | 「테스트 시작하기」 · 「초대」 · 「가입을 닫고 연다」 | 베타 날짜 한 줄 · 가입 코드 · 운영자가 자리를 비울 때 가입 닫기 |
 | `docs/ops/runbook/credits.md` | 「풀이권」 | 풀이권 예외 · 산 풀이권(주문 · 묶음 · 쓰임 · 수동 환불) · 결제 알림 |
 | `docs/ops/runbook/erasure.md` | 「지우기」 · 「떠난 사람의 신고 기록」 · 「탈퇴 신청의 처리」 | 한 사람 · 종료일 · 베타 종료 파기 · DB 밖 · 수사기관 요청 · 보존 요청 · 탈퇴 처분 |
@@ -24,4 +25,6 @@
 | `docs/ops/runbook/ai.md` | 「AI 생성」 · 「AI 비용 한도」 · 「로그인 전 사주 문단」 | 호출량 · 실패 · 하루 봉쇄 풀기 · 운영 검증 계정 · 운영자 알림 · 문단의 비밀 · 상한 · 비용 |
 | `docs/ops/runbook/jobs.md` | 「도는 잡이 정말 도나」 · 「제품 지표」 | 크론 실패 질의 · 지표 · 풀이 재사용 측정 |
 | `docs/ops/runbook/security.md` | 「보안 점검」 · 「운영 주기」 · 「운영 의존성 취약점」 | advisor · 운영자 접속기록과 반출 · 월 점검 · `audit` 이 붉을 때 |
-| `docs/ops/runbook/deploy.md` | 「배포」 | 묶음 배포 · 규약 넷(앱과 DB 는 따로) · CSP 되돌리기 · 한 번만 하는 배포 · 도메인 옮기기 |
+| `docs/ops/runbook/deploy.md` | 「배포」 | 묶음 배포 · 규약 넷(앱과 DB 는 따로) · CSP 되돌리기 |
+| `docs/ops/runbook/deploy-once.md` | 「카드 점수 v2-beta 배포」 · 「가입 코드 배포」 | 한 번만 하는 배포 둘 — 마이그레이션 → 백필 → 앱 · 훅을 먼저 끈다 |
+| `docs/ops/runbook/domain.md` | 「도메인을 옮길 때」 | 자기 도메인을 사는 날 — 주소를 든 자리 아홉 · 옛 주소를 끝까지 살려 두는 순서 |

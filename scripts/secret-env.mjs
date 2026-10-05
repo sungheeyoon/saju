@@ -24,7 +24,7 @@ import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
- * 비밀 — 새면 교체한다. 절차는 `docs/ops/runbook/access.md` 「비밀이 새면」이 이름마다 든다.
+ * 비밀 — 새면 교체한다. 절차는 `docs/ops/runbook/secret-leak.md` 「비밀이 새면」이 이름마다 든다.
  * Vault 에만 있는 비밀(`reading_recovery_secret` · `ops_alert_url` · `ops_alert_secret`)은 앱이 안 읽으므로
  * 여기 없고, 시험이 마이그레이션에서 이름을 모아 runbook 과 견준다.
  */
@@ -164,7 +164,7 @@ function main() {
   const leaks = leaksIn(files, values);
 
   if (leaks.length > 0) {
-    console.error('비밀이 브라우저로 가는 파일에 있다 (G-23 ⑧, docs/ops/runbook/access.md 「비밀이 새면」):');
+    console.error('비밀이 브라우저로 가는 파일에 있다 (G-23 ⑧, docs/ops/runbook/secret-leak.md 「비밀이 새면」):');
     for (const { path, name, found } of leaks) console.error(`  ${path} — ${name} 의 ${found}`);
     process.exit(1);
   }

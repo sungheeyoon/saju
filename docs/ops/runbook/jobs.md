@@ -40,7 +40,7 @@ select (select count(*) from vault.decrypted_secrets
         where name = 'reading_recovery_secret' and decrypted_secret is not null) as secret_ok;
 ```
 
-0 이 있으면 복구기는 멈춰 있다 — `docs/ops/runbook/access.md` 「비밀이 새면」 표의 `CRON_SECRET` = Vault `reading_recovery_secret` · Vault
+0 이 있으면 복구기는 멈춰 있다 — `docs/ops/runbook/secret-leak.md` 「비밀이 새면」 표의 `CRON_SECRET` = Vault `reading_recovery_secret` · Vault
 `reading_recovery_url` 줄대로 넣는다. 들어갔는지는 2분 뒤 `select status_code, created from net._http_response order by
 created desc limit 3;` 가 200 인지로 본다. 2026-10-01 에 운영에서 둘 다 1 이었다.
 

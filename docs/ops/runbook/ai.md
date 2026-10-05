@@ -165,7 +165,7 @@ select kind, detail, created_at from public.ops_alert order by created_at desc l
 2. **넣는다** — Vercel 대시보드 Settings → Environment Variables 에 **Production · Preview** 둘 다, Sensitive 로. 새 배포부터 읽힌다
    (Redeploy → Ready). 앱을 로컬에서 돌릴 때만 `.env.development.local` 에 손으로 붙인다(Secret 은 `vercel env pull` 로 안 온다).
    값 교체 · 지우기는 사람이 대시보드에서 한다(에이전트의 `vercel env rm` 은 등급 4).
-3. **교체** — `docs/ops/runbook/access.md` 「비밀이 새면」 표의 두 줄. 둘 다 옛 값과 새 값이 함께 설 자리가 없다 — 교체가 곧 끊기다.
+3. **교체** — `docs/ops/runbook/secret-leak.md` 「비밀이 새면」 표의 두 줄. 둘 다 옛 값과 새 값이 함께 설 자리가 없다 — 교체가 곧 끊기다.
 4. **없으면** 로그인 전 사주 문단이 닫힌다. 배포 전에 둘이 있는지 `vercel env ls` 로 이름만 본다.
 
 **지금(2026-10-03)** — 조율자가 둘을 무작위 값으로 **Production · Preview 둘 다** 넣었다(`vercel env ls` 의 environments 칸에
