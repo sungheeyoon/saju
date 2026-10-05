@@ -119,7 +119,7 @@ export function backOf(
     case 'history':
       return { href: '/me/matching/history', label: '인연 기록' };
     case 'chat':
-      /* 방이든 목록이든 이름은 「채팅」이다 — 인연 궁합 화면 아래의 방으로 가는 단추와 한 이름(CONTEXT.md §8 「한 화면 한 이름」) */
+      /* 방이든 목록이든 이름은 「채팅」이다 — 인연 궁합 화면 아래의 방으로 가는 단추와 한 이름(docs/context/copy.md §8 「한 화면 한 이름」) */
       return kind === 'match' && place.matchId !== undefined
         ? { href: `/me/chat/${place.matchId}`, label: CHAT_TAB_LABEL }
         : { href: '/me/chat', label: CHAT_TAB_LABEL };

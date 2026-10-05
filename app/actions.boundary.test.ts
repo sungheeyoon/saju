@@ -22,7 +22,7 @@ import { describe, expect, it } from 'vitest';
  * 나간 뒤에 돌므로 액션의 답과 상관이 없어 안 센다.
  *
  * **`src/lib` 는 안 센다.** 엔진이 던지는 것(`InvalidSajuInputError`)은 사용자가 고칠 수 없는
- * 입력이고, 액션은 그 앞에서 `unsupportedForSaving` 으로 막는다(CONTEXT.md 「입력」). 이 시험이
+ * 입력이고, 액션은 그 앞에서 `unsupportedForSaving` 으로 막는다(docs/context/chart.md 「입력」). 이 시험이
  * 재는 것은 DB 를 읽는 문이다.
  *
  * 이름으로 잇는다 — 같은 이름이 두 파일에 있으면 하나만 던져도 던지는 것으로 친다. 넘치게 세는

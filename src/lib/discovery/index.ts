@@ -392,7 +392,7 @@ export const DISCOVERY_TEASER =
  * 자리는 따로 있다(`Resting`).
  */
 export const DISCOVERY_EMPTY = {
-  /** 제목이라 마침표가 없다(`CONTEXT.md` 의 문구 규칙) */
+  /** 제목이라 마침표가 없다(`docs/context/copy.md` 의 문구 규칙) */
   title: '소개해 드릴 인연이 없습니다',
   line: '지금은 새로운 인연을 찾지 못했어요.',
 } as const;
@@ -519,7 +519,7 @@ export function boardNotes({
 }
 
 // -----------------------------------------------------------------------------
-// DiscoveryProfile — 매칭 참여에 관한 한 벌 (CONTEXT.md)
+// DiscoveryProfile — 매칭 참여에 관한 한 벌 (docs/context/matching.md)
 // -----------------------------------------------------------------------------
 
 /** 만나볼 상대의 성별 — 저장되는 값의 목록이라 차례를 바꿀 수 없다(화면의 차례는 `PREFER_GENDER_ORDER`) */

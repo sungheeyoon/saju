@@ -6,7 +6,7 @@
 
 - `docs/product/prd/foundation.md` 「0. 지금 어디까지 왔나」와 그 기능의 절(어느 파일인지는 색인 `docs/prd.md`) — 무엇을 만드는가의 원본
 - `docs/product/gaps.md` 의 그 `G-nn` 줄 — 「끝났다고 말할 조건」이 곧 이 일의 끝이다
-- `CONTEXT.md` 의 그 영역 절 — 식별자와 문구가 쓸 낱말
+- 용어집의 그 영역 파일(`docs/context/`, 어느 파일인지는 색인 `CONTEXT.md`) — 식별자와 문구가 쓸 낱말
 - `docs/architecture.md` 「층 넷」 · 「새 것을 놓을 때」
 - `docs/agents/code-rules.md` 「실패를 말하는 법」 · 「주석과 ADR 참조」
 - `docs/agents/test-map.md` 「층 × 시험」

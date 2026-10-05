@@ -96,7 +96,7 @@ describe('accountNoticeOf — 막힌 자리마다 할 말이 있다', () => {
     expect(unreachable.detail).not.toMatch(/^다시 로그인/);
   });
 
-  /** 제목은 마침표를 안 찍고 설명문은 찍는다 — CONTEXT.md 화면 문구 규칙 */
+  /** 제목은 마침표를 안 찍고 설명문은 찍는다 — docs/context/copy.md 화면 문구 규칙 */
   it('마침표는 자리가 정한다', () => {
     for (const state of [{ kind: 'missing' }, { kind: 'unreachable' }] as AccountState[]) {
       const notice = accountNoticeOf(state)!;
