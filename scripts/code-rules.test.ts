@@ -14,7 +14,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, dirname, extname, join, relative, resolve, sep } from 'node:path';
 
 import ts from 'typescript';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { SUPPORT_EMAIL } from '../src/lib/account';
 
@@ -49,9 +49,30 @@ const PRODUCT_FILES = SOURCE_FILES.filter((file) => {
   return (rel.startsWith('src/') || rel.startsWith('app/') || rel === 'proxy.ts') && !isTest(rel) && !rel.endsWith('.generated.ts');
 });
 
+/**
+ * 파일마다 한 번만 읽고 짓는다 — 시험 하나가 도는 동안 디스크는 안 바뀐다.
+ *
+ * 지문 시험 여덟이 저마다 트리 전부를 다시 읽고 지었다. 「class 는 Error 를 잇는다」는 두 번이라 혼자 1.4초,
+ * `npm test` 전체 아래서는 7초를 넘겨 로컬 5초 시간 제한에 걸렸다(2026-10-06). 이 파일의 시험은 저마다 다른
+ * 자리를 고치지 않으므로, 앞 시험이 지은 나무를 뒤 시험이 다시 쓴다.
+ */
+const parsed = new Map<string, ts.SourceFile>();
+/**
+ * 트리 전부를 짓는 일은 시험 밖에서 제 시간을 든다 — 혼자 1~2초, `npm test` 전체 아래서는 몇 배다. 시험 몸통에 두면
+ * 맨 먼저 짓는 시험이 로컬 5초에 걸린다. 넓히는 것은 짓기 한 걸음뿐이고 지문 시험은 그대로 5초 안에 돈다
+ * (`vitest.config.mts` 의 `POPULATION_TIMEOUT_MS` 와 같은 까닭).
+ */
+const PARSE_TIMEOUT_MS = 30_000;
+const parseAll = (files: readonly string[]) => () => {
+  for (const file of files) parse(file);
+};
 function parse(file: string): ts.SourceFile {
+  const cached = parsed.get(file);
+  if (cached) return cached;
   const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : file.endsWith('.jsx') ? ts.ScriptKind.JSX : /\.(js|mjs|cjs)$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
-  return ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, kind);
+  const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, kind);
+  parsed.set(file, source);
+  return source;
 }
 const lineOf = (source: ts.SourceFile, node: ts.Node) => source.getLineAndCharacterOfPosition(node.getStart()).line + 1;
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
@@ -387,6 +408,8 @@ const isUnknown = (type: ts.TypeNode) =>
   type.kind === ts.SyntaxKind.UnknownKeyword || type.kind === ts.SyntaxKind.NeverKeyword || type.kind === ts.SyntaxKind.AnyKeyword;
 
 describe('탈출구의 지문 (docs/agents/code-rules/escapes.md) — 줄어들기만 한다', () => {
+  beforeAll(parseAll(SOURCE_FILES), PARSE_TIMEOUT_MS);
+
   it('제품 코드를 실제로 읽고 있다', () => {
     expect(PRODUCT_FILES.length).toBeGreaterThan(150);
   });
@@ -547,17 +570,17 @@ describe('탈출구의 지문 (docs/agents/code-rules/escapes.md) — 줄어들�
   });
 
   it('class 는 Error 를 잇는다 — 다른 것을 잇는 자리는 이름으로 든다', () => {
-    const found = fingerprints(SOURCE_FILES, (node, source) => {
+    // 트리를 한 번만 돈다 — 두 번 돌던 때 이 시험이 파일에서 가장 느렸다
+    const classes = fingerprints(SOURCE_FILES, (node, source) => {
       if (!ts.isClassDeclaration(node) && !ts.isClassExpression(node)) return null;
       const heritage = node.heritageClauses?.find((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword);
       const parent = heritage?.types[0]?.expression.getText(source) ?? null;
-      if (parent === 'Error') return null;
       return `${node.name?.text ?? '(이름 없음)'} extends ${parent ?? '(없음)'}`;
     });
-    expectExactly(found, CLASSES_NOT_EXTENDING_ERROR);
+    const extendsError = (one: { fingerprint: string }) => one.fingerprint.endsWith(' extends Error');
+    expectExactly(classes.filter((one) => !extendsError(one)), CLASSES_NOT_EXTENDING_ERROR);
     // 규칙이 실제로 쓰이고 있다 — Error 를 잇는 클래스가 있어야 이 단언이 무엇인가를 잰 것이다
-    const errors = fingerprints(SOURCE_FILES, (node) => (ts.isClassDeclaration(node) ? node.name?.text ?? null : null));
-    expect(errors.length).toBeGreaterThan(5);
+    expect(classes.filter(extendsError).length).toBeGreaterThan(5);
   });
 
   it('import 는 홑따옴표다', () => {
@@ -702,6 +725,8 @@ function commentsOf(file: string): { text: string; pos: number; source: ts.Sourc
 }
 
 describe('운영 소스의 주석이 가리키는 경로', () => {
+  beforeAll(parseAll(COMMENTED_SOURCE), PARSE_TIMEOUT_MS);
+
   it('주석의 백틱 안 뿌리 경로는 있는 파일이나 폴더다 — 옛 자리를 말하는 주석은 이름과 까닭으로 든다', () => {
     const allowed = new Set(COMMENT_PATHS_NOT_THERE.map((one) => one.at));
     const ignored = new Set(COMMENT_PATHS_NOT_THERE.filter((one) => one.ignored).map((one) => one.at));
