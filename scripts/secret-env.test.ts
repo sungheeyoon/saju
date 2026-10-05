@@ -170,9 +170,10 @@ describe('빌드 산출물 검사 — 가짜 값으로 (G-23 ⑧)', () => {
 });
 
 describe('새면 무엇을 하는가 — runbook (G-23 ⑧)', () => {
-  const runbook = read('docs/ops/runbook/access.md');
-  const start = runbook.indexOf('### 비밀이 새면');
-  const body = start < 0 ? '' : runbook.slice(runbook.indexOf('\n', start));
+  // 운영 절차를 나눌 때 「비밀이 새면」은 제 파일로 떼었다 — 그 파일의 `##` 절이다
+  const runbook = read('docs/ops/runbook/secret-leak.md');
+  const start = runbook.indexOf('\n## 비밀이 새면');
+  const body = start < 0 ? '' : runbook.slice(runbook.indexOf('\n', start + 1));
   // 다음 절(`#` 셋 이하) 앞까지 — 절 안의 소제목은 `####` 로 둔다
   const end = body.search(/^#{1,3} /m);
   const section = end < 0 ? body : body.slice(0, end);

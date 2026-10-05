@@ -230,13 +230,13 @@ Vercel Cron `/api/cron/audit-export`(`vercel.json`, 매일 18:37 UTC = 서울 03
       `saju-audit-export`)로 바꾼다(`app/api/cron/audit-export/s3.ts`)
 
    **대안 — 접근 키.** 역할을 못 세운 날만. IAM → Users → `saju-audit-export`(콘솔 접근 없음)에 위 4 의 정책을 인라인으로
-   걸고 Access key 를 하나 만든다. 90일마다 바꾼다(`docs/ops/runbook/access.md` 「비밀이 새면」 표의 `AUDIT_EXPORT_*` 줄)
+   걸고 Access key 를 하나 만든다. 90일마다 바꾼다(`docs/ops/runbook/secret-leak.md` 「비밀이 새면」 표의 `AUDIT_EXPORT_*` 줄)
 6. **Vercel 에 넣는다** — Settings → Environment Variables → **Production**: 기본안은 `AUDIT_EXPORT_BUCKET` ·
    `AUDIT_EXPORT_REGION`(`ap-northeast-2`) · `AUDIT_EXPORT_ROLE_ARN` 셋, 대안은 역할 대신 접근 키 둘(Sensitive). **둘을 함께
    넣으면 오설정이다.** Deployments 의 최신 Production 을 Redeploy 하고 Ready 를 본다. 넣는 값은 문서 · 채팅 · 커밋에 적지 않는다
 7. **확인한다** — 다음 날 위 상태 질의의 `last_outcome` 이 `succeeded` 이고 `pending_rows` 가 작으며, S3 콘솔에 같은 키의
    객체가 있고 Object Lock 이 걸려 있다
-8. **교체** — 역할은 교체할 열쇠가 없다. 접근 키면 `docs/ops/runbook/access.md` 「비밀이 새면」 표의 `AUDIT_EXPORT_*` 줄
+8. **교체** — 역할은 교체할 열쇠가 없다. 접근 키면 `docs/ops/runbook/secret-leak.md` 「비밀이 새면」 표의 `AUDIT_EXPORT_*` 줄
 9. **검증 역할과 검증** — 반출의 쓰기 역할과 **따로** 읽기 역할 `saju-audit-verify` 를 둔다: `s3:GetObject` ·
    `s3:ListBucket` 을 그 버킷의 `operator-access/*` 에만, 사람의 AWS 프로필(SSO 나 MFA 가 걸린 사용자)에서만 받는다. Vercel 에는
    넣지 않는다. 그리고 **월 점검마다 한 번**(그리고 3 의 Governance 확인 때):
@@ -325,7 +325,7 @@ select count(*) as 처리_필요,
 from public.report where public.report_is_open(reviewed_at, review_outcome);
 ```
 
-**이상이면** — 운영자 본인이 한 것이 아니면 곧 `docs/ops/runbook/access.md` 「비밀이 새면」으로 간다(Supabase · 구글 계정 세션 끊기, 운영자 표에서 그
+**이상이면** — 운영자 본인이 한 것이 아니면 곧 `docs/ops/runbook/secret-leak.md` 「비밀이 새면」으로 간다(Supabase · 구글 계정 세션 끊기, 운영자 표에서 그
 계정 내리기). 4 에 같은 계정이 여럿이면 그 UUID 로 신고 · 이용 정지를 본다. 5 의 마지막 반출이 이틀보다 오래면 Vercel 의
 Cron 실행 기록과 환경변수를 본다. 처리 결과를 점검 기록에 적는다.
 

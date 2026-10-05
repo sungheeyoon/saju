@@ -1391,6 +1391,23 @@ describe('운영 절차 (docs/ops/runbook.md 색인 → docs/ops/runbook/)', () 
     }
     expect(wrong).toEqual([]);
   });
+
+  it('절 제목(`##`~`####`)은 운영 절차 전체에서 한 번만 선다 — 뗀 절이 원래 파일에 다시 서면 절차가 두 벌이다', () => {
+    const seen = new Map<string, string>();
+    const twice: string[] = [];
+    for (const name of readdirSync(join(ROOT, RUNBOOK_DIR)).filter((file) => file.endsWith('.md'))) {
+      let inCode = false;
+      for (const line of part(name).split('\n')) {
+        if (line.startsWith('```')) inCode = !inCode;
+        const head = inCode ? null : /^#{2,4} (.+)$/.exec(line);
+        if (!head) continue;
+        const title = head[1].replace(/\*\*|`/g, '').trim();
+        if (seen.has(title)) twice.push(`${title}: ${seen.get(title)} · ${name}`);
+        else seen.set(title, name);
+      }
+    }
+    expect(twice).toEqual([]);
+  });
 });
 
 // -----------------------------------------------------------------------------
