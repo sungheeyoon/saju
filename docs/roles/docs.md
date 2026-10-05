@@ -8,7 +8,7 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 - `docs/product/gaps.md` 머리말 — 상태 다섯 · 띠 넷 · `보류` 의 뜻
 - `docs/agents/delegation/notes.md` 「세션 기록 — `docs/notes/`」
 - `docs/notes/README.md` — 노트의 차례
-- `docs/agents/code-rules.md` 「주석과 ADR 참조」 — `ADR NNNN` 표기
+- `docs/agents/code-rules/comments.md` 「주석과 ADR 참조」 — `ADR NNNN` 표기
 - `docs/agents/domain.md` — 용어집과 ADR 을 대하는 법
 
 ## 이 저장소의 방식
@@ -20,7 +20,7 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 - [결정 점검표](../agents/delegation/decisions.md) — 문서를 코드에 맞추다 정책이 바뀌면 결정
 - [조율자 세션](../agents/delegation/coordinator.md) — 사실과 의도 · 버그 · 문서 노후 · 결정 미반영 가르기
 - [나란히 맡길 때](../agents/delegation/parallel.md) — 중앙 문서는 제 줄만 · 머지는 하나씩 · `union`
-- [린트가 잠근 것 · 시험이 잠근 것](../agents/code-rules.md#린트가-잠근-것--시험이-잠근-것) — 입구 문서의 경로를 재는 시험. 역할 문서의 절 · 링크 · 읽기량은 ADR 0145
+- [린트가 잠근 것 · 시험이 잠근 것](../agents/code-rules/locks.md#린트가-잠근-것--시험이-잠근-것) — 입구 문서의 경로를 재는 시험. 역할 문서의 절 · 링크 · 읽기량은 ADR 0145
 - [Writing an ADR](../agents/domain.md#writing-an-adr) — 색인 줄과 후속 결정 줄
 
 ## 하지 않는 것 · 묻는 것

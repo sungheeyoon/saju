@@ -8,7 +8,7 @@
 - `docs/product/gaps.md` 의 그 `G-nn` 줄 — 「끝났다고 말할 조건」이 곧 이 일의 끝이다
 - 용어집의 [그 영역 파일](../context/)(어느 파일인지는 색인 `CONTEXT.md`) — 식별자와 문구가 쓸 낱말
 - `docs/architecture.md` 「층 넷」 · 「새 것을 놓을 때」
-- `docs/agents/code-rules.md` 「실패를 말하는 법」 · 「주석과 ADR 참조」
+- `docs/agents/code-rules/failures.md` 「실패를 말하는 법」 · `docs/agents/code-rules/comments.md` 「주석과 ADR 참조」
 - `docs/agents/test-map/kinds.md` 「층 × 시험」
 - 그 영역의 ADR — [현재 결정 색인](../adr/README.md)에서 영역을 찾아 그 번호만 연다
 - `docs/agents/delegation/decisions.md` 「결정 점검표 — 무엇이 바뀌면 결정인가」
@@ -20,7 +20,7 @@
 - [일하는 법](../agents/delegation/working.md) — 이슈 · 메모의 문장은 가설이다, 재는 법
 - [조율자 세션](../agents/delegation/coordinator.md) — 사실과 의도: 버그 · 문서 노후 · 결정 미반영 가르기
 - [층 넷](../architecture.md#층-넷) · [새 것을 놓을 때](../architecture.md#새-것을-놓을-때) — 방향 · 자리 · 도메인 lib 사이 새 방향
-- [실패를 말하는 법](../agents/code-rules.md#실패를-말하는-법) · [이름](../agents/code-rules.md#이름) · [주석과 ADR 참조](../agents/code-rules.md#주석과-adr-참조)
+- [실패를 말하는 법](../agents/code-rules/failures.md#실패를-말하는-법) · [이름](../agents/code-rules/names.md#이름) · [주석과 ADR 참조](../agents/code-rules/comments.md#주석과-adr-참조)
 - [무엇을 고쳤으면 무엇을 돌리나](../agents/test-map/what-to-run.md#무엇을-고쳤으면-무엇을-돌리나) — 로컬 최소와 예외 넷
 
 ## 하지 않는 것 · 묻는 것
