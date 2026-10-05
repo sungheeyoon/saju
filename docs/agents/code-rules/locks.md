@@ -20,7 +20,7 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 | `no-console` | `src/` · `app/` · `proxy.ts`(`*.live.test.ts` 제외) | `console.log` |
 | `import/no-default-export` | `src/` · `scripts/` · `e2e/` | `export default` |
 | `reportUnusedDisableDirectives` | 전부 | 안 걸리는 예외 표시 |
-| `scripts/code-rules.test.ts` | — | 파일·폴더 이름 두 규약, 시험의 자리와 중간 이름, 마이그레이션·pgTAP·ADR 이름, ADR 참조 806 건이 실제 파일, 입구 문서와 운영 소스 주석(`app/**` · `src/**` · `proxy.ts`)의 백틱 속 뿌리 경로가 실제 파일(옛 자리를 말하는 역사 설명은 이름과 까닭으로 든 허용 목록, 2026-09-28), 탈출구 지문(7 · 12 · 3 · 0 · 0 · 3 · 0 · 1), `@ts-expect-error` 0, import 홑따옴표 |
+| `scripts/code-rules.test.ts` | — | 파일·폴더 이름 두 규약, 시험의 자리와 중간 이름, 마이그레이션·pgTAP·ADR 이름, ADR 참조 806 건이 실제 파일, 입구 문서와 운영 소스 주석(`app/**` · `src/**` · `proxy.ts`)의 백틱 속 뿌리 경로가 실제 파일(옛 자리를 말하는 역사 설명은 이름과 까닭으로 든 허용 목록, 2026-09-28), 탈출구 지문(7 · 12 · 1 · 0 · 0 · 3 · 0 · 1), `@ts-expect-error` 0, import 홑따옴표 |
 
 규칙마다 일부러 어긴 파일로 걸리는 것을 확인하고 지웠다(ADR 0086).
 
@@ -34,4 +34,4 @@ type 은 `feat` · `fix` · `refactor` · `test` · `docs` · `chore` · `ci`, �
 
 - **코드가 용어집과 다른 말을 쓰는 자리**는 `docs/context/code-names.md` §10 「어긋난 이름」이 든다 — 고칠 것은 2026-09-23 에 다 고쳤고(G-43),
   「그대로 둔다」로 정한 넷(`metaphor` · 후보 목록의 RPC 이름 · 사유값 `unreadable-revision` · 탈퇴 대기)이 까닭과 함께 남았다. 그 표의 이름이 코드에 아직 있는지는 시험이 잰다(ADR 0088).
-- `if (error) return null` 셋, `!` 열둘, `as unknown as` 일곱, — `docs/agents/code-rules/escapes.md` 의 탈출구 표(결과를 버리는 DB 쓰기는 2026-09-26 에 일곱을 다 기록으로 옮겨 0 이다). 목록은 시험에 있다.
+- `if (error) return null` 하나, `!` 열둘, `as unknown as` 일곱, — `docs/agents/code-rules/escapes.md` 의 탈출구 표(결과를 버리는 DB 쓰기는 2026-09-26 에 일곱을 다 기록으로 옮겨 0 이다). 목록은 시험에 있다.

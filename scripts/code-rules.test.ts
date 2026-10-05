@@ -402,7 +402,7 @@ describe('탈출구의 지문 (docs/agents/code-rules/escapes.md) — 줄어들�
     expectExactly(found, NON_NULL_STILL_THERE);
   });
 
-  it('`if (error)` 뒤에서 실패를 값 없이 지우는 자리는 옛 자리 셋뿐이다 (ADR 0078)', () => {
+  it('`if (error)` 뒤에서 실패를 값 없이 지우는 자리는 옛 자리 하나뿐이다 (ADR 0078)', () => {
     // `error` · `x.error` 를 조건으로, 또는 `error || …` 의 한 갈래로 드는 if 다
     const isError = (node: ts.Expression): boolean =>
       (ts.isIdentifier(node) && node.text === 'error') || (ts.isPropertyAccessExpression(node) && node.name.text === 'error');
