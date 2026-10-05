@@ -13,37 +13,22 @@
 
 ## 이 저장소의 방식
 
-- **문구는 대장 한 곳이 든다.** 대장에 있으면 그 글자를 쓰고, 없으면 표(자리 · 지금 · 제안 · 까닭)로 보이고 답을 기다린다.
-  시안 · 외부 리뷰 · 에이전트의 문구는 확정이 아니다. 문구가 말하는 상태 전이(누르면 무엇이 되나 · 실패 갈래)는 코드에서 본다
-  (원본: `docs/agents/code-rules.md` 「화면 문구」 · `docs/product/copy-ledger.md` 「01 규칙」)
-- 여러 화면이 같은 사실을 적으면 상수 하나로 든다. 서비스 이름은 `src/lib/brand` 의 상수다
-  (원본: `docs/agents/code-rules.md` 「화면 문구」 · `docs/product/prd-changelog.md` 「2026-09-28 — 서비스명」)
-- 색 · 단추 · 판 · 아이콘은 `app/ui/` 와 토큰에서 가져온다 — 화면은 새 hex 를 지어내지 않는다
-  (원본: `docs/architecture.md` 「그 밖의 자리」 · ADR 0109)
-- **화면은 DB 를 부르지 않는다** — 문(`.ts`)이 부른다. 판단이 생기면 `.ts` 로 내려야 vitest 가 닿는다
-  (원본: `docs/architecture.md` 「새 것을 놓을 때」 · ADR 0080)
-- 시험: vitest 는 `.tsx` 를 못 그린다. 그래도 지금(공개 출시 전) 로컬 최소는 `npm test` · `npm run typecheck` · `npm run lint` 이고
-  화면 변경에 e2e 를 일괄로 돌리지 않는다 — 화면은 CI 의 그 주소 차선과 머지 뒤 main 의 전체 검증이 잰다. e2e 를 돌리는 것은 원본의 예외 넷
-  (e2e 스펙 자체를 고쳤을 때 등)이고, 그때는 **로컬 스택의 시험 계정으로 돈다** — 운영 smoke 는 이 역할의 일이 아니다(`docs/roles/ops.md`)
-  (원본: `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」 · `CLAUDE.md` 「무엇을 돌리는가는」 · `docs/agents/delegation/working.md` 「일하는 법」)
-- CI 는 머지 전에 바뀐 파일이 닿는 차선을 돈다 — `layout` 은 공용 위험이라 전부, 입구(`page` · `loading` · `error` …)는 `core` 와
-  그 주소를 요청하는 시험의 차선(닿는 시험이 없으면 전부)
-  (원본: `docs/agents/test-map.md` 「CI」)
-- `app/` 아래 `icon` · `opengraph-image` · `manifest` 같은 파일 이름은 Next 에게 특별하다 — 화면을 바꾼 병합 뒤 `npm run build` 한 번
-  (원본: `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」)
-- 뜻을 바꾸지 않는 다듬기(여백 · 정렬 · 반응형 · 포커스)는 전후 스크린샷이 근거다
-  (원본: `docs/agents/delegation/unattended.md` 「무인 라운드」)
+규칙은 아래 원본에만 있다 — 여기는 어디를 열지만 말한다(ADR 0145).
+
+- [화면 문구](../agents/code-rules.md#화면-문구) · [문구 대장의 규칙](../product/copy-ledger.md#01-규칙--버튼은-결과를-말하고-닫는-것은-취소다) — 대장에 없으면 표로 묻는다 · 같은 사실은 상수 하나
+- [그 밖의 자리](../architecture.md#그-밖의-자리) · [새 것을 놓을 때](../architecture.md#새-것을-놓을-때) — 토큰과 `app/ui/` · 화면은 DB 를 부르지 않는다(ADR 0109 · 0080)
+- [무엇을 고쳤으면 무엇을 돌리나](../agents/test-map.md#무엇을-고쳤으면-무엇을-돌리나) · [CI](../agents/test-map.md#ci) — 로컬 최소 · e2e 의 예외 · 주소 차선
+- [로컬 환경의 함정](../agents/delegation/local-env.md) — 남의 dev 서버 · `next build` 만 잡는 파일 이름
+- [무인 라운드](../agents/delegation/unattended.md) · [끝났다는 것](../agents/delegation/done.md) — 뜻을 바꾸지 않는 다듬기와 전후 그림
 
 ## 하지 않는 것 · 묻는 것
 
-- **새 사용자 문구 · 화면 흐름 · 메뉴 구조는 결정이다** — PR 까지 만들고 머지하지 않는다(`docs/agents/delegation/decisions.md` 「결정 점검표」 · `docs/agents/delegation/unattended.md` 「무인 라운드」). 예외는 `/ops/**` 의 운영자 전용 설명뿐이다
-- 남이 띄운 dev 서버(3000)는 죽이기 전에 묻는다. 그 서버를 재사용한 e2e 는 운영 DB 를 본다(`docs/agents/delegation/local-env.md` 「로컬 환경의 함정」)
-- 운영 배포는 안 한다 — 머지는 배포가 아니다
+- 새 사용자 문구 · 화면 흐름 · 메뉴 구조는 결정이다 — PR 까지 만들고 머지하지 않는다. 예외는 `/ops/**` 의 운영자 전용 설명뿐([결정 점검표](../agents/delegation/decisions.md) · [무인 라운드](../agents/delegation/unattended.md))
+- 남이 띄운 dev 서버(3000)는 죽이기 전에 묻는다 — 그 서버를 재사용한 e2e 는 운영 DB 를 본다([로컬 환경의 함정](../agents/delegation/local-env.md))
+- 운영 배포 · 운영 smoke 는 안 한다 — 머지는 배포가 아니다([권한 등급](../agents/delegation/permissions.md) · [운영 역할](ops.md))
 
 ## 끝날 때 고치는 것
 
+- [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯 · 전후 그림은 PR 본문에. 「문서」 칸이 고칠 원본(PRD 와 changelog · `CONTEXT.md` · ADR)을 든다
 - [ ] 확정된 문구 → `docs/product/copy-ledger.md` 에 줄을 더한다(그 PR 이)
-- [ ] 화면의 모양 · 차례가 PRD 와 달라졌으면 → `docs/prd.md` 그 절과 `docs/product/prd-changelog.md`
 - [ ] 토큰 · 공용 부품의 규칙을 바꿨으면 → ADR 0109 추기 또는 새 ADR
-- [ ] 화면에 새 이름이 섰으면 → `CONTEXT.md`
-- [ ] PR 「돌린 것」에 `docs/agents/test-map.md` 에 따라 돌린 명령 · 결과와 안 돌린 까닭, 「문서」에 결정 여부, 화면이 바뀐 것은 전후 스크린샷

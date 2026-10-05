@@ -5,32 +5,27 @@
 ## 먼저 읽는 것
 
 - `docs/agents/delegation/coordinator.md` 「조율자 세션」 — 「확인한 흔적을 붙여 전한다」 · 「위험에 따라 두 번째 검토」 · 「전체 감사」 줄
-- `docs/notes/2026-09-28-overnight-audit.md` 「팀 — 감사(읽기만)」 — 관점 여덟과 그때 찾은 것
+- `docs/notes/2026-09-28-overnight-audit.md` 「팀 — 감사(읽기만)」 — 관점 여덟(코드 규칙 · 아키텍트 · 시험 · 보안 · DB · 프런트 · 문서 · SRE)과 그때 찾은 것
 - 받은 관점의 원본 — 코드 규칙은 `docs/agents/code-rules.md`, 층은 `docs/architecture.md`, 시험은 `docs/agents/test-map.md`,
   문서는 `docs/prd.md` · `docs/product/gaps.md`, 운영은 `docs/ops/runbook.md`
 - `docs/architecture.md` 「무엇이 잠겨 있나 — 그리고 무엇이 아닌가」 — 잠기지 않은 자리가 볼 곳이다
 
 ## 이 저장소의 방식
 
-- 관점 여덟 — 코드 규칙 · 아키텍트 · 시험 · 보안 · DB · 프런트 · 문서 · SRE
-  (원본: `docs/notes/2026-09-28-overnight-audit.md` 「팀 — 감사(읽기만)」 · `docs/agents/delegation/coordinator.md` 「조율자 세션」)
-- **주장마다 이 세션에서 직접 본 `파일:줄` 이나 실행 결과를 붙인다.** 세션 메모 · 이전 감사 · 후보 목록은 확인 전의 가설이다 —
-  같은 노트의 뒤쪽 정정까지 읽는다
-  (원본: `docs/agents/delegation/coordinator.md` 「조율자 세션」 · `docs/notes/2026-09-30-parallel-round.md` 「배운 것」)
-- 발견은 셋으로 가른다 — **결함**(코드를 고친다) · **결정**(결정 점검표에 걸린다) · **문서 노후**
-  (원본: `docs/agents/delegation/coordinator.md` 「조율자 세션」 · `docs/agents/delegation/decisions.md` 「결정 점검표」)
-- 잰 것보다 세게 말하지 않는다. 초록인 검사가 부재로 통과하는지 의심한다
-  (원본: `docs/agents/delegation/working.md` 「일하는 법」)
-- 규모를 말하려면 먼저 잰다 — 1만 명 시드와 `EXPLAIN ANALYZE` 없이 「느리다」고 쓰지 않는다
-  (원본: `docs/notes/2026-09-28-overnight-audit.md` 「세션 끝 상태」)
+규칙은 아래 원본에만 있다 — 여기는 어디를 열지만 말한다(ADR 0145).
+
+- [조율자 세션](../agents/delegation/coordinator.md) — 확인한 흔적(`파일:줄` · 실행 결과)을 붙인다 · 결함 · 결정 · 문서 노후 가르기
+- [결정 점검표](../agents/delegation/decisions.md) — 발견이 결정인지
+- [일하는 법](../agents/delegation/working.md) — 잰 것보다 세게 말하지 않는다 · 부재로 통과하는 검사
+- [감사 노트](../notes/2026-09-28-overnight-audit.md) — 규모를 말하기 전에 재는 법(「세션 끝 상태」) · 뒤쪽 정정
 
 ## 하지 않는 것 · 묻는 것
 
-- 고치지 않는다 — 등급 0 이다. 고치는 에이전트가 코드에서 다시 확인한다
-- 운영 개인정보를 조회하지 않는다. 원격 질의가 필요하면 조회문을 보고에 적는다
-- 보고 파일(`.md`)을 못 쓸 수 있다 — 보고는 메시지로 한다
+- 고치지 않는다 — 등급 0 이다. 고치는 에이전트가 코드에서 다시 확인한다([권한 등급](../agents/delegation/permissions.md))
+- 운영 개인정보를 조회하지 않는다. 원격 질의가 필요하면 조회문을 보고에 적는다([권한 등급](../agents/delegation/permissions.md) · ADR 0105)
+- 보고 파일(`.md`)을 못 쓸 수 있다 — 보고는 메시지로 한다([조율자 세션](../agents/delegation/coordinator.md))
 
 ## 끝날 때 고치는 것
 
 - [ ] 보고의 칸 — 발견(결함 · 결정 · 문서 노후) · 근거(`파일:줄` · 실행 결과) · 권하는 고침 · 확인 못 한 것과 그 까닭
-- [ ] 역할 문서나 원본 문서가 코드와 달랐으면 그 자리를 「문서 노후」로 — 조율자가 문서 PR 로 옮긴다
+- [ ] 역할 문서나 원본 문서가 코드와 달랐으면 그 자리를 「문서 노후」로 — 조율자가 문서 PR 로 옮긴다([선순환](../start.md#선순환--일이-문서로-돌아오는-길))
