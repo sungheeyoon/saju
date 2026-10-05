@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 import { STEM_INFO } from '../constants';
 import { computeSaju } from '../index';
@@ -8,24 +8,33 @@ import { YONGSIN_POLICY } from './yongsin';
 /** 화면이 읽는 것과 같은 값을 보려면 `computeSaju` 를 그대로 지난다 */
 const analysisOf = (input: Parameters<typeof computeSaju>[0]) => computeSaju(input).analysis;
 
+/**
+ * 무작위 200 명식의 분석은 한 번만 짓는다 — 아래 두 시험이 같은 표본을 읽는다. 시험마다 다시 지으면 전체 `npm test`
+ * 에서 앞의 것이 4초를 넘겨 기본 5초에 붙었다(2026-10-06). 짓는 시간은 여기 따로 든다.
+ */
+const POPULATION_TIMEOUT_MS = 30_000;
+let population: ReturnType<typeof analysisOf>[] = [];
+
 describe('억부와 조후의 대조', () => {
+  beforeAll(() => {
+    population = randomInputs(200).map((input) => analysisOf(input));
+  }, POPULATION_TIMEOUT_MS);
+
   /**
    * 대조는 **화면이 읽는 목록과 같은 목록**을 본다 — 상·하반월이 정해졌으면
    * 그 절반이다. 다른 목록을 보면 화면은 「어긋난다」는데 근거 칸에는 겹치는
    * 글자가 서 있는 일이 생긴다.
    */
   it('견주는 목록이 조후 칸이 세우는 목록과 같다', () => {
-    for (const input of randomInputs(200)) {
-      const { johu, yongsinAgreement } = computeSaju(input).analysis;
-
+    expect(population).toHaveLength(200);
+    for (const { johu, yongsinAgreement } of population) {
       expect(yongsinAgreement.johuStems).toEqual(johu.halfStems ?? johu.stems);
     }
   });
 
   it('겹치는 글자는 억부가 권한 오행짜리뿐이다', () => {
-    for (const input of randomInputs(200)) {
-      const { yongsinAgreement: agreement } = computeSaju(input).analysis;
-
+    expect(population).toHaveLength(200);
+    for (const { yongsinAgreement: agreement } of population) {
       for (const stem of agreement.sharedStems) {
         expect(STEM_INFO[stem].element).toBe(agreement.eokbuElement);
         expect(agreement.johuStems).toContain(stem);
