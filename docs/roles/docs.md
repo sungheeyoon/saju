@@ -7,7 +7,6 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 - `docs/start.md` 「원본 — 무엇이 무엇을 답하나」 — 한 사실은 한 자리에 산다
 - `docs/product/gaps.md` 머리말 — 상태 다섯 · 띠 넷 · `보류` 의 뜻
 - `docs/agents/delegation/notes.md` 「세션 기록 — `docs/notes/`」
-- `docs/notes/README.md` — 노트의 차례
 - `docs/agents/code-rules/comments.md` 「주석과 ADR 참조」 — `ADR NNNN` 표기
 - `docs/agents/domain.md` — 용어집과 ADR 을 대하는 법
 
@@ -20,7 +19,7 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 - [결정 점검표](../agents/delegation/decisions.md) — 문서를 코드에 맞추다 정책이 바뀌면 결정
 - [조율자 세션](../agents/delegation/coordinator.md) — 사실과 의도 · 버그 · 문서 노후 · 결정 미반영 가르기
 - [나란히 맡길 때](../agents/delegation/parallel.md) — 중앙 문서는 제 줄만 · 머지는 하나씩 · `union`
-- [린트가 잠근 것 · 시험이 잠근 것](../agents/code-rules/locks.md#린트가-잠근-것--시험이-잠근-것) — 입구 문서의 경로를 재는 시험. 역할 문서의 절 · 링크 · 읽기량은 ADR 0145
+- [린트가 잠근 것 · 시험이 잠근 것](../agents/code-rules/locks.md#린트가-잠근-것--시험이-잠근-것) — 입구 문서의 경로를 재는 시험. 역할 문서의 절 · 링크 · 읽기량은 ADR 0145 · 0147
 - [Writing an ADR](../agents/domain.md#writing-an-adr) — 색인 줄과 후속 결정 줄
 
 ## 하지 않는 것 · 묻는 것
@@ -33,5 +32,12 @@ PRD · 간극 대장 · changelog · 용어집 · 노트 · 역할 문서를 코
 ## 끝날 때 고치는 것
 
 - [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯과 「문서」 칸의 결정 여부
-- [ ] 새 노트 → [노트의 차례](../notes/README.md)에 한 줄. 닫은 `G-nn` → 줄을 지우고 PRD 개정 기록 끝에 날짜와 함께 한 줄 (개정 기록은 끝에 쓰기만 하고 열지 않는다) — 꼴은 [끝났다는 것](../agents/delegation/done.md) 「문서」 칸
+- [ ] 새 노트 → `docs/notes/` 의 차례(README)에 한 줄. 닫은 `G-nn` → 줄을 지우고 PRD 개정 기록 끝에 날짜와 함께 한 줄 (개정 기록은 끝에 쓰기만 하고 열지 않는다) — 꼴은 [끝났다는 것](../agents/delegation/done.md) 「문서」 칸
 - [ ] 원본의 절 이름을 바꿨으면 → 그 절을 가리키던 역할 문서도. `npx vitest run scripts/` 가 잰다
+
+## 닿을 때 여는 것
+
+손대기 전에 다 읽지 않는다 — 일이 그 자리에 닿을 때 연다(ADR 0147).
+
+- 새 노트를 쓰거나 코드가 이렇게 된 사정을 거슬러 가면 → [노트의 차례](../notes/README.md)
+- 역할 문서를 고치면 → [읽기량의 셈](../../scripts/read-budget.mjs) 머리말 — 무엇을 세나(백틱 파일 · 링크 · 「절」)와 안 세나(백틱 디렉터리 · 이 칸). `npm run read-budget -- <역할>` 이 파일마다 찍는다

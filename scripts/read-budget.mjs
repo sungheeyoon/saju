@@ -1,35 +1,34 @@
 /**
- * **필수 읽기량** — 역할 문서(`docs/roles/`)를 받은 에이전트가 손대기 전에 읽게 되는 바이트 (ADR 0145).
+ * **필수 읽기량** — 역할 문서(`docs/roles/`)를 받은 에이전트가 손대기 전에 읽게 되는 바이트 (ADR 0145 · 0147).
  * `npm run read-budget` 이 역할마다 표로 찍고, `scripts/code-rules.test.ts` 가 같은 함수로 상한을 잰다 — 셈이 두 벌이 되지 않게
  * 계산은 여기 한 곳이다.
  *
- * 읽기량 = **고정** + **동적** + **선택 묶음**.
+ * 읽기량 = **고정** + **동적** + **선택 묶음**. 크기는 모두 **지금 크기**다 — 에이전트가 오늘 읽는 바이트다(ADR 0147).
  *
- * - **고정** — 역할 문서 자신과, 그 「먼저 읽는 것」 · 「이 저장소의 방식」 · 「끝날 때 고치는 것」이 가리키는 **파일**(백틱의 뿌리
- *   경로 · Markdown 링크, 중복은 한 번)과 「먼저 읽는 것」이 번호로 부르는 ADR(`ADR NNNN` → `docs/adr/NNNN-*.md`). 다른 칸의 ADR
- *   번호는 출처 표시라 안 센다. 원본은 **잠근 날의 크기**로 센다(`SIZE_AT_LOCK`) — 간극 대장 · changelog · runbook 은 PR 마다
- *   자라는데 그것은 길잡이의 회귀가 아니다. 역할 문서 자신과 잠근 날에 없던 새 원본은 지금 크기다.
+ * - **세는 칸** — 「먼저 읽는 것」 · 「이 저장소의 방식」 · 「끝날 때 고치는 것」. 「하지 않는 것 · 묻는 것」의 출처 링크와
+ *   **「닿을 때 여는 것」**(일이 그 자리에 닿을 때만 여는 원본, ADR 0147)은 세지 않는다.
+ * - **고정** — 역할 문서 자신과, 세는 칸이 가리키는 **파일**(백틱의 뿌리 경로 · Markdown 링크)과 「먼저 읽는 것」이 번호로 부르는
+ *   ADR(`ADR NNNN` → `docs/adr/NNNN-*.md`). 다른 칸의 ADR 번호는 출처 표시라 안 센다. 백틱 **디렉터리**는 「어디에 사는가 · 어디에
+ *   쓰는가」라 세지 않는다 — 「끝날 때 고치는 것」의 쓰는 자리는 그렇게 적는다.
+ * - **절** — 가리킴이 절을 들면 그 절만 센다: 백틱 경로 바로 뒤의 `「절」`(제목이 그 글자로 시작하는 첫 제목) · 링크의 `#앵커`.
+ *   절은 그 제목부터 같거나 높은 다음 제목 앞까지다. 한 파일을 절 없이 한 번이라도 가리키면 파일 전부를 센다. 같은 파일의 절이
+ *   겹치면 한 번만 센다. 가리킨 절이 없으면 셈이 멈춘다(던진다).
  * - **동적 라우트** — 「여러 파일 중 하나를 골라 읽는다」는 가리킴이다. 표기는 **디렉터리를 가리키는 Markdown 링크** 하나뿐이다
  *   (`[영역 파일](../context/)`). 후보는 그 디렉터리 바로 아래의 `.md`(README 와, 그 역할이 이미 고정으로 읽는 파일은 뺀다)이고,
- *   라우트마다 **후보 가운데 가장 큰 것을 지금 크기로** 센다. PRD · 용어집의 영역 파일은 changelog 처럼 매 PR 자라는 파일이 아니라
- *   자라는 것이 곧 신호다 — 잠근 크기로 세면 영역 파일이 커져도 초록이다. 백틱 디렉터리(`docs/ops/runbook/`)는 「어디에 사는가 ·
- *   어디에 쓰는가」를 말하는 데 이미 두루 쓰여 라우트로 읽지 않는다.
- * - **선택 묶음** — 「서로 다른 자리의 파일 중 하나를 골라 읽는다」는 가리킴이다(후보가 한 폴더에 없어 디렉터리 라우트로는 못
- *   적는다). 표기는 칸 안의 머리 줄 `- 하나를 고른다 — <묶음 이름>` 과, 그 바로 아래 두 칸 들여 쓴 줄 `  - <선택지 이름> — <파일들>`
- *   이고 들여 쓴 줄 하나가 선택지 하나다. 선택지는 파일 여럿일 수 있다(백틱 경로 · 파일 링크 · 「먼저 읽는 것」이면 `ADR NNNN`).
- *   묶음의 값은 **선택지마다 그 파일들의 합 가운데 최댓값**이고, 파일은 고정과 같은 규칙(잠근 크기 · 그 밖은 지금 크기)으로 센다 —
- *   선택지는 고정 원본이 「받은 것 하나」로 옮겨 앉은 것이라 자라는 까닭(간극 대장 · runbook 은 PR 마다 자란다)도 고정과 같다.
- *   묶음 안의 파일은 고정 목록에 들지 않는다. 같은 파일이 묶음 밖의 줄에도 적혀 있으면 고정 쪽에서 세고 선택지 합에서는 0 이다(두 번
- *   세지 않는다). **선택지 안에도 동적 라우트를 둘 수 있다** — 선택지의 원본이 색인이고 「고칠 자리에 맞는 주제 파일만 연다」면
- *   그 폴더를 디렉터리 링크로 적는다(`[그 주제 파일](../agents/code-rules/)`). 선택지의 값 = 그 파일들의 합 + 그 안 라우트마다 후보
- *   최댓값(지금 크기 — 위 동적 라우트와 같은 까닭). 후보에서는 README 와 고정 · 그 선택지의 파일을 뺀다. 머리 줄 아래 선택지가 둘
- *   미만이거나, 선택지 줄의 꼴이 틀리거나, 선택지에 파일이 없으면 셈이 멈춘다(던진다) — 기계가 잘못 읽은 채로 초록이 되지 않게.
- * - **세지 않는 것** — ADR 본문 가운데 「그 영역의 ADR — 색인에서 번호만」처럼 영역마다 달라지는 것. 후보 집합이 영역마다 다르고
- *   커서 색인(`docs/adr/README.md`)만 센다. 「끝날 때 고치는 것」의 쓰는 자리(백틱 디렉터리)도 읽을 것이 아니라 세지 않는다.
+ *   라우트마다 **후보 가운데 가장 큰 파일**을 센다.
+ * - **선택 묶음** — 「서로 다른 자리의 파일 중 하나를 골라 읽는다」는 가리킴이다. 표기는 칸 안의 머리 줄 `- 하나를 고른다 — <묶음
+ *   이름>` 과, 그 바로 아래 두 칸 들여 쓴 줄 `  - <선택지 이름> — <파일들>` 이고 들여 쓴 줄 하나가 선택지 하나다. 선택지는 파일
+ *   여럿 · 절 · 디렉터리 링크(그 선택지의 동적 라우트)를 들 수 있다. 선택지의 값 = 그 파일들 가운데 **고정이 아직 안 센 바이트** +
+ *   그 안 라우트마다 후보 최댓값. 묶음의 값은 선택지 값의 최댓값이다. 머리 줄 아래 선택지가 둘 미만이거나, 선택지 줄의 꼴이
+ *   틀리거나, 선택지에 파일이 없으면 셈이 멈춘다(던진다) — 기계가 잘못 읽은 채로 초록이 되지 않게.
+ * - **세지 않는 것** — ADR 본문 가운데 「그 영역의 ADR — 색인에서 번호만」처럼 영역마다 달라지는 것(색인 `docs/adr/README.md` 만
+ *   센다), 「닿을 때 여는 것」, 백틱 디렉터리.
  *
- * 상한(`READ_BUDGET`)은 회귀 상한이다 — 임의의 절대 상한은 두지 않는다. 늘리려면 PR 에 까닭을 적고 여기 값을 함께 고친다. 원본을
- * 쪼개 줄였으면 상한도 내린다. 라우트 목록과 선택 묶음(이름 · 선택지 이름의 차례 · 선택지마다 라우트)도 같은 표가 든다 — 동적
- * 링크를 파일 하나로 바꿔치거나(묶음 밖이든 선택지 안이든), 묶음을 평범한 줄로 되돌리거나, 선택지를 줄이면 잠근 목록과 달라 붉어진다.
+ * **상한(`READ_BUDGET` 의 `bytes`)은 여유를 둔 천장이다**(ADR 0147). `CEILING_STEP` 의 배수이고, 정할 때는 그때의 합에서
+ * `CEILING_STEP / 2` 이상 남는 가장 작은 배수를 고른다. 합이 천장을 넘으면 붉고(파일 하나 · 큰 절 하나가 늘었다), 천장이 합보다
+ * `MAX_SLACK` 넘게 남아도 붉다(줄였으면 내린다 — 남는 여유에 새 원본이 숨지 않게). 천장을 바꾸면 ADR 에 `| 역할 | … | 천장 |` 줄을
+ * 남긴다 — 시험이 그 줄을 찾는다. 라우트 목록과 선택 묶음(이름 · 선택지 이름의 차례 · 선택지마다 라우트)도 같은 표가 든다 — 동적
+ * 링크를 파일 하나로 바꿔치거나, 묶음을 평범한 줄로 되돌리거나, 선택지를 줄이면 잠근 목록과 달라 붉어진다.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
@@ -37,24 +36,43 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const ROLES_DIR = 'docs/roles';
-/** 읽기량을 세는 칸 — 「하지 않는 것 · 묻는 것」의 출처 링크는 멈출 자리의 근거라 안 센다 */
+/** 읽기량을 세는 칸 — 「하지 않는 것 · 묻는 것」의 출처 링크는 멈출 자리의 근거라, 「닿을 때 여는 것」은 그때만 여는 것이라 안 센다 */
 export const COUNTED_SECTIONS = ['먼저 읽는 것', '이 저장소의 방식', '끝날 때 고치는 것'];
+/** 일이 그 자리에 닿을 때만 여는 원본의 칸 — 세지 않는다. 줄마다 `- <언제> → [원본](경로)` 이다(ADR 0147) */
+export const ON_DEMAND_SECTION = '닿을 때 여는 것';
+/** 천장의 눈금 — 천장은 이 수의 배수다. 파일 이름 한 글자 · 역할 문서 한 줄은 눈금 하나를 못 넘는다 */
+export const CEILING_STEP = 5000;
+/** 천장이 합보다 이만큼 넘게 남으면 붉다 — 줄인 PR 이 천장도 내린다 */
+export const MAX_SLACK = 10000;
 
 /**
- * 역할마다 잠근 상한(바이트)과 동적 라우트(저장소 뿌리에서의 디렉터리, `/` 로 끝남)와 선택 묶음(이름 · 선택지 이름의 차례 ·
+ * 역할마다 천장(바이트)과 동적 라우트(저장소 뿌리에서의 디렉터리, `/` 로 끝남)와 선택 묶음(이름 · 선택지 이름의 차례 ·
  * 선택지마다 그 안의 동적 라우트).
  *
  * @type {Record<string, { bytes: number, routes: string[], choices: { name: string, options: { name: string, routes: string[] }[] }[] }>}
  */
 export const READ_BUDGET = {
-  coordinator: { bytes: 88011, routes: [], choices: [] },
-  db: { bytes: 128334, routes: [], choices: [] },
-  docs: { bytes: 75804, routes: [], choices: [] },
-  feature: { bytes: 177516, routes: ['docs/context/', 'docs/product/prd/'], choices: [] },
-  ops: { bytes: 98676, routes: [], choices: [] },
-  reading: { bytes: 145427, routes: [], choices: [] },
+  coordinator: { bytes: 80000, routes: [], choices: [] },
+  db: { bytes: 85000, routes: [], choices: [] },
+  docs: { bytes: 60000, routes: [], choices: [] },
+  feature: { bytes: 95000, routes: ['docs/product/prd/'], choices: [] },
+  ops: { bytes: 50000, routes: [], choices: [] },
+  reading: {
+    bytes: 85000,
+    routes: [],
+    choices: [
+      {
+        name: '고칠 자리(둘에 걸치면 둘 다)',
+        options: [
+          { name: '엔진', routes: [] },
+          { name: '글 · 프롬프트', routes: [] },
+          { name: '풀이 화면 · 흐름', routes: [] },
+        ],
+      },
+    ],
+  },
   reviewer: {
-    bytes: 112865,
+    bytes: 80000,
     routes: [],
     choices: [
       {
@@ -72,65 +90,12 @@ export const READ_BUDGET = {
       },
     ],
   },
-  ui: { bytes: 134935, routes: [], choices: [] },
+  ui: { bytes: 80000, routes: [], choices: [] },
 };
 
-/** 고정 · 선택 묶음으로 가리킨 원본의 잠근 날 크기 — 어느 역할도 안 가리키는 파일은 지운다(시험이 잰다) */
-export const SIZE_AT_LOCK = {
-  'CODING_STANDARDS.md': 2308,
-  'GLOSSARY.md': 2979,
-  'README.md': 26108,
-  'docs/adr/0084-the-shape-is-asserted-not-only-the-behaviour.md': 7311,
-  'docs/adr/0109-the-product-wears-one-soft-look-under-the-name-jeomjeom.md': 8466,
-  'docs/adr/0135-the-screen-speaks-haeyo-by-default.md': 4970,
-  'docs/adr/README.md': 14962,
-  'docs/agents/code-rules/banned-words.md': 1822,
-  'docs/agents/code-rules/comments.md': 1735,
-  'docs/agents/code-rules/failures.md': 3216,
-  'docs/agents/code-rules/locks.md': 2925,
-  'docs/agents/code-rules/names.md': 2278,
-  'docs/agents/code-rules/screen-copy.md': 2464,
-  'docs/agents/delegation/coordinator.md': 9000,
-  'docs/agents/delegation/decisions.md': 3031,
-  'docs/agents/delegation/done.md': 3269,
-  'docs/agents/delegation/local-env.md': 6859,
-  'docs/agents/delegation/notes.md': 1563,
-  'docs/agents/delegation/parallel.md': 3836,
-  'docs/agents/delegation/permissions.md': 11728,
-  'docs/agents/delegation/unattended.md': 4823,
-  'docs/agents/delegation/working.md': 7332,
-  'docs/agents/domain.md': 1980,
-  'docs/agents/test-map.md': 2420,
-  'docs/agents/test-map/ci.md': 8878,
-  'docs/agents/test-map/kinds.md': 5075,
-  'docs/agents/test-map/live.md': 2434,
-  'docs/agents/test-map/what-to-run.md': 10288,
-  'docs/architecture.md': 13790,
-  'docs/context/chart.md': 11667,
-  'docs/context/code-names.md': 11701,
-  'docs/context/copy.md': 7144,
-  'docs/context/evidence.md': 19418,
-  'docs/notes/2026-09-28-overnight-audit.md': 23358,
-  'docs/notes/README.md': 18300,
-  'docs/ops/runbook.md': 2895,
-  'docs/ops/runbook/access.md': 7790,
-  'docs/ops/runbook/deploy.md': 10151,
-  'docs/ops/runbook/jobs.md': 11109,
-  'docs/ops/runbook/security.md': 32543,
-  'docs/prd.md': 2617,
-  'docs/product/copy-ledger.md': 30104,
-  'docs/product/gaps.md': 14239,
-  'docs/product/prd/foundation.md': 21970,
-  'docs/product/prd/reading.md': 19263,
-  'docs/product/prd/screens.md': 27868,
-  'docs/roles/reviewer.md': 2523,
-  'docs/start.md': 5641,
-  'docs/text/claim-policy.md': 19554,
-  'scripts/secret-env.mjs': 8315,
-};
-
-/** 백틱 안에서 파일로 세는 경로 — 뿌리의 `GLOSSARY.md` 같은 문서와 저장소 안의 경로 */
+/** 백틱 안에서 파일로 세는 경로 — 뿌리의 `GLOSSARY.md` 같은 문서와 저장소 안의 경로. 바로 뒤의 `「절」` 들은 그 파일의 절이다 */
 const POINTED_PATH = /^(?:[A-Z][A-Za-z_-]*\.md|(?:app|src|scripts|e2e|docs|supabase|public|\.github|\.claude)\/[A-Za-z0-9_.\/\[\]-]+)$/;
+const BACKTICK_WITH_SECTIONS = /`([^`\s]+)`((?:\s*(?:·\s*)?「[^」]+」)*)/g;
 /** `[글](대상#앵커)` — 바깥 주소는 뺀다 */
 const MARKDOWN_LINK = /\[[^\]]+\]\(([^)\s#]+)(?:#([^)\s]+))?\)/g;
 /** 선택 묶음의 머리 줄 */
@@ -178,23 +143,91 @@ export function rolesOf(root = ROOT) {
 }
 
 /**
- * 글 한 토막이 가리키는 파일과 디렉터리 — 백틱의 뿌리 경로 · Markdown 링크, `withAdr` 이면 `ADR NNNN` 도.
+ * GitHub 가 제목에 다는 앵커 — 굵기 · 백틱을 걷고 낱자 · 숫자 · `-` · `_` · 빈칸만 남겨 빈칸을 `-` 로.
+ *
+ * @param {string} title
+ */
+const anchorOf = (title) =>
+  title
+    .replace(/\*\*|`/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{M}\p{N}\p{Pc}\- ]/gu, '')
+    .replace(/ /g, '-');
+
+/**
+ * 파일의 제목들 — 바이트 위치 · 깊이 · 글자 · 앵커(같은 앵커가 또 서면 `-1` …). 코드 울타리 안은 뺀다.
+ *
+ * @param {string} text
+ * @returns {{ start: number, end: number, depth: number, title: string, anchor: string }[]}
+ */
+function headingsOf(text) {
+  const heads = [];
+  const seen = new Map();
+  let offset = 0;
+  let fenced = false;
+  for (const line of text.split('\n')) {
+    if (line.startsWith('```')) fenced = !fenced;
+    const match = fenced ? null : /^(#{1,6}) (.+)$/.exec(line);
+    if (match) {
+      const base = anchorOf(match[2]);
+      const count = seen.get(base) ?? 0;
+      seen.set(base, count + 1);
+      heads.push({ start: offset, end: -1, depth: match[1].length, title: match[2].replace(/\*\*/g, '').trim(), anchor: count === 0 ? base : `${base}-${count}` });
+    }
+    offset += Buffer.byteLength(line) + 1;
+  }
+  const size = Buffer.byteLength(text);
+  for (const [i, head] of heads.entries()) head.end = heads.slice(i + 1).find((next) => next.depth <= head.depth)?.start ?? size;
+  return heads;
+}
+
+/**
+ * @typedef {{ whole: boolean, titles: Set<string>, anchors: Set<string> }} Mention 한 파일을 어떻게 가리켰나 — 통째로 · 「절」 · `#앵커`
+ * @typedef {[number, number][]} Ranges 센 바이트 구간(겹치지 않게 합친 것)
+ */
+
+/** @param {Map<string, Mention>} into @param {string} file @param {Partial<{ whole: boolean, title: string, anchor: string }>} how */
+function mention(into, file, how) {
+  const one = into.get(file) ?? { whole: false, titles: new Set(), anchors: new Set() };
+  if (how.whole) one.whole = true;
+  if (how.title) one.titles.add(how.title);
+  if (how.anchor) one.anchors.add(how.anchor);
+  into.set(file, one);
+}
+
+/** @param {Map<string, Mention>} into @param {Map<string, Mention>} from */
+function mergeMentions(into, from) {
+  for (const [file, one] of from) {
+    if (one.whole) mention(into, file, { whole: true });
+    for (const title of one.titles) mention(into, file, { title });
+    for (const anchor of one.anchors) mention(into, file, { anchor });
+  }
+}
+
+/**
+ * 글 한 토막이 가리키는 파일(어떻게 가리켰나와 함께)과 디렉터리 — 백틱의 뿌리 경로와 그 뒤 「절」 · Markdown 링크와 앵커,
+ * `withAdr` 이면 `ADR NNNN` 도(통째로).
  *
  * @param {string} chunk
  * @param {string} doc 역할 문서의 절대 경로 — 링크는 여기서 푼다
  * @param {string} root
  * @param {boolean} withAdr
- * @returns {{ files: Set<string>, dirs: Set<string> }}
+ * @returns {{ files: Map<string, Mention>, dirs: Set<string> }}
  */
 function pointedIn(chunk, doc, root, withAdr) {
-  const files = new Set();
+  /** @type {Map<string, Mention>} */
+  const files = new Map();
   const dirs = new Set();
-  for (const match of chunk.matchAll(/`([^`\s]+)`/g)) {
-    if (POINTED_PATH.test(match[1]) && isFile(join(root, match[1]))) files.add(match[1]);
+  for (const match of chunk.matchAll(BACKTICK_WITH_SECTIONS)) {
+    if (!POINTED_PATH.test(match[1]) || !isFile(join(root, match[1]))) continue;
+    const titles = match[1].endsWith('.md') ? [...match[2].matchAll(/「([^」]+)」/g)].map((quoted) => quoted[1]) : [];
+    if (titles.length === 0) mention(files, match[1], { whole: true });
+    for (const title of titles) mention(files, match[1], { title });
   }
-  for (const { path } of linksOf(chunk)) {
+  for (const { path, anchor } of linksOf(chunk)) {
     const target = resolve(dirname(doc), path);
-    if (isFile(target)) files.add(relPath(root, target));
+    if (isFile(target)) mention(files, relPath(root, target), anchor ? { anchor: decodeURIComponent(anchor) } : { whole: true });
     else if (isDirectory(target)) dirs.add(`${relPath(root, target)}/`);
   }
   if (!withAdr) return { files, dirs };
@@ -202,11 +235,68 @@ function pointedIn(chunk, doc, root, withAdr) {
   for (const line of chunk.split('\n').filter((one) => /\bADR\b/.test(one))) {
     for (const [number] of line.matchAll(/\b0\d{3}\b/g)) {
       const file = adrFiles.find((name) => name.startsWith(`${number}-`));
-      if (file !== undefined) files.add(`docs/adr/${file}`);
+      if (file !== undefined) mention(files, `docs/adr/${file}`, { whole: true });
     }
   }
   return { files, dirs };
 }
+
+/** @param {Ranges} ranges @returns {Ranges} */
+function union(ranges) {
+  const sorted = [...ranges].sort((a, b) => a[0] - b[0]);
+  /** @type {Ranges} */
+  const out = [];
+  for (const [start, end] of sorted) {
+    const last = out[out.length - 1];
+    if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+    else out.push([start, end]);
+  }
+  return out;
+}
+
+/** @param {Ranges} ranges */
+const bytesOf = (ranges) => ranges.reduce((sum, [start, end]) => sum + end - start, 0);
+
+/** `ranges` 가운데 `minus` 에 안 든 바이트 — 선택지가 고정이 이미 센 자리를 두 번 세지 않게 @param {Ranges} ranges @param {Ranges} minus */
+function bytesOutside(ranges, minus) {
+  let total = 0;
+  for (const [start, end] of ranges) {
+    let covered = 0;
+    for (const [from, to] of minus) covered += Math.max(0, Math.min(end, to) - Math.max(start, from));
+    total += end - start - covered;
+  }
+  return total;
+}
+
+/**
+ * 가리킨 자리의 바이트 구간 — 통째로면 파일 전부, 아니면 「절」 · 앵커마다 그 절. 없는 절은 던진다.
+ *
+ * @param {string} root
+ * @param {string} file
+ * @param {Mention} how
+ * @returns {Ranges}
+ */
+function rangesOf(root, file, how) {
+  const text = readFileSync(join(root, file), 'utf8');
+  if (how.whole) return [[0, Buffer.byteLength(text)]];
+  const heads = headingsOf(text);
+  /** @type {Ranges} */
+  const ranges = [];
+  for (const title of how.titles) {
+    const head = heads.find((one) => one.title.startsWith(title));
+    if (head === undefined) throw new Error(`${file} 「${title}」: 그 글자로 시작하는 제목이 없다`);
+    ranges.push([head.start, head.end]);
+  }
+  for (const anchor of how.anchors) {
+    const head = heads.find((one) => one.anchor === anchor);
+    if (head === undefined) throw new Error(`${file}#${anchor}: 그 앵커의 제목이 없다`);
+    ranges.push([head.start, head.end]);
+  }
+  return union(ranges);
+}
+
+/** @param {Mention} how @returns {string[] | null} 센 절(「절」 · `#앵커`) — 통째로면 `null` */
+const sectionsOfMention = (how) => (how.whole ? null : [...[...how.titles].map((title) => `「${title}」`), ...[...how.anchors].map((anchor) => `#${anchor}`)]);
 
 /**
  * 한 칸을 선택 묶음과 나머지 줄로 가른다. 꼴이 틀린 묶음은 던진다 — 잘못 읽은 채로 세지 않는다.
@@ -243,12 +333,13 @@ function splitChoices(section, where) {
  *
  * @param {string} role
  * @param {string} [root]
- * @returns {{ fixed: string[], routes: string[], choices: { name: string, options: { name: string, files: string[], routes: string[] }[] }[] }}
+ * @returns {{ fixed: string[], fixedHow: Map<string, Mention>, routes: string[], choices: { name: string, options: { name: string, files: string[], how: Map<string, Mention>, routes: string[] }[] }[] }}
  */
 export function pointersOf(role, root = ROOT) {
   const doc = join(root, ROLES_DIR, `${role}.md`);
   const text = readFileSync(doc, 'utf8');
-  const fixed = new Set();
+  /** @type {Map<string, Mention>} */
+  const fixedHow = new Map();
   const routes = new Set();
   const choices = [];
   for (const heading of COUNTED_SECTIONS) {
@@ -256,24 +347,25 @@ export function pointersOf(role, root = ROOT) {
     const withAdr = heading === '먼저 읽는 것';
     const { plain, groups } = splitChoices(sectionOf(text, heading) ?? '', `${role} 「${heading}」`);
     const pointed = pointedIn(plain, doc, root, withAdr);
-    for (const file of pointed.files) fixed.add(file);
+    mergeMentions(fixedHow, pointed.files);
     for (const dir of pointed.dirs) routes.add(dir);
     for (const group of groups) {
       const options = group.options.map((option) => {
         const inOption = pointedIn(option.text, doc, root, withAdr);
         const where = `${role} 「${group.name}」 · ${option.name}`;
         if (inOption.files.size === 0) throw new Error(`${where}: 가리킨 파일이 없다 — 선택지는 원본 파일(색인)을 들고, 그 뒤에서 고르는 것만 디렉터리 링크다`);
-        return { name: option.name, files: [...inOption.files].sort(), routes: [...inOption.dirs].sort() };
+        return { name: option.name, files: [...inOption.files.keys()].sort(), how: inOption.files, routes: [...inOption.dirs].sort() };
       });
       choices.push({ name: group.name, options });
     }
   }
-  fixed.delete(relPath(root, doc));
-  return { fixed: [...fixed].sort(), routes: [...routes].sort(), choices };
+  fixedHow.delete(relPath(root, doc));
+  return { fixed: [...fixedHow.keys()].sort(), fixedHow, routes: [...routes].sort(), choices };
 }
 
 /**
- * 역할 하나의 읽기량 — 고정(역할 문서 자신이 첫 줄) · 동적 라우트마다 후보와 최댓값 · 선택 묶음마다 선택지 합과 최댓값 · 합.
+ * 역할 하나의 읽기량 — 고정(역할 문서 자신이 첫 줄, 센 절과 함께) · 동적 라우트마다 후보와 최댓값 · 선택 묶음마다 선택지 합과
+ * 최댓값 · 합.
  *
  * @param {string} role
  * @param {string} [root]
@@ -281,12 +373,15 @@ export function pointersOf(role, root = ROOT) {
 export function readBudgetOf(role, root = ROOT) {
   const own = `${ROLES_DIR}/${role}.md`;
   const pointers = pointersOf(role, root);
-  /** @type {Record<string, number>} */
-  const atLock = SIZE_AT_LOCK;
-  /** @param {string} file */
-  const sizeOf = (file) => (file !== own && file in atLock ? atLock[file] : statSync(join(root, file)).size);
-  const fixed = [own, ...pointers.fixed].map((file) => ({ file, bytes: sizeOf(file) }));
-  const alreadyRead = new Set([own, ...pointers.fixed]);
+  /** @type {Map<string, Ranges>} */
+  const fixedRanges = new Map([[own, rangesOf(root, own, { whole: true, titles: new Set(), anchors: new Set() })]]);
+  for (const file of pointers.fixed) fixedRanges.set(file, rangesOf(root, file, /** @type {Mention} */ (pointers.fixedHow.get(file))));
+  const fixed = [...fixedRanges].map(([file, ranges]) => ({
+    file,
+    sections: file === own ? null : sectionsOfMention(/** @type {Mention} */ (pointers.fixedHow.get(file))),
+    bytes: bytesOf(ranges),
+  }));
+  const alreadyRead = new Set(fixedRanges.keys());
   /** @param {string} dir @param {Set<string>} read 이미 센 파일 — 후보에서 뺀다 */
   const routeOf = (dir, read) => {
     const candidates = readdirSync(join(root, dir))
@@ -298,10 +393,14 @@ export function readBudgetOf(role, root = ROOT) {
     return { dir, candidates, max: candidates[0] ?? null };
   };
   const routes = pointers.routes.map((dir) => routeOf(dir, alreadyRead));
-  // 묶음 밖에도 적힌 파일은 고정에서 이미 셌다 — 선택지 합에서는 0 이다. 선택지 안의 라우트는 고정과 그 선택지의 파일을 후보에서 뺀다
+  // 선택지는 고정이 이미 센 바이트를 다시 세지 않는다. 선택지 안의 라우트는 고정과 그 선택지의 파일을 후보에서 뺀다
   const choices = pointers.choices.map((group) => {
     const options = group.options.map((option) => {
-      const files = option.files.map((file) => ({ file, inFixed: alreadyRead.has(file), bytes: alreadyRead.has(file) ? 0 : sizeOf(file) }));
+      const files = option.files.map((file) => {
+        const how = /** @type {Mention} */ (option.how.get(file));
+        const ranges = rangesOf(root, file, how);
+        return { file, sections: sectionsOfMention(how), inFixed: alreadyRead.has(file), bytes: bytesOutside(ranges, fixedRanges.get(file) ?? []) };
+      });
       const optionRoutes = option.routes.map((dir) => routeOf(dir, new Set([...alreadyRead, ...option.files])));
       const fileBytes = files.reduce((sum, one) => sum + one.bytes, 0);
       const routeBytes = optionRoutes.reduce((sum, route) => sum + (route.max?.bytes ?? 0), 0);
@@ -316,14 +415,21 @@ export function readBudgetOf(role, root = ROOT) {
   return { role, fixed, routes, choices, fixedBytes, dynamicBytes, choiceBytes, total: fixedBytes + dynamicBytes + choiceBytes };
 }
 
+/**
+ * 합에 맞는 천장 — `CEILING_STEP / 2` 이상 남는 가장 작은 `CEILING_STEP` 의 배수. 천장을 다시 정할 때 이 값을 쓴다.
+ *
+ * @param {number} total
+ */
+export const ceilingFor = (total) => Math.ceil((total + CEILING_STEP / 2) / CEILING_STEP) * CEILING_STEP;
+
 /** @param {number} n */
-const grouped = (n) => n.toLocaleString('en-US');
+export const grouped = (n) => n.toLocaleString('en-US');
 
 /** 표의 칸 — 시험은 「합」 칸을 이름으로 찾는다 */
-export const TABLE_COLUMNS = ['역할', '고정', '동적', '묶음', '합', '상한', '여유', '동적 라우트 → 가장 큰 후보', '선택 묶음 → 선택지마다 합(굵게가 최댓값)'];
+export const TABLE_COLUMNS = ['역할', '고정', '동적', '묶음', '합', '천장', '여유', '동적 라우트 → 가장 큰 후보', '선택 묶음 → 선택지마다 합(굵게가 최댓값)'];
 
 /**
- * 역할마다 고정 · 동적 · 묶음 · 합 · 상한의 표(Markdown).
+ * 역할마다 고정 · 동적 · 묶음 · 합 · 천장의 표(Markdown).
  *
  * @param {string} [root]
  * @returns {string}
@@ -351,4 +457,19 @@ export function tableOf(root = ROOT) {
   return lines.join('\n');
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) console.log(tableOf());
+/**
+ * 한 역할의 고정 목록 — 파일 · 센 절 · 바이트, 큰 것부터. `npm run read-budget -- <역할>` 이 찍는다(무엇을 줄일지 볼 때).
+ *
+ * @param {string} role
+ * @param {string} [root]
+ */
+export function detailOf(role, root = ROOT) {
+  const budget = readBudgetOf(role, root);
+  const rows = [...budget.fixed].sort((a, b) => b.bytes - a.bytes).map((one) => `| ${one.file} | ${one.sections ? one.sections.join(' · ') : '전부'} | ${grouped(one.bytes)} |`);
+  return [`| ${role} 고정 | 센 자리 | 바이트 |`, '| --- | --- | ---: |', ...rows].join('\n');
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const role = process.argv[2];
+  console.log(role ? detailOf(role) : tableOf());
+}

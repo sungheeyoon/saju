@@ -23,10 +23,7 @@
 - [이름](../agents/code-rules/names.md#이름) — 마이그레이션 파일 이름
 - [무엇을 고쳤으면 무엇을 돌리나](../agents/test-map/what-to-run.md#무엇을-고쳤으면-무엇을-돌리나) — 로컬 차례(`db:reset` → `test:db` → `db:types` …)
 - [시험은 넷이고](../agents/test-map/kinds.md#시험은-넷이고-층마다-닿는-것이-다르다) — pgTAP 이 닿는 곳
-- [일하는 법](../agents/delegation/working.md) — 원격에 닿는 명령 둘과 기계 잠금
-- [조율자 세션](../agents/delegation/coordinator.md) — 타임스탬프 · pgTAP 번호는 머지 직전 main 의 마지막 뒤
-- [로컬 환경의 함정](../agents/delegation/local-env.md) — 옛 볼륨 · 전역으로 세는 pgTAP · `db query` 의 한계
-- [공개 출시](../product/gaps.md#공개-출시) — `security definer` 함수의 `search_path` 를 재는 줄
+- [일하는 법](../agents/delegation/working.md#일하는-법--세션마다-다시-배우던-것) — 원격에 닿는 명령 둘과 기계 잠금
 
 ## 하지 않는 것 · 묻는 것
 
@@ -40,3 +37,11 @@
 - [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯. 「사람이 할 걸음」에 밟은 `db push` 와 본 값, 「문서」에 결정 여부와 고친 원본
 - [ ] 새 표 · 함수의 이름이 도메인 낱말이면 → [용어 ↔ 코드](../context/code-names.md#9-용어--코드)
 - [ ] 운영에서 손으로 도는 SQL · 절차가 바뀌었으면 → `docs/ops/runbook/` 의 그 작업 파일(새 파일이면 색인에 한 줄)
+
+## 닿을 때 여는 것
+
+손대기 전에 다 읽지 않는다 — 일이 그 자리에 닿을 때 연다(ADR 0147).
+
+- 머지 직전 · main 에 새 마이그레이션이 들었으면 → [조율자 세션](../agents/delegation/coordinator.md) — 타임스탬프 · pgTAP 번호는 머지 직전 main 의 마지막 뒤
+- 로컬 스택 · pgTAP 이 이상하면 → [로컬 환경의 함정](../agents/delegation/local-env.md) — 옛 볼륨 · 전역으로 세는 pgTAP · `db query` 의 한계
+- `security definer` 함수를 만들거나 고치면 → [공개 출시](../product/gaps.md#공개-출시) — `search_path` 를 재는 줄

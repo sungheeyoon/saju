@@ -18,7 +18,7 @@
 
 | 고친 것 | 돌리는 것 | 왜 그것만 |
 | --- | --- | --- |
-| `docs/**` · `*.md` · `.claude/**` · `scripts/*.test.ts` | `npx vitest run scripts/` · 역할 문서(`docs/roles/`)나 그것이 가리키는 원본이면 `npm run read-budget` | `code-rules.test.ts` 가 대장 · PRD · 위임 규약 · ADR · 설정을 읽는다. `read-budget` 은 시험과 같은 셈(`scripts/read-budget.mjs`)으로 역할마다 읽기량의 고정 · 동적 · 선택 묶음 · 합 · 상한을 찍는다(ADR 0145). CI 는 `policy` 차선이다 |
+| `docs/**` · `*.md` · `.claude/**` · `scripts/*.test.ts` | `npx vitest run scripts/` · 역할 문서(`docs/roles/`)나 그것이 가리키는 원본이면 `npm run read-budget` | `code-rules.test.ts` 가 대장 · PRD · 위임 규약 · ADR · 설정을 읽는다. `read-budget` 은 시험과 같은 셈(`scripts/read-budget.mjs`)으로 역할마다 읽기량의 고정 · 동적 · 선택 묶음 · 합 · 천장을 찍는다 — `npm run read-budget -- <역할>` 은 파일과 센 절마다(ADR 0145 · 0147). CI 는 `policy` 차선이다 |
 | `src/lib/saju/**` · `app/saju/**` | `npm test` → `npm run typecheck` · `npm run lint` | 로그인 뒤 화면과 흐름 검사는 같은 엔진으로 기대값을 짓는다. **예외** — `version.ts` · `pillars/index.ts` 는 DB 검사식이 보므로 전부 |
 | `src/lib/*` (엔진 밖) | `npm test`, 프롬프트면 아래 「프롬프트」 | 순수 함수. 문이 부르는 모양이 바뀌면 `typecheck` 가 잡는다 |
 | `app/**/*.ts` — 문 · 액션 · 라우트 | `npm test` → `npm run test:flow` | 문의 실패 셋과 액션의 값은 단위가, 실제 스택에서 문이 여는가는 흐름이 |

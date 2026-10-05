@@ -18,7 +18,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { SUPPORT_EMAIL } from '../src/lib/account';
 
-import { READ_BUDGET, SIZE_AT_LOCK, TABLE_COLUMNS, linksOf, pointersOf, readBudgetOf, sectionOf as sectionIn, tableOf } from './read-budget.mjs';
+import { CEILING_STEP, MAX_SLACK, ON_DEMAND_SECTION, READ_BUDGET, TABLE_COLUMNS, grouped, linksOf, readBudgetOf, sectionOf as sectionIn, tableOf } from './read-budget.mjs';
 import { LAUNCHED, STAGE_FILE, stagesOf } from './release-stage.mjs';
 
 const ROOT = resolve(__dirname, '..');
@@ -1104,11 +1104,11 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
     expect([...new Set(listed)].sort()).toEqual([...roles].sort());
   });
 
-  it('역할 문서마다 칸 넷이 그 차례로 있고 한 화면 안이다', () => {
+  it('역할 문서마다 칸 넷이 그 차례로 있고(「닿을 때 여는 것」은 있으면 맨 뒤) 한 화면 안이다', () => {
     for (const role of roles) {
       const text = readFileSync(join(ROLES_DIR, `${role}.md`), 'utf8');
       const headings = [...text.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim());
-      expect(headings, role).toEqual(COLUMNS);
+      expect(headings, role).toEqual(headings.length > COLUMNS.length ? [...COLUMNS, ON_DEMAND_SECTION] : COLUMNS);
       expect(Buffer.byteLength(text), role).toBeLessThanOrEqual(MAX_BYTES);
     }
   });
@@ -1218,15 +1218,23 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
         seen += 1;
         if (linksOf(bullet).length === 0) wrong.push(`${role} 「하지 않는 것」: ${bullet.slice(0, 40)}`);
       }
+      // 「닿을 때 여는 것」은 세지 않는 칸이라 줄마다 언제인지가 먼저 선다 — `- <언제> → [원본](경로)` 한 줄 (ADR 0147)
+      for (const bullet of sectionIn(text, ON_DEMAND_SECTION) === null ? [] : bulletsOf(sectionOf(text, ON_DEMAND_SECTION))) {
+        seen += 1;
+        if (!/^- [^[\n]+? → \[[^\]]+\]\([^)]+\)/.test(bullet) || bullet.includes('\n')) wrong.push(`${role} 「${ON_DEMAND_SECTION}」: ${bullet.split('\n')[0].slice(0, 40)}`);
+      }
     }
     expect(seen).toBeGreaterThan(50);
     expect(wrong).toEqual([]);
   });
 
   /**
-   * **필수 읽기량**(ADR 0145) — 정의와 셈은 `scripts/read-budget.mjs` 한 곳이고, `npm run read-budget` 이 같은 함수로 역할마다
-   * 고정 · 동적 · 합 · 상한을 찍는다. 읽기량 = 고정(역할 문서와 가리킨 파일, 원본은 잠근 날의 크기) + 동적 라우트(디렉터리를
-   * 가리키는 Markdown 링크)마다 그 디렉터리 후보 가운데 가장 큰 것의 지금 크기. 값을 회귀 상한으로 박는다 — 임의의 절대 상한은 없다.
+   * **필수 읽기량**(ADR 0145 · 0147) — 정의와 셈은 `scripts/read-budget.mjs` 한 곳이고, `npm run read-budget` 이 같은 함수로 역할마다
+   * 고정 · 동적 · 합 · 천장을 찍는다. 읽기량 = 고정(역할 문서와 가리킨 파일 · 「절」만 가리켰으면 그 절, 지금 크기) + 동적 라우트(디렉터리를
+   * 가리키는 Markdown 링크)마다 그 디렉터리 후보 가운데 가장 큰 것. 「닿을 때 여는 것」은 세지 않는다.
+   *
+   * **천장은 여유를 둔 눈금이다**(ADR 0147) — `CEILING_STEP` 의 배수, 합이 넘으면 붉고 `MAX_SLACK` 넘게 남아도 붉다(줄였으면 내린다).
+   * 천장을 바꾸면 ADR 에 `| 역할 | … | 천장 |` 줄을 남긴다 — 그 줄이 없으면 붉다. 파일 이름 한 글자로 붉어지지 않는다.
    *
    * **ADR 본문은 영역마다 달라 세지 않는다** — 「그 영역의 ADR — 색인에서 번호만」은 색인(`docs/adr/README.md`)만 센다. 「먼저
    * 읽는 것」이 번호로 부른 ADR 만 고정으로 든다. 「끝날 때 고치는 것」의 쓰는 자리(백틱 디렉터리)도 세지 않는다.
@@ -1238,13 +1246,25 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
    *
    * 붉어지는 것은 역할 문서가 더 많이 · 더 큰 파일을 가리키거나, 제 몸이 자라거나, 동적 라우트의 후보(PRD · 용어집의 영역 파일)가
    * 가장 큰 것보다 커질 때다. 동적 링크를 파일 하나로 바꿔치면 라우트가 사라진 것으로, 묶음을 평범한 줄로 되돌리거나 선택지를
-   * 줄이면 묶음이 잠근 것과 달라 붉어진다. 늘리려면 PR 에 까닭을 적고 `READ_BUDGET` 을 함께 고친다.
+   * 줄이면 묶음이 잠근 것과 달라 붉어진다.
    */
-  it('역할마다 필수 읽기량(고정 + 동적 라우트의 최댓값 + 선택 묶음의 최댓값)이 잠근 값 이하이고 라우트와 묶음이 잠근 그대로다 (ADR 0145)', () => {
+  it('역할마다 필수 읽기량(고정 + 동적 라우트의 최댓값 + 선택 묶음의 최댓값)이 천장 이하이고, 천장은 ADR 줄이 있는 눈금이며 여유가 너무 크지 않고, 라우트와 묶음이 잠근 그대로다 (ADR 0145 · 0147)', () => {
     expect(Object.keys(READ_BUDGET).sort()).toEqual([...roles].sort());
     const budgets = roles.map((role) => readBudgetOf(role, ROOT));
     const over = budgets.filter((budget) => budget.total > READ_BUDGET[budget.role].bytes).map((budget) => `${budget.role}: ${budget.total} > ${READ_BUDGET[budget.role].bytes}`);
     expect(over).toEqual([]);
+    // 천장은 눈금이고, 줄인 만큼 내린다 — 남는 여유에 새 원본이 숨지 않게
+    const loose = budgets.filter((budget) => READ_BUDGET[budget.role].bytes - budget.total > MAX_SLACK).map((budget) => `${budget.role}: ${READ_BUDGET[budget.role].bytes} - ${budget.total} > ${MAX_SLACK}`);
+    expect(loose).toEqual([]);
+    for (const role of roles) expect(READ_BUDGET[role].bytes % CEILING_STEP, role).toBe(0);
+    // 천장을 정한 ADR 줄이 있다 — `| 역할 | … | 천장 |`, 천장이 마지막 칸
+    const adrLines = readdirSync(join(ROOT, 'docs/adr'))
+      .filter((name) => /^\d{4}-.+\.md$/.test(name))
+      .flatMap((name) => readFileSync(join(ROOT, 'docs/adr', name), 'utf8').split('\n'));
+    for (const role of roles) {
+      const row = adrLines.find((line) => line.startsWith(`| ${role} |`) && line.trimEnd().endsWith(`| ${grouped(READ_BUDGET[role].bytes)} |`));
+      expect(row, `${role} 천장 ${grouped(READ_BUDGET[role].bytes)} 을 정한 ADR 줄`).toBeDefined();
+    }
     for (const budget of budgets) {
       expect(budget.routes.map((route) => route.dir), budget.role).toEqual(READ_BUDGET[budget.role].routes);
       // 후보가 없는 라우트는 고를 것이 없다 — 빈 폴더나 고정으로 이미 다 읽는 폴더를 가리키고 있다
@@ -1254,14 +1274,6 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
         budget.role,
       ).toEqual(READ_BUDGET[budget.role].choices);
     }
-    // 잠근 날의 크기 표가 썩지 않는다 — 어느 역할도 고정 · 묶음으로 안 가리키는 파일은 지운다
-    const pointed = new Set(
-      roles.flatMap((role) => {
-        const pointers = pointersOf(role, ROOT);
-        return [...pointers.fixed, ...pointers.choices.flatMap((group) => group.options.flatMap((option) => option.files))];
-      }),
-    );
-    expect(Object.keys(SIZE_AT_LOCK).filter((file) => !pointed.has(file))).toEqual([]);
   });
 
   it('선택 묶음의 파일은 고정에 들지 않고, 묶음 밖에도 적힌 파일은 고정 쪽에서 한 번만 센다 — 선택지 안 라우트의 후보도 고정 · 그 선택지의 파일을 뺀다', () => {
@@ -1284,7 +1296,8 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
           }
           for (const file of option.files) {
             expect(file.inFixed, `${role} ${option.name} ${file.file}`).toBe(fixed.has(file.file));
-            if (file.inFixed) expect(file.bytes, `${role} ${option.name} ${file.file}`).toBe(0);
+            // 고정이 파일 전부를 셌으면 선택지는 0 이다 — 절만 셌으면 나머지만 더한다(ADR 0147)
+            if (budget.fixed.some((one) => one.file === file.file && one.sections === null)) expect(file.bytes, `${role} ${option.name} ${file.file}`).toBe(0);
           }
         }
       }
