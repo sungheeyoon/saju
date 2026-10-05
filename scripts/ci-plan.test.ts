@@ -30,7 +30,7 @@ import {
   specsOfLane,
   summaryOf,
 } from './ci-plan.mjs';
-import { currentStageOf } from './release-stage.mjs';
+import { STAGE_FILE, currentStageOf } from './release-stage.mjs';
 
 /** 공개 출시 — 머지 전에 전체를 재는 단계. 아래 「CI 계획」은 이 단계의 세 단계를 잰다 */
 const pr = (files: string[], labels: string[] = []) => planFor({ files, labels, event: 'pull_request', stage: '공개 출시' });
@@ -78,7 +78,7 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
   });
 
   it('PRD 의 「(지금)」을 공개 출시로 옮기면 머지 전 전체로 돌아간다', () => {
-    const prd = readFileSync(resolve(__dirname, '../docs/prd.md'), 'utf8');
+    const prd = readFileSync(resolve(__dirname, '..', STAGE_FILE), 'utf8');
     const now = currentStageOf(prd);
     expect(now).not.toBeNull();
     const launched = prd.replace(/\| \*\*([^*]+)\*\* \(지금\) \|/, '| **$1** |').replace('| **공개 출시** |', '| **공개 출시** (지금) |');
@@ -104,7 +104,7 @@ describe('CI 계획 — 공개 출시 전 (ADR 0097)', () => {
   });
 
   it('「(지금)」이 둘이거나 없으면 모르는 단계다', () => {
-    const prd = readFileSync(resolve(__dirname, '../docs/prd.md'), 'utf8');
+    const prd = readFileSync(resolve(__dirname, '..', STAGE_FILE), 'utf8');
     expect(currentStageOf(prd.replace(/ \(지금\) \|/, ' |'))).toBeNull();
     expect(currentStageOf(prd.replace('| **공개 출시** |', '| **공개 출시** (지금) |'))).toBeNull();
     expect(currentStageOf('')).toBeNull();

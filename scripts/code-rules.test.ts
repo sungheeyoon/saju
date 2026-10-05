@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest';
 
 import { SUPPORT_EMAIL } from '../src/lib/account';
 
-import { LAUNCHED, stagesOf } from './release-stage.mjs';
+import { LAUNCHED, STAGE_FILE, stagesOf } from './release-stage.mjs';
 
 const ROOT = resolve(__dirname, '..');
 const relPath = (file: string) => relative(ROOT, file).split(sep).join('/');
@@ -579,6 +579,9 @@ const ENTRY_DOCS = [
   join(ROOT, 'docs/product/gaps.md'),
   join(ROOT, 'README.md'),
   join(ROOT, 'docs/architecture.md'),
+  join(ROOT, 'docs/prd.md'),
+  // PRD 는 색인 아래 `docs/product/prd/` 의 제품 영역별 파일로 산다
+  ...walk(join(ROOT, 'docs/product/prd')),
   join(ROOT, 'docs/ops/runbook.md'),
   // 운영 절차는 색인 아래 `docs/ops/runbook/` 의 운영 작업별 파일로 산다
   ...walk(join(ROOT, 'docs/ops/runbook')),
@@ -800,12 +803,95 @@ describe('용어집 ↔ 코드 (CONTEXT.md §9)', () => {
 });
 
 // -----------------------------------------------------------------------------
+// PRD (docs/prd.md 색인 → docs/product/prd/)
+// -----------------------------------------------------------------------------
+
+const PRD_INDEX = 'docs/prd.md';
+const PRD_DIR = 'docs/product/prd';
+/** 색인의 「차례」 줄 — `| \`docs/product/prd/<영역>.md\` | 「절」 · … | 무엇을 드나 |` */
+const PRD_ROW = /^\| `docs\/product\/prd\/([a-z-]+\.md)` \| ([^|]+) \|/gm;
+const prdIndex = () => readFileSync(join(ROOT, PRD_INDEX), 'utf8');
+/** 영역 파일 이름 — 색인이 든 차례대로 */
+const prdParts = () => [...prdIndex().matchAll(PRD_ROW)].map((match) => match[1]);
+/** PRD 본체 — 영역 파일을 색인의 차례로 이은 글. 절 번호는 나누기 전 그대로다(2026-10-05 에 한 장을 나눴다) */
+const prdBody = () => prdParts().map((name) => readFileSync(join(ROOT, PRD_DIR, name), 'utf8')).join('\n');
+
+describe('PRD (docs/prd.md 색인 → docs/product/prd/)', () => {
+  it('색인은 영역 파일 전부를 들고 없는 파일을 들지 않으며, 절을 들지 않는다', () => {
+    const index = prdIndex();
+    const files = readdirSync(join(ROOT, PRD_DIR)).filter((name) => name.endsWith('.md'));
+    expect(files.length).toBeGreaterThan(4);
+    expect([...prdParts()].sort()).toEqual([...files].sort());
+    // 색인에 절이 생기면 요구가 두 벌이 된다 — 제목은 문서 이름과 「차례」 하나뿐이고, 번호 붙은 절이 없다
+    expect([...index.matchAll(/^#{2,6} (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
+    for (const name of files) expect(readFileSync(join(ROOT, PRD_DIR, name), 'utf8'), name).toContain(`\`${PRD_INDEX}\``);
+  });
+
+  it('색인에 요구 문장이 없다 — 「선다 · 없다 · 다르다」 표시는 그 뜻을 적은 표의 칸에만 선다', () => {
+    // 요구 문장은 줄마다 지금 있는가를 함께 적는다(색인 머리말). 표시 표 밖에서 표시가 서면 요구가 색인에 들어온 것이다
+    const stray = prdIndex()
+      .split('\n')
+      .filter((line) => /\*\*(?:선다|없다|다르다)/.test(line) && !/^\| \*\*(?:선다|없다|다르다)\*\* \|/.test(line));
+    expect(stray).toEqual([]);
+  });
+
+  it('색인의 「절」 칸은 그 파일의 `##` 절을 차례대로 전부 들고, 이은 본체의 절 번호는 0 부터 끊김 없이 선다', () => {
+    const wrong: string[] = [];
+    for (const match of prdIndex().matchAll(PRD_ROW)) {
+      const named = [...match[2].matchAll(/「([^」]+)」/g)].map((one) => one[1]);
+      const heads = [...readFileSync(join(ROOT, PRD_DIR, match[1]), 'utf8').matchAll(/^## (.+)$/gm)].map((one) =>
+        one[1].replace(/\*\*|`/g, '').trim(),
+      );
+      const same = named.length === heads.length && named.every((name, i) => heads[i].startsWith(name));
+      if (!same) wrong.push(`${match[1]}: 색인 ${named.join(' · ')} ↔ 파일 ${heads.join(' · ')}`);
+    }
+    expect(wrong).toEqual([]);
+    // 절 하나가 어느 파일에서도 빠지면 번호가 끊긴다
+    const numbers = [...prdBody().matchAll(/^## (\d+)\. /gm)].map((match) => Number(match[1]));
+    expect(numbers).toEqual([...Array(10).keys()]);
+  });
+
+  /** 「무엇을 드나」 칸의 `§a.b` · `§a.b–a.d` — 범위는 마지막 자리를 펼친다 */
+  function numbersOfCell(cell: string): string[] {
+    return [...cell.matchAll(/§(\d+(?:\.\d+)*)(?:–(\d+(?:\.\d+)*))?/g)].flatMap((match) => {
+      if (match[2] === undefined) return [match[1]];
+      const head = match[1].split('.');
+      const last = Number(match[2].split('.').at(-1));
+      const prefix = head.slice(0, -1).join('.');
+      return Array.from({ length: last - Number(head.at(-1)) + 1 }, (_, i) => `${prefix}.${Number(head.at(-1)) + i}`);
+    });
+  }
+
+  it('색인이 부르는 절 번호(`§n.m`)와 그 파일의 절 번호(`##` · `###` · `####`)가 같다 — 하위 절 하나가 빠지거나 다른 파일로 가도 붉다', () => {
+    const wrong: string[] = [];
+    for (const match of prdIndex().matchAll(/^\| `docs\/product\/prd\/([a-z-]+\.md)` \| ([^|]+) \| ([^|]+) \|/gm)) {
+      const listed = new Set([
+        ...[...match[2].matchAll(/「(\d+)\. /g)].map((one) => one[1]),
+        ...numbersOfCell(match[3]),
+      ]);
+      const inFile = new Set(
+        [...readFileSync(join(ROOT, PRD_DIR, match[1]), 'utf8').matchAll(/^#{2,4} (\d+(?:\.\d+)*)\.? /gm)].map((one) => one[1]),
+      );
+      const missing = [...inFile].filter((one) => !listed.has(one));
+      const extra = [...listed].filter((one) => !inFile.has(one));
+      if (missing.length + extra.length > 0) wrong.push(`${match[1]}: 색인에 없음 ${missing.join(',')} · 파일에 없음 ${extra.join(',')}`);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it('출시 단계 표(§7.0)는 `STAGE_FILE` 에 있고, 그 파일은 색인이 드는 영역 파일이다', () => {
+    expect(STAGE_FILE.startsWith(`${PRD_DIR}/`)).toBe(true);
+    expect(prdParts()).toContain(STAGE_FILE.slice(PRD_DIR.length + 1));
+    expect(stagesOf(readFileSync(join(ROOT, STAGE_FILE), 'utf8')).length).toBeGreaterThan(2);
+  });
+});
+
+// -----------------------------------------------------------------------------
 // 간극 대장 (docs/product/gaps.md)
 // -----------------------------------------------------------------------------
 
 describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
   const ledger = readFileSync(join(ROOT, 'docs/product/gaps.md'), 'utf8');
-  const prd = readFileSync(join(ROOT, 'docs/prd.md'), 'utf8');
   const rows = ledger
     .split('\n')
     .map((line) => line.split('|').map((cell) => cell.trim()))
@@ -822,6 +908,7 @@ describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
   });
 
   it('출처의 § 는 PRD 본체에 실제로 있는 절이다 — 절을 옮기면 대장도 옮긴다', () => {
+    const prd = prdBody();
     const headings = new Set([...prd.matchAll(/^#{2,3} (\d+(?:\.\d+)*)/gm)].map((match) => match[1]));
     // §8 은 절이 아니라 번호 목록이다 — `§8.N` 은 그 목록의 N 번째 줄을 가리킨다
     const s8 = prd.slice(prd.indexOf('\n## 8. '), prd.indexOf('\n## 9. '));
@@ -866,6 +953,7 @@ describe('간극 대장 (docs/product/gaps.md, ADR 0089)', () => {
   });
 
   it('PRD 본체에는 개정 기록이 없다 — 계보와 「재어 본 값」은 changelog 에 산다', () => {
+    const prd = prdBody();
     expect(prd).not.toMatch(/^## 10\. /m);
     expect(prd).not.toMatch(/^### 0\.[3-8] /m);
     const changelog = readFileSync(join(ROOT, 'docs/product/prd-changelog.md'), 'utf8');
@@ -1032,17 +1120,18 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
    * 원본은 지금 크기로 센다. 그래서 붉어지는 것은 **역할 문서가 더 많이 · 더 큰 파일을 가리키거나 제 몸이 자랄 때**다.
    *
    * 원본을 쪼개 줄였으면(예: runbook 을 주제 파일로) 상한도 내린다. 늘리려면 PR 에 까닭을 적고 여기 값을 함께 고친다.
-   * runbook 은 2026-10-05 에 운영 작업별 파일(`docs/ops/runbook/`)로 나눠 다섯 역할의 값을 내렸다.
+   * runbook 은 2026-10-05 에 운영 작업별 파일(`docs/ops/runbook/`)로 나눠 다섯 역할의 값을 내렸다. PRD 는 같은 날 제품 영역별
+   * 파일(`docs/product/prd/`)로 나눠, 역할 문서가 제 영역 파일만 가리키게 하고 네 역할(feature · reading · reviewer · ui)의 값을 내렸다.
    */
   const READ_BUDGET: Record<string, number> = {
     coordinator: 157819,
     db: 352031,
     docs: 282168,
-    feature: 398330,
+    feature: 286336,
     ops: 174182,
-    reading: 430452,
-    reviewer: 318483,
-    ui: 345681,
+    reading: 313086,
+    reviewer: 184455,
+    ui: 236920,
   };
   const SIZE_AT_LOCK: Record<string, number> = {
     'CONTEXT.md': 84831,
@@ -1078,10 +1167,13 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
     'docs/ops/runbook/deploy.md': 21697,
     'docs/ops/runbook/jobs.md': 11109,
     'docs/ops/runbook/security.md': 32543,
-    'docs/prd.md': 136645,
+    'docs/prd.md': 2617,
     'docs/product/copy-ledger.md': 30104,
     'docs/product/gaps.md': 65299,
     'docs/product/prd-changelog.md': 143536,
+    'docs/product/prd/foundation.md': 21970,
+    'docs/product/prd/reading.md': 19263,
+    'docs/product/prd/screens.md': 27868,
     'docs/roles/reviewer.md': 2523,
     'docs/start.md': 5641,
     'docs/text/claim-policy.md': 19554,
@@ -1242,7 +1334,7 @@ describe('위임 규약 (docs/agents/delegation.md 색인 → docs/agents/delega
 
   /** 출시 단계의 표와 PRD 읽기는 `scripts/release-stage.mjs` 한 곳이다 — CI 계획도 같은 것을 읽는다 (ADR 0093 · 0097) */
   const TIER_THREE_LOCKED: Record<string, boolean> = LAUNCHED;
-  const stagesOfPrd = () => stagesOf(readFileSync(join(ROOT, 'docs/prd.md'), 'utf8'));
+  const stagesOfPrd = () => stagesOf(readFileSync(join(ROOT, STAGE_FILE), 'utf8'));
 
   it('PRD §7.0 의 단계는 전부 잠금 여부가 정해져 있다 — 모르는 단계는 잠금을 켜라고도 끄라고도 안 한다', () => {
     const names = stagesOfPrd().map((stage) => stage.name);

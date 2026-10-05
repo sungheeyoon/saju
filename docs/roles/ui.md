@@ -7,7 +7,7 @@
 - `docs/product/copy-ledger.md` 「01 규칙」과 고칠 화면의 줄 — **문구는 여기서 먼저 찾는다**
 - `docs/agents/code-rules.md` 「화면 문구」 · `CONTEXT.md` 「8. 화면 문구 규칙」 — 말투와 표기(해요체는 ADR 0135)
 - ADR 0109 — 디자인 체계는 토큰 한 벌이고 부품은 `app/ui/` 에 있다
-- `docs/prd.md` 「3. 화면」 가운데 고칠 화면의 절 — 지금 모양의 원본
+- `docs/product/prd/screens.md` 「3. 화면」 가운데 고칠 화면의 절 — 지금 모양의 원본
 - `docs/architecture.md` 「새 것을 놓을 때」 — 화면은 그리기만 한다
 - `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」의 화면 줄
 

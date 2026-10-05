@@ -158,7 +158,7 @@ import { readFileSync, readdirSync, appendFileSync } from 'node:fs';
 import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { LAUNCHED, currentStageOf } from './release-stage.mjs';
+import { LAUNCHED, STAGE_FILE, currentStageOf } from './release-stage.mjs';
 
 export const FULL_LABEL = 'full-ci';
 
@@ -592,7 +592,7 @@ function main() {
 
   let stage = null;
   try {
-    stage = currentStageOf(readFileSync(new URL('../docs/prd.md', import.meta.url), 'utf8'));
+    stage = currentStageOf(readFileSync(new URL(`../${STAGE_FILE}`, import.meta.url), 'utf8'));
   } catch {
     // PRD 를 못 읽으면 모르는 단계다 — 전부로 간다
   }

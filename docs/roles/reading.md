@@ -7,7 +7,7 @@
 - `CONTEXT.md` 「2. 입력과 명식」 · 「4. 근거와 글」
 - `docs/text/claim-policy.md` — 무엇까지 말할 자격이 있는가. 조각 · 조립 · 말뭉치는 같은 폴더의 나머지 셋
 - `README.md` 「설계에서 핵심이었던 세 가지」 · 「학파에 따라 갈리는 지점」 — 엔진
-- `docs/prd.md` 「4. 풀이」
+- `docs/product/prd/reading.md` 「4. 풀이」
 - `docs/agents/code-rules.md` 「금지어」 — 풀이 본문과 프롬프트의 줄
 - `docs/agents/test-map.md` 「잠긴 시험 넷 — `*.live.test.ts`」 · 「무엇을 고쳤으면 무엇을 돌리나」의 엔진 · 프롬프트 줄
 - `docs/notes/verification-discipline.md` — 검증 수준보다 세게 말하지 않는다
