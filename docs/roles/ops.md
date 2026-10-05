@@ -6,7 +6,7 @@
 
 - `docs/ops/runbook/access.md` 「어디서 실행하나」 — 접속값 · 비밀 · 개인정보의 경계
 - `docs/ops/runbook/deploy.md` 「배포」 — 특히 「묶음 배포」와 「규약 넷 — 앱과 DB 는 따로 간다」
-- `docs/ops/runbook/jobs.md` 「도는 잡이 정말 도나」 · `docs/ops/runbook/security.md` 「보안 점검」
+- `docs/ops/runbook/jobs.md` 「도는 잡이 정말 도나」
 - `docs/agents/delegation/permissions.md` 「권한 등급」 · 「공식 운영에 들어가면 켜는 잠금」
 - `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」 — 키체인 창 · `BEHIND` · 운영 확인용 계정
 
@@ -30,4 +30,10 @@
 
 - [ ] 배포 · DB 의 끝 상태는 [묶음 배포](../ops/runbook/deploy.md#묶음-배포--최신-main-을-production-으로-한-번) 5 의 이슈나 그 PR 에 — 노트는 [세션 기록](../agents/delegation/notes.md) 기준만
 - [ ] 절차가 바뀌었거나 틀렸으면 → `docs/ops/runbook/` 의 그 작업 파일(새 파일이면 색인에 한 줄)
-- [ ] 보안 점검의 증거 → `docs/product/gaps.md` 의 G-23 줄. 운영자만 할 수 있는 새 일 → 운영자 할 일 이슈(#304)
+- [ ] 운영자만 할 수 있는 새 일 → 운영자 할 일 이슈(#304)
+
+## 닿을 때 여는 것
+
+손대기 전에 다 읽지 않는다 — 일이 그 자리에 닿을 때 연다(ADR 0147).
+
+- 보안 점검(advisor · 접속기록)을 맡았으면 → [보안 점검](../ops/runbook/security.md#보안-점검--advisor-와-접속기록-g-23-⑩-⑪) — 증거는 [간극 대장](../product/gaps.md)의 G-23 줄에

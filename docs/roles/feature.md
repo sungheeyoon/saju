@@ -5,8 +5,6 @@
 ## 먼저 읽는 것
 
 - `docs/product/prd/foundation.md` 「0. 지금 어디까지 왔나」와 그 기능의 절([PRD 영역 파일](../product/prd/) 가운데 하나 — 어느 파일인지는 색인 `docs/prd.md`) — 무엇을 만드는가의 원본
-- `docs/product/gaps.md` 의 그 `G-nn` 줄 — 「끝났다고 말할 조건」이 곧 이 일의 끝이다
-- 용어집의 [그 영역 파일](../context/)(어느 파일인지는 색인 `GLOSSARY.md`) — 식별자와 문구가 쓸 낱말
 - `docs/architecture.md` 「층 넷」 · 「새 것을 놓을 때」
 - `docs/agents/code-rules/failures.md` 「실패를 말하는 법」 · `docs/agents/code-rules/comments.md` 「주석과 ADR 참조」
 - `docs/agents/test-map/kinds.md` 「층 × 시험」
@@ -17,8 +15,7 @@
 
 규칙은 아래 원본에만 있다 — 여기는 어디를 열지만 말한다(ADR 0145).
 
-- [일하는 법](../agents/delegation/working.md) — 이슈 · 메모의 문장은 가설이다, 재는 법
-- [조율자 세션](../agents/delegation/coordinator.md) — 사실과 의도: 버그 · 문서 노후 · 결정 미반영 가르기
+- [일하는 법](../agents/delegation/working.md#일하는-법--세션마다-다시-배우던-것) — 이슈 · 메모의 문장은 가설이다, 재는 법
 - [층 넷](../architecture.md#층-넷) · [새 것을 놓을 때](../architecture.md#새-것을-놓을-때) — 방향 · 자리 · 도메인 lib 사이 새 방향
 - [실패를 말하는 법](../agents/code-rules/failures.md#실패를-말하는-법) · [이름](../agents/code-rules/names.md#이름) · [주석과 ADR 참조](../agents/code-rules/comments.md#주석과-adr-참조)
 - [무엇을 고쳤으면 무엇을 돌리나](../agents/test-map/what-to-run.md#무엇을-고쳤으면-무엇을-돌리나) — 로컬 최소와 예외 넷
@@ -32,5 +29,14 @@
 
 ## 끝날 때 고치는 것
 
-- [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯. 「문서」 칸이 고칠 원본(ADR · `GLOSSARY.md` · PRD 와 changelog · 간극 대장 · 시험 지도)을 든다
-- [ ] 새 운영 절차 · 운영 SQL → `docs/ops/runbook/` 의 그 작업 파일(새 파일이면 색인에 한 줄). 새 비밀 → `scripts/secret-env.mjs` 의 갈래
+- [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯. 「문서」 칸이 고칠 원본을 든다
+- [ ] 새 운영 절차 · 운영 SQL → `docs/ops/runbook/` 의 그 작업 파일(새 파일이면 색인에 한 줄)
+
+## 닿을 때 여는 것
+
+손대기 전에 다 읽지 않는다 — 일이 그 자리에 닿을 때 연다(ADR 0147).
+
+- 맡은 일이 `G-nn` 을 들면 → [간극 대장](../product/gaps.md)의 그 줄만(`grep -n 'G-nn'`) — 「끝났다고 말할 조건」이 곧 이 일의 끝이다
+- 새 식별자 · 표 · 문구의 이름을 짓거나 낯선 도메인 낱말을 만나면 → [용어집 색인](../../GLOSSARY.md)이 가리키는 [그 영역 파일](../context/)
+- 이슈 문장 · 문서가 코드와 어긋나면 → [조율자 세션](../agents/delegation/coordinator.md) — 버그 · 문서 노후 · 결정 미반영 가르기
+- 새 비밀(환경 변수)을 들이면 → [비밀의 갈래](../../scripts/secret-env.mjs)

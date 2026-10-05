@@ -20,7 +20,6 @@
 - [나란히 맡길 때](../agents/delegation/parallel.md) — 공유 자원 · 「병렬 가능」의 조건 · 충돌 영역 하나에 에이전트 하나
 - [결정 점검표](../agents/delegation/decisions.md) — 머지 전에 운영자에게 표로 물을 것
 - [역할 고르기](../start.md#역할-고르기) — 브리프의 「역할」 칸
-- [검토 역할](reviewer.md) — 의견을 모을 때 관점마다 하나
 - [묶음 배포](../ops/runbook/deploy.md#묶음-배포--최신-main-을-production-으로-한-번) — 라운드 끝의 배포 한 번
 
 ## 하지 않는 것 · 묻는 것
@@ -34,3 +33,9 @@
 - [ ] [세션 기록](../agents/delegation/notes.md)의 기준대로 라운드 노트와 `docs/notes/README.md` 한 줄, PR `--auto`
 - [ ] 세션을 비우기 전에 `/retro` — 입력은 보고의 「헤맨 것 · 틀린 절」, 놓는 자리는 길잡이 → `docs/roles/`(AGENTS.md · CLAUDE.md 아님) · 기계로 잡을 실수 → `eslint.config.mjs` · `scripts/` 의 시험 · 판단 → `docs/agents/code-rules/`(색인 CODING_STANDARDS.md). 같은 노트 PR — [선순환](../start.md#선순환--일이-문서로-돌아오는-길) 3
 - [ ] 운영자만 할 수 있는 일 → 운영자 할 일 이슈. 머지된 워크트리는 [조율자 세션](../agents/delegation/coordinator.md)의 「끝난 워크트리를 걷는다」대로
+
+## 닿을 때 여는 것
+
+손대기 전에 다 읽지 않는다 — 일이 그 자리에 닿을 때 연다(ADR 0147).
+
+- 두 번째 의견 · 감사를 모으면 → [검토 역할](reviewer.md) — 관점마다 하나
