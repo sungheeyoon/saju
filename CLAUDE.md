@@ -10,7 +10,7 @@ Claude Code 에서 맡길 때는 `Agent` 도구의 `subagent_type` 에 역할 �
 
 ## 요구사항은 `docs/prd.md` 가 축이다
 
-제품이 무엇을 하는지는 **`docs/prd.md`** 하나가 답한다 — 지금 모양만 적는다. 코드와 어긋나면
+제품이 무엇을 하는지는 **`docs/prd.md`**(색인 — 영역마다 `docs/product/prd/` 의 파일) 하나가 답한다 — 지금 모양만 적는다. 코드와 어긋나면
 그 문서가 맞다. **아직 없는 것 · 안 정한 것 · 어긋난 것은 `docs/product/gaps.md`(간극 대장)**가
 상태·종료 조건·언제 닫는가와 함께 들고, 어느 날 무엇을 고쳤는지는 `docs/product/prd-changelog.md`
 가 든다(ADR 0089). 요구사항을 셋에서 찾지 않는다 — PRD 하나다.

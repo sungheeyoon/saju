@@ -10,7 +10,7 @@
 
 1. **붉은 main** — `gh issue list --label ci-main-red` 가 비어 있지 않으면 그것부터(`docs/agents/delegation/working.md` 「시작하기 전에」)
 2. **나란히 도는 세션** — `git worktree list`. 작업 가지는 워크트리로 연다(`docs/agents/delegation/working.md` 「일하는 법」)
-3. **지금 단계** — `docs/prd.md` 「7.0 출시 범위」 표의 「(지금)」. 운영 베타 동안 등급 3 은 밟고 값을 적는다(ADR 0093)
+3. **지금 단계** — `docs/product/prd/roadmap.md` 「7.0 출시 범위」 표의 「(지금)」. 운영 베타 동안 등급 3 은 밟고 값을 적는다(ADR 0093)
 4. **보류 줄** — `docs/product/gaps.md` 의 `보류` 는 그 조건이 올 때까지 권하지도 묻지도 않는다
 5. **로컬 환경** — 새 워크트리에는 `node_modules` 가 없다. 무엇이든 돌리기 전에 `docs/agents/delegation/local-env.md` 「로컬 환경의 함정」
 

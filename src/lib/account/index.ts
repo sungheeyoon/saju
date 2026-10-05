@@ -28,7 +28,7 @@ const isActiveAccount = (status: string): boolean => status === 'active';
  * **이유를 갈라서 말한다.** 운영자가 건 제재와 본인이 낸 요청은 같은 것을 막지만 같은
  * 일이 아니다 — 자기가 신청해서 그렇게 된 사람에게 「이용이 정지된 계정입니다」는 거짓이다.
  *
- * 이름과 문구는 `docs/prd.md` §5.3 의 표다(2026-09-23) — 이용 정지 · 탈퇴 대기. 제목 자리라
+ * 이름과 문구는 `docs/product/prd/account.md` §5.3 의 표다(2026-09-23) — 이용 정지 · 탈퇴 대기. 제목 자리라
  * 마침표가 빠진다(CONTEXT 「화면 문구 규칙」).
  */
 const ACCOUNT_HALTED_TEXT: Record<
