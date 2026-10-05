@@ -20,9 +20,9 @@
 - 엔진 파일 이름은 camelCase 다(옛 규약, 폴더 안에서 섞지 않는다)
   (원본: `docs/agents/code-rules.md` 「이름」)
 - **프롬프트에 금지 목록을 쌓지 않는다** — 지시가 결론의 모양을 시키고 본보기 한 토막을 준다
-  (원본: `docs/agents/code-rules.md` 「금지어」 · `docs/agents/delegation.md` 「일하는 법」 · ADR 0073)
+  (원본: `docs/agents/code-rules.md` 「금지어」 · `docs/agents/delegation/working.md` 「일하는 법」 · ADR 0073)
 - 프롬프트 본문이 한 글자라도 바뀌면 실호출 한 번이 필요하다 — **운영자가 돌린다.** 에이전트는 명령과 볼 값을 PR 에 적는다
-  (원본: `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」 · `docs/agents/delegation.md` 「무인 라운드」)
+  (원본: `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」 · `docs/agents/delegation/unattended.md` 「무인 라운드」)
 - 클라이언트 화면은 풀이 입구(`src/lib/reading/index`)가 아니라 잎을 부른다 — `scripts/layers.test.ts` 가 잰다
   (원본: `docs/architecture.md` 「무엇이 잠겨 있나」)
 - `src/lib/saju/version.ts` · `src/lib/saju/pillars/index.ts` 를 고치면 DB 검사식이 보므로 시험 전부를 돈다

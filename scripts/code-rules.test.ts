@@ -580,7 +580,8 @@ const ENTRY_DOCS = [
   join(ROOT, 'README.md'),
   join(ROOT, 'docs/architecture.md'),
   join(ROOT, 'docs/ops/runbook.md'),
-  ...readdirSync(join(ROOT, 'docs/agents')).map((name) => join(ROOT, 'docs/agents', name)),
+  // 위임 규약은 색인 아래 `docs/agents/delegation/` 의 주제별 파일로 산다 — 하위 폴더까지 읽는다
+  ...walk(join(ROOT, 'docs/agents')),
   join(ROOT, 'docs/start.md'),
   ...readdirSync(join(ROOT, 'docs/roles')).map((name) => join(ROOT, 'docs/roles', name)),
 ];
@@ -978,18 +979,33 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
 });
 
 // -----------------------------------------------------------------------------
-// 위임 규약 (docs/agents/delegation.md, ADR 0090)
+// 위임 규약 (docs/agents/delegation.md 색인 → docs/agents/delegation/, ADR 0090)
 // -----------------------------------------------------------------------------
 
-describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
-  const doc = readFileSync(join(ROOT, 'docs/agents/delegation.md'), 'utf8');
+describe('위임 규약 (docs/agents/delegation.md 색인 → docs/agents/delegation/, ADR 0090)', () => {
+  const INDEX = 'docs/agents/delegation.md';
+  const DELEGATION_DIR = 'docs/agents/delegation';
+  /** 주제 파일 하나 — 규칙 문장은 그 파일에만 산다(2026-10-05 에 한 장을 나눴다) */
+  const part = (name: string) => readFileSync(join(ROOT, DELEGATION_DIR, name), 'utf8');
+  const permissions = part('permissions.md');
   const settings = JSON.parse(readFileSync(join(ROOT, '.claude/settings.json'), 'utf8')) as {
     permissions?: { ask?: string[]; deny?: string[] };
   };
 
+  it('색인은 주제 파일 전부를 들고 없는 파일을 들지 않으며, 규칙 문장을 들지 않는다', () => {
+    const index = readFileSync(join(ROOT, INDEX), 'utf8');
+    const files = readdirSync(join(ROOT, DELEGATION_DIR)).filter((name) => name.endsWith('.md'));
+    expect(files.length).toBeGreaterThan(5);
+    const listed = [...index.matchAll(/^\| `docs\/agents\/delegation\/([a-z-]+\.md)` \|/gm)].map((match) => match[1]);
+    expect([...listed].sort()).toEqual([...files].sort());
+    // 색인에 절이 생기면 규칙이 두 벌이 된다 — 머리말과 「차례」 하나뿐이다
+    expect([...index.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim())).toEqual(['차례']);
+    for (const name of files) expect(part(name), name).toContain(`\`${INDEX}\``);
+  });
+
   /** 권한 표에서 첫 칸이 `**N ` 으로 시작하는 줄의 잠금 칸(넷째)에 적힌 `Bash(…)` 규칙 */
   function lockedRulesOfTier(tier: string): string[] {
-    return doc
+    return permissions
       .split('\n')
       .map((line) => line.split('|').map((cell) => cell.trim()))
       .filter((cells) => cells.length >= 6 && cells[1].startsWith(`**${tier} `))
@@ -998,10 +1014,10 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
 
   /** 「공식 운영에 들어가면 켜는 잠금」 절의 `Bash(…)` 규칙 — 공식 운영 뒤 `ask` 로 되돌릴 목록 (ADR 0093) */
   function deferredAskRules(): string[] {
-    const start = doc.indexOf('\n### 공식 운영에 들어가면 켜는 잠금');
+    const start = permissions.indexOf('\n### 공식 운영에 들어가면 켜는 잠금');
     expect(start).toBeGreaterThan(-1);
-    const end = doc.indexOf('\n## ', start + 1);
-    return [...doc.slice(start, end).matchAll(/^- `(Bash\([^`]+\))`$/gm)].map((match) => match[1]);
+    const end = permissions.indexOf('\n## ', start + 1);
+    return [...permissions.slice(start, end === -1 ? undefined : end).matchAll(/^- `(Bash\([^`]+\))`$/gm)].map((match) => match[1]);
   }
 
   it('권한 표의 등급 3 은 settings 의 ask 와, 등급 4 는 deny 와 정확히 같은 목록이다', () => {
@@ -1035,7 +1051,7 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
     expect(stages, 'PRD §7.0 표의 「(지금)」은 하나다').toHaveLength(1);
     expect(stages[0] in TIER_THREE_LOCKED, `${stages[0]} 은 모르는 단계다 — 단계 표에 더한다`).toBe(true);
     if (TIER_THREE_LOCKED[stages[0]]) {
-      expect([...ask].sort(), 'delegation.md 「공식 운영에 들어가면 켜는 잠금」의 걸음을 밟는다').toEqual([...deferred].sort());
+      expect([...ask].sort(), 'docs/agents/delegation/permissions.md 「공식 운영에 들어가면 켜는 잠금」의 걸음을 밟는다').toEqual([...deferred].sort());
     } else {
       // #134 는 켤 목록 전부를 ask 와 등급 3 칸에 함께 넣어 초록이었다 — 단계를 안 옮기고는 못 켠다
       expect(ask, `지금은 ${stages[0]}다 — 등급 3 은 공개 출시 전까지 묻지 않는다`).toEqual([]);
@@ -1058,7 +1074,8 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
   });
 
   /** 문서의 한 절 안에서, 표의 첫 칸이 `**이름**` 인 줄의 그 이름들 — 차례대로 */
-  function columnsOfSection(heading: string): string[] {
+  function columnsOfSection(file: string, heading: string): string[] {
+    const doc = part(file);
     const start = doc.indexOf(`\n## ${heading}`);
     const end = doc.indexOf('\n## ', start + 1);
     expect(start, heading).toBeGreaterThan(-1);
@@ -1069,20 +1086,21 @@ describe('위임 규약 (docs/agents/delegation.md, ADR 0090)', () => {
       .filter((name): name is string => name !== null);
   }
 
-  it('이슈 틀과 PR 틀의 칸은 위임 규약 문서의 표와 차례까지 같다 — 어느 쪽에 더해도 붉어진다', () => {
+  it('이슈 틀과 PR 틀의 칸은 위임 규약(issues.md · done.md)의 표와 차례까지 같다 — 어느 쪽에 더해도 붉어진다', () => {
     const pairs = [
-      { file: '.github/ISSUE_TEMPLATE/ready-for-agent.md', section: '맡길 이슈', expected: 9 },
-      { file: '.github/pull_request_template.md', section: '끝났다는 것', expected: 6 },
+      { file: '.github/ISSUE_TEMPLATE/ready-for-agent.md', part: 'issues.md', section: '맡길 이슈', expected: 9 },
+      { file: '.github/pull_request_template.md', part: 'done.md', section: '끝났다는 것', expected: 6 },
     ];
-    for (const { file, section, expected } of pairs) {
+    for (const { file, part: name, section, expected } of pairs) {
       const headings = [...readFileSync(join(ROOT, file), 'utf8').matchAll(/^## (.+)$/gm)].map((match) => match[1].trim());
-      const columns = columnsOfSection(section);
+      const columns = columnsOfSection(name, section);
       expect(columns.length, section).toBe(expected);
       expect(headings, file).toEqual(columns);
     }
   });
 
   it('「나란히 맡길 때」 표가 드는 공유 자원의 경로는 전부 있다 — 옮겨진 파일을 두고 병렬을 판단하지 않는다', () => {
+    const doc = part('parallel.md');
     const start = doc.indexOf('\n## 나란히 맡길 때');
     expect(start).toBeGreaterThan(-1);
     const rows = doc

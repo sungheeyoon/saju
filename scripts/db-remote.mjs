@@ -18,7 +18,7 @@
  *   번호를 가리킨다. 성공/실패와 **오류 분류**(`sql` · `connection` · `unknown`)만 — 오류 문장에는 이용자 자료가
  *   섞일 수 있어 안 적는다. 결과를 적지 못하면 경고만 한다(SQL 은 이미 나갔다).
  * - 실행자는 git 의 `user.name`, 없으면 OS 사용자다. 에이전트 세션(`CLAUDECODE` · `AI_AGENT`)이면 뒤에 `(agent)` 가
- *   붙는다 — **에이전트는 운영 개인정보를 직접 조회하지 않는다**(ADR 0105, `docs/agents/delegation.md` 등급 3).
+ *   붙는다 — **에이전트는 운영 개인정보를 직접 조회하지 않는다**(ADR 0105, `docs/agents/delegation/permissions.md` 등급 3).
  *
  * ## 기계가 읽을 때 — `--json`
  *

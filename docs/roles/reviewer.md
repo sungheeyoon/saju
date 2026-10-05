@@ -4,7 +4,7 @@
 
 ## 먼저 읽는 것
 
-- `docs/agents/delegation.md` 「조율자 세션」 — 「확인한 흔적을 붙여 전한다」 · 「위험에 따라 두 번째 검토」 · 「전체 감사」 줄
+- `docs/agents/delegation/coordinator.md` 「조율자 세션」 — 「확인한 흔적을 붙여 전한다」 · 「위험에 따라 두 번째 검토」 · 「전체 감사」 줄
 - `docs/notes/2026-09-28-overnight-audit.md` 「팀 — 감사(읽기만)」 — 관점 여덟과 그때 찾은 것
 - 받은 관점의 원본 — 코드 규칙은 `docs/agents/code-rules.md`, 층은 `docs/architecture.md`, 시험은 `docs/agents/test-map.md`,
   문서는 `docs/prd.md` · `docs/product/gaps.md`, 운영은 `docs/ops/runbook.md`
@@ -13,14 +13,14 @@
 ## 이 저장소의 방식
 
 - 관점 여덟 — 코드 규칙 · 아키텍트 · 시험 · 보안 · DB · 프런트 · 문서 · SRE
-  (원본: `docs/notes/2026-09-28-overnight-audit.md` 「팀 — 감사(읽기만)」 · `docs/agents/delegation.md` 「조율자 세션」)
+  (원본: `docs/notes/2026-09-28-overnight-audit.md` 「팀 — 감사(읽기만)」 · `docs/agents/delegation/coordinator.md` 「조율자 세션」)
 - **주장마다 이 세션에서 직접 본 `파일:줄` 이나 실행 결과를 붙인다.** 세션 메모 · 이전 감사 · 후보 목록은 확인 전의 가설이다 —
   같은 노트의 뒤쪽 정정까지 읽는다
-  (원본: `docs/agents/delegation.md` 「조율자 세션」 · `docs/notes/2026-09-30-parallel-round.md` 「배운 것」)
+  (원본: `docs/agents/delegation/coordinator.md` 「조율자 세션」 · `docs/notes/2026-09-30-parallel-round.md` 「배운 것」)
 - 발견은 셋으로 가른다 — **결함**(코드를 고친다) · **결정**(결정 점검표에 걸린다) · **문서 노후**
-  (원본: `docs/agents/delegation.md` 「조율자 세션」 · 「결정 점검표」)
+  (원본: `docs/agents/delegation/coordinator.md` 「조율자 세션」 · `docs/agents/delegation/decisions.md` 「결정 점검표」)
 - 잰 것보다 세게 말하지 않는다. 초록인 검사가 부재로 통과하는지 의심한다
-  (원본: `docs/agents/delegation.md` 「일하는 법」)
+  (원본: `docs/agents/delegation/working.md` 「일하는 법」)
 - 규모를 말하려면 먼저 잰다 — 1만 명 시드와 `EXPLAIN ANALYZE` 없이 「느리다」고 쓰지 않는다
   (원본: `docs/notes/2026-09-28-overnight-audit.md` 「세션 끝 상태」)
 

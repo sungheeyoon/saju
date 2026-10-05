@@ -1,4 +1,4 @@
-<!-- 칸 이름은 docs/agents/delegation.md 「끝났다는 것」 표와 같다. 안 한 것은 안 했다고 적는다. -->
+<!-- 칸 이름은 docs/agents/delegation/done.md 「끝났다는 것」 표와 같다. 안 한 것은 안 했다고 적는다. -->
 
 ## 무엇이 참이 되는가
 
@@ -6,11 +6,11 @@
 
 ## 잰 값
 
-<!-- 고치기 전에 잰 수와 그 방법. 이슈 문장과 어디가 달랐나. 주소 · 부품의 한쪽 상태(로그인 전/뒤 등)의 뜻을 바꿨으면 반대쪽까지 걸은 상태표(누가 · 주소 · 기대 · 실제 — docs/agents/delegation.md 「한쪽 뜻을 바꾸면 반대쪽 상태까지 걷는다」). -->
+<!-- 고치기 전에 잰 수와 그 방법. 이슈 문장과 어디가 달랐나. 주소 · 부품의 한쪽 상태(로그인 전/뒤 등)의 뜻을 바꿨으면 반대쪽까지 걸은 상태표(누가 · 주소 · 기대 · 실제 — docs/agents/delegation/decisions.md 「한쪽 뜻을 바꾸면 반대쪽 상태까지 걷는다」). -->
 
 ## 돌린 것
 
-<!-- docs/agents/test-map.md 의 명령과 결과(수까지). 공개 출시 전의 최소는 npm test · typecheck · lint 와 예외 넷(e2e·흐름 시험 자체 · 새 잠금 · 마이그레이션 · 프롬프트 본문). 안 돌린 것과 그 까닭. 화면이 바뀌었으면 전후 그림 전부를 여기 GitHub 첨부로 싣고, 저장소 docs/notes/shots/<날짜>-<PR>/ 에는 화면마다 대표 몇 장(대개 390px 바뀐 뒤 한 장)만 — docs/agents/delegation.md 「끝났다는 것」. -->
+<!-- docs/agents/test-map.md 의 명령과 결과(수까지). 공개 출시 전의 최소는 npm test · typecheck · lint 와 예외 넷(e2e·흐름 시험 자체 · 새 잠금 · 마이그레이션 · 프롬프트 본문). 안 돌린 것과 그 까닭. 화면이 바뀌었으면 전후 그림 전부를 여기 GitHub 첨부로 싣고, 저장소 docs/notes/shots/<날짜>-<PR>/ 에는 화면마다 대표 몇 장(대개 390px 바뀐 뒤 한 장)만 — docs/agents/delegation/done.md 「끝났다는 것」. -->
 
 ## 잠금이면 일부러 어긴 것
 
@@ -18,7 +18,7 @@
 
 ## 문서
 
-결정 여부: 없음 <!-- 또는 「있음 — 점검표의 어느 줄 · ADR 번호 · 운영자가 답했는가」. docs/agents/delegation.md 「결정 점검표」 다섯(볼 수 있는 것 · 할 수 있는 것 / 실패 때 열리는가 닫히는가 / 보존 · 삭제 / 비용 · 외부 서비스 / 화면 문구) 중 하나라도 바뀌면 있음. -->
+결정 여부: 없음 <!-- 또는 「있음 — 점검표의 어느 줄 · ADR 번호 · 운영자가 답했는가」. docs/agents/delegation/decisions.md 「결정 점검표」 다섯(볼 수 있는 것 · 할 수 있는 것 / 실패 때 열리는가 닫히는가 / 보존 · 삭제 / 비용 · 외부 서비스 / 화면 문구) 중 하나라도 바뀌면 있음. -->
 
 <!-- 역할 문서(docs/roles/<역할>.md) 「끝날 때 고치는 것」을 옮겨 적고 체크한다 — ADR(같은 PR) · CONTEXT.md · docs/prd.md 와 changelog · docs/product/gaps.md · docs/agents/test-map.md 중 고친 것. 역할 문서에 없어서 헤맨 것이 있으면 한 줄. -->
 

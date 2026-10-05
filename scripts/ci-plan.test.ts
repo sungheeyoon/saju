@@ -446,7 +446,7 @@ describe('CI 계획 — 공개 출시', () => {
       '.github/pull_request_template.md',
       'scripts/code-rules.test.ts',
     ]) {
-      expect(pr(['docs/agents/delegation.md', file]).tier, file).toBe('policy');
+      expect(pr(['docs/agents/delegation/permissions.md', file]).tier, file).toBe('policy');
     }
   });
 

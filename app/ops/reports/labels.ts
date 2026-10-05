@@ -4,7 +4,7 @@ import { REPORT_REASONS } from '@/src/lib/account';
  * 운영자 신고 화면이 **값을 부르는 말** — 목록과 상세가 같은 사실을 같은 글자로 적게 한 자리에 둔다.
  *
  * 운영자에게만 보이는 말이다. `/ops/**` 의 설명 · 제목 · 빈 상태 문구는 표 승인을 생략하고 PR 에 모아
- * 보고한다(`docs/agents/delegation.md`, ADR 0103). 사유의 이름은 사용자가 고른 그 글자
+ * 보고한다(`docs/agents/delegation/working.md` 「사용자와」, ADR 0103). 사유의 이름은 사용자가 고른 그 글자
  * (`REPORT_REASONS`)를 그대로 쓴다 — 운영자가 읽는 말과 신고한 사람이 누른 말이 갈리면 안 된다.
  */
 

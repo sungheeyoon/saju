@@ -4,9 +4,9 @@
 
 ## 먼저 읽는 것
 
-- `docs/agents/delegation.md` 「조율자 세션」 · 「무인 라운드」 — 이 역할의 규약 전부
-- `docs/agents/delegation.md` 「나란히 맡길 때」 — 무엇이 병렬이고 무엇이 순차인가
-- `docs/agents/delegation.md` 「결정 점검표 — 무엇이 바뀌면 결정인가」 · 「권한 등급」
+- `docs/agents/delegation/coordinator.md` 「조율자 세션」 · `docs/agents/delegation/unattended.md` 「무인 라운드」 — 이 역할의 규약 전부
+- `docs/agents/delegation/parallel.md` 「나란히 맡길 때」 — 무엇이 병렬이고 무엇이 순차인가
+- `docs/agents/delegation/decisions.md` 「결정 점검표 — 무엇이 바뀌면 결정인가」 · `docs/agents/delegation/permissions.md` 「권한 등급」
 - `docs/product/gaps.md` — 특히 `보류` 줄
 - `docs/notes/README.md` 의 마지막 줄들 — 지난 라운드가 어디서 끝났나
 - `gh issue list` — 열린 이슈와 운영자 할 일 이슈
@@ -15,16 +15,16 @@
 
 - **역할 하나 = 에이전트 하나 = 충돌 영역 하나.** 지금 환경의 위임 도구로 역할(`docs/start.md` 「역할 고르기」)과 격리된
   작업공간(워크트리와 스택 자리)을 준다. 에이전트는 역할 문서부터 읽는다
-  (원본: `docs/agents/delegation.md` 「나란히 맡길 때」 · 「조율자 세션」)
+  (원본: `docs/agents/delegation/parallel.md` 「나란히 맡길 때」 · `docs/agents/delegation/coordinator.md` 「조율자 세션」)
 - **브리프는 「역할」과 이번 일의 것만 든다** — 정해진 것(사람의 답 그대로) · 할 일 · 건드리지 않을 자리(나란히 도는 세션과 그 파일) ·
   스택 자리 · 내보내기 · 보고 형식. 읽을 것 · 하지 않을 것 · 끝날 때 고칠 것은 역할 문서가 든다. 규칙은 옮겨 적지 않고 절 이름으로 가리킨다
-  (원본: `docs/agents/delegation.md` 「조율자 세션」 · ADR 0140)
+  (원본: `docs/agents/delegation/coordinator.md` 「조율자 세션」 · ADR 0140)
 - **의견을 모을 때**는 관점마다 `reviewer` 하나씩 띄운다. 보고는 코드에서 확인한 뒤 사람에게 동의 · 이견을 한 줄로 전한다 — 그대로 옮기지 않는다
-  (원본: `docs/agents/delegation.md` 「조율자 세션」 · `docs/roles/reviewer.md` 「이 저장소의 방식」)
+  (원본: `docs/agents/delegation/coordinator.md` 「조율자 세션」 · `docs/roles/reviewer.md` 「이 저장소의 방식」)
 - 사람에게 묻는 곳은 조율자 하나다 — 에이전트 보고의 물음을 모아 한 번에(질문 넷까지) 묻는다. 운영자 판단이 드는 PR 은 머지 전에 표로
-  (원본: `docs/agents/delegation.md` 「조율자 세션」 · 「결정 점검표」)
+  (원본: `docs/agents/delegation/coordinator.md` 「조율자 세션」 · `docs/agents/delegation/decisions.md` 「결정 점검표」)
 - 머지는 묶음으로: `npm run merge:sim -- <PR…>` → 하나씩 gate → `--auto`. 배포는 「배포」 답 뒤에 묶음 한 번
-  (원본: `docs/agents/delegation.md` 「무인 라운드」 · `docs/ops/runbook.md` 「묶음 배포」)
+  (원본: `docs/agents/delegation/unattended.md` 「무인 라운드」 · `docs/ops/runbook.md` 「묶음 배포」)
 
 ## 하지 않는 것 · 묻는 것
 
@@ -34,7 +34,7 @@
 
 ## 끝날 때 고치는 것
 
-- [ ] 라운드 노트(`docs/notes/`) — `docs/agents/delegation.md` 「세션 기록」에 따라 다른 문서에 없는 것만 적고, 나머지는 PR · 배포 이슈 · `G-nn` 으로 가리켰는가 — 와 `docs/notes/README.md` 한 줄, PR `--auto`
+- [ ] 라운드 노트(`docs/notes/`) — `docs/agents/delegation/notes.md` 「세션 기록」에 따라 다른 문서에 없는 것만 적고, 나머지는 PR · 배포 이슈 · `G-nn` 으로 가리켰는가 — 와 `docs/notes/README.md` 한 줄, PR `--auto`
 - [ ] 에이전트가 보고한 「역할 문서에 없어서 헤맨 것 · 가리킨 절이 틀린 것」 → `docs/roles/` 를 고친다(같은 노트 PR)
-- [ ] 되풀이된 실수 → `docs/agents/delegation.md` 「일하는 법」에 까닭과 함께 한 줄
+- [ ] 되풀이된 실수 → `docs/agents/delegation/working.md` 「일하는 법」에 까닭과 함께 한 줄
 - [ ] 운영자만 할 수 있는 일 → 운영자 할 일 이슈. 머지된 워크트리는 사람에게 한 번 묻고 걷는다
