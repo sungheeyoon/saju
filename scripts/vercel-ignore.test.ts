@@ -19,6 +19,7 @@ describe('무엇이 바뀌면 Preview 를 건너뛰나', () => {
   it('문서 · 마이그레이션 · pgTAP · src 와 scripts 의 단위 시험만 건너뛸 수 있다', () => {
     for (const file of [
       'docs/ops/runbook.md',
+      'docs/ops/runbook/deploy.md',
       'README.md',
       'AGENTS.md',
       'supabase/migrations/20261010090000_x.sql',
@@ -161,10 +162,15 @@ describe('Git 배포는 꺼져 있고 문서가 그것을 말한다', () => {
   });
 
   it('runbook 은 손으로 올리는 묶음 배포를 말하고 「푸시하면 자동 배포」를 말하지 않는다', () => {
-    const runbook = read('docs/ops/runbook.md');
+    // 운영 절차는 색인과 `docs/ops/runbook/` 의 주제 파일로 나뉘어 산다 — 안 할 말은 전부에서, 할 말은 배포 파일에서 잰다
+    const runbook = ['docs/ops/runbook.md']
+      .concat(readdirSync(resolve(__dirname, '..', 'docs/ops/runbook')).map((name) => `docs/ops/runbook/${name}`))
+      .map(read)
+      .join('\n');
     expect(runbook).not.toMatch(/푸시하면 자동 배포/);
-    expect(runbook).toMatch(/묶음 배포 — 최신 main 을 Production 으로 한 번/);
-    expect(runbook).toMatch(/vercel deploy --prod/);
+    const deploy = read('docs/ops/runbook/deploy.md');
+    expect(deploy).toMatch(/^#+ 묶음 배포 — 최신 main 을 Production 으로 한 번$/m);
+    expect(deploy).toMatch(/vercel deploy --prod/);
   });
 
   it('위임 문서는 「머지는 곧 배포」를 말하지 않는다', () => {

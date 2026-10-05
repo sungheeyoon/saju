@@ -81,4 +81,4 @@
 - **PRD 절 번호를 코드 주석에 들지 않는다.** 절은 옮겨진다 — changelog 의 날짜나 `G-nn` 을 든다
   (ADR 0089).
 - **마이그레이션을 쓴 그 순간부터 이 기계의 dev 화면은 깨져 있다** — dev 서버가 운영 DB 를 보기
-  때문이다. 배포 순서는 `docs/ops/runbook.md` 「배포」.
+  때문이다. 배포 순서는 `docs/ops/runbook/deploy.md` 「배포」.

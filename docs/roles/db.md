@@ -7,8 +7,8 @@
 - `docs/architecture.md` 「문 — DB 를 부르는 자리」 · 「그 밖의 자리」
 - `docs/agents/delegation/permissions.md` 「권한 등급」 — 특히 「예외 — 마이그레이션이 든 PR」 문단
 - `docs/agents/delegation/parallel.md` 「나란히 맡길 때」 — 원격 DB · 마이그레이션 사슬은 순차다
-- `docs/ops/runbook.md` 「규약 넷 — 앱과 DB 는 따로 간다」 · 「묶음 배포」의 0
-- `docs/ops/runbook.md` 「개인정보는 화면으로만」
+- `docs/ops/runbook/deploy.md` 「규약 넷 — 앱과 DB 는 따로 간다」 · 「묶음 배포」의 0
+- `docs/ops/runbook/access.md` 「개인정보는 화면으로만」
 - `docs/agents/test-map.md` 「무엇을 고쳤으면 무엇을 돌리나」의 마이그레이션 줄
 - ADR 0071(넓히기 → 앱 → 좁히기) · 0078(문이 실패를 말한다) · 0084(모양을 잠근다) · 0105(접속기록)
 
@@ -36,4 +36,4 @@
 
 - [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯. 「사람이 할 걸음」에 밟은 `db push` 와 본 값, 「문서」에 결정 여부와 고친 원본
 - [ ] 새 표 · 함수의 이름이 도메인 낱말이면 → [용어 ↔ 코드](../../CONTEXT.md#9-용어--코드)
-- [ ] 운영에서 손으로 도는 SQL · 절차가 바뀌었으면 → `docs/ops/runbook.md`
+- [ ] 운영에서 손으로 도는 SQL · 절차가 바뀌었으면 → `docs/ops/runbook/` 의 그 작업 파일(새 파일이면 색인에 한 줄)

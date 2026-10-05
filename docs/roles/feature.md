@@ -33,4 +33,4 @@
 ## 끝날 때 고치는 것
 
 - [ ] [끝났다는 것](../agents/delegation/done.md) — PR 칸 여섯. 「문서」 칸이 고칠 원본(ADR · `CONTEXT.md` · PRD 와 changelog · 간극 대장 · 시험 지도)을 든다
-- [ ] 새 운영 절차 · 운영 SQL → `docs/ops/runbook.md`. 새 비밀 → `scripts/secret-env.mjs` 의 갈래
+- [ ] 새 운영 절차 · 운영 SQL → `docs/ops/runbook/` 의 그 작업 파일(새 파일이면 색인에 한 줄). 새 비밀 → `scripts/secret-env.mjs` 의 갈래

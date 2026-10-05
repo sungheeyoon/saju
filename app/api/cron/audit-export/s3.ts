@@ -13,7 +13,7 @@ import type { ExportConfig, Upload } from './export';
  * 묶음 하나를 S3 에 **한 객체로** 올린다 (G-23 ⑩, ADR 0105).
  *
  * 보존은 **버킷이 정한다** — 버킷의 Object Lock 기본 보존(처음엔 Governance 로 재고, 운영은 Compliance 400일,
- * runbook 「운영자 접속기록 — 반출」). 여기서 객체마다 보존을 적지 않는 것은, 적으면 Governance → Compliance
+ * `docs/ops/runbook/security.md` 「운영자 접속기록 — 반출」). 여기서 객체마다 보존을 적지 않는 것은, 적으면 Governance → Compliance
  * 로 옮기는 것이 코드 배포가 되고 반출 키에 `s3:PutObjectRetention` 까지 줘야 하기 때문이다. 반출 키는
  * `s3:PutObject` 하나면 된다.
  *

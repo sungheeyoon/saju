@@ -7,7 +7,7 @@ assignees: ''
 ---
 
 <!--
-  runbook 의 그 절(예: 「신고 열람대의 운영 검증 — G-24 를 닫는 열네 걸음」)을 그대로 밟고 값을 적는다.
+  runbook 의 그 절(예: `docs/ops/runbook/moderation.md` 「신고 열람대의 운영 검증 — G-24 를 닫는 열네 걸음」)을 그대로 밟고 값을 적는다.
   이메일 · 메시지 본문 · 출생정보 · 실제 이름은 적지 않는다 — id 와 시각과 통과/실패만.
   걸음이 하나라도 실패면 그 걸음을 적고 이슈도 G 줄도 닫지 않는다.
 -->
@@ -19,7 +19,7 @@ assignees: ''
 ## 전제
 
 - [ ] 관련 마이그레이션이 운영에 올라 있다 (`migration list` remote 칸)
-- [ ] 최신 main 이 Production 에서 Ready 다 — runbook 「묶음 배포 — 최신 main 을 Production 으로 한 번」
+- [ ] 최신 main 이 Production 에서 Ready 다 — `docs/ops/runbook/deploy.md` 「묶음 배포 — 최신 main 을 Production 으로 한 번」
 - [ ] 실제 개인정보가 없는 전용 테스트 계정이다 (`@example.com`)
 - [ ] 테스트 메시지 · 설명에 실제 이름 · 연락처 · 출생정보가 없다
 

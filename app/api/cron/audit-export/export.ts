@@ -89,7 +89,7 @@ export function errorClassOf(error: unknown): string {
   return `${stepName}:${safe}`.slice(0, 60);
 }
 
-/** 반출의 두 방식 — 오래 사는 접근 키, 또는 Vercel OIDC 로 받는 단기 역할(runbook 「반출」 — 역할이 기본안) */
+/** 반출의 두 방식 — 오래 사는 접근 키, 또는 Vercel OIDC 로 받는 단기 역할(`docs/ops/runbook/security.md` 「반출」 — 역할이 기본안) */
 type ExportCredentials =
   | { readonly kind: 'keys'; readonly accessKeyId: string; readonly secretAccessKey: string }
   | { readonly kind: 'role'; readonly roleArn: string };

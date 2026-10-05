@@ -52,7 +52,7 @@ export const metadata = {
  *
  * 메뉴에도 안 세운다. 헤더는 브라우저에서 세션만 읽으므로 운영자인지 알 수 없고,
  * 알려면 「나는 운영자인가」를 열어야 한다 — 위에서 안 열기로 한 그 문이다. 주소는
- * 운영 절차서가 든다(`docs/ops/runbook.md`).
+ * 운영 절차서가 든다(`docs/ops/runbook/operators.md`).
  */
 export default async function OperatorSurveyPage() {
   const supabase = await supabaseOnServer();

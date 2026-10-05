@@ -77,7 +77,7 @@ const CODE = 'UIWALK';
  *
  * **운영이 약속한 날과 같게 둔다.** 프로덕션의 진짜 값은 코드가 아니라 `beta_schedule`
  * 표에 있고(배포 없이 옮기려고 그렇게 뒀다), 옮겼으면 여기도 따라 고친다 —
- * `docs/ops/runbook.md` 의 「테스트 시작하기」.
+ * `docs/ops/runbook/signup.md` 의 「테스트 시작하기」.
  *
  * 파기 기한은 `purge_within_days` 기본값(30일)에서 DB 가 짓는다.
  */

@@ -6,7 +6,7 @@
  * 우리 작업대이지 사용자 화면이 아니다(`docs/prd.md` 화면 표의 「검산」).
  *
  * `VERCEL_ENV` 가 `production` · `preview` 이면 닫고, 그 밖(로컬 `next dev` · `next start` · 흐름 · e2e)에서는
- * 연다. Preview 도 닫는 까닭은 그것도 밖에서 열리는 주소이고 운영 키를 들기 때문이다(`docs/ops/runbook.md`
+ * 연다. Preview 도 닫는 까닭은 그것도 밖에서 열리는 주소이고 운영 키를 들기 때문이다(`docs/ops/runbook/access.md`
  * 「접속값은 여섯이고 넣는 손은 하나다」 — `OPENAI_API_KEY` 는 Production · Preview).
  */
 export function inspectOpen(vercelEnv: string | undefined = process.env.VERCEL_ENV): boolean {

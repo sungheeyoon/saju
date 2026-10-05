@@ -1,7 +1,7 @@
 -- Supabase 보안 advisor 가 낸 경고 중 고친 것이 다시 안 뜬다 (G-23 ⑪)
 --
 -- `20261009120000` 이 고친 두 갈래를 지킨다. 남긴 경고(부르라고 연 RPC 문 · 유출 비밀번호 검사)는
--- runbook 「보안 advisor」가 까닭과 함께 든다 — 여기서 재는 것은 **고쳤다고 적은 것**뿐이다.
+-- `docs/ops/runbook/security.md` 「보안 advisor」가 까닭과 함께 든다 — 여기서 재는 것은 **고쳤다고 적은 것**뿐이다.
 --
 -- 1. lint 0011 은 definer 만이 아니라 **모든 함수**의 search_path 를 본다. `42_definer_search_path` 는
 --    definer 만 재서, 상수 함수 열다섯이 풀린 채로 초록이었다. 여기는 invoker 까지 잰다.

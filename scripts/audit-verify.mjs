@@ -6,7 +6,7 @@
  *
  * 반출 기록(`audit.operator_access_export` — 범위 · 행 수 · 본문 sha256 · 객체 키)은 `npm run db:remote -- --json` 으로
  * 읽는다(목적이 접속기록에 남는다 — `--json` 이 없으면 사람의 셸에서는 표가 와서 못 읽는다, #431). 개인을 가리키는 값이 없는 표다. 객체는 **읽기 전용 역할**로 내려받는다 — 반출의
- * 쓰기 자격(`s3:PutObject` 만)과 따로다(runbook 「반출」 — 검증). 자격은 AWS SDK 의 기본 사슬(`AWS_PROFILE` 등)이
+ * 쓰기 자격(`s3:PutObject` 만)과 따로다(`docs/ops/runbook/security.md` 「반출」 — 검증). 자격은 AWS SDK 의 기본 사슬(`AWS_PROFILE` 등)이
  * 고른다 — 이 스크립트는 열쇠를 받지 않는다.
  *
  * 한 객체마다 재는 것:
@@ -133,7 +133,7 @@ async function main() {
   const bucket = process.env.AUDIT_VERIFY_BUCKET?.trim();
   const region = process.env.AUDIT_VERIFY_REGION?.trim() || 'ap-northeast-2';
   if (!bucket) {
-    console.error('AUDIT_VERIFY_BUCKET 이 없다 — runbook 「반출」의 검증 절');
+    console.error('AUDIT_VERIFY_BUCKET 이 없다 — `docs/ops/runbook/security.md` 「반출」의 검증 절');
     process.exit(2);
   }
   const at = process.argv.indexOf('--since');

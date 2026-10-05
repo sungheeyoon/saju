@@ -18,7 +18,7 @@ const isDev = process.env.NODE_ENV !== 'production';
  * `frame-ancestors` 는 `Report-Only` 에서 무시돼 따로 한 줄로 강제하던 것을 이 정책 하나에 합쳤다.
  * 어긴 자리를 받는 `report-uri` 는 두지 않았다 — 받을 서버가 곧 누구나 쓸 수 있는 공개 POST 가 되고,
  * 어긴 자리는 곧 깨진 화면이라 e2e 의 손잡이(`e2e/csp.ts`)가 먼저 본다. 운영에서 깨지면 되돌리는
- * 법은 `docs/ops/runbook.md` 「CSP 가 화면을 막을 때」.
+ * 법은 `docs/ops/runbook/deploy.md` 「CSP 가 화면을 막을 때」.
  *
  * 개발 서버는 `eval` 과 웹소켓(HMR)을 쓴다 — 그 둘은 개발에서만 연다.
  */
