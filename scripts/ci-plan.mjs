@@ -193,7 +193,7 @@ export const HARNESS = ['next.config.ts', 'playwright.config.ts', 'src/lib/local
  * 새 도우미(`scripts/beta-dates.mjs` 같은 것)는 이름을 안 적어도 걸리고, 여기 든 이름이 없어져도 넓어질 뿐이다
  */
 const NOT_HARNESS =
-  /^scripts\/(?:ci-plan|release-stage|main-red|audit-verify|vercel-ignore|secret-env|remote-lock|db-remote|stack-slot|merge-sim|brand-share-images|generate-[^/]+|fake-clock|ui-[^/]+)\.mjs$/;
+  /^scripts\/(?:ci-plan|release-stage|main-red|audit-verify|vercel-ignore|secret-env|remote-lock|db-remote|stack-slot|merge-sim|read-budget|brand-share-images|generate-[^/]+|fake-clock|ui-[^/]+)\.mjs$/;
 const isHarness = (file) => HARNESS.includes(file) || (/^scripts\/[^/]+\.mjs$/.test(file) && !NOT_HARNESS.test(file));
 /** 관문 — 여기서 import 를 따라가 닿는 `app/` 파일은 입구다(위 「관문이 import 하는 `app/` 파일」) */
 const GATE = 'proxy.ts';

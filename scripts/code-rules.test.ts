@@ -18,6 +18,7 @@ import { describe, expect, it } from 'vitest';
 
 import { SUPPORT_EMAIL } from '../src/lib/account';
 
+import { READ_BUDGET, SIZE_AT_LOCK, linksOf, pointersOf, readBudgetOf, sectionOf as sectionIn, tableOf } from './read-budget.mjs';
 import { LAUNCHED, STAGE_FILE, stagesOf } from './release-stage.mjs';
 
 const ROOT = resolve(__dirname, '..');
@@ -1110,12 +1111,11 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
     expect(missing).toEqual([]);
   });
 
-  /** 한 칸(`## 이름`)의 본문 — 다음 `## ` 까지 */
+  /** 한 칸(`## 이름`)의 본문 — 다음 `## ` 까지. 칸이 없으면 붉다 */
   function sectionOf(text: string, heading: string): string {
-    const start = text.indexOf(`\n## ${heading}\n`);
-    expect(start, heading).toBeGreaterThan(-1);
-    const end = text.indexOf('\n## ', start + 1);
-    return text.slice(start + 1, end === -1 ? undefined : end);
+    const section = sectionIn(text, heading);
+    expect(section, heading).not.toBeNull();
+    return section ?? '';
   }
 
   /** 칸 안의 목록 줄 — 들여 쓴 이음 줄은 앞 줄에 붙인다 */
@@ -1129,11 +1129,6 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
         return acc;
       }, []);
   }
-
-  /** `[글](대상#앵커)` — 바깥 주소는 뺀다 */
-  const MARKDOWN_LINK = /\[[^\]]+\]\(([^)\s#]+)(?:#([^)\s]+))?\)/g;
-  const linksOf = (text: string) =>
-    [...text.matchAll(MARKDOWN_LINK)].filter((match) => !/^[a-z]+:/.test(match[1])).map((match) => ({ path: match[1], anchor: match[2] }));
 
   /** GitHub 가 제목에 다는 앵커 — 굵기 · 백틱을 걷고 낱자 · 숫자 · `-` · `_` · 빈칸만 남겨 빈칸을 `-` 로. 같은 것이 또 서면 `-1` … */
   function anchorsOf(text: string): Set<string> {
@@ -1202,127 +1197,39 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
   });
 
   /**
-   * **필수 읽기량** — 역할 문서와, 그 「먼저 읽는 것」 · 「이 저장소의 방식」 · 「끝날 때 고치는 것」이 가리키는 파일(백틱의 뿌리
-   * 경로 · Markdown 링크, 폴더는 빼고 중복은 한 번)의 바이트 합이다. 2026-10-05 에 ADR 0145 로 역할 문서를 길잡이로 바꾼 뒤의
-   * 값을 **회귀 상한**으로 박는다 — 임의의 절대 상한은 두지 않는다.
+   * **필수 읽기량**(ADR 0145) — 정의와 셈은 `scripts/read-budget.mjs` 한 곳이고, `npm run read-budget` 이 같은 함수로 역할마다
+   * 고정 · 동적 · 합 · 상한을 찍는다. 읽기량 = 고정(역할 문서와 가리킨 파일, 원본은 잠근 날의 크기) + 동적 라우트(디렉터리를
+   * 가리키는 Markdown 링크)마다 그 디렉터리 후보 가운데 가장 큰 것의 지금 크기. 값을 회귀 상한으로 박는다 — 임의의 절대 상한은 없다.
    *
-   * 원본(가리킨 파일)은 **잠근 날의 크기**로 센다(`SIZE_AT_LOCK`). 간극 대장 · changelog · runbook 은 PR 마다 자라는데, 그것은
-   * 길잡이의 회귀가 아니다 — 지금 크기로 세면 다음 기능 PR 이 changelog 한 줄로 붉어진다. 역할 문서 자신과, 잠근 날에 없던 새
-   * 원본은 지금 크기로 센다. 그래서 붉어지는 것은 **역할 문서가 더 많이 · 더 큰 파일을 가리키거나 제 몸이 자랄 때**다.
+   * **ADR 본문은 영역마다 달라 세지 않는다** — 「그 영역의 ADR — 색인에서 번호만」은 색인(`docs/adr/README.md`)만 센다. 「먼저
+   * 읽는 것」이 번호로 부른 ADR 만 고정으로 든다. 「끝날 때 고치는 것」의 쓰는 자리(백틱 디렉터리)도 세지 않는다.
    *
-   * 원본을 쪼개 줄였으면(예: runbook 을 주제 파일로) 상한도 내린다. 늘리려면 PR 에 까닭을 적고 여기 값을 함께 고친다.
-   * runbook 은 2026-10-05 에 운영 작업별 파일(`docs/ops/runbook/`)로 나눠 다섯 역할의 값을 내렸다. PRD 는 같은 날 제품 영역별
-   * 파일(`docs/product/prd/`)로 나눠, 역할 문서가 제 영역 파일만 가리키게 하고 네 역할(feature · reading · reviewer · ui)의 값을 내렸다.
-   * 간극 대장은 같은 날 「## G-nn 기록」 절 여덟을 줄마다 한 파일(`docs/product/gaps/records/`)로 옮겨, 대장을 가리키는 여섯
-   * 역할(coordinator · db · docs · feature · ops · reviewer)의 값을 51,060 씩 내렸다. 용어집(`CONTEXT.md`)은 같은 날 영역별
-   * 파일(`docs/context/`)로 나눠, 역할 문서가 제 영역 파일만 가리키게 하고 네 역할(db · feature · reading · ui)의 값을 내렸다.
+   * 붉어지는 것은 역할 문서가 더 많이 · 더 큰 파일을 가리키거나, 제 몸이 자라거나, 동적 라우트의 후보(PRD · 용어집의 영역 파일)가
+   * 가장 큰 것보다 커질 때다. 동적 링크를 파일 하나로 바꿔치면 라우트가 사라진 것으로 붉어진다. 늘리려면 PR 에 까닭을 적고
+   * `READ_BUDGET` 을 함께 고친다.
    */
-  const READ_BUDGET: Record<string, number> = {
-    coordinator: 106759,
-    db: 227849,
-    docs: 231108,
-    feature: 153484,
-    ops: 123122,
-    reading: 259378,
-    reviewer: 133395,
-    ui: 162222,
-  };
-  const SIZE_AT_LOCK: Record<string, number> = {
-    'CONTEXT.md': 2979,
-    'README.md': 26108,
-    'app/me/reading/model.ts': 20492,
-    'docs/adr/0047-the-engine-does-not-speak-to-the-model.md': 7093,
-    'docs/adr/0071-the-consented-chart-is-copied-not-the-input.md': 18122,
-    'docs/adr/0073-the-blocked-name-is-said-by-the-prompt.md': 6632,
-    'docs/adr/0078-the-reading-doors-say-how-they-failed.md': 9754,
-    'docs/adr/0084-the-shape-is-asserted-not-only-the-behaviour.md': 7311,
-    'docs/adr/0105-the-operator-reads-leave-a-trace-from-the-first-read.md': 16278,
-    'docs/adr/0109-the-product-wears-one-soft-look-under-the-name-jeomjeom.md': 8466,
-    'docs/adr/0135-the-screen-speaks-haeyo-by-default.md': 4970,
-    'docs/adr/README.md': 14962,
-    'docs/agents/code-rules.md': 16485,
-    'docs/agents/delegation/coordinator.md': 9000,
-    'docs/agents/delegation/decisions.md': 3031,
-    'docs/agents/delegation/done.md': 3269,
-    'docs/agents/delegation/local-env.md': 6859,
-    'docs/agents/delegation/notes.md': 1563,
-    'docs/agents/delegation/parallel.md': 3836,
-    'docs/agents/delegation/permissions.md': 11728,
-    'docs/agents/delegation/unattended.md': 4823,
-    'docs/agents/delegation/working.md': 7332,
-    'docs/agents/domain.md': 1980,
-    'docs/agents/test-map.md': 32484,
-    'docs/architecture.md': 13790,
-    'docs/context/chart.md': 11667,
-    'docs/context/code-names.md': 11701,
-    'docs/context/copy.md': 7144,
-    'docs/context/evidence.md': 19418,
-    'docs/notes/2026-09-28-overnight-audit.md': 23358,
-    'docs/notes/README.md': 18300,
-    'docs/notes/verification-discipline.md': 47917,
-    'docs/ops/runbook.md': 2895,
-    'docs/ops/runbook/access.md': 20690,
-    'docs/ops/runbook/deploy.md': 21697,
-    'docs/ops/runbook/jobs.md': 11109,
-    'docs/ops/runbook/security.md': 32543,
-    'docs/prd.md': 2617,
-    'docs/product/copy-ledger.md': 30104,
-    'docs/product/gaps.md': 14239,
-    'docs/product/prd-changelog.md': 143536,
-    'docs/product/prd/foundation.md': 21970,
-    'docs/product/prd/reading.md': 19263,
-    'docs/product/prd/screens.md': 27868,
-    'docs/roles/reviewer.md': 2523,
-    'docs/start.md': 5641,
-    'docs/text/claim-policy.md': 19554,
-    'scripts/secret-env.mjs': 8315,
-  };
-  /** 백틱 안에서 파일로 세는 경로 — 뿌리의 `CONTEXT.md` 같은 문서와 저장소 안의 경로 */
-  const POINTED_PATH = /^(?:[A-Z][A-Za-z_-]*\.md|(?:app|src|scripts|e2e|docs|supabase|public|\.github|\.claude)\/[A-Za-z0-9_.\/\[\]-]+)$/;
-  const isFile = (path: string) => existsSync(path) && statSync(path).isFile();
-
-  const ADR_FILES = readdirSync(join(ROOT, 'docs/adr')).filter((name) => /^\d{4}-.+\.md$/.test(name));
-
-  /** 역할 문서가 읽게 하는 파일 — 저장소 뿌리에서의 경로. 「먼저 읽는 것」이 부르는 ADR 도 든다 */
-  function pointedFiles(role: string): Set<string> {
-    const doc = join(ROLES_DIR, `${role}.md`);
-    const text = readFileSync(doc, 'utf8');
-    const files = new Set<string>();
-    for (const heading of ['먼저 읽는 것', '이 저장소의 방식', '끝날 때 고치는 것']) {
-      const section = sectionOf(text, heading);
-      for (const match of section.matchAll(/`([^`\s]+)`/g)) {
-        if (POINTED_PATH.test(match[1]) && isFile(join(ROOT, match[1]))) files.add(match[1]);
-      }
-      for (const { path } of linksOf(section)) {
-        const target = resolve(dirname(doc), path);
-        if (isFile(target)) files.add(relPath(target));
-      }
-      /*
-        「먼저 읽는 것」의 `ADR NNNN` 은 읽을 파일이다 — 그 줄의 네 자리 번호마다 `docs/adr/NNNN-*.md`. 다른 칸의 ADR 은
-        출처 표시라 세지 않는다(줄마다 원본 링크가 따로 있다).
-      */
-      if (heading !== '먼저 읽는 것') continue;
-      for (const line of section.split('\n').filter((one) => /\bADR\b/.test(one))) {
-        for (const [number] of line.matchAll(/\b0\d{3}\b/g)) {
-          const file = ADR_FILES.find((name) => name.startsWith(`${number}-`));
-          if (file !== undefined) files.add(`docs/adr/${file}`);
-        }
-      }
-    }
-    files.delete(relPath(doc));
-    return files;
-  }
-  const readBytes = (role: string) =>
-    statSync(join(ROLES_DIR, `${role}.md`)).size +
-    [...pointedFiles(role)].reduce((sum, file) => sum + (SIZE_AT_LOCK[file] ?? statSync(join(ROOT, file)).size), 0);
-
-  it('역할마다 필수 읽기량이 잠근 값 이하다 — 역할 문서가 더 큰 원본을 가리키면 붉어진다 (ADR 0145)', () => {
+  it('역할마다 필수 읽기량(고정 + 동적 라우트의 최댓값)이 잠근 값 이하이고 동적 라우트가 잠근 그대로다 (ADR 0145)', () => {
     expect(Object.keys(READ_BUDGET).sort()).toEqual([...roles].sort());
-    const over = roles.filter((role) => readBytes(role) > READ_BUDGET[role]).map((role) => `${role}: ${readBytes(role)} > ${READ_BUDGET[role]}`);
+    const budgets = roles.map((role) => readBudgetOf(role, ROOT));
+    const over = budgets.filter((budget) => budget.total > READ_BUDGET[budget.role].bytes).map((budget) => `${budget.role}: ${budget.total} > ${READ_BUDGET[budget.role].bytes}`);
     expect(over).toEqual([]);
-    // 잠근 날의 크기 표가 썩지 않는다 — 어느 역할도 안 가리키는 파일은 지운다
-    const pointed = new Set(roles.flatMap((role) => [...pointedFiles(role)]));
+    for (const budget of budgets) {
+      expect(budget.routes.map((route) => route.dir), budget.role).toEqual(READ_BUDGET[budget.role].routes);
+      // 후보가 없는 라우트는 고를 것이 없다 — 빈 폴더나 고정으로 이미 다 읽는 폴더를 가리키고 있다
+      for (const route of budget.routes) expect(route.candidates.length, `${budget.role} ${route.dir}`).toBeGreaterThan(0);
+    }
+    // 잠근 날의 크기 표가 썩지 않는다 — 어느 역할도 고정으로 안 가리키는 파일은 지운다
+    const pointed = new Set(roles.flatMap((role) => pointersOf(role, ROOT).fixed));
     expect(Object.keys(SIZE_AT_LOCK).filter((file) => !pointed.has(file))).toEqual([]);
+  });
+
+  it('읽기량의 셈은 출력 명령과 시험이 같은 함수다 — 표의 합이 readBudgetOf 의 합이다', () => {
+    const table = tableOf(ROOT);
+    for (const role of roles) {
+      const row = table.split('\n').find((line) => line.startsWith(`| ${role} |`));
+      expect(row, role).toBeDefined();
+      expect(row?.split('|')[4].trim().replace(/,/g, ''), role).toBe(String(readBudgetOf(role, ROOT).total));
+    }
   });
 
   it('에이전트 정의와 역할 문서는 짝이다 — 정의는 제 역할 문서를 가리킨다', () => {
