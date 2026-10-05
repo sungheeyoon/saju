@@ -35,6 +35,7 @@
     "audit:verify": "node scripts/audit-verify.mjs",
     "stack:slot": "node scripts/stack-slot.mjs",
     "merge:sim": "node scripts/merge-sim.mjs",
+    "read-budget": "node scripts/read-budget.mjs",
     "test:flow": "node scripts/run-checks.mjs",
     "verify": "npm test && npm run typecheck && npm run lint && npm run build"
   },
