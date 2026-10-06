@@ -63,7 +63,7 @@
 
   ```bash
   git worktree add ../saju-<일> -b <가지> origin/main
-  cp -Rc node_modules ../saju-<일>/        # 복제다(APFS). 심볼릭 링크는 Turbopack 이 거절한다
+  cp -Rc node_modules ../saju-<일>/        # macOS. Linux · 링크로 족한 때는 local-env.md 「로컬 환경의 함정」
   cd ../saju-<일> && npm run stack:slot -- --auto   # 빈 번호를 받는다. 쥔 번호를 달라면 거절한다
   npm run db:start
   ```

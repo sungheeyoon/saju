@@ -1097,6 +1097,16 @@ describe('역할 문서 (docs/start.md · docs/roles/, ADR 0140)', () => {
   /** 한 화면 — 넘으면 원본으로 옮길 것을 옮겨 적고 있다는 뜻이다 */
   const MAX_BYTES = 8000;
 
+  /**
+   * `CLAUDE.md` 는 매 턴 실린다 — `@AGENTS.md` 와 Claude Code 만의 호출법만 든다. 원본을 다시 말하던 네 절(3,214 바이트)은
+   * `docs/start.md` 「원본 — 무엇이 무엇을 답하나」가 이미 가리켜 걷었다(2026-10-06). 새 규칙은 여기 말고 원본으로.
+   */
+  it('CLAUDE.md 는 `@AGENTS.md` 로 시작하고 600 바이트 안이다', () => {
+    const claude = readFileSync(join(ROOT, 'CLAUDE.md'), 'utf8');
+    expect(claude.startsWith('@AGENTS.md\n')).toBe(true);
+    expect(Buffer.byteLength(claude)).toBeLessThanOrEqual(600);
+  });
+
   it('입구 표가 역할 문서 전부를 들고, 없는 역할 문서를 들지 않는다', () => {
     const start = readFileSync(START, 'utf8');
     const listed = [...start.matchAll(/`docs\/roles\/([a-z-]+)\.md`/g)].map((match) => match[1]);

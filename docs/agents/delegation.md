@@ -27,4 +27,4 @@
 | `docs/agents/delegation/permissions.md` | 「권한 등급」 · 「공식 운영에 들어가면 켜는 잠금」 | 등급 0~4 표(`.claude/settings.json` 과 같은 목록) · 운영 개인정보 · main 은 PR 로만 · 마이그레이션 PR 의 예외 |
 | `docs/agents/delegation/done.md` | 「끝났다는 것」 | PR 틀의 칸 여섯 · 전후 그림 · 커밋과 PR 제목 |
 | `docs/agents/delegation/local-env.md` | 「로컬 환경의 함정」 | 증상 · 원인 · 하는 일 표 |
-| `docs/agents/delegation/notes.md` | 「세션 기록」 | `docs/notes/` 에 무엇을 적고 무엇은 번호로만 가리키나 |
+| `docs/agents/delegation/notes.md` | 「세션 기록」 · 「경로가 옮겨지면」 | `docs/notes/` 에 무엇을 적고 무엇은 번호로만 가리키나 · 경로가 옮겨지면 고칠 문서와 그날의 기록으로 둘 것 |

@@ -23,6 +23,11 @@
 | 운영 배포 | 「배포」 답을 받은 뒤다(`docs/agents/delegation/coordinator.md` 「머지는 배포가 아니다」) |
 | main 이 붉어짐 | 새 작업을 멈추고 먼저 복구한다(`docs/agents/delegation/working.md` 「시작하기 전에 — 붉은 main 이 먼저」) |
 
+**머지 허락은 라운드를 열 때 말로 받는다.** Claude Code 의 auto 모드에서는 권한 분류기가 `gh pr merge --auto` 를 검토 없는
+머지로, 세션이 제 권한 설정을 고치는 것을 자기 수정으로 막는다 — 「진행」만으로는 머지가 서지 않았고, 운영자가 대화에서
+머지를 허락한 뒤에 섰다(2026-10-06, `docs/notes/2026-10-06-night-skills-and-read-budget.md`). 운영자가 제
+`.claude/settings.local.json` 에 `Bash(gh pr merge --auto:*)` 허용을 넣어 두었으면 그 말 없이도 선다.
+
 **자동으로 고쳐도 되는 경계.**
 
 - 기존 규칙 · 디자인 체계(ADR 0109, `app/ui/`) · 접근성 규칙 · 이미 승인된 문구나 디자인을 **어긴 것을 되돌리는** 수정 —

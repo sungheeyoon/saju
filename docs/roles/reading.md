@@ -40,3 +40,4 @@
 손대기 전에 다 읽지 않는다 — 일이 그 자리에 닿을 때 연다(ADR 0147).
 
 - 무인(밤) 라운드로 맡았으면 → [무인 라운드](../agents/delegation/unattended.md) — 실호출은 운영자가 돌린다
+- 시험이 로컬 5초에 붙거나 모집단 시험을 더하면 → [시험 하나의 시간](../agents/test-map/kinds.md#시험-하나의-시간--로컬-5초) — `POPULATION_TIMEOUT_MS` 와 시험마다 시간 재는 법
