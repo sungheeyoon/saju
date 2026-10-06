@@ -15,7 +15,7 @@
 
 | 파일 | 절 | 무엇을 드나 |
 | --- | --- | --- |
-| `docs/agents/test-map/kinds.md` | 「시험은 넷이고, 층마다 닿는 것이 다르다」 · 「층 × 시험」 | 단위 · pgTAP · 흐름 · e2e 의 명령과 필요한 것 · vitest 가 `.tsx` 에서 멈추는 자리 · 층마다 무엇이 재나 |
+| `docs/agents/test-map/kinds.md` | 「시험은 넷이고, 층마다 닿는 것이 다르다」 · 「층 × 시험」 · 「시험 하나의 시간」 | 단위 · pgTAP · 흐름 · e2e 의 명령과 필요한 것 · vitest 가 `.tsx` 에서 멈추는 자리 · 층마다 무엇이 재나 · 로컬 5초와 `POPULATION_TIMEOUT_MS` |
 | `docs/agents/test-map/what-to-run.md` | 「무엇을 고쳤으면 무엇을 돌리나」 | 공개 출시 전의 로컬 최소와 예외 넷 · 고친 자리 → 명령 표 · 머지 직전의 `merge:sim` · 주석 경로 잠금 · 워크트리의 포트 |
 | `docs/agents/test-map/live.md` | 「잠긴 시험 넷 — `*.live.test.ts`」 | 실호출 · 백필 시험과 켜는 값 · 운영 접속값을 읽는 파일 |
 | `docs/agents/test-map/ci.md` | 「CI」 | 출시 단계와 차선 여섯 · 주소로 고르는 판정 표 · `audit` · 빌드의 비밀 검사 · 공개 출시 뒤 세 단계 · 실패 artifact |

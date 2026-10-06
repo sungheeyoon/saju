@@ -35,3 +35,11 @@
 | 관문 | `proxy.ts` · `src/lib/consent` | `gate.test.ts` · `notice.test.ts` | `20_notice` | | `notice.spec.ts` |
 | DB | `supabase/migrations/` | | `supabase/tests/` · 모양 잠금 넷(`33_function_shape`) | 위 | |
 | 검사 도구 | `scripts/` · `eslint.config.mjs` | `ci-plan` · `run-checks` · `layers` · `code-rules` · `card-score-sql`(카드 점수의 TS ↔ SQL 이 같은 표를 읽는다) · `worktree-stack` · `secret-env`(비밀의 갈래 · `server-only` 잠금 · runbook 절, G-23 ⑧) · `vercel-ignore`(Preview 를 건너뛸지 — 0 이 건너뜀) · `copy-contracts` · `main-red` · `stack-slot` · `remote-lock` · `db-remote` · `audit-verify` · `brand-share-images` · `merge-sim`(인자와 요약 문장만 — git 은 안 부른다) | | | |
+
+## 시험 하나의 시간 — 로컬 5초
+
+시험 하나의 상한은 로컬 5초 · CI 30초다(`vitest.config.mts` 의 `testTimeout`). 로컬 5초는 달아나는 시험을 잡으려고 일부러 좁다 —
+넓히지 않는다. 모집단을 도는 시험은 제 파일에 `POPULATION_TIMEOUT_MS` 를 두고 `it` 의 셋째 인자로 든다(예:
+`src/lib/saju/daeun/daeun.test.ts`). 시간은 `npx vitest run <파일> --reporter=verbose` 가 시험마다 ms 로 찍고, 많으면
+`--reporter=json --outputFile=<파일>` 의 `testResults[].assertionResults[].duration` 을 정렬한다. 늘리기 전에 시험이 안 읽는
+것을 짓지 않는지 본다(#509 는 18.9초 → 1.2초).
