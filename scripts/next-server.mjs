@@ -20,7 +20,7 @@ import { execFileSync, spawn } from 'node:child_process';
 
 let built = false;
 
-export async function startCheckServer({ port, supabaseUrl, anonKey, secretKey, whileRunning }) {
+export async function startCheckServer({ port, supabaseUrl, anonKey, secretKey, whileRunning, built: builtWith }) {
   const env = {
     ...process.env,
     NEXT_DIST_DIR: '.next-check',
@@ -29,6 +29,11 @@ export async function startCheckServer({ port, supabaseUrl, anonKey, secretKey, 
     // 로컬 것만 들어간다. `next start` 는 `NODE_ENV=production` 이라
     // `.env.development.local`(원격 값)을 읽지 않는다 — 검사가 원격을 건드릴 자리가 없다.
     ...(secretKey ? { SUPABASE_SECRET_KEY: secretKey } : {}),
+    /**
+     * 빌드에 박혀야 하는 값(`NEXT_PUBLIC_` 하나 더) — 웹 푸시의 공개 열쇠가 그렇다(`check-push.mjs`). 빌드와 띄우기
+     * 양쪽에 얹는다. `whileRunning` 과 달리 이 값은 코드에 박히는 것이 목적이다.
+     */
+    ...builtWith,
   };
 
   if (!built) {
@@ -40,10 +45,18 @@ export async function startCheckServer({ port, supabaseUrl, anonKey, secretKey, 
   const server = spawn('npx', ['next', 'start', '--hostname', 'localhost', '--port', String(port)], {
     env: { ...env, ...whileRunning },
     stdio: 'ignore',
+    // 제 프로세스 묶음으로 띄운다 — `npx` 만 끄면 그 아래 `next-server` 가 포트를 쥔 채 남아, 다음 검사가 옛 서버를 두드린다
+    detached: true,
   });
 
   const base = `http://localhost:${port}`;
-  const stop = () => server.kill('SIGTERM');
+  const stop = () => {
+    try {
+      process.kill(-server.pid, 'SIGTERM');
+    } catch {
+      // 이미 끝났다
+    }
+  };
   process.on('exit', stop);
 
   // 뜨기 전에 두드리면 검사가 아니라 경주가 된다.

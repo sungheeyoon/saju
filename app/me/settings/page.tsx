@@ -13,6 +13,7 @@ import { RequestDeletion } from '../leaving';
 import { ConsentControls } from '../consent-controls';
 import { SETTINGS_QUIET, SettingsCard, SettingsLinkRow, SettingsRow } from './card';
 import { SignOutRow } from './sign-out-row';
+import { PushRow } from './push-row';
 import { ParticipationToggle, PreferenceForm } from '../discovery/manage';
 import { myDiscoveryProfile } from '../discovery/discovery-profile';
 import { OPTIONAL_CONSENT_NOTE, asKoreanDay, noticeAckHolds } from '@/src/lib/consent';
@@ -77,6 +78,9 @@ export default async function SettingsPage() {
           <ParticipationToggle resting={discoveryProfile.value?.optedOut ?? false} />
         </>
       )}
+
+      {/* 이 기기의 새 메시지 알림 — 상태는 브라우저만 알아 줄이 스스로 잰다(ADR 0157) */}
+      {state.kind === 'active' && <PushRow />}
 
       {state.kind === 'active' && account !== null && (
         <SettingsCard title="선택 동의" description={OPTIONAL_CONSENT_NOTE}>

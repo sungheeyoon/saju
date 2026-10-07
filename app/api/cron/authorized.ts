@@ -17,7 +17,14 @@ import { createHash, timingSafeEqual } from 'node:crypto';
  * `Bearer` 같은 글자와 맞춰질 수 있다.
  */
 export function cronAuthorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
+  return bearerAuthorized(request, process.env.CRON_SECRET);
+}
+
+/**
+ * 같은 비교를 다른 비밀로 — 웹 푸시의 배달 문(`app/api/push/dispatch/route.ts`)이 제 비밀(`PUSH_DISPATCH_SECRET`)로
+ * 부른다. 비밀을 나눠 쓰지 않는 것은 한쪽이 새도 다른 쪽 문이 닫혀 있게다.
+ */
+export function bearerAuthorized(request: Request, secret: string | undefined): boolean {
   if (!secret) return false;
 
   const given = request.headers.get('authorization');

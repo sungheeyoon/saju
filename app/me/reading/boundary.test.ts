@@ -211,7 +211,8 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
    * `/api` 는 `proxy.ts` 를 지나지 않는다. 그래서 아무나 두드릴 수 있고, 복구기는
    * 두드리면 남의 시도를 닫는다. webhook 은 서명이, 크론 주소는 `CRON_SECRET` 을 보는 `cronAuthorized` 가 든다 —
    * 둘 중 하나라도 빠지면 그 문은 열린 문이다. 결제 알림(G-23 ⑥)은 `settleWebhook` 이 무엇보다 먼저
-   * 서명을 본다 — 서명이 틀리면 아무것도 안 부르는 것은 `app/api/portone/webhook/settle.test.ts` 가 잰다.
+   * 서명을 본다 — 서명이 틀리면 아무것도 안 부르는 것은 `app/api/portone/webhook/settle.test.ts` 가 잰다. 웹 푸시의
+   * 배달 문은 제 비밀(`PUSH_DISPATCH_SECRET`)로 `bearerAuthorized` 를 부른다(ADR 0157).
    */
   it('관문 밖 주소는 저마다 자격을 묻는다', () => {
     const routes = files.filter(({ path }) => path.startsWith('app/api/') && path.endsWith('route.ts'));
@@ -219,7 +220,7 @@ describe('되짚기용 값이 사용자 화면으로 새지 않는다', () => {
     expect(routes.length, 'api 라우트를 못 찾았다').toBeGreaterThan(0);
 
     for (const { path, text } of routes) {
-      const asks = /verifyReadingWebhook|cronAuthorized\(|settleWebhook/.test(text);
+      const asks = /verifyReadingWebhook|cronAuthorized\(|bearerAuthorized\(|settleWebhook/.test(text);
       expect(asks, `${path} 이 자격을 묻지 않는다`).toBe(true);
     }
   });
