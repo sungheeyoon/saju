@@ -20,6 +20,7 @@ import { DISCOVERY_POLICY } from '@/src/lib/discovery';
 import { PROMPT_VARIANTS } from '@/src/lib/reading/variants';
 
 import { PRICE_STEM, PRICE_SUBJECT_LABEL, QUESTION, SURVEY_COPY } from '@/src/lib/survey';
+import { SERVICE_NAME } from '@/src/lib/brand';
 
 import { expectBirthDate, fillBirthDate, fillBirthTime } from './birth-form';
 import { hydrated } from './hydrated';
@@ -2868,7 +2869,7 @@ test.describe('가입 관문', () => {
       newcomer.page.getByRole('heading', { name: '출생 정보를 입력해 주세요' }),
     ).toBeVisible();
 
-    await newcomer.page.getByRole('link', { name: '점점 홈' }).first().click();
+    await newcomer.page.getByRole('link', { name: `${SERVICE_NAME} 홈` }).first().click();
 
     await expect(newcomer.page).toHaveURL(/\/signup$/);
     await expect(

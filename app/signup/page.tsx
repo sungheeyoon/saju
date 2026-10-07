@@ -8,7 +8,7 @@ import { AccountNotice } from '../me/account-notice';
 import { Logo } from '../ui/logo';
 import { CARD, PAPER, TYPE_TITLE } from '../ui/surfaces';
 import { SignOutLink } from './sign-out-link';
-import { SERVICE_NAME } from '@/src/lib/brand';
+import { SERVICE_NAME_OBJECT } from '@/src/lib/brand';
 import {
   NOTICE_AGAIN_NOTE,
   NOTICE_NOT_READY,
@@ -23,7 +23,7 @@ import { SignupForm } from './form';
 
 export const metadata = {
   title: '가입하기',
-  description: `테스트 코드와 닉네임을 입력하고 ${SERVICE_NAME}을 시작합니다.`,
+  description: `테스트 코드와 닉네임을 입력하고 ${SERVICE_NAME_OBJECT} 시작합니다.`,
 };
 
 /**

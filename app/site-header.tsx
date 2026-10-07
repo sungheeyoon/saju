@@ -138,8 +138,9 @@ export function SiteHeader() {
             className="flex min-h-11 shrink-0 items-center rounded-full pr-1"
             aria-label={`${SERVICE_NAME} 홈`}
           >
-            {/* 폰 폭 360px 에서는 풀이권 · 종 · 톱니가 자리를 먼저 쓴다 — 이름은 로고가 대신한다 */}
-            <BrandMark nameClassName="hidden min-[380px]:inline" />
+            {/* 폰 폭에서는 풀이권 · 종 · 톱니가 자리를 먼저 쓴다 — 이름은 로고가 대신한다. 네 글자 「만날지도」는 그 셋과
+                393px 에 함께 못 서서(11px 넘쳤다) 회원 머리글은 430px 부터, 그 셋이 없는 머리글은 380px 부터 이름을 세운다 */}
+            <BrandMark nameClassName={memberNavigation ? 'hidden min-[430px]:inline' : 'hidden min-[380px]:inline'} />
           </Link>
 
           {/*

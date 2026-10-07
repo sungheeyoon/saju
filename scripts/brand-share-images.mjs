@@ -17,7 +17,7 @@
  * (ADR 0063), 흐름 검사(`check-share.mjs`)가 JPEG 의 실제 크기 · 무게(300KB 아래)를 적어 둔 값과 견준다.
  * 파일 규약의 그림은 파일 그림이 메타데이터 객체보다 앞서 공유본 세 화면의 갈래별 그림을 덮는다.
  *
- * **판을 바꾸면 파일 이름의 판(`-v3`)도 올린다** — 카카오톡 · 페이스북은 미리보기 그림을 주소로 오래 붙들어, 같은
+ * **판을 바꾸면 파일 이름의 판(`-v4`)도 올린다** — 카카오톡 · 페이스북은 미리보기 그림을 주소로 오래 붙들어, 같은
  * 이름에 새 그림을 올리면 옛 그림이 계속 선다. 이름을 바꾸면 이것을 다시 돌린다 — `scripts/brand-share-images.test.ts`
  * 가 구운 이름과 상수가 다르면 붉힌다.
  *
@@ -26,7 +26,7 @@
  *
  * Playwright 의 Chromium 으로 두 배 크기로 그리고 sharp 로 1200×628 로 줄여 mozjpeg 로 담는다. 고운돋움과 Noto Sans KR 은
  * Google Fonts 에서 받는다 — 굽는 기계에 망이 있어야 한다. v3 의 한 줄 소개는 Pretendard SemiBold 로 구웠다 — 앱이 웹 글꼴을
- * 뺀 날(2026-09-30, ADR 0109 추기) 의존성도 걷어 다음 판은 Noto Sans KR 600 으로 굽는다.
+ * 뺀 날(2026-09-30, ADR 0109 추기) 의존성도 걷어 v4(이름 「만날지도」, 2026-10-07, ADR 0149)부터 Noto Sans KR 600 으로 굽는다.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -89,7 +89,7 @@ const badge = (name, cx, cy, r, { dashed = false } = {}) =>
   `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${ELEMENTS[name].soft}" stroke="${ELEMENTS[name].mid}" stroke-width="2" ${dashed ? 'stroke-dasharray="5 6"' : ''}/>` +
   symbol(name, cx, cy, r * 1.05);
 
-/** 점선 궤도 — 로고의 `stroke-dasharray="0.1 3.3"` 과 같은 둥근 점 */
+/** 점선 궤도 — 로고의 점선 궤도(`stroke-dasharray="0.1 …"`)와 같은 둥근 점 */
 const orbit = (cx, cy, r, { gap = 13, width = 4, color = T['border-strong'] } = {}) =>
   `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-dasharray="0.1 ${gap}"/>`;
 
@@ -99,11 +99,13 @@ const icon = (d, cx, cy, size, { fill = 'none', stroke = T.foreground, width = 1
   `<g transform="translate(${cx - size / 2} ${cy - size / 2}) scale(${size / 24})"><path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${width}" stroke-linejoin="round" stroke-linecap="round"/></g>`;
 
 /** 로고(`app/ui/logo.tsx` · `app/icon.svg`) — 바탕 네모 없이 */
-const LOGO = `<svg viewBox="0 0 32 32" width="84" height="84">
-  <circle cx="16" cy="16.5" r="11" fill="none" stroke="${T.foreground}" stroke-opacity="0.5" stroke-width="1.8" stroke-dasharray="0.1 3.3" stroke-linecap="round"/>
-  <circle cx="16" cy="16.5" r="6" fill="${T['fire-mid']}" stroke="${T.foreground}" stroke-width="1.6"/>
-  <circle cx="17.4" cy="5.6" r="2" fill="${T['water-mid']}" stroke="${T.foreground}" stroke-width="1.3"/>
-  <circle cx="24.9" cy="10" r="3" fill="${T['wood-mid']}" stroke="${T.foreground}" stroke-width="1.5"/>
+const LOGO = `<svg viewBox="0 0 64 64" width="84" height="84">
+  <circle cx="32" cy="32" r="24" fill="none" stroke="${T.foreground}" stroke-opacity="0.45" stroke-width="2" stroke-dasharray="0.1 4.6" stroke-linecap="round"/>
+  <path d="M32 32 L52.8 44" stroke="${T.foreground}" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="9.5" fill="${T['fire-mid']}" stroke="${T.foreground}" stroke-width="2.4"/>
+  <circle cx="32" cy="8" r="4" fill="${T['water-mid']}" stroke="${T.foreground}" stroke-width="1.8"/>
+  <circle cx="52.8" cy="44" r="5.6" fill="${T['wood-mid']}" stroke="${T.foreground}" stroke-width="2"/>
+  <circle cx="13" cy="46.5" r="3.6" fill="${T['earth-mid']}" stroke="${T.foreground}" stroke-width="1.6"/>
 </svg>`;
 
 /* ───────────── 그림 셋 — 오른쪽 그림판(1200×628 좌표의 SVG) ───────────── */
@@ -246,9 +248,9 @@ const CORNERS = {
 };
 
 const SHOTS = [
-  { kind: 'saju', target: 'saju-share-v3.jpg', art: sajuArt },
-  { kind: 'reading', target: 'reading-share-v3.jpg', art: readingArt },
-  { kind: 'compat', target: 'compat-share-v3.jpg', art: compatArt },
+  { kind: 'saju', target: 'saju-share-v4.jpg', art: sajuArt },
+  { kind: 'reading', target: 'reading-share-v4.jpg', art: readingArt },
+  { kind: 'compat', target: 'compat-share-v4.jpg', art: compatArt },
 ];
 
 function page(shot) {
