@@ -1,5 +1,5 @@
 /**
- * 흐름 검사 열 벌을 **전부 돌리고 끝에 한 번 답한다.**
+ * 흐름 검사 열한 벌을 **전부 돌리고 끝에 한 번 답한다.**
  *
  * 앞서는 `npm run test:flow` 가 `&&` 사슬이었다. 그래서 `check-reading` 이 하나 틀리자
  * **`check-share` 65건이 아예 안 돌았다** — 그리고 그 상태가 화면에 「실패 1건」으로만
@@ -34,6 +34,7 @@ export const SCRIPTS = [
   'check-reading.mjs',
   'check-share.mjs',
   'check-chat.mjs',
+  'check-live-channel.mjs',
   'check-taste.mjs',
 ];
 
