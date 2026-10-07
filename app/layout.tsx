@@ -91,7 +91,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ko" data-scroll-behavior="smooth" className={`${rounded.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <SiteHeader />
-        {/* 로그인한 사람의 채널 하나 — 그리는 것은 없다(ADR 0156) */}
+        {/* 로그인한 사람의 채널 하나 — 그리는 것은 없다(ADR 0155) */}
         <LiveUpdates />
         {children}
         <SiteFooter />

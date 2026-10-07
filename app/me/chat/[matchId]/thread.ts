@@ -2,7 +2,7 @@ import type { ChatMessage } from './messages';
 
 /**
  * 방이 든 메시지를 **합치고 세우는** 규칙 — 채널이 「새 메시지」를 알리면 방은 읽는 문을 다시 불러 여기서 합친다
- * (ADR 0156). 같은 메시지가 두 번 와도(채널 · 다시 대조 · 보낸 뒤 읽기가 겹친다) 한 번만 서고, 차례(`seq`)로 선다.
+ * (ADR 0155). 같은 메시지가 두 번 와도(채널 · 다시 대조 · 보낸 뒤 읽기가 겹친다) 한 번만 서고, 차례(`seq`)로 선다.
  *
  * 브라우저도 React 도 모른다 — vitest 가 중복 · 순서 · 빈 자리를 그대로 잰다.
  */
@@ -60,7 +60,7 @@ export async function readNewer(read: ReadPage, after: number, limit: number): P
 
 /**
  * 읽음을 어디까지 남길까 — **보이는 문서에서 화면에 들어온 상대 말의 가장 큰 차례**, 그리고 이미 남긴 것보다 클 때만
- * (ADR 0156 「읽음은 본 것까지만」). 숨은 탭은 남기지 않는다 — 다시 보이면 그때 잰다.
+ * (ADR 0155 「읽음은 본 것까지만」). 숨은 탭은 남기지 않는다 — 다시 보이면 그때 잰다.
  */
 export function readUpTo(seen: Iterable<number>, visible: boolean, marked: number): number | null {
   if (!visible) return null;

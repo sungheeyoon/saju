@@ -8,7 +8,7 @@ import { readPushRowState, turnOffPush, turnOnPush } from '../push/browser';
 import { SETTINGS_PRIMARY, SETTINGS_QUIET, SettingsCard, SettingsRow } from './card';
 
 /**
- * 계정 관리의 「새 메시지 알림」 — **이 기기에서** 켜고 끈다(ADR 0157). 기본은 꺼짐이다.
+ * 계정 관리의 「새 메시지 알림」 — **이 기기에서** 켜고 끈다(ADR 0156). 기본은 꺼짐이다.
  *
  * 상태는 브라우저만 안다(권한 · 구독)라서 그린 뒤에 잰다. 재는 동안은 줄만 세우고 누름은 안 세운다 — 켜진 사람에게
  * 「켜기」가 잠깐 서면 두 번 누르게 된다. 판정은 `src/lib/push` 의 `pushRowState` 하나다.

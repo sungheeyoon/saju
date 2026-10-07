@@ -1,5 +1,5 @@
 /**
- * **로컬 스택의 Vault 에 배달 문의 주소와 비밀을 넣는다**(ADR 0157) — 운영 자리에는 닿지 않는다.
+ * **로컬 스택의 Vault 에 배달 문의 주소와 비밀을 넣는다**(ADR 0156) — 운영 자리에는 닿지 않는다.
  *
  *   node scripts/push-local.mjs                 # 이 워크트리의 dev 포트(`SAJU_WEB_PORT`) · 새 비밀
  *   node scripts/push-local.mjs --port 3030 --secret <값>

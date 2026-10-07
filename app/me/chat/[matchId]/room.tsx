@@ -48,7 +48,7 @@ type RoomView = {
   /** 열린 방에만 온다(ADR 0092) */
   readonly activity: ActivityBand | null;
   readonly unread: number;
-  /** 서버가 읽은 최근 200건 — 시각 글자를 붙여 넘긴다(`labelled`). 그 뒤는 방이 브라우저에서 합친다(ADR 0156) */
+  /** 서버가 읽은 최근 200건 — 시각 글자를 붙여 넘긴다(`labelled`). 그 뒤는 방이 브라우저에서 합친다(ADR 0155) */
   readonly messages: readonly ShownMessage[];
   /** 읽는 문이 준 것이 방의 처음부터다(200건 아래) — 그때만 첫머리를 세운다 */
   readonly fromBeginning: boolean;
@@ -76,7 +76,7 @@ const NEAR_BOTTOM_PX = 48;
 const MESSAGE_ID = 'data-message-id';
 
 /**
- * 대화 칸의 스크롤 자리를 지킨다 — **과거를 읽는 사람의 눈 앞이 움직이지 않는다**(ADR 0156).
+ * 대화 칸의 스크롤 자리를 지킨다 — **과거를 읽는 사람의 눈 앞이 움직이지 않는다**(ADR 0155).
  *
  * 대화 칸은 거꾸로 쌓여(`flex-col-reverse`) 스크롤의 0 이 맨 아래다. 맨 아래에 있으면 새 말이 붙어도 그대로 맨 아래다.
  * 위에서 읽는 중이면 합치기 직전에 맨 위에 보이는 말풍선과 그 높이를 재어 두고, 그린 뒤 그 말풍선이 같은 높이에 오게
@@ -163,7 +163,7 @@ export function ChatRoomView({ room }: { room: RoomView }) {
   const picked = slot.kind === 'report' ? slot.messageId : null;
   const theirTone = room.tones?.theirs.element ?? null;
 
-  /* 메시지는 방이 든다 — 서버의 첫 200건에서 시작해 채널이 알릴 때마다 합친다(ADR 0156) */
+  /* 메시지는 방이 든다 — 서버의 첫 200건에서 시작해 채널이 알릴 때마다 합친다(ADR 0155) */
   /* 방이 합치기 직전에 스크롤 자리를 재는 손 — 스크롤 자리는 합쳐진 메시지를 보고 지키므로 손을 뒤에서 잇는다 */
   const measure = useRef<(kind: MergeKind, incoming: readonly ShownMessage[]) => void>(() => {});
   const thread = useThread(room.matchId, room.messages, room.fromBeginning, (kind, incoming) => measure.current(kind, incoming));

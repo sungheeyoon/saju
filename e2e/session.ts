@@ -652,7 +652,7 @@ type Fixtures = {
    */
   openAs: (wanted: Seed) => Promise<Person>;
   /**
-   * **이 창에서 다른 계정으로 들어간다** — 계정 전환(ADR 0156). 새 계정을 세워 그 쿠키로 갈아 끼운다. 구글 로그인은 몰지
+   * **이 창에서 다른 계정으로 들어간다** — 계정 전환(ADR 0155). 새 계정을 세워 그 쿠키로 갈아 끼운다. 구글 로그인은 몰지
    * 않으므로(위) 앞 계정의 로그아웃은 시험이 화면에서 누르고, 들어간 뒤의 첫 화면은 시험이 연다.
    */
   switchAccount: (page: Page, wanted: Seed) => Promise<Person>;

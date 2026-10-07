@@ -9,7 +9,7 @@ import { pushPayloadFor } from '@/src/lib/push';
 
 /**
  * **서비스 워커(`public/sw.js`)의 처리기를 가짜 `self` 안에서 돌린다.** 번들러를 안 지나는 파일이라 앱의 상수를 못
- * 부르므로, 서비스명과 주소 모양이 앱과 같은지도 여기서 견준다(ADR 0157).
+ * 부르므로, 서비스명과 주소 모양이 앱과 같은지도 여기서 견준다(ADR 0156).
  */
 const SOURCE = readFileSync(join(__dirname, '..', 'public', 'sw.js'), 'utf8');
 const ORIGIN = 'https://app.example';

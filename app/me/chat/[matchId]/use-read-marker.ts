@@ -14,7 +14,7 @@ const SEEN_HEIGHT_PX = 120;
 export const THEIR_SEQ = 'data-their-seq';
 
 /**
- * **읽음은 본 데까지만**(ADR 0156) — 문서가 보이고 상대 말풍선이 대화 칸에 들어온(IntersectionObserver) 가장 큰 차례까지
+ * **읽음은 본 데까지만**(ADR 0155) — 문서가 보이고 상대 말풍선이 대화 칸에 들어온(IntersectionObserver) 가장 큰 차례까지
  * `mark_chat_read` 로 남긴다. 숨은 탭에서는 부르지 않고, 다시 보이면 그때 화면에 든 것으로 잰다. 남기고 나면 머리글의
  * 딱지가 다시 세게 알린다.
  *

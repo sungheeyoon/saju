@@ -5,7 +5,7 @@ import type { Database } from '@/src/lib/db';
 import { LIVE_EVENT, liveChangeOf, type LiveChange } from './changes';
 
 /**
- * 계정의 비공개 채널 하나를 연다 — 주제 `user:<uid>`, 사건 `changed`(ADR 0156).
+ * 계정의 비공개 채널 하나를 연다 — 주제 `user:<uid>`, 사건 `changed`(ADR 0155).
  *
  * **듣기만 한다.** 보내는 것은 DB 트리거뿐이고 브라우저에는 보내기 정책이 없다. 남의 주제를 열면 서버가 구독을
  * 거절하고 상태 콜백이 `CHANNEL_ERROR` 를 받는다 — 드라이버가 그것을 실패로 세어 뒤물림한다.

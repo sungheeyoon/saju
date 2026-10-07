@@ -908,7 +908,7 @@ select is(
     'audit_export_done',
     'audit_export_finish',
     'cancel_reading_order',
-    /** 웹 푸시의 배달 문이 대기 줄을 잡고 결과를 적는 문 둘 — endpoint · 열쇠 · match_id 만, 본문은 없다(ADR 0157) */
+    /** 웹 푸시의 배달 문이 대기 줄을 잡고 결과를 적는 문 둘 — endpoint · 열쇠 · match_id 만, 본문은 없다(ADR 0156) */
     'claim_push_deliveries',
     'claim_reading_job',
     /**

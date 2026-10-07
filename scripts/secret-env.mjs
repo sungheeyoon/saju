@@ -55,7 +55,7 @@ export const SECRET_ENV = [
   'TASTE_BROWSER_SECRET',
   'TASTE_IP_SECRET',
   /**
-   * 웹 푸시(ADR 0157) — VAPID 비밀 열쇠(공개 열쇠와 한 쌍)와, DB 가 배달 문을 깨울 때 싣는 비밀(Vault
+   * 웹 푸시(ADR 0156) — VAPID 비밀 열쇠(공개 열쇠와 한 쌍)와, DB 가 배달 문을 깨울 때 싣는 비밀(Vault
    * `push_dispatch_secret` 과 같은 값). 앞의 것이 없으면 배달 줄은 「설정 안 됨」으로 남고, 뒤의 것이 없으면 배달 문이 닫힌다
    */
   'WEB_PUSH_VAPID_PRIVATE_KEY',
@@ -66,7 +66,7 @@ export const SECRET_ENV = [
 export const PUBLIC_ENV = [
   'NEXT_PUBLIC_SUPABASE_URL',
   'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
-  /** 웹 푸시의 VAPID 공개 열쇠 — 브라우저가 구독을 맺을 때 든다(ADR 0157). 비밀 열쇠는 위 `WEB_PUSH_VAPID_PRIVATE_KEY` */
+  /** 웹 푸시의 VAPID 공개 열쇠 — 브라우저가 구독을 맺을 때 든다(ADR 0156). 비밀 열쇠는 위 `WEB_PUSH_VAPID_PRIVATE_KEY` */
   'NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY',
 ];
 

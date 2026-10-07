@@ -30,7 +30,7 @@ function fakeDb(rows: ReturnType<typeof row>[], settleError: (id: string) => boo
   return { db: { rpc } as unknown as SupabaseClient<Database>, rpc, settled };
 }
 
-describe('배달 한 묶음 (ADR 0157)', () => {
+describe('배달 한 묶음 (ADR 0156)', () => {
   it('잠근 줄마다 보내고, 받은 답대로 닫는다', async () => {
     const { db, settled } = fakeDb([row(1), row(2), row(3)]);
     const answers: Record<string, 'sent' | 'gone' | 'retry'> = {

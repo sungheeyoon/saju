@@ -7,7 +7,7 @@ import { CHAT_EMPTY_TITLE, NEW_MESSAGES_LABEL, OLDER_MESSAGES_LABEL, closedRoomT
 import { readingCreditsLabel } from '@/src/lib/reading/notes';
 
 /**
- * **앱이 스스로 갱신된다** — 두 계정 · 두 브라우저(서로 다른 저장소의 독립된 세션)로 잰다(ADR 0156 「수용 기준」).
+ * **앱이 스스로 갱신된다** — 두 계정 · 두 브라우저(서로 다른 저장소의 독립된 세션)로 잰다(ADR 0155 「수용 기준」).
  *
  * 받는 쪽 화면은 **다시 열지 않는다** — 받는 쪽에서 `reload` · `goto` · 주소 이동이 없이 기다린다. 「다시 열면 보인다」는
  * 여기서 재는 것이 아니다. 화면을 처음 여는 `goto` 는 기다리기 **전**에만 있다.

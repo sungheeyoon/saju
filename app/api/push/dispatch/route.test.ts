@@ -45,7 +45,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe('배달 문의 자격 (ADR 0157)', () => {
+describe('배달 문의 자격 (ADR 0156)', () => {
   it.each([
     ['머리가 없다', undefined],
     ['다른 비밀을 든다', 'Bearer not-the-secret'],

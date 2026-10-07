@@ -3,7 +3,7 @@ import type { MetadataRoute } from 'next';
 import { SERVICE_NAME, SERVICE_TAGLINE } from '@/src/lib/brand';
 
 /**
- * 웹 앱 매니페스트 — **홈 화면에 추가한 앱이 웹 푸시를 받을 자격**이다(ADR 0157).
+ * 웹 앱 매니페스트 — **홈 화면에 추가한 앱이 웹 푸시를 받을 자격**이다(ADR 0156).
  *
  * iOS · iPadOS 는 16.4 부터, 매니페스트의 `display` 가 `standalone` · `fullscreen` 인 사이트를 홈 화면에 추가해 연
  * 때만 `PushManager` 를 낸다. 브라우저 탭으로 열면 푸시가 없다 — 설정 줄이 그 안내를 세운다.

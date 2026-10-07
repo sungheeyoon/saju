@@ -1,4 +1,4 @@
--- 앱을 안 보는 사람에게 새 메시지를 웹 푸시로 알린다 — 켠 기기에만, 방 하나에 대기 줄 하나 (ADR 0157)
+-- 앱을 안 보는 사람에게 새 메시지를 웹 푸시로 알린다 — 켠 기기에만, 방 하나에 대기 줄 하나 (ADR 0156)
 --
 -- DB 쪽은 표 둘과 문 다섯, 트리거 둘, 크론 둘이다. 보내는 손(VAPID 로 암호화해 푸시 서비스에 넘기는 것)은 앱의 배달 문
 -- (`POST /api/push/dispatch`)이고, 그 문이 여기의 `claim_push_deliveries` · `settle_push_delivery` 를 열쇠로 부른다.
@@ -6,7 +6,7 @@
 --   push_subscription  기기(브라우저)마다 하나 — endpoint 는 유일하고 계정에 매인다. 탈퇴 처분 때 cascade 로 간다
 --   push_delivery      (구독 · 방)마다 대기 줄 하나. pending → sending → sent | gave_up | skipped
 --
--- ## 정한 것 — ADR 0157 그대로
+-- ## 정한 것 — ADR 0156 그대로
 --
 -- - **본문을 안 든다.** 배달 줄은 구독과 방만 가리킨다. 배달 문이 받는 것도 endpoint · 열쇠 · match_id · 시도 수뿐이다.
 -- - **방 하나에 대기 줄 하나** — 같은 방의 다음 메시지는 대기 줄을 새로 만들지 않는다(부분 유일 색인). 보낸 뒤 60초 안에
@@ -36,7 +36,7 @@
 -- 1. 정책의 수 — **원본은 여기다**
 -- ---------------------------------------------------------------------------
 
-/** 같은 구독 · 같은 방에 다시 보내기까지 — ADR 0157 */
+/** 같은 구독 · 같은 방에 다시 보내기까지 — ADR 0156 */
 create function public.push_room_quiet()
 returns interval
 language sql
@@ -44,7 +44,7 @@ immutable
 set search_path = ''
 as $$ select interval '60 seconds' $$;
 
-/** 실패 몇 번째에 접나 — ADR 0157(「다섯 번 실패하면 접는다」) */
+/** 실패 몇 번째에 접나 — ADR 0156(「다섯 번 실패하면 접는다」) */
 create function public.push_max_attempts()
 returns integer
 language sql
@@ -88,7 +88,7 @@ revoke execute on function public.push_subscription_limit() from public, anon, a
  * 웹 푸시 구독 — 기기(브라우저)마다 하나.
  *
  * `endpoint` 는 푸시 서비스가 준 주소이고 **유일하다** — 한 브라우저에서 다른 계정이 켜면 그 계정으로 옮긴다(앞 사람의
- * 메시지 통보를 받지 않게, ADR 0157). `p256dh` · `auth` 는 페이로드 암호화 열쇠다. 셋 다 새로 받는 개인정보다 —
+ * 메시지 통보를 받지 않게, ADR 0156). `p256dh` · `auth` 는 페이로드 암호화 열쇠다. 셋 다 새로 받는 개인정보다 —
  * 끄거나 · 로그아웃하거나 · 404/410 이거나 · 탈퇴 처분 때 지운다(`app_user` 에 cascade).
  *
  * 어느 역할에도 표를 열지 않는다 — 브라우저 문 셋과 배달 문 둘로만 만진다.
@@ -110,7 +110,7 @@ create table public.push_subscription (
 );
 
 comment on table public.push_subscription is
-  '웹 푸시 구독 — 기기마다 하나, endpoint 는 유일하고 계정에 매인다(ADR 0157)';
+  '웹 푸시 구독 — 기기마다 하나, endpoint 는 유일하고 계정에 매인다(ADR 0156)';
 
 create index push_subscription_by_user on public.push_subscription (user_id);
 
@@ -147,7 +147,7 @@ create table public.push_delivery (
 );
 
 comment on table public.push_delivery is
-  '웹 푸시 배달 줄 — (구독, 방)마다 대기 줄 하나, 본문 없음(ADR 0157)';
+  '웹 푸시 배달 줄 — (구독, 방)마다 대기 줄 하나, 본문 없음(ADR 0156)';
 
 create unique index push_delivery_one_waiting
   on public.push_delivery (subscription_id, room_id) where status = 'pending';
@@ -576,7 +576,7 @@ revoke execute on function public.wake_push_dispatch_on_queue() from public, ano
 -- 7. 보존 — 접힌 배달 줄은 7일 뒤 걷는다
 -- ---------------------------------------------------------------------------
 
-/** 접힌 배달 줄을 남기는 기간 — ADR 0157 */
+/** 접힌 배달 줄을 남기는 기간 — ADR 0156 */
 create function retention.push_delivery_period()
 returns interval
 language sql

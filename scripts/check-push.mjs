@@ -13,7 +13,7 @@ import { PUSH_TTL_SECONDS, pushPayloadFor, pushTopicFor } from '../src/lib/push/
 import { worktreeStack } from '../src/lib/local-env.ts';
 
 /**
- * 웹 푸시 — **메시지 한 통이 잠금 화면까지 가는 길을 끝까지** 잰다(ADR 0157).
+ * 웹 푸시 — **메시지 한 통이 잠금 화면까지 가는 길을 끝까지** 잰다(ADR 0156).
  *
  *   다른 계정이 메시지를 보낸다 → DB 가 배달 줄을 남기고 `pg_net` 으로 배달 문을 깨운다 → 배달 문이 `web-push` 로
  *   암호화해 보낸다 → 가짜 푸시 서비스(`fake-push-service.mjs`)가 받아 **암호를 풀고** 페이로드를 본다 → 배달 줄이 닫힌다

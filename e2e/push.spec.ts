@@ -6,7 +6,7 @@ import { pushPayloadFor } from '@/src/lib/push';
 import { expect, sql, test } from './session';
 
 /**
- * **설정의 「새 메시지 알림」 줄** — 켜고 끄고, 계정이 바뀌면 꺼진 것으로 보인다(ADR 0157).
+ * **설정의 「새 메시지 알림」 줄** — 켜고 끄고, 계정이 바뀌면 꺼진 것으로 보인다(ADR 0156).
  *
  * ## 가짜인 것 하나 — 푸시 서비스에 맺는 구독
  *
@@ -78,7 +78,7 @@ const row = (page: Page) => page.locator('section', { has: page.getByRole('headi
  */
 test.use({ channel: 'chromium' });
 
-test.describe('새 메시지 알림 (ADR 0157)', () => {
+test.describe('새 메시지 알림 (ADR 0156)', () => {
   test('켜면 이 기기의 구독이 서버에 서고, 끄면 지워진다 — 기본은 꺼짐이다', async ({ page, context, signedIn }) => {
     await context.grantPermissions(['notifications']);
     await fakePushService(context);

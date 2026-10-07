@@ -11,7 +11,7 @@ import {
 import { pushSubscriptionRegistered, removePushSubscription, savePushSubscription } from './actions';
 
 /**
- * **이 브라우저의 웹 푸시** — 서비스 워커 · 권한 · 구독을 재고 바꾼다(ADR 0157). 설정 줄(`app/me/settings/push-row.tsx`)과
+ * **이 브라우저의 웹 푸시** — 서비스 워커 · 권한 · 구독을 재고 바꾼다(ADR 0156). 설정 줄(`app/me/settings/push-row.tsx`)과
  * 로그아웃(`app/auth/sign-out.ts`)이 부른다.
  *
  * 서비스 워커는 알림을 켤 때 처음 등록한다 — 켜지 않은 사람의 브라우저에는 워커가 서지 않는다. 등록 범위는 사이트

@@ -15,12 +15,12 @@ const ENFORCED = [
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  // 웹 푸시의 서비스 워커는 제 출처의 파일만(ADR 0157)
+  // 웹 푸시의 서비스 워커는 제 출처의 파일만(ADR 0156)
   "worker-src 'self'",
 ];
 
 /**
- * `connect-src` 에 Supabase 가 서 있으면 그 호스트의 Realtime 소켓(`ws(s)://`)도 서 있다(ADR 0156). 주소는 환경마다
+ * `connect-src` 에 Supabase 가 서 있으면 그 호스트의 Realtime 소켓(`ws(s)://`)도 서 있다(ADR 0155). 주소는 환경마다
  * 달라 헤더에서 읽는다 — CI 의 껍데기 접속값이든 로컬 스택이든 같은 규칙이다.
  */
 function socketsMissing(policy: string): string[] {

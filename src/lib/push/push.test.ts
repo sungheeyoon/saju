@@ -14,7 +14,7 @@ import {
 
 const MATCH = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 
-describe('페이로드 (ADR 0157)', () => {
+describe('페이로드 (ADR 0156)', () => {
   it('페이로드는 방으로 가는 주소와 묶음 표 둘뿐이다', () => {
     const payload = pushPayloadFor(MATCH);
     expect(payload).toEqual({ url: `/me/chat/${MATCH}`, tag: `chat-${MATCH}` });

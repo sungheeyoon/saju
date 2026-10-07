@@ -38,7 +38,7 @@ function subjectOf(): string | null {
 const bytesOf = (base64url: string) => Buffer.from(base64url, 'base64url').length;
 
 /**
- * 열쇠 셋이 다 있고 모양이 맞는가. 하나라도 어긋나면 `null` — 배달 줄은 「설정 안 됨」으로 남고 잃지 않는다(ADR 0157).
+ * 열쇠 셋이 다 있고 모양이 맞는가. 하나라도 어긋나면 `null` — 배달 줄은 「설정 안 됨」으로 남고 잃지 않는다(ADR 0156).
  *
  * 공개 열쇠는 P-256 비압축 점 65바이트, 비밀 열쇠는 32바이트다. 모양이 틀린 열쇠로 보내면 `web-push` 가 요청마다
  * 던지는데, 그것을 「다시 보내기」로 세면 설정 실수가 다섯 번 뒤 모든 배달을 접는다.

@@ -38,7 +38,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe('송신기의 설정 (ADR 0157)', () => {
+describe('송신기의 설정 (ADR 0156)', () => {
   it.each([
     ['공개 열쇠가 없다', 'NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY', ''],
     ['비밀 열쇠가 없다', 'WEB_PUSH_VAPID_PRIVATE_KEY', ''],

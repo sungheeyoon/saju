@@ -43,7 +43,7 @@ export async function sendChatMessage(matchId: string, body: string): Promise<Se
 
   /*
     화면을 무르지 않는다 — 방은 보낸 뒤 제 메시지를 읽는 문으로 다시 읽어 합치고(쓰던 입력 · 스크롤이 그대로다), 목록과
-    다른 탭은 채널이 알린다(ADR 0156).
+    다른 탭은 채널이 알린다(ADR 0155).
   */
   return { ok: true, outcome };
 }
@@ -71,7 +71,7 @@ export async function reportChatMessage(
 }
 
 /**
- * 읽음 — **본 데까지만** 남긴다(ADR 0156). 방이 화면에 들어온 상대 말의 가장 큰 차례를 넘긴다. 함수는 그 방에 실제로 있는
+ * 읽음 — **본 데까지만** 남긴다(ADR 0155). 방이 화면에 들어온 상대 말의 가장 큰 차례를 넘긴다. 함수는 그 방에 실제로 있는
  * 차례까지만, 앞으로만 움직인다.
  *
  * 화면을 무르지 않는다 — 딱지는 창 신호로(`announceChatUnreadMoved`), 다른 탭 · 기기는 채널로 따라온다.

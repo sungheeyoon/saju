@@ -479,7 +479,7 @@ describe('열쇠를 드는 자리 (G-64, ADR 0136)', () => {
     'app/api/cron/reading/route.ts',
     'app/api/openai/webhook/route.ts',
     'app/api/portone/webhook/route.ts',
-    /** 웹 푸시의 배달 문 — 배달 줄을 잠그고 닫는 문 둘만 부른다(ADR 0157) */
+    /** 웹 푸시의 배달 문 — 배달 줄을 잠그고 닫는 문 둘만 부른다(ADR 0156) */
     'app/api/push/dispatch/route.ts',
     POOL_MODULE,
     /** 로그인 전 사주 문단의 문 일곱 — 지문 · HMAC 은 서버가 짓고, 회원 id 는 세션에서(ADR 0143) */

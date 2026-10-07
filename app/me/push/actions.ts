@@ -7,7 +7,7 @@ import { userFacingDbMessage } from '../../db-error';
 import type { SaveResult } from '../../save-result';
 
 /**
- * 이 기기의 웹 푸시 구독 — **로그인한 사람의 세션으로** 남기고 지운다(ADR 0157).
+ * 이 기기의 웹 푸시 구독 — **로그인한 사람의 세션으로** 남기고 지운다(ADR 0156).
  *
  * 누구의 구독인지는 DB 가 `auth.uid()` 로 정한다. 앱은 사람 id 를 싣지 않는다. 같은 endpoint 를 다른 계정이 남기면
  * DB 가 그 endpoint 를 새 계정으로 옮긴다 — 한 기기가 앞 사람의 통보를 받지 않는다.

@@ -148,7 +148,7 @@ export default defineConfig({
       TASTE_BROWSER_SECRET: 'e2e-taste-browser-secret-0123456789abcdef',
       TASTE_IP_SECRET: 'e2e-taste-ip-secret-0123456789abcdefghijkl',
       /**
-       * **웹 푸시의 공개 열쇠 — 시험용 값**(ADR 0157). 없으면 설정의 「새 메시지 알림」 줄이 「지원 안 함」으로 선다
+       * **웹 푸시의 공개 열쇠 — 시험용 값**(ADR 0156). 없으면 설정의 「새 메시지 알림」 줄이 「지원 안 함」으로 선다
        * (`e2e/push.spec.ts`). 비밀 열쇠는 안 싣는다 — 시험은 푸시 서비스로 보내지 않는다. 운영 값이 아니다
        * (`node scripts/push-vapid-keys.mjs` 로 지은 것).
        */

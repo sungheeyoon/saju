@@ -67,7 +67,7 @@ PRD 의 「(지금)」을 공개 출시로 옮기면 아래 세 단계로 저절
 | --- | --- | --- |
 | 정책(문서 · `.claude/**` · `scripts/*.test.ts`) | `policy`(scripts 시험 · 타입 · 린트) | 31초(#153) |
 | 엔진 · `app/saju/**` | `core`(단위 · 타입 · 린트 · 빌드) + `anon`(익명 e2e) | 그날은 한 job 으로 3분 55초 |
-| 그 밖 전부 · 모르는 파일 | `core` + `anon` + `authed` 여덟(`signed-in` · `match` · `chat` × 기기 둘, `live`(넓은 화면 하나 — 두 계정의 채널, ADR 0156), `notice`) + `flow` | 병렬, 가장 긴 차선 4분 53초 |
+| 그 밖 전부 · 모르는 파일 | `core` + `anon` + `authed` 여덟(`signed-in` · `match` · `chat` × 기기 둘, `live`(넓은 화면 하나 — 두 계정의 채널, ADR 0155), `notice`) + `flow` | 병렬, 가장 긴 차선 4분 53초 |
 
 공개 출시 뒤에는 주소로 좁히지 않는다 — 화면 하나도 전부다.
 

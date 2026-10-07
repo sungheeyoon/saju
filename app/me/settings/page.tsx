@@ -79,7 +79,7 @@ export default async function SettingsPage() {
         </>
       )}
 
-      {/* 이 기기의 새 메시지 알림 — 상태는 브라우저만 알아 줄이 스스로 잰다(ADR 0157) */}
+      {/* 이 기기의 새 메시지 알림 — 상태는 브라우저만 알아 줄이 스스로 잰다(ADR 0156) */}
       {state.kind === 'active' && <PushRow />}
 
       {state.kind === 'active' && account !== null && (

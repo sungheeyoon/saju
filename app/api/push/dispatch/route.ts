@@ -9,7 +9,7 @@ import { dispatchPushBatch } from './dispatch';
 import { pushSender } from './send';
 
 /**
- * **웹 푸시의 배달 문** — DB 가 깨우면 기한이 된 배달 줄 한 묶음을 보낸다(ADR 0157).
+ * **웹 푸시의 배달 문** — DB 가 깨우면 기한이 된 배달 줄 한 묶음을 보낸다(ADR 0156).
  *
  * 깨우는 쪽은 DB 하나다. 배달 줄이 생기면 그 트랜잭션이 커밋된 뒤 `pg_net` 이, 그리고 1분마다 `pg_cron` 이 Vault 의
  * `push_dispatch_url` 로 `Authorization: Bearer <push_dispatch_secret>` 를 들고 POST 한다. 이 주소는 로그인 관문

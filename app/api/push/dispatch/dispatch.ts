@@ -21,7 +21,7 @@ export type DispatchSummary = {
  * 살면 함수 시간 한도에 걸려 보낸 것을 닫지 못한 채 끊긴다.
  *
  * 송신기가 없으면(`null`, VAPID 설정 안 됨) 보내지 않고 줄마다 `unconfigured` 로 닫는다 — DB 가 그 줄을 지우지
- * 않고 다시 기한을 세운다(ADR 0157 「VAPID 열쇠 · 배달 비밀이 없으면」).
+ * 않고 다시 기한을 세운다(ADR 0156 「VAPID 열쇠 · 배달 비밀이 없으면」).
  */
 export async function dispatchPushBatch(
   db: SupabaseClient<Database>,

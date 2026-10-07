@@ -5,7 +5,7 @@ import { passNotice } from './notice.mjs';
 import { createChecks, sql } from './checks.mjs';
 
 /**
- * 계정마다 비공개 채널 — **실제 소켓을 붙여** 정책과 지연을 잰다(ADR 0156).
+ * 계정마다 비공개 채널 — **실제 소켓을 붙여** 정책과 지연을 잰다(ADR 0155).
  *
  * pgTAP 82 가 정책과 트리거를 DB 안에서 잰다. 여기는 그 사이의 Realtime 서버다 — 비공개 채널에 들어올 때 서버가 정말
  * `realtime.messages` 의 정책을 묻는가(남의 주제는 거절), 상대가 보낸 메시지가 커밋 뒤 **2초 안에** 닿는가.
@@ -18,7 +18,7 @@ const API = status.API_URL;
 
 const { check, finish } = createChecks('check-live-channel');
 
-/** 수용 기준(ADR 0156 의 1) — 전송 성공 뒤 이 안에 */
+/** 수용 기준(ADR 0155 의 1) — 전송 성공 뒤 이 안에 */
 const BUDGET_MS = 2000;
 const ROUNDS = 5;
 

@@ -196,7 +196,7 @@ from (values
   ('cancel_match_request',  format($$select public.cancel_match_request(%L)$$, (select v from kept where k = 'to_park')), 'OK',
                             '의도적으로 열림 — 내가 보낸 요청을 거둔다'),
   ('remove_push_subscription', $$select public.remove_push_subscription('https://push.example.com/susp')$$, 'OK',
-                            '의도적으로 열림 — 제 기기의 알림을 끈다(남에게 해가 없다, ADR 0157)')
+                            '의도적으로 열림 — 제 기기의 알림을 끈다(남에게 해가 없다, ADR 0156)')
 ) as d(name, call, answer, why);
 
 /**

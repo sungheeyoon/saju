@@ -3,7 +3,7 @@ import { READING_CREDITS_MOVED } from '../me/reading/credits-signal';
 import { NOTIFICATIONS_UNREAD_MOVED, REQUESTS_TO_ANSWER_MOVED } from '../me/requests/unread-signal';
 
 /**
- * 채널이 실어 오는 「무엇이 바뀌었나」 한 건과, 그것을 **어느 신호 · 어느 화면**으로 옮기는가(ADR 0156).
+ * 채널이 실어 오는 「무엇이 바뀌었나」 한 건과, 그것을 **어느 신호 · 어느 화면**으로 옮기는가(ADR 0155).
  *
  * 채널은 내용을 싣지 않는다 — 갈래(`area`) · 방(`match_id`) · 차례(`seq`)뿐이다. 받은 쪽은 그 갈래의 읽는 문을 다시
  * 불러 서버의 진실을 읽는다. 그래서 여기 표가 정하는 것은 「누가 다시 읽나」 하나다.
