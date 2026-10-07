@@ -42,7 +42,7 @@
  * 운영 베타에는 실제 사용자가 없다. PR 마다 전부(약 5분)를 돌리고 strict 가 뒤에 선 PR 을 다시 돌리는 값이
  * 다치는 사람을 막는 값보다 컸다. 그래서 단계가 공개 뒤의 규율을 켜지 않았으면(`release-stage.mjs`) PR 은
  * `core`(단위 · 타입 · 린트 · 빌드 — 그때 이름 `fast`)를 탄다 — 정책 파일만 바뀌었으면 전처럼 `policy`. 전체 검증은 main
- * 푸시가 최신 커밋 하나에서 비차단으로 돌고, 붉으면 `ci-main-red` 이슈가 든다. 화면의 입구를 바꾸면 그 주소에 닿는
+ * 푸시가 최신 커밋 하나에서 비차단으로 돌고(정책만 바꾼 푸시는 `policy` 만 — 아래 「문서만 바뀐 main 푸시」), 붉으면 `ci-main-red` 이슈가 든다. 화면의 입구를 바꾸면 그 주소에 닿는
  * 차선이 더 선다(아래 「그 주소에 닿는 차선만」).
  *
  * - **`supabase/**` 는 단계와 상관없이 전부다.** 마이그레이션 · pgTAP · `config.toml` 은 DB 차선에서만 재어지고,
@@ -122,7 +122,7 @@
  *
  * 판정 차례:
  *
- * 1. 위의 「전부」 조건 그대로 — 계획 밖 이벤트 · `full-ci` 라벨 · 빈 diff · `supabase/**` · 단계 모름. 공개 출시는 세 단계.
+ * 1. 위의 「전부」 조건 그대로 — 계획 밖 이벤트(main 푸시는 아래 「문서만 바뀐 main 푸시」가 따로 가른다) ·`full-ci` 라벨 · 빈 diff · `supabase/**` · 단계 모름. 공개 출시는 세 단계.
  *    그 뒤 주석만 바뀐 코드 파일은 정책으로 돌린다(아래 「주석만 바뀐 코드 파일」)
  * 2. **공용 위험**(`SHARED_RISK`) — 바뀐 파일 전체를 먼저 훑고 하나라도 들면 전부. 관문 · 인증 · `layout` · `route.ts` ·
  *    서버 액션 · spec 이 아닌 `e2e/**` · 시험 도구, 그리고 Next 의 공용 경계(`global-error` · `global-not-found` ·
@@ -162,20 +162,38 @@
  *   지워지거나 다른 노드에 붙은 파일. `'use client'` · `'use server'` 는 문자열이라 나무가 잡는다. 정책 단계는 `scripts/` 밖을
  *   린트하지 않는다
  * - 파싱 실패 · 가르지 않는 확장자 · base 쪽을 못 읽음(추가 · 삭제 · 이름 바꿈 · 실행 비트 변경) · `typescript` 를 못 부름
- * - PR 계획 밖 — main 푸시 · 일정 · 손으로 켠 실행은 전처럼 전부다. `supabase/**` 는 이것보다 먼저 전부다
+ * - 일정 · 손으로 켠 실행은 전처럼 전부다. main 푸시는 아래 「문서만 바뀐 main 푸시」가 푸시 전 SHA 를 base 로 같은 판정을 쓴다.
+ *   `supabase/**` 는 이것보다 먼저 전부다
+ *
+ * ## 문서만 바뀐 main 푸시는 `policy` 만 (ADR 0154)
+ *
+ * 머지 뒤 main 의 전체(약 11분)는 문서 PR 에도 돌았다 — 재는 것이 없는데 러너와 `ci-main-red` 의 기다림만 들었다. 그래서
+ * main 푸시도 계획을 본다. 판정하는 것은 **푸시 전 SHA(`github.event.before`)와 뒤 SHA 사이의 변경 전체**다 — 여러 PR 이 한 푸시에
+ * 들어도 그 범위 전부. 그 안이 정책 파일과 주석만 바뀐 코드 파일(위, base 는 푸시 전 SHA)뿐이면 `policy` 만, 하나라도 그 밖이면
+ * 전부다. 단계 · 주소 대응은 안 본다 — main 의 일은 전체 검증이다. `audit` 도 `policy` 만일 때는 건너뛴다(새 advisory 는 일정이 잡는다).
+ *
+ * **앞 커밋이 초록으로 끝났을 때만 좁힌다.** main 의 concurrency 는 새 푸시가 앞 실행을 끊는다. 코드 커밋 A 의 전체가 문서 커밋 B 에
+ * 끊기고 B 가 `policy` 만 돌면 A 는 아무도 안 잰다. 그래서 푸시 전 SHA 의 verify 실행(main 의 push · 일정 · 손으로 켠 것)이 하나라도
+ * 초록이고 붉은 것이 없어야 좁힌다(`beforeGreen`). 그 초록이 `policy` 만이었으면 그것도 같은 조건으로 좁혀졌으므로, 사슬을 따라가면
+ * 끝에 전부를 잰 초록이 있다. 붉은 main 위의 문서 푸시도 전부다 — 붉음이 풀렸는지 다음 푸시가 다시 잰다.
+ *
+ * 닫히는 쪽: 범위를 못 받음 · 푸시 전 SHA 가 0(새 가지) · 강제 갱신 · diff 를 못 읽음(빈 목록) · 앞 실행을 못 읽음(API 실패)은 전부다.
+ * `policy` 만 돈 초록은 전부를 잰 것이 아니라서 `ci-main-red` 가 그것으로 이슈를 닫지 않고 「마지막 초록」으로도 세지 않는다
+ * (`main-red.mjs` 의 `measuredEverything`).
  *
  * ## 원칙
  *
  * - 라벨(`full-ci`)은 **더할 수만 있고 뺄 수 없다.**
  * - 모르는 파일은 전부로 간다. 조용히 건너뛰지 않는다.
  * - diff 를 못 받았으면(빈 목록) 모르는 것이므로 전부 돈다.
- * - `main` 푸시 · `schedule` · 손으로 켠 실행은 계획을 안 보고 전부 돈다.
+ * - `schedule` · 손으로 켠 실행은 계획을 안 보고 전부 돈다. `main` 푸시는 정책만 바꿨을 때만 좁힌다(위).
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, appendFileSync } from 'node:fs';
 import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { FAILED } from './main-red.mjs';
 import { LAUNCHED, STAGE_FILE, currentStageOf } from './release-stage.mjs';
 
 export const FULL_LABEL = 'full-ci';
@@ -566,29 +584,33 @@ const EVERYTHING = { core: true, anon: true, authedLanes: AUTHED_LANES, flow: tr
 
 /**
  * `stage` 는 `release-stage.mjs` 의 `currentStageOf` 가 낸 값이다 — `null` 이나 빠진 값은 모르는 단계다.
+ * `pushed` 는 main 푸시의 범위다(위 「문서만 바뀐 main 푸시」) — `before` 는 푸시 전 SHA, `forced` 는 강제 갱신,
+ * `beforeGreen` 은 그 SHA 의 verify 가 초록으로 끝났는가(`settledGreen`). 빠지면 범위를 모르는 것이라 전부다.
  * `sourceOf` 는 바뀐 파일의 지금 내용이다(서버에 닿는 `app/` 파일을 가른다) — 빠지면 저장소에서 읽는다.
  * `baseSourceOf` 는 그 파일의 base 쪽 내용, `ts` 는 `typescript` 모듈이다(주석만 바뀐 코드 파일을 가른다) — 둘 중 하나가
  * 빠지거나 `null` 이면 지금 규칙 그대로다.
  *
  * `tier` 는 사람이 읽는 요약이다 — job 은 `lanes` 와 `authedLanes` 만 읽는다. `cause` 는 전부로 간 갈래의 이름이다.
  *
- * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null, sourceOf?: (file: string) => string | null, baseSourceOf?: (file: string) => string | null, ts?: typeof import('typescript') | null }} input
+ * @param {{ files: readonly string[], labels?: readonly string[], event?: string, stage?: string | null, sourceOf?: (file: string) => string | null, baseSourceOf?: (file: string) => string | null, ts?: typeof import('typescript') | null, pushed?: { before: string | null, forced: boolean, beforeGreen: boolean | null } | null }} input
  * @returns {{ tier: 'policy' | 'core' | 'narrow' | 'engine' | 'full', reason: string, cause: string | null, lanes: { policy: boolean, core: boolean, anon: boolean, authed: boolean, flow: boolean, audit: boolean }, authedLanes: string[] }}
  */
-export function planFor({ files, labels = [], event = 'pull_request', stage = null, sourceOf = sourceFromDisk, baseSourceOf = () => null, ts = null }) {
-  const decided = decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts });
+export function planFor({ files, labels = [], event = 'pull_request', stage = null, sourceOf = sourceFromDisk, baseSourceOf = () => null, ts = null, pushed = null }) {
+  const decided =
+    event === 'push' ? decidePush({ files, pushed, sourceOf, baseSourceOf, ts }) : decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts });
   const { lanes, authedLanes } = picked(decided.tier === 'full' ? EVERYTHING : decided.pick ?? {});
   return {
     tier: decided.tier,
     reason: decided.reason,
     cause: decided.cause ?? null,
-    lanes: { ...lanes, audit: audits({ files, labels, event }) },
+    lanes: { ...lanes, audit: audits({ files, labels, event, tier: decided.tier }) },
     authedLanes,
   };
 }
 
-/** 단계와 상관없다 — 위 「운영 의존성 감사」 */
-function audits({ files, labels, event }) {
+/** 단계와 상관없다 — 위 「운영 의존성 감사」. main 푸시는 `policy` 만일 때 건너뛴다(위 「문서만 바뀐 main 푸시」) */
+function audits({ files, labels, event, tier }) {
+  if (event === 'push') return tier !== 'policy';
   if (!PLANNED_EVENTS.has(event) || labels.includes(FULL_LABEL)) return true;
   const changed = files.map((one) => one.trim()).filter((one) => one !== '');
   return changed.length === 0 || changed.some((one) => DEPENDENCY_LISTS.includes(one));
@@ -607,12 +629,52 @@ function decide({ files, labels, event, stage, sourceOf, baseSourceOf, ts }) {
   if (database) return full('DB', `\`${database}\` 은 DB 차선에서만 재어진다`);
   if (stage === null || !(stage in LAUNCHED)) return full('단계 모름', '출시 단계를 모른다 — PRD §7.0 의 「(지금)」');
 
-  const commentOnly =
-    ts === null ? [] : changed.filter((file) => posix.extname(file) in SCRIPT_KINDS && onlyCommentsChanged(ts, file, baseSourceOf(file), sourceOf(file)));
+  const commentOnly = commentOnlyOf(changed, { sourceOf, baseSourceOf, ts });
   const judged = changed.filter((file) => !commentOnly.includes(file));
-  const decided = LAUNCHED[stage] ? decideLaunched(judged) : decideBeta(judged, stage, sourceOf);
-  if (commentOnly.length === 0) return decided;
-  return { ...decided, reason: `${decided.reason} — 주석만 바뀐 코드 파일은 정책으로 셌다: ${commentOnly.map((one) => `\`${one}\``).join(' · ')}` };
+  return notingComments(LAUNCHED[stage] ? decideLaunched(judged) : decideBeta(judged, stage, sourceOf), commentOnly);
+}
+
+/** 바뀐 파일 중 주석만 바뀐 코드 파일 — 파서가 없으면 없다(위 「주석만 바뀐 코드 파일」) */
+const commentOnlyOf = (changed, { sourceOf, baseSourceOf, ts }) =>
+  ts === null ? [] : changed.filter((file) => posix.extname(file) in SCRIPT_KINDS && onlyCommentsChanged(ts, file, baseSourceOf(file), sourceOf(file)));
+
+const notingComments = (decided, commentOnly) =>
+  commentOnly.length === 0
+    ? decided
+    : { ...decided, reason: `${decided.reason} — 주석만 바뀐 코드 파일은 정책으로 셌다: ${commentOnly.map((one) => `\`${one}\``).join(' · ')}` };
+
+/** 푸시 전 SHA 가 없다 — 새 가지 · 지운 가지에서 GitHub 가 넘기는 0 */
+const NO_COMMIT = /^0+$/;
+
+/**
+ * 푸시 전 SHA 의 verify 실행들이 초록으로 끝났는가 — main 의 push · 일정 · 손으로 켠 실행 중 하나라도 `success` 이고 붉은 것이
+ * 없어야 참이다. 끊긴 것 · 아직 도는 것은 세지 않는다 — 끊긴 것만 있으면 아무도 끝까지 안 잰 것이라 거짓이다(위 「문서만 바뀐 main 푸시」)
+ *
+ * @param {readonly { event?: string, conclusion?: string | null }[]} runs
+ */
+export function settledGreen(runs) {
+  const onMain = runs.filter((run) => run.event !== 'pull_request');
+  return onMain.some((run) => run.conclusion === 'success') && !onMain.some((run) => FAILED.has(run.conclusion ?? ''));
+}
+
+/** main 푸시 — 범위 전체가 정책 · 주석만이고 앞 커밋이 초록이면 `policy`, 아니면 전부(위 「문서만 바뀐 main 푸시」) */
+function decidePush({ files, pushed, sourceOf, baseSourceOf, ts }) {
+  if (pushed === null || !pushed.before || NO_COMMIT.test(pushed.before)) return full('범위 모름', 'main 푸시 — 푸시 전 SHA 가 없다(새 가지 · 못 받음)');
+  if (pushed.forced) return full('강제 갱신', 'main 푸시 — 강제 갱신이라 푸시 전 SHA 부터의 범위를 믿지 않는다');
+
+  const changed = files.map((one) => one.trim()).filter((one) => one !== '');
+  if (changed.length === 0) return full('빈 diff', 'main 푸시 — 푸시 전 SHA 부터 바뀐 파일 목록을 못 받았다');
+  const database = changed.find((one) => matches(DATABASE, one));
+  if (database) return full('DB', `main 푸시 — \`${database}\` 은 DB 차선에서만 재어진다`);
+
+  const commentOnly = commentOnlyOf(changed, { sourceOf, baseSourceOf, ts });
+  const code = changed.find((file) => !commentOnly.includes(file) && !isPolicy(file));
+  if (code) return full('main 푸시', `main 푸시 — \`${code}\` 이 정책 밖이라 전부 잰다`);
+  const before = pushed.before.slice(0, 7);
+  if (pushed.beforeGreen !== true) {
+    return full('앞 커밋 미검증', `main 푸시 — 정책만 바뀌었지만 앞 커밋 \`${before}\` 의 verify 가 초록으로 끝나지 않았다(끊김 · 붉음 · 못 읽음)`);
+  }
+  return notingComments({ tier: 'policy', reason: `main 푸시 — \`${before}\` 부터 정책만 바뀌었다`, pick: { policy: true } }, commentOnly);
 }
 
 /** 공개 출시 — 위 「세 단계뿐이다」 그대로. 엔진 단계는 `core` + `anon` 이다 */
@@ -705,6 +767,28 @@ function baseSourceFromGit(base, file) {
   }
 }
 
+/**
+ * main 푸시의 범위 — 푸시 전 SHA 의 verify 실행을 API 로 읽는다(계획 job 의 `actions: read`). 못 읽으면 `beforeGreen` 이
+ * `null` 이라 전부다(위 「문서만 바뀐 main 푸시」)
+ */
+function pushedOf(before, forced) {
+  let beforeGreen = null;
+  const repo = process.env.GITHUB_REPOSITORY;
+  if (before !== null && /^[0-9a-f]{40}$/.test(before) && !NO_COMMIT.test(before) && repo) {
+    try {
+      const runs = execFileSync(
+        'gh',
+        ['api', `repos/${repo}/actions/workflows/verify.yml/runs?branch=main&head_sha=${before}&per_page=100`, '--jq', '[.workflow_runs[] | {event, conclusion}]'],
+        { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+      );
+      beforeGreen = settledGreen(JSON.parse(runs));
+    } catch {
+      // 못 읽으면 모르는 것이다 — 전부로 간다
+    }
+  }
+  return { before, forced, beforeGreen };
+}
+
 async function main() {
   const files = readFileSync(0, 'utf8').split('\n').filter((one) => one.trim() !== '');
   const labels = (argOf('--labels') ?? '').split(',').map((one) => one.trim()).filter(Boolean);
@@ -726,7 +810,15 @@ async function main() {
       // 위와 같다
     }
   }
-  const plan = planFor({ files, labels, event, stage, ts, baseSourceOf: (file) => (base === null ? null : baseSourceFromGit(base, file)) });
+  const plan = planFor({
+    files,
+    labels,
+    event,
+    stage,
+    ts,
+    baseSourceOf: (file) => (base === null ? null : baseSourceFromGit(base, file)),
+    pushed: event === 'push' ? pushedOf(argOf('--before') || null, argOf('--forced') === 'true') : null,
+  });
 
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(
