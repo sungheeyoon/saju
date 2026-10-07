@@ -39,7 +39,7 @@
 | G-73 | 설정에 「알림」 카드가 늘었다 — 메뉴 구조 | §7.1 | 결정 대기 | 운영자가 자리를 정하고 화면이 맞는다 | `PushRow` |
 | G-74 | 안드로이드 알림의 단색 `badge` 아이콘이 없다 | ADR 0156 | 정했다 | 디자인 자산이 서고 `public/sw.js` 가 `badge` 로 싣는다 | 없으면 기본 종 모양이다 |
 | G-75 | 운영 Realtime 설정 — 「Allow public access」 끄기 · 동시 연결(Free 200) | ADR 0155 | 정했다 | 운영에서 public access 가 꺼지고, 한도 전에 플랜을 정한다 | 구매 · 플랜은 그때 운영자 답 |
-| G-77 | 옛 읽음 문 `mark_chat_read(p_match_id)` 가 새 두 칸 서명 곁에 남아 있다(넓히기) | ADR 0155 · `docs/ops/runbook/deploy.md` 「규약 넷」 3 | 정했다 | 새 앱이 운영에 오르고 옛 서명 호출이 0 인 것을 잰 뒤, 좁히기 마이그레이션이 옛 서명을 걷고 두 벌을 든 시험 줄을 뺀다 | 재는 법: 배포 뒤 하루 넘게 `pg_stat_statements` 에서 `mark_chat_read` 를 든 문 가운데 `p_up_to_seq` 가 없는 것의 `calls` 가 늘지 않는다 |
+| G-77 | 옛 읽음 문 `mark_chat_read(p_match_id)` 가 남아 있다(넓히기) | ADR 0155 | 정했다 | 옛 서명 호출이 0 인 것을 잰 뒤 좁히기 마이그레이션이 그것을 걷는다 | [기록](gaps/records/g-77.md) |
 
 ## 공개 출시
 
