@@ -260,6 +260,8 @@ export const AUTHED_LANES = [
   'chat:mobile',
   /* 두 계정의 채널 — 넓은 화면 한 벌이다(ADR 0156) */
   'live',
+  /* 설정의 「새 메시지 알림」 — 넓은 화면 한 벌이다(ADR 0157) */
+  'push',
   'notice',
 ];
 

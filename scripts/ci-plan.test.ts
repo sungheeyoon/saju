@@ -172,7 +172,7 @@ describe('CI 계획 — 관문 · 화면 · 인증은 베타에서도 전부다 
     const some = (authedLanes: string[], rest: Partial<typeof FULL> = {}) => ({
       tier: 'narrow', ...CORE_ONLY, authed: authedLanes.length > 0, authedLanes, ...rest,
     });
-    expect(lanesOf('app/page.tsx')).toEqual(some(['signed-in:desktop', 'signed-in:mobile'], { anon: true, flow: true }));
+    expect(lanesOf('app/page.tsx')).toEqual(some(['signed-in:desktop', 'signed-in:mobile', 'push'], { anon: true, flow: true }));
     expect(lanesOf('app/me/(home)/loading.tsx')).toEqual(some(AUTHED_LANES, { anon: true, flow: true }));
     expect(lanesOf('app/me/compat/not-found.tsx')).toEqual(some(['signed-in:desktop', 'signed-in:mobile'], { anon: true, flow: true }));
     expect(lanesOf('e2e/match.spec.ts')).toEqual(some(['match:desktop', 'match:mobile']));
