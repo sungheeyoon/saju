@@ -13,7 +13,7 @@
 -- `cancel_match_request` 는 **의도적으로 열어 둔다**(남에게 해가 없고 후속 피해를 줄인다), `clear_my_photo` 는 걷었고,
 -- `set_person_listed` 는 막았다(`20261110090000`). 옛 사진 문 `set_my_photo` 는 `20261115090000` 이 걷었다. 열린 둘은 아래 목록에 `OK` 로 적는다 — 누가 닫으면 붉어진다.
 begin;
-select plan(47);
+select plan(49);
 
 create or replace function pg_temp.summary(i integer)
 returns jsonb
@@ -155,6 +155,8 @@ from (values
   ('respond_to_match_request', format($$select public.respond_to_match_request(%L, true)$$, (select v from kept where k = 'to_park')),
                             '42501 이용이 정지된 계정입니다.', null),
   ('save_my_profile',       $$select public.save_my_profile('새이름', null)$$, '42501 이용이 정지된 계정입니다.', null),
+  ('save_push_subscription', $$select public.save_push_subscription('https://push.example.com/susp', 'BKey', 'auth')$$,
+                            '42501 이용이 정지된 계정입니다.', null),
   ('save_service_survey',   $$select public.save_service_survey(array[]::text[], array[]::text[], array[]::text[], null, array[]::text[], array[]::text[], null, null, array[]::text[], null, array[]::text[], false)$$,
                             '42501 이용이 정지된 계정입니다.', null),
   ('send_chat_message',     format($$select public.send_chat_message(%L, '안녕하세요')$$, (select v from kept where k = 'match')),
@@ -168,7 +170,7 @@ from (values
                             '42501 저장한 사람 목록에 없는 사람입니다.', '정지되면 내 사람이 안 보인다 — 그 판정으로 막힌다'),
   ('leave_reading_feedback', format($$select public.leave_reading_feedback(%L, 4::smallint, 4::smallint, 'right')$$, (select v from kept where k = 'run')),
                             'P0002 답할 풀이를 찾지 못했습니다.', '풀이의 범위(`reading_scope_for`)가 활성 계정만 낸다'),
-  ('mark_chat_read',        format($$select public.mark_chat_read(%L)$$, (select v from kept where k = 'match')),
+  ('mark_chat_read',        format($$select public.mark_chat_read(%L, 1)$$, (select v from kept where k = 'match')),
                             '42501 chat: no such room', '방이 보이는가(`chat_room_readable`)가 활성 계정만 본다'),
   ('person_for_pair',       format($$select public.person_for_pair(%L, null, null, null, null, null, null, null, null, null, null, null, null)$$, (select v from kept where k = 'mom')),
                             '42501 저장한 사람 목록에 없는 사람입니다.', '정지되면 내 사람이 안 보인다'),
@@ -192,7 +194,9 @@ from (values
   -- 의도적으로 열려 있다 — 운영자 결정(2026-09-30): 남에게 해가 없고 후속 피해를 줄인다
   ('acknowledge_warning',   $$select public.acknowledge_warning('W-0000')$$, 'OK', '의도적으로 열림 — 받은 경고를 읽었다고 적는다'),
   ('cancel_match_request',  format($$select public.cancel_match_request(%L)$$, (select v from kept where k = 'to_park')), 'OK',
-                            '의도적으로 열림 — 내가 보낸 요청을 거둔다')
+                            '의도적으로 열림 — 내가 보낸 요청을 거둔다'),
+  ('remove_push_subscription', $$select public.remove_push_subscription('https://push.example.com/susp')$$, 'OK',
+                            '의도적으로 열림 — 제 기기의 알림을 끈다(남에게 해가 없다, ADR 0157)')
 ) as d(name, call, answer, why);
 
 /**

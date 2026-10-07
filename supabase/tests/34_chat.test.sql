@@ -179,7 +179,7 @@ select is(
   '안녕하세요',
   '방 목록이 마지막 메시지를 든다');
 
-select ok(public.mark_chat_read((select kim_lee from rooms)) > 0, '여기까지 읽었다고 적는다');
+select ok(public.mark_chat_read((select kim_lee from rooms), 9223372036854775807) > 0, '여기까지 읽었다고 적는다');
 select is(public.unread_chat_count(), 0, '적고 나면 0이다');
 
 select is(

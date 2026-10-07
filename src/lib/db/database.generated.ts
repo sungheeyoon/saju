@@ -1080,6 +1080,101 @@ export type Database = {
           },
         ]
       }
+      push_delivery: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          created_at: string
+          due_at: string
+          id: string
+          room_id: string
+          sent_at: string | null
+          settled_at: string | null
+          status: string
+          subscription_id: string
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          due_at?: string
+          id?: string
+          room_id: string
+          sent_at?: string | null
+          settled_at?: string | null
+          status?: string
+          subscription_id: string
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          created_at?: string
+          due_at?: string
+          id?: string
+          room_id?: string
+          sent_at?: string | null
+          settled_at?: string | null
+          status?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_delivery_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_room"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_delivery_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "push_subscription"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscription: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_success_at: string | null
+          p256dh: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_success_at?: string | null
+          p256dh: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_success_at?: string | null
+          p256dh?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscription_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reading: {
         Row: {
           chart_a: Json
@@ -2463,6 +2558,17 @@ export type Database = {
       chat_retention: { Args: never; Returns: string }
       chat_room_readable: { Args: { p_room_id: string }; Returns: boolean }
       chat_snapshot_context: { Args: never; Returns: number }
+      claim_push_deliveries: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          auth: string
+          delivery_id: string
+          endpoint: string
+          match_id: string
+          p256dh: string
+        }[]
+      }
       claim_reading_job: {
         Args: { p_response_id: string }
         Returns: {
@@ -2799,7 +2905,10 @@ export type Database = {
       }
       lock_my_photos: { Args: never; Returns: string }
       lock_users: { Args: { a: string; b: string }; Returns: undefined }
-      mark_chat_read: { Args: { p_match_id: string }; Returns: number }
+      mark_chat_read: {
+        Args: { p_match_id: string; p_up_to_seq: number }
+        Returns: number
+      }
       mark_notifications_read: { Args: never; Returns: number }
       mark_reading_webhook_processed: {
         Args: { p_event_id: string }
@@ -3392,6 +3501,14 @@ export type Database = {
       profile_photo_upload_limit: { Args: never; Returns: number }
       profile_photo_version: { Args: { p_updated_at: string }; Returns: number }
       purge_closed_chat_messages: { Args: never; Returns: number }
+      push_max_attempts: { Args: never; Returns: number }
+      push_retry_delay: { Args: { p_attempts: number }; Returns: string }
+      push_room_quiet: { Args: never; Returns: string }
+      push_subscription_limit: { Args: never; Returns: number }
+      push_subscription_registered: {
+        Args: { p_endpoint: string }
+        Returns: boolean
+      }
       reading_about: {
         Args: {
           p_actor: string
@@ -3500,6 +3617,10 @@ export type Database = {
         Args: { p_position: number; p_version?: number }
         Returns: undefined
       }
+      remove_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: boolean
+      }
       report_chat_message: {
         Args: { p_detail?: string; p_message_id: string; p_reason: string }
         Returns: string
@@ -3555,6 +3676,10 @@ export type Database = {
       }
       save_my_profile: {
         Args: { p_intro: string; p_nickname: string }
+        Returns: undefined
+      }
+      save_push_subscription: {
+        Args: { p_auth: string; p_endpoint: string; p_p256dh: string }
         Returns: undefined
       }
       save_reading: {
@@ -3645,6 +3770,10 @@ export type Database = {
       set_person_listed: {
         Args: { p_listed: boolean; p_person: string }
         Returns: undefined
+      }
+      settle_push_delivery: {
+        Args: { p_delivery_id: string; p_result: string }
+        Returns: string
       }
       settle_reading_credit_uses: {
         Args: { p_user: string }
@@ -3773,6 +3902,15 @@ export type Database = {
         Returns: undefined
       }
       taste_today: { Args: never; Returns: string }
+      tell_changed: {
+        Args: {
+          p_area: string
+          p_match_id?: string
+          p_seq?: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       touch_activity: { Args: never; Returns: boolean }
       unread_chat_count: { Args: never; Returns: number }
       unread_notifications: { Args: never; Returns: number }
@@ -3815,6 +3953,8 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      wake_push_dispatch: { Args: never; Returns: undefined }
+      wake_push_dispatch_when_due: { Args: never; Returns: boolean }
       wake_reading_recovery: { Args: never; Returns: undefined }
       watch_cron: { Args: never; Returns: number }
       write_person_input: {
