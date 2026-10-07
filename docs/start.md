@@ -29,7 +29,8 @@
 
 **일이 둘에 걸치면 둘 다 읽는다** — 기능이 새 표를 들이면 `feature` 와 `db`. 그래도 **한 에이전트는 한 충돌 영역을 끝까지
 쥔다**(`docs/agents/delegation/parallel.md` 「나란히 맡길 때」). 에이전트 정의(`.claude/agents/`)는 역할 문서를 읽으라는 한 줄뿐이다 —
-그 파일은 Claude Code 만 읽고, 다른 에이전트에게는 이 표가 전부다.
+그 파일은 Claude Code 만 읽고, 다른 에이전트에게는 이 표가 전부다. 대화가 저장소 일로 넘어가도 이 표에서
+연다 — 직접 할지 맡길지는 `docs/agents/delegation/coordinator.md` 「조율자 세션」.
 
 ## 원본 — 무엇이 무엇을 답하나
 

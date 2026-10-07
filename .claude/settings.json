@@ -5,6 +5,9 @@
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
       "Bash(git push --force-with-lease:*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git push * +*)",
       "Bash(npx supabase config push:*)",
       "Bash(supabase config push:*)",
       "Bash(./node_modules/.bin/supabase config push:*)",
@@ -12,6 +15,20 @@
       "Bash(git push origin --delete main)",
       "Bash(vercel env rm:*)",
       "Bash(npx vercel env rm:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/scripts/checkout-hint.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

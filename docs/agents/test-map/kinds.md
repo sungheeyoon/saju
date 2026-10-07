@@ -34,7 +34,7 @@
 | 화면 | `app/**/*.tsx` | 그리기는 없음 — 내보낸 순수 함수와 서버 페이지 함수의 약속만(위) | | 서버 HTML 만 — `check-reading` 이 「수정 전」 풀이의 딱지 · 표지 색 · 주 단추를 읽는다 | **여기서 누른다.** 누르는 자리 44px · 초점 테두리 한 겹 · 바탕 빛이 되풀이되지 않음은 `e2e/target.ts` 로 잰다(#229 — `saju.spec.ts` 의 새 한 건 · `signed-in.spec.ts` · `match.spec.ts`) |
 | 관문 | `proxy.ts` · `src/lib/consent` | `gate.test.ts` · `notice.test.ts` | `20_notice` | | `notice.spec.ts` |
 | DB | `supabase/migrations/` | | `supabase/tests/` · 모양 잠금 넷(`33_function_shape`) | 위 | |
-| 검사 도구 | `scripts/` · `eslint.config.mjs` | `ci-plan` · `run-checks` · `layers` · `code-rules` · `card-score-sql`(카드 점수의 TS ↔ SQL 이 같은 표를 읽는다) · `worktree-stack` · `secret-env`(비밀의 갈래 · `server-only` 잠금 · runbook 절, G-23 ⑧) · `vercel-ignore`(Preview 를 건너뛸지 — 0 이 건너뜀) · `copy-contracts` · `main-red` · `stack-slot` · `remote-lock` · `db-remote` · `audit-verify` · `brand-share-images`(미리보기 그림의 이름 · 탭 그림의 판) · `merge-sim`(인자와 요약 문장만 — git 은 안 부른다) | | | |
+| 검사 도구 | `scripts/` · `eslint.config.mjs` | `ci-plan` · `run-checks` · `layers` · `code-rules` · `card-score-sql`(카드 점수의 TS ↔ SQL 이 같은 표를 읽는다) · `worktree-stack` · `secret-env`(비밀의 갈래 · `server-only` 잠금 · runbook 절, G-23 ⑧) · `vercel-ignore`(Preview 를 건너뛸지 — 0 이 건너뜀) · `copy-contracts` · `main-red` · `stack-slot` · `remote-lock` · `db-remote` · `audit-verify` · `brand-share-images`(미리보기 그림의 이름 · 탭 그림의 판) · `merge-sim`(인자와 요약 문장만 — git 은 안 부른다) · `checkout-hint`(메인 체크아웃에 쓸 때 일러 주는 훅) | | | |
 
 ## 시험 하나의 시간 — 로컬 5초
 

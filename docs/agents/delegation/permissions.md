@@ -25,7 +25,7 @@
 | **3 사람이 답한 뒤에 — 운영 배포** | **프로덕션 배포**(`vercel deploy --prod` · 대시보드의 Create Deployment — 머지는 배포가 아니다, ADR 0110). **운영 베타에서도 사람이 답한 뒤다** — 라운드 끝의 묶음 배포 한 번을 조율자가 밟는다(`docs/agents/delegation/coordinator.md` 「머지는 배포가 아니다」, `docs/ops/runbook/deploy.md` 「묶음 배포」) | `vercel deploy --prod` · Create Deployment | 사람 — 도구 잠금은 공식 운영 전이라 없다. 켤 목록은 아래 절 |
 | **3 사람이 답한 뒤에** | 운영 DB 에 마이그레이션을 올리거나 임의 SQL 을 보내는 것, 토큰이 나가는 실호출, Vercel 변수, 원격 가지 삭제, 프로덕션 확인이 든 걸음 — **공식 운영에 들어간 뒤에 켠다(ADR 0093).** 운영 베타에서는 등급 2 처럼 밟고 값을 적는다 — 실호출만은 빼고 운영자가 직접 돌린다(`docs/agents/delegation/unattended.md` 「권한 봉투」) | `db push` · `db query --linked` · `READING_LIVE=1` · `vercel env` · `gh pr merge`(auto 아닌 즉시 머지) | 없음 — 공식 운영 전. 켤 목록은 아래 절 |
 | **3 사람이 답한 뒤에 — 도구 밖** | 새 한글 문구는 표로 보이고 답을 기다린다(`docs/agents/code-rules/screen-copy.md` 「화면 문구」). 남이 띄운 dev 서버는 죽이기 전에 묻는다. 운영 SQL Editor 의 문장을 건네기만 하는 것은 공식 운영 뒤의 일이다(ADR 0093) — 지금은 `npm run db:remote -- --purpose "<목적>" "<sql>"` 로 직접 돌리고 값을 적는다. **단 운영 개인정보는 예외 없이 직접 조회하지 않는다**(아래, ADR 0105) — 질의를 써서 건네고 사람이 검토해 돈다 | 버튼 문구 · dev 서버 · 운영 개인정보 조회 | 사람 |
-| **4 안 한다** | 되돌릴 수 없는 것. main 에 force push, `supabase config push`(원격의 구글 설정을 지운다), main 가지 삭제, Vercel 변수 삭제, 비밀 값을 커밋 | | `Bash(git push --force:*)` · `Bash(git push -f:*)` · `Bash(git push --force-with-lease:*)` · `Bash(npx supabase config push:*)` · `Bash(supabase config push:*)` · `Bash(./node_modules/.bin/supabase config push:*)` · `Bash(git push origin :main)` · `Bash(git push origin --delete main)` · `Bash(vercel env rm:*)` · `Bash(npx vercel env rm:*)` |
+| **4 안 한다** | 되돌릴 수 없는 것. 어느 가지에도 force push(PR 가지는 main 을 merge 해 올린다), `supabase config push`(원격의 구글 설정을 지운다), main 가지 삭제, Vercel 변수 삭제, 비밀 값을 커밋 | | `Bash(git push --force:*)` · `Bash(git push -f:*)` · `Bash(git push --force-with-lease:*)` · `Bash(git push * --force*)` · `Bash(git push * -f*)` · `Bash(git push * +*)` · `Bash(npx supabase config push:*)` · `Bash(supabase config push:*)` · `Bash(./node_modules/.bin/supabase config push:*)` · `Bash(git push origin :main)` · `Bash(git push origin --delete main)` · `Bash(vercel env rm:*)` · `Bash(npx vercel env rm:*)` |
 
 **운영 개인정보 — 에이전트는 예외 없이 직접 조회하지 않는다(2026-09-24, ADR 0105).** 운영 베타에서 등급 3 을 묻지 않고
 밟는 것(ADR 0093)과 따로 선 경계이고, 공개 출시 전부터 지킨다. 이메일 · 닉네임과 계정의 짝 · 메시지 본문 · 출생정보 ·
@@ -67,7 +67,10 @@ ADR 0082). 보호 규칙이 strict 라(2026-09-23) 가지가 최신 main 위에 
 `gh pr merge` 는 묻지 않았고, 그 세 줄을 지우자 물었다. ② `deny` 는 `cd x && git push --force-with-lease` 를
 막지 않았다(같은 날, 작업 가지). 그러니 잠금을 켤 때는 `ask` 만 되돌리지 말고 `settings.local.json` 의 넓은
 `allow` 를 함께 걷고, 켠 뒤 `gh pr merge --help` 같은 해 없는 명령으로 창이 뜨는지 재 본다. 가지를 main
-위로 옮길 때는 rebase 대신 main 을 merge 해 force push 가 필요 없게 한다. 이 표는 도구가 지키는 담이
+위로 옮길 때는 rebase 대신 main 을 merge 해 force push 가 필요 없게 한다. ③ 2026-10-07 에 PR 가지가 force push 로 다시
+쓰였다 — `deny` 는 깃발이 `git push` 바로 뒤일 때만 걸렸다. 원격 뒤의 깃발과 `+<ref>` 를 더했지만 규칙은 글자를 견줄
+뿐이라(<https://code.claude.com/docs/en/permissions> 「Bash rule limits」) `git -C`/`-c` 가 낀 push · 묶은 깃발(`-uf`) ·
+따옴표 속 `'+ref'` · 별칭 · 변수 · `gh api` 는 못 잡는다 — 그 꼴은 이 문장이 막는다. 이 표는 도구가 지키는 담이
 아니라 **에이전트가 읽는 규약**이고, 설정은 그 규약을 도구가 아는 데까지 옮긴 것이다.
 
 ### 공식 운영에 들어가면 켜는 잠금 (ADR 0093)
@@ -110,3 +113,9 @@ ADR 0082). 보호 규칙이 strict 라(2026-09-23) 가지가 최신 main 위에 
 - `Bash(git branch -D:*)`
 
 도구 밖에서는 운영 SQL Editor 에서 돌릴 문장을 건네기만 한다(가입 코드 INSERT · 상한 올리기).
+
+## 훅 — 메인 체크아웃에서 일러 준다
+
+`hooks.PreToolUse` 가 `scripts/checkout-hint.mjs` 를 돈다(2026-10-07) — 메인 체크아웃(워크트리 밖)의 파일을 고치거나 거기서
+`git commit` 하면 역할 문서와 워크트리를 이르는 한 줄을 건넨다. 묻지도 막지도 않는다(`additionalContext` 만). 걸리는 꼴은 옆
+시험이 든다. Claude Code 만 돈다 — 다른 에이전트에게는 `docs/agents/delegation/coordinator.md` 「조율자 세션」의 문장이 전부다.
