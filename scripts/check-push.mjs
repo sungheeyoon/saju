@@ -74,6 +74,8 @@ const { base: BASE, stop } = await startCheckServer({
   anonKey: status.ANON_KEY,
   secretKey: status.SECRET_KEY ?? status.SERVICE_ROLE_KEY,
   built: { NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY: vapid.publicKey },
+  // DB 컨테이너의 `pg_net` 이 배달 문을 두드린다 — 리눅스에서는 루프백 밖에서 와야 닿는다
+  listenAll: true,
   whileRunning: {
     WEB_PUSH_VAPID_PRIVATE_KEY: vapid.privateKey,
     WEB_PUSH_SUBJECT: 'mailto:push-check@example.com',
@@ -148,7 +150,12 @@ try {
 
   await a.rpc('send_chat_message', { p_match_id: matchId, p_body: `비밀 본문 ${tag}` });
   const got = await fake.waitFor((one) => one.name === 'b-1');
-  check('메시지 한 통이 pg_net → 배달 문 → 푸시 서비스로 간다', got !== null);
+  check(
+    '메시지 한 통이 pg_net → 배달 문 → 푸시 서비스로 간다',
+    got !== null,
+    // 안 닿았으면 DB 쪽에서 본 그 요청의 끝을 싣는다 — 컨테이너에서 앱으로 가는 길이 막힌 것인지 여기서 갈린다
+    got === null ? sql(`select coalesce(json_agg(r), '[]') from (select status_code, error_msg from net._http_response order by created desc limit 3) r`) : '',
+  );
   check('푸시 서비스가 받은 것을 풀면 주소와 표뿐이다', JSON.stringify(got?.payload) === JSON.stringify(pushPayloadFor(matchId)),
     JSON.stringify(got?.payload ?? got?.error));
   check('암호를 풀기 전의 본문에 메시지 · 닉네임이 없다 — 풀린 값에도 없다',

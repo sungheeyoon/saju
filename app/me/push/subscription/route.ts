@@ -18,12 +18,28 @@ const signedOut = () => new Response('sign in first', { status: 401 });
  *
  * 옛 endpoint 를 먼저 지운다. 새 endpoint 는 다른 값이라 두지 않으면 옛 줄이 끝까지 남아 보낼 때마다 410 을 받는다.
  */
+/**
+ * 출처 머리의 호스트가 이 요청이 온 호스트(`Host`)와 같은가. `request.url` 로 견주지 않는다 — 서버가 모든 주소(`0.0.0.0`)에
+ * 서면 그 주소가 `request.url` 에 들어와 같은 출처의 요청도 갈렸다(2026-10-08 흐름 검사). 브라우저는 교차 출처 요청의 `Host` 를
+ * 바꿀 수 없다.
+ */
+function sameOrigin(request: Request): boolean {
+  const origin = request.headers.get('origin');
+  if (origin === null) return false;
+  const host = request.headers.get('host') ?? new URL(request.url).host;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: Request): Promise<Response> {
   /*
     남의 사이트가 이 주소로 제 endpoint 를 실어 보내면 그 사람의 메시지 통보를 가로챌 수 있다. 쿠키(`SameSite=Lax`)가
     교차 출처 POST 에 안 실리지만, 출처 머리도 본다 — 서비스 워커의 `fetch` 는 늘 제 출처를 싣는다.
   */
-  if (request.headers.get('origin') !== new URL(request.url).origin) {
+  if (!sameOrigin(request)) {
     return new Response('forbidden', { status: 403 });
   }
 

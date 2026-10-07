@@ -20,7 +20,12 @@ import { execFileSync, spawn } from 'node:child_process';
 
 let built = false;
 
-export async function startCheckServer({ port, supabaseUrl, anonKey, secretKey, whileRunning, built: builtWith }) {
+/**
+ * `listenAll` 은 **컨테이너가 두드리는 검사만** 켠다 — DB 의 `pg_net` 이 `host.docker.internal` 로 앱을 부르는 웹 푸시가
+ * 그렇다(`check-push.mjs`). Docker Desktop(WSL · macOS)은 그 이름을 호스트의 루프백으로 잇지만, 리눅스(CI)에서는 브리지의
+ * 게이트웨이 주소라 `localhost` 에만 선 서버에 안 닿는다(2026-10-08 CI 에서 배달 열한 건이 시한을 넘겼다).
+ */
+export async function startCheckServer({ port, supabaseUrl, anonKey, secretKey, whileRunning, built: builtWith, listenAll = false }) {
   const env = {
     ...process.env,
     NEXT_DIST_DIR: '.next-check',
@@ -42,7 +47,7 @@ export async function startCheckServer({ port, supabaseUrl, anonKey, secretKey, 
     built = true;
   }
 
-  const server = spawn('npx', ['next', 'start', '--hostname', 'localhost', '--port', String(port)], {
+  const server = spawn('npx', ['next', 'start', '--hostname', listenAll ? '0.0.0.0' : 'localhost', '--port', String(port)], {
     env: { ...env, ...whileRunning },
     stdio: 'ignore',
     // 제 프로세스 묶음으로 띄운다 — `npx` 만 끄면 그 아래 `next-server` 가 포트를 쥔 채 남아, 다음 검사가 옛 서버를 두드린다
