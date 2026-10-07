@@ -10,7 +10,7 @@
 --
 -- 같은 트랜잭션 안에서 `now()` 는 멈춰 있다 — 기한을 넘기는 자리는 `due_at` · `claimed_at` 을 손으로 당긴다.
 begin;
-select plan(80);
+select plan(83);
 
 -- 이 파일의 endpoint 는 `push.example.com` 이다 — 시험용 호스트로 연다. 트랜잭션과 함께 걷힌다
 delete from vault.secrets where name = 'push_extra_hosts';
@@ -278,6 +278,21 @@ select is(
   interval '60 seconds',
   '보낸 뒤 60초 안의 메시지는 그 뒤가 기한이다');
 select is_empty($$select * from pg_temp.claim()$$, '기한 전에는 안 잡힌다');
+
+-- 60초는 **보낸 시각**부터다 — 보내는 중에 선 대기 줄은 그 보냄이 닫힐 때 보낸 시각 + 60초로 밀린다.
+-- 잡고 10초 뒤에 보냈다고 흉내 낸다(같은 트랜잭션의 now() 는 멈춰 있으니 잡은 시각을 10초 앞으로 민다). 앞의 보냄은
+-- 5분 전 일로 민다 — 그대로면 그 보낸 시각(멈춘 now())이 새 줄의 기한을 대신 정해 이 자리를 못 잰다.
+update public.push_delivery set sent_at = now() - interval '5 minutes', settled_at = now() - interval '5 minutes'
+where status = 'sent' and subscription_id = (select id from public.push_subscription where endpoint = 'https://push.example.com/kim');
+select pg_temp.due_now();
+select is((select count(*)::int from pg_temp.claim()), 1, '셋째 메시지의 줄을 잡는다');
+update public.push_delivery set claimed_at = now() - interval '10 seconds'
+where status = 'sending' and subscription_id = (select id from public.push_subscription where endpoint = 'https://push.example.com/kim');
+select pg_temp.send((select lee from folks), (select kim_lee from rooms), '보내는 중에 온 메시지');
+select is(pg_temp.settle('https://push.example.com/kim', 'sent'), 'sent', '잡은 지 10초 뒤에 보냈다');
+select ok(
+  (select due_in from pg_temp.lines('https://push.example.com/kim') where status = 'pending') >= interval '60 seconds',
+  '보내는 중에 선 대기 줄의 기한은 보낸 시각 + 60초 뒤다 — 잡은 시각 + 60초(50초 뒤)가 아니다');
 
 -- 읽었으면 skipped
 set local role authenticated;

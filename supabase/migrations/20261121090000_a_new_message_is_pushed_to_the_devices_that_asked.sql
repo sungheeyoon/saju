@@ -10,7 +10,8 @@
 --
 -- - **본문을 안 든다.** 배달 줄은 구독과 방만 가리킨다. 배달 문이 받는 것도 endpoint · 열쇠 · match_id · 시도 수뿐이다.
 -- - **방 하나에 대기 줄 하나** — 같은 방의 다음 메시지는 대기 줄을 새로 만들지 않는다(부분 유일 색인). 보낸 뒤 60초 안에
---   다시 보내지 않는다 — 새 대기 줄의 기한은 그 구독 · 방의 마지막 보냄(또는 보내는 중) + 60초와 지금 중 늦은 쪽이다.
+--   다시 보내지 않는다 — 새 대기 줄의 기한은 그 구독 · 방의 마지막 보냄(또는 보내는 중) + 60초와 지금 중 늦은 쪽이고,
+--   보내는 중에 선 대기 줄은 그 보냄이 `sent` 로 닫힐 때 보낸 시각 + 60초로 다시 민다(`settle_push_delivery`).
 -- - **이미 읽었으면 안 보낸다** — 잡는 순간(`claim`) 받는 사람이 상대의 마지막 메시지까지 읽었으면 `skipped` 로 접는다.
 --   방이 닫혔거나 구독의 주인이 그 방의 참여자가 아니어도(옮겨 간 endpoint) `skipped` 다.
 -- - **다시 보내기** — 실패는 1분 · 5분 · 30분 · 2시간 뒤에 다시, 다섯 번째 실패에 `gave_up`. 404/410 은 구독을 지운다.
@@ -444,6 +445,18 @@ begin
     set status = 'sent', sent_at = now(), settled_at = now(), claimed_at = null
     where x.id = d.id;
 
+    /*
+      「보낸 뒤 60초」는 **보낸 시각**부터다. 보내는 중에 선 대기 줄은 기한을 잡은 시각(`claimed_at`) + 60초로 받았다 — 보낸
+      시각은 그때 아직 없었다. 그래서 보냄이 닫히는 여기서 같은 구독 · 방의 대기 줄을 보낸 시각 + 60초로 민다(앞으로만,
+      `greatest`). claim 에서 거르는 길보다 단순하다 — 기한이 한 칸에 남아 크론의 「기한이 된 줄이 있나」와 잡는 문이 같은
+      것을 본다. 경쟁: 그 대기 줄은 기한(잡은 시각 + 60초) 전에는 잡히지 않고 송신은 10초 시한 안에 닫히므로, 여기가 먼저 온다.
+      새 줄의 삽입과 이 문이 동시에 커밋되는 틈에서는 민 것을 못 보고 잡은 시각 + 60초가 남는다 — 어긋남은 송신 시간(10초
+      이하)뿐이다.
+    */
+    update public.push_delivery x
+    set due_at = greatest(x.due_at, now() + public.push_room_quiet())
+    where x.subscription_id = d.subscription_id and x.room_id = d.room_id and x.status = 'pending';
+
     update public.push_subscription s set last_success_at = now() where s.id = d.subscription_id;
     return 'sent';
   end if;
@@ -566,7 +579,7 @@ revoke execute on function public.wake_push_dispatch_when_due() from public, ano
 /**
  * 메시지가 섰다 → **받는 사람**(보낸 사람이 아닌 참여자, 떠났으면 없음)의 구독마다 대기 줄. 이미 기다리는 줄이 있으면
  * 안 만든다 — 그 줄이 이 메시지도 나른다. 기한은 그 구독 · 방의 마지막 보냄(보내는 중이면 잡은 시각) + 60초와 지금 중
- * 늦은 쪽이다.
+ * 늦은 쪽이다. 보내는 중이었으면 그 보냄이 닫힐 때 보낸 시각 + 60초로 다시 밀린다(`settle_push_delivery`).
  *
  * 실패를 삼킨다 — 통보는 부속이다. 메시지는 저장돼야 한다.
  */
