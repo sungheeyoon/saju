@@ -9,7 +9,7 @@
 -- `realtime.messages` 는 날마다 파티션이고 파티션은 Realtime 서버가 만든다. 오늘 것이 없으면 `realtime.send` 가 경고만
 -- 남기고 지나가 이 파일이 아무것도 못 잰다 — 그래서 없을 때만 오늘 몫을 세운다(트랜잭션이 되돌린다).
 begin;
-select plan(49);
+select plan(55);
 
 do $$
 begin
@@ -329,6 +329,41 @@ select is(
   (select count(*)::int from pg_temp.heard((select choi from more)) where area = 'requests'),
   1,
   '한 문장의 만료는 사람마다 requests 한 번이다');
+
+-- 크론은 1분마다 돈다(ADR 0155) — 접을 것이 없는 분에는 쓰기도 이벤트도 없어야 매분 빈 소리가 안 난다.
+-- 남은 것을 먼저 다 접고, 그다음 한 번이 아무 줄도 안 남기는지 본다(남의 행과 무관하게 전체를 센다).
+select public.expire_match_requests();
+create temporary table quiet_before as
+select (select count(*) from realtime.messages) as sent,
+       (select count(*) from public.notification) as told,
+       (select string_agg(ctid::text, ',' order by id) from public.match_request) as last_write; -- 한 트랜잭션 안이라 xmin 은 못 가른다 — 고쳐 쓰면 ctid 가 옮는다
+
+select is(public.expire_match_requests(), 0, '접을 것이 없으면 크론은 0 을 낸다');
+
+select is(
+  (select count(*) from realtime.messages) - (select sent from quiet_before),
+  0::bigint,
+  '접을 것이 없는 분에는 realtime.messages 에 줄이 안 생긴다');
+
+select is(
+  (select count(*) from public.notification) - (select told from quiet_before),
+  0::bigint,
+  '접을 것이 없는 분에는 소식도 안 선다');
+
+select is(
+  (select string_agg(ctid::text, ',' order by id) from public.match_request),
+  (select last_write from quiet_before),
+  '접을 것이 없는 분에는 요청 행을 고쳐 쓰지 않는다');
+
+select is(
+  (select schedule || ' ' || command from cron.job where jobname = 'match-request-expiry' and active),
+  '* * * * * select public.expire_match_requests()',
+  '만료 크론은 1분마다 돈다 — 요청 만료가 상대 화면에 1분 안에 선다');
+
+select is(
+  (select count(*)::int from cron.job where jobname = 'match-request-expiry'),
+  1,
+  '만료 크론은 하나다 — 다시 걸어도 둘이 되지 않는다');
 
 -- ---------------------------------------------------------------------------
 -- b. 소식 · 풀이권

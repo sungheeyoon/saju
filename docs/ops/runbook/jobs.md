@@ -55,7 +55,7 @@ group by 1, 2 order by 1, 2;
 ```
 
 서 있는 잡의 원본은 `supabase/migrations/` 의 `cron.schedule` 이고, 운영의 실제는 `select jobname, schedule from cron.job;` 이
-찍는다. 2026-09-30 에 마이그레이션에서 센 것은 여덟이다 — `reading-recovery`(1분) · `match-request-expiry`(매시 7분) ·
+찍는다. 2026-09-30 에 마이그레이션에서 센 것은 여덟이다 — `reading-recovery`(1분) · `match-request-expiry`(1분) ·
 `account-disposal`(매시 23분, G-53) · `report-retention-purge`(매시 47분, ADR 0098) · `cron-watch`(10분, G-42) ·
 `cron-run-retention-purge`(매일 04:37 UTC, 크론 실행 이력 14일, ADR 0138) · `payment-retention-purge`(매일 04:53 UTC) · `audit-export-watch`(매일 06:29 UTC, `docs/ops/runbook/security.md` 「반출 — 매일 S3」). 2026-10-03 에
 `taste-sweep`(5분마다, 매시 1 · 6 · 11 … 분, ADR 0143 — `20261118090000`)이 더해졌다.
